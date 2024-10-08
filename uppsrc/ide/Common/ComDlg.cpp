@@ -86,6 +86,9 @@ void IdeFileIcon0(bool dir, const String& filename, Image& img)
 	if(ext == ".json")
 		img = IdeCommonImg::json();
 	else
+	if(ext == ".aion")
+		img = IdeCommonImg::AI();
+	else
 	if(ext == ".java" || ext == ".class")
 		img = IdeCommonImg::java();
 	else

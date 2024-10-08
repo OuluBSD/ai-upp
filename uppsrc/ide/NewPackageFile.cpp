@@ -27,6 +27,7 @@ NewPackageFileWindow::NewPackageFileWindow()
 	Type("qtf", "U++ rich text file");
 	Type("t", "Translation file");
 	Type("tpp", "Documentation folder");
+	Type("aion", "AI description text file");
 	type.AddSeparator();
 	Type("json", "JSON file");
 	Type("xml", "XML file");

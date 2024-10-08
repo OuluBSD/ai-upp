@@ -179,4 +179,29 @@ struct JsonViewDes : TreeViewDes {
 
 INITIALIZE(JsonViewDes)
 
+struct IdeAIDes : IdeDesigner, ParentCtrl {
+	String       filename;
+	DocEdit      editor;
+	RichTextView preview;
+	Splitter     splitter;
+	TimeCallback delay;
+
+	virtual void GotFocus();
+	virtual String GetFileName() const        { return filename; }
+	virtual void   Save();
+	virtual void   SaveEditPos();
+	virtual void   EditMenu(Bar& menu);
+	virtual Ctrl&  DesignerCtrl()             { return *this; }
+	
+	virtual void   Serialize(Stream& s);
+	
+	void    Preview();
+
+	bool   Load(const char *filename);
+
+	IdeAIDes();
+};
+
+INITIALIZE(IdeAIDes)
+
 #endif

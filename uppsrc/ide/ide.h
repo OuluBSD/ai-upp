@@ -971,6 +971,7 @@ public:
 
 	void      AssistMenu(Bar& menu);
 	void      BrowseMenu(Bar& menu);
+	void      AIMenu(Bar& menu);
 		void  QueryId();
 		void  OpenTopic(const String& topic, const String& create_id, bool before);
 		void  OpenTopic(const String& topic);
@@ -1008,6 +1009,7 @@ public:
 		void  RemoveDs();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
+		void  OpenAITaskDlg();
 
 	void      HelpMenu(Bar& menu);
 	    void  ViewIdeLogFile();

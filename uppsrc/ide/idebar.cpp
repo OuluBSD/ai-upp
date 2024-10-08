@@ -859,11 +859,19 @@ void Ide::AssistMenu(Bar& menu)
 	menu.Add(!designer, AK_ABBR, callback(&editor, &AssistEditor::Abbr));
 }
 
+void Ide::AIMenu(Bar& menu)
+{
+	LTIMESTOP("AIMenu");
+	menu.Add(!designer, AK_GOTOAITASKS, THISBACK(OpenAITaskDlg));
+}
+
 void Ide::BrowseMenu(Bar& menu)
 {
 	LTIMESTOP("BrowseMenu");
 	if(!IsEditorMode()) {
 		if(menu.IsMenuBar()) {
+			AIMenu(menu);
+			menu.MenuSeparator();
 			menu.AddMenu(AK_NAVIGATOR, IdeImg::Navigator(), THISBACK(ToggleNavigator))
 				.Check(editor.IsNavigator())
 				.Enable(!designer);

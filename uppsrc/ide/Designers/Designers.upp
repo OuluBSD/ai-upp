@@ -3,7 +3,8 @@ description "TheIDE - various small(er) designers (Image viewer, QTF editor, ...
 uses
 	HexView,
 	ide/IconDes,
-	ide/Common;
+	ide/Common,
+	AI;
 
 file
 	Designers.h,
@@ -14,5 +15,6 @@ file
 	TreeDes.cpp,
 	Xml.cpp,
 	Json.cpp,
-	md.cpp;
+	md.cpp,
+	AI.cpp;
 

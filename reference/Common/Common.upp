@@ -4,6 +4,7 @@ uses
 	Core;
 
 file
+	Common.aion,
 	Common.cpp;
 
 mainconfig

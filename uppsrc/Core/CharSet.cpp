@@ -2146,6 +2146,12 @@ WString ToAscii(const WString& w)
 	return WString(r);
 }
 
+String ToCap(const char *s, byte charset)
+{
+	String str = FromUnicode(s, charset);
+	return ToUpper(str.Left(1)) + str.Mid(1);
+}
+
 String InitCaps(const char *s, byte charset)
 {
 	return FromUnicode(InitCaps(ToUnicode(s, charset)), charset);

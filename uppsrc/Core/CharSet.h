@@ -226,6 +226,7 @@ WString ToLower(const WString& w);
 WString ToAscii(const WString& w);
 
 String  InitCaps(const char *s, byte charset = CHARSET_DEFAULT);
+String  ToCap(const char *s, byte charset = CHARSET_DEFAULT);
 String  ToUpper(const String& s, byte charset = CHARSET_DEFAULT);
 String  ToLower(const String& s, byte charset = CHARSET_DEFAULT);
 String  ToAscii(const String& s, byte charset = CHARSET_DEFAULT);

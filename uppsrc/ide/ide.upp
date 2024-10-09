@@ -134,7 +134,8 @@ mainconfig
 	"" = "GUI PEAKMEM",
 	"" = "GUI HEAPLOG",
 	"" = "GUI X11",
-	"" = "GUI DEBUGCODE";
+	"" = "GUI DEBUGCODE",
+	"" = "GUI AI";
 
 custom() "",
 	"ASDFASDFASDF",

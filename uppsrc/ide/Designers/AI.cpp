@@ -1,4 +1,6 @@
 #include "Designers.h"
+
+#ifdef flagAI
 #include <AI/AI.h>
 
 struct IdeAIEditPos : Moveable<IdeAIEditPos> {
@@ -147,3 +149,5 @@ INITIALIZER(IdeAIDes)
 	RegisterIdeModule(Single<AIDesModule>());
 	RegisterGlobalConfig("aides-ctrl");
 }
+
+#endif

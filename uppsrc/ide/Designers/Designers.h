@@ -179,6 +179,8 @@ struct JsonViewDes : TreeViewDes {
 
 INITIALIZE(JsonViewDes)
 
+#ifdef flagAI
+
 struct IdeAIDes : IdeDesigner, ParentCtrl {
 	String       filename;
 	DocEdit      editor;
@@ -203,5 +205,7 @@ struct IdeAIDes : IdeDesigner, ParentCtrl {
 };
 
 INITIALIZE(IdeAIDes)
+
+#endif
 
 #endif

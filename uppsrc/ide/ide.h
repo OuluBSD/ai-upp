@@ -1009,7 +1009,9 @@ public:
 		void  RemoveDs();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
+	#ifdef flagAI
 		void  OpenAITaskDlg();
+	#endif
 
 	void      HelpMenu(Bar& menu);
 	    void  ViewIdeLogFile();

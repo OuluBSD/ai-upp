@@ -1,5 +1,23 @@
 description "\3770,0,255";
 
+uses
+	CtrlLib,
+	plugin/openai;
+
+library
+	curl;
+
+library(WIN32) libcurl.dll.a;
+
 file
-	AI.h;
+	AI.h,
+	Task readonly separator,
+	TaskManager.h,
+	TaskManager.cpp,
+	RemoteTask.h,
+	RemoteTask.cpp,
+	CreateInput.cpp,
+	Prompt.h,
+	Prompt.cpp,
+	Common.h;
 

@@ -11,6 +11,9 @@ library(WIN32) libcurl.dll.a;
 
 file
 	AI.h,
+	Ctrl readonly separator,
+	TaskCtrl.h,
+	TaskCtrl.cpp,
 	Task readonly separator,
 	TaskManager.h,
 	TaskManager.cpp,

@@ -656,7 +656,9 @@ public:
 	bool      win_deactivated = false;
 	bool      block_caret = false;
 	bool      bar_branch = true;
-
+	String    openai_token;
+	String    openai_proxy;
+	
 	// Formats editor's code with Ide format parameters
 	void FormatJSON_XML(bool xml);
 	void FormatJSON();

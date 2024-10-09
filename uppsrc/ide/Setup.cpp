@@ -286,6 +286,9 @@ void Ide::SetupFormat() {
 	WithSetupEditorLayout<ParentCtrl> edt;
 	WithSetupIdeLayout<ParentCtrl> ide;
 	WithSetupAssistLayout<ParentCtrl> assist;
+#ifdef flagAI
+	WithSetupAILayout<ParentCtrl> ai;
+#endif
 	WebSearchTab web_search;
 	edt.lineends
 		.Add(LF, "LF")
@@ -309,6 +312,9 @@ void Ide::SetupFormat() {
 	dlg.Add(hlt, "Syntax highlighting");
 	dlg.Add(edt, "Editor");
 	dlg.Add(assist, "Assist");
+#ifdef flagAI
+	dlg.Add(ai, "AI");
+#endif
 	dlg.Add(ide, "IDE");
 	dlg.Add(web_search, "Web search");
 	dlg.WhenClose = dlg.Acceptor(IDEXIT);
@@ -430,6 +436,9 @@ void Ide::SetupFormat() {
 		(assist.no_empty_autocomplete, editor.no_empty_autocomplete)
 		(assist.blk0_header, blk0_header)
 		(assist.std_cpp, LibClangCppVersion)
+		
+		(ai.openai_token, openai_token)
+		(ai.openai_proxy, openai_proxy)
 
 		(ide.showtime, showtime)
 		(ide.show_status_bar, show_status_bar)

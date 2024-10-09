@@ -862,7 +862,9 @@ void Ide::AssistMenu(Bar& menu)
 void Ide::AIMenu(Bar& menu)
 {
 	LTIMESTOP("AIMenu");
+	#ifdef flagAI
 	menu.Add(!designer, AK_GOTOAITASKS, THISBACK(OpenAITaskDlg));
+	#endif
 }
 
 void Ide::BrowseMenu(Bar& menu)

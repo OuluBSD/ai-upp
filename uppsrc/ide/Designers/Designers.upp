@@ -3,8 +3,9 @@ description "TheIDE - various small(er) designers (Image viewer, QTF editor, ...
 uses
 	HexView,
 	ide/IconDes,
-	ide/Common,
-	AI;
+	ide/Common;
+
+uses(AI) AI;
 
 file
 	Designers.h,

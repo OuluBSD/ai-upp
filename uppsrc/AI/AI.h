@@ -8,6 +8,7 @@
 #include "Prompt.h"
 #include "RemoteTask.h"
 #include "TaskManager.h"
+#include "TaskCtrl.h"
 
 
 #endif

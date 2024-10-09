@@ -1,6 +1,8 @@
 #include "ide.h"
 
 #ifdef flagAI
+#include <AI/AI.h>
+
 
 INITBLOCK {
 	RegisterGlobalConfig("AITaskDlg2");
@@ -13,10 +15,8 @@ struct AITaskDlg : TopWindow {
 	
 	void Serialize(Stream& s);
 	
-	// Tasks tab
-	Splitter hsplit, vsplit;
-	ArrayCtrl task_list;
-	DocEdit input, output;
+	TabCtrl tabs;
+	TaskCtrl tasks;
 	
 	Ide* theide = 0;
 	
@@ -26,15 +26,14 @@ struct AITaskDlg : TopWindow {
 };
 
 AITaskDlg::AITaskDlg() {
-	Title("AI");
-	Add(hsplit.SizePos());
-	
-	hsplit.Horz(task_list, vsplit);
-	vsplit.Vert(input, output);
-	
 	Maximize();
 	MaximizeBox();
 	MinimizeBox();
+	Title("AI");
+	
+	Add(tabs.SizePos());
+	tabs.Add(tasks.SizePos(), "Tasks");
+	
 	
 	
 	
@@ -58,6 +57,7 @@ void AITaskDlg::Serialize(Stream& s) {
 
 void Ide::OpenAITaskDlg()
 {
+	TaskMgr::Setup(this);
 	AITaskDlg dlg;
 	LoadFromGlobal(dlg, "AITaskDlg");
 	dlg.theide = this;

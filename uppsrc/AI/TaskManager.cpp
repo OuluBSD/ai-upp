@@ -1,16 +1,29 @@
 #include "AI.h"
+#include <plugin/openai/openai.h>
+#include <ide/ide.h>
 
 
 NAMESPACE_UPP
 
 
-void TaskMgrConfig::Load() {
-	LoadFromFile(*this, ConfigFile("taskmgr.bin"));
-}
+struct TaskMgrConfig {
+	::Ide* ide = 0;
+	bool running = false, stopped = true;
+	int max_tries = 3;
+	openai::OpenAI* instance = 0;
+	
+	typedef TaskMgrConfig CLASSNAME;
+	void Start() {running = true; stopped = false; Thread::Start(THISBACK(Process));}
+	void Stop() {running = false; while (!stopped) Sleep(100);}
+	void Process();
+	
+	void SetupInstance(::Ide* ide);
+	
+	static TaskMgrConfig& Single() {static TaskMgrConfig m; return m;}
+};
 
-void TaskMgrConfig::Store() {
-	StoreToFile(*this, ConfigFile("taskmgr.bin"));
-}
+
+
 
 void TaskMgrConfig::Process() {
 	while (running) {
@@ -26,6 +39,9 @@ void TaskMgrConfig::Process() {
 
 
 
+void TaskMgr::Setup(::Ide* ide) {
+	TaskMgrConfig::Single().SetupInstance(ide);
+}
 
 
 
@@ -325,6 +341,22 @@ TaskRule& TaskRule::ImageVariateTask(bool b) {
 	return *this;
 }
 
+
+
+
+void TaskMgrConfig::SetupInstance(::Ide* ide) {
+	this->ide = ide;
+	
+	if (!instance && !ide->openai_token.IsEmpty())
+		instance = &openai::start(ide->openai_token.Begin());
+	
+	if (instance) {
+		if (!ide->openai_proxy.IsEmpty())
+			instance->setProxy(ide->openai_proxy.Begin());
+		else
+			instance->setProxy("");
+	}
+}
 
 END_UPP_NAMESPACE
 

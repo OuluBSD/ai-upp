@@ -1,6 +1,8 @@
 #ifndef _AI_TaskManager_h_
 #define _AI_TaskManager_h_
 
+struct Ide;
+
 
 NAMESPACE_UPP
 
@@ -48,22 +50,8 @@ struct TaskMgr {
 	template <class T>
 	String MakeName(T& o, const char* name);
 	
-};
-
-struct TaskMgrConfig {
-	String openai_token;
-	bool running = false, stopped = true;
-	int max_tries = 3;
+	static void Setup(::Ide* ide);
 	
-	typedef TaskMgrConfig CLASSNAME;
-	void Load();
-	void Store();
-	void Serialize(Stream& s) {s % openai_token;}
-	void Start() {running = true; stopped = false; Thread::Start(THISBACK(Process));}
-	void Stop() {running = false; while (!stopped) Sleep(100);}
-	void Process();
-	
-	static TaskMgrConfig& Single() {static TaskMgrConfig m; return m;}
 };
 
 

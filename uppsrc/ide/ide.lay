@@ -657,6 +657,13 @@ LAYOUT(SetupIdeLayout, 512, 336)
 	ITEM(Upp::Button, upphub_sel, RightPosZ(4, 20).TopPosZ(312, 19))
 END_LAYOUT
 
+LAYOUT(SetupAILayout, 512, 336)
+	ITEM(Upp::Label, openai_token_txt, SetLabel(t_("OpenAI token")).LeftPosZ(4, 112).TopPosZ(4, 19))
+	ITEM(Upp::EditString, openai_token, LeftPosZ(120, 376).TopPosZ(4, 19))
+	ITEM(Upp::Label, openai_proxy_txt, SetLabel(t_("OpenAI http proxy")).LeftPosZ(4, 112).TopPosZ(28, 19))
+	ITEM(Upp::EditString, openai_proxy, LeftPosZ(120, 376).TopPosZ(28, 19))
+END_LAYOUT
+
 LAYOUT(SetupWebSearchEngineLayout, 564, 84)
 	ITEM(Upp::Label, dv___0, SetLabel(t_("Name")).LeftPosZ(8, 72).TopPosZ(8, 19))
 	ITEM(Upp::Label, dv___1, SetLabel(t_("URI")).LeftPosZ(8, 72).TopPosZ(32, 19))

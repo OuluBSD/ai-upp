@@ -123,7 +123,12 @@ struct AIDesModule : public IdeModule {
 	virtual Image FileIcon(const char *path) {
 		return IsAIFile(path) ? IdeCommonImg::AI() : Null;
 	}
-
+	
+	IdeDesigner *CreateDesigner(Ide *ide, const char *path, byte charset) {
+		TaskMgr::Setup(ide);
+		return CreateDesigner(path, charset);
+	}
+	
 	virtual IdeDesigner *CreateDesigner(const char *path, byte) {
 		if(IsAIFile(path)) {
 			IdeAIDes *d = new IdeAIDes;

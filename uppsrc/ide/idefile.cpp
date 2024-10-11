@@ -512,7 +512,12 @@ void Ide::EditFile0(const String& path, byte charset, int spellcheck_comments, c
 	bool candesigner = !(debugger && !editfile_isfolder && (PathIsEqual(path, posfile[0]) || PathIsEqual(path, posfile[0])))
 	   && editastext.Find(path) < 0 && editashex.Find(path) < 0 && !IsNestReadOnly(editfile) && !replace_in_files;
 	
-	if(candesigner) {
+	if (editassolver) {
+		for(int i = 0; i < GetIdeModuleCount() && !designer; i++)
+			designer = GetIdeModule(i).CreateSolver(this, path, charset);
+	}
+	
+	if(!designer && candesigner) {
 		for(int i = 0; i < GetIdeModuleCount() && !designer; i++)
 			designer = GetIdeModule(i).CreateDesigner(this, path, charset);
 	}
@@ -722,6 +727,17 @@ String GetLayItemId(const String& l)
 	}
 	catch(CParser::Error) {}
 	return Null;
+}
+
+void Ide::EditUsingSolver()
+{
+	editassolver = !editassolver;
+	
+	String path = editfile;
+	byte cs = editor.GetCharset();
+	int sc = editor.GetSpellcheckComments();
+	FlushFile();
+	EditFile0(path, cs, sc);
 }
 
 void Ide::EditAsText()

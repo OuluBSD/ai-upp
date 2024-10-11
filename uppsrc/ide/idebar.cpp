@@ -255,6 +255,12 @@ void Ide::Edit(Bar& menu)
 			    .Help("Edit file");
 			menu.MenuSeparator();
 		}
+		menu.Add(AK_SOLVER, THISBACK(EditUsingSolver))
+			.Check(editassolver)
+			.Key(K_CTRL|K_SHIFT|K_F1)
+			.Help("Edit in solver");
+		menu.MenuSeparator();
+		
 		if(GetFileExt(editfile) == ".t") {
 			if(editastext.Find(editfile) >= 0)
 				menu.Add(AK_DESIGNER, THISBACK(EditUsingDesigner))
@@ -1005,6 +1011,11 @@ void Ide::MainTool(Bar& bar)
 		BrowseMenu(bar);
 		bar.Separator();
 	}
+	bar.Add(AK_SOLVER, THISBACK(EditUsingSolver))
+		.Check(editassolver)
+		.Key(K_CTRL|K_SHIFT|K_F1)
+		.Help("Edit in solver");
+	bar.Separator();
 	bar.Add("Edit as text", IdeImg::EditText(), THISBACK(EditAsText))
 	   .Check(!designer)
 	   .Enable(!editfile_isfolder)

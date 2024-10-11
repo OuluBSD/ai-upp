@@ -60,6 +60,8 @@ struct IdeModule {
 	virtual bool         ParseUsc(CParser&, String&)                              { return false; }
 	virtual Image        FileIcon(const char *filename)                           { return Null; }
 	virtual bool         AcceptsFile(const char *filename)                        { return !IsNull(FileIcon(filename)); }
+	virtual IdeDesigner *CreateSolver(Ide *ide, const char *path, byte charset)   { return CreateSolver(path, charset); }
+	virtual IdeDesigner *CreateSolver(const char *path, byte charset)             { return NULL; }
 	virtual IdeDesigner *CreateDesigner(Ide *ide, const char *path, byte charset) { return CreateDesigner(path, charset); }
 	virtual IdeDesigner *CreateDesigner(const char *path, byte charset)           { return NULL; }
 	virtual void         Serialize(Stream& s) {}

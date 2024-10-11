@@ -4,10 +4,9 @@ uses
 	CtrlLib,
 	plugin/openai;
 
-library
-	curl;
+library(!WIN32) curl;
 
-library(WIN32) libcurl.dll.a;
+library(WIN32) libcurl.lib;
 
 file
 	AI.h,

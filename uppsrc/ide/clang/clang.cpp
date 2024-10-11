@@ -152,6 +152,10 @@ bool Clang::Parse(const String& filename_, const String& content,
 		{ ~filename, ~content, (unsigned)content.GetCount() },
 		{ ~filename2, ~content2, (unsigned)content2.GetCount() },
 	};
+	
+	LOG(filename);
+	LOG(filename2);
+	LOG(cmdline);
 	tu = clang_parseTranslationUnit(index, nullptr, argv, argv.GetCount(),
 	                                options & PARSE_FILE ? nullptr : ufile,
 	                                options & PARSE_FILE ? 0 : (filename2.GetCount() ? 2 : 1),

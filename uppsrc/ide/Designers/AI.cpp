@@ -114,7 +114,8 @@ void SerializeAIDesPos(Stream& s)
 
 bool IsAIFile(const char *path)
 {
-	return ToLower(GetFileExt(path)) == ".aion";
+	String e = ToLower(GetFileExt(path));
+	return e == ".aion" || e == ".cpp" || e == ".c" || e == ".h" || e == ".icpp";
 }
 
 struct AIDesModule : public IdeModule {
@@ -124,12 +125,12 @@ struct AIDesModule : public IdeModule {
 		return IsAIFile(path) ? IdeCommonImg::AI() : Null;
 	}
 	
-	IdeDesigner *CreateDesigner(Ide *ide, const char *path, byte charset) {
+	IdeDesigner *CreateSolver(Ide *ide, const char *path, byte charset) {
 		TaskMgr::Setup(ide);
-		return CreateDesigner(path, charset);
+		return CreateSolver(path, charset);
 	}
 	
-	virtual IdeDesigner *CreateDesigner(const char *path, byte) {
+	virtual IdeDesigner *CreateSolver(const char *path, byte) {
 		if(IsAIFile(path)) {
 			IdeAIDes *d = new IdeAIDes;
 			LoadFromGlobal(*d, "aides-ctrl");

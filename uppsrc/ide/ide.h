@@ -564,6 +564,7 @@ public:
 	ArrayMap<String, FileData> filedata;
 	Index<String> editastext;
 	Index<String> editashex;
+	bool editassolver = false;
 
 	Vector<String> difflru;
 
@@ -832,6 +833,7 @@ public:
 		bool  IsDesignerFile(const String& path);
 		void  DoEditAsText(const String& path);
 		void  EditAsText();
+		void  EditUsingSolver();
 		void  EditAsHex();
 		void  EditUsingDesigner();
 		void  EditMakeTabs()     { editor.MakeTabsOrSpaces(true); }

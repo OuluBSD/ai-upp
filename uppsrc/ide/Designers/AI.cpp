@@ -17,18 +17,16 @@ static VectorMap<String, IdeAIEditPos>& sEPai()
 
 IdeAIDes::IdeAIDes()
 {
-	editor << [=] { delay.KillSet(250, [=] { Preview(); }); };
-	splitter.Horz(editor, preview);
+	code << [=] { delay.KillSet(250, [=] { Preview(); }); };
+	splitter.Horz(code, project);
 	Add(splitter.SizePos());
 	if(TheIde())
-		editor.SetFont(((Ide *)TheIde())->editorfont);
+		code.SetFont(((Ide *)TheIde())->editorfont);
 }
 
 void IdeAIDes::Preview()
 {
-	int sc = preview.GetSb();
-	preview <<= MarkdownConverter().Tables().ToQtf(editor.Get());
-	preview.SetSb(sc);
+	code.Refresh();
 }
 
 void IdeAIDes::SaveEditPos()
@@ -36,8 +34,8 @@ void IdeAIDes::SaveEditPos()
 	if(filename.GetCount()) {
 		IdeAIEditPos& p = sEPai().GetAdd(filename);
 		p.filetime = FileGetTime(filename);;
-		p.undodata = editor.PickUndoData();
-		p.editpos = editor.GetEditPos();
+		p.undodata = code.PickUndoData();
+		p.editpos = code.GetEditPos();
 	}
 }
 
@@ -46,11 +44,11 @@ bool IdeAIDes::Load(const char *filename_)
 	filename = filename_;
 	FileIn in(filename);
 	if(in) {
-		editor.Load(in, CHARSET_UTF8);
+		code.Load(filename, in, CHARSET_UTF8);
 		IdeAIEditPos& ep = sEPai().GetAdd(filename);
 		if(ep.filetime == FileGetTime(filename)) {
-			editor.SetEditPos(ep.editpos);
-			editor.SetPickUndoData(pick(ep.undodata));
+			code.SetEditPos(ep.editpos);
+			code.SetPickUndoData(pick(ep.undodata));
 		}
 		Preview();
 		return true;
@@ -61,7 +59,7 @@ bool IdeAIDes::Load(const char *filename_)
 void IdeAIDes::Save()
 {
 	FileOut out(filename);
-	editor.Save(out, CHARSET_UTF8);
+	code.Save(out, CHARSET_UTF8);
 }
 
 void IdeAIDes::EditMenu(Bar& menu)
@@ -71,11 +69,17 @@ void IdeAIDes::EditMenu(Bar& menu)
 
 void IdeAIDes::GotFocus()
 {
-	editor.SetFocus();
+	code.SetFocus();
 }
 
 void IdeAIDes::Serialize(Stream& s)
 {
+}
+
+void IdeAIDes::SetIde(Ide* ide)
+{
+	this->ide = ide;
+	code.SetIde(ide);
 }
 
 void SerializeAIDesPos(Stream& s)
@@ -127,19 +131,19 @@ struct AIDesModule : public IdeModule {
 	
 	IdeDesigner *CreateSolver(Ide *ide, const char *path, byte charset) {
 		TaskMgr::Setup(ide);
-		return CreateSolver(path, charset);
-	}
-	
-	virtual IdeDesigner *CreateSolver(const char *path, byte) {
 		if(IsAIFile(path)) {
 			IdeAIDes *d = new IdeAIDes;
+			d->SetIde(ide);
 			LoadFromGlobal(*d, "aides-ctrl");
-			if(d->Load(path)) {
+			if(d->Load(path))
 				return d;
-			}
 			delete d;
 			return NULL;
 		}
+		return NULL;
+	}
+	
+	virtual IdeDesigner *CreateSolver(const char *path, byte) {
 		return NULL;
 	}
 

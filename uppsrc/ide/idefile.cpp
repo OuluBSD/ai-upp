@@ -531,15 +531,8 @@ void Ide::EditFile0(const String& path, byte charset, int spellcheck_comments, c
 	
 	ManageDisplayVisibility();
 	
-	if(designer) {
-		editpane.Add(designer->DesignerCtrl().SizePos());
-		designer->DesignerCtrl().SetFocus();
-		designer->RestoreEditPos();
-		if(filetabs)
-			tabs.SetAddFile(editfile);
-		MakeTitle();
-		SetBar();
-		editor.SyncNavigatorShow();
+	if(designer && !editassolver) {
+		EditDesigner();
 		return;
 	}
 
@@ -666,6 +659,20 @@ void Ide::EditFile0(const String& path, byte charset, int spellcheck_comments, c
 		editor.NewFile(reloading);
 		editfile_repo = GetRepoKind(editfile);
 	}
+	if(designer && editassolver) {
+		EditDesigner();
+	}
+}
+
+void Ide::EditDesigner() {
+	editpane.Add(designer->DesignerCtrl().SizePos());
+	designer->DesignerCtrl().SetFocus();
+	designer->RestoreEditPos();
+	if(filetabs)
+		tabs.SetAddFile(editfile);
+	MakeTitle();
+	SetBar();
+	editor.SyncNavigatorShow();
 }
 
 String Ide::IncludesMD5()

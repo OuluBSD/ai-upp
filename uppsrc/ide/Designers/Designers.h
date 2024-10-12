@@ -200,7 +200,6 @@ struct IdeAIDes : IdeDesigner, ParentCtrl {
 	
 	virtual void   Serialize(Stream& s);
 	
-	void    SetIde(Ide* ide);
 	void    Preview();
 
 	bool   Load(const char *filename);

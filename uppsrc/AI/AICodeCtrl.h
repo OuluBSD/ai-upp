@@ -14,6 +14,8 @@ struct AICodeCtrl : Ctrl {
 	int lineh = 24;
 	Font fnt;
 	String content;
+	int sel_line = -1;
+	Color clr_sel;
 	
 	AICodeCtrl();
 	void SetIde(Ide* ide);
@@ -27,6 +29,7 @@ struct AICodeCtrl : Ctrl {
 	void Paint(Draw& draw) override;
 	void Layout() override;
 	void MouseWheel(Point p, int zdelta, dword keyflags) override;
+	void LeftDown(Point p, dword flags) override;
 	static ArrayMap<String,AionFile>& AionFiles();
 };
 

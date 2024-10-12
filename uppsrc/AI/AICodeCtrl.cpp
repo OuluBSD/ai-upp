@@ -9,6 +9,7 @@ AICodeCtrl::AICodeCtrl() {
 	vscroll.Vert();
 	vscroll << [this]{Refresh();};
 	fnt = Arial(lineh);
+	clr_sel = Color(182, 197, 255);
 }
 
 ArrayMap<String,AionFile>& AICodeCtrl::AionFiles() {
@@ -77,6 +78,8 @@ void AICodeCtrl::Paint(Draw& draw) {
 	for(int i = 0; i < srclines.GetCount(); i++) {
 		int y1 = y + lineh;
 		if (y1 >= 0 && y < sz.cy) {
+			if (i == sel_line)
+				draw.DrawRect(Rect(0,y,sz.cx,y1), clr_sel);
 			const String& line = srclines[i];
 			draw.DrawText(0, y, line, fnt, Black());
 		}
@@ -90,6 +93,17 @@ void AICodeCtrl::Layout() {
 
 void AICodeCtrl::MouseWheel(Point p, int zdelta, dword keyflags) {
 	vscroll.Wheel(zdelta);
+}
+
+void AICodeCtrl::LeftDown(Point p, dword flags) {
+	int y = -vscroll;
+	int clicky = p.y - y;
+	int line = clicky / lineh;
+	if (line >= 0 && line < srclines.GetCount())
+		sel_line = line;
+	else
+		sel_line = -1;
+	Refresh();
 }
 
 

@@ -76,12 +76,6 @@ void IdeAIDes::Serialize(Stream& s)
 {
 }
 
-void IdeAIDes::SetIde(Ide* ide)
-{
-	this->ide = ide;
-	code.SetIde(ide);
-}
-
 void SerializeAIDesPos(Stream& s)
 {
 	VectorMap<String, IdeAIEditPos>& filedata = sEPai();
@@ -119,7 +113,7 @@ void SerializeAIDesPos(Stream& s)
 bool IsAIFile(const char *path)
 {
 	String e = ToLower(GetFileExt(path));
-	return e == ".aion" || e == ".cpp" || e == ".c" || e == ".h" || e == ".icpp";
+	return e == ".aion" || e == ".cpp" || e == ".c" || e == ".h" || e == ".hpp" || e == ".icpp";
 }
 
 struct AIDesModule : public IdeModule {
@@ -133,7 +127,6 @@ struct AIDesModule : public IdeModule {
 		TaskMgr::Setup(ide);
 		if(IsAIFile(path)) {
 			IdeAIDes *d = new IdeAIDes;
-			d->SetIde(ide);
 			LoadFromGlobal(*d, "aides-ctrl");
 			if(d->Load(path))
 				return d;

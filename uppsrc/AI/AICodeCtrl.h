@@ -6,7 +6,6 @@ NAMESPACE_UPP
 
 
 struct AICodeCtrl : Ctrl {
-	Ide* ide = 0;
 	String filepath;
 	String aion_path;
 	Vector<String> srclines;
@@ -18,9 +17,9 @@ struct AICodeCtrl : Ctrl {
 	Color clr_sel;
 	
 	AICodeCtrl();
-	void SetIde(Ide* ide);
 	void SetFont(Font fnt);
 	void Load(String filename, Stream& str, byte charset);
+	void ReadNavigator();
 	void Save(Stream& str, byte charset);
 	void SetEditPos(LineEdit::EditPos pos);
 	void SetPickUndoData(LineEdit::UndoData pos);

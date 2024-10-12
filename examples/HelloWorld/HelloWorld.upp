@@ -4,7 +4,8 @@ uses
 	CtrlLib;
 
 file
-	hello.cpp;
+	hello.cpp,
+	HelloWorld.aion;
 
 mainconfig
 	"" = "GUI";

@@ -10,6 +10,13 @@ library(WIN32) libcurl.lib;
 
 file
 	AI.h,
+	Designer readonly separator,
+	AIProjectCtrl.h,
+	AIProjectCtrl.cpp,
+	AICodeCtrl.h,
+	AICodeCtrl.cpp,
+	AionFile.h,
+	AionFile.cpp,
 	Ctrl readonly separator,
 	TaskCtrl.h,
 	TaskCtrl.cpp,

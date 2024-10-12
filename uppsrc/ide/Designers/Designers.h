@@ -181,12 +181,15 @@ INITIALIZE(JsonViewDes)
 
 #ifdef flagAI
 
+#include <AI/AI.h>
+
 struct IdeAIDes : IdeDesigner, ParentCtrl {
-	String       filename;
-	DocEdit      editor;
-	RichTextView preview;
-	Splitter     splitter;
-	TimeCallback delay;
+	Ide*            ide = 0;
+	String			filename;
+	AIProjectCtrl	project;
+	AICodeCtrl		code;
+	Splitter		splitter;
+	TimeCallback	delay;
 
 	virtual void GotFocus();
 	virtual String GetFileName() const        { return filename; }
@@ -197,6 +200,7 @@ struct IdeAIDes : IdeDesigner, ParentCtrl {
 	
 	virtual void   Serialize(Stream& s);
 	
+	void    SetIde(Ide* ide);
 	void    Preview();
 
 	bool   Load(const char *filename);

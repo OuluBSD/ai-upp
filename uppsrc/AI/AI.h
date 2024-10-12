@@ -9,6 +9,9 @@
 #include "RemoteTask.h"
 #include "TaskManager.h"
 #include "TaskCtrl.h"
+#include "AionFile.h"
+#include "AICodeCtrl.h"
+#include "AIProjectCtrl.h"
 
 
 #endif

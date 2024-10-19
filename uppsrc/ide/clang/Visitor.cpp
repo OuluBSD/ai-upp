@@ -219,10 +219,32 @@ ClangVisitor::CXLocation ClangVisitor::GetLocation(CXSourceLocation cxlocation)
 	return p;
 }
 
-SourceLocation ClangVisitor::GetSourceLocation(const CXLocation& p)
+ClangVisitor::CXRange ClangVisitor::GetRange(CXSourceRange cxrange)
+{
+	CXSourceLocation cxlocation0 = clang_getRangeStart(cxrange);
+	CXSourceLocation cxlocation1 = clang_getRangeEnd(cxrange);
+	CXFile file;
+	CXRange r;
+	unsigned line;
+	unsigned column;
+	unsigned offset;
+	clang_getExpansionLocation(cxlocation0, &file, &line, &column, &offset);
+	r.p0.pos.x = int(column - 1);
+	r.p0.pos.y = int(line - 1);
+	r.p0.file = file;
+	clang_getExpansionLocation(cxlocation1, &file, &line, &column, &offset);
+	r.p1.pos.x = int(column - 1);
+	r.p1.pos.y = int(line - 1);
+	r.p1.file = file;
+	return r;
+}
+
+SourceLocation ClangVisitor::GetSourceLocation(const CXLocation& p, const CXRange& r)
 {
 	SourceLocation l;
 	l.pos = p.pos;
+	l.begin = r.p0.pos;
+	l.end = r.p1.pos;
 	int q = cxfile.Find(p.file);
 	if(q >= 0)
 		l.path = cxfile[q];
@@ -236,7 +258,8 @@ SourceLocation ClangVisitor::GetSourceLocation(const CXLocation& p)
 bool ClangVisitor::ProcessNode(CXCursor cursor)
 {
 	CXSourceLocation cxlocation = clang_getCursorLocation(cursor);
-
+	CXSourceRange cxrange = clang_getCursorExtent(cursor);
+	
 	ClangCursorInfo ci(cursor, pp_id);
 
 #ifdef DUMPTREE
@@ -265,12 +288,13 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 
 
 	CXLocation loc = GetLocation(cxlocation);
+	CXRange ran = GetRange(cxrange);
 
 	SourceLocation sl;
 	bool sl_loaded = false;
 	auto LoadSourceLocation = [&] {
 		if(sl_loaded) return;
-		sl = GetSourceLocation(loc);
+		sl = GetSourceLocation(loc, ran);
 		sl_loaded = true;
 	};
 
@@ -309,6 +333,8 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 		r.name = ci.Name();
 		r.type = ci.Type();
 		r.pos = loc.pos;
+		r.begin = ran.p0.pos;
+		r.end = ran.p1.pos;
 		r.id = id;
 		r.pretty = kind == CXCursor_MacroDefinition ? r.name
 	               : CleanupPretty(FetchString(clang_getCursorPrettyPrinted(cursor, pp_pretty)));
@@ -347,7 +373,7 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 	if(!clang_Cursor_isNull(ref)) {
 		LoadSourceLocation();
 		auto AddRef = [&](CXCursor ref) {
-			SourceLocation ref_loc = GetSourceLocation(GetLocation(clang_getCursorLocation(ref)));
+			SourceLocation ref_loc = GetSourceLocation(GetLocation(clang_getCursorLocation(ref)), GetRange(clang_getCursorExtent(ref)));
 			int q = -1;
 			if(findarg(ci.Kind(), CXCursor_CXXBaseSpecifier, CXCursor_TemplateRef) < 0) // suppress template untyping for : WithDlgLayout<TopWindow>
 				q = tfn.Find(ref_loc);

@@ -87,6 +87,8 @@ void AnnotationItem::Serialize(Stream& s)
 {
 	s % kind
 	  % pos
+	  % begin
+	  % end
 	  % definition
 	  % isvirtual
 	  % isstatic

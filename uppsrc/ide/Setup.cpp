@@ -437,9 +437,11 @@ void Ide::SetupFormat() {
 		(assist.blk0_header, blk0_header)
 		(assist.std_cpp, LibClangCppVersion)
 		
+#ifdef flagAI
 		(ai.openai_token, openai_token)
 		(ai.openai_proxy, openai_proxy)
-
+#endif
+	
 		(ide.showtime, showtime)
 		(ide.show_status_bar, show_status_bar)
 		(ide.toolbar_in_row, toolbar_in_row)

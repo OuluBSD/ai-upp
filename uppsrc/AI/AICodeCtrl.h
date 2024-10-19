@@ -19,7 +19,6 @@ struct AICodeCtrl : Ctrl {
 	AICodeCtrl();
 	void SetFont(Font fnt);
 	void Load(String filename, Stream& str, byte charset);
-	void ReadNavigator();
 	void Save(Stream& str, byte charset);
 	void SetEditPos(LineEdit::EditPos pos);
 	void SetPickUndoData(LineEdit::UndoData pos);

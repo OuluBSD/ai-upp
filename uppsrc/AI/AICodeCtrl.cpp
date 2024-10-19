@@ -1,6 +1,7 @@
 #include "AI.h"
 #include <ide/ide.h>
 
+
 NAMESPACE_UPP
 
 
@@ -33,6 +34,9 @@ void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
 	AionFile& aion = AionFiles().GetAdd(aion_path);
 	aion.Load(aion_path);
 	
+	AionSource src(this->filepath, aion);
+	src.Update();
+	
 	String tab_str;
 	tab_str.Cat(' ', ide->editortabsize);
 	
@@ -44,7 +48,6 @@ void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
 	
 	this->content = str.Get(str.GetSize());
 	
-	ReadNavigator();
 }
 
 void AICodeCtrl::Save(Stream& str, byte charset) {
@@ -54,55 +57,6 @@ void AICodeCtrl::Save(Stream& str, byte charset) {
 	aion.Save();
 }
 
-void AICodeCtrl::ReadNavigator() {
-	Ide *ide = TheIde();
-	if(!ide)
-		return;
-	
-	ide->editor.Navigator(true);
-	
-	Array<Navigator::NavItem> nitem;
-	Index<String> nests;
-	auto Nest = [&](const AnnotationItem& m, const String& path) {
-		if(m.nspace == m.nest)
-			return m.nest + "\xff" + path;
-		return m.nest;
-	};
-	
-	for(const AnnotationItem& m : ide->editor.annotations) {
-		Navigator::NavItem& n = nitem.Add();
-		(AnnotationItem&)n = m;
-		n.path = ide->editfile;
-		nests.FindAdd(n.nest = Nest(m, ide->editfile));
-	}
-	SortIndex(nests);
-	DUMPC(nests);
-	
-	/*
-struct AnnotationItem : Moveable<AnnotationItem> {
-	String id; // Upp::Class::Method(Upp::Point p)
-	String name; // Method
-	String type; // for String x, Upp::String, surely valid for variables only
-	String pretty; // void Class::Method(Point p)
-	String nspace; // Upp
-	String uname; // METHOD
-	String nest; // Upp::Class
-	String unest; // UPP::CLASS
-	String bases; // base classes of struct/class
-	Point  pos = Null;
-	int    kind = Null;
-	bool   definition = false;
-	bool   isvirtual = false;
-	bool   isstatic = false;
-	
-	void Serialize(Stream& s);
-};
-*/
-	for(int i = 0; i < nitem.GetCount(); i++) {
-		Navigator::NavItem& item = nitem[i];
-		LOG(i << ": " << item.id << ", type:" << item.type << ", nest: " << item.nest);
-	}
-}
 
 void AICodeCtrl::SetEditPos(LineEdit::EditPos pos) {
 	

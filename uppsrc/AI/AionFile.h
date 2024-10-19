@@ -29,6 +29,22 @@ struct AionFile
 	void Clear();
 	void Jsonize(JsonIO& json);
 	
+private:
+	
+};
+
+class AionSource
+{
+	AionFile& af;
+	String path;
+	
+public:
+	AionSource(String path, AionFile& af) : af(af), path(path) {}
+	
+	void Update();
+	
+	Event<> WhenUpdated;
+	
 };
 
 END_UPP_NAMESPACE

@@ -69,13 +69,13 @@ String GetTypeSpelling(CXCursor cursor);
 
 struct SourceLocation : Moveable<SourceLocation> {
 	String path;
-	Point  pos;
+	Point  pos, begin, end;
 	
 	bool operator==(const SourceLocation& b) const { return path == b.path && pos == b.pos; }
 	bool operator!=(const SourceLocation& b) const { return !operator==(b); }
-	void Serialize(Stream& s)                      { s % path % pos; }
+	void Serialize(Stream& s)                      { s % path % pos % begin % end; }
 	hash_t GetHashValue() const                    { return CombineHash(path, pos); }
-	String ToString() const                        { return path + ": " + AsString(pos); }
+	String ToString() const                        { return path + ": " + AsString(pos) + " (" + AsString(begin) + "-" + AsString(end) + ")"; }
 };
 
 String RedefineMacros();
@@ -145,6 +145,8 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	String unest; // UPP::CLASS
 	String bases; // base classes of struct/class
 	Point  pos = Null;
+	Point  begin = Null;
+	Point  end = Null;
 	int    kind = Null;
 	bool   definition = false;
 	bool   isvirtual = false;
@@ -240,8 +242,13 @@ class ClangVisitor {
 		CXFile file;
 	};
 
+	struct CXRange {
+		CXLocation p0, p1;
+	};
+
 	CXLocation      GetLocation(CXSourceLocation cxlocation);
-	SourceLocation  GetSourceLocation(const CXLocation& p);
+	CXRange         GetRange(CXSourceRange cxrange);
+	SourceLocation  GetSourceLocation(const CXLocation& p, const CXRange& r);
 	
 	bool locals = false;
 

@@ -2,6 +2,10 @@
 #define _AI_Common_h_
 
 
+struct CurrentFileClang;
+struct CurrentFileContext;
+
+
 NAMESPACE_UPP
 
 

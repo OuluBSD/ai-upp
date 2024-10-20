@@ -5,76 +5,106 @@
 NAMESPACE_UPP
 
 
+void AionFile::PostSave() {
+	if (!post_saving) {
+		post_saving = true;
+		PostCallback(THISBACK(Save));
+	}
+}
+
 void AionFile::Clear() {
-	map.Clear();
+	source_files.Clear();
 }
 
 void AionFile::Load(String path) {
 	this->path = path;
 	Clear();
-	if (FileExists(path))
+	if (FileExists(path)) {
+		lock.EnterWrite();
 		LoadFromJsonFile(*this, path);
+		lock.LeaveWrite();
+	}
 }
 
 void AionFile::Save() {
-	if (!path.IsEmpty())
+	post_saving = false;
+	if (!path.IsEmpty()) {
+		lock.EnterWrite();
 		StoreAsJsonFile(*this, path);
+		lock.LeaveWrite();
+	}
 }
 
 void AionFile::Jsonize(JsonIO& json) {
-	json	("map", map)
+	json	("source_files", source_files)
 			;
 }
 
-void AionStatementRange::Jsonize(JsonIO& json) {
-	
-}
-
-void AionNode::Jsonize(JsonIO& json) {
-	json	("ranges", ranges)
-			;
-}
-
-void AionSource::Update() {
-	String content = LoadFile(path);
-	
-	ArrayMap<String, FileAnnotation>& x = CodeIndex();
-	int i = x.Find(path);
+String& AionFile::RealizePathString(const String& path) {
+	lock.EnterRead();
+	int i = source_files.Find(path);
 	if (i >= 0) {
-		FileAnnotation& f = x[i];
-		
-		String txt = LoadFile(path);
-		Vector<String> lines = Split(txt, "\n", false);
-		
-		for(int i = 0; i < f.items.GetCount(); i++) {
-			const auto& item = f.items[i];
-			LOG(i << ": " << item.pos << ": " << item.id << ", type:" << item.type << ", nest: " << item.nest);
-			
-			String item_txt;
-			for (int l = item.begin.y; l <= item.end.y; l++) {
-				if (l < 0 || l >= lines.GetCount())
-					continue;
-				const String& line = lines[l];
-				int begin = 0, end = line.GetCount();
-				if (l == item.begin.y)
-					begin = item.begin.x;
-				else if (l == item.end.y)
-					end = min(end, item.end.x);
-				
-				if (!item_txt.IsEmpty())
-					item_txt.Cat('\n');
-				item_txt << line.Mid(begin, end-begin);
-			}
-			LOG(item_txt);
-		}
+		String& o = source_files[i];
+		lock.LeaveRead();
+		return o;
 	}
-	
-	// Add the task inside CurrentFileThread() loop
-	// TODO
-	
-	// Wait until the task is done (all add Proxy(WhenUpdated) cb to CurrentFileThread)
-	
-	WhenUpdated();
+	lock.LeaveRead();
+	lock.EnterWrite();
+	String& o = source_files.Add(path);
+	lock.LeaveWrite();
+	return o;
+}
+
+void AionFile::Store(String path, FileAnnotation& f) {
+	String json = StoreAsString((AiFileInfo&)f);
+	RealizePathString(path) = json;
+	PostSave();
+}
+
+void AionFile::Load(String path, FileAnnotation& f) {
+	String json = RealizePathString(path);
+	if (!json.IsEmpty())
+		LoadFromString((AiFileInfo&)f, json);
+}
+
+String AionIndex::ResolveAionFilePath(String path) {
+	Vector<String> parts = Split(GetFileDirectory(path), DIR_SEPS);
+	for(int i = 0; i < parts.GetCount(); i++) {
+		int c = parts.GetCount()-i;
+		if (!c) continue;
+		String s;
+		for(int j = 0; j < c; j++) {
+			if (!s.IsEmpty()) s << DIR_SEPS;
+			s << parts[j];
+		}
+		String upp_path = s + DIR_SEPS + parts[c-1] + ".upp";
+		if (!FileExists(upp_path))
+			continue;
+		s << DIR_SEPS << "AI.json";
+		return s;
+	}
+	return AppendFileName(GetFileDirectory(path), "AI.json");
+}
+
+AionFile& AionIndex::ResolveFile(String path) {
+	String aion_path = ResolveAionFilePath(path);
+	lock.EnterRead();
+	int i = files.Find(aion_path);
+	if (i >= 0) {
+		AionFile& f = files[i];
+		lock.LeaveRead();
+		return f;
+	}
+	lock.LeaveRead();
+	lock.EnterWrite();
+	AionFile& f = files.Add(aion_path);
+	f.path = aion_path;
+	lock.LeaveWrite();
+	return f;
+}
+
+AionIndex& AiIndex() {
+	return Single<AionIndex>();
 }
 
 END_UPP_NAMESPACE

@@ -11,6 +11,7 @@ AICodeCtrl::AICodeCtrl() {
 	vscroll << [this]{Refresh();};
 	fnt = Arial(lineh);
 	clr_sel = Color(182, 197, 255);
+	clr_ann = Color(255, 197, 182);
 }
 
 ArrayMap<String,AionFile>& AICodeCtrl::AionFiles() {
@@ -26,16 +27,16 @@ void AICodeCtrl::SetFont(Font fnt) {
 
 void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
 	Ide* ide = TheIde();
-	this->filepath = filename;
+	this->filepath = NormalizePath(filename);
 	String dir = GetFileDirectory(filename);
 	String pkg_name = GetFileTitle(dir.Left(dir.GetCount()-1));
-	this->aion_path = AppendFileName(dir, pkg_name + ".aion");
+	this->aion_path = AppendFileName(dir, "AI.json");
 	
 	AionFile& aion = AionFiles().GetAdd(aion_path);
 	aion.Load(aion_path);
 	
-	AionSource src(this->filepath, aion);
-	src.Update();
+	//AionSource src(this->filepath, aion);
+	//src.Update();
 	
 	String tab_str;
 	tab_str.Cat(' ', ide->editortabsize);
@@ -47,6 +48,37 @@ void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
 	vscroll.SetTotal(srclines.GetCount() * lineh);
 	
 	this->content = str.Get(str.GetSize());
+	
+	ArrayMap<String, FileAnnotation>& x = CodeIndex();
+	int i = x.Find(this->filepath);
+	if (i >= 0) {
+		FileAnnotation& f = x[i];
+		
+		//String txt = LoadFile(this->filepath);
+		//Vector<String> lines = Split(txt, "\n", false);
+		
+		for(int i = 0; i < f.ai_items.GetCount(); i++) {
+			const auto& item = f.ai_items[i];
+			LOG(i << ": " << item.pos << ": " << item.id << ", type:" << item.type << ", nest: " << item.nest);
+			
+			/*String item_txt;
+			for (int l = item.begin.y; l <= item.end.y; l++) {
+				if (l < 0 || l >= lines.GetCount())
+					continue;
+				const String& line = lines[l];
+				int begin = 0, end = line.GetCount();
+				if (l == item.begin.y)
+					begin = item.begin.x;
+				else if (l == item.end.y)
+					end = min(end, item.end.x);
+				
+				if (!item_txt.IsEmpty())
+					item_txt.Cat('\n');
+				item_txt << line.Mid(begin, end-begin);
+			}
+			LOG(item_txt);*/
+		}
+	}
 	
 }
 
@@ -83,6 +115,8 @@ void AICodeCtrl::Paint(Draw& draw) {
 		if (y1 >= 0 && y < sz.cy) {
 			if (i == sel_line)
 				draw.DrawRect(Rect(0,y,sz.cx,y1), clr_sel);
+			else if (sel_ann && i >= sel_ann->begin.y && i <= sel_ann->end.y)
+				draw.DrawRect(Rect(0,y,sz.cx,y1), clr_ann);
 			const String& line = srclines[i];
 			draw.DrawText(0, y, line, fnt, Black());
 		}
@@ -106,7 +140,24 @@ void AICodeCtrl::LeftDown(Point p, dword flags) {
 		sel_line = line;
 	else
 		sel_line = -1;
+	SetSelectedAnnotationFromLine();
 	Refresh();
+}
+
+void AICodeCtrl::SetSelectedAnnotationFromLine() {
+	ArrayMap<String, FileAnnotation>& x = CodeIndex();
+	int i = x.Find(this->filepath);
+	sel_ann = 0;
+	if (i >= 0) {
+		FileAnnotation& f = x[i];
+		for(int i = 0; i < f.ai_items.GetCount(); i++) {
+			auto& item = f.ai_items[i];
+			if (sel_line >= item.begin.y && sel_line <= item.end.y) {
+				sel_ann = &item;
+				break;
+			}
+		}
+	}
 }
 
 

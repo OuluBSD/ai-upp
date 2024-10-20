@@ -509,3 +509,49 @@ String MakeDefinition(const AnnotationItem& m)
 {
 	return MakeDefinition(m, GetClass(m));
 }
+
+void AnnotationItem::operator=(const AnnotationItem& b) {
+	id = b.id;
+	name = b.name;
+	type = b.type;
+	pretty = b.pretty;
+	nspace = b.nspace;
+	uname = b.uname;
+	nest = b.nest;
+	unest = b.unest;
+	bases = b.bases;
+	pos = b.pos;
+	begin = b.begin;
+	end = b.end;
+	kind = b.kind;
+	definition = b.definition;
+	isvirtual = b.isvirtual;
+	isstatic = b.isstatic;
+}
+
+bool AnnotationItem::IsSameContent(const AnnotationItem& b) const {
+	return	id == b.id &&
+			name == b.name &&
+			type == b.type &&
+			pretty == b.pretty &&
+			nspace == b.nspace &&
+			uname == b.uname &&
+			nest == b.nest &&
+			unest == b.unest &&
+			bases == b.bases &&
+			kind == b.kind &&
+			definition == b.definition &&
+			isvirtual == b.isvirtual &&
+			isstatic == b.isstatic;
+}
+
+bool AnnotationItem::operator==(const AnnotationItem& b) const {
+	return	IsSameContent(b) &&
+			pos == b.pos &&
+			begin == b.begin &&
+			end == b.end;
+}
+
+bool AnnotationItem::IsLineAreaPartialMatch(const AnnotationItem& b) const {
+	return begin.y == b.begin.y && end.y == b.end.y;
+}

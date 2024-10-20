@@ -62,6 +62,7 @@ void DirSel(EditField& f, FrameRight<Button>& b)
 void IdeFileIcon0(bool dir, const String& filename, Image& img)
 {
 	if(dir) return;
+	String name = GetFileName(filename);
 	String ext = ToLower(GetFileExt(filename));
 	for(int i = 0; i < GetIdeModuleCount(); i++) {
 		Image m = GetIdeModule(i).FileIcon(filename);
@@ -71,6 +72,9 @@ void IdeFileIcon0(bool dir, const String& filename, Image& img)
 		}
 	}
 	
+	if(name == "AI.json")
+		img = IdeCommonImg::AI();
+	else
 	if(ext == ".html")
 		img = IdeCommonImg::html();
 	else
@@ -85,9 +89,6 @@ void IdeFileIcon0(bool dir, const String& filename, Image& img)
 	else
 	if(ext == ".json")
 		img = IdeCommonImg::json();
-	else
-	if(ext == ".aion")
-		img = IdeCommonImg::AI();
 	else
 	if(ext == ".java" || ext == ".class")
 		img = IdeCommonImg::java();

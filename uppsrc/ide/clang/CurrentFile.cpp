@@ -1,4 +1,5 @@
 #include "clang.h"
+#include <AI/AI.h>
 
 #define LLOG(x) // LOG(x)
 
@@ -116,7 +117,11 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.items = pick(f.items);
 			fa.refs = pick(f.refs);
 			fa.time = Time::Low();
-			CodeIndex().GetAdd(NormalizePath(cfc.parsed_file.real_filename)) = pick(fa);
+			String path = NormalizePath(cfc.parsed_file.real_filename);
+			AionFile& af = AiIndex().ResolveFile(path);
+			af.Load(path, fa);
+			fa.UpdateLinks();
+			CodeIndex().GetAdd(path) = pick(fa);
 		}
 	});
 };

@@ -112,8 +112,9 @@ void SerializeAIDesPos(Stream& s)
 
 bool IsAIFile(const char *path)
 {
+	String n = GetFileName(path);
 	String e = ToLower(GetFileExt(path));
-	return e == ".aion" || e == ".cpp" || e == ".c" || e == ".h" || e == ".hpp" || e == ".icpp";
+	return n == "AI.json" || e == ".cpp" || e == ".c" || e == ".h" || e == ".hpp" || e == ".icpp";
 }
 
 struct AIDesModule : public IdeModule {
@@ -123,6 +124,10 @@ struct AIDesModule : public IdeModule {
 		return IsAIFile(path) ? IdeCommonImg::AI() : Null;
 	}
 	
+	virtual bool         AcceptsFile(const char *path) {
+		return GetFileName(path) == "AI.json";
+	}
+
 	IdeDesigner *CreateSolver(Ide *ide, const char *path, byte charset) {
 		TaskMgr::Setup(ide);
 		if(IsAIFile(path)) {

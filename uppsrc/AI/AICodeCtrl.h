@@ -2,6 +2,9 @@
 #define _AI_AICodeCtrl_h_
 
 
+struct AiAnnotationItem;
+
+
 NAMESPACE_UPP
 
 
@@ -14,7 +17,8 @@ struct AICodeCtrl : Ctrl {
 	Font fnt;
 	String content;
 	int sel_line = -1;
-	Color clr_sel;
+	AiAnnotationItem* sel_ann = 0;
+	Color clr_sel, clr_ann;
 	
 	AICodeCtrl();
 	void SetFont(Font fnt);
@@ -24,6 +28,7 @@ struct AICodeCtrl : Ctrl {
 	void SetPickUndoData(LineEdit::UndoData pos);
 	LineEdit::UndoData PickUndoData();
 	LineEdit::EditPos GetEditPos();
+	void SetSelectedAnnotationFromLine();
 	void Paint(Draw& draw) override;
 	void Layout() override;
 	void MouseWheel(Point p, int zdelta, dword keyflags) override;

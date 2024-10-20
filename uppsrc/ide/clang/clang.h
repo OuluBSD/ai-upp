@@ -153,6 +153,10 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	bool   isstatic = false;
 	
 	void Serialize(Stream& s);
+	void operator=(const AnnotationItem& b);
+	bool operator==(const AnnotationItem& b) const;
+	bool IsSameContent(const AnnotationItem& b) const;
+	bool IsLineAreaPartialMatch(const AnnotationItem& b) const;
 };
 
 String GetClass(const AnnotationItem& m);
@@ -292,6 +296,20 @@ struct MasterSourceCacheRecord : Moveable<MasterSourceCacheRecord> {
 const VectorMap<String, Time>& FindMasterSourceCached(PPInfo& ppi, const Workspace& wspc, const String& header_file,
                                                       VectorMap<String, MasterSourceCacheRecord>& cache);
 
+struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
+	String dummy;
+	AnnotationItem* linked = 0;
+	
+	void Serialize(Stream& s);
+};
+
+struct AiFileInfo : Moveable<AiFileInfo> {
+	Vector<AiAnnotationItem> ai_items;
+	
+	
+	void Serialize(Stream& s);
+};
+
 struct FileAnnotation0 {
 	String defines = "<not_loaded>";
 	String includes;
@@ -299,8 +317,9 @@ struct FileAnnotation0 {
 	Time   time = Time::Low();
 };
 
-struct FileAnnotation : FileAnnotation0, CppFileInfo {
+struct FileAnnotation : AiFileInfo, FileAnnotation0, CppFileInfo {
 	void Serialize(Stream& s);
+	void UpdateLinks();
 };
 
 ArrayMap<String, FileAnnotation>& CodeIndex();

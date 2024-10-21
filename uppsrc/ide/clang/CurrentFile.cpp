@@ -118,9 +118,11 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.refs = pick(f.refs);
 			fa.time = Time::Low();
 			String path = NormalizePath(cfc.parsed_file.real_filename);
+#ifdef flagAI
 			AionFile& af = AiIndex().ResolveFile(path);
 			af.Load(path, fa);
 			fa.UpdateLinks();
+#endif
 			CodeIndex().GetAdd(path) = pick(fa);
 		}
 	});

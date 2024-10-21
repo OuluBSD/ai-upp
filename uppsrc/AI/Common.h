@@ -58,6 +58,34 @@ struct GenericPromptArgs {
 };
 
 
+
+
+struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
+	struct Comment : Moveable<Comment> {
+		int rel_line = -1;
+		hash_t line_hash = 0;
+		String txt;
+		//void Serialize(Stream& s);
+		void Jsonize(JsonIO& json);
+	};
+	Array<Comment> comments;
+	
+	void RemoveCommentLine(int rel_line);
+	Comment* FindComment(int rel_line);
+	//void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
+};
+
+struct AiFileInfo : Moveable<AiFileInfo> {
+	Array<AiAnnotationItem> ai_items;
+	
+	
+	//void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
+	void UpdateLinks(FileAnnotation& ann);
+};
+
+
 END_UPP_NAMESPACE
 
 #endif

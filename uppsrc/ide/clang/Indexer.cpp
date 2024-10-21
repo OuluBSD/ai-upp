@@ -269,9 +269,11 @@ void Indexer::IndexerThread()
 				f.master_file = job.master_files.Get(path, Null);
 				LLOG("Storing " << path);
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
+#ifdef flagAI
 				AionFile& af = AiIndex().ResolveFile(path);
 				f.UpdateLinks();
 				af.Store(path, f);
+#endif
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
 			}
@@ -441,9 +443,11 @@ void Indexer::SchedulerThread()
 							if(LoadFromString(lf, h)) {
 								LTIMING("GuiLock 2");
 								GuiLock __;
+#ifdef flagAI
 								AionFile& af = AiIndex().ResolveFile(path);
 								af.Load(path, lf);
 								lf.UpdateLinks();
+#endif
 								f = lf;
 								CodeIndex().GetAdd(path) = pick(lf);
 							}

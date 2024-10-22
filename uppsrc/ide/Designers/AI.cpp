@@ -4,8 +4,8 @@
 #include <AI/AI.h>
 
 struct IdeAIEditPos : Moveable<IdeAIEditPos> {
-	Time               filetime = Null;
-	LineEdit::EditPos  editpos;
+	Time filetime = Null;
+	LineEdit::EditPos editpos;
 	LineEdit::UndoData undodata;
 };
 
@@ -21,25 +21,23 @@ IdeAIDes::IdeAIDes()
 	splitter.Horz(code, project);
 	Add(splitter.SizePos());
 	if(TheIde())
-		code.SetFont(((Ide *)TheIde())->editorfont);
+		code.SetFont(((Ide*)TheIde())->editorfont);
 }
 
-void IdeAIDes::Preview()
-{
-	code.Refresh();
-}
+void IdeAIDes::Preview() { code.Refresh(); }
 
 void IdeAIDes::SaveEditPos()
 {
 	if(filename.GetCount()) {
 		IdeAIEditPos& p = sEPai().GetAdd(filename);
-		p.filetime = FileGetTime(filename);;
+		p.filetime = FileGetTime(filename);
+		;
 		p.undodata = code.PickUndoData();
 		p.editpos = code.GetEditPos();
 	}
 }
 
-bool IdeAIDes::Load(const char *filename_)
+bool IdeAIDes::Load(const char* filename_)
 {
 	filename = filename_;
 	FileIn in(filename);
@@ -64,17 +62,12 @@ void IdeAIDes::Save()
 
 void IdeAIDes::EditMenu(Bar& menu)
 {
-//	EditTools(menu);
+	//	EditTools(menu);
 }
 
-void IdeAIDes::GotFocus()
-{
-	code.SetFocus();
-}
+void IdeAIDes::GotFocus() { code.SetFocus(); }
 
-void IdeAIDes::Serialize(Stream& s)
-{
-}
+void IdeAIDes::Serialize(Stream& s) {}
 
 void SerializeAIDesPos(Stream& s)
 {
@@ -102,7 +95,8 @@ void SerializeAIDesPos(Stream& s)
 		filedata.Clear();
 		for(;;) {
 			s % fn;
-			if(fn.IsEmpty()) break;
+			if(fn.IsEmpty())
+				break;
 			IdeAIEditPos& ep = filedata.GetAdd(fn);
 			s % ep.filetime;
 			s % ep.editpos;
@@ -110,28 +104,29 @@ void SerializeAIDesPos(Stream& s)
 	}
 }
 
-bool IsAIFile(const char *path)
+bool IsAIFile(const char* path)
 {
 	String n = GetFileName(path);
 	String e = ToLower(GetFileExt(path));
-	return n == "AI.json" || e == ".cpp" || e == ".c" || e == ".h" || e == ".hpp" || e == ".icpp";
+	return n == "AI.json" || e == ".cpp" || e == ".c" || e == ".h" || e == ".hpp" ||
+	       e == ".icpp";
 }
 
 struct AIDesModule : public IdeModule {
-	virtual String       GetID() { return "AIDesModule"; }
+	virtual String GetID() { return "AIDesModule"; }
 
-	virtual Image FileIcon(const char *path) {
+	virtual Image FileIcon(const char* path)
+	{
 		return IsAIFile(path) ? IdeCommonImg::AI() : Null;
 	}
-	
-	virtual bool         AcceptsFile(const char *path) {
-		return GetFileName(path) == "AI.json";
-	}
 
-	IdeDesigner *CreateSolver(Ide *ide, const char *path, byte charset) {
+	virtual bool AcceptsFile(const char* path) { return GetFileName(path) == "AI.json"; }
+
+	IdeDesigner* CreateSolver(Ide* ide, const char* path, byte charset)
+	{
 		TaskMgr::Setup(ide);
 		if(IsAIFile(path)) {
-			IdeAIDes *d = new IdeAIDes;
+			IdeAIDes* d = new IdeAIDes;
 			LoadFromGlobal(*d, "aides-ctrl");
 			if(d->Load(path))
 				return d;
@@ -140,12 +135,11 @@ struct AIDesModule : public IdeModule {
 		}
 		return NULL;
 	}
-	
-	virtual IdeDesigner *CreateSolver(const char *path, byte) {
-		return NULL;
-	}
 
-	virtual void Serialize(Stream& s) {
+	virtual IdeDesigner* CreateSolver(const char* path, byte) { return NULL; }
+
+	virtual void Serialize(Stream& s)
+	{
 		int version = 0;
 		s / version;
 		SerializeAIDesPos(s);

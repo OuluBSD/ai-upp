@@ -1,19 +1,17 @@
 #ifndef _AI_AICodeCtrl_h_
 #define _AI_AICodeCtrl_h_
 
-
 struct AiAnnotationItem;
-
+struct AiFileInfo;
 
 NAMESPACE_UPP
 
-
 struct AICodeCtrl : ParentCtrl {
-	SplitterFrame	navigator;
-	Splitter		split;
-	CodeEditor		editor;
-	ArrayCtrl		itemlist, commentlist, datalist;
-	
+	SplitterFrame navigator;
+	Splitter split;
+	CodeEditor editor;
+	ArrayCtrl itemlist, commentlist, datalist;
+
 	String filepath;
 	String aion_path;
 	int lineh = 24;
@@ -24,8 +22,8 @@ struct AICodeCtrl : ParentCtrl {
 	AiFileInfo* sel_f = 0;
 	Color clr_sel, clr_ann;
 	byte charset = 0;
-	Vector<int>		editor_to_line, line_to_editor, comment_to_line;
-	
+	Vector<int> editor_to_line, line_to_editor, comment_to_line;
+
 	typedef AICodeCtrl CLASSNAME;
 	AICodeCtrl();
 	void SetFont(Font fnt);
@@ -42,16 +40,10 @@ struct AICodeCtrl : ParentCtrl {
 	void AddComment();
 	void RemoveComment();
 	void UpdateEditor();
-	//void Paint(Draw& draw) override;
-	//void Layout() override;
-	//void MouseWheel(Point p, int zdelta, dword keyflags) override;
-	//void LeftDown(Point p, dword flags) override;
-	//void RightDown(Point p, dword flags) override;
-	static ArrayMap<String,AionFile>& AionFiles();
+	void MakeAiComments();
+	static ArrayMap<String, AionFile>& AionFiles();
 };
 
-
 END_UPP_NAMESPACE
-
 
 #endif

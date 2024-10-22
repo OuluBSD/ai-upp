@@ -11,22 +11,24 @@ NAMESPACE_UPP
 struct AionFile
 {
 	typedef AionFile CLASSNAME;
-	bool post_saving = false;
-	String path;
-	ArrayMap<String, String> source_files;
-	RWMutex lock;
+	ArrayMap<String, AiFileInfo> source_files;
 	
-	void Load(String path);
+	void SetPath(String path);
+	void Load();
 	void Save();
 	void Clear();
 	void PostSave();
 	void Jsonize(JsonIO& json);
-	
-	void Store(String path, FileAnnotation& f);
-	void Load(String path, FileAnnotation& f);
+	//void Store(String path, FileAnnotation& f);
+	//void Load(String path, FileAnnotation& f);
+	AiFileInfo& RealizePath(const String& path);
+	bool IsEmpty() const {return source_files.IsEmpty();}
 	
 private:
-	String& RealizePathString(const String& path);
+	bool post_saving = false;
+	String path, dir;
+	RWMutex lock;
+	
 	
 };
 
@@ -36,7 +38,9 @@ struct AionIndex {
 	
 	String ResolveAionFilePath(String path);
 	AionFile& ResolveFile(String path);
-	
+	AiFileInfo& ResolveFileInfo(String path);
+	void Load(const String& path, FileAnnotation& fa);
+	void Store(const String& path, FileAnnotation& fa);
 };
 
 AionIndex& AiIndex();

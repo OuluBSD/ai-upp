@@ -6,12 +6,14 @@ NAMESPACE_UPP
 
 
 AICodeCtrl::AICodeCtrl() {
-	AddFrame(vscroll);
-	vscroll.Vert();
-	vscroll << [this]{Refresh();};
-	fnt = Arial(lineh);
-	clr_sel = Color(182, 197, 255);
-	clr_ann = Color(255, 197, 182);
+	Add(editor.SizePos());
+	AddFrame(navigator.Left(split, 330));
+	split.Vert() << itemlist << commentlist << datalist;
+	
+	editor.Highlight("cpp");
+	editor.SetReadOnly();
+	
+	editor.WhenBar << THISBACK(ContextMenu);
 }
 
 ArrayMap<String,AionFile>& AICodeCtrl::AionFiles() {
@@ -20,9 +22,7 @@ ArrayMap<String,AionFile>& AICodeCtrl::AionFiles() {
 }
 
 void AICodeCtrl::SetFont(Font fnt) {
-	this->fnt = fnt;
-	lineh = fnt.GetHeight() * 5 / 4;
-	vscroll.SetLine(lineh);
+	editor.SetFont(fnt);
 }
 
 void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
@@ -33,60 +33,75 @@ void AICodeCtrl::Load(String filename, Stream& str, byte charset) {
 	this->aion_path = AppendFileName(dir, "AI.json");
 	
 	AionFile& aion = AionFiles().GetAdd(aion_path);
-	aion.Load(aion_path);
-	
-	//AionSource src(this->filepath, aion);
-	//src.Update();
-	
-	String tab_str;
-	tab_str.Cat(' ', ide->editortabsize);
-	
-	String file_content = LoadFile(filename);
-	file_content.Replace("\r\n","\n");
-	file_content.Replace("\t",tab_str);
-	srclines = Split(file_content, "\n", false);
-	vscroll.SetTotal(srclines.GetCount() * lineh);
+	aion.SetPath(aion_path);
+	aion.Load();
 	
 	this->content = str.Get(str.GetSize());
+	this->charset = charset;
 	
-	ArrayMap<String, FileAnnotation>& x = CodeIndex();
-	int i = x.Find(this->filepath);
-	if (i >= 0) {
-		FileAnnotation& f = x[i];
-		
-		//String txt = LoadFile(this->filepath);
-		//Vector<String> lines = Split(txt, "\n", false);
-		
-		for(int i = 0; i < f.ai_items.GetCount(); i++) {
-			const auto& item = f.ai_items[i];
-			LOG(i << ": " << item.pos << ": " << item.id << ", type:" << item.type << ", nest: " << item.nest);
-			
-			/*String item_txt;
-			for (int l = item.begin.y; l <= item.end.y; l++) {
-				if (l < 0 || l >= lines.GetCount())
-					continue;
-				const String& line = lines[l];
-				int begin = 0, end = line.GetCount();
-				if (l == item.begin.y)
-					begin = item.begin.x;
-				else if (l == item.end.y)
-					end = min(end, item.end.x);
-				
-				if (!item_txt.IsEmpty())
-					item_txt.Cat('\n');
-				item_txt << line.Mid(begin, end-begin);
+	UpdateEditor();
+}
+
+void AICodeCtrl::UpdateEditor() {
+	Vector<String> lines = Split(this->content, "\n", false);
+	AiFileInfo& f = AiIndex().ResolveFileInfo(this->filepath);
+	
+	editor_to_line.SetCount(0);
+	line_to_editor.SetCount(0);
+	comment_to_line.SetCount(0);
+	editor_to_line.SetCount(lines.GetCount());
+	comment_to_line.SetCount(lines.GetCount(), -1);
+	for(int i = 0; i < editor_to_line.GetCount(); i++) editor_to_line[i] = i;
+	
+	{
+		struct Item : Moveable<Item> {
+			String txt;
+			int line;
+			bool operator()(const Item& a, const Item& b) const {return a.line > b.line;} // in reverse because of simple insertion method
+		};
+		Vector<Item> items;
+		for(const AiAnnotationItem& item : f.ai_items) {
+			for (const AiAnnotationItem::Comment& c : item.comments) {
+				Item& it = items.Add();
+				it.line = item.pos.y + c.rel_line;
+				it.txt = c.txt;
 			}
-			LOG(item_txt);*/
+		}
+		
+		Sort(items, Item());
+		
+		for (const Item& it : items) {
+			if (it.line < 0 || it.line >= lines.GetCount())
+				continue;
+			
+			String spaces;
+			const String& line = lines[it.line];
+			for(int i = 0; i < line.GetCount(); i++) {
+				int chr = line[i];
+				if (!IsSpace(chr)) break;
+				spaces.Cat(chr);
+			}
+			String insert_line = spaces + "/// " + it.txt;
+			lines.Insert(it.line, insert_line);
+			editor_to_line.Insert(it.line, -1);
+			comment_to_line.Insert(it.line, it.line);
 		}
 	}
+	line_to_editor.SetCount(lines.GetCount(),-1);
+	for(int i = 0; i < editor_to_line.GetCount(); i++) {
+		int l = editor_to_line[i];
+		if (l >= 0)
+			line_to_editor[l] = i;
+	}
 	
+	String s = Join(lines, "\n");
+	editor.Set(s, charset);
 }
 
 void AICodeCtrl::Save(Stream& str, byte charset) {
 	str.Put(this->content);
-	
-	AionFile& aion = AionFiles().GetAdd(aion_path);
-	aion.Save();
+	//AionFile& aion = AionFiles().GetAdd(aion_path);
+	//aion.Save();
 }
 
 
@@ -106,17 +121,28 @@ LineEdit::EditPos AICodeCtrl::GetEditPos() {
 	return LineEdit::EditPos();
 }
 
+#if 0
 void AICodeCtrl::Paint(Draw& draw) {
 	Size sz = GetSize();
 	draw.DrawRect(sz, White());
 	int y = -vscroll;
+	
 	for(int i = 0; i < srclines.GetCount(); i++) {
 		int y1 = y + lineh;
 		if (y1 >= 0 && y < sz.cy) {
-			if (i == sel_line)
-				draw.DrawRect(Rect(0,y,sz.cx,y1), clr_sel);
-			else if (sel_ann && i >= sel_ann->begin.y && i <= sel_ann->end.y)
-				draw.DrawRect(Rect(0,y,sz.cx,y1), clr_ann);
+			if (sel_ann) {
+				if (i >= sel_ann->begin.y && i <= sel_ann->end.y)
+					draw.DrawRect(Rect(0,y,sz.cx,y1), clr_ann);
+				int rel_line = y1 - sel_ann->begin.y;
+				AiAnnotationItem::Comment* c = sel_ann->FindComment(rel_line);
+				if (c) {
+					
+				}
+			}
+			if (i == sel_line) {
+				draw.DrawLine(0,y,sz.cx,y,1, clr_sel);
+				draw.DrawLine(0,y1-1,sz.cx,y1-1,1, clr_sel);
+			}
 			const String& line = srclines[i];
 			draw.DrawText(0, y, line, fnt, Black());
 		}
@@ -144,18 +170,73 @@ void AICodeCtrl::LeftDown(Point p, dword flags) {
 	Refresh();
 }
 
+void AICodeCtrl::RightDown(Point p, dword flags) {
+	MenuBar::Execute([&](Bar& b) {
+		b.Add("Add comment", THISBACK(AddComment));
+	}, UPP::GetMousePos());
+}
+#endif
+
+void AICodeCtrl::ContextMenu(Bar& bar) {
+	bar.Separator();
+	bar.Add("Add comment", THISBACK(AddComment));
+	bar.Add("Remove comment", THISBACK(RemoveComment));
+}
+
+void AICodeCtrl::AddComment() {
+	SetSelectedLineFromEditor();
+	if (sel_line < 0) return;
+	SetSelectedAnnotationFromLine();
+	if (!sel_ann) return;
+	if (sel_line < 0 || sel_line >= editor_to_line.GetCount()) return;
+	int origl = editor_to_line[sel_line];
+	int l = origl - sel_ann->begin.y;
+	String txt;
+	if (!EditText(txt, "Add comment", ""))
+		return;
+	AiAnnotationItem::Comment& c = sel_ann->comments.Add();
+	c.line_hash = 0;
+	c.rel_line = l;
+	c.txt = txt;
+	
+	StoreAion();
+	UpdateEditor();
+}
+
+void AICodeCtrl::RemoveComment() {
+	SetSelectedLineFromEditor();
+	if (sel_line < 0) return;
+	SetSelectedAnnotationFromLine();
+	if (!sel_ann) return;
+	if (sel_line < 0 || sel_line >= comment_to_line.GetCount()) return;
+	int origl = comment_to_line[sel_line];
+	int l = origl - sel_ann->begin.y;
+	sel_ann->RemoveCommentLine(l);
+	
+	StoreAion();
+	UpdateEditor();
+}
+
+void AICodeCtrl::StoreAion() {
+	AionFile& af = AiIndex().ResolveFile(this->filepath);
+	af.PostSave();
+}
+
+void AICodeCtrl::SetSelectedLineFromEditor() {
+	sel_line = editor.GetCursorLine();
+}
+
 void AICodeCtrl::SetSelectedAnnotationFromLine() {
-	ArrayMap<String, FileAnnotation>& x = CodeIndex();
-	int i = x.Find(this->filepath);
+	AiFileInfo& f = AiIndex().ResolveFileInfo(this->filepath);
 	sel_ann = 0;
-	if (i >= 0) {
-		FileAnnotation& f = x[i];
-		for(int i = 0; i < f.ai_items.GetCount(); i++) {
-			auto& item = f.ai_items[i];
-			if (sel_line >= item.begin.y && sel_line <= item.end.y) {
-				sel_ann = &item;
-				break;
-			}
+	sel_f = 0;
+	
+	for(int i = 0; i < f.ai_items.GetCount(); i++) {
+		auto& item = f.ai_items[i];
+		if (sel_line >= item.begin.y && sel_line <= item.end.y) {
+			sel_f = &f;
+			sel_ann = &item;
+			break;
 		}
 	}
 }

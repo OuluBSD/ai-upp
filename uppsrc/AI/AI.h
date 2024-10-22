@@ -2,7 +2,8 @@
 #define _AI_AI_h_
 
 #include <CtrlLib/CtrlLib.h>
-
+#include <CodeEditor/CodeEditor.h>
+#include <ide/clang/clang.h>
 
 #include "Common.h"
 #include "Prompt.h"

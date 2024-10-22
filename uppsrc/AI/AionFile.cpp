@@ -16,8 +16,12 @@ void AionFile::Clear() {
 	source_files.Clear();
 }
 
-void AionFile::Load(String path) {
+void AionFile::SetPath(String path) {
 	this->path = path;
+	dir = GetFileDirectory(path);
+}
+
+void AionFile::Load() {
 	Clear();
 	if (FileExists(path)) {
 		lock.EnterWrite();
@@ -40,32 +44,38 @@ void AionFile::Jsonize(JsonIO& json) {
 			;
 }
 
-String& AionFile::RealizePathString(const String& path) {
+AiFileInfo& AionFile::RealizePath(const String& path) {
+	String rel_file = NormalizePath(path, dir);
+	int a = rel_file.Find(dir);
+	if (a == 0)
+		rel_file = rel_file.Mid(dir.GetCount());
 	lock.EnterRead();
-	int i = source_files.Find(path);
+	int i = source_files.Find(rel_file);
 	if (i >= 0) {
-		String& o = source_files[i];
+		AiFileInfo& o = source_files[i];
 		lock.LeaveRead();
 		return o;
 	}
 	lock.LeaveRead();
 	lock.EnterWrite();
-	String& o = source_files.Add(path);
+	AiFileInfo& o = source_files.Add(rel_file);
 	lock.LeaveWrite();
 	return o;
 }
 
+#if 0
 void AionFile::Store(String path, FileAnnotation& f) {
 	String json = StoreAsString((AiFileInfo&)f);
-	RealizePathString(path) = json;
+	RealizePath(path) = json;
 	PostSave();
 }
 
 void AionFile::Load(String path, FileAnnotation& f) {
-	String json = RealizePathString(path);
+	String json = RealizePath(path);
 	if (!json.IsEmpty())
 		LoadFromString((AiFileInfo&)f, json);
 }
+#endif
 
 String AionIndex::ResolveAionFilePath(String path) {
 	Vector<String> parts = Split(GetFileDirectory(path), DIR_SEPS);
@@ -98,14 +108,48 @@ AionFile& AionIndex::ResolveFile(String path) {
 	lock.LeaveRead();
 	lock.EnterWrite();
 	AionFile& f = files.Add(aion_path);
-	f.path = aion_path;
+	f.SetPath(aion_path);
+	f.Load();
 	lock.LeaveWrite();
 	return f;
+}
+
+AiFileInfo& AionIndex::ResolveFileInfo(String path) {
+	return ResolveFile(path).RealizePath(path);
 }
 
 AionIndex& AiIndex() {
 	return Single<AionIndex>();
 }
 
+void AionIndex::Load(const String& path, FileAnnotation& fa) {
+	AionFile& af = ResolveFile(path);
+	if (af.IsEmpty())
+		af.Load();
+	AiFileInfo& afi = af.RealizePath(path);
+	afi.UpdateLinks(fa);
+}
+
+void AionIndex::Store(const String& path, FileAnnotation& fa) {
+	AionFile& af = ResolveFile(path);
+	AiFileInfo& afi = af.RealizePath(path);
+	afi.UpdateLinks(fa);
+	af.Save();
+}
+
 END_UPP_NAMESPACE
 
+#if 0
+EXITBLOCK {
+	AionIndex& idx = AiIndex();
+	for(auto it : ~CodeIndex()) {
+		int i = idx.files.Find(it.key);
+		if (i >= 0) {
+			AionFile& af = idx.files[i];
+			af.Store(it.key, it.value);
+		}
+	}
+	for (AionFile& af : idx.files)
+		af.Save();
+}
+#endif

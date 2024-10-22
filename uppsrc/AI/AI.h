@@ -8,6 +8,9 @@
 #include "Common.h"
 
 #include "AionFile.h"
+#include "ProcessBase.h"
+
+#include "CodeProcess.h"
 
 #include "AICodeCtrl.h"
 #include "AIProjectCtrl.h"

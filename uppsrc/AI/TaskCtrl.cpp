@@ -18,6 +18,13 @@ TaskCtrl::TaskCtrl()
 	output <<= THISBACK(ValueChange);
 
 	list.WhenBar << THISBACK(OutputMenu);
+	
+	tc.Set(-200, THISBACK(Data));
+}
+
+TaskCtrl::~TaskCtrl()
+{
+	tc.Kill();
 }
 
 void TaskCtrl::Data()

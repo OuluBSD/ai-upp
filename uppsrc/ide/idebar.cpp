@@ -257,7 +257,7 @@ void Ide::Edit(Bar& menu)
 		}
 		menu.Add(AK_SOLVER, THISBACK(EditUsingSolver))
 			.Check(editassolver)
-			.Key(K_CTRL|K_SHIFT|K_F1)
+			.Key(K_CTRL|K_F1)
 			.Help("Edit in solver");
 		menu.MenuSeparator();
 		
@@ -869,7 +869,7 @@ void Ide::AIMenu(Bar& menu)
 {
 	LTIMESTOP("AIMenu");
 	#ifdef flagAI
-	menu.Add(!designer, AK_GOTOAITASKS, THISBACK(OpenAITaskDlg));
+	menu.Add(AK_GOTOAITASKS, THISBACK(OpenAITaskDlg));
 	#endif
 }
 
@@ -1013,7 +1013,7 @@ void Ide::MainTool(Bar& bar)
 	}
 	bar.Add(AK_SOLVER, THISBACK(EditUsingSolver))
 		.Check(editassolver)
-		.Key(K_CTRL|K_SHIFT|K_F1)
+		.Key(K_CTRL|K_F1)
 		.Help("Edit in solver");
 	bar.Separator();
 	bar.Add("Edit as text", IdeImg::EditText(), THISBACK(EditAsText))

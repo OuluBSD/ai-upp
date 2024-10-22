@@ -113,7 +113,6 @@ struct DalleResponse {
 struct AiTask;
 
 struct TaskRule {
-	int code = -1;
 	String name;
 	void (AiTask::*input)() = 0;
 	void (AiTask::*process)() = 0;
@@ -128,7 +127,7 @@ struct TaskRule {
 	bool vision_task = false;
 	VectorMap<int, Tuple2<int, int>> req_mode_ranges;
 
-	TaskRule& SetRule(int code, const String& name);
+	TaskRule& SetRule(const String& name);
 	TaskRule& Input(void (AiTask::*fn)());
 	TaskRule& Process(void (AiTask::*fn)());
 	TaskRule& Spawnable(bool b = true);
@@ -223,6 +222,7 @@ public:
 	void CreateInput_RawCompletion();
 	void CreateInput_Vision();
 	void CreateInput_GenericPrompt();
+	void CreateInput_Code();
 
 	void Process_CreateImage();
 	void Process_EditImage();

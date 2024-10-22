@@ -172,5 +172,34 @@ void AiTask::CreateInput_GenericPrompt()
 	}
 }
 
+void AiTask::CreateInput_Code()
+{
+	if(args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	CodeArgs args;
+	args.Put(this->args[0]);
+
+	if(args.fn == CodeArgs::SCOPE_COMMENTS) {
+		{
+			auto& list = input.AddSub().Title("Code");
+			for(int i = 0; i < args.code.GetCount(); i++) list.Add("line #" + IntStr(i) + ": " + args.code[i]);
+			list.NoListChar();
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			//results.Title("Add the comments which explains the purpose of the code. List of comments to insert (without code & all text in single line)");
+			results.Title("Add the comments to the " + args.lang + " code. List of comments to insert (without code & all text in single line)");
+			if (args.lang == "C++")
+				tmp_str = "line #0: //";
+			else
+				tmp_str = "line #0: \"";
+			results.Add(tmp_str);
+		}
+		input.response_length = 2048;
+	}
+}
+
 END_UPP_NAMESPACE
 

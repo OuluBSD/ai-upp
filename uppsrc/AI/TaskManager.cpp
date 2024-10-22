@@ -11,6 +11,10 @@ struct TaskMgrConfig {
 	openai::OpenAI* instance = 0;
 
 	typedef TaskMgrConfig CLASSNAME;
+	void Realize()
+	{
+		if (!running) Start();
+	}
 	void Start()
 	{
 		running = true;
@@ -52,7 +56,7 @@ String TaskMgr::MakeName(T& o, const char* name)
 {
 	String s;
 	s << name;
-	s << " #" << o.fn;
+	s << " #" << (int)o.fn;
 	return s;
 }
 
@@ -124,6 +128,8 @@ void TaskMgr::ProcessSingle(int task_i)
 	}
 
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::Translate(String orig_lang, String orig_txt, String trans_lang,
@@ -134,12 +140,14 @@ void TaskMgr::Translate(String orig_lang, String orig_txt, String trans_lang,
 
 	AiTask& t = AddTask();
 
-	t.SetRule(AITASK_TRANSLATE, "translate")
+	t.SetRule("translate")
 		.Input(&AiTask::CreateInput_Translate)
 		.Process(&AiTask::Process_Default);
 
 	t.args << orig_lang << orig_txt << trans_lang << IntStr(slightly_dialect);
 	t.WhenResult << WhenResult;
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::RawCompletion(String prompt, Event<String> WhenResult)
@@ -149,10 +157,12 @@ void TaskMgr::RawCompletion(String prompt, Event<String> WhenResult)
 
 	AiTask& t = AddTask();
 
-	t.SetRule(AITASK_RAW_COMPLETION, "raw prompt completion").Process(&AiTask::Process_Default);
+	t.SetRule("raw prompt completion").Process(&AiTask::Process_Default);
 
 	t.raw_input = prompt;
 	t.WhenResult << WhenResult;
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::CreateImage(String prompt, int count, Event<Array<Image>&> WhenResult,
@@ -163,7 +173,7 @@ void TaskMgr::CreateImage(String prompt, int count, Event<Array<Image>&> WhenRes
 
 	AiTask& t = AddTask();
 
-	t.SetRule(AITASK_CREATE_IMAGE, "create image")
+	t.SetRule("create image")
 		.ImageTask()
 		.Input(&AiTask::CreateInput_CreateImage)
 		.Process(&AiTask::Process_CreateImage);
@@ -171,6 +181,8 @@ void TaskMgr::CreateImage(String prompt, int count, Event<Array<Image>&> WhenRes
 	t.args << prompt << IntStr(count) << IntStr(reduce_size_mode);
 	t.WhenResultImages << WhenResult;
 	t.WhenError << WhenError;
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetEditImage(Image orig, Image mask, String prompt, int count,
@@ -210,7 +222,7 @@ void TaskMgr::GetEditImage(Image orig, Image mask, String prompt, int count,
 
 	AiTask& t = AddTask();
 
-	t.SetRule(AITASK_EDIT_IMAGE, "edit image")
+	t.SetRule("edit image")
 		.ImageTask()
 		.ImageEditTask()
 		.Input(&AiTask::CreateInput_EditImage)
@@ -220,6 +232,8 @@ void TaskMgr::GetEditImage(Image orig, Image mask, String prompt, int count,
 	t.args << prompt << IntStr(count);
 	t.WhenResultImages << WhenResult;
 	t.WhenError << WhenError;
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::VariateImage(Image orig, int count, Event<Array<Image>&> WhenResult,
@@ -230,7 +244,7 @@ void TaskMgr::VariateImage(Image orig, int count, Event<Array<Image>&> WhenResul
 
 	AiTask& t = AddTask();
 
-	t.SetRule(AITASK_VARIATE_IMAGE, "variate image")
+	t.SetRule("variate image")
 		.ImageTask()
 		.ImageVariateTask()
 		.Input(&AiTask::CreateInput_VariateImage)
@@ -240,6 +254,8 @@ void TaskMgr::VariateImage(Image orig, int count, Event<Array<Image>&> WhenResul
 	t.args << IntStr(count);
 	t.WhenResultImages << WhenResult;
 	t.WhenError << WhenError;
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult)
@@ -251,13 +267,15 @@ void TaskMgr::GetGenericPrompt(const GenericPromptArgs& args, Event<String> When
 
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(AITASK_GENERIC_PROMPT, MakeName(args, "generic prompt"))
+	t.SetRule(MakeName(args, "generic prompt"))
 		.Input(&AiTask::CreateInput_GenericPrompt)
 		.Process(&AiTask::Process_Default);
 
 	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult)
@@ -269,7 +287,7 @@ void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String
 
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(AITASK_VISION, MakeName(args, "vision"))
+	t.SetRule(MakeName(args, "vision"))
 		.Input(&AiTask::CreateInput_Vision)
 		.Process(&AiTask::Process_Default);
 
@@ -277,11 +295,32 @@ void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String
 	t.jpeg = jpeg;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
-TaskRule& TaskRule::SetRule(int code, const String& name)
+void TaskMgr::GetCode(const CodeArgs& args, Event<String> WhenResult)
 {
-	this->code = code;
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+
+	String s = args.Get();
+
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "generic prompt"))
+		.Input(&AiTask::CreateInput_Code)
+		.Process(&AiTask::Process_Default);
+
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
+TaskRule& TaskRule::SetRule(const String& name)
+{
 	this->name = name;
 	return *this;
 }

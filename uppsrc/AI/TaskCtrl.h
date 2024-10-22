@@ -8,10 +8,11 @@ class TaskCtrl : public Ctrl {
 	ArrayCtrl list;
 	DocEdit input, output;
 	int data_cursor = -1;
-
+	TimeCallback tc;
 public:
 	typedef TaskCtrl CLASSNAME;
 	TaskCtrl();
+	~TaskCtrl();
 
 	void Data();
 	void DataTask();

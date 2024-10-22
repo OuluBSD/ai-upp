@@ -45,6 +45,7 @@ struct TaskMgr {
 	void RawCompletion(String prompt, Event<String> WhenResult);
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult);
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
+	void GetCode(const CodeArgs& args, Event<String> WhenResult);
 
 	template <class T>
 	String MakeName(T& o, const char* name);

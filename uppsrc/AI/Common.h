@@ -6,19 +6,6 @@ struct CurrentFileContext;
 
 NAMESPACE_UPP
 
-typedef enum : int {
-	AITASK_TRANSLATE,
-	AITASK_TRANSLATE_SONG_DATA,
-	AITASK_CREATE_IMAGE,
-	AITASK_EDIT_IMAGE,
-	AITASK_VARIATE_IMAGE,
-	AITASK_VISION,
-	AITASK_RAW_COMPLETION,
-	AITASK_GENERIC_PROMPT,
-
-	AITASK_COUNT
-} AiTaskType;
-
 struct VisionArgs {
 	int fn = 0;
 
@@ -37,6 +24,20 @@ struct GenericPromptArgs {
 	{
 		json("fn", fn)("lists", lists)("t", response_title)("nl", is_numbered_lines);
 	}
+
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+struct CodeArgs {
+	typedef enum : int { SCOPE_COMMENTS, FN_COUNT } FnType;
+	FnType fn;
+	VectorMap<String, String> data;
+	Vector<String> code;
+	String lang;
+
+	void Clear() {data.Clear(); code.Clear(); lang="";}
+	void Jsonize(JsonIO& json) { json("fn", (int&)fn)("data",data)("code",code)("lang",lang); }
 
 	String Get() const { return StoreAsJson(*this); }
 	void Put(const String& s) { LoadFromJson(*this, s); }

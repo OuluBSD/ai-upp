@@ -7,23 +7,27 @@ struct AiFileInfo;
 NAMESPACE_UPP
 
 struct AICodeCtrl : ParentCtrl {
-	SplitterFrame navigator;
-	Splitter split;
-	CodeEditor editor;
-	ArrayCtrl itemlist, commentlist, datalist;
+	Splitter			hsplit, rsplit;
+	CodeEditor			editor;
+	ArrayCtrl			cursorinfo, rangevars, rangecalls, timeline;
 
-	String filepath;
-	String aion_path;
-	int lineh = 24;
-	Font fnt;
-	String content;
-	int sel_line = -1;
-	AiAnnotationItem* sel_ann = 0;
-	AiFileInfo* sel_f = 0;
-	Color clr_sel, clr_ann;
-	byte charset = 0;
-	Vector<int> editor_to_line, line_to_editor, comment_to_line;
-
+	String				filepath;
+	String				aion_path;
+	int					lineh = 24;
+	Font				fnt;
+	String				content;
+	int					sel_line = -1;
+	AiAnnotationItem*	sel_ann = 0;
+	AiFileInfo*			sel_f = 0;
+	Color				clr_sel;
+	Color				clr_ann;
+	byte				charset = 0;
+	Vector<int>			editor_to_line;
+	Vector<int>			line_to_editor;
+	Vector<int>			comment_to_line;
+	CodeArgs			args;
+	int					prev_editor_cursor = -1;
+	
 	typedef AICodeCtrl CLASSNAME;
 	AICodeCtrl();
 	void SetFont(Font fnt);
@@ -41,6 +45,9 @@ struct AICodeCtrl : ParentCtrl {
 	void RemoveComment();
 	void UpdateEditor();
 	void MakeAiComments();
+	void CheckEditorCursor();
+	void OnEditorCursor();
+	void AnnotationData();
 	static ArrayMap<String, AionFile>& AionFiles();
 };
 

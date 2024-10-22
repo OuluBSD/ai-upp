@@ -28,5 +28,6 @@ file
 	CreateInput.cpp,
 	Prompt.h,
 	Prompt.cpp,
-	Common.h;
+	Common.h,
+	Common.cpp;
 

@@ -106,9 +106,24 @@ void AnnotationItem::Serialize(Stream& s)
 	;
 }
 
-void AiAnnotationItem::Serialize(Stream& s) {
-	AnnotationItem::Serialize(s);
-	s % dummy;
+void AnnotationItem::Jsonize(JsonIO& json) {
+	json	("k", kind)
+			("p", pos)
+			("b", begin)
+			("e", end)
+			("d", definition)
+			("iv", isvirtual)
+			("is", isstatic)
+			("n", name)
+			("t", type)
+			("i", id)
+			("r", pretty)
+			("s", nspace)
+			("u", uname)
+			("q", nest)
+			("w", unest)
+			("y", bases)
+			;
 }
 
 void ReferenceItem::Serialize(Stream& s)
@@ -117,10 +132,6 @@ void ReferenceItem::Serialize(Stream& s)
 	  % pos
 	  % ref_pos
 	;
-}
-
-void AiFileInfo::Serialize(Stream& s) {
-	s % ai_items;
 }
 
 void FileAnnotation::Serialize(Stream& s)
@@ -269,11 +280,9 @@ void Indexer::IndexerThread()
 				f.master_file = job.master_files.Get(path, Null);
 				LLOG("Storing " << path);
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
-#ifdef flagAI
-				AionFile& af = AiIndex().ResolveFile(path);
-				f.UpdateLinks();
-				af.Store(path, f);
-#endif
+				#ifdef flagAI
+				AiIndex().Store(path, f);
+				#endif
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
 			}
@@ -443,11 +452,9 @@ void Indexer::SchedulerThread()
 							if(LoadFromString(lf, h)) {
 								LTIMING("GuiLock 2");
 								GuiLock __;
-#ifdef flagAI
-								AionFile& af = AiIndex().ResolveFile(path);
-								af.Load(path, lf);
-								lf.UpdateLinks();
-#endif
+								#ifdef flagAI
+								AiIndex().Load(path, lf);
+								#endif
 								f = lf;
 								CodeIndex().GetAdd(path) = pick(lf);
 							}
@@ -542,57 +549,4 @@ double Indexer::Progress()
 	if(running_scheduler || jobs_count == 0)
 		return 0;
 	return (double)(jobs_done + jobi) / (2 * jobs_count);
-}
-
-void FileAnnotation::UpdateLinks() {
-	int c0 = CppFileInfo::items.GetCount();
-	int c1 = ai_items.GetCount();
-	if (!c1) {
-		ai_items.SetCount(c0);
-		for(int i = 0; i < c0; i++) {
-			AnnotationItem& it0 = items[i];
-			AiAnnotationItem& it1 = ai_items[i];
-			(AnnotationItem&)it1 = items[i];
-			it1.linked = &it0;
-		}
-	}
-	else {
-		Vector<bool> linked0, linked1;
-		linked0.SetCount(c0, false);
-		linked1.SetCount(c1, false);
-		int nonlinked0 = c0;
-		int nonlinked1 = c1;
-		
-		for (auto& it : ai_items)
-			it.linked = 0;
-		
-		for (int tries = 0; tries < 2; tries++) {
-			for(int i = 0; i < items.GetCount(); i++) {
-				if (linked0[i]) continue;
-				AnnotationItem& it0 = items[i];
-				for(int j = 0; j < ai_items.GetCount(); j++) {
-					if (linked1[j]) continue;
-					AiAnnotationItem& it1 = ai_items[j];
-					if ((tries == 0 && it0.IsSameContent((AnnotationItem&)it1)) ||
-						(tries == 1 && it0.IsLineAreaPartialMatch((AnnotationItem&)it1))) {
-						it1.linked = &it0;
-						linked0[i] = true;
-						linked1[j] = true;
-						nonlinked0--;
-						nonlinked1--;
-						break;
-					}
-				}
-			}
-		}
-		
-		for(int i = 0; i < items.GetCount(); i++) {
-			if (linked0[i]) continue;
-			AnnotationItem& it0 = items[i];
-			AiAnnotationItem& it1 = ai_items.Add();
-			it1.linked = &it0;
-			(AnnotationItem&)it1 = it0;
-			nonlinked0--;
-		}
-	}
 }

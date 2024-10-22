@@ -18,7 +18,7 @@ int strlen32(const wchar *s)
 	return int(s - s0);
 }
 
-unsigned ctoi(int c)
+unsigned ctoi(int c) // character to integer
 {
 	if(c >= '0' && c <= '9')
 		return c - '0';

@@ -186,9 +186,7 @@ INITIALIZE(JsonViewDes)
 struct IdeAIDes : IdeDesigner, ParentCtrl {
 	Ide*            ide = 0;
 	String			filename;
-	AIProjectCtrl	project;
 	AICodeCtrl		code;
-	Splitter		splitter;
 	TimeCallback	delay;
 
 	virtual void GotFocus();

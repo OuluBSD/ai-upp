@@ -18,8 +18,7 @@ static VectorMap<String, IdeAIEditPos>& sEPai()
 IdeAIDes::IdeAIDes()
 {
 	code << [=] { delay.KillSet(250, [=] { Preview(); }); };
-	splitter.Horz(code, project);
-	Add(splitter.SizePos());
+	Add(code.SizePos());
 	if(TheIde())
 		code.SetFont(((Ide*)TheIde())->editorfont);
 }

@@ -9,7 +9,7 @@ NAMESPACE_UPP
 struct AICodeCtrl : ParentCtrl {
 	Splitter			hsplit, rsplit;
 	CodeEditor			editor;
-	ArrayCtrl			cursorinfo, rangevars, rangecalls, timeline;
+	ArrayCtrl			cursorinfo;
 
 	String				filepath;
 	String				aion_path;

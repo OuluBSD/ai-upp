@@ -11,9 +11,13 @@ AICodeCtrl::AICodeCtrl()
 	editor.Highlight("cpp");
 	editor.SetReadOnly();
 	editor.WhenBar << THISBACK(ContextMenu);
-	editor.WhenAction << THISBACK(CheckEditorCursor);
+	editor.WhenSel << THISBACK(CheckEditorCursor);
 
-	rsplit.Vert() << cursorinfo << rangevars << rangecalls << timeline;
+	rsplit.Vert() << cursorinfo;
+	
+	cursorinfo.AddColumn("Id");
+	cursorinfo.AddColumn("Type");
+	cursorinfo.AddColumn("Ref-pos");
 }
 
 ArrayMap<String, AionFile>& AICodeCtrl::AionFiles()
@@ -294,14 +298,44 @@ void AICodeCtrl::OnEditorCursor() {
 }
 
 void AICodeCtrl::AnnotationData() {
-	if (!sel_ann) {
+	auto& codeidx = CodeIndex();
+	int i = codeidx.Find(filepath);
+	if (!sel_f || !sel_ann || i < 0) {
 		cursorinfo.Clear();
-		rangevars.Clear();
-		rangecalls.Clear();
-		timeline.Clear();
 		return;
 	}
+	AiFileInfo& info = *sel_f;
 	AiAnnotationItem& ann = *sel_ann;
+	FileAnnotation& fa = codeidx[i];
+	
+	int row = 0;
+	for(int i = 0; i < fa.items.GetCount(); i++) {
+		const AnnotationItem& ai = fa.items[i];
+		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
+			cursorinfo.Set(row, 0, ai.id);
+			cursorinfo.Set(row, 1, ai.type);
+			row++;
+		}
+	}
+	for(int i = 0; i < fa.locals.GetCount(); i++) {
+		const AnnotationItem& ai = fa.locals[i];
+		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
+			cursorinfo.Set(row, 0, ai.id);
+			cursorinfo.Set(row, 1, ai.type);
+			row++;
+		}
+	}
+	for(int i = 0; i < fa.refs.GetCount(); i++) {
+		const ReferenceItem& ref = fa.refs[i];
+		if (ann.begin.y <= ref.pos.y && ref.pos.y <= ann.end.y) {
+			cursorinfo.Set(row, 0, ref.id);
+			cursorinfo.Set(row, 1, ref.pos.y);
+			cursorinfo.Set(row, 2, ref.ref_pos.y);
+			row++;
+		}
+	}
+	
+	cursorinfo.SetCount(row);
 	
 }
 

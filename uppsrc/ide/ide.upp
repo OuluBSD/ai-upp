@@ -135,7 +135,8 @@ mainconfig
 	"" = "GUI HEAPLOG",
 	"" = "GUI X11",
 	"" = "GUI DEBUGCODE",
-	"" = "GUI AI";
+	"" = "GUI AI",
+	"" = "GUI AI LCLANG";
 
 custom() "",
 	"ASDFASDFASDF",

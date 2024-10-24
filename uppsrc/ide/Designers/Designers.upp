@@ -9,7 +9,6 @@ uses(AI) AI;
 
 file
 	Designers.h,
-	AI.json,
 	Png.cpp,
 	Img.cpp,
 	Qtf.cpp,

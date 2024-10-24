@@ -49,18 +49,21 @@ struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
 		hash_t line_hash = 0;
 		String txt;
 		void Jsonize(JsonIO& json);
+		void Serialize(Stream& s);
 	};
-	Array<Comment> comments;
+	Vector<Comment> comments;
 
 	void RemoveCommentLine(int rel_line);
 	Comment* FindComment(int rel_line);
 	void Jsonize(JsonIO& json);
+	void Serialize(Stream& s);
 };
 
 struct AiFileInfo : Moveable<AiFileInfo> {
-	Array<AiAnnotationItem> ai_items;
+	Vector<AiAnnotationItem> ai_items;
 
 	void Jsonize(JsonIO& json);
+	void Serialize(Stream& s);
 	void UpdateLinks(FileAnnotation& ann);
 };
 

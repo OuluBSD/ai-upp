@@ -222,6 +222,7 @@ CONSOLE_APP_MAIN
 			}
 			PutVerbose("Assembly file: " + v);
 			PutVerbose("Assembly: " + GetVar("UPP"));
+			PutVerbose("AI overlay: " + GetVar("AI"));
 		}
 		PutVerbose("Output directory: " + GetUppOut());
 		ide.main = param[1];

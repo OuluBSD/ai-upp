@@ -195,6 +195,14 @@ BaseSetupDlg::BaseSetupDlg()
 		upp <<= ndlg.Get();
 		OnUpp();
 	};
+	setup_ai_nest.Tip("Open AI nest editor..");
+	setup_ai_nest << [=] {
+		NestEditorDlg ndlg;
+		ndlg.Set(~ai);
+		if(!ndlg.ExecuteOK())
+			return;
+		ai <<= ndlg.Get();
+	};
 
 	upp << [=] { OnUpp(); };
 	
@@ -209,6 +217,7 @@ BaseSetupDlg::BaseSetupDlg()
 bool BaseSetupDlg::Run(String& vars)
 {
 	upp     <<= GetVar("UPP");
+	ai      <<= GetVar("AI");
 	output  <<= GetUppOut();
 	upv     <<= GetVar("UPPHUB");
 	base    <<= vars;
@@ -229,11 +238,15 @@ bool BaseSetupDlg::Run(String& vars)
 			}
 		}
 		SetVar("UPP", ~upp);
+		SetVar("AI", ~ai);
 		SetVar("OUTPUT", ~output);
 		SetVar("UPPHUB", ~upv);
 		Vector<String> paths = SplitDirs(upp.GetText().ToString());
 		for(int i = 0; i < paths.GetCount(); i++)
 			RealizeDirectory(paths[i]);
+		Vector<String> ai_paths = SplitDirs(ai.GetText().ToString());
+		for(int i = 0; i < ai_paths.GetCount(); i++)
+			RealizeDirectory(ai_paths[i]);
 		RealizeDirectory(~output);
 		vars = varname;
 		return true;

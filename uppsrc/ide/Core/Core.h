@@ -314,6 +314,7 @@ String GetVarsName();
 String VarFilePath();
 Vector<String> GetUppDirsRaw();
 Vector<String> GetUppDirs();
+Vector<String> GetAiDirsRaw();
 bool   IsHubDir(const String& path);
 String GetUppDir();
 void   SetVar(const String& var, const String& val, bool save = true);

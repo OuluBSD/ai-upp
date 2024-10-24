@@ -7,12 +7,42 @@ void AiAnnotationItem::Jsonize(JsonIO& json)
 	json("a", (AnnotationItem&)*this)("c", comments);
 }
 
+void AiAnnotationItem::Serialize(Stream& s)
+{
+	byte version = 1;
+	s % version;
+	
+	if (version >= 1)
+		s % (AnnotationItem&)*this % comments;
+}
+
 void AiAnnotationItem::Comment::Jsonize(JsonIO& json)
 {
 	json("l", rel_line)("h", (int64&)line_hash)("s", txt);
 }
 
-void AiFileInfo::Jsonize(JsonIO& json) { json("items", ai_items); }
+void AiAnnotationItem::Comment::Serialize(Stream& s)
+{
+	byte version = 1;
+	s % version;
+	
+	if (version >= 1)
+		s % rel_line % line_hash % txt;
+}
+
+void AiFileInfo::Jsonize(JsonIO& json)
+{
+	json("items", ai_items);
+}
+
+void AiFileInfo::Serialize(Stream& s)
+{
+	byte version = 1;
+	s % version;
+	
+	if (version >= 1)
+		s % ai_items;
+}
 
 void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 {

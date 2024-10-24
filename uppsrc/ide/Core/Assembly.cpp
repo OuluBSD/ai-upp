@@ -287,6 +287,12 @@ Vector<String> GetUppDirs()
 	return s;
 }
 
+Vector<String> GetAiDirsRaw()
+{
+	Vector<String> s = SplitDirs(GetVar("AI"));
+	return s;
+}
+
 bool IsHubDir(const String& path)
 {
 	return NormalizePath(path).StartsWith(GetHubDir());

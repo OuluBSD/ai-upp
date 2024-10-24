@@ -27,7 +27,6 @@ link(GCC POSIX STACKTRACE) -rdynamic;
 
 file
 	Core.h options(BUILDER_OPTION) PCH,
-	AI.json,
 	config.h,
 	Defs.h,
 	Ops.h,

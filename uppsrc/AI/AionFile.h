@@ -8,20 +8,25 @@ NAMESPACE_UPP
 struct AionFile {
 	typedef AionFile CLASSNAME;
 	ArrayMap<String, AiFileInfo> files;
-
+	String saved_hash;
+	
 	void SetPath(String path);
 	void Load();
 	void Save();
 	void Clear();
 	void PostSave();
 	void Jsonize(JsonIO& json);
+	void Serialize(Stream& s);
 	AiFileInfo& RealizePath(const String& path);
+	AiFileInfo& RealizePath0(const String& path);
 	bool IsEmpty() const { return files.IsEmpty(); }
-
+	String GetHashSha1();
+	void Load(const String& path, FileAnnotation& fa);
+	void Store(const String& path, FileAnnotation& fa);
 private:
 	bool post_saving = false;
 	String path, dir;
-	RWMutex lock;
+	Mutex lock;
 };
 
 struct AionIndex {

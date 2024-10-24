@@ -238,6 +238,12 @@ void Ide::Edit(Bar& menu)
 		if(!designer)
 			menu.MenuSeparator();
 	}
+	menu.Add(AK_SOLVER, THISBACK(EditUsingSolver))
+		.Check(editassolver)
+		.Key(K_CTRL|K_F1)
+		.Help("Edit in solver");
+	menu.MenuSeparator();
+	
 	if(designer) {
 		if(FileExists(designer->GetFileName())) {
 			menu.Add(AK_EDITASTEXT, THISBACK(EditAsText))
@@ -255,11 +261,6 @@ void Ide::Edit(Bar& menu)
 			    .Help("Edit file");
 			menu.MenuSeparator();
 		}
-		menu.Add(AK_SOLVER, THISBACK(EditUsingSolver))
-			.Check(editassolver)
-			.Key(K_CTRL|K_F1)
-			.Help("Edit in solver");
-		menu.MenuSeparator();
 		
 		if(GetFileExt(editfile) == ".t") {
 			if(editastext.Find(editfile) >= 0)

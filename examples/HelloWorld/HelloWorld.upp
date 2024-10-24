@@ -4,8 +4,7 @@ uses
 	CtrlLib;
 
 file
-	hello.cpp,
-	AI.json;
+	hello.cpp;
 
 mainconfig
 	"" = "GUI";

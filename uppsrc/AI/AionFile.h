@@ -12,7 +12,7 @@ struct AionFile {
 	
 	void SetPath(String path);
 	void Load();
-	void Save();
+	void Save(bool forced=false);
 	void Clear();
 	void PostSave();
 	void Jsonize(JsonIO& json);

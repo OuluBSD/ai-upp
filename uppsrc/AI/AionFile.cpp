@@ -7,7 +7,7 @@ void AionFile::PostSave()
 {
 	if(!post_saving) {
 		post_saving = true;
-		PostCallback(THISBACK(Save));
+		PostCallback(THISBACK1(Save, false));
 	}
 }
 
@@ -27,17 +27,17 @@ void AionFile::Load()
 	}
 }
 
-void AionFile::Save()
+void AionFile::Save(bool forced)
 {
 	post_saving = false;
 	if(!path.IsEmpty()) {
 		// The hash value must be both 32-bit and 64-bit compatible,
 		// so use the sha1 hasher instead of the fast hasher
 		String current_sha1 = GetHashSha1();
-		if (current_sha1 != saved_hash) {
+		if (current_sha1 != saved_hash || forced) {
 			saved_hash = current_sha1;
 			RealizeDirectory(GetFileDirectory(path));
-			StoreAsJsonFile(*this, path);
+			StoreAsJsonFile(*this, path, true);
 		}
 	}
 }

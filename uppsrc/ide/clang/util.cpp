@@ -107,3 +107,19 @@ int FindId(const String& s, const String& id) {
 		q++;
 	}
 };
+
+String AnnotationItem::ToString() const {
+	if (type.GetCount()) return type + " " + id;
+	else return id;
+}
+
+String ReferenceItem::ToString() const {
+	return Format("%s (%d:%d -> %d:%d)", id, pos.x,pos.y, ref_pos.x,ref_pos.y);
+}
+
+String ReferenceItem::MakeTargetString(const String& filepath) const {
+	String s;
+	s << filepath << ":" << ref_pos.y << ":" << ref_pos.x << ":" << id;
+	return s;
+}
+

@@ -158,6 +158,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	bool operator==(const AnnotationItem& b) const;
 	bool IsSameContent(const AnnotationItem& b) const;
 	bool IsLineAreaPartialMatch(const AnnotationItem& b) const;
+	String ToString() const;
 };
 
 String GetClass(const AnnotationItem& m);
@@ -172,8 +173,10 @@ struct ReferenceItem : Moveable<ReferenceItem> {
 	
 	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
 	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
-	
+	String ToString() const;
+	String MakeTargetString(const String& filepath) const;
 	void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
 };
 
 struct CurrentFileContext {
@@ -190,6 +193,7 @@ struct CppFileInfo : Moveable<CppFileInfo> {
 	Vector<AnnotationItem> items;
 	Vector<AnnotationItem> locals;
 	Vector<ReferenceItem>  refs;
+	String ToString() const;
 };
 
 enum { PARSE_FILE = 0x80000000 };

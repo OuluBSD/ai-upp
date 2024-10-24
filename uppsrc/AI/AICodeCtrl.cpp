@@ -13,11 +13,16 @@ AICodeCtrl::AICodeCtrl()
 	editor.WhenBar << THISBACK(ContextMenu);
 	editor.WhenSel << THISBACK(CheckEditorCursor);
 
-	rsplit.Vert() << cursorinfo;
+	rsplit.Vert() << cursorinfo << depthfirst;
 	
 	cursorinfo.AddColumn("Id");
 	cursorinfo.AddColumn("Type");
 	cursorinfo.AddColumn("Ref-pos");
+	
+	depthfirst.AddColumn("Id");
+	depthfirst.AddColumn("Type");
+	depthfirst.AddColumn("Ref-pos");
+	
 }
 
 ArrayMap<String, AionFile>& AICodeCtrl::AionFiles()
@@ -314,6 +319,7 @@ void AICodeCtrl::AnnotationData() {
 		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
 			cursorinfo.Set(row, 0, ai.id);
 			cursorinfo.Set(row, 1, ai.type);
+			cursorinfo.Set(row, 2, Value());
 			row++;
 		}
 	}
@@ -322,6 +328,7 @@ void AICodeCtrl::AnnotationData() {
 		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
 			cursorinfo.Set(row, 0, ai.id);
 			cursorinfo.Set(row, 1, ai.type);
+			cursorinfo.Set(row, 2, Value());
 			row++;
 		}
 	}
@@ -334,9 +341,31 @@ void AICodeCtrl::AnnotationData() {
 			row++;
 		}
 	}
-	
 	cursorinfo.SetCount(row);
 	
+	CodeVisitor vis;
+	vis.SetLimit(1000);
+	vis.Begin();
+	vis.Visit(filepath, fa, ann.begin, ann.end);
+	
+	row = 0;
+	for(const auto& it : vis.export_items) {
+		if (it.ann) {
+			const auto& ai = *it.ann;
+			depthfirst.Set(row, 0, ai.id);
+			depthfirst.Set(row, 1, ai.type);
+			depthfirst.Set(row, 2, Value());
+			row++;
+		}
+		if (it.ref) {
+			const auto& ref = *it.ref;
+			depthfirst.Set(row, 0, ref.id);
+			depthfirst.Set(row, 1, ref.pos.y);
+			depthfirst.Set(row, 2, ref.ref_pos.y);
+			row++;
+		}
+	}
+	depthfirst.SetCount(row);
 }
 
 END_UPP_NAMESPACE

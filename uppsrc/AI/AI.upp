@@ -25,6 +25,8 @@ file
 	ProcessBase.cpp,
 	CodeProcess.h,
 	CodeProcess.cpp,
+	CodeVisitor.h,
+	CodeVisitor.cpp,
 	Task readonly separator,
 	TaskManager.h,
 	TaskManager.cpp,

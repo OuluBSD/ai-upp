@@ -106,6 +106,13 @@ void AnnotationItem::Serialize(Stream& s)
 	;
 }
 
+void ReferenceItem::Jsonize(JsonIO& json) {
+	json	("id", id)
+			("pos", pos)
+			("ref_pos", ref_pos)
+			;
+}
+
 void AnnotationItem::Jsonize(JsonIO& json) {
 	json	("k", kind)
 			("p", pos)

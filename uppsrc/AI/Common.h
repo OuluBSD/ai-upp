@@ -50,6 +50,7 @@ struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
 		String txt;
 		void Jsonize(JsonIO& json);
 		void Serialize(Stream& s);
+		bool operator()(const Comment& a, const Comment& b) const {return a.rel_line != b.rel_line ? a.rel_line < b.rel_line : a.txt < b.txt;}
 	};
 	Vector<Comment> comments;
 
@@ -57,6 +58,7 @@ struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
 	Comment* FindComment(int rel_line);
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
+	void Sort();
 };
 
 struct AiFileInfo : Moveable<AiFileInfo> {
@@ -65,6 +67,7 @@ struct AiFileInfo : Moveable<AiFileInfo> {
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	void UpdateLinks(FileAnnotation& ann);
+	void Sort();
 };
 
 END_UPP_NAMESPACE

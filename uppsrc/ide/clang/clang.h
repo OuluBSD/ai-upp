@@ -159,6 +159,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	bool IsSameContent(const AnnotationItem& b) const;
 	bool IsLineAreaPartialMatch(const AnnotationItem& b) const;
 	String ToString() const;
+	bool operator()(const AnnotationItem& a, const AnnotationItem& b) const {return a.pos.y != b.pos.y ? a.pos.y < b.pos.y : a.pos.x < b.pos.x;}
 };
 
 String GetClass(const AnnotationItem& m);

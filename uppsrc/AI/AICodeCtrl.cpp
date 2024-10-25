@@ -164,6 +164,7 @@ void AICodeCtrl::AddComment()
 	c.line_hash = 0;
 	c.rel_line = l;
 	c.txt = txt;
+	sel_ann->Sort();
 
 	StoreAion();
 	UpdateEditor();
@@ -250,6 +251,7 @@ void AICodeCtrl::MakeAiComments()
 			comment.line_hash =
 				c.key < args.code.GetCount() ? args.code[c.key].GetHashValue() : 0;
 		}
+		cur_sel_ann->Sort();
 
 		PostCallback([this] {
 			StoreAion();

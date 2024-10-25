@@ -5,15 +5,22 @@ NAMESPACE_UPP
 void AiAnnotationItem::Jsonize(JsonIO& json)
 {
 	json("a", (AnnotationItem&)*this)("c", comments);
+	if (json.IsLoading()) Sort();
 }
 
 void AiAnnotationItem::Serialize(Stream& s)
 {
+	if (s.IsStoring()) Sort();
+	
 	byte version = 1;
 	s % version;
 	
 	if (version >= 1)
 		s % (AnnotationItem&)*this % comments;
+}
+
+void AiAnnotationItem::Sort() {
+	UPP::Sort(comments, Comment());
 }
 
 void AiAnnotationItem::Comment::Jsonize(JsonIO& json)
@@ -33,15 +40,22 @@ void AiAnnotationItem::Comment::Serialize(Stream& s)
 void AiFileInfo::Jsonize(JsonIO& json)
 {
 	json("items", ai_items);
+	if (json.IsLoading()) Sort();
 }
 
 void AiFileInfo::Serialize(Stream& s)
 {
+	if (s.IsStoring()) Sort();
+	
 	byte version = 1;
 	s % version;
 	
 	if (version >= 1)
 		s % ai_items;
+}
+
+void AiFileInfo::Sort() {
+	UPP::Sort(ai_items, AiAnnotationItem());
 }
 
 void AiFileInfo::UpdateLinks(FileAnnotation& ann)
@@ -99,6 +113,7 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 			nonlinked0--;
 		}
 	}
+	Sort();
 }
 
 void AiAnnotationItem::RemoveCommentLine(int rel_line)

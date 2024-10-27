@@ -693,7 +693,7 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 	#include <utringbuffer.h>
 	#include <stdio_ext.h>
 	#include <rc.h>
-	#include <dis-asm.h>
+	//#include <dis-asm.h>
 	#include <tiff.h>
 	#include <stdbit.h>
 	#include <freeaptx.h>
@@ -966,10 +966,10 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 	//#include <x86_64-pc-linux-gnu/va/va_x11.h>
 	//#include <x86_64-pc-linux-gnu/va/va_dricommon.h>
 	#include <x86_64-pc-linux-gnu/autosprintf.h>
+	#include <x86_64-pc-linux-gnu/SDL2/SDL_config.h>
 	#include <x86_64-pc-linux-gnu/SDL2/SDL_platform.h>
 	//#include <x86_64-pc-linux-gnu/SDL2/close_code.h>
 	//#include <x86_64-pc-linux-gnu/SDL2/begin_code.h>
-	#include <x86_64-pc-linux-gnu/SDL2/SDL_config.h>
 	#include <x86_64-pc-linux-gnu/mad.h>
 	#include <x86_64-pc-linux-gnu/textstyle/version.h>
 	#include <x86_64-pc-linux-gnu/textstyle/stdbool.h>

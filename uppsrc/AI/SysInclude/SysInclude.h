@@ -5,6 +5,10 @@
 
 // -std=c++17
 #define ai_std_version 17
+#define HAVE_LINUX 1
+#define HAVE_OPENGL 1
+#define HAVE_OPENSSL 1
+#define HAVE_SDL2 1
 
 //pcre2.h
 #define PCRE2_CODE_UNIT_WIDTH 8
@@ -907,6 +911,8 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #include <sys/pci.h>
 #include <sys/dir.h>
 #include <sys/bitypes.h>
+
+#if HAVE_LINUX
 #include <x86_64-pc-linux-gnu/libavutil/avconfig.h>
 #include <x86_64-pc-linux-gnu/gmp.h>
 #include <x86_64-pc-linux-gnu/gpgrt.h>
@@ -935,6 +941,7 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #include <x86_64-pc-linux-gnu/nettle/version.h>
 #include <x86_64-pc-linux-gnu/jconfig.h>
 #include <x86_64-pc-linux-gnu/textstyle.h>
+#endif
 
 #include <arpa/nameser_compat.h>
 #include <arpa/inet.h>
@@ -943,6 +950,7 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #include <arpa/nameser.h>
 #include <arpa/ftp.h>
 
+#if HAVE_OPENGL
 #include <GL/gl.h>
 //#include <GL/glxint.h>
 #include <GL/glcorearb.h>
@@ -959,7 +967,9 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 //#include <GL/glxext.h>
 //#include <GL/glxmd.h>
 //#include <GL/glxproto.h>
+#endif
 
+#if HAVE_OPENSSL
 #include <openssl/ssl.h>
 #include <openssl/opensslv.h>
 #include <openssl/modes.h>
@@ -1099,7 +1109,9 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #include <openssl/conftypes.h>
 #include <openssl/macros.h>
 #include <openssl/evp.h>
+#endif
 
+#if HAVE_SDL2
 #undef lines
 #undef GC
 #include <SDL2/SDL.h>
@@ -1181,5 +1193,6 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #include <SDL2/SDL_power.h>
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL_bits.h>
+#endif
 
 #endif

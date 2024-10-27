@@ -1,0 +1,17 @@
+description "The package includes system libraries for artificial intelligence data analysis.\377";
+
+noblitz;
+
+options(BUILDER_OPTION) NOWARNINGS;
+
+options
+	-D_FILE_OFFSET_BITS=64;
+
+options(CLANG|GCC) -fcoroutines;
+
+link(CLANG|GCC) -fcoroutines;
+
+file
+	SysInclude.h,
+	SysInclude.cpp;
+

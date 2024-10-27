@@ -27,6 +27,9 @@
 #ifdef _MSC_VER
 	#define HAVE_WIN32 1
 #endif
+#ifdef MSYS_ENV // add -DMSYS_ENV manually to build method
+	#define HAVE_MSYS 1
+#endif
 
 #define HAVE_OPENGL 1
 #define HAVE_OPENSSL 1
@@ -1161,7 +1164,7 @@ The headers "complex.h>, "ccomplex", "tgmath.h>, and "ctgmath" do not contain an
 #if HAVE_SDL2
 	#undef lines
 	#undef GC
-	#if HAVE_LINUX || HAVE_MINGW
+	#if HAVE_LINUX || HAVE_MSYS
 		#include <SDL2/SDL.h>
 		#include <SDL2/SDL_mutex.h>
 		#include <SDL2/SDL_gamecontroller.h>

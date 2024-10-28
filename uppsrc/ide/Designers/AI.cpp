@@ -36,12 +36,12 @@ void IdeAIDes::SaveEditPos()
 	}
 }
 
-bool IdeAIDes::Load(const char* filename_)
+bool IdeAIDes::Load(const String& includes, const String& filename_)
 {
 	filename = filename_;
 	FileIn in(filename);
 	if(in) {
-		code.Load(filename, in, CHARSET_UTF8);
+		code.Load(includes, filename, in, CHARSET_UTF8);
 		IdeAIEditPos& ep = sEPai().GetAdd(filename);
 		if(ep.filetime == FileGetTime(filename)) {
 			code.SetEditPos(ep.editpos);
@@ -127,7 +127,7 @@ struct AIDesModule : public IdeModule {
 		if(IsAIFile(path)) {
 			IdeAIDes* d = new IdeAIDes;
 			LoadFromGlobal(*d, "aides-ctrl");
-			if(d->Load(path))
+			if(d->Load(ide->GetCurrentIncludePath(), path))
 				return d;
 			delete d;
 			return NULL;

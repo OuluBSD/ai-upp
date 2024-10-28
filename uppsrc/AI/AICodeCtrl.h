@@ -12,6 +12,7 @@ struct AICodeCtrl : ParentCtrl {
 	ArrayCtrl			cursorinfo, depthfirst;
 
 	String				filepath;
+	String				includes;
 	String				aion_path;
 	int					lineh = 24;
 	Font				fnt;
@@ -31,7 +32,7 @@ struct AICodeCtrl : ParentCtrl {
 	typedef AICodeCtrl CLASSNAME;
 	AICodeCtrl();
 	void SetFont(Font fnt);
-	void Load(String filename, Stream& str, byte charset);
+	void Load(const String& includes, String filename, Stream& str, byte charset);
 	void Save(Stream& str, byte charset);
 	void SetEditPos(LineEdit::EditPos pos);
 	void SetPickUndoData(LineEdit::UndoData pos);

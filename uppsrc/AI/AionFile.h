@@ -5,6 +5,9 @@ struct FileAnnotation;
 
 NAMESPACE_UPP
 
+bool MakeRelativePath(const String& includes, const String& dir, String& best_ai_dir, String& best_rel_dir);
+Vector<String> FindParentUppDirectories(const String& dir);
+
 struct AionFile {
 	typedef AionFile CLASSNAME;
 	ArrayMap<String, AiFileInfo> files;
@@ -17,12 +20,12 @@ struct AionFile {
 	void PostSave();
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
-	AiFileInfo& RealizePath(const String& path);
-	AiFileInfo& RealizePath0(const String& path);
+	AiFileInfo& RealizePath(const String& includes, const String& path);
+	AiFileInfo& RealizePath0(const String& includes, const String& path);
 	bool IsEmpty() const { return files.IsEmpty(); }
 	String GetHashSha1();
-	void Load(const String& path, FileAnnotation& fa);
-	void Store(const String& path, FileAnnotation& fa);
+	void Load(const String& includes, const String& path, FileAnnotation& fa);
+	void Store(const String& includes, const String& path, FileAnnotation& fa);
 private:
 	bool post_saving = false;
 	String path, dir;
@@ -33,11 +36,11 @@ struct AionIndex {
 	ArrayMap<String, AionFile> files;
 	RWMutex lock;
 
-	String ResolveAionFilePath(String path);
-	AionFile& ResolveFile(String path);
-	AiFileInfo& ResolveFileInfo(String path);
-	void Load(const String& path, FileAnnotation& fa);
-	void Store(const String& path, FileAnnotation& fa);
+	String ResolveAionFilePath(const String& includes, String path);
+	AionFile& ResolveFile(const String& includes, String path);
+	AiFileInfo& ResolveFileInfo(const String& includes, String path);
+	void Load(const String& includes, const String& path, FileAnnotation& fa);
+	void Store(const String& includes, const String& path, FileAnnotation& fa);
 };
 
 AionIndex& AiIndex();

@@ -10,8 +10,9 @@ struct CodeVisitor
 		const ReferenceItem* ref = 0;
 		String error_id;
 		Point pos;
-		bool operator()(const Item& a, const Item& b) const {return a.pos.y != b.pos.y ? a.pos.y < b.pos.y : a.pos.x < b.pos.x;}
-		String ToString() const {return ann ? ann->ToString() : (ref ? ref->ToString() : (error_id.GetCount() ? "error(" + error_id + ")" : "<empty>"));}
+		String file;
+		bool operator()(const Item& a, const Item& b) const;
+		String ToString() const;
 	};
 	int limit = 0;
 	Vector<Item> items;

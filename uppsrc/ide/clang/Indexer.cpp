@@ -288,7 +288,7 @@ void Indexer::IndexerThread()
 				LLOG("Storing " << path);
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
 				#ifdef flagAI
-				AiIndex().Store(path, f);
+				AiIndex().Store(f.includes, path, f);
 				#endif
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
@@ -460,7 +460,7 @@ void Indexer::SchedulerThread()
 								LTIMING("GuiLock 2");
 								GuiLock __;
 								#ifdef flagAI
-								AiIndex().Load(path, lf);
+								AiIndex().Load(includes, path, lf);
 								#endif
 								f = lf;
 								CodeIndex().GetAdd(path) = pick(lf);

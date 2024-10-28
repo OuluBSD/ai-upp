@@ -59,15 +59,76 @@ void AionFile::Serialize(Stream& s)
 
 void AionFile::Jsonize(JsonIO& json)
 {
-	json("files", files)("saved_hash", saved_hash);
+	json
+		("saved_hash", saved_hash)
+		("files", files)
+		;
 }
 
-AiFileInfo& AionFile::RealizePath(const String& path)
+bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir, String& best_rel_dir)
+{
+	bool found = false;
+	Vector<String> ai_dirs = GetAiDirsRaw();
+	if (!ai_dirs.IsEmpty()) {
+		int def_cand_parts = INT_MAX;
+		String ai_dir = ai_dirs.Top();
+		String includes = includes_;
+		MergeWith(includes, ";", GetClangInternalIncludes());
+		for(const String& s : Split(includes, ';')) {
+		#ifdef PLATFORM_WIN32 // we need to ignore internal VC++ headers
+			static VectorMap<String, bool> use;
+			int q = use.Find(s);
+			if(q < 0) {
+				q = use.GetCount();
+				use.Add(s, !FileExists(AppendFileName(s, "vcruntime.h")));
+			}
+			if(use[q])
+		#endif
+			{
+				if (dir.Find(s) == 0) {
+					String rel_dir = dir.Mid(s.GetCount());
+					int cand_parts = Split(rel_dir, DIR_SEPS).GetCount();
+					// Prefer the shortest directory
+					if (cand_parts < def_cand_parts) {
+						best_ai_dir = ai_dir;
+						best_rel_dir = rel_dir;
+						found = true;
+					}
+				}
+			}
+		}
+	}
+	return found;
+}
+
+AiFileInfo& AionFile::RealizePath(const String& includes, const String& path)
 {
 	String rel_file = NormalizePath(path, dir);
 	int a = rel_file.Find(dir);
 	if(a == 0)
 		rel_file = rel_file.Mid(dir.GetCount());
+	else {
+		String def_dir = GetFileDirectory(path);
+		Vector<String> upp_dirs = FindParentUppDirectories(def_dir);
+		if (!upp_dirs.IsEmpty()) {
+			String& upp_dir = upp_dirs[0];
+			ASSERT(path.Find(upp_dir) == 0);
+			rel_file = path.Mid(upp_dir.GetCount());
+		}
+		else {
+			String ai_dir, rel_dir;
+			if (MakeRelativePath(includes, def_dir, ai_dir, rel_dir)) {
+				String filename = GetFileName(path);
+				rel_file = AppendFileName(rel_dir, filename);
+			}
+		}
+	}
+	#ifdef flagWIN32
+	rel_file.Replace(DIR_SEPS, "/");
+	#endif
+	if (rel_file.GetCount() && rel_file[0] == '/')
+		rel_file = rel_file.Mid(1);
+	
 	lock.Enter();
 	int i = files.Find(rel_file);
 	if(i >= 0) {
@@ -80,24 +141,32 @@ AiFileInfo& AionFile::RealizePath(const String& path)
 	return o;
 }
 
-AiFileInfo& AionFile::RealizePath0(const String& path)
+AiFileInfo& AionFile::RealizePath0(const String& includes, const String& path)
 {
 	String rel_file = NormalizePath(path, dir);
 	int a = rel_file.Find(dir);
 	if(a == 0)
 		rel_file = rel_file.Mid(dir.GetCount());
+	else {
+		String ai_dir, rel_dir;
+		if (MakeRelativePath(includes, GetFileDirectory(path), ai_dir, rel_dir)) {
+			String filename = GetFileName(path);
+			rel_file = AppendFileName(rel_dir, filename);
+		}
+	}
 	int i = files.Find(rel_file);
 	if(i >= 0)
 		return files[i];
 	return files.Add(rel_file);
 }
 
-String GetAiPathCandidate(String dir)
+String GetAiPathCandidate(const String& includes_, String dir)
 {
 	Vector<String> ai_dirs = GetAiDirsRaw();
 	Vector<String> upp_dirs = GetUppDirs();
-	String def_cand, any_ai_cand, preferred_ai_cand;
-	def_cand = dir + DIR_SEPS + "AI.json";
+	String dummy_cand, def_cand, any_ai_cand, preferred_ai_cand;
+	int def_cand_parts = INT_MAX;
+	dummy_cand = dir + DIR_SEPS + "AI.json";
 	if (!ai_dirs.IsEmpty()) {
 		for (const String& upp_dir : upp_dirs) {
 			if (dir.Find(upp_dir) != 0) continue;
@@ -116,36 +185,58 @@ String GetAiPathCandidate(String dir)
 		return preferred_ai_cand;
 	else if (!any_ai_cand.IsEmpty())
 		return any_ai_cand;
-	else
+	
+	if (!ai_dirs.IsEmpty()) {
+		String ai_dir, rel_dir;
+		if (MakeRelativePath(includes_, dir, ai_dir, rel_dir)) {
+			String abs_dir = AppendFileName(ai_dir, rel_dir);
+			def_cand = AppendFileName(abs_dir, "AI.json");
+		}
+	}
+	
+	if (!def_cand.IsEmpty())
 		return def_cand;
+	else
+		return dummy_cand;
 }
 
-String AionIndex::ResolveAionFilePath(String path)
-{
-	String def_dir = GetFileDirectory(path);
-	Vector<String> parts = Split(def_dir, DIR_SEPS);
+Vector<String> FindParentUppDirectories(const String& sub_dir) {
+	Vector<String> results;
+	Vector<String> parts = Split(sub_dir, DIR_SEPS);
 	for(int i = 0; i < parts.GetCount(); i++) {
 		int c = parts.GetCount() - i;
 		if(!c)
 			continue;
-		String dir;
+		String parent_dir;
 		for(int j = 0; j < c; j++) {
-			if(!dir.IsEmpty())
-				dir << DIR_SEPS;
-			dir << parts[j];
+			// a posix path always begins with the root /
+			#ifndef flagPOSIX
+			if(!parent_dir.IsEmpty())
+			#endif
+				parent_dir << DIR_SEPS;
+			parent_dir << parts[j];
 		}
 		String topname = parts[c - 1];
-		String upp_path = dir + DIR_SEPS + topname + ".upp";
+		String upp_path = parent_dir + DIR_SEPS + topname + ".upp";
 		if(!FileExists(upp_path))
 			continue;
-		return GetAiPathCandidate(dir);
+		results << parent_dir;
 	}
-	return GetAiPathCandidate(def_dir);
+	return results;
 }
 
-AionFile& AionIndex::ResolveFile(String path)
+String AionIndex::ResolveAionFilePath(const String& includes, String path)
 {
-	String aion_path = ResolveAionFilePath(path);
+	String def_dir = GetFileDirectory(path);
+	Vector<String> upp_dirs = FindParentUppDirectories(def_dir);
+	for (String& upp_dir : upp_dirs)
+		return GetAiPathCandidate(includes, upp_dir);
+	return GetAiPathCandidate(includes, def_dir);
+}
+
+AionFile& AionIndex::ResolveFile(const String& includes, String path)
+{
+	String aion_path = ResolveAionFilePath(includes, path);
 	lock.EnterRead();
 	int i = files.Find(aion_path);
 	if(i >= 0) {
@@ -162,38 +253,38 @@ AionFile& AionIndex::ResolveFile(String path)
 	return f;
 }
 
-AiFileInfo& AionIndex::ResolveFileInfo(String path)
+AiFileInfo& AionIndex::ResolveFileInfo(const String& includes, String path)
 {
-	return ResolveFile(path).RealizePath(path);
+	return ResolveFile(includes, path).RealizePath(includes, path);
 }
 
 AionIndex& AiIndex() { return Single<AionIndex>(); }
 
-void AionIndex::Load(const String& path, FileAnnotation& fa)
+void AionIndex::Load(const String& includes, const String& path, FileAnnotation& fa)
 {
-	AionFile& af = ResolveFile(path);
-	af.Load(path, fa);
+	AionFile& af = ResolveFile(includes, path);
+	af.Load(includes, path, fa);
 }
 
-void AionFile::Load(const String& path, FileAnnotation& fa)
+void AionFile::Load(const String& includes, const String& path, FileAnnotation& fa)
 {
 	lock.Enter();
 	if(IsEmpty())
 		Load();
-	AiFileInfo& afi = RealizePath0(path);
+	AiFileInfo& afi = RealizePath0(includes, path);
 	afi.UpdateLinks(fa);
 	lock.Leave();
 }
 
-void AionIndex::Store(const String& path, FileAnnotation& fa)
+void AionIndex::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
-	AionFile& af = ResolveFile(path);
-	af.Store(path, fa);
+	AionFile& af = ResolveFile(includes, path);
+	af.Store(includes, path, fa);
 }
 
-void AionFile::Store(const String& path, FileAnnotation& fa)
+void AionFile::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
-	AiFileInfo& afi = RealizePath(path);
+	AiFileInfo& afi = RealizePath(includes, path);
 	lock.Enter();
 	afi.UpdateLinks(fa);
 	Save();

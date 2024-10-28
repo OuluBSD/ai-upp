@@ -19,9 +19,12 @@ AICodeCtrl::AICodeCtrl()
 	cursorinfo.AddColumn("Type");
 	cursorinfo.AddColumn("Ref-pos");
 	
+	depthfirst.AddColumn("File");
+	depthfirst.AddColumn("Pos");
 	depthfirst.AddColumn("Id");
 	depthfirst.AddColumn("Type");
 	depthfirst.AddColumn("Ref-pos");
+	depthfirst.ColumnWidths("4 1 4 4 1");
 	
 }
 
@@ -33,10 +36,11 @@ ArrayMap<String, AionFile>& AICodeCtrl::AionFiles()
 
 void AICodeCtrl::SetFont(Font fnt) { editor.SetFont(fnt); }
 
-void AICodeCtrl::Load(String filename, Stream& str, byte charset)
+void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte charset)
 {
 	Ide* ide = TheIde();
 	this->filepath = NormalizePath(filename);
+	this->includes = includes;
 	String dir = GetFileDirectory(filename);
 	String pkg_name = GetFileTitle(dir.Left(dir.GetCount() - 1));
 	this->aion_path = AppendFileName(dir, "AI.json");
@@ -54,7 +58,7 @@ void AICodeCtrl::Load(String filename, Stream& str, byte charset)
 void AICodeCtrl::UpdateEditor()
 {
 	Vector<String> lines = Split(this->content, "\n", false);
-	AiFileInfo& f = AiIndex().ResolveFileInfo(this->filepath);
+	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
 
 	editor_to_line.SetCount(0);
 	line_to_editor.SetCount(0);
@@ -262,7 +266,7 @@ void AICodeCtrl::MakeAiComments()
 
 void AICodeCtrl::StoreAion()
 {
-	AionFile& af = AiIndex().ResolveFile(this->filepath);
+	AionFile& af = AiIndex().ResolveFile(this->includes, this->filepath);
 	af.PostSave();
 }
 
@@ -276,7 +280,7 @@ void AICodeCtrl::SetSelectedLineFromEditor()
 
 void AICodeCtrl::SetSelectedAnnotationFromLine()
 {
-	AiFileInfo& f = AiIndex().ResolveFileInfo(this->filepath);
+	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
 	sel_ann = 0;
 	sel_f = 0;
 
@@ -352,18 +356,20 @@ void AICodeCtrl::AnnotationData() {
 	
 	row = 0;
 	for(const auto& it : vis.export_items) {
+		depthfirst.Set(row, 0, it.file);
+		depthfirst.Set(row, 1, it.pos);
 		if (it.ann) {
 			const auto& ai = *it.ann;
-			depthfirst.Set(row, 0, ai.id);
-			depthfirst.Set(row, 1, ai.type);
-			depthfirst.Set(row, 2, Value());
+			depthfirst.Set(row, 2, ai.id);
+			depthfirst.Set(row, 3, ai.type);
+			depthfirst.Set(row, 4, Value());
 			row++;
 		}
 		if (it.ref) {
 			const auto& ref = *it.ref;
-			depthfirst.Set(row, 0, ref.id);
-			depthfirst.Set(row, 1, ref.pos.y);
-			depthfirst.Set(row, 2, ref.ref_pos.y);
+			depthfirst.Set(row, 2, ref.id);
+			depthfirst.Set(row, 3, ref.pos.y);
+			depthfirst.Set(row, 4, ref.ref_pos.y);
 			row++;
 		}
 	}

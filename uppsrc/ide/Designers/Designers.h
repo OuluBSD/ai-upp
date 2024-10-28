@@ -200,7 +200,7 @@ struct IdeAIDes : IdeDesigner, ParentCtrl {
 	
 	void    Preview();
 
-	bool   Load(const char *filename);
+	bool   Load(const String& includes, const String& filename);
 
 	IdeAIDes();
 };

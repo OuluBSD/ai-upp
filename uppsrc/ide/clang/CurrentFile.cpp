@@ -119,7 +119,7 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.time = Time::Low();
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			#ifdef flagAI
-			AiIndex().Store(path, fa);
+			AiIndex().Store(fa.includes, path, fa);
 			#endif
 			CodeIndex().GetAdd(path) = pick(fa);
 		}

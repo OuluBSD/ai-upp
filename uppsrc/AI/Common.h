@@ -30,14 +30,15 @@ struct GenericPromptArgs {
 };
 
 struct CodeArgs {
-	typedef enum : int { SCOPE_COMMENTS, FN_COUNT } FnType;
-	FnType fn;
+	typedef enum : int { SCOPE_COMMENTS, FN_COUNT } Fn;
+	typedef std::underlying_type<Fn>::type FnType;
+	Fn fn;
 	VectorMap<String, String> data;
 	Vector<String> code;
 	String lang;
 
 	void Clear() {data.Clear(); code.Clear(); lang="";}
-	void Jsonize(JsonIO& json) { json("fn", (int&)fn)("data",data)("code",code)("lang",lang); }
+	void Jsonize(JsonIO& json) { json("fn", reinterpret_cast<FnType&>(fn))("data",data)("code",code)("lang",lang); }
 
 	String Get() const { return StoreAsJson(*this); }
 	void Put(const String& s) { LoadFromJson(*this, s); }
@@ -54,9 +55,10 @@ struct AiAnnotationItem {
 		void Jsonize(JsonIO& json);
 		void Serialize(Stream& s);
 	};
-	struct SourceFile {
+	struct SourceRange {
 		struct Item : Moveable<Item> {
 			typedef enum : int {INVALID=-1, COMMENT, OTHER, TYPE_COUNT} Kind;
+			typedef std::underlying_type<Kind>::type KindType;
 			Kind	kind = INVALID;
 			int		rel_line = -1;
 			int		data_i = -1;
@@ -66,21 +68,25 @@ struct AiAnnotationItem {
 			bool operator()(const Item& a, const Item& b) const {return a.rel_line != b.rel_line ? a.rel_line < b.rel_line : a.data_i < b.data_i;}
 		};
 		Vector<Item> items;
-		String	file_hash_sha1;
+		String	range_hash_sha1;
+		
+		// Keep this data temporary
 		Point	pos = Null;
 		Point	begin = Null;
 		Point	end = Null;
+		
 		Mutex lock;
 		
-		SourceFile() {}
-		SourceFile(const SourceFile& f) {*this = f;}
-		void operator=(const SourceFile& f);
+		SourceRange();
+		SourceRange(const SourceRange& f);
+		void operator=(const SourceRange& f);
 		void Sort();
 		void Jsonize(JsonIO& json);
 		void Serialize(Stream& s);
 		void RemoveLineItem(int rel_line);
 		Item* FindItem(int rel_line);
 		void RemoveAll(Item::Kind kind);
+		bool IsLineAreaPartialMatch(const AnnotationItem& b) const;
 	};
 	String id; // Upp::Class::Method(Upp::Point p)
 	String name; // Method
@@ -95,18 +101,21 @@ struct AiAnnotationItem {
 	bool   definition = false;
 	bool   isvirtual = false;
 	bool   isstatic = false;
-	Array<SourceFile> source_files;
+	Array<SourceRange> source_files;
 	mutable Mutex lock;
 	
 	
 	AiAnnotationItem() {}
 	AiAnnotationItem(const AiAnnotationItem& f) {*this = f;}
 	AiAnnotationItem(AiAnnotationItem&& f) {*this = f;}
+	bool IsSameContent(const AnnotationItem& b) const;
 	void operator=(const AiAnnotationItem& s);
+	void Set(const AnnotationItem& s, const String& range_hash_sha1);
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	void Sort();
-	SourceFile& RealizeFileByHashSha1(const String& sha1);
+	SourceRange& RealizeRangeByHashSha1(const String& sha1);
+	SourceRange* FindRangeByHashSha1(const String& sha1);
 	int FindAddData(const String& txt);
 	int GetDataCount() const;
 	String GetDataString(int data_i) const;
@@ -128,6 +137,10 @@ struct AiFileInfo : Moveable<AiFileInfo> {
 	void Serialize(Stream& s);
 	void UpdateLinks(FileAnnotation& ann);
 };
+
+
+String GetStringRange(String content, Point begin, Point end);
+
 
 END_UPP_NAMESPACE
 

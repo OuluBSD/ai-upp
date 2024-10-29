@@ -310,6 +310,7 @@ struct FileAnnotation0 {
 };
 
 struct FileAnnotation : FileAnnotation0, CppFileInfo {
+	String path;
 	void Serialize(Stream& s);
 };
 

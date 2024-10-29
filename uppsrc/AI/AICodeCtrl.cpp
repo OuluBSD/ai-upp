@@ -80,10 +80,10 @@ void AICodeCtrl::UpdateEditor()
 		};
 		Vector<Item> items;
 		for(AiAnnotationItem& item : f.ai_items) {
-			AiAnnotationItem::SourceFile& df = item.RealizeFileByHashSha1(hash_sha1);
-			for(const AiAnnotationItem::SourceFile::Item& c : df.items) {
+			AiAnnotationItem::SourceRange& df = item.RealizeRangeByHashSha1(hash_sha1);
+			for(const AiAnnotationItem::SourceRange::Item& c : df.items) {
 				if (c.data_i < 0 || c.data_i >= item.GetDataCount())
-					throw Exc("error: invalid data_i in AiAnnotationItem::SourceFile::Item");
+					throw Exc("error: invalid data_i in AiAnnotationItem::SourceRange::Item");
 				String data = item.GetDataString(c.data_i);
 				Item& it = items.Add();
 				it.line = df.begin.y + c.rel_line;
@@ -175,8 +175,8 @@ void AICodeCtrl::AddComment()
 	if(!EditText(txt, "Add comment", ""))
 		return;
 	int data_i = sel_ann->FindAddData(txt);
-	SourceFile::Item& c = sel_ann_f->items.Add();
-	c.kind = SourceFile::Item::COMMENT;
+	SourceRange::Item& c = sel_ann_f->items.Add();
+	c.kind = SourceRange::Item::COMMENT;
 	c.rel_line = l;
 	c.data_i = data_i;
 	sel_ann->Sort();
@@ -259,11 +259,11 @@ void AICodeCtrl::MakeAiComments()
 			comments.GetAdd(line) = l;
 		}
 		// DUMPM(comments);
-		cur_sel_ann_f->RemoveAll(SourceFile::Item::COMMENT);
+		cur_sel_ann_f->RemoveAll(SourceRange::Item::COMMENT);
 		for(auto c : ~comments) {
 			int data_i = cur_sel_ann->FindAddData(c.value);
 			auto& item = cur_sel_ann_f->items.Add();
-			item.kind = SourceFile::Item::COMMENT;
+			item.kind = SourceRange::Item::COMMENT;
 			item.rel_line = c.key;
 			item.data_i = data_i;
 			//item.line_hash =
@@ -302,7 +302,7 @@ void AICodeCtrl::SetSelectedAnnotationFromLine()
 
 	for(int i = 0; i < f.ai_items.GetCount(); i++) {
 		AiAnnotationItem& item = f.ai_items[i];
-		SourceFile& sf = item.RealizeFileByHashSha1(this->hash_sha1);
+		SourceRange& sf = item.RealizeRangeByHashSha1(this->hash_sha1);
 		if(sel_line >= sf.begin.y && sel_line <= sf.end.y) {
 			sel_f = &f;
 			sel_ann = &item;
@@ -335,7 +335,7 @@ void AICodeCtrl::AnnotationData() {
 	}
 	AiFileInfo& info = *sel_f;
 	AiAnnotationItem& ann = *sel_ann;
-	SourceFile& ann_f = *sel_ann_f;
+	SourceRange& ann_f = *sel_ann_f;
 	FileAnnotation& fa = codeidx[i];
 	
 	int row = 0;

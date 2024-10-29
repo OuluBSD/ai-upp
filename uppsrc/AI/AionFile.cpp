@@ -23,7 +23,11 @@ void AionFile::Load()
 {
 	Clear();
 	if(FileExists(path)) {
+		lock.Enter();
 		LoadFromJsonFile(*this, path);
+		lock.Leave();
+		if (saved_hash.IsEmpty())
+			saved_hash = GetHashSha1();
 	}
 }
 
@@ -34,35 +38,61 @@ void AionFile::Save(bool forced)
 		// The hash value must be both 32-bit and 64-bit compatible,
 		// so use the sha1 hasher instead of the fast hasher
 		String current_sha1 = GetHashSha1();
+		
+		lock.Enter();
 		if (current_sha1 != saved_hash || forced) {
 			saved_hash = current_sha1;
 			RealizeDirectory(GetFileDirectory(path));
 			StoreAsJsonFile(*this, path, true);
 		}
+		lock.Leave();
 	}
 }
 
+thread_local static bool aionfile_getting_sha1;
+
 String AionFile::GetHashSha1() {
 	Sha1Stream s;
+	aionfile_getting_sha1 = true;
 	s % *this;
+	aionfile_getting_sha1 = false;
 	return s.FinishString();
 }
 
 void AionFile::Serialize(Stream& s)
 {
+	lock.Enter();
+	
 	byte version = 1;
 	s % version;
 	
+	// DO NOT READ "saved_hash" HERE AS THIS Serialize FUNCTION IS USED FOR GETTING THE HASH
+	//// s % saved_hash; <-- NO!
+	
 	if (version >= 1)
-		s % saved_hash % files;
+		s % files;
+	
+	lock.Leave();
+	
+	if (!aionfile_getting_sha1 && s.IsLoading() && saved_hash.IsEmpty())
+		saved_hash = GetHashSha1();
 }
 
 void AionFile::Jsonize(JsonIO& json)
 {
+	lock.Enter();
 	json
-		("saved_hash", saved_hash)
+		("saved_hash", saved_hash) // it's fine here
 		("files", files)
 		;
+	lock.Leave();
+}
+
+void AionFile::operator=(const AionFile& f) {
+	files <<= f.files;
+	saved_hash = f.saved_hash;
+	path = f.path;
+	dir = f.dir;
 }
 
 bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir, String& best_rel_dir)
@@ -129,35 +159,16 @@ AiFileInfo& AionFile::RealizePath(const String& includes, const String& path)
 	if (rel_file.GetCount() && rel_file[0] == '/')
 		rel_file = rel_file.Mid(1);
 	
-	lock.Enter();
+	bool l = lock.TryEnter();
 	int i = files.Find(rel_file);
 	if(i >= 0) {
 		AiFileInfo& o = files[i];
-		lock.Leave();
+		if (l) lock.Leave();
 		return o;
 	}
 	AiFileInfo& o = files.Add(rel_file);
-	lock.Leave();
+	if (l) lock.Leave();
 	return o;
-}
-
-AiFileInfo& AionFile::RealizePath0(const String& includes, const String& path)
-{
-	String rel_file = NormalizePath(path, dir);
-	int a = rel_file.Find(dir);
-	if(a == 0)
-		rel_file = rel_file.Mid(dir.GetCount());
-	else {
-		String ai_dir, rel_dir;
-		if (MakeRelativePath(includes, GetFileDirectory(path), ai_dir, rel_dir)) {
-			String filename = GetFileName(path);
-			rel_file = AppendFileName(rel_dir, filename);
-		}
-	}
-	int i = files.Find(rel_file);
-	if(i >= 0)
-		return files[i];
-	return files.Add(rel_file);
 }
 
 String GetAiPathCandidate(const String& includes_, String dir)
@@ -271,9 +282,9 @@ void AionFile::Load(const String& includes, const String& path, FileAnnotation& 
 	lock.Enter();
 	if(IsEmpty())
 		Load();
-	AiFileInfo& afi = RealizePath0(includes, path);
-	afi.UpdateLinks(fa);
 	lock.Leave();
+	AiFileInfo& afi = RealizePath(includes, path);
+	afi.UpdateLinks(fa);
 }
 
 void AionIndex::Store(const String& includes, const String& path, FileAnnotation& fa)
@@ -285,10 +296,8 @@ void AionIndex::Store(const String& includes, const String& path, FileAnnotation
 void AionFile::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
 	AiFileInfo& afi = RealizePath(includes, path);
-	lock.Enter();
 	afi.UpdateLinks(fa);
 	Save();
-	lock.Leave();
 }
 
 END_UPP_NAMESPACE

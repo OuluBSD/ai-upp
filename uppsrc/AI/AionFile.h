@@ -13,6 +13,11 @@ struct AionFile {
 	ArrayMap<String, AiFileInfo> files;
 	String saved_hash;
 	
+	
+	AionFile() {}
+	AionFile(AionFile&& f) {*this = f;}
+	AionFile(const AionFile& f) {*this = f;}
+	void operator=(const AionFile& f);
 	void SetPath(String path);
 	void Load();
 	void Save(bool forced=false);
@@ -21,21 +26,23 @@ struct AionFile {
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	AiFileInfo& RealizePath(const String& includes, const String& path);
-	AiFileInfo& RealizePath0(const String& includes, const String& path);
 	bool IsEmpty() const { return files.IsEmpty(); }
 	String GetHashSha1();
 	void Load(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(const String& includes, const String& path, FileAnnotation& fa);
 private:
+	
 	bool post_saving = false;
 	String path, dir;
 	Mutex lock;
+	
 };
 
 struct AionIndex {
 	ArrayMap<String, AionFile> files;
 	RWMutex lock;
-
+	
+	AionIndex() {}
 	String ResolveAionFilePath(const String& includes, String path);
 	AionFile& ResolveFile(const String& includes, String path);
 	AiFileInfo& ResolveFileInfo(const String& includes, String path);

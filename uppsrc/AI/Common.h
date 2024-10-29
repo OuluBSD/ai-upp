@@ -43,31 +43,90 @@ struct CodeArgs {
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };
 
-struct AiAnnotationItem : Moveable<AiAnnotationItem>, AnnotationItem {
-	struct Comment : Moveable<Comment> {
-		int rel_line = -1;
-		hash_t line_hash = 0;
-		String txt;
+struct AiAnnotationItem {
+	struct Data : Moveable<Data> {
+		String	txt;
+		hash_t	tmp_hash = 0;
+		
+		Data() {}
+		Data(const Data& f) {*this = f;}
+		void operator=(const Data& f);
 		void Jsonize(JsonIO& json);
 		void Serialize(Stream& s);
-		bool operator()(const Comment& a, const Comment& b) const {return a.rel_line != b.rel_line ? a.rel_line < b.rel_line : a.txt < b.txt;}
 	};
-	Vector<Comment> comments;
-
-	void RemoveCommentLine(int rel_line);
-	Comment* FindComment(int rel_line);
+	struct SourceFile {
+		struct Item : Moveable<Item> {
+			typedef enum : int {INVALID=-1, COMMENT, OTHER, TYPE_COUNT} Kind;
+			Kind	kind = INVALID;
+			int		rel_line = -1;
+			int		data_i = -1;
+			
+			void Jsonize(JsonIO& json);
+			void Serialize(Stream& s);
+			bool operator()(const Item& a, const Item& b) const {return a.rel_line != b.rel_line ? a.rel_line < b.rel_line : a.data_i < b.data_i;}
+		};
+		Vector<Item> items;
+		String	file_hash_sha1;
+		Point	pos = Null;
+		Point	begin = Null;
+		Point	end = Null;
+		Mutex lock;
+		
+		SourceFile() {}
+		SourceFile(const SourceFile& f) {*this = f;}
+		void operator=(const SourceFile& f);
+		void Sort();
+		void Jsonize(JsonIO& json);
+		void Serialize(Stream& s);
+		void RemoveLineItem(int rel_line);
+		Item* FindItem(int rel_line);
+		void RemoveAll(Item::Kind kind);
+	};
+	String id; // Upp::Class::Method(Upp::Point p)
+	String name; // Method
+	String type; // for String x, Upp::String, surely valid for variables only
+	String pretty; // void Class::Method(Point p)
+	String nspace; // Upp
+	String uname; // METHOD
+	String nest; // Upp::Class
+	String unest; // UPP::CLASS
+	String bases; // base classes of struct/class
+	int    kind = Null;
+	bool   definition = false;
+	bool   isvirtual = false;
+	bool   isstatic = false;
+	Array<SourceFile> source_files;
+	mutable Mutex lock;
+	
+	
+	AiAnnotationItem() {}
+	AiAnnotationItem(const AiAnnotationItem& f) {*this = f;}
+	AiAnnotationItem(AiAnnotationItem&& f) {*this = f;}
+	void operator=(const AiAnnotationItem& s);
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	void Sort();
+	SourceFile& RealizeFileByHashSha1(const String& sha1);
+	int FindAddData(const String& txt);
+	int GetDataCount() const;
+	String GetDataString(int data_i) const;
+	
+private:
+	Vector<Data> data;
+	
 };
 
 struct AiFileInfo : Moveable<AiFileInfo> {
-	Vector<AiAnnotationItem> ai_items;
-
+	Array<AiAnnotationItem> ai_items;
+	mutable Mutex lock;
+	
+	AiFileInfo() {}
+	AiFileInfo(const AiFileInfo& f) {*this = f;}
+	AiFileInfo(AiFileInfo&& f) : ai_items(pick(f.ai_items)) {}
+	void operator=(const AiFileInfo& s);
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	void UpdateLinks(FileAnnotation& ann);
-	void Sort();
 };
 
 END_UPP_NAMESPACE

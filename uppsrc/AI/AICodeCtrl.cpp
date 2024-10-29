@@ -51,6 +51,7 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 
 	this->content = str.Get(str.GetSize());
 	this->charset = charset;
+	this->hash_sha1 = SHA1String(this->content);
 
 	UpdateEditor();
 }
@@ -68,7 +69,7 @@ void AICodeCtrl::UpdateEditor()
 	for(int i = 0; i < editor_to_line.GetCount(); i++)
 		editor_to_line[i] = i;
 
-	{
+	try {
 		struct Item : Moveable<Item> {
 			String txt;
 			int line;
@@ -78,11 +79,15 @@ void AICodeCtrl::UpdateEditor()
 			} // in reverse because of simple insertion method
 		};
 		Vector<Item> items;
-		for(const AiAnnotationItem& item : f.ai_items) {
-			for(const AiAnnotationItem::Comment& c : item.comments) {
+		for(AiAnnotationItem& item : f.ai_items) {
+			AiAnnotationItem::SourceFile& df = item.RealizeFileByHashSha1(hash_sha1);
+			for(const AiAnnotationItem::SourceFile::Item& c : df.items) {
+				if (c.data_i < 0 || c.data_i >= item.GetDataCount())
+					throw Exc("error: invalid data_i in AiAnnotationItem::SourceFile::Item");
+				String data = item.GetDataString(c.data_i);
 				Item& it = items.Add();
-				it.line = item.begin.y + c.rel_line;
-				it.txt = c.txt;
+				it.line = df.begin.y + c.rel_line;
+				it.txt = data;
 			}
 		}
 
@@ -107,6 +112,11 @@ void AICodeCtrl::UpdateEditor()
 			editor_to_line.Insert(it.line, -1);
 			comment_to_line.Insert(it.line, it.line);
 		}
+	}
+	catch (Exc e) {
+		editor.Clear();
+		PromptOK(e);
+		return;
 	}
 	line_to_editor.SetCount(lines.GetCount(), -1);
 	for(int i = 0; i < editor_to_line.GetCount(); i++) {
@@ -155,19 +165,20 @@ void AICodeCtrl::AddComment()
 	if(sel_line < 0)
 		return;
 	SetSelectedAnnotationFromLine();
-	if(!sel_ann)
+	if(!sel_ann || !sel_ann_f)
 		return;
 	if(sel_line < 0 || sel_line >= editor_to_line.GetCount())
 		return;
 	int origl = editor_to_line[sel_line];
-	int l = origl - sel_ann->begin.y;
+	int l = origl - sel_ann_f->begin.y;
 	String txt;
 	if(!EditText(txt, "Add comment", ""))
 		return;
-	AiAnnotationItem::Comment& c = sel_ann->comments.Add();
-	c.line_hash = 0;
+	int data_i = sel_ann->FindAddData(txt);
+	SourceFile::Item& c = sel_ann_f->items.Add();
+	c.kind = SourceFile::Item::COMMENT;
 	c.rel_line = l;
-	c.txt = txt;
+	c.data_i = data_i;
 	sel_ann->Sort();
 
 	StoreAion();
@@ -185,8 +196,8 @@ void AICodeCtrl::RemoveComment()
 	if(sel_line < 0 || sel_line >= comment_to_line.GetCount())
 		return;
 	int origl = comment_to_line[sel_line];
-	int l = origl - sel_ann->begin.y;
-	sel_ann->RemoveCommentLine(l);
+	int l = origl - sel_ann_f->begin.y;
+	sel_ann_f->RemoveLineItem(l);
 
 	StoreAion();
 	UpdateEditor();
@@ -213,16 +224,17 @@ void AICodeCtrl::MakeAiComments()
 	args.code = Split(s, "\n", false);
 
 	// Trim annotation area of the code
-	if(sel_ann->begin.y > 0)
-		args.code.Remove(0, sel_ann->begin.y);
-	if(sel_ann->begin.x > 0)
-		args.code[0] = args.code[0].Mid(sel_ann->begin.x);
-	int len = sel_ann->end.y - sel_ann->begin.y + 1;
+	if(sel_ann_f->begin.y > 0)
+		args.code.Remove(0, sel_ann_f->begin.y);
+	if(sel_ann_f->begin.x > 0)
+		args.code[0] = args.code[0].Mid(sel_ann_f->begin.x);
+	int len = sel_ann_f->end.y - sel_ann_f->begin.y + 1;
 	args.code.SetCount(len);
-	if(sel_ann->end.x > 0)
-		args.code.Top() = args.code.Top().Left(sel_ann->end.x);
+	if(sel_ann_f->end.x > 0)
+		args.code.Top() = args.code.Top().Left(sel_ann_f->end.x);
 	// DUMPC(args.code);
 	auto* cur_sel_ann = sel_ann;
+	auto* cur_sel_ann_f = sel_ann_f;
 
 	m.GetCode(args, [&, cur_sel_ann](String result) {
 		Vector<String> lines = Split(result, "\n");
@@ -247,13 +259,15 @@ void AICodeCtrl::MakeAiComments()
 			comments.GetAdd(line) = l;
 		}
 		// DUMPM(comments);
-		cur_sel_ann->comments.Clear();
+		cur_sel_ann_f->RemoveAll(SourceFile::Item::COMMENT);
 		for(auto c : ~comments) {
-			auto& comment = cur_sel_ann->comments.Add();
-			comment.rel_line = c.key;
-			comment.txt = c.value;
-			comment.line_hash =
-				c.key < args.code.GetCount() ? args.code[c.key].GetHashValue() : 0;
+			int data_i = cur_sel_ann->FindAddData(c.value);
+			auto& item = cur_sel_ann_f->items.Add();
+			item.kind = SourceFile::Item::COMMENT;
+			item.rel_line = c.key;
+			item.data_i = data_i;
+			//item.line_hash =
+			//	c.key < args.code.GetCount() ? args.code[c.key].GetHashValue() : 0;
 		}
 		cur_sel_ann->Sort();
 
@@ -280,15 +294,19 @@ void AICodeCtrl::SetSelectedLineFromEditor()
 
 void AICodeCtrl::SetSelectedAnnotationFromLine()
 {
+	ASSERT(!this->filepath.IsEmpty() && !this->hash_sha1.IsEmpty());
 	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
+	sel_ann_f = 0;
 	sel_ann = 0;
 	sel_f = 0;
 
 	for(int i = 0; i < f.ai_items.GetCount(); i++) {
-		auto& item = f.ai_items[i];
-		if(sel_line >= item.begin.y && sel_line <= item.end.y) {
+		AiAnnotationItem& item = f.ai_items[i];
+		SourceFile& sf = item.RealizeFileByHashSha1(this->hash_sha1);
+		if(sel_line >= sf.begin.y && sel_line <= sf.end.y) {
 			sel_f = &f;
 			sel_ann = &item;
+			sel_ann_f = &sf;
 			break;
 		}
 	}
@@ -317,12 +335,13 @@ void AICodeCtrl::AnnotationData() {
 	}
 	AiFileInfo& info = *sel_f;
 	AiAnnotationItem& ann = *sel_ann;
+	SourceFile& ann_f = *sel_ann_f;
 	FileAnnotation& fa = codeidx[i];
 	
 	int row = 0;
 	for(int i = 0; i < fa.items.GetCount(); i++) {
 		const AnnotationItem& ai = fa.items[i];
-		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
+		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
 			cursorinfo.Set(row, 0, ai.id);
 			cursorinfo.Set(row, 1, ai.type);
 			cursorinfo.Set(row, 2, Value());
@@ -331,7 +350,7 @@ void AICodeCtrl::AnnotationData() {
 	}
 	for(int i = 0; i < fa.locals.GetCount(); i++) {
 		const AnnotationItem& ai = fa.locals[i];
-		if (ann.begin.y <= ai.pos.y && ai.pos.y <= ann.end.y) {
+		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
 			cursorinfo.Set(row, 0, ai.id);
 			cursorinfo.Set(row, 1, ai.type);
 			cursorinfo.Set(row, 2, Value());
@@ -340,7 +359,7 @@ void AICodeCtrl::AnnotationData() {
 	}
 	for(int i = 0; i < fa.refs.GetCount(); i++) {
 		const ReferenceItem& ref = fa.refs[i];
-		if (ann.begin.y <= ref.pos.y && ref.pos.y <= ann.end.y) {
+		if (ann_f.begin.y <= ref.pos.y && ref.pos.y <= ann_f.end.y) {
 			cursorinfo.Set(row, 0, ref.id);
 			cursorinfo.Set(row, 1, ref.pos.y);
 			cursorinfo.Set(row, 2, ref.ref_pos.y);
@@ -352,7 +371,7 @@ void AICodeCtrl::AnnotationData() {
 	CodeVisitor vis;
 	vis.SetLimit(1000);
 	vis.Begin();
-	vis.Visit(filepath, fa, ann.begin, ann.end);
+	vis.Visit(filepath, fa, ann_f.begin, ann_f.end);
 	
 	row = 0;
 	for(const auto& it : vis.export_items) {

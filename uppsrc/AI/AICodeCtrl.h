@@ -7,6 +7,7 @@ struct AiFileInfo;
 NAMESPACE_UPP
 
 struct AICodeCtrl : ParentCtrl {
+	using SourceFile = AiAnnotationItem::SourceFile;
 	Splitter			hsplit, rsplit;
 	CodeEditor			editor;
 	ArrayCtrl			cursorinfo, depthfirst;
@@ -17,7 +18,9 @@ struct AICodeCtrl : ParentCtrl {
 	int					lineh = 24;
 	Font				fnt;
 	String				content;
+	String				hash_sha1;
 	int					sel_line = -1;
+	SourceFile*			sel_ann_f = 0;
 	AiAnnotationItem*	sel_ann = 0;
 	AiFileInfo*			sel_f = 0;
 	Color				clr_sel;

@@ -2,64 +2,249 @@
 
 NAMESPACE_UPP
 
+
+AiAnnotationItem::SourceFile& AiAnnotationItem::RealizeFileByHashSha1(const String& sha1)
+{
+	Mutex::Lock ml(lock);
+	for (SourceFile& sf : source_files) {
+		if (sf.file_hash_sha1 == sha1) {
+			return sf;
+		}
+	}
+	SourceFile& sf = source_files.Add();
+	sf.file_hash_sha1 = sha1;
+	return sf;
+}
+
+int AiAnnotationItem::FindAddData(const String& txt)
+{
+	Mutex::Lock ml(lock);
+	hash_t h = txt.GetHashValue();
+	int i = 0;
+	for (Data& d : data) {
+		if (d.tmp_hash == 0) d.tmp_hash = d.txt.GetHashValue();
+		if (d.tmp_hash == h) {
+			return i;
+		}
+		i++;
+	}
+	i = data.GetCount();
+	Data& d = data.Add();
+	d.txt = txt;
+	d.tmp_hash = d.txt.GetHashValue();
+	return i;
+}
+
+int AiAnnotationItem::GetDataCount() const
+{
+	Mutex::Lock ml(lock);
+	int i = data.GetCount();
+	return i;
+}
+
+String AiAnnotationItem::GetDataString(int data_i) const
+{
+	Mutex::Lock ml(lock);
+	String s = data[data_i].txt;
+	return s;
+}
+
+void AiAnnotationItem::operator=(const AiAnnotationItem& s)
+{
+	Mutex::Lock ml(lock);
+	
+	kind = s.kind;
+	definition = s.definition;
+	isvirtual = s.isvirtual;
+	isstatic = s.isstatic;
+	name = s.name;
+	type = s.type;
+	id = s.id;
+	pretty = s.pretty;
+	nspace = s.nspace;
+	uname = s.uname;
+	nest = s.nest;
+	unest = s.unest;
+	bases = s.bases;
+	data <<= s.data;
+	source_files <<= source_files;
+	
+}
+
 void AiAnnotationItem::Jsonize(JsonIO& json)
 {
-	json("a", (AnnotationItem&)*this)("c", comments);
-	if (json.IsLoading()) Sort();
+	Mutex::Lock ml(lock);
+	
+	json	("k", kind)
+			("d", definition)
+			("iv", isvirtual)
+			("is", isstatic)
+			("n", name)
+			("t", type)
+			("i", id)
+			("r", pretty)
+			("s", nspace)
+			("u", uname)
+			("q", nest)
+			("w", unest)
+			("y", bases)
+			("da", data)
+			("sf", source_files)
+			;
+	//if (json.IsLoading()) Sort();
 }
 
 void AiAnnotationItem::Serialize(Stream& s)
 {
-	if (s.IsStoring()) Sort();
+	//if (s.IsStoring()) Sort();
+	Mutex::Lock ml(lock);
 	
 	byte version = 1;
 	s % version;
 	
-	if (version >= 1)
-		s % (AnnotationItem&)*this % comments;
+	if (version >= 1) {
+		s % kind
+		  % definition
+		  % isvirtual
+		  % isstatic
+		  % name
+		  % type
+		  % id
+		  % pretty
+		  % nspace
+		  % uname
+		  % nest
+		  % unest
+		  % bases
+		  % data
+		  % source_files
+		  ;
+	}
+	
+}
+
+void AiAnnotationItem::SourceFile::Sort() {
+	Mutex::Lock ml(lock);
+	UPP::Sort(items, Item());
 }
 
 void AiAnnotationItem::Sort() {
-	UPP::Sort(comments, Comment());
+	for (SourceFile& f : source_files)
+		f.Sort();
 }
 
-void AiAnnotationItem::Comment::Jsonize(JsonIO& json)
+void AiAnnotationItem::Data::operator=(const Data& f)
 {
-	json("l", rel_line)("h", (int64&)line_hash)("s", txt);
+	txt = f.txt;
+	tmp_hash = f.tmp_hash;
 }
 
-void AiAnnotationItem::Comment::Serialize(Stream& s)
+void AiAnnotationItem::Data::Jsonize(JsonIO& json)
+{
+	json
+		("s", txt)
+		;
+}
+
+void AiAnnotationItem::Data::Serialize(Stream& s)
 {
 	byte version = 1;
 	s % version;
 	
-	if (version >= 1)
-		s % rel_line % line_hash % txt;
+	if (version >= 1) {
+		s % txt;
+	}
+}
+
+void AiAnnotationItem::SourceFile::Item::Jsonize(JsonIO& json)
+{
+	json
+		("k", (int&)kind)
+		("l", rel_line)
+		("d", data_i)
+		;
+}
+
+void AiAnnotationItem::SourceFile::Item::Serialize(Stream& s)
+{
+	byte version = 1;
+	s % version;
+	
+	if (version >= 1) {
+		s % (int&)kind
+		  % rel_line
+		  % data_i
+		  ;
+	}
+}
+
+void AiAnnotationItem::SourceFile::operator=(const SourceFile& f)
+{
+	Mutex::Lock ml(lock);
+	items <<= f.items;
+	file_hash_sha1 = f.file_hash_sha1;
+	pos = f.pos;
+	begin = f.begin;
+	end = f.end;
+}
+
+void AiAnnotationItem::SourceFile::Jsonize(JsonIO& json)
+{
+	Mutex::Lock ml(lock);
+	json
+		("items", items)
+		("h", file_hash_sha1)
+		("p", pos)
+		("b", begin)
+		("e", end)
+		;
+}
+
+void AiAnnotationItem::SourceFile::Serialize(Stream& s)
+{
+	Mutex::Lock ml(lock);
+	
+	byte version = 1;
+	s % version;
+	
+	if (version >= 1) {
+		s % items
+		  % file_hash_sha1
+		  % pos
+		  % begin
+		  % end;
+	}
+}
+
+void AiFileInfo::operator=(const AiFileInfo& s)
+{
+	Mutex::Lock ml(lock);
+	ai_items <<= s.ai_items;
 }
 
 void AiFileInfo::Jsonize(JsonIO& json)
 {
+	Mutex::Lock ml(lock);
 	json("items", ai_items);
-	if (json.IsLoading()) Sort();
+	//if (json.IsLoading()) Sort();
 }
 
 void AiFileInfo::Serialize(Stream& s)
 {
-	if (s.IsStoring()) Sort();
+	Mutex::Lock ml(lock);
 	
 	byte version = 1;
 	s % version;
 	
 	if (version >= 1)
 		s % ai_items;
-}
-
-void AiFileInfo::Sort() {
-	UPP::Sort(ai_items, AiAnnotationItem());
+	
 }
 
 void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 {
+	Mutex::Lock ml(lock);
+	
 	int c0 = ann.items.GetCount();
 	int c1 = ai_items.GetCount();
 	if(!c1) {
@@ -113,25 +298,39 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 			nonlinked0--;
 		}
 	}
-	Sort();
 }
 
-void AiAnnotationItem::RemoveCommentLine(int rel_line)
+void AiAnnotationItem::SourceFile::RemoveAll(Item::Kind kind) {
+	Vector<int> rmlist;
+	Mutex::Lock ml(lock);
+	for(int i = 0; i < items.GetCount(); i++) {
+		if (items[i].kind == kind)
+			rmlist << i;
+	}
+	if (!rmlist.IsEmpty()) items.Remove(rmlist);
+}
+
+void AiAnnotationItem::SourceFile::RemoveLineItem(int rel_line)
 {
 	Vector<int> rm_list;
-	for(int i = 0; i < comments.GetCount(); i++) {
-		if(comments[i].rel_line == rel_line)
+	Mutex::Lock ml(lock);
+	for(int i = 0; i < items.GetCount(); i++) {
+		if(items[i].rel_line == rel_line)
 			rm_list << i;
 	}
-	comments.Remove(rm_list);
+	items.Remove(rm_list);
 }
 
-AiAnnotationItem::Comment* AiAnnotationItem::FindComment(int rel_line)
+AiAnnotationItem::SourceFile::Item* AiAnnotationItem::SourceFile::FindItem(int rel_line)
 {
-	for(Comment& c : comments)
-		if(c.rel_line == rel_line)
+	Mutex::Lock ml(lock);
+	for(Item& c : items) {
+		if(c.rel_line == rel_line) {
 			return &c;
+		}
+	}
 	return 0;
 }
+
 
 END_UPP_NAMESPACE

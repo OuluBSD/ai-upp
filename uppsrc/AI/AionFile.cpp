@@ -23,9 +23,9 @@ void AionFile::Load()
 {
 	Clear();
 	if(FileExists(path)) {
-		lock.Enter();
+		//lock.Enter(); // useless here
 		LoadFromJsonFile(*this, path);
-		lock.Leave();
+		//lock.Leave();
 		if (saved_hash.IsEmpty())
 			saved_hash = GetHashSha1();
 	}
@@ -39,13 +39,13 @@ void AionFile::Save(bool forced)
 		// so use the sha1 hasher instead of the fast hasher
 		String current_sha1 = GetHashSha1();
 		
-		lock.Enter();
+		//lock.Enter(); // useless here
 		if (current_sha1 != saved_hash || forced) {
 			saved_hash = current_sha1;
 			RealizeDirectory(GetFileDirectory(path));
 			StoreAsJsonFile(*this, path, true);
 		}
-		lock.Leave();
+		//lock.Leave();
 	}
 }
 
@@ -61,18 +61,18 @@ String AionFile::GetHashSha1() {
 
 void AionFile::Serialize(Stream& s)
 {
-	lock.Enter();
-	
-	byte version = 1;
-	s % version;
-	
-	// DO NOT READ "saved_hash" HERE AS THIS Serialize FUNCTION IS USED FOR GETTING THE HASH
-	//// s % saved_hash; <-- NO!
-	
-	if (version >= 1)
-		s % files;
-	
-	lock.Leave();
+	{
+		Mutex::Lock ml(lock);
+		
+		byte version = 1;
+		s % version;
+		
+		// DO NOT READ "saved_hash" HERE AS THIS Serialize FUNCTION IS USED FOR GETTING THE HASH
+		//// s % saved_hash; <-- NO!
+		
+		if (version >= 1)
+			s % files;
+	}
 	
 	if (!aionfile_getting_sha1 && s.IsLoading() && saved_hash.IsEmpty())
 		saved_hash = GetHashSha1();
@@ -80,15 +80,15 @@ void AionFile::Serialize(Stream& s)
 
 void AionFile::Jsonize(JsonIO& json)
 {
-	lock.Enter();
+	Mutex::Lock ml(lock);
 	json
 		("saved_hash", saved_hash) // it's fine here
 		("files", files)
 		;
-	lock.Leave();
 }
 
 void AionFile::operator=(const AionFile& f) {
+	Mutex::Lock ml(lock);
 	files <<= f.files;
 	saved_hash = f.saved_hash;
 	path = f.path;
@@ -159,15 +159,13 @@ AiFileInfo& AionFile::RealizePath(const String& includes, const String& path)
 	if (rel_file.GetCount() && rel_file[0] == '/')
 		rel_file = rel_file.Mid(1);
 	
-	bool l = lock.TryEnter();
+	Mutex::Lock ml(lock);
 	int i = files.Find(rel_file);
 	if(i >= 0) {
 		AiFileInfo& o = files[i];
-		if (l) lock.Leave();
 		return o;
 	}
 	AiFileInfo& o = files.Add(rel_file);
-	if (l) lock.Leave();
 	return o;
 }
 

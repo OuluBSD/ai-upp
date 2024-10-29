@@ -112,6 +112,7 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 		   serial == current_file_serial) {
 			annotations_done(f, ds);
 			FileAnnotation fa;
+			fa.path = cfc.parsed_file.real_filename;
 			fa.defines = cfc.parsed_file.defines;
 			fa.includes = cfc.parsed_file.includes;
 			fa.items = pick(f.items);

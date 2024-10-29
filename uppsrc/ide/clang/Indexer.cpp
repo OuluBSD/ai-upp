@@ -149,6 +149,7 @@ void FileAnnotation::Serialize(Stream& s)
 	  % time
 	  % items
 	  % refs
+	  % path
 	;
 }
 
@@ -280,6 +281,7 @@ void Indexer::IndexerThread()
 			for(const auto& m : ~v.info) {
 				String path = NormalizePath(m.key);
 				FileAnnotation f;
+				f.path = path;
 				f.defines = job.defines;
 				f.includes = job.includes;
 				(CppFileInfo&)f = pick(m.value);

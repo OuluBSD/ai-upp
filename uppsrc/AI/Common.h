@@ -101,7 +101,7 @@ struct AiAnnotationItem {
 	bool   definition = false;
 	bool   isvirtual = false;
 	bool   isstatic = false;
-	Array<SourceRange> source_files;
+	Array<SourceRange> source_ranges;
 	mutable Mutex lock;
 	
 	
@@ -119,6 +119,7 @@ struct AiAnnotationItem {
 	int FindAddData(const String& txt);
 	int GetDataCount() const;
 	String GetDataString(int data_i) const;
+	SourceRange* FindAnySourceRange();
 	
 private:
 	Vector<Data> data;
@@ -140,6 +141,8 @@ struct AiFileInfo : Moveable<AiFileInfo> {
 
 
 String GetStringRange(String content, Point begin, Point end);
+bool UpdateAiFileInfo(AiFileInfo& f, const String& path);
+bool RangeContains(Point pos, Point begin, Point end);
 
 
 END_UPP_NAMESPACE

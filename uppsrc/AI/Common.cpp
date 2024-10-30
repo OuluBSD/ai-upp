@@ -6,7 +6,7 @@ NAMESPACE_UPP
 AiAnnotationItem::SourceRange* AiAnnotationItem::FindRangeByHashSha1(const String& sha1)
 {
 	Mutex::Lock ml(lock);
-	for (SourceRange& sf : source_files) {
+	for (SourceRange& sf : source_ranges) {
 		if (sf.range_hash_sha1 == sha1) {
 			return &sf;
 		}
@@ -17,12 +17,12 @@ AiAnnotationItem::SourceRange* AiAnnotationItem::FindRangeByHashSha1(const Strin
 AiAnnotationItem::SourceRange& AiAnnotationItem::RealizeRangeByHashSha1(const String& sha1)
 {
 	Mutex::Lock ml(lock);
-	for (SourceRange& sf : source_files) {
+	for (SourceRange& sf : source_ranges) {
 		if (sf.range_hash_sha1 == sha1) {
 			return sf;
 		}
 	}
-	SourceRange& sf = source_files.Add();
+	SourceRange& sf = source_ranges.Add();
 	sf.range_hash_sha1 = sha1;
 	return sf;
 }
@@ -58,6 +58,14 @@ String AiAnnotationItem::GetDataString(int data_i) const
 	Mutex::Lock ml(lock);
 	String s = data[data_i].txt;
 	return s;
+}
+
+AiAnnotationItem::SourceRange* AiAnnotationItem::FindAnySourceRange()
+{
+	for (auto& r : source_ranges)
+		if (r.begin != r.end)
+			return &r;
+	return 0;
 }
 
 bool AiAnnotationItem::IsSameContent(const AnnotationItem& b) const
@@ -99,7 +107,7 @@ void AiAnnotationItem::operator=(const AiAnnotationItem& s)
 	unest = s.unest;
 	bases = s.bases;
 	data <<= s.data;
-	source_files <<= s.source_files;
+	source_ranges <<= s.source_ranges;
 	
 }
 
@@ -120,8 +128,8 @@ void AiAnnotationItem::Set(const AnnotationItem& s, const String& range_hash_sha
 	unest = s.unest;
 	bases = s.bases;
 	
-	source_files.Clear();
-	SourceRange& sf = source_files.Add();
+	source_ranges.Clear();
+	SourceRange& sf = source_ranges.Add();
 	sf.pos = s.pos;
 	sf.begin = s.begin;
 	sf.end = s.end;
@@ -147,7 +155,7 @@ void AiAnnotationItem::Jsonize(JsonIO& json)
 			("w", unest)
 			("y", bases)
 			("da", data)
-			("sf", source_files)
+			("sf", source_ranges)
 			;
 	//if (json.IsLoading()) Sort();
 }
@@ -175,7 +183,7 @@ void AiAnnotationItem::Serialize(Stream& s)
 		  % unest
 		  % bases
 		  % data
-		  % source_files
+		  % source_ranges
 		  ;
 	}
 	
@@ -188,7 +196,7 @@ void AiAnnotationItem::SourceRange::Sort() {
 
 void AiAnnotationItem::Sort() {
 	Mutex::Lock ml(lock);
-	for (SourceRange& f : source_files)
+	for (SourceRange& f : source_ranges)
 		f.Sort();
 }
 
@@ -308,8 +316,34 @@ void AiFileInfo::Serialize(Stream& s)
 	
 }
 
+void GetAnnotationItemRange(AnnotationItem& it0, Point& b, Point& e)
+{
+	b = it0.begin;
+	e = it0.end;
+	if (b != e && !RangeContains(it0.pos, b, e)) {
+		e = b = it0.pos;
+		e.x += it0.id.GetCount();
+	}
+}
+
+bool UpdateAiAnnotationItemRange(const String& content, AnnotationItem& it0, Point& b, Point& e, AiAnnotationItem& it1) {
+	if (b == e)
+		it1.Set(it0, "");
+	else {
+		String code = GetStringRange(content, b, e);
+		if (code.IsEmpty())
+			return false;
+		String sha1 = SHA1String(code);
+		it1.Set(it0, sha1);
+	}
+	return true;
+}
+
 void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 {
+	if (ann.items.IsEmpty())
+		return;
+	
 	Mutex::Lock ml(lock);
 	
 	ASSERT(!ann.path.IsEmpty());
@@ -319,17 +353,17 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 	int c0 = ann.items.GetCount();
 	int c1 = ai_items.GetCount();
 	if(!c1) {
-		ai_items.SetCount(c0);
+		ai_items.SetCount(0);
+		ai_items.Reserve(c0);
 		for(int i = 0; i < c0; i++) {
 			AnnotationItem& it0 = ann.items[i];
-			AiAnnotationItem& it1 = ai_items[i];
-			if (it0.begin == it0.end)
-				it1.Set(it0, "");
-			else {
-				String code = GetStringRange(content, it0.begin, it0.end);
-				ASSERT(!code.IsEmpty());
-				String sha1 = SHA1String(code);
-				it1.Set(it0, sha1);
+			Point b, e;
+			GetAnnotationItemRange(it0, b, e);
+			AiAnnotationItem& it1 = ai_items.Add();
+			if (!UpdateAiAnnotationItemRange(content, it0, b, e, it1)) {
+				ai_items.Remove(ai_items.GetCount()-1);
+				LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+				return;
 			}
 			// it1.linked = &it0;
 		}
@@ -349,23 +383,28 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 				if(linked0[i])
 					continue;
 				AnnotationItem& it0 = ann.items[i];
+				Point b, e;
+				GetAnnotationItemRange(it0, b, e);
+
 				for(int j = 0; j < ai_items.GetCount(); j++) {
 					if(linked1[j])
 						continue;
 					AiAnnotationItem& it1 = ai_items[j];
 					bool match = false;
+					bool range_updated = false;
 					if (tries == 0 && it1.IsSameContent(it0)) match = true;
-					if (tries == 1 && it0.begin != it0.end) {
-						String code = GetStringRange(content, it0.begin, it0.end);
+					if (tries == 1 && b != e) {
+						String code = GetStringRange(content, b, e);
 						ASSERT(!code.IsEmpty());
-						String sha1 = it0.begin == it0.end ? String() : SHA1String(code);
+						String sha1 = SHA1String(code);
 						auto* range = it1.FindRangeByHashSha1(sha1);
 						if (range) {
 							// if (range->IsLineAreaPartialMatch(it0)) // <-- not needed anymore
 							range->pos = it0.pos;
-							range->begin = it0.begin;
-							range->end = it0.end;
+							range->begin = b;
+							range->end = e;
 							match = true;
+							range_updated = true;
 						}
 					}
 					if (match) {
@@ -374,6 +413,19 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 						linked1[j] = true;
 						nonlinked0--;
 						nonlinked1--;
+						if (!range_updated && b != e) {
+							String code = GetStringRange(content, b, e);
+							if (code.IsEmpty()) {
+								LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+								return;
+							}
+							ASSERT(!code.IsEmpty());
+							String sha1 = SHA1String(code);
+							auto& range = it1.RealizeRangeByHashSha1(sha1);
+							range.pos = it0.pos;
+							range.begin = b;
+							range.end = e;
+						}
 						break;
 					}
 				}
@@ -385,13 +437,12 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 				continue;
 			AnnotationItem& it0 = ann.items[i];
 			AiAnnotationItem& it1 = ai_items.Add();
-			if (it0.begin == it0.end)
-				it1.Set(it0, "");
-			else {
-				String code = GetStringRange(content, it0.begin, it0.end);
-				ASSERT(!code.IsEmpty());
-				String sha1 = SHA1String(code);
-				it1.Set(it0, sha1);
+			Point b, e;
+			GetAnnotationItemRange(it0, b, e);
+			if (!UpdateAiAnnotationItemRange(content, it0, b, e, it1)) {
+				ai_items.Remove(ai_items.GetCount()-1);
+				LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+				return;
 			}
 			nonlinked0--;
 			// it1.linked = &it0;
@@ -432,7 +483,10 @@ AiAnnotationItem::SourceRange::Item* AiAnnotationItem::SourceRange::FindItem(int
 }
 
 String GetStringRange(String content, Point begin, Point end) {
-	Vector<String> lines = Split(content, "\n", false);
+	String ln = "\n";
+	if (content.Find("\r\n") >= 0)
+		ln = "\r\n";
+	Vector<String> lines = Split(content, ln, false);
 	{
 		int c = lines.GetCount();
 		int last_i = c-1;
@@ -457,6 +511,27 @@ String GetStringRange(String content, Point begin, Point end) {
 		}
 	}
 	return Join(lines, "\n");
+}
+
+bool UpdateAiFileInfo(AiFileInfo& f, const String& path)
+{
+	int i = CodeIndex().Find(path);
+	if (i < 0)
+		return false;
+	FileAnnotation& fa = CodeIndex()[i];
+	f.UpdateLinks(fa);
+	return true;
+}
+
+bool RangeContains(Point pos, Point begin, Point end)
+{
+	if ( pos.y < begin.y ||
+		(pos.y == begin.y && pos.x < begin.x) ||
+		 pos.y > end.y ||
+		(pos.y == end.y && pos.x > end.x)) {
+		return false;
+	}
+	return true;
 }
 
 END_UPP_NAMESPACE

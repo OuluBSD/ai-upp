@@ -51,7 +51,6 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 
 	this->content = str.Get((int)str.GetSize());
 	this->charset = charset;
-	this->hash_sha1 = SHA1String(this->content);
 
 	UpdateEditor();
 }
@@ -80,13 +79,15 @@ void AICodeCtrl::UpdateEditor()
 		};
 		Vector<Item> items;
 		for(AiAnnotationItem& item : f.ai_items) {
-			AiAnnotationItem::SourceRange& df = item.RealizeRangeByHashSha1(hash_sha1);
-			for(const AiAnnotationItem::SourceRange::Item& c : df.items) {
+			AiAnnotationItem::SourceRange* df = item.FindAnySourceRange();
+			if (!df)
+				continue;
+			for(const AiAnnotationItem::SourceRange::Item& c : df->items) {
 				if (c.data_i < 0 || c.data_i >= item.GetDataCount())
 					throw Exc("error: invalid data_i in AiAnnotationItem::SourceRange::Item");
 				String data = item.GetDataString(c.data_i);
 				Item& it = items.Add();
-				it.line = df.begin.y + c.rel_line;
+				it.line = df->begin.y + c.rel_line;
 				it.txt = data;
 			}
 		}
@@ -236,7 +237,7 @@ void AICodeCtrl::MakeAiComments()
 	auto* cur_sel_ann = sel_ann;
 	auto* cur_sel_ann_f = sel_ann_f;
 
-	m.GetCode(args, [&, cur_sel_ann](String result) {
+	m.GetCode(args, [&, cur_sel_ann, cur_sel_ann_f](String result) {
 		Vector<String> lines = Split(result, "\n");
 		VectorMap<int, String> comments;
 		for(String& l : lines) {
@@ -294,19 +295,21 @@ void AICodeCtrl::SetSelectedLineFromEditor()
 
 void AICodeCtrl::SetSelectedAnnotationFromLine()
 {
-	ASSERT(!this->filepath.IsEmpty() && !this->hash_sha1.IsEmpty());
+	ASSERT(!this->filepath.IsEmpty());
 	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
 	sel_ann_f = 0;
 	sel_ann = 0;
 	sel_f = 0;
-
+	
+	UpdateAiFileInfo(f, this->filepath);
+	
 	for(int i = 0; i < f.ai_items.GetCount(); i++) {
 		AiAnnotationItem& item = f.ai_items[i];
-		SourceRange& sf = item.RealizeRangeByHashSha1(this->hash_sha1);
-		if(sel_line >= sf.begin.y && sel_line <= sf.end.y) {
+		auto* sf = item.FindAnySourceRange();
+		if(sf && sel_line >= sf->begin.y && sel_line <= sf->end.y) {
 			sel_f = &f;
 			sel_ann = &item;
-			sel_ann_f = &sf;
+			sel_ann_f = sf;
 			break;
 		}
 	}

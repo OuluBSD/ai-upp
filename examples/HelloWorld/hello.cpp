@@ -5,14 +5,14 @@ using namespace Upp;
 class HelloWorld : public TopWindow {
 	MenuBar menu;
 	StatusBar status;
-
+	
 	void FileMenu(Bar& bar);
 	void MainMenu(Bar& bar);
 	void About();
-
+	
 public:
 	typedef HelloWorld CLASSNAME;
-
+	
 	HelloWorld();
 };
 

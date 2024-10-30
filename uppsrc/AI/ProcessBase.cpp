@@ -56,7 +56,7 @@ void AiProcessBase::PostRemaining()
 	double progress = GetProgress();
 	if(progress > 0.0) {
 		Time now = GetSysTime();
-		double seconds = now.Get() - time_started.Get();
+		double seconds = (double)(now.Get() - time_started.Get());
 		double per_second = progress / seconds;
 		double remaining = 1 - progress;
 		double remaining_seconds = remaining / per_second;

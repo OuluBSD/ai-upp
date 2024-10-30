@@ -284,7 +284,7 @@ void Indexer::IndexerThread()
 				f.path = path;
 				f.defines = job.defines;
 				f.includes = job.includes;
-				(CppFileInfo&)f = pick(m.value);
+				static_cast<CppFileInfo&>(f) = pick(m.value);
 				f.time = job.file_times.Get(path, Time::Low());
 				f.master_file = job.master_files.Get(path, Null);
 				LLOG("Storing " << path);

@@ -49,7 +49,7 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 	aion.SetPath(aion_path);
 	aion.Load();
 
-	this->content = str.Get(str.GetSize());
+	this->content = str.Get((int)str.GetSize());
 	this->charset = charset;
 	this->hash_sha1 = SHA1String(this->content);
 

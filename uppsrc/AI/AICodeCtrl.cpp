@@ -6,7 +6,10 @@ NAMESPACE_UPP
 AICodeCtrl::AICodeCtrl()
 {
 	Add(hsplit.SizePos());
-	hsplit.Horz() << editor << rsplit;
+	hsplit.Horz() << editor << tabs;
+	
+	tabs.Add(rsplit.SizePos(), "Code");
+	tabs.Add(process.SizePos(), "Process");
 
 	editor.Highlight("cpp");
 	editor.SetReadOnly();
@@ -156,7 +159,8 @@ void AICodeCtrl::ContextMenu(Bar& bar)
 	bar.Add("Remove comment", THISBACK(RemoveComment));
 	bar.Separator();
 	bar.Sub("AI", [&](Bar& b) {
-		b.Add("Create AI comments for the scope", THISBACK(MakeAiComments));
+		b.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
+		b.Add("Run base analysis for this scope", [this]{process.RunTask(AIProcess::FN_BASE_ANALYSIS);});
 	});
 }
 

@@ -9,8 +9,10 @@ NAMESPACE_UPP
 struct AICodeCtrl : ParentCtrl {
 	using SourceRange = AiAnnotationItem::SourceRange;
 	Splitter			hsplit, rsplit;
+	TabCtrl				tabs;
 	CodeEditor			editor;
 	ArrayCtrl			cursorinfo, depthfirst;
+	AIProcessCtrl		process;
 
 	String				filepath;
 	String				includes;

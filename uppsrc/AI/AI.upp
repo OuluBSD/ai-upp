@@ -17,6 +17,8 @@ file
 	AICodeCtrl.cpp,
 	AionFile.h,
 	AionFile.cpp,
+	ProcessCtrl.h,
+	ProcessCtrl.cpp,
 	Ctrl readonly separator,
 	TaskCtrl.h,
 	TaskCtrl.cpp,

@@ -12,6 +12,7 @@
 
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
+#include "ProcessCtrl.h"
 
 #include "AICodeCtrl.h"
 #include "AIProjectCtrl.h"

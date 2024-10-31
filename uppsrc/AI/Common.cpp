@@ -14,9 +14,12 @@ AiAnnotationItem::SourceRange* AiAnnotationItem::FindRangeByHashSha1(const Strin
 	return 0;
 }
 
-AiAnnotationItem::SourceRange& AiAnnotationItem::RealizeRangeByHashSha1(const String& sha1)
+AiAnnotationItem::SourceRange& AiAnnotationItem::RealizeRangeByHashSha1(const String& sha1, bool invalidate_others)
 {
 	Mutex::Lock ml(lock);
+	if (invalidate_others)
+		for (SourceRange& sf : source_ranges)
+			sf.pos = sf.begin = sf.end = Null;
 	for (SourceRange& sf : source_ranges) {
 		if (sf.range_hash_sha1 == sha1) {
 			return sf;
@@ -421,7 +424,7 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 							}
 							ASSERT(!code.IsEmpty());
 							String sha1 = SHA1String(code);
-							auto& range = it1.RealizeRangeByHashSha1(sha1);
+							auto& range = it1.RealizeRangeByHashSha1(sha1, true);
 							range.pos = it0.pos;
 							range.begin = b;
 							range.end = e;

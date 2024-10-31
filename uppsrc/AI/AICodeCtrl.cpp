@@ -271,10 +271,16 @@ void AICodeCtrl::MakeAiComments()
 			//	c.key < args.code.GetCount() ? args.code[c.key].GetHashValue() : 0;
 		}
 		cur_sel_ann->Sort();
-
-		PostCallback([this] {
-			StoreAion();
-			UpdateEditor();
+		
+		Ptr<Ctrl> p = this; //static_cast<Pte<AICodeCtrl>*>(this);
+		PostCallback([p] {
+			if (p) {
+				AICodeCtrl* c = dynamic_cast<AICodeCtrl*>(&*p);
+				if (c) {
+					c->StoreAion();
+					c->UpdateEditor();
+				}
+			}
 		});
 	});
 }

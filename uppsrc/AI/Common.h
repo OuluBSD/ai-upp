@@ -114,7 +114,7 @@ struct AiAnnotationItem {
 	void Jsonize(JsonIO& json);
 	void Serialize(Stream& s);
 	void Sort();
-	SourceRange& RealizeRangeByHashSha1(const String& sha1);
+	SourceRange& RealizeRangeByHashSha1(const String& sha1, bool invalidate_others);
 	SourceRange* FindRangeByHashSha1(const String& sha1);
 	int FindAddData(const String& txt);
 	int GetDataCount() const;

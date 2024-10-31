@@ -34,6 +34,7 @@ const char* Orange::GetName() const {
 
 int main(int argc, const char *argv[])
 {
+	// We are eating oranges, not all of them
 	Orange o;
 	o.SetMass(120); // grams
 	o.Consume(20);

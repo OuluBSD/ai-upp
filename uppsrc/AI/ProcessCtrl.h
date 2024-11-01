@@ -25,14 +25,19 @@ struct AIProcess
 	Vector<AITask> tasks;
 	FnType cur_fn;
 	bool running = false, stopped = true;
+	FileAnnotation* item = 0;
+	AiAnnotationItem::SourceRange* range = 0;
+	Vector<String> code;
+	String filepath;
 	
 	typedef AIProcess CLASSNAME;
 	AIProcess();
+	void SetSource(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code);
 	void Start(FnType fn);
 	void Stop();
 	void Run();
 	void MakeBaseAnalysis();
-	bool ProcessTask(AITask& t);
+	bool ProcessTask(AITask& t, const AnnotationItem* ann, const ReferenceItem* ref);
 	
 };
 
@@ -42,7 +47,7 @@ struct AIProcessCtrl : ParentCtrl
 	
 	typedef AIProcessCtrl CLASSNAME;
 	AIProcessCtrl();
-	void RunTask(AIProcess::FnType fn);
+	void RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn);
 };
 
 END_UPP_NAMESPACE

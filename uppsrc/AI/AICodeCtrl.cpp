@@ -160,7 +160,7 @@ void AICodeCtrl::ContextMenu(Bar& bar)
 	bar.Separator();
 	bar.Sub("AI", [&](Bar& b) {
 		b.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
-		b.Add("Run base analysis for this scope", [this]{process.RunTask(AIProcess::FN_BASE_ANALYSIS);});
+		b.Add("Run base analysis for this scope", THISBACK1(RunTask, AIProcess::FN_BASE_ANALYSIS));
 	});
 }
 
@@ -208,6 +208,25 @@ void AICodeCtrl::RemoveComment()
 	UpdateEditor();
 }
 
+Vector<String> AICodeCtrl::GetAnnotationAreaCode() {
+	Vector<String> code;
+	String s = this->content;
+	s.Replace("\r", "");
+	code = Split(s, "\n", false);
+
+	// Trim annotation area of the code
+	if(sel_ann_f->begin.y > 0)
+		code.Remove(0, sel_ann_f->begin.y);
+	if(sel_ann_f->begin.x > 0)
+		code[0] = code[0].Mid(sel_ann_f->begin.x);
+	int len = sel_ann_f->end.y - sel_ann_f->begin.y + 1;
+	code.SetCount(len);
+	if(sel_ann_f->end.x > 0)
+		code.Top() = code.Top().Left(sel_ann_f->end.x);
+	// DUMPC(code);
+	return code;
+}
+
 void AICodeCtrl::MakeAiComments()
 {
 	SetSelectedLineFromEditor();
@@ -224,20 +243,8 @@ void AICodeCtrl::MakeAiComments()
 	args.Clear();
 	args.fn = CodeArgs::SCOPE_COMMENTS;
 	args.lang = "C++";
-	String s = this->content;
-	s.Replace("\r", "");
-	args.code = Split(s, "\n", false);
+	args.code = GetAnnotationAreaCode();
 
-	// Trim annotation area of the code
-	if(sel_ann_f->begin.y > 0)
-		args.code.Remove(0, sel_ann_f->begin.y);
-	if(sel_ann_f->begin.x > 0)
-		args.code[0] = args.code[0].Mid(sel_ann_f->begin.x);
-	int len = sel_ann_f->end.y - sel_ann_f->begin.y + 1;
-	args.code.SetCount(len);
-	if(sel_ann_f->end.x > 0)
-		args.code.Top() = args.code.Top().Left(sel_ann_f->end.x);
-	// DUMPC(args.code);
 	auto* cur_sel_ann = sel_ann;
 	auto* cur_sel_ann_f = sel_ann_f;
 
@@ -287,6 +294,29 @@ void AICodeCtrl::MakeAiComments()
 			}
 		});
 	});
+}
+
+void AICodeCtrl::RunTask(AIProcess::FnType t) {
+	SetSelectedLineFromEditor();
+	if(sel_line < 0) {
+		PromptOK(DeQtf("No line selected"));
+		return;
+	}
+	SetSelectedAnnotationFromLine();
+	if(!sel_ann) {
+		PromptOK(DeQtf("No annotation selected"));
+		return;
+	}
+	auto code = GetAnnotationAreaCode();
+	auto& codeidx = CodeIndex();
+	int i = codeidx.Find(filepath);
+	if (!sel_f || !sel_ann || !sel_ann_f || i < 0) {
+		PromptOK(DeQtf("Error: no pointers found"));
+		return;
+	}
+	FileAnnotation& fa = codeidx[i];
+	
+	process.RunTask(this->filepath, fa, *sel_ann_f, pick(code), AIProcess::FN_BASE_ANALYSIS);
 }
 
 void AICodeCtrl::StoreAion()

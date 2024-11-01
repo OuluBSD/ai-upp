@@ -32,9 +32,11 @@ struct AICodeCtrl : ParentCtrl {
 	Vector<int>			comment_to_line;
 	CodeArgs			args;
 	int					prev_editor_cursor = -1;
+	TimeCallback		tc;
 	
 	typedef AICodeCtrl CLASSNAME;
 	AICodeCtrl();
+	void OnTab();
 	void SetFont(Font fnt);
 	void Load(const String& includes, String filename, Stream& str, byte charset);
 	void Save(Stream& str, byte charset);

@@ -10,7 +10,8 @@ AICodeCtrl::AICodeCtrl()
 	
 	tabs.Add(rsplit.SizePos(), "Code");
 	tabs.Add(process.SizePos(), "Process");
-
+	tabs.WhenSet = THISBACK(OnTab);
+	
 	editor.Highlight("cpp");
 	editor.SetReadOnly();
 	editor.WhenBar << THISBACK(ContextMenu);
@@ -317,6 +318,21 @@ void AICodeCtrl::RunTask(AIProcess::FnType t) {
 	FileAnnotation& fa = codeidx[i];
 	
 	process.RunTask(this->filepath, fa, *sel_ann_f, pick(code), AIProcess::FN_BASE_ANALYSIS);
+	
+	tabs.Set(1);
+}
+
+void AICodeCtrl::OnTab() {
+	int tab = tabs.Get();
+	
+	if (tab == 1) {
+		tc.Set(-500, [this]{
+			process.Data();
+		});
+	}
+	else {
+		tc.Kill();
+	}
 }
 
 void AICodeCtrl::StoreAion()

@@ -21,7 +21,7 @@ struct AICodeCtrl : ParentCtrl {
 	Font				fnt;
 	String				content;
 	int					sel_line = -1;
-	SourceRange*			sel_ann_f = 0;
+	SourceRange*		sel_ann_f = 0;
 	AiAnnotationItem*	sel_ann = 0;
 	AiFileInfo*			sel_f = 0;
 	Color				clr_sel;
@@ -49,7 +49,9 @@ struct AICodeCtrl : ParentCtrl {
 	void AddComment();
 	void RemoveComment();
 	void UpdateEditor();
+	Vector<String> GetAnnotationAreaCode();
 	void MakeAiComments();
+	void RunTask(AIProcess::FnType t);
 	void CheckEditorCursor();
 	void OnEditorCursor();
 	void AnnotationData();

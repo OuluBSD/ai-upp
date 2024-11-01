@@ -1,6 +1,10 @@
 #include "AI.h"
+#include <ide/clang/clang.h>
+String GetCursorKindName(CXCursorKind cursorKind);
+
 
 NAMESPACE_UPP
+
 
 
 AIProcess::AIProcess() {
@@ -13,6 +17,7 @@ void AIProcess::SetSource(String filepath, FileAnnotation& item, AiAnnotationIte
 	this->item = &item;
 	this->range = &range;
 	this->code = pick(code);
+	this->file_idx = CodeIndex().Find(filepath);
 }
 
 void AIProcess::Start(FnType fn) {
@@ -53,7 +58,6 @@ void AIProcess::Run() {
 }
 
 void AIProcess::MakeBaseAnalysis() {
-	CodeVisitor vis;
 	vis.SetLimit(1000);
 	vis.Begin();
 	vis.Visit(filepath, *item, range->begin, range->end);
@@ -63,31 +67,99 @@ void AIProcess::MakeBaseAnalysis() {
 	int i = 0;
 	for(const auto& it : vis.export_items) {
 		AITask& t = tasks.Add();
+		t.filepath = filepath;
 		
 		if (it.ann) {
 			LOG(i << ": " << it.ann->ToString());
+			t.ann = *it.ann;
 		}
 		else if (it.ref) {
 			LOG(i << ": " << it.ref->ToString());
 			
 			// TODO solve macro & add 'is_macro' to ProcessTask
+			
 		}
-		ProcessTask(t, it.ann, it.ref);
+		ProcessTask(t);
+		
+		i++;
 	}
 }
 
-bool AIProcess::ProcessTask(AITask& t, const AnnotationItem* ann, const ReferenceItem* ref) {
-	bool is_struct = ann && ann->kind == CXCursor_StructDecl;
-	bool is_class = ann && ann->kind == CXCursor_ClassDecl;
-	bool is_var_field = ann && ann->kind == CXCursor_FieldDecl;
-	bool is_var = ann && ann->kind == CXCursor_VarDecl;
-	bool is_var_param = ann && ann->kind == CXCursor_ParmDecl;
-	bool is_function = ann && ann->kind == CXCursor_FunctionDecl;
-	bool is_method = ann && ann->kind == CXCursor_CXXMethod;
-	bool is_definition = ann && ann->definition;
+bool IsTypeKind(int kind) {
+	return	kind == CXCursor_StructDecl ||
+			kind == CXCursor_ClassDecl ||
+			kind == CXCursor_ClassTemplate ||
+			kind == CXCursor_ClassTemplatePartialSpecialization
+			;
+}
+
+bool IsVarKind(int kind) {
+	return	kind == CXCursor_FieldDecl ||
+			kind == CXCursor_VarDecl ||
+			kind == CXCursor_ParmDecl;
+}
+
+bool IsFunctionAny(int kind) {
+	return	kind == CXCursor_FunctionDecl ||
+			kind == CXCursor_CXXMethod ||
+			kind == CXCursor_Constructor ||
+			kind == CXCursor_Destructor ||
+			kind == CXCursor_FunctionTemplate;
+}
+
+bool IsTypeKindBuiltIn(const String& s) {
+	return	s == "int" &&
+			s == "double" &&
+			s == "char" &&
+			s == "bool" &&
+			s == "float" &&
+			s == "long" &&
+			s == "unsigned int" &&
+			s == "short" &&
+			s == "unsigned short" &&
+			s == "long long" &&
+			s == "unsigned long" &&
+			s == "long double" &&
+			s == "wchar_t";
+}
+
+bool AIProcess::ProcessTask(AITask& t) {
+	const String id = t.ann.id;
+	const String type = t.ann.type;
+	Point begin = t.ann.begin;
+	Point end = t.ann.end;
 	
-	//1. Class
-	if (is_struct || is_class) {
+	bool is_struct		= t.ann.kind == CXCursor_StructDecl;
+	bool is_class		= t.ann.kind == CXCursor_ClassDecl;
+	bool is_class_tmpl	= t.ann.kind == CXCursor_ClassTemplate;
+	bool is_class_tmpls	= t.ann.kind == CXCursor_ClassTemplatePartialSpecialization;
+	bool is_any_type	= IsTypeKind(t.ann.kind);
+	bool is_var_field	= t.ann.kind == CXCursor_FieldDecl;
+	bool is_var			= t.ann.kind == CXCursor_VarDecl;
+	bool is_var_param	= t.ann.kind == CXCursor_ParmDecl;
+	bool is_any_var		= IsVarKind(t.ann.kind);
+	bool is_builtin		= is_any_var && IsTypeKindBuiltIn(t.ann.type);
+	bool is_function	= t.ann.kind == CXCursor_FunctionDecl;
+	bool is_method		= t.ann.kind == CXCursor_CXXMethod;
+	bool is_constructor	= t.ann.kind == CXCursor_Constructor;
+	bool is_destructor	= t.ann.kind == CXCursor_Destructor;
+	bool is_definition	= t.ann.definition;
+	bool is_any_fn		= IsFunctionAny(t.ann.kind);
+	//const auto& idx = CodeIndex();
+	//int t_file_idx = t.filepath.IsEmpty() ? -1 : idx.Find(t.filepath);
+	
+	/*
+	TODO
+	- CXCursor_ClassTemplatePartialSpecialization
+	- typedefs
+	- enums
+	- etc. (see list)
+	*/
+	
+	
+	
+	//1. Type: class, struct, template class, template class specialization, etc.
+	if (is_any_type) {
 		// is forward-declaration only
 		if (!is_definition) {
 			// useless?
@@ -95,19 +167,117 @@ bool AIProcess::ProcessTask(AITask& t, const AnnotationItem* ann, const Referenc
 		// is definition
 		else {
 			//	- it needs the value of every Field and inherited class "function".
+			Vector<String> bases = Split(t.ann.bases, ";");
+			ASSERT(t.deps.IsEmpty());
+			for (String& s : bases) {
+				auto& dep = t.deps.Add();
+				dep.id = s;
+				dep.is_type = true;
+			}
+			
 			//	- it needs a list of classes that inherit from it (names/headers only)
+			// loop all classes and check t.ann.bases;
+			//for (auto it : ~idx) {
+			//	for (const AnnotationItem& ai : it.value.items) {
+			for(const auto& it : vis.export_items) {
+				if (!it.ann) continue;
+				const AnnotationItem& ai = *it.ann;
+				if  (ai.definition && IsTypeKind(ai.kind)) {
+					Vector<String> bases0 = Split(ai.bases, ";");
+					for (const auto& base0 : bases0) {
+						if (base0 == t.ann.id) {
+							if (!t.HasInput(ai.id, ai.kind)) {
+								auto& in = t.inputs.Add();
+								//in.file = it.key;
+								in.file = it.file;
+								in.id = ai.id;
+								in.kind = ai.kind;
+							}
+							break;
+						}
+					}
+				}
+			}
+			
 			//	- it needs a list of classes and functions that use that class (names/headers only)
+			// loop all vars/fields/params with the t.ann.type as this
+			//for (auto it : ~idx) {
+			//	for (const AnnotationItem& ai : it.value.items) {
+			for(const auto& it : vis.export_items) {
+				if (!it.ann) continue;
+				const AnnotationItem& ai = *it.ann;
+				if (IsVarKind(ai.kind)) {
+					if (ai.type == t.ann.id) {
+						if (!t.HasInput(ai.id, ai.kind)) {
+							auto& in = t.inputs.Add();
+							//in.file = it.key;
+							in.file = it.file;
+							in.id = ai.id;
+							in.kind = ai.kind;
+						}
+						break;
+					}
+				}
+			}
+			//LOG(t.ann.ToString());
 		}
 	}
 	
 	//2. Variable or class field (variable)
 	if (is_var || is_var_field) {
+		
+		// TODO visit variable usage references in CodeVisitor
+		
 		//	- which functions use that field
 		//		- there can easily be too much data here, so there is a limit to the number of lines
 		//		- small functions entirely, and then the smallest suitable {} scope area, or crudely just a line-limited area
-		//		- it is not necessary to examine the comments of the code, but only the raw code
+		//		- it is not necessary to examine the comments of the code, but only the raw codefor (auto it : ~idx) {
+		//for (auto it : ~idx) {
+		//	for (const ReferenceItem& ref : it.value.refs) {
+		for(const auto& it : vis.export_items) {
+			if (!it.ref) continue;
+			const ReferenceItem& ref = *it.ref;
+			if (ref.id == id) {
+				auto& in = t.inputs.Add();
+				//in.file = it.key;
+				in.file = it.file;
+				in.pos = ref.pos;
+				in.ref_pos = ref.ref_pos;
+			}
+		}
+		
+		// - type
+		if (!is_builtin) {
+			bool found = false;
+			for(const auto& it : vis.export_items) {
+				if (!it.ann) continue;
+				const AnnotationItem& ai = *it.ann;
+				//for (auto it : ~idx) {
+				//	for (const AnnotationItem& ai : it.value.items) {
+				if (IsTypeKind(ai.kind) && ai.id == type) {
+					if (!t.HasDepType(ai.id)) {
+						auto& dep = t.deps.Add();
+						dep.id = ai.id;
+						dep.is_type = true;
+						//dep.file = it.key;
+						dep.file = it.file;
+						found = true;
+					}
+					break;
+				}
+				if (found) break;
+				//}
+				//if (found) break;
+			}
+		}
 		//	- it is necessary to identify whether the variable has been used for synchronization: mutex, spinlock, etc...
 		//		- artificial intelligence may recognize something else interesting
+		// TODO improve this: this is very basic and dumb test
+		String ltype = ToLower(t.ann.type);
+		if (ltype.Find("mutex") >= 0 || ltype.Find("spinlock") >= 0) {
+			LOG(t.ann.ToString());
+			LOG("TODO: syncronization");
+		}
 	}
 	// 2b. Parameter
 	if (is_var_param) {
@@ -115,17 +285,21 @@ bool AIProcess::ProcessTask(AITask& t, const AnnotationItem* ann, const Referenc
 		
 		//TODO
 		
-		
+		LOG(t.ann.ToString());
 	}
 	
 	//3. Methods and functions
-	if (is_function || is_method) {
+	if (is_any_fn) {
 		// is forward-declaration only
 		if (!is_definition) {
 			// useless?
 		}
 		// is definition
 		else {
+			/*if (t_file_idx < 0) {
+				AddError(t.filepath, t.ann.pos, "no file idx found");
+				return false;
+			}*/
 			//	- comments/analysis of function content
 			//		- list of object/class variables used in the function
 			//			- the fields are preferably cleared before this, but the priority is lower
@@ -155,6 +329,31 @@ bool AIProcess::ProcessTask(AITask& t, const AnnotationItem* ann, const Referenc
 			//		- what synchronizations the function does with mutexes
 			//		- based on which variable the function works conditionally (preferably in order of importance or with an importance value)
 			//		- what asynchronous calls the function makes (callbacks, remote commands, function pointers)
+			//const auto& it = idx[t_file_idx];
+			for(const auto& it : vis.export_items) {
+				if (it.ann) {
+					const AnnotationItem& ai = *it.ann;
+					if (!RangeContains(ai.pos, begin, end) || ai.id == id)
+						continue;
+					
+					
+					
+					LOG("DEP: " + ai.ToString());
+					
+					// TODO ???
+				}
+				if (it.ref) {
+					const ReferenceItem& ref = *it.ref;
+					if (!RangeContains(ref.pos, begin, end) || ref.id == id)
+						continue;
+					
+					LOG("REF: " + ref.ToString());
+					
+					
+				}
+			}
+			
+			LOG(t.ann.ToString());
 		}
 	}
 	
@@ -173,15 +372,138 @@ bool AIProcess::ProcessTask(AITask& t, const AnnotationItem* ann, const Referenc
 	return true;
 }
 
+void AIProcess::AddError(String filepath, Point pos, String msg) {
+	auto& e = errors.Add();
+	e.filepath = filepath;
+	e.pos = pos;
+	e.msg = msg;
+}
+
 
 
 AIProcessCtrl::AIProcessCtrl() {
+	Add(vsplit.SizePos());
+	
+	vsplit.Vert() << tasks << deps << inputs << errors;
+	
+	/*
+	String id; // Upp::Class::Method(Upp::Point p)
+	String name; // Method
+	String type; // for String x, Upp::String, surely valid for variables only
+	String pretty; // void Class::Method(Point p)
+	String nspace; // Upp
+	String uname; // METHOD
+	String nest; // Upp::Class
+	String unest; // UPP::CLASS
+	String bases; // base classes of struct/class
+	*/
+	tasks.AddColumn("Kind");
+	tasks.AddColumn("Id");
+	tasks.AddColumn("Type");
+	tasks.AddColumn("Pretty");
+	tasks.AddColumn("Bases");
+	tasks.AddIndex("IDX");
+	tasks.WhenCursor << THISBACK(DataTask);
+	
+	deps.AddColumn("File");
+	deps.AddColumn("Id");
+	deps.AddColumn("Is Type");
+	
+	inputs.AddColumn("Kind");
+	inputs.AddColumn("Id");
+	inputs.AddColumn("File");
+	inputs.AddColumn("Pos");
+	inputs.AddColumn("Ref-Pos");
+	
+	errors.AddColumn("File");
+	errors.AddColumn("Pos");
+	errors.AddColumn("Message");
+	errors.ColumnWidths("4 1 8");
+	
+	
+	
+}
+
+void AIProcessCtrl::Data() {
+	
+	for(int i = 0; i < process.tasks.GetCount(); i++) {
+		const AITask& t = process.tasks[i];
+		tasks.Set(i, "IDX", i);
+		tasks.Set(i, 0, t.ann.kind >= 0 ? GetCursorKindName((CXCursorKind)t.ann.kind) : String());
+		tasks.Set(i, 1, t.ann.id);
+		tasks.Set(i, 2, t.ann.type);
+		tasks.Set(i, 3, t.ann.pretty);
+		tasks.Set(i, 4, t.ann.bases);
+	}
+	tasks.SetCount(process.tasks.GetCount());
+	
+	for(int i = 0; i < process.errors.GetCount(); i++) {
+		const auto& e = process.errors[i];
+		errors.Set(i, 0, e.filepath);
+		errors.Set(i, 1, e.pos);
+		errors.Set(i, 2, e.msg);
+	}
+	errors.SetCount(process.errors.GetCount());
+	
+	if (tasks.GetCount() && !tasks.IsCursor())
+		tasks.SetCursor(0); // calls DataTask via WhenCursor callback
+	else
+		DataTask();
+}
+
+void AIProcessCtrl::DataTask() {
+	int c = tasks.GetCursor();
+	if (!tasks.IsCursor() || c < 0 || c >= process.tasks.GetCount()) {
+		deps.Clear();
+		inputs.Clear();
+		return;
+	}
+	int idx = tasks.Get("IDX");
+	
+	const AITask& t = process.tasks[idx];
+	
+	for(int i = 0; i < t.deps.GetCount(); i++) {
+		const auto& dep = t.deps[i];
+		deps.Set(i, 0, dep.file);
+		deps.Set(i, 1, dep.id);
+		deps.Set(i, 2, dep.is_type);
+	}
+	deps.SetCount(t.deps.GetCount());
+	
+	for(int i = 0; i < t.inputs.GetCount(); i++) {
+		const auto& in = t.inputs[i];
+		inputs.Set(i, 0, in.kind >= 0 ? GetCursorKindName((CXCursorKind)in.kind) : String());
+		inputs.Set(i, 1, in.id);
+		inputs.Set(i, 2, in.file);
+		inputs.Set(i, 3, in.pos);
+		inputs.Set(i, 4, in.ref_pos);
+	}
+	inputs.SetCount(t.inputs.GetCount());
 	
 }
 
 void AIProcessCtrl::RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn) {
 	process.SetSource(filepath, item, range, pick(code));
 	process.Start(fn);
+}
+
+
+
+
+bool AITask::HasInput(const String& id, int kind) const {
+	for (const auto& in : inputs) {
+		if (in.id == id && in.kind == kind)
+			return true;
+	}
+	return false;
+}
+
+bool AITask::HasDepType(const String& id) const {
+	for (const auto& in : deps) {
+		if (in.is_type && in.id == id)
+			return true;
+	}
+	return false;
 }
 
 END_UPP_NAMESPACE

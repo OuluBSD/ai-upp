@@ -1,5 +1,10 @@
+namespace Plants {
 
-struct Fruit {
+template <class T> struct Extra {
+	
+};
+
+struct Fruit : Extra<Fruit> {
 	double mass = 0.0; // in grams
 	// This class is the base class for all fruits e.g. Orange, Apple
 	Fruit() {}
@@ -30,10 +35,14 @@ const char* Orange::GetName() const {
 	return "Orange";
 }
 
+}
+
 #define TEST(x) if (o.GetMass() == 0) return 1;
 
 int main(int argc, const char *argv[])
 {
+	using namespace Plants;
+	
 	// We are eating oranges, not all of them
 	Orange o;
 	o.SetMass(120); // grams

@@ -111,7 +111,7 @@ Rect  Ctrl::GetVisibleScreenRect() const
 	}
 	else
 		GuiPlatformGetTopRect(r);
-	return r & GetVirtualScreenArea();
+	return r;
 }
 
 Rect  Ctrl::GetVisibleScreenView() const
@@ -155,6 +155,7 @@ void Ctrl::SyncLayout(int force)
 	if(destroying)
 		return;
 	LLOG("SyncLayout " << Name() << " size: " << GetSize());
+	fullrefresh = false;
 	bool refresh = false;
 	Rect oview = GetView();
 	Rect view = GetRect().Size();
@@ -455,9 +456,8 @@ Ctrl& Ctrl::VCenterPosZ(int size, int delta) {
 Rect Ctrl::GetWorkArea(Point pt)
 {
 	GuiLock __;
-	static Array<Rect> rc;
-	if (rc.IsEmpty())
-		GetWorkArea(rc);
+	Array<Rect> rc;
+	GetWorkArea(rc);
 	for(int i = 0; i < rc.GetCount(); i++)
 		if(rc[i].Contains(pt))
 			return rc[i];
@@ -468,10 +468,6 @@ Rect Ctrl::StdGetWorkArea() const
 {
 	GuiLock __;
 
-	static Array<Rect> rc;
-	if(rc.IsEmpty())
-		GetWorkArea(rc);
-	
 	const Ctrl *top = GetTopCtrl();
 	if(top && top->IsOpen())
 		return GetWorkArea(top->GetScreenRect().TopLeft());

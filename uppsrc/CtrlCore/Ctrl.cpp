@@ -209,6 +209,7 @@ void Ctrl::StateH(int reason)
 		if((*statehook()[i])(this, reason))
 			return;
 	StateDeep(reason);
+	FullRefreshCleanup();
 }
 
 bool   Ctrl::Accept()
@@ -440,7 +441,7 @@ String Ctrl::GetDesc() const
 
 String Name(const Ctrl *ctrl)
 {
-	return ctrl ? ctrl->Name() : "NULL";
+	return ctrl ? ctrl->Name() : String("NULL");
 }
 
 String Desc(const Ctrl *ctrl)

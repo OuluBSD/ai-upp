@@ -6,6 +6,21 @@ String GetCursorKindName(CXCursorKind cursorKind);
 NAMESPACE_UPP
 
 
+CodeVisitorProfile& BaseAnalysisProfile() {
+	static CodeVisitorProfile p;
+	using Prof = CodeVisitorProfile;
+	ONCELOCK {
+		p	.SetAllTrue() // Just set all true, why not?
+		
+		// Individual rules
+			//.Set(Prof::VISIT_VARIABLE_TYPE_DECL, true)
+			;
+	};
+	return p;
+}
+
+
+
 
 AIProcess::AIProcess() {
 	
@@ -58,7 +73,8 @@ void AIProcess::Run() {
 }
 
 void AIProcess::MakeBaseAnalysis() {
-	vis.SetLimit(1000);
+	vis.SetProfile(BaseAnalysisProfile());
+	vis.SetNoLimit();
 	vis.Begin();
 	vis.Visit(filepath, *item, range->begin, range->end);
 	
@@ -68,16 +84,26 @@ void AIProcess::MakeBaseAnalysis() {
 	for(const auto& it : vis.export_items) {
 		AITask& t = tasks.Add();
 		t.filepath = filepath;
+		t.vis = it;
 		
-		if (it.ann) {
-			LOG(i << ": " << it.ann->ToString());
-			t.ann = *it.ann;
+		if (it.have_ref) {
+			if (!it.have_link) {
+				LOG(i << ": " << it.ref.ToString() << ", error: NO LINK");
+			}
+			else {
+				LOG(i << ": " << it.ref.ToString() << ", " << it.link.ToString());
+			
+				// TODO solve macro & add 'is_macro' to ProcessTask
+				
+			}
 		}
-		else if (it.ref) {
-			LOG(i << ": " << it.ref->ToString());
-			
-			// TODO solve macro & add 'is_macro' to ProcessTask
-			
+		else if (it.have_ann) {
+			if (!it.have_link) {
+				LOG(i << ": " << it.ann.ToString() << ", NO LINK");
+			}
+			else {
+				LOG(i << ": " << it.ann.ToString() << ", " << it.link.ToString());
+			}
 		}
 		ProcessTask(t);
 		
@@ -124,27 +150,28 @@ bool IsTypeKindBuiltIn(const String& s) {
 }
 
 bool AIProcess::ProcessTask(AITask& t) {
-	const String id = t.ann.id;
-	const String type = t.ann.type;
-	Point begin = t.ann.begin;
-	Point end = t.ann.end;
+	const AnnotationItem& ann = t.vis.ann;
+	const String id = ann.id;
+	const String type = ann.type;
+	Point begin = ann.begin;
+	Point end = ann.end;
 	
-	bool is_struct		= t.ann.kind == CXCursor_StructDecl;
-	bool is_class		= t.ann.kind == CXCursor_ClassDecl;
-	bool is_class_tmpl	= t.ann.kind == CXCursor_ClassTemplate;
-	bool is_class_tmpls	= t.ann.kind == CXCursor_ClassTemplatePartialSpecialization;
-	bool is_any_type	= IsTypeKind(t.ann.kind);
-	bool is_var_field	= t.ann.kind == CXCursor_FieldDecl;
-	bool is_var			= t.ann.kind == CXCursor_VarDecl;
-	bool is_var_param	= t.ann.kind == CXCursor_ParmDecl;
-	bool is_any_var		= IsVarKind(t.ann.kind);
-	bool is_builtin		= is_any_var && IsTypeKindBuiltIn(t.ann.type);
-	bool is_function	= t.ann.kind == CXCursor_FunctionDecl;
-	bool is_method		= t.ann.kind == CXCursor_CXXMethod;
-	bool is_constructor	= t.ann.kind == CXCursor_Constructor;
-	bool is_destructor	= t.ann.kind == CXCursor_Destructor;
-	bool is_definition	= t.ann.definition;
-	bool is_any_fn		= IsFunctionAny(t.ann.kind);
+	bool is_struct		= ann.kind == CXCursor_StructDecl;
+	bool is_class		= ann.kind == CXCursor_ClassDecl;
+	bool is_class_tmpl	= ann.kind == CXCursor_ClassTemplate;
+	bool is_class_tmpls	= ann.kind == CXCursor_ClassTemplatePartialSpecialization;
+	bool is_any_type	= IsTypeKind(ann.kind);
+	bool is_var_field	= ann.kind == CXCursor_FieldDecl;
+	bool is_var			= ann.kind == CXCursor_VarDecl;
+	bool is_var_param	= ann.kind == CXCursor_ParmDecl;
+	bool is_any_var		= IsVarKind(ann.kind);
+	bool is_builtin		= is_any_var && IsTypeKindBuiltIn(ann.type);
+	bool is_function	= ann.kind == CXCursor_FunctionDecl;
+	bool is_method		= ann.kind == CXCursor_CXXMethod;
+	bool is_constructor	= ann.kind == CXCursor_Constructor;
+	bool is_destructor	= ann.kind == CXCursor_Destructor;
+	bool is_definition	= ann.definition;
+	bool is_any_fn		= IsFunctionAny(ann.kind);
 	//const auto& idx = CodeIndex();
 	//int t_file_idx = t.filepath.IsEmpty() ? -1 : idx.Find(t.filepath);
 	
@@ -167,7 +194,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 		// is definition
 		else {
 			//	- it needs the value of every Field and inherited class "function".
-			Vector<String> bases = Split(t.ann.bases, ";");
+			Vector<String> bases = Split(ann.bases, ";");
 			ASSERT(t.deps.IsEmpty());
 			for (String& s : bases) {
 				auto& dep = t.deps.Add();
@@ -180,12 +207,12 @@ bool AIProcess::ProcessTask(AITask& t) {
 			//for (auto it : ~idx) {
 			//	for (const AnnotationItem& ai : it.value.items) {
 			for(const auto& it : vis.export_items) {
-				if (!it.ann) continue;
-				const AnnotationItem& ai = *it.ann;
+				if (!it.have_ann) continue;
+				const AnnotationItem& ai = it.ann;
 				if  (ai.definition && IsTypeKind(ai.kind)) {
 					Vector<String> bases0 = Split(ai.bases, ";");
 					for (const auto& base0 : bases0) {
-						if (base0 == t.ann.id) {
+						if (base0 == ann.id) {
 							if (!t.HasInput(ai.id, ai.kind)) {
 								auto& in = t.inputs.Add();
 								//in.file = it.key;
@@ -204,10 +231,10 @@ bool AIProcess::ProcessTask(AITask& t) {
 			//for (auto it : ~idx) {
 			//	for (const AnnotationItem& ai : it.value.items) {
 			for(const auto& it : vis.export_items) {
-				if (!it.ann) continue;
-				const AnnotationItem& ai = *it.ann;
+				if (!it.have_ann) continue;
+				const AnnotationItem& ai = it.ann;
 				if (IsVarKind(ai.kind)) {
-					if (ai.type == t.ann.id) {
+					if (ai.type == ann.id) {
 						if (!t.HasInput(ai.id, ai.kind)) {
 							auto& in = t.inputs.Add();
 							//in.file = it.key;
@@ -228,6 +255,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 		
 		// TODO visit variable usage references in CodeVisitor
 		
+		
 		//	- which functions use that field
 		//		- there can easily be too much data here, so there is a limit to the number of lines
 		//		- small functions entirely, and then the smallest suitable {} scope area, or crudely just a line-limited area
@@ -235,8 +263,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 		//for (auto it : ~idx) {
 		//	for (const ReferenceItem& ref : it.value.refs) {
 		for(const auto& it : vis.export_items) {
-			if (!it.ref) continue;
-			const ReferenceItem& ref = *it.ref;
+			if (!it.have_ref) continue;
+			const ReferenceItem& ref = it.ref;
 			if (ref.id == id) {
 				auto& in = t.inputs.Add();
 				//in.file = it.key;
@@ -250,8 +278,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 		if (!is_builtin) {
 			bool found = false;
 			for(const auto& it : vis.export_items) {
-				if (!it.ann) continue;
-				const AnnotationItem& ai = *it.ann;
+				if (!it.have_ann) continue;
+				const AnnotationItem& ai = it.ann;
 				//for (auto it : ~idx) {
 				//	for (const AnnotationItem& ai : it.value.items) {
 				if (IsTypeKind(ai.kind) && ai.id == type) {
@@ -273,10 +301,10 @@ bool AIProcess::ProcessTask(AITask& t) {
 		//	- it is necessary to identify whether the variable has been used for synchronization: mutex, spinlock, etc...
 		//		- artificial intelligence may recognize something else interesting
 		// TODO improve this: this is very basic and dumb test
-		String ltype = ToLower(t.ann.type);
+		String ltype = ToLower(ann.type);
 		if (ltype.Find("mutex") >= 0 || ltype.Find("spinlock") >= 0) {
-			LOG(t.ann.ToString());
-			LOG("TODO: syncronization");
+			LOG(ann.ToString());
+			LOG("TODO: synchronization");
 		}
 	}
 	// 2b. Parameter
@@ -285,7 +313,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 		
 		//TODO
 		
-		LOG(t.ann.ToString());
+		LOG(ann.ToString());
 	}
 	
 	//3. Methods and functions
@@ -331,8 +359,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 			//		- what asynchronous calls the function makes (callbacks, remote commands, function pointers)
 			//const auto& it = idx[t_file_idx];
 			for(const auto& it : vis.export_items) {
-				if (it.ann) {
-					const AnnotationItem& ai = *it.ann;
+				if (it.have_ann) {
+					const AnnotationItem& ai = it.ann;
 					if (!RangeContains(ai.pos, begin, end) || ai.id == id)
 						continue;
 					
@@ -342,8 +370,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 					
 					// TODO ???
 				}
-				if (it.ref) {
-					const ReferenceItem& ref = *it.ref;
+				if (it.have_ref) {
+					const ReferenceItem& ref = it.ref;
 					if (!RangeContains(ref.pos, begin, end) || ref.id == id)
 						continue;
 					
@@ -353,7 +381,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 				}
 			}
 			
-			LOG(t.ann.ToString());
+			LOG(ann.ToString());
 		}
 	}
 	
@@ -403,6 +431,7 @@ AIProcessCtrl::AIProcessCtrl() {
 	tasks.AddColumn("Pretty");
 	tasks.AddColumn("Bases");
 	tasks.AddIndex("IDX");
+	tasks.AddIndex("TYPE");
 	tasks.WhenCursor << THISBACK(DataTask);
 	
 	deps.AddColumn("File");
@@ -425,17 +454,44 @@ AIProcessCtrl::AIProcessCtrl() {
 }
 
 void AIProcessCtrl::Data() {
-	
+	int row = 0;
 	for(int i = 0; i < process.tasks.GetCount(); i++) {
 		const AITask& t = process.tasks[i];
-		tasks.Set(i, "IDX", i);
-		tasks.Set(i, 0, t.ann.kind >= 0 ? GetCursorKindName((CXCursorKind)t.ann.kind) : String());
-		tasks.Set(i, 1, t.ann.id);
-		tasks.Set(i, 2, t.ann.type);
-		tasks.Set(i, 3, t.ann.pretty);
-		tasks.Set(i, 4, t.ann.bases);
+		if (t.vis.have_ann) {
+			const AnnotationItem& ann = t.vis.ann;
+			tasks.Set(row, "IDX", i);
+			tasks.Set(row, "TYPE", 0);
+			tasks.Set(row, 0, ann.kind >= 0 ? GetCursorKindName((CXCursorKind)ann.kind) : String());
+			tasks.Set(row, 1, ann.id);
+			tasks.Set(row, 2, ann.type);
+			tasks.Set(row, 3, ann.pretty);
+			tasks.Set(row, 4, ann.bases);
+			row++;
+		}
+		if (t.vis.have_ref) {
+			const auto& ref = t.vis.ref;
+			tasks.Set(row, "IDX", i);
+			tasks.Set(row, "TYPE", 1);
+			tasks.Set(row, 0, "REF");
+			tasks.Set(row, 1, ref.id);
+			tasks.Set(row, 2, Value());
+			tasks.Set(row, 3, Value());
+			tasks.Set(row, 4, ref.pos.ToString() + " -> " + ref.ref_pos.ToString());
+			row++;
+		}
+		if (t.vis.have_link) {
+			const AnnotationItem& ann = t.vis.link;
+			tasks.Set(row, "IDX", i);
+			tasks.Set(row, "TYPE", 2);
+			tasks.Set(row, 0, ann.kind >= 0 ? GetCursorKindName((CXCursorKind)ann.kind) : String());
+			tasks.Set(row, 1, ann.id);
+			tasks.Set(row, 2, ann.type);
+			tasks.Set(row, 3, ann.pretty);
+			tasks.Set(row, 4, ann.bases);
+			row++;
+		}
 	}
-	tasks.SetCount(process.tasks.GetCount());
+	tasks.SetCount(row);
 	
 	for(int i = 0; i < process.errors.GetCount(); i++) {
 		const auto& e = process.errors[i];

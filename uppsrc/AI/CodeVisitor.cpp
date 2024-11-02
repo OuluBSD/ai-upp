@@ -111,15 +111,15 @@ void CodeVisitor::Visit(const String& filepath, const FileAnnotation& fa, Point 
 			if((ai.definition && visited_defs.Find(ai.id) >= 0) ||
 			   (!ai.definition && visited_decls.Find(ai.id) >= 0))
 				continue;
-			export_items << it;
+			export_items << it; // only unvisited items are needed
 			VisitAnn(filepath, it);
 		}
 		if(it.have_ref) {
 			const ReferenceItem& ref = it.ref;
-			String tgt_str = ref.MakeTargetString(filepath);
+			String tgt_str = ref.MakeLocalString(filepath);
 			if(visited_refs.Find(tgt_str) >= 0)
 				continue;
-			export_items << it;
+			export_items << it; // all refs are needed
 			VisitRef(filepath, it);
 		}
 		if(limit && export_items.GetCount() > limit)
@@ -160,7 +160,7 @@ void CodeVisitor::VisitRef(const String& filepath, Item& it)
 	const ReferenceItem& ref = it.ref;
 	//LOG(StoreAsJson(ref, true));
 
-	String tgt_str = ref.MakeTargetString(filepath);
+	String tgt_str = ref.MakeLocalString(filepath);
 	ASSERT(visited_refs.Find(tgt_str) < 0);
 	visited_refs.Add(tgt_str);
 	

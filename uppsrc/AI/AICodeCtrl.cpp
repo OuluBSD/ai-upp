@@ -13,6 +13,7 @@ AICodeCtrl::AICodeCtrl()
 	tabs.WhenSet = THISBACK(OnTab);
 	
 	editor.Highlight("cpp");
+	editor.LineNumbers(true);
 	editor.SetReadOnly();
 	editor.WhenBar << THISBACK(ContextMenu);
 	editor.WhenSel << THISBACK(CheckEditorCursor);

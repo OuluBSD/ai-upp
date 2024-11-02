@@ -117,6 +117,13 @@ String ReferenceItem::ToString() const {
 	return Format("%s (%d:%d -> %d:%d)", id, pos.x,pos.y, ref_pos.x,ref_pos.y);
 }
 
+String ReferenceItem::MakeLocalString(const String& filepath) const {
+	String s;
+	s << filepath << ":" << pos.y << ":" << pos.x << ":" << id;
+	return s;
+}
+
+
 String ReferenceItem::MakeTargetString(const String& filepath) const {
 	String s;
 	s << filepath << ":" << ref_pos.y << ":" << ref_pos.x << ":" << id;

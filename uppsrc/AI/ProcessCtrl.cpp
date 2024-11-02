@@ -430,8 +430,10 @@ AIProcessCtrl::AIProcessCtrl() {
 	tasks.AddColumn("Type");
 	tasks.AddColumn("Pretty");
 	tasks.AddColumn("Bases");
+	tasks.AddColumn("Pos");
 	tasks.AddIndex("IDX");
 	tasks.AddIndex("TYPE");
+	tasks.ColumnWidths("2 2 1 1 1 1");
 	tasks.WhenCursor << THISBACK(DataTask);
 	
 	deps.AddColumn("File");
@@ -466,6 +468,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 2, ann.type);
 			tasks.Set(row, 3, ann.pretty);
 			tasks.Set(row, 4, ann.bases);
+			tasks.Set(row, 5, ann.pos);
 			row++;
 		}
 		if (t.vis.have_ref) {
@@ -476,7 +479,8 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 1, ref.id);
 			tasks.Set(row, 2, Value());
 			tasks.Set(row, 3, Value());
-			tasks.Set(row, 4, ref.pos.ToString() + " -> " + ref.ref_pos.ToString());
+			tasks.Set(row, 4, Value());
+			tasks.Set(row, 5, ref.pos.ToString() + " -> " + ref.ref_pos.ToString());
 			row++;
 		}
 		if (t.vis.have_link) {
@@ -488,6 +492,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 2, ann.type);
 			tasks.Set(row, 3, ann.pretty);
 			tasks.Set(row, 4, ann.bases);
+			tasks.Set(row, 5, ann.pos);
 			row++;
 		}
 	}

@@ -26,7 +26,7 @@ struct AITask : Moveable<AITask>
 	};
 	
 	AITaskPriority priority;
-	AnnotationItem ann;
+	CodeVisitor::Item vis;
 	Vector<Dependency> deps;
 	Vector<Input> inputs;
 	String filepath;
@@ -35,6 +35,8 @@ struct AITask : Moveable<AITask>
 	bool HasInput(const String& id, int kind) const;
 	bool HasDepType(const String& id) const;
 };
+
+CodeVisitorProfile& BaseAnalysisProfile();
 
 struct AIProcess
 {

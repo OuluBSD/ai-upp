@@ -19,16 +19,22 @@ AICodeCtrl::AICodeCtrl()
 
 	rsplit.Vert() << cursorinfo << depthfirst;
 	
+	cursorinfo.AddColumn("Kind");
 	cursorinfo.AddColumn("Id");
 	cursorinfo.AddColumn("Type");
+	cursorinfo.AddColumn("Pos");
 	cursorinfo.AddColumn("Ref-pos");
+	cursorinfo.ColumnWidths("2 4 4 1 1 2");
 	
 	depthfirst.AddColumn("File");
 	depthfirst.AddColumn("Pos");
+	depthfirst.AddColumn("Kind");
 	depthfirst.AddColumn("Id");
 	depthfirst.AddColumn("Type");
+	depthfirst.AddColumn("Pos");
 	depthfirst.AddColumn("Ref-pos");
-	depthfirst.ColumnWidths("4 1 4 4 1");
+	depthfirst.AddColumn("Error");
+	depthfirst.ColumnWidths("1 1 2 4 4 1 1 4");
 	
 }
 
@@ -401,27 +407,33 @@ void AICodeCtrl::AnnotationData() {
 	for(int i = 0; i < fa.items.GetCount(); i++) {
 		const AnnotationItem& ai = fa.items[i];
 		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, ai.id);
-			cursorinfo.Set(row, 1, ai.type);
-			cursorinfo.Set(row, 2, Value());
+			cursorinfo.Set(row, 0, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
+			cursorinfo.Set(row, 1, ai.id);
+			cursorinfo.Set(row, 2, ai.type);
+			cursorinfo.Set(row, 3, ai.pos);
+			cursorinfo.Set(row, 4, Value());
 			row++;
 		}
 	}
 	for(int i = 0; i < fa.locals.GetCount(); i++) {
 		const AnnotationItem& ai = fa.locals[i];
 		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, ai.id);
-			cursorinfo.Set(row, 1, ai.type);
-			cursorinfo.Set(row, 2, Value());
+			cursorinfo.Set(row, 0, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
+			cursorinfo.Set(row, 1, ai.id);
+			cursorinfo.Set(row, 2, ai.type);
+			cursorinfo.Set(row, 3, ai.pos);
+			cursorinfo.Set(row, 4, Value());
 			row++;
 		}
 	}
 	for(int i = 0; i < fa.refs.GetCount(); i++) {
 		const ReferenceItem& ref = fa.refs[i];
 		if (ann_f.begin.y <= ref.pos.y && ref.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, ref.id);
-			cursorinfo.Set(row, 1, ref.pos.y);
-			cursorinfo.Set(row, 2, ref.ref_pos.y);
+			cursorinfo.Set(row, 0, Value());
+			cursorinfo.Set(row, 1, ref.id);
+			cursorinfo.Set(row, 2, Value());
+			cursorinfo.Set(row, 3, ref.pos);
+			cursorinfo.Set(row, 4, ref.ref_pos);
 			row++;
 		}
 	}
@@ -436,18 +448,50 @@ void AICodeCtrl::AnnotationData() {
 	for(const auto& it : vis.export_items) {
 		depthfirst.Set(row, 0, it.file);
 		depthfirst.Set(row, 1, it.pos);
-		if (it.ann) {
-			const auto& ai = *it.ann;
-			depthfirst.Set(row, 2, ai.id);
-			depthfirst.Set(row, 3, ai.type);
-			depthfirst.Set(row, 4, Value());
-			row++;
+		if (it.have_ann || it.have_ref || it.have_link) {
+			if (it.have_ann) {
+				const auto& ai = it.ann;
+				depthfirst.Set(row, 2, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
+				depthfirst.Set(row, 3, ai.id);
+				depthfirst.Set(row, 4, ai.type);
+				depthfirst.Set(row, 5, Value());
+				depthfirst.Set(row, 6, Value());
+				depthfirst.Set(row, 7, it.error);
+				row++;
+			}
+			if (it.have_ref) {
+				const auto& ref = it.ref;
+				depthfirst.Set(row, 2, Value());
+				depthfirst.Set(row, 3, ref.id);
+				if (it.have_link) {
+					depthfirst.Set(row, 4, it.link.type);
+				}
+				else {
+					depthfirst.Set(row, 4, Value());
+				}
+				depthfirst.Set(row, 5, ref.pos);
+				depthfirst.Set(row, 6, ref.ref_pos);
+				depthfirst.Set(row, 7, it.error);
+				row++;
+			}
+			if (it.have_link) {
+				const auto& ai = it.link;
+				depthfirst.Set(row, 2, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
+				depthfirst.Set(row, 3, ai.id);
+				depthfirst.Set(row, 4, ai.type);
+				depthfirst.Set(row, 5, Value());
+				depthfirst.Set(row, 6, Value());
+				depthfirst.Set(row, 7, it.error);
+				row++;
+			}
 		}
-		if (it.ref) {
-			const auto& ref = *it.ref;
-			depthfirst.Set(row, 2, ref.id);
-			depthfirst.Set(row, 3, ref.pos.y);
-			depthfirst.Set(row, 4, ref.ref_pos.y);
+		else {
+			depthfirst.Set(row, 2, Value());
+			depthfirst.Set(row, 3, Value());
+			depthfirst.Set(row, 4, Value());
+			depthfirst.Set(row, 5, Value());
+			depthfirst.Set(row, 6, Value());
+			depthfirst.Set(row, 7, it.error);
 			row++;
 		}
 	}

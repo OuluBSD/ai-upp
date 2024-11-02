@@ -115,9 +115,9 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.path = cfc.parsed_file.real_filename;
 			fa.defines = cfc.parsed_file.defines;
 			fa.includes = cfc.parsed_file.includes;
-			fa.items = pick(f.items);
-			fa.refs = pick(f.refs);
+			static_cast<CppFileInfo&>(fa) = pick(f);
 			fa.time = Time::Low();
+			fa.master_file = cfc.parsed_file.filename;
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			#ifdef flagAI
 			AiIndex().Store(fa.includes, path, fa);

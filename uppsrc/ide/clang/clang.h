@@ -175,6 +175,7 @@ struct ReferenceItem : Moveable<ReferenceItem> {
 	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
 	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
 	String ToString() const;
+	String MakeLocalString(const String& filepath) const;
 	String MakeTargetString(const String& filepath) const;
 	void Serialize(Stream& s);
 	void Jsonize(JsonIO& json);

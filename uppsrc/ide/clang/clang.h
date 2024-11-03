@@ -66,6 +66,7 @@ String FetchString(CXString cs);
 String GetCursorKindName(CXCursorKind cursorKind);
 String GetCursorSpelling(CXCursor cursor);
 String GetTypeSpelling(CXCursor cursor);
+String GetTypeDeclarationSpelling(CXCursor cursor);
 
 struct SourceLocation : Moveable<SourceLocation> {
 	String path;

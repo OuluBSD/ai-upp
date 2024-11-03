@@ -32,6 +32,7 @@ public:
 	String       Scope();
 	String       Nspace()                    { Scope(); return nspace; }
 	String       Type();
+	String       TypeDeclaration();
 	String       Name();
 	String       Id();
 	String       Bases();
@@ -63,6 +64,16 @@ String ClangCursorInfo::Type()
 {
 	if(!hastype) {
 		type = GetTypeSpelling(cursor);
+		hastype = true;
+	}
+	return type;
+}
+
+force_inline
+String ClangCursorInfo::TypeDeclaration()
+{
+	if(!hastype) {
+		type = GetTypeDeclarationSpelling(cursor);
 		hastype = true;
 	}
 	return type;
@@ -331,7 +342,10 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 		AnnotationItem& r = locals ? f.locals.Add() : f.items.Add();
 		r.kind = kind;
 		r.name = ci.Name();
-		r.type = ci.Type();
+		if (r.kind == CXCursor_VarDecl)
+			r.type = ci.TypeDeclaration();
+		else
+			r.type = ci.Type();
 		r.pos = loc.pos;
 		r.begin = ran.p0.pos;
 		r.end = ran.p1.pos;

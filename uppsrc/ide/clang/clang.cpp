@@ -33,6 +33,13 @@ String GetTypeSpelling(CXCursor cursor)
 	return FetchString(clang_getTypeSpelling(clang_getCursorType(cursor)));
 }
 
+String GetTypeDeclarationSpelling(CXCursor cursor)
+{
+	if(!HasLibClang())
+		return Null;
+	return FetchString(clang_getTypeSpelling(clang_getCursorType(clang_getTypeDeclaration(clang_getCursorType(cursor)))));
+}
+
 String GetClangInternalIncludes()
 {
 	INTERLOCKED {

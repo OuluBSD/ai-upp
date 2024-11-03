@@ -527,6 +527,7 @@ void AnnotationItem::operator=(const AnnotationItem& b) {
 	definition = b.definition;
 	isvirtual = b.isvirtual;
 	isstatic = b.isstatic;
+	parent_type = b.parent_type;
 }
 
 bool AnnotationItem::IsSameContent(const AnnotationItem& b) const {
@@ -542,7 +543,8 @@ bool AnnotationItem::IsSameContent(const AnnotationItem& b) const {
 			kind == b.kind &&
 			definition == b.definition &&
 			isvirtual == b.isvirtual &&
-			isstatic == b.isstatic;
+			isstatic == b.isstatic &&
+			parent_type == b.parent_type;
 }
 
 bool AnnotationItem::operator==(const AnnotationItem& b) const {

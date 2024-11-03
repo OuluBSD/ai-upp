@@ -145,6 +145,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	String nest; // Upp::Class
 	String unest; // UPP::CLASS
 	String bases; // base classes of struct/class
+	String parent_type; // Upp::Class
 	Point  pos = Null;
 	Point  begin = Null;
 	Point  end = Null;

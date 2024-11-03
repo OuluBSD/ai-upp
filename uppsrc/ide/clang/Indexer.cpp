@@ -103,6 +103,7 @@ void AnnotationItem::Serialize(Stream& s)
 	  % nest
 	  % unest
 	  % bases
+	  % parent_type
 	;
 }
 
@@ -130,6 +131,7 @@ void AnnotationItem::Jsonize(JsonIO& json) {
 			("q", nest)
 			("w", unest)
 			("y", bases)
+			("pt", parent_type)
 			;
 }
 

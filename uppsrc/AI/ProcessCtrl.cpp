@@ -82,9 +82,6 @@ void AIProcess::MakeBaseAnalysis() {
 	tasks.Reserve(vis.export_items.GetCount());
 	int i = 0;
 	for(const auto& it : vis.export_items) {
-		AITask& t = tasks.Add();
-		t.filepath = filepath;
-		t.vis = it;
 		
 		if (it.have_ref) {
 			if (!it.have_link) {
@@ -98,17 +95,172 @@ void AIProcess::MakeBaseAnalysis() {
 			}
 		}
 		else if (it.have_ann) {
-			if (!it.have_link) {
+			AITask& t = tasks.Add();
+			t.filepath = filepath;
+			t.vis = it;
+			/*if (!it.have_link) {
 				LOG(i << ": " << it.ann.ToString() << ", NO LINK");
 			}
 			else {
 				LOG(i << ": " << it.ann.ToString() << ", " << it.link.ToString());
-			}
+			}*/
+			ProcessTask(t);
 		}
-		ProcessTask(t);
 		
 		i++;
 	}
+	
+	SortTasks();
+}
+
+bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
+	bool is_any_type	= IsTypeKind(vis.ann.kind);
+	bool is_any_var		= IsVarKind(vis.ann.kind);
+	bool is_definition	= vis.ann.definition;
+	bool is_any_fn		= IsFunctionAny(vis.ann.kind);
+	bool is_macrodef	= vis.ann.kind == CXCursor_MacroDefinition;
+	
+	if (!vis.have_ann || !t.vis.have_ann)
+		return false;
+	
+	switch (rel.reason) {
+		case NO_REASON:
+		break;
+		
+		case USAGE_REF: {
+			if (is_any_var && rel.id == this->vis.ann.id)
+				return true;
+		}
+		break;
+		
+		case USAGE_TYPE:
+		case TYPE_INHERITANCE_DEPENDENCY:
+		case TYPE_INHERITANCE_DEPENDING:
+		case TYPE_USAGE: {
+			if (is_any_type && rel.type == this->vis.ann.id)
+				return true;
+		}
+		break;
+		
+		case USAGE_ADDR:
+		case USAGE_CALL: {
+			if (is_any_fn && rel.type == this->vis.ann.id)
+				return true;
+		}
+		break;
+		
+		case USAGE_MACRO: {
+			if (is_macrodef && rel.id == this->vis.ann.id)
+				return true;
+		}
+		case METHOD: {
+			if (is_any_type && rel.nest == this->vis.ann.id)
+				return true;
+		}
+		break;
+		
+		case TYPE_PARENT: {
+			if (is_any_type && rel.type == this->vis.ann.id)
+				return true;
+		}
+		break;
+		
+		case RETURN_VALUE:
+			break;
+			
+		#ifdef flagDEBUG
+		default: Panic("TODO"); break;
+		#endif
+	}
+	
+	return false;
+}
+
+void AIProcess::FindDependencies(Array<SortItem>& sort_items, SortItem& s0) {
+	for (const auto& rel : s0.task.relations) {
+		if (!rel.is_dependency)
+			continue;
+		for (const SortItem& s1 : sort_items) {
+			if (s1.task.IsLinked(s0.task, rel)) {
+				s0.deps << &s1;
+			}
+		}
+	}
+}
+
+void AIProcess::SortTasks() {
+	Array<Vector<SortItem*>> tmp_items;
+	Vector<SortItem*> remaining_items;
+	Vector<SortItem*> sorted_items;
+	Array<SortItem> sort_items;
+	
+	if (tasks.IsEmpty())
+		return;
+	
+	{
+		int i = 0;
+		for (AITask& t : tasks) {
+			sort_items.Add(new SortItem(t, i++));
+		}
+	}
+	
+	{
+		Vector<SortItem*>& first_row = tmp_items.Add();
+		for (SortItem& si : sort_items) {
+			FindDependencies(sort_items, si);
+			if (si.deps.IsEmpty())
+				first_row.Add(&si);
+			else
+				remaining_items.Add(&si);
+		}
+	}
+	
+	if (tmp_items.Top().IsEmpty()) {
+		AddError("empty first row: circular dependencies are possible");
+		return;
+	}
+	
+	while (!remaining_items.IsEmpty()) {
+		Vector<SortItem*>& prev_row = tmp_items.Top();
+		
+		for (SortItem* si : prev_row)
+			si->ready = true;
+		
+		Vector<SortItem*>& cur_row = tmp_items.Add();
+		
+		for(int i = 0; i < remaining_items.GetCount(); i++) {
+			SortItem& si = *remaining_items[i];
+			ASSERT(si.deps.GetCount());
+			bool all_ready = true;
+			for (auto* p : si.deps)
+				if (!p->ready)
+					all_ready = false;
+			if (all_ready) {
+				cur_row.Add(remaining_items[i]);
+				remaining_items.Remove(i--);
+			}
+		}
+		
+		if (cur_row.IsEmpty()) {
+			AddError("empty row: circular dependencies are possible");
+			return;
+		}
+	}
+	
+	{
+		int i = 0;
+		for (auto& t : tasks)
+			t.order = -1;
+		for (const Vector<SortItem*>& vv : tmp_items) {
+			for (const SortItem* v : vv) {
+				v->task.order = i++;
+			}
+		}
+		ASSERT(i == tasks.GetCount());
+	}
+	Sort(tasks, AITask());
+	
+	LOG("All done");
 }
 
 bool IsTypeKind(int kind) {
@@ -133,19 +285,23 @@ bool IsFunctionAny(int kind) {
 			kind == CXCursor_FunctionTemplate;
 }
 
+bool IsCallAny(int kind) {
+	return	kind == CXCursor_CallExpr;
+}
+
 bool IsTypeKindBuiltIn(const String& s) {
-	return	s == "int" &&
-			s == "double" &&
-			s == "char" &&
-			s == "bool" &&
-			s == "float" &&
-			s == "long" &&
-			s == "unsigned int" &&
-			s == "short" &&
-			s == "unsigned short" &&
-			s == "long long" &&
-			s == "unsigned long" &&
-			s == "long double" &&
+	return	s == "int" ||
+			s == "double" ||
+			s == "char" ||
+			s == "bool" ||
+			s == "float" ||
+			s == "long" ||
+			s == "unsigned int" ||
+			s == "short" ||
+			s == "unsigned short" ||
+			s == "long long" ||
+			s == "unsigned long" ||
+			s == "long double" ||
 			s == "wchar_t";
 }
 
@@ -170,6 +326,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 	bool is_method		= ann.kind == CXCursor_CXXMethod;
 	bool is_constructor	= ann.kind == CXCursor_Constructor;
 	bool is_destructor	= ann.kind == CXCursor_Destructor;
+	bool is_macrodef	= ann.kind == CXCursor_MacroDefinition;
 	bool is_definition	= ann.definition;
 	bool is_any_fn		= IsFunctionAny(ann.kind);
 	//const auto& idx = CodeIndex();
@@ -197,10 +354,10 @@ bool AIProcess::ProcessTask(AITask& t) {
 			Vector<String> bases = Split(ann.bases, ";");
 			ASSERT(t.GetDependencyCount() == 0);
 			for (String& s : bases) {
-				auto& dep = t.relations.Add();
-				dep.reason = AITask::TYPE_INHERITANCE_DEPENDENCY;
-				dep.type = s;
-				dep.is_dependency = true;
+				auto& rel = t.relations.Add();
+				rel.reason = AITask::TYPE_INHERITANCE_DEPENDENCY;
+				rel.type = s;
+				rel.is_dependency = true;
 			}
 			
 			//	- it needs a list of classes that inherit from it (names/headers only)
@@ -215,12 +372,12 @@ bool AIProcess::ProcessTask(AITask& t) {
 					for (const auto& base0 : bases0) {
 						if (base0 == ann.id) {
 							if (!t.HasInput(ai.id, ai.kind)) {
-								auto& in = t.relations.Add();
-								in.reason = AITask::TYPE_INHERITANCE_DEPENDING,
-								//in.file = it.key;
-								in.file = it.file;
-								in.id = ai.id;
-								in.kind = ai.kind;
+								auto& rel = t.relations.Add();
+								rel.reason = AITask::TYPE_INHERITANCE_DEPENDING,
+								//rel.file = it.key;
+								rel.file = it.file;
+								rel.type = ai.id;
+								rel.kind = ai.kind;
 							}
 							break;
 						}
@@ -238,16 +395,37 @@ bool AIProcess::ProcessTask(AITask& t) {
 				if (IsVarKind(ai.kind)) {
 					if (ai.type == ann.id) {
 						if (!t.HasInput(ai.id, ai.kind)) {
-							auto& in = t.relations.Add();
-							in.reason = AITask::TYPE_USAGE,
-							//in.file = it.key;
-							in.file = it.file;
-							in.id = ai.id;
-							in.kind = ai.kind;
+							auto& rel = t.relations.Add();
+							rel.reason = AITask::TYPE_USAGE,
+							//rel.file = it.key;
+							rel.file = it.file;
+							rel.id = ai.id;
+							rel.type = ai.type;
+							rel.kind = ai.kind;
 						}
 						break;
 					}
 				}
+			}
+			
+			// Methods
+			for(const auto& it : vis.export_items) {
+				if (!it.have_ann)
+					continue;
+				const AnnotationItem& ai = it.ann;
+				if (!RangeContains(ai.pos, begin, end))
+					continue;
+				if (!IsFunctionAny(ai.kind))
+					continue;
+				auto& rel = t.relations.Add();
+				//in.is_dependency = true;
+				rel.reason = AITask::METHOD;
+				rel.file = it.file;
+				rel.id = it.ann.id;
+				rel.nest = id;
+				rel.type = it.ann.type;
+				rel.file = it.file;
+				rel.pos = it.ann.pos;
 			}
 			//LOG(t.ann.ToString());
 		}
@@ -268,14 +446,14 @@ bool AIProcess::ProcessTask(AITask& t) {
 		for(const auto& it : vis.export_items) {
 			if (!it.have_ref) continue;
 			const ReferenceItem& ref = it.ref;
-			if (ref.id == id) {
-				auto& in = t.relations.Add();
-				in.reason = AITask::USAGE_RW;
-				//in.file = it.key;
-				in.id = id;
-				in.file = it.file;
-				in.pos = ref.pos;
-				in.ref_pos = ref.ref_pos;
+			if (ref.id == id && ref.ref_pos == ann.pos) {
+				auto& rel = t.relations.Add();
+				rel.reason = AITask::USAGE_REF;
+				//rel.file = it.key;
+				rel.id = id;
+				rel.file = it.file;
+				rel.pos = ref.pos;
+				rel.ref_pos = ref.ref_pos;
 			}
 		}
 		
@@ -289,13 +467,13 @@ bool AIProcess::ProcessTask(AITask& t) {
 				//	for (const AnnotationItem& ai : it.value.items) {
 				if (IsTypeKind(ai.kind) && ai.id == type) {
 					if (!t.HasDepType(ai.id)) {
-						auto& dep = t.relations.Add();
-						dep.reason = AITask::USAGE_TYPE;
-						dep.is_dependency = true;
-						dep.type = ai.id;
-						//dep.file = it.key;
-						dep.file = it.file;
-						dep.pos = it.pos;
+						auto& rel = t.relations.Add();
+						rel.reason = AITask::USAGE_TYPE;
+						rel.is_dependency = true;
+						rel.type = ai.id;
+						//rel.file = it.key;
+						rel.file = it.file;
+						rel.pos = it.pos;
 						found = true;
 					}
 					break;
@@ -318,10 +496,10 @@ bool AIProcess::ProcessTask(AITask& t) {
 	//3. Methods and functions
 	if (is_any_fn) {
 		if (!ann.parent_type.IsEmpty()) {
-			auto& dep = t.relations.Add();
-			dep.is_dependency = true;
-			dep.reason = AITask::TYPE_PARENT;
-			dep.type = ann.parent_type;
+			auto& rel = t.relations.Add();
+			rel.is_dependency = true;
+			rel.reason = AITask::TYPE_PARENT;
+			rel.type = ann.parent_type;
 		}
 		
 		// is forward-declaration only
@@ -369,18 +547,34 @@ bool AIProcess::ProcessTask(AITask& t) {
 			//		- what asynchronous calls the function makes (callbacks, remote commands, function pointers)
 			//const auto& it = idx[t_file_idx];
 			for(const auto& it : vis.export_items) {
+				if (!it.have_ref) continue;
+				const ReferenceItem& ref = it.ref;
+				if (ref.id == id && ref.ref_pos == ann.pos) {
+					auto& rel = t.relations.Add();
+					rel.reason = IsCallAny(ref.kind) ? AITask::USAGE_CALL : AITask::USAGE_ADDR;
+					//rel.file = it.key;
+					rel.id = id;
+					rel.file = it.file;
+					rel.pos = ref.pos;
+					rel.ref_pos = ref.ref_pos;
+				}
+			}
+			for(const auto& it : vis.export_items) {
 				if (it.have_ann) {
 					const AnnotationItem& ai = it.ann;
 					if (!RangeContains(ai.pos, begin, end) || ai.id == id)
 						continue;
-					
-					
-					
-					LOG("DEP: " + ai.ToString());
-					
-					// TODO ???
+					if (ai.type.IsEmpty() || IsTypeKindBuiltIn(it.ann.type))
+						continue;
+					auto& rel = t.relations.Add();
+					rel.is_dependency = true;
+					rel.reason = AITask::TYPE_USAGE;
+					rel.file = it.file;
+					rel.id = it.ann.type;
+					rel.file = it.file;
+					rel.pos = it.ann.pos;
 				}
-				if (it.have_ref) {
+				/*if (it.have_ref) {
 					const ReferenceItem& ref = it.ref;
 					if (!RangeContains(ref.pos, begin, end) || ref.id == id)
 						continue;
@@ -388,8 +582,26 @@ bool AIProcess::ProcessTask(AITask& t) {
 					LOG("REF: " + ref.ToString());
 					
 					
-				}
+				}*/
 			}
+			
+			// Return statements
+			for(const auto& it : vis.export_items) {
+				if (!it.have_stmt) continue;
+				const ReferenceItem& ref = it.ref;
+				if (!RangeContains(ref.pos, begin, end))
+					continue;
+				if (t.HasReason(AITask::RETURN_VALUE, ref.pos))
+					continue;
+				auto& rel = t.relations.Add();
+				rel.reason = AITask::RETURN_VALUE;
+				rel.kind = ref.kind;
+				//rel.file = it.key;
+				rel.file = it.file;
+				rel.pos = ref.pos;
+				rel.ref_pos = it.ann.end;
+			}
+			
 			
 			// TODO if method, check clang_getOverriddenCursors
 			
@@ -398,7 +610,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 	}
 	
 	//4. macros
-	{
+	if (is_macrodef) {
 		//	- these seem to be a bit difficult to identify, when theide's alt+u does not recognize their use
 		//		- you have to stop and see what points to this
 		//	- these are analyzed weakly or strongly if necessary (either with raw text or with clarified types)
@@ -406,10 +618,29 @@ bool AIProcess::ProcessTask(AITask& t) {
 		//	- this explains the same things as the function or its parts: where to write, sync, async, conditionality
 		//	- it may be that you need to ask the artificial intelligence if the macro is an inline function, inline field, inline switch, etc...
 		//		- a bit like FOG's various "auto statements".
+		for(const auto& it : vis.export_items) {
+			if (!it.have_ref) continue;
+			const ReferenceItem& ref = it.ref;
+			if (ref.id == id && ref.ref_pos == ann.pos) {
+				auto& rel = t.relations.Add();
+				rel.reason = AITask::USAGE_MACRO;
+				//rel.file = it.key;
+				rel.id = id;
+				rel.file = it.file;
+				rel.pos = ref.pos;
+				rel.ref_pos = ref.ref_pos;
+			}
+		}
 	}
 	
 	
 	return true;
+}
+
+void AIProcess::AddError(String msg) {
+	auto& e = errors.Add();
+	e.pos = Null;
+	e.msg = msg;
 }
 
 void AIProcess::AddError(String filepath, Point pos, String msg) {
@@ -446,9 +677,10 @@ AIProcessCtrl::AIProcessCtrl() {
 	tasks.AddColumn("Bases");
 	tasks.AddColumn("Pos");
 	tasks.AddColumn("Parent Type");
+	tasks.AddColumn("Order ");
 	tasks.AddIndex("IDX");
 	tasks.AddIndex("TYPE");
-	tasks.ColumnWidths("2 2 1 1 1 1 1");
+	tasks.ColumnWidths("2 2 1 1 1 1 1 1");
 	tasks.WhenCursor << THISBACK(DataTask);
 	
 	info.AddColumn("Is dependency");
@@ -485,6 +717,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 4, ann.bases);
 			tasks.Set(row, 5, ann.pos);
 			tasks.Set(row, 6, ann.parent_type);
+			tasks.Set(row, 7, t.order);
 			row++;
 		}
 		if (t.vis.have_ref) {
@@ -498,6 +731,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 4, Value());
 			tasks.Set(row, 5, ref.pos.ToString() + " -> " + ref.ref_pos.ToString());
 			tasks.Set(row, 6, Value());
+			tasks.Set(row, 7, t.order);
 			row++;
 		}
 		if (t.vis.have_link) {
@@ -511,6 +745,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 4, ann.bases);
 			tasks.Set(row, 5, ann.pos);
 			tasks.Set(row, 6, ann.parent_type);
+			tasks.Set(row, 7, t.order);
 			row++;
 		}
 	}
@@ -543,15 +778,15 @@ void AIProcessCtrl::DataTask() {
 	int row = 0;
 	
 	for(int i = 0; i < t.relations.GetCount(); i++) {
-		const auto& in = t.relations[i];
-		info.Set(i, 0, in.is_dependency ? "X" : "");
-		info.Set(i, 1, AITask::GetReasonString(in.reason));
-		info.Set(i, 2, in.file);
-		info.Set(i, 3, in.pos);
-		info.Set(i, 4, in.kind >= 0 ? GetCursorKindName((CXCursorKind)in.kind) : String());
-		info.Set(i, 5, in.id);
-		info.Set(i, 6, in.type);
-		info.Set(i, 7, in.ref_pos);
+		const auto& rel = t.relations[i];
+		info.Set(i, 0, rel.is_dependency ? "X" : "");
+		info.Set(i, 1, AITask::GetReasonString(rel.reason));
+		info.Set(i, 2, rel.file);
+		info.Set(i, 3, rel.pos);
+		info.Set(i, 4, rel.kind >= 0 ? GetCursorKindName((CXCursorKind)rel.kind) : String());
+		info.Set(i, 5, rel.id);
+		info.Set(i, 6, rel.type);
+		info.Set(i, 7, rel.ref_pos);
 	}
 	info.SetCount(t.relations.GetCount());
 	
@@ -577,6 +812,14 @@ bool AITask::HasInput(const String& id, int kind) const {
 bool AITask::HasDepType(const String& id) const {
 	for (const auto& in : relations) {
 		if (in.is_dependency && !in.type.IsEmpty() && in.type == id)
+			return true;
+	}
+	return false;
+}
+
+bool AITask::HasReason(Reason r, Point pos) const {
+	for (const auto& in : relations) {
+		if (in.reason == r && in.pos == pos)
 			return true;
 	}
 	return false;

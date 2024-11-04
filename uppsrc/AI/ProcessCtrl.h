@@ -14,24 +14,34 @@ struct AITask : Moveable<AITask>
 {
 	typedef enum : int {
 		NO_REASON,
-		USAGE_RW,
+		USAGE_REF,
 		USAGE_TYPE,
+		USAGE_ADDR,
+		USAGE_CALL,
 		TYPE_INHERITANCE_DEPENDENCY,
 		TYPE_INHERITANCE_DEPENDING,
 		TYPE_USAGE,
 		TYPE_PARENT,
+		USAGE_MACRO,
+		RETURN_VALUE,
+		METHOD,
 		
 		REASON_COUNT
 	} Reason;
 	static String GetReasonString(int i) {
 		switch (i){
 			case NO_REASON:						return "No reason";
-			case USAGE_RW:						return "Usage: R/W";
+			case USAGE_REF:						return "Usage: Reference";
 			case USAGE_TYPE:					return "Usage: Type";
+			case USAGE_ADDR:					return "Usage: Addr";
+			case USAGE_CALL:					return "Usage: call addr";
 			case TYPE_INHERITANCE_DEPENDENCY:	return "Inherited type";
 			case TYPE_INHERITANCE_DEPENDING:	return "Inheriting this type";
 			case TYPE_USAGE:					return "Type in use";
 			case TYPE_PARENT:					return "Type as parent";
+			case USAGE_MACRO:					return "Macro programming";
+			case RETURN_VALUE:					return "Return value";
+			case METHOD:						return "Method";
 			default:							return "<error>";
 		}
 	}
@@ -41,6 +51,7 @@ struct AITask : Moveable<AITask>
 		String file;
 		String id;
 		String type;
+		String nest;
 		int kind = -1;
 		Point pos = Null;
 		Point ref_pos = Null;
@@ -50,11 +61,15 @@ struct AITask : Moveable<AITask>
 	CodeVisitor::Item vis;
 	Vector<Relation> relations;
 	String filepath;
+	int order = -1;
 	
 	AITask() {}
+	bool IsLinked(const AITask& t, const Relation& rel) const;
 	bool HasInput(const String& id, int kind) const;
 	bool HasDepType(const String& id) const;
+	bool HasReason(Reason r, Point pos) const;
 	int GetDependencyCount() const;
+	bool operator()(const AITask& a, const AITask& b) const {return a.order < b.order;}
 };
 
 CodeVisitorProfile& BaseAnalysisProfile();
@@ -70,6 +85,15 @@ struct AIProcess
 		Point pos;
 		String msg;
 	};
+	struct SortItem {
+		AITask& task;
+		int task_i;
+		bool ready = false;
+		Vector<const SortItem*> deps;
+		
+		SortItem(AITask& t, int task_i) : task(t), task_i(task_i) {}
+	};
+	
 	Array<AITask> tasks;
 	FnType cur_fn;
 	bool running = false, stopped = true;
@@ -88,9 +112,11 @@ struct AIProcess
 	void Stop();
 	void Run();
 	void MakeBaseAnalysis();
+	void SortTasks();
 	bool ProcessTask(AITask& t);
+	void AddError(String msg);
 	void AddError(String filepath, Point pos, String msg);
-	
+	void FindDependencies(Array<SortItem>& sort_items, SortItem& it);
 };
 
 struct AIProcessCtrl : ParentCtrl
@@ -105,6 +131,12 @@ struct AIProcessCtrl : ParentCtrl
 	void DataTask();
 	void RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn);
 };
+
+bool IsTypeKind(int kind);
+bool IsVarKind(int kind);
+bool IsFunctionAny(int kind);
+bool IsCallAny(int kind);
+bool IsTypeKindBuiltIn(const String& s);
 
 END_UPP_NAMESPACE
 

@@ -165,10 +165,10 @@ void AICodeCtrl::ContextMenu(Bar& bar)
 	bar.Add("Add comment", THISBACK(AddComment));
 	bar.Add("Remove comment", THISBACK(RemoveComment));
 	bar.Separator();
-	bar.Sub("AI", [&](Bar& b) {
-		b.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
-		b.Add("Run base analysis for this scope", THISBACK1(RunTask, AIProcess::FN_BASE_ANALYSIS));
-	});
+	//bar.Sub("AI", [&](Bar& bar) {
+	bar.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
+	bar.Add("Run base analysis for this scope", THISBACK1(RunTask, AIProcess::FN_BASE_ANALYSIS));
+	//});
 }
 
 void AICodeCtrl::AddComment()
@@ -215,23 +215,27 @@ void AICodeCtrl::RemoveComment()
 	UpdateEditor();
 }
 
-Vector<String> AICodeCtrl::GetAnnotationAreaCode() {
+Vector<String> GetStringArea(const String& content, Point begin, Point end) {
 	Vector<String> code;
-	String s = this->content;
+	String s = content;
 	s.Replace("\r", "");
 	code = Split(s, "\n", false);
 
 	// Trim annotation area of the code
-	if(sel_ann_f->begin.y > 0)
-		code.Remove(0, sel_ann_f->begin.y);
-	if(sel_ann_f->begin.x > 0)
-		code[0] = code[0].Mid(sel_ann_f->begin.x);
-	int len = sel_ann_f->end.y - sel_ann_f->begin.y + 1;
+	if(begin.y > 0)
+		code.Remove(0, begin.y);
+	if(begin.x > 0)
+		code[0] = code[0].Mid(begin.x);
+	int len = end.y - begin.y + 1;
 	code.SetCount(len);
-	if(sel_ann_f->end.x > 0)
-		code.Top() = code.Top().Left(sel_ann_f->end.x);
+	if(end.x > 0)
+		code.Top() = code.Top().Left(end.x);
 	// DUMPC(code);
 	return code;
+}
+
+Vector<String> AICodeCtrl::GetAnnotationAreaCode() {
+	return GetStringArea(this->content, sel_ann_f->begin, sel_ann_f->end);
 }
 
 void AICodeCtrl::MakeAiComments()
@@ -434,6 +438,18 @@ void AICodeCtrl::AnnotationData() {
 			cursorinfo.Set(row, 2, Value());
 			cursorinfo.Set(row, 3, ref.pos);
 			cursorinfo.Set(row, 4, ref.ref_pos);
+			row++;
+		}
+	}
+	for(int i = 0; i < fa.stmts.GetCount(); i++) {
+		const StatementItem& stmt = fa.stmts[i];
+		if (ann_f.begin.y <= stmt.begin.y && stmt.end.y <= ann_f.end.y) {
+			String code = Join(GetStringArea(this->content, stmt.begin, stmt.end), "\\n");
+			cursorinfo.Set(row, 0, stmt.kind >= 0 ? GetCursorKindName((CXCursorKind)stmt.kind) : String());
+			cursorinfo.Set(row, 1, code);
+			cursorinfo.Set(row, 2, Value());
+			cursorinfo.Set(row, 3, stmt.begin);
+			cursorinfo.Set(row, 4, Value());
 			row++;
 		}
 	}

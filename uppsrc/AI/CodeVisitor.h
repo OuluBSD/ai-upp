@@ -28,6 +28,7 @@ struct CodeVisitor
 		bool have_ann = false;
 		bool have_ref = false;
 		bool have_link = false;
+		bool have_stmt = false;
 		AnnotationItem ann;
 		ReferenceItem ref;
 		AnnotationItem link;

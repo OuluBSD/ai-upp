@@ -37,6 +37,7 @@ const char* Orange::GetName() const {
 
 }
 
+
 #define TEST(x) if (o.GetMass() == 0) return 1;
 
 int main(int argc, const char *argv[])
@@ -47,6 +48,9 @@ int main(int argc, const char *argv[])
 	Orange o;
 	o.SetMass(120); // grams
 	o.Consume(20);
+	if (argc > 1)
+		o.Consume(argc-1);
+	void (Fruit::*fn_ptr)(double) = &Orange::Consume;
 	TEST(o);
 	
 	return 0;

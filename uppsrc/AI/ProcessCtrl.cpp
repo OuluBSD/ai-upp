@@ -195,11 +195,12 @@ bool AIProcess::ProcessTask(AITask& t) {
 		else {
 			//	- it needs the value of every Field and inherited class "function".
 			Vector<String> bases = Split(ann.bases, ";");
-			ASSERT(t.deps.IsEmpty());
+			ASSERT(t.GetDependencyCount() == 0);
 			for (String& s : bases) {
-				auto& dep = t.deps.Add();
-				dep.id = s;
-				dep.is_type = true;
+				auto& dep = t.relations.Add();
+				dep.reason = AITask::TYPE_INHERITANCE_DEPENDENCY;
+				dep.type = s;
+				dep.is_dependency = true;
 			}
 			
 			//	- it needs a list of classes that inherit from it (names/headers only)
@@ -214,7 +215,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 					for (const auto& base0 : bases0) {
 						if (base0 == ann.id) {
 							if (!t.HasInput(ai.id, ai.kind)) {
-								auto& in = t.inputs.Add();
+								auto& in = t.relations.Add();
+								in.reason = AITask::TYPE_INHERITANCE_DEPENDING,
 								//in.file = it.key;
 								in.file = it.file;
 								in.id = ai.id;
@@ -236,7 +238,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 				if (IsVarKind(ai.kind)) {
 					if (ai.type == ann.id) {
 						if (!t.HasInput(ai.id, ai.kind)) {
-							auto& in = t.inputs.Add();
+							auto& in = t.relations.Add();
+							in.reason = AITask::TYPE_USAGE,
 							//in.file = it.key;
 							in.file = it.file;
 							in.id = ai.id;
@@ -251,7 +254,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 	}
 	
 	//2. Variable or class field (variable)
-	if (is_var || is_var_field) {
+	if (is_any_var) {
 		
 		// TODO visit variable usage references in CodeVisitor
 		
@@ -266,8 +269,10 @@ bool AIProcess::ProcessTask(AITask& t) {
 			if (!it.have_ref) continue;
 			const ReferenceItem& ref = it.ref;
 			if (ref.id == id) {
-				auto& in = t.inputs.Add();
+				auto& in = t.relations.Add();
+				in.reason = AITask::USAGE_RW;
 				//in.file = it.key;
+				in.id = id;
 				in.file = it.file;
 				in.pos = ref.pos;
 				in.ref_pos = ref.ref_pos;
@@ -284,11 +289,13 @@ bool AIProcess::ProcessTask(AITask& t) {
 				//	for (const AnnotationItem& ai : it.value.items) {
 				if (IsTypeKind(ai.kind) && ai.id == type) {
 					if (!t.HasDepType(ai.id)) {
-						auto& dep = t.deps.Add();
-						dep.id = ai.id;
-						dep.is_type = true;
+						auto& dep = t.relations.Add();
+						dep.reason = AITask::USAGE_TYPE;
+						dep.is_dependency = true;
+						dep.type = ai.id;
 						//dep.file = it.key;
 						dep.file = it.file;
+						dep.pos = it.pos;
 						found = true;
 					}
 					break;
@@ -307,23 +314,26 @@ bool AIProcess::ProcessTask(AITask& t) {
 			LOG("TODO: synchronization");
 		}
 	}
-	// 2b. Parameter
-	if (is_var_param) {
-		
-		
-		//TODO
-		
-		LOG(ann.ToString());
-	}
 	
 	//3. Methods and functions
 	if (is_any_fn) {
+		if (!ann.parent_type.IsEmpty()) {
+			auto& dep = t.relations.Add();
+			dep.is_dependency = true;
+			dep.reason = AITask::TYPE_PARENT;
+			dep.type = ann.parent_type;
+		}
+		
 		// is forward-declaration only
 		if (!is_definition) {
 			// useless?
 		}
 		// is definition
 		else {
+			/*if (is_constructor ||
+				is_destructor ||
+				is_method ||
+				is_conversion)*/
 			/*if (t_file_idx < 0) {
 				AddError(t.filepath, t.ann.pos, "no file idx found");
 				return false;
@@ -381,6 +391,8 @@ bool AIProcess::ProcessTask(AITask& t) {
 				}
 			}
 			
+			// TODO if method, check clang_getOverriddenCursors
+			
 			LOG(ann.ToString());
 		}
 	}
@@ -412,7 +424,9 @@ void AIProcess::AddError(String filepath, Point pos, String msg) {
 AIProcessCtrl::AIProcessCtrl() {
 	Add(vsplit.SizePos());
 	
-	vsplit.Vert() << tasks << deps << inputs << errors;
+	vsplit.Vert() << tasks << info << errors;
+	vsplit.SetPos(3333,0);
+	vsplit.SetPos(6666+3333/2,1);
 	
 	/*
 	String id; // Upp::Class::Method(Upp::Point p)
@@ -431,20 +445,21 @@ AIProcessCtrl::AIProcessCtrl() {
 	tasks.AddColumn("Pretty");
 	tasks.AddColumn("Bases");
 	tasks.AddColumn("Pos");
+	tasks.AddColumn("Parent Type");
 	tasks.AddIndex("IDX");
 	tasks.AddIndex("TYPE");
-	tasks.ColumnWidths("2 2 1 1 1 1");
+	tasks.ColumnWidths("2 2 1 1 1 1 1");
 	tasks.WhenCursor << THISBACK(DataTask);
 	
-	deps.AddColumn("File");
-	deps.AddColumn("Id");
-	deps.AddColumn("Is Type");
-	
-	inputs.AddColumn("Kind");
-	inputs.AddColumn("Id");
-	inputs.AddColumn("File");
-	inputs.AddColumn("Pos");
-	inputs.AddColumn("Ref-Pos");
+	info.AddColumn("Is dependency");
+	info.AddColumn("Reason");
+	info.AddColumn("File");
+	info.AddColumn("Pos");
+	info.AddColumn("Kind");
+	info.AddColumn("Id");
+	info.AddColumn("Type");
+	info.AddColumn("Ref-pos");
+	info.ColumnWidths("1 6 2 2 4 8 8 2");
 	
 	errors.AddColumn("File");
 	errors.AddColumn("Pos");
@@ -469,6 +484,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 3, ann.pretty);
 			tasks.Set(row, 4, ann.bases);
 			tasks.Set(row, 5, ann.pos);
+			tasks.Set(row, 6, ann.parent_type);
 			row++;
 		}
 		if (t.vis.have_ref) {
@@ -481,6 +497,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 3, Value());
 			tasks.Set(row, 4, Value());
 			tasks.Set(row, 5, ref.pos.ToString() + " -> " + ref.ref_pos.ToString());
+			tasks.Set(row, 6, Value());
 			row++;
 		}
 		if (t.vis.have_link) {
@@ -493,6 +510,7 @@ void AIProcessCtrl::Data() {
 			tasks.Set(row, 3, ann.pretty);
 			tasks.Set(row, 4, ann.bases);
 			tasks.Set(row, 5, ann.pos);
+			tasks.Set(row, 6, ann.parent_type);
 			row++;
 		}
 	}
@@ -515,31 +533,28 @@ void AIProcessCtrl::Data() {
 void AIProcessCtrl::DataTask() {
 	int c = tasks.GetCursor();
 	if (!tasks.IsCursor() || c < 0 || c >= process.tasks.GetCount()) {
-		deps.Clear();
-		inputs.Clear();
+		info.Clear();
 		return;
 	}
 	int idx = tasks.Get("IDX");
 	
 	const AITask& t = process.tasks[idx];
 	
-	for(int i = 0; i < t.deps.GetCount(); i++) {
-		const auto& dep = t.deps[i];
-		deps.Set(i, 0, dep.file);
-		deps.Set(i, 1, dep.id);
-		deps.Set(i, 2, dep.is_type);
-	}
-	deps.SetCount(t.deps.GetCount());
+	int row = 0;
 	
-	for(int i = 0; i < t.inputs.GetCount(); i++) {
-		const auto& in = t.inputs[i];
-		inputs.Set(i, 0, in.kind >= 0 ? GetCursorKindName((CXCursorKind)in.kind) : String());
-		inputs.Set(i, 1, in.id);
-		inputs.Set(i, 2, in.file);
-		inputs.Set(i, 3, in.pos);
-		inputs.Set(i, 4, in.ref_pos);
+	for(int i = 0; i < t.relations.GetCount(); i++) {
+		const auto& in = t.relations[i];
+		info.Set(i, 0, in.is_dependency ? "X" : "");
+		info.Set(i, 1, AITask::GetReasonString(in.reason));
+		info.Set(i, 2, in.file);
+		info.Set(i, 3, in.pos);
+		info.Set(i, 4, in.kind >= 0 ? GetCursorKindName((CXCursorKind)in.kind) : String());
+		info.Set(i, 5, in.id);
+		info.Set(i, 6, in.type);
+		info.Set(i, 7, in.ref_pos);
 	}
-	inputs.SetCount(t.inputs.GetCount());
+	info.SetCount(t.relations.GetCount());
+	
 	
 }
 
@@ -552,7 +567,7 @@ void AIProcessCtrl::RunTask(String filepath, FileAnnotation& item, AiAnnotationI
 
 
 bool AITask::HasInput(const String& id, int kind) const {
-	for (const auto& in : inputs) {
+	for (const auto& in : relations) {
 		if (in.id == id && in.kind == kind)
 			return true;
 	}
@@ -560,11 +575,20 @@ bool AITask::HasInput(const String& id, int kind) const {
 }
 
 bool AITask::HasDepType(const String& id) const {
-	for (const auto& in : deps) {
-		if (in.is_type && in.id == id)
+	for (const auto& in : relations) {
+		if (in.is_dependency && !in.type.IsEmpty() && in.type == id)
 			return true;
 	}
 	return false;
 }
+
+int AITask::GetDependencyCount() const {
+	int i = 0;
+	for (const auto& in : relations)
+		if (in.is_dependency)
+			i++;
+	return i;
+}
+
 
 END_UPP_NAMESPACE

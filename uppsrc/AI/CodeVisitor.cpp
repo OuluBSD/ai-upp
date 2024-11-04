@@ -34,6 +34,7 @@ void CodeVisitor::Item::operator=(const Item& it) {
 	have_ann	= it.have_ann;
 	have_ref	= it.have_ref;
 	have_link	= it.have_link;
+	have_stmt	= it.have_stmt;
 	ann			= it.ann;
 	ref			= it.ref;
 	link		= it.link;
@@ -101,6 +102,19 @@ void CodeVisitor::Visit(const String& filepath, const FileAnnotation& fa, Point 
 			it.pos = ref.pos;
 		}
 	}
+	for(int i = 0; i < fa.stmts.GetCount(); i++) {
+		const StatementItem& stmt = fa.stmts[i];
+		if(begin.y <= stmt.begin.y && stmt.end.y <= end.y) {
+			Item& it = cur_level.Add();
+			it.have_stmt = true;
+			it.ref.kind = stmt.kind;
+			it.ref.pos = stmt.begin;
+			it.ann.begin = stmt.begin;
+			it.ann.end = stmt.end;
+			it.file = filepath;
+			it.pos = stmt.begin;
+		}
+	}
 	Sort(cur_level, Item());
 
 	for(int i = 0; i < cur_level.GetCount(); i++) {
@@ -111,7 +125,7 @@ void CodeVisitor::Visit(const String& filepath, const FileAnnotation& fa, Point 
 			if((ai.definition && visited_defs.Find(ai.id) >= 0) ||
 			   (!ai.definition && visited_decls.Find(ai.id) >= 0))
 				continue;
-			export_items << it; // only unvisited items are needed
+			export_items << it;
 			VisitAnn(filepath, it);
 		}
 		if(it.have_ref) {
@@ -119,8 +133,11 @@ void CodeVisitor::Visit(const String& filepath, const FileAnnotation& fa, Point 
 			String tgt_str = ref.MakeLocalString(filepath);
 			if(visited_refs.Find(tgt_str) >= 0)
 				continue;
-			export_items << it; // all refs are needed
+			export_items << it;
 			VisitRef(filepath, it);
+		}
+		if(it.have_stmt) {
+			export_items << it;
 		}
 		if(limit && export_items.GetCount() > limit)
 			break;

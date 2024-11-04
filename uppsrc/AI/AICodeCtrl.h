@@ -60,6 +60,8 @@ struct AICodeCtrl : ParentCtrl {
 	static ArrayMap<String, AionFile>& AionFiles();
 };
 
+Vector<String> GetStringArea(const String& content, Point begin, Point end);
+
 END_UPP_NAMESPACE
 
 #endif

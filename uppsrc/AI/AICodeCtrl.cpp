@@ -32,10 +32,9 @@ AICodeCtrl::AICodeCtrl()
 	depthfirst.AddColumn("Kind");
 	depthfirst.AddColumn("Id");
 	depthfirst.AddColumn("Type");
-	depthfirst.AddColumn("Pos");
 	depthfirst.AddColumn("Ref-pos");
 	depthfirst.AddColumn("Error");
-	depthfirst.ColumnWidths("1 1 2 4 4 1 1 4");
+	depthfirst.ColumnWidths("1 1 2 4 4 1 4");
 	
 }
 
@@ -456,8 +455,7 @@ void AICodeCtrl::AnnotationData() {
 				depthfirst.Set(row, 3, ai.id);
 				depthfirst.Set(row, 4, ai.type);
 				depthfirst.Set(row, 5, Value());
-				depthfirst.Set(row, 6, Value());
-				depthfirst.Set(row, 7, it.error);
+				depthfirst.Set(row, 6, it.error);
 				row++;
 			}
 			if (it.have_ref) {
@@ -470,9 +468,8 @@ void AICodeCtrl::AnnotationData() {
 				else {
 					depthfirst.Set(row, 4, Value());
 				}
-				depthfirst.Set(row, 5, ref.pos);
-				depthfirst.Set(row, 6, ref.ref_pos);
-				depthfirst.Set(row, 7, it.error);
+				depthfirst.Set(row, 5, ref.ref_pos);
+				depthfirst.Set(row, 6, it.error);
 				row++;
 			}
 			if (it.have_link) {
@@ -481,8 +478,7 @@ void AICodeCtrl::AnnotationData() {
 				depthfirst.Set(row, 3, ai.id);
 				depthfirst.Set(row, 4, ai.type);
 				depthfirst.Set(row, 5, Value());
-				depthfirst.Set(row, 6, Value());
-				depthfirst.Set(row, 7, it.error);
+				depthfirst.Set(row, 6, it.error);
 				row++;
 			}
 		}

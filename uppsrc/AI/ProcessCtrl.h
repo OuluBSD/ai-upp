@@ -12,14 +12,35 @@ struct AITaskPriority : Moveable<AITaskPriority>
 
 struct AITask : Moveable<AITask>
 {
-	struct Dependency : Moveable<Dependency> {
+	typedef enum : int {
+		NO_REASON,
+		USAGE_RW,
+		USAGE_TYPE,
+		TYPE_INHERITANCE_DEPENDENCY,
+		TYPE_INHERITANCE_DEPENDING,
+		TYPE_USAGE,
+		TYPE_PARENT,
+		
+		REASON_COUNT
+	} Reason;
+	static String GetReasonString(int i) {
+		switch (i){
+			case NO_REASON:						return "No reason";
+			case USAGE_RW:						return "Usage: R/W";
+			case USAGE_TYPE:					return "Usage: Type";
+			case TYPE_INHERITANCE_DEPENDENCY:	return "Inherited type";
+			case TYPE_INHERITANCE_DEPENDING:	return "Inheriting this type";
+			case TYPE_USAGE:					return "Type in use";
+			case TYPE_PARENT:					return "Type as parent";
+			default:							return "<error>";
+		}
+	}
+	struct Relation : Moveable<Relation> {
+		Reason reason = NO_REASON;
+		bool is_dependency = false;
 		String file;
 		String id;
-		bool is_type = false;
-	};
-	struct Input : Moveable<Input> {
-		String file;
-		String id;
+		String type;
 		int kind = -1;
 		Point pos = Null;
 		Point ref_pos = Null;
@@ -27,13 +48,13 @@ struct AITask : Moveable<AITask>
 	
 	AITaskPriority priority;
 	CodeVisitor::Item vis;
-	Vector<Dependency> deps;
-	Vector<Input> inputs;
+	Vector<Relation> relations;
 	String filepath;
 	
 	AITask() {}
 	bool HasInput(const String& id, int kind) const;
 	bool HasDepType(const String& id) const;
+	int GetDependencyCount() const;
 };
 
 CodeVisitorProfile& BaseAnalysisProfile();
@@ -75,7 +96,7 @@ struct AIProcess
 struct AIProcessCtrl : ParentCtrl
 {
 	Splitter vsplit;
-	ArrayCtrl tasks, deps, inputs, errors;
+	ArrayCtrl tasks, info, errors;
 	AIProcess process;
 	
 	typedef AIProcessCtrl CLASSNAME;

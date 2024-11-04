@@ -333,12 +333,21 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 	if(!active_file)
 		return findarg(ci.Kind(), CXCursor_FunctionTemplate, CXCursor_FunctionDecl, CXCursor_Constructor,
 		                          CXCursor_Destructor, CXCursor_CXXMethod, CXCursor_UsingDeclaration, CXCursor_VarDecl, CXCursor_EnumConstantDecl,
-		                          CXCursor_TypeAliasTemplateDecl, CXCursor_EnumDecl, CXCursor_ConversionFunction) < 0;
+		                          CXCursor_TypeAliasTemplateDecl, CXCursor_EnumDecl, CXCursor_ConversionFunction,
+		                          CXCursor_CallExpr, CXCursor_ReturnStmt) < 0;
 
 	CXCursor ref = clang_getCursorReferenced(cursor);
 
 	String id = ci.Id();
 	int kind = ci.Kind();
+	if (kind == CXCursor_ReturnStmt) {
+		LoadSourceLocation();
+		StatementItem rm;
+		rm.kind = ci.Kind();
+		rm.begin = sl.begin;
+		rm.end = sl.end;
+		info.GetAdd(sl.path).stmts.Add(rm);
+	}
 	if(id.GetCount()) {
 		LoadSourceLocation();
 		CppFileInfo& f = info.GetAdd(sl.path);
@@ -401,8 +410,8 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			if(findarg(ci.Kind(), CXCursor_CXXBaseSpecifier, CXCursor_TemplateRef) < 0) // suppress template untyping for : WithDlgLayout<TopWindow>
 				q = tfn.Find(ref_loc);
 			ClangCursorInfo ref_ci(q >= 0 ? tfn[q].cursor : ref, pp_id);
-			
 			ReferenceItem rm;
+			rm.kind = ci.Kind();
 			rm.pos = sl.pos;
 			rm.id = ref_ci.Id();
 			rm.ref_pos = ref_loc.pos;

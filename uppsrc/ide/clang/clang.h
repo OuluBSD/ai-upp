@@ -170,15 +170,27 @@ String MakeDefinition(const AnnotationItem& m, const String& klass);
 String MakeDefinition(const AnnotationItem& m);
 
 struct ReferenceItem : Moveable<ReferenceItem> {
-	String id;
-	Point  pos;
-	Point  ref_pos;
+	int		kind = Null;
+	String	id;
+	Point	pos;
+	Point	ref_pos;
 	
 	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
 	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
 	String ToString() const;
 	String MakeLocalString(const String& filepath) const;
 	String MakeTargetString(const String& filepath) const;
+	void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
+};
+
+struct StatementItem : Moveable<StatementItem> {
+	int		kind = Null;
+	Point	begin;
+	Point	end;
+	
+	bool operator==(const StatementItem& b) const { return begin == b.begin && end == b.end; }
+	hash_t GetHashValue() const                   { return CombineHash(kind, begin, end); }
 	void Serialize(Stream& s);
 	void Jsonize(JsonIO& json);
 };
@@ -197,6 +209,7 @@ struct CppFileInfo : Moveable<CppFileInfo> {
 	Vector<AnnotationItem> items;
 	Vector<AnnotationItem> locals;
 	Vector<ReferenceItem>  refs;
+	Vector<StatementItem>  stmts;
 	String ToString() const;
 };
 

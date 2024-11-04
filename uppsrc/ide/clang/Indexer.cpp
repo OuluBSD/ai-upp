@@ -107,10 +107,15 @@ void AnnotationItem::Serialize(Stream& s)
 	;
 }
 
+void StatementItem::Jsonize(JsonIO& json) {
+	json("k",kind)("a",begin)("b",end);
+}
+
 void ReferenceItem::Jsonize(JsonIO& json) {
 	json	("id", id)
 			("pos", pos)
 			("ref_pos", ref_pos)
+			("kind", kind)
 			;
 }
 
@@ -135,11 +140,16 @@ void AnnotationItem::Jsonize(JsonIO& json) {
 			;
 }
 
+void StatementItem::Serialize(Stream& s) {
+	s % kind % begin % end;
+}
+
 void ReferenceItem::Serialize(Stream& s)
 {
 	s % id
 	  % pos
 	  % ref_pos
+	  % kind
 	;
 }
 
@@ -152,6 +162,8 @@ void FileAnnotation::Serialize(Stream& s)
 	  % items
 	  % refs
 	  % path
+	  % stmts
+	  % locals
 	;
 }
 

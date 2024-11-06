@@ -199,6 +199,41 @@ void AiTask::CreateInput_Code()
 		}
 		input.response_length = 2048;
 	}
+	if(args.fn == CodeArgs::FUNCTIONALITY) {
+		{
+			auto& list = input.AddSub().Title("List of types of functionalities");
+			//list.NumberedLines();
+			list.Add("generic");
+			list.Add("writing data");
+			list.Add("reading data");
+			list.Add("referencing data for potential reading and writing");
+			list.Add("referencing data for reading");
+			list.Add("calling another function");
+			list.Add("jumping unconditionally");
+			list.Add("conditional branching");
+			list.Add("synchronized (mutex, spinlock, etc.)");
+			list.Add("asynchronized (callbacks, this-pointer, function/method pointers, etc.)");
+			list.Add("etc.");
+		}
+		{
+			auto& list = input.AddSub().Title("Code");
+			for(int i = 0; i < args.code.GetCount(); i++)
+				list.Add(args.code[i]);
+			list.NoListChar();
+		}
+		if (!args.data.IsEmpty()) {
+			auto& list = input.AddSub().Title("Datapoints in Code");
+			for(int i = 0; i < args.data.GetCount(); i++)
+				list.Add(args.data.GetKey(i), args.data[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List of functionalities and descriptions/explanations for the given code");
+			//tmp_str = "- type #";
+			results.Add(tmp_str);
+		}
+		input.response_length = 2048;
+	}
 }
 
 END_UPP_NAMESPACE

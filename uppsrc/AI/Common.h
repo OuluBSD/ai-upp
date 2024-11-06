@@ -30,7 +30,12 @@ struct GenericPromptArgs {
 };
 
 struct CodeArgs {
-	typedef enum : int { SCOPE_COMMENTS, FN_COUNT } Fn;
+	typedef enum : int {
+		SCOPE_COMMENTS,
+		FUNCTIONALITY,
+		
+		FN_COUNT
+	} Fn;
 	typedef std::underlying_type<Fn>::type FnType;
 	Fn fn;
 	VectorMap<String, String> data;
@@ -141,6 +146,7 @@ struct AiFileInfo : Moveable<AiFileInfo> {
 
 
 String GetStringRange(String content, Point begin, Point end);
+Vector<String> GetStringArea(const String& content, Point begin, Point end);
 bool UpdateAiFileInfo(AiFileInfo& f, const String& path);
 bool RangeContains(Point pos, Point begin, Point end);
 

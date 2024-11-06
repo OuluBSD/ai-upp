@@ -61,11 +61,18 @@ void AIProcess::Run() {
 	while (!Thread::IsShutdownThreads() && running) {
 		
 		// process tasks
+		if (task_i >= tasks.GetCount())
+			break;
 		
-		Sleep(10);
+		if (waiting) {
+			Sleep(10);
+			continue;
+		}
 		
+		AITask& t = tasks[task_i];
+		if (!ProcessTask(t))
+			break;
 		
-		break;
 	}
 	
 	running = false;
@@ -90,7 +97,7 @@ void AIProcess::MakeBaseAnalysis() {
 			else {
 				LOG(i << ": " << it.ref.ToString() << ", " << it.link.ToString());
 			
-				// TODO solve macro & add 'is_macro' to ProcessTask
+				// TODO solve macro & add 'is_macro' to MakeTask
 				
 			}
 		}
@@ -104,7 +111,7 @@ void AIProcess::MakeBaseAnalysis() {
 			else {
 				LOG(i << ": " << it.ann.ToString() << ", " << it.link.ToString());
 			}*/
-			ProcessTask(t);
+			MakeTask(t);
 		}
 		
 		i++;
@@ -305,7 +312,7 @@ bool IsTypeKindBuiltIn(const String& s) {
 			s == "wchar_t";
 }
 
-bool AIProcess::ProcessTask(AITask& t) {
+bool AIProcess::MakeTask(AITask& t) {
 	const AnnotationItem& ann = t.vis.ann;
 	const String id = ann.id;
 	const String type = ann.type;
@@ -408,24 +415,30 @@ bool AIProcess::ProcessTask(AITask& t) {
 				}
 			}
 			
-			// Methods
+			// Methods & Fields
 			for(const auto& it : vis.export_items) {
 				if (!it.have_ann)
 					continue;
 				const AnnotationItem& ai = it.ann;
 				if (!RangeContains(ai.pos, begin, end))
 					continue;
-				if (!IsFunctionAny(ai.kind))
-					continue;
-				auto& rel = t.relations.Add();
-				//in.is_dependency = true;
-				rel.reason = AITask::METHOD;
-				rel.file = it.file;
-				rel.id = it.ann.id;
-				rel.nest = id;
-				rel.type = it.ann.type;
-				rel.file = it.file;
-				rel.pos = it.ann.pos;
+				bool is_fn = IsFunctionAny(ai.kind);
+				bool is_var = IsVarKind(ai.kind);
+				bool is_field = is_var && it.ann.nest == id;
+				if (is_fn || is_field) {
+					auto& rel = t.relations.Add();
+					//in.is_dependency = true;
+					if (is_fn)
+						rel.reason = AITask::METHOD;
+					else if (is_field)
+						rel.reason = AITask::FIELD;
+					rel.file = it.file;
+					rel.id = it.ann.id;
+					rel.nest = id;
+					rel.type = it.ann.type;
+					rel.file = it.file;
+					rel.pos = it.ann.pos;
+				}
 			}
 			//LOG(t.ann.ToString());
 		}
@@ -570,7 +583,7 @@ bool AIProcess::ProcessTask(AITask& t) {
 					rel.is_dependency = true;
 					rel.reason = AITask::TYPE_USAGE;
 					rel.file = it.file;
-					rel.id = it.ann.type;
+					rel.type = it.ann.type;
 					rel.file = it.file;
 					rel.pos = it.ann.pos;
 				}
@@ -648,6 +661,47 @@ void AIProcess::AddError(String filepath, Point pos, String msg) {
 	e.filepath = filepath;
 	e.pos = pos;
 	e.msg = msg;
+}
+
+bool AIProcess::ProcessTask(AITask& t) {
+	ASSERT(!waiting);
+	TaskMgr& m = AiTaskManager();
+	
+	if (t.filepath.IsEmpty() || !FileExists(t.filepath)) {
+		AddError(t.filepath, Null, "filepath doesn't exist");
+		return false;
+	}
+	String content = LoadFile(t.filepath);
+	
+	CodeArgs args;
+	args.fn = CodeArgs::FUNCTIONALITY;
+	args.code <<= GetStringArea(content, t.vis.ann.begin, t.vis.ann.end);
+	for(const auto& rel : t.relations) {
+		String k;
+		if (rel.kind > 0)
+			k += GetCursorKindName((CXCursorKind)rel.kind) + " ";
+		if (!rel.id.IsEmpty())
+			k += rel.id + " ";
+		if (!rel.nest.IsEmpty())
+			k += " (" + rel.nest + ")";
+		if (!rel.type.IsEmpty())
+			k += ": " + rel.type;
+		k = TrimBoth(k);
+		
+		args.data.GetAdd(k);
+	}
+	
+	waiting = true;
+	m.GetCode(args, callback(this, &AIProcess::OnResult));
+	return true;
+}
+
+void AIProcess::OnResult(String s) {
+	
+	LOG(s);
+	
+	task_i++;
+	waiting = false;
 }
 
 

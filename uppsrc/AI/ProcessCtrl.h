@@ -3,13 +3,6 @@
 
 NAMESPACE_UPP
 
-// the priority value for one item is not just numerical, but preferably "structural": the
-// class has a priority, which affects the priority of the class' Field and functions, etc.
-struct AITaskPriority : Moveable<AITaskPriority>
-{
-	
-};
-
 struct AITask : Moveable<AITask>
 {
 	typedef enum : int {
@@ -25,6 +18,7 @@ struct AITask : Moveable<AITask>
 		USAGE_MACRO,
 		RETURN_VALUE,
 		METHOD,
+		FIELD,
 		
 		REASON_COUNT
 	} Reason;
@@ -42,6 +36,7 @@ struct AITask : Moveable<AITask>
 			case USAGE_MACRO:					return "Macro programming";
 			case RETURN_VALUE:					return "Return value";
 			case METHOD:						return "Method";
+			case FIELD:							return "Field";
 			default:							return "<error>";
 		}
 	}
@@ -57,7 +52,6 @@ struct AITask : Moveable<AITask>
 		Point ref_pos = Null;
 	};
 	
-	AITaskPriority priority;
 	CodeVisitor::Item vis;
 	Vector<Relation> relations;
 	String filepath;
@@ -97,12 +91,14 @@ struct AIProcess
 	Array<AITask> tasks;
 	FnType cur_fn;
 	bool running = false, stopped = true;
+	bool waiting = false;
 	FileAnnotation* item = 0;
 	AiAnnotationItem::SourceRange* range = 0;
 	Vector<String> code;
 	Vector<Error> errors;
 	String filepath;
 	int file_idx = -1;
+	int task_i = 0;
 	CodeVisitor vis;
 	
 	typedef AIProcess CLASSNAME;
@@ -113,10 +109,12 @@ struct AIProcess
 	void Run();
 	void MakeBaseAnalysis();
 	void SortTasks();
+	bool MakeTask(AITask& t);
 	bool ProcessTask(AITask& t);
 	void AddError(String msg);
 	void AddError(String filepath, Point pos, String msg);
 	void FindDependencies(Array<SortItem>& sort_items, SortItem& it);
+	void OnResult(String s);
 };
 
 struct AIProcessCtrl : ParentCtrl

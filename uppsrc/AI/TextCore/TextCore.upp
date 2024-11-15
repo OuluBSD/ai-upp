@@ -1,0 +1,30 @@
+description "\377B0,0,128";
+
+file
+	TextCore.h,
+	TextCore.cpp,
+	Images.iml,
+	Defs.h,
+	Enums.h,
+	Types.h,
+	Container.h,
+	Fn.h,
+	Fn.cpp,
+	Entity.h,
+	Entity.cpp,
+	Lyric.h,
+	Lyric.cpp,
+	Browser.h,
+	Browser.cpp,
+	Data.h,
+	Data.cpp,
+	Phoneme.h,
+	Phoneme.cpp,
+	NatLang.h,
+	NatLang.cpp,
+	SolverBase.h,
+	SolverBase.cpp,
+	"Database processes" readonly separator,
+	SourceText.h,
+	SourceText.cpp;
+

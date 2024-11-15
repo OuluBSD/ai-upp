@@ -1,0 +1,18 @@
+description "\377B0,0,128";
+
+uses
+	AI/TextCore;
+
+file
+	TextCtrl.h,
+	TextCtrl.lay,
+	TextDesigner.h,
+	TextDesigner.cpp,
+	LyricRef.h,
+	LyricRef.cpp,
+	LyricContent.h,
+	LyricContent.cpp,
+	"Database processes" readonly separator,
+	SourceText.h,
+	SourceText.cpp;
+

@@ -1,0 +1,11 @@
+LAYOUT(PartInfoForm, 236, 100)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Type:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(0, 92).TopPosZ(4, 19))
+	ITEM(Upp::DropList, type, HSizePosZ(96, 68).TopPosZ(4, 19))
+	ITEM(Upp::EditIntSpin, num, RightPosZ(4, 60).TopPosZ(4, 19))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("Lines:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(0, 92).TopPosZ(28, 19))
+	ITEM(Upp::EditIntSpin, lines, HSizePosZ(96, 4).TopPosZ(28, 19))
+	ITEM(Upp::Label, dv___5, SetLabel(t_("Lines per sub:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(0, 92).TopPosZ(52, 19))
+	ITEM(Upp::EditIntSpin, lines_per_sub, HSizePosZ(96, 4).TopPosZ(52, 19))
+	ITEM(Upp::Button, make_lines, SetLabel(t_("Update lines")).LeftPosZ(96, 124).TopPosZ(76, 19))
+END_LAYOUT
+

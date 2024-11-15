@@ -1,10 +1,11 @@
-#ifndef _AI_ProcessBase_h_
-#define _AI_ProcessBase_h_
+#ifndef _AI_TextCore_SolverBase_h_
+#define _AI_TextCore_SolverBase_h_
 
 NAMESPACE_UPP
 
-class AiProcessBase {
 
+class SolverBase {
+	
 protected:
 	struct WorkerData : Moveable<WorkerData> {
 		int phase = 0, batch = 0, sub_batch = 0;
@@ -13,21 +14,22 @@ protected:
 	static int& WorkerId();
 	WorkerData& Worker();
 	Mutex task_lock, data_lock;
-
+	
 	Time time_started, time_stopped;
 	int generation = 0, phase = 0, batch = 0, sub_batch = 0, batch_count = 0;
 	int generation_count = 1;
+	int appmode = -1;
 	
 	bool waiting = false;
 	bool running = false, stopped = true;
 	bool skip_ready = true;
 	bool parallel = false;
-
+	
 	void Process();
 	void ProcessInParallel();
 	void ProcessInOrder();
 	void ParallelWorker(int id);
-
+	
 	void PostProgress();
 	void PostRemaining();
 	void SetNotRunning();
@@ -37,44 +39,37 @@ protected:
 	void NextPhase();
 	void NextBatch();
 	void NextSubBatch();
-
+	
 	double GetProgress();
-
 public:
-	typedef AiProcessBase CLASSNAME;
-	AiProcessBase();
-
-	void SetParallel(bool b = true) { parallel = b; }
-
-	void Start()
-	{
-		if(!running) {
-			running = true;
-			stopped = false;
-			Thread::Start(THISBACK(Process));
-		}
-	}
-	void Stop()
-	{
-		running = false;
-		while(!stopped)
-			Sleep(1);
-	}
-	void SetSkipReady(bool b) { skip_ready = false; }
+	typedef SolverBase CLASSNAME;
+	SolverBase();
+	
+	TextDatabase& GetDatabase() const;
+	int GetTypeclassCount() {TODO return -1; /*return TextLib::GetTypeclassCount(appmode);*/} // should be based on text files
+	int GetContentCount() {TODO return -1; /*return TextLib::GetContentCount(appmode);*/} // should be based on text files
+	
+	void SetParallel(bool b=true) {parallel = b;}
+	
+	void Start() {if (!running) {running = true; stopped = false; Thread::Start(THISBACK(Process));}}
+	void Stop() {running = false; while (!stopped) Sleep(1);}
+	void SetSkipReady(bool b) {skip_ready = false;}
 	static void StopAll();
-
-	bool IsRunning() const { return running; }
-
+	
+	bool IsRunning() const {return running;}
+	
 	virtual int GetPhaseCount() const = 0;
-	virtual int GetBatchCount(int phase) const { return max(1, batch); }
-	virtual int GetSubBatchCount(int phase, int batch) const { return max(1, sub_batch); }
+	virtual int GetBatchCount(int phase) const {return max(1, batch);}
+	virtual int GetSubBatchCount(int phase, int batch) const {return max(1, sub_batch);}
 	virtual void DoPhase() = 0;
-	virtual void OnBatchError() { NextBatch(); }
-
-	Callback2<int, int> WhenProgress;
+	virtual void OnBatchError() {NextBatch();}
+	
+	Callback2<int,int> WhenProgress;
 	Callback1<String> WhenRemaining;
 	Event<> WhenReady;
+	
 };
+
 
 END_UPP_NAMESPACE
 

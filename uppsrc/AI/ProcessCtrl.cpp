@@ -678,14 +678,31 @@ bool AIProcess::ProcessTask(AITask& t) {
 	args.code <<= GetStringArea(content, t.vis.ann.begin, t.vis.ann.end);
 	for(const auto& rel : t.relations) {
 		String k;
+		k = AITask::GetReasonString(rel.reason) + ": ";
 		if (rel.kind > 0)
-			k += GetCursorKindName((CXCursorKind)rel.kind) + " ";
+			k += GetCursorKindName((CXCursorKind)rel.kind) + ": ";
 		if (!rel.id.IsEmpty())
 			k += rel.id + " ";
 		if (!rel.nest.IsEmpty())
 			k += " (" + rel.nest + ")";
 		if (!rel.type.IsEmpty())
 			k += ": " + rel.type;
+		
+		if (rel.reason == AITask::USAGE_REF ||
+			rel.reason == AITask::RETURN_VALUE ||
+			rel.reason == AITask::USAGE_MACRO) {
+			Point begin = rel.pos;
+			Point end = rel.pos;
+			begin.x = 0;
+			begin.y = max(0, begin.y-1);
+			end.x = 0;
+			end.y = end.y+2;
+			String code = GetStringRange(content, begin, end);
+			code.Replace("\r", "");
+			code.Replace("\n", "\\n");
+			k += "\"" + code + "\"";
+		}
+		
 		k = TrimBoth(k);
 		
 		args.data.GetAdd(k);

@@ -200,6 +200,7 @@ void AiTask::CreateInput_Code()
 		input.response_length = 2048;
 	}
 	if(args.fn == CodeArgs::FUNCTIONALITY) {
+		#if 0
 		{
 			auto& list = input.AddSub().Title("List of types of functionalities");
 			//list.NumberedLines();
@@ -215,6 +216,7 @@ void AiTask::CreateInput_Code()
 			list.Add("asynchronized (callbacks, this-pointer, function/method pointers, etc.)");
 			list.Add("etc.");
 		}
+		#endif
 		{
 			auto& list = input.AddSub().Title("Code");
 			for(int i = 0; i < args.code.GetCount(); i++)
@@ -228,7 +230,8 @@ void AiTask::CreateInput_Code()
 		}
 		{
 			TaskTitledList& results = input.PreAnswer();
-			results.Title("List of functionalities and descriptions/explanations for the given code");
+			//results.Title("List of functionalities and descriptions/explanations for the given code");
+			results.Title("Explain the functionality/purpose for the given code");
 			//tmp_str = "- type #";
 			results.Add(tmp_str);
 		}

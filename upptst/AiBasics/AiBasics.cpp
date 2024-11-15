@@ -49,7 +49,7 @@ int main(int argc, const char *argv[])
 	o.SetMass(120); // grams
 	o.Consume(20);
 	if (argc > 1)
-		o.Consume(argc-1);
+		o.Consume(argc);
 	void (Fruit::*fn_ptr)(double) = &Orange::Consume;
 	TEST(o);
 	

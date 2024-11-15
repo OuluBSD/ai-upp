@@ -15,7 +15,6 @@
 #include "ProcessCtrl.h"
 
 #include "AICodeCtrl.h"
-#include "AIProjectCtrl.h"
 #include "Prompt.h"
 #include "RemoteTask.h"
 #include "TaskCtrl.h"

@@ -223,6 +223,7 @@ public:
 	void CreateInput_Vision();
 	void CreateInput_GenericPrompt();
 	void CreateInput_Code();
+	void CreateInput_GetTokenData();
 
 	void Process_CreateImage();
 	void Process_EditImage();

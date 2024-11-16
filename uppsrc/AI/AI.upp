@@ -34,6 +34,7 @@ file
 	RemoteTask.h,
 	RemoteTask.cpp,
 	CreateInput.cpp,
+	DbInput.cpp,
 	Prompt.h,
 	Prompt.cpp,
 	Common.h,

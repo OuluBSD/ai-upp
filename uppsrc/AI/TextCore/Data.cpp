@@ -126,26 +126,26 @@ String SrcTextData::GetTokenTextString(const TokenText& txt) const {
 String DatasetPtrs::GetTokenTypeString(const TokenText& txt) const {
 	ASSERT(src);
 	const SrcTextData& src = *this->src;
-	auto& da = *this->da;
+	const WordData& wrd = *this->wrd;
 	String o;
 	for(int tk_i : txt.tokens) {
 		const Token& tk = src.tokens[tk_i];
 		int w_i = tk.word_;
 		if (w_i < 0) {
 			String key = ToLower(src.tokens.GetKey(tk_i));
-			w_i = da.words.Find(key);
+			w_i = wrd.words.Find(key);
 			tk.word_ = w_i;
 		}
 		if (w_i < 0) {
 			o << "{error}";
 		}
 		else {
-			const ExportWord& ew = da.words[w_i];
+			const ExportWord& ew = wrd.words[w_i];
 			o << "{";
 			for(int i = 0; i < ew.class_count; i++) {
 				if (i) o << "|";
 				int class_i = ew.classes[i];
-				const String& wc = da.word_classes[class_i];
+				const String& wc = wrd.word_classes[class_i];
 				o << wc;
 			}
 			o << "}";
@@ -165,11 +165,11 @@ String DatasetPtrs::GetTokenTypeString(const TokenText& txt) const {
 String DatasetPtrs::GetWordString(const Vector<int>& words) const {
 	ASSERT(src);
 	const SrcTextData& src = *this->src;
-	auto& da = *this->da;
+	const auto& wrd = *this->wrd;
 	String o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const String& key = da.words.GetKey(w_i);
+		const String& key = wrd.words.GetKey(w_i);
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 			o << key;
@@ -186,11 +186,11 @@ String DatasetPtrs::GetWordString(const Vector<int>& words) const {
 WString DatasetPtrs::GetWordPronounciation(const Vector<int>& words) const {
 	ASSERT(src);
 	const SrcTextData& src = *this->src;
-	auto& da = *this->da;
+	const auto& wrd = *this->wrd;
 	WString o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const ExportWord& ew = da.words[w_i];
+		const ExportWord& ew = wrd.words[w_i];
 		const WString& key = ew.phonetic;
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
@@ -208,13 +208,13 @@ WString DatasetPtrs::GetWordPronounciation(const Vector<int>& words) const {
 String DatasetPtrs::GetTypeString(const Vector<int>& word_classes) const {
 	ASSERT(src);
 	const SrcTextData& src = *this->src;
-	auto& da = *this->da;
+	const auto& wrd = *this->wrd;
 	String o;
 	for(int wc_i : word_classes) {
 		if (wc_i < 0)
 			o << "{error}";
 		else {
-			const String& wc = da.word_classes[wc_i];
+			const String& wc = wrd.word_classes[wc_i];
 			o << "{" << wc << "}";
 		}
 	}

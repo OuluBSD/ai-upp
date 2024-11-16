@@ -41,7 +41,7 @@ void SourceDataCtrl::OnLoad(const String& data, const String& filepath) {
 	}
 	else src = dynamic_cast<SrcTextData*>(&DatasetIndex()[i]);
 	src->Serialize(decomp_stream);
-	DatasetPtrs& p = DatasetPtrs::Single();
+	DatasetPtrs& p = GetDataset();
 	p.src = src;
 }
 
@@ -60,7 +60,7 @@ void SourceDataCtrl::OnSave(String& data, const String& filepath) {
 }
 
 void SourceDataCtrl::Data() {
-	DatasetPtrs& p = DatasetPtrs::Single();
+	DatasetPtrs& p = GetDataset();
 	if (!p.src) {
 		entities.Clear();
 		components.Clear();
@@ -96,7 +96,7 @@ void SourceDataCtrl::Data() {
 }
 
 void SourceDataCtrl::DataEntity() {
-	DatasetPtrs& p = DatasetPtrs::Single();
+	DatasetPtrs& p = GetDataset();
 	if (!p.src) {
 		components.Clear();
 		analysis.Clear();
@@ -125,7 +125,7 @@ void SourceDataCtrl::DataEntity() {
 }
 
 void SourceDataCtrl::DataComponent() {
-	DatasetPtrs& p = DatasetPtrs::Single();
+	DatasetPtrs& p = GetDataset();
 	if (!p.src) {
 		analysis.Clear();
 		return;
@@ -151,12 +151,14 @@ void SourceDataCtrl::DataComponent() {
 	analysis.SetData(solver.GetResult());
 	//analysis.SetData(solver.GetDebugLines());
 	
+	TODO
+	// get data from SourceAnalysisCtrl
 }
 
 void SourceDataCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
-	
+	#error join 3 pages to 1
 }
 
 void SourceDataCtrl::Do(int fn) {

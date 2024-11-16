@@ -151,6 +151,23 @@ bool UpdateAiFileInfo(AiFileInfo& f, const String& path);
 bool RangeContains(Point pos, Point begin, Point end);
 
 
+// TextTool classes
+
+struct TokenArgs {
+	int fn;
+	Vector<String> words;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("words", words)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
+
 END_UPP_NAMESPACE
 
 #endif

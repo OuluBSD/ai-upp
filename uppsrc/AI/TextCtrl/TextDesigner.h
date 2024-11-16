@@ -16,7 +16,11 @@ public:
 };
 
 class ToolAppCtrl : public Ctrl {
-
+	String data, data_filepath;
+	
+protected:
+	String data_sha1;
+	
 public:
 	SolverBaseIndicator prog;
 	Label remaining;
@@ -31,6 +35,7 @@ public:
 	Entity& GetEntity();
 	Component& GetComponent();
 	EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
+	DatasetPtrs& GetDataset() const;
 	Script& GetScript();
 	const Index<String>& GetTypeclasses() const;
 	const Vector<ContentType>& GetContents() const;
@@ -43,6 +48,13 @@ public:
 	void MakeComponentParts(ArrayCtrl& parts);
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);
 
+	virtual void Load(const String& includes, const String& filename, Stream& in, byte charset);
+	virtual void Save(Stream& s, byte charset);
+	virtual void SetEditPos(LineEdit::EditPos editpos) {}
+	virtual void SetPickUndoData(LineEdit::UndoData undodata) {}
+	virtual void OnLoad(const String& data, const String& filepath) {}
+	virtual void OnSave(String& data, const String& filepath) {}
+	
 	template <class T>
 	void DoT(int fn)
 	{

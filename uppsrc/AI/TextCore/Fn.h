@@ -57,6 +57,55 @@ int FindAttrGroup(const char* group);
 int FindAttrGroupByValue(const char* value);
 bool FindAttrValue(int group_i, const char* value);
 
+template <class T>
+int VectorFindAdd(Vector<T>& v, const T& o0) {
+	int i = 0;
+	for (const T& o1 : v) {
+		if (o1 == o0)
+			return i;
+		i++;
+	}
+	i = v.GetCount();
+	v.Add(o0);
+	return i;
+}
+
+template <class T>
+int VectorFind(Vector<T>& v, const T& o0) {
+	int i = 0;
+	for (const T& o1 : v) {
+		if (o1 == o0)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
+template <class T>
+void VectorRemoveKey(Vector<T>& v, const T& o0) {
+	for(int i = 0; i < v.GetCount(); i++) {
+		const T& o1 = v[i];
+		if (o1 == o0) {
+			v.Remove(i--);
+		}
+	}
+}
+
+template <class T, class K>
+typename T::ValueType& MapGetAdd(T& map, const K& k, int& pos) {
+	pos = map.Find(k);
+	if (pos >= 0) return map[pos];
+	pos = map.GetCount();
+	return map.Add(k);
+}
+
+template <class T, class K, class V>
+V& MapGetAdd(T& map, const K& k, const V& v, int& pos) {
+	pos = map.Find(k);
+	if (pos >= 0) return map[pos];
+	pos = map.GetCount();
+	return map.Add(k);
+}
 
 END_UPP_NAMESPACE
 

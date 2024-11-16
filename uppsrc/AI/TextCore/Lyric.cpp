@@ -486,4 +486,133 @@ double ScriptStruct::GetNormalScore() const {
 }
 
 
+void ReplaceWord(String& s, const String& orig_word, const String& replace_word) {
+	String low_text = ToLower(s);
+	
+	int prev = -1;
+	while (prev < low_text.GetCount()) {
+		int a = low_text.Find(orig_word, prev+1);
+		if (a < 0) break;
+		
+		bool left_separated = false, right_separated = false;
+		
+		if (a == 0)
+			left_separated = true;
+		else {
+			int chr = low_text[a-1];
+			if (IsAlpha(chr) ||IsLetter(chr) || IsDigit(chr) || chr == '\'' || chr == '-')
+				;
+			else
+				left_separated = true;
+		}
+		
+		if (left_separated) {
+			int b = a + orig_word.GetCount();
+			if (b >= low_text.GetCount())
+				right_separated = true;
+			else {
+				int chr = low_text[b];
+				if (IsAlpha(chr) ||IsLetter(chr) || IsDigit(chr) || chr == '\'' || chr == '-')
+					;
+				else
+					right_separated = true;
+			}
+		}
+		
+		if (left_separated && right_separated) {
+			s = s.Left(a) + replace_word + s.Mid(a + orig_word.GetCount());
+			low_text = low_text.Left(a) + replace_word + low_text.Mid(a + orig_word.GetCount());
+			a += replace_word.GetCount()-1;
+		}
+		
+		prev = a;
+	}
+}
+
+void HotfixReplaceWord(WString& ws) {
+	String s = ws.ToString();
+	HotfixReplaceWord(s);
+	ws = s.ToWString();
+}
+
+void HotfixReplaceWord(String& s) {
+	ReplaceWord(s, "im", "I'm");
+	ReplaceWord(s, "ive", "I've");
+	ReplaceWord(s, "ill", "I'll");
+	ReplaceWord(s, "id", "I'd");
+	ReplaceWord(s, "youre", "you're");
+	ReplaceWord(s, "youd", "you'd");
+	ReplaceWord(s, "youve", "you've");
+	ReplaceWord(s, "youll", "you'll");
+	ReplaceWord(s, "hes", "he's");
+	ReplaceWord(s, "heve", "he've");
+	ReplaceWord(s, "hed", "he'd");
+	ReplaceWord(s, "shes", "she's");
+	ReplaceWord(s, "sheve", "she've");
+	ReplaceWord(s, "shed", "she'd");
+	ReplaceWord(s, "theyll", "they'll");
+	ReplaceWord(s, "theyve", "they've");
+	ReplaceWord(s, "theyre", "they're");
+	
+	ReplaceWord(s, "arent", "aren't");
+	ReplaceWord(s, "aint", "ain't");
+	ReplaceWord(s, "didnt", "didn't");
+	ReplaceWord(s, "dont", "don't");
+	
+	ReplaceWord(s, "its", "it's");
+	ReplaceWord(s, "itll", "it'll");
+	ReplaceWord(s, "itve", "it've");
+	ReplaceWord(s, "isnt", "isn't");
+	
+	ReplaceWord(s, "whats", "what's");
+	ReplaceWord(s, "couldnt", "couldn't");
+	ReplaceWord(s, "shouldnt", "shouldn't");
+	ReplaceWord(s, "theres", "there's");
+	ReplaceWord(s, "wasnt", "wasn't");
+	ReplaceWord(s, "thats", "that's");
+	
+	if (0) {
+		ReplaceWord(s, "alright", "allright");
+		// These change too much
+		if (0) {
+			ReplaceWord(s, "tryna", "tring to");
+			ReplaceWord(s, "aint", "aren't");
+			ReplaceWord(s, "gotta", "have to");
+			ReplaceWord(s, "wanna", "want to");
+			ReplaceWord(s, "em", "them");
+			ReplaceWord(s, "ol", "old");
+			ReplaceWord(s, "bout", "about");
+			ReplaceWord(s, "nunya", "none of your");
+			ReplaceWord(s, "thang", "thing");
+			ReplaceWord(s, "I'ma", "I'll");
+		}
+		
+		ReplaceWord(s, "tryin", "trying");
+		ReplaceWord(s, "fuckin", "fucking");
+		ReplaceWord(s, "livin", "living");
+		ReplaceWord(s, "lookin", "looking");
+		ReplaceWord(s, "prayin", "praying");
+		ReplaceWord(s, "rollin", "rolling");
+		ReplaceWord(s, "workin", "working");
+		ReplaceWord(s, "chargin", "charging");
+		ReplaceWord(s, "runnin", "running");
+		ReplaceWord(s, "doin", "doing");
+		ReplaceWord(s, "judgin", "judging");
+		ReplaceWord(s, "blendin", "blending");
+		ReplaceWord(s, "gettin", "getting");
+		ReplaceWord(s, "talkin", "talking");
+		ReplaceWord(s, "changin", "changing");
+		ReplaceWord(s, "makin", "making");
+		ReplaceWord(s, "retracin", "retracing");
+		ReplaceWord(s, "motherfuckin", "motherfucking");
+		ReplaceWord(s, "rockin", "rocking");
+		ReplaceWord(s, "goin", "going");
+		ReplaceWord(s, "frontin", "fronting");
+		ReplaceWord(s, "somethin", "something");
+		ReplaceWord(s, "playin", "playing");
+		ReplaceWord(s, "hittin", "hitting");
+		ReplaceWord(s, "movin", "moving");
+	}
+}
+
 END_UPP_NAMESPACE

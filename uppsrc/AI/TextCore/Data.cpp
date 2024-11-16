@@ -105,7 +105,7 @@ ComponentAnalysis& DatasetAnalysis::GetComponentAnalysis(const String& name) {
 }
 #endif
 
-String DatasetAnalysis::GetTokenTextString(const TokenText& txt) const {
+String SrcTextData::GetTokenTextString(const TokenText& txt) const {
 	String o;
 	for(int tk_i : txt.tokens) {
 		//const Token& tk = tokens[tk_i];
@@ -123,26 +123,29 @@ String DatasetAnalysis::GetTokenTextString(const TokenText& txt) const {
 	return o;
 }
 
-String DatasetAnalysis::GetTokenTypeString(const TokenText& txt) const {
+String DatasetPtrs::GetTokenTypeString(const TokenText& txt) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	String o;
 	for(int tk_i : txt.tokens) {
-		const Token& tk = tokens[tk_i];
+		const Token& tk = src.tokens[tk_i];
 		int w_i = tk.word_;
 		if (w_i < 0) {
-			String key = ToLower(tokens.GetKey(tk_i));
-			w_i = words.Find(key);
+			String key = ToLower(src.tokens.GetKey(tk_i));
+			w_i = da.words.Find(key);
 			tk.word_ = w_i;
 		}
 		if (w_i < 0) {
 			o << "{error}";
 		}
 		else {
-			const ExportWord& ew = words[w_i];
+			const ExportWord& ew = da.words[w_i];
 			o << "{";
 			for(int i = 0; i < ew.class_count; i++) {
 				if (i) o << "|";
 				int class_i = ew.classes[i];
-				const String& wc = word_classes[class_i];
+				const String& wc = da.word_classes[class_i];
 				o << wc;
 			}
 			o << "}";
@@ -159,11 +162,14 @@ String DatasetAnalysis::GetTokenTypeString(const TokenText& txt) const {
 	return o;
 }
 
-String DatasetAnalysis::GetWordString(const Vector<int>& words) const {
+String DatasetPtrs::GetWordString(const Vector<int>& words) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	String o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const String& key = this->words.GetKey(w_i);
+		const String& key = da.words.GetKey(w_i);
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 			o << key;
@@ -177,11 +183,14 @@ String DatasetAnalysis::GetWordString(const Vector<int>& words) const {
 	return o;
 }
 
-WString DatasetAnalysis::GetWordPronounciation(const Vector<int>& words) const {
+WString DatasetPtrs::GetWordPronounciation(const Vector<int>& words) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	WString o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const ExportWord& ew = this->words[w_i];
+		const ExportWord& ew = da.words[w_i];
 		const WString& key = ew.phonetic;
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
@@ -196,27 +205,33 @@ WString DatasetAnalysis::GetWordPronounciation(const Vector<int>& words) const {
 	return o;
 }
 
-String DatasetAnalysis::GetTypeString(const Vector<int>& word_classes) const {
+String DatasetPtrs::GetTypeString(const Vector<int>& word_classes) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	String o;
 	for(int wc_i : word_classes) {
 		if (wc_i < 0)
 			o << "{error}";
 		else {
-			const String& wc = this->word_classes[wc_i];
+			const String& wc = da.word_classes[wc_i];
 			o << "{" << wc << "}";
 		}
 	}
 	return o;
 }
 
-String DatasetAnalysis::GetActionString(const Vector<int>& actions) const {
+String DatasetPtrs::GetActionString(const Vector<int>& actions) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	String o;
 	for(int act_i : actions) {
 		if (!o.IsEmpty()) o << ", ";
 		if (act_i < 0)
 			o << "error";
 		else {
-			const ActionHeader& ah = this->actions.GetKey(act_i);
+			const ActionHeader& ah = da.actions.GetKey(act_i);
 			o << ah.action;
 			if (!ah.arg.IsEmpty())
 				o << "(" << ah.arg << ")";
@@ -225,9 +240,11 @@ String DatasetAnalysis::GetActionString(const Vector<int>& actions) const {
 	return o;
 }
 
-String DatasetAnalysis::GetScriptDump(int i) const {
+String DatasetPtrs::GetScriptDump(int i) const {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
 	String s;
-	const ScriptStruct& ss = scripts[i];
+	const ScriptStruct& ss = src.scripts[i];
 	for(int i = 0; i < ss.parts.GetCount(); i++) {
 		const auto& part = ss.parts[i];
 		//if (s.GetCount()) s << "\n";
@@ -246,9 +263,9 @@ String DatasetAnalysis::GetScriptDump(int i) const {
 				for(int l = 0; l < ssub.token_texts.GetCount(); l++) {
 					int tt_i = ssub.token_texts[l];
 					if (tt_i < 0) continue;
-					const TokenText& tt = this->token_texts[tt_i];
+					const TokenText& tt = src.token_texts[tt_i];
 					if (show_subsub) s.Cat('\t');
-					s << "\t\t" << GetTokenTextString(tt) << "\n";
+					s << "\t\t" << src.GetTokenTextString(tt) << "\n";
 				}
 			}
 		}
@@ -256,45 +273,12 @@ String DatasetAnalysis::GetScriptDump(int i) const {
 	return s;
 }
 
-String DatasetAnalysis::GetScriptDump(DatasetAnalysis& da, int i) const {
-	String s;
-	String extra;
-	const ScriptStruct& ss = scripts[i];
-	for(int i = 0; i < ss.parts.GetCount(); i++) {
-		const auto& part = ss.parts[i];
-		//if (s.GetCount()) s << "\n";
-		
-		extra = part.cls >= 0 ? da.element_keys[part.cls] : String();
-		s << Format("[%d: %s] (%s)\n", i, GetTextTypeString(part.type) + " " + IntStr(part.num+1), extra);
-		
-		for(int j = 0; j < part.sub.GetCount(); j++) {
-			const auto& sub = part.sub[j];
-			//if (s.GetCount()) s << "\n";
-			extra = sub.cls >= 0 ? da.element_keys[sub.cls] : String();
-			s << Format("\t[%d.%d: repeat %.2!m] (%s)\n", i,j, sub.repeat, extra);
-			
-			bool show_subsub = sub.sub.GetCount() > 1;
-			for(int k = 0; k < sub.sub.GetCount(); k++) {
-				const auto& ssub = sub.sub[k];
-				extra = ssub.cls >= 0 ? da.element_keys[ssub.cls] : String();
-				if (show_subsub)
-					s << Format("\t\t[%d.%d.%d] (%s)\n", i,j,k, extra);
-				for(int l = 0; l < ssub.token_texts.GetCount(); l++) {
-					int tt_i = ssub.token_texts[l];
-					if (tt_i < 0) continue;
-					const TokenText& tt = this->token_texts[tt_i];
-					if (show_subsub) s.Cat('\t');
-					s << "\t\t" << GetTokenTextString(tt) << "\n";
-				}
-			}
-		}
-	}
-	return s;
-}
-
-VectorMap<int,int> DatasetAnalysis::GetSortedElements() {
+VectorMap<int,int> DatasetPtrs::GetSortedElements() {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	VectorMap<int,int> vmap;
-	for(const ScriptStruct& ss : scripts.GetValues()) {
+	for(const ScriptStruct& ss : src.scripts.GetValues()) {
 		for(const auto& part : ss.parts) {
 			if (part.cls >= 0)
 				vmap.GetAdd(part.cls,0)++;
@@ -312,14 +296,22 @@ VectorMap<int,int> DatasetAnalysis::GetSortedElements() {
 	return vmap;
 }
 
-VectorMap<int,int> DatasetAnalysis::GetSortedElementsOfPhraseParts() {
+VectorMap<int,int> DatasetPtrs::GetSortedElementsOfPhraseParts() {
+	ASSERT(src);
+	const SrcTextData& src = *this->src;
+	auto& da = *this->da;
 	VectorMap<int,int> vmap;
-	for (const auto& pp : phrase_parts.GetValues()) {
+	for (const auto& pp : da.phrase_parts.GetValues()) {
 		if (pp.el_i >= 0)
 			vmap.GetAdd(pp.el_i,0)++;
 	}
 	SortByValue(vmap, StdGreater<int>());
 	return vmap;
+}
+
+ArrayMap<String, DatasetField>& DatasetIndex() {
+	static ArrayMap<String, DatasetField> map;
+	return map;
 }
 
 END_UPP_NAMESPACE

@@ -68,6 +68,10 @@ EditorPtrs& ToolAppCtrl::GetPointers() const {
 	return EditorPtrs::Single();
 }
 
+DatasetPtrs& ToolAppCtrl::GetDataset() const {
+	return DatasetPtrs::Single();
+}
+
 const Index<String>& ToolAppCtrl::GetTypeclasses() const {
 	TODO static Index<String> i; return i;
 }
@@ -125,6 +129,20 @@ void ToolAppCtrl::MakeComponentParts(ArrayCtrl& parts) {
 	parts.SetCount(song.__parts.GetCount());
 	if (!parts.IsCursor() && parts.GetCount())
 		parts.SetCursor(0);*/
+}
+
+void ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
+	data = in.Get(in.GetSize());
+	OnLoad(data, filename);
+	data_filepath = filename;
+}
+
+void ToolAppCtrl::Save(Stream& s, byte charset) {
+	String new_data;
+	OnSave(new_data, data_filepath);
+	if (!new_data.IsEmpty())
+		data = new_data;
+	s.Put(data);
 }
 
 END_UPP_NAMESPACE

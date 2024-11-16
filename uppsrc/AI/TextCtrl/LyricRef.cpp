@@ -24,6 +24,8 @@ ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ToolAppCtrl& o) : o(o) {
 	Add(mode.TopPos(0,30).HSizePos());
 	Add(hsplit.VSizePos(30,0).HSizePos());
 	
+	sort.SetCount(DatabaseBrowser::TYPE_COUNT, -1);
+	
 	mode.Add("Any");
 	for(int i = 0; i < DatabaseBrowser::MODE_COUNT; i++) {
 		mode.Add(DatabaseBrowser::GetModeString(i));
@@ -211,7 +213,7 @@ void ScriptPhrasePartsGroups::FillArrayCtrl(DatabaseBrowser::ColumnType t, Array
 
 void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	
+	DatasetPtrs& p = o.GetDataset();
 	TextDatabase& db = TextDatabase::Single();
 	SourceDataAnalysis& sda = db.a;
 	DatasetAnalysis& da = sda.dataset;
@@ -223,14 +225,14 @@ void ScriptPhrasePartsGroups::DataList() {
 
 		parts.Set(row, "IDX", pp_i);
 
-		String phrase = da.GetWordString(pp.words);
+		String phrase = p.GetWordString(pp.words);
 		parts.Set(row, 0,
 			AttrText(phrase)
 				.NormalPaper(Blend(pp.clr, White(), 128+64)).NormalInk(Black())
 				.Paper(Blend(pp.clr, GrayColor())).Ink(White())
 			);
 
-		parts.Set(row, 1, da.GetActionString(pp.actions));
+		parts.Set(row, 1, p.GetActionString(pp.actions));
 
 		
 		if (pp.attr >= 0) {
@@ -702,12 +704,9 @@ int ScriptReferenceMakerCtrl::GetInheritedMode() {
 }
 
 void ScriptReferenceMakerCtrl::SetFont(Font fnt) {
-	TODO
+	content.SetFont(fnt);
 }
 
-void ScriptReferenceMakerCtrl::Save(Stream& s, byte charset) {
-	TODO
-}
 
 
 
@@ -732,8 +731,8 @@ const int PartLineCtrl::indent = 30;
 
 void PartLineCtrl::Paint(Draw& d) {
 	Size sz = GetSize();
-	int fnt_h = 15;
-	Font mono = Monospace(fnt_h);
+	Font mono = o.fnt;
+	int fnt_h = mono.GetHeight();
 	Font sans = SansSerif(fnt_h);
 	bool focused = IsSelected();
 	int off = 2;

@@ -57,6 +57,7 @@ public:
 void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit);
 
 class ScriptReferenceMakerCtrl : public ToolAppCtrl {
+	String data;
 	
 protected:
 	friend class PartContentCtrl;
@@ -85,7 +86,6 @@ public:
 	int GetActiveMode();
 	int GetInheritedMode();
 	void SetFont(Font fnt);
-	void Save(Stream& s, byte charset);
 	void ReadNavigatorState(NavigatorState& state, int depth_limit=INT_MAX);
 	
 	static String GetID() {return "lyric-ref";}

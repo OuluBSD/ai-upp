@@ -288,7 +288,6 @@ struct ScriptPostFix {
 };
 
 struct Script : Component {
-	String title;
 	String copyright;
 	String description;
 	String lang;
@@ -307,14 +306,21 @@ struct Script : Component {
 
 	Script() {}
 	~Script();
+	String GetTypename() const override {return "Lyric";}
+	const std::type_info& GetType() const override {return typeid(*this);}
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
 	void Jsonize(JsonIO& json)
 	{
-		json("title", title)("copyright", copyright)("description", description)("lang", lang)(
+		Component::Jsonize(json);
+		json("copyright", copyright)("description", description)("lang", lang)(
 			"parts", parts)("text", __text);
 	}
 };
+
+void ReplaceWord(String& s, const String& orig_word, const String& replace_word);
+void HotfixReplaceWord(WString& ws);
+void HotfixReplaceWord(String& s);
 
 END_UPP_NAMESPACE
 

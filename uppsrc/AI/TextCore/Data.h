@@ -250,22 +250,59 @@ struct DatasetField {
 
 ArrayMap<String, DatasetField>& DatasetIndex();
 
+struct ScriptDataset : Moveable<ScriptDataset> {
+	String name;
+	String text;
+	void Serialize(Stream& s) {s % name % text;}
+};
+
+struct EntityDataset : Moveable<EntityDataset> {
+	String name;
+	Vector<ScriptDataset> scripts;
+	Vector<String> genres;
+	
+	void Serialize(Stream& s) {s % name % scripts % genres;}
+};
+
 struct SrcTextData : DatasetField, Pte<SrcTextData> {
-	VectorMap<uint64, ScriptStruct> scripts;
+	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
+	VectorMap<hash_t, TokenText> token_texts;
+	Vector<EntityDataset> src_entities; // TODO rename, remove src_ (source-data for analysis)
 	
 	static DbField GetFieldType() {return DBFIELD_SRCTEXT;}
-	
+	String GetTokenTextString(const TokenText& txt) const;
+	void Serialize(Stream& s) {
+		int v = 1; s % v;
+		if (v >= 1) {
+			s % scripts;
+			s % tokens;
+			s % token_texts;
+			s % src_entities;
+		}
+	}
 };
+
+struct DatasetAnalysis;
 
 struct DatasetPtrs {
 	Ptr<SrcTextData>		src;
+	DatasetAnalysis* da = 0; // TODO temporary only
 	
+	String GetTokenTypeString(const TokenText& txt) const;
+	String GetWordString(const Vector<int>& words) const;
+	WString GetWordPronounciation(const Vector<int>& words) const;
+	String GetTypeString(const Vector<int>& word_classes) const;
+	String GetActionString(const Vector<int>& actions) const;
+	String GetScriptDump(int i) const;
+	VectorMap<int, int> GetSortedElements();
+	VectorMap<int, int> GetSortedElementsOfPhraseParts();
+	
+	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 };
 
 struct DatasetAnalysis {
 	
-	VectorMap<hash_t, TokenText> token_texts;
 	Index<String> word_classes;
 	VectorMap<String, ExportWord> words;
 	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
@@ -291,16 +328,6 @@ struct DatasetAnalysis {
 	void Serialize(Stream& s);
 	void Jsonize(JsonIO& json) {TODO} // depreceated
 	void Load();
-	String GetTokenTextString(const TokenText& txt) const;
-	String GetTokenTypeString(const TokenText& txt) const;
-	String GetWordString(const Vector<int>& words) const;
-	WString GetWordPronounciation(const Vector<int>& words) const;
-	String GetTypeString(const Vector<int>& word_classes) const;
-	String GetActionString(const Vector<int>& actions) const;
-	String GetScriptDump(int i) const;
-	String GetScriptDump(DatasetAnalysis& da, int i) const;
-	VectorMap<int, int> GetSortedElements();
-	VectorMap<int, int> GetSortedElementsOfPhraseParts();
 };
 
 struct EntityAnalysis : Moveable<EntityAnalysis> {
@@ -308,16 +335,6 @@ struct EntityAnalysis : Moveable<EntityAnalysis> {
 
 	void Serialize(Stream& s) { s % genres; }
 	void Jsonize(JsonIO& json) { json("genres", genres); }
-};
-
-struct ScriptDataset : Moveable<ScriptDataset> {
-	String name;
-	String text;
-};
-
-struct EntityDataset : Moveable<EntityDataset> {
-	String name;
-	Vector<ScriptDataset> scripts;
 };
 
 struct SourceDataAnalysis {
@@ -356,18 +373,19 @@ class TextDatabase {
 
 public:
 	Array<Entity> entities;             // user-data
-	Vector<EntityDataset> src_entities; // source-data for analysis
 	// TODO rename 'a'
 	SourceDataAnalysis a; // analysis of the source-data
 	Vector<ContentType> contents;
 	Vector<String> content_parts;
 	Index<String> typeclasses;
+	int lang = LNG_enUS;
 	
 	const Vector<ContentType>& GetContents() {return contents;}
 	const Vector<String>& GetContentParts() {return content_parts;}
 	const Index<String>& GetTypeclasses() {return typeclasses;}
 	int GetContentCount() {return contents.GetCount();}
 	int GetTypeclassCount() {return typeclasses.GetCount();}
+	int GetLanguage() const {return lang;}
 	
 	static TextDatabase& Single() {static TextDatabase db; return db;}
 };

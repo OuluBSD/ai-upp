@@ -13,7 +13,7 @@ Des<T>::Des()
 }
 
 template <class T>
-void Des<T>::Preview() { edit.Refresh(); }
+void Des<T>::Preview() { edit.Data(); }
 
 template <class T>
 bool Des<T>::Load(const String& includes, const String& filename_)
@@ -21,12 +21,12 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 	filename = filename_;
 	FileIn in(filename);
 	if(in) {
-		/*edit.Load(includes, filename, in, CHARSET_UTF8);
-		IdeAIEditPos& ep = sEPai().GetAdd(filename);
+		edit.Load(includes, filename, in, CHARSET_UTF8);
+		IdeEditPos& ep = sEPai().GetAdd(filename);
 		if(ep.filetime == FileGetTime(filename)) {
-			code.SetEditPos(ep.editpos);
-			code.SetPickUndoData(pick(ep.undodata));
-		}*/
+			edit.SetEditPos(ep.editpos);
+			edit.SetPickUndoData(pick(ep.undodata));
+		}
 		Preview();
 		return true;
 	}
@@ -64,6 +64,9 @@ String Des<T>::GetIDStatic() {return T::GetID();}
 template <class T>
 DbField Des<T>::GetFieldType() {return T::GetFieldType();}
 
+template <class T>
+String Des<T>::GetExt() {return T::GetExt();}
+
 
 //template<> struct Des<ScriptReferenceMakerCtrl>;
 
@@ -80,7 +83,7 @@ bool IsExtFile(const char* path, String ext)
 template <class T>
 struct DesModule : public IdeModule {
 	static String GetIDStatic() { return T::GetIDStatic() + "-ctrl"; }
-	virtual String GetID() { return T::GetID() + "DesModule"; }
+	virtual String GetID() { return T::GetIDStatic() + "DesModule"; }
 
 	virtual Image FileIcon(const char* path)
 	{
@@ -93,7 +96,7 @@ struct DesModule : public IdeModule {
 	{
 		TaskMgr::Setup(ide);
 		if(IsExtFile(path, T::GetExt())) {
-			DialogueDes* d = new DialogueDes;
+			T* d = new T;
 			LoadFromGlobal(*d, GetIDStatic());
 			if(d->Load(ide->GetCurrentIncludePath(), path))
 				return d;

@@ -234,6 +234,7 @@ struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 typedef enum : int {
 	DBFIELD_NULL,
 	DBFIELD_SRCTEXT,
+	DBFIELD_WORDS,
 	
 	DBFIELD_COUNT
 } DbField;
@@ -283,10 +284,23 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 	}
 };
 
+struct WordData : DatasetField, Pte<WordData> {
+	Index<String> word_classes;
+	VectorMap<String, ExportWord> words;
+	
+	static DbField GetFieldType() {return DBFIELD_WORDS;}
+	String GetTokenTextString(const TokenText& txt) const;
+	void Serialize(Stream& s) {
+		int v = 1; s % v;
+		if (v >= 1) s % word_classes % words;
+	}
+};
+
 struct DatasetAnalysis;
 
 struct DatasetPtrs {
 	Ptr<SrcTextData>		src;
+	Ptr<WordData>			wrd;
 	DatasetAnalysis* da = 0; // TODO temporary only
 	
 	String GetTokenTypeString(const TokenText& txt) const;
@@ -303,8 +317,6 @@ struct DatasetPtrs {
 
 struct DatasetAnalysis {
 	
-	Index<String> word_classes;
-	VectorMap<String, ExportWord> words;
 	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
 	VectorMap<hash_t, VirtualPhrase> virtual_phrases;
 	VectorMap<hash_t, VirtualPhrasePart> virtual_phrase_parts;

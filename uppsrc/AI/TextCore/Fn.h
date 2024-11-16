@@ -107,6 +107,24 @@ V& MapGetAdd(T& map, const K& k, const V& v, int& pos) {
 	return map.Add(k);
 }
 
+template <class T>
+int FixedIndexFindAdd(T* values, int max_value_count, int& value_count, const T& new_value) {
+	ASSERT(value_count >= 0 && value_count <= max_value_count);
+	T* it = values;
+	T* end = it + value_count;
+	int i = 0;
+	while (it != end) {
+		if (*it == new_value)
+			return i;
+		it++;
+		i++;
+	}
+	ASSERT(value_count < max_value_count);
+	*it = new_value;
+	value_count++;
+	return i;
+}
+
 END_UPP_NAMESPACE
 
 #endif

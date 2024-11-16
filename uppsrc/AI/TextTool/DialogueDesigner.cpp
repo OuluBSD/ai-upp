@@ -21,6 +21,7 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 	filename = filename_;
 	FileIn in(filename);
 	if(in) {
+		// TODO check if faster cache can be loaded based on same sha1
 		edit.Load(includes, filename, in, CHARSET_UTF8);
 		IdeEditPos& ep = sEPai().GetAdd(filename);
 		if(ep.filetime == FileGetTime(filename)) {
@@ -42,6 +43,8 @@ void Des<T>::SaveEditPos()
 template <class T>
 void Des<T>::Save()
 {
+	// TODO check sha1 if the persistent file is needed to be overwritten
+	// TODO check if fast-cached file needs to be overwritten
 	FileOut out(filename);
 	edit.Save(out, CHARSET_UTF8);
 }

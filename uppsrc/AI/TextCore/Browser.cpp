@@ -340,7 +340,7 @@ void DatabaseBrowser::SetEndRhymeFilter(WString wrd, bool up)
 		Update();
 }
 
-bool DatabaseBrowser::FilterPronounciation(DatasetAnalysis& da, const PhrasePart& pp)
+bool DatabaseBrowser::FilterPronounciation(WordData& da, const PhrasePart& pp)
 {
 	if(filter_mid_rhyme) {
 		bool found = false;

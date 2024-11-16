@@ -319,6 +319,24 @@ void TaskMgr::GetCode(const CodeArgs& args, Event<String> WhenResult)
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetTokenData(const TokenArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	
+	t.SetRule(MakeName(args, "get token data"))
+		.Input(&AiTask::CreateInput_GetTokenData)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

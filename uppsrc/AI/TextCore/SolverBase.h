@@ -18,7 +18,6 @@ protected:
 	Time time_started, time_stopped;
 	int generation = 0, phase = 0, batch = 0, sub_batch = 0, batch_count = 0;
 	int generation_count = 1;
-	int appmode = -1;
 	
 	bool waiting = false;
 	bool running = false, stopped = true;

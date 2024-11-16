@@ -27,6 +27,8 @@ file
 	"Database processes" readonly separator,
 	SourceText.h,
 	SourceText.cpp,
+	TokenData.h,
+	TokenData.cpp,
 	"Database proc utils" readonly separator,
 	LyricStructSolver.h,
 	LyricStructSolver.cpp;

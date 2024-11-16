@@ -83,7 +83,7 @@ public:
 	double end_rhyme_distance_limit = 0.005;
 	int secondary_category_limit = 10000;
 
-	bool FilterPronounciation(DatasetAnalysis& da, const PhrasePart& pp);
+	bool FilterPronounciation(WordData& da, const PhrasePart& pp);
 
 	ToolAppCtrl* ctrl = 0;
 

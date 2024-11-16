@@ -48,6 +48,7 @@ protected:
 	Array<PartLineCtrl> lines;
 	int lh = 20;
 	int selected_line = -1;
+	Font fnt;
 	
 public:
 	typedef PartContentCtrl CLASSNAME;
@@ -71,6 +72,7 @@ public:
 	int Find(const PartLineCtrl* line) const;
 	PartLineCtrl* GetActiveLine();
 	int GetLineCount() const {return lines.GetCount();}
+	void SetFont(Font fnt) {this->fnt = fnt;}
 	
 	Event<> WhenCursor;
 	

@@ -3,18 +3,6 @@
 #ifdef flagAI
 #include <AI/AI.h>
 
-struct IdeAIEditPos : Moveable<IdeAIEditPos> {
-	Time filetime = Null;
-	LineEdit::EditPos editpos;
-	LineEdit::UndoData undodata;
-};
-
-static VectorMap<String, IdeAIEditPos>& sEPai()
-{
-	static VectorMap<String, IdeAIEditPos> x;
-	return x;
-}
-
 IdeAIDes::IdeAIDes()
 {
 	code << [=] { delay.KillSet(250, [=] { Preview(); }); };
@@ -28,9 +16,9 @@ void IdeAIDes::Preview() { code.Refresh(); }
 void IdeAIDes::SaveEditPos()
 {
 	if(filename.GetCount()) {
-		IdeAIEditPos& p = sEPai().GetAdd(filename);
+		IdeEditPos& p = sEPai().GetAdd(filename);
 		p.filetime = FileGetTime(filename);
-		;
+		
 		p.undodata = code.PickUndoData();
 		p.editpos = code.GetEditPos();
 	}
@@ -42,7 +30,7 @@ bool IdeAIDes::Load(const String& includes, const String& filename_)
 	FileIn in(filename);
 	if(in) {
 		code.Load(includes, filename, in, CHARSET_UTF8);
-		IdeAIEditPos& ep = sEPai().GetAdd(filename);
+		IdeEditPos& ep = sEPai().GetAdd(filename);
 		if(ep.filetime == FileGetTime(filename)) {
 			code.SetEditPos(ep.editpos);
 			code.SetPickUndoData(pick(ep.undodata));
@@ -70,7 +58,7 @@ void IdeAIDes::Serialize(Stream& s) {}
 
 void SerializeAIDesPos(Stream& s)
 {
-	VectorMap<String, IdeAIEditPos>& filedata = sEPai();
+	VectorMap<String, IdeEditPos>& filedata = sEPai();
 	s.Magic();
 	s.Magic(0);
 	if(s.IsStoring()) {
@@ -78,7 +66,7 @@ void SerializeAIDesPos(Stream& s)
 			String fn = filedata.GetKey(i);
 			if(!fn.IsEmpty()) {
 				FindFile ff(fn);
-				IdeAIEditPos& ep = filedata[i];
+				IdeEditPos& ep = filedata[i];
 				if(ff && ff.GetLastWriteTime() == ep.filetime) {
 					s % fn;
 					s % ep.filetime;
@@ -96,7 +84,7 @@ void SerializeAIDesPos(Stream& s)
 			s % fn;
 			if(fn.IsEmpty())
 				break;
-			IdeAIEditPos& ep = filedata.GetAdd(fn);
+			IdeEditPos& ep = filedata.GetAdd(fn);
 			s % ep.filetime;
 			s % ep.editpos;
 		}

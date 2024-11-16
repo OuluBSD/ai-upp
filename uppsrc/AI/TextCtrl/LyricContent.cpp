@@ -4,6 +4,7 @@ NAMESPACE_UPP
 
 PartContentCtrl::PartContentCtrl(ScriptReferenceMakerCtrl& o) : o(o) {
 	AddFrame(scroll);
+	fnt = Monospace(15);
 	
 	scroll.SetLine(lh);
 	scroll.WhenScroll << THISBACK(Layout);

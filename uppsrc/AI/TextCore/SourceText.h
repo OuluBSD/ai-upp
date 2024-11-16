@@ -16,7 +16,7 @@ public:
 	bool filter_foreign = true;
 	Atomic actual = 0, total = 0;
 	TimeStop ts;
-	
+	DatasetPtrs p;
 	
 public:
 	typedef SourceDataImporter CLASSNAME;
@@ -27,7 +27,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static SourceDataImporter& Get(int appmode);
+	static SourceDataImporter& Get(DatasetPtrs& p);
 	static DbField GetFieldType() {return DBFIELD_SRCTEXT;}
 	
 private:

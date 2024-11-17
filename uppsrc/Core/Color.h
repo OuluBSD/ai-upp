@@ -91,6 +91,22 @@ private:
 	Color(int);
 };
 
+inline Stream& operator%(Stream& s, Color& c)
+{
+	dword raw;
+	if (s.IsStoring()) {
+		raw = c.GetRaw();
+		s / raw;
+	}
+	else {
+		s / raw;
+		c.FromRaw(raw);
+	}
+	return s;
+}
+
+inline Stream& operator/(Stream& s, Color& c) {return operator%(s,c);}
+
 RGBA operator*(int alpha, Color c);
 
 inline Color StraightColor(RGBA rgba)  { return Color(rgba.r, rgba.g, rgba.b); }

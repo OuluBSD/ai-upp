@@ -23,7 +23,7 @@ struct Des : IdeDesigner, ParentCtrl {
 
 	bool   Load(const String& includes, const String& filename);
 	static String GetIDStatic();
-	static DbField GetFieldType();
+	static DbContent GetDbType();
 	static String GetExt();
 	
 	Des();

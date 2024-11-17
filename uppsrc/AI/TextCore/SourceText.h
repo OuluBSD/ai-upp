@@ -26,7 +26,6 @@ public:
 	void DoPhase() override;
 
 	static SourceDataImporter& Get(DatasetPtrs p);
-	static DbField GetFieldType() { return DBFIELD_SRCTEXT; }
 
 private:
 	void Tokenize();
@@ -93,7 +92,6 @@ public:
 	void DoPhase() override;
 
 	static TokenDataProcess& Get(DatasetPtrs p);
-	static DbField GetFieldType() { return DBFIELD_WORDS; }
 };
 
 END_UPP_NAMESPACE

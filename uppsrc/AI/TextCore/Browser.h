@@ -75,7 +75,6 @@ public:
 
 	Vector<Item> items[TYPE_COUNT];
 	int mode = -1;
-	int appmode = DB_SONG;
 	Vector<int> phrase_parts;
 	int sorting = 0;
 	bool filter_mid_rhyme = false, filter_end_rhyme = false;
@@ -84,7 +83,7 @@ public:
 	double end_rhyme_distance_limit = 0.005;
 	int secondary_category_limit = 10000;
 
-	bool FilterPronounciation(WordData& da, const PhrasePart& pp);
+	bool FilterPronounciation(SrcTextData& da, const PhrasePart& pp);
 
 	ToolAppCtrl* ctrl = 0;
 

@@ -25,9 +25,9 @@ file
 	SolverBase.h,
 	SolverBase.cpp,
 	"Database processes" readonly separator,
+	CreateInput.cpp,
 	SourceText.h,
 	SourceText.cpp,
-	CreateInput.cpp,
 	"Database proc utils" readonly separator,
 	LyricStructSolver.h,
 	LyricStructSolver.cpp;

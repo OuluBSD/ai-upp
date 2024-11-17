@@ -216,29 +216,26 @@ void ScriptPhrasePartsGroups::DataList() {
 	DatasetPtrs& p = o.GetDataset();
 	ASSERT(p.src);
 	auto& src = *p.src;
-	TextDatabase& db = TextDatabase::Single();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
 
 	int row = 0, max_rows = 10000;
 	for(int i = 0; i < b.phrase_parts.GetCount(); i++) {
 		int pp_i = b.phrase_parts[i];
-		PhrasePart& pp = da.phrase_parts[pp_i];
+		PhrasePart& pp = src.phrase_parts[pp_i];
 
 		parts.Set(row, "IDX", pp_i);
 
-		String phrase = p.GetWordString(pp.words);
+		String phrase = src.GetWordString(pp.words);
 		parts.Set(row, 0,
 			AttrText(phrase)
 				.NormalPaper(Blend(pp.clr, White(), 128+64)).NormalInk(Black())
 				.Paper(Blend(pp.clr, GrayColor())).Ink(White())
 			);
 
-		parts.Set(row, 1, p.GetActionString(pp.actions));
+		parts.Set(row, 1, src.GetActionString(pp.actions));
 
 		
 		if (pp.attr >= 0) {
-			const AttrHeader& ah = da.attrs.GetKey(pp.attr);
+			const AttrHeader& ah = src.attrs.GetKey(pp.attr);
 			parts.Set(row, 2, ah.group);
 			parts.Set(row, 3, ah.value);
 		}

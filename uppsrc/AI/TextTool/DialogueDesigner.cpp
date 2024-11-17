@@ -65,7 +65,7 @@ template <class T>
 String Des<T>::GetIDStatic() {return T::GetID();}
 
 template <class T>
-DbField Des<T>::GetFieldType() {return T::GetFieldType();}
+DbContent Des<T>::GetDbType() {return T::GetDbType();}
 
 template <class T>
 String Des<T>::GetExt() {return T::GetExt();}

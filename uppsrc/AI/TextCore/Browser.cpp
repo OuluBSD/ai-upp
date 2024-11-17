@@ -270,9 +270,7 @@ void DatabaseBrowser::Load()
 
 void DatabaseBrowser::SortBy(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
+	auto& src = *p.src;
 
 	if(i == 0) {
 		struct Sorter {
@@ -289,7 +287,7 @@ void DatabaseBrowser::SortBy(int i)
 				return at > bt;
 			}
 		} s;
-		s.phrase_parts = &da.phrase_parts;
+		s.phrase_parts = &src.phrase_parts;
 		Sort(phrase_parts, s);
 	}
 	else if(i >= 1 && i < SCORE_COUNT + 1) {
@@ -303,7 +301,7 @@ void DatabaseBrowser::SortBy(int i)
 			}
 		} s;
 		s.i = i;
-		s.phrase_parts = &da.phrase_parts;
+		s.phrase_parts = &src.phrase_parts;
 		Sort(phrase_parts, s);
 	}
 
@@ -340,7 +338,7 @@ void DatabaseBrowser::SetEndRhymeFilter(WString wrd, bool up)
 		Update();
 }
 
-bool DatabaseBrowser::FilterPronounciation(WordData& da, const PhrasePart& pp)
+bool DatabaseBrowser::FilterPronounciation(SrcTextData& da, const PhrasePart& pp)
 {
 	if(filter_mid_rhyme) {
 		bool found = false;
@@ -464,15 +462,13 @@ void DatabaseBrowser::RealizeUniqueAttrs()
 	if(!uniq_attr.IsEmpty())
 		return;
 
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
+	auto& src = *p.src;
 	uniq_attr_values.Clear();
-	for(int i = 0; i < da.phrase_parts.GetCount(); i++) {
-		const PhrasePart& pp = da.phrase_parts[i];
+	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
+		const PhrasePart& pp = src.phrase_parts[i];
 		if(pp.attr < 0)
 			continue;
-		const auto& ah = da.attrs.GetKey(pp.attr);
+		const auto& ah = src.attrs.GetKey(pp.attr);
 		uniq_attr.GetAdd(ah.group).GetAdd(ah.value, 0)++;
 		uniq_attr_values.GetAdd(ah.value, 0)++;
 	}
@@ -486,14 +482,12 @@ void DatabaseBrowser::RealizeUniqueActions()
 	if(!uniq_acts.IsEmpty())
 		return;
 
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
+	auto& src = *p.src;
 	uniq_act_args.Clear();
-	for(int i = 0; i < da.phrase_parts.GetCount(); i++) {
-		const PhrasePart& pp = da.phrase_parts[i];
+	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
+		const PhrasePart& pp = src.phrase_parts[i];
 		for(int act_i : pp.actions) {
-			const auto& ah = da.actions.GetKey(act_i);
+			const auto& ah = src.actions.GetKey(act_i);
 			uniq_acts.GetAdd(ah.action).GetAdd(ah.arg, 0)++;
 			uniq_act_args.GetAdd(ah.arg, 0)++;
 		}
@@ -505,11 +499,9 @@ void DatabaseBrowser::RealizeUniqueActions()
 
 void DatabaseBrowser::SetInitialData()
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
-	phrase_parts.SetCount(da.phrase_parts.GetCount());
+	auto& src = *p.src;
+	
+	phrase_parts.SetCount(src.phrase_parts.GetCount());
 	int i = 0;
 	for(int& pp_i : phrase_parts)
 		pp_i = i++;
@@ -543,10 +535,6 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	ASSERT(p.src);
 	auto& src = *p.src;
 	
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	int c = GetColumnOrder(t);
 	if(c > 0)
 		RemoveExcessData(c);
@@ -563,7 +551,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case ELEMENT: {
 		VectorMap<int, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			if(pp.el_i >= 0)
 				vmap.GetAdd(pp.el_i, 0)++;
 		}
@@ -581,10 +569,10 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case ATTR_GROUP: {
 		VectorMap<String, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			if(pp.attr < 0)
 				continue;
-			const AttrHeader& ah = da.attrs.GetKey(pp.attr);
+			const AttrHeader& ah = src.attrs.GetKey(pp.attr);
 			vmap.GetAdd(ah.group, 0)++;
 		}
 		SortByValue(vmap, StdGreater<int>());
@@ -600,10 +588,10 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case ATTR_VALUE: {
 		VectorMap<String, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			if(pp.attr < 0)
 				continue;
-			const AttrHeader& ah = da.attrs.GetKey(pp.attr);
+			const AttrHeader& ah = src.attrs.GetKey(pp.attr);
 			vmap.GetAdd(ah.value, 0)++;
 		}
 		SortByValue(vmap, StdGreater<int>());
@@ -619,7 +607,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case COLOR: {
 		VectorMap<int, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			int clr_i = GetColorGroup(pp.clr);
 			vmap.GetAdd(clr_i, 0)++;
 		}
@@ -637,9 +625,9 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case ACTION: {
 		VectorMap<String, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			for(int act_i : pp.actions) {
-				const ActionHeader& ah = da.actions.GetKey(act_i);
+				const ActionHeader& ah = src.actions.GetKey(act_i);
 				vmap.GetAdd(ah.action, 0)++;
 			}
 		}
@@ -656,9 +644,9 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case ACTION_ARG: {
 		VectorMap<String, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			for(int act_i : pp.actions) {
-				const ActionHeader& ah = da.actions.GetKey(act_i);
+				const ActionHeader& ah = src.actions.GetKey(act_i);
 				vmap.GetAdd(ah.arg, 0)++;
 			}
 		}
@@ -675,7 +663,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case TYPECLASS: {
 		VectorMap<int, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			for(int tc : pp.typecasts)
 				vmap.GetAdd(tc, 0)++;
 		}
@@ -684,7 +672,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);
-			it.str = db.GetTypeclasses()[tc];
+			it.str = src.typeclasses[tc];
 			it.count = vmap[i];
 			it.idx = tc;
 		}
@@ -693,13 +681,13 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	case CONTENT: {
 		VectorMap<int, int> vmap;
 		for(int pp_i : phrase_parts) {
-			const PhrasePart& pp = da.phrase_parts[pp_i];
+			const PhrasePart& pp = src.phrase_parts[pp_i];
 			for(int con : pp.contrasts)
 				vmap.GetAdd(con, 0)++;
 		}
 		SortByValue(vmap, StdGreater<int>());
 		type_items.SetCount(1 + vmap.GetCount());
-		const auto& cons = db.GetContents();
+		const auto& cons = src.contents;
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);
@@ -723,10 +711,6 @@ void DatabaseBrowser::FillItems(ColumnType t)
 
 void DatabaseBrowser::SetAttrGroup(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	RealizeUniqueAttrs();
 
 	auto& attr_groups = Get(ATTR_GROUP);
@@ -741,10 +725,6 @@ void DatabaseBrowser::SetAttrGroup(int i)
 
 void DatabaseBrowser::SetAttrValue(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	RealizeUniqueAttrs();
 
 	auto& attr_values = Get(ATTR_VALUE);
@@ -759,10 +739,6 @@ void DatabaseBrowser::SetAttrValue(int i)
 
 void DatabaseBrowser::SetColor(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& colors = Get(COLOR);
 
 	if(IsFirstInOrder(COLOR)) {
@@ -787,10 +763,6 @@ void DatabaseBrowser::SetColor(int i)
 
 void DatabaseBrowser::SetAction(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& actions = Get(ACTION);
 	int cur = GetColumnCursor(ACTION);
 
@@ -807,10 +779,6 @@ void DatabaseBrowser::SetAction(int i)
 
 void DatabaseBrowser::SetActionArg(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& args = Get(ACTION_ARG);
 	int cur = GetColumnCursor(ACTION_ARG);
 
@@ -827,10 +795,6 @@ void DatabaseBrowser::SetActionArg(int i)
 
 void DatabaseBrowser::SetElement(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& elements = Get(ELEMENT);
 	int cur = GetColumnCursor(ELEMENT);
 
@@ -847,10 +811,6 @@ void DatabaseBrowser::SetElement(int i)
 
 void DatabaseBrowser::SetTypeclass(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& tcs = Get(TYPECLASS);
 	int cur = GetColumnCursor(TYPECLASS);
 
@@ -867,10 +827,6 @@ void DatabaseBrowser::SetTypeclass(int i)
 
 void DatabaseBrowser::SetContrast(int i)
 {
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
-
 	auto& cons = Get(CONTENT);
 	int cur = GetColumnCursor(CONTENT);
 
@@ -969,6 +925,7 @@ void DatabaseBrowser::DataCursor(int i)
 
 void DatabaseBrowser::FilterData(ColumnType t)
 {
+	auto& src = *p.src;
 	int order_i = GetColumnOrder(t);
 	auto& items = Get(t);
 
@@ -983,15 +940,12 @@ void DatabaseBrowser::FilterData(ColumnType t)
 	int filter_idx = filter.idx;
 	String filter_str = filter.str;
 
-	TextDatabase& db = GetDatabase();
-	SourceDataAnalysis& sda = db.a;
-	DatasetAnalysis& da = sda.dataset;
 	rm_list.SetCount(0);
 
 	int* iter = phrase_parts.Begin();
 	for(int i = 0; i < phrase_parts.GetCount(); i++) {
 		int pp_i = phrase_parts[i];
-		const PhrasePart& pp = da.phrase_parts[pp_i];
+		const PhrasePart& pp = src.phrase_parts[pp_i];
 		bool rem = false;
 
 		switch(t) {
@@ -999,10 +953,10 @@ void DatabaseBrowser::FilterData(ColumnType t)
 			rem = pp.el_i < 0 || pp.el_i != filter_idx;
 			break;
 		case ATTR_GROUP:
-			rem = pp.attr < 0 || da.attrs.GetKey(pp.attr).group != filter_str;
+			rem = pp.attr < 0 || src.attrs.GetKey(pp.attr).group != filter_str;
 			break;
 		case ATTR_VALUE:
-			rem = pp.attr < 0 || da.attrs.GetKey(pp.attr).value != filter_str;
+			rem = pp.attr < 0 || src.attrs.GetKey(pp.attr).value != filter_str;
 			break;
 		case COLOR: {
 			int clr_i = GetColorGroup(pp.clr);
@@ -1012,7 +966,7 @@ void DatabaseBrowser::FilterData(ColumnType t)
 		case ACTION: {
 			rem = true;
 			for(int act_i : pp.actions) {
-				if(da.actions.GetKey(act_i).action == filter_str) {
+				if(src.actions.GetKey(act_i).action == filter_str) {
 					rem = false;
 					break;
 				}
@@ -1022,7 +976,7 @@ void DatabaseBrowser::FilterData(ColumnType t)
 		case ACTION_ARG: {
 			rem = true;
 			for(int act_i : pp.actions) {
-				if(da.actions.GetKey(act_i).arg == filter_str) {
+				if(src.actions.GetKey(act_i).arg == filter_str) {
 					rem = false;
 					break;
 				}

@@ -14,14 +14,14 @@ int SourceDataImporter::GetPhaseCount() const {
 
 int SourceDataImporter::GetBatchCount(int phase) const {
 	ASSERT(p.src);
-	return p.src->src_entities.GetCount();
+	return p.src->entities.GetCount();
 }
 
 int SourceDataImporter::GetSubBatchCount(int phase, int batch) const {
 	ASSERT(p.src);
-	if (batch >= p.src->src_entities.GetCount())
+	if (batch >= p.src->entities.GetCount())
 		return 1;
-	auto& entity = p.src->src_entities[batch];
+	auto& entity = p.src->entities[batch];
 	return entity.scripts.GetCount();
 }
 
@@ -35,15 +35,14 @@ void SourceDataImporter::DoPhase() {
 void SourceDataImporter::Tokenize() {
 	TextDatabase& db = GetDatabase();
 	Vector<int> token_is;
-	DatasetAnalysis& da = *p.da;
 	ASSERT(p.src);
 	SrcTextData& src = *p.src;
-	Vector<EntityDataset>& entities = src.src_entities;
+	Vector<EntityDataset>& entities = src.entities;
 	
 	int well_filter_loss = 0, parse_loss = 0, foreign_loss = 0;
 	
 	{
-		int lng_i = TextDatabase::Single().GetLanguage();
+		int lng_i = src.GetLanguage();
 		if (lng_i != LNG_ENGLISH)
 			filter_foreign = false;
 	}
@@ -62,12 +61,12 @@ void SourceDataImporter::Tokenize() {
 		ts.Reset();
 	}
 	
-	if (batch >= src.src_entities.GetCount()) {
+	if (batch >= src.entities.GetCount()) {
 		NextPhase();
 		return;
 	}
 	
-	auto& entity = src.src_entities[batch];
+	auto& entity = src.entities[batch];
 	if (sub_batch >= entity.scripts.GetCount()) {
 		NextBatch();
 		return;
@@ -203,20 +202,20 @@ void SourceDataImporter::Tokenize() {
 	data_lock.Leave();
 	
 	if (0) {
-		LOG(p.GetScriptDump(ss_i));
+		LOG(src.GetScriptDump(ss_i));
 	}
 	
 	actual++;
 	NextSubBatch();
 	
 	if (worker_total % 500 == 0) {
-		da.diagnostics.GetAdd("SourceDataImporter: total") = IntStr(total);
-		da.diagnostics.GetAdd("SourceDataImporter: actual") =  IntStr(actual);
-		da.diagnostics.GetAdd("SourceDataImporter: percentage") =  DblStr((double)actual / (double) total * 100);
-		da.diagnostics.GetAdd("SourceDataImporter: filter 'well' loss") =  DblStr((double)well_filter_loss / (double) total * 100);
-		da.diagnostics.GetAdd("SourceDataImporter: filter 'parse success' loss") =  DblStr((double)parse_loss / (double) total * 100);
-		da.diagnostics.GetAdd("SourceDataImporter: filter 'foreign' loss") =  DblStr((double)foreign_loss / (double) total * 100);
-		da.diagnostics.GetAdd("SourceDataImporter: duration of song process") =  ts.ToString();
+		src.diagnostics.GetAdd("SourceDataImporter: total") = IntStr(total);
+		src.diagnostics.GetAdd("SourceDataImporter: actual") =  IntStr(actual);
+		src.diagnostics.GetAdd("SourceDataImporter: percentage") =  DblStr((double)actual / (double) total * 100);
+		src.diagnostics.GetAdd("SourceDataImporter: filter 'well' loss") =  DblStr((double)well_filter_loss / (double) total * 100);
+		src.diagnostics.GetAdd("SourceDataImporter: filter 'parse success' loss") =  DblStr((double)parse_loss / (double) total * 100);
+		src.diagnostics.GetAdd("SourceDataImporter: filter 'foreign' loss") =  DblStr((double)foreign_loss / (double) total * 100);
+		src.diagnostics.GetAdd("SourceDataImporter: duration of song process") =  ts.ToString();
 	}
 }
 
@@ -261,7 +260,7 @@ int SourceAnalysisProcess::GetPhaseCount() const {
 int SourceAnalysisProcess::GetBatchCount(int phase) const {
 	
 	switch (phase) {
-		case PHASE_ANALYZE_ARTISTS:			return p.src->src_entities.GetCount();
+		case PHASE_ANALYZE_ARTISTS:			return p.src->entities.GetCount();
 		case PHASE_ANALYZE_ELEMENTS:		return p.src->scripts.GetCount();
 		case PHASE_SUMMARIZE_CONTENT:		TODO;
 		default: return 1;
@@ -285,12 +284,12 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 	ASSERT(p.src);
 	auto& src = *p.src;
 	
-	if (batch >= src.src_entities.GetCount()) {
+	if (batch >= src.entities.GetCount()) {
 		NextPhase();
 		return;
 	}
 	
-	EntityDataset& ent = src.src_entities[batch];
+	EntityDataset& ent = src.entities[batch];
 	if (ent.genres.GetCount()) {
 		NextBatch();
 		return;
@@ -315,7 +314,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 			if (i >= 0)
 				genre = TrimBoth(genre.Mid(i+1));
 		}
-		EntityDataset& ent = src.src_entities[batch];
+		EntityDataset& ent = src.entities[batch];
 		ent.genres <<= genres;
 		
 		NextBatch();
@@ -326,7 +325,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 void SourceAnalysisProcess::AnalyzeElements() {
 	ASSERT(p.src);
 	auto& src = *p.src;
-	Vector<EntityDataset>& entities = src.src_entities;
+	Vector<EntityDataset>& entities = src.entities;
 	
 	if (batch >= src.scripts.GetCount()) {
 		NextPhase();
@@ -339,7 +338,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 	}
 	
 	args.fn = 0;
-	args.text = TrimBoth(p.GetScriptDump(batch));
+	args.text = TrimBoth(src.GetScriptDump(batch));
 	Vector<String> all_sections = Split(args.text, "[");
 	if (args.text.IsEmpty() || all_sections.GetCount() >= 50) {
 		NextBatch();
@@ -507,8 +506,6 @@ TokenDataProcess& TokenDataProcess::Get(DatasetPtrs p) {
 void TokenDataProcess::Get() {
 	ASSERT(p.src);
 	auto& src = *p.src;
-	auto& wrds = *p.wrd;
-	auto& da = *p.da;
 	
 	TokenArgs& args = token_args;
 	args.fn = 0;
@@ -537,10 +534,8 @@ void TokenDataProcess::Get() {
 	m.GetTokenData(args, [this](String result) {
 		TokenArgs& args = token_args;
 		auto& src = *p.src;
-		auto& wrds = *p.wrd;
-		auto& da = *p.da;
 		
-		// 9. suppote: verb | noun
+		// 9. suppose: verb | noun
 		
 		result.Replace("\r", "");
 		Vector<String> lines = Split(result, "\n");
@@ -582,7 +577,7 @@ void TokenDataProcess::Get() {
 					da.words[orig_word_i] :
 					da.words.GetAdd(result_word, orig_word_i);*/
 			int orig_word_i = -1;
-			ExportWord& wrd = MapGetAdd(wrds.words, result_word, orig_word_i);
+			ExportWord& wrd = MapGetAdd(src.words, result_word, orig_word_i);
 			
 			//TODO // token to word
 			
@@ -595,7 +590,7 @@ void TokenDataProcess::Get() {
 			Vector<String> parts = Split(line, "|");
 			for (String& p : parts) {
 				p = TrimBoth(p);
-				int wc_i = wrds.word_classes.FindAdd(p);
+				int wc_i = src.word_classes.FindAdd(p);
 				if (wrd.class_count < wrd.MAX_CLASS_COUNT)
 					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
 			}
@@ -604,9 +599,9 @@ void TokenDataProcess::Get() {
 		}
 		
 		
-		da.diagnostics.GetAdd("tokens: total") = IntStr(total);
-		da.diagnostics.GetAdd("tokens: actual") =  IntStr(actual);
-		da.diagnostics.GetAdd("tokens: percentage") =  DblStr((double)actual / (double) total * 100);
+		src.diagnostics.GetAdd("tokens: total") = IntStr(total);
+		src.diagnostics.GetAdd("tokens: actual") =  IntStr(actual);
+		src.diagnostics.GetAdd("tokens: percentage") =  DblStr((double)actual / (double) total * 100);
 		
 		NextBatch();
 		SetWaiting(false);

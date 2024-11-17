@@ -18,6 +18,7 @@ enum {
 	SCORE_COUNT
 };
 
+// TODO rename these to DB_DATA_SRC_TYPE or something
 enum {
 	DB_SONG,
 	DB_TWITTER,

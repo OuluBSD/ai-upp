@@ -59,7 +59,7 @@ public:
 	void Do(int fn);
 	void SetDataCtrl();
 	
-	static DbField GetFieldType() { return DBFIELD_SRCTEXT; }
+	static DbContent GetDbType() { return DBCONTENT_SRCTEXT; }
 	static String GetExt() { return ".db-src"; }
 	static String GetID() { return "SourceText"; }
 	

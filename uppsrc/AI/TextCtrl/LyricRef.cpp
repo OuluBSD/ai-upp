@@ -214,6 +214,8 @@ void ScriptPhrasePartsGroups::FillArrayCtrl(DatabaseBrowser::ColumnType t, Array
 void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	DatasetPtrs& p = o.GetDataset();
+	ASSERT(p.src);
+	auto& src = *p.src;
 	TextDatabase& db = TextDatabase::Single();
 	SourceDataAnalysis& sda = db.a;
 	DatasetAnalysis& da = sda.dataset;
@@ -246,7 +248,7 @@ void ScriptPhrasePartsGroups::DataList() {
 		}
 		
 		
-		parts.Set(row, 4, pp.el_i >= 0 ? da.element_keys[pp.el_i] : String());
+		parts.Set(row, 4, pp.el_i >= 0 ? src.element_keys[pp.el_i] : String());
 		
 		#if 0
 		ValueArray va;

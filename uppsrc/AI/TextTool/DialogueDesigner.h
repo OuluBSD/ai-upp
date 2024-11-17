@@ -30,9 +30,7 @@ struct Des : IdeDesigner, ParentCtrl {
 };
 
 using DialogueDes = Des<ScriptReferenceMakerCtrl>;
-
-#error Join 3 pages to one
-using SourceTextDes = Des<SourceDataCtrl>;
+using SourceTextDes = Des<SourceTextCtrl>;
 
 
 INITIALIZE(DialogueDes)

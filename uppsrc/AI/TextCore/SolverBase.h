@@ -14,6 +14,7 @@ protected:
 	static int& WorkerId();
 	WorkerData& Worker();
 	Mutex task_lock, data_lock;
+	DatasetPtrs p;
 	
 	Time time_started, time_stopped;
 	int generation = 0, phase = 0, batch = 0, sub_batch = 0, batch_count = 0;

@@ -337,6 +337,25 @@ void TaskMgr::GetTokenData(const TokenArgs& args, Event<String> WhenResult) {
 	task_lock.Leave();
 }
 
+void TaskMgr::GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<String> WhenResult, bool keep_going) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	
+	t.SetRule(MakeName(args, "get song data analysis"))
+		.Input(&AiTask::CreateInput_GetSourceDataAnalysis)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	t.keep_going = keep_going;
+	task_lock.Leave();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

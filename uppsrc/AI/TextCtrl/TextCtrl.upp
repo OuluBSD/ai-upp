@@ -14,7 +14,5 @@ file
 	LyricContent.cpp,
 	"Database processes" readonly separator,
 	SourceText.h,
-	SourceText.cpp,
-	TokenData.h,
-	TokenData.cpp;
+	SourceText.cpp;
 

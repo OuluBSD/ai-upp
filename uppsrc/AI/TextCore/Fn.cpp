@@ -219,4 +219,87 @@ int FindAttrGroupByValue(const char* value) {
 	return -1;
 }
 
+void RemoveLineNumber( String& s) {
+	if (s.IsEmpty()) return;
+	for(int i = 0; i < s.GetCount(); i++) {
+		if (!IsDigit(s[i])) {
+			if (s[i] == '.' || s[i] == ')') {
+				s = TrimBoth(s.Mid(i+1));
+				break;
+			}
+			else if (s[i] == '/') {
+				continue;
+			}
+			else {
+				s = TrimBoth(s.Mid(i));
+				break;
+			}
+		}
+	}
+}
+
+void RemoveLineChar(String& s) {
+	if (s.IsEmpty()) return;
+	if (s[0] == '-')
+		s = TrimBoth(s.Mid(1));
+	else
+		s = TrimBoth(s);
+}
+
+void RemoveEmptyLines(String& s) {
+	s.Replace("\r","");
+	Vector<String> lines = Split(s, "\n");
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String& l = lines[i];
+		l = TrimBoth(l);
+		if (l.IsEmpty())
+			lines.Remove(i--);
+	}
+	s = Join(lines, "\n");
+}
+
+void RemoveEmptyLines2(String& s) {
+	s.Replace("\r","");
+	Vector<String> lines = Split(s, "\n");
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String& l = lines[i];
+		RemoveLineNumber(l);
+		l = TrimBoth(l);
+		if (l.IsEmpty() || l[0] == '-')
+			lines.Remove(i--);
+	}
+	s = Join(lines, "\n");
+}
+
+void RemoveEmptyLines3(String& s) {
+	s.Replace("\r","");
+	Vector<String> lines = Split(s, "\n");
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String& l = lines[i];
+		RemoveLineChar(l);
+		l = TrimBoth(l);
+		if (l.IsEmpty())
+			lines.Remove(i--);
+	}
+	s = Join(lines, "\n");
+}
+
+void RemoveQuotes(String& s) {
+	if (s.GetCount() > 0 && s[0] == '\"')
+		s = s.Mid(1);
+	int c = s.GetCount();
+	if (c > 0 && s[c-1] == '\"')
+		s = s.Left(c-1);
+}
+
+void RemoveQuotes2(String& s_) {
+	WString ws = s_.ToWString();
+	if (ws.GetCount() > 0 && (ws[0] == '\"' || ws[0] == L"“"[0]))
+		ws = ws.Mid(1);
+	int c = ws.GetCount();
+	if (c > 0 && (ws[c-1] == '\"' || ws[c-1] == L"”"[0]))
+		ws = ws.Left(c-1);
+	s_ = ws.ToString();
+}
+
 END_UPP_NAMESPACE

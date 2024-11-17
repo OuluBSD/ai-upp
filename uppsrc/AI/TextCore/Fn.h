@@ -125,6 +125,15 @@ int FixedIndexFindAdd(T* values, int max_value_count, int& value_count, const T&
 	return i;
 }
 
+// TODO rename RemoveEmptyLines etc.
+void RemoveLineNumber(String& s);
+void RemoveLineChar(String& s);
+void RemoveEmptyLines(String& s);
+void RemoveEmptyLines2(String& s);
+void RemoveEmptyLines3(String& s);
+void RemoveQuotes(String& s);
+void RemoveQuotes2(String& s);
+
 END_UPP_NAMESPACE
 
 #endif

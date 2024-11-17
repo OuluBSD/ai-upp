@@ -1,0 +1,792 @@
+#include "TextCore.h"
+
+NAMESPACE_UPP
+
+void AiTask::CreateInput_GetTokenData() {
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	TokenArgs args;
+	args.Put(this->args[0]);
+	
+	
+	if (args.fn == 0) {
+		{
+			auto& list = input.AddSub().Title("List of word classes");
+			list.Add("Nouns");
+			list.Add("Verbs");
+			list.Add("Adjectives");
+			list.Add("Adverbs");
+			list.Add("Pronouns");
+			list.Add("Prepositions");
+			list.Add("Conjunctions");
+			list.Add("Determiners");
+			list.Add("Interjections");
+			list.Add("Articles");
+			list.Add("Modal verbs");
+			list.Add("Gerunds");
+			list.Add("Infinitives");
+			list.Add("Participles");
+			list.Add("Definite article");
+			list.Add("Indefinite article");
+			list.Add("Proper nouns");
+			list.Add("Collective nouns");
+			list.Add("Concrete nouns");
+			list.Add("Abstract nouns");
+			list.Add("Irregular verbs");
+			list.Add("Regular verbs");
+			list.Add("Transitive verbs");
+			list.Add("Intransitive verbs");
+			list.Add("Auxiliary verbs");
+			list.Add("Reflexive verbs");
+			list.Add("Imperative verbs");
+			list.Add("First person pronouns");
+			list.Add("Second person pronouns");
+			list.Add("Third person pronouns");
+			list.Add("Possessive pronouns");
+			list.Add("Demonstrative pronouns");
+			list.Add("Relative pronouns");
+			list.Add("Intensive pronouns");
+			list.Add("Indefinite pronouns");
+			list.Add("Personal pronouns");
+			list.Add("Subject pronouns");
+			list.Add("Objective pronouns");
+			list.Add("Possessive determiners");
+			list.Add("Possessive adjectives");
+			list.Add("Comparative adjectives");
+			list.Add("Superlative adjectives");
+			list.Add("Proper adjectives");
+			list.Add("Positive adjectives");
+			list.Add("Negative adjectives");
+			list.Add("etc.");
+		}
+		{
+			auto& list = input.AddSub().Title("List \"A\" words");
+			list.NumberedLines();
+			list.Add("You");
+			list.Add("what's");
+			list.Add("smile");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			auto& answer = input.PreAnswer();
+			answer.Title("Word classes for the list \"A\" (lowercase)");
+			answer.NumberedLines();
+			answer.Add("you: pronoun");
+			answer.Add("what's: contraction (what + is)");
+			answer.Add("smile: noun | verb");
+		}
+		input.response_length = 2*1024;
+	}
+	if (args.fn == 1) {
+		{
+			auto& list = input.AddSub().Title("List of word classes");
+			list.Add("Nouns");
+			list.Add("Verbs");
+			list.Add("Adjectives");
+			list.Add("Adverbs");
+			list.Add("Pronouns");
+			list.Add("Prepositions");
+			list.Add("Conjunctions");
+			list.Add("Determiners");
+			list.Add("Interjections");
+			list.Add("Articles");
+			list.Add("Modal verbs");
+			list.Add("Gerunds");
+			list.Add("Infinitives");
+			list.Add("Participles");
+			list.Add("Definite article");
+			list.Add("Indefinite article");
+			list.Add("Proper nouns");
+			list.Add("Collective nouns");
+			list.Add("Concrete nouns");
+			list.Add("Abstract nouns");
+			list.Add("Irregular verbs");
+			list.Add("Regular verbs");
+			list.Add("Transitive verbs");
+			list.Add("Intransitive verbs");
+			list.Add("Auxiliary verbs");
+			list.Add("Reflexive verbs");
+			list.Add("Imperative verbs");
+			list.Add("First person pronouns");
+			list.Add("Second person pronouns");
+			list.Add("Third person pronouns");
+			list.Add("Possessive pronouns");
+			list.Add("Demonstrative pronouns");
+			list.Add("Relative pronouns");
+			list.Add("Intensive pronouns");
+			list.Add("Indefinite pronouns");
+			list.Add("Personal pronouns");
+			list.Add("Subject pronouns");
+			list.Add("Objective pronouns");
+			list.Add("Possessive determiners");
+			list.Add("Possessive adjectives");
+			list.Add("Comparative adjectives");
+			list.Add("Superlative adjectives");
+			list.Add("Proper adjectives");
+			list.Add("Positive adjectives");
+			list.Add("Negative adjectives");
+			list.Add("etc.");
+		}
+		{
+			auto& list = input.AddSub().Title("List \"A\" word pairs");
+			list.NumberedLines();
+			list.Add("automobile drives");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			auto& answer = input.PreAnswer();
+			answer.Title("Word classes for the list \"A\" (lowercase)");
+			answer.NumberedLines();
+			answer.Add("automobile drives: noun, verb");
+		}
+		input.response_length = 2*1024;
+	}
+	if (args.fn == 2) {
+		{
+			auto& list = input.AddSub().Title("List of sentence structures");
+			list.Add("declarative sentence");
+			list.Add("conditional sentence");
+			list.Add("descriptive sentence");
+			list.Add("causal sentence");
+			list.Add("subject-verb-object sentence");
+			list.Add("subject-verb-adjective sentence");
+			/*list.Add("subject-verb-predicate sentence");
+			list.Add("adverbial sentence");
+			list.Add("compound sentence");
+			list.Add("complex sentence");
+			list.Add("simple sentence");
+			list.Add("compound-complex sentence");
+			list.Add("exclamatory sentence");
+			list.Add("interrogative sentence");
+			list.Add("imperative sentence");
+			list.Add("parallel sentence ");
+			list.Add("climax sentence");*/
+			list.Add("etc.");
+			/*list.Add("rhetorical question sentence");
+			list.Add("antithesis sentence ");
+			list.Add("repetition sentence ");
+			list.Add("aposiopesis sentence ");
+			list.Add("flashback sentence");
+			list.Add("foreshadowing sentence ");
+			list.Add("juxtaposition sentence ");
+			list.Add("alliteration sentence ");
+			list.Add("simile sentence ");
+			list.Add("metaphor sentence ");
+			list.Add("personification sentence ");
+			list.Add("hyperbole sentence ");
+			list.Add("litotes sentence ");
+			list.Add("irony sentence ");
+			list.Add("onomatopoeia sentence");
+			list.Add("oxymoron sentence");
+			list.Add("zeugma sentence");
+			list.Add("ellipsis sentence");
+			list.Add("chiasmus sentence");
+			list.Add("anaphora sentence");
+			list.Add("polysyndeton sentence");
+			list.Add("asyndeton sentence");
+			list.Add("anadiplosis sentence");
+			list.Add("epistrophe sentence");
+			list.Add("metonymy sentence");
+			list.Add("synecdoche sentence");
+			list.Add("epanalepsis sentence");
+			list.Add("antanaclasis sentence");
+			list.Add("syllepsis sentence");
+			list.Add("anastrophe sentence");
+			list.Add("polysyndeton sentence");
+			list.Add("anadiplosis sentence");
+			list.Add("period sentence");
+			list.Add("loose sentence");
+			list.Add("periodic sentence");
+			list.Add("cumulative sentence");
+			list.Add("unbalanced sentence");
+			list.Add("balanced sentence");
+			list.Add("split sentence");
+			list.Add("parenthetical sentence");
+			list.Add("regular sentence");
+			list.Add("irregular sentence");
+			list.Add("declarative-sentence");
+			list.Add("rhetorical sentence");
+			list.Add("compound-complex sentence");
+			list.Add("antithetic sentence");
+			list.Add("sentential sentence");
+			list.Add("subordinate sentence");
+			list.Add("attributive sentence");
+			list.Add("predicative sentence");*/
+		}
+		{
+			auto& list = input.AddSub().Title("List of classes of sentences");
+			list.Add("independent clause");
+			list.Add("dependent clause ");
+			list.Add("coordinating clause ");
+			list.Add("modifying clause ");
+			list.Add("non-coordinating clause");
+			list.Add("subordinating clause ");
+			/*list.Add("narrator clause");
+			list.Add("subject pronoun clause");
+			list.Add("object pronoun clause ");
+			list.Add("relative clause ");
+			list.Add("attributive adjective clause ");
+			list.Add("predicative adjective clause");
+			list.Add("narrative verb clause ");
+			list.Add("coordinating conjunction clause ");
+			list.Add("deciding conjunction clause");
+			list.Add("comparative conjunction clause");
+			list.Add("conditional conjunction clause");
+			list.Add("descriptive conjunction clause");
+			list.Add("correlatives conjunction clause");
+			list.Add("time conjunction clause");
+			list.Add("reason conjunction clause");
+			list.Add("place conjunction clause");
+			list.Add("manner conjunction clause");
+			list.Add("intrinsic conjunction clause");*/
+			list.Add("etc.");
+			/*
+			list.Add("excessive conjunction clause");
+			list.Add("restriction conjunction clause");
+			list.Add("time-adverbial clause");
+			list.Add("manner-adverbial clause");
+			list.Add("place-adverbial clause ");
+			list.Add("reason-adverbial clause");
+			list.Add("object-adverbial clause");
+			list.Add("predicate-adverbial clause");
+			list.Add("sequential-adverbial clause");
+			list.Add("causal-adverbial clause ");
+			list.Add("concessive-adverbial clause ");
+			list.Add("contrast-adverbial clause ");
+			list.Add("purpose-adverbial clause");
+			list.Add("result-adverbial clause");
+			list.Add("condition-adverbial clause ");
+			list.Add("supplementary-adverbial clause");
+			list.Add("relativizing clause");
+			list.Add("comparative relative clause");
+			list.Add("subject relative clause");
+			list.Add("object relative clause");
+			list.Add("determinative relative clause");
+			list.Add("presupposed relative clause");
+			list.Add("subject-relative clause");
+			list.Add("objective-relative clause");
+			list.Add("descriptive-relative clause");
+			list.Add("relative pronoun clause");
+			list.Add("adjectival relative clause");
+			list.Add("adjective noun clause");
+			list.Add("dependent infinitive clause");
+			list.Add("independent infinitive clause");
+			list.Add("verb tense clause");
+			list.Add("past tense clause");
+			list.Add("present tense clause");
+			list.Add("future tense clause");
+			list.Add("perfect tense clause");
+			list.Add("progressive tense clause");
+			list.Add("intelligibly verb clause");
+			list.Add("interrogative clause");
+			list.Add("adverbial interrogative clause");
+			list.Add("indicative verb clause ");
+			list.Add("imperatively verb clause");
+			list.Add("minimally verb clause");
+			list.Add("neatly verb clause");
+			list.Add("emphatic verb clause");
+			list.Add("non existence verb clause");
+			list.Add("directional verb clause");
+			list.Add("determinate verb clause");
+			list.Add("descriptive verb clause ");
+			list.Add("tricuspid verb clause");
+			list.Add("interrogative verb clause");
+			list.Add("directive verb clause");
+			list.Add("unconvincing verb clause");
+			list.Add("parenthetical verb clause");
+			list.Add("elementary clause");
+			list.Add("secondary clause");
+			list.Add("complex primary clause");
+			list.Add("subordinate primary clause");
+			list.Add("principal primary clause ");
+			list.Add("secondary primary clause ");
+			list.Add("independent interrogatory clause");
+			list.Add("interrogative-adverb clause ");
+			list.Add("preterite clause ");
+			list.Add("declarative-apostrophized clause ");
+			list.Add("explanatory clause ");
+			list.Add("nonrestrictive(replicative) clause");
+			list.Add("restrictive (restricting or defining) clause");*/
+		}
+		{
+			auto& list = input.AddSub().Title("List of classified sentences");
+			list.NumberedLines();
+			/*list.Add("{noun}{verb}{adjective}");
+			list.Add("{adjective}{noun}{preposition}{noun}");
+			list.Add("{conjunction}{pronoun}{verb}{noun}");*/
+			list.Add("noun,verb,adjective");
+			list.Add("adjective,noun,preposition,noun");
+			list.Add("conjunction,pronoun,verb,noun");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			auto& answer = input.PreAnswer();
+			answer.Title("List of titles of classified sentences");
+			answer.NumberedLines();
+			answer.Add("noun,verb,adjective: independent clause");
+			answer.Add("adjective,noun,preposition,noun: prepositional sentence");
+			answer.Add("conjunction,pronoun,verb,noun: complex sentence");
+		}
+		input.response_length = 2*1024;
+	}
+	if (args.fn == 3) {
+		{
+			auto& list = input.AddSub().Title("List \"B\" Classes of Sentences");
+			list.NumberedLines();
+			list.Add("noun phrase + independent clause");
+			list.Add("independent clause + dependent clause");
+			list.Add("prepositional phrase + independent clause");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			auto& answer = input.PreAnswer();
+			answer.Title("List \"B\" Categorizations of sentence structures");
+			answer.NumberedLines();
+			answer.Add("noun phrase + independent clause: declarative sentence");
+			answer.Add("independent clause + dependent clause: conditional sentence");
+			answer.Add("prepositional phrase + independent clause: descriptive sentence");
+		}
+		input.response_length = 2*1024;
+	}
+}
+
+void AiTask::CreateInput_GetSourceDataAnalysis() {
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+
+	SourceDataAnalysisArgs args;
+	args.Put(this->args[0]);
+	
+	
+	if (args.fn == 0) {
+		Vector<String> lines = Split(args.text, "\n");
+		ASSERT(lines.GetCount());
+		{
+			auto& txt = input.AddSub();
+			txt.NoColon();
+			txt.NoListChar();
+			for (String& l : lines)
+				txt.Add(l);
+		}
+		{
+			auto& list = input.AddSub().Title("List A: terms to define a section");
+			list.Add("exposition");
+			list.Add("climax");
+			list.Add("call to action");
+			list.Add("high stakes obstacle");
+			list.Add("rock bottom");
+			list.Add("rising action");
+			list.Add("falling action");
+			list.Add("conclusion");
+			list.Add("happy ending");
+			list.Add("tragedy");
+			list.Add("bittersweet ending");
+			list.Add("suspense");
+			list.Add("crisis");
+			list.Add("resolution");
+			list.Add("intensity");
+			list.Add("conflict");
+			list.Add("iteration");
+			list.Add("etc.");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Analyze story and write matching word for all depths of sections (e.g. 0, 1.0, 2.1.0) from the list A (e.g. \"exposition\")");
+			tmp_str = lines[0] + ": \"";
+			results.Add(tmp_str);
+		}
+		input.response_length = 1024;
+	}
+	
+	else if (args.fn == 1) {
+		{
+			auto& list = input.AddSub().Title("Artist: " + args.artist);
+			list.NoColon();
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Music genres");
+			results.Add("");
+		}
+		input.response_length = 1024;
+	}
+	
+	else if (args.fn == 4) {
+		{
+			auto& list = input.AddSub().Title("List of words \"A\"");
+			list.Add("structure");
+			list.Add("differently");
+			list.Add("analyser");
+		}
+		{
+			auto& list = input.AddSub().Title("Syllables and phonetic syllables of words \"A\"");
+			list.Add("structure: struc-ture [strʌk.t͡ʃər]");
+			list.Add("differently: dif-fer-ent-ly [ˈdɪ.fər.ənt.li]");
+			list.Add("analyser: a-nal-y-ser [ˈæn.əl.əz.ər]");
+		}
+		{
+			auto& list = input.AddSub().Title("List of words \"B\"");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Syllables and phonetic syllables of words \"B\"");
+			results.EmptyLine();
+		}
+		input.response_length = 2048;
+	}
+
+	else if (args.fn == 5) {
+		{
+			auto& list = input.AddSub().Title("Wordlist \"A\"");
+			list.Add("introducing");
+			list.Add("shameless");
+		}
+		{
+			auto& list = input.AddSub().Title("Main class, metaphorical color in RGB value and Finnish translation for the wordlist \"A\"");
+			list.Add("introducing: verb, RGB(0, 150, 255)");
+			list.Add("shameless: adjective, RGB(255, 51, 153)");
+		}
+		{
+			auto& list = input.AddSub().Title("Wordlist \"B\"");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Main class, metaphorical color in RGB value for the wordlist \"B\"");
+			results.EmptyLine();
+		}
+		input.response_length = 2048;
+	}
+
+	else if (args.fn == 7) {
+		{
+			auto& list = input.AddSub().Title("Word classes");
+			list.Add("verb");
+			list.Add("noun");
+			list.Add("pronoun");
+			list.Add("pronoun/noun");
+			list.Add("preposition");
+			list.Add("adjective");
+			list.Add("modal verb");
+			list.Add("adverb");
+			list.Add("interjection");
+			list.Add("conjunction");
+			list.Add("contraction");
+			list.Add("etc.");
+		}
+		{
+			auto& list = input.AddSub().Title("Metaphoric color groups for words");
+			for(int i = 0; i < GetColorGroupCount(); i++) {
+				Color clr = GetGroupColor(i);
+				String s;
+				s << "RGB(" << (int)clr.GetR() << "," << (int)clr.GetG() << "," << (int)clr.GetB() << ")";
+				list.Add(s);
+			}
+		}
+		String pc = IntStr(1 + args.words.GetCount());
+		{
+			auto& list = input.AddSub().Title(pc + " words");
+			//list.NumberedLines();
+			list.Add("girly, adjective, RGB(255,192,203)");
+			for(int i = 0; i < args.words.GetCount(); i++)
+				list.Add(args.words[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			//results.NumberedLines();
+			results.NoListChar();
+			results.Title("100 words with 1-" + IntStr(GetColorGroupCount()) + " their similar alternatives with another metaphorical RGB color value (from the color group or a random color)");
+			results.Add("adjective: girly -> RGB(255,140,0): sassy");
+			results.Add("adjective: girly -> RGB(173,216,230): delicate");
+			results.Add("adjective: girly -> RGB(160,82,45): bohemian");
+			results.Add("adjective: girly -> RGB(0,0,128): romantic");
+			results.Add("adjective: girly -> RGB(128,0,0): sexy");
+			results.Add("adjective: girly -> RGB(255,0,0): bold");
+			/*results.Add("adjective: girly -> RGB(255,0,0): bold");
+			results.Add("adjective: girly -> RGB(128,0,0): sexy");
+			results.Add("adjective: girly -> RGB(128,0,128): edgy");
+			results.Add("adjective: girly -> RGB(0,0,128): romantic");
+			results.Add("adjective: girly -> RGB(0,128,0): flirty");*/
+
+			String s = args.words[0];
+			s = s.Left(s.Find(","));
+			results.Add(s + " ->");
+		}
+		input.response_length = 2048;
+	}
+
+	if (args.fn == 10 || args.fn == 11) {
+		{
+			auto& list = input.AddSub().Title("List \"A\": Word classes");
+			list.Add("verb");
+			list.Add("noun");
+			list.Add("pronoun");
+			list.Add("pronoun/noun");
+			list.Add("preposition");
+			list.Add("adjective");
+			list.Add("modal verb");
+			list.Add("adverb");
+			list.Add("interjection");
+			list.Add("conjunction");
+			list.Add("contraction");
+			list.Add("etc.");
+		}
+		{
+			auto& list = input.AddSub().Title("List \"B\": Action planner action states for narrator person");
+			list.Add("saying");
+			list.Add("tone");
+			list.Add("msg");
+			list.Add("bias");
+			list.Add("emotion");
+			list.Add("level-of-certainty");
+			list.Add("gesturing");
+			list.Add("pointing");
+			list.Add("describing-surroundings");
+			list.Add("interrupting");
+			list.Add("emphasizing");
+			list.Add("summarizing");
+			list.Add("referencing");
+			list.Add("introducing");
+			list.Add("concluding");
+			list.Add("predicting");
+			list.Add("transitioning");
+			list.Add("questioning");
+			list.Add("reflecting");
+			list.Add("persuading");
+			list.Add("comparing");
+			list.Add("linking");
+			list.Add("agreeing");
+			list.Add("disagreeing");
+			list.Add("apologizing");
+			list.Add("commanding");
+			list.Add("comforting");
+			list.Add("complimenting");
+			list.Add("complaining");
+			list.Add("congratulating");
+			list.Add("correcting");
+			list.Add("denying");
+			list.Add("explaining");
+			list.Add("greeting");
+			list.Add("inviting");
+			list.Add("promising");
+			list.Add("-suggesting");
+			list.Add("thanking");
+			list.Add("warning");
+			list.Add("attention-attribute");
+			list.Add("attention-person");
+			list.Add("attention-person-implied");
+			list.Add("attention-action");
+			list.Add("attention-event");
+			list.Add("attention-recipient");
+			list.Add("attention-recipient-implied");
+			list.Add("attention-relationship");
+			list.Add("attention-purpose");
+			list.Add("attention-place");
+			list.Add("attention-time");
+			list.Add("attention-topic");
+			list.Add("attention-audience");
+			list.Add("attention-occasion");
+			list.Add("attention-conversation ");
+			list.Add("attention-activity");
+			list.Add("attention-emotional_state");
+			list.Add("attention-physical_state");
+			list.Add("attention-mental_state");
+			list.Add("attention-relationship_status");
+			list.Add("attention-goals");
+			list.Add("attention-fears");
+			list.Add("attention-preferences");
+			list.Add("attention-beliefs");
+			list.Add("attention-values");
+			list.Add("attention-traits");
+			list.Add("attention-education");
+			list.Add("attention-work");
+			list.Add("attention-hobbies");
+			list.Add("attention-interests");
+			list.Add("attention-achievement");
+			list.Add("attention-experiences");
+			list.Add("attention-likes");
+			list.Add("attention-dislikes");
+			list.Add("attention-tests");
+			list.Add("attention-evaluation_criteria");
+			list.Add("attention-qualifications");
+			list.Add("attention-requirements");
+			list.Add("attention-qualifications_acquired");
+			list.Add("attention-qualifications_needed");
+			list.Add("attention-suggestions");
+			list.Add("attention-feedback");
+			list.Add("attention-likes_dislikes_comments");
+			list.Add("attention-expectations");
+			list.Add("attention-motivations");
+			list.Add("attention-priorities");
+			list.Add("attention-challenges");
+			list.Add("attention-opportunities");
+			list.Add("attention-problems");
+			list.Add("attention-decisions");
+			list.Add("attention-recommendations");
+			list.Add("attention-trial_discussion");
+			list.Add("attention-agreement");
+			list.Add("attention-disagreement");
+			list.Add("attention-agreement-explanation");
+			list.Add("attention-disagreement-explanation");
+			list.Add("attention-reasoning");
+			list.Add("attention-possibility");
+			list.Add("attention-probability");
+			list.Add("attention-improbable");
+			list.Add("attention-necessity");
+			list.Add("attention-priority");
+			list.Add("attention-order");
+			list.Add("attention-procedure");
+			list.Add("attention-target");
+			list.Add("attention-advocacy");
+			list.Add("attention-advocacy-reasoning");
+			list.Add("attention-evidences");
+			list.Add("attention-negations");
+			list.Add("attention-conclusions");
+			list.Add("attention-persuasion");
+			list.Add("attention-epiphany");
+			list.Add("attention-choosing");
+			list.Add("attention-concepts");
+			list.Add("attention-situations");
+			list.Add("attention-actionplan");
+			list.Add("attention-outcome");
+			list.Add("attention-plan-communication");
+			list.Add("attention-plan-task");
+			list.Add("attention-awakening");
+			list.Add("attention-thinking");
+			list.Add("attention-believing");
+			list.Add("attention-knowing");
+			list.Add("attention-learning");
+			list.Add("attention-realization");
+			list.Add("attention-incidences");
+			list.Add("attention-causations");
+			list.Add("attention-effects");
+			list.Add("attention-solutions");
+			list.Add("attention-progress");
+			list.Add("attention-failure");
+			list.Add("attention-change");
+			list.Add("attention-impact");
+			list.Add("attention-feeling");
+			list.Add("attention-challenge");
+			list.Add("attention-aspiration");
+			list.Add("attention-doubt");
+			list.Add("attention-relationship_goals");
+			list.Add("attention-career_goals");
+			list.Add("attention-emotional_goals");
+			list.Add("attention-physical_goals");
+			list.Add("attention-mental_goals");
+			list.Add("attention-achievements");
+			list.Add("attention-experiences_difficulties");
+			list.Add("attention-explaining");
+			list.Add("attention-analogy");
+			list.Add("attention-fact");
+			list.Add("attention-evidence");
+			list.Add("attention-opinion");
+			list.Add("attention-assumption");
+			list.Add("attention-consequence");
+			list.Add("attention-belief");
+			list.Add("attention-value");
+			list.Add("attention-confirmation");
+			list.Add("attention-excuse");
+			list.Add("attention-exception");
+			list.Add("attention-exciting_feature");
+			list.Add("attention-changemaker");
+			list.Add("attention-mentor");
+			list.Add("attention-friend");
+			list.Add("attention-criticalopinion");
+			list.Add("attention-conflict");
+			list.Add("attention-perspective");
+			list.Add("attention-prediction");
+			list.Add("attention-regret");
+			list.Add("attention-usefulness");
+			list.Add("attention-solidarity");
+			list.Add("attention-compliance");
+			list.Add("attention-lack");
+			list.Add("attention-attention");
+			list.Add("attention-criticism");
+			list.Add("attention-support");
+			list.Add("attention-collaboration");
+			list.Add("attention-anticipation");
+			list.Add("attention-example");
+			list.Add("etc.");
+		}
+
+	}
+
+	if (args.fn == 10) {
+		String pc = IntStr(3 + args.phrases.GetCount());
+		{
+			auto& list = input.AddSub().Title(pc + " lines of lyrics");
+			list.NumberedLines();
+			list.Add("2 AM, howlin outside");
+			list.Add("Lookin, but I cannot find");
+			list.Add("Only you can stand my mind");
+			for(int i = 0; i < args.phrases.GetCount(); i++)
+				list.Add(args.phrases[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.NumberedLines();
+			results.NoListChar();
+			results.Title("Action planner action states for " + pc + " lines of lyrics. With the most matching actions of list \"B\"");
+			results.Add("tone(urgent) + msg(trying to reach someone) + bias(romantic) + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside) + attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving)");
+			results.Add("msg(searching for someone) + bias(doubt) + emotion(frustration) + level-of-certainty(cannot find) + attention-action(searching) + attention-relationship(checking for person's presence)");
+			results.Add("tone(affectionate) + msg(expressing feelings) + bias(feeling understood by person) + emotion(love) + level-of-certainty(statement) + attention-person(addressed to person) + attention-emotional_state(love/affection) + attention-mental_state(thinking about person constantly) + attention-relationship(checking for compatibility)");
+			results.Add("");
+		}
+		input.response_length = 2048;
+	}
+
+	if (args.fn == 11) {
+		String audience = "audience";
+		{
+			auto& list = input.AddSub().Title("Action planner heuristic score factors");
+			list.Add("S0: High like count from the " + audience + ". Low count means that the idea behind the phrase was bad.");
+			list.Add("S1: High comment count from the " + audience + ". Low count means that there was no emotion in the phrase.");
+			list.Add("S2: High listen count from the " + audience + ". Low count means that there was bad so called hook in the phrase.");
+			list.Add("S3: High share count from the " + audience + ". Low count means that the phrase was not relatable.");
+			list.Add("S4: High bookmark count from the " + audience + ". Low count means that the phrase had no value.");
+			list.Add("S5: High reference count towards comedy from the " + audience + ". Low count means that the phrase was not funny.");
+			list.Add("S6: High reference count towards sex from the " + audience + ". Low count means that the phrase was not sensual.");
+			list.Add("S7: High reference count towards politics from the " + audience + ". Low count means that the phrase was not thought-provoking.");
+			list.Add("S8: High reference count towards love from the " + audience + ". Low count means that the phrase was not romantic.");
+			list.Add("S9: High reference count towards social issues from the " + audience + ". Low count means that the phrase was not impactful.");
+		}
+		{
+			auto& list = input.AddSub().Title("Change of actions between 2 lines. Score of stopping actions in the first line and value of starting actions in the second line. Scores and score factors. Value is between 0-10");
+			list.Add("Stop line 1 & start line 2: S0: 0, S1: 0, S2: 7, S3: 3, S4: 0, S5: 2, S6: 3, S7: 5, S8: 7, S9: 1");
+			list.Add("Stop line 2 & start line 3: S0: 2, S1: 0, S2: 2, S3: 1, S4: 0, S5: 4, S6: 3, S7: 2, S8: 9, S9: 6");
+			list.Add("Stop line 3 & start line 4: S0: 1, S1: 5, S2: 3, S3: 2, S4: 8, S5: 8, S6: 6, S7: 9, S8: 4, S9: 2");
+		}
+		String pc = IntStr(0 + args.phrases.GetCount());
+		{
+			auto& list = input.AddSub().Title("List \"C\": Actions per " + pc + " lines of lyrics. With the most matching actions of list \"B\"");
+			list.NumberedLines();
+			for(int i = 0; i < args.phrases.GetCount(); i++)
+				list.Add(args.phrases[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.NumberedLines();
+			results.NoListChar();
+			results.Title("Change of actions between 2 lines in list \"C\" with " + pc + " lines of actions. Score of stopping actions in the first line and value of starting actions in the second line. Scores and score factors S0-S9. Value is between 0-10:");
+			results.Add("Stop line 1 & start line 2: S0:");
+		}
+		input.response_length = 1024;
+	}
+
+}
+
+END_UPP_NAMESPACE
+

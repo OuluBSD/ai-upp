@@ -270,17 +270,14 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 	VectorMap<String, Token> tokens;
 	VectorMap<hash_t, TokenText> token_texts;
 	Vector<EntityDataset> src_entities; // TODO rename, remove src_ (source-data for analysis)
+	Index<String> element_keys;
 	
 	static DbField GetFieldType() {return DBFIELD_SRCTEXT;}
 	String GetTokenTextString(const TokenText& txt) const;
 	void Serialize(Stream& s) {
-		int v = 1; s % v;
-		if (v >= 1) {
-			s % scripts;
-			s % tokens;
-			s % token_texts;
-			s % src_entities;
-		}
+		int v = 2; s % v;
+		if (v >= 1) s % scripts % tokens % token_texts % src_entities;
+		if (v >= 2) s % element_keys;
 	}
 };
 
@@ -334,7 +331,6 @@ struct DatasetAnalysis {
 	VectorMap<String, String> diagnostics;
 	VectorMap<String, ExportSimpleAttr> simple_attrs;
 	// VectorMap<hash_t,String>			phrase_translations[LNG_COUNT];
-	Index<String> element_keys;
 
 	DatasetAnalysis();
 	void Serialize(Stream& s);

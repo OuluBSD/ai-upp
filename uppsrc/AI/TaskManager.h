@@ -46,7 +46,10 @@ struct TaskMgr {
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult);
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
 	void GetCode(const CodeArgs& args, Event<String> WhenResult);
+	
+	// Source text analysis
 	void GetTokenData(const TokenArgs& args, Event<String> WhenResult);
+	void GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<String> WhenResult, bool keep_going=false);
 	
 	template <class T>
 	String MakeName(T& o, const char* name);

@@ -61,6 +61,7 @@ private:
 	// VectorMap<int,int> uniq_attrs;
 	// Vector<int> color_counts;
 	VectorMap<hash_t, int> history;
+	DatasetPtrs p;
 
 	void RemoveExcessData(int order_i);
 

@@ -17,6 +17,7 @@ public:
 
 class ToolAppCtrl : public Ctrl {
 	String data, data_filepath;
+	MenuBar menu;
 	
 protected:
 	String data_sha1;
@@ -30,7 +31,8 @@ public:
 	virtual void Data() = 0;
 	virtual void ToolMenu(Bar& bar) { bar.Add("", TextImgs::placeholder16(), Callback()); }
 	virtual String GetStatusText() { return String(); }
-
+	
+	void AddMenu();
 	TextDatabase& GetDatabase();
 	Entity& GetEntity();
 	Component& GetComponent();
@@ -58,7 +60,9 @@ public:
 	template <class T>
 	void DoT(int fn)
 	{
-		T& sdi = T::Get(fn);
+		DatasetPtrs p;
+		TODO
+		T& sdi = T::Get(p);
 		prog.Attach(sdi);
 		sdi.WhenRemaining <<
 			[this](String s) { PostCallback([this, s]() { remaining.SetLabel(s); }); };

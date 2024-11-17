@@ -220,14 +220,397 @@ void SourceDataImporter::Tokenize() {
 	}
 }
 
-SourceDataImporter& SourceDataImporter::Get(DatasetPtrs& p) {
+SourceDataImporter& SourceDataImporter::Get(DatasetPtrs p) {
 	static ArrayMap<String, SourceDataImporter> arr;
 	
 	String key = p.src->filepath;
-	SourceDataImporter& ts = arr.GetAdd(key);
-	ts.p = p;
+	auto& ts = arr.GetAdd(key);
+	ts.p = pick(p);
 	return ts;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SourceAnalysisProcess::SourceAnalysisProcess() {
+	
+}
+
+int SourceAnalysisProcess::GetPhaseCount() const {
+	return PHASE_COUNT;
+}
+
+int SourceAnalysisProcess::GetBatchCount(int phase) const {
+	
+	switch (phase) {
+		case PHASE_ANALYZE_ARTISTS:			return p.src->src_entities.GetCount();
+		case PHASE_ANALYZE_ELEMENTS:		return p.src->scripts.GetCount();
+		case PHASE_SUMMARIZE_CONTENT:		TODO;
+		default: return 1;
+	}
+}
+
+int SourceAnalysisProcess::GetSubBatchCount(int phase, int batch) const {
+	return 1;
+}
+
+void SourceAnalysisProcess::DoPhase() {
+	switch (phase) {
+		case PHASE_ANALYZE_ARTISTS:			AnalyzeArtists(); return;
+		case PHASE_ANALYZE_ELEMENTS:		AnalyzeElements(); return;
+		case PHASE_SUMMARIZE_CONTENT:		SummarizeContent(); return;
+		default: break;
+	}
+}
+
+void SourceAnalysisProcess::AnalyzeArtists() {
+	ASSERT(p.src);
+	auto& src = *p.src;
+	
+	if (batch >= src.src_entities.GetCount()) {
+		NextPhase();
+		return;
+	}
+	
+	EntityDataset& ent = src.src_entities[batch];
+	if (ent.genres.GetCount()) {
+		NextBatch();
+		return;
+	}
+	args.fn = 1;
+	args.artist = ent.name;
+	
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	m.GetSourceDataAnalysis(args, [this](String result) {
+		auto& src = *p.src;
+		SourceDataAnalysisArgs& args = this->args;
+		
+		RemoveEmptyLines3(result);
+		RemoveEmptyLines2(result);
+		//LOG(result);
+		
+		Vector<String> genres = Split(result, "\n");
+		for (String& genre : genres) {
+			genre = ToLower(TrimBoth(genre));
+			int i = genre.Find(":");
+			if (i >= 0)
+				genre = TrimBoth(genre.Mid(i+1));
+		}
+		EntityDataset& ent = src.src_entities[batch];
+		ent.genres <<= genres;
+		
+		NextBatch();
+		SetWaiting(false);
+	});
+}
+
+void SourceAnalysisProcess::AnalyzeElements() {
+	ASSERT(p.src);
+	auto& src = *p.src;
+	Vector<EntityDataset>& entities = src.src_entities;
+	
+	if (batch >= src.scripts.GetCount()) {
+		NextPhase();
+		return;
+	}
+	ScriptStruct& ss = src.scripts[batch];
+	if (ss.parts.GetCount() && ss.parts[0].cls >= 0) {
+		NextBatch();
+		return;
+	}
+	
+	args.fn = 0;
+	args.text = TrimBoth(p.GetScriptDump(batch));
+	Vector<String> all_sections = Split(args.text, "[");
+	if (args.text.IsEmpty() || all_sections.GetCount() >= 50) {
+		NextBatch();
+		return;
+	}
+	
+	// Another hotfix
+	if (args.text.Find("http://") >= 0 || args.text.Find("https://") >= 0) {
+		NextBatch();
+		return;
+	}
+	
+	bool keep_going = true;
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	if (m.keep_going_counter >= 50) {
+		SetNotRunning();
+		return;
+	}
+	
+	m.GetSourceDataAnalysis(args, [this](String result) {
+		ASSERT(p.src);
+		auto& src = *p.src;
+		SourceDataAnalysisArgs& args = this->args;
+		ScriptStruct& ss = src.scripts[batch];
+		
+		RemoveEmptyLines3(result);
+		//LOG(result);
+		
+		Vector<String> lines = Split(result, "\n");
+		VectorMap<String,String> section_values;
+		for (String& l : lines) {
+			int a = l.Find("[");
+			if (a < 0) continue;
+			a++;
+			int b = l.Find("]", a);
+			if (b < 0) continue;
+			String key = l.Mid(a,b-a);
+			a = l.Find(":", b);
+			if (a < 0) continue;
+			a++;
+			String value = ToLower(TrimBoth(l.Mid(a)));
+			RemoveQuotes(value);
+			for(int i = 0; i < key.GetCount(); i++) {
+				int chr = key[i];
+				if (chr == '.' || IsDigit(chr))
+					continue;
+				key = key.Left(i);
+				break;
+			}
+			if (key.IsEmpty() || value.IsEmpty())
+				continue;
+			section_values.GetAdd(key, value);
+		}
+		for(int i = 0; i < ss.parts.GetCount(); i++) {
+			auto& p = ss.parts[i];
+			String key;
+			key << i;
+			int l = section_values.Find(key);
+			if (l >= 0) {
+				String& val = section_values[l];
+				int el_i = src.element_keys.FindAdd(val);
+				p.cls = el_i;
+			}
+			
+			for(int j = 0; j < p.sub.GetCount(); j++) {
+				auto& s = p.sub[j];
+				String key;
+				key << i << "." << j;
+				int l = section_values.Find(key);
+				if (l >= 0) {
+					String& val = section_values[l];
+					int el_i = src.element_keys.FindAdd(val);
+					s.cls = el_i;
+				}
+				
+				for(int k = 0; k < s.sub.GetCount(); k++) {
+					auto& ss = s.sub[k];
+					String key;
+					key << i << "." << j << "." << k;
+					int l = section_values.Find(key);
+					if (l >= 0) {
+						String& val = section_values[l];
+						int el_i = src.element_keys.FindAdd(val);
+						ss.cls = el_i;
+					}
+				}
+			}
+		}
+		
+		NextBatch();
+		SetWaiting(false);
+	}, keep_going);
+	
+	
+}
+
+void SourceAnalysisProcess::SummarizeContent() {
+	
+}
+
+SourceAnalysisProcess& SourceAnalysisProcess::Get(DatasetPtrs p) {
+	static ArrayMap<String, SourceAnalysisProcess> arr;
+	
+	String key = p.src->filepath;
+	auto& ts = arr.GetAdd(key);
+	ts.p = pick(p);
+	return ts;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TokenDataProcess::TokenDataProcess() {
+	
+}
+
+int TokenDataProcess::GetPhaseCount() const {
+	return PHASE_COUNT;
+}
+
+int TokenDataProcess::GetBatchCount(int phase) const {
+	ASSERT(p.src);
+	auto& src = *p.src;
+	switch (phase) {
+		case PHASE_GET: return (src.tokens.GetCount() + per_action_task - 1) / per_action_task;
+		default: return 0;
+	}
+}
+
+int TokenDataProcess::GetSubBatchCount(int phase, int batch) const {
+	return 1;
+}
+
+void TokenDataProcess::DoPhase() {
+	switch (phase) {
+		case PHASE_GET: Get(); return;
+		default: break;
+	}
+}
+
+TokenDataProcess& TokenDataProcess::Get(DatasetPtrs p) {
+	static ArrayMap<String, TokenDataProcess> arr;
+	
+	String key = p.src->filepath;
+	auto& ts = arr.GetAdd(key);
+	ts.p = pick(p);
+	return ts;
+}
+
+void TokenDataProcess::Get() {
+	ASSERT(p.src);
+	auto& src = *p.src;
+	auto& wrds = *p.wrd;
+	auto& da = *p.da;
+	
+	TokenArgs& args = token_args;
+	args.fn = 0;
+	args.words.Clear();
+	
+	if (batch == 0) total = 0;
+	
+	int begin = batch * per_action_task;
+	int end = begin + per_action_task;
+	end = min(end, src.tokens.GetCount());
+	int count = end - begin;
+	if (count <= 0) {
+		NextPhase();
+		return;
+	}
+	
+	for(int i = begin; i < end; i++) {
+		const String& tk = src.tokens.GetKey(i);
+		args.words << tk;
+	}
+	
+	total += count;
+	
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	m.GetTokenData(args, [this](String result) {
+		TokenArgs& args = token_args;
+		auto& src = *p.src;
+		auto& wrds = *p.wrd;
+		auto& da = *p.da;
+		
+		// 9. suppote: verb | noun
+		
+		result.Replace("\r", "");
+		Vector<String> lines = Split(result, "\n");
+		
+		int offset = 3+1;
+		
+		for (String& line : lines) {
+			line = TrimBoth(line);
+			
+			if (line.IsEmpty() ||!IsDigit(line[0]))
+				continue;
+			
+			/*int line_i = ScanInt(line);
+			line_i -= offset;
+			if (line_i < 0 || line_i >= args.words.GetCount())
+				continue;
+			
+			const String& orig_word = args.words[line_i];*/
+			
+			int a = line.Find(".");
+			if (a < 0) continue;
+			line = TrimBoth(line.Mid(a+1));
+			
+			a = line.Find(":");
+			if (a == 0) {
+				// Rare case of ":" being asked
+				line = ":" + line;
+				a = 1;
+			}
+			else if (a < 0)
+				continue;
+			
+			//int orig_word_i = ;
+			
+			String result_word = TrimBoth(line.Left(a));
+			
+			/*ExportWord& wrd =
+				orig_word_i >= 0 ?
+					da.words[orig_word_i] :
+					da.words.GetAdd(result_word, orig_word_i);*/
+			int orig_word_i = -1;
+			ExportWord& wrd = MapGetAdd(wrds.words, result_word, orig_word_i);
+			
+			//TODO // token to word
+			
+			line = TrimBoth(line.Mid(a+1));
+			
+			a = line.Find("(");
+			if (a >= 0)
+				line = line.Left(a);
+			
+			Vector<String> parts = Split(line, "|");
+			for (String& p : parts) {
+				p = TrimBoth(p);
+				int wc_i = wrds.word_classes.FindAdd(p);
+				if (wrd.class_count < wrd.MAX_CLASS_COUNT)
+					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
+			}
+			
+			actual++;
+		}
+		
+		
+		da.diagnostics.GetAdd("tokens: total") = IntStr(total);
+		da.diagnostics.GetAdd("tokens: actual") =  IntStr(actual);
+		da.diagnostics.GetAdd("tokens: percentage") =  DblStr((double)actual / (double) total * 100);
+		
+		NextBatch();
+		SetWaiting(false);
+	});
+}
 
 END_UPP_NAMESPACE

@@ -20,7 +20,6 @@
 #include "Phoneme.h"
 #include "SolverBase.h"
 #include "SourceText.h"
-#include "TokenData.h"
 #include "LyricStructSolver.h"
 
 NAMESPACE_UPP

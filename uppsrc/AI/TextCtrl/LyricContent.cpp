@@ -319,20 +319,15 @@ void PartContentCtrl::Data() {
 }
 
 void PartContentCtrl::AddElements(DropList& dl) {
-	#if 0
-	const Vector<String>& el = GetElements();
-	#else
+	auto& p = o.GetDataset();
+	ASSERT(p.src);
+	auto& src = *p.src;
 	if (element_keys.IsEmpty()) {
-		TextDatabase& db = o.GetDatabase();
-		SourceDataAnalysis& sda = db.a;
-		DatasetAnalysis& da = sda.dataset;
-		
-		const auto& el = da.element_keys.GetKeys();
+		const auto& el = src.element_keys.GetKeys();
 		element_keys <<= el;
 		Sort(element_keys, StdLess<String>());
 	}
 	const auto& el = element_keys;
-	#endif
 	
 	dl.Add("");
 	for (const auto& e : el)

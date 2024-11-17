@@ -540,6 +540,9 @@ void DatabaseBrowser::SetColumnCursor(ColumnType t, int i)
 
 void DatabaseBrowser::FillItems(ColumnType t)
 {
+	ASSERT(p.src);
+	auto& src = *p.src;
+	
 	TextDatabase& db = GetDatabase();
 	SourceDataAnalysis& sda = db.a;
 	DatasetAnalysis& da = sda.dataset;
@@ -569,7 +572,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			int el_id = vmap.GetKey(i);
 			Item& it = type_items[1 + i];
-			it.str = da.element_keys[el_id];
+			it.str = src.element_keys[el_id];
 			it.count = vmap[i];
 			it.idx = el_id;
 		}

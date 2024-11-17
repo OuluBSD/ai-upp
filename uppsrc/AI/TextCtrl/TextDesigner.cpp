@@ -39,6 +39,11 @@ Component& ToolAppCtrl::GetComponent() {
 	return *p.component;
 }
 
+void ToolAppCtrl::AddMenu() {
+	AddFrame(menu);
+	ToolMenu(menu);
+}
+
 TextDatabase& ToolAppCtrl::GetDatabase() {
 	return TextDatabase::Single();
 }

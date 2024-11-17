@@ -152,6 +152,27 @@ bool RangeContains(Point pos, Point begin, Point end);
 
 
 // TextTool classes
+// TODO optimize & merge
+
+struct SourceDataAnalysisArgs {
+	int fn;
+	String artist, song, text;
+	Vector<String> words;
+	Vector<String> phrases;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("artist", artist)
+				("song", song)
+				("text", text)
+				("words", words)
+				("phrases", phrases)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
 
 struct TokenArgs {
 	int fn;

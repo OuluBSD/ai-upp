@@ -224,7 +224,8 @@ public:
 	void CreateInput_GenericPrompt();
 	void CreateInput_Code();
 	void CreateInput_GetTokenData();
-
+	void CreateInput_GetSourceDataAnalysis();
+	
 	void Process_CreateImage();
 	void Process_EditImage();
 	void Process_VariateImage();

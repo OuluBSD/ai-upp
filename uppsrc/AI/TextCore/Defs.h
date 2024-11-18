@@ -111,5 +111,19 @@
 	
 
 
+struct CallbackInhibitor {
+	Event<> cb;
+	Event<>& ref;
+	
+	CallbackInhibitor(Event<>& other) : cb(other), ref(other) {other.Clear();}
+	~CallbackInhibitor() {ref = cb;}
+};
+
+#define INHIBIT_CURSOR(x) CallbackInhibitor __cur(x.WhenCursor)
+#define INHIBIT_CURSOR_(x, id) CallbackInhibitor __##id(x.WhenCursor)
+#define INHIBIT_ACTION(x) CallbackInhibitor __act(x.WhenAction)
+#define INHIBIT_ACTION_(x, id) CallbackInhibitor __##id(x.WhenAction)
+
+
 
 #endif

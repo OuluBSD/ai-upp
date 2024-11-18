@@ -21,6 +21,7 @@
 #include "SolverBase.h"
 #include "SourceText.h"
 #include "LyricStructSolver.h"
+#include "LyricsSolver.h"
 
 NAMESPACE_UPP
 

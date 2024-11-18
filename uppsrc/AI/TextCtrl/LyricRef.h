@@ -4,23 +4,6 @@
 NAMESPACE_UPP
 
 
-struct NavigatorState {
-	PartLineCtrl* line = 0;
-	int depth = -1;
-	LineElement* el = 0;
-	hash_t sorter = 0;
-	String element;
-	AttrHeader attr;
-	int clr_i = -1;
-	ActionHeader act;
-	int typeclass_i = -1;
-	int con_i = -1;
-	void Clear();
-	void RemoveDuplicate(const NavigatorState& s);
-};
-
-
-
 class ScriptPhrasePartsGroups : public Ctrl {
 	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
@@ -56,6 +39,7 @@ public:
 
 void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit);
 
+// TODO rename
 class ScriptReferenceMakerCtrl : public ToolAppCtrl {
 	String data;
 	
@@ -89,7 +73,7 @@ public:
 	void ReadNavigatorState(NavigatorState& state, int depth_limit=INT_MAX);
 	
 	static String GetID() {return "lyric-ref";}
-	static String GetExt() {return ".lyref";}
+	static String GetExt() {return ".lyr-ref";}
 };
 
 END_UPP_NAMESPACE

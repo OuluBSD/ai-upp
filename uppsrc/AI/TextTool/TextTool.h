@@ -4,6 +4,6 @@
 #include <AI/TextCtrl/TextCtrl.h>
 
 #include "DialogueBuilder.h"
-#include "DialogueDesigner.h"
+#include "Designer.h"
 
 #endif

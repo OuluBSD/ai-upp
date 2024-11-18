@@ -287,13 +287,20 @@ struct ScriptPostFix {
 	}
 };
 
-struct Script : Component {
-	String copyright;
-	String description;
-	String lang;
-	Array<DynPart> parts;
-	String __text;
-
+// TODO rename to LyricsDraft
+struct Script : Component, Pte<Script> {
+	String					copyright;
+	String					description;
+	String					lang;
+	Array<DynPart>			parts;
+	String					__text;
+	VectorMap<int, String>	__suggestions;
+	
+	Vector<bool>			simple_attrs;
+	Vector<int>				clr_list;
+	Vector<bool>			actions_enabled;
+	Vector<int>				phrase_parts[ContentType::PART_COUNT];
+	
 	DynPart* FindPartByName(const String& name);
 	int GetFirstPartPosition() const;
 	String GetAnyTitle() const;
@@ -313,14 +320,39 @@ struct Script : Component {
 	void Jsonize(JsonIO& json)
 	{
 		Component::Jsonize(json);
-		json("copyright", copyright)("description", description)("lang", lang)(
-			"parts", parts)("text", __text);
+		json("copyright", copyright)
+			("description", description)
+			("lang", lang)
+			("parts", parts)
+			("text", __text)
+			("suggestions", __suggestions)
+			("simple_attrs", simple_attrs)
+			("clr_list", clr_list)
+			("actions_enabled", actions_enabled)
+			;
+		for(int i = 0; i < ContentType::PART_COUNT; i++)
+			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
 	}
 };
 
 void ReplaceWord(String& s, const String& orig_word, const String& replace_word);
 void HotfixReplaceWord(WString& ws);
 void HotfixReplaceWord(String& s);
+
+// Lyrics <-- previously ComponentAnalysis
+struct Lyrics : Component, Pte<Lyrics> {
+	VectorMap<hash_t,PhrasePart> phrase_parts[ContentType::PART_COUNT];
+	Index<int> source_pool[ContentType::PART_COUNT];
+	VectorMap<hash_t,PhraseComb> phrase_combs[ContentType::PART_COUNT];
+	VectorMap<hash_t,ScriptSuggestion> script_suggs;
+	VectorMap<hash_t,TranslatedPhrasePart> trans_phrase_combs[LNG_COUNT][ContentType::PART_COUNT];
+	
+	
+	
+	
+	Lyrics() {}
+	~Lyrics() {}
+};
 
 END_UPP_NAMESPACE
 

@@ -3,11 +3,11 @@
 
 NAMESPACE_UPP
 
-class Component {
+class Component : Pte<Component> {
 public:
 	String name;
 	
-	~Component() {}
+	virtual ~Component() {}
 	virtual String GetTypename() const = 0;
 	virtual const std::type_info& GetType() const = 0;
 	
@@ -16,12 +16,14 @@ public:
 	void Jsonize(JsonIO& json) {json("name",name);}
 };
 
-class Entity {
+class Entity : Pte<Entity> {
 public:
 	String name, type;
 	VectorMap<String, Value> data;
 	Array<Component> comps;
 
+	Entity() {}
+	virtual ~Entity() {}
 	void Clear()
 	{
 		name.Clear();

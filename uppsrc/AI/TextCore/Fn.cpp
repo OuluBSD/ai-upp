@@ -327,4 +327,24 @@ void GetWords(const String& line, Vector<String>& words) {
 	}
 }
 
+void SetCountForArray(ArrayCtrl& arr, int count) {
+	INHIBIT_CURSOR(arr);
+	arr.SetCount(count);
+}
+
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count) {
+	INHIBIT_CURSOR(arr);
+	arr.SetCount(count);
+	if (!arr.IsCursor() && arr.GetCount())
+		arr.SetCursor(0);
+}
+
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool descending) {
+	INHIBIT_CURSOR(arr);
+	arr.SetCount(count);
+	arr.SetSortColumn(sort_row, descending);
+	if (!arr.IsCursor() && arr.GetCount())
+		arr.SetCursor(0);
+}
+
 END_UPP_NAMESPACE

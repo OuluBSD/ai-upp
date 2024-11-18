@@ -37,6 +37,7 @@ public:
 	
 };
 
+// TODO rename
 class PartContentCtrl : public Ctrl {
 	
 protected:

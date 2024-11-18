@@ -242,6 +242,101 @@ struct AttrArgs {
 	
 };
 
+struct ScriptSolverArgs {
+	int fn;
+	int sub_fn = -1;
+	int lng_i = -1;
+	VectorMap<String,String> artist, release, song;
+	Vector<String> parts, attrs, phrases, scores, phrases2, styles;
+	Vector<int> counts, offsets;
+	String part, vision, ref;
+	bool is_story = false;
+	bool is_unsafe = false;
+	bool is_self_centered = false;
+	bool ret_fail = false;
+	double factor = 0;
+	Vector<String> elements;
+	String rhyme_element;
+	String previously;
+	String peek;
+	
+	
+	struct State {
+		String			element;
+		String			attr_key;
+		String			attr_value;
+		int				clr_i = -1;
+		String			act_action;
+		String			act_arg;
+		String			typeclass;
+		String			content, content_mod;
+		String			style_type;
+		String			style_entity;
+		int				safety = 0;
+		int				line_len = 0;
+		int				connector = 0;
+		String			line_begin;
+		
+		void Jsonize(JsonIO& json) {
+			json	("element", element)
+					("attr_key", attr_key)
+					("attr_value", attr_value)
+					("clr_i", clr_i)
+					("act_action", act_action)
+					("act_arg", act_arg)
+					("typeclass", typeclass)
+					("content", content)
+					("content_mod", content_mod)
+					("style_type", style_type)
+					("style_entity", style_entity)
+					("safety", safety)
+					("line_len", line_len)
+					("connector", connector)
+					("line_begin", line_begin)
+					;
+		}
+	};
+	
+	State state;
+	Array<State> line_states;
+
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("sub_fn", sub_fn)
+				("lng_i", lng_i)
+				("artist", artist)
+				("release", release)
+				("song", song)
+				("parts", parts)
+				("attrs", attrs)
+				("phrases", phrases)
+				("phrases2", phrases2)
+				("styles", styles)
+				("scores", scores)
+				("counts", counts)
+				("offsets", offsets)
+				("part", part)
+				("vision", vision)
+				("ref", ref)
+				("is_story", is_story)
+				("is_unsafe", is_unsafe)
+				("is_self_centered", is_self_centered)
+				("ret_fail", ret_fail)
+				("factor", factor)
+				("elements", elements)
+				("rhyme_element", rhyme_element)
+				("state", state)
+				("line_states", line_states)
+				("previously", previously)
+				("peek", peek)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
 
 END_UPP_NAMESPACE
 

@@ -9,10 +9,11 @@
 
 #include "Fn.h"
 #include "TextDesigner.h"
+#include "Entity.h"
 #include "SourceText.h"
 #include "LyricContent.h"
 #include "LyricRef.h"
-
+#include "LyricsEditor.h"
 
 NAMESPACE_UPP
 

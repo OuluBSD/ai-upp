@@ -6,6 +6,8 @@ uses
 file
 	TextCtrl.h,
 	TextCtrl.lay,
+	Fn.h,
+	Fn.cpp,
 	TextDesigner.h,
 	TextDesigner.cpp,
 	LyricRef.h,

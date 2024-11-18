@@ -7,6 +7,7 @@
 #define LAYOUTFILE <AI/TextCtrl/TextCtrl.lay>
 #include <CtrlCore/lay.h>
 
+#include "Fn.h"
 #include "TextDesigner.h"
 #include "SourceText.h"
 #include "LyricContent.h"

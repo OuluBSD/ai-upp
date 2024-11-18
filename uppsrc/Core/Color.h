@@ -91,21 +91,12 @@ private:
 	Color(int);
 };
 
-inline Stream& operator%(Stream& s, Color& c)
+inline Stream& operator/(Stream& s, Color& c)
 {
-	dword raw;
-	if (s.IsStoring()) {
-		raw = c.GetRaw();
-		s / raw;
-	}
-	else {
-		s / raw;
-		c.FromRaw(raw);
-	}
+	if (s.IsStoring()) s.Put32le(c.GetRaw());
+	else c = Color::FromRaw(s.Get32le());
 	return s;
 }
-
-inline Stream& operator/(Stream& s, Color& c) {return operator%(s,c);}
 
 RGBA operator*(int alpha, Color c);
 

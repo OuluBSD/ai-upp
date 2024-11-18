@@ -1,5 +1,5 @@
-#ifndef _AI_TextTool_DialogueDesigner_h_
-#define _AI_TextTool_DialogueDesigner_h_
+#ifndef _AI_TextTool_Designer_h_
+#define _AI_TextTool_Designer_h_
 
 NAMESPACE_UPP
 
@@ -31,10 +31,12 @@ struct Des : IdeDesigner, ParentCtrl {
 
 using DialogueDes = Des<ScriptReferenceMakerCtrl>;
 using SourceTextDes = Des<SourceTextCtrl>;
+using ScriptTextSolverDes = Des<ScriptTextSolverCtrl>;
 
 
 INITIALIZE(DialogueDes)
 INITIALIZE(SourceTextDes)
+INITIALIZE(ScriptTextSolverDes)
 
 
 END_UPP_NAMESPACE

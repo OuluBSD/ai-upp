@@ -24,11 +24,13 @@ file
 	NatLang.cpp,
 	SolverBase.h,
 	SolverBase.cpp,
-	"Database processes" readonly separator,
+	Database readonly separator,
 	CreateInput.cpp,
 	SourceText.h,
 	SourceText.cpp,
-	"Database proc utils" readonly separator,
+	LyricsSolver.h,
+	LyricsSolver.cpp,
+	"Database utils" readonly separator,
 	LyricStructSolver.h,
 	LyricStructSolver.cpp;
 

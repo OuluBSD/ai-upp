@@ -358,6 +358,12 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 
 struct DatasetPtrs {
 	Ptr<SrcTextData>		src;
+	Ptr<Entity>				entity;
+	Ptr<Component>			component;
+	
+	// Specialized components
+	Ptr<Script>				script; // TODO rename to lyrics_draft
+	Ptr<Lyrics>				lyrics;
 	
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 };

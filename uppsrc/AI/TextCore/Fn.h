@@ -136,6 +136,10 @@ void RemoveQuotes2(String& s);
 
 void GetWords(const String& line, Vector<String>& words);
 
+void SetCountForArray(ArrayCtrl& arr, int count);
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count);
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool descending=false);
+
 END_UPP_NAMESPACE
 
 #endif

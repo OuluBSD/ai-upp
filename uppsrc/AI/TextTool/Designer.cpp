@@ -13,7 +13,14 @@ Des<T>::Des()
 }
 
 template <class T>
-void Des<T>::Preview() { edit.Data(); }
+void Des<T>::Preview() {
+	try {
+		edit.Data();
+	}
+	catch (NoPointerExc e) {
+		LOG("Des< " << T::GetID() << ">: error: " << e);
+	}
+}
 
 template <class T>
 bool Des<T>::Load(const String& includes, const String& filename_)

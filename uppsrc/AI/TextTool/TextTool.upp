@@ -7,6 +7,6 @@ file
 	TextTool.h,
 	DialogueBuilder.h,
 	DialogueBuilder.cpp,
-	DialogueDesigner.h,
-	DialogueDesigner.cpp;
+	Designer.h,
+	Designer.cpp;
 

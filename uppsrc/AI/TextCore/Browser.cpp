@@ -500,6 +500,7 @@ void DatabaseBrowser::RealizeUniqueActions()
 void DatabaseBrowser::SetInitialData()
 {
 	auto& src = *p.src;
+	ASSERT(p.src);
 	
 	phrase_parts.SetCount(src.phrase_parts.GetCount());
 	int i = 0;

@@ -50,6 +50,9 @@ struct TaskMgr {
 	// Source text analysis
 	void GetTokenData(const TokenArgs& args, Event<String> WhenResult);
 	void GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<String> WhenResult, bool keep_going=false);
+	void GetPhraseData(const PhraseArgs& args, Event<String> WhenResult);
+	void GetActionAnalysis(const ActionAnalysisArgs& args, Event<String> WhenResult);
+	void GetAttributes(const AttrArgs& args, Event<String> WhenResult);
 	
 	template <class T>
 	String MakeName(T& o, const char* name);

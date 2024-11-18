@@ -356,6 +356,60 @@ void TaskMgr::GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<St
 	task_lock.Leave();
 }
 
+void TaskMgr::GetPhraseData(const PhraseArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	
+	t.SetRule(MakeName(args, "get phrase data"))
+		.Input(&AiTask::CreateInput_GetPhraseData)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+}
+
+void TaskMgr::GetActionAnalysis(const ActionAnalysisArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+
+	String s = args.Get();
+
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	
+	t.SetRule(MakeName(args, "get action analysis"))
+		.Input(&AiTask::CreateInput_GetActionAnalysis)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+}
+
+void TaskMgr::GetAttributes(const AttrArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	
+	t.SetRule(MakeName(args, "get attributes"))
+		.Input(&AiTask::CreateInput_GetAttributes)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

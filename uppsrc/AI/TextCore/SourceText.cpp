@@ -2921,11 +2921,11 @@ void ActionAttrsProcess::DoPhase() {
 	}
 	
 	/*
-	bar.Add(t_("Update action colors using existing"), AppImg::VioletRing(), THISBACK1(DoActionlistUsingExisting, 0)).Key(K_F5);
-	bar.Add(t_("Update action colors"), AppImg::RedRing(), THISBACK1(DoActionlist, 0)).Key(K_F6);
+	bar.Add(t_("Update action colors using existing"), TextImgs::VioletRing(), THISBACK1(DoActionlistUsingExisting, 0)).Key(K_F5);
+	bar.Add(t_("Update action colors"), TextImgs::RedRing(), THISBACK1(DoActionlist, 0)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Update action attributes using existing"), AppImg::VioletRing(), THISBACK1(DoActionlistUsingExisting, 1)).Key(K_F7);
-	bar.Add(t_("Update action attributes"), AppImg::RedRing(), THISBACK1(DoActionlist, 1)).Key(K_F8);
+	bar.Add(t_("Update action attributes using existing"), TextImgs::VioletRing(), THISBACK1(DoActionlistUsingExisting, 1)).Key(K_F7);
+	bar.Add(t_("Update action attributes"), TextImgs::RedRing(), THISBACK1(DoActionlist, 1)).Key(K_F8);
 	*/
 }
 

@@ -52,7 +52,7 @@ struct ExportWord : Moveable<ExportWord> {
 
 	void Serialize(Stream& s)
 	{
-		s / spelling / phonetic / count % clr / class_count;
+		s / spelling / phonetic / count / clr / class_count;
 		for(int i = 0; i < MAX_CLASS_COUNT; i++) s / classes[i];
 		s / link;
 	}
@@ -155,7 +155,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 	}
 	void Serialize(Stream& s)
 	{
-		s % words / tt_i / virtual_phrase_part / attr / el_i % clr % actions % typecasts % contrasts;
+		s % words / tt_i / virtual_phrase_part / attr / el_i / clr % actions % typecasts % contrasts;
 		for(int i = 0; i < SCORE_COUNT; i++) s / scores[i];
 	}
 	hash_t GetHashValue() const
@@ -180,7 +180,7 @@ struct ExportAction : Moveable<ExportAction> {
 	Color clr;
 	int count = 0;
 
-	void Serialize(Stream& d) { d / attr % clr / count; }
+	void Serialize(Stream& d) { d / attr / clr / count; }
 };
 
 struct ExportParallel : Moveable<ExportParallel> {
@@ -205,7 +205,7 @@ struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
 
 	void Serialize(Stream& d)
 	{
-		d % actions % next_phrases % next_scores / first_lines / attr % clr;
+		d % actions % next_phrases % next_scores / first_lines / attr / clr;
 	}
 };
 

@@ -225,6 +225,9 @@ public:
 	void CreateInput_Code();
 	void CreateInput_GetTokenData();
 	void CreateInput_GetSourceDataAnalysis();
+	void CreateInput_GetPhraseData();
+	void CreateInput_GetActionAnalysis();
+	void CreateInput_GetAttributes();
 	
 	void Process_CreateImage();
 	void Process_EditImage();

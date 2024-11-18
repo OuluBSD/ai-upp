@@ -188,6 +188,60 @@ struct TokenArgs {
 	
 };
 
+struct PhraseArgs {
+	int fn;
+	Vector<String> phrases;
+	Vector<String> elements;
+	Vector<String> typeclasses;
+	Vector<String> contents;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("phrases", phrases)
+				("elements", elements)
+				("typeclasses", typeclasses)
+				("contents", contents)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
+struct ActionAnalysisArgs {
+	int fn;
+	Vector<String> actions;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("actions", actions)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
+struct AttrArgs {
+	int fn;
+	String group;
+	Vector<String> groups, values;
+	String attr0, attr1;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("group", group)
+				("groups", groups)
+				("values", values)
+				("attr0", attr0)
+				("attr1", attr1)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
 
 END_UPP_NAMESPACE
 

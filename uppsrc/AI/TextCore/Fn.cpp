@@ -302,4 +302,29 @@ void RemoveQuotes2(String& s_) {
 	s_ = ws.ToString();
 }
 
+void GetWords(const String& line, Vector<String>& words) {
+	words.SetCount(0);
+	
+	WString w = line.ToWString();
+	
+	WString tmp;
+	for(int i = 0; i < w.GetCount(); i++) {
+		wchar chr = w[i];
+		
+		if (!IsLetter(chr) && !IsDigit(chr) && chr != '\'' && chr != '`' && chr != '-') {
+		//if (IsSpace(chr) || chr == '.' || chr == ',' || chr == '?' || chr == '!' || chr == ':' || chr == ';') {
+			if (tmp.IsEmpty()) continue;
+			words << tmp.ToString();
+			tmp.Clear();
+		}
+		else {
+			tmp.Cat(chr);
+		}
+	}
+	
+	if (tmp.GetCount()) {
+		words << tmp.ToString();
+	}
+}
+
 END_UPP_NAMESPACE

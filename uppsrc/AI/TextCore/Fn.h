@@ -134,6 +134,8 @@ void RemoveEmptyLines3(String& s);
 void RemoveQuotes(String& s);
 void RemoveQuotes2(String& s);
 
+void GetWords(const String& line, Vector<String>& words);
+
 END_UPP_NAMESPACE
 
 #endif

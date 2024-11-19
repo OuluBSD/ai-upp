@@ -125,24 +125,16 @@ struct DesModule : public IdeModule {
 	}
 };
 
-using DialogueDesModule = DesModule<DialogueDes>;
-using SourceTextDesModule = DesModule<SourceTextDes>;
+#define INITIALIZE_MODULE(x) \
+	using x##Module = DesModule<x>; \
+	INITIALIZER(x) \
+	{ \
+		RegisterIdeModule(Single<x##Module>()); \
+		RegisterGlobalConfig(x##Module::GetIDStatic()); \
+	}
 
-INITIALIZER(DialogueDes)
-{
-	RegisterIdeModule(Single<DialogueDesModule>());
-	RegisterGlobalConfig(DialogueDesModule::GetIDStatic());
-}
-
-INITIALIZER(SourceTextDes)
-{
-	RegisterIdeModule(Single<SourceTextDesModule>());
-	RegisterGlobalConfig(SourceTextDesModule::GetIDStatic());
-}
-
-
-
-
-
+INITIALIZE_MODULE(DialogueDes)
+INITIALIZE_MODULE(SourceTextDes)
+INITIALIZE_MODULE(ScriptTextSolverDes)
 
 END_UPP_NAMESPACE

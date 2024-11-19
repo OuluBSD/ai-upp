@@ -24,9 +24,9 @@ class StructuredScriptEditor : public Ctrl {
 	int txt_src = 0;
 	
 	enum {
-		SRC_ALT,
-		SRC_EDIT,
-		SRC_USER,
+		SRC_NORMAL,
+		SRC_SOURCE,
+		
 		SRC_COUNT
 	};
 	
@@ -50,8 +50,8 @@ public:
 	void CheckClearSelected();
 	void ClearSelected();
 	void SwitchTextSource() {txt_src = (txt_src + 1) % SRC_COUNT; Refresh();}
-	void ShowEditText(bool b=true) {txt_src = SRC_EDIT; Refresh();}
-	void ShowUserText(bool b=true) {txt_src = SRC_USER; Refresh();}
+	void ShowNormalText(bool b=true) {txt_src = SRC_NORMAL; Refresh();}
+	void ShowSourceText(bool b=true) {txt_src = SRC_SOURCE; Refresh();}
 	void ScrollView(const Rect& r);
 	bool IsAnySelected() const;
 	ScriptTextSolverCtrl* owner = 0;
@@ -105,6 +105,7 @@ public:
 	typedef ScriptTextSolverCtrl CLASSNAME;
 	ScriptTextSolverCtrl();
 	
+	void SetFont(Font fnt) {}
 	void ToolMenu(Bar& bar) override;
 	void Data() override;
 	void DataSuggestions();

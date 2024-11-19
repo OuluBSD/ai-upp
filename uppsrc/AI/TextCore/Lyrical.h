@@ -1,5 +1,5 @@
-#ifndef _AI_TextCore_Lyric_h_
-#define _AI_TextCore_Lyric_h_
+#ifndef _AI_TextCore_Lyrical_h_
+#define _AI_TextCore_Lyrical_h_
 
 NAMESPACE_UPP
 
@@ -61,9 +61,10 @@ struct LineElement {
 
 struct DynLine : Moveable<DynLine> {
 	String text;
-	String alt_text;
+	String src_text;
+	/*String alt_text;
 	String edit_text;
-	String user_text;
+	String user_text;*/
 	String expanded;
 	Vector<String> suggs;
 	int pp_i = -1;
@@ -80,8 +81,8 @@ struct DynLine : Moveable<DynLine> {
 
 	void Jsonize(JsonIO& json)
 	{
-		json("text", text)("alt_text", alt_text)("edit_text", edit_text)(
-			"user_text", user_text)("ex", expanded)("el", el)("suggs", suggs)("pp_i", pp_i)(
+		json("text", text)("src_text", src_text)/*("alt_text", alt_text)("edit_text", edit_text)("user_text", user_text)*/
+			("ex", expanded)("el", el)("suggs", suggs)("pp_i", pp_i)(
 			"end_pp_i", end_pp_i)("style_type", style_type)("style_entity", style_entity)(
 			"safety", safety)("line_len", line_len)("connector", connector)("line_begin",
 		                                                                    line_begin);
@@ -154,90 +155,7 @@ struct DynPart {
 	String GetLineElementString(int line) const;
 };
 
-struct ScriptStruct : Moveable<ScriptStruct> {
-	ScriptStruct() {}
-	ScriptStruct(const ScriptStruct& s) { *this = s; }
-	ScriptStruct(ScriptStruct&& s) { *this = s; }
-	void operator=(const ScriptStruct& s) { parts <<= s.parts; }
-
-	struct SubSubPart : Moveable<SubSubPart> {
-		Vector<int> token_texts;
-		int cls = -1;
-
-		SubSubPart() {}
-		SubSubPart(const SubSubPart& s) { *this = s; }
-		void Serialize(Stream& s) { s % token_texts % cls; }
-		void Jsonize(JsonIO& json) { json("token_texts", token_texts)("cls", cls); }
-		void operator=(const SubSubPart& s)
-		{
-			token_texts <<= s.token_texts;
-			cls = s.cls;
-		}
-	};
-	struct SubPart : Moveable<SubPart> {
-		Vector<SubSubPart> sub;
-		int cls = -1;
-		int repeat = 0;
-
-		SubPart() {}
-		SubPart(const SubPart& s) { *this = s; }
-		void Serialize(Stream& s) { s % sub % cls % repeat; }
-		void Jsonize(JsonIO& json) { json("sub", sub)("cls", cls)("repeat", repeat); }
-		void operator=(const SubPart& s)
-		{
-			sub <<= s.sub;
-			cls = s.cls;
-			repeat = s.repeat;
-		}
-	};
-	struct Part : Moveable<Part> {
-		Vector<SubPart> sub;
-		int type = -1;
-		int num = -1;
-		int cls = -1, typeclass = -1, content = -1;
-
-		Part() {}
-		Part(const Part& p) { *this = p; }
-		void Serialize(Stream& s) { s % sub % type % num % cls % typeclass % content; }
-		void Jsonize(JsonIO& json)
-		{
-			json("sub", sub)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
-			                                                                        content);
-		}
-		void operator=(const Part& s)
-		{
-			sub <<= s.sub;
-			type = s.type;
-			num = s.num;
-			cls = s.cls;
-			typeclass = s.typeclass;
-			content = s.content;
-		}
-	};
-	Vector<Part> parts;
-
-	void Serialize(Stream& s) { s % parts; }
-
-	void Jsonize(JsonIO& json) { json("parts", parts); }
-	bool HasAnyClasses() const
-	{
-		for(const auto& p : parts) {
-			if(p.cls >= 0)
-				return true;
-			for(const auto& s : p.sub) {
-				if(s.cls >= 0)
-					return true;
-				for(const auto& ss : s.sub) {
-					if(ss.cls >= 0)
-						return true;
-				}
-			}
-		}
-		return false;
-	}
-	double GetNormalScore() const;
-};
-
+// TODO remove ScriptPostFix class or fix the post-analysis
 struct ScriptPostFix {
 	struct Weak : Moveable<Weak> {
 		int line_i = -1;
@@ -287,29 +205,30 @@ struct ScriptPostFix {
 	}
 };
 
-// TODO rename to LyricsDraft
-struct Script : Component, Pte<Script> {
-	String					copyright;
-	String					description;
-	String					lang;
+String GetStructText(const Array<DynPart>& parts, bool src_text);
+
+struct LyricalStructure {
 	Array<DynPart>			parts;
-	String					__text;
-	VectorMap<int, String>	__suggestions;
+	
+	void Jsonize(JsonIO& json) {json("parts", parts);}
+	DynPart* FindPartByName(const String& name);
+	void LoadStructuredText(const String& s);
+	void LoadStructuredTextExt(const String& s, bool src_text);
+	void SetText(const String& s, bool src_text);
+	String GetStructText(bool src_text) const;
+};
+
+// TODO rename to LyricsDraft
+struct Script : Component, LyricalStructure {
 	
 	Vector<bool>			simple_attrs;
 	Vector<int>				clr_list;
 	Vector<bool>			actions_enabled;
-	Vector<int>				phrase_parts[ContentType::PART_COUNT];
+	Vector<int>				phrase_parts[PART_COUNT];
 	
-	DynPart* FindPartByName(const String& name);
-	int GetFirstPartPosition() const;
+	//int GetFirstPartPosition() const;
 	String GetAnyTitle() const;
-	String GetText() const;
-	String GetUserText() const;
-	String GetTextStructure(bool coarse) const;
-	void LoadStructuredText(const String& s);
-	void LoadStructuredTextExt(const String& s);
-	void SetEditText(const String& s);
+	//String GetTextStructure(bool coarse) const;
 
 	Script() {}
 	~Script();
@@ -320,17 +239,12 @@ struct Script : Component, Pte<Script> {
 	void Jsonize(JsonIO& json)
 	{
 		Component::Jsonize(json);
-		json("copyright", copyright)
-			("description", description)
-			("lang", lang)
-			("parts", parts)
-			("text", __text)
-			("suggestions", __suggestions)
-			("simple_attrs", simple_attrs)
+		LyricalStructure::Jsonize(json);
+		json("simple_attrs", simple_attrs)
 			("clr_list", clr_list)
 			("actions_enabled", actions_enabled)
 			;
-		for(int i = 0; i < ContentType::PART_COUNT; i++)
+		for(int i = 0; i < PART_COUNT; i++)
 			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
 	}
 };
@@ -340,18 +254,61 @@ void HotfixReplaceWord(WString& ws);
 void HotfixReplaceWord(String& s);
 
 // Lyrics <-- previously ComponentAnalysis
-struct Lyrics : Component, Pte<Lyrics> {
-	VectorMap<hash_t,PhrasePart> phrase_parts[ContentType::PART_COUNT];
-	Index<int> source_pool[ContentType::PART_COUNT];
-	VectorMap<hash_t,PhraseComb> phrase_combs[ContentType::PART_COUNT];
-	VectorMap<hash_t,ScriptSuggestion> script_suggs;
-	VectorMap<hash_t,TranslatedPhrasePart> trans_phrase_combs[LNG_COUNT][ContentType::PART_COUNT];
+struct Lyrics : Component, LyricalStructure {
+	String					name;
+	String					content_vision;
+	String					copyright;
+	String					description;
+	String					lang;
 	
+	String					__text;
+	VectorMap<int, String>	__suggestions;
+	bool					is_unsafe = false;
+	bool					is_story = false;
+	bool					is_self_centered = false;
+	
+	String					singer_description;
+	bool					singer_gender = false;
+	/*
+	VectorMap<hash_t,PhrasePart> phrase_parts[PART_COUNT];
+	Index<int> source_pool[PART_COUNT];
+	VectorMap<hash_t,PhraseComb> phrase_combs[PART_COUNT];
+	VectorMap<hash_t,ScriptSuggestion> script_suggs;
+	*/
 	
 	
 	
 	Lyrics() {}
 	~Lyrics() {}
+	void Jsonize(JsonIO& json)
+	{
+		Component::Jsonize(json);
+		LyricalStructure::Jsonize(json);
+		json("name", name)
+			("content_vision", content_vision)
+			("copyright", copyright)
+			("description", description)
+			("lang", lang)
+			("text", __text)
+			("suggestions", __suggestions)
+			("is_unsafe", is_unsafe)
+			("is_story", is_story)
+			("is_self_centered", is_self_centered)
+			("singer_description", singer_description)
+			("singer_gender", singer_gender)
+			;
+		/*for(int i = 0; i < PART_COUNT; i++) {
+			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
+			json("source_pool["+IntStr(i)+"]", source_pool[i]);
+			json("phrase_combs["+IntStr(i)+"]", phrase_combs[i]);
+			json("script_suggs", script_suggs);
+		}*/
+	}
+	String GetText() const;
+};
+
+struct Song : Component {
+	
 };
 
 END_UPP_NAMESPACE

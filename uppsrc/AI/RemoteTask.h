@@ -228,6 +228,7 @@ public:
 	void CreateInput_GetPhraseData();
 	void CreateInput_GetActionAnalysis();
 	void CreateInput_GetAttributes();
+	void CreateInput_ScriptSolver();
 	
 	void Process_CreateImage();
 	void Process_EditImage();

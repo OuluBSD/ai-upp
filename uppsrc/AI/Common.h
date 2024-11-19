@@ -245,7 +245,7 @@ struct AttrArgs {
 struct ScriptSolverArgs {
 	int fn;
 	int sub_fn = -1;
-	int lng_i = -1;
+	String lng;
 	VectorMap<String,String> artist, release, song;
 	Vector<String> parts, attrs, phrases, scores, phrases2, styles;
 	Vector<int> counts, offsets;
@@ -263,7 +263,7 @@ struct ScriptSolverArgs {
 	
 	struct State {
 		String			element;
-		String			attr_key;
+		String			attr_group;
 		String			attr_value;
 		int				clr_i = -1;
 		String			act_action;
@@ -279,7 +279,7 @@ struct ScriptSolverArgs {
 		
 		void Jsonize(JsonIO& json) {
 			json	("element", element)
-					("attr_key", attr_key)
+					("attr_group", attr_group)
 					("attr_value", attr_value)
 					("clr_i", clr_i)
 					("act_action", act_action)
@@ -304,7 +304,7 @@ struct ScriptSolverArgs {
 	void Jsonize(JsonIO& json) {
 		json	("fn", fn)
 				("sub_fn", sub_fn)
-				("lng_i", lng_i)
+				("lng", lng)
 				("artist", artist)
 				("release", release)
 				("song", song)

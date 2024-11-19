@@ -92,7 +92,7 @@ int DynPart::GetContrastIndex() const {
 	return idx;
 }
 
-String Script::GetUserText() const {
+String LyricalStructure::GetStructText(bool src_text) const {
 	String s;
 	int line_i = 0;
 	for (const DynPart& p: parts) {
@@ -101,7 +101,10 @@ String Script::GetUserText() const {
 			const DynSub& ds = p.sub[i];
 			for(int j = 0; j < ds.lines.GetCount(); j++) {
 				const DynLine& dl = ds.lines[j];
-				s << dl.user_text << "\n";
+				if (!src_text)
+					s << dl.text << "\n";
+				else
+					s << dl.src_text << "\n";
 			}
 		}
 		s << "\n";
@@ -208,13 +211,13 @@ String Script::GetAnyTitle() const {
 	return file_title;*/return "";
 }
 
-String Script::GetText() const {
+String Lyrics::GetText() const {
 	if (__text.GetCount())
 		return __text;
-	return GetUserText();
+	return GetStructText(0);
 }
 
-String Script::GetTextStructure(bool coarse) const {
+/*String Script::GetTextStructure(bool coarse) const {
 	String out;
 	for(const DynPart& dp : parts) {
 		if (dp.text_type == TextPartType::TXT_NULL)
@@ -228,15 +231,15 @@ String Script::GetTextStructure(bool coarse) const {
 			out << "[" << ds.el.element << "]\n";
 			for (const DynLine& dl : ds.lines) {
 				out.Cat('\t',2);
-				out << dl.user_text << "\n";
+				out << dl.text << "\n";
 			}
 		}
 		out << "\n\n";
 	}
 	return out;
-}
+}*/
 
-int Script::GetFirstPartPosition() const {
+/*int Script::GetFirstPartPosition() const {
 	#if 0
 	for(int i = 0; i < active_struct.parts.GetCount(); i++) {
 		String type = active_struct.parts[i];
@@ -248,9 +251,9 @@ int Script::GetFirstPartPosition() const {
 	}
 	#endif
 	return -1;
-}
+}*/
 
-DynPart* Script::FindPartByName(const String& name) {
+DynPart* LyricalStructure::FindPartByName(const String& name) {
 	String lname = ToLower(name);
 	RemoveSinger(lname);
 	for (DynPart& sp : parts)
@@ -259,7 +262,7 @@ DynPart* Script::FindPartByName(const String& name) {
 	return 0;
 }
 
-void Script::LoadStructuredText(const String& s) {
+void LyricalStructure::LoadStructuredText(const String& s) {
 	parts.Clear();
 	Vector<String> lines = Split(s, "\n");
 	int indent = 0;
@@ -324,7 +327,7 @@ void Script::LoadStructuredText(const String& s) {
 	}
 }
 
-void Script::SetEditText(const String& s) {
+void LyricalStructure::SetText(const String& s, bool src_text) {
 	Vector<String> sparts = Split(s, "[");
 	int part_i = 0;
 	for(int i = 0; i < sparts.GetCount(); i++) {
@@ -341,10 +344,13 @@ void Script::SetEditText(const String& s) {
 		}
 		for (auto& sub : part.sub) {
 			for (auto& line : sub.lines) {
+				String s;
 				if (line_i < lines.GetCount())
-					line.edit_text = lines[line_i];
+					s = lines[line_i];
+				if (src_text)
+					line.src_text = s;
 				else
-					line.edit_text = "";
+					line.text = s;
 				line_i++;
 			}
 		}
@@ -353,14 +359,17 @@ void Script::SetEditText(const String& s) {
 		auto& part = parts[part_i];
 		for (auto& sub : part.sub) {
 			for (auto& line : sub.lines) {
-				line.edit_text = "";
+				if (src_text)
+					line.src_text = "";
+				else
+					line.text = "";
 			}
 		}
 		part_i++;
 	}
 }
 
-void Script::LoadStructuredTextExt(const String& s) {
+void LyricalStructure::LoadStructuredTextExt(const String& s, bool src_text) {
 	Vector<String> lines = Split(s, "\n");
 	int indent = 0;
 	DynPart* part = 0;
@@ -446,7 +455,10 @@ void Script::LoadStructuredTextExt(const String& s) {
 				dl = &sub->lines[line_i];
 			else
 				dl = &sub->lines.Add();
-			dl->alt_text = l;
+			if (src_text)
+				dl->src_text = l;
+			else
+				dl->text = l;
 		}
 	}
 }

@@ -25,6 +25,11 @@ bool ToolAppCtrl::IsScript() const {
 	return p.script != 0;
 }
 
+bool ToolAppCtrl::HasPointers() const {
+	TODO
+	return false;
+}
+
 Script& ToolAppCtrl::GetScript() {
 	EditorPtrs& p = GetPointers();
 	if(!p.script)

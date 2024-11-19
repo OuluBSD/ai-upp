@@ -72,8 +72,8 @@ public:
 	void SetFont(Font fnt);
 	void ReadNavigatorState(NavigatorState& state, int depth_limit=INT_MAX);
 	
-	static String GetID() {return "lyric-ref";}
-	static String GetExt() {return ".lyr-ref";}
+	static String GetID() {return "lyrics-draft";}
+	static String GetExt() {return ".lyr-drf";}
 };
 
 END_UPP_NAMESPACE

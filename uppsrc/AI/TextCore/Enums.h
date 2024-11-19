@@ -56,6 +56,26 @@ ATTR_LIST
 ATTR_COUNT
 };
 
+enum {
+	GENDER_MALE,
+	GENDER_FEMALE,
+	
+	GENDER_COUNT // feel free to add
+};
+
+enum{
+	TCENT_SAFE_MALE,
+	TCENT_SAFE_FEMALE,
+	TCENT_UNSAFE_MALE,
+	TCENT_UNSAFE_FEMALE,
+	
+	TCENT_COUNT
+};
+
+inline int GetTypeclassEntity(bool unsafe, bool gender) {
+	return unsafe * 2 + gender * 1;
+}
+
 END_UPP_NAMESPACE
 
 #endif

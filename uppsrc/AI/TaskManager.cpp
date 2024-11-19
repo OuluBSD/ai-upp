@@ -410,6 +410,27 @@ void TaskMgr::GetAttributes(const AttrArgs& args, Event<String> WhenResult) {
 	task_lock.Leave();
 }
 
+void TaskMgr::GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "scripts solver"))
+		.Input(&AiTask::CreateInput_ScriptSolver)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	
+	if (args.ret_fail)
+		t.SetAutoReturnFail();
+	
+	task_lock.Leave();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

@@ -3,6 +3,9 @@
 
 NAMESPACE_UPP
 
+// TODO remove EditorPtrs & use DatasetPtrs
+struct Script;
+struct DynPart;
 struct EditorPtrs {
 	Entity*		entity = 0;
 	Component*	component = 0;
@@ -167,6 +170,33 @@ struct PhrasePart : Moveable<PhrasePart> {
 	}
 };
 
+struct ScriptSuggestion : Moveable<ScriptSuggestion> {
+	struct Part : Moveable<Part> {
+		String name;
+		Vector<String> lines;
+		
+	};
+	Vector<Part> parts;
+	int rank = -1;
+	Vector<Vector<Vector<int>>> transfers;
+	int scores[2] = {0,0};
+	
+	String GetText() const;
+};
+
+struct PhraseComb : Moveable<PhraseComb> {
+	Vector<int> phrase_parts;
+	
+	void Jsonize(JsonIO& json) {json("phrase_parts", phrase_parts);}
+};
+
+struct TranslatedPhrasePart : Moveable<TranslatedPhrasePart> {
+	String phrase;
+	int scores[SCORE_COUNT] = {0,0,0,0,0,0,0,0,0,0};
+	
+	void Jsonize(JsonIO& json) {json("phrase", phrase); for(int i = 0; i < SCORE_COUNT; i++) json("score[" + IntStr(i) + "]", scores[i]);}
+};
+
 struct ExportAttr : Moveable<ExportAttr> {
 	int simple_attr = -1, unused = -1;
 	int positive = -1, link = -1;
@@ -276,6 +306,90 @@ struct SrcTxtHeader {
 	void Jsonize(JsonIO& o) {o("written",written)("size",size)("sha1",sha1)("files",files);}
 };
 
+struct ScriptStruct : Moveable<ScriptStruct> {
+	ScriptStruct() {}
+	ScriptStruct(const ScriptStruct& s) { *this = s; }
+	ScriptStruct(ScriptStruct&& s) { *this = s; }
+	void operator=(const ScriptStruct& s) { parts <<= s.parts; }
+
+	struct SubSubPart : Moveable<SubSubPart> {
+		Vector<int> token_texts;
+		int cls = -1;
+
+		SubSubPart() {}
+		SubSubPart(const SubSubPart& s) { *this = s; }
+		void Serialize(Stream& s) { s % token_texts % cls; }
+		void Jsonize(JsonIO& json) { json("token_texts", token_texts)("cls", cls); }
+		void operator=(const SubSubPart& s)
+		{
+			token_texts <<= s.token_texts;
+			cls = s.cls;
+		}
+	};
+	struct SubPart : Moveable<SubPart> {
+		Vector<SubSubPart> sub;
+		int cls = -1;
+		int repeat = 0;
+
+		SubPart() {}
+		SubPart(const SubPart& s) { *this = s; }
+		void Serialize(Stream& s) { s % sub % cls % repeat; }
+		void Jsonize(JsonIO& json) { json("sub", sub)("cls", cls)("repeat", repeat); }
+		void operator=(const SubPart& s)
+		{
+			sub <<= s.sub;
+			cls = s.cls;
+			repeat = s.repeat;
+		}
+	};
+	struct Part : Moveable<Part> {
+		Vector<SubPart> sub;
+		int type = -1;
+		int num = -1;
+		int cls = -1, typeclass = -1, content = -1;
+
+		Part() {}
+		Part(const Part& p) { *this = p; }
+		void Serialize(Stream& s) { s % sub % type % num % cls % typeclass % content; }
+		void Jsonize(JsonIO& json)
+		{
+			json("sub", sub)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
+			                                                                        content);
+		}
+		void operator=(const Part& s)
+		{
+			sub <<= s.sub;
+			type = s.type;
+			num = s.num;
+			cls = s.cls;
+			typeclass = s.typeclass;
+			content = s.content;
+		}
+	};
+	Vector<Part> parts;
+
+	void Serialize(Stream& s) { s % parts; }
+
+	void Jsonize(JsonIO& json) { json("parts", parts); }
+	bool HasAnyClasses() const
+	{
+		for(const auto& p : parts) {
+			if(p.cls >= 0)
+				return true;
+			for(const auto& s : p.sub) {
+				if(s.cls >= 0)
+					return true;
+				for(const auto& ss : s.sub) {
+					if(ss.cls >= 0)
+						return true;
+				}
+			}
+		}
+		return false;
+	}
+	double GetNormalScore() const;
+};
+
 struct SrcTextData : DatasetField, Pte<SrcTextData> {
 	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
@@ -303,6 +417,7 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 	Vector<ContentType> contents;
 	Vector<String> content_parts;
 	dword lang = LNG_enUS;
+	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT];
 	
 	const Vector<ContentType>& GetContents() {return contents;}
 	const Vector<String>& GetContentParts() {return content_parts;}
@@ -351,33 +466,12 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 			s % contents;
 			s % content_parts;
 			s % lang;
+			for(int i = 0; i < TCENT_COUNT; i++)
+				s % typeclass_entities[i];
 		}
 	}
 };
 
-
-struct DatasetPtrs {
-	Ptr<SrcTextData>		src;
-	Ptr<Entity>				entity;
-	Ptr<Component>			component;
-	
-	// Specialized components
-	Ptr<Script>				script; // TODO rename to lyrics_draft
-	Ptr<Lyrics>				lyrics;
-	
-	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
-};
-
-class TextDatabase {
-
-public:
-	// TODO check if this is the best place (compare to SrcTextData or something in DatasetPtrs)
-	Array<Entity> entities;
-	
-	// TODO check if these can be removed & moved to user files
-	
-	static TextDatabase& Single() {static TextDatabase db; return db;}
-};
 
 END_UPP_NAMESPACE
 

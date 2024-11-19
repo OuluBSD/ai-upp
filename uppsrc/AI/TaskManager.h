@@ -53,6 +53,7 @@ struct TaskMgr {
 	void GetPhraseData(const PhraseArgs& args, Event<String> WhenResult);
 	void GetActionAnalysis(const ActionAnalysisArgs& args, Event<String> WhenResult);
 	void GetAttributes(const AttrArgs& args, Event<String> WhenResult);
+	void GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenResult);
 	
 	template <class T>
 	String MakeName(T& o, const char* name);

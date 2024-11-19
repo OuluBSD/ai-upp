@@ -3,8 +3,7 @@
 
 NAMESPACE_UPP
 
-class Component : Pte<Component> {
-public:
+struct Component : Pte<Component> {
 	String name;
 	
 	virtual ~Component() {}
@@ -16,12 +15,12 @@ public:
 	void Jsonize(JsonIO& json) {json("name",name);}
 };
 
-class Entity : Pte<Entity> {
-public:
+struct Entity : Pte<Entity> {
 	String name, type;
 	VectorMap<String, Value> data;
 	Array<Component> comps;
-
+	bool gender = false;
+	
 	Entity() {}
 	virtual ~Entity() {}
 	void Clear()
@@ -30,9 +29,10 @@ public:
 		type.Clear();
 		data.Clear();
 		comps.Clear();
+		gender = 0;
 	}
-	void Serialize(Stream& s) { s % name % type % data /*% comps*/; }
-	void Jsonize(JsonIO& json) { json("name", name)("type", type)("data", data)/*("comps", comps)*/; }
+	void Serialize(Stream& s) { s % name % type % data % gender /*% comps*/; }
+	void Jsonize(JsonIO& json) { json("name", name)("type", type)("data", data)("gender",gender)/*("comps", comps)*/; }
 
 	bool operator()(const Entity& a, const Entity& b) const {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());

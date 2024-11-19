@@ -27,20 +27,22 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	sugg_split.SetPos(2500);
 	sugg_list.AddColumn("#");
 	sugg_list.WhenCursor << [this]() {
+		DatasetPtrs& p = GetDataset();
 		if (!sugg_list.IsCursor()) return;
 		int i = sugg_list.GetCursor();
-		Vector<String> lines = Split(GetScript().__suggestions[i], "\n");
+		Vector<String> lines = Split(p.lyrics->__suggestions[i], "\n");
 		for(int i = 0; i < lines.GetCount(); i++) {
 			sugg_lyrics.Set(i, 0, lines[i]);
 		}
 		sugg_lyrics.SetCount(lines.GetCount());
 	};
 	sugg_list.WhenBar << [this](Bar& b) {
-		b.Add("Set edit text", [this]() {
+		b.Add("Set source text", [this]() {
+			DatasetPtrs& p = GetDataset();
 			Script& s = GetScript();
 			int i = sugg_list.GetCursor();
-			s.SetEditText(GetScript().__suggestions[i]);
-			editor.ShowEditText();
+			s.SetText(p.lyrics->__suggestions[i], true);
+			editor.ShowSourceText();
 		});
 	};
 	sugg_lyrics.AddColumn("Txt");
@@ -124,10 +126,9 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	line_form.paste_clip << THISBACK1(DoLine, 12);
 	
 	line_ref_lines.AddColumn("Selected");
-	line_ref_lines.AddColumn("Reference line");
-	line_ref_lines.AddColumn("Morphed line");
-	line_ref_lines.AddColumn("Edit line");
-	line_ref_lines.ColumnWidths("1 6 6 6");
+	line_ref_lines.AddColumn("Line");
+	line_ref_lines.AddColumn("Source line");
+	line_ref_lines.ColumnWidths("1 6 6");
 	
 	line_suggs.AddColumn("#");
 	line_suggs.AddColumn("Suggestion");
@@ -181,6 +182,7 @@ void ScriptTextSolverCtrl::DoSuggestions(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoWhole(int fn) {
+	DatasetPtrs& p = GetDataset();
 	if (fn >= 0 && fn <= 1) {
 		/*ScriptGenerator& sdi = ScriptGenerator::Get(GetDataset());
 		whole_prog.Attach(sdi);
@@ -194,7 +196,7 @@ void ScriptTextSolverCtrl::DoWhole(int fn) {
 			sdi.Stop();*/
 	}
 	else if (fn == 2) {
-		WriteClipboardText(GetScript().GetUserText());
+		WriteClipboardText(p.lyrics->GetStructText(0));
 	}
 }
 
@@ -242,12 +244,12 @@ void ScriptTextSolverCtrl::Data() {
 
 void ScriptTextSolverCtrl::DataSuggestions() {
 	const DatasetPtrs& p = GetDataset();
-	Script& s = *p.script;
+	Lyrics& l = *p.lyrics;
 	
-	for(int i = 0; i < s.__suggestions.GetCount(); i++) {
+	for(int i = 0; i < l.__suggestions.GetCount(); i++) {
 		sugg_list.Set(i, 0, i);
 	}
-	sugg_list.SetCount(s.__suggestions.GetCount());
+	sugg_list.SetCount(l.__suggestions.GetCount());
 	
 }
 
@@ -255,7 +257,7 @@ void ScriptTextSolverCtrl::DataWhole() {
 	const DatasetPtrs& p = GetDataset();
 	auto& src = *p.src;
 	Script& s = *p.script;
-	Lyrics& lyr = *p.lyrics;
+	Lyrics& l = *p.lyrics;
 	Entity& a = *p.entity;
 	
 	
@@ -487,11 +489,11 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 		for (const DynLine* l : g) {
 			DynLine& dl = const_cast<DynLine&>(*l);
 			if (sugg_i < dl.suggs.GetCount())
-				dl.user_text = dl.suggs[sugg_i];
+				dl.text = dl.suggs[sugg_i];
 			else
-				dl.user_text = "";
+				dl.text = "";
 		}
-		editor.ShowUserText();
+		editor.ShowNormalText();
 		DataLine();
 	}
 	// Copy prev
@@ -532,7 +534,8 @@ void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender)
 	const DatasetPtrs& p = GetDataset();
 	String ecs_path; TODO //TODO ???
 	
-	const auto& types = GetTypeclassEntities(unsafe, gender);
+	int tcent = GetTypeclassEntity(unsafe, gender);
+	const auto& types = p.src->typeclass_entities[tcent];
 	line_form.style_type.Clear();
 	line_form.style_entity.Clear();
 	
@@ -552,15 +555,8 @@ void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender)
 }
 
 void ScriptTextSolverCtrl::DataLine() {
-	TextDatabase& db = GetDatabase();
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
-	Script& s = GetScript();
-	MetaPtrs& mp = MetaPtrs::Single();
-	auto& p = GetPointers();
-	
-	
+	const DatasetPtrs& p = GetDataset();
+	Script& s = *p.script;
 	
 	if (editor.selected_line) {
 		const DynLine* active = 0;
@@ -570,15 +566,14 @@ void ScriptTextSolverCtrl::DataLine() {
 		DynLine& dl = const_cast<DynLine&>(*active);
 		
 		if (p.entity) {
-			UpdateEntities(dl, dl.safety, p.entity->is_female);
+			UpdateEntities(dl, dl.safety, p.entity->gender);
 		}
 		for(int i = 0; i < g.GetCount(); i++) {
 			const DynLine* dl = g[i];
 			
 			line_ref_lines.Set(i, 0, dl == editor.selected_line ? "X" : "");
 			line_ref_lines.Set(i, 1, dl->text);
-			line_ref_lines.Set(i, 2, dl->alt_text);
-			line_ref_lines.Set(i, 3, dl->edit_text);
+			line_ref_lines.Set(i, 2, dl->src_text);
 		}
 		line_ref_lines.SetCount(g.GetCount());
 		
@@ -619,18 +614,16 @@ void ScriptTextSolverCtrl::DataLine() {
 }
 
 void ScriptTextSolverCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
-	Script& s = GetScript();
+	const DatasetPtrs& p = GetDataset();
+	Script& s = *p.script;
+	ASSERT(p.src);
 	
 	int tab = tabs.Get();
 	if (tab == 3) {
 		if (editor.selected_part) {
 			DynPart& part = *const_cast<DynPart*>(editor.selected_part);
 			int el_i = part_form.element.GetIndex();
-			part.el.element = el_i >= 0 ? da.element_keys[el_i] : String();
+			part.el.element = el_i >= 0 ? p.src->element_keys[el_i] : String();
 			part.text_num = (int)part_form.text_num.GetData() - 1;
 			part.text_type = (TextPartType)part_form.text_type.GetIndex();
 			
@@ -641,7 +634,7 @@ void ScriptTextSolverCtrl::OnValueChange() {
 		if (editor.selected_sub) {
 			DynSub& sub = *const_cast<DynSub*>(editor.selected_sub);
 			int el_i = sub_form.element.GetIndex() - 1;
-			sub.el.element = el_i >= 0 ? da.element_keys[el_i] : String();
+			sub.el.element = el_i >= 0 ? p.src->element_keys[el_i] : String();
 			sub.story = sub_form.story.GetData();
 			
 			editor.Refresh();
@@ -788,7 +781,7 @@ StructuredScriptEditor::StructuredScriptEditor() {
 }
 
 void StructuredScriptEditor::Update() {
-	if (!owner || !HasAnyEditor()) {Refresh(); return;}
+	if (!owner) {Refresh(); return;}
 	
 	int total_h = 0;
 	Script& s = owner->GetScript();
@@ -812,7 +805,6 @@ void StructuredScriptEditor::CheckClearSelected() {
 	bool line_found = false;
 	bool part_found = false;
 	bool sub_found = false;
-	if (!HasAnyEditor()) return;
 	if (!owner->GetPointers().script) return;
 	Script& s = owner->GetScript();
 	for(int i = 0; i < s.parts.GetCount(); i++) {
@@ -1063,12 +1055,10 @@ void StructuredScriptEditor::Paint(Draw& d) {
 				
 				
 				String txt;
-				if (txt_src == SRC_ALT)
-					txt = dl.alt_text;
-				else if (txt_src == SRC_EDIT)
-					txt = dl.edit_text;
-				else if (txt_src == SRC_USER)
-					txt = dl.user_text;
+				if (txt_src == SRC_NORMAL)
+					txt = dl.text;
+				else if (txt_src == SRC_SOURCE)
+					txt = dl.src_text;
 				
 				d.DrawText(off+cx_2,y,txt,fnt,Black());
 				

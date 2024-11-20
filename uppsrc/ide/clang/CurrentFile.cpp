@@ -119,10 +119,10 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.time = Time::Low();
 			fa.master_file = cfc.parsed_file.filename;
 			String path = NormalizePath(cfc.parsed_file.real_filename);
-			#ifdef flagAI
-			AiIndex().Store(fa.includes, path, fa);
-			#endif
 			CodeIndex().GetAdd(path) = pick(fa);
+			#ifdef flagAI
+			MetaEnv().Store(fa.includes, path, v.ast);
+			#endif
 		}
 	});
 };

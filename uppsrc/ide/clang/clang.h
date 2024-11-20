@@ -245,6 +245,18 @@ bool   IsCppSourceFile(const String& path);
 bool   IsSourceFile(const String& path);
 bool   IsHeaderFile(const String& path);
 
+struct ClangNode {
+	Array<ClangNode> sub;
+	int kind = -1;
+	String id;
+	Point begin = Null;
+	Point end = Null;
+	
+	void Clear() {sub.Clear(); kind = -1; id.Clear(); begin = Null; end = Null;}
+	String GetTreeString(int depth=0) const;
+	hash_t GetCommonHash() const;
+};
+
 class ClangVisitor {
 	bool initialized = false;
 	CXPrintingPolicy pp_id, pp_pretty;
@@ -280,6 +292,8 @@ class ClangVisitor {
 
 public:
 	VectorMap<String, CppFileInfo> info;
+	ClangNode ast;
+	Vector<ClangNode*> scope;
 	
 	Gate<const String&> WhenFile;
 

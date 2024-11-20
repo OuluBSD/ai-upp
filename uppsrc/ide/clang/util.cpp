@@ -130,3 +130,23 @@ String ReferenceItem::MakeTargetString(const String& filepath) const {
 	return s;
 }
 
+
+
+String ClangNode::GetTreeString(int depth) const {
+	String s;
+	s.Cat('\t', depth);
+	s << FetchString(clang_getCursorKindSpelling((CXCursorKind)kind));
+	if (!id.IsEmpty()) s << ": " << id;
+	s << "\n";
+	for (auto& n : sub)
+		s << n.GetTreeString(depth+1);
+	return s;
+}
+
+hash_t ClangNode::GetCommonHash() const {
+	CombineHash ch;
+	ch.Do(kind).Do(id);
+	for (const auto& s : sub)
+		ch.Put(s.GetCommonHash());
+	return ch;
+}

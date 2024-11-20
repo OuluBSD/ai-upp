@@ -49,6 +49,8 @@ struct CodeArgs {
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };
 
+#if 0
+
 struct AiAnnotationItem {
 	struct Data : Moveable<Data> {
 		String	txt;
@@ -131,23 +133,13 @@ private:
 	
 };
 
-struct AiFileInfo : Moveable<AiFileInfo> {
-	Array<AiAnnotationItem> ai_items;
-	mutable Mutex lock;
-	
-	AiFileInfo() {}
-	AiFileInfo(const AiFileInfo& f) {*this = f;}
-	AiFileInfo(AiFileInfo&& f) : ai_items(pick(f.ai_items)) {}
-	void operator=(const AiFileInfo& s);
-	void Jsonize(JsonIO& json);
-	void Serialize(Stream& s);
-	void UpdateLinks(FileAnnotation& ann);
-};
+#endif
 
+struct MetaSrcFile;
 
 String GetStringRange(String content, Point begin, Point end);
 Vector<String> GetStringArea(const String& content, Point begin, Point end);
-bool UpdateAiFileInfo(AiFileInfo& f, const String& path);
+bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path);
 bool RangeContains(Point pos, Point begin, Point end);
 
 

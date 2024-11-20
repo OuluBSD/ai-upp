@@ -100,7 +100,7 @@ public:
 	void SetCtrl(ToolAppCtrl& c) { ctrl = &c; }
 	void Init();
 	void Update();
-	void SetMode(int i);
+	void SetMode(const DatasetPtrs& p, int i);
 	static int FindMode(hash_t h);
 	static hash_t GetModeHash(int mode);
 	void SetMidRhymeFilter(WString wrd, bool up = true);
@@ -126,7 +126,7 @@ public:
 	bool IsSub(int cur, int cursor_i) const;
 	double GetMidRhymingLimit() const { return mid_rhyme_distance_limit; }
 	double GetEndRhymingLimit() const { return end_rhyme_distance_limit; }
-	void SetAll(hash_t sorter, const String& element, const AttrHeader& attr, int clr,
+	void SetAll(const DatasetPtrs& p, hash_t sorter, const String& element, const AttrHeader& attr, int clr,
 	            const ActionHeader& act, int tc_i, int con_i);
 	int FindAction(const String& s);
 	int FindArg(const String& s);

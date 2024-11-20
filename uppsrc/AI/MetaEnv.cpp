@@ -3,7 +3,9 @@
 
 NAMESPACE_UPP
 
-void AionFile::PostSave()
+#if 0
+
+void MetaSrcPkg::PostSave()
 {
 	if(!post_saving) {
 		post_saving = true;
@@ -11,15 +13,15 @@ void AionFile::PostSave()
 	}
 }
 
-void AionFile::Clear() { files.Clear(); }
+void MetaSrcPkg::Clear() { files.Clear(); }
 
-void AionFile::SetPath(String path)
+void MetaSrcPkg::SetPath(String path)
 {
 	this->path = path;
 	dir = GetFileDirectory(path);
 }
 
-void AionFile::Load()
+void MetaSrcPkg::Load()
 {
 	Clear();
 	if(FileExists(path)) {
@@ -31,7 +33,7 @@ void AionFile::Load()
 	}
 }
 
-void AionFile::Save(bool forced)
+void MetaSrcPkg::Save(bool forced)
 {
 	post_saving = false;
 	if(!path.IsEmpty()) {
@@ -51,7 +53,7 @@ void AionFile::Save(bool forced)
 
 thread_local static bool aionfile_getting_sha1;
 
-String AionFile::GetHashSha1() {
+String MetaSrcPkg::GetHashSha1() {
 	Sha1Stream s;
 	aionfile_getting_sha1 = true;
 	s % *this;
@@ -59,7 +61,7 @@ String AionFile::GetHashSha1() {
 	return s.FinishString();
 }
 
-void AionFile::Serialize(Stream& s)
+void MetaSrcPkg::Serialize(Stream& s)
 {
 	{
 		Mutex::Lock ml(lock);
@@ -78,7 +80,7 @@ void AionFile::Serialize(Stream& s)
 		saved_hash = GetHashSha1();
 }
 
-void AionFile::Jsonize(JsonIO& json)
+void MetaSrcPkg::Jsonize(JsonIO& json)
 {
 	Mutex::Lock ml(lock);
 	json
@@ -87,7 +89,7 @@ void AionFile::Jsonize(JsonIO& json)
 		;
 }
 
-void AionFile::operator=(const AionFile& f) {
+void MetaSrcPkg::operator=(const MetaSrcPkg& f) {
 	Mutex::Lock ml(lock);
 	files <<= f.files;
 	saved_hash = f.saved_hash;
@@ -131,7 +133,7 @@ bool MakeRelativePath(const String& includes_, const String& dir, String& best_a
 	return found;
 }
 
-AiFileInfo& AionFile::RealizePath(const String& includes, const String& path)
+MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 {
 	String rel_file = NormalizePath(path, dir);
 	int a = rel_file.Find(dir);
@@ -162,13 +164,13 @@ AiFileInfo& AionFile::RealizePath(const String& includes, const String& path)
 	Mutex::Lock ml(lock);
 	int i = files.Find(rel_file);
 	if(i >= 0) {
-		AiFileInfo& o = files[i];
+		MetaSrcFile& o = files[i];
 		return o;
 	}
-	AiFileInfo& o = files.Add(rel_file);
+	MetaSrcFile& o = files.Add(rel_file);
 	return o;
 }
-
+#endif
 String GetAiPathCandidate(const String& includes_, String dir)
 {
 	Vector<String> ai_dirs = GetAiDirsRaw();
@@ -208,7 +210,7 @@ String GetAiPathCandidate(const String& includes_, String dir)
 	else
 		return dummy_cand;
 }
-
+#if 0
 Vector<String> FindParentUppDirectories(const String& sub_dir) {
 	Vector<String> results;
 	Vector<String> parts = Split(sub_dir, DIR_SEPS);
@@ -233,8 +235,8 @@ Vector<String> FindParentUppDirectories(const String& sub_dir) {
 	}
 	return results;
 }
-
-String AionIndex::ResolveAionFilePath(const String& includes, String path)
+#endif
+String MetaEnvironment::ResolveMetaSrcPkgPath(const String& includes, String path)
 {
 	String def_dir = GetFileDirectory(path);
 	Vector<String> upp_dirs = FindParentUppDirectories(def_dir);
@@ -242,60 +244,202 @@ String AionIndex::ResolveAionFilePath(const String& includes, String path)
 		return GetAiPathCandidate(includes, upp_dir);
 	return GetAiPathCandidate(includes, def_dir);
 }
-
-AionFile& AionIndex::ResolveFile(const String& includes, String path)
+#if 0
+MetaSrcPkg& MetaEnvironment::ResolveFile(const String& includes, String path)
 {
-	String aion_path = ResolveAionFilePath(includes, path);
+	String aion_path = ResolveMetaSrcPkgPath(includes, path);
 	lock.EnterRead();
 	int i = files.Find(aion_path);
 	if(i >= 0) {
-		AionFile& f = files[i];
+		MetaSrcPkg& f = files[i];
 		lock.LeaveRead();
 		return f;
 	}
 	lock.LeaveRead();
 	lock.EnterWrite();
-	AionFile& f = files.Add(aion_path);
+	MetaSrcPkg& f = files.Add(aion_path);
 	f.SetPath(aion_path);
 	f.Load();
 	lock.LeaveWrite();
 	return f;
 }
 
-AiFileInfo& AionIndex::ResolveFileInfo(const String& includes, String path)
+MetaSrcFile& MetaEnvironment::ResolveFileInfo(const String& includes, String path)
 {
 	return ResolveFile(includes, path).RealizePath(includes, path);
 }
 
-AionIndex& AiIndex() { return Single<AionIndex>(); }
-
-void AionIndex::Load(const String& includes, const String& path, FileAnnotation& fa)
-{
-	AionFile& af = ResolveFile(includes, path);
-	af.Load(includes, path, fa);
-}
-
-void AionFile::Load(const String& includes, const String& path, FileAnnotation& fa)
+void MetaSrcPkg::Load(const String& includes, const String& path, FileAnnotation& fa)
 {
 	lock.Enter();
 	if(IsEmpty())
 		Load();
 	lock.Leave();
-	AiFileInfo& afi = RealizePath(includes, path);
+	MetaSrcFile& afi = RealizePath(includes, path);
 	afi.UpdateLinks(fa);
 }
 
-void AionIndex::Store(const String& includes, const String& path, FileAnnotation& fa)
-{
-	AionFile& af = ResolveFile(includes, path);
-	af.Store(includes, path, fa);
+#endif
+
+MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
+
+MetaEnvironment::MetaEnvironment() {
+	root.kind = CXCursor_Namespace;
+	
+	
 }
 
-void AionFile::Store(const String& includes, const String& path, FileAnnotation& fa)
+void MetaEnvironment::Load(const String& includes, const String& path, FileAnnotation& fa)
 {
-	AiFileInfo& afi = RealizePath(includes, path);
+	String aion_path = ResolveMetaSrcPkgPath(includes, path);
+	
+	if (pkgs.Find(aion_path) < 0) {
+		MetaNode file_nodes;
+		MetaSrcPkg& pkg = pkgs.Add(aion_path);
+		if (pkg.Load(aion_path, file_nodes)) {
+			int pkg_id = pkgs.Find(aion_path);
+			pkg.saved_hash = IntStr64(file_nodes.GetCommonHash());
+			MergeNode(root, file_nodes, pkg_id);
+		}
+	}
+}
+void MetaEnvironment::Store(String& includes, const String& path, ClangNode& n)
+{
+	//LOG(n.GetTreeString());
+	
+	Vector<MetaNode*> scope;
+	scope << &root;
+	if (!MergeVisit(scope, n))
+		return;
+	
+	String aion_path = ResolveMetaSrcPkgPath(includes, path);
+	MetaSrcPkg& pkg = pkgs.GetAdd(aion_path);
+	int pkg_id = pkgs.Find(aion_path);
+	
+	MetaNode file_nodes;
+	SplitNode(root, file_nodes, pkg_id);
+	
+	String hash = IntStr64(file_nodes.GetCommonHash());
+	if (pkg.saved_hash != hash) {
+		pkg.saved_hash = hash;
+		pkg.Store(aion_path, file_nodes);
+	}
+}
+
+void MetaEnvironment::MergeNode(MetaNode& root, const MetaNode& other, int pkg_id) {
+	
+}
+
+void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id) {
+	
+}
+
+bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, ClangNode& n1) {
+	MetaNode& n0 = *scope.Top();
+	
+	/*if (n0.kind != n1.kind) {
+		LOG("MetaEnvironment::MergeVisit: error: kind mismatch " << n0.kind << " != " << n1.kind);
+		return false;
+	}
+	
+	if (n0.id != n1.id) {
+		LOG("MetaEnvironment::MergeVisit: error: kind matches, but id mismatches " << n0.id << " != " << n1.id);
+		return false;
+	}*/
+	ASSERT(n0.kind == n1.kind && n0.id == n1.id);
+	
+	if (IsMergeable((CXCursorKind)n0.kind)) {
+		for (ClangNode& sub1 : n1.sub) {
+			int i = n0.Find(sub1.kind, sub1.id);
+			if (i < 0)
+				n0.sub.Add() = sub1;
+			else {
+				MetaNode& sub0 = n0.sub[i];
+				scope << &sub0;
+				bool succ = MergeVisit(scope, sub1);
+				scope.Pop();
+				if (!succ)
+					return false;
+			}
+		}
+	}
+	else {
+		if (!n0.common_hash)
+			n0.common_hash = n0.GetCommonHash();
+		hash_t n1_common_hash = n1.GetCommonHash();
+		if (n0.common_hash != n1_common_hash) {
+			// Node changed
+			n0 = n1;
+			n0.common_hash = n1_common_hash;
+		}
+	}
+	return true;
+}
+
+bool MetaEnvironment::IsMergeable(CXCursorKind kind) {
+	switch(kind) {
+		//case CXCursor_StructDecl:
+		//case CXCursor_ClassDecl:
+		case CXCursor_Namespace:
+		case CXCursor_LinkageSpec:
+			return true;
+		default:
+			return false;
+	}
+}
+
+String MetaNode::GetTreeString(int depth) const {
+	String s;
+	s.Cat('\t', depth);
+	s << FetchString(clang_getCursorKindSpelling((CXCursorKind)kind));
+	if (!id.IsEmpty()) s << ": " << id;
+	s << "\n";
+	for (auto& n : sub)
+		s << n.GetTreeString(depth+1);
+	return s;
+}
+
+int MetaNode::Find(int kind, const String& id) const {
+	int i = 0;
+	for (const MetaNode& n : sub) {
+		if (n.kind == kind && n.id == id)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
+void MetaNode::operator=(const ClangNode& n) {
+	int c = n.sub.GetCount();
+	sub.SetCount(c);
+	for(int i = 0; i < c; i++)
+		sub[i] = n.sub[i];
+	kind = n.kind;
+	id = n.id;
+	begin = n.begin;
+	end = n.end;
+	common_hash = 0; // too heavy to update here
+}
+
+hash_t MetaNode::GetCommonHash() const {
+	CombineHash ch;
+	ch.Do(kind).Do(id);
+	for (const auto& s : sub)
+		ch.Put(s.GetCommonHash());
+	return ch;
+}
+
+/*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
+{
+	MetaSrcPkg& af = ResolveFile(includes, path);
+	af.Store(includes, path, fa);
+}*/
+
+/*void MetaSrcPkg::Store(const String& includes, const String& path, FileAnnotation& fa)
+{
+	MetaSrcFile& afi = RealizePath(includes, path);
 	afi.UpdateLinks(fa);
 	Save();
-}
+}*/
 
 END_UPP_NAMESPACE

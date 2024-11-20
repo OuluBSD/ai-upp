@@ -7,7 +7,8 @@
 
 #include "Common.h"
 
-#include "AionFile.h"
+#include "MetaEnv.h"
+#include "MetaEnvTree.h"
 #include "ProcessBase.h"
 
 #include "CodeProcess.h"
@@ -19,5 +20,11 @@
 #include "RemoteTask.h"
 #include "TaskCtrl.h"
 #include "TaskManager.h"
+
+NAMESPACE_UPP
+
+
+
+END_UPP_NAMESPACE
 
 #endif

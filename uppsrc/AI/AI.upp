@@ -11,14 +11,15 @@ library(WIN32) libcurl.lib;
 
 file
 	AI.h,
+	Meta readonly separator,
+	MetaEnv.h,
+	MetaEnv.cpp,
 	Designer readonly separator,
-	AICodeCtrl.h,
-	AICodeCtrl.cpp,
-	AionFile.h,
-	AionFile.cpp,
 	ProcessCtrl.h,
 	ProcessCtrl.cpp,
 	Ctrl readonly separator,
+	MetaEnvTree.h,
+	MetaEnvTree.cpp,
 	TaskCtrl.h,
 	TaskCtrl.cpp,
 	Processes readonly separator,
@@ -37,5 +38,8 @@ file
 	Prompt.h,
 	Prompt.cpp,
 	Common.h,
-	Common.cpp;
+	Common.cpp,
+	Broken readonly separator,
+	AICodeCtrl.h,
+	AICodeCtrl.cpp;
 

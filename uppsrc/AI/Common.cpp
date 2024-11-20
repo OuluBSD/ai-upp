@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-
+#if 0
 AiAnnotationItem::SourceRange* AiAnnotationItem::FindRangeByHashSha1(const String& sha1)
 {
 	Mutex::Lock ml(lock);
@@ -294,28 +294,31 @@ void AiAnnotationItem::SourceRange::Serialize(Stream& s)
 	}
 }
 
-void AiFileInfo::operator=(const AiFileInfo& s)
+
+
+
+void MetaSrcFile::operator=(const MetaSrcFile& s)
 {
 	Mutex::Lock ml(lock);
-	ai_items <<= s.ai_items;
+	//ai_items <<= s.ai_items;
 }
 
-void AiFileInfo::Jsonize(JsonIO& json)
+void MetaSrcFile::Jsonize(JsonIO& json)
 {
 	Mutex::Lock ml(lock);
-	json("items", ai_items);
-	//if (json.IsLoading()) Sort();
+	//json("items", ai_items);
+	////if (json.IsLoading()) Sort();
 }
 
-void AiFileInfo::Serialize(Stream& s)
+void MetaSrcFile::Serialize(Stream& s)
 {
 	Mutex::Lock ml(lock);
 	
 	byte version = 1;
 	s % version;
 	
-	if (version >= 1)
-		s % ai_items;
+	//if (version >= 1)
+	//	s % ai_items;
 	
 }
 
@@ -330,6 +333,8 @@ void GetAnnotationItemRange(AnnotationItem& it0, Point& b, Point& e)
 }
 
 bool UpdateAiAnnotationItemRange(const String& content, AnnotationItem& it0, Point& b, Point& e, AiAnnotationItem& it1) {
+	Panic("TODO");
+	#if 0
 	if (b == e)
 		it1.Set(it0, "");
 	else {
@@ -339,11 +344,14 @@ bool UpdateAiAnnotationItemRange(const String& content, AnnotationItem& it0, Poi
 		String sha1 = SHA1String(code);
 		it1.Set(it0, sha1);
 	}
+	#endif
 	return true;
 }
 
-void AiFileInfo::UpdateLinks(FileAnnotation& ann)
+void MetaSrcFile::UpdateLinks(FileAnnotation& ann)
 {
+	Panic("TODO");
+	#if 0
 	if (ann.items.IsEmpty())
 		return;
 	
@@ -365,7 +373,7 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 			AiAnnotationItem& it1 = ai_items.Add();
 			if (!UpdateAiAnnotationItemRange(content, it0, b, e, it1)) {
 				ai_items.Remove(ai_items.GetCount()-1);
-				LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+				LOG("MetaSrcFile::UpdateLinks: error: failed to read " + ann.path);
 				return;
 			}
 			// it1.linked = &it0;
@@ -419,7 +427,7 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 						if (!range_updated && b != e) {
 							String code = GetStringRange(content, b, e);
 							if (code.IsEmpty()) {
-								LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+								LOG("MetaSrcFile::UpdateLinks: error: failed to read " + ann.path);
 								return;
 							}
 							ASSERT(!code.IsEmpty());
@@ -444,13 +452,14 @@ void AiFileInfo::UpdateLinks(FileAnnotation& ann)
 			GetAnnotationItemRange(it0, b, e);
 			if (!UpdateAiAnnotationItemRange(content, it0, b, e, it1)) {
 				ai_items.Remove(ai_items.GetCount()-1);
-				LOG("AiFileInfo::UpdateLinks: error: failed to read " + ann.path);
+				LOG("MetaSrcFile::UpdateLinks: error: failed to read " + ann.path);
 				return;
 			}
 			nonlinked0--;
 			// it1.linked = &it0;
 		}
 	}
+	#endif
 }
 
 void AiAnnotationItem::SourceRange::RemoveAll(Item::Kind kind) {
@@ -484,6 +493,7 @@ AiAnnotationItem::SourceRange::Item* AiAnnotationItem::SourceRange::FindItem(int
 	}
 	return 0;
 }
+#endif
 
 String GetStringRange(String content, Point begin, Point end) {
 	String ln = "\n";
@@ -516,7 +526,8 @@ String GetStringRange(String content, Point begin, Point end) {
 	return Join(lines, "\n");
 }
 
-bool UpdateAiFileInfo(AiFileInfo& f, const String& path)
+#if 0
+bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path)
 {
 	int i = CodeIndex().Find(path);
 	if (i < 0)
@@ -525,6 +536,7 @@ bool UpdateAiFileInfo(AiFileInfo& f, const String& path)
 	f.UpdateLinks(fa);
 	return true;
 }
+#endif
 
 bool RangeContains(Point pos, Point begin, Point end)
 {

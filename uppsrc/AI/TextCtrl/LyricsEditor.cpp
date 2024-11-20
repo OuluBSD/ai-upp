@@ -225,7 +225,7 @@ void ScriptTextSolverCtrl::OnEditorCursor() {
 }
 
 void ScriptTextSolverCtrl::Data() {
-	if (!HasPointers() || !GetPointers().script) return;
+	if (!GetPointers().script) return;
 	editor.CheckClearSelected();
 	
 	if (!HasFocusDeep())

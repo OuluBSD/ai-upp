@@ -66,10 +66,11 @@ hash_t DatabaseBrowser::GetModeHash(int mode)
 	return GetModeString(mode).GetHashValue();
 }
 
-void DatabaseBrowser::SetMode(int i)
+void DatabaseBrowser::SetMode(const DatasetPtrs& p, int i)
 {
-	if(i == mode)
+	if(i == mode && p.src == this->p.src)
 		return;
+	this->p = p;
 	mode = i;
 	for(int i = 0; i < TYPE_COUNT; i++)
 		items[i].Clear();
@@ -126,7 +127,7 @@ void DatabaseBrowser::Init()
 
 void DatabaseBrowser::ResetCursor() { ResetCursor(-1, INVALID); }
 
-void DatabaseBrowser::SetAll(hash_t sorter, const String& element, const AttrHeader& attr,
+void DatabaseBrowser::SetAll(const DatasetPtrs& p, hash_t sorter, const String& element, const AttrHeader& attr,
                              int clr, const ActionHeader& act, int tc_i, int con_i)
 {
 	SetInitialData();
@@ -134,7 +135,7 @@ void DatabaseBrowser::SetAll(hash_t sorter, const String& element, const AttrHea
 	if(sorter) {
 		int m = FindMode(sorter);
 		if(m >= 0)
-			SetMode(m);
+			SetMode(p,m);
 	}
 
 	for(int i = 0; i < TYPE_COUNT; i++) {

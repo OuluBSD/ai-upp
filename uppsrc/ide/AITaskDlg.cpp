@@ -16,6 +16,7 @@ struct AITaskDlg : TopWindow {
 	void Serialize(Stream& s);
 	
 	TabCtrl tabs;
+	MetaEnvTree menv;
 	TaskCtrl tasks;
 	
 	Ide* theide = 0;
@@ -32,6 +33,7 @@ AITaskDlg::AITaskDlg() {
 	Title("AI");
 	
 	Add(tabs.SizePos());
+	tabs.Add(menv.SizePos(), "Meta Env. Tree");
 	tabs.Add(tasks.SizePos(), "Tasks");
 	
 	

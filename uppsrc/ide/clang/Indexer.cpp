@@ -291,7 +291,8 @@ void Indexer::IndexerThread()
 
 			for(const auto& m : ~job.file_times) // in create entries even if there are no items to avoid recompiling
 				v.info.GetAdd(NormalizePath(m.key));
-
+			
+			int i = 0;
 			for(const auto& m : ~v.info) {
 				String path = NormalizePath(m.key);
 				FileAnnotation f;
@@ -303,11 +304,12 @@ void Indexer::IndexerThread()
 				f.master_file = job.master_files.Get(path, Null);
 				LLOG("Storing " << path);
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
-				#ifdef flagAI
-				AiIndex().Store(f.includes, path, f);
-				#endif
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
+				#ifdef flagAI
+				if (i++ == 0)
+					MetaEnv().Store(job.includes, path, v.ast);
+				#endif
 			}
 
 			PutAssist(String() << job.path << " indexed in " << msecs() - tm << " ms");
@@ -476,7 +478,7 @@ void Indexer::SchedulerThread()
 								LTIMING("GuiLock 2");
 								GuiLock __;
 								#ifdef flagAI
-								AiIndex().Load(includes, path, lf);
+								MetaEnv().Load(includes, path, lf);
 								#endif
 								f = lf;
 								CodeIndex().GetAdd(path) = pick(lf);

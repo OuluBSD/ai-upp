@@ -335,11 +335,45 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 		                          CXCursor_Destructor, CXCursor_CXXMethod, CXCursor_UsingDeclaration, CXCursor_VarDecl, CXCursor_EnumConstantDecl,
 		                          CXCursor_TypeAliasTemplateDecl, CXCursor_EnumDecl, CXCursor_ConversionFunction,
 		                          CXCursor_CallExpr, CXCursor_ReturnStmt) < 0;
-
+	
+	
 	CXCursor ref = clang_getCursorReferenced(cursor);
 
 	String id = ci.Id();
+	String name = ci.Name();
+	String type = ci.Type();
 	int kind = ci.Kind();
+	
+	if (kind != CXCursor_OverloadCandidate) {
+		LoadSourceLocation();
+		ClangNode& n = *scope.Top();
+		n.kind = kind;
+		if (id.GetCount())
+			n.id = id;
+		else if (name.GetCount())
+			n.id = name;
+		else if (type.GetCount())
+			n.id = type;
+		n.begin = sl.begin;
+		n.end = sl.end;
+		/*if (n.id.IsEmpty()) {
+			LOG(FetchString(clang_getCursorKindSpelling((CXCursorKind)kind)));
+			DUMP(ci.Id());
+			DUMP(ci.Type());
+			DUMP(ci.TypeDeclaration());
+			DUMP(ci.ParentTypeDeclaration());
+			DUMP(ci.Name());
+			
+			ClangCursorInfo ci1(ref, pp_id);
+			DUMP(ci1.Id());
+			DUMP(ci1.Type());
+			DUMP(ci1.TypeDeclaration());
+			DUMP(ci1.ParentTypeDeclaration());
+			DUMP(ci1.Name());
+			LOG("");
+		}*/
+	}
+	
 	if (kind == CXCursor_ReturnStmt) {
 		LoadSourceLocation();
 		StatementItem rm;
@@ -455,8 +489,17 @@ CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clien
 #endif
 	ClangVisitor *v = (ClangVisitor *)clientData;
 	bool bak_locals = v->locals;
-	if(v->ProcessNode(cursor))
+	ClangNode* owner = v->scope.Top();
+	One<ClangNode> n;
+	n.Create();
+	v->scope.Add(&*n);
+	bool visit = v->ProcessNode(cursor);
+	if (n->kind >= 0)
+		owner->sub.Add(n.Detach());
+	if (visit) {
 		clang_visitChildren(cursor, clang_visitor, clientData);
+	}
+	v->scope.Pop();
 	v->locals = bak_locals;
 #ifdef DUMPTREE
 	LOGEND();
@@ -466,6 +509,8 @@ CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clien
 
 void ClangVisitor::Do(CXTranslationUnit tu)
 {
+	scope.Clear();
+	
 	if(!HasLibClang())
 		return;
 
@@ -498,7 +543,11 @@ void ClangVisitor::Do(CXTranslationUnit tu)
 	clang_PrintingPolicy_setProperty(pp_pretty, CXPrintingPolicy_Bool, 1);
 	clang_PrintingPolicy_setProperty(pp_pretty, CXPrintingPolicy_SuppressScope, 1);
 	initialized = true;
+	ast.Clear();
+	ast.kind = CXCursor_Namespace;
+	scope.Add(&ast);
 	clang_visitChildren(cursor, clang_visitor, this);
+	scope.Clear();
 
 	for(CppFileInfo& f : info) { // sort by line because macros are first
 		Sort(f.items, [](const AnnotationItem& a, const AnnotationItem& b) {

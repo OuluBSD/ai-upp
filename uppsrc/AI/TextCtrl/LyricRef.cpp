@@ -66,7 +66,7 @@ ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ToolAppCtrl& o) : o(o) {
 	
 	PostCallback([this]{
 		DatabaseBrowser& b = DatabaseBrowser::Single();
-		b.SetMode(0);
+		b.SetMode(this->o.GetDataset(), 0);
 		Data();
 	});
 }
@@ -503,7 +503,7 @@ void ScriptReferenceMakerCtrl::DataLine() {
 	db0.SetModeCursor(mode_cursor);
 	
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	b.SetAll(s.sorter, s.element, s.attr, s.clr_i, s.act, s.typeclass_i, s.con_i);
+	b.SetAll(GetDataset(), s.sorter, s.element, s.attr, s.clr_i, s.act, s.typeclass_i, s.con_i);
 		
 	db0.Data();
 }
@@ -657,7 +657,7 @@ void ScriptReferenceMakerCtrl::Do(int fn) {
 
 void ScriptReferenceMakerCtrl::UpdateMode() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	b.SetMode(GetActiveMode());
+	b.SetMode(GetDataset(), GetActiveMode());
 	b.ResetCursor();
 	db0.Data();
 	db0.WhenBrowserCursor(); // OnBrowserCursor

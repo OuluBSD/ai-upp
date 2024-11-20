@@ -21,6 +21,7 @@ CodeVisitorProfile& BaseAnalysisProfile() {
 
 
 
+#if 0
 
 AIProcess::AIProcess() {
 	
@@ -904,5 +905,7 @@ int AITask::GetDependencyCount() const {
 	return i;
 }
 
+
+#endif
 
 END_UPP_NAMESPACE

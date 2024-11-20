@@ -3,6 +3,8 @@
 
 NAMESPACE_UPP
 
+#if 0
+
 AICodeCtrl::AICodeCtrl()
 {
 	Add(hsplit.SizePos());
@@ -38,9 +40,9 @@ AICodeCtrl::AICodeCtrl()
 	
 }
 
-ArrayMap<String, AionFile>& AICodeCtrl::AionFiles()
+ArrayMap<String, MetaSrcPkg>& AICodeCtrl::MetaSrcPkgs()
 {
-	static ArrayMap<String, AionFile> map;
+	static ArrayMap<String, MetaSrcPkg> map;
 	return map;
 }
 
@@ -55,7 +57,7 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 	String pkg_name = GetFileTitle(dir.Left(dir.GetCount() - 1));
 	this->aion_path = AppendFileName(dir, "AI.json");
 
-	AionFile& aion = AionFiles().GetAdd(aion_path);
+	MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
 	aion.SetPath(aion_path);
 	aion.Load();
 
@@ -68,7 +70,7 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 void AICodeCtrl::UpdateEditor()
 {
 	Vector<String> lines = Split(this->content, "\n", false);
-	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
+	MetaSrcFile& f = MetaEnv().ResolveFileInfo(this->includes, this->filepath);
 
 	editor_to_line.SetCount(0);
 	line_to_editor.SetCount(0);
@@ -147,7 +149,7 @@ void AICodeCtrl::UpdateEditor()
 void AICodeCtrl::Save(Stream& str, byte charset)
 {
 	str.Put(this->content);
-	// AionFile& aion = AionFiles().GetAdd(aion_path);
+	// MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
 	// aion.Save();
 }
 
@@ -347,7 +349,7 @@ void AICodeCtrl::OnTab() {
 
 void AICodeCtrl::StoreAion()
 {
-	AionFile& af = AiIndex().ResolveFile(this->includes, this->filepath);
+	MetaSrcPkg& af = MetaEnv().ResolveFile(this->includes, this->filepath);
 	af.PostSave();
 }
 
@@ -362,12 +364,12 @@ void AICodeCtrl::SetSelectedLineFromEditor()
 void AICodeCtrl::SetSelectedAnnotationFromLine()
 {
 	ASSERT(!this->filepath.IsEmpty());
-	AiFileInfo& f = AiIndex().ResolveFileInfo(this->includes, this->filepath);
+	MetaSrcFile& f = MetaEnv().ResolveFileInfo(this->includes, this->filepath);
 	sel_ann_f = 0;
 	sel_ann = 0;
 	sel_f = 0;
 	
-	UpdateAiFileInfo(f, this->filepath);
+	UpdateMetaSrcFile(f, this->filepath);
 	
 	for(int i = 0; i < f.ai_items.GetCount(); i++) {
 		AiAnnotationItem& item = f.ai_items[i];
@@ -402,7 +404,7 @@ void AICodeCtrl::AnnotationData() {
 		cursorinfo.Clear();
 		return;
 	}
-	AiFileInfo& info = *sel_f;
+	MetaSrcFile& info = *sel_f;
 	AiAnnotationItem& ann = *sel_ann;
 	SourceRange& ann_f = *sel_ann_f;
 	FileAnnotation& fa = codeidx[i];
@@ -510,6 +512,8 @@ void AICodeCtrl::AnnotationData() {
 	}
 	depthfirst.SetCount(row);
 }
+
+#endif
 
 END_UPP_NAMESPACE
 

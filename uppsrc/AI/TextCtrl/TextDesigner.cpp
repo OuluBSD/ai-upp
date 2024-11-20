@@ -26,8 +26,8 @@ bool ToolAppCtrl::IsScript() const {
 }
 
 bool ToolAppCtrl::HasPointers() const {
-	TODO
-	return false;
+	// TODO remove this function
+	return true;
 }
 
 Script& ToolAppCtrl::GetScript() {

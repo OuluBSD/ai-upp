@@ -2,10 +2,21 @@
 #define _AI_AICodeCtrl_h_
 
 struct AiAnnotationItem;
-struct AiFileInfo;
+struct MetaSrcFile;
 
 NAMESPACE_UPP
 
+struct AICodeCtrl : ParentCtrl {
+	void SetFont(Font fnt) {}
+	void SetEditPos(LineEdit::EditPos pos) {}
+	void SetPickUndoData(LineEdit::UndoData pos) {}
+	void Load(const String& includes, String filename, Stream& str, byte charset) {}
+	LineEdit::UndoData PickUndoData() {return LineEdit::UndoData();}
+	LineEdit::EditPos GetEditPos() {return LineEdit::EditPos();}
+	void Save(Stream& str, byte charset) {}
+};
+
+#if 0
 struct AICodeCtrl : ParentCtrl {
 	using SourceRange = AiAnnotationItem::SourceRange;
 	Splitter			hsplit, rsplit;
@@ -23,7 +34,7 @@ struct AICodeCtrl : ParentCtrl {
 	int					sel_line = -1;
 	SourceRange*		sel_ann_f = 0;
 	AiAnnotationItem*	sel_ann = 0;
-	AiFileInfo*			sel_f = 0;
+	MetaSrcFile*			sel_f = 0;
 	Color				clr_sel;
 	Color				clr_ann;
 	byte				charset = 0;
@@ -57,9 +68,9 @@ struct AICodeCtrl : ParentCtrl {
 	void CheckEditorCursor();
 	void OnEditorCursor();
 	void AnnotationData();
-	static ArrayMap<String, AionFile>& AionFiles();
+	static ArrayMap<String, MetaSrcPkg>& MetaSrcPkgs();
 };
-
+#endif
 
 END_UPP_NAMESPACE
 

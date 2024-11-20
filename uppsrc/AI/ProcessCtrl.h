@@ -68,6 +68,7 @@ struct AITask : Moveable<AITask>
 
 CodeVisitorProfile& BaseAnalysisProfile();
 
+#if 0
 struct AIProcess
 {
 	typedef enum : int {
@@ -129,6 +130,8 @@ struct AIProcessCtrl : ParentCtrl
 	void DataTask();
 	void RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn);
 };
+
+#endif
 
 bool IsTypeKind(int kind);
 bool IsVarKind(int kind);

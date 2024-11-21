@@ -55,7 +55,7 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 	this->includes = includes;
 	String dir = GetFileDirectory(filename);
 	String pkg_name = GetFileTitle(dir.Left(dir.GetCount() - 1));
-	this->aion_path = AppendFileName(dir, "AI.json");
+	this->aion_path = AppendFileName(dir, "Meta.bin");
 
 	MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
 	aion.SetPath(aion_path);

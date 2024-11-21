@@ -5,6 +5,9 @@
 #include <CtrlLib/CtrlLib.h>
 #include <ide/clang/clang.h>
 
+#define LAYOUTFILE <AI/AI.lay>
+#include <CtrlCore/lay.h>
+
 #include "Common.h"
 
 #include "MetaEnv.h"
@@ -14,6 +17,7 @@
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
+
 
 #include "AICodeCtrl.h"
 #include "Prompt.h"

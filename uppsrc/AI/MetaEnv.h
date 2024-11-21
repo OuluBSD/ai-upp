@@ -25,15 +25,27 @@ struct MetaNode {
 	Point begin = Null;
 	Point end = Null;
 	hash_t common_hash = 0;
+	int file = -1;
+	
+	// Temp
+	int pkg = -1;
 	
 	
 	MetaNode() {}
 	MetaNode(const MetaNode& n) {*this = n;}
-	void operator=(const MetaNode& n) {sub <<= n.sub; kind = n.kind; id = n.id; begin = n.begin; end = n.end; common_hash = n.common_hash;}
+	void operator=(const MetaNode& n) {sub <<= n.sub; CopyFieldsFrom(n);}
 	void operator=(const ClangNode& n);
+	void CopyFieldsFrom(const MetaNode& n) {kind = n.kind; id = n.id; begin = n.begin; end = n.end; common_hash = n.common_hash; file = n.file; pkg = n.pkg;}
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetCommonHash() const;
+	void Serialize(Stream& s) {s % sub % kind % id % begin % end % common_hash % file;}
+	void CopyPkgTo(MetaNode& other, int pkg_id) const;
+	void CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const;
+	bool HasPkgDeep(int pkg_id) const;
+	bool HasPkgFileDeep(int pkg_id, int file_id) const;
+	void SetPkgDeep(int pkg_id);
+	void SetFileDeep(int pkg_id);
 };
 
 #if 0
@@ -64,15 +76,19 @@ struct MetaSrcPkg {
 	typedef MetaSrcPkg CLASSNAME;
 	//ArrayMap<String, MetaSrcFile> files;
 	String saved_hash;
+	Index<String> filenames;
+	String path, dir;
+	int id = -1;
 	
 	MetaSrcPkg() {}
 	MetaSrcPkg(MetaSrcPkg&& f) {*this = f;}
 	MetaSrcPkg(const MetaSrcPkg& f) {*this = f;}
 	void operator=(const MetaSrcPkg& f);
 	bool Load(const String& aion_path, MetaNode& file_nodes);
-	bool Store(const String& aion_path, MetaNode& file_nodes);
-	/*void SetPath(String path);
-	void Load();
+	bool Store(MetaNode& file_nodes);
+	void SetPath(String path);
+	String GetRelativePath(const String& path);
+	/*void Load();
 	void Save(bool forced=false);
 	void Clear();
 	void PostSave();
@@ -83,10 +99,11 @@ struct MetaSrcPkg {
 	String GetHashSha1();
 	void Load(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(const String& includes, const String& path, FileAnnotation& fa);*/
+	void Serialize(Stream& s) {s % saved_hash % filenames;}
+	
 private:
 	
 	bool post_saving = false;
-	String path, dir;
 	Mutex lock;
 	
 };
@@ -101,16 +118,17 @@ struct MetaEnvironment {
 	
 	MetaEnvironment();
 	String ResolveMetaSrcPkgPath(const String& includes, String path);
-	//MetaSrcPkg& ResolveFile(const String& includes, String path);
+	MetaSrcPkg& ResolveFile(const String& includes, String path);
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	void Load(const String& includes, const String& path, FileAnnotation& fa);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
-	bool MergeVisit(Vector<MetaNode*>& scope, ClangNode& n);
-	void MergeNode(MetaNode& root, const MetaNode& other, int pkg_id);
+	bool MergeNode(MetaNode& root, const MetaNode& other);
 	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id);
-	
+	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id);
 	static bool IsMergeable(CXCursorKind kind);
+	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1);
+	
 };
 
 MetaEnvironment& MetaEnv();

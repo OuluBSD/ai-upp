@@ -11,6 +11,7 @@ library(WIN32) libcurl.lib;
 
 file
 	AI.h,
+	AI.lay,
 	Meta readonly separator,
 	MetaEnv.h,
 	MetaEnv.cpp,

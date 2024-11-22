@@ -500,49 +500,28 @@ void MetaCodeCtrl::AnnotationData() {
 		}
 	}
 	cursorinfo.SetCount(row);
+	#endif
 	
 	CodeVisitor vis;
 	vis.SetLimit(1000);
 	vis.Begin();
-	vis.Visit(filepath, fa, ann_f.begin, ann_f.end);
+	vis.Visit(filepath, *sel_node);
 	
 	row = 0;
 	for(const auto& it : vis.export_items) {
 		depthfirst.Set(row, 0, it.file);
 		depthfirst.Set(row, 1, it.pos);
-		if (it.have_ann || it.have_ref || it.have_link) {
-			if (it.have_ann) {
-				const auto& ai = it.ann;
-				depthfirst.Set(row, 2, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
-				depthfirst.Set(row, 3, ai.id);
-				depthfirst.Set(row, 4, ai.type);
+		if (it.node) {
+			MetaNode& n = *it.node;
+			depthfirst.Set(row, 2, n.kind >= 0 ? GetCursorKindName((CXCursorKind)n.kind) : String());
+			depthfirst.Set(row, 3, n.id);
+			depthfirst.Set(row, 4, n.type);
+			if (it.link_node)
+				depthfirst.Set(row, 5, it.link_node->begin);
+			else
 				depthfirst.Set(row, 5, Value());
-				depthfirst.Set(row, 6, it.error);
-				row++;
-			}
-			if (it.have_ref) {
-				const auto& ref = it.ref;
-				depthfirst.Set(row, 2, Value());
-				depthfirst.Set(row, 3, ref.id);
-				if (it.have_link) {
-					depthfirst.Set(row, 4, it.link.type);
-				}
-				else {
-					depthfirst.Set(row, 4, Value());
-				}
-				depthfirst.Set(row, 5, ref.ref_pos);
-				depthfirst.Set(row, 6, it.error);
-				row++;
-			}
-			if (it.have_link) {
-				const auto& ai = it.link;
-				depthfirst.Set(row, 2, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
-				depthfirst.Set(row, 3, ai.id);
-				depthfirst.Set(row, 4, ai.type);
-				depthfirst.Set(row, 5, Value());
-				depthfirst.Set(row, 6, it.error);
-				row++;
-			}
+			depthfirst.Set(row, 6, it.error);
+			row++;
 		}
 		else {
 			depthfirst.Set(row, 2, Value());
@@ -555,7 +534,6 @@ void MetaCodeCtrl::AnnotationData() {
 		}
 	}
 	depthfirst.SetCount(row);
-	#endif
 }
 
 END_UPP_NAMESPACE

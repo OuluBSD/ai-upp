@@ -31,13 +31,6 @@ CodeVisitorProfile& CodeVisitorProfile::SetAllTrue() {
 
 
 void CodeVisitor::Item::operator=(const Item& it) {
-	have_ann	= it.have_ann;
-	have_ref	= it.have_ref;
-	have_link	= it.have_link;
-	have_stmt	= it.have_stmt;
-	ann			= it.ann;
-	ref			= it.ref;
-	link		= it.link;
 	error		= it.error;
 	pos			= it.pos;
 	file		= it.file;
@@ -54,179 +47,75 @@ bool CodeVisitor::Item::operator()(const Item& a, const Item& b) const
 String CodeVisitor::Item::ToString() const
 {
 	String s;
-	if (have_ann)  {s << ann.ToString();}
-	if (have_ref)  {if (!s.IsEmpty()) s << ", "; s << ref.ToString();}
-	if (have_link) {if (!s.IsEmpty()) s << ", "; s << link.ToString();}
+	if(node) {
+		if (node->id.GetCount() && node->type.GetCount()) s << node->id << ": " << node->type;
+		else if (node->id.GetCount()) s << node->id;
+		else if (node->type.GetCount()) s << node->type;
+	}
 	return s;
 }
 
 void CodeVisitor::Begin()
 {
-	items.Clear();
 	export_items.Clear();
-	visited_refs.Clear();
-	visited_defs.Clear();
-	visited_decls.Clear();
+	visited.Clear();
 }
 
-void CodeVisitor::Visit(const String& filepath, const FileAnnotation& fa, Point begin, Point end)
+void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 {
-	Vector<Item> cur_level;
-	for(int i = 0; i < fa.items.GetCount(); i++) {
-		const AnnotationItem& ai = fa.items[i];
-		if(begin.y <= ai.pos.y && ai.pos.y <= end.y) {
-			Item& it = cur_level.Add();
-			it.have_ann = true;
-			it.ann = ai;
-			it.file = filepath;
-			it.pos = ai.pos;
-		}
+	if (visited.Find(&n) >= 0)
+		return;
+	visited.Add(&n);
+	
+	if (!n.id.IsEmpty() || !n.type.IsEmpty()) {
+		Item& it = export_items.Add();
+		it.pos = n.begin;
+		it.file = filepath;
+		it.node = &n;
 	}
-	for(int i = 0; i < fa.locals.GetCount(); i++) {
-		const AnnotationItem& ai = fa.locals[i];
-		if(begin.y <= ai.pos.y && ai.pos.y <= end.y) {
-			Item& it = cur_level.Add();
-			it.have_ann = true;
-			it.ann = ai;
-			it.file = filepath;
-			it.pos = ai.pos;
+	
+	for(int i = 0; i < n.sub.GetCount(); i++) {
+		MetaNode& s = n.sub[i];
+		
+		if (!s.is_ref) {
+			Visit(filepath, s);
 		}
-	}
-	for(int i = 0; i < fa.refs.GetCount(); i++) {
-		const ReferenceItem& ref = fa.refs[i];
-		if(begin.y <= ref.pos.y && ref.pos.y <= end.y) {
-			Item& it = cur_level.Add();
-			it.have_ref = true;
-			it.ref = ref;
-			it.file = filepath;
-			it.pos = ref.pos;
-		}
-	}
-	for(int i = 0; i < fa.stmts.GetCount(); i++) {
-		const StatementItem& stmt = fa.stmts[i];
-		if(begin.y <= stmt.begin.y && stmt.end.y <= end.y) {
-			Item& it = cur_level.Add();
-			it.have_stmt = true;
-			it.ref.kind = stmt.kind;
-			it.ref.pos = stmt.begin;
-			it.ann.begin = stmt.begin;
-			it.ann.end = stmt.end;
-			it.file = filepath;
-			it.pos = stmt.begin;
-		}
-	}
-	Sort(cur_level, Item());
-
-	for(int i = 0; i < cur_level.GetCount(); i++) {
-		Item& it = cur_level[i];
-		LOG(i << ": " << it.ToString());
-		if(it.have_ann) {
-			const AnnotationItem& ai = it.ann;
-			if((ai.definition && visited_defs.Find(ai.id) >= 0) ||
-			   (!ai.definition && visited_decls.Find(ai.id) >= 0))
-				continue;
-			export_items << it;
-			VisitAnn(filepath, it);
-		}
-		if(it.have_ref) {
-			const ReferenceItem& ref = it.ref;
-			String tgt_str = ref.MakeLocalString(filepath);
-			if(visited_refs.Find(tgt_str) >= 0)
-				continue;
-			export_items << it;
-			VisitRef(filepath, it);
-		}
-		if(it.have_stmt) {
-			export_items << it;
+		else {
+			VisitRef(filepath, s);
 		}
 		if(limit && export_items.GetCount() > limit)
 			break;
 	}
 }
 
-void CodeVisitor::VisitAnn(const String& filepath, Item& it)
+void CodeVisitor::VisitRef(const String& filepath, MetaNode& n)
 {
-	ASSERT(it.have_ann);
-	const AnnotationItem& ann = it.ann;
-	//LOG(StoreAsJson(ann, true));
-	if(ann.definition) {
-		ASSERT(visited_defs.Find(ann.id) < 0);
-		visited_defs.Add(ann.id);
-		auto& codeidx = CodeIndex();
-		int i = codeidx.Find(filepath);
-		if(i < 0) {
-			auto& it = export_items.Add();
-			it.error = "file not found: " + filepath;
-			it.file = filepath;
-			it.pos = Point(0, 0);
-			return;
-		}
-		const FileAnnotation& a = codeidx[i];
-		Visit(filepath, a, ann.begin, ann.end);
+	ASSERT(n.is_ref);
+	/*if (!n.id.IsEmpty() || !n.type.IsEmpty()) {
+	}*/
+	Item& it = export_items.Add();
+	it.pos = n.begin;
+	it.file = filepath;
+	it.node = &n;
+	VisitId(filepath, n, it);
+}
+
+void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
+{
+	ASSERT(n.is_ref);
+	auto& env = MetaEnv();
+	MetaNode* decl = env.FindDeclaration(n);
+	if (decl) {
+		link_it.link_node = decl;
+		String filepath = env.GetFilepath(decl->pkg, decl->file);
+		Visit(filepath, *decl);
 	}
 	else {
-		ASSERT(visited_decls.Find(ann.id) < 0);
-		visited_decls.Add(ann.id);
-		VisitId(filepath, ann.id, it);
+		auto& it = export_items.Add();
+		it.error = "id not found: " + n.id;
+		it.pos = Point(0, 0);
+		it.file = filepath;
 	}
-}
-
-void CodeVisitor::VisitRef(const String& filepath, Item& it)
-{
-	ASSERT(it.have_ref);
-	const ReferenceItem& ref = it.ref;
-	//LOG(StoreAsJson(ref, true));
-
-	String tgt_str = ref.MakeLocalString(filepath);
-	ASSERT(visited_refs.Find(tgt_str) < 0);
-	visited_refs.Add(tgt_str);
-	
-	VisitId(filepath, ref.id, it);
-}
-
-void CodeVisitor::VisitId(const String& filepath, const String& cmp_id, Item& link_it)
-{
-	// Find the reference
-	auto& codeidx = CodeIndex();
-	const FileAnnotation* match = 0;
-	for(auto it : ~codeidx) {
-		const FileAnnotation& a = it.value;
-		Vector<const Vector<AnnotationItem>*> lists;
-		lists << &a.items;
-		lists << &a.locals;
-		for (const Vector<AnnotationItem>* list : lists) {
-			for(const AnnotationItem& ann : *list) {
-				if(ann.definition && ann.id == cmp_id) {
-					link_it.link = ann;
-					link_it.link_file = it.key;
-					link_it.have_link = true;
-					Visit(it.key, a, ann.begin, ann.end);
-					return;
-				}
-			}
-		}
-	}
-	for(auto it : ~codeidx) {
-		const FileAnnotation& a = it.value;
-		Vector<const Vector<AnnotationItem>*> lists;
-		lists << &a.items;
-		lists << &a.locals;
-		for (const Vector<AnnotationItem>* list : lists) {
-			for(const AnnotationItem& ann : *list) {
-				if(!ann.definition && ann.id == cmp_id) {
-					link_it.link = ann;
-					link_it.link_file = it.key;
-					link_it.have_link = true;
-					Visit(it.key, a, ann.begin, ann.end);
-					return;
-				}
-			}
-		}
-	}
-	auto& it = export_items.Add();
-	it.error = "id not found: " + cmp_id;
-	it.pos = Point(0, 0);
-	it.file = filepath;
 }
 
 const String& CodeVisitor::LoadPath(String path)

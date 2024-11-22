@@ -138,12 +138,13 @@ struct MetaEnvironment {
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id);
 	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id);
 	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id);
+	String GetFilepath(int pkg_id, int file_id) const;
 	static bool IsMergeable(CXCursorKind kind);
 	static bool IsMergeable(int kind);
 	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1);
 	void RefreshFilePos(MetaNode& n);
 	void MergeVisitPost(MetaNode& n);
-	MetaNode* FindDeclaration(MetaNode& n);
+	MetaNode* FindDeclaration(const MetaNode& n);
 };
 
 MetaEnvironment& MetaEnv();

@@ -68,8 +68,7 @@ struct AITask : Moveable<AITask>
 
 CodeVisitorProfile& BaseAnalysisProfile();
 
-#if 0
-struct AIProcess
+struct MetaProcess
 {
 	typedef enum : int {
 		FN_BASE_ANALYSIS,
@@ -94,7 +93,7 @@ struct AIProcess
 	bool running = false, stopped = true;
 	bool waiting = false;
 	FileAnnotation* item = 0;
-	AiAnnotationItem::SourceRange* range = 0;
+	//AiAnnotationItem::SourceRange* range = 0;
 	Vector<String> code;
 	Vector<Error> errors;
 	String filepath;
@@ -102,9 +101,9 @@ struct AIProcess
 	int task_i = 0;
 	CodeVisitor vis;
 	
-	typedef AIProcess CLASSNAME;
-	AIProcess();
-	void SetSource(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code);
+	typedef MetaProcess CLASSNAME;
+	MetaProcess();
+	void SetSource(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code);
 	void Start(FnType fn);
 	void Stop();
 	void Run();
@@ -118,20 +117,19 @@ struct AIProcess
 	void OnResult(String s);
 };
 
-struct AIProcessCtrl : ParentCtrl
+struct MetaProcessCtrl : ParentCtrl
 {
 	Splitter vsplit;
 	ArrayCtrl tasks, info, errors;
-	AIProcess process;
+	MetaProcess process;
 	
-	typedef AIProcessCtrl CLASSNAME;
-	AIProcessCtrl();
+	typedef MetaProcessCtrl CLASSNAME;
+	MetaProcessCtrl();
 	void Data();
 	void DataTask();
-	void RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn);
+	void RunTask(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code, MetaProcess::FnType fn);
 };
 
-#endif
 
 bool IsTypeKind(int kind);
 bool IsVarKind(int kind);

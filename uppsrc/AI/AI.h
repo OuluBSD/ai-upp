@@ -13,13 +13,14 @@
 #include "MetaEnv.h"
 #include "MetaEnvTree.h"
 #include "ProcessBase.h"
+#include "MetaCodeGenerator.h"
 
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
 
 
-#include "AICodeCtrl.h"
+#include "MetaCodeCtrl.h"
 #include "Prompt.h"
 #include "RemoteTask.h"
 #include "TaskCtrl.h"

@@ -1,52 +1,38 @@
-#ifndef _AI_AICodeCtrl_h_
-#define _AI_AICodeCtrl_h_
-
-struct AiAnnotationItem;
-struct MetaSrcFile;
+#ifndef _AI_MetaCodeCtrl_h_
+#define _AI_MetaCodeCtrl_h_
 
 NAMESPACE_UPP
 
-struct AICodeCtrl : ParentCtrl {
-	void SetFont(Font fnt) {}
-	void SetEditPos(LineEdit::EditPos pos) {}
-	void SetPickUndoData(LineEdit::UndoData pos) {}
-	void Load(const String& includes, String filename, Stream& str, byte charset) {}
-	LineEdit::UndoData PickUndoData() {return LineEdit::UndoData();}
-	LineEdit::EditPos GetEditPos() {return LineEdit::EditPos();}
-	void Save(Stream& str, byte charset) {}
-};
-
-#if 0
-struct AICodeCtrl : ParentCtrl {
-	using SourceRange = AiAnnotationItem::SourceRange;
+struct MetaCodeCtrl : ParentCtrl {
 	Splitter			hsplit, rsplit;
 	TabCtrl				tabs;
 	CodeEditor			editor;
-	ArrayCtrl			cursorinfo, depthfirst;
-	AIProcessCtrl		process;
+	ArrayCtrl			depthfirst;
+	MetaProcessCtrl		process;
+	ArrayCtrl			cursorinfo;
 
 	String				filepath;
 	String				includes;
-	String				aion_path;
+	MetaSrcPkg*			pkg = 0;
 	int					lineh = 24;
 	Font				fnt;
 	String				content;
 	int					sel_line = -1;
-	SourceRange*		sel_ann_f = 0;
-	AiAnnotationItem*	sel_ann = 0;
-	MetaSrcFile*			sel_f = 0;
+	//SourceRange*		sel_ann_f = 0;
+	//AiAnnotationItem*	sel_ann = 0;
+	//MetaSrcFile*		sel_f = 0;
 	Color				clr_sel;
 	Color				clr_ann;
 	byte				charset = 0;
-	Vector<int>			editor_to_line;
-	Vector<int>			line_to_editor;
-	Vector<int>			comment_to_line;
 	CodeArgs			args;
 	int					prev_editor_cursor = -1;
 	TimeCallback		tc;
+	MetaCodeGenerator	gen;
+	const MetaCodeGenerator::File* gen_file = 0;
+	Ptr<MetaNode>			sel_node = 0;
 	
-	typedef AICodeCtrl CLASSNAME;
-	AICodeCtrl();
+	typedef MetaCodeCtrl CLASSNAME;
+	MetaCodeCtrl();
 	void OnTab();
 	void SetFont(Font fnt);
 	void Load(const String& includes, String filename, Stream& str, byte charset);
@@ -64,13 +50,12 @@ struct AICodeCtrl : ParentCtrl {
 	void UpdateEditor();
 	Vector<String> GetAnnotationAreaCode();
 	void MakeAiComments();
-	void RunTask(AIProcess::FnType t);
+	void RunTask(MetaProcess::FnType t);
 	void CheckEditorCursor();
 	void OnEditorCursor();
 	void AnnotationData();
-	static ArrayMap<String, MetaSrcPkg>& MetaSrcPkgs();
+	void VisitCursorInfo(MetaNode& n, int& row);
 };
-#endif
 
 END_UPP_NAMESPACE
 

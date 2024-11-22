@@ -21,22 +21,21 @@ CodeVisitorProfile& BaseAnalysisProfile() {
 
 
 
-#if 0
 
-AIProcess::AIProcess() {
+MetaProcess::MetaProcess() {
 	
 }
 
-void AIProcess::SetSource(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code)
+void MetaProcess::SetSource(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code)
 {
 	this->filepath = filepath;
 	this->item = &item;
-	this->range = &range;
+	Panic("TODO"); /*this->range = &range;*/
 	this->code = pick(code);
 	this->file_idx = CodeIndex().Find(filepath);
 }
 
-void AIProcess::Start(FnType fn) {
+void MetaProcess::Start(FnType fn) {
 	Stop();
 	running = true;
 	stopped = false;
@@ -45,14 +44,14 @@ void AIProcess::Start(FnType fn) {
 	Thread::Start(THISBACK(Run));
 }
 
-void AIProcess::Stop() {
+void MetaProcess::Stop() {
 	running = false;
 	while (!stopped) Sleep(100);
 }
 
-void AIProcess::Run() {
+void MetaProcess::Run() {
 	switch (cur_fn) {
-	case AIProcess::FN_BASE_ANALYSIS:
+	case MetaProcess::FN_BASE_ANALYSIS:
 		MakeBaseAnalysis();
 		break;
 	default:
@@ -80,11 +79,11 @@ void AIProcess::Run() {
 	stopped = true;
 }
 
-void AIProcess::MakeBaseAnalysis() {
+void MetaProcess::MakeBaseAnalysis() {
 	vis.SetProfile(BaseAnalysisProfile());
 	vis.SetNoLimit();
 	vis.Begin();
-	vis.Visit(filepath, *item, range->begin, range->end);
+	Panic("TODO"); /*vis.Visit(filepath, *item, range->begin, range->end);*/
 	
 	tasks.Clear();
 	tasks.Reserve(vis.export_items.GetCount());
@@ -184,7 +183,7 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 	return false;
 }
 
-void AIProcess::FindDependencies(Array<SortItem>& sort_items, SortItem& s0) {
+void MetaProcess::FindDependencies(Array<SortItem>& sort_items, SortItem& s0) {
 	for (const auto& rel : s0.task.relations) {
 		if (!rel.is_dependency)
 			continue;
@@ -196,7 +195,7 @@ void AIProcess::FindDependencies(Array<SortItem>& sort_items, SortItem& s0) {
 	}
 }
 
-void AIProcess::SortTasks() {
+void MetaProcess::SortTasks() {
 	Array<Vector<SortItem*>> tmp_items;
 	Vector<SortItem*> remaining_items;
 	Vector<SortItem*> sorted_items;
@@ -313,7 +312,7 @@ bool IsTypeKindBuiltIn(const String& s) {
 			s == "wchar_t";
 }
 
-bool AIProcess::MakeTask(AITask& t) {
+bool MetaProcess::MakeTask(AITask& t) {
 	const AnnotationItem& ann = t.vis.ann;
 	const String id = ann.id;
 	const String type = ann.type;
@@ -651,20 +650,20 @@ bool AIProcess::MakeTask(AITask& t) {
 	return true;
 }
 
-void AIProcess::AddError(String msg) {
+void MetaProcess::AddError(String msg) {
 	auto& e = errors.Add();
 	e.pos = Null;
 	e.msg = msg;
 }
 
-void AIProcess::AddError(String filepath, Point pos, String msg) {
+void MetaProcess::AddError(String filepath, Point pos, String msg) {
 	auto& e = errors.Add();
 	e.filepath = filepath;
 	e.pos = pos;
 	e.msg = msg;
 }
 
-bool AIProcess::ProcessTask(AITask& t) {
+bool MetaProcess::ProcessTask(AITask& t) {
 	ASSERT(!waiting);
 	TaskMgr& m = AiTaskManager();
 	
@@ -710,11 +709,11 @@ bool AIProcess::ProcessTask(AITask& t) {
 	}
 	
 	waiting = true;
-	m.GetCode(args, callback(this, &AIProcess::OnResult));
+	m.GetCode(args, callback(this, &MetaProcess::OnResult));
 	return true;
 }
 
-void AIProcess::OnResult(String s) {
+void MetaProcess::OnResult(String s) {
 	
 	LOG(s);
 	
@@ -724,7 +723,7 @@ void AIProcess::OnResult(String s) {
 
 
 
-AIProcessCtrl::AIProcessCtrl() {
+MetaProcessCtrl::MetaProcessCtrl() {
 	Add(vsplit.SizePos());
 	
 	vsplit.Vert() << tasks << info << errors;
@@ -774,7 +773,7 @@ AIProcessCtrl::AIProcessCtrl() {
 	
 }
 
-void AIProcessCtrl::Data() {
+void MetaProcessCtrl::Data() {
 	int row = 0;
 	for(int i = 0; i < process.tasks.GetCount(); i++) {
 		const AITask& t = process.tasks[i];
@@ -837,7 +836,7 @@ void AIProcessCtrl::Data() {
 		DataTask();
 }
 
-void AIProcessCtrl::DataTask() {
+void MetaProcessCtrl::DataTask() {
 	int c = tasks.GetCursor();
 	if (!tasks.IsCursor() || c < 0 || c >= process.tasks.GetCount()) {
 		info.Clear();
@@ -865,8 +864,8 @@ void AIProcessCtrl::DataTask() {
 	
 }
 
-void AIProcessCtrl::RunTask(String filepath, FileAnnotation& item, AiAnnotationItem::SourceRange& range, Vector<String> code, AIProcess::FnType fn) {
-	process.SetSource(filepath, item, range, pick(code));
+void MetaProcessCtrl::RunTask(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code, MetaProcess::FnType fn) {
+	process.SetSource(filepath, item, /*range,*/ pick(code));
 	process.Start(fn);
 }
 
@@ -905,7 +904,5 @@ int AITask::GetDependencyCount() const {
 	return i;
 }
 
-
-#endif
 
 END_UPP_NAMESPACE

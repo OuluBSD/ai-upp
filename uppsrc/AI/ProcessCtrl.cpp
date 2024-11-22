@@ -89,28 +89,10 @@ void MetaProcess::MakeBaseAnalysis() {
 	tasks.Reserve(vis.export_items.GetCount());
 	int i = 0;
 	for(const auto& it : vis.export_items) {
-		
-		if (it.have_ref) {
-			if (!it.have_link) {
-				LOG(i << ": " << it.ref.ToString() << ", error: NO LINK");
-			}
-			else {
-				LOG(i << ": " << it.ref.ToString() << ", " << it.link.ToString());
-			
-				// TODO solve macro & add 'is_macro' to MakeTask
-				
-			}
-		}
-		else if (it.have_ann) {
+		if (it.node) {
 			AITask& t = tasks.Add();
 			t.filepath = filepath;
 			t.vis = it;
-			/*if (!it.have_link) {
-				LOG(i << ": " << it.ann.ToString() << ", NO LINK");
-			}
-			else {
-				LOG(i << ": " << it.ann.ToString() << ", " << it.link.ToString());
-			}*/
 			MakeTask(t);
 		}
 		
@@ -121,6 +103,7 @@ void MetaProcess::MakeBaseAnalysis() {
 }
 
 bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
+	#if 0
 	bool is_any_type	= IsTypeKind(vis.ann.kind);
 	bool is_any_var		= IsVarKind(vis.ann.kind);
 	bool is_definition	= vis.ann.definition;
@@ -179,7 +162,7 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 		default: Panic("TODO"); break;
 		#endif
 	}
-	
+	#endif
 	return false;
 }
 
@@ -313,6 +296,7 @@ bool IsTypeKindBuiltIn(const String& s) {
 }
 
 bool MetaProcess::MakeTask(AITask& t) {
+	#if 0
 	const AnnotationItem& ann = t.vis.ann;
 	const String id = ann.id;
 	const String type = ann.type;
@@ -645,7 +629,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			}
 		}
 	}
-	
+	#endif
 	
 	return true;
 }
@@ -664,6 +648,7 @@ void MetaProcess::AddError(String filepath, Point pos, String msg) {
 }
 
 bool MetaProcess::ProcessTask(AITask& t) {
+	#if 0
 	ASSERT(!waiting);
 	TaskMgr& m = AiTaskManager();
 	
@@ -710,6 +695,7 @@ bool MetaProcess::ProcessTask(AITask& t) {
 	
 	waiting = true;
 	m.GetCode(args, callback(this, &MetaProcess::OnResult));
+	#endif
 	return true;
 }
 
@@ -774,6 +760,7 @@ MetaProcessCtrl::MetaProcessCtrl() {
 }
 
 void MetaProcessCtrl::Data() {
+	#if 0
 	int row = 0;
 	for(int i = 0; i < process.tasks.GetCount(); i++) {
 		const AITask& t = process.tasks[i];
@@ -834,6 +821,7 @@ void MetaProcessCtrl::Data() {
 		tasks.SetCursor(0); // calls DataTask via WhenCursor callback
 	else
 		DataTask();
+	#endif
 }
 
 void MetaProcessCtrl::DataTask() {

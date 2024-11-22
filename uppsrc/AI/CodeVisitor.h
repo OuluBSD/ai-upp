@@ -25,13 +25,8 @@ struct CodeVisitorProfile
 struct CodeVisitor
 {
 	struct Item : Moveable<Item> {
-		bool have_ann = false;
-		bool have_ref = false;
-		bool have_link = false;
-		bool have_stmt = false;
-		AnnotationItem ann;
-		ReferenceItem ref;
-		AnnotationItem link;
+		Ptr<MetaNode> node;
+		Ptr<MetaNode> link_node;
 		String error;
 		Point pos;
 		String file;
@@ -45,22 +40,18 @@ struct CodeVisitor
 	};
 	int limit = 0;
 	CodeVisitorProfile prof;
-	Vector<Item> items;
 	Vector<Item> export_items;
 	VectorMap<String,String> files;
-	Index<String> visited_refs;
-	Index<String> visited_defs;
-	Index<String> visited_decls;
+	Index<MetaNode*> visited;
 	
 	CodeVisitor() {}
 	void SetLimit(int i) {limit = i;}
 	void SetNoLimit() {limit = 0;}
 	void SetProfile(CodeVisitorProfile& p) {prof = p;}
 	void Begin();
-	void Visit(const String& filepath, const FileAnnotation& fa, Point begin, Point end);
-	void VisitAnn(const String& filepath, Item& it);
-	void VisitRef(const String& filepath, Item& it);
-	void VisitId(const String& filepath, const String& id, Item& it);
+	void Visit(const String& filepath, MetaNode& n);
+	void VisitRef(const String& filepath, MetaNode& it);
+	void VisitId(const String& filepath, MetaNode& n, Item& it);
 	const String& LoadPath(String path);
 };
 

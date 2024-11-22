@@ -426,6 +426,12 @@ void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_i
 	root.CopyPkgTo(other, pkg_id, file_id);
 }
 
+String MetaEnvironment::GetFilepath(int pkg_id, int file_id) const {
+	const auto& pkg = this->pkgs[pkg_id];
+	String path = pkg.GetFullPath(file_id);
+	return path;
+}
+
 void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id) {
 	other.n = this;
 	for (auto& n0 : sub) {
@@ -614,7 +620,7 @@ hash_t MetaNode::GetCommonHash() const {
 	Save();
 }*/
 
-MetaNode* MetaEnvironment::FindDeclaration(MetaNode& n) {
+MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n) {
 	if (!n.filepos_hash) return 0;
 	int i = filepos_nodes.Find(n.filepos_hash);
 	if (i < 0) return 0;

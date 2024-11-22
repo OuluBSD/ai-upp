@@ -12,7 +12,7 @@ class MetaEnvTree : public ParentCtrl {
 	CodeEditor code;
 	MenuBar menu;
 	Vector<MetaNode*> stmt_ptrs, focus_ptrs;
-	MetaNode tmp;
+	MetaNodeSubset subset;
 	
 public:
 	typedef MetaEnvTree CLASSNAME;
@@ -24,8 +24,8 @@ public:
 	void DataTreeSelection();
 	void DataFocusSelection();
 	bool Key(dword key, int count) override;
-	void AddStmtNodes(int parent, MetaNode& n);
-	void AddFocusNodes(int parent, MetaNode& n);
+	void AddStmtNodes(int parent, MetaNode& n, MetaNodeSubset* ns);
+	void AddFocusNodes(int parent, MetaNode& n, MetaNodeSubset* ns);
 	
 };
 

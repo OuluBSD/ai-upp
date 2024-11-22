@@ -3,9 +3,7 @@
 
 NAMESPACE_UPP
 
-#if 0
-
-AICodeCtrl::AICodeCtrl()
+MetaCodeCtrl::MetaCodeCtrl()
 {
 	Add(hsplit.SizePos());
 	hsplit.Horz() << editor << tabs;
@@ -27,7 +25,7 @@ AICodeCtrl::AICodeCtrl()
 	cursorinfo.AddColumn("Type");
 	cursorinfo.AddColumn("Pos");
 	cursorinfo.AddColumn("Ref-pos");
-	cursorinfo.ColumnWidths("2 4 4 1 1 2");
+	cursorinfo.ColumnWidths("2 4 4 1 1");
 	
 	depthfirst.AddColumn("File");
 	depthfirst.AddColumn("Pos");
@@ -40,26 +38,16 @@ AICodeCtrl::AICodeCtrl()
 	
 }
 
-ArrayMap<String, MetaSrcPkg>& AICodeCtrl::MetaSrcPkgs()
-{
-	static ArrayMap<String, MetaSrcPkg> map;
-	return map;
-}
+void MetaCodeCtrl::SetFont(Font fnt) { editor.SetFont(fnt); }
 
-void AICodeCtrl::SetFont(Font fnt) { editor.SetFont(fnt); }
-
-void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte charset)
+void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, byte charset)
 {
 	Ide* ide = TheIde();
 	this->filepath = NormalizePath(filename);
 	this->includes = includes;
-	String dir = GetFileDirectory(filename);
-	String pkg_name = GetFileTitle(dir.Left(dir.GetCount() - 1));
-	this->aion_path = AppendFileName(dir, "Meta.bin");
-
-	MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
-	aion.SetPath(aion_path);
-	aion.Load();
+	
+	MetaEnvironment& env = MetaEnv();
+	env.Load(filepath, includes);
 
 	this->content = str.Get((int)str.GetSize());
 	this->charset = charset;
@@ -67,11 +55,23 @@ void AICodeCtrl::Load(const String& includes, String filename, Stream& str, byte
 	UpdateEditor();
 }
 
-void AICodeCtrl::UpdateEditor()
+void MetaCodeCtrl::UpdateEditor()
 {
-	Vector<String> lines = Split(this->content, "\n", false);
-	MetaSrcFile& f = MetaEnv().ResolveFileInfo(this->includes, this->filepath);
-
+	
+	auto& env = MetaEnv();
+	MetaSrcPkg& pkg = env.ResolveFile(this->includes, this->filepath);
+	String rel_path = pkg.GetRelativePath(this->filepath);
+	int pkg_i = pkg.id;
+	int file_i = pkg.filenames.Find(rel_path);
+	ASSERT(pkg_i >= 0 && file_i >= 0);
+	MetaNodeSubset sub;
+	env.SplitNode(env.root, sub, pkg_i, file_i);
+	
+	gen.Process(sub);
+	gen_file = gen.GetResultFile(pkg_i, file_i);
+	String code = gen_file ? gen_file->code : String();
+	
+#if 0
 	editor_to_line.SetCount(0);
 	line_to_editor.SetCount(0);
 	comment_to_line.SetCount(0);
@@ -79,7 +79,6 @@ void AICodeCtrl::UpdateEditor()
 	comment_to_line.SetCount(lines.GetCount(), -1);
 	for(int i = 0; i < editor_to_line.GetCount(); i++)
 		editor_to_line[i] = i;
-
 	try {
 		struct Item : Moveable<Item> {
 			String txt;
@@ -137,31 +136,32 @@ void AICodeCtrl::UpdateEditor()
 		if(l >= 0)
 			line_to_editor[l] = i;
 	}
-
+#endif
+	
 	Point scroll_pos = editor.GetScrollPos();
 	int cursor = editor.GetCursor();
-	String s = Join(lines, "\n");
-	editor.Set(s, charset);
+	
+	editor.Set(code, charset);
 	editor.SetScrollPos(scroll_pos);
 	editor.SetCursor(cursor);
 }
 
-void AICodeCtrl::Save(Stream& str, byte charset)
+void MetaCodeCtrl::Save(Stream& str, byte charset)
 {
 	str.Put(this->content);
 	// MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
 	// aion.Save();
 }
 
-void AICodeCtrl::SetEditPos(LineEdit::EditPos pos) {}
+void MetaCodeCtrl::SetEditPos(LineEdit::EditPos pos) {}
 
-void AICodeCtrl::SetPickUndoData(LineEdit::UndoData pos) {}
+void MetaCodeCtrl::SetPickUndoData(LineEdit::UndoData pos) {}
 
-LineEdit::UndoData AICodeCtrl::PickUndoData() { return LineEdit::UndoData(); }
+LineEdit::UndoData MetaCodeCtrl::PickUndoData() { return LineEdit::UndoData(); }
 
-LineEdit::EditPos AICodeCtrl::GetEditPos() { return LineEdit::EditPos(); }
+LineEdit::EditPos MetaCodeCtrl::GetEditPos() { return LineEdit::EditPos(); }
 
-void AICodeCtrl::ContextMenu(Bar& bar)
+void MetaCodeCtrl::ContextMenu(Bar& bar)
 {
 	bar.Separator();
 	bar.Add("Add comment", THISBACK(AddComment));
@@ -169,16 +169,17 @@ void AICodeCtrl::ContextMenu(Bar& bar)
 	bar.Separator();
 	//bar.Sub("AI", [&](Bar& bar) {
 	bar.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
-	bar.Add("Run base analysis for this scope", THISBACK1(RunTask, AIProcess::FN_BASE_ANALYSIS));
+	bar.Add("Run base analysis for this scope", THISBACK1(RunTask, MetaProcess::FN_BASE_ANALYSIS));
 	//});
 }
 
-void AICodeCtrl::AddComment()
+void MetaCodeCtrl::AddComment()
 {
 	SetSelectedLineFromEditor();
 	if(sel_line < 0)
 		return;
 	SetSelectedAnnotationFromLine();
+	Panic("TODO"); /*
 	if(!sel_ann || !sel_ann_f)
 		return;
 	if(sel_line < 0 || sel_line >= editor_to_line.GetCount())
@@ -194,17 +195,18 @@ void AICodeCtrl::AddComment()
 	c.rel_line = l;
 	c.data_i = data_i;
 	sel_ann->Sort();
-
+*/
 	StoreAion();
 	UpdateEditor();
 }
 
-void AICodeCtrl::RemoveComment()
+void MetaCodeCtrl::RemoveComment()
 {
 	SetSelectedLineFromEditor();
 	if(sel_line < 0)
 		return;
 	SetSelectedAnnotationFromLine();
+	Panic("TODO"); /*
 	if(!sel_ann)
 		return;
 	if(sel_line < 0 || sel_line >= comment_to_line.GetCount())
@@ -212,7 +214,7 @@ void AICodeCtrl::RemoveComment()
 	int origl = comment_to_line[sel_line];
 	int l = origl - sel_ann_f->begin.y;
 	sel_ann_f->RemoveLineItem(l);
-
+	*/
 	StoreAion();
 	UpdateEditor();
 }
@@ -236,11 +238,12 @@ Vector<String> GetStringArea(const String& content, Point begin, Point end) {
 	return code;
 }
 
-Vector<String> AICodeCtrl::GetAnnotationAreaCode() {
-	return GetStringArea(this->content, sel_ann_f->begin, sel_ann_f->end);
+Vector<String> MetaCodeCtrl::GetAnnotationAreaCode() {
+	Panic("TODO"); /*return GetStringArea(this->content, sel_ann_f->begin, sel_ann_f->end);*/
+	return Vector<String>();
 }
 
-void AICodeCtrl::MakeAiComments()
+void MetaCodeCtrl::MakeAiComments()
 {
 	SetSelectedLineFromEditor();
 	if(sel_line < 0) {
@@ -248,6 +251,7 @@ void AICodeCtrl::MakeAiComments()
 		return;
 	}
 	SetSelectedAnnotationFromLine();
+	Panic("TODO"); /*
 	if(!sel_ann) {
 		PromptOK(DeQtf("No annotation selected"));
 		return;
@@ -296,10 +300,10 @@ void AICodeCtrl::MakeAiComments()
 		}
 		cur_sel_ann->Sort();
 		
-		Ptr<Ctrl> p = this; //static_cast<Pte<AICodeCtrl>*>(this);
+		Ptr<Ctrl> p = this; //static_cast<Pte<MetaCodeCtrl>*>(this);
 		PostCallback([p] {
 			if (p) {
-				AICodeCtrl* c = dynamic_cast<AICodeCtrl*>(&*p);
+				MetaCodeCtrl* c = dynamic_cast<MetaCodeCtrl*>(&*p);
 				if (c) {
 					c->StoreAion();
 					c->UpdateEditor();
@@ -307,15 +311,17 @@ void AICodeCtrl::MakeAiComments()
 			}
 		});
 	});
+	*/
 }
 
-void AICodeCtrl::RunTask(AIProcess::FnType t) {
+void MetaCodeCtrl::RunTask(MetaProcess::FnType t) {
 	SetSelectedLineFromEditor();
 	if(sel_line < 0) {
 		PromptOK(DeQtf("No line selected"));
 		return;
 	}
 	SetSelectedAnnotationFromLine();
+	Panic("TODO"); /*
 	if(!sel_ann) {
 		PromptOK(DeQtf("No annotation selected"));
 		return;
@@ -329,12 +335,13 @@ void AICodeCtrl::RunTask(AIProcess::FnType t) {
 	}
 	FileAnnotation& fa = codeidx[i];
 	
-	process.RunTask(this->filepath, fa, *sel_ann_f, pick(code), AIProcess::FN_BASE_ANALYSIS);
+	process.RunTask(this->filepath, fa, *sel_ann_f, pick(code), MetaProcess::FN_BASE_ANALYSIS);
 	
 	tabs.Set(1);
+	*/
 }
 
-void AICodeCtrl::OnTab() {
+void MetaCodeCtrl::OnTab() {
 	int tab = tabs.Get();
 	
 	if (tab == 1) {
@@ -347,23 +354,32 @@ void AICodeCtrl::OnTab() {
 	}
 }
 
-void AICodeCtrl::StoreAion()
+void MetaCodeCtrl::StoreAion()
 {
 	MetaSrcPkg& af = MetaEnv().ResolveFile(this->includes, this->filepath);
-	af.PostSave();
+	Panic("TODO"); /*af.PostSave();*/
 }
 
-void AICodeCtrl::SetSelectedLineFromEditor()
+void MetaCodeCtrl::SetSelectedLineFromEditor()
 {
-	int l = editor.GetCursorLine();
-	sel_line = l >= 0 && l < editor_to_line.GetCount() ? editor_to_line[l] : -1;
-	if(sel_line < 0)
-		sel_line = l >= 0 && l < comment_to_line.GetCount() ? comment_to_line[l] : -1;
+	int64 pos = editor.GetCursor64();
+	Point pt;
+	pt.y = editor.GetLine(pos);
+	pt.x = pos - editor.GetPos(pt.y);
+	for (auto n : ~gen_file->code_nodes) {
+		if (n.key.Contains(pt)) {
+			MetaNode& sel = *n.value;
+			ASSERT(!sel.only_temporary);
+			this->sel_node = &sel;
+			return;
+		}
+	}
+	this->sel_node = 0;
 }
 
-void AICodeCtrl::SetSelectedAnnotationFromLine()
+void MetaCodeCtrl::SetSelectedAnnotationFromLine()
 {
-	ASSERT(!this->filepath.IsEmpty());
+	/*ASSERT(!this->filepath.IsEmpty());
 	MetaSrcFile& f = MetaEnv().ResolveFileInfo(this->includes, this->filepath);
 	sel_ann_f = 0;
 	sel_ann = 0;
@@ -380,10 +396,10 @@ void AICodeCtrl::SetSelectedAnnotationFromLine()
 			sel_ann_f = sf;
 			break;
 		}
-	}
+	}*/
 }
 
-void AICodeCtrl::CheckEditorCursor() {
+void MetaCodeCtrl::CheckEditorCursor() {
 	int cur = editor.GetCursor();
 	if (cur != prev_editor_cursor) {
 		prev_editor_cursor = cur;
@@ -391,19 +407,47 @@ void AICodeCtrl::CheckEditorCursor() {
 	}
 }
 
-void AICodeCtrl::OnEditorCursor() {
+void MetaCodeCtrl::OnEditorCursor() {
+	if (!gen_file)
+		return;
 	SetSelectedLineFromEditor();
 	SetSelectedAnnotationFromLine();
 	AnnotationData();
 }
 
-void AICodeCtrl::AnnotationData() {
+void MetaCodeCtrl::VisitCursorInfo(MetaNode& n, int& row) {
+	cursorinfo.Set(row, 0, n.kind >= 0 ? GetCursorKindName((CXCursorKind)n.kind) : String());
+	cursorinfo.Set(row, 1, n.id);
+	cursorinfo.Set(row, 2, n.type);
+	cursorinfo.Set(row, 3, n.begin);
+	MetaNode* decl = n.is_ref ? MetaEnv().FindDeclaration(n) : 0;
+	if (decl)
+		cursorinfo.Set(row, 4, decl->begin);
+	else if (n.is_ref)
+		cursorinfo.Set(row, 4, "<decl not found>");
+	else
+		cursorinfo.Set(row, 4, Value());
+	row++;
+	
+	for (auto& s : n.sub)
+		VisitCursorInfo(s, row);
+}
+
+void MetaCodeCtrl::AnnotationData() {
 	auto& codeidx = CodeIndex();
 	int i = codeidx.Find(filepath);
-	if (!sel_f || !sel_ann || i < 0) {
+	
+	if (!sel_node || i < 0) {
 		cursorinfo.Clear();
 		return;
 	}
+	
+	int row = 0;
+	VisitCursorInfo(*sel_node, row);
+	cursorinfo.SetCount(row);
+	
+	
+	#if 0
 	MetaSrcFile& info = *sel_f;
 	AiAnnotationItem& ann = *sel_ann;
 	SourceRange& ann_f = *sel_ann_f;
@@ -511,9 +555,8 @@ void AICodeCtrl::AnnotationData() {
 		}
 	}
 	depthfirst.SetCount(row);
+	#endif
 }
-
-#endif
 
 END_UPP_NAMESPACE
 

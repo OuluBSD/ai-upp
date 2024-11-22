@@ -140,7 +140,7 @@ struct MetaSrcFile;
 String GetStringRange(String content, Point begin, Point end);
 Vector<String> GetStringArea(const String& content, Point begin, Point end);
 bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path);
-bool RangeContains(Point pos, Point begin, Point end);
+bool RangeContains(const Point& pos, const Point& begin, const Point& end);
 
 
 // TextTool classes
@@ -329,6 +329,75 @@ struct ScriptSolverArgs {
 	
 };
 
+struct PkgFile : Moveable<PkgFile> {
+	int pkg = -1, file = -1;
+	
+	PkgFile() {}
+	PkgFile(PkgFile&& k) {*this = k;}
+	PkgFile(const PkgFile& k) {*this = k;}
+	PkgFile(int pkg, int file) : pkg(pkg), file(file) {}
+	void operator=(const PkgFile& k) {file = k.file; pkg = k.pkg;}
+	bool operator()(const PkgFile& a, const PkgFile& b) const {
+		if (a.pkg != b.pkg) return a.pkg < b.pkg;
+		return a.file < b.file;
+	}
+	hash_t GetHashValue() const {return CombineHash(pkg, file);}
+	bool operator==(const PkgFile& p) const {return pkg == p.pkg && file == p.file;}
+	String ToString() const {return Format("[%d:%d]", pkg, file);}
+};
+
+inline bool IsFilePosLess(const Point& a, const Point& b) {
+	if (a.y != b.y) return a.y < b.y;
+	else return a.x < b.x;
+}
+
+inline bool IsFilePosLessOrEqual(const Point& a, const Point& b) {
+	if (a.y != b.y) return a.y <= b.y;
+	else return a.x <= b.x;
+}
+
+inline bool IsFilePosGreater(const Point& a, const Point& b) {
+	if (a.y != b.y) return a.y > b.y;
+	else return a.x > b.x;
+}
+
+inline bool IsRangesOverlapping(const Point& begin0, const Point& end0, const Point& begin1, const Point& end1) {
+	bool begin_less = IsFilePosLessOrEqual(begin0, begin1);
+	bool end_greater = IsFilePosLessOrEqual(end1, end0);
+	bool begin1_less = IsFilePosLess(begin1, end0);
+	bool end1_greater = IsFilePosLess(begin0, end1);
+	bool begin1_in_between = begin_less && begin1_less;
+	bool end1_in_between = end_greater && end1_greater;
+	bool is_1_subset = begin_less && end_greater;
+	bool is_0_subset = !begin_less && !end_greater;
+	return begin1_in_between || end1_in_between || is_1_subset || is_0_subset;
+}
+
+inline bool IsSubset(const Point& begin0, const Point& end0, const Point& begin1, const Point& end1) {
+	// Is range 1 subset of range 0
+	bool begin_less = IsFilePosLessOrEqual(begin0, begin1);
+	bool end_greater = IsFilePosLessOrEqual(end1, end0);
+	bool is_1_subset = begin_less && end_greater;
+	return is_1_subset;
+}
+
+struct TextRange : Moveable<TextRange> {
+	Point begin, end;
+	
+	TextRange() {}
+	TextRange(TextRange&& k) {*this = k;}
+	TextRange(const TextRange& k) {*this = k;}
+	TextRange(Point begin, Point end) : begin(begin), end(end) {}
+	void operator=(const TextRange& k) {begin = k.begin; end = k.end;}
+	bool operator()(const TextRange& a, const TextRange& b) const {
+		if (a.begin != b.begin) return IsFilePosLess(a.begin, b.begin);
+		return IsFilePosLess(a.end, b.end);
+	}
+	hash_t GetHashValue() const {return CombineHash(begin, end);}
+	bool operator==(const TextRange& p) const {return begin == p.begin && end == p.end;}
+	String ToString() const {return Format("[%s -> %s]", begin.ToString(), end.ToString());}
+	bool Contains(const Point& pt) const {return RangeContains(pt, begin, end);}
+};
 
 END_UPP_NAMESPACE
 

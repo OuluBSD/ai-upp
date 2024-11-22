@@ -23,6 +23,8 @@ file
 	MetaEnvTree.cpp,
 	TaskCtrl.h,
 	TaskCtrl.cpp,
+	MetaCodeCtrl.h,
+	MetaCodeCtrl.cpp,
 	Processes readonly separator,
 	ProcessBase.h,
 	ProcessBase.cpp,
@@ -30,6 +32,8 @@ file
 	CodeProcess.cpp,
 	CodeVisitor.h,
 	CodeVisitor.cpp,
+	MetaCodeGenerator.h,
+	MetaCodeGenerator.cpp,
 	Task readonly separator,
 	TaskManager.h,
 	TaskManager.cpp,
@@ -39,8 +43,5 @@ file
 	Prompt.h,
 	Prompt.cpp,
 	Common.h,
-	Common.cpp,
-	Broken readonly separator,
-	AICodeCtrl.h,
-	AICodeCtrl.cpp;
+	Common.cpp;
 

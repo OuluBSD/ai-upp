@@ -508,9 +508,11 @@ String GetStringRange(String content, Point begin, Point end) {
 			int rm_count = c - first_rm;
 			lines.Remove(first_rm, rm_count);
 		}
-		String& last_line = lines.Top();
-		if (end.x < last_line.GetCount()) {
-			last_line = last_line.Left(end.x);
+		if (lines.GetCount()) {
+			String& last_line = lines.Top();
+			if (end.x < last_line.GetCount()) {
+				last_line = last_line.Left(end.x);
+			}
 		}
 	}
 	if (begin.y > 0) {
@@ -518,9 +520,11 @@ String GetStringRange(String content, Point begin, Point end) {
 		int rm_count = min(lines.GetCount(), begin.y);
 		if (rm_count > 0)
 			lines.Remove(first_rm, rm_count);
-		String& first_line = lines[0];
-		if (begin.x > 0) {
-			first_line = first_line.Mid(begin.x);
+		if (lines.GetCount()) {
+			String& first_line = lines[0];
+			if (begin.x > 0) {
+				first_line = first_line.Mid(begin.x);
+			}
 		}
 	}
 	return Join(lines, "\n");
@@ -538,7 +542,7 @@ bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path)
 }
 #endif
 
-bool RangeContains(Point pos, Point begin, Point end)
+bool RangeContains(const Point& pos, const Point& begin, const Point& end)
 {
 	if ( pos.y < begin.y ||
 		(pos.y == begin.y && pos.x < begin.x) ||

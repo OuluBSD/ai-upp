@@ -208,7 +208,7 @@ void DumpIndex(const char *file, const String& what_file)
 CoEvent              Indexer::event;
 CoEvent              Indexer::scheduler;
 Mutex                Indexer::mutex;
-Vector<Indexer::Job> Indexer::jobs;
+Vector<IndexerJob>   Indexer::jobs;
 std::atomic<int>     Indexer::jobi;
 std::atomic<int>     Indexer::jobs_done;
 std::atomic<int>     Indexer::jobs_count;
@@ -234,7 +234,7 @@ void Indexer::IndexerThread()
 		int tm0 = msecs();
 		++running_indexers;
 		while(!Thread::IsShutdownThreads()) {
-			Job job;
+			IndexerJob job;
 			{
 				LTIMESTOP("Acquire job");
 				Mutex::Lock __(mutex);
@@ -250,6 +250,14 @@ void Indexer::IndexerThread()
 			BuildingPause();
 
 			int tm = msecs();
+
+			if (job.ext >= 0) {
+				Extensions()[job.ext].Get().RunJob(job);
+				PutAssist(String() << job.path << " indexed in " << msecs() - tm << " ms");
+				Mutex::Lock __(mutex);
+				jobs_done++;
+				continue;
+			}
 
 			clang.Parse(job.path, job.blitz, job.includes, job.defines,
 			            CXTranslationUnit_KeepGoing|
@@ -389,6 +397,8 @@ void Indexer::SchedulerThread()
 			Index<String>             header; // included files
 
 			VectorMap<String, Vector<Tuple<String, bool>>> sources; // bool is "noblitz"
+			VectorMap<String,int> ext_files;
+
 			{
 				GuiLock __;
 
@@ -412,8 +422,14 @@ void Indexer::SchedulerThread()
 							if(!pk.file[i].separator && ppi.FileExists(path)) {
 								if(IsCSourceFile(path))
 									ps.Add({ NormalizePath(path), pk[i].noblitz });
-								else
-									workspace_headers.FindAdd(path);
+								else {
+									String ext = GetFileExt(path);
+									int ext_i = Indexer::FindExtensionByExt(ext);
+									if (ext_i >= 0)
+										ext_files.Add(path, ext_i);
+									else
+										workspace_headers.FindAdd(path);
+								}
 							}
 						}
 					}
@@ -477,13 +493,13 @@ void Indexer::SchedulerThread()
 							if(LoadFromString(lf, h)) {
 								LTIMING("GuiLock 2");
 								GuiLock __;
-								#ifdef flagAI
-								MetaEnv().Load(includes, path, lf);
-								#endif
 								f = lf;
 								CodeIndex().GetAdd(path) = pick(lf);
 							}
 						}
+						#ifdef flagAI
+						MetaEnv().Load(includes, path);
+						#endif
 					}
 					if(f.defines != defines || f.includes != includes || f.time != m.value) {
 						dirty_files.FindAdd(Nvl(master_file, path));
@@ -502,24 +518,32 @@ void Indexer::SchedulerThread()
 			}
 
 			{
+				auto JobAdd = [&](IndexerJob& job, const String& path) {
+					job.file_times.Add(path, files.Get(path, Time::Low()));
+					for(int q = master.Find(path); q >= 0; q = master.FindNext(q)) {
+						String hpath = header[q];
+						job.file_times.Add(hpath, files.Get(hpath, Time::Low()));
+						job.master_files.Add(header[q], path);
+					}
+					return job;
+				};
+				
 				LTIMESTOP("Create indexer jobs");
 				jobs.Clear();
 				jobi = 0;
 				jobs_done = 0;
 				jobs_count = 0;
+				for (auto e : ~ext_files) {
+					IndexerJob& job = jobs.Add();
+					jobs_count = jobs.GetCount();
+					job.path = e.key;
+					job.ext = e.value;
+					JobAdd(job, job.path);
+				}
 				for(const auto& pkg : ~sources) {
-					Job blitz_job;
+					IndexerJob blitz_job;
 					blitz_job.includes = includes;
 					blitz_job.defines = defines;
-					auto JobAdd = [&](Job& job, const String& path) {
-						job.file_times.Add(path, files.Get(path, Time::Low()));
-						for(int q = master.Find(path); q >= 0; q = master.FindNext(q)) {
-							String hpath = header[q];
-							job.file_times.Add(hpath, files.Get(hpath, Time::Low()));
-							job.master_files.Add(header[q], path);
-						}
-						return job;
-					};
 					int blitz_index = 0;
 					for(const auto& pf : pkg.value) {
 						FileAnnotation0 f;
@@ -533,7 +557,7 @@ void Indexer::SchedulerThread()
 								JobAdd(blitz_job, pf.a);
 							}
 							else {
-								Job& job = jobs.Add();
+								IndexerJob& job = jobs.Add();
 								jobs_count = jobs.GetCount();
 								job.includes = includes;
 								job.defines = defines;
@@ -544,7 +568,7 @@ void Indexer::SchedulerThread()
 					}
 
 					if(blitz_job.blitz.GetCount()) {
-						Job& job = jobs.Add();
+						IndexerJob& job = jobs.Add();
 						jobs_count = jobs.GetCount();
 						job = blitz_job;
 						job.path = ConfigFile(pkg.key + "$$$blitz.cpp"); // the path is fake, file does not exist

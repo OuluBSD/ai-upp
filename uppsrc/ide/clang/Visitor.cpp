@@ -26,6 +26,9 @@ class ClangCursorInfo {
 	bool         hasid = false;
 	String       id;
 
+	bool         hastypehash = false;
+	unsigned     typehash = 0;
+
 public:
 	int          Kind()                      { return cursorKind; }
 	String       RawId();
@@ -37,6 +40,7 @@ public:
 	String       Name();
 	String       Id();
 	String       Bases();
+	unsigned     TypeHash();
 	
 	CXCursor     GetCursor()                 { return cursor; }
 
@@ -68,6 +72,16 @@ String ClangCursorInfo::Type()
 		hastype = true;
 	}
 	return type;
+}
+
+force_inline
+unsigned ClangCursorInfo::TypeHash()
+{
+	if(!hastypehash) {
+		typehash = clang_hashCursor(clang_getTypeDeclaration(clang_getCursorType(cursor)));
+		hastypehash = true;
+	}
+	return typehash;
 }
 
 force_inline
@@ -342,36 +356,28 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 	String id = ci.Id();
 	String name = ci.Name();
 	String type = ci.Type();
+	unsigned type_hash = ci.TypeHash();
 	int kind = ci.Kind();
 	
+	ClangNode* np = 0;
 	if (kind != CXCursor_OverloadCandidate) {
-		LoadSourceLocation();
 		ClangNode& n = *scope.Top();
+		np = &n;
+		LoadSourceLocation();
 		n.kind = kind;
 		if (id.GetCount())
 			n.id = id;
 		else if (name.GetCount())
 			n.id = name;
-		else if (type.GetCount())
-			n.id = type;
+		if (type.GetCount())
+			n.type = type;
+		else
+			n.type = ci.TypeDeclaration();
+		n.type_hash = type_hash;
 		n.begin = sl.begin;
 		n.end = sl.end;
-		/*if (n.id.IsEmpty()) {
-			LOG(FetchString(clang_getCursorKindSpelling((CXCursorKind)kind)));
-			DUMP(ci.Id());
-			DUMP(ci.Type());
-			DUMP(ci.TypeDeclaration());
-			DUMP(ci.ParentTypeDeclaration());
-			DUMP(ci.Name());
-			
-			ClangCursorInfo ci1(ref, pp_id);
-			DUMP(ci1.Id());
-			DUMP(ci1.Type());
-			DUMP(ci1.TypeDeclaration());
-			DUMP(ci1.ParentTypeDeclaration());
-			DUMP(ci1.Name());
-			LOG("");
-		}*/
+		n.filepos_hash = sl.GetHashValue();
+		n.is_definition = clang_isCursorDefinition(cursor);
 	}
 	
 	if (kind == CXCursor_ReturnStmt) {
@@ -466,6 +472,10 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			if(rm.id.GetCount() && rd.Find(rm) < 0) {
 				rd.Add(rm);
 				info.GetAdd(sl.path).refs.Add(rm);
+				if (np) {
+					np->is_ref = true;
+					np->filepos_hash = ref_loc.GetHashValue();
+				}
 			}
 		};
 		

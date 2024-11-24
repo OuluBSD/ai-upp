@@ -4,7 +4,11 @@ template <class T> struct Extra {
 	
 };
 
-struct Fruit : Extra<Fruit> {
+struct OtherBase {
+	
+};
+
+struct Fruit : Extra<Fruit>, OtherBase {
 	double mass = 0.0; // in grams
 	// This class is the base class for all fruits e.g. Orange, Apple
 	Fruit() {}
@@ -55,3 +59,13 @@ int main(int argc, const char *argv[])
 	
 	return 0;
 }
+/*
+namespace Plants {
+
+struct Cucumber {
+	Cucumber() {}
+	void Fn(int i) {i++;}
+};
+
+}
+*/

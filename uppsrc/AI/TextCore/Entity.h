@@ -15,7 +15,7 @@ struct Component : Pte<Component> {
 	void Jsonize(JsonIO& json) {json("name",name);}
 };
 
-struct Entity : Pte<Entity> {
+struct Entity : MetaNode {
 	String name, type;
 	VectorMap<String, Value> data;
 	Array<Component> comps;
@@ -43,6 +43,15 @@ struct Entity : Pte<Entity> {
 	template <class T> Vector<const T*> FindAll() const {
 		Vector<const T*> v; for (const auto& comp : comps) {const T* o = dynamic_cast<const T*>(&comp); v << o;} return v;
 	}
+};
+
+struct EcsSpace {
+	String id;
+	Array<EcsSpace> sub;
+	Array<Entity> entities;
+	
+	EcsSpace() {}
+	void Jsonize(JsonIO& json) { json("id", id)("sub", sub)("entities",entities);}
 };
 
 END_UPP_NAMESPACE

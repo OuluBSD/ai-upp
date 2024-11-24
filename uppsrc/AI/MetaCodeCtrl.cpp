@@ -33,8 +33,7 @@ MetaCodeCtrl::MetaCodeCtrl()
 	depthfirst.AddColumn("Id");
 	depthfirst.AddColumn("Type");
 	depthfirst.AddColumn("Ref-pos");
-	depthfirst.AddColumn("Error");
-	depthfirst.ColumnWidths("1 1 2 4 4 1 4");
+	depthfirst.ColumnWidths("1 1 2 4 4 1");
 	
 }
 
@@ -176,9 +175,8 @@ void MetaCodeCtrl::ContextMenu(Bar& bar)
 void MetaCodeCtrl::AddComment()
 {
 	SetSelectedLineFromEditor();
-	if(sel_line < 0)
+	if(!sel_node)
 		return;
-	SetSelectedAnnotationFromLine();
 	Panic("TODO"); /*
 	if(!sel_ann || !sel_ann_f)
 		return;
@@ -203,9 +201,8 @@ void MetaCodeCtrl::AddComment()
 void MetaCodeCtrl::RemoveComment()
 {
 	SetSelectedLineFromEditor();
-	if(sel_line < 0)
+	if(!sel_node)
 		return;
-	SetSelectedAnnotationFromLine();
 	Panic("TODO"); /*
 	if(!sel_ann)
 		return;
@@ -239,18 +236,16 @@ Vector<String> GetStringArea(const String& content, Point begin, Point end) {
 }
 
 Vector<String> MetaCodeCtrl::GetAnnotationAreaCode() {
-	Panic("TODO"); /*return GetStringArea(this->content, sel_ann_f->begin, sel_ann_f->end);*/
-	return Vector<String>();
+	return GetStringArea(this->content, sel_node->begin, sel_node->end);
 }
 
 void MetaCodeCtrl::MakeAiComments()
 {
 	SetSelectedLineFromEditor();
-	if(sel_line < 0) {
+	if(!sel_node) {
 		PromptOK(DeQtf("No line selected"));
 		return;
 	}
-	SetSelectedAnnotationFromLine();
 	Panic("TODO"); /*
 	if(!sel_ann) {
 		PromptOK(DeQtf("No annotation selected"));
@@ -316,29 +311,22 @@ void MetaCodeCtrl::MakeAiComments()
 
 void MetaCodeCtrl::RunTask(MetaProcess::FnType t) {
 	SetSelectedLineFromEditor();
-	if(sel_line < 0) {
-		PromptOK(DeQtf("No line selected"));
-		return;
-	}
-	SetSelectedAnnotationFromLine();
-	Panic("TODO"); /*
-	if(!sel_ann) {
-		PromptOK(DeQtf("No annotation selected"));
+	if(!sel_node) {
+		PromptOK(DeQtf("No node selected"));
 		return;
 	}
 	auto code = GetAnnotationAreaCode();
 	auto& codeidx = CodeIndex();
 	int i = codeidx.Find(filepath);
-	if (!sel_f || !sel_ann || !sel_ann_f || i < 0) {
+	if (!sel_node || i < 0) {
 		PromptOK(DeQtf("Error: no pointers found"));
 		return;
 	}
 	FileAnnotation& fa = codeidx[i];
 	
-	process.RunTask(this->filepath, fa, *sel_ann_f, pick(code), MetaProcess::FN_BASE_ANALYSIS);
+	process.RunTask(this->filepath, *sel_node, pick(code), MetaProcess::FN_BASE_ANALYSIS);
 	
 	tabs.Set(1);
-	*/
 }
 
 void MetaCodeCtrl::OnTab() {
@@ -377,28 +365,6 @@ void MetaCodeCtrl::SetSelectedLineFromEditor()
 	this->sel_node = 0;
 }
 
-void MetaCodeCtrl::SetSelectedAnnotationFromLine()
-{
-	/*ASSERT(!this->filepath.IsEmpty());
-	MetaSrcFile& f = MetaEnv().ResolveFileInfo(this->includes, this->filepath);
-	sel_ann_f = 0;
-	sel_ann = 0;
-	sel_f = 0;
-	
-	UpdateMetaSrcFile(f, this->filepath);
-	
-	for(int i = 0; i < f.ai_items.GetCount(); i++) {
-		AiAnnotationItem& item = f.ai_items[i];
-		auto* sf = item.FindAnySourceRange();
-		if(sf && sel_line >= sf->begin.y && sel_line <= sf->end.y) {
-			sel_f = &f;
-			sel_ann = &item;
-			sel_ann_f = sf;
-			break;
-		}
-	}*/
-}
-
 void MetaCodeCtrl::CheckEditorCursor() {
 	int cur = editor.GetCursor();
 	if (cur != prev_editor_cursor) {
@@ -411,7 +377,6 @@ void MetaCodeCtrl::OnEditorCursor() {
 	if (!gen_file)
 		return;
 	SetSelectedLineFromEditor();
-	SetSelectedAnnotationFromLine();
 	AnnotationData();
 }
 

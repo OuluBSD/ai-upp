@@ -31,6 +31,8 @@ CodeVisitorProfile& CodeVisitorProfile::SetAllTrue() {
 
 
 void CodeVisitor::Item::operator=(const Item& it) {
+	node		= it.node;
+	link_node	= it.link_node;
 	error		= it.error;
 	pos			= it.pos;
 	file		= it.file;

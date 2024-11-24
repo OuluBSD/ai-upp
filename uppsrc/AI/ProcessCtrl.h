@@ -44,12 +44,8 @@ struct AITask : Moveable<AITask>
 		Reason reason = NO_REASON;
 		bool is_dependency = false;
 		String file;
-		String id;
-		String type;
-		String nest;
-		int kind = -1;
-		Point pos = Null;
-		Point ref_pos = Null;
+		Ptr<MetaNode> node, link_node;
+		unsigned type_hash = 0;
 	};
 	
 	CodeVisitor::Item vis;
@@ -59,9 +55,9 @@ struct AITask : Moveable<AITask>
 	
 	AITask() {}
 	bool IsLinked(const AITask& t, const Relation& rel) const;
-	bool HasInput(const String& id, int kind) const;
-	bool HasDepType(const String& id) const;
-	bool HasReason(Reason r, Point pos) const;
+	bool HasInput(const MetaNode& n) const;
+	bool HasDepType(unsigned type_hash) const;
+	bool HasReason(Reason r, Point begin) const;
 	int GetDependencyCount() const;
 	bool operator()(const AITask& a, const AITask& b) const {return a.order < b.order;}
 };
@@ -92,8 +88,7 @@ struct MetaProcess
 	FnType cur_fn;
 	bool running = false, stopped = true;
 	bool waiting = false;
-	FileAnnotation* item = 0;
-	//AiAnnotationItem::SourceRange* range = 0;
+	Ptr<MetaNode> node;
 	Vector<String> code;
 	Vector<Error> errors;
 	String filepath;
@@ -103,7 +98,7 @@ struct MetaProcess
 	
 	typedef MetaProcess CLASSNAME;
 	MetaProcess();
-	void SetSource(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code);
+	void SetSource(String filepath, MetaNode& n, Vector<String> code);
 	void Start(FnType fn);
 	void Stop();
 	void Run();
@@ -127,7 +122,7 @@ struct MetaProcessCtrl : ParentCtrl
 	MetaProcessCtrl();
 	void Data();
 	void DataTask();
-	void RunTask(String filepath, FileAnnotation& item, /*AiAnnotationItem::SourceRange& range,*/ Vector<String> code, MetaProcess::FnType fn);
+	void RunTask(String filepath, MetaNode& n, Vector<String> code, MetaProcess::FnType fn);
 };
 
 

@@ -17,7 +17,7 @@ struct MetaCodeCtrl : ParentCtrl {
 	int					lineh = 24;
 	Font				fnt;
 	String				content;
-	int					sel_line = -1;
+	//int					sel_line = -1;
 	//SourceRange*		sel_ann_f = 0;
 	//AiAnnotationItem*	sel_ann = 0;
 	//MetaSrcFile*		sel_f = 0;
@@ -29,7 +29,7 @@ struct MetaCodeCtrl : ParentCtrl {
 	TimeCallback		tc;
 	MetaCodeGenerator	gen;
 	const MetaCodeGenerator::File* gen_file = 0;
-	Ptr<MetaNode>			sel_node = 0;
+	Ptr<MetaNode>		sel_node = 0;
 	
 	typedef MetaCodeCtrl CLASSNAME;
 	MetaCodeCtrl();
@@ -43,7 +43,6 @@ struct MetaCodeCtrl : ParentCtrl {
 	LineEdit::EditPos GetEditPos();
 	void StoreAion();
 	void SetSelectedLineFromEditor();
-	void SetSelectedAnnotationFromLine();
 	void ContextMenu(Bar& bar);
 	void AddComment();
 	void RemoveComment();

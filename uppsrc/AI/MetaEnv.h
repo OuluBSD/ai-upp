@@ -10,31 +10,46 @@ Vector<String> FindParentUppDirectories(const String& dir);
 
 struct MetaNodeSubset;
 
+enum {
+	METAKIND_ECS_SPACE = 1000,
+	METAKIND_ECS_NODE,
+};
+
 struct MetaNode : Pte<MetaNode> {
 	Array<MetaNode> sub;
 	int kind = -1;
 	String id, type;
+	unsigned type_hash = 0;
 	Point begin = Null;
 	Point end = Null;
 	hash_t filepos_hash = 0;
 	hash_t common_hash = 0;
 	int file = -1;
 	bool is_ref = false;
+	bool is_definition = false;
 	
 	// Temp
 	int pkg = -1;
 	bool only_temporary = false;
+	Ptr<MetaNode> owner;
+	Ptr<MetaNode> type_ptr;
 	
 	MetaNode() {}
-	MetaNode(const MetaNode& n) {*this = n;}
+	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
 	~MetaNode() {}
-	void operator=(const MetaNode& n) {sub <<= n.sub; CopyFieldsFrom(n);}
-	void operator=(const ClangNode& n);
+	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
+	void Assign(MetaNode* owner, const ClangNode& n);
+	void CopyFrom(const MetaNode& n);
 	void CopyFieldsFrom(const MetaNode& n);
+	void CopySubFrom(const MetaNode& n);
+	MetaNode& GetAdd(String id, String type, int kind);
+	MetaNode& Add(const MetaNode& n);
+	MetaNode& Add(MetaNode* n);
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetCommonHash() const;
-	void Serialize(Stream& s) {s % sub % kind % id % type % begin % end % filepos_hash % common_hash % file % is_ref;}
+	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % common_hash % file % is_ref % is_definition; if (s.IsLoading()) FixParent();}
+	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
 	void CopyPkgTo(MetaNode& other, int pkg_id) const;
@@ -44,6 +59,11 @@ struct MetaNode : Pte<MetaNode> {
 	void SetPkgDeep(int pkg_id);
 	void SetFileDeep(int pkg_id);
 	void SetTempDeep();
+	Vector<MetaNode*> FindAllShallow(int kind);
+	Vector<const MetaNode*> FindAllShallow(int kind) const;
+	bool IsStructKind() const;
+	String GetBasesString() const;
+	String GetNestString() const;
 };
 
 struct MetaNodeSubset {
@@ -130,7 +150,7 @@ struct MetaEnvironment {
 	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
 	MetaSrcPkg& ResolveFile(const String& includes, String path);
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
-	void Load(const String& includes, const String& path);
+	MetaSrcPkg& Load(const String& includes, const String& path);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
 	bool MergeNode(MetaNode& root, const MetaNode& other);
@@ -145,6 +165,7 @@ struct MetaEnvironment {
 	void RefreshFilePos(MetaNode& n);
 	void MergeVisitPost(MetaNode& n);
 	MetaNode* FindDeclaration(const MetaNode& n);
+	MetaNode* FindDeclarationDeep(const MetaNode& n);
 };
 
 MetaEnvironment& MetaEnv();

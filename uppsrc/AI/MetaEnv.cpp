@@ -274,6 +274,7 @@ String MetaSrcPkg::GetRelativePath(const String& path) const {
 	}
 	else
 		Panic("TODO"); //return NormalizePath(path, dir);
+	return String();
 }
 
 String MetaSrcPkg::GetFullPath(const String& rel_path) const {
@@ -332,7 +333,7 @@ MetaEnvironment::MetaEnvironment() {
 	
 }
 
-void MetaEnvironment::Load(const String& includes, const String& path)
+MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 {
 	MetaNode file_nodes;
 	MetaSrcPkg& pkg = this->ResolveFile(includes, path);
@@ -342,6 +343,7 @@ void MetaEnvironment::Load(const String& includes, const String& path)
 		file_nodes.SetPkgDeep(pkg.id);
 		MergeNode(root, file_nodes);
 	}
+	return pkg;
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
@@ -351,7 +353,7 @@ void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 	String rel_path = pkg.GetRelativePath(path);
 	int file_id = pkg.filenames.Find(rel_path);
 	MetaNode n;
-	n = cn;
+	n.Assign(0, cn);
 	n.SetPkgDeep(pkg.id);
 	n.SetFileDeep(file_id);
 	if (!MergeNode(root, n))
@@ -370,8 +372,7 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) 
 		for (const MetaNode& sub1 : n1.sub) {
 			int i = n0.Find(sub1.kind, sub1.id);
 			if (i < 0) {
-				auto& n = n0.sub.Add();
-				n = sub1;
+				auto& n = n0.Add(sub1);
 				MergeVisitPost(n);
 			}
 			else {
@@ -390,7 +391,8 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) 
 		hash_t n1_common_hash = n1.GetCommonHash();
 		if (n0.common_hash != n1_common_hash) {
 			// Node changed
-			n0 = n1;
+			ASSERT(scope.GetCount() == 1 || n0.owner);
+			n0.CopyFrom(n1);
 			n0.common_hash = n1_common_hash;
 			MergeVisitPost(n0);
 		}
@@ -571,25 +573,67 @@ int MetaNode::Find(int kind, const String& id) const {
 	return -1;
 }
 
-void MetaNode::operator=(const ClangNode& n) {
+void MetaNode::Assign(MetaNode* owner, const ClangNode& n) {
+	this->owner = owner;
 	int c = n.sub.GetCount();
 	sub.SetCount(c);
 	for(int i = 0; i < c; i++)
-		sub[i] = n.sub[i];
+		sub[i].Assign(this, n.sub[i]);
 	kind = n.kind;
 	id = n.id;
 	type = n.type;
+	type_hash = n.type_hash;
 	begin = n.begin;
 	end = n.end;
 	filepos_hash = n.filepos_hash;
 	common_hash = 0; // too heavy to update here
 	is_ref = n.is_ref;
+	is_definition = n.is_definition;
+}
+
+MetaNode& MetaNode::GetAdd(String id, String type, int kind) {
+	for (MetaNode& s : sub)
+		if (s.kind == kind && s.id == id && s.type == type)
+			return s;
+	MetaNode& s = sub.Add();
+	s.owner = this;
+	s.id = id;
+	s.type = type;
+	s.kind = kind;
+	return s;
+}
+
+MetaNode& MetaNode::Add(const MetaNode& n) {
+	MetaNode& s = sub.Add();
+	s.owner = this;
+	s.CopySubFrom(n);
+	s.CopyFieldsFrom(n);
+	return s;
+}
+
+MetaNode& MetaNode::Add(MetaNode* n) {
+	MetaNode& s = sub.Add(n);
+	s.owner = this;
+	return s;
+}
+
+void MetaNode::CopyFrom(const MetaNode& n) {
+	CopySubFrom(n);
+	CopyFieldsFrom(n);
+}
+
+void MetaNode::CopySubFrom(const MetaNode& n) {
+	int c = n.sub.GetCount();
+	sub.SetCount(c);
+	for(int i = 0; i < c; i++)
+		sub[i].Assign(this, n.sub[i]);
 }
 
 void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	kind = n.kind;
 	id = n.id;
 	type = n.type;
+	type_hash = n.type_hash;
 	begin = n.begin;
 	end = n.end;
 	common_hash = n.common_hash;
@@ -597,6 +641,7 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	file = n.file;
 	pkg = n.pkg;
 	is_ref = n.is_ref;
+	is_definition = n.is_definition;
 }
 
 hash_t MetaNode::GetCommonHash() const {
@@ -605,6 +650,45 @@ hash_t MetaNode::GetCommonHash() const {
 	for (const auto& s : sub)
 		ch.Put(s.GetCommonHash());
 	return ch;
+}
+
+Vector<MetaNode*> MetaNode::FindAllShallow(int kind) {
+	Vector<MetaNode*> vec;
+	for (auto& s : sub)
+		if (s.kind == kind)
+			vec << &s;
+	return vec;
+}
+
+Vector<const MetaNode*> MetaNode::FindAllShallow(int kind) const {
+	Vector<const MetaNode*> vec;
+	for (const auto& s : sub)
+		if (s.kind == kind)
+			vec << &s;
+	return vec;
+}
+
+bool MetaNode::IsStructKind() const {
+	return	kind == CXCursor_StructDecl &&
+			kind == CXCursor_ClassDecl &&
+			kind == CXCursor_ClassTemplate &&
+			kind == CXCursor_ClassTemplatePartialSpecialization;
+}
+
+String MetaNode::GetBasesString() const {
+	String s;
+	Vector<const MetaNode*> bases = FindAllShallow(CXCursor_CXXBaseSpecifier);
+	for (const MetaNode* n : bases) {
+		if (!s.IsEmpty()) s.Cat(", ");
+		s << n->id << " (" << n->type << ")";
+	}
+	return s;
+}
+
+String MetaNode::GetNestString() const {
+	if (owner)
+		return owner->id;
+	return String();
 }
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
@@ -630,5 +714,16 @@ MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n) {
 			return &*ptr;
 	return 0;
 }
+
+MetaNode* MetaEnvironment::FindDeclarationDeep(const MetaNode& n) {
+	if (n.kind == CXCursor_CXXBaseSpecifier) {
+		for (const auto& s : n.sub)
+			if (s.kind == CXCursor_TypeRef)
+				return FindDeclaration(s);
+		return 0;
+	}
+	else return FindDeclaration(n);
+}
+
 
 END_UPP_NAMESPACE

@@ -24,6 +24,7 @@
 #include "SourceText.h"
 #include "LyricStructSolver.h"
 #include "LyricsSolver.h"
+#include "EcsLang.h"
 
 NAMESPACE_UPP
 

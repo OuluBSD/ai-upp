@@ -248,11 +248,15 @@ bool   IsHeaderFile(const String& path);
 struct ClangNode {
 	Array<ClangNode> sub;
 	int kind = -1;
-	String id;
+	String id, type;
 	Point begin = Null;
 	Point end = Null;
+	hash_t filepos_hash = 0;
+	unsigned type_hash = 0;
+	bool is_ref = false;
+	bool is_definition = false;
 	
-	void Clear() {sub.Clear(); kind = -1; id.Clear(); begin = Null; end = Null;}
+	void Clear() {sub.Clear(); kind = -1; id.Clear(); type.Clear(); begin = Null; end = Null; filepos_hash = 0; is_ref = false; is_definition = false; type_hash = 0;}
 	String GetTreeString(int depth=0) const;
 	hash_t GetCommonHash() const;
 };
@@ -346,19 +350,25 @@ struct FileAnnotation : FileAnnotation0, CppFileInfo {
 
 ArrayMap<String, FileAnnotation>& CodeIndex();
 
+struct IndexerJob : Moveable<IndexerJob> {
+	String                                  path;
+	String                                  blitz;
+	String                                  includes;
+	String                                  defines;
+	WithDeepCopy<VectorMap<String, Time>>   file_times;
+	WithDeepCopy<VectorMap<String, String>> master_files;
+	int                                     ext = -1;
+};
+
+struct IndexerExtension {
+	virtual void RunJob(IndexerJob& job) = 0;
+	virtual bool RunCurrentFile() = 0;
+};
+
 class Indexer {
-	struct Job : Moveable<Job> {
-		String                                  path;
-		String                                  blitz;
-		String                                  includes;
-		String                                  defines;
-		WithDeepCopy<VectorMap<String, Time>>   file_times;
-		WithDeepCopy<VectorMap<String, String>> master_files;
-	};
-	
 	static CoEvent            event, scheduler;
 	static Mutex              mutex;
-	static Vector<Job>        jobs;
+	static Vector<IndexerJob> jobs;
 	static std::atomic<int>   jobi;
 	static std::atomic<int>   jobs_done;
 	static std::atomic<int>   jobs_count; // way to get jobs.GetCount without mutex
@@ -377,7 +387,35 @@ public:
 	static int    GetJobsCount()       { return jobs_count; }
 	static bool   IsSchedulerRunning() { return running_scheduler; }
 	static double Progress();
+	
+public:
+	typedef IndexerExtension* (*NewExt)();
+	typedef bool (*AcceptExt)(String);
+	template <class T> static IndexerExtension* New() {return new T;}
+	template <class T> static bool Accept(String ext) {return T::AcceptExt(ext);}
+	struct Extension {
+		String name;
+		NewExt new_fn = 0;
+		AcceptExt accept_fn = 0;
+		One<IndexerExtension> obj;
+		IndexerExtension& Get() {if (obj.IsEmpty()) obj = new_fn(); return *obj;}
+	};
+	static Array<Extension>& Extensions() {return Single<Array<Extension>>();}
+	template <class T> static void RegisterExtension(String name) {
+		auto& e = Extensions().Add();
+		e.name = name;
+		e.new_fn = &New<T>;
+		e.accept_fn = &Accept<T>;
+	}
+	static int FindExtensionByExt(String ext) {
+		for(int i = 0; i < Extensions().GetCount(); i++)
+			if (Extensions()[i].accept_fn(ext))
+				return i;
+		return -1;
+	}
 };
+
+#define INITIALIZER_INDEXER_EXTENSION(x) INITIALIZER(x) {Indexer::RegisterExtension<x>(#x);}
 
 void DumpIndex(const char *file, const String& what = Null);
 

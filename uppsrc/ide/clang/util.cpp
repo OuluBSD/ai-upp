@@ -145,7 +145,7 @@ String ClangNode::GetTreeString(int depth) const {
 
 hash_t ClangNode::GetCommonHash() const {
 	CombineHash ch;
-	ch.Do(kind).Do(id);
+	ch.Do(kind).Do(id).Do(type);
 	for (const auto& s : sub)
 		ch.Put(s.GetCommonHash());
 	return ch;

@@ -134,6 +134,16 @@ void CurrentFileThread()
 	while(!Thread::IsShutdownThreads()) {
 		bool was_parsing;
 		do {
+			int ext_i = -1;
+			if(current_file.filename.GetCount()) {
+				String ext = GetFileExt(current_file.filename);
+				ext_i = Indexer::FindExtensionByExt(ext);
+				if (ext_i >= 0) {
+					was_parsing = Indexer::Extensions()[ext_i].Get().RunCurrentFile();
+					continue;
+				}
+			}
+			
 			was_parsing = false;
 			CurrentFileContext f, af;
 			int64 serial;

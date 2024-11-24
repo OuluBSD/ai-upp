@@ -198,7 +198,7 @@ static VectorMap<String, IdeEditPos>& sEPai()
 struct IdeAIDes : IdeDesigner, ParentCtrl {
 	Ide*            ide = 0;
 	String			filename;
-	AICodeCtrl		code;
+	MetaCodeCtrl	code;
 	TimeCallback	delay;
 
 	virtual void GotFocus();

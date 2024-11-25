@@ -101,6 +101,7 @@ struct MetaProcess
 	
 	typedef MetaProcess CLASSNAME;
 	MetaProcess();
+	~MetaProcess();
 	void SetSource(String filepath, MetaNode& n, Vector<String> code);
 	void Start(FnType fn);
 	void Stop();

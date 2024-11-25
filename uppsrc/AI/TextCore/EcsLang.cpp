@@ -48,6 +48,14 @@ bool EcsIndexer::RunCurrentFile() {
 	return false;
 }
 
+bool EcsIndexer::IsDirty(const String& s) {
+	FileTime cur_filetime = GetFileTime(s);
+	FileTime& prev_filetime = last_checks.GetAdd(s, TimeToFileTime(Time(1970,1,1)));
+	bool dirty = prev_filetime != cur_filetime;
+	prev_filetime = cur_filetime;
+	return dirty;
+}
+
 bool EcsIndexer::MergeNode(MetaNode& root, EcsSpace& other) {
 	Vector<MetaNode*> scope;
 	scope << &root;

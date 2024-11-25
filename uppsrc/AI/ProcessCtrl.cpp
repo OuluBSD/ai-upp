@@ -26,6 +26,10 @@ MetaProcess::MetaProcess() {
 	
 }
 
+MetaProcess::~MetaProcess() {
+	Stop();
+}
+
 void MetaProcess::SetSource(String filepath, MetaNode& n, Vector<String> code)
 {
 	this->filepath = filepath;
@@ -298,7 +302,9 @@ bool IsVarKind(int kind) {
 }
 
 bool IsMethodAny(int kind) {
-	return	kind == CXCursor_CXXMethod
+	return	kind == CXCursor_CXXMethod ||
+			kind == CXCursor_Constructor ||
+			kind == CXCursor_Destructor
 			;
 }
 
@@ -416,7 +422,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 							rel.reason = AITask::TYPE_INHERITANCE_DEPENDING,
 							//rel.file = it.key;
 							rel.file = it.file;
-							rel.node = base1;
+							//rel.node = base1;
 							rel.link_node = &n1;
 							rel.type_hash = n1.type_hash;
 							continue;
@@ -438,7 +444,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 								rel.reason = AITask::TYPE_INHERITANCE_DEPENDING,
 								//rel.file = it.key;
 								rel.file = it.file;
-								rel.node = base1;
+								//rel.node = base1;
 								rel.link_node = &n1;
 								rel.type_hash = n1.type_hash;
 							}
@@ -691,7 +697,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				
 				// Return statements
 				Vector<MetaNode*> val = ret.FindAllShallow(CXCursor_UnexposedExpr);
-				if (val.IsEmpty() && ret.sub.GetCount() == 1) // add any value (TODO is this dangerous?)
+				if (val.IsEmpty() && ret.GetRegularCount() == 1) // add any value (TODO is this dangerous?)
 					val << &ret.sub[0];
 				if (val.GetCount()) {
 					MetaNode& n1 = *val[0];

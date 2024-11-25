@@ -10,6 +10,8 @@ public:
 		String code;
 		VectorMap<TextRange,Ptr<MetaNode>> range_nodes;
 		VectorMap<TextRange,Ptr<MetaNode>> code_nodes;
+		Vector<int> editor_to_line;
+		Vector<MetaNode*> comment_to_node;
 	};
 	
 private:
@@ -18,7 +20,7 @@ private:
 	
 	
 	void FindFiles(const MetaNodeSubset& n, Vector<Vector<int>>& pkgfiles);
-	void FindNodes(const MetaNodeSubset& n, const PkgFile& key, Vector<const MetaNode*>& nodes);
+	void FindNodes(const MetaNodeSubset& n, const PkgFile& key, Vector<MetaNode*>& nodes);
 	
 public:
 	typedef MetaCodeGenerator CLASSNAME;

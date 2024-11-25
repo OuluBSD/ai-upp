@@ -338,12 +338,28 @@ MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 	MetaNode file_nodes;
 	MetaSrcPkg& pkg = this->ResolveFile(includes, path);
 	if (pkg.Load(file_nodes)) {
+		LOG(file_nodes.GetTreeString());
 		file_nodes.SetTempDeep();
 		ASSERT(pkg.saved_hash == IntStr64(file_nodes.GetCommonHash()));
 		file_nodes.SetPkgDeep(pkg.id);
 		MergeNode(root, file_nodes);
+		LOG(root.GetTreeString());
+		
+		Vector<MetaNode*> comments;
+		root.FindAllDeep(METAKIND_COMMENT, comments);
+		for (auto* c : comments)
+			c->trace_kill = true;
 	}
 	return pkg;
+}
+
+void MetaEnvironment::Store(MetaSrcPkg& pkg)
+{
+	MetaNode file_nodes;
+	SplitNode(root, file_nodes, pkg.id);
+	
+	LOG(file_nodes.GetTreeString());
+	pkg.Store(file_nodes);
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
@@ -359,10 +375,7 @@ void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 	if (!MergeNode(root, n))
 		return;
 	
-	MetaNode file_nodes;
-	SplitNode(root, file_nodes, pkg.id);
-	
-	pkg.Store(file_nodes);
+	Store(pkg);
 }
 
 bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) {
@@ -434,6 +447,11 @@ String MetaEnvironment::GetFilepath(int pkg_id, int file_id) const {
 	return path;
 }
 
+MetaNode::~MetaNode() {
+	if (trace_kill)
+		Panic("trace-kill");
+}
+
 void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id) {
 	other.n = this;
 	for (auto& n0 : sub) {
@@ -458,7 +476,7 @@ void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id) const {
 	other.CopyFieldsFrom(*this);
 	for (const auto& n0 : sub) {
 		if (n0.HasPkgDeep(pkg_id)) {
-			MetaNode& n1 = other.sub.Add();
+			MetaNode& n1 = other.Add();
 			n0.CopyPkgTo(n1, pkg_id);
 		}
 	}
@@ -468,7 +486,7 @@ void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const {
 	other.CopyFieldsFrom(*this);
 	for (const auto& n0 : sub) {
 		if (n0.HasPkgFileDeep(pkg_id, file_id)) {
-			MetaNode& n1 = other.sub.Add();
+			MetaNode& n1 = other.Add();
 			n0.CopyPkgTo(n1, pkg_id, file_id);
 		}
 	}
@@ -598,6 +616,18 @@ int MetaNode::Find(int kind, const String& id) const {
 	return -1;
 }
 
+void MetaNode::Destroy() {
+	if (!owner) return;
+	int i = 0;
+	for (MetaNode& n : owner->sub) {
+		if (&n == this) {
+			owner->sub.Remove(i);
+			break;
+		}
+		i++;
+	}
+}
+
 void MetaNode::Assign(MetaNode* owner, const ClangNode& n) {
 	this->owner = owner;
 	int c = n.sub.GetCount();
@@ -638,6 +668,12 @@ MetaNode& MetaNode::Add(const MetaNode& n) {
 
 MetaNode& MetaNode::Add(MetaNode* n) {
 	MetaNode& s = sub.Add(n);
+	s.owner = this;
+	return s;
+}
+
+MetaNode& MetaNode::Add() {
+	MetaNode& s = sub.Add();
 	s.owner = this;
 	return s;
 }
@@ -685,6 +721,20 @@ Vector<MetaNode*> MetaNode::FindAllShallow(int kind) {
 	return vec;
 }
 
+void MetaNode::FindAllDeep(int kind, Vector<MetaNode*>& out) {
+	if (this->kind == kind)
+		out << this;
+	for (auto& s : sub)
+		s.FindAllDeep(kind, out);
+}
+
+void MetaNode::FindAllDeep(int kind, Vector<const MetaNode*>& out) const {
+	if (this->kind == kind)
+		out << this;
+	for (const auto& s : sub)
+		s.FindAllDeep(kind, out);
+}
+
 Vector<const MetaNode*> MetaNode::FindAllShallow(int kind) const {
 	Vector<const MetaNode*> vec;
 	for (const auto& s : sub)
@@ -698,6 +748,14 @@ bool MetaNode::IsStructKind() const {
 			kind == CXCursor_ClassDecl &&
 			kind == CXCursor_ClassTemplate &&
 			kind == CXCursor_ClassTemplatePartialSpecialization;
+}
+
+int MetaNode::GetRegularCount() const {
+	int c = 0;
+	for (const auto& s : sub)
+		if (s.kind >= 0 && s.kind < METAKIND_BEGIN)
+			c++;
+	return c;
 }
 
 String MetaNode::GetBasesString() const {
@@ -737,6 +795,24 @@ bool MetaNode::ContainsDeep(const MetaNode& n) const {
 			return true;
 	return false;
 	#endif
+}
+
+void MetaNode::RemoveAllShallow(int kind) {
+	Vector<int> rmlist;
+	int i = 0;
+	for (auto& s : sub) {
+		if (s.kind == kind)
+			rmlist << i;
+		i++;
+	}
+	if (!rmlist.IsEmpty())
+		sub.Remove(rmlist);
+}
+
+void MetaNode::RemoveAllDeep(int kind) {
+	RemoveAllShallow(kind);
+	for (auto& s : sub)
+		s.RemoveAllDeep(kind);
 }
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)

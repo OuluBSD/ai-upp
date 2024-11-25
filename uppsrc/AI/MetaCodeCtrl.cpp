@@ -70,6 +70,9 @@ void MetaCodeCtrl::UpdateEditor()
 	gen_file = gen.GetResultFile(pkg_i, file_i);
 	String code = gen_file ? gen_file->code : String();
 	
+	editor_to_line <<= gen_file->editor_to_line;
+	comment_to_node <<= gen_file->comment_to_node;
+	
 #if 0
 	editor_to_line.SetCount(0);
 	line_to_editor.SetCount(0);
@@ -177,23 +180,20 @@ void MetaCodeCtrl::AddComment()
 	SetSelectedLineFromEditor();
 	if(!sel_node)
 		return;
-	Panic("TODO"); /*
-	if(!sel_ann || !sel_ann_f)
-		return;
-	if(sel_line < 0 || sel_line >= editor_to_line.GetCount())
-		return;
+	int sel_line = editor.GetCursorLine();
 	int origl = editor_to_line[sel_line];
-	int l = origl - sel_ann_f->begin.y;
+	int l = origl - sel_node->begin.y;
 	String txt;
 	if(!EditText(txt, "Add comment", ""))
 		return;
-	int data_i = sel_ann->FindAddData(txt);
-	SourceRange::Item& c = sel_ann_f->items.Add();
-	c.kind = SourceRange::Item::COMMENT;
-	c.rel_line = l;
-	c.data_i = data_i;
-	sel_ann->Sort();
-*/
+	MetaNode& cn = sel_node->Add();
+	cn.kind = METAKIND_COMMENT;
+	cn.end = Point(0,origl);
+	cn.begin = Point(0,origl);
+	cn.id = txt;
+	cn.file = sel_node->file;
+	cn.pkg = sel_node->pkg;
+	//sel_ann->Sort();
 	StoreAion();
 	UpdateEditor();
 }
@@ -201,19 +201,13 @@ void MetaCodeCtrl::AddComment()
 void MetaCodeCtrl::RemoveComment()
 {
 	SetSelectedLineFromEditor();
-	if(!sel_node)
-		return;
-	Panic("TODO"); /*
-	if(!sel_ann)
-		return;
-	if(sel_line < 0 || sel_line >= comment_to_line.GetCount())
-		return;
-	int origl = comment_to_line[sel_line];
-	int l = origl - sel_ann_f->begin.y;
-	sel_ann_f->RemoveLineItem(l);
-	*/
-	StoreAion();
-	UpdateEditor();
+	int sel_line = editor.GetCursorLine();
+	MetaNode* c = sel_line < comment_to_node.GetCount() ? comment_to_node[sel_line] : 0;
+	if (c) {
+		c->Destroy();
+		StoreAion();
+		UpdateEditor();
+	}
 }
 
 Vector<String> GetStringArea(const String& content, Point begin, Point end) {
@@ -246,21 +240,16 @@ void MetaCodeCtrl::MakeAiComments()
 		PromptOK(DeQtf("No line selected"));
 		return;
 	}
-	Panic("TODO"); /*
-	if(!sel_ann) {
-		PromptOK(DeQtf("No annotation selected"));
-		return;
-	}
+	
 	TaskMgr& m = AiTaskManager();
 	args.Clear();
 	args.fn = CodeArgs::SCOPE_COMMENTS;
 	args.lang = "C++";
 	args.code = GetAnnotationAreaCode();
 
-	auto* cur_sel_ann = sel_ann;
-	auto* cur_sel_ann_f = sel_ann_f;
+	auto cur_sel_node = sel_node;
 
-	m.GetCode(args, [&, cur_sel_ann, cur_sel_ann_f](String result) {
+	m.GetCode(args, [&, cur_sel_node](String result) {
 		Vector<String> lines = Split(result, "\n");
 		VectorMap<int, String> comments;
 		for(String& l : lines) {
@@ -283,17 +272,19 @@ void MetaCodeCtrl::MakeAiComments()
 			comments.GetAdd(line) = l;
 		}
 		// DUMPM(comments);
-		cur_sel_ann_f->RemoveAll(SourceRange::Item::COMMENT);
+		cur_sel_node->RemoveAllDeep(METAKIND_COMMENT);
 		for(auto c : ~comments) {
-			int data_i = cur_sel_ann->FindAddData(c.value);
-			auto& item = cur_sel_ann_f->items.Add();
-			item.kind = SourceRange::Item::COMMENT;
-			item.rel_line = c.key;
-			item.data_i = data_i;
-			//item.line_hash =
-			//	c.key < args.code.GetCount() ? args.code[c.key].GetHashValue() : 0;
+			Point pt = cur_sel_node->begin;
+			pt.y += c.key;
+			//MetaNode* closest = cur_sel_node->FindClosest(pt);
+			MetaNode& cn = cur_sel_node->Add();
+			cn.kind = METAKIND_COMMENT;
+			cn.id = c.value;
+			cn.begin = cn.end = pt;
+			cn.file = cur_sel_node->file;
+			cn.pkg = cur_sel_node->pkg;
 		}
-		cur_sel_ann->Sort();
+		//cur_sel_node->Sort();
 		
 		Ptr<Ctrl> p = this; //static_cast<Pte<MetaCodeCtrl>*>(this);
 		PostCallback([p] {
@@ -306,7 +297,7 @@ void MetaCodeCtrl::MakeAiComments()
 			}
 		});
 	});
-	*/
+	
 }
 
 void MetaCodeCtrl::RunTask(MetaProcess::FnType t) {
@@ -344,8 +335,9 @@ void MetaCodeCtrl::OnTab() {
 
 void MetaCodeCtrl::StoreAion()
 {
-	MetaSrcPkg& af = MetaEnv().ResolveFile(this->includes, this->filepath);
-	Panic("TODO"); /*af.PostSave();*/
+	auto& env = MetaEnv();
+	MetaSrcPkg& af = env.ResolveFile(this->includes, this->filepath);
+	env.Store(af);
 }
 
 void MetaCodeCtrl::SetSelectedLineFromEditor()

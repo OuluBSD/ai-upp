@@ -30,6 +30,8 @@ struct MetaCodeCtrl : ParentCtrl {
 	MetaCodeGenerator	gen;
 	const MetaCodeGenerator::File* gen_file = 0;
 	Ptr<MetaNode>		sel_node = 0;
+	Vector<int>			editor_to_line;
+	Vector<MetaNode*>	comment_to_node;
 	
 	typedef MetaCodeCtrl CLASSNAME;
 	MetaCodeCtrl();

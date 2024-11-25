@@ -365,19 +365,37 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 		np = &n;
 		LoadSourceLocation();
 		n.kind = kind;
-		if (id.GetCount())
-			n.id = id;
-		else if (name.GetCount())
-			n.id = name;
-		if (type.GetCount())
-			n.type = type;
-		else
-			n.type = ci.TypeDeclaration();
-		n.type_hash = type_hash;
+		if (n.kind == CXCursor_TemplateRef) {
+			ClangCursorInfo tmpl_ci(ref, pp_id);
+			CXSourceLocation cxlocation = clang_getCursorLocation(ref);
+			CXSourceRange cxrange = clang_getCursorExtent(ref);
+			CXLocation loc = GetLocation(cxlocation);
+			CXRange ran = GetRange(cxrange);
+			SourceLocation tmpl_sl = GetSourceLocation(loc, ran);
+			n.id = tmpl_ci.Id();
+			n.type = tmpl_ci.Type();
+			n.type_hash = tmpl_ci.TypeHash();
+			n.filepos_hash = tmpl_sl.GetHashValue();
+		}
+		else {
+			if (id.GetCount())
+				n.id = id;
+			else if (name.GetCount())
+				n.id = name;
+			if (type.GetCount())
+				n.type = type;
+			else
+				n.type = ci.TypeDeclaration();
+			n.type_hash = type_hash;
+			n.filepos_hash = sl.GetHashValue();
+		}
 		n.begin = sl.begin;
 		n.end = sl.end;
-		n.filepos_hash = sl.GetHashValue();
 		n.is_definition = clang_isCursorDefinition(cursor);
+		if (!n.is_definition) {
+			if (n.kind == CXCursor_ClassTemplate)
+				n.is_definition = true;
+		}
 	}
 	
 	if (kind == CXCursor_ReturnStmt) {

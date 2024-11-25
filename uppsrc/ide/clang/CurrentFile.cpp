@@ -120,9 +120,9 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.master_file = cfc.parsed_file.filename;
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			CodeIndex().GetAdd(path) = pick(fa);
-			#ifdef flagAI
+			/*#ifdef flagAI
 			MetaEnv().Store(fa.includes, path, v.ast);
-			#endif
+			#endif*/
 		}
 	});
 };

@@ -6,13 +6,14 @@ NAMESPACE_UPP
 class EcsIndexer : public IndexerExtension {
 	int pkg_i = -1;
 	int file_i = -1;
-	
+	VectorMap<String,FileTime> last_checks;
 public:
 	typedef EcsIndexer CLASSNAME;
 	EcsIndexer();
 	
 	void RunJob(IndexerJob& job) override;
 	bool RunCurrentFile() override;
+	bool IsDirty(const String& s) override;
 	bool LoadEcsSpace(String path);
 	bool MergeNode(MetaNode& root, EcsSpace& other);
 	bool MergeVisit(Vector<MetaNode*>& scope, EcsSpace& other);

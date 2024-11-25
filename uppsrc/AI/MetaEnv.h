@@ -11,8 +11,13 @@ Vector<String> FindParentUppDirectories(const String& dir);
 struct MetaNodeSubset;
 
 enum {
+	METAKIND_BEGIN = 1000,
+	
 	METAKIND_ECS_SPACE = 1000,
 	METAKIND_ECS_NODE,
+	
+	
+	METAKIND_COMMENT = 10000,
 };
 
 struct MetaNode : Pte<MetaNode> {
@@ -33,10 +38,12 @@ struct MetaNode : Pte<MetaNode> {
 	bool only_temporary = false;
 	Ptr<MetaNode> owner;
 	Ptr<MetaNode> type_ptr;
+	bool trace_kill = false;
 	
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
-	~MetaNode() {}
+	~MetaNode();
+	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
 	void Assign(MetaNode* owner, const ClangNode& n);
 	void CopyFrom(const MetaNode& n);
@@ -45,6 +52,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& GetAdd(String id, String type, int kind);
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
+	MetaNode& Add();
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetCommonHash() const;
@@ -61,12 +69,17 @@ struct MetaNode : Pte<MetaNode> {
 	void SetTempDeep();
 	Vector<MetaNode*> FindAllShallow(int kind);
 	Vector<const MetaNode*> FindAllShallow(int kind) const;
+	void FindAllDeep(int kind, Vector<MetaNode*>& out);
+	void FindAllDeep(int kind, Vector<const MetaNode*>& out) const;
 	bool IsStructKind() const;
+	int GetRegularCount() const;
 	//bool IsClassTemplateDefinition() const;
 	String GetBasesString() const;
 	String GetNestString() const;
 	bool OwnerRecursive(const MetaNode& n) const;
 	bool ContainsDeep(const MetaNode& n) const;
+	void RemoveAllShallow(int kind);
+	void RemoveAllDeep(int kind);
 };
 
 struct MetaNodeSubset {
@@ -156,6 +169,7 @@ struct MetaEnvironment {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcPkg& Load(const String& includes, const String& path);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
+	void Store(MetaSrcPkg& af);
 	void Store(String& includes, const String& path, ClangNode& n);
 	bool MergeNode(MetaNode& root, const MetaNode& other);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);

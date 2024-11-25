@@ -55,7 +55,7 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		File& f = files[i];
 		
 		// Find all parent nodes of the file
-		Vector<const MetaNode*> nodes;
+		Vector<MetaNode*> nodes;
 		FindNodes(np, key, nodes);
 		
 		// Sort nodes based on code position
@@ -88,26 +88,53 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		String content = LoadFile(path);
 		
 		// Write code
-		Vector<String> lines;
-		for (const MetaNode* n : nodes) {
+		VectorMap<int,String> lines;
+		Vector<MetaNode*> comments;
+		Vector<MetaNode*> comment_to_node;
+		for (MetaNode* n : nodes) {
 			// TODO namespaces
 			
 			TextRange range;
 			range.begin = Point(0,lines.GetCount());
 			Vector<String> area_lines = GetStringArea(content, n->begin, n->end);
-			lines.Append(area_lines);
+			for(int i = 0; i < area_lines.GetCount(); i++)
+				lines.Add(n->begin.y + i, area_lines[i]);
 			range.end = Point(0,lines.GetCount());
-			lines.Add();
 			
+			// Add empty line
+			if (lines.GetCount())
+				lines.Add(lines.TopKey());
+			
+			n->FindAllDeep(METAKIND_COMMENT, comments);
 			
 			f.code_nodes.Add(range, const_cast<MetaNode*>(n));
 		}
 		
+		// Add comments
+		for (MetaNode* comment : comments) {
+			int line0 = comment->begin.y;
+			int best_pos = 0, best_line = 0;
+			for(int i = 0; i < lines.GetCount(); i++) {
+				int line1 = lines.GetKey(i);
+				if (line1 > line0)
+					break;
+				best_pos = i;
+				best_line = line1;
+			}
+			lines.Insert(best_pos, best_line, "// " + comment->id);
+			
+			if (best_pos >= comment_to_node.GetCount())
+				comment_to_node.SetCount(best_pos+1,0);
+			comment_to_node[best_pos] = comment;
+		}
+		
 		// Write
-		f.code = Join(lines, "\n");
+		f.code = Join(lines.GetValues(), "\n");
 		for (const MetaNode* n : nodes)
 			f.range_nodes.Add(TextRange(n->begin,n->end), const_cast<MetaNode*>(n));
 		
+		f.editor_to_line <<= lines.GetKeys();
+		f.comment_to_node <<= comment_to_node;
 	}
 	
 	return true;
@@ -127,8 +154,8 @@ void MetaCodeGenerator::FindFiles(const MetaNodeSubset& np, Vector<Vector<int>>&
 		FindFiles(s, pkgfiles);
 }
 
-void MetaCodeGenerator::FindNodes(const MetaNodeSubset& np, const PkgFile& key, Vector<const MetaNode*>& nodes) {
-	const MetaNode& n = *np.n;
+void MetaCodeGenerator::FindNodes(const MetaNodeSubset& np, const PkgFile& key, Vector<MetaNode*>& nodes) {
+	MetaNode& n = *np.n;
 	if (MetaEnvironment::IsMergeable(n.kind)) {
 		for (const MetaNodeSubset& s : np.sub) {
 			FindNodes(s, key, nodes);

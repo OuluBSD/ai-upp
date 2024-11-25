@@ -534,11 +534,14 @@ void Indexer::SchedulerThread()
 				jobs_done = 0;
 				jobs_count = 0;
 				for (auto e : ~ext_files) {
-					IndexerJob& job = jobs.Add();
-					jobs_count = jobs.GetCount();
-					job.path = e.key;
-					job.ext = e.value;
-					JobAdd(job, job.path);
+					bool dirty = Indexer::Extensions()[e.value].Get().IsDirty(e.key);
+					if (dirty) {
+						IndexerJob& job = jobs.Add();
+						jobs_count = jobs.GetCount();
+						job.path = e.key;
+						job.ext = e.value;
+						JobAdd(job, job.path);
+					}
 				}
 				for(const auto& pkg : ~sources) {
 					IndexerJob blitz_job;

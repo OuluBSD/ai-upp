@@ -24,7 +24,7 @@ struct CodeVisitorProfile
 
 struct CodeVisitor
 {
-	struct Item : Moveable<Item> {
+	struct Item {
 		Ptr<MetaNode> node;
 		Ptr<MetaNode> link_node;
 		String error;
@@ -40,9 +40,10 @@ struct CodeVisitor
 	};
 	int limit = 0;
 	CodeVisitorProfile prof;
-	Vector<Item> export_items;
+	Array<Item> export_items;
 	VectorMap<String,String> files;
 	Index<MetaNode*> visited;
+	Vector<MetaNode*> macro_exps, macro_defs;
 	
 	CodeVisitor() {}
 	void SetLimit(int i) {limit = i;}
@@ -50,9 +51,11 @@ struct CodeVisitor
 	void SetProfile(CodeVisitorProfile& p) {prof = p;}
 	void Begin();
 	void Visit(const String& filepath, MetaNode& n);
+	void VisitSub(const String& filepath, MetaNode& n);
 	void VisitRef(const String& filepath, MetaNode& it);
 	void VisitId(const String& filepath, MetaNode& n, Item& it);
 	const String& LoadPath(String path);
+	int FindItem(MetaNode* n) const;
 };
 
 END_UPP_NAMESPACE

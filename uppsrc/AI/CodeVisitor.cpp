@@ -61,6 +61,19 @@ void CodeVisitor::Begin()
 {
 	export_items.Clear();
 	visited.Clear();
+	// TODO optimize: cache this
+	macro_exps = MetaEnv().root.FindAllShallow(CXCursor_MacroExpansion);
+	macro_defs = MetaEnv().root.FindAllShallow(CXCursor_MacroDefinition);
+}
+
+int CodeVisitor::FindItem(MetaNode* n) const {
+	int i = 0;
+	for (const auto& it : export_items) {
+		if (&*it.node == n)
+			return i;
+		i++;
+	}
+	return -1;
 }
 
 void CodeVisitor::Visit(const String& filepath, MetaNode& n)
@@ -69,13 +82,54 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 		return;
 	visited.Add(&n);
 	
-	if (!n.id.IsEmpty() || !n.type.IsEmpty()) {
+	/*if (n.kind == CXCursor_UnexposedExpr) {
+		LOG(n.GetTreeString());
+	}*/
+	
+	bool add_item = false;
+	if ((!n.id.IsEmpty() || !n.type.IsEmpty()) /*&& FindItem(&n) < 0*/ &&
+		n.kind != CXCursor_CXXBaseSpecifier)
+		add_item = true;
+	else if (n.kind == CXCursor_ReturnStmt ||
+			 n.kind == CXCursor_MacroDefinition ||
+			 n.kind == CXCursor_MacroExpansion)
+		add_item = true;
+	
+	if (add_item) {
 		Item& it = export_items.Add();
 		it.pos = n.begin;
 		it.file = filepath;
 		it.node = &n;
+		
+		// Visit macro definition in "brute-forced" way
+		if (n.kind == CXCursor_MacroExpansion) {
+			String id = n.id;
+			for (MetaNode* md : macro_defs) {
+				if (md->id == id) {
+					it.link_node = md;
+					Visit(filepath, *md);
+				}
+			}
+		}
 	}
 	
+	VisitSub(filepath, n);
+	
+	// Macro expansions are not in the node-structure already, and they must be "brute-force" visited
+	if (IsStruct(n.kind) || IsFunction(n.kind)) {
+		int pkg = n.pkg;
+		int file = n.file;
+		for (MetaNode* me : macro_exps) {
+			if (me->pkg == pkg && me->file == file) {
+				if (RangeContains(me->begin, n.begin, n.end)) {
+					Visit(filepath, *me);
+				}
+			}
+		}
+	}
+}
+
+void CodeVisitor::VisitSub(const String& filepath, MetaNode& n) {
 	for(int i = 0; i < n.sub.GetCount(); i++) {
 		MetaNode& s = n.sub[i];
 		
@@ -95,15 +149,19 @@ void CodeVisitor::VisitRef(const String& filepath, MetaNode& n)
 	ASSERT(n.is_ref);
 	/*if (!n.id.IsEmpty() || !n.type.IsEmpty()) {
 	}*/
-	Item& it = export_items.Add();
-	it.pos = n.begin;
-	it.file = filepath;
-	it.node = &n;
-	VisitId(filepath, n, it);
+	/*if (FindItem(&n) < 0)*/ {
+		Item& it = export_items.Add();
+		it.pos = n.begin;
+		it.file = filepath;
+		it.node = &n;
+		VisitId(filepath, n, it);
+	}
 }
 
 void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
 {
+	VisitSub(filepath, n);
+	
 	ASSERT(n.is_ref);
 	auto& env = MetaEnv();
 	MetaNode* decl = env.FindDeclaration(n);
@@ -112,11 +170,12 @@ void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
 		String filepath = env.GetFilepath(decl->pkg, decl->file);
 		Visit(filepath, *decl);
 	}
-	else {
+	else /*if (FindItem(&n) < 0)*/ {
 		auto& it = export_items.Add();
 		it.error = "id not found: " + n.id;
 		it.pos = Point(0, 0);
 		it.file = filepath;
+		it.node = &n;
 	}
 }
 

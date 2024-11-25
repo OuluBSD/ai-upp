@@ -62,8 +62,11 @@ struct MetaNode : Pte<MetaNode> {
 	Vector<MetaNode*> FindAllShallow(int kind);
 	Vector<const MetaNode*> FindAllShallow(int kind) const;
 	bool IsStructKind() const;
+	//bool IsClassTemplateDefinition() const;
 	String GetBasesString() const;
 	String GetNestString() const;
+	bool OwnerRecursive(const MetaNode& n) const;
+	bool ContainsDeep(const MetaNode& n) const;
 };
 
 struct MetaNodeSubset {
@@ -142,6 +145,7 @@ private:
 
 struct MetaEnvironment {
 	VectorMap<hash_t,Vector<Ptr<MetaNode>>> filepos_nodes;
+	VectorMap<unsigned,Vector<Ptr<MetaNode>>> type_hash_nodes;
 	ArrayMap<String, MetaSrcPkg> pkgs;
 	MetaNode root;
 	RWMutex lock;
@@ -162,10 +166,11 @@ struct MetaEnvironment {
 	static bool IsMergeable(CXCursorKind kind);
 	static bool IsMergeable(int kind);
 	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1);
-	void RefreshFilePos(MetaNode& n);
+	void RefreshNodePtrs(MetaNode& n);
 	void MergeVisitPost(MetaNode& n);
 	MetaNode* FindDeclaration(const MetaNode& n);
-	MetaNode* FindDeclarationDeep(const MetaNode& n);
+	MetaNode* FindTypeDeclaration(unsigned type_hash);
+	Vector<MetaNode*> FindDeclarationsDeep(const MetaNode& n);
 };
 
 MetaEnvironment& MetaEnv();

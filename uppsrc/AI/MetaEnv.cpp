@@ -401,7 +401,7 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) 
 }
 
 void MetaEnvironment::MergeVisitPost(MetaNode& n) {
-	RefreshFilePos(n);
+	RefreshNodePtrs(n);
 	for (auto& s : n.sub)
 		MergeVisitPost(s);
 }
@@ -526,10 +526,35 @@ bool MetaEnvironment::IsMergeable(CXCursorKind kind) {
 	}
 }
 
-void MetaEnvironment::RefreshFilePos(MetaNode& n) {
+void MetaEnvironment::RefreshNodePtrs(MetaNode& n) {
+	/*if (n.kind == CXCursor_ClassTemplate) {
+		LOG(n.GetTreeString());
+	}*/
 	ASSERT(!n.only_temporary);
 	if (n.filepos_hash != 0) {
 		auto& vec = this->filepos_nodes.GetAdd(n.filepos_hash);
+		bool found = false;
+		bool found_zero = false;
+		for (auto& p : vec) {
+			MetaNode* ptr = &*p;
+			found_zero = ptr == 0 || found_zero;
+			if (ptr == &n) {
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			vec.Add(&n);
+		if (found_zero) {
+			Vector<int> rmlist;
+			for(int i = 0; i < vec.GetCount(); i++)
+				if (&*vec[i] == 0)
+					rmlist << i;
+			vec.Remove(rmlist);
+		}
+	}
+	if (n.type_hash) {
+		auto& vec = this->type_hash_nodes.GetAdd(n.type_hash);
 		bool found = false;
 		bool found_zero = false;
 		for (auto& p : vec) {
@@ -691,6 +716,29 @@ String MetaNode::GetNestString() const {
 	return String();
 }
 
+bool MetaNode::OwnerRecursive(const MetaNode& n) const {
+	MetaNode* o = this->owner;
+	while (o) {
+		if (o == &n)
+			return true;
+		o = o->owner;
+	}
+	return false;
+}
+
+bool MetaNode::ContainsDeep(const MetaNode& n) const {
+	#if 1
+	return n.OwnerRecursive(*this) || &n == this;
+	#else
+	if (this == &n)
+		return true;
+	for (const auto& s : sub)
+		if (s.ContainsDeep(n))
+			return true;
+	return false;
+	#endif
+}
+
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
 	MetaSrcPkg& af = ResolveFile(includes, path);
@@ -704,25 +752,53 @@ String MetaNode::GetNestString() const {
 	Save();
 }*/
 
+/*bool MetaNode::IsClassTemplateDefinition() const {
+	if (kind == CXCursor_ClassTemplate)
+		//for (const MetaNode& s : sub)
+		//	if (s.kind == CXCursor_CompoundStmt)
+				return true;
+	return false;
+}*/
+
 MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n) {
 	if (!n.filepos_hash) return 0;
 	int i = filepos_nodes.Find(n.filepos_hash);
 	if (i < 0) return 0;
 	const auto& vec = filepos_nodes[i];
-	for (const auto& ptr : vec)
-		if (ptr && !ptr->is_ref)
-			return &*ptr;
+	for (const auto& ptr : vec) {
+		if (!ptr) continue;
+		MetaNode& p = *ptr;
+		if (p.is_definition/* || p.IsClassTemplateDefinition()*/)
+			return &p;
+	}
 	return 0;
 }
 
-MetaNode* MetaEnvironment::FindDeclarationDeep(const MetaNode& n) {
+Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n) {
+	Vector<MetaNode*> v;
 	if (n.kind == CXCursor_CXXBaseSpecifier) {
-		for (const auto& s : n.sub)
-			if (s.kind == CXCursor_TypeRef)
-				return FindDeclaration(s);
-		return 0;
+		for (const auto& s : n.sub) {
+			MetaNode* d = FindDeclaration(s);
+			if (d) v.Add(d);
+		}
+		return v;
 	}
-	else return FindDeclaration(n);
+	else Panic("TODO");
+	return v;
+}
+
+MetaNode* MetaEnvironment::FindTypeDeclaration(unsigned type_hash) {
+	if (!type_hash) return 0;
+	int i = type_hash_nodes.Find(type_hash);
+	if (i < 0) return 0;
+	const auto& vec = type_hash_nodes[i];
+	for (const auto& ptr : vec) {
+		if (!ptr) continue;
+		MetaNode& p = *ptr;
+		if (p.is_definition/* || p.IsClassTemplateDefinition()*/)
+			return &p;
+	}
+	return 0;
 }
 
 

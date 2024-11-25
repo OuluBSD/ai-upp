@@ -15,7 +15,8 @@ struct AITask : Moveable<AITask>
 		TYPE_INHERITANCE_DEPENDING,
 		TYPE_USAGE,
 		TYPE_PARENT,
-		USAGE_MACRO,
+		MACRO_EXPANSION,
+		MACRO_DEFINITION,
 		RETURN_VALUE,
 		METHOD,
 		FIELD,
@@ -33,7 +34,8 @@ struct AITask : Moveable<AITask>
 			case TYPE_INHERITANCE_DEPENDING:	return "Inheriting this type";
 			case TYPE_USAGE:					return "Type in use";
 			case TYPE_PARENT:					return "Type as parent";
-			case USAGE_MACRO:					return "Macro programming";
+			case MACRO_EXPANSION:				return "Macro expansion";
+			case MACRO_DEFINITION:				return "Macro definition";
 			case RETURN_VALUE:					return "Return value";
 			case METHOD:						return "Method";
 			case FIELD:							return "Field";
@@ -56,6 +58,7 @@ struct AITask : Moveable<AITask>
 	AITask() {}
 	bool IsLinked(const AITask& t, const Relation& rel) const;
 	bool HasInput(const MetaNode& n) const;
+	bool HasInputLink(const MetaNode& n, bool is_dep) const;
 	bool HasDepType(unsigned type_hash) const;
 	bool HasReason(Reason r, Point begin) const;
 	int GetDependencyCount() const;
@@ -110,6 +113,7 @@ struct MetaProcess
 	void AddError(String filepath, Point pos, String msg);
 	void FindDependencies(Array<SortItem>& sort_items, SortItem& it);
 	void OnResult(String s);
+	void Chk();
 };
 
 struct MetaProcessCtrl : ParentCtrl
@@ -129,6 +133,7 @@ struct MetaProcessCtrl : ParentCtrl
 bool IsTypeKind(int kind);
 bool IsVarKind(int kind);
 bool IsFunctionAny(int kind);
+bool IsMethodAny(int kind);
 bool IsCallAny(int kind);
 bool IsTypeKindBuiltIn(const String& s);
 

@@ -291,11 +291,20 @@ MetaSrcFile& MetaEnvironment::ResolveFileInfo(const String& includes, String pat
 	return ResolveFile(includes, path).RealizePath(includes, path);
 }
 #endif
-bool MetaSrcPkg::Store(MetaNode& file_nodes)
+bool MetaSrcPkg::Store(MetaNode& file_nodes, bool forced)
 {
-	String hash = IntStr64(file_nodes.GetCommonHash());
-	if (saved_hash == hash)
-		return true;
+	bool total_hash_diffs = false;
+	String hash = IntStr64(file_nodes.GetCommonHash(&total_hash_diffs));
+	if (!forced) {
+		if (saved_hash == hash && !total_hash_diffs)
+			return true;
+		if (saved_hash == hash && total_hash_diffs) {
+			Panic("TODO");
+		}
+		else if (total_hash_diffs) {
+			Panic("TODO");
+		}
+	}
 	saved_hash = hash;
 	ASSERT(!saved_hash.IsEmpty());
 	ASSERT(!bin_path.IsEmpty());
@@ -345,21 +354,23 @@ MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 		MergeNode(root, file_nodes);
 		LOG(root.GetTreeString());
 		
+		#if DEBUG_METANODE_DTOR
 		Vector<MetaNode*> comments;
 		root.FindAllDeep(METAKIND_COMMENT, comments);
 		for (auto* c : comments)
 			c->trace_kill = true;
+		#endif
 	}
 	return pkg;
 }
 
-void MetaEnvironment::Store(MetaSrcPkg& pkg)
+void MetaEnvironment::Store(MetaSrcPkg& pkg, bool forced)
 {
 	MetaNode file_nodes;
 	SplitNode(root, file_nodes, pkg.id);
 	
 	LOG(file_nodes.GetTreeString());
-	pkg.Store(file_nodes);
+	pkg.Store(file_nodes, forced);
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
@@ -448,8 +459,10 @@ String MetaEnvironment::GetFilepath(int pkg_id, int file_id) const {
 }
 
 MetaNode::~MetaNode() {
+	#if DEBUG_METANODE_DTOR
 	if (trace_kill)
 		Panic("trace-kill");
+	#endif
 }
 
 void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id) {
@@ -705,11 +718,18 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	is_definition = n.is_definition;
 }
 
-hash_t MetaNode::GetCommonHash() const {
+hash_t MetaNode::GetCommonHash(bool* total_hash_diffs) const {
 	CombineHash ch;
+	ASSERT(kind >= 0 && kind < METAKIND_BEGIN); // otherwise not common kind
 	ch.Do(kind).Do(id).Do(type);
-	for (const auto& s : sub)
+	for (const auto& s : sub) {
+		if (s.kind < 0 || s.kind >= METAKIND_BEGIN) {
+			if (total_hash_diffs)
+				*total_hash_diffs = true;
+			continue;
+		}
 		ch.Put(s.GetCommonHash());
+	}
 	return ch;
 }
 

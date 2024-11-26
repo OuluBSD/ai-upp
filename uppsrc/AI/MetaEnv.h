@@ -1,6 +1,8 @@
 #ifndef _AI_MetaSrcPkg_h_
 #define _AI_MetaSrcPkg_h_
 
+#define DEBUG_METANODE_DTOR 0
+
 struct FileAnnotation;
 
 NAMESPACE_UPP
@@ -38,7 +40,9 @@ struct MetaNode : Pte<MetaNode> {
 	bool only_temporary = false;
 	Ptr<MetaNode> owner;
 	Ptr<MetaNode> type_ptr;
+	#if DEBUG_METANODE_DTOR
 	bool trace_kill = false;
+	#endif
 	
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
@@ -55,7 +59,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& Add();
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
-	hash_t GetCommonHash() const;
+	hash_t GetCommonHash(bool* total_hash_diffs=0) const;
 	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % common_hash % file % is_ref % is_definition; if (s.IsLoading()) FixParent();}
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
@@ -128,7 +132,7 @@ struct MetaSrcPkg {
 	MetaSrcPkg(const MetaSrcPkg& f) {*this = f;}
 	void operator=(const MetaSrcPkg& f);
 	bool Load(MetaNode& file_nodes);
-	bool Store(MetaNode& file_nodes);
+	bool Store(MetaNode& file_nodes, bool forced);
 	void SetPath(String bin_path, String upp_dir);
 	String GetRelativePath(const String& path) const;
 	String GetFullPath(const String& rel_path) const;
@@ -169,7 +173,7 @@ struct MetaEnvironment {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcPkg& Load(const String& includes, const String& path);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
-	void Store(MetaSrcPkg& af);
+	void Store(MetaSrcPkg& af, bool forced=false);
 	void Store(String& includes, const String& path, ClangNode& n);
 	bool MergeNode(MetaNode& root, const MetaNode& other);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);

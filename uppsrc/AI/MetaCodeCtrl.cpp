@@ -68,10 +68,13 @@ void MetaCodeCtrl::UpdateEditor()
 	
 	gen.Process(sub);
 	gen_file = gen.GetResultFile(pkg_i, file_i);
-	String code = gen_file ? gen_file->code : String();
-	
-	editor_to_line <<= gen_file->editor_to_line;
-	comment_to_node <<= gen_file->comment_to_node;
+	String code;
+	if (gen_file) {
+		code = gen_file ? gen_file->code : String();
+		
+		editor_to_line <<= gen_file->editor_to_line;
+		comment_to_node <<= gen_file->comment_to_node;
+	}
 	
 #if 0
 	editor_to_line.SetCount(0);
@@ -337,7 +340,7 @@ void MetaCodeCtrl::StoreAion()
 {
 	auto& env = MetaEnv();
 	MetaSrcPkg& af = env.ResolveFile(this->includes, this->filepath);
-	env.Store(af);
+	env.Store(af, true);
 }
 
 void MetaCodeCtrl::SetSelectedLineFromEditor()

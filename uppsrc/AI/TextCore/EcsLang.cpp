@@ -38,7 +38,7 @@ bool EcsIndexer::LoadEcsSpace(String path) {
 	MetaNode file_nodes;
 	env.SplitNode(env.root, file_nodes, pkg.id);
 	
-	pkg.Store(file_nodes);
+	pkg.Store(file_nodes, false);
 	return true;
 }
 

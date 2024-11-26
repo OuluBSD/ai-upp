@@ -356,7 +356,6 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 	String id = ci.Id();
 	String name = ci.Name();
 	String type = ci.Type();
-	unsigned type_hash = ci.TypeHash();
 	int kind = ci.Kind();
 	
 	ClangNode* np = 0;
@@ -386,7 +385,7 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 				n.type = type;
 			else
 				n.type = ci.TypeDeclaration();
-			n.type_hash = type_hash;
+			n.type_hash = ci.TypeHash();
 			n.filepos_hash = sl.GetHashValue();
 		}
 		n.begin = sl.begin;

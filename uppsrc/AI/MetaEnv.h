@@ -30,7 +30,6 @@ struct MetaNode : Pte<MetaNode> {
 	Point begin = Null;
 	Point end = Null;
 	hash_t filepos_hash = 0;
-	hash_t common_hash = 0;
 	int file = -1;
 	bool is_ref = false;
 	bool is_definition = false;
@@ -53,14 +52,18 @@ struct MetaNode : Pte<MetaNode> {
 	void CopyFrom(const MetaNode& n);
 	void CopyFieldsFrom(const MetaNode& n);
 	void CopySubFrom(const MetaNode& n);
+	void FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
+	String GetKindString() const;
+	static String GetKindString(int i);
 	MetaNode& GetAdd(String id, String type, int kind);
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
 	MetaNode& Add();
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
+	hash_t GetTotalHash() const;
 	hash_t GetCommonHash(bool* total_hash_diffs=0) const;
-	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % common_hash % file % is_ref % is_definition; if (s.IsLoading()) FixParent();}
+	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % file % is_ref % is_definition; if (s.IsLoading()) FixParent();}
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
@@ -158,7 +161,11 @@ private:
 };
 
 
-
+typedef enum : byte {
+	MERGEMODE_KEEP_OLD,
+	MERGEMODE_OVERWRITE_OLD,
+	MERGEMODE_BAIL_OUT,
+} MergeMode;
 
 struct MetaEnvironment {
 	VectorMap<hash_t,Vector<Ptr<MetaNode>>> filepos_nodes;
@@ -175,7 +182,6 @@ struct MetaEnvironment {
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(MetaSrcPkg& af, bool forced=false);
 	void Store(String& includes, const String& path, ClangNode& n);
-	bool MergeNode(MetaNode& root, const MetaNode& other);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id);
 	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id);
@@ -183,7 +189,9 @@ struct MetaEnvironment {
 	String GetFilepath(int pkg_id, int file_id) const;
 	static bool IsMergeable(CXCursorKind kind);
 	static bool IsMergeable(int kind);
-	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1);
+	bool MergeNode(MetaNode& root, const MetaNode& other, MergeMode mode);
+	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode);
+	bool MergeVisitPartMatching(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode);
 	void RefreshNodePtrs(MetaNode& n);
 	void MergeVisitPost(MetaNode& n);
 	MetaNode* FindDeclaration(const MetaNode& n);

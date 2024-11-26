@@ -19,6 +19,8 @@ void EcsIndexer::RunJob(IndexerJob& job) {
 bool EcsIndexer::LoadEcsSpace(String path) {
 	MetaEnvironment& env = MetaEnv();
 	
+	Panic("TODO"); // use only node and virtual serialize
+	
 	EcsSpace space;
 	LoadFromJsonFile(space, path);
 	

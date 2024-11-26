@@ -351,7 +351,7 @@ MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 		file_nodes.SetTempDeep();
 		ASSERT(pkg.saved_hash == IntStr64(file_nodes.GetCommonHash()));
 		file_nodes.SetPkgDeep(pkg.id);
-		MergeNode(root, file_nodes);
+		MergeNode(root, file_nodes, MERGEMODE_OVERWRITE_OLD);
 		LOG(root.GetTreeString());
 		
 		#if DEBUG_METANODE_DTOR
@@ -383,13 +383,13 @@ void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 	n.Assign(0, cn);
 	n.SetPkgDeep(pkg.id);
 	n.SetFileDeep(file_id);
-	if (!MergeNode(root, n))
+	if (!MergeNode(root, n, MERGEMODE_OVERWRITE_OLD))
 		return;
 	
 	Store(pkg);
 }
 
-bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) {
+bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode) {
 	MetaNode& n0 = *scope.Top();
 	ASSERT(n0.kind == n1.kind && n0.id == n1.id);
 	if (IsMergeable((CXCursorKind)n0.kind)) {
@@ -402,7 +402,7 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) 
 			else {
 				MetaNode& sub0 = n0.sub[i];
 				scope << &sub0;
-				bool succ = MergeVisit(scope, sub1);
+				bool succ = MergeVisit(scope, sub1, mode);
 				scope.Pop();
 				if (!succ)
 					return false;
@@ -410,17 +410,261 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1) 
 		}
 	}
 	else {
-		if (!n0.common_hash)
-			n0.common_hash = n0.GetCommonHash();
-		hash_t n1_common_hash = n1.GetCommonHash();
-		if (n0.common_hash != n1_common_hash) {
-			// Node changed
-			ASSERT(scope.GetCount() == 1 || n0.owner);
+		if (mode == MERGEMODE_BAIL_OUT)
+			return false;
+		if (MERGEMODE_KEEP_OLD && !n0.sub.IsEmpty() && n1.sub.IsEmpty()) {
+			// pass
+		}
+		else if (MERGEMODE_KEEP_OLD && n0.sub.IsEmpty() && !n1.sub.IsEmpty()) {
+			n0.CopySubFrom(n1);
+		}
+		else if (MERGEMODE_OVERWRITE_OLD && (n0.sub.IsEmpty() || n1.sub.IsEmpty())) {
 			n0.CopyFrom(n1);
-			n0.common_hash = n1_common_hash;
-			MergeVisitPost(n0);
+		}
+		else {
+			hash_t n0_total_hash = n0.GetTotalHash();
+			hash_t n1_total_hash = n1.GetTotalHash();
+			if (n0_total_hash != n1_total_hash) {
+				Vector<String> find_diffs;
+				n0.FindDifferences(n1, find_diffs);
+				DUMPC(find_diffs);
+				Panic("TODO"); // fix find_diffs hash
+				return MergeVisitPartMatching(scope, n1, mode);
+			}
 		}
 	}
+	return true;
+}
+
+bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode) {
+	MetaNode& n0 = *scope.Top();
+	if (mode == MERGEMODE_OVERWRITE_OLD)
+		n0.CopyFieldsFrom(n1);
+	
+	ASSERT(n0.sub.GetCount());
+	ASSERT(n0.kind == n1.kind && n0.id == n1.id);
+	ASSERT(!IsMergeable((CXCursorKind)n0.kind));
+	struct Hashes {
+		MetaNode* n = 0;
+		MetaNode* match = 0;
+		hash_t common_hash;
+		bool ready = false;
+		//int common_match = -1, insert = -1;
+		//int prev = -1, next = -1;
+		void Set(MetaNode* mn, hash_t c) {n = mn; common_hash = c;}
+	};
+	Array<Hashes> n0_subs;
+	Array<Hashes> n1_subs;
+	n0_subs.Reserve(n0.sub.GetCount());
+	n1_subs.Reserve(n1.sub.GetCount());
+	for (MetaNode& s0 : n0.sub)
+		n0_subs.Add().Set(&s0, s0.GetCommonHash());
+	for (const MetaNode& s1 : n1.sub)
+		n1_subs.Add().Set(const_cast<MetaNode*>(&s1), s1.GetCommonHash());
+	
+	// Match common hashes starting from the beginning
+	int c = min(n0_subs.GetCount(), n1_subs.GetCount());
+	for(int i = 0; i < c; i++) {
+		auto& s0 = n0_subs[i];
+		auto& s1 = n1_subs[i];
+		if (s0.common_hash == s1.common_hash) {
+			s0.match = s1.n;
+			s1.match = s0.n;
+			s0.ready = true;
+			s1.ready = true;
+		}
+		else
+			break;
+	}
+	// Match common hashes starting from the end
+	for(int i = 0; i < c; i++) {
+		int j0 = n0_subs.GetCount()-1-i;
+		int j1 = n1_subs.GetCount()-1-i;
+		auto& s0 = n0_subs[j0];
+		auto& s1 = n1_subs[j1];
+		if (s0.match != 0 || s1.match != 0)
+			break;
+		if (s0.common_hash == s1.common_hash) {
+			s0.match = s1.n;
+			s1.match = s0.n;
+			s0.ready = true;
+			s1.ready = true;
+		}
+		else
+			break;
+	}
+	
+	Vector<int> rmlist;
+	for(int i = 0; i < n0_subs.GetCount(); i++) {
+		auto& s0 = n0_subs[i];
+		if (s0.match != 0) continue;
+		for(int j = 0; j < n1_subs.GetCount(); j++) {
+			auto& s1 = n1_subs[j];
+			if (s1.match != 0) continue;
+			if (s0.common_hash == s1.common_hash) {
+				s0.match = s1.n;
+				s1.match = s0.n;
+				s0.ready = true;
+				s1.ready = true;
+				break;
+			}
+		}
+		if (!s0.match) {
+			if (mode == MERGEMODE_BAIL_OUT)
+				return false;
+			if (mode == MERGEMODE_OVERWRITE_OLD)
+				rmlist.Add(i);
+			if (mode == MERGEMODE_KEEP_OLD)
+				s0.ready = true;
+		}
+	}
+	
+	if (mode == MERGEMODE_OVERWRITE_OLD) {
+		if (rmlist.GetCount()) {
+			n0_subs.Remove(rmlist);
+			n0.sub.Remove(rmlist);
+			rmlist.Clear();
+		}
+		for(auto& s0 : n0_subs) {ASSERT(s0.ready);}
+	}
+	
+	if (mode == MERGEMODE_OVERWRITE_OLD && n0.sub.IsEmpty()) {
+		ASSERT(n0_subs.IsEmpty());
+		for(int i = 0; i < n1_subs.GetCount(); i++) {
+			auto& s1 = n1_subs[i];
+			auto& s0 = n0_subs.Add();
+			s0.match = s1.n;
+			s0.ready = true;
+			s1.ready = true;
+		}
+	}
+	else if (mode == MERGEMODE_OVERWRITE_OLD && !n0.sub.IsEmpty()) {
+		for(int i = 0; i < n0_subs.GetCount(); i++) {ASSERT(n0_subs[i].ready);}
+		int insert_lost_pos = -1;
+		bool insert_from_begin;
+		while (true) {
+			int added_count = 0;
+			for(int i = 1; i < n1_subs.GetCount(); i++) {
+				auto& s1 = n1_subs[i];
+				if (s1.ready) continue;
+				auto& s1a = n1_subs[i-1];
+				if (!s1a.ready) continue;
+				bool added = false;
+				for(int j = 0; j < n0_subs.GetCount(); j++) {
+					if (n0_subs[j].match == s1a.n) {
+						auto& s0 = n0_subs.Insert(j+1);
+						s0.match = s1.n;
+						s0.ready = true;
+						s1.ready = true;
+						added = true;
+						insert_lost_pos = j+2;
+						insert_from_begin = true;
+						break;
+					}
+				}
+				if (added)
+					added_count++;
+			}
+			for (int i = n1_subs.GetCount()-2; i >= 0; i--) {
+				auto& s1 = n1_subs[i];
+				if (s1.ready) continue;
+				auto& s1a = n1_subs[i+1];
+				if (!s1a.ready) continue;
+				bool added = false;
+				for(int j = 0; j < n0_subs.GetCount(); j++) {
+					if (n0_subs[j].match == s1a.n) {
+						auto& s0 = n0_subs.Insert(j);
+						s0.match = s1.n;
+						s0.ready = true;
+						s1.ready = true;
+						added = true;
+						insert_lost_pos = j;
+						insert_from_begin = false;
+						break;
+					}
+				}
+				if (added)
+					added_count++;
+			}
+			int unready_count = 0;
+			for(int i = 0; i < n1_subs.GetCount(); i++)
+				if (!n1_subs[i].ready)
+					unready_count++;
+			if (!unready_count)
+				break;
+			if (added_count)
+				continue;
+			if (insert_lost_pos < 0) {
+				ASSERT_(0, "unexpected internal error"); // this shouldn't ever happen
+				insert_lost_pos = n0_subs.GetCount();
+				insert_from_begin = true;
+			}
+			for(int i = 1; i < n1_subs.GetCount(); i++) {
+				auto& s1 = n1_subs[i];
+				if (s1.ready) continue;
+				auto& s0 = n0_subs.Insert(insert_lost_pos);
+				s0.match = s1.n;
+				s0.ready = true;
+				s1.ready = true;
+				if (insert_from_begin)
+					insert_lost_pos++;
+			}
+		}
+	}
+	
+	if (mode == MERGEMODE_BAIL_OUT || mode == MERGEMODE_OVERWRITE_OLD) {
+		for(int i = 0; i < n0_subs.GetCount(); i++)
+			if (!n0_subs[i].ready)
+				return false;
+	}
+	if (mode == MERGEMODE_BAIL_OUT || mode == MERGEMODE_KEEP_OLD) {
+		for(int i = 0; i < n1_subs.GetCount(); i++)
+			if (!n1_subs[i].ready)
+				return false;
+	}
+	
+	
+	Array<MetaNode> new_sub;
+	int pos = 0;
+	for(int i = 0; i < n0_subs.GetCount(); i++) {
+		auto& s0 = n0_subs[i];
+		if (!s0.n)
+			s0.n = &n0.sub.Insert(pos);
+		else {
+			ASSERT(s0.n == &n0.sub[pos]);
+		}
+		auto& n0 = *s0.n;
+		auto& n1 = *s0.match;
+		if (n0.GetTotalHash() == n1.GetTotalHash()) {
+			// pass
+		}
+		else {
+			if (MERGEMODE_KEEP_OLD && !n0.sub.IsEmpty() && n1.sub.IsEmpty()) {
+				// pass
+			}
+			else if (MERGEMODE_KEEP_OLD && n0.sub.IsEmpty() && !n1.sub.IsEmpty()) {
+				n0.CopySubFrom(n1);
+			}
+			else if (MERGEMODE_OVERWRITE_OLD && (n0.sub.IsEmpty() || n1.sub.IsEmpty())) {
+				n0.CopyFrom(n1);
+			}
+			else {
+				hash_t n0_total_hash = n0.GetTotalHash();
+				hash_t n1_total_hash = n1.GetTotalHash();
+				if (n0_total_hash != n1_total_hash) {
+					Vector<String> find_diffs;
+					n0.FindDifferences(n1, find_diffs);
+					DUMPC(find_diffs);
+					scope.Add(s0.n);
+					if (!MergeVisitPartMatching(scope, *s0.match, mode))
+						return false;
+					scope.Pop();
+				}
+			}
+		}
+		pos++;
+	}
+	
 	return true;
 }
 
@@ -430,10 +674,10 @@ void MetaEnvironment::MergeVisitPost(MetaNode& n) {
 		MergeVisitPost(s);
 }
 
-bool MetaEnvironment::MergeNode(MetaNode& root, const MetaNode& other) {
+bool MetaEnvironment::MergeNode(MetaNode& root, const MetaNode& other, MergeMode mode) {
 	Vector<MetaNode*> scope;
 	scope << &root;
-	return MergeVisit(scope, other);
+	return MergeVisit(scope, other, mode);
 }
 
 void MetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id) {
@@ -654,7 +898,6 @@ void MetaNode::Assign(MetaNode* owner, const ClangNode& n) {
 	begin = n.begin;
 	end = n.end;
 	filepos_hash = n.filepos_hash;
-	common_hash = 0; // too heavy to update here
 	is_ref = n.is_ref;
 	is_definition = n.is_definition;
 }
@@ -703,6 +946,47 @@ void MetaNode::CopySubFrom(const MetaNode& n) {
 		sub[i].Assign(this, n.sub[i]);
 }
 
+String MetaNode::GetKindString() const {return GetKindString(kind);}
+
+String MetaNode::GetKindString(int kind) {
+	if (kind < METAKIND_BEGIN)
+		return GetCursorKindName((CXCursorKind)kind);
+	else if (kind == METAKIND_COMMENT)
+		return "MetaKind: Comment";
+	else if (kind == METAKIND_ECS_NODE)
+		return "MetaKind: ECS-Node";
+	else if (kind == METAKIND_ECS_SPACE)
+		return "MetaKind: ECS-Space";
+	else
+		return "Unknown kind: " + IntStr(kind);
+}
+
+void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const {
+	bool had_diff = false;
+	#define CHK_FIELD(x) if (x != n.x) {had_diff = true; diffs.Add("Different " #x ": " + AsString(x) + " vs " + AsString(n.x) + " at " + GetKindString() + ", " + id + " (" + type + ")");}
+	CHK_FIELD(kind);
+	CHK_FIELD(id);
+	CHK_FIELD(type);
+	CHK_FIELD(type_hash);
+	CHK_FIELD(begin);
+	CHK_FIELD(end);
+	CHK_FIELD(filepos_hash);
+	CHK_FIELD(file);
+	CHK_FIELD(pkg);
+	CHK_FIELD(is_ref);
+	CHK_FIELD(is_definition);
+	CHK_FIELD(sub.GetCount());
+	if (!had_diff) for(int i = 0; i < sub.GetCount(); i++) {
+		CHK_FIELD(sub[i].kind);
+		CHK_FIELD(sub[i].id);
+		if (had_diff)
+			break;
+		sub[i].FindDifferences(n.sub[i], diffs, max_diffs);
+		if (diffs.GetCount() >= max_diffs)
+			break;
+	}
+}
+
 void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	kind = n.kind;
 	id = n.id;
@@ -710,12 +994,30 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	type_hash = n.type_hash;
 	begin = n.begin;
 	end = n.end;
-	common_hash = n.common_hash;
 	filepos_hash = n.filepos_hash;
 	file = n.file;
 	pkg = n.pkg;
 	is_ref = n.is_ref;
 	is_definition = n.is_definition;
+}
+
+hash_t MetaNode::GetTotalHash() const {
+	CombineHash ch;
+	ch	.Do(kind)
+		.Do(id)
+		.Do(type)
+		.Do(type_hash)
+		.Do(begin)
+		.Do(end)
+		.Do(filepos_hash)
+		.Do(file)
+		.Do(pkg)
+		.Do(is_ref)
+		.Do(is_definition)
+		;
+	for (const auto& s : sub)
+		ch.Put(s.GetTotalHash());
+	return ch;
 }
 
 hash_t MetaNode::GetCommonHash(bool* total_hash_diffs) const {

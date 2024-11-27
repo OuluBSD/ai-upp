@@ -99,6 +99,9 @@ bool IsStruct(int kind);
 bool IsTemplate(int kind);
 bool IsFunction(int kind);
 bool IsVariable(int kind);
+bool IsDecl(int kind);
+bool IsTypeDecl(int kind);
+bool IsTypeRef(int kind);
 int  FindId(const String& s, const String& id);
 
 enum {
@@ -252,13 +255,15 @@ struct ClangNode {
 	Point begin = Null;
 	Point end = Null;
 	hash_t filepos_hash = 0;
-	unsigned type_hash = 0;
+	hash_t type_hash = 0;
 	bool is_ref = false;
 	bool is_definition = false;
+	bool is_type_builtin = false;
 	
-	void Clear() {sub.Clear(); kind = -1; id.Clear(); type.Clear(); begin = Null; end = Null; filepos_hash = 0; is_ref = false; is_definition = false; type_hash = 0;}
+	void Clear() {sub.Clear(); kind = -1; id.Clear(); type.Clear(); begin = Null; end = Null; filepos_hash = 0; is_ref = false; is_definition = false; type_hash = 0; is_type_builtin = false;}
 	String GetTreeString(int depth=0) const;
 	hash_t GetCommonHash() const;
+	bool TranslateTypeHash(const VectorMap<hash_t,hash_t>& translation);
 };
 
 class ClangVisitor {

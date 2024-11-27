@@ -27,6 +27,7 @@ class ClangCursorInfo {
 	String       id;
 
 	bool         hastypehash = false;
+	bool         typebuiltin = false;
 	unsigned     typehash = 0;
 
 public:
@@ -41,6 +42,7 @@ public:
 	String       Id();
 	String       Bases();
 	unsigned     TypeHash();
+	bool         TypeBuiltin();
 	
 	CXCursor     GetCursor()                 { return cursor; }
 
@@ -75,10 +77,49 @@ String ClangCursorInfo::Type()
 }
 
 force_inline
+bool ClangCursorInfo::TypeBuiltin()
+{
+	TypeHash(); // refresh 'typebuiltin' value
+	return typebuiltin;
+}
+
+force_inline
 unsigned ClangCursorInfo::TypeHash()
 {
 	if(!hastypehash) {
-		typehash = clang_hashCursor(clang_getTypeDeclaration(clang_getCursorType(cursor)));
+		if (IsTypeDecl(cursorKind) || cursorKind == CXCursor_MacroDefinition) {
+			typehash = clang_hashCursor(cursor);
+		}
+		else if (IsTypeRef(cursorKind) || cursorKind == CXCursor_MacroExpansion) {
+			CXCursor ref = clang_getCursorReferenced(cursor);
+			if (IsTypeDecl(ref.kind) || ref.kind == CXCursor_MacroDefinition)
+				typehash = clang_hashCursor(ref);
+			else {
+				Panic("TODO");
+			}
+		}
+		else {
+			CXType type = clang_getCursorType(cursor);
+			CXCursor type_decl = clang_getTypeDeclaration(type);
+			if (type.kind == CXType_Invalid)
+				typehash = 0;
+			else if (type_decl.kind == CXCursor_NoDeclFound && type.kind != CXType_Invalid) {
+				CombineHash c;
+				c.Put(type.kind).Put((int64)type.data[0]).Put((int64)type.data[1]);
+				typehash = (hash_t)c;
+				typebuiltin = true;
+			}
+			else if (IsTypeDecl(type_decl.kind))
+				typehash = clang_hashCursor(type_decl);
+			else {
+				String type_str = Type();
+				if (type_str.IsEmpty())
+					typehash = 0;
+				else
+					typehash = type_str.GetHashValue();
+				typebuiltin = true;
+			}
+		}
 		hastypehash = true;
 	}
 	return typehash;
@@ -373,7 +414,8 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			SourceLocation tmpl_sl = GetSourceLocation(loc, ran);
 			n.id = tmpl_ci.Id();
 			n.type = tmpl_ci.Type();
-			n.type_hash = tmpl_ci.TypeHash();
+			n.type_hash = ci.TypeHash();
+			ASSERT(n.type_hash);
 			n.filepos_hash = tmpl_sl.GetHashValue();
 		}
 		else {
@@ -385,9 +427,11 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 				n.type = type;
 			else
 				n.type = ci.TypeDeclaration();
-			n.type_hash = ci.TypeHash();
 			n.filepos_hash = sl.GetHashValue();
+			n.type_hash = ci.TypeHash();
 		}
+		n.type_hash = ci.TypeHash();
+		n.is_type_builtin = ci.TypeBuiltin();
 		n.begin = sl.begin;
 		n.end = sl.end;
 		n.is_definition = clang_isCursorDefinition(cursor);

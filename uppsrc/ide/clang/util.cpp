@@ -93,6 +93,27 @@ bool IsVariable(int kind)
 	return findarg(kind, CXCursor_VarDecl, CXCursor_FieldDecl) >= 0;
 }
 
+bool IsDecl(int kind) {
+	return kind >= (int)CXCursor_FirstDecl && kind <= (int)CXCursor_LastDecl;
+}
+
+bool IsTypeDecl(int kind)
+{
+	return findarg(kind,
+		CXCursor_UnexposedDecl,
+		CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_ClassDecl, CXCursor_EnumDecl,
+		CXCursor_TypedefDecl, CXCursor_Namespace, CXCursor_TemplateTypeParameter,
+		CXCursor_ClassTemplate, CXCursor_ClassTemplatePartialSpecialization,
+		CXCursor_NamespaceAlias, CXCursor_UsingDeclaration,
+		CXCursor_TypeAliasDecl
+		) >= 0;
+}
+
+bool IsTypeRef(int kind)
+{
+	return kind >= (int)CXCursor_FirstRef && kind <= (int)CXCursor_LastRef;
+}
+
 int FindId(const String& s, const String& id) {
 	if(id.GetCount() == 0)
 		return -1;
@@ -149,4 +170,19 @@ hash_t ClangNode::GetCommonHash() const {
 	for (const auto& s : sub)
 		ch.Put(s.GetCommonHash());
 	return ch;
+}
+
+bool ClangNode::TranslateTypeHash(const VectorMap<hash_t,hash_t>& translation) {
+	if (type_hash) {
+		int i = translation.Find(type_hash);
+		if (i < 0) {
+			LOG("ClangNode::TranslateTypeHash: error: translation type not found: " + id + "(" + type + ")");
+			return false;
+		}
+		type_hash = translation[i];
+	}
+	for (auto& s : sub)
+		if (!s.TranslateTypeHash(translation))
+			return false;
+	return true;
 }

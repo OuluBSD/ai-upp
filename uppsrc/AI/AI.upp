@@ -33,6 +33,8 @@ file
 	CodeVisitor.cpp,
 	MetaCodeGenerator.h,
 	MetaCodeGenerator.cpp,
+	ClangTypeResolver.h,
+	ClangTypeResolver.cpp,
 	Task readonly separator,
 	TaskManager.h,
 	TaskManager.cpp,

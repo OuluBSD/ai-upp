@@ -308,6 +308,7 @@ bool MetaSrcPkg::Store(MetaNode& file_nodes, bool forced)
 	saved_hash = hash;
 	ASSERT(!saved_hash.IsEmpty());
 	ASSERT(!bin_path.IsEmpty());
+	RefreshSeenTypes(file_nodes);
 	lock.Enter();
 	RealizeDirectory(GetFileDirectory(bin_path));
 	FileOut s(bin_path);
@@ -331,8 +332,33 @@ bool MetaSrcPkg::Load(MetaNode& file_nodes)
 	}
 	s.Close();
 	lock.Leave();
+	OnSeenTypes();
 	return succ;
 }
+
+void MetaSrcPkg::RefreshSeenTypes(MetaNode& file_nodes) {
+	MetaEnvironment& env = MetaEnv();
+	Index<hash_t> type_hashes;
+	file_nodes.GetTypeHashes(type_hashes);
+	seen_types.Clear();
+	for (hash_t h : type_hashes) {
+		String path = env.seen_types.Get(h, "");
+		if (path.GetCount())
+			seen_types.Add(h,path);
+	}
+}
+
+void MetaSrcPkg::OnSeenTypes() {
+	MetaEnvironment& env = MetaEnv();
+	for (auto it : ~seen_types)
+		env.seen_types.GetAdd(it.key,it.value);
+}
+
+
+
+
+
+
 
 MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 
@@ -347,12 +373,12 @@ MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 	MetaNode file_nodes;
 	MetaSrcPkg& pkg = this->ResolveFile(includes, path);
 	if (pkg.Load(file_nodes)) {
-		LOG(file_nodes.GetTreeString());
+		//LOG(file_nodes.GetTreeString());
 		file_nodes.SetTempDeep();
 		ASSERT(pkg.saved_hash == IntStr64(file_nodes.GetCommonHash()));
 		file_nodes.SetPkgDeep(pkg.id);
 		MergeNode(root, file_nodes, MERGEMODE_OVERWRITE_OLD);
-		LOG(root.GetTreeString());
+		//LOG(root.GetTreeString());
 		
 		#if DEBUG_METANODE_DTOR
 		Vector<MetaNode*> comments;
@@ -369,12 +395,24 @@ void MetaEnvironment::Store(MetaSrcPkg& pkg, bool forced)
 	MetaNode file_nodes;
 	SplitNode(root, file_nodes, pkg.id);
 	
-	LOG(file_nodes.GetTreeString());
+	//LOG(file_nodes.GetTreeString());
 	pkg.Store(file_nodes, forced);
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 {
+	ClangTypeResolver ctr;
+	if (!ctr.Process(cn)) {
+		LOG("MetaEnvironment::Store: error: clang type resolving failed: " + ctr.GetError());
+		return;
+	}
+	if (!MergeResolver(ctr)) {
+		LOG("MetaEnvironment::Store: error: merging resolver failed");
+		return;
+	}
+	
+	cn.TranslateTypeHash(ctr.GetTypeTranslation());
+	
 	//LOG(n.GetTreeString());
 	MetaSrcPkg& pkg = ResolveFile(includes, path);
 	String rel_path = pkg.GetRelativePath(path);
@@ -383,7 +421,7 @@ void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 	n.Assign(0, cn);
 	n.SetPkgDeep(pkg.id);
 	n.SetFileDeep(file_id);
-	if (!MergeNode(root, n, MERGEMODE_OVERWRITE_OLD))
+	if (!MergeNode(root, n, MERGEMODE_KEEP_OLD))
 		return;
 	
 	Store(pkg);
@@ -425,10 +463,11 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, 
 			hash_t n0_total_hash = n0.GetTotalHash();
 			hash_t n1_total_hash = n1.GetTotalHash();
 			if (n0_total_hash != n1_total_hash) {
-				Vector<String> find_diffs;
-				n0.FindDifferences(n1, find_diffs);
-				DUMPC(find_diffs);
-				Panic("TODO"); // fix find_diffs hash
+				if (1) {
+					Vector<String> find_diffs;
+					n0.FindDifferences(n1, find_diffs);
+					DUMPC(find_diffs);
+				}
 				return MergeVisitPartMatching(scope, n1, mode);
 			}
 		}
@@ -467,7 +506,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 	for(int i = 0; i < c; i++) {
 		auto& s0 = n0_subs[i];
 		auto& s1 = n1_subs[i];
-		if (s0.common_hash == s1.common_hash) {
+		if (s0.common_hash && s0.common_hash == s1.common_hash) {
 			s0.match = s1.n;
 			s1.match = s0.n;
 			s0.ready = true;
@@ -484,7 +523,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		auto& s1 = n1_subs[j1];
 		if (s0.match != 0 || s1.match != 0)
 			break;
-		if (s0.common_hash == s1.common_hash) {
+		if (s0.common_hash && s0.common_hash == s1.common_hash) {
 			s0.match = s1.n;
 			s1.match = s0.n;
 			s0.ready = true;
@@ -497,11 +536,11 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 	Vector<int> rmlist;
 	for(int i = 0; i < n0_subs.GetCount(); i++) {
 		auto& s0 = n0_subs[i];
-		if (s0.match != 0) continue;
+		if (s0.ready) continue;
 		for(int j = 0; j < n1_subs.GetCount(); j++) {
 			auto& s1 = n1_subs[j];
 			if (s1.match != 0) continue;
-			if (s0.common_hash == s1.common_hash) {
+			if (s0.common_hash && s0.common_hash == s1.common_hash) {
 				s0.match = s1.n;
 				s1.match = s0.n;
 				s0.ready = true;
@@ -514,8 +553,10 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 				return false;
 			if (mode == MERGEMODE_OVERWRITE_OLD)
 				rmlist.Add(i);
-			if (mode == MERGEMODE_KEEP_OLD)
-				s0.ready = true;
+			if (mode == MERGEMODE_KEEP_OLD) {
+				if (s0.common_hash)
+					s0.ready = true;
+			}
 		}
 	}
 	
@@ -635,7 +676,13 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		}
 		auto& n0 = *s0.n;
 		auto& n1 = *s0.match;
-		if (n0.GetTotalHash() == n1.GetTotalHash()) {
+		if (!s0.match) {
+			if (mode == MERGEMODE_KEEP_OLD)
+				; // pass
+			else
+				return false;
+		}
+		else if (n0.GetTotalHash() == n1.GetTotalHash()) {
 			// pass
 		}
 		else {
@@ -803,7 +850,7 @@ bool MetaEnvironment::IsMergeable(CXCursorKind kind) {
 
 void MetaEnvironment::RefreshNodePtrs(MetaNode& n) {
 	/*if (n.kind == CXCursor_ClassTemplate) {
-		LOG(n.GetTreeString());
+		//LOG(n.GetTreeString());
 	}*/
 	ASSERT(!n.only_temporary);
 	if (n.filepos_hash != 0) {
@@ -1021,8 +1068,9 @@ hash_t MetaNode::GetTotalHash() const {
 }
 
 hash_t MetaNode::GetCommonHash(bool* total_hash_diffs) const {
+	if (kind < 0 || kind >= METAKIND_BEGIN)
+		return 0;
 	CombineHash ch;
-	ASSERT(kind >= 0 && kind < METAKIND_BEGIN); // otherwise not common kind
 	ch.Do(kind).Do(id).Do(type);
 	for (const auto& s : sub) {
 		if (s.kind < 0 || s.kind >= METAKIND_BEGIN) {
@@ -1137,6 +1185,14 @@ void MetaNode::RemoveAllDeep(int kind) {
 		s.RemoveAllDeep(kind);
 }
 
+void MetaNode::GetTypeHashes(Index<hash_t>& type_hashes) const {
+	if (type_hash)
+		type_hashes.FindAdd(type_hash);
+	for (auto& s : sub)
+		s.GetTypeHashes(type_hashes);
+}
+
+
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
 	MetaSrcPkg& af = ResolveFile(includes, path);
@@ -1199,5 +1255,25 @@ MetaNode* MetaEnvironment::FindTypeDeclaration(unsigned type_hash) {
 	return 0;
 }
 
+bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr) {
+	const VectorMap<hash_t,Index<String>>& scope_paths = ctr.GetScopePaths();
+	auto& translation = ctr.GetTypeTranslation();
+	
+	for(int i = 0; i < scope_paths.GetCount(); i++) {
+		unsigned src_hash = scope_paths.GetKey(i);
+		const Index<String>& idx = scope_paths[i];
+		String path = idx[0];
+		hash_t dst_hash = RealizeTypePath(path);
+		translation.GetAdd(src_hash, dst_hash);
+	}
+	
+	return true;
+}
+
+hash_t MetaEnvironment::RealizeTypePath(const String& path) {
+	hash_t h = path.GetHashValue();
+	seen_types.GetAdd(h) = path;
+	return h;
+}
 
 END_UPP_NAMESPACE

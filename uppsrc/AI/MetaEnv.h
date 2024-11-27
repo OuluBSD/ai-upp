@@ -26,7 +26,7 @@ struct MetaNode : Pte<MetaNode> {
 	Array<MetaNode> sub;
 	int kind = -1;
 	String id, type;
-	unsigned type_hash = 0;
+	hash_t type_hash = 0;
 	Point begin = Null;
 	Point end = Null;
 	hash_t filepos_hash = 0;
@@ -87,6 +87,7 @@ struct MetaNode : Pte<MetaNode> {
 	bool ContainsDeep(const MetaNode& n) const;
 	void RemoveAllShallow(int kind);
 	void RemoveAllDeep(int kind);
+	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 };
 
 struct MetaNodeSubset {
@@ -127,6 +128,7 @@ struct MetaSrcPkg {
 	//ArrayMap<String, MetaSrcFile> files;
 	String saved_hash;
 	Index<String> filenames;
+	VectorMap<hash_t,String> seen_types;
 	String bin_path, upp_dir;
 	int id = -1;
 	
@@ -140,6 +142,8 @@ struct MetaSrcPkg {
 	String GetRelativePath(const String& path) const;
 	String GetFullPath(const String& rel_path) const;
 	String GetFullPath(int file_i) const;
+	void RefreshSeenTypes(MetaNode& file_nodes);
+	void OnSeenTypes();
 	/*void Load();
 	void Save(bool forced=false);
 	void Clear();
@@ -151,7 +155,7 @@ struct MetaSrcPkg {
 	String GetHashSha1();
 	void Load(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(const String& includes, const String& path, FileAnnotation& fa);*/
-	void Serialize(Stream& s) {s % saved_hash % filenames;}
+	void Serialize(Stream& s) {s % saved_hash % filenames % seen_types;}
 	
 private:
 	
@@ -160,6 +164,7 @@ private:
 	
 };
 
+class ClangTypeResolver;
 
 typedef enum : byte {
 	MERGEMODE_KEEP_OLD,
@@ -169,7 +174,9 @@ typedef enum : byte {
 
 struct MetaEnvironment {
 	VectorMap<hash_t,Vector<Ptr<MetaNode>>> filepos_nodes;
-	VectorMap<unsigned,Vector<Ptr<MetaNode>>> type_hash_nodes;
+	VectorMap<hash_t,Vector<Ptr<MetaNode>>> type_hash_nodes;
+	VectorMap<hash_t,String> seen_types;
+	
 	ArrayMap<String, MetaSrcPkg> pkgs;
 	MetaNode root;
 	RWMutex lock;
@@ -197,6 +204,8 @@ struct MetaEnvironment {
 	MetaNode* FindDeclaration(const MetaNode& n);
 	MetaNode* FindTypeDeclaration(unsigned type_hash);
 	Vector<MetaNode*> FindDeclarationsDeep(const MetaNode& n);
+	bool MergeResolver(ClangTypeResolver& ctr);
+	hash_t RealizeTypePath(const String& path);
 };
 
 MetaEnvironment& MetaEnv();

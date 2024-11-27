@@ -372,9 +372,6 @@ bool MetaProcess::MakeTask(AITask& t) {
 	bool has_scope = (is_struct || is_class || is_class_tmpl || is_class_tmpls || is_function || is_method || is_constructor || is_destructor || is_namespace) && is_definition;
 	bool is_param		= n.kind == CXCursor_ParmDecl;
 	
-	if (is_param) {
-		LOG("");
-	}
 	//const auto& idx = CodeIndex();
 	//int t_file_idx = t.filepath.IsEmpty() ? -1 : idx.Find(t.filepath);
 	
@@ -785,6 +782,10 @@ void MetaProcess::AddError(String filepath, Point pos, String msg) {
 }
 
 bool MetaProcess::ProcessTask(AITask& t) {
+	
+	Sleep(100); // fake load
+	return false;
+	
 	#if 0
 	ASSERT(!waiting);
 	TaskMgr& m = AiTaskManager();

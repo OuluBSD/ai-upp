@@ -15,6 +15,7 @@
 #include "ProcessBase.h"
 #include "MetaCodeGenerator.h"
 
+#include "ClangTypeResolver.h"
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"

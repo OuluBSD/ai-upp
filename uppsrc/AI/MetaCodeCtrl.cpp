@@ -75,74 +75,7 @@ void MetaCodeCtrl::UpdateEditor()
 		editor_to_line <<= gen_file->editor_to_line;
 		comment_to_node <<= gen_file->comment_to_node;
 	}
-	
-#if 0
-	editor_to_line.SetCount(0);
-	line_to_editor.SetCount(0);
-	comment_to_line.SetCount(0);
-	editor_to_line.SetCount(lines.GetCount());
-	comment_to_line.SetCount(lines.GetCount(), -1);
-	for(int i = 0; i < editor_to_line.GetCount(); i++)
-		editor_to_line[i] = i;
-	try {
-		struct Item : Moveable<Item> {
-			String txt;
-			int line;
-			bool operator()(const Item& a, const Item& b) const
-			{
-				return a.line > b.line;
-			} // in reverse because of simple insertion method
-		};
-		Vector<Item> items;
-		for(AiAnnotationItem& item : f.ai_items) {
-			AiAnnotationItem::SourceRange* df = item.FindAnySourceRange();
-			if (!df)
-				continue;
-			for(const AiAnnotationItem::SourceRange::Item& c : df->items) {
-				if (c.data_i < 0 || c.data_i >= item.GetDataCount())
-					throw Exc("error: invalid data_i in AiAnnotationItem::SourceRange::Item");
-				String data = item.GetDataString(c.data_i);
-				Item& it = items.Add();
-				it.line = df->begin.y + c.rel_line;
-				it.txt = data;
-			}
-		}
 
-		Sort(items, Item());
-
-		for(const Item& it : items) {
-			if(it.line < 0 || it.line >= lines.GetCount())
-				continue;
-
-			String spaces;
-			const String& line = lines[it.line];
-			for(int i = 0; i < line.GetCount(); i++) {
-				int chr = line[i];
-				if(!IsSpace(chr))
-					break;
-				spaces.Cat(chr);
-			}
-			if(TrimLeft(line).Left(1) == "}")
-				spaces.Cat('\t');
-			String insert_line = spaces + "/// " + it.txt;
-			lines.Insert(it.line, insert_line);
-			editor_to_line.Insert(it.line, -1);
-			comment_to_line.Insert(it.line, it.line);
-		}
-	}
-	catch (Exc e) {
-		editor.Clear();
-		PromptOK(e);
-		return;
-	}
-	line_to_editor.SetCount(lines.GetCount(), -1);
-	for(int i = 0; i < editor_to_line.GetCount(); i++) {
-		int l = editor_to_line[i];
-		if(l >= 0)
-			line_to_editor[l] = i;
-	}
-#endif
-	
 	Point scroll_pos = editor.GetScrollPos();
 	int cursor = editor.GetCursor();
 	
@@ -347,8 +280,10 @@ void MetaCodeCtrl::SetSelectedLineFromEditor()
 {
 	int64 pos = editor.GetCursor64();
 	Point pt;
-	pt.y = editor.GetLine(pos);
-	pt.x = pos - editor.GetPos(pt.y);
+	int sel_line = editor.GetCursorLine();
+	int origl = editor_to_line[sel_line];
+	pt.y = origl;
+	pt.x = pos - editor.GetPos(sel_line);
 	for (auto n : ~gen_file->code_nodes) {
 		if (n.key.Contains(pt)) {
 			MetaNode& sel = *n.value;
@@ -405,62 +340,6 @@ void MetaCodeCtrl::AnnotationData() {
 	int row = 0;
 	VisitCursorInfo(*sel_node, row);
 	cursorinfo.SetCount(row);
-	
-	
-	#if 0
-	MetaSrcFile& info = *sel_f;
-	AiAnnotationItem& ann = *sel_ann;
-	SourceRange& ann_f = *sel_ann_f;
-	FileAnnotation& fa = codeidx[i];
-	
-	int row = 0;
-	for(int i = 0; i < fa.items.GetCount(); i++) {
-		const AnnotationItem& ai = fa.items[i];
-		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
-			cursorinfo.Set(row, 1, ai.id);
-			cursorinfo.Set(row, 2, ai.type);
-			cursorinfo.Set(row, 3, ai.pos);
-			cursorinfo.Set(row, 4, Value());
-			row++;
-		}
-	}
-	for(int i = 0; i < fa.locals.GetCount(); i++) {
-		const AnnotationItem& ai = fa.locals[i];
-		if (ann_f.begin.y <= ai.pos.y && ai.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, ai.kind >= 0 ? GetCursorKindName((CXCursorKind)ai.kind) : String());
-			cursorinfo.Set(row, 1, ai.id);
-			cursorinfo.Set(row, 2, ai.type);
-			cursorinfo.Set(row, 3, ai.pos);
-			cursorinfo.Set(row, 4, Value());
-			row++;
-		}
-	}
-	for(int i = 0; i < fa.refs.GetCount(); i++) {
-		const ReferenceItem& ref = fa.refs[i];
-		if (ann_f.begin.y <= ref.pos.y && ref.pos.y <= ann_f.end.y) {
-			cursorinfo.Set(row, 0, Value());
-			cursorinfo.Set(row, 1, ref.id);
-			cursorinfo.Set(row, 2, Value());
-			cursorinfo.Set(row, 3, ref.pos);
-			cursorinfo.Set(row, 4, ref.ref_pos);
-			row++;
-		}
-	}
-	for(int i = 0; i < fa.stmts.GetCount(); i++) {
-		const StatementItem& stmt = fa.stmts[i];
-		if (ann_f.begin.y <= stmt.begin.y && stmt.end.y <= ann_f.end.y) {
-			String code = Join(GetStringArea(this->content, stmt.begin, stmt.end), "\\n");
-			cursorinfo.Set(row, 0, stmt.kind >= 0 ? GetCursorKindName((CXCursorKind)stmt.kind) : String());
-			cursorinfo.Set(row, 1, code);
-			cursorinfo.Set(row, 2, Value());
-			cursorinfo.Set(row, 3, stmt.begin);
-			cursorinfo.Set(row, 4, Value());
-			row++;
-		}
-	}
-	cursorinfo.SetCount(row);
-	#endif
 	
 	CodeVisitor vis;
 	vis.SetLimit(1000);

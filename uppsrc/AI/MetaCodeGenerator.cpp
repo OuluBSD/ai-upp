@@ -95,11 +95,13 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 			// TODO namespaces
 			
 			TextRange range;
-			range.begin = Point(0,lines.GetCount());
+			range.begin = n->begin;
+			range.end = n->end;
+			//range.begin = Point(0,lines.GetCount());
 			Vector<String> area_lines = GetStringArea(content, n->begin, n->end);
 			for(int i = 0; i < area_lines.GetCount(); i++)
 				lines.Add(n->begin.y + i, area_lines[i]);
-			range.end = Point(0,lines.GetCount());
+			//range.end = Point(0,lines.GetCount());
 			
 			// Add empty line
 			if (lines.GetCount())

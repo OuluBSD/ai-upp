@@ -213,8 +213,8 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	}
 	else {
 		for (MetaNode& s : n.sub) {
-			int idx = stmts.Add(tree_idx);
-			AddStmtNodes(idx, s, 0);
+			int idx = focus.Add(tree_idx);
+			AddFocusNodes(idx, s, 0);
 		}
 	}
 }

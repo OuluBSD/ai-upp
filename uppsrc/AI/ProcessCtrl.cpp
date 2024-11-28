@@ -782,11 +782,6 @@ void MetaProcess::AddError(String filepath, Point pos, String msg) {
 }
 
 bool MetaProcess::ProcessTask(AITask& t) {
-	
-	Sleep(100); // fake load
-	return false;
-	
-	#if 0
 	ASSERT(!waiting);
 	TaskMgr& m = AiTaskManager();
 	
@@ -798,28 +793,28 @@ bool MetaProcess::ProcessTask(AITask& t) {
 	
 	CodeArgs args;
 	args.fn = CodeArgs::FUNCTIONALITY;
-	args.code <<= GetStringArea(content, t.vis.ann.begin, t.vis.ann.end);
+	args.code <<= GetStringArea(content, t.vis.node->begin, t.vis.node->end);
 	for(const auto& rel : t.relations) {
 		String k;
+		if (!rel.node)
+			continue;
+		
+		MetaNode& n = *rel.node;
 		k = AITask::GetReasonString(rel.reason) + ": ";
-		if (rel.kind > 0)
-			k += GetCursorKindName((CXCursorKind)rel.kind) + ": ";
-		if (!rel.id.IsEmpty())
-			k += rel.id + " ";
-		if (!rel.nest.IsEmpty())
-			k += " (" + rel.nest + ")";
-		if (!rel.type.IsEmpty())
-			k += ": " + rel.type;
+		if (n.kind > 0)
+			k += GetCursorKindName((CXCursorKind)n.kind) + ": ";
+		if (!n.id.IsEmpty())
+			k += n.id + " ";
+		//if (!rel.nest.IsEmpty())
+		//	k += " (" + rel.nest + ")";
+		if (!n.type.IsEmpty())
+			k += ": " + n.type;
 		
 		if (rel.reason == AITask::USAGE_REF ||
 			rel.reason == AITask::RETURN_VALUE ||
 			rel.reason == AITask::MACRO_EXPANSION) {
-			Point begin = rel.pos;
-			Point end = rel.pos;
-			begin.x = 0;
-			begin.y = max(0, begin.y-1);
-			end.x = 0;
-			end.y = end.y+2;
+			Point begin = n.begin;
+			Point end = n.end;
 			String code = GetStringRange(content, begin, end);
 			code.Replace("\r", "");
 			code.Replace("\n", "\\n");
@@ -833,7 +828,7 @@ bool MetaProcess::ProcessTask(AITask& t) {
 	
 	waiting = true;
 	m.GetCode(args, callback(this, &MetaProcess::OnResult));
-	#endif
+	
 	return true;
 }
 

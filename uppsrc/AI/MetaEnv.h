@@ -33,7 +33,7 @@ struct MetaNode : Pte<MetaNode> {
 	int file = -1;
 	bool is_ref = false;
 	bool is_definition = false;
-	dword serial = 0;
+	hash_t serial = 0;
 	bool is_disabled = false;
 	
 	// Temp
@@ -52,7 +52,7 @@ struct MetaNode : Pte<MetaNode> {
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
 	void Assign(MetaNode* owner, const ClangNode& n);
 	void CopyFrom(const MetaNode& n);
-	void CopyFieldsFrom(const MetaNode& n);
+	void CopyFieldsFrom(const MetaNode& n, bool forced_downgrade=false);
 	void CopySubFrom(const MetaNode& n);
 	void FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
 	String GetKindString() const;
@@ -64,7 +64,7 @@ struct MetaNode : Pte<MetaNode> {
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
-	hash_t GetCommonHash(bool* total_hash_diffs=0) const;
+	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
 	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % file % is_ref % is_definition % serial % is_disabled; if (s.IsLoading()) FixParent();}
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
@@ -80,6 +80,8 @@ struct MetaNode : Pte<MetaNode> {
 	Vector<const MetaNode*> FindAllShallow(int kind) const;
 	void FindAllDeep(int kind, Vector<MetaNode*>& out);
 	void FindAllDeep(int kind, Vector<const MetaNode*>& out) const;
+	bool IsFieldsSame(const MetaNode& n) const;
+	bool IsSourceKind() const;
 	bool IsStructKind() const;
 	int GetRegularCount() const;
 	//bool IsClassTemplateDefinition() const;
@@ -90,6 +92,7 @@ struct MetaNode : Pte<MetaNode> {
 	void RemoveAllShallow(int kind);
 	void RemoveAllDeep(int kind);
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
+	void RealizeSerial();
 };
 
 struct MetaNodeSubset {
@@ -133,7 +136,7 @@ struct MetaSrcPkg {
 	VectorMap<hash_t,String> seen_types;
 	String bin_path, upp_dir;
 	int id = -1;
-	dword highest_seen_serial = 0;
+	hash_t highest_seen_serial = 0;
 	
 	MetaSrcPkg() {}
 	MetaSrcPkg(MetaSrcPkg&& f) {*this = f;}
@@ -165,15 +168,25 @@ typedef enum : byte {
 } MergeMode;
 
 struct MetaEnvironment {
-	VectorMap<hash_t,Vector<Ptr<MetaNode>>> filepos_nodes;
-	VectorMap<hash_t,Vector<Ptr<MetaNode>>> type_hash_nodes;
-	VectorMap<hash_t,String> seen_types;
+	struct FilePos : Moveable<FilePos> {
+		Vector<Ptr<MetaNode>> hash_nodes;
+	};
+	struct Type : Moveable<Type> {
+		Vector<Ptr<MetaNode>> hash_nodes;
+		String seen_type;
+	};
+	VectorMap<hash_t,FilePos> filepos;
+	VectorMap<hash_t,Type> types;
+	hash_t serial_counter = 0;
+	SpinLock serial_lock;
 	
 	ArrayMap<String, MetaSrcPkg> pkgs;
 	MetaNode root;
 	RWMutex lock;
 	
 	MetaEnvironment();
+	hash_t NewSerial();
+	hash_t CurrentSerial() const {return serial_counter;}
 	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
 	MetaSrcPkg& ResolveFile(const String& includes, String path);
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);

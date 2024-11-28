@@ -18,7 +18,7 @@ void MetaSrcPkg::Clear() { files.Clear(); }
 void MetaSrcPkg::SetPath(String bin_path, String upp_dir)
 {
 	this->bin_path = bin_path;
-	//dir = GetFileDirectory(path);
+	// dir = GetFileDirectory(path);
 	this->upp_dir = upp_dir;
 }
 #if 0
@@ -98,17 +98,18 @@ void MetaSrcPkg::operator=(const MetaSrcPkg& f) {
 	dir = f.dir;
 }
 #endif
-bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir, String& best_rel_dir)
+bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir,
+                      String& best_rel_dir)
 {
 	bool found = false;
 	Vector<String> ai_dirs = GetAiDirsRaw();
-	if (!ai_dirs.IsEmpty()) {
+	if(!ai_dirs.IsEmpty()) {
 		int def_cand_parts = INT_MAX;
 		String ai_dir = ai_dirs.Top();
 		String includes = includes_;
 		MergeWith(includes, ";", GetClangInternalIncludes());
 		for(const String& s : Split(includes, ';')) {
-		#ifdef PLATFORM_WIN32 // we need to ignore internal VC++ headers
+#ifdef PLATFORM_WIN32 // we need to ignore internal VC++ headers
 			static VectorMap<String, bool> use;
 			int q = use.Find(s);
 			if(q < 0) {
@@ -116,13 +117,13 @@ bool MakeRelativePath(const String& includes_, const String& dir, String& best_a
 				use.Add(s, !FileExists(AppendFileName(s, "vcruntime.h")));
 			}
 			if(use[q])
-		#endif
+#endif
 			{
-				if (dir.Find(s) == 0) {
+				if(dir.Find(s) == 0) {
 					String rel_dir = dir.Mid(s.GetCount());
 					int cand_parts = Split(rel_dir, DIR_SEPS).GetCount();
 					// Prefer the shortest directory
-					if (cand_parts < def_cand_parts) {
+					if(cand_parts < def_cand_parts) {
 						best_ai_dir = ai_dir;
 						best_rel_dir = rel_dir;
 						found = true;
@@ -156,9 +157,9 @@ MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 			}
 		}
 	}
-	#ifdef flagWIN32
+#ifdef flagWIN32
 	rel_file.Replace(DIR_SEPS, "/");
-	#endif
+#endif
 	if (rel_file.GetCount() && rel_file[0] == '/')
 		rel_file = rel_file.Mid(1);
 	
@@ -179,40 +180,42 @@ String GetAiPathCandidate(const String& includes_, String dir)
 	String dummy_cand, def_cand, any_ai_cand, preferred_ai_cand;
 	int def_cand_parts = INT_MAX;
 	dummy_cand = dir + DIR_SEPS + "Meta.bin";
-	if (!ai_dirs.IsEmpty()) {
-		for (const String& upp_dir : upp_dirs) {
-			if (dir.Find(upp_dir) != 0) continue;
+	if(!ai_dirs.IsEmpty()) {
+		for(const String& upp_dir : upp_dirs) {
+			if(dir.Find(upp_dir) != 0)
+				continue;
 			String rel_path = dir.Mid(upp_dir.GetCount());
-			for (const String& ai_dir : ai_dirs) {
+			for(const String& ai_dir : ai_dirs) {
 				String ai_dir_cand = AppendFileName(ai_dir, rel_path);
 				String path = AppendFileName(ai_dir_cand, "Meta.bin");
-				if (any_ai_cand.IsEmpty())
+				if(any_ai_cand.IsEmpty())
 					any_ai_cand = path;
-				if (preferred_ai_cand.IsEmpty() && FileExists(path))
+				if(preferred_ai_cand.IsEmpty() && FileExists(path))
 					preferred_ai_cand = path;
 			}
 		}
 	}
-	if (!preferred_ai_cand.IsEmpty())
+	if(!preferred_ai_cand.IsEmpty())
 		return preferred_ai_cand;
-	else if (!any_ai_cand.IsEmpty())
+	else if(!any_ai_cand.IsEmpty())
 		return any_ai_cand;
-	
-	if (!ai_dirs.IsEmpty()) {
+
+	if(!ai_dirs.IsEmpty()) {
 		String ai_dir, rel_dir;
-		if (MakeRelativePath(includes_, dir, ai_dir, rel_dir)) {
+		if(MakeRelativePath(includes_, dir, ai_dir, rel_dir)) {
 			String abs_dir = AppendFileName(ai_dir, rel_dir);
 			def_cand = AppendFileName(abs_dir, "Meta.bin");
 		}
 	}
-	
-	if (!def_cand.IsEmpty())
+
+	if(!def_cand.IsEmpty())
 		return def_cand;
 	else
 		return dummy_cand;
 }
 
-Vector<String> FindParentUppDirectories(const String& sub_dir) {
+Vector<String> FindParentUppDirectories(const String& sub_dir)
+{
 	Vector<String> results;
 	Vector<String> parts = Split(sub_dir, DIR_SEPS);
 	for(int i = 0; i < parts.GetCount(); i++) {
@@ -221,10 +224,10 @@ Vector<String> FindParentUppDirectories(const String& sub_dir) {
 			continue;
 		String parent_dir;
 		for(int j = 0; j < c; j++) {
-			// a posix path always begins with the root /
-			#ifndef flagPOSIX
+// a posix path always begins with the root /
+#ifndef flagPOSIX
 			if(!parent_dir.IsEmpty())
-			#endif
+#endif
 				parent_dir << DIR_SEPS;
 			parent_dir << parts[j];
 		}
@@ -237,11 +240,12 @@ Vector<String> FindParentUppDirectories(const String& sub_dir) {
 	return results;
 }
 
-String MetaEnvironment::ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir)
+String MetaEnvironment::ResolveMetaSrcPkgPath(const String& includes, String path,
+                                              String& ret_upp_dir)
 {
 	String def_dir = GetFileDirectory(path);
 	Vector<String> upp_dirs = FindParentUppDirectories(def_dir);
-	for (String& upp_dir : upp_dirs) {
+	for(String& upp_dir : upp_dirs) {
 		ret_upp_dir = upp_dir;
 		return GetAiPathCandidate(includes, upp_dir);
 	}
@@ -256,7 +260,8 @@ MetaSrcPkg& MetaEnvironment::ResolveFile(const String& includes, String path)
 	lock.EnterWrite();
 	int pkg_i = pkgs.Find(aion_path);
 	MetaSrcPkg& pkg = pkg_i >= 0 ? pkgs[pkg_i] : pkgs.GetAdd(aion_path);
-	if (pkg.id < 0) pkg.id = pkg_i >= 0 ? pkg_i : pkgs.GetCount()-1;
+	if(pkg.id < 0)
+		pkg.id = pkg_i >= 0 ? pkg_i : pkgs.GetCount() - 1;
 	pkg.SetPath(aion_path, upp_dir);
 	String rel_path = pkg.GetRelativePath(path);
 	pkg.filenames.FindAdd(rel_path);
@@ -264,24 +269,27 @@ MetaSrcPkg& MetaEnvironment::ResolveFile(const String& includes, String path)
 	return pkg;
 }
 
-String MetaSrcPkg::GetRelativePath(const String& path) const {
+String MetaSrcPkg::GetRelativePath(const String& path) const
+{
 	int i = path.Find(upp_dir);
-	if (i >= 0) {
+	if(i >= 0) {
 		String s = path.Mid(upp_dir.GetCount());
-		if (s.GetCount() && s[0] == DIR_SEP)
+		if(s.GetCount() && s[0] == DIR_SEP)
 			s = s.Mid(1);
 		return s;
 	}
 	else
-		Panic("TODO"); //return NormalizePath(path, dir);
+		Panic("TODO"); // return NormalizePath(path, dir);
 	return String();
 }
 
-String MetaSrcPkg::GetFullPath(const String& rel_path) const {
+String MetaSrcPkg::GetFullPath(const String& rel_path) const
+{
 	return AppendFileName(upp_dir, rel_path);
 }
 
-String MetaSrcPkg::GetFullPath(int file_i) const {
+String MetaSrcPkg::GetFullPath(int file_i) const
+{
 	return AppendFileName(upp_dir, filenames[file_i]);
 }
 
@@ -294,14 +302,14 @@ MetaSrcFile& MetaEnvironment::ResolveFileInfo(const String& includes, String pat
 bool MetaSrcPkg::Store(MetaNode& file_nodes, bool forced)
 {
 	bool total_hash_diffs = false;
-	String hash = IntStr64(file_nodes.GetCommonHash(&total_hash_diffs));
-	if (!forced) {
-		if (saved_hash == hash && !total_hash_diffs)
+	String hash = IntStr64(file_nodes.GetSourceHash(&total_hash_diffs));
+	if(!forced) {
+		if(saved_hash == hash && !total_hash_diffs)
 			return true;
-		if (saved_hash == hash && total_hash_diffs) {
+		if(saved_hash == hash && total_hash_diffs) {
 			Panic("TODO");
 		}
-		else if (total_hash_diffs) {
+		else if(total_hash_diffs) {
 			Panic("TODO");
 		}
 	}
@@ -325,10 +333,14 @@ bool MetaSrcPkg::Load(MetaNode& file_nodes)
 	bool succ = false;
 	lock.Enter();
 	FileIn s(bin_path);
-	if (s.GetSize() > 0) {
+	if(s.GetSize() > 0) {
 		Serialize(s);
 		s % file_nodes;
 		succ = !saved_hash.IsEmpty();
+		if (succ) {
+			MetaEnvironment& env = MetaEnv();
+			env.serial_counter = max(env.serial_counter, this->highest_seen_serial);
+		}
 	}
 	s.Close();
 	lock.Leave();
@@ -336,56 +348,59 @@ bool MetaSrcPkg::Load(MetaNode& file_nodes)
 	return succ;
 }
 
-void MetaSrcPkg::RefreshSeenTypes(MetaNode& file_nodes) {
+void MetaSrcPkg::RefreshSeenTypes(MetaNode& file_nodes)
+{
 	MetaEnvironment& env = MetaEnv();
 	Index<hash_t> type_hashes;
 	file_nodes.GetTypeHashes(type_hashes);
 	seen_types.Clear();
-	for (hash_t h : type_hashes) {
-		String path = env.seen_types.Get(h, "");
-		if (path.GetCount())
-			seen_types.Add(h,path);
+	for(hash_t h : type_hashes) {
+		int i = env.types.Find(h);
+		if(i >= 0)
+			seen_types.Add(h, env.types[i].seen_type);
 	}
+	highest_seen_serial = env.CurrentSerial();
 }
 
-void MetaSrcPkg::OnSeenTypes() {
+void MetaSrcPkg::OnSeenTypes()
+{
 	MetaEnvironment& env = MetaEnv();
-	for (auto it : ~seen_types)
-		env.seen_types.GetAdd(it.key,it.value);
+	for(auto it : ~seen_types)
+		env.types.GetAdd(it.key).seen_type = it.value;
 }
-
-
-
-
-
-
 
 MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 
 MetaEnvironment::MetaEnvironment() {
 	root.kind = CXCursor_Namespace;
-	
-	
+	root.serial = NewSerial();
+}
+
+hash_t MetaEnvironment::NewSerial() {
+	serial_lock.Enter();
+	hash_t new_hash = ++serial_counter;
+	serial_lock.Leave();
+	return new_hash;
 }
 
 MetaSrcPkg& MetaEnvironment::Load(const String& includes, const String& path)
 {
 	MetaNode file_nodes;
 	MetaSrcPkg& pkg = this->ResolveFile(includes, path);
-	if (pkg.Load(file_nodes)) {
+	if(pkg.Load(file_nodes)) {
 		file_nodes.SetTempDeep();
-		ASSERT(pkg.saved_hash == IntStr64(file_nodes.GetCommonHash()));
+		ASSERT(pkg.saved_hash == IntStr64(file_nodes.GetSourceHash()));
 		file_nodes.SetPkgDeep(pkg.id);
-		LOG(file_nodes.GetTreeString());
+		//LOG(file_nodes.GetTreeString());
 		MergeNode(root, file_nodes, MERGEMODE_OVERWRITE_OLD);
-		//LOG(root.GetTreeString());
-		
-		#if DEBUG_METANODE_DTOR
+		// LOG(root.GetTreeString());
+
+#if DEBUG_METANODE_DTOR
 		Vector<MetaNode*> comments;
 		root.FindAllDeep(METAKIND_COMMENT, comments);
-		for (auto* c : comments)
+		for(auto* c : comments)
 			c->trace_kill = true;
-		#endif
+#endif
 	}
 	return pkg;
 }
@@ -394,26 +409,26 @@ void MetaEnvironment::Store(MetaSrcPkg& pkg, bool forced)
 {
 	MetaNode file_nodes;
 	SplitNode(root, file_nodes, pkg.id);
-	
-	//LOG(file_nodes.GetTreeString());
+
+	// LOG(file_nodes.GetTreeString());
 	pkg.Store(file_nodes, forced);
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 {
 	ClangTypeResolver ctr;
-	if (!ctr.Process(cn)) {
+	if(!ctr.Process(cn)) {
 		LOG("MetaEnvironment::Store: error: clang type resolving failed: " + ctr.GetError());
 		return;
 	}
-	if (!MergeResolver(ctr)) {
+	if(!MergeResolver(ctr)) {
 		LOG("MetaEnvironment::Store: error: merging resolver failed");
 		return;
 	}
-	
+
 	cn.TranslateTypeHash(ctr.GetTypeTranslation());
-	
-	//LOG(n.GetTreeString());
+
+	// LOG(n.GetTreeString());
 	MetaSrcPkg& pkg = ResolveFile(includes, path);
 	String rel_path = pkg.GetRelativePath(path);
 	int file_id = pkg.filenames.Find(rel_path);
@@ -421,19 +436,21 @@ void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
 	n.Assign(0, cn);
 	n.SetPkgDeep(pkg.id);
 	n.SetFileDeep(file_id);
-	if (!MergeNode(root, n, MERGEMODE_KEEP_OLD))
+	n.RealizeSerial();
+	if(!MergeNode(root, n, MERGEMODE_OVERWRITE_OLD))
 		return;
-	
+
 	Store(pkg);
 }
 
-bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode) {
+bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode)
+{
 	MetaNode& n0 = *scope.Top();
 	ASSERT(n0.kind == n1.kind && n0.id == n1.id);
-	if (IsMergeable((CXCursorKind)n0.kind)) {
-		for (const MetaNode& sub1 : n1.sub) {
+	if(IsMergeable((CXCursorKind)n0.kind)) {
+		for(const MetaNode& sub1 : n1.sub) {
 			int i = n0.Find(sub1.kind, sub1.id);
-			if (i < 0) {
+			if(i < 0) {
 				auto& n = n0.Add(sub1);
 				MergeVisitPost(n);
 			}
@@ -442,7 +459,7 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, 
 				scope << &sub0;
 				bool succ = MergeVisit(scope, sub1, mode);
 				scope.Pop();
-				if (!succ)
+				if(!succ)
 					return false;
 			}
 		}
@@ -453,7 +470,9 @@ bool MetaEnvironment:: MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, 
 	return true;
 }
 
-bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode) {
+bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const MetaNode& n1,
+                                             MergeMode mode)
+{
 	MetaNode& n0 = *scope.Top();
 	struct Hashes {
 		const MetaNode* n = 0;
@@ -462,53 +481,78 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		hash_t hash;
 		bool ready = false;
 		dword serial;
-		void Set(const MetaNode* mn, bool is_source_kind, hash_t c) {n = mn; hash = c; source_kind = is_source_kind;}
+		void Set(const MetaNode* mn, bool is_source_kind, hash_t c)
+		{
+			n = mn;
+			hash = c;
+			source_kind = is_source_kind;
+		}
 	};
-	
-	if (n0.serial == n1.serial) {
+
+	if(n0.serial == n1.serial) {
 		return true;
 	}
-	
-	const MetaNode& pri =
-		mode == MERGEMODE_OVERWRITE_OLD ?
-			(n0.serial > n1.serial ? n0 : n1) :
-			(n0.serial < n1.serial ? n0 : n1);
+	ASSERT(n0.serial && n1.serial);
+	const MetaNode& pri = mode == MERGEMODE_OVERWRITE_OLD ? (n0.serial > n1.serial ? n0 : n1)
+	                                                      : (n0.serial < n1.serial ? n0 : n1);
 	const MetaNode& sec = &pri == &n0 ? n1 : n0;
+	
+	if (pri.sub.IsEmpty() && sec.sub.IsEmpty()) {
+		if (mode == MERGEMODE_OVERWRITE_OLD || mode == MERGEMODE_UPDATE_SUBSET) {
+			if (n0.serial < n1.serial)
+				n0.CopyFieldsFrom(n1);
+			return true;
+		}
+		else {
+			if (n0.serial > n1.serial)
+				n0.CopyFieldsFrom(n1, true);
+			return true;
+		}
+	}
 	
 	Array<Hashes> pri_subs;
 	Array<Hashes> sec_subs;
 	pri_subs.Reserve(pri.sub.GetCount());
 	sec_subs.Reserve(sec.sub.GetCount());
-	for (const MetaNode& pri : pri.sub) {
-		if (pri.IsSourceKind())
+	for(const MetaNode& pri : pri.sub) {
+		if(pri.IsSourceKind())
 			pri_subs.Add().Set(&pri, true, pri.GetSourceHash());
 		else
 			pri_subs.Add().Set(&pri, false, pri.GetTotalHash());
 	}
-	for (const MetaNode& sec : sec.sub) {
-		if (sec.IsSourceKind())
+	for(const MetaNode& sec : sec.sub) {
+		if(sec.IsSourceKind())
 			sec_subs.Add().Set(&sec, true, sec.GetSourceHash());
 		else
 			sec_subs.Add().Set(&sec, false, sec.GetTotalHash());
 	}
-	
+
 	// Match hashes starting from the beginning
 	int pri_c = pri_subs.GetCount();
 	int sec_c = sec_subs.GetCount();
-	for (int node_kind_mode = 0; node_kind_mode < 2; node_kind_mode++) {
+	for(int node_kind_mode = 0; node_kind_mode < 2; node_kind_mode++) {
 		bool filter_source_kind = !node_kind_mode;
-		
-		while (1) {
+
+		while(1) {
 			bool found_matches = false;
 			for(int i = 0, j = 0; i < pri_c && j < sec_c; i++, j++) {
 				auto& pri = pri_subs[i];
 				auto& sec = sec_subs[j];
-				if      (pri.source_kind != filter_source_kind || pri.ready) {j--; continue;}
-				else if (sec.source_kind != filter_source_kind || sec.ready) {i--; continue;}
-				if (pri.source_kind != filter_source_kind && sec.source_kind != filter_source_kind) continue;
-				if (pri.ready && sec.ready) continue;
-				
-				if (pri.hash == sec.hash) {
+				if(pri.source_kind != filter_source_kind || pri.ready) {
+					j--;
+					continue;
+				}
+				else if(sec.source_kind != filter_source_kind || sec.ready) {
+					i--;
+					continue;
+				}
+				if(pri.source_kind != filter_source_kind &&
+				   sec.source_kind != filter_source_kind)
+					continue;
+				if(pri.ready && sec.ready)
+					continue;
+
+				if(pri.hash == sec.hash) {
 					pri.match = sec.n;
 					sec.match = pri.n;
 					pri.ready = true;
@@ -524,12 +568,21 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 				int j0 = sec_c - 1 - j;
 				auto& pri = pri_subs[i0];
 				auto& sec = sec_subs[j0];
-				if      (pri.source_kind != filter_source_kind || pri.ready) {j--; continue;}
-				else if (sec.source_kind != filter_source_kind || sec.ready) {i--; continue;}
-				if (pri.source_kind != filter_source_kind && sec.source_kind != filter_source_kind) continue;
-				if (pri.ready && sec.ready) continue;
-				
-				if (pri.hash == sec.hash) {
+				if(pri.source_kind != filter_source_kind || pri.ready) {
+					j--;
+					continue;
+				}
+				else if(sec.source_kind != filter_source_kind || sec.ready) {
+					i--;
+					continue;
+				}
+				if(pri.source_kind != filter_source_kind &&
+				   sec.source_kind != filter_source_kind)
+					continue;
+				if(pri.ready && sec.ready)
+					continue;
+
+				if(pri.hash == sec.hash) {
 					pri.match = sec.n;
 					sec.match = pri.n;
 					pri.ready = true;
@@ -539,35 +592,42 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 				else
 					break;
 			}
-			if (!found_matches)
+			if(!found_matches)
 				break;
 		}
 	}
-	
+
 	bool all_pri_match = true;
-	for (auto& pri : pri_subs)
-		if (!pri.ready)
-			{all_pri_match = false; break;}
+	for(auto& pri : pri_subs) if(!pri.ready) {
+		all_pri_match = false;
+		break;
+	}
+	bool all_sec_match = true;
 	bool all_sec_source_match = true;
-	for (auto& sec : sec_subs)
-		if (!sec.ready && sec.source_kind)
-			{all_sec_source_match = false; break;}
-	
-	
+	for(auto& sec : sec_subs) if(!sec.ready) {
+		all_sec_match = false;
+		if (sec.source_kind) {
+			all_sec_source_match = false;
+			break;
+		}
+	}
+
 	// Copy secondary extras, if all primary matches and all secondary sources matches
-	if (all_pri_match && all_sec_source_match) {
-		while (true) {
+	if(all_pri_match && all_sec_source_match && !all_sec_match) {
+		while(true) {
 			int added_count = 0;
 			for(int i = 1; i < sec_subs.GetCount(); i++) {
 				auto& sec = sec_subs[i];
-				if (sec.ready) continue;
+				if(sec.ready)
+					continue;
 				ASSERT(!sec.source_kind);
-				auto& seca = sec_subs[i-1];
-				if (!seca.ready) continue;
+				auto& seca = sec_subs[i - 1];
+				if(!seca.ready)
+					continue;
 				bool added = false;
 				for(int j = 0; j < pri_subs.GetCount(); j++) {
-					if (pri_subs[j].match == seca.n) {
-						auto& pri = pri_subs.Insert(j+1);
+					if(pri_subs[j].match == seca.n) {
+						auto& pri = pri_subs.Insert(j + 1);
 						pri.match = sec.n;
 						pri.ready = true;
 						sec.ready = true;
@@ -575,18 +635,20 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 						break;
 					}
 				}
-				if (added)
+				if(added)
 					added_count++;
 			}
-			for (int i = sec_subs.GetCount()-2; i >= 0; i--) {
+			for(int i = sec_subs.GetCount() - 2; i >= 0; i--) {
 				auto& sec = sec_subs[i];
-				if (sec.ready) continue;
+				if(sec.ready)
+					continue;
 				ASSERT(!sec.source_kind);
-				auto& seca = sec_subs[i+1];
-				if (!seca.ready) continue;
+				auto& seca = sec_subs[i + 1];
+				if(!seca.ready)
+					continue;
 				bool added = false;
 				for(int j = 0; j < pri_subs.GetCount(); j++) {
-					if (pri_subs[j].match == seca.n) {
+					if(pri_subs[j].match == seca.n) {
 						auto& pri = pri_subs.Insert(j);
 						pri.match = sec.n;
 						pri.ready = true;
@@ -595,28 +657,30 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 						break;
 					}
 				}
-				if (added)
+				if(added)
 					added_count++;
 			}
 			int unready_count = 0;
 			for(int i = 0; i < sec_subs.GetCount(); i++)
-				if (!sec_subs[i].ready)
+				if(!sec_subs[i].ready)
 					unready_count++;
-			if (!unready_count)
+			if(!unready_count)
 				break;
-			if (added_count)
+			if(added_count)
 				continue;
 			for(int i = 0; i < sec_subs.GetCount(); i++) {
 				auto& sec = sec_subs[i];
-				if (sec.ready) continue;
+				if(sec.ready)
+					continue;
 				ASSERT(!sec.source_kind);
 				bool added = false;
-				if (i > 0) {
-					auto& seca = sec_subs[i-1];
-					if (!seca.ready) continue;
+				if(i > 0) {
+					auto& seca = sec_subs[i - 1];
+					if(!seca.ready)
+						continue;
 					for(int j = 0; j < pri_subs.GetCount(); j++) {
-						if (pri_subs[j].match == seca.n) {
-							auto& pri = pri_subs.Insert(j+1);
+						if(pri_subs[j].match == seca.n) {
+							auto& pri = pri_subs.Insert(j + 1);
 							pri.match = sec.n;
 							pri.ready = true;
 							sec.ready = true;
@@ -625,11 +689,12 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 						}
 					}
 				}
-				if (!added && i + 1 < sec_subs.GetCount()) {
-					auto& seca = sec_subs[i+1];
-					if (!seca.ready) continue;
+				if(!added && i + 1 < sec_subs.GetCount()) {
+					auto& seca = sec_subs[i + 1];
+					if(!seca.ready)
+						continue;
 					for(int j = 0; j < pri_subs.GetCount(); j++) {
-						if (pri_subs[j].match == seca.n) {
+						if(pri_subs[j].match == seca.n) {
 							auto& pri = pri_subs.Insert(j);
 							pri.match = sec.n;
 							pri.ready = true;
@@ -639,293 +704,328 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 						}
 					}
 				}
-				if (!added && i == 0) {
+				if(!added && i == 0) {
 					auto& pri = pri_subs.Insert(0);
 					pri.match = sec.n;
 					pri.ready = true;
 					sec.ready = true;
 					added = true;
 				}
-				if (!added && i == sec_subs.GetCount()-1) {
+				if(!added && i == sec_subs.GetCount() - 1) {
 					auto& pri = pri_subs.Add();
 					pri.match = sec.n;
 					pri.ready = true;
 					sec.ready = true;
 					added = true;
 				}
-				if (added)
+				if(added)
 					added_count++;
 			}
-			if (!added_count) {
+			if(!added_count) {
 				ASSERT_(0, "unexpected internal error"); // this shouldn't ever happen
 				return false;
 			}
 		}
 	}
-	
+
 	dword old_serial = n0.serial;
-	if (mode == MERGEMODE_KEEP_OLD) {
-		if (n0.serial > n1.serial && !n0.IsFieldsSame(n1)) {
+	if(mode == MERGEMODE_KEEP_OLD) {
+		if(n0.serial > n1.serial && !n0.IsFieldsSame(n1)) {
 			n0.CopyFieldsFrom(n1);
-			if (n0.serial == old_serial)
-				n0.serial = NewSerial();
+			n0.serial = NewSerial(); // TODO this might be too early to create new serial, if all data is same
 		}
 	}
 	else {
-		if (n0.serial < n1.serial && !n0.IsFieldsSame(n1)) {
+		if(n0.serial < n1.serial && !n0.IsFieldsSame(n1)) {
 			n0.CopyFieldsFrom(n1);
-			if (n0.serial == old_serial)
-				n0.serial = NewSerial();
+			n0.serial = NewSerial(); // TODO this might be too early to create new serial, if all data is same
 		}
 	}
-	
-	if (&pri == &n0) {
+
+	if(&pri == &n0) {
 		int pos = 0;
 		for(int i = 0; i < pri_subs.GetCount(); i++) {
 			auto& pri1 = pri_subs[i];
-			if (!pri1.n) {
+			if(!pri1.n) {
 				pri1.n = &n0.sub.Insert(pos);
-				if (n0.serial == old_serial)
+				if(n0.serial == old_serial)
 					n0.serial = NewSerial();
 			}
-			else
-				{ASSERT(pri1.n == &n0.sub[pos]);}
+			else {
+				ASSERT(pri1.n == &n0.sub[pos]);
+			}
 			pos++;
 		}
-		
+
 		for(auto& pri : pri_subs) {
-			if (pri.ready && pri.match) {
+			if(pri.ready && pri.match) {
 				MetaNode& s0 = const_cast<MetaNode&>(*pri.n);
 				dword old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *pri.match, mode);
-				scope.Remove(scope.GetCount()-1);
-				if (old_sub_serial != s0.serial && n0.serial == old_serial)
+				scope.Remove(scope.GetCount() - 1);
+				if(old_sub_serial != s0.serial && n0.serial == old_serial)
 					n0.serial = NewSerial();
-				if (!succ)
+				if(!succ)
 					return false;
 			}
 		}
 	}
 	else {
-		Panic("TODO");
+		for(auto& sec : sec_subs) {
+			if(sec.ready && sec.match) {
+				MetaNode& s0 = const_cast<MetaNode&>(*sec.n);
+				dword old_sub_serial = s0.serial;
+				scope.Add(&s0);
+				bool succ = MergeVisitPartMatching(scope, *sec.match, mode);
+				scope.Remove(scope.GetCount() - 1);
+				if(old_sub_serial != s0.serial && n0.serial == old_serial)
+					n0.serial = NewSerial();
+				if(!succ)
+					return false;
+			}
+		}
 	}
-	
+
 	return true;
 }
 
-void MetaEnvironment::MergeVisitPost(MetaNode& n) {
+void MetaEnvironment::MergeVisitPost(MetaNode& n)
+{
 	RefreshNodePtrs(n);
-	for (auto& s : n.sub)
+	for(auto& s : n.sub)
 		MergeVisitPost(s);
 }
 
-bool MetaEnvironment::MergeNode(MetaNode& root, const MetaNode& other, MergeMode mode) {
+bool MetaEnvironment::MergeNode(MetaNode& root, const MetaNode& other, MergeMode mode)
+{
 	Vector<MetaNode*> scope;
 	scope << &root;
 	return MergeVisit(scope, other, mode);
 }
 
-void MetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id) {
+void MetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id)
+{
 	root.PointPkgTo(other, pkg_id);
 }
 
-void MetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id) {
+void MetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id)
+{
 	root.PointPkgTo(other, pkg_id, file_id);
 }
 
-void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id) {
+void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id)
+{
 	root.CopyPkgTo(other, pkg_id);
 }
 
-void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id) {
+void MetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id)
+{
 	root.CopyPkgTo(other, pkg_id, file_id);
 }
 
-String MetaEnvironment::GetFilepath(int pkg_id, int file_id) const {
+String MetaEnvironment::GetFilepath(int pkg_id, int file_id) const
+{
 	const auto& pkg = this->pkgs[pkg_id];
 	String path = pkg.GetFullPath(file_id);
 	return path;
 }
 
-MetaNode::~MetaNode() {
-	#if DEBUG_METANODE_DTOR
-	if (trace_kill)
+MetaNode::~MetaNode()
+{
+#if DEBUG_METANODE_DTOR
+	if(trace_kill)
 		Panic("trace-kill");
-	#endif
+#endif
 }
 
-void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id) {
+void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id)
+{
 	other.n = this;
-	for (auto& n0 : sub) {
-		if (n0.HasPkgDeep(pkg_id)) {
+	for(auto& n0 : sub) {
+		if(n0.HasPkgDeep(pkg_id)) {
 			MetaNodeSubset& n1 = other.sub.Add();
 			n0.PointPkgTo(n1, pkg_id);
 		}
 	}
 }
 
-void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id) {
+void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id)
+{
 	other.n = this;
-	for (auto& n0 : sub) {
-		if (n0.HasPkgFileDeep(pkg_id, file_id)) {
+	for(auto& n0 : sub) {
+		if(n0.HasPkgFileDeep(pkg_id, file_id)) {
 			MetaNodeSubset& n1 = other.sub.Add();
 			n0.PointPkgTo(n1, pkg_id, file_id);
 		}
 	}
 }
 
-void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id) const {
+void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id) const
+{
 	other.CopyFieldsFrom(*this);
-	for (const auto& n0 : sub) {
-		if (n0.HasPkgDeep(pkg_id)) {
+	for(const auto& n0 : sub) {
+		if(n0.HasPkgDeep(pkg_id)) {
 			MetaNode& n1 = other.Add();
 			n0.CopyPkgTo(n1, pkg_id);
 		}
 	}
 }
 
-void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const {
+void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const
+{
 	other.CopyFieldsFrom(*this);
-	for (const auto& n0 : sub) {
-		if (n0.HasPkgFileDeep(pkg_id, file_id)) {
+	for(const auto& n0 : sub) {
+		if(n0.HasPkgFileDeep(pkg_id, file_id)) {
 			MetaNode& n1 = other.Add();
 			n0.CopyPkgTo(n1, pkg_id, file_id);
 		}
 	}
 }
 
-bool MetaNode::HasPkgDeep(int pkg_id) const {
-	if (this->pkg == pkg_id)
+bool MetaNode::HasPkgDeep(int pkg_id) const
+{
+	if(this->pkg == pkg_id)
 		return true;
-	for (const auto& n : sub)
-		if (n.HasPkgDeep(pkg_id))
+	for(const auto& n : sub)
+		if(n.HasPkgDeep(pkg_id))
 			return true;
 	return false;
 }
 
-bool MetaNode::HasPkgFileDeep(int pkg_id, int file_id) const {
-	if (this->pkg == pkg_id && this->file == file_id)
+bool MetaNode::HasPkgFileDeep(int pkg_id, int file_id) const
+{
+	if(this->pkg == pkg_id && this->file == file_id)
 		return true;
-	for (const auto& n : sub)
-		if (n.HasPkgFileDeep(pkg_id, file_id))
+	for(const auto& n : sub)
+		if(n.HasPkgFileDeep(pkg_id, file_id))
 			return true;
 	return false;
 }
 
-void MetaNode::SetPkgDeep(int pkg_id) {
+void MetaNode::SetPkgDeep(int pkg_id)
+{
 	this->pkg = pkg_id;
-	for (auto& n : sub)
+	for(auto& n : sub)
 		n.SetPkgDeep(pkg_id);
 }
 
-void MetaNode::SetFileDeep(int file_id) {
+void MetaNode::SetFileDeep(int file_id)
+{
 	this->file = file_id;
-	for (auto& n : sub)
+	for(auto& n : sub)
 		n.SetFileDeep(file_id);
 }
 
-void MetaNode::SetTempDeep() {
+void MetaNode::SetTempDeep()
+{
 	only_temporary = true;
-	for (auto& n : sub)
+	for(auto& n : sub)
 		n.SetTempDeep();
 }
 
-bool MetaEnvironment::IsMergeable(int kind) {
-	return IsMergeable((CXCursorKind)kind);
-}
+bool MetaEnvironment::IsMergeable(int kind) { return IsMergeable((CXCursorKind)kind); }
 
-bool MetaEnvironment::IsMergeable(CXCursorKind kind) {
+bool MetaEnvironment::IsMergeable(CXCursorKind kind)
+{
 	switch(kind) {
-		//case CXCursor_StructDecl:
-		//case CXCursor_ClassDecl:
-		case CXCursor_Namespace:
-		case CXCursor_LinkageSpec:
-			return true;
-		default:
-			return false;
+	// case CXCursor_StructDecl:
+	// case CXCursor_ClassDecl:
+	case CXCursor_Namespace:
+	case CXCursor_LinkageSpec:
+		return true;
+	default:
+		return false;
 	}
 }
 
-void MetaEnvironment::RefreshNodePtrs(MetaNode& n) {
+void MetaEnvironment::RefreshNodePtrs(MetaNode& n)
+{
 	/*if (n.kind == CXCursor_ClassTemplate) {
-		//LOG(n.GetTreeString());
+	    //LOG(n.GetTreeString());
 	}*/
 	ASSERT(!n.only_temporary);
-	if (n.filepos_hash != 0) {
-		auto& vec = this->filepos_nodes.GetAdd(n.filepos_hash);
+	if(n.filepos_hash != 0) {
+		auto& vec = this->filepos.GetAdd(n.filepos_hash).hash_nodes;
 		bool found = false;
 		bool found_zero = false;
-		for (auto& p : vec) {
+		for(auto& p : vec) {
 			MetaNode* ptr = &*p;
 			found_zero = ptr == 0 || found_zero;
-			if (ptr == &n) {
+			if(ptr == &n) {
 				found = true;
 				break;
 			}
 		}
-		if (!found)
+		if(!found)
 			vec.Add(&n);
-		if (found_zero) {
+		if(found_zero) {
 			Vector<int> rmlist;
 			for(int i = 0; i < vec.GetCount(); i++)
-				if (&*vec[i] == 0)
+				if(&*vec[i] == 0)
 					rmlist << i;
 			vec.Remove(rmlist);
 		}
 	}
-	if (n.type_hash) {
-		auto& vec = this->type_hash_nodes.GetAdd(n.type_hash);
+	if(n.type_hash) {
+		auto& vec = this->filepos.GetAdd(n.filepos_hash).hash_nodes;
 		bool found = false;
 		bool found_zero = false;
-		for (auto& p : vec) {
+		for(auto& p : vec) {
 			MetaNode* ptr = &*p;
 			found_zero = ptr == 0 || found_zero;
-			if (ptr == &n) {
+			if(ptr == &n) {
 				found = true;
 				break;
 			}
 		}
-		if (!found)
+		if(!found)
 			vec.Add(&n);
-		if (found_zero) {
+		if(found_zero) {
 			Vector<int> rmlist;
 			for(int i = 0; i < vec.GetCount(); i++)
-				if (&*vec[i] == 0)
+				if(&*vec[i] == 0)
 					rmlist << i;
 			vec.Remove(rmlist);
 		}
 	}
+	if (!n.serial)
+		n.serial = NewSerial();
 }
 
-String MetaNode::GetTreeString(int depth) const {
+String MetaNode::GetTreeString(int depth) const
+{
 	String s;
 	s.Cat('\t', depth);
-	if (1)
+	if(1)
 		s << IntStr(pkg) << ":" << IntStr(file) << ": ";
 	s << FetchString(clang_getCursorKindSpelling((CXCursorKind)kind));
-	if (!id.IsEmpty()) s << ": " << id;
+	if(!id.IsEmpty())
+		s << ": " << id;
 	s << "\n";
-	for (auto& n : sub)
-		s << n.GetTreeString(depth+1);
+	for(auto& n : sub)
+		s << n.GetTreeString(depth + 1);
 	return s;
 }
 
-int MetaNode::Find(int kind, const String& id) const {
+int MetaNode::Find(int kind, const String& id) const
+{
 	int i = 0;
-	for (const MetaNode& n : sub) {
-		if (n.kind == kind && n.id == id)
+	for(const MetaNode& n : sub) {
+		if(n.kind == kind && n.id == id)
 			return i;
 		i++;
 	}
 	return -1;
 }
 
-void MetaNode::Destroy() {
-	if (!owner) return;
+void MetaNode::Destroy()
+{
+	if(!owner)
+		return;
 	int i = 0;
-	for (MetaNode& n : owner->sub) {
-		if (&n == this) {
+	for(MetaNode& n : owner->sub) {
+		if(&n == this) {
 			owner->sub.Remove(i);
 			break;
 		}
@@ -933,7 +1033,8 @@ void MetaNode::Destroy() {
 	}
 }
 
-void MetaNode::Assign(MetaNode* owner, const ClangNode& n) {
+void MetaNode::Assign(MetaNode* owner, const ClangNode& n)
+{
 	this->owner = owner;
 	int c = n.sub.GetCount();
 	sub.SetCount(c);
@@ -950,9 +1051,10 @@ void MetaNode::Assign(MetaNode* owner, const ClangNode& n) {
 	is_definition = n.is_definition;
 }
 
-MetaNode& MetaNode::GetAdd(String id, String type, int kind) {
-	for (MetaNode& s : sub)
-		if (s.kind == kind && s.id == id && s.type == type)
+MetaNode& MetaNode::GetAdd(String id, String type, int kind)
+{
+	for(MetaNode& s : sub)
+		if(s.kind == kind && s.id == id && s.type == type)
 			return s;
 	MetaNode& s = sub.Add();
 	s.owner = this;
@@ -962,7 +1064,8 @@ MetaNode& MetaNode::GetAdd(String id, String type, int kind) {
 	return s;
 }
 
-MetaNode& MetaNode::Add(const MetaNode& n) {
+MetaNode& MetaNode::Add(const MetaNode& n)
+{
 	MetaNode& s = sub.Add();
 	s.owner = this;
 	s.CopySubFrom(n);
@@ -970,48 +1073,59 @@ MetaNode& MetaNode::Add(const MetaNode& n) {
 	return s;
 }
 
-MetaNode& MetaNode::Add(MetaNode* n) {
+MetaNode& MetaNode::Add(MetaNode* n)
+{
 	MetaNode& s = sub.Add(n);
 	s.owner = this;
 	return s;
 }
 
-MetaNode& MetaNode::Add() {
+MetaNode& MetaNode::Add()
+{
 	MetaNode& s = sub.Add();
 	s.owner = this;
 	return s;
 }
 
-void MetaNode::CopyFrom(const MetaNode& n) {
+void MetaNode::CopyFrom(const MetaNode& n)
+{
 	CopySubFrom(n);
 	CopyFieldsFrom(n);
 }
 
-void MetaNode::CopySubFrom(const MetaNode& n) {
+void MetaNode::CopySubFrom(const MetaNode& n)
+{
 	int c = n.sub.GetCount();
 	sub.SetCount(c);
 	for(int i = 0; i < c; i++)
 		sub[i].Assign(this, n.sub[i]);
 }
 
-String MetaNode::GetKindString() const {return GetKindString(kind);}
+String MetaNode::GetKindString() const { return GetKindString(kind); }
 
-String MetaNode::GetKindString(int kind) {
-	if (kind < METAKIND_BEGIN)
+String MetaNode::GetKindString(int kind)
+{
+	if(kind < METAKIND_BEGIN)
 		return GetCursorKindName((CXCursorKind)kind);
-	else if (kind == METAKIND_COMMENT)
+	else if(kind == METAKIND_COMMENT)
 		return "MetaKind: Comment";
-	else if (kind == METAKIND_ECS_NODE)
+	else if(kind == METAKIND_ECS_NODE)
 		return "MetaKind: ECS-Node";
-	else if (kind == METAKIND_ECS_SPACE)
+	else if(kind == METAKIND_ECS_SPACE)
 		return "MetaKind: ECS-Space";
 	else
 		return "Unknown kind: " + IntStr(kind);
 }
 
-void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const {
+void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const
+{
 	bool had_diff = false;
-	#define CHK_FIELD(x) if (x != n.x) {had_diff = true; diffs.Add("Different " #x ": " + AsString(x) + " vs " + AsString(n.x) + " at " + GetKindString() + ", " + id + " (" + type + ")");}
+#define CHK_FIELD(x)                                                                           \
+	if(x != n.x) {                                                                             \
+		had_diff = true;                                                                       \
+		diffs.Add("Different " #x ": " + AsString(x) + " vs " + AsString(n.x) + " at " +       \
+		          GetKindString() + ", " + id + " (" + type + ")");                            \
+	}
 	CHK_FIELD(kind);
 	CHK_FIELD(id);
 	CHK_FIELD(type);
@@ -1026,18 +1140,29 @@ void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max
 	CHK_FIELD(sub.GetCount());
 	CHK_FIELD(is_disabled);
 	CHK_FIELD(serial);
-	if (!had_diff) for(int i = 0; i < sub.GetCount(); i++) {
-		CHK_FIELD(sub[i].kind);
-		CHK_FIELD(sub[i].id);
-		if (had_diff)
-			break;
-		sub[i].FindDifferences(n.sub[i], diffs, max_diffs);
-		if (diffs.GetCount() >= max_diffs)
-			break;
-	}
+	if(!had_diff)
+		for(int i = 0; i < sub.GetCount(); i++) {
+			CHK_FIELD(sub[i].kind);
+			CHK_FIELD(sub[i].id);
+			if(had_diff)
+				break;
+			sub[i].FindDifferences(n.sub[i], diffs, max_diffs);
+			if(diffs.GetCount() >= max_diffs)
+				break;
+		}
 }
 
-void MetaNode::CopyFieldsFrom(const MetaNode& n) {
+bool MetaNode::IsFieldsSame(const MetaNode& n) const
+{
+	return kind == n.kind && id == n.id && type == n.type && type_hash == n.type_hash &&
+	       begin == n.begin && end == n.end && filepos_hash == n.filepos_hash &&
+	       file == n.file && pkg == n.pkg && is_ref == n.is_ref &&
+	       is_definition == n.is_definition && is_disabled == n.is_disabled &&
+	       serial == n.serial;
+}
+
+void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
+{
 	kind = n.kind;
 	id = n.id;
 	type = n.type;
@@ -1050,12 +1175,15 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n) {
 	is_ref = n.is_ref;
 	is_definition = n.is_definition;
 	is_disabled = n.is_disabled;
+	
+	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
 }
 
-hash_t MetaNode::GetTotalHash() const {
+hash_t MetaNode::GetTotalHash() const
+{
 	CombineHash ch;
-	ch	.Do(kind)
+	ch.Do(kind)
 		.Do(id)
 		.Do(type)
 		.Do(type_hash)
@@ -1067,205 +1195,238 @@ hash_t MetaNode::GetTotalHash() const {
 		.Do(is_ref)
 		.Do(is_definition)
 		.Do(is_disabled)
-		.Do(serial)
-		;
-	for (const auto& s : sub)
+		.Do(serial);
+	for(const auto& s : sub)
 		ch.Put(s.GetTotalHash());
 	return ch;
 }
 
-hash_t MetaNode::GetCommonHash(bool* total_hash_diffs) const {
-	if (kind < 0 || kind >= METAKIND_BEGIN)
+hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
+{
+	if(kind < 0 || kind >= METAKIND_BEGIN)
 		return 0;
 	CombineHash ch;
 	ch.Do(kind).Do(id).Do(type);
-	for (const auto& s : sub) {
-		if (s.kind < 0 || s.kind >= METAKIND_BEGIN) {
-			if (total_hash_diffs)
+	for(const auto& s : sub) {
+		if(s.kind < 0 || s.kind >= METAKIND_BEGIN) {
+			if(total_hash_diffs)
 				*total_hash_diffs = true;
 			continue;
 		}
-		ch.Put(s.GetCommonHash());
+		ch.Put(s.GetSourceHash());
 	}
 	return ch;
 }
 
-Vector<MetaNode*> MetaNode::FindAllShallow(int kind) {
+Vector<MetaNode*> MetaNode::FindAllShallow(int kind)
+{
 	Vector<MetaNode*> vec;
-	for (auto& s : sub)
-		if (s.kind == kind)
+	for(auto& s : sub)
+		if(s.kind == kind)
 			vec << &s;
 	return vec;
 }
 
-void MetaNode::FindAllDeep(int kind, Vector<MetaNode*>& out) {
-	if (this->kind == kind)
+void MetaNode::FindAllDeep(int kind, Vector<MetaNode*>& out)
+{
+	if(this->kind == kind)
 		out << this;
-	for (auto& s : sub)
+	for(auto& s : sub)
 		s.FindAllDeep(kind, out);
 }
 
-void MetaNode::FindAllDeep(int kind, Vector<const MetaNode*>& out) const {
-	if (this->kind == kind)
+void MetaNode::FindAllDeep(int kind, Vector<const MetaNode*>& out) const
+{
+	if(this->kind == kind)
 		out << this;
-	for (const auto& s : sub)
+	for(const auto& s : sub)
 		s.FindAllDeep(kind, out);
 }
 
-Vector<const MetaNode*> MetaNode::FindAllShallow(int kind) const {
+Vector<const MetaNode*> MetaNode::FindAllShallow(int kind) const
+{
 	Vector<const MetaNode*> vec;
-	for (const auto& s : sub)
-		if (s.kind == kind)
+	for(const auto& s : sub)
+		if(s.kind == kind)
 			vec << &s;
 	return vec;
 }
 
-bool MetaNode::IsStructKind() const {
-	return	kind == CXCursor_StructDecl &&
-			kind == CXCursor_ClassDecl &&
-			kind == CXCursor_ClassTemplate &&
-			kind == CXCursor_ClassTemplatePartialSpecialization;
+bool MetaNode::IsSourceKind() const { return kind >= 0 && kind < METAKIND_BEGIN; }
+
+bool MetaNode::IsStructKind() const
+{
+	return kind == CXCursor_StructDecl && kind == CXCursor_ClassDecl &&
+	       kind == CXCursor_ClassTemplate &&
+	       kind == CXCursor_ClassTemplatePartialSpecialization;
 }
 
-int MetaNode::GetRegularCount() const {
+int MetaNode::GetRegularCount() const
+{
 	int c = 0;
-	for (const auto& s : sub)
-		if (s.kind >= 0 && s.kind < METAKIND_BEGIN)
+	for(const auto& s : sub)
+		if(s.kind >= 0 && s.kind < METAKIND_BEGIN)
 			c++;
 	return c;
 }
 
-String MetaNode::GetBasesString() const {
+String MetaNode::GetBasesString() const
+{
 	String s;
 	Vector<const MetaNode*> bases = FindAllShallow(CXCursor_CXXBaseSpecifier);
-	for (const MetaNode* n : bases) {
-		if (!s.IsEmpty()) s.Cat(", ");
+	for(const MetaNode* n : bases) {
+		if(!s.IsEmpty())
+			s.Cat(", ");
 		s << n->id << " (" << n->type << ")";
 	}
 	return s;
 }
 
-String MetaNode::GetNestString() const {
-	if (owner)
+String MetaNode::GetNestString() const
+{
+	if(owner)
 		return owner->id;
 	return String();
 }
 
-bool MetaNode::OwnerRecursive(const MetaNode& n) const {
+bool MetaNode::OwnerRecursive(const MetaNode& n) const
+{
 	MetaNode* o = this->owner;
-	while (o) {
-		if (o == &n)
+	while(o) {
+		if(o == &n)
 			return true;
 		o = o->owner;
 	}
 	return false;
 }
 
-bool MetaNode::ContainsDeep(const MetaNode& n) const {
-	#if 1
+bool MetaNode::ContainsDeep(const MetaNode& n) const
+{
+#if 1
 	return n.OwnerRecursive(*this) || &n == this;
-	#else
-	if (this == &n)
+#else
+	if(this == &n)
 		return true;
-	for (const auto& s : sub)
-		if (s.ContainsDeep(n))
+	for(const auto& s : sub)
+		if(s.ContainsDeep(n))
 			return true;
 	return false;
-	#endif
+#endif
 }
 
-void MetaNode::RemoveAllShallow(int kind) {
+void MetaNode::RemoveAllShallow(int kind)
+{
 	Vector<int> rmlist;
 	int i = 0;
-	for (auto& s : sub) {
-		if (s.kind == kind)
+	for(auto& s : sub) {
+		if(s.kind == kind)
 			rmlist << i;
 		i++;
 	}
-	if (!rmlist.IsEmpty())
+	if(!rmlist.IsEmpty())
 		sub.Remove(rmlist);
 }
 
-void MetaNode::RemoveAllDeep(int kind) {
+void MetaNode::RemoveAllDeep(int kind)
+{
 	RemoveAllShallow(kind);
-	for (auto& s : sub)
+	for(auto& s : sub)
 		s.RemoveAllDeep(kind);
 }
 
-void MetaNode::GetTypeHashes(Index<hash_t>& type_hashes) const {
-	if (type_hash)
+void MetaNode::GetTypeHashes(Index<hash_t>& type_hashes) const
+{
+	if(type_hash)
 		type_hashes.FindAdd(type_hash);
-	for (auto& s : sub)
+	for(auto& s : sub)
 		s.GetTypeHashes(type_hashes);
 }
 
+void MetaNode::RealizeSerial() {
+	if (!serial)
+		serial = MetaEnv().NewSerial();
+	for (auto& s : sub)
+		s.RealizeSerial();
+}
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
-	MetaSrcPkg& af = ResolveFile(includes, path);
-	af.Store(includes, path, fa);
+    MetaSrcPkg& af = ResolveFile(includes, path);
+    af.Store(includes, path, fa);
 }*/
 
 /*void MetaSrcPkg::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
-	MetaSrcFile& afi = RealizePath(includes, path);
-	afi.UpdateLinks(fa);
-	Save();
+    MetaSrcFile& afi = RealizePath(includes, path);
+    afi.UpdateLinks(fa);
+    Save();
 }*/
 
 /*bool MetaNode::IsClassTemplateDefinition() const {
-	if (kind == CXCursor_ClassTemplate)
-		//for (const MetaNode& s : sub)
-		//	if (s.kind == CXCursor_CompoundStmt)
-				return true;
-	return false;
+    if (kind == CXCursor_ClassTemplate)
+        //for (const MetaNode& s : sub)
+        //	if (s.kind == CXCursor_CompoundStmt)
+                return true;
+    return false;
 }*/
 
-MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n) {
-	if (!n.filepos_hash) return 0;
-	int i = filepos_nodes.Find(n.filepos_hash);
-	if (i < 0) return 0;
-	const auto& vec = filepos_nodes[i];
-	for (const auto& ptr : vec) {
-		if (!ptr) continue;
+MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n)
+{
+	if(!n.filepos_hash)
+		return 0;
+	int i = filepos.Find(n.filepos_hash);
+	if(i < 0)
+		return 0;
+	const auto& vec = filepos[i].hash_nodes;
+	for(const auto& ptr : vec) {
+		if(!ptr)
+			continue;
 		MetaNode& p = *ptr;
-		if (p.is_definition/* || p.IsClassTemplateDefinition()*/)
+		if(p.is_definition /* || p.IsClassTemplateDefinition()*/)
 			return &p;
 	}
 	return 0;
 }
 
-Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n) {
+Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n)
+{
 	Vector<MetaNode*> v;
-	if (n.kind == CXCursor_CXXBaseSpecifier) {
-		for (const auto& s : n.sub) {
+	if(n.kind == CXCursor_CXXBaseSpecifier) {
+		for(const auto& s : n.sub) {
 			MetaNode* d = FindDeclaration(s);
-			if (d) v.Add(d);
+			if(d)
+				v.Add(d);
 		}
 		return v;
 	}
-	else Panic("TODO");
+	else
+		Panic("TODO");
 	return v;
 }
 
-MetaNode* MetaEnvironment::FindTypeDeclaration(unsigned type_hash) {
-	if (!type_hash) return 0;
-	int i = type_hash_nodes.Find(type_hash);
-	if (i < 0) return 0;
-	const auto& vec = type_hash_nodes[i];
-	for (const auto& ptr : vec) {
-		if (!ptr) continue;
+MetaNode* MetaEnvironment::FindTypeDeclaration(unsigned type_hash)
+{
+	if(!type_hash)
+		return 0;
+	int i = types.Find(type_hash);
+	if(i < 0)
+		return 0;
+	const auto& vec = types[i].hash_nodes;
+	for(const auto& ptr : vec) {
+		if(!ptr)
+			continue;
 		MetaNode& p = *ptr;
-		if (p.is_definition/* || p.IsClassTemplateDefinition()*/)
+		if(p.is_definition /* || p.IsClassTemplateDefinition()*/)
 			return &p;
 	}
 	return 0;
 }
 
-bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr) {
-	const VectorMap<hash_t,Index<String>>& scope_paths = ctr.GetScopePaths();
+bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr)
+{
+	const VectorMap<hash_t, Index<String>>& scope_paths = ctr.GetScopePaths();
 	auto& translation = ctr.GetTypeTranslation();
-	
+
 	for(int i = 0; i < scope_paths.GetCount(); i++) {
 		unsigned src_hash = scope_paths.GetKey(i);
 		const Index<String>& idx = scope_paths[i];
@@ -1273,13 +1434,14 @@ bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr) {
 		hash_t dst_hash = RealizeTypePath(path);
 		translation.GetAdd(src_hash, dst_hash);
 	}
-	
+
 	return true;
 }
 
-hash_t MetaEnvironment::RealizeTypePath(const String& path) {
+hash_t MetaEnvironment::RealizeTypePath(const String& path)
+{
 	hash_t h = path.GetHashValue();
-	seen_types.GetAdd(h) = path;
+	types.GetAdd(h).seen_type = path;
 	return h;
 }
 

@@ -22,9 +22,9 @@ struct EditorPtrs {
 	//int GetActiveContentIndex() const;
 	int GetActiveScriptIndex() const;
 	
-	int GetActiveEntityIndex() const;
-	int GetActiveSnapshotIndex() const;
-	int GetActiveComponentIndex() const;
+	//int GetActiveEntityIndex() const;
+	//int GetActiveSnapshotIndex() const;
+	//int GetActiveComponentIndex() const;
 	
 	static EditorPtrs& Single() {static EditorPtrs p; return p;}
 };

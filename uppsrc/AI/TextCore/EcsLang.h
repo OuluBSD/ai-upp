@@ -15,8 +15,6 @@ public:
 	bool RunCurrentFile() override;
 	bool IsDirty(const String& s) override;
 	bool LoadEcsSpace(String path);
-	bool MergeNode(MetaNode& root, EcsSpace& other);
-	bool MergeVisit(Vector<MetaNode*>& scope, EcsSpace& other);
 	static bool AcceptExt(String ext);
 };
 

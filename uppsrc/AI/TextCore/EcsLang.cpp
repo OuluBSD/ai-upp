@@ -21,6 +21,7 @@ bool EcsIndexer::LoadEcsSpace(String path) {
 	
 	Panic("TODO"); // use only node and virtual serialize
 	
+	#if 0
 	EcsSpace space;
 	LoadFromJsonFile(space, path);
 	
@@ -39,8 +40,10 @@ bool EcsIndexer::LoadEcsSpace(String path) {
 	
 	MetaNode file_nodes;
 	env.SplitNode(env.root, file_nodes, pkg.id);
+	file_nodes.SetPkgFileDeep(0,0);
 	
 	pkg.Store(file_nodes, false);
+	#endif
 	return true;
 }
 
@@ -56,36 +59,6 @@ bool EcsIndexer::IsDirty(const String& s) {
 	bool dirty = prev_filetime != cur_filetime;
 	prev_filetime = cur_filetime;
 	return dirty;
-}
-
-bool EcsIndexer::MergeNode(MetaNode& root, EcsSpace& other) {
-	Vector<MetaNode*> scope;
-	scope << &root;
-	return MergeVisit(scope, other);
-}
-
-bool EcsIndexer:: MergeVisit(Vector<MetaNode*>& scope, EcsSpace& n1) {
-	MetaNode& n0 = *scope.Top();
-	ASSERT(n0.kind == METAKIND_ECS_SPACE && n0.id == n1.id);
-	
-	for (EcsSpace& sub1 : n1.sub) {
-		auto& sub0 = n0.GetAdd(n1.id, "", METAKIND_ECS_SPACE);
-		sub0.pkg = pkg_i;
-		sub0.file = file_i;
-		scope << &sub0;
-		bool succ = MergeVisit(scope, sub1);
-		scope.Pop();
-		if (!succ)
-			return false;
-	}
-	
-	while (n1.entities.GetCount()) {
-		MetaNode& sub0 = n0.Add(n1.entities.Detach(0));
-		sub0.pkg = pkg_i;
-		sub0.file = file_i;
-	}
-	
-	return true;
 }
 
 INITIALIZER_INDEXER_EXTENSION(EcsIndexer)

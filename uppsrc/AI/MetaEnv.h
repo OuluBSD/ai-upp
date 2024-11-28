@@ -47,7 +47,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
-	~MetaNode();
+	virtual ~MetaNode();
 	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
 	void Assign(MetaNode* owner, const ClangNode& n);
@@ -74,7 +74,8 @@ struct MetaNode : Pte<MetaNode> {
 	bool HasPkgDeep(int pkg_id) const;
 	bool HasPkgFileDeep(int pkg_id, int file_id) const;
 	void SetPkgDeep(int pkg_id);
-	void SetFileDeep(int pkg_id);
+	void SetFileDeep(int file_id);
+	void SetPkgFileDeep(int pkg_id, int file_id);
 	void SetTempDeep();
 	Vector<MetaNode*> FindAllShallow(int kind);
 	Vector<const MetaNode*> FindAllShallow(int kind) const;
@@ -93,6 +94,16 @@ struct MetaNode : Pte<MetaNode> {
 	void RemoveAllDeep(int kind);
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 	void RealizeSerial();
+	
+	template <class T>
+	Vector<Ptr<T>> FindAll() {
+		Vector<Ptr<T>> v;
+		for (auto& s : sub) {
+			T* o = dynamic_cast<T*>(&s);
+			if (o) v.Add(o);
+		}
+		return v;
+	}
 };
 
 struct MetaNodeSubset {
@@ -151,6 +162,7 @@ struct MetaSrcPkg {
 	void RefreshSeenTypes(MetaNode& file_nodes);
 	void OnSeenTypes();
 	void Serialize(Stream& s) {s % saved_hash % filenames % seen_types % highest_seen_serial;}
+	int FindFile(String path) const;
 	
 private:
 	
@@ -211,6 +223,7 @@ struct MetaEnvironment {
 	Vector<MetaNode*> FindDeclarationsDeep(const MetaNode& n);
 	bool MergeResolver(ClangTypeResolver& ctr);
 	hash_t RealizeTypePath(const String& path);
+	MetaNode& RealizeFileNode(int pkg, int file, int kind);
 };
 
 MetaEnvironment& MetaEnv();

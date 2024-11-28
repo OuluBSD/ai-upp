@@ -369,6 +369,15 @@ void MetaSrcPkg::OnSeenTypes()
 		env.types.GetAdd(it.key).seen_type = it.value;
 }
 
+int MetaSrcPkg::FindFile(String path) const {
+	int i = this->filenames.Find(path);
+	if (i < 0) {
+		path = GetRelativePath(path);
+		i = this->filenames.Find(path);
+	}
+	return i;
+}
+
 MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 
 MetaEnvironment::MetaEnvironment() {
@@ -409,6 +418,7 @@ void MetaEnvironment::Store(MetaSrcPkg& pkg, bool forced)
 {
 	MetaNode file_nodes;
 	SplitNode(root, file_nodes, pkg.id);
+	file_nodes.SetPkgFileDeep(0,0);
 
 	// LOG(file_nodes.GetTreeString());
 	pkg.Store(file_nodes, forced);
@@ -915,6 +925,14 @@ void MetaNode::SetFileDeep(int file_id)
 	this->file = file_id;
 	for(auto& n : sub)
 		n.SetFileDeep(file_id);
+}
+
+void MetaNode::SetPkgFileDeep(int pkg_id, int file_id)
+{
+	this->pkg = pkg_id;
+	this->file = file_id;
+	for(auto& n : sub)
+		n.SetPkgFileDeep(pkg_id, file_id);
 }
 
 void MetaNode::SetTempDeep()
@@ -1443,6 +1461,18 @@ hash_t MetaEnvironment::RealizeTypePath(const String& path)
 	hash_t h = path.GetHashValue();
 	types.GetAdd(h).seen_type = path;
 	return h;
+}
+
+MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
+	for (auto& s : root.sub) {
+		if (s.pkg == pkg && s.file == file && s.kind == kind)
+			return s;
+	}
+	MetaNode& n = root.sub.Add();
+	n.pkg = pkg;
+	n.file = file;
+	n.kind = kind;
+	return n;
 }
 
 END_UPP_NAMESPACE

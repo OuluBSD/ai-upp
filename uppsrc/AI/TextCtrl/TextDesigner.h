@@ -46,7 +46,9 @@ public:
 	bool IsScript() const;
 	bool HasPointers() const;
 	String GetComponentTitle() const;
-
+	String GetFilePath() const {return data_filepath;}
+	String GetFileData() const {return data;}
+	
 	void MakeComponentParts(ArrayCtrl& parts);
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);
 

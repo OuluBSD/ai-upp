@@ -366,6 +366,7 @@ struct IndexerJob : Moveable<IndexerJob> {
 };
 
 struct IndexerExtension {
+	virtual ~IndexerExtension() {}
 	virtual void RunJob(IndexerJob& job) = 0;
 	virtual bool RunCurrentFile() = 0;
 	virtual bool IsDirty(const String& s) = 0;

@@ -17,23 +17,12 @@ bool ClangTypeResolver::Process(ClangNode& cn) {
 	if (!Visit(cn))
 		return false;
 	
-	DumpFoundTypes();
-	DumpFoundScopePaths();
-	DumpUnresolvedHashes();
+	if (0) {
+		DumpFoundTypes();
+		DumpFoundScopePaths();
+		DumpUnresolvedHashes();
+	}
 	
-	/*for(int i = 0; i < type_nodes.GetCount(); i++) {
-		auto hash = type_nodes.GetKey(i);
-		int j = type_scopepaths.Find(hash);
-		if (j >= 0) {
-			String path = type_scopepaths[j][0];
-			MetaNode* n = env.ResolveScopePath(path);
-			if (!n) {
-				SetError("couldn't resolve scope path: " + path);
-				return false;
-			}
-			type_translation.Add(hash, n->type_hash);
-		}
-	}*/
 	return true;
 }
 

@@ -33,6 +33,8 @@ struct MetaNode : Pte<MetaNode> {
 	int file = -1;
 	bool is_ref = false;
 	bool is_definition = false;
+	dword serial = 0;
+	bool is_disabled = false;
 	
 	// Temp
 	int pkg = -1;
@@ -63,7 +65,7 @@ struct MetaNode : Pte<MetaNode> {
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
 	hash_t GetCommonHash(bool* total_hash_diffs=0) const;
-	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % file % is_ref % is_definition; if (s.IsLoading()) FixParent();}
+	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % file % is_ref % is_definition % serial % is_disabled; if (s.IsLoading()) FixParent();}
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
@@ -131,6 +133,7 @@ struct MetaSrcPkg {
 	VectorMap<hash_t,String> seen_types;
 	String bin_path, upp_dir;
 	int id = -1;
+	dword highest_seen_serial = 0;
 	
 	MetaSrcPkg() {}
 	MetaSrcPkg(MetaSrcPkg&& f) {*this = f;}
@@ -144,18 +147,7 @@ struct MetaSrcPkg {
 	String GetFullPath(int file_i) const;
 	void RefreshSeenTypes(MetaNode& file_nodes);
 	void OnSeenTypes();
-	/*void Load();
-	void Save(bool forced=false);
-	void Clear();
-	void PostSave();
-	void Jsonize(JsonIO& json);
-	void Serialize(Stream& s);
-	//MetaSrcFile& RealizePath(const String& includes, const String& path);
-	bool IsEmpty() const { return files.IsEmpty(); }
-	String GetHashSha1();
-	void Load(const String& includes, const String& path, FileAnnotation& fa);
-	void Store(const String& includes, const String& path, FileAnnotation& fa);*/
-	void Serialize(Stream& s) {s % saved_hash % filenames % seen_types;}
+	void Serialize(Stream& s) {s % saved_hash % filenames % seen_types % highest_seen_serial;}
 	
 private:
 	
@@ -167,9 +159,9 @@ private:
 class ClangTypeResolver;
 
 typedef enum : byte {
-	MERGEMODE_KEEP_OLD,
 	MERGEMODE_OVERWRITE_OLD,
-	MERGEMODE_BAIL_OUT,
+	MERGEMODE_KEEP_OLD,
+	MERGEMODE_UPDATE_SUBSET,
 } MergeMode;
 
 struct MetaEnvironment {

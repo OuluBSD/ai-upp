@@ -10,8 +10,9 @@ struct Component : MetaNode {
 	virtual const std::type_info& GetType() const = 0;
 	
 	Component* GetComponent() {return this;}
-	void Serialize(Stream& s) {s % name;}
-	void Jsonize(JsonIO& json) {json("name",name);}
+	void Serialize(Stream& s) override {MetaNode::Serialize(s); s % name;}
+	void Jsonize(JsonIO& json) override {MetaNode::Jsonize(json); json("name",name);}
+	
 };
 
 struct Entity : MetaNode {
@@ -27,8 +28,8 @@ struct Entity : MetaNode {
 		data.Clear();
 		gender = 0;
 	}
-	void Serialize(Stream& s) { s % name % type % data % gender; }
-	void Jsonize(JsonIO& json) { json("name", name)("type", type)("data", data)("gender",gender); }
+	void Serialize(Stream& s) override {MetaNode::Serialize(s); s % name % type % data % gender; }
+	void Jsonize(JsonIO& json) override {MetaNode::Jsonize(json); json("name", name)("type", type)("data", data)("gender",gender); }
 
 	bool operator()(const Entity& a, const Entity& b) const {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());

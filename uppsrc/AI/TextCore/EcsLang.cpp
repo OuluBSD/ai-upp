@@ -11,17 +11,16 @@ bool EcsIndexer::AcceptExt(String ext) {
 }
 
 void EcsIndexer::RunJob(IndexerJob& job) {
-	if (!LoadEcsSpace(job.path)) {
+	MetaEnvironment& env = MetaEnv();
+	if (!env.LoadFileRoot("", job.path, true)) {
 		LOG(job.path + ": error: failed to run job (at EcsIndexer::RunJob)");
 	}
 }
 
+#if 0
 bool EcsIndexer::LoadEcsSpace(String path) {
 	MetaEnvironment& env = MetaEnv();
 	
-	Panic("TODO"); // use only node and virtual serialize
-	
-	#if 0
 	EcsSpace space;
 	LoadFromJsonFile(space, path);
 	
@@ -43,9 +42,10 @@ bool EcsIndexer::LoadEcsSpace(String path) {
 	file_nodes.SetPkgFileDeep(0,0);
 	
 	pkg.Store(file_nodes, false);
-	#endif
+	
 	return true;
 }
+#endif
 
 bool EcsIndexer::RunCurrentFile() {
 	Panic("TODO");

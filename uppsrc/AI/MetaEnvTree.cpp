@@ -38,7 +38,7 @@ void MetaEnvTree::Data() {
 	pkgs.Set(row, "IDX", -1);
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
 		MetaSrcPkg& pkg = env.pkgs[i];
-		pkgs.Set(row, 0, env.pkgs.GetKey(i));
+		pkgs.Set(row, 0, pkg.GetTitle());
 		pkgs.Set(row, "IDX", i);
 		row++;
 	}
@@ -68,11 +68,11 @@ void MetaEnvTree::DataPkg() {
 	}
 	else {
 		MetaSrcPkg& pkg = env.pkgs[pkg_i];
-		for(int i = 0; i < pkg.filenames.GetCount(); i++) {
-			files.Set(i,0,pkg.filenames[i]);
+		for(int i = 0; i < pkg.files.GetCount(); i++) {
+			files.Set(i,0,pkg.files[i].GetTitle());
 			files.Set(i,"IDX",i);
 		}
-		files.SetCount(pkg.filenames.GetCount());
+		files.SetCount(pkg.files.GetCount());
 	}
 	
 	if (!files.IsCursor() && files.GetCount())

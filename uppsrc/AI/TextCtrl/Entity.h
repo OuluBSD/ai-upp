@@ -20,7 +20,7 @@ public:
 	
 	void Data() override;
 	void SetFont(Font fnt);
-	void ToolMenu(Bar& bar);
+	void ToolMenu(Bar& bar) override;
 	void RealizeFileRoot();
 	void DataEntity();
 	void DataComponent();

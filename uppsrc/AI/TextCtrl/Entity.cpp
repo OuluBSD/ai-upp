@@ -109,10 +109,10 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 void EntityEditorCtrl::RealizeFileRoot() {
 	MetaEnvironment& env = MetaEnv();
 	String path = this->GetFilePath();
-	MetaSrcPkg& pkg = env.ResolveFile("", path);
-	int file_id = pkg.FindFile(path);
-	ASSERT(file_id >= 0);
-	MetaNode& n = env.RealizeFileNode(pkg.id, file_id, METAKIND_ECS_SPACE);
+	MetaSrcFile& file = env.ResolveFile("", path);
+	MetaSrcPkg& pkg = *file.pkg;
+	ASSERT(file.id >= 0);
+	MetaNode& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
 	this->file_root = &n;
 }
 

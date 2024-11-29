@@ -3,6 +3,7 @@
 NAMESPACE_UPP
 
 EntityEditorCtrl::EntityEditorCtrl() {
+	AddMenu();
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << lsplit << comp_place;
@@ -103,10 +104,17 @@ void EntityEditorCtrl::SetFont(Font fnt) {
 }
 
 void EntityEditorCtrl::ToolMenu(Bar& bar) {
+	bar.Add("Save file", THISBACK(SaveFile)).Key(K_CTRL|K_SHIFT|K_S);
+	bar.Separator();
 	bar.Add("Test function 1", THISBACK1(Do, 0));
 }
 
-void EntityEditorCtrl::RealizeFileRoot() {
+void EntityEditorCtrl::SaveFile() {
+	MetaSrcFile& file = RealizeFileRoot();
+	file.Store(true);
+}
+
+MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	MetaEnvironment& env = MetaEnv();
 	String path = this->GetFilePath();
 	MetaSrcFile& file = env.ResolveFile("", path);
@@ -114,6 +122,7 @@ void EntityEditorCtrl::RealizeFileRoot() {
 	ASSERT(file.id >= 0);
 	MetaNode& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
 	this->file_root = &n;
+	return file;
 }
 
 void EntityEditorCtrl::Do(int i) {

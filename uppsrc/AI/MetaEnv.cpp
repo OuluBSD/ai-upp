@@ -615,9 +615,11 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	if(file.Load()) {
-		Panic("TODO");
+		OnLoadFile(file);
+		file.ClearTemp();
 		return true;
 	}
+	file.ClearTemp();
 	return false;
 }
 
@@ -625,24 +627,28 @@ MetaSrcFile& MetaEnvironment::Load(const String& includes, const String& path)
 {
 	MetaSrcFile& file = ResolveFile(includes, path);
 	if(file.Load()) {
-		MetaNode& file_nodes = file.GetTemp();
-		file_nodes.SetTempDeep();
-		ASSERT(file.saved_hash == IntStr64(file_nodes.GetSourceHash()));
-		//file_nodes.SetPkgDeep(pkg.id);
-		//LOG(file_nodes.GetTreeString());
-		MergeNode(root, file_nodes, MERGEMODE_OVERWRITE_OLD);
-		// LOG(root.GetTreeString());
-
-#if DEBUG_METANODE_DTOR
-		Vector<MetaNode*> comments;
-		root.FindAllDeep(METAKIND_COMMENT, comments);
-		for(auto* c : comments)
-			c->trace_kill = true;
-#endif
-		
+		OnLoadFile(file);
 	}
 	file.ClearTemp();
 	return file;
+}
+
+void MetaEnvironment::OnLoadFile(MetaSrcFile& file)
+{
+	MetaNode& file_nodes = file.GetTemp();
+	file_nodes.SetTempDeep();
+	ASSERT(file.saved_hash == IntStr64(file_nodes.GetSourceHash()));
+	//file_nodes.SetPkgDeep(pkg.id);
+	//LOG(file_nodes.GetTreeString());
+	MergeNode(root, file_nodes, MERGEMODE_OVERWRITE_OLD);
+	// LOG(root.GetTreeString());
+
+#if DEBUG_METANODE_DTOR
+	Vector<MetaNode*> comments;
+	root.FindAllDeep(METAKIND_COMMENT, comments);
+	for(auto* c : comments)
+		c->trace_kill = true;
+#endif
 }
 
 void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)

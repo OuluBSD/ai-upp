@@ -21,9 +21,10 @@ public:
 	void Data() override;
 	void SetFont(Font fnt);
 	void ToolMenu(Bar& bar) override;
-	void RealizeFileRoot();
+	MetaSrcFile& RealizeFileRoot();
 	void DataEntity();
 	void DataComponent();
+	void SaveFile();
 	
 	void SetComponentCtrl(Ctrl* c);
 	

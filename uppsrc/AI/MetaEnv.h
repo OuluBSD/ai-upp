@@ -243,6 +243,7 @@ struct MetaEnvironment {
 	bool MergeResolver(ClangTypeResolver& ctr);
 	hash_t RealizeTypePath(const String& path);
 	MetaNode& RealizeFileNode(int pkg, int file, int kind);
+	void OnLoadFile(MetaSrcFile& file);
 };
 
 MetaEnvironment& MetaEnv();

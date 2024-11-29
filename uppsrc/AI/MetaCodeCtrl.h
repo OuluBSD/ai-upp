@@ -43,7 +43,7 @@ struct MetaCodeCtrl : ParentCtrl {
 	void SetPickUndoData(LineEdit::UndoData pos);
 	LineEdit::UndoData PickUndoData();
 	LineEdit::EditPos GetEditPos();
-	void StoreAion();
+	void StoreMetaFile();
 	void SetSelectedLineFromEditor();
 	void ContextMenu(Bar& bar);
 	void AddComment();

@@ -236,7 +236,8 @@ struct Script : Component, LyricalStructure {
 	const std::type_info& GetType() const override {return typeid(*this);}
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Jsonize(JsonIO& json)
+	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Jsonize(JsonIO& json) override
 	{
 		Component::Jsonize(json);
 		LyricalStructure::Jsonize(json);
@@ -280,7 +281,8 @@ struct Lyrics : Component, LyricalStructure {
 	
 	Lyrics() {}
 	~Lyrics() {}
-	void Jsonize(JsonIO& json)
+	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Jsonize(JsonIO& json) override
 	{
 		Component::Jsonize(json);
 		LyricalStructure::Jsonize(json);
@@ -309,6 +311,11 @@ struct Lyrics : Component, LyricalStructure {
 
 struct Song : Component {
 	
+	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Jsonize(JsonIO& json) override
+	{
+		Component::Jsonize(json); Panic("TODO");
+	}
 };
 
 END_UPP_NAMESPACE

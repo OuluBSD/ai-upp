@@ -14,7 +14,7 @@ public:
 	void RunJob(IndexerJob& job) override;
 	bool RunCurrentFile() override;
 	bool IsDirty(const String& s) override;
-	bool LoadEcsSpace(String path);
+	//bool LoadEcsSpace(String path);
 	static bool AcceptExt(String ext);
 };
 

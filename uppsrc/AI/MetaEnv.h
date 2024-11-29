@@ -65,7 +65,8 @@ struct MetaNode : Pte<MetaNode> {
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
 	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
-	void Serialize(Stream& s) {s % sub % kind % id % type % type_hash % begin % end % filepos_hash % file % is_ref % is_definition % serial % is_disabled; if (s.IsLoading()) FixParent();}
+	virtual void Serialize(Stream& s);
+	virtual void Jsonize(JsonIO& json);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
@@ -115,57 +116,73 @@ struct MetaNodeSubset {
 	void Clear() {sub.Clear(); n = 0;}
 };
 
-#if 0
-struct AstNode {
-	
-};
+struct MetaSrcPkg;
 
 struct MetaSrcFile : Moveable<MetaSrcFile> {
-	//Array<AiAnnotationItem> ai_items;
-	Index<String> idlist;
-	Vector<AstNode*> idptrs;
-	AstNode root;
+	int id = -1;
+	String saved_hash;
+	hash_t highest_seen_serial = 0;
+	VectorMap<hash_t,String> seen_types;
+	One<MetaNode> temp;
 	
+	MetaSrcPkg* pkg = 0;
+	String full_path, rel_path;
 	mutable Mutex lock;
+	bool managed_file = false; // if file only exists as MetaNode json
+	bool keep_file_ids = false;
 	
 	MetaSrcFile() {}
+	void Jsonize(JsonIO& json);
+	void Serialize(Stream& s);
+	bool IsBinary() const {return GetFileExt(full_path) == ".bin";}
+	bool IsECS() const {return GetFileExt(full_path) == ".ecs";}
+	bool Store(bool forced=false);
+	bool Load();
+	void RefreshSeenTypes();
+	MetaNode& GetTemp();
+	MetaNode& CreateTemp();
+	void ClearTemp();
+	void OnSeenTypes();
+	void OnSerialCounter();
+	String GetTitle() const {return GetFileTitle(full_path);}
+	void KeepFileIndices(bool b=true) {keep_file_ids = b;}
+	void ManageFile(bool b=true) {managed_file = b;}
+	void MakeTempFromEnv(bool all_files=false);
+	
+	#if 0
 	MetaSrcFile(const MetaSrcFile& f) {*this = f;}
 	MetaSrcFile(MetaSrcFile&& f) /*: ai_items(pick(f.ai_items))*/ {}
 	void operator=(const MetaSrcFile& s);
-	void Jsonize(JsonIO& json);
-	void Serialize(Stream& s);
 	void UpdateLinks(FileAnnotation& ann);
+	#endif
 };
-
-#endif
 
 struct MetaSrcPkg {
 	typedef MetaSrcPkg CLASSNAME;
-	//ArrayMap<String, MetaSrcFile> files;
-	String saved_hash;
-	Index<String> filenames;
-	VectorMap<hash_t,String> seen_types;
-	String bin_path, upp_dir;
+	
+	Array<MetaSrcFile> files;
+	
+	String path;
 	int id = -1;
-	hash_t highest_seen_serial = 0;
 	
 	MetaSrcPkg() {}
 	MetaSrcPkg(MetaSrcPkg&& f) {*this = f;}
 	MetaSrcPkg(const MetaSrcPkg& f) {*this = f;}
 	void operator=(const MetaSrcPkg& f);
-	bool Load(MetaNode& file_nodes);
-	bool Store(MetaNode& file_nodes, bool forced);
-	void SetPath(String bin_path, String upp_dir);
+	void Init();
+	bool Load();
+	bool Store(bool forced);
+	MetaSrcFile& GetAddFile(const String& full_path);
+	MetaSrcFile& GetMetaFile();
+	//void SetPath(String full_path, String upp_dir);
+	String GetTitle() const {return GetFileTitle(path);}
 	String GetRelativePath(const String& path) const;
 	String GetFullPath(const String& rel_path) const;
 	String GetFullPath(int file_i) const;
-	void RefreshSeenTypes(MetaNode& file_nodes);
-	void OnSeenTypes();
-	void Serialize(Stream& s) {s % saved_hash % filenames % seen_types % highest_seen_serial;}
+	void Serialize(Stream& s) {s % files;}
 	int FindFile(String path) const;
-	
+	String GetDirectory() const {return GetFileDirectory(path);}
 private:
-	
 	bool post_saving = false;
 	Mutex lock;
 	
@@ -192,19 +209,21 @@ struct MetaEnvironment {
 	hash_t serial_counter = 0;
 	SpinLock serial_lock;
 	
-	ArrayMap<String, MetaSrcPkg> pkgs;
+	Array<MetaSrcPkg> pkgs;
 	MetaNode root;
 	RWMutex lock;
 	
 	MetaEnvironment();
 	hash_t NewSerial();
 	hash_t CurrentSerial() const {return serial_counter;}
+	int FindPkg(const String& path) const;
+	MetaSrcPkg& GetAddPkg(const String& path);
 	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
-	MetaSrcPkg& ResolveFile(const String& includes, String path);
+	MetaSrcFile& ResolveFile(const String& includes, const String& path);
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
-	MetaSrcPkg& Load(const String& includes, const String& path);
+	MetaSrcFile& Load(const String& includes, const String& path);
+	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
-	void Store(MetaSrcPkg& af, bool forced=false);
 	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id);

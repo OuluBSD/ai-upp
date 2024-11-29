@@ -56,18 +56,16 @@ void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, by
 
 void MetaCodeCtrl::UpdateEditor()
 {
-	
 	auto& env = MetaEnv();
-	MetaSrcPkg& pkg = env.ResolveFile(this->includes, this->filepath);
-	String rel_path = pkg.GetRelativePath(this->filepath);
-	int pkg_i = pkg.id;
-	int file_i = pkg.filenames.Find(rel_path);
-	ASSERT(pkg_i >= 0 && file_i >= 0);
+	MetaSrcFile& file = env.ResolveFile(this->includes, this->filepath);
+	MetaSrcPkg& pkg = *file.pkg;
+	ASSERT(pkg.id >= 0 && file.id >= 0);
 	MetaNodeSubset sub;
-	env.SplitNode(env.root, sub, pkg_i, file_i);
+	env.SplitNode(env.root, sub, pkg.id, file.id);
 	
 	gen.Process(sub);
-	gen_file = gen.GetResultFile(pkg_i, file_i);
+	gen_file = gen.GetResultFile(pkg.id, file.id);
+	
 	String code;
 	if (gen_file) {
 		code = gen_file ? gen_file->code : String();
@@ -130,7 +128,7 @@ void MetaCodeCtrl::AddComment()
 	cn.file = sel_node->file;
 	cn.pkg = sel_node->pkg;
 	//sel_ann->Sort();
-	StoreAion();
+	StoreMetaFile();
 	UpdateEditor();
 }
 
@@ -141,7 +139,7 @@ void MetaCodeCtrl::RemoveComment()
 	MetaNode* c = sel_line < comment_to_node.GetCount() ? comment_to_node[sel_line] : 0;
 	if (c) {
 		c->Destroy();
-		StoreAion();
+		StoreMetaFile();
 		UpdateEditor();
 	}
 }
@@ -227,7 +225,7 @@ void MetaCodeCtrl::MakeAiComments()
 			if (p) {
 				MetaCodeCtrl* c = dynamic_cast<MetaCodeCtrl*>(&*p);
 				if (c) {
-					c->StoreAion();
+					c->StoreMetaFile();
 					c->UpdateEditor();
 				}
 			}
@@ -269,11 +267,18 @@ void MetaCodeCtrl::OnTab() {
 	}
 }
 
-void MetaCodeCtrl::StoreAion()
+void MetaCodeCtrl::StoreMetaFile()
 {
 	auto& env = MetaEnv();
-	MetaSrcPkg& af = env.ResolveFile(this->includes, this->filepath);
-	env.Store(af, true);
+	MetaSrcFile& file = env.ResolveFile(this->includes, this->filepath);
+	if (file.managed_file) {
+		file.MakeTempFromEnv(false);
+		file.Store(true);
+	}
+	MetaSrcFile& mfile = file.pkg->GetMetaFile();
+	ASSERT(mfile.managed_file);
+	mfile.MakeTempFromEnv(true);
+	mfile.Store(true);
 }
 
 void MetaCodeCtrl::SetSelectedLineFromEditor()
@@ -311,7 +316,7 @@ void MetaCodeCtrl::OnEditorCursor() {
 }
 
 void MetaCodeCtrl::VisitCursorInfo(MetaNode& n, int& row) {
-	cursorinfo.Set(row, 0, n.kind >= 0 ? GetCursorKindName((CXCursorKind)n.kind) : String());
+	cursorinfo.Set(row, 0, n.GetKindString());
 	cursorinfo.Set(row, 1, n.id);
 	cursorinfo.Set(row, 2, n.type);
 	cursorinfo.Set(row, 3, n.begin);
@@ -352,7 +357,7 @@ void MetaCodeCtrl::AnnotationData() {
 		depthfirst.Set(row, 1, it.pos);
 		if (it.node) {
 			MetaNode& n = *it.node;
-			depthfirst.Set(row, 2, n.kind >= 0 ? GetCursorKindName((CXCursorKind)n.kind) : String());
+			depthfirst.Set(row, 2, n.GetKindString());
 			depthfirst.Set(row, 3, n.id);
 			depthfirst.Set(row, 4, n.type);
 			if (it.link_node)

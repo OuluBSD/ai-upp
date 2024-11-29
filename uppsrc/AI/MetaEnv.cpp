@@ -139,6 +139,35 @@ void MetaSrcFile::Serialize(Stream& s)
 	s % id % saved_hash % highest_seen_serial % seen_types % *temp;
 }
 
+String MetaSrcFile::StoreJson()
+{
+	ASSERT_(managed_file, "Trying to jsonize non-managed file");
+	ASSERT(temp);
+	MetaNode& file_nodes = *temp;
+	
+	ASSERT(id >= 0 && pkg->id >= 0);
+	if (keep_file_ids)
+		file_nodes.SetPkgDeep(pkg->id);
+	else
+		file_nodes.SetPkgFileDeep(pkg->id, id);
+	// LOG(file_nodes.GetTreeString());
+	
+	String old_hash = saved_hash;
+	bool total_hash_diffs = false;
+	saved_hash = IntStr64(file_nodes.GetSourceHash(&total_hash_diffs));
+	
+	ASSERT(!saved_hash.IsEmpty());
+	ASSERT(!full_path.IsEmpty());
+	RefreshSeenTypes();
+	
+	String json = StoreAsJson(*this);
+	
+	saved_hash = old_hash;
+	
+	temp.Clear();
+	return json;
+}
+
 bool MetaSrcFile::Store(bool forced)
 {
 	ASSERT_(managed_file, "Trying to overwrite non-managed file");
@@ -174,11 +203,11 @@ bool MetaSrcFile::Store(bool forced)
 	
 	if (IsBinary()) {
 		FileOut s(full_path);
-		Serialize(s);
+		this->Serialize(s);
 		s.Close();
 	}
 	else {
-		StoreAsJsonFile(file_nodes, full_path);
+		StoreAsJsonFile(*this, full_path);
 	}
 	
 	lock.Leave();
@@ -194,7 +223,6 @@ bool MetaSrcFile::Load()
 	
 	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
 	temp.Create();
-	MetaNode& file_nodes = *temp;
 	ASSERT(this->full_path.GetCount());
 	if (IsBinary()) {
 		FileIn s(full_path);
@@ -203,13 +231,36 @@ bool MetaSrcFile::Load()
 		s.Close();
 	}
 	else {
-		LoadFromJsonFile(file_nodes, full_path);
+		LoadFromJsonFile(*this, full_path);
 	}
 	
 	
 	if (!saved_hash.IsEmpty()) {
 		ASSERT(id >= 0 && pkg->id >= 0);
-		file_nodes.SetPkgFileDeep(pkg->id, id);
+		temp->SetPkgFileDeep(pkg->id, id);
+	
+		OnSeenTypes();
+		OnSerialCounter();
+		lock.Leave();
+		return true;
+	}
+	else {
+		lock.Leave();
+		return false;
+	}
+}
+
+bool MetaSrcFile::LoadJson(String json) {
+	lock.Enter();
+	saved_hash.Clear();
+	
+	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
+	temp.Create();
+	LoadFromJson(*this, json);
+	
+	if (!saved_hash.IsEmpty()) {
+		ASSERT(id >= 0 && pkg->id >= 0);
+		temp->SetPkgFileDeep(pkg->id, id);
 	
 		OnSeenTypes();
 		OnSerialCounter();
@@ -557,6 +608,7 @@ MetaSrcFile& MetaEnvironment::ResolveFile(const String& includes, const String& 
 	ASSERT(pkg.id >= 0);
 	//String rel_path = pkg.GetRelativePath(path);
 	MetaSrcFile& file = pkg.GetAddFile(path);
+	ASSERT(file.id >= 0);
 	lock.LeaveWrite();
 	return file;
 }
@@ -615,6 +667,18 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	if(file.Load()) {
+		OnLoadFile(file);
+		file.ClearTemp();
+		return true;
+	}
+	file.ClearTemp();
+	return false;
+}
+
+bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file) {
+	MetaSrcFile& file = ResolveFile(includes, path);
+	file.ManageFile(manage_file);
+	if(file.LoadJson(json)) {
 		OnLoadFile(file);
 		file.ClearTemp();
 		return true;
@@ -1099,7 +1163,7 @@ void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id)
 
 void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id) const
 {
-	other.CopyFieldsFrom(*this);
+	other.CopyFieldsFrom(*this, true);
 	for(const auto& n0 : sub) {
 		if(n0.HasPkgDeep(pkg_id)) {
 			MetaNode& n1 = other.Add();
@@ -1110,7 +1174,7 @@ void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id) const
 
 void MetaNode::CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const
 {
-	other.CopyFieldsFrom(*this);
+	other.CopyFieldsFrom(*this, true);
 	for(const auto& n0 : sub) {
 		if(n0.HasPkgFileDeep(pkg_id, file_id)) {
 			MetaNode& n1 = other.Add();
@@ -1305,6 +1369,8 @@ MetaNode& MetaNode::GetAdd(String id, String type, int kind)
 	s.id = id;
 	s.type = type;
 	s.kind = kind;
+	s.serial = MetaEnv().NewSerial();
+	this->serial = MetaEnv().NewSerial();
 	return s;
 }
 
@@ -1314,6 +1380,8 @@ MetaNode& MetaNode::Add(const MetaNode& n)
 	s.owner = this;
 	s.CopySubFrom(n);
 	s.CopyFieldsFrom(n);
+	s.serial = MetaEnv().NewSerial();
+	this->serial = MetaEnv().NewSerial();
 	return s;
 }
 
@@ -1321,6 +1389,8 @@ MetaNode& MetaNode::Add(MetaNode* n)
 {
 	MetaNode& s = sub.Add(n);
 	s.owner = this;
+	s.serial = MetaEnv().NewSerial();
+	this->serial = MetaEnv().NewSerial();
 	return s;
 }
 
@@ -1328,6 +1398,24 @@ MetaNode& MetaNode::Add()
 {
 	MetaNode& s = sub.Add();
 	s.owner = this;
+	s.pkg = pkg;
+	s.file = file;
+	s.serial = MetaEnv().NewSerial();
+	this->serial = MetaEnv().NewSerial();
+	return s;
+}
+
+MetaNode& MetaNode::Add(int kind)
+{
+	MetaNode& s = Add();
+	s.kind = kind;
+	if (kind >= METAKIND_EXTENSION_BEGIN && kind <= METAKIND_EXTENSION_END) {
+		int i = MetaExtFactory::FindKindFactory(kind);
+		if (i >= 0) {
+			s.ext = MetaExtFactory::List()[i].new_fn();
+			s.ext->node = &s;
+		}
+	}
 	return s;
 }
 
@@ -1351,14 +1439,16 @@ String MetaNode::GetKindString(int kind)
 {
 	if(kind >= 0 && kind <= CXCursor_OverloadCandidate)
 		return GetCursorKindName((CXCursorKind)kind);
-	else if(kind == METAKIND_COMMENT)
-		return "MetaKind: Comment";
-	else if(kind == METAKIND_ECS_NODE)
-		return "MetaKind: ECS-Node";
-	else if(kind == METAKIND_ECS_SPACE)
-		return "MetaKind: ECS-Space";
-	else
+	switch (kind) {
+	case METAKIND_COMMENT:				return "Comment";
+	case METAKIND_ECS_SPACE:			return "ECS-Space";
+	case METAKIND_ECS_ENTITY:			return "Entity";
+	case METAKIND_ECS_COMPONENT_SCRIPT: return "Script";
+	case METAKIND_ECS_COMPONENT_LYRICS:	return "Lyrics";
+	case METAKIND_ECS_COMPONENT_SONG:	return "Song";
+	default:
 		return "Unknown kind: " + IntStr(kind);
+	}
 }
 
 void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const
@@ -1398,11 +1488,15 @@ void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max
 
 bool MetaNode::IsFieldsSame(const MetaNode& n) const
 {
-	return kind == n.kind && id == n.id && type == n.type && type_hash == n.type_hash &&
+	if ((bool)ext != (bool)n.ext) return false;
+	bool eq =
+	       kind == n.kind && id == n.id && type == n.type && type_hash == n.type_hash &&
 	       begin == n.begin && end == n.end && filepos_hash == n.filepos_hash &&
 	       file == n.file && pkg == n.pkg && is_ref == n.is_ref &&
 	       is_definition == n.is_definition && is_disabled == n.is_disabled &&
 	       serial == n.serial;
+	if (eq) eq = *ext == *n.ext; // kind is already checked to be the same, and both has ext
+	return eq;
 }
 
 void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
@@ -1419,7 +1513,11 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	is_ref = n.is_ref;
 	is_definition = n.is_definition;
 	is_disabled = n.is_disabled;
-	
+	if (n.ext) {
+		ASSERT(kind >= 0);
+		ext = MetaExtFactory::CloneKind(kind, *n.ext);
+		if (ext) ext->node = this;
+	}
 	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
 }
@@ -1440,6 +1538,8 @@ hash_t MetaNode::GetTotalHash() const
 		.Do(is_definition)
 		.Do(is_disabled)
 		.Do(serial);
+	if (ext)
+		ch.Put(ext->GetHashValue());
 	for(const auto& s : sub)
 		ch.Put(s.GetTotalHash());
 	return ch;
@@ -1461,7 +1561,14 @@ void MetaNode::Serialize(Stream& s)
 		% is_definition
 		% is_disabled
 		% serial
-		% sub
+		;
+	bool has_ext = ext;
+	s % has_ext;
+	if (has_ext) {
+		if (s.IsLoading()) {ext = MetaExtFactory::CreateKind(kind); ext->node = this;}
+		s % *ext;
+	}
+	s	% sub
 		;
 	if(s.IsLoading())
 		FixParent();
@@ -1483,6 +1590,16 @@ void MetaNode::Jsonize(JsonIO& json) {
 		Do(is_definition)
 		Do(is_disabled)
 		Do((int64&)serial)
+		;
+	
+	bool has_ext = ext;
+	json("has_ext", has_ext);
+	if (has_ext) {
+		if (json.IsLoading()) {ext = MetaExtFactory::CreateKind(kind); if (ext) ext->node = this;}
+		if (ext)
+			json("ext",*ext);
+	}
+	json
 		Do(sub)
 		;
 	#undef Do
@@ -1742,6 +1859,63 @@ MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	n.file = file;
 	n.kind = kind;
 	return n;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MetaNodeExt* MetaExtFactory::CreateKind(int kind) {
+	int i = FindKindFactory(kind);
+	if (i < 0) return 0;
+	return List()[i].new_fn();
+}
+
+MetaNodeExt* MetaExtFactory::CloneKind(int kind, const MetaNodeExt& e) {
+	int i = FindKindFactory(kind);
+	if (i < 0) return 0;
+	MetaNodeExt* n = List()[i].new_fn();
+	n->CopyFrom(e);
+	return n;
+}
+
+MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e) {
+	for (Factory& f : List()) {
+		if (f.is_fn(e)) {
+			MetaNodeExt* n = f.new_fn();
+			n->CopyFrom(e);
+			return n;
+		}
+	}
+	return 0;
+}
+
+int MetaExtFactory::FindKindFactory(int kind) {
+	int i = 0;
+	for (Factory& f : List()) {if (f.kind == kind) return i; i++;}
+	return -1;
+}
+
+void MetaNodeExt::CopyFrom(const MetaNodeExt& e) {
+	StringStream s;
+	s % const_cast<MetaNodeExt&>(e); // reading
+	s.SetLoading();
+	s.Seek(0);
+	s % *this;
+}
+
+bool MetaNodeExt::operator==(const MetaNodeExt& e) const {
+	return GetHashValue() == e.GetHashValue();
 }
 
 END_UPP_NAMESPACE

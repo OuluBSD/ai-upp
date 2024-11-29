@@ -52,3 +52,10 @@ LAYOUT(EditorLine, 488, 384)
 	ITEM(Upp::EditString, begin, HSizePosZ(108, 4).TopPosZ(328, 20))
 END_LAYOUT
 
+LAYOUT(ComponentSelection, 492, 52)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Component type:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(4, 20))
+	ITEM(Upp::DropList, complist, HSizePosZ(124, 4).TopPosZ(4, 20))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(108, 100).TopPosZ(28, 20))
+	ITEM(Upp::Button, ok, SetLabel(t_("Ok")).RightPosZ(4, 100).BottomPosZ(4, 20))
+END_LAYOUT
+

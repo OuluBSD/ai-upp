@@ -143,8 +143,8 @@ void ToolAppCtrl::MakeComponentParts(ArrayCtrl& parts) {
 
 void ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
 	data = in.Get((int)in.GetSize());
-	OnLoad(data, filename);
 	data_filepath = filename;
+	OnLoad(data, filename);
 }
 
 void ToolAppCtrl::Save(Stream& s, byte charset) {

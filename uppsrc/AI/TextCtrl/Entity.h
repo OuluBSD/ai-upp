@@ -24,9 +24,14 @@ public:
 	MetaSrcFile& RealizeFileRoot();
 	void DataEntity();
 	void DataComponent();
-	void SaveFile();
-	
+	void OnLoad(const String& data, const String& filepath) override;
+	void OnSave(String& data, const String& filepath) override;
+	void AddEntity();
+	void RemoveEntity();
+	void AddComponent();
+	void RemoveComponent();
 	void SetComponentCtrl(Ctrl* c);
+	Entity* GetSelectedEntity();
 	
 	static String GetExt() { return ".ecs"; }
 	static String GetID() { return "Entity Editor"; }

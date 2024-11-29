@@ -627,4 +627,10 @@ void HotfixReplaceWord(String& s) {
 	}
 }
 
+
+
+INITIALIZER_COMPONENT(Script);
+INITIALIZER_COMPONENT(Lyrics);
+INITIALIZER_COMPONENT(Song);
+
 END_UPP_NAMESPACE

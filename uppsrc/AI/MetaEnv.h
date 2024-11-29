@@ -15,12 +15,94 @@ struct MetaNodeSubset;
 enum {
 	METAKIND_BEGIN = 1000,
 	
-	METAKIND_ECS_SPACE = 1000,
-	METAKIND_ECS_NODE,
+	METAKIND_COMMENT,
+	METAKIND_ECS_SPACE,
+	
+	METAKIND_EXTENSION_BEGIN = 1100,
+	
+	METAKIND_ECS_ENTITY,
+	
+	METAKIND_ECS_COMPONENT_BEGIN,
+	METAKIND_ECS_COMPONENT_SCRIPT,
+	METAKIND_ECS_COMPONENT_LYRICS,
+	METAKIND_ECS_COMPONENT_SONG,
+	METAKIND_ECS_COMPONENT_END,
 	
 	
-	METAKIND_COMMENT = 10000,
+	METAKIND_EXTENSION_END = 1200,
+	
+	
+	
 };
+
+inline bool IsEcsComponentKind(int kind) {
+	return kind > METAKIND_ECS_COMPONENT_BEGIN && kind < METAKIND_ECS_COMPONENT_END;
+}
+
+struct MetaNode;
+
+struct MetaNodeExt : Pte<MetaNodeExt> {
+	MetaNode* node = 0;
+	
+	virtual ~MetaNodeExt() {}
+	virtual void Serialize(Stream& s) = 0;
+	virtual void Jsonize(JsonIO& json) = 0;
+	virtual hash_t GetHashValue() const = 0;
+	
+	void CopyFrom(const MetaNodeExt& e);
+	bool operator==(const MetaNodeExt& e) const;
+};
+
+struct MetaExtCtrl;
+
+struct MetaExtFactory {
+	typedef MetaNodeExt* (*NewFn)();
+	typedef MetaExtCtrl* (*NewCtrl)();
+	typedef bool (*IsFn)(const MetaNodeExt& e);
+	
+	struct Factory {
+		int kind;
+		String name;
+		NewFn new_fn = 0;
+		NewCtrl new_ctrl_fn = 0;
+		IsFn is_fn = 0;
+	};
+	
+	
+	template<class T> struct Functions {
+		static MetaNodeExt* Create() {MetaNodeExt* c = new T; return c;}
+		static bool IsNodeExt(const MetaNodeExt& e) {return dynamic_cast<const T*>(&e);}
+	};
+	template<class T> struct CtrlFunctions {
+		static MetaExtCtrl* CreateCtrl() {return new T;}
+	};
+	static Array<Factory>& List() {static Array<Factory> f; return f;}
+	
+	template <class T> inline static void Register(String name) {
+		Factory& f = List().Add();
+		f.kind = T::GetKind();
+		f.name = name;
+		f.new_fn = &Functions<T>::Create;
+		f.is_fn = &Functions<T>::IsNodeExt;
+	}
+	
+	template <class Comp, class Ctrl> static void RegisterCtrl() {
+		for (Factory& f : List()) {
+			if (f.new_fn == &Create<Comp>) {
+				ASSERT(!f.new_ctrl_fn);
+				f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
+				break;
+			}
+		}
+	}
+	static MetaNodeExt* CreateKind(int kind);
+	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e);
+	static MetaNodeExt* Clone(const MetaNodeExt& e);
+	static int FindKindFactory(int kind);
+};
+
+#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}
+#define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {MetaExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
 struct MetaNode : Pte<MetaNode> {
 	Array<MetaNode> sub;
@@ -35,6 +117,7 @@ struct MetaNode : Pte<MetaNode> {
 	bool is_definition = false;
 	hash_t serial = 0;
 	bool is_disabled = false;
+	One<MetaNodeExt> ext;
 	
 	// Temp
 	int pkg = -1;
@@ -47,7 +130,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
-	virtual ~MetaNode();
+	~MetaNode();
 	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
 	void Assign(MetaNode* owner, const ClangNode& n);
@@ -61,12 +144,13 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
 	MetaNode& Add();
+	MetaNode& Add(int kind);
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
 	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
-	virtual void Serialize(Stream& s);
-	virtual void Jsonize(JsonIO& json);
+	void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
@@ -97,11 +181,25 @@ struct MetaNode : Pte<MetaNode> {
 	void RealizeSerial();
 	
 	template <class T>
+	T& Add() {
+		MetaNode& s = Add();
+		T* o = new T;
+		o->node = &s;
+		s.ext = o;
+		s.owner = this;
+		s.pkg = pkg;
+		s.file = file;
+		s.kind = T::GetKind();
+		return *o;
+	}
+	template <class T>
 	Vector<Ptr<T>> FindAll() {
 		Vector<Ptr<T>> v;
 		for (auto& s : sub) {
-			T* o = dynamic_cast<T*>(&s);
-			if (o) v.Add(o);
+			if (s.ext) {
+				T* o = dynamic_cast<T*>(&*s.ext);
+				if (o) v.Add(o);
+			}
 		}
 		return v;
 	}
@@ -137,7 +235,9 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	bool IsBinary() const {return GetFileExt(full_path) == ".bin";}
 	bool IsECS() const {return GetFileExt(full_path) == ".ecs";}
 	bool Store(bool forced=false);
+	String StoreJson();
 	bool Load();
+	bool LoadJson(String json);
 	void RefreshSeenTypes();
 	MetaNode& GetTemp();
 	MetaNode& CreateTemp();
@@ -223,6 +323,7 @@ struct MetaEnvironment {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcFile& Load(const String& includes, const String& path);
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
+	bool LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
@@ -247,6 +348,11 @@ struct MetaEnvironment {
 };
 
 MetaEnvironment& MetaEnv();
+
+
+
+
+
 
 END_UPP_NAMESPACE
 

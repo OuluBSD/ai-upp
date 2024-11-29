@@ -14,12 +14,21 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	entlist.AddColumn("Components");
 	entlist.ColumnWidths("3 1");
 	entlist.WhenCursor = THISBACK(DataEntity);
+	entlist.WhenBar = [this](Bar& b) {
+		b.Add("Add entity", THISBACK(AddEntity));
+		if (entlist.IsCursor())
+			b.Add("Remove entity", THISBACK(RemoveEntity));
+	};
 	
 	complist.AddColumn("Component");
-	complist.AddColumn("");
-	complist.ColumnWidths("3 1");
+	complist.AddColumn("Kind");
+	complist.ColumnWidths("3 2");
 	complist.WhenCursor = THISBACK(DataComponent);
-	
+	complist.WhenBar = [this](Bar& b) {
+		b.Add("Add component", THISBACK(AddComponent));
+		if (complist.IsCursor())
+			b.Add("Remove component", THISBACK(RemoveComponent));
+	};
 	
 }
 
@@ -50,7 +59,7 @@ void EntityEditorCtrl::Data() {
 		entlist.Set(row, 0, e.name);
 		
 		auto& e_comps = components[i];
-		e_comps = e.FindAll<Component>();
+		e_comps = e.node->FindAll<Component>();
 		
 		entlist.Set(row, 1, e_comps.GetCount());
 		row++;
@@ -71,15 +80,16 @@ void EntityEditorCtrl::DataEntity() {
 	}
 	
 	int ent_i = entlist.GetCursor();
+	auto& e = *entities[ent_i];
 	auto& comps = components[ent_i];
-	
+	comps = e.node->FindAll<Component>();
 	int row = 0;
 	for(int i = 0; i < comps.GetCount(); i++) {
 		auto& cp = comps[i];
 		if (!cp) continue;
 		auto& c = *cp;
 		complist.Set(row, 0, c.name);
-		complist.Set(row, 1, c.sub.GetCount());
+		complist.Set(row, 1, c.node->GetKindString());
 		row++;
 	}
 	complist.SetCount(row);
@@ -104,14 +114,17 @@ void EntityEditorCtrl::SetFont(Font fnt) {
 }
 
 void EntityEditorCtrl::ToolMenu(Bar& bar) {
-	bar.Add("Save file", THISBACK(SaveFile)).Key(K_CTRL|K_SHIFT|K_S);
-	bar.Separator();
 	bar.Add("Test function 1", THISBACK1(Do, 0));
 }
 
-void EntityEditorCtrl::SaveFile() {
+void EntityEditorCtrl::OnLoad(const String& data, const String& filepath) {
+	MetaEnv().LoadFileRootJson("", filepath, data, true);
+}
+
+void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 	MetaSrcFile& file = RealizeFileRoot();
-	file.Store(true);
+	file.MakeTempFromEnv(false);
+	data = file.StoreJson();
 }
 
 MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
@@ -123,6 +136,70 @@ MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	MetaNode& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
 	this->file_root = &n;
 	return file;
+}
+
+void EntityEditorCtrl::AddEntity() {
+	RealizeFileRoot();
+	MetaNode& n = *file_root;
+	Entity& e = n.Add<Entity>();
+	ASSERT(e.node->kind == METAKIND_ECS_ENTITY);
+	e.name = "Unnamed";
+	PostCallback(THISBACK(Data));
+}
+
+void EntityEditorCtrl::RemoveEntity() {
+	if (!entlist.IsCursor()) return;
+	MetaNode& n = *file_root;
+	int ent_i = entlist.GetCursor();
+	if (ent_i >= 0 && ent_i < n.sub.GetCount())
+		n.sub.Remove(ent_i);
+	PostCallback(THISBACK(Data));
+}
+
+Entity* EntityEditorCtrl::GetSelectedEntity() {
+	if (!entlist.IsCursor()) return 0;
+	MetaNode& n = *file_root;
+	int ent_i = entlist.GetCursor();
+	if (ent_i >= 0 && ent_i < entities.GetCount()) {
+		return entities[ent_i];
+	}
+	return 0;
+}
+
+void EntityEditorCtrl::AddComponent() {
+	Entity* e = GetSelectedEntity();
+	if (!e) return;
+	String title = "Add component";
+	WithComponentSelection<TopWindow> dlg;
+	CtrlLayoutOKCancel(dlg, title);
+	Vector<int> list;
+	for(int i = 0; i < MetaExtFactory::List().GetCount(); i++) {
+		auto& cf = MetaExtFactory::List()[i];
+		if (IsEcsComponentKind(cf.kind)) {
+			list.Add(i);
+			dlg.complist.Add(cf.name);
+		}
+	}
+	if (dlg.complist.GetCount() == 0) return;
+	dlg.complist.SetIndex(0);
+	if(dlg.Execute() == IDOK) {
+		int i = dlg.complist.GetIndex();
+		int comp_i = list[i];
+		if (comp_i < 0 || comp_i >= MetaExtFactory::List().GetCount()) return;
+		const auto& factory = MetaExtFactory::List()[comp_i];
+		auto& comp = e->node->Add(factory.kind);
+		ASSERT(comp.kind == factory.kind);
+		PostCallback(THISBACK(Data));
+	}
+}
+
+void EntityEditorCtrl::RemoveComponent() {
+	Entity* e = GetSelectedEntity();
+	if (!e || !complist.IsCursor()) return;
+	int comp_i = complist.GetCursor();
+	if (comp_i >= 0 && comp_i < e->node->sub.GetCount())
+		e->node->sub.Remove(comp_i);
+	PostCallback(THISBACK(Data));
 }
 
 void EntityEditorCtrl::Do(int i) {

@@ -232,11 +232,9 @@ struct Script : Component, LyricalStructure {
 
 	Script() {}
 	~Script();
-	String GetTypename() const override {return "Lyric";}
-	const std::type_info& GetType() const override {return typeid(*this);}
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Serialize(Stream& s) override {Component::Serialize(s); s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}
 	void Jsonize(JsonIO& json) override
 	{
 		Component::Jsonize(json);
@@ -248,7 +246,13 @@ struct Script : Component, LyricalStructure {
 		for(int i = 0; i < PART_COUNT; i++)
 			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
 	}
+	hash_t GetHashValue() const override {CombineHash h; h.Do(simple_attrs).Do(clr_list).Do(actions_enabled); for(int i = 0; i < PART_COUNT; i++) h.Do(phrase_parts[i]); return h;}
+	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT;}
+	
 };
+
+INITIALIZE(Script);
 
 void ReplaceWord(String& s, const String& orig_word, const String& replace_word);
 void HotfixReplaceWord(WString& ws);
@@ -306,17 +310,32 @@ struct Lyrics : Component, LyricalStructure {
 			json("script_suggs", script_suggs);
 		}*/
 	}
+	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
 	String GetText() const;
+	
+	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LYRICS;}
+	
 };
+
+INITIALIZE(Lyrics);
 
 struct Song : Component {
 	
+	Song() {}
+	~Song(){}
 	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
 	void Jsonize(JsonIO& json) override
 	{
 		Component::Jsonize(json); Panic("TODO");
 	}
+	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
+	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}
+	
 };
+
+INITIALIZE(Song);
 
 END_UPP_NAMESPACE
 

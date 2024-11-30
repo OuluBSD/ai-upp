@@ -129,7 +129,7 @@ void PartContentCtrl::InitDefault(PartLineCtrl& l) {
 }
 
 void PartContentCtrl::DataLine(PartLineCtrl& pl) {
-	const EditorPtrs& p = o.GetPointers();
+	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	DatabaseBrowser& b = DatabaseBrowser::Single();
@@ -185,7 +185,7 @@ void PartContentCtrl::OnLineValueChange(PartLineCtrl* l_) {
 	PartLineCtrl& pl = *l_;
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	
-	const EditorPtrs& p = o.GetPointers();
+	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	
@@ -254,7 +254,7 @@ void PartContentCtrl::DataSelAction(PartLineCtrl* l_) {
 }
 
 void PartContentCtrl::Data() {
-	const EditorPtrs& p = o.GetPointers();
+	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	
@@ -345,7 +345,7 @@ int PartContentCtrl::FindElement(const String& s) {
 }
 
 void PartContentCtrl::OnElementChange(int sub_i, int line_i, DropList* dl) {
-	const EditorPtrs& p = o.GetPointers();
+	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	Script& s = *p.script;
@@ -445,7 +445,7 @@ bool PartLineCtrl::IsSelected() const {
 }
 
 LineElement* PartLineCtrl::GetLineEl() const {
-	const EditorPtrs& p = o.o.GetPointers();
+	DatasetPtrs p = o.o.GetDataset();
 	Script& s = *p.script;
 	int part_i = o.o.parts.GetCursor();
 	DynPart& dp = s.parts[part_i];
@@ -467,7 +467,7 @@ LineElement* PartLineCtrl::GetLineEl() const {
 }
 
 DynLine* PartLineCtrl::GetDynLine() const {
-	const EditorPtrs& p = o.o.GetPointers();
+	DatasetPtrs p = o.o.GetDataset();
 	Script& s = *p.script;
 	int part_i = o.o.parts.GetCursor();
 	DynPart& dp = s.parts[part_i];

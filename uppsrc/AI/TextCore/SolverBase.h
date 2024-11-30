@@ -45,7 +45,7 @@ public:
 	typedef SolverBase CLASSNAME;
 	SolverBase();
 	
-	TextDatabase& GetDatabase() const;
+	//TextDatabase& GetDatabase() const;
 	int GetTypeclassCount() {TODO return -1; /*return TextLib::GetTypeclassCount(appmode);*/} // should be based on text files
 	int GetContentCount() {TODO return -1; /*return TextLib::GetContentCount(appmode);*/} // should be based on text files
 	

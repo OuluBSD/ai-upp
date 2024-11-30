@@ -20,7 +20,7 @@ void NavigatorState::Clear() {
 }
 
 
-ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ToolAppCtrl& o) : o(o) {
+ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ComponentCtrl& o) : o(o) {
 	Add(mode.TopPos(0,30).HSizePos());
 	Add(hsplit.VSizePos(30,0).HSizePos());
 	
@@ -213,7 +213,7 @@ void ScriptPhrasePartsGroups::FillArrayCtrl(DatabaseBrowser::ColumnType t, Array
 
 void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	DatasetPtrs& p = o.GetDataset();
+	DatasetPtrs p = o.GetDataset();
 	ASSERT(p.src);
 	auto& src = *p.src;
 
@@ -372,7 +372,7 @@ ScriptReferenceMakerCtrl::ScriptReferenceMakerCtrl() : db0(*this), content(*this
 }
 
 void ScriptReferenceMakerCtrl::Data() {
-	Script& s = GetScript();
+	Script& s = *GetDataset().script;
 	
 	for(int i = 0; i < s.parts.GetCount(); i++) {
 		const DynPart& p = s.parts[i];
@@ -389,7 +389,7 @@ void ScriptReferenceMakerCtrl::Data() {
 }
 
 void ScriptReferenceMakerCtrl::DataPart() {
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.script || !parts.IsCursor())
 		return;
 	
@@ -474,7 +474,7 @@ void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorS
 void ScriptReferenceMakerCtrl::ReadNavigatorState(NavigatorState& state, int depth_limit) {
 	state.Clear();
 	
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.script || !parts.IsCursor())
 		return;
 	
@@ -509,7 +509,7 @@ void ScriptReferenceMakerCtrl::DataLine() {
 }
 
 void ScriptReferenceMakerCtrl::MakeLines() {
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.script || !parts.IsCursor())
 		return;
 	
@@ -581,7 +581,7 @@ void ScriptReferenceMakerCtrl::OnBrowserCursor() {
 }
 
 void ScriptReferenceMakerCtrl::OnValueChange() {
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.script || !parts.IsCursor())
 		return;
 	
@@ -633,7 +633,7 @@ void ScriptReferenceMakerCtrl::SetLineText() {
 }
 
 void ScriptReferenceMakerCtrl::Do(int fn) {
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	// Add part
 	if (fn == 0) {
@@ -675,7 +675,7 @@ int ScriptReferenceMakerCtrl::GetInheritedMode() {
 	PartLineCtrl* l = content.GetActiveLine();
 	if (!l)
 		return -1;
-	const EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	Script& s = *p.script;
 	int part_i = parts.GetCursor();
 	DynPart& dp = s.parts[part_i];
@@ -758,7 +758,7 @@ void PartLineCtrl::Paint(Draw& d) {
 	if (line_i >= 0) d.DrawRect(line_bg_r, line_bg_clr);
 	
 	// Line texts
-	const EditorPtrs& p = o.o.GetPointers();
+	DatasetPtrs p = o.o.GetDataset();
 	Script& s = *p.script;
 	int part_i = o.o.parts.GetCursor();
 	if (part_i < 0)
@@ -872,6 +872,8 @@ void PartLineCtrl::Paint(Draw& d) {
 		d.DrawLine(0,sz.cy-1,sz.cx,sz.cy-1,1,GrayColor(128+64));
 	}
 }
+
+INITIALIZER_COMPONENT_CTRL(Script, ScriptReferenceMakerCtrl)
 
 
 END_UPP_NAMESPACE

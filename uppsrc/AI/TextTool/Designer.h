@@ -29,15 +29,11 @@ struct Des : IdeDesigner, ParentCtrl {
 	Des();
 };
 
-using DialogueDes = Des<ScriptReferenceMakerCtrl>;
 using SourceTextDes = Des<SourceTextCtrl>;
-using ScriptTextSolverDes = Des<ScriptTextSolverCtrl>;
 using EntityEditorDes = Des<EntityEditorCtrl>;
 
 
-INITIALIZE(DialogueDes)
 INITIALIZE(SourceTextDes)
-INITIALIZE(ScriptTextSolverDes)
 INITIALIZE(EntityEditorDes)
 
 

@@ -33,15 +33,14 @@ public:
 	virtual String GetStatusText() { return String(); }
 	
 	void AddMenu();
-	TextDatabase& GetDatabase();
 	Entity& GetEntity();
 	Component& GetComponent();
-	EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
+	//EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
 	DatasetPtrs& GetDataset() const;
 	Script& GetScript();
-	const Index<String>& GetTypeclasses() const;
-	const Vector<ContentType>& GetContents() const;
-	const Vector<String>& GetContentParts() const;
+	//const Index<String>& GetTypeclasses() const;
+	//const Vector<ContentType>& GetContents() const;
+	//const Vector<String>& GetContentParts() const;
 	
 	bool IsScript() const;
 	bool HasPointers() const;

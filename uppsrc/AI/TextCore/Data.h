@@ -3,6 +3,7 @@
 
 NAMESPACE_UPP
 
+#if 0
 // TODO remove EditorPtrs & use DatasetPtrs
 struct Script;
 struct DynPart;
@@ -28,6 +29,7 @@ struct EditorPtrs {
 	
 	static EditorPtrs& Single() {static EditorPtrs p; return p;}
 };
+#endif
 
 struct Token : Moveable<Token> {
 	mutable int word_ = -1;

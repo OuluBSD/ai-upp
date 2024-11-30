@@ -3,12 +3,37 @@
 
 NAMESPACE_UPP
 
-struct Component : MetaNodeExt {
-	String name;
+struct Entity;
+struct SrcTextData;
+struct Component;
+struct Script;
+struct Lyrics;
+
+struct DatasetPtrs {
+	Ptr<SrcTextData>		src;
+	Ptr<Entity>				entity;
+	Ptr<Component>			component;
 	
-	Component* GetComponent() {return this;}
-	void Serialize(Stream& s) override {s % name;}
-	void Jsonize(JsonIO& json) override {json("name",name);}
+	// Specialized components
+	Ptr<Script>				script; // TODO rename to lyrics_draft
+	Ptr<Lyrics>				lyrics;
+	
+	DatasetPtrs() {}
+	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
+	void operator=(const DatasetPtrs& p) {
+		src = p.src;
+		entity = p.entity;
+		component = p.component;
+		script = p.script;
+		lyrics = p.lyrics;
+	}
+	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
+	
+};
+
+struct Component : MetaNodeExt {
+	
+	DatasetPtrs GetDataset();
 	
 };
 
@@ -28,6 +53,7 @@ struct Entity : MetaNodeExt {
 	void Serialize(Stream& s) override {s % name % type % data % gender; }
 	void Jsonize(JsonIO& json) override {json("name", name)("type", type)("data", data)("gender",gender); }
 	hash_t GetHashValue() const override {CombineHash ch; ch.Do(name).Do(type).Do(data).Do(gender); return ch;}
+	Value& Data(const String& key) {return data.GetAdd(key);}
 	
 	bool operator()(const Entity& a, const Entity& b) const {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());

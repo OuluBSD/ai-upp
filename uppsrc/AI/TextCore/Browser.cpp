@@ -391,7 +391,7 @@ bool DatabaseBrowser::FilterPronounciation(SrcTextData& da, const PhrasePart& pp
 	return false;
 }
 
-TextDatabase& DatabaseBrowser::GetDatabase() { return TextDatabase::Single(); }
+//TextDatabase& DatabaseBrowser::GetDatabase() { return TextDatabase::Single(); }
 
 DatabaseBrowser& DatabaseBrowser::Single()
 {

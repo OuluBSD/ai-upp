@@ -1753,6 +1753,19 @@ void MetaNode::RealizeSerial() {
 		s.RealizeSerial();
 }
 
+Vector<Ptr<MetaNodeExt>> MetaNode::GetAllExtensions() {
+	Vector<Ptr<MetaNodeExt>> v;
+	for (auto& s : sub) {
+		if (s.ext) {
+			v.Add(&*s.ext);
+		}
+	}
+	return v;
+}
+
+MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
+MetaNode& MetaExtCtrl::GetNode() {return *ext->node;}
+
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
     MetaSrcPkg& af = ResolveFile(includes, path);

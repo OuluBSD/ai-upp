@@ -234,10 +234,9 @@ struct Script : Component, LyricalStructure {
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Serialize(Stream& s) override {Component::Serialize(s); s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}
+	void Serialize(Stream& s) override {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}
 	void Jsonize(JsonIO& json) override
 	{
-		Component::Jsonize(json);
 		LyricalStructure::Jsonize(json);
 		json("simple_attrs", simple_attrs)
 			("clr_list", clr_list)
@@ -285,10 +284,9 @@ struct Lyrics : Component, LyricalStructure {
 	
 	Lyrics() {}
 	~Lyrics() {}
-	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Serialize(Stream& s) override {Panic("TODO");}
 	void Jsonize(JsonIO& json) override
 	{
-		Component::Jsonize(json);
 		LyricalStructure::Jsonize(json);
 		json("name", name)
 			("content_vision", content_vision)
@@ -324,10 +322,10 @@ struct Song : Component {
 	
 	Song() {}
 	~Song(){}
-	void Serialize(Stream& s) override {Component::Serialize(s); Panic("TODO");}
+	void Serialize(Stream& s) override {Panic("TODO");}
 	void Jsonize(JsonIO& json) override
 	{
-		Component::Jsonize(json); Panic("TODO");
+		Panic("TODO");
 	}
 	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
 	

@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 class ToolAppCtrl;
+class ComponentCtrl;
 class TextDatabase;
 
 struct VMapSumSorter {
@@ -85,7 +86,7 @@ public:
 
 	bool FilterPronounciation(SrcTextData& da, const PhrasePart& pp);
 
-	ToolAppCtrl* ctrl = 0;
+	ComponentCtrl* ctrl = 0;
 
 public:
 	DatabaseBrowser();
@@ -97,7 +98,7 @@ public:
 	int GetMode() const { return mode; }
 	void SetColumnCursor(ColumnType t, int i);
 	void FillItems(ColumnType t);
-	void SetCtrl(ToolAppCtrl& c) { ctrl = &c; }
+	void SetCtrl(ComponentCtrl& c) { ctrl = &c; }
 	void Init();
 	void Update();
 	void SetMode(const DatasetPtrs& p, int i);
@@ -152,7 +153,7 @@ public:
 	void Load();
 
 	hash_t GetHash(int columns) const;
-	TextDatabase& GetDatabase();
+	//TextDatabase& GetDatabase();
 
 	static DatabaseBrowser& Single(); // TODO rename to Lyric
 };

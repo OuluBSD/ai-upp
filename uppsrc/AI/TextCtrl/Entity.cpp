@@ -2,16 +2,38 @@
 
 NAMESPACE_UPP
 
+
+DatasetPtrs ComponentCtrl::GetDataset() {
+	Component& comp = dynamic_cast<Component&>(*ext);
+	return comp.GetDataset();
+}
+
+Script& ComponentCtrl::GetScript() {
+	return *GetDataset().script; // TODO fix: unsafe
+}
+
+const Index<String>& ComponentCtrl::GetTypeclasses() const {
+	TODO static Index<String> i; return i;
+}
+
+const Vector<ContentType>& ComponentCtrl::GetContents() const {
+	TODO static Vector<ContentType> i; return i;
+}
+
+const Vector<String>& ComponentCtrl::GetContentParts() const {
+	TODO static Vector<String> i; return i;
+}
+
 EntityEditorCtrl::EntityEditorCtrl() {
 	AddMenu();
 	Add(hsplit.SizePos());
 	
-	hsplit.Horz() << lsplit << comp_place;
+	hsplit.Horz() << lsplit << ext_place;
 	hsplit.SetPos(2000);
-	lsplit.Vert() << entlist << complist;
+	lsplit.Vert() << entlist << extlist;
 	
 	entlist.AddColumn("Entity");
-	entlist.AddColumn("Components");
+	entlist.AddColumn("Extensions");
 	entlist.ColumnWidths("3 1");
 	entlist.WhenCursor = THISBACK(DataEntity);
 	entlist.WhenBar = [this](Bar& b) {
@@ -20,20 +42,30 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			b.Add("Remove entity", THISBACK(RemoveEntity));
 	};
 	
-	complist.AddColumn("Component");
-	complist.AddColumn("Kind");
-	complist.ColumnWidths("3 2");
-	complist.WhenCursor = THISBACK(DataComponent);
-	complist.WhenBar = [this](Bar& b) {
-		b.Add("Add component", THISBACK(AddComponent));
-		if (complist.IsCursor())
-			b.Add("Remove component", THISBACK(RemoveComponent));
+	extlist.AddColumn("Extension");
+	extlist.AddColumn("Kind");
+	extlist.ColumnWidths("3 2");
+	extlist.WhenCursor = THISBACK(DataExtension);
+	extlist.WhenBar = [this](Bar& b) {
+		b.Add("Add Component", THISBACK(AddComponent));
+		if (extlist.IsCursor())
+			b.Add("Remove Component", THISBACK(RemoveComponent));
 	};
 	
 }
 
-void EntityEditorCtrl::SetComponentCtrl(Ctrl* c) {
-	
+void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
+	if (ext_ctrl) {
+		ext_place.RemoveChild(&*ext_ctrl);
+		ext_ctrl.Clear();
+		ext_ctrl_kind = -1;
+	}
+	if (c) {
+		ext_ctrl_kind = kind;
+		ext_ctrl.Attach(c);
+		ext_place.Add(c->SizePos());
+		PostCallback(THISBACK(DataExtCtrl));
+	}
 }
 
 void EntityEditorCtrl::Data() {
@@ -42,14 +74,14 @@ void EntityEditorCtrl::Data() {
 	
 	if (!file_root) {
 		entlist.Clear();
-		complist.Clear();
-		SetComponentCtrl(0);
+		extlist.Clear();
+		ClearExtensionCtrl();
 		return;
 	}
 	
 	entities = this->file_root->FindAll<Entity>();
 	
-	components.SetCount(entities.GetCount());
+	extensions.SetCount(entities.GetCount());
 	
 	int row = 0;
 	for(int i = 0; i < entities.GetCount(); i++) {
@@ -58,10 +90,10 @@ void EntityEditorCtrl::Data() {
 		auto& e = *ep;
 		entlist.Set(row, 0, e.name);
 		
-		auto& e_comps = components[i];
-		e_comps = e.node->FindAll<Component>();
+		auto& e_exts = extensions[i];
+		e_exts = e.node->GetAllExtensions();
 		
-		entlist.Set(row, 1, e_comps.GetCount());
+		entlist.Set(row, 1, e_exts.GetCount());
 		row++;
 	}
 	entlist.SetCount(row);
@@ -74,39 +106,69 @@ void EntityEditorCtrl::Data() {
 
 void EntityEditorCtrl::DataEntity() {
 	if (!entlist.IsCursor()) {
-		complist.Clear();
-		SetComponentCtrl(0);
+		extlist.Clear();
+		ClearExtensionCtrl();
 		return;
 	}
 	
 	int ent_i = entlist.GetCursor();
 	auto& e = *entities[ent_i];
-	auto& comps = components[ent_i];
-	comps = e.node->FindAll<Component>();
+	auto& exts = extensions[ent_i];
+	exts = e.node->GetAllExtensions();
+	exts.Insert(0, &e);
 	int row = 0;
-	for(int i = 0; i < comps.GetCount(); i++) {
-		auto& cp = comps[i];
+	for(int i = 0; i < exts.GetCount(); i++) {
+		auto& cp = exts[i];
 		if (!cp) continue;
 		auto& c = *cp;
-		complist.Set(row, 0, c.name);
-		complist.Set(row, 1, c.node->GetKindString());
+		extlist.Set(row, 0, c.GetName());
+		extlist.Set(row, 1, c.node->GetKindString());
 		row++;
 	}
-	complist.SetCount(row);
+	extlist.SetCount(row);
 	
-	if (!complist.IsCursor() && complist.GetCount())
-		complist.SetCursor(0);
+	if (!extlist.IsCursor() && extlist.GetCount())
+		extlist.SetCursor(0);
 	else
-		DataComponent();
+		DataExtension();
 }
 
-void EntityEditorCtrl::DataComponent() {
-	if (!entlist.IsCursor()) {
-		SetComponentCtrl(0);
+void EntityEditorCtrl::DataExtension() {
+	if (!entlist.IsCursor() || !extlist.IsCursor()) {
+		ClearExtensionCtrl();
 		return;
 	}
 	
+	int ent_i = entlist.GetCursor();
+	int ext_i = extlist.GetCursor();
+	auto& e = *entities[ent_i];
+	auto& exts = extensions[ent_i];
+	MetaNodeExt& ext = *exts[ext_i];
 	
+	if (ext_ctrl_kind != ext.node->kind) {
+		int fac_i = MetaExtFactory::FindKindFactory(ext.node->kind);
+		
+		if (fac_i < 0) {
+			ClearExtensionCtrl();
+			return;
+		}
+		const auto& fac = MetaExtFactory::List()[fac_i];
+		if (fac.new_ctrl_fn) {
+			MetaExtCtrl* ctrl = fac.new_ctrl_fn();
+			ctrl->ext = &ext;
+			SetExtensionCtrl(ext.node->kind, ctrl);
+		}
+		else {
+			ClearExtensionCtrl();
+			return;
+		}
+	}
+	DataExtCtrl();
+}
+
+void EntityEditorCtrl::DataExtCtrl() {
+	if (ext_ctrl)
+		ext_ctrl->Data();
 }
 
 void EntityEditorCtrl::SetFont(Font fnt) {
@@ -169,7 +231,7 @@ Entity* EntityEditorCtrl::GetSelectedEntity() {
 void EntityEditorCtrl::AddComponent() {
 	Entity* e = GetSelectedEntity();
 	if (!e) return;
-	String title = "Add component";
+	String title = "Add Component";
 	WithComponentSelection<TopWindow> dlg;
 	CtrlLayoutOKCancel(dlg, title);
 	Vector<int> list;
@@ -184,21 +246,22 @@ void EntityEditorCtrl::AddComponent() {
 	dlg.complist.SetIndex(0);
 	if(dlg.Execute() == IDOK) {
 		int i = dlg.complist.GetIndex();
-		int comp_i = list[i];
-		if (comp_i < 0 || comp_i >= MetaExtFactory::List().GetCount()) return;
-		const auto& factory = MetaExtFactory::List()[comp_i];
-		auto& comp = e->node->Add(factory.kind);
-		ASSERT(comp.kind == factory.kind);
+		int ext_i = list[i];
+		if (ext_i < 0 || ext_i >= MetaExtFactory::List().GetCount()) return;
+		const auto& factory = MetaExtFactory::List()[ext_i];
+		auto& ext = e->node->Add(factory.kind);
+		ASSERT(ext.kind == factory.kind);
 		PostCallback(THISBACK(Data));
 	}
 }
 
 void EntityEditorCtrl::RemoveComponent() {
 	Entity* e = GetSelectedEntity();
-	if (!e || !complist.IsCursor()) return;
-	int comp_i = complist.GetCursor();
-	if (comp_i >= 0 && comp_i < e->node->sub.GetCount())
-		e->node->sub.Remove(comp_i);
+	if (!e || !extlist.IsCursor()) return;
+	int ext_i = extlist.GetCursor();
+	if (ext_i == 0) return; // don't remove EntityInfoCtrl
+	if (ext_i >= 0 && ext_i < e->node->sub.GetCount())
+		e->node->sub.Remove(ext_i);
 	PostCallback(THISBACK(Data));
 }
 
@@ -214,5 +277,44 @@ void EntityEditorCtrl::Do(int i) {
 	}
 	
 }
+
+
+
+
+
+
+
+
+
+
+EntityInfoCtrl::EntityInfoCtrl() {
+	Add(info.SizePos());
+	CtrlLayout(info);
+	
+	info.name.WhenAction = THISBACK(OnEdit);
+	info.type.WhenAction = THISBACK(OnEdit);
+	info.desc.WhenAction = THISBACK(OnEdit);
+}
+
+void EntityInfoCtrl::Data() {
+	MetaNode& n = GetNode();
+	Entity& e = GetExt<Entity>();
+	info.name = e.name;
+	info.type = e.type;
+	info.desc.SetData((String)e.Data("description"));
+}
+
+void EntityInfoCtrl::OnEdit() {
+	Entity& e = GetExt<Entity>();
+	e.name = ~info.name;
+	e.type = ~info.type;
+	e.Data("description") = info.desc.GetData();
+}
+
+void EntityInfoCtrl::ToolMenu(Bar& bar) {
+	
+}
+
+INITIALIZER_COMPONENT_CTRL(Entity, EntityInfoCtrl)
 
 END_UPP_NAMESPACE

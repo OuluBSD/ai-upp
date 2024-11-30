@@ -21,8 +21,8 @@ void SolverBaseIndicator::SetProgress(int a, int t) {
 
 
 bool ToolAppCtrl::IsScript() const {
-	EditorPtrs& p = GetPointers();
-	return p.script != 0;
+	const auto& p = GetDataset();
+	return p.script;
 }
 
 bool ToolAppCtrl::HasPointers() const {
@@ -31,14 +31,14 @@ bool ToolAppCtrl::HasPointers() const {
 }
 
 Script& ToolAppCtrl::GetScript() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs& p = GetDataset();
 	if(!p.script)
 		throw NoPointerExc("no scripts");
 	return *p.script;
 }
 
 Component& ToolAppCtrl::GetComponent() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs& p = GetDataset();
 	if(!p.component || !p.entity)
 		throw NoPointerExc("no song");
 	return *p.component;
@@ -49,12 +49,8 @@ void ToolAppCtrl::AddMenu() {
 	ToolMenu(menu);
 }
 
-TextDatabase& ToolAppCtrl::GetDatabase() {
-	return TextDatabase::Single();
-}
-
 Entity& ToolAppCtrl::GetEntity() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs& p = GetDataset();
 	if(!p.entity)
 		throw NoPointerExc("no artist");
 	return *p.entity;
@@ -62,7 +58,7 @@ Entity& ToolAppCtrl::GetEntity() {
 
 String ToolAppCtrl::GetComponentTitle() const {
 	/*TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs& p = GetDataset();
 	if(!p.component || !p.entity)
 		throw NoPointerExc("no song");
 	Component& song = *p.component;
@@ -74,15 +70,11 @@ String ToolAppCtrl::GetComponentTitle() const {
 	return "";
 }
 
-EditorPtrs& ToolAppCtrl::GetPointers() const {
-	return EditorPtrs::Single();
-}
-
 DatasetPtrs& ToolAppCtrl::GetDataset() const {
-	return DatasetPtrs::Single();
+	TODO return DatasetPtrs::Single();
 }
 
-const Index<String>& ToolAppCtrl::GetTypeclasses() const {
+/*const Index<String>& ToolAppCtrl::GetTypeclasses() const {
 	TODO static Index<String> i; return i;
 }
 
@@ -92,11 +84,11 @@ const Vector<ContentType>& ToolAppCtrl::GetContents() const {
 
 const Vector<String>& ToolAppCtrl::GetContentParts() const {
 	TODO static Vector<String> i; return i;
-}
+}*/
 
 /*int ToolAppCtrl::GetDataset() {
 	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs& p = GetDataset();
 	if(!p.component || !p.entity)
 		throw NoPointerExc("no song");
 	Component& song = *p.component;

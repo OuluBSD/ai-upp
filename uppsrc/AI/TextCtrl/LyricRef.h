@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 
 class ScriptPhrasePartsGroups : public Ctrl {
-	ToolAppCtrl& o;
+	ComponentCtrl& o;
 	Splitter vsplit, hsplit;
 	bool set_cursor = true;
 	
@@ -20,7 +20,7 @@ protected:
 	
 public:
 	typedef ScriptPhrasePartsGroups CLASSNAME;
-	ScriptPhrasePartsGroups(ToolAppCtrl& o);
+	ScriptPhrasePartsGroups(ComponentCtrl& o);
 	
 	void UpdateNavigator();
 	void Data();
@@ -40,7 +40,7 @@ public:
 void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit);
 
 // TODO rename
-class ScriptReferenceMakerCtrl : public ToolAppCtrl {
+class ScriptReferenceMakerCtrl : public ComponentCtrl {
 	String data;
 	
 protected:
@@ -58,9 +58,9 @@ public:
 	ScriptReferenceMakerCtrl();
 	
 	void Data() override;
+	void ToolMenu(Bar& bar) override;
 	void DataPart();
 	void DataLine();
-	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
 	void OnValueChange();
 	void MakeLines();
@@ -72,9 +72,9 @@ public:
 	void SetFont(Font fnt);
 	void ReadNavigatorState(NavigatorState& state, int depth_limit=INT_MAX);
 	
-	static String GetID() {return "lyrics-draft";}
-	static String GetExt() {return ".lyr-drf";}
 };
+
+INITIALIZE(ScriptReferenceMakerCtrl)
 
 END_UPP_NAMESPACE
 

@@ -3,16 +3,45 @@
 
 NAMESPACE_UPP
 
+struct Script;
+
+class ComponentCtrl : public MetaExtCtrl {
+	
+public:
+	DatasetPtrs GetDataset();
+	Script& GetScript();
+	
+	const Index<String>& GetTypeclasses() const;
+	const Vector<ContentType>& GetContents() const;
+	const Vector<String>& GetContentParts() const;
+	
+};
+
+class EntityInfoCtrl : public MetaExtCtrl {
+	WithEntityInfo<Ctrl> info;
+	
+public:
+	typedef EntityInfoCtrl CLASSNAME;
+	EntityInfoCtrl();
+	void Data() override;
+	void ToolMenu(Bar& bar) override;
+	void OnEdit();
+};
+
+INITIALIZE(EntityInfoCtrl)
+
 
 class EntityEditorCtrl : public ToolAppCtrl {
 	Splitter hsplit, lsplit;
-	ArrayCtrl entlist, complist;
-	Ctrl comp_place;
+	ArrayCtrl entlist, extlist;
+	Ctrl ext_place;
+	One<MetaExtCtrl> ext_ctrl;
+	int ext_ctrl_kind = -1;
 	
 protected:
 	Ptr<MetaNode> file_root;
 	Vector<Ptr<Entity>> entities;
-	Vector<Vector<Ptr<Component>>> components;
+	Vector<Vector<Ptr<MetaNodeExt>>> extensions;
 	
 public:
 	typedef EntityEditorCtrl CLASSNAME;
@@ -23,14 +52,16 @@ public:
 	void ToolMenu(Bar& bar) override;
 	MetaSrcFile& RealizeFileRoot();
 	void DataEntity();
-	void DataComponent();
+	void DataExtension();
+	void DataExtCtrl();
 	void OnLoad(const String& data, const String& filepath) override;
 	void OnSave(String& data, const String& filepath) override;
 	void AddEntity();
 	void RemoveEntity();
 	void AddComponent();
 	void RemoveComponent();
-	void SetComponentCtrl(Ctrl* c);
+	void SetExtensionCtrl(int kind, MetaExtCtrl* ctrl);
+	void ClearExtensionCtrl() {SetExtensionCtrl(-1,0);}
 	Entity* GetSelectedEntity();
 	
 	static String GetExt() { return ".ecs"; }

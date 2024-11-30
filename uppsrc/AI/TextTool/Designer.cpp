@@ -133,9 +133,7 @@ struct DesModule : public IdeModule {
 		RegisterGlobalConfig(x##Module::GetIDStatic()); \
 	}
 
-INITIALIZE_MODULE(DialogueDes)
 INITIALIZE_MODULE(SourceTextDes)
-INITIALIZE_MODULE(ScriptTextSolverDes)
 INITIALIZE_MODULE(EntityEditorDes)
 
 END_UPP_NAMESPACE

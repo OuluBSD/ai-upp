@@ -48,12 +48,24 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual void Serialize(Stream& s) = 0;
 	virtual void Jsonize(JsonIO& json) = 0;
 	virtual hash_t GetHashValue() const = 0;
+	virtual String GetName() const {return String();}
 	
 	void CopyFrom(const MetaNodeExt& e);
 	bool operator==(const MetaNodeExt& e) const;
+	
 };
 
-struct MetaExtCtrl;
+struct MetaExtCtrl : Ctrl {
+	Ptr<MetaNodeExt> ext;
+	
+	virtual ~MetaExtCtrl() {}
+	virtual void Data() = 0;
+	virtual void ToolMenu(Bar& bar) = 0;
+	MetaNode& GetNode();
+	MetaNodeExt& GetExt();
+	
+	template <class T> T& GetExt() {return dynamic_cast<T&>(*ext);}
+};
 
 struct MetaExtFactory {
 	typedef MetaNodeExt* (*NewFn)();
@@ -63,6 +75,7 @@ struct MetaExtFactory {
 	struct Factory {
 		int kind;
 		String name;
+		String ctrl_name;
 		NewFn new_fn = 0;
 		NewCtrl new_ctrl_fn = 0;
 		IsFn is_fn = 0;
@@ -86,11 +99,12 @@ struct MetaExtFactory {
 		f.is_fn = &Functions<T>::IsNodeExt;
 	}
 	
-	template <class Comp, class Ctrl> static void RegisterCtrl() {
+	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
 		for (Factory& f : List()) {
-			if (f.new_fn == &Create<Comp>) {
-				ASSERT(!f.new_ctrl_fn);
+			if (f.is_fn == &Functions<Comp>::IsNodeExt) {
+				ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
 				f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
+				f.ctrl_name = ctrl_name;
 				break;
 			}
 		}
@@ -179,6 +193,7 @@ struct MetaNode : Pte<MetaNode> {
 	void RemoveAllDeep(int kind);
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 	void RealizeSerial();
+	Vector<Ptr<MetaNodeExt>> GetAllExtensions();
 	
 	template <class T>
 	T& Add() {
@@ -192,6 +207,7 @@ struct MetaNode : Pte<MetaNode> {
 		s.kind = T::GetKind();
 		return *o;
 	}
+	
 	template <class T>
 	Vector<Ptr<T>> FindAll() {
 		Vector<Ptr<T>> v;

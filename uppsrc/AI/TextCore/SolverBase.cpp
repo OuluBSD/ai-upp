@@ -211,9 +211,9 @@ void SolverBase::StopAll() {
 	LOG("SolverBase::StopAll: TODO");
 }
 
-TextDatabase& SolverBase::GetDatabase() const {
+/*TextDatabase& SolverBase::GetDatabase() const {
 	return TextDatabase::Single();
-}
+}*/
 
 double SolverBase::GetProgress() {
 	static const int LEVELS = 3;

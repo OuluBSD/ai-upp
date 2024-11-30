@@ -18,7 +18,7 @@ public:
 
 	void Data();
 	void DataEntity();
-	void DataComponent();
+	void DataExtension();
 	void SetFont(Font fnt);
 	void SetDataType(int i) {data_type = i;}
 };

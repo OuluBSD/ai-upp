@@ -3,6 +3,12 @@
 
 NAMESPACE_UPP
 
+DatasetPtrs Component::GetDataset() {
+	DatasetPtrs p;
+	Panic("TODO");
+	return p;
+}
+
 
 INITIALIZER_COMPONENT(Entity);
 

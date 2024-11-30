@@ -16,7 +16,7 @@ SourceDataCtrl::SourceDataCtrl(SourceTextCtrl& o) : o(o) {
 	entities.WhenCursor << THISBACK(DataEntity);
 	
 	components.AddColumn(t_("Entry"));
-	components.WhenCursor << THISBACK(DataComponent);
+	components.WhenCursor << THISBACK(DataExtension);
 	
 }
 
@@ -87,10 +87,10 @@ void SourceDataCtrl::DataEntity() {
 	if (!components.IsCursor() && components.GetCount())
 		components.SetCursor(0);
 	
-	DataComponent();
+	DataExtension();
 }
 
-void SourceDataCtrl::DataComponent() {
+void SourceDataCtrl::DataExtension() {
 	DatasetPtrs& p = o.GetDataset();
 	if (!p.src) {
 		analysis.Clear();

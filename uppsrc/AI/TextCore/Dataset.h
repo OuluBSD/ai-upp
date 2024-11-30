@@ -3,27 +3,8 @@
 
 NAMESPACE_UPP
 
-struct DatasetPtrs {
-	Ptr<SrcTextData>		src;
-	Ptr<Entity>				entity;
-	Ptr<Component>			component;
-	
-	// Specialized components
-	Ptr<Script>				script; // TODO rename to lyrics_draft
-	Ptr<Lyrics>				lyrics;
-	
-	DatasetPtrs() {}
-	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
-	void operator=(const DatasetPtrs& p) {
-		src = p.src;
-		entity = p.entity;
-		component = p.component;
-		script = p.script;
-		lyrics = p.lyrics;
-	}
-	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
-};
 
+#if 0
 class TextDatabase {
 
 public:
@@ -34,6 +15,7 @@ public:
 	
 	static TextDatabase& Single() {static TextDatabase db; return db;}
 };
+#endif
 
 END_UPP_NAMESPACE
 

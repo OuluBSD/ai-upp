@@ -61,7 +61,7 @@ public:
 };
 
 // TODO rename
-class ScriptTextSolverCtrl : public ToolAppCtrl {
+class ScriptTextSolverCtrl : public ComponentCtrl {
 	Splitter hsplit;
 	StructuredScriptEditor editor;
 	TabCtrl tabs;
@@ -128,10 +128,9 @@ public:
 	const DynLine* GetAltLine();
 	void UpdateEntities(DynLine& dl, bool unsafe, bool gender);
 	
-	static String GetExt() { return ".lyr"; }
-	static String GetID() { return "Script Text Solver"; }
-	
 };
+
+INITIALIZE(ScriptTextSolverCtrl)
 
 
 

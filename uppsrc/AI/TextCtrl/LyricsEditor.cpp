@@ -27,7 +27,7 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	sugg_split.SetPos(2500);
 	sugg_list.AddColumn("#");
 	sugg_list.WhenCursor << [this]() {
-		DatasetPtrs& p = GetDataset();
+		DatasetPtrs p = GetDataset();
 		if (!sugg_list.IsCursor()) return;
 		int i = sugg_list.GetCursor();
 		Vector<String> lines = Split(p.lyrics->__suggestions[i], "\n");
@@ -38,7 +38,7 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	};
 	sugg_list.WhenBar << [this](Bar& b) {
 		b.Add("Set source text", [this]() {
-			DatasetPtrs& p = GetDataset();
+			DatasetPtrs p = GetDataset();
 			Script& s = GetScript();
 			int i = sugg_list.GetCursor();
 			s.SetText(p.lyrics->__suggestions[i], true);
@@ -182,7 +182,7 @@ void ScriptTextSolverCtrl::DoSuggestions(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoWhole(int fn) {
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if (fn >= 0 && fn <= 1) {
 		/*ScriptGenerator& sdi = ScriptGenerator::Get(GetDataset());
 		whole_prog.Attach(sdi);
@@ -225,7 +225,8 @@ void ScriptTextSolverCtrl::OnEditorCursor() {
 }
 
 void ScriptTextSolverCtrl::Data() {
-	if (!GetPointers().script) return;
+	DatasetPtrs p = GetDataset();
+	if (!p.script) return;
 	editor.CheckClearSelected();
 	
 	if (!HasFocusDeep())
@@ -243,7 +244,7 @@ void ScriptTextSolverCtrl::Data() {
 }
 
 void ScriptTextSolverCtrl::DataSuggestions() {
-	const DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	Lyrics& l = *p.lyrics;
 	
 	for(int i = 0; i < l.__suggestions.GetCount(); i++) {
@@ -805,7 +806,7 @@ void StructuredScriptEditor::CheckClearSelected() {
 	bool line_found = false;
 	bool part_found = false;
 	bool sub_found = false;
-	if (!owner->GetPointers().script) return;
+	if (!owner->GetDataset().script) return;
 	Script& s = owner->GetScript();
 	for(int i = 0; i < s.parts.GetCount(); i++) {
 		const DynPart& dp = s.parts[i];
@@ -957,7 +958,7 @@ void StructuredScriptEditor::Paint(Draw& d) {
 	d.DrawRect(sz, White());
 	
 	Font fnt = SansSerif(line_h-3); // Monospace(line_h-3);
-	EditorPtrs& p = owner->GetPointers();
+	DatasetPtrs p = owner->GetDataset();
 	if (!p.script) return;
 	Script& s = *p.script;
 	int y = -scroll_v;
@@ -1073,6 +1074,8 @@ void StructuredScriptEditor::Paint(Draw& d) {
 	
 	d.DrawLine(cx_2, 0, cx_2, sz.cy, 1, part_border);
 }
+
+INITIALIZER_COMPONENT_CTRL(Lyrics, ScriptTextSolverCtrl)
 
 
 

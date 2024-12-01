@@ -271,7 +271,7 @@ void DatabaseBrowser::Load()
 
 void DatabaseBrowser::SortBy(int i)
 {
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 
 	if(i == 0) {
 		struct Sorter {
@@ -463,7 +463,7 @@ void DatabaseBrowser::RealizeUniqueAttrs()
 	if(!uniq_attr.IsEmpty())
 		return;
 
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	uniq_attr_values.Clear();
 	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
 		const PhrasePart& pp = src.phrase_parts[i];
@@ -483,7 +483,7 @@ void DatabaseBrowser::RealizeUniqueActions()
 	if(!uniq_acts.IsEmpty())
 		return;
 
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	uniq_act_args.Clear();
 	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
 		const PhrasePart& pp = src.phrase_parts[i];
@@ -500,7 +500,7 @@ void DatabaseBrowser::RealizeUniqueActions()
 
 void DatabaseBrowser::SetInitialData()
 {
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	ASSERT(p.src);
 	
 	phrase_parts.SetCount(src.phrase_parts.GetCount());
@@ -535,7 +535,7 @@ void DatabaseBrowser::SetColumnCursor(ColumnType t, int i)
 void DatabaseBrowser::FillItems(ColumnType t)
 {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int c = GetColumnOrder(t);
 	if(c > 0)
@@ -927,7 +927,7 @@ void DatabaseBrowser::DataCursor(int i)
 
 void DatabaseBrowser::FilterData(ColumnType t)
 {
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	int order_i = GetColumnOrder(t);
 	auto& items = Get(t);
 

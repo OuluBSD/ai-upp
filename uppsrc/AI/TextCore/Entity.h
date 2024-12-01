@@ -4,13 +4,13 @@
 NAMESPACE_UPP
 
 struct Entity;
-struct SrcTextData;
+struct SrcTxtHeader;
 struct Component;
 struct Script;
 struct Lyrics;
 
 struct DatasetPtrs {
-	Ptr<SrcTextData>		src;
+	Ptr<SrcTxtHeader>		src;
 	Ptr<Entity>				entity;
 	Ptr<Component>			component;
 	

@@ -29,7 +29,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << lsplit << ext_place;
-	hsplit.SetPos(2000);
+	hsplit.SetPos(1000);
 	lsplit.Vert() << entlist << extlist;
 	
 	entlist.AddColumn("Entity");
@@ -65,6 +65,22 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
 		PostCallback(THISBACK(DataExtCtrl));
+	}
+}
+
+void EntityEditorCtrl::DataEntityListOnly() {
+	int row = 0;
+	for(int i = 0; i < entities.GetCount(); i++) {
+		auto& ep = entities[i];
+		if (!ep) continue;
+		auto& e = *ep;
+		entlist.Set(row, 0, e.name);
+		
+		auto& e_exts = extensions[i];
+		e_exts = e.node->GetAllExtensions();
+		
+		entlist.Set(row, 1, e_exts.GetCount());
+		row++;
 	}
 }
 
@@ -157,11 +173,20 @@ void EntityEditorCtrl::DataExtension() {
 			MetaExtCtrl* ctrl = fac.new_ctrl_fn();
 			ctrl->ext = &ext;
 			SetExtensionCtrl(ext.node->kind, ctrl);
+			
+			if (fac.kind == METAKIND_ECS_ENTITY) {
+				EntityInfoCtrl& e = dynamic_cast<EntityInfoCtrl&>(*ctrl);
+				e.WhenValueChange = THISBACK(DataEntityListOnly);
+			}
 		}
 		else {
 			ClearExtensionCtrl();
 			return;
 		}
+	}
+	else {
+		ASSERT(ext_ctrl);
+		ext_ctrl->ext = &ext;
 	}
 	DataExtCtrl();
 }
@@ -309,6 +334,8 @@ void EntityInfoCtrl::OnEdit() {
 	e.name = ~info.name;
 	e.type = ~info.type;
 	e.Data("description") = info.desc.GetData();
+	
+	WhenValueChange();
 }
 
 void EntityInfoCtrl::ToolMenu(Bar& bar) {

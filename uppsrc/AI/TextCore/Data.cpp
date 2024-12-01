@@ -190,8 +190,8 @@ VectorMap<int,int> SrcTextData::GetSortedElementsOfPhraseParts() {
 	return vmap;
 }
 
-ArrayMap<String, DatasetField>& DatasetIndex() {
-	static ArrayMap<String, DatasetField> map;
+ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex() {
+	static ArrayMap<String, Ptr<MetaNodeExt>> map;
 	return map;
 }
 

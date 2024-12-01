@@ -16,6 +16,8 @@ file
 	MetaEnv.h,
 	MetaEnv.cpp,
 	Ctrl readonly separator,
+	PkgEnv.h,
+	PkgEnv.cpp,
 	MetaEnvTree.h,
 	MetaEnvTree.cpp,
 	TaskCtrl.h,

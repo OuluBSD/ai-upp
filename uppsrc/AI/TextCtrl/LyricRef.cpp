@@ -66,7 +66,10 @@ ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ComponentCtrl& o) : o(o) {
 	
 	PostCallback([this]{
 		DatabaseBrowser& b = DatabaseBrowser::Single();
-		b.SetMode(this->o.GetDataset(), 0);
+		DatasetPtrs p = this->o.GetDataset();
+		if (!p.src)
+			return;
+		b.SetMode(p, 0);
 		Data();
 	});
 }
@@ -215,7 +218,7 @@ void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	DatasetPtrs p = o.GetDataset();
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 
 	int row = 0, max_rows = 10000;
 	for(int i = 0; i < b.phrase_parts.GetCount(); i++) {
@@ -372,7 +375,9 @@ ScriptReferenceMakerCtrl::ScriptReferenceMakerCtrl() : db0(*this), content(*this
 }
 
 void ScriptReferenceMakerCtrl::Data() {
-	Script& s = *GetDataset().script;
+	DatasetPtrs p = GetDataset();
+	if (!p.script) return;
+	Script& s = *p.script;
 	
 	for(int i = 0; i < s.parts.GetCount(); i++) {
 		const DynPart& p = s.parts[i];

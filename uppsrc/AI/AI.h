@@ -12,6 +12,7 @@
 
 #include "MetaEnv.h"
 #include "MetaEnvTree.h"
+#include "PkgEnv.h"
 #include "ProcessBase.h"
 #include "MetaCodeGenerator.h"
 

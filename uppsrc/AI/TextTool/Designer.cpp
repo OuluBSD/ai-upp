@@ -72,23 +72,16 @@ template <class T>
 String Des<T>::GetIDStatic() {return T::GetID();}
 
 template <class T>
-DbContent Des<T>::GetDbType() {return T::GetDbType();}
+int Des<T>::GetNodeKind() {return T::GetNodeKind();}
 
 template <class T>
-String Des<T>::GetExt() {return T::GetExt();}
+bool Des<T>::AcceptsExt(String e) {return T::AcceptsExt(e);}
 
 
 //template<> struct Des<ScriptReferenceMakerCtrl>;
 
 
 
-
-bool IsExtFile(const char* path, String ext)
-{
-	String n = GetFileName(path);
-	String e = ToLower(GetFileExt(path));
-	return e == ext;
-}
 
 template <class T>
 struct DesModule : public IdeModule {
@@ -97,15 +90,15 @@ struct DesModule : public IdeModule {
 
 	virtual Image FileIcon(const char* path)
 	{
-		return IsExtFile(path, T::GetExt()) ? IdeCommonImg::AI() : Null;
+		return T::AcceptsExt(GetFileExt(path)) ? IdeCommonImg::AI() : Null;
 	}
 
-	virtual bool AcceptsFile(const char* path) { return IsExtFile(path, T::GetExt()); }
+	virtual bool AcceptsFile(const char* path) { return T::AcceptsExt(GetFileExt(path)); }
 
 	IdeDesigner* CreateSolver(Ide* ide, const char* path, byte charset)
 	{
 		TaskMgr::Setup(ide);
-		if(IsExtFile(path, T::GetExt())) {
+		if(T::AcceptsExt(GetFileExt(path))) {
 			T* d = new T;
 			LoadFromGlobal(*d, GetIDStatic());
 			if(d->Load(ide->GetCurrentIncludePath(), path))
@@ -134,6 +127,7 @@ struct DesModule : public IdeModule {
 	}
 
 INITIALIZE_MODULE(SourceTextDes)
+INITIALIZE_MODULE(EnvEditorDes)
 INITIALIZE_MODULE(EntityEditorDes)
 
 END_UPP_NAMESPACE

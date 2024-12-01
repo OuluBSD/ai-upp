@@ -256,7 +256,7 @@ void ScriptTextSolverCtrl::DataSuggestions() {
 
 void ScriptTextSolverCtrl::DataWhole() {
 	const DatasetPtrs& p = GetDataset();
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& l = *p.lyrics;
 	Entity& a = *p.entity;
@@ -327,7 +327,7 @@ void ScriptTextSolverCtrl::DataWhole() {
 
 void ScriptTextSolverCtrl::DataPart() {
 	const DatasetPtrs& p = GetDataset();
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
 	Entity& a = *p.entity;
@@ -358,7 +358,7 @@ void ScriptTextSolverCtrl::DataPart() {
 
 void ScriptTextSolverCtrl::DataSub() {
 	const DatasetPtrs& p = GetDataset();
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
 	Entity& a = *p.entity;
@@ -535,8 +535,9 @@ void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender)
 	const DatasetPtrs& p = GetDataset();
 	String ecs_path; TODO //TODO ???
 	
+	auto& src = p.src->Data();
 	int tcent = GetTypeclassEntity(unsafe, gender);
-	const auto& types = p.src->typeclass_entities[tcent];
+	const auto& types = src.typeclass_entities[tcent];
 	line_form.style_type.Clear();
 	line_form.style_entity.Clear();
 	
@@ -617,6 +618,7 @@ void ScriptTextSolverCtrl::DataLine() {
 void ScriptTextSolverCtrl::OnValueChange() {
 	const DatasetPtrs& p = GetDataset();
 	Script& s = *p.script;
+	auto& src = p.src->Data();
 	ASSERT(p.src);
 	
 	int tab = tabs.Get();
@@ -624,7 +626,7 @@ void ScriptTextSolverCtrl::OnValueChange() {
 		if (editor.selected_part) {
 			DynPart& part = *const_cast<DynPart*>(editor.selected_part);
 			int el_i = part_form.element.GetIndex();
-			part.el.element = el_i >= 0 ? p.src->element_keys[el_i] : String();
+			part.el.element = el_i >= 0 ? src.element_keys[el_i] : String();
 			part.text_num = (int)part_form.text_num.GetData() - 1;
 			part.text_type = (TextPartType)part_form.text_type.GetIndex();
 			
@@ -635,7 +637,7 @@ void ScriptTextSolverCtrl::OnValueChange() {
 		if (editor.selected_sub) {
 			DynSub& sub = *const_cast<DynSub*>(editor.selected_sub);
 			int el_i = sub_form.element.GetIndex() - 1;
-			sub.el.element = el_i >= 0 ? p.src->element_keys[el_i] : String();
+			sub.el.element = el_i >= 0 ? src.element_keys[el_i] : String();
 			sub.story = sub_form.story.GetData();
 			
 			editor.Refresh();

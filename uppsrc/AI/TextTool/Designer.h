@@ -23,17 +23,19 @@ struct Des : IdeDesigner, ParentCtrl {
 
 	bool   Load(const String& includes, const String& filename);
 	static String GetIDStatic();
-	static DbContent GetDbType();
-	static String GetExt();
+	static int GetNodeKind();
+	static bool AcceptsExt(String e);
 	
 	Des();
 };
 
 using SourceTextDes = Des<SourceTextCtrl>;
+using EnvEditorDes = Des<EnvEditorCtrl>;
 using EntityEditorDes = Des<EntityEditorCtrl>;
 
 
 INITIALIZE(SourceTextDes)
+INITIALIZE(EnvEditorDes)
 INITIALIZE(EntityEditorDes)
 
 

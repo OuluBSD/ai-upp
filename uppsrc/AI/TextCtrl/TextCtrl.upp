@@ -11,6 +11,8 @@ file
 	TextDesigner.h,
 	TextDesigner.cpp,
 	ECS readonly separator,
+	Env.h,
+	Env.cpp,
 	Entity.h,
 	Entity.cpp,
 	Lyrics readonly separator,

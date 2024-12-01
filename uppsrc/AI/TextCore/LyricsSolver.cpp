@@ -121,6 +121,7 @@ void ScriptSolver::GetSuggestions(const DynPart& part, const DynSub& sub, const 
 }
 
 void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPartiallyReady) {
+	auto& src = p.src->Data();
 	Lyrics& l = *p.lyrics;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
@@ -150,7 +151,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 			state.content = dl.text;
 			
 			int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
-			const auto& ents = p.src->typeclass_entities[tcent_i];
+			const auto& ents = src.typeclass_entities[tcent_i];
 			state.style_type = ents.GetKey(dl.style_type);
 			const auto& vec = dl.style_type < ents.GetCount() ? ents[dl.style_type] : ents.Top();
 			state.style_entity = dl.style_entity < vec.GetCount() ? vec [dl.style_entity] : vec.Top();
@@ -175,6 +176,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 }
 
 void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
+	auto& src = p.src->Data();
 	Lyrics& l = *p.lyrics;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
@@ -201,7 +203,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 		CopyState(state, line_state);
 		
 		int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
-		const auto& ents = p.src->typeclass_entities[tcent_i];
+		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];
 		state.safety = dl.safety;
@@ -260,6 +262,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 }
 
 void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
+	auto& src = p.src->Data();
 	Lyrics& l = *p.lyrics;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
@@ -285,7 +288,7 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 		CopyState(state, line_state);
 		
 		int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
-		const auto& ents = p.src->typeclass_entities[tcent_i];
+		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];
 		state.safety = dl.safety;
@@ -522,6 +525,7 @@ void ReadNavigatorState(Lyrics& s, int part_i, int sub_i, int line_i, NavigatorS
 }
 
 void ScriptSolver::CopyState(ScriptSolverArgs::State& to, const NavigatorState& from) {
+	auto& src = p.src->Data();
 	#define COPY(x) to.x = from.x;
 	COPY(element)
 	to.attr_group = from.attr.group;
@@ -529,8 +533,8 @@ void ScriptSolver::CopyState(ScriptSolverArgs::State& to, const NavigatorState& 
 	COPY(clr_i)
 	to.act_action = from.act.action;
 	to.act_arg = from.act.arg;
-	to.typeclass = from.typeclass_i >= 0 ? p.src->typeclasses[from.typeclass_i] : String();
-	const auto& cons = p.src->contents;
+	to.typeclass = from.typeclass_i >= 0 ? src.typeclasses[from.typeclass_i] : String();
+	const auto& cons = src.contents;
 	int c0 = from.con_i / PART_COUNT;
 	int c1 = from.con_i % PART_COUNT;
 	to.content.Clear();

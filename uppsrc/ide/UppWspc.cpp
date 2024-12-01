@@ -1,4 +1,7 @@
 #include "ide.h"
+#ifdef flagAI
+#include <AI/AI.h>
+#endif
 
 const char tempaux[] = "<temp-aux>";
 const char prjaux[] = "<prj-aux>";
@@ -141,6 +144,10 @@ void WorkspaceWork::ScanWorkspace() {
 	package.SetCursor(0);
 	
 	SyncErrorPackages();
+	
+	#ifdef flagAI
+	MetaEnv().UpdateWorkspace(wspc);
+	#endif
 }
 
 void WorkspaceWork::SavePackage()

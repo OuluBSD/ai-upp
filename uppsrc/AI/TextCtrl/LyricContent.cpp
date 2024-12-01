@@ -321,7 +321,7 @@ void PartContentCtrl::Data() {
 void PartContentCtrl::AddElements(DropList& dl) {
 	auto& p = o.GetDataset();
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	if (element_keys.IsEmpty()) {
 		const auto& el = src.element_keys.GetKeys();
 		element_keys <<= el;

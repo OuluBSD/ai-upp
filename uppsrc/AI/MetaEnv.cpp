@@ -1,5 +1,6 @@
 #include <AI/AI.h>
 #include <ide/ide.h>
+#include <AI/TextTool/TextTool.h>
 
 NAMESPACE_UPP
 
@@ -241,6 +242,7 @@ bool MetaSrcFile::Load()
 	
 		OnSeenTypes();
 		OnSerialCounter();
+		temp->RealizeSerial();
 		lock.Leave();
 		return true;
 	}
@@ -264,6 +266,7 @@ bool MetaSrcFile::LoadJson(String json) {
 	
 		OnSeenTypes();
 		OnSerialCounter();
+		temp->RealizeSerial();
 		lock.Leave();
 		return true;
 	}
@@ -329,7 +332,8 @@ void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 
 void MetaSrcPkg::Init()
 {
-	ASSERT(path.GetCount());
+	ASSERT(dir.GetCount());
+	String path = AppendFileName(dir, "Meta.bin");
 	MetaSrcFile& file = GetAddFile(path);
 	file.KeepFileIndices();
 	file.ManageFile();
@@ -338,7 +342,8 @@ void MetaSrcPkg::Init()
 
 bool MetaSrcPkg::Store(bool forced)
 {
-	ASSERT(path.GetCount());
+	ASSERT(dir.GetCount());
+	String path = AppendFileName(dir, "Meta.bin");
 	MetaEnvironment& env = MetaEnv();
 	MetaSrcFile& file = GetAddFile(path);
 	MetaSrcPkg& pkg = *file.pkg;
@@ -445,6 +450,15 @@ void MetaSrcPkg::operator=(const MetaSrcPkg& f) {
 }
 #endif
 
+String MetaSrcPkg::GetTitle() const {
+	if (title.IsEmpty()) {
+		if (dir.Right(1) == DIR_SEPS)
+			title = GetFileTitle(dir.Left(dir.GetCount()-1));
+		else
+			title = GetFileTitle(dir);
+	}
+	return title;
+}
 
 String MetaSrcPkg::GetRelativePath(const String& path) const
 {
@@ -513,7 +527,8 @@ MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 #endif
 
 MetaSrcFile& MetaSrcPkg::GetMetaFile() {
-	ASSERT(path.GetCount());
+	ASSERT(dir.GetCount());
+	String path = AppendFileName(dir, "Meta.bin");
 	return GetAddFile(path);
 }
 
@@ -604,7 +619,7 @@ MetaSrcFile& MetaEnvironment::ResolveFile(const String& includes, const String& 
 	String upp_dir;
 	String pkg_path = ResolveMetaSrcPkgPath(includes, path, upp_dir);
 	lock.EnterWrite();
-	MetaSrcPkg& pkg = GetAddPkg(pkg_path);
+	MetaSrcPkg& pkg = GetAddPkg(upp_dir);
 	ASSERT(pkg.id >= 0);
 	//String rel_path = pkg.GetRelativePath(path);
 	MetaSrcFile& file = pkg.GetAddFile(path);
@@ -613,24 +628,32 @@ MetaSrcFile& MetaEnvironment::ResolveFile(const String& includes, const String& 
 	return file;
 }
 
-int MetaEnvironment::FindPkg(const String& path) const {
+int MetaEnvironment::FindPkg(String dir) const {
+	ASSERT(dir.Find("Meta.bin") < 0); // NOT HERE
+	ASSERT(DirectoryExists(dir));
+	if (dir.Right(1) != DIR_SEPS)
+		dir.Cat(DIR_SEPS);
 	int i = 0;
 	for (const auto& pkg : pkgs) {
-		if (pkg.path == path)
+		if (pkg.dir == dir)
 			return i;
 		i++;
 	}
 	return -1;
 }
 
-MetaSrcPkg& MetaEnvironment::GetAddPkg(const String& path) {
+MetaSrcPkg& MetaEnvironment::GetAddPkg(String dir) {
+	ASSERT(dir.Find(".bin") < 0); // NOT HERE
+	ASSERT(DirectoryExists(dir));
+	if (dir.Right(1) != DIR_SEPS)
+		dir.Cat(DIR_SEPS);
 	for (auto& pkg : pkgs) {
-		if (pkg.path == path)
+		if (pkg.dir == dir)
 			return pkg;
 	}
 	int id = pkgs.GetCount();
 	auto& pkg = pkgs.Add();
-	pkg.path = path;
+	pkg.dir = dir;
 	pkg.id = id;
 	pkg.Init();
 	return pkg;
@@ -662,16 +685,59 @@ hash_t MetaEnvironment::NewSerial() {
 	return new_hash;
 }
 
+void MetaEnvironment::UpdateWorkspace(Workspace& wspc) {
+	for(int i = 0; i < wspc.package.GetCount(); i++) {
+		String pkg_name = wspc.package.GetKey(i);
+		auto& pkg = wspc.package[i];
+		String dir = GetFileDirectory(pkg.path);
+		MetaSrcPkg& mpkg = GetAddPkg(dir);
+		for (auto& file : pkg.file) {
+			if (file.separator) continue;
+			String filename = file;
+			String ext = GetFileExt(filename);
+			String path = AppendFileName(dir, filename);
+			if (EcsIndexer::AcceptExt(ext))
+				EcsIndexer::RunPath(path);
+		}
+	}
+}
+
+MetaNode* MetaEnvironment::FindNodeEnv(MetaNode& n)
+{
+	//Ide* ide = TheIde();
+	Panic("TODO");
+	return 0;
+}
+
 bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, bool manage_file)
 {
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
+	
+	// Hotfix for old .db-src file
+	if (GetFileExt(path) == ".db-src") {
+		String content = LoadFile(path);
+		content.Replace("\r","");
+		if (content.Find("{\n\t\"written\":") >= 0) {
+			One<SrcTxtHeader> ext;
+			ext.Create();
+			LoadFromJson(*ext, content);
+			MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+			filenode.serial = NewSerial();
+			filenode.ext = ext.Detach();
+			return true;
+		}
+	}
+	
+	file.lock.Enter();
 	if(file.Load()) {
 		OnLoadFile(file);
 		file.ClearTemp();
+		file.lock.Leave();
 		return true;
 	}
 	file.ClearTemp();
+	file.lock.Leave();
 	return false;
 }
 
@@ -1440,6 +1506,10 @@ String MetaNode::GetKindString(int kind)
 	if(kind >= 0 && kind <= CXCursor_OverloadCandidate)
 		return GetCursorKindName((CXCursorKind)kind);
 	switch (kind) {
+	case METAKIND_DATABASE_SOURCE:		return "Database (Source)";
+	case METAKIND_PKG_ENV:				return "Environment";
+	case METAKIND_CONTEXT:				return "Context";
+	case METAKIND_DB_REF:				return "Database Reference";
 	case METAKIND_COMMENT:				return "Comment";
 	case METAKIND_ECS_SPACE:			return "ECS-Space";
 	case METAKIND_ECS_ENTITY:			return "Entity";
@@ -1864,13 +1934,17 @@ hash_t MetaEnvironment::RealizeTypePath(const String& path)
 
 MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	for (auto& s : root.sub) {
-		if (s.pkg == pkg && s.file == file && s.kind == kind)
+		if (s.pkg == pkg && s.file == file && s.kind == kind) {
+			if (!s.serial)
+				s.serial = NewSerial();
 			return s;
+		}
 	}
 	MetaNode& n = root.sub.Add();
 	n.pkg = pkg;
 	n.file = file;
 	n.kind = kind;
+	n.serial = NewSerial();
 	return n;
 }
 

@@ -438,6 +438,8 @@ public:
 	int                      tabsize;
 	bool                     noblitz;
 	bool                     nowarnings;
+	String                   path;
+	String                   dir;
 	String                   description;
 	Vector<String>           accepts;
 	Array<OptItem>           flag;

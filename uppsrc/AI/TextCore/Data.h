@@ -266,24 +266,7 @@ struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	void Serialize(Stream& d) { d / attr_i0 / attr_i1; }
 };
 
-
-typedef enum : int {
-	DBCONTENT_NULL,
-	DBCONTENT_SRCTEXT,
-	
-	DBCONTENT_COUNT
-} DbContent;
-
-Vector<DbContent> GetDependencies(DbContent t);
-
-struct DatasetField {
-	DbContent type = DBCONTENT_NULL;
-	String filepath;
-	
-	virtual ~DatasetField() {}
-};
-
-ArrayMap<String, DatasetField>& DatasetIndex();
+ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex();
 
 struct ScriptDataset : Moveable<ScriptDataset> {
 	String name;
@@ -298,14 +281,6 @@ struct EntityDataset : Moveable<EntityDataset> {
 	
 	
 	void Serialize(Stream& s) {s % name % scripts % genres;}
-};
-
-struct SrcTxtHeader {
-	Time written;
-	int64 size = 0;
-	String sha1;
-	Vector<String> files;
-	void Jsonize(JsonIO& o) {o("written",written)("size",size)("sha1",sha1)("files",files);}
 };
 
 struct ScriptStruct : Moveable<ScriptStruct> {
@@ -392,7 +367,8 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	double GetNormalScore() const;
 };
 
-struct SrcTextData : DatasetField, Pte<SrcTextData> {
+struct SrcTextData : Pte<SrcTextData> {
+	String filepath;
 	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
 	VectorMap<hash_t, TokenText> token_texts;
@@ -437,8 +413,6 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 	VectorMap<int, int> GetSortedElements();
 	VectorMap<int, int> GetSortedElementsOfPhraseParts();
 	
-
-	static DbContent GetDbType() {return DBCONTENT_SRCTEXT;}
 	String GetTokenTextString(const TokenText& txt) const;
 	void Serialize(Stream& s) {
 		int v = 1; s % v;
@@ -472,6 +446,23 @@ struct SrcTextData : DatasetField, Pte<SrcTextData> {
 				s % typeclass_entities[i];
 		}
 	}
+	
+};
+
+struct SrcTxtHeader : MetaNodeExt {
+	Time written;
+	int64 size = 0;
+	String sha1;
+	Vector<String> files;
+	void Serialize(Stream& s) override {s % written % size % sha1 % files;}
+	void Jsonize(JsonIO& o) override {o("written",written)("size",size)("sha1",sha1)("files",files);}
+	hash_t GetHashValue() const override {return sha1.GetHashValue();}
+	String GetName() const override {return "Source Database";}
+	
+	One<SrcTextData> data;
+	
+	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}
+	
 };
 
 

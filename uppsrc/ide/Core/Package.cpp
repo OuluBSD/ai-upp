@@ -231,6 +231,8 @@ bool Package::Load(const char *path)
 		config.Clear();
 		custom.Clear();
 		description.Clear();
+		this->path = path;
+		this->dir = GetFileDirectory(path);
 		String f = LoadFile(path);
 		cr = f.Find('\r') >= 0;
 		time = FileGetTime(path);

@@ -69,3 +69,11 @@ LAYOUT(EntityInfo, 400, 200)
 	ITEM(Upp::DocEdit, desc, LeftPosZ(124, 268).TopPosZ(72, 116))
 END_LAYOUT
 
+LAYOUT(EnvEditor, 472, 300)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Meta Environment")).HSizePosZ(4, 4).VSizePosZ(4, 4))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Name:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 128).TopPosZ(24, 24))
+	ITEM(Upp::EditString, name, HSizePosZ(144, 12).TopPosZ(24, 24))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("Enabled:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 128).TopPosZ(52, 24))
+	ITEM(Upp::ArrayCtrl, items, HSizePosZ(144, 12).VSizePosZ(52, 12))
+END_LAYOUT
+

@@ -33,7 +33,7 @@ void SourceDataCtrl::Data() {
 		analysis.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	const auto& data = src.entities;
 	
 	//DUMP(GetDatabase().a.dataset.scripts.GetCount());
@@ -68,7 +68,7 @@ void SourceDataCtrl::DataEntity() {
 		analysis.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	if (!entities.IsCursor()) return;
 	int acur = entities.GetCursor();
@@ -96,7 +96,7 @@ void SourceDataCtrl::DataExtension() {
 		analysis.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	if (!entities.IsCursor() || !components.IsCursor()) return;
 	int acur = entities.GetCursor();
@@ -174,7 +174,7 @@ void TokensPage::Data() {
 		tokens.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	for(int j = 0; j < src.tokens.GetCount(); j++) {
 		const String& txt = src.tokens.GetKey(j);
@@ -231,7 +231,7 @@ void AmbiguousWordPairs::Data() {
 		texts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int row = 0;
 	for(int i = 0; i < src.ambiguous_word_pairs.GetCount(); i++) {
@@ -332,7 +332,7 @@ void VirtualPhrases::Data() {
 		texts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	int row = 0;
 	for(int i = 0; i < src.token_texts.GetCount(); i++) {
 		const TokenText& txt = src.token_texts[i];
@@ -427,7 +427,7 @@ void VirtualPhraseParts::Data() {
 		texts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int row = 0;
 	for(int i = 0; i < src.virtual_phrase_parts.GetCount(); i++) {
@@ -491,7 +491,7 @@ void VirtualPhraseStructs::Data() {
 		texts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int row = 0;
 	for(int i = 0; i < src.virtual_phrase_structs.GetCount(); i++) {
@@ -612,8 +612,8 @@ void PhrasePartAnalysis::Data() {
 		attrs.Clear();
 		return;
 	}
-	auto& src = *p.src;
-
+	auto& src = p.src->Data();
+	
 	// Set attributes
 	attrs.Set(0,0, "All");
 	for(int i = 0; i < src.attrs.GetCount(); i++) {
@@ -652,8 +652,8 @@ void PhrasePartAnalysis::DataColor() {
 		actions.Clear();
 		return;
 	}
-	auto& src = *p.src;
-
+	auto& src = p.src->Data();
+	
 	uniq_acts.Clear();
 	for (const ActionHeader& ah : src.actions.GetKeys()) {
 		uniq_acts.GetAdd(ah.action).GetAdd(ah.arg, 0)++;
@@ -689,7 +689,7 @@ void PhrasePartAnalysis::DataAction() {
 		action_args.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	if (actions.IsCursor()) {
 		String action = actions.Get(0);
@@ -722,7 +722,7 @@ void PhrasePartAnalysis::DataActionHeader() {
 		parts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int clr_i = colors.IsCursor() ? colors.GetCursor() : -1;
 	int act_i = actions.IsCursor() ? actions.GetCursor() : -1;
@@ -904,7 +904,7 @@ void PhrasePartAnalysis2::ClearAll() {
 	DatasetPtrs& p = o.GetDataset();
 	if (!p.src)
 		return;
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
 		PhrasePart& pp = src.phrase_parts[i];
@@ -927,7 +927,7 @@ void PhrasePartAnalysis2::DataMain() {
 		elements.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// Set elements
 	VectorMap<int,int> el_map = src.GetSortedElementsOfPhraseParts();
@@ -957,7 +957,7 @@ void PhrasePartAnalysis2::DataElement() {
 		typecasts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// Set typeclasses
 	const auto& tc = src.typeclasses;
@@ -984,7 +984,7 @@ void PhrasePartAnalysis2::DataTypeclass() {
 		contrasts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	const auto& vec = src.contents;
 	contrasts.Set(0, 0, "All");
@@ -1030,7 +1030,7 @@ void PhrasePartAnalysis2::DataColor() {
 		parts.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	//DatabaseBrowser& b = DatabaseBrowser::Single();
 	int el_i = elements.Get("IDX");
@@ -1124,7 +1124,7 @@ void PhrasePartAnalysis2::UpdateCounts() {
 	if (!p.src) {
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	TODO
 	/*int count = src.phrase_parts.GetCount();
@@ -1247,7 +1247,7 @@ void ActionAttrsPage::DataColor() {
 		actions.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	int clr_i = colors.GetCursor();
 	int attr_group_i = attrs.Get("GROUP");
 	int attr_value_i = attrs.Get("VALUE");
@@ -1343,7 +1343,7 @@ void Attributes::RealizeTemp() {
 	DatasetPtrs& p = o.GetDataset();
 	if (!p.src)
 		return;
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	uniq_attrs.Clear();
 	uniq_attrs_i.Clear();
@@ -1368,7 +1368,7 @@ void Attributes::Data() {
 		groups.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	RealizeTemp();
 	
@@ -1413,7 +1413,7 @@ void Attributes::DataGroup() {
 		values.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	RealizeTemp();
 	
@@ -1499,7 +1499,7 @@ void TextDataDiagnostics::Data() {
 		values.Clear();
 		return;
 	}
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	for(int i = 0; i < src.diagnostics.GetCount(); i++) {
 		const String& key = src.diagnostics.GetKey(i);
@@ -1642,13 +1642,20 @@ void SourceTextCtrl::OnLoad(const String& data, const String& filepath) {
 		return;
 	}
 	StringStream decomp_stream(decompressed);
-	SrcTextData* src;
+	SrcTxtHeader* src;
 	int i = DatasetIndex().Find(filepath);
 	if (i < 0) {
-		src = new SrcTextData;
-		DatasetIndex().Add(filepath, src);
+		auto& env = MetaEnv();
+		MetaSrcFile& file = env.ResolveFile("", filepath);
+		MetaNode& filenode = env.RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+		ASSERT(filenode.ext.IsEmpty());
+		SrcTxtHeader* header = new SrcTxtHeader();
+		filenode.ext = header;
+		src = header;
+		DatasetIndex().Add(filepath) = header;
+		header->data.Create();
 	}
-	else src = dynamic_cast<SrcTextData*>(&DatasetIndex()[i]);
+	else src = dynamic_cast<SrcTxtHeader*>(&*DatasetIndex()[i]);
 	src->Serialize(decomp_stream);
 	DatasetPtrs& p = GetDataset();
 	p.src = src;
@@ -1664,7 +1671,7 @@ void SourceTextCtrl::OnSave(String& data, const String& filepath) {
 	String filename = GetFileName(filepath);
 	int i = DatasetIndex().Find(filepath);
 	ASSERT(i >= 0);
-	SrcTextData* src = dynamic_cast<SrcTextData*>(&DatasetIndex()[i]);
+	SrcTextData* src = dynamic_cast<SrcTextData*>(&*DatasetIndex()[i]);
 	StringStream decomp_stream;
 	src->Serialize(decomp_stream);
 	String decompressed = decomp_stream.GetResult();

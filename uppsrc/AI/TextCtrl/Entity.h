@@ -26,6 +26,8 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	void OnEdit();
+	
+	Event<> WhenValueChange;
 };
 
 INITIALIZE(EntityInfoCtrl)
@@ -51,6 +53,7 @@ public:
 	void SetFont(Font fnt);
 	void ToolMenu(Bar& bar) override;
 	MetaSrcFile& RealizeFileRoot();
+	void DataEntityListOnly();
 	void DataEntity();
 	void DataExtension();
 	void DataExtCtrl();
@@ -64,7 +67,7 @@ public:
 	void ClearExtensionCtrl() {SetExtensionCtrl(-1,0);}
 	Entity* GetSelectedEntity();
 	
-	static String GetExt() { return ".ecs"; }
+	static bool AcceptsExt(String e) { return e == ".ecs"; }
 	static String GetID() { return "Entity Editor"; }
 	
 	void Do(int i);

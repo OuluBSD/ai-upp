@@ -7,13 +7,17 @@ EcsIndexer::EcsIndexer() {
 }
 
 bool EcsIndexer::AcceptExt(String ext) {
-	return ext == ".ecs";
+	return ext == ".ecs" || ext == ".env" || ext == ".db-src";
 }
 
 void EcsIndexer::RunJob(IndexerJob& job) {
+	RunPath(job.path);
+}
+
+void EcsIndexer::RunPath(String path) {
 	MetaEnvironment& env = MetaEnv();
-	if (!env.LoadFileRoot("", job.path, true)) {
-		LOG(job.path + ": error: failed to run job (at EcsIndexer::RunJob)");
+	if (!env.LoadFileRoot("", path, true)) {
+		LOG(path + ": error: failed to run path (at EcsIndexer::RunPath)");
 	}
 }
 

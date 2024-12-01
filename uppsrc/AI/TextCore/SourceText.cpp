@@ -14,14 +14,16 @@ int SourceDataImporter::GetPhaseCount() const {
 
 int SourceDataImporter::GetBatchCount(int phase) const {
 	ASSERT(p.src);
-	return p.src->entities.GetCount();
+	auto& src = p.src->Data();
+	return src.entities.GetCount();
 }
 
 int SourceDataImporter::GetSubBatchCount(int phase, int batch) const {
 	ASSERT(p.src);
-	if (batch >= p.src->entities.GetCount())
+	auto& src = p.src->Data();
+	if (batch >= src.entities.GetCount())
 		return 1;
-	auto& entity = p.src->entities[batch];
+	auto& entity = src.entities[batch];
 	return entity.scripts.GetCount();
 }
 
@@ -34,7 +36,7 @@ void SourceDataImporter::DoPhase() {
 
 void SourceDataImporter::Tokenize() {
 	ASSERT(p.src);
-	SrcTextData& src = *p.src;
+	auto& src = p.src->Data();
 	Vector<int> token_is;
 	Vector<EntityDataset>& entities = src.entities;
 	
@@ -220,8 +222,9 @@ void SourceDataImporter::Tokenize() {
 
 SourceDataImporter& SourceDataImporter::Get(DatasetPtrs p) {
 	static ArrayMap<String, SourceDataImporter> arr;
-	
-	String key = p.src->filepath;
+	auto& src = p.src->Data();
+	String key = src.filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -257,10 +260,11 @@ int SourceAnalysisProcess::GetPhaseCount() const {
 }
 
 int SourceAnalysisProcess::GetBatchCount(int phase) const {
+	auto& src = p.src->Data();
 	
 	switch (phase) {
-		case PHASE_ANALYZE_ARTISTS:			return p.src->entities.GetCount();
-		case PHASE_ANALYZE_ELEMENTS:		return p.src->scripts.GetCount();
+		case PHASE_ANALYZE_ARTISTS:			return src.entities.GetCount();
+		case PHASE_ANALYZE_ELEMENTS:		return src.scripts.GetCount();
 		case PHASE_SUMMARIZE_CONTENT:		TODO;
 		default: return 1;
 	}
@@ -281,7 +285,7 @@ void SourceAnalysisProcess::DoPhase() {
 
 void SourceAnalysisProcess::AnalyzeArtists() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	if (batch >= src.entities.GetCount()) {
 		NextPhase();
@@ -299,7 +303,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetSourceDataAnalysis(args, [this](String result) {
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		SourceDataAnalysisArgs& args = this->args;
 		
 		RemoveEmptyLines3(result);
@@ -323,7 +327,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 
 void SourceAnalysisProcess::AnalyzeElements() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	Vector<EntityDataset>& entities = src.entities;
 	
 	if (batch >= src.scripts.GetCount()) {
@@ -360,7 +364,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 	
 	m.GetSourceDataAnalysis(args, [this](String result) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		SourceDataAnalysisArgs& args = this->args;
 		ScriptStruct& ss = src.scripts[batch];
 		
@@ -442,7 +446,9 @@ void SourceAnalysisProcess::SummarizeContent() {
 SourceAnalysisProcess& SourceAnalysisProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, SourceAnalysisProcess> arr;
 	
-	String key = p.src->filepath;
+	auto& src = p.src->Data();
+	String key = src.filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -475,7 +481,7 @@ int TokenDataProcess::GetPhaseCount() const {
 
 int TokenDataProcess::GetBatchCount(int phase) const {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	switch (phase) {
 		case PHASE_GET: return (src.tokens.GetCount() + per_action_task - 1) / per_action_task;
 		default: return 0;
@@ -496,7 +502,9 @@ void TokenDataProcess::DoPhase() {
 TokenDataProcess& TokenDataProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, TokenDataProcess> arr;
 	
-	String key = p.src->filepath;
+	auto& src = p.src->Data();
+	String key = src.filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -504,7 +512,7 @@ TokenDataProcess& TokenDataProcess::Get(DatasetPtrs p) {
 
 void TokenDataProcess::Get() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	TokenArgs& args = token_args;
 	args.fn = 0;
@@ -532,7 +540,7 @@ void TokenDataProcess::Get() {
 	TaskMgr& m = AiTaskManager();
 	m.GetTokenData(args, [this](String result) {
 		TokenArgs& args = token_args;
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		// 9. suppose: verb | noun
 		
@@ -634,14 +642,15 @@ int WordDataProcess::GetPhaseCount() const {
 }
 
 int WordDataProcess::GetBatchCount(int phase) const {
+	auto& src = p.src->Data();
 	if (phase == PHASE_WORD_FIX)
 		return 1;
 	else if (phase == PHASE_WORD_PROCESS)
-		return p.src->entities.GetCount();
+		return src.entities.GetCount();
 	else if (phase == PHASE_DETAILS)
-		return (p.src->words.GetCount() + per_batch - 1) / per_batch;
+		return (src.words.GetCount() + per_batch - 1) / per_batch;
 	else if (phase == PHASE_SYLLABLES)
-		return (p.src->words.GetCount() + per_batch - 1) / per_batch;
+		return (src.words.GetCount() + per_batch - 1) / per_batch;
 	else if (phase == PHASE_COPY_LINKED_DATA)
 		return 1;
 	else
@@ -670,7 +679,9 @@ void WordDataProcess::DoPhase() {
 WordDataProcess& WordDataProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, WordDataProcess> arr;
 	
-	String key = p.src->filepath;
+	auto& src = p.src->Data();
+	String key = src.filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -678,7 +689,7 @@ WordDataProcess& WordDataProcess::Get(DatasetPtrs p) {
 
 void WordDataProcess::WordFix() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int fails = 0;
 	for(int i = 0; i < src.words.GetCount(); i++) {
@@ -736,7 +747,7 @@ void WordDataProcess::WordFix() {
 
 void WordDataProcess::WordProcess() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	const Vector<EntityDataset>& dataset = src.entities;
 	
 	if (batch >= dataset.GetCount()) {
@@ -780,7 +791,7 @@ void WordDataProcess::WordProcess() {
 
 void WordDataProcess::Details() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	ASSERT(batch >= 0);
 	int begin = batch * per_batch;
@@ -853,7 +864,7 @@ void WordDataProcess::Details() {
 	TaskMgr& m = AiTaskManager();
 	m.GetSourceDataAnalysis(args, [this](String res) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		res.Replace("\r", "");
 		
@@ -971,7 +982,7 @@ void WordDataProcess::Details() {
 
 void WordDataProcess::Syllables() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int per_batch = 30;
 	int begin = batch * per_batch;
@@ -1050,7 +1061,7 @@ void WordDataProcess::Syllables() {
 	TaskMgr& m = AiTaskManager();
 	m.GetSourceDataAnalysis(args, [this](String res) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		//-hey: hey [heɪ]
 		//- hello: hel-lo [hɛˈloʊ]
 		
@@ -1116,7 +1127,7 @@ void WordDataProcess::Syllables() {
 
 void WordDataProcess::CopyLinkedData() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	Color black(0,0,0);
 	for(int i = 0; i < src.words.GetCount(); i++) {
@@ -1208,7 +1219,8 @@ void TokenPhrasesProcess::DoPhase() {
 TokenPhrasesProcess& TokenPhrasesProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, TokenPhrasesProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -1216,7 +1228,7 @@ TokenPhrasesProcess& TokenPhrasesProcess::Get(DatasetPtrs p) {
 
 void TokenPhrasesProcess::UnknownPairs() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	for(int i = 0; i < src.token_texts.GetCount(); i++) {
 		const TokenText& txt = src.token_texts[i];
@@ -1299,7 +1311,7 @@ int AmbiguousWordPairsProcess::GetPhaseCount() const {
 
 int AmbiguousWordPairsProcess::GetBatchCount(int phase) const {
 	if (phase == PHASE_GET)
-		return p.src->ambiguous_word_pairs.GetCount() / per_action_task;
+		return p.src->Data().ambiguous_word_pairs.GetCount() / per_action_task;
 	else
 		return 1;
 }
@@ -1315,7 +1327,7 @@ void AmbiguousWordPairsProcess::DoPhase() {
 
 void AmbiguousWordPairsProcess::Get() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	TokenArgs& args = token_args;
 	args.fn = 1;
@@ -1354,7 +1366,7 @@ void AmbiguousWordPairsProcess::Get() {
 	m.GetTokenData(args, [this](String res) {
 		TokenArgs& args = token_args;
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		// 9. is something : verb, noun
 		
@@ -1436,7 +1448,8 @@ void AmbiguousWordPairsProcess::Get() {
 AmbiguousWordPairsProcess& AmbiguousWordPairsProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, AmbiguousWordPairsProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -1460,7 +1473,7 @@ int VirtualPhrasesProcess::GetPhaseCount() const {
 int VirtualPhrasesProcess::GetBatchCount(int phase) const {
 	switch (phase) {
 		case PHASE_IMPORT_TOKEN_TEXTS: return 1;
-		case PHASE_GET_PARTS: return p.src->virtual_phrase_parts.GetCount() / per_action_task;
+		case PHASE_GET_PARTS: return p.src->Data().virtual_phrase_parts.GetCount() / per_action_task;
 		default: TODO; return 1;
 	}
 }
@@ -1484,7 +1497,8 @@ void VirtualPhrasesProcess::DoPhase() {
 VirtualPhrasesProcess& VirtualPhrasesProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, VirtualPhrasesProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -1493,7 +1507,7 @@ VirtualPhrasesProcess& VirtualPhrasesProcess::Get(DatasetPtrs p) {
 
 void VirtualPhrasesProcess::ImportTokenTexts() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	Vector<int> word_is, word_classes;
 	actual = 0;
@@ -1612,7 +1626,7 @@ void VirtualPhrasesProcess::ImportTokenTexts() {
 
 void VirtualPhrasesProcess::GetParts() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	TokenArgs& args = token_args;
 	args.fn = 2;
@@ -1673,7 +1687,7 @@ void VirtualPhrasesProcess::GetParts() {
 	m.GetTokenData(args, [this](String res) {
 		TokenArgs& args = token_args;
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		actual = 0;
 		total = 0;
@@ -1867,7 +1881,7 @@ int VirtualPhrasePartsProcess::GetPhaseCount() const {
 
 int VirtualPhrasePartsProcess::GetBatchCount(int phase) const {
 	switch (phase) {
-		case PHASE_GET: return p.src->virtual_phrase_structs.GetCount() / per_action_task;
+		case PHASE_GET: return p.src->Data().virtual_phrase_structs.GetCount() / per_action_task;
 		default: TODO; return 1;
 	}
 }
@@ -1889,7 +1903,8 @@ void VirtualPhrasePartsProcess::DoPhase() {
 VirtualPhrasePartsProcess& VirtualPhrasePartsProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, VirtualPhrasePartsProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -1898,7 +1913,7 @@ VirtualPhrasePartsProcess& VirtualPhrasePartsProcess::Get(DatasetPtrs p) {
 void VirtualPhrasePartsProcess::Get() {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	args.fn = 3;
 	args.words.Clear();
@@ -1958,7 +1973,7 @@ void VirtualPhrasePartsProcess::Get() {
 	m.GetTokenData(args, [this](String res) {
 		TokenArgs& args = token_args;
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		// 61. compound-complex sentence + complex sentence: compound-complex sentence
 		
@@ -2048,7 +2063,7 @@ int VirtualPhraseStructsProcess::GetPhaseCount() const {
 
 int VirtualPhraseStructsProcess::GetBatchCount(int phase) const {
 	if (phase == PHASE_GET)
-		return p.src->token_texts.GetCount();
+		return p.src->Data().token_texts.GetCount();
 	else
 		return 1;
 }
@@ -2065,7 +2080,7 @@ void VirtualPhraseStructsProcess::DoPhase() {
 
 void VirtualPhraseStructsProcess::Get() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	
 	if (batch >= src.token_texts.GetCount()) {
@@ -2186,7 +2201,8 @@ void VirtualPhraseStructsProcess::Get() {
 VirtualPhraseStructsProcess& VirtualPhraseStructsProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, VirtualPhraseStructsProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -2211,7 +2227,7 @@ int PhrasePartAnalysisProcess::GetPhaseCount() const {
 
 int PhrasePartAnalysisProcess::GetBatchCount(int phase) const {
 	int per_action_task = BatchCount(phase);
-	return (p.src->phrase_parts.GetCount() + per_action_task + 1) / per_action_task;
+	return (p.src->Data().phrase_parts.GetCount() + per_action_task + 1) / per_action_task;
 }
 
 int PhrasePartAnalysisProcess::GetSubBatchCount(int phase, int batch) const {
@@ -2237,7 +2253,8 @@ void PhrasePartAnalysisProcess::DoPhase() {
 PhrasePartAnalysisProcess& PhrasePartAnalysisProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, PhrasePartAnalysisProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -2245,7 +2262,7 @@ PhrasePartAnalysisProcess& PhrasePartAnalysisProcess::Get(DatasetPtrs p) {
 
 void PhrasePartAnalysisProcess::Do(int fn) {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	PhraseArgs& args = phrase_args;
 	args.fn = fn;
@@ -2379,7 +2396,7 @@ void PhrasePartAnalysisProcess::Do(int fn) {
 void PhrasePartAnalysisProcess::OnPhraseColors(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 12. RGB(255, 102, 0)
 	
@@ -2450,7 +2467,7 @@ void PhrasePartAnalysisProcess::OnPhraseColors(String res) {
 void PhrasePartAnalysisProcess::OnPhraseAttrs(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 1. Belief communities: acceptance
 	
@@ -2514,7 +2531,7 @@ void PhrasePartAnalysisProcess::OnPhraseAttrs(String res) {
 void PhrasePartAnalysisProcess::OnPhraseActions(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 5. tone(admiring) + msg(expressing attraction) + bias(physical appearance) + attention-attribute(referencing arms) + attention-physical_state(strength)
 	
@@ -2597,7 +2614,7 @@ void PhrasePartAnalysisProcess::OnPhraseActions(String res) {
 void PhrasePartAnalysisProcess::OnPhraseScores(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 8. 4 5 7 9 6 7 9 8 6 3
 	
@@ -2667,7 +2684,7 @@ void PhrasePartAnalysisProcess::OnPhraseScores(String res) {
 void PhrasePartAnalysisProcess::OnPhraseTypeclasses(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 14. 2 5 9 11 14 19 22 28 34 44
 	
@@ -2753,7 +2770,7 @@ void PhrasePartAnalysisProcess::OnPhraseTypeclasses(String res) {
 void PhrasePartAnalysisProcess::OnPhraseContrast(String res) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	// 14. 2 5 9 11 14 19 22 28 34 44
 	
@@ -2841,7 +2858,7 @@ void PhrasePartAnalysisProcess::OnPhraseContrast(String res) {
 void PhrasePartAnalysisProcess::OnPhraseElement(String result) {
 	TokenArgs& args = token_args;
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	Vector<String> lines = Split(result, "\n");
 	bool line_match = tmp_ptrs.GetCount() == lines.GetCount();
@@ -2939,7 +2956,7 @@ int ActionAttrsProcess::BatchCount(int fn) const {
 void ActionAttrsProcess::Prepare(int fn) {
 	//TextDatabase& db = GetDatabase();
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	args.fn = fn;
 	
@@ -2988,7 +3005,7 @@ void ActionAttrsProcess::Colors() {
 	TaskMgr& m = AiTaskManager();
 	m.GetActionAnalysis(args, [this](String result) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		// "attention-humor(not taking life too seriously)" RGB(255, 255, 0)
 		
@@ -3056,7 +3073,7 @@ void ActionAttrsProcess::Attrs() {
 	TaskMgr& m = AiTaskManager();
 	m.GetActionAnalysis(args, [this](String result) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		// "attention-procedures(planning)" problem solving strategy / shortcut taking
 		
@@ -3108,7 +3125,8 @@ void ActionAttrsProcess::Attrs() {
 ActionAttrsProcess& ActionAttrsProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, ActionAttrsProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -3165,7 +3183,7 @@ void AttributesProcess::DoPhase() {
 
 void AttributesProcess::MainGroups() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	RealizeBatch_AttrExtremesBatch();
 	Vector<AttrExtremesBatch>& batches = attr_extremes_batches;
 	
@@ -3199,7 +3217,7 @@ void AttributesProcess::MainGroups() {
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		RemoveEmptyLines2(res);
 		Vector<String> parts = Split(res, "\n");
@@ -3285,7 +3303,7 @@ void AttributesProcess::MainGroups() {
 
 void AttributesProcess::SimplifyAttrs() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	int per_batch = 50;
 	
 	Vector<AttrPolarBatch>& batches = attr_polar_batches;
@@ -3351,7 +3369,7 @@ void AttributesProcess::SimplifyAttrs() {
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		RemoveEmptyLines2(res);
 		Vector<String> lines = Split(res, "\n");
@@ -3398,7 +3416,7 @@ void AttributesProcess::SimplifyAttrs() {
 
 void AttributesProcess::JoinOrphaned() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	int per_batch = 35;
 	Vector<AttrJoinBatch>& batches = attr_join_batches;
@@ -3460,7 +3478,7 @@ void AttributesProcess::JoinOrphaned() {
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
 		ASSERT(p.src);
-		auto& src = *p.src;
+		auto& src = p.src->Data();
 		
 		RemoveEmptyLines2(res);
 		Vector<String> lines = Split(res, "\n");
@@ -3522,7 +3540,7 @@ void AttributesProcess::JoinOrphaned() {
 
 void AttributesProcess::FixData() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	for(int i = 0; i < src.attrs.GetCount(); i++) {
 		src.attrs[i].simple_attr = -1;
@@ -3548,7 +3566,8 @@ void AttributesProcess::FixData() {
 AttributesProcess& AttributesProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, AttributesProcess> arr;
 	
-	String key = p.src->filepath;
+	String key = p.src->Data().filepath;
+	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	return ts;
@@ -3556,7 +3575,7 @@ AttributesProcess& AttributesProcess::Get(DatasetPtrs p) {
 
 void AttributesProcess::RealizeBatch_AttrExtremesBatch() {
 	ASSERT(p.src);
-	auto& src = *p.src;
+	auto& src = p.src->Data();
 	
 	/*if (uniq_attrs.IsEmpty())*/ {
 		uniq_attrs.Clear();

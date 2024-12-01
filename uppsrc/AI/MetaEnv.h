@@ -15,6 +15,10 @@ struct MetaNodeSubset;
 enum {
 	METAKIND_BEGIN = 1000,
 	
+	METAKIND_DATABASE_SOURCE,
+	METAKIND_PKG_ENV,
+	METAKIND_CONTEXT,
+	METAKIND_DB_REF,
 	METAKIND_COMMENT,
 	METAKIND_ECS_SPACE,
 	
@@ -193,6 +197,7 @@ struct MetaNode : Pte<MetaNode> {
 	void RemoveAllDeep(int kind);
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 	void RealizeSerial();
+	void FixSerialDeep();
 	Vector<Ptr<MetaNodeExt>> GetAllExtensions();
 	
 	template <class T>
@@ -218,6 +223,20 @@ struct MetaNode : Pte<MetaNode> {
 			}
 		}
 		return v;
+	}
+	
+	template <class T>
+	T* Find(int kind=-1) {
+		bool chk_kind = kind >= 0;
+		for (auto& s : sub) {
+			if (chk_kind && s.kind != kind) continue;
+			if (s.ext) {
+				T* o = dynamic_cast<T*>(&*s.ext);
+				ASSERT(!chk_kind || o);
+				if (o) return o;
+			}
+		}
+		return 0;
 	}
 };
 
@@ -250,6 +269,8 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	void Serialize(Stream& s);
 	bool IsBinary() const {return GetFileExt(full_path) == ".bin";}
 	bool IsECS() const {return GetFileExt(full_path) == ".ecs";}
+	bool IsEnv() const {return GetFileExt(full_path) == ".env";}
+	bool IsExt(String s) const {return GetFileExt(full_path) == s;}
 	bool Store(bool forced=false);
 	String StoreJson();
 	bool Load();
@@ -278,7 +299,7 @@ struct MetaSrcPkg {
 	
 	Array<MetaSrcFile> files;
 	
-	String path;
+	String dir;
 	int id = -1;
 	
 	MetaSrcPkg() {}
@@ -291,17 +312,17 @@ struct MetaSrcPkg {
 	MetaSrcFile& GetAddFile(const String& full_path);
 	MetaSrcFile& GetMetaFile();
 	//void SetPath(String full_path, String upp_dir);
-	String GetTitle() const {return GetFileTitle(path);}
+	String GetTitle() const;
 	String GetRelativePath(const String& path) const;
 	String GetFullPath(const String& rel_path) const;
 	String GetFullPath(int file_i) const;
 	void Serialize(Stream& s) {s % files;}
 	int FindFile(String path) const;
-	String GetDirectory() const {return GetFileDirectory(path);}
+	String GetDirectory() const {return dir;}
 private:
 	bool post_saving = false;
 	Mutex lock;
-	
+	mutable String title;
 };
 
 class ClangTypeResolver;
@@ -332,8 +353,8 @@ struct MetaEnvironment {
 	MetaEnvironment();
 	hash_t NewSerial();
 	hash_t CurrentSerial() const {return serial_counter;}
-	int FindPkg(const String& path) const;
-	MetaSrcPkg& GetAddPkg(const String& path);
+	int FindPkg(String dir) const;
+	MetaSrcPkg& GetAddPkg(String path);
 	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
 	MetaSrcFile& ResolveFile(const String& includes, const String& path);
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
@@ -361,6 +382,8 @@ struct MetaEnvironment {
 	hash_t RealizeTypePath(const String& path);
 	MetaNode& RealizeFileNode(int pkg, int file, int kind);
 	void OnLoadFile(MetaSrcFile& file);
+	MetaNode* FindNodeEnv(MetaNode& n);
+	void UpdateWorkspace(Workspace& wspc);
 };
 
 MetaEnvironment& MetaEnv();

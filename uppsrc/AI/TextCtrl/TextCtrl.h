@@ -10,6 +10,7 @@
 #include "Fn.h"
 #include "TextDesigner.h"
 #include "Entity.h"
+#include "Env.h"
 #include "SourceText.h"
 #include "LyricContent.h"
 #include "LyricRef.h"

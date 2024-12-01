@@ -16,6 +16,7 @@ public:
 	bool IsDirty(const String& s) override;
 	//bool LoadEcsSpace(String path);
 	static bool AcceptExt(String ext);
+	static void RunPath(String path);
 };
 
 INITIALIZE(EcsIndexer)

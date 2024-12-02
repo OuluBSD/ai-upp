@@ -459,10 +459,14 @@ struct SrcTxtHeader : MetaNodeExt {
 	hash_t GetHashValue() const override {return sha1.GetHashValue();}
 	String GetName() const override {return "Source Database";}
 	
+	String filepath;
 	One<SrcTextData> data;
 	
+	SrcTxtHeader(MetaNode& owner) : MetaNodeExt(owner) {}
 	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}
-	
+	void RealizeData();
+	bool LoadData();
+	String SaveData();
 };
 
 

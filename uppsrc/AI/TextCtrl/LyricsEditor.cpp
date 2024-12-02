@@ -568,7 +568,7 @@ void ScriptTextSolverCtrl::DataLine() {
 		DynLine& dl = const_cast<DynLine&>(*active);
 		
 		if (p.entity) {
-			UpdateEntities(dl, dl.safety, p.entity->gender);
+			UpdateEntities(dl, dl.safety, p.entity->GetGender());
 		}
 		for(int i = 0; i < g.GetCount(); i++) {
 			const DynLine* dl = g[i];

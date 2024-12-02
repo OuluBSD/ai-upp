@@ -1616,96 +1616,13 @@ void SourceTextCtrl::Data() {
 }
 
 void SourceTextCtrl::OnLoad(const String& data, const String& filepath) {
-	SrcTxtHeader head;
-	if (!LoadFromJson(head, data))
-		return;
-	
-	String compressed;
-	String dir = GetFileDirectory(filepath);
-	for(int i = 0; i < head.files.GetCount(); i++) {
-		String path = AppendFileName(dir, head.files[i]);
-		String data = LoadFile(path);
-		
-		compressed.Cat(data);
-		
-		int per_file = 1024 * 1024 * 25;
-		LOG(data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False"));
-	}
-	String decompressed = BZ2Decompress(compressed);
-	if (decompressed.GetCount() != head.size) {
-		LOG("error: size mismatch when loading: " + filepath);
-		return;
-	}
-	String sha1 = SHA1String(decompressed);
-	if (sha1 != head.sha1) {
-		LOG("error: sha1 mismatch when loading: " + filepath);
-		return;
-	}
-	StringStream decomp_stream(decompressed);
-	SrcTxtHeader* src;
-	int i = DatasetIndex().Find(filepath);
-	if (i < 0) {
-		auto& env = MetaEnv();
-		MetaSrcFile& file = env.ResolveFile("", filepath);
-		MetaNode& filenode = env.RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
-		ASSERT(filenode.ext.IsEmpty());
-		SrcTxtHeader* header = new SrcTxtHeader();
-		filenode.ext = header;
-		src = header;
-		DatasetIndex().Add(filepath) = header;
-		header->data.Create();
-	}
-	else src = dynamic_cast<SrcTxtHeader*>(&*DatasetIndex()[i]);
-	src->Serialize(decomp_stream);
-	DatasetPtrs& p = GetDataset();
-	p.src = src;
+	MetaEnv().LoadFileRootJson("", filepath, data, true);
 }
 
 void SourceTextCtrl::OnSave(String& data, const String& filepath) {
 	
 	LOG("warning: skipping saving");
-	return;
 	
-	
-	String dir = GetFileDirectory(filepath);
-	String filename = GetFileName(filepath);
-	int i = DatasetIndex().Find(filepath);
-	ASSERT(i >= 0);
-	SrcTextData* src = dynamic_cast<SrcTextData*>(&*DatasetIndex()[i]);
-	StringStream decomp_stream;
-	src->Serialize(decomp_stream);
-	String decompressed = decomp_stream.GetResult();
-	
-	SrcTxtHeader head;
-	head.written = GetUtcTime();
-	head.sha1 = SHA1String(decompressed);
-	head.size = decompressed.GetCount();
-	this->data_sha1 = head.sha1;
-	
-	String compressed = BZ2Compress(decompressed);
-	StringStream comp_stream;
-	comp_stream % compressed;
-	
-	int per_file = 1024 * 1024 * 25;
-	int parts = 1 + (compressed.GetCount() + 1) / per_file;
-	for(int i = 0; i < parts; i++) {
-		int begin = i * per_file;
-		int end = min(begin+per_file, compressed.GetCount());
-		String part = compressed.Mid(begin,end-begin);
-		String part_path = filepath + "." + IntStr(i);
-		FileOut fout(part_path);
-		fout.Put(part);
-		head.files.Add(filename + "." + IntStr(i));
-	}
-	for (int i = parts;;) {
-		String part_path = filepath + "." + IntStr(i);
-		if (FileExists(part_path))
-			DeleteFile(part_path);
-		else
-			break;
-	}
-	
-	data = StoreAsJson(head, true);
 }
 
 void SourceTextCtrl::ToolMenu(Bar& bar) {

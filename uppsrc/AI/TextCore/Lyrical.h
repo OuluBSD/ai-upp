@@ -230,7 +230,7 @@ struct Script : Component, LyricalStructure {
 	String GetAnyTitle() const;
 	//String GetTextStructure(bool coarse) const;
 
-	Script() {}
+	Script(MetaNode& owner) : Component(owner) {}
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
@@ -282,7 +282,7 @@ struct Lyrics : Component, LyricalStructure {
 	
 	
 	
-	Lyrics() {}
+	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
 	void Serialize(Stream& s) override {Panic("TODO");}
 	void Jsonize(JsonIO& json) override
@@ -320,7 +320,7 @@ INITIALIZE(Lyrics);
 
 struct Song : Component {
 	
-	Song() {}
+	Song(MetaNode& owner) : Component(owner) {}
 	~Song(){}
 	void Serialize(Stream& s) override {Panic("TODO");}
 	void Jsonize(JsonIO& json) override

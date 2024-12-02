@@ -11,10 +11,12 @@ class EnvEditorCtrl : public ToolAppCtrl {
 	
 protected:
 	Ptr<MetaNode> file_root;
-	Vector<MetaNode*> ctxs;
 	Vector<Vector<MetaNode*>> ctx_dbs;
+	Vector<MetaNode*> ctxs;
 	Vector<Ptr<MetaNode>> dbs
 	;
+	
+	
 public:
 	typedef EnvEditorCtrl CLASSNAME;
 	EnvEditorCtrl();
@@ -30,10 +32,12 @@ public:
 	void OnLoad(const String& data, const String& filepath) override;
 	void OnSave(String& data, const String& filepath) override;
 	void OnValueChange();
+	void OnOption(Option* opt, MetaNode* db);
 	
 	static bool AcceptsExt(String e) { return e == ".env"; }
 	static String GetID() { return "Environment Editor"; }
 	
+	static String MakeIdString(const Vector<MetaNode*>& v);
 };
 
 

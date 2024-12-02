@@ -12,6 +12,7 @@ EnvEditorCtrl::EnvEditorCtrl() {
 	edit.name.WhenAction << THISBACK(OnValueChange);
 	
 	ctxlist.AddColumn("Context");
+	ctxlist.AddColumn("Items");
 	ctxlist.WhenBar << [this](Bar& b) {
 		b.Add("Add Context", THISBACK(AddContext));
 		if (ctxlist.IsCursor())
@@ -19,9 +20,9 @@ EnvEditorCtrl::EnvEditorCtrl() {
 	};
 	ctxlist.WhenCursor << THISBACK(DataItem);
 	
-	edit.items.AddColumn("Item");
 	edit.items.AddColumn("Enabled");
-	edit.items.ColumnWidths("8 1");
+	edit.items.AddColumn("Item");
+	edit.items.ColumnWidths("1 8");
 	
 }
 
@@ -43,9 +44,19 @@ void EnvEditorCtrl::RefreshDatabases() {
 	}
 }
 
+String EnvEditorCtrl::MakeIdString(const Vector<MetaNode*>& v) {
+	String s;
+	for (auto& np : v) {
+		if (!s.IsEmpty()) s.Cat(", ");
+		s << np->id;
+	}
+	return s;
+}
+
 void EnvEditorCtrl::Data() {
 	
 	RealizeFileRoot();
+	RefreshDatabases();
 	
 	if (!file_root) {
 		ctxlist.Clear();
@@ -54,21 +65,31 @@ void EnvEditorCtrl::Data() {
 	}
 	
 	ctxs = this->file_root->FindAllShallow(METAKIND_CONTEXT);
-	
 	ctx_dbs.SetCount(ctxs.GetCount());
-	
 	int row = 0;
 	for(int i = 0; i < ctxs.GetCount(); i++) {
 		auto& ep = ctxs[i];
 		if (!ep) {ctx_dbs[i].Clear(); continue;}
 		auto& e = *ep;
 		ctxlist.Set(row, 0, e.id);
-		ctxlist.Set(row, 1, e.sub.GetCount());
 		
-		ctx_dbs[i] = e.FindAllShallow(METAKIND_DB_REF);
+		// Make string of items
+		auto& db_refs = ctx_dbs[i];
+		db_refs = e.FindAllShallow(METAKIND_DB_REF);
+		ctxlist.Set(row, 1, MakeIdString(db_refs));
 		row++;
 	}
 	ctxlist.SetCount(row);
+	
+	for(int i = edit.items.GetCount(); i < dbs.GetCount(); i++) {
+		MetaNode& db = *dbs[i];
+		ASSERT(!db.id.IsEmpty());
+		Option* o = new Option;
+		o->WhenAction << THISBACK2(OnOption, o, &db);
+		edit.items.SetCtrl(i, 0, o);
+		edit.items.Set(i, 1, db.id);
+	}
+	edit.items.SetCount(dbs.GetCount());
 	
 	if (!ctxlist.IsCursor() && ctxlist.GetCount())
 		ctxlist.SetCursor(0);
@@ -85,17 +106,53 @@ void EnvEditorCtrl::DataItem() {
 	auto& ctx = *ctxs[ctx_i];
 	edit.name = ctx.id;
 	
-	auto& envs = ctx_dbs[ctx_i];
+	auto& db_refs = ctx_dbs[ctx_i];
+	Index<String> enabled;
+	for (auto& db_ref : db_refs) {
+		ASSERT(!db_ref->id.IsEmpty());
+		enabled.FindAdd(db_ref->id);
+	}
+	
 	int row = 0;
-	for(int i = 0; i < envs.GetCount(); i++) {
-		auto& ep = envs[i];
-		if (!ep) continue;
-		auto& e = *ep;
-		edit.items.Set(row, 0, e.id);
+	for(int i = 0; i < dbs.GetCount(); i++) {
+		MetaNode& db = *dbs[i];
+		ASSERT(!db.id.IsEmpty());
+		bool db_enabled = enabled.Find(db.id) >= 0;
+		Option* o = dynamic_cast<Option*>(edit.items.GetCtrl(row, 0));
+		o->Set(db_enabled);
 		row++;
 	}
 	edit.items.SetCount(row);
 	
+}
+
+void EnvEditorCtrl::OnOption(Option* opt, MetaNode* db) {
+	String db_id = db->id;
+	if (!ctxlist.IsCursor()) {
+		edit.items.Clear();
+		return;
+	}
+	int ctx_i = ctxlist.GetCursor();
+	auto& ctx = *ctxs[ctx_i];
+	auto& db_refs = ctx_dbs[ctx_i];
+	bool enabled = opt->Get();
+	int sub_i = ctx.Find(METAKIND_DB_REF, db_id);
+	if (enabled) {
+		if (sub_i >= 0)
+			return;
+		MetaNode& s = ctx.Add(METAKIND_DB_REF, db_id);
+		ASSERT(s.ext);
+	}
+	else {
+		if (sub_i < 0)
+			return;
+		ctx.sub.Remove(sub_i);
+	}
+	
+	db_refs = ctx.FindAllShallow(METAKIND_DB_REF);
+	ctxlist.Set(1, MakeIdString(db_refs));
+	
+	PostCallback(THISBACK(DataItem));
 }
 
 void EnvEditorCtrl::ToolMenu(Bar& bar) {

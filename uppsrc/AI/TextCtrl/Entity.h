@@ -19,6 +19,7 @@ public:
 
 class EntityInfoCtrl : public MetaExtCtrl {
 	WithEntityInfo<Ctrl> info;
+	VectorMap<String,MetaNode*> all_ctxs;
 	
 public:
 	typedef EntityInfoCtrl CLASSNAME;
@@ -26,6 +27,7 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	void OnEdit();
+	DatasetPtrs GetDataset();
 	
 	Event<> WhenValueChange;
 };

@@ -46,8 +46,9 @@ inline bool IsEcsComponentKind(int kind) {
 struct MetaNode;
 
 struct MetaNodeExt : Pte<MetaNodeExt> {
-	MetaNode* node = 0;
+	MetaNode& node;
 	
+	MetaNodeExt(MetaNode& n) : node(n) {}
 	virtual ~MetaNodeExt() {}
 	virtual void Serialize(Stream& s) = 0;
 	virtual void Jsonize(JsonIO& json) = 0;
@@ -72,7 +73,7 @@ struct MetaExtCtrl : Ctrl {
 };
 
 struct MetaExtFactory {
-	typedef MetaNodeExt* (*NewFn)();
+	typedef MetaNodeExt* (*NewFn)(MetaNode&);
 	typedef MetaExtCtrl* (*NewCtrl)();
 	typedef bool (*IsFn)(const MetaNodeExt& e);
 	
@@ -87,7 +88,7 @@ struct MetaExtFactory {
 	
 	
 	template<class T> struct Functions {
-		static MetaNodeExt* Create() {MetaNodeExt* c = new T; return c;}
+		static MetaNodeExt* Create(MetaNode& owner) {MetaNodeExt* c = new T(owner); return c;}
 		static bool IsNodeExt(const MetaNodeExt& e) {return dynamic_cast<const T*>(&e);}
 	};
 	template<class T> struct CtrlFunctions {
@@ -113,9 +114,9 @@ struct MetaExtFactory {
 			}
 		}
 	}
-	static MetaNodeExt* CreateKind(int kind);
-	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e);
-	static MetaNodeExt* Clone(const MetaNodeExt& e);
+	static MetaNodeExt* CreateKind(int kind, MetaNode& owner);
+	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
+	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
 	static int FindKindFactory(int kind);
 };
 
@@ -162,7 +163,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
 	MetaNode& Add();
-	MetaNode& Add(int kind);
+	MetaNode& Add(int kind, String id=String());
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
@@ -203,8 +204,7 @@ struct MetaNode : Pte<MetaNode> {
 	template <class T>
 	T& Add() {
 		MetaNode& s = Add();
-		T* o = new T;
-		o->node = &s;
+		T* o = new T(s);
 		s.ext = o;
 		s.owner = this;
 		s.pkg = pkg;
@@ -263,6 +263,7 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	mutable Mutex lock;
 	bool managed_file = false; // if file only exists as MetaNode json
 	bool keep_file_ids = false;
+	bool env_file = false;
 	
 	MetaSrcFile() {}
 	void Jsonize(JsonIO& json);
@@ -326,6 +327,8 @@ private:
 };
 
 class ClangTypeResolver;
+struct MetaNode;
+struct Entity;
 
 typedef enum : byte {
 	MERGEMODE_OVERWRITE_OLD,
@@ -382,8 +385,10 @@ struct MetaEnvironment {
 	hash_t RealizeTypePath(const String& path);
 	MetaNode& RealizeFileNode(int pkg, int file, int kind);
 	void OnLoadFile(MetaSrcFile& file);
-	MetaNode* FindNodeEnv(MetaNode& n);
+	MetaNode* FindNodeEnv(Entity& n);
 	void UpdateWorkspace(Workspace& wspc);
+	Vector<MetaNode*> FindAllEnvs();
+	bool LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data);
 };
 
 MetaEnvironment& MetaEnv();

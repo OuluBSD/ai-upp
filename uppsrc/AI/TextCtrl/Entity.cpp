@@ -77,7 +77,7 @@ void EntityEditorCtrl::DataEntityListOnly() {
 		entlist.Set(row, 0, e.name);
 		
 		auto& e_exts = extensions[i];
-		e_exts = e.node->GetAllExtensions();
+		e_exts = e.node.GetAllExtensions();
 		
 		entlist.Set(row, 1, e_exts.GetCount());
 		row++;
@@ -107,7 +107,7 @@ void EntityEditorCtrl::Data() {
 		entlist.Set(row, 0, e.name);
 		
 		auto& e_exts = extensions[i];
-		e_exts = e.node->GetAllExtensions();
+		e_exts = e.node.GetAllExtensions();
 		
 		entlist.Set(row, 1, e_exts.GetCount());
 		row++;
@@ -130,7 +130,7 @@ void EntityEditorCtrl::DataEntity() {
 	int ent_i = entlist.GetCursor();
 	auto& e = *entities[ent_i];
 	auto& exts = extensions[ent_i];
-	exts = e.node->GetAllExtensions();
+	exts = e.node.GetAllExtensions();
 	exts.Insert(0, &e);
 	int row = 0;
 	for(int i = 0; i < exts.GetCount(); i++) {
@@ -138,7 +138,7 @@ void EntityEditorCtrl::DataEntity() {
 		if (!cp) continue;
 		auto& c = *cp;
 		extlist.Set(row, 0, c.GetName());
-		extlist.Set(row, 1, c.node->GetKindString());
+		extlist.Set(row, 1, c.node.GetKindString());
 		row++;
 	}
 	extlist.SetCount(row);
@@ -161,8 +161,8 @@ void EntityEditorCtrl::DataExtension() {
 	auto& exts = extensions[ent_i];
 	MetaNodeExt& ext = *exts[ext_i];
 	
-	if (ext_ctrl_kind != ext.node->kind) {
-		int fac_i = MetaExtFactory::FindKindFactory(ext.node->kind);
+	if (ext_ctrl_kind != ext.node.kind) {
+		int fac_i = MetaExtFactory::FindKindFactory(ext.node.kind);
 		
 		if (fac_i < 0) {
 			ClearExtensionCtrl();
@@ -172,7 +172,7 @@ void EntityEditorCtrl::DataExtension() {
 		if (fac.new_ctrl_fn) {
 			MetaExtCtrl* ctrl = fac.new_ctrl_fn();
 			ctrl->ext = &ext;
-			SetExtensionCtrl(ext.node->kind, ctrl);
+			SetExtensionCtrl(ext.node.kind, ctrl);
 			
 			if (fac.kind == METAKIND_ECS_ENTITY) {
 				EntityInfoCtrl& e = dynamic_cast<EntityInfoCtrl&>(*ctrl);
@@ -229,7 +229,7 @@ void EntityEditorCtrl::AddEntity() {
 	RealizeFileRoot();
 	MetaNode& n = *file_root;
 	Entity& e = n.Add<Entity>();
-	ASSERT(e.node->kind == METAKIND_ECS_ENTITY);
+	ASSERT(e.node.kind == METAKIND_ECS_ENTITY);
 	e.name = "Unnamed";
 	PostCallback(THISBACK(Data));
 }
@@ -274,7 +274,7 @@ void EntityEditorCtrl::AddComponent() {
 		int ext_i = list[i];
 		if (ext_i < 0 || ext_i >= MetaExtFactory::List().GetCount()) return;
 		const auto& factory = MetaExtFactory::List()[ext_i];
-		auto& ext = e->node->Add(factory.kind);
+		auto& ext = e->node.Add(factory.kind);
 		ASSERT(ext.kind == factory.kind);
 		PostCallback(THISBACK(Data));
 	}
@@ -285,8 +285,8 @@ void EntityEditorCtrl::RemoveComponent() {
 	if (!e || !extlist.IsCursor()) return;
 	int ext_i = extlist.GetCursor();
 	if (ext_i == 0) return; // don't remove EntityInfoCtrl
-	if (ext_i >= 0 && ext_i < e->node->sub.GetCount())
-		e->node->sub.Remove(ext_i);
+	if (ext_i >= 0 && ext_i < e->node.sub.GetCount())
+		e->node.sub.Remove(ext_i);
 	PostCallback(THISBACK(Data));
 }
 
@@ -317,22 +317,58 @@ EntityInfoCtrl::EntityInfoCtrl() {
 	CtrlLayout(info);
 	
 	info.name.WhenAction = THISBACK(OnEdit);
-	info.type.WhenAction = THISBACK(OnEdit);
+	info.ctx.WhenAction = THISBACK(OnEdit);
 	info.desc.WhenAction = THISBACK(OnEdit);
 }
 
 void EntityInfoCtrl::Data() {
-	MetaNode& n = GetNode();
-	Entity& e = GetExt<Entity>();
-	info.name = e.name;
-	info.type = e.type;
-	info.desc.SetData((String)e.Data("description"));
+	DatasetPtrs p = GetDataset();
+	info.name = p.entity->name;
+	info.desc.SetData((String)p.entity->Data("description"));
+	
+	Vector<MetaNode*> envs = MetaEnv().FindAllEnvs();
+	
+	all_ctxs.Clear();
+	for (MetaNode* env : envs) {
+		Vector<MetaNode*> ctxs = env->FindAllShallow(METAKIND_CONTEXT);
+		for (MetaNode* ctx : ctxs) {
+			String key = /*env->id + ": " +*/ ctx->id;
+			all_ctxs.Add(key, ctx);
+		}
+	}
+	
+	String ent_ctx = p.entity->Data("ctx");
+	String match_key = ent_ctx;
+	
+	info.ctx.Clear();
+	info.ctx.Add("");
+	int active_ctx = 0;
+	for(int i = 0; i < all_ctxs.GetCount(); i++) {
+		String ctx_key = all_ctxs.GetKey(i);
+		info.ctx.Add(ctx_key);
+		if (ctx_key == match_key)
+			active_ctx = 1+i;
+	}
+	if (active_ctx >= 0 && active_ctx < info.ctx.GetCount()) {
+		info.ctx.SetIndex(active_ctx);
+	}
+	
+	//info.ctx
 }
 
 void EntityInfoCtrl::OnEdit() {
 	Entity& e = GetExt<Entity>();
 	e.name = ~info.name;
-	e.type = ~info.type;
+	
+	int ctx_i = info.ctx.GetIndex()-1;
+	if (ctx_i >= 0 && ctx_i < info.ctx.GetCount()) {
+		MetaNode& ctx = *all_ctxs[ctx_i];
+		e.Data("ctx") = ctx.id;
+	}
+	else {
+		e.Data("ctx") = String();
+	}
+	
 	e.Data("description") = info.desc.GetData();
 	
 	WhenValueChange();
@@ -340,6 +376,34 @@ void EntityInfoCtrl::OnEdit() {
 
 void EntityInfoCtrl::ToolMenu(Bar& bar) {
 	
+}
+
+DatasetPtrs EntityInfoCtrl::GetDataset() {
+	DatasetPtrs p;
+	MetaNode& n = GetNode();
+	p.entity = &GetExt<Entity>();
+	if (p.entity) {
+		p.env = MetaEnv().FindNodeEnv(*p.entity);
+		if (p.env) {
+			bool found_db_src = false;
+			for (MetaNode& s : p.env->sub) {
+				if (s.kind == METAKIND_DB_REF) {
+					for (auto db : ~DatasetIndex()) {
+						MetaNodeExt& ext = *db.value;
+						if (ext.node.kind == METAKIND_DATABASE_SOURCE) {
+							p.src = dynamic_cast<SrcTxtHeader*>(&ext);
+							ASSERT(p.src);
+							p.src->RealizeData();
+							found_db_src = true;
+							break;
+						}
+					}
+				}
+				if (found_db_src) break;
+			}
+		}
+	}
+	return p;
 }
 
 INITIALIZER_COMPONENT_CTRL(Entity, EntityInfoCtrl)

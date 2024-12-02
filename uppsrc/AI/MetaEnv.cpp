@@ -244,6 +244,13 @@ bool MetaSrcFile::Load()
 		OnSerialCounter();
 		temp->RealizeSerial();
 		lock.Leave();
+		
+		if (GetFileExt(full_path) == ".db-src") {
+			SrcTxtHeader* src = dynamic_cast<SrcTxtHeader*>(&*temp->ext);
+			ASSERT(src);
+			DatasetIndex().GetAdd(full_path) = src;
+		}
+		
 		return true;
 	}
 	else {
@@ -547,6 +554,7 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 		f.pkg = this;
 		f.rel_path = rel_path;
 		f.full_path = full_path;
+		f.env_file = GetFileExt(full_path) == ".env";
 		return f;
 	}
 	else {
@@ -560,6 +568,7 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 		f.pkg = this;
 		f.rel_path = "";
 		f.full_path = full_path;
+		f.env_file = GetFileExt(full_path) == ".env";
 		return f;
 	}
 }
@@ -702,11 +711,56 @@ void MetaEnvironment::UpdateWorkspace(Workspace& wspc) {
 	}
 }
 
-MetaNode* MetaEnvironment::FindNodeEnv(MetaNode& n)
+Vector<MetaNode*> MetaEnvironment::FindAllEnvs() {
+	Vector<MetaNode*> v;
+	for (const MetaSrcPkg& pkg : pkgs) {
+		for (const MetaSrcFile& file : pkg.files) {
+			if (file.env_file) {
+				MetaNode& n = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				v << &n;
+			}
+		}
+	}
+	return v;
+}
+
+MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 {
-	//Ide* ide = TheIde();
-	Panic("TODO");
+	String ctx = n.Data("ctx");
+	if (ctx.IsEmpty())
+		return 0;
+	for (const MetaSrcPkg& pkg : pkgs) {
+		for (const MetaSrcFile& file : pkg.files) {
+			if (file.env_file) {
+				MetaNode& fn = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				for (MetaNode& s : fn.sub)
+					if (s.kind == METAKIND_CONTEXT && s.id == ctx)
+						return &s;
+			}
+		}
+	}
 	return 0;
+}
+
+bool MetaEnvironment::LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data) {
+	data.Replace("\r","");
+	if (data.Find("{\n\t\"written\":") >= 0) {
+		MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+		One<SrcTxtHeader> ext;
+		ext.Create(filenode);
+		ext->filepath = path;
+		LoadFromJson(*ext, data);
+		DatasetIndex().GetAdd(path) = &*ext;
+		filenode.serial = NewSerial();
+		filenode.ext = ext.Detach();
+		ASSERT(&filenode.ext->node == &filenode);
+		filenode.id = GetFileTitle(path);
+		return true;
+	}
+	else {
+		Panic("TODO");
+	}
+	return false;
 }
 
 bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, bool manage_file)
@@ -716,17 +770,9 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	
 	// Hotfix for old .db-src file
 	if (GetFileExt(path) == ".db-src") {
-		String content = LoadFile(path);
-		content.Replace("\r","");
-		if (content.Find("{\n\t\"written\":") >= 0) {
-			One<SrcTxtHeader> ext;
-			ext.Create();
-			LoadFromJson(*ext, content);
-			MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
-			filenode.serial = NewSerial();
-			filenode.ext = ext.Detach();
+		String json = LoadFile(path);
+		if (LoadDatabaseSourceJson(file, path, json))
 			return true;
-		}
 	}
 	
 	file.lock.Enter();
@@ -744,6 +790,13 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file) {
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
+	
+	// Hotfix for old .db-src file
+	if (GetFileExt(path) == ".db-src") {
+		if (LoadDatabaseSourceJson(file, path, json))
+			return true;
+	}
+	
 	if(file.LoadJson(json)) {
 		OnLoadFile(file);
 		file.ClearTemp();
@@ -1471,15 +1524,15 @@ MetaNode& MetaNode::Add()
 	return s;
 }
 
-MetaNode& MetaNode::Add(int kind)
+MetaNode& MetaNode::Add(int kind, String id)
 {
 	MetaNode& s = Add();
 	s.kind = kind;
+	s.id = id;
 	if (kind >= METAKIND_EXTENSION_BEGIN && kind <= METAKIND_EXTENSION_END) {
 		int i = MetaExtFactory::FindKindFactory(kind);
 		if (i >= 0) {
-			s.ext = MetaExtFactory::List()[i].new_fn();
-			s.ext->node = &s;
+			s.ext = MetaExtFactory::List()[i].new_fn(s);
 		}
 	}
 	return s;
@@ -1585,8 +1638,7 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	is_disabled = n.is_disabled;
 	if (n.ext) {
 		ASSERT(kind >= 0);
-		ext = MetaExtFactory::CloneKind(kind, *n.ext);
-		if (ext) ext->node = this;
+		ext = MetaExtFactory::CloneKind(kind, *n.ext, *this);
 	}
 	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
@@ -1635,7 +1687,7 @@ void MetaNode::Serialize(Stream& s)
 	bool has_ext = ext;
 	s % has_ext;
 	if (has_ext) {
-		if (s.IsLoading()) {ext = MetaExtFactory::CreateKind(kind); ext->node = this;}
+		if (s.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
 		s % *ext;
 	}
 	s	% sub
@@ -1665,7 +1717,7 @@ void MetaNode::Jsonize(JsonIO& json) {
 	bool has_ext = ext;
 	json("has_ext", has_ext);
 	if (has_ext) {
-		if (json.IsLoading()) {ext = MetaExtFactory::CreateKind(kind); if (ext) ext->node = this;}
+		if (json.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
 		if (ext)
 			json("ext",*ext);
 	}
@@ -1834,7 +1886,7 @@ Vector<Ptr<MetaNodeExt>> MetaNode::GetAllExtensions() {
 }
 
 MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
-MetaNode& MetaExtCtrl::GetNode() {return *ext->node;}
+MetaNode& MetaExtCtrl::GetNode() {return ext->node;}
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {
@@ -1945,6 +1997,7 @@ MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	n.file = file;
 	n.kind = kind;
 	n.serial = NewSerial();
+	n.id = pkgs[pkg].files[file].GetTitle();
 	return n;
 }
 
@@ -1962,24 +2015,24 @@ MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 
 
 
-MetaNodeExt* MetaExtFactory::CreateKind(int kind) {
+MetaNodeExt* MetaExtFactory::CreateKind(int kind, MetaNode& owner) {
 	int i = FindKindFactory(kind);
 	if (i < 0) return 0;
-	return List()[i].new_fn();
+	return List()[i].new_fn(owner);
 }
 
-MetaNodeExt* MetaExtFactory::CloneKind(int kind, const MetaNodeExt& e) {
+MetaNodeExt* MetaExtFactory::CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner) {
 	int i = FindKindFactory(kind);
 	if (i < 0) return 0;
-	MetaNodeExt* n = List()[i].new_fn();
+	MetaNodeExt* n = List()[i].new_fn(owner);
 	n->CopyFrom(e);
 	return n;
 }
 
-MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e) {
+MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e, MetaNode& owner) {
 	for (Factory& f : List()) {
 		if (f.is_fn(e)) {
-			MetaNodeExt* n = f.new_fn();
+			MetaNodeExt* n = f.new_fn(owner);
 			n->CopyFrom(e);
 			return n;
 		}

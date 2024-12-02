@@ -195,4 +195,91 @@ ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex() {
 	return map;
 }
 
+
+
+void SrcTxtHeader::RealizeData() {
+	if (!data)
+		LoadData();
+}
+
+bool SrcTxtHeader::LoadData() {
+	ASSERT(!filepath.IsEmpty());
+	// if (files.IsEmpty()) {
+	//	if (!LoadFromJsonFile(*this, filepath))
+	//		return false;
+	//}
+	ASSERT(files.GetCount());
+	
+	String compressed;
+	String dir = GetFileDirectory(filepath);
+	for(int i = 0; i < this->files.GetCount(); i++) {
+		String path = AppendFileName(dir, this->files[i]);
+		String data = LoadFile(path);
+		
+		compressed.Cat(data);
+		
+		int per_file = 1024 * 1024 * 25;
+		Logi() << "SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False");
+	}
+	String decompressed = BZ2Decompress(compressed);
+	if (decompressed.GetCount() != this->size) {
+		Loge() << "SrcTxtHeader::LoadData: error: size mismatch when loading: " << filepath;
+		return false;
+	}
+	String sha1 = SHA1String(decompressed);
+	if (sha1 != this->sha1) {
+		Loge() << "SrcTxtHeader::LoadData: error: sha1 mismatch when loading: " << filepath;
+		return false;
+	}
+	StringStream decomp_stream(decompressed);
+	
+	this->data.Create();
+	this->data->Serialize(decomp_stream);
+	
+	return true;
+}
+
+String SrcTxtHeader::SaveData() {
+	ASSERT(!filepath.IsEmpty());
+	
+	String dir = GetFileDirectory(filepath);
+	String filename = GetFileName(filepath);
+	int i = DatasetIndex().Find(filepath);
+	ASSERT(i >= 0);
+	SrcTextData* src = dynamic_cast<SrcTextData*>(&*DatasetIndex()[i]);
+	StringStream decomp_stream;
+	src->Serialize(decomp_stream);
+	String decompressed = decomp_stream.GetResult();
+	
+	this->written = GetUtcTime();
+	this->sha1 = SHA1String(decompressed);
+	this->size = decompressed.GetCount();
+	
+	String compressed = BZ2Compress(decompressed);
+	StringStream comp_stream;
+	comp_stream % compressed;
+	
+	this->files.Clear();
+	int per_file = 1024 * 1024 * 25;
+	int parts = 1 + (compressed.GetCount() + 1) / per_file;
+	for(int i = 0; i < parts; i++) {
+		int begin = i * per_file;
+		int end = min(begin+per_file, compressed.GetCount());
+		String part = compressed.Mid(begin,end-begin);
+		String part_path = filepath + "." + IntStr(i);
+		FileOut fout(part_path);
+		fout.Put(part);
+		this->files.Add(filename + "." + IntStr(i));
+	}
+	for (int i = parts;;) {
+		String part_path = filepath + "." + IntStr(i);
+		if (FileExists(part_path))
+			DeleteFile(part_path);
+		else
+			break;
+	}
+	
+	return StoreAsJson(*this, true);
+}
+
 END_UPP_NAMESPACE

@@ -17,6 +17,7 @@ struct DatasetPtrs {
 	// Specialized components
 	Ptr<Script>				script; // TODO rename to lyrics_draft
 	Ptr<Lyrics>				lyrics;
+	Ptr<MetaNode>			env;
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -26,6 +27,7 @@ struct DatasetPtrs {
 		component = p.component;
 		script = p.script;
 		lyrics = p.lyrics;
+		env = p.env;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	
@@ -33,27 +35,26 @@ struct DatasetPtrs {
 
 struct Component : MetaNodeExt {
 	
+	Component(MetaNode& owner) : MetaNodeExt(owner) {}
 	DatasetPtrs GetDataset();
 	
 };
 
 struct Entity : MetaNodeExt {
-	String name, type;
+	String name;
 	VectorMap<String, Value> data;
-	bool gender = false;
 	
-	Entity() {}
+	Entity(MetaNode& owner) : MetaNodeExt(owner) {}
 	void Clear()
 	{
 		name.Clear();
-		type.Clear();
 		data.Clear();
-		gender = 0;
 	}
-	void Serialize(Stream& s) override {s % name % type % data % gender; }
-	void Jsonize(JsonIO& json) override {json("name", name)("type", type)("data", data)("gender",gender); }
-	hash_t GetHashValue() const override {CombineHash ch; ch.Do(name).Do(type).Do(data).Do(gender); return ch;}
+	void Serialize(Stream& s) override {s % name % data; }
+	void Jsonize(JsonIO& json) override {json("name", name)("data", data); }
+	hash_t GetHashValue() const override {CombineHash ch; ch.Do(name).Do(data); return ch;}
 	Value& Data(const String& key) {return data.GetAdd(key);}
+	int GetGender() const;
 	
 	bool operator()(const Entity& a, const Entity& b) const {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());

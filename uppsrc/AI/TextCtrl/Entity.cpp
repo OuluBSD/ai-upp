@@ -4,6 +4,8 @@ NAMESPACE_UPP
 
 
 DatasetPtrs ComponentCtrl::GetDataset() {
+	if (!ext)
+		return DatasetPtrs();
 	Component& comp = dynamic_cast<Component&>(*ext);
 	return comp.GetDataset();
 }
@@ -66,6 +68,7 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 		ext_place.Add(c->SizePos());
 		PostCallback(THISBACK(DataExtCtrl));
 	}
+	UpdateMenu();
 }
 
 void EntityEditorCtrl::DataEntityListOnly() {
@@ -201,7 +204,10 @@ void EntityEditorCtrl::SetFont(Font fnt) {
 }
 
 void EntityEditorCtrl::ToolMenu(Bar& bar) {
-	bar.Add("Test function 1", THISBACK1(Do, 0));
+	if (ext_ctrl)
+		ext_ctrl->ToolMenu(bar);
+	else
+		bar.Add("", Callback());
 }
 
 void EntityEditorCtrl::OnLoad(const String& data, const String& filepath) {
@@ -211,6 +217,10 @@ void EntityEditorCtrl::OnLoad(const String& data, const String& filepath) {
 void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 	MetaSrcFile& file = RealizeFileRoot();
 	file.MakeTempFromEnv(false);
+	LOG("### ROOT ###");
+	LOG(MetaEnv().root.GetTreeString());
+	LOG("### Temp ###");
+	LOG(file.temp->GetTreeString());
 	data = file.StoreJson();
 }
 

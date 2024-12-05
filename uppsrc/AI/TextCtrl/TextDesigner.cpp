@@ -1,5 +1,5 @@
 #include "TextCtrl.h"
-
+#include <ide/ide.h>
 
 NAMESPACE_UPP
 
@@ -19,6 +19,12 @@ void SolverBaseIndicator::SetProgress(int a, int t) {
 
 
 
+ToolAppCtrl::~ToolAppCtrl() {
+	if (TheIde()->addon_ctrl == this) {
+		TheIde()->addon_menu.Clear();
+		PostCallback([]{TheIde()->SetBar();});
+	}
+}
 
 bool ToolAppCtrl::IsScript() const {
 	const auto& p = GetDataset();
@@ -45,8 +51,15 @@ Component& ToolAppCtrl::GetComponent() {
 }
 
 void ToolAppCtrl::AddMenu() {
-	AddFrame(menu);
-	ToolMenu(menu);
+	//AddFrame(menu);
+	//ToolMenu(menu);
+	UpdateMenu();
+}
+
+void ToolAppCtrl::UpdateMenu() {
+	TheIde()->addon_ctrl = this;
+	TheIde()->addon_menu = [this](Bar& b){ToolMenu(b);};
+	PostCallback([]{TheIde()->SetBar();});
 }
 
 Entity& ToolAppCtrl::GetEntity() {
@@ -146,5 +159,5 @@ void ToolAppCtrl::Save(Stream& s, byte charset) {
 		data = new_data;
 	s.Put(data);
 }
-
+	
 END_UPP_NAMESPACE

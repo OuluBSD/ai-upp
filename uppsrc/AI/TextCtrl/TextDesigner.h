@@ -17,7 +17,7 @@ public:
 
 class ToolAppCtrl : public Ctrl {
 	String data, data_filepath;
-	MenuBar menu;
+	//MenuBar menu;
 	
 protected:
 	String data_sha1;
@@ -27,7 +27,8 @@ public:
 	Label remaining;
 
 public:
-	virtual ~ToolAppCtrl() {}
+	typedef ToolAppCtrl CLASSNAME;
+	virtual ~ToolAppCtrl();
 	virtual void Data() = 0;
 	virtual void ToolMenu(Bar& bar) { bar.Add("", TextImgs::placeholder16(), Callback()); }
 	virtual String GetStatusText() { return String(); }
@@ -50,13 +51,15 @@ public:
 	
 	void MakeComponentParts(ArrayCtrl& parts);
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);
-
+	void UpdateMenu();
+	
 	virtual void Load(const String& includes, const String& filename, Stream& in, byte charset);
 	virtual void Save(Stream& s, byte charset);
 	virtual void SetEditPos(LineEdit::EditPos editpos) {}
 	virtual void SetPickUndoData(LineEdit::UndoData undodata) {}
 	virtual void OnLoad(const String& data, const String& filepath) {}
 	virtual void OnSave(String& data, const String& filepath) {}
+	
 	
 	template <class T>
 	void DoT(int fn)

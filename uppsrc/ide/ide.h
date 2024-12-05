@@ -474,6 +474,8 @@ public:
 	FileIn           view_file2;
 	EditorTabBar     tabs;
 	EscValue         macro_api;
+	Event<Bar&>      addon_menu;
+	Ptr<Ctrl>        addon_ctrl;
 
 	RightTabs   btabs;
 	StaticRect  bottom;

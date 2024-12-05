@@ -1001,6 +1001,9 @@ void Ide::MainMenu(Bar& menu)
 		.Help("Informations, code browsing and assistance");
 	menu.Add("Setup", THISBACK(Setup))
 		.Help("Paths, editor settings, connection to remote host");
+	if (addon_menu) {
+		menu.Sub("Add-on", addon_menu);
+	}
 	menu.Add("Help", THISBACK(HelpMenu))
 		.Help("Help, credits and license");
 }

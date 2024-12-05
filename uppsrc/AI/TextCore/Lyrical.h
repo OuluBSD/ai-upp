@@ -32,6 +32,12 @@ struct LineScore : Moveable<LineScore> {
 	Vector<int> scores;
 	int line_n = 0;
 
+	void Serialize(Stream& s) {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s % lines % scores % line_n;
+	}
 	String Get(int i, int j) const;
 	int GetScore(int i, int j) const;
 	void SetCount(int i, int line_n);
@@ -51,6 +57,12 @@ struct LineElement {
 	int con_i = -1;
 	hash_t sorter = 0;
 
+	void Serialize(Stream& s) {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s % element % attr % act % clr_i % typeclass_i % con_i % sorter;
+	}
 	void Jsonize(JsonIO& json)
 	{
 		json("e", element)("at", attr)("clr", clr_i)("a", act)("t", typeclass_i)("c", con_i)(
@@ -79,6 +91,12 @@ struct DynLine : Moveable<DynLine> {
 	int connector = 0;
 	String line_begin;
 
+	void Serialize(Stream& s) {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s % text % src_text % expanded % suggs % pp_i % end_pp_i % el % style_type % style_entity % safety % line_len % connector % line_begin;
+	}
 	void Jsonize(JsonIO& json)
 	{
 		json("text", text)("src_text", src_text)/*("alt_text", alt_text)("edit_text", edit_text)("user_text", user_text)*/
@@ -109,6 +127,12 @@ struct DynSub : Moveable<DynSub> {
 	Vector<DynLine> lines;
 	String story;
 
+	void Serialize(Stream& s) {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s % el % lines % story;
+	}
 	void Jsonize(JsonIO& json)
 	{
 		json("lines", lines)("el", el)("story", story);
@@ -136,6 +160,22 @@ struct DynPart {
 	Vector<int> phrase_parts;
 	String story;
 
+	void Serialize(Stream& s) {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s	% (int&)voice_type
+				% (int&)text_type
+				% text_num
+				% text_lines
+				% text_lines_per_sub
+				% person
+				% el
+				% sub
+				% phrase_parts
+				% story
+				;
+	}
 	void Jsonize(JsonIO& json)
 	{
 		json("voice_type", (int&)voice_type)("text_type", (int&)text_type)(
@@ -210,7 +250,9 @@ String GetStructText(const Array<DynPart>& parts, bool src_text);
 struct LyricalStructure {
 	Array<DynPart>			parts;
 	
+	void Serialize(Stream& s) {int v = 1; s % v; if (v >= 1) s % parts;}
 	void Jsonize(JsonIO& json) {json("parts", parts);}
+	hash_t GetHashValue() const {return CombineHash(parts);}
 	DynPart* FindPartByName(const String& name);
 	void LoadStructuredText(const String& s);
 	void LoadStructuredTextExt(const String& s, bool src_text);
@@ -220,7 +262,6 @@ struct LyricalStructure {
 
 // TODO rename to LyricsDraft
 struct Script : Component, LyricalStructure {
-	
 	Vector<bool>			simple_attrs;
 	Vector<int>				clr_list;
 	Vector<bool>			actions_enabled;
@@ -234,7 +275,8 @@ struct Script : Component, LyricalStructure {
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Serialize(Stream& s) override {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}
+	void Serialize(Stream& s) override {
+		int v = 1; s % v; if (v >= 1) {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}}
 	void Jsonize(JsonIO& json) override
 	{
 		LyricalStructure::Jsonize(json);
@@ -284,7 +326,25 @@ struct Lyrics : Component, LyricalStructure {
 	
 	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
-	void Serialize(Stream& s) override {Panic("TODO");}
+	void Serialize(Stream& s) override {
+		LyricalStructure::Serialize(s);
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s	% name
+				% content_vision
+				% copyright
+				% description
+				% lang
+				% __text
+				% __suggestions
+				% is_unsafe
+				% is_story
+				% is_self_centered
+				% singer_description
+				% singer_gender
+				;
+	}
 	void Jsonize(JsonIO& json) override
 	{
 		LyricalStructure::Jsonize(json);
@@ -308,7 +368,24 @@ struct Lyrics : Component, LyricalStructure {
 			json("script_suggs", script_suggs);
 		}*/
 	}
-	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
+	hash_t GetHashValue() const override {
+		CombineHash c;
+		c	.Put(LyricalStructure::GetHashValue())
+			.Do(name)
+			.Do(content_vision)
+			.Do(copyright)
+			.Do(description)
+			.Do(lang)
+			.Do(__text)
+			.Do(__suggestions)
+			.Do(is_unsafe)
+			.Do(is_story)
+			.Do(is_self_centered)
+			.Do(singer_description)
+			.Do(singer_gender)
+			;
+		return c;
+	}
 	String GetText() const;
 	
 	

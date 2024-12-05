@@ -1426,10 +1426,22 @@ String MetaNode::GetTreeString(int depth) const
 	s.Cat('\t', depth);
 	if(1)
 		s << IntStr(pkg) << ":" << IntStr(file) << ": ";
-	s << FetchString(clang_getCursorKindSpelling((CXCursorKind)kind));
+	s << GetKindString();
 	if(!id.IsEmpty())
 		s << ": " << id;
 	s << "\n";
+	if (ext) {
+		s.Cat('\t', depth+1);
+		int fac_i = MetaExtFactory::FindKindFactory(kind);
+		s << "EXT:";
+		if (fac_i >= 0) {
+			const auto& fac = MetaExtFactory::List()[fac_i];
+			s << " " << fac.name;
+			if (!fac.ctrl_name.IsEmpty())
+				s << " (" << fac.ctrl_name << ")";
+		}
+		s << "\n";
+	}
 	for(auto& n : sub)
 		s << n.GetTreeString(depth + 1);
 	return s;
@@ -1639,7 +1651,7 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	if (n.ext) {
 		ASSERT(kind >= 0);
 		ext = MetaExtFactory::CloneKind(kind, *n.ext, *this);
-	}
+	} else ext.Clear();
 	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
 }
@@ -2048,10 +2060,11 @@ int MetaExtFactory::FindKindFactory(int kind) {
 
 void MetaNodeExt::CopyFrom(const MetaNodeExt& e) {
 	StringStream s;
-	s % const_cast<MetaNodeExt&>(e); // reading
+	s.SetStoring();
+	const_cast<MetaNodeExt&>(e).Serialize(s); // reading
 	s.SetLoading();
 	s.Seek(0);
-	s % *this;
+	Serialize(s);
 }
 
 bool MetaNodeExt::operator==(const MetaNodeExt& e) const {

@@ -166,7 +166,7 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 		stmt_ptrs.SetCount(tree_idx+1,0);
 	stmt_ptrs[tree_idx] = &n;
 	
-	String kind_str = FetchString(clang_getCursorKindSpelling((CXCursorKind)n.kind));
+	String kind_str = n.GetKindString();
 	String s = kind_str + ": " + n.id;
 	if (n.type.GetCount()) s += " (" + n.type + ")";
 	stmts.Set(tree_idx, s);
@@ -201,7 +201,7 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 		focus_ptrs.SetCount(tree_idx+1,0);
 	focus_ptrs[tree_idx] = &n;
 	
-	String kind_str = FetchString(clang_getCursorKindSpelling((CXCursorKind)n.kind));
+	String kind_str = n.GetKindString();
 	String s = kind_str + ": " + n.id;
 	if (n.type.GetCount()) s += " (" + n.type + ")";
 	focus.Set(tree_idx, s);

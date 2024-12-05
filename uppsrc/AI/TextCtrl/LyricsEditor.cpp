@@ -8,8 +8,6 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	
 	hsplit.Horz() << editor << tabs;
 	
-	tabs.WhenSet << THISBACK(Data);
-	
 	editor.owner = this;
 	editor.WhenCursor << THISBACK(OnEditorCursor);
 	
@@ -133,6 +131,8 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	line_suggs.AddColumn("#");
 	line_suggs.AddColumn("Suggestion");
 	line_suggs.ColumnWidths("1 7");
+	
+	tabs.WhenSet << THISBACK(Data);
 	
 }
 
@@ -533,7 +533,7 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 
 void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender) {
 	const DatasetPtrs& p = GetDataset();
-	String ecs_path; TODO //TODO ???
+	ASSERT(p.src);
 	
 	auto& src = p.src->Data();
 	int tcent = GetTypeclassEntity(unsafe, gender);

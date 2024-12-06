@@ -130,6 +130,9 @@ void DatabaseBrowser::ResetCursor() { ResetCursor(-1, INVALID); }
 void DatabaseBrowser::SetAll(const DatasetPtrs& p, hash_t sorter, const String& element, const AttrHeader& attr,
                              int clr, const ActionHeader& act, int tc_i, int con_i)
 {
+	this->p = p;
+	if (!p.src)
+		return;
 	SetInitialData();
 
 	if(sorter) {
@@ -500,8 +503,8 @@ void DatabaseBrowser::RealizeUniqueActions()
 
 void DatabaseBrowser::SetInitialData()
 {
-	auto& src = p.src->Data();
 	ASSERT(p.src);
+	auto& src = p.src->Data();
 	
 	phrase_parts.SetCount(src.phrase_parts.GetCount());
 	int i = 0;

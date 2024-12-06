@@ -77,7 +77,8 @@ void EntityEditorCtrl::DataEntityListOnly() {
 		auto& ep = entities[i];
 		if (!ep) continue;
 		auto& e = *ep;
-		entlist.Set(row, 0, e.name);
+		auto& enode = e.node;
+		entlist.Set(row, 0, enode.id);
 		
 		auto& e_exts = extensions[i];
 		e_exts = e.node.GetAllExtensions();
@@ -107,7 +108,8 @@ void EntityEditorCtrl::Data() {
 		auto& ep = entities[i];
 		if (!ep) continue;
 		auto& e = *ep;
-		entlist.Set(row, 0, e.name);
+		auto& enode = e.node;
+		entlist.Set(row, 0, enode.id);
 		
 		auto& e_exts = extensions[i];
 		e_exts = e.node.GetAllExtensions();
@@ -162,6 +164,8 @@ void EntityEditorCtrl::DataExtension() {
 	int ext_i = extlist.GetCursor();
 	auto& e = *entities[ent_i];
 	auto& exts = extensions[ent_i];
+	if (ext_i < 0 || ext_i >= exts.GetCount())
+		return;
 	MetaNodeExt& ext = *exts[ext_i];
 	
 	if (ext_ctrl_kind != ext.node.kind) {
@@ -240,7 +244,8 @@ void EntityEditorCtrl::AddEntity() {
 	MetaNode& n = *file_root;
 	Entity& e = n.Add<Entity>();
 	ASSERT(e.node.kind == METAKIND_ECS_ENTITY);
-	e.name = "Unnamed";
+	auto& enode = e.node;
+	enode.id = "Unnamed";
 	PostCallback(THISBACK(Data));
 }
 
@@ -333,7 +338,8 @@ EntityInfoCtrl::EntityInfoCtrl() {
 
 void EntityInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	info.name = p.entity->name;
+	auto& enode = p.entity->node;
+	info.name = enode.id;
 	info.desc.SetData((String)p.entity->Data("description"));
 	
 	Vector<MetaNode*> envs = MetaEnv().FindAllEnvs();
@@ -368,7 +374,8 @@ void EntityInfoCtrl::Data() {
 
 void EntityInfoCtrl::OnEdit() {
 	Entity& e = GetExt<Entity>();
-	e.name = ~info.name;
+	auto& enode = e.node;
+	enode.id = ~info.name;
 	
 	int ctx_i = info.ctx.GetIndex()-1;
 	if (ctx_i >= 0 && ctx_i < info.ctx.GetCount()) {

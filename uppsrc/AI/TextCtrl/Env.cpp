@@ -141,7 +141,6 @@ void EnvEditorCtrl::OnOption(Option* opt, MetaNode* db) {
 		if (sub_i >= 0)
 			return;
 		MetaNode& s = ctx.Add(METAKIND_DB_REF, db_id);
-		ASSERT(s.ext);
 	}
 	else {
 		if (sub_i < 0)

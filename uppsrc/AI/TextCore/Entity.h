@@ -41,18 +41,16 @@ struct Component : MetaNodeExt {
 };
 
 struct Entity : MetaNodeExt {
-	String name;
 	VectorMap<String, Value> data;
 	
 	Entity(MetaNode& owner) : MetaNodeExt(owner) {}
 	void Clear()
 	{
-		name.Clear();
 		data.Clear();
 	}
-	void Serialize(Stream& s) override {s % name % data; }
-	void Jsonize(JsonIO& json) override {json("name", name)("data", data); }
-	hash_t GetHashValue() const override {CombineHash ch; ch.Do(name).Do(data); return ch;}
+	void Serialize(Stream& s) override {s % data; }
+	void Jsonize(JsonIO& json) override {json("data", data); }
+	hash_t GetHashValue() const override {CombineHash ch; ch.Do(data); return ch;}
 	Value& Data(const String& key) {return data.GetAdd(key);}
 	int GetGender() const;
 	

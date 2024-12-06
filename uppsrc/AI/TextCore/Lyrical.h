@@ -276,6 +276,7 @@ struct Script : Component, LyricalStructure {
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
 	void Serialize(Stream& s) override {
+		LyricalStructure::Serialize(s);
 		int v = 1; s % v; if (v >= 1) {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}}
 	void Jsonize(JsonIO& json) override
 	{

@@ -92,7 +92,7 @@ int DynPart::GetContrastIndex() const {
 	return idx;
 }
 
-String LyricalStructure::GetStructText(bool src_text) const {
+String LyricalStructure::GetStructText(bool user_text) const {
 	String s;
 	int line_i = 0;
 	for (const DynPart& p: parts) {
@@ -101,10 +101,10 @@ String LyricalStructure::GetStructText(bool src_text) const {
 			const DynSub& ds = p.sub[i];
 			for(int j = 0; j < ds.lines.GetCount(); j++) {
 				const DynLine& dl = ds.lines[j];
-				if (!src_text)
+				if (!user_text)
 					s << dl.text << "\n";
 				else
-					s << dl.src_text << "\n";
+					s << dl.user_text << "\n";
 			}
 		}
 		s << "\n";
@@ -214,7 +214,10 @@ String Script::GetAnyTitle() const {
 String Lyrics::GetText() const {
 	if (__text.GetCount())
 		return __text;
-	return GetStructText(0);
+	DatasetPtrs p = GetDataset();
+	if (!p.lyric_struct)
+		return String();
+	return p.lyric_struct->GetStructText(0);
 }
 
 /*String Script::GetTextStructure(bool coarse) const {
@@ -327,7 +330,7 @@ void LyricalStructure::LoadStructuredText(const String& s) {
 	}
 }
 
-void LyricalStructure::SetText(const String& s, bool src_text) {
+void LyricalStructure::SetText(const String& s, bool user_text) {
 	Vector<String> sparts = Split(s, "[");
 	int part_i = 0;
 	for(int i = 0; i < sparts.GetCount(); i++) {
@@ -347,8 +350,8 @@ void LyricalStructure::SetText(const String& s, bool src_text) {
 				String s;
 				if (line_i < lines.GetCount())
 					s = lines[line_i];
-				if (src_text)
-					line.src_text = s;
+				if (user_text)
+					line.user_text = s;
 				else
 					line.text = s;
 				line_i++;
@@ -359,8 +362,8 @@ void LyricalStructure::SetText(const String& s, bool src_text) {
 		auto& part = parts[part_i];
 		for (auto& sub : part.sub) {
 			for (auto& line : sub.lines) {
-				if (src_text)
-					line.src_text = "";
+				if (user_text)
+					line.user_text = "";
 				else
 					line.text = "";
 			}
@@ -369,7 +372,7 @@ void LyricalStructure::SetText(const String& s, bool src_text) {
 	}
 }
 
-void LyricalStructure::LoadStructuredTextExt(const String& s, bool src_text) {
+void LyricalStructure::LoadStructuredTextExt(const String& s, bool user_text) {
 	Vector<String> lines = Split(s, "\n");
 	int indent = 0;
 	DynPart* part = 0;
@@ -455,8 +458,8 @@ void LyricalStructure::LoadStructuredTextExt(const String& s, bool src_text) {
 				dl = &sub->lines[line_i];
 			else
 				dl = &sub->lines.Add();
-			if (src_text)
-				dl->src_text = l;
+			if (user_text)
+				dl->user_text = l;
 			else
 				dl->text = l;
 		}
@@ -629,6 +632,7 @@ void HotfixReplaceWord(String& s) {
 
 
 
+INITIALIZER_COMPONENT(LyricalStructure);
 INITIALIZER_COMPONENT(Script);
 INITIALIZER_COMPONENT(Lyrics);
 INITIALIZER_COMPONENT(Song);

@@ -991,7 +991,7 @@ void Ide::MainMenu(Bar& menu)
 			.Help("Editor & IDE macros");
 	menu.Add("Project", THISBACK(Project))
 		.Help("Package organizer, custom steps, configuration manager");
-	if(!IsEditorMode()) {
+	if(!IsEditorMode() && !addon_menu) {
 		menu.Add("Build", THISBACK(BuildMenu))
 			.Help("Building & debugging, minor build options, showing errors");
 		menu.Add("Debug", THISBACK(DebugMenu))

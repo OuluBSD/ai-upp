@@ -376,16 +376,17 @@ ScriptReferenceMakerCtrl::ScriptReferenceMakerCtrl() : db0(*this), content(*this
 
 void ScriptReferenceMakerCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	if (!p.script) return;
+	if (!p.script || !p.lyric_struct) return;
 	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& p = s.parts[i];
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& p = l.parts[i];
 		String name = p.GetName();
 		parts.Set(i, 0, name);
 		parts.Set(i, 1, Capitalize(p.el.element));
 	}
-	parts.SetCount(s.parts.GetCount());
+	parts.SetCount(l.parts.GetCount());
 	INHIBIT_CURSOR(parts);
 	if (!parts.IsCursor() && parts.GetCount())
 		parts.SetCursor(0);
@@ -395,12 +396,13 @@ void ScriptReferenceMakerCtrl::Data() {
 
 void ScriptReferenceMakerCtrl::DataPart() {
 	DatasetPtrs p = GetDataset();
-	if (!p.script || !parts.IsCursor())
+	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
 	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
-	const DynPart& dp = s.parts[part_i];
+	const DynPart& dp = l.parts[part_i];
 	
 	form.type.Clear();
 	for(int i = 0; i < TXT_COUNT; i++) {
@@ -418,7 +420,8 @@ void ScriptReferenceMakerCtrl::DataPart() {
 	DataLine();
 }
 
-void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit) {
+#if 0
+void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit) {
 	state.Clear();
 	if (part_i < 0 || part_i >= s.parts.GetCount())
 		return;
@@ -475,15 +478,16 @@ void ReadNavigatorState(Script& s, int part_i, int sub_i, int line_i, NavigatorS
 	#undef COPY_I
 	#undef COPY_S
 }
+#endif
 
 void ScriptReferenceMakerCtrl::ReadNavigatorState(NavigatorState& state, int depth_limit) {
 	state.Clear();
 	
 	DatasetPtrs p = GetDataset();
-	if (!p.script || !parts.IsCursor())
+	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
-	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
 	int line_i = content.GetCursor();
 	if (line_i < 0 || line_i >= content.lines.GetCount())
@@ -491,11 +495,11 @@ void ScriptReferenceMakerCtrl::ReadNavigatorState(NavigatorState& state, int dep
 	
 	PartLineCtrl& pl = content.Get(line_i);
 	
-	DynPart& dp = s.parts[part_i];
+	DynPart& dp = l.parts[part_i];
 	if (line_i >= content.GetLineCount())
 		return;
 	
-	::ReadNavigatorState(s, part_i, pl.sub_i, pl.line_i, state, depth_limit);
+	::ReadNavigatorState(l, part_i, pl.sub_i, pl.line_i, state, depth_limit);
 	
 	state.line = &pl;
 }
@@ -515,12 +519,13 @@ void ScriptReferenceMakerCtrl::DataLine() {
 
 void ScriptReferenceMakerCtrl::MakeLines() {
 	DatasetPtrs p = GetDataset();
-	if (!p.script || !parts.IsCursor())
+	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
 	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
-	DynPart& dp = s.parts[part_i];
+	DynPart& dp = l.parts[part_i];
 	
 	if (dp.text_lines_per_sub <= 0)
 		dp.text_lines_per_sub = 1;
@@ -587,12 +592,13 @@ void ScriptReferenceMakerCtrl::OnBrowserCursor() {
 
 void ScriptReferenceMakerCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
-	if (!p.script || !parts.IsCursor())
+	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
 	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
-	DynPart& dp = s.parts[part_i];
+	DynPart& dp = l.parts[part_i];
 	
 	dp.text_num = (int)form.num.GetData() - 1;
 	dp.text_lines = form.lines.GetData();
@@ -642,18 +648,18 @@ void ScriptReferenceMakerCtrl::Do(int fn) {
 	
 	// Add part
 	if (fn == 0) {
-		if (!p.script) return;
-		Script& s = *p.script;
-		s.parts.Add();
+		if (!p.lyric_struct) return;
+		LyricalStructure& l = *p.lyric_struct;
+		l.parts.Add();
 		PostCallback(THISBACK(Data));
 	}
 	// Remove part
 	if (fn == 1) {
-		if (!p.script || !parts.IsCursor()) return;
-		Script& s = *p.script;
+		if (!p.lyric_struct || !parts.IsCursor()) return;
+		LyricalStructure& l = *p.lyric_struct;
 		int part_i = parts.GetCursor();
-		if (part_i >= 0 && part_i < s.parts.GetCount()) {
-			s.parts.Remove(part_i);
+		if (part_i >= 0 && part_i < l.parts.GetCount()) {
+			l.parts.Remove(part_i);
 			PostCallback(THISBACK(Data));
 		}
 	}
@@ -677,22 +683,23 @@ int ScriptReferenceMakerCtrl::GetActiveMode() {
 }
 
 int ScriptReferenceMakerCtrl::GetInheritedMode() {
-	PartLineCtrl* l = content.GetActiveLine();
-	if (!l)
+	PartLineCtrl* plc_ = content.GetActiveLine();
+	if (!plc_)
 		return -1;
+	PartLineCtrl& plc = *plc_;
 	DatasetPtrs p = GetDataset();
-	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
-	DynPart& dp = s.parts[part_i];
+	DynPart& dp = l.parts[part_i];
 	LineElement* el = 0;
-	if (l->sub_i >= 0 && l->line_i >= 0) {
-		DynSub& ds = dp.sub[l->sub_i];
-		DynLine& dl = ds.lines[l->line_i];
+	if (plc.sub_i >= 0 && plc.line_i >= 0) {
+		DynSub& ds = dp.sub[plc.sub_i];
+		DynLine& dl = ds.lines[plc.line_i];
 		if (dl.el.sorter != 0)
 			el = &dl.el;
 	}
-	if (!el && l->sub_i >= 0) {
-		DynSub& ds = dp.sub[l->sub_i];
+	if (!el && plc.sub_i >= 0) {
+		DynSub& ds = dp.sub[plc.sub_i];
 		if (ds.el.sorter != 0)
 			el = &ds.el;
 	}
@@ -764,12 +771,12 @@ void PartLineCtrl::Paint(Draw& d) {
 	
 	// Line texts
 	DatasetPtrs p = o.o.GetDataset();
-	Script& s = *p.script;
+	LyricalStructure& l = *p.lyric_struct;
 	int part_i = o.o.parts.GetCursor();
 	if (part_i < 0)
 		return;
 	
-	DynPart& dp = s.parts[part_i];
+	DynPart& dp = l.parts[part_i];
 	LineElement* el = 0;
 	int left = 0;
 	if (sub_i < 0 && line_i < 0) {

@@ -37,9 +37,10 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	sugg_list.WhenBar << [this](Bar& b) {
 		b.Add("Set source text", [this]() {
 			DatasetPtrs p = GetDataset();
-			Script& s = GetScript();
+			LyricalStructure& l = *p.lyric_struct;
+			Lyrics& ly = *p.lyrics;
 			int i = sugg_list.GetCursor();
-			s.SetText(p.lyrics->__suggestions[i], true);
+			l.SetText(ly.__suggestions[i], true);
 			editor.ShowSourceText();
 		});
 	};
@@ -167,7 +168,9 @@ void ScriptTextSolverCtrl::Do(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoSuggestions(int fn) {
-	String ecs_path; TODO // TODO ???
+	DatasetPtrs p = GetDataset();
+	ASSERT(p.entity);
+	String ecs_path = p.entity->node.GetPath();
 	ScriptSolver& sdi = ScriptSolver::Get(GetDataset(), ecs_path);
 	sugg_prog.Attach(sdi);
 	sdi.WhenRemaining << [this](String s) {
@@ -196,7 +199,7 @@ void ScriptTextSolverCtrl::DoWhole(int fn) {
 			sdi.Stop();*/
 	}
 	else if (fn == 2) {
-		WriteClipboardText(p.lyrics->GetStructText(0));
+		WriteClipboardText(p.lyric_struct->GetStructText(0));
 	}
 }
 
@@ -381,7 +384,8 @@ void ScriptTextSolverCtrl::DataSub() {
 
 void ScriptTextSolverCtrl::DoPart(int fn) {
 	const DatasetPtrs& p = GetDataset();
-	String ecs_path; TODO //TODO ???
+	ASSERT(p.entity);
+	String ecs_path = p.entity->node.GetPath();
 	
 	const DynPart* part = 0;
 	int part_i = -1;
@@ -407,7 +411,8 @@ void ScriptTextSolverCtrl::DoPart(int fn) {
 
 void ScriptTextSolverCtrl::DoSub(int fn) {
 	const DatasetPtrs& p = GetDataset();
-	String ecs_path; TODO //TODO ???
+	ASSERT(p.entity);
+	String ecs_path = p.entity->node.GetPath();
 	const DynPart* part = 0;
 	const DynSub* sub = 0;
 	int part_i = -1, sub_i = -1;
@@ -433,13 +438,14 @@ void ScriptTextSolverCtrl::DoSub(int fn) {
 
 void ScriptTextSolverCtrl::DoLine(int fn) {
 	const DatasetPtrs& p = GetDataset();
-	String ecs_path; TODO //TODO ???
+	ASSERT(p.entity && p.script);
+	String ecs_path = p.entity->node.GetPath();
 	const DynPart* part = 0;
 	const DynSub* sub = 0;
 	const DynLine* line = 0;
 	int part_i = -1, sub_i = -1, line_i = -1;
 	Vector<const DynLine*> g = GetLineGroup(&part, &sub, &line, &part_i, &sub_i, &line_i);
-	Script& s = GetScript();
+	LyricalStructure& l = *p.lyric_struct;
 	
 	if (fn == 2 || fn == 3 || fn == 5 || fn == 6) {
 		if (g.IsEmpty()) return;
@@ -490,9 +496,9 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 		for (const DynLine* l : g) {
 			DynLine& dl = const_cast<DynLine&>(*l);
 			if (sugg_i < dl.suggs.GetCount())
-				dl.text = dl.suggs[sugg_i];
+				dl.user_text = dl.suggs[sugg_i];
 			else
-				dl.text = "";
+				dl.user_text = "";
 		}
 		editor.ShowNormalText();
 		DataLine();
@@ -504,13 +510,13 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 				if (part_i == 0)
 					return;
 				else part_i--;
-				sub_i = s.parts[part_i].sub.GetCount()-1;
+				sub_i = l.parts[part_i].sub.GetCount()-1;
 			}
 			else sub_i--;
-			line_i = s.parts[part_i].sub[sub_i].lines.GetCount()-1;
+			line_i = l.parts[part_i].sub[sub_i].lines.GetCount()-1;
 		}
 		else line_i--;
-		const DynLine& prev = s.parts[part_i].sub[sub_i].lines[line_i];
+		const DynLine& prev = l.parts[part_i].sub[sub_i].lines[line_i];
 		DynLine& dl = const_cast<DynLine&>(*line);
 		dl.CopySuggestionVars(prev);
 		DataLine();
@@ -575,7 +581,7 @@ void ScriptTextSolverCtrl::DataLine() {
 			
 			line_ref_lines.Set(i, 0, dl == editor.selected_line ? "X" : "");
 			line_ref_lines.Set(i, 1, dl->text);
-			line_ref_lines.Set(i, 2, dl->src_text);
+			line_ref_lines.Set(i, 2, dl->user_text);
 		}
 		line_ref_lines.SetCount(g.GetCount());
 		
@@ -662,9 +668,10 @@ void ScriptTextSolverCtrl::OnValueChange() {
 void ScriptTextSolverCtrl::GetPart(const DynPart** part, int* part_iptr) {
 	auto selected_part = editor.selected_part;
 	if (!selected_part) return;
-	Script& s = GetScript();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	DatasetPtrs p = GetDataset();
+	LyricalStructure& l = *p.lyric_struct;
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		if (&dp == selected_part) {
 			if (part && !*part) {*part = &dp; if (part_iptr) *part_iptr = i;}
 			return;
@@ -675,9 +682,10 @@ void ScriptTextSolverCtrl::GetPart(const DynPart** part, int* part_iptr) {
 void ScriptTextSolverCtrl::GetSub(const DynPart** part, const DynSub** sub, int* part_iptr, int* sub_iptr) {
 	auto selected_sub = editor.selected_sub;
 	if (!selected_sub) return;
-	Script& s = GetScript();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	DatasetPtrs p = GetDataset();
+	LyricalStructure& l = *p.lyric_struct;
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		for(int j = 0; j < dp.sub.GetCount(); j++) {
 			const DynSub& ds = dp.sub[j];
 			if (&ds == selected_sub) {
@@ -693,9 +701,10 @@ Vector<const DynLine*> ScriptTextSolverCtrl::GetLineGroup(const DynPart** part, 
 	Vector<const DynLine*> ret;
 	auto selected_line = editor.selected_line;
 	if (!selected_line) return ret;
-	Script& s = GetScript();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	DatasetPtrs p = GetDataset();
+	LyricalStructure& l = *p.lyric_struct;
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		
 		int sel_line_i = -1;
 		int line_i = 0;
@@ -787,9 +796,10 @@ void StructuredScriptEditor::Update() {
 	if (!owner) {Refresh(); return;}
 	
 	int total_h = 0;
-	Script& s = owner->GetScript();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	DatasetPtrs p = owner->GetDataset();
+	LyricalStructure& l = *p.lyric_struct;
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		total_h += line_h;
 		for(int j = 0; j < dp.sub.GetCount(); j++) {
 			const DynSub& ds = dp.sub[j];
@@ -808,10 +818,11 @@ void StructuredScriptEditor::CheckClearSelected() {
 	bool line_found = false;
 	bool part_found = false;
 	bool sub_found = false;
-	if (!owner->GetDataset().script) return;
-	Script& s = owner->GetScript();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	DatasetPtrs p = owner->GetDataset();
+	if (!p.script) return;
+	LyricalStructure& l = *p.lyric_struct;
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		if (&dp == selected_part) part_found = true;
 		for(int j = 0; j < dp.sub.GetCount(); j++) {
 			const DynSub& ds = dp.sub[j];
@@ -961,8 +972,8 @@ void StructuredScriptEditor::Paint(Draw& d) {
 	
 	Font fnt = SansSerif(line_h-3); // Monospace(line_h-3);
 	DatasetPtrs p = owner->GetDataset();
-	if (!p.script) return;
-	Script& s = *p.script;
+	if (!p.lyric_struct) return;
+	LyricalStructure& l = *p.lyric_struct;
 	int y = -scroll_v;
 	int indent_cx = 30;
 	Color part_bg = Color(233, 235, 255);
@@ -978,8 +989,8 @@ void StructuredScriptEditor::Paint(Draw& d) {
 	
 	areas.Clear();
 	vert_areas.Clear();
-	for(int i = 0; i < s.parts.GetCount(); i++) {
-		const DynPart& dp = s.parts[i];
+	for(int i = 0; i < l.parts.GetCount(); i++) {
+		const DynPart& dp = l.parts[i];
 		
 		String txt = GetTextTypeString(dp.text_type) + " " + IntStr(dp.text_num+1);
 		if (dp.el.element.GetCount()) txt << ": " << dp.el.element;
@@ -1057,13 +1068,7 @@ void StructuredScriptEditor::Paint(Draw& d) {
 				areas.Add().Set(line_header_rect, dl);
 				
 				
-				String txt;
-				if (txt_src == SRC_NORMAL)
-					txt = dl.text;
-				else if (txt_src == SRC_SOURCE)
-					txt = dl.src_text;
-				
-				d.DrawText(off+cx_2,y,txt,fnt,Black());
+				d.DrawText(off+cx_2,y,dl.user_text,fnt,Black());
 				
 				y += line_h;
 				

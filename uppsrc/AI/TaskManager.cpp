@@ -335,6 +335,8 @@ void TaskMgr::GetTokenData(const TokenArgs& args, Event<String> WhenResult) {
 	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<String> WhenResult, bool keep_going) {
@@ -354,6 +356,8 @@ void TaskMgr::GetSourceDataAnalysis(const SourceDataAnalysisArgs& args, Event<St
 	t.WhenResult << WhenResult;
 	t.keep_going = keep_going;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetPhraseData(const PhraseArgs& args, Event<String> WhenResult) {
@@ -372,6 +376,8 @@ void TaskMgr::GetPhraseData(const PhraseArgs& args, Event<String> WhenResult) {
 	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetActionAnalysis(const ActionAnalysisArgs& args, Event<String> WhenResult) {
@@ -390,6 +396,8 @@ void TaskMgr::GetActionAnalysis(const ActionAnalysisArgs& args, Event<String> Wh
 	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetAttributes(const AttrArgs& args, Event<String> WhenResult) {
@@ -408,6 +416,8 @@ void TaskMgr::GetAttributes(const AttrArgs& args, Event<String> WhenResult) {
 	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 void TaskMgr::GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenResult) {
@@ -429,6 +439,8 @@ void TaskMgr::GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenRe
 		t.SetAutoReturnFail();
 	
 	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
 }
 
 TaskRule& TaskRule::SetRule(const String& name)

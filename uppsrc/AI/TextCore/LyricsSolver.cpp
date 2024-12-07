@@ -63,8 +63,8 @@ void ScriptSolver::GetSuggestions(const DynPart& part, const DynSub& sub, const 
 		if (l.text.IsEmpty())
 			break;
 		args.phrases << l.text;
-		if (!l.src_text.IsEmpty())
-			args.phrases2 << l.src_text;
+		if (!l.user_text.IsEmpty())
+			args.phrases2 << l.user_text;
 	}
 	
 	Index<String> elements;
@@ -122,7 +122,14 @@ void ScriptSolver::GetSuggestions(const DynPart& part, const DynSub& sub, const 
 
 void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	Lyrics& l = *p.lyrics;
+	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	auto& l = *p.lyric_struct;
+	auto& ly = *p.lyrics;
+	auto& song = *p.song;
+	if (part_i >= l.parts.GetCount()) {
+		Loge(("ScriptSolver::GetExpanded: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount())));
+		return;
+	}
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	DynLine& line = sub.lines[line_i];
@@ -136,7 +143,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 	
 	ScriptSolverArgs args; // 21
 	args.fn = 21;
-	args.lng = l.lang;
+	args.lng = ly.lang;
 	
 	if (!part.story.IsEmpty()) args.phrases2 << part.story;
 	if (!sub.story.IsEmpty())  args.phrases2 << sub.story;
@@ -150,7 +157,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 			auto& state = args.line_states.Add();
 			state.content = dl.text;
 			
-			int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
+			int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
 			const auto& ents = src.typeclass_entities[tcent_i];
 			state.style_type = ents.GetKey(dl.style_type);
 			const auto& vec = dl.style_type < ents.GetCount() ? ents[dl.style_type] : ents.Top();
@@ -177,7 +184,10 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 
 void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	Lyrics& l = *p.lyrics;
+	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	auto& l = *p.lyric_struct;
+	auto& ly = *p.lyrics;
+	auto& song = *p.song;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	tmp_part = &part;
@@ -187,7 +197,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 	
 	ScriptSolverArgs args; // 22
 	args.fn = 22;
-	args.lng = l.lang;
+	args.lng = ly.lang;
 	
 	
 	NavigatorState line_state;
@@ -202,7 +212,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 		ReadNavigatorState(l, part_i, sub_i, i, line_state,  2);
 		CopyState(state, line_state);
 		
-		int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
+		int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
 		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];
@@ -263,7 +273,10 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 
 void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	Lyrics& l = *p.lyrics;
+	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	auto& l = *p.lyric_struct;
+	auto& ly = *p.lyrics;
+	auto& song = *p.song;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	tmp_part = &part;
@@ -273,7 +286,7 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 	
 	ScriptSolverArgs args; // 23
 	args.fn = 23;
-	args.lng = l.lang;
+	args.lng = ly.lang;
 	
 	NavigatorState line_state;
 	for(int i = 0; i < lines.GetCount(); i++) {
@@ -287,7 +300,7 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 		ReadNavigatorState(l, part_i, sub_i, i, line_state,  2);
 		CopyState(state, line_state);
 		
-		int tcent_i = GetTypeclassEntity(dl.safety, l.singer_gender);
+		int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
 		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];
@@ -323,7 +336,13 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 }
 
 void ScriptSolver::GetSubStory(int part_i, int sub_i, Event<> WhenPartiallyReady) {
-	Lyrics& l = *p.lyrics;
+	if (!p.lyric_struct || !p.lyrics) return;
+	auto& l = *p.lyric_struct;
+	auto& ly = *p.lyrics;
+	if (part_i >= l.parts.GetCount()) {
+		Loge(("ScriptSolver::GetSubStory: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount())));
+		return;
+	}
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	tmp_part = const_cast<DynPart*>(&part);
@@ -332,7 +351,7 @@ void ScriptSolver::GetSubStory(int part_i, int sub_i, Event<> WhenPartiallyReady
 	
 	ScriptSolverArgs args; // 19
 	args.fn = 19;
-	args.lng = l.lang;
+	args.lng = ly.lang;
 	
 	// Get line phrases and properties
 	NavigatorState sub_state, line_state;
@@ -398,7 +417,9 @@ void ScriptSolver::GetSubStory(int part_i, int sub_i, Event<> WhenPartiallyReady
 }
 
 void ScriptSolver::GetPartStory(int part_i, Event<> WhenPartiallyReady) {
-	Lyrics& l = *p.lyrics;
+	if (!p.lyric_struct || !p.lyrics) return;
+	auto& l = *p.lyric_struct;
+	auto& ly = *p.lyrics;
 	DynPart& part = l.parts[part_i];
 	tmp_part = const_cast<DynPart*>(&part);
 	tmp_sub = 0;
@@ -406,7 +427,7 @@ void ScriptSolver::GetPartStory(int part_i, Event<> WhenPartiallyReady) {
 	
 	ScriptSolverArgs args; // 20
 	args.fn = 20;
-	args.lng = l.lang;
+	args.lng = ly.lang;
 	
 	// Get line phrases and properties
 	NavigatorState part_state, sub_state;
@@ -466,7 +487,7 @@ void ScriptSolver::GetPartStory(int part_i, Event<> WhenPartiallyReady) {
 
 
 
-void ReadNavigatorState(Lyrics& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit) {
+void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit) {
 	state.Clear();
 	if (part_i < 0 || part_i >= s.parts.GetCount())
 		return;

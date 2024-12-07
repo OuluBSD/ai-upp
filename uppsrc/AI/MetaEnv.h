@@ -27,6 +27,7 @@ enum {
 	METAKIND_ECS_ENTITY,
 	
 	METAKIND_ECS_COMPONENT_BEGIN,
+	METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE,
 	METAKIND_ECS_COMPONENT_SCRIPT,
 	METAKIND_ECS_COMPONENT_LYRICS,
 	METAKIND_ECS_COMPONENT_SONG,
@@ -200,6 +201,9 @@ struct MetaNode : Pte<MetaNode> {
 	void RealizeSerial();
 	void FixSerialDeep();
 	Vector<Ptr<MetaNodeExt>> GetAllExtensions();
+	String GetPath() const;
+	void DeepChk();
+	void Chk();
 	
 	template <class T>
 	T& Add() {

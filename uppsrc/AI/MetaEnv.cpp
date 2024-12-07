@@ -317,6 +317,10 @@ void MetaSrcFile::RefreshSeenTypes()
 void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 	MetaEnvironment& env = MetaEnv();
 	temp.Create();
+	#ifdef flagDEBUG
+	//LOG(env.root.GetTreeString());
+	env.root.DeepChk();
+	#endif
 	if (all_files)
 		env.SplitNode(env.root, *temp, pkg->id);
 	else
@@ -882,6 +886,7 @@ bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, M
 					return false;
 			}
 		}
+		n0.Chk();
 	}
 	else {
 		return MergeVisitPartMatching(scope, n1, mode);
@@ -909,6 +914,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 	};
 
 	if(n0.serial == n1.serial) {
+		n0.Chk();
 		return true;
 	}
 	ASSERT(n0.serial && n1.serial);
@@ -1205,7 +1211,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 			}
 		}
 	}
-
+	
+	n0.Chk();
 	return true;
 }
 
@@ -1513,6 +1520,7 @@ MetaNode& MetaNode::Add(const MetaNode& n)
 	s.CopyFieldsFrom(n);
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
+	s.Chk();
 	return s;
 }
 
@@ -1522,6 +1530,7 @@ MetaNode& MetaNode::Add(MetaNode* n)
 	s.owner = this;
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
+	s.Chk();
 	return s;
 }
 
@@ -1533,6 +1542,7 @@ MetaNode& MetaNode::Add()
 	s.file = file;
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
+	s.Chk();
 	return s;
 }
 
@@ -1547,6 +1557,7 @@ MetaNode& MetaNode::Add(int kind, String id)
 			s.ext = MetaExtFactory::List()[i].new_fn(s);
 		}
 	}
+	s.Chk();
 	return s;
 }
 
@@ -1578,6 +1589,7 @@ String MetaNode::GetKindString(int kind)
 	case METAKIND_COMMENT:				return "Comment";
 	case METAKIND_ECS_SPACE:			return "ECS-Space";
 	case METAKIND_ECS_ENTITY:			return "Entity";
+	case METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE: return "Lyrical Structure";
 	case METAKIND_ECS_COMPONENT_SCRIPT: return "Script";
 	case METAKIND_ECS_COMPONENT_LYRICS:	return "Lyrics";
 	case METAKIND_ECS_COMPONENT_SONG:	return "Song";
@@ -1654,6 +1666,7 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	} else ext.Clear();
 	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
+	Chk();
 }
 
 hash_t MetaNode::GetTotalHash() const
@@ -1737,6 +1750,31 @@ void MetaNode::Jsonize(JsonIO& json) {
 		Do(sub)
 		;
 	#undef Do
+	
+	#if 1
+	if (json.IsLoading())
+		Chk();
+	#endif
+}
+
+void MetaNode::DeepChk() {
+	#ifdef flagDEBUG
+	Chk();
+	for (auto& s : sub)
+		s.DeepChk();
+	#endif
+}
+
+void MetaNode::Chk() {
+	#ifdef flagDEBUG
+	#if 1
+	if (kind == METAKIND_ECS_ENTITY && owner) {
+		//ASSERT(owner->kind != METAKIND_ECS_SPACE);
+		ASSERT(owner->kind != METAKIND_CONTEXT);
+		ASSERT(owner->kind != METAKIND_PKG_ENV);
+	}
+	#endif
+	#endif
 }
 
 hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
@@ -1896,6 +1934,31 @@ Vector<Ptr<MetaNodeExt>> MetaNode::GetAllExtensions() {
 	}
 	return v;
 }
+
+String MetaNode::GetPath() const {
+	static const int LIMIT = 64;
+	const MetaNode* ptrs[LIMIT];
+	int i = 1;
+	ptrs[0] = this;
+	while (i < LIMIT-1) {
+		if (ptrs[i-1]->owner) {
+			const MetaNode* p = ptrs[i-1]->owner;
+			ptrs[i++] = p;
+		}
+		else break;
+	}
+	ptrs[i] = 0;
+	const MetaNode** iter = ptrs;
+	String path;
+	while (*iter) {
+		path.Cat('/');
+		path.Cat((*iter)->id);
+		iter++;
+	}
+	return path;
+}
+
+
 
 MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
 MetaNode& MetaExtCtrl::GetNode() {return ext->node;}

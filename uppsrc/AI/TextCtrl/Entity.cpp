@@ -298,8 +298,7 @@ void EntityEditorCtrl::AddComponent() {
 void EntityEditorCtrl::RemoveComponent() {
 	Entity* e = GetSelectedEntity();
 	if (!e || !extlist.IsCursor()) return;
-	int ext_i = extlist.GetCursor();
-	if (ext_i == 0) return; // don't remove EntityInfoCtrl
+	int ext_i = extlist.GetCursor() - 1; // -1 --> don't remove EntityInfoCtrl
 	if (ext_i >= 0 && ext_i < e->node.sub.GetCount())
 		e->node.sub.Remove(ext_i);
 	PostCallback(THISBACK(Data));

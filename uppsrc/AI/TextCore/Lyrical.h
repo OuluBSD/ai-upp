@@ -73,7 +73,7 @@ struct LineElement {
 
 struct DynLine : Moveable<DynLine> {
 	String text;
-	String src_text;
+	String user_text;
 	/*String alt_text;
 	String edit_text;
 	String user_text;*/
@@ -95,11 +95,11 @@ struct DynLine : Moveable<DynLine> {
 		int v = 1;
 		s % v;
 		if (v >= 1)
-			s % text % src_text % expanded % suggs % pp_i % end_pp_i % el % style_type % style_entity % safety % line_len % connector % line_begin;
+			s % text % user_text % expanded % suggs % pp_i % end_pp_i % el % style_type % style_entity % safety % line_len % connector % line_begin;
 	}
 	void Jsonize(JsonIO& json)
 	{
-		json("text", text)("src_text", src_text)/*("alt_text", alt_text)("edit_text", edit_text)("user_text", user_text)*/
+		json("text", text)("user_text", user_text)/*("alt_text", alt_text)("edit_text", edit_text)("user_text", user_text)*/
 			("ex", expanded)("el", el)("suggs", suggs)("pp_i", pp_i)(
 			"end_pp_i", end_pp_i)("style_type", style_type)("style_entity", style_entity)(
 			"safety", safety)("line_len", line_len)("connector", connector)("line_begin",
@@ -247,21 +247,27 @@ struct ScriptPostFix {
 
 String GetStructText(const Array<DynPart>& parts, bool src_text);
 
-struct LyricalStructure {
+struct LyricalStructure : Component {
 	Array<DynPart>			parts;
 	
+	LyricalStructure(MetaNode& owner) : Component(owner) {}
+	~LyricalStructure() {}
 	void Serialize(Stream& s) {int v = 1; s % v; if (v >= 1) s % parts;}
 	void Jsonize(JsonIO& json) {json("parts", parts);}
 	hash_t GetHashValue() const {return CombineHash(parts);}
 	DynPart* FindPartByName(const String& name);
 	void LoadStructuredText(const String& s);
-	void LoadStructuredTextExt(const String& s, bool src_text);
-	void SetText(const String& s, bool src_text);
-	String GetStructText(bool src_text) const;
+	void LoadStructuredTextExt(const String& s, bool user_text);
+	void SetText(const String& s, bool user_text);
+	String GetStructText(bool user_text) const;
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE;}
+	
 };
 
+INITIALIZE(LyricalStructure);
+
 // TODO rename to LyricsDraft
-struct Script : Component, LyricalStructure {
+struct Script : Component {
 	Vector<bool>			simple_attrs;
 	Vector<int>				clr_list;
 	Vector<bool>			actions_enabled;
@@ -276,11 +282,9 @@ struct Script : Component, LyricalStructure {
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
 	void Serialize(Stream& s) override {
-		LyricalStructure::Serialize(s);
 		int v = 1; s % v; if (v >= 1) {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}}
 	void Jsonize(JsonIO& json) override
 	{
-		LyricalStructure::Jsonize(json);
 		json("simple_attrs", simple_attrs)
 			("clr_list", clr_list)
 			("actions_enabled", actions_enabled)
@@ -301,7 +305,7 @@ void HotfixReplaceWord(WString& ws);
 void HotfixReplaceWord(String& s);
 
 // Lyrics <-- previously ComponentAnalysis
-struct Lyrics : Component, LyricalStructure {
+struct Lyrics : Component {
 	String					name;
 	String					content_vision;
 	String					copyright;
@@ -314,8 +318,6 @@ struct Lyrics : Component, LyricalStructure {
 	bool					is_story = false;
 	bool					is_self_centered = false;
 	
-	String					singer_description;
-	bool					singer_gender = false;
 	/*
 	VectorMap<hash_t,PhrasePart> phrase_parts[PART_COUNT];
 	Index<int> source_pool[PART_COUNT];
@@ -328,7 +330,6 @@ struct Lyrics : Component, LyricalStructure {
 	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
 	void Serialize(Stream& s) override {
-		LyricalStructure::Serialize(s);
 		int v = 1;
 		s % v;
 		if (v >= 1)
@@ -342,13 +343,10 @@ struct Lyrics : Component, LyricalStructure {
 				% is_unsafe
 				% is_story
 				% is_self_centered
-				% singer_description
-				% singer_gender
 				;
 	}
 	void Jsonize(JsonIO& json) override
 	{
-		LyricalStructure::Jsonize(json);
 		json("name", name)
 			("content_vision", content_vision)
 			("copyright", copyright)
@@ -359,20 +357,11 @@ struct Lyrics : Component, LyricalStructure {
 			("is_unsafe", is_unsafe)
 			("is_story", is_story)
 			("is_self_centered", is_self_centered)
-			("singer_description", singer_description)
-			("singer_gender", singer_gender)
 			;
-		/*for(int i = 0; i < PART_COUNT; i++) {
-			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
-			json("source_pool["+IntStr(i)+"]", source_pool[i]);
-			json("phrase_combs["+IntStr(i)+"]", phrase_combs[i]);
-			json("script_suggs", script_suggs);
-		}*/
 	}
 	hash_t GetHashValue() const override {
 		CombineHash c;
-		c	.Put(LyricalStructure::GetHashValue())
-			.Do(name)
+		c	.Do(name)
 			.Do(content_vision)
 			.Do(copyright)
 			.Do(description)
@@ -382,8 +371,6 @@ struct Lyrics : Component, LyricalStructure {
 			.Do(is_unsafe)
 			.Do(is_story)
 			.Do(is_self_centered)
-			.Do(singer_description)
-			.Do(singer_gender)
 			;
 		return c;
 	}
@@ -397,16 +384,38 @@ struct Lyrics : Component, LyricalStructure {
 INITIALIZE(Lyrics);
 
 struct Song : Component {
+	String					singer_description;
+	bool					singer_gender = false;
 	
 	Song(MetaNode& owner) : Component(owner) {}
 	~Song(){}
-	void Serialize(Stream& s) override {Panic("TODO");}
+	void Serialize(Stream& s) override {
+		int v = 1;
+		s % v;
+		if (v >= 1)
+			s	% singer_description
+				% singer_gender
+				;
+	}
 	void Jsonize(JsonIO& json) override
 	{
-		Panic("TODO");
+		json("singer_description", singer_description)
+			("singer_gender", singer_gender)
+			;
+		/*for(int i = 0; i < PART_COUNT; i++) {
+			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
+			json("source_pool["+IntStr(i)+"]", source_pool[i]);
+			json("phrase_combs["+IntStr(i)+"]", phrase_combs[i]);
+			json("script_suggs", script_suggs);
+		}*/
 	}
-	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
-	
+	hash_t GetHashValue() const override {
+		CombineHash c;
+		c	.Do(singer_description)
+			.Do(singer_gender)
+			;
+		return c;
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}
 	
 };

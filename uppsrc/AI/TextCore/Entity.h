@@ -6,8 +6,10 @@ NAMESPACE_UPP
 struct Entity;
 struct SrcTxtHeader;
 struct Component;
+struct LyricalStructure;
 struct Script;
 struct Lyrics;
+struct Song;
 
 struct DatasetPtrs {
 	Ptr<SrcTxtHeader>		src;
@@ -15,8 +17,10 @@ struct DatasetPtrs {
 	Ptr<Component>			component;
 	
 	// Specialized components
+	Ptr<LyricalStructure>	lyric_struct;
 	Ptr<Script>				script; // TODO rename to lyrics_draft
 	Ptr<Lyrics>				lyrics;
+	Ptr<Song>				song;
 	Ptr<MetaNode>			env;
 	
 	DatasetPtrs() {}
@@ -25,8 +29,10 @@ struct DatasetPtrs {
 		src = p.src;
 		entity = p.entity;
 		component = p.component;
+		lyric_struct = p.lyric_struct;
 		script = p.script;
 		lyrics = p.lyrics;
+		song = p.song;
 		env = p.env;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
@@ -36,7 +42,7 @@ struct DatasetPtrs {
 struct Component : MetaNodeExt {
 	
 	Component(MetaNode& owner) : MetaNodeExt(owner) {}
-	DatasetPtrs GetDataset();
+	DatasetPtrs GetDataset() const;
 	
 };
 

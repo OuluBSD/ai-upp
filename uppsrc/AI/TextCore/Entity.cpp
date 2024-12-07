@@ -3,23 +3,26 @@
 
 NAMESPACE_UPP
 
-DatasetPtrs Component::GetDataset() {
+DatasetPtrs Component::GetDataset() const {
 	DatasetPtrs p;
 	MetaNode& n = node;
+	Component* this_comp = const_cast<Component*>(this);
 	if (n.kind >= METAKIND_ECS_COMPONENT_BEGIN && n.kind <= METAKIND_ECS_COMPONENT_END) {
 		if (n.owner && n.owner->kind == METAKIND_ECS_ENTITY && n.owner->ext)
 			p.entity = dynamic_cast<Entity*>(&*n.owner->ext);
-		p.component = this;
+		p.component = this_comp;
+		p.lyric_struct = n.owner ? n.owner->Find<LyricalStructure>(METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE) : 0;
+		p.script = n.owner ? n.owner->Find<Script>(METAKIND_ECS_COMPONENT_SCRIPT) : 0;
+		p.lyrics = n.owner ? n.owner->Find<Lyrics>(METAKIND_ECS_COMPONENT_LYRICS) : 0;
+		p.song = n.owner ? n.owner->Find<Song>(METAKIND_ECS_COMPONENT_SONG) : 0;
 		switch (n.kind) {
-			case METAKIND_ECS_COMPONENT_SCRIPT:
-				p.script = dynamic_cast<Script*>(this);
-				p.lyrics = n.owner ? n.owner->Find<Lyrics>(METAKIND_ECS_COMPONENT_LYRICS) : 0;
-				break;
-			case METAKIND_ECS_COMPONENT_LYRICS:
-				p.script = n.owner ? n.owner->Find<Script>(METAKIND_ECS_COMPONENT_SCRIPT) : 0;
-				p.lyrics = dynamic_cast<Lyrics*>(this); break;
+			case METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE: p.lyric_struct = dynamic_cast<LyricalStructure*>(this_comp); break;
+			case METAKIND_ECS_COMPONENT_SCRIPT: p.script = dynamic_cast<Script*>(this_comp); break;
+			case METAKIND_ECS_COMPONENT_LYRICS: p.lyrics = dynamic_cast<Lyrics*>(this_comp); break;
+			case METAKIND_ECS_COMPONENT_SONG: p.song = dynamic_cast<Song*>(this_comp); break;
 			default: break;
 		}
+		
 		if (p.entity) {
 			p.env = MetaEnv().FindNodeEnv(*p.entity);
 			if (p.env) {

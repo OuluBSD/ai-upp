@@ -1,6 +1,6 @@
 #include <AI/AI.h>
 #include <ide/ide.h>
-#include <AI/TextTool/TextTool.h>
+#include <AI/Tool/Tool.h>
 
 NAMESPACE_UPP
 
@@ -1593,6 +1593,9 @@ String MetaNode::GetKindString(int kind)
 	case METAKIND_ECS_COMPONENT_SCRIPT: return "Script";
 	case METAKIND_ECS_COMPONENT_LYRICS:	return "Lyrics";
 	case METAKIND_ECS_COMPONENT_SONG:	return "Song";
+	case METAKIND_ECS_COMPONENT_IMG_LAYER:		return "Image layer";
+	case METAKIND_ECS_COMPONENT_IMG_GEN_LAYER:	return "Generate Image Layer";
+	case METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER:	return "Aspect Fix Image Layer";
 	default:
 		return "Unknown kind: " + IntStr(kind);
 	}

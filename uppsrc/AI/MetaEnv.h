@@ -31,6 +31,9 @@ enum {
 	METAKIND_ECS_COMPONENT_SCRIPT,
 	METAKIND_ECS_COMPONENT_LYRICS,
 	METAKIND_ECS_COMPONENT_SONG,
+	METAKIND_ECS_COMPONENT_IMG_LAYER,
+	METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,
+	METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER,
 	METAKIND_ECS_COMPONENT_END,
 	
 	
@@ -111,9 +114,10 @@ struct MetaExtFactory {
 				ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
 				f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
 				f.ctrl_name = ctrl_name;
-				break;
+				return;
 			}
 		}
+		Panic("No component found");
 	}
 	static MetaNodeExt* CreateKind(int kind, MetaNode& owner);
 	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);

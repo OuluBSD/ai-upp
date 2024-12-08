@@ -384,36 +384,20 @@ struct Lyrics : Component {
 INITIALIZE(Lyrics);
 
 struct Song : Component {
-	String					singer_description;
-	bool					singer_gender = false;
+	VectorMap<String,String> data;
 	
 	Song(MetaNode& owner) : Component(owner) {}
 	~Song(){}
 	void Serialize(Stream& s) override {
-		int v = 1;
-		s % v;
-		if (v >= 1)
-			s	% singer_description
-				% singer_gender
-				;
+		int v = 1; s % v;
+		if (v >= 1) s % data;
 	}
-	void Jsonize(JsonIO& json) override
-	{
-		json("singer_description", singer_description)
-			("singer_gender", singer_gender)
-			;
-		/*for(int i = 0; i < PART_COUNT; i++) {
-			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
-			json("source_pool["+IntStr(i)+"]", source_pool[i]);
-			json("phrase_combs["+IntStr(i)+"]", phrase_combs[i]);
-			json("script_suggs", script_suggs);
-		}*/
+	void Jsonize(JsonIO& json) override {
+		json("data", data) ;
 	}
 	hash_t GetHashValue() const override {
 		CombineHash c;
-		c	.Do(singer_description)
-			.Do(singer_gender)
-			;
+		c.Do(data) ;
 		return c;
 	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}

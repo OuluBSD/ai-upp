@@ -20,6 +20,8 @@ public:
 class EntityInfoCtrl : public MetaExtCtrl {
 	WithEntityInfo<Ctrl> info;
 	VectorMap<String,MetaNode*> all_ctxs;
+	ArrayCtrl data;
+	DocEdit value;
 	
 public:
 	typedef EntityInfoCtrl CLASSNAME;
@@ -27,6 +29,8 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	void OnEdit();
+	void OnEditValue();
+	void DataCursor();
 	DatasetPtrs GetDataset();
 	
 	Event<> WhenValueChange;

@@ -10,6 +10,10 @@
 #include "ImgGen.h"
 #include "ImgAspectFixer.h"
 
+#include "CoverImage.h"
+#include "VideoPrompt.h"
+#include "VideoStoryboard.h"
+
 NAMESPACE_UPP
 
 

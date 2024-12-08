@@ -9,5 +9,13 @@ file
 	ImgGen.h,
 	ImgGen.cpp,
 	ImgAspectFixer.h,
-	ImgAspectFixer.cpp;
+	ImgAspectFixer.cpp,
+	Release readonly separator,
+	CoverImage.h,
+	CoverImage.cpp,
+	VideoPrompt.h,
+	VideoPrompt.cpp,
+	VideoStoryboard.h,
+	VideoStoryboard.cpp,
+	_ readonly separator;
 

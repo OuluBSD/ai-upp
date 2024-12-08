@@ -327,22 +327,35 @@ void EntityEditorCtrl::Do(int i) {
 
 
 EntityInfoCtrl::EntityInfoCtrl() {
-	Add(info.SizePos());
 	CtrlLayout(info);
+	Add(info.SizePos());
+	info.split.Horz() << data << value;
+	info.split.SetPos(7500);
+	
+	data.AddColumn("Key");
+	data.AddColumn("Value");
+	data.AddIndex("IDX");
+	data.ColumnWidths("1 4");
+	data.WhenCursor = THISBACK(DataCursor);
 	
 	info.name.WhenAction = THISBACK(OnEdit);
-	info.ctx.WhenAction = THISBACK(OnEdit);
-	info.desc.WhenAction = THISBACK(OnEdit);
+	info.show_hidden_values.WhenAction = THISBACK(Data);
+	value.WhenAction = THISBACK(OnEditValue);
 }
 
 void EntityInfoCtrl::Data() {
-	DatasetPtrs p = GetDataset();
-	auto& enode = p.entity->node;
+	Entity& ent = GetExt<Entity>();
+	MetaNode& enode = ent.node;
+	
 	info.name = enode.id;
-	info.desc.SetData((String)p.entity->Data("description"));
+	
+	// Realize some default fields
+	ent.Data("description");
+	ent.Data("gender");
 	
 	Vector<MetaNode*> envs = MetaEnv().FindAllEnvs();
 	
+	// Get all contexts
 	all_ctxs.Clear();
 	for (MetaNode* env : envs) {
 		Vector<MetaNode*> ctxs = env->FindAllShallow(METAKIND_CONTEXT);
@@ -352,42 +365,99 @@ void EntityInfoCtrl::Data() {
 		}
 	}
 	
-	String ent_ctx = p.entity->Data("ctx");
+	// Entity's context
+	String ent_ctx = ent.Data("ctx");
 	String match_key = ent_ctx;
 	
-	info.ctx.Clear();
-	info.ctx.Add("");
-	int active_ctx = 0;
-	for(int i = 0; i < all_ctxs.GetCount(); i++) {
-		String ctx_key = all_ctxs.GetKey(i);
-		info.ctx.Add(ctx_key);
-		if (ctx_key == match_key)
-			active_ctx = 1+i;
+	
+	// Entity data fields
+	data.SetCount(0);
+	bool show_hidden_values = info.show_hidden_values.Get();
+	int row = 0;
+	for(int i = 0; i < ent.data.GetCount(); i++) {
+		String key = ent.data.GetKey(i);
+		if (!show_hidden_values && key.GetCount() && key[0] == '.')
+			continue;
+		Value value = ent.data[i];
+		data.Set(row, "IDX", i);
+		data.Set(row, 0, key);
+		if (key == "gender") {
+			DropList* dl = new DropList;
+			dl->Add("male");
+			dl->Add("female");
+			data.SetCtrl(row, 1, dl);
+			int gender_i = value.IsNull() ? 0 : (value.Is<String>() ? (String)value == "female" : (min(1,max(0,(int)value))));
+			dl->SetIndex(gender_i);
+			dl->WhenAction = [&ent,dl]{ent.data.GetAdd("gender") = dl->GetIndex();};
+		}
+		else if (key == "ctx") {
+			DropList* dl = new DropList;
+			data.SetCtrl(row, 1, dl);
+			dl->Clear();
+			dl->Add("");
+			int active_ctx = 0;
+			for(int i = 0; i < all_ctxs.GetCount(); i++) {
+				String ctx_key = all_ctxs.GetKey(i);
+				dl->Add(ctx_key);
+				if (ctx_key == match_key)
+					active_ctx = 1+i;
+			}
+			if (active_ctx >= 0 && active_ctx < dl->GetCount()) {
+				dl->SetIndex(active_ctx);
+			}
+			dl->WhenAction = [this,&ent,dl]{
+				int ctx_i = dl->GetIndex()-1;
+				if (ctx_i >= 0 && ctx_i < dl->GetCount()) {
+					MetaNode& ctx = *all_ctxs[ctx_i];
+					ent.Data("ctx") = ctx.id;
+				}
+				else {
+					ent.Data("ctx") = String();
+				}
+			};
+		}
+		else {
+			data.Set(row, 1, value);
+		}
+		row++;
 	}
-	if (active_ctx >= 0 && active_ctx < info.ctx.GetCount()) {
-		info.ctx.SetIndex(active_ctx);
+	data.SetCount(row);
+	data.SetSortColumn(0);
+	
+	if (!data.IsCursor())
+		data.SetCursor(0);
+	else
+		DataCursor();
+}
+
+void EntityInfoCtrl::DataCursor() {
+	if (!data.IsCursor()) {
+		value.Clear();
+		return;
 	}
 	
-	//info.ctx
+	Entity& ent = GetExt<Entity>();
+	int data_i = data.Get("IDX");
+	Value val = ent.data[data_i];
+	value.SetData(val.ToString());
 }
 
 void EntityInfoCtrl::OnEdit() {
 	Entity& e = GetExt<Entity>();
 	auto& enode = e.node;
 	enode.id = ~info.name;
-	
-	int ctx_i = info.ctx.GetIndex()-1;
-	if (ctx_i >= 0 && ctx_i < info.ctx.GetCount()) {
-		MetaNode& ctx = *all_ctxs[ctx_i];
-		e.Data("ctx") = ctx.id;
-	}
-	else {
-		e.Data("ctx") = String();
-	}
-	
-	e.Data("description") = info.desc.GetData();
-	
+		
 	WhenValueChange();
+}
+
+void EntityInfoCtrl::OnEditValue() {
+	if (!data.IsCursor())
+		return;
+	Entity& e = GetExt<Entity>();
+	int data_i = data.Get("IDX");
+	Value val = value.GetData();
+	e.data[data_i] = val.ToString();
+	data.Set(1, val);
 }
 
 void EntityInfoCtrl::ToolMenu(Bar& bar) {

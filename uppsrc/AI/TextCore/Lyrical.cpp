@@ -630,8 +630,6 @@ void HotfixReplaceWord(String& s) {
 	}
 }
 
-
-
 INITIALIZER_COMPONENT(LyricalStructure);
 INITIALIZER_COMPONENT(Script);
 INITIALIZER_COMPONENT(Lyrics);

@@ -148,6 +148,8 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 	if (!part.story.IsEmpty()) args.phrases2 << part.story;
 	if (!sub.story.IsEmpty())  args.phrases2 << sub.story;
 	
+	int gender = p.entity->GetGender();
+	
 	for(int i = 0; i < part.sub.GetCount(); i++) {
 		const auto& s = part.sub[i];
 		for(int j = 0; j < s.lines.GetCount(); j++) {
@@ -157,7 +159,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 			auto& state = args.line_states.Add();
 			state.content = dl.text;
 			
-			int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
+			int tcent_i = GetTypeclassEntity(dl.safety, gender);
 			const auto& ents = src.typeclass_entities[tcent_i];
 			state.style_type = ents.GetKey(dl.style_type);
 			const auto& vec = dl.style_type < ents.GetCount() ? ents[dl.style_type] : ents.Top();
@@ -199,6 +201,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 	args.fn = 22;
 	args.lng = ly.lang;
 	
+	int gender = p.entity->GetGender();
 	
 	NavigatorState line_state;
 	for(int i = 0; i < lines.GetCount(); i++) {
@@ -212,7 +215,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 		ReadNavigatorState(l, part_i, sub_i, i, line_state,  2);
 		CopyState(state, line_state);
 		
-		int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
+		int tcent_i = GetTypeclassEntity(dl.safety, gender);
 		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];
@@ -288,6 +291,8 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 	args.fn = 23;
 	args.lng = ly.lang;
 	
+	int gender = p.entity->GetGender();
+	
 	NavigatorState line_state;
 	for(int i = 0; i < lines.GetCount(); i++) {
 		const DynLine& dl = *lines[i];
@@ -300,7 +305,7 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 		ReadNavigatorState(l, part_i, sub_i, i, line_state,  2);
 		CopyState(state, line_state);
 		
-		int tcent_i = GetTypeclassEntity(dl.safety, song.singer_gender);
+		int tcent_i = GetTypeclassEntity(dl.safety, gender);
 		const auto& ents = src.typeclass_entities[tcent_i];
 		state.style_type = ents.GetKey(dl.style_type);
 		state.style_entity = ents[dl.style_type][dl.style_entity];

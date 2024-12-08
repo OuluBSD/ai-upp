@@ -52,8 +52,13 @@ int Entity::GetGender() const {
 	int i = data.Find("gender");
 	if (i < 0)
 		return 0;
-	else
-		return data[i];
+	else {
+		Value val = data[i];
+		if (val.Is<int>() || val.Is<int64>() ||val.Is<double>())
+			return (int)val;
+		else
+			return val.ToString() == "female";
+	}
 }
 
 INITIALIZER_COMPONENT(Entity);

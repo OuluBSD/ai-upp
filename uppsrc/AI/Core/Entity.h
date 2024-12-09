@@ -3,15 +3,6 @@
 
 NAMESPACE_UPP
 
-struct Entity;
-struct SrcTxtHeader;
-struct Component;
-struct LyricalStructure;
-struct Script;
-struct Lyrics;
-struct Song;
-struct Human;
-
 struct DatasetPtrs {
 	Ptr<SrcTxtHeader>		src;
 	Ptr<Entity>				entity;
@@ -23,7 +14,7 @@ struct DatasetPtrs {
 	Ptr<Lyrics>				lyrics;
 	Ptr<Song>				song;
 	Ptr<MetaNode>			env;
-	Ptr<Human>				owner; // TODO rename to human?
+	Ptr<Owner>				owner; // TODO rename to human?
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -53,8 +44,7 @@ struct Entity : MetaNodeExt {
 	VectorMap<String, Value> data;
 	
 	Entity(MetaNode& owner) : MetaNodeExt(owner) {}
-	void Clear()
-	{
+	void Clear() {
 		data.Clear();
 	}
 	void Serialize(Stream& s) override {s % data; }

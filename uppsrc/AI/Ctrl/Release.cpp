@@ -21,8 +21,7 @@ void SnapInfoCtrl::Clear() {
 }
 
 void SnapInfoCtrl::Data() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	lbl_snapshot.SetLabel(GetAppModeKeyCap(AM_SNAPSHOT));
 	
@@ -40,8 +39,7 @@ void SnapInfoCtrl::Data() {
 }
 
 void SnapInfoCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	if (p.release && p.editor && p.editor->snaps.IsCursor()) {
 		Snapshot& r = *p.release;

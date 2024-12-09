@@ -353,6 +353,37 @@ enum {
 String GetSocietyRoleScoreKey(int i);
 String GetSocietyRoleScoreEnum(int i);
 
+enum {
+	BIOSCORE_EMPATHY,
+	BIOSCORE_ATTRACTION,
+	BIOSCORE_VALUE,
+	BIOSCORE_LEADERSHIP,
+	
+	BIOSCORE_COUNT
+};
+
+enum {
+	PLATDESC_MODE_FINAL,
+	PLATDESC_MODE_FINAL_DIALECT,
+	PLATDESC_MODE_FINAL_TRANSLATED,
+	PLATDESC_MODE_FINAL_TRANSLATED_DIALECT,
+	
+	PLATDESC_MODE_COUNT,
+};
+
+enum {
+	PLATDESC_LEN_FULL,
+	PLATDESC_LEN_1280_CHARS,
+	PLATDESC_LEN_160_CHARS,
+	PLATDESC_LEN_40_CHARS,
+	
+	PLATDESC_LEN_COUNT,
+};
+
+String GetPlatformDescriptionModeKey(int i);
+String GetPlatformDescriptionLengthKey(int i);
+int GetPlatformDescriptionLength(int i);
+
 // TODO move to a file
 enum {
 	PLATFORM_EMAIL,
@@ -479,6 +510,15 @@ enum {
 
 const char* GetPlatformAttrEnum(int i);
 String GetPlatformAttrKey(int i);
+
+
+enum {
+	TIME_ACCURACY_NONE,
+	TIME_ACCURACY_DATE,
+	TIME_ACCURACY_TIME,
+	
+	TIME_ACCURACY_COUNT,
+};
 
 
 END_UPP_NAMESPACE

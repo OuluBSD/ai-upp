@@ -36,7 +36,7 @@ SnapCoverImage::SnapCoverImage() {
 }
 
 void SnapCoverImage::Data() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	for(int i = 0; i < p.release->cover_suggestions.GetCount(); i++) {
@@ -52,7 +52,7 @@ void SnapCoverImage::Data() {
 }
 
 void SnapCoverImage::DataAttribute() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (!attr_list.IsCursor())
@@ -66,7 +66,7 @@ void SnapCoverImage::DataAttribute() {
 }
 
 void SnapCoverImage::DataSuggestion() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -82,7 +82,7 @@ void SnapCoverImage::DataSuggestion() {
 }
 
 void SnapCoverImage::DataSuggestionImage() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -111,7 +111,7 @@ void SnapCoverImage::DataSuggestionImage() {
 }
 
 void SnapCoverImage::OnAttributeChange() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (!attr_list.IsCursor())
@@ -125,7 +125,7 @@ void SnapCoverImage::OnAttributeChange() {
 }
 
 void SnapCoverImage::OnSuggestionChange() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -148,7 +148,7 @@ void SnapCoverImage::ToolMenu(Bar& bar) {
 }
 
 void SnapCoverImage::Do(int fn) {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
 	if (fn == 0) {
@@ -158,8 +158,7 @@ void SnapCoverImage::Do(int fn) {
 }
 
 void SnapCoverImage::CreateSuggestionsForPrompts() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if(!p.component || !p.entity || !p.release)
 		return;
 	
@@ -170,7 +169,7 @@ void SnapCoverImage::CreateSuggestionsForPrompts() {
 
 void SnapCoverImage::SuggestionMenu(Bar& bar) {
 	bar.Add(t_("Add suggestion"), AppImg::RedRing(), [this]() {
-		EditorPtrs& p = GetPointers();
+		DatasetPtrs p = GetDataset();
 		p.release->cover_suggestions.Add();
 		PostCallback(THISBACK(Data));
 	});

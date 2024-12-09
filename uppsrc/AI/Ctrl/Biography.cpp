@@ -62,7 +62,7 @@ void BiographyCtrl::Data() {
 		}
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	BiographyAnalysis& analysis = *mp.analysis;
 	Biography& biography = *mp.biography;
@@ -86,7 +86,7 @@ void BiographyCtrl::DataCategory() {
 		years.Clear();
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -124,7 +124,7 @@ void BiographyCtrl::DataYear() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -146,7 +146,7 @@ void BiographyCtrl::UpdateElements() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -192,7 +192,7 @@ void BiographyCtrl::OnValueChange() {
 	if (!mp.editable_biography)
 		return;
 	
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -238,7 +238,7 @@ void BiographyCtrl::GetElements() {
 	if (!mp.editable_biography)
 		return;
 	
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");
@@ -296,7 +296,7 @@ void BiographyCtrl::GetElementHints() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");
@@ -343,7 +343,7 @@ void BiographyCtrl::GetElementScores() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");

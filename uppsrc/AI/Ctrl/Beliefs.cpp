@@ -121,7 +121,7 @@ void SocialBeliefsCtrl::OnValueChange() {
 
 void SocialBeliefsCtrl::AddBelief() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	String name;
 	bool b = EditTextNotNull(
@@ -155,7 +155,7 @@ void SocialBeliefsCtrl::AddBelief() {
 
 void SocialBeliefsCtrl::RemoveBelief() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (beliefs.IsCursor()) {
 		mdb.beliefs.Remove(beliefs.GetCursor());
 	}

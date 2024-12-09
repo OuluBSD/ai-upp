@@ -24,7 +24,7 @@ VideoStoryboardCtrl::VideoStoryboardCtrl() {
 }
 
 void VideoStoryboardCtrl::Data() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component)
 		return;
 	
@@ -65,7 +65,7 @@ void VideoStoryboardCtrl::Data() {
 }
 
 void VideoStoryboardCtrl::DataLine() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component || !list.IsCursor())
 		return;
 	
@@ -110,7 +110,7 @@ void VideoStoryboardCtrl::ToolMenu(Bar& bar) {
 }
 
 void VideoStoryboardCtrl::Do(int fn) {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component) return;
 	
 	if (fn == 0) {

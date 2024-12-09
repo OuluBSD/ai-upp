@@ -18,7 +18,7 @@ OwnerInfoCtrl::OwnerInfoCtrl() {
 
 void OwnerInfoCtrl::Data() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	Clear();
 	
@@ -47,9 +47,10 @@ void OwnerInfoCtrl::Clear() {
 }
 
 void OwnerInfoCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
+	TODO
+	#if 0
 	if (p.owner && p.leads->profiles.IsCursor()) {
 		Owner& o = *p.owner;
 		o.name						= this->name.GetData();
@@ -63,6 +64,7 @@ void OwnerInfoCtrl::OnValueChange() {
 		int c = p.leads->profiles.GetCursor();
 		p.leads->profiles.Set(c, 0, o.name);
 	}
+	#endif
 }
 
 

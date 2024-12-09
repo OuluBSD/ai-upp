@@ -26,7 +26,7 @@ ProfileInfoCtrl::ProfileInfoCtrl() {
 
 void ProfileInfoCtrl::Data() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	Clear();
 	
@@ -63,8 +63,8 @@ void ProfileInfoCtrl::Clear() {
 }
 
 void ProfileInfoCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	
 	if (p.profile && p.leads->profiles.IsCursor()) {
 		Profile& o = *p.profile;

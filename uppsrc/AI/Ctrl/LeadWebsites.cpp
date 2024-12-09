@@ -301,7 +301,7 @@ void LeadWebsites::DataPayout() {
 
 void LeadWebsites::DataPrice() {
 	MetaDatabase& db = MetaDatabase::Single();
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadData& ld = db.lead_data;
 	LeadDataAnalysis& sda = db.lead_data.a;
 	
@@ -520,7 +520,7 @@ void LeadWebsites::Do(int fn) {
 		tm.Start();
 	}
 	else if (fn == 1) {
-		MetaPtrs& p = MetaPtrs::Single();
+		DatasetPtrs p = GetDataset();
 		if (p.owner) {
 			LeadSolver& tm = LeadSolver::Get(*p.owner);
 			tm.Start();

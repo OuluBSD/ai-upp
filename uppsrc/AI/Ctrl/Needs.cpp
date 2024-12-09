@@ -19,7 +19,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 	roles.WhenCursor << THISBACK(DataRole);
 	roles.WhenBar << [this](Bar& b) {
 		b.Add("Add role", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!p.owner) return;
 			String role;
 			bool b = EditTextNotNull(
@@ -37,7 +37,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 			PostCallback(THISBACK(Data));
 		});
 		b.Add("Remove role", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!roles.IsCursor()) return;
 			int cur = roles.Get("IDX");
 			if (cur >= 0 && cur < p.owner->roles.GetCount())
@@ -65,7 +65,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 	actions.WhenCursor << THISBACK(DataAction);
 	actions.WhenBar << [this](Bar& b) {
 		b.Add("Add action", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!p.owner || !roles.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			String action;
@@ -84,7 +84,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 			PostCallback(THISBACK(DataRole));
 		});
 		b.Add("Remove action", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -103,7 +103,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 	events.AddIndex("IDX");
 	events.WhenBar << [this](Bar& b) {
 		b.Add("Add event", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -111,7 +111,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 			PostCallback(THISBACK(DataRole));
 		});
 		b.Add("Remove event", [this]() {
-			MetaPtrs& p = MetaPtrs::Single();
+			DatasetPtrs p = GetDataset();
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -129,7 +129,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 	entries.WhenCursor << THISBACK(DataEntry);
 	
 	event.WhenAction << [this]() {
-		MetaPtrs& p = MetaPtrs::Single();
+		DatasetPtrs p = GetDataset();
 		if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor()) return;
 		int role_i = roles.Get("IDX");
 		int need_i = needs.Get("IDX");
@@ -145,7 +145,7 @@ SocialNeedsCtrl::SocialNeedsCtrl() {
 }
 
 void SocialNeedsCtrl::Data() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner) return;
 	
 	for(int i = 0; i < p.owner->roles.GetCount(); i++) {
@@ -163,7 +163,7 @@ void SocialNeedsCtrl::Data() {
 }
 
 void SocialNeedsCtrl::DataRole() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner || !roles.IsCursor())
 		return;
 	
@@ -198,7 +198,7 @@ void SocialNeedsCtrl::DataRole() {
 }
 
 void SocialNeedsCtrl::DataNeed() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner || !roles.IsCursor() || !needs.IsCursor())
 		return;
 	
@@ -246,7 +246,7 @@ void SocialNeedsCtrl::DataNeed() {
 }
 
 void SocialNeedsCtrl::DataAction() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) {
 		action_causes.Clear();
 		events.Clear();
@@ -295,7 +295,7 @@ void SocialNeedsCtrl::DataAction() {
 }
 
 void SocialNeedsCtrl::DataEvent() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner || !roles.IsCursor() || !events.IsCursor() || !actions.IsCursor()) {
 		entries.Clear();
 		event.SetData("");
@@ -329,7 +329,7 @@ void SocialNeedsCtrl::DataEvent() {
 }
 
 void SocialNeedsCtrl::DataEntry() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor() || !entries.IsCursor()) return;
 	int role_i = roles.Get("IDX");
 	int need_i = needs.Get("IDX");

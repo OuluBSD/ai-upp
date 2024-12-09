@@ -34,8 +34,7 @@ void CompInfoCtrl::Clear() {
 }
 
 void CompInfoCtrl::Data() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	lbl_component.SetLabel(GetAppModeKeyCap(AM_COMPONENT));
 	lbl_script.SetLabel(GetAppModeKeyCap(AM_SCRIPT) + ":");
@@ -89,8 +88,7 @@ void CompInfoCtrl::Data() {
 
 	DataTypeclass();*/
 	/*
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.entity || !typeclasses.IsCursor()) {
 		contents.Clear();
 		scripts.Clear();
@@ -118,8 +116,7 @@ void CompInfoCtrl::Data() {
 	
 
 	
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.entity || !typeclasses.IsCursor() || !contents.IsCursor()) {
 		scripts.Clear();
 		return;
@@ -148,8 +145,7 @@ void CompInfoCtrl::Data() {
 }
 
 void CompInfoCtrl::DataScript() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.entity || !scripts.IsCursor()) {
 		scripts_text.Clear();
 		return;
@@ -166,8 +162,7 @@ void CompInfoCtrl::DataScript() {
 }
 
 void CompInfoCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	if (p.component && p.editor->components.IsCursor()) {
 		Component& s = *p.component;
@@ -185,8 +180,7 @@ void CompInfoCtrl::OnValueChange() {
 }
 
 void CompInfoCtrl::SetScript() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	Component& s = *p.component;
 	
 	if (!p.entity || !p.component || !scripts.IsCursor()) {

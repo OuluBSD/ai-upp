@@ -70,7 +70,7 @@ Entity& ToolAppCtrl::GetEntity() {
 }
 
 String ToolAppCtrl::GetComponentTitle() const {
-	/*TextDatabase& db = GetDatabase();
+	/*DatasetPtrs p = GetDataset();
 	DatasetPtrs& p = GetDataset();
 	if(!p.component || !p.entity)
 		throw NoPointerExc("no song");
@@ -100,7 +100,7 @@ const Vector<String>& ToolAppCtrl::GetContentParts() const {
 }*/
 
 /*int ToolAppCtrl::GetDataset() {
-	TextDatabase& db = GetDatabase();
+	DatasetPtrs p = GetDataset();
 	DatasetPtrs& p = GetDataset();
 	if(!p.component || !p.entity)
 		throw NoPointerExc("no song");

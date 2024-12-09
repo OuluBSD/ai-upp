@@ -61,7 +61,7 @@ void BiographySummaryCtrl::Data() {
 			categories.Set(i, 1, 0);
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -80,7 +80,7 @@ void BiographySummaryCtrl::DataCategory() {
 		blocks.Clear();
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -121,7 +121,7 @@ void BiographySummaryCtrl::DataYear() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -142,7 +142,7 @@ void BiographySummaryCtrl::UpdateElements() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -168,7 +168,7 @@ void BiographySummaryCtrl::OnValueChange() {
 		return;
 	mp.snap->last_modified = GetSysTime();
 	
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);

@@ -36,7 +36,7 @@ void ScriptReasoningCtrl::Data() {
 
 void ScriptReasoningCtrl::MakeItems() {
 	items.Clear();
-	const EditorPtrs& p = GetPointers();
+	const DatasetPtrs p = GetDataset();
 	if (!p.script)
 		return;
 	Script& s = *p.script;

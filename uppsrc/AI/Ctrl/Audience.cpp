@@ -59,7 +59,7 @@ void AudienceCtrl::Data() {
 	
 	
 	// Check if role is enabled (indirectly by enabled platforms)
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	analysis.Realize();
@@ -97,7 +97,7 @@ void AudienceCtrl::DataProfile() {
 	int role_i = roles.GetCursor();
 	int prof_i = profiles.GetCursor();
 	
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	analysis.Realize();
@@ -141,7 +141,7 @@ void AudienceCtrl::DataResponse() {
 		return;
 	
 	
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	const BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];

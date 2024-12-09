@@ -1770,4 +1770,34 @@ const char* GetPlatformAttrEnum(int i) {
 
 String GetPlatformAttrKey(int i) {return KeyToName(GetPlatformAttrEnum(i));}
 
+String GetPlatformDescriptionModeKey(int i) {
+	switch (i) {
+		case PLATDESC_MODE_FINAL: return "engf";
+		case PLATDESC_MODE_FINAL_DIALECT: return "engfd";
+		case PLATDESC_MODE_FINAL_TRANSLATED: return "transf";
+		case PLATDESC_MODE_FINAL_TRANSLATED_DIALECT: return "transfd";
+		default: TODO; return "error";
+	}
+}
+
+String GetPlatformDescriptionLengthKey(int i) {
+	switch (i) {
+		case PLATDESC_LEN_FULL: return "full";
+		case PLATDESC_LEN_1280_CHARS: return "1280";
+		case PLATDESC_LEN_160_CHARS: return "160";
+		case PLATDESC_LEN_40_CHARS: return "40";
+		default: TODO; return "error";
+	}
+}
+
+int GetPlatformDescriptionLength(int i) {
+	switch (i) {
+		case PLATDESC_LEN_FULL: return 0;
+		case PLATDESC_LEN_1280_CHARS: return 1280;
+		case PLATDESC_LEN_160_CHARS: return 160;
+		case PLATDESC_LEN_40_CHARS: return 40;
+		default: TODO; return 0;
+	}
+}
+
 END_UPP_NAMESPACE

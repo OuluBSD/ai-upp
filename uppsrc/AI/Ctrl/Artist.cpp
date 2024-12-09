@@ -38,8 +38,7 @@ void ArtistInfoCtrl::Clear() {
 }
 
 void ArtistInfoCtrl::Data() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	
 	lbl_entity.SetLabel(GetAppModeKeyCap(AM_ENTITY));
 	lbl_speaker.SetLabel(GetAppModeLabel(AML_SPEAKER));
@@ -77,9 +76,7 @@ void ArtistInfoCtrl::Data() {
 }
 
 void ArtistInfoCtrl::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs p = GetDataset();
 	
 	if (p.entity && p.editor->profiles.IsCursor()) {
 		Entity& o = *p.entity;

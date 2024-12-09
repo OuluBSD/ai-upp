@@ -75,7 +75,7 @@ MarketplaceCtrl::MarketplaceCtrl() {
 
 void MarketplaceCtrl::Data() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	if (!p.owner) {
 		items.Clear();
@@ -163,7 +163,7 @@ void MarketplaceCtrl::DataItem() {
 		return;
 	}
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
@@ -261,7 +261,7 @@ void MarketplaceCtrl::DataImage() {
 		img.Clear();
 		return;
 	}
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
@@ -283,7 +283,7 @@ void MarketplaceCtrl::DataImage() {
 
 void MarketplaceCtrl::Do(int fn) {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	if (fn == 0) {
 		if (!p.owner) return;
@@ -487,7 +487,7 @@ void MarketplaceCtrl::Do(int fn) {
 }
 
 void MarketplaceCtrl::OnDimensionChange() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = p.owner->marketplace.items[item_i];
 	OnValueChange();
@@ -501,7 +501,7 @@ void MarketplaceCtrl::OnValueChange() {
 		return;
 	}
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));

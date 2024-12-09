@@ -3,6 +3,14 @@
 
 NAMESPACE_UPP
 
+struct Entity;
+struct SrcTxtHeader;
+struct Component;
+struct LyricalStructure;
+struct Script;
+struct Lyrics;
+struct Song;
+struct Owner;
 
 typedef String NoPointerExc;
 

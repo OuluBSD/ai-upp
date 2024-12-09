@@ -31,7 +31,7 @@ VideoPromptMakerCtrl::VideoPromptMakerCtrl() {
 }
 
 void VideoPromptMakerCtrl::Data() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component)
 		return;
 	
@@ -79,7 +79,7 @@ void VideoPromptMakerCtrl::Data() {
 }
 
 void VideoPromptMakerCtrl::DataPrompt() {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component || !storyboard_prompt_keys.IsCursor()) {
 		storyboard_prompt_values.Clear();
 		return;
@@ -106,7 +106,7 @@ void VideoPromptMakerCtrl::ToolMenu(Bar& bar) {
 }
 
 void VideoPromptMakerCtrl::Do(int fn) {
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.component) return;
 	
 	if (fn == 0) {

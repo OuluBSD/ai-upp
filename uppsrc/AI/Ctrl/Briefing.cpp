@@ -21,8 +21,7 @@ SnapBriefing::SnapBriefing() {
 }
 
 void SnapBriefing::Data() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	Snapshot& release = *p.release;
 	for(int i = 0; i < ITEM_COUNT; i++) {
@@ -47,8 +46,7 @@ void SnapBriefing::OnListCursor() {
 	values.description.Clear();
 	values.value.Clear();
 	
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	Snapshot& release = *p.release;
 	
@@ -65,8 +63,7 @@ void SnapBriefing::OnListCursor() {
 }
 
 void SnapBriefing::OnValueChange() {
-	TextDatabase& db = GetDatabase();
-	EditorPtrs& p = GetPointers();
+	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	Snapshot& release = *p.release;
 	

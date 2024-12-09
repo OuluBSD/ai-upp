@@ -72,7 +72,7 @@ SocialContent::SocialContent() {
 }
 
 void SocialContent::Data() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	
 	if (!p.profile) {
 		platforms.Clear();
@@ -102,7 +102,7 @@ void SocialContent::Data() {
 }
 
 void SocialContent::DataPlatform() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor()) {
 		entries.Clear();
 		threads.Clear();
@@ -134,7 +134,7 @@ void SocialContent::DataPlatform() {
 }
 
 void SocialContent::DataEntry() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor()) {
 		threads.Clear();
 		comments.Clear();
@@ -169,7 +169,7 @@ void SocialContent::DataEntry() {
 }
 
 void SocialContent::DataThread() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
 		comments.Clear();
 		ClearEntry();
@@ -210,7 +210,7 @@ void SocialContent::DataThread() {
 }
 
 void SocialContent::DataComment() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
 		ClearEntry();
 		return;
@@ -258,7 +258,7 @@ void SocialContent::Clear() {
 }
 
 void SocialContent::OnValueChange() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -308,7 +308,7 @@ void SocialContent::OnValueChange() {
 }
 
 void SocialContent::AddEntry() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -322,7 +322,7 @@ void SocialContent::AddEntry() {
 }
 
 void SocialContent::RemoveEntry() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -337,7 +337,7 @@ void SocialContent::RemoveEntry() {
 }
 
 void SocialContent::AddThread() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -352,7 +352,7 @@ void SocialContent::AddThread() {
 }
 
 void SocialContent::RemoveThread() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -369,7 +369,7 @@ void SocialContent::RemoveThread() {
 }
 
 void SocialContent::AddComment() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -387,7 +387,7 @@ void SocialContent::AddComment() {
 }
 
 void SocialContent::RemoveComment() {
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;

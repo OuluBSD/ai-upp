@@ -1589,12 +1589,13 @@ String MetaNode::GetKindString(int kind)
 	case METAKIND_COMMENT:				return "Comment";
 	case METAKIND_ECS_SPACE:			return "ECS-Space";
 	case METAKIND_ECS_ENTITY:			return "Entity";
-	case METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE: return "Lyrical Structure";
-	case METAKIND_ECS_COMPONENT_SCRIPT: return "Script";
-	case METAKIND_ECS_COMPONENT_LYRICS:	return "Lyrics";
-	case METAKIND_ECS_COMPONENT_SONG:	return "Song";
-	case METAKIND_ECS_COMPONENT_IMG_LAYER:		return "Image layer";
-	case METAKIND_ECS_COMPONENT_IMG_GEN_LAYER:	return "Generate Image Layer";
+	case METAKIND_ECS_COMPONENT_PROFILE:			return "Profile";
+	case METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE:	return "Lyrical Structure";
+	case METAKIND_ECS_COMPONENT_SCRIPT:				return "Script";
+	case METAKIND_ECS_COMPONENT_LYRICS:				return "Lyrics";
+	case METAKIND_ECS_COMPONENT_SONG:				return "Song";
+	case METAKIND_ECS_COMPONENT_IMG_LAYER:			return "Image layer";
+	case METAKIND_ECS_COMPONENT_IMG_GEN_LAYER:		return "Generate Image Layer";
 	case METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER:	return "Aspect Fix Image Layer";
 	default:
 		return "Unknown kind: " + IntStr(kind);

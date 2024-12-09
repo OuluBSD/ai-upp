@@ -2954,7 +2954,7 @@ int ActionAttrsProcess::BatchCount(int fn) const {
 }
 
 void ActionAttrsProcess::Prepare(int fn) {
-	//TextDatabase& db = GetDatabase();
+	//DatasetPtrs p = GetDataset();
 	ASSERT(p.src);
 	auto& src = p.src->Data();
 	

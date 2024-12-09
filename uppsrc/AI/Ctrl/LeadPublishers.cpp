@@ -27,7 +27,7 @@ LeadPublishers::LeadPublishers() {
 
 void LeadPublishers::Data() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	
@@ -41,7 +41,7 @@ void LeadPublishers::Data() {
 
 void LeadPublishers::DataItem() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	if (!list.IsCursor())
@@ -78,7 +78,7 @@ void LeadPublishers::Do(int fn) {
 
 void LeadPublishers::AddPublisher() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	LeadDataPublisher& ldp = ldt.publishers.Add();
@@ -94,7 +94,7 @@ void LeadPublishers::RemovePublisher() {
 		return;
 	
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	int idx = list.GetCursor();
@@ -105,7 +105,7 @@ void LeadPublishers::RemovePublisher() {
 
 void LeadPublishers::ValueChange() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	if (!list.IsCursor())
@@ -124,7 +124,7 @@ void LeadPublishers::ValueChange() {
 
 void LeadPublishers::PasteArtists() {
 	
-	MetaPtrs& p = MetaPtrs::Single();
+	DatasetPtrs p = GetDataset();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
 	if (!list.IsCursor())

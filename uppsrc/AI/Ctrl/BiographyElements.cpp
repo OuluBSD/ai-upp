@@ -61,7 +61,7 @@ void BiographyElementsCtrl::Data() {
 			categories.Set(i, 1, 0);
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -80,7 +80,7 @@ void BiographyElementsCtrl::DataCategory() {
 		elements.Clear();
 		return;
 	}
-	Human& owner = *mp.owner;
+	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	int row = 0;

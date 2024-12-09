@@ -54,14 +54,14 @@ BiographySummaryCtrl::BiographySummaryCtrl() {
 }
 
 void BiographySummaryCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography) {
 		for(int i = 0; i < categories.GetCount(); i++)
 			categories.Set(i, 1, 0);
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -74,13 +74,13 @@ void BiographySummaryCtrl::Data() {
 }
 
 void BiographySummaryCtrl::DataCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
 		blocks.Clear();
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -117,11 +117,11 @@ void BiographySummaryCtrl::DataCategory() {
 }
 
 void BiographySummaryCtrl::DataYear() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -138,11 +138,11 @@ void BiographySummaryCtrl::DataYear() {
 }
 
 void BiographySummaryCtrl::UpdateElements() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -160,15 +160,15 @@ void BiographySummaryCtrl::UpdateElements() {
 }
 
 void BiographySummaryCtrl::OnValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography ||!categories.IsCursor() || !blocks.IsCursor())
 		return;
 	if (!mp.editable_biography)
 		return;
 	mp.snap->last_modified = GetSysTime();
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -219,7 +219,7 @@ void BiographySummaryCtrl::ToolMenu(Bar& bar) {
 }
 
 void BiographySummaryCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	if (mp.editable_biography) {

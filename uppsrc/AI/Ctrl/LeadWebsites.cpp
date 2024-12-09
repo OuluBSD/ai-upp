@@ -531,10 +531,10 @@ void LeadWebsites::Do(int fn) {
 void LeadWebsites::CreateScript() {
 	int appmode = DB_SONG; // TODO: not a constant?
 	
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	TextDatabase& db = mdb.db[appmode];
 	LeadData& ld = mdb.lead_data;
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!list.IsCursor())
 		return;
 	
@@ -583,9 +583,9 @@ void LeadWebsites::CreateScript() {
 }
 
 void LeadWebsites::CopyHeaderClipboard() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	LeadData& ld = mdb.lead_data;
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!list.IsCursor())
 		return;
 	

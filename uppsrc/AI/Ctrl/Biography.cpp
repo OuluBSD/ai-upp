@@ -53,8 +53,8 @@ BiographyCtrl::BiographyCtrl() {
 }
 
 void BiographyCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.analysis) {
 		for(int i = 0; i < categories.GetCount(); i++) {
 			categories.Set(i, 0, 0);
@@ -62,7 +62,7 @@ void BiographyCtrl::Data() {
 		}
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	BiographyAnalysis& analysis = *mp.analysis;
 	Biography& biography = *mp.biography;
@@ -80,13 +80,13 @@ void BiographyCtrl::Data() {
 }
 
 void BiographyCtrl::DataCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.biography || !categories.IsCursor()) {
 		years.Clear();
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -120,11 +120,11 @@ void BiographyCtrl::DataCategory() {
 }
 
 void BiographyCtrl::DataYear() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -142,11 +142,11 @@ void BiographyCtrl::DataYear() {
 }
 
 void BiographyCtrl::UpdateElements() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -185,14 +185,14 @@ void BiographyCtrl::UpdateElementHints() {
 }
 
 void BiographyCtrl::OnValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	if (!mp.editable_biography)
 		return;
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -231,14 +231,14 @@ void BiographyCtrl::Translate() {
 }
 
 void BiographyCtrl::GetElements() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	if (!mp.editable_biography)
 		return;
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");
@@ -292,11 +292,11 @@ void BiographyCtrl::GetElements() {
 }
 
 void BiographyCtrl::GetElementHints() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");
@@ -339,11 +339,11 @@ void BiographyCtrl::GetElementHints() {
 }
 
 void BiographyCtrl::GetElementScores() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Profile& profile = *mp.profile;
 	Biography& biography = *mp.biography;
 	int cat_enum = categories.Get("IDX");
@@ -423,7 +423,7 @@ void BiographyCtrl::ToolMenu(Bar& bar) {
 }
 
 void BiographyCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	if (!mp.editable_biography) {

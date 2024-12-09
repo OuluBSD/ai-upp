@@ -94,8 +94,8 @@ void ConceptualFrameworkNavigator::Data() {
 }
 
 void ConceptualFrameworkNavigator::DataAll(bool forced) {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!mp.snap)
 		return;
 	
@@ -133,8 +133,8 @@ void ConceptualFrameworkNavigator::DataAll(bool forced) {
 }
 
 void ConceptualFrameworkNavigator::DataFramework() {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!cfs.IsCursor() || !mp.snap) {
 		stories.Clear();
 		return;
@@ -232,8 +232,8 @@ void ConceptualFrameworkNavigator::DataFramework() {
 }
 
 void ConceptualFrameworkNavigator::DataStory() {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor()) {
 		story.colors.SetCount(0);
 		return;
@@ -278,8 +278,8 @@ void ConceptualFrameworkNavigator::DataStory() {
 }
 
 void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor())
 		return;
 	int cf_i = cfs.Get("IDX");
@@ -296,8 +296,8 @@ void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
 }
 
 int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor())
 		return 0;
 	int cf_i = cfs.Get("IDX");
@@ -308,8 +308,8 @@ int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
 }
 
 void ConceptualFrameworkNavigator::OnValueChange() {
-	MetaPtrs& mp = MetaPtrs::Single();
-	MetaDatabase& mdb = MetaDatabase::Single();
+	DatasetPtrs mp = GetDataset();
+	
 	if (!cfs.IsCursor())
 		return;
 	int cf_i = cfs.Get("IDX");
@@ -360,7 +360,7 @@ void ConceptualFrameworkNavigator::MoveSortColumn(int i) {
 }
 
 void ConceptualFrameworkNavigator::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	
 	int appmode = GetAppMode();
 	if (!mp.snap)

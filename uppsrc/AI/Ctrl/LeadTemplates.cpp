@@ -25,7 +25,7 @@ LeadTemplateCtrl::LeadTemplateCtrl() {
 }
 
 void LeadTemplateCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	int lng = mdb.GetLanguageIndex();
 	

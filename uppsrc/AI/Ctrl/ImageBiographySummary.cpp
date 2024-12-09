@@ -48,14 +48,14 @@ ImageBiographySummaryCtrl::ImageBiographySummaryCtrl() {
 }
 
 void ImageBiographySummaryCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner) {
 		for(int i = 0; i < categories.GetCount(); i++)
 			categories.Set(i, 1, 0);
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -67,13 +67,13 @@ void ImageBiographySummaryCtrl::Data() {
 }
 
 void ImageBiographySummaryCtrl::DataCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !categories.IsCursor()) {
 		blocks.Clear();
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -110,11 +110,11 @@ void ImageBiographySummaryCtrl::DataCategory() {
 }
 
 void ImageBiographySummaryCtrl::DataYear() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !categories.IsCursor() || !blocks.IsCursor())
 		return;
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -129,15 +129,15 @@ void ImageBiographySummaryCtrl::DataYear() {
 }
 
 void ImageBiographySummaryCtrl::OnValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !categories.IsCursor() || !blocks.IsCursor())
 		return;
 	if (!mp.editable_biography)
 		return;
 	mp.snap->last_modified = GetSysTime();
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
@@ -188,7 +188,7 @@ void ImageBiographySummaryCtrl::ToolMenu(Bar& bar) {
 }
 
 void ImageBiographySummaryCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	if (mp.editable_biography) {

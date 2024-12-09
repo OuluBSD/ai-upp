@@ -7,39 +7,42 @@
 NAMESPACE_UPP
 
 
-String GetGenderString(int i) {
-	switch (i) {
-		case GENDER_CHILD:		return "child";
-		case GENDER_AUTHORITY:	return "authority";
-		case GENDER_MALE:		return "male";
-		case GENDER_FEMALE:		return "female";
-		case GENDER_SELLER:		return "seller";
-		case GENDER_BUYER:		return "buyer";
-		case GENDER_MARKETER:	return "marketer";
-		case GENDER_CONSUMER:	return "consumer";
-		default: return String();
+String KeyToName(String s) {
+	s = ToLower(s);
+	String o;
+	bool upper = true;
+	for(int i = 0; i < s.GetCount(); i++) {
+		int chr = s[i];
+		if (chr == '_') {
+			upper = true;
+			o.Cat(' ');
+			continue;
+		}
+		if (upper && chr >= 'a' && chr <= 'z')
+			chr = ToUpper(chr);
+		upper = false;
+		o.Cat(chr);
 	}
+	return o;
 }
 
-Vector<String> GetGenders() {
-	Vector<String> v;
-	for(int i = 0; i < GENDER_COUNT; i++)
-		v << GetGenderString(i);
-	return v;
+String StringToName(String s) {
+	s = ToLower(s);
+	String o;
+	bool upper = true;
+	for(int i = 0; i < s.GetCount(); i++) {
+		int chr = s[i];
+		if (chr == ' ') {
+			upper = true;
+			continue;
+		}
+		if (upper && chr >= 'a' && chr <= 'z')
+			chr = ToUpper(chr);
+		upper = false;
+		o.Cat(chr);
+	}
+	return o;
 }
 
-int FindGender(const String& s) {
-	String ls = ToLower(TrimBoth(s));
-	if (ls.IsEmpty()) return -1;
-	if (IsDigit(ls[0]) || ls[0] == '-') {
-		int i = ScanInt(ls);
-		if (i < 0 || i >= GENDER_COUNT) return -1;
-		return i;
-	}
-	for(int i = 0; i < GENDER_COUNT; i++)
-		if (GetGenderString(i) == ls)
-			return i;
-	return -1;
-}
 
 END_UPP_NAMESPACE

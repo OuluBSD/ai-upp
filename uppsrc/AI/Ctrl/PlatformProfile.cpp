@@ -115,7 +115,7 @@ void PlatformProfileCtrl::DataPlatforms() {
 }
 
 void PlatformProfileCtrl::DataPlatform() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!p.platforms.IsCursor() || !mp.profile || !mp.analysis) {
 		return;
 	}
@@ -151,7 +151,7 @@ void PlatformProfileCtrl::DataPlatform() {
 }
 
 void PlatformProfileCtrl::DataClusters() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	BiographyAnalysis& analysis = *mp.analysis;
 	
 	analysis.RealizePromptImageTypes();
@@ -172,7 +172,7 @@ void PlatformProfileCtrl::DataClusters() {
 }
 
 void PlatformProfileCtrl::DataImageType() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	BiographyAnalysis& analysis = *mp.analysis;
 	
 	if (!c.image_types.IsCursor())
@@ -204,7 +204,7 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
 	
-		MetaPtrs& mp = MetaPtrs::Single();
+		DatasetPtrs mp = GetDataset();
 		BiographyAnalysis& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
@@ -226,7 +226,7 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
 	
-		MetaPtrs& mp = MetaPtrs::Single();
+		DatasetPtrs mp = GetDataset();
 		BiographyAnalysis& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
@@ -254,7 +254,7 @@ void PlatformProfileCtrl::PlatformMenu(Bar& bar) {
 }
 
 void PlatformProfileCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	PlatformProfileProcess& ss = PlatformProfileProcess::Get(*mp.profile, *mp.snap);
@@ -274,7 +274,7 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
 	
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	BiographyAnalysis& analysis = *mp.analysis;
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];

@@ -348,7 +348,7 @@ void SocialNeedsCtrl::ToolMenu(Bar& bar) {
 }
 
 void SocialNeedsCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	SocialNeedsProcess& ss = SocialNeedsProcess::Get(*mp.profile, *mp.snap);

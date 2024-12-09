@@ -26,7 +26,7 @@ LeadPublishers::LeadPublishers() {
 }
 
 void LeadPublishers::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
@@ -40,7 +40,7 @@ void LeadPublishers::Data() {
 }
 
 void LeadPublishers::DataItem() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
@@ -77,7 +77,7 @@ void LeadPublishers::Do(int fn) {
 }
 
 void LeadPublishers::AddPublisher() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
@@ -93,7 +93,7 @@ void LeadPublishers::RemovePublisher() {
 	if (!list.IsCursor())
 		return;
 	
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
@@ -104,7 +104,7 @@ void LeadPublishers::RemovePublisher() {
 }
 
 void LeadPublishers::ValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	
@@ -123,7 +123,7 @@ void LeadPublishers::ValueChange() {
 }
 
 void LeadPublishers::PasteArtists() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
 	

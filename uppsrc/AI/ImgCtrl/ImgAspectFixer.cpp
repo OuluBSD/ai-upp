@@ -39,44 +39,6 @@ void ImageViewerCtrl::Paint(Draw& d) {
 	}
 }
 
-void ImageViewerCtrl::SetImage(const Image& i) {
-	img = i;
-	PostCallback([this](){Refresh();});
-}
-
-void ImageViewerCtrl::Clear() {
-	img.Clear();
-	PostCallback([this](){Refresh();});
-}
-
-void ImageViewerCtrl::Menu(Bar& menu) {
-	menu.Add("Save Image as", [this]() {
-		String file = SelectFileSaveAs("*.jpg\n*.*");
-		
-		if (file.GetCount()) {
-			JPGEncoder jpg;
-			jpg.Quality(100);
-			jpg.SaveFile(file, img);
-		}
-	});
-	menu.Add("Copy image to clipboard", [this]() {
-		WriteClipboardImage(img);
-	});
-}
-
-void ImageViewerCtrl::RightDown(Point p, dword keyflags) {
-	MenuBar::Execute(THISBACK(Menu));
-}
-
-
-
-
-
-
-
-
-
-
 
 
 

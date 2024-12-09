@@ -23,7 +23,7 @@ SocialHeaderCtrl::SocialHeaderCtrl() {
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		Option* o = new Option;
 		o->WhenAction << [this,o,i]() {
-			MetaPtrs& mp = MetaPtrs::Single();
+			DatasetPtrs mp = GetDataset();
 			BiographyAnalysis& analysis = *mp.analysis;
 			analysis.Realize();
 			analysis.platforms[i].platform_enabled = o->Get();
@@ -67,7 +67,7 @@ SocialHeaderCtrl::SocialHeaderCtrl() {
 }
 
 void SocialHeaderCtrl::Data() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile) return;
 	BiographyAnalysis& analysis = *mp.analysis;
 	
@@ -96,8 +96,8 @@ void SocialHeaderCtrl::Data() {
 }
 
 void SocialHeaderCtrl::DataPlatform() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	
@@ -134,8 +134,8 @@ void SocialHeaderCtrl::DataPlatform() {
 }
 
 void SocialHeaderCtrl::OnValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	
@@ -167,7 +167,7 @@ void SocialHeaderCtrl::EntryListMenu(Bar& bar) {
 }
 
 void SocialHeaderCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	SocialHeaderProcess& ss = SocialHeaderProcess::Get(*mp.profile, *mp.snap);

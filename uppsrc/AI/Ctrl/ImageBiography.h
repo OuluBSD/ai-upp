@@ -4,6 +4,21 @@
 NAMESPACE_UPP
 
 
+class ImageViewerCtrl : public Ctrl {
+	Image img;
+	
+public:
+	typedef ImageViewerCtrl CLASSNAME;
+	ImageViewerCtrl();
+	
+	void Paint(Draw& d) override;
+	void SetImage(const Image& i);
+	void Clear();
+	void Menu(Bar& menu);
+	void RightDown(Point p, dword keyflags) override;
+
+};
+
 class ImageBiographyCtrl : public ToolAppCtrl {
 	Splitter hsplit, vsplit, bsplit;
 	ArrayCtrl categories, years, entries;

@@ -436,7 +436,7 @@ void SocialContent::ToolMenu(Bar& bar) {
 }
 
 void SocialContent::PasteResponse(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile) return;
 	if (!platforms.IsCursor() || !threads.IsCursor()) return;
 	
@@ -480,7 +480,7 @@ void SocialContent::PasteResponse(int fn) {
 }
 
 void SocialContent::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	SocialContentProcess& ss = SocialContentProcess::Get(*mp.profile, *mp.snap);

@@ -25,6 +25,8 @@
 #include "LyricStructSolver.h"
 #include "LyricsSolver.h"
 #include "EcsLang.h"
+#include "Profile.h"
+#include "Platform.h"
 
 NAMESPACE_UPP
 

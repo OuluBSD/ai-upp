@@ -10,6 +10,7 @@ struct LyricalStructure;
 struct Script;
 struct Lyrics;
 struct Song;
+struct Human;
 
 struct DatasetPtrs {
 	Ptr<SrcTxtHeader>		src;
@@ -22,6 +23,7 @@ struct DatasetPtrs {
 	Ptr<Lyrics>				lyrics;
 	Ptr<Song>				song;
 	Ptr<MetaNode>			env;
+	Ptr<Human>				owner; // TODO rename to human?
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -34,6 +36,7 @@ struct DatasetPtrs {
 		lyrics = p.lyrics;
 		song = p.song;
 		env = p.env;
+		owner = p.owner;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	

@@ -54,14 +54,14 @@ BiographyElementsCtrl::BiographyElementsCtrl() {
 }
 
 void BiographyElementsCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography) {
 		for(int i = 0; i < categories.GetCount(); i++)
 			categories.Set(i, 1, 0);
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -74,13 +74,13 @@ void BiographyElementsCtrl::Data() {
 }
 
 void BiographyElementsCtrl::DataCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
 		elements.Clear();
 		return;
 	}
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
 	int row = 0;
@@ -147,7 +147,7 @@ void BiographyElementsCtrl::DataCategory() {
 }
 
 void BiographyElementsCtrl::DataElement() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !elements.IsCursor())
 		return;
 	int cat_i = elements.Get("CAT");

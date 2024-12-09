@@ -140,6 +140,9 @@ void SetCountForArray(ArrayCtrl& arr, int count);
 void SetCountWithDefaultCursor(ArrayCtrl& arr, int count);
 void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool descending=false);
 
+String KeyToName(String s);
+String StringToName(String s);
+
 END_UPP_NAMESPACE
 
 #endif

@@ -52,14 +52,14 @@ AudienceCtrl::AudienceCtrl() {
 }
 
 void AudienceCtrl::Data() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.biography) return;
 	INHIBIT_CURSOR(roles);
 	if (!roles.IsCursor()) roles.SetCursor(0);
 	
 	
 	// Check if role is enabled (indirectly by enabled platforms)
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	analysis.Realize();
@@ -89,15 +89,15 @@ void AudienceCtrl::DataRole() {
 }
 
 void AudienceCtrl::DataProfile() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	
 	if (!roles.IsCursor() || !profiles.IsCursor())
 		return;
 	int role_i = roles.GetCursor();
 	int prof_i = profiles.GetCursor();
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	analysis.Realize();
@@ -129,8 +129,8 @@ void AudienceCtrl::DataProfile() {
 }
 
 void AudienceCtrl::DataResponse() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	
 	if (!roles.IsCursor() || !profiles.IsCursor() || !responses.IsCursor())
 		return;
@@ -141,7 +141,7 @@ void AudienceCtrl::DataResponse() {
 		return;
 	
 	
-	Owner& owner = *mp.owner;
+	Human& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	BiographyAnalysis& analysis = *mp.analysis;
 	const BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
@@ -208,7 +208,7 @@ void AudienceCtrl::EntryListMenu(Bar& bar) {
 }
 
 void AudienceCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	AudienceProcess& ss = AudienceProcess::Get(*mp.profile, *mp.snap);

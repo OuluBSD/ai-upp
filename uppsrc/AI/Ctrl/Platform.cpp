@@ -177,7 +177,7 @@ void PlatformCtrl::ToolMenu(Bar& bar) {
 }
 
 void PlatformCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	PlatformProcess& ss = PlatformProcess::Get(*mp.profile, *mp.snap);

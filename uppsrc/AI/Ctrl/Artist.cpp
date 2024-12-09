@@ -79,7 +79,7 @@ void ArtistInfoCtrl::Data() {
 void ArtistInfoCtrl::OnValueChange() {
 	TextDatabase& db = GetDatabase();
 	EditorPtrs& p = GetPointers();
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	
 	if (p.entity && p.editor->profiles.IsCursor()) {
 		Entity& o = *p.entity;

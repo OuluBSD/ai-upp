@@ -74,7 +74,7 @@ MarketplaceCtrl::MarketplaceCtrl() {
 }
 
 void MarketplaceCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	
 	if (!p.owner) {
@@ -219,8 +219,8 @@ void MarketplaceCtrl::DataItem() {
 }
 
 void MarketplaceCtrl::DataCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -238,8 +238,8 @@ void MarketplaceCtrl::DataCategory() {
 }
 
 void MarketplaceCtrl::DataSubCategory() {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -282,7 +282,7 @@ void MarketplaceCtrl::DataImage() {
 }
 
 void MarketplaceCtrl::Do(int fn) {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	
 	if (fn == 0) {
@@ -560,8 +560,8 @@ void MarketplaceCtrl::LoadImagePath(String path) {
 void MarketplaceCtrl::SetCurrentImage(Image img) {
 	this->img.SetImage(img);
 	
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor() || !images.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -597,7 +597,7 @@ void MarketplaceCtrl::MakeTempImages() {
 	#endif
 	RealizeDirectory(dir);
 	
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -619,7 +619,7 @@ void MarketplaceCtrl::MakeTempImages() {
 }
 
 void MarketplaceCtrl::OnCategory() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -631,7 +631,7 @@ void MarketplaceCtrl::OnCategory() {
 }
 
 void MarketplaceCtrl::OnSubCategory() {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");
@@ -641,8 +641,8 @@ void MarketplaceCtrl::OnSubCategory() {
 }
 
 void MarketplaceCtrl::SetCategoryShorcut(int i) {
-	MetaDatabase& mdb = MetaDatabase::Single();
-	MetaPtrs& mp = MetaPtrs::Single();
+	
+	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
 	int item_i = items.Get("IDX");

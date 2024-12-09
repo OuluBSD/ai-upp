@@ -329,6 +329,24 @@ struct ScriptSolverArgs {
 	
 };
 
+struct ConceptualFrameworkArgs {
+	int fn = 0;
+	VectorMap<String,String> elements;
+	Vector<String> scores;
+	String lyrics, genre;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("elements", elements)
+				("scores", scores)
+				("lyrics", lyrics)
+				("genre", genre)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+};
+
 struct PkgFile : Moveable<PkgFile> {
 	int pkg = -1, file = -1;
 	

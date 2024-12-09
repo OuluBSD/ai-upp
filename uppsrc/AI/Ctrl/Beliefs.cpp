@@ -35,7 +35,7 @@ SocialBeliefsCtrl::SocialBeliefsCtrl() {
 }
 
 void SocialBeliefsCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	
 	
 	for(int i = 0; i < mdb.beliefs.GetCount(); i++) {
@@ -52,7 +52,7 @@ void SocialBeliefsCtrl::Data() {
 }
 
 void SocialBeliefsCtrl::DataBelief() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	if (!beliefs.IsCursor())
 		return;
 	
@@ -85,7 +85,7 @@ void SocialBeliefsCtrl::ToolMenu(Bar& bar) {
 }
 
 void SocialBeliefsCtrl::Do(int fn) {
-	MetaPtrs& mp = MetaPtrs::Single();
+	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.snap)
 		return;
 	SocialBeliefsProcess& ss = SocialBeliefsProcess::Get(*mp.profile, *mp.snap);
@@ -96,7 +96,7 @@ void SocialBeliefsCtrl::Do(int fn) {
 		ss.Stop();
 	}
 	else if (fn == 2) {
-		MetaDatabase& mdb = MetaDatabase::Single();
+		
 		if (!beliefs.IsCursor())
 			return;
 		int b_i = beliefs.GetCursor();
@@ -109,7 +109,7 @@ void SocialBeliefsCtrl::Do(int fn) {
 }
 
 void SocialBeliefsCtrl::OnValueChange() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	if (!beliefs.IsCursor())
 		return;
 	
@@ -120,7 +120,7 @@ void SocialBeliefsCtrl::OnValueChange() {
 }
 
 void SocialBeliefsCtrl::AddBelief() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	
 	String name;
@@ -154,7 +154,7 @@ void SocialBeliefsCtrl::AddBelief() {
 }
 
 void SocialBeliefsCtrl::RemoveBelief() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	if (beliefs.IsCursor()) {
 		mdb.beliefs.Remove(beliefs.GetCursor());

@@ -25,7 +25,7 @@ ProfileInfoCtrl::ProfileInfoCtrl() {
 }
 
 void ProfileInfoCtrl::Data() {
-	MetaDatabase& mdb = MetaDatabase::Single();
+	
 	MetaPtrs& p = MetaPtrs::Single();
 	
 	Clear();

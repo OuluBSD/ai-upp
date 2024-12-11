@@ -64,8 +64,9 @@ void ProfileInfoCtrl::Clear() {
 
 void ProfileInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
-	DatasetPtrs p = GetDataset();
 	
+	TODO
+	#if 0
 	if (p.profile && p.leads->profiles.IsCursor()) {
 		Profile& o = *p.profile;
 		o.name						= this->name.GetData();
@@ -85,6 +86,7 @@ void ProfileInfoCtrl::OnValueChange() {
 		int c = p.leads->profiles.GetCursor();
 		p.leads->profiles.Set(c, 0, o.name);
 	}
+	#endif
 }
 
 

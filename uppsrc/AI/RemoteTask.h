@@ -229,6 +229,9 @@ public:
 	void CreateInput_GetActionAnalysis();
 	void CreateInput_GetAttributes();
 	void CreateInput_ScriptSolver();
+	void CreateInput_Social();
+	void CreateInput_BiographySummaryProcess();
+	void CreateInput_LeadSolver();
 	
 	void Process_CreateImage();
 	void Process_EditImage();

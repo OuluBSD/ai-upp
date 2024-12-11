@@ -20,6 +20,9 @@ SocialHeaderCtrl::SocialHeaderCtrl() {
 	platforms.AddColumn(t_("Entries"));
 	platforms.AddIndex("IDX");
 	platforms.ColumnWidths("3 10 5");
+	
+	TODO
+	#if 0
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		Option* o = new Option;
 		o->WhenAction << [this,o,i]() {
@@ -35,6 +38,7 @@ SocialHeaderCtrl::SocialHeaderCtrl() {
 	}
 	platforms.SetCursor(0);
 	platforms.WhenCursor << THISBACK(DataPlatform);
+	#endif
 	
 	entries.AddColumn(t_("Published"));
 	entries.AddColumn(t_("Title"));
@@ -108,6 +112,8 @@ void SocialHeaderCtrl::DataPlatform() {
 	
 	int plat_i = platforms.GetCursor();
 	
+	TODO
+	#if 0
 	const Platform& plat = GetPlatforms()[plat_i];
 	if (plat_i >= analysis.platforms.GetCount()) {
 		attr_value.Clear();
@@ -131,6 +137,7 @@ void SocialHeaderCtrl::DataPlatform() {
 	else {
 		attr_value.Clear();
 	}
+	#endif
 }
 
 void SocialHeaderCtrl::OnValueChange() {
@@ -142,6 +149,8 @@ void SocialHeaderCtrl::OnValueChange() {
 	if (!platforms.IsCursor() || !attr_keys.IsCursor())
 		return;
 	
+	TODO
+	#if 0
 	int plat_i = platforms.GetCursor();
 	const Platform& plat = GetPlatforms()[plat_i];
 	PlatformBiographyAnalysis& plat_anal = analysis.platforms[plat_i];
@@ -155,11 +164,12 @@ void SocialHeaderCtrl::OnValueChange() {
 		plat_anal.profile_description_from_biography = attr_value.GetData();
 	else if (key_i < total_desc)
 		plat_anal.descriptions[len_i][mode_i] = attr_value.GetData();
+	#endif
 }
 
 void SocialHeaderCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
 void SocialHeaderCtrl::EntryListMenu(Bar& bar) {
@@ -167,8 +177,10 @@ void SocialHeaderCtrl::EntryListMenu(Bar& bar) {
 }
 
 void SocialHeaderCtrl::Do(int fn) {
+	TODO
+	#if 0
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
 	SocialHeaderProcess& ss = SocialHeaderProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
@@ -177,6 +189,7 @@ void SocialHeaderCtrl::Do(int fn) {
 	else if (fn == 1) {
 		ss.Stop();
 	}
+	#endif
 }
 
 

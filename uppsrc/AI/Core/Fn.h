@@ -143,6 +143,10 @@ void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool des
 String KeyToName(String s);
 String StringToName(String s);
 
+String DeHtml(String html, Vector<String>& links);
+bool IsAllUpper(const String& s);
+String GetGlobalProxy();
+
 END_UPP_NAMESPACE
 
 #endif

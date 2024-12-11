@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-struct Platform : Moveable<Platform> {
+struct Platform : Component {
 	const char* group = 0;
 	const char* name = 0;
 	const char* description = 0;
@@ -11,7 +11,7 @@ struct Platform : Moveable<Platform> {
 	bool attrs[PLATFORM_ATTR_COUNT];
 	Vector<String> functions;
 	
-	Platform() {memset(attrs, 0, sizeof(attrs));}
+	Platform(MetaNode& o) : Component(o) {memset(attrs, 0, sizeof(attrs));}
 	
 	void SetAttr(String name, bool value);
 	
@@ -44,7 +44,7 @@ struct Platform : Moveable<Platform> {
 	void AddRole(int i);*/
 };
 
-const Vector<Platform>& GetPlatforms();
+//const Vector<Platform>& GetPlatforms();
 
 
 struct PlatformComment {

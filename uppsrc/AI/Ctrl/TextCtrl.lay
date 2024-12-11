@@ -163,8 +163,8 @@ LAYOUT(ArtistInfo, 672, 380)
 	ITEM(Upp::DropList, language, LeftPosZ(136, 144).TopPosZ(260, 19))
 	ITEM(Upp::Label, lbl_visual, SetLabel(t_("Visual appearance:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(304, 20))
 	ITEM(Upp::EditString, speaker_visually, LeftPosZ(136, 524).TopPosZ(304, 20))
-	ITEM(Upp::Label, dv___22, SetLabel(t_("Sex:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(328, 20))
-	ITEM(Upp::DropList, sex, LeftPosZ(136, 144).TopPosZ(328, 19))
+	ITEM(Upp::Label, dv___22, SetLabel(t_("Gender:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(328, 20))
+	ITEM(Upp::DropList, gender, LeftPosZ(136, 144).TopPosZ(328, 19))
 	ITEM(Upp::Label, lbl_vibe_of_text, SetLabel(t_("Vibe of message:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(352, 20))
 	ITEM(Upp::EditString, vibe_of_text, LeftPosZ(136, 524).TopPosZ(352, 20))
 END_LAYOUT
@@ -316,6 +316,7 @@ LAYOUT(SocialEntry, 892, 392)
 	ITEM(Upp::Label, dv___26, SetLabel(t_("Translated message:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 148).BottomPosZ(8, 20))
 	ITEM(Upp::DocEdit, translated_message, HSizePosZ(160, 300).BottomPosZ(8, 20))
 END_LAYOUT
+
 LAYOUT(Marketplace, 424, 676)
 	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Marketplace")).HSizePosZ(4, 4).VSizePosZ(0, 4))
 	ITEM(Upp::Label, dv___1, SetLabel(t_("Category:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 148).TopPosZ(68, 20))

@@ -23,7 +23,7 @@ void SnapInfoCtrl::Clear() {
 void SnapInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	
-	lbl_snapshot.SetLabel(GetAppModeKeyCap(AM_SNAPSHOT));
+	lbl_snapshot.SetLabel("Release");
 	
 	Clear();
 	
@@ -41,6 +41,8 @@ void SnapInfoCtrl::Data() {
 void SnapInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
+	TODO
+	#if 0
 	if (p.release && p.editor && p.editor->snaps.IsCursor()) {
 		Snapshot& r = *p.release;
 		
@@ -52,7 +54,7 @@ void SnapInfoCtrl::OnValueChange() {
 		int c = p.editor->snaps.GetCursor();
 		p.editor->snaps.Set(c, 0, r.native_title);
 	}
-	
+	#endif
 }
 
 

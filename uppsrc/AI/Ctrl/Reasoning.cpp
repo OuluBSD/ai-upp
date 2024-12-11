@@ -41,12 +41,12 @@ void ScriptReasoningCtrl::MakeItems() {
 		return;
 	Script& s = *p.script;
 	
-	int appmode = GetAppMode();
-	
+	TODO
+	#if 0
 	Cursor cursor;
 	for(int i = 0; i < s.parts.GetCount(); i++) {
 		const DynPart& dp = s.parts[i];
-		cursor.part = dp.GetName(appmode);
+		cursor.part = dp.GetName();
 		cursor.line = 0;
 		
 		LineElement previous;
@@ -80,12 +80,12 @@ void ScriptReasoningCtrl::MakeItems() {
 			}
 		}
 	}
-	
+	#endif
 }
 
 bool ScriptReasoningCtrl::MakeElementChange(const Cursor& cursor, const LineElement& cur, const LineElement& el) {
 	int mode = max(0, DatabaseBrowser::FindMode(el.sorter));
-	db.SetMode(mode);
+	db.SetMode(GetDataset(), mode);
 	
 	int prev_items_count = items.GetCount();
 	
@@ -133,13 +133,18 @@ bool ScriptReasoningCtrl::MakeElementChange(const Cursor& cursor, const LineElem
 			break;
 			
 			case DatabaseBrowser::TYPECLASS:
+			TODO
+			#if 0
 			if (cur.typeclass_i != el.typeclass_i) {
 				String tc  = el.typeclass_i >= 0 ? GetTypeclasses()[el.typeclass_i] : String();
 				AddItem(cursor, t, tc);
 			}
+			#endif
 			break;
 			
 			case DatabaseBrowser::CONTENT:
+			TODO
+			#if 0
 			if (cur.con_i != el.con_i) {
 				int con_i = el.con_i / 3;
 				int con_mod = el.con_i % 3;
@@ -147,6 +152,7 @@ bool ScriptReasoningCtrl::MakeElementChange(const Cursor& cursor, const LineElem
 					GetContents()[con_i].key + ": " + GetContents()[con_i].parts[con_mod] : String();
 				AddItem(cursor, t, con);
 			}
+			#endif
 			break;
 		};
 	}

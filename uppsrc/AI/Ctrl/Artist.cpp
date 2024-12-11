@@ -5,8 +5,8 @@ NAMESPACE_UPP
 ArtistInfoCtrl::ArtistInfoCtrl() {
 	CtrlLayout(*this);
 	
-	sex.Add(t_("Male"));
-	sex.Add(t_("Female"));
+	for(int i = 0; i < GENDER_COUNT; i++)
+		gender.Add(GetGenderString(i));
 	
 	native_name <<= THISBACK(OnValueChange);
 	english_name <<= THISBACK(OnValueChange);
@@ -18,7 +18,7 @@ ArtistInfoCtrl::ArtistInfoCtrl() {
 	natural_tools <<= THISBACK(OnValueChange);
 	electronic_tools <<= THISBACK(OnValueChange);
 	speaker_visually <<= THISBACK(OnValueChange);
-	sex <<= THISBACK(OnValueChange);
+	gender <<= THISBACK(OnValueChange);
 	language <<= THISBACK(OnValueChange);
 	
 }
@@ -34,18 +34,11 @@ void ArtistInfoCtrl::Clear() {
 	this->natural_tools				.Clear();
 	this->electronic_tools			.Clear();
 	this->speaker_visually			.Clear();
-	this->sex						.SetIndex(0);
+	this->gender					.SetIndex(0);
 }
 
 void ArtistInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	
-	lbl_entity.SetLabel(GetAppModeKeyCap(AM_ENTITY));
-	lbl_speaker.SetLabel(GetAppModeLabel(AML_SPEAKER));
-	lbl_text_style.SetLabel(GetAppModeLabel(AML_TALKINGSTYLE));
-	lbl_natural_tools.SetLabel(GetAppModeLabel(AML_NATURAL_TOOLS));
-	lbl_electronic_tools.SetLabel(GetAppModeLabel(AML_ELECTRONIC_TOOLS));
-	lbl_vibe_of_text.SetLabel(GetAppModeLabel(AML_VIBE_OF_TEXT));
 	
 	if (language.GetCount() == 0 && GetLanguageCount()) {
 		for(int i = 0; i < GetLanguageCount(); i++)
@@ -58,18 +51,18 @@ void ArtistInfoCtrl::Data() {
 	if (p.entity) {
 		Entity& a = *p.entity;
 			
-		this->native_name				.SetData(a.native_name);
-		this->english_name				.SetData(a.english_name);
-		this->year_of_birth				.SetData(a.year_of_birth);
-		this->year_of_career_begin		.SetData(a.year_of_career_begin);
-		this->biography					.SetData(a.biography);
-		this->text_style				.SetData(a.text_style);
-		this->vibe_of_text				.SetData(a.vibe_of_text);
-		this->natural_tools				.SetData(a.natural_tools);
-		this->electronic_tools			.SetData(a.electronic_tools);
-		this->speaker_visually			.SetData(a.speaker_visually);
-		this->sex						.SetIndex(a.is_female);
-		this->language					.SetIndex(a.language);
+		this->native_name				.SetData(a.Data("native_name"));
+		this->english_name				.SetData(a.Data("english_name"));
+		this->year_of_birth				.SetData(a.Data("year_of_birth"));
+		this->year_of_career_begin		.SetData(a.Data("year_of_career_begin"));
+		this->biography					.SetData(a.Data("biography"));
+		this->text_style				.SetData(a.Data("text_style"));
+		this->vibe_of_text				.SetData(a.Data("vibe_of_text"));
+		this->natural_tools				.SetData(a.Data("natural_tools"));
+		this->electronic_tools			.SetData(a.Data("electronic_tools"));
+		this->speaker_visually			.SetData(a.Data("speaker_visually"));
+		//this->gender						.SetIndex();
+		this->language					.SetIndex(a.Data("language"));
 	}
 	
 	
@@ -78,21 +71,20 @@ void ArtistInfoCtrl::Data() {
 void ArtistInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
-	if (p.entity && p.editor->profiles.IsCursor()) {
+	if (p.entity) {
 		Entity& o = *p.entity;
-		ASSERT(o.profile == mp.profile);
-		o.native_name				= this->native_name.GetData();
-		o.english_name				= this->english_name.GetData();
-		o.year_of_birth				= this->year_of_birth.GetData();
-		o.year_of_career_begin		= this->year_of_career_begin.GetData();
-		o.biography					= this->biography.GetData();
-		o.text_style				= this->text_style.GetData();
-		o.vibe_of_text				= this->vibe_of_text.GetData();
-		o.natural_tools				= this->natural_tools.GetData();
-		o.electronic_tools			= this->electronic_tools.GetData();
-		o.speaker_visually			= this->speaker_visually.GetData();
-		o.is_female					= this->sex.GetIndex();
-		o.language					= this->language.GetIndex();
+		o.Data("native_name")				= this->native_name.GetData();
+		o.Data("english_name")				= this->english_name.GetData();
+		o.Data("year_of_birth")				= this->year_of_birth.GetData();
+		o.Data("year_of_career_begin")		= this->year_of_career_begin.GetData();
+		o.Data("biography")					= this->biography.GetData();
+		o.Data("text_style")				= this->text_style.GetData();
+		o.Data("vibe_of_text")				= this->vibe_of_text.GetData();
+		o.Data("natural_tools")				= this->natural_tools.GetData();
+		o.Data("electronic_tools")			= this->electronic_tools.GetData();
+		o.Data("speaker_visually")			= this->speaker_visually.GetData();
+		o.Data("gender")					= this->gender.GetIndex();
+		o.Data("language")					= this->language.GetIndex();
 		
 		//int c = editor->entities.GetCursor();
 		//editor->entities.Set(c, 0, o.native_name);

@@ -8,6 +8,8 @@ PlatformProfileCtrl::PlatformProfileCtrl() {
 	Add(prog.BottomPos(0,20).HSizePos(300));
 	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
+	TODO
+	#if 0
 	// Platform tab
 	{
 		tabs.Add(p.hsplit.SizePos(), t_("Platforms"));
@@ -74,6 +76,7 @@ PlatformProfileCtrl::PlatformProfileCtrl() {
 		for(int i = 0; i < 4; i++)
 			c.bsplit << c.epk_photo[i];
 	}
+	#endif
 	
 	tabs.WhenSet << THISBACK(Data);
 }
@@ -88,6 +91,8 @@ void PlatformProfileCtrl::Data() {
 }
 
 void PlatformProfileCtrl::DataPlatforms() {
+	TODO
+	#if 0
 	p.platforms.Clear();
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		const Platform& pl = GetPlatforms()[i];
@@ -112,6 +117,7 @@ void PlatformProfileCtrl::DataPlatforms() {
 		p.platforms.SetCursor(0);
 	
 	DataPlatform();
+	#endif
 }
 
 void PlatformProfileCtrl::DataPlatform() {
@@ -119,6 +125,8 @@ void PlatformProfileCtrl::DataPlatform() {
 	if (!p.platforms.IsCursor() || !mp.profile || !mp.analysis) {
 		return;
 	}
+	TODO
+	#if 0
 	BiographyAnalysis& analysis = *mp.analysis;
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];
@@ -148,6 +156,7 @@ void PlatformProfileCtrl::DataPlatform() {
 		
 		OnPhotoPrompt();
 	}
+	#endif
 }
 
 void PlatformProfileCtrl::DataClusters() {
@@ -194,12 +203,14 @@ void PlatformProfileCtrl::DataImageType() {
 }
 
 void PlatformProfileCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	
 }
 
 void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
+	TODO
+	#if 0
 	bar.Add("Set as groups Top 1 prompt", [this]() {
 		if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
@@ -247,6 +258,7 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		);
 		PostCallback(THISBACK(DataPlatform));
 	});
+	#endif
 }
 
 void PlatformProfileCtrl::PlatformMenu(Bar& bar) {
@@ -255,8 +267,10 @@ void PlatformProfileCtrl::PlatformMenu(Bar& bar) {
 
 void PlatformProfileCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
+	TODO
+	#if 0
 	PlatformProfileProcess& ss = PlatformProfileProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
 		ss.Start();
@@ -264,6 +278,7 @@ void PlatformProfileCtrl::Do(int fn) {
 	else if (fn == 1) {
 		ss.Stop();
 	}
+	#endif
 }
 
 void PlatformProfileCtrl::SetSorting(int col) {
@@ -274,6 +289,8 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
 	
+	TODO
+	#if 0
 	DatasetPtrs mp = GetDataset();
 	BiographyAnalysis& analysis = *mp.analysis;
 	int plat_i = p.platforms.Get("IDX");
@@ -297,7 +314,7 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 			p.epk_photo[i].Clear();
 		}
 	}
-	
+	#endif
 }
 
 

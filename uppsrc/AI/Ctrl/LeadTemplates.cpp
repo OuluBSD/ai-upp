@@ -25,9 +25,10 @@ LeadTemplateCtrl::LeadTemplateCtrl() {
 }
 
 void LeadTemplateCtrl::Data() {
-	
+	DatasetPtrs p = GetDataset();
+	LeadData& ld = *p.lead_data;
 	LeadDataTemplate& ldt = LeadDataTemplate::Single();
-	int lng = mdb.GetLanguageIndex();
+	int lng = LANG_ENGLISH; TODO //mdb.GetLanguageIndex();
 	
 	int row = 0;
 	for (const LeadTemplate& lt : ldt.templates) {
@@ -62,11 +63,11 @@ void LeadTemplateCtrl::Data() {
 		
 		double score = 0;
 		if (lt.orig_lead_lng == lng) {
-			if (lt.orig_lead_idx >= mdb.lead_data.opportunities.GetCount()) {
-				LOG("error: lt.orig_lead_idx >= mdb.lead_data.opportunities.GetCount()");
+			if (lt.orig_lead_idx >= ld.opportunities.GetCount()) {
+				LOG("error: lt.orig_lead_idx >= ld.opportunities.GetCount()");
 			}
 			else {
-				const LeadOpportunity& o = mdb.lead_data.opportunities[lt.orig_lead_idx];
+				const LeadOpportunity& o = ld.opportunities[lt.orig_lead_idx];
 				score = o.average_payout_estimation;
 				//lt.submission_price = o.min_entry_price_cents * 0.01;
 			}

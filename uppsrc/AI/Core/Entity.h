@@ -15,6 +15,14 @@ struct DatasetPtrs {
 	Ptr<Song>				song;
 	Ptr<MetaNode>			env;
 	Ptr<Owner>				owner; // TODO rename to human?
+	Ptr<Snapshot>			release;
+	Ptr<Profile>			profile;
+	Ptr<BiographySnapshot>	snap;
+	bool editable_biography = false;
+	BiographyAnalysis*		analysis = 0;
+	Biography*				biography = 0;
+	LeadData*				lead_data = 0;
+	LeadDataAnalysis*		lead_data_anal = 0;
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -28,6 +36,12 @@ struct DatasetPtrs {
 		song = p.song;
 		env = p.env;
 		owner = p.owner;
+		release = p.release;
+		analysis = p.analysis;
+		profile = p.profile;
+		snap = p.snap;
+		editable_biography = p.editable_biography;
+		biography = p.biography;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	
@@ -40,10 +54,19 @@ struct Component : MetaNodeExt {
 	
 };
 
+#define COMPONENT_CONSTRUCTOR_(x) x(MetaNode& n) : Component(n)
+#define COMPONENT_CONSTRUCTOR(x) COMPONENT_CONSTRUCTOR_(x) {}
+#define COMPONENT_OVERRIDE_TODO \
+	void Serialize(Stream& s) override {TODO} \
+	void Jsonize(JsonIO& json) override {TODO} \
+	hash_t GetHashValue() const override {TODO}
+#define METANODE_EXT_CONSTRUCTOR_(x) x(MetaNode& n) : MetaNodeExt(n)
+#define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
+
 struct Entity : MetaNodeExt {
 	VectorMap<String, Value> data;
 	
-	Entity(MetaNode& owner) : MetaNodeExt(owner) {}
+	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {
 		data.Clear();
 	}

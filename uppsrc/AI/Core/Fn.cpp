@@ -1,26 +1,8 @@
 #include "Core.h"
+#include <ide/ide.h>
 
 NAMESPACE_UPP
 
-
-String KeyToName(String s) {
-	s = ToLower(s);
-	String o;
-	bool upper = true;
-	for(int i = 0; i < s.GetCount(); i++) {
-		int chr = s[i];
-		if (chr == '_') {
-			upper = true;
-			o.Cat(' ');
-			continue;
-		}
-		if (upper && chr >= 'a' && chr <= 'z')
-			chr = ToUpper(chr);
-		upper = false;
-		o.Cat(chr);
-	}
-	return o;
-}
 
 #define COLOR_GROUP_COUNT (3+6*3)
 int GetColorGroupCount() {
@@ -345,6 +327,72 @@ void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool des
 	arr.SetSortColumn(sort_row, descending);
 	if (!arr.IsCursor() && arr.GetCount())
 		arr.SetCursor(0);
+}
+
+String DeHtml(String html, Vector<String>& links) {
+	String out;
+	int depth = 0;
+	String deep;
+	for(int i = 0; i < html.GetCount(); i++) {
+		int chr = html[i];
+		if (chr == '<') {
+			if (depth == 0)
+				deep.Clear();
+			depth++;
+		}
+		else if (chr == '>') {
+			depth--;
+			if (depth == 0) {
+				int href = deep.Find(" href=\"");
+				if (href >= 0) {
+					href += 7;
+					int end = deep.Find("\"", href);
+					if (end >= 0) {
+						String addr = deep.Mid(href, end-href);
+						links << addr;
+					}
+				}
+			}
+		}
+		else if (depth == 0) {
+			out.Cat(chr);
+		}
+		else {
+			deep.Cat(chr);
+		}
+	}
+	out.Replace("&amp;", "&");
+	out.Replace("&quot;", "\"");
+	out.Replace("&#39;", "'");
+	
+	out = TrimBoth(out);
+	
+	/*for(int i = 0; i < out.GetCount()-1; i++) {
+		int chr0 = out[i];
+		int chr1 = out[i+1];
+		if (chr0 >= 'a' && chr0 <= 'z' &&
+			chr1 >= 'A' && chr1 <= 'Z') {
+			out.Insert(i+1, '\n');
+		}
+	}*/
+	
+	return out;
+}
+
+bool IsAllUpper(const String& s) {
+	for(int i = 0; i < s.GetCount(); i++) {
+		int chr = s[i];
+		if (chr >= 'A' && chr <= 'Z')
+			continue;
+		if (chr == '\'' || chr == '-' || chr == '/' || chr == ',' || chr == '&')
+			continue;
+		return false;
+	}
+	return !s.IsEmpty();
+}
+
+String GetGlobalProxy() {
+	return TheIde()->openai_proxy;
 }
 
 END_UPP_NAMESPACE

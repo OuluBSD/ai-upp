@@ -83,6 +83,8 @@ void SocialContent::Data() {
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
 	
+	TODO
+	#if 0
 	int row = 0;
 	for (const Platform& p : GetPlatforms()) {
 		const PlatformData& pld = pd.platforms[row];
@@ -99,6 +101,7 @@ void SocialContent::Data() {
 		platforms.SetCursor(0);
 	
 	DataPlatform();
+	#endif
 }
 
 void SocialContent::DataPlatform() {
@@ -406,33 +409,33 @@ void SocialContent::RemoveComment() {
 }
 
 void SocialContent::EntryListMenu(Bar& bar) {
-	bar.Add(t_("Add Entry"), AppImg::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_W);
+	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_W);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Entry"), AppImg::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL_D);
+		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL_D);
 }
 
 void SocialContent::ThreadListMenu(Bar& bar) {
-	bar.Add(t_("Add Thread"), AppImg::BlueRing(), THISBACK(AddThread)).Key(K_CTRL_E);
+	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(AddThread)).Key(K_CTRL_E);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Thread"), AppImg::BlueRing(), THISBACK(RemoveThread)).Key(K_CTRL_F);
+		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(RemoveThread)).Key(K_CTRL_F);
 }
 
 void SocialContent::CommentListMenu(Bar& bar) {
-	bar.Add(t_("Add Comment"), AppImg::BlueRing(), THISBACK(AddComment)).Key(K_CTRL_T);
+	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(AddComment)).Key(K_CTRL_T);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Comment"), AppImg::BlueRing(), THISBACK(RemoveComment)).Key(K_CTRL_H);
+		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(RemoveComment)).Key(K_CTRL_H);
 }
 
 void SocialContent::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Clear thread's merged text"), AppImg::BlueRing(), THISBACK1(Do, 2)).Key(K_F7);
+	bar.Add(t_("Clear thread's merged text"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F7);
 	bar.Separator();
-	bar.Add(t_("Add their response from clipboard"), AppImg::BlueRing(), THISBACK1(PasteResponse, 0)).Key(K_CTRL_Q);
-	bar.Add(t_("Add own response from clipboard"), AppImg::BlueRing(), THISBACK1(PasteResponse, 1)).Key(K_CTRL_W);
-	bar.Add(t_("Generate response"), AppImg::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
-	bar.Add(t_("Create keywords"), AppImg::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
+	bar.Add(t_("Add their response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 0)).Key(K_CTRL_Q);
+	bar.Add(t_("Add own response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 1)).Key(K_CTRL_W);
+	bar.Add(t_("Generate response"), TextImgs::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
+	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
 }
 
 void SocialContent::PasteResponse(int fn) {
@@ -480,8 +483,10 @@ void SocialContent::PasteResponse(int fn) {
 }
 
 void SocialContent::Do(int fn) {
+	TODO
+	#if 0
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
 	SocialContentProcess& ss = SocialContentProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
@@ -523,7 +528,7 @@ void SocialContent::Do(int fn) {
 			PromptOK("The merged text is needed first. Run social data update (F5)");
 			return;
 		}
-		TaskMgr& m = TaskMgr::Single();
+		TaskMgr& m = AiTaskManager();
 		SocialArgs args;
 		args.fn = 18;
 		args.text = pc1.text_merged_status;
@@ -556,7 +561,7 @@ void SocialContent::Do(int fn) {
 		int comment_i = comments.Get("IDX");
 		PlatformComment& pc = t.comments[comment_i];
 		
-		TaskMgr& m = TaskMgr::Single();
+		TaskMgr& m = AiTaskManager();
 		SocialArgs args;
 		args.fn = 19;
 		args.text = pc.message;
@@ -568,6 +573,7 @@ void SocialContent::Do(int fn) {
 			PostCallback(THISBACK(DataComment));
 		});
 	}
+	#endif
 }
 
 

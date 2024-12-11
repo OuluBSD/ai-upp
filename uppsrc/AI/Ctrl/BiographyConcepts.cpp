@@ -96,14 +96,16 @@ void ConceptualFrameworkNavigator::Data() {
 void ConceptualFrameworkNavigator::DataAll(bool forced) {
 	DatasetPtrs mp = GetDataset();
 	
-	if (!mp.snap)
+	if (!mp.release)
 		return;
 	
-	if (!forced && cfs.GetCount() == mp.snap->concepts.GetCount())
+	TODO
+	#if 0
+	if (!forced && cfs.GetCount() == mp.release->concepts.GetCount())
 		return;
 	
-	for(int i = 0; i < mp.snap->concepts.GetCount(); i++) {
-		Concept& c = mp.snap->concepts[i];
+	for(int i = 0; i < mp.release->concepts.GetCount(); i++) {
+		Concept& c = mp.release->concepts[i];
 		cfs.Set(i, 0, c.name);
 		cfs.Set(i, 1, c.snap_rev);
 		int j = mdb.FindBelief(c.belief_uniq);
@@ -111,7 +113,7 @@ void ConceptualFrameworkNavigator::DataAll(bool forced) {
 		cfs.Set(i, "IDX", i);
 	}
 	INHIBIT_CURSOR(cfs);
-	cfs.SetCount(mp.snap->concepts.GetCount());
+	cfs.SetCount(mp.release->concepts.GetCount());
 	if (!cfs.IsCursor() && cfs.GetCount())
 		cfs.SetCursor(0);
 	
@@ -130,17 +132,20 @@ void ConceptualFrameworkNavigator::DataAll(bool forced) {
 	
 	
 	DataFramework();
+	#endif
 }
 
 void ConceptualFrameworkNavigator::DataFramework() {
 	DatasetPtrs mp = GetDataset();
 	
-	if (!cfs.IsCursor() || !mp.snap) {
+	TODO
+	#if 0
+	if (!cfs.IsCursor() || !mp.release) {
 		stories.Clear();
 		return;
 	}
 	int cf_i = cfs.Get("IDX");
-	Concept& con = mp.snap->concepts[cf_i];
+	Concept& con = mp.release->concepts[cf_i];
 	
 	// Header tabs for belief
 	int j = mdb.FindBelief(con.belief_uniq);
@@ -229,20 +234,23 @@ void ConceptualFrameworkNavigator::DataFramework() {
 	SetCountWithDefaultCursor(stories, row, story_sort_column, true);
 	
 	DataStory();
+	#endif
 }
 
 void ConceptualFrameworkNavigator::DataStory() {
 	DatasetPtrs mp = GetDataset();
 	
-	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor()) {
+	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor()) {
 		story.colors.SetCount(0);
 		return;
 	}
 	
+	TODO
+	#if 0
 	int cf_i = cfs.Get("IDX");
 	int story_i = stories.Get("IDX");
-	if (cf_i >= mp.snap->concepts.GetCount()) return;
-	Concept& con = mp.snap->concepts[cf_i];
+	if (cf_i >= mp.release->concepts.GetCount()) return;
+	Concept& con = mp.release->concepts[cf_i];
 	if (story_i >= con.stories.GetCount()) return;
 	ConceptStory& st = con.stories[story_i];
 	
@@ -274,18 +282,20 @@ void ConceptualFrameworkNavigator::DataStory() {
 	story.colors.SetCount(st.ELEMENTS_VAR.GetCount());
 	
 	//
-	
+	#endif
 }
 
 void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
 	DatasetPtrs mp = GetDataset();
 	
-	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor())
+	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor())
 		return;
 	int cf_i = cfs.Get("IDX");
 	int story_i = stories.Get("IDX");
-	if (cf_i >= mp.snap->concepts.GetCount()) return;
-	Concept& con = mp.snap->concepts[cf_i];
+	TODO
+	#if 0
+	if (cf_i >= mp.release->concepts.GetCount()) return;
+	Concept& con = mp.release->concepts[cf_i];
 	if (story_i >= con.stories.GetCount()) return;
 	ConceptStory& st = con.stories[story_i];
 	args.elements.Clear();
@@ -293,18 +303,22 @@ void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
 		const auto& el = st.ELEMENTS_VAR[i];
 		args.elements.Add(el.key, el.value);
 	}
+	#endif
 }
 
 int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
 	DatasetPtrs mp = GetDataset();
 	
-	if (!mp.snap || !cfs.IsCursor() || !stories.IsCursor())
+	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor())
 		return 0;
 	int cf_i = cfs.Get("IDX");
 	int story_i = stories.Get("IDX");
-	if (cf_i >= mp.snap->concepts.GetCount()) return 0;
-	Concept& con = mp.snap->concepts[cf_i];
+	TODO
+	#if 0
+	if (cf_i >= mp.release->concepts.GetCount()) return 0;
+	Concept& con = mp.release->concepts[cf_i];
 	return con.belief_uniq;
+	#endif
 }
 
 void ConceptualFrameworkNavigator::OnValueChange() {
@@ -313,7 +327,9 @@ void ConceptualFrameworkNavigator::OnValueChange() {
 	if (!cfs.IsCursor())
 		return;
 	int cf_i = cfs.Get("IDX");
-	Concept& con = mp.snap->concepts[cf_i];
+	TODO
+	#if 0
+	Concept& con = mp.release->concepts[cf_i];
 	
 	con.name = cf.name.GetData();
 	
@@ -334,20 +350,21 @@ void ConceptualFrameworkNavigator::OnValueChange() {
 			con.belief_uniq = 0;
 		}
 	}
+	#endif
 }
 
 void ConceptualFrameworkNavigator::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update"), AppImg::BlueRing(), THISBACK1(DataAll, true)).Key(K_CTRL_Q);
+	bar.Add(t_("Update"), TextImgs::BlueRing(), THISBACK1(DataAll, true)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Previous sort column"), AppImg::BlueRing(), THISBACK1(MoveSortColumn, -1)).Key(K_F1);
-	bar.Add(t_("Next sort column"), AppImg::BlueRing(), THISBACK1(MoveSortColumn, +1)).Key(K_F2);
+	bar.Add(t_("Previous sort column"), TextImgs::BlueRing(), THISBACK1(MoveSortColumn, -1)).Key(K_F1);
+	bar.Add(t_("Next sort column"), TextImgs::BlueRing(), THISBACK1(MoveSortColumn, +1)).Key(K_F2);
 }
 
 void ConceptualFrameworkCtrl::ToolMenu(Bar& bar) {
 	ConceptualFrameworkNavigator::ToolMenu(bar);
 	bar.Separator();
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
 void ConceptualFrameworkNavigator::MoveSortColumn(int i) {
@@ -362,14 +379,16 @@ void ConceptualFrameworkNavigator::MoveSortColumn(int i) {
 void ConceptualFrameworkNavigator::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	
+	TODO
+	#if 0
 	int appmode = GetAppMode();
-	if (!mp.snap)
+	if (!mp.release)
 		return;
 	if (fn == 0 || fn == 1) {
 		if (!cfs.IsCursor())
 			return;
 		int cf_i = cfs.Get("IDX");
-		Concept& c = mp.snap->concepts[cf_i];
+		Concept& c = mp.release->concepts[cf_i];
 		if (c.snap_rev < 0) {PromptOK("No snapshot revision set"); return;}
 		BiographySnapshot* snap = mp.profile->FindSnapshotRevision(c.snap_rev);
 		if (!snap) {PromptOK("No snapshot revision found"); return;}
@@ -383,19 +402,20 @@ void ConceptualFrameworkNavigator::Do(int fn) {
 			sdi.Stop();
 	}
 	else if (fn == 2) {
-		Concept& c = mp.snap->concepts.Add();
+		Concept& c = mp.release->concepts.Add();
 		c.created = GetSysTime();
-		c.name = "Unnamed #" + IntStr(mp.snap->concepts.GetCount());
+		c.name = "Unnamed #" + IntStr(mp.release->concepts.GetCount());
 		c.snap_rev = mp.profile->snapshots.Top().revision;
-		//c.snap_rev = mp.snap->profile->snapshots.GetCount()-2; // latest can't be used
+		//c.snap_rev = mp.release->profile->snapshots.GetCount()-2; // latest can't be used
 		PostCallback(THISBACK(Data));
 	}
 	else if (fn == 3) {
 		if (!cfs.IsCursor())
 			return;
 		int cf_i = cfs.Get("IDX");
-		mp.snap->concepts.Remove(cf_i);
+		mp.release->concepts.Remove(cf_i);
 	}
+	#endif
 }
 
 

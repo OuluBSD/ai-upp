@@ -98,6 +98,9 @@ void SnapCoverImage::DataSuggestionImage() {
 	//const String& share = MetaDatabase::Single().share;
 	//String img_dir = dir + DIR_SEPS + share + DIR_SEPS + GetAppModeDir() + DIR_SEPS + "images" + DIR_SEPS;
 	//String img_dir = ConfigFile("images");
+	
+	TODO
+	#if 0
 	String img_dir = AppendFileName(MetaDatabase::GetDirectory(), "images" DIR_SEPS "full");
 	RealizeDirectory(img_dir);
 	for(int i = 0; i < 4; i++) {
@@ -107,7 +110,7 @@ void SnapCoverImage::DataSuggestionImage() {
 		else
 			suggestion[i].Clear();
 	}
-		
+	#endif
 }
 
 void SnapCoverImage::OnAttributeChange() {
@@ -139,11 +142,11 @@ void SnapCoverImage::OnSuggestionChange() {
 }
 
 void SnapCoverImage::ToolMenu(Bar& bar) {
-	bar.Add(t_("Make all images"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Make all images"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	
-	/*bar.Add(t_("Create suggestions for prompts"), AppImg::Part(), THISBACK(CreateSuggestionsForPrompts)).Key(K_F5);
-	bar.Add(t_("Make single image"), AppImg::Part(), THISBACK(MakeSingleImage)).Key(K_F6);
-	bar.Add(t_("Make all images"), AppImg::Part(), THISBACK(MakeAllImages)).Key(K_F7);
+	/*bar.Add(t_("Create suggestions for prompts"), TextImgs::Part(), THISBACK(CreateSuggestionsForPrompts)).Key(K_F5);
+	bar.Add(t_("Make single image"), TextImgs::Part(), THISBACK(MakeSingleImage)).Key(K_F6);
+	bar.Add(t_("Make all images"), TextImgs::Part(), THISBACK(MakeAllImages)).Key(K_F7);
 	*/
 }
 
@@ -152,14 +155,14 @@ void SnapCoverImage::Do(int fn) {
 	if (!p.release) return;
 	
 	if (fn == 0) {
-		SnapSolver& tm = SnapSolver::Get(*p.release, GetAppMode());
+		SnapSolver& tm = SnapSolver::Get(*p.release);
 		tm.Start();
 	}
 }
 
 void SnapCoverImage::CreateSuggestionsForPrompts() {
 	DatasetPtrs p = GetDataset();
-	if(!p.component || !p.entity || !p.release)
+	if(!p.song || !p.entity || !p.release)
 		return;
 	
 	Snapshot& rel = *p.release;
@@ -168,7 +171,7 @@ void SnapCoverImage::CreateSuggestionsForPrompts() {
 }
 
 void SnapCoverImage::SuggestionMenu(Bar& bar) {
-	bar.Add(t_("Add suggestion"), AppImg::RedRing(), [this]() {
+	bar.Add(t_("Add suggestion"), TextImgs::RedRing(), [this]() {
 		DatasetPtrs p = GetDataset();
 		p.release->cover_suggestions.Add();
 		PostCallback(THISBACK(Data));

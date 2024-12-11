@@ -185,12 +185,16 @@ void BiographyCtrl::UpdateElementHints() {
 }
 
 void BiographyCtrl::OnValueChange() {
-	
 	DatasetPtrs mp = GetDataset();
+	
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
+	
+	TODO
+	#if 0
 	if (!mp.editable_biography)
 		return;
+	#endif
 	
 	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
@@ -199,8 +203,6 @@ void BiographyCtrl::OnValueChange() {
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
 	if (year_i >= bcat.years.GetCount()) return;
-	
-	mp.snap->last_modified = GetSysTime();
 	
 	BioYear& by = bcat.years[year_i];
 	by.keywords = year.keywords.GetData();
@@ -212,22 +214,28 @@ void BiographyCtrl::OnValueChange() {
 }
 
 void BiographyCtrl::MakeKeywords () {
+	TODO
+	#if 0
 	if (!MetaPtrs::Single().editable_biography)
 		return;
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	SocialArgs args;
 	args.text = year.text.GetData();
 	m.GetSocial(args, [this](String s) {PostCallback(THISBACK1(OnKeywords, s));});
+	#endif
 }
 
 void BiographyCtrl::Translate() {
+	TODO
+	#if 0
 	if (!MetaPtrs::Single().editable_biography)
 		return;
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
 	String src = year.native_text.GetData();
 	
 	m.Translate("FI-FI", src, "EN-US", [this](String s) {PostCallback(THISBACK1(OnTranslate, s));});
+	#endif
 }
 
 void BiographyCtrl::GetElements() {
@@ -235,6 +243,8 @@ void BiographyCtrl::GetElements() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
+	TODO
+	#if 0
 	if (!mp.editable_biography)
 		return;
 	
@@ -254,9 +264,9 @@ void BiographyCtrl::GetElements() {
 	args.category = GetBiographyCategoryEnum(cat_enum);
 	args.text = by.text;
 	args.year = by.year;
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
-	auto* snap_ptr = mp.snap;
+	auto* snap_ptr = mp.release;
 	auto* by_ptr = &by;
 	m.GetBiography(args, [this, snap_ptr, by_ptr](String result) {
 		RemoveEmptyLines3(result);
@@ -289,9 +299,12 @@ void BiographyCtrl::GetElements() {
 		
 		PostCallback(THISBACK(UpdateElements));
 	});
+	#endif
 }
 
 void BiographyCtrl::GetElementHints() {
+	TODO
+	#if 0
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
@@ -311,9 +324,9 @@ void BiographyCtrl::GetElementHints() {
 	args.category = GetBiographyCategoryEnum(cat_enum);
 	args.text = by.text;
 	args.year = by.year;
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
-	auto* snap_ptr = mp.snap;
+	auto* snap_ptr = mp.release;
 	auto* by_ptr = &by;
 	m.GetBiography(args, [this, snap_ptr, by_ptr](String result) {
 		RemoveEmptyLines3(result);
@@ -336,9 +349,12 @@ void BiographyCtrl::GetElementHints() {
 		
 		PostCallback(THISBACK(UpdateElementHints));
 	});
+	#endif
 }
 
 void BiographyCtrl::GetElementScores() {
+	TODO
+	#if 0
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
@@ -361,9 +377,9 @@ void BiographyCtrl::GetElementScores() {
 	args.category = GetBiographyCategoryEnum(cat_enum);
 	args.text = by.JoinElementMap(": ", "\n");
 	args.year = by.year;
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
-	auto* snap_ptr = mp.snap;
+	auto* snap_ptr = mp.release;
 	auto* by_ptr = &by;
 	m.GetBiography(args, [this, snap_ptr, by_ptr](String result) {
 		RemoveEmptyLines3(result);
@@ -396,6 +412,7 @@ void BiographyCtrl::GetElementScores() {
 		
 		PostCallback(THISBACK(UpdateElements));
 	});
+	#endif
 }
 
 void BiographyCtrl::OnTranslate(String s) {
@@ -412,19 +429,21 @@ void BiographyCtrl::OnKeywords(String s) {
 }
 
 void BiographyCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Translate"), AppImg::BlueRing(), THISBACK(Translate)).Key(K_F5);
-	bar.Add(t_("Make keywords"), AppImg::BlueRing(), THISBACK(MakeKeywords)).Key(K_F6);
-	bar.Add(t_("Get elements"), AppImg::BlueRing(), THISBACK(GetElements)).Key(K_F7);
-	bar.Add(t_("Get element hints"), AppImg::BlueRing(), THISBACK(GetElementHints)).Key(K_F8);
-	bar.Add(t_("Get element scores"), AppImg::BlueRing(), THISBACK(GetElementScores)).Key(K_F9);
+	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Translate)).Key(K_F5);
+	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK(MakeKeywords)).Key(K_F6);
+	bar.Add(t_("Get elements"), TextImgs::BlueRing(), THISBACK(GetElements)).Key(K_F7);
+	bar.Add(t_("Get element hints"), TextImgs::BlueRing(), THISBACK(GetElementHints)).Key(K_F8);
+	bar.Add(t_("Get element scores"), TextImgs::BlueRing(), THISBACK(GetElementScores)).Key(K_F9);
 	bar.Separator();
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
 void BiographyCtrl::Do(int fn) {
+	TODO
+	#if 0
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
 	if (!mp.editable_biography) {
 		PromptOK(t_("Only the latest (and editable) revision can be processed. Select the latest revision."));
@@ -437,6 +456,7 @@ void BiographyCtrl::Do(int fn) {
 		sdi.Start();
 	else
 		sdi.Stop();
+	#endif
 }
 
 void BiographyCtrl::EntryListMenu(Bar& bar) {

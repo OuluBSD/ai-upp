@@ -25,18 +25,18 @@ VideoStoryboardCtrl::VideoStoryboardCtrl() {
 
 void VideoStoryboardCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	if (!p.component)
+	if (!p.song)
 		return;
 	
 	
 	// Text to storyboard parts
-	for(int i = 0; i < p.component->text_storyboard_parts.GetCount(); i++) {
-		int part_i = p.component->text_storyboard_parts[i];
-		const String& part = p.component->storyboard_parts.GetKey(part_i);
-		list.Set(i, 0, p.component->text_storyboard_parts.GetKey(i));
+	for(int i = 0; i < p.song->text_storyboard_parts.GetCount(); i++) {
+		int part_i = p.song->text_storyboard_parts[i];
+		const String& part = p.song->storyboard_parts.GetKey(part_i);
+		list.Set(i, 0, p.song->text_storyboard_parts.GetKey(i));
 		
-		if (i < p.component->text_storyboard_hashes.GetCount()) {
-			const auto& hashes = p.component->text_storyboard_hashes[i];
+		if (i < p.song->text_storyboard_hashes.GetCount()) {
+			const auto& hashes = p.song->text_storyboard_hashes[i];
 			for(int j = 0; j < 4 && j < hashes.GetCount(); j++) {
 				hash_t h = hashes[j];
 				String thumb_path = ThumbnailImageFile(h);
@@ -57,7 +57,7 @@ void VideoStoryboardCtrl::Data() {
 		}
 	}
 	INHIBIT_CURSOR_(list, c);
-	list.SetCount(p.component->text_storyboard_parts.GetCount());
+	list.SetCount(p.song->text_storyboard_parts.GetCount());
 	if (list.GetCount() && !list.IsCursor())
 		list.SetCursor(0);
 	
@@ -66,10 +66,10 @@ void VideoStoryboardCtrl::Data() {
 
 void VideoStoryboardCtrl::DataLine() {
 	DatasetPtrs p = GetDataset();
-	if (!p.component || !list.IsCursor())
+	if (!p.song || !list.IsCursor())
 		return;
 	
-	const auto& hashes = p.component->text_storyboard_hashes;
+	const auto& hashes = p.song->text_storyboard_hashes;
 	int list_i = list.GetCursor();
 	if (list_i >= hashes.GetCount())
 		return;
@@ -104,17 +104,17 @@ void VideoStoryboardCtrl::OnValueChange() {
 }
 
 void VideoStoryboardCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update"), AppImg::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Update"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Make video prompts"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Make video prompts"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 }
 
 void VideoStoryboardCtrl::Do(int fn) {
 	DatasetPtrs p = GetDataset();
-	if (!p.component) return;
+	if (!p.song) return;
 	
 	if (fn == 0) {
-		VideoSolver& tm = VideoSolver::Get(*p.component, GetAppMode());
+		VideoSolver& tm = VideoSolver::Get(*p.song);
 		tm.Start();
 	}
 }

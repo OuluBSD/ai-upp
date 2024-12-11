@@ -383,7 +383,7 @@ struct Lyrics : Component {
 
 INITIALIZE(Lyrics);
 
-struct Song : Component {
+/*struct Song : Component {
 	VectorMap<String,String> data;
 	
 	Song(MetaNode& owner) : Component(owner) {}
@@ -404,7 +404,7 @@ struct Song : Component {
 	
 };
 
-INITIALIZE(Song);
+INITIALIZE(Song);*/
 
 END_UPP_NAMESPACE
 

@@ -51,6 +51,8 @@ PlatformCtrl::PlatformCtrl() {
 	platforms.AddColumn(t_("Sex"));
 	platforms.AddIndex("IDX");
 	platforms.ColumnWidths("2 1 1 1 1");
+	TODO
+	#if 0
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		const Platform& plat = GetPlatforms()[i];
 		platforms.Set(i, 0, plat.name);
@@ -61,7 +63,7 @@ PlatformCtrl::PlatformCtrl() {
 	platforms.SetCursor(0);
 	platforms.WhenCursor << THISBACK(DataPlatform);
 	platforms.WhenBar << THISBACK(PlatformMenu);
-	
+	#endif
 	
 	plat.attrs.AddColumn(t_("Attribute"));
 	plat.scores.AddColumn(t_("Score group"));
@@ -71,6 +73,8 @@ PlatformCtrl::PlatformCtrl() {
 }
 
 void PlatformCtrl::Data() {
+	TODO
+	#if 0
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		const Platform& p = GetPlatforms()[i];
 		const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(p);
@@ -94,6 +98,7 @@ void PlatformCtrl::Data() {
 		platforms.SetCursor(0);
 	
 	DataPlatform();
+	#endif
 }
 
 void PlatformCtrl::DataPlatform() {
@@ -105,6 +110,8 @@ void PlatformCtrl::DataPlatform() {
 		return;
 	}
 	
+	TODO
+	#if 0
 	int plat_i = platforms.Get("IDX");
 	const Platform& p = GetPlatforms()[plat_i];
 	const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(p);
@@ -166,20 +173,23 @@ void PlatformCtrl::DataPlatform() {
 	epk_photo_prompts.SetCount(row);
 	if (row && !epk_photo_prompts.IsCursor())
 		epk_photo_prompts.SetCursor(0);
+	#endif
 }
 
 void PlatformCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Fetch text prompt image"), AppImg::BlueRing(), THISBACK1(Do, 2)).Key(K_CTRL_Q);
+	bar.Add(t_("Fetch text prompt image"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_CTRL_Q);
 	
 }
 
 void PlatformCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
+	TODO
+	#if 0
 	PlatformProcess& ss = PlatformProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
 		ss.Start();
@@ -190,6 +200,7 @@ void PlatformCtrl::Do(int fn) {
 	else if (fn == 2) {
 		PromptOK("TODO");
 	}
+	#endif
 }
 
 void PlatformCtrl::PlatformMenu(Bar& bar) {

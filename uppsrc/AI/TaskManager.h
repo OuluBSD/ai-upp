@@ -55,6 +55,11 @@ struct TaskMgr {
 	void GetAttributes(const AttrArgs& args, Event<String> WhenResult);
 	void GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenResult);
 	
+	// ECS Components
+	void GetSocial(const SocialArgs& args, Event<String> WhenResult);
+	void GetBiographySummary(const BiographySummaryProcessArgs& args, Event<String> WhenResult);
+	void GetLeadSolver(const LeadSolverArgs& args, Event<String> WhenResult);
+	
 	template <class T>
 	String MakeName(T& o, const char* name);
 

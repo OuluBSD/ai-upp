@@ -63,13 +63,13 @@ void LeadPublishers::DataItem() {
 }
 
 void LeadPublishers::ToolMenu(Bar& bar) {
-	bar.Add(t_("Paste artist list"), AppImg::VioletRing(), THISBACK(PasteArtists));
+	bar.Add(t_("Paste artist list"), TextImgs::VioletRing(), THISBACK(PasteArtists));
 }
 
 void LeadPublishers::ListMenu(Bar& bar) {
-	bar.Add(t_("Add"), AppImg::BlueRing(), THISBACK(AddPublisher)).Key(K_CTRL_N);
+	bar.Add(t_("Add"), TextImgs::BlueRing(), THISBACK(AddPublisher)).Key(K_CTRL_N);
 	if (list.IsCursor())
-		bar.Add(t_("Remove"), AppImg::BlueRing(), THISBACK(RemovePublisher)).Key(K_CTRL|K_SHIFT|K_W);
+		bar.Add(t_("Remove"), TextImgs::BlueRing(), THISBACK(RemovePublisher)).Key(K_CTRL|K_SHIFT|K_W);
 }
 
 void LeadPublishers::Do(int fn) {

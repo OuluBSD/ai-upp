@@ -443,6 +443,63 @@ void TaskMgr::GetScriptSolver(const ScriptSolverArgs& args, Event<String> WhenRe
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetSocial(const SocialArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "social"))
+		.Input(&AiTask::CreateInput_Social)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
+void TaskMgr::GetBiographySummary(const BiographySummaryProcessArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "biography summary process"))
+		.Input(&AiTask::CreateInput_BiographySummaryProcess)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
+void TaskMgr::GetLeadSolver(const LeadSolverArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "lead solver"))
+		.Input(&AiTask::CreateInput_LeadSolver)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

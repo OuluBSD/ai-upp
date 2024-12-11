@@ -2,6 +2,62 @@
 
 NAMESPACE_UPP
 
+const char* ScoreTitles[SCORE_COUNT] = {
+	// Statistical measurements
+	
+		"Idea",
+		"Emotion",
+		"Hook",
+		"Share",
+		"Value",
+	
+	// Human value measurements (meaning)
+	
+		"Comedy",
+		"Sex",
+		"Politics",
+		"Love",
+		"Social issues"
+	
+};
+
+const char* ScoreDescriptions[SCORE_COUNT] = {
+	// Statistical measurements
+	
+		"High like count means that the idea score is high",
+		"High comment count means that the emotion score is high",
+		"High listen count means that the hook score is high",
+		"High share count means that the share score is high",
+		"High bookmark count means that the value score is high",
+	
+	// Human value measurements (meaning)
+	
+		"People finding the text funny means that the comedy score is high",
+		"People finding the text sensual means that the sex score is high",
+		"People finding the text thought-provoking means that the politics score is high",
+		"People finding the text romantic means that the love score is high",
+		"People finding the text impactful means that the social issues score is high"
+	
+};
+
+String GetScoreTitle(int score) {
+	if (score >= 0 && score < SCORE_COUNT)
+		return ScoreTitles[score];
+	else
+		return "";
+}
+
+String GetScoreDescription(int score) {
+	if (score >= 0 && score < SCORE_COUNT)
+		return ScoreDescriptions[score];
+	else
+		return "";
+}
+
+String GetScoreKey(int score) {
+	return "sc(" + IntStr(score) + ")";
+}
+
 String GetGenderString(int i) {
 	switch (i) {
 		case GENDER_CHILD:		return "child";
@@ -1797,6 +1853,60 @@ int GetPlatformDescriptionLength(int i) {
 		case PLATDESC_LEN_160_CHARS: return 160;
 		case PLATDESC_LEN_40_CHARS: return 40;
 		default: TODO; return 0;
+	}
+}
+
+int GetLanguageCount() {return LNG_COUNT;}
+
+const char* GetLanguageKey(int i) {
+	switch (i) {
+		case LNG_NATIVE: return "dataset native";
+		case LNG_ENGLISH: return "english";
+		case LNG_FINNISH: return "finnish";
+		case LNG_SPANISH: return "spanish";
+		case LNG_PORTUGUESE: return "portuguese";
+		case LNG_KOREAN: return "korean";
+		case LNG_JAPANESE: return "japanese";
+		case LNG_RUSSIAN: return "russian";
+		case LNG_CHINESE: return "chinese";
+		default: return "";
+	}
+}
+
+const char* GetLanguageCode(int i) {
+	switch (i) {
+		case LNG_NATIVE: return "";
+		case LNG_ENGLISH: return "EN-US";
+		case LNG_FINNISH: return "FI-FI";
+		case LNG_SPANISH: return "ES-ES";
+		case LNG_PORTUGUESE: return "PT-PT";
+		case LNG_KOREAN: return "KO-KO";
+		case LNG_JAPANESE: return "JA-JA";
+		case LNG_RUSSIAN: return "RU-RU";
+		case LNG_CHINESE: return "ZH-SG";
+		default: return "";
+	}
+}
+
+String GetSnapshotAnalysisKey(int i) {
+	switch (i) {
+		case SNAPANAL_LYRICS_SUMMARY: return "Lyrics summary";
+		case SNAPANAL_LYRICS_PSYCHOANALYSIS: return "Lyrics psychoanalysis";
+		case SNAPANAL_LYRICS_SOCIAL_PSYCHOLOGY_ANALYSIS: return "Lyrics social psychology analysis";
+		case SNAPANAL_MARKET_VALUE_ANALYSIS: return "Market value analysis";
+		case SNAPANAL_MARKETING_SUGGESTION: return "Marketing suggestion";
+		case SNAPANAL_ART_SUGGESTION: return "Art suggestion";
+		case SNAPANAL_COVER_SUGGESTION: return "Cover image suggestion";
+		default: return "<error>";
+	}
+}
+
+const char* GetLeadWebsiteKey(int leadsite_idx) {
+	switch (leadsite_idx) {
+		case LEADSITE_TAXI:			return "Taxi";
+		case LEADSITE_MUSICXRAY:	return "MusicXray";
+		case LEADSITE_SONICBIDS:	return "SonicBids";
+		default: return "<error>";
 	}
 }
 

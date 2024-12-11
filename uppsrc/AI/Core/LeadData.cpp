@@ -6,6 +6,7 @@ LeadData::LeadData() {
 	
 }
 
+#if 0
 void LeadData::Load() {
 	String& dir = MetaDatabase::Single().dir;
 	ASSERT(dir.GetCount());
@@ -16,9 +17,11 @@ void LeadData::Store() {
 	String& dir = MetaDatabase::Single().dir;
 	StoreAsJsonFileStandard(*this, dir + DIR_SEPS + "share" + DIR_SEPS + "lead_data.json", true);
 }
+#endif
 
 void LeadData::Jsonize(JsonIO& json) {
 	json("opportunities", opportunities);
+	TODO // a: analysis?
 }
 
 LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {

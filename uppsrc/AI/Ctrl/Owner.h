@@ -1,5 +1,5 @@
-#ifndef _AI_Ctrl_Human_h_
-#define _AI_Ctrl_Human_h_
+#ifndef _AI_Ctrl_Owner_h_
+#define _AI_Ctrl_Owner_h_
 
 NAMESPACE_UPP
 

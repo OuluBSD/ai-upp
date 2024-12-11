@@ -6,6 +6,7 @@ LeadDataTemplate::LeadDataTemplate() {
 	
 }
 
+#if 0
 void LeadDataTemplate::Load() {
 	String& dir = MetaDatabase::Single().dir;
 	ASSERT(dir.GetCount());
@@ -16,6 +17,7 @@ void LeadDataTemplate::Store() {
 	String& dir = MetaDatabase::Single().dir;
 	StoreAsJsonFileStandard(*this, dir + DIR_SEPS + "share-common" + DIR_SEPS + "template_lead_data.json", true);
 }
+#endif
 
 void LeadDataTemplate::Jsonize(JsonIO& json) {
 	json		("templates", templates)

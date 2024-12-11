@@ -271,7 +271,7 @@ struct PhotoPromptLink : Moveable<PhotoPromptLink> {
 	PhotoPrompt* pp;
 };
 
-struct BiographyAnalysis {
+struct BiographyAnalysis  {
 	Array<Array<BiographyProfileAnalysis>> profiles;
 	Array<BiographyRoleAnalysis> roles;
 	Array<PlatformBiographyAnalysis> platforms;
@@ -287,6 +287,8 @@ struct BiographyAnalysis {
 			("image_types", image_types)
 			;
 	}
+	void Serialize(Stream& s) {TODO}
+	hash_t GetHashValue() const {TODO; return 0;}
 	Index<int> GetRequiredRoles() const;
 	Index<int> GetRequiredCategories() const;
 	Vector<PhotoPromptLink> GetImageTypePrompts(String image_type);
@@ -377,14 +379,16 @@ struct Concept {
 	}
 };
 
-struct BiographySnapshot {
+struct BiographySnapshot : Component {
 	int revision = 0;
 	Time last_modified;
 	Biography data;
 	BiographyAnalysis analysis;
 	Array<Concept> concepts;
 	
-	void Jsonize(JsonIO& json) {
+	BiographySnapshot(MetaNode& o) : Component(o) {}
+	
+	void Jsonize(JsonIO& json) override {
 		json
 			("revision", revision)
 			("last_modified", last_modified)
@@ -393,6 +397,8 @@ struct BiographySnapshot {
 			("concepts", concepts)
 		;
 	}
+	void Serialize(Stream& s) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
 };
 
 END_UPP_NAMESPACE

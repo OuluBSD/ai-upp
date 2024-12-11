@@ -74,7 +74,6 @@ MarketplaceCtrl::MarketplaceCtrl() {
 }
 
 void MarketplaceCtrl::Data() {
-	
 	DatasetPtrs p = GetDataset();
 	
 	if (!p.owner) {
@@ -84,6 +83,8 @@ void MarketplaceCtrl::Data() {
 		return;
 	}
 	
+	TODO
+	#if 0
 	if (form.category.GetCount() == 0) {
 		const auto& map = GetMarketplaceSections();
 		for(int i = 0; i < map.GetCount(); i++) {
@@ -116,26 +117,26 @@ void MarketplaceCtrl::Data() {
 		items.SetCursor(0);
 	
 	DataItem();
-	
+	#endif
 }
 
 void MarketplaceCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Add item"), AppImg::BlueRing(), THISBACK1(Do, 0)).Key(K_CTRL_T);
-	bar.Add(t_("Remove item"), AppImg::BlueRing(), THISBACK1(Do, 1)).Key(K_CTRL|K_W|K_SHIFT);
+	bar.Add(t_("Add item"), TextImgs::BlueRing(), THISBACK1(Do, 0)).Key(K_CTRL_T);
+	bar.Add(t_("Remove item"), TextImgs::BlueRing(), THISBACK1(Do, 1)).Key(K_CTRL|K_W|K_SHIFT);
 	bar.Separator();
-	bar.Add(t_("Rotate image clockwise"), AppImg::BlueRing(), THISBACK1(Do, 9)).Key(K_CTRL_F);
-	bar.Add(t_("Rotate image counter-clockwise"), AppImg::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_G);
+	bar.Add(t_("Rotate image clockwise"), TextImgs::BlueRing(), THISBACK1(Do, 9)).Key(K_CTRL_F);
+	bar.Add(t_("Rotate image counter-clockwise"), TextImgs::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_G);
 	bar.Separator();
-	bar.Add(t_("Set recursive image directory from clipboard"), AppImg::BlueRing(), THISBACK1(Do, 8)).Key(K_F3);
-	bar.Add(t_("Set image directory from clipboard"), AppImg::BlueRing(), THISBACK1(Do, 7)).Key(K_F4);
-	bar.Add(t_("Add image from clipboard"), AppImg::BlueRing(), THISBACK1(Do, 2)).Key(K_F5);
-	bar.Add(t_("Set image from clipboard"), AppImg::BlueRing(), THISBACK1(Do, 3)).Key(K_F6);
-	bar.Add(t_("Remove image"), AppImg::BlueRing(), THISBACK1(Do, 4)).Key(K_F7);
-	bar.Add(t_("Move up"), AppImg::BlueRing(), THISBACK1(Do, 5)).Key(K_F8);
-	bar.Add(t_("Move down"), AppImg::BlueRing(), THISBACK1(Do, 6)).Key(K_F9);
+	bar.Add(t_("Set recursive image directory from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 8)).Key(K_F3);
+	bar.Add(t_("Set image directory from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 7)).Key(K_F4);
+	bar.Add(t_("Add image from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F5);
+	bar.Add(t_("Set image from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 3)).Key(K_F6);
+	bar.Add(t_("Remove image"), TextImgs::BlueRing(), THISBACK1(Do, 4)).Key(K_F7);
+	bar.Add(t_("Move up"), TextImgs::BlueRing(), THISBACK1(Do, 5)).Key(K_F8);
+	bar.Add(t_("Move down"), TextImgs::BlueRing(), THISBACK1(Do, 6)).Key(K_F9);
 	bar.Separator();
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 11));
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 12));
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 11));
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 12));
 	
 }
 
@@ -165,6 +166,8 @@ void MarketplaceCtrl::DataItem() {
 	
 	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
+	TODO
+	#if 0
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
 		return;
@@ -214,6 +217,7 @@ void MarketplaceCtrl::DataItem() {
 		viewer.condition.SetData(mi.broken ? "Broken" : (mi.good ? "Good" : "Fair"));
 		viewer.price.SetData(Format("%.2!n€", mi.price));
 	}
+	#endif
 	
 	DataImage();
 }
@@ -223,6 +227,8 @@ void MarketplaceCtrl::DataCategory() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	
@@ -233,6 +239,7 @@ void MarketplaceCtrl::DataCategory() {
 	
 	// Update droplist values based on category
 	form.category.SetIndex(mi.category);
+	#endif
 	
 	DataSubCategory();
 }
@@ -242,6 +249,8 @@ void MarketplaceCtrl::DataSubCategory() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	
@@ -254,6 +263,7 @@ void MarketplaceCtrl::DataSubCategory() {
 	for(int i = 0; i < sub_sects.GetCount(); i++)
 		form.subcategory.Add(sub_sects[i]);
 	form.subcategory.SetIndex(mi.subcategory);
+	#endif
 }
 
 void MarketplaceCtrl::DataImage() {
@@ -263,6 +273,8 @@ void MarketplaceCtrl::DataImage() {
 	}
 	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
+	TODO
+	#if 0
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
 		return;
@@ -279,12 +291,15 @@ void MarketplaceCtrl::DataImage() {
 	else {
 		this->img.Clear();
 	}
+	#endif
 }
 
 void MarketplaceCtrl::Do(int fn) {
 	
 	DatasetPtrs p = GetDataset();
 	
+	TODO
+	#if 0
 	if (fn == 0) {
 		if (!p.owner) return;
 		MarketplaceItem& mi = p.owner->marketplace.items.Add();
@@ -484,16 +499,20 @@ void MarketplaceCtrl::Do(int fn) {
 		else if (fn == 12)
 			ss.Stop();
 	}
+	#endif
 }
 
 void MarketplaceCtrl::OnDimensionChange() {
 	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
+	TODO
+	#if 0
 	MarketplaceItem& mi = p.owner->marketplace.items[item_i];
 	OnValueChange();
 	String pkg_str = GetPackageString(mi.cx, mi.cy, mi.cz, mi.weight);
 	form.package.SetData(pkg_str);
 	viewer.package.SetData(pkg_str);
+	#endif
 }
 
 void MarketplaceCtrl::OnValueChange() {
@@ -503,6 +522,8 @@ void MarketplaceCtrl::OnValueChange() {
 	
 	DatasetPtrs p = GetDataset();
 	int item_i = items.Get("IDX");
+	TODO
+	#if 0
 	if (item_i < 0 || item_i >= p.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
 		return;
@@ -533,6 +554,7 @@ void MarketplaceCtrl::OnValueChange() {
 	String cat = sects.GetKey(mi.category) + ": " + sects[mi.category][mi.subcategory];
 	items.Set(0, cat);
 	items.Set(1, mi.GetTitle());
+	#endif
 }
 
 void MarketplaceCtrl::PasteImagePath() {
@@ -564,6 +586,8 @@ void MarketplaceCtrl::SetCurrentImage(Image img) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor() || !images.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	if (item_i < 0 || item_i >= mp.owner->marketplace.items.GetCount()) {
 		PostCallback(THISBACK(Data));
@@ -587,6 +611,7 @@ void MarketplaceCtrl::SetCurrentImage(Image img) {
 	mi.images[img_i] = h;
 	
 	PostCallback(THISBACK(DataImage));
+	#endif
 }
 
 void MarketplaceCtrl::MakeTempImages() {
@@ -600,6 +625,8 @@ void MarketplaceCtrl::MakeTempImages() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	
@@ -616,17 +643,22 @@ void MarketplaceCtrl::MakeTempImages() {
 		FileOut out(dst);
 		CopyStream(out, in);
 	}
+	#endif
 }
 
 void MarketplaceCtrl::OnCategory() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	
 	mi.category = form.category.GetIndex();
 	mi.subcategory = 0;
+	#endif
+	
 	DataSubCategory();
 }
 
@@ -634,21 +666,27 @@ void MarketplaceCtrl::OnSubCategory() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	TODO
+	#if 0
 	int item_i = items.Get("IDX");
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	
 	mi.subcategory = form.subcategory.GetIndex();
+	#endif
 }
 
 void MarketplaceCtrl::SetCategoryShorcut(int i) {
-	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !items.IsCursor())
 		return;
+	
 	int item_i = items.Get("IDX");
+	TODO
+	#if 0
 	MarketplaceItem& mi = mp.owner->marketplace.items[item_i];
 	mi.category = 10;
 	mi.subcategory = 2;
+	#endif
 	DataCategory();
 }
 

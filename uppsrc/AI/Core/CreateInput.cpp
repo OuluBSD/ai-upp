@@ -1769,5 +1769,762 @@ void AiTask::CreateInput_ScriptSolver() {
 	else TODO
 }
 
+
+void AiTask::CreateInput_Social() {
+	TODO
+	#if 0
+	MetaDatabase& mdb = MetaDatabase::Single();
+	LeadData& ld = mdb.lead_data;
+	LeadDataAnalysis& lda = mdb.lead_data.a;
+	
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	SocialArgs args;
+	args.Put(this->args[0]);
+	
+	if (args.fn == 0) {
+		{
+			auto& list = input.AddSub().Title("Text");
+			list.NoListChar();
+			Vector<String> lines = Split(args.text, "\n");
+			for (String& l : lines) {
+				l = TrimBoth(l);
+				if (!l.IsEmpty())
+					list.Add(l);
+			}
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List of keywords for the text");
+			results.NumberedLines();
+			results.Add("");
+		}
+	}
+	else if (args.fn == 1) {
+		// MOVED
+	}
+	else if (args.fn == 2) {
+		{
+			input.AddSub().Title("Task: We have two persons. Person #1: a straight male and a specified relative for the person #2. Person #2: will be described. Person #2 is interested in Person #1, and we choose the categories related to Person #1 that Person #2 is most interested in.").NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Sub-categories of biography of the person #1");
+			for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
+				String bcat = "Category " + IntStr(i) + ": " + GetBiographyCategoryKey(i);
+				list.Add(bcat);
+			}
+		}
+		{
+			input.AddSub().Title("Description of the societal role of the profile of the person #2: " + args.text).NoColon();
+		}
+		{
+			String name = args.parts.GetKey(0);
+			String profile = args.parts[0];
+			auto& list = input.AddSub();
+			list.Title("The profile of the person #2: \"" + name + "\"");
+			list.Add(profile);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List the 10 categories that person #2 is most interested in person #1. The most interesting category is the first");
+			results.NumberedLines();
+			results.Add("Category");
+		}
+	}
+	else if (args.fn == 3) {
+		{
+			input.AddSub().Title("Task: write the reaction of the person #2 for the biography summary of person #1. Person #1 is in a a specified relation for the person #2. Person #2 will be described. Person #1 describes himself with pronouns he/him and name Steve").NoColon();
+		}
+		{
+			input.AddSub().Title("Description of the societal role of the profile of the person #2: " + args.text).NoColon();
+		}
+		{
+			String name = args.parts.GetKey(0);
+			String profile = args.parts[0];
+			auto& list = input.AddSub();
+			list.Title("The profile of the person #2: \"" + name + "\"");
+			list.Add(profile);
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("The biography summaries of the person #1");
+			for(int i = 1; i < args.parts.GetCount(); i++) {
+				list.Add(args.parts.GetKey(i), args.parts[i]);
+			}
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("The reaction and important picks of person #2 when they read the biography summary of the person #1. The reaction is from the actual perspective of the person. Don't use 'person #1' nor 'person #2' in the reaction");
+		}
+	}
+	else if (args.fn == 4 || args.fn == 5) {
+		{
+			input.AddSub().Title("Task: merge multiple reactions of the same person into one").NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Reactions");
+			list.NumberedLines();
+			for(int i = 0; i < args.parts.GetCount(); i++) {
+				String& s = args.parts[i];
+				s.Replace("\r", "");
+				s.Replace("\n", " ");
+				list.Add(args.parts.GetKey(i), s);
+			}
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("The merged reaction. This should 1-2 times the length of average reaction");
+		}
+		input.response_length = 1024;
+	}
+	else if (args.fn == 6) {
+		{
+			input.AddSub().Title("Task: person #2 reads the biography of the person #1, and person #2 has reaction. Convert the reaction to a public profile description of the person #1 to a website").NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Reaction of the person #2 while reading the biography of person #1");
+			list.NumberedLines();
+			for(int i = 0; i < args.parts.GetCount(); i++) {
+				String& s = args.parts[i];
+				s.Replace("\r", "");
+				s.Replace("\n", " ");
+				list.Add(args.parts.GetKey(i), s);
+			}
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("The public description of the person #1 at a website");
+		}
+		input.response_length = 1024;
+		SetHighQuality();
+	}
+	else if (args.fn == 7) {
+		{
+			input.AddSub().Title("Task: take the given description of the person (called Person #1 or Steve) and convert it to be said from the first person view (like 'I am this') by the given person").NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Description of the person");
+			list.NoListChar();
+			list.Add(args.text);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Description of the person converted to first person message (like 'I am this'). Description should fit to a social media site profile description.");
+		}
+		input.response_length = 1024;
+		//SetHighQuality();
+	}
+	else if (args.fn == 8) {
+		{
+			String t = "Task: take the given description of the person and shorten it while keeping the image of the person same";
+			if (args.len > 0)
+				t += ". Keep the shortened description in less than " + IntStr(args.len) + " characters";
+			input.AddSub().Title(t).NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Description of the person");
+			list.NoListChar();
+			list.Add(args.text);
+		}
+		{
+			String t = "Shortened description of the person";
+			if (args.len > 0)
+				t += " in less than " + IntStr(args.len) + " characters";
+			TaskTitledList& results = input.PreAnswer();
+			results.Title(t);
+		}
+		input.response_length = 1024;
+		//SetHighQuality();
+	}
+	else if (args.fn == 9) {
+		{
+			input.AddSub().Title("Task: explain the discussion in the message-thread").NoColon();
+		}
+		
+		if (!args.text.IsEmpty()) {
+			auto& list = input.AddSub();
+			list.Title("Previous explanation of the message thread");
+			list.NoListChar();
+			args.text.Replace("\r", "");
+			Vector<String> parts = Split(args.text, "\n\n");
+			for(int i = 0; i < parts.GetCount(); i++) {
+				String& s = parts[i];
+				s.Replace("\n\n", "\n");
+				list.Add(s);
+			}
+		}
+		{
+			for(int i = 0; i < args.parts.GetCount(); i++) {
+				auto& list = input.AddSub();
+				list.Title("New message by " + args.parts.GetKey(i));
+				list.NoListChar();
+				list.Add(args.parts[i]);
+			}
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("The explanation of the discussion in the message-thread. Use names of persons. Keep track what was said or asked last");
+		}
+		input.response_length = 1024;
+	}
+	else if (args.fn == 10) {
+		{
+			input.AddSub().Title("Merge images of all " + IntStr(args.parts.GetCount()) + " parts into single novel image").NoColon();
+		}
+		for(int i = 0; i < args.parts.GetCount(); i++) {
+			String title = args.parts.GetKey(i);
+			String s = args.parts[i];
+			auto& list = input.AddSub();
+			list.Title("Part " + IntStr(i+1) + ": " + title);
+			list.NoListChar();
+			list.Add(s);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Merge images of all " + IntStr(args.parts.GetCount()) + " parts into single novel image and shorten slightly (to half of the total length or larger). Don't mention that it is a merged image, but just an image.");
+			results.NoListChar();
+			results.Add("");
+		}
+	}
+	else if (args.fn == 11) {
+		{
+			auto& list = input.AddSub();
+			list.Title("List A: generic society roles for people");
+			//list.NumberedLines();
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add("#" + IntStr(i) + ": " + args.parts.GetKey(i));
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Top 15 societal roles from the List A, which would best match the audience of the web service: " + args.text + ". " + args.description);
+			results.NumberedLines();
+			results.Add("#");
+		}
+	}
+	else if (args.fn == 12) {
+		{
+			auto& list = input.AddSub();
+			list.Title("List A: roles of the audience of the website " + args.text + " (" + args.description + ")");
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add(args.parts.GetKey(i));
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("What text fields should a electronic press kit include for " + args.profile + " in " + args.text + ". Give name and description of the text field (with ':' in between)");
+			results.NumberedLines();
+			results.Add("");
+		}
+	}
+	else if (args.fn == 13) {
+		{
+			auto& list = input.AddSub();
+			list.Title("Societal roles in relation to me");
+			list.Add("my dog");
+			list.Add("(my/'for me'/'looking me') " + args.text + ": " + args.description);
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Types of score for a societal role");
+			list.NumberedLines();
+			for(int i = 0; i < SOCIETYROLE_SCORE_COUNT; i++)
+				list.Add(GetSocietyRoleScoreKey(i));
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Give all " + IntStr(SOCIETYROLE_SCORE_COUNT) + " scores for the societal role of my dog in modern western culture and in modern Nordic culture. Score is between 0 and 10:");
+			list.NumberedLines();
+			list.Add("8");
+			list.Add("0");
+			list.Add("7");
+			list.Add("5");
+			list.Add("0");
+			list.Add("0");
+			list.Add("9");
+			list.Add("9");
+			list.Add("2");
+			list.Add("1");
+			list.Add("3");
+			list.Add("0");
+			list.Add("6");
+			list.Add("2");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Give all " + IntStr(SOCIETYROLE_SCORE_COUNT) + " scores for the societal role of (my/'for me'/'looking me') " + args.text + " in modern western culture and in modern Nordic culture. Score is between 0 and 10");
+			results.NumberedLines();
+			results.Add("");
+		}
+		SetHighQuality();
+	}
+	else if (args.fn == 14) {
+		{
+			auto& list = input.AddSub();
+			list.Title("List A: roles of the audience of the website " + args.text + " (" + args.description + ")");
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add(args.parts.GetKey(i));
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("What photo types should a electronic press kit include for " + args.profile + " in " + args.text + ". Give name and description of the photo type (with ':' in between)");
+			results.NumberedLines();
+			results.Add("");
+		}
+	}
+	else if (args.fn == 15) {
+		{
+			auto& list = input.AddSub();
+			list.Title("List A: roles of the audience of the website " + args.text + " (" + args.description + ")");
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add(args.parts.GetKey(i));
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("We are seeing photos in a electronic press kit include for " + args.profile + " in " + args.text);
+			list.NoListChar();
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("A list of detailed descriptions of the images for a blind person. All images are following type '" +
+				args.photo_description +
+				"'. The pictures are from Western and Nordic cultures and the people are Caucasian");
+			results.Add("\"");
+		}
+	}
+	else if (args.fn == 16) {
+		{
+			auto& list = input.AddSub();
+			list.Title("The web platform in this context: " + args.text);
+			list.NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("Some image descriptions suitable for some profiles in this web platform");
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add(args.parts.GetKey(i));
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("The profile of the person in this context: " + args.description);
+			list.NoColon();
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Top 3 novel image descriptions for the given profile based on given suitable image descriptions");
+			results.NumberedLines();
+			results.Add("");
+		}
+		SetHighQuality();
+	}
+	else if (args.fn == 17) {
+		{
+			auto& list = input.AddSub();
+			list.Title("Image type: " + args.text);
+			list.NoColon();
+		}
+		{
+			auto& list = input.AddSub();
+			list.Title("List A: text prompts");
+			for(int i = 0; i < args.parts.GetCount(); i++)
+				list.Add(args.parts.GetKey(i));
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Top 1 novel text prompt, which merges the List A, and which is less than 400 characters long");
+			results.NumberedLines();
+			results.Add("");
+		}
+		SetHighQuality();
+	}
+	else if (args.fn == 18) {
+		{
+			auto& list = input.AddSub();
+			list.Title("Summarisation of the discussion so far");
+			list.NoListChar();
+			list.Add(args.text);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Top 3 responses for to this discussion for '" + args.profile + "'");
+			results.NumberedLines();
+			results.Add("\"");
+		}
+	}
+	else if (args.fn == 19) {
+		{
+			auto& list = input.AddSub();
+			list.Title("Message");
+			list.NoListChar();
+			list.Add(args.text);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Give keywords for the message (separated by comma in a single line)");
+			results.NoListChar();
+			results.Add("");
+		}
+	}
+	else {
+		TODO
+	}
+	#endif
+}
+
+void AiTask::CreateInput_BiographySummaryProcess() {
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	BiographySummaryProcessArgs args;
+	args.Put(this->args[0]);
+	
+	
+	if (args.fn == 0) {
+		{
+			input.AddSub().Title("Merging " + IntStr(args.parts.GetCount()) + " parts").NoColon();
+		}
+		for(int i = 0; i < args.parts.GetCount(); i++) {
+			String title = args.parts.GetKey(i);
+			String s = args.parts[i];
+			auto& list = input.AddSub();
+			list.Title("Part " + IntStr(i+1) + ": " + title);
+			list.NoListChar();
+			list.Add(s);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Merge all " + IntStr(args.parts.GetCount()) + " parts and shorten slightly (to half of the total length or larger)");
+			results.NoListChar();
+			results.Add("");
+		}
+	}
+	else if (args.fn == 1) {
+		{
+			input.AddSub().Title("Merging " + IntStr(args.parts.GetCount()) + " lists").NoColon();
+		}
+		String header;
+		for(int i = 0; i < args.parts.GetCount(); i++) {
+			String title = args.parts.GetKey(i);
+			String s = args.parts[i];
+			int a = s.Find(":");
+			if (a >= 0 && header.IsEmpty())
+				header = s.Left(a+1);
+			auto& list = input.AddSub();
+			list.Title("List " + IntStr(i+1) + ": " + title);
+			list.NoListChar();
+			list.Add(s);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Merge all " + IntStr(args.parts.GetCount()) + " lists and values. Write empty values as \"N/A\"");
+			//results.NoListChar();
+			results.Add(header);
+			tmp_str = header;
+		}
+	}
+}
+
+void AiTask::CreateInput_LeadSolver() {
+	TODO
+	#if 0
+	MetaDatabase& mdb = MetaDatabase::Single();
+	LeadData& ld = mdb.lead_data;
+	LeadDataAnalysis& lda = mdb.lead_data.a;
+	
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	LeadSolverArgs args;
+	args.Put(this->args[0]);
+	
+	if (args.fn != 8) {
+		const LeadOpportunity& opp = ld.opportunities[args.opp_i];
+		auto& list = input.AddSub().Title("Music A&R opportunity listing");
+		list.Add("Name", opp.name);
+		if (opp.min_entry_price_cents > 0)
+			list.Add("Submission price", "$" + DblStr(opp.min_entry_price_cents*0.01));
+		if (opp.min_compensation > 0)
+			list.Add("Minimum compensation", "$" + DblStr(opp.min_compensation));
+		if (opp.max_compensation > 0)
+			list.Add("Maximum compensation", "$" + DblStr(opp.min_compensation));
+		
+		if (opp.request_description.GetCount())
+			list.Add("Description (multiline)", "\n" + opp.request_description);
+		if (opp.request_opportunity_description.GetCount())
+			list.Add("Opportunity description (multiline)", "\n" + opp.request_opportunity_description);
+		if (opp.request_band_description.GetCount())
+			list.Add("Band rescription (multiline)", "\n" + opp.request_band_description);
+		if (opp.request_selection_description.GetCount())
+			list.Add("Selection description (multiline)", "\n" + opp.request_selection_description);
+		
+	}
+	
+	// Booleans
+	if (args.fn == 0) {
+		
+		{
+			auto& list = input.AddSub().Title("List of boolean attribute values, which can describe the listing");
+			list.NumberedLines();
+			list.Add("the listing is requesting music");
+			for(int i = 0; i < LISTING_SONG_BOOLEAN_COUNT; i++) {
+				list.Add(GetSongListingBooleanKey(i));
+			}
+		}
+		
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Results for all attribute values");
+			results.NumberedLines();
+			results.Add("the listing is requesting music: true");
+			//results.Add("true");
+			results.Add("");
+		}
+		input.response_length = 1024*1;
+		this->SetHighQuality();
+	}
+	
+	// Strings
+	else if (args.fn == 1) {
+		{
+			auto& list = input.AddSub().Title("List of string attribute values, which can describe the listing");
+			list.NumberedLines();
+			list.Add("what kind of product is the listing requesting");
+			for(int i = 0; i < LISTING_SONG_STRING_COUNT; i++) {
+				list.Add(GetSongListingStringKey(i));
+			}
+		}
+		
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Results for all attribute values");
+			results.NumberedLines();
+			results.Add("what kind of product is the listing requesting: music");
+			//results.Add("true");
+			results.Add("");
+		}
+		input.response_length = 1024*1;
+		//this->SetHighQuality();
+	}
+	
+	// Lists
+	else if (args.fn == 2) {
+		{
+			auto& list = input.AddSub().Title("List of attribute value lists, which can describe the listing");
+			list.NumberedLines();
+			list.Add("list of related words for this listing");
+			for(int i = 0; i < LISTING_SONG_LIST_COUNT; i++) {
+				list.Add(GetSongListingListKey(i));
+			}
+		}
+		
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Results for all attribute values");
+			results.NumberedLines();
+			results.Add("list of related words for this listing: [music, song, opportunity, A&R]");
+			results.Add("");
+		}
+		input.response_length = 1024*1;
+		//this->SetHighQuality();
+	}
+	// Average payout estimation
+	else if (args.fn == 3) {
+		{
+			auto& list = input.AddSub().Title("List of probabilities (in percentages) to get accepted per stage for a unrelated song. Include total chance of acceptance percentage also");
+			list.Add("Initial listen: 70%");
+			list.Add("Production quality: 50%");
+			list.Add("Comparison to other submissions: 40%");
+			list.Add("Collaboration potential: 20%");
+			list.Add("Refinement and final review: 15%");
+			list.Add("Top contender selection: 10%");
+			list.Add("Total chance of acceptance: 2.1% (0.7 x 0.5 x 0.4 x 0.2 x 0.15 x 0.1 = 0.0021 = 0.21%). Again, keep in mind that these numbers are theoretical and may vary.");
+			//list.Add("Average payout estimation for accepted song: $1,250 x 2.1% = $26.25 or approximately $26.");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List of probabilities (in percentages) to get accepted per stage for the accepted song for the previous listing. Include total chance of acceptance percentage also");
+			//results.Add("");
+		}
+		input.response_length = 1024*1;
+	}
+	// Typecast
+	else if (args.fn == 4) {
+		EnterAppMode(appmode);
+		{
+			auto& list = input.AddSub().Title("List A: " + __Typeclasses + " of " + __entity + " profiles in relation to the " + __script2);
+			list.NumberedLines();
+			for (String tc : GetTypeclasses(appmode))
+				list.Add(tc);
+		}
+		{
+			auto& list = input.AddSub().Title("List B of names for archetypical parts of storyline of a modern " + GetAppModeKey(appmode, AM_GENRES) + " " + __comps2 + ", which contrasts each other");
+			list.NumberedLines();
+			for (const auto& it : GetContents(appmode)) {
+				String s;
+				s << "A: " << it.parts[0] << ", B: " << it.parts[1] << ", C: " << it.parts[2];
+				list.Add(s);
+			}
+		}
+		{
+			auto& list = input.AddSub().Title("Examples of combinations from List A and List B");
+			list.NumberedLines();
+			list.Add("4,6");
+			list.Add("7,2");
+			list.Add("6,1");
+		}
+		LeaveAppMode();
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.NumberedLines();
+			results.Title("Top 3 combinations from List A and List B, which best fits the Music A&R opportunity listing");
+			results.Add("");
+		}
+		SetHighQuality();
+	}
+	// Script ideas
+	else if (args.fn == 5) {
+		const LeadOpportunity& o = ld.opportunities[args.opp_i];
+		
+		const auto& tc_list = TextLib::GetTypeclasses(DB_SONG);
+		if (o.typeclasses.GetCount() && o.typeclasses[0] < tc_list.GetCount()) {
+			String tc = tc_list[o.typeclasses[0]];
+			auto& list = input.AddSub().Title("Preferred typecast for the song");
+			list.Add(tc);
+		}
+		
+		const auto& co_list = TextLib::GetContents(DB_SONG);
+		if (o.contents.GetCount() && o.contents[0] < co_list.GetCount()) {
+			const auto& co_full = co_list[o.contents[0]];
+			auto& list = input.AddSub().Title("Preferred content");
+			list.Add(co_full.key);
+			for(int i = 0; i < ContentType::PART_COUNT; i++)
+				list.Add(co_full.parts[i]);
+		}
+		{
+			auto& list = input.AddSub().Title("Examples of ideas for unrelated lyrics");
+			list.NumberedLines();
+			list.Add("The lyrics expresses the frustration and impatience of being caught up and hung up on someone, using time as a metaphor for the slow progress of a relationship.");
+			list.Add("The lyrics is about the destructive and seductive nature of fame and the Hollywood lifestyle, comparing it to a drug addiction that can lead to the downfall of individuals and society.");
+			list.Add("The lyrics is about a wannabe who tries too hard to fit in with the cool crowd, using humor and irony to convey the idea that people should just be themselves instead of trying to be something they're not.");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.NumberedLines();
+			results.Title("Top 3 ideas for a lyrics, which would best fit the Music A&R opportunity listing");
+			results.Add("The lyrics is about");
+		}
+		SetHighQuality();
+	}
+	// Music style ideas
+	else if (args.fn == 6) {
+		const LeadOpportunity& o = ld.opportunities[args.opp_i];
+		
+		const auto& tc_list = TextLib::GetTypeclasses(DB_SONG);
+		if (o.typeclasses.GetCount() && o.typeclasses[0] < tc_list.GetCount()) {
+			String tc = tc_list[o.typeclasses[0]];
+			auto& list = input.AddSub().Title("Preferred typecast for the song");
+			list.Add(tc);
+		}
+		
+		const auto& co_list = TextLib::GetContents(DB_SONG);
+		if (o.contents.GetCount() && o.contents[0] < co_list.GetCount()) {
+			const auto& co_full = co_list[o.contents[0]];
+			auto& list = input.AddSub().Title("Preferred content");
+			list.Add(co_full.key);
+			for(int i = 0; i < ContentType::PART_COUNT; i++)
+				list.Add(co_full.parts[i]);
+		}
+		
+		
+		if (o.lyrics_ideas.GetCount()) {
+			for(int i = 0; i < o.contents.GetCount(); i++) {
+				int co_i = o.contents[i];
+				if (co_i >= 0 && co_i < co_list.GetCount()) {
+					const auto& co_full = co_list[co_i];
+					auto& list = input.AddSub().Title("Preferred lyrics idea");
+					list.Add(o.lyrics_ideas[0]);
+					break;
+				}
+				else {
+					LOG("warning: invalid content id");
+				}
+			}
+		}
+		{
+			auto& list = input.AddSub().Title("Examples of music styles for unrelated songs, which fits under 120 characters");
+			list.NumberedLines();
+			list.Add("Rap, EDM, 90bpm, female alto vocal range, long vocal notes");
+			list.Add("EDM, Nu-Metal, Funk Rock, 120bpm, male vocals");
+			list.Add("Country, Country Pop, 100bpm, alto female vocals, long vocal notes, Acoustic Guitar, Electric Bass, Drums");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.NumberedLines();
+			results.Title("Top 3 ideas for a music style, which would best fit the Music A&R opportunity listing, and which fits under 120 characters");
+			results.Add("");
+		}
+		SetHighQuality();
+	}
+	
+	else if (args.fn == 7) {
+		const LeadOpportunity& o = ld.opportunities[args.opp_i];
+		
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results
+				.Title(	"Create a template listing based on this listing. "
+						"Use extremely generic and boring language. "
+						"Don't mention brands but use generic product names. Give title and description");
+			;
+			results.Add("Title: \"");
+		}
+	}
+	
+	else if (args.fn == 8) {
+		MetaDatabase& mdb = MetaDatabase::Single();
+		LeadDataTemplate& ldt = LeadDataTemplate::Single();
+		LeadTemplate& lt = ldt.templates[args.opp_i];
+		{
+			auto& list = input.AddSub().Title("Music A&R opportunity listing #1");
+			list.Add("Title: \"Get Your Music Heard Worldwide with #1 Radio Promotion Opportunity\"");
+			list.Add(
+				"Description:\n"
+				"Are you a musical artist looking for a chance to have your music reach a global audience? Look no further! This opportunity offers airplay and promotion on a highly rated internet radio podcast that has been helping talented musicians gain recognition for 7 years. Featuring a variety of genres and highlighting the best in vocal excellence, emotional depth, and impactful lyrics, this station is perfect for showcasing your skills. But that's not all! Your music will also be featured on the #1 New & Noteworthy Music Podcast, reaching over 100,000 downloads in just 7 months. With promotion on social media and other channels, your music is sure to get the recognition it deserves. Don't miss your chance to get your music heard and submit your songs today! Please note that submissions must be performed by female artists, female-fronted bands, or female vocalists only. Don't let this opportunity pass you by!");
+			list.Add("Speciality of the listing's author in short (music genre speciality, clients speciality)",
+				"The listing author specializes in promoting and showcasing female artists and female-fronted bands across all genres. They have a successful track record of helping independent artists gain recognition and have a strong network in the music industry.");
+			list.Add("Class of the listing's author (e.g. publisher / A&R / licensing agent etc. ) with 1-3 words", "A&R and Promotion Expert");
+			list.Add("Profit reasons for the author of this listing",
+				"\n1. To make a profit from the submission fees of interested artists.\n"
+				"2. To promote their radio and music podcast platform and attract more listeners and sponsors.\n"
+				"3. To potentially discover and represent new talent in the industry and earn a percentage of their earnings.")
+				;
+			list.Add("Positive organizational reasons for the author of this listing",
+				"\n1. To support and promote female musicians and bring more diversity to the music industry.\n"
+				"2. To provide a platform for independent artists to gain exposure and recognition for their talent.\n"
+				"3. To stay at the forefront of the music industry and discover new trends and talent in various genres.");
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Music A&R opportunity listing #2");
+			results.Add("Name", lt.title);
+			results.Add("Description (multiline)", "\n" + lt.text);
+			//results.Add("Speciality of the listing's author in short (music genre speciality, clients speciality)", "");
+		}
+	}
+	else TODO
+	#endif
+}
+
+
 END_UPP_NAMESPACE
 

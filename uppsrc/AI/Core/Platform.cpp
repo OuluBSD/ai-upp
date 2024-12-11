@@ -33,7 +33,8 @@ int PlatformThread::GetTotalComments() const {
 
 
 
-
+// TODO to a ecs file
+#if 0
 #define ENABLE(x) p.SetAttr(#x, true);
 
 const Vector<Platform>& GetPlatforms() {
@@ -1137,6 +1138,7 @@ const Vector<Platform>& GetPlatforms() {
 	
 	return a;
 }
+#endif
 
 void ProfileData::Jsonize(JsonIO& json) {
 	json
@@ -1145,20 +1147,26 @@ void ProfileData::Jsonize(JsonIO& json) {
 }
 
 void ProfileData::Load() {
+	TODO
+	#if 0
 	String dir = AppendFileName(MetaDatabase::GetDirectory(), "share");
 	String fname = IntStr64(hash) + ".json";
 	String path = AppendFileName(dir, fname);
 	
 	LoadFromJsonFileStandard(*this, path);
+	#endif
 }
 
 void ProfileData::Store() {
+	TODO
+	#if 0
 	String dir = AppendFileName(MetaDatabase::GetDirectory(), "share");
 	String fname = IntStr64(hash) + ".json";
 	String path = AppendFileName(dir, fname);
 	
 	RealizeDirectory(dir);
 	StoreAsJsonFileStandard(*this, path);
+	#endif
 }
 
 Array<ProfileData>& ProfileData::GetAll() {
@@ -1169,7 +1177,7 @@ Array<ProfileData>& ProfileData::GetAll() {
 ProfileData& ProfileData::Get(Profile& p) {
 	Array<ProfileData>& a = GetAll();
 	CombineHash ch;
-	ch.Do(p.owner->name);
+	ch.Do(p.node.id);
 	ch.Do(p.name);
 	hash_t h = ch;
 	for (ProfileData& pd : a) {
@@ -1194,7 +1202,7 @@ void ProfileData::StoreAll() {
 
 
 
-
+#if 0
 int PlatformAnalysis::GetRoleScoreSum(int score_i) const {
 	ASSERT(score_i >= 0 && score_i < SOCIETYROLE_SCORE_COUNT);
 	int sum = 0;
@@ -1220,5 +1228,6 @@ double PlatformAnalysis::GetRoleScoreSumWeighted(int score_i) const {
 	}
 	return (double)sum / (double)weight_sum;
 }
+#endif
 
 END_UPP_NAMESPACE

@@ -36,19 +36,10 @@ void CompInfoCtrl::Clear() {
 void CompInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	
-	lbl_component.SetLabel(GetAppModeKeyCap(AM_COMPONENT));
-	lbl_script.SetLabel(GetAppModeKeyCap(AM_SCRIPT) + ":");
-	lbl_entity.SetLabel(GetAppModeLabel(AML_ENTITY_IF_DIFFERENT));
-	lbl_ref_comp.SetLabel(GetAppModeLabel(AML_REFERENCE_COMPONENT));
-	lbl_origins.SetLabel(GetAppModeLabel(AML_COMPONENT_ORIGINS));
-	
-	scripts		.ColumnAt(0).HeaderTab().SetText(GetAppModeKeyCapN(AM_TYPECLASS) + " & " + GetAppModeKeyCapN(AM_CONTENT));
-	scripts		.ColumnAt(1).HeaderTab().SetText(GetAppModeKeyCapN(AM_SCRIPT));
-	
 	Clear();
 	
-	if (p.component) {
-		Component& s = *p.component;
+	if (p.song) {
+		Song& s = *p.song;
 		
 		comp_entity.SetData(s.entity);
 		comp_prj_name.SetData(s.prj_name);
@@ -63,13 +54,16 @@ void CompInfoCtrl::Data() {
 		return;
 	}
 	
+	TODO
+	#if 0
 	Entity& a = *p.entity;
-	if (p.component)
-		focus_lyr = a.FindScript(p.component->scripts_file_title);
+	if (p.song)
+		focus_lyr = a.FindScript(p.song->scripts_file_title);
 	
 	if (focus_lyr < 0) {
 		focus_lyr = p.GetActiveScriptIndex();
 	}
+	#endif
 	/*
 	const auto& tcs = GetTypeclasses();
 	for(int i = 0; i < a.typeclasses.GetCount(); i++) {
@@ -124,6 +118,8 @@ void CompInfoCtrl::Data() {
 	
 	//Entity& a = *p.entity;
 	
+	TODO
+	#if 0
 	int row = 0;
 	const auto& tcs = GetTypeclasses();
 	const auto& cons = GetContents();
@@ -140,6 +136,7 @@ void CompInfoCtrl::Data() {
 	int cursor = max(0, focus_lyr);
 	if (cursor >= 0 && cursor < scripts.GetCount())
 		scripts.SetCursor(cursor);
+	#endif
 	
 	DataScript();
 }
@@ -151,6 +148,8 @@ void CompInfoCtrl::DataScript() {
 		return;
 	}
 	
+	TODO
+	#if 0
 	Entity& a = *p.entity;
 	Script& lyr = a.scripts[scripts.Get("IDX")];
 	
@@ -159,13 +158,16 @@ void CompInfoCtrl::DataScript() {
 		scripts_text.SetData(text);
 	else
 		scripts_text.SetData("<no scripts>");
+	#endif
 }
 
 void CompInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
-	if (p.component && p.editor->components.IsCursor()) {
-		Component& s = *p.component;
+	TODO
+	#if 0
+	if (p.song && p.editor->components.IsCursor()) {
+		Component& s = *p.song;
 		
 		s.entity = comp_entity.GetData();
 		s.prj_name = comp_prj_name.GetData();
@@ -177,19 +179,23 @@ void CompInfoCtrl::OnValueChange() {
 		p.editor->components.Set(c, 0, s.entity);
 		p.editor->components.Set(c, 1, s.prj_name);
 	}
+	#endif
 }
 
 void CompInfoCtrl::SetScript() {
 	DatasetPtrs p = GetDataset();
-	Component& s = *p.component;
+	Component& s = *p.song;
 	
-	if (!p.entity || !p.component || !scripts.IsCursor()) {
+	if (!p.entity || !p.song || !scripts.IsCursor()) {
 		return;
 	}
 	
+	TODO
+	#if 0
 	int l_i = scripts.Get("IDX");
 	Script& l = p.entity->scripts[l_i];
 	s.scripts_file_title = l.file_title;
+	#endif
 }
 
 

@@ -347,6 +347,74 @@ struct ConceptualFrameworkArgs {
 	void Put(const String& s) {LoadFromJson(*this, s);}
 };
 
+struct SocialArgs {
+	int fn = 0;
+	String text, description, profile, photo_description;
+	VectorMap<String,String> parts;
+	int len = 0;
+	
+	void Jsonize(JsonIO& json) {
+		json	("text", text)
+				("desc", description)
+				("fn", fn)
+				("parts", parts)
+				("len", len)
+				("profile", profile)
+				("photo_description", photo_description)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
+struct BiographySummaryProcessArgs {
+	int fn = 0;
+	VectorMap<String,String> parts;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("parts", parts)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+};
+
+struct SongHeaderArgs {
+	int fn = 0;
+	int tc_i = -1;
+	int con_i = -1;
+	String lyrics_idea;
+	String music_style;
+	
+	void Jsonize(JsonIO& json) {
+		json	("tc_i", tc_i)
+				("con_i", con_i)
+				("lyrics_idea", lyrics_idea)
+				("music_style", music_style)
+				("fn", fn)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
+struct LeadSolverArgs {
+	int fn = 0;
+	int opp_i = 0;
+	
+	void Jsonize(JsonIO& json) {
+		json	("opp_i", opp_i)
+				("fn", fn)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
 struct PkgFile : Moveable<PkgFile> {
 	int pkg = -1, file = -1;
 	

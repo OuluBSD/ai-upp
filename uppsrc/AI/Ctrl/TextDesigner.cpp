@@ -45,9 +45,9 @@ Script& ToolAppCtrl::GetScript() {
 
 Component& ToolAppCtrl::GetComponent() {
 	DatasetPtrs& p = GetDataset();
-	if(!p.component || !p.entity)
+	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
-	return *p.component;
+	return *p.song;
 }
 
 void ToolAppCtrl::AddMenu() {
@@ -72,9 +72,9 @@ Entity& ToolAppCtrl::GetEntity() {
 String ToolAppCtrl::GetComponentTitle() const {
 	/*DatasetPtrs p = GetDataset();
 	DatasetPtrs& p = GetDataset();
-	if(!p.component || !p.entity)
+	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
-	Component& song = *p.component;
+	Component& song = *p.song;
 	Entity& artist = *p.entity;
 	String s;
 	s << artist.english_name << " - " << song.english_title;
@@ -102,9 +102,9 @@ const Vector<String>& ToolAppCtrl::GetContentParts() const {
 /*int ToolAppCtrl::GetDataset() {
 	DatasetPtrs p = GetDataset();
 	DatasetPtrs& p = GetDataset();
-	if(!p.component || !p.entity)
+	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
-	Component& song = *p.component;
+	Component& song = *p.song;
 	return ScanInt(song.data.Get("ATTR_DATASET", "0"));
 }*/
 

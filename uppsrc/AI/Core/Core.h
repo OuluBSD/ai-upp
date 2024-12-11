@@ -28,8 +28,12 @@
 #include "Biography.h"
 #include "LeadData.h"
 #include "LeadDataTemplate.h"
+#include "Owner.h"
 #include "Profile.h"
+#include "Marketplace.h"
 #include "Platform.h"
+#include "Release.h"
+#include "Song.h"
 
 NAMESPACE_UPP
 

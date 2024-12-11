@@ -179,6 +179,8 @@ void ImageBiographyCtrl::DataEntry() {
 	year.image_text.SetData(bimg.image_text);
 	year.image_keywords.SetData(bimg.image_keywords);
 	
+	TODO
+	#if 0
 	if (bimg.image_hash) {
 		String path = CacheImageFile(bimg.image_hash);
 		if (!FileExists(path))
@@ -189,6 +191,7 @@ void ImageBiographyCtrl::DataEntry() {
 	else {
 		this->img.Clear();
 	}
+	#endif
 }
 
 void ImageBiographyCtrl::OnCategoryCursor() {
@@ -208,6 +211,8 @@ void ImageBiographyCtrl::OnValueChange() {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
+	TODO
+	#if 0
 	if (!mp.editable_biography)
 		return;
 	Owner& owner = *mp.owner;
@@ -231,20 +236,24 @@ void ImageBiographyCtrl::OnValueChange() {
 	
 	entries.Set(1, bimg.time);
 	entries.Set(2, bimg.image_keywords);
+	#endif
 }
 
 void ImageBiographyCtrl::MakeKeywords(int fn) {
-	TaskMgr& m = TaskMgr::Single();
+	TODO
+	#if 0
+	TaskMgr& m = AiTaskManager();
 	SocialArgs args;
 	if (fn == 0)
 		args.text = year.text.GetData();
 	else
 		args.text = year.image_text.GetData();
 	m.GetSocial(args, [this,fn](String s) {PostCallback(THISBACK2(OnKeywords, fn, s));});
+	#endif
 }
 
 void ImageBiographyCtrl::Translate() {
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
 	String src = year.native_text.GetData();
 	
@@ -268,27 +277,27 @@ void ImageBiographyCtrl::OnKeywords(int fn, String s) {
 }
 
 void ImageBiographyCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Translate"), AppImg::BlueRing(), THISBACK(Translate));
-	bar.Add(t_("Make keywords"), AppImg::BlueRing(), THISBACK1(MakeKeywords, 0));
-	bar.Add(t_("Make keywords (image)"), AppImg::BlueRing(), THISBACK1(MakeKeywords, 1));
+	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Translate));
+	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK1(MakeKeywords, 0));
+	bar.Add(t_("Make keywords (image)"), TextImgs::BlueRing(), THISBACK1(MakeKeywords, 1));
 	bar.Separator();
-	bar.Add(t_("Paste Image path"), AppImg::BlueRing(), THISBACK(PasteImagePath)).Key(K_CTRL_V);
+	bar.Add(t_("Paste Image path"), TextImgs::BlueRing(), THISBACK(PasteImagePath)).Key(K_CTRL_V);
 	bar.Separator();
-	bar.Add(t_("Analyse image"), AppImg::RedRing(), THISBACK(AnalyseImage)).Key(K_F7);
+	bar.Add(t_("Analyse image"), TextImgs::RedRing(), THISBACK(AnalyseImage)).Key(K_F7);
 }
 
 void ImageBiographyCtrl::EntryListMenu(Bar& bar) {
-	bar.Add(t_("Add Entry"), AppImg::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_T);
-	bar.Add(t_("Remove Entry"), AppImg::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
+	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_T);
+	bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
 	
 }
 
 void ImageBiographyCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.snap)
+	if (!mp.profile || !mp.release)
 		return;
 	if (mp.editable_biography) {
 		PromptOK(t_("The latest (and editable) revision can't be processed. Select older than latest revision."));
@@ -296,12 +305,15 @@ void ImageBiographyCtrl::Do(int fn) {
 	}
 	
 	ImageBiographyProcess& ss = ImageBiographyProcess::Get(*mp.profile, *mp.snap);
+	TODO
+	#if 0
 	if (fn == 0) {
 		ss.Start();
 	}
 	else if (fn == 1) {
 		ss.Stop();
 	}
+	#endif
 }
 
 void ImageBiographyCtrl::AddEntry() {
@@ -374,6 +386,8 @@ void ImageBiographyCtrl::SetCurrentImage(Image img) {
 	int entry_i = entries.Get("IDX");
 	BioImage& bimg = by.images[entry_i];
 	
+	TODO
+	#if 0
 	hash_t h = img.GetHashValue();
 	String cache_path = CacheImageFile(h);
 	String thumb_path = ThumbnailImageFile(h);
@@ -400,13 +414,14 @@ void ImageBiographyCtrl::SetCurrentImage(Image img) {
 	}
 	
 	bimg.image_hash = h;
+	#endif
 }
 
 void ImageBiographyCtrl::AnalyseImage() {
-	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
+	
 	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	int cat_i = categories.Get("IDX");
@@ -420,6 +435,8 @@ void ImageBiographyCtrl::AnalyseImage() {
 	if (!bimg.image_hash)
 		return;
 	
+	TODO
+	#if 0
 	String path = CacheImageFile(bimg.image_hash);
 	if (!FileExists(path))
 		path = ThumbnailImageFile(bimg.image_hash);
@@ -430,7 +447,7 @@ void ImageBiographyCtrl::AnalyseImage() {
 	if (jpeg.IsEmpty())
 		return;
 	
-	TaskMgr& m = TaskMgr::Single();
+	TaskMgr& m = AiTaskManager();
 	
 	VisionArgs args;
 	args.fn = 0;
@@ -445,6 +462,7 @@ void ImageBiographyCtrl::AnalyseImage() {
 			OnValueChange();
 		});
 	});
+	#endif
 }
 
 
@@ -511,6 +529,8 @@ void ImageViewerCtrl::Clear() {
 }
 
 void ImageViewerCtrl::Menu(Bar& menu) {
+	TODO
+	#if 0
 	menu.Add("Save Image as", [this]() {
 		String file = SelectFileSaveAs("*.jpg\n*.*");
 		
@@ -523,11 +543,132 @@ void ImageViewerCtrl::Menu(Bar& menu) {
 	menu.Add("Copy image to clipboard", [this]() {
 		WriteClipboardImage(img);
 	});
+	#endif
 }
 
 void ImageViewerCtrl::RightDown(Point p, dword keyflags) {
 	MenuBar::Execute(THISBACK(Menu));
 }
 
+
+
+
+
+
+
+
+
+
+
+ImageBiographyProcess::ImageBiographyProcess() {
+	
+}
+
+int ImageBiographyProcess::GetPhaseCount() const {
+	return PHASE_COUNT;
+}
+
+int ImageBiographyProcess::GetBatchCount(int phase) const {
+	switch (phase) {
+		case PHASE_ANALYZE_IMAGE_BIOGRAPHY:			return max(1, vision_tasks.GetCount());
+		default: return 1;
+	}
+}
+
+int ImageBiographyProcess::GetSubBatchCount(int phase, int batch) const {
+	return 1;
+}
+
+void ImageBiographyProcess::DoPhase() {
+	switch (phase) {
+		case PHASE_ANALYZE_IMAGE_BIOGRAPHY:			ProcessAnalyzeImageBiography(); return;
+		default: return;
+	}
+}
+
+ImageBiographyProcess& ImageBiographyProcess::Get(Profile& p, BiographySnapshot& snap) {
+	static ArrayMap<String, ImageBiographyProcess> arr;
+	
+	TODO
+	#if 0
+	String key = "PROFILE(" + p.name + "), REVISION(" + IntStr(snap.revision) + ")";
+	ImageBiographyProcess& ts = arr.GetAdd(key);
+	ts.owner = p.owner;
+	ts.profile = &p;
+	ts.snap = &snap;
+	ASSERT(ts.owner);
+	return ts;
+	#endif
+	return Single<ImageBiographyProcess>();
+}
+
+void ImageBiographyProcess::TraverseVisionTasks() {
+	TODO
+	#if 0
+	Biography& biography = snap->data;
+	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
+		BiographyCategory& bcat = biography.GetAdd(*owner, i);
+		for(int j = 0; j < bcat.years.GetCount(); j++) {
+			BioYear& by = bcat.years[j];
+			
+			for(int k = 0; k < by.images.GetCount(); k++) {
+				BioImage& bimg = by.images[k];
+				if (phase == PHASE_ANALYZE_IMAGE_BIOGRAPHY && bimg.image_text.IsEmpty() && bimg.image_hash != 0) {
+					String path = CacheImageFile(bimg.image_hash);
+					if (!FileExists(path))
+						path = ThumbnailImageFile(bimg.image_hash);
+					String jpeg = LoadFile(path);
+					if (!jpeg.IsEmpty()) {
+						VisionTask& t = vision_tasks.Add();
+						t.bimg = &bimg;
+						t.jpeg = jpeg;
+					}
+				}
+			}
+		}
+	}
+	#endif
+}
+
+void ImageBiographyProcess::ProcessAnalyzeImageBiography() {
+	TODO
+	#if 0
+	
+	if (batch == 0) {
+		vision_tasks.Clear();
+		TraverseVisionTasks();
+	}
+	
+	if (batch >= vision_tasks.GetCount()) {
+		NextPhase();
+		return;
+	}
+	
+	const VisionTask& t = vision_tasks[batch];
+	
+	VisionArgs args;
+	args.fn = 0;
+	
+	SetWaiting(1);
+	TaskMgr& m = TaskMgr::Single();
+	m.GetVision(t.jpeg, args, THISBACK(OnProcessAnalyzeImageBiography));
+	
+	#endif
+}
+
+void ImageBiographyProcess::OnProcessAnalyzeImageBiography(String res) {
+	const VisionTask& t = vision_tasks[batch];
+	
+	String& s = t.bimg->image_text;
+	s = TrimBoth(res);
+	if (s.Left(1) == "\"") s = s.Mid(1);
+	if (s.Right(1) == "\"") s = s.Left(s.GetCount()-1);
+	
+	TODO
+	#if 0
+	NextBatch();
+	SetWaiting(0);
+	#endif
+}
 
 END_UPP_NAMESPACE

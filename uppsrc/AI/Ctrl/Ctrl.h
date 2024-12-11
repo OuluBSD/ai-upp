@@ -12,7 +12,7 @@
 #include "Entity.h"
 #include "Env.h"
 
-#include "Human.h"
+#include "Owner.h"
 #include "Profile.h"
 #include "Artist.h"
 
@@ -35,6 +35,7 @@
 #include "Messaging.h"
 #include "Needs.h"
 #include "Marketplace.h"
+#include "Reasoning.h"
 
 #include "LeadWebsites.h"
 #include "LeadTemplates.h"

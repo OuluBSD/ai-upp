@@ -7,6 +7,264 @@ struct FileAnnotation;
 
 NAMESPACE_UPP
 
+struct NodeVisitor {
+	JsonIO* json = 0;
+	Stream* stream = 0;
+	CombineHash hash;
+	int mode = -1;
+	int file_ver = -1;
+	bool skip = false;
+	enum {MODE_JSON, MODE_STREAM, MODE_HASH};
+	bool storing = false;
+	
+	typedef NodeVisitor CLASSNAME;
+	NodeVisitor(JsonIO& j) {json = &j; mode = MODE_JSON; storing = j.IsStoring();}
+	NodeVisitor(Stream& s) {stream = &s; mode = MODE_STREAM; storing = s.IsStoring();}
+	NodeVisitor(hash_t) {mode = MODE_HASH; storing = true;}
+	template <class T> void DoHash(T& o) {hash.Do(o);}
+	template <> void DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
+	template <> void DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}
+	bool IsLoading() const {return !storing;}
+	bool IsStoring() const {return storing;}
+	bool IsHashing() const {return mode == MODE_HASH;}
+	
+	
+	
+	template<class T>
+	NodeVisitor& Visit(const char* key, T& o) {
+		if      (mode == MODE_STREAM) o.Visit(*this);
+		else if (mode == MODE_JSON) json->Var(key, o, THISBACK(VisitMapItem<T>));
+		else if (mode == MODE_HASH) o.Visit(*this);
+		return *this;
+	}
+	
+	
+	template<class T>
+	void VisitVectorSerialize(T& o) {
+		Ver(1)(1);
+		int count = o.GetCount();
+		(*stream) / count;
+		if (storing)
+			o.SetCount(count);
+		for (auto& v : o)
+			v.Visit(*this);
+	}
+	template<class T>
+	void VisitArrayItem(JsonIO& j, T& o) {
+		ASSERT(json == &j);
+		o.Visit(*this);
+	}
+	template<class T>
+	void VisitVectorJson(const char* key, T& o) {
+		json->Array(key, o, THISBACK(VisitArrayItem<T::value_type>));
+	}
+	template<class T>
+	void VisitVectorHash(T& o) {
+		hash.Put(o.GetCount());
+		for (auto& v : o)
+			v.Visit(*this);
+	}
+	
+	template<class T>
+	NodeVisitor& VisitVector(const char* key, T& o) {
+		if      (mode == MODE_STREAM) VisitVectorSerialize<T>(o);
+		else if (mode == MODE_JSON) VisitVectorJson<T>(key, o);
+		else if (mode == MODE_HASH) VisitVectorHash<T>(o);
+		return *this;
+	}
+	
+	
+	
+	template<class T>
+	void VisitVectorVectorSerialize(T& o) {
+		Ver(1)(1);
+		int count = o.GetCount();
+		(*stream) / count;
+		if (storing)
+			o.SetCount(count);
+		for (auto& v : o)
+			VisitVectorSerialize(v);
+	}
+	template<class T>
+	void VisitVectorVectorItem(JsonIO& j, T& o) {
+		JsonizeArray(j, o, THISBACK(VisitArrayItem<T::value_type>));
+	}
+	template<class T>
+	void VisitVectorVectorJson(const char* key, T& o) {
+		json->Array(key, o, THISBACK(VisitVectorVectorItem<T::value_type>));
+	}
+	template<class T>
+	void VisitVectorVectorHash(T& o) {
+		hash.Put(o.GetCount());
+		for (auto& v : o)
+			VisitVectorHash(v);
+	}
+	
+	template<class T>
+	NodeVisitor& VisitVectorVector(const char* key, T& o) {
+		if      (mode == MODE_STREAM) VisitVectorVectorSerialize<T>(o);
+		else if (mode == MODE_JSON) VisitVectorVectorJson<T>(key, o);
+		else if (mode == MODE_HASH) VisitVectorVectorHash<T>(o);
+		return *this;
+	}
+	
+	
+	
+	template<class T>
+	void VisitMapSerialize(T& o) {
+		using KeyType = decltype(o.PopKey());
+		Ver(1)(1);
+		int count = o.GetCount();
+		(*stream) / count;
+		if (storing) {
+			for (auto it : ~o) {
+				*stream / const_cast<KeyType&>(it.key);
+				it.value.Visit(*this);
+			}
+		}
+		else {
+			o.Clear();
+			for(int i = 0; i < count; i++) {
+				KeyType key;
+				*stream / key;
+				o.Add(key).Visit(*this);
+			}
+		}
+	}
+	template<class T>
+	void VisitMapItem(JsonIO& j, T& o) {
+		ASSERT(json == &j);
+		o.Visit(*this);
+	}
+	template<class T>
+	void VisitMapJson(String key, T& o) {
+		using KeyType = decltype(o.PopKey());
+		int count = o.GetCount();
+		(*json)(key + ".count", count);
+		int i = 0;
+		if (storing) {
+			for (auto it : ~o) {
+				String k = key + "[" + IntStr(i++) + "]";
+				(*json)(k + ".k", const_cast<KeyType&>(it.key));
+				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<T::value_type>));
+			}
+		}
+		else {
+			for (auto it : ~o) {
+				String k = key + "[" + IntStr(i++) + "]";
+				KeyType kt;
+				(*json)(k + ".k", kt);
+				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<T::value_type>));
+			}
+		}
+	}
+	template<class T>
+	void VisitMapHash(T& o) {
+		hash.Put(o.GetCount());
+		for (auto& v : o)
+			v.Visit(*this);
+	}
+	template<class T>
+	NodeVisitor& VisitMap(const char* key, T& o) {
+		if      (mode == MODE_STREAM) VisitMapSerialize<T>(o);
+		else if (mode == MODE_JSON) VisitMapJson<T>(key, o);
+		else if (mode == MODE_HASH) VisitMapHash<T>(o);
+		return *this;
+	}
+	
+	
+	
+	template<class T>
+	void VisitMapKVSerialize(T& o) {
+		using KeyType = decltype(o.PopKey());
+		Ver(1)(1);
+		int count = o.GetCount();
+		(*stream) / count;
+		if (storing) {
+			for (auto it : ~o) {
+				const_cast<KeyType&>(it.key).Visit(*this);
+				it.value.Visit(*this);
+			}
+		}
+		else {
+			o.Clear();
+			for(int i = 0; i < count; i++) {
+				KeyType key;
+				key.Visit(*this);
+				o.Add(key).Visit(*this);
+			}
+		}
+	}
+	template<class T>
+	void VisitMapKVItem(JsonIO& j, T& o) {
+		ASSERT(json == &j);
+		o.Visit(*this);
+	}
+	template<class T>
+	void VisitMapKVJson(String key, T& o) {
+		using KeyType = decltype(o.PopKey());
+		int count = o.GetCount();
+		(*json)(key + ".count", count);
+		int i = 0;
+		if (storing) {
+			for (auto it : ~o) {
+				String k = key + "[" + IntStr(i++) + "]";
+				json->Var(k + ".k", const_cast<KeyType&>(it.key), THISBACK(VisitMapItem<KeyType>));
+				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<T::value_type>));
+			}
+		}
+		else {
+			for (auto it : ~o) {
+				String k = key + "[" + IntStr(i++) + "]";
+				KeyType kt;
+				json->Var(k + ".k", kt, THISBACK(VisitMapItem<KeyType>));
+				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<T::value_type>));
+			}
+		}
+	}
+	template<class T>
+	void VisitMapKVHash(T& o) {
+		hash.Put(o.GetCount());
+		for (auto& v : o)
+			v.Visit(*this);
+	}
+	template<class T>
+	NodeVisitor& VisitMapKV(const char* key, T& o) {
+		if      (mode == MODE_STREAM) VisitMapKVSerialize<T>(o);
+		else if (mode == MODE_JSON) VisitMapKVJson<T>(key, o);
+		else if (mode == MODE_HASH) VisitMapKVHash<T>(o);
+		return *this;
+	}
+	
+	
+	
+	NodeVisitor& Ver(int version) {
+		if (mode != MODE_STREAM) return *this;
+		*stream % version;
+		file_ver = version;
+		skip = false;
+		return *this;
+	}
+	NodeVisitor& operator()(int version) {
+		if (mode != MODE_STREAM) return *this;
+		skip = file_ver < version;
+		return *this;
+	}
+	template <class T> NodeVisitor& operator()(const char* key, T& o) {
+		if (skip) return *this;
+		switch (mode) {
+			case MODE_JSON: (*json)(key,o); return *this;
+			case MODE_STREAM: *stream % o; return *this;
+			case MODE_HASH: DoHash<T>(o); return *this;
+			default: return *this;
+		}
+	}
+	
+	
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int) {return VisitVector(key, o);}
+};
+
+
 bool MakeRelativePath(const String& includes, const String& dir, String& best_ai_dir, String& best_rel_dir);
 Vector<String> FindParentUppDirectories(const String& dir);
 
@@ -84,14 +342,14 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	
 	MetaNodeExt(MetaNode& n) : node(n) {}
 	virtual ~MetaNodeExt() {}
-	virtual void Serialize(Stream& s) = 0;
-	virtual void Jsonize(JsonIO& json) = 0;
-	virtual hash_t GetHashValue() const = 0;
+	virtual void Visit(NodeVisitor& s) = 0;
 	virtual String GetName() const {return String();}
+	hash_t GetHashValue() const;
 	
 	void CopyFrom(const MetaNodeExt& e);
 	bool operator==(const MetaNodeExt& e) const;
-	
+	void Serialize(Stream& s);
+	void Jsonize(JsonIO& json);
 };
 
 struct MetaExtCtrl : Ctrl {
@@ -420,7 +678,7 @@ struct MetaEnvironment {
 	void RefreshNodePtrs(MetaNode& n);
 	void MergeVisitPost(MetaNode& n);
 	MetaNode* FindDeclaration(const MetaNode& n);
-	MetaNode* FindTypeDeclaration(unsigned type_hash);
+	MetaNode* FindTypeDeclaration(hash_t type_hash);
 	Vector<MetaNode*> FindDeclarationsDeep(const MetaNode& n);
 	bool MergeResolver(ClangTypeResolver& ctr);
 	hash_t RealizeTypePath(const String& path);

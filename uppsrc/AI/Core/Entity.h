@@ -64,10 +64,7 @@ struct Component : MetaNodeExt {
 
 #define COMPONENT_CONSTRUCTOR_(x) x(MetaNode& n) : Component(n)
 #define COMPONENT_CONSTRUCTOR(x) COMPONENT_CONSTRUCTOR_(x) {}
-#define COMPONENT_OVERRIDE_TODO \
-	void Serialize(Stream& s) override {TODO} \
-	void Jsonize(JsonIO& json) override {TODO} \
-	hash_t GetHashValue() const override {TODO}
+#define COMPONENT_OVERRIDE_TODO void Visit(NodeVisitor& s) override {TODO}
 #define METANODE_EXT_CONSTRUCTOR_(x) x(MetaNode& n) : MetaNodeExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
 
@@ -75,12 +72,8 @@ struct Entity : MetaNodeExt {
 	VectorMap<String, Value> data;
 	
 	METANODE_EXT_CONSTRUCTOR(Entity)
-	void Clear() {
-		data.Clear();
-	}
-	void Serialize(Stream& s) override {s % data; }
-	void Jsonize(JsonIO& json) override {json("data", data); }
-	hash_t GetHashValue() const override {CombineHash ch; ch.Do(data); return ch;}
+	void Clear() {data.Clear();}
+	void Visit(NodeVisitor& v) override {v.Ver(1)(1)("data",data);}
 	Value& Data(const String& key) {return data.GetAdd(key);}
 	int GetGender() const;
 	

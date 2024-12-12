@@ -16,14 +16,15 @@ void LeadDataTemplate::Store() {
 }
 #endif
 
-void LeadDataTemplate::Jsonize(JsonIO& json) {
-	json		("templates", templates)
-				("author_classes", author_classes)
-				("author_specialities", author_specialities)
-				("profit_reasons", profit_reasons)
-				("organizational_reasons", organizational_reasons)
-				("publishers", publishers)
-				;
+void LeadDataTemplate::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("templates", templates, 0)
+		("author_classes", author_classes)
+		("author_specialities", author_specialities)
+		("profit_reasons", profit_reasons)
+		("organizational_reasons", organizational_reasons)
+		("publishers", publishers, 0)
+		;
 }
 
 INITIALIZER_COMPONENT(LeadDataTemplate)

@@ -454,9 +454,7 @@ struct SrcTxtHeader : MetaNodeExt {
 	int64 size = 0;
 	String sha1;
 	Vector<String> files;
-	void Serialize(Stream& s) override {s % written % size % sha1 % files;}
-	void Jsonize(JsonIO& o) override {o("written",written)("size",size)("sha1",sha1)("files",files);}
-	hash_t GetHashValue() const override {return sha1.GetHashValue();}
+	void Visit(NodeVisitor& v) override {v.Ver(1)(1)("written",written)("size",size)("sha1",sha1)("files",files);}
 	String GetName() const override {return "Source Database";}
 	
 	String filepath;

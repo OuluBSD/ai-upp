@@ -1153,7 +1153,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		}
 	}
 
-	dword old_serial = n0.serial;
+	hash_t old_serial = n0.serial;
 	if(mode == MERGEMODE_KEEP_OLD) {
 		if(n0.serial > n1.serial && !n0.IsFieldsSame(n1)) {
 			n0.CopyFieldsFrom(n1);
@@ -1185,7 +1185,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		for(auto& pri : pri_subs) {
 			if(pri.ready && pri.match) {
 				MetaNode& s0 = const_cast<MetaNode&>(*pri.n);
-				dword old_sub_serial = s0.serial;
+				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *pri.match, mode);
 				scope.Remove(scope.GetCount() - 1);
@@ -1200,7 +1200,7 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		for(auto& sec : sec_subs) {
 			if(sec.ready && sec.match) {
 				MetaNode& s0 = const_cast<MetaNode&>(*sec.n);
-				dword old_sub_serial = s0.serial;
+				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *sec.match, mode);
 				scope.Remove(scope.GetCount() - 1);
@@ -2024,7 +2024,7 @@ Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n)
 	return v;
 }
 
-MetaNode* MetaEnvironment::FindTypeDeclaration(unsigned type_hash)
+MetaNode* MetaEnvironment::FindTypeDeclaration(hash_t type_hash)
 {
 	if(!type_hash)
 		return 0;
@@ -2048,7 +2048,7 @@ bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr)
 	auto& translation = ctr.GetTypeTranslation();
 
 	for(int i = 0; i < scope_paths.GetCount(); i++) {
-		unsigned src_hash = scope_paths.GetKey(i);
+		hash_t src_hash = scope_paths.GetKey(i);
 		const Index<String>& idx = scope_paths[i];
 		String path = idx[0];
 		hash_t dst_hash = RealizeTypePath(path);
@@ -2130,14 +2130,32 @@ int MetaExtFactory::FindKindFactory(int kind) {
 void MetaNodeExt::CopyFrom(const MetaNodeExt& e) {
 	StringStream s;
 	s.SetStoring();
-	const_cast<MetaNodeExt&>(e).Serialize(s); // reading
+	NodeVisitor read(s);
+	const_cast<MetaNodeExt&>(e).Visit(read); // reading
 	s.SetLoading();
 	s.Seek(0);
-	Serialize(s);
+	NodeVisitor write(s);
+	Visit(write);
 }
 
 bool MetaNodeExt::operator==(const MetaNodeExt& e) const {
 	return GetHashValue() == e.GetHashValue();
+}
+
+hash_t MetaNodeExt::GetHashValue() const {
+	NodeVisitor vis(0);
+	const_cast<MetaNodeExt*>(this)->Visit(vis);
+	return vis.hash;
+}
+
+void MetaNodeExt::Serialize(Stream& s){
+	NodeVisitor vis(s);
+	const_cast<MetaNodeExt*>(this)->Visit(vis);
+}
+
+void MetaNodeExt::Jsonize(JsonIO& json){
+	NodeVisitor vis(json);
+	const_cast<MetaNodeExt*>(this)->Visit(vis);
 }
 
 END_UPP_NAMESPACE

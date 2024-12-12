@@ -46,20 +46,10 @@ struct Release : Component
 	void LoadTitle(Entity& e, String title);
 	Component& GetAddComponent(String name);
 	//Component& RealizeReversed(Component& s);
-	void Serialize(Stream& s) override {
-		s	% title
-			% date
-			% data
-			% ideas
-			% year_of_content
-			% lyric_summaries
-			% song_analysis
-			% analysis
-			% cover_suggestions;
-	}
-	void Jsonize(JsonIO& json) override {
-		json
-			("title", title)
+	
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("title", title)
 			("date", date)
 			("data", data)
 			("ideas", ideas)
@@ -95,7 +85,6 @@ struct Release : Component
 		return a.title < b.title;
 	}
 	
-	hash_t GetHashValue() const override {TODO; return 0;}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_RELEASE;}
 	
 	

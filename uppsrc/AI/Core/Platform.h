@@ -17,9 +17,11 @@ struct Platform : Component {
 	
 	Platform& operator << (const char* fn) {functions << fn; return *this;}
 	
-	void Jsonize(JsonIO& json) override {TODO}
-	void Serialize(Stream& s) override {TODO}
-	hash_t GetHashValue() const override {TODO; return 0;}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1);
+		TODO;
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM;}
 	
 	/*String name;
@@ -66,9 +68,9 @@ struct PlatformComment {
 	int GetTotalComments() const;
 	void ClearMerged();
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("user", user)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("user", user)
 			("orig_message", orig_message)
 			("message", message)
 			("keywords", keywords)
@@ -76,7 +78,7 @@ struct PlatformComment {
 			("tms", text_merged_status)
 			("published", published)
 			("generate", generate)
-			("responses", responses)
+			.VisitVector("responses", responses)
 			;
 	}
 };
@@ -87,11 +89,11 @@ struct PlatformThread {
 	
 	int GetTotalComments() const;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("user", user)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("user", user)
 			("title", title)
-			("comments", comments)
+			.VisitVector("comments", comments)
 			;
 	}
 };
@@ -100,9 +102,9 @@ struct PlatformEntry {
 	Array<PlatformThread> threads;
 	String title, subforum;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("threads", threads)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVector("threads", threads)
 			("title", title)
 			("subforum", subforum)
 			;
@@ -114,9 +116,9 @@ struct PlatformData {
 	
 	
 	int GetTotalEntryCount() const;
-	void Jsonize(JsonIO& json) {
-		json
-			("entries", entries)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVector("entries", entries)
 			;
 	}
 };
@@ -128,7 +130,7 @@ struct ProfileData {
 	Profile* profile = 0;
 	
 	
-	void Jsonize(JsonIO& json);
+	void Visit(NodeVisitor& v);
 	void Load();
 	void Store();
 	
@@ -146,11 +148,11 @@ struct PlatformAnalysis {
 	VectorMap<String,PlatformAnalysisPhoto> epk_photos;
 	
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("roles", roles)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("roles", roles)
 			("epk_text_fields", epk_text_fields)
-			("epk_photos", epk_photos)
+			.VisitMap("epk_photos", epk_photos)
 			;
 	}
 	

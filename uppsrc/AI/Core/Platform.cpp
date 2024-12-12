@@ -1140,9 +1140,9 @@ const Vector<Platform>& GetPlatforms() {
 }
 #endif
 
-void ProfileData::Jsonize(JsonIO& json) {
-	json
-		("platforms", platforms)
+void ProfileData::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	.VisitVector("platforms", platforms)
 		;
 }
 

@@ -347,7 +347,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 	const String type = n.type;
 	Point begin = n.begin;
 	Point end = n.end;
-	unsigned type_hash = n.type_hash;
+	hash_t type_hash = n.type_hash;
 	
 	bool is_namespace	= n.kind == CXCursor_Namespace;
 	bool is_struct		= n.kind == CXCursor_StructDecl;
@@ -1002,7 +1002,7 @@ bool AITask::HasInputLink(const MetaNode& n, bool is_dep) const {
 	return false;
 }
 
-bool AITask::HasDepType(unsigned type_hash) const {
+bool AITask::HasDepType(hash_t type_hash) const {
 	for (const auto& in : relations) {
 		if (in.is_dependency && in.type_hash && in.type_hash == type_hash)
 			return true;

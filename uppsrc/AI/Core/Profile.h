@@ -15,9 +15,9 @@ struct Profile : Component
 	BiographySnapshot* FindSnapshotRevision(int i);
 	
 	Profile(MetaNode& owner) : Component(owner) {}
-	void Serialize(Stream& s) override {Panic("TODO");}
-	void Jsonize(JsonIO& json) override {
-		json
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)
 			("name", name)
 			("begin", begin)
 			("biography", biography)
@@ -25,7 +25,6 @@ struct Profile : Component
 			("languages", languages)
 			//("snapshots", snapshots)
 			;
-		TODO
 		#if 0
 		if (json.IsLoading() && snapshots.IsEmpty()) {
 			auto& s = snapshots.Add();
@@ -37,7 +36,6 @@ struct Profile : Component
 		}
 		#endif
 	}
-	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
 	
 	Owner* GetOwner() const; // TODO rename
 	

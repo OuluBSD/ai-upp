@@ -10,9 +10,7 @@ struct ImageLayer : Component {
 	~ImageLayer(){}
 	String StoreString();
 	void LoadString(const String& bz_enc);
-	void Serialize(Stream& s);
-	void Jsonize(JsonIO& json);
-	hash_t GetHashValue() const;
+	void Visit(NodeVisitor& v) override;
 	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_LAYER;}
 };
 
@@ -23,9 +21,7 @@ struct TempImageLayer : Component {
 	
 	TempImageLayer(MetaNode& owner) : Component(owner) {}
 	~TempImageLayer(){}
-	void Serialize(Stream& s) {} // do nothing
-	void Jsonize(JsonIO& json) {}
-	hash_t GetHashValue() const {return 0;}
+	void Visit(NodeVisitor& v) override {}
 };
 
 struct ImageGenLayer : TempImageLayer {

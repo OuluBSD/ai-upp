@@ -16,8 +16,9 @@ struct LeadTemplate {
 	Index<int> organizational_reasons;
 	
 	
-	void Jsonize(JsonIO& json) {
-		json	("hash", (int64&)hash)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)		("hash", (int64&)hash)
 				("lng", orig_lead_lng)
 				("idx", orig_lead_idx)
 				("title", title)
@@ -36,8 +37,9 @@ struct LeadDataPublisher {
 	String genres, url;
 	Vector<String> artists;
 	
-	void Jsonize(JsonIO& json) {
-		json	("name", name)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)		("name", name)
 				("info", info)
 				("genres", genres)
 				("url", url)
@@ -59,9 +61,7 @@ struct LeadDataTemplate : Component {
 	void Load();
 	void Store();
 	//LeadOpportunity& GetAddOpportunity(int leadsite, String id);
-	void Jsonize(JsonIO& json) override;
-	void Serialize(Stream& s) override {TODO}
-	hash_t GetHashValue() const override {TODO; return 0;}
+	void Visit(NodeVisitor& json) override;
 	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_TEMPLATE;}
 	
 	

@@ -12,9 +12,9 @@ struct BioImage {
 	int time_accuracy = TIME_ACCURACY_NONE;
 	int64 image_hash = 0;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("keywords", keywords)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("keywords", keywords)
 			("text", text)
 			("native_text", native_text)
 			("image_keywords", image_keywords)
@@ -36,7 +36,7 @@ struct BioRange : Moveable<BioRange> {
 	void operator=(const BioRange& r) {off = r.off; len = r.len;}
 	hash_t GetHashValue() const {CombineHash c; c.Do(off).Do(len); return c;}
 	bool operator==(const BioRange& r) const {return r.off == off && r.len == len;}
-	void Jsonize(JsonIO& json) {json("off", off)("len", len);}
+	void Visit(NodeVisitor& v) {v("off", off)("len", len);}
 	bool operator()(const BioRange& a, const BioRange& b) const {
 		int a0 = a.off + a.len - 1; // last item in range
 		int b0 = b.off + b.len - 1;
@@ -50,7 +50,7 @@ struct BioYear {
 	struct Element : Moveable<Element> {
 		String key, value;
 		byte scores[SCORE_COUNT] = {0,0,0,0,0, 0,0,0,0,0};
-		void Jsonize(JsonIO& json) {json("k",key)("v",value); for(int i = 0; i < SCORE_COUNT; i++) json("s" + IntStr(i),scores[i]);}
+		void Visit(NodeVisitor& v) {v("k",key)("v",value); for(int i = 0; i < SCORE_COUNT; i++) v("s" + IntStr(i),scores[i]);}
 		void ResetScore() {memset(scores, 0, sizeof(scores));}
 		double GetAverageScore() const;
 	};
@@ -62,16 +62,16 @@ struct BioYear {
 	Vector<Element> elements;
 	hash_t source_hash = 0;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("year", year)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("year", year)
 			("keywords", keywords)
 			("native_text", native_text)
 			("text", text)
-			("images", images)
-			("image_summaries", image_summaries)
+		.VisitVector("images", images)
+		.VisitMapKV("image_summaries", image_summaries)
 			("image_text", image_text)
-			("elements", elements)
+		.VisitVector("elements", elements)
 			("source_hash", (int64&)source_hash)
 			;
 	}
@@ -86,18 +86,16 @@ struct BioYear {
 
 
 struct BiographyCategory {
-	
 	Array<BioYear> years;
 	ArrayMap<BioRange,BioYear> summaries;
 	
 	
-	
 	BiographyCategory() {}
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("years", years)
-			("summaries", summaries)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVector("years", years)
+			.VisitMapKV("summaries", summaries)
 			;
 	}
 	BioYear& GetAdd(int year);
@@ -126,16 +124,14 @@ public:
 		}
 	};
 	
-	void Jsonize(JsonIO& json) override {
-		json
-			("categories", categories)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitMap("categories", categories)
 			;
-		if (json.IsLoading()) {
+		if (v.IsLoading()) {
 			Sort();
 		}
 	}
-	void Serialize(Stream& s) override {TODO}
-	hash_t GetHashValue() const override {TODO return 0;}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY;}
 	
 	BiographyCategory& GetAdd(Owner& o, int enum_);
@@ -168,9 +164,9 @@ struct PhotoPrompt : Moveable<PhotoPrompt> {
 	String prompt;
 	Vector<String> instructions;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("prompt", prompt)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("prompt", prompt)
 			("instructions", instructions)
 			;
 	}
@@ -183,10 +179,10 @@ struct PlatformAnalysisPhoto : Moveable<PlatformAnalysisPhoto> {
 	String description;
 	Array<PhotoPrompt> prompts;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("description", description)
-			("prompts", prompts)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("description", description)
+			.VisitVector("prompts", prompts)
 			;
 	}
 };
@@ -199,29 +195,28 @@ struct PlatformBiographyAnalysis {
 	bool platform_enabled = false;
 	ArrayMap<String,PlatformAnalysisPhoto> epk_photos;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("packed_reactions", packed_reactions)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("packed_reactions", packed_reactions)
 			("profile_description_from_biography", profile_description_from_biography)
 			("platform_enabled", platform_enabled)
-			("epk_photos", epk_photos)
+			.VisitMap("epk_photos", epk_photos)
 			;
 		for(int i = 0; i < PLATDESC_LEN_COUNT; i++) {
 			for(int j = 0; j < PLATDESC_MODE_COUNT; j++) {
 				String key = GetPlatformDescriptionModeKey(j) + "_" + GetPlatformDescriptionLengthKey(i);
-				json(key, descriptions[i][j]);
+				v(key, descriptions[i][j]);
 			}
 		}
 	}
 };
 
 struct BiographyRoleAnalysis {
-	
 	Vector<String> merged_biography_reactions;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("merged_biography_reactions", merged_biography_reactions)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("merged_biography_reactions", merged_biography_reactions)
 			;
 	}
 	
@@ -232,15 +227,15 @@ struct BiographyProfileAnalysis {
 		int year, category;
 		String text, keywords;
 		double score[BIOSCORE_COUNT] = {0,0,0,0};
-		void Jsonize(JsonIO& json) {
-			json
-				("year", year)
+		void Visit(NodeVisitor& v) {
+			v.Ver(1)
+			(1)	("year", year)
 				("cat", category)
 				("txt", text)
 				("keyw", keywords)
 				;
 			for(int i = 0; i < BIOSCORE_COUNT; i++)
-				json("sc" + IntStr(i), score[i]);
+				v("sc" + IntStr(i), score[i]);
 		}
 	};
 	
@@ -248,9 +243,9 @@ struct BiographyProfileAnalysis {
 	VectorMap<int, String> categories;
 	String biography_reaction;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("responses", responses)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVector("responses", responses)
 			("categories", categories)
 			("biography_reaction", biography_reaction)
 			;
@@ -262,9 +257,9 @@ struct PhotoPromptGroupAnalysis {
 	int image_count = 0;
 	String prompt;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("cluster_centers", cluster_centers)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVector("cluster_centers", cluster_centers)
 			("image_count", image_count)
 			("prompt", prompt)
 			;
@@ -285,12 +280,12 @@ struct BiographyAnalysis  {
 	
 	void Realize();
 	void RealizePromptImageTypes();
-	void Jsonize(JsonIO& json) {
-		json
-			("profiles", profiles)
-			("roles", roles)
-			("platforms", platforms)
-			("image_types", image_types)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	.VisitVectorVector("profiles", profiles)
+			.VisitVector("roles", roles)
+			.VisitVector("platforms", platforms)
+			.VisitMap("image_types", image_types)
 			;
 	}
 	void Serialize(Stream& s) {TODO}
@@ -317,8 +312,12 @@ struct ConceptStory : Moveable<ConceptStory> {
 		String key, value;
 		Color clr;
 		byte scores[SCORE_COUNT] = {0,0,0,0,0, 0,0,0,0,0};
-		void Serialize(Stream& s) {s % key % value % clr; for(int i = 0; i < SCORE_COUNT; i++) s % scores[i];}
-		void Jsonize(JsonIO& json) {json("k",key)("v",value)("clr",clr); for(int i = 0; i < SCORE_COUNT; i++) json("s" + IntStr(i),scores[i]);}
+		void Visit(NodeVisitor& v) {
+			v.Ver(1)
+			(1)	("k",key)("v",value)("clr",clr);
+			for(int i = 0; i < SCORE_COUNT; i++)
+				v("s" + IntStr(i),scores[i]);
+		}
 		void ResetScore() {memset(scores, 0, sizeof(scores));}
 		double GetAverageScore() const;
 	};
@@ -335,23 +334,17 @@ struct ConceptStory : Moveable<ConceptStory> {
 	
 	int FindElement(const String& key) const;
 	int FindImprovedElement(const String& key) const;
-	void Serialize(Stream& s) {
-		s % hash % desc % elements % src;
-		#if USE_IMPROVED_ELEMENTS
-		s % improved_elements;
-		#endif
-	}
-	void Jsonize(JsonIO& json) {
-		json
-			("hash", (int64&)hash)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("hash", (int64&)hash)
 			("desc", desc)
-			("elements", elements)
+			.VisitVector("elements", elements)
 			("src", src)
 			("typeclass", typeclass)
 			("content", content)
 			;
 		#if USE_IMPROVED_ELEMENTS
-		json("improved_elements", improved_elements);
+		v.VisitVector("improved_elements", improved_elements);
 		#endif
 	}
 	
@@ -371,16 +364,13 @@ struct Concept {
 	
 	int FindStory(hash_t h) const;
 	ConceptStory& GetAddStory(hash_t h);
-	void Serialize(Stream& s) {
-		s % belief_uniq % name % snap_rev % created % stories;
-	}
-	void Jsonize(JsonIO& json) {
-		json
-			("belief_uniq", belief_uniq)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("belief_uniq", belief_uniq)
 			("name", name)
 			("snap_rev", snap_rev)
 			("created", created)
-			("stories", stories)
+			.VisitVector("stories", stories)
 			;
 	}
 };
@@ -394,17 +384,15 @@ struct BiographySnapshot : Component {
 	
 	BiographySnapshot(MetaNode& o) : Component(o) {}
 	
-	void Jsonize(JsonIO& json) override {
-		json
-			("revision", revision)
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("revision", revision)
 			("last_modified", last_modified)
 			//("data", data)
-			("analysis", analysis)
-			("concepts", concepts)
+			.Visit("analysis", analysis)
+			.VisitVector("concepts", concepts)
 		;
 	}
-	void Serialize(Stream& s) override {TODO}
-	hash_t GetHashValue() const override {TODO; return 0;}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT;}
 	
 };

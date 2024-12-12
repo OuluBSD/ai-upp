@@ -252,9 +252,10 @@ struct LyricalStructure : Component {
 	
 	LyricalStructure(MetaNode& owner) : Component(owner) {}
 	~LyricalStructure() {}
-	void Serialize(Stream& s) {int v = 1; s % v; if (v >= 1) s % parts;}
-	void Jsonize(JsonIO& json) {json("parts", parts);}
-	hash_t GetHashValue() const {return CombineHash(parts);}
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("parts", parts);
+	}
 	DynPart* FindPartByName(const String& name);
 	void LoadStructuredText(const String& s);
 	void LoadStructuredTextExt(const String& s, bool user_text);
@@ -281,19 +282,15 @@ struct Script : Component {
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Serialize(Stream& s) override {
-		int v = 1; s % v; if (v >= 1) {s % simple_attrs % clr_list % actions_enabled; for(int i = 0; i < PART_COUNT; i++) s % phrase_parts[i];}}
-	void Jsonize(JsonIO& json) override
-	{
-		json("simple_attrs", simple_attrs)
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("simple_attrs", simple_attrs)
 			("clr_list", clr_list)
 			("actions_enabled", actions_enabled)
 			;
 		for(int i = 0; i < PART_COUNT; i++)
-			json("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
+			v("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
 	}
-	hash_t GetHashValue() const override {CombineHash h; h.Do(simple_attrs).Do(clr_list).Do(actions_enabled); for(int i = 0; i < PART_COUNT; i++) h.Do(phrase_parts[i]); return h;}
-	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT;}
 	
 };
@@ -329,25 +326,9 @@ struct Lyrics : Component {
 	
 	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
-	void Serialize(Stream& s) override {
-		int v = 1;
-		s % v;
-		if (v >= 1)
-			s	% name
-				% content_vision
-				% copyright
-				% description
-				% lang
-				% __text
-				% __suggestions
-				% is_unsafe
-				% is_story
-				% is_self_centered
-				;
-	}
-	void Jsonize(JsonIO& json) override
-	{
-		json("name", name)
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("name", name)
 			("content_vision", content_vision)
 			("copyright", copyright)
 			("description", description)
@@ -358,21 +339,6 @@ struct Lyrics : Component {
 			("is_story", is_story)
 			("is_self_centered", is_self_centered)
 			;
-	}
-	hash_t GetHashValue() const override {
-		CombineHash c;
-		c	.Do(name)
-			.Do(content_vision)
-			.Do(copyright)
-			.Do(description)
-			.Do(lang)
-			.Do(__text)
-			.Do(__suggestions)
-			.Do(is_unsafe)
-			.Do(is_story)
-			.Do(is_self_centered)
-			;
-		return c;
 	}
 	String GetText() const;
 	

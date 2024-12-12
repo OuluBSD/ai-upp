@@ -8,9 +8,10 @@ struct ReleaseCoverImage : Component
 {
 	
 	COMPONENT_CONSTRUCTOR(ReleaseCoverImage)
-	void Serialize(Stream& s) override {TODO}
-	void Jsonize(JsonIO& json) override {TODO}
-	hash_t GetHashValue() const override {TODO; return 0;}
+	
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1);	TODO}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_RELEASE_COVER_IMAGE;}
 	
 };

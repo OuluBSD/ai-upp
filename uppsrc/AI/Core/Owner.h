@@ -7,9 +7,9 @@ NAMESPACE_UPP
 struct PlatformNeed {
 	bool enabled = false;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("enabled", enabled)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("enabled", enabled)
 			;
 	}
 };
@@ -19,12 +19,12 @@ struct Need {
 	Vector<String> causes, messages;
 	Array<PlatformNeed> platforms;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("name", name)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("name", name)
 			("causes", causes)
 			("messages", messages)
-			("platforms", platforms)
+			.VisitVector("platforms", platforms)
 			;
 	}
 };
@@ -33,9 +33,9 @@ struct RoleEvent {
 	String text;
 	VectorMap<int,String> entries;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("text", text)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("text", text)
 			("entries", entries)
 			;
 	}
@@ -45,18 +45,18 @@ struct RoleAction {
 	struct NeedCause : Moveable<NeedCause> {
 		int need_i = -1;
 		int cause_i = -1;
-		void Jsonize(JsonIO& json) {json("n", need_i)("c", cause_i);}
+		void Visit(NodeVisitor& v) {v("n", need_i)("c", cause_i);}
 	};
 	String name;
 	Vector<NeedCause> need_causes;
 	Array<RoleEvent> events;
 	
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("name", name)
-			("need_causes", need_causes)
-			("events", events)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("name", name)
+			.VisitVector("need_causes", need_causes)
+			.VisitVector("events", events)
 			;
 	}
 	int FindEvent(const String& event) const;
@@ -68,11 +68,11 @@ struct Role {
 	Array<Need> needs;
 	Array<RoleAction> actions;
 	
-	void Jsonize(JsonIO& json) {
-		json
-			("name", name)
-			("needs", needs)
-			("actions", actions)
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("name", name)
+			.VisitVector("needs", needs)
+			.VisitVector("actions", actions)
 			;
 	}
 	int FindAction(const String& name) const;
@@ -97,10 +97,9 @@ struct Owner : Component
 	void Store();
 	void Load(String name);
 	
-	void Serialize(Stream& s) override {Panic("TODO");}
-	void Jsonize(JsonIO& json) override {
-		json
-			("name", name)
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("name", name)
 			("year_of_birth", year_of_birth)
 			("year_of_hobbyist_begin", year_of_hobbyist_begin)
 			("year_of_career_begin", year_of_career_begin)
@@ -108,11 +107,10 @@ struct Owner : Component
 			("is_guitarist", is_guitarist)
 			("electronic_tools", electronic_tools)
 			//("profiles", profiles)
-			("roles", roles)
+			.VisitVector("roles", roles)
 			//("marketplace", marketplace)
 			;
 	}
-	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_OWNER;}
 	
 	int GetOpportunityScore(const LeadOpportunity& opp) const;

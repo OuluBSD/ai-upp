@@ -60,9 +60,11 @@ struct Marketplace : Component
 	Vector<MarketplaceItem> items;
 	
 	Marketplace(MetaNode& e) : Component(e) {}
-	void Serialize(Stream& s) override {s % items;}
-	void Jsonize(JsonIO& json) override {json("items",items);}
-	hash_t GetHashValue() const override {return CombineHash(items);}
+	
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("items",items);
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_MARKETPLACE;}
 	
 };

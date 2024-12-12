@@ -8,9 +8,10 @@ struct ImageBiographySummary : Component
 {
 	
 	COMPONENT_CONSTRUCTOR(ImageBiographySummary)
-	void Serialize(Stream& s) override {TODO}
-	void Jsonize(JsonIO& json) override {TODO}
-	hash_t GetHashValue() const override {TODO; return 0;}
+	
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1);	TODO}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY_SUMMARY;}
 	
 };

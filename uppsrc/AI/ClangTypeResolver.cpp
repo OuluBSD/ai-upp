@@ -78,7 +78,7 @@ bool ClangTypeResolver::Visit(ClangNode& cn) {
 			}
 		}
 		
-		unsigned used_hash = cn.type_hash;
+		hash_t used_hash = cn.type_hash;
 		type_nodes.GetAdd(used_hash).Add(&cn);
 		
 		if (is_tmpl) {

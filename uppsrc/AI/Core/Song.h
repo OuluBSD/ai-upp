@@ -43,10 +43,9 @@ struct Song : Component
 	void ReloadStructure();
 	String GetAnyTitle(Entity& a) const;
 	
-	void Serialize(Stream& s) override {TODO}
-	void Jsonize(JsonIO& json) override {
-		json
-			("entity", entity)
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("entity", entity)
 			("prj_name", prj_name)
 			("origins", origins)
 			("reference", reference)
@@ -66,10 +65,6 @@ struct Song : Component
 			("part_cursor", part_cursor)
 		#endif
 			;
-	}
-	
-	hash_t GetHashValue() const override {
-		TODO return 0;
 	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}
 	

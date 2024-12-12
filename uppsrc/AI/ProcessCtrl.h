@@ -47,7 +47,7 @@ struct AITask : Moveable<AITask>
 		bool is_dependency = false;
 		String file;
 		Ptr<MetaNode> node, link_node;
-		unsigned type_hash = 0;
+		hash_t type_hash = 0;
 	};
 	
 	CodeVisitor::Item vis;
@@ -59,7 +59,7 @@ struct AITask : Moveable<AITask>
 	bool IsLinked(const AITask& t, const Relation& rel) const;
 	bool HasInput(const MetaNode& n) const;
 	bool HasInputLink(const MetaNode& n, bool is_dep) const;
-	bool HasDepType(unsigned type_hash) const;
+	bool HasDepType(hash_t type_hash) const;
 	bool HasReason(Reason r, Point begin) const;
 	int GetDependencyCount() const;
 	bool operator()(const AITask& a, const AITask& b) const {return a.order < b.order;}

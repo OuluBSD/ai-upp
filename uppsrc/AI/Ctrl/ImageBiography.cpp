@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 ImageBiographyCtrl::ImageBiographyCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << categories << vsplit;
 	hsplit.SetPos(1500, 0);
@@ -670,5 +668,14 @@ void ImageBiographyProcess::OnProcessAnalyzeImageBiography(String res) {
 	SetWaiting(0);
 	#endif
 }
+
+
+
+
+
+
+
+INITIALIZER_COMPONENT(ImageBiography);
+INITIALIZER_COMPONENT_CTRL(ImageBiography, ImageBiographyCtrl)
 
 END_UPP_NAMESPACE

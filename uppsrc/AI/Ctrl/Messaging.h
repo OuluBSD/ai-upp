@@ -4,14 +4,27 @@
 NAMESPACE_UPP
 
 
-class SocialContent : public ToolAppCtrl {
+struct SocialContent : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(SocialContent)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SOCIAL_CONTENT;}
+	
+};
+
+INITIALIZE(SocialContent)
+
+class SocialContentCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit, menusplit, threadsplit;
 	ArrayCtrl platforms, threads, entries, comments;
 	WithSocialEntry<Ctrl> entry;
 	
 public:
-	typedef SocialContent CLASSNAME;
-	SocialContent();
+	typedef SocialContentCtrl CLASSNAME;
+	SocialContentCtrl();
 	
 	void Data() override;
 	void DataPlatform();
@@ -35,6 +48,8 @@ public:
 	void Do(int fn);
 	
 };
+
+INITIALIZE(SocialContentCtrl)
 
 
 END_UPP_NAMESPACE

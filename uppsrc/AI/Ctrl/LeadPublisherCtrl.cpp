@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-LeadPublishers::LeadPublishers() {
+LeadPublisherCtrl::LeadPublisherCtrl() {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << list << vsplit;
@@ -25,11 +25,9 @@ LeadPublishers::LeadPublishers() {
 	artists.AddColumn(t_("Artist"));
 }
 
-void LeadPublishers::Data() {
-	
+void LeadPublisherCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
-	
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	for(int i = 0; i < ldt.publishers.GetCount(); i++) {
 		LeadDataPublisher& ldp = ldt.publishers[i];
@@ -39,10 +37,9 @@ void LeadPublishers::Data() {
 	
 }
 
-void LeadPublishers::DataItem() {
-	
+void LeadPublisherCtrl::DataItem() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	if (!list.IsCursor())
 		return;
@@ -62,24 +59,23 @@ void LeadPublishers::DataItem() {
 	
 }
 
-void LeadPublishers::ToolMenu(Bar& bar) {
+void LeadPublisherCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Paste artist list"), TextImgs::VioletRing(), THISBACK(PasteArtists));
 }
 
-void LeadPublishers::ListMenu(Bar& bar) {
+void LeadPublisherCtrl::ListMenu(Bar& bar) {
 	bar.Add(t_("Add"), TextImgs::BlueRing(), THISBACK(AddPublisher)).Key(K_CTRL_N);
 	if (list.IsCursor())
 		bar.Add(t_("Remove"), TextImgs::BlueRing(), THISBACK(RemovePublisher)).Key(K_CTRL|K_SHIFT|K_W);
 }
 
-void LeadPublishers::Do(int fn) {
+void LeadPublisherCtrl::Do(int fn) {
 	
 }
 
-void LeadPublishers::AddPublisher() {
-	
+void LeadPublisherCtrl::AddPublisher() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	LeadDataPublisher& ldp = ldt.publishers.Add();
 	
@@ -89,13 +85,13 @@ void LeadPublishers::AddPublisher() {
 	list.SetCursor(list.GetCount()-1);
 }
 
-void LeadPublishers::RemovePublisher() {
+void LeadPublisherCtrl::RemovePublisher() {
 	if (!list.IsCursor())
 		return;
 	
 	
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	int idx = list.GetCursor();
 	ldt.publishers.Remove(idx);
@@ -103,10 +99,9 @@ void LeadPublishers::RemovePublisher() {
 	Data();
 }
 
-void LeadPublishers::ValueChange() {
-	
+void LeadPublisherCtrl::ValueChange() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	if (!list.IsCursor())
 		return;
@@ -122,10 +117,9 @@ void LeadPublishers::ValueChange() {
 	list.Set(idx, 0, ldp.name);
 }
 
-void LeadPublishers::PasteArtists() {
-	
+void LeadPublisherCtrl::PasteArtists() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	
 	if (!list.IsCursor())
 		return;
@@ -139,6 +133,9 @@ void LeadPublishers::PasteArtists() {
 	
 	DataItem();
 }
+
+INITIALIZER_COMPONENT(LeadPublisher);
+INITIALIZER_COMPONENT_CTRL(LeadPublisher, LeadPublisherCtrl)
 
 
 END_UPP_NAMESPACE

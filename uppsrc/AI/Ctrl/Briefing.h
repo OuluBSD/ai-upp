@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class SnapBriefing : public ToolAppCtrl {
+class ReleaseBriefingCtrl : public ComponentCtrl {
 	WithKeyValueList<Ctrl> values;
 	ArrayCtrl list;
 	Splitter vsplit;
@@ -37,14 +37,17 @@ class SnapBriefing : public ToolAppCtrl {
 	};
 	
 public:
-	typedef SnapBriefing CLASSNAME;
-	SnapBriefing();
+	typedef ReleaseBriefingCtrl CLASSNAME;
+	ReleaseBriefingCtrl();
 	
 	void Data() override;
+	void ToolMenu(Bar& bar) override {}
 	void OnListCursor();
 	void OnValueChange();
 	
 };
+
+INITIALIZE(ReleaseBriefingCtrl)
 
 
 END_UPP_NAMESPACE

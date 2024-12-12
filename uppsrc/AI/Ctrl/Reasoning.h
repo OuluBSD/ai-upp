@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class ScriptReasoningCtrl : public ToolAppCtrl {
+struct ScriptReasoning : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(ScriptReasoning)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT_REASONING;}
+	
+};
+
+INITIALIZE(ScriptReasoning)
+
+class ScriptReasoningCtrl : public ComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl itemlist;
 	
@@ -66,6 +79,8 @@ public:
 	bool MakeElementChange(const Cursor& c, const LineElement& cur, const LineElement& el);
 	
 };
+
+INITIALIZE(ScriptReasoningCtrl)
 
 
 END_UPP_NAMESPACE

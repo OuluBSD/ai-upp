@@ -45,6 +45,8 @@ struct Profile : Component
 	
 };
 
+INITIALIZE(Profile)
+
 END_UPP_NAMESPACE
 
 #endif

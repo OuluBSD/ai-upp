@@ -17,6 +17,11 @@ struct Platform : Component {
 	
 	Platform& operator << (const char* fn) {functions << fn; return *this;}
 	
+	void Jsonize(JsonIO& json) override {TODO}
+	void Serialize(Stream& s) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM;}
+	
 	/*String name;
 	bool has_title = false;
 	bool has_message = false;
@@ -43,6 +48,8 @@ struct Platform : Component {
 	
 	void AddRole(int i);*/
 };
+
+INITIALIZE(Platform)
 
 //const Vector<Platform>& GetPlatforms();
 

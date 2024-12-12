@@ -27,7 +27,7 @@ LeadTemplateCtrl::LeadTemplateCtrl() {
 void LeadTemplateCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	int lng = LANG_ENGLISH; TODO //mdb.GetLanguageIndex();
 	
 	int row = 0;
@@ -84,12 +84,14 @@ void LeadTemplateCtrl::Data() {
 }
 
 void LeadTemplateCtrl::ToolMenu(Bar& bar) {
-	ToolAppCtrl::ToolMenu(bar);
+	
 }
 
 void LeadTemplateCtrl::Do(int fn) {
 	
 }
+
+INITIALIZER_COMPONENT_CTRL(LeadDataTemplate, LeadTemplateCtrl)
 
 
 END_UPP_NAMESPACE

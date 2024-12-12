@@ -4,6 +4,19 @@
 NAMESPACE_UPP
 
 
+struct ImageBiography : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(ImageBiography)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY;}
+	
+};
+
+INITIALIZE(ImageBiography)
+
 class ImageViewerCtrl : public Ctrl {
 	Image img;
 	
@@ -19,7 +32,7 @@ public:
 
 };
 
-class ImageBiographyCtrl : public ToolAppCtrl {
+class ImageBiographyCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit, bsplit;
 	ArrayCtrl categories, years, entries;
 	WithImageBiography<Ctrl> year;
@@ -50,6 +63,8 @@ public:
 	
 	
 };
+
+INITIALIZE(ImageBiographyCtrl)
 
 
 class ImageBiographyProcess : public SolverBase {

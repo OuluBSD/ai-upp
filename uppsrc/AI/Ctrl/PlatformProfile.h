@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class PlatformProfileCtrl : public ToolAppCtrl {
+struct PlatformProfile : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(PlatformProfile)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM_PROFILE;}
+	
+};
+
+INITIALIZE(PlatformProfile)
+
+class PlatformProfileCtrl : public ComponentCtrl {
 	TabCtrl tabs;
 	
 	// Platform tab
@@ -40,6 +53,8 @@ public:
 	void OnPhotoPrompt();
 	
 };
+
+INITIALIZE(PlatformProfileCtrl)
 
 
 END_UPP_NAMESPACE

@@ -3,12 +3,10 @@
 NAMESPACE_UPP
 
 
-SocialContent::SocialContent() {
+SocialContentCtrl::SocialContentCtrl() {
 	CtrlLayout(entry);
 	
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << menusplit << vsplit;
 	hsplit.SetPos(1500);
@@ -71,7 +69,7 @@ SocialContent::SocialContent() {
 	entry.clock.WhenPopDown << THISBACK(OnValueChange);
 }
 
-void SocialContent::Data() {
+void SocialContentCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	
 	if (!p.profile) {
@@ -104,7 +102,7 @@ void SocialContent::Data() {
 	#endif
 }
 
-void SocialContent::DataPlatform() {
+void SocialContentCtrl::DataPlatform() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor()) {
 		entries.Clear();
@@ -136,7 +134,7 @@ void SocialContent::DataPlatform() {
 	DataEntry();
 }
 
-void SocialContent::DataEntry() {
+void SocialContentCtrl::DataEntry() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor()) {
 		threads.Clear();
@@ -171,7 +169,7 @@ void SocialContent::DataEntry() {
 	DataThread();
 }
 
-void SocialContent::DataThread() {
+void SocialContentCtrl::DataThread() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
 		comments.Clear();
@@ -212,7 +210,7 @@ void SocialContent::DataThread() {
 	DataComment();
 }
 
-void SocialContent::DataComment() {
+void SocialContentCtrl::DataComment() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
 		ClearEntry();
@@ -240,7 +238,7 @@ void SocialContent::DataComment() {
 	entry.merged.SetData(c.text_merged_status);
 }
 
-void SocialContent::ClearEntry() {
+void SocialContentCtrl::ClearEntry() {
 	entry.message.SetData("");
 	entry.orig_message.SetData("");
 	entry.keywords.Clear();
@@ -252,7 +250,7 @@ void SocialContent::ClearEntry() {
 	
 }
 
-void SocialContent::Clear() {
+void SocialContentCtrl::Clear() {
 	platforms.Clear();
 	threads.Clear();
 	entries.Clear();
@@ -260,7 +258,7 @@ void SocialContent::Clear() {
 	ClearEntry();
 }
 
-void SocialContent::OnValueChange() {
+void SocialContentCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -310,7 +308,7 @@ void SocialContent::OnValueChange() {
 	comments.Set(4, c.keywords);
 }
 
-void SocialContent::AddEntry() {
+void SocialContentCtrl::AddEntry() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
@@ -324,7 +322,7 @@ void SocialContent::AddEntry() {
 	DataPlatform();
 }
 
-void SocialContent::RemoveEntry() {
+void SocialContentCtrl::RemoveEntry() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -339,7 +337,7 @@ void SocialContent::RemoveEntry() {
 	DataPlatform();
 }
 
-void SocialContent::AddThread() {
+void SocialContentCtrl::AddThread() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
@@ -354,7 +352,7 @@ void SocialContent::AddThread() {
 	DataEntry();
 }
 
-void SocialContent::RemoveThread() {
+void SocialContentCtrl::RemoveThread() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -371,7 +369,7 @@ void SocialContent::RemoveThread() {
 	DataEntry();
 }
 
-void SocialContent::AddComment() {
+void SocialContentCtrl::AddComment() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor())
 		return;
@@ -389,7 +387,7 @@ void SocialContent::AddComment() {
 	DataThread();
 }
 
-void SocialContent::RemoveComment() {
+void SocialContentCtrl::RemoveComment() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
 		return;
@@ -408,25 +406,25 @@ void SocialContent::RemoveComment() {
 	DataThread();
 }
 
-void SocialContent::EntryListMenu(Bar& bar) {
+void SocialContentCtrl::EntryListMenu(Bar& bar) {
 	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_W);
 	if (entries.IsCursor())
 		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL_D);
 }
 
-void SocialContent::ThreadListMenu(Bar& bar) {
+void SocialContentCtrl::ThreadListMenu(Bar& bar) {
 	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(AddThread)).Key(K_CTRL_E);
 	if (entries.IsCursor())
 		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(RemoveThread)).Key(K_CTRL_F);
 }
 
-void SocialContent::CommentListMenu(Bar& bar) {
+void SocialContentCtrl::CommentListMenu(Bar& bar) {
 	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(AddComment)).Key(K_CTRL_T);
 	if (entries.IsCursor())
 		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(RemoveComment)).Key(K_CTRL_H);
 }
 
-void SocialContent::ToolMenu(Bar& bar) {
+void SocialContentCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
@@ -438,7 +436,7 @@ void SocialContent::ToolMenu(Bar& bar) {
 	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
 }
 
-void SocialContent::PasteResponse(int fn) {
+void SocialContentCtrl::PasteResponse(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile) return;
 	if (!platforms.IsCursor() || !threads.IsCursor()) return;
@@ -482,13 +480,13 @@ void SocialContent::PasteResponse(int fn) {
 	PostCallback(THISBACK(DataThread));
 }
 
-void SocialContent::Do(int fn) {
+void SocialContentCtrl::Do(int fn) {
 	TODO
 	#if 0
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	SocialContentProcess& ss = SocialContentProcess::Get(*mp.profile, *mp.snap);
+	SocialContentCtrlProcess& ss = SocialContentCtrlProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
 		ss.Start();
 	}
@@ -576,5 +574,8 @@ void SocialContent::Do(int fn) {
 	#endif
 }
 
+
+INITIALIZER_COMPONENT(SocialContent);
+INITIALIZER_COMPONENT_CTRL(SocialContent, SocialContentCtrl)
 
 END_UPP_NAMESPACE

@@ -2,9 +2,6 @@
 
 NAMESPACE_UPP
 
-LeadDataTemplate::LeadDataTemplate() {
-	
-}
 
 #if 0
 void LeadDataTemplate::Load() {
@@ -28,5 +25,7 @@ void LeadDataTemplate::Jsonize(JsonIO& json) {
 				("publishers", publishers)
 				;
 }
+
+INITIALIZER_COMPONENT(LeadDataTemplate)
 
 END_UPP_NAMESPACE

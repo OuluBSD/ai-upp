@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class SocialNeedsCtrl : public ToolAppCtrl {
+struct SocialNeeds : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(SocialNeeds)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SOCIAL_NEEDS;}
+	
+};
+
+INITIALIZE(SocialNeeds)
+
+class SocialNeedsCtrl : public ComponentCtrl {
 	Splitter hsplit, rolesplit, platsplit, eventsplit;
 	ArrayCtrl roles, needs, causes, messages;
 	ArrayCtrl platforms, actions, action_causes;
@@ -25,6 +38,8 @@ public:
 	void Do(int fn);
 	
 };
+
+INITIALIZE(SocialNeedsCtrl)
 
 class SocialNeedsProcess : public SolverBase {
 	enum {

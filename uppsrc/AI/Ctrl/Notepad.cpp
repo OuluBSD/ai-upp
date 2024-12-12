@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-SnapIdeas::SnapIdeas() {
+NotepadCtrl::NotepadCtrl() {
 	CtrlLayout(idea);
 	
 	Add(hsplit.SizePos());
@@ -22,20 +22,20 @@ SnapIdeas::SnapIdeas() {
 	idea.desc.WhenAction << THISBACK(OnValueChange);
 }
 
-void SnapIdeas::Clear() {
+void NotepadCtrl::Clear() {
 	idea.title.Clear();
 	idea.target.Clear();
 	idea.ref.Clear();
 	idea.desc.Clear();
 }
 
-void SnapIdeas::Data() {
+void NotepadCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) {
 		Clear();
 		return;
 	}
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	for(int i = 0; i < release.ideas.GetCount(); i++) {
 		const ComponentIdea& idea = release.ideas[i];
@@ -50,13 +50,13 @@ void SnapIdeas::Data() {
 	IdeaData();
 }
 
-void SnapIdeas::IdeaData() {
+void NotepadCtrl::IdeaData() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release || !list.IsCursor()) {
 		Clear();
 		return;
 	}
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	int idea_idx = list.GetCursor();
 	const ComponentIdea& obj = release.ideas[idea_idx];
 	
@@ -66,10 +66,10 @@ void SnapIdeas::IdeaData() {
 	this->idea.desc.SetData(obj.description);
 }
 
-void SnapIdeas::OnValueChange() {
+void NotepadCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	if (!list.IsCursor()) return;
 	int idea_idx = list.GetCursor();
@@ -83,15 +83,15 @@ void SnapIdeas::OnValueChange() {
 	list.Set(0, obj.title);
 }
 
-void SnapIdeas::OnListMenu(Bar& bar) {
+void NotepadCtrl::OnListMenu(Bar& bar) {
 	bar.Add(t_("Add Idea"), THISBACK(AddIdea));
 	bar.Add(t_("Remove Idea"), THISBACK(RemoveIdea));
 }
 
-void SnapIdeas::AddIdea() {
+void NotepadCtrl::AddIdea() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	
 	String title;
@@ -124,10 +124,10 @@ void SnapIdeas::AddIdea() {
 	this->idea.target.SetFocus();
 }
 
-void SnapIdeas::RemoveIdea() {
+void NotepadCtrl::RemoveIdea() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	if (!list.IsCursor()) return;
 	int idx = list.GetCursor();
@@ -135,5 +135,8 @@ void SnapIdeas::RemoveIdea() {
 	Data();
 }
 
+
+INITIALIZER_COMPONENT(Notepad);
+INITIALIZER_COMPONENT_CTRL(Notepad, NotepadCtrl)
 
 END_UPP_NAMESPACE

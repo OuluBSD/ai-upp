@@ -108,14 +108,14 @@ struct BiographyCategory {
 	
 };
 
-struct Biography {
+struct Biography : Component {
+	
 protected:
-	//friend class BiographyCtrl;
-	//friend class BiographyProcess;
-	//friend class BiographySummaryProcess;
 	ArrayMap<String, BiographyCategory> categories;
 	
 public:
+	COMPONENT_CONSTRUCTOR(Biography);
+	
 	struct CatSorter {
 		bool operator()(const String& a, const String& b) const {
 			int ai = FindBiographyCategoryEnum(a);
@@ -126,7 +126,7 @@ public:
 		}
 	};
 	
-	void Jsonize(JsonIO& json) {
+	void Jsonize(JsonIO& json) override {
 		json
 			("categories", categories)
 			;
@@ -134,6 +134,10 @@ public:
 			Sort();
 		}
 	}
+	void Serialize(Stream& s) override {TODO}
+	hash_t GetHashValue() const override {TODO return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY;}
+	
 	BiographyCategory& GetAdd(Owner& o, int enum_);
 	BiographyCategory* Find(Owner& o, int enum_);
 	const BiographyCategory* Find(Owner& o, int enum_) const;
@@ -157,6 +161,8 @@ public:
 	void ClearSummary();
 	void ClearAll() {categories.Clear();}
 };
+
+INITIALIZE(Biography)
 
 struct PhotoPrompt : Moveable<PhotoPrompt> {
 	String prompt;
@@ -382,7 +388,7 @@ struct Concept {
 struct BiographySnapshot : Component {
 	int revision = 0;
 	Time last_modified;
-	Biography data;
+	//Biography data; // TODO use from ecs
 	BiographyAnalysis analysis;
 	Array<Concept> concepts;
 	
@@ -392,14 +398,18 @@ struct BiographySnapshot : Component {
 		json
 			("revision", revision)
 			("last_modified", last_modified)
-			("data", data)
+			//("data", data)
 			("analysis", analysis)
 			("concepts", concepts)
 		;
 	}
 	void Serialize(Stream& s) override {TODO}
 	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT;}
+	
 };
+
+INITIALIZE(BiographySnapshot)
 
 END_UPP_NAMESPACE
 

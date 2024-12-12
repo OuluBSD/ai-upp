@@ -3,51 +3,44 @@
 NAMESPACE_UPP
 
 
-SnapInfoCtrl::SnapInfoCtrl() {
+ReleaseInfoCtrl::ReleaseInfoCtrl() {
 	CtrlLayout(*this);
 	
-	native_album_title <<= THISBACK(OnValueChange);
-	english_album_title <<= THISBACK(OnValueChange);
+	title <<= THISBACK(OnValueChange);
 	album_date <<= THISBACK(OnValueChange);
 	year_of_content <<= THISBACK(OnValueChange);
-	
 }
 
-void SnapInfoCtrl::Clear() {
-	this->native_album_title		.Clear();
-	this->english_album_title		.Clear();
-	this->album_date				.Clear();
-	this->year_of_content			.Clear();
+void ReleaseInfoCtrl::Clear() {
+	this->title				.Clear();
+	this->album_date		.Clear();
+	this->year_of_content	.Clear();
 }
 
-void SnapInfoCtrl::Data() {
+void ReleaseInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	
-	lbl_snapshot.SetLabel("Release");
 	
 	Clear();
 	
 	if (p.release) {
-		Snapshot& r = *p.release;
+		Release& r = *p.release;
 		
-		native_album_title.SetData(r.native_title);
-		english_album_title.SetData(r.english_title);
+		title.SetData(r.title);
 		album_date.SetData(r.date);
 		year_of_content.SetData(r.year_of_content);
 	}
 	
 }
 
-void SnapInfoCtrl::OnValueChange() {
+void ReleaseInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
 	TODO
 	#if 0
 	if (p.release && p.editor && p.editor->snaps.IsCursor()) {
-		Snapshot& r = *p.release;
+		Release& r = *p.release;
 		
-		r.native_title = native_album_title.GetData();
-		r.english_title = english_album_title.GetData();
+		r.title = title.GetData();
 		r.date = album_date.GetData();
 		r.year_of_content = year_of_content.GetData();
 		
@@ -57,5 +50,9 @@ void SnapInfoCtrl::OnValueChange() {
 	#endif
 }
 
+
+
+INITIALIZER_COMPONENT(ReleaseBriefing)
+INITIALIZER_COMPONENT_CTRL(Release, ReleaseInfoCtrl)
 
 END_UPP_NAMESPACE

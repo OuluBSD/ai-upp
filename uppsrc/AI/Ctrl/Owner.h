@@ -6,20 +6,24 @@ NAMESPACE_UPP
 
 class LeadsCtrl;
 
-class OwnerInfoCtrl : public WithOwnerInfo<ToolAppCtrl> {
-	
+class OwnerInfoCtrl : public WithOwnerInfo<ComponentCtrl> {
 	
 public:
 	typedef OwnerInfoCtrl CLASSNAME;
 	OwnerInfoCtrl();
 	
-	void Data();
+	void Data() override;
+	void ToolMenu(Bar& bar) override {}
 	void Clear();
 	void OnValueChange();
 	
 	LeadsCtrl* editor = 0;
 	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_OWNER;}
+	
 };
+
+INITIALIZE(OwnerInfoCtrl)
 
 
 END_UPP_NAMESPACE

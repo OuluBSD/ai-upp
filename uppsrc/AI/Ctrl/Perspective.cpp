@@ -3,10 +3,8 @@
 NAMESPACE_UPP
 
 
-SocialBeliefsCtrl::SocialBeliefsCtrl() {
+PerspectiveCtrl::PerspectiveCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Add(beliefs);
 	hsplit.Add(info);
@@ -34,7 +32,7 @@ SocialBeliefsCtrl::SocialBeliefsCtrl() {
 	
 }
 
-void SocialBeliefsCtrl::Data() {
+void PerspectiveCtrl::Data() {
 	TODO
 	#if 0
 	for(int i = 0; i < mdb.beliefs.GetCount(); i++) {
@@ -52,7 +50,7 @@ void SocialBeliefsCtrl::Data() {
 	#endif
 }
 
-void SocialBeliefsCtrl::DataBelief() {
+void PerspectiveCtrl::DataBelief() {
 	
 	TODO
 	#if 0
@@ -80,18 +78,18 @@ void SocialBeliefsCtrl::DataBelief() {
 	#endif
 }
 
-void SocialBeliefsCtrl::ToolMenu(Bar& bar) {
+void PerspectiveCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
 	bar.Add(t_("Paste user data"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F5);
 }
 
-void SocialBeliefsCtrl::Do(int fn) {
+void PerspectiveCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	SocialBeliefsProcess& ss = SocialBeliefsProcess::Get(*mp.profile, *mp.snap);
+	PerspectiveProcess& ss = PerspectiveProcess::Get(*mp.profile, *mp.snap);
 	if (fn == 0) {
 		ss.Start();
 	}
@@ -114,7 +112,7 @@ void SocialBeliefsCtrl::Do(int fn) {
 	}
 }
 
-void SocialBeliefsCtrl::OnValueChange() {
+void PerspectiveCtrl::OnValueChange() {
 	
 	if (!beliefs.IsCursor())
 		return;
@@ -128,7 +126,7 @@ void SocialBeliefsCtrl::OnValueChange() {
 	#endif
 }
 
-void SocialBeliefsCtrl::AddBelief() {
+void PerspectiveCtrl::AddBelief() {
 	
 	DatasetPtrs p = GetDataset();
 	
@@ -164,7 +162,7 @@ void SocialBeliefsCtrl::AddBelief() {
 	Data();
 }
 
-void SocialBeliefsCtrl::RemoveBelief() {
+void PerspectiveCtrl::RemoveBelief() {
 	TODO
 	#if 0
 	
@@ -188,15 +186,15 @@ void SocialBeliefsCtrl::RemoveBelief() {
 
 
 
-SocialBeliefsProcess::SocialBeliefsProcess() {
+PerspectiveProcess::PerspectiveProcess() {
 	
 }
 
-int SocialBeliefsProcess::GetPhaseCount() const {
+int PerspectiveProcess::GetPhaseCount() const {
 	return PHASE_COUNT;
 }
 
-void SocialBeliefsProcess::DoPhase() {
+void PerspectiveProcess::DoPhase() {
 	TODO
 	#if 0
 	MetaDatabase& mdb = MetaDatabase::Single();
@@ -217,7 +215,7 @@ void SocialBeliefsProcess::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSocialBeliefsProcess(args, [this,&b](String res) {
+		m.GetPerspectiveProcess(args, [this,&b](String res) {
 			res = TrimBoth(res);
 			if (res.Left(2) != "1.")
 				res = "1." + res;
@@ -253,7 +251,7 @@ void SocialBeliefsProcess::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSocialBeliefsProcess(args, [this,&b](String res) {
+		m.GetPerspectiveProcess(args, [this,&b](String res) {
 			res = TrimBoth(res);
 			if (res.Left(2) != "1.")
 				res = "1." + res;
@@ -275,22 +273,31 @@ void SocialBeliefsProcess::DoPhase() {
 	#endif
 }
 
-SocialBeliefsProcess& SocialBeliefsProcess::Get(Profile& e, BiographySnapshot& snap) {
+PerspectiveProcess& PerspectiveProcess::Get(Profile& e, BiographySnapshot& snap) {
 	String t = e.node.GetPath() + ";" + snap.node.GetPath();
 	hash_t h = t.GetHashValue();
-	static ArrayMap<hash_t, SocialBeliefsProcess> map;
+	static ArrayMap<hash_t, PerspectiveProcess> map;
 	int i = map.Find(h);
 	if (i >= 0)
 		return map[i];
 	
 	TODO
 	#if 0
-	SocialBeliefsProcess& ls = map.Add(h);
+	PerspectiveProcess& ls = map.Add(h);
 	ls.owner = e.owner;
 	ls.profile = &e;
 	ls.snap = &snap;
 	return ls;
 	#endif
 }
+
+
+
+
+
+
+
+INITIALIZER_COMPONENT(Perspective)
+INITIALIZER_COMPONENT_CTRL(Perspective, PerspectiveCtrl)
 
 END_UPP_NAMESPACE

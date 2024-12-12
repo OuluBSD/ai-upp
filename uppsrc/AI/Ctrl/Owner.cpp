@@ -67,5 +67,7 @@ void OwnerInfoCtrl::OnValueChange() {
 	#endif
 }
 
+INITIALIZER_COMPONENT_CTRL(Owner, OwnerInfoCtrl)
+
 
 END_UPP_NAMESPACE

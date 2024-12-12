@@ -21,7 +21,7 @@
 #include "Notepad.h"
 #include "Song.h"
 
-#include "Beliefs.h"
+#include "Perspective.h"
 #include "Biography.h"
 #include "BiographyElements.h"
 #include "BiographyConcepts.h"
@@ -37,9 +37,9 @@
 #include "Marketplace.h"
 #include "Reasoning.h"
 
-#include "LeadWebsites.h"
-#include "LeadTemplates.h"
-#include "LeadPublishers.h"
+#include "LeadSourceCtrl.h"
+#include "LeadTemplateCtrl.h"
+#include "LeadPublisherCtrl.h"
 
 #include "LyricContent.h"
 #include "LyricRef.h"

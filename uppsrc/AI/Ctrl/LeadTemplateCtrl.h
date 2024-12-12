@@ -1,10 +1,10 @@
-#ifndef _AI_Ctrl_LeadTemplates_h_
-#define _AI_Ctrl_LeadTemplates_h_
+#ifndef _AI_Ctrl_LeadTemplateCtrl_h_
+#define _AI_Ctrl_LeadTemplateCtrl_h_
 
 NAMESPACE_UPP
 
 
-class LeadTemplateCtrl : public ToolAppCtrl {
+class LeadTemplateCtrl : public ComponentCtrl {
 	ArrayCtrl templates;
 	
 public:
@@ -17,6 +17,8 @@ public:
 	
 	
 };
+
+INITIALIZE(LeadTemplateCtrl)
 
 
 END_UPP_NAMESPACE

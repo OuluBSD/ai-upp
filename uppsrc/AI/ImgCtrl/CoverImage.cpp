@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-SnapCoverImage::SnapCoverImage() {
+ReleaseCoverImageCtrl::ReleaseCoverImageCtrl() {
 	this->Add(vsplit.SizePos());
 	
 	vsplit.Vert();
@@ -35,7 +35,7 @@ SnapCoverImage::SnapCoverImage() {
 	sugg_list.WhenBar << THISBACK(SuggestionMenu);
 }
 
-void SnapCoverImage::Data() {
+void ReleaseCoverImageCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -51,7 +51,7 @@ void SnapCoverImage::Data() {
 	DataSuggestion();
 }
 
-void SnapCoverImage::DataAttribute() {
+void ReleaseCoverImageCtrl::DataAttribute() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -65,7 +65,7 @@ void SnapCoverImage::DataAttribute() {
 	attr_text.SetData(p.release->analysis[attr_i]);
 }
 
-void SnapCoverImage::DataSuggestion() {
+void ReleaseCoverImageCtrl::DataSuggestion() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -81,7 +81,7 @@ void SnapCoverImage::DataSuggestion() {
 	DataSuggestionImage();
 }
 
-void SnapCoverImage::DataSuggestionImage() {
+void ReleaseCoverImageCtrl::DataSuggestionImage() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -113,7 +113,7 @@ void SnapCoverImage::DataSuggestionImage() {
 	#endif
 }
 
-void SnapCoverImage::OnAttributeChange() {
+void ReleaseCoverImageCtrl::OnAttributeChange() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -127,7 +127,7 @@ void SnapCoverImage::OnAttributeChange() {
 	p.release->analysis[attr_i] = attr_text.GetData();
 }
 
-void SnapCoverImage::OnSuggestionChange() {
+void ReleaseCoverImageCtrl::OnSuggestionChange() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -141,7 +141,7 @@ void SnapCoverImage::OnSuggestionChange() {
 	p.release->cover_suggestions[sugg_i] = sugg_text.GetData();
 }
 
-void SnapCoverImage::ToolMenu(Bar& bar) {
+void ReleaseCoverImageCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Make all images"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	
 	/*bar.Add(t_("Create suggestions for prompts"), TextImgs::Part(), THISBACK(CreateSuggestionsForPrompts)).Key(K_F5);
@@ -150,7 +150,7 @@ void SnapCoverImage::ToolMenu(Bar& bar) {
 	*/
 }
 
-void SnapCoverImage::Do(int fn) {
+void ReleaseCoverImageCtrl::Do(int fn) {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
 	
@@ -160,17 +160,17 @@ void SnapCoverImage::Do(int fn) {
 	}
 }
 
-void SnapCoverImage::CreateSuggestionsForPrompts() {
+void ReleaseCoverImageCtrl::CreateSuggestionsForPrompts() {
 	DatasetPtrs p = GetDataset();
 	if(!p.song || !p.entity || !p.release)
 		return;
 	
-	Snapshot& rel = *p.release;
+	Release& rel = *p.release;
 	
 	
 }
 
-void SnapCoverImage::SuggestionMenu(Bar& bar) {
+void ReleaseCoverImageCtrl::SuggestionMenu(Bar& bar) {
 	bar.Add(t_("Add suggestion"), TextImgs::RedRing(), [this]() {
 		DatasetPtrs p = GetDataset();
 		p.release->cover_suggestions.Add();
@@ -179,5 +179,7 @@ void SnapCoverImage::SuggestionMenu(Bar& bar) {
 	
 }
 
+INITIALIZER_COMPONENT(ReleaseCoverImage)
+INITIALIZER_COMPONENT_CTRL(ReleaseCoverImage, ReleaseCoverImageCtrl)
 
 END_UPP_NAMESPACE

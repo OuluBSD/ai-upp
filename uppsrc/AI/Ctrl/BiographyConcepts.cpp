@@ -52,8 +52,6 @@ ConceptualFrameworkNavigator::ConceptualFrameworkNavigator() {
 
 void ConceptualFrameworkNavigator::MainLayout() {
 	Add(vsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	vsplit.Vert() << tsplit << bsplit;
 	tsplit.Horz() << cfsplit << stories;
@@ -307,7 +305,7 @@ void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
 }
 
 int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp = const_cast<ConceptualFrameworkNavigator&>(*this).GetDataset();
 	
 	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor())
 		return 0;
@@ -417,6 +415,11 @@ void ConceptualFrameworkNavigator::Do(int fn) {
 	}
 	#endif
 }
+
+
+
+INITIALIZER_COMPONENT(BiographyConcepts);
+INITIALIZER_COMPONENT_CTRL(BiographyConcepts, ConceptualFrameworkCtrl)
 
 
 END_UPP_NAMESPACE

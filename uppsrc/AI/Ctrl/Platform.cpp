@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 PlatformCtrl::PlatformCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << platforms << vsplit;
 	hsplit.SetPos(2000);
@@ -221,5 +219,9 @@ void PlatformCtrl::OnPhotoPrompt() {
 	
 }
 
+
+
+
+INITIALIZER_COMPONENT_CTRL(Platform, PlatformCtrl)
 
 END_UPP_NAMESPACE

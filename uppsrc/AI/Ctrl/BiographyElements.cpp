@@ -177,8 +177,11 @@ void BiographyElementsCtrl::OnValueChange() {
 }
 
 void BiographyElementsCtrl::ToolMenu(Bar& bar) {
-	ToolAppCtrl::ToolMenu(bar);
+	
 }
 
+
+INITIALIZER_COMPONENT(BiographyElements);
+INITIALIZER_COMPONENT_CTRL(BiographyElements, BiographyElementsCtrl)
 
 END_UPP_NAMESPACE

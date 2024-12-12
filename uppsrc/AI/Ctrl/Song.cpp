@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-CompInfoCtrl::CompInfoCtrl() {
+SongInfoCtrl::SongInfoCtrl() {
 	CtrlLayout(*this);
 	
 	comp_entity <<= THISBACK(OnValueChange);
@@ -23,17 +23,17 @@ CompInfoCtrl::CompInfoCtrl() {
 	
 }
 
-void CompInfoCtrl::ToolMenu(Bar& bar) {
-	ToolAppCtrl::ToolMenu(bar);
+void SongInfoCtrl::ToolMenu(Bar& bar) {
+	
 }
 
-void CompInfoCtrl::Clear() {
+void SongInfoCtrl::Clear() {
 	this->comp_entity				.Clear();
 	this->comp_prj_name				.Clear();
 	
 }
 
-void CompInfoCtrl::Data() {
+void SongInfoCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	
 	Clear();
@@ -141,7 +141,7 @@ void CompInfoCtrl::Data() {
 	DataScript();
 }
 
-void CompInfoCtrl::DataScript() {
+void SongInfoCtrl::DataScript() {
 	DatasetPtrs p = GetDataset();
 	if (!p.entity || !scripts.IsCursor()) {
 		scripts_text.Clear();
@@ -161,7 +161,7 @@ void CompInfoCtrl::DataScript() {
 	#endif
 }
 
-void CompInfoCtrl::OnValueChange() {
+void SongInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
 	TODO
@@ -182,7 +182,7 @@ void CompInfoCtrl::OnValueChange() {
 	#endif
 }
 
-void CompInfoCtrl::SetScript() {
+void SongInfoCtrl::SetScript() {
 	DatasetPtrs p = GetDataset();
 	Component& s = *p.song;
 	
@@ -198,5 +198,8 @@ void CompInfoCtrl::SetScript() {
 	#endif
 }
 
+
+
+INITIALIZER_COMPONENT_CTRL(Song, SongInfoCtrl)
 
 END_UPP_NAMESPACE

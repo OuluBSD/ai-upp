@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 SocialNeedsCtrl::SocialNeedsCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Vert() << rolesplit << platsplit << eventsplit;
 	
@@ -891,5 +889,8 @@ void SocialNeedsProcess::OnProcessPlatformDescriptionTranslated(String res) {
 }
 
 
+
+INITIALIZER_COMPONENT(SocialNeeds);
+INITIALIZER_COMPONENT_CTRL(SocialNeeds, SocialNeedsCtrl)
 
 END_UPP_NAMESPACE

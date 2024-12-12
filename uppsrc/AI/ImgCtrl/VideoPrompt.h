@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class VideoPromptMakerCtrl : public ToolAppCtrl {
+struct VideoPromptMaker : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(VideoPromptMaker)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER;}
+	
+};
+
+INITIALIZE(VideoPromptMaker)
+
+class VideoPromptMakerCtrl : public ComponentCtrl {
 	Splitter vsplit, storyboard_prompt_split;
 	ArrayCtrl storyboard_parts;
 	ArrayCtrl storyboard_prompt_keys, storyboard_prompt_values;
@@ -22,6 +35,8 @@ public:
 	
 	
 };
+
+INITIALIZE(VideoPromptMakerCtrl)
 
 class VideoSolver : public SolverBase {
 	
@@ -41,7 +56,7 @@ public:
 	};
 	
 	Song* song = 0;
-	Snapshot* snap = 0;
+	Release* snap = 0;
 	Entity* entity = 0;
 	
 	Vector<String> tmp_lines;

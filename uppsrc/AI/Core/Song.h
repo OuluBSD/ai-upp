@@ -34,12 +34,12 @@ struct Song : Component
 	String						style;
 	
 	
-	Snapshot*					snapshot = 0;
+	Release*					snapshot = 0;
 	
 	
 	COMPONENT_CONSTRUCTOR(Song)
-	void Store(Snapshot& snap);
-	void LoadTitle(Snapshot& snap, String title);
+	void Store(Release& snap);
+	void LoadTitle(Release& snap, String title);
 	void ReloadStructure();
 	String GetAnyTitle(Entity& a) const;
 	

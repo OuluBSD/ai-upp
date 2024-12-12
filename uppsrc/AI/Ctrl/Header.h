@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class SocialHeaderCtrl : public ToolAppCtrl {
+struct SocialHeader : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(SocialHeader)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SOCIAL_HEADER;}
+	
+};
+
+INITIALIZE(SocialHeader)
+
+class SocialHeaderCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl platforms, entries;
 	//WithSocialHeader<Ctrl> entry;
@@ -24,6 +37,8 @@ public:
 	void Do(int fn);
 	
 };
+
+INITIALIZE(SocialHeaderCtrl)
 
 
 END_UPP_NAMESPACE

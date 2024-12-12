@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class ConceptualFrameworkNavigator : public ToolAppCtrl {
+struct BiographyConcepts : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(BiographyConcepts)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_CONCEPTS;}
+	
+};
+
+INITIALIZE(BiographyConcepts)
+
+class ConceptualFrameworkNavigator : public ComponentCtrl {
 	Splitter cfsplit, vsplit, tsplit, bsplit;
 	ArrayCtrl cfs;
 	ArrayCtrl stories;
@@ -20,6 +33,7 @@ public:
 	ConceptualFrameworkNavigator();
 	
 	void Data() override;
+	void ToolMenu(Bar& bar) override;
 	void DataAll(bool forced);
 	void DataFramework();
 	void DataStory();
@@ -30,7 +44,6 @@ public:
 	void LockForm();
 	void MoveSortColumn(int fn);
 	
-	void ToolMenu(Bar& bar) override;
 	
 	void GetElements(ConceptualFrameworkArgs& args);
 	int64 GetBeliefUniq() const;
@@ -47,6 +60,8 @@ public:
 	
 	
 };
+
+INITIALIZE(ConceptualFrameworkCtrl)
 
 
 END_UPP_NAMESPACE

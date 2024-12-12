@@ -1595,6 +1595,7 @@ String MetaNode::GetKindString(int kind)
 	case METAKIND_ECS_COMPONENT_LYRICS:				return "Lyrics";
 	case METAKIND_ECS_COMPONENT_SONG:				return "Song";
 	case METAKIND_ECS_COMPONENT_MARKETPLACE:		return "Marketplace";
+	case METAKIND_ECS_COMPONENT_PERSPECTIVE:		return "Perspective";
 	case METAKIND_ECS_COMPONENT_IMG_LAYER:			return "Image layer";
 	case METAKIND_ECS_COMPONENT_IMG_GEN_LAYER:		return "Generate Image Layer";
 	case METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER:	return "Aspect Fix Image Layer";

@@ -113,11 +113,14 @@ struct Owner : Component
 			;
 	}
 	hash_t GetHashValue() const override {Panic("TODO"); return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_OWNER;}
 	
 	int GetOpportunityScore(const LeadOpportunity& opp) const;
 	
 	static void CopyOld();
 };
+
+INITIALIZE(Owner);
 
 
 END_UPP_NAMESPACE

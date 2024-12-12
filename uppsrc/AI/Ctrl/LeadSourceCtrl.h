@@ -1,18 +1,31 @@
-#ifndef _AI_Ctrl_LeadWebsites_h_
-#define _AI_Ctrl_LeadWebsites_h_
+#ifndef _AI_Ctrl_LeadSourceCtrl_h_
+#define _AI_Ctrl_LeadSourceCtrl_h_
 
 NAMESPACE_UPP
 
 
-class LeadWebsites : public ToolAppCtrl {
+struct LeadSource : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(LeadSource)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_SOURCE;}
+	
+};
+
+INITIALIZE(LeadSource)
+
+class LeadSourceCtrl : public ComponentCtrl {
 	Splitter vsplit, hsplit, mainsplit, bsplit, bvsplit, bssplit;
 	ArrayCtrl websites, list, payouts, prices, attrs;
 	ArrayCtrl bools, strings, list_names, list_values;
 	ArrayCtrl song_typecasts, lyrics_ideas, music_styles;
 	
 public:
-	typedef LeadWebsites CLASSNAME;
-	LeadWebsites();
+	typedef LeadSourceCtrl CLASSNAME;
+	LeadSourceCtrl();
 	
 	void Data() override;
 	void DataWebsite();
@@ -27,6 +40,8 @@ public:
 	
 	
 };
+
+INITIALIZE(LeadSourceCtrl)
 
 struct LeadCache {
 	VectorMap<String, Time> last_update;

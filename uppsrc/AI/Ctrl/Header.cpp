@@ -7,8 +7,6 @@ SocialHeaderCtrl::SocialHeaderCtrl() {
 	//CtrlLayout(entry);
 	
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << platforms << vsplit;
 	hsplit.SetPos(1500);
@@ -192,5 +190,8 @@ void SocialHeaderCtrl::Do(int fn) {
 	#endif
 }
 
+
+INITIALIZER_COMPONENT(SocialHeader);
+INITIALIZER_COMPONENT_CTRL(SocialHeader, SocialHeaderCtrl)
 
 END_UPP_NAMESPACE

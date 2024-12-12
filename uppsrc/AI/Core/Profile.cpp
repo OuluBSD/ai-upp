@@ -29,4 +29,6 @@ const VectorMap<String, Vector<String>>& GetMarketplaceSections() {
 }
 
 
+INITIALIZER_COMPONENT(Profile)
+
 END_UPP_NAMESPACE

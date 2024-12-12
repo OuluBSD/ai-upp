@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class ImageBiographySummaryCtrl : public ToolAppCtrl {
+struct ImageBiographySummary : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(ImageBiographySummary)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY_SUMMARY;}
+	
+};
+
+INITIALIZE(ImageBiographySummary)
+
+class ImageBiographySummaryCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl categories, blocks;
 	WithBiography<Ctrl> block;
@@ -27,6 +40,8 @@ public:
 	
 	
 };
+
+INITIALIZE(ImageBiographySummaryCtrl)
 
 class ImageBiographySummaryProcess : public SolverBase {
 	

@@ -120,4 +120,7 @@ void VideoStoryboardCtrl::Do(int fn) {
 }
 
 
+INITIALIZER_COMPONENT(VideoStoryboard)
+INITIALIZER_COMPONENT_CTRL(VideoStoryboard, VideoStoryboardCtrl)
+
 END_UPP_NAMESPACE

@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 MarketplaceCtrl::MarketplaceCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << items << tabs << imgsplit;
 	hsplit.SetPos(1500, 0);
@@ -728,5 +726,8 @@ String MarketplaceCtrl::GetPackageString(int w, int h, int d, double weight) {
 	return "";
 }
 
+
+INITIALIZER_COMPONENT(Marketplace);
+INITIALIZER_COMPONENT_CTRL(Marketplace, MarketplaceCtrl)
 
 END_UPP_NAMESPACE

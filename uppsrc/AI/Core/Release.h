@@ -24,12 +24,11 @@ struct ComponentIdea {
 	}
 };
 
-// TODO rename Snapshot
-struct Snapshot : Component
+// TODO rename Release
+struct Release : Component
 {
 	// Public
-	String						native_title;
-	String						english_title;
+	String						title;
 	Date						date;
 	VectorMap<String,String>	data;
 	Array<ComponentIdea>		ideas;
@@ -42,13 +41,13 @@ struct Snapshot : Component
 	Entity*						entity = 0;
 	
 	
+	COMPONENT_CONSTRUCTOR(Release)
 	void Store(Entity& e);
 	void LoadTitle(Entity& e, String title);
 	Component& GetAddComponent(String name);
 	//Component& RealizeReversed(Component& s);
-	void Serialize(Stream& s) {
-		s	% native_title
-			% english_title
+	void Serialize(Stream& s) override {
+		s	% title
 			% date
 			% data
 			% ideas
@@ -58,10 +57,9 @@ struct Snapshot : Component
 			% analysis
 			% cover_suggestions;
 	}
-	void Jsonize(JsonIO& json) {
+	void Jsonize(JsonIO& json) override {
 		json
-			("title", native_title)
-			("english_title", english_title)
+			("title", title)
 			("date", date)
 			("data", data)
 			("ideas", ideas)
@@ -92,14 +90,19 @@ struct Snapshot : Component
 	
 	Vector<Song*>& GetSongs() const;
 	
-	bool operator()(const Snapshot& a, const Snapshot& b) const {
+	bool operator()(const Release& a, const Release& b) const {
 		if (a.date != b.date) return a.date < b.date;
-		return a.native_title < b.native_title;
+		return a.title < b.title;
 	}
+	
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_RELEASE;}
 	
 	
 	
 };
+
+INITIALIZE(Release)
 
 // TODO rename to ReleaseSolver
 class SnapSolver : public SolverBase {
@@ -119,7 +122,7 @@ public:
 		PHASE_COUNT
 	};
 	
-	Snapshot* snap = 0;
+	Release* snap = 0;
 	Entity* entity = 0;
 	
 	void OnProcessAnalyzeRoleScores(String res);
@@ -131,7 +134,7 @@ public:
 	int GetPhaseCount() const override;
 	void DoPhase() override;
 	
-	static SnapSolver& Get(Snapshot& s);
+	static SnapSolver& Get(Release& s);
 	
 };
 

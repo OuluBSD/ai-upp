@@ -89,5 +89,7 @@ void ProfileInfoCtrl::OnValueChange() {
 	#endif
 }
 
+INITIALIZER_COMPONENT_CTRL(Profile, ProfileInfoCtrl)
+
 
 END_UPP_NAMESPACE

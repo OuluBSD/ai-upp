@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class PlatformCtrl : public ToolAppCtrl {
+class PlatformCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit, bottom, epk_photo_prompt_split;
 	TabCtrl plat_tabs, epk_tabs;
 	ArrayCtrl roles, platforms, epk_text_fields, epk_photo_types, epk_photo_prompts;
@@ -24,6 +24,8 @@ public:
 	void OnPhotoPrompt();
 	
 };
+
+INITIALIZE(PlatformCtrl)
 
 
 END_UPP_NAMESPACE

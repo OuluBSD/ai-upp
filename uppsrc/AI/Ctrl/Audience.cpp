@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 AudienceCtrl::AudienceCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << menusplit << vsplit;
 	hsplit.SetPos(1500);
@@ -398,5 +396,8 @@ void AudienceProcess::OnProcessAudienceProfileCategories(String res) {
 	NextSubBatch();
 }
 
+
+INITIALIZER_COMPONENT(Audience);
+INITIALIZER_COMPONENT_CTRL(Audience, AudienceCtrl)
 
 END_UPP_NAMESPACE

@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-LeadWebsites::LeadWebsites() {
+LeadSourceCtrl::LeadSourceCtrl() {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << vsplit << mainsplit;
@@ -132,7 +132,7 @@ LeadWebsites::LeadWebsites() {
 	};
 }
 
-void LeadWebsites::Data() {
+void LeadSourceCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -165,7 +165,7 @@ void LeadWebsites::Data() {
 	DataWebsite();
 }
 
-void LeadWebsites::DataWebsite() {
+void LeadSourceCtrl::DataWebsite() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -228,7 +228,7 @@ void LeadWebsites::DataWebsite() {
 	DataPayout();
 }
 
-void LeadWebsites::DataPayout() {
+void LeadSourceCtrl::DataPayout() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -298,7 +298,7 @@ void LeadWebsites::DataPayout() {
 	DataPrice();
 }
 
-void LeadWebsites::DataPrice() {
+void LeadSourceCtrl::DataPrice() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -371,7 +371,7 @@ void LeadWebsites::DataPrice() {
 	DataOpportunity();
 }
 
-void LeadWebsites::DataOpportunity() {
+void LeadSourceCtrl::DataOpportunity() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -479,7 +479,7 @@ void LeadWebsites::DataOpportunity() {
 	
 }
 
-void LeadWebsites::DataAnalyzedList() {
+void LeadSourceCtrl::DataAnalyzedList() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -504,7 +504,7 @@ void LeadWebsites::DataAnalyzedList() {
 	
 }
 
-void LeadWebsites::ToolMenu(Bar& bar) {
+void LeadSourceCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Refresh"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
 	//bar.Add(t_("Update website leads"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
@@ -515,7 +515,7 @@ void LeadWebsites::ToolMenu(Bar& bar) {
 	
 }
 
-void LeadWebsites::Do(int fn) {
+void LeadSourceCtrl::Do(int fn) {
 	if (fn == 0) {
 		LeadSolver& tm = LeadSolver::Get(GetDataset());
 		tm.Start();
@@ -529,7 +529,7 @@ void LeadWebsites::Do(int fn) {
 	}
 }
 
-void LeadWebsites::CreateScript() {
+void LeadSourceCtrl::CreateScript() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
@@ -569,7 +569,7 @@ void LeadWebsites::CreateScript() {
 	String snap_title = Format("%d %Month", o.first_seen.year, o.first_seen.month);
 	String script_title = "Lead #" + IntStr(idx);
 	
-	Snapshot& snap = e.GetAddSnapshot(snap_title);
+	Release& snap = e.GetAddSnapshot(snap_title);
 	Component& comp = snap.GetAddComponent(script_title);
 	//e.RealizeTypeclasses(appmode);
 	Script& script = e.GetAddScript(script_title);
@@ -584,7 +584,7 @@ void LeadWebsites::CreateScript() {
 	#endif
 }
 
-void LeadWebsites::CopyHeaderClipboard() {
+void LeadSourceCtrl::CopyHeaderClipboard() {
 	DatasetPtrs mp = GetDataset();
 	LeadData& ld = *mp.lead_data;
 	
@@ -611,7 +611,6 @@ void LeadWebsites::CopyHeaderClipboard() {
 	String txt = args.Get();
 	WriteClipboardText(txt);
 }
-
 
 
 
@@ -1786,7 +1785,7 @@ void LeadSolver::ProcessTemplateTitleAndText() {
 
 void LeadSolver::OnProcessTemplateTitleAndText(String res) {
 	LeadData& ld = *p.lead_data;
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	int lng = LANG_ENGLISH;// mdb.GetLanguageIndex();
 	TODO
 	LeadOpportunity& opp = ld.opportunities[batch];
@@ -1839,7 +1838,7 @@ void LeadSolver::OnProcessTemplateTitleAndText(String res) {
 }
 
 void LeadSolver::ProcessTemplateAnalyze() {
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	if (batch >= ldt.templates.GetCount()) {
 		NextPhase();
 		return;
@@ -1857,7 +1856,7 @@ void LeadSolver::ProcessTemplateAnalyze() {
 }
 
 void LeadSolver::OnProcessTemplateAnalyze(String res) {
-	LeadDataTemplate& ldt = LeadDataTemplate::Single();
+	LeadDataTemplate& ldt = *p.lead_tmpl;
 	LeadTemplate& lt = ldt.templates[batch];
 	
 	/*
@@ -1942,5 +1941,9 @@ void LeadSolver::OnProcessTemplateAnalyze(String res) {
 	SetWaiting(0);
 }
 
+
+
+INITIALIZER_COMPONENT(LeadSource);
+INITIALIZER_COMPONENT_CTRL(LeadSource, LeadSourceCtrl)
 
 END_UPP_NAMESPACE

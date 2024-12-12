@@ -31,7 +31,7 @@ void SnapSolver::DoPhase() {
 		
 		Script& script = snap->entity->scripts[script_i];
 		
-		SnapshotArgs args;
+		ReleaseArgs args;
 		args.text = script.GetText(appmode);
 		args.entity = snap->entity->profile->name;
 		args.title = script.native_title;
@@ -39,7 +39,7 @@ void SnapSolver::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSnapshot(args, [this](String res) {
+		m.GetRelease(args, [this](String res) {
 			if (batch >= snap->song_analysis.GetCount())
 				snap->song_analysis.SetCount(batch+1);
 			String& s = snap->song_analysis[batch];
@@ -54,7 +54,7 @@ void SnapSolver::DoPhase() {
 			 phase == PHASE_LYRICS_SOCIAL_PSYCHOLOGY_ANALYSIS ||
 			 phase == PHASE_MARKET_VALUE_ANALYSIS ||
 			 phase == PHASE_MARKETING_SUGGESTION) {
-		SnapshotArgs args;
+		ReleaseArgs args;
 		args.fn = 1 + phase - PHASE_LYRICS_SUMMARY;
 		args.entity = snap->entity->profile->name;
 		args.title = snap->native_title;
@@ -68,7 +68,7 @@ void SnapSolver::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSnapshot(args, [this](String res) {
+		m.GetRelease(args, [this](String res) {
 			int mode = phase - PHASE_LYRICS_SUMMARY;
 			if (mode >= snap->analysis.GetCount()) snap->analysis.SetCount(mode+1);
 			String& s = snap->analysis[mode];
@@ -79,7 +79,7 @@ void SnapSolver::DoPhase() {
 		});
 	}
 	else if (phase == PHASE_ART_SUGGESTION) {
-		SnapshotArgs args;
+		ReleaseArgs args;
 		args.fn = 6;
 		args.entity = snap->entity->profile->name;
 		args.title = snap->native_title;
@@ -87,7 +87,7 @@ void SnapSolver::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSnapshot(args, [this](String res) {
+		m.GetRelease(args, [this](String res) {
 			res = "- " + res;
 			int mode = SNAPANAL_ART_SUGGESTION;
 			if (mode >= snap->analysis.GetCount()) snap->analysis.SetCount(mode+1);
@@ -99,7 +99,7 @@ void SnapSolver::DoPhase() {
 		});
 	}
 	else if (phase == PHASE_COVER_SUGGESTION) {
-		SnapshotArgs args;
+		ReleaseArgs args;
 		args.fn = 7;
 		args.entity = snap->entity->profile->name;
 		args.title = snap->native_title;
@@ -107,7 +107,7 @@ void SnapSolver::DoPhase() {
 		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
-		m.GetSnapshot(args, [this](String res) {
+		m.GetRelease(args, [this](String res) {
 			res = "1. " + res;
 			RemoveEmptyLines(res);
 			int mode = SNAPANAL_COVER_SUGGESTION;
@@ -168,7 +168,7 @@ ArrayMap<hash_t, SnapSolver>& __SnapSolvers() {
 	return map;
 }
 
-SnapSolver& SnapSolver::Get(Snapshot& e) {
+SnapSolver& SnapSolver::Get(Release& e) {
 	String t = e.node.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, SnapSolver>& map = __SnapSolvers();
@@ -183,5 +183,8 @@ SnapSolver& SnapSolver::Get(Snapshot& e) {
 	return ls;
 }
 
+
+
+INITIALIZER_COMPONENT(Release)
 
 END_UPP_NAMESPACE

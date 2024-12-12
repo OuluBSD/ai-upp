@@ -46,7 +46,7 @@ struct LeadDataPublisher {
 	}
 };
 
-struct LeadDataTemplate {
+struct LeadDataTemplate : Component {
 	Array<LeadTemplate> templates;
 	Index<String> author_classes;
 	Index<String> author_specialities;
@@ -55,17 +55,19 @@ struct LeadDataTemplate {
 	
 	Array<LeadDataPublisher> publishers;
 	
-	LeadDataTemplate();
-	LeadDataTemplate(LeadDataTemplate&&) {}
-	LeadDataTemplate(const LeadDataTemplate&) {}
+	LeadDataTemplate(MetaNode& n) : Component(n) {}
 	void Load();
 	void Store();
 	//LeadOpportunity& GetAddOpportunity(int leadsite, String id);
-	void Jsonize(JsonIO& json);
+	void Jsonize(JsonIO& json) override;
+	void Serialize(Stream& s) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_TEMPLATE;}
 	
-	static LeadDataTemplate& Single() {static LeadDataTemplate o; return o;}
 	
 };
+
+INITIALIZE(LeadDataTemplate)
 
 END_UPP_NAMESPACE
 

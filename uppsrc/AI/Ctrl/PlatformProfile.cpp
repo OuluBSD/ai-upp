@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 PlatformProfileCtrl::PlatformProfileCtrl() {
 	Add(tabs.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	TODO
 	#if 0
@@ -317,5 +315,9 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	#endif
 }
 
+
+
+INITIALIZER_COMPONENT(PlatformProfile);
+INITIALIZER_COMPONENT_CTRL(PlatformProfile, PlatformProfileCtrl)
 
 END_UPP_NAMESPACE

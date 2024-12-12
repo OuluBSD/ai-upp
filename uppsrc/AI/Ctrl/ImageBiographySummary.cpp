@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 ImageBiographySummaryCtrl::ImageBiographySummaryCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << categories << vsplit;
 	hsplit.SetPos(1500);
@@ -246,10 +244,13 @@ int ImageBiographySummaryProcess::GetBatchCount(int phase) const {
 }
 
 int ImageBiographySummaryProcess::GetSubBatchCount(int phase, int batch) const {
+	TODO
+	#if 0
 	if (phase == PHASE_SUMMARIZE_IMAGE_BIOGRAPHY) {
 		BiographyCategory& bcat = p.snap->data.GetAdd(*p.owner, batch);
 		return bcat.summaries.GetCount();
 	}
+	#endif
 	return 1;
 }
 
@@ -278,6 +279,8 @@ ImageBiographySummaryProcess& ImageBiographySummaryProcess::Get(Profile& prof, B
 }
 
 void ImageBiographySummaryProcess::TraverseImageSummaryTasks() {
+	TODO
+	#if 0
 	Biography& biography = p.snap->data;
 	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
 		BiographyCategory& bcat = biography.GetAdd(*p.owner, i);
@@ -299,6 +302,7 @@ void ImageBiographySummaryProcess::TraverseImageSummaryTasks() {
 			}
 		}
 	}
+	#endif
 }
 
 void ImageBiographySummaryProcess::ProcessSummarizeImageCategoryYear() {
@@ -400,6 +404,8 @@ void ImageBiographySummaryProcess::OnProcessSummarizeImageCategoryYear(String re
 }
 
 void ImageBiographySummaryProcess::ProcessSummarizeImageBiography() {
+	TODO
+	#if 0
 	Biography& biography = p.snap->data;
 	
 	if (batch >= BIOCATEGORY_COUNT) {
@@ -482,9 +488,12 @@ void ImageBiographySummaryProcess::ProcessSummarizeImageBiography() {
 	SetWaiting(1);
 	TaskMgr& m = AiTaskManager();
 	m.GetSocial(args, THISBACK(OnProcessSummarizeImageBiography));
+	#endif
 }
 
 void ImageBiographySummaryProcess::OnProcessSummarizeImageBiography(String res) {
+	TODO
+	#if 0
 	Biography& biography = p.snap->data;
 	int bcat_i = batch;
 	BiographyCategory& bcat = biography.GetAdd(*p.owner, bcat_i);
@@ -496,7 +505,11 @@ void ImageBiographySummaryProcess::OnProcessSummarizeImageBiography(String res) 
 	
 	NextSubBatch();
 	SetWaiting(0);
+	#endif
 }
 
+
+INITIALIZER_COMPONENT(ImageBiographySummary);
+INITIALIZER_COMPONENT_CTRL(ImageBiographySummary, ImageBiographySummaryCtrl)
 
 END_UPP_NAMESPACE

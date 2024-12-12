@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class BiographySummaryCtrl : public ToolAppCtrl {
+struct BiographySummary : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(BiographySummary)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY;}
+	
+};
+
+INITIALIZE(BiographySummary)
+
+class BiographySummaryCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl categories, blocks;
 	WithBiography<Ctrl> block;
@@ -28,6 +41,8 @@ public:
 	
 	
 };
+
+INITIALIZE(BiographySummaryCtrl)
 
 
 class BiographySummaryProcess : public SolverBase {

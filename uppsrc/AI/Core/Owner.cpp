@@ -153,5 +153,7 @@ int Owner::GetOpportunityScore(const LeadOpportunity& opp) const {
 	return score;
 }
 
+INITIALIZER_COMPONENT(Owner)
+
 
 END_UPP_NAMESPACE

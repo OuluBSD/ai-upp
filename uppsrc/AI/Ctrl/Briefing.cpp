@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-SnapBriefing::SnapBriefing() {
+ReleaseBriefingCtrl::ReleaseBriefingCtrl() {
 	Add(vsplit.SizePos());
 	
 	vsplit.Vert() << list << values;
@@ -20,10 +20,10 @@ SnapBriefing::SnapBriefing() {
 	
 }
 
-void SnapBriefing::Data() {
+void ReleaseBriefingCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	for(int i = 0; i < ITEM_COUNT; i++) {
 		list.Set(i, 0, i);
 		switch(i) {
@@ -41,14 +41,14 @@ void SnapBriefing::Data() {
 	OnListCursor();
 }
 
-void SnapBriefing::OnListCursor() {
+void ReleaseBriefingCtrl::OnListCursor() {
 	values.key.Clear();
 	values.description.Clear();
 	values.value.Clear();
 	
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	String value_str;
 	switch (list.GetCursor()) {
@@ -62,10 +62,10 @@ void SnapBriefing::OnListCursor() {
 	values.value.SetData(value_str);
 }
 
-void SnapBriefing::OnValueChange() {
+void ReleaseBriefingCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	if (!p.release) return;
-	Snapshot& release = *p.release;
+	Release& release = *p.release;
 	
 	if (!list.IsCursor()) return;
 	
@@ -83,5 +83,7 @@ void SnapBriefing::OnValueChange() {
 	list.Set(2, value_str);
 }
 
+
+INITIALIZER_COMPONENT_CTRL(ReleaseBriefing, ReleaseBriefingCtrl)
 
 END_UPP_NAMESPACE

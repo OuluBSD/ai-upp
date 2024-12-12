@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class AudienceCtrl : public ToolAppCtrl {
+struct Audience : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(Audience)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_AUDIENCE;}
+	
+};
+
+INITIALIZE(Audience)
+
+class AudienceCtrl : public ComponentCtrl {
 	Splitter menusplit, hsplit, vsplit, bsplit;
 	ArrayCtrl roles, profiles, responses, entries;
 	WithAudience<Ctrl> entry;
@@ -24,6 +37,8 @@ public:
 	
 	
 };
+
+INITIALIZE(AudienceCtrl)
 
 class AudienceProcess : public SolverBase {
 	

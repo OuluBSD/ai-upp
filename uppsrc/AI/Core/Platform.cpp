@@ -1230,4 +1230,6 @@ double PlatformAnalysis::GetRoleScoreSumWeighted(int score_i) const {
 }
 #endif
 
+INITIALIZER_COMPONENT(Platform)
+
 END_UPP_NAMESPACE

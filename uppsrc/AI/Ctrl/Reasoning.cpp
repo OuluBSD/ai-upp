@@ -181,4 +181,9 @@ void ScriptReasoningCtrl::AddItem(const Cursor& c, DatabaseBrowser::ColumnType t
 }
 
 
+
+
+INITIALIZER_COMPONENT(ScriptReasoning);
+INITIALIZER_COMPONENT_CTRL(ScriptReasoning, ScriptReasoningCtrl)
+
 END_UPP_NAMESPACE

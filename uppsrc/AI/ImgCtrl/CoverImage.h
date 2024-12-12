@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class SnapCoverImage : public ToolAppCtrl {
+struct ReleaseCoverImage : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(ReleaseCoverImage)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_RELEASE_COVER_IMAGE;}
+	
+};
+
+INITIALIZE(ReleaseCoverImage)
+
+class ReleaseCoverImageCtrl : public ComponentCtrl {
 	Splitter vsplit, hsplit[3];
 	ArrayCtrl attr_list, sugg_list;
 	DocEdit attr_text, sugg_text;
@@ -12,8 +25,8 @@ class SnapCoverImage : public ToolAppCtrl {
 	
 	
 public:
-	typedef SnapCoverImage CLASSNAME;
-	SnapCoverImage();
+	typedef ReleaseCoverImageCtrl CLASSNAME;
+	ReleaseCoverImageCtrl();
 	
 	void ToolMenu(Bar& bar) override;
 	void Data() override;
@@ -27,6 +40,8 @@ public:
 	void SuggestionMenu(Bar& bar);
 	
 };
+
+INITIALIZE(ReleaseCoverImageCtrl)
 
 
 END_UPP_NAMESPACE

@@ -538,7 +538,7 @@ VideoSolver& VideoSolver::Get(Song& c) {
 	#if 0
 	Entity& e = *c.snapshot->entity;
 	Profile& p = *e.profile;
-	Snapshot& n = *c.snapshot;
+	Release& n = *c.snapshot;
 	String t = p.owner->name + ": " + e.file_title + ": " + n.file_title + ": " + c.file_title + " (" + IntStr(appmode) + ")";
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, VideoSolver>& map = __VideoSolvers();
@@ -558,5 +558,8 @@ VideoSolver& VideoSolver::Get(Song& c) {
 	return Single<VideoSolver>();
 }
 
+
+INITIALIZER_COMPONENT(VideoPromptMaker)
+INITIALIZER_COMPONENT_CTRL(VideoPromptMaker, VideoPromptMakerCtrl)
 
 END_UPP_NAMESPACE

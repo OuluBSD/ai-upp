@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class BiographyCtrl : public ToolAppCtrl {
+class BiographyCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl categories, years;
 	WithBiography<Ctrl> year;
@@ -35,6 +35,8 @@ public:
 	
 	
 };
+
+INITIALIZE(BiographyCtrl)
 
 
 END_UPP_NAMESPACE

@@ -5,9 +5,6 @@ NAMESPACE_UPP
 
 BiographyCtrl::BiographyCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
-	
 	
 	hsplit.Horz() << categories << vsplit;
 	hsplit.SetPos(1500);
@@ -463,5 +460,9 @@ void BiographyCtrl::EntryListMenu(Bar& bar) {
 	
 }
 
+
+
+
+INITIALIZER_COMPONENT_CTRL(Biography, BiographyCtrl)
 
 END_UPP_NAMESPACE

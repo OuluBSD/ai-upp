@@ -5,8 +5,6 @@ NAMESPACE_UPP
 
 BiographySummaryCtrl::BiographySummaryCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	Add(prog.BottomPos(0,20).HSizePos(300));
-	Add(remaining.BottomPos(0,20).LeftPos(0,300));
 	
 	hsplit.Horz() << categories << vsplit;
 	hsplit.SetPos(1500, 0);
@@ -54,13 +52,13 @@ BiographySummaryCtrl::BiographySummaryCtrl() {
 }
 
 void BiographySummaryCtrl::Data() {
-	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography) {
 		for(int i = 0; i < categories.GetCount(); i++)
 			categories.Set(i, 1, 0);
 		return;
 	}
+	
 	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
 	
@@ -226,6 +224,8 @@ void BiographySummaryCtrl::Do(int fn) {
 		PromptOK(t_("The latest (and editable) revision won't be processed. Select other than the latest revision."));
 		return;
 	}
+	TODO
+	#if 0
 	BiographySummaryProcess& sdi = BiographySummaryProcess::Get(*mp.profile, *mp.snap);
 	prog.Attach(sdi);
 	sdi.WhenRemaining << [this](String s) {PostCallback([this,s](){remaining.SetLabel(s);});};
@@ -233,6 +233,7 @@ void BiographySummaryCtrl::Do(int fn) {
 		sdi.Start();
 	else
 		sdi.Stop();
+	#endif
 }
 
 void BiographySummaryCtrl::EntryListMenu(Bar& bar) {
@@ -276,6 +277,8 @@ int BiographySummaryProcess::GetBatchCount(int phase) const {
 
 int BiographySummaryProcess::GetSubBatchCount(int phase, int batch) const {
 	int bcat_i = batch;
+	TODO
+	#if 0
 	BiographyCategory& bcat = snap->data.GetAdd(*p.owner, bcat_i);
 	bcat.RealizeSummaries();
 	switch (phase) {
@@ -286,6 +289,8 @@ int BiographySummaryProcess::GetSubBatchCount(int phase, int batch) const {
 		case PHASE_SUMMARIZE_ELEMENTS:					return bcat.summaries.GetCount();
 		default: return 1;
 	}
+	#endif
+	return -1;
 }
 
 void BiographySummaryProcess::DoPhase() {
@@ -366,10 +371,10 @@ void BiographySummaryProcess::FixSummaryHashes() {
 }
 
 void BiographySummaryProcess::SummarizeUsingExisting() {
-	Biography& biography = snap->data;
-	
 	TODO
 	#if 0
+	Biography& biography = snap->data;
+	
 	// Source data hash must be updated in earlier phase, and it won't be done to the latest
 	ASSERT(&biography != &profile->snapshots.Top().data);
 	
@@ -423,6 +428,8 @@ void BiographySummaryProcess::SummarizeUsingExisting() {
 }
 
 bool BiographySummaryProcess::SummarizeBase(int fn, BiographySummaryProcessArgs& args) {
+	TODO
+	#if 0
 	Biography& biography = snap->data;
 	
 	if (batch >= BIOCATEGORY_COUNT) {
@@ -514,6 +521,7 @@ bool BiographySummaryProcess::SummarizeBase(int fn, BiographySummaryProcessArgs&
 			return false;
 		}
 	}
+	#endif
 	return true;
 }
 
@@ -530,6 +538,8 @@ void BiographySummaryProcess::Summarize() {
 }
 
 void BiographySummaryProcess::OnProcessSummarize(String res) {
+	TODO
+	#if 0
 	Biography& biography = snap->data;
 	
 	int bcat_i = batch;
@@ -541,13 +551,14 @@ void BiographySummaryProcess::OnProcessSummarize(String res) {
 	
 	NextSubBatch();
 	SetWaiting(0);
+	#endif
 }
 
 void BiographySummaryProcess::SummarizeElementsUsingExisting() {
-	Biography& biography = snap->data;
-	
 	TODO
 	#if 0
+	Biography& biography = snap->data;
+	
 	// Source data hash must be updated in earlier phase, and it won't be done to the latest
 	ASSERT(&biography != &profile->snapshots.Top().data);
 	
@@ -613,10 +624,10 @@ void BiographySummaryProcess::SummarizeElements() {
 }
 
 void BiographySummaryProcess::OnProcessSummarizeElements(String result) {
-	Biography& biography = snap->data;
-	
 	TODO
 	#if 0
+	Biography& biography = snap->data;
+	
 	int bcat_i = batch;
 	BiographyCategory& bcat = biography.GetAdd(*owner, bcat_i);
 	const BioRange& range = bcat.summaries.GetKey(sub_batch);
@@ -659,6 +670,12 @@ void BiographySummaryProcess::OnProcessSummarizeElements(String result) {
 	NextSubBatch();
 	SetWaiting(0);
 }
+
+
+
+
+INITIALIZER_COMPONENT(BiographySummary);
+INITIALIZER_COMPONENT_CTRL(BiographySummary, BiographySummaryCtrl)
 
 
 END_UPP_NAMESPACE

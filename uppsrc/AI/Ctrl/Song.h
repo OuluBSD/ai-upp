@@ -4,12 +4,12 @@
 NAMESPACE_UPP
 
 
-class CompInfoCtrl : public WithComponentInfo<ToolAppCtrl> {
+class SongInfoCtrl : public WithComponentInfo<ComponentCtrl> {
 	int focus_lyr = -1;
 	
 public:
-	typedef CompInfoCtrl CLASSNAME;
-	CompInfoCtrl();
+	typedef SongInfoCtrl CLASSNAME;
+	SongInfoCtrl();
 	
 	void Data() override;
 	void Clear();
@@ -21,6 +21,8 @@ public:
 	
 };
 
+
+INITIALIZE(SongInfoCtrl)
 
 END_UPP_NAMESPACE
 

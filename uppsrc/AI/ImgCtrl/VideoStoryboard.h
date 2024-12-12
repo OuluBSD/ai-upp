@@ -4,7 +4,20 @@
 NAMESPACE_UPP
 
 
-class VideoStoryboardCtrl : public ToolAppCtrl {
+struct VideoStoryboard : Component
+{
+	
+	COMPONENT_CONSTRUCTOR(VideoStoryboard)
+	void Serialize(Stream& s) override {TODO}
+	void Jsonize(JsonIO& json) override {TODO}
+	hash_t GetHashValue() const override {TODO; return 0;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD;}
+	
+};
+
+INITIALIZE(VideoStoryboard)
+
+class VideoStoryboardCtrl : public ComponentCtrl {
 	Splitter split, vsplit0, vsplit1;
 	ArrayCtrl list;
 	ImageViewerCtrl img[4];
@@ -21,6 +34,8 @@ public:
 	
 	
 };
+
+INITIALIZE(VideoStoryboardCtrl)
 
 
 END_UPP_NAMESPACE

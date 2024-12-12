@@ -283,4 +283,7 @@ Index<int> BiographyAnalysis::GetRequiredCategories() const {
 	return cats;
 }
 
+INITIALIZER_COMPONENT(Biography)
+INITIALIZER_COMPONENT(BiographySnapshot)
+
 END_UPP_NAMESPACE

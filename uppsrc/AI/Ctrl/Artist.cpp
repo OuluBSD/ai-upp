@@ -91,4 +91,8 @@ void ArtistInfoCtrl::OnValueChange() {
 	}
 }
 
+INITIALIZER_COMPONENT(Artist);
+INITIALIZER_COMPONENT_CTRL(Artist, ArtistInfoCtrl)
+
+
 END_UPP_NAMESPACE

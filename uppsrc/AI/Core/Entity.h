@@ -15,14 +15,17 @@ struct DatasetPtrs {
 	Ptr<Song>				song;
 	Ptr<MetaNode>			env;
 	Ptr<Owner>				owner; // TODO rename to human?
-	Ptr<Snapshot>			release;
+	Ptr<Release>			release;
 	Ptr<Profile>			profile;
 	Ptr<BiographySnapshot>	snap;
+	
 	bool editable_biography = false;
+	
 	BiographyAnalysis*		analysis = 0;
 	Biography*				biography = 0;
 	LeadData*				lead_data = 0;
 	LeadDataAnalysis*		lead_data_anal = 0;
+	LeadDataTemplate*		lead_tmpl = 0;
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -37,11 +40,16 @@ struct DatasetPtrs {
 		env = p.env;
 		owner = p.owner;
 		release = p.release;
-		analysis = p.analysis;
 		profile = p.profile;
 		snap = p.snap;
+		
 		editable_biography = p.editable_biography;
+		
+		analysis = p.analysis;
 		biography = p.biography;
+		lead_data = p.lead_data;
+		lead_data_anal = p.lead_data_anal;
+		lead_tmpl = p.lead_tmpl;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	

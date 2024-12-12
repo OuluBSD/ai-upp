@@ -11,13 +11,14 @@ struct Script;
 struct Lyrics;
 struct Song;
 struct Owner;
-struct Snapshot;
+struct Release;
 struct Biography;
 struct BiographyAnalysis;
 struct Profile;
 struct BiographySnapshot;
 struct LeadData;
 struct LeadDataAnalysis;
+struct LeadDataTemplate;
 
 typedef String NoPointerExc;
 

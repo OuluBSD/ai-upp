@@ -59,7 +59,6 @@ struct Release : Component
 			("analysis", analysis)
 			("cover_suggestions", cover_suggestions)
 			;
-		TODO
 		/*if (json.IsStoring()) {
 			{
 				Vector<String> names;

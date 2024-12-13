@@ -215,7 +215,7 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 }
 
 void EntityEditorCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaEnv().LoadFileRootJson("", filepath, data, true);
+	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
 }
 
 void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
@@ -468,27 +468,7 @@ DatasetPtrs EntityInfoCtrl::GetDataset() {
 	DatasetPtrs p;
 	MetaNode& n = GetNode();
 	p.entity = &GetExt<Entity>();
-	if (p.entity) {
-		p.env = MetaEnv().FindNodeEnv(*p.entity);
-		if (p.env) {
-			bool found_db_src = false;
-			for (MetaNode& s : p.env->sub) {
-				if (s.kind == METAKIND_DB_REF) {
-					for (auto db : ~DatasetIndex()) {
-						MetaNodeExt& ext = *db.value;
-						if (ext.node.kind == METAKIND_DATABASE_SOURCE) {
-							p.src = dynamic_cast<SrcTxtHeader*>(&ext);
-							ASSERT(p.src);
-							p.src->RealizeData();
-							found_db_src = true;
-							break;
-						}
-					}
-				}
-				if (found_db_src) break;
-			}
-		}
-	}
+	FillDataset(p, n, 0);
 	return p;
 }
 

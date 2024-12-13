@@ -26,7 +26,7 @@ void SourceDataCtrl::SetFont(Font fnt) {
 }
 
 void SourceDataCtrl::Data() {
-	DatasetPtrs& p = o.GetDataset();
+	DatasetPtrs p = o.GetDataset();
 	if (!p.src) {
 		entities.Clear();
 		components.Clear();
@@ -1616,7 +1616,9 @@ void SourceTextCtrl::Data() {
 }
 
 void SourceTextCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaEnv().LoadFileRootJson("", filepath, data, true);
+	MetaNode* n = 0;
+	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true, &n);
+	SetFileNode(n);
 }
 
 void SourceTextCtrl::OnSave(String& data, const String& filepath) {

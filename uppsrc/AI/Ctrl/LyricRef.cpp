@@ -69,6 +69,7 @@ ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ComponentCtrl& o) : o(o) {
 		DatasetPtrs p = this->o.GetDataset();
 		if (!p.src)
 			return;
+		b.SetCtrl(this->o);
 		b.SetMode(p, 0);
 		Data();
 	});
@@ -147,7 +148,6 @@ void ScriptPhrasePartsGroups::Data() {
 	UpdateNavigator();
 	
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	b.SetCtrl(o);
 	
 	
 	//INHIBIT_ACTION(mode);
@@ -217,7 +217,7 @@ void ScriptPhrasePartsGroups::FillArrayCtrl(DatabaseBrowser::ColumnType t, Array
 void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	DatasetPtrs p = o.GetDataset();
-	ASSERT(p.src);
+	if (!p.src) return;
 	auto& src = p.src->Data();
 
 	int row = 0, max_rows = 10000;
@@ -668,7 +668,10 @@ void ScriptReferenceMakerCtrl::Do(int fn) {
 
 void ScriptReferenceMakerCtrl::UpdateMode() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	b.SetMode(GetDataset(), GetActiveMode());
+	DatasetPtrs p = GetDataset();
+	if (!p.src)
+		return;
+	b.SetMode(p, GetActiveMode());
 	b.ResetCursor();
 	db0.Data();
 	db0.WhenBrowserCursor(); // OnBrowserCursor

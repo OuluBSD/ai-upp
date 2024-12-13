@@ -159,7 +159,7 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 }
 
 void EnvEditorCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaEnv().LoadFileRootJson("", filepath, data, true);
+	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
 }
 
 void EnvEditorCtrl::OnSave(String& data, const String& filepath) {

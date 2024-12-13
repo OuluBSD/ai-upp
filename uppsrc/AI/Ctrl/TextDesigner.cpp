@@ -83,8 +83,12 @@ String ToolAppCtrl::GetComponentTitle() const {
 	return "";
 }
 
-DatasetPtrs& ToolAppCtrl::GetDataset() const {
-	TODO return DatasetPtrs::Single();
+DatasetPtrs ToolAppCtrl::GetDataset() const {
+	DatasetPtrs p;
+	MetaNode* n = GetFileNode();
+	if (n)
+		FillDataset(p, *n, 0);
+	return p;
 }
 
 /*const Index<String>& ToolAppCtrl::GetTypeclasses() const {
@@ -148,6 +152,7 @@ void ToolAppCtrl::MakeComponentParts(ArrayCtrl& parts) {
 
 void ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
 	data = in.Get((int)in.GetSize());
+	data_includes = includes;
 	data_filepath = filename;
 	OnLoad(data, filename);
 }

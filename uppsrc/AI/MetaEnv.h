@@ -270,6 +270,8 @@ Vector<String> FindParentUppDirectories(const String& dir);
 
 struct MetaNodeSubset;
 
+
+// Don't change the order! It breaks MetaNode serialization and all user files
 enum {
 	METAKIND_BEGIN = 1000,
 	
@@ -280,12 +282,11 @@ enum {
 	METAKIND_COMMENT,
 	METAKIND_ECS_SPACE,
 	
-	METAKIND_EXTENSION_BEGIN = 1100,
+	METAKIND_EXTENSION_BEGIN = 2000,
 	
 	METAKIND_ECS_ENTITY,
 	
-	METAKIND_ECS_COMPONENT_BEGIN,
-	
+	METAKIND_ECS_COMPONENT_BEGIN = 3000,
 	METAKIND_ECS_COMPONENT_PROFILE,
 	METAKIND_ECS_COMPONENT_OWNER,
 	METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE,
@@ -325,7 +326,7 @@ enum {
 	METAKIND_ECS_COMPONENT_END,
 	
 	
-	METAKIND_EXTENSION_END = 1200,
+	METAKIND_EXTENSION_END = 4000,
 	
 	
 	
@@ -662,7 +663,7 @@ struct MetaEnvironment {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcFile& Load(const String& includes, const String& path);
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
-	bool LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file);
+	bool LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file, MetaNode** file_node=0);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
@@ -687,7 +688,7 @@ struct MetaEnvironment {
 	MetaNode* FindNodeEnv(Entity& n);
 	void UpdateWorkspace(Workspace& wspc);
 	Vector<MetaNode*> FindAllEnvs();
-	bool LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data);
+	MetaNode* LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data);
 };
 
 MetaEnvironment& MetaEnv();

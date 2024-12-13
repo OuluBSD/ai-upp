@@ -68,7 +68,8 @@ hash_t DatabaseBrowser::GetModeHash(int mode)
 
 void DatabaseBrowser::SetMode(const DatasetPtrs& p, int i)
 {
-	if(i == mode && p.src == this->p.src)
+	ASSERT(p.src);
+	if(i == mode)
 		return;
 	this->p = p;
 	mode = i;

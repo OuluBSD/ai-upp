@@ -16,12 +16,13 @@ public:
 };
 
 class ToolAppCtrl : public Ctrl {
-	String data, data_filepath;
-	//MenuBar menu;
+	String data, data_includes, data_filepath;
+	MetaNode* file_node = 0;
 	
 protected:
 	String data_sha1;
 	
+	void SetFileNode(MetaNode* n) {file_node = n;}
 public:
 	SolverBaseIndicator prog;
 	Label remaining;
@@ -37,7 +38,7 @@ public:
 	Entity& GetEntity();
 	Component& GetComponent();
 	//EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
-	DatasetPtrs& GetDataset() const;
+	DatasetPtrs GetDataset() const;
 	Script& GetScript();
 	//const Index<String>& GetTypeclasses() const;
 	//const Vector<ContentType>& GetContents() const;
@@ -47,7 +48,9 @@ public:
 	bool HasPointers() const;
 	String GetComponentTitle() const;
 	String GetFilePath() const {return data_filepath;}
+	String GetFileIncludes() const {return data_includes;}
 	String GetFileData() const {return data;}
+	MetaNode* GetFileNode() const {return file_node;}
 	
 	void MakeComponentParts(ArrayCtrl& parts);
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);

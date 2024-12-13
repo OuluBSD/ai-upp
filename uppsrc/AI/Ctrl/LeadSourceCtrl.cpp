@@ -134,6 +134,8 @@ LeadSourceCtrl::LeadSourceCtrl() {
 
 void LeadSourceCtrl::Data() {
 	DatasetPtrs p = GetDataset();
+	if (!p.lead_data || !p.lead_data_anal)
+		return;
 	LeadData& ld = *p.lead_data;
 	LeadDataAnalysis& sda = *p.lead_data_anal;
 	

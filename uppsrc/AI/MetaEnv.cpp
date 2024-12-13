@@ -746,7 +746,7 @@ MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 	return 0;
 }
 
-bool MetaEnvironment::LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data) {
+MetaNode* MetaEnvironment::LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data) {
 	data.Replace("\r","");
 	if (data.Find("{\n\t\"written\":") >= 0) {
 		MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
@@ -759,12 +759,12 @@ bool MetaEnvironment::LoadDatabaseSourceJson(MetaSrcFile& file, String path, Str
 		filenode.ext = ext.Detach();
 		ASSERT(&filenode.ext->node == &filenode);
 		filenode.id = GetFileTitle(path);
-		return true;
+		return &filenode;
 	}
 	else {
 		Panic("TODO");
 	}
-	return false;
+	return 0;
 }
 
 bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, bool manage_file)
@@ -791,14 +791,20 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	return false;
 }
 
-bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file) {
+bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file, MetaNode** file_node) {
+	if (file_node) *file_node = 0;
+	
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	
 	// Hotfix for old .db-src file
 	if (GetFileExt(path) == ".db-src") {
-		if (LoadDatabaseSourceJson(file, path, json))
+		MetaNode* fn = LoadDatabaseSourceJson(file, path, json);
+		if (fn) {
+			if (file_node)
+				*file_node = fn;
 			return true;
+		}
 	}
 	
 	if(file.LoadJson(json)) {

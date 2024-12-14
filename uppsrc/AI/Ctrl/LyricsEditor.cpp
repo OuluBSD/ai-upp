@@ -258,7 +258,7 @@ void ScriptTextSolverCtrl::DataSuggestions() {
 }
 
 void ScriptTextSolverCtrl::DataWhole() {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& l = *p.lyrics;
@@ -329,7 +329,7 @@ void ScriptTextSolverCtrl::DataWhole() {
 }
 
 void ScriptTextSolverCtrl::DataPart() {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
@@ -360,7 +360,7 @@ void ScriptTextSolverCtrl::DataPart() {
 }
 
 void ScriptTextSolverCtrl::DataSub() {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
@@ -383,7 +383,7 @@ void ScriptTextSolverCtrl::DataSub() {
 }
 
 void ScriptTextSolverCtrl::DoPart(int fn) {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity);
 	String ecs_path = p.entity->node.GetPath();
 	
@@ -410,7 +410,7 @@ void ScriptTextSolverCtrl::DoPart(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoSub(int fn) {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity);
 	String ecs_path = p.entity->node.GetPath();
 	const DynPart* part = 0;
@@ -437,7 +437,7 @@ void ScriptTextSolverCtrl::DoSub(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoLine(int fn) {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity && p.script);
 	String ecs_path = p.entity->node.GetPath();
 	const DynPart* part = 0;
@@ -538,7 +538,7 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 }
 
 void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender) {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	ASSERT(p.src);
 	
 	auto& src = p.src->Data();
@@ -563,7 +563,7 @@ void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender)
 }
 
 void ScriptTextSolverCtrl::DataLine() {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	Script& s = *p.script;
 	
 	if (editor.selected_line) {
@@ -622,7 +622,7 @@ void ScriptTextSolverCtrl::DataLine() {
 }
 
 void ScriptTextSolverCtrl::OnValueChange() {
-	const DatasetPtrs& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	Script& s = *p.script;
 	auto& src = p.src->Data();
 	ASSERT(p.src);

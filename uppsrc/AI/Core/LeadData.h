@@ -8,7 +8,7 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 		int id;
 		String name;
 		bool primary;
-		void Jsonize(JsonIO& json);
+		void Visit(NodeVisitor& v);
 		String ToString() const;
 	};
 	
@@ -87,38 +87,24 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 	int GetCount() const;
 	Value operator[](int i) const;
 	const char* GetKey(int i) const;
-	void Jsonize(JsonIO& json);
+	void Visit(NodeVisitor& v);
 };
 
-struct LeadEntityAnalysis {
-	
-};
-
-struct LeadDataAnalysis {
-	ArrayMap<String, LeadEntityAnalysis> entities;
-	
-	LeadDataAnalysis();
-	LeadDataAnalysis(LeadDataAnalysis&) {}
-	LeadDataAnalysis(LeadDataAnalysis&& o) {LOG("warning: TODO: LeadDataAnalysis(LeadDataAnalysis&& o)");}
-	
-	LeadEntityAnalysis& GetLeadEntityAnalysis(const String& name) {return entities.GetAdd(name);}
-	
-};
-
-struct LeadData {
-	LeadDataAnalysis a;
-	
+// TODO: rename to GigList or something
+struct LeadData : Component {
 	Vector<LeadOpportunity> opportunities;
 	
-	LeadData();
-	LeadData(LeadData&&) {}
-	LeadData(const LeadData&) {}
+	COMPONENT_CONSTRUCTOR(LeadData);
 	void Load();
 	void Store();
 	LeadOpportunity& GetAddOpportunity(int leadsite, String id);
-	void Jsonize(JsonIO& json);
+	void Visit(NodeVisitor& v);
+	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_DATA;}
 	
 };
+
+INITIALIZE(LeadData)
 
 END_UPP_NAMESPACE
 

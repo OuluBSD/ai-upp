@@ -2,26 +2,9 @@
 
 NAMESPACE_UPP
 
-LeadData::LeadData() {
-	
-}
-
-#if 0
-void LeadData::Load() {
-	String& dir = MetaDatabase::Single().dir;
-	ASSERT(dir.GetCount());
-	LoadFromJsonFileStandard(*this, dir + DIR_SEPS + "share" + DIR_SEPS + "lead_data.json");
-}
-
-void LeadData::Store() {
-	String& dir = MetaDatabase::Single().dir;
-	StoreAsJsonFileStandard(*this, dir + DIR_SEPS + "share" + DIR_SEPS + "lead_data.json", true);
-}
-#endif
-
-void LeadData::Jsonize(JsonIO& json) {
-	json("opportunities", opportunities);
-	TODO // a: analysis?
+void LeadData::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("opportunities", opportunities, VISIT_VECTOR);
 }
 
 LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
@@ -43,10 +26,8 @@ LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 
 
 
-#define OPP_LIST \
+#define OPP_LIST_1 \
 	ITEMV(links) \
-	ITEMV(genres) \
-	ITEMV(promoter_group_genres) \
 	ITEMV(analyzed_booleans) \
 	ITEMV(analyzed_string) \
 	ITEMV(analyzed_lists) \
@@ -114,21 +95,31 @@ LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 	ITEMV(contents) \
 	ITEMV(lyrics_ideas) \
 	ITEMV(music_styles) \
+// Don't add here, but make a new list (with new version)
 
+#define OPP_LIST_2 \
+	ITEMV(genres) \
+	ITEMV(promoter_group_genres) \
 
-void LeadOpportunity::Jsonize(JsonIO& json) {
-	json
+void LeadOpportunity::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)
 	#define ITEM(x) (#x, x)
 	#define ITEMV(x) (#x, x)
-	OPP_LIST
-	;
+	OPP_LIST_1
 	#undef ITEM
 	#undef ITEMV
+	#define ITEM(x) (#x, x, VISIT_VECTOR)
+	#define ITEMV(x) (#x, x, VISIT_VECTOR)
+	OPP_LIST_2
+	#undef ITEM
+	#undef ITEMV
+	;
 }
 
-void LeadOpportunity::Genre::Jsonize(JsonIO& json) {
-	json
-		("id", id)
+void LeadOpportunity::Genre::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("id", id)
 		("name", name)
 		("primary", primary)
 		;
@@ -139,7 +130,8 @@ int LeadOpportunity::GetCount() const {
 	int c = 0;
 	#define ITEM(x) ++c;
 	#define ITEMV(x) ++c;
-	OPP_LIST
+	OPP_LIST_1
+	OPP_LIST_2
 	#undef ITEM
 	#undef ITEMV
 	return c;
@@ -149,7 +141,8 @@ Value LeadOpportunity::operator[](int i) const {
 	int j = 0;
 	#define ITEM(x) if (j++ == i) return x;
 	#define ITEMV(x) j++;
-	OPP_LIST
+	OPP_LIST_1
+	OPP_LIST_2
 	#undef ITEM
 	#undef ITEMV
 	if (i == 0)
@@ -177,7 +170,8 @@ const char* LeadOpportunity::GetKey(int i) const {
 	int j = 0;
 	#define ITEM(x) if (j++ == i) return #x;
 	#define ITEMV(x) if (j++ == i) return #x;
-	OPP_LIST
+	OPP_LIST_1
+	OPP_LIST_2
 	#undef ITEM
 	#undef ITEMV
 	return "";
@@ -191,8 +185,6 @@ String LeadOpportunity::Genre::ToString() const {
 	return s;
 }
 
-LeadDataAnalysis::LeadDataAnalysis() {
-	
-}
+INITIALIZER_COMPONENT(LeadData)
 
 END_UPP_NAMESPACE

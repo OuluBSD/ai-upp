@@ -27,7 +27,7 @@ ToolAppCtrl::~ToolAppCtrl() {
 }
 
 bool ToolAppCtrl::IsScript() const {
-	const auto& p = GetDataset();
+	const DatasetPtrs p = GetDataset();
 	return p.script;
 }
 
@@ -37,14 +37,14 @@ bool ToolAppCtrl::HasPointers() const {
 }
 
 Script& ToolAppCtrl::GetScript() {
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if(!p.script)
 		throw NoPointerExc("no scripts");
 	return *p.script;
 }
 
 Component& ToolAppCtrl::GetComponent() {
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
 	return *p.song;
@@ -63,7 +63,7 @@ void ToolAppCtrl::UpdateMenu() {
 }
 
 Entity& ToolAppCtrl::GetEntity() {
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if(!p.entity)
 		throw NoPointerExc("no artist");
 	return *p.entity;
@@ -71,7 +71,7 @@ Entity& ToolAppCtrl::GetEntity() {
 
 String ToolAppCtrl::GetComponentTitle() const {
 	/*DatasetPtrs p = GetDataset();
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
 	Component& song = *p.song;
@@ -105,7 +105,7 @@ const Vector<String>& ToolAppCtrl::GetContentParts() const {
 
 /*int ToolAppCtrl::GetDataset() {
 	DatasetPtrs p = GetDataset();
-	DatasetPtrs& p = GetDataset();
+	DatasetPtrs p = GetDataset();
 	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
 	Component& song = *p.song;

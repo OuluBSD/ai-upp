@@ -306,7 +306,7 @@ void EntityEditorCtrl::RemoveComponent() {
 
 void EntityEditorCtrl::Do(int i) {
 	
-	//DatasetPtrs& p = GetDataset();
+	//DatasetPtrs p = GetDataset();
 	//p.file_root = file_root;
 	
 	if (i == 0) {

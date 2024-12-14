@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct LeadSource : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(LeadSource)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_SOURCE;}
-	
-};
-
-INITIALIZE(LeadSource)
-
 class LeadSourceCtrl : public ComponentCtrl {
 	Splitter vsplit, hsplit, mainsplit, bsplit, bvsplit, bssplit;
 	ArrayCtrl websites, list, payouts, prices, attrs;
@@ -38,6 +24,7 @@ public:
 	void CopyHeaderClipboard();
 	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
+	void ImportJson();
 	
 	
 };
@@ -75,7 +62,6 @@ class LeadSolver : public SolverBase {
 		LS_COUNT
 	};
 	Owner* owner = 0;
-	LeadEntityAnalysis* sa = 0;
 	
 	// Params
 	double score_limit_factor = 0.8;

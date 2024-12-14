@@ -514,7 +514,8 @@ void LeadSourceCtrl::ToolMenu(Bar& bar) {
 	bar.Separator();
 	bar.Add(t_("Create script"), TextImgs::BlueRing(), THISBACK(CreateScript)).Key(K_F7);
 	bar.Add(t_("Copy script header to clipboard"), TextImgs::BlueRing(), THISBACK(CopyHeaderClipboard)).Key(K_F8);
-	
+	bar.Separator();
+	bar.Add(t_("Import json"), THISBACK(ImportJson));
 }
 
 void LeadSourceCtrl::Do(int fn) {
@@ -612,6 +613,36 @@ void LeadSourceCtrl::CopyHeaderClipboard() {
 	
 	String txt = args.Get();
 	WriteClipboardText(txt);
+}
+
+void LeadSourceCtrl::ImportJson() {
+	DatasetPtrs p = GetDataset();
+	LeadData& ld = GetExt<LeadData>();
+	
+	FileSelNative sel;
+	sel.ActiveDir(GetHomeDirectory());
+	sel.Type("JSON", "*.json");
+	if (sel.ExecuteOpen("Select json file to import")) {
+		String path = sel.Get();
+		if (FileExists(path)) {
+			try {
+				String json = LoadFile(path);
+				Value jv = ParseJSON(json);
+				if(jv.IsError())
+					return;
+				JsonIO jio(jv);
+				NodeVisitor vis(jio);
+				ld.Visit(vis);
+			}
+			catch(ValueTypeError) {
+				return;
+			}
+			catch(JsonizeError) {
+				return;
+			}
+			LOG(ld.opportunities.GetCount());
+		}
+	}
 }
 
 
@@ -1944,8 +1975,6 @@ void LeadSolver::OnProcessTemplateAnalyze(String res) {
 }
 
 
-
-INITIALIZER_COMPONENT(LeadSource);
-INITIALIZER_COMPONENT_CTRL(LeadSource, LeadSourceCtrl)
+INITIALIZER_COMPONENT_CTRL(LeadData, LeadSourceCtrl)
 
 END_UPP_NAMESPACE

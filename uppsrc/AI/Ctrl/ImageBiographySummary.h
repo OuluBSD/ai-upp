@@ -12,7 +12,7 @@ struct ImageBiographySummary : Component
 	void Visit(NodeVisitor& v) override {
 		v.Ver(1)
 		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY_SUMMARY;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY;}
 	
 };
 

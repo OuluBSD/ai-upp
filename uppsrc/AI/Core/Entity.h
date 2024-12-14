@@ -58,7 +58,6 @@ struct DatasetPtrs {
 void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp);
 
 struct Component : MetaNodeExt {
-	
 	Component(MetaNode& owner) : MetaNodeExt(owner) {}
 	DatasetPtrs GetDataset() const;
 	

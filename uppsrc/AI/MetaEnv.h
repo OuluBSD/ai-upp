@@ -51,12 +51,11 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitArrayItem(JsonIO& j, T& o) {
-		ASSERT(json == &j);
 		o.Visit(*this);
 	}
 	template<class T>
 	void VisitVectorJson(const char* key, T& o) {
-		json->Array(key, o, THISBACK(VisitArrayItem<T::value_type>));
+		json->Array(key, o, THISBACK(VisitArrayItem<typename T::value_type>));
 	}
 	template<class T>
 	void VisitVectorHash(T& o) {
@@ -133,7 +132,6 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapItem(JsonIO& j, T& o) {
-		ASSERT(json == &j);
 		o.Visit(*this);
 	}
 	template<class T>
@@ -146,7 +144,7 @@ struct NodeVisitor {
 			for (auto it : ~o) {
 				String k = key + "[" + IntStr(i++) + "]";
 				(*json)(k + ".k", const_cast<KeyType&>(it.key));
-				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<T::value_type>));
+				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<typename T::value_type>));
 			}
 		}
 		else {
@@ -154,7 +152,7 @@ struct NodeVisitor {
 				String k = key + "[" + IntStr(i++) + "]";
 				KeyType kt;
 				(*json)(k + ".k", kt);
-				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<T::value_type>));
+				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<typename T::value_type>));
 			}
 		}
 	}
@@ -197,7 +195,6 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapKVItem(JsonIO& j, T& o) {
-		ASSERT(json == &j);
 		o.Visit(*this);
 	}
 	template<class T>
@@ -210,7 +207,7 @@ struct NodeVisitor {
 			for (auto it : ~o) {
 				String k = key + "[" + IntStr(i++) + "]";
 				json->Var(k + ".k", const_cast<KeyType&>(it.key), THISBACK(VisitMapItem<KeyType>));
-				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<T::value_type>));
+				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<typename T::value_type>));
 			}
 		}
 		else {
@@ -218,7 +215,7 @@ struct NodeVisitor {
 				String k = key + "[" + IntStr(i++) + "]";
 				KeyType kt;
 				json->Var(k + ".k", kt, THISBACK(VisitMapItem<KeyType>));
-				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<T::value_type>));
+				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<typename T::value_type>));
 			}
 		}
 	}
@@ -262,6 +259,12 @@ struct NodeVisitor {
 	
 	
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int) {return VisitVector(key, o);}
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int) {return VisitMap(key, o);}
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int) {return VisitKVMap(key, o);}
+	
+	#define VISIT_VECTOR 0
+	#define VISIT_MAP 0,0
+	#define VISIT_MAP_KV 0,0,0
 };
 
 
@@ -287,6 +290,7 @@ enum {
 	METAKIND_ECS_ENTITY,
 	
 	METAKIND_ECS_COMPONENT_BEGIN = 3000,
+	
 	METAKIND_ECS_COMPONENT_PROFILE,
 	METAKIND_ECS_COMPONENT_OWNER,
 	METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE,
@@ -307,7 +311,6 @@ enum {
 	METAKIND_ECS_COMPONENT_PLATFORM,
 	METAKIND_ECS_COMPONENT_PLATFORM_PROFILE,
 	METAKIND_ECS_COMPONENT_SCRIPT_REASONING,
-	METAKIND_ECS_COMPONENT_LEAD_SOURCE,
 	METAKIND_ECS_COMPONENT_LEAD_TEMPLATE,
 	METAKIND_ECS_COMPONENT_LEAD_PUBLISHER,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY,
@@ -315,13 +318,14 @@ enum {
 	METAKIND_ECS_COMPONENT_BIOGRAPHY_CONCEPTS,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT,
-	METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY,
-	METAKIND_ECS_COMPONENT_IMAGE_BIOGRAPHY_SUMMARY,
+	METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES,
+	METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY,
 	METAKIND_ECS_COMPONENT_IMG_LAYER,
 	METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,
 	METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER,
 	METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER,
 	METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD,
+	METAKIND_ECS_COMPONENT_LEAD_DATA,
 	
 	METAKIND_ECS_COMPONENT_END,
 	

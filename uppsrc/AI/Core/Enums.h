@@ -725,16 +725,42 @@ inline String GetSongListingListKey(int i) {
 	}
 }
 
-// TODO move to user's file
-enum {
-	LEADSITE_TAXI,
-	LEADSITE_MUSICXRAY,
-	LEADSITE_SONICBIDS,
-	
-	LEADSITE_COUNT,
-};
 
-const char* GetLeadWebsiteKey(int leadsite_idx);
+
+
+
+
+
+
+
+
+
+
+// TODO: move to file
+enum {
+	PART_BEGIN,
+	PART_MID,
+	PART_END,
+
+	PART_COUNT
+};
+struct ContentType : Moveable<ContentType> {
+	String key, parts[PART_COUNT];
+
+	void Serialize(Stream& s) {s / key; for(int i = 0; i < PART_COUNT; i++) s / parts[i];}
+	void Set(String key, String begin, String mid, String end, const char* p3=0)
+	{
+		this->key = key;
+		parts[PART_BEGIN] = begin;
+		parts[PART_MID] = mid;
+		parts[PART_END] = end;
+	}
+};
+const Vector<ContentType>& GetContents(int appmode);
+const Vector<String>& GetContentParts(int appmode);
+int GetContentCount(int appmode);
+const Index<String>& GetTypeclasses(int appmode);
+int GetTypeclassCount(int appmode);
 
 END_UPP_NAMESPACE
 

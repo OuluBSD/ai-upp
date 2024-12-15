@@ -9,7 +9,7 @@ void LeadData::Visit(NodeVisitor& v) {
 
 LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 	for (LeadOpportunity& o : opportunities) {
-		if (o.leadsite == leadsite && o.id == id) {
+		if (o.id == id) {
 			Time now = GetSysTime();
 			if (o.last_seen < now-12*60*60)
 				o.last_seen = GetSysTime();
@@ -19,7 +19,6 @@ LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 	LeadOpportunity& o = opportunities.Add();
 	o.first_seen = GetSysTime();
 	o.last_seen = o.first_seen;
-	o.leadsite = leadsite;
 	o.id = id;
 	return o;
 }
@@ -31,7 +30,6 @@ LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 	ITEMV(analyzed_booleans) \
 	ITEMV(analyzed_string) \
 	ITEMV(analyzed_lists) \
-	ITEM(leadsite) \
 	ITEM(id) \
 	ITEM(first_seen) \
 	ITEM(last_seen) \

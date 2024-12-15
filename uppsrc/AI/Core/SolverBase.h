@@ -24,6 +24,7 @@ protected:
 	bool running = false, stopped = true;
 	bool skip_ready = true;
 	bool parallel = false;
+	String last_error;
 	
 	void Process();
 	void ProcessInParallel();
@@ -41,6 +42,7 @@ protected:
 	void NextSubBatch();
 	
 	double GetProgress();
+	void SetError(String s) {last_error = s;}
 public:
 	typedef SolverBase CLASSNAME;
 	SolverBase();

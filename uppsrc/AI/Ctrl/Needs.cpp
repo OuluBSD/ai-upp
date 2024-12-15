@@ -459,7 +459,7 @@ void SocialNeedsProcess::DoPhase() {
 	#if 0
 	MetaDatabase& db = MetaDatabase::Single();
 	LeadData& sd = db.lead_data;
-	LeadDataAnalysis& sda = db.lead_data.a;
+	
 	//sa = &sda.GetLeadEntityAnalysis(owner->name);
 	int lng_i = db.GetLanguageIndex();
 

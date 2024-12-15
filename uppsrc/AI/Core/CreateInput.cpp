@@ -1775,7 +1775,7 @@ void AiTask::CreateInput_Social() {
 	#if 0
 	MetaDatabase& mdb = MetaDatabase::Single();
 	LeadData& ld = mdb.lead_data;
-	LeadDataAnalysis& lda = mdb.lead_data.a;
+	
 	
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
@@ -2237,7 +2237,7 @@ void AiTask::CreateInput_LeadSolver() {
 	#if 0
 	MetaDatabase& mdb = MetaDatabase::Single();
 	LeadData& ld = mdb.lead_data;
-	LeadDataAnalysis& lda = mdb.lead_data.a;
+	
 	
 	if (args.IsEmpty()) {
 		SetFatalError("no args");

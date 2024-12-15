@@ -9,7 +9,7 @@ LeadSourceCtrl::LeadSourceCtrl() {
 	hsplit.Horz() << vsplit << mainsplit;
 	hsplit.SetPos(1500);
 	
-	vsplit.Vert() << websites << payouts << prices;
+	vsplit.Vert() << payouts << prices;
 	
 	mainsplit.Vert() << list << bsplit << bssplit;
 	mainsplit.SetPos(4500,0);
@@ -19,12 +19,6 @@ LeadSourceCtrl::LeadSourceCtrl() {
 	bvsplit.Vert() << list_names << list_values;
 	//bvsplit.SetPos(2500);
 	bssplit.Horz() << song_typecasts << lyrics_ideas << music_styles;
-	
-	websites.AddColumn(t_("Website"));
-	websites.AddColumn(t_("Count"));
-	websites.AddIndex("IDX");
-	websites.ColumnWidths("3 1");
-	websites.WhenCursor << THISBACK(DataWebsite);
 	
 	payouts.AddColumn(t_("Payout"));
 	payouts.AddColumn(t_("Count"));
@@ -43,7 +37,6 @@ LeadSourceCtrl::LeadSourceCtrl() {
 	prices.WhenCursor << THISBACK(DataPrice);
 	
 	
-	list.AddColumn(t_("Website"));
 	list.AddColumn(t_("Name"));
 	list.AddColumn(t_("Price"));
 	list.AddColumn(t_("Payout"));
@@ -56,7 +49,7 @@ LeadSourceCtrl::LeadSourceCtrl() {
 	list.AddColumn(t_("Chance %"));
 	list.AddColumn(t_("Av. Payout"));
 	list.AddIndex("IDX");
-	list.ColumnWidths("2 4 1 1 10 1 1 1 1 1 1 1");
+	list.ColumnWidths("4 1 1 10 1 1 1 1 1 1 1");
 	list.WhenCursor << THISBACK(DataOpportunity);
 	
 	attrs.AddColumn(t_("Key"));
@@ -134,49 +127,9 @@ LeadSourceCtrl::LeadSourceCtrl() {
 
 void LeadSourceCtrl::Data() {
 	DatasetPtrs p = GetDataset();
-	if (!p.lead_data || !p.lead_data_anal)
+	if (!p.lead_data)
 		return;
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
-	
-	int counts[LEADSITE_COUNT];
-	for(int i = 0; i < LEADSITE_COUNT; i++) counts[i] = 0;
-	for (LeadOpportunity& o : ld.opportunities) {
-		counts[o.leadsite]++;
-	}
-	int total = 0;
-	for(int i = 0; i < LEADSITE_COUNT; i++) total += counts[i];
-	
-	
-	websites.Set(0, 0, t_("All"));
-	websites.Set(0, 1, total);
-	websites.Set(0, "IDX", -1);
-	
-	for(int i = 0; i < LEADSITE_COUNT; i++) {
-		websites.Set(1+i, 0, GetLeadWebsiteKey(i));
-		websites.Set(1+i, 1, counts[i]);
-		websites.Set(1+i, "IDX", i);
-	}
-	INHIBIT_CURSOR(websites);
-	websites.SetCount(1+LEADSITE_COUNT);
-	websites.SetSortColumn(1, true);
-	if (!websites.IsCursor() && websites.GetCount())
-		websites.SetCursor(0);
-	
-	
-	DataWebsite();
-}
-
-void LeadSourceCtrl::DataWebsite() {
-	DatasetPtrs p = GetDataset();
-	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
-	
-	if (!websites.IsCursor())
-		return;
-	
-	int leadsite_i = websites.Get("IDX");
-	bool filter_leadsite = leadsite_i >= 0;
 	
 	VectorMap<Tuple2<double,double>,int> counts;
 	counts.Add(Tuple2<double,double>(0,1), 0);
@@ -186,11 +139,7 @@ void LeadSourceCtrl::DataWebsite() {
 	counts.Add(Tuple2<double,double>(10000,10000), 0);
 	counts.Add(Tuple2<double,double>(10000,100000000), 0);
 	
-	
-	for(int i = 0; i < LEADSITE_COUNT; i++) counts[i] = 0;
 	for (LeadOpportunity& o : ld.opportunities) {
-		if (filter_leadsite && o.leadsite != leadsite_i)
-			continue;
 		int range_i = 0;
 		for(int j = 0; j < counts.GetCount(); j++) {
 			const auto& range = counts.GetKey(j);
@@ -202,7 +151,6 @@ void LeadSourceCtrl::DataWebsite() {
 		counts[range_i]++;
 	}
 	int total = 0;
-	for(int i = 0; i < LEADSITE_COUNT; i++) total += counts[i];
 	
 	
 	
@@ -213,7 +161,7 @@ void LeadSourceCtrl::DataWebsite() {
 	payouts.Set(0,"MAX",INT_MAX);
 	for(int i = 0; i < counts.GetCount(); i++) {
 		const auto& range = counts.GetKey(i);
-		String str = IntStr(range.a) + " - " + IntStr(range.b);
+		String str = IntStr((int)range.a) + " - " + IntStr((int)range.b);
 		payouts.Set(1+i, 0, str);
 		payouts.Set(1+i, 1, counts[i]);
 		payouts.Set(1+i, "IDX", i);
@@ -233,13 +181,11 @@ void LeadSourceCtrl::DataWebsite() {
 void LeadSourceCtrl::DataPayout() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
 	
-	if (!websites.IsCursor() || !payouts.IsCursor())
+	
+	if (!payouts.IsCursor())
 		return;
 	
-	int leadsite_i = websites.Get("IDX");
-	bool filter_leadsite = leadsite_i >= 0;
 	int payout_min = payouts.Get("MIN");
 	int payout_max = payouts.Get("MAX");
 	
@@ -252,10 +198,7 @@ void LeadSourceCtrl::DataPayout() {
 	counts.Add(Tuple2<double,double>(10000,100000000), 0);
 	
 	
-	for(int i = 0; i < LEADSITE_COUNT; i++) counts[i] = 0;
 	for (LeadOpportunity& o : ld.opportunities) {
-		if (filter_leadsite && o.leadsite != leadsite_i)
-			continue;
 		if (o.min_compensation < payout_min || o.min_compensation >= payout_max)
 			continue;
 		double price = 0.01 * o.min_entry_price_cents;
@@ -270,7 +213,6 @@ void LeadSourceCtrl::DataPayout() {
 		counts[range_i]++;
 	}
 	int total = 0;
-	for(int i = 0; i < LEADSITE_COUNT; i++) total += counts[i];
 	
 	
 	
@@ -281,7 +223,7 @@ void LeadSourceCtrl::DataPayout() {
 	prices.Set(0,"MAX",INT_MAX);
 	for(int i = 0; i < counts.GetCount(); i++) {
 		const auto& range = counts.GetKey(i);
-		String str = IntStr(range.a) + " - " + IntStr(range.b);
+		String str = IntStr((int)range.a) + " - " + IntStr((int)range.b);
 		prices.Set(1+i, 0, str);
 		prices.Set(1+i, 1, counts[i]);
 		prices.Set(1+i, "IDX", i);
@@ -303,61 +245,53 @@ void LeadSourceCtrl::DataPayout() {
 void LeadSourceCtrl::DataPrice() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
 	
-	if (!websites.IsCursor() || !payouts.IsCursor() || !prices.IsCursor())
+	
+	if (!payouts.IsCursor() || !prices.IsCursor())
 		return;
 	
-	int leadsite_i = websites.Get("IDX");
-	bool filter_leadsite = leadsite_i >= 0;
 	int payout_min = payouts.Get("MIN");
 	int payout_max = payouts.Get("MAX");
 	int price_min = prices.Get("MIN");
 	int price_max = prices.Get("MAX");
-	bool show_dead = true;
 	
-	Time last_seen_limit = GetSysTime() - 24*60*60;
+	Time last_seen_limit = GetSysTime() - this->last_seen_limit_mins;
 	
 	int row = 0;
 	int i = -1;
 	int last_seen_skipped = 0;
 	for (LeadOpportunity& o : ld.opportunities) {
 		i++;
-		if (show_dead && filter_leadsite && o.leadsite == LEADSITE_MUSICXRAY)
-			; // don't skip
-		else if (o.last_seen < last_seen_limit) {
+		if (have_last_seen_limit && o.last_seen < last_seen_limit) {
 			last_seen_skipped++;
 			continue;
 		}
-		if (filter_leadsite && o.leadsite != leadsite_i)
-			continue;
 		if (o.min_compensation < payout_min || o.min_compensation >= payout_max)
 			continue;
 		double price = 0.01 * o.min_entry_price_cents;
 		if (price < price_min || price >= price_max)
 			continue;
 		
-		list.Set(row, 0, GetLeadWebsiteKey(o.leadsite));
-		list.Set(row, 1, o.name);
-		list.Set(row, 2, price);
-		list.Set(row, 3, o.min_compensation);
+		list.Set(row, 0, o.name);
+		list.Set(row, 1, price);
+		list.Set(row, 2, o.min_compensation);
 		if (o.request_opportunity_description.GetCount()) {
 			String s;
 			s	<< o.request_opportunity_description << "\n"
 				<< o.request_band_description << "\n"
 				<< o.request_selection_description;
-			list.Set(row, 4, s);
+			list.Set(row, 3, s);
 		}
 		else {
-			list.Set(row, 4, o.request_description);
+			list.Set(row, 3, o.request_description);
 		}
-		list.Set(row, 5, o.money_score);
-		list.Set(row, 6, o.money_score_rank);
-		list.Set(row, 7, o.opp_score);
-		list.Set(row, 8, o.opp_score_rank);
-		list.Set(row, 9, o.weighted_rank);
-		list.Set(row, 10, o.chance_of_acceptance);
-		list.Set(row, 11, o.average_payout_estimation);
+		list.Set(row, 4, o.money_score);
+		list.Set(row, 5, o.money_score_rank);
+		list.Set(row, 6, o.opp_score);
+		list.Set(row, 7, o.opp_score_rank);
+		list.Set(row, 8, o.weighted_rank);
+		list.Set(row, 9, o.chance_of_acceptance);
+		list.Set(row, 10, o.average_payout_estimation);
 		list.Set(row, "IDX", i);
 		
 		row++;
@@ -376,7 +310,7 @@ void LeadSourceCtrl::DataPrice() {
 void LeadSourceCtrl::DataOpportunity() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
+	
 	
 	if (!list.IsCursor())
 		return;
@@ -433,11 +367,9 @@ void LeadSourceCtrl::DataOpportunity() {
 		DataAnalyzedList();
 	}
 	
-	TODO
-	#if 0
 	{
-		const auto& tc_list = TextLib::GetTypeclasses(DB_SONG);
-		const auto& co_list = TextLib::GetContents(DB_SONG);
+		const auto& tc_list = UPP::GetTypeclasses(DB_SONG);
+		const auto& co_list = UPP::GetContents(DB_SONG);
 		int c = min(o.typeclasses.GetCount(), o.contents.GetCount());
 		for(int i = 0; i < c; i++) {
 			int tc_i = o.typeclasses[i];
@@ -453,7 +385,6 @@ void LeadSourceCtrl::DataOpportunity() {
 		if (song_typecasts.GetCount() && !song_typecasts.IsCursor())
 			song_typecasts.SetCursor(0);
 	}
-	#endif
 	
 	{
 		for(int i = 0; i < o.lyrics_ideas.GetCount(); i++) {
@@ -484,7 +415,7 @@ void LeadSourceCtrl::DataOpportunity() {
 void LeadSourceCtrl::DataAnalyzedList() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
+	
 	
 	if (!list.IsCursor() || !list_names.IsCursor())
 		return;
@@ -535,7 +466,11 @@ void LeadSourceCtrl::Do(int fn) {
 void LeadSourceCtrl::CreateScript() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
+	
+	PromptOK("TODO");
+	return;
+	#if 0
+	int appmode = DB_SONG; // TODO remove
 	
 	if (!list.IsCursor())
 		return;
@@ -558,14 +493,12 @@ void LeadSourceCtrl::CreateScript() {
 	String lyrics_idea = o.lyrics_ideas[0];
 	String music_style = o.music_styles[0];
 	
-	TODO
-	#if 0
-	if (tc_i < 0 || tc_i >= TextLib::GetTypeclasses(appmode).GetCount()) {
+	if (tc_i < 0 || tc_i >= UPP::GetTypeclasses(appmode).GetCount()) {
 		PromptOK(DeQtf(t_("Invalid typeclass")));
 		return;
 	}
 	
-	if (con_i < 0 || con_i >= TextLib::GetContents(appmode).GetCount()) {
+	if (con_i < 0 || con_i >= UPP::GetContents(appmode).GetCount()) {
 		PromptOK(DeQtf(t_("Invalid content")));
 		return;
 	}
@@ -641,6 +574,7 @@ void LeadSourceCtrl::ImportJson() {
 				return;
 			}
 			LOG(ld.opportunities.GetCount());
+			PostCallback(THISBACK(Data));
 		}
 	}
 }
@@ -672,9 +606,8 @@ LeadSolver::LeadSolver() {
 }
 
 LeadSolver& LeadSolver::Get(DatasetPtrs p) {
-	TODO
-	#if 0
-	String t = e.name;
+	ASSERT(p.entity && p.owner);
+	String t = p.entity->node.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, LeadSolver>& map = __LeadSolvers();
 	int i = map.Find(h);
@@ -682,10 +615,8 @@ LeadSolver& LeadSolver::Get(DatasetPtrs p) {
 		return map[i];
 	
 	LeadSolver& ls = map.Add(h);
-	ls.owner = &e;
+	ls.p = p;
 	return ls;
-	#endif
-	return Single<LeadSolver>();
 }
 
 int LeadSolver::GetPhaseCount() const {
@@ -694,26 +625,11 @@ int LeadSolver::GetPhaseCount() const {
 
 void LeadSolver::DoPhase() {
 	LeadData& ld = *p.lead_data;
-	LeadDataAnalysis& sda = *p.lead_data_anal;
-	
-	TODO
-	#if 0
-	sa = &sda.GetLeadEntityAnalysis(owner->name);
-	int lng_i = db.GetLanguageIndex();
 	
 	// Don't process all data with AI when using generic updater profile,
 	// because more costly AI profile is used:
 	// skip after booleans
-	bool reduce_load = owner == &Owner::DatabaseUpdate();
-	
-	if (0) {
-		Vector<int> rm_list;
-		for(int i = 0; i < sd.opportunities.GetCount(); i++) {
-			if (sd.opportunities[i].leadsite == LEADSITE_TAXI)
-				rm_list << i;
-		}
-		sd.opportunities.Remove(rm_list);
-	}
+	bool reduce_load = false; TODO // owner == &Owner::DatabaseUpdate();
 	
 	if (phase == LS_DOWNLOAD_WEBSITES) {
 		ProcessDownloadWebsites(false);
@@ -755,7 +671,6 @@ void LeadSolver::DoPhase() {
 	else if (phase == LS_TEMPLATE_ANALYZE) {
 		ProcessTemplateAnalyze();
 	}
-	#endif
 }
 
 String LeadSolver::GetLeadCacheDir() {
@@ -765,31 +680,16 @@ String LeadSolver::GetLeadCacheDir() {
 }
 
 void LeadSolver::ProcessDownloadWebsites(bool parse) {
+	String id = ToLower(p.entity->node.id);
 	
-	if (batch == LEADSITE_TAXI) {
+	if (id.Find("taxi") == 0) {
 		String url = "https://www.taxi.com/industry";
 		String content = ProcessDownloadWebsiteUrl(url);
 		if (parse)
 			ParseWebsite(batch, content);
-		NextBatch();
+		NextPhase();
 	}
-	else if (batch == LEADSITE_MUSICXRAY) {
-		#if 1
-		// MusicXray is dead 29.5.2024 :(
-		NextBatch();
-		#else
-		int page = sub_batch+1;
-		String url = "https://www.musicxray.com/interactions/browse?page=" + IntStr(page) + "&per_page=50";
-		String content = ProcessDownloadWebsiteUrl(url);
-		if (parse)
-			ParseWebsite(batch, content);
-		if (content.Find("?page=" + IntStr(page+1)) >= 0)
-			NextSubBatch();
-		else
-			NextBatch();
-		#endif
-	}
-	else if (batch == LEADSITE_SONICBIDS) {
+	else if (id.Find("sonicbids") == 0) {
 		int page = sub_batch+1;
 		String url = "https://www.sonicbids.com/find-gigs?type=LICENSING&type=COMPETITION&page=" + IntStr(page);
 		String content = ProcessDownloadWebsiteUrl(url);
@@ -798,11 +698,12 @@ void LeadSolver::ProcessDownloadWebsites(bool parse) {
 		if (content.Find(";page=" + IntStr(page+1) + "\"") >= 0)
 			NextSubBatch();
 		else
-			NextBatch();
+			NextPhase();
 	}
 	else {
 		SetWaiting(0);
-		NextPhase();
+		SetNotRunning();
+		SetError("unexpected id: " + id);
 	}
 }
 
@@ -810,7 +711,9 @@ void LeadSolver::ParseWebsite(int batch, String content) {
 	LeadData& ld = *p.lead_data;
 	content.Replace("\r", "");
 	
-	if (batch == LEADSITE_TAXI) {
+	String id = ToLower(p.entity->node.id);
+	
+	if (id.Find("taxi") == 0) {
 		Vector<String> categories = Split(content, "<div class='genre-title'>");
 		if (categories.IsEmpty()) return;
 		categories.Remove(0);
@@ -886,7 +789,7 @@ void LeadSolver::ParseWebsite(int batch, String content) {
 				o.name = title;
 				o.request_description = text;
 				o.links <<= links;
-				o.min_compensation = o.max_compensation = payout;
+				o.min_compensation = o.max_compensation = (int)payout;
 				
 				// Add very coarse royalty estimates. Without any of these, calculations will
 				// break.
@@ -895,99 +798,7 @@ void LeadSolver::ParseWebsite(int batch, String content) {
 			}
 		}
 	}
-	else if (batch == LEADSITE_MUSICXRAY) {
-		Vector<String> listings = Split(content, "<bootstrap-card>");
-		if (listings.IsEmpty()) return;
-		listings.Remove(0);
-		for (String& listing_str : listings) {
-			int a = listing_str.Find("<span class");
-			if (a < 0) continue;
-			a = listing_str.Find(">", a);
-			if (a < 0) continue;
-			a++;
-			int b = listing_str.Find("</span>");
-			if (b < 0) continue;
-			String title = TrimBoth(listing_str.Mid(a, b-a));
-			
-			double price = 0;
-			a = listing_str.Find("<b>submission price:");
-			if (a >= 0) {
-				a = listing_str.Find("</b>", a);
-				if (a < 0) continue;
-				a += 4;
-				b = listing_str.Find("<br/>", a);
-				if (b < 0) continue;
-				String price_str = TrimBoth(listing_str.Mid(a, b-a));
-				price_str.Replace("$", "");
-				price_str.Replace("€", "");
-				price_str.Replace(",", "");
-				price_str.Replace(" ", "");
-				price_str = TrimBoth(price_str);
-				price = ScanDouble(price_str);
-			}
-			
-			double payout_from = 0;
-			double payout_to = 0;
-			a = listing_str.Find("<b>Payout:");
-			if (a >= 0) {
-				a = listing_str.Find("</b>", a);
-				if (a < 0) continue;
-				a += 4;
-				b = listing_str.Find("<br/>", a);
-				if (b < 0) continue;
-				String str = TrimBoth(listing_str.Mid(a, b-a));
-				str.Replace("$", "");
-				str.Replace("€", "");
-				str.Replace(",", "");
-				str.Replace(" ", "");
-				str = TrimBoth(str);
-				Vector<String> parts = Split(str, "-");
-				if (parts.GetCount() == 1) {
-					payout_from = payout_to = ScanDouble(str);
-				}
-				else if (parts.GetCount() == 2) {
-					payout_from = ScanDouble(parts[0]);
-					payout_to = ScanDouble(parts[1]);
-				}
-			}
-			
-			a = listing_str.Find("<div class=\"col-xs-12\">");
-			if (a < 0)
-				continue;
-			a = listing_str.Find("\n", a);
-			if (a < 0) continue;
-			b = listing_str.Find("</div>", a);
-			if (b < 0) continue;
-			String html = listing_str.Mid(a,b-a);
-			Vector<String> links;
-			String text = DeHtml(html, links);
-			
-			title = DeHtml(title, links);
-			if (title.Find("new") == 0)
-				title = TrimBoth(title.Mid(3));
-			
-			/*DUMP(title);
-			DUMP(price);
-			DUMP(payout_from);
-			DUMP(payout_to);
-			LOG(text);
-			DUMPC(links);*/
-			
-			CombineHash ch;
-			ch.Do(title).Do(text);
-			String id_str = IntStr64(ch);
-			
-			LeadOpportunity& o = ld.GetAddOpportunity(batch, id_str);
-			o.name = title;
-			o.compensated = payout_from > 0;
-			o.min_compensation = payout_from;
-			o.max_compensation = payout_to;
-			o.request_description = text;
-			o.min_entry_price_cents = price * 100;
-			o.links <<= links;
-		}
-	}
-	else if (batch == LEADSITE_SONICBIDS) {
+	else if (id.Find("sonicbids") == 0) {
 		//LOG(content);
 		
 		int a = content.Find("require.config['opportunity-search']");
@@ -1103,7 +914,7 @@ void LeadSolver::ParseWebsite(int batch, String content) {
 
 static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-    ((String*)userp)->Cat((char*)contents, size * nmemb);
+    ((String*)userp)->Cat((char*)contents, (int)(size * nmemb));
     return size * nmemb;
 }
 
@@ -1211,7 +1022,7 @@ void LeadSolver::ProcessAnalyzeBooleans() {
 		return;
 	}
 	LeadOpportunity& opp = ld.opportunities[batch];
-	if ((skip_ready && !opp.analyzed_booleans.IsEmpty()) || opp.leadsite == LEADSITE_MUSICXRAY) {
+	if ((skip_ready && !opp.analyzed_booleans.IsEmpty())) {
 		NextBatch();
 		return;
 	}
@@ -1269,7 +1080,7 @@ double LeadSolver::GetAverageOpportunityScore() {
 	LeadData& ld = *p.lead_data;
 	double score_sum = 0;
 	for (const LeadOpportunity& opp : ld.opportunities)
-		score_sum += owner->GetOpportunityScore(opp);
+		score_sum += p.owner->GetOpportunityScore(opp);
 	double score_av = score_sum / ld.opportunities.GetCount();
 	return score_av;
 }
@@ -1278,7 +1089,7 @@ bool LeadSolver::SkipLowScoreOpportunity() {
 	LeadData& ld = *p.lead_data;
 	double score_limit = GetAverageOpportunityScore() * score_limit_factor;
 	LeadOpportunity& opp = ld.opportunities[batch];
-	int score = owner->GetOpportunityScore(opp);
+	int score = p.owner->GetOpportunityScore(opp);
 	return score < score_limit && opp.min_compensation <= 0;
 }
 
@@ -1290,8 +1101,7 @@ void LeadSolver::ProcessAnalyzeStrings() {
 	}
 	
 	LeadOpportunity& opp = ld.opportunities[batch];
-	if ((skip_ready && (!opp.analyzed_string.IsEmpty()) ||
-		opp.leadsite == LEADSITE_MUSICXRAY) ||
+	if ((skip_ready && (!opp.analyzed_string.IsEmpty())) ||
 		SkipLowScoreOpportunity()) {
 		NextBatch();
 		return;
@@ -1368,7 +1178,6 @@ void LeadSolver::ProcessAnalyzeLists() {
 	}
 	LeadOpportunity& opp = ld.opportunities[batch];
 	if ((skip_ready && (!opp.analyzed_lists.IsEmpty())) ||
-		opp.leadsite == LEADSITE_MUSICXRAY ||
 		SkipLowScoreOpportunity()) {
 		NextBatch();
 		return;
@@ -1474,8 +1283,8 @@ void LeadSolver::ProcessCoarseRanking() {
 		money_scores.Add(i, money_score);
 		
 		int opp_score =
-			owner ?
-				owner->GetOpportunityScore(o) :
+			p.owner ?
+				p.owner->GetOpportunityScore(o) :
 				-1;
 		opp_scores.Add(i, opp_score);
 	}
@@ -1518,8 +1327,7 @@ void LeadSolver::ProcessAveragePayoutEstimation() {
 		return;
 	}
 	
-	if ((skip_ready && opp.chance_list.GetCount()) ||
-		opp.leadsite == LEADSITE_MUSICXRAY) {
+	if (skip_ready && opp.chance_list.GetCount()) {
 		NextBatch();
 		return;
 	}
@@ -1621,7 +1429,7 @@ void LeadSolver::OnProcessAveragePayoutEstimation(String res) {
 		opp.chance_of_acceptance = chance;
 	
 	// Hotfix taxi.com: have at least 4% chance. Their average is 6%
-	if (opp.leadsite == LEADSITE_TAXI && opp.chance_of_acceptance <= 0.04)
+	if (opp.chance_of_acceptance <= 0.04)
 		opp.chance_of_acceptance += 0.04;
 	
 	opp.average_payout_estimation =
@@ -1641,8 +1449,7 @@ void LeadSolver::ProcessAnalyzeSongTypecast() {
 	if ((skip_ready && !(opp.contents.IsEmpty() || opp.typeclasses.IsEmpty())) ||
 		SkipLowScoreOpportunity() ||
 		opp.weighted_rank >= (double)max_rank ||
-		opp.average_payout_estimation <= 0.1 ||
-		opp.leadsite == LEADSITE_MUSICXRAY) {
+		opp.average_payout_estimation <= 0.1) {
 		NextBatch();
 		return;
 	}
@@ -1703,8 +1510,7 @@ void LeadSolver::ProcessAnalyzeLyricsIdeas() {
 	if ((skip_ready && !opp.lyrics_ideas.IsEmpty()) ||
 		SkipLowScoreOpportunity() ||
 		opp.weighted_rank >= (double)max_rank ||
-		opp.average_payout_estimation <= 0.1 ||
-		opp.leadsite == LEADSITE_MUSICXRAY) {
+		opp.average_payout_estimation <= 0.1) {
 		NextBatch();
 		return;
 	}
@@ -1756,8 +1562,7 @@ void LeadSolver::ProcessAnalyzeMusicStyle() {
 	if ((skip_ready && !opp.music_styles.IsEmpty()) ||
 		SkipLowScoreOpportunity() ||
 		opp.weighted_rank >= (double)max_rank||
-		opp.average_payout_estimation <= 0.1 ||
-		opp.leadsite == LEADSITE_MUSICXRAY) {
+		opp.average_payout_estimation <= 0.1) {
 		NextBatch();
 		return;
 	}

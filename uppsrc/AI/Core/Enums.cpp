@@ -1901,13 +1901,4 @@ String GetSnapshotAnalysisKey(int i) {
 	}
 }
 
-const char* GetLeadWebsiteKey(int leadsite_idx) {
-	switch (leadsite_idx) {
-		case LEADSITE_TAXI:			return "Taxi";
-		case LEADSITE_MUSICXRAY:	return "MusicXray";
-		case LEADSITE_SONICBIDS:	return "SonicBids";
-		default: return "<error>";
-	}
-}
-
 END_UPP_NAMESPACE

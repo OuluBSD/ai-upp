@@ -12,7 +12,6 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 		String ToString() const;
 	};
 	
-	int leadsite = -1;
 	String id;
 	Time first_seen, last_seen;
 	String name;
@@ -67,8 +66,8 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 	String entry_end_datetime;
 	String date_created;
 	
-	int opp_score = -1;
-	int money_score = -1;
+	double opp_score = -1;
+	double money_score = -1;
 	int money_score_rank = -1;
 	int opp_score_rank = -1;
 	double weighted_rank = 0;

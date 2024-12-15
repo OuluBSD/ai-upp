@@ -167,7 +167,7 @@ void AspectFixer::DoPhase() {
 			sz *= ratio;
 			src_resized = Rescale(intermediate, sz);
 			src_rect = sz;
-			int w_diff = sz.cx * (t.ratio_mul - 1.0);
+			int w_diff = (int)(sz.cx * (t.ratio_mul - 1.0));
 			ASSERT(w_diff > 0);
 			int w_src_visible = dst_rect.Width() - w_diff;
 			int w_src_cut = max(0, w_src_visible - sz.cx);
@@ -187,7 +187,7 @@ void AspectFixer::DoPhase() {
 			src_resized = Rescale(intermediate, sz);
 			src_rect = sz;
 			double h_ratio = 1.0 / t.ratio_mul;
-			int h_diff = sz.cy * (h_ratio - 1.0);
+			int h_diff = (int)(sz.cy * (h_ratio - 1.0));
 			ASSERT(h_diff > 0);
 			int h_src_visible = dst_rect.Height() - h_diff;
 			int h_src_cut = max(0, h_src_visible - sz.cy);
@@ -239,7 +239,7 @@ void AspectFixer::DoPhase() {
 					double ratio = (double)im_sz.cy / src_sz.cy;
 					src_sz *= ratio;
 					img = Rescale(img, src_sz);
-					Size new_sz = Size(im_sz.cx * t.ratio_mul, im_sz.cy);
+					Size new_sz = Size((int)(im_sz.cx * t.ratio_mul), im_sz.cy);
 					int w_diff = new_sz.cx - im_sz.cx;
 					ASSERT(w_diff > 0);
 					ImageDraw id(new_sz);
@@ -258,7 +258,7 @@ void AspectFixer::DoPhase() {
 					src_sz *= ratio;
 					img = Rescale(img, src_sz);
 					double h_ratio = 1.0 / t.ratio_mul;
-					Size new_sz = Size(im_sz.cx, im_sz.cy * h_ratio);
+					Size new_sz = Size(im_sz.cx, (int)(im_sz.cy * h_ratio));
 					int h_diff = new_sz.cy - im_sz.cy;
 					ASSERT(h_diff > 0);
 					ImageDraw id(new_sz);

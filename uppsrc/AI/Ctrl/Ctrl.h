@@ -12,6 +12,8 @@
 #include "Entity.h"
 #include "Env.h"
 
+#include "ProjectWizard.h"
+
 #include "Owner.h"
 #include "Profile.h"
 #include "Artist.h"

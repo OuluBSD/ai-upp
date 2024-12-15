@@ -17,7 +17,6 @@ struct BiographyAnalysis;
 struct Profile;
 struct BiographySnapshot;
 struct LeadData;
-struct LeadDataAnalysis;
 struct LeadDataTemplate;
 
 typedef String NoPointerExc;

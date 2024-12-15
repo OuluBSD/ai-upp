@@ -44,9 +44,9 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			b.Add("Remove entity", THISBACK(RemoveEntity));
 	};
 	
-	extlist.AddColumn("Extension");
 	extlist.AddColumn("Kind");
-	extlist.ColumnWidths("3 2");
+	extlist.AddColumn("Name");
+	extlist.ColumnWidths("4 1");
 	extlist.WhenCursor = THISBACK(DataExtension);
 	extlist.WhenBar = [this](Bar& b) {
 		b.Add("Add Component", THISBACK(AddComponent));
@@ -142,8 +142,8 @@ void EntityEditorCtrl::DataEntity() {
 		auto& cp = exts[i];
 		if (!cp) continue;
 		auto& c = *cp;
-		extlist.Set(row, 0, c.GetName());
-		extlist.Set(row, 1, c.node.GetKindString());
+		extlist.Set(row, 0, c.node.GetKindString());
+		extlist.Set(row, 1, c.GetName());
 		row++;
 	}
 	extlist.SetCount(row);
@@ -247,6 +247,7 @@ void EntityEditorCtrl::AddEntity() {
 	auto& enode = e.node;
 	enode.id = "Unnamed";
 	PostCallback(THISBACK(Data));
+	PostCallback([this]{entlist.SetCursor(entlist.GetCount()-1);}); // select last entity
 }
 
 void EntityEditorCtrl::RemoveEntity() {
@@ -284,6 +285,7 @@ void EntityEditorCtrl::AddComponent() {
 	}
 	if (dlg.complist.GetCount() == 0) return;
 	dlg.complist.SetIndex(0);
+	dlg.complist.SetFocus();
 	if(dlg.Execute() == IDOK) {
 		int i = dlg.complist.GetIndex();
 		int ext_i = list[i];
@@ -292,6 +294,7 @@ void EntityEditorCtrl::AddComponent() {
 		auto& ext = e->node.Add(factory.kind);
 		ASSERT(ext.kind == factory.kind);
 		PostCallback(THISBACK(Data));
+		PostCallback([this]{extlist.SetCursor(extlist.GetCount()-1);}); // select last extension (component)
 	}
 }
 

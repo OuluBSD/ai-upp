@@ -6,9 +6,13 @@ NAMESPACE_UPP
 
 class LeadSourceCtrl : public ComponentCtrl {
 	Splitter vsplit, hsplit, mainsplit, bsplit, bvsplit, bssplit;
-	ArrayCtrl websites, list, payouts, prices, attrs;
+	ArrayCtrl list, payouts, prices, attrs;
 	ArrayCtrl bools, strings, list_names, list_values;
 	ArrayCtrl song_typecasts, lyrics_ideas, music_styles;
+	
+	// params
+	bool have_last_seen_limit = false;
+	int last_seen_limit_mins = 24*60*60;
 	
 public:
 	typedef LeadSourceCtrl CLASSNAME;
@@ -25,7 +29,6 @@ public:
 	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
 	void ImportJson();
-	
 	
 };
 
@@ -61,12 +64,10 @@ class LeadSolver : public SolverBase {
 		
 		LS_COUNT
 	};
-	Owner* owner = 0;
 	
 	// Params
 	double score_limit_factor = 0.8;
 	int max_rank = 100;
-	
 	
 	void ProcessDownloadWebsites(bool parse);
 	void ParseWebsite(int batch, String content);

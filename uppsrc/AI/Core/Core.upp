@@ -7,6 +7,7 @@ file
 	Defs.h,
 	Enums.h,
 	Enums.cpp,
+	EnumsContent.cpp,
 	Types.h,
 	Container.h,
 	Fn.h,

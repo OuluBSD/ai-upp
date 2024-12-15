@@ -306,7 +306,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	struct SubPart : Moveable<SubPart> {
 		Vector<SubSubPart> sub;
 		int cls = -1;
-		int repeat = 0;
+		double repeat = 0;
 
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
@@ -465,6 +465,9 @@ struct SrcTxtHeader : MetaNodeExt {
 	void RealizeData();
 	bool LoadData();
 	String SaveData();
+	
+	static int GetKind() {return METAKIND_DATABASE_SOURCE;}
+	
 };
 
 

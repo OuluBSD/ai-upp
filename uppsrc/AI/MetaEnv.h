@@ -44,14 +44,15 @@ struct NodeVisitor {
 		Ver(1)(1);
 		int count = o.GetCount();
 		(*stream) / count;
-		if (storing)
+		if (!storing)
 			o.SetCount(count);
 		for (auto& v : o)
 			v.Visit(*this);
 	}
 	template<class T>
 	void VisitArrayItem(JsonIO& j, T& o) {
-		o.Visit(*this);
+		NodeVisitor v(j);
+		o.Visit(v);
 	}
 	template<class T>
 	void VisitVectorJson(const char* key, T& o) {
@@ -79,7 +80,7 @@ struct NodeVisitor {
 		Ver(1)(1);
 		int count = o.GetCount();
 		(*stream) / count;
-		if (storing)
+		if (!storing)
 			o.SetCount(count);
 		for (auto& v : o)
 			VisitVectorSerialize(v);
@@ -132,7 +133,8 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapItem(JsonIO& j, T& o) {
-		o.Visit(*this);
+		NodeVisitor v(j);
+		o.Visit(v);
 	}
 	template<class T>
 	void VisitMapJson(String key, T& o) {
@@ -195,7 +197,8 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapKVItem(JsonIO& j, T& o) {
-		o.Visit(*this);
+		NodeVisitor v(j);
+		o.Visit(v);
 	}
 	template<class T>
 	void VisitMapKVJson(String key, T& o) {
@@ -290,6 +293,7 @@ enum {
 	METAKIND_ECS_ENTITY,
 	
 	METAKIND_ECS_COMPONENT_BEGIN = 3000,
+	METAKIND_ECS_COMPONENT_UNDEFINED = METAKIND_ECS_COMPONENT_BEGIN,
 	
 	METAKIND_ECS_COMPONENT_PROFILE,
 	METAKIND_ECS_COMPONENT_OWNER,

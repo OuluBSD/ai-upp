@@ -96,26 +96,6 @@ struct AttrHeader : Moveable<AttrHeader> {
 	}
 };
 
-enum {
-	PART_BEGIN,
-	PART_MID,
-	PART_END,
-
-	PART_COUNT
-};
-
-struct ContentType : Moveable<ContentType> {
-	String key, parts[PART_COUNT];
-
-	void Serialize(Stream& s) {s / key; for(int i = 0; i < PART_COUNT; i++) s / parts[i];}
-	void Set(String key, String begin, String mid, String end)
-	{
-		this->key = key;
-		parts[PART_BEGIN] = begin;
-		parts[PART_MID] = mid;
-		parts[PART_END] = end;
-	}
-};
 
 END_UPP_NAMESPACE
 

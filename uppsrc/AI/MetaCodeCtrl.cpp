@@ -288,7 +288,7 @@ void MetaCodeCtrl::SetSelectedLineFromEditor()
 	int sel_line = editor.GetCursorLine();
 	int origl = editor_to_line[sel_line];
 	pt.y = origl;
-	pt.x = pos - editor.GetPos(sel_line);
+	pt.x = (int)(pos - editor.GetPos(sel_line));
 	for (auto n : ~gen_file->code_nodes) {
 		if (n.key.Contains(pt)) {
 			MetaNode& sel = *n.value;

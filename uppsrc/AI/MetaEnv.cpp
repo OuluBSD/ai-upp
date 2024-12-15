@@ -1648,7 +1648,9 @@ String MetaNode::GetKindString(int kind)
 	case METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER:	return "Aspect Fix Image Layer";
 	case METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER:	return "Video Prompt Maker";
 	case METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD:	return "Video Storyboard";
-
+	case METAKIND_ECS_COMPONENT_PROJECT_WIZARD:		return "Project Wizard";
+	// TODO fill this from list
+	
 	default:
 		return "Unknown kind: " + IntStr(kind);
 	}

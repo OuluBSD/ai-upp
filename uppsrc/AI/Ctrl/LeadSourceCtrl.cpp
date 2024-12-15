@@ -467,10 +467,8 @@ void LeadSourceCtrl::CreateScript() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = *p.lead_data;
 	
-	PromptOK("TODO");
-	return;
-	#if 0
 	int appmode = DB_SONG; // TODO remove
+	LOG("LeadSourceCtrl::CreateScript: warning: TODO: int appmode = DB_SONG;");
 	
 	if (!list.IsCursor())
 		return;
@@ -505,6 +503,8 @@ void LeadSourceCtrl::CreateScript() {
 	String snap_title = Format("%d %Month", o.first_seen.year, o.first_seen.month);
 	String script_title = "Lead #" + IntStr(idx);
 	
+	PromptOK("TODO");
+	#if 0
 	Release& snap = e.GetAddSnapshot(snap_title);
 	Component& comp = snap.GetAddComponent(script_title);
 	//e.RealizeTypeclasses(appmode);
@@ -551,31 +551,8 @@ void LeadSourceCtrl::CopyHeaderClipboard() {
 void LeadSourceCtrl::ImportJson() {
 	DatasetPtrs p = GetDataset();
 	LeadData& ld = GetExt<LeadData>();
-	
-	FileSelNative sel;
-	sel.ActiveDir(GetHomeDirectory());
-	sel.Type("JSON", "*.json");
-	if (sel.ExecuteOpen("Select json file to import")) {
-		String path = sel.Get();
-		if (FileExists(path)) {
-			try {
-				String json = LoadFile(path);
-				Value jv = ParseJSON(json);
-				if(jv.IsError())
-					return;
-				JsonIO jio(jv);
-				NodeVisitor vis(jio);
-				ld.Visit(vis);
-			}
-			catch(ValueTypeError) {
-				return;
-			}
-			catch(JsonizeError) {
-				return;
-			}
-			LOG(ld.opportunities.GetCount());
-			PostCallback(THISBACK(Data));
-		}
+	if (LoadFromJsonFile_VisitorNodePrompt(ld)) {
+		PostCallback(THISBACK(Data));
 	}
 }
 
@@ -1624,8 +1601,8 @@ void LeadSolver::ProcessTemplateTitleAndText() {
 void LeadSolver::OnProcessTemplateTitleAndText(String res) {
 	LeadData& ld = *p.lead_data;
 	LeadDataTemplate& ldt = *p.lead_tmpl;
-	int lng = LANG_ENGLISH;// mdb.GetLanguageIndex();
-	TODO
+	int lng = LNG_ENGLISH;// mdb.GetLanguageIndex();
+	LOG("LeadSolver::OnProcessTemplateTitleAndText: warning: TODO: int lng = LNG_ENGLISH");
 	LeadOpportunity& opp = ld.opportunities[batch];
 	
 	/*response example:

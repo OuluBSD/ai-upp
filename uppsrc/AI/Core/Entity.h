@@ -18,6 +18,7 @@ NAMESPACE_UPP
 	DATASET_ITEM(Profile,			profile,		METAKIND_ECS_COMPONENT_PROFILE) \
 	DATASET_ITEM(BiographySnapshot,	snap,			METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT) \
 	DATASET_ITEM(LeadData,			lead_data,		METAKIND_ECS_COMPONENT_LEAD_DATA) \
+	DATASET_ITEM(LeadDataTemplate,	lead_tmpl,		METAKIND_ECS_COMPONENT_LEAD_TEMPLATE) \
 
 #define NODE_LIST \
 	DATASET_ITEM(MetaNode,			env,			METAKIND_PKG_ENV) \
@@ -36,7 +37,6 @@ struct DatasetPtrs {
 	
 	BiographyAnalysis*		analysis = 0;
 	Biography*				biography = 0;
-	LeadDataTemplate*		lead_tmpl = 0;
 	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
@@ -49,7 +49,6 @@ struct DatasetPtrs {
 		
 		analysis = p.analysis;
 		biography = p.biography;
-		lead_tmpl = p.lead_tmpl;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	void Clear() {
@@ -59,7 +58,6 @@ struct DatasetPtrs {
 		editable_biography = 0;
 		analysis = 0;
 		biography = 0;
-		lead_tmpl = 0;
 	}
 };
 

@@ -1516,7 +1516,15 @@ MetaNode& MetaNode::GetAdd(String id, String type, int kind)
 	s.type = type;
 	s.kind = kind;
 	s.serial = MetaEnv().NewSerial();
+	s.file = this->file;
+	s.pkg = this->pkg;
 	this->serial = MetaEnv().NewSerial();
+	if (kind >= METAKIND_EXTENSION_BEGIN && kind <= METAKIND_EXTENSION_END) {
+		int i = MetaExtFactory::FindKindFactory(kind);
+		if (i >= 0) {
+			s.ext = MetaExtFactory::List()[i].new_fn(s);
+		}
+	}
 	return s;
 }
 
@@ -1527,6 +1535,10 @@ MetaNode& MetaNode::Add(const MetaNode& n)
 	s.CopySubFrom(n);
 	s.CopyFieldsFrom(n);
 	s.serial = MetaEnv().NewSerial();
+	if (n.pkg < 0 && n.file < 0) {
+		s.file = this->file;
+		s.pkg = this->pkg;
+	}
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();
 	return s;
@@ -1536,6 +1548,10 @@ MetaNode& MetaNode::Add(MetaNode* n)
 {
 	MetaNode& s = sub.Add(n);
 	s.owner = this;
+	if (s.pkg < 0 && s.file < 0) {
+		s.file = this->file;
+		s.pkg = this->pkg;
+	}
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();
@@ -1546,8 +1562,8 @@ MetaNode& MetaNode::Add()
 {
 	MetaNode& s = sub.Add();
 	s.owner = this;
-	s.pkg = pkg;
-	s.file = file;
+	s.file = this->file;
+	s.pkg = this->pkg;
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();

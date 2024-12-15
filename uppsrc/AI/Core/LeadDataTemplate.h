@@ -32,11 +32,12 @@ struct LeadTemplate {
 	}
 };
 
-struct LeadDataPublisher {
+struct LeadDataPublisher : Component {
 	String name, info;
 	String genres, url;
 	Vector<String> artists;
 	
+	COMPONENT_CONSTRUCTOR(LeadDataPublisher)
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)		("name", name)
@@ -46,7 +47,10 @@ struct LeadDataPublisher {
 				("artists", artists)
 				;
 	}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_PUBLISHER;}
 };
+
+INITIALIZE(LeadDataPublisher)
 
 struct LeadDataTemplate : Component {
 	Array<LeadTemplate> templates;
@@ -54,8 +58,6 @@ struct LeadDataTemplate : Component {
 	Index<String> author_specialities;
 	Index<String> profit_reasons;
 	Index<String> organizational_reasons;
-	
-	Array<LeadDataPublisher> publishers;
 	
 	LeadDataTemplate(MetaNode& n) : Component(n) {}
 	void Load();

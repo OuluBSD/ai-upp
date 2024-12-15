@@ -67,6 +67,7 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
 		PostCallback(THISBACK(DataExtCtrl));
+		c->WhenEditorChange = THISBACK(DataExtCtrl);
 	}
 	UpdateMenu();
 }

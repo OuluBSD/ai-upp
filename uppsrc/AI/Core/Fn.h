@@ -175,6 +175,28 @@ template <class T> bool LoadFromJsonFile_VisitorNodePrompt(T& o) {
 	return false;
 }
 
+template <class T> bool LoadFromJsonFile_VisitorNode(T& o, String path) {
+	if (FileExists(path)) {
+		try {
+			String json = LoadFile(path);
+			Value jv = ParseJSON(json);
+			if(jv.IsError())
+				return false;
+			JsonIO jio(jv);
+			NodeVisitor vis(jio);
+			o.Visit(vis);
+		}
+		catch(ValueTypeError) {
+			return false;
+		}
+		catch(JsonizeError) {
+			return false;
+		}
+		return true;
+	}
+	return false;
+}
+
 
 END_UPP_NAMESPACE
 

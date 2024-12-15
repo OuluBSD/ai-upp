@@ -363,6 +363,7 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 
 struct MetaExtCtrl : Ctrl {
 	Ptr<MetaNodeExt> ext;
+	Event<> WhenEditorChange;
 	
 	virtual ~MetaExtCtrl() {}
 	virtual void Data() = 0;
@@ -545,6 +546,10 @@ struct MetaNode : Pte<MetaNode> {
 			}
 		}
 		return 0;
+	}
+	
+	template <class T> T& GetExt() {
+		return dynamic_cast<T&>(*ext);
 	}
 };
 

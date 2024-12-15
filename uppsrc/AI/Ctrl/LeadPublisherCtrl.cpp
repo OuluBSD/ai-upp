@@ -6,16 +6,12 @@ NAMESPACE_UPP
 LeadPublisherCtrl::LeadPublisherCtrl() {
 	Add(hsplit.SizePos());
 	
-	hsplit.Horz() << list << vsplit;
+	hsplit.Horz() << vsplit;
 	hsplit.SetPos(1500);
 	
 	vsplit.Vert() << info << artists;
 	
 	CtrlLayout(info);
-	
-	list.AddColumn(t_("Name"));
-	list.WhenBar << THISBACK(ListMenu);
-	list.WhenCursor << THISBACK(DataItem);
 	
 	info.name <<= THISBACK(ValueChange);
 	info.info <<= THISBACK(ValueChange);
@@ -26,26 +22,7 @@ LeadPublisherCtrl::LeadPublisherCtrl() {
 }
 
 void LeadPublisherCtrl::Data() {
-	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	for(int i = 0; i < ldt.publishers.GetCount(); i++) {
-		LeadDataPublisher& ldp = ldt.publishers[i];
-		list.Set(i, 0, ldp.name);
-	}
-	list.SetCount(ldt.publishers.GetCount());
-	
-}
-
-void LeadPublisherCtrl::DataItem() {
-	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	if (!list.IsCursor())
-		return;
-	
-	int idx = list.GetCursor();
-	LeadDataPublisher& ldp = ldt.publishers[idx];
+	LeadDataPublisher& ldp = GetExt<LeadDataPublisher>();
 	
 	info.name.SetData(ldp.name);
 	info.info.SetData(ldp.info);
@@ -61,81 +38,63 @@ void LeadPublisherCtrl::DataItem() {
 
 void LeadPublisherCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Paste artist list"), TextImgs::VioletRing(), THISBACK(PasteArtists));
-}
-
-void LeadPublisherCtrl::ListMenu(Bar& bar) {
-	bar.Add(t_("Add"), TextImgs::BlueRing(), THISBACK(AddPublisher)).Key(K_CTRL_N);
-	if (list.IsCursor())
-		bar.Add(t_("Remove"), TextImgs::BlueRing(), THISBACK(RemovePublisher)).Key(K_CTRL|K_SHIFT|K_W);
+	bar.Separator();
+	bar.Add(t_("Import Json"), THISBACK(ImportJson));
 }
 
 void LeadPublisherCtrl::Do(int fn) {
 	
 }
 
-void LeadPublisherCtrl::AddPublisher() {
+void LeadPublisherCtrl::ImportJson() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	LeadDataPublisher& ldp = ldt.publishers.Add();
-	
-	
-	
-	Data();
-	list.SetCursor(list.GetCount()-1);
-}
-
-void LeadPublisherCtrl::RemovePublisher() {
-	if (!list.IsCursor())
+	if (!p.entity)
 		return;
+	Entity& ent = *p.entity;
+	if (!ent.node.owner)
+		return;
+	MetaNode& ent_owner = *ent.node.owner;
 	
+	FileSelNative filesel;
+	filesel.ActiveDir(GetHomeDirFile("export"));
 	
-	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	int idx = list.GetCursor();
-	ldt.publishers.Remove(idx);
-	
-	Data();
+	if (filesel.ExecuteSelectDir("Select directory containing json files for importing")) {
+		String dir = filesel.Get();
+		FindFile ff;
+		if (ff.Search(AppendFileName(dir, "*.json"))) do {
+			String path = ff.GetPath();
+			String title = GetFileTitle(path);
+			MetaNode& publisher = ent_owner.GetAdd(title, "", METAKIND_ECS_ENTITY);
+			MetaNode& pub_comp = publisher.GetAdd("","",METAKIND_ECS_COMPONENT_LEAD_PUBLISHER);
+			LeadDataPublisher& pub = pub_comp.GetExt<LeadDataPublisher>();
+			LoadFromJsonFile_VisitorNode(pub, path);
+		}
+		while (ff.Next());
+		WhenEditorChange();
+	}
 }
 
 void LeadPublisherCtrl::ValueChange() {
 	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	if (!list.IsCursor())
-		return;
-	
-	int idx = list.GetCursor();
-	LeadDataPublisher& ldp = ldt.publishers[idx];
+	LeadDataPublisher& ldp = GetExt<LeadDataPublisher>();
 	
 	ldp.name = info.name.GetData();
 	ldp.info = info.info.GetData();
 	ldp.genres = info.genres.GetData();
 	ldp.url = info.url.GetData();
-	
-	list.Set(idx, 0, ldp.name);
 }
 
 void LeadPublisherCtrl::PasteArtists() {
-	DatasetPtrs p = GetDataset();
-	LeadDataTemplate& ldt = *p.lead_tmpl;
-	
-	if (!list.IsCursor())
-		return;
-	
-	int idx = list.GetCursor();
-	LeadDataPublisher& ldp = ldt.publishers[idx];
+	LeadDataPublisher& ldp = GetExt<LeadDataPublisher>();
 	ldp.artists.Clear();
 	Vector<String> artists = Split(ReadClipboardText(), "\n");
 	for (String& s : artists)
 		ldp.artists.Add(TrimBoth(s));
 	
-	DataItem();
+	PostCallback(THISBACK(Data));
 }
 
-INITIALIZER_COMPONENT(LeadPublisher);
-INITIALIZER_COMPONENT_CTRL(LeadPublisher, LeadPublisherCtrl)
+INITIALIZER_COMPONENT_CTRL(LeadDataPublisher, LeadPublisherCtrl)
 
 
 END_UPP_NAMESPACE

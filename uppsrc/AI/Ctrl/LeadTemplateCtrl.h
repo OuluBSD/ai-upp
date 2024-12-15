@@ -14,7 +14,7 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
-	
+	void ImportJson();
 	
 };
 

@@ -60,7 +60,6 @@ struct LeadDataTemplate : Component {
 	LeadDataTemplate(MetaNode& n) : Component(n) {}
 	void Load();
 	void Store();
-	//LeadOpportunity& GetAddOpportunity(int leadsite, String id);
 	void Visit(NodeVisitor& json) override;
 	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_TEMPLATE;}
 	

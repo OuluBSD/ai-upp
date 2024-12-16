@@ -84,10 +84,12 @@ void BiographySummaryCtrl::DataCategory() {
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	bcat.RealizeSummaries();
 	
+	Date today = GetSysDate();
 	for(int i = 0; i < bcat.summaries.GetCount(); i++) {
 		const auto& range = bcat.summaries.GetKey(i);
 		const BioYear& by = bcat.summaries[i];
-		int age = by.year - owner.year_of_birth;
+		Date by_date(by.year, today.month, today.day);
+		int age = (by_date - owner.born) - 365;
 		int cls = age - 7;
 		String cls_str;
 		if (cls >= 0) {

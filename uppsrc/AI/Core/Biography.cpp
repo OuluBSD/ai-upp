@@ -142,11 +142,9 @@ BioYear& BiographyCategory::GetAdd(int year) {
 BiographyCategory& Biography::GetAdd(Owner& o, int enum_) {
 	String s = GetBiographyCategoryEnum(enum_);
 	BiographyCategory& bc = categories.GetAdd(s);
-	int now = GetSysTime().year;
-	if (o.year_of_birth > 0 && o.year_of_birth <= now) {
-		for(int i = o.year_of_birth; i <= now; i++) {
-			BioYear& by = bc.GetAdd(i);
-		}
+	Date today = GetSysDate();
+	for(int i = o.born.year; i <= today.year; i++) {
+		BioYear& by = bc.GetAdd(i);
 	}
 	return bc;
 }

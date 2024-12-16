@@ -49,8 +49,8 @@ int RoleAction::FindEvent(const String& event) const {
 int Owner::GetOpportunityScore(const LeadOpportunity& opp) const {
 	int score = 0;
 	
-	Date now = GetSysTime();
-	int active_years = now.year - year_of_career_begin;
+	Date now = GetSysDate();
+	int active_years = (now - born) / 365;
 	bool is_beginner = active_years < 3;
 	
 	if (opp.analyzed_booleans.GetCount() != LISTING_SONG_BOOLEAN_COUNT) {

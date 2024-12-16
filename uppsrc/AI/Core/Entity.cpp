@@ -22,7 +22,7 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 			if (!sub.ext) continue;
 			MetaNodeExt* ext = &*sub.ext;
 			switch (ext->node.kind) {
-				#define DATASET_ITEM(type, name, kind) \
+				#define DATASET_ITEM(type, name, kind, group, desc) \
 					case kind: {p.name = dynamic_cast<type*>(ext); ASSERT(p.name);} break;
 				COMPONENT_LIST
 				#undef DATASET_ITEM
@@ -31,7 +31,7 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 		}
 		if (this_comp) {
 			switch (n.kind) {
-				#define DATASET_ITEM(type, name, kind) \
+				#define DATASET_ITEM(type, name, kind, group, desc) \
 				case kind: {p.name = dynamic_cast<type*>(this_comp); ASSERT(p.name);} break;
 				COMPONENT_LIST
 				#undef DATASET_ITEM

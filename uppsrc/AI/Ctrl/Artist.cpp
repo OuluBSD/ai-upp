@@ -2,11 +2,12 @@
 
 NAMESPACE_UPP
 
+
 ArtistInfoCtrl::ArtistInfoCtrl() {
 	CtrlLayout(*this);
 	
-	for(int i = 0; i < GENDER_COUNT; i++)
-		gender.Add(GetGenderString(i));
+	for(int i = 0; i < CATEGORY_COUNT; i++)
+		gender.Add(GetCategoryString(i));
 	
 	native_name <<= THISBACK(OnValueChange);
 	english_name <<= THISBACK(OnValueChange);
@@ -91,7 +92,6 @@ void ArtistInfoCtrl::OnValueChange() {
 	}
 }
 
-INITIALIZER_COMPONENT(Artist);
 INITIALIZER_COMPONENT_CTRL(Artist, ArtistInfoCtrl)
 
 

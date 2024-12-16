@@ -136,7 +136,6 @@ void NotepadCtrl::RemoveIdea() {
 }
 
 
-INITIALIZER_COMPONENT(Notepad);
 INITIALIZER_COMPONENT_CTRL(Notepad, NotepadCtrl)
 
 END_UPP_NAMESPACE

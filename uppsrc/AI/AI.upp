@@ -3,7 +3,7 @@ description "\377B0,0,128";
 uses
 	CtrlLib,
 	plugin/openai,
-	AI/Tool;
+	AI/Ctrl;
 
 library(!WIN32) curl;
 

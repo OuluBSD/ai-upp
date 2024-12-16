@@ -586,7 +586,7 @@ void ImageBiographyProcess::DoPhase() {
 	}
 }
 
-ImageBiographyProcess& ImageBiographyProcess::Get(Profile& p, BiographySnapshot& snap) {
+ImageBiographyProcess& ImageBiographyProcess::Get(Profile& p, BiographyPerspectives& snap) {
 	static ArrayMap<String, ImageBiographyProcess> arr;
 	
 	TODO
@@ -677,7 +677,6 @@ void ImageBiographyProcess::OnProcessAnalyzeImageBiography(String res) {
 
 
 
-INITIALIZER_COMPONENT(ImageBiography);
 INITIALIZER_COMPONENT_CTRL(ImageBiography, ImageBiographyCtrl)
 
 END_UPP_NAMESPACE

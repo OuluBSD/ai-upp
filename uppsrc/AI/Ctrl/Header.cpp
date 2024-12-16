@@ -191,7 +191,6 @@ void SocialHeaderCtrl::Do(int fn) {
 }
 
 
-INITIALIZER_COMPONENT(SocialHeader);
 INITIALIZER_COMPONENT_CTRL(SocialHeader, SocialHeaderCtrl)
 
 END_UPP_NAMESPACE

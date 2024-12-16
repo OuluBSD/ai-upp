@@ -727,7 +727,6 @@ String MarketplaceCtrl::GetPackageString(int w, int h, int d, double weight) {
 }
 
 
-INITIALIZER_COMPONENT(Marketplace);
 INITIALIZER_COMPONENT_CTRL(Marketplace, MarketplaceCtrl)
 
 END_UPP_NAMESPACE

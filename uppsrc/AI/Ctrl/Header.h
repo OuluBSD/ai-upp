@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct SocialHeader : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(SocialHeader)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SOCIAL_HEADER;}
-	
-};
-
-INITIALIZE(SocialHeader)
-
 class SocialHeaderCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl platforms, entries;

@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct ImageBiography : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(ImageBiography)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES;}
-	
-};
-
-INITIALIZE(ImageBiography)
-
 class ImageViewerCtrl : public Ctrl {
 	Image img;
 	
@@ -78,7 +64,7 @@ public:
 	};
 	
 	Profile* p = 0;
-	BiographySnapshot* snap = 0;
+	BiographyPerspectives* snap = 0;
 	
 	
 	struct VisionTask : Moveable<VisionTask> {
@@ -100,7 +86,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static ImageBiographyProcess& Get(Profile& p, BiographySnapshot& snap);
+	static ImageBiographyProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 private:
 	

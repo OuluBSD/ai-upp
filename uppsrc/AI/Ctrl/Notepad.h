@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct Notepad : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(Notepad)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_NOTEPAD;}
-	
-};
-
-INITIALIZE(Notepad)
-
 class NotepadCtrl : public ComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl list;

@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct Perspective : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(Perspective)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PERSPECTIVE;}
-	
-};
-
-INITIALIZE(Perspective);
-
 class PerspectiveCtrl : public ComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl beliefs;
@@ -52,7 +38,7 @@ public:
 	
 	Owner* owner = 0;
 	Profile* profile = 0;
-	BiographySnapshot* snap = 0;
+	BiographyPerspectives* snap = 0;
 	
 public:
 	typedef PerspectiveProcess CLASSNAME;
@@ -61,7 +47,7 @@ public:
 	int GetPhaseCount() const override;
 	void DoPhase() override;
 	
-	static PerspectiveProcess& Get(Profile& p, BiographySnapshot& snap);
+	static PerspectiveProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 	
 };

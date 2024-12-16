@@ -1,0 +1,9 @@
+#include "Core.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(ScriptReasoning);
+
+END_UPP_NAMESPACE

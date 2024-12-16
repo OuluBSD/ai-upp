@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct Audience : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(Audience)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	 TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AUDIENCE;}
-	
-};
-
-INITIALIZE(Audience)
-
 class AudienceCtrl : public ComponentCtrl {
 	Splitter menusplit, hsplit, vsplit, bsplit;
 	ArrayCtrl roles, profiles, responses, entries;
@@ -50,9 +36,6 @@ public:
 		PHASE_COUNT,
 	};
 	
-	Profile* p = 0;
-	BiographySnapshot* snap = 0;
-	
 	
 public:
 	typedef AudienceProcess CLASSNAME;
@@ -63,7 +46,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static AudienceProcess& Get(Profile& p, BiographySnapshot& snap);
+	static AudienceProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 private:
 	

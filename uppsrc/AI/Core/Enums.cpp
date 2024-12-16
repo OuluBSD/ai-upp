@@ -58,37 +58,53 @@ String GetScoreKey(int score) {
 	return "sc(" + IntStr(score) + ")";
 }
 
-String GetGenderString(int i) {
+String GetCategoryString(int i) {
 	switch (i) {
-		case GENDER_CHILD:		return "child";
-		case GENDER_AUTHORITY:	return "authority";
-		case GENDER_MALE:		return "male";
-		case GENDER_FEMALE:		return "female";
-		case GENDER_SELLER:		return "seller";
-		case GENDER_BUYER:		return "buyer";
-		case GENDER_MARKETER:	return "marketer";
-		case GENDER_CONSUMER:	return "consumer";
+		case CATEGORY_CODE:				return "Code";
+		case CATEGORY_ECS:				return "ECS";
+		
+		case CATEGORY_ASSET:			return "Asset";
+		case CATEGORY_DISPOSABLE:		return "Disposable";
+		
+		case CATEGORY_PRIVATE:			return "Private";
+		case CATEGORY_PUBLIC:			return "Public";
+		
+		case CATEGORY_MALE:				return "Male";
+		case CATEGORY_FEMALE:			return "Female";
+		
+		case CATEGORY_BUYER:			return "Buyer";
+		case CATEGORY_SELLER:			return "Seller";
+		
+		case CATEGORY_MARKETER:			return "Marketer";
+		case CATEGORY_CONSUMER:			return "Consumer";
+		
+		case CATEGORY_MUSIC:			return "Music";
+		case CATEGORY_TEXT:				return "Text";
+		
+		case CATEGORY_PHOTO:			return "Photo";
+		case CATEGORY_VIDEO:			return "Video";
+		
 		default: return String();
 	}
 }
 
-Vector<String> GetGenders() {
+Vector<String> GetCategories() {
 	Vector<String> v;
-	for(int i = 0; i < GENDER_COUNT; i++)
-		v << GetGenderString(i);
+	for(int i = 0; i < CATEGORY_COUNT; i++)
+		v << GetCategoryString(i);
 	return v;
 }
 
-int FindGender(const String& s) {
+int FindCategory(const String& s) {
 	String ls = ToLower(TrimBoth(s));
 	if (ls.IsEmpty()) return -1;
 	if (IsDigit(ls[0]) || ls[0] == '-') {
 		int i = ScanInt(ls);
-		if (i < 0 || i >= GENDER_COUNT) return -1;
+		if (i < 0 || i >= CATEGORY_COUNT) return -1;
 		return i;
 	}
-	for(int i = 0; i < GENDER_COUNT; i++)
-		if (GetGenderString(i) == ls)
+	for(int i = 0; i < CATEGORY_COUNT; i++)
+		if (GetCategoryString(i) == ls)
 			return i;
 	return -1;
 }

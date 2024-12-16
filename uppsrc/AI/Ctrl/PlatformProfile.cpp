@@ -317,7 +317,6 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 
 
 
-INITIALIZER_COMPONENT(PlatformProfile);
 INITIALIZER_COMPONENT_CTRL(PlatformProfile, PlatformProfileCtrl)
 
 END_UPP_NAMESPACE

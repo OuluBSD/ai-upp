@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct ImageBiographySummary : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(ImageBiographySummary)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY;}
-	
-};
-
-INITIALIZE(ImageBiographySummary)
-
 class ImageBiographySummaryCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl categories, blocks;
@@ -55,7 +41,7 @@ public:
 	};
 	
 	//Profile* prof = 0;
-	//BiographySnapshot* snap = 0;
+	//BiographyPerspectives* snap = 0;
 	
 	
 	
@@ -79,7 +65,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static ImageBiographySummaryProcess& Get(Profile& p, BiographySnapshot& snap);
+	static ImageBiographySummaryProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 private:
 	

@@ -4,6 +4,9 @@
 NAMESPACE_UPP
 
 
+struct LeadOpportunity;
+
+
 struct PlatformNeed {
 	bool enabled = false;
 	

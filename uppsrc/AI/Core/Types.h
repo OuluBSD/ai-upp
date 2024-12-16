@@ -3,21 +3,9 @@
 
 NAMESPACE_UPP
 
-struct Entity;
-struct SrcTxtHeader;
-struct Component;
-struct LyricalStructure;
-struct Script;
-struct Lyrics;
-struct Song;
-struct Owner;
-struct Release;
-struct Biography;
-struct BiographyAnalysis;
-struct Profile;
-struct BiographySnapshot;
-struct LeadData;
-struct LeadDataTemplate;
+#define DATASET_ITEM(type, name, kind, group, desc) struct type;
+DATASET_LIST
+#undef DATASET_ITEM
 
 typedef String NoPointerExc;
 

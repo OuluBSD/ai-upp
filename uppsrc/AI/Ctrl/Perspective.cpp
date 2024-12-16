@@ -273,7 +273,7 @@ void PerspectiveProcess::DoPhase() {
 	#endif
 }
 
-PerspectiveProcess& PerspectiveProcess::Get(Profile& e, BiographySnapshot& snap) {
+PerspectiveProcess& PerspectiveProcess::Get(Profile& e, BiographyPerspectives& snap) {
 	String t = e.node.GetPath() + ";" + snap.node.GetPath();
 	hash_t h = t.GetHashValue();
 	static ArrayMap<hash_t, PerspectiveProcess> map;
@@ -297,7 +297,6 @@ PerspectiveProcess& PerspectiveProcess::Get(Profile& e, BiographySnapshot& snap)
 
 
 
-INITIALIZER_COMPONENT(Perspective)
 INITIALIZER_COMPONENT_CTRL(Perspective, PerspectiveCtrl)
 
 END_UPP_NAMESPACE

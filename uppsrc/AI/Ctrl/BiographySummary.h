@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct BiographySummary : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(BiographySummary)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY;}
-	
-};
-
-INITIALIZE(BiographySummary)
-
 class BiographySummaryCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl categories, blocks;
@@ -60,7 +46,7 @@ public:
 	};
 	
 	Ptr<Profile> profile;
-	Ptr<BiographySnapshot> snap;
+	Ptr<BiographyPerspectives> snap;
 	
 public:
 	typedef BiographySummaryProcess CLASSNAME;
@@ -71,7 +57,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static BiographySummaryProcess& Get(Profile& p, BiographySnapshot& snap);
+	static BiographySummaryProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 private:
 	

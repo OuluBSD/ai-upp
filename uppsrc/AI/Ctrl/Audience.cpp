@@ -265,7 +265,7 @@ void AudienceProcess::DoPhase() {
 	}
 }
 
-AudienceProcess& AudienceProcess::Get(Profile& p, BiographySnapshot& snap) {
+AudienceProcess& AudienceProcess::Get(Profile& p, BiographyPerspectives& snap) {
 	static ArrayMap<String, AudienceProcess> arr;
 	
 	String key = "PROFILE(" + p.name + "), REVISION(" + IntStr(snap.revision) + ")";
@@ -282,7 +282,7 @@ AudienceProcess& AudienceProcess::Get(Profile& p, BiographySnapshot& snap) {
 }
 
 void AudienceProcess::ProcessAudienceProfileCategories() {
-	BiographyAnalysis& analysis = snap->analysis;
+	BiographyAnalysis& analysis = *p.analysis;
 	int role_i = batch;
 	int prof_i = sub_batch;
 	
@@ -327,7 +327,7 @@ void AudienceProcess::OnProcessAudienceProfileCategories(String res) {
 	int prof_i = sub_batch;
 	const Array<RoleProfile>& profs = GetRoleProfile(role_i);
 	const RoleProfile& prof = profs[prof_i];
-	BiographyAnalysis& analysis = snap->analysis;
+	BiographyAnalysis& analysis = *p.analysis;
 	analysis.Realize();
 	BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
 	
@@ -397,7 +397,6 @@ void AudienceProcess::OnProcessAudienceProfileCategories(String res) {
 }
 
 
-INITIALIZER_COMPONENT(Audience);
 INITIALIZER_COMPONENT_CTRL(Audience, AudienceCtrl)
 
 END_UPP_NAMESPACE

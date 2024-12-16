@@ -64,22 +64,46 @@ ATTR_LIST
 ATTR_COUNT
 };
 
+// Categories (with opposites... see pairs)
 enum {
-	GENDER_CHILD,
-	GENDER_AUTHORITY,
-	GENDER_MALE,
-	GENDER_FEMALE,
-	GENDER_SELLER,
-	GENDER_BUYER,
-	GENDER_MARKETER,
-	GENDER_CONSUMER,
+	CATEGORY_CODE,
+	CATEGORY_ECS,
 	
-	GENDER_COUNT // feel free to add
+	CATEGORY_ASSET,
+	CATEGORY_DISPOSABLE,
+	
+	CATEGORY_PRIVATE,
+	CATEGORY_PUBLIC,
+	
+	CATEGORY_MALE,
+	CATEGORY_FEMALE,
+	
+	CATEGORY_BUYER,
+	CATEGORY_SELLER,
+	
+	CATEGORY_CONSUMER,
+	CATEGORY_MARKETER,
+	
+	CATEGORY_MUSIC,
+	CATEGORY_TEXT,
+	
+	CATEGORY_PHOTO,
+	CATEGORY_VIDEO,
+	
+	#if 0
+	CATEGORY_2D,
+	CATEGORY_3D,
+	
+	CATEGORY_STATIC,
+	CATEGORY_DYNAMIC,
+	#endif
+	
+	CATEGORY_COUNT // feel free to add
 };
 
-String GetGenderString(int i);
-Vector<String> GetGenders();
-int FindGender(const String& s);
+String GetCategoryString(int i);
+Vector<String> GetCategories();
+int FindCategory(const String& s);
 
 enum{
 	TCENT_SAFE_MALE,

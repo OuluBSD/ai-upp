@@ -393,7 +393,7 @@ SocialNeedsProcess::SocialNeedsProcess() {
 	
 }
 
-SocialNeedsProcess& SocialNeedsProcess::Get(Profile& e, BiographySnapshot& snap) {
+SocialNeedsProcess& SocialNeedsProcess::Get(Profile& e, BiographyPerspectives& snap) {
 	String t = e.node.GetPath() + ": " + e.node.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, SocialNeedsProcess>& map = __SocialNeedsProcesss();
@@ -890,7 +890,6 @@ void SocialNeedsProcess::OnProcessPlatformDescriptionTranslated(String res) {
 
 
 
-INITIALIZER_COMPONENT(SocialNeeds);
 INITIALIZER_COMPONENT_CTRL(SocialNeeds, SocialNeedsCtrl)
 
 END_UPP_NAMESPACE

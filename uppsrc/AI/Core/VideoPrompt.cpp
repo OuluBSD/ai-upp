@@ -1,0 +1,9 @@
+#include "Core.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(VideoPromptMaker)
+
+END_UPP_NAMESPACE

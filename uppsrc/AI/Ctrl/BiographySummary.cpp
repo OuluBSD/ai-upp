@@ -306,7 +306,7 @@ void BiographySummaryProcess::DoPhase() {
 	}
 }
 
-BiographySummaryProcess& BiographySummaryProcess::Get(Profile& p, BiographySnapshot& snap) {
+BiographySummaryProcess& BiographySummaryProcess::Get(Profile& p, BiographyPerspectives& snap) {
 	static ArrayMap<String, BiographySummaryProcess> arr;
 	
 	TODO
@@ -676,7 +676,6 @@ void BiographySummaryProcess::OnProcessSummarizeElements(String result) {
 
 
 
-INITIALIZER_COMPONENT(BiographySummary);
 INITIALIZER_COMPONENT_CTRL(BiographySummary, BiographySummaryCtrl)
 
 

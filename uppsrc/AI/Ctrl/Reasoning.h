@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct ScriptReasoning : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(ScriptReasoning)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	 TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT_REASONING;}
-	
-};
-
-INITIALIZE(ScriptReasoning)
-
 class ScriptReasoningCtrl : public ComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl itemlist;

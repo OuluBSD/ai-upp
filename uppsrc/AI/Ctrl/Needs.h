@@ -4,20 +4,6 @@
 NAMESPACE_UPP
 
 
-struct SocialNeeds : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(SocialNeeds)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SOCIAL_NEEDS;}
-	
-};
-
-INITIALIZE(SocialNeeds)
-
 class SocialNeedsCtrl : public ComponentCtrl {
 	Splitter hsplit, rolesplit, platsplit, eventsplit;
 	ArrayCtrl roles, needs, causes, messages;
@@ -56,7 +42,7 @@ class SocialNeedsProcess : public SolverBase {
 	Profile* profile = 0;
 	BiographyAnalysis* analysis = 0;
 	Biography* biography = 0;
-	BiographySnapshot* snap = 0;
+	BiographyPerspectives* snap = 0;
 	
 	
 	struct Range : Moveable<Range> {
@@ -89,7 +75,7 @@ public:
 	void DoPhase() override;
 	void OnBatchError() override;
 	
-	static SocialNeedsProcess& Get(Profile& p, BiographySnapshot& snap);
+	static SocialNeedsProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 	Callback2<int,int> WhenProgress;
 	

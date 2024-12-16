@@ -1,6 +1,6 @@
 #include <AI/AI.h>
 #include <ide/ide.h>
-#include <AI/Tool/Tool.h>
+#include <AI/Ctrl/Ctrl.h>
 
 NAMESPACE_UPP
 
@@ -1606,51 +1606,9 @@ String MetaNode::GetKindString(int kind)
 	if(kind >= 0 && kind <= CXCursor_OverloadCandidate)
 		return GetCursorKindName((CXCursorKind)kind);
 	switch (kind) {
-	case METAKIND_DATABASE_SOURCE:		return "Database (Source)";
-	case METAKIND_PKG_ENV:				return "Environment";
-	case METAKIND_CONTEXT:				return "Context";
-	case METAKIND_DB_REF:				return "Database Reference";
-	case METAKIND_COMMENT:				return "Comment";
-	case METAKIND_ECS_SPACE:			return "ECS-Space";
-	case METAKIND_ECS_ENTITY:			return "Entity";
-	case METAKIND_ECS_COMPONENT_PROFILE:			return "Profile";
-	case METAKIND_ECS_COMPONENT_OWNER:				return "";
-	case METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE:	return "Lyrical Structure";
-	case METAKIND_ECS_COMPONENT_SCRIPT:				return "Script";
-	case METAKIND_ECS_COMPONENT_LYRICS:				return "Lyrics";
-	case METAKIND_ECS_COMPONENT_SONG:				return "Song";
-	case METAKIND_ECS_COMPONENT_MARKETPLACE:		return "Marketplace";
-	case METAKIND_ECS_COMPONENT_PERSPECTIVE:		return "Perspective";
-	case METAKIND_ECS_COMPONENT_ARTIST:				return "Artist";
-	case METAKIND_ECS_COMPONENT_NOTEPAD:			return "Notepad";
-	case METAKIND_ECS_COMPONENT_RELEASE:			return "Release";
-	case METAKIND_ECS_COMPONENT_RELEASE_BRIEFING:	return "Release Briefing";
-	case METAKIND_ECS_COMPONENT_RELEASE_COVER_IMAGE:return "Release Cover Image";
-	case METAKIND_ECS_COMPONENT_AUDIENCE:			return "Audience";
-	case METAKIND_ECS_COMPONENT_SOCIAL_HEADER:		return "Social Header";
-	case METAKIND_ECS_COMPONENT_SOCIAL_CONTENT:		return "Social Content";
-	case METAKIND_ECS_COMPONENT_SOCIAL_NEEDS:		return "Social Needs";
-	case METAKIND_ECS_COMPONENT_PLATFORM:			return "Platform";
-	case METAKIND_ECS_COMPONENT_PLATFORM_PROFILE:	return "Platform Profile";
-	case METAKIND_ECS_COMPONENT_SCRIPT_REASONING:	return "Script Reasoning";
-	case METAKIND_ECS_COMPONENT_LEAD_DATA:			return "Lead Data";
-	case METAKIND_ECS_COMPONENT_LEAD_TEMPLATE:		return "Lead Template";
-	case METAKIND_ECS_COMPONENT_LEAD_PUBLISHER:		return "Lead Publisher";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY:			return "Biography";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_ELEMENTS:	return "Biography Elements";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_CONCEPTS:	return "Biography Concepts";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY:	return "Biography Summary";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT:	return "Biography Snapshot";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES:	return "Biography Images";
-	case METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY: return "Biography Images Summary";
-	case METAKIND_ECS_COMPONENT_IMG_LAYER:			return "Image layer";
-	case METAKIND_ECS_COMPONENT_IMG_GEN_LAYER:		return "Generate Image Layer";
-	case METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER:	return "Aspect Fix Image Layer";
-	case METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER:	return "Video Prompt Maker";
-	case METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD:	return "Video Storyboard";
-	case METAKIND_ECS_COMPONENT_PROJECT_WIZARD:		return "Project Wizard";
-	// TODO fill this from list
-	
+		#define DATASET_ITEM(type, name, kind, group, desc) case kind: return desc;
+		DATASET_LIST
+		#undef DATASET_ITEM
 	default:
 		return "Unknown kind: " + IntStr(kind);
 	}

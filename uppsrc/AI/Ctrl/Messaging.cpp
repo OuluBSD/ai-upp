@@ -575,7 +575,6 @@ void SocialContentCtrl::Do(int fn) {
 }
 
 
-INITIALIZER_COMPONENT(SocialContent);
 INITIALIZER_COMPONENT_CTRL(SocialContent, SocialContentCtrl)
 
 END_UPP_NAMESPACE

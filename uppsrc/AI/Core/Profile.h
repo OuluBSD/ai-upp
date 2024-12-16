@@ -11,7 +11,7 @@ struct Profile : Component
 	String preferences;
 	Index<int> languages;
 	
-	BiographySnapshot* FindSnapshotRevision(int i);
+	BiographyPerspectives* FindSnapshotRevision(int i);
 	
 	Profile(MetaNode& owner) : Component(owner) {}
 	String GetName() const override {return name;}

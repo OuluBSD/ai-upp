@@ -272,12 +272,13 @@ struct PhotoPromptLink : Moveable<PhotoPromptLink> {
 	PhotoPrompt* pp;
 };
 
-struct BiographyAnalysis  {
+struct BiographyAnalysis : Component {
 	Array<Array<BiographyProfileAnalysis>> profiles;
 	Array<BiographyRoleAnalysis> roles;
 	Array<PlatformBiographyAnalysis> platforms;
 	ArrayMap<String, PhotoPromptGroupAnalysis> image_types;
 	
+	COMPONENT_CONSTRUCTOR(BiographyAnalysis)
 	void Realize();
 	void RealizePromptImageTypes();
 	void Visit(NodeVisitor& v) {
@@ -375,29 +376,25 @@ struct Concept {
 	}
 };
 
-struct BiographySnapshot : Component {
+struct BiographyPerspectives : Component {
 	int revision = 0;
 	Time last_modified;
-	//Biography data; // TODO use from ecs
-	BiographyAnalysis analysis;
 	Array<Concept> concepts;
 	
-	BiographySnapshot(MetaNode& o) : Component(o) {}
+	BiographyPerspectives(MetaNode& o) : Component(o) {}
 	
 	void Visit(NodeVisitor& v) override {
 		v.Ver(1)
 		(1)	("revision", revision)
 			("last_modified", last_modified)
-			//("data", data)
-			.Visit("analysis", analysis)
 			.VisitVector("concepts", concepts)
 		;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES;}
 	
 };
 
-INITIALIZE(BiographySnapshot)
+INITIALIZE(BiographyPerspectives)
 
 END_UPP_NAMESPACE
 

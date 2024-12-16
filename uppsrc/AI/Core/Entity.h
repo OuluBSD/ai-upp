@@ -3,61 +3,28 @@
 
 NAMESPACE_UPP
 
-#define EXT_LIST \
-	DATASET_ITEM(Entity,			entity,			METAKIND_ECS_ENTITY) \
-	DATASET_ITEM(Component,			component,		METAKIND_ECS_COMPONENT_UNDEFINED) \
-
-#define COMPONENT_LIST \
-	DATASET_ITEM(SrcTxtHeader,		src,			METAKIND_DATABASE_SOURCE) \
-	DATASET_ITEM(LyricalStructure,	lyric_struct,	METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE) \
-	DATASET_ITEM(Script,			script,			METAKIND_ECS_COMPONENT_SCRIPT) /* TODO rename to lyrics_draft */ \
-	DATASET_ITEM(Lyrics,			lyrics,			METAKIND_ECS_COMPONENT_LYRICS) \
-	DATASET_ITEM(Song,				song,			METAKIND_ECS_COMPONENT_SONG) \
-	DATASET_ITEM(Owner,				owner,			METAKIND_ECS_COMPONENT_OWNER) /* TODO rename to human? */ \
-	DATASET_ITEM(Release,			release,		METAKIND_ECS_COMPONENT_RELEASE) \
-	DATASET_ITEM(Profile,			profile,		METAKIND_ECS_COMPONENT_PROFILE) \
-	DATASET_ITEM(BiographySnapshot,	snap,			METAKIND_ECS_COMPONENT_BIOGRAPHY_SNAPSHOT) \
-	DATASET_ITEM(LeadData,			lead_data,		METAKIND_ECS_COMPONENT_LEAD_DATA) \
-	DATASET_ITEM(LeadDataTemplate,	lead_tmpl,		METAKIND_ECS_COMPONENT_LEAD_TEMPLATE) \
-
-#define NODE_LIST \
-	DATASET_ITEM(MetaNode,			env,			METAKIND_PKG_ENV) \
-
-#define DATASET_LIST \
-	EXT_LIST \
-	COMPONENT_LIST \
-	NODE_LIST \
-
 struct DatasetPtrs {
-	#define DATASET_ITEM(type, name, kind) Ptr<type> name;
+	#define DATASET_ITEM(type, name, kind, group, desc) Ptr<type> name;
 	DATASET_LIST
 	#undef DATASET_ITEM
 	
 	bool editable_biography = false;
 	
-	BiographyAnalysis*		analysis = 0;
-	Biography*				biography = 0;
-	
 	DatasetPtrs() {}
 	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
 	void operator=(const DatasetPtrs& p) {
-		#define DATASET_ITEM(type, name, kind) name = p.name;
+		#define DATASET_ITEM(type, name, kind, group, desc) name = p.name;
 		DATASET_LIST
 		#undef DATASET_ITEM
 		
 		editable_biography = p.editable_biography;
-		
-		analysis = p.analysis;
-		biography = p.biography;
 	}
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	void Clear() {
-		#define DATASET_ITEM(type, name, kind) name = 0;
+		#define DATASET_ITEM(type, name, kind, group, desc) name = 0;
 		DATASET_LIST
 		#undef DATASET_ITEM
 		editable_biography = 0;
-		analysis = 0;
-		biography = 0;
 	}
 };
 
@@ -74,6 +41,20 @@ struct Component : MetaNodeExt {
 #define COMPONENT_OVERRIDE_TODO void Visit(NodeVisitor& s) override {TODO}
 #define METANODE_EXT_CONSTRUCTOR_(x) x(MetaNode& n) : MetaNodeExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
+
+#define COMPONENT_STUB_HEADER(type, kind) \
+struct type : Component \
+{ \
+	COMPONENT_CONSTRUCTOR(type) \
+	void Visit(NodeVisitor& v) override { \
+		v.Ver(1)(1);} \
+	static int GetKind() {return kind;} \
+}; \
+INITIALIZE(type)
+
+#define COMPONENT_STUB_IMPL(type, kind) \
+	INITIALIZER_COMPONENT(type);
+
 
 struct Entity : MetaNodeExt {
 	VectorMap<String, Value> data;

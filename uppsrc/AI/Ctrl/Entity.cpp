@@ -387,12 +387,12 @@ void EntityInfoCtrl::Data() {
 		data.Set(row, 0, key);
 		if (key == "gender") {
 			DropList* dl = new DropList;
-			for (auto g : GetGenders())
+			for (auto g : GetCategories())
 				dl->Add(g);
 			data.SetCtrl(row, 1, dl);
-			int gender_i = max(0, FindGender(value.ToString()));
+			int gender_i = max(0, FindCategory(value.ToString()));
 			dl->SetIndex(gender_i);
-			dl->WhenAction = [&ent,dl]{ent.data.GetAdd("gender") = GetGenderString(dl->GetIndex());};
+			dl->WhenAction = [&ent,dl]{ent.data.GetAdd("gender") = GetCategoryString(dl->GetIndex());};
 		}
 		else if (key == "ctx") {
 			DropList* dl = new DropList;

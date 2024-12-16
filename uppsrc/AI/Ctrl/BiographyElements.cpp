@@ -181,7 +181,6 @@ void BiographyElementsCtrl::ToolMenu(Bar& bar) {
 }
 
 
-INITIALIZER_COMPONENT(BiographyElements);
 INITIALIZER_COMPONENT_CTRL(BiographyElements, BiographyElementsCtrl)
 
 END_UPP_NAMESPACE

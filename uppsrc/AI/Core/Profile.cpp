@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-BiographySnapshot* Profile::FindSnapshotRevision(int i) {
+BiographyPerspectives* Profile::FindSnapshotRevision(int i) {
 	TODO
 	#if 0
 	for (auto& snap : snapshots)

@@ -52,7 +52,6 @@ void ReleaseInfoCtrl::OnValueChange() {
 
 
 
-INITIALIZER_COMPONENT(ReleaseBriefing)
 INITIALIZER_COMPONENT_CTRL(Release, ReleaseInfoCtrl)
 
 END_UPP_NAMESPACE

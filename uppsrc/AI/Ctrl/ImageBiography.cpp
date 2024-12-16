@@ -97,9 +97,11 @@ void ImageBiographyCtrl::DataCategory() {
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	
+	Date today = GetSysDate();
 	for(int i = 0; i < bcat.years.GetCount(); i++) {
 		const BioYear& by = bcat.years[i];
-		int age = by.year - owner.year_of_birth;
+		Date by_date(by.year, today.month, today.day);
+		int age = (by_date - owner.born) - 365;
 		int cls = age - 7;
 		String cls_str;
 		if (cls >= 0) {

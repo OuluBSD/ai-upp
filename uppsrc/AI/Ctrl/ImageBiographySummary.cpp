@@ -77,10 +77,12 @@ void ImageBiographySummaryCtrl::DataCategory() {
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	bcat.RealizeSummaries();
 	
+	Date today = GetSysDate();
 	for(int i = 0; i < bcat.summaries.GetCount(); i++) {
 		const auto& range = bcat.summaries.GetKey(i);
 		const BioYear& by = bcat.summaries[i];
-		int age = by.year - owner.year_of_birth;
+		Date by_date(by.year, today.month, today.day);
+		int age = (by_date - owner.born) - 365;
 		int cls = age - 7;
 		String cls_str;
 		if (cls >= 0) {
@@ -325,15 +327,17 @@ void ImageBiographySummaryProcess::ProcessSummarizeImageCategoryYear() {
 	SocialArgs args;
 	args.fn = 10;
 	
+	Date today = GetSysDate();
 	if (range.len == 2) {
 		int begin = range.off;
 		int end = range.off + range.len;
 		ASSERT(begin < end && end - begin < 100);
 		for(int i = begin; i < end && i < by.images.GetCount(); i++) {
 			BioImage& bi = by.images[i];
+			Date by_date(by.year, today.month, today.day);
 			String title = GetBiographyCategoryKey(t.bcat_i) +
 				", year " + IntStr(by.year) +
-				", age " + IntStr(by.year - p.owner->year_of_birth) +
+				", age " + IntStr((by_date - p.owner->born) / 365) +
 				", image #" + IntStr(i);
 			if (bi.image_text.GetCount())
 				args.parts.Add(title, bi.image_text);
@@ -358,12 +362,13 @@ void ImageBiographySummaryProcess::ProcessSummarizeImageCategoryYear() {
 			int j = by.image_summaries.Find(sub_range);
 			ASSERT(j >= 0);
 			BioImage& bi = by.image_summaries[j];
+			Date by_date(by.year, today.month, today.day);
 			int from = sub_range.off;
 			int to = sub_range.off + sub_range.len - 1;
 			String title =
 				GetBiographyCategoryKey(t.bcat_i) +
 				", year " + IntStr(by.year) +
-				", age " + IntStr(by.year - p.owner->year_of_birth) +
+				", age " + IntStr((by_date - p.owner->born) / 365) +
 				", images from #" + IntStr(from) + " to #" + IntStr(to);
 				;
 			if (bi.image_text.GetCount())

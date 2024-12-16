@@ -7,9 +7,9 @@ ProfileInfoCtrl::ProfileInfoCtrl() {
 	CtrlLayout(*this);
 	
 	name <<= THISBACK(OnValueChange);
-	begin <<= THISBACK(OnValueChange);
-	biography <<= THISBACK(OnValueChange);
-	preferred_genres <<= THISBACK(OnValueChange);
+	created <<= THISBACK(OnValueChange);
+	description <<= THISBACK(OnValueChange);
+	preferences <<= THISBACK(OnValueChange);
 	
 	languages.AddColumn(t_("Language"));
 	languages.AddColumn(t_("Set"));
@@ -25,68 +25,51 @@ ProfileInfoCtrl::ProfileInfoCtrl() {
 }
 
 void ProfileInfoCtrl::Data() {
-	
-	DatasetPtrs p = GetDataset();
+	Profile& a = GetExt<Profile>();
 	
 	Clear();
 	
-	if (p.profile) {
-		Profile& a = *p.profile;
-			
-		this->name						.SetData(a.name);
-		this->begin						.SetData(a.begin);
-		this->biography					.SetData(a.biography);
-		this->preferred_genres			.SetData(a.preferred_genres);
-		
-		for(int i = 0; i < LNG_COUNT; i++) {
-			Ctrl* c = languages.GetCtrl(i, 1);
-			if (!c) continue;
-			Option* opt = dynamic_cast<Option*>(c);
-			ASSERT(opt);
-			opt->Set(a.languages.Find(i) >= 0);
-		}
-	}
+	this->name						.SetData(a.name);
+	this->created					.SetData(a.created);
+	this->description				.SetData(a.description);
+	this->preferences				.SetData(a.preferences);
 	
+	for(int i = 0; i < LNG_COUNT; i++) {
+		Ctrl* c = languages.GetCtrl(i, 1);
+		if (!c) continue;
+		Option* opt = dynamic_cast<Option*>(c);
+		ASSERT(opt);
+		opt->Set(a.languages.Find(i) >= 0);
+	}
 }
 
 void ProfileInfoCtrl::Clear() {
 	this->name						.Clear();
-	this->begin						.Clear();
-	this->biography					.Clear();
-	this->preferred_genres			.Clear();
+	this->created					.Clear();
+	this->description				.Clear();
+	this->preferences				.Clear();
 	for(int i = 0; i < LNG_COUNT; i++) {
 		Ctrl* c = languages.GetCtrl(i, 1);
 		Option* opt = dynamic_cast<Option*>(c);
 		if (opt) opt->Set(0);
 	}
-		
 }
 
 void ProfileInfoCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	Profile& o = GetExt<Profile>();
 	
-	TODO
-	#if 0
-	if (p.profile && p.leads->profiles.IsCursor()) {
-		Profile& o = *p.profile;
-		o.name						= this->name.GetData();
-		o.begin						= this->begin.GetData();
-		o.biography					= this->biography.GetData();
-		o.preferred_genres			= this->preferred_genres.GetData();
-		
-		
-		o.languages.Clear();
-		for(int i = 0; i < LNG_COUNT; i++) {
-			Option* opt = dynamic_cast<Option*>(languages.GetCtrl(i, 1));
-			ASSERT(opt);
-			if (opt->Get())
-				o.languages.Add(i);
-		}
-		
-		int c = p.leads->profiles.GetCursor();
-		p.leads->profiles.Set(c, 0, o.name);
+	o.name						= this->name.GetData();
+	o.created					= this->created.GetData();
+	o.description				= this->description.GetData();
+	o.preferences				= this->preferences.GetData();
+	
+	o.languages.Clear();
+	for(int i = 0; i < LNG_COUNT; i++) {
+		Option* opt = dynamic_cast<Option*>(languages.GetCtrl(i, 1));
+		ASSERT(opt);
+		if (opt->Get())
+			o.languages.Add(i);
 	}
-	#endif
 }
 
 INITIALIZER_COMPONENT_CTRL(Profile, ProfileInfoCtrl)

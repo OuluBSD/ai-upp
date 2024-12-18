@@ -28,7 +28,7 @@ class ClangCursorInfo {
 
 	bool         hastypehash = false;
 	bool         typebuiltin = false;
-	unsigned     typehash = 0;
+	hash_t       typehash = 0;
 
 public:
 	int          Kind()                      { return cursorKind; }
@@ -41,7 +41,7 @@ public:
 	String       Name();
 	String       Id();
 	String       Bases();
-	unsigned     TypeHash();
+	hash_t       TypeHash();
 	bool         TypeBuiltin();
 	
 	CXCursor     GetCursor()                 { return cursor; }
@@ -84,7 +84,7 @@ bool ClangCursorInfo::TypeBuiltin()
 }
 
 force_inline
-unsigned ClangCursorInfo::TypeHash()
+hash_t ClangCursorInfo::TypeHash()
 {
 	if(!hastypehash) {
 		if (IsTypeDecl(cursorKind) || cursorKind == CXCursor_MacroDefinition) {

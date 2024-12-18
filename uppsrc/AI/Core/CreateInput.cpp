@@ -2525,6 +2525,50 @@ void AiTask::CreateInput_LeadSolver() {
 	#endif
 }
 
+void AiTask::CreateInput_SocialBeliefsProcess() {
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	BeliefArgs args;
+	args.Put(this->args[0]);
+	
+	if (args.fn == 0) {
+		String c = IntStr(args.pos.GetCount());
+		{
+			auto& list = input.AddSub();
+			list.Title("Description of a text");
+			for(int i = 0; i < args.user.GetCount(); i++)
+				list.Add(args.user[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List of top 10 terms that describe the text's worldview, ideology or the like");
+			results.NumberedLines();
+			results.Add("");
+		}
+		input.response_length = 1024*2;
+	}
+	else if (args.fn == 1) {
+		String c = IntStr(args.pos.GetCount());
+		{
+			auto& list = input.AddSub();
+			list.Title("List of top " + c + " terms that describe this worldview, ideology or the like");
+			list.NumberedLines();
+			for(int i = 0; i < args.pos.GetCount(); i++)
+				list.Add(args.pos[i]);
+		}
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("List of top " + c + " terms that are the opposite of previous 10 terms");
+			results.NumberedLines();
+			results.Add("");
+		}
+		input.response_length = 1024*2;
+	}
+}
+
 
 END_UPP_NAMESPACE
 

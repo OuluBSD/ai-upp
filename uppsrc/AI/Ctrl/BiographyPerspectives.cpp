@@ -317,6 +317,7 @@ int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
 	Concept& con = mp.release->concepts[cf_i];
 	return con.belief_uniq;
 	#endif
+	return 0;
 }
 
 void ConceptualFrameworkNavigator::OnValueChange() {

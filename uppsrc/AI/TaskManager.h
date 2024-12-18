@@ -59,6 +59,7 @@ struct TaskMgr {
 	void GetSocial(const SocialArgs& args, Event<String> WhenResult);
 	void GetBiographySummary(const BiographySummaryProcessArgs& args, Event<String> WhenResult);
 	void GetLeadSolver(const LeadSolverArgs& args, Event<String> WhenResult);
+	void GetPerspectiveProcess(const BeliefArgs& args, Event<String> WhenResult);
 	
 	template <class T>
 	String MakeName(T& o, const char* name);

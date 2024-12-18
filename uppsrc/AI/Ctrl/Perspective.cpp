@@ -6,23 +6,15 @@ NAMESPACE_UPP
 PerspectiveCtrl::PerspectiveCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
 	
-	hsplit.Add(beliefs);
 	hsplit.Add(info);
 	hsplit.Add(user);
 	hsplit.Add(attrs);
-	hsplit.SetPos(1500,0);
-	hsplit.SetPos(1500+8500/3,1);
-	hsplit.SetPos(1500+8500*2/3,2);
+	hsplit.SetPos(8500/3,0);
+	hsplit.SetPos(8500*2/3,1);
 	
 	CtrlLayout(info);
+	info.description.WhenAction << THISBACK(OnValueChange);
 	info.reference.WhenAction << THISBACK(OnValueChange);
-	
-	beliefs.AddColumn("Belief");
-	beliefs.WhenCursor << THISBACK(DataBelief);
-	beliefs.WhenBar = [this](Bar& b) {
-		b.Add("Add belief", THISBACK(AddBelief));
-		//b.Add("Remove belief", THISBACK(RemoveBelief));
-	};
 	
 	user.AddColumn("User input");
 	
@@ -33,35 +25,9 @@ PerspectiveCtrl::PerspectiveCtrl() {
 }
 
 void PerspectiveCtrl::Data() {
-	TODO
-	#if 0
-	for(int i = 0; i < mdb.beliefs.GetCount(); i++) {
-		Belief& b = mdb.beliefs[i];
-		
-		beliefs.Set(i, 0, b.name);
-	}
-	INHIBIT_CURSOR(beliefs);
+	Perspective& b = GetExt<Perspective>();
 	
-	beliefs.SetCount(mdb.beliefs.GetCount());
-	if (!beliefs.IsCursor() && beliefs.GetCount())
-		beliefs.SetCursor(0);
-	
-	DataBelief();
-	#endif
-}
-
-void PerspectiveCtrl::DataBelief() {
-	
-	TODO
-	#if 0
-	if (!beliefs.IsCursor())
-		return;
-	
-	int b_i = beliefs.GetCursor();
-	Belief& b = mdb.beliefs[b_i];
-	
-	
-	info.name.SetData(b.name);
+	info.description.SetData(b.description);
 	info.reference.SetData(b.reference);
 	
 	for(int i = 0; i < b.user.GetCount(); i++) {
@@ -70,12 +36,12 @@ void PerspectiveCtrl::DataBelief() {
 	user.SetCount(b.user.GetCount());
 	
 	for(int i = 0; i < b.attrs.GetCount(); i++) {
-		Belief::Attr& a = b.attrs[i];
+		Perspective::Attr& a = b.attrs[i];
 		attrs.Set(i, 0, a.positive);
 		attrs.Set(i, 1, a.negative);
 	}
 	attrs.SetCount(b.attrs.GetCount());
-	#endif
+	
 }
 
 void PerspectiveCtrl::ToolMenu(Bar& bar) {
@@ -89,7 +55,7 @@ void PerspectiveCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	PerspectiveProcess& ss = PerspectiveProcess::Get(*mp.profile, *mp.snap);
+	PerspectiveProcess& ss = PerspectiveProcess::Get(mp);
 	if (fn == 0) {
 		ss.Start();
 	}
@@ -97,81 +63,19 @@ void PerspectiveCtrl::Do(int fn) {
 		ss.Stop();
 	}
 	else if (fn == 2) {
-		
-		if (!beliefs.IsCursor())
-			return;
-		int b_i = beliefs.GetCursor();
-		TODO
-		#if 0
-		Belief& b = mdb.beliefs[b_i];
+		Perspective& b = GetExt<Perspective>();
 		String res = ReadClipboardText();
 		RemoveEmptyLines3(res);
 		b.user <<= Split(res, "\n");
-		#endif
-		DataBelief();
+		Data();
 	}
 }
 
 void PerspectiveCtrl::OnValueChange() {
+	Perspective& b = GetExt<Perspective>();
 	
-	if (!beliefs.IsCursor())
-		return;
-	
-	TODO
-	#if 0
-	int b_i = beliefs.GetCursor();
-	Belief& b = mdb.beliefs[b_i];
-	
+	b.description = info.description.GetData();
 	b.reference = info.reference.GetData();
-	#endif
-}
-
-void PerspectiveCtrl::AddBelief() {
-	
-	DatasetPtrs p = GetDataset();
-	
-	String name;
-	bool b = EditTextNotNull(
-		name,
-		t_("Add Belief"),
-		t_("Belief's name"),
-		0
-	);
-	if (!b) return;
-	
-	TODO
-	#if 0
-	String t = MakeTitle(name);
-	int artist_i = -1;
-	for(int i = 0; i < mdb.beliefs.GetCount(); i++) {
-		Belief& a = mdb.beliefs[i];
-		if (a.name == t) {
-			artist_i = i;
-			break;
-		}
-	}
-	if (artist_i >= 0) {
-		PromptOK(DeQtf(t_("Belief exist already")));
-		return;
-	}
-	
-	Belief& a = mdb.beliefs.Add();
-	a.uniq = Random64();
-	a.name = name;
-	#endif
-	Data();
-}
-
-void PerspectiveCtrl::RemoveBelief() {
-	TODO
-	#if 0
-	
-	DatasetPtrs p = GetDataset();
-	if (beliefs.IsCursor()) {
-		mdb.beliefs.Remove(beliefs.GetCursor());
-	}
-	Data();
-	#endif
 }
 
 
@@ -195,17 +99,12 @@ int PerspectiveProcess::GetPhaseCount() const {
 }
 
 void PerspectiveProcess::DoPhase() {
-	TODO
-	#if 0
-	MetaDatabase& mdb = MetaDatabase::Single();
+	ASSERT(p.perspective);
+	
 	if (phase == PHASE_GET_POSITIVE_ATTRS) {
-		if (batch >= mdb.beliefs.GetCount()){
-			NextPhase();
-			return;
-		}
-		Belief& b = mdb.beliefs[batch];
+		Perspective& b = *p.perspective;
 		if (b.attrs.GetCount()) {
-			NextBatch();
+			NextPhase();
 			return;
 		}
 		
@@ -228,19 +127,15 @@ void PerspectiveProcess::DoPhase() {
 				b.attrs.Add().positive = lines[i];
 			}
 			SetWaiting(0);
-			NextBatch();
+			NextPhase();
 			
 			WhenReady();
 		});
 	}
 	else if (phase == PHASE_GET_NEGATIVE_ATTRS) {
-		if (batch >= mdb.beliefs.GetCount()){
-			NextPhase();
-			return;
-		}
-		Belief& b = mdb.beliefs[batch];
+		Perspective& b = *p.perspective;
 		if (!b.attrs.GetCount() || b.attrs[0].negative.GetCount()) {
-			NextBatch();
+			NextPhase();
 			return;
 		}
 		
@@ -265,30 +160,24 @@ void PerspectiveProcess::DoPhase() {
 			}
 			
 			SetWaiting(0);
-			NextBatch();
+			NextPhase();
 			
 			WhenReady();
 		});
 	}
-	#endif
 }
 
-PerspectiveProcess& PerspectiveProcess::Get(Profile& e, BiographyPerspectives& snap) {
-	String t = e.node.GetPath() + ";" + snap.node.GetPath();
+PerspectiveProcess& PerspectiveProcess::Get(DatasetPtrs p) {
+	String t = p.perspective->node.GetPath() + ";" + p.snap->node.GetPath();
 	hash_t h = t.GetHashValue();
 	static ArrayMap<hash_t, PerspectiveProcess> map;
 	int i = map.Find(h);
 	if (i >= 0)
 		return map[i];
 	
-	TODO
-	#if 0
 	PerspectiveProcess& ls = map.Add(h);
-	ls.owner = e.owner;
-	ls.profile = &e;
-	ls.snap = &snap;
+	ls.p = p;
 	return ls;
-	#endif
 }
 
 

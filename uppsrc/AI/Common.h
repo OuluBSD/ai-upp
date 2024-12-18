@@ -415,6 +415,24 @@ struct LeadSolverArgs {
 	
 };
 
+//TODO: rename to PerspectiveArgs
+struct BeliefArgs {
+	int fn = 0;
+	Vector<String> user;
+	Vector<String> pos, neg;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("user", user)
+				("pos", pos)
+				("neg", neg)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+	
+};
+
 struct PkgFile : Moveable<PkgFile> {
 	int pkg = -1, file = -1;
 	

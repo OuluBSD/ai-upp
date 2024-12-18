@@ -126,7 +126,7 @@ public:
 	
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
-		(1)	.VisitMap("categories", categories)
+		(1)	("categories", categories, VISIT_MAP)
 			;
 		if (v.IsLoading()) {
 			Sort();

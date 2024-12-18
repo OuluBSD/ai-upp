@@ -101,7 +101,7 @@ void ImageBiographyCtrl::DataCategory() {
 	for(int i = 0; i < bcat.years.GetCount(); i++) {
 		const BioYear& by = bcat.years[i];
 		Date by_date(by.year, today.month, today.day);
-		int age = (by_date - owner.born) - 365;
+		int age = (by_date - owner.born) / 365;
 		int cls = age - 7;
 		String cls_str;
 		if (cls >= 0) {

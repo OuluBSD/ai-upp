@@ -50,13 +50,13 @@ struct NodeVisitor {
 			v.Visit(*this);
 	}
 	template<class T>
-	void VisitArrayItem(JsonIO& j, T& o) {
+	void VisitJsonItem(JsonIO& j, T& o) {
 		NodeVisitor v(j);
 		o.Visit(v);
 	}
 	template<class T>
 	void VisitVectorJson(const char* key, T& o) {
-		json->Array(key, o, THISBACK(VisitArrayItem<typename T::value_type>));
+		json->Array(key, o, THISBACK(VisitJsonItem<typename T::value_type>));
 	}
 	template<class T>
 	void VisitVectorHash(T& o) {
@@ -87,7 +87,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitVectorVectorItem(JsonIO& j, T& o) {
-		JsonizeArray(j, o, THISBACK(VisitArrayItem<T::value_type>));
+		JsonizeArray(j, o, THISBACK(VisitJsonItem<T::value_type>));
 	}
 	template<class T>
 	void VisitVectorVectorJson(const char* key, T& o) {
@@ -131,31 +131,49 @@ struct NodeVisitor {
 			}
 		}
 	}
-	template<class T>
-	void VisitMapItem(JsonIO& j, T& o) {
-		NodeVisitor v(j);
-		o.Visit(v);
+	template <class T>
+	void VisitFromJsonValue(T& var, const Value& x)
+	{
+		JsonIO io(x);
+		NodeVisitor vis(io);
+		var.Visit(vis);
 	}
+	template <class T>
+	Value VisitAsJsonValue(const T& var)
+	{
+		JsonIO io;
+		NodeVisitor vis(io);
+		const_cast<T&>(var).Visit(vis);
+		return io.GetResult();
+	}
+	
 	template<class T>
-	void VisitMapJson(String key, T& o) {
-		using KeyType = decltype(o.PopKey());
-		int count = o.GetCount();
-		(*json)(key + ".count", count);
-		int i = 0;
-		if (storing) {
-			for (auto it : ~o) {
-				String k = key + "[" + IntStr(i++) + "]";
-				(*json)(k + ".k", const_cast<KeyType&>(it.key));
-				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<typename T::value_type>));
+	void VisitMapJson(String key, T& map) {
+		using K = decltype(map.PopKey());
+		using V = typename T::value_type;
+		if (!storing) {
+			map.Clear();
+			const Value& va = this->json->Get()[key];
+			map.Reserve(va.GetCount());
+			for(int i = 0; i < va.GetCount(); i++) {
+				K key;
+				V value;
+				LoadFromJsonValue(key, va[i]["key"]);
+				VisitFromJsonValue(value, va[i]["value"]);
+				map.Add(key, pick(value));
 			}
 		}
-		else {
-			for (auto it : ~o) {
-				String k = key + "[" + IntStr(i++) + "]";
-				KeyType kt;
-				(*json)(k + ".k", kt);
-				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<typename T::value_type>));
+		else  {
+			Vector<Value> va;
+			va.SetCount(map.GetCount());
+			for(int i = 0; i < map.GetCount(); i++) {
+				ValueMap item;
+				JsonIO json;
+				item.Add("key", StoreAsJsonValue(map.GetKey(i)));
+				item.Add("value", VisitAsJsonValue(map[i]));
+				va[i] = item;
 			}
+			this->json->Set(ValueArray(pick(va)));
 		}
 	}
 	template<class T>
@@ -201,25 +219,32 @@ struct NodeVisitor {
 		o.Visit(v);
 	}
 	template<class T>
-	void VisitMapKVJson(String key, T& o) {
-		using KeyType = decltype(o.PopKey());
-		int count = o.GetCount();
-		(*json)(key + ".count", count);
-		int i = 0;
-		if (storing) {
-			for (auto it : ~o) {
-				String k = key + "[" + IntStr(i++) + "]";
-				json->Var(k + ".k", const_cast<KeyType&>(it.key), THISBACK(VisitMapItem<KeyType>));
-				json->Var(k + ".v", it.value, THISBACK(VisitMapItem<typename T::value_type>));
+	void VisitMapKVJson(String key, T& map) {
+		using K = decltype(map.PopKey());
+		using V = typename T::value_type;
+		if (!storing) {
+			map.Clear();
+			const Value& va = this->json->Get()[key];
+			map.Reserve(va.GetCount());
+			for(int i = 0; i < va.GetCount(); i++) {
+				K key;
+				V value;
+				VisitFromJsonValue(key, va[i]["key"]);
+				VisitFromJsonValue(value, va[i]["value"]);
+				map.Add(key, pick(value));
 			}
 		}
-		else {
-			for (auto it : ~o) {
-				String k = key + "[" + IntStr(i++) + "]";
-				KeyType kt;
-				json->Var(k + ".k", kt, THISBACK(VisitMapItem<KeyType>));
-				json->Var(k + ".v", o.Add(kt), THISBACK(VisitMapItem<typename T::value_type>));
+		else  {
+			Vector<Value> va;
+			va.SetCount(map.GetCount());
+			for(int i = 0; i < map.GetCount(); i++) {
+				ValueMap item;
+				JsonIO json;
+				item.Add("key", VisitAsJsonValue(map.GetKey(i)));
+				item.Add("value", VisitAsJsonValue(map[i]));
+				va[i] = item;
 			}
+			this->json->Set(key, ValueArray(pick(va)));
 		}
 	}
 	template<class T>

@@ -39,6 +39,9 @@ struct NodeVisitor {
 	}
 	
 	
+	
+	// VisitVector functions are for Vector<T> or Array<T> etc.
+	
 	template<class T>
 	void VisitVectorSerialize(T& o) {
 		Ver(1)(1);
@@ -75,6 +78,8 @@ struct NodeVisitor {
 	
 	
 	
+	// VisitVectorVector functions are for Vector<Vector<T>> or Array<Array<T>> etc.
+	
 	template<class T>
 	void VisitVectorVectorSerialize(T& o) {
 		Ver(1)(1);
@@ -109,6 +114,9 @@ struct NodeVisitor {
 	}
 	
 	
+	
+	// VisitMap functions are for those VectorMaps & ArrayMaps,
+	// which has standard Jsonize function for Key class (no Visit(MetaNode&))
 	
 	template<class T>
 	void VisitMapSerialize(T& o) {
@@ -173,7 +181,7 @@ struct NodeVisitor {
 				item.Add("value", VisitAsJsonValue(map[i]));
 				va[i] = item;
 			}
-			this->json->Set(ValueArray(pick(va)));
+			this->json->Set(key, ValueArray(pick(va)));
 		}
 	}
 	template<class T>
@@ -191,6 +199,9 @@ struct NodeVisitor {
 	}
 	
 	
+	
+	// VisitMapKV functions are for those VectorMaps & ArrayMaps,
+	// which has custom Key class with Visit(MetaNode&) instead of Jsonzie(JsonIO&)
 	
 	template<class T>
 	void VisitMapKVSerialize(T& o) {
@@ -260,6 +271,7 @@ struct NodeVisitor {
 		else if (mode == MODE_HASH) VisitMapKVHash<T>(o);
 		return *this;
 	}
+	
 	
 	
 	

@@ -46,5 +46,6 @@ file
 	Prompt.h,
 	Prompt.cpp,
 	Common.h,
-	Common.cpp;
+	Common.cpp,
+	src.tpp;
 

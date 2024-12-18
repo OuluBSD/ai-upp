@@ -6,7 +6,6 @@ NAMESPACE_UPP
 
 class PerspectiveCtrl : public ComponentCtrl {
 	Splitter hsplit;
-	ArrayCtrl beliefs;
 	ArrayCtrl attrs, user;
 	WithSocialBelief<Ctrl> info;
 	
@@ -15,11 +14,8 @@ public:
 	PerspectiveCtrl();
 	
 	void Data() override;
-	void DataBelief();
 	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
-	void AddBelief();
-	void RemoveBelief();
 	void OnValueChange();
 };
 
@@ -36,10 +32,6 @@ public:
 		PHASE_COUNT
 	};
 	
-	Owner* owner = 0;
-	Profile* profile = 0;
-	BiographyPerspectives* snap = 0;
-	
 public:
 	typedef PerspectiveProcess CLASSNAME;
 	PerspectiveProcess();
@@ -47,7 +39,7 @@ public:
 	int GetPhaseCount() const override;
 	void DoPhase() override;
 	
-	static PerspectiveProcess& Get(Profile& p, BiographyPerspectives& snap);
+	static PerspectiveProcess& Get(DatasetPtrs p);
 	
 	
 };

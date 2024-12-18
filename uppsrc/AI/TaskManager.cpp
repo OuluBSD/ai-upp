@@ -500,6 +500,25 @@ void TaskMgr::GetLeadSolver(const LeadSolverArgs& args, Event<String> WhenResult
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetPerspectiveProcess(const BeliefArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "belief solver"))
+		.Input(&AiTask::CreateInput_SocialBeliefsProcess)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

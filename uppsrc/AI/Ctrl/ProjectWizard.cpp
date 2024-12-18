@@ -444,13 +444,7 @@ void ProjectWizardCtrl::ToolMenu(Bar& bar) {
 }
 
 ProjectWizardView& ProjectWizardCtrl::GetView() {
-	TODO
-	#if 0
-	ProjectWizardView& view = dynamic_cast<ProjectWizardView&>(*this->view);
-	return view;
-	#endif
-	ProjectWizardView* p;
-	return *p;
+	return GetExt<ProjectWizardView>();
 }
 
 void ProjectWizardCtrl::Do(int fn) {

@@ -184,7 +184,7 @@ LAYOUT(Notepad, 400, 228)
 END_LAYOUT
 
 LAYOUT(SocialBelief, 672, 116)
-	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Belief")).HSizePosZ(4, 4).VSizePosZ(0, 4))
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Perspective (or Belief)")).HSizePosZ(4, 4).VSizePosZ(0, 4))
 	ITEM(Upp::Label, lbl_description, SetLabel(t_("Description:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 148).TopPosZ(16, 20))
 	ITEM(Upp::DocEdit, description, HSizePosZ(164, 8).TopPosZ(16, 48))
 	ITEM(Upp::Label, dv___3, SetLabel(t_("Reference:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 148).TopPosZ(68, 20))

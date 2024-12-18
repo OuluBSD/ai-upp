@@ -410,8 +410,8 @@ SocialNeedsProcess& SocialNeedsProcess::Get(Profile& e, BiographyPerspectives& s
 	ls.snap = &snap;
 	ls.analysis = &snap.analysis;
 	ls.biography = &snap.data;
-	return ls;
 	#endif
+	return ls;
 }
 
 int SocialNeedsProcess::GetPhaseCount() const {

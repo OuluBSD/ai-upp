@@ -14,15 +14,14 @@ BiographyCtrl::BiographyCtrl() {
 	
 	CtrlLayout(year);
 	
-	categories.AddColumn(t_("Required"));
 	categories.AddColumn(t_("Category"));
 	categories.AddColumn(t_("Entries"));
 	categories.AddIndex("IDX");
 	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
-		categories.Set(i, 1, GetBiographyCategoryKey(i));
+		categories.Set(i, 0, GetBiographyCategoryKey(i));
 		categories.Set(i, "IDX", i);
 	}
-	categories.ColumnWidths("1 5 1");
+	categories.ColumnWidths("5 1");
 	categories.SetSortColumn(0);
 	categories.SetCursor(0);
 	categories <<= THISBACK(DataCategory);
@@ -50,50 +49,38 @@ BiographyCtrl::BiographyCtrl() {
 }
 
 void BiographyCtrl::Data() {
-	
-	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.analysis) {
-		for(int i = 0; i < categories.GetCount(); i++) {
-			categories.Set(i, 0, 0);
-			categories.Set(i, 2, 0);
-		}
+	Biography& biography = GetExt<Biography>();
+	DatasetPtrs p = GetDataset();
+	if (!p.owner) {
+		PromptOK("error: no Owner component found");
 		return;
 	}
-	Owner& owner = *mp.owner;
-	Profile& profile = *mp.profile;
-	BiographyAnalysis& analysis = *mp.analysis;
-	Biography& biography = *mp.biography;
 	
-	Index<int> req_cats = analysis.GetRequiredCategories();
 	for(int i = 0; i < categories.GetCount(); i++) {
 		int cat_i = categories.Get(i, "IDX");
-		bool req = req_cats.Find(cat_i) >= 0;
-		categories.Set(i, 0, req ? "X" : "");
-		BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
+		BiographyCategory& bcat = biography.GetAdd(*p.owner, cat_i);
 		int c = bcat.GetFilledCount();
-		categories.Set(i, 2, c > 0 ? Value(c) : Value());
+		categories.Set(i, 1, c > 0 ? Value(c) : Value());
 	}
 	DataCategory();
 }
 
 void BiographyCtrl::DataCategory() {
-	
-	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.biography || !categories.IsCursor()) {
-		years.Clear();
+	Biography& biography = GetExt<Biography>();
+	DatasetPtrs p = GetDataset();
+	if (!p.owner) {
+		PromptOK("error: no Owner component found");
 		return;
 	}
-	Owner& owner = *mp.owner;
-	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
+	
 	int cat_i = categories.Get("IDX");
-	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
+	BiographyCategory& bcat = biography.GetAdd(*p.owner, cat_i);
 	
 	Date today = GetSysDate();
 	for(int i = 0; i < bcat.years.GetCount(); i++) {
 		const BioYear& by = bcat.years[i];
 		Date by_date(by.year, today.month, today.day);
-		int age = (by_date - owner.born) - 365;
+		int age = (by_date - p.owner->born) / 365;
 		int cls = age - 7;
 		String cls_str;
 		if (cls >= 0) {
@@ -436,6 +423,8 @@ void BiographyCtrl::ToolMenu(Bar& bar) {
 	bar.Separator();
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Separator();
+	bar.Add(t_("Import Json"), TextImgs::BlueRing(), THISBACK(ImportJson));
 }
 
 void BiographyCtrl::Do(int fn) {
@@ -462,6 +451,13 @@ void BiographyCtrl::EntryListMenu(Bar& bar) {
 	
 }
 
+void BiographyCtrl::ImportJson() {
+	DatasetPtrs p = GetDataset();
+	Biography& o = GetExt<Biography>();
+	if (LoadFromJsonFile_VisitorNodePrompt(o)) {
+		PostCallback(THISBACK(Data));
+	}
+}
 
 
 

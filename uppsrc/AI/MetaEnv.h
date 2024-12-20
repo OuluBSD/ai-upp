@@ -22,8 +22,6 @@ struct NodeVisitor {
 	NodeVisitor(Stream& s) {stream = &s; mode = MODE_STREAM; storing = s.IsStoring();}
 	NodeVisitor(hash_t) {mode = MODE_HASH; storing = true;}
 	template <class T> void DoHash(T& o) {hash.Do(o);}
-	template <> void DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
-	template <> void DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}
 	bool IsLoading() const {return !storing;}
 	bool IsStoring() const {return storing;}
 	bool IsHashing() const {return mode == MODE_HASH;}
@@ -33,7 +31,7 @@ struct NodeVisitor {
 	template<class T>
 	NodeVisitor& Visit(const char* key, T& o) {
 		if      (mode == MODE_STREAM) o.Visit(*this);
-		else if (mode == MODE_JSON) json->Var(key, o, THISBACK(VisitMapItem<T>));
+		else if (mode == MODE_JSON) json->Var(key, o, THISBACK(VisitJsonItem<T>));
 		else if (mode == MODE_HASH) o.Visit(*this);
 		return *this;
 	}
@@ -92,11 +90,11 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitVectorVectorItem(JsonIO& j, T& o) {
-		JsonizeArray(j, o, THISBACK(VisitJsonItem<T::value_type>));
+		JsonizeArray(j, o, THISBACK(VisitJsonItem<typename T::value_type>));
 	}
 	template<class T>
 	void VisitVectorVectorJson(const char* key, T& o) {
-		json->Array(key, o, THISBACK(VisitVectorVectorItem<T::value_type>));
+		json->Array(key, o, THISBACK(VisitVectorVectorItem<typename T::value_type>));
 	}
 	template<class T>
 	void VisitVectorVectorHash(T& o) {
@@ -307,6 +305,8 @@ struct NodeVisitor {
 	#define VISIT_MAP_KV 0,0,0
 };
 
+template <> inline void NodeVisitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
+template <> inline void NodeVisitor::DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}
 
 bool MakeRelativePath(const String& includes, const String& dir, String& best_ai_dir, String& best_rel_dir);
 Vector<String> FindParentUppDirectories(const String& dir);
@@ -355,12 +355,8 @@ enum {
 	METAKIND_ECS_COMPONENT_LEAD_TEMPLATE,
 	METAKIND_ECS_COMPONENT_LEAD_PUBLISHER,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY,
-	METAKIND_ECS_COMPONENT_BIOGRAPHY_ELEMENTS,
-	METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES,
 	METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS,
-	METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES,
-	METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY,
 	METAKIND_ECS_COMPONENT_IMG_LAYER,
 	METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,
 	METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER,
@@ -387,6 +383,10 @@ enum {
 	METAKIND_ECS_COMPONENT_CONSUMER,
 	METAKIND_ECS_COMPONENT_COMPOSITION,
 	METAKIND_ECS_COMPONENT_SONG_IDEA,
+	METAKIND_ECS_COMPONENT_LITIGATION,
+	METAKIND_ECS_COMPONENT_LAWYER,
+	METAKIND_ECS_COMPONENT_JUDGE,
+	METAKIND_ECS_COMPONENT_LOBBYING,
 	// TODO fill this from macros
 	
 	METAKIND_ECS_COMPONENT_END,
@@ -403,6 +403,7 @@ inline bool IsEcsComponentKind(int kind) {
 }
 
 struct MetaNode;
+class ToolAppCtrl;
 
 struct MetaNodeExt : Pte<MetaNodeExt> {
 	MetaNode& node;
@@ -422,12 +423,14 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 struct MetaExtCtrl : Ctrl {
 	Ptr<MetaNodeExt> ext;
 	Event<> WhenEditorChange;
+	Ptr<ToolAppCtrl> owner;
 	
 	virtual ~MetaExtCtrl() {}
 	virtual void Data() = 0;
 	virtual void ToolMenu(Bar& bar) = 0;
 	MetaNode& GetNode();
 	MetaNodeExt& GetExt();
+	String GetFilePath() const;
 	
 	template <class T> T& GetExt() {return dynamic_cast<T&>(*ext);}
 };

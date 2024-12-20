@@ -64,6 +64,7 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 	}
 	if (c) {
 		ext_ctrl_kind = kind;
+		c->owner = this;
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
 		PostCallback(THISBACK(DataExtCtrl));

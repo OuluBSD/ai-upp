@@ -31,7 +31,6 @@
 #include "Owner.h"
 #include "Notepad.h"
 #include "Biography.h"
-#include "BiographyElements.h"
 #include "BiographySummary.h"
 #include "ImageBiography.h"
 #include "ImageBiographySummary.h"
@@ -49,6 +48,8 @@
 #include "Platform.h"
 #include "PlatformProfile.h"
 #include "CoverImage.h"
+#include "Justice.h"
+#include "Lobbying.h"
 
 // Male
 #include "Male.h"

@@ -4,19 +4,45 @@
 NAMESPACE_UPP
 
 
-struct BiographySummary : Component
-{
+class BiographySummaryProcess : public SolverBase {
 	
-	COMPONENT_CONSTRUCTOR(BiographySummary)
+public:
+	enum {
+		PHASE_FIX_SUMMARY_HASHES,
+		PHASE_SUMMARIZE_USING_EXISTING,
+		PHASE_SUMMARIZE,
+		PHASE_SUMMARIZE_ELEMENTS_USING_EXISTING,
+		PHASE_SUMMARIZE_ELEMENTS,
+		
+		PHASE_COUNT,
+	};
 	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY;}
+	Ptr<Profile> profile;
+	Ptr<BiographyPerspectives> snap;
+	
+public:
+	typedef BiographySummaryProcess CLASSNAME;
+	BiographySummaryProcess();
+	
+	int GetPhaseCount() const override;
+	int GetBatchCount(int phase) const override;
+	int GetSubBatchCount(int phase, int batch) const override;
+	void DoPhase() override;
+	
+	static BiographySummaryProcess& Get(Profile& p, BiographyPerspectives& snap);
+	
+private:
+	
+	void FixSummaryHashes();
+	void SummarizeUsingExisting();
+	bool SummarizeBase(int fn, BiographySummaryProcessArgs& args);
+	void Summarize();
+	void SummarizeElementsUsingExisting();
+	void SummarizeElements();
+	void OnProcessSummarize(String res);
+	void OnProcessSummarizeElements(String res);
 	
 };
-
-INITIALIZE(BiographySummary)
 
 
 END_UPP_NAMESPACE

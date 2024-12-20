@@ -21,11 +21,7 @@
 #include "Notepad.h"
 #include "Biography.h"
 #include "BiographyAnalysis.h"
-#include "BiographyElements.h"
-#include "BiographySummary.h"
 #include "BiographyPerspectives.h"
-#include "ImageBiography.h"
-#include "ImageBiographySummary.h"
 
 #include "Profile.h"
 #include "Release.h"

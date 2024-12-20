@@ -92,7 +92,6 @@
 	ATTR_ITEM(AGE_TARGET, "age target", "youth-oriented", "age-inclusive") \
 	ATTR_ITEM(INDEPENDENCE, "independence", "independence", "dependence") \
 	ATTR_ITEM(COMMERCIAL_APPEAL, "commercial appeal", "mainstream success", "artistic integrity") \
-	ATTR_ITEM(CULTURAL_ELEMENTS, "cultural elements", "globalization", "cultural preservation") \
 	ATTR_ITEM(CORPORATION_RELATIONS, "corporation relations", "consumerism", "anti-capitalism") \
 	ATTR_ITEM(CELEBRITY_PERSONA, "celebrity Persona", "celebrity worship", "body positivity") \
 	ATTR_ITEM(EMOTIONAL_REALISM, "emotional realism",  "happiness", "realistic emotions") \

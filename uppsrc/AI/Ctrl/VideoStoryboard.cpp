@@ -27,6 +27,7 @@ void VideoStoryboardCtrl::Data() {
 	DatasetPtrs p = GetDataset();
 	if (!p.song)
 		return;
+	String dir = GetFileDirectory(GetFilePath());
 	
 	
 	// Text to storyboard parts
@@ -39,7 +40,7 @@ void VideoStoryboardCtrl::Data() {
 			const auto& hashes = p.song->text_storyboard_hashes[i];
 			for(int j = 0; j < 4 && j < hashes.GetCount(); j++) {
 				hash_t h = hashes[j];
-				String thumb_path = ThumbnailImageFile(h);
+				String thumb_path = ThumbnailImageFile(dir, h);
 				Image img = StreamRaster::LoadFileAny(thumb_path);
 				if (img.IsEmpty()) {
 					list.Set(i, 1+j, Value());
@@ -74,16 +75,18 @@ void VideoStoryboardCtrl::DataLine() {
 	if (list_i >= hashes.GetCount())
 		return;
 	
+	String cache_dir = ConfigFile("");;
+	String dir = GetFileDirectory(GetFilePath());
 	const auto& prompt_hashes = hashes[list_i];
 	
 	for(int i = 0; i < 4; i++) {
 		if (i < prompt_hashes.GetCount()) {
 			hash_t h = prompt_hashes[i];
-			String path = FullImageFile(h);
+			String path = FullImageFile(dir, h);
 			if (!FileExists(path)) {
-				path = CacheImageFile(h);
+				path = CacheImageFile(cache_dir, h);
 				if (!FileExists(path)) {
-					path = ThumbnailImageFile(h);
+					path = ThumbnailImageFile(dir, h);
 					if (!FileExists(path)) {
 						img[i].Clear();
 						continue;

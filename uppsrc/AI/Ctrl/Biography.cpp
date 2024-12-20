@@ -5,198 +5,69 @@ NAMESPACE_UPP
 
 BiographyCtrl::BiographyCtrl() {
 	Add(hsplit.VSizePos(0,20).HSizePos());
-	
-	hsplit.Horz() << categories << vsplit;
+	hsplit.Horz() << categories << tabs;
 	hsplit.SetPos(1500);
 	
-	vsplit.Vert() << years << year;
-	vsplit.SetPos(3333);
-	
-	CtrlLayout(year);
-	
 	categories.AddColumn(t_("Category"));
-	categories.AddColumn(t_("Entries"));
+	categories.AddColumn(t_("Texts"));
+	categories.AddColumn(t_("Images"));
 	categories.AddIndex("IDX");
 	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
 		categories.Set(i, 0, GetBiographyCategoryKey(i));
 		categories.Set(i, "IDX", i);
 	}
-	categories.ColumnWidths("5 1");
+	categories.ColumnWidths("5 1 1");
 	categories.SetSortColumn(0);
 	categories.SetCursor(0);
 	categories <<= THISBACK(DataCategory);
 	
-	
-	years.AddColumn(t_("Year"));
-	years.AddColumn(t_("Age"));
-	years.AddColumn(t_("Class"));
-	years.AddColumn(t_("Keywords"));
-	years.AddColumn(t_("Text"));
-	years.AddIndex("IDX");
-	years.ColumnWidths("1 1 1 5 10");
-	years.WhenCursor << THISBACK(DataYear);
+	Main_Ctor();
+	El_Ctor();
+	Summary_Ctor();
+	Image_Ctor();
+	ImageSummary_Ctor();
+	tabs.WhenSet = THISBACK(DataCategory);
 	
 	
-	year.keywords <<= THISBACK(OnValueChange);
-	year.native_text <<= THISBACK(OnValueChange);
-	year.text <<= THISBACK(OnValueChange);
-	
-	year.elements.AddColumn("Key");
-	year.elements.AddColumn("Value");
-	year.elements.AddColumn("Score");
-	year.elements.ColumnWidths("2 12 1");
 	
 }
 
 void BiographyCtrl::Data() {
 	Biography& biography = GetExt<Biography>();
 	DatasetPtrs p = GetDataset();
-	if (!p.owner) {
-		PromptOK("error: no Owner component found");
-		return;
-	}
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
 		int cat_i = categories.Get(i, "IDX");
 		BiographyCategory& bcat = biography.GetAdd(*p.owner, cat_i);
-		int c = bcat.GetFilledCount();
-		categories.Set(i, 1, c > 0 ? Value(c) : Value());
+		int c0 = bcat.GetFilledCount();
+		int c1 = bcat.GetFilledImagesCount();
+		categories.Set(i, 1, c0 > 0 ? Value(c0) : Value());
+		categories.Set(i, 2, c1 > 0 ? Value(c1) : Value());
 	}
+	
 	DataCategory();
 }
 
 void BiographyCtrl::DataCategory() {
-	Biography& biography = GetExt<Biography>();
-	DatasetPtrs p = GetDataset();
-	if (!p.owner) {
-		PromptOK("error: no Owner component found");
-		return;
-	}
-	
-	int cat_i = categories.Get("IDX");
-	BiographyCategory& bcat = biography.GetAdd(*p.owner, cat_i);
-	
-	Date today = GetSysDate();
-	for(int i = 0; i < bcat.years.GetCount(); i++) {
-		const BioYear& by = bcat.years[i];
-		Date by_date(by.year, today.month, today.day);
-		int age = (by_date - p.owner->born) / 365;
-		int cls = age - 7;
-		String cls_str;
-		if (cls >= 0) {
-			int round = cls / 12;
-			cls = cls % 12;
-			cls_str.Cat('A' + round);
-			cls_str += " " + IntStr(1+cls);
-		}
-		years.Set(i, 0, by.year);
-		years.Set(i, 1, age);
-		years.Set(i, 2, cls_str);
-		years.Set(i, 3, by.keywords);
-		years.Set(i, 4, by.text);
-		years.Set(i, "IDX", i);
-	}
-	INHIBIT_CURSOR(years);
-	years.SetSortColumn(0, false);
-	years.SetCount(bcat.years.GetCount());
-	if (years.GetCount() && !years.IsCursor())
-		years.SetCursor(0);
-	
-	DataYear();
+	int tab = tabs.Get();
+	if (tab == 0) Main_DataCategory();
+	if (tab == 1) El_DataCategory();
+	if (tab == 2) Summary_DataCategory();
+	if (tab == 3) Image_DataCategory();
+	if (tab == 4) ImageSummary_DataCategory();
 }
 
-void BiographyCtrl::DataYear() {
-	
-	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
-		return;
-	Owner& owner = *mp.owner;
-	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
-	int cat_i = categories.Get("IDX");
-	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
-	int year_i = years.Get("IDX");
-	if (year_i >= bcat.years.GetCount()) return;
-	BioYear& by = bcat.years[year_i];
-	
-	year.year.SetData(by.year);
-	year.keywords.SetData(by.keywords);
-	year.native_text.SetData(by.native_text);
-	year.text.SetData(by.text);
-	
-	UpdateElements();
+void BiographyCtrl::ToolMenu(Bar& bar) {
+	int tab = tabs.Get();
+	if (tab == 0) Main_ToolMenu(bar);
+	if (tab == 1) El_ToolMenu(bar);
+	if (tab == 2) Summary_ToolMenu(bar);
+	if (tab == 3) Image_ToolMenu(bar);
+	if (tab == 4) ImageSummary_ToolMenu(bar);
 }
 
-void BiographyCtrl::UpdateElements() {
+void BiographyCtrl::EntryListMenu(Bar& bar) {
 	
-	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
-		return;
-	Owner& owner = *mp.owner;
-	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
-	int cat_i = categories.Get("IDX");
-	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
-	int year_i = years.Get("IDX");
-	if (year_i >= bcat.years.GetCount()) return;
-	BioYear& by = bcat.years[year_i];
-	
-	double score_sum = 0;
-	for(int i = 0; i < by.elements.GetCount(); i++) {
-		const auto& e = by.elements[i];
-		double sc = e.GetAverageScore();
-		year.elements.Set(i, 0, Capitalize(e.key));
-		year.elements.Set(i, 1, e.value);
-		year.elements.Set(i, 2, sc);
-		score_sum += sc;
-	}
-	year.elements.SetCount(by.elements.GetCount());
-	year.elements.SetSortColumn(2,true);
-	
-	if (by.elements.GetCount() > 0) {
-		double score_av = score_sum / by.elements.GetCount();
-		year.score.SetLabel(Format("Score: %.2n", score_av));
-	}
-	else year.score.SetLabel("");
-	
-}
-
-void BiographyCtrl::UpdateElementHints() {
-	for(int i = 0; i < element_hints.GetCount(); i++) {
-		year.elements.Set(i, 0, Capitalize(element_hints.GetKey(i)));
-		year.elements.Set(i, 1, element_hints[i]);
-		year.elements.Set(i, 2, Value());
-	}
-	year.elements.SetCount(element_hints.GetCount());
-}
-
-void BiographyCtrl::OnValueChange() {
-	DatasetPtrs mp = GetDataset();
-	
-	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
-		return;
-	
-	TODO
-	#if 0
-	if (!mp.editable_biography)
-		return;
-	#endif
-	
-	Owner& owner = *mp.owner;
-	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
-	int cat_i = categories.Get("IDX");
-	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
-	int year_i = years.Get("IDX");
-	if (year_i >= bcat.years.GetCount()) return;
-	
-	BioYear& by = bcat.years[year_i];
-	by.keywords = year.keywords.GetData();
-	by.native_text = year.native_text.GetData();
-	by.text = year.text.GetData();
-	
-	years.Set(year_i, 3, by.keywords);
-	years.Set(year_i, 4, by.text);
 }
 
 void BiographyCtrl::MakeKeywords () {
@@ -225,18 +96,18 @@ void BiographyCtrl::Translate() {
 }
 
 void BiographyCtrl::GetElements() {
+	TODO
+	#if 0
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
-	TODO
-	#if 0
 	if (!mp.editable_biography)
 		return;
 	
 	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_enum = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_enum);
 	int year_i = years.Get("IDX");
@@ -297,7 +168,7 @@ void BiographyCtrl::GetElementHints() {
 		return;
 	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_enum = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_enum);
 	int year_i = years.Get("IDX");
@@ -347,7 +218,7 @@ void BiographyCtrl::GetElementScores() {
 		return;
 	Owner& owner = *mp.owner;
 	Profile& profile = *mp.profile;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_enum = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_enum);
 	int year_i = years.Get("IDX");
@@ -399,64 +270,6 @@ void BiographyCtrl::GetElementScores() {
 		PostCallback(THISBACK(UpdateElements));
 	});
 	#endif
-}
-
-void BiographyCtrl::OnTranslate(String s) {
-	year.text.SetData(s);
-	OnValueChange();
-}
-
-void BiographyCtrl::OnKeywords(String s) {
-	RemoveEmptyLines2(s);
-	Vector<String> parts = Split(s, "\n");
-	s = Join(parts, ", ");
-	year.keywords.SetData(s);
-	OnValueChange();
-}
-
-void BiographyCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Translate)).Key(K_F5);
-	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK(MakeKeywords)).Key(K_F6);
-	bar.Add(t_("Get elements"), TextImgs::BlueRing(), THISBACK(GetElements)).Key(K_F7);
-	bar.Add(t_("Get element hints"), TextImgs::BlueRing(), THISBACK(GetElementHints)).Key(K_F8);
-	bar.Add(t_("Get element scores"), TextImgs::BlueRing(), THISBACK(GetElementScores)).Key(K_F9);
-	bar.Separator();
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
-	bar.Separator();
-	bar.Add(t_("Import Json"), TextImgs::BlueRing(), THISBACK(ImportJson));
-}
-
-void BiographyCtrl::Do(int fn) {
-	TODO
-	#if 0
-	DatasetPtrs mp = GetDataset();
-	if (!mp.profile || !mp.release)
-		return;
-	if (!mp.editable_biography) {
-		PromptOK(t_("Only the latest (and editable) revision can be processed. Select the latest revision."));
-		return;
-	}
-	BiographyProcess& sdi = BiographyProcess::Get(*mp.profile, *mp.snap);
-	prog.Attach(sdi);
-	sdi.WhenRemaining << [this](String s) {PostCallback([this,s](){remaining.SetLabel(s);});};
-	if (fn == 0)
-		sdi.Start();
-	else
-		sdi.Stop();
-	#endif
-}
-
-void BiographyCtrl::EntryListMenu(Bar& bar) {
-	
-}
-
-void BiographyCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
-	Biography& o = GetExt<Biography>();
-	if (LoadFromJsonFile_VisitorNodePrompt(o)) {
-		PostCallback(THISBACK(Data));
-	}
 }
 
 

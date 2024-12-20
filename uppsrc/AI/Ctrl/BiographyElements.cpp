@@ -1,33 +1,21 @@
 #include "Ctrl.h"
+#define REF(tab, obj) auto& obj = tab.obj;
 
 NAMESPACE_UPP
 
 
-BiographyElementsCtrl::BiographyElementsCtrl() {
-	Add(hsplit.SizePos());
+void BiographyCtrl::El_Ctor() {
+	REF(el, vsplit);
+	REF(el, elements);
+	REF(el, block);
+	REF(el, sort_column);
 	
-	hsplit.Horz() << categories << vsplit;
-	hsplit.SetPos(1500, 0);
-	hsplit.SetPos(3000, 1);
+	tabs.Add(vsplit.SizePos(), "Elements");
 	
 	vsplit.Vert() << elements << block;
 	vsplit.SetPos(3333);
 	
 	CtrlLayout(block);
-	
-	categories.AddColumn(t_("Category"));
-	categories.AddColumn(t_("Entries"));
-	categories.AddIndex("IDX");
-	categories.Set(0, 0, "All");
-	categories.Set(0, "IDX", -1);
-	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
-		categories.Set(i+1, 0, GetBiographyCategoryKey(i));
-		categories.Set(i+1, "IDX", i);
-	}
-	categories.ColumnWidths("5 1");
-	categories.SetSortColumn(0);
-	categories.SetCursor(0);
-	categories <<= THISBACK(DataCategory);
 	
 	elements.AddColumn(t_("Year"));
 	elements.AddColumn(t_("Element"));
@@ -38,12 +26,12 @@ BiographyElementsCtrl::BiographyElementsCtrl() {
 	elements.AddIndex("CAT");
 	elements.AddIndex("YEAR");
 	elements.ColumnWidths("1 3 8 1 1 1 1 1 1 1 1 1 1 1");
-	elements <<= THISBACK(DataElement);
+	elements <<= THISBACK(El_DataElement);
 	sort_column = 3 + SCORE_COUNT;
 	
-	block.keywords <<= THISBACK(OnValueChange);
-	block.native_text <<= THISBACK(OnValueChange);
-	block.text <<= THISBACK(OnValueChange);
+	block.keywords <<= THISBACK(El_OnValueChange);
+	block.native_text <<= THISBACK(El_OnValueChange);
+	block.text <<= THISBACK(El_OnValueChange);
 	
 	block.elements.AddColumn("Key");
 	block.elements.AddColumn("Value");
@@ -53,27 +41,11 @@ BiographyElementsCtrl::BiographyElementsCtrl() {
 	
 }
 
-void BiographyElementsCtrl::Data() {
-	
-	DatasetPtrs mp = GetDataset();
-	if (!mp.owner || !mp.biography) {
-		for(int i = 0; i < categories.GetCount(); i++)
-			categories.Set(i, 1, 0);
-		return;
-	}
-	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
-	
-	for(int i = 0; i < categories.GetCount(); i++) {
-		int cat_i = categories.Get(i, "IDX");
-		BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
-		categories.Set(i, 1, bcat.GetFilledCount());
-	}
-	
-	DataCategory();
-}
-
-void BiographyElementsCtrl::DataCategory() {
+void BiographyCtrl::El_DataCategory() {
+	REF(el, vsplit);
+	REF(el, elements);
+	REF(el, block);
+	REF(el, sort_column);
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
@@ -81,7 +53,7 @@ void BiographyElementsCtrl::DataCategory() {
 		return;
 	}
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	int row = 0;
 	
@@ -143,17 +115,22 @@ void BiographyElementsCtrl::DataCategory() {
 	if (elements.GetCount() && !elements.IsCursor())
 		elements.SetCursor(0);
 	
-	DataElement();
+	El_DataElement();
 }
 
-void BiographyElementsCtrl::DataElement() {
+void BiographyCtrl::El_DataElement() {
+	REF(el, vsplit);
+	REF(el, elements);
+	REF(el, block);
+	REF(el, sort_column);
+	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !elements.IsCursor())
 		return;
 	int cat_i = elements.Get("CAT");
 	int year_i = elements.Get("YEAR");
 	
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	BiographyCategory& bcat = biography.GetAdd(*mp.owner, cat_i);
 	const BioYear& by = bcat.years[year_i];
 	
@@ -172,15 +149,14 @@ void BiographyElementsCtrl::DataElement() {
 	
 }
 
-void BiographyElementsCtrl::OnValueChange() {
+void BiographyCtrl::El_OnValueChange() {
 	
 }
 
-void BiographyElementsCtrl::ToolMenu(Bar& bar) {
+void BiographyCtrl::El_ToolMenu(Bar& bar) {
 	
 }
 
-
-INITIALIZER_COMPONENT_CTRL(BiographyElements, BiographyElementsCtrl)
 
 END_UPP_NAMESPACE
+#undef REF

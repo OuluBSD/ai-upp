@@ -28,33 +28,25 @@ Image RescaleToFit(const Image& img, int smaller_side_length) {
 	return scaled_img;
 }
 
-String CacheImageFile(hash_t h) {
+String CacheImageFile(String dir, hash_t h) {
 	String filename = MD5String(&h, sizeof(h)) + ".jpg";
-	String cache_dir = ConfigFile("image-cache");
+	String cache_dir = AppendFileName(dir, "image-cache");
 	String cache_path = AppendFileName(cache_dir, filename);
 	return cache_path;
 }
 
-String ThumbnailImageFile(hash_t h) {
-	#if 0
-	TODO
+String ThumbnailImageFile(String dir, hash_t h) {
 	String filename = MD5String(&h, sizeof(h)) + ".jpg";
-	String thumb_dir = AppendFileName(MetaDatabase::GetDirectory(), "images" DIR_SEPS "thumbnails");
+	String thumb_dir = AppendFileName(dir, "images" DIR_SEPS "thumbnails");
 	String thumb_path = AppendFileName(thumb_dir, filename);
 	return thumb_path;
-	#endif
-	return String();
 }
 
-String FullImageFile(hash_t h) {
-	#if 0
-	TODO
+String FullImageFile(String dir, hash_t h) {
 	String filename = MD5String(&h, sizeof(h)) + ".jpg";
-	String thumb_dir = AppendFileName(MetaDatabase::GetDirectory(), "images" DIR_SEPS "full");
+	String thumb_dir = AppendFileName(dir, "images" DIR_SEPS "full");
 	String thumb_path = AppendFileName(thumb_dir, filename);
 	return thumb_path;
-	#endif
-	return String();
 }
 
 

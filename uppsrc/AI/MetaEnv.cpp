@@ -1978,6 +1978,12 @@ String MetaNode::GetPath() const {
 
 MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
 MetaNode& MetaExtCtrl::GetNode() {return ext->node;}
+String MetaExtCtrl::GetFilePath() const {
+	if (owner)
+		return owner->GetFilePath();
+	else
+		return String();
+}
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
 {

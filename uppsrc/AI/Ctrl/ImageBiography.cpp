@@ -1,14 +1,18 @@
 #include "Ctrl.h"
+#define REF(tab, obj) auto& obj = tab.obj;
 
 NAMESPACE_UPP
 
 
-ImageBiographyCtrl::ImageBiographyCtrl() {
-	Add(hsplit.VSizePos(0,20).HSizePos());
+void BiographyCtrl::Image_Ctor() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
+	REF(image, img);
 	
-	hsplit.Horz() << categories << vsplit;
-	hsplit.SetPos(1500, 0);
-	hsplit.SetPos(3000, 1);
+	tabs.Add(vsplit.SizePos(), "Image");
 	
 	vsplit.Vert() << years << bsplit;
 	vsplit.SetPos(3333);
@@ -19,19 +23,6 @@ ImageBiographyCtrl::ImageBiographyCtrl() {
 	
 	CtrlLayout(year);
 	
-	categories.AddColumn(t_("Required"));
-	categories.AddColumn(t_("Category"));
-	categories.AddColumn(t_("Entries"));
-	categories.AddIndex("IDX");
-	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
-		categories.Set(i, 1, GetBiographyCategoryKey(i));
-		categories.Set(i, "IDX", i);
-	}
-	categories.ColumnWidths("1 5 1");
-	categories.SetSortColumn(0);
-	categories.SetCursor(0);
-	categories.WhenCursor << THISBACK(OnCategoryCursor);
-	
 	
 	years.AddColumn(t_("Year"));
 	years.AddColumn(t_("Age"));
@@ -40,7 +31,7 @@ ImageBiographyCtrl::ImageBiographyCtrl() {
 	years.AddColumn(t_(""));
 	years.AddIndex("IDX");
 	years.ColumnWidths("1 1 1 1 15");
-	years.WhenCursor << THISBACK(DataYear);
+	years.WhenCursor << THISBACK(Image_DataYear);
 	
 	
 	entries.AddColumn(t_("#"));
@@ -48,19 +39,19 @@ ImageBiographyCtrl::ImageBiographyCtrl() {
 	entries.AddColumn(t_("Keywords"));
 	entries.AddIndex("IDX");
 	entries.ColumnWidths("1 2 2");
-	entries.WhenCursor << THISBACK(DataEntry);
-	entries.WhenBar << THISBACK(EntryListMenu);
+	entries.WhenCursor << THISBACK(Image_DataEntry);
+	entries.WhenBar << THISBACK(Image_EntryListMenu);
 	
-	year.time <<= THISBACK(OnValueChange);
-	year.native_text <<= THISBACK(OnValueChange);
-	year.text <<= THISBACK(OnValueChange);
-	year.keywords <<= THISBACK(OnValueChange);
-	year.image_text <<= THISBACK(OnValueChange);
-	year.image_keywords <<= THISBACK(OnValueChange);
+	year.time <<= THISBACK(Image_OnValueChange);
+	year.native_text <<= THISBACK(Image_OnValueChange);
+	year.text <<= THISBACK(Image_OnValueChange);
+	year.keywords <<= THISBACK(Image_OnValueChange);
+	year.image_text <<= THISBACK(Image_OnValueChange);
+	year.image_keywords <<= THISBACK(Image_OnValueChange);
 	
 }
 
-void ImageBiographyCtrl::Data() {
+void BiographyCtrl::Image_Data() {
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !mp.analysis) {
@@ -71,7 +62,7 @@ void ImageBiographyCtrl::Data() {
 		return;
 	}
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	
 	Index<int> req_cats = mp.analysis->GetRequiredCategories();
 	for(int i = 0; i < categories.GetCount(); i++) {
@@ -85,7 +76,13 @@ void ImageBiographyCtrl::Data() {
 	DataCategory();
 }
 
-void ImageBiographyCtrl::DataCategory() {
+void BiographyCtrl::Image_DataCategory() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
+	
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
@@ -93,7 +90,7 @@ void ImageBiographyCtrl::DataCategory() {
 		return;
 	}
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	
@@ -123,16 +120,21 @@ void ImageBiographyCtrl::DataCategory() {
 	if (years.GetCount() && !years.IsCursor())
 		years.SetCursor(0);
 	
-	DataYear();
+	Image_DataYear();
 }
 
-void ImageBiographyCtrl::DataYear() {
-	
+void BiographyCtrl::Image_DataYear() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor())
 		return;
+	
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -153,16 +155,22 @@ void ImageBiographyCtrl::DataYear() {
 		entries.SetCursor(0);
 	
 	
-	DataEntry();
+	Image_DataEntry();
 }
 
-void ImageBiographyCtrl::DataEntry() {
+void BiographyCtrl::Image_DataEntry() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
+	
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -179,22 +187,24 @@ void ImageBiographyCtrl::DataEntry() {
 	year.image_text.SetData(bimg.image_text);
 	year.image_keywords.SetData(bimg.image_keywords);
 	
-	TODO
-	#if 0
 	if (bimg.image_hash) {
-		String path = CacheImageFile(bimg.image_hash);
+		String dir = GetFileDirectory(GetFilePath());
+		String cache_dir = ConfigFile("");
+		String path = CacheImageFile(cache_dir, bimg.image_hash);
 		if (!FileExists(path))
-			path = ThumbnailImageFile(bimg.image_hash);
+			path = ThumbnailImageFile(dir, bimg.image_hash);
 		Image i = StreamRaster::LoadFileAny(path);
-		this->img.SetImage(i);
+		this->image.img.SetImage(i);
 	}
 	else {
-		this->img.Clear();
+		this->image.img.Clear();
 	}
-	#endif
 }
 
-void ImageBiographyCtrl::OnCategoryCursor() {
+void BiographyCtrl::Image_OnCategoryCursor() {
+	REF(image, years);
+	REF(image, img);
+	
 	DataCategory();
 	for(int i = years.GetCount()-1; i >= 0; i--) {
 		int count = years.Get(i, 3);
@@ -206,7 +216,13 @@ void ImageBiographyCtrl::OnCategoryCursor() {
 	img.Clear();
 }
 
-void ImageBiographyCtrl::OnValueChange() {
+void BiographyCtrl::Image_OnValueChange() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
+	
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
@@ -216,7 +232,7 @@ void ImageBiographyCtrl::OnValueChange() {
 	if (!mp.editable_biography)
 		return;
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -239,7 +255,7 @@ void ImageBiographyCtrl::OnValueChange() {
 	#endif
 }
 
-void ImageBiographyCtrl::MakeKeywords(int fn) {
+void BiographyCtrl::Image_MakeKeywords(int fn) {
 	TODO
 	#if 0
 	TaskMgr& m = AiTaskManager();
@@ -252,20 +268,23 @@ void ImageBiographyCtrl::MakeKeywords(int fn) {
 	#endif
 }
 
-void ImageBiographyCtrl::Translate() {
+void BiographyCtrl::Image_Translate() {
+	REF(image, year);
 	TaskMgr& m = AiTaskManager();
 	
 	String src = year.native_text.GetData();
 	
-	m.Translate("FI-FI", src, "EN-US", [this](String s) {PostCallback(THISBACK1(OnTranslate, s));});
+	m.Translate("FI-FI", src, "EN-US", [this](String s) {PostCallback(THISBACK1(Image_OnTranslate, s));});
 }
 
-void ImageBiographyCtrl::OnTranslate(String s) {
+void BiographyCtrl::Image_OnTranslate(String s) {
+	REF(image, year);
 	year.text.SetData(s);
-	OnValueChange();
+	Image_OnValueChange();
 }
 
-void ImageBiographyCtrl::OnKeywords(int fn, String s) {
+void BiographyCtrl::Image_OnKeywords(int fn, String s) {
+	REF(image, year);
 	RemoveEmptyLines2(s);
 	Vector<String> parts = Split(s, "\n");
 	s = Join(parts, ", ");
@@ -273,29 +292,29 @@ void ImageBiographyCtrl::OnKeywords(int fn, String s) {
 		year.keywords.SetData(s);
 	else
 		year.image_keywords.SetData(s);
-	OnValueChange();
+	Image_OnValueChange();
 }
 
-void ImageBiographyCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+void BiographyCtrl::Image_ToolMenu(Bar& bar) {
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Image_Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Image_Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Translate));
-	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK1(MakeKeywords, 0));
-	bar.Add(t_("Make keywords (image)"), TextImgs::BlueRing(), THISBACK1(MakeKeywords, 1));
+	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Image_Translate));
+	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 0));
+	bar.Add(t_("Make keywords (image)"), TextImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 1));
 	bar.Separator();
-	bar.Add(t_("Paste Image path"), TextImgs::BlueRing(), THISBACK(PasteImagePath)).Key(K_CTRL_V);
+	bar.Add(t_("Paste Image path"), TextImgs::BlueRing(), THISBACK(Image_PasteImagePath)).Key(K_CTRL_V);
 	bar.Separator();
-	bar.Add(t_("Analyse image"), TextImgs::RedRing(), THISBACK(AnalyseImage)).Key(K_F7);
+	bar.Add(t_("Analyse image"), TextImgs::RedRing(), THISBACK(Image_AnalyseImage)).Key(K_F7);
 }
 
-void ImageBiographyCtrl::EntryListMenu(Bar& bar) {
-	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_T);
-	bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
+void BiographyCtrl::Image_EntryListMenu(Bar& bar) {
+	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(Image_AddEntry)).Key(K_CTRL_T);
+	bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(Image_RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
 	
 }
 
-void ImageBiographyCtrl::Do(int fn) {
+void BiographyCtrl::Image_Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
@@ -316,13 +335,18 @@ void ImageBiographyCtrl::Do(int fn) {
 	#endif
 }
 
-void ImageBiographyCtrl::AddEntry() {
+void BiographyCtrl::Image_AddEntry() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -330,18 +354,23 @@ void ImageBiographyCtrl::AddEntry() {
 	BioYear& by = bcat.years[year_i];
 	
 	by.images.Add();
-	DataYear();
+	Image_DataYear();
 	if (entries.GetCount())
 		entries.SetCursor(entries.GetCount()-1);
 }
 
-void ImageBiographyCtrl::RemoveEntry() {
+void BiographyCtrl::Image_RemoveEntry() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -350,13 +379,13 @@ void ImageBiographyCtrl::RemoveEntry() {
 	int entry_i = entries.Get("IDX");
 	if (entry_i >= 0 && entry_i < by.images.GetCount())
 		by.images.Remove(entry_i);
-	DataYear();
+	Image_DataYear();
 }
 
-void ImageBiographyCtrl::PasteImagePath() {
+void BiographyCtrl::Image_PasteImagePath() {
 	Image img = ReadClipboardImage();
 	if (!img.IsEmpty()) {
-		SetCurrentImage(img);
+		Image_SetCurrentImage(img);
 	}
 	else {
 		String path = ReadClipboardText();
@@ -364,20 +393,25 @@ void ImageBiographyCtrl::PasteImagePath() {
 			path = path.Mid(7);
 			img = StreamRaster::LoadFileAny(path);
 			if (!img.IsEmpty())
-				SetCurrentImage(img);
+				Image_SetCurrentImage(img);
 		}
 	}
 }
 
-void ImageBiographyCtrl::SetCurrentImage(Image img) {
-	this->img.SetImage(img);
+void BiographyCtrl::Image_SetCurrentImage(Image img) {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	
+	this->image.img.SetImage(img);
 	
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -417,13 +451,18 @@ void ImageBiographyCtrl::SetCurrentImage(Image img) {
 	#endif
 }
 
-void ImageBiographyCtrl::AnalyseImage() {
+void BiographyCtrl::Image_AnalyseImage() {
+	REF(image, vsplit);
+	REF(image, bsplit);
+	REF(image, years);
+	REF(image, year);
+	REF(image, entries);
 	DatasetPtrs mp = GetDataset();
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	
 	Owner& owner = *mp.owner;
-	Biography& biography = *mp.biography;
+	Biography& biography = GetExt<Biography>();
 	int cat_i = categories.Get("IDX");
 	BiographyCategory& bcat = biography.GetAdd(owner, cat_i);
 	int year_i = years.Get("IDX");
@@ -556,127 +595,5 @@ void ImageViewerCtrl::RightDown(Point p, dword keyflags) {
 
 
 
-
-
-
-
-ImageBiographyProcess::ImageBiographyProcess() {
-	
-}
-
-int ImageBiographyProcess::GetPhaseCount() const {
-	return PHASE_COUNT;
-}
-
-int ImageBiographyProcess::GetBatchCount(int phase) const {
-	switch (phase) {
-		case PHASE_ANALYZE_IMAGE_BIOGRAPHY:			return max(1, vision_tasks.GetCount());
-		default: return 1;
-	}
-}
-
-int ImageBiographyProcess::GetSubBatchCount(int phase, int batch) const {
-	return 1;
-}
-
-void ImageBiographyProcess::DoPhase() {
-	switch (phase) {
-		case PHASE_ANALYZE_IMAGE_BIOGRAPHY:			ProcessAnalyzeImageBiography(); return;
-		default: return;
-	}
-}
-
-ImageBiographyProcess& ImageBiographyProcess::Get(Profile& p, BiographyPerspectives& snap) {
-	static ArrayMap<String, ImageBiographyProcess> arr;
-	
-	TODO
-	#if 0
-	String key = "PROFILE(" + p.name + "), REVISION(" + IntStr(snap.revision) + ")";
-	ImageBiographyProcess& ts = arr.GetAdd(key);
-	ts.owner = p.owner;
-	ts.profile = &p;
-	ts.snap = &snap;
-	ASSERT(ts.owner);
-	return ts;
-	#endif
-	return Single<ImageBiographyProcess>();
-}
-
-void ImageBiographyProcess::TraverseVisionTasks() {
-	TODO
-	#if 0
-	Biography& biography = snap->data;
-	for(int i = 0; i < BIOCATEGORY_COUNT; i++) {
-		BiographyCategory& bcat = biography.GetAdd(*owner, i);
-		for(int j = 0; j < bcat.years.GetCount(); j++) {
-			BioYear& by = bcat.years[j];
-			
-			for(int k = 0; k < by.images.GetCount(); k++) {
-				BioImage& bimg = by.images[k];
-				if (phase == PHASE_ANALYZE_IMAGE_BIOGRAPHY && bimg.image_text.IsEmpty() && bimg.image_hash != 0) {
-					String path = CacheImageFile(bimg.image_hash);
-					if (!FileExists(path))
-						path = ThumbnailImageFile(bimg.image_hash);
-					String jpeg = LoadFile(path);
-					if (!jpeg.IsEmpty()) {
-						VisionTask& t = vision_tasks.Add();
-						t.bimg = &bimg;
-						t.jpeg = jpeg;
-					}
-				}
-			}
-		}
-	}
-	#endif
-}
-
-void ImageBiographyProcess::ProcessAnalyzeImageBiography() {
-	TODO
-	#if 0
-	
-	if (batch == 0) {
-		vision_tasks.Clear();
-		TraverseVisionTasks();
-	}
-	
-	if (batch >= vision_tasks.GetCount()) {
-		NextPhase();
-		return;
-	}
-	
-	const VisionTask& t = vision_tasks[batch];
-	
-	VisionArgs args;
-	args.fn = 0;
-	
-	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
-	m.GetVision(t.jpeg, args, THISBACK(OnProcessAnalyzeImageBiography));
-	
-	#endif
-}
-
-void ImageBiographyProcess::OnProcessAnalyzeImageBiography(String res) {
-	const VisionTask& t = vision_tasks[batch];
-	
-	String& s = t.bimg->image_text;
-	s = TrimBoth(res);
-	if (s.Left(1) == "\"") s = s.Mid(1);
-	if (s.Right(1) == "\"") s = s.Left(s.GetCount()-1);
-	
-	TODO
-	#if 0
-	NextBatch();
-	SetWaiting(0);
-	#endif
-}
-
-
-
-
-
-
-
-INITIALIZER_COMPONENT_CTRL(ImageBiography, ImageBiographyCtrl)
-
 END_UPP_NAMESPACE
+#undef REF

@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 struct Script;
+class ToolAppCtrl;
 
 class ComponentCtrl : public MetaExtCtrl {
 	

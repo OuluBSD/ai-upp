@@ -20,11 +20,7 @@
 	DATASET_ITEM(Notepad,				notepad,			METAKIND_ECS_COMPONENT_NOTEPAD,						CATEGORY_PRIVATE, "Notepad") \
 	DATASET_ITEM(Biography,				biography,			METAKIND_ECS_COMPONENT_BIOGRAPHY,					CATEGORY_PRIVATE, "Biography") \
 	DATASET_ITEM(BiographyAnalysis,		analysis,			METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS,			CATEGORY_PRIVATE, "Biography Analysis") \
-	DATASET_ITEM(BiographyElements,		biography_elem,		METAKIND_ECS_COMPONENT_BIOGRAPHY_ELEMENTS,			CATEGORY_PRIVATE, "Biography Elements") \
-	DATASET_ITEM(BiographySummary,		biography_sum,		METAKIND_ECS_COMPONENT_BIOGRAPHY_SUMMARY,			CATEGORY_PRIVATE, "Biography Summary") \
 	DATASET_ITEM(BiographyPerspectives,	snap,				METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES,		CATEGORY_PRIVATE, "Biography Perspectives") \
-	DATASET_ITEM(ImageBiography,		biography_img,		METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES,			CATEGORY_PRIVATE, "Biography Images") \
-	DATASET_ITEM(ImageBiographySummary,	biography_imgsum,	METAKIND_ECS_COMPONENT_BIOGRAPHY_IMAGES_SUMMARY,	CATEGORY_PRIVATE, "Biography Images Summary") \
 	DATASET_ITEM(Profile,				profile,			METAKIND_ECS_COMPONENT_PROFILE,						CATEGORY_PUBLIC, "Profile") \
 	DATASET_ITEM(Release,				release,			METAKIND_ECS_COMPONENT_RELEASE,						CATEGORY_PUBLIC, "Release") \
 	DATASET_ITEM(Perspective,			perspective,		METAKIND_ECS_COMPONENT_PERSPECTIVE,					CATEGORY_PUBLIC, "Perspective") \
@@ -37,6 +33,10 @@
 	DATASET_ITEM(SocialNeeds,			social_needs,		METAKIND_ECS_COMPONENT_SOCIAL_NEEDS,				CATEGORY_PUBLIC, "Needs") \
 	DATASET_ITEM(Platform,				platform,			METAKIND_ECS_COMPONENT_PLATFORM,					CATEGORY_PUBLIC, "Platform") \
 	DATASET_ITEM(PlatformProfile,		platform_prof,		METAKIND_ECS_COMPONENT_PLATFORM_PROFILE,			CATEGORY_PUBLIC, "Platform Profile") \
+	DATASET_ITEM(Litigation,			litigation,			METAKIND_ECS_COMPONENT_LITIGATION,					CATEGORY_PUBLIC, "Litigation") \
+	DATASET_ITEM(Lawyer,				lawyer,				METAKIND_ECS_COMPONENT_LAWYER,						CATEGORY_PUBLIC, "Lawyer") \
+	DATASET_ITEM(Judge,					judge,				METAKIND_ECS_COMPONENT_JUDGE,						CATEGORY_PUBLIC, "Judge") \
+	DATASET_ITEM(Lobbying,				lobbying,			METAKIND_ECS_COMPONENT_LOBBYING,					CATEGORY_PUBLIC, "Lobbying") \
 	\
 	DATASET_ITEM(Provider,			provider,		METAKIND_ECS_COMPONENT_PROVIDER,			CATEGORY_MALE, "Provider") \
 	DATASET_ITEM(DecisionMaker,		decision_maker,	METAKIND_ECS_COMPONENT_DECISION_MAKER,		CATEGORY_MALE, "Decision Maker") \

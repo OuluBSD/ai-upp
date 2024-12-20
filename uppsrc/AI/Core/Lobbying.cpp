@@ -1,0 +1,10 @@
+#include "Core.h"
+
+
+NAMESPACE_UPP
+
+#define DATASET_ITEM(a,b,c,d,e) COMPONENT_STUB_IMPL(a, c)
+	DATASET_ITEM(Lobbying,		lobbying,		METAKIND_ECS_COMPONENT_LOBBYING,			CATEGORY_PUBLIC, "Lobbying")
+#undef DATASET_ITEM
+
+END_UPP_NAMESPACE

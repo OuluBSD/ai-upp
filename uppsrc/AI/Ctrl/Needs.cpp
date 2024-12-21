@@ -678,7 +678,7 @@ void SocialNeedsProcess::ProcessPlatformReactions() {
 	}
 	
 	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.GetSocial(args, THISBACK(OnProcessPlatformReactions));
 	#endif
 }
@@ -735,7 +735,7 @@ void SocialNeedsProcess::ProcessPlatformDescriptions() {
 	args.parts.Add("", merged_reactions);
 	
 	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.GetSocial(args, THISBACK(OnProcessPlatformDescriptions));
 	#endif
 }
@@ -799,7 +799,7 @@ void SocialNeedsProcess::ProcessPlatformDescriptionRefinements() {
 	args.len = GetPlatformDescriptionLength(len_i);
 	
 	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.GetSocial(args, THISBACK(OnProcessPlatformDescriptionRefinements));
 	#endif
 }
@@ -863,7 +863,7 @@ void SocialNeedsProcess::ProcessPlatformDescriptionTranslated() {
 	const String& merged_reactions = plat_anal.packed_reactions[0];
 	
 	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.Translate("EN-EN", source, dst_ln, THISBACK(OnProcessPlatformDescriptionTranslated), slightly_dialect);
 	#endif
 }

@@ -96,7 +96,7 @@ void ImageBiographyProcess::ProcessAnalyzeImageBiography() {
 	args.fn = 0;
 	
 	SetWaiting(1);
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.GetVision(t.jpeg, args, THISBACK(OnProcessAnalyzeImageBiography));
 	
 	#endif

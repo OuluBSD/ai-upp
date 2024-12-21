@@ -22,7 +22,7 @@ public:
 	void Do(int fn);
 	void SetSorting(int col);
 	void OnPhotoPrompt();
-	
+	void ImportJson();
 };
 
 INITIALIZE(PlatformCtrl)

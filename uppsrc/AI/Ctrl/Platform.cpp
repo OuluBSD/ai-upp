@@ -49,8 +49,7 @@ PlatformCtrl::PlatformCtrl() {
 	platforms.AddColumn(t_("Sex"));
 	platforms.AddIndex("IDX");
 	platforms.ColumnWidths("2 1 1 1 1");
-	TODO
-	#if 0
+	
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		const Platform& plat = GetPlatforms()[i];
 		platforms.Set(i, 0, plat.name);
@@ -61,7 +60,6 @@ PlatformCtrl::PlatformCtrl() {
 	platforms.SetCursor(0);
 	platforms.WhenCursor << THISBACK(DataPlatform);
 	platforms.WhenBar << THISBACK(PlatformMenu);
-	#endif
 	
 	plat.attrs.AddColumn(t_("Attribute"));
 	plat.scores.AddColumn(t_("Score group"));
@@ -71,19 +69,18 @@ PlatformCtrl::PlatformCtrl() {
 }
 
 void PlatformCtrl::Data() {
-	TODO
-	#if 0
+	ProfilePlatforms& data = GetExt<ProfilePlatforms>();
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
-		const Platform& p = GetPlatforms()[i];
-		const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(p);
+		const Platform& p = GetPlatforms()[i]; // TODO move to file
+		const PlatformAnalysis& pa = data.platforms.GetAdd(p.name);
 		platforms.Set(i, 0, p.name);
 		platforms.Set(i, "IDX", i);
-		platforms.Set(i, 1, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_FAMILY_CHOSEN_BY_ME));
-		platforms.Set(i, 2, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_REPRESENTATIVE_FOR_RIGHTS_OF_SOMEONE));
-		platforms.Set(i, 3, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_MILTARY_RANK_RELATED));
+		platforms.Set(i, 1, pa.GetRoleScoreSumWeighted(data, SOCIETYROLE_SCORE_FAMILY_CHOSEN_BY_ME));
+		platforms.Set(i, 2, pa.GetRoleScoreSumWeighted(data, SOCIETYROLE_SCORE_REPRESENTATIVE_FOR_RIGHTS_OF_SOMEONE));
+		platforms.Set(i, 3, pa.GetRoleScoreSumWeighted(data, SOCIETYROLE_SCORE_MILTARY_RANK_RELATED));
 		
-		double female = pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_FEMALE);
-		double male = pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_MALE);
+		double female = pa.GetRoleScoreSumWeighted(data, SOCIETYROLE_SCORE_FEMALE);
+		double male = pa.GetRoleScoreSumWeighted(data, SOCIETYROLE_SCORE_MALE);
 		double sum = female + male;
 		if (sum == 0)
 			platforms.Set(i, 4, 5);
@@ -96,7 +93,6 @@ void PlatformCtrl::Data() {
 		platforms.SetCursor(0);
 	
 	DataPlatform();
-	#endif
 }
 
 void PlatformCtrl::DataPlatform() {
@@ -108,11 +104,10 @@ void PlatformCtrl::DataPlatform() {
 		return;
 	}
 	
-	TODO
-	#if 0
+	ProfilePlatforms& data = GetExt<ProfilePlatforms>();
 	int plat_i = platforms.Get("IDX");
-	const Platform& p = GetPlatforms()[plat_i];
-	const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(p);
+	const Platform& p = GetPlatforms()[plat_i];// TODO move to file
+	const PlatformAnalysis& pa = data.platforms.GetAdd(p.name);
 	
 	if (p.name && p.name[0])
 		plat.name.SetData(p.name);
@@ -131,7 +126,7 @@ void PlatformCtrl::DataPlatform() {
 	
 	for(int i = 0; i < SOCIETYROLE_SCORE_COUNT; i++) {
 		plat.scores.Set(i, 0, GetSocietyRoleScoreKey(i));
-		plat.scores.Set(i, 1, pa.GetRoleScoreSum(i));
+		plat.scores.Set(i, 1, pa.GetRoleScoreSum(data, i));
 	}
 	plat.scores.SetCount(SOCIETYROLE_SCORE_COUNT);
 	plat.scores.SetSortColumn(1, true);
@@ -171,7 +166,6 @@ void PlatformCtrl::DataPlatform() {
 	epk_photo_prompts.SetCount(row);
 	if (row && !epk_photo_prompts.IsCursor())
 		epk_photo_prompts.SetCursor(0);
-	#endif
 }
 
 void PlatformCtrl::ToolMenu(Bar& bar) {
@@ -179,6 +173,8 @@ void PlatformCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
 	bar.Add(t_("Fetch text prompt image"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_CTRL_Q);
+	bar.Separator();
+	bar.Add(t_("Import Json"), TextImgs::BlueRing(), THISBACK(ImportJson));
 	
 }
 
@@ -186,9 +182,8 @@ void PlatformCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	TODO
-	#if 0
-	PlatformProcess& ss = PlatformProcess::Get(*mp.profile, *mp.snap);
+	
+	PlatformProcess& ss = PlatformProcess::Get(mp);
 	if (fn == 0) {
 		ss.Start();
 	}
@@ -198,7 +193,6 @@ void PlatformCtrl::Do(int fn) {
 	else if (fn == 2) {
 		PromptOK("TODO");
 	}
-	#endif
 }
 
 void PlatformCtrl::PlatformMenu(Bar& bar) {
@@ -219,9 +213,15 @@ void PlatformCtrl::OnPhotoPrompt() {
 	
 }
 
+void PlatformCtrl::ImportJson() {
+	DatasetPtrs p = GetDataset();
+	ProfilePlatforms& data = GetExt<ProfilePlatforms>();
+	if (LoadFromJsonFile_VisitorNodePrompt(data)) {
+		PostCallback(THISBACK(Data));
+	}
+}
 
 
-
-INITIALIZER_COMPONENT_CTRL(Platform, PlatformCtrl)
+INITIALIZER_COMPONENT_CTRL(ProfilePlatforms, PlatformCtrl)
 
 END_UPP_NAMESPACE

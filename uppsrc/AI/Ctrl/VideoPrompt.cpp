@@ -161,7 +161,7 @@ void VideoSolver::DoPhase() {
 		args.text = script.GetText(appmode);
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			comp->storyboard_parts.Clear();
 			
@@ -212,7 +212,7 @@ void VideoSolver::DoPhase() {
 		args.parts.Add(key);
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			String key = comp->storyboard_parts.GetKey(batch);
 			auto& prompts = comp->storyboard_prompts.GetAdd(key);
@@ -256,7 +256,7 @@ void VideoSolver::DoPhase() {
 		args.text = Join(tmp_lines, "\n");
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			comp->text_storyboard_parts.Clear();
 			Vector<String> lines = Split(res, "\n");
@@ -318,7 +318,7 @@ void VideoSolver::DoPhase() {
 		
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			res = TrimBoth(res);
 			RemoveEmptyLines3(res);
@@ -366,7 +366,7 @@ void VideoSolver::DoPhase() {
 		
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			res = TrimBoth(res);
 			RemoveQuotes(res);
@@ -416,7 +416,7 @@ void VideoSolver::DoPhase() {
 		
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.CreateImage(prompt, arg_image_count, [this](Array<Image>& imgs) {
 			auto& hashes = comp->text_storyboard_hashes;
 			Vector<int64>& prompt_hashes = hashes[batch];
@@ -482,7 +482,7 @@ void VideoSolver::DoPhase() {
 		
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			res = TrimBoth(res);
 			RemoveQuotes(res);
@@ -513,7 +513,7 @@ void VideoSolver::DoPhase() {
 		
 		
 		SetWaiting(1);
-		TaskMgr& m = TaskMgr::Single();
+		AiTaskManager();
 		m.GetVideoSolver(args, [this](String res) {
 			res = TrimBoth(res);
 			RemoveQuotes(res);

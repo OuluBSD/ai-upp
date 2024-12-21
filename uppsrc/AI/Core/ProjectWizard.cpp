@@ -643,7 +643,7 @@ void ProjectWizardView::ReadNodeTree(const FileNode* n) {
 	//PromptOK("fix args"); return; // add info about the function
 	
 	
-	TaskMgr& m = TaskMgr::Single();
+	AiTaskManager();
 	m.GetGenericPrompt(args, [this, path](String res) {
 		
 		WhenCallbackReady();

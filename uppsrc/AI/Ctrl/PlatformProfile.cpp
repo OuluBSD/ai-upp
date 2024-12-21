@@ -6,8 +6,6 @@ NAMESPACE_UPP
 PlatformProfileCtrl::PlatformProfileCtrl() {
 	Add(tabs.VSizePos(0,20).HSizePos());
 	
-	TODO
-	#if 0
 	// Platform tab
 	{
 		tabs.Add(p.hsplit.SizePos(), t_("Platforms"));
@@ -74,7 +72,6 @@ PlatformProfileCtrl::PlatformProfileCtrl() {
 		for(int i = 0; i < 4; i++)
 			c.bsplit << c.epk_photo[i];
 	}
-	#endif
 	
 	tabs.WhenSet << THISBACK(Data);
 }
@@ -89,20 +86,24 @@ void PlatformProfileCtrl::Data() {
 }
 
 void PlatformProfileCtrl::DataPlatforms() {
-	TODO
-	#if 0
+	DatasetPtrs ptrs = GetDataset();
+	if (!ptrs.platform) {
+		PromptOK("No ProfilePlatform component found");
+		return;
+	}
+	ProfilePlatforms& plat = *ptrs.platform;
 	p.platforms.Clear();
 	for(int i = 0; i < PLATFORM_COUNT; i++) {
 		const Platform& pl = GetPlatforms()[i];
-		const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(pl);
+		const PlatformAnalysis& pa = ptrs.platform->GetPlatform(i);
 		p.platforms.Set(i, 0, pl.name);
 		p.platforms.Set(i, "IDX", i);
-		p.platforms.Set(i, 1, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_FAMILY_CHOSEN_BY_ME));
-		p.platforms.Set(i, 2, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_REPRESENTATIVE_FOR_RIGHTS_OF_SOMEONE));
-		p.platforms.Set(i, 3, pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_MILTARY_RANK_RELATED));
+		p.platforms.Set(i, 1, pa.GetRoleScoreSumWeighted(plat, SOCIETYROLE_SCORE_FAMILY_CHOSEN_BY_ME));
+		p.platforms.Set(i, 2, pa.GetRoleScoreSumWeighted(plat, SOCIETYROLE_SCORE_REPRESENTATIVE_FOR_RIGHTS_OF_SOMEONE));
+		p.platforms.Set(i, 3, pa.GetRoleScoreSumWeighted(plat, SOCIETYROLE_SCORE_MILTARY_RANK_RELATED));
 		
-		double female = pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_FEMALE);
-		double male = pa.GetRoleScoreSumWeighted(SOCIETYROLE_SCORE_MALE);
+		double female = pa.GetRoleScoreSumWeighted(plat, SOCIETYROLE_SCORE_FEMALE);
+		double male = pa.GetRoleScoreSumWeighted(plat, SOCIETYROLE_SCORE_MALE);
 		double sum = female + male;
 		if (sum == 0)
 			p.platforms.Set(i, 4, 5);
@@ -115,7 +116,6 @@ void PlatformProfileCtrl::DataPlatforms() {
 		p.platforms.SetCursor(0);
 	
 	DataPlatform();
-	#endif
 }
 
 void PlatformProfileCtrl::DataPlatform() {
@@ -123,12 +123,11 @@ void PlatformProfileCtrl::DataPlatform() {
 	if (!p.platforms.IsCursor() || !mp.profile || !mp.analysis) {
 		return;
 	}
-	TODO
-	#if 0
+	
 	BiographyAnalysis& analysis = *mp.analysis;
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];
-	const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(pl);
+	const PlatformAnalysis& pa = mp.platform->GetPlatform(plat_i);
 	if (plat_i >= analysis.platforms.GetCount()) return;
 	const PlatformBiographyAnalysis& pba = analysis.platforms[plat_i];
 	
@@ -154,11 +153,14 @@ void PlatformProfileCtrl::DataPlatform() {
 		
 		OnPhotoPrompt();
 	}
-	#endif
 }
 
 void PlatformProfileCtrl::DataClusters() {
 	DatasetPtrs mp = GetDataset();
+	if (!mp.analysis) {
+		PromptOK("BiographyAnalysis not found");
+		return;
+	}
 	BiographyAnalysis& analysis = *mp.analysis;
 	
 	analysis.RealizePromptImageTypes();
@@ -180,6 +182,10 @@ void PlatformProfileCtrl::DataClusters() {
 
 void PlatformProfileCtrl::DataImageType() {
 	DatasetPtrs mp = GetDataset();
+	if (!mp.analysis) {
+		PromptOK("BiographyAnalysis not found");
+		return;
+	}
 	BiographyAnalysis& analysis = *mp.analysis;
 	
 	if (!c.image_types.IsCursor())
@@ -207,8 +213,6 @@ void PlatformProfileCtrl::ToolMenu(Bar& bar) {
 }
 
 void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
-	TODO
-	#if 0
 	bar.Add("Set as groups Top 1 prompt", [this]() {
 		if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
@@ -217,7 +221,7 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		BiographyAnalysis& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
-		const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(pl);
+		const PlatformAnalysis& pa = mp.platform->GetPlatform(plat_i);
 		if (plat_i >= analysis.platforms.GetCount()) return;
 		PlatformBiographyAnalysis& pba = analysis.platforms[plat_i];
 		
@@ -239,7 +243,7 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		BiographyAnalysis& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
-		const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(pl);
+		const PlatformAnalysis& pa = mp.platform->GetPlatform(plat_i);
 		if (plat_i >= analysis.platforms.GetCount()) return;
 		PlatformBiographyAnalysis& pba = analysis.platforms[plat_i];
 		
@@ -256,7 +260,6 @@ void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
 		);
 		PostCallback(THISBACK(DataPlatform));
 	});
-	#endif
 }
 
 void PlatformProfileCtrl::PlatformMenu(Bar& bar) {
@@ -267,16 +270,14 @@ void PlatformProfileCtrl::Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	TODO
-	#if 0
-	PlatformProfileProcess& ss = PlatformProfileProcess::Get(*mp.profile, *mp.snap);
+	String dir = GetFileDirectory(GetFilePath());
+	PlatformProfileProcess& ss = PlatformProfileProcess::Get(mp, dir);
 	if (fn == 0) {
 		ss.Start();
 	}
 	else if (fn == 1) {
 		ss.Stop();
 	}
-	#endif
 }
 
 void PlatformProfileCtrl::SetSorting(int col) {
@@ -287,13 +288,13 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	if (!p.platforms.IsCursor() || !p.epk_photo_prompts.IsCursor())
 		return;
 	
-	TODO
-	#if 0
 	DatasetPtrs mp = GetDataset();
+	String dir = GetFileDirectory(GetFilePath());
+	
 	BiographyAnalysis& analysis = *mp.analysis;
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];
-	const PlatformAnalysis& pa = MetaDatabase::Single().GetAdd(pl);
+	const PlatformAnalysis& pa = mp.platform->GetPlatform(plat_i);
 	if (plat_i >= analysis.platforms.GetCount()) return;
 	const PlatformBiographyAnalysis& pba = analysis.platforms[plat_i];
 	
@@ -303,7 +304,7 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	const PhotoPrompt& pp = pap.prompts[j];
 	
 	for(int i = 0; i < 4; i++) {
-		String path = pp.GetFilePath(i);
+		String path = pp.GetFilePath(dir, i);
 		if (FileExists(path)) {
 			Image img = StreamRaster::LoadFileAny(path);
 			p.epk_photo[i].SetImage(img);
@@ -312,7 +313,6 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 			p.epk_photo[i].Clear();
 		}
 	}
-	#endif
 }
 
 

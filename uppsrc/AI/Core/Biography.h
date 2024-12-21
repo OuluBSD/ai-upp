@@ -171,7 +171,7 @@ struct PhotoPrompt : Moveable<PhotoPrompt> {
 			;
 	}
 	
-	String GetFilePath(int i) const;
+	String GetFilePath(String dir, int i) const;
 	
 };
 

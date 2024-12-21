@@ -241,8 +241,9 @@ void BiographyAnalysis::Realize() {
 
 Index<int> BiographyAnalysis::GetRequiredRoles() const {
 	Index<int> ret;
-	TODO
-	#if 0
+	DatasetPtrs p = GetDataset();
+	if (!p.platform)
+		return ret;
 	for(int role_i0 = 0; role_i0 < SOCIETYROLE_COUNT; role_i0++) {
 		bool enabled = false;
 		
@@ -252,7 +253,7 @@ Index<int> BiographyAnalysis::GetRequiredRoles() const {
 				continue;
 			
 			const Platform& plat = GetPlatforms()[i];
-			const PlatformAnalysis& pa = mdb.GetAdd(plat);
+			const PlatformAnalysis& pa = p.platform->GetPlatform(i);
 			for (int role_i1 : pa.roles)
 				if (role_i0 == role_i1)
 					{enabled = true; break;}
@@ -262,7 +263,6 @@ Index<int> BiographyAnalysis::GetRequiredRoles() const {
 		if (enabled)
 			ret.FindAdd(role_i0);
 	}
-	#endif
 	return ret;
 }
 

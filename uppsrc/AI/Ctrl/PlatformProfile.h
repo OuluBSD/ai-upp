@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-
+// TODO rename to BiographyPlatformCtrl (and file too!)
 class PlatformProfileCtrl : public ComponentCtrl {
 	TabCtrl tabs;
 	
@@ -38,7 +38,7 @@ public:
 	void Do(int fn);
 	void SetSorting(int col);
 	void OnPhotoPrompt();
-	
+	void ImportJson();
 };
 
 INITIALIZE(PlatformProfileCtrl)

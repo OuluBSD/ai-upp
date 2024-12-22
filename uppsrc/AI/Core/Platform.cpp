@@ -34,7 +34,7 @@ int PlatformThread::GetTotalComments() const {
 
 
 PlatformAnalysis& ProfilePlatforms::GetPlatform(int plat_i) {
-	String key = GetPlatformProfileKey(plat_i);
+	String key = GetPlatforms()[plat_i].name;
 	return platforms.GetAdd(key);
 }
 

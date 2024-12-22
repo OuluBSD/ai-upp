@@ -272,6 +272,7 @@ struct PhotoPromptLink : Moveable<PhotoPromptLink> {
 	PhotoPrompt* pp;
 };
 
+// TODO rename to BiographyPlatform
 struct BiographyAnalysis : Component {
 	Array<Array<BiographyProfileAnalysis>> profiles;
 	Array<BiographyRoleAnalysis> roles;
@@ -297,7 +298,11 @@ struct BiographyAnalysis : Component {
 	
 	//BiographyCategory& GetAdd(Owner& o, int enum_);
 	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS;}
+	
 };
+
+INITIALIZE(BiographyAnalysis)
 
 // TODO easy remove?
 #define USE_IMPROVED_ELEMENTS 0

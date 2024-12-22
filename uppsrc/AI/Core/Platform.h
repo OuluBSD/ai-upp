@@ -138,6 +138,7 @@ struct SocietyRoleAnalysis {
 	int GetScoreSum() const {return Sum(scores);}
 };
 
+// TODO rename to something more clear (e.g. PlatformComponent)
 struct ProfilePlatforms : Component {
 	ArrayMap<String,PlatformAnalysis> platforms;
 	ArrayMap<String, SocietyRoleAnalysis> roles;

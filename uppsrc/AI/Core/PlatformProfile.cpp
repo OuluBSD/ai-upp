@@ -4,7 +4,6 @@
 NAMESPACE_UPP
 
 
-INITIALIZER_COMPONENT(PlatformProfile);
 
 
 
@@ -41,7 +40,7 @@ void PlatformProfileProcess::DoPhase() {
 PlatformProfileProcess& PlatformProfileProcess::Get(const DatasetPtrs& p, String file_dir) {
 	static ArrayMap<String, PlatformProfileProcess> arr;
 	
-	String key = p.platform_prof->node.GetPath();
+	String key = p.analysis->node.GetPath();
 	PlatformProfileProcess& ts = arr.GetAdd(key);
 	ts.p = p;
 	ts.file_dir = file_dir;

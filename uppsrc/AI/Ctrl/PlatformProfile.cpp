@@ -120,11 +120,11 @@ void PlatformProfileCtrl::DataPlatforms() {
 
 void PlatformProfileCtrl::DataPlatform() {
 	DatasetPtrs mp = GetDataset();
-	if (!p.platforms.IsCursor() || !mp.profile || !mp.analysis) {
+	if (!p.platforms.IsCursor() || !mp.profile) {
 		return;
 	}
 	
-	BiographyAnalysis& analysis = *mp.analysis;
+	BiographyAnalysis& analysis = GetExt<BiographyAnalysis>();
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];
 	const PlatformAnalysis& pa = mp.platform->GetPlatform(plat_i);
@@ -161,7 +161,7 @@ void PlatformProfileCtrl::DataClusters() {
 		PromptOK("BiographyAnalysis not found");
 		return;
 	}
-	BiographyAnalysis& analysis = *mp.analysis;
+	BiographyAnalysis& analysis = GetExt<BiographyAnalysis>();
 	
 	analysis.RealizePromptImageTypes();
 	
@@ -209,7 +209,8 @@ void PlatformProfileCtrl::DataImageType() {
 void PlatformProfileCtrl::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
-	
+	bar.Separator();
+	bar.Add(t_("Import Json"), TextImgs::BlueRing(), THISBACK(ImportJson));
 }
 
 void PlatformProfileCtrl::PhotoPromptMenu(Bar& bar) {
@@ -315,8 +316,15 @@ void PlatformProfileCtrl::OnPhotoPrompt() {
 	}
 }
 
+void PlatformProfileCtrl::ImportJson() {
+	DatasetPtrs p = GetDataset();
+	BiographyAnalysis& data = GetExt<BiographyAnalysis>();
+	if (LoadFromJsonFile_VisitorNodePrompt(data)) {
+		PostCallback(THISBACK(Data));
+	}
+}
 
 
-INITIALIZER_COMPONENT_CTRL(PlatformProfile, PlatformProfileCtrl)
+INITIALIZER_COMPONENT_CTRL(BiographyAnalysis, PlatformProfileCtrl)
 
 END_UPP_NAMESPACE

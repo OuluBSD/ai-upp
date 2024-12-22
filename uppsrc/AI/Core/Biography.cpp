@@ -2,6 +2,7 @@
 
 NAMESPACE_UPP
 
+INITIALIZER_COMPONENT(BiographyAnalysis)
 
 void BioYear::RealizeImageSummaries() {
 	if (images.IsEmpty()) return;

@@ -12,7 +12,8 @@ struct ScriptReasoning : Component
 	
 	void Visit(NodeVisitor& v) override {
 		v.Ver(1)
-		(1);	 TODO}
+		(1);
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT_REASONING;}
 	
 };

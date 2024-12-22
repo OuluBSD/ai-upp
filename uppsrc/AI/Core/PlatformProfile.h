@@ -5,20 +5,6 @@
 NAMESPACE_UPP
 
 
-struct PlatformProfile : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(PlatformProfile)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM_PROFILE;}
-	
-};
-
-INITIALIZE(PlatformProfile)
-
 
 class PlatformProfileProcess : public SolverBase {
 	

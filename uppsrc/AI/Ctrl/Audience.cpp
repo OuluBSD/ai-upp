@@ -1,10 +1,22 @@
 #include "Ctrl.h"
+#define REF(obj) auto& obj = a.obj;
 
 NAMESPACE_UPP
 
 
-AudienceCtrl::AudienceCtrl() {
-	Add(hsplit.VSizePos(0,20).HSizePos());
+void BiographyPlatformCtrl::Audience_Ctor() {
+	REF(menusplit)
+	REF(hsplit)
+	REF(vsplit)
+	REF(bsplit)
+	REF(roles)
+	REF(profiles)
+	REF(responses)
+	REF(entries)
+	REF(entry)
+	REF(img)
+	
+	this->tabs.Add(hsplit.VSizePos(0,20).HSizePos(), "Audience");
 	
 	hsplit.Horz() << menusplit << vsplit;
 	hsplit.SetPos(1500);
@@ -33,10 +45,10 @@ AudienceCtrl::AudienceCtrl() {
 			.NormalPaper(c).NormalInk(Black())
 			.Paper(Blend(c, Black())).Ink(White()));
 	}
-	roles.WhenCursor << THISBACK(DataRole);
+	roles.WhenCursor << THISBACK(Audience_DataRole);
 	
 	profiles.AddColumn(t_("Profile"));
-	profiles.WhenCursor << THISBACK(DataProfile);
+	profiles.WhenCursor << THISBACK(Audience_DataProfile);
 	
 	responses.AddColumn(t_("Year"));
 	responses.AddColumn(t_("Age"));
@@ -44,12 +56,13 @@ AudienceCtrl::AudienceCtrl() {
 	responses.AddColumn(t_("Keyword"));
 	responses.AddIndex("IDX");
 	responses.ColumnWidths("1 1 10 3");
-	responses.WhenCursor << THISBACK(DataResponse);
+	responses.WhenCursor << THISBACK(Audience_DataResponse);
 	
 	
 }
 
-void AudienceCtrl::Data() {
+void BiographyPlatformCtrl::Audience_Data() {
+	REF(roles)
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.biography) return;
 	INHIBIT_CURSOR(roles);
@@ -59,7 +72,7 @@ void AudienceCtrl::Data() {
 	// Check if role is enabled (indirectly by enabled platforms)
 	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
-	BiographyAnalysis& analysis = *mp.analysis;
+	BiographyPlatform& analysis = *mp.analysis;
 	analysis.Realize();
 	Index<int> req_roles = analysis.GetRequiredRoles();
 	for(int role_i = 0; role_i < SOCIETYROLE_COUNT; role_i++) {
@@ -67,10 +80,12 @@ void AudienceCtrl::Data() {
 		roles.Set(role_i, 0, enabled ? "X":"");
 	}
 	
-	DataRole();
+	Audience_DataRole();
 }
 
-void AudienceCtrl::DataRole() {
+void BiographyPlatformCtrl::Audience_DataRole() {
+	REF(roles)
+	REF(profiles)
 	if (!roles.IsCursor())
 		return;
 	
@@ -83,10 +98,16 @@ void AudienceCtrl::DataRole() {
 	INHIBIT_CURSOR(profiles);
 	if (profiles.GetCount() && !profiles.IsCursor()) profiles.SetCursor(0);
 	
-	DataProfile();
+	Audience_DataProfile();
 }
 
-void AudienceCtrl::DataProfile() {
+void BiographyPlatformCtrl::Audience_DataProfile() {
+	REF(roles)
+	REF(profiles)
+	REF(responses)
+	REF(entries)
+	REF(entry)
+	REF(img)
 	
 	DatasetPtrs mp = GetDataset();
 	
@@ -97,7 +118,7 @@ void AudienceCtrl::DataProfile() {
 	
 	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
-	BiographyAnalysis& analysis = *mp.analysis;
+	BiographyPlatform& analysis = *mp.analysis;
 	analysis.Realize();
 	const BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
 	const Array<RoleProfile>& profs = GetRoleProfile(role_i);
@@ -123,10 +144,16 @@ void AudienceCtrl::DataProfile() {
 	INHIBIT_CURSOR(responses);
 	if (responses.GetCount() && !responses.IsCursor()) responses.SetCursor(0);
 	
-	DataResponse();
+	Audience_DataResponse();
 }
 
-void AudienceCtrl::DataResponse() {
+void BiographyPlatformCtrl::Audience_DataResponse() {
+	REF(roles)
+	REF(profiles)
+	REF(responses)
+	REF(entries)
+	REF(entry)
+	REF(img)
 	
 	DatasetPtrs mp = GetDataset();
 	
@@ -141,7 +168,7 @@ void AudienceCtrl::DataResponse() {
 	
 	Owner& owner = *mp.owner;
 	Biography& biography = *mp.biography;
-	BiographyAnalysis& analysis = *mp.analysis;
+	BiographyPlatform& analysis = *mp.analysis;
 	const BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
 	const BiographyProfileAnalysis::Response& resp = pa.responses[resp_i];
 	const Array<RoleProfile>& profs = GetRoleProfile(role_i);
@@ -155,42 +182,8 @@ void AudienceCtrl::DataResponse() {
 	entry.leadership_score.SetData(resp.score[BIOSCORE_LEADERSHIP]);
 	
 }
-/*
-void AudienceCtrl::MakeKeywords(int fn) {
-	TaskMgr& m = AiTaskManager();
-	SocialArgs args;
-	if (fn == 0)
-		args.text = year.text.GetData();
-	else
-		args.text = year.image_text.GetData();
-	m.GetSocial(args, [this,fn](String s) {PostCallback(THISBACK2(OnKeywords, fn, s));});
-}
 
-void AudienceCtrl::Translate() {
-	TaskMgr& m = AiTaskManager();
-	
-	String src = year.native_text.GetData();
-	
-	m.Translate("FI-FI", src, "EN-US", [this](String s) {PostCallback(THISBACK1(OnTranslate, s));});
-}
-
-void AudienceCtrl::OnTranslate(String s) {
-	year.text.SetData(s);
-	OnValueChange();
-}
-
-void AudienceCtrl::OnKeywords(int fn, String s) {
-	RemoveEmptyLines2(s);
-	Vector<String> parts = Split(s, "\n");
-	s = Join(parts, ", ");
-	if (fn == 0)
-		year.keywords.SetData(s);
-	else
-		year.image_keywords.SetData(s);
-	OnValueChange();
-}
-*/
-void AudienceCtrl::ToolMenu(Bar& bar) {
+void BiographyPlatformCtrl::Audience_ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	
@@ -201,11 +194,11 @@ void AudienceCtrl::ToolMenu(Bar& bar) {
 	*/
 }
 
-void AudienceCtrl::EntryListMenu(Bar& bar) {
+void BiographyPlatformCtrl::Audience_EntryListMenu(Bar& bar) {
 	
 }
 
-void AudienceCtrl::Do(int fn) {
+void BiographyPlatformCtrl::Audience_Do(int fn) {
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
@@ -220,183 +213,5 @@ void AudienceCtrl::Do(int fn) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-AudienceProcess::AudienceProcess() {
-	
-}
-
-int AudienceProcess::GetPhaseCount() const {
-	return PHASE_COUNT;
-}
-
-int AudienceProcess::GetBatchCount(int phase) const {
-	switch (phase) {
-		case PHASE_AUDIENCE_PROFILE_CATEGORIES:			return SOCIETYROLE_COUNT;
-		default: return 1;
-	}
-}
-
-int AudienceProcess::GetSubBatchCount(int phase, int batch) const {
-	switch (phase) {
-		case PHASE_AUDIENCE_PROFILE_CATEGORIES:			return GetRoleProfile(batch).GetCount();
-		default: return 1;
-	}
-}
-
-void AudienceProcess::DoPhase() {
-	switch (phase) {
-		case PHASE_AUDIENCE_PROFILE_CATEGORIES:			ProcessAudienceProfileCategories();
-		default: return;
-	}
-}
-
-AudienceProcess& AudienceProcess::Get(Profile& p, BiographyPerspectives& snap) {
-	static ArrayMap<String, AudienceProcess> arr;
-	
-	String key = "PROFILE(" + p.name + "), REVISION(" + IntStr(snap.revision) + ")";
-	AudienceProcess& ts = arr.GetAdd(key);
-	TODO
-	#if 0
-	ts.owner = p.owner;
-	ts.profile = &p;
-	ts.snap = &snap;
-	ASSERT(ts.owner);
-	return ts;
-	#endif
-	return Single<AudienceProcess>();
-}
-
-void AudienceProcess::ProcessAudienceProfileCategories() {
-	BiographyAnalysis& analysis = *p.analysis;
-	int role_i = batch;
-	int prof_i = sub_batch;
-	
-	if (role_i >= SOCIETYROLE_COUNT) {
-		NextPhase();
-		return;
-	}
-	
-	analysis.Realize();
-	if (analysis.GetRequiredRoles().Find(role_i) < 0) {
-		NextBatch();
-		return;
-	}
-	
-	const Array<RoleProfile>& profs = GetRoleProfile(role_i);
-	
-	if (prof_i >= profs.GetCount()) {
-		NextBatch();
-		return;
-	}
-	const RoleProfile& prof = profs[prof_i];
-	
-	const BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
-	
-	if (skip_ready && pa.categories.GetCount()) {
-		NextSubBatch();
-		return;
-	}
-	
-	SocialArgs args;
-	args.fn = 2;
-	args.text = GetSocietyRoleDescription(batch);
-	args.parts.Add(prof.name, prof.profile);
-	
-	SetWaiting(1);
-	TaskMgr& m = AiTaskManager();
-	m.GetSocial(args, THISBACK(OnProcessAudienceProfileCategories));
-}
-
-void AudienceProcess::OnProcessAudienceProfileCategories(String res) {
-	int role_i = batch;
-	int prof_i = sub_batch;
-	const Array<RoleProfile>& profs = GetRoleProfile(role_i);
-	const RoleProfile& prof = profs[prof_i];
-	BiographyAnalysis& analysis = *p.analysis;
-	analysis.Realize();
-	BiographyProfileAnalysis& pa = analysis.profiles[role_i][prof_i];
-	
-	pa.categories.Clear();
-	
-	res = "1. Category " + res;
-	Vector<String> lines = Split(res, "\n");
-	if (lines.GetCount() == 20) {
-		Vector<int> rm_list;
-		for(int i = 0; i < 10; i++) {
-			lines[i*2] += lines[i*2+1];
-			rm_list << i+1;
-		}
-		lines.Remove(rm_list);
-	}
-	for(int i = 0; i < lines.GetCount(); i++) {
-		String& l = lines[i];
-		RemoveLineNumber(l);
-		l = TrimBoth(l);
-		if (l.IsEmpty() || l[0] == '-')
-			lines.Remove(i--);
-		
-		int a = l.Find("ategory ");
-		if (a < 0) {
-			// Category number was not given: try to find the category by comparing text
-			if (l.Left(2) == ": ")
-				l = l.Mid(2);
-			int b = l.Find("-");
-			String key = ToLower(TrimBoth(l.Left(b)));
-			int key_i = -1;
-			for(int j = 0; j < BIOCATEGORY_COUNT; j++) {
-				String cmp_key = ToLower(GetBiographyCategoryKey(j));
-				if (key == cmp_key) {
-					key_i = j;
-					break;
-				}
-			}
-			if (key_i >= 0) {
-				a = 0;
-				l = "ategory " + IntStr(key_i) + ": " + l;
-			}
-			// Category was not found
-			else continue;
-		}
-		a += 8;
-		l = l.Mid(a);
-		
-		int cat_num = ScanInt(l);
-		
-		a = l.Find("-");
-		if (a >= 0) {
-			String desc = TrimBoth(l.Mid(a+1));
-			desc.Replace("person #1", "the subject person");
-			desc.Replace("Person #1", "The subject person");
-			desc.Replace("person #2", "this person");
-			desc.Replace("Person #2", "This person");
-			pa.categories.Add(cat_num, desc);
-		}
-		else {
-			pa.categories.Add(cat_num);
-		}
-	}
-	
-	
-	SetWaiting(0);
-	NextSubBatch();
-}
-
-
-INITIALIZER_COMPONENT_CTRL(Audience, AudienceCtrl)
-
 END_UPP_NAMESPACE
+#undef REF

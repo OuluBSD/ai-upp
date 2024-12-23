@@ -58,6 +58,12 @@ class BiographyCtrl : public ComponentCtrl {
 		WithBiography<Ctrl> block;
 	} image_summary;
 	
+	struct {
+		Splitter vsplit;
+		ArrayCtrl blocks;
+		WithBiography<Ctrl> block;
+	} audience;
+	
 	
 public:
 	typedef BiographyCtrl CLASSNAME;

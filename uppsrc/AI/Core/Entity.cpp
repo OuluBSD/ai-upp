@@ -38,7 +38,6 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 				default: break;
 			}
 		}
-		
 	}
 	MetaNode* db_src = 0;
 	if (n.kind == METAKIND_DATABASE_SOURCE) {

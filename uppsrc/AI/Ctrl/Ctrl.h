@@ -20,7 +20,6 @@
 #include "Owner.h"
 #include "Notepad.h"
 #include "Biography.h"
-#include "BiographyAnalysis.h"
 #include "BiographyPerspectives.h"
 
 #include "Profile.h"
@@ -28,19 +27,14 @@
 #include "Perspective.h"
 #include "Artist.h"
 #include "Briefing.h"
-#include "Audience.h"
-#include "Header.h"
-#include "Messaging.h"
-#include "Needs.h"
-#include "Platform.h"
-#include "PlatformProfile.h"
+#include "BiographyPlatform.h"
+#include "PlatformManager.h"
 #include "CoverImage.h"
 
 #include "Male.h"
 
 #include "Female.h"
 
-#include "Marketplace.h"
 
 #include "Factory.h"
 

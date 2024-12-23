@@ -34,6 +34,7 @@
 #include "BiographySummary.h"
 #include "ImageBiography.h"
 #include "ImageBiographySummary.h"
+#include "BiographyPlatform.h"
 
 // Public
 #include "Profile.h"
@@ -42,9 +43,6 @@
 #include "Artist.h"
 #include "ReleaseBriefing.h"
 #include "Audience.h"
-#include "Header.h"
-#include "Messaging.h"
-#include "Needs.h"
 #include "Platform.h"
 #include "PlatformProfile.h"
 #include "CoverImage.h"
@@ -58,7 +56,6 @@
 #include "Female.h"
 
 // Buyer
-#include "Marketplace.h"
 
 // Seller
 #include "Factory.h"

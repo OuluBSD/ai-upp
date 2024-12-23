@@ -98,7 +98,7 @@ void PlatformProfileProcess::OnProcessAnalyzeProfileEpkPhotoAiPrompts(String res
 }
 
 void PlatformProfileProcess::ProcessAnalyzeProfileEpkSummarizePhotoAiPrompts() {
-	BiographyAnalysis& analysis = *p.analysis;
+	BiographyPlatform& analysis = *p.analysis;
 	
 	if (batch == 0) {
 		analysis.RealizePromptImageTypes();
@@ -133,7 +133,7 @@ void PlatformProfileProcess::ProcessAnalyzeProfileEpkSummarizePhotoAiPrompts() {
 }
 
 void PlatformProfileProcess::OnProcessAnalyzeProfileEpkSummarizePhotoAiPrompts(String res) {
-	BiographyAnalysis& analysis = *p.analysis;
+	BiographyPlatform& analysis = *p.analysis;
 	PhotoPromptGroupAnalysis& ppga = analysis.image_types[batch];
 	
 	res = TrimBoth(res);
@@ -189,15 +189,15 @@ void PlatformProfileProcess::OnProcessAnalyzeProfileEpkPhotoDalle2Examples(Array
 }
 
 void PlatformProfileProcess::TraverseProfileEPKTasks() {
-	BiographyAnalysis& analysis = *p.analysis;
+	BiographyPlatform& analysis = *p.analysis;
 	
 	for(int i = 0; i < analysis.platforms.GetCount(); i++) {
-		PlatformBiographyAnalysis& pba = analysis.platforms[i];
+		PlatformBiographyPlatform& pba = analysis.platforms[i];
 		if (!pba.platform_enabled)
 			continue;
 		
 		const Platform& plat = GetPlatforms()[i];
-		const PlatformAnalysis& pa = p.platform->GetPlatform(i);
+		const PlatformAnalysis& pa = p.platmgr->GetPlatform(i);
 		int c = pa.epk_photos.GetCount();
 		
 		for(int j = 0; j < pa.epk_photos.GetCount(); j++) {

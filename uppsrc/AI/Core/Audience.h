@@ -4,19 +4,33 @@
 NAMESPACE_UPP
 
 
-struct Audience : Component
-{
+class AudienceProcess : public SolverBase {
 	
-	COMPONENT_CONSTRUCTOR(Audience)
+public:
+	enum {
+		PHASE_AUDIENCE_PROFILE_CATEGORIES,
+		
+		PHASE_COUNT,
+	};
 	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);	 TODO}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AUDIENCE;}
+	
+public:
+	typedef AudienceProcess CLASSNAME;
+	AudienceProcess();
+	
+	int GetPhaseCount() const override;
+	int GetBatchCount(int phase) const override;
+	int GetSubBatchCount(int phase, int batch) const override;
+	void DoPhase() override;
+	
+	static AudienceProcess& Get(Profile& p, BiographyPerspectives& snap);
+	
+private:
+	
+	void ProcessAudienceProfileCategories();
+	void OnProcessAudienceProfileCategories(String res);
 	
 };
-
-INITIALIZE(Audience)
 
 
 END_UPP_NAMESPACE

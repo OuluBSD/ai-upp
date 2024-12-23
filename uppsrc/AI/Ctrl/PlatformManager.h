@@ -1,10 +1,10 @@
-#ifndef _AI_Ctrl_Platform_h_
-#define _AI_Ctrl_Platform_h_
+#ifndef _AI_Ctrl_PlatformManager_h_
+#define _AI_Ctrl_PlatformManager_h_
 
 NAMESPACE_UPP
 
 
-class PlatformCtrl : public ComponentCtrl {
+class PlatformManagerCtrl : public ComponentCtrl {
 	Splitter hsplit, vsplit, bottom, epk_photo_prompt_split;
 	TabCtrl plat_tabs, epk_tabs;
 	ArrayCtrl roles, platforms, epk_text_fields, epk_photo_types, epk_photo_prompts;
@@ -12,8 +12,8 @@ class PlatformCtrl : public ComponentCtrl {
 	ImageViewerCtrl epk_photo_prompt_example;
 	
 public:
-	typedef PlatformCtrl CLASSNAME;
-	PlatformCtrl();
+	typedef PlatformManagerCtrl CLASSNAME;
+	PlatformManagerCtrl();
 	
 	void Data() override;
 	void DataPlatform();
@@ -25,7 +25,7 @@ public:
 	void ImportJson();
 };
 
-INITIALIZE(PlatformCtrl)
+INITIALIZE(PlatformManagerCtrl)
 
 
 END_UPP_NAMESPACE

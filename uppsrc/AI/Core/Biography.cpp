@@ -2,8 +2,6 @@
 
 NAMESPACE_UPP
 
-INITIALIZER_COMPONENT(BiographyAnalysis)
-
 void BioYear::RealizeImageSummaries() {
 	if (images.IsEmpty()) return;
 	int begin = 0;
@@ -185,102 +183,6 @@ void Biography::ClearSummary() {
 
 
 
-
-void BiographyAnalysis::RealizePromptImageTypes() {
-	for(int i = 0; i < image_types.GetCount(); i++)
-		image_types[i].image_count = 0;
-	
-	for(int plat_i = 0; plat_i < platforms.GetCount(); plat_i++) {
-		const PlatformBiographyAnalysis& pba = platforms[plat_i];
-		for(int i = 0; i < pba.epk_photos.GetCount(); i++) {
-			const PlatformAnalysisPhoto& pap = pba.epk_photos[i];
-			String group = ToLower(pba.epk_photos.GetKey(i));
-			PhotoPromptGroupAnalysis& ppga = image_types.GetAdd(group);
-			ppga.image_count += 1; //pap.prompts.GetCount();
-		}
-	}
-}
-
-Vector<PhotoPromptLink> BiographyAnalysis::GetImageTypePrompts(String image_type) {
-	Vector<PhotoPromptLink> o;
-	image_type = ToLower(image_type);
-	for(int plat_i = 0; plat_i < platforms.GetCount(); plat_i++) {
-		PlatformBiographyAnalysis& pba = platforms[plat_i];
-		int i = -1;
-		for(int j = 0; j < pba.epk_photos.GetCount(); j++) {
-			if (ToLower(pba.epk_photos.GetKey(j)) == image_type) {
-				i = j;
-				break;
-			}
-		}
-		if (i >= 0) {
-			PlatformAnalysisPhoto& pap = pba.epk_photos[i];
-			//for(int j = 0; j < pap.prompts.GetCount(); j++) {
-			//	PhotoPrompt& pp = pap.prompts[j];
-			if (pap.prompts.GetCount()) {
-				PhotoPrompt& pp = pap.prompts[0];
-				PhotoPromptLink& ppl = o.Add();
-				ppl.pap = &pap;
-				ppl.pba = &pba;
-				ppl.pp = &pp;
-			}
-		}
-	}
-	return o;
-}
-
-void BiographyAnalysis::Realize() {
-	if (profiles.GetCount() < SOCIETYROLE_COUNT)
-		profiles.SetCount(SOCIETYROLE_COUNT);
-	for(int i = 0; i < SOCIETYROLE_COUNT; i++) {
-		const auto& v = GetRoleProfile(i);
-		profiles[i].SetCount(v.GetCount());
-	}
-	if (platforms.GetCount() < PLATFORM_COUNT)
-		platforms.SetCount(PLATFORM_COUNT);
-}
-
-Index<int> BiographyAnalysis::GetRequiredRoles() const {
-	Index<int> ret;
-	DatasetPtrs p = GetDataset();
-	if (!p.platform)
-		return ret;
-	for(int role_i0 = 0; role_i0 < SOCIETYROLE_COUNT; role_i0++) {
-		bool enabled = false;
-		
-		for(int i = 0; i < platforms.GetCount(); i++) {
-			const PlatformBiographyAnalysis& pla = platforms[i];
-			if (!pla.platform_enabled)
-				continue;
-			
-			const Platform& plat = GetPlatforms()[i];
-			const PlatformAnalysis& pa = p.platform->GetPlatform(i);
-			for (int role_i1 : pa.roles)
-				if (role_i0 == role_i1)
-					{enabled = true; break;}
-			if (enabled) break;
-		}
-		
-		if (enabled)
-			ret.FindAdd(role_i0);
-	}
-	return ret;
-}
-
-Index<int> BiographyAnalysis::GetRequiredCategories() const {
-	Index<int> roles = GetRequiredRoles();
-	Index<int> cats;
-	for(int role_i : roles) {
-		bool enabled = false;
-		for (const auto& plat_roles : profiles) {
-			for (const auto& plat_profs : plat_roles) {
-				for (int cat_i : plat_profs.categories.GetKeys())
-					cats.FindAdd(cat_i);
-			}
-		}
-	}
-	return cats;
-}
 
 INITIALIZER_COMPONENT(Biography)
 INITIALIZER_COMPONENT(BiographyPerspectives)

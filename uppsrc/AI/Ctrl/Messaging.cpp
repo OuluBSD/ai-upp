@@ -1,17 +1,24 @@
 #include "Ctrl.h"
-
+#define PREF(obj) auto& obj = p.obj;
+#define REF(obj) auto& obj = p.messaging.obj;
+#define ALL_REFS \
+	PREF(platforms); \
+	REF(vsplit); \
+	REF(threadsplit); \
+	REF(threads); \
+	REF(entries); \
+	REF(comments); \
+	REF(entry);
+	 
 NAMESPACE_UPP
 
 
-SocialContentCtrl::SocialContentCtrl() {
+void BiographyPlatformCtrl::Platforms_Messaging_Ctor() {
+	ALL_REFS
+	
+	this->p.tabs.Add(vsplit.SizePos(), "Messaging");
+	
 	CtrlLayout(entry);
-	
-	Add(hsplit.VSizePos(0,20).HSizePos());
-	
-	hsplit.Horz() << menusplit << vsplit;
-	hsplit.SetPos(1500);
-	
-	menusplit.Vert() << platforms;
 	
 	vsplit.Vert() << threadsplit << entry;
 	vsplit.SetPos(3333);
@@ -20,27 +27,17 @@ SocialContentCtrl::SocialContentCtrl() {
 	threadsplit.SetPos(2000, 0);
 	threadsplit.SetPos(2500, 1);
 	
-	platforms.AddColumn(t_("Platform"));
-	platforms.AddColumn(t_("Entries"));
-	platforms.AddIndex("IDX");
-	platforms.ColumnWidths("4 1");
-	platforms.WhenCursor << THISBACK(DataPlatform);
-	
-	//campaigns.AddColumn(t_("Campaign"));
-	//campaigns.AddIndex("IDX");
-	//campaigns.WhenCursor << THISBACK(DataCampaign);
-	
 	entries.AddColumn(t_("Sub-Forum"));
 	entries.AddColumn(t_("Entry Title"));
 	entries.AddIndex("IDX");
 	entries.ColumnWidths("1 3");
-	entries.WhenBar << THISBACK(EntryListMenu);
-	entries.WhenCursor << THISBACK(DataEntry);
+	entries.WhenBar << THISBACK(Platforms_Messaging_EntryListMenu);
+	entries.WhenCursor << THISBACK(Platforms_Messaging_DataEntry);
 	
 	threads.AddColumn(t_("Thread Title"));
 	threads.AddIndex("IDX");
-	threads.WhenBar << THISBACK(ThreadListMenu);
-	threads.WhenCursor << THISBACK(DataThread);
+	threads.WhenBar << THISBACK(Platforms_Messaging_ThreadListMenu);
+	threads.WhenCursor << THISBACK(Platforms_Messaging_DataThread);
 	
 	comments.AddColumn(t_("#"));
 	comments.AddColumn(t_("Published"));
@@ -51,64 +48,33 @@ SocialContentCtrl::SocialContentCtrl() {
 	comments.AddColumn(t_("Score"));
 	comments.AddIndex("IDX");
 	comments.ColumnWidths("1 3 2 10 4 1 1");
-	comments.WhenBar << THISBACK(CommentListMenu);
-	comments.WhenCursor << THISBACK(DataComment);
+	comments.WhenBar << THISBACK(Platforms_Messaging_CommentListMenu);
+	comments.WhenCursor << THISBACK(Platforms_Messaging_DataComment);
 	
-	entry.entry_subforum.WhenAction << THISBACK(OnValueChange);
-	entry.entry_title.WhenAction << THISBACK(OnValueChange);
-	entry.thread_title.WhenAction << THISBACK(OnValueChange);
-	entry.user.WhenAction << THISBACK(OnValueChange);
-	entry.generate.WhenAction << THISBACK(OnValueChange);
-	entry.message.WhenAction << THISBACK(OnValueChange);
-	entry.orig_message.WhenAction << THISBACK(OnValueChange);
-	entry.keywords.WhenAction << THISBACK(OnValueChange);
-	entry.location.WhenAction << THISBACK(OnValueChange);
-	entry.date.WhenAction << THISBACK(OnValueChange);
-	entry.clock.WhenAction << THISBACK(OnValueChange);
-	entry.clock.WhenDeactivate << THISBACK(OnValueChange);
-	entry.clock.WhenPopDown << THISBACK(OnValueChange);
+	entry.entry_subforum.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.entry_title.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.thread_title.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.user.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.generate.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.message.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.orig_message.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.keywords.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.location.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.date.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.clock.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.clock.WhenDeactivate << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.clock.WhenPopDown << THISBACK(Platforms_Messaging_OnValueChange);
 }
 
-void SocialContentCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+void BiographyPlatformCtrl::Platforms_Messaging_DataPlatform() {
+	ALL_REFS
 	
-	if (!p.profile) {
-		platforms.Clear();
-		entries.Clear();
-		ClearEntry();
-		return;
-	}
-	Profile& prof = *p.profile;
-	ProfileData& pd = ProfileData::Get(prof);
-	
-	TODO
-	#if 0
-	int row = 0;
-	for (const Platform& p : GetPlatforms()) {
-		const PlatformData& pld = pd.platforms[row];
-		platforms.Set(row, "IDX", row);
-		platforms.Set(row, 0, p.name);
-		int c = pld.GetTotalEntryCount();
-		platforms.Set(row, 1, c > 0 ? Value(c) : Value());
-		row++;
-	}
-	INHIBIT_CURSOR(platforms);
-	platforms.SetCount(GetPlatforms().GetCount());
-	platforms.SetSortColumn(1, true);
-	if (platforms.GetCount() && !platforms.IsCursor())
-		platforms.SetCursor(0);
-	
-	DataPlatform();
-	#endif
-}
-
-void SocialContentCtrl::DataPlatform() {
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor()) {
 		entries.Clear();
 		threads.Clear();
 		comments.Clear();
-		ClearEntry();
+		Platforms_Messaging_ClearEntry();
 		return;
 	}
 	
@@ -131,15 +97,17 @@ void SocialContentCtrl::DataPlatform() {
 	if (entries.GetCount() && !entries.IsCursor())
 		entries.SetCursor(0);
 	
-	DataEntry();
+	Platforms_Messaging_DataEntry();
 }
 
-void SocialContentCtrl::DataEntry() {
+void BiographyPlatformCtrl::Platforms_Messaging_DataEntry() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor()) {
 		threads.Clear();
 		comments.Clear();
-		ClearEntry();
+		Platforms_Messaging_ClearEntry();
 		return;
 	}
 	
@@ -166,14 +134,16 @@ void SocialContentCtrl::DataEntry() {
 	if (threads.GetCount() && !threads.IsCursor())
 		threads.SetCursor(0);
 	
-	DataThread();
+	Platforms_Messaging_DataThread();
 }
 
-void SocialContentCtrl::DataThread() {
+void BiographyPlatformCtrl::Platforms_Messaging_DataThread() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
 		comments.Clear();
-		ClearEntry();
+		Platforms_Messaging_ClearEntry();
 		return;
 	}
 	
@@ -207,13 +177,15 @@ void SocialContentCtrl::DataThread() {
 	if (comments.GetCount() && !comments.IsCursor())
 		comments.SetCursor(0);
 	
-	DataComment();
+	Platforms_Messaging_DataComment();
 }
 
-void SocialContentCtrl::DataComment() {
+void BiographyPlatformCtrl::Platforms_Messaging_DataComment() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
-		ClearEntry();
+		Platforms_Messaging_ClearEntry();
 		return;
 	}
 	Profile& prof = *p.profile;
@@ -238,7 +210,9 @@ void SocialContentCtrl::DataComment() {
 	entry.merged.SetData(c.text_merged_status);
 }
 
-void SocialContentCtrl::ClearEntry() {
+void BiographyPlatformCtrl::Platforms_Messaging_ClearEntry() {
+	ALL_REFS
+	
 	entry.message.SetData("");
 	entry.orig_message.SetData("");
 	entry.keywords.Clear();
@@ -250,15 +224,18 @@ void SocialContentCtrl::ClearEntry() {
 	
 }
 
-void SocialContentCtrl::Clear() {
-	platforms.Clear();
+void BiographyPlatformCtrl::Platforms_Messaging_Clear() {
+	ALL_REFS
+	
 	threads.Clear();
 	entries.Clear();
 	comments.Clear();
-	ClearEntry();
+	Platforms_Messaging_ClearEntry();
 }
 
-void SocialContentCtrl::OnValueChange() {
+void BiographyPlatformCtrl::Platforms_Messaging_OnValueChange() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -308,7 +285,9 @@ void SocialContentCtrl::OnValueChange() {
 	comments.Set(4, c.keywords);
 }
 
-void SocialContentCtrl::AddEntry() {
+void BiographyPlatformCtrl::Platforms_Messaging_AddEntry() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
@@ -319,10 +298,12 @@ void SocialContentCtrl::AddEntry() {
 	PlatformEntry& e = pld.entries.Add();
 	e.threads.Add();
 	
-	DataPlatform();
+	Platforms_Messaging_DataPlatform();
 }
 
-void SocialContentCtrl::RemoveEntry() {
+void BiographyPlatformCtrl::Platforms_Messaging_RemoveEntry() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -334,10 +315,12 @@ void SocialContentCtrl::RemoveEntry() {
 	if (entry_i >= 0 && entry_i < pld.entries.GetCount())
 		pld.entries.Remove(entry_i);
 	
-	DataPlatform();
+	Platforms_Messaging_DataPlatform();
 }
 
-void SocialContentCtrl::AddThread() {
+void BiographyPlatformCtrl::Platforms_Messaging_AddThread() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor())
 		return;
@@ -349,10 +332,12 @@ void SocialContentCtrl::AddThread() {
 	PlatformEntry& e = pld.entries[entry_i];
 	PlatformThread& t = e.threads.Add();
 	
-	DataEntry();
+	Platforms_Messaging_DataEntry();
 }
 
-void SocialContentCtrl::RemoveThread() {
+void BiographyPlatformCtrl::Platforms_Messaging_RemoveThread() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !entries.IsCursor())
 		return;
@@ -366,10 +351,12 @@ void SocialContentCtrl::RemoveThread() {
 	if (thrd_i >= 0 && thrd_i < e.threads.GetCount())
 		e.threads.Remove(thrd_i);
 	
-	DataEntry();
+	Platforms_Messaging_DataEntry();
 }
 
-void SocialContentCtrl::AddComment() {
+void BiographyPlatformCtrl::Platforms_Messaging_AddComment() {
+	ALL_REFS
+	
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor())
 		return;
@@ -384,10 +371,11 @@ void SocialContentCtrl::AddComment() {
 	PlatformComment& c = t.comments.Add();
 	c.published = GetSysTime();
 	
-	DataThread();
+	Platforms_Messaging_DataThread();
 }
 
-void SocialContentCtrl::RemoveComment() {
+void BiographyPlatformCtrl::Platforms_Messaging_RemoveComment() {
+	ALL_REFS
 	DatasetPtrs p = GetDataset();
 	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
 		return;
@@ -403,40 +391,45 @@ void SocialContentCtrl::RemoveComment() {
 	if (comm_i >= 0 && comm_i < t.comments.GetCount())
 		t.comments.Remove(comm_i);
 	
-	DataThread();
+	Platforms_Messaging_DataThread();
 }
 
-void SocialContentCtrl::EntryListMenu(Bar& bar) {
-	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_W);
+void BiographyPlatformCtrl::Platforms_Messaging_EntryListMenu(Bar& bar) {
+	ALL_REFS
+	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddEntry)).Key(K_CTRL_W);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL_D);
+		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveEntry)).Key(K_CTRL_D);
 }
 
-void SocialContentCtrl::ThreadListMenu(Bar& bar) {
-	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(AddThread)).Key(K_CTRL_E);
+void BiographyPlatformCtrl::Platforms_Messaging_ThreadListMenu(Bar& bar) {
+	ALL_REFS
+	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddThread)).Key(K_CTRL_E);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(RemoveThread)).Key(K_CTRL_F);
+		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveThread)).Key(K_CTRL_F);
 }
 
-void SocialContentCtrl::CommentListMenu(Bar& bar) {
-	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(AddComment)).Key(K_CTRL_T);
+void BiographyPlatformCtrl::Platforms_Messaging_CommentListMenu(Bar& bar) {
+	ALL_REFS
+	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddComment)).Key(K_CTRL_T);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(RemoveComment)).Key(K_CTRL_H);
+		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveComment)).Key(K_CTRL_H);
 }
 
-void SocialContentCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+void BiographyPlatformCtrl::Platforms_Messaging_ToolMenu(Bar& bar) {
+	ALL_REFS
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Clear thread's merged text"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F7);
+	bar.Add(t_("Clear thread's merged text"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_Do, 2)).Key(K_F7);
 	bar.Separator();
-	bar.Add(t_("Add their response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 0)).Key(K_CTRL_Q);
-	bar.Add(t_("Add own response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 1)).Key(K_CTRL_W);
-	bar.Add(t_("Generate response"), TextImgs::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
-	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
+	bar.Add(t_("Add their response from clipboard"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_PasteResponse, 0)).Key(K_CTRL_Q);
+	bar.Add(t_("Add own response from clipboard"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_PasteResponse, 1)).Key(K_CTRL_W);
+	bar.Add(t_("Generate response"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 3)).Key(K_F8);
+	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 4)).Key(K_F9);
 }
 
-void SocialContentCtrl::PasteResponse(int fn) {
+void BiographyPlatformCtrl::Platforms_Messaging_PasteResponse(int fn) {
+	ALL_REFS
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile) return;
 	if (!platforms.IsCursor() || !threads.IsCursor()) return;
@@ -477,16 +470,15 @@ void SocialContentCtrl::PasteResponse(int fn) {
 		pc.generate = true;
 		pc.published = GetSysTime();
 	}
-	PostCallback(THISBACK(DataThread));
+	PostCallback(THISBACK(Platforms_Messaging_DataThread));
 }
 
-void SocialContentCtrl::Do(int fn) {
-	TODO
-	#if 0
+void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
+	ALL_REFS
 	DatasetPtrs mp = GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
-	SocialContentCtrlProcess& ss = SocialContentCtrlProcess::Get(*mp.profile, *mp.snap);
+	SocialContentProcess& ss = SocialContentProcess::Get(mp);
 	if (fn == 0) {
 		ss.Start();
 	}
@@ -542,7 +534,7 @@ void SocialContentCtrl::Do(int fn) {
 				suggs << "- " << s;
 			}
 			pc0.message = suggs;
-			PostCallback(THISBACK(DataThread));
+			PostCallback(THISBACK(Platforms_Messaging_DataThread));
 		});
 	}
 	else if (fn == 4) {
@@ -568,13 +560,14 @@ void SocialContentCtrl::Do(int fn) {
 			res = TrimBoth(res);
 			RemoveQuotes(res);
 			pc.keywords = res;
-			PostCallback(THISBACK(DataComment));
+			PostCallback(THISBACK(Platforms_Messaging_DataComment));
 		});
 	}
-	#endif
 }
 
 
-INITIALIZER_COMPONENT_CTRL(SocialContent, SocialContentCtrl)
 
 END_UPP_NAMESPACE
+
+#undef PREF
+#undef REF

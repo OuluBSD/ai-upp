@@ -19,7 +19,7 @@ public:
 	
 	
 	struct ProfileEPKTask : Moveable<ProfileEPKTask> {
-		PlatformBiographyAnalysis* pba = 0;
+		PlatformBiographyPlatform* pba = 0;
 		const Platform* plat = 0;
 		const PlatformAnalysis* pa = 0;
 		const PlatformAnalysisPhoto* pap = 0;

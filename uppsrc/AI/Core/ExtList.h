@@ -19,7 +19,7 @@
 	DATASET_ITEM(Owner,					owner,				METAKIND_ECS_COMPONENT_OWNER,						CATEGORY_PRIVATE, "Owner") /* TODO rename to human? */ \
 	DATASET_ITEM(Notepad,				notepad,			METAKIND_ECS_COMPONENT_NOTEPAD,						CATEGORY_PRIVATE, "Notepad") \
 	DATASET_ITEM(Biography,				biography,			METAKIND_ECS_COMPONENT_BIOGRAPHY,					CATEGORY_PRIVATE, "Biography") \
-	DATASET_ITEM(BiographyAnalysis,		analysis,			METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS,			CATEGORY_PRIVATE, "Biography Analysis") \
+	DATASET_ITEM(BiographyPlatform,		analysis,			METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS,			CATEGORY_PRIVATE, "Biography Platform") \
 	DATASET_ITEM(BiographyPerspectives,	snap,				METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES,		CATEGORY_PRIVATE, "Biography Perspectives") \
 	DATASET_ITEM(Profile,				profile,			METAKIND_ECS_COMPONENT_PROFILE,						CATEGORY_PUBLIC, "Profile") \
 	DATASET_ITEM(Release,				release,			METAKIND_ECS_COMPONENT_RELEASE,						CATEGORY_PUBLIC, "Release") \
@@ -27,11 +27,7 @@
 	DATASET_ITEM(Artist,				artist,				METAKIND_ECS_COMPONENT_ARTIST,						CATEGORY_PUBLIC, "Artist") \
 	DATASET_ITEM(ReleaseBriefing,		rel_brief,			METAKIND_ECS_COMPONENT_RELEASE_BRIEFING,			CATEGORY_PUBLIC, "Release Briefing") \
 	DATASET_ITEM(ReleaseCoverImage,		rel_cover_img,		METAKIND_ECS_COMPONENT_RELEASE_COVER_IMAGE,			CATEGORY_PUBLIC, "Release Cover Image") \
-	DATASET_ITEM(Audience,				audience,			METAKIND_ECS_COMPONENT_AUDIENCE,					CATEGORY_PUBLIC, "Audience") \
-	DATASET_ITEM(SocialHeader,			social_header,		METAKIND_ECS_COMPONENT_SOCIAL_HEADER,				CATEGORY_PUBLIC, "Header") \
-	DATASET_ITEM(SocialContent,			social_content,		METAKIND_ECS_COMPONENT_SOCIAL_CONTENT,				CATEGORY_PUBLIC, "Messages") \
-	DATASET_ITEM(SocialNeeds,			social_needs,		METAKIND_ECS_COMPONENT_SOCIAL_NEEDS,				CATEGORY_PUBLIC, "Needs") \
-	DATASET_ITEM(ProfilePlatforms,		platform,			METAKIND_ECS_COMPONENT_PLATFORM,					CATEGORY_PUBLIC, "Platform") \
+	DATASET_ITEM(PlatformManager,		platmgr,			METAKIND_ECS_COMPONENT_PLATFORM_MANAGER,			CATEGORY_PUBLIC, "Platform Manager") \
 	DATASET_ITEM(Litigation,			litigation,			METAKIND_ECS_COMPONENT_LITIGATION,					CATEGORY_PUBLIC, "Litigation") \
 	DATASET_ITEM(Lawyer,				lawyer,				METAKIND_ECS_COMPONENT_LAWYER,						CATEGORY_PUBLIC, "Lawyer") \
 	DATASET_ITEM(Judge,					judge,				METAKIND_ECS_COMPONENT_JUDGE,						CATEGORY_PUBLIC, "Judge") \
@@ -52,7 +48,6 @@
 	DATASET_ITEM(Attractiveness,	attractiveness,	METAKIND_ECS_COMPONENT_ATTRACTIVENESS,		CATEGORY_FEMALE, "Attractiveness") \
 	DATASET_ITEM(Willingness,		willingness,	METAKIND_ECS_COMPONENT_WILLINGNESS,			CATEGORY_FEMALE, "Willingness") \
 	\
-	DATASET_ITEM(Marketplace,		marketplace,	METAKIND_ECS_COMPONENT_MARKETPLACE,			CATEGORY_BUYER, "Marketplace") \
 	DATASET_ITEM(FactoryComponent,	factory,		METAKIND_ECS_COMPONENT_FACTORY,				CATEGORY_SELLER, "Factory") \
 	DATASET_ITEM(ProductComponent,	product,		METAKIND_ECS_COMPONENT_PRODUCT,				CATEGORY_SELLER, "Product") \
 	\

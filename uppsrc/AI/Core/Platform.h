@@ -124,8 +124,8 @@ struct PlatformAnalysis {
 			;
 	}
 	
-	int GetRoleScoreSum(const ProfilePlatforms& plat, int score_i) const;
-	double GetRoleScoreSumWeighted(const ProfilePlatforms& plat, int score_i) const;
+	int GetRoleScoreSum(const PlatformManager& plat, int score_i) const;
+	double GetRoleScoreSumWeighted(const PlatformManager& plat, int score_i) const;
 	
 };
 
@@ -138,12 +138,11 @@ struct SocietyRoleAnalysis {
 	int GetScoreSum() const {return Sum(scores);}
 };
 
-// TODO rename to something more clear (e.g. PlatformComponent)
-struct ProfilePlatforms : Component {
+struct PlatformManager : Component {
 	ArrayMap<String,PlatformAnalysis> platforms;
 	ArrayMap<String, SocietyRoleAnalysis> roles;
 	
-	COMPONENT_CONSTRUCTOR(ProfilePlatforms)
+	COMPONENT_CONSTRUCTOR(PlatformManager)
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("roles", roles, VISIT_MAP)
@@ -153,10 +152,10 @@ struct ProfilePlatforms : Component {
 	PlatformAnalysis& GetPlatform(int plat_i);
 	SocietyRoleAnalysis& GetAddRole(int role_i);
 	const SocietyRoleAnalysis* FindRole(int role_i) const;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM_MANAGER;}
 };
 
-INITIALIZE(ProfilePlatforms)
+INITIALIZE(PlatformManager)
 
 
 class PlatformProcess : public SolverBase {

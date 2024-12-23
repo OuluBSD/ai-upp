@@ -33,16 +33,16 @@ int PlatformThread::GetTotalComments() const {
 
 
 
-PlatformAnalysis& ProfilePlatforms::GetPlatform(int plat_i) {
+PlatformAnalysis& PlatformManager::GetPlatform(int plat_i) {
 	String key = GetPlatforms()[plat_i].name;
 	return platforms.GetAdd(key);
 }
 
-SocietyRoleAnalysis& ProfilePlatforms::GetAddRole(int role_i) {
+SocietyRoleAnalysis& PlatformManager::GetAddRole(int role_i) {
 	return roles.GetAdd(GetSocietyRoleEnum(role_i));
 }
 
-const SocietyRoleAnalysis* ProfilePlatforms::FindRole(int role_i) const {
+const SocietyRoleAnalysis* PlatformManager::FindRole(int role_i) const {
 	String s = GetSocietyRoleEnum(role_i);
 	int i = roles.Find(s);
 	if (i < 0) return 0;
@@ -1217,7 +1217,7 @@ void ProfileData::StoreAll() {
 
 
 
-int PlatformAnalysis::GetRoleScoreSum(const ProfilePlatforms& plat, int score_i) const {
+int PlatformAnalysis::GetRoleScoreSum(const PlatformManager& plat, int score_i) const {
 	ASSERT(score_i >= 0 && score_i < SOCIETYROLE_SCORE_COUNT);
 	int sum = 0;
 	for(int i = 0; i < roles.GetCount(); i++) {
@@ -1231,7 +1231,7 @@ int PlatformAnalysis::GetRoleScoreSum(const ProfilePlatforms& plat, int score_i)
 	return sum;
 }
 
-double PlatformAnalysis::GetRoleScoreSumWeighted(const ProfilePlatforms& plat, int score_i) const {
+double PlatformAnalysis::GetRoleScoreSumWeighted(const PlatformManager& plat, int score_i) const {
 	ASSERT(score_i >= 0 && score_i < SOCIETYROLE_SCORE_COUNT);
 	int sum = 0;
 	int weight_sum = 0;
@@ -1247,7 +1247,7 @@ double PlatformAnalysis::GetRoleScoreSumWeighted(const ProfilePlatforms& plat, i
 	return (double)sum / (double)weight_sum;
 }
 
-INITIALIZER_COMPONENT(ProfilePlatforms)
+INITIALIZER_COMPONENT(PlatformManager)
 
 
 
@@ -1285,7 +1285,7 @@ int PlatformProcess::GetBatchCount(int phase) const {
 int PlatformProcess::GetSubBatchCount(int phase, int batch) const {
 	if (phase == PHASE_ANALYZE_PLATFORM_EPK_PHOTO_AI_PROMPTS) {
 		const Platform& plat = GetPlatforms()[batch];
-		const PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+		const PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 		return pa.epk_photos.GetCount();
 	}
 	return 1;
@@ -1305,7 +1305,7 @@ void PlatformProcess::DoPhase() {
 PlatformProcess& PlatformProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, PlatformProcess> arr;
 	
-	String key = p.platform->node.GetPath();
+	String key = p.platmgr->node.GetPath();
 	PlatformProcess& ts = arr.GetAdd(key);
 	ts.p = p;
 	return ts;
@@ -1316,7 +1316,7 @@ void PlatformProcess::ProcessAnalyzeRoleScores() {
 		NextPhase();
 		return;
 	}
-	ProfilePlatforms& plat = *p.platform;
+	PlatformManager& plat = *p.platmgr;
 	const SocietyRoleAnalysis& sra = plat.GetAddRole(batch);
 	
 	if (skip_ready && sra.GetScoreSum() > 0) {
@@ -1335,7 +1335,7 @@ void PlatformProcess::ProcessAnalyzeRoleScores() {
 }
 
 void PlatformProcess::OnProcessAnalyzeRoleScores(String res) {
-	ProfilePlatforms& plat = *p.platform;
+	PlatformManager& plat = *p.platmgr;
 	SocietyRoleAnalysis& sra = plat.GetAddRole(batch);
 	sra.Zero();
 	
@@ -1372,7 +1372,7 @@ void PlatformProcess::ProcessAnalyzePlatformRoles() {
 	}
 	
 	const Platform& plat = GetPlatforms()[batch];
-	const PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	const PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	if (skip_ready && pa.roles.GetCount()) {
 		NextBatch();
@@ -1393,7 +1393,7 @@ void PlatformProcess::ProcessAnalyzePlatformRoles() {
 
 void PlatformProcess::OnProcessAnalyzePlatformRoles(String res) {
 	const Platform& plat = GetPlatforms()[batch];
-	PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	res = "1. #" + res;
 	
@@ -1423,7 +1423,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkTextFields() {
 	}
 	
 	const Platform& plat = GetPlatforms()[batch];
-	const PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	const PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	if (skip_ready && pa.epk_text_fields.GetCount()) {
 		NextBatch();
@@ -1457,7 +1457,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkTextFields() {
 
 void PlatformProcess::OnProcessAnalyzePlatformEpkTextFields(String res) {
 	const Platform& plat = GetPlatforms()[batch];
-	PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	if (res.Left(2) != "1.")
 		res = "1. " + res;
@@ -1507,7 +1507,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkPhotoTypes() {
 	}
 	
 	const Platform& plat = GetPlatforms()[batch];
-	const PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	const PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	if (skip_ready && pa.epk_photos.GetCount()) {
 		NextBatch();
@@ -1541,7 +1541,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkPhotoTypes() {
 
 void PlatformProcess::OnProcessAnalyzePlatformEpkPhotoTypes(String res) {
 	const Platform& plat = GetPlatforms()[batch];
-	PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	
 	if (res.Left(2) != "1.")
 		res = "1. " + res;
@@ -1592,7 +1592,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkPhotoAiPrompts() {
 	}
 	
 	const Platform& plat = GetPlatforms()[batch];
-	const PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	const PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	if (sub_batch >= pa.epk_photos.GetCount()) {
 		NextBatch();
 		return;
@@ -1633,7 +1633,7 @@ void PlatformProcess::ProcessAnalyzePlatformEpkPhotoAiPrompts() {
 
 void PlatformProcess::OnProcessAnalyzePlatformEpkPhotoAiPrompts(String res) {
 	const Platform& plat = GetPlatforms()[batch];
-	PlatformAnalysis& pa = p.platform->GetPlatform(batch);
+	PlatformAnalysis& pa = p.platmgr->GetPlatform(batch);
 	PlatformAnalysisPhoto& pap = pa.epk_photos[sub_batch];
 	
 	RemoveEmptyLines3(res);

@@ -233,6 +233,7 @@ public:
 	void CreateInput_BiographySummaryProcess();
 	void CreateInput_LeadSolver();
 	void CreateInput_SocialBeliefsProcess();
+	void CreateInput_Marketplace();
 	
 	void Process_CreateImage();
 	void Process_EditImage();

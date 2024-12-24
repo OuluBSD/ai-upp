@@ -3,52 +3,111 @@
 
 NAMESPACE_UPP
 
+
 class BiographyPlatformCtrl : public ComponentCtrl {
 	TabCtrl tabs;
 	
 	
+	struct WithOwner1 {BiographyPlatformCtrl& o; WithOwner1(BiographyPlatformCtrl& o) : o(o){}};
+	
 	// Platforms tab
-	struct Platforms {
+	struct Platforms : WithOwner1 {
+		typedef Platforms CLASSNAME;
 		Splitter hsplit;
 		TabCtrl tabs;
 		ArrayCtrl platforms;
 		
-		struct WithOwner {BiographyPlatformCtrl& o; Platforms& p;};
+		Platforms(BiographyPlatformCtrl& o) : WithOwner1(o), header(o,*this), messaging(o,*this), epk_photo(o,*this), needs(o,*this), marketplace(o,*this) {}
+		void Ctor();
+        void Do(int fn);
+		void EpkPhoto_Ctor();
+		void Data();
+		void DataPlatform();
+		void ToolMenu(Bar& bar);
+		void Menu(Bar& bar);
+		
+		struct WithOwner {BiographyPlatformCtrl& o; Platforms& p; WithOwner(BiographyPlatformCtrl& o, Platforms& p) : o(o),p(p){}};
 		
 		struct Header : WithOwner {
 			typedef Header CLASSNAME;
+			using WithOwner::WithOwner;
 			Splitter vsplit;
 			ArrayCtrl entries;
 			Splitter entry_split;
 			ArrayCtrl attr_keys;
 			DocEdit attr_value;
+            void Ctor();
+            void DataPlatform();
+            void ToolMenu(Bar& bar);
+            void EntryListMenu(Bar& bar);
+            void OnValueChange();
+            void Do(int fn);
 		} header;
 		
 		struct Messaging : WithOwner {
 			typedef Messaging CLASSNAME;
+			using WithOwner::WithOwner;
 			Splitter vsplit, threadsplit;
 			ArrayCtrl threads, entries, comments;
 			WithSocialEntry<Ctrl> entry;
+			void Ctor();
+			void DataPlatform();
+			void DataEntry();
+			void DataThread();
+			void DataComment();
+			void Clear();
+			void ClearEntry();
+			void OnValueChange();
+			void AddEntry();
+			void RemoveEntry();
+			void AddThread();
+			void RemoveThread();
+			void AddComment();
+			void RemoveComment();
+			void PasteResponse(int fn);
+			void ToolMenu(Bar& bar);
+			void EntryListMenu(Bar& bar);
+			void ThreadListMenu(Bar& bar);
+			void CommentListMenu(Bar& bar);
+			void Do(int fn);
 		} messaging;
 		
 		struct EpkPhoto : WithOwner {
 			typedef EpkPhoto CLASSNAME;
+			using WithOwner::WithOwner;
 			Splitter epk_photo_prompt_split, epk_photo_multi_image_split;
 			ArrayCtrl  epk_photo_prompts;
 			ImageViewerCtrl epk_photo[4];
+			void Ctor();
+			void DataPlatform();
+			void ToolMenu(Bar& bar);
+			void PhotoPromptMenu(Bar& bar);
+			void OnPhotoPrompt();
+            void Do(int fn);
 		} epk_photo;
 		
 		struct Needs : WithOwner {
 			typedef Needs CLASSNAME;
+			using WithOwner::WithOwner;
 			Splitter vsplit, rolesplit, platsplit, eventsplit;
 			ArrayCtrl roles, needs, causes, messages;
 			ArrayCtrl actions, action_causes;
 			ArrayCtrl events, entries;
 			DocEdit event, entry;
+            void Ctor();
+            void DataPlatform();
+            void DataRole();
+            void DataNeed();
+            void DataAction();
+            void DataEvent();
+            void DataEntry();
+            void ToolMenu(Bar& bar);
+            void Do(int fn);
 		} needs;
 		
 		struct Marketplace : WithOwner {
 			typedef Marketplace CLASSNAME;
+			using WithOwner::WithOwner;
 			Splitter hsplit, imgsplit;
 			ArrayCtrl items, images;
 			TabCtrl tabs;
@@ -79,85 +138,38 @@ class BiographyPlatformCtrl : public ComponentCtrl {
 		} marketplace;
 		
 	} p;
-	
-	void Platforms_Ctor();
-	void Platforms_EpkPhoto_Ctor();
-	void Platforms_Data();
-	void Platforms_DataPlatform();
-	void Platforms_DataPlatform_Epk();
-	void Platforms_ToolMenu(Bar& bar);
-	void Platforms_PhotoPromptMenu(Bar& bar);
-	void Platforms_OnPhotoPrompt();
-	void Platforms_Menu(Bar& bar);
-	
-	void Platforms_Header_Ctor();
-	void Platforms_Header_DataPlatform();
-	void Platforms_Header_ToolMenu(Bar& bar);
-	void Platforms_Header_EntryListMenu(Bar& bar);
-	void Platforms_Header_OnValueChange();
-	void Platforms_Header_Do(int fn);
-	
-	void Platforms_Messaging_Ctor();
-	void Platforms_Messaging_DataPlatform();
-	void Platforms_Messaging_DataEntry();
-	void Platforms_Messaging_DataThread();
-	void Platforms_Messaging_DataComment();
-	void Platforms_Messaging_Clear();
-	void Platforms_Messaging_ClearEntry();
-	void Platforms_Messaging_OnValueChange();
-	void Platforms_Messaging_AddEntry();
-	void Platforms_Messaging_RemoveEntry();
-	void Platforms_Messaging_AddThread();
-	void Platforms_Messaging_RemoveThread();
-	void Platforms_Messaging_AddComment();
-	void Platforms_Messaging_RemoveComment();
-	void Platforms_Messaging_PasteResponse(int fn);
-	void Platforms_Messaging_ToolMenu(Bar& bar);
-	void Platforms_Messaging_EntryListMenu(Bar& bar);
-	void Platforms_Messaging_ThreadListMenu(Bar& bar);
-	void Platforms_Messaging_CommentListMenu(Bar& bar);
-	void Platforms_Messaging_Do(int fn);
-	
-	void Platforms_Needs_Ctor();
-	void Platforms_Needs_DataPlatform();
-	void Platforms_Needs_DataRole();
-	void Platforms_Needs_DataNeed();
-	void Platforms_Needs_DataAction();
-	void Platforms_Needs_DataEvent();
-	void Platforms_Needs_DataEntry();
-	void Platforms_Needs_ToolMenu(Bar& bar);
-	void Platforms_Needs_Do(int fn);
-	
 	// Clustered prompts tab
-	struct {
+	struct Clusters : WithOwner1 {
+		typedef Clusters CLASSNAME;
+		using WithOwner1::WithOwner1;
 		Splitter hsplit, vsplit, bsplit;
 		ArrayCtrl image_types, prompts;
 		DocEdit final_prompt;
 		ImageViewerCtrl epk_photo[4];
+        void Ctor();
+        void Do(int fn);
+        void Data();
+        void DataImageType();
+        void ToolMenu(Bar& bar);
 	} c;
 	
-	void Clusters_Ctor();
-	void Clusters_Data();
-	void Clusters_DataImageType();
-	void Clusters_ToolMenu(Bar& bar);
-	
 	// Audience tab
-	struct {
+	struct Audience : WithOwner1 {
+		typedef Audience CLASSNAME;
+		using WithOwner1::WithOwner1;
 		Splitter menusplit, hsplit, vsplit, bsplit;
 		ArrayCtrl roles, profiles, responses, entries;
 		WithAudience<Ctrl> entry;
 		ImageViewerCtrl img;
+		void Ctor();
+        void Do(int fn);
+		void Data();
+		void DataRole();
+		void DataProfile();
+		void DataResponse();
+		void ToolMenu(Bar& bar);
+		void EntryListMenu(Bar& bar);
 	} a;
-	
-	void Audience_Ctor();
-	void Audience_Data();
-	void Audience_DataRole();
-	void Audience_DataProfile();
-	void Audience_DataResponse();
-	void Audience_ToolMenu(Bar& bar);
-	void Audience_EntryListMenu(Bar& bar);
-	void Audience_Do(int fn);
-	
 public:
 	typedef BiographyPlatformCtrl CLASSNAME;
 	BiographyPlatformCtrl();

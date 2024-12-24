@@ -5,6 +5,9 @@
 NAMESPACE_UPP
 
 
+const VectorMap<String, Vector<String>>& GetMarketplaceSections();
+
+
 struct BiographyProfileAnalysis {
 	struct Response : Moveable<Response> {
 		int year, category;
@@ -303,6 +306,33 @@ public:
 	static SocialNeedsProcess& Get(Profile& p, BiographyPerspectives& snap);
 	
 	Callback2<int,int> WhenProgress;
+	
+};
+
+class MarketplaceProcess : public SolverBase {
+	
+public:
+	enum {
+		PHASE_DESCRIPTION,
+		
+		PHASE_COUNT
+	};
+	
+	Owner* owner = 0;
+	
+public:
+	typedef MarketplaceProcess CLASSNAME;
+	MarketplaceProcess();
+	
+	int GetPhaseCount() const override;
+	int GetBatchCount(int phase) const override;
+	int GetSubBatchCount(int phase, int batch) const override;
+	void DoPhase() override;
+	
+	static MarketplaceProcess& Get(DatasetPtrs p);
+	
+	void ProcessDescription();
+	void MakeArgs(MarketplaceArgs& args);
 	
 };
 

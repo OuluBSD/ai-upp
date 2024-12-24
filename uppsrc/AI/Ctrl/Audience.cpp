@@ -1,22 +1,10 @@
 #include "Ctrl.h"
-#define REF(obj) auto& obj = a.obj;
 
 NAMESPACE_UPP
 
 
-void BiographyPlatformCtrl::Audience_Ctor() {
-	REF(menusplit)
-	REF(hsplit)
-	REF(vsplit)
-	REF(bsplit)
-	REF(roles)
-	REF(profiles)
-	REF(responses)
-	REF(entries)
-	REF(entry)
-	REF(img)
-	
-	this->tabs.Add(hsplit.VSizePos(0,20).HSizePos(), "Audience");
+void BiographyPlatformCtrl::Audience::Ctor() {
+	this->o.tabs.Add(hsplit.VSizePos(0,20).HSizePos(), "Audience");
 	
 	hsplit.Horz() << menusplit << vsplit;
 	hsplit.SetPos(1500);
@@ -45,10 +33,10 @@ void BiographyPlatformCtrl::Audience_Ctor() {
 			.NormalPaper(c).NormalInk(Black())
 			.Paper(Blend(c, Black())).Ink(White()));
 	}
-	roles.WhenCursor << THISBACK(Audience_DataRole);
+	roles.WhenCursor << THISBACK(DataRole);
 	
 	profiles.AddColumn(t_("Profile"));
-	profiles.WhenCursor << THISBACK(Audience_DataProfile);
+	profiles.WhenCursor << THISBACK(DataProfile);
 	
 	responses.AddColumn(t_("Year"));
 	responses.AddColumn(t_("Age"));
@@ -56,14 +44,13 @@ void BiographyPlatformCtrl::Audience_Ctor() {
 	responses.AddColumn(t_("Keyword"));
 	responses.AddIndex("IDX");
 	responses.ColumnWidths("1 1 10 3");
-	responses.WhenCursor << THISBACK(Audience_DataResponse);
+	responses.WhenCursor << THISBACK(DataResponse);
 	
 	
 }
 
-void BiographyPlatformCtrl::Audience_Data() {
-	REF(roles)
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Audience::Data() {
+	DatasetPtrs mp = o.GetDataset();
 	if (!mp.profile || !mp.biography) return;
 	INHIBIT_CURSOR(roles);
 	if (!roles.IsCursor()) roles.SetCursor(0);
@@ -80,12 +67,10 @@ void BiographyPlatformCtrl::Audience_Data() {
 		roles.Set(role_i, 0, enabled ? "X":"");
 	}
 	
-	Audience_DataRole();
+	DataRole();
 }
 
-void BiographyPlatformCtrl::Audience_DataRole() {
-	REF(roles)
-	REF(profiles)
+void BiographyPlatformCtrl::Audience::DataRole() {
 	if (!roles.IsCursor())
 		return;
 	
@@ -98,18 +83,11 @@ void BiographyPlatformCtrl::Audience_DataRole() {
 	INHIBIT_CURSOR(profiles);
 	if (profiles.GetCount() && !profiles.IsCursor()) profiles.SetCursor(0);
 	
-	Audience_DataProfile();
+	DataProfile();
 }
 
-void BiographyPlatformCtrl::Audience_DataProfile() {
-	REF(roles)
-	REF(profiles)
-	REF(responses)
-	REF(entries)
-	REF(entry)
-	REF(img)
-	
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Audience::DataProfile() {
+	DatasetPtrs mp = o.GetDataset();
 	
 	if (!roles.IsCursor() || !profiles.IsCursor())
 		return;
@@ -144,18 +122,11 @@ void BiographyPlatformCtrl::Audience_DataProfile() {
 	INHIBIT_CURSOR(responses);
 	if (responses.GetCount() && !responses.IsCursor()) responses.SetCursor(0);
 	
-	Audience_DataResponse();
+	DataResponse();
 }
 
-void BiographyPlatformCtrl::Audience_DataResponse() {
-	REF(roles)
-	REF(profiles)
-	REF(responses)
-	REF(entries)
-	REF(entry)
-	REF(img)
-	
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Audience::DataResponse() {
+	DatasetPtrs mp = o.GetDataset();
 	
 	if (!roles.IsCursor() || !profiles.IsCursor() || !responses.IsCursor())
 		return;
@@ -183,7 +154,7 @@ void BiographyPlatformCtrl::Audience_DataResponse() {
 	
 }
 
-void BiographyPlatformCtrl::Audience_ToolMenu(Bar& bar) {
+void BiographyPlatformCtrl::Audience::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	
@@ -194,12 +165,12 @@ void BiographyPlatformCtrl::Audience_ToolMenu(Bar& bar) {
 	*/
 }
 
-void BiographyPlatformCtrl::Audience_EntryListMenu(Bar& bar) {
+void BiographyPlatformCtrl::Audience::EntryListMenu(Bar& bar) {
 	
 }
 
-void BiographyPlatformCtrl::Audience_Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Audience::Do(int fn) {
+	DatasetPtrs mp = o.GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
 	AudienceProcess& ss = AudienceProcess::Get(*mp.profile, *mp.snap);
@@ -214,4 +185,3 @@ void BiographyPlatformCtrl::Audience_Do(int fn) {
 
 
 END_UPP_NAMESPACE
-#undef REF

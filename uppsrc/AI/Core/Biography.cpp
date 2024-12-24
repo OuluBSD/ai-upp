@@ -119,6 +119,7 @@ int BiographyCategory::GetFilledImagesCount() const {
 }
 
 BioYear& BiographyCategory::GetAdd(int year) {
+	ASSERT(year >= -2000 && year < 3000);
 	for (BioYear& by : years)
 		if (by.year == year)
 			return by;

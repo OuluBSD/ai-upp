@@ -1,21 +1,8 @@
 #include "Ctrl.h"
-#define PREF(obj) auto& obj = p.obj;
-#define REF(obj) auto& obj = p.messaging.obj;
-#define ALL_REFS \
-	PREF(platforms); \
-	REF(vsplit); \
-	REF(threadsplit); \
-	REF(threads); \
-	REF(entries); \
-	REF(comments); \
-	REF(entry);
 	 
 NAMESPACE_UPP
 
-
-void BiographyPlatformCtrl::Platforms_Messaging_Ctor() {
-	ALL_REFS
-	
+void BiographyPlatformCtrl::Platforms::Messaging::Ctor() {
 	this->p.tabs.Add(vsplit.SizePos(), "Messaging");
 	
 	CtrlLayout(entry);
@@ -31,13 +18,13 @@ void BiographyPlatformCtrl::Platforms_Messaging_Ctor() {
 	entries.AddColumn(t_("Entry Title"));
 	entries.AddIndex("IDX");
 	entries.ColumnWidths("1 3");
-	entries.WhenBar << THISBACK(Platforms_Messaging_EntryListMenu);
-	entries.WhenCursor << THISBACK(Platforms_Messaging_DataEntry);
+	entries.WhenBar << THISBACK(EntryListMenu);
+	entries.WhenCursor << THISBACK(DataEntry);
 	
 	threads.AddColumn(t_("Thread Title"));
 	threads.AddIndex("IDX");
-	threads.WhenBar << THISBACK(Platforms_Messaging_ThreadListMenu);
-	threads.WhenCursor << THISBACK(Platforms_Messaging_DataThread);
+	threads.WhenBar << THISBACK(ThreadListMenu);
+	threads.WhenCursor << THISBACK(DataThread);
 	
 	comments.AddColumn(t_("#"));
 	comments.AddColumn(t_("Published"));
@@ -48,39 +35,37 @@ void BiographyPlatformCtrl::Platforms_Messaging_Ctor() {
 	comments.AddColumn(t_("Score"));
 	comments.AddIndex("IDX");
 	comments.ColumnWidths("1 3 2 10 4 1 1");
-	comments.WhenBar << THISBACK(Platforms_Messaging_CommentListMenu);
-	comments.WhenCursor << THISBACK(Platforms_Messaging_DataComment);
+	comments.WhenBar << THISBACK(CommentListMenu);
+	comments.WhenCursor << THISBACK(DataComment);
 	
-	entry.entry_subforum.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.entry_title.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.thread_title.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.user.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.generate.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.message.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.orig_message.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.keywords.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.location.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.date.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.clock.WhenAction << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.clock.WhenDeactivate << THISBACK(Platforms_Messaging_OnValueChange);
-	entry.clock.WhenPopDown << THISBACK(Platforms_Messaging_OnValueChange);
+	entry.entry_subforum.WhenAction << THISBACK(OnValueChange);
+	entry.entry_title.WhenAction << THISBACK(OnValueChange);
+	entry.thread_title.WhenAction << THISBACK(OnValueChange);
+	entry.user.WhenAction << THISBACK(OnValueChange);
+	entry.generate.WhenAction << THISBACK(OnValueChange);
+	entry.message.WhenAction << THISBACK(OnValueChange);
+	entry.orig_message.WhenAction << THISBACK(OnValueChange);
+	entry.keywords.WhenAction << THISBACK(OnValueChange);
+	entry.location.WhenAction << THISBACK(OnValueChange);
+	entry.date.WhenAction << THISBACK(OnValueChange);
+	entry.clock.WhenAction << THISBACK(OnValueChange);
+	entry.clock.WhenDeactivate << THISBACK(OnValueChange);
+	entry.clock.WhenPopDown << THISBACK(OnValueChange);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_DataPlatform() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor()) {
+void BiographyPlatformCtrl::Platforms::Messaging::DataPlatform() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor()) {
 		entries.Clear();
 		threads.Clear();
 		comments.Clear();
-		Platforms_Messaging_ClearEntry();
+		ClearEntry();
 		return;
 	}
 	
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	
 	int row = 0;
@@ -97,23 +82,21 @@ void BiographyPlatformCtrl::Platforms_Messaging_DataPlatform() {
 	if (entries.GetCount() && !entries.IsCursor())
 		entries.SetCursor(0);
 	
-	Platforms_Messaging_DataEntry();
+	DataEntry();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_DataEntry() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !entries.IsCursor()) {
+void BiographyPlatformCtrl::Platforms::Messaging::DataEntry() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !entries.IsCursor()) {
 		threads.Clear();
 		comments.Clear();
-		Platforms_Messaging_ClearEntry();
+		ClearEntry();
 		return;
 	}
 	
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	int entry_i = entries.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	PlatformEntry& e = pld.entries[entry_i];
@@ -134,22 +117,20 @@ void BiographyPlatformCtrl::Platforms_Messaging_DataEntry() {
 	if (threads.GetCount() && !threads.IsCursor())
 		threads.SetCursor(0);
 	
-	Platforms_Messaging_DataThread();
+	DataThread();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_DataThread() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
+void BiographyPlatformCtrl::Platforms::Messaging::DataThread() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
 		comments.Clear();
-		Platforms_Messaging_ClearEntry();
+		ClearEntry();
 		return;
 	}
 	
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	int entry_i = entries.Get("IDX");
 	int thrd_i = threads.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
@@ -177,20 +158,18 @@ void BiographyPlatformCtrl::Platforms_Messaging_DataThread() {
 	if (comments.GetCount() && !comments.IsCursor())
 		comments.SetCursor(0);
 	
-	Platforms_Messaging_DataComment();
+	DataComment();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_DataComment() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
-		Platforms_Messaging_ClearEntry();
+void BiographyPlatformCtrl::Platforms::Messaging::DataComment() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
+		ClearEntry();
 		return;
 	}
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	int entry_i = entries.Get("IDX");
 	int thrd_i = threads.Get("IDX");
 	int comm_i = comments.Get("IDX");
@@ -210,9 +189,7 @@ void BiographyPlatformCtrl::Platforms_Messaging_DataComment() {
 	entry.merged.SetData(c.text_merged_status);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_ClearEntry() {
-	ALL_REFS
-	
+void BiographyPlatformCtrl::Platforms::Messaging::ClearEntry() {
 	entry.message.SetData("");
 	entry.orig_message.SetData("");
 	entry.keywords.Clear();
@@ -221,27 +198,22 @@ void BiographyPlatformCtrl::Platforms_Messaging_ClearEntry() {
 	entry.user.Clear();
 	entry.date.SetData(GetSysTime());
 	entry.clock.SetData(GetSysTime());
-	
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_Clear() {
-	ALL_REFS
-	
+void BiographyPlatformCtrl::Platforms::Messaging::Clear() {
 	threads.Clear();
 	entries.Clear();
 	comments.Clear();
-	Platforms_Messaging_ClearEntry();
+	ClearEntry();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_OnValueChange() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !entries.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::OnValueChange() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	int entry_i = entries.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	PlatformEntry& e = pld.entries[entry_i];
@@ -285,65 +257,57 @@ void BiographyPlatformCtrl::Platforms_Messaging_OnValueChange() {
 	comments.Set(4, c.keywords);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_AddEntry() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::AddEntry() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	PlatformEntry& e = pld.entries.Add();
 	e.threads.Add();
 	
-	Platforms_Messaging_DataPlatform();
+	DataPlatform();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_RemoveEntry() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !entries.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::RemoveEntry() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	if (entry_i >= 0 && entry_i < pld.entries.GetCount())
 		pld.entries.Remove(entry_i);
 	
-	Platforms_Messaging_DataPlatform();
+	DataPlatform();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_AddThread() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::AddThread() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	PlatformEntry& e = pld.entries[entry_i];
 	PlatformThread& t = e.threads.Add();
 	
-	Platforms_Messaging_DataEntry();
+	DataEntry();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_RemoveThread() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !entries.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::RemoveThread() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	PlatformEntry& e = pld.entries[entry_i];
@@ -351,18 +315,16 @@ void BiographyPlatformCtrl::Platforms_Messaging_RemoveThread() {
 	if (thrd_i >= 0 && thrd_i < e.threads.GetCount())
 		e.threads.Remove(thrd_i);
 	
-	Platforms_Messaging_DataEntry();
+	DataEntry();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_AddComment() {
-	ALL_REFS
-	
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !threads.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::AddComment() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !threads.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	PlatformEntry& e = pld.entries[entry_i];
@@ -371,17 +333,16 @@ void BiographyPlatformCtrl::Platforms_Messaging_AddComment() {
 	PlatformComment& c = t.comments.Add();
 	c.published = GetSysTime();
 	
-	Platforms_Messaging_DataThread();
+	DataThread();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_RemoveComment() {
-	ALL_REFS
-	DatasetPtrs p = GetDataset();
-	if (!platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
+void BiographyPlatformCtrl::Platforms::Messaging::RemoveComment() {
+	DatasetPtrs p = o.GetDataset();
+	if (!o.p.platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	PlatformEntry& e = pld.entries[entry_i];
@@ -391,52 +352,47 @@ void BiographyPlatformCtrl::Platforms_Messaging_RemoveComment() {
 	if (comm_i >= 0 && comm_i < t.comments.GetCount())
 		t.comments.Remove(comm_i);
 	
-	Platforms_Messaging_DataThread();
+	DataThread();
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_EntryListMenu(Bar& bar) {
-	ALL_REFS
-	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddEntry)).Key(K_CTRL_W);
+void BiographyPlatformCtrl::Platforms::Messaging::EntryListMenu(Bar& bar) {
+	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(AddEntry)).Key(K_CTRL_W);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveEntry)).Key(K_CTRL_D);
+		bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(RemoveEntry)).Key(K_CTRL_D);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_ThreadListMenu(Bar& bar) {
-	ALL_REFS
-	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddThread)).Key(K_CTRL_E);
+void BiographyPlatformCtrl::Platforms::Messaging::ThreadListMenu(Bar& bar) {
+	bar.Add(t_("Add Thread"), TextImgs::BlueRing(), THISBACK(AddThread)).Key(K_CTRL_E);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveThread)).Key(K_CTRL_F);
+		bar.Add(t_("Remove Thread"), TextImgs::BlueRing(), THISBACK(RemoveThread)).Key(K_CTRL_F);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_CommentListMenu(Bar& bar) {
-	ALL_REFS
-	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_AddComment)).Key(K_CTRL_T);
+void BiographyPlatformCtrl::Platforms::Messaging::CommentListMenu(Bar& bar) {
+	bar.Add(t_("Add Comment"), TextImgs::BlueRing(), THISBACK(AddComment)).Key(K_CTRL_T);
 	if (entries.IsCursor())
-		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(Platforms_Messaging_RemoveComment)).Key(K_CTRL_H);
+		bar.Add(t_("Remove Comment"), TextImgs::BlueRing(), THISBACK(RemoveComment)).Key(K_CTRL_H);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_ToolMenu(Bar& bar) {
-	ALL_REFS
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 1)).Key(K_F6);
+void BiographyPlatformCtrl::Platforms::Messaging::ToolMenu(Bar& bar) {
+	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Clear thread's merged text"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_Do, 2)).Key(K_F7);
+	bar.Add(t_("Clear thread's merged text"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F7);
 	bar.Separator();
-	bar.Add(t_("Add their response from clipboard"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_PasteResponse, 0)).Key(K_CTRL_Q);
-	bar.Add(t_("Add own response from clipboard"), TextImgs::BlueRing(), THISBACK1(Platforms_Messaging_PasteResponse, 1)).Key(K_CTRL_W);
-	bar.Add(t_("Generate response"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 3)).Key(K_F8);
-	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Platforms_Messaging_Do, 4)).Key(K_F9);
+	bar.Add(t_("Add their response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 0)).Key(K_CTRL_Q);
+	bar.Add(t_("Add own response from clipboard"), TextImgs::BlueRing(), THISBACK1(PasteResponse, 1)).Key(K_CTRL_W);
+	bar.Add(t_("Generate response"), TextImgs::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
+	bar.Add(t_("Create keywords"), TextImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_PasteResponse(int fn) {
-	ALL_REFS
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Platforms::Messaging::PasteResponse(int fn) {
+	DatasetPtrs mp = o.GetDataset();
 	if (!mp.profile) return;
-	if (!platforms.IsCursor() || !threads.IsCursor()) return;
+	if (!o.p.platforms.IsCursor() || !threads.IsCursor()) return;
 	
 	Profile& prof = *mp.profile;
 	ProfileData& pd = ProfileData::Get(prof);
-	int plat_i = platforms.Get("IDX");
+	int plat_i = o.p.platforms.Get("IDX");
 	PlatformData& pld = pd.platforms[plat_i];
 	int entry_i = entries.Get("IDX");
 	PlatformEntry& e = pld.entries[entry_i];
@@ -470,12 +426,11 @@ void BiographyPlatformCtrl::Platforms_Messaging_PasteResponse(int fn) {
 		pc.generate = true;
 		pc.published = GetSysTime();
 	}
-	PostCallback(THISBACK(Platforms_Messaging_DataThread));
+	o.PostCallback(THISBACK(DataThread));
 }
 
-void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
-	ALL_REFS
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Platforms::Messaging::Do(int fn) {
+	DatasetPtrs mp = o.GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
 	SocialContentProcess& ss = SocialContentProcess::Get(mp);
@@ -486,11 +441,11 @@ void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
 		ss.Stop();
 	}
 	else if (fn == 2) {
-		if (!platforms.IsCursor() || !threads.IsCursor())
+		if (!o.p.platforms.IsCursor() || !threads.IsCursor())
 			return;
 		Profile& prof = *mp.profile;
 		ProfileData& pd = ProfileData::Get(prof);
-		int plat_i = platforms.Get("IDX");
+		int plat_i = o.p.platforms.Get("IDX");
 		PlatformData& pld = pd.platforms[plat_i];
 		int entry_i = entries.Get("IDX");
 		PlatformEntry& e = pld.entries[entry_i];
@@ -500,11 +455,11 @@ void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
 			t.comments[i].ClearMerged();
 	}
 	else if (fn == 3) {
-		if (!platforms.IsCursor() || !threads.IsCursor())
+		if (!o.p.platforms.IsCursor() || !threads.IsCursor())
 			return;
 		Profile& prof = *mp.profile;
 		ProfileData& pd = ProfileData::Get(prof);
-		int plat_i = platforms.Get("IDX");
+		int plat_i = o.p.platforms.Get("IDX");
 		PlatformData& pld = pd.platforms[plat_i];
 		int entry_i = entries.Get("IDX");
 		PlatformEntry& e = pld.entries[entry_i];
@@ -534,15 +489,15 @@ void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
 				suggs << "- " << s;
 			}
 			pc0.message = suggs;
-			PostCallback(THISBACK(Platforms_Messaging_DataThread));
+			o.PostCallback(THISBACK(DataThread));
 		});
 	}
 	else if (fn == 4) {
-		if (!platforms.IsCursor() || !comments.IsCursor())
+		if (!o.p.platforms.IsCursor() || !comments.IsCursor())
 			return;
 		Profile& prof = *mp.profile;
 		ProfileData& pd = ProfileData::Get(prof);
-		int plat_i = platforms.Get("IDX");
+		int plat_i = o.p.platforms.Get("IDX");
 		PlatformData& pld = pd.platforms[plat_i];
 		int entry_i = entries.Get("IDX");
 		PlatformEntry& e = pld.entries[entry_i];
@@ -560,7 +515,7 @@ void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
 			res = TrimBoth(res);
 			RemoveQuotes(res);
 			pc.keywords = res;
-			PostCallback(THISBACK(Platforms_Messaging_DataComment));
+			o.PostCallback(THISBACK(DataComment));
 		});
 	}
 }
@@ -568,6 +523,3 @@ void BiographyPlatformCtrl::Platforms_Messaging_Do(int fn) {
 
 
 END_UPP_NAMESPACE
-
-#undef PREF
-#undef REF

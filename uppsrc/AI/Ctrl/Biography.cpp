@@ -35,6 +35,10 @@ BiographyCtrl::BiographyCtrl() {
 void BiographyCtrl::Data() {
 	Biography& biography = GetExt<Biography>();
 	DatasetPtrs p = GetDataset();
+	if (!p.owner->born.IsValid() || p.owner->born.year < -2000 || p.owner->born.year >= 3000) {
+		PromptOK("Error: Owner has no valid birth date");
+		return;
+	}
 	
 	for(int i = 0; i < categories.GetCount(); i++) {
 		int cat_i = categories.Get(i, "IDX");

@@ -2569,6 +2569,34 @@ void AiTask::CreateInput_SocialBeliefsProcess() {
 	}
 }
 
+void AiTask::CreateInput_Marketplace() {
+	if (args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+	
+	MarketplaceArgs args;
+	args.Put(this->args[0]);
+	{
+		auto& list = input.AddSub().Title("Information about the marketplace item");
+		for(int i = 0; i < args.map.GetCount(); i++)
+			if (args.map[i].GetCount())
+				list.Add(args.map.GetKey(i), args.map[i]);
+	}
+	
+	const VectorMap<String, Vector<String>>& sects = GetMarketplaceSections();
+	
+	if (args.fn == 0) {
+		{
+			TaskTitledList& results = input.PreAnswer();
+			results.Title("Write the description for the marketplace item in Finnish. This is for a drift store, so don't oversell it. Don't include the price nor category");
+			results.NoListChar();
+			results.Add("");
+		}
+		input.response_length = 2048;
+	}
+}
+
 
 END_UPP_NAMESPACE
 

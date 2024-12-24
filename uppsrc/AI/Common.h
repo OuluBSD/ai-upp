@@ -503,6 +503,19 @@ struct TextRange : Moveable<TextRange> {
 	bool Contains(const Point& pt) const {return RangeContains(pt, begin, end);}
 };
 
+struct MarketplaceArgs {
+	int fn = 0;
+	VectorMap<String,String> map;
+	
+	void Jsonize(JsonIO& json) {
+		json	("fn", fn)
+				("map", map)
+				;
+	}
+	String Get() const {return StoreAsJson(*this);}
+	void Put(const String& s) {LoadFromJson(*this, s);}
+};
+
 END_UPP_NAMESPACE
 
 #endif

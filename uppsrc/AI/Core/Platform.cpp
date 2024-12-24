@@ -1650,4 +1650,10 @@ void PlatformProcess::OnProcessAnalyzePlatformEpkPhotoAiPrompts(String res) {
 	NextSubBatch();
 }
 
+void PlatformComment::ClearMerged() {
+	text_merged_status.Clear();
+	for (auto& o : responses)
+		o.ClearMerged();
+}
+
 END_UPP_NAMESPACE

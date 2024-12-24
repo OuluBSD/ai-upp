@@ -1,18 +1,8 @@
 #include "Ctrl.h"
-#define PREF(obj) auto& obj = p.obj;
-#define REF(obj) auto& obj = p.header.obj;
 
 NAMESPACE_UPP
 
-#error TODO remove Platforms_Header_ etc.
-
-void BiographyPlatformCtrl::Platforms_Header_Ctor() {
-	REF(vsplit);
-	REF(entries);
-	REF(entry_split);
-	REF(attr_keys);
-	REF(attr_value);
-	
+void BiographyPlatformCtrl::Platforms::Header::Ctor() {
 	this->p.tabs.Add(vsplit.SizePos(), "Header");
 	
 	vsplit.Vert() << entries << entry_split;
@@ -26,7 +16,7 @@ void BiographyPlatformCtrl::Platforms_Header_Ctor() {
 	entries.AddColumn(t_("Score"));
 	entries.AddIndex("IDX");
 	entries.ColumnWidths("3 5 10 4 1 1");
-	entries.WhenBar << THISBACK(Platforms_Header_EntryListMenu);
+	entries.WhenBar << THISBACK(EntryListMenu);
 	
 	entry_split.Horz() << attr_keys << attr_value;
 	entry_split.SetPos(2500);
@@ -43,29 +33,22 @@ void BiographyPlatformCtrl::Platforms_Header_Ctor() {
 		}
 	}
 	attr_keys.SetCursor(0);
-	attr_keys.WhenCursor << THISBACK(Platforms_Header_DataPlatform);
-	attr_value.WhenAction << THISBACK(Platforms_Header_OnValueChange);
+	attr_keys.WhenCursor << THISBACK(DataPlatform);
+	attr_value.WhenAction << THISBACK(OnValueChange);
 	
 }
 
-void BiographyPlatformCtrl::Platforms_Header_DataPlatform() {
-	PREF(platforms)
-	REF(vsplit);
-	REF(entries);
-	REF(entry_split);
-	REF(attr_keys);
-	REF(attr_value);
-	
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Platforms::Header::DataPlatform() {
+	DatasetPtrs mp = o.GetDataset();
 	Biography& biography = *mp.biography;
 	BiographyPlatform& analysis = *mp.analysis;
 	
-	if (!mp.profile || !platforms.IsCursor()) {
+	if (!mp.profile || !o.p.platforms.IsCursor()) {
 		attr_value.Clear();
 		return;
 	}
 	
-	int plat_i = platforms.GetCursor();
+	int plat_i = o.p.platforms.GetCursor();
 	
 	const Platform& plat = GetPlatforms()[plat_i];
 	if (plat_i >= analysis.platforms.GetCount()) {
@@ -92,22 +75,15 @@ void BiographyPlatformCtrl::Platforms_Header_DataPlatform() {
 	}
 }
 
-void BiographyPlatformCtrl::Platforms_Header_OnValueChange() {
-	PREF(platforms)
-	REF(vsplit);
-	REF(entries);
-	REF(entry_split);
-	REF(attr_keys);
-	REF(attr_value);
-	
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Platforms::Header::OnValueChange() {
+	DatasetPtrs mp = o.GetDataset();
 	Biography& biography = *mp.biography;
 	BiographyPlatform& analysis = *mp.analysis;
 	
-	if (!platforms.IsCursor() || !attr_keys.IsCursor())
+	if (!o.p.platforms.IsCursor() || !attr_keys.IsCursor())
 		return;
 	
-	int plat_i = platforms.GetCursor();
+	int plat_i = o.p.platforms.GetCursor();
 	const Platform& plat = GetPlatforms()[plat_i];
 	PlatformBiographyPlatform& plat_anal = analysis.platforms[plat_i];
 	
@@ -122,24 +98,17 @@ void BiographyPlatformCtrl::Platforms_Header_OnValueChange() {
 		plat_anal.descriptions[len_i][mode_i] = attr_value.GetData();
 }
 
-void BiographyPlatformCtrl::Platforms_Header_ToolMenu(Bar& bar) {
+void BiographyPlatformCtrl::Platforms::Header::ToolMenu(Bar& bar) {
 	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
-void BiographyPlatformCtrl::Platforms_Header_EntryListMenu(Bar& bar) {
+void BiographyPlatformCtrl::Platforms::Header::EntryListMenu(Bar& bar) {
 	
 }
 
-void BiographyPlatformCtrl::Platforms_Header_Do(int fn) {
-	PREF(platforms)
-	REF(vsplit);
-	REF(entries);
-	REF(entry_split);
-	REF(attr_keys);
-	REF(attr_value);
-	
-	DatasetPtrs mp = GetDataset();
+void BiographyPlatformCtrl::Platforms::Header::Do(int fn) {
+	DatasetPtrs mp = o.GetDataset();
 	if (!mp.profile || !mp.release)
 		return;
 	SocialHeaderProcess& ss = SocialHeaderProcess::Get(mp);
@@ -153,5 +122,3 @@ void BiographyPlatformCtrl::Platforms_Header_Do(int fn) {
 
 
 END_UPP_NAMESPACE
-#undef PREF
-#undef REF

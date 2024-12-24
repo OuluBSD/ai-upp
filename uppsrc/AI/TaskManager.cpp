@@ -519,6 +519,25 @@ void TaskMgr::GetPerspectiveProcess(const BeliefArgs& args, Event<String> WhenRe
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetMarketplace(const MarketplaceArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	String s = args.Get();
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "marketplace"))
+		.Input(&AiTask::CreateInput_Marketplace)
+		.Process(&AiTask::Process_Default);
+	
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

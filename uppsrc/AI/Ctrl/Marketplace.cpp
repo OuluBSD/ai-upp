@@ -16,7 +16,7 @@ const VectorMap<String, Vector<String>>& GetMarketplaceSections() {
 
 
 void BiographyPlatformCtrl::Platforms::Marketplace::Ctor() {
-	o.p.tabs.Add(hsplit.SizePos(), "Marketplace");
+	this->p.tabs.Add(hsplit.SizePos(), "Marketplace");
 	
 	hsplit.Horz() << items << tabs << imgsplit;
 	hsplit.SetPos(1500, 0);
@@ -460,7 +460,8 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 		hash_t h = mi.images[img_i];
 		
 		if (h) {
-			String path = CacheImageFile(h);
+			String cache_dir = ConfigFile("");
+			String path = CacheImageFile(cache_dir, h);
 			Image i = StreamRaster::LoadFileAny(path);
 			i = RotateClockwise(i);
 			JPGEncoder enc(100);
@@ -481,7 +482,8 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 		hash_t h = mi.images[img_i];
 		
 		if (h) {
-			String path = CacheImageFile(h);
+			String cache_dir = ConfigFile("");
+			String path = CacheImageFile(cache_dir, h);
 			Image i = StreamRaster::LoadFileAny(path);
 			i = RotateAntiClockwise(i);
 			JPGEncoder enc(100);
@@ -490,7 +492,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 		}
 	}
 	else if (fn == 11 || fn == 12) {
-		MarketplaceProcess& ss = MarketplaceProcess::Get(*p.owner);
+		MarketplaceProcess& ss = MarketplaceProcess::Get(p);
 		if (fn == 11)
 			ss.Start();
 		else if (fn == 12)
@@ -586,7 +588,8 @@ void BiographyPlatformCtrl::Platforms::Marketplace::SetCurrentImage(Image img) {
 	MarketplaceItem& mi = mp.analysis->market_items[item_i];
 	
 	hash_t h = img.GetHashValue();
-	String cache_path = CacheImageFile(h);
+	String cache_dir = ConfigFile("");
+	String cache_path = CacheImageFile(cache_dir, h);
 	RealizeDirectory(GetFileDirectory(cache_path));
 	
 	if (!FileExists(cache_path)) {
@@ -623,8 +626,9 @@ void BiographyPlatformCtrl::Platforms::Marketplace::MakeTempImages() {
 	}
 	while (ff.Next());
 	
+	String cache_dir = ConfigFile("");
 	for(int i = 0; i < mi.images.GetCount(); i++) {
-		String src = CacheImageFile(mi.images[i]);
+		String src = CacheImageFile(cache_dir, mi.images[i]);
 		String dst = AppendFileName(dir, IntStr(i) + ".jpg");
 		FileIn in(src);
 		FileOut out(dst);

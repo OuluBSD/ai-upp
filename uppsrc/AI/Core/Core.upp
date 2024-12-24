@@ -52,6 +52,7 @@ file
 	SocialHeader.cpp,
 	SocialContent.cpp,
 	SocialNeeds.cpp,
+	SocialMarketplace.cpp,
 	Public readonly separator,
 	Profile.h,
 	Profile.cpp,

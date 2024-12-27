@@ -442,6 +442,7 @@ struct MetaExtFactory {
 	
 	struct Factory {
 		int kind;
+		int category;
 		String name;
 		String ctrl_name;
 		NewFn new_fn = 0;
@@ -463,6 +464,7 @@ struct MetaExtFactory {
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>());
 		Factory& f = List().Add();
 		f.kind = T::GetKind();
+		f.category = FindKindCategory(f.kind);
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
@@ -485,6 +487,7 @@ struct MetaExtFactory {
 	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
 	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
 	static int FindKindFactory(int kind);
+	static int FindKindCategory(int kind);
 };
 
 #define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}

@@ -88,6 +88,21 @@ String GetCategoryString(int i) {
 	}
 }
 
+String GetCategoryGroupString(int i) {
+	switch (i) {
+		case CATEGORY_GROUP_PROGRAMMING:	return "Programming";
+		case CATEGORY_GROUP_VALUE:			return "Value";
+		case CATEGORY_GROUP_VISIBILITY:		return "Visibility";
+		case CATEGORY_GROUP_GENDER:			return "Gender";
+		case CATEGORY_GROUP_TRANSACTION:	return "Transaction";
+		case CATEGORY_GROUP_DESIRABILITY:	return "Desirability";
+		case CATEGORY_GROUP_AUDIO_PRODUCT:	return "Audio product";
+		case CATEGORY_GROUP_VISUAL_PRODUCT:	return "Visual product";
+		
+		default: return String();
+	}
+}
+
 Vector<String> GetCategories() {
 	Vector<String> v;
 	for(int i = 0; i < CATEGORY_COUNT; i++)

@@ -101,6 +101,19 @@ enum {
 	CATEGORY_COUNT // feel free to add
 };
 
+enum {
+	CATEGORY_GROUP_PROGRAMMING,
+	CATEGORY_GROUP_VALUE,
+	CATEGORY_GROUP_VISIBILITY,
+	CATEGORY_GROUP_GENDER,
+	CATEGORY_GROUP_TRANSACTION,
+	CATEGORY_GROUP_DESIRABILITY,
+	CATEGORY_GROUP_AUDIO_PRODUCT,
+	CATEGORY_GROUP_VISUAL_PRODUCT,
+	
+	CATEGORY_GROUP_COUNT
+};
+String GetCategoryGroupString(int i);
 String GetCategoryString(int i);
 Vector<String> GetCategories();
 int FindCategory(const String& s);

@@ -278,25 +278,114 @@ void EntityEditorCtrl::AddComponent() {
 	WithComponentSelection<TopWindow> dlg;
 	CtrlLayoutOKCancel(dlg, title);
 	Vector<int> list;
-	for(int i = 0; i < MetaExtFactory::List().GetCount(); i++) {
-		auto& cf = MetaExtFactory::List()[i];
-		if (IsEcsComponentKind(cf.kind)) {
-			list.Add(i);
-			dlg.complist.Add(cf.name);
+	auto on_group = [&dlg] {
+		int idx = dlg.catgroup.GetIndex();
+		int prev_value = idx >= 0 && idx < dlg.catgroup.GetCount() ? (int)dlg.catgroup.GetKey(idx) : -1;
+		int g = dlg.group.GetIndex() - 1;
+		bool filter_group = g >= 0;
+		dlg.catgroup.Clear();
+		dlg.catgroup.Add(-1,"Any");
+		int new_cursor = 0;
+		for(int i = 0; i < CATEGORY_GROUP_COUNT; i++) {
+			if (filter_group) {
+				int count = 0;
+				for(const auto& factory : MetaExtFactory::List()) {
+					int group = (int)factory.category % 2;
+					if (g == group)
+						count++;
+				}
+				if (!count)
+					continue;
+			}
+			if (prev_value == i)
+				new_cursor = dlg.catgroup.GetCount();
+			dlg.catgroup.Add(i, GetCategoryGroupString(i));
 		}
-	}
-	if (dlg.complist.GetCount() == 0) return;
-	dlg.complist.SetIndex(0);
+		dlg.catgroup.SetIndex(new_cursor);
+		dlg.catgroup.WhenAction();
+	};
+	auto on_catgroup = [&dlg] {
+		int idx = dlg.catgroup.GetIndex();
+		int prev_value = idx >= 0 && idx < dlg.category.GetCount() ? (int)dlg.category.GetKey(idx) : -1;
+		int g = dlg.group.GetIndex() - 1;
+		bool filter_group = g >= 0;
+		int cg = dlg.catgroup.GetKey(idx);
+		bool filter_catgroup = cg >= 0;
+		dlg.category.Clear();
+		dlg.category.Add(-1,"Any");
+		int new_cursor = 0;
+		for(int i = 0; i < CATEGORY_COUNT; i++) {
+			if (filter_group && i % 2 != g)
+				continue;
+			if (filter_catgroup && i / 2 != cg)
+				continue;
+			if (prev_value == i)
+				new_cursor = dlg.category.GetCount();
+			dlg.category.Add(i, GetCategoryString(i));
+		}
+		dlg.category.SetIndex(new_cursor);
+		dlg.category.WhenAction();
+	};
+	auto on_filter_change = [&dlg] {
+		int g = dlg.group.GetIndex() - 1;
+		int cg = dlg.catgroup.GetKey(dlg.catgroup.GetIndex());
+		int c = dlg.category.GetKey(dlg.category.GetIndex());
+		int cursor_kind = dlg.complist.IsCursor() ? (int)dlg.complist.Get("KIND") : -1;
+		dlg.complist.SetCount(0);
+		auto on_row = [&](int kind, int cat, String desc) {
+			int mod = (int)cat % 2;
+			int div = (int)cat / 2;
+			if ((g  < 0 || mod == g) &&
+				(cg < 0 || div == cg) &&
+				(c  < 0 || cat == c)) {
+				const char* grp = mod == 0 ? "A":"B";
+				dlg.complist.Add(desc, GetCategoryString(cat), GetCategoryGroupString(div), grp, kind);
+			}
+		};
+		#define DATASET_ITEM(type, name, kind, cat, desc) on_row(kind,cat,desc);
+		COMPONENT_LIST
+		#undef DATASET_ITEM
+		dlg.complist.SetSortColumn(0);
+		if (cursor_kind >= 0) {
+			for(int i = 0; i < dlg.complist.GetCount(); i++) {
+				if (dlg.complist.Get(i, "KIND") == cursor_kind) {
+					dlg.complist.SetCursor(i);
+					break;
+				}
+			}
+		}
+		else if (dlg.complist.GetCount())
+			dlg.complist.SetCursor(0);
+	};
+	dlg.complist.AddColumn("Name");
+	dlg.complist.AddColumn("Category");
+	dlg.complist.AddColumn("Cat. Group");
+	dlg.complist.AddColumn("Sub-Group");
+	dlg.complist.AddIndex("KIND");
+	dlg.group.Add("Any");
+	dlg.group.Add("A");
+	dlg.group.Add("B");
+	dlg.group.SetIndex(0);
+	dlg.group.WhenAction = on_group;
+	on_group();
+	dlg.catgroup.SetIndex(0);
+	dlg.catgroup.WhenAction = on_catgroup;
+	on_catgroup();
+	dlg.category.SetIndex(0);
+	dlg.category.WhenAction = on_filter_change;
+	on_filter_change();
+	dlg.complist.SetCursor(0);
 	dlg.complist.SetFocus();
 	if(dlg.Execute() == IDOK) {
-		int i = dlg.complist.GetIndex();
-		int ext_i = list[i];
-		if (ext_i < 0 || ext_i >= MetaExtFactory::List().GetCount()) return;
-		const auto& factory = MetaExtFactory::List()[ext_i];
-		auto& ext = e->node.Add(factory.kind);
-		ASSERT(ext.kind == factory.kind);
-		PostCallback(THISBACK(Data));
-		PostCallback([this]{extlist.SetCursor(extlist.GetCount()-1);}); // select last extension (component)
+		int kind = dlg.complist.Get("KIND");
+		for(const auto& factory : MetaExtFactory::List()) {
+			if (factory.kind != kind) continue;
+			auto& ext = e->node.Add(factory.kind);
+			ASSERT(ext.kind == factory.kind);
+			PostCallback(THISBACK(Data));
+			PostCallback([this]{extlist.SetCursor(extlist.GetCount()-1);}); // select last extension (component)
+			break;
+		}
 	}
 }
 

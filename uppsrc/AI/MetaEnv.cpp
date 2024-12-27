@@ -2143,6 +2143,13 @@ int MetaExtFactory::FindKindFactory(int kind) {
 	return -1;
 }
 
+int MetaExtFactory::FindKindCategory(int k) {
+	#define DATASET_ITEM(type, name, kind, group, desc) if (k == kind) return group;
+	DATASET_LIST
+	#undef DATASET_ITEM
+	return -1;
+}
+
 void MetaNodeExt::CopyFrom(const MetaNodeExt& e) {
 	StringStream s;
 	s.SetStoring();

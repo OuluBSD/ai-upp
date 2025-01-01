@@ -35,6 +35,7 @@ BiographyCtrl::BiographyCtrl() {
 void BiographyCtrl::Data() {
 	Biography& biography = GetExt<Biography>();
 	DatasetPtrs p = GetDataset();
+	if (!p.owner) {PromptOK("No owner was found"); return;}
 	if (!p.owner->born.IsValid() || p.owner->born.year < -2000 || p.owner->born.year >= 3000) {
 		PromptOK("Error: Owner has no valid birth date");
 		return;

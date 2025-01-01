@@ -47,7 +47,9 @@ String GetAiPathCandidate(const String& includes_, String dir)
 	Vector<String> upp_dirs = GetUppDirs();
 	String dummy_cand, def_cand, any_ai_cand, preferred_ai_cand;
 	int def_cand_parts = INT_MAX;
-	dummy_cand = dir + DIR_SEPS + "Meta.bin";
+	String filename = META_FILENAME;
+	dummy_cand = dir + DIR_SEPS + filename;
+	
 	if(!ai_dirs.IsEmpty()) {
 		for(const String& upp_dir : upp_dirs) {
 			if(dir.Find(upp_dir) != 0)
@@ -55,11 +57,13 @@ String GetAiPathCandidate(const String& includes_, String dir)
 			String rel_path = dir.Mid(upp_dir.GetCount());
 			for(const String& ai_dir : ai_dirs) {
 				String ai_dir_cand = AppendFileName(ai_dir, rel_path);
-				String path = AppendFileName(ai_dir_cand, "Meta.bin");
+				String path = AppendFileName(ai_dir_cand, filename);
 				if(any_ai_cand.IsEmpty())
 					any_ai_cand = path;
-				if(preferred_ai_cand.IsEmpty() && FileExists(path))
-					preferred_ai_cand = path;
+				if(preferred_ai_cand.IsEmpty()) {
+					if (META_EXISTS_FN(path))
+						preferred_ai_cand = path;
+				}
 			}
 		}
 	}
@@ -72,7 +76,7 @@ String GetAiPathCandidate(const String& includes_, String dir)
 		String ai_dir, rel_dir;
 		if(MakeRelativePath(includes_, dir, ai_dir, rel_dir)) {
 			String abs_dir = AppendFileName(ai_dir, rel_dir);
-			def_cand = AppendFileName(abs_dir, "Meta.bin");
+			def_cand = AppendFileName(abs_dir, filename);
 		}
 	}
 
@@ -120,24 +124,17 @@ void MetaSrcFile::ClearTemp() {
 	temp.Clear();
 }
 
-void MetaSrcFile::Jsonize(JsonIO& json)
+void MetaSrcFile::Visit(NodeVisitor& vis)
 {
-	if (json.IsLoading() || temp.IsEmpty())
+	if (vis.IsLoading() || temp.IsEmpty())
 		temp.Create();
-	json
-		("id", id)
+	vis.Ver(1)
+	(1)	("id", id)
 		("hash", saved_hash)
 		("highest_seen_serial", (int64&)highest_seen_serial)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
-	    ("root", *temp)
+	    ("root", *temp, VISIT_NODE)
 	    ;
-}
-
-void MetaSrcFile::Serialize(Stream& s)
-{
-	if (s.IsLoading() || temp.IsEmpty())
-		temp.Create();
-	s % id % saved_hash % highest_seen_serial % seen_types % *temp;
 }
 
 String MetaSrcFile::StoreJson()
@@ -161,7 +158,7 @@ String MetaSrcFile::StoreJson()
 	ASSERT(!full_path.IsEmpty());
 	RefreshSeenTypes();
 	
-	String json = StoreAsJson(*this);
+	String json = VisitToJson(*this);
 	
 	saved_hash = old_hash;
 	
@@ -201,20 +198,30 @@ bool MetaSrcFile::Store(bool forced)
 	
 	lock.Enter();
 	RealizeDirectory(GetFileDirectory(full_path));
+	bool succ = true;
 	
-	if (IsBinary()) {
+	if (IsDirTree()) {
+		VersionControlSystem vcs;
+		vcs.Initialize(full_path);
+		vcs.SetStoring();
+		NodeVisitor vis(vcs);
+		this->Visit(vis);
+		vcs.Close();
+	}
+	else if (IsBinary()) {
 		FileOut s(full_path);
-		this->Serialize(s);
+		NodeVisitor vis(s);
+		this->Visit(vis);
 		s.Close();
 	}
 	else {
-		StoreAsJsonFile(*this, full_path);
+		succ = VisitToJsonFile(*this, full_path);
 	}
 	
 	lock.Leave();
 	
 	temp.Clear();
-	return true;
+	return succ;
 }
 
 bool MetaSrcFile::Load()
@@ -225,14 +232,23 @@ bool MetaSrcFile::Load()
 	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
 	temp.Create();
 	ASSERT(this->full_path.GetCount());
-	if (IsBinary()) {
+	if (IsDirTree()) {
+		VersionControlSystem vcs;
+		vcs.Initialize(full_path);
+		vcs.SetLoading();
+		NodeVisitor vis(vcs);
+		this->Visit(vis);
+		vcs.Close();
+	}
+	else if (IsBinary()) {
 		FileIn s(full_path);
+		NodeVisitor vis(s);
 		if(s.GetSize() > 0)
-			Serialize(s);
+			this->Visit(vis);
 		s.Close();
 	}
 	else {
-		LoadFromJsonFile(*this, full_path);
+		VisitFromJsonFile(*this, full_path);
 	}
 	
 	
@@ -265,7 +281,7 @@ bool MetaSrcFile::LoadJson(String json) {
 	
 	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
 	temp.Create();
-	LoadFromJson(*this, json);
+	VisitFromJson(*this, json);
 	
 	if (!saved_hash.IsEmpty()) {
 		ASSERT(id >= 0 && pkg->id >= 0);
@@ -344,7 +360,7 @@ void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 void MetaSrcPkg::Init()
 {
 	ASSERT(dir.GetCount());
-	String path = AppendFileName(dir, "Meta.bin");
+	String path = AppendFileName(dir, META_FILENAME);
 	MetaSrcFile& file = GetAddFile(path);
 	file.KeepFileIndices();
 	file.ManageFile();
@@ -354,7 +370,7 @@ void MetaSrcPkg::Init()
 bool MetaSrcPkg::Store(bool forced)
 {
 	ASSERT(dir.GetCount());
-	String path = AppendFileName(dir, "Meta.bin");
+	String path = AppendFileName(dir, META_FILENAME);
 	MetaEnvironment& env = MetaEnv();
 	MetaSrcFile& file = GetAddFile(path);
 	MetaSrcPkg& pkg = *file.pkg;
@@ -497,6 +513,11 @@ String MetaSrcPkg::GetFullPath(int file_i) const
 	return files[file_i].full_path;
 }
 
+void MetaSrcPkg::Visit(NodeVisitor& vis) {
+	vis.Ver(1)
+	(1)	("files", files, VISIT_VECTOR);
+}
+
 #if 0
 MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 {
@@ -539,7 +560,7 @@ MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 
 MetaSrcFile& MetaSrcPkg::GetMetaFile() {
 	ASSERT(dir.GetCount());
-	String path = AppendFileName(dir, "Meta.bin");
+	String path = AppendFileName(dir, META_FILENAME);
 	return GetAddFile(path);
 }
 
@@ -642,7 +663,7 @@ MetaSrcFile& MetaEnvironment::ResolveFile(const String& includes, const String& 
 }
 
 int MetaEnvironment::FindPkg(String dir) const {
-	ASSERT(dir.Find("Meta.bin") < 0); // NOT HERE
+	ASSERT(dir.Find(META_FILENAME) < 0); // NOT HERE
 	ASSERT(DirectoryExists(dir));
 	if (dir.Right(1) != DIR_SEPS)
 		dir.Cat(DIR_SEPS);
@@ -748,25 +769,22 @@ MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 	return 0;
 }
 
-MetaNode* MetaEnvironment::LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data) {
-	data.Replace("\r","");
-	if (data.Find("{\n\t\"written\":") >= 0) {
-		MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
-		One<SrcTxtHeader> ext;
-		ext.Create(filenode);
-		ext->filepath = path;
-		LoadFromJson(*ext, data);
-		DatasetIndex().GetAdd(path) = &*ext;
-		filenode.serial = NewSerial();
-		filenode.ext = ext.Detach();
-		ASSERT(&filenode.ext->node == &filenode);
-		filenode.id = GetFileTitle(path);
-		return &filenode;
-	}
-	else {
-		Panic("TODO");
-	}
-	return 0;
+MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis) {
+	//data.Replace("\r","");
+	//if (data.Find("{\n\t\"written\":") >= 0) {
+	Panic("TODO");
+	
+	MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+	One<SrcTxtHeader> ext;
+	ext.Create(filenode);
+	ext->filepath = path;
+	ext->Visit(vis);
+	DatasetIndex().GetAdd(path) = &*ext;
+	filenode.serial = NewSerial();
+	filenode.ext = ext.Detach();
+	ASSERT(&filenode.ext->node == &filenode);
+	filenode.id = GetFileTitle(path);
+	return &filenode;
 }
 
 bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, bool manage_file)
@@ -777,7 +795,10 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	// Hotfix for old .db-src file
 	if (GetFileExt(path) == ".db-src") {
 		String json = LoadFile(path);
-		if (LoadDatabaseSourceJson(file, path, json))
+		Value jv = ParseJSON(json);
+		JsonIO j(jv);
+		NodeVisitor vis(j);
+		if (LoadDatabaseSourceVisit(file, path, vis))
 			return true;
 	}
 	
@@ -793,7 +814,7 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	return false;
 }
 
-bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file, MetaNode** file_node) {
+bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode** file_node) {
 	if (file_node) *file_node = 0;
 	
 	MetaSrcFile& file = ResolveFile(includes, path);
@@ -801,7 +822,7 @@ bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& pat
 	
 	// Hotfix for old .db-src file
 	if (GetFileExt(path) == ".db-src") {
-		MetaNode* fn = LoadDatabaseSourceJson(file, path, json);
+		MetaNode* fn = LoadDatabaseSourceVisit(file, path, vis);
 		if (fn) {
 			if (file_node)
 				*file_node = fn;
@@ -809,7 +830,9 @@ bool MetaEnvironment::LoadFileRootJson(const String& includes, const String& pat
 		}
 	}
 	
-	if(file.LoadJson(json)) {
+	ASSERT(vis.IsLoading());
+	file.Visit(vis);
+	if (!vis.IsError()) {
 		OnLoadFile(file);
 		file.ClearTemp();
 		return true;
@@ -1708,39 +1731,10 @@ hash_t MetaNode::GetTotalHash() const
 	return ch;
 }
 
-void MetaNode::Serialize(Stream& s)
-{
-	s
-		% kind
-		% id
-		% type
-		% type_hash
-		% begin
-		% end
-		% filepos_hash
-		% file
-		//% pkg
-		% is_ref
-		% is_definition
-		% is_disabled
-		% serial
-		;
-	bool has_ext = ext;
-	s % has_ext;
-	if (has_ext) {
-		if (s.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
-		s % *ext;
-	}
-	s	% sub
-		;
-	if(s.IsLoading())
-		FixParent();
-}
-
-void MetaNode::Jsonize(JsonIO& json) {
+void MetaNode::Visit(NodeVisitor& vis) {
 	#define Do(x) (#x,x)
-	json
-		Do(kind)
+	vis.Ver(1)
+	(1)	Do(kind)
 		Do(id)
 		Do(type)
 		Do((int64&)type_hash)
@@ -1756,19 +1750,21 @@ void MetaNode::Jsonize(JsonIO& json) {
 		;
 	
 	bool has_ext = ext;
-	json("has_ext", has_ext);
+	vis("has_ext", has_ext);
 	if (has_ext) {
-		if (json.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
+		if (vis.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
 		if (ext)
-			json("ext",*ext);
+			vis("ext",*ext, VISIT_NODE);
 	}
-	json
-		Do(sub)
+	vis
+		("sub", sub, VISIT_VECTOR)
 		;
 	#undef Do
+	if (vis.IsLoading())
+		FixParent();
 	
 	#if 1
-	if (json.IsLoading())
+	if (vis.IsLoading())
 		Chk();
 	#endif
 }

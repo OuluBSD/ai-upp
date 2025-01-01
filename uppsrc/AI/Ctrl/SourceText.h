@@ -239,14 +239,13 @@ public:
 	void SetFont(Font fnt);
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
-	void OnLoad(const String& data, const String& filepath) override;
-	void OnSave(String& data, const String& filepath) override;
+	void Visit(NodeVisitor& vis) override;
 	void Do(int fn);
 	void SetDataCtrl();
 	
 	static bool AcceptsExt(String e) { return e == ".db-src"; }
 	static String GetID() { return "SourceText"; }
-	
+	static bool IsSaveDirectory() {return false;}
 };
 
 END_UPP_NAMESPACE

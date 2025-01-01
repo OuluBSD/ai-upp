@@ -64,8 +64,7 @@ public:
 	void DataEntity();
 	void DataExtension();
 	void DataExtCtrl();
-	void OnLoad(const String& data, const String& filepath) override;
-	void OnSave(String& data, const String& filepath) override;
+	void Visit(NodeVisitor& vis) override;
 	void AddEntity();
 	void RemoveEntity();
 	void AddComponent();
@@ -76,6 +75,7 @@ public:
 	
 	static bool AcceptsExt(String e) { return e == ".ecs"; }
 	static String GetID() { return "Entity Editor"; }
+	static bool IsSaveDirectory() {return true;}
 	
 	void Do(int i);
 };

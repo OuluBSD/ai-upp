@@ -150,19 +150,44 @@ void ToolAppCtrl::MakeComponentParts(ArrayCtrl& parts) {
 		parts.SetCursor(0);*/
 }
 
-void ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
+bool ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
 	data = in.Get((int)in.GetSize());
 	data_includes = includes;
 	data_filepath = filename;
-	OnLoad(data, filename);
+	data_dirpath.Clear();
+	VisitFromJson(*this, data);
+	return true;
+}
+
+bool ToolAppCtrl::LoadDirectory(const String& includes, const String& dirpath, byte charset) {
+	data.Clear();
+	data_includes = includes;
+	data_filepath.Clear();
+	data_dirpath = dirpath;
+	VersionControlSystem vcs;
+	vcs.Initialize(data_dirpath);
+	vcs.SetStoring();
+	NodeVisitor vis(vcs);
+	this->Visit(vis);
+	vcs.Close();
+	return true;
 }
 
 void ToolAppCtrl::Save(Stream& s, byte charset) {
-	String new_data;
-	OnSave(new_data, data_filepath);
+	String new_data = VisitToJson(*this);
 	if (!new_data.IsEmpty())
 		data = new_data;
 	s.Put(data);
 }
-	
+
+void ToolAppCtrl::SaveDirectory(byte charset) {
+	VersionControlSystem vcs;
+	vcs.Initialize(data_dirpath);
+	vcs.SetStoring();
+	NodeVisitor vis(vcs);
+	this->Visit(vis);
+	vcs.Close();
+	data.Clear();
+}
+
 END_UPP_NAMESPACE

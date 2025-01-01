@@ -1615,8 +1615,8 @@ void SourceTextCtrl::Data() {
 	}
 }
 
-void SourceTextCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaNode* n = 0;
+void SourceTextCtrl::Visit(NodeVisitor& vis) {
+	TODO/*MetaNode* n = 0;
 	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true, &n);
 	SetFileNode(n);
 }
@@ -1624,7 +1624,7 @@ void SourceTextCtrl::OnLoad(const String& data, const String& filepath) {
 void SourceTextCtrl::OnSave(String& data, const String& filepath) {
 	
 	LOG("warning: skipping saving");
-	
+	*/
 }
 
 void SourceTextCtrl::ToolMenu(Bar& bar) {

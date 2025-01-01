@@ -2,6 +2,15 @@
 #define _AI_MetaSrcPkg_h_
 
 #define DEBUG_METANODE_DTOR 0
+#define USE_META_BIN 1
+
+#if USE_META_BIN
+	#define META_FILENAME "Meta.bin"
+	#define META_EXISTS_FN FileExists
+#else
+	#define META_FILENAME "Meta.d"
+	#define META_EXISTS_FN DirectoryExists
+#endif
 
 struct FileAnnotation;
 
@@ -10,22 +19,26 @@ NAMESPACE_UPP
 struct NodeVisitor {
 	JsonIO* json = 0;
 	Stream* stream = 0;
+	VersionControlSystem* vcs = 0;
 	CombineHash hash;
 	int mode = -1;
 	int file_ver = -1;
 	bool skip = false;
-	enum {MODE_JSON, MODE_STREAM, MODE_HASH};
+	enum {MODE_JSON, MODE_STREAM, MODE_HASH, MODE_VCS};
 	bool storing = false;
+	String error;
 	
 	typedef NodeVisitor CLASSNAME;
 	NodeVisitor(JsonIO& j) {json = &j; mode = MODE_JSON; storing = j.IsStoring();}
 	NodeVisitor(Stream& s) {stream = &s; mode = MODE_STREAM; storing = s.IsStoring();}
+	NodeVisitor(VersionControlSystem& v) {vcs = &v; mode = MODE_VCS; storing = vcs->IsStoring();}
 	NodeVisitor(hash_t) {mode = MODE_HASH; storing = true;}
 	template <class T> void DoHash(T& o) {hash.Do(o);}
 	bool IsLoading() const {return !storing;}
 	bool IsStoring() const {return storing;}
 	bool IsHashing() const {return mode == MODE_HASH;}
-	
+	bool IsError() const {return !error.IsEmpty();}
+	void SetError(String s) {error = s;}
 	
 	
 	template<class T>
@@ -300,11 +313,13 @@ struct NodeVisitor {
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int) {return VisitMap(key, o);}
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int) {return VisitKVMap(key, o);}
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int, int) {return VisitVectorVector(key, o);}
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int, int, int) {return Visit(key, o);}
 	
 	#define VISIT_VECTOR 0
 	#define VISIT_MAP 0,0
 	#define VISIT_MAP_KV 0,0,0
 	#define VISIT_VECTOR_VECTOR 0,0,0,0
+	#define VISIT_NODE 0,0,0,0,0
 };
 
 template <> inline void NodeVisitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
@@ -538,8 +553,7 @@ struct MetaNode : Pte<MetaNode> {
 	int Find(int kind, const String& id) const;
 	hash_t GetTotalHash() const;
 	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
-	void Serialize(Stream& s);
-	void Jsonize(JsonIO& json);
+	void Visit(NodeVisitor& vis);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
@@ -643,8 +657,8 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	bool env_file = false;
 	
 	MetaSrcFile() {}
-	void Jsonize(JsonIO& json);
-	void Serialize(Stream& s);
+	void Visit(NodeVisitor& vis);
+	bool IsDirTree() const {return GetFileExt(full_path) == ".d";}
 	bool IsBinary() const {return GetFileExt(full_path) == ".bin";}
 	bool IsECS() const {return GetFileExt(full_path) == ".ecs";}
 	bool IsEnv() const {return GetFileExt(full_path) == ".env";}
@@ -694,7 +708,7 @@ struct MetaSrcPkg {
 	String GetRelativePath(const String& path) const;
 	String GetFullPath(const String& rel_path) const;
 	String GetFullPath(int file_i) const;
-	void Serialize(Stream& s) {s % files;}
+	void Visit(NodeVisitor& vis);
 	int FindFile(String path) const;
 	String GetDirectory() const {return dir;}
 private:
@@ -740,7 +754,7 @@ struct MetaEnvironment {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcFile& Load(const String& includes, const String& path);
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
-	bool LoadFileRootJson(const String& includes, const String& path, const String& json, bool manage_file, MetaNode** file_node=0);
+	bool LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode** file_node=0);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
@@ -765,7 +779,7 @@ struct MetaEnvironment {
 	MetaNode* FindNodeEnv(Entity& n);
 	void UpdateWorkspace(Workspace& wspc);
 	Vector<MetaNode*> FindAllEnvs();
-	MetaNode* LoadDatabaseSourceJson(MetaSrcFile& file, String path, String data);
+	MetaNode* LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis);
 };
 
 MetaEnvironment& MetaEnv();
@@ -774,6 +788,61 @@ MetaEnvironment& MetaEnv();
 
 
 
+template <class T>
+bool VisitFromJson(T& var, const char *json)
+{
+	try {
+		Value jv = ParseJSON(json);
+		if(jv.IsError())
+			return false;
+		JsonIO io(jv);
+		NodeVisitor vis(io);
+		var.Visit(vis);
+	}
+	catch(ValueTypeError) {
+		return false;
+	}
+	catch(JsonizeError) {
+		return false;
+	}
+	return true;
+}
+
+template <class T>
+bool VisitFromJsonFile(T& var, const char *file = NULL)
+{
+	return VisitFromJson(var, LoadFile(sJsonFile(file)));
+}
+
+template <class T>
+String VisitToJson(T& var)
+{
+	try {
+		JsonIO io;
+		NodeVisitor vis(io);
+		var.Visit(vis);
+		Value val = io.GetResult();
+		return AsJSON(val);
+	}
+	catch (...) {
+		return String();
+	}
+}
+
+template <class T>
+bool VisitToJsonFile(T& var, const char *file = NULL)
+{
+	try {
+		String json = VisitToJson(var);
+		FileOut s(file);
+		s << json;
+		s.Close();
+	}
+	catch (...) {
+		return false;
+	}
+	return true;
+}
 
 END_UPP_NAMESPACE
 

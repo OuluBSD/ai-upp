@@ -158,14 +158,14 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 	
 }
 
-void EnvEditorCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
-}
+void EnvEditorCtrl::Visit(NodeVisitor& vis) {
+	TODO //MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
+/*}
 
 void EnvEditorCtrl::OnSave(String& data, const String& filepath) {
 	MetaSrcFile& file = RealizeFileRoot();
 	file.MakeTempFromEnv(false);
-	data = file.StoreJson();
+	data = file.StoreJson();*/
 }
 
 MetaSrcFile& EnvEditorCtrl::RealizeFileRoot() {

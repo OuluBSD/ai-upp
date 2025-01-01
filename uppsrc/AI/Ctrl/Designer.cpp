@@ -26,17 +26,27 @@ template <class T>
 bool Des<T>::Load(const String& includes, const String& filename_)
 {
 	filename = filename_;
-	FileIn in(filename);
-	if(in) {
-		// TODO check if faster cache can be loaded based on same sha1
-		edit.Load(includes, filename, in, CHARSET_UTF8);
-		IdeEditPos& ep = sEPai().GetAdd(filename);
-		if(ep.filetime == FileGetTime(filename)) {
-			edit.SetEditPos(ep.editpos);
-			edit.SetPickUndoData(pick(ep.undodata));
+	String dirname = filename_ + ".d";
+	//if (DirectoryExists(dirname)) {
+	if (T::IsSaveDirectory()) {
+		if (edit.LoadDirectory(includes, dirname, CHARSET_UTF8)) {
+			Preview();
+			return true;
 		}
-		Preview();
-		return true;
+	}
+	else {
+		FileIn in(filename);
+		if(in) {
+			// TODO check if faster cache can be loaded based on same sha1
+			edit.Load(includes, filename, in, CHARSET_UTF8);
+			IdeEditPos& ep = sEPai().GetAdd(filename);
+			if(ep.filetime == FileGetTime(filename)) {
+				edit.SetEditPos(ep.editpos);
+				edit.SetPickUndoData(pick(ep.undodata));
+			}
+			Preview();
+			return true;
+		}
 	}
 	return false;
 }
@@ -50,10 +60,20 @@ void Des<T>::SaveEditPos()
 template <class T>
 void Des<T>::Save()
 {
-	// TODO check sha1 if the persistent file is needed to be overwritten
-	// TODO check if fast-cached file needs to be overwritten
-	FileOut out(filename);
-	edit.Save(out, CHARSET_UTF8);
+	if (T::IsSaveDirectory()) {
+		VersionControlSystem vcs;
+		vcs.Initialize(filename + ".d");
+		vcs.SetStoring();
+		NodeVisitor vis(vcs);
+		edit.Visit(vis);
+		vcs.Close();
+	}
+	else {
+		// TODO check sha1 if the persistent file is needed to be overwritten
+		// TODO check if fast-cached file needs to be overwritten
+		FileOut out(filename);
+		edit.Save(out, CHARSET_UTF8);
+	}
 }
 
 template <class T>

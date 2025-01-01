@@ -274,10 +274,6 @@ struct Script : Component {
 	Vector<bool>			actions_enabled;
 	Vector<int>				phrase_parts[PART_COUNT];
 	
-	//int GetFirstPartPosition() const;
-	String GetAnyTitle() const;
-	//String GetTextStructure(bool coarse) const;
-
 	Script(MetaNode& owner) : Component(owner) {}
 	~Script();
 	void Store(Entity& a);

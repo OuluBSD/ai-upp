@@ -47,5 +47,8 @@ file
 	Prompt.cpp,
 	Common.h,
 	Common.cpp,
-	src.tpp;
+	src.tpp,
+	"Version Control" readonly separator,
+	VCS.h,
+	VCS.cpp;
 

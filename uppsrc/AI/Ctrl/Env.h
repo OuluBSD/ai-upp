@@ -29,14 +29,13 @@ public:
 	MetaSrcFile& RealizeFileRoot();
 	void AddContext();
 	void RemoveContext();
-	void OnLoad(const String& data, const String& filepath) override;
-	void OnSave(String& data, const String& filepath) override;
+	void Visit(NodeVisitor& vis) override;
 	void OnValueChange();
 	void OnOption(Option* opt, MetaNode* db);
 	
 	static bool AcceptsExt(String e) { return e == ".env"; }
 	static String GetID() { return "Environment Editor"; }
-	
+	static bool IsSaveDirectory() {return false;}
 	static String MakeIdString(const Vector<MetaNode*>& v);
 };
 

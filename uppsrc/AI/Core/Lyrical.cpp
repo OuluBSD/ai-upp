@@ -187,30 +187,6 @@ Script::~Script() {
 	
 }
 
-void Script::Store(Entity& a) {
-	TODO
-	/*String dir = a.GetScriptDir();
-	RealizeDirectory(dir);
-	String json_path = dir + file_title + ".json";
-	StoreAsJsonFileStandard(*this, json_path, true);*/
-}
-
-void Script::LoadTitle(Entity& a, String title) {
-	TODO
-	/*String dir = a.GetScriptDir();
-	file_title = title;
-	String json_path = dir + file_title + ".json";
-	LoadFromJsonFileStandard(*this, json_path);*/
-}
-
-String Script::GetAnyTitle() const {
-	TODO
-	/*if (native_title.GetCount())
-		return native_title;
-	
-	return file_title;*/return "";
-}
-
 String Lyrics::GetText() const {
 	if (__text.GetCount())
 		return __text;

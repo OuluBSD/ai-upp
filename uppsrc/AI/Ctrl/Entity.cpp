@@ -216,18 +216,32 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 		bar.Add("", Callback());
 }
 
-void EntityEditorCtrl::OnLoad(const String& data, const String& filepath) {
-	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
+void EntityEditorCtrl::Visit(NodeVisitor& vis) {
+	if (vis.IsLoading())
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true);
+	else {
+		MetaSrcFile& file = RealizeFileRoot();
+		file.MakeTempFromEnv(false);
+		file.Visit(vis);
+		file.ClearTemp();
+	}
+	/*
+}
+
+void EntityEditorCtrl::OnLoadDirectory(VersionControlSystem& vcs) {
+	MetaEnv().LoadVCS(GetFileIncludes(), vcs);
 }
 
 void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 	MetaSrcFile& file = RealizeFileRoot();
 	file.MakeTempFromEnv(false);
+	#if 0
 	LOG("### ROOT ###");
 	LOG(MetaEnv().root.GetTreeString());
 	LOG("### Temp ###");
 	LOG(file.temp->GetTreeString());
-	data = file.StoreJson();
+	#endif
+	data = file.StoreJson();*/
 }
 
 MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {

@@ -159,17 +159,19 @@ bool ToolAppCtrl::Load(const String& includes, const String& filename, Stream& i
 	return true;
 }
 
-bool ToolAppCtrl::LoadDirectory(const String& includes, const String& dirpath, byte charset) {
+bool ToolAppCtrl::LoadDirectory(const String& includes, const String& filename, const String& dirpath, byte charset) {
 	data.Clear();
 	data_includes = includes;
-	data_filepath.Clear();
+	data_filepath = filename;
 	data_dirpath = dirpath;
-	VersionControlSystem vcs;
-	vcs.Initialize(data_dirpath);
-	vcs.SetStoring();
-	NodeVisitor vis(vcs);
-	this->Visit(vis);
-	vcs.Close();
+	if (DirectoryExists(dirpath)) {
+		VersionControlSystem vcs;
+		vcs.Initialize(data_dirpath);
+		vcs.SetLoading();
+		NodeVisitor vis(vcs);
+		this->Visit(vis);
+		vcs.Close();
+	}
 	return true;
 }
 

@@ -47,7 +47,8 @@ public:
 	bool IsScript() const;
 	bool HasPointers() const;
 	String GetComponentTitle() const;
-	String GetFilePath() const {return data_filepath;}
+	String GetFilePath() const {ASSERT(data_filepath.GetCount()); return data_filepath;}
+	String GetDirPath() const {ASSERT(data_dirpath.GetCount()); return data_dirpath;}
 	String GetFileIncludes() const {return data_includes;}
 	String GetFileData() const {return data;}
 	MetaNode* GetFileNode() const {return file_node;}
@@ -57,7 +58,7 @@ public:
 	void UpdateMenu();
 	
 	virtual bool Load(const String& includes, const String& filename, Stream& in, byte charset);
-	virtual bool LoadDirectory(const String& includes, const String& filename, byte charset);
+	virtual bool LoadDirectory(const String& includes, const String& filename, const String& dirpath, byte charset);
 	virtual void Save(Stream& s, byte charset);
 	virtual void SaveDirectory(byte charset);
 	virtual void SetEditPos(LineEdit::EditPos editpos) {}

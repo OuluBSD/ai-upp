@@ -247,6 +247,7 @@ void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	MetaEnvironment& env = MetaEnv();
 	String path = this->GetFilePath();
+	ASSERT(path.GetCount());
 	MetaSrcFile& file = env.ResolveFile("", path);
 	MetaSrcPkg& pkg = *file.pkg;
 	ASSERT(file.id >= 0);

@@ -128,6 +128,8 @@ void MetaSrcFile::Visit(NodeVisitor& vis)
 {
 	if (vis.IsLoading() || temp.IsEmpty())
 		temp.Create();
+	else if (vis.IsStoring())
+		UpdateStoring();
 	vis.Ver(1)
 	(1)	("id", id)
 		("hash", saved_hash)
@@ -135,9 +137,11 @@ void MetaSrcFile::Visit(NodeVisitor& vis)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
+	if (vis.IsLoading() && !saved_hash.IsEmpty())
+		UpdateLoading();
 }
 
-String MetaSrcFile::StoreJson()
+String MetaSrcFile::UpdateStoring()
 {
 	ASSERT_(managed_file, "Trying to jsonize non-managed file");
 	ASSERT(temp);
@@ -158,6 +162,13 @@ String MetaSrcFile::StoreJson()
 	ASSERT(!full_path.IsEmpty());
 	RefreshSeenTypes();
 	
+	return old_hash; // return old hash for reverting
+}
+
+#if 0
+String MetaSrcFile::StoreJson()
+{
+	String old_hash = UpdateStoring();
 	String json = VisitToJson(*this);
 	
 	saved_hash = old_hash;
@@ -165,6 +176,7 @@ String MetaSrcFile::StoreJson()
 	temp.Clear();
 	return json;
 }
+#endif
 
 bool MetaSrcFile::Store(bool forced)
 {
@@ -251,28 +263,25 @@ bool MetaSrcFile::Load()
 		VisitFromJsonFile(*this, full_path);
 	}
 	
+	lock.Leave();
+	return !saved_hash.IsEmpty();
+}
+
+void MetaSrcFile::UpdateLoading() {
+	ASSERT(id >= 0 && pkg->id >= 0);
+	temp->SetPkgFileDeep(pkg->id, id);
+
+	OnSeenTypes();
+	OnSerialCounter();
+	temp->RealizeSerial();
+	lock.Leave();
 	
-	if (!saved_hash.IsEmpty()) {
-		ASSERT(id >= 0 && pkg->id >= 0);
-		temp->SetPkgFileDeep(pkg->id, id);
+	if (GetFileExt(full_path) == ".db-src") {
+		SrcTxtHeader* src = dynamic_cast<SrcTxtHeader*>(&*temp->ext);
+		ASSERT(src);
+		DatasetIndex().GetAdd(full_path) = src;
+	}
 	
-		OnSeenTypes();
-		OnSerialCounter();
-		temp->RealizeSerial();
-		lock.Leave();
-		
-		if (GetFileExt(full_path) == ".db-src") {
-			SrcTxtHeader* src = dynamic_cast<SrcTxtHeader*>(&*temp->ext);
-			ASSERT(src);
-			DatasetIndex().GetAdd(full_path) = src;
-		}
-		
-		return true;
-	}
-	else {
-		lock.Leave();
-		return false;
-	}
 }
 
 bool MetaSrcFile::LoadJson(String json) {
@@ -283,20 +292,8 @@ bool MetaSrcFile::LoadJson(String json) {
 	temp.Create();
 	VisitFromJson(*this, json);
 	
-	if (!saved_hash.IsEmpty()) {
-		ASSERT(id >= 0 && pkg->id >= 0);
-		temp->SetPkgFileDeep(pkg->id, id);
-	
-		OnSeenTypes();
-		OnSerialCounter();
-		temp->RealizeSerial();
-		lock.Leave();
-		return true;
-	}
-	else {
-		lock.Leave();
-		return false;
-	}
+	lock.Leave();
+	return !saved_hash.IsEmpty();
 }
 
 void MetaSrcFile::OnSerialCounter()
@@ -570,8 +567,10 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 	if (full_path.Find(dir) == 0) {
 		String rel_path = GetRelativePath(full_path);
 		for (MetaSrcFile& f : files) {
-			if (f.rel_path == rel_path)
+			if (f.rel_path == rel_path) {
+				ASSERT(f.id >= 0);
 				return f;
+			}
 		}
 		int id = files.GetCount();
 		MetaSrcFile& f = files.Add();
@@ -580,12 +579,15 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 		f.rel_path = rel_path;
 		f.full_path = full_path;
 		f.env_file = GetFileExt(full_path) == ".env";
+		ASSERT(f.full_path.Right(2) != ".d");
 		return f;
 	}
 	else {
 		for (MetaSrcFile& f : files) {
-			if (f.full_path == full_path)
+			if (f.full_path == full_path) {
+				ASSERT(f.id >= 0);
 				return f;
+			}
 		}
 		int id = files.GetCount();
 		MetaSrcFile& f = files.Add();
@@ -594,6 +596,7 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 		f.rel_path = "";
 		f.full_path = full_path;
 		f.env_file = GetFileExt(full_path) == ".env";
+		ASSERT(f.full_path.Right(2) != ".d");
 		return f;
 	}
 }

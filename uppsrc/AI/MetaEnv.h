@@ -46,6 +46,11 @@ struct NodeVisitor {
 		if      (mode == MODE_STREAM) o.Visit(*this);
 		else if (mode == MODE_JSON) json->Var(key, o, THISBACK(VisitJsonItem<T>));
 		else if (mode == MODE_HASH) o.Visit(*this);
+		else if (mode == MODE_VCS) {
+			vcs->BeginObject(key);
+			o.Visit(*this);
+			vcs->End();
+		}
 		return *this;
 	}
 	
@@ -78,12 +83,24 @@ struct NodeVisitor {
 		for (auto& v : o)
 			v.Visit(*this);
 	}
+	template<class T>
+	void VisitVectorVcs(String key, T& o) {
+		vcs->BeginVector(key, o);
+		int i = 0;
+		for (auto& v : o) {
+			vcs->BeginAt(i++);
+			v.Visit(*this);
+			vcs->End();
+		}
+		vcs->End();
+	}
 	
 	template<class T>
 	NodeVisitor& VisitVector(const char* key, T& o) {
 		if      (mode == MODE_STREAM) VisitVectorSerialize<T>(o);
 		else if (mode == MODE_JSON) VisitVectorJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitVectorHash<T>(o);
+		else if (mode == MODE_VCS) VisitVectorVcs<T>(key, o);
 		return *this;
 	}
 	
@@ -115,12 +132,24 @@ struct NodeVisitor {
 		for (auto& v : o)
 			VisitVectorHash(v);
 	}
+	template<class T>
+	void VisitVectorVectorVcs(String key, T& o) {
+		vcs->BeginVector(key, o);
+		int i = 0;
+		for (auto& v : o) {
+			vcs->BeginAt(i++);
+			VisitVectorHash(v);
+			vcs->End();
+		}
+		vcs->End();
+	}
 	
 	template<class T>
 	NodeVisitor& VisitVectorVector(const char* key, T& o) {
 		if      (mode == MODE_STREAM) VisitVectorVectorSerialize<T>(o);
 		else if (mode == MODE_JSON) VisitVectorVectorJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitVectorVectorHash<T>(o);
+		else if (mode == MODE_VCS) VisitVectorVectorVcs<T>(key, o);
 		return *this;
 	}
 	
@@ -202,10 +231,22 @@ struct NodeVisitor {
 			v.Visit(*this);
 	}
 	template<class T>
+	void VisitMapVcs(String key, T& o) {
+		vcs->BeginMap(key, o);
+		int i = 0;
+		for (auto v : ~o) {
+			vcs->BeginKey(i++, AsString(v.key));
+			v.value.Visit(*this);
+			vcs->End();
+		}
+		vcs->End();
+	}
+	template<class T>
 	NodeVisitor& VisitMap(const char* key, T& o) {
 		if      (mode == MODE_STREAM) VisitMapSerialize<T>(o);
 		else if (mode == MODE_JSON) VisitMapJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitMapHash<T>(o);
+		else if (mode == MODE_VCS) VisitMapVcs<T>(key, o);
 		return *this;
 	}
 	
@@ -276,10 +317,15 @@ struct NodeVisitor {
 			v.Visit(*this);
 	}
 	template<class T>
+	void VisitMapKVVcs(T& o) {
+		Panic("TODO");
+	}
+	template<class T>
 	NodeVisitor& VisitMapKV(const char* key, T& o) {
 		if      (mode == MODE_STREAM) VisitMapKVSerialize<T>(o);
 		else if (mode == MODE_JSON) VisitMapKVJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitMapKVHash<T>(o);
+		else if (mode == MODE_VCS) VisitMapKVVcs<T>(o);
 		return *this;
 	}
 	
@@ -304,6 +350,7 @@ struct NodeVisitor {
 			case MODE_JSON: (*json)(key,o); return *this;
 			case MODE_STREAM: *stream % o; return *this;
 			case MODE_HASH: DoHash<T>(o); return *this;
+			case MODE_VCS: vcs->Do(key, o); return *this;
 			default: return *this;
 		}
 	}
@@ -677,6 +724,8 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	void KeepFileIndices(bool b=true) {keep_file_ids = b;}
 	void ManageFile(bool b=true) {managed_file = b;}
 	void MakeTempFromEnv(bool all_files=false);
+	String UpdateStoring();
+	void UpdateLoading();
 	
 	#if 0
 	MetaSrcFile(const MetaSrcFile& f) {*this = f;}

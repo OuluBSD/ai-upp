@@ -29,7 +29,7 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 	String dirname = filename_ + ".d";
 	//if (DirectoryExists(dirname)) {
 	if (T::IsSaveDirectory()) {
-		if (edit.LoadDirectory(includes, dirname, CHARSET_UTF8)) {
+		if (edit.LoadDirectory(includes, filename, dirname, CHARSET_UTF8)) {
 			Preview();
 			return true;
 		}
@@ -61,12 +61,13 @@ template <class T>
 void Des<T>::Save()
 {
 	if (T::IsSaveDirectory()) {
-		VersionControlSystem vcs;
+		edit.SaveDirectory(CHARSET_UTF8);
+		/*VersionControlSystem vcs;
 		vcs.Initialize(filename + ".d");
 		vcs.SetStoring();
 		NodeVisitor vis(vcs);
 		edit.Visit(vis);
-		vcs.Close();
+		vcs.Close();*/
 	}
 	else {
 		// TODO check sha1 if the persistent file is needed to be overwritten

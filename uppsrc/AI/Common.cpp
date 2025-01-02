@@ -61,4 +61,14 @@ bool RangeContains(const Point& pos, const Point& begin, const Point& end)
 	return true;
 }
 
+bool IsAllDigit(const String& s) {
+	if (s.IsEmpty()) return false;
+	const char* c = s.Begin();
+	const char* e = s.End();
+	while (c != e)
+		if (!IsDigit(*c++))
+			return false;
+	return true;
+}
+
 END_UPP_NAMESPACE

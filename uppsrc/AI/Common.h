@@ -516,6 +516,8 @@ struct MarketplaceArgs {
 	void Put(const String& s) {LoadFromJson(*this, s);}
 };
 
+bool IsAllDigit(const String& s);
+
 END_UPP_NAMESPACE
 
 #endif

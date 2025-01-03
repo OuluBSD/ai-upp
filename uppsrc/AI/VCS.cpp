@@ -13,34 +13,38 @@ VersionControlSystem::~VersionControlSystem() {
 	Close();
 }
 
-void VersionControlSystem::Initialize(String path) {
+void VersionControlSystem::Initialize(String path, bool storing) {
 	ASSERT(!FileExists(path) || DirectoryExists(path));
-	dir = path;
-	RealizeDirectory(dir);
+	scopes.Clear();
+	this->storing = storing;
 	
+	if (path.Right(1) == DIR_SEPS)
+		path = path.Left(path.GetCount()-1);
+	dir = GetFileDirectory(path);
+	
+	BeginObject(GetFileName(path));
+	
+	RealizeDirectory(path);
 }
 
 void VersionControlSystem::Close() {
-	ASSERT(scopes.IsEmpty());
-	scopes.Clear();
+	ASSERT(scopes.GetCount() <= 1);
+	while (scopes.GetCount())
+		End();
 }
 
 bool VersionControlSystem::IsStoring() const {
 	return storing;
 }
 
-void VersionControlSystem::SetStoring() {
-	storing = true;
+bool VersionControlSystem::IsLoading() const {
+	return !storing;
 }
 
-void VersionControlSystem::SetLoading() {
-	storing = false;
-}
-
-VersionControlSystem::Scope& VersionControlSystem::Push(ScopeType t, String name) {
+VersionControlSystem::Scope& VersionControlSystem::Push(ScopeType t, String key) {
 	Scope& s = scopes.Add();
 	s.type = t;
-	s.name = name;
+	s.key = key;
 	RealizeDirectory(GetCurrentDirectory());
 	return s;
 }
@@ -58,26 +62,58 @@ void VersionControlSystem::RemoveIdxFolders(int begin) {
 	}
 }
 
-void VersionControlSystem::BeginObject(String key) {
-	Push(ST_OBJECT, key);
-}
-void VersionControlSystem::BeginAt(int i) {
-	Push(ST_OBJECT, IntStr(i));
+void VersionControlSystem::RealizeScopeJson(const String& key) {
+	if (!storing) {
+		Scope& s = scopes.Top();
+		s.value = ParseJSON(LoadFile(GetCurrentPath(key + ".json")));
+		s.json = new JsonIO(s.value);
+	}
 }
 
-void VersionControlSystem::BeginKey(int i, String key) {
-	Panic("TODO"); // dir with "i" and key,value subdirs
+void VersionControlSystem::BeginObject(String key) {
 	Push(ST_OBJECT, key);
+	RealizeScopeJson(key);
+}
+void VersionControlSystem::BeginAt(int i) {
+	String key = IntStr(i);
+	Push(ST_OBJECT, key);
+	RealizeScopeJson(key);
+}
+
+void VersionControlSystem::BeginKV(int i) {
+	String key = IntStr(i);
+	Push(ST_AT_KV, key);
+	RealizeScopeJson(key);
+}
+
+void VersionControlSystem::BeginKeyVisit() {
+	Push(ST_OBJECT, "key");
+	RealizeScopeJson("key");
+}
+
+void VersionControlSystem::BeginValueVisit() {
+	Push(ST_OBJECT, "value");
+	RealizeScopeJson("value");
 }
 
 void VersionControlSystem::End() {
+	if (storing) {
+		Scope& s = scopes.Top();
+		if (s.json) {
+			Value jv = s.json->GetResult();
+			String json = AsJSON(jv, pretty_json);
+			FileOut fout(GetCurrentPath(s.key + ".json"));
+			fout << json;
+		}
+	}
+	
 	Pop();
 }
 
 String VersionControlSystem::GetCurrentDirectory() const {
 	String path = this->dir;
 	for (const auto& scope : scopes) {
-		path = AppendFileName(path, scope.name);
+		path = AppendFileName(path, scope.key);
 	}
 	return path;
 }

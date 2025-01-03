@@ -150,11 +150,15 @@ void ToolAppCtrl::MakeComponentParts(ArrayCtrl& parts) {
 		parts.SetCursor(0);*/
 }
 
+void ToolAppCtrl::Realize(const String& includes, const String& filename) {
+	data_includes = includes;
+	data_filepath = filename;
+}
+
 bool ToolAppCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
 	data = in.Get((int)in.GetSize());
 	data_includes = includes;
 	data_filepath = filename;
-	data_dirpath.Clear();
 	VisitFromJson(*this, data);
 	return true;
 }
@@ -163,11 +167,9 @@ bool ToolAppCtrl::LoadDirectory(const String& includes, const String& filename, 
 	data.Clear();
 	data_includes = includes;
 	data_filepath = filename;
-	data_dirpath = dirpath;
 	if (DirectoryExists(dirpath)) {
 		VersionControlSystem vcs;
-		vcs.Initialize(data_dirpath);
-		vcs.SetLoading();
+		vcs.Initialize(dirpath, false);
 		NodeVisitor vis(vcs);
 		this->Visit(vis);
 		vcs.Close();
@@ -182,10 +184,9 @@ void ToolAppCtrl::Save(Stream& s, byte charset) {
 	s.Put(data);
 }
 
-void ToolAppCtrl::SaveDirectory(byte charset) {
+void ToolAppCtrl::SaveDirectory(String dirpath, byte charset) {
 	VersionControlSystem vcs;
-	vcs.Initialize(data_dirpath);
-	vcs.SetStoring();
+	vcs.Initialize(dirpath, true);
 	NodeVisitor vis(vcs);
 	this->Visit(vis);
 	vcs.Close();

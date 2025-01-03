@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-// TODO Rename to SongIdea
+// TODO REMOVE
 struct ComponentIdea {
 	String title, target_song, reference_song, description;
 	

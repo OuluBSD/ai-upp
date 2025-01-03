@@ -235,7 +235,10 @@ struct NodeVisitor {
 		vcs->BeginMap(key, o);
 		int i = 0;
 		for (auto v : ~o) {
-			vcs->BeginKey(i++, AsString(v.key));
+			if (storing)
+				vcs->BeginKeyStore(i++, v.key);
+			else
+				vcs->BeginAt(i++);
 			v.value.Visit(*this);
 			vcs->End();
 		}
@@ -317,15 +320,30 @@ struct NodeVisitor {
 			v.Visit(*this);
 	}
 	template<class T>
-	void VisitMapKVVcs(T& o) {
-		Panic("TODO");
+	void VisitMapKVVcs(const String& key, T& o) {
+		using KeyType = decltype(o.PopKey());
+		vcs->BeginMapKV<T>(key, o);
+		int i = 0;
+		for (auto v : ~o) {
+			vcs->BeginKV(i++); {
+				if (storing) {
+					vcs->BeginKeyVisit();{
+						const_cast<KeyType&>(v.key).Visit(*this);}
+					vcs->End();
+				}
+				vcs->BeginValueVisit();{
+					v.value.Visit(*this);}
+				vcs->End();}
+			vcs->End();
+		}
+		vcs->End();
 	}
 	template<class T>
 	NodeVisitor& VisitMapKV(const char* key, T& o) {
 		if      (mode == MODE_STREAM) VisitMapKVSerialize<T>(o);
 		else if (mode == MODE_JSON) VisitMapKVJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitMapKVHash<T>(o);
-		else if (mode == MODE_VCS) VisitMapKVVcs<T>(o);
+		else if (mode == MODE_VCS) VisitMapKVVcs<T>(key, o);
 		return *this;
 	}
 	
@@ -368,6 +386,28 @@ struct NodeVisitor {
 	#define VISIT_VECTOR_VECTOR 0,0,0,0
 	#define VISIT_NODE 0,0,0,0,0
 };
+
+template <class T>
+inline void VersionControlSystem::BeginMapKV(String key, T& o) {
+	using KeyType = decltype(o.PopKey());
+	Push(ST_MAP_KV, key);
+	if (storing)
+		RemoveIdxFolders(o.GetCount());
+	else {
+		o.Clear();
+		String dir = GetCurrentDirectory();
+		int count = ResolveCount();
+		o.Reserve(count);
+		for(int i = 0; i < count; i++) {
+			BeginKeyVisit();
+			KeyType key;
+			NodeVisitor vis(*this);
+			key.Visit(vis);
+			o.Add(pick(key));
+			End();
+		}
+	}
+}
 
 template <> inline void NodeVisitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
 template <> inline void NodeVisitor::DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}

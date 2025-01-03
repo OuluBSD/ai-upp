@@ -5,6 +5,14 @@ NAMESPACE_UPP
 
 template <class T>
 struct Des : IdeDesigner, ParentCtrl {
+	struct FileHeaderParser {
+		String dirpath;
+		bool use_dir = false;
+		bool Parse(Des<T>* des, const String& first_line);
+		bool move_here = false;
+		bool move_dir = false;
+		bool is_parsed = false;
+	};
 	Ide*			ide = 0;
 	String			filename;
 	T				edit;

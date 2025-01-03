@@ -137,7 +137,7 @@ void MetaSrcFile::Visit(NodeVisitor& vis)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
-	if (vis.IsLoading() && !saved_hash.IsEmpty())
+	if (vis.IsLoading())
 		UpdateLoading();
 }
 
@@ -214,8 +214,7 @@ bool MetaSrcFile::Store(bool forced)
 	
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
-		vcs.Initialize(full_path);
-		vcs.SetStoring();
+		vcs.Initialize(full_path, true);
 		NodeVisitor vis(vcs);
 		this->Visit(vis);
 		vcs.Close();
@@ -246,8 +245,7 @@ bool MetaSrcFile::Load()
 	ASSERT(this->full_path.GetCount());
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
-		vcs.Initialize(full_path);
-		vcs.SetLoading();
+		vcs.Initialize(full_path, false);
 		NodeVisitor vis(vcs);
 		this->Visit(vis);
 		vcs.Close();

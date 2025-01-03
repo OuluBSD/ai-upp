@@ -71,6 +71,78 @@ void BiographyCtrl::ToolMenu(Bar& bar) {
 	if (tab == 4) ImageSummary_ToolMenu(bar);
 }
 
+void BiographyCtrl::EditPos(JsonIO& json) {
+	#define GET(arr, idx) idx = arr.IsCursor() ? arr.GetCursor() : -1;
+	int tab = tabs.Get();
+	int category = -1;
+	GET(categories, category)
+	int list = -1, sublist = -1;
+	if (tab == 0) {
+		GET(main.years, list)
+		GET(main.year.elements, sublist)
+	}
+	else if (tab == 1) {
+		GET(el.elements, list)
+		GET(el.block.elements, sublist)
+	}
+	else if (tab == 2) {
+		GET(summary.blocks, list)
+		GET(summary.block.elements, sublist)
+	}
+	else if (tab == 3) {
+		GET(image.years, list)
+		GET(image.entries, sublist)
+	}
+	else if (tab == 4) {
+		GET(image_summary.blocks, list)
+		GET(image_summary.block.elements, sublist)
+	}
+	else if (tab == 5) {
+		GET(audience.blocks, list)
+		GET(audience.block.elements, sublist)
+	}
+	#undef GET
+	
+	json("biography_tab", tab)
+		("biography_category", category)
+		("biography_list", list)
+		("biography_sublist", sublist)
+		;
+		
+	if (json.IsLoading()) {
+		PostCallback([=] {
+			tabs.Set(tab);
+			#define SET(arr, idx) if (idx >= 0 && idx < arr.GetCount()) arr.SetCursor(idx);
+			SET(categories, category);
+			if (tab == 0) {
+				SET(main.years, list);
+				SET(main.year.elements, sublist);
+			}
+			else if (tab == 1) {
+				SET(el.elements, list);
+				SET(el.block.elements, sublist);
+			}
+			else if (tab == 2) {
+				SET(summary.blocks, list)
+				SET(summary.block.elements, sublist)
+			}
+			else if (tab == 3) {
+				SET(image.years, list)
+				SET(image.entries, sublist)
+			}
+			else if (tab == 4) {
+				SET(image_summary.blocks, list)
+				SET(image_summary.block.elements, sublist)
+			}
+			else if (tab == 5) {
+				SET(audience.blocks, list)
+				SET(audience.block.elements, sublist)
+			}
+			#undef SET
+		});
+	}
+}
+
 void BiographyCtrl::EntryListMenu(Bar& bar) {
 	
 }

@@ -152,6 +152,7 @@ public:
 	void ToolMenu(Bar& bar) override;
 	void EntryListMenu(Bar& bar);
 	void SnapshotMenu(Bar& bar);
+	void EditPos(JsonIO& json) override;
 };
 
 INITIALIZE(BiographyCtrl)

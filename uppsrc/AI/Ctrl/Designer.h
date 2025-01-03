@@ -22,6 +22,7 @@ struct Des : IdeDesigner, ParentCtrl {
 	virtual String GetFileName() const        { return filename; }
 	virtual void   Save();
 	virtual void   SaveEditPos();
+	virtual void   RestoreEditPos();
 	virtual void   EditMenu(Bar& menu);
 	virtual Ctrl&  DesignerCtrl()             { return *this; }
 	
@@ -35,6 +36,11 @@ struct Des : IdeDesigner, ParentCtrl {
 	static bool AcceptsExt(String e);
 	
 	Des();
+	~Des();
+	
+	static VectorMap<String,Value>& EditPosCache();
+	static void SaveEditPosCache();
+	static void LoadEditPosCache();
 };
 
 using SourceTextDes = Des<SourceTextCtrl>;

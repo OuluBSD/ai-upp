@@ -72,6 +72,7 @@ public:
 	void SetExtensionCtrl(int kind, MetaExtCtrl* ctrl);
 	void ClearExtensionCtrl() {SetExtensionCtrl(-1,0);}
 	Entity* GetSelectedEntity();
+	void EditPos(JsonIO& jio) override;
 	
 	static bool AcceptsExt(String e) { return e == ".ecs"; }
 	static String GetID() { return "Entity Editor"; }

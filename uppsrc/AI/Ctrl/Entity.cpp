@@ -292,6 +292,7 @@ void EntityEditorCtrl::AddComponent() {
 	String title = "Add Component";
 	WithComponentSelection<TopWindow> dlg;
 	CtrlLayoutOKCancel(dlg, title);
+	dlg.complist.WhenLeftDouble = dlg.ok.WhenAction;
 	Vector<int> list;
 	auto on_group = [&dlg] {
 		int idx = dlg.catgroup.GetIndex();
@@ -424,6 +425,24 @@ void EntityEditorCtrl::Do(int i) {
 		
 	}
 	
+}
+
+void EntityEditorCtrl::EditPos(JsonIO& json) {
+	int ent_i = entlist.IsCursor() ? entlist.GetCursor() : -1;
+	int ext_i = extlist.IsCursor() ? extlist.GetCursor() : -1;
+	json	("entity", ent_i)
+			("ext", ext_i)
+			;
+	if (json.IsLoading()) {
+		if (ent_i >= 0 && ent_i < entlist.GetCount())
+			entlist.SetCursor(ent_i);
+		
+		if (ext_i >= 0 && ext_i < extlist.GetCount())
+			extlist.SetCursor(ext_i);
+	}
+	
+	if (ext_ctrl)
+		ext_ctrl->EditPos(json);
 }
 
 

@@ -530,6 +530,7 @@ struct MetaExtCtrl : Ctrl {
 	virtual ~MetaExtCtrl() {}
 	virtual void Data() = 0;
 	virtual void ToolMenu(Bar& bar) = 0;
+	virtual void EditPos(JsonIO& json) {};
 	MetaNode& GetNode();
 	MetaNodeExt& GetExt();
 	String GetFilePath() const;

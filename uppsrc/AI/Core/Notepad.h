@@ -32,6 +32,7 @@ struct Notepad : Component
 		(1)	("notes", notes, VISIT_VECTOR)
 			;
 	}
+	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_NOTEPAD;}
 	
 };

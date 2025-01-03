@@ -193,4 +193,13 @@ void ToolAppCtrl::SaveDirectory(String dirpath, byte charset) {
 	data.Clear();
 }
 
+void ToolAppCtrl::EditPos(JsonIO& json) {
+	
+}
+
+void ToolAppCtrl::SetPickUndoData(LineEdit::UndoData undodata) {
+	
+}
+
+
 END_UPP_NAMESPACE

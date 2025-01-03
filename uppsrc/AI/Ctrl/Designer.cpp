@@ -13,6 +13,71 @@ Des<T>::Des()
 }
 
 template <class T>
+Des<T>::~Des()
+{
+	SaveEditPosCache();
+}
+
+template <class T>
+VectorMap<String,Value>& Des<T>::EditPosCache()
+{
+	static VectorMap<String,Value> cache;
+	return cache;
+}
+
+template <class T>
+void Des<T>::SaveEditPosCache()
+{
+	static StaticMutex mtx;
+	String dir = ConfigFile("cfg");
+	String clsname = typeid(T).name();
+	String filename = clsname + ".edit_cache";
+	String path0 = AppendFileName(dir, filename);
+	String path1 = path0 + ".1";
+	
+	mtx.Enter();
+	if (FileExists(path1))
+		DeleteFile(path1);
+	if (FileExists(path0))
+		MoveFile(path0, path1);
+	FileOut fout(path0);
+	fout % EditPosCache();
+	mtx.Leave();
+}
+
+template <class T>
+void Des<T>::LoadEditPosCache()
+{
+	String dir = ConfigFile("cfg");
+	String clsname = typeid(T).name();
+	String filename = clsname + ".edit_cache";
+	String path0 = AppendFileName(dir, filename);
+	String path1 = path0 + ".1";
+	bool p0 = FileExists(path0);
+	bool p1 = FileExists(path1);
+	
+	// Check for invalid file
+	String load_path;
+	if (p0 && p1) {
+		FileIn fin(path0);
+		if (fin.GetSize() == 0)
+			load_path = path1;
+		else
+			load_path = path0;
+	}
+	else if (p0)
+		load_path = path0;
+	else if (p1)
+		load_path = path1;
+	
+	if (!load_path.IsEmpty()) {
+		FileIn fin(load_path);
+		fin % EditPosCache();
+	}
+}
+
+
+template <class T>
 void Des<T>::Preview() {
 	try {
 		edit.Data();
@@ -132,9 +197,10 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 			}
 			IdeEditPos& ep = sEPai().GetAdd(filename);
 			if(ep.filetime == FileGetTime(filename)) {
-				edit.SetEditPos(ep.editpos);
+				//edit.SetEditPos(ep.editpos);
 				edit.SetPickUndoData(pick(ep.undodata));
 			}
+			RestoreEditPos();
 			Preview();
 			return true;
 		}
@@ -145,7 +211,20 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 template <class T>
 void Des<T>::SaveEditPos()
 {
-	
+	auto& cache = EditPosCache();
+	JsonIO jio;
+	edit.EditPos(jio);
+	cache.GetAdd(filename) = jio.GetResult();
+}
+
+template <class T>
+void Des<T>::RestoreEditPos()
+{
+	auto& cache = EditPosCache();
+	if (cache.IsEmpty())
+		LoadEditPosCache();
+	JsonIO jio(cache.GetAdd(filename));
+	edit.EditPos(jio);
 }
 
 template <class T>

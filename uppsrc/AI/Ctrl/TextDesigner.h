@@ -61,8 +61,8 @@ public:
 	virtual bool LoadDirectory(const String& includes, const String& filename, const String& dirpath, byte charset);
 	virtual void Save(Stream& s, byte charset);
 	virtual void SaveDirectory(String dirpath, byte charset);
-	virtual void SetEditPos(LineEdit::EditPos editpos) {}
-	virtual void SetPickUndoData(LineEdit::UndoData undodata) {}
+	virtual void EditPos(JsonIO& jio);
+	virtual void SetPickUndoData(LineEdit::UndoData undodata);
 	virtual void Visit(NodeVisitor& vis) = 0;
 	
 	template <class T>

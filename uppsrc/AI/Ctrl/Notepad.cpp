@@ -32,6 +32,17 @@ void NotepadCtrl::Clear() {
 	idea.desc.Clear();
 }
 
+void NotepadCtrl::EditPos(JsonIO& json) {
+	int notepad_list = list.IsCursor() ? list.GetCursor() : -1;
+	json	("notepad_list", notepad_list);
+	if (json.IsLoading()) {
+		PostCallback([=] {
+			if (notepad_list >= 0 && notepad_list < list.GetCount())
+				list.SetCursor(notepad_list);
+		});
+	}
+}
+
 void NotepadCtrl::Data() {
 	Notepad& np = GetExt<Notepad>();
 	

@@ -17,6 +17,7 @@ public:
 	
 	void Data() override;
 	void ToolMenu(Bar& bar) override {}
+	void EditPos(JsonIO& json) override;
 	void Clear();
 	void DataNote();
 	void OnListMenu(Bar& bar);

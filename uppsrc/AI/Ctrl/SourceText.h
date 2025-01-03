@@ -245,7 +245,6 @@ public:
 	
 	static bool AcceptsExt(String e) { return e == ".db-src"; }
 	static String GetID() { return "SourceText"; }
-	static bool IsSaveDirectory() {return false;}
 };
 
 END_UPP_NAMESPACE

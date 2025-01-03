@@ -18,7 +18,7 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override {}
 	void Clear();
-	void IdeaData();
+	void DataNote();
 	void OnListMenu(Bar& bar);
 	void AddIdea();
 	void RemoveIdea();

@@ -12,9 +12,12 @@ NotepadCtrl::NotepadCtrl() {
 	hsplit.SetPos(2000);
 	
 	list.AddColumn("Title");
+	list.AddColumn("Created");
+	list.AddIndex("IDX");
+	list.ColumnWidths("2 1");
 	//list.NoHeader();
 	list.WhenBar << THISBACK(OnListMenu);
-	list.WhenCursor << THISBACK(IdeaData);
+	list.WhenCursor << THISBACK(DataNote);
 	
 	idea.title.WhenAction << THISBACK(OnValueChange);
 	idea.target.WhenAction << THISBACK(OnValueChange);
@@ -30,54 +33,48 @@ void NotepadCtrl::Clear() {
 }
 
 void NotepadCtrl::Data() {
-	DatasetPtrs p = GetDataset();
-	if (!p.release) {
-		Clear();
-		return;
-	}
-	Release& release = *p.release;
+	Notepad& np = GetExt<Notepad>();
 	
-	for(int i = 0; i < release.ideas.GetCount(); i++) {
-		const ComponentIdea& idea = release.ideas[i];
+	for(int i = 0; i < np.notes.GetCount(); i++) {
+		const auto& idea = np.notes[i];
 		list.Set(i, 0, idea.title);
+		list.Set(i, 1, idea.created);
+		list.Set(i, "IDX", i);
 	}
-	list.SetCount(release.ideas.GetCount());
+	list.SetCount(np.notes.GetCount());
+	list.SetSortColumn(1, true);
 	
-	int idea_idx = 0;
-	if (idea_idx >= 0 && idea_idx < list.GetCount())
-		list.SetCursor(idea_idx);
-	
-	IdeaData();
+	if (!list.IsCursor() && list.GetCount())
+		list.SetCursor(0);
+	else
+		DataNote();
 }
 
-void NotepadCtrl::IdeaData() {
+void NotepadCtrl::DataNote() {
 	DatasetPtrs p = GetDataset();
-	if (!p.release || !list.IsCursor()) {
+	if (!list.IsCursor()) {
 		Clear();
 		return;
 	}
-	Release& release = *p.release;
-	int idea_idx = list.GetCursor();
-	const ComponentIdea& obj = release.ideas[idea_idx];
+	Notepad& np = GetExt<Notepad>();
+	int idea_idx = list.Get("IDX");
+	const auto& obj = np.notes[idea_idx];
 	
 	this->idea.title.SetData(obj.title);
-	this->idea.target.SetData(obj.target_song);
-	this->idea.ref.SetData(obj.reference_song);
+	this->idea.target.SetData(obj.outcome);
+	this->idea.ref.SetData(obj.reference);
 	this->idea.desc.SetData(obj.description);
 }
 
 void NotepadCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
-	if (!p.release) return;
-	Release& release = *p.release;
-	
 	if (!list.IsCursor()) return;
-	int idea_idx = list.GetCursor();
-	ComponentIdea& obj = release.ideas[idea_idx];
+	Notepad& np = GetExt<Notepad>();
+	int idea_idx = list.Get("IDX");
+	auto& obj = np.notes[idea_idx];
 	
 	obj.title = idea.title.GetData();
-	obj.target_song = idea.target.GetData();
-	obj.reference_song = idea.ref.GetData();
+	obj.outcome = idea.target.GetData();
+	obj.reference = idea.ref.GetData();
 	obj.description = idea.desc.GetData();
 	
 	list.Set(0, obj.title);
@@ -89,50 +86,22 @@ void NotepadCtrl::OnListMenu(Bar& bar) {
 }
 
 void NotepadCtrl::AddIdea() {
-	DatasetPtrs p = GetDataset();
-	if (!p.release) return;
-	Release& release = *p.release;
-	
-	
-	String title;
-	bool b = EditTextNotNull(
-		title,
-		t_("Add Idea"),
-		t_("Idea's title"),
-		0
-	);
-	if (!b) return;
-	
-	int idea_i = -1;
-	for(int i = 0; i < release.ideas.GetCount(); i++) {
-		ComponentIdea& idea = release.ideas[i];
-		if (idea.title == title) {
-			idea_i = i;
-			break;
-		}
-	}
-	if (idea_i >= 0) {
-		PromptOK(DeQtf(t_("Idea with that title exist already")));
-		return;
-	}
-	
-	ComponentIdea& idea = release.ideas.Add();
-	idea.title = title;
-	
-	list.Add(title);
-	list.SetCursor(list.GetCount()-1);
-	this->idea.target.SetFocus();
+	Notepad& np = GetExt<Notepad>();
+	auto& note = np.notes.Add();
+	note.created = GetSysTime();
+	PostCallback([this]{
+		Data();
+		if (list.GetCount())
+			list.SetCursor(0);
+	});
 }
 
 void NotepadCtrl::RemoveIdea() {
-	DatasetPtrs p = GetDataset();
-	if (!p.release) return;
-	Release& release = *p.release;
-	
 	if (!list.IsCursor()) return;
-	int idx = list.GetCursor();
-	release.ideas.Remove(idx);
-	Data();
+	Notepad& np = GetExt<Notepad>();
+	int idx = list.Get("IDX");
+	np.notes.Remove(idx);
+	PostCallback(THISBACK(Data));
 }
 
 

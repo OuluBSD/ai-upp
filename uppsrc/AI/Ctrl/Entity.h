@@ -75,7 +75,6 @@ public:
 	
 	static bool AcceptsExt(String e) { return e == ".ecs"; }
 	static String GetID() { return "Entity Editor"; }
-	static bool IsSaveDirectory() {return true;}
 	
 	void Do(int i);
 };

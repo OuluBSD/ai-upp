@@ -16,7 +16,7 @@ public:
 };
 
 class ToolAppCtrl : public Ctrl {
-	String data, data_includes, data_filepath, data_dirpath;
+	String data, data_includes, data_filepath;
 	MetaNode* file_node = 0;
 	
 protected:
@@ -48,7 +48,6 @@ public:
 	bool HasPointers() const;
 	String GetComponentTitle() const;
 	String GetFilePath() const {ASSERT(data_filepath.GetCount()); return data_filepath;}
-	String GetDirPath() const {ASSERT(data_dirpath.GetCount()); return data_dirpath;}
 	String GetFileIncludes() const {return data_includes;}
 	String GetFileData() const {return data;}
 	MetaNode* GetFileNode() const {return file_node;}
@@ -57,19 +56,14 @@ public:
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);
 	void UpdateMenu();
 	
+	virtual void Realize(const String& includes, const String& filename);
 	virtual bool Load(const String& includes, const String& filename, Stream& in, byte charset);
 	virtual bool LoadDirectory(const String& includes, const String& filename, const String& dirpath, byte charset);
 	virtual void Save(Stream& s, byte charset);
-	virtual void SaveDirectory(byte charset);
+	virtual void SaveDirectory(String dirpath, byte charset);
 	virtual void SetEditPos(LineEdit::EditPos editpos) {}
 	virtual void SetPickUndoData(LineEdit::UndoData undodata) {}
 	virtual void Visit(NodeVisitor& vis) = 0;
-	/*
-	virtual void OnLoad(const String& data, const String& filepath) {}
-	virtual void OnLoadDirectory(VersionControlSystem& vcs) {}
-	virtual void OnSave(String& data, const String& filepath) {}
-	virtual void OnSaveDirectory(VersionControlSystem& vcs) {}
-	*/
 	
 	template <class T>
 	void DoT(int fn)

@@ -35,7 +35,6 @@ public:
 	
 	static bool AcceptsExt(String e) { return e == ".env"; }
 	static String GetID() { return "Environment Editor"; }
-	static bool IsSaveDirectory() {return false;}
 	static String MakeIdString(const Vector<MetaNode*>& v);
 };
 

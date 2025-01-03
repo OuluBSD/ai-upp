@@ -23,22 +23,113 @@ void Des<T>::Preview() {
 }
 
 template <class T>
+bool Des<T>::FileHeaderParser::Parse(Des<T>* des, const String& first_line) {
+	bool ready = false;
+	
+	// Parse file header
+	// Determine, if alternative file persistency modes are being used
+	if (first_line.GetCount() && first_line[0] == '#') {
+		CParser p(first_line);
+		try {
+			p.PassChar('#');
+			if (p.Id("move")) {
+				if (p.Id("here")) {
+					move_here = true;
+					ready = true;
+				}
+				else if (p.IsId("dir"))
+					move_dir = true;
+				else
+					p.ThrowError("unexpected move qualifier");
+			}
+			
+			if (ready) {
+				// pass
+			}
+			else if (p.Id("dir")) {
+				if (p.Char('.') || p.IsEof()) {
+					dirpath = des->filename + ".d";
+					use_dir = true;
+				}
+				else if (p.IsString()) {
+					String s = p.ReadString();
+					if (s.IsEmpty())
+						p.ThrowError("empty filename");
+					
+					// Relative home directory path
+					if (s[0] == '~') {
+						dirpath = AppendFileName(
+								GetHomeDirectory(),
+								s.Mid(1));
+						use_dir = true;
+					}
+					
+					// Absolute path
+					#ifdef flagWIN32
+					else if (s.GetCount() >= 2 && s[1] == ':')
+					#else
+					else if (s[0] == '/')
+					#endif
+					{
+						dirpath = s;
+						use_dir = true;
+					}
+					
+					// Path in the same directory
+					else {
+						dirpath = AppendFileName(GetFileDirectory(des->filename), s);
+						use_dir = true;
+					}
+				}
+				else p.ThrowError("unexpected directory value");
+			}
+			else p.ThrowError("unexpected file header");
+		}
+		catch (Exc e) {
+			Loge("Loading '" + des->filename + "' failed: " + e);
+			return false;
+		}
+	}
+	is_parsed = true;
+	return true;
+}
+
+template <class T>
 bool Des<T>::Load(const String& includes, const String& filename_)
 {
 	filename = filename_;
-	String dirname = filename_ + ".d";
-	//if (DirectoryExists(dirname)) {
-	if (T::IsSaveDirectory()) {
-		if (edit.LoadDirectory(includes, filename, dirname, CHARSET_UTF8)) {
+	
+	FileIn in(filename);
+	FileHeaderParser p;
+	if (in) {
+		String first_line = in.GetLine();
+		if (!p.Parse(this, first_line))
+			return false;
+		in.Seek(0);
+	}
+	
+	if (p.use_dir) {
+		if (p.move_dir) {
+			// use data already in memory: only realize instead of loading
+			edit.Realize(includes, filename);
+			Preview();
+			return true;
+		}
+		else if (edit.LoadDirectory(includes, filename, p.dirpath, CHARSET_UTF8)) {
 			Preview();
 			return true;
 		}
 	}
 	else {
-		FileIn in(filename);
 		if(in) {
-			// TODO check if faster cache can be loaded based on same sha1
-			edit.Load(includes, filename, in, CHARSET_UTF8);
+			if (p.move_here) {
+				// use data already in memory: only realize instead of loading
+				edit.Realize(includes, filename);
+			}
+			else {
+				// TODO check if faster cache can be loaded based on same sha1
+				edit.Load(includes, filename, in, CHARSET_UTF8);
+			}
 			IdeEditPos& ep = sEPai().GetAdd(filename);
 			if(ep.filetime == FileGetTime(filename)) {
 				edit.SetEditPos(ep.editpos);
@@ -60,14 +151,25 @@ void Des<T>::SaveEditPos()
 template <class T>
 void Des<T>::Save()
 {
-	if (T::IsSaveDirectory()) {
-		edit.SaveDirectory(CHARSET_UTF8);
-		/*VersionControlSystem vcs;
-		vcs.Initialize(filename + ".d");
-		vcs.SetStoring();
-		NodeVisitor vis(vcs);
-		edit.Visit(vis);
-		vcs.Close();*/
+	FileHeaderParser p;
+	FileIn in(filename);
+	if (in ){
+		String first_line = in.GetLine();
+		p.Parse(this, first_line);
+	}
+	
+	if (p.is_parsed && p.use_dir) {
+		edit.SaveDirectory(p.dirpath, CHARSET_UTF8);
+		
+		// Do some housekeeping: change '#move dir' to '#dir'
+		if (p.move_dir) {
+			String content = LoadFile(filename);
+			if (content.Left(9) == "#move dir") {
+				content = "#" + content.Mid(6);
+				FileOut fout(filename);
+				fout << content;
+			}
+		}
 	}
 	else {
 		// TODO check sha1 if the persistent file is needed to be overwritten

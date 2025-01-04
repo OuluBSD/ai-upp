@@ -76,18 +76,19 @@ public:
 	ArrayMap<String, FileNode> nodes;
 	Vector<String> MakeItems(String file);
 	
+	VectorMap<String,Value> data;
 public:
 	typedef ProjectWizardView CLASSNAME;
 	COMPONENT_CONSTRUCTOR(ProjectWizardView)
 	
 	void Data();
-	void Visit(NodeVisitor& v) override {TODO}
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("data", data);
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_PROJECT_WIZARD;}
-	
-	
 	static VectorMap<String,String>& GetCategories() {static VectorMap<String,String> m; return m;}
 	static void RegisterCategory(String key, String desc) {GetCategories().GetAdd(key) = desc;}
-	
 	static ArrayMap<String, ConfigurationNode>& GetConfs() {static ArrayMap<String, ConfigurationNode> m; return m;}
 	static ConfigurationNode& Register(String path, String title=String());
 	static const ConfigurationNode* FindConfigurationNode(const String& path);
@@ -97,16 +98,12 @@ public:
 	void DefaultDynamic(const FileNode* n);
 	void ClearAllDynamic(const FileNode* n);
 	void SplitComponents(const FileNode* n);
-	//void SplitAllSubComponents(const FileNode* n);
 	void SplitSubComponents(const FileNode* n);
 	void SplitDependencies(const FileNode* n);
 	void SplitTechnologyCategories(const FileNode* n);
 	void SplitUniqueComponents(const FileNode* n);
 	void GetAllClasses(const FileNode* n);
-	//void GetPackageNames(const FileNode* n);
-	//void BuildStructure(const FileNode* n);
 	void GetAllComponents(const FileNode* n);
-	//void SplitVirtualModules(const FileNode* n);
 	void SplitItems(const FileNode* n, String key);
 	void SplitPackages(const FileNode* n);
 	void ParseVirtualPackageData(const FileNode* n);

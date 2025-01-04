@@ -66,7 +66,7 @@ public:
 	
 };
 
-class ImageGenTool : public ComponentCtrl {
+class ImageGenTool : public Ctrl {
 	TabCtrl tabs;
 	
 	
@@ -116,8 +116,9 @@ public:
 	typedef ImageGenTool CLASSNAME;
 	ImageGenTool();
 	
-	void Data() override;
-	void ToolMenu(Bar& bar) override;
+	void Data();
+	void ToolMenu(Bar& bar);
+	
 	void Generate();
 	void GenerateFromEditor();
 	void VariateFromEditor();
@@ -140,7 +141,7 @@ public:
 	
 };
 
-INITIALIZE(ImageGenTool)
+//INITIALIZE(ImageGenTool)
 
 END_UPP_NAMESPACE
 

@@ -387,4 +387,3 @@ LAYOUT(PublisherInfo, 512, 248)
 	ITEM(Upp::Label, dv___7, SetLabel(t_("Info:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 124).TopPosZ(96, 19))
 	ITEM(Upp::DocEdit, info, HSizePosZ(140, 8).VSizePosZ(96, 8))
 END_LAYOUT
-

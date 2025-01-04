@@ -62,7 +62,6 @@ String ProjectWizardCtrl::GetViewName(int i) {
 }
 
 void ProjectWizardCtrl::Data() {
-	
 	ProjectWizardView& view = GetView();
 	view.WhenFile = [this]{PostCallback(THISBACK(DataFile));};
 	view.WhenOptions = [this]{PostCallback(THISBACK(DataItem));};
@@ -87,8 +86,6 @@ void ProjectWizardCtrl::Data() {
 }
 
 void ProjectWizardCtrl::DataDirectory() {
-	TODO
-	#if 0
 	if (!dirs.IsCursor())
 		return;
 	
@@ -108,15 +105,11 @@ void ProjectWizardCtrl::DataDirectory() {
 	if (cursor >= 0 && cursor < files.GetCount())
 		files.SetCursor(cursor);
 	
-	
 	DataFile();
 	//PostCallback([this]{files.SetFocus();});
-	#endif
 }
 
 void ProjectWizardCtrl::DataFile() {
-	TODO
-	#if 0
 	if (!dirs.IsCursor() || !files.IsCursor())
 		return;
 	
@@ -144,7 +137,7 @@ void ProjectWizardCtrl::DataFile() {
 	
 	
 	// Data
-	Node& n = *view->node;
+	ProjectWizardView& n = GetView();
 	Value& val = n.data.GetAdd(file_path);
 	
 	
@@ -166,12 +159,9 @@ void ProjectWizardCtrl::DataFile() {
 	DataItem();
 	//PostCallback([this]{items.SetFocus();});
 	
-	#endif
 }
 
 void ProjectWizardCtrl::DataItem() {
-	TODO
-	#if 0
 	if (!dirs.IsCursor() || !files.IsCursor() || !items.IsCursor())
 		return;
 	
@@ -195,7 +185,6 @@ void ProjectWizardCtrl::DataItem() {
 		
 		
 		// Data
-		Node& n = *view.node;
 		ValueMap& item = view.GetItem(item_path);
 		Value& val = view.GetItemValue(item_path);
 		value = val.ToString();
@@ -260,9 +249,7 @@ void ProjectWizardCtrl::DataItem() {
 			options.SetCursor(cursor);
 	}
 	
-	
 	DataOption();
-	#endif
 }
 
 void ProjectWizardCtrl::DataOption() {
@@ -434,13 +421,10 @@ Vector<String> ProjectWizardView::MakeItems(String file_path) {
 }
 
 void ProjectWizardCtrl::ToolMenu(Bar& bar) {
-	TODO
-	#if 0
-	bar.Add(t_("Refresh"), AppImg::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Additional button function"), AppImg::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Refresh"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Additional button function"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Press all 'Refresh' buttons in this file"), AppImg::RedRing(), THISBACK1(Do, 2)).Key(K_F9);
-	#endif
+	bar.Add(t_("Press all 'Refresh' buttons in this file"), TextImgs::RedRing(), THISBACK1(Do, 2)).Key(K_F9);
 }
 
 ProjectWizardView& ProjectWizardCtrl::GetView() {
@@ -499,31 +483,19 @@ void ProjectWizardCtrl::Do(int fn) {
 	}
 }
 
+void ProjectWizardCtrl::EditPos(JsonIO& json) {
+	json ("cursor_history", cursor_history);
+}
+
 int ProjectWizardCtrl::GetHistoryCursor(String path) {
-	TODO
-	#if 0
-	Node& n = *view->node;
-	Value& cursor_history = n.data.GetAdd("cursor_history");
-	if (!cursor_history.Is<ValueMap>())
-		cursor_history = ValueMap();
-	const ValueMap& map = ValueToMap(cursor_history);
-	int j = map.Find(path);
+	int j = cursor_history.Find(path);
 	if (j >= 0)
-		return map.GetValue(j);
-	#endif
+		return cursor_history.GetValue(j);
 	return 0;
 }
 
 void ProjectWizardCtrl::SetHistoryCursor(String path, int i) {
-	TODO
-	#if 0
-	Node& n = *view->node;
-	Value& cursor_history = n.data.GetAdd("cursor_history");
-	if (!cursor_history.Is<ValueMap>())
-		cursor_history = ValueMap();
-	ValueMap& map = ValueToMap(cursor_history);
-	map.Set(path, i);
-	#endif
+	cursor_history.Set(path, i);
 }
 
 

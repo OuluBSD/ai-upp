@@ -325,8 +325,7 @@ void ProjectWizardView::SplitSubComponents(const FileNode* n) {
 	const auto& confs = ProjectWizardView::GetConfs();
 	String file_path = n->GetFilePath();
 	ValueArray& arr = GetItemOpts(n->path);
-	TODO
-	#if 0
+	
 	for(int i = 0; i < arr.GetCount(); i++) {
 		String s =  arr[i].ToString();
 		RemoveColonTrail(s);
@@ -355,13 +354,9 @@ void ProjectWizardView::SplitSubComponents(const FileNode* n) {
 		}
 	}
 	WhenFile();
-	#endif
-	
 }
 
 void ProjectWizardView::SplitDependencies(const FileNode* n) {
-	TODO
-	#if 0
 	const auto& confs = ProjectWizardView::GetConfs();
 	String file_path = n->GetFilePath();
 	ValueArray& arr0 = GetItemOpts("/Plan/Client program:Unique components");
@@ -392,13 +387,9 @@ void ProjectWizardView::SplitDependencies(const FileNode* n) {
 		}
 	}
 	WhenFile();
-	#endif
-	
 }
 
 void ProjectWizardView::SplitItems(const FileNode* n, String key) {
-	TODO
-	#if 0
 	const auto& confs = ProjectWizardView::GetConfs();
 	String file_path = n->GetFilePath();
 	ValueArray& arr = GetItemOpts(n->path);
@@ -417,8 +408,6 @@ void ProjectWizardView::SplitItems(const FileNode* n, String key) {
 		user_input = s;
 	}
 	WhenFile();
-	#endif
-	
 }
 
 void ProjectWizardView::SplitTechnologyCategories(const FileNode* n) {
@@ -798,43 +787,27 @@ Value& ProjectWizardView::GetItemValue(const String& path) {
 }
 
 ValueArray& ProjectWizardView::GetItemOpts(const String& path) {
-	TODO
-	#if 0
 	return ValueToArray(GetItem(path).GetAdd("opts"));
-	#endif
-	return Single<ValueArray>();
 }
 
 ValueMap& ProjectWizardView::GetItem(const String& path) {
-	TODO
-	#if 0
 	int a = path.Find(":");
 	ASSERT(a >= 0);
 	String file_path = path.Left(a);
 	String sub_item = path.Mid(a+1);
-	ValueMap& map = ValueToMap(node->data.GetAdd(file_path));
+	ValueMap& map = ValueToMap(data.GetAdd(file_path));
 	ValueMap& item = ValueToMap(map.GetAdd(sub_item));
 	return item;
-	#endif
-	return Single<ValueMap>();
 }
 
 Value& ProjectWizardView::GetFileValue(const String& file_path) {
-	TODO
-	#if 0
 	ASSERT(file_path.Find(":") < 0);
-	return node->data.GetAdd(file_path);
-	#endif
-	return Single<Value>();
+	return data.GetAdd(file_path);
 }
 
 ValueMap& ProjectWizardView::GetFile(const String& file_path) {
-	TODO
-	#if 0
-	ValueMap& map = ValueToMap(node->data.GetAdd(file_path));
+	ValueMap& map = ValueToMap(data.GetAdd(file_path));
 	return map;
-	#endif
-	return Single<ValueMap>();
 }
 
 void ProjectWizardView::PressReadyButton(const FileNode& n) {
@@ -886,6 +859,9 @@ bool ProjectWizardView::MakeArgs(GenericPromptArgs& args, const FileNode& n) {
 			MakeArgsOptions(args, n, o);
 		}
 		else if (o.type == ConfigurationOption::PROMPT_RESPONSE) {
+			if (n.conf.title.GetCount()) {
+				args.response_path = n.conf.path + ": " + n.conf.title;
+			}
 			args.response_title = o.value.ToString();
 		}
 		else if (o.type == ConfigurationOption::PROMPT_INPUT_USER_TEXT) {

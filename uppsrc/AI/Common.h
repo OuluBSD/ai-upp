@@ -17,12 +17,13 @@ struct VisionArgs {
 struct GenericPromptArgs {
 	int fn = 0;
 	VectorMap<String, Vector<String>> lists;
+	String response_path;
 	String response_title;
 	bool is_numbered_lines = false;
 
 	void Jsonize(JsonIO& json)
 	{
-		json("fn", fn)("lists", lists)("t", response_title)("nl", is_numbered_lines);
+		json("fn", fn)("lists", lists)("rp", response_path)("t", response_title)("nl", is_numbered_lines);
 	}
 
 	String Get() const { return StoreAsJson(*this); }
@@ -517,6 +518,11 @@ struct MarketplaceArgs {
 };
 
 bool IsAllDigit(const String& s);
+String AppendUnixFileName(String a, String b);
+ValueMap& ValueToMap(Value& val);
+ValueArray& ValueToArray(Value& val);
+void RemoveColonTrail(String& s);
+void RemoveCommentTrail(String& s);
 
 END_UPP_NAMESPACE
 

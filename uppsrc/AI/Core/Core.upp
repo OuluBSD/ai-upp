@@ -27,6 +27,7 @@ file
 	Asset readonly separator,
 	ProjectWizard.h,
 	ProjectWizard.cpp,
+	ProjectWizardInit.icpp,
 	Recycle readonly separator,
 	Data.h,
 	Data.cpp,

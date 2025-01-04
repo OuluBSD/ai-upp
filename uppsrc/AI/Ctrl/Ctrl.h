@@ -52,12 +52,6 @@
 #include "Song.h"
 #include "Reasoning.h"
 
-#define LAYOUTFILE <AI/Ctrl/ImgCtrl.lay>
-#include <CtrlCore/lay.h>
-
-#include "ImgGen.h"
-#include "ImgAspectFixer.h"
-
 #include "VideoPrompt.h"
 #include "VideoStoryboard.h"
 

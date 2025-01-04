@@ -22,6 +22,9 @@
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
 
+#include "ImgGen.h"
+#include "ImgAspectFixer.h"
+#include "Playground.h"
 
 #include "MetaCodeCtrl.h"
 #include "Prompt.h"

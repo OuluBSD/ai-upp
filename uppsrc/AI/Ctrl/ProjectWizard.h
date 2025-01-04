@@ -50,6 +50,8 @@ class ProjectWizardCtrl : public ComponentCtrl {
 	
 	static String GetViewName(int i);
 	
+	ValueMap cursor_history;
+	
 public:
 	typedef ProjectWizardCtrl CLASSNAME;
 	ProjectWizardCtrl();
@@ -64,6 +66,7 @@ public:
 	void OnTreeChange();
 	void ToolMenu(Bar& bar) override;
 	void Do(int fn);
+	void EditPos(JsonIO& json) override;
 	
 	Index<String> GetDirectories(String dir);
 	Index<String> GetFiles(String dir);

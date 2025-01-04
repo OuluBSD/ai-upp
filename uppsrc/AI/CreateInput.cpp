@@ -161,6 +161,11 @@ void AiTask::CreateInput_GenericPrompt()
 				list.Add(arr[j]);
 			}
 		}
+		if (args.response_path.GetCount()) {
+			auto& list = input.AddSub();
+			list.Title(args.response_path);
+			list.NoColon();
+		}
 		{
 			TaskTitledList& results = input.PreAnswer();
 			results.Title(args.response_title);
@@ -180,7 +185,9 @@ void AiTask::CreateInput_Code()
 	}
 	CodeArgs args;
 	args.Put(this->args[0]);
-
+	
+	Panic("TODO: convert to json");
+	
 	if(args.fn == CodeArgs::SCOPE_COMMENTS) {
 		{
 			auto& list = input.AddSub().Title("Code");

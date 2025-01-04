@@ -8,7 +8,7 @@ String GetStringRange(String content, Point begin, Point end) {
 	if (content.Find("\r\n") >= 0)
 		ln = "\r\n";
 	Vector<String> lines = Split(content, ln, false);
-	{
+	if (end.y >= 0) {
 		int c = lines.GetCount();
 		int last_i = c-1;
 		if (end.y < last_i) {
@@ -69,6 +69,43 @@ bool IsAllDigit(const String& s) {
 		if (!IsDigit(*c++))
 			return false;
 	return true;
+}
+
+String AppendUnixFileName(String a, String b) {
+	if (a.GetCount() && a[a.GetCount()-1] == '/')
+		a = a.Left(a.GetCount()-1);
+	if (b.GetCount() && b[0] == '/')
+		b = b.Mid(1);
+	return a + "/" + b;
+}
+
+
+// TODO: this function might be too dirty hack
+ValueMap& ValueToMap(Value& val) {
+	dword type = val.GetType();
+	if (type != VALUEMAP_V)
+		val = ValueMap();
+	return *(ValueMap*)&val; // Illegal, but works -> better than crash in release mode
+}
+
+// TODO: this function might be too dirty hack
+ValueArray& ValueToArray(Value& val) {
+	dword type = val.GetType();
+	if (type != VALUEARRAY_V)
+		val = ValueArray();
+	return *(ValueArray*)&val; // Illegal, but works -> better than crash in release mode
+}
+
+void RemoveColonTrail(String& s) {
+	int a = s.Find(":");
+	if (a >= 0)
+		s = s.Left(a);
+}
+
+void RemoveCommentTrail(String& s) {
+	int a = s.Find("//");
+	if (a >= 0)
+		s = TrimRight(s.Left(a));
 }
 
 END_UPP_NAMESPACE

@@ -1,4 +1,4 @@
-#include "Ctrl.h"
+#include "AI.h"
 #include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP
@@ -745,7 +745,7 @@ void PreviewDisplay::Paint(Draw& w, const Rect& r, const Value& q,
 
 
 
-INITIALIZER_COMPONENT_CTRL(ImageGenLayer, ImageGenTool)
+//INITIALIZER_COMPONENT_CTRL(ImageGenLayer, ImageGenTool)
 
 
 END_UPP_NAMESPACE

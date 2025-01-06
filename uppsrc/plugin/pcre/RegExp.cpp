@@ -1,7 +1,6 @@
 #include "Pcre.h"
 
-namespace Upp {
-
+NAMESPACE_UPP
 
 RegExp::RegExp(int options)
 {
@@ -398,4 +397,4 @@ int RegExp::ReplaceGlobal(String& t, Event<Vector<String>&> cbr)
 	
 }
 
-}
+END_UPP_NAMESPACE

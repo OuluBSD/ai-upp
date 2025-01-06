@@ -1,7 +1,9 @@
 #ifndef _PcreTest_RegExp_h_
 #define _PcreTest_RegExp_h_
 
-//#include <Core/Core.h>
+NAMESPACE_UPP
+
+#undef UNICODE
 
 class RegExp : public Moveable<RegExp> {
 public:
@@ -117,6 +119,6 @@ public:
 	~RegExp();
 };
 
+END_UPP_NAMESPACE
+
 #endif
-
-

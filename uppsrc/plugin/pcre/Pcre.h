@@ -7,12 +7,8 @@
 #define PCRE_EXP_DECL extern 
 #endif
 
+#include "lib/config.h"
 #include "lib/pcre.h"
-
-namespace Upp {
-
 #include "RegExp.h"
-
-}
 
 #endif

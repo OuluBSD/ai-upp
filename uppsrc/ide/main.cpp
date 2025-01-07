@@ -380,7 +380,7 @@ void AppMain___()
 				}
 			}
 		} else {
-			if(arg.GetCount() == 2 && IsAssembly(arg[0])) {
+			if(arg.GetCount() >= 2 && IsAssembly(arg[0])) {
 				LoadVars(arg[0]);
 				ide.SetMain(arg[1]);
 				clset=true;
@@ -437,17 +437,20 @@ void AppMain___()
 				if (dropdown.IsEnabled()) {
 					ide.Close();
 					do {
+						dropdown.Reset();
 						dropdown.Run();
-						if (dropdown.IsIdeFallback()) {
+						if (dropdown.IsIdeToggled()) {
 							IdeAgain = true;
-							dropdown.SetIdeFallback(false);
 							break;
 						}
 					}
 					while (!Thread::IsShutdownThreads() && dropdown.IsRunning());
 				}
-				else if(!IdeExit)
+				else if(!IdeExit) {
 					ide.Run();
+					if (dropdown.IsEnabled())
+						IdeAgain = true;
+				}
 				ide.SaveConfigOnTime();
 				ide.SaveLastMain();
 				ide.DeleteWindows();

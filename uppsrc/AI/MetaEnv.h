@@ -525,12 +525,14 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 struct MetaExtCtrl : Ctrl {
 	Ptr<MetaNodeExt> ext;
 	Event<> WhenEditorChange;
+	Event<> WhenTitle;
 	Ptr<ToolAppCtrl> owner;
 	
 	virtual ~MetaExtCtrl() {}
 	virtual void Data() = 0;
 	virtual void ToolMenu(Bar& bar) = 0;
 	virtual void EditPos(JsonIO& json) {};
+	virtual String GetTitle() const {return String();}
 	MetaNode& GetNode();
 	MetaNodeExt& GetExt();
 	String GetFilePath() const;

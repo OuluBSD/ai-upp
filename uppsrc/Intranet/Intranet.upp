@@ -1,0 +1,15 @@
+description "\377B113,42,150";
+
+uses
+	Core,
+	FTP;
+
+file
+	Intranet.h,
+	Intranet.lay,
+	Ftp.cpp,
+	FtpClient.h,
+	FtpClient.cpp,
+	FtpServer.h,
+	FtpServer.cpp;
+

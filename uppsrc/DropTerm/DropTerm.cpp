@@ -1,9 +1,17 @@
 #include "DropTerm.h"
+#include <ide/ide.h>
 
 #define KEYGROUPNAME "Dropdown Terminal"
 #define KEYNAMESPACE Dropdown
 #define KEYFILE      <DropTerm/DropTerm.key>
 #include             <CtrlLib/key_source.h>
+
+
+#define IMAGECLASS DropTermImg
+#define IMAGEFILE <DropTerm/DropTerm.iml>
+#include <Draw/iml_source.h>
+
+
 
 DropTerm::DropTerm() {
 	Icon(DropTermImg::icon());
@@ -38,6 +46,8 @@ ConsoleCtrl& DropTerm::NewConsole() {
 }
 
 void DropTerm::CloseTab() {
+	if (!tabs.GetCount())
+		return;
 	int active = tabs.GetCursor();
 	int tab_id = tabs.GetKey(active);
 	CloseTabId(tab_id);
@@ -71,7 +81,7 @@ void DropTerm::PreviousTab() {
 
 void DropTerm::NextTab() {
 	int active = tabs.GetCursor() + 1;
-	if (active < 0) active += tabs.GetCount();
+	if (active >= tabs.GetCount()) active -= tabs.GetCount();
 	if (active < 0 || active >= tabs.GetCount()) return;
 	tabs.SetCursor(active);
 }
@@ -98,17 +108,14 @@ void DropTerm::ShowTabId(int id) {
 
 void DropTerm::RemoveId(int id) {
 	int i;
-	if ((i = cons.Find(id)) >= 0)
-		cons.Remove(i);
-}
-
-void DropTerm::TabClosed(Value tab) {
-	int i, id = tab;
-	
-	if ((i = cons.Find(i)) >= 0) {
+	if ((i = cons.Find(id)) >= 0) {
 		RemoveChild(&cons[i]);
 		cons.Remove(i);
 	}
+}
+
+void DropTerm::TabClosed(Value tab) {
+	RemoveId(tab);
 }
 
 ConsoleCtrl* DropTerm::GetActiveConsole() {
@@ -126,7 +133,7 @@ void DropTerm::MainMenu(Bar& menu) {
 	
 	ConsoleCtrl* cons = GetActiveConsole();
 	if (cons){
-		String cons_menu = cons->GetMenuTitle();
+		String cons_menu = cons->GetTitle();
 		if (!cons_menu.IsEmpty()) {
 			menu.Add(cons_menu, callback(cons, &ConsoleCtrl::Menu));
 		}
@@ -170,11 +177,8 @@ void DropTerm::RefreshMenu() {
 
 void DropTerm::AppMenu(Bar& menu) {
 	menu.Add(AK_OPENCONS, THISBACK(AddConsole));
-	menu.Add(AK_QUIT, THISBACK(Quit))
-	#ifdef flagDEBUG
-		.Key(K_CTRL_Q)
-	#endif
-	;
+	menu.Add(AK_LEAVE_PROGRAM, THISBACK(LeaveProgram)	);
+	menu.Add(AK_QUIT, THISBACK(Quit));
 }
 
 void DropTerm::ViewMenu(Bar& menu) {
@@ -194,13 +198,21 @@ void DropTerm::SetupMenu(Bar& menu)
 }
 
 bool DropTerm::Key(dword key, int count) {
-	if (key == (K_LEFT|K_CTRL)) {
-		PreviousTab();
-		return true;
+	if (key & K_DELTA && (key & K_CTRL || key & K_SHIFT || key & K_ALT)) {
+		TopWindow* tw = GetTopWindow();
+		if (tw && tw->HotKey(key))
+			return true;
 	}
-	if (key == (K_RIGHT|K_CTRL)) {
-		NextTab();
-		return true;
+	if (tabs.GetCount()) {
+		int tab = tabs.GetCursor();
+		int id = tabs.GetKey(tab);
+		int i = cons.Find(id);
+		if (i < 0) return false;
+		auto& ctrl = cons[i];
+		if (ctrl.RealizeFocus()) {
+			ctrl.SetFocus();
+			return ctrl.Key(key,count);
+		}
 	}
 	return false;
 }
@@ -214,10 +226,21 @@ void DropTerm::TopMost0() {
 void DropTerm::SetLayout() {
 	Rect scr = GetPrimaryWorkArea();
 	Size sz = scr.GetSize();
-	SetRect(scr.left, 1, sz.cx - 1, sz.cy * 3 / 5);
+	SetRect(scr.left, scr.top+1, sz.cx - 1, sz.cy * 3 / 5);
 }
 
+void DropTerm::Quit() {
+	PostClose();
+	is_exit = true;
+}
 
+void DropTerm::LeaveProgram() {
+	if (!tabs.GetCount())
+		return;
+	int active = tabs.GetCursor();
+	int tab_id = tabs.GetKey(active);
+	cons.Get(tab_id).RemoveExt();
+}
 
 #ifdef flagWIN32
 void DropTerm::SetSemiTransparent() {
@@ -276,15 +299,6 @@ void TrayApp::Menu(Bar& bar) {
 
 
 
-
-#define IMAGECLASS DropTermImg
-#define IMAGEFILE <DropTerm/DropTerm.iml>
-#include <Draw/iml_source.h>
-
-#if defined flagDEBUG && !__MINGW32__
-	#define DEBUG_APP_PROFILE 1
-#endif
-
 volatile sig_atomic_t hupflag = 0;
 
 extern "C" void hangup(int) {
@@ -297,12 +311,31 @@ void GlobalToggleWindow(IdeDropdownTerminal* term) {
 	term->ToggleWindow();
 }
 
+void GlobalToggleIde(IdeDropdownTerminal* term) {
+	term->ToggleIde();
+}
+
 void IdeDropdownTerminal::ToggleWindow() {
 	is_cons_toggled = true;
-	if (is_tray)
-		last_tray->Close();
+	if (is_tray) {
+		if (tray) {
+			tray->Close();
+		}
+	}
 	else
 		cons.PostClose();
+}
+
+void IdeDropdownTerminal::ToggleIde() {
+	if (!is_ide_toggled) {
+		is_ide_toggled = true;
+		ToggleWindow();
+	}
+	else {
+		is_ide_toggled = false;
+		is_tray = false;
+		TheIde()->Close();
+	}
 }
 
 String GetKeysFile() {
@@ -353,26 +386,44 @@ IdeDropdownTerminal::IdeDropdownTerminal() {
 	LoadKeys();
 	cons.AddConsole();
 	
+	Index<int> nordic;
+	nordic	<< LNGC_('D','A','D','K', CHARSET_UTF8)
+			<< LNGC_('S','V','S','E', CHARSET_UTF8)
+			<< LNGC_('F','I','F','I', CHARSET_UTF8)
+			;
 	
-	#if DEBUG_APP_PROFILE
-	key = K_CTRL|K_SHIFT|K_X;
-	#elif defined flagPOSIX
-	key = 0xa7 | K_DELTA; // §
-	is_tray = true;
-	#else
-	key = 65756;
-	is_tray = true;
-	#endif
+	int lng = GetCurrentLanguage();
+	if (nordic.Find(lng) >= 0) {
+		 // § key in danish, swedish and finnish keyboards
+		#if defined flagPOSIX
+		toggle_key = 0xa7 | K_DELTA;
+		is_tray = true;
+		#else
+		toggle_key = 65756 | K_DELTA;
+		#endif
+		ide_key = toggle_key | K_SHIFT;
+	}
+	else {
+		toggle_key = K_CTRL|K_SHIFT|K_X;
+		ide_key = K_CTRL|K_SHIFT|K_C;
+	}
 	
-	Ctrl::RegisterSystemHotKey(key, callback1(GlobalToggleWindow, this));
+	is_tray = true;
+	Ctrl::RegisterSystemHotKey(toggle_key, callback1(GlobalToggleWindow, this));
+	Ctrl::RegisterSystemHotKey(ide_key, callback1(GlobalToggleIde, this));
 	
 	
 	is_cons_toggled = true;
-	
 }
 
 IdeDropdownTerminal::~IdeDropdownTerminal() {
 	SaveKeys();
+}
+
+void IdeDropdownTerminal::Reset() {
+	is_cons_toggled = true;
+	is_ide_toggled = false;
+	is_exit = false;
 }
 
 void IdeDropdownTerminal::Run() {
@@ -381,11 +432,12 @@ void IdeDropdownTerminal::Run() {
 	is_cons_toggled = false;
 	
 	if (is_tray) {
-		TrayApp tray;
-		last_tray = &tray;
-		tray.Run();
-		is_exit = tray.IsExit();
+		tray.Create();
+		tray->Run();
+		is_exit = tray->IsExit();
 		is_cons_toggled = !is_exit;
+		tray->Close();
+		tray.Clear();
 	}
 	else {
 		#if !DEBUG_APP_PROFILE
@@ -393,13 +445,15 @@ void IdeDropdownTerminal::Run() {
 		#endif
 		cons.Run();
 		cons.CloseTopCtrls();
+		is_exit = cons.IsExit();
 		SaveKeys();
 	}
 	
 	is_tray = !is_tray;
 	
 	#if DEBUG_APP_PROFILE
-	is_exit = true;
+	if (!cons.dbg_keep_running)
+		is_exit = true;
 	#endif
 	
 	if (hupflag)

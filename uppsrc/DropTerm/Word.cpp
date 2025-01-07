@@ -176,6 +176,11 @@ void Word::Destroy()
 	delete this;
 }
 
+void Word::ToolMenu(Bar& bar)
+{
+	FileBar(bar);
+}
+
 void Word::MainBar(Bar& bar)
 {
 	FileBar(bar);
@@ -192,6 +197,22 @@ Word::Word()
 	static int doc;
 	editor.ClearModify();
 	toolbar.Set(THISBACK(MainBar));
+}
+
+String Word::GetTitle() const
+{
+	return "Word";
+}
+
+void Word::EditPos(JsonIO& json)
+{
+	if (json.IsLoading())
+		editor.SetFocus();
+}
+
+void Word::Data()
+{
+	
 }
 
 void Word::SerializeApp(Stream& s)

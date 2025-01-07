@@ -51,14 +51,20 @@ void CommandPrompt::Execute()
 	bool try_math = false;
 	String s = TrimBoth(GetUtf8Line(li));
 	if (s.IsEmpty()) return;
-	try {
-		txt = cons->Command(s);
+	
+	bool succ = false;
+	
+	if (!succ) try {
+		if (cons->Command(s)) {
+			succ = true;
+			txt = cons->GetOutput();
+		}
 	}
 	catch (Exc e) {
-		try_math = true;
+		txt << "ERROR: " << e;
 	}
 	
-	try {
+	if (!succ) try {
 		ArrayMap<String, EscValue>& g = UscGlobal();
 		for(int i = 0; i < g.GetCount(); i++)
 			vars.GetAdd(g.GetKey(i)) = g[i];
@@ -70,8 +76,10 @@ void CommandPrompt::Execute()
 	}
 	catch(CParser::Error e) {
 		const char *x = strchr(e, ':');
+		if (!txt.IsEmpty()) txt.Cat('\n');
 		txt << "ERROR: " << (x ? x + 1 : ~e);
 	}
+	
 	SetCursor(GetPos(li));
 	Paste("$");
 	SetCursor(GetLength());
@@ -91,6 +99,11 @@ void CommandPrompt::LeftDouble(Point p, dword flags)
 
 bool CommandPrompt::Key(dword key, int count)
 {
+	if (key & K_DELTA && (key & K_CTRL || key & K_SHIFT || key & K_ALT)) {
+		TopWindow* tw = GetTopWindow();
+		if (tw && tw->HotKey(key))
+			return true;
+	}
 	switch(key) {
 	case K_ENTER:
 		Execute();

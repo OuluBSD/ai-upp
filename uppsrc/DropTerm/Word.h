@@ -1,7 +1,7 @@
 #ifndef _DropTerm_Word_h_
 #define _DropTerm_Word_h_
 
-class Word : public ParentCtrl {
+class Word : public MetaExtCtrl {
 public:
 	virtual void DragAndDrop(Point, PasteClip& d);
 	virtual void FrameDragAndDrop(Point, PasteClip& d);
@@ -26,6 +26,7 @@ protected:
 	void Destroy();
 	void AboutMenu(Bar& bar);
 	void MainBar(Bar& bar);
+	void ToolMenu(Bar& bar) override;
 
 public:
 	typedef Word CLASSNAME;
@@ -36,6 +37,9 @@ public:
 	String GetTitle();
 	
 	Word();
+	void Data() override;
+	String GetTitle() const override;
+	void EditPos(JsonIO& json) override;
 	
 	Callback WhenTitle;
 	

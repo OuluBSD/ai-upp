@@ -506,7 +506,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::OnDimensionChange() {
 	
 	MarketplaceItem& mi = p.analysis->market_items[item_i];
 	OnValueChange();
-	String pkg_str = GetPackageString(mi.cx, mi.cy, mi.cz, mi.weight);
+	String pkg_str = GetPackageString((int)mi.cx, (int)mi.cy, (int)mi.cz, mi.weight);
 	form.package.SetData(pkg_str);
 	viewer.package.SetData(pkg_str);
 }

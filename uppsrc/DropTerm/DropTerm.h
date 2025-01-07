@@ -9,6 +9,7 @@
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
+#include <AI/Ctrl/Ctrl.h>
 using namespace Upp;
 
 
@@ -53,11 +54,13 @@ class DropTerm : public TopWindow {
 	MenuBar						menu;
 	
 protected:
+	friend class IdeDropdownTerminal;
 	ArrayMap<int, ConsoleCtrl>	cons;
 	TabBar						tabs;
 	double						alpha = 0.9;
 	int							id_counter;
 	bool						def_terminal = true;
+	bool						is_exit = false;
 	
 	void ShowTabId(int i);
 	void ShowTab();
@@ -69,7 +72,8 @@ public:
 	ConsoleCtrl& NewConsole();
 	ConsoleCtrl* GetActiveConsole();
 	void SetSemiTransparent();
-	void Quit() {PostClose();}
+	void Quit();
+	void LeaveProgram();
 	void AddConsole() {NewConsole();}
 	void CloseTab();
 	void CloseTabId(int id);
@@ -86,11 +90,12 @@ public:
 	void RefreshTitle1(String title, int id);
 	void ViewChange(int id);
 	void RemoveId(int id);
+	bool IsExit() const {return is_exit;}
 	
 	virtual bool Key(dword key, int count);
 
 	void PostClose() {PostCallback(THISBACK(Close0));}
-	void Close0() {Close();}
+	void Close0() {Close(); }
 	void PostTopMost() {PostCallback(THISBACK(TopMost0));}
 	void TopMost0();
 	void SetLayout();
@@ -100,28 +105,29 @@ public:
 };
 
 
-
 class IdeDropdownTerminal {
 	bool enable_ftpd = false;
 	DropTerm cons;
-	dword key;
+	dword toggle_key = 0;
+	dword ide_key = 0;
 	bool enabled = false;
-	bool is_tray;
-	bool is_cons_toggled;
+	bool is_tray = false;
+	bool is_cons_toggled = false;
+	bool is_ide_toggled = false;
 	bool is_exit = false;
-	bool is_fallback_theide = false;
-	TrayApp* last_tray;
+	One<TrayApp> tray;
 	
 public:
 	typedef IdeDropdownTerminal CLASSNAME;
 	IdeDropdownTerminal();
 	~IdeDropdownTerminal();
 	void ToggleWindow();
+	void ToggleIde();
+	void Reset();
 	void Run();
-	bool IsEnabled() const {return enabled;}
+	bool IsEnabled() const {return enabled && !is_ide_toggled;}
 	bool IsRunning() const {return !is_exit;}
-	bool IsIdeFallback() const {return is_fallback_theide;}
-	void SetIdeFallback(bool b=true) {is_fallback_theide = b;}
+	bool IsIdeToggled() const {return is_ide_toggled;}
 	
 };
 

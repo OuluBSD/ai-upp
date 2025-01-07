@@ -20,7 +20,8 @@ uses
 	Report,
 	Core/SSL,
 	plugin/md,
-	ide/clang;
+	ide/clang,
+	DropTerm;
 
 file
 	IDE readonly separator,
@@ -135,8 +136,8 @@ mainconfig
 	"" = "GUI HEAPLOG",
 	"" = "GUI X11",
 	"" = "GUI DEBUGCODE",
-	"" = "GUI AI",
-	"" = "GUI AI LCLANG";
+	"" = "GUI AI HAVE_INTRANET",
+	"" = "GUI AI LCLANG HAVE_INTRANET";
 
 custom() "",
 	"ASDFASDFASDF",

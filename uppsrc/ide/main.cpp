@@ -1,5 +1,6 @@
 #include "ide.h"
 #include "CommandLineHandler.h"
+#include <DropTerm/DropTerm.h>
 
 #define FUNCTION_NAME UPP_FUNCTION_NAME << "(): "
 
@@ -224,8 +225,9 @@ void AppMain___()
 	Ctrl::SetUHDEnabled();
 	Ctrl::SetDarkThemeEnabled();
 	Ctrl::SetAppName("TheIDE");
-
-	SetLanguage(LNG_ENGLISH);
+	
+	int lng = SetLNGCharset(GetSystemLNG(), CHARSET_UTF8);
+	SetLanguage(lng);
 	SetDefaultCharset(CHARSET_UTF8);
 
 	MainCommandLineHandler cmd_handler(CommandLine());
@@ -337,6 +339,7 @@ void AppMain___()
 #endif
 #endif
 
+	IdeDropdownTerminal dropdown;
 #ifndef _DEBUG
 	try {
 #endif
@@ -431,7 +434,19 @@ void AppMain___()
 				ide.FileSelected();
 				ide.isscanning--;
 				ide.MakeTitle();
-				if(!IdeExit)
+				if (dropdown.IsEnabled()) {
+					ide.Close();
+					do {
+						dropdown.Run();
+						if (dropdown.IsIdeFallback()) {
+							IdeAgain = true;
+							dropdown.SetIdeFallback(false);
+							break;
+						}
+					}
+					while (!Thread::IsShutdownThreads() && dropdown.IsRunning());
+				}
+				else if(!IdeExit)
 					ide.Run();
 				ide.SaveConfigOnTime();
 				ide.SaveLastMain();

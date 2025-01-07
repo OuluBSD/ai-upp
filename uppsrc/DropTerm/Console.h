@@ -7,7 +7,8 @@ class ConsoleCtrl : public ParentCtrl {
 	
 protected:
 	CommandPrompt cmd;
-	Word wordapp;
+	One<MetaExtCtrl> ext;
+	Ctrl* active = 0;
 	
 	#ifdef flagHAVE_INTRANET
 	One<FTPServer> ftpd;
@@ -19,18 +20,22 @@ protected:
 	ArrayMap<String, Callback1<String> > commands;
 	String out, err;
 	String cwd;
-	int view = VIEW_CMD;
+	String filename;
+	Event<> SaveEditPos;
+	Event<> LoadEditPos;
 	
-	enum {VIEW_CMD, VIEW_WORD};
-	void SetView(int i);
+	void SetView();
 	void SetTitle(String s);
 	
 public:
 	typedef ConsoleCtrl CLASSNAME;
 	ConsoleCtrl();
+	~ConsoleCtrl();
 	
+	bool RealizeFocus();
+	void RemoveExt();
 	void AddProgram(String cmd, Callback1<String> cb);
-	String Command(const String& cmd);
+	bool Command(const String& cmd);
 	
 	void ListFiles(String arg);
 	void ChangeDirectory(String arg);
@@ -45,7 +50,6 @@ public:
 	#endif
 	
 	void Menu(Bar& bar);
-	String GetMenuTitle();
 	String GetTitle();
 	
 	inline void Put(const String& s)		{out << s;}
@@ -57,6 +61,41 @@ public:
 	
 	Callback WhenTitle;
 	Callback WhenViewChange;
+	
+	template <class T> void SaveExtPos() {
+		if (!ext) return;
+		auto& cache = EditPosCached<T>::EditPosCache();
+		ASSERT(ext);
+		T* o = dynamic_cast<T*>(&*ext);
+		if (!o) return;
+		JsonIO jio;
+		o->EditPos(jio);
+		cache.GetAdd(filename) = jio.GetResult();
+		if (1) // TODO optimize (unnecessarily often here)
+			EditPosCached<T>::SaveEditPosCache();
+	}
+	
+	template <class T> void LoadExtPos() {
+		if (!ext) return;
+		auto& cache = EditPosCached<T>::EditPosCache();
+		if (cache.IsEmpty())
+			EditPosCached<T>::LoadEditPosCache();
+		T* o = dynamic_cast<T*>(&*ext);
+		if (!o) return;
+		JsonIO jio(cache.GetAdd(filename));
+		o->EditPos(jio);
+	}
+	
+	template <class T> bool CreateExt() {
+		if (ext) RemoveExt();
+		T* o = new T;
+		ext = o;
+		o->WhenTitle << Proxy(WhenTitle);
+		SaveEditPos = THISBACK(SaveExtPos<T>);
+		LoadEditPos = THISBACK(LoadExtPos<T>);
+		LoadExtPos<T>();
+		return true;
+	}
 	
 };
 

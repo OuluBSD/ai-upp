@@ -1,12 +1,7 @@
 #include "DropTerm.h"
 
 ConsoleCtrl::ConsoleCtrl() : cmd(this) {
-	Add(cmd.SizePos());
-	Add(wordapp.SizePos());
-	
-	SetView(VIEW_CMD);
-	
-	wordapp.WhenTitle << Proxy(WhenTitle);
+	SetView();
 	
 	AddProgram("ls",	THISBACK(ListFiles));
 	AddProgram("cd",	THISBACK(ChangeDirectory));
@@ -22,14 +17,36 @@ ConsoleCtrl::ConsoleCtrl() : cmd(this) {
 	cwd = GetHomeDirectory();
 }
 
-void ConsoleCtrl::SetView(int i) {
-	view = i;
-	cmd.Hide();
-	wordapp.Hide();
-	switch(i) {
-		case VIEW_CMD:		cmd.Show();			break;
-		case VIEW_WORD:		wordapp.Show();		break;
+ConsoleCtrl::~ConsoleCtrl() {
+	RemoveExt();
+}
+
+bool ConsoleCtrl::RealizeFocus() {
+	if (active && !active->HasFocusDeep()) {
+		active->SetFocus();
+		return true;
 	}
+	return false;
+}
+
+void ConsoleCtrl::SetView() {
+	if (active) {
+		RemoveChild(active);
+		active = 0;
+	}
+	
+	if (ext)
+		active = &*ext;
+	else
+		active = &cmd;
+	
+	if (active) {
+		Add(active->SizePos());
+		PostCallback([=]{
+			this->LoadEditPos();
+		});
+	}
+	
 	WhenViewChange();
 	WhenTitle();
 }
@@ -39,22 +56,43 @@ void ConsoleCtrl::AddProgram(String cmd, Callback1<String> cb) {
 }
 
 void ConsoleCtrl::Menu(Bar& bar) {
-	if (view == VIEW_WORD)
-		wordapp.FileBar(bar);
+	if (ext)
+		ext->ToolMenu(bar);
 	
+	if (active && active != &cmd) {
+		bar.Separator();
+		bar.Add(AK_LEAVE_PROGRAM, THISBACK(RemoveExt));
+	}
 }
 
-String ConsoleCtrl::GetMenuTitle() {
-	if (view == VIEW_WORD) return "Word";
-	return "";
+void ConsoleCtrl::RemoveExt() {
+	if (!ext) return;
+	
+	if (active == &*ext) {
+		SaveEditPos();
+		SaveEditPos.Clear();
+		LoadEditPos.Clear();
+		RemoveChild(&*ext);
+		ext.Clear();
+		active = 0;
+		SetView();
+	}
+	else ext.Clear();
 }
 
 String ConsoleCtrl::GetTitle() {
-	if (view == VIEW_WORD) return wordapp.GetTitle();
-	return "Console";
+	String s;
+	if (ext) {
+		s = ext->GetTitle();
+		if (s.IsEmpty())
+			s = "App";
+	}
+	else
+		s = "Console";
+	return s;
 }
 
-String ConsoleCtrl::Command(const String& cmd) {
+bool ConsoleCtrl::Command(const String& cmd) {
 	LOG("ConsoleCtrl::Command: " << cmd);
 	
 	String ret;
@@ -71,14 +109,13 @@ String ConsoleCtrl::Command(const String& cmd) {
 			
 			// Leave out last \n
 			if (!out.IsEmpty() && *(out.End()-1) == '\n')
-				return out.Left(out.GetCount()-1);
-			else
-				return out;
+				out = out.Left(out.GetCount()-1);
+			
+			return true;
 		}
 	}
 	
-	throw Exc("Invalid command");
-	return ret;
+	return false;
 }
 
 void ConsoleCtrl::ListFiles(String arg) {
@@ -134,8 +171,8 @@ void ConsoleCtrl::ShowFile(String arg) {
 }
 
 void ConsoleCtrl::EditFile(String arg) {
-	SetView(VIEW_WORD);
-	wordapp.SetFocus();
+	this->CreateExt<Word>();
+	SetView();
 }
 
 void ConsoleCtrl::DownloadFile(String arg) {

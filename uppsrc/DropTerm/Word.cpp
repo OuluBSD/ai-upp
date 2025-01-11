@@ -1,5 +1,7 @@
 #include "DropTerm.h"
 
+NAMESPACE_UPP
+
 
 FileSel& WordFs()
 {
@@ -238,3 +240,5 @@ void InitWord() {
 	       .DefaultExt("pdf");
 }
 
+
+END_UPP_NAMESPACE

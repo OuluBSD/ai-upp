@@ -51,6 +51,8 @@ public:
 	void SetPort(uint16 p) { port = p; }
 };
 
+void IntranetDaemon();
+
 END_UPP_NAMESPACE
 
 #endif

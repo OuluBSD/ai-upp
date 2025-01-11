@@ -713,6 +713,12 @@ MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 MetaEnvironment::MetaEnvironment() {
 	root.kind = CXCursor_Namespace;
 	root.serial = NewSerial();
+	
+	MountManager& mm = MountManager::System();
+	if (!mm.HasRoot())
+		mm.Mount("/", this, "MetaEnvironment");
+	else
+		mm.Mount("/meta", this, "MetaEnvironment");
 }
 
 hash_t MetaEnvironment::NewSerial() {

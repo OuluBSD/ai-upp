@@ -22,8 +22,6 @@ file
 	DropTerm.t,
 	Console.h,
 	Console.cpp,
-	CommandPrompt.h,
-	CommandPrompt.cpp,
 	Word.h,
 	Word.cpp,
 	Copying;

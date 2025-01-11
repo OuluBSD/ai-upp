@@ -819,7 +819,7 @@ typedef enum : byte {
 	MERGEMODE_UPDATE_SUBSET,
 } MergeMode;
 
-struct MetaEnvironment {
+struct MetaEnvironment : VFS {
 	struct FilePos : Moveable<FilePos> {
 		Vector<Ptr<MetaNode>> hash_nodes;
 	};

@@ -1,0 +1,13 @@
+description "\377B";
+
+file
+	Shell.h,
+	Shell.cpp,
+	ShellHost.cpp,
+	EscCmds.h,
+	EscCmds.cpp,
+	Mount.h,
+	Mount.cpp,
+	VFS.h,
+	VFS.cpp;
+

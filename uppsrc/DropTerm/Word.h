@@ -1,6 +1,8 @@
 #ifndef _DropTerm_Word_h_
 #define _DropTerm_Word_h_
 
+NAMESPACE_UPP
+
 class Word : public MetaExtCtrl {
 public:
 	virtual void DragAndDrop(Point, PasteClip& d);
@@ -46,5 +48,7 @@ public:
 };
 
 void InitWord();
+
+END_UPP_NAMESPACE
 
 #endif

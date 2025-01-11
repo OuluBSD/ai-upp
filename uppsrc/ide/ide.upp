@@ -21,7 +21,8 @@ uses
 	Core/SSL,
 	plugin/md,
 	ide/clang,
-	DropTerm;
+	DropTerm,
+	ide/Shell;
 
 file
 	IDE readonly separator,
@@ -83,7 +84,6 @@ file
 	SlideShow.cpp,
 	OnlineSearch.cpp,
 	Errors.cpp,
-	Calc.cpp,
 	FormatCode.cpp,
 	Abbr.cpp,
 	Qtf.cpp,

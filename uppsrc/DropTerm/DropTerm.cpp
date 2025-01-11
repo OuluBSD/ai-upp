@@ -11,7 +11,7 @@
 #define IMAGEFILE <DropTerm/DropTerm.iml>
 #include <Draw/iml_source.h>
 
-
+NAMESPACE_UPP
 
 DropTerm::DropTerm() {
 	Icon(DropTermImg::icon());
@@ -360,13 +360,6 @@ void SaveKeys() {
 
 
 
-void FtpDaemonService() {
-	FTPServer f;
-	f.Start();
-	while(!Thread::IsShutdownThreads())
-		Sleep(500);
-}
-
 IdeDropdownTerminal::IdeDropdownTerminal() {
 	#if defined flagPOSIX
 	signal(SIGHUP, hangup);
@@ -377,10 +370,10 @@ IdeDropdownTerminal::IdeDropdownTerminal() {
 	
 	enabled = FindIndex(CommandLine(), "--dropdown-terminal") >= 0;
 	
-	enable_ftpd = FindIndex(CommandLine(), "--ftpd") >= 0;
+	enable_intranet = FindIndex(CommandLine(), "--intranet") >= 0;
 	#ifdef flagHAVE_INTRANET
-	if (enable_ftpd)
-		Thread::Start(FtpDaemonService);
+	if (enable_intranet)
+		Thread::Start(IntranetDaemon);
 	#endif
 	
 	LoadKeys();
@@ -448,7 +441,7 @@ void IdeDropdownTerminal::Run() {
 		is_exit = cons.IsExit();
 		SaveKeys();
 	}
-	
+	 
 	is_tray = !is_tray;
 	
 	#if DEBUG_APP_PROFILE
@@ -459,3 +452,5 @@ void IdeDropdownTerminal::Run() {
 	if (hupflag)
 		is_exit = true;
 }
+
+END_UPP_NAMESPACE

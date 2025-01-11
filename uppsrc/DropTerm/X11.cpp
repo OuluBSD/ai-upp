@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+NAMESPACE_UPP
 
 void SetSemiTransparent0(double alpha, Display* display, unsigned long win) {
 	unsigned long opacity = (unsigned long)(0xFFFFFFFFul * alpha);
@@ -10,6 +11,8 @@ void SetSemiTransparent0(double alpha, Display* display, unsigned long win) {
 	                PropModeReplace, (unsigned char *)&opacity, 1L);
 	
 }
+
+END_UPP_NAMESPACE
 
 #endif
 

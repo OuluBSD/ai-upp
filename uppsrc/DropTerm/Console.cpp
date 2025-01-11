@@ -1,8 +1,11 @@
 #include "DropTerm.h"
 
-ConsoleCtrl::ConsoleCtrl() : cmd(this) {
+NAMESPACE_UPP
+
+ConsoleCtrl::ConsoleCtrl() : cmd(*this) {
 	SetView();
 	
+	#if 0
 	AddProgram("ls",	THISBACK(ListFiles));
 	AddProgram("cd",	THISBACK(ChangeDirectory));
 	AddProgram("mkdir",	THISBACK(CreateDirectory));
@@ -10,15 +13,13 @@ ConsoleCtrl::ConsoleCtrl() : cmd(this) {
 	AddProgram("cat",	THISBACK(ShowFile));
 	AddProgram("edit",	THISBACK(EditFile));
 	AddProgram("get",	THISBACK(DownloadFile));
-	#ifdef flagHAVE_INTRANET
-	AddProgram("ftpd",	THISBACK(StartFtpServer));
 	#endif
 	
 	cwd = GetHomeDirectory();
 }
 
 ConsoleCtrl::~ConsoleCtrl() {
-	RemoveExt();
+	RemoveExt(true);
 }
 
 bool ConsoleCtrl::RealizeFocus() {
@@ -51,21 +52,17 @@ void ConsoleCtrl::SetView() {
 	WhenTitle();
 }
 
-void ConsoleCtrl::AddProgram(String cmd, Callback1<String> cb) {
-	commands.Add(cmd, cb);
-}
-
 void ConsoleCtrl::Menu(Bar& bar) {
 	if (ext)
 		ext->ToolMenu(bar);
 	
 	if (active && active != &cmd) {
 		bar.Separator();
-		bar.Add(AK_LEAVE_PROGRAM, THISBACK(RemoveExt));
+		bar.Add(AK_LEAVE_PROGRAM, THISBACK1(RemoveExt, false));
 	}
 }
 
-void ConsoleCtrl::RemoveExt() {
+void ConsoleCtrl::RemoveExt(bool fast_exit) {
 	if (!ext) return;
 	
 	if (active == &*ext) {
@@ -75,7 +72,8 @@ void ConsoleCtrl::RemoveExt() {
 		RemoveChild(&*ext);
 		ext.Clear();
 		active = 0;
-		SetView();
+		if (!fast_exit)
+			SetView();
 	}
 	else ext.Clear();
 }
@@ -90,32 +88,6 @@ String ConsoleCtrl::GetTitle() {
 	else
 		s = "Console";
 	return s;
-}
-
-bool ConsoleCtrl::Command(const String& cmd) {
-	LOG("ConsoleCtrl::Command: " << cmd);
-	
-	String ret;
-	
-	out.Clear();
-	err.Clear();
-	
-	for(int i = 0; i < commands.GetCount(); i++) {
-		const String& c = commands.GetKey(i);
-		int c_count = c.GetCount();
-		if (cmd.Left(c_count) == c &&
-			(cmd == c || cmd.Mid(c_count, 1) == " ")) {
-			commands[i](TrimBoth(cmd.Mid(c_count+1)));
-			
-			// Leave out last \n
-			if (!out.IsEmpty() && *(out.End()-1) == '\n')
-				out = out.Left(out.GetCount()-1);
-			
-			return true;
-		}
-	}
-	
-	return false;
 }
 
 void ConsoleCtrl::ListFiles(String arg) {
@@ -179,10 +151,4 @@ void ConsoleCtrl::DownloadFile(String arg) {
 	
 }
 
-#ifdef flagHAVE_INTRANET
-void ConsoleCtrl::StartFtpServer(String arg) {
-	ftpd.Clear();
-	ftpd.Create();
-	ftpd->Start();
-}
-#endif
+END_UPP_NAMESPACE

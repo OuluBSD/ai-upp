@@ -10,6 +10,7 @@
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
 #include <AI/Ctrl/Ctrl.h>
+#include <ide/Shell/Shell.h>
 using namespace Upp;
 
 
@@ -28,9 +29,10 @@ using namespace Dropdown;
 #define IMAGEFILE <DropTerm/DropTerm.iml>
 #include <Draw/iml_header.h>
 
-#include "CommandPrompt.h"
 #include "Word.h"
 #include "Console.h"
+
+NAMESPACE_UPP
 
 class TrayApp : public TrayIcon {
 	bool is_exit;
@@ -106,7 +108,7 @@ public:
 
 
 class IdeDropdownTerminal {
-	bool enable_ftpd = false;
+	bool enable_intranet = false;
 	DropTerm cons;
 	dword toggle_key = 0;
 	dword ide_key = 0;
@@ -130,5 +132,7 @@ public:
 	bool IsIdeToggled() const {return is_ide_toggled;}
 	
 };
+
+END_UPP_NAMESPACE
 
 #endif

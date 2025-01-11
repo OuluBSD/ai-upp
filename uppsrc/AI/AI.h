@@ -4,6 +4,7 @@
 #include <CodeEditor/CodeEditor.h>
 #include <CtrlLib/CtrlLib.h>
 #include <ide/clang/clang.h>
+#include <ide/Shell/Shell.h>
 
 #define LAYOUTFILE <AI/AI.lay>
 #include <CtrlCore/lay.h>

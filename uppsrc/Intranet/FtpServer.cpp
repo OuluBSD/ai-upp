@@ -515,4 +515,11 @@ void FTPClientConnection::Process(TcpSocket& sock)
 	stopped = true;
 }
 
+void IntranetDaemon() {
+	FTPServer f;
+	f.Start();
+	while(!Thread::IsShutdownThreads())
+		Sleep(500);
+}
+
 END_UPP_NAMESPACE

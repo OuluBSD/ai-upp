@@ -1,23 +1,8 @@
-#include "DropTerm.h"
+#include "Shell.h"
 
-void EscPow(EscEscape& e)
-{
-	if (e[0].IsNumber() && e[1].IsNumber()) {
-		double a = e[0].GetNumber();
-		double b = e[1].GetNumber();
-		e = pow(a, b);
-	}
-}
+NAMESPACE_UPP
 
-void EscSqrt(EscEscape& e)
-{
-	if (e[0].IsNumber()) {
-		double a = e[0].GetNumber();
-		e = sqrt(a);
-	}
-}
-
-CommandPrompt::CommandPrompt(ConsoleCtrl* cons) : cons(cons)
+IdeShell::IdeShell(IdeShellHostBase& h) : host(h)
 {
 	Highlight("calc");
 	NoHorzScrollbar();
@@ -26,9 +11,12 @@ CommandPrompt::CommandPrompt(ConsoleCtrl* cons) : cons(cons)
 	Escape(UscGlobal(), "sqrt(x)", EscSqrt);
 }
 
-int LfToSpaceFilter(int c);
+int LfToSpaceFilter(int c)
+{
+	return c == '\n' ? ' ' : c;
+}
 
-void CommandPrompt::Execute()
+void IdeShell::Execute()
 {
 	int li = GetLineCount() - 1;
 	if(IsSelection()) {
@@ -55,9 +43,9 @@ void CommandPrompt::Execute()
 	bool succ = false;
 	
 	if (!succ) try {
-		if (cons->Command(s)) {
+		if (host.Command(s)) {
 			succ = true;
-			txt = cons->GetOutput();
+			txt = host.GetOutput();
 		}
 	}
 	catch (Exc e) {
@@ -90,14 +78,14 @@ void CommandPrompt::Execute()
 	}
 }
 
-void CommandPrompt::LeftDouble(Point p, dword flags)
+void IdeShell::LeftDouble(Point p, dword flags)
 {
 	CodeEditor::LeftDouble(p, flags);
 	if(IsSelection())
 		Execute();
 }
 
-bool CommandPrompt::Key(dword key, int count)
+bool IdeShell::Key(dword key, int count)
 {
 	if (key & K_DELTA && (key & K_CTRL || key & K_SHIFT || key & K_ALT)) {
 		TopWindow* tw = GetTopWindow();
@@ -114,3 +102,4 @@ bool CommandPrompt::Key(dword key, int count)
 	return true;
 }
 
+END_UPP_NAMESPACE

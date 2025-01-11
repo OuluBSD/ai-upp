@@ -1,24 +1,20 @@
 #ifndef _DropTerm_Console_h_
 #define _DropTerm_Console_h_
 
+NAMESPACE_UPP
+
 class DropTerm;
 
-class ConsoleCtrl : public ParentCtrl {
+class ConsoleCtrl : public ParentCtrl, IdeShellHost {
 	
 protected:
-	CommandPrompt cmd;
+	IdeShell cmd;
 	One<MetaExtCtrl> ext;
 	Ctrl* active = 0;
-	
-	#ifdef flagHAVE_INTRANET
-	One<FTPServer> ftpd;
-	#endif
 	
 	DropTerm* bridge = NULL;
 	int id = -1;
 	
-	ArrayMap<String, Callback1<String> > commands;
-	String out, err;
 	String cwd;
 	String filename;
 	Event<> SaveEditPos;
@@ -33,10 +29,7 @@ public:
 	~ConsoleCtrl();
 	
 	bool RealizeFocus();
-	void RemoveExt();
-	void AddProgram(String cmd, Callback1<String> cb);
-	bool Command(const String& cmd);
-	
+	void RemoveExt(bool fast_exit=false);
 	void ListFiles(String arg);
 	void ChangeDirectory(String arg);
 	void CreateDirectory(String arg);
@@ -45,17 +38,8 @@ public:
 	void EditFile(String arg);
 	void DownloadFile(String arg);
 	
-	#ifdef flagHAVE_INTRANET
-	void StartFtpServer(String arg);
-	#endif
-	
 	void Menu(Bar& bar);
 	String GetTitle();
-	
-	inline void Put(const String& s)		{out << s;}
-	inline void PutLine(const String& s)	{out << s << "\n";}
-	const String& GetOutput() const			{return out;}
-	const String& GetError() const			{return err;}
 	
 	void SetBridge(DropTerm* bridge, int id) {this->bridge = bridge; this->id = id;}
 	
@@ -98,5 +82,7 @@ public:
 	}
 	
 };
+
+END_UPP_NAMESPACE
 
 #endif

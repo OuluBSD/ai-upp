@@ -339,7 +339,6 @@ void AppMain___()
 #endif
 #endif
 
-	IdeDropdownTerminal dropdown;
 #ifndef _DEBUG
 	try {
 #endif
@@ -358,6 +357,7 @@ void AppMain___()
 		}
 
 		Ide ide;
+		IdeDropdownTerminal dropdown;
 		SetTheIde(&ide);
 		ide.Maximize();
 		bool clset = false;

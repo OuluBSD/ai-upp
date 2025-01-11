@@ -20,7 +20,8 @@ void SolverBaseIndicator::SetProgress(int a, int t) {
 
 
 ToolAppCtrl::~ToolAppCtrl() {
-	if (TheIde()->addon_ctrl == this) {
+	// '!Thread::IsShutdownThreads' prevents crash on ide destruction phase
+	if (!Thread::IsShutdownThreads() && TheIde()->addon_ctrl == this) {
 		TheIde()->addon_menu.Clear();
 		PostCallback([]{TheIde()->SetBar();});
 	}
@@ -58,7 +59,14 @@ void ToolAppCtrl::AddMenu() {
 
 void ToolAppCtrl::UpdateMenu() {
 	TheIde()->addon_ctrl = this;
-	TheIde()->addon_menu = [this](Bar& b){ToolMenu(b);};
+	TheIde()->addon_menu = [this](Bar& b){
+		auto* ctrl = &*TheIde()->addon_ctrl;
+		if (ctrl) {
+			ToolAppCtrl* c = dynamic_cast<ToolAppCtrl*>(ctrl);
+			if (c)
+				c->ToolMenu(b);
+		}
+	};
 	PostCallback([]{TheIde()->SetBar();});
 }
 

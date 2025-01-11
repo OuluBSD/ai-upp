@@ -20,6 +20,7 @@
 #include <ide/Designers/Designers.h>
 #include <ide/Android/Android.h>
 #include <plugin/md/Markdown.h>
+#include <ide/Shell/Shell.h>
 
 #include "About.h"
 #include "MethodsCtrls.h"
@@ -212,17 +213,6 @@ public:
 	typedef TopicCtrl CLASSNAME;
 
 	TopicCtrl();
-};
-
-struct IdeCalc : CodeEditor {
-	virtual bool Key(dword key, int count);
-	virtual void LeftDouble(Point p, dword flags);
-
-	ArrayMap<String, EscValue> vars;
-
-	void    Execute();
-
-	IdeCalc();
 };
 
 extern bool splash_screen;
@@ -500,7 +490,8 @@ public:
 	Vector<String> linking_line;
 	bool        removing_notes;
 
-	IdeCalc     calc;
+	IdeShellHost shell_host;
+	IdeShell    calc;
 	Ptr<Ctrl>   bottomctrl; // debugger pane
 
 	enum Bottoms { BCLOSE, BCONSOLE, BERRORS, BCALC, BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };

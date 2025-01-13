@@ -1,20 +1,20 @@
-Vector<String> Split(int maxcount, const char *s, const char * (*text_filter)(const char *), bool ignoreempty = true);
-Vector<String> Split(int maxcount, const char *s, int (*filter)(int), bool ignoreempty = true);
-Vector<String> Split(int maxcount, const char *s, int chr, bool ignoreempty = true);
-Vector<String> Split(int maxcount, const char *s, const char *text, bool ignoreempty = true);
-Vector<String> Split(const char *s, const char * (*text_filter)(const char *), bool ignoreempty = true);
-Vector<String> Split(const char *s, int (*filter)(int), bool ignoreempty = true);
-Vector<String> Split(const char *s, int chr, bool ignoreempty = true);
-Vector<String> Split(const char *s, const char *text, bool ignoreempty = true);
+Vector<String> Split(int maxcount, const char *s, const char * (*text_filter)(const char *), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(int maxcount, const char *s, int (*filter)(int), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(int maxcount, const char *s, int chr, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(int maxcount, const char *s, const char *text, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(const char *s, const char * (*text_filter)(const char *), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(const char *s, int (*filter)(int), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(const char *s, int chr, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<String> Split(const char *s, const char *text, bool ignoreempty = true, bool ignoreescaped = false);
 
-Vector<WString> Split(int maxcount, const wchar *s, const wchar * (*text_filter)(const wchar *), bool ignoreempty = true);
-Vector<WString> Split(int maxcount, const wchar *s, int (*filter)(int), bool ignoreempty = true);
-Vector<WString> Split(int maxcount, const wchar *s, int chr, bool ignoreempty = true);
-Vector<WString> Split(int maxcount, const wchar *s, const wchar *text, bool ignoreempty = true);
-Vector<WString> Split(const wchar *s, const wchar * (*text_filter)(const wchar *), bool ignoreempty = true);
-Vector<WString> Split(const wchar *s, int (*filter)(int), bool ignoreempty = true);
-Vector<WString> Split(const wchar *s, int chr, bool ignoreempty = true);
-Vector<WString> Split(const wchar *s, const wchar *text, bool ignoreempty = true);
+Vector<WString> Split(int maxcount, const wchar *s, const wchar * (*text_filter)(const wchar *), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(int maxcount, const wchar *s, int (*filter)(int), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(int maxcount, const wchar *s, int chr, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(int maxcount, const wchar *s, const wchar *text, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(const wchar *s, const wchar * (*text_filter)(const wchar *), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(const wchar *s, int (*filter)(int), bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(const wchar *s, int chr, bool ignoreempty = true, bool ignoreescaped = false);
+Vector<WString> Split(const wchar *s, const wchar *text, bool ignoreempty = true, bool ignoreescaped = false);
 
 String  Join(const Vector<String>& im, const String& delim, bool ignoreempty = false);
 WString Join(const Vector<WString>& im, const WString& delim, bool ignoreempty = false);

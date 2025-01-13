@@ -18,6 +18,9 @@ struct MountManager {
 	MountPoint* Find(const String& path);
 	MountPoint* Find(const VfsPath& path, VfsPath* rel_path=0);
 	bool GetFiles(const VfsPath& path, Vector<VfsItem>& items);
+	bool DirectoryExists(const VfsPath& dir);
+	bool FileExists(const VfsPath& dir);
+	bool Exists(const VfsPath& dir, VfsItemType type);
 	
 	Array<MountPoint> mounts;
 	String last_error;

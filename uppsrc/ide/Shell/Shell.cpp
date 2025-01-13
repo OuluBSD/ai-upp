@@ -1,4 +1,5 @@
 #include "Shell.h"
+#include <ide/ide.h>
 
 NAMESPACE_UPP
 
@@ -10,6 +11,11 @@ IdeShell::IdeShell(IdeShellHostBase& h) : host(h)
 	HideBar();
 	Escape(UscGlobal(), "pow(x,y)", EscPow);
 	Escape(UscGlobal(), "sqrt(x)", EscSqrt);
+	
+	if (!TheIde())
+		PostCallback(THISBACK(PrintLineHeader));
+	else
+		PrintLineHeader();
 }
 
 int LfToSpaceFilter(int c)
@@ -30,7 +36,8 @@ void IdeShell::Execute()
 	}
 	if(GetLine(GetCursor()) != li) {
 		WString s = GetWLine(GetLine(GetCursor()));
-		if(s[0] == '$') s = s.Mid(1);
+		if(s[0] == '$')
+			s = s.Mid(1);
 		SetCursor(GetLength());
 		Paste(s);
 		return;
@@ -38,7 +45,11 @@ void IdeShell::Execute()
 
 	String txt;
 	bool try_math = false;
-	String s = TrimBoth(GetUtf8Line(li));
+	String src_line = GetUtf8Line(li);
+	if (!line_header.IsEmpty())
+		src_line = src_line.Mid(line_header.GetCount());
+	String s = TrimBoth(src_line);
+	
 	if (s.IsEmpty()) return;
 	
 	bool succ = false;
@@ -72,14 +83,28 @@ void IdeShell::Execute()
 		txt << "ERROR: " << (x ? x + 1 : ~e);
 	}
 	
-	SetCursor(GetPos(li));
-	Paste("$");
-	SetCursor(GetLength());
-	Paste("\n");
-	if (!txt.IsEmpty()) {
-		Paste(txt.ToWString());
-		Paste("\n");
+	// The Old Behaviour of the calc
+	if (line_header.IsEmpty()) {
+		SetCursor(GetPos(li));
+		Paste("$");
+		SetCursor(GetLength());
 	}
+	
+	if (!txt.IsEmpty()) {
+		Paste("\n");
+		Paste(txt.ToWString());
+	}
+	Paste("\n");
+	PrintLineHeader();
+}
+
+void IdeShell::PrintLineHeader() {
+	String user = GetFileName(GetHomeDirectory());
+	auto* ide = TheIde();
+	String main = ide ? ide->main : "(unknown)";
+	String s = user + "@" + main + ":" + (String)cwd + " \% ";
+	line_header = s;
+	Paste(line_header.ToWString());
 }
 
 void IdeShell::LeftDouble(Point p, dword flags)
@@ -103,6 +128,14 @@ bool IdeShell::Key(dword key, int count)
 	default:
 		return CodeEditor::Key(key, count);
 	}
+	return true;
+}
+
+bool IdeShell::SetCurrentDirectory(const VfsPath& path) {
+	MountManager& mm = MountManager::System();
+	if (!mm.DirectoryExists(path))
+		return false;
+	cwd = path;
 	return true;
 }
 

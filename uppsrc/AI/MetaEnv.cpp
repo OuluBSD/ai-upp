@@ -1500,6 +1500,17 @@ int MetaNode::Find(int kind, const String& id) const
 	return -1;
 }
 
+int MetaNode::Find(const String& id) const
+{
+	int i = 0;
+	for(const MetaNode& n : sub) {
+		if (n.id == id)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
 void MetaNode::Destroy()
 {
 	if(!owner)
@@ -2099,8 +2110,40 @@ MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 }
 
 bool MetaEnvironment::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) {
-	
-	return 0;
+	// Note: appends to items
+	MetaNode* n = &this->root;
+	const auto& parts = rel_path.Parts();
+	for(int i = 0; i < parts.GetCount(); i++) {
+		const String& part = parts[i];
+		int j = n->Find(part);
+		if (j < 0)
+			return false;
+		n = &n->sub[j];
+	}
+	for(int i = 0; i < n->sub.GetCount(); i++) {
+		MetaNode& n0 = n->sub[i];
+		VfsItem& it = items.Add();
+		it.name = n0.id;
+		it.type = VFS_DIRECTORY;
+		if (!n0.type.IsEmpty())
+			it.type_str = n0.type;
+		else if (n0.ext)
+			it.type_str = n0.ext->GetName();
+	}
+	return true;
+}
+
+VfsItemType MetaEnvironment::CheckItem(const VfsPath& rel_path) {
+	MetaNode* n = &this->root;
+	const auto& parts = rel_path.Parts();
+	for(int i = 0; i < parts.GetCount(); i++) {
+		const String& part = parts[i];
+		int j = n->Find(part);
+		if (j < 0)
+			return VFS_NULL;
+		n = &n->sub[j];
+	}
+	return VFS_DIRECTORY;
 }
 
 

@@ -227,6 +227,8 @@ bool        DirectoryDelete(const char *path);
 
 String      NormalizePath(const char *path, const char *currdir);
 String      NormalizePath(const char *path);
+String      NormalizeCpmPath(const char *path, const char *currdir);
+String      NormalizeUnixPath(const char *path, const char *currdir);
 
 bool        PathIsEqual(const char *p1, const char *p2);
 

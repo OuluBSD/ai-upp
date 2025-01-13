@@ -641,6 +641,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& Add(int kind, String id=String());
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
+	int Find(const String& id) const;
 	hash_t GetTotalHash() const;
 	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
 	void Visit(NodeVisitor& vis);
@@ -873,6 +874,7 @@ struct MetaEnvironment : VFS {
 	Vector<MetaNode*> FindAllEnvs();
 	MetaNode* LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
+	VfsItemType CheckItem(const VfsPath& rel_path) override;
 };
 
 MetaEnvironment& MetaEnv();

@@ -39,31 +39,37 @@ NAMESPACE_UPP
 struct VfsPath : Moveable<VfsPath> {
 	VfsPath();
 	VfsPath(const String& s);
-	void Set(String path);
-	void Set(const Vector<String>& parts);
-	void Set(const VfsPath& path, int begin, int end);
-	bool IsLeft(const VfsPath& path) const;
-	bool IsSame(const VfsPath& path, int this_begin, int other_begin, int len) const;
-	String AsSysPath() const;
+	VfsPath(const VfsPath& path);
+	VfsPath(VfsPath&& path);
+	VfsPath& operator=(const VfsPath& path);
+	void	Set(String path);
+	void	Set(const Vector<String>& parts);
+	void	Set(const VfsPath& path, int begin, int end);
+	bool	IsLeft(const VfsPath& path) const;
+	bool	IsSame(const VfsPath& path, int this_begin, int other_begin, int len) const;
+	String	AsSysPath() const;
+	int		GetPartCount() const;
+	bool	IsEmpty() const;
+	String	TopPart() const;
+	bool	Normalize();
+	bool	IsValidFullPath() const;
 	const String& Get() const;
 	const Vector<String>& Parts() const;
 	operator String() const;
-	int GetPartCount() const;
-	bool IsEmpty() const;
-	String TopPart() const;
 private:
-	String str;
-	Vector<String> parts;
-	void StrFromParts();
+	String			str;
+	Vector<String>	parts;
+	void	StrFromParts();
 };
 
 String operator+(const char* s, const VfsPath& vfs);
 String operator+(const VfsPath& vfs, const char* s);
 bool IsFullInternalDirectory(const String& path);
 String AppendInternalFileName(const String& a, const String& b);
+String NormalizeInternalPath(const String& path);
 
 typedef enum : byte {
-	VFS_UNKNOWN,
+	VFS_NULL,
 	VFS_DIRECTORY,
 	VFS_FILE,
 	VFS_SYMLINK
@@ -72,19 +78,22 @@ typedef enum : byte {
 struct VfsItem : Moveable<VfsItem> {
 	String name;
 	String type_str;
-	VfsItemType type = VFS_UNKNOWN;
+	VfsItemType type = VFS_NULL;
 };
 
 struct VFS : Pte<VFS> {
 	VFS() {}
 	virtual ~VFS() {}
 	virtual bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) = 0;
+	virtual VfsItemType CheckItem(const VfsPath& rel_path) = 0;
+	
 	String last_error;
 };
 
 struct SystemFS : VFS {
 	SystemFS() {}
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
+	VfsItemType CheckItem(const VfsPath& rel_path) override;
 };
 
 END_UPP_NAMESPACE

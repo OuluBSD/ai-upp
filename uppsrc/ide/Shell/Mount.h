@@ -3,12 +3,6 @@
 
 NAMESPACE_UPP
 
-struct VfsPath : Moveable<VfsPath> {
-	String str;
-	Vector<String> parts;
-	void Set(String path);
-};
-
 struct MountManager {
 	struct MountPoint {
 		VfsPath path;
@@ -22,6 +16,8 @@ struct MountManager {
 	bool HasRoot() const;
 	bool Mount(String path, VFS* vfs, String type="");
 	MountPoint* Find(const String& path);
+	MountPoint* Find(const VfsPath& path, VfsPath* rel_path=0);
+	bool GetFiles(const VfsPath& path, Vector<VfsItem>& items);
 	
 	Array<MountPoint> mounts;
 	String last_error;

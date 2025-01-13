@@ -715,10 +715,7 @@ MetaEnvironment::MetaEnvironment() {
 	root.serial = NewSerial();
 	
 	MountManager& mm = MountManager::System();
-	if (!mm.HasRoot())
-		mm.Mount("/", this, "MetaEnvironment");
-	else
-		mm.Mount("/meta", this, "MetaEnvironment");
+	mm.Mount("/prj", this, "MetaEnvironment");
 }
 
 hash_t MetaEnvironment::NewSerial() {
@@ -2099,6 +2096,11 @@ MetaNode& MetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	n.serial = NewSerial();
 	n.id = pkgs[pkg].files[file].GetTitle();
 	return n;
+}
+
+bool MetaEnvironment::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) {
+	
+	return 0;
 }
 
 

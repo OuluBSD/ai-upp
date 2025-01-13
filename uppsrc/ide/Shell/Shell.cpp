@@ -43,7 +43,7 @@ void IdeShell::Execute()
 	bool succ = false;
 	
 	if (!succ) try {
-		if (host.Command(s)) {
+		if (host.Command(*this,s)) {
 			succ = true;
 			txt = host.GetOutput();
 		}

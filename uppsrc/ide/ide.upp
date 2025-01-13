@@ -21,8 +21,9 @@ uses
 	Core/SSL,
 	plugin/md,
 	ide/clang,
-	DropTerm,
 	ide/Shell;
+
+uses(AI) DropTerm;
 
 file
 	IDE readonly separator,

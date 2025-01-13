@@ -11,10 +11,12 @@
 
 NAMESPACE_UPP
 
+struct IdeShell;
+
 struct IdeShellHostBase {
 	IdeShellHostBase();
 	virtual ~IdeShellHostBase();
-	virtual bool Command(Value arg) = 0;
+	virtual bool Command(IdeShell& shell, Value arg) = 0;
 	virtual const String& GetOutput() const = 0;
 	virtual const String& GetError() const = 0;
 	
@@ -24,21 +26,21 @@ struct IdeShellHostBase {
 struct IdeShellHost : IdeShellHostBase {
 	typedef IdeShellHost CLASSNAME;
 	IdeShellHost();
-	bool Command(Value arg) override;
+	bool Command(IdeShell& shell, Value arg) override;
 	const String& GetOutput() const override;
 	const String& GetError() const override;
 	void Put(const String& s);
 	void PutLine(const String& s);
-	void AddProgram(String cmd, Callback1<Value> cb);
-	void ListFiles(Value arg);
-	void ChangeDirectory(Value arg);
+	void AddProgram(String cmd, Callback2<IdeShell&, Value> cb);
+	void ListFiles(IdeShell& shell, Value arg);
+	void ChangeDirectory(IdeShell& shell, Value arg);
 	
 	#ifdef flagHAVE_INTRANET
-	void StartIntranet(Value arg);
+	void StartIntranet(IdeShell& shell, Value arg);
 	#endif
 	
 	String out, err;
-	ArrayMap<String, Callback1<Value>> commands;
+	ArrayMap<String, Callback2<IdeShell&,Value>> commands;
 };
 
 struct IdeShell : Upp::CodeEditor {
@@ -50,6 +52,7 @@ struct IdeShell : Upp::CodeEditor {
 
 	ArrayMap<String, EscValue> vars;
 	IdeShellHostBase& host;
+	VfsPath cwd;
 
 };
 

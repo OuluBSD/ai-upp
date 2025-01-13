@@ -161,6 +161,14 @@ String GetFileName(const char *fileName) {
 	return GetFileNamePos(fileName);
 }
 
+String AppendUnixFileName(const String& path, const char *fileName) {
+	String result = path;
+	if(result.GetLength() && *result.Last() != '/' && *fileName != '/')
+		result += '/';
+	result += fileName;
+	return result;
+}
+
 String AppendFileName(const String& path, const char *fileName) {
 	String result = path;
 	if(result.GetLength() && *result.Last() != DIR_SEP && *fileName != DIR_SEP)

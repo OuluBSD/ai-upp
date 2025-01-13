@@ -872,6 +872,7 @@ struct MetaEnvironment : VFS {
 	void UpdateWorkspace(Workspace& wspc);
 	Vector<MetaNode*> FindAllEnvs();
 	MetaNode* LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis);
+	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
 };
 
 MetaEnvironment& MetaEnv();

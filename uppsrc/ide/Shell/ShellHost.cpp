@@ -38,11 +38,11 @@ void IdeShellHost::PutLine(const String& s) {
 	out << s << "\n";
 }
 
-void IdeShellHost::AddProgram(String cmd, Callback1<Value> cb) {
+void IdeShellHost::AddProgram(String cmd, Callback2<IdeShell&,Value> cb) {
 	commands.Add(cmd, cb);
 }
 
-bool IdeShellHost::Command(Value cmd) {
+bool IdeShellHost::Command(IdeShell& shell, Value cmd) {
 	ValueArray args;
 	if (cmd.Is<ValueArray>()) args = cmd;
 	else args.Add(cmd);
@@ -61,7 +61,7 @@ bool IdeShellHost::Command(Value cmd) {
 	for(int i = 0; i < commands.GetCount(); i++) {
 		const String& c = commands.GetKey(i);
 		if (main_cmd == c) {
-			commands[i](args);
+			commands[i](shell, args);
 			
 			// Leave out last \n
 			if (!out.IsEmpty() && *(out.End()-1) == '\n')
@@ -74,17 +74,52 @@ bool IdeShellHost::Command(Value cmd) {
 	return false;
 }
 
-void IdeShellHost::ListFiles(Value arg) {
-	MountManager& mm = MountManager::System();
-	
+String GetFirstValue(Value arg) {
+	if (arg.Is<ValueArray>()) {
+		ValueArray va = arg;
+		if (va.GetCount() >= 1)
+			return va[0];
+		else
+			return String();
+	}
+	return arg;
 }
 
-void IdeShellHost::ChangeDirectory(Value arg) {
+void IdeShellHost::ListFiles(IdeShell& shell, Value arg) {
+	MountManager& mm = MountManager::System();
+	String path_str = GetFirstValue(arg);
+	if (path_str.IsEmpty())
+		path_str = shell.cwd.str;
+	else if (!IsFullDirectory(path_str))
+		AppendUnixFileName(shell.cwd.str, path_str);
+	VfsPath path(path_str);
+	Vector<VfsItem> items;
+	mm.GetFiles(path, items);
+	const int cols = 4;
+	const int col_width = 40;
+	int col = 0;
+	for (const VfsItem& i : items) {
+		String n = i.name;
+		if (n.GetCount() > col_width-4)
+			n = n.Left(col_width-4) + "...";
+		out << n;
+		if (col < cols-1) {
+			int spaces = col_width - n.GetCount();
+			out.Cat(' ', spaces);
+			col++;
+		}
+		else {
+			col = 0;
+		}
+	}
+}
+
+void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
 	
 }
 
 #ifdef flagHAVE_INTRANET
-void IdeShellHost::StartIntranet(Value arg) {
+void IdeShellHost::StartIntranet(IdeShell& shell, Value arg) {
 	Thread::Start(IntranetDaemon);
 }
 #endif

@@ -1,6 +1,9 @@
 #include "ide.h"
 #include "CommandLineHandler.h"
-#include <DropTerm/DropTerm.h>
+
+#ifdef flagAI
+	#include <DropTerm/DropTerm.h>
+#endif
 
 #define FUNCTION_NAME UPP_FUNCTION_NAME << "(): "
 
@@ -357,7 +360,9 @@ void AppMain___()
 		}
 
 		Ide ide;
+		#ifdef flagAI
 		IdeDropdownTerminal dropdown;
+		#endif
 		SetTheIde(&ide);
 		ide.Maximize();
 		bool clset = false;
@@ -434,6 +439,7 @@ void AppMain___()
 				ide.FileSelected();
 				ide.isscanning--;
 				ide.MakeTitle();
+				#ifdef flagAI
 				if (dropdown.IsEnabled()) {
 					ide.Close();
 					do {
@@ -451,6 +457,9 @@ void AppMain___()
 					if (dropdown.IsEnabled())
 						IdeAgain = true;
 				}
+				#else
+				ide.Run();
+				#endif
 				ide.SaveConfigOnTime();
 				ide.SaveLastMain();
 				ide.DeleteWindows();

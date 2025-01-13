@@ -131,14 +131,17 @@ void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
 	}
 	else if (!IsFullInternalDirectory(path_str)) {
 		path_str = AppendInternalFileName(shell.cwd, path_str);
-		NormalizeInternalPath(path_str);
+		path_str = NormalizeInternalPath(path_str);
 	}
 	VfsPath path(path_str);
-	if (mm.DirectoryExists(path)) {
+	if (!path.IsValidFullPath()) {
+		out = "error: not valid full path '" + path_str + "'";
+	}
+	else if (mm.DirectoryExists(path)) {
 		shell.SetCurrentDirectory(path);
 	}
 	else {
-		out = "error: directory doesn't exist: " + path;
+		out = "error: no directory '" + path + "'";
 	}
 }
 

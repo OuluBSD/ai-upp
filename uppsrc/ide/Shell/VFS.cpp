@@ -10,6 +10,22 @@ VfsPath::VfsPath(const String& s) {
 	Set(s);
 }
 
+VfsPath::VfsPath(const VfsPath& path) {
+	str = path.str;
+	parts <<= path.parts;
+}
+
+VfsPath::VfsPath(VfsPath&& path) {
+	str = pick(path.str);
+	parts = pick(path.parts);
+}
+
+VfsPath& VfsPath::operator=(const VfsPath& path) {
+	str = path.str;
+	parts <<= path.parts;
+	return *this;
+}
+
 void VfsPath::Set(String path) {
 	this->str = path;
 	
@@ -70,9 +86,9 @@ void VfsPath::Set(const VfsPath& path, int begin, int end) {
 }
 
 bool VfsPath::IsLeft(const VfsPath& path) const {
-	if (parts.GetCount() > path.parts.GetCount())
+	if (path.parts.GetCount() > parts.GetCount())
 		return false;
-	int c = parts.GetCount();
+	int c = path.parts.GetCount();
 	for(int i = 0; i < c; i++)
 		if (parts[i] != path.parts[i])
 			return false;
@@ -125,6 +141,34 @@ String VfsPath::TopPart() const {
 		return parts.Top();
 }
 
+bool VfsPath::Normalize() {
+	bool any_changes = false;
+	while (1) {
+		bool changes = false;
+		for(int i = 0; i < parts.GetCount(); i++) {
+			String& p = parts[i];
+			if (p == "..") {
+				if (!i) {
+					str.Clear();
+					parts.Clear();
+					return false;
+				}
+				parts.Remove(i-1,2);
+				changes = true;
+			}
+		}
+		if (!changes) break;
+		any_changes = true;
+	}
+	if (any_changes)
+		StrFromParts();
+	return true;
+}
+
+bool VfsPath::IsValidFullPath() const {
+	return IsFullInternalDirectory(str);
+}
+
 String operator+(const char* s, const VfsPath& vfs) {
 	return String(s) + vfs.Get();
 }
@@ -137,6 +181,8 @@ bool IsFullInternalDirectory(const String& path) {
 	#if defined flagINTERNAL_POSIX
 	return path.GetCount() > 0 && path[0] == '/';
 	#else
+	if (path.IsEmpty())
+		return true;
 	for(int i = 0; i < path.GetCount(); i++) {
 		int chr = path[i];
 		if (chr == ':')
@@ -156,6 +202,12 @@ String AppendInternalFileName(const String& a, const String& b) {
 	#endif
 }
 
+String NormalizeInternalPath(const String& path) {
+	VfsPath vfs = path;
+	vfs.Normalize();
+	return vfs;
+}
+
 
 
 
@@ -165,7 +217,7 @@ String AppendInternalFileName(const String& a, const String& b) {
 bool SystemFS::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) {
 	String sys_path = rel_path.AsSysPath();
 	if (!DirectoryExists(sys_path)) {
-		last_error = "Directory doesn't exist '" + sys_path + "'";
+		last_error = "no directory '" + sys_path + "'";
 		return false;
 	}
 	FindFile ff;
@@ -186,6 +238,16 @@ bool SystemFS::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) {
 	}
 	while (ff.Next());
 	return true;
+}
+
+VfsItemType SystemFS::CheckItem(const VfsPath& rel_path) {
+	String sys_path = rel_path.AsSysPath();
+	if (DirectoryExists(sys_path))
+		return VFS_DIRECTORY;
+	else if (FileExists(sys_path))
+		return VFS_FILE;
+	else
+		return VFS_NULL;
 }
 
 END_UPP_NAMESPACE

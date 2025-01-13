@@ -45,15 +45,19 @@ struct IdeShellHost : IdeShellHostBase {
 };
 
 struct IdeShell : Upp::CodeEditor {
+	typedef IdeShell CLASSNAME;
 	IdeShell(IdeShellHostBase& h);
 	void    Execute();
+	void    PrintLineHeader();
 
 	virtual bool Key(dword key, int count);
 	virtual void LeftDouble(Point p, dword flags);
+	virtual bool SetCurrentDirectory(const VfsPath& path);
 
 	ArrayMap<String, EscValue> vars;
 	IdeShellHostBase& host;
 	VfsPath cwd;
+	String line_header;
 
 };
 

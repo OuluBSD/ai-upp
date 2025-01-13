@@ -79,5 +79,24 @@ bool MountManager::Mount(String path, VFS* vfs, String type) {
 	return true;
 }
 
+bool MountManager::DirectoryExists(const VfsPath& dir) {
+	return Exists(dir, VFS_DIRECTORY);
+}
+
+bool MountManager::FileExists(const VfsPath& dir) {
+	return Exists(dir, VFS_FILE);
+}
+
+bool MountManager::Exists(const VfsPath& dir, VfsItemType type) {
+	if (dir.GetPartCount() == 0)
+		return true;
+	VfsPath rel_path;
+	MountManager::MountPoint* mp = Find(dir, &rel_path);
+	if (!mp || !mp->vfs)
+		return false;
+	VfsItemType path_type = mp->vfs->CheckItem(rel_path);
+	return path_type == type;
+}
+
 	
 END_UPP_NAMESPACE

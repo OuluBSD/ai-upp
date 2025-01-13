@@ -16,6 +16,7 @@ String  GetFileExt(const char *path);
 String  GetFileName(const char *path);
 
 String  AppendUnixFileName(const String& path, const char *filename);
+String  AppendCpmFileName(const String& path, const char *filename);
 String  AppendFileName(const String& path, const char *filename);
 
 String WinPath(const char *path);

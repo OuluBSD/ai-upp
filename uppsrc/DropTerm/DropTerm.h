@@ -123,6 +123,7 @@ public:
 	typedef IdeDropdownTerminal CLASSNAME;
 	IdeDropdownTerminal();
 	~IdeDropdownTerminal();
+	void Init();
 	void ToggleWindow();
 	void ToggleIde();
 	void Reset();

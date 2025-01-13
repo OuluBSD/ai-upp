@@ -12,16 +12,61 @@ VfsPath::VfsPath(const String& s) {
 
 void VfsPath::Set(String path) {
 	this->str = path;
-	parts = Split(path , "/");
+	
+	parts = Split(path , INTERNAL_SEPS);
+	
+	#if INTERNAL_POSIX
+	if (this->str.IsEmpty())
+		str = "/";
+	#endif
+	
+	#if INTERNAL_COMB || INTERNAL_CPM
+	if (parts.GetCount()) {
+		auto& p = parts[0];
+		int c = p.GetCount();
+		if (c && p[c-1] == ':')
+			p = p.Left(c-1);
+	}
+	#endif
+}
+
+void VfsPath::Set(const Vector<String>& parts) {
+	this->parts <<= parts;
+	StrFromParts();
+}
+
+void VfsPath::StrFromParts() {
+	String s;
+	#if INTERNAL_POSIX
+	if (parts.IsEmpty())
+		s = "/";
+	else
+		for (const String& p: parts)
+			s << "/" << p;
+	#elif INTERNAL_COMB
+	int c = parts.GetCount();
+	if (c > 0) {
+		s << parts[0] << ":";
+		for(int i = 1; i < c; i++)
+			s << "/" << parts[i];
+	}
+	#else
+	int c = parts.GetCount();
+	if (c > 0) {
+		s << parts[0] << ":";
+		for(int i = 1; i < c; i++)
+			s << "\\" << parts[i];
+	}
+	#endif
+	str = s;
 }
 
 void VfsPath::Set(const VfsPath& path, int begin, int end) {
-	str.Clear();
 	parts.Clear();
 	for(int i = begin; i < path.parts.GetCount() && i < end; i++) {
 		parts << path.parts[i];
 	}
-	str = Join(parts, "/");
+	StrFromParts();
 }
 
 bool VfsPath::IsLeft(const VfsPath& path) const {
@@ -60,6 +105,58 @@ String VfsPath::AsSysPath() const {
 	#endif
 	return s;
 }
+
+const String& VfsPath::Get() const {return str;}
+const Vector<String>& VfsPath::Parts() const {return parts;}
+VfsPath::operator String() const {return str;}
+
+int VfsPath::GetPartCount() const {
+	return parts.GetCount();
+}
+
+bool VfsPath::IsEmpty() const {
+	return parts.IsEmpty();
+}
+
+String VfsPath::TopPart() const {
+	if (parts.IsEmpty())
+		return String();
+	else
+		return parts.Top();
+}
+
+String operator+(const char* s, const VfsPath& vfs) {
+	return String(s) + vfs.Get();
+}
+
+String operator+(const VfsPath& vfs, const char* s) {
+	return vfs.Get() + String(s);
+}
+
+bool IsFullInternalDirectory(const String& path) {
+	#if defined flagINTERNAL_POSIX
+	return path.GetCount() > 0 && path[0] == '/';
+	#else
+	for(int i = 0; i < path.GetCount(); i++) {
+		int chr = path[i];
+		if (chr == ':')
+			return true;
+		else if (chr == '/' || chr == '\\')
+			return false;
+	}
+	return false;
+	#endif
+}
+
+String AppendInternalFileName(const String& a, const String& b) {
+	#if INTERNAL_POSIX || INTERNAL_COMB
+	return AppendUnixFileName(a, b);
+	#else
+	return AppendCpmFileName(a, b);
+	#endif
+}
+
+
 
 
 

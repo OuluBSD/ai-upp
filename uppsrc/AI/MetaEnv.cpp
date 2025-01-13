@@ -715,7 +715,7 @@ MetaEnvironment::MetaEnvironment() {
 	root.serial = NewSerial();
 	
 	MountManager& mm = MountManager::System();
-	mm.Mount("/prj", this, "MetaEnvironment");
+	mm.Mount(INTERNAL_ROOT_FILE("prj"), this, "MetaEnvironment");
 }
 
 hash_t MetaEnvironment::NewSerial() {

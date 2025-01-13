@@ -425,6 +425,8 @@ void AppMain___()
 		
 		if(!clset)
 			ide.LoadLastMain();
+		if (FindIndex(CommandLine(), "--dropdown-terminal") >= 0)
+			dropdown.Init();
 		do {
 			IdeAgain = false;
 			if(clset || ide.OpenMainPackage()) {

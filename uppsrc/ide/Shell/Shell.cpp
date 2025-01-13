@@ -4,6 +4,7 @@ NAMESPACE_UPP
 
 IdeShell::IdeShell(IdeShellHostBase& h) : host(h)
 {
+	cwd.Set(INTERNAL_ROOT_PATH);
 	Highlight("calc");
 	NoHorzScrollbar();
 	HideBar();
@@ -43,7 +44,10 @@ void IdeShell::Execute()
 	bool succ = false;
 	
 	if (!succ) try {
-		if (host.Command(*this,s)) {
+		Vector<String> parts = Split(s, " ", true, true);
+		ValueArray arr;
+		for (String& s: parts) arr.Add(s);
+		if (host.Command(*this,arr)) {
 			succ = true;
 			txt = host.GetOutput();
 		}

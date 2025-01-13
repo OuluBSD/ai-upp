@@ -361,6 +361,10 @@ void SaveKeys() {
 
 
 IdeDropdownTerminal::IdeDropdownTerminal() {
+	
+}
+
+void IdeDropdownTerminal::Init() {
 	#if defined flagPOSIX
 	signal(SIGHUP, hangup);
 	#elif defined flagWIN32
@@ -368,7 +372,7 @@ IdeDropdownTerminal::IdeDropdownTerminal() {
 	#endif
 	
 	
-	enabled = FindIndex(CommandLine(), "--dropdown-terminal") >= 0;
+	enabled = true;
 	
 	enable_intranet = FindIndex(CommandLine(), "--intranet") >= 0;
 	#ifdef flagHAVE_INTRANET

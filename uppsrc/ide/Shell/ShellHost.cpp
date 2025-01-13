@@ -14,6 +14,7 @@ IdeShellHostBase::~IdeShellHostBase() {
 
 
 IdeShellHost::IdeShellHost() {
+	AddProgram("cwd",	THISBACK(CurrentWorkingDirectory));
 	AddProgram("ls",	THISBACK(ListFiles));
 	AddProgram("cd",	THISBACK(ChangeDirectory));
 	
@@ -85,13 +86,19 @@ String GetFirstValue(Value arg) {
 	return arg;
 }
 
+void IdeShellHost::CurrentWorkingDirectory(IdeShell& shell, Value arg) {
+	MountManager& mm = MountManager::System();
+	out = shell.cwd;
+	out.Cat('\n');
+}
+
 void IdeShellHost::ListFiles(IdeShell& shell, Value arg) {
 	MountManager& mm = MountManager::System();
 	String path_str = GetFirstValue(arg);
 	if (path_str.IsEmpty())
-		path_str = shell.cwd.str;
-	else if (!IsFullDirectory(path_str))
-		AppendUnixFileName(shell.cwd.str, path_str);
+		path_str = shell.cwd;
+	else if (!IsFullInternalDirectory(path_str))
+		AppendInternalFileName(shell.cwd, path_str);
 	VfsPath path(path_str);
 	Vector<VfsItem> items;
 	mm.GetFiles(path, items);
@@ -115,7 +122,24 @@ void IdeShellHost::ListFiles(IdeShell& shell, Value arg) {
 }
 
 void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
-	
+	MountManager& mm = MountManager::System();
+	String path_str = GetFirstValue(arg);
+	if (path_str.IsEmpty()) {
+		#if INTERNAL_POSIX
+		path_str = "/";
+		#endif
+	}
+	else if (!IsFullInternalDirectory(path_str)) {
+		path_str = AppendInternalFileName(shell.cwd, path_str);
+		NormalizeInternalPath(path_str);
+	}
+	VfsPath path(path_str);
+	if (mm.DirectoryExists(path)) {
+		shell.SetCurrentDirectory(path);
+	}
+	else {
+		out = "error: directory doesn't exist: " + path;
+	}
 }
 
 #ifdef flagHAVE_INTRANET

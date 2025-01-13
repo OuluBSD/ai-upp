@@ -32,6 +32,7 @@ struct IdeShellHost : IdeShellHostBase {
 	void Put(const String& s);
 	void PutLine(const String& s);
 	void AddProgram(String cmd, Callback2<IdeShell&, Value> cb);
+	void CurrentWorkingDirectory(IdeShell& shell, Value arg);
 	void ListFiles(IdeShell& shell, Value arg);
 	void ChangeDirectory(IdeShell& shell, Value arg);
 	

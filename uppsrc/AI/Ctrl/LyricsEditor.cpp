@@ -820,6 +820,7 @@ void StructuredScriptEditor::CheckClearSelected() {
 	bool sub_found = false;
 	DatasetPtrs p = owner->GetDataset();
 	if (!p.script) return;
+	if (!p.lyric_struct) return;
 	LyricalStructure& l = *p.lyric_struct;
 	for(int i = 0; i < l.parts.GetCount(); i++) {
 		const DynPart& dp = l.parts[i];

@@ -186,7 +186,11 @@ bool ToolAppCtrl::LoadDirectory(const String& includes, const String& filename, 
 }
 
 void ToolAppCtrl::Save(Stream& s, byte charset) {
-	String new_data = VisitToJson(*this);
+	String new_data;
+	if (!DoVisitToJson(*this, new_data)) {
+		s.SetError(1);
+		return;
+	}
 	if (!new_data.IsEmpty())
 		data = new_data;
 	s.Put(data);

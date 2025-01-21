@@ -1,5 +1,5 @@
-#ifndef _DropTerm_Console_h_
-#define _DropTerm_Console_h_
+#ifndef _ide_Shell_Console_h_
+#define _ide_Shell_Console_h_
 
 NAMESPACE_UPP
 
@@ -9,34 +9,32 @@ class ConsoleCtrl : public ParentCtrl, IdeShellHost {
 	
 protected:
 	IdeShell cmd;
-	One<MetaExtCtrl> ext;
+	One<WidgetCtrl> ext;
 	Ctrl* active = 0;
-	
+	MenuBar menu;
 	DropTerm* bridge = NULL;
 	int id = -1;
+	bool internal_menubar = false;
 	
 	String cwd;
 	String filename;
 	Event<> SaveEditPos;
 	Event<> LoadEditPos;
-	
 	void SetView();
 	void SetTitle(String s);
-	
+	void AddMenuBar();
+	void RemoveMenuBar();
 public:
 	typedef ConsoleCtrl CLASSNAME;
 	ConsoleCtrl();
 	~ConsoleCtrl();
 	
+	void InternalMenuBar(bool b=true) {internal_menubar = b;}
+	bool IsMenuBarVisible() const {return ext;}
+	IdeShell& Shell() {return cmd;}
 	bool RealizeFocus();
 	void RemoveExt(bool fast_exit=false);
-	void ListFiles(String arg);
-	void ChangeDirectory(String arg);
-	void CreateDirectory(String arg);
-	void RemoveFile(String arg);
-	void ShowFile(String arg);
-	void EditFile(String arg);
-	void DownloadFile(String arg);
+	void DraftFile(IdeShell& shell, Value value);
 	
 	void Menu(Bar& bar);
 	String GetTitle();
@@ -46,6 +44,11 @@ public:
 	Callback WhenTitle;
 	Callback WhenViewChange;
 	
+	template <class T> void SimpleExt(IdeShell& shell, Value value) {
+		this->CreateExt<T>();
+		SetView();
+	}
+
 	template <class T> void SaveExtPos() {
 		if (!ext) return;
 		auto& cache = EditPosCached<T>::EditPosCache();

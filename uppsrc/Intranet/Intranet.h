@@ -12,7 +12,9 @@
 #include <arpa/inet.h>
 #endif
 
+#ifdef flagFTP
 #include <FTP/Ftp.h>
+#endif
 
 #ifdef flagGUI
 	#include <CtrlLib/CtrlLib.h>
@@ -24,6 +26,7 @@ using namespace Upp;
 
 #include "FtpClient.h"
 #include "FtpServer.h"
+#include "Daemon.h"
 
 NAMESPACE_UPP
 

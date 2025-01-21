@@ -438,7 +438,7 @@ enum {
 	
 	METAKIND_ECS_COMPONENT_PROFILE = 3100,
 	METAKIND_ECS_COMPONENT_OWNER,
-	METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE,
+	METAKIND_ECS_COMPONENT_UNUSED____0,
 	METAKIND_ECS_COMPONENT_SCRIPT,
 	METAKIND_ECS_COMPONENT_LYRICS,
 	METAKIND_ECS_COMPONENT_SONG,
@@ -522,17 +522,12 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	void Jsonize(JsonIO& json);
 };
 
-struct MetaExtCtrl : Ctrl {
+struct MetaExtCtrl : WidgetCtrl {
 	Ptr<MetaNodeExt> ext;
 	Event<> WhenEditorChange;
 	Event<> WhenTitle;
 	Ptr<ToolAppCtrl> owner;
 	
-	virtual ~MetaExtCtrl() {}
-	virtual void Data() = 0;
-	virtual void ToolMenu(Bar& bar) = 0;
-	virtual void EditPos(JsonIO& json) {};
-	virtual String GetTitle() const {return String();}
 	MetaNode& GetNode();
 	MetaNodeExt& GetExt();
 	String GetFilePath() const;
@@ -922,6 +917,24 @@ String VisitToJson(T& var)
 	catch (...) {
 		return String();
 	}
+}
+
+template <class T>
+bool DoVisitToJson(T& var, String& res)
+{
+	try {
+		JsonIO io;
+		NodeVisitor vis(io);
+		var.Visit(vis);
+		if (vis.IsError())
+			return false;
+		Value val = io.GetResult();
+		res = AsJSON(val);
+	}
+	catch (...) {
+		return false;
+	}
+	return true;
 }
 
 template <class T>

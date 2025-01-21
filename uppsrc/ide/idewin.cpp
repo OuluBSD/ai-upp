@@ -354,8 +354,7 @@ CursorInfoCtrl::CursorInfoCtrl()
 	Transparent();
 }
 
-Ide::Ide() :
-	calc(shell_host)
+Ide::Ide()
 {
 	DiffDlg::WhenHighlight = callback(HighlightLine);
 

@@ -177,7 +177,7 @@ void DropTerm::RefreshMenu() {
 
 void DropTerm::AppMenu(Bar& menu) {
 	menu.Add(AK_OPENCONS, THISBACK(AddConsole));
-	menu.Add(AK_LEAVE_PROGRAM, THISBACK(LeaveProgram)	);
+	menu.Add(Shell::AK_LEAVE_PROGRAM, THISBACK(LeaveProgram));
 	menu.Add(AK_QUIT, THISBACK(Quit));
 }
 

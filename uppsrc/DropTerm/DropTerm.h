@@ -4,7 +4,9 @@
 #include <signal.h>
 #include <CtrlLib/CtrlLib.h>
 #include <TabBar/TabBar.h>
+#ifdef flagFTP
 #include <PtyProcess/PtyProcess.h>
+#endif
 #include <RichEdit/RichEdit.h>
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
@@ -30,7 +32,6 @@ using namespace Dropdown;
 #include <Draw/iml_header.h>
 
 #include "Word.h"
-#include "Console.h"
 
 NAMESPACE_UPP
 

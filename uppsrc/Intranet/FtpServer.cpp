@@ -2,6 +2,7 @@
 
 #define MAX_BUFF 4096
 
+#ifdef flagFTP
 NAMESPACE_UPP
 
 FTPServer::FTPServer()
@@ -523,3 +524,4 @@ void IntranetDaemon() {
 }
 
 END_UPP_NAMESPACE
+#endif

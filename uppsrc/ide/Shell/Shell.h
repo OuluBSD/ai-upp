@@ -1,65 +1,29 @@
 #ifndef _ide_Shell_Shell_h_
 #define _ide_Shell_Shell_h_
 
+
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
 #include <ide/Core/Core.h>
 
+#define LAYOUTFILE <ide/Shell/Shell.lay>
+#include <CtrlCore/lay.h>
+
+#define KEYGROUPNAME "Shell"
+#define KEYNAMESPACE Shell
+#define KEYFILE      <ide/Shell/Shell.key>
+#include             <CtrlLib/key_header.h>
+
 #include "VFS.h"
 #include "Mount.h"
 #include "EscCmds.h"
+#include "IdeShell.h"
+#include "Widget.h"
+#include "Console.h"
+#include "SmallWidgets.h"
 
 NAMESPACE_UPP
 
-struct IdeShell;
-
-struct IdeShellHostBase {
-	IdeShellHostBase();
-	virtual ~IdeShellHostBase();
-	virtual bool Command(IdeShell& shell, Value arg) = 0;
-	virtual const String& GetOutput() const = 0;
-	virtual const String& GetError() const = 0;
-	
-	ArrayMap<String, EscValue> vars;
-};
-
-struct IdeShellHost : IdeShellHostBase {
-	typedef IdeShellHost CLASSNAME;
-	IdeShellHost();
-	bool Command(IdeShell& shell, Value arg) override;
-	const String& GetOutput() const override;
-	const String& GetError() const override;
-	void Put(const String& s);
-	void PutLine(const String& s);
-	void AddProgram(String cmd, Callback2<IdeShell&, Value> cb);
-	void CurrentWorkingDirectory(IdeShell& shell, Value arg);
-	void ListFiles(IdeShell& shell, Value arg);
-	void ChangeDirectory(IdeShell& shell, Value arg);
-	
-	#ifdef flagHAVE_INTRANET
-	void StartIntranet(IdeShell& shell, Value arg);
-	#endif
-	
-	String out, err;
-	ArrayMap<String, Callback2<IdeShell&,Value>> commands;
-};
-
-struct IdeShell : Upp::CodeEditor {
-	typedef IdeShell CLASSNAME;
-	IdeShell(IdeShellHostBase& h);
-	void    Execute();
-	void    PrintLineHeader();
-
-	virtual bool Key(dword key, int count);
-	virtual void LeftDouble(Point p, dword flags);
-	virtual bool SetCurrentDirectory(const VfsPath& path);
-
-	ArrayMap<String, EscValue> vars;
-	IdeShellHostBase& host;
-	VfsPath cwd;
-	String line_header;
-
-};
 
 
 END_UPP_NAMESPACE

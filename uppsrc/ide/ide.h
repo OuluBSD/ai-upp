@@ -490,8 +490,8 @@ public:
 	Vector<String> linking_line;
 	bool        removing_notes;
 
-	IdeShellHost shell_host;
-	IdeShell    calc;
+	ConsoleCtrl calc;
+	bool        calc_in_menubar = true;
 	Ptr<Ctrl>   bottomctrl; // debugger pane
 
 	enum Bottoms { BCLOSE, BCONSOLE, BERRORS, BCALC, BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };

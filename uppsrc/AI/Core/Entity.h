@@ -57,12 +57,9 @@ INITIALIZE(type)
 
 
 struct Entity : MetaNodeExt {
-	VectorMap<String, Value> data;
-	
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
 	void Visit(NodeVisitor& v) override {v.Ver(1)(1)("data",data);}
-	Value& Data(const String& key) {return data.GetAdd(key);}
 	int GetGender() const;
 	
 	bool operator()(const Entity& a, const Entity& b) const {
@@ -71,6 +68,11 @@ struct Entity : MetaNodeExt {
 	
 	static int GetKind() {return METAKIND_ECS_ENTITY;}
 	
+protected:
+	friend class EntityInfoCtrl;
+	friend class MetaEnvironment;
+	VectorMap<String, Value> data;
+	Value& Data(const String& key) {return data.GetAdd(key);}
 };
 
 

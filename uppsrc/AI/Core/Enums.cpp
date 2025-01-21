@@ -119,7 +119,7 @@ int FindCategory(const String& s) {
 		return i;
 	}
 	for(int i = 0; i < CATEGORY_COUNT; i++)
-		if (GetCategoryString(i) == ls)
+		if (ToLower(GetCategoryString(i)) == ls)
 			return i;
 	return -1;
 }

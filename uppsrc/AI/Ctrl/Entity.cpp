@@ -225,9 +225,9 @@ void EntityEditorCtrl::Visit(NodeVisitor& vis) {
 		file.Visit(vis);
 		file.ClearTemp();
 	}
-	/*
 }
 
+/*
 void EntityEditorCtrl::OnLoadDirectory(VersionControlSystem& vcs) {
 	MetaEnv().LoadVCS(GetFileIncludes(), vcs);
 }
@@ -241,8 +241,8 @@ void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 	LOG("### Temp ###");
 	LOG(file.temp->GetTreeString());
 	#endif
-	data = file.StoreJson();*/
-}
+	data = file.StoreJson();
+}*/
 
 MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	MetaEnvironment& env = MetaEnv();
@@ -516,7 +516,9 @@ void EntityInfoCtrl::Data() {
 			data.SetCtrl(row, 1, dl);
 			int gender_i = max(0, FindCategory(value.ToString()));
 			dl->SetIndex(gender_i);
-			dl->WhenAction = [&ent,dl]{ent.data.GetAdd("gender") = GetCategoryString(dl->GetIndex());};
+			dl->WhenAction = [&ent,dl]{
+				ent.data.GetAdd("gender") = GetCategoryString(dl->GetIndex());
+			};
 		}
 		else if (key == "ctx") {
 			DropList* dl = new DropList;

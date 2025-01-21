@@ -159,13 +159,18 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 }
 
 void EnvEditorCtrl::Visit(NodeVisitor& vis) {
-	TODO //MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true);
-/*}
-
-void EnvEditorCtrl::OnSave(String& data, const String& filepath) {
-	MetaSrcFile& file = RealizeFileRoot();
-	file.MakeTempFromEnv(false);
-	data = file.StoreJson();*/
+	if (vis.IsLoading()) {
+		MetaNode* n = 0;
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, &n);
+		if (n)
+			SetFileNode(n);
+	}
+	else {
+		MetaSrcFile& file = RealizeFileRoot();
+		file.MakeTempFromEnv(false);
+		file.Visit(vis);
+		file.ClearTemp();
+	}
 }
 
 MetaSrcFile& EnvEditorCtrl::RealizeFileRoot() {

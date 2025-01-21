@@ -261,7 +261,7 @@ struct LyricalStructure : Component {
 	void LoadStructuredTextExt(const String& s, bool user_text);
 	void SetText(const String& s, bool user_text);
 	String GetStructText(bool user_text) const;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LYRICAL_STRUCTURE;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG_IDEA;}
 	
 };
 

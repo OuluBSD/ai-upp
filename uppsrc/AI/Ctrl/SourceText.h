@@ -232,6 +232,7 @@ class SourceTextCtrl : public ToolAppCtrl {
 	Attributes				att;
 	TextDataDiagnostics		diag;
 	
+	void Load();
 public:
 	typedef SourceTextCtrl CLASSNAME;
 	SourceTextCtrl();
@@ -240,6 +241,7 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	void Visit(NodeVisitor& vis) override;
+	bool Load(const String& includes, const String& filename, Stream& in, byte charset) override;
 	void Do(int fn);
 	void SetDataCtrl();
 	

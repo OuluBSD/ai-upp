@@ -1,6 +1,7 @@
 #ifndef _Intranet_FtpClient_h
 #define _Intranet_FtpClient_h
 
+#ifdef flagFTP
 NAMESPACE_UPP
 
 class FtpBrowser : public TopWindow {
@@ -48,5 +49,6 @@ int		FtpPut(Stream& in, const String& path, const String& host, int port = 21, c
 bool	ParseFtpDirEntry(const String& in, Ftp::DirList& out);
 
 END_UPP_NAMESPACE
+#endif
 
 #endif

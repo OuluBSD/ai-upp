@@ -12,6 +12,8 @@
 	DATASET_ITEM(Entity,			entity,			METAKIND_ECS_ENTITY,						CATEGORY_ECS, "Entity") \
 	DATASET_ITEM(Component,			component,		METAKIND_ECS_COMPONENT_UNDEFINED,			CATEGORY_ECS, "Undefined Component") \
 
+// TODO rename many of these to have same name class, field-name, kind (e.g. lyric_struct, METAKIND_ECS_COMPONENT_SONG_IDEA)
+
 #define COMPONENT_LIST \
 	DATASET_ITEM(ProjectWizardView,	prjwiz,			METAKIND_ECS_COMPONENT_PROJECT_WIZARD,		CATEGORY_ASSET, "Code Project Wizard") \
 	DATASET_ITEM(SrcTxtHeader,		src,			METAKIND_DATABASE_SOURCE,					CATEGORY_DISPOSABLE, "Source Database") \

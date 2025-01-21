@@ -1,6 +1,7 @@
 #ifndef _Intranet_FtpServer_h_
 #define _Intranet_FtpServer_h_
 
+#ifdef flagFTP
 NAMESPACE_UPP
 
 struct FTPClientConnection {
@@ -51,8 +52,7 @@ public:
 	void SetPort(uint16 p) { port = p; }
 };
 
-void IntranetDaemon();
-
 END_UPP_NAMESPACE
+#endif
 
 #endif

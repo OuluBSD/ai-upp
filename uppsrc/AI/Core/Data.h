@@ -306,7 +306,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	struct SubPart : Moveable<SubPart> {
 		Vector<SubSubPart> sub;
 		int cls = -1;
-		double repeat = 0;
+		int repeat = 0; // TODO: should be 'double', but old db from TextTool has int (rewrite dbs)
 
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
@@ -327,7 +327,13 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		Part() {}
 		Part(const Part& p) { *this = p; }
-		void Serialize(Stream& s) { s % sub % type % num % cls % typeclass % content; }
+		void Serialize(Stream& s) {
+			s % sub;	ASSERT(!s.IsError());
+			s % type;	ASSERT(!s.IsError());
+			s % num;	ASSERT(!s.IsError());
+			s % cls % typeclass % content;
+			ASSERT(!s.IsError());
+		}
 		void Jsonize(JsonIO& json)
 		{
 			json("sub", sub)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
@@ -414,38 +420,7 @@ struct SrcTextData : Pte<SrcTextData> {
 	VectorMap<int, int> GetSortedElementsOfPhraseParts();
 	
 	String GetTokenTextString(const TokenText& txt) const;
-	void Serialize(Stream& s) {
-		int v = 1; s % v;
-		if (v >= 1) {
-			s % scripts % tokens;
-			s % token_texts;
-			s % element_keys;
-			s % word_classes;
-			s % words;
-			s % ambiguous_word_pairs;
-			s % virtual_phrases;
-			s % virtual_phrase_parts;
-			s % virtual_phrase_structs;
-			s % phrase_parts;
-			s % struct_part_types;
-			s % struct_types;
-			s % attrs;
-			s % actions;
-			s % parallel;
-			s % trans;
-			s % action_phrases;
-			s % wordnets;
-			s % diagnostics;
-			s % simple_attrs;
-			s % entities;
-			s % typeclasses;
-			s % contents;
-			s % content_parts;
-			s % lang;
-			for(int i = 0; i < TCENT_COUNT; i++)
-				s % typeclass_entities[i];
-		}
-	}
+	void Serialize(Stream& s);
 	
 };
 
@@ -454,13 +429,14 @@ struct SrcTxtHeader : MetaNodeExt {
 	int64 size = 0;
 	String sha1;
 	Vector<String> files;
-	void Visit(NodeVisitor& v) override {v.Ver(1)(1)("written",written)("size",size)("sha1",sha1)("files",files);}
+	void Visit(NodeVisitor& v) override;
 	String GetName() const override {return "Source Database";}
 	
 	String filepath;
 	One<SrcTextData> data;
 	
 	SrcTxtHeader(MetaNode& owner) : MetaNodeExt(owner) {}
+	~SrcTxtHeader();
 	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}
 	void RealizeData();
 	bool LoadData();

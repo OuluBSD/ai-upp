@@ -35,19 +35,13 @@ void ReleaseInfoCtrl::Data() {
 void ReleaseInfoCtrl::OnValueChange() {
 	DatasetPtrs p = GetDataset();
 	
-	TODO
-	#if 0
-	if (p.release && p.editor && p.editor->snaps.IsCursor()) {
+	if (p.release) {
 		Release& r = *p.release;
 		
 		r.title = title.GetData();
 		r.date = album_date.GetData();
 		r.year_of_content = year_of_content.GetData();
-		
-		int c = p.editor->snaps.GetCursor();
-		p.editor->snaps.Set(c, 0, r.native_title);
 	}
-	#endif
 }
 
 

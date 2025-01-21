@@ -20,8 +20,6 @@ file
 	DropTerm.key,
 	DropTerm.icpp,
 	DropTerm.t,
-	Console.h,
-	Console.cpp,
 	Word.h,
 	Word.cpp,
 	Copying;

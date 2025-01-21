@@ -8,6 +8,39 @@ NAMESPACE_UPP
 //int EditorPtrs::GetActiveScriptIndex() const {if (!entity || !script) return -1; return VectorFindPtr(static_cast<Component*>(script), entity->comps);}
 
 
+void SrcTextData::Serialize(Stream& s) {
+	int v = 1; s % v;
+	if (v >= 1) {
+		s % scripts;					ASSERT(!s.IsError());
+		s % tokens;						ASSERT(!s.IsError());
+		s % token_texts;				ASSERT(!s.IsError());
+		s % element_keys;				ASSERT(!s.IsError());
+		s % word_classes;				ASSERT(!s.IsError());
+		s % words;						ASSERT(!s.IsError());
+		s % ambiguous_word_pairs;		ASSERT(!s.IsError());
+		s % virtual_phrases;			ASSERT(!s.IsError());
+		s % virtual_phrase_parts;		ASSERT(!s.IsError());
+		s % virtual_phrase_structs;		ASSERT(!s.IsError());
+		s % phrase_parts;				ASSERT(!s.IsError());
+		s % struct_part_types;			ASSERT(!s.IsError());
+		s % struct_types;				ASSERT(!s.IsError());
+		s % attrs;						ASSERT(!s.IsError());
+		s % actions;					ASSERT(!s.IsError());
+		s % parallel;					ASSERT(!s.IsError());
+		s % trans;						ASSERT(!s.IsError());
+		s % action_phrases;				ASSERT(!s.IsError());
+		s % wordnets;					ASSERT(!s.IsError());
+		s % diagnostics;				ASSERT(!s.IsError());
+		s % simple_attrs;				ASSERT(!s.IsError());
+		s % entities;					ASSERT(!s.IsError());
+		s % typeclasses;				ASSERT(!s.IsError());
+		s % contents;					ASSERT(!s.IsError());
+		s % content_parts;				ASSERT(!s.IsError());
+		s % lang;						ASSERT(!s.IsError());
+		for(int i = 0; i < TCENT_COUNT; i++)
+			s % typeclass_entities[i];
+	}
+}
 
 String SrcTextData::GetTokenTextString(const TokenText& txt) const {
 	String o;
@@ -196,6 +229,23 @@ ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex() {
 }
 
 
+
+SrcTxtHeader::~SrcTxtHeader() {
+	
+}
+
+void SrcTxtHeader::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("written",written)
+		("size",size)
+		("sha1",sha1)
+		("files",files);
+	
+	if (v.IsStoring()) {
+		LOG("SrcTxtHeader::Visit: error: storing data not implemented yet");
+		v.SetError("SrcTxtHeader::Visit: error: storing data not implemented yet");
+	}
+}
 
 void SrcTxtHeader::RealizeData() {
 	if (!data)

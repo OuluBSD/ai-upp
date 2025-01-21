@@ -138,7 +138,7 @@ LAYOUT(ComponentInfo, 940, 472)
 END_LAYOUT
 
 LAYOUT(ArtistInfo, 672, 380)
-	ITEM(Upp::LabelBox, lbl_entity, SetLabel(t_("Entity")).LeftPosZ(4, 664).TopPosZ(0, 288))
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Artist")).LeftPosZ(4, 664).TopPosZ(0, 288))
 	ITEM(Upp::LabelBox, lbl_speaker, SetLabel(t_("Speaker")).LeftPosZ(4, 664).TopPosZ(292, 84))
 	ITEM(Upp::Label, lbl_native_name, SetLabel(t_("Native Name:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(16, 20))
 	ITEM(Upp::EditString, native_name, LeftPosZ(136, 252).TopPosZ(16, 20))
@@ -160,8 +160,8 @@ LAYOUT(ArtistInfo, 672, 380)
 	ITEM(Upp::DropList, language, LeftPosZ(136, 144).TopPosZ(260, 19))
 	ITEM(Upp::Label, lbl_visual, SetLabel(t_("Visual appearance:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(304, 20))
 	ITEM(Upp::EditString, speaker_visually, LeftPosZ(136, 524).TopPosZ(304, 20))
-	ITEM(Upp::Label, dv___22, SetLabel(t_("Gender:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(328, 20))
-	ITEM(Upp::DropList, gender, LeftPosZ(136, 144).TopPosZ(328, 19))
+	ITEM(Upp::Label, dv___22, SetLabel(t_("Visual gender:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(328, 20))
+	ITEM(Upp::DropList, visual_gender, LeftPosZ(136, 144).TopPosZ(328, 19))
 	ITEM(Upp::Label, lbl_vibe_of_text, SetLabel(t_("Vibe of message:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 120).TopPosZ(352, 20))
 	ITEM(Upp::EditString, vibe_of_text, LeftPosZ(136, 524).TopPosZ(352, 20))
 END_LAYOUT
@@ -387,3 +387,4 @@ LAYOUT(PublisherInfo, 512, 248)
 	ITEM(Upp::Label, dv___7, SetLabel(t_("Info:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 124).TopPosZ(96, 19))
 	ITEM(Upp::DocEdit, info, HSizePosZ(140, 8).VSizePosZ(96, 8))
 END_LAYOUT
+

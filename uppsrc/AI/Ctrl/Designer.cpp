@@ -15,7 +15,7 @@ Des<T>::Des()
 template <class T>
 Des<T>::~Des()
 {
-	SaveEditPosCache();
+	EditPosCached<T>::SaveEditPosCache();
 }
 
 template <class T>
@@ -152,7 +152,7 @@ bool Des<T>::Load(const String& includes, const String& filename_)
 template <class T>
 void Des<T>::SaveEditPos()
 {
-	auto& cache = EditPosCache();
+	auto& cache = EditPosCached<T>::EditPosCache();
 	JsonIO jio;
 	edit.EditPos(jio);
 	cache.GetAdd(filename) = jio.GetResult();
@@ -161,9 +161,9 @@ void Des<T>::SaveEditPos()
 template <class T>
 void Des<T>::RestoreEditPos()
 {
-	auto& cache = EditPosCache();
+	auto& cache = EditPosCached<T>::EditPosCache();
 	if (cache.IsEmpty())
-		LoadEditPosCache();
+		EditPosCached<T>::LoadEditPosCache();
 	JsonIO jio(cache.GetAdd(filename));
 	edit.EditPos(jio);
 }
@@ -194,8 +194,16 @@ void Des<T>::Save()
 	else {
 		// TODO check sha1 if the persistent file is needed to be overwritten
 		// TODO check if fast-cached file needs to be overwritten
-		FileOut out(filename);
-		edit.Save(out, CHARSET_UTF8);
+		StringStream ss;
+		edit.Save(ss, CHARSET_UTF8);
+		if (ss.IsError()) {
+			LOG("error saving file " + filename);
+		}
+		else {
+			ss.Seek(0);
+			FileOut out(filename);
+			CopyStream(out, ss);
+		}
 	}
 }
 

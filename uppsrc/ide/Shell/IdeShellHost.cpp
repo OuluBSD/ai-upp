@@ -103,7 +103,7 @@ void IdeShellHost::ListFiles(IdeShell& shell, Value arg) {
 	Vector<VfsItem> items;
 	mm.GetFiles(path, items);
 	const int cols = 4;
-	const int col_width = 40;
+	const int col_width = 20;
 	int col = 0;
 	for (const VfsItem& i : items) {
 		String n = i.name;

@@ -7,6 +7,8 @@ uses
 file
 	Intranet.h,
 	Intranet.lay,
+	Daemon.h,
+	Daemon.cpp,
 	Ftp.cpp,
 	FtpClient.h,
 	FtpClient.cpp,

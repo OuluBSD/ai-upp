@@ -1,5 +1,6 @@
 #include "Intranet.h"
 
+#ifdef flagFTP
 NAMESPACE_UPP
 
 #ifdef flagMAIN
@@ -237,3 +238,4 @@ FtpBrowser::~FtpBrowser() {}
 
 
 END_UPP_NAMESPACE
+#endif

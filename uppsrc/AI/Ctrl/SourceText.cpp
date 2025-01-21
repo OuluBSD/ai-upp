@@ -1616,15 +1616,34 @@ void SourceTextCtrl::Data() {
 }
 
 void SourceTextCtrl::Visit(NodeVisitor& vis) {
-	TODO/*MetaNode* n = 0;
-	MetaEnv().LoadFileRootJson(GetFileIncludes(), filepath, data, true, &n);
-	SetFileNode(n);
+	if (vis.IsLoading()) {
+		MetaNode* n = 0;
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, &n);
+		if (n)
+			SetFileNode(n);
+	}
+	else {
+		LOG("SourceTextCtrl::Visit(NodeVisitor& vis): error: storing SourceTextCtrl is not yet implemented");
+		vis.SetError("not implemented");
+		/*MetaSrcFile& file = RealizeFileRoot();
+		file.MakeTempFromEnv(false);
+		file.Visit(vis);
+		file.ClearTemp();*/
+	}
 }
 
-void SourceTextCtrl::OnSave(String& data, const String& filepath) {
-	
-	LOG("warning: skipping saving");
-	*/
+bool SourceTextCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
+	Realize(includes, filename);
+	String json = in.Get(in.GetSize());
+	if (json.IsEmpty())
+		return false;
+	Value jv = ParseJSON(json);
+	if(jv.IsError())
+		return false;
+	JsonIO io(jv);
+	NodeVisitor vis(io);
+	Visit(vis);
+	return !vis.IsError();
 }
 
 void SourceTextCtrl::ToolMenu(Bar& bar) {

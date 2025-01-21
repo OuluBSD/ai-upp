@@ -3,11 +3,22 @@ description "\377B";
 file
 	Shell.h,
 	Shell.cpp,
-	ShellHost.cpp,
+	Shell.lay,
+	Shell.key,
+	Console.h,
+	Console.cpp,
+	Widget.h,
+	Widget.cpp,
+	IdeShell.h,
+	IdeShell.cpp,
+	IdeShellHost.cpp,
 	EscCmds.h,
 	EscCmds.cpp,
 	Mount.h,
 	Mount.cpp,
 	VFS.h,
-	VFS.cpp;
+	VFS.cpp,
+	Widgets readonly separator,
+	SmallWidgets.h,
+	SmallWidgets.cpp;
 

@@ -1,5 +1,6 @@
 #include "Intranet.h"
 
+#ifdef flagFTP
 #ifdef PLATFORM_WIN32
 #pragma comment(lib, "ws2_32.lib")
 #endif
@@ -40,3 +41,4 @@ int FtpPut(Stream& in, const String& path, const String& host, int port, const S
 }
 
 END_UPP_NAMESPACE
+#endif

@@ -193,9 +193,14 @@ void Ide::SyncBottom()
 		editor_bottom.NoZoom();
 	console.Show(q == BCONSOLE);
 	error.Show(q == BERRORS);
-	calc.Show(q == BCALC);
-	calc.LoadHlStyles(editor.StoreHlStyles());
-	calc.SetFont(editorfont);
+	if (calc_in_menubar)
+		calc.WhenViewChange << THISBACK(SetMenuBar);
+	else
+		calc.InternalMenuBar();
+	IdeShell& shell = calc.Shell();
+	shell.Show(q == BCALC);
+	shell.LoadHlStyles(editor.StoreHlStyles());
+	shell.SetFont(editorfont);
 	SetBar();
 	if(q == BCALC)
 		ActiveFocus(calc);

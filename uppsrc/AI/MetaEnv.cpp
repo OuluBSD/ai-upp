@@ -774,20 +774,21 @@ MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 }
 
 MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis) {
-	//data.Replace("\r","");
-	//if (data.Find("{\n\t\"written\":") >= 0) {
-	Panic("TODO");
-	
+	if (!file.pkg)
+		return 0;
 	MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
-	One<SrcTxtHeader> ext;
-	ext.Create(filenode);
-	ext->filepath = path;
-	ext->Visit(vis);
-	DatasetIndex().GetAdd(path) = &*ext;
-	filenode.serial = NewSerial();
-	filenode.ext = ext.Detach();
-	ASSERT(&filenode.ext->node == &filenode);
-	filenode.id = GetFileTitle(path);
+	if (!filenode.ext) {
+		One<SrcTxtHeader> ext;
+		ext.Create(filenode);
+		ext->filepath = path;
+		ext->Visit(vis);
+		DatasetIndex().GetAdd(path) = &*ext;
+		filenode.serial = NewSerial();
+		filenode.ext = ext.Detach();
+		ASSERT(&filenode.ext->node == &filenode);
+	}
+	if (filenode.id.IsEmpty())
+		filenode.id = GetFileTitle(path);
 	return &filenode;
 }
 

@@ -1,0 +1,12 @@
+#ifndef _AI_Core_Voiceover_h_
+#define _AI_Core_Voiceover_h_
+
+
+NAMESPACE_UPP
+
+INITIALIZE_VALUECOMPONENT(VoiceoverText, METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER);
+
+END_UPP_NAMESPACE
+
+
+#endif

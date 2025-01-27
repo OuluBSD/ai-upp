@@ -1634,7 +1634,7 @@ void SourceTextCtrl::Visit(NodeVisitor& vis) {
 
 bool SourceTextCtrl::Load(const String& includes, const String& filename, Stream& in, byte charset) {
 	Realize(includes, filename);
-	String json = in.Get(in.GetSize());
+	String json = in.Get((int)in.GetSize());
 	if (json.IsEmpty())
 		return false;
 	Value jv = ParseJSON(json);

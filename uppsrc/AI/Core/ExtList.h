@@ -64,6 +64,7 @@
 	DATASET_ITEM(Lyrics,				lyrics,			METAKIND_ECS_COMPONENT_LYRICS,				CATEGORY_TEXT, "Lyrics") \
 	DATASET_ITEM(Song,					song,			METAKIND_ECS_COMPONENT_SONG,				CATEGORY_TEXT, "Song") \
 	DATASET_ITEM(ScriptReasoning,		script_reason,	METAKIND_ECS_COMPONENT_SCRIPT_REASONING,	CATEGORY_TEXT, "Script Reasoning") \
+	DATASET_ITEM(VoiceoverText,			voiceover,		METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER,	CATEGORY_TEXT, "Voiceover") \
 	\
 	DATASET_ITEM(ImageLayer,		img_layer,				METAKIND_ECS_COMPONENT_IMG_LAYER,				CATEGORY_PHOTO, "Image layer") \
 	DATASET_ITEM(ImageGenLayer,		img_gen_layer,			METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,			CATEGORY_PHOTO, "Generate Image Layer") \

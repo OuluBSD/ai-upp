@@ -1,0 +1,8 @@
+#include "Core.h"
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(VoiceoverText);
+
+END_UPP_NAMESPACE

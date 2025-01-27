@@ -70,7 +70,7 @@ struct Entity : MetaNodeExt {
 	
 protected:
 	friend class EntityInfoCtrl;
-	friend class MetaEnvironment;
+	friend struct MetaEnvironment;
 	VectorMap<String, Value> data;
 	Value& Data(const String& key) {return data.GetAdd(key);}
 };

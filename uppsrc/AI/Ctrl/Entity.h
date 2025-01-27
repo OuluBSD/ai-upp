@@ -35,6 +35,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 	};
 	Data* data = 0;
 	VirtualNode() {}
+	~VirtualNode() {Clear();}
 	Vector<VirtualNode> GetAll();
 	Vector<VirtualNode> FindAll(int kind);
 	String GetName() const;

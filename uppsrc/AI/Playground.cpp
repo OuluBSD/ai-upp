@@ -73,7 +73,8 @@ RealtimeAiCtrl::RealtimeAiCtrl() {
 
 ChatAiCtrl::ChatAiCtrl() {
 	CtrlLayout(*this);
-	
+	frequency_penalty.SetData(1);
+	presence_penalty.SetData(1);
 }
 
 CustomBiasesCtrl::CustomBiasesCtrl() {

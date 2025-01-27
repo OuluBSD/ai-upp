@@ -122,10 +122,9 @@ void ScriptSolver::GetSuggestions(const DynPart& part, const DynSub& sub, const 
 
 void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	if (!p.lyric_struct || !p.lyrics) return;
 	auto& l = *p.lyric_struct;
 	auto& ly = *p.lyrics;
-	auto& song = *p.song;
 	if (part_i >= l.parts.GetCount()) {
 		Loge(("ScriptSolver::GetExpanded: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount())));
 		return;
@@ -186,10 +185,9 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 
 void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	if (!p.lyric_struct || !p.lyrics) return;
 	auto& l = *p.lyric_struct;
 	auto& ly = *p.lyrics;
-	auto& song = *p.song;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	tmp_part = &part;
@@ -276,10 +274,9 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 
 void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
 	auto& src = p.src->Data();
-	if (!p.lyric_struct || !p.lyrics || !p.song) return;
+	if (!p.lyric_struct || !p.lyrics) return;
 	auto& l = *p.lyric_struct;
 	auto& ly = *p.lyrics;
-	auto& song = *p.song;
 	DynPart& part = l.parts[part_i];
 	DynSub& sub = part.sub[sub_i];
 	tmp_part = &part;

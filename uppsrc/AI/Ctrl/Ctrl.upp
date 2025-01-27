@@ -99,6 +99,8 @@ file
 	Song.cpp,
 	Reasoning.h,
 	Reasoning.cpp,
+	Voiceover.h,
+	Voiceover.cpp,
 	Video readonly separator,
 	VideoPrompt.h,
 	VideoPrompt.cpp,

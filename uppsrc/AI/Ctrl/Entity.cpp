@@ -26,6 +26,220 @@ const Vector<String>& ComponentCtrl::GetContentParts() const {
 	TODO static Vector<String> i; return i;
 }
 
+
+
+VirtualFSComponentCtrl::VirtualFSComponentCtrl() {
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << tree << placeholder;
+	hsplit.SetPos(1500);
+	
+}
+
+void VirtualFSComponentCtrl::Data() {
+	RefreshTree();
+	
+}
+
+void VirtualFSComponentCtrl::RefreshTree() {
+	// Fill tree with virtual-node data: visit root
+	tree.Clear();
+	String name = GetExt().GetName();
+	if (name.IsEmpty())
+		name = GetTitle();
+	if (name.IsEmpty())
+		name = "This component";
+	tree.SetRoot(TextImgs::RedRing(), name);
+	Visit(0, Root());
+}
+
+bool VirtualFSComponentCtrl::Visit(int id, VirtualNode& n) {
+	auto sub = n.GetAll();
+	for (VirtualNode& s : sub) {
+		int sub_id = this->tree.Add(id, TextImgs::BlueRing(), s.GetName() + " (" + s.GetKindString() + ")");
+		if (!Visit(sub_id, s))
+			return false;
+	}
+	return true;
+}
+
+VirtualNode& VirtualFSComponentCtrl::GetAdd(String rel_path, int kind) {
+	VirtualNode* n = &Root();
+	Panic("TODO");
+	return *n;
+}
+
+
+
+
+ValueVFSComponentCtrl::ValueVFSComponentCtrl() {
+	
+}
+
+VirtualNode& ValueVFSComponentCtrl::Root() {
+	if (!root) {
+		auto& data = root.Create();
+		#if 0
+		MetaNode& n = this->GetNode();
+		data.node = &n;
+		#else
+		ValueComponentBase* base = &this->GetExt<ValueComponentBase>();
+		ASSERT(base);
+		data.value = &base->value;
+		#endif
+		data.mode = VirtualNode::VFS_VALUE;
+	}
+	return root;
+}
+
+
+
+
+Vector<VirtualNode> VirtualNode::GetAll() {
+	Vector<VirtualNode> v;
+	ASSERT(data);
+	if (data) {
+		if (data->node) {
+			MetaNode& n = *data->node;
+			if (data->mode == VirtualNode::VFS_VALUE) {
+				if (n.kind == METAKIND_ECS_ENTITY) {
+					Panic("unsupported");
+					#if 0
+					ASSERT_(!data->key.IsEmpty(), "key is needed for value");
+					Entity& ent = n.GetExt<Entity>();
+					Value& val = ent.Data(data->key);
+					if (!val.Is<ValueMap>())
+						val = ValueMap();
+					ValueMap map = val;
+					v.SetCount(map.GetCount());
+					for(int i = 0; i < map.GetCount(); i++) {
+						auto& data = v[i].Create(&map.At(i));
+						data.key = map.GetKey(i).ToString();
+					}
+					#endif
+				}
+				else Panic("TODO");
+			}
+			else if (VirtualNode::VFS_ENTITY) {
+				v.SetCount(n.sub.GetCount());
+				for(int i = 0; i < n.sub.GetCount(); i++)
+					v[i].Create(&n);
+			}
+			else Panic("TODO");
+		}
+		else if (data->value) {
+			ASSERT(data->mode == VirtualNode::VFS_VALUE);
+			if (data->value->IsNull())
+				*data->value = ValueMap();
+			if (data->value->Is<ValueMap>()) {
+				ValueMap map = *data->value;
+				v.SetCount(map.GetCount());
+				for(int i = 0; i < map.GetCount(); i++) {
+					auto& data = v[i].Create(&map.At(i));
+					data.key = map.GetKey(i).ToString();
+				}
+			}
+			else if (data->value->Is<ValueArray>()) {
+				ValueArray arr = *data->value;
+				v.SetCount(arr.GetCount());
+				for(int i = 0; i < arr.GetCount(); i++) {
+					auto& data = v[i].Create(&arr.At(i));
+					data.key = IntStr(i);
+				}
+			}
+			else Panic("TODO");
+		}
+		else Panic("TODO");
+	}
+	return v;
+}
+
+Vector<VirtualNode> VirtualNode::FindAll(int kind) {
+	// TODO optimized solution (this is lazy)
+	Vector<VirtualNode> n = GetAll();
+	Vector<int> rmlist;
+	for(int i = 0; i < n.GetCount(); i++) {
+		if (n[i].GetKind() != kind)
+			rmlist << i;
+	}
+	if (!rmlist.IsEmpty()) n.Remove(rmlist);
+	return n;
+}
+
+String VirtualNode::GetName() const {
+	if (data) {
+		if (data->node)
+			return data->node->id;
+		if (data->value)
+			return data->key;
+		Panic("TODO");
+	}
+	return String();
+}
+
+String VirtualNode::GetKindString() const {
+	if (data) {
+		if (data->node)
+			return data->node->GetKindString();
+		if (data->value)
+			return data->key;
+		Panic("TODO");
+	}
+	return String();
+}
+
+int VirtualNode::GetKind() const {
+	if (data) {
+		if (data->node)
+			return data->node->kind;
+		if (data->value) {
+			if (data->value->Is<ValueMap>()) {
+				ValueMap map = *data->value;
+				int i = map.Find("kind");
+				if (i >= 0)
+					return (int)map.At(i);
+			}
+			return 0;
+		}
+		Panic("TODO");
+	}
+	return 0;
+}
+
+void VirtualNode::SetKind(int k) {
+	ASSERT(data);
+	if (data) {
+		if (data->node)
+			data->node->kind = k;
+		else {
+			if (data->value->IsNull())
+				*data->value = ValueMap();
+			if (data->value->Is<ValueMap>()) {
+				ValueMap map = *data->value;
+				map.GetAdd("kind") = k;
+			}
+			else Panic("TODO");
+		}
+	}
+}
+
+
+
+
+
+VNodeComponentCtrl::VNodeComponentCtrl() {
+	
+}
+
+void VNodeComponentCtrl::Data() {
+	Panic("TODO");
+}
+
+
+
+
+
+
 EntityEditorCtrl::EntityEditorCtrl() {
 	AddMenu();
 	Add(hsplit.SizePos());

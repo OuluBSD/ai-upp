@@ -37,6 +37,7 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	sugg_list.WhenBar << [this](Bar& b) {
 		b.Add("Set source text", [this]() {
 			DatasetPtrs p = GetDataset();
+			if (!p.lyric_struct) return;
 			LyricalStructure& l = *p.lyric_struct;
 			Lyrics& ly = *p.lyrics;
 			int i = sugg_list.GetCursor();
@@ -169,7 +170,7 @@ void ScriptTextSolverCtrl::Do(int fn) {
 
 void ScriptTextSolverCtrl::DoSuggestions(int fn) {
 	DatasetPtrs p = GetDataset();
-	ASSERT(p.entity);
+	if (!p.entity) return;
 	String ecs_path = p.entity->node.GetPath();
 	ScriptSolver& sdi = ScriptSolver::Get(GetDataset(), ecs_path);
 	sugg_prog.Attach(sdi);
@@ -259,6 +260,7 @@ void ScriptTextSolverCtrl::DataSuggestions() {
 
 void ScriptTextSolverCtrl::DataWhole() {
 	const DatasetPtrs p = GetDataset();
+	if (!p.src) return;
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& l = *p.lyrics;

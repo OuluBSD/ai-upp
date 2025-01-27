@@ -71,12 +71,37 @@ struct Entity : MetaNodeExt {
 protected:
 	friend class EntityInfoCtrl;
 	friend struct MetaEnvironment;
+	friend struct VirtualNode;
 	VectorMap<String, Value> data;
 	Value& Data(const String& key) {return data.GetAdd(key);}
 };
 
-
 INITIALIZE(Entity);
+
+
+struct ValueComponentBase : Component
+{
+	Value value;
+	ValueComponentBase(MetaNode& n) : Component(n) {}
+	void Visit(NodeVisitor& v) override {
+		v.Ver(1)
+		(1)	("value",value);
+	}
+};
+
+template <int kind>
+struct ValueComponent : ValueComponentBase
+{
+	using Type = ValueComponent<kind>;
+	ValueComponent(MetaNode& n) : ValueComponentBase(n) {}
+	static int GetKind() {return kind;}
+};
+
+#define INITIALIZE_VALUECOMPONENT(x, kind) \
+struct x : ValueComponent<kind> { \
+	x(MetaNode& n) : ValueComponent(n) {} \
+}; \
+INITIALIZE(x)
 
 
 END_UPP_NAMESPACE

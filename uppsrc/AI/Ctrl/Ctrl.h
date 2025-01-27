@@ -51,6 +51,7 @@
 #include "LyricsEditor.h"
 #include "Song.h"
 #include "Reasoning.h"
+#include "Voiceover.h"
 
 #include "VideoPrompt.h"
 #include "VideoStoryboard.h"

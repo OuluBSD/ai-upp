@@ -425,8 +425,10 @@ void AppMain___()
 		
 		if(!clset)
 			ide.LoadLastMain();
+		#ifdef flagAI
 		if (FindIndex(CommandLine(), "--dropdown-terminal") >= 0)
 			dropdown.Init();
+		#endif
 		do {
 			IdeAgain = false;
 			if(clset || ide.OpenMainPackage()) {

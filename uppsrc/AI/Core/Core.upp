@@ -109,6 +109,8 @@ file
 	Song.cpp,
 	Reasoning.h,
 	Reasoning.cpp,
+	Voiceover.h,
+	Voiceover.cpp,
 	Photo readonly separator,
 	Layer.h,
 	Layer.cpp,

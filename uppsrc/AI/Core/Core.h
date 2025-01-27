@@ -70,12 +70,13 @@
 // Music
 #include "Composition.h"
 
-// text
+// Text
 #include "Lyrical.h"
 #include "LyricsSolver.h"
 #include "LyricStructSolver.h"
 #include "Song.h"
 #include "Reasoning.h"
+#include "Voiceover.h"
 
 // Photo
 #include "Layer.h"

@@ -29,19 +29,14 @@ const Vector<String>& ComponentCtrl::GetContentParts() const {
 
 
 VirtualFSComponentCtrl::VirtualFSComponentCtrl() {
-	Add(hsplit.SizePos());
-	
-	hsplit.Horz() << tree << placeholder;
-	hsplit.SetPos(1500);
 	
 }
 
 void VirtualFSComponentCtrl::Data() {
-	RefreshTree();
 	
 }
 
-void VirtualFSComponentCtrl::RefreshTree() {
+void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 	// Fill tree with virtual-node data: visit root
 	tree.Clear();
 	String name = GetExt().GetName();
@@ -50,14 +45,14 @@ void VirtualFSComponentCtrl::RefreshTree() {
 	if (name.IsEmpty())
 		name = "This component";
 	tree.SetRoot(TextImgs::RedRing(), name);
-	Visit(0, Root());
+	Visit(tree, 0, Root());
 }
 
-bool VirtualFSComponentCtrl::Visit(int id, VirtualNode& n) {
+bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode& n) {
 	auto sub = n.GetAll();
 	for (VirtualNode& s : sub) {
-		int sub_id = this->tree.Add(id, TextImgs::BlueRing(), s.GetName() + " (" + s.GetKindString() + ")");
-		if (!Visit(sub_id, s))
+		int sub_id = tree.Add(id, TextImgs::BlueRing(), s.GetName() + " (" + s.GetKindString() + ")");
+		if (!Visit(tree, sub_id, s))
 			return false;
 	}
 	return true;
@@ -246,7 +241,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	
 	hsplit.Horz() << lsplit << ext_place;
 	hsplit.SetPos(1000);
-	lsplit.Vert() << entlist << extlist;
+	lsplit.Vert() << entlist << extlist << tree;
 	
 	entlist.AddColumn("Entity");
 	entlist.AddColumn("Extensions");
@@ -305,7 +300,6 @@ void EntityEditorCtrl::DataEntityListOnly() {
 }
 
 void EntityEditorCtrl::Data() {
-	
 	RealizeFileRoot();
 	
 	if (!file_root) {
@@ -411,12 +405,15 @@ void EntityEditorCtrl::DataExtension() {
 		ASSERT(ext_ctrl);
 		ext_ctrl->ext = &ext;
 	}
+	
 	DataExtCtrl();
 }
 
 void EntityEditorCtrl::DataExtCtrl() {
-	if (ext_ctrl)
+	if (ext_ctrl) {
+		ext_ctrl->DataTree(tree);
 		ext_ctrl->Data();
+	}
 }
 
 void EntityEditorCtrl::SetFont(Font fnt) {

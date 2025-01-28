@@ -12,6 +12,7 @@ public:
 	virtual ~WidgetCtrl();
 	
 	virtual void Data() = 0;
+	virtual void DataTree(TreeCtrl& tree);
 	virtual void ToolMenu(Bar& bar) = 0;
 	virtual void EditPos(JsonIO& json) {};
 	virtual String GetTitle() const {return String();}

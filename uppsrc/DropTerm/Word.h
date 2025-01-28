@@ -5,8 +5,8 @@ NAMESPACE_UPP
 
 class Word : public MetaExtCtrl {
 public:
-	virtual void DragAndDrop(Point, PasteClip& d);
-	virtual void FrameDragAndDrop(Point, PasteClip& d);
+	void DragAndDrop(Point, PasteClip& d) override;
+	void FrameDragAndDrop(Point, PasteClip& d) override;
 
 protected:
 	RichEdit   editor;

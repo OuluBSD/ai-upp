@@ -50,13 +50,9 @@ struct VirtualNode : Moveable<VirtualNode> {
 };
 
 class VirtualFSComponentCtrl : public ComponentCtrl {
-	Splitter hsplit;
-	TreeCtrl tree;
-	Ctrl placeholder;
-	
 	void Data() override;
-	void RefreshTree();
-	bool Visit(int id, VirtualNode& n);
+	void DataTree(TreeCtrl& tree) override;
+	bool Visit(TreeCtrl& tree, int id, VirtualNode& n);
 protected:
 	friend class ValueVFSComponentCtrl;
 	VirtualFSComponentCtrl();
@@ -115,6 +111,7 @@ INITIALIZE(EntityInfoCtrl)
 class EntityEditorCtrl : public ToolAppCtrl {
 	Splitter hsplit, lsplit;
 	ArrayCtrl entlist, extlist;
+	TreeCtrl tree;
 	Ctrl ext_place;
 	One<MetaExtCtrl> ext_ctrl;
 	int ext_ctrl_kind = -1;

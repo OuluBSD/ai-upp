@@ -34,38 +34,52 @@ struct VirtualNode : Moveable<VirtualNode> {
 		void Dec() {refs--; if (refs <= 0) delete this;}
 	};
 	Data* data = 0;
-	VirtualNode() {}
-	~VirtualNode() {Clear();}
+	VirtualNode();
+	VirtualNode(const VirtualNode& vn);
+	VirtualNode(VirtualNode&& vn);
+	VirtualNode& operator=(const VirtualNode& vn);
+	~VirtualNode();
+	VirtualNode Find(String name);
 	Vector<VirtualNode> GetAll();
 	Vector<VirtualNode> FindAll(int kind);
+	VirtualNode Add(String name, int kind);
 	String GetName() const;
 	String GetKindString() const;
 	int GetKind() const;
 	void SetKind(int k);
-	operator bool() const {return data;}
-	void Clear() {if (data) {data->Dec(); data = 0;}}
-	Data& Create() {Clear(); data = new Data(); data->Inc(); return *data;}
-	Data& Create(MetaNode* n) {Clear(); data = new Data(); data->node = n; data->Inc(); return *data;}
-	Data& Create(Value* v) {Clear(); data = new Data(); data->value = v; data->Inc(); return *data;}
+	operator bool() const;
+	void Clear();
+	Data& Create();
+	Data& Create(MetaNode* n);
+	Data& Create(Value* v, String key);
 };
 
+class VNodeComponentCtrl;
+
 class VirtualFSComponentCtrl : public ComponentCtrl {
+	One<VNodeComponentCtrl> vnode_ctrl;
+	VfsPath vnode_path;
+	int data_iter = 0;
+	
 	void Data() override;
 	void DataTree(TreeCtrl& tree) override;
-	bool Visit(TreeCtrl& tree, int id, VirtualNode& n);
+	bool Visit(TreeCtrl& tree, int id, VirtualNode n);
+	void OnTreeCursor(TreeCtrl* tree);
+	
 protected:
 	friend class ValueVFSComponentCtrl;
 	VirtualFSComponentCtrl();
 	
-	
 public:
 	typedef VirtualFSComponentCtrl CLASSNAME;
 	
-	virtual void VirtualData() = 0;
-	virtual VirtualNode& Root() = 0;
+	virtual VirtualNode Root() = 0;
+	virtual VNodeComponentCtrl* CreateCtrl(const VirtualNode& vnode) = 0;
 	virtual void Init() {}
 	
-	VirtualNode& GetAdd(String rel_path, int kind);
+	VirtualNode GetAdd(const VfsPath& rel_path, int kind);
+	VirtualNode Find(const VfsPath& rel_path);
+	
 };
 
 class ValueVFSComponentCtrl : public VirtualFSComponentCtrl {
@@ -73,16 +87,24 @@ class ValueVFSComponentCtrl : public VirtualFSComponentCtrl {
 public:
 	typedef ValueVFSComponentCtrl CLASSNAME;
 	ValueVFSComponentCtrl();
-	VirtualNode& Root() override;
+	VirtualNode Root() override;
+	Value* GetValue() override;
+	void Set(Value key, Value value);
+	Value Get(Value key);
 };
 
 class VNodeComponentCtrl : public ParentCtrl {
+	
+protected:
+	friend class VirtualFSComponentCtrl;
+	int kind = 0;
 	
 public:
 	typedef VNodeComponentCtrl CLASSNAME;
 	VNodeComponentCtrl();
 	
-	virtual void Data();
+	int GetKind() const {return kind;}
+	virtual void Data() {}
 	
 };
 

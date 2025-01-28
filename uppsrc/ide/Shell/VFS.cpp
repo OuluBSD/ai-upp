@@ -15,6 +15,11 @@ VfsPath::VfsPath(const VfsPath& path) {
 	parts <<= path.parts;
 }
 
+VfsPath::VfsPath(const Vector<String>& path) {
+	parts <<= path;
+	StrFromParts();
+}
+
 VfsPath::VfsPath(VfsPath&& path) {
 	str = pick(path.str);
 	parts = pick(path.parts);

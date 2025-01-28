@@ -15,15 +15,21 @@ struct VisionArgs {
 };
 
 struct GenericPromptArgs {
+	enum {
+		FN_GENERIC,
+		
+		FN_VOICEOVER_SUGGESTIONS,
+		
+	};
 	int fn = 0;
 	VectorMap<String, Vector<String>> lists;
+	ValueMap values;
 	String response_path;
 	String response_title;
 	bool is_numbered_lines = false;
 
-	void Jsonize(JsonIO& json)
-	{
-		json("fn", fn)("lists", lists)("rp", response_path)("t", response_title)("nl", is_numbered_lines);
+	void Jsonize(JsonIO& json) {
+		json("fn", fn)("lists", lists)("values", values)("rp", response_path)("t", response_title)("nl", is_numbered_lines);
 	}
 
 	String Get() const { return StoreAsJson(*this); }

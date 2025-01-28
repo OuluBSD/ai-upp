@@ -388,3 +388,18 @@ LAYOUT(PublisherInfo, 512, 248)
 	ITEM(Upp::DocEdit, info, HSizePosZ(140, 8).VSizePosZ(96, 8))
 END_LAYOUT
 
+LAYOUT(VoiceoverInput, 892, 316)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("\001[g [* Original transcription][2  ][/+75 (to be used as the input of the process)]")).HSizePosZ(4, 448).VSizePosZ(4, 4))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Scene:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 108).TopPosZ(24, 19))
+	ITEM(Upp::DocEdit, scene, HSizePosZ(120, 452).TopPosZ(24, 52))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("People:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 108).TopPosZ(80, 19))
+	ITEM(Upp::DocEdit, people, HSizePosZ(120, 452).TopPosZ(80, 52))
+	ITEM(Upp::Label, dv___5, SetLabel(t_("Transcription:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 108).TopPosZ(136, 19))
+	ITEM(Upp::DocEdit, transcription, HSizePosZ(120, 452).VSizePosZ(136, 32))
+	ITEM(Upp::Button, get_suggs, SetLabel(t_("Get structure suggestions")).HSizePosZ(292, 452).BottomPosZ(8, 20))
+	ITEM(Upp::LabelBox, dv___8, SetLabel(t_("\001[g [* Structure suggestions][2  ][/+75 (how the transcription is splitted into parts)]")).RightPosZ(4, 440).VSizePosZ(4, 4))
+	ITEM(Upp::ArrayCtrl, structlist, RightPosZ(8, 432).TopPosZ(24, 100))
+	ITEM(Upp::ArrayCtrl, partlist, RightPosZ(8, 432).VSizePosZ(128, 32))
+	ITEM(Upp::Button, use_structure, SetLabel(t_("Use structure")).RightPosZ(8, 148).BottomPosZ(8, 20))
+END_LAYOUT
+

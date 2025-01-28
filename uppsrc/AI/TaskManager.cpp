@@ -258,16 +258,17 @@ void TaskMgr::VariateImage(Image orig, int count, Event<Array<Image>&> WhenResul
 	TaskMgrConfig().Single().Realize();
 }
 
-void TaskMgr::GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult)
+void TaskMgr::GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title)
 {
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
 	TaskMgr& p = *this;
 
+	if (title.IsEmpty()) title = "generic prompt";
 	String s = args.Get();
 
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(MakeName(args, "generic prompt"))
+	t.SetRule(MakeName(args, title))
 		.Input(&AiTask::CreateInput_GenericPrompt)
 		.Process(&AiTask::Process_Default);
 

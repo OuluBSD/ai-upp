@@ -16,6 +16,7 @@ public:
 	virtual void ToolMenu(Bar& bar) = 0;
 	virtual void EditPos(JsonIO& json) {};
 	virtual String GetTitle() const {return String();}
+	virtual Value* GetValue() {return 0;}
 	
 	Event<> WhenTitle;
 };

@@ -150,7 +150,7 @@ void AiTask::CreateInput_GenericPrompt()
 	GenericPromptArgs args;
 	args.Put(this->args[0]);
 
-	{
+	if (args.fn == GenericPromptArgs::FN_GENERIC) {
 		for(int i = 0; i < args.lists.GetCount(); i++) {
 			String s = args.lists.GetKey(i);
 			auto& list = input.AddSub().Title(s);
@@ -174,6 +174,9 @@ void AiTask::CreateInput_GenericPrompt()
 			results.Add("");
 		}
 		input.response_length = 2048;
+	}
+	else if (args.fn == GenericPromptArgs::FN_VOICEOVER_SUGGESTIONS) {
+		Panic("TODO");
 	}
 }
 

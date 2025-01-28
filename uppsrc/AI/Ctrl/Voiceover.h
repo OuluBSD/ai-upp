@@ -6,18 +6,25 @@ NAMESPACE_UPP
 
 class VoiceoverTextCtrl : public ValueVFSComponentCtrl {
 	
-	struct AnalyzeTab : VNodeComponentCtrl {
-		Splitter hsplit, vsplit;
-		DocEdit input;
-		ArrayCtrl cat, values;
-		AnalyzeTab();
+	struct InputTab : WithVoiceoverInput<VNodeComponentCtrl> {
+		VoiceoverTextCtrl& owner;
+		InputTab(VoiceoverTextCtrl&);
+		void Data() override;
+	};
+	
+	struct PartTab : VNodeComponentCtrl {
+		VoiceoverTextCtrl& owner;
+		PartTab(VoiceoverTextCtrl&);
+		void Data() override;
 	};
 	
 	struct GenerateTab : VNodeComponentCtrl {
+		VoiceoverTextCtrl& owner;
 		Splitter vsplit;
 		ArrayCtrl params;
 		DocEdit output;
-		GenerateTab();
+		GenerateTab(VoiceoverTextCtrl&);
+		void Data() override;
 	};
 	
 public:
@@ -26,9 +33,9 @@ public:
 	
 	void ToolMenu(Bar& bar) override;
 	void Init() override;
-	void VirtualData() override;
 	void RealizeData();
 	String GetTitle() const override;
+	VNodeComponentCtrl* CreateCtrl(const VirtualNode& vnode) override;
 };
 
 INITIALIZE(VoiceoverTextCtrl)

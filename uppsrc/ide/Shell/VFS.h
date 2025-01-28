@@ -40,6 +40,7 @@ struct VfsPath : Moveable<VfsPath> {
 	VfsPath();
 	VfsPath(const String& s);
 	VfsPath(const VfsPath& path);
+	VfsPath(const Vector<String>& path);
 	VfsPath(VfsPath&& path);
 	VfsPath& operator=(const VfsPath& path);
 	void	Set(String path);

@@ -149,7 +149,7 @@ void ProjectWizardCtrl::DataFile() {
 			if (j < 0)
 				items.Set(i, 1, Value());
 			else {
-				ValueMap& item = ValueToMap(map.At(j));
+				ValueMap item = map.GetValue(j);
 				items.Set(i, 1,  item.GetAdd("value").ToString());
 			}
 		}

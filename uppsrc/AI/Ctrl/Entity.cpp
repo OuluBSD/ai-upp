@@ -80,6 +80,12 @@ void VirtualFSComponentCtrl::OnTreeCursor(TreeCtrl* tree) {
 	PostCallback(THISBACK(Data));
 }
 
+VfsPath VirtualFSComponentCtrl::GetCursorPath() const {
+	VfsPath full_path(GetNode().GetPath());
+	full_path.Append(vnode_path);
+	return full_path;
+}
+
 void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 	// Fill tree with virtual-node data: visit root
 	tree.WhenCursor.Clear(); // prevent useless calls

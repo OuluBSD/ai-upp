@@ -300,6 +300,29 @@ void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::Get(const TaskArgs& args, Event<String> WhenResult, String title)
+{
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+
+	String s = args.Get();
+
+	if (title.IsEmpty())
+		title = "unnamed";
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, title))
+		.Input(&AiTask::CreateInput_Default)
+		.Process(&AiTask::Process_Default);
+
+	t.args << s;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
 void TaskMgr::GetCode(const CodeArgs& args, Event<String> WhenResult)
 {
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();

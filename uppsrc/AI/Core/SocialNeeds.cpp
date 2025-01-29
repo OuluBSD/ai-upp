@@ -14,7 +14,7 @@ SocialNeedsProcess::SocialNeedsProcess() {
 }
 
 SocialNeedsProcess& SocialNeedsProcess::Get(Profile& e, BiographyPerspectives& snap) {
-	String t = e.node.GetPath() + ": " + e.node.GetPath();
+	String t = (String)e.node.GetPath() + ": " + (String)e.node.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, SocialNeedsProcess>& map = __SocialNeedsProcesss();
 	int i = map.Find(h);

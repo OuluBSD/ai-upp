@@ -45,6 +45,14 @@ struct TaskMgr {
 	void RawCompletion(String prompt, Event<String> WhenResult);
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title=String());
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
+	void Get(const TaskArgs& args, Event<String> WhenResult, String title=String());
+
+
+
+	// DEPRECATED INTERFACE:
+	// Update to use Get(TokenArgs... function
+
+	
 	void GetCode(const CodeArgs& args, Event<String> WhenResult);
 	
 	// Source text analysis

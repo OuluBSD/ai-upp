@@ -140,6 +140,25 @@ void AiTask::CreateInput_Vision()
 		SetError("Invalid function");
 }
 
+void AiTask::CreateInput_Default()
+{
+	if(args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+
+	TaskArgs args;
+	args.Put(this->args[0]);
+
+	if(args.fn == FN_VOICEOVER_SUGGESTIONS) {
+		
+		Panic("TODO");
+		
+	}
+	else
+		SetError("Invalid function");
+}
+
 void AiTask::CreateInput_GenericPrompt()
 {
 	if(args.IsEmpty()) {
@@ -149,8 +168,8 @@ void AiTask::CreateInput_GenericPrompt()
 
 	GenericPromptArgs args;
 	args.Put(this->args[0]);
-
-	if (args.fn == GenericPromptArgs::FN_GENERIC) {
+	
+	{
 		for(int i = 0; i < args.lists.GetCount(); i++) {
 			String s = args.lists.GetKey(i);
 			auto& list = input.AddSub().Title(s);
@@ -174,9 +193,6 @@ void AiTask::CreateInput_GenericPrompt()
 			results.Add("");
 		}
 		input.response_length = 2048;
-	}
-	else if (args.fn == GenericPromptArgs::FN_VOICEOVER_SUGGESTIONS) {
-		Panic("TODO");
 	}
 }
 

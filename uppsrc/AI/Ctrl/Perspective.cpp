@@ -168,7 +168,7 @@ void PerspectiveProcess::DoPhase() {
 }
 
 PerspectiveProcess& PerspectiveProcess::Get(DatasetPtrs p) {
-	String t = p.perspective->node.GetPath() + ";" + p.snap->node.GetPath();
+	String t = (String)p.perspective->node.GetPath() + ";" + (String)p.snap->node.GetPath();
 	hash_t h = t.GetHashValue();
 	static ArrayMap<hash_t, PerspectiveProcess> map;
 	int i = map.Find(h);

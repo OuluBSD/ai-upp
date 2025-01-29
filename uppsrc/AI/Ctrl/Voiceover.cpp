@@ -7,21 +7,19 @@ VoiceoverTextCtrl::InputTab::InputTab(VoiceoverTextCtrl& o) : owner(o) {
 	this->scene.WhenAction = [this](){this->owner.Set("scene", this->scene.GetData());};
 	this->people.WhenAction = [this](){this->owner.Set("people", this->people.GetData());};
 	this->transcription.WhenAction = [this](){this->owner.Set("transcription", this->transcription.GetData());};
-	this->get_suggs.WhenAction = [this](){
-		GenericPromptArgs args;
-		
-		args.fn = GenericPromptArgs::FN_VOICEOVER_SUGGESTIONS;
-		args.values.Add("scene", owner.Get("scene"));
-		args.values.Add("people", owner.Get("people"));
-		args.values.Add("transcription", owner.Get("transcription"));
+	/*this->get_suggs.WhenAction = [this](){
+		o.RefreshParams();
+		TaskArgs args;
+		args.fn = FN_VOICEOVER_SUGGESTIONS;
+		args.params = o.params;
 		
 		TaskMgr& m = AiTaskManager();
-		m.GetGenericPrompt(args, [this](String res) {
+		m.Get(args, [this](String res) {
 			
 			Panic("TODO");
 			
 		}, "voiceover suggestions");
-	};
+	};*/
 }
 
 void VoiceoverTextCtrl::InputTab::Data() {
@@ -55,7 +53,19 @@ VoiceoverTextCtrl::VoiceoverTextCtrl() {
 }
 
 void VoiceoverTextCtrl::ToolMenu(Bar& bar) {
-	
+	RefreshParams();
+	if (!active_process)
+		bar.Add("Start process", [this]{active_process = &VoiceoverProcess::Get(this->GetNode().GetPath(), params); active_process->Start();}).Key(K_F5);
+	else
+		bar.Add("Stop process", [this]{active_process->Stop();}).Key(K_F5);
+}
+
+void VoiceoverTextCtrl::RefreshParams() {
+	ValueMap map;
+	map.Add("scene", Get("scene"));
+	map.Add("people", Get("people"));
+	map.Add("transcription", Get("transcription"));
+	params = map;
 }
 
 void VoiceoverTextCtrl::RealizeData() {

@@ -54,9 +54,11 @@ struct VfsPath : Moveable<VfsPath> {
 	String	TopPart() const;
 	bool	Normalize();
 	bool	IsValidFullPath() const;
+	void	Append(const VfsPath& p);
 	const String& Get() const;
 	const Vector<String>& Parts() const;
 	operator String() const;
+	
 private:
 	String			str;
 	Vector<String>	parts;

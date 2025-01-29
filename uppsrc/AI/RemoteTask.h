@@ -221,6 +221,10 @@ public:
 	void CreateInput_VariateImage();
 	void CreateInput_RawCompletion();
 	void CreateInput_Vision();
+	void CreateInput_Default();
+	
+	
+	// TODO convert these to use different (cleaner) interface
 	void CreateInput_GenericPrompt();
 	void CreateInput_Code();
 	void CreateInput_GetTokenData();

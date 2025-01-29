@@ -1,10 +1,30 @@
 #ifndef _AI_Common_h_
 #define _AI_Common_h_
 
+// TODO convert *Args classes to use Value based args file only (too many classes, when 1 is enough)
+
 struct CurrentFileClang;
 struct CurrentFileContext;
 
 NAMESPACE_UPP
+
+
+#define TASKFN_TYPE int
+typedef enum : TASKFN_TYPE {
+	FN_INVALID = -1,
+	
+	FN_VOICEOVER_SUGGESTIONS,
+	
+} TaskFn;
+
+struct TaskArgs : Moveable<TaskArgs> {
+	TaskFn fn = FN_INVALID;
+	Value params;
+	
+	void Jsonize(JsonIO& json) {json("fn", (TASKFN_TYPE&)fn)("params", params);}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
 
 struct VisionArgs {
 	int fn = 0;
@@ -15,21 +35,14 @@ struct VisionArgs {
 };
 
 struct GenericPromptArgs {
-	enum {
-		FN_GENERIC,
-		
-		FN_VOICEOVER_SUGGESTIONS,
-		
-	};
 	int fn = 0;
 	VectorMap<String, Vector<String>> lists;
-	ValueMap values;
 	String response_path;
 	String response_title;
 	bool is_numbered_lines = false;
 
 	void Jsonize(JsonIO& json) {
-		json("fn", fn)("lists", lists)("values", values)("rp", response_path)("t", response_title)("nl", is_numbered_lines);
+		json("lists", lists)("rp", response_path)("t", response_title)("nl", is_numbered_lines);
 	}
 
 	String Get() const { return StoreAsJson(*this); }

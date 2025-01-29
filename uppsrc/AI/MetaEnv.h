@@ -535,8 +535,10 @@ struct MetaExtCtrl : WidgetCtrl {
 	Ptr<ToolAppCtrl> owner;
 	
 	MetaNode& GetNode();
+	const MetaNode& GetNode() const;
 	MetaNodeExt& GetExt();
 	String GetFilePath() const;
+	VfsPath GetCursorPath() const override;
 	
 	template <class T> T& GetExt() {return dynamic_cast<T&>(*ext);}
 };
@@ -676,7 +678,7 @@ struct MetaNode : Pte<MetaNode> {
 	void RealizeSerial();
 	void FixSerialDeep();
 	Vector<Ptr<MetaNodeExt>> GetAllExtensions();
-	String GetPath() const;
+	VfsPath GetPath() const;
 	void DeepChk();
 	void Chk();
 	

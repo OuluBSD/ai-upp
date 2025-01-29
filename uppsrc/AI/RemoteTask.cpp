@@ -474,6 +474,7 @@ bool AiTask::RunOpenAI_Completion()
 		else {
 			txt = R"_({
     "model": "gpt-3.5-turbo-instruct",
+    "stop": "<|endoftext|>",
     "prompt": ")_" +
 			      prompt + R"_(",
     "max_tokens": )_" +

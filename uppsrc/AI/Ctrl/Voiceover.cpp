@@ -7,25 +7,14 @@ VoiceoverTextCtrl::InputTab::InputTab(VoiceoverTextCtrl& o) : owner(o) {
 	this->scene.WhenAction = [this](){this->owner.Set("scene", this->scene.GetData());};
 	this->people.WhenAction = [this](){this->owner.Set("people", this->people.GetData());};
 	this->transcription.WhenAction = [this](){this->owner.Set("transcription", this->transcription.GetData());};
-	/*this->get_suggs.WhenAction = [this](){
-		o.RefreshParams();
-		TaskArgs args;
-		args.fn = FN_VOICEOVER_SUGGESTIONS;
-		args.params = o.params;
-		
-		TaskMgr& m = AiTaskManager();
-		m.Get(args, [this](String res) {
-			
-			Panic("TODO");
-			
-		}, "voiceover suggestions");
-	};*/
+	this->lang.WhenAction = [this](){this->owner.Set("language", this->lang.GetData());};
 }
 
 void VoiceoverTextCtrl::InputTab::Data() {
 	this->scene.SetData(this->owner.Get("scene"));
 	this->people.SetData(this->owner.Get("people"));
 	this->transcription.SetData(this->owner.Get("transcription"));
+	this->lang.SetData(this->owner.Get("language"));
 }
 
 VoiceoverTextCtrl::PartTab::PartTab(VoiceoverTextCtrl& o) : owner(o) {
@@ -65,6 +54,7 @@ void VoiceoverTextCtrl::RefreshParams() {
 	map.Add("scene", Get("scene"));
 	map.Add("people", Get("people"));
 	map.Add("transcription", Get("transcription"));
+	map.Add("language", Get("language"));
 	params = map;
 }
 

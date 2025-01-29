@@ -150,10 +150,58 @@ void AiTask::CreateInput_Default()
 	TaskArgs args;
 	args.Put(this->args[0]);
 
-	if(args.fn == FN_VOICEOVER_SUGGESTIONS) {
-		
-		Panic("TODO");
-		
+	if(args.fn == FN_VOICEOVER_1_FIND_NATURAL_PARTS) {
+		ValueMap params = args.params;
+		ValueArray lines = params("lines");
+		{
+			auto& list = input.AddSub()
+				.Title("Transcript")
+				.NoListChar();
+			for(int i = 0; i < lines.GetCount(); i++)
+				list.Add("line #" + IntStr(i) + " " + lines[i].ToString());
+		}{
+			auto& results = input.PreAnswer()
+				.Title("List of 1-4 best lines  to split transcript");
+			results.Add("line #");
+		}
+		input.response_length = 50;
+		tmp_str = "line #";
+	}
+	else if(args.fn == FN_VOICEOVER_2A_SUMMARIZE) {
+		ValueMap params = args.params;
+		String scene = params("scene");
+		String people = params("people");
+		String language = params("language");
+		if (language.IsEmpty()) language = "English";
+		String transcript = params("transcription_part");
+		input.AddSub().Title("Scene").NoListChar().Add(scene);
+		input.AddSub().Title("People").NoListChar().Add(people);
+		if (params.Find("total_summarization") >= 0)
+			input.AddSub().Title("Summarization of all parts").NoListChar().Add(params("total_summarization"));
+		if (params.Find("prev_summarization") >= 0)
+			input.AddSub().Title("Summarization of previous part").NoListChar().Add(params("prev_summarization"));
+		input.AddSub().Title("Transcript of the current part").NoListChar().Add(transcript);
+		{
+			auto& results = input.PreAnswer()
+				.Title("Make voiceover summarization of transcription of the current part in " + language + " (from 1st person perspective)")
+				.NoListChar();
+			results.Add("");
+		}
+		input.response_length = 2048;
+	}
+	else if(args.fn == FN_VOICEOVER_2B_SUMMARIZE_TOTAL) {
+		ValueMap params = args.params;
+		String language = params("language");
+		if (language.IsEmpty()) language = "English";
+		input.AddSub().Title("Summarization of all previous parts").NoListChar().Add(params("total_summarization"));
+		input.AddSub().Title("Summarization of current part").NoListChar().Add(params("summarization"));
+		{
+			auto& results = input.PreAnswer()
+				.Title("Merge summarization of all previous parts and summarization of current part in " + language)
+				.NoListChar();
+			results.Add("");
+		}
+		input.response_length = 2048;
 	}
 	else
 		SetError("Invalid function");

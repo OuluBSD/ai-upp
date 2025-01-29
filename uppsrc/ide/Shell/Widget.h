@@ -17,7 +17,7 @@ public:
 	virtual void EditPos(JsonIO& json) {};
 	virtual String GetTitle() const {return String();}
 	virtual Value* GetValue() {return 0;}
-	
+	virtual VfsPath GetCursorPath() const = 0;
 	Event<> WhenTitle;
 };
 

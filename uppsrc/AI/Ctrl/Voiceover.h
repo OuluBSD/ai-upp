@@ -27,6 +27,9 @@ class VoiceoverTextCtrl : public ValueVFSComponentCtrl {
 		void Data() override;
 	};
 	
+	Value params;
+	void RefreshParams();
+	VoiceoverProcess* active_process = 0;
 public:
 	typedef VoiceoverTextCtrl CLASSNAME;
 	VoiceoverTextCtrl();

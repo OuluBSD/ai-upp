@@ -11,6 +11,7 @@ struct DraftPad : WidgetCtrl {
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	String GetTitle() const override {return "DraftPad";}
+	VfsPath GetCursorPath() const override {return VfsPath();}
 };
 
 struct Timer : WithTimerLayout<WidgetCtrl> {
@@ -22,6 +23,7 @@ struct Timer : WithTimerLayout<WidgetCtrl> {
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
 	String GetTitle() const override {return "Timer";}
+	VfsPath GetCursorPath() const override {return VfsPath();}
 	Time ready;
 	bool running = false;
 	TimeCallback tc;

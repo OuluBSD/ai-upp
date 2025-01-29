@@ -37,7 +37,7 @@ ArrayMap<hash_t, SocialContentProcess>& __SocialContentProcesss() {
 }
 
 SocialContentProcess& SocialContentProcess::Get(DatasetPtrs p) {
-	String t = p.owner->node.GetPath() + ";" + p.profile->node.GetPath();
+	String t = (String)p.owner->node.GetPath() + ";" + (String)p.profile->node.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, SocialContentProcess>& map = __SocialContentProcesss();
 	int i = map.Find(h);

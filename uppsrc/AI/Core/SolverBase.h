@@ -52,6 +52,7 @@ public:
 	int GetContentCount() {TODO return -1; /*return TextLib::GetContentCount(appmode);*/} // should be based on text files
 	
 	void SetParallel(bool b=true) {parallel = b;}
+	void Fail(String e, String title="");
 	
 	void Start() {if (!running) {running = true; stopped = false; Thread::Start(THISBACK(Process));}}
 	void Stop() {running = false; while (!stopped) Sleep(1);}
@@ -59,6 +60,7 @@ public:
 	static void StopAll();
 	
 	bool IsRunning() const {return running;}
+	bool IsPhaseInit() const {return batch == 0 && sub_batch == 0;}
 	
 	virtual int GetPhaseCount() const = 0;
 	virtual int GetBatchCount(int phase) const {return max(1, batch);}

@@ -65,7 +65,7 @@ class VirtualFSComponentCtrl : public ComponentCtrl {
 	void DataTree(TreeCtrl& tree) override;
 	bool Visit(TreeCtrl& tree, int id, VirtualNode n);
 	void OnTreeCursor(TreeCtrl* tree);
-	
+	VfsPath GetCursorPath() const override;
 protected:
 	friend class ValueVFSComponentCtrl;
 	VirtualFSComponentCtrl();

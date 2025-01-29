@@ -7,6 +7,15 @@ SolverBase::SolverBase() {
 	
 }
 
+void SolverBase::Fail(String e, String title) {
+	if (!title.IsEmpty())
+		Loge("error: " + title + ": " + e);
+	else
+		Loge("error: " + e);
+	SetError(e);
+	SetNotRunning();
+}
+
 void SolverBase::Process() {
 	if (parallel)
 		ProcessInParallel();

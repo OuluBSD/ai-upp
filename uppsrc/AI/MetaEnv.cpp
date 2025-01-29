@@ -1963,7 +1963,7 @@ Vector<Ptr<MetaNodeExt>> MetaNode::GetAllExtensions() {
 	return v;
 }
 
-String MetaNode::GetPath() const {
+VfsPath MetaNode::GetPath() const {
 	static const int LIMIT = 64;
 	const MetaNode* ptrs[LIMIT];
 	int i = 1;
@@ -1977,10 +1977,10 @@ String MetaNode::GetPath() const {
 	}
 	ptrs[i] = 0;
 	const MetaNode** iter = ptrs;
-	String path;
+	Vector<String> path;
+	path.Reserve(i);
 	while (*iter) {
-		path.Cat('/');
-		path.Cat((*iter)->id);
+		path.Add((*iter)->id);
 		iter++;
 	}
 	return path;
@@ -1990,11 +1990,21 @@ String MetaNode::GetPath() const {
 
 MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
 MetaNode& MetaExtCtrl::GetNode() {return ext->node;}
+const MetaNode& MetaExtCtrl::GetNode() const {return ext->node;}
 String MetaExtCtrl::GetFilePath() const {
 	if (owner)
 		return owner->GetFilePath();
 	else
 		return String();
+}
+
+VfsPath MetaExtCtrl::GetCursorPath() const {
+	if (ext)
+		return ext->node.GetPath();
+	if (owner)
+		return owner->GetFilePath();
+	ASSERT_(0, "invalid cursor path");
+	return VfsPath();
 }
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)

@@ -174,6 +174,11 @@ bool VfsPath::IsValidFullPath() const {
 	return IsFullInternalDirectory(str);
 }
 
+void VfsPath::Append(const VfsPath& p) {
+	parts.Append(p.parts);
+	StrFromParts();
+}
+
 String operator+(const char* s, const VfsPath& vfs) {
 	return String(s) + vfs.Get();
 }

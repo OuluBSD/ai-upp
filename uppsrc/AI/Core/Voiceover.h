@@ -9,10 +9,11 @@ class VoiceoverProcess : public SolverBase {
 public:
 	enum {
 		PHASE_FIND_NATURAL_PARTS,
-		PHASE_CLASSIFY_NATURAL_PARTS,
+		PHASE_TRANSCRIPT,
+		/*PHASE_CLASSIFY_NATURAL_PARTS,
 		PHASE_MAKE_STORYLINE_SUGGESTIONS,
 		PHASE_CLASSIFY_PARTS,
-		PHASE_GENERATE,
+		PHASE_GENERATE,*/
 		
 		PHASE_COUNT
 	};
@@ -21,7 +22,13 @@ public:
 	Event<> WhenUserInput;
 	Value params;
 	Vector<String> lines;
-	Vector<Vector<String>> input_coarse_parts;
+	Vector<Vector<String>> input_coarse_parts, natural_parts;
+	Vector<String> total_summarizations;
+	Vector<String> summarizations;
+	Vector<Vector<int>> input_splits;
+	
+	// Params
+	int chars_per_coarse_part = 2000;
 	
 public:
 	typedef VoiceoverProcess CLASSNAME;

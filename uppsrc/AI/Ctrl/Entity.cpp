@@ -441,26 +441,33 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	
 	hsplit.Horz() << lsplit << ext_place;
 	hsplit.SetPos(1000);
-	lsplit.Vert() << entlist << extlist << tree;
+	lsplit.Vert() << ecs_tree << content_tree;
+	lsplit.SetPos(10000*2/3);
 	
-	entlist.AddColumn("Entity");
-	entlist.AddColumn("Extensions");
-	entlist.ColumnWidths("3 1");
-	entlist.WhenCursor = THISBACK(DataEntity);
-	entlist.WhenBar = [this](Bar& b) {
-		b.Add("Add entity", THISBACK(AddEntity));
-		if (entlist.IsCursor())
-			b.Add("Remove entity", THISBACK(RemoveEntity));
-	};
-	
-	extlist.AddColumn("Kind");
-	extlist.AddColumn("Name");
-	extlist.ColumnWidths("4 1");
-	extlist.WhenCursor = THISBACK(DataExtension);
-	extlist.WhenBar = [this](Bar& b) {
-		b.Add("Add Component", THISBACK(AddComponent));
-		if (extlist.IsCursor())
-			b.Add("Remove Component", THISBACK(RemoveComponent));
+	ecs_tree.SetRoot(TextImgs::RedRing(), "Project");
+	ecs_tree.WhenCursor = THISBACK(DataEcsTree);
+	ecs_tree.WhenBar = [this](Bar& b) {
+		if (ecs_tree.IsCursor()) {
+			int cur = ecs_tree.GetCursor();
+			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
+			MetaNode& n = *ecs_tree_nodes[cur];
+			if (n.kind == METAKIND_ECS_SPACE) {
+				if (cur != 0)
+					b.Add("Remove space", THISBACK1(RemoveNode, &n));
+				b.Separator();
+				b.Add("Add space", THISBACK3(AddNode, &n, METAKIND_ECS_SPACE, ""));
+				b.Add("Add entity", THISBACK3(AddNode, &n, METAKIND_ECS_ENTITY, ""));
+			}
+			else if (n.kind == METAKIND_ECS_ENTITY) {
+				b.Add("Remove entity", THISBACK1(RemoveNode, &n));
+				b.Separator();
+				b.Add("Add Component", THISBACK(AddComponent));
+			}
+			else if (n.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+					 n.kind < METAKIND_ECS_COMPONENT_END) {
+				b.Add("Remove Component", THISBACK1(RemoveNode, &n));
+			}
+		}
 	};
 	
 }
@@ -482,20 +489,13 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 	UpdateMenu();
 }
 
-void EntityEditorCtrl::DataEntityListOnly() {
-	int row = 0;
-	for(int i = 0; i < entities.GetCount(); i++) {
-		auto& ep = entities[i];
-		if (!ep) continue;
-		auto& e = *ep;
-		auto& enode = e.node;
-		entlist.Set(row, 0, enode.id);
-		
-		auto& e_exts = extensions[i];
-		e_exts = e.node.GetAllExtensions();
-		
-		entlist.Set(row, 1, e_exts.GetCount());
-		row++;
+void EntityEditorCtrl::DataEcsTree_RefreshNames() {
+	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
+		MetaNode* n = ecs_tree_nodes[i];
+		String kind_str = n->GetKindString();
+		Value val = ecs_tree.GetValue(i);
+		String key = n->id + " (" + kind_str + ")";
+		ecs_tree.Set(i, key, val);
 	}
 }
 
@@ -503,80 +503,69 @@ void EntityEditorCtrl::Data() {
 	RealizeFileRoot();
 	
 	if (!file_root) {
-		entlist.Clear();
-		extlist.Clear();
+		ecs_tree.Clear();
 		ClearExtensionCtrl();
 		return;
 	}
 	
-	entities = this->file_root->FindAll<Entity>();
+	int cur = ecs_tree.IsCursor() ? ecs_tree.GetCursor() : -1;
+	String key = file_root->id + " (" + file_root->GetKindString() + ")";
+	ecs_tree.SetRoot(TextImgs::RedRing(), key);
+	ecs_tree_nodes.SetCount(1);
+	ecs_tree_nodes[0] = file_root;
 	
-	extensions.SetCount(entities.GetCount());
+	DataEcsTreeVisit(0, *file_root);
+	ecs_tree.OpenDeep(0);
 	
-	int row = 0;
-	for(int i = 0; i < entities.GetCount(); i++) {
-		auto& ep = entities[i];
-		if (!ep) continue;
-		auto& e = *ep;
-		auto& enode = e.node;
-		entlist.Set(row, 0, enode.id);
-		
-		auto& e_exts = extensions[i];
-		e_exts = e.node.GetAllExtensions();
-		
-		entlist.Set(row, 1, e_exts.GetCount());
-		row++;
-	}
-	entlist.SetCount(row);
-	
-	if (!entlist.IsCursor() && entlist.GetCount())
-		entlist.SetCursor(0);
+	if (cur >= 0 && cur < ecs_tree.GetLineCount())
+		ecs_tree.SetCursor(cur);
 	else
-		DataEntity();
+		DataEcsTree();
 }
 
-void EntityEditorCtrl::DataEntity() {
-	if (!entlist.IsCursor()) {
-		extlist.Clear();
-		ClearExtensionCtrl();
-		return;
-	}
+void EntityEditorCtrl::DataEcsTreeVisit(int treeid, MetaNode& n) {
+	ecs_tree_nodes.Reserve(ecs_tree_nodes.GetCount() + n.sub.GetCount());
 	
-	int ent_i = entlist.GetCursor();
-	auto& e = *entities[ent_i];
-	auto& exts = extensions[ent_i];
-	exts = e.node.GetAllExtensions();
-	exts.Insert(0, &e);
-	int row = 0;
-	for(int i = 0; i < exts.GetCount(); i++) {
-		auto& cp = exts[i];
-		if (!cp) continue;
-		auto& c = *cp;
-		extlist.Set(row, 0, c.node.GetKindString());
-		extlist.Set(row, 1, c.GetName());
-		row++;
+	for(MetaNode& s : n.sub) {
+		if (s.kind == METAKIND_ECS_SPACE) {
+			String key = s.id + " (" + s.GetKindString() + ")";
+			int id = ecs_tree.Add(treeid, TextImgs::RedRing(), key);
+			ecs_tree_nodes.Add(&s);
+			DataEcsTreeVisit(id, s);
+		}
+		else if (s.kind == METAKIND_ECS_ENTITY) {
+			String key = s.id + " (" + s.GetKindString() + ")";
+			int id = ecs_tree.Add(treeid, TextImgs::VioletRing(), key);
+			ecs_tree_nodes.Add(&s);
+			DataEcsTreeVisit(id, s);
+		}
+		else if (s.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+				 s.kind <= METAKIND_ECS_COMPONENT_END) {
+			String key = s.id + " (" + s.GetKindString() + ")";
+			int id = ecs_tree.Add(treeid, TextImgs::BlueRing(), key);
+			ecs_tree_nodes.Add(&s);
+			// Don't visit component: DataEcsTreeVisit(id, s);
+		}
 	}
-	extlist.SetCount(row);
-	
-	if (!extlist.IsCursor() && extlist.GetCount())
-		extlist.SetCursor(0);
-	else
-		DataExtension();
 }
 
-void EntityEditorCtrl::DataExtension() {
-	if (!entlist.IsCursor() || !extlist.IsCursor()) {
+void EntityEditorCtrl::DataEcsTree() {
+	if (!ecs_tree.IsCursor()) {
+		content_tree.Clear();
 		ClearExtensionCtrl();
 		return;
 	}
 	
-	int ent_i = entlist.GetCursor();
-	int ext_i = extlist.GetCursor();
-	auto& e = *entities[ent_i];
-	auto& exts = extensions[ent_i];
-	if (ext_i < 0 || ext_i >= exts.GetCount())
+	int ecs_i = ecs_tree.GetCursor();
+	auto& enode = *ecs_tree_nodes[ecs_i];
+	
+	if (enode.ext.IsEmpty()) {
+		content_tree.Clear();
+		ClearExtensionCtrl();
 		return;
-	MetaNodeExt& ext = *exts[ext_i];
+	}
+	
+	MetaNodeExt& ext = *enode.ext;
 	
 	if (ext_ctrl_kind != ext.node.kind) {
 		int fac_i = MetaExtFactory::FindKindFactory(ext.node.kind);
@@ -593,7 +582,7 @@ void EntityEditorCtrl::DataExtension() {
 			
 			if (fac.kind == METAKIND_ECS_ENTITY) {
 				EntityInfoCtrl& e = dynamic_cast<EntityInfoCtrl&>(*ctrl);
-				e.WhenValueChange = THISBACK(DataEntityListOnly);
+				e.WhenValueChange = THISBACK(DataEcsTree_RefreshNames);
 			}
 		}
 		else {
@@ -611,7 +600,7 @@ void EntityEditorCtrl::DataExtension() {
 
 void EntityEditorCtrl::DataExtCtrl() {
 	if (ext_ctrl) {
-		ext_ctrl->DataTree(tree);
+		ext_ctrl->DataTree(content_tree);
 		ext_ctrl->Data();
 	}
 }
@@ -667,6 +656,35 @@ MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	return file;
 }
 
+void EntityEditorCtrl::SelectEcsTree(MetaNode* n) {
+	// the 'most high performace algorithm' (for real)
+	int i = 0;
+	for (auto* n0 : ecs_tree_nodes) {
+		if (n0 == n) {
+			ecs_tree.SetCursor(i);
+			break;
+		}
+		i++;
+	}
+}
+
+void EntityEditorCtrl::RemoveNode(MetaNode* n) {
+	if (!n || !n->owner) return;
+	MetaNode& o = *n->owner;
+	o.Remove(n);
+}
+
+void EntityEditorCtrl::AddNode(MetaNode* n, int kind, String id) {
+	if (!n || !n->owner) return;
+	if (id.IsEmpty()) {
+		WString ws;
+		if (!EditText(ws, "Name of the node", "Name:"))
+			return;
+	}
+	MetaNode& o = *n->owner;
+	o.Add(kind, id);
+}
+
 void EntityEditorCtrl::AddEntity() {
 	RealizeFileRoot();
 	MetaNode& n = *file_root;
@@ -675,31 +693,34 @@ void EntityEditorCtrl::AddEntity() {
 	auto& enode = e.node;
 	enode.id = "Unnamed";
 	PostCallback(THISBACK(Data));
-	PostCallback([this]{entlist.SetCursor(entlist.GetCount()-1);}); // select last entity
+	PostCallback(THISBACK1(SelectEcsTree, &enode));
 }
 
 void EntityEditorCtrl::RemoveEntity() {
-	if (!entlist.IsCursor()) return;
+	if (!ecs_tree.IsCursor()) return;
 	MetaNode& n = *file_root;
-	int ent_i = entlist.GetCursor();
-	if (ent_i >= 0 && ent_i < n.sub.GetCount())
-		n.sub.Remove(ent_i);
+	int ecs_i = ecs_tree.GetCursor();
+	if (ecs_i >= 0 && ecs_i < n.sub.GetCount())
+		n.sub.Remove(ecs_i);
 	PostCallback(THISBACK(Data));
 }
 
-Entity* EntityEditorCtrl::GetSelectedEntity() {
-	if (!entlist.IsCursor()) return 0;
+MetaNodeExt* EntityEditorCtrl::GetSelected() {
+	if (!ecs_tree.IsCursor()) return 0;
 	MetaNode& n = *file_root;
-	int ent_i = entlist.GetCursor();
-	if (ent_i >= 0 && ent_i < entities.GetCount()) {
-		return entities[ent_i];
+	int ecs_i = ecs_tree.GetCursor();
+	if (ecs_i >= 0 && ecs_i < ecs_tree_nodes.GetCount()) {
+		return &*ecs_tree_nodes[ecs_i]->ext;
 	}
 	return 0;
 }
 
 void EntityEditorCtrl::AddComponent() {
-	Entity* e = GetSelectedEntity();
+	MetaNodeExt* ext = GetSelected();
+	if (!ext) return;
+	Entity* e = dynamic_cast<Entity*>(ext);
 	if (!e) return;
+	
 	String title = "Add Component";
 	WithComponentSelection<TopWindow> dlg;
 	CtrlLayoutOKCancel(dlg, title);
@@ -810,46 +831,37 @@ void EntityEditorCtrl::AddComponent() {
 			auto& ext = e->node.Add(factory.kind);
 			ASSERT(ext.kind == factory.kind);
 			PostCallback(THISBACK(Data));
-			PostCallback([this]{extlist.SetCursor(extlist.GetCount()-1);}); // select last extension (component)
+			PostCallback(THISBACK1(SelectEcsTree, &e->node));
 			break;
 		}
 	}
 }
 
 void EntityEditorCtrl::RemoveComponent() {
-	Entity* e = GetSelectedEntity();
-	if (!e || !extlist.IsCursor()) return;
-	int ext_i = extlist.GetCursor() - 1; // -1 --> don't remove EntityInfoCtrl
-	if (ext_i >= 0 && ext_i < e->node.sub.GetCount())
-		e->node.sub.Remove(ext_i);
+	MetaNodeExt* ext = GetSelected();
+	if (!ext) return;
+	Entity* e = dynamic_cast<Entity*>(ext);
+	if (!e) return;
+	int ecs_i = ecs_tree.GetCursor();
+	if (!ecs_i) return;
+	int parent_i = ecs_tree.GetParent(ecs_i);
+	int idx = ecs_tree.GetChildIndex(parent_i, ecs_i);
+	if (idx >= 0 && idx < e->node.sub.GetCount())
+		e->node.sub.Remove(idx);
 	PostCallback(THISBACK(Data));
 }
 
 void EntityEditorCtrl::Do(int i) {
 	
-	//DatasetPtrs p = GetDataset();
-	//p.file_root = file_root;
-	
-	if (i == 0) {
-		
-		
-		
-	}
-	
 }
 
 void EntityEditorCtrl::EditPos(JsonIO& json) {
-	int ent_i = entlist.IsCursor() ? entlist.GetCursor() : -1;
-	int ext_i = extlist.IsCursor() ? extlist.GetCursor() : -1;
-	json	("entity", ent_i)
-			("ext", ext_i)
+	int ecs_i = ecs_tree.IsCursor() ? ecs_tree.GetCursor() : -1;
+	json	("ecs_tree", ecs_i)
 			;
 	if (json.IsLoading()) {
-		if (ent_i >= 0 && ent_i < entlist.GetCount())
-			entlist.SetCursor(ent_i);
-		
-		if (ext_i >= 0 && ext_i < extlist.GetCount())
-			extlist.SetCursor(ext_i);
+		if (ecs_i >= 0 && ecs_i < ecs_tree.GetLineCount())
+			ecs_tree.SetCursor(ecs_i);
 	}
 	
 	if (ext_ctrl)

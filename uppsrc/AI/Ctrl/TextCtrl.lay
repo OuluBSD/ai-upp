@@ -403,3 +403,9 @@ LAYOUT(VoiceoverInput, 892, 316)
 	ITEM(Upp::ArrayCtrl, partlist, RightPosZ(8, 432).VSizePosZ(128, 8))
 END_LAYOUT
 
+LAYOUT(TreeDialog, 300, 300)
+	ITEM(Upp::TreeCtrl, tree, HSizePosZ(0, 0).VSizePosZ(0, 28))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(96, 88).BottomPosZ(4, 20))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(4, 88).BottomPosZ(4, 20))
+END_LAYOUT
+

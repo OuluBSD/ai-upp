@@ -1624,6 +1624,20 @@ MetaNode& MetaNode::Add(int kind, String id)
 	return s;
 }
 
+MetaNode* MetaNode::Detach(MetaNode* n) {
+	for(int i = 0; i < sub.GetCount(); i++) {
+		if (&sub[i] == n)
+			return sub.Detach(i);
+	}
+	return 0;
+}
+
+MetaNode* MetaNode::Detach(int i) {
+	if (i >= 0 && i < sub.GetCount())
+		return sub.Detach(i);
+	return 0;
+}
+
 void MetaNode::Remove(MetaNode* n) {
 	int i = 0;
 	for (auto& s : sub) {

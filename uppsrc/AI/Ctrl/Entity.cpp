@@ -451,6 +451,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			int cur = ecs_tree.GetCursor();
 			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
 			MetaNode& n = *ecs_tree_nodes[cur];
+			b.Add("Move", THISBACK1(MoveNode, &n));
 			if (n.kind == METAKIND_ECS_SPACE) {
 				if (cur != 0)
 					b.Add("Remove space", THISBACK1(RemoveNode, &n));
@@ -493,8 +494,8 @@ void EntityEditorCtrl::DataEcsTree_RefreshNames() {
 	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
 		MetaNode* n = ecs_tree_nodes[i];
 		String kind_str = n->GetKindString();
-		Value val = ecs_tree.GetValue(i);
-		String key = n->id + " (" + kind_str + ")";
+		Value key = ecs_tree.Get(i);
+		String val = n->id + " (" + kind_str + ")";
 		ecs_tree.Set(i, key, val);
 	}
 }
@@ -502,13 +503,14 @@ void EntityEditorCtrl::DataEcsTree_RefreshNames() {
 void EntityEditorCtrl::Data() {
 	RealizeFileRoot();
 	
+	int cur = ecs_tree.IsCursor() ? ecs_tree.GetCursor() : -1;
+	ecs_tree.Clear();
+	
 	if (!file_root) {
-		ecs_tree.Clear();
 		ClearExtensionCtrl();
 		return;
 	}
 	
-	int cur = ecs_tree.IsCursor() ? ecs_tree.GetCursor() : -1;
 	String key = file_root->id + " (" + file_root->GetKindString() + ")";
 	ecs_tree.SetRoot(TextImgs::RedRing(), key);
 	ecs_tree_nodes.SetCount(1);
@@ -668,10 +670,69 @@ void EntityEditorCtrl::SelectEcsTree(MetaNode* n) {
 	}
 }
 
+MetaNode* EntityEditorCtrl::SelectTreeNode(String title) {
+	WithTreeDialog<TopWindow> dlg;
+	CtrlLayoutOKCancel(dlg, title);
+	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
+		Value key = ecs_tree.Get(i);
+		Value val = ecs_tree.GetValue(i);
+		int par = ecs_tree.GetParent(i);
+		Image icon = ecs_tree.GetNode(i).image;
+		if (i > 0) {
+			ASSERT(par >= 0);
+			dlg.tree.Add(par, icon, key, val);
+		}
+		else {
+			dlg.tree.SetRoot(icon, key, val);
+		}
+	}
+	dlg.tree.OpenDeep(0);
+	if(dlg.Execute() != IDOK || !dlg.tree.IsCursor())
+		return 0;
+	int cur = dlg.tree.GetCursor();
+	MetaNode* tgt = this->ecs_tree_nodes[cur];
+	return tgt;
+}
+
+void EntityEditorCtrl::MoveNode(MetaNode* n) {
+	if (!n || !n->owner) return;
+	
+	MetaNode* tgt = SelectTreeNode("Select where to move");
+	if (!tgt || tgt == n->owner)
+		return;
+	
+	int src_kind = n->kind;
+	int tgt_kind = tgt->kind;
+	if ((src_kind == METAKIND_ECS_SPACE && tgt_kind != METAKIND_ECS_SPACE) ||
+		(src_kind == METAKIND_ECS_ENTITY && tgt_kind != METAKIND_ECS_SPACE) ||
+		(src_kind >= METAKIND_ECS_COMPONENT_BEGIN && src_kind <= METAKIND_ECS_COMPONENT_END && tgt_kind != METAKIND_ECS_ENTITY))
+	{
+		String src_kind_str = n->GetKindString();
+		String tgt_kind_str = tgt->GetKindString();
+		if (src_kind >= METAKIND_ECS_COMPONENT_BEGIN && src_kind <= METAKIND_ECS_COMPONENT_END)
+			src_kind_str = "Component(" + src_kind_str + ")";
+		if (tgt_kind >= METAKIND_ECS_COMPONENT_BEGIN && tgt_kind <= METAKIND_ECS_COMPONENT_END)
+			tgt_kind_str = "Component(" + tgt_kind_str + ")";
+		String err = "The parent type is not acceptable. '" + src_kind_str + "' can't have parent '" + tgt_kind_str + "'";
+		PromptOK(err);
+		return;
+	}
+	
+	MetaNode& o = *n->owner;
+	n = o.Detach(n);
+	if (!n) return;
+	tgt->Add(n);
+	
+	PostCallback(THISBACK(Data));
+	PostCallback(THISBACK1(SelectEcsTree, n));
+}
+
 void EntityEditorCtrl::RemoveNode(MetaNode* n) {
 	if (!n || !n->owner) return;
 	MetaNode& o = *n->owner;
 	o.Remove(n);
+	PostCallback(THISBACK(Data));
+	PostCallback(THISBACK1(SelectEcsTree, &o));
 }
 
 void EntityEditorCtrl::AddNode(MetaNode* n, int kind, String id) {
@@ -680,9 +741,11 @@ void EntityEditorCtrl::AddNode(MetaNode* n, int kind, String id) {
 		WString ws;
 		if (!EditText(ws, "Name of the node", "Name:"))
 			return;
+		id = ws.ToString();
 	}
-	MetaNode& o = *n->owner;
-	o.Add(kind, id);
+	MetaNode& s = n->Add(kind, id);
+	PostCallback(THISBACK(Data));
+	PostCallback(THISBACK1(SelectEcsTree, &s));
 }
 
 void EntityEditorCtrl::AddEntity() {

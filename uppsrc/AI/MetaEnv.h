@@ -642,6 +642,8 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode& Add(MetaNode* n);
 	MetaNode& Add();
 	MetaNode& Add(int kind, String id=String());
+	MetaNode* Detach(MetaNode* n);
+	MetaNode* Detach(int i);
 	void Remove(MetaNode* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;

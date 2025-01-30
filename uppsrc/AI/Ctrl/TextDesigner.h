@@ -26,7 +26,8 @@ protected:
 public:
 	SolverBaseIndicator prog;
 	Label remaining;
-
+	Callback WhenTitle;
+	
 public:
 	typedef ToolAppCtrl CLASSNAME;
 	virtual ~ToolAppCtrl();

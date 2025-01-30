@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 struct IdeShell;
+class ConsoleCtrl;
 
 struct IdeShellHostBase {
 	IdeShellHostBase();
@@ -11,6 +12,7 @@ struct IdeShellHostBase {
 	virtual bool Command(IdeShell& shell, Value arg) = 0;
 	virtual const String& GetOutput() const = 0;
 	virtual const String& GetError() const = 0;
+	virtual ConsoleCtrl* GetConsole() {return 0;}
 	
 	ArrayMap<String, EscValue> vars;
 };

@@ -1,4 +1,5 @@
 #include "Shell.h"
+#include <AI/Ctrl/Ctrl.h>
 
 NAMESPACE_UPP
 
@@ -8,6 +9,7 @@ ConsoleCtrl::ConsoleCtrl() : cmd(*this) {
 	AddProgram("help",	THISBACK(SimpleExt<Widget::DraftPad>));
 	AddProgram("draft",	THISBACK(SimpleExt<Widget::DraftPad>));
 	AddProgram("timer",	THISBACK(SimpleExt<Widget::Timer>));
+	
 	#if 0
 	AddProgram("mkdir",	THISBACK(CreateDirectory));
 	AddProgram("rm",	THISBACK(RemoveFile));
@@ -19,7 +21,11 @@ ConsoleCtrl::ConsoleCtrl() : cmd(*this) {
 }
 
 ConsoleCtrl::~ConsoleCtrl() {
-	RemoveExt(true);
+	RemoveCtrl(true);
+}
+
+ConsoleCtrl* ConsoleCtrl::GetConsole() {
+	return this;
 }
 
 bool ConsoleCtrl::RealizeFocus() {
@@ -30,21 +36,27 @@ bool ConsoleCtrl::RealizeFocus() {
 	return false;
 }
 
-void ConsoleCtrl::SetView() {
+void ConsoleCtrl::ClearActive() {
 	if (active) {
-		if (internal_menubar && ext && active == &*ext)
+		if (internal_menubar && (ext || tool))
 			RemoveMenuBar();
 		RemoveChild(active);
 		active = 0;
 	}
+}
+
+void ConsoleCtrl::SetView() {
+	ClearActive();
 	
 	if (ext)
 		active = &*ext;
+	else if (tool)
+		active = &*tool;
 	else
 		active = &cmd;
 	
 	if (active) {
-		if (internal_menubar && ext && active == &*ext)
+		if (internal_menubar && (ext || tool))
 			AddMenuBar();
 		Add(active->SizePos());
 		PostCallback([=]{
@@ -59,8 +71,11 @@ void ConsoleCtrl::SetView() {
 void ConsoleCtrl::AddMenuBar() {
 	AddFrame(menu);
 	menu.Set([this](Bar& b) {
-		b.Add(Shell::AK_LEAVE_PROGRAM, THISBACK1(RemoveExt, false));
-		ext->ToolMenu(b);
+		b.Add(Shell::AK_LEAVE_PROGRAM, THISBACK1(RemoveCtrl, false));
+		if (ext)
+			ext->ToolMenu(b);
+		else if (tool)
+			tool->ToolMenu(b);
 	});
 }
 
@@ -69,13 +84,18 @@ void ConsoleCtrl::RemoveMenuBar() {
 }
 
 void ConsoleCtrl::Menu(Bar& bar) {
-	if (ext)
-		ext->ToolMenu(bar);
+	if (ext)  ext->ToolMenu(bar);
+	if (tool) tool->ToolMenu(bar);
 	
 	if (active && active != &cmd) {
 		bar.Separator();
-		bar.Add(Shell::AK_LEAVE_PROGRAM, THISBACK1(RemoveExt, false));
+		bar.Add(Shell::AK_LEAVE_PROGRAM, THISBACK1(RemoveCtrl, false));
 	}
+}
+
+void ConsoleCtrl::RemoveCtrl(bool fast_exit) {
+	if (ext)  RemoveExt(fast_exit);
+	if (tool) RemoveTool(fast_exit);
 }
 
 void ConsoleCtrl::RemoveExt(bool fast_exit) {
@@ -95,10 +115,32 @@ void ConsoleCtrl::RemoveExt(bool fast_exit) {
 	else ext.Clear();
 }
 
+void ConsoleCtrl::RemoveTool(bool fast_exit) {
+	if (!tool) return;
+	
+	if (active == &*tool) {
+		//SaveEditPos();
+		SaveEditPos.Clear();
+		LoadEditPos.Clear();
+		RemoveChild(&*tool);
+		RemoveMenuBar();
+		tool.Clear();
+		active = 0;
+		if (!fast_exit)
+			SetView();
+	}
+	else tool.Clear();
+}
+
 String ConsoleCtrl::GetTitle() {
 	String s;
 	if (ext) {
 		s = ext->GetTitle();
+		if (s.IsEmpty())
+			s = "App";
+	}
+	else if (tool) {
+		s = tool->GetStatusText();
 		if (s.IsEmpty())
 			s = "App";
 	}

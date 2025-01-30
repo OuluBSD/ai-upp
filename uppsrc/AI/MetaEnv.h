@@ -649,6 +649,7 @@ struct MetaNode : Pte<MetaNode> {
 	String GetTreeString(int depth=0) const;
 	int Find(int kind, const String& id) const;
 	int Find(const String& id) const;
+	MetaNode* FindPath(const VfsPath& path);
 	hash_t GetTotalHash() const;
 	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
 	void Visit(NodeVisitor& vis);
@@ -844,9 +845,12 @@ struct MetaEnvironment : VFS {
 	MetaNode root;
 	RWMutex lock;
 	
+	typedef MetaEnvironment CLASSNAME;
 	MetaEnvironment();
 	hash_t NewSerial();
 	hash_t CurrentSerial() const {return serial_counter;}
+	void InitShellHost(IdeShellHost& host);
+	void EcsExt(IdeShell& shell, Value value);
 	int FindPkg(String dir) const;
 	MetaSrcPkg& GetAddPkg(String path);
 	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);

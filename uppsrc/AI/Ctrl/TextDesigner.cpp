@@ -21,7 +21,7 @@ void SolverBaseIndicator::SetProgress(int a, int t) {
 
 ToolAppCtrl::~ToolAppCtrl() {
 	// '!Thread::IsShutdownThreads' prevents crash on ide destruction phase
-	if (!Thread::IsShutdownThreads() && TheIde()->addon_ctrl == this) {
+	if (TheIde() && !Thread::IsShutdownThreads() && TheIde()->addon_ctrl == this) {
 		TheIde()->addon_menu.Clear();
 		PostCallback([]{TheIde()->SetBar();});
 	}

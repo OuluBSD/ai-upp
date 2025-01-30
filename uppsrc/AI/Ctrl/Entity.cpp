@@ -552,13 +552,14 @@ void EntityEditorCtrl::DataEcsTreeVisit(int treeid, MetaNode& n) {
 }
 
 void EntityEditorCtrl::DataEcsTree() {
-	if (!ecs_tree.IsCursor()) {
+	int ecs_i = ecs_tree.GetCursor();
+	
+	if (!ecs_tree.IsCursor() || ecs_i >= ecs_tree_nodes.GetCount()) {
 		content_tree.Clear();
 		ClearExtensionCtrl();
 		return;
 	}
 	
-	int ecs_i = ecs_tree.GetCursor();
 	auto& enode = *ecs_tree_nodes[ecs_i];
 	
 	if (enode.ext.IsEmpty()) {

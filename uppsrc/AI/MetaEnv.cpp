@@ -718,6 +718,64 @@ MetaEnvironment::MetaEnvironment() {
 	mm.Mount(INTERNAL_ROOT_FILE("prj"), this, "MetaEnvironment");
 }
 
+void MetaEnvironment::InitShellHost(IdeShellHost& host) {
+	host.AddProgram("blog", THISBACK(EcsExt));
+}
+
+void ShellReg_MetaEnv(IdeShellHost& host) {
+	MetaEnv().InitShellHost(host);
+}
+
+void MetaEnvironment::EcsExt(IdeShell& shell, Value value) {
+	MountManager& mm = MountManager::System();
+	
+	ConsoleCtrl* con = shell.host.GetConsole();
+	if (!con)
+		return;
+	
+	VfsPath cwd = shell.cwd;
+	
+	// Empty path is not sane... check current project file
+	if (cwd.IsEmpty()) {
+		MountManager::MountPoint* mp = mm.Find(INTERNAL_ROOT_FILE("prj"));
+		if (!mp) return;
+		if (mp->vfs) {
+			Vector<VfsItem> items;
+			mp->vfs->GetFiles(VfsPath(), items);
+			if (items.GetCount() == 1) {
+				cwd.Set(INTERNAL_ROOT_FILE("prj"));
+				cwd.Append(items[0].name);
+			}
+		}
+	}
+	
+	VfsPath rel_path;
+	MountManager::MountPoint* mp = mm.Find(cwd, &rel_path);
+	
+	if (mp && mp->vfs) {
+		MetaEnvironment* env = dynamic_cast<MetaEnvironment*>(&*mp->vfs);
+		if (env) {
+			MetaNode* n = env->root.FindPath(rel_path);
+			if (!n)
+				return;
+			
+			if (n->kind == METAKIND_ECS_SPACE) {
+				String ent_name = "Blog";
+				n = &n->GetAdd(ent_name, "", METAKIND_ECS_ENTITY);
+			}
+			else if (n->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+					 n->kind <= METAKIND_ECS_COMPONENT_END) {
+				n = n->owner;
+			}
+			
+			if (n->kind == METAKIND_ECS_ENTITY) {
+				EntityEditorCtrl& c = con->EcsExt<EntityEditorCtrl>(shell, value);
+				
+			}
+		}
+	}
+}
+
 hash_t MetaEnvironment::NewSerial() {
 	serial_lock.Enter();
 	hash_t new_hash = ++serial_counter;
@@ -1652,6 +1710,17 @@ void MetaNode::Remove(MetaNode* n) {
 void MetaNode::Remove(int i) {
 	if (i >= 0 && i < sub.GetCount())
 		sub.Remove(i);
+}
+
+MetaNode* MetaNode::FindPath(const VfsPath& path) {
+	MetaNode* n = this;
+	for(const String& part : path.Parts()) {
+		int i = n->Find(part);
+		if (i < 0)
+			return 0;
+		n = &n->sub[i];
+	}
+	return n;
 }
 
 void MetaNode::CopyFrom(const MetaNode& n)

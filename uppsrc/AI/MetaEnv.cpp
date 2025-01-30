@@ -1624,6 +1624,22 @@ MetaNode& MetaNode::Add(int kind, String id)
 	return s;
 }
 
+void MetaNode::Remove(MetaNode* n) {
+	int i = 0;
+	for (auto& s : sub) {
+		if (&s == n) {
+			sub.Remove(i);
+			break;
+		}
+		i++;
+	}
+}
+
+void MetaNode::Remove(int i) {
+	if (i >= 0 && i < sub.GetCount())
+		sub.Remove(i);
+}
+
 void MetaNode::CopyFrom(const MetaNode& n)
 {
 	CopySubFrom(n);
@@ -1649,7 +1665,7 @@ String MetaNode::GetKindString(int kind)
 		DATASET_LIST
 		#undef DATASET_ITEM
 	default:
-		return "Unknown kind: " + IntStr(kind);
+		return IntStr(kind);
 	}
 }
 

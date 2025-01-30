@@ -158,6 +158,7 @@ public:
 	void DataExtension();
 	void DataExtCtrl();
 	void Visit(NodeVisitor& vis) override;
+	void MoveNode(MetaNode* n);
 	void RemoveNode(MetaNode* n);
 	void AddNode(MetaNode* n, int kind, String id);
 	void AddEntity();
@@ -169,6 +170,7 @@ public:
 	MetaNodeExt* GetSelected();
 	void EditPos(JsonIO& jio) override;
 	void SelectEcsTree(MetaNode* n);
+	MetaNode* SelectTreeNode(String title);
 	
 	static bool AcceptsExt(String e) { return e == ".ecs"; }
 	static String GetID() { return "Entity Editor"; }

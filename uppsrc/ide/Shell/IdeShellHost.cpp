@@ -13,6 +13,8 @@ IdeShellHostBase::~IdeShellHostBase() {
 
 
 
+void ShellReg_MetaEnv(IdeShellHost& host);
+
 IdeShellHost::IdeShellHost() {
 	AddProgram("cwd",	THISBACK(CurrentWorkingDirectory));
 	AddProgram("ls",	THISBACK(ListFiles));
@@ -21,6 +23,8 @@ IdeShellHost::IdeShellHost() {
 	#ifdef flagHAVE_INTRANET
 	AddProgram("intra",	THISBACK(StartIntranet));
 	#endif
+	
+	ShellReg_MetaEnv(*this);
 }
 
 const String& IdeShellHost::GetOutput() const {

@@ -4,12 +4,14 @@
 NAMESPACE_UPP
 
 class DropTerm;
+class ToolAppCtrl;
 
 class ConsoleCtrl : public ParentCtrl, IdeShellHost {
 	
 protected:
 	IdeShell cmd;
 	One<WidgetCtrl> ext;
+	One<ToolAppCtrl> tool;
 	Ctrl* active = 0;
 	MenuBar menu;
 	DropTerm* bridge = NULL;
@@ -24,6 +26,7 @@ protected:
 	void SetTitle(String s);
 	void AddMenuBar();
 	void RemoveMenuBar();
+	void ClearActive();
 public:
 	typedef ConsoleCtrl CLASSNAME;
 	ConsoleCtrl();
@@ -33,13 +36,15 @@ public:
 	bool IsMenuBarVisible() const {return ext;}
 	IdeShell& Shell() {return cmd;}
 	bool RealizeFocus();
+	void RemoveCtrl(bool fast_exit=false);
 	void RemoveExt(bool fast_exit=false);
+	void RemoveTool(bool fast_exit=false);
 	void DraftFile(IdeShell& shell, Value value);
 	
 	void Menu(Bar& bar);
 	String GetTitle();
-	
 	void SetBridge(DropTerm* bridge, int id) {this->bridge = bridge; this->id = id;}
+	ConsoleCtrl* GetConsole() override;
 	
 	Callback WhenTitle;
 	Callback WhenViewChange;
@@ -48,7 +53,13 @@ public:
 		this->CreateExt<T>();
 		SetView();
 	}
-
+	
+	template <class T> T& EcsExt(IdeShell& shell, Value value) {
+		T& o = this->CreateToolApp<T>();
+		SetView();
+		return o;
+	}
+	
 	template <class T> void SaveExtPos() {
 		if (!ext) return;
 		auto& cache = EditPosCached<T>::EditPosCache();
@@ -73,15 +84,34 @@ public:
 		o->EditPos(jio);
 	}
 	
-	template <class T> bool CreateExt() {
+	void ClearCtrl() {
+		ClearActive();
 		if (ext) RemoveExt();
+		if (tool) RemoveTool();
+	}
+	
+	template <class T> T& CreateExt() {
+		ClearCtrl();
 		T* o = new T;
 		ext = o;
 		o->WhenTitle << Proxy(WhenTitle);
 		SaveEditPos = THISBACK(SaveExtPos<T>);
 		LoadEditPos = THISBACK(LoadExtPos<T>);
 		LoadExtPos<T>();
-		return true;
+		return *o;
+	}
+	
+	template <class T> T& CreateToolApp() {
+		ClearCtrl();
+		T* o = new T;
+		tool = o;
+		o->WhenTitle << Proxy(WhenTitle);
+		SaveEditPos.Clear();
+		LoadEditPos.Clear();
+		//SaveEditPos = THISBACK(SaveExtPos<T>);
+		//LoadEditPos = THISBACK(LoadExtPos<T>);
+		//LoadExtPos<T>();
+		return *o;
 	}
 	
 };

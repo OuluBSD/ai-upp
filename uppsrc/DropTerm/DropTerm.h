@@ -35,7 +35,12 @@ using namespace Dropdown;
 
 NAMESPACE_UPP
 
-class TrayApp : public TrayIcon {
+#ifdef flagOSX
+class TrayApp : public TopWindow
+#else
+class TrayApp : public TrayIcon
+#endif
+{
 	bool is_exit;
 	
 public:

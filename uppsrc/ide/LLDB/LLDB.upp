@@ -1,0 +1,26 @@
+uses
+	Core;
+
+library
+	"lldb glfw imgui GL GLEW";
+
+file
+	Copying,
+	LLDB.h,
+	main.cpp,
+	Application.h,
+	Application.cpp,
+	Defer.h,
+	FileSystem.h,
+	FileSystem.cpp,
+	FileViewer.h,
+	FileViewer.cpp,
+	FPSTimer.h,
+	LLDBCommandLine.h,
+	LLDBCommandLine.cpp,
+	Log.h,
+	Log.cpp,
+	StreamBuffer.h,
+	StreamBuffer.cpp,
+	Timer.h;
+

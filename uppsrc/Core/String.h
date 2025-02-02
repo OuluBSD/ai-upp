@@ -41,6 +41,7 @@ public:
 	void Clear()                                              { B::Free(); B::Zero(); }
 	int  GetLength() const                                    { return B::GetCount(); }
 	bool IsEmpty() const                                      { return B::GetCount() == 0; }
+	bool Is() const                                           { return B::GetCount() != 0; }
 
 	const tchar *End() const                                  { return B::Begin() + GetLength(); }
 	const tchar *end() const                                  { return End(); }

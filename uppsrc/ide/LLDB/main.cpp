@@ -93,7 +93,7 @@ CONSOLE_APP_MAIN
     }
 
     std::optional<fs::path> workdir = {};
-    if (!param_workdir.IsEmpty()) {
+    if (param_workdir.Is()) {
         fs::path workdir_request = fs::path(~param_workdir);
         if (fs::exists(workdir_request) && fs::is_directory(workdir_request)) {
             workdir = workdir_request;
@@ -102,7 +102,7 @@ CONSOLE_APP_MAIN
 
     Application app(*ui, workdir);
 
-    if (~source_path) {
+    if (source_path.Is()) {
         auto handle = FileHandle::create(~source_path);
         if (handle.has_value()) {
             for (const std::string& line : handle->contents()) {
@@ -115,7 +115,7 @@ CONSOLE_APP_MAIN
         }
     }
 
-    if (~file) {
+    if (file.Is()) {
         // TODO: detect and open main file of specified executable
         String target_set_cmd = Format("file %s", file);
         run_lldb_command(app, ~target_set_cmd);
@@ -130,7 +130,7 @@ CONSOLE_APP_MAIN
         }
     }
 
-    if (~source_file) {
+    if (source_file.Is()) {
         auto handle = FileHandle::create(~source_file);
         if (handle.has_value()) {
             for (const std::string& line : handle->contents()) {

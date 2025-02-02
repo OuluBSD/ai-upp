@@ -826,7 +826,7 @@ static void draw_local_recursive(lldb::SBValue local)
         ImGui::NextColumn();
         ImGui::TextUnformatted(local_type);
         ImGui::NextColumn();
-        if (~local_value) {
+        if (local_value.Is()) {
             ImGui::TextUnformatted(local_value);
         }
         else {
@@ -1294,8 +1294,13 @@ std::optional<UserInterface> UserInterface::init(void)
 
     io.Fonts->AddFontDefault();
     static const String font_path = ConfigFile("ttf" DIR_SEPS "Hack-Regular.ttf");
-    ui.font = io.Fonts->AddFontFromFileTTF(~font_path, 15.0f);
-
+    if (FileExists(font_path)) {
+        LOG("Trying to load font from path: " + font_path);
+        ui.font = io.Fonts->AddFontFromFileTTF(~font_path, 15.0f);
+    }
+    else
+        LOG("Font doesn't exist: " + font_path);
+    
     ImGui::StyleColorsDark();
     // ImGui::StyleColorsClassic();
 

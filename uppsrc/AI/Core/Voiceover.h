@@ -1,7 +1,6 @@
 #ifndef _AI_Core_Voiceover_h_
 #define _AI_Core_Voiceover_h_
 
-
 NAMESPACE_UPP
 
 class VoiceoverProcess : public SolverBase {

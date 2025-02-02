@@ -78,7 +78,7 @@ String GetCategoryString(int i) {
 		case CATEGORY_MARKETER:			return "Marketer";
 		case CATEGORY_CONSUMER:			return "Consumer";
 		
-		case CATEGORY_MUSIC:			return "Music";
+		case CATEGORY_SOUND:			return "Sound";
 		case CATEGORY_TEXT:				return "Text";
 		
 		case CATEGORY_PHOTO:			return "Photo";

@@ -67,7 +67,8 @@
 #include "LeadData.h"
 #include "LeadDataTemplate.h"
 
-// Music
+// Sound
+#include "AudioTranscript.h"
 #include "Composition.h"
 
 // Text
@@ -76,6 +77,7 @@
 #include "LyricStructSolver.h"
 #include "Song.h"
 #include "Reasoning.h"
+#include "Transcript.h"
 #include "Voiceover.h"
 
 // Photo
@@ -83,6 +85,7 @@
 #include "AspectFixer.h"
 
 // Video
+#include "VideoSourceFile.h"
 #include "VideoPrompt.h"
 #include "VideoStoryboard.h"
 

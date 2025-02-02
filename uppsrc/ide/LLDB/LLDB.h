@@ -30,10 +30,17 @@
 #include "lldb/API/LLDB.h"
 
 // clang-format off
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl2.h"
+#ifdef flagLINUX
+	#include <imgui/imgui.h>
+	#include <imgui/imgui_internal.h>
+	#include <imgui/imgui_impl_glfw.h>
+	#include <imgui/imgui_impl_opengl2.h>
+#else
+	#include "imgui.h"
+	#include "imgui_internal.h"
+	#include "imgui_impl_glfw.h"
+	#include "imgui_impl_opengl2.h"
+#endif
 // clang-format on
 
 using namespace Upp;

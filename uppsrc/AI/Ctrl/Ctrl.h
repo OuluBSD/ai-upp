@@ -44,6 +44,7 @@
 #include "LeadTemplateCtrl.h"
 #include "LeadPublisherCtrl.h"
 
+#include "AudioTranscript.h"
 #include "Composition.h"
 
 #include "LyricContent.h"
@@ -51,8 +52,10 @@
 #include "LyricsEditor.h"
 #include "Song.h"
 #include "Reasoning.h"
+#include "Transcript.h"
 #include "Voiceover.h"
 
+#include "VideoSourceFile.h"
 #include "VideoPrompt.h"
 #include "VideoStoryboard.h"
 

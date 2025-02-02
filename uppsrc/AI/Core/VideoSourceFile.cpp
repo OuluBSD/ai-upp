@@ -1,0 +1,11 @@
+#include "Core.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(VideoSourceFile)
+INITIALIZER_COMPONENT(VideoSourceFileRange)
+INITIALIZER_COMPONENT(VideoSourceFileAudio)
+
+END_UPP_NAMESPACE

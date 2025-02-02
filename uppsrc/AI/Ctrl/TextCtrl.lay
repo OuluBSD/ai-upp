@@ -409,3 +409,54 @@ LAYOUT(TreeDialog, 300, 300)
 	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(4, 88).BottomPosZ(4, 20))
 END_LAYOUT
 
+LAYOUT(VideoSourceFile, 460, 324)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Video source file")).HSizePosZ(4, 8).TopPosZ(4, 52))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("File path:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(24, 19))
+	ITEM(Upp::EditString, path, HSizePosZ(112, 88).TopPosZ(24, 19))
+	ITEM(Upp::Button, browse, SetLabel(t_("Browse")).RightPosZ(20, 64).TopPosZ(24, 20))
+	ITEM(Upp::LabelBox, dv___4, SetLabel(t_("File information")).HSizePosZ(4, 8).TopPosZ(60, 104))
+	ITEM(Upp::LabelBox, dv___5, SetLabel(t_("Video information")).HSizePosZ(4, 8).TopPosZ(168, 72))
+	ITEM(Upp::LabelBox, dv___6, SetLabel(t_("Audio information")).HSizePosZ(4, 8).TopPosZ(244, 72))
+	ITEM(Upp::Label, dv___7, SetLabel(t_("Length:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(80, 19))
+	ITEM(Upp::EditString, length, SetEditable(false).HSizePosZ(112, 88).TopPosZ(80, 19))
+	ITEM(Upp::Label, dv___9, SetLabel(t_("Size:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(104, 19))
+	ITEM(Upp::EditString, size, SetEditable(false).HSizePosZ(112, 88).TopPosZ(104, 19))
+	ITEM(Upp::Label, dv___11, SetLabel(t_("Container:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(128, 19))
+	ITEM(Upp::EditString, container, SetEditable(false).HSizePosZ(112, 88).TopPosZ(128, 19))
+	ITEM(Upp::Label, dv___13, SetLabel(t_("Video sample:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(188, 19))
+	ITEM(Upp::EditString, video_sample, SetEditable(false).HSizePosZ(112, 88).TopPosZ(188, 19))
+	ITEM(Upp::Label, dv___15, SetLabel(t_("Video codec:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 96).TopPosZ(212, 19))
+	ITEM(Upp::EditString, video_codec, SetEditable(false).HSizePosZ(112, 88).TopPosZ(212, 19))
+	ITEM(Upp::Label, dv___17, SetLabel(t_("Audio sample:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 96).TopPosZ(264, 19))
+	ITEM(Upp::EditString, audio_sample, SetEditable(false).HSizePosZ(108, 92).TopPosZ(264, 19))
+	ITEM(Upp::Label, dv___19, SetLabel(t_("Audio codec:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 96).TopPosZ(288, 19))
+	ITEM(Upp::EditString, audio_codec, SetEditable(false).HSizePosZ(108, 92).TopPosZ(288, 19))
+END_LAYOUT
+
+LAYOUT(VideoSourceFileRange, 400, 200)
+END_LAYOUT
+
+LAYOUT(VideoSourceFileAudio, 400, 200)
+END_LAYOUT
+
+LAYOUT(AudioTranscript, 400, 200)
+END_LAYOUT
+
+LAYOUT(TranscriptProofread, 400, 200)
+END_LAYOUT
+
+LAYOUT(ProofreadStoryline, 400, 200)
+END_LAYOUT
+
+LAYOUT(StorylineConversion, 400, 200)
+END_LAYOUT
+
+LAYOUT(StorylineScript, 400, 200)
+END_LAYOUT
+
+LAYOUT(ScriptConversion, 400, 200)
+END_LAYOUT
+
+LAYOUT(ScriptSpeech, 400, 200)
+END_LAYOUT
+

@@ -12,7 +12,8 @@ struct VideoPromptMaker : Component
 	
 	void Visit(NodeVisitor& v) override {
 		v.Ver(1)
-		(1);	TODO}
+		(1);
+	}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER;}
 	
 };

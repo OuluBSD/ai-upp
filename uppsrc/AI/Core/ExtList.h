@@ -58,19 +58,29 @@
 	DATASET_ITEM(LeadDataTemplate,	lead_tmpl,		METAKIND_ECS_COMPONENT_LEAD_TEMPLATE,		CATEGORY_MARKETER, "Lead Template") \
 	DATASET_ITEM(LeadDataPublisher,	ld_pub,			METAKIND_ECS_COMPONENT_LEAD_PUBLISHER,		CATEGORY_MARKETER, "Lead Publisher") \
 	\
-	DATASET_ITEM(CompositionComponent,	composition,	METAKIND_ECS_COMPONENT_COMPOSITION,			CATEGORY_MUSIC, "Composition") \
-	DATASET_ITEM(LyricalStructure,		lyric_struct,	METAKIND_ECS_COMPONENT_SONG_IDEA,			CATEGORY_MUSIC, "Song Idea") \
+	DATASET_ITEM(CompositionComponent,	composition,	METAKIND_ECS_COMPONENT_COMPOSITION,			CATEGORY_SOUND, "Composition") \
+	DATASET_ITEM(LyricalStructure,		lyric_struct,	METAKIND_ECS_COMPONENT_SONG_IDEA,			CATEGORY_SOUND, "Song Idea") \
+	DATASET_ITEM(AudioTranscript,		audio_trans,	METAKIND_ECS_COMPONENT_AUDIO_TRANSCRIPT,	CATEGORY_SOUND, "Audio -> Transcript") \
 	DATASET_ITEM(Script,				script,			METAKIND_ECS_COMPONENT_SCRIPT,				CATEGORY_TEXT, "Lyrics Draft") /* TODO rename to lyrics_draft */ \
 	DATASET_ITEM(Lyrics,				lyrics,			METAKIND_ECS_COMPONENT_LYRICS,				CATEGORY_TEXT, "Lyrics") \
 	DATASET_ITEM(Song,					song,			METAKIND_ECS_COMPONENT_SONG,				CATEGORY_TEXT, "Song") \
 	DATASET_ITEM(ScriptReasoning,		script_reason,	METAKIND_ECS_COMPONENT_SCRIPT_REASONING,	CATEGORY_TEXT, "Script Reasoning") \
 	DATASET_ITEM(VoiceoverText,			voiceover,		METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER,	CATEGORY_TEXT, "Voiceover") \
+	DATASET_ITEM(TranscriptProofread,	trans_proof,	METAKIND_ECS_COMPONENT_TRANSCRIPT_PROOFREAD,CATEGORY_TEXT, "Transcript -> Proofread") \
+	DATASET_ITEM(ProofreadStoryline,	proof_story,	METAKIND_ECS_COMPONENT_PROOFREAD_STORYLINE,	CATEGORY_TEXT, "Proofread -> Storyline") \
+	DATASET_ITEM(StorylineConversion,	storyconv,		METAKIND_ECS_COMPONENT_STORYLINE_CONVERSION,CATEGORY_TEXT, "Storyline -> Storyline") \
+	DATASET_ITEM(StorylineScript,		storyscript,	METAKIND_ECS_COMPONENT_STORYLINE_SCRIPT,	CATEGORY_TEXT, "Storyline -> Script") \
+	DATASET_ITEM(ScriptConversion,		scriptconv,		METAKIND_ECS_COMPONENT_SCRIPT_CONVERSION,	CATEGORY_TEXT, "Script -> Script") \
+	DATASET_ITEM(ScriptSpeech,		scriptspeech,		METAKIND_ECS_COMPONENT_SCRIPT_SPEECH,		CATEGORY_TEXT, "Script -> Speech") \
 	\
-	DATASET_ITEM(ImageLayer,		img_layer,				METAKIND_ECS_COMPONENT_IMG_LAYER,				CATEGORY_PHOTO, "Image layer") \
-	DATASET_ITEM(ImageGenLayer,		img_gen_layer,			METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,			CATEGORY_PHOTO, "Generate Image Layer") \
-	DATASET_ITEM(AspectFixerLayer,	aspect_fixer,			METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER,	CATEGORY_PHOTO, "Aspect Fix Image Layer") \
-	DATASET_ITEM(VideoPromptMaker,	video_prompt_header,	METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER,		CATEGORY_VIDEO, "Video Prompt Maker") \
-	DATASET_ITEM(VideoStoryboard,	vid_storyboard,			METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD,		CATEGORY_VIDEO, "Video Storyboard") \
+	DATASET_ITEM(ImageLayer,			img_layer,				METAKIND_ECS_COMPONENT_IMG_LAYER,				CATEGORY_PHOTO, "Image layer") \
+	DATASET_ITEM(ImageGenLayer,			img_gen_layer,			METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,			CATEGORY_PHOTO, "Generate Image Layer") \
+	DATASET_ITEM(AspectFixerLayer,		aspect_fixer,			METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER,	CATEGORY_PHOTO, "Aspect Fix Image Layer") \
+	DATASET_ITEM(VideoPromptMaker,		video_prompt_header,	METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER,		CATEGORY_VIDEO, "Video Prompt Maker") \
+	DATASET_ITEM(VideoStoryboard,		vid_storyboard,			METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD,		CATEGORY_VIDEO, "Video Storyboard") \
+	DATASET_ITEM(VideoSourceFile,		vid_src_file,			METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE,		CATEGORY_VIDEO, "Video Source File") \
+	DATASET_ITEM(VideoSourceFileRange,	vid_src_file_range,		METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_RANGE,	CATEGORY_VIDEO, "Video Source File Range") \
+	DATASET_ITEM(VideoSourceFileAudio,	vid_src_file_audio,		METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_AUDIO,	CATEGORY_SOUND, "Video Source File Audio") \
 
 #define DATASET_LIST \
 	NODE_LIST \

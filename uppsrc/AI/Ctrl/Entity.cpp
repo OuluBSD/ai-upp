@@ -440,7 +440,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << lsplit << ext_place;
-	hsplit.SetPos(1000);
+	hsplit.SetPos(2000);
 	lsplit.Vert() << ecs_tree << content_tree;
 	lsplit.SetPos(10000*2/3);
 	
@@ -451,23 +451,23 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			int cur = ecs_tree.GetCursor();
 			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
 			MetaNode& n = *ecs_tree_nodes[cur];
-			b.Add("Move", THISBACK1(MoveNode, &n));
 			if (n.kind == METAKIND_ECS_SPACE) {
+				b.Add("Add entity", THISBACK3(AddNode, &n, METAKIND_ECS_ENTITY, ""));
+				b.Add("Add space", THISBACK3(AddNode, &n, METAKIND_ECS_SPACE, ""));
+				b.Separator();
 				if (cur != 0)
 					b.Add("Remove space", THISBACK1(RemoveNode, &n));
-				b.Separator();
-				b.Add("Add space", THISBACK3(AddNode, &n, METAKIND_ECS_SPACE, ""));
-				b.Add("Add entity", THISBACK3(AddNode, &n, METAKIND_ECS_ENTITY, ""));
 			}
 			else if (n.kind == METAKIND_ECS_ENTITY) {
-				b.Add("Remove entity", THISBACK1(RemoveNode, &n));
-				b.Separator();
 				b.Add("Add Component", THISBACK(AddComponent));
+				b.Separator();
+				b.Add("Remove entity", THISBACK1(RemoveNode, &n));
 			}
 			else if (n.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
 					 n.kind < METAKIND_ECS_COMPONENT_END) {
 				b.Add("Remove Component", THISBACK1(RemoveNode, &n));
 			}
+			b.Add("Move", THISBACK1(MoveNode, &n));
 		}
 	};
 	

@@ -94,6 +94,11 @@ hash_t ClangCursorInfo::TypeHash()
 			CXCursor ref = clang_getCursorReferenced(cursor);
 			if (IsTypeDecl(ref.kind) || ref.kind == CXCursor_MacroDefinition)
 				typehash = clang_hashCursor(ref);
+			else if (IsVariable(ref.kind)) {
+				CXType type = clang_getCursorType(cursor);
+				CXCursor type_decl = clang_getTypeDeclaration(type);
+				typehash = clang_hashCursor(type_decl);
+			}
 			else {
 				Panic("TODO");
 			}

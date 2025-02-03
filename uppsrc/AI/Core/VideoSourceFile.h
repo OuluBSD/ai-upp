@@ -1,62 +1,12 @@
 #ifndef _AI_Core_VideoSourceFile_h_
 #define _AI_Core_VideoSourceFile_h_
 
-
 NAMESPACE_UPP
 
-
-struct VideoSourceFile : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(VideoSourceFile)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);
-	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE;}
-	
-};
-
-INITIALIZE(VideoSourceFile)
-
-
-
-struct VideoSourceFileRange : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(VideoSourceFileRange)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);
-	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_RANGE;}
-	
-};
-
-INITIALIZE(VideoSourceFileRange)
-
-
-
-
-struct VideoSourceFileAudio : Component
-{
-	
-	COMPONENT_CONSTRUCTOR(VideoSourceFileAudio)
-	
-	void Visit(NodeVisitor& v) override {
-		v.Ver(1)
-		(1);
-	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_AUDIO;}
-	
-};
-
-INITIALIZE(VideoSourceFileAudio)
-
+INITIALIZE_VALUECOMPONENT(VideoSourceFile, METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE)
+INITIALIZE_VALUECOMPONENT(VideoSourceFileRange, METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_RANGE)
+INITIALIZE_VALUECOMPONENT(VideoSourceFileAudio, METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_AUDIO)
 
 END_UPP_NAMESPACE
-
 
 #endif

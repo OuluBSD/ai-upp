@@ -6,7 +6,11 @@ inline int tmGetTime() {
 }
 #else
 inline int tmGetTime() {
+	#if defined flagCLANG || defined flagGCC
+	return tmGetTime();
+	#else
 	return timeGetTime();
+	#endif
 }
 #endif
 

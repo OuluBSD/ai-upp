@@ -274,6 +274,9 @@ public:
 	operator double() const             { return DOUBLE_NULL; }
 	operator float() const              { return FLOAT_NULL; }
 	operator bool() const               { return false; }
+	
+	template <class T>
+	operator T*() const                 { return 0; }
 
 	Nuller() {}
 };

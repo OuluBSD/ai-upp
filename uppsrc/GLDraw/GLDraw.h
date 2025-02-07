@@ -4,14 +4,21 @@
 #include <Draw/Draw.h>
 #include <Painter/Painter.h>
 
-#define GLEW_STATIC
-
-#include <plugin/glew/glew.h>
+#ifdef flagBUILTIN_GLEW
+	#define GLEW_STATIC
+	#include <plugin/glew/glew.h>
+#else
+	#include <GL/glew.h> // use vcpkg, msys2, etc. in win
+#endif
 
 #include <plugin/tess2/tess2.h>
 
 #ifdef PLATFORM_WIN32
-#include <plugin/glew/wglew.h>
+	#ifdef flagBUILTIN_GLEW
+		#include <plugin/glew/wglew.h>
+	#else
+		#include <GL/wglew.h>
+	#endif
 #endif
 
 #define GL_USE_SHADERS

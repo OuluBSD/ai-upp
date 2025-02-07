@@ -374,6 +374,7 @@ public:
 	const String& operator+=(const String& s)              { Cat(s); return *this; }
 
 	String& operator=(const char *s);
+	String& operator=(const Nuller&)                       { Clear(); return *this; }
 	String& operator=(const String& s)                     { String0::Assign(s); return *this; }
 	String& operator=(String&& s)                          { if(this != &s) { Free(); Pick0(pick(s)); } return *this; }
 	String& operator=(StringBuffer& b)                     { *this = String(b); return *this; }
@@ -823,6 +824,7 @@ public:
 
 	WString& operator=(const wchar *s);
 	WString& operator=(const WString& s)                    { if(this != &s) { WString0::FFree(); WString0::Set0(s); } return *this; }
+	WString& operator=(const Nuller& n)                     { Clear(); return *this; }
 	WString& operator=(WString&& s)                         { if(this != &s) { WString0::FFree(); WString0::Pick0(pick(s)); } return *this; }
 	WString& operator=(WStringBuffer& b)                    { *this = WString(b); return *this; }
 //	WString& operator<<=(const WString& s)                  { if(this != &s) { WString0::Free(); WString0::Set0(s, s.GetCount()); } return *this; }

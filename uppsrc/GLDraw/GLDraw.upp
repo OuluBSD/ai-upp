@@ -3,8 +3,9 @@ description "OpenGL Draw implementation\377";
 uses
 	Draw,
 	Painter,
-	plugin/glew,
 	plugin/tess2;
+
+uses(NEVER) plugin/glew;
 
 file
 	GLDraw.h,

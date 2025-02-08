@@ -69,6 +69,7 @@ file
 	Print.cpp,
 	InsertImage.cpp,
 	Insert.cpp,
+	Sequence.cpp,
 	idetool.cpp,
 	Install.cpp,
 	Android.cpp,
@@ -139,6 +140,8 @@ mainconfig
 	"" = "GUI DEBUGCODE",
 	"" = "GUI AI HAVE_INTRANET",
 	"" = "GUI AI LCLANG HAVE_INTRANET";
+	"" = "GUI GTK WAYLAND",
+	"" = "GUI DEBUGCODE";
 
 custom() "",
 	"ASDFASDFASDF",

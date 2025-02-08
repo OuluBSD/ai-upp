@@ -42,8 +42,16 @@ class Color : public ValueType<Color, COLOR_V, Moveable<Color> > {
 protected:
 	dword    color;
 
-	dword Get() const;
+	enum {
+		SPECIAL = 0x80000000, // special "non-colors"
+		SCOLOR =  0x40000000, // SColor - colors defined by function
+	    ACOLOR =  0x20000000, // light colors that get automatically converted in dark mode
+	    VBITS =   0xffffff,
+	};
 
+	dword    Get() const;
+	void     SetSpecial(int n)         { color = SPECIAL | n; }
+	
 public:
 	dword    GetRaw() const            { return color; }
 
@@ -75,10 +83,12 @@ public:
 
 	Color(Color (*fn)())               { color = (*fn)().color; }
 
+	String ToString() const;
+
 	static Color FromRaw(dword co)     { Color c; c.color = co; return c; }
-	static Color Special(int n)        { Color c; c.color = 0x80000000 | n; return c; }
+	static Color Special(int n)        { Color c; c.SetSpecial(n); return c; }
 	
-	int  GetSpecial() const            { return color & 0x80000000 ? color & 0x7fffffff : -1; }
+	int  GetSpecial() const            { return color & SPECIAL ? color & 0x7fffffff : -1; }
 
 #ifdef PLATFORM_WIN32
 	operator COLORREF() const          { return (COLORREF) Get(); }
@@ -86,6 +96,8 @@ public:
 #else
 	operator dword() const             { return Get(); }
 #endif
+
+	Color Resolved()                   { return FromRaw(Get()); }
 
 private:
 	Color(int);
@@ -98,6 +110,23 @@ inline Stream& operator/(Stream& s, Color& c)
 	return s;
 }
 
+struct SColor : Color { // this is supposed to be static / global
+	static void Refresh();
+	static void Write(Color c, Color val);
+
+	SColor(Color (*fn)() = NULL);
+	explicit SColor(Color c) : SColor() { Write(*this, c); }
+	void operator=(Color c)             { Write(*this, c); }
+#ifdef _DEBUG
+	~SColor();
+#endif
+};
+
+struct AColor : Color {
+	AColor(Color c) { color = c.Resolved().GetRaw() | ACOLOR; } // works for Null as well...
+	AColor(int r, int g, int b) : AColor(Color(r, g, b)) {}
+};
+
 RGBA operator*(int alpha, Color c);
 
 inline Color StraightColor(RGBA rgba)  { return Color(rgba.r, rgba.g, rgba.b); }
@@ -106,10 +135,6 @@ typedef Color (*ColorF)();
 
 inline hash_t   GetHashValue(Color c)  { return c.GetHashValue(); }
 inline Color    Nvl(Color a, Color b)  { return IsNull(a) ? b : a; }
-
-template<>
-String AsString(const Color& c);
-
 
 inline Color GrayColor(int a = 128)    { return Color(a, a, a); }
 
@@ -147,6 +172,10 @@ double RelativeLuminance(Color color);
 double ContrastRatio(Color c1, Color c2);
 
 Color  Blend(Color c1, Color c2, int alpha = 128);
+
+double Difference(Color c1, Color c2);
+
+Color Lerp(Color a, Color b, double t);
 
 String ColorToHtml(Color color);
 Color  ColorFromText(const char *s);

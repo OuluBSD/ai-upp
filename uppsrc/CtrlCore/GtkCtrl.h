@@ -204,6 +204,7 @@ public:
 	
 	static Point     CurrentMousePos;
 	static guint     CurrentState;
+	#undef CurrentTime
 	static guint32   CurrentTime;
 	static GEvent    CurrentEvent;
 

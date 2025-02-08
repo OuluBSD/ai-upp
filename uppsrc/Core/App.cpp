@@ -144,7 +144,7 @@ String GetExeFilePath()
 				strcpy(exepath, x);
 			else {
 				strcpy(exepath, GetHomeDirFile("upp"));
-				Vector<String> p = Split(FromSystemCharset(Environment().Get("PATH")), ':');
+				Vector<String> p = Split(FromSystemCharset(Environment().Get("PATH", "")), ':');
 				if(x.Find('/') >= 0)
 					p.Add(GetCurrentDirectory());
 				for(int i = 0; i < p.GetCount(); i++) {

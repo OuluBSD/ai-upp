@@ -1,5 +1,6 @@
 const dword COMPLEX_V   = 20;
 
+#undef Complex
 struct Complex : std::complex<double>
 {
 	typedef std::complex<double> C;

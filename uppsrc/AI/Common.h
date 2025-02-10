@@ -544,6 +544,10 @@ ValueMap& ValueToMap(Value& val);
 ValueArray& ValueToArray(Value& val);
 void RemoveColonTrail(String& s);
 void RemoveCommentTrail(String& s);
+double FractionDbl(const String& s);
+String GetDurationString(double seconds, bool skip_milliseconds=true);
+String GetSizeString(uint64 bytes, bool skip_bytes=true);
+Size GetAspectRatio(Size sz);
 
 END_UPP_NAMESPACE
 

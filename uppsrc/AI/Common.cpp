@@ -108,4 +108,82 @@ void RemoveCommentTrail(String& s) {
 		s = TrimRight(s.Left(a));
 }
 
+double FractionDbl(const String& s) {
+	int i = s.Find("/");
+	if (i >= 0) {
+		int num = i > 0 ? ScanInt(TrimLeft(s.Left(i))) : 1;
+		int denom = ScanInt(TrimLeft(s.Mid(i+1)));
+		double fract = (double)num / (double)denom;
+		return fract;
+	}
+	else {
+		int num = ScanInt(TrimLeft(s));
+		return num;
+	}
+}
+
+String GetDurationString(double p_seconds, bool skip_milliseconds) {
+	if (!p_seconds)
+		return "0 seconds";
+	int64 milliseconds = p_seconds * 1000LL;
+	int64 seconds = milliseconds / 1000LL;
+	milliseconds = milliseconds % 1000LL;
+	int64 minutes = seconds / 60LL;
+	seconds = seconds % 60LL;
+	int64 hours = minutes / 60LL;
+	minutes = minutes % 60LL;
+	int64 days = hours / 24LL;
+	hours = hours % 24LL;
+	int64 weeks = days / 7LL;
+	days = days % 7LL;
+	
+	#define ITEM(x) \
+	{if (x) { \
+		if (!s.IsEmpty()) s << ", "; \
+		s << x << " " #x; \
+	}}
+	String s;
+	ITEM(weeks);
+	ITEM(hours);
+	ITEM(minutes);
+	ITEM(seconds);
+	if (s.IsEmpty() || !skip_milliseconds)
+		ITEM(milliseconds);
+	return s;
+}
+
+String GetSizeString(uint64 bytes, bool skip_bytes) {
+	if (!bytes)
+		return "0 bytes";
+	#define PART(from, to) \
+		uint64 to = from / 1024ULL; \
+		from = from % 1024ULL;
+	PART(bytes, Kb);
+	PART(Kb, Mb);
+	PART(Mb, Gb);
+	PART(Gb, Tb);
+	#define ITEM(x) \
+	{if (x) { \
+		if (!s.IsEmpty()) s << ", "; \
+		s << x << " " #x; \
+	}}
+	String s;
+	ITEM(Tb);
+	ITEM(Gb);
+	ITEM(Mb);
+	ITEM(Kb);
+	if (s.IsEmpty() || !skip_bytes)
+		ITEM(bytes);
+	return s;
+}
+
+Size GetAspectRatio(Size sz) {
+	for(int i = sz.cx; i > 0; i--) {
+		if ((sz.cx % i) == 0 && (sz.cy % i) == 0) {
+			return Size(sz.cx / i, sz.cy / i);
+		}
+	}
+	return sz;
+}
+
 END_UPP_NAMESPACE

@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 
 AudioTranscriptCtrl::AudioTranscriptCtrl() {
+	CtrlLayout(*this);
 	
 }
 

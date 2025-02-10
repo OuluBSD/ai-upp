@@ -80,8 +80,7 @@
 	DATASET_ITEM(VideoStoryboard,		vid_storyboard,			METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD,		CATEGORY_VIDEO, "Video Storyboard") \
 	DATASET_ITEM(VideoSourceFile,		vid_src_file,			METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE,		CATEGORY_VIDEO, "Video Source File") \
 	DATASET_ITEM(VideoSourceFileRange,	vid_src_file_range,		METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_RANGE,	CATEGORY_VIDEO, "Video Source File Range") \
-	DATASET_ITEM(VideoSourceFileAudio,	vid_src_file_audio,		METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_AUDIO,	CATEGORY_SOUND, "Video Source File Audio") \
-
+	
 #define DATASET_LIST \
 	NODE_LIST \
 	EXT_LIST \

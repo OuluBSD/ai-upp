@@ -53,12 +53,10 @@ class VideoSourceFileRangeCtrl : public ComponentCtrl {
 	RangeCtrl range;
 	Vector<Ptr<VideoSourceFile>> files;
 	Vector<String> file_paths;
-	String active_file;
 	double duration = 0;
 	double frame_rate = 1;
 	void GetImage(double time, Event<Image> cb);
 	void SetViewer(Image img);
-	void ChangeFile();
 public:
 	typedef VideoSourceFileRangeCtrl CLASSNAME;
 	VideoSourceFileRangeCtrl();
@@ -74,20 +72,6 @@ public:
 };
 
 INITIALIZE(VideoSourceFileRangeCtrl)
-
-class VideoSourceFileAudioCtrl : public WithVideoSourceFileAudio<ComponentCtrl> {
-	
-public:
-	typedef VideoSourceFileAudioCtrl CLASSNAME;
-	VideoSourceFileAudioCtrl();
-	
-	void Data() override;
-	void ToolMenu(Bar& bar) override;
-	
-	
-};
-
-INITIALIZE(VideoSourceFileAudioCtrl)
 
 END_UPP_NAMESPACE
 

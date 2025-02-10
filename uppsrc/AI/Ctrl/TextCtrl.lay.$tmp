@@ -451,9 +451,9 @@ END_LAYOUT
 
 LAYOUT(AudioTranscript, 336, 248)
 	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Transcript")).HSizePosZ(4, 4).TopPosZ(4, 68))
-	ITEM(Upp::Label, dv___1, SetLabel(t_("Video Source Range")).SetAlign(Upp::ALIGN_RIGHT).RightPosZ(216, 108).TopPosZ(20, 20))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Video Source Range")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(20, 20))
 	ITEM(Upp::DropList, video, HSizePosZ(124, 12).TopPosZ(20, 20))
-	ITEM(Upp::Label, dv___3, SetLabel(t_("AI provider:")).SetAlign(Upp::ALIGN_RIGHT).RightPosZ(216, 108).TopPosZ(48, 20))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("AI provider:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(48, 20))
 	ITEM(Upp::DropList, ai, HSizePosZ(124, 12).TopPosZ(48, 20))
 	ITEM(Upp::LabelBox, dv___5, SetLabel(t_("Process")).HSizePosZ(4, 4).TopPosZ(72, 76))
 	ITEM(Upp::Label, status, SetLabel(t_("Status:")).HSizePosZ(12, 116).TopPosZ(116, 24))

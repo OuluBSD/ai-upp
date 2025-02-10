@@ -302,13 +302,6 @@ VideoSourceFileRangeCtrl::VideoSourceFileRangeCtrl() {
 	header.play_range.WhenAction = THISBACK1(Play, 1);
 }
 
-void VideoSourceFileRangeCtrl::ChangeFile() {
-	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
-	comp.value("range_begin") = 0;
-	comp.value("range_end") = 0;
-	DataFile();
-}
-
 void VideoSourceFileRangeCtrl::Set(double t, int src) {
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
 	ASSERT(t >= 0.0 && t <= 1.0);
@@ -406,19 +399,14 @@ bool VideoSourceFileRangeCtrl::UpdateFiles() {
 	bool change_file = false;
 	if (cursor >= 0 && cursor < header.files.GetCount()) {
 		header.files.SetIndex(cursor);
-		if (!active_file.IsEmpty() && file_paths.GetCount() == 1 && active_file != file_paths[0]) {
-			change_file = true;
-		}
 	}
-	header.files.WhenAction = THISBACK(ChangeFile);
+	header.files.WhenAction = THISBACK(DataFile);
 	return change_file;
 }
 
 void VideoSourceFileRangeCtrl::Data() {
-	if (UpdateFiles())
-		ChangeFile();
-	else
-		DataFile();
+	UpdateFiles();
+	DataFile();
 }
 
 void VideoSourceFileRangeCtrl::DataFile() {
@@ -426,17 +414,26 @@ void VideoSourceFileRangeCtrl::DataFile() {
 	if (idx < 0 && idx >= this->files.GetCount())
 		return;
 	auto& vidfile = *files[idx];
+	String vidpath = file_paths[idx];
 	this->duration = vidfile.value("duration");
 	this->frame_rate = FractionDbl((String)vidfile.value("frame_rate"));
-	String path = vidfile.value("path");
 	header.duration.SetData(GetDurationString(duration));
 	
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
-	double range_begin = comp.value("range_begin");
-	range_begin = min(duration, max(0.0, range_begin));
-	double range_end = comp.value("range_end");
+	String path = comp.value("path");
+	double range_begin = 0, range_end = 0;
+	if (path == vidpath) {
+		range_begin = comp.value("range_begin");
+		range_begin = min(duration, max(0.0, range_begin));
+		range_end = comp.value("range_end");
+		range_end = min(duration, max(0.0, range_end));
+	}
+	else {
+		comp.value("path") = vidpath;
+		comp.value("range_begin") = 0;
+		comp.value("range_end") = 0;
+	}
 	if (!range_end) range_end = duration;
-	range_end = min(duration, max(0.0, range_end));
 	
 	header.range_begin.SetData(GetDurationString(range_begin));
 	header.range_end.SetData(GetDurationString(range_end));
@@ -453,26 +450,6 @@ void VideoSourceFileRangeCtrl::ToolMenu(Bar& bar) {
 }
 
 INITIALIZER_COMPONENT_CTRL(VideoSourceFileRange, VideoSourceFileRangeCtrl)
-
-
-
-
-
-
-VideoSourceFileAudioCtrl::VideoSourceFileAudioCtrl() {
-	CtrlLayout(*this);
-	
-}
-
-void VideoSourceFileAudioCtrl::Data() {
-	
-}
-
-void VideoSourceFileAudioCtrl::ToolMenu(Bar& bar) {
-	
-}
-
-INITIALIZER_COMPONENT_CTRL(VideoSourceFileAudio, VideoSourceFileAudioCtrl)
 
 
 

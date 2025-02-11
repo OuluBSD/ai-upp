@@ -646,11 +646,25 @@ inline Json CategoryChat::create(Json input) {
 // POST https://api.openai.com/v1/audio/transcriptions
 // Transcribes audio into the input language.
 inline Json CategoryAudio::transcribe(Json input) {
-    openai_.setMultiformPart({"file", input["file"].get<std::string>()}, 
-        std::map<std::string, std::string>{{"model", input["model"].get<std::string>()}}
+	std::string response_format = "json";
+    if (input.contains("response_format")) {
+        response_format = input["response_format"].get<std::string>();
+    }
+	std::string language = "";
+    if (input.contains("language")) {
+        language = input["language"].get<std::string>();
+    }
+    
+    openai_.setMultiformPart(
+    {"file", input["file"].get<std::string>()},
+    std::map<std::string, std::string>{
+        {"model", input["model"].get<std::string>()},
+        {"response_format", response_format},
+        {"language", language}
+    }
     );
 
-    return openai_.post("audio/transcriptions", std::string{""}, "multipart/form-data"); 
+    return openai_.post("audio/transcriptions", std::string{""}, "multipart/form-data");
 }
 
 // POST https://api.openai.com/v1/audio/translations

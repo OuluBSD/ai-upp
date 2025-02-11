@@ -118,7 +118,7 @@ void AiTask::CreateInput_VariateImage()
 
 void AiTask::CreateInput_Vision()
 {
-	this->vision_task = true;
+	this->type = TYPE_VISION;
 
 	if(args.IsEmpty()) {
 		SetFatalError("no args");
@@ -138,6 +138,12 @@ void AiTask::CreateInput_Vision()
 	}
 	else
 		SetError("Invalid function");
+}
+
+void AiTask::CreateInput_Transcription()
+{
+	this->type = TYPE_TRANSCRIPTION;
+	raw_input = this->args[0]; // hash is made of raw_input == arguments
 }
 
 void AiTask::CreateInput_Default()

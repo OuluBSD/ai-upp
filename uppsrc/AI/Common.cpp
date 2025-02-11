@@ -122,7 +122,7 @@ double FractionDbl(const String& s) {
 	}
 }
 
-String GetDurationString(double p_seconds, bool skip_milliseconds) {
+String GetDurationString(double p_seconds) {
 	if (!p_seconds)
 		return "0 seconds";
 	int64 milliseconds = p_seconds * 1000LL;
@@ -147,14 +147,15 @@ String GetDurationString(double p_seconds, bool skip_milliseconds) {
 	ITEM(hours);
 	ITEM(minutes);
 	ITEM(seconds);
-	if (s.IsEmpty() || !skip_milliseconds)
+	if (s.IsEmpty() || p_seconds < 60.0)
 		ITEM(milliseconds);
 	return s;
 }
 
-String GetSizeString(uint64 bytes, bool skip_bytes) {
+String GetSizeString(uint64 bytes) {
 	if (!bytes)
 		return "0 bytes";
+	bool show_bytes = bytes < 1024;
 	#define PART(from, to) \
 		uint64 to = from / 1024ULL; \
 		from = from % 1024ULL;
@@ -172,7 +173,7 @@ String GetSizeString(uint64 bytes, bool skip_bytes) {
 	ITEM(Gb);
 	ITEM(Mb);
 	ITEM(Kb);
-	if (s.IsEmpty() || !skip_bytes)
+	if (s.IsEmpty() || show_bytes)
 		ITEM(bytes);
 	return s;
 }

@@ -324,10 +324,10 @@ void VideoSourceFileRangeCtrl::GetImage(double time, Event<Image> cb) {
 	String img_path = ConfigFile("temp.png");
 	DeleteFile(img_path);
 	String cmd =
-		"ffmpeg -i "
+		"ffmpeg -y -i "
 		"\"" + GetFilePath() + "\" " +
 		"-vf \"select=eq(n\\," + IntStr(frame) + ")\" -vframes 1 \"" + img_path + "\"";
-	LOG(cmd);
+	//DLOG(cmd);
 	String out;
 	Sys(cmd, out);
 	Image img = StreamRaster::LoadFileAny(img_path);
@@ -374,7 +374,7 @@ String VideoSourceFileRangeCtrl::GetFilePath() {
 	return "";
 }
 
-bool VideoSourceFileRangeCtrl::UpdateFiles() {
+bool VideoSourceFileRangeCtrl::UpdateSources() {
 	files.Clear();
 	file_paths.Clear();
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
@@ -405,7 +405,7 @@ bool VideoSourceFileRangeCtrl::UpdateFiles() {
 }
 
 void VideoSourceFileRangeCtrl::Data() {
-	UpdateFiles();
+	UpdateSources();
 	DataFile();
 }
 
@@ -431,7 +431,9 @@ void VideoSourceFileRangeCtrl::DataFile() {
 	else {
 		comp.value("path") = vidpath;
 		comp.value("range_begin") = 0;
-		comp.value("range_end") = 0;
+		comp.value("range_end") = this->duration;
+		comp.value("duration") = vidfile.value("duration");
+		comp.value("frame_rate") = vidfile.value("frame_rate");
 	}
 	if (!range_end) range_end = duration;
 	

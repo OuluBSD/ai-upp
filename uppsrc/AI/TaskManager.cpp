@@ -293,7 +293,27 @@ void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String
 		.Process(&AiTask::Process_Default);
 
 	t.args << s;
-	t.jpeg = jpeg;
+	t.binary_param = jpeg;
+	t.WhenResult << WhenResult;
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
+void TaskMgr::GetTranscription(const TranscriptionArgs& args, Event<String> WhenResult)
+{
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+
+	String s = args.Get();
+
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.SetRule(MakeName(args, "transcription"))
+		.Input(&AiTask::CreateInput_Transcription)
+		.Process(&AiTask::Process_Default);
+
+	t.args << s;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
 	
@@ -613,34 +633,43 @@ TaskRule& TaskRule::DebugInput(bool b)
 
 TaskRule& TaskRule::ImageTask(bool b)
 {
-	image_task = b;
+	type = TYPE_IMAGE_GENERATION;
 	return *this;
 }
 
 TaskRule& TaskRule::ImageEditTask(bool b)
 {
-	imageedit_task = b;
+	type = TYPE_IMAGE_EDIT;
 	return *this;
 }
 
 TaskRule& TaskRule::ImageVariateTask(bool b)
 {
-	imagevariate_task = b;
+	type = TYPE_IMAGE_VARIATE;
 	return *this;
 }
 
 void TaskMgrConfig::SetupInstance(::Ide* ide)
 {
 	this->ide = ide;
-
-	if(!instance && !ide->openai_token.IsEmpty())
-		instance = &openai::start(ide->openai_token.Begin());
-
-	if(instance) {
-		if(!ide->openai_proxy.IsEmpty())
-			instance->setProxy(ide->openai_proxy.Begin());
-		else
-			instance->setProxy("");
+	
+	if(!instance) {
+		auto& mgr = ide->ai_manager;
+		for(int i = 0; i < mgr.GetCount(); i++) {
+			auto& prov = mgr[i];
+			if (prov.type == AiServiceProvider::OPENAI) {
+				if (!prov.token.IsEmpty()) {
+					instance = &openai::start(prov.token.Begin());
+					if (instance) {
+						String proxy = prov.proxy;
+						if (proxy.IsEmpty())
+							proxy = ide->global_proxy;
+						instance->setProxy(proxy.Begin());
+					}
+					break;
+				}
+			}
+		}
 	}
 }
 

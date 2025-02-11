@@ -36,6 +36,17 @@ struct VisionArgs {
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };
 
+struct TranscriptionArgs {
+	int fn = 0;
+	String file;
+	String language;
+	int ai_provider_idx = -1;
+
+	void Jsonize(JsonIO& json) { json("fn", fn)("ai_provider_idx", ai_provider_idx)("file", file)("language", language); }
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
 struct GenericPromptArgs {
 	int fn = 0;
 	VectorMap<String, Vector<String>> lists;
@@ -545,8 +556,8 @@ ValueArray& ValueToArray(Value& val);
 void RemoveColonTrail(String& s);
 void RemoveCommentTrail(String& s);
 double FractionDbl(const String& s);
-String GetDurationString(double seconds, bool skip_milliseconds=true);
-String GetSizeString(uint64 bytes, bool skip_bytes=true);
+String GetDurationString(double seconds);
+String GetSizeString(uint64 bytes);
 Size GetAspectRatio(Size sz);
 
 END_UPP_NAMESPACE

@@ -40,6 +40,7 @@ struct AiServiceProvider {
 	}
 	
 	String GetTypeString() const {return GetTypeString(type);}
+	bool IsFeatureAudioToText() const {return type == OPENAI || type == API_WHISPERFILE_TRANSCRIPT;}
 	bool IsApiOpenAICompletion() const {return type == OPENAI || type == API_OPENAI_COMPLETION;}
 	bool IsApiOpenAIChat() const {return type == OPENAI || type == API_OPENAI_CHAT;}
 	bool IsApiOpenAIImage() const {return type == OPENAI || type == API_OPENAI_IMAGE;}

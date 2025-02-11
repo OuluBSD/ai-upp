@@ -65,11 +65,12 @@ struct OpenAiResponse {
 	String id;
 	String model;
 	String object;
+	String text;
 	Usage usage;
 
 	void Jsonize(JsonIO& json)
 	{
-		json("choices", choices)("id", id)("model", model)("object", object)("usage", usage);
+		json("choices", choices)("id", id)("model", model)("object", object)("text", text)("usage", usage);
 	}
 	String ToString() const
 	{
@@ -113,6 +114,14 @@ struct DalleResponse {
 struct AiTask;
 
 struct TaskRule {
+	typedef enum : int {
+		TYPE_COMPLETION,
+		TYPE_IMAGE_GENERATION,
+		TYPE_IMAGE_EDIT,
+		TYPE_IMAGE_VARIATE,
+		TYPE_VISION,
+		TYPE_TRANSCRIPTION,
+	} Type;
 	String name;
 	void (AiTask::*input)() = 0;
 	void (AiTask::*process)() = 0;
@@ -121,12 +130,16 @@ struct TaskRule {
 	bool allow_cross_mode = false;
 	bool separate_items = false;
 	bool debug_input = false;
+	Type type = TYPE_COMPLETION;
+	#if 0
 	bool image_task = false;
 	bool imageedit_task = false;
 	bool imagevariate_task = false;
 	bool vision_task = false;
+	#endif
 	VectorMap<int, Tuple2<int, int>> req_mode_ranges;
-
+	
+	bool IsAnyImageTask() const {return type == TYPE_IMAGE_GENERATION || type == TYPE_IMAGE_EDIT || type == TYPE_IMAGE_VARIATE;}
 	TaskRule& SetRule(const String& name);
 	TaskRule& Input(void (AiTask::*fn)());
 	TaskRule& Process(void (AiTask::*fn)());
@@ -170,7 +183,7 @@ public:
 
 	AiPrompt input;
 	String raw_input;
-	String jpeg;
+	String binary_param;
 
 	// Temp
 	Array<AiTask> result_tasks;
@@ -199,8 +212,10 @@ public:
 	bool RunOpenAI_Completion();
 	bool RunOpenAI_Image();
 	bool RunOpenAI_Vision();
+	bool RunOpenAI_Transcription();
 	bool ProcessInput();
 	void Process();
+	bool TryOpenAI(String prompt, String txt, Event<> cb);
 	void SetError(String s);
 	void SetFatalError(String s)
 	{
@@ -221,6 +236,7 @@ public:
 	void CreateInput_VariateImage();
 	void CreateInput_RawCompletion();
 	void CreateInput_Vision();
+	void CreateInput_Transcription();
 	void CreateInput_Default();
 	
 	

@@ -63,7 +63,7 @@ public:
 	
 	void Data() override;
 	void DataFile();
-	bool UpdateFiles();
+	bool UpdateSources();
 	void ToolMenu(Bar& bar) override;
 	void Set(double t, int src);
 	void Play(bool range);

@@ -392,7 +392,7 @@ bool IsAllUpper(const String& s) {
 }
 
 String GetGlobalProxy() {
-	return TheIde()->openai_proxy;
+	return TheIde()->global_proxy;
 }
 
 END_UPP_NAMESPACE

@@ -1,5 +1,6 @@
 #include "AI.h"
 #include <plugin/openai/openai.h>
+#include <ide/ide.h>
 
 NAMESPACE_UPP
 
@@ -27,7 +28,7 @@ void AiTask::Load()
 	String file = dir + filename;
 	if(FileExists(file))
 		output = LoadFileBOM(file);
-	if(image_task) {
+	if(IsAnyImageTask()) {
 		String dir = ConfigFile("images");
 		Vector<String> rel_paths = Split(output, "\n");
 		recv_images.Clear();
@@ -57,10 +58,10 @@ String AiTask::GetInputHash() const
 {
 	String input = raw_input.GetCount() ? raw_input : this->input.AsString();
 	hash_t h = input.GetHashValue();
-	if(jpeg.GetCount()) {
+	if(binary_param.GetCount()) {
 		CombineHash c;
 		c.Put(h);
-		c.Do(jpeg);
+		c.Do(binary_param);
 		h = c;
 	}
 	return HexString((void*)&h, sizeof(h));
@@ -186,12 +187,15 @@ void AiTask::Process()
 
 bool AiTask::RunOpenAI()
 {
-	if(vision_task)
-		return RunOpenAI_Vision();
-	else if(image_task)
-		return RunOpenAI_Image();
-	else
-		return RunOpenAI_Completion();
+	switch (type) {
+		case TYPE_COMPLETION:		return RunOpenAI_Completion();
+		case TYPE_IMAGE_GENERATION:	return RunOpenAI_Image();
+		case TYPE_IMAGE_EDIT:		return RunOpenAI_Image();
+		case TYPE_IMAGE_VARIATE:	return RunOpenAI_Image();
+		case TYPE_VISION:			return RunOpenAI_Vision();
+		case TYPE_TRANSCRIPTION:	return RunOpenAI_Transcription();
+		default: Panic("TODO");
+	}
 }
 
 String AiTask::FixInvalidChars(const String& s)
@@ -276,7 +280,7 @@ bool AiTask::RunOpenAI_Image()
 
 	String recv;
 	try {
-		if(TaskRule::imageedit_task) {
+		if(TaskRule::type == TYPE_IMAGE_EDIT) {
 			if(send_images.GetCount() != 1) {
 				SetError("expected sendable images");
 				return false;
@@ -292,7 +296,7 @@ bool AiTask::RunOpenAI_Image()
 			auto img = openai::image().edit(json);
 			recv = String(img.dump(2));
 		}
-		else if(TaskRule::imagevariate_task) {
+		else if(TaskRule::type == TYPE_IMAGE_VARIATE) {
 			if(send_images.GetCount() != 1) {
 				SetError("expected sendable images");
 				return false;
@@ -391,7 +395,7 @@ bool AiTask::RunOpenAI_Image()
 
 		// Get file path
 		String part_str = " " + IntStr(i + 1) + "/" + IntStr(response.data.GetCount());
-		if(TaskRule::imageedit_task || TaskRule::imagevariate_task)
+		if(TaskRule::type == TYPE_IMAGE_EDIT || TaskRule::type == TYPE_IMAGE_VARIATE)
 			part_str << " "
 					 << IntStr64(Random64()); // add never-matching random number to name for
 			                                  // editing and variation creation purposes
@@ -483,8 +487,7 @@ bool AiTask::RunOpenAI_Completion()
 })_";
 		}
 		// LOG(txt);
-
-		try {
+		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
 
@@ -501,76 +504,12 @@ bool AiTask::RunOpenAI_Completion()
 
 			if(response.choices.GetCount())
 				output = response.choices[0].GetText();
-			else
+			else {
+				SetError("invalid output");
 				output.Clear();
-		}
-		catch(std::runtime_error e) {
-			if(keep_going) {
-				output = " ";
-				return true;
 			}
-			LOG(prompt);
-			LOG(txt);
-			fatal_error = true;
-			SetError(e.what());
-			if(auto_ret_fail)
-				ReturnFail();
-			return false;
-		}
-		catch(std::string e) {
-			if(keep_going) {
-				output = " ";
-				return true;
-			}
-			LOG(prompt);
-			LOG(txt);
-			fatal_error = true;
-			SetError(e.c_str());
-			if(auto_ret_fail)
-				ReturnFail();
-			return false;
-		}
-		catch(NLOHMANN_JSON_NAMESPACE::detail::parse_error e) {
-			if(keep_going) {
-				output = " ";
-				return true;
-			}
-			LOG(prompt);
-			LOG(txt);
-			LOG(e.what());
-			fatal_error = true;
-			SetError(e.what());
-			if(auto_ret_fail)
-				ReturnFail();
-			return false;
-		}
-		catch(std::exception e) {
-			if(keep_going) {
-				output = " ";
-				return true;
-			}
-			LOG(prompt);
-			LOG(txt);
-			SetError(e.what());
-			fatal_error = true;
-			if(auto_ret_fail)
-				ReturnFail();
-			return false;
-		}
-		/*catch (...) {
-		    SetError("unknown error");
-		    return false;
-		}*/
-
-		// LOG(IntStr64(input.AsString().GetHashValue()));
-
-		// Fix unicode formatting
-		output = ToUnicode(output, CHARSET_UTF8).ToString();
+		});
 	}
-
-	changed = true;
-	Store();
-	return output.GetCount() > 0;
 }
 
 bool AiTask::RunOpenAI_Vision()
@@ -583,7 +522,7 @@ bool AiTask::RunOpenAI_Vision()
 	}
 	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
 
-	String base64 = Base64Encode(this->jpeg);
+	String base64 = Base64Encode(this->binary_param);
 
 	{
 		EscapeString(prompt);
@@ -642,7 +581,7 @@ bool AiTask::RunOpenAI_Vision()
 		}
 		LOG(txt);
 
-		try {
+		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
 
@@ -651,8 +590,96 @@ bool AiTask::RunOpenAI_Vision()
 
 			if(response.choices.GetCount())
 				output = response.choices[0].GetText();
-			else
+			else {
+				SetError("invalid output");
 				output.Clear();
+			}
+		});
+	}
+}
+
+bool AiTask::RunOpenAI_Transcription()
+{
+	TranscriptionArgs args;
+	args.Put(this->args[0]);
+	
+	output.Clear();
+
+	if(!input.response_length) {
+		LOG("warning: no response length set");
+		input.response_length = 1024;
+	}
+	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
+	
+	{
+		EscapeString(prompt);
+
+		if(GetDefaultCharset() != CHARSET_UTF8)
+			prompt = ToCharset(CHARSET_UTF8, prompt, CHARSET_DEFAULT);
+
+		auto& ai_mgr = TheIde()->ai_manager;
+		ASSERT(args.ai_provider_idx >= 0 && args.ai_provider_idx < ai_mgr.GetCount());
+		const auto& prov = ai_mgr[args.ai_provider_idx];
+		
+		if (prov.type == AiServiceProvider::OPENAI) {
+			String txt =
+			R"_({
+			    "model": "whisper-1",
+			    "response_format": "verbose_json",
+			    "language": ")_" + args.language + R"_("
+			})_";
+			return TryOpenAI(prompt, txt, [this,txt,&args]{
+				nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
+				
+				json.push_back({"file", args.file});
+				
+				//OpenAiResponse response;
+	
+				auto transcription = openai::audio().transcribe(json);
+				String str = String(transcription.dump(2));
+				//LOG(str);
+				//LoadFromJson(response, str);
+	
+				if (!str.IsEmpty())
+					output = str;
+				else {
+					SetError("invalid output");
+					output.Clear();
+				}
+			});
+		}
+		else if (prov.type == AiServiceProvider::API_WHISPERFILE_TRANSCRIPT) {
+			String output = ConfigFile("curl-output.txt");
+			// TODO use api
+			String cmd =
+			"curl " + prov.url + "/inference"
+			   " -H \"Content-Type: multipart/form-data\""
+			   " -F file=\"@" + args.file + "\""
+			   " -F language=\"" + args.language + "\""
+			   " -F temperature=\"0.0\""
+			   " -F temperature_inc=\"0.2\""
+			   " -F response_format=\"verbose_json\""
+			   " -o \"" + output + "\"";
+			LOG(cmd);
+			String out;
+			if (!Sys(cmd, out)) {
+				this->output = LoadFile(output);
+				return true;
+			}
+			else {
+				SetError("executing curl failed");
+				output.Clear();
+				return false;
+			}
+		}
+	}
+	return false;
+}
+
+bool AiTask::TryOpenAI(String prompt, String txt, Event<> cb) {
+	{
+		try {
+			cb();
 		}
 		catch(std::runtime_error e) {
 			if(keep_going) {

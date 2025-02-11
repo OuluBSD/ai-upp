@@ -390,8 +390,8 @@ void Ide::Serialize(Stream& s)
 	if(version >= 28)
 		s % blk0_header;
 
-	if(version >= 31)
-		s % openai_token % openai_proxy;
+	if(version >= 32)
+		s % global_proxy % ai_manager;
 
 #ifdef PLATFORM_WIN32
 	if(s.IsLoading() && HostConsole == "/usr/bin/xterm -e")

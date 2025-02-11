@@ -279,6 +279,10 @@ void DlSpellerLangs(DropList& dl)
 }
 
 void Ide::SetupFormat() {
+	// Close solver-view first
+	if (editassolver)
+		EditUsingSolver();
+	
 	FormatDlg dlg;
 	dlg.Title("Settings");
 	WithSetupFontLayout<ParentCtrl> fnt;
@@ -436,12 +440,6 @@ void Ide::SetupFormat() {
 		(assist.no_empty_autocomplete, editor.no_empty_autocomplete)
 		(assist.blk0_header, blk0_header)
 		(assist.std_cpp, LibClangCppVersion)
-		
-#ifdef flagAI
-		(ai.openai_token, openai_token)
-		(ai.openai_proxy, openai_proxy)
-#endif
-	
 		(ide.showtime, showtime)
 		(ide.show_status_bar, show_status_bar)
 		(ide.toolbar_in_row, toolbar_in_row)
@@ -456,7 +454,83 @@ void Ide::SetupFormat() {
 		(ide.setmain_newide, setmain_newide)
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
+		(ai.global_proxy, global_proxy)
 	;
+	
+#ifdef flagAI
+	if (ai.providers.GetColumnCount() == 0) {
+		ai.providers.AddColumn("Name");
+		ai.providers.AddColumn("Type");
+		ai.providers.AddColumn("Url");
+		ai.providers.AddColumn("Priority");
+		ai.providers.AddIndex("IDX");
+		ai.providers.ColumnWidths("3 6 4 1");
+		
+		for(int i = 0; i < AiServiceProvider::TYPE_COUNT; i++) {
+			ai.type.Add(AiServiceProvider::GetTypeString(i));
+		}
+		ai.type.SetIndex(0);
+	}
+	ai.refresh.WhenAction = [this,&ai] {
+		ai.providers.SetCount(ai_manager.GetCount());
+		for(int i = 0; i < ai_manager.GetCount(); i++) {
+			AiServiceProvider& prov = ai_manager[i];
+			ai.providers.Set(i, "IDX", i);
+			ai.providers.Set(i, 0, prov.name);
+			ai.providers.Set(i, 1, prov.GetTypeString());
+			ai.providers.Set(i, 2, prov.url);
+			ai.providers.Set(i, 3, prov.priority);
+		}
+	};
+	ai.add.WhenAction = [this,&ai] {
+		AiServiceProvider& prov = ai_manager.Add();
+		ai.refresh.WhenAction(); // Refresh
+		if (ai.providers.GetCount() > 0)
+			ai.providers.SetCursor(ai.providers.GetCount()-1);
+	};
+	ai.delete_.WhenAction = [this,&ai] {
+		if (!ai.providers.IsCursor()) return;
+		int idx = ai.providers.Get("IDX");
+		ai_manager.Remove(idx);
+		ai.refresh.WhenAction(); // Refresh
+		if (ai.providers.GetCount() > 0)
+			ai.providers.SetCursor(ai.providers.GetCount()-1);
+	};
+	ai.refresh.WhenAction();
+	ai.providers.WhenCursor.Clear();
+	ai.providers.WhenCursor = [this,&ai]{
+		if (!ai.providers.IsCursor()) return;
+		int idx = ai.providers.Get("IDX");
+		AiServiceProvider& prov = ai_manager[idx];
+		ai.name.WhenAction  = [&prov,&ai]{
+			prov.name  = ai.name.GetData();
+			if (ai.providers.IsCursor()) ai.providers.Set(0, ai.name.GetData());
+		};
+		ai.type.WhenAction  = [&prov,&ai]{
+			prov.type  = (AiServiceProvider::Type)ai.type.GetIndex();
+			if (ai.providers.IsCursor()) ai.providers.Set(1, prov.GetTypeString());
+		};
+		ai.url.WhenAction      = [&prov,&ai]{
+			prov.url   = ai.url.GetData();
+			if (ai.providers.IsCursor()) ai.providers.Set(2, ai.url.GetData());
+		};
+		ai.token.WhenAction    = [&prov,&ai]{prov.token = ai.token.GetData();};
+		ai.proxy.WhenAction    = [&prov,&ai]{prov.proxy = ai.proxy.GetData();};
+		ai.priority.WhenAction = [&prov,&ai]{
+			prov.priority = ai.priority.GetData();
+			if (ai.providers.IsCursor()) ai.providers.Set(3, ai.priority.GetData());
+		};
+		ai.type.SetIndex(prov.type);
+		ai.name  = prov.name;
+		ai.url   = prov.url;
+		ai.token = prov.token;
+		ai.proxy = prov.proxy;
+		ai.priority.SetData(prov.priority);
+	};
+	if (!ai.providers.IsCursor() && ai.providers.GetCount())
+		ai.providers.SetCursor(0);
+#endif
+	
 	hlt.hlstyle.AddColumn("Style");
 	hlt.hlstyle.AddColumn("Color").Ctrls(HlPusherFactory);
 	hlt.hlstyle.AddColumn("Bold").Ctrls<Option>();

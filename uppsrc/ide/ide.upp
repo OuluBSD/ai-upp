@@ -95,6 +95,8 @@ file
 	SetupGIT.cpp,
 	Upgrade.cpp,
 	UppHub.cpp,
+	AiProvider.h,
+	AiProvider.cpp,
 	Compile readonly separator,
 	MethodsCtrls.h,
 	MethodsCtrls.cpp,

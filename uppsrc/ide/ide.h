@@ -350,6 +350,8 @@ int ApplyChanges(LineEdit& editor, const String& new_content);
 
 struct RepoDiff;
 
+#include "AiProvider.h"
+
 struct Ide : public TopWindow, public WorkspaceWork, public IdeContext, public MakeBuild {
 public:
 	virtual   void   Paint(Draw& w);
@@ -654,8 +656,8 @@ public:
 	bool      win_deactivated = false;
 	bool      block_caret = false;
 	bool      bar_branch = true;
-	String    openai_token;
-	String    openai_proxy;
+	String    global_proxy;
+	AiServiceProviderManager ai_manager;
 	
 	bool      search_downloads =
 #ifdef PLATFORM_MACOS

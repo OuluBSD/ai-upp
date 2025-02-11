@@ -590,7 +590,15 @@ void Ide::FinishConfig()
 {
 	if(filelist.IsCursor()) {
 		FlushFile();
+		
+		// NOTE: hotfix for the crash (open setup while solver on -> crash on setup close)
+		// Disable solver while saving the cursor
+		bool tmp_editassolver = editassolver;
+		editassolver = false;
+		
 		FileCursor();
+		
+		this->editassolver = tmp_editassolver;
 	}
 	SaveLoadPackage();
 }

@@ -4,6 +4,24 @@
 
 NAMESPACE_UPP
 
+int CreateTempCheck(int src) {
+	static int counter = 0;
+	#ifdef flagDEBUG
+	LOG("CreateTemp " << src << ", id=" << counter);
+	#endif
+	if (counter == 25) {
+		LOG("__BREAK__");
+	}
+	return counter++;
+}
+
+void ClearTempCheck(int id) {
+	#ifdef flagDEBUG
+	LOG("ClearTemp id=" << id);
+	#endif
+}
+
+
 bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir,
                       String& best_rel_dir)
 {
@@ -116,18 +134,21 @@ MetaNode& MetaSrcFile::GetTemp() {
 	return *temp;
 }
 
-MetaNode& MetaSrcFile::CreateTemp() {
+MetaNode& MetaSrcFile::CreateTemp(int dbg_src) {
+	temp_id = CreateTempCheck(dbg_src);
 	return temp.Create();
 }
 
 void MetaSrcFile::ClearTemp() {
+	ClearTempCheck(temp_id);
 	temp.Clear();
 }
 
 void MetaSrcFile::Visit(NodeVisitor& vis)
 {
-	if (vis.IsLoading() || temp.IsEmpty())
-		temp.Create();
+	if (vis.IsLoading() || temp.IsEmpty()) {
+		CreateTemp(1);
+	}
 	else if (vis.IsStoring())
 		UpdateStoring();
 	vis.Ver(1)
@@ -137,8 +158,9 @@ void MetaSrcFile::Visit(NodeVisitor& vis)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
-	if (vis.IsLoading())
+	if (vis.IsLoading()) {
 		UpdateLoading();
+	}
 }
 
 String MetaSrcFile::UpdateStoring()
@@ -173,7 +195,7 @@ String MetaSrcFile::StoreJson()
 	
 	saved_hash = old_hash;
 	
-	temp.Clear();
+	ClearTemp();
 	return json;
 }
 #endif
@@ -231,17 +253,35 @@ bool MetaSrcFile::Store(bool forced)
 	
 	lock.Leave();
 	
-	temp.Clear();
+	ClearTemp();
 	return succ;
 }
 
 bool MetaSrcFile::Load()
 {
+	if (!temp.IsEmpty()) {
+		// Wait few seconds
+		TimeStop ts;
+		while (!temp.IsEmpty() && ts.Seconds() < 5.0)
+			Sleep(100);
+		if (!temp.IsEmpty())
+			return false;
+		//DLOG("temp was freed");
+	}
 	lock.Enter();
 	saved_hash.Clear();
 	
-	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
-	temp.Create();
+	#ifdef flagDEBUG
+	bool temp_is_empty = temp.IsEmpty();
+	if (!temp_is_empty) {
+		auto* ptr = &*temp;
+		LOG("Temp was not cleared: id=" << temp_id);
+		Panic("Temporary MetaNode was not cleared previously");
+		ASSERT(0);
+	}
+	#endif
+	CreateTemp(2);
+	
 	ASSERT(this->full_path.GetCount());
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
@@ -287,7 +327,7 @@ bool MetaSrcFile::LoadJson(String json) {
 	saved_hash.Clear();
 	
 	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
-	temp.Create();
+	CreateTemp(3);
 	VisitFromJson(*this, json);
 	
 	lock.Leave();
@@ -327,7 +367,7 @@ void MetaSrcFile::RefreshSeenTypes()
 
 void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 	MetaEnvironment& env = MetaEnv();
-	temp.Create();
+	CreateTemp(4);
 	#ifdef flagDEBUG
 	//LOG(env.root.GetTreeString());
 	env.root.DeepChk();
@@ -369,7 +409,7 @@ bool MetaSrcPkg::Store(bool forced)
 	MetaEnvironment& env = MetaEnv();
 	MetaSrcFile& file = GetAddFile(path);
 	MetaSrcPkg& pkg = *file.pkg;
-	MetaNode& file_nodes = file.CreateTemp();
+	MetaNode& file_nodes = file.CreateTemp(5);
 	ASSERT(file.id >= 0 && pkg.id >= 0);
 	env.SplitNode(env.root, file_nodes, pkg.id);
 	return file.Store(forced);
@@ -861,8 +901,10 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 		Value jv = ParseJSON(json);
 		JsonIO j(jv);
 		NodeVisitor vis(j);
-		if (LoadDatabaseSourceVisit(file, path, vis))
+		if (LoadDatabaseSourceVisit(file, path, vis)) {
+			file.ClearTemp();
 			return true;
+		}
 	}
 	
 	file.lock.Enter();

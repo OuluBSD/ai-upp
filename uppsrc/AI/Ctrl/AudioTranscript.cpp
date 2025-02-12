@@ -16,6 +16,11 @@ AudioTranscriptCtrl::AudioTranscriptCtrl() {
 		AudioTranscript& comp = GetExt<AudioTranscript>();
 		comp.value("language") = this->language.GetData();
 	};
+	lines.AddColumn("Begin");
+	lines.AddColumn("End");
+	lines.AddColumn("Text");
+	lines.AddIndex("IDX");
+	lines.ColumnWidths("1 1 3");
 }
 
 void AudioTranscriptCtrl::MakeAudio(Event<> cb_ready) {
@@ -71,7 +76,7 @@ void AudioTranscriptCtrl::Start() {
 			PostCallback([this,s]{
 				this->status.SetLabel("Transcription was completed in " + ts.ToString());
 				this->start.Enable();
-				this->json.SetData(s);
+				DataFile();
 			});
 		});
 	};
@@ -149,8 +154,37 @@ void AudioTranscriptCtrl::DataFile() {
 	
 	AudioTranscript& comp = GetExt<AudioTranscript>();
 	this->language.SetData(comp.value("language"));
-	this->json.SetData(comp.value("text"));
 	
+	String text = comp.value("text");
+	if (text.IsEmpty()) {
+		this->lines.Clear();
+	}
+	else {
+		
+		LoadFromJson(r,text);
+		this->line_editors.SetCount(r.segments.GetCount());
+		for(int i = 0; i < r.segments.GetCount(); i++) {
+			auto& segment = r.segments[i];
+			lines.Set(i, 0, GetDurationString(segment.start));
+			lines.Set(i, 1, GetDurationString(segment.end));
+			lines.Set(i, 2, segment.text);
+			lines.Set(i, "IDX", i);
+			EditString& es = line_editors[i];
+			es.SetData(segment.text);
+			lines.SetCtrl(i, 2, es);
+			es.WhenAction = [this,&es,&segment]{
+				segment.text = es.GetData();
+				tc.Set(500, THISBACK(SaveTextChanges));
+			};
+		}
+	}
+}
+
+void AudioTranscriptCtrl::SaveTextChanges() {
+	AudioTranscript& comp = GetExt<AudioTranscript>();
+	String text = StoreAsJson(r, false);
+	//LOG(text);
+	comp.value("text") = text;
 }
 
 void AudioTranscriptCtrl::ToolMenu(Bar& bar) {

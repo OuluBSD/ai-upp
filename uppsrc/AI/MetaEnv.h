@@ -756,6 +756,7 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	hash_t highest_seen_serial = 0;
 	VectorMap<hash_t,String> seen_types;
 	One<MetaNode> temp;
+	int temp_id = -1;
 	
 	MetaSrcPkg* pkg = 0;
 	String full_path, rel_path;
@@ -777,7 +778,7 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	bool LoadJson(String json);
 	void RefreshSeenTypes();
 	MetaNode& GetTemp();
-	MetaNode& CreateTemp();
+	MetaNode& CreateTemp(int dbg_src);
 	void ClearTemp();
 	void OnSeenTypes();
 	void OnSerialCounter();

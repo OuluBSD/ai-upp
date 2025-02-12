@@ -4,6 +4,9 @@
 NAMESPACE_UPP
 
 class AudioTranscriptCtrl : public WithAudioTranscript<ComponentCtrl> {
+	Array<EditString> line_editors;
+	TranscriptResponse r;
+	TimeCallback tc;
 	Vector<Ptr<VideoSourceFileRange>> file_ptrs;
 	Vector<String> file_paths;
 	double duration = 0;
@@ -16,6 +19,7 @@ class AudioTranscriptCtrl : public WithAudioTranscript<ComponentCtrl> {
 	
 	void MakeAudio(Event<> cb_ready);
 	void Start();
+	void SaveTextChanges();
 	bool UpdateSources();
 public:
 	typedef AudioTranscriptCtrl CLASSNAME;

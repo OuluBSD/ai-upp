@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 
 TranscriptProofreadCtrl::TranscriptProofreadCtrl() {
+	CtrlLayout(*this);
 	
 }
 

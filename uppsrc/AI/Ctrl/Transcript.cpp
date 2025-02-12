@@ -42,7 +42,14 @@ void TranscriptProofreadCtrl::DataFile() {
 		return;
 	COMPNAME& comp = GetExt<COMPNAME>();
 	auto& vidfile = *finder.file_ptrs[idx];
-	comp.value("text") = vidfile.value("text");
+	comp.value("text")        = vidfile.value("text");
+	comp.value("path")        = vidfile.value("path");
+	comp.value("duration")    = vidfile.value("duration");
+	comp.value("frame_rate")  = vidfile.value("frame_rate");
+	comp.value("vidpath")     = vidfile.value("path");
+	comp.value("range_begin") = vidfile.value("range_begin");
+	comp.value("range_end")   = vidfile.value("range_end");
+	
 	this->misspelled.SetData(comp.value("misspelled"));
 	
 	String text = comp.value("proofread");
@@ -78,7 +85,7 @@ void TranscriptProofreadCtrl::Start() {
 		m.Get(args, [this](String s) {
 			COMPNAME& comp = GetExt<COMPNAME>();
 			s = "- #" + s;
-			LOG(s);
+			//DLOG(s);
 			
 			String text = comp.value("text");
 			TranscriptResponse r;
@@ -152,11 +159,91 @@ INITIALIZER_COMPONENT_CTRL(TranscriptProofread, TranscriptProofreadCtrl)
 
 
 ProofreadStorylineCtrl::ProofreadStorylineCtrl() {
+	CtrlLayout(*this);
+	
+	start.WhenAction = THISBACK(Start);
+	
+	ai.WhenAction = [this] {
+		int ai_idx = this->ai.GetIndex();
+		auto& comp = GetExt<COMPNAME>();
+		comp.value("ai-idx") = ai_idx;
+	};
+	
+	scene.WhenAction = [this] {
+		auto& comp = GetExt<COMPNAME>();
+		comp.value("scene") = this->scene.GetData();
+	};
+	
+	people.WhenAction = [this] {
+		auto& comp = GetExt<COMPNAME>();
+		comp.value("people") = this->people.GetData();
+	};
 	
 }
 
 void ProofreadStorylineCtrl::Data() {
+	auto& comp = GetExt<COMPNAME>();
+	SetAiProviders(this->ai, comp.value("ai-idx"));
 	
+	finder.UpdateSources(*this, sources, THISBACK(DataFile));
+	DataFile();
+}
+
+void ProofreadStorylineCtrl::DataFile() {
+	int idx = sources.GetIndex();
+	if (idx < 0 && idx >= this->sources.GetCount())
+		return;
+	COMPNAME& comp = GetExt<COMPNAME>();
+	auto& vidfile = *finder.file_ptrs[idx];
+	
+	this->scene.SetData(comp.value("scene"));
+	this->people.SetData(comp.value("people"));
+	
+	String text = comp.value("storyline");
+	this->text.SetData(text);
+}
+
+void ProofreadStorylineCtrl::Start() {
+	PostCallback([this]{this->start.Disable();});
+	Event<> fn = [this]{
+		ts.Reset();
+		int src_idx = sources.GetIndex();
+		if (src_idx < 0 && src_idx >= this->sources.GetCount())
+			return;
+		auto& src = *finder.file_ptrs[src_idx];
+		String text = src.value("proofread");
+		TranscriptResponse r;
+		LoadFromJson(r, text);
+		ValueArray arr;
+		for(int i = 0; i < r.segments.GetCount(); i++)
+			arr.Add(r.segments[i].text);
+		
+		COMPNAME& comp = GetExt<COMPNAME>();
+		TaskMgr& m = AiTaskManager();
+		TaskArgs args;
+		args.fn = FN_PROOFREAD_STORYLINE_1;
+		int idx = ai.GetIndex();
+		args.params("ai_provider_idx") = this->ai.GetKey(idx);
+		args.params("scene") = comp.value("scene");
+		args.params("people") = comp.value("people");
+		args.params("proofread") = arr;
+		
+		PostCallback([this,&comp]{this->status.SetLabel("Making storyline of proofread of: " + (String)comp.value("path"));});
+		m.Get(args, [this](String s) {
+			COMPNAME& comp = GetExt<COMPNAME>();
+			s = TrimBoth(s);
+			//DLOG(s);
+			
+			comp.value("storyline") = s;
+			
+			PostCallback([this,s]{
+				this->status.SetLabel("Storyline was completed in " + ts.ToString());
+				this->start.Enable();
+				DataFile();
+			});
+		});
+	};
+	fn();
 }
 
 void ProofreadStorylineCtrl::ToolMenu(Bar& bar) {

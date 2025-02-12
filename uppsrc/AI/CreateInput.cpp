@@ -236,6 +236,38 @@ void AiTask::CreateInput_Default()
 		}
 		input.response_length = 2048;
 	}
+	else if(args.fn == FN_PROOFREAD_STORYLINE_1) {
+		ValueArray arr = args.params("proofread");
+		String scene = args.params("scene");
+		String people = args.params("people");
+		{
+			auto& l = input.AddSub()
+				.Title("List of dialog segments")
+				.NumberedLines();
+			for(int i = 0; i < arr.GetCount(); i++) {
+				l.Add(arr[i]);
+			}
+		}
+		if (!scene.IsEmpty()) {
+			auto& l = input.AddSub()
+				.Title("Scene")
+				.NoListChar();
+			l.Add(scene);
+		}
+		if (!people.IsEmpty()) {
+			auto& l = input.AddSub()
+				.Title("People")
+				.NoListChar();
+			l.Add(people);
+		}
+		{
+			auto& results = input.PreAnswer()
+				.Title("Storyline of previous list")
+				.NoListChar();
+			results.Add("");
+		}
+		input.response_length = 2048;
+	}
 	else
 		SetError("Invalid function");
 }

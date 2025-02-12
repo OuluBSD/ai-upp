@@ -135,6 +135,7 @@ MetaNode& MetaSrcFile::GetTemp() {
 }
 
 MetaNode& MetaSrcFile::CreateTemp(int dbg_src) {
+	ASSERT(temp.IsEmpty());
 	temp_id = CreateTempCheck(dbg_src);
 	return temp.Create();
 }
@@ -142,11 +143,14 @@ MetaNode& MetaSrcFile::CreateTemp(int dbg_src) {
 void MetaSrcFile::ClearTemp() {
 	ClearTempCheck(temp_id);
 	temp.Clear();
+	temp_id = -1;
 }
 
 void MetaSrcFile::Visit(NodeVisitor& vis)
 {
-	if (vis.IsLoading() || temp.IsEmpty()) {
+	if (vis.IsLoading()) {
+		if (!temp.IsEmpty())
+			ClearTemp(); // TODO this is very unoptimized clear
 		CreateTemp(1);
 	}
 	else if (vis.IsStoring())

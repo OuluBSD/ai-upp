@@ -478,7 +478,20 @@ LAYOUT(TranscriptProofread, 400, 200)
 	ITEM(Upp::ArrayCtrl, lines, HSizePosZ(0, 0).VSizePosZ(168, 0))
 END_LAYOUT
 
-LAYOUT(ProofreadStoryline, 400, 200)
+LAYOUT(ProofreadStoryline, 400, 220)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Proofread -> Storyline")).HSizePosZ(4, 4).TopPosZ(4, 120))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Proofread source")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(20, 20))
+	ITEM(Upp::DropList, sources, HSizePosZ(124, 12).TopPosZ(20, 20))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("AI provider:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(48, 20))
+	ITEM(Upp::DropList, ai, HSizePosZ(124, 12).TopPosZ(48, 20))
+	ITEM(Upp::Label, dv___5, SetLabel(t_("Scene:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(72, 20))
+	ITEM(Upp::EditString, scene, HSizePosZ(124, 12).TopPosZ(72, 20))
+	ITEM(Upp::Label, dv___7, SetLabel(t_("People:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(96, 20))
+	ITEM(Upp::EditString, people, HSizePosZ(124, 12).TopPosZ(96, 20))
+	ITEM(Upp::LabelBox, dv___9, SetLabel(t_("Process")).HSizePosZ(4, 4).TopPosZ(128, 52))
+	ITEM(Upp::Label, status, SetLabel(t_("Status:")).HSizePosZ(12, 116).TopPosZ(148, 24))
+	ITEM(Upp::Button, start, SetLabel(t_("Start")).RightPosZ(12, 100).TopPosZ(148, 24))
+	ITEM(Upp::DocEdit, text, HSizePosZ(0, 0).VSizePosZ(188, 0))
 END_LAYOUT
 
 LAYOUT(StorylineConversion, 400, 200)

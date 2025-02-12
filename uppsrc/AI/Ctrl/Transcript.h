@@ -24,6 +24,9 @@ INITIALIZE(TranscriptProofreadCtrl)
 
 
 class ProofreadStorylineCtrl : public WithProofreadStoryline<ComponentCtrl> {
+	typedef ProofreadStoryline COMPNAME;
+	RangeFinder<COMPNAME, TranscriptProofread> finder;
+	TimeStop ts;
 	
 public:
 	typedef ProofreadStorylineCtrl CLASSNAME;
@@ -31,7 +34,8 @@ public:
 	
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
-	
+	void DataFile();
+	void Start();
 	
 };
 

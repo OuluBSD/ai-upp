@@ -111,6 +111,57 @@ struct DalleResponse {
 	}
 };
 
+#define DO(x) (#x, x)
+struct TranscriptResponse {
+	struct Segment : Moveable<Segment> {
+		double avg_logprob = 0;
+		double compression_ratio = 0;
+		double end = 0;
+		int id = 0;
+		double no_speech_prob = 0;
+		int seek = 0;
+		double start = 0;
+		double temperature = 0;
+		String text;
+		Vector<int> tokens;
+
+		void Jsonize(JsonIO& json) {
+			json
+			DO(avg_logprob)
+			DO(compression_ratio)
+			DO(end)
+			DO(id)
+			DO(no_speech_prob)
+			DO(seek)
+			DO(start)
+			DO(temperature)
+			DO(text)
+			DO(tokens);
+		}
+		String ToString() const
+		{
+			return text;
+		}
+	};
+
+	double duration = 0;
+	String language;
+	String task;
+	String text;
+	Vector<Segment> segments;
+
+	void Jsonize(JsonIO& json) {
+		json
+		DO(duration)
+		DO(language)
+		DO(task)
+		DO(text)
+		DO(segments);
+	}
+	String ToString() const {return text;}
+};
+#undef DO
+
 struct AiTask;
 
 struct TaskRule {

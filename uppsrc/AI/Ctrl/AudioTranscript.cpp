@@ -86,41 +86,8 @@ void AudioTranscriptCtrl::Start() {
 		fn();
 }
 
-bool AudioTranscriptCtrl::UpdateSources() {
-	file_ptrs.Clear();
-	file_paths.Clear();
-	AudioTranscript& comp = GetExt<AudioTranscript>();
-	if (!comp.node.owner)
-		return false;
-	String sel_path = comp.value("path");
-	files.Clear();
-	files.WhenAction.Clear();
-	file_ptrs = comp.node.owner->FindAll<VideoSourceFileRange>();
-	int cursor = 0;
-	for(int i = 0; i < file_ptrs.GetCount(); i++) {
-		auto& file = *file_ptrs[i];
-		ValueMap map = file.value;
-		String path = map("path");
-		double range_begin = file.value("range_begin");
-		double range_end = file.value("range_end");
-		double total = range_end - range_begin;
-		String total_str = GetDurationString(total);
-		file_paths.Add(path);
-		String title = Format("%s (%.2f - %.2f, %s)", GetFileName(path), range_begin, range_end, total_str);
-		files.Add(title);
-		if (sel_path == path)
-			cursor = i;
-	}
-	bool change_file = false;
-	if (cursor >= 0 && cursor < files.GetCount()) {
-		files.SetIndex(cursor);
-	}
-	files.WhenAction = THISBACK(DataFile);
-	return change_file;
-}
-
-void AudioTranscriptCtrl::Data() {
-	this->ai.Clear();
+void SetAiProviders(DropList& ai, int ai_idx) {
+	ai.Clear();
 	auto& ai_mgr = TheIde()->ai_manager;
 	for(int i = 0; i < ai_mgr.GetCount(); i++) {
 		auto& prov = ai_mgr[i];
@@ -128,23 +95,27 @@ void AudioTranscriptCtrl::Data() {
 			ai.Add(i, ai_mgr[i].name + " (" + ai_mgr[i].GetTypeString() + ")");
 	}
 	if (ai.GetCount()) {
-		AudioTranscript& comp = GetExt<AudioTranscript>();
-		int ai_idx = comp.value("ai-idx");
 		if (ai_idx >= 0 && ai_idx < ai.GetCount())
 			ai.SetIndex(ai_idx);
 		else
 			ai.SetIndex(0);
 	}
+}
+
+void AudioTranscriptCtrl::Data() {
+	AudioTranscript& comp = GetExt<AudioTranscript>();
+	SetAiProviders(this->ai, comp.value("ai-idx"));
 	
-	UpdateSources();
+	finder.UpdateSources(*this, files, THISBACK(DataFile));
 	DataFile();
 }
 
 void AudioTranscriptCtrl::DataFile() {
+	AudioTranscript& comp = GetExt<AudioTranscript>();
 	int idx = files.GetIndex();
 	if (idx < 0 && idx >= this->files.GetCount())
 		return;
-	auto& vidfile = *file_ptrs[idx];
+	auto& vidfile = *finder.file_ptrs[idx];
 	
 	this->duration    = vidfile.value("duration");
 	this->frame_rate  = FractionDbl((String)vidfile.value("frame_rate"));
@@ -152,7 +123,13 @@ void AudioTranscriptCtrl::DataFile() {
 	this->range_begin = vidfile.value("range_begin");
 	this->range_end   = vidfile.value("range_end");
 	
-	AudioTranscript& comp = GetExt<AudioTranscript>();
+	comp.value("path")        = vidfile.value("path");
+	comp.value("duration")    = vidfile.value("duration");
+	comp.value("frame_rate")  = vidfile.value("frame_rate");
+	comp.value("vidpath")     = vidfile.value("path");
+	comp.value("range_begin") = vidfile.value("range_begin");
+	comp.value("range_end")   = vidfile.value("range_end");
+	
 	this->language.SetData(comp.value("language"));
 	
 	String text = comp.value("text");
@@ -160,7 +137,6 @@ void AudioTranscriptCtrl::DataFile() {
 		this->lines.Clear();
 	}
 	else {
-		
 		LoadFromJson(r,text);
 		this->line_editors.SetCount(r.segments.GetCount());
 		for(int i = 0; i < r.segments.GetCount(); i++) {

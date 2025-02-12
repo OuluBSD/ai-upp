@@ -209,6 +209,33 @@ void AiTask::CreateInput_Default()
 		}
 		input.response_length = 2048;
 	}
+	else if(args.fn == FN_TRANSCRIPT_PROOFREAD_1) {
+		String text = args.params("text");
+		TranscriptResponse r;
+		LoadFromJson(r, text);
+		String misspelled = args.params("misspelled");
+		if (!misspelled.IsEmpty()) {
+			auto& l = input.AddSub()
+				.Title("Misspelled words");
+			misspelled.Replace(",", " ");
+			Vector<String> words = Split(misspelled, " ");
+			for (auto& w : words)
+				l.Add(w);
+		}{
+			auto& l = input.AddSub()
+				.Title("List of dialog segments in " + r.language)
+				.NoListChar();
+			for(int i = 0; i < r.segments.GetCount(); i++) {
+				l.Add("#" + IntStr(i) + ": " + r.segments[i].text);
+			}
+		}{
+			auto& results = input.PreAnswer()
+				.Title("List of proofread of previous text in English, and with unique lines only, and with corrected grammar. Line format (- #original line: translation). Skip original lines with duplicate text or low content value")
+				;
+			results.Add("#");
+		}
+		input.response_length = 2048;
+	}
 	else
 		SetError("Invalid function");
 }

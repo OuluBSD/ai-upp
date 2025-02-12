@@ -4,6 +4,9 @@
 NAMESPACE_UPP
 
 class TranscriptProofreadCtrl : public WithTranscriptProofread<ComponentCtrl> {
+	typedef TranscriptProofread COMPNAME;
+	RangeFinder<COMPNAME, AudioTranscript> finder;
+	TimeStop ts;
 	
 public:
 	typedef TranscriptProofreadCtrl CLASSNAME;
@@ -11,7 +14,8 @@ public:
 	
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
-	
+	void DataFile();
+	void Start();
 	
 };
 

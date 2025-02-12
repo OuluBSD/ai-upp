@@ -17,6 +17,8 @@ typedef enum : TASKFN_TYPE {
 	FN_VOICEOVER_2A_SUMMARIZE,
 	FN_VOICEOVER_2B_SUMMARIZE_TOTAL,
 	
+	FN_TRANSCRIPT_PROOFREAD_1,
+	
 } TaskFn;
 
 struct TaskArgs : Moveable<TaskArgs> {
@@ -40,9 +42,10 @@ struct TranscriptionArgs {
 	int fn = 0;
 	String file;
 	String language;
+	String misspelled;
 	int ai_provider_idx = -1;
 
-	void Jsonize(JsonIO& json) { json("fn", fn)("ai_provider_idx", ai_provider_idx)("file", file)("language", language); }
+	void Jsonize(JsonIO& json) { json("fn", fn)("ai_provider_idx", ai_provider_idx)("file", file)("language", language)("misspelled", misspelled); }
 	String Get() const { return StoreAsJson(*this); }
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };

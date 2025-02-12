@@ -194,7 +194,7 @@ bool AiTask::RunOpenAI()
 		case TYPE_IMAGE_VARIATE:	return RunOpenAI_Image();
 		case TYPE_VISION:			return RunOpenAI_Vision();
 		case TYPE_TRANSCRIPTION:	return RunOpenAI_Transcription();
-		default: Panic("TODO");
+		default: Panic("TODO"); return false;
 	}
 }
 

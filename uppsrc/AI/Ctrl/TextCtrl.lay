@@ -465,7 +465,7 @@ LAYOUT(AudioTranscript, 336, 252)
 END_LAYOUT
 
 LAYOUT(TranscriptProofread, 400, 200)
-	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Proofread")).HSizePosZ(4, 4).TopPosZ(0, 100))
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Proofread")).HSizePosZ(4, 4).TopPosZ(4, 96))
 	ITEM(Upp::Label, dv___1, SetLabel(t_("Transcript source")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(20, 20))
 	ITEM(Upp::DropList, transcripts, HSizePosZ(124, 12).TopPosZ(20, 20))
 	ITEM(Upp::Label, dv___3, SetLabel(t_("AI provider:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(48, 20))

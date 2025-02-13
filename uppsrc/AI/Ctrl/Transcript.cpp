@@ -9,6 +9,7 @@ TranscriptProofreadCtrl::TranscriptProofreadCtrl() {
 	CtrlLayout(*this);
 	
 	start.WhenAction = THISBACK(Start);
+	play.WhenAction = THISBACK(PlaySelected);
 	
 	ai.WhenAction = [this] {
 		int ai_idx = this->ai.GetIndex();
@@ -26,6 +27,10 @@ TranscriptProofreadCtrl::TranscriptProofreadCtrl() {
 	lines.AddColumn("Text");
 	lines.AddIndex("IDX");
 	lines.ColumnWidths("1 1 3");
+	lines.WhenBar = [this](Bar& b) {
+		if (lines.IsCursor())
+			b.Add("Play", THISBACK1(PlaySingle, lines.Get("IDX")));
+	};
 }
 
 void TranscriptProofreadCtrl::Data() {
@@ -57,13 +62,31 @@ void TranscriptProofreadCtrl::DataFile() {
 		this->lines.Clear();
 	}
 	else {
+		ValueMap selected = comp.value("selected");
+		comp.value("selected") = selected; // realize ValueArray
+		
 		TranscriptResponse r;
 		LoadFromJson(r,text);
+		opt.SetCount(r.segments.GetCount());
 		for(int i = 0; i < r.segments.GetCount(); i++) {
 			auto& segment = r.segments[i];
 			lines.Set(i, 0, GetDurationString(segment.start));
 			lines.Set(i, 1, GetDurationString(segment.end));
 			lines.Set(i, 2, segment.text);
+			bool b = selected.Find(i) >= 0;
+			auto& o = opt[i];
+			o.SetLabel(segment.text);
+			lines.SetCtrl(i, 2, o);
+			o.Set(b);
+			o.WhenAction = [this,i,&o]{
+				COMPNAME& comp = GetExt<COMPNAME>();
+				ValueMap selected = comp.value("selected");
+				if (o.Get())
+					selected.GetAdd((Value)i) = true;
+				else
+					selected.RemoveKey((Value)i);
+				comp.value("selected") = selected;
+			};
 			lines.Set(i, "IDX", i);
 		}
 	}
@@ -147,6 +170,62 @@ void TranscriptProofreadCtrl::Start() {
 		});
 	};
 	fn(); // I left this event-call-pattern for code duplication, where wrapper with callback-param is needed
+}
+
+void TranscriptProofreadCtrl::PlaySelected() {
+	if (!playing) {
+		PostCallback([this]{this->play.SetLabel("Stop");});
+		Thread::Start([this]{
+			COMPNAME& comp = GetExt<COMPNAME>();
+			ValueMap selected = comp.value("selected");
+			Vector<int> segs;
+			for(int i = 0; i < selected.GetCount(); i++) {
+				int idx = selected.GetKey(i);
+				segs << idx;
+			}
+			Sort(segs, StdLess<int>());
+			
+			String path = comp.value("path");
+			String text = comp.value("proofread");
+			TranscriptResponse r;
+			LoadFromJson(r, text);
+			for(int i = 0; i < segs.GetCount() && playing; i++) {
+				int seg_i = segs[i];
+				if (seg_i >= 0 && seg_i < r.segments.GetCount()) {
+					const auto& seg = r.segments[seg_i];
+					
+					String cmd = "cmd /c mpv";
+					cmd << " --start=" + DblStr(seg.start) + " --end=" + DblStr(seg.end);
+					cmd += " \"" + path + "\"";
+					String out;
+					Sys(cmd, out);
+				}
+			}
+			PostCallback([this]{this->play.SetLabel("Play");});
+			playing = false;
+		});
+	}
+	else {
+		PostCallback([this]{this->play.SetLabel("Play");});
+	}
+	
+	playing = !playing;
+}
+
+void TranscriptProofreadCtrl::PlaySingle(int seg_i) {
+	COMPNAME& comp = GetExt<COMPNAME>();
+	String path = comp.value("path");
+	String text = comp.value("proofread");
+	TranscriptResponse r;
+	LoadFromJson(r, text);
+	if (seg_i >= 0 && seg_i < r.segments.GetCount()) {
+		const auto& seg = r.segments[seg_i];
+		String cmd = "cmd /c mpv";
+		cmd << " --start=" + DblStr(seg.start) + " --end=" + DblStr(seg.end);
+		cmd += " \"" + path + "\"";
+		String out;
+		Sys(cmd, out);
+	}
 }
 
 void TranscriptProofreadCtrl::ToolMenu(Bar& bar) {

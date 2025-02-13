@@ -179,6 +179,10 @@ void VfsPath::Append(const VfsPath& p) {
 	StrFromParts();
 }
 
+void VfsPath::RemoveLast() {
+	parts.SetCount(parts.GetCount()-1);
+}
+
 String operator+(const char* s, const VfsPath& vfs) {
 	return String(s) + vfs.Get();
 }

@@ -58,6 +58,7 @@ struct VfsPath : Moveable<VfsPath> {
 	const String& Get() const;
 	const Vector<String>& Parts() const;
 	operator String() const;
+	void    RemoveLast();
 	
 private:
 	String			str;

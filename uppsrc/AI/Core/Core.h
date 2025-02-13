@@ -78,7 +78,7 @@
 #include "Song.h"
 #include "Reasoning.h"
 #include "Transcript.h"
-#include "Voiceover.h"
+#include "ScriptText.h"
 
 // Photo
 #include "Layer.h"

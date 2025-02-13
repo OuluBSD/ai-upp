@@ -6,19 +6,19 @@ NAMESPACE_UPP
 
 int CreateTempCheck(int src) {
 	static int counter = 0;
-	#ifdef flagDEBUG
-	LOG("CreateTemp " << src << ", id=" << counter);
-	#endif
-	if (counter == 25) {
-		LOG("__BREAK__");
+	if (0) {
+		LOG("CreateTemp " << src << ", id=" << counter);
+		if (counter == 25) {
+			LOG("__BREAK__");
+		}
 	}
 	return counter++;
 }
 
 void ClearTempCheck(int id) {
-	#ifdef flagDEBUG
-	LOG("ClearTemp id=" << id);
-	#endif
+	if (0) {
+		LOG("ClearTemp id=" << id);
+	}
 }
 
 

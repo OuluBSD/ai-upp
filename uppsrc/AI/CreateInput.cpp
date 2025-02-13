@@ -232,14 +232,16 @@ void AiTask::CreateInput_Default()
 			auto& results = input.PreAnswer()
 				.Title("List of proofread of previous text in English, and with unique lines only, and with corrected grammar. Line format (- #original line: translation). Skip original lines with duplicate text or low content value")
 				;
-			results.Add("#");
+			results.Add("#0:");
 		}
 		input.response_length = 2048;
 	}
-	else if(args.fn == FN_PROOFREAD_STORYLINE_1) {
+	else if(args.fn == FN_PROOFREAD_STORYLINE_1 ||
+			args.fn == FN_STORYLINE_DIALOG_1) {
 		ValueArray arr = args.params("proofread");
 		String scene = args.params("scene");
 		String people = args.params("people");
+		String storyline = args.params("storyline");
 		{
 			auto& l = input.AddSub()
 				.Title("List of dialog segments")
@@ -260,13 +262,30 @@ void AiTask::CreateInput_Default()
 				.NoListChar();
 			l.Add(people);
 		}
-		{
+		if (!storyline.IsEmpty()) {
+			auto& l = input.AddSub()
+				.Title("Storyline")
+				.NoListChar();
+			l.Add(storyline);
+		}
+		if (args.fn == FN_PROOFREAD_STORYLINE_1) {
 			auto& results = input.PreAnswer()
 				.Title("Storyline of previous list")
 				.NoListChar();
 			results.Add("");
 		}
+		else if (args.fn == FN_STORYLINE_DIALOG_1) {
+			auto& results = input.PreAnswer()
+				.Title("New dialog for a play based on the original dialog and the storyline")
+				.NoListChar();
+			results.Add("");
+		}
 		input.response_length = 2048;
+	}
+	else if(args.fn == FN_STORYLINE_DIALOG_1) {
+		
+		
+		
 	}
 	else
 		SetError("Invalid function");

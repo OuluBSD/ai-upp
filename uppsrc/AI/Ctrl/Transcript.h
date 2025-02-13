@@ -23,6 +23,8 @@ INITIALIZE(TranscriptProofreadCtrl)
 
 
 
+// TODO remove
+#if 0
 class ProofreadStorylineCtrl : public WithProofreadStoryline<ComponentCtrl> {
 	typedef ProofreadStoryline COMPNAME;
 	RangeFinder<COMPNAME, TranscriptProofread> finder;
@@ -42,6 +44,24 @@ public:
 INITIALIZE(ProofreadStorylineCtrl)
 
 
+class StorylineDialogCtrl : public WithStorylineDialog<ComponentCtrl> {
+	typedef StorylineDialog COMPNAME;
+	RangeFinder<COMPNAME, ProofreadStoryline> finder;
+	TimeStop ts;
+	
+public:
+	typedef StorylineDialogCtrl CLASSNAME;
+	StorylineDialogCtrl();
+	
+	void Data() override;
+	void ToolMenu(Bar& bar) override;
+	void DataFile();
+	void Start();
+	
+};
+
+INITIALIZE(StorylineDialogCtrl)
+#endif
 
 class StorylineConversionCtrl : public WithStorylineConversion<ComponentCtrl> {
 	

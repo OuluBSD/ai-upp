@@ -411,7 +411,7 @@ void VideoSourceFileRangeCtrl::Data() {
 
 void VideoSourceFileRangeCtrl::DataFile() {
 	int idx = header.files.GetIndex();
-	if (idx < 0 && idx >= this->files.GetCount())
+	if (idx < 0 || idx >= this->files.GetCount())
 		return;
 	auto& vidfile = *files[idx];
 	String vidpath = file_paths[idx];

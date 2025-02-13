@@ -113,7 +113,7 @@ void AudioTranscriptCtrl::Data() {
 void AudioTranscriptCtrl::DataFile() {
 	AudioTranscript& comp = GetExt<AudioTranscript>();
 	int idx = files.GetIndex();
-	if (idx < 0 && idx >= this->files.GetCount())
+	if (idx < 0 || idx >= this->files.GetCount())
 		return;
 	auto& vidfile = *finder.file_ptrs[idx];
 	

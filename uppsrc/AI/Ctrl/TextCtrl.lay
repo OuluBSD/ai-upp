@@ -494,10 +494,22 @@ LAYOUT(ProofreadStoryline, 400, 220)
 	ITEM(Upp::DocEdit, text, HSizePosZ(0, 0).VSizePosZ(188, 0))
 END_LAYOUT
 
-LAYOUT(StorylineConversion, 400, 200)
+LAYOUT(StorylineDialog, 400, 220)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Storyline ( + proofread ) -> Dialog")).HSizePosZ(4, 4).TopPosZ(4, 120))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Proofread source")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(20, 20))
+	ITEM(Upp::DropList, sources, HSizePosZ(124, 12).TopPosZ(20, 20))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("AI provider:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 108).TopPosZ(48, 20))
+	ITEM(Upp::DropList, ai, HSizePosZ(124, 12).TopPosZ(48, 20))
+	ITEM(Upp::LabelBox, dv___5, SetLabel(t_("Process")).HSizePosZ(4, 4).TopPosZ(128, 52))
+	ITEM(Upp::Label, status, SetLabel(t_("Status:")).HSizePosZ(12, 116).TopPosZ(148, 24))
+	ITEM(Upp::Button, start, SetLabel(t_("Start")).RightPosZ(12, 100).TopPosZ(148, 24))
+	ITEM(Upp::DocEdit, text, HSizePosZ(0, 0).VSizePosZ(188, 0))
 END_LAYOUT
 
 LAYOUT(StorylineScript, 400, 200)
+END_LAYOUT
+
+LAYOUT(StorylineConversion, 400, 200)
 END_LAYOUT
 
 LAYOUT(ScriptConversion, 400, 200)

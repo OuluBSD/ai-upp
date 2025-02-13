@@ -38,6 +38,14 @@ void VirtualFSComponentCtrl::Data() {
 	
 	// Get current VirtualNode
 	VirtualNode vnode = Find(vnode_path);
+	while (!vnode && vnode_path.GetPartCount() > 0) {
+		vnode_path.RemoveLast();
+		vnode = Find(vnode_path);
+	}
+	if (!vnode) {
+		PromptOK("vnode error");
+		return;
+	}
 	int vnode_kind = vnode.GetKind();
 	
 	// Check if vnode_ctrl is correct
@@ -71,7 +79,7 @@ void VirtualFSComponentCtrl::OnTreeCursor(TreeCtrl* tree) {
 	Reverse(path);
 	Vector<String> parts;
 	for(int i = 1; i < path.GetCount(); i++) {
-		Value val = tree->GetValue(path[i]);
+		Value val = tree->Get(path[i]);
 		parts << val.ToString();
 	}
 	//DUMPC(parts);
@@ -86,6 +94,10 @@ VfsPath VirtualFSComponentCtrl::GetCursorPath() const {
 	return full_path;
 }
 
+VfsPath VirtualFSComponentCtrl::GetCursorRelativePath() const {
+	return vnode_path;
+}
+
 void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 	// Fill tree with virtual-node data: visit root
 	tree.WhenCursor.Clear(); // prevent useless calls
@@ -95,6 +107,7 @@ void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 		name = GetTitle();
 	if (name.IsEmpty())
 		name = "This component";
+	tree.SetDisplay(QTFDisplay());
 	tree.SetRoot(TextImgs::RedRing(), name);
 	Visit(tree, 0, Root());
 	tree.OpenDeep(0);
@@ -108,7 +121,8 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 		String name = s.GetName();
 		int kind = s.GetKind();
 		String key = name + " (" + s.GetKindString() + ")";
-		int sub_id = tree.Add(id, TextImgs::BlueRing(), key, name);
+		String qtf = "[g [h4 [*@(28.85.0)$(255.42.0) " + DeQtf(key) + "][@(28.85.0)$(255.42.0)2  ][/@(28.85.0)$(255.42.0)+75 (???)]]";
+		int sub_id = tree.Add(id, TextImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))
 			return false;
 	}
@@ -226,6 +240,43 @@ VirtualNode VirtualNode::Find(String name) {
 		else Panic("TODO");
 	}
 	return n;
+}
+
+void VirtualNode::RemoveSubNodes() {
+	ASSERT(data);
+	if (!data) return;
+	if (data->value) {
+		if (data->value->Is<ValueMap>()) {
+			*data->value = ValueMap();
+		}
+		else Panic("TODO");
+	}
+	else if (data->node) {
+		MetaNode& mn = *data->node;
+		mn.sub.Clear();
+	}
+	else Panic("TODO");
+}
+
+void VirtualNode::Remove(const String& name) {
+	ASSERT(data);
+	if (!data) return;
+	if (data->value) {
+		if (data->value->Is<ValueMap>()) {
+			ValueMap map = *data->value;
+			map.RemoveKey(name);
+			*data->value = map;
+		}
+		else Panic("TODO");
+	}
+	else if (data->node) {
+		MetaNode& mn = *data->node;
+		int i = mn.Find(name);
+		ASSERT(i >= 0);
+		if (i >= 0)
+			mn.Remove(i);
+	}
+	else Panic("TODO");
 }
 
 Vector<VirtualNode> VirtualNode::GetAll() {

@@ -53,7 +53,7 @@
 #include "Song.h"
 #include "Reasoning.h"
 #include "Transcript.h"
-#include "Voiceover.h"
+#include "Script.h"
 
 #include "VideoSourceFile.h"
 #include "VideoPrompt.h"

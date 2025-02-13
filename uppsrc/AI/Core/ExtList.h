@@ -65,14 +65,14 @@
 	DATASET_ITEM(Lyrics,				lyrics,			METAKIND_ECS_COMPONENT_LYRICS,				CATEGORY_TEXT, "Lyrics") \
 	DATASET_ITEM(Song,					song,			METAKIND_ECS_COMPONENT_SONG,				CATEGORY_TEXT, "Song") \
 	DATASET_ITEM(ScriptReasoning,		script_reason,	METAKIND_ECS_COMPONENT_SCRIPT_REASONING,	CATEGORY_TEXT, "Script Reasoning") \
-	DATASET_ITEM(VoiceoverText,			voiceover,		METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER,	CATEGORY_TEXT, "Voiceover") \
+	DATASET_ITEM(ScriptText,			script_text,	METAKIND_ECS_COMPONENT_SCRIPT_TEXT,			CATEGORY_TEXT, "Script Text") \
 	DATASET_ITEM(TranscriptProofread,	trans_proof,	METAKIND_ECS_COMPONENT_TRANSCRIPT_PROOFREAD,CATEGORY_TEXT, "Transcript -> Proofread") \
 	/*TODO remove DATASET_ITEM(ProofreadStoryline,	proof_story,	METAKIND_ECS_COMPONENT_PROOFREAD_STORYLINE,	CATEGORY_TEXT, "Proofread -> Storyline")*/ \
 	/*DATASET_ITEM(StorylineDialog,		storydialog,	METAKIND_ECS_COMPONENT_STORYLINE_DIALOG,	CATEGORY_TEXT, "Storyline -> Dialog")*/ \
 	DATASET_ITEM(StorylineConversion,	storyconv,		METAKIND_ECS_COMPONENT_STORYLINE_CONVERSION,CATEGORY_TEXT, "Storyline -> Storyline") \
 	DATASET_ITEM(StorylineScript,		storyscript,	METAKIND_ECS_COMPONENT_STORYLINE_SCRIPT,	CATEGORY_TEXT, "Storyline -> Script") \
 	DATASET_ITEM(ScriptConversion,		scriptconv,		METAKIND_ECS_COMPONENT_SCRIPT_CONVERSION,	CATEGORY_TEXT, "Script -> Script") \
-	DATASET_ITEM(ScriptSpeech,		scriptspeech,		METAKIND_ECS_COMPONENT_SCRIPT_SPEECH,		CATEGORY_TEXT, "Script -> Speech") \
+	DATASET_ITEM(ScriptSpeech,			scriptspeech,	METAKIND_ECS_COMPONENT_SCRIPT_SPEECH,		CATEGORY_TEXT, "Script -> Speech") \
 	\
 	DATASET_ITEM(ImageLayer,			img_layer,				METAKIND_ECS_COMPONENT_IMG_LAYER,				CATEGORY_PHOTO, "Image layer") \
 	DATASET_ITEM(ImageGenLayer,			img_gen_layer,			METAKIND_ECS_COMPONENT_IMG_GEN_LAYER,			CATEGORY_PHOTO, "Generate Image Layer") \

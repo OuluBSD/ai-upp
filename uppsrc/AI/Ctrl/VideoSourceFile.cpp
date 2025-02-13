@@ -352,8 +352,6 @@ void VideoSourceFileRangeCtrl::Play(bool range) {
 		}
 	}
 	cmd += " \"" + path + "\"";
-	LOG(cmd);
-	
 	Thread::Start([this,cmd]{
 		String out;
 		Sys(cmd, out);

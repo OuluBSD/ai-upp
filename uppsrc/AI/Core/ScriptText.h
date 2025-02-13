@@ -1,9 +1,9 @@
-#ifndef _AI_Core_Voiceover_h_
-#define _AI_Core_Voiceover_h_
+#ifndef _AI_Core_ScriptText_h_
+#define _AI_Core_ScriptText_h_
 
 NAMESPACE_UPP
 
-class VoiceoverProcess : public SolverBase {
+class ScriptTextProcess : public SolverBase {
 	
 public:
 	enum {
@@ -26,19 +26,19 @@ public:
 	int chars_per_coarse_part = 2000;
 	
 public:
-	typedef VoiceoverProcess CLASSNAME;
-	VoiceoverProcess();
+	typedef ScriptTextProcess CLASSNAME;
+	ScriptTextProcess();
 	
 	int GetPhaseCount() const override;
 	int GetBatchCount(int phase) const override;
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static VoiceoverProcess& Get(VfsPath path, Value params);
+	static ScriptTextProcess& Get(VfsPath path, Value params);
 	
 };
 
-INITIALIZE_VALUECOMPONENT(VoiceoverText, METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER);
+INITIALIZE_VALUECOMPONENT(ScriptText, METAKIND_ECS_COMPONENT_SCRIPT_TEXT);
 
 END_UPP_NAMESPACE
 

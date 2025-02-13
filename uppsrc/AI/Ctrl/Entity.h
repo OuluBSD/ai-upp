@@ -49,6 +49,8 @@ struct VirtualNode : Moveable<VirtualNode> {
 	void SetKind(int k);
 	operator bool() const;
 	void Clear();
+	void RemoveSubNodes();
+	void Remove(const String& name);
 	Data& Create();
 	Data& Create(MetaNode* n);
 	Data& Create(Value* v, String key);
@@ -62,14 +64,14 @@ class VirtualFSComponentCtrl : public ComponentCtrl {
 	int data_iter = 0;
 	
 	void Data() override;
-	void DataTree(TreeCtrl& tree) override;
 	bool Visit(TreeCtrl& tree, int id, VirtualNode n);
 	void OnTreeCursor(TreeCtrl* tree);
-	VfsPath GetCursorPath() const override;
 protected:
 	friend class ValueVFSComponentCtrl;
 	VirtualFSComponentCtrl();
-	
+	void DataTree(TreeCtrl& tree) override;
+	VfsPath GetCursorPath() const override;
+	VfsPath GetCursorRelativePath() const;
 public:
 	typedef VirtualFSComponentCtrl CLASSNAME;
 	

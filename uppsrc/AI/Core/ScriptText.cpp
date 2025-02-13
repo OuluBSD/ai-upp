@@ -3,25 +3,25 @@
 NAMESPACE_UPP
 
 
-VoiceoverProcess::VoiceoverProcess() {
+ScriptTextProcess::ScriptTextProcess() {
 	
 }
 	
-int VoiceoverProcess::GetPhaseCount() const {
+int ScriptTextProcess::GetPhaseCount() const {
 	return PHASE_COUNT;
 }
 
-int VoiceoverProcess::GetBatchCount(int phase) const {
+int ScriptTextProcess::GetBatchCount(int phase) const {
 	if (phase == PHASE_FIND_NATURAL_PARTS)
 		return input_coarse_parts.GetCount();
 	return 1;
 }
 
-int VoiceoverProcess::GetSubBatchCount(int phase, int batch) const {
+int ScriptTextProcess::GetSubBatchCount(int phase, int batch) const {
 	return 1;
 }
 	
-void VoiceoverProcess::DoPhase() {
+void ScriptTextProcess::DoPhase() {
 	String transcription = this->params("transcription");
 	
 	if (transcription.IsEmpty()) {
@@ -106,7 +106,7 @@ void VoiceoverProcess::DoPhase() {
 			
 			NextBatch();
 			SetWaiting(0);
-		}, "Voiceover 1/2: find natural parts " + IntStr(batch+1) + "/" + IntStr(input_coarse_parts.GetCount()));
+		}, "ScriptText 1/2: find natural parts " + IntStr(batch+1) + "/" + IntStr(input_coarse_parts.GetCount()));
 	}
 	else if (phase == PHASE_TRANSCRIPT) {
 		
@@ -185,7 +185,7 @@ void VoiceoverProcess::DoPhase() {
 				summarizations[batch] = res;
 				NextSubBatch();
 				SetWaiting(0);
-			}, "Voiceover 2/2a: summarize " + IntStr(batch+1) + "/" + IntStr(natural_parts.GetCount()));
+			}, "ScriptText 2/2a: summarize " + IntStr(batch+1) + "/" + IntStr(natural_parts.GetCount()));
 		}
 		else if (sub_batch == 1) {
 			args.fn = TaskFn::FN_VOICEOVER_2B_SUMMARIZE_TOTAL;
@@ -196,7 +196,7 @@ void VoiceoverProcess::DoPhase() {
 				total_summarizations[batch] = res;
 				NextSubBatch();
 				SetWaiting(0);
-			}, "Voiceover 2/2b: make total summarization so far " + IntStr(batch+1) + "/" + IntStr(natural_parts.GetCount()));
+			}, "ScriptText 2/2b: make total summarization so far " + IntStr(batch+1) + "/" + IntStr(natural_parts.GetCount()));
 		}
 	}
 	/*else if (phase == PHASE_MAKE_STORYLINE_SUGGESTIONS) {
@@ -213,8 +213,8 @@ void VoiceoverProcess::DoPhase() {
 	}
 }
 
-VoiceoverProcess& VoiceoverProcess::Get(VfsPath path, Value params) {
-	static ArrayMap<hash_t, VoiceoverProcess> arr;
+ScriptTextProcess& ScriptTextProcess::Get(VfsPath path, Value params) {
+	static ArrayMap<hash_t, ScriptTextProcess> arr;
 	String key = (String)path + ";" + StoreAsJson(params);
 	hash_t hash = key.GetHashValue();
 	auto& o = arr.GetAdd(hash);
@@ -223,6 +223,6 @@ VoiceoverProcess& VoiceoverProcess::Get(VfsPath path, Value params) {
 	return o;
 }
 
-INITIALIZER_COMPONENT(VoiceoverText);
+INITIALIZER_COMPONENT(ScriptText);
 
 END_UPP_NAMESPACE

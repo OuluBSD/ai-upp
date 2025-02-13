@@ -38,7 +38,7 @@ void TranscriptProofreadCtrl::Data() {
 
 void TranscriptProofreadCtrl::DataFile() {
 	int idx = transcripts.GetIndex();
-	if (idx < 0 && idx >= this->transcripts.GetCount())
+	if (idx < 0 || idx >= this->transcripts.GetCount())
 		return;
 	COMPNAME& comp = GetExt<COMPNAME>();
 	auto& vidfile = *finder.file_ptrs[idx];
@@ -157,7 +157,8 @@ INITIALIZER_COMPONENT_CTRL(TranscriptProofread, TranscriptProofreadCtrl)
 
 
 
-
+// TODO remove
+#if 0
 ProofreadStorylineCtrl::ProofreadStorylineCtrl() {
 	CtrlLayout(*this);
 	
@@ -191,10 +192,19 @@ void ProofreadStorylineCtrl::Data() {
 
 void ProofreadStorylineCtrl::DataFile() {
 	int idx = sources.GetIndex();
-	if (idx < 0 && idx >= this->sources.GetCount())
+	if (idx < 0 || idx >= this->sources.GetCount())
 		return;
 	COMPNAME& comp = GetExt<COMPNAME>();
 	auto& vidfile = *finder.file_ptrs[idx];
+	
+	comp.value("text")        = vidfile.value("text");
+	comp.value("path")        = vidfile.value("path");
+	comp.value("duration")    = vidfile.value("duration");
+	comp.value("frame_rate")  = vidfile.value("frame_rate");
+	comp.value("vidpath")     = vidfile.value("path");
+	comp.value("range_begin") = vidfile.value("range_begin");
+	comp.value("range_end")   = vidfile.value("range_end");
+	comp.value("proofread")   = vidfile.value("proofread");
 	
 	this->scene.SetData(comp.value("scene"));
 	this->people.SetData(comp.value("people"));
@@ -206,19 +216,16 @@ void ProofreadStorylineCtrl::DataFile() {
 void ProofreadStorylineCtrl::Start() {
 	PostCallback([this]{this->start.Disable();});
 	Event<> fn = [this]{
+		COMPNAME& comp = GetExt<COMPNAME>();
 		ts.Reset();
-		int src_idx = sources.GetIndex();
-		if (src_idx < 0 && src_idx >= this->sources.GetCount())
-			return;
-		auto& src = *finder.file_ptrs[src_idx];
-		String text = src.value("proofread");
+		
+		String text = comp.value("proofread");
 		TranscriptResponse r;
 		LoadFromJson(r, text);
 		ValueArray arr;
 		for(int i = 0; i < r.segments.GetCount(); i++)
 			arr.Add(r.segments[i].text);
 		
-		COMPNAME& comp = GetExt<COMPNAME>();
 		TaskMgr& m = AiTaskManager();
 		TaskArgs args;
 		args.fn = FN_PROOFREAD_STORYLINE_1;
@@ -254,6 +261,104 @@ INITIALIZER_COMPONENT_CTRL(ProofreadStoryline, ProofreadStorylineCtrl)
 
 
 
+
+
+
+
+StorylineDialogCtrl::StorylineDialogCtrl() {
+	CtrlLayout(*this);
+	
+	start.WhenAction = THISBACK(Start);
+	
+	ai.WhenAction = [this] {
+		int ai_idx = this->ai.GetIndex();
+		auto& comp = GetExt<COMPNAME>();
+		comp.value("ai-idx") = ai_idx;
+	};
+	
+}
+
+void StorylineDialogCtrl::Data() {
+	auto& comp = GetExt<COMPNAME>();
+	SetAiProviders(this->ai, comp.value("ai-idx"));
+	
+	finder.UpdateSources(*this, sources, THISBACK(DataFile));
+	DataFile();
+}
+
+void StorylineDialogCtrl::DataFile() {
+	int idx = sources.GetIndex();
+	if (idx < 0 || idx >= this->sources.GetCount())
+		return;
+	COMPNAME& comp = GetExt<COMPNAME>();
+	auto& vidfile = *finder.file_ptrs[idx];
+	
+	// TODO optimize these duplicate texts away (they are needed, but use some version control)
+	comp.value("text")        = vidfile.value("text");
+	comp.value("path")        = vidfile.value("path");
+	comp.value("duration")    = vidfile.value("duration");
+	comp.value("frame_rate")  = vidfile.value("frame_rate");
+	comp.value("vidpath")     = vidfile.value("path");
+	comp.value("range_begin") = vidfile.value("range_begin");
+	comp.value("range_end")   = vidfile.value("range_end");
+	comp.value("proofread")   = vidfile.value("proofread");
+	comp.value("storyline")   = vidfile.value("storyline");
+	comp.value("scene")       = vidfile.value("scene");
+	comp.value("people")      = vidfile.value("people");
+	
+	String text = comp.value("dialog");
+	this->text.SetData(text);
+}
+
+void StorylineDialogCtrl::Start() {
+	PostCallback([this]{this->start.Disable();});
+	Event<> fn = [this]{
+		COMPNAME& comp = GetExt<COMPNAME>();
+		ts.Reset();
+		
+		String text = comp.value("proofread");
+		TranscriptResponse r;
+		LoadFromJson(r, text);
+		ValueArray arr;
+		for(int i = 0; i < r.segments.GetCount(); i++)
+			arr.Add(r.segments[i].text);
+		
+		TaskMgr& m = AiTaskManager();
+		TaskArgs args;
+		args.fn = FN_STORYLINE_DIALOG_1;
+		int idx = ai.GetIndex();
+		args.params("ai_provider_idx") = this->ai.GetKey(idx);
+		args.params("scene") = comp.value("scene");
+		args.params("people") = comp.value("people");
+		args.params("storyline") = comp.value("storyline");
+		args.params("proofread") = arr;
+		
+		PostCallback([this,&comp]{this->status.SetLabel("Making dialog of storyline & proofread of: " + (String)comp.value("path"));});
+		m.Get(args, [this](String s) {
+			COMPNAME& comp = GetExt<COMPNAME>();
+			s = TrimBoth(s);
+			//DLOG(s);
+			
+			comp.value("dialog") = s;
+			
+			PostCallback([this,s]{
+				this->status.SetLabel("Dialog was completed in " + ts.ToString());
+				this->start.Enable();
+				DataFile();
+			});
+		});
+	};
+	fn();
+}
+
+void StorylineDialogCtrl::ToolMenu(Bar& bar) {
+	
+}
+
+INITIALIZER_COMPONENT_CTRL(StorylineDialog, StorylineDialogCtrl)
+
+
+#endif
 
 
 

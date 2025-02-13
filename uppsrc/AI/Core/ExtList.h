@@ -67,7 +67,8 @@
 	DATASET_ITEM(ScriptReasoning,		script_reason,	METAKIND_ECS_COMPONENT_SCRIPT_REASONING,	CATEGORY_TEXT, "Script Reasoning") \
 	DATASET_ITEM(VoiceoverText,			voiceover,		METAKIND_ECS_COMPONENT_SCRIPT_VOICEOVER,	CATEGORY_TEXT, "Voiceover") \
 	DATASET_ITEM(TranscriptProofread,	trans_proof,	METAKIND_ECS_COMPONENT_TRANSCRIPT_PROOFREAD,CATEGORY_TEXT, "Transcript -> Proofread") \
-	DATASET_ITEM(ProofreadStoryline,	proof_story,	METAKIND_ECS_COMPONENT_PROOFREAD_STORYLINE,	CATEGORY_TEXT, "Proofread -> Storyline") \
+	/*TODO remove DATASET_ITEM(ProofreadStoryline,	proof_story,	METAKIND_ECS_COMPONENT_PROOFREAD_STORYLINE,	CATEGORY_TEXT, "Proofread -> Storyline")*/ \
+	/*DATASET_ITEM(StorylineDialog,		storydialog,	METAKIND_ECS_COMPONENT_STORYLINE_DIALOG,	CATEGORY_TEXT, "Storyline -> Dialog")*/ \
 	DATASET_ITEM(StorylineConversion,	storyconv,		METAKIND_ECS_COMPONENT_STORYLINE_CONVERSION,CATEGORY_TEXT, "Storyline -> Storyline") \
 	DATASET_ITEM(StorylineScript,		storyscript,	METAKIND_ECS_COMPONENT_STORYLINE_SCRIPT,	CATEGORY_TEXT, "Storyline -> Script") \
 	DATASET_ITEM(ScriptConversion,		scriptconv,		METAKIND_ECS_COMPONENT_SCRIPT_CONVERSION,	CATEGORY_TEXT, "Script -> Script") \

@@ -33,6 +33,7 @@ class Bar;
 #include <CtrlLib/Bar.h>
 #include <CtrlLib/StatusBar.h>
 #include <CtrlLib/TabCtrl.h>
+#include <CtrlLib/PageCtrl.h>
 #include <CtrlLib/DlgColor.h>
 #include <CtrlLib/ArrayCtrl.h>
 #include <CtrlLib/DropChoice.h>

@@ -140,7 +140,9 @@ void PageCtrl::Paint(Draw& w)
 		auto& t = tab[i];
 		if (r.Intersects(t.rect)) {
 			int x = xoff - 20;
-			w.DrawTextA(x, r.top, t.text, fnt, style->text_color[0]);
+			Size txtsz = GetTextSize(t.text, fnt);
+			int txty = t.rect.top - txtsz.cy-1;
+			w.DrawTextA(x, txty, t.text, fnt, style->text_color[0]);
 			
 			if (style->edgew > 0) {
 				Rect r = t.rect;

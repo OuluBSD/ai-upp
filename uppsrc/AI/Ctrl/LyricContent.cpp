@@ -2,7 +2,15 @@
 
 NAMESPACE_UPP
 
-PartContentCtrl::PartContentCtrl(ScriptReferenceMakerCtrl& o) : o(o) {
+PartContentCtrl::PartContentCtrl() {
+	AddFrame(scroll);
+	fnt = Monospace(15);
+	
+	scroll.SetLine(lh);
+	scroll.WhenScroll << THISBACK(Layout);
+}
+
+PartContentCtrl::PartContentCtrl(ScriptReferenceMakerCtrl& o) : o(&o) {
 	AddFrame(scroll);
 	fnt = Monospace(15);
 	
@@ -129,6 +137,8 @@ void PartContentCtrl::InitDefault(PartLineCtrl& l) {
 }
 
 void PartContentCtrl::DataLine(PartLineCtrl& pl) {
+	if (!o) return;
+	auto& o = *this->o;
 	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
@@ -182,6 +192,8 @@ void PartContentCtrl::DataLine(PartLineCtrl& pl) {
 }
 
 void PartContentCtrl::OnLineValueChange(PartLineCtrl* l_) {
+	if (!o) return;
+	auto& o = *this->o;
 	PartLineCtrl& pl = *l_;
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	
@@ -254,6 +266,8 @@ void PartContentCtrl::DataSelAction(PartLineCtrl* l_) {
 }
 
 void PartContentCtrl::Data() {
+	if (!o) return;
+	auto& o = *this->o;
 	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
@@ -319,6 +333,8 @@ void PartContentCtrl::Data() {
 }
 
 void PartContentCtrl::AddElements(DropList& dl) {
+	if (!o) return;
+	auto& o = *this->o;
 	auto p = o.GetDataset();
 	ASSERT(p.src);
 	auto& src = p.src->Data();
@@ -345,6 +361,8 @@ int PartContentCtrl::FindElement(const String& s) {
 }
 
 void PartContentCtrl::OnElementChange(int sub_i, int line_i, DropList* dl) {
+	if (!o) return;
+	auto& o = *this->o;
 	DatasetPtrs p = o.GetDataset();
 	if (!p.script || !o.parts.IsCursor())
 		return;
@@ -445,9 +463,11 @@ bool PartLineCtrl::IsSelected() const {
 }
 
 LineElement* PartLineCtrl::GetLineEl() const {
-	DatasetPtrs p = o.o.GetDataset();
+	if (!o.o) return 0;
+	auto& o = *this->o.o;
+	DatasetPtrs p = o.GetDataset();
 	LyricalStructure& l = *p.lyric_struct;
-	int part_i = o.o.parts.GetCursor();
+	int part_i = o.parts.GetCursor();
 	DynPart& dp = l.parts[part_i];
 	LineElement* el = 0;
 	if (sub_i < 0 && line_i < 0) {
@@ -467,9 +487,11 @@ LineElement* PartLineCtrl::GetLineEl() const {
 }
 
 DynLine* PartLineCtrl::GetDynLine() const {
-	DatasetPtrs p = o.o.GetDataset();
+	if (!o.o) return 0;
+	auto& o = *this->o.o;
+	DatasetPtrs p = o.GetDataset();
 	LyricalStructure& l = *p.lyric_struct;
-	int part_i = o.o.parts.GetCursor();
+	int part_i = o.parts.GetCursor();
 	DynPart& dp = l.parts[part_i];
 	if (sub_i >= 0 && line_i >= 0) {
 		DynSub& ds = dp.sub[sub_i];

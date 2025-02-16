@@ -6,9 +6,36 @@ NAMESPACE_UPP
 
 class ScriptTextCtrl : public ValueVFSComponentCtrl {
 	
-	struct InputTab : WithScriptTextInput<VNodeComponentCtrl> {
+	struct SubTab : VNodeComponentCtrl {
 		ScriptTextCtrl& owner;
-		InputTab(ScriptTextCtrl&);
+		TabCtrl tabs;
+		One<PartContentCtrl> part_view;
+		One<StructuredScriptEditor> editor;
+		PageCtrl dbproc;
+		
+		One<SourceDataCtrl>			srcdata;
+		One<TokensPage>				tk;
+		One<AmbiguousWordPairs>		awp;
+		One<VirtualPhrases>			vp;
+		One<VirtualPhraseParts>		vpp;
+		One<VirtualPhraseStructs>	vps;
+		One<PhrasePartAnalysis>		vpa;
+		One<PhrasePartAnalysis2>	vpa2;
+		One<ActionAttrsPage>		aap;
+		One<Attributes>				att;
+		One<TextDataDiagnostics>	diag;
+		
+		SubTab(ScriptTextCtrl&);
+		void Data() override;
+		void AddRootTabs();
+		void AddLineOwnerTabs();
+	};
+	
+	struct LineTab : VNodeComponentCtrl {
+		ScriptTextCtrl& owner;
+		TabCtrl tabs;
+		ScriptPhrasePartsGroups db;
+		LineTab(ScriptTextCtrl&);
 		void Data() override;
 	};
 	
@@ -33,6 +60,9 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 	void RefreshParams();
 	void ImportProofread(VirtualNode new_node, TranscriptProofread& proofread);
 	ScriptTextProcess* active_process = 0;
+	
+	bool TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) override;
+	
 public:
 	typedef ScriptTextCtrl CLASSNAME;
 	ScriptTextCtrl();

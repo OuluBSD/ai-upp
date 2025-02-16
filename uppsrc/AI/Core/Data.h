@@ -373,6 +373,12 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	double GetNormalScore() const;
 };
 
+END_UPP_NAMESPACE
+
+#include "DBv2.h"
+
+NAMESPACE_UPP
+
 struct SrcTextData : Pte<SrcTextData> {
 	String filepath;
 	VectorMap<hash_t, ScriptStruct> scripts;

@@ -40,11 +40,11 @@ struct VfsPath : Moveable<VfsPath> {
 	VfsPath();
 	VfsPath(const String& s);
 	VfsPath(const VfsPath& path);
-	VfsPath(const Vector<String>& path);
+	VfsPath(const Vector<Value>& path);
 	VfsPath(VfsPath&& path);
 	VfsPath& operator=(const VfsPath& path);
 	void	Set(String path);
-	void	Set(const Vector<String>& parts);
+	void	Set(const Vector<Value>& parts);
 	void	Set(const VfsPath& path, int begin, int end);
 	bool	IsLeft(const VfsPath& path) const;
 	bool	IsSame(const VfsPath& path, int this_begin, int other_begin, int len) const;
@@ -56,13 +56,13 @@ struct VfsPath : Moveable<VfsPath> {
 	bool	IsValidFullPath() const;
 	void	Append(const VfsPath& p);
 	const String& Get() const;
-	const Vector<String>& Parts() const;
+	const Vector<Value>& Parts() const;
 	operator String() const;
 	void    RemoveLast();
 	
 private:
 	String			str;
-	Vector<String>	parts;
+	Vector<Value>	parts;
 	void	StrFromParts();
 };
 

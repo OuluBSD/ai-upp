@@ -43,7 +43,7 @@ class PartContentCtrl : public Ctrl {
 protected:
 	friend class ScriptReferenceMakerCtrl;
 	friend class PartLineCtrl;
-	ScriptReferenceMakerCtrl& o;
+	ScriptReferenceMakerCtrl* o = 0;
 	Vector<String> element_keys;
 	ScrollBar scroll;
 	Array<PartLineCtrl> lines;
@@ -53,6 +53,7 @@ protected:
 	
 public:
 	typedef PartContentCtrl CLASSNAME;
+	PartContentCtrl();
 	PartContentCtrl(ScriptReferenceMakerCtrl& o);
 	
 	void Paint(Draw& d) override;

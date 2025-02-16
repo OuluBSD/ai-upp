@@ -6,7 +6,7 @@ NAMESPACE_UPP
 class SourceTextCtrl;
 
 class SourceDataCtrl : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl entities, components; //, active_components;
 	DocEdit scripts, analysis;
@@ -14,7 +14,7 @@ class SourceDataCtrl : public ParentCtrl {
 	
 public:
 	typedef SourceDataCtrl CLASSNAME;
-	SourceDataCtrl(SourceTextCtrl& o);
+	SourceDataCtrl(ToolAppCtrl& o);
 
 	void Data();
 	void DataEntity();
@@ -26,20 +26,20 @@ public:
 
 // TODO rename
 class TokensPage : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter hsplit;
 	ArrayCtrl tokens;
 	
 public:
 	typedef TokensPage CLASSNAME;
-	TokensPage(SourceTextCtrl& o);
+	TokensPage(ToolAppCtrl& o);
 	
 	void Data();
 };
 
 // TODO rename
 class TextDataWords : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter hsplit, vsplit;
 	ArrayCtrl colors, words;
 	bool disabled = false;
@@ -47,7 +47,7 @@ class TextDataWords : public ParentCtrl {
 	
 public:
 	typedef TextDataWords CLASSNAME;
-	TextDataWords(SourceTextCtrl& o);
+	TextDataWords(ToolAppCtrl& o);
 	
 	void EnableAll();
 	void DisableAll();
@@ -59,26 +59,26 @@ public:
 
 // TODO rename
 class TokenPhrases : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter hsplit;
 	ArrayCtrl texts;
 	
 public:
 	typedef TokenPhrases CLASSNAME;
-	TokenPhrases(SourceTextCtrl& o);
+	TokenPhrases(ToolAppCtrl& o);
 	
 	void Data();
 };
 
 // TODO rename
 class AmbiguousWordPairs : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts;
 	
 public:
 	typedef AmbiguousWordPairs CLASSNAME;
-	AmbiguousWordPairs(SourceTextCtrl& o);
+	AmbiguousWordPairs(ToolAppCtrl& o);
 	
 	void Data();
 };
@@ -87,39 +87,39 @@ String GetTypePhraseString(const Vector<int>& word_classes, const SrcTextData& d
 
 // TODO rename
 class VirtualPhrases : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhrases CLASSNAME;
-	VirtualPhrases(SourceTextCtrl& o);
+	VirtualPhrases(ToolAppCtrl& o);
 	
 	void Data();
 };
 
 // TODO rename
 class VirtualPhraseParts : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhraseParts CLASSNAME;
-	VirtualPhraseParts(SourceTextCtrl& o);
+	VirtualPhraseParts(ToolAppCtrl& o);
 	
 	void Data();
 };
 
 // TODO rename
 class VirtualPhraseStructs : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhraseStructs CLASSNAME;
-	VirtualPhraseStructs(SourceTextCtrl& o);
+	VirtualPhraseStructs(ToolAppCtrl& o);
 	
 	void Data();
 };
@@ -131,7 +131,7 @@ struct ScoreDisplay : public Display {
 
 // TODO rename
 class PhrasePartAnalysis : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl attrs, colors, actions, action_args, parts;
 	
@@ -139,7 +139,7 @@ class PhrasePartAnalysis : public ParentCtrl {
 	
 public:
 	typedef PhrasePartAnalysis CLASSNAME;
-	PhrasePartAnalysis(SourceTextCtrl& o);
+	PhrasePartAnalysis(ToolAppCtrl& o);
 	
 	void Data();
 	void DataMain();
@@ -152,13 +152,13 @@ public:
 
 // TODO rename
 class PhrasePartAnalysis2 : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl elements, typecasts, contrasts, parts,  colors;
 	
 public:
 	typedef PhrasePartAnalysis2 CLASSNAME;
-	PhrasePartAnalysis2(SourceTextCtrl& o);
+	PhrasePartAnalysis2(ToolAppCtrl& o);
 	
 	void Data();
 	void DataMain();
@@ -172,13 +172,13 @@ public:
 
 // TODO rename
 class ActionAttrsPage : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl attrs, colors, actions;
 	
 public:
 	typedef ActionAttrsPage CLASSNAME;
-	ActionAttrsPage(SourceTextCtrl& o);
+	ActionAttrsPage(ToolAppCtrl& o);
 	
 	void Data();
 	void DataAttribute();
@@ -188,7 +188,7 @@ public:
 
 // TODO rename
 class Attributes : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter hsplit, vsplit;
 	ArrayCtrl groups, values, pos_values, neg_values;
 	
@@ -199,7 +199,7 @@ class Attributes : public ParentCtrl {
 	
 public:
 	typedef Attributes CLASSNAME;
-	Attributes(SourceTextCtrl& o);
+	Attributes(ToolAppCtrl& o);
 	
 	void Data();
 	void DataGroup();
@@ -207,13 +207,13 @@ public:
 
 // TODO rename
 class TextDataDiagnostics : public ParentCtrl {
-	SourceTextCtrl& o;
+	ToolAppCtrl& o;
 	Splitter hsplit;
 	ArrayCtrl values;
 	
 public:
 	typedef TextDataDiagnostics CLASSNAME;
-	TextDataDiagnostics(SourceTextCtrl& o);
+	TextDataDiagnostics(ToolAppCtrl& o);
 	
 	void Data();
 };

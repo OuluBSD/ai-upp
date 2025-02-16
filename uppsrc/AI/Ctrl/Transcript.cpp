@@ -137,7 +137,7 @@ void TranscriptProofreadCtrl::Start() {
 				else if (modified_lines.Find(i) >= 0) {
 					auto& to_segment = r.segments[i];
 					to_segment.tokens.Clear();
-					if (i+1 < i < r.segments.GetCount()) {
+					if (i+1 < r.segments.GetCount()) {
 						i++;
 						for(; i < r.segments.GetCount(); i++) {
 							if (modified_lines.Find(i) >= 0) {

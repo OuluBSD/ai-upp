@@ -751,6 +751,12 @@ void PartLineCtrl::Paint(Draw& d) {
 	bool focused = IsSelected();
 	int off = 2;
 	
+	if (!this->o.o) {
+		d.DrawRect(sz, White());
+		d.DrawText(5,5,"TODO",StdFont(),Black());
+	}
+	auto& o = *this->o.o;
+	
 	// Header
 	Color part_bg_clr = White();
 	Color sub_bg_clr = Color(225, 227, 255);
@@ -773,9 +779,9 @@ void PartLineCtrl::Paint(Draw& d) {
 	if (line_i >= 0) d.DrawRect(line_bg_r, line_bg_clr);
 	
 	// Line texts
-	DatasetPtrs p = o.o.GetDataset();
+	DatasetPtrs p = o.GetDataset();
 	LyricalStructure& l = *p.lyric_struct;
-	int part_i = o.o.parts.GetCursor();
+	int part_i = o.parts.GetCursor();
 	if (part_i < 0)
 		return;
 	
@@ -830,11 +836,11 @@ void PartLineCtrl::Paint(Draw& d) {
 		typeclass_clr = Color(28, 212, 150);
 		content_clr = Color(198, 85, 150);
 		int mode = DatabaseBrowser::FindMode(el->sorter);
-		String tc  = el->typeclass_i >= 0 ? o.o.GetTypeclasses()[el->typeclass_i] : String();
+		String tc  = el->typeclass_i >= 0 ? o.GetTypeclasses()[el->typeclass_i] : String();
 		int con_i = el->con_i / 3;
 		int con_mod = el->con_i % 3;
 		String con = el->con_i >= 0 ?
-			o.o.GetContents()[con_i].key + ": " + o.o.GetContents()[con_i].parts[con_mod] : String();
+			o.GetContents()[con_i].key + ": " + o.GetContents()[con_i].parts[con_mod] : String();
 		if (mode < 0) {
 			PaintTextBlock(d, x, off, r, element_clr, el->element, sans);
 			PaintTextBlock(d, x, off, r, attr_group_clr, el->attr.group, sans);

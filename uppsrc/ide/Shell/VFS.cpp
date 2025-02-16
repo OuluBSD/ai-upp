@@ -15,7 +15,7 @@ VfsPath::VfsPath(const VfsPath& path) {
 	parts <<= path.parts;
 }
 
-VfsPath::VfsPath(const Vector<String>& path) {
+VfsPath::VfsPath(const Vector<Value>& path) {
 	parts <<= path;
 	StrFromParts();
 }
@@ -27,31 +27,38 @@ VfsPath::VfsPath(VfsPath&& path) {
 
 VfsPath& VfsPath::operator=(const VfsPath& path) {
 	str = path.str;
-	parts <<= path.parts;
+	if (path.parts.IsEmpty())
+		parts.Clear();
+	else
+		parts <<= path.parts;
 	return *this;
 }
 
 void VfsPath::Set(String path) {
 	this->str = path;
 	
-	parts = Split(path , INTERNAL_SEPS);
-	
 	#if INTERNAL_POSIX
 	if (this->str.IsEmpty())
 		str = "/";
 	#endif
 	
+	Vector<String> str_parts = Split(path , INTERNAL_SEPS);
+	
 	#if INTERNAL_COMB || INTERNAL_CPM
-	if (parts.GetCount()) {
-		auto& p = parts[0];
+	if (str_parts.GetCount()) {
+		auto& p = str_parts[0];
 		int c = p.GetCount();
 		if (c && p[c-1] == ':')
 			p = p.Left(c-1);
 	}
 	#endif
+	
+	parts.Clear();
+	for(auto& p : str_parts)
+		parts.Add(p);
 }
 
-void VfsPath::Set(const Vector<String>& parts) {
+void VfsPath::Set(const Vector<Value>& parts) {
 	this->parts <<= parts;
 	StrFromParts();
 }
@@ -128,7 +135,7 @@ String VfsPath::AsSysPath() const {
 }
 
 const String& VfsPath::Get() const {return str;}
-const Vector<String>& VfsPath::Parts() const {return parts;}
+const Vector<Value>& VfsPath::Parts() const {return parts;}
 VfsPath::operator String() const {return str;}
 
 int VfsPath::GetPartCount() const {
@@ -151,15 +158,18 @@ bool VfsPath::Normalize() {
 	while (1) {
 		bool changes = false;
 		for(int i = 0; i < parts.GetCount(); i++) {
-			String& p = parts[i];
-			if (p == "..") {
-				if (!i) {
-					str.Clear();
-					parts.Clear();
-					return false;
+			Value& p = parts[i];
+			if (p.Is<String>()) {
+				String s = p;
+				if (s == "..") {
+					if (!i) {
+						str.Clear();
+						parts.Clear();
+						return false;
+					}
+					parts.Remove(i-1,2);
+					changes = true;
 				}
-				parts.Remove(i-1,2);
-				changes = true;
 			}
 		}
 		if (!changes) break;

@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-SourceDataCtrl::SourceDataCtrl(SourceTextCtrl& o) : o(o) {
+SourceDataCtrl::SourceDataCtrl(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << scripts << analysis;
@@ -149,7 +149,7 @@ void SourceDataCtrl::DataExtension() {
 
 
 
-TokensPage::TokensPage(SourceTextCtrl& o) : o(o) {
+TokensPage::TokensPage(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << tokens;
@@ -197,7 +197,7 @@ void TokensPage::Data() {
 
 
 
-AmbiguousWordPairs::AmbiguousWordPairs(SourceTextCtrl& o) : o(o) {
+AmbiguousWordPairs::AmbiguousWordPairs(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -265,7 +265,7 @@ void AmbiguousWordPairs::Data() {
 
 
 
-VirtualPhrases::VirtualPhrases(SourceTextCtrl& o) : o(o) {
+VirtualPhrases::VirtualPhrases(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit;
@@ -393,7 +393,7 @@ void VirtualPhrases::Data() {
 
 
 
-VirtualPhraseParts::VirtualPhraseParts(SourceTextCtrl& o) : o(o) {
+VirtualPhraseParts::VirtualPhraseParts(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -457,7 +457,7 @@ void VirtualPhraseParts::Data() {
 
 
 
-VirtualPhraseStructs::VirtualPhraseStructs(SourceTextCtrl& o) : o(o) {
+VirtualPhraseStructs::VirtualPhraseStructs(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -561,7 +561,7 @@ void ScoreDisplay::Paint(Draw& d, const Rect& r, const Value& q,
 
 
 
-PhrasePartAnalysis::PhrasePartAnalysis(SourceTextCtrl& o) : o(o) {
+PhrasePartAnalysis::PhrasePartAnalysis(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 
 	hsplit.Horz() << vsplit << parts;
@@ -841,7 +841,7 @@ void PhrasePartAnalysis::DataActionHeader() {
 
 
 
-PhrasePartAnalysis2::PhrasePartAnalysis2(SourceTextCtrl& o) : o(o) {
+PhrasePartAnalysis2::PhrasePartAnalysis2(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << parts;
@@ -1160,7 +1160,7 @@ void PhrasePartAnalysis2::UpdateCounts() {
 
 
 
-ActionAttrsPage::ActionAttrsPage(SourceTextCtrl& o) : o(o) {
+ActionAttrsPage::ActionAttrsPage(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << actions;
@@ -1313,7 +1313,7 @@ void ActionAttrsPage::DataColor() {
 
 
 
-Attributes::Attributes(SourceTextCtrl& o) : o(o) {
+Attributes::Attributes(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << groups << values << vsplit;
@@ -1484,7 +1484,7 @@ void Attributes::DataGroup() {
 
 
 
-TextDataDiagnostics::TextDataDiagnostics(SourceTextCtrl& o) : o(o) {
+TextDataDiagnostics::TextDataDiagnostics(ToolAppCtrl& o) : o(o) {
 	Add(hsplit.HSizePos().VSizePos(0,30));
 	
 	hsplit.Horz() << values;

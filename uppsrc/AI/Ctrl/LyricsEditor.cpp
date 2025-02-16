@@ -972,8 +972,11 @@ void StructuredScriptEditor::Paint(Draw& d) {
 	int cx_2 = sz.cx / 2;
 	
 	d.DrawRect(sz, White());
-	
 	Font fnt = SansSerif(line_h-3); // Monospace(line_h-3);
+	if (!owner) {
+		d.DrawText(2,2,"Error: no pointer",fnt,Black());
+		return;
+	}
 	DatasetPtrs p = owner->GetDataset();
 	if (!p.lyric_struct) return;
 	LyricalStructure& l = *p.lyric_struct;

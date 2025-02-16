@@ -2122,7 +2122,7 @@ VfsPath MetaNode::GetPath() const {
 	}
 	ptrs[i] = 0;
 	const MetaNode** iter = ptrs;
-	Vector<String> path;
+	Vector<Value> path;
 	path.Reserve(i);
 	while (*iter) {
 		path.Add((*iter)->id);

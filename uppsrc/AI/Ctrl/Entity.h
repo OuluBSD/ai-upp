@@ -28,7 +28,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 		Atomic refs = 0;
 		MetaNode* node = 0;
 		Value* value = 0;
-		String key;
+		Value key;
 		int mode = -1;
 		void Inc() {refs++;}
 		void Dec() {refs--; if (refs <= 0) delete this;}
@@ -39,21 +39,25 @@ struct VirtualNode : Moveable<VirtualNode> {
 	VirtualNode(VirtualNode&& vn);
 	VirtualNode& operator=(const VirtualNode& vn);
 	~VirtualNode();
-	VirtualNode Find(String name);
+	VirtualNode Find(Value name);
 	Vector<VirtualNode> GetAll();
 	Vector<VirtualNode> FindAll(int kind);
-	VirtualNode Add(String name, int kind);
-	String GetName() const;
+	VirtualNode Add(Value name, int kind);
+	Value GetName() const;
 	String GetKindString() const;
 	int GetKind() const;
 	void SetKind(int k);
+	bool IsValue() const;
+	bool IsEntity() const;
+	Value GetValue() const;
+	void WriteValue(Value val);
 	operator bool() const;
 	void Clear();
 	void RemoveSubNodes();
-	void Remove(const String& name);
+	void Remove(const Value& name);
 	Data& Create();
 	Data& Create(MetaNode* n);
-	Data& Create(Value* v, String key);
+	Data& Create(Value* v, Value key);
 };
 
 class VNodeComponentCtrl;
@@ -66,6 +70,7 @@ class VirtualFSComponentCtrl : public ComponentCtrl {
 	void Data() override;
 	bool Visit(TreeCtrl& tree, int id, VirtualNode n);
 	void OnTreeCursor(TreeCtrl* tree);
+	virtual bool TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) {return false;}
 protected:
 	friend class ValueVFSComponentCtrl;
 	VirtualFSComponentCtrl();

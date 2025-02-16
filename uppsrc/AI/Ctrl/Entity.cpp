@@ -77,10 +77,10 @@ void VirtualFSComponentCtrl::OnTreeCursor(TreeCtrl* tree) {
 		path << cur;
 	}
 	Reverse(path);
-	Vector<String> parts;
+	Vector<Value> parts;
 	for(int i = 1; i < path.GetCount(); i++) {
 		Value val = tree->Get(path[i]);
-		parts << val.ToString();
+		parts << val;
 	}
 	//DUMPC(parts);
 	VfsPath vfspart(parts);
@@ -118,10 +118,12 @@ void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 	auto sub = n.GetAll();
 	for (VirtualNode& s : sub) {
-		String name = s.GetName();
+		Value name = s.GetName();
+		//DLOG("Visit " << name.GetTypeName() << ": " << name.ToString());
 		int kind = s.GetKind();
-		String key = name + " (" + s.GetKindString() + ")";
-		String qtf = "[g [h4 [*@(28.85.0)$(255.42.0) " + DeQtf(key) + "][@(28.85.0)$(255.42.0)2  ][/@(28.85.0)$(255.42.0)+75 (???)]]";
+		String qtf;
+		if (!TreeItemString(s, name, qtf))
+			qtf = DeQtf(name.ToString() + " (" + s.GetKindString() + ")");
 		int sub_id = tree.Add(id, TextImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))
 			return false;
@@ -132,7 +134,8 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 VirtualNode VirtualFSComponentCtrl::Find(const VfsPath& rel_path) {
 	VirtualNode p = Root();
 	for(int i = 0; i < rel_path.GetPartCount(); i++) {
-		String item = rel_path.Parts()[i];
+		Value item = rel_path.Parts()[i];
+		//DLOG(i << ": " << item.GetTypeName() << ": " << item.ToString());
 		p = p.Find(item);
 		if (!p)
 			break;
@@ -215,7 +218,7 @@ VirtualNode& VirtualNode::operator=(const VirtualNode& vn) {
 	return *this;
 }
 
-VirtualNode VirtualNode::Find(String name) {
+VirtualNode VirtualNode::Find(Value name) {
 	VirtualNode n;
 	if (data) {
 		if (data->value) {
@@ -225,7 +228,7 @@ VirtualNode VirtualNode::Find(String name) {
 				ValueMap map = *data->value;
 				int i = map.Find(name);
 				if (i >= 0)
-					n.Create(&const_cast<Value&>(map.GetValue(i)), name);
+					n.Create(&const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
 			}
 			else Panic("TODO");
 		}
@@ -258,7 +261,7 @@ void VirtualNode::RemoveSubNodes() {
 	else Panic("TODO");
 }
 
-void VirtualNode::Remove(const String& name) {
+void VirtualNode::Remove(const Value& name) {
 	ASSERT(data);
 	if (!data) return;
 	if (data->value) {
@@ -294,7 +297,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					for(int i = 0; i < map.GetCount(); i++) {
 						Value& val = const_cast<Value&>(map.GetValue(i));
 						if (val.Is<ValueMap>()) {
-							String key = map.GetKey(i).ToString();
+							Value key = map.GetKey(i);
 							auto& data = v.Add().Create(&val, key);
 							ASSERT(data.value->Is<ValueMap>());
 						}
@@ -306,7 +309,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					for(int i = 0; i < arr.GetCount(); i++) {
 						Value& val = arr.At(i);
 						if (val.Is<ValueMap>()) {
-							v.Add().Create(&val, IntStr(i));
+							v.Add().Create(&val, i);
 						}
 					}
 				}
@@ -351,7 +354,7 @@ Vector<VirtualNode> VirtualNode::FindAll(int kind) {
 	return n;
 }
 
-VirtualNode VirtualNode::Add(String name, int kind) {
+VirtualNode VirtualNode::Add(Value name, int kind) {
 	VirtualNode n;
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
@@ -383,7 +386,7 @@ VirtualNode VirtualNode::Add(String name, int kind) {
 	return n;
 }
 
-String VirtualNode::GetName() const {
+Value VirtualNode::GetName() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
 			if (data->value)
@@ -395,7 +398,7 @@ String VirtualNode::GetName() const {
 		}
 		else Panic("TODO");
 	}
-	return String();
+	return Value();
 }
 
 String VirtualNode::GetKindString() const {
@@ -406,7 +409,9 @@ String VirtualNode::GetKindString() const {
 					ValueMap map = *data->value;
 					int i = map.Find(".kind");
 					if (i >= 0) {
-						int kind = map.GetValue(i);
+						Value kind_value = map.GetValue(i);
+						ASSERT(kind_value.Is<int>());
+						int kind = kind_value;
 						return MetaNode::GetKindString(kind);
 					}
 				}
@@ -466,11 +471,20 @@ void VirtualNode::SetKind(int k) {
 	}
 }
 
+bool VirtualNode::IsValue() const {return data && data->mode == VFS_VALUE && data->value;}
+bool VirtualNode::IsEntity() const {return data && data->mode == VFS_ENTITY && data->node;}
+Value VirtualNode::GetValue() const {return data && data->mode == VFS_VALUE && data->value ? *data->value : Value();}
+void VirtualNode::WriteValue(Value val) {
+	ASSERT(IsValue());
+	if (data && data->value)
+		*data->value = val;
+}
+
 VirtualNode::operator bool() const {return data;}
 void VirtualNode::Clear() {if (data) {data->Dec(); data = 0;}}
 VirtualNode::Data& VirtualNode::Create() {Clear(); data = new Data(); data->Inc(); return *data;}
 VirtualNode::Data& VirtualNode::Create(MetaNode* n) {Clear(); data = new Data(); data->node = n; data->mode = VFS_ENTITY; data->Inc(); return *data;}
-VirtualNode::Data& VirtualNode::Create(Value* v, String key) {Clear(); data = new Data(); data->key = key; data->value = v; data->mode = VFS_VALUE; data->Inc(); return *data;}
+VirtualNode::Data& VirtualNode::Create(Value* v, Value key) {Clear(); data = new Data(); data->key = key; data->value = v; data->mode = VFS_VALUE; data->Inc(); return *data;}
 
 
 

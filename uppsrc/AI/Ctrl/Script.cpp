@@ -2,14 +2,55 @@
 
 NAMESPACE_UPP
 
-ScriptTextCtrl::InputTab::InputTab(ScriptTextCtrl& o) : owner(o) {
-	CtrlLayout(*this);
+
+
+ScriptTextCtrl::SubTab::SubTab(ScriptTextCtrl& o) : owner(o) {
+	Add(tabs.SizePos());
 	
 }
 
-void ScriptTextCtrl::InputTab::Data() {
+void ScriptTextCtrl::SubTab::Data() {
 	
 }
+
+void ScriptTextCtrl::SubTab::AddRootTabs() {
+	part_view.Create();
+	editor.Create();
+	tabs.Add(part_view->SizePos(), "Part view");
+	tabs.Add(editor->SizePos(), "Editor");
+}
+
+
+void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
+	tabs.Add(dbproc.SizePos(), "Line process");
+	#define CREATE(x, txt) \
+		x.Create(*owner.owner); \
+		dbproc.Add(*x, txt);
+	CREATE(srcdata, "Source data")
+	CREATE(tk, "Analyzed")
+	CREATE(awp, "Tokens")
+	CREATE(vp, "Ambiguous Word Pairs")
+	CREATE(vpp, "Virtual Phrases")
+	CREATE(vps, "Virtual Phrase Structs")
+	CREATE(vpa, "Phrase Part Analysis 1")
+	CREATE(vpa2, "Phrase Part Analysis 2")
+	CREATE(aap, "Action Attrs Page")
+	CREATE(att, "Attributes")
+	CREATE(diag, "Text Data Diagnostics")
+	#undef CREATE
+}
+
+
+ScriptTextCtrl::LineTab::LineTab(ScriptTextCtrl& o) : owner(o), db(o) {
+	Add(tabs.SizePos());
+	tabs.Add(db.SizePos(), "DB");
+}
+
+void ScriptTextCtrl::LineTab::Data() {
+	
+}
+
+
 
 ScriptTextCtrl::PartTab::PartTab(ScriptTextCtrl& o) : owner(o) {
 	
@@ -18,6 +59,8 @@ ScriptTextCtrl::PartTab::PartTab(ScriptTextCtrl& o) : owner(o) {
 void ScriptTextCtrl::PartTab::Data() {
 	
 }
+
+
 
 ScriptTextCtrl::GenerateTab::GenerateTab(ScriptTextCtrl& o) : owner(o) {
 	Add(vsplit.SizePos());
@@ -34,6 +77,20 @@ void ScriptTextCtrl::GenerateTab::Data() {
 
 ScriptTextCtrl::ScriptTextCtrl() {
 	
+}
+
+bool ScriptTextCtrl::TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) {
+	if (n.IsValue()) {
+		ValueMap value = n.GetValue();
+		String text = value("text");
+		if (text.GetCount()) {
+			qtf_value =
+				"[$(28.255.150)1 Color][1  ][$(255.220.200)1 Element][1  ][$(154.213.147)1 Attr Group][1  ][$(110.220.98)1 Attr Value][1  ][$(238.162.211)1 Action Group][1  ][$(238.172.230)1 Action Value&][ " +
+				DeQtf(text);
+			return true;
+		}
+	}
+	return false;
 }
 
 void ScriptTextCtrl::DataTree(TreeCtrl& tree) {
@@ -86,17 +143,27 @@ void ScriptTextCtrl::AddPart() {
 }
 
 void ScriptTextCtrl::ImportProofread(VirtualNode new_node, TranscriptProofread& proofread) {
-	ValueArray selected = proofread.value("selected");
+	ValueMap selected = proofread.value("selected");
+	Index<int> selected_indices;
+	for(int i = 0; i < selected.GetCount(); i++)
+		selected_indices.FindAdd(selected.GetKey(i));
+	SortIndex(selected_indices, StdLess<int>());
 	String text = proofread.value("proofread");
 	TranscriptResponse r;
 	LoadFromJson(r,text);
 	new_node.RemoveSubNodes();
 	VirtualNode section = new_node.Add("0", METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB);
-	for(int i = 0; i < selected.GetCount(); i++) {
-		int seg_i = selected[i];
+	for(int i = 0; i < selected_indices.GetCount(); i++) {
+		int seg_i = selected_indices[i];
 		if (seg_i >= 0 && seg_i < r.segments.GetCount()) {
-			const auto& seg = r.segments[i];
-			section.Add(IntStr(i), METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE);
+			const auto& seg = r.segments[seg_i];
+			VirtualNode line = section.Add(i, METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE);
+			ASSERT(line.IsValue());
+			ValueMap lineval = line.GetValue();
+			lineval("text", seg.text);
+			lineval("begin", seg.start);
+			lineval("end", seg.end);
+			line.WriteValue(lineval);
 		}
 	}
 }
@@ -142,10 +209,20 @@ String ScriptTextCtrl::GetTitle() const {
 
 VNodeComponentCtrl* ScriptTextCtrl::CreateCtrl(const VirtualNode& vnode) {
 	int kind = vnode.GetKind();
-	if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT)
-		return new InputTab(*this);
-	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_PROOFREAD)
-		return new PartTab(*this);
+	if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT) {
+		SubTab* o = new SubTab(*this);
+		o->AddRootTabs();
+		o->AddLineOwnerTabs();
+		return o;
+	}
+	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB) {
+		SubTab* o = new SubTab(*this);
+		o->AddLineOwnerTabs();
+		return o;
+	}
+	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_PROOFREAD ||
+			 kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE)
+		return new LineTab(*this);
 	//else if (kind == METAKIND_ECS_VIRTUAL_IO_TRANSCRIPTION_VOICEOVER_GENERATE)
 	//	return new GenerateTab(*this);
 	return 0;
@@ -153,5 +230,7 @@ VNodeComponentCtrl* ScriptTextCtrl::CreateCtrl(const VirtualNode& vnode) {
 
 
 INITIALIZER_COMPONENT_CTRL(ScriptText, ScriptTextCtrl)
+
+
 
 END_UPP_NAMESPACE

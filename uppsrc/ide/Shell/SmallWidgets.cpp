@@ -51,12 +51,12 @@ void Timer::ToggleStart() {
 void Timer::Check() {
 	if (!running) return;
 	Time now = GetSysTime();
-	int remaining = max((int64)0, ready.Get() - now.Get());
-	int remaining_s = remaining % 60;
+	int64 remaining = max((int64)0, ready.Get() - now.Get());
+	int64 remaining_s = remaining % 60;
 	remaining /= 60;
-	int remaining_m = remaining % 60;
+	int64 remaining_m = remaining % 60;
 	remaining /= 60;
-	int remaining_h = remaining;
+	int64 remaining_h = remaining;
 	String s;
 	s << "Remaining: ";
 	if (remaining_h)

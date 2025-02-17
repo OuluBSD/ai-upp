@@ -92,8 +92,11 @@ hash_t ClangCursorInfo::TypeHash()
 		}
 		else if (IsTypeRef(cursorKind) || cursorKind == CXCursor_MacroExpansion) {
 			CXCursor ref = clang_getCursorReferenced(cursor);
-			if (IsTypeDecl(ref.kind) || ref.kind == CXCursor_MacroDefinition)
+			if (IsTypeDecl(ref.kind) ||
+				ref.kind == CXCursor_MacroDefinition ||
+				ref.kind == CXCursor_LabelStmt) {
 				typehash = clang_hashCursor(ref);
+			}
 			else if (IsVariable(ref.kind)) {
 				CXType type = clang_getCursorType(cursor);
 				CXCursor type_decl = clang_getTypeDeclaration(type);

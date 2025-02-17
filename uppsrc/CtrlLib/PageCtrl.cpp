@@ -142,7 +142,7 @@ void PageCtrl::Paint(Draw& w)
 			int x = xoff - 20;
 			Size txtsz = GetTextSize(t.text, fnt);
 			int txty = t.rect.top - txtsz.cy-1;
-			w.DrawTextA(x, txty, t.text, fnt, style->text_color[0]);
+			w.DrawText(x, txty, t.text, fnt, style->text_color[0]);
 			
 			if (style->edgew > 0) {
 				Rect r = t.rect;

@@ -102,7 +102,8 @@ bool IsTypeDecl(int kind)
 		CXCursor_ClassTemplate, CXCursor_ClassTemplatePartialSpecialization,
 		CXCursor_NamespaceAlias, CXCursor_UsingDeclaration,
 		CXCursor_TypeAliasDecl,
-		CXCursor_TypeAliasTemplateDecl
+		CXCursor_TypeAliasTemplateDecl,
+		CXCursor_OverloadedDeclRef
 		) >= 0;
 }
 

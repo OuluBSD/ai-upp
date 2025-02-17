@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-SourceDataCtrl::SourceDataCtrl(ToolAppCtrl& o) : o(o) {
+SourceDataCtrl::SourceDataCtrl(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << scripts << analysis;
@@ -27,13 +27,13 @@ void SourceDataCtrl::SetFont(Font fnt) {
 
 void SourceDataCtrl::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		entities.Clear();
 		components.Clear();
 		analysis.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	const auto& data = src.entities;
 	
 	//DUMP(GetDatabase().a.dataset.scripts.GetCount());
@@ -149,7 +149,7 @@ void SourceDataCtrl::DataExtension() {
 
 
 
-TokensPage::TokensPage(ToolAppCtrl& o) : o(o) {
+TokensPage::TokensPage(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << tokens;
@@ -197,7 +197,7 @@ void TokensPage::Data() {
 
 
 
-AmbiguousWordPairs::AmbiguousWordPairs(ToolAppCtrl& o) : o(o) {
+AmbiguousWordPairs::AmbiguousWordPairs(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -265,7 +265,7 @@ void AmbiguousWordPairs::Data() {
 
 
 
-VirtualPhrases::VirtualPhrases(ToolAppCtrl& o) : o(o) {
+VirtualPhrases::VirtualPhrases(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit;
@@ -393,7 +393,7 @@ void VirtualPhrases::Data() {
 
 
 
-VirtualPhraseParts::VirtualPhraseParts(ToolAppCtrl& o) : o(o) {
+VirtualPhraseParts::VirtualPhraseParts(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -457,7 +457,7 @@ void VirtualPhraseParts::Data() {
 
 
 
-VirtualPhraseStructs::VirtualPhraseStructs(ToolAppCtrl& o) : o(o) {
+VirtualPhraseStructs::VirtualPhraseStructs(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << texts;
@@ -561,7 +561,7 @@ void ScoreDisplay::Paint(Draw& d, const Rect& r, const Value& q,
 
 
 
-PhrasePartAnalysis::PhrasePartAnalysis(ToolAppCtrl& o) : o(o) {
+PhrasePartAnalysis::PhrasePartAnalysis(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 
 	hsplit.Horz() << vsplit << parts;
@@ -841,7 +841,7 @@ void PhrasePartAnalysis::DataActionHeader() {
 
 
 
-PhrasePartAnalysis2::PhrasePartAnalysis2(ToolAppCtrl& o) : o(o) {
+PhrasePartAnalysis2::PhrasePartAnalysis2(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << parts;
@@ -1160,7 +1160,7 @@ void PhrasePartAnalysis2::UpdateCounts() {
 
 
 
-ActionAttrsPage::ActionAttrsPage(ToolAppCtrl& o) : o(o) {
+ActionAttrsPage::ActionAttrsPage(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << actions;
@@ -1313,7 +1313,7 @@ void ActionAttrsPage::DataColor() {
 
 
 
-Attributes::Attributes(ToolAppCtrl& o) : o(o) {
+Attributes::Attributes(DatasetProvider& o) : o(o) {
 	Add(hsplit.SizePos());
 	
 	hsplit.Horz() << groups << values << vsplit;
@@ -1484,7 +1484,7 @@ void Attributes::DataGroup() {
 
 
 
-TextDataDiagnostics::TextDataDiagnostics(ToolAppCtrl& o) : o(o) {
+TextDataDiagnostics::TextDataDiagnostics(DatasetProvider& o) : o(o) {
 	Add(hsplit.HSizePos().VSizePos(0,30));
 	
 	hsplit.Horz() << values;
@@ -1618,7 +1618,7 @@ void SourceTextCtrl::Data() {
 void SourceTextCtrl::Visit(NodeVisitor& vis) {
 	if (vis.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, &n);
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, n);
 		if (n)
 			SetFileNode(n);
 	}

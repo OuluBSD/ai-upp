@@ -318,6 +318,7 @@ void MetaSrcFile::UpdateLoading() {
 	temp->RealizeSerial();
 	lock.Leave();
 	
+// see SRC_TXT_HEADER_ENABLE
 	if (GetFileExt(full_path) == ".db-src") {
 		SrcTxtHeader* src = dynamic_cast<SrcTxtHeader*>(&*temp->ext);
 		ASSERT(src);
@@ -875,6 +876,7 @@ MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 	return 0;
 }
 
+// see SRC_TXT_HEADER_ENABLE
 MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis) {
 	if (!file.pkg)
 		return 0;
@@ -899,6 +901,7 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	
+// see SRC_TXT_HEADER_ENABLE
 	// Hotfix for old .db-src file
 	if (GetFileExt(path) == ".db-src") {
 		String json = LoadFile(path);
@@ -923,20 +926,29 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	return false;
 }
 
-bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode** file_node) {
-	if (file_node) *file_node = 0;
+bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode*& file_node) {
+	file_node = 0;
 	
 	MetaSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	
 	// Hotfix for old .db-src file
-	if (GetFileExt(path) == ".db-src") {
+	String ext = GetFileExt(path);
+	if (ext == ".db-src") {
 		MetaNode* fn = LoadDatabaseSourceVisit(file, path, vis);
 		if (fn) {
-			if (file_node)
-				*file_node = fn;
+			file_node = fn;
 			return true;
 		}
+	}
+	else if (ext == ".ecs") {
+		MetaNode& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_ECS_SPACE);
+		if (fn.id.IsEmpty())
+			fn.id = GetFileTitle(path);
+		file_node = &fn;
+	}
+	else {
+		Panic("TODO");
 	}
 	
 	ASSERT(vis.IsLoading());

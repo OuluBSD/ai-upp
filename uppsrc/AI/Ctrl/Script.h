@@ -25,8 +25,10 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		One<Attributes>				att;
 		One<TextDataDiagnostics>	diag;
 		
-		SubTab(ScriptTextCtrl&);
+		typedef SubTab CLASSNAME;
+		SubTab(ScriptTextCtrl&, const VirtualNode& vnode);
 		void Data() override;
+		void PageView(int page);
 		void AddRootTabs();
 		void AddLineOwnerTabs();
 	};
@@ -35,13 +37,13 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		ScriptTextCtrl& owner;
 		TabCtrl tabs;
 		ScriptPhrasePartsGroups db;
-		LineTab(ScriptTextCtrl&);
+		LineTab(ScriptTextCtrl&, const VirtualNode& vnode);
 		void Data() override;
 	};
 	
 	struct PartTab : VNodeComponentCtrl {
 		ScriptTextCtrl& owner;
-		PartTab(ScriptTextCtrl&);
+		PartTab(ScriptTextCtrl&, const VirtualNode& vnode);
 		void Data() override;
 	};
 	
@@ -50,7 +52,7 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		Splitter vsplit;
 		ArrayCtrl params;
 		DocEdit output;
-		GenerateTab(ScriptTextCtrl&);
+		GenerateTab(ScriptTextCtrl&, const VirtualNode& vnode);
 		void Data() override;
 	};
 	

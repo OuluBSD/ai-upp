@@ -6,10 +6,10 @@ NAMESPACE_UPP
 struct Script;
 class ToolAppCtrl;
 
-class ComponentCtrl : public MetaExtCtrl {
+class ComponentCtrl : public MetaExtCtrl, DatasetProvider {
 	
 public:
-	DatasetPtrs GetDataset();
+	DatasetPtrs GetDataset() const override;
 	Script& GetScript();
 	
 	const Index<String>& GetTypeclasses() const;
@@ -29,6 +29,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 		MetaNode* node = 0;
 		Value* value = 0;
 		Value key;
+		VfsPath path;
 		int mode = -1;
 		void Inc() {refs++;}
 		void Dec() {refs--; if (refs <= 0) delete this;}
@@ -58,6 +59,38 @@ struct VirtualNode : Moveable<VirtualNode> {
 	Data& Create();
 	Data& Create(MetaNode* n);
 	Data& Create(Value* v, Value key);
+	
+	template <class T>
+	T& GetAddExt(String name) {
+		ASSERT(data && data->mode == VFS_VALUE);
+		int kind = 0;
+		#define DATASET_ITEM(a,b,c,d,e) if (!kind && typeid(T) == typeid(a)) kind = c;
+		VIRTUALNODE_DATASET_LIST
+		#undef DATASET_ITEM
+		ASSERT(kind > 0);
+		/*VirtualNode n = Find(name);
+		if (n.data) {
+			if (n.data->mode == VFS_ENTITY) {
+				auto& ent = *n.data->node;
+				if (ent.ext) {
+					T* o = dynamic_cast<T*>(&*ent.ext);
+					if (o)
+						return *o;
+				}
+				Panic("TODO"); void* p = 0; return *(T*)p;
+			}
+			else if (n.data->mode == VFS_VALUE) {
+				Value val = *n.data->value;
+				if (val.Is<T>())
+					return val.Get<T>();
+				Panic("TODO"); void* p = 0; return *(T*)p;
+			}
+		}
+		else {
+			
+		}*/
+		Panic("TODO"); void* p = 0; return *(T*)p;
+	}
 };
 
 class VNodeComponentCtrl;
@@ -100,22 +133,34 @@ public:
 	Value Get(Value key);
 };
 
-class VNodeComponentCtrl : public ParentCtrl {
+class VNodeComponentCtrl : public ParentCtrl, public DatasetProvider  {
 	
 protected:
 	friend class VirtualFSComponentCtrl;
 	int kind = 0;
-	
+	VirtualNode vnode;
+	ValueVFSComponentCtrl& owner;
 public:
 	typedef VNodeComponentCtrl CLASSNAME;
-	VNodeComponentCtrl();
+	VNodeComponentCtrl(ValueVFSComponentCtrl&, const VirtualNode& vnode);
 	
+	DatasetPtrs GetDataset() const override;
 	int GetKind() const {return kind;}
 	virtual void Data() {}
 	
+	template <class T>
+	T& GetAddValue(String name) {
+		ASSERT(vnode);
+		T& o = vnode.template GetAddExt<T>(name);
+		return o;
+	}
+	#define DATASET_ITEM(type, field, kind, cat, strname) \
+		type& GetAdd##type() {return this->template GetAddValue<type>(#field);}
+	VIRTUALNODE_DATASET_LIST
+	#undef DATASET_ITEM
 };
 
-class EntityInfoCtrl : public MetaExtCtrl {
+class EntityInfoCtrl : public MetaExtCtrl, public DatasetProvider {
 	WithEntityInfo<Ctrl> info;
 	VectorMap<String,MetaNode*> all_ctxs;
 	ArrayCtrl data;
@@ -129,7 +174,7 @@ public:
 	void OnEdit();
 	void OnEditValue();
 	void DataCursor();
-	DatasetPtrs GetDataset();
+	DatasetPtrs GetDataset() const override;
 	
 	Event<> WhenValueChange;
 };

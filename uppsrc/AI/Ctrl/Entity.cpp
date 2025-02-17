@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-DatasetPtrs ComponentCtrl::GetDataset() {
+DatasetPtrs ComponentCtrl::GetDataset() const {
 	if (!ext)
 		return DatasetPtrs();
 	Component& comp = dynamic_cast<Component&>(*ext);
@@ -490,8 +490,29 @@ VirtualNode::Data& VirtualNode::Create(Value* v, Value key) {Clear(); data = new
 
 
 
-VNodeComponentCtrl::VNodeComponentCtrl() {
-	
+VNodeComponentCtrl::VNodeComponentCtrl(ValueVFSComponentCtrl& o, const VirtualNode& vnode) : owner(o), vnode(vnode) {
+	ASSERT(vnode);
+}
+
+DatasetPtrs VNodeComponentCtrl::GetDataset() const {
+	DatasetPtrs p = owner.GetDataset();
+	if (vnode.IsEntityData() && p.entity) {
+		ASSERT(!vnode.data->path.IsEmpty());
+		EntityData* data = p.entity->FindData(vnode.data->path);
+		if (data) {
+			int data_kind = data->GetKind();
+			switch (data_kind) {
+				#define DATASET_ITEM(type,field,kind,d,e) \
+				case kind: { \
+					p.field = dynamic_cast<type*>(data); \
+					ASSERT(p.field);}
+				VIRTUALNODE_DATASET_LIST
+				#undef DATASET_ITEM
+				default: break;
+			}
+		}
+	}
+	return p;
 }
 
 
@@ -685,8 +706,12 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 }
 
 void EntityEditorCtrl::Visit(NodeVisitor& vis) {
-	if (vis.IsLoading())
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true);
+	if (vis.IsLoading()) {
+		MetaNode* n = 0;
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, n);
+		if (n)
+			SetFileNode(n);
+	}
 	else {
 		MetaSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
@@ -1146,10 +1171,11 @@ void EntityInfoCtrl::ToolMenu(Bar& bar) {
 	
 }
 
-DatasetPtrs EntityInfoCtrl::GetDataset() {
+DatasetPtrs EntityInfoCtrl::GetDataset() const {
+	EntityInfoCtrl* e = const_cast<EntityInfoCtrl*>(this);
 	DatasetPtrs p;
-	MetaNode& n = GetNode();
-	p.entity = &GetExt<Entity>();
+	MetaNode& n = e->GetNode();
+	p.entity = &e->GetExt<Entity>();
 	FillDataset(p, n, 0);
 	return p;
 }

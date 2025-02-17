@@ -14,6 +14,8 @@
 
 // TODO rename many of these to have same name class, field-name, kind (e.g. lyric_struct, METAKIND_ECS_COMPONENT_SONG_IDEA)
 
+// see SRC_TXT_HEADER_ENABLE
+
 #define COMPONENT_LIST \
 	DATASET_ITEM(ProjectWizardView,	prjwiz,			METAKIND_ECS_COMPONENT_PROJECT_WIZARD,		CATEGORY_ASSET, "Code Project Wizard") \
 	DATASET_ITEM(SrcTxtHeader,		src,			METAKIND_DATABASE_SOURCE,					CATEGORY_DISPOSABLE, "Source Database") \
@@ -81,10 +83,14 @@
 	DATASET_ITEM(VideoStoryboard,		vid_storyboard,			METAKIND_ECS_COMPONENT_VIDEO_STORYBOARD,		CATEGORY_VIDEO, "Video Storyboard") \
 	DATASET_ITEM(VideoSourceFile,		vid_src_file,			METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE,		CATEGORY_VIDEO, "Video Source File") \
 	DATASET_ITEM(VideoSourceFileRange,	vid_src_file_range,		METAKIND_ECS_COMPONENT_VIDEO_SOURCE_FILE_RANGE,	CATEGORY_VIDEO, "Video Source File Range") \
-	
+
+#define VIRTUALNODE_DATASET_LIST \
+	DATASET_ITEM(SrcTextData,		srctxt,			METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT,			CATEGORY_DISPOSABLE, "Source Text") \
+
 #define DATASET_LIST \
 	NODE_LIST \
 	EXT_LIST \
 	COMPONENT_LIST \
+	VIRTUALNODE_DATASET_LIST \
 
 #endif

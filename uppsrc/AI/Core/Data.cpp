@@ -2,6 +2,7 @@
 
 NAMESPACE_UPP
 
+// see SRC_TXT_HEADER_ENABLE
 
 //int EditorPtrs::GetActiveEntityIndex() const {return VectorFindPtr(entity, TextDatabase::Single().entities);}
 //int EditorPtrs::GetActiveComponentIndex() const {if (!entity || !component) return -1; return VectorFindPtr(component, entity->comps);}
@@ -331,5 +332,7 @@ String SrcTxtHeader::SaveData() {
 	
 	return StoreAsJson(*this, true);
 }
+
+INITIALIZER_COMPONENT(SrcTxtHeader)
 
 END_UPP_NAMESPACE

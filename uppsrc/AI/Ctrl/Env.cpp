@@ -161,7 +161,7 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 void EnvEditorCtrl::Visit(NodeVisitor& vis) {
 	if (vis.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, &n);
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, n);
 		if (n)
 			SetFileNode(n);
 	}

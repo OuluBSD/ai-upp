@@ -3,10 +3,8 @@
 
 NAMESPACE_UPP
 
-class SourceTextCtrl;
-
 class SourceDataCtrl : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl entities, components; //, active_components;
 	DocEdit scripts, analysis;
@@ -14,7 +12,7 @@ class SourceDataCtrl : public ParentCtrl {
 	
 public:
 	typedef SourceDataCtrl CLASSNAME;
-	SourceDataCtrl(ToolAppCtrl& o);
+	SourceDataCtrl(DatasetProvider& o);
 
 	void Data();
 	void DataEntity();
@@ -26,20 +24,20 @@ public:
 
 // TODO rename
 class TokensPage : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter hsplit;
 	ArrayCtrl tokens;
 	
 public:
 	typedef TokensPage CLASSNAME;
-	TokensPage(ToolAppCtrl& o);
+	TokensPage(DatasetProvider& o);
 	
 	void Data();
 };
 
 // TODO rename
 class TextDataWords : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter hsplit, vsplit;
 	ArrayCtrl colors, words;
 	bool disabled = false;
@@ -47,7 +45,7 @@ class TextDataWords : public ParentCtrl {
 	
 public:
 	typedef TextDataWords CLASSNAME;
-	TextDataWords(ToolAppCtrl& o);
+	TextDataWords(DatasetProvider& o);
 	
 	void EnableAll();
 	void DisableAll();
@@ -59,26 +57,26 @@ public:
 
 // TODO rename
 class TokenPhrases : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter hsplit;
 	ArrayCtrl texts;
 	
 public:
 	typedef TokenPhrases CLASSNAME;
-	TokenPhrases(ToolAppCtrl& o);
+	TokenPhrases(DatasetProvider& o);
 	
 	void Data();
 };
 
 // TODO rename
 class AmbiguousWordPairs : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts;
 	
 public:
 	typedef AmbiguousWordPairs CLASSNAME;
-	AmbiguousWordPairs(ToolAppCtrl& o);
+	AmbiguousWordPairs(DatasetProvider& o);
 	
 	void Data();
 };
@@ -87,39 +85,39 @@ String GetTypePhraseString(const Vector<int>& word_classes, const SrcTextData& d
 
 // TODO rename
 class VirtualPhrases : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhrases CLASSNAME;
-	VirtualPhrases(ToolAppCtrl& o);
+	VirtualPhrases(DatasetProvider& o);
 	
 	void Data();
 };
 
 // TODO rename
 class VirtualPhraseParts : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhraseParts CLASSNAME;
-	VirtualPhraseParts(ToolAppCtrl& o);
+	VirtualPhraseParts(DatasetProvider& o);
 	
 	void Data();
 };
 
 // TODO rename
 class VirtualPhraseStructs : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl texts, parts;
 	
 public:
 	typedef VirtualPhraseStructs CLASSNAME;
-	VirtualPhraseStructs(ToolAppCtrl& o);
+	VirtualPhraseStructs(DatasetProvider& o);
 	
 	void Data();
 };
@@ -131,7 +129,7 @@ struct ScoreDisplay : public Display {
 
 // TODO rename
 class PhrasePartAnalysis : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl attrs, colors, actions, action_args, parts;
 	
@@ -139,7 +137,7 @@ class PhrasePartAnalysis : public ParentCtrl {
 	
 public:
 	typedef PhrasePartAnalysis CLASSNAME;
-	PhrasePartAnalysis(ToolAppCtrl& o);
+	PhrasePartAnalysis(DatasetProvider& o);
 	
 	void Data();
 	void DataMain();
@@ -152,13 +150,13 @@ public:
 
 // TODO rename
 class PhrasePartAnalysis2 : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl elements, typecasts, contrasts, parts,  colors;
 	
 public:
 	typedef PhrasePartAnalysis2 CLASSNAME;
-	PhrasePartAnalysis2(ToolAppCtrl& o);
+	PhrasePartAnalysis2(DatasetProvider& o);
 	
 	void Data();
 	void DataMain();
@@ -172,13 +170,13 @@ public:
 
 // TODO rename
 class ActionAttrsPage : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl attrs, colors, actions;
 	
 public:
 	typedef ActionAttrsPage CLASSNAME;
-	ActionAttrsPage(ToolAppCtrl& o);
+	ActionAttrsPage(DatasetProvider& o);
 	
 	void Data();
 	void DataAttribute();
@@ -188,7 +186,7 @@ public:
 
 // TODO rename
 class Attributes : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter hsplit, vsplit;
 	ArrayCtrl groups, values, pos_values, neg_values;
 	
@@ -199,7 +197,7 @@ class Attributes : public ParentCtrl {
 	
 public:
 	typedef Attributes CLASSNAME;
-	Attributes(ToolAppCtrl& o);
+	Attributes(DatasetProvider& o);
 	
 	void Data();
 	void DataGroup();
@@ -207,13 +205,13 @@ public:
 
 // TODO rename
 class TextDataDiagnostics : public ParentCtrl {
-	ToolAppCtrl& o;
+	DatasetProvider& o;
 	Splitter hsplit;
 	ArrayCtrl values;
 	
 public:
 	typedef TextDataDiagnostics CLASSNAME;
-	TextDataDiagnostics(ToolAppCtrl& o);
+	TextDataDiagnostics(DatasetProvider& o);
 	
 	void Data();
 };

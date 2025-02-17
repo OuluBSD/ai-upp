@@ -29,8 +29,6 @@ file
 	ProjectWizard.cpp,
 	ProjectWizardInit.icpp,
 	Recycle readonly separator,
-	DBv2.h,
-	DBv2.cpp,
 	Data.h,
 	Data.cpp,
 	Browser.h,

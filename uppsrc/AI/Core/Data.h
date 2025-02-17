@@ -373,13 +373,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	double GetNormalScore() const;
 };
 
-END_UPP_NAMESPACE
-
-#include "DBv2.h"
-
-NAMESPACE_UPP
-
-struct SrcTextData : Pte<SrcTextData> {
+struct SrcTextData : EntityData {
 	String filepath;
 	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
@@ -430,7 +424,10 @@ struct SrcTextData : Pte<SrcTextData> {
 	
 };
 
-struct SrcTxtHeader : MetaNodeExt {
+
+// see SRC_TXT_HEADER_ENABLE
+
+struct SrcTxtHeader : Component {
 	Time written;
 	int64 size = 0;
 	String sha1;
@@ -441,7 +438,7 @@ struct SrcTxtHeader : MetaNodeExt {
 	String filepath;
 	One<SrcTextData> data;
 	
-	SrcTxtHeader(MetaNode& owner) : MetaNodeExt(owner) {}
+	SrcTxtHeader(MetaNode& owner) : Component(owner) {}
 	~SrcTxtHeader();
 	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}
 	void RealizeData();
@@ -452,6 +449,7 @@ struct SrcTxtHeader : MetaNodeExt {
 	
 };
 
+INITIALIZE(SrcTxtHeader);
 
 END_UPP_NAMESPACE
 

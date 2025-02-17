@@ -389,7 +389,7 @@ LAYOUT(PublisherInfo, 512, 248)
 END_LAYOUT
 
 LAYOUT(ScriptTextInput, 448, 316)
-	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("\001[g [h4 [*@(28.85.0)$(255.42.0) Script Text][@(28.85.0)$(255.42.0)2  ][/@(28.85.0)$(255.42.0)+75 (???)]]")).HSizePosZ(4, 4).VSizePosZ(4, 4))
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("\001[g [h4 [*@(28.85.0)$(255.42.0) Script Text][@(28.85.0)$(255.42.0)2  ][/@(28.85.0)$(255.42.0)+75 (? ? ?)]]")).HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 
 LAYOUT(TreeDialog, 300, 300)

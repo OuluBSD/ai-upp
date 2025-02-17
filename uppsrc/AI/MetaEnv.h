@@ -511,6 +511,10 @@ enum {
 	METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE,
 	METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB,
 	
+	METAKIND_ECS_VIRTUAL_VALUE_BEGIN = 4100,
+	METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT,
+	
+	
 	METAKIND_EXTENSION_END = 5000,
 	
 	
@@ -870,7 +874,7 @@ struct MetaEnvironment : VFS {
 	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
 	MetaSrcFile& Load(const String& includes, const String& path);
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
-	bool LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode** file_node=0);
+	bool LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode*& file_node);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);

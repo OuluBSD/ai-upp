@@ -43,6 +43,7 @@ public:
 
 private:
 	
+	Index<int>  in_view;
 	Array<Item> tab;
 	bool        accept_current, no_accept;
 	int         y0;
@@ -54,9 +55,12 @@ private:
 
 	void       Go(int);
 	int        FindInsert(Ctrl& slave);
+	void       RealizeInView();
 
 public:
-	Event<>  WhenSet;
+	Event<>     WhenSet;
+	Event<int>  WhenView;
+	Event<int>  WhenUnview;
 	
 	PageCtrl::Item& Add();
 	PageCtrl::Item& Add(const char *text);

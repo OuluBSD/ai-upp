@@ -4,9 +4,26 @@ NAMESPACE_UPP
 
 
 
-ScriptTextCtrl::SubTab::SubTab(ScriptTextCtrl& o) : owner(o) {
+ScriptTextCtrl::SubTab::SubTab(ScriptTextCtrl& o, const VirtualNode& vnode) : owner(o), VNodeComponentCtrl(o, vnode) {
 	Add(tabs.SizePos());
-	
+	dbproc.WhenView = THISBACK(PageView);
+}
+
+void ScriptTextCtrl::SubTab::PageView(int page) {
+	int i = 0;
+	#define CREATE(x, txt) if (i++ == page) x->Data();
+	CREATE(srcdata, "Source data")
+	CREATE(tk, "Analyzed")
+	CREATE(awp, "Tokens")
+	CREATE(vp, "Ambiguous Word Pairs")
+	CREATE(vpp, "Virtual Phrases")
+	CREATE(vps, "Virtual Phrase Structs")
+	CREATE(vpa, "Phrase Part Analysis 1")
+	CREATE(vpa2, "Phrase Part Analysis 2")
+	CREATE(aap, "Action Attrs Page")
+	CREATE(att, "Attributes")
+	CREATE(diag, "Text Data Diagnostics")
+	#undef CREATE
 }
 
 void ScriptTextCtrl::SubTab::Data() {
@@ -24,7 +41,7 @@ void ScriptTextCtrl::SubTab::AddRootTabs() {
 void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 	tabs.Add(dbproc.SizePos(), "Line process");
 	#define CREATE(x, txt) \
-		x.Create(*owner.owner); \
+		x.Create(*this); \
 		dbproc.Add(*x, txt);
 	CREATE(srcdata, "Source data")
 	CREATE(tk, "Analyzed")
@@ -41,7 +58,7 @@ void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 }
 
 
-ScriptTextCtrl::LineTab::LineTab(ScriptTextCtrl& o) : owner(o), db(o) {
+ScriptTextCtrl::LineTab::LineTab(ScriptTextCtrl& o, const VirtualNode& vnode) : owner(o), db(o), VNodeComponentCtrl(o, vnode) {
 	Add(tabs.SizePos());
 	tabs.Add(db.SizePos(), "DB");
 }
@@ -52,7 +69,7 @@ void ScriptTextCtrl::LineTab::Data() {
 
 
 
-ScriptTextCtrl::PartTab::PartTab(ScriptTextCtrl& o) : owner(o) {
+ScriptTextCtrl::PartTab::PartTab(ScriptTextCtrl& o, const VirtualNode& vnode) : owner(o), VNodeComponentCtrl(o, vnode) {
 	
 }
 
@@ -62,7 +79,7 @@ void ScriptTextCtrl::PartTab::Data() {
 
 
 
-ScriptTextCtrl::GenerateTab::GenerateTab(ScriptTextCtrl& o) : owner(o) {
+ScriptTextCtrl::GenerateTab::GenerateTab(ScriptTextCtrl& o, const VirtualNode& vnode) : owner(o), VNodeComponentCtrl(o, vnode) {
 	Add(vsplit.SizePos());
 	vsplit.Vert() << params << output;
 	params.AddColumn("Key");
@@ -210,19 +227,19 @@ String ScriptTextCtrl::GetTitle() const {
 VNodeComponentCtrl* ScriptTextCtrl::CreateCtrl(const VirtualNode& vnode) {
 	int kind = vnode.GetKind();
 	if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT) {
-		SubTab* o = new SubTab(*this);
+		SubTab* o = new SubTab(*this, vnode);
 		o->AddRootTabs();
 		o->AddLineOwnerTabs();
 		return o;
 	}
 	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB) {
-		SubTab* o = new SubTab(*this);
+		SubTab* o = new SubTab(*this, vnode);
 		o->AddLineOwnerTabs();
 		return o;
 	}
 	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_PROOFREAD ||
 			 kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE)
-		return new LineTab(*this);
+		return new LineTab(*this, vnode);
 	//else if (kind == METAKIND_ECS_VIRTUAL_IO_TRANSCRIPTION_VOICEOVER_GENERATE)
 	//	return new GenerateTab(*this);
 	return 0;

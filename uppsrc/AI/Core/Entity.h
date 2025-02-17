@@ -30,9 +30,15 @@ struct DatasetPtrs {
 
 void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp);
 
-struct Component : MetaNodeExt {
+class DatasetProvider {
+public:
+	virtual DatasetPtrs GetDataset() const = 0;
+	
+};
+
+struct Component : MetaNodeExt, DatasetProvider {
 	Component(MetaNode& owner) : MetaNodeExt(owner) {}
-	DatasetPtrs GetDataset() const;
+	DatasetPtrs GetDataset() const override;
 	
 };
 
@@ -55,6 +61,9 @@ INITIALIZE(type)
 #define COMPONENT_STUB_IMPL(type, kind) \
 	INITIALIZER_COMPONENT(type);
 
+struct EntityData : Pte<EntityData> {
+	virtual ~EntityData() {}
+};
 
 struct Entity : MetaNodeExt {
 	METANODE_EXT_CONSTRUCTOR(Entity)

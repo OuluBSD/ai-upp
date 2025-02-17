@@ -102,6 +102,7 @@ void PageCtrl::Layout()
 		y += t.rect.Height();
 	}
 	
+	RealizeInView();
 	Refresh();
 }
 
@@ -118,6 +119,26 @@ Size PageCtrl::ComputeSize()
 		}
 	}
 	return sz;
+}
+
+void PageCtrl::RealizeInView() {
+	Rect r = GetSize();
+	int i = 0;
+	for (auto& t : tab) {
+		if (t.rect.Intersects(r)) {
+			if (in_view.Find(i) < 0) {
+				in_view.Add(i);
+				WhenView(i);
+			}
+		}
+		else {
+			if (in_view.Find(i) >= 0) {
+				in_view.RemoveKey(i);
+				WhenUnview(i);
+			}
+		}
+		i++;
+	}
 }
 
 void PageCtrl::MouseWheel(Point, int zdelta, dword)

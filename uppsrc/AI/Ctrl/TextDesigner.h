@@ -15,7 +15,7 @@ public:
 	void AttachRemaining(Label& lbl);
 };
 
-class ToolAppCtrl : public Ctrl {
+class ToolAppCtrl : public Ctrl, public DatasetProvider {
 	String data, data_includes, data_filepath;
 	MetaNode* file_node = 0;
 	
@@ -39,7 +39,7 @@ public:
 	Entity& GetEntity();
 	Component& GetComponent();
 	//EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
-	DatasetPtrs GetDataset() const;
+	DatasetPtrs GetDataset() const override;
 	Script& GetScript();
 	//const Index<String>& GetTypeclasses() const;
 	//const Vector<ContentType>& GetContents() const;

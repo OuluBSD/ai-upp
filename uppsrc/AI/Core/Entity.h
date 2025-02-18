@@ -63,13 +63,16 @@ INITIALIZE(type)
 
 struct EntityData : Pte<EntityData> {
 	virtual ~EntityData() {}
+	virtual int GetKind() const = 0;
+	virtual void Visit(NodeVisitor& s) = 0;
 };
 
 struct Entity : MetaNodeExt {
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
-	void Visit(NodeVisitor& v) override {v.Ver(1)(1)("data",data);}
+	void Visit(NodeVisitor& v) override;
 	int GetGender() const;
+	EntityData* FindData(const VfsPath& path);
 	
 	bool operator()(const Entity& a, const Entity& b) const {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());
@@ -79,9 +82,11 @@ struct Entity : MetaNodeExt {
 	
 protected:
 	friend class EntityInfoCtrl;
+	friend class VNodeComponentCtrl;
 	friend struct MetaEnvironment;
 	friend struct VirtualNode;
 	VectorMap<String, Value> data;
+	ArrayMap<VfsPath, EntityData> objs;
 	Value& Data(const String& key) {return data.GetAdd(key);}
 };
 

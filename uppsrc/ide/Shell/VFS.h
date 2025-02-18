@@ -35,15 +35,18 @@ NAMESPACE_UPP
 	#define INTERNAL_ROOT_FILE(x) x ":"
 #endif
 
+struct NodeVisitor;
 
 struct VfsPath : Moveable<VfsPath> {
 	VfsPath();
-	VfsPath(const String& s);
+	//VfsPath(const Value& s);
 	VfsPath(const VfsPath& path);
 	VfsPath(const Vector<Value>& path);
 	VfsPath(VfsPath&& path);
 	VfsPath& operator=(const VfsPath& path);
+	VfsPath& Add(Value part);
 	void	Set(String path);
+	void	Set(Value s, const VfsPath& vfs);
 	void	Set(const Vector<Value>& parts);
 	void	Set(const VfsPath& path, int begin, int end);
 	bool	IsLeft(const VfsPath& path) const;
@@ -52,6 +55,7 @@ struct VfsPath : Moveable<VfsPath> {
 	int		GetPartCount() const;
 	bool	IsEmpty() const;
 	String	TopPart() const;
+	String	ToString() const;
 	bool	Normalize();
 	bool	IsValidFullPath() const;
 	void	Append(const VfsPath& p);
@@ -59,15 +63,23 @@ struct VfsPath : Moveable<VfsPath> {
 	const Vector<Value>& Parts() const;
 	operator String() const;
 	void    RemoveLast();
-	
+	hash_t  GetHashValue() const;
+	bool operator==(const VfsPath& p) const;
+	bool operator==(const String& p) const;
+	void    Visit(NodeVisitor& v);
 private:
 	String			str;
 	Vector<Value>	parts;
 	void	StrFromParts();
 };
 
-String operator+(const char* s, const VfsPath& vfs);
-String operator+(const VfsPath& vfs, const char* s);
+VfsPath ValVfs(Value v);
+VfsPath StrVfs(String s);
+
+VfsPath operator+(const char* s, const VfsPath& vfs);
+VfsPath operator+(Value s, const VfsPath& vfs);
+VfsPath operator+(const VfsPath& vfs, const char* s);
+VfsPath operator+(const VfsPath& vfs, Value s);
 bool IsFullInternalDirectory(const String& path);
 String AppendInternalFileName(const String& a, const String& b);
 String NormalizeInternalPath(const String& path);

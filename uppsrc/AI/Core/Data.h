@@ -375,6 +375,8 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 struct SrcTextData : EntityData {
 	String filepath;
+	
+	// Persitent
 	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
 	VectorMap<hash_t, TokenText> token_texts;
@@ -421,7 +423,8 @@ struct SrcTextData : EntityData {
 	
 	String GetTokenTextString(const TokenText& txt) const;
 	void Serialize(Stream& s);
-	
+	int GetKind() const override {return METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT;}
+	void Visit(NodeVisitor& s) override;
 };
 
 

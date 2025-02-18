@@ -39,6 +39,8 @@ void ScriptTextCtrl::SubTab::AddRootTabs() {
 
 
 void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
+	RealizeEntityVfsObject(vnode, METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT);
+	
 	tabs.Add(dbproc.SizePos(), "Line process");
 	#define CREATE(x, txt) \
 		x.Create(*this); \

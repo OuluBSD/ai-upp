@@ -102,6 +102,10 @@ hash_t ClangCursorInfo::TypeHash()
 				CXCursor type_decl = clang_getTypeDeclaration(type);
 				typehash = clang_hashCursor(type_decl);
 			}
+			else if (IsErrorKind(ref.kind)) {
+				// Invalid macro usage can't pass, and can be used as "very unique type"
+				typehash = clang_hashCursor(cursor);
+			}
 			else {
 				Panic("TODO");
 			}

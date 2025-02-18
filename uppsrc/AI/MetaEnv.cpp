@@ -789,7 +789,7 @@ void MetaEnvironment::EcsExt(IdeShell& shell, Value value) {
 			mp->vfs->GetFiles(VfsPath(), items);
 			if (items.GetCount() == 1) {
 				cwd.Set(INTERNAL_ROOT_FILE("prj"));
-				cwd.Append(items[0].name);
+				cwd.Add(items[0].name);
 			}
 		}
 	}
@@ -2159,7 +2159,7 @@ VfsPath MetaExtCtrl::GetCursorPath() const {
 	if (ext)
 		return ext->node.GetPath();
 	if (owner)
-		return owner->GetFilePath();
+		return StrVfs(owner->GetFilePath());
 	ASSERT_(0, "invalid cursor path");
 	return VfsPath();
 }

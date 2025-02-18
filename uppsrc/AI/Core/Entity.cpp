@@ -90,6 +90,57 @@ int Entity::GetGender() const {
 	}
 }
 
+EntityData* Entity::FindData(const VfsPath& path) {
+	int i = objs.Find(path);
+	if (i >= 0)
+		return &objs[i];
+	return 0;
+}
+
+void Entity::Visit(NodeVisitor& v) {
+	v.Ver(2)
+	(1)	("data",data);
+	if (v.file_ver >= 2) {
+		struct Item : Moveable<Item> {
+			VfsPath path;
+			int kind;
+			void Visit(NodeVisitor& v) {v("path",path,VISIT_NODE)("kind",kind);}
+		};
+		if (v.IsLoading()) {
+			Vector<Item> header;
+			v(2)(".header", header, VISIT_VECTOR);
+			this->objs.Clear();
+			for(auto& it : header) {
+				#define DATASET_ITEM(a,b,c,d,e) \
+				if (it.kind == c) {\
+					a* o = new a(); \
+					this->objs.Add(it.path, o); \
+					v((String)it.path, *o, VISIT_NODE); \
+					continue;\
+				}
+				VIRTUALNODE_DATASET_LIST
+				#undef DATASET_ITEM
+				ASSERT_(0,"Invalid kind");
+				v.SetError("Invalid kind");
+				break;
+			}
+		}
+		else {
+			Vector<Item> header;
+			header.Reserve(objs.GetCount());
+			for (auto it : ~objs) {
+				Item& i = header.Add();
+				i.path = it.key;
+				i.kind = it.value.GetKind();
+			}
+			v(2)(".header", header, VISIT_VECTOR);
+			for (auto it : ~objs) {
+				v((String)it.key, it.value, VISIT_NODE); \
+			}
+		}
+	}
+}
+
 INITIALIZER_COMPONENT(Entity);
 
 END_UPP_NAMESPACE

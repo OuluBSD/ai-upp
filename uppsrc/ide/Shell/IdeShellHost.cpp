@@ -103,7 +103,7 @@ void IdeShellHost::ListFiles(IdeShell& shell, Value arg) {
 		path_str = shell.cwd;
 	else if (!IsFullInternalDirectory(path_str))
 		AppendInternalFileName(shell.cwd, path_str);
-	VfsPath path(path_str);
+	VfsPath path(StrVfs(path_str));
 	Vector<VfsItem> items;
 	mm.GetFiles(path, items);
 	const int cols = 4;
@@ -137,7 +137,7 @@ void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
 		path_str = AppendInternalFileName(shell.cwd, path_str);
 		path_str = NormalizeInternalPath(path_str);
 	}
-	VfsPath path(path_str);
+	VfsPath path(StrVfs(path_str));
 	if (!path.IsValidFullPath()) {
 		out = "error: not valid full path '" + path_str + "'";
 	}

@@ -35,6 +35,7 @@ struct Token : Moveable<Token> {
 	mutable int word_ = -1;
 
 	void Serialize(Stream& d) { d / word_; }
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("w", word_);}
 };
 
 struct TokenText : Moveable<TokenText> {
@@ -42,6 +43,7 @@ struct TokenText : Moveable<TokenText> {
 	int virtual_phrase = -1;
 
 	void Serialize(Stream& d) { d % tokens / virtual_phrase; }
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("t",tokens)("vp", virtual_phrase);}
 };
 
 struct ExportWord : Moveable<ExportWord> {
@@ -60,6 +62,18 @@ struct ExportWord : Moveable<ExportWord> {
 		s / spelling / phonetic / count / clr / class_count;
 		for(int i = 0; i < MAX_CLASS_COUNT; i++) s / classes[i];
 		s / link;
+	}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("spelling", spelling)
+			("phonetic", phonetic)
+			("count", count)
+			("clr", clr)
+			("class_count", class_count);
+		for(int i = 0; i < MAX_CLASS_COUNT; i++) {
+			v("cls" + IntStr(i), classes[i]);
+		}
+		v("link", link);
 	}
 
 	void CopyFrom(const ExportWord& wa, bool reset)
@@ -84,7 +98,8 @@ struct WordPairType : Moveable<WordPairType> {
 	int from_type = -1, to_type = -1; // word class index
 
 	void Serialize(Stream& d) { d / from / to / from_type / to_type;}
-
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("f",from)("t",to)("ft",from_type)("tt",to_type);}
+	
 	hash_t GetHashValue() const
 	{
 		CombineHash c;
@@ -98,7 +113,8 @@ struct VirtualPhrase : Moveable<VirtualPhrase> {
 	int virtual_phrase_struct = -1;
 
 	void Serialize(Stream& d) { d % word_classes / virtual_phrase_struct; }
-
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("vps",virtual_phrase_struct);}
+	
 	hash_t GetHashValue() const
 	{
 		CombineHash c;
@@ -114,6 +130,7 @@ struct VirtualPhrasePart : Moveable<VirtualPhrasePart> {
 	int count = 0;
 
 	void Serialize(Stream& d) { d % word_classes / struct_part_type / count;}
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("spt",struct_part_type)("c",count);}
 
 	hash_t GetHashValue() const
 	{
@@ -129,6 +146,7 @@ struct VirtualPhraseStruct : Moveable<VirtualPhraseStruct> {
 	int struct_type = -1;
 
 	void Serialize(Stream& d) { d % virtual_phrase_parts / struct_type; }
+	void Visit(NodeVisitor& v) {v.Ver(1)(1)("vps",virtual_phrase_parts)("st",struct_type);}
 
 	hash_t GetHashValue() const
 	{
@@ -157,6 +175,20 @@ struct PhrasePart : Moveable<PhrasePart> {
 			if(scores[i] != 0)
 				return true;
 		return false;
+	}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("", words)
+			("", tt_i)
+			("", virtual_phrase_part)
+			("", attr)
+			("", el_i)
+			("", clr)
+			("", actions)
+			("", typecasts)
+			("", contrasts);
+		for(int i = 0; i < SCORE_COUNT; i++)
+			v("s" + IntStr(i), scores[i]);
 	}
 	void Serialize(Stream& s)
 	{
@@ -189,14 +221,14 @@ struct ScriptSuggestion : Moveable<ScriptSuggestion> {
 struct PhraseComb : Moveable<PhraseComb> {
 	Vector<int> phrase_parts;
 	
-	void Jsonize(JsonIO& json) {json("phrase_parts", phrase_parts);}
+	void Visit(NodeVisitor& json) {json.Ver(1)(1)("phrase_parts", phrase_parts);}
 };
 
 struct TranslatedPhrasePart : Moveable<TranslatedPhrasePart> {
 	String phrase;
 	int scores[SCORE_COUNT] = {0,0,0,0,0,0,0,0,0,0};
 	
-	void Jsonize(JsonIO& json) {json("phrase", phrase); for(int i = 0; i < SCORE_COUNT; i++) json("score[" + IntStr(i) + "]", scores[i]);}
+	void Visit(NodeVisitor& json) {json.Ver(1)(1)("phrase", phrase); for(int i = 0; i < SCORE_COUNT; i++) json("score[" + IntStr(i) + "]", scores[i]);}
 };
 
 struct ExportAttr : Moveable<ExportAttr> {
@@ -205,6 +237,14 @@ struct ExportAttr : Moveable<ExportAttr> {
 	int count = 0;
 
 	void Serialize(Stream& d) { d / simple_attr / unused / positive / link / count; }
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("s", simple_attr)
+			("u", unused)
+			("p", positive)
+			("l", link)
+			("c", count);
+	}
 };
 
 struct ExportAction : Moveable<ExportAction> {
@@ -213,18 +253,34 @@ struct ExportAction : Moveable<ExportAction> {
 	int count = 0;
 
 	void Serialize(Stream& d) { d / attr / clr / count; }
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("a", attr)
+			("clr", clr)
+			("c", count);
+	}
 };
 
 struct ExportParallel : Moveable<ExportParallel> {
 	int count = 0, score_sum = 0;
 
 	void Serialize(Stream& d) { d / count / score_sum; }
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("c", count)
+			("ss", score_sum);
+	}
 };
 
 struct ExportTransition : Moveable<ExportTransition> {
 	int count = 0, score_sum = 0;
 
 	void Serialize(Stream& d) { d / count / score_sum; }
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("c", count)
+			("ss", score_sum);
+	}
 };
 
 struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
@@ -235,9 +291,17 @@ struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
 	int attr = -1;
 	Color clr = Black();
 
-	void Serialize(Stream& d)
-	{
+	void Serialize(Stream& d) {
 		d % actions % next_phrases % next_scores / first_lines / attr / clr;
+	}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("ac", actions)
+			("np", next_phrases)
+			("ns", next_scores)
+			("fl", first_lines)
+			("at", attr)
+			("cl", clr);
 	}
 };
 
@@ -258,12 +322,30 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 		s / word_clr_count / main_class / attr / clr;
 		for(int i = 0; i < SCORE_COUNT; i++) s / scores[i];
 	}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("wc", word_count);
+		for(int i = 0; i < MAX_WORDS; i++)
+			v	("w" + IntStr(i), words[i])
+				("wc" + IntStr(i), word_clrs[i]);
+		v	("wcc", word_clr_count)
+			("mc", main_class)
+			("at", attr)
+			("clr", clr);
+		for(int i = 0; i < SCORE_COUNT; i++)
+			v("sc" + IntStr(i), scores[i]);
+	}
 };
 
 struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	int attr_i0 = -1, attr_i1 = -1;
 
 	void Serialize(Stream& d) { d / attr_i0 / attr_i1; }
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("ai0", attr_i0)
+			("ai1", attr_i1);
+	}
 };
 
 ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex();
@@ -272,6 +354,11 @@ struct ScriptDataset : Moveable<ScriptDataset> {
 	String name;
 	String text;
 	void Serialize(Stream& s) {s / name / text;}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("name", name)
+			("txt", text);
+	}
 };
 
 struct EntityDataset : Moveable<EntityDataset> {
@@ -279,8 +366,13 @@ struct EntityDataset : Moveable<EntityDataset> {
 	Vector<ScriptDataset> scripts;
 	Vector<String> genres;
 	
-	
 	void Serialize(Stream& s) {s % name % scripts % genres;}
+	void Visit(NodeVisitor& v) {
+		v.Ver(1)
+		(1)	("name", name)
+			("scripts", scripts, VISIT_VECTOR)
+			("genres", genres);
+	}
 };
 
 struct ScriptStruct : Moveable<ScriptStruct> {
@@ -296,7 +388,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 		SubSubPart() {}
 		SubSubPart(const SubSubPart& s) { *this = s; }
 		void Serialize(Stream& s) { s % token_texts % cls; }
-		void Jsonize(JsonIO& json) { json("token_texts", token_texts)("cls", cls); }
+		void Visit(NodeVisitor& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", cls); }
 		void operator=(const SubSubPart& s)
 		{
 			token_texts <<= s.token_texts;
@@ -311,7 +403,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
 		void Serialize(Stream& s) { s % sub % cls % repeat; }
-		void Jsonize(JsonIO& json) { json("sub", sub)("cls", cls)("repeat", repeat); }
+		void Visit(NodeVisitor& json) { json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("cls", cls)("repeat", repeat); }
 		void operator=(const SubPart& s)
 		{
 			sub <<= s.sub;
@@ -334,9 +426,9 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 			s % cls % typeclass % content;
 			ASSERT(!s.IsError());
 		}
-		void Jsonize(JsonIO& json)
+		void Visit(NodeVisitor& json)
 		{
-			json("sub", sub)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
+			json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
 			                                                                        content);
 		}
 		void operator=(const Part& s)
@@ -352,8 +444,8 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	Vector<Part> parts;
 
 	void Serialize(Stream& s) { s % parts; }
-
-	void Jsonize(JsonIO& json) { json("parts", parts); }
+	void Visit(NodeVisitor& json) { json.Ver(1)(1)("parts", parts, VISIT_VECTOR); }
+	
 	bool HasAnyClasses() const
 	{
 		for(const auto& p : parts) {

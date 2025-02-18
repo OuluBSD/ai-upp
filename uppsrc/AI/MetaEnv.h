@@ -325,11 +325,12 @@ struct NodeVisitor {
 		vcs->BeginMap(key, o);
 		int i = 0;
 		for (auto v : ~o) {
+			String name = IntStr(i);
 			if (storing)
 				vcs->BeginKeyStore(i++, v.key);
 			else
 				vcs->BeginAt(i++);
-			v.value.Visit(*this);
+			VisitMapVcs(name, v.value);
 			vcs->End();
 		}
 		vcs->End();

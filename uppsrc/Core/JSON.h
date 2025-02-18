@@ -321,6 +321,7 @@ template<> void Jsonize(JsonIO& io, String& var);
 template<> void Jsonize(JsonIO& io, WString& var);
 template<> void Jsonize(JsonIO& io, Date& var);
 template<> void Jsonize(JsonIO& io, Time& var);
+template<> void Jsonize(JsonIO& io, hash_t& var);
 
 template <class T>
 void JsonizeArray(JsonIO& io, T& array)

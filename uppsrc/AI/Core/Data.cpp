@@ -24,8 +24,8 @@ void SrcTextData::Visit(NodeVisitor& s) {
 		("phrase_parts", phrase_parts, VISIT_MAP)
 		("struct_part_types", struct_part_types)
 		("struct_types", struct_types)
-		("attrs", attrs, VISIT_MAP)
-		("actions", actions, VISIT_MAP)
+		("attrs", attrs, VISIT_MAP_KV)
+		("actions", actions, VISIT_MAP_KV)
 		("parallel", parallel, VISIT_MAPMAP)
 		("trans", trans, VISIT_MAPMAP)
 		("action_phrases", action_phrases, VISIT_MAP)
@@ -36,7 +36,7 @@ void SrcTextData::Visit(NodeVisitor& s) {
 		("typeclasses", typeclasses)
 		("contents", contents, VISIT_VECTOR)
 		("content_parts", content_parts)
-		("lang", lang);
+		("lang", (int&)lang);
 	for(int i = 0; i < TCENT_COUNT; i++)
 		s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
 }

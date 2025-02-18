@@ -314,6 +314,11 @@ template<> void Jsonize(JsonIO& io, int64& var)
 			io.Set(AsString(var));
 }
 
+template<> void Jsonize(JsonIO& io, hash_t& var)
+{
+	Jsonize(io, (int64&)var);
+}
+
 template<> void Jsonize(JsonIO& io, String& var)
 {
 	if(io.IsLoading()) {

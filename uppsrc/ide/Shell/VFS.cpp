@@ -1,14 +1,31 @@
 #include "Shell.h"
+#include <AI/AI.h>
 
 NAMESPACE_UPP
+
+VfsPath ValVfs(Value v) {
+	VfsPath vfs;
+	vfs.Add(v);
+	return vfs;
+}
+
+VfsPath StrVfs(String s) {
+	VfsPath vfs;
+	vfs.Set(s);
+	return vfs;
+}
+
+
+
 
 VfsPath::VfsPath() {
 	
 }
 
+/* Too ambiguous: use ValVfs & StrVfs
 VfsPath::VfsPath(const String& s) {
 	Set(s);
-}
+}*/
 
 VfsPath::VfsPath(const VfsPath& path) {
 	str = path.str;
@@ -25,12 +42,24 @@ VfsPath::VfsPath(VfsPath&& path) {
 	parts = pick(path.parts);
 }
 
+void VfsPath::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("str", str)
+		("parts", parts);
+}
+
 VfsPath& VfsPath::operator=(const VfsPath& path) {
 	str = path.str;
 	if (path.parts.IsEmpty())
 		parts.Clear();
 	else
 		parts <<= path.parts;
+	return *this;
+}
+
+VfsPath& VfsPath::Add(Value part) {
+	parts.Add(part);
+	StrFromParts();
 	return *this;
 }
 
@@ -146,6 +175,10 @@ bool VfsPath::IsEmpty() const {
 	return parts.IsEmpty();
 }
 
+String VfsPath::ToString() const {
+	return str;
+}
+
 String VfsPath::TopPart() const {
 	if (parts.IsEmpty())
 		return String();
@@ -193,12 +226,51 @@ void VfsPath::RemoveLast() {
 	parts.SetCount(parts.GetCount()-1);
 }
 
-String operator+(const char* s, const VfsPath& vfs) {
-	return String(s) + vfs.Get();
+bool VfsPath::operator==(const VfsPath& p) const {
+	return this->str == p.str;
 }
 
-String operator+(const VfsPath& vfs, const char* s) {
-	return vfs.Get() + String(s);
+bool VfsPath::operator==(const String& s) const {
+	return this->str == s;
+}
+
+hash_t VfsPath::GetHashValue() const {
+	CombineHash ch;
+	for (const auto& p : parts)
+		ch.Do(p);
+	return ch;
+}
+
+VfsPath operator+(const char* s, const VfsPath& vfs) {
+	VfsPath path;
+	path.Add(String(s));
+	path.Append(vfs);
+	return path;
+}
+
+VfsPath operator+(const VfsPath& vfs, const char* s) {
+	VfsPath path(vfs);
+	path.Add(String(s));
+	return path;
+}
+
+void VfsPath::Set(Value s, const VfsPath& vfs) {
+	parts.Clear();
+	parts.Add(s);
+	parts.Append(vfs.parts);
+	StrFromParts();
+}
+
+VfsPath operator+(Value s, const VfsPath& vfs) {
+	VfsPath p;
+	p.Set(s, vfs);
+	return p;
+}
+
+VfsPath operator+(const VfsPath& vfs, Value s) {
+	VfsPath p(vfs);
+	p.Add(s);
+	return p;
 }
 
 bool IsFullInternalDirectory(const String& path) {
@@ -227,7 +299,8 @@ String AppendInternalFileName(const String& a, const String& b) {
 }
 
 String NormalizeInternalPath(const String& path) {
-	VfsPath vfs = path;
+	VfsPath vfs;
+	vfs.Set(path);
 	vfs.Normalize();
 	return vfs;
 }

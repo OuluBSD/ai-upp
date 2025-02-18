@@ -9,6 +9,39 @@ NAMESPACE_UPP
 //int EditorPtrs::GetActiveScriptIndex() const {if (!entity || !script) return -1; return VectorFindPtr(static_cast<Component*>(script), entity->comps);}
 
 
+void SrcTextData::Visit(NodeVisitor& s) {
+	s.Ver(1)
+	(1)	("scripts", scripts, VISIT_MAP)
+		("tokens", tokens, VISIT_MAP)
+		("token_texts", token_texts, VISIT_MAP)
+		("element_keys", element_keys)
+		("word_classes", word_classes)
+		("words", words, VISIT_MAP)
+		("ambiguous_word_pairs", ambiguous_word_pairs, VISIT_MAP)
+		("virtual_phrases", virtual_phrases, VISIT_MAP)
+		("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
+		("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
+		("phrase_parts", phrase_parts, VISIT_MAP)
+		("struct_part_types", struct_part_types)
+		("struct_types", struct_types)
+		("attrs", attrs, VISIT_MAP)
+		("actions", actions, VISIT_MAP)
+		("parallel", parallel, VISIT_MAPMAP)
+		("trans", trans, VISIT_MAPMAP)
+		("action_phrases", action_phrases, VISIT_MAP)
+		("wordnets", wordnets, VISIT_MAP)
+		("diagnostics", diagnostics)
+		("simple_attrs", simple_attrs, VISIT_MAP)
+		("entities", entities, VISIT_VECTOR)
+		("typeclasses", typeclasses)
+		("contents", contents, VISIT_VECTOR)
+		("content_parts", content_parts)
+		("lang", lang);
+	for(int i = 0; i < TCENT_COUNT; i++)
+		s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
+}
+
+// TODO remove SrcTextData::Serialize
 void SrcTextData::Serialize(Stream& s) {
 	int v = 1; s % v;
 	if (v >= 1) {

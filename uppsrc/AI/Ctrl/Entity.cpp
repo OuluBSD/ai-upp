@@ -158,9 +158,10 @@ ValueVFSComponentCtrl::ValueVFSComponentCtrl() {
 
 VirtualNode ValueVFSComponentCtrl::Root() {
 	if (!root) {
+		VfsPath root_path; // empty
 		ValueComponentBase* base = &this->GetExt<ValueComponentBase>();
 		ASSERT(base);
-		auto& data = root.Create(&base->value, "Root");
+		auto& data = root.Create(root_path, &base->value, "Root");
 		data.node = &this->GetNode();
 	}
 	return root;
@@ -228,7 +229,7 @@ VirtualNode VirtualNode::Find(Value name) {
 				ValueMap map = *data->value;
 				int i = map.Find(name);
 				if (i >= 0)
-					n.Create(&const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
+					n.Create(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
 			}
 			else Panic("TODO");
 		}
@@ -237,7 +238,7 @@ VirtualNode VirtualNode::Find(Value name) {
 			int i = mn.Find(name);
 			if (i >= 0) {
 				MetaNode& sub = mn.sub[i];
-				n.Create(&sub);
+				n.Create(data->path + name, &sub);
 			}
 		}
 		else Panic("TODO");
@@ -298,8 +299,8 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 						Value& val = const_cast<Value&>(map.GetValue(i));
 						if (val.Is<ValueMap>()) {
 							Value key = map.GetKey(i);
-							auto& data = v.Add().Create(&val, key);
-							ASSERT(data.value->Is<ValueMap>());
+							auto& o = v.Add().Create(data->path + key, &val, key);
+							ASSERT(o.value->Is<ValueMap>());
 						}
 					}
 				}
@@ -309,7 +310,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					for(int i = 0; i < arr.GetCount(); i++) {
 						Value& val = arr.At(i);
 						if (val.Is<ValueMap>()) {
-							v.Add().Create(&val, i);
+							v.Add().Create(data->path + i, &val, i);
 						}
 					}
 				}
@@ -329,7 +330,11 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 				MetaNode& n = *data->node;
 				v.Reserve(n.sub.GetCount());
 				for(int i = 0; i < n.sub.GetCount(); i++) {
-					auto& data = v.Add().Create(&n);
+					auto& sub = n.sub[i];
+					if (sub.id.IsEmpty())
+						v.Add().Create(data->path + i, &n);
+					else
+						v.Add().Create(data->path + (Value)sub.id, &n);
 				}
 			}
 			else if (data->value) {
@@ -372,13 +377,13 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 				}
 				auto& val = data->value->GetAdd(name);
 				ASSERT(val.Is<ValueMap>());
-				n.Create(&val, name);
+				n.Create(data->path + name, &val, name);
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
 			if (data->node) {
 				MetaNode& sub = data->node->Add(kind, name);
-				n.Create(&sub);
+				n.Create(data->path + name, &sub);
 			}
 		}
 		else Panic("TODO");
@@ -482,36 +487,86 @@ void VirtualNode::WriteValue(Value val) {
 
 VirtualNode::operator bool() const {return data;}
 void VirtualNode::Clear() {if (data) {data->Dec(); data = 0;}}
-VirtualNode::Data& VirtualNode::Create() {Clear(); data = new Data(); data->Inc(); return *data;}
-VirtualNode::Data& VirtualNode::Create(MetaNode* n) {Clear(); data = new Data(); data->node = n; data->mode = VFS_ENTITY; data->Inc(); return *data;}
-VirtualNode::Data& VirtualNode::Create(Value* v, Value key) {Clear(); data = new Data(); data->key = key; data->value = v; data->mode = VFS_VALUE; data->Inc(); return *data;}
+//VirtualNode::Data& VirtualNode::Create() {Clear(); data = new Data(); data->Inc(); return *data;}
+VirtualNode::Data& VirtualNode::Create(const VfsPath& p, MetaNode* n)
+{
+	Clear();
+	data = new Data();
+	data->path = p;
+	data->node = n;
+	data->mode = VFS_ENTITY;
+	data->Inc();
+	return *data;
+}
 
-
-
-
+VirtualNode::Data& VirtualNode::Create(const VfsPath& p, Value* v, Value key)
+{
+	Clear();
+	data = new Data();
+	data->path = p;
+	data->key = key;
+	data->value = v;
+	data->mode = VFS_VALUE;
+	data->Inc();
+	return *data;
+}
 
 VNodeComponentCtrl::VNodeComponentCtrl(ValueVFSComponentCtrl& o, const VirtualNode& vnode) : owner(o), vnode(vnode) {
 	ASSERT(vnode);
 }
 
+DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode, int kind) {
+	DatasetPtrs p = owner.GetDataset();
+	if (!p.entity)
+		return p;
+	
+	//DUMP(vnode.data->path);
+	
+	#define DATASET_ITEM(type,field,item_kind,d,e) \
+	if (kind == item_kind) { \
+		VfsPath path = vnode.data->path; \
+		path.Add(#field); \
+		int i = p.entity->objs.Find(path); \
+		if (i >= 0) { \
+			EntityData& data = p.entity->objs[i]; \
+			p.field = dynamic_cast<type*>(&data); \
+			ASSERT(p.field); \
+		} \
+		else {\
+			type* o = new type(); \
+			p.field = o; \
+			p.entity->objs.Add(path, o); \
+		} \
+	}
+	VIRTUALNODE_DATASET_LIST
+	#undef DATASET_ITEM
+	
+	return p;
+}
+
 DatasetPtrs VNodeComponentCtrl::GetDataset() const {
 	DatasetPtrs p = owner.GetDataset();
-	if (vnode.IsEntityData() && p.entity) {
-		ASSERT(!vnode.data->path.IsEmpty());
-		EntityData* data = p.entity->FindData(vnode.data->path);
-		if (data) {
-			int data_kind = data->GetKind();
-			switch (data_kind) {
-				#define DATASET_ITEM(type,field,kind,d,e) \
-				case kind: { \
-					p.field = dynamic_cast<type*>(data); \
-					ASSERT(p.field);}
-				VIRTUALNODE_DATASET_LIST
-				#undef DATASET_ITEM
-				default: break;
+	
+	// Get entity-vfs-objects
+	if (vnode.IsValue() && p.entity) {
+		const VfsPath& path = vnode.data->path;
+		for(auto ed : ~p.entity->objs) {
+			if (ed.key.IsLeft(path) && ed.key.GetPartCount() == path.GetPartCount()+1) {
+				EntityData& data = ed.value;
+				int data_kind = data.GetKind();
+				switch (data_kind) {
+					#define DATASET_ITEM(type,field,kind,d,e) \
+					case kind: { \
+						p.field = dynamic_cast<type*>(&data); \
+						ASSERT(p.field);}
+					VIRTUALNODE_DATASET_LIST
+					#undef DATASET_ITEM
+					default: break;
+				}
 			}
 		}
 	}
+	
 	return p;
 }
 

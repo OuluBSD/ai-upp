@@ -27,12 +27,14 @@ void SourceDataCtrl::SetFont(Font fnt) {
 
 void SourceDataCtrl::Data() {
 	DatasetPtrs p = o.GetDataset();
+	//if (!p.src) {
 	if (!p.srctxt) {
 		entities.Clear();
 		components.Clear();
 		analysis.Clear();
 		return;
 	}
+	//auto& src = *p.src->data;
 	auto& src = *p.srctxt;
 	const auto& data = src.entities;
 	

@@ -103,7 +103,19 @@ bool IsTypeDecl(int kind)
 		CXCursor_NamespaceAlias, CXCursor_UsingDeclaration,
 		CXCursor_TypeAliasDecl,
 		CXCursor_TypeAliasTemplateDecl,
-		CXCursor_OverloadedDeclRef
+		CXCursor_OverloadedDeclRef,
+		CXCursor_TemplateTemplateParameter
+		) >= 0;
+}
+
+bool IsErrorKind(int kind)
+{
+	return findarg(kind,
+	  CXCursor_FirstInvalid,
+	  CXCursor_InvalidFile,
+	  CXCursor_NoDeclFound,
+	  CXCursor_NotImplemented,
+	  CXCursor_InvalidCode
 		) >= 0;
 }
 

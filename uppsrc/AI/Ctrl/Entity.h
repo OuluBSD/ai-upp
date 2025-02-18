@@ -27,6 +27,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 	struct Data {
 		Atomic refs = 0;
 		MetaNode* node = 0;
+		EntityData* edata = 0;
 		Value* value = 0;
 		Value key;
 		VfsPath path;
@@ -56,9 +57,9 @@ struct VirtualNode : Moveable<VirtualNode> {
 	void Clear();
 	void RemoveSubNodes();
 	void Remove(const Value& name);
-	Data& Create();
-	Data& Create(MetaNode* n);
-	Data& Create(Value* v, Value key);
+	//Data& Create();
+	Data& Create(const VfsPath& p, MetaNode* n);
+	Data& Create(const VfsPath& p, Value* v, Value key);
 	
 	template <class T>
 	T& GetAddExt(String name) {
@@ -145,6 +146,7 @@ public:
 	VNodeComponentCtrl(ValueVFSComponentCtrl&, const VirtualNode& vnode);
 	
 	DatasetPtrs GetDataset() const override;
+	DatasetPtrs RealizeEntityVfsObject(const VirtualNode& vnode, int kind);
 	int GetKind() const {return kind;}
 	virtual void Data() {}
 	

@@ -102,6 +102,7 @@ bool IsVariable(int kind);
 bool IsDecl(int kind);
 bool IsTypeDecl(int kind);
 bool IsTypeRef(int kind);
+bool IsErrorKind(int kind);
 int  FindId(const String& s, const String& id);
 
 enum {

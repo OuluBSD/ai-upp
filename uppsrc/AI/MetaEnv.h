@@ -227,8 +227,10 @@ struct NodeVisitor {
 	template<class T>
 	void VisitMapHash(T& o) {
 		hash.Put(o.GetCount());
-		for (auto& v : o)
-			v.Visit(*this);
+		for (auto it : ~o) {
+			hash.Do(it.key);
+			it.value.Visit(*this);
+		}
 	}
 	template<class T>
 	void VisitMapVcs(String key, T& o) {
@@ -250,6 +252,94 @@ struct NodeVisitor {
 		else if (mode == MODE_JSON) VisitMapJson<T>(key, o);
 		else if (mode == MODE_HASH) VisitMapHash<T>(o);
 		else if (mode == MODE_VCS) VisitMapVcs<T>(key, o);
+		return *this;
+	}
+	
+	
+	template<class T>
+	void VisitMapMapSerialize(T& o) {
+		using KeyType = decltype(o.PopKey());
+		Ver(1)(1);
+		int count = o.GetCount();
+		(*stream) / count;
+		if (storing) {
+			for (auto it : ~o) {
+				*stream / const_cast<KeyType&>(it.key);
+				VisitMapSerialize(it.value);
+			}
+		}
+		else {
+			o.Clear();
+			for(int i = 0; i < count; i++) {
+				KeyType key;
+				*stream / key;
+				VisitMapSerialize(o.Add(key));
+			}
+		}
+	}
+	template<class T>
+	void VisitMapMapJson(String key, T& map) {
+		using K = decltype(map.PopKey());
+		using V = typename T::value_type;
+		if (!storing) {
+			map.Clear();
+			const Value& va = this->json->Get()[key];
+			map.Reserve(va.GetCount());
+			for(int i = 0; i < va.GetCount(); i++) {
+				K key;
+				LoadFromJsonValue(key, va[i]["key"]);
+				auto& value = map.Add(key);
+				JsonIO jio(va[i]);
+				NodeVisitor vis(jio);
+				vis.VisitMapJson("value", value);
+			}
+		}
+		else  {
+			Vector<Value> va;
+			va.SetCount(map.GetCount());
+			for(int i = 0; i < map.GetCount(); i++) {
+				JsonIO json;
+				NodeVisitor vis(json);
+				vis.VisitMapJson("value", map[i]);
+				ValueMap item = json.GetResult();
+				ASSERT(item.GetCount());
+				item.Add("key", StoreAsJsonValue(map.GetKey(i)));
+				va[i] = item;
+			}
+			this->json->Set(key, ValueArray(pick(va)));
+		}
+	}
+	template<class T>
+	void VisitMapMapHash(T& o) {
+		hash.Put(o.GetCount());
+		for (auto it0 : ~o) {
+			hash.Do(it0.key);
+			for (auto it1 : ~it0.value) {
+				hash.Do(it1.key);
+				it1.value.Visit(*this);
+			}
+		}
+	}
+	template<class T>
+	void VisitMapMapVcs(String key, T& o) {
+		vcs->BeginMap(key, o);
+		int i = 0;
+		for (auto v : ~o) {
+			if (storing)
+				vcs->BeginKeyStore(i++, v.key);
+			else
+				vcs->BeginAt(i++);
+			v.value.Visit(*this);
+			vcs->End();
+		}
+		vcs->End();
+	}
+	template<class T>
+	NodeVisitor& VisitMapMap(const char* key, T& o) {
+		if      (mode == MODE_STREAM) VisitMapMapSerialize<T>(o);
+		else if (mode == MODE_JSON) VisitMapMapJson<T>(key, o);
+		else if (mode == MODE_HASH) VisitMapMapHash<T>(o);
+		else if (mode == MODE_VCS) VisitMapMapVcs<T>(key, o);
 		return *this;
 	}
 	
@@ -376,15 +466,17 @@ struct NodeVisitor {
 	
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int) {return VisitVector(key, o);}
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int) {return VisitMap(key, o);}
-	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int) {return VisitKVMap(key, o);}
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int) {return VisitMapKV(key, o);}
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int, int) {return VisitVectorVector(key, o);}
 	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int, int, int) {return Visit(key, o);}
+	template<class T> NodeVisitor& operator()(const char* key, T& o, int, int, int, int, int, int) {return VisitMapMap(key, o);}
 	
 	#define VISIT_VECTOR 0
 	#define VISIT_MAP 0,0
 	#define VISIT_MAP_KV 0,0,0
 	#define VISIT_VECTOR_VECTOR 0,0,0,0
 	#define VISIT_NODE 0,0,0,0,0
+	#define VISIT_MAPMAP 0,0,0,0,0,0
 };
 
 template <class T>

@@ -1932,4 +1932,13 @@ String GetSnapshotAnalysisKey(int i) {
 	}
 }
 
+
+void ContentType::Visit(NodeVisitor& v) {
+	v.Ver(1)
+	(1)	("key",key)
+		("p0", parts[0])
+		("p1", parts[1])
+		("p2", parts[2]);
+}
+
 END_UPP_NAMESPACE

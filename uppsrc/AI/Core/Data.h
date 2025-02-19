@@ -351,21 +351,22 @@ struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex();
 
 struct ScriptDataset : Moveable<ScriptDataset> {
-	String name;
+	String title;
 	String text;
-	void Serialize(Stream& s) {s / name / text;}
+	void Serialize(Stream& s) {s / title / text;}
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
-		(1)	("name", name)
+		(1)	("name", title)
 			("txt", text);
 	}
 };
 
-struct EntityDataset : Moveable<EntityDataset> {
+struct AuthorDataset : Moveable<AuthorDataset> {
 	String name;
 	Vector<ScriptDataset> scripts;
 	Vector<String> genres;
 	
+	ScriptDataset& GetAddScript(String title);
 	void Serialize(Stream& s) {s % name % scripts % genres;}
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
@@ -469,6 +470,9 @@ struct SrcTextData : EntityData {
 	String filepath;
 	
 	// Persitent
+	// --- sorted ---
+	Vector<AuthorDataset> authors;
+	// --- not sorted ---
 	VectorMap<hash_t, ScriptStruct> scripts;
 	VectorMap<String, Token> tokens;
 	VectorMap<hash_t, TokenText> token_texts;
@@ -490,7 +494,6 @@ struct SrcTextData : EntityData {
 	VectorMap<hash_t, ExportWordnet> wordnets;
 	VectorMap<String, String> diagnostics;
 	VectorMap<String, ExportSimpleAttr> simple_attrs;
-	Vector<EntityDataset> entities; // TODO rename, remove src_ (source-data for analysis)
 	Index<String> typeclasses;
 	Vector<ContentType> contents;
 	Vector<String> content_parts;
@@ -504,6 +507,7 @@ struct SrcTextData : EntityData {
 	int GetTypeclassCount() {return typeclasses.GetCount();}
 	int GetLanguage() const {return lang;}
 	
+	AuthorDataset& GetAddAuthor(String name);
 	String GetTokenTypeString(const TokenText& txt) const;
 	String GetWordString(const Vector<int>& words) const;
 	WString GetWordPronounciation(const Vector<int>& words) const;

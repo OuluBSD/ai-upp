@@ -2,6 +2,16 @@
 
 NAMESPACE_UPP
 
+
+ScriptDataset& AuthorDataset::GetAddScript(String title) {
+	for (ScriptDataset& s : scripts)
+		if (s.title == title)
+			return s;
+	ScriptDataset& s = scripts.Add();
+	s.title = title;
+	return s;
+}
+
 // see SRC_TXT_HEADER_ENABLE
 
 //int EditorPtrs::GetActiveEntityIndex() const {return VectorFindPtr(entity, TextDatabase::Single().entities);}
@@ -32,7 +42,7 @@ void SrcTextData::Visit(NodeVisitor& s) {
 		("wordnets", wordnets, VISIT_MAP)
 		("diagnostics", diagnostics)
 		("simple_attrs", simple_attrs, VISIT_MAP)
-		("entities", entities, VISIT_VECTOR)
+		("entities", authors, VISIT_VECTOR)
 		("typeclasses", typeclasses)
 		("contents", contents, VISIT_VECTOR)
 		("content_parts", content_parts)
@@ -66,7 +76,7 @@ void SrcTextData::Serialize(Stream& s) {
 		s % wordnets;					ASSERT(!s.IsError());
 		s % diagnostics;				ASSERT(!s.IsError());
 		s % simple_attrs;				ASSERT(!s.IsError());
-		s % entities;					ASSERT(!s.IsError());
+		s % authors;					ASSERT(!s.IsError());
 		s % typeclasses;				ASSERT(!s.IsError());
 		s % contents;					ASSERT(!s.IsError());
 		s % content_parts;				ASSERT(!s.IsError());
@@ -128,6 +138,15 @@ String SrcTextData::GetTokenTypeString(const TokenText& txt) const {
 		}
 	}
 	return o;
+}
+
+AuthorDataset& SrcTextData::GetAddAuthor(String name) {
+	for (AuthorDataset& a : authors)
+		if (a.name == name)
+			return a;
+	AuthorDataset& a = authors.Add();
+	a.name = name;
+	return a;
 }
 
 String SrcTextData::GetWordString(const Vector<int>& words) const {
@@ -328,11 +347,8 @@ String SrcTxtHeader::SaveData() {
 	
 	String dir = GetFileDirectory(filepath);
 	String filename = GetFileName(filepath);
-	int i = DatasetIndex().Find(filepath);
-	ASSERT(i >= 0);
-	SrcTextData* src = dynamic_cast<SrcTextData*>(&*DatasetIndex()[i]);
 	StringStream decomp_stream;
-	src->Serialize(decomp_stream);
+	this->Serialize(decomp_stream);
 	String decompressed = decomp_stream.GetResult();
 	
 	this->written = GetUtcTime();

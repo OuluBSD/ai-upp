@@ -73,6 +73,11 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 			ASSERT(p.src);
 			p.src->RealizeData();
 			db_src = &n;
+			
+			// UGLY, so UGLY, just filling values randomly kind of ugly, but it's correct
+			// This ugliness is related to the SRC_TXT_HEADER_ENABLE hotfix...
+			// Generalize the hotfix or remove it... (don't remove it, it's a good one).
+			p.srctxt = &*p.src->data;
 		}
 	}
 }

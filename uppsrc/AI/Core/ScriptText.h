@@ -7,8 +7,8 @@ class ScriptTextProcess : public SolverBase {
 	
 public:
 	enum {
-		PHASE_FIND_NATURAL_PARTS,
-		PHASE_TRANSCRIPT,
+		PHASE_INPUT,
+		PHASE_TOKENIZE,
 		
 		PHASE_COUNT
 	};
@@ -16,14 +16,16 @@ public:
 	hash_t hash = 0;
 	Event<> WhenUserInput;
 	Value params;
-	Vector<String> lines;
-	Vector<Vector<String>> input_coarse_parts, natural_parts;
-	Vector<String> total_summarizations;
-	Vector<String> summarizations;
-	Vector<Vector<int>> input_splits;
+	SrcTextData* data = 0;
+	One<NaturalTokenizer> tk;
 	
 	// Params
-	int chars_per_coarse_part = 2000;
+	
+	// Temp (per phase)
+	int total = 0, actual = 0;
+	TimeStop ts;
+	
+	void Tokenize();
 	
 public:
 	typedef ScriptTextProcess CLASSNAME;
@@ -34,7 +36,7 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static ScriptTextProcess& Get(VfsPath path, Value params);
+	static ScriptTextProcess& Get(DatasetPtrs p, VfsPath path, Value params, SrcTextData& data, Event<> WhenReady);
 	
 };
 

@@ -362,7 +362,7 @@ class AttributesProcess : public SolverBase {
 	Vector<AttrExtremesBatch> attr_extremes_batches;
 	
 	struct Batch : Moveable<Batch> {
-		EntityDataset* artist;
+		AuthorDataset* artist;
 		ScriptDataset* scripts;
 		String txt;
 		int lng_i;

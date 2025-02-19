@@ -15,15 +15,15 @@ int SourceDataImporter::GetPhaseCount() const {
 int SourceDataImporter::GetBatchCount(int phase) const {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
-	return src.entities.GetCount();
+	return src.authors.GetCount();
 }
 
 int SourceDataImporter::GetSubBatchCount(int phase, int batch) const {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
-	if (batch >= src.entities.GetCount())
+	if (batch >= src.authors.GetCount())
 		return 1;
-	auto& entity = src.entities[batch];
+	auto& entity = src.authors[batch];
 	return entity.scripts.GetCount();
 }
 
@@ -38,7 +38,7 @@ void SourceDataImporter::Tokenize() {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
 	Vector<int> token_is;
-	Vector<EntityDataset>& entities = src.entities;
+	Vector<AuthorDataset>& entities = src.authors;
 	
 	int well_filter_loss = 0, parse_loss = 0, foreign_loss = 0;
 	
@@ -62,20 +62,20 @@ void SourceDataImporter::Tokenize() {
 		ts.Reset();
 	}
 	
-	if (batch >= src.entities.GetCount()) {
+	if (batch >= src.authors.GetCount()) {
 		NextPhase();
 		return;
 	}
 	
-	auto& entity = src.entities[batch];
-	if (sub_batch >= entity.scripts.GetCount()) {
+	auto& author = src.authors[batch];
+	if (sub_batch >= author.scripts.GetCount()) {
 		NextBatch();
 		return;
 	}
 	
 	int worker_total = total++;
 	
-	auto& script = entity.scripts[sub_batch];
+	auto& script = author.scripts[sub_batch];
 	
 	String str = script.text;
 	
@@ -114,7 +114,7 @@ void SourceDataImporter::Tokenize() {
 		return;
 	}
 	
-	String script_title = entity.name + " - " + script.name;
+	String script_title = author.name + " - " + script.title;
 	hash_t ss_hash = script_title.GetHashValue();
 	
 	int ss_i = src.scripts.Find(ss_hash);
@@ -263,7 +263,7 @@ int SourceAnalysisProcess::GetBatchCount(int phase) const {
 	auto& src = p.src->Data();
 	
 	switch (phase) {
-		case PHASE_ANALYZE_ARTISTS:			return src.entities.GetCount();
+		case PHASE_ANALYZE_ARTISTS:			return src.authors.GetCount();
 		case PHASE_ANALYZE_ELEMENTS:		return src.scripts.GetCount();
 		case PHASE_SUMMARIZE_CONTENT:		TODO;
 		default: return 1;
@@ -287,12 +287,12 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
 	
-	if (batch >= src.entities.GetCount()) {
+	if (batch >= src.authors.GetCount()) {
 		NextPhase();
 		return;
 	}
 	
-	EntityDataset& ent = src.entities[batch];
+	AuthorDataset& ent = src.authors[batch];
 	if (ent.genres.GetCount()) {
 		NextBatch();
 		return;
@@ -317,7 +317,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 			if (i >= 0)
 				genre = TrimBoth(genre.Mid(i+1));
 		}
-		EntityDataset& ent = src.entities[batch];
+		AuthorDataset& ent = src.authors[batch];
 		ent.genres <<= genres;
 		
 		NextBatch();
@@ -328,7 +328,7 @@ void SourceAnalysisProcess::AnalyzeArtists() {
 void SourceAnalysisProcess::AnalyzeElements() {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
-	Vector<EntityDataset>& entities = src.entities;
+	Vector<AuthorDataset>& entities = src.authors;
 	
 	if (batch >= src.scripts.GetCount()) {
 		NextPhase();
@@ -646,7 +646,7 @@ int WordDataProcess::GetBatchCount(int phase) const {
 	if (phase == PHASE_WORD_FIX)
 		return 1;
 	else if (phase == PHASE_WORD_PROCESS)
-		return src.entities.GetCount();
+		return src.authors.GetCount();
 	else if (phase == PHASE_DETAILS)
 		return (src.words.GetCount() + per_batch - 1) / per_batch;
 	else if (phase == PHASE_SYLLABLES)
@@ -748,15 +748,15 @@ void WordDataProcess::WordFix() {
 void WordDataProcess::WordProcess() {
 	ASSERT(p.src);
 	auto& src = p.src->Data();
-	const Vector<EntityDataset>& dataset = src.entities;
+	const Vector<AuthorDataset>& dataset = src.authors;
 	
 	if (batch >= dataset.GetCount()) {
 		NextPhase();
 		return;
 	}
 	
-	const EntityDataset& artist = dataset[batch];
-	//EntityAnalysis& aa = src.entities.GetAdd(artist.name);
+	const AuthorDataset& artist = dataset[batch];
+	//EntityAnalysis& aa = src.authors.GetAdd(artist.name);
 	//aa.word_counts.Clear();
 	
 	for(int k = 0; k < artist.scripts.GetCount(); k++) {

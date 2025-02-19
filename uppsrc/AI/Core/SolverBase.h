@@ -59,6 +59,7 @@ public:
 	void SetSkipReady(bool b) {skip_ready = false;}
 	static void StopAll();
 	
+	bool IsPhase(int i) const {return phase == i;}
 	bool IsRunning() const {return running;}
 	bool IsPhaseInit() const {return batch == 0 && sub_batch == 0;}
 	

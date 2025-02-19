@@ -3,22 +3,32 @@
 
 NAMESPACE_UPP
 
-class SourceDataCtrl : public ParentCtrl {
+class AuthorDataCtrl : public ParentCtrl {
+public:
+	typedef enum {
+		TEXT,
+		STRUCTURED,
+		MIXED,
+	} Type;
+	
+private:
 	DatasetProvider& o;
 	Splitter vsplit, hsplit;
 	ArrayCtrl entities, components; //, active_components;
 	DocEdit scripts, analysis;
-	int data_type = 0;
+	Type data_type = TEXT;
 	
 public:
-	typedef SourceDataCtrl CLASSNAME;
-	SourceDataCtrl(DatasetProvider& o);
+	typedef AuthorDataCtrl CLASSNAME;
+	AuthorDataCtrl(DatasetProvider& o);
 
 	void Data();
 	void DataEntity();
 	void DataExtension();
 	void SetFont(Font fnt);
-	void SetDataType(int i) {data_type = i;}
+	void SetDataType(Type i) {data_type = i;}
+	void SetStructured() {data_type = STRUCTURED;}
+	void SetMixed() {data_type = MIXED;}
 };
 
 
@@ -218,7 +228,7 @@ public:
 
 class SourceTextCtrl : public ToolAppCtrl {
 	DropList				data_type;
-	SourceDataCtrl			src;
+	AuthorDataCtrl			src;
 	TokensPage				tk;
 	AmbiguousWordPairs		awp;
 	VirtualPhrases			vp;

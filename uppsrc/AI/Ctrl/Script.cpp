@@ -42,21 +42,24 @@ void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 	RealizeEntityVfsObject(vnode, METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT);
 	
 	tabs.Add(dbproc.SizePos(), "Line process");
-	#define CREATE(x, txt) \
-		x.Create(*this); \
-		dbproc.Add(*x, txt);
-	CREATE(srcdata, "Source data")
-	CREATE(tk, "Analyzed")
-	CREATE(awp, "Tokens")
-	CREATE(vp, "Ambiguous Word Pairs")
-	CREATE(vpp, "Virtual Phrases")
-	CREATE(vps, "Virtual Phrase Structs")
-	CREATE(vpa, "Phrase Part Analysis 1")
-	CREATE(vpa2, "Phrase Part Analysis 2")
-	CREATE(aap, "Action Attrs Page")
-	CREATE(att, "Attributes")
-	CREATE(diag, "Text Data Diagnostics")
+	#define CREATE(x, txt, height) \
+		{x.Create(*this); \
+		auto& page = dbproc.Add(*x, txt); \
+		if (height > 0) page.Height(height); }
+	CREATE(srcdata, "Source data", 200)
+	CREATE(tk, "Analyzed", 0)
+	CREATE(awp, "Tokens", 0)
+	CREATE(vp, "Ambiguous Word Pairs", 0)
+	CREATE(vpp, "Virtual Phrases", 0)
+	CREATE(vps, "Virtual Phrase Structs", 0)
+	CREATE(vpa, "Phrase Part Analysis 1", 0)
+	CREATE(vpa2, "Phrase Part Analysis 2", 0)
+	CREATE(aap, "Action Attrs Page", 0)
+	CREATE(att, "Attributes", 0)
+	CREATE(diag, "Text Data Diagnostics", 0)
 	#undef CREATE
+	
+	srcdata->SetMixed();
 }
 
 
@@ -127,8 +130,23 @@ void ScriptTextCtrl::DataTree(TreeCtrl& tree) {
 
 void ScriptTextCtrl::ToolMenu(Bar& bar) {
 	RefreshParams();
-	if (!active_process)
-		bar.Add("Start process", [this]{active_process = &ScriptTextProcess::Get(this->GetNode().GetPath(), params); active_process->Start();}).Key(K_F5);
+	bar.Add("Refresh", [this]{this->Data();}).Key(K_CTRL_Q);
+	if (!active_process) {
+		bar.Add("Start process", [this]{
+			auto* c = GetVNodeComponentCtrl();
+			if (!c) return;
+			DatasetPtrs p = c->GetDataset();
+			if (p.srctxt) {
+				active_process = &ScriptTextProcess::Get(
+					p,
+					this->GetNode().GetPath(),
+					params,
+					*p.srctxt,
+					[this]{this->Data();});
+				active_process->Start();
+			}
+		}).Key(K_F5);
+	}
 	else
 		bar.Add("Stop process", [this]{active_process->Stop();}).Key(K_F5);
 }
@@ -202,11 +220,24 @@ void ScriptTextCtrl::RemovePart() {
 }
 
 void ScriptTextCtrl::RefreshParams() {
-	ValueMap map;
+	params = ValueMap();
 	
+	auto* c = GetVNodeComponentCtrl();
+	if (!c)
+		return;
+	VirtualNode vnode = c->GetVnode();
 	
-	
-	params = map;
+	ValueArray input_text;
+	ASSERT(vnode.IsValue());
+	auto sub = vnode.FindAll(METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE);
+	for(int i = 0; i < sub.GetCount(); i++) {
+		VirtualNode s = sub[i];
+		ASSERT(s.IsValue());
+		Value val = s.GetValue();
+		Value text = val("text");
+		input_text.Add(text);
+	}
+	params("input_text") = input_text;
 }
 
 void ScriptTextCtrl::RealizeData() {

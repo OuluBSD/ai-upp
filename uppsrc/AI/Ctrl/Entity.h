@@ -101,7 +101,6 @@ class VirtualFSComponentCtrl : public ComponentCtrl {
 	VfsPath vnode_path;
 	int data_iter = 0;
 	
-	void Data() override;
 	bool Visit(TreeCtrl& tree, int id, VirtualNode n);
 	void OnTreeCursor(TreeCtrl* tree);
 	virtual bool TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) {return false;}
@@ -117,10 +116,11 @@ public:
 	virtual VirtualNode Root() = 0;
 	virtual VNodeComponentCtrl* CreateCtrl(const VirtualNode& vnode) = 0;
 	virtual void Init() {}
+	void Data() override;
 	
 	VirtualNode GetAdd(const VfsPath& rel_path, int kind);
 	VirtualNode Find(const VfsPath& rel_path);
-	
+	VNodeComponentCtrl* GetVNodeComponentCtrl() {return &*vnode_ctrl;}
 };
 
 class ValueVFSComponentCtrl : public VirtualFSComponentCtrl {
@@ -150,6 +150,7 @@ public:
 	int GetKind() const {return kind;}
 	virtual void Data() {}
 	
+	VirtualNode GetVnode() const {return vnode;}
 	template <class T>
 	T& GetAddValue(String name) {
 		ASSERT(vnode);

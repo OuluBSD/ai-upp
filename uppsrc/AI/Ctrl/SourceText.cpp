@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-SourceDataCtrl::SourceDataCtrl(DatasetProvider& o) : o(o) {
+AuthorDataCtrl::AuthorDataCtrl(DatasetProvider& o) : o(o) {
 	Add(hsplit.VSizePos(0,30).HSizePos());
 	
 	hsplit.Horz() << vsplit << scripts << analysis;
@@ -20,23 +20,21 @@ SourceDataCtrl::SourceDataCtrl(DatasetProvider& o) : o(o) {
 	
 }
 
-void SourceDataCtrl::SetFont(Font fnt) {
+void AuthorDataCtrl::SetFont(Font fnt) {
 	scripts.SetFont(fnt);
 	analysis.SetFont(fnt);
 }
 
-void SourceDataCtrl::Data() {
+void AuthorDataCtrl::Data() {
 	DatasetPtrs p = o.GetDataset();
-	//if (!p.src) {
 	if (!p.srctxt) {
 		entities.Clear();
 		components.Clear();
 		analysis.Clear();
 		return;
 	}
-	//auto& src = *p.src->data;
 	auto& src = *p.srctxt;
-	const auto& data = src.entities;
+	const auto& data = src.authors;
 	
 	//DUMP(GetDatabase().a.dataset.scripts.GetCount());
 	
@@ -63,23 +61,23 @@ void SourceDataCtrl::Data() {
 	DataEntity();
 }
 
-void SourceDataCtrl::DataEntity() {
+void AuthorDataCtrl::DataEntity() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		components.Clear();
 		analysis.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	if (!entities.IsCursor()) return;
 	int acur = entities.GetCursor();
-	const auto& data = src.entities;
+	const auto& data = src.authors;
 	const auto& artist = data[acur];
 	
 	components.SetCount(artist.scripts.GetCount());
 	for(int i = 0; i < artist.scripts.GetCount(); i++) {
-		String s = artist.scripts[i].name;
+		String s = artist.scripts[i].title;
 		if (GetDefaultCharset() != CHARSET_UTF8)
 			s = ToCharset(CHARSET_DEFAULT, s, CHARSET_UTF8);
 		
@@ -92,35 +90,47 @@ void SourceDataCtrl::DataEntity() {
 	DataExtension();
 }
 
-void SourceDataCtrl::DataExtension() {
+void AuthorDataCtrl::DataExtension() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		analysis.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	if (!entities.IsCursor() || !components.IsCursor()) return;
 	int acur = entities.GetCursor();
 	int scur = components.GetCursor();
-	const auto& data = src.entities;
+	const auto& data = src.authors;
 	const auto& artist = data[acur];
 	const auto& song = artist.scripts[scur];
 	
-	if (data_type == 0) {
+	if (data_type == TEXT) {
 		String s = song.text;
 		if (GetDefaultCharset() != CHARSET_UTF8)
 			s = ToCharset(CHARSET_DEFAULT, s, CHARSET_UTF8);
 		this->scripts.SetData(s);
 		analysis.Clear();
 		
-		TryNo5tStructureSolver solver;
-		solver.Process(s);
-		analysis.SetData(solver.GetResult());
-		//analysis.SetData(solver.GetDebugLines());
+		if (s.Left(1) == "[") {
+			ValueArray v = ParseJSON(s);
+			String s;
+			for(int i = 0; i < v.GetCount(); i++)
+				s += v[i].ToString() + "\n";
+			analysis.SetData(s);
+		}
+		else if (s.Left(1) == "{") {
+			analysis.SetData("TODO");
+		}
+		else {
+			TryNo5tStructureSolver solver;
+			solver.Process(s);
+			analysis.SetData(solver.GetResult());
+			//analysis.SetData(solver.GetDebugLines());
+		}
 	}
-	else if (data_type == 1) {
-		String key = artist.name + " - " + song.name;
+	else if (data_type == STRUCTURED) {
+		String key = artist.name + " - " + song.title;
 		int ss_i = src.scripts.Find(key.GetHashValue());
 		if (ss_i < 0) {
 			scripts.Clear();
@@ -132,6 +142,22 @@ void SourceDataCtrl::DataExtension() {
 		String txt = src.GetScriptDump(ss_i);
 		scripts.SetData(txt);
 		analysis.Clear();
+	}
+	else if (data_type == MIXED) {
+		String s = song.text;
+		if (GetDefaultCharset() != CHARSET_UTF8)
+			s = ToCharset(CHARSET_DEFAULT, s, CHARSET_UTF8);
+		this->scripts.SetData(s);
+		
+		String key = artist.name + " - " + song.title;
+		int ss_i = src.scripts.Find(key.GetHashValue());
+		if (ss_i < 0) {
+			analysis.Clear();
+			return;
+		}
+		ScriptStruct& ss = src.scripts[ss_i];
+		String txt = src.GetScriptDump(ss_i);
+		analysis.SetData(txt);
 	}
 }
 
@@ -172,17 +198,23 @@ TokensPage::TokensPage(DatasetProvider& o) : o(o) {
 
 void TokensPage::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		tokens.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	for(int j = 0; j < src.tokens.GetCount(); j++) {
 		const String& txt = src.tokens.GetKey(j);
 		const Token& tk = src.tokens[j];
-		
 		tokens.Set(j, 0, txt);
+		if (tk.word_ >= 0) {
+			const ExportWord& ew = src.words[tk.word_];
+			tokens.Set(j, 1, ew.count);
+		}
+		else {
+			tokens.Set(j, 1, Value());
+		}
 	}
 	tokens.SetCount(src.tokens.GetCount());
 	
@@ -229,11 +261,11 @@ AmbiguousWordPairs::AmbiguousWordPairs(DatasetProvider& o) : o(o) {
 
 void AmbiguousWordPairs::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		texts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	int row = 0;
 	for(int i = 0; i < src.ambiguous_word_pairs.GetCount(); i++) {
@@ -330,11 +362,11 @@ String GetTypePhraseString(const Vector<int>& word_classes, const SrcTextData& s
 
 void VirtualPhrases::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		texts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	int row = 0;
 	for(int i = 0; i < src.token_texts.GetCount(); i++) {
 		const TokenText& txt = src.token_texts[i];
@@ -425,11 +457,11 @@ VirtualPhraseParts::VirtualPhraseParts(DatasetProvider& o) : o(o) {
 
 void VirtualPhraseParts::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		texts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	int row = 0;
 	for(int i = 0; i < src.virtual_phrase_parts.GetCount(); i++) {
@@ -489,11 +521,11 @@ VirtualPhraseStructs::VirtualPhraseStructs(DatasetProvider& o) : o(o) {
 
 void VirtualPhraseStructs::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		texts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	int row = 0;
 	for(int i = 0; i < src.virtual_phrase_structs.GetCount(); i++) {
@@ -610,11 +642,11 @@ PhrasePartAnalysis::PhrasePartAnalysis(DatasetProvider& o) : o(o) {
 
 void PhrasePartAnalysis::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		attrs.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	// Set attributes
 	attrs.Set(0,0, "All");
@@ -650,11 +682,11 @@ void PhrasePartAnalysis::DataAttribute() {
 
 void PhrasePartAnalysis::DataColor() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		actions.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	uniq_acts.Clear();
 	for (const ActionHeader& ah : src.actions.GetKeys()) {
@@ -687,11 +719,11 @@ void PhrasePartAnalysis::DataAction() {
 		return;
 
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		action_args.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	if (actions.IsCursor()) {
 		String action = actions.Get(0);
@@ -720,11 +752,11 @@ void PhrasePartAnalysis::DataAction() {
 
 void PhrasePartAnalysis::DataActionHeader() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		parts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	int clr_i = colors.IsCursor() ? colors.GetCursor() : -1;
 	int act_i = actions.IsCursor() ? actions.GetCursor() : -1;
@@ -904,9 +936,9 @@ void PhrasePartAnalysis2::ClearAll() {
 		return;
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src)
+	if (!p.srctxt)
 		return;
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
 		PhrasePart& pp = src.phrase_parts[i];
@@ -925,11 +957,11 @@ void PhrasePartAnalysis2::DataMain() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		elements.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	// Set elements
 	VectorMap<int,int> el_map = src.GetSortedElementsOfPhraseParts();
@@ -955,11 +987,11 @@ void PhrasePartAnalysis2::DataElement() {
 		return;
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		typecasts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	// Set typeclasses
 	const auto& tc = src.typeclasses;
@@ -982,11 +1014,11 @@ void PhrasePartAnalysis2::DataTypeclass() {
 		return;
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		contrasts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	const auto& vec = src.contents;
 	contrasts.Set(0, 0, "All");
@@ -1028,11 +1060,11 @@ void PhrasePartAnalysis2::DataColor() {
 		return;
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		parts.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	//DatabaseBrowser& b = DatabaseBrowser::Single();
 	int el_i = elements.Get("IDX");
@@ -1123,10 +1155,10 @@ void PhrasePartAnalysis2::DataColor() {
 
 void PhrasePartAnalysis2::UpdateCounts() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	TODO
 	/*int count = src.phrase_parts.GetCount();
@@ -1245,11 +1277,11 @@ void ActionAttrsPage::DataColor() {
 		return;
 	
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		actions.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	int clr_i = colors.GetCursor();
 	int attr_group_i = attrs.Get("GROUP");
 	int attr_value_i = attrs.Get("VALUE");
@@ -1343,9 +1375,9 @@ Attributes::Attributes(DatasetProvider& o) : o(o) {
 
 void Attributes::RealizeTemp() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src)
+	if (!p.srctxt)
 		return;
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	uniq_attrs.Clear();
 	uniq_attrs_i.Clear();
@@ -1366,11 +1398,11 @@ void Attributes::RealizeTemp() {
 
 void Attributes::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		groups.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	RealizeTemp();
 	
@@ -1411,11 +1443,11 @@ void Attributes::Data() {
 
 void Attributes::DataGroup() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		values.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	RealizeTemp();
 	
@@ -1497,11 +1529,11 @@ TextDataDiagnostics::TextDataDiagnostics(DatasetProvider& o) : o(o) {
 
 void TextDataDiagnostics::Data() {
 	DatasetPtrs p = o.GetDataset();
-	if (!p.src) {
+	if (!p.srctxt) {
 		values.Clear();
 		return;
 	}
-	auto& src = p.src->Data();
+	auto& src = *p.srctxt;
 	
 	for(int i = 0; i < src.diagnostics.GetCount(); i++) {
 		const String& key = src.diagnostics.GetKey(i);
@@ -1603,7 +1635,7 @@ void SourceTextCtrl::Data() {
 	int idx = data_type.GetIndex();
 	switch (idx) {
 		case 0:
-		case 1: src.SetDataType(idx); src.Data(); break;
+		case 1: src.SetDataType((AuthorDataCtrl::Type)idx); src.Data(); break;
 		case 2: tk.Data(); break;
 		case 3: awp.Data(); break;
 		case 4: vp.Data(); break;

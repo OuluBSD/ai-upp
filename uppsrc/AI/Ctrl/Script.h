@@ -13,7 +13,7 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		One<StructuredScriptEditor> editor;
 		PageCtrl dbproc;
 		
-		One<SourceDataCtrl>			srcdata;
+		One<AuthorDataCtrl>			srcdata;
 		One<TokensPage>				tk;
 		One<AmbiguousWordPairs>		awp;
 		One<VirtualPhrases>			vp;

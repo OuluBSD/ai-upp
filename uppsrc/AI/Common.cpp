@@ -125,7 +125,7 @@ double FractionDbl(const String& s) {
 String GetDurationString(double p_seconds) {
 	if (!p_seconds)
 		return "0 seconds";
-	int64 milliseconds = p_seconds * 1000LL;
+	int64 milliseconds = (int64)(p_seconds * 1000.0);
 	int64 seconds = milliseconds / 1000LL;
 	milliseconds = milliseconds % 1000LL;
 	int64 minutes = seconds / 60LL;

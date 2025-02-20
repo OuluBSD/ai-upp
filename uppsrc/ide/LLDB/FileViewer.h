@@ -2,25 +2,25 @@
 #define _ide_LLDB_FileViewer_h_
 
 class FileViewer {
-    std::vector<std::string> m_lines;
-    std::map<FileHandle, std::unordered_set<int>> m_breakpoint_cache;
-    std::optional<decltype(m_breakpoint_cache)::iterator> m_breakpoints;
+    Vector<String> m_lines;
+    ArrayMap<FileHandle, Index<int>> m_breakpoint_cache;
+    Index<int>* m_breakpoints = 0;
 
-    std::optional<int> m_highlighted_line = {};
+    Opt<int> m_highlighted_line = {};
     bool m_highlight_line_needs_focus = false;
 
 public:
-    void show(FileHandle handle);
-    std::optional<int> render(void);
-    void synchronize_breakpoint_cache(lldb::SBTarget target);
+    void Show(FileHandle handle);
+    Opt<int> Render();
+    void SynchronizeBreakpointCache(lldb::SBTarget target);
 
-    inline void set_highlight_line(int line)
+    inline void SetHighlightLine(int line)
     {
         m_highlighted_line = line;
         m_highlight_line_needs_focus = true;
     }
 
-    inline void unset_highlight_line()
+    inline void UnsetHighlightLine()
     {
         m_highlighted_line = {};
         m_highlight_line_needs_focus = false;

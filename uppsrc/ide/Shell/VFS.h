@@ -54,8 +54,11 @@ struct VfsPath : Moveable<VfsPath> {
 	String	AsSysPath() const;
 	int		GetPartCount() const;
 	bool	IsEmpty() const;
-	String	TopPart() const;
+	Value	TopPart() const;
+	String  GetFilename() const;
 	String	ToString() const;
+	VfsPath GetCanonical() const;
+	VfsPath Left(int i) const;
 	bool	Normalize();
 	bool	IsValidFullPath() const;
 	void	Append(const VfsPath& p);
@@ -67,6 +70,8 @@ struct VfsPath : Moveable<VfsPath> {
 	bool operator==(const VfsPath& p) const;
 	bool operator==(const String& p) const;
 	void    Visit(NodeVisitor& v);
+	bool    IsSysDirectory() const;
+	bool    IsSysFile() const;
 private:
 	String			str;
 	Vector<Value>	parts;
@@ -80,6 +85,7 @@ VfsPath operator+(const char* s, const VfsPath& vfs);
 VfsPath operator+(Value s, const VfsPath& vfs);
 VfsPath operator+(const VfsPath& vfs, const char* s);
 VfsPath operator+(const VfsPath& vfs, Value s);
+VfsPath operator/(const VfsPath& a, const VfsPath& b);
 bool IsFullInternalDirectory(const String& path);
 String AppendInternalFileName(const String& a, const String& b);
 String NormalizeInternalPath(const String& path);

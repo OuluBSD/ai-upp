@@ -1,30 +1,28 @@
 #ifndef _ide_LLDB_FileSystem_h_
 #define _ide_LLDB_FileSystem_h_
 
-namespace fs = std::filesystem;
-
 class FileHandle {
-    size_t m_hash;
+    hash_t m_hash;
 
     // TODO: possibly record last file read/access time in separate static map
     // so that file contents can be dynamically reloaded when they change.
     // This will involve inotify on linux and kqueue on macos.
 
-    static std::map<size_t, std::string> s_filepath_cache;
-    static std::map<size_t, std::string> s_filename_cache;
-    static std::map<size_t, std::vector<std::string>> s_contents_cache;
-    static std::mutex s_mutex;  // all static std::map access must be thread-safe
+    static VectorMap<hash_t, String> filepath_cache;
+    static VectorMap<hash_t, String> filename_cache;
+    static VectorMap<hash_t, Vector<String>> contents_cache;
+    static Mutex s_mutex;  // all static VectorMap access must be thread-safe
 
-    FileHandle(size_t h) : m_hash(h) {}
+    FileHandle(hash_t h) : m_hash(h) {}
 
 public:
-    FileHandle(void) = delete;
+    FileHandle() = delete;
 
-    static std::optional<FileHandle> create(const std::string& filepath);
+    static Opt<FileHandle> Create(const String& filepath);
 
-    const std::vector<std::string>& contents(void);
-    const std::string& filepath(void);
-    const std::string& filename(void);
+    const Vector<String>& GetContents();
+    const String& GetFilepath();
+    const String& GetFilename();
 
     inline friend bool operator==(const FileHandle& a, const FileHandle& b)
     {
@@ -38,18 +36,18 @@ public:
 };
 
 class OpenFiles {
-    std::vector<FileHandle> m_files;
-    std::optional<size_t> m_focus;
+    Vector<FileHandle> m_files;
+    Opt<size_t> m_focus;
 
-    void close(size_t tab_index);
+    void Close(int tab_index);
 
 public:
-    bool open(const std::string& filepath);
-    void open(FileHandle handle);
+    bool Open(const String& filepath);
+    void Open(FileHandle handle);
 
-    inline size_t size() const { return m_files.size(); }
+    inline size_t GetCount() const { return m_files.GetCount(); }
 
-    inline std::optional<FileHandle> focus()
+    inline Opt<FileHandle> GetFocus()
     {
         if (m_focus) {
             return m_files[*m_focus];
@@ -64,24 +62,24 @@ public:
     // Beyond simply looping over the open files, the supplied Callable can optionally return an
     // 'Action' to be applied to each specific file, as defined above.
     template <typename Callable>
-    void for_each_open_file(Callable&& f)
+    void ForEachOpenFile(Callable&& f)
     {
         if (m_files.empty()) return;
 
-        std::optional<size_t> tab_idx_to_close = {};
-        std::optional<size_t> tab_idx_to_focus = {};
+        Opt<size_t> tab_idx_to_close = {};
+        Opt<size_t> tab_idx_to_focus = {};
 
-        assert(m_focus);
+        ASSERT(m_focus);
         const size_t focused_tab_index = *m_focus;
 
-        for (size_t i = 0; i < m_files.size(); i++) {
+        for (size_t i = 0; i < m_files.GetCount(); i++) {
             switch (f(m_files[i], i == focused_tab_index)) {
                 case Action::ChangeFocusTo:
-                    assert(!tab_idx_to_focus);
+                    ASSERT(!tab_idx_to_focus);
                     tab_idx_to_focus = i;
                     break;
                 case Action::Close:
-                    assert(!tab_idx_to_close);
+                    ASSERT(!tab_idx_to_close);
                     tab_idx_to_close = i;
                     break;
                 case Action::Nothing:
@@ -89,38 +87,38 @@ public:
             }
         }
 
-        if (tab_idx_to_close) this->close(*tab_idx_to_close);
+        if (tab_idx_to_close) this->Close(*tab_idx_to_close);
         if (tab_idx_to_focus) m_focus = tab_idx_to_focus;
     }
 };
 
 class FileBrowserNode {
-    fs::path m_filepath;
-    fs::path m_filename;
+    VfsPath m_filepath;
+    String m_filename;
     bool m_opened;
 
-    void open_children();
-    std::vector<std::unique_ptr<FileBrowserNode>> m_children;
+    void OpenChildren();
+    Vector<One<FileBrowserNode>> m_children;
 
     FileBrowserNode() = delete;
 
-    FileBrowserNode(fs::path validated_path)
-        : m_filepath(fs::canonical(validated_path)),
-          m_filename(m_filepath.filename()),
+    FileBrowserNode(VfsPath validated_path)
+        : m_filepath(validated_path.GetCanonical()),
+          m_filename(m_filepath.GetFilename()),
           m_opened(false)
     {
     }
 
 public:
-    static std::unique_ptr<FileBrowserNode> create(std::optional<fs::path> path_request);
+    static One<FileBrowserNode> Create(Opt<VfsPath> path_request);
 
-    const char* filepath() const { return m_filepath.c_str(); }
-    const char* filename() const { return m_filename.c_str(); }
-    bool is_directory() const { return fs::is_directory(m_filepath); }
+    String GetFilepath() const { return m_filepath; }
+    String GetFilename() const { return m_filename; }
+    bool IsDirectory() const { return m_filepath.IsSysDirectory(); }
 
-    inline const std::vector<std::unique_ptr<FileBrowserNode>>& children(void)
+    inline Vector<One<FileBrowserNode>>& GetChildren()
     {
-        this->open_children();
+        this->OpenChildren();
         return m_children;
     }
 };

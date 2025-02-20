@@ -1,165 +1,164 @@
 #include "LLDB.h"
 
 
-std::map<size_t, std::string> FileHandle::s_filepath_cache;
-std::map<size_t, std::string> FileHandle::s_filename_cache;
-std::map<size_t, std::vector<std::string>> FileHandle::s_contents_cache;
-std::mutex FileHandle::s_mutex;
+VectorMap<hash_t, String> FileHandle::filepath_cache;
+VectorMap<hash_t, String> FileHandle::filename_cache;
+VectorMap<hash_t, Vector<String>> FileHandle::contents_cache;
+Mutex FileHandle::s_mutex;
 
-std::optional<FileHandle> FileHandle::create(const std::string& filepath)
+Opt<FileHandle> FileHandle::Create(const String& filepath)
 {
-    const fs::path canonical_path = fs::canonical(filepath);
+    VfsPath canonical_path = StrVfs(filepath).GetCanonical();
 
     // TODO: Log specific reason for any failures
-    if (!fs::exists(canonical_path)) {
+    if (!canonical_path.IsSysFile()) {
         return {};
     }
 
-    if (!fs::is_regular_file(canonical_path)) {
+    if (!canonical_path.GetPartCount()) {
         return {};
     }
 
-    if (!canonical_path.has_filename()) {
-        return {};
-    }
+    const hash_t path_hash = canonical_path.GetHashValue();
 
-    const size_t path_hash = fs::hash_value(canonical_path);
-
-    std::unique_lock<std::mutex> lock(s_mutex);
+    Mutex::Lock lock(s_mutex);
 
     {  // cache the canonical absolute filepath for this file
-        auto it = s_filepath_cache.find(path_hash);
-        if (it == s_filepath_cache.end()) {
-            s_filepath_cache.emplace(path_hash, canonical_path.string());
+        int i = filepath_cache.Find(path_hash);
+        if (i < 0) {
+            filepath_cache.Add(path_hash, canonical_path);
         }
     }
 
     {  // cache the short filename for this file: ex (/some/path/foo.txt -> foo.txt)
-        auto it = s_filename_cache.find(path_hash);
-        if (it == s_filename_cache.end()) {
-            s_filename_cache.emplace(path_hash, canonical_path.filename().string());
+        String name = GetFileName(filepath);
+        hash_t name_hash = name.GetHashValue();
+        int i = filename_cache.Find(name_hash);
+        if (i < 0) {
+            filename_cache.Add(name_hash, name);
         }
     }
 
     return FileHandle(path_hash);
 }
 
-const std::vector<std::string>& FileHandle::contents(void)
+const Vector<String>& FileHandle::GetContents()
 {
-    std::unique_lock<std::mutex> lock(s_mutex);
+    Mutex::Lock lock(s_mutex);
 
-    if (auto it = s_contents_cache.find(m_hash); it != s_contents_cache.end()) {
-        return it->second;
+    if (auto i = contents_cache.Find(m_hash); i >= 0) {
+        return contents_cache[i];
     }
 
-    const std::string& filepath = s_filepath_cache[m_hash];
+    const String& filepath = filepath_cache[m_hash];
 
-    std::ifstream infile(filepath);
+    FileIn infile(filepath);
 
-    std::vector<std::string> contents;
+    Vector<String> contents;
 
-    std::string line;
-    while (std::getline(infile, line)) {
-        line.shrink_to_fit();
-        contents.emplace_back(std::move(line));
+    String line;
+    while (!infile.IsEof()) {
+        line = TrimBoth(infile.GetLine());
+        contents.Add(line);
     }
-    contents.shrink_to_fit();
+    contents.Shrink();
 
     LOG("Read file from disk: " << filepath);
 
-    const auto& [insert_iter, _] = s_contents_cache.emplace(m_hash, std::move(contents));
-    return insert_iter->second;
+    const auto& c = contents_cache.Add(m_hash, pick(contents));
+    return c;
 }
 
-const std::string& FileHandle::filepath(void)
+const String& FileHandle::GetFilepath()
 {
-    std::unique_lock<std::mutex> lock(s_mutex);
-    auto it = s_filepath_cache.find(m_hash);
-    assert(it != s_filepath_cache.end());
-    return it->second;
+    Mutex::Lock lock(s_mutex);
+    int i = filepath_cache.Find(m_hash);
+    ASSERT(i >= 0);
+    return filepath_cache[i];
 }
 
-const std::string& FileHandle::filename(void)
+const String& FileHandle::GetFilename()
 {
-    std::unique_lock<std::mutex> lock(s_mutex);
-    auto it = s_filename_cache.find(m_hash);
-    assert(it != s_filename_cache.end());
-    return it->second;
+    Mutex::Lock lock(s_mutex);
+    int i = filename_cache.Find(m_hash);
+    ASSERT(i >= 0);
+    return filename_cache[i];
 }
 
-std::unique_ptr<FileBrowserNode> FileBrowserNode::create(std::optional<fs::path> path_request)
+One<FileBrowserNode> FileBrowserNode::Create(Opt<VfsPath> path_request)
 {
     auto fallback = [](bool show_warning) {
         if (show_warning) {
             LOG("warning: Invalid path argument to FileBrowserNode::create, Falling back to current working directory");
         }
-        const fs::path wd = fs::current_path();
-        return std::unique_ptr<FileBrowserNode>(new FileBrowserNode(wd));
+        const VfsPath wd = StrVfs(GetCurrentDirectory());
+        return One<FileBrowserNode>(new FileBrowserNode(wd));
     };
 
     if (!path_request.has_value()) {
         return fallback(false);
     }
 
-    const fs::path relative_path = *path_request;
+    const VfsPath relative_path = *path_request;
 
-    if (!fs::exists(relative_path)) {
-        LOG("error: FileBrowser attempted to load non-existent file:" << (std::string)relative_path);
+    if (!relative_path.IsSysFile()) {
+        LOG("error: FileBrowser attempted to load non-existent file:" << (String)relative_path);
         return fallback(true);
     }
 
-    const fs::path canonical_path = fs::canonical(relative_path);
+    VfsPath canonical_path = relative_path.GetCanonical();
 
-    if (!fs::is_directory(canonical_path) && !fs::is_regular_file(canonical_path)) {
-        LOG("error: Attemped to load a path (" << (String)(std::string)canonical_path << ") that wasn't a directory or regular file!");
+    if (!canonical_path.IsSysDirectory() && !canonical_path.IsSysFile()) {
+        LOG("error: Attemped to load a path (" << (String)(String)canonical_path << ") that wasn't a directory or regular file!");
         return fallback(true);
     }
 
-    if (!canonical_path.has_filename()) {
-        LOG("error: No filename for file: " << (String)(std::string)canonical_path);
+    if (!canonical_path.GetPartCount()) {
+        LOG("error: No filename for file: " << (String)(String)canonical_path);
         return fallback(true);
     }
 
-    return std::unique_ptr<FileBrowserNode>(new FileBrowserNode(canonical_path));
+    return One<FileBrowserNode>(new FileBrowserNode(canonical_path));
 }
 
-void FileBrowserNode::open_children()
+void FileBrowserNode::OpenChildren()
 {
-    if (fs::is_directory(m_filepath) && !m_opened) {
-        for (const fs::path& p : fs::directory_iterator(m_filepath)) {
-            std::unique_ptr<FileBrowserNode> new_child_node = FileBrowserNode::create(p);
+    if (m_filepath.IsSysDirectory() && !m_opened) {
+        for(int i = 0; i < m_filepath.GetPartCount(); i++) {
+            VfsPath p = m_filepath.Left(i);
+            One<FileBrowserNode> new_child_node = FileBrowserNode::Create(p);
             if (new_child_node) {
-                m_children.emplace_back(std::move(new_child_node));
+                m_children.Add(std::move(new_child_node));
             }
             else {
-                LOG("warning: Encountered invalid object while traversing directory: " << (std::string)m_filepath);
+                LOG("warning: Encountered invalid object while traversing directory: " << (String)m_filepath);
             }
         }
 
         std::sort(m_children.begin(), m_children.end(),
-                  [](const std::unique_ptr<FileBrowserNode>& a,
-                     const std::unique_ptr<FileBrowserNode>& b) {
-                      if (a->is_directory() && !b->is_directory()) {
-                          return true;
-                      }
-                      else if (!a->is_directory() && b->is_directory()) {
-                          return false;
-                      }
-                      else {
-                          return strcmp(a->filename(), b->filename()) < 0;
-                      }
-                  });
+          [](const One<FileBrowserNode>& a,
+             const One<FileBrowserNode>& b) {
+			if (a->IsDirectory() && !b->IsDirectory()) {
+				return true;
+			}
+			else if (!a->IsDirectory() && b->IsDirectory()) {
+				return false;
+			}
+			else {
+				return a->GetFilename().Compare(b->GetFilename()) < 0;
+			}
+		});
 
         m_opened = true;
     }
 }
 
-bool OpenFiles::open(const std::string& requested_filepath)
+bool OpenFiles::Open(const String& requested_filepath)
 {
-    const auto handle_attempt = FileHandle::create(requested_filepath);
+    const auto handle_attempt = FileHandle::Create(requested_filepath);
 
     if (handle_attempt) {
-        open(*handle_attempt);
+        Open(*handle_attempt);
         return true;
     }
     else {
@@ -167,32 +166,32 @@ bool OpenFiles::open(const std::string& requested_filepath)
     }
 }
 
-void OpenFiles::open(FileHandle handle)
+void OpenFiles::Open(FileHandle handle)
 {
     auto it = std::find(m_files.begin(), m_files.end(), handle);
     if (it != m_files.end()) {
         m_focus = it - m_files.begin();
-        LOG("Successfully switched focus to previously-opened file: " << handle.filepath());
+        LOG("Successfully switched focus to previously-opened file: " << handle.GetFilepath());
         return;
     }
 
     m_files.push_back(handle);
-    m_focus = m_files.size() - 1;
+    m_focus = m_files.GetCount() - 1;
 
-    LOG("Successfully opened new file: " << handle.filepath());
-    LOG("Number of currently open files: " << m_files.size());
+    LOG("Successfully opened new file: " << handle.GetFilepath());
+    LOG("Number of currently open files: " << m_files.GetCount());
 }
 
-void OpenFiles::close(size_t tab_index)
+void OpenFiles::Close(int tab_index)
 {
-    m_files.erase(m_files.begin() + tab_index);
+    m_files.Remove(tab_index);
 
     if (m_files.empty()) {
         m_focus = {};
     }
     else {
-        assert(m_focus);
-        const size_t old_open_file_count = m_files.size();
+        ASSERT(m_focus);
+        const size_t old_open_file_count = m_files.GetCount();
         const size_t old_focused_tab_idx = *m_focus;
 
         const bool closed_tab_to_left_of_focus = tab_index < old_focused_tab_idx;

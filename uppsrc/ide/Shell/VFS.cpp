@@ -179,11 +179,32 @@ String VfsPath::ToString() const {
 	return str;
 }
 
-String VfsPath::TopPart() const {
+Value VfsPath::TopPart() const {
+	if (parts.IsEmpty())
+		return Value();
+	else
+		return parts.Top();
+}
+
+String VfsPath::GetFilename() const {
 	if (parts.IsEmpty())
 		return String();
 	else
 		return parts.Top();
+}
+
+VfsPath VfsPath::GetCanonical() const {
+	VfsPath p(*this);
+	p.Normalize();
+	return p;
+}
+
+VfsPath VfsPath::Left(int i) const {
+	VfsPath p(*this);
+	int c = max(0, min(i, p.GetPartCount()));
+	p.parts.SetCount(c);
+	p.StrFromParts();
+	return p;
 }
 
 bool VfsPath::Normalize() {
@@ -241,6 +262,15 @@ hash_t VfsPath::GetHashValue() const {
 	return ch;
 }
 
+bool VfsPath::IsSysDirectory() const {
+	return ::UPP::DirectoryExists(str);
+}
+
+bool VfsPath::IsSysFile() const {
+	return ::UPP::FileExists(str);
+}
+
+
 VfsPath operator+(const char* s, const VfsPath& vfs) {
 	VfsPath path;
 	path.Add(String(s));
@@ -270,6 +300,12 @@ VfsPath operator+(Value s, const VfsPath& vfs) {
 VfsPath operator+(const VfsPath& vfs, Value s) {
 	VfsPath p(vfs);
 	p.Add(s);
+	return p;
+}
+
+VfsPath operator/(const VfsPath& a, const VfsPath& b) {
+	VfsPath p(a);
+	p.Append(b);
 	return p;
 }
 

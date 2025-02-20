@@ -2,14 +2,14 @@
 
 namespace fs = std::filesystem;
 
-static std::map<std::string, std::string> s_debug_stream;
+static VectorMap<String, String> s_debug_stream;
 
 // NOTE: remember this is updated once per frame and currently variables are never removed
 #define DEBUG_STREAM(x)                                \
     {                                                  \
-        const std::string xkey = std::string(#x);      \
-        auto it = s_debug_stream.find(xkey);           \
-        const std::string xstr = fmt::format("{}", x); \
+        const String xkey = String(#x);      \
+        auto it = s_debug_stream.Find(xkey);           \
+        const String xstr = fmt::format("{}", x); \
         if (it != s_debug_stream.end()) {              \
             it->second = xstr;                         \
         }                                              \
@@ -18,7 +18,7 @@ static std::map<std::string, std::string> s_debug_stream;
         }                                              \
     }
 
-static std::pair<fs::path, int> resolve_breakpoint(lldb::SBBreakpointLocation location)
+static std::pair<VfsPath, int> resolve_breakpoint(lldb::SBBreakpointLocation location)
 {
     lldb::SBAddress address = location.GetAddress();
     lldb::SBLineEntry line_entry = address.GetLineEntry();
@@ -27,10 +27,10 @@ static std::pair<fs::path, int> resolve_breakpoint(lldb::SBBreakpointLocation lo
 
     if (filename == nullptr || directory == nullptr) {
         Cerr() << "Failed to read breakpoint location after thread halted" << "\n";
-        return {fs::path(), -1};
+        return {VfsPath(), -1};
     }
     else {
-        return {fs::path(directory) / fs::path(filename), line_entry.GetLine()};
+        return {StrVfs(directory) / StrVfs(filename), line_entry.GetLine()};
     }
 }
 
@@ -120,9 +120,9 @@ static void kill_process(lldb::SBProcess& process)
     }
 }
 
-static std::string build_string(const char* cstr)
+static String build_string(const char* cstr)
 {
-    return cstr ? std::string(cstr) : std::string();
+    return cstr ? String(cstr) : String();
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -133,12 +133,12 @@ static void glfw_error_callback(int error, const char* description)
 // A convenience struct for extracting pertinent display information from an lldb::SBFrame
 struct StackFrame {
     FileHandle file_handle;
-    std::string function_name;
+    String function_name;
     int line;
     int column;
 
 private:
-    StackFrame(FileHandle _file_handle, int _line, int _column, std::string&& _function_name)
+    StackFrame(FileHandle _file_handle, int _line, int _column, String&& _function_name)
         : file_handle(_file_handle),
           function_name(std::move(_function_name)),
           line(_line),
@@ -147,25 +147,25 @@ private:
     }
 
 public:
-    static std::optional<StackFrame> create(lldb::SBFrame frame)
+    static Opt<StackFrame> Create(lldb::SBFrame frame)
     {
         lldb::SBFileSpec spec = frame.GetLineEntry().GetFileSpec();
-        fs::path filename = fs::path(build_string(spec.GetFilename()));
-        fs::path directory = fs::path(build_string(spec.GetDirectory()));
+        VfsPath filename = StrVfs(build_string(spec.GetFilename()));
+        VfsPath directory = StrVfs(build_string(spec.GetDirectory()));
 
-        if (!fs::exists(directory)) {
+        if (!directory.IsSysDirectory()) {
             // LOG("warning: Directory specified by lldb stack frame doesn't exist: " <<
             // directory; LOG("warning: Filepath specified: " << filename;
             return {};
         }
 
-        if (auto handle = FileHandle::create(directory / filename); handle.has_value()) {
+        if (auto handle = FileHandle::Create(directory / filename); handle.has_value()) {
             return StackFrame(*handle, (int)frame.GetLineEntry().GetLine(),
                               (int)frame.GetLineEntry().GetColumn(),
                               build_string(frame.GetDisplayFunctionName()));
         }
         else {
-            LOG("warning: Filepath corresponding to lldb stack frame doesn't exist: " <<  (std::string)(directory / filename));
+            LOG("warning: Filepath corresponding to lldb stack frame doesn't exist: " <<  (String)(directory / filename));
             return {};
         }
     }
@@ -210,7 +210,7 @@ static bool FileTreeNode(const char* label)
     return opened;
 }
 
-static bool Splitter(const char* name, bool split_vertically, float thickness, float* size1,
+static bool StrSplitter(const char* name, bool split_vertically, float thickness, float* size1,
                      float* size2, float min_size1, float min_size2, float splitter_long_axis_size)
 {
     using namespace ImGui;
@@ -236,7 +236,7 @@ static void draw_open_files(Application& app)
 {
     bool closed_tab = false;
 
-    app.open_files.for_each_open_file([&](FileHandle handle, bool is_focused) {
+    app.open_files.ForEachOpenFile([&](FileHandle handle, bool is_focused) {
         auto action = OpenFiles::Action::Nothing;
 
         // we programmatically set the focused tab if manual tab change requested
@@ -244,24 +244,24 @@ static void draw_open_files(Application& app)
         auto tab_flags = ImGuiTabItemFlags_None;
         if (app.ui.request_manual_tab_change && is_focused) {
             tab_flags = ImGuiTabItemFlags_SetSelected;
-            app.file_viewer.show(handle);
+            app.file_viewer.Show(handle);
         }
 
         bool keep_tab_open = true;
-        if (ImGui::BeginTabItem(handle.filename().c_str(), &keep_tab_open, tab_flags)) {
+        if (ImGui::BeginTabItem(handle.GetFilename().Begin(), &keep_tab_open, tab_flags)) {
             ImGui::BeginChild("FileContents");
             if (!app.ui.request_manual_tab_change && !is_focused) {
                 // user selected tab directly with mouse
                 action = OpenFiles::Action::ChangeFocusTo;
-                app.file_viewer.show(handle);
+                app.file_viewer.Show(handle);
             }
-            std::optional<int> clicked_line = app.file_viewer.render();
+            Opt<int> clicked_line = app.file_viewer.Render();
             if (clicked_line.has_value()) {
-                std::optional<FileHandle> focus_handle = app.open_files.focus();
+                Opt<FileHandle> focus_handle = app.open_files.GetFocus();
                 if (focus_handle.has_value()) {
-                    const fs::path filepath = focus_handle->filepath();
+                    const VfsPath filepath = StrVfs(focus_handle->GetFilepath());
                     String breakpoint_command =
-                        Format("breakpoint set --file '%s' --line %d", (String)(std::string)filepath, *clicked_line);
+                        Format("breakpoint set --file '%s' --line %d", (String)(String)filepath, *clicked_line);
                     run_lldb_command(app, ~breakpoint_command);
                 }
             }
@@ -279,13 +279,13 @@ static void draw_open_files(Application& app)
 
     app.ui.request_manual_tab_change = false;
 
-    if (closed_tab && app.open_files.size() > 0) {
-        auto focus_handle = app.open_files.focus();
+    if (closed_tab && app.open_files.GetCount() > 0) {
+        auto focus_handle = app.open_files.GetFocus();
         if (!focus_handle.has_value()) {
             LOG("error: Invalid logic encountered when user requested tab close.");
         }
         else {
-            app.file_viewer.show(*focus_handle);
+            app.file_viewer.Show(*focus_handle);
         }
     }
 }
@@ -293,18 +293,18 @@ static void draw_open_files(Application& app)
 static void manually_open_and_or_focus_file(UserInterface& ui, OpenFiles& open_files,
                                             FileHandle handle)
 {
-    if (auto focus = open_files.focus(); focus.has_value() && (*focus == handle)) {
+    if (auto focus = open_files.GetFocus(); focus.has_value() && (*focus == handle)) {
         return;  // already focused
     }
 
-    open_files.open(handle);
+    open_files.Open(handle);
     ui.request_manual_tab_change = true;
 }
 
 static void manually_open_and_or_focus_file(UserInterface& ui, OpenFiles& open_files,
                                             const char* filepath)
 {
-    if (auto handle = FileHandle::create(filepath); handle.has_value()) {
+    if (auto handle = FileHandle::Create(filepath); handle.has_value()) {
         manually_open_and_or_focus_file(ui, open_files, *handle);
     }
     else {
@@ -313,29 +313,29 @@ static void manually_open_and_or_focus_file(UserInterface& ui, OpenFiles& open_f
     }
 }
 
-static void draw_file_browser(Application& app, FileBrowserNode* node_to_draw, size_t depth)
+static void DrawFileBrowser(Application& app, FileBrowserNode* node_to_draw, size_t depth)
 {
-    assert(node_to_draw);
+    ASSERT(node_to_draw);
 
-    if (node_to_draw->is_directory()) {
+    if (node_to_draw->IsDirectory()) {
         const char* tree_node_label =
-            depth == 0 ? node_to_draw->filepath() : node_to_draw->filename();
+            depth == 0 ? node_to_draw->GetFilepath() : node_to_draw->GetFilename();
 
         if (FileTreeNode(tree_node_label)) {
-            for (auto& child_node : node_to_draw->children()) {
-                draw_file_browser(app, child_node.get(), depth + 1);
+            for (auto& child_node : node_to_draw->GetChildren()) {
+                DrawFileBrowser(app, &*child_node.Get(), depth + 1);
             }
             ImGui::TreePop();
         }
     }
     else {
-        if (ImGui::Selectable(node_to_draw->filename())) {
-            manually_open_and_or_focus_file(app.ui, app.open_files, node_to_draw->filepath());
+        if (ImGui::Selectable(node_to_draw->GetFilename())) {
+            manually_open_and_or_focus_file(app.ui, app.open_files, node_to_draw->GetFilepath());
         }
     }
 }
 
-static std::optional<lldb::SBTarget> find_target(lldb::SBDebugger& debugger)
+static Opt<lldb::SBTarget> FindTarget(lldb::SBDebugger& debugger)
 {
     if (debugger.GetNumTargets() > 0) {
         auto target = debugger.GetSelectedTarget();
@@ -352,9 +352,9 @@ static std::optional<lldb::SBTarget> find_target(lldb::SBDebugger& debugger)
     }
 }
 
-static std::optional<lldb::SBProcess> find_process(lldb::SBDebugger& debugger)
+static Opt<lldb::SBProcess> FindProcess(lldb::SBDebugger& debugger)
 {
-    auto target = find_target(debugger);
+    auto target = FindTarget(debugger);
     if (!target.has_value()) return {};
 
     lldb::SBProcess process = target->GetProcess();
@@ -378,9 +378,9 @@ static lldb::SBCommandReturnObject run_lldb_command(lldb::SBDebugger& debugger,
         LOG("Unaliased command: " << *unaliased_cmd);
     }
 
-    auto target_before = find_target(debugger);
+    auto target_before = FindTarget(debugger);
     lldb::SBCommandReturnObject ret = cmdline.run_command(command, hide_from_history);
-    auto target_after = find_target(debugger);
+    auto target_after = FindTarget(debugger);
 
     const bool added_new_target = !target_before && target_after;
     const bool switched_target = target_before && target_after && (*target_before != *target_after);
@@ -433,7 +433,7 @@ lldb::SBCommandReturnObject run_lldb_command(Application& app, const char* comma
 static void draw_control_bar(lldb::SBDebugger& debugger, LLDBCommandLine& cmdline,
                              const lldb::SBListener& listener, const UserInterface& ui)
 {
-    auto target = find_target(debugger);
+    auto target = FindTarget(debugger);
     if (target.has_value()) {
         // TODO: show rightmost chunk of path in case it is too long to fit on screen
         lldb::SBFileSpec fs = target->GetExecutable();
@@ -450,7 +450,7 @@ static void draw_control_bar(lldb::SBDebugger& debugger, LLDBCommandLine& cmdlin
         ImGui::TextUnformatted(~target_description);
     }
 
-    auto process = find_process(debugger);
+    auto process = FindProcess(debugger);
     if (process.has_value()) {
         String process_state = lldb::SBDebugger::StateAsCString(process->GetState());
         String process_description = Format("Process State: %s", process_state);
@@ -477,14 +477,14 @@ static void draw_control_bar(lldb::SBDebugger& debugger, LLDBCommandLine& cmdlin
         }
         ImGui::SameLine();
         if (ImGui::Button("step over")) {
-            const uint32_t nthreads = process->GetNumThreads();
+            const uint32 nthreads = process->GetNumThreads();
             if (ui.viewed_thread_index < nthreads) {
                 lldb::SBThread th = process->GetThreadAtIndex(ui.viewed_thread_index);
                 th.StepOver();
             }
         }
         if (ImGui::Button("step into")) {
-            const uint32_t nthreads = process->GetNumThreads();
+            const uint32 nthreads = process->GetNumThreads();
             if (ui.viewed_thread_index < nthreads) {
                 lldb::SBThread th = process->GetThreadAtIndex(ui.viewed_thread_index);
                 th.StepInto();
@@ -517,7 +517,7 @@ static void draw_file_viewer(Application& app)
                            ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_NoTooltip)) {
         Defer(ImGui::EndTabBar());
 
-        if (app.open_files.size() == 0) {
+        if (app.open_files.GetCount() == 0) {
             if (ImGui::BeginTabItem("about")) {
                 Defer(ImGui::EndTabItem());
                 ImGui::TextUnformatted("This is a GUI for lldb.");
@@ -540,14 +540,14 @@ static void draw_console(Application& app)
             ImGui::BeginChild("ConsoleEntries");
 
             for (const CommandLineEntry& entry : app.cmdline.get_history()) {
-                ImGui::TextColored(ImVec4(255, 0, 0, 255), "> %s", entry.input.c_str());
+                ImGui::TextColored(ImVec4(255, 0, 0, 255), "> %s", entry.input.Begin());
                 if (!entry.succeeded) {
-                    ImGui::Text("error: %s is not a valid command.", entry.input.c_str());
+                    ImGui::Text("error: %s is not a valid command.", entry.input.Begin());
                     continue;
                 }
 
-                if (entry.output.size() > 0) {
-                    ImGui::TextUnformatted(entry.output.c_str());
+                if (entry.output.GetCount() > 0) {
+                    ImGui::TextUnformatted(entry.output.Begin());
                 }
             }
 
@@ -598,8 +598,8 @@ static void draw_console(Application& app)
 
         if (ImGui::BeginTabItem("log")) {
             ImGui::BeginChild("LogEntries");
-            Logger::get_instance()->for_each_message([](const LogMessage& entry) -> void {
-                const char* msg = entry.message.c_str();
+            LLDBLogger::Get()->ForEachMessage([](const LogMessage& entry) -> void {
+                const char* msg = entry.message.Begin();
                 switch (entry.level) {
                     case LogLevel::Verbose: {
                         ImGui::TextColored(ImVec4(78.f / 255.f, 78.f / 255.f, 78.f / 255.f, 255.f),
@@ -637,7 +637,7 @@ static void draw_console(Application& app)
 
             static size_t last_seen_messages = 0;
 
-            const size_t seen_messages = Logger::get_instance()->message_count();
+            const size_t seen_messages = LLDBLogger::Get()->message_count();
             if (seen_messages > last_seen_messages) {
                 last_seen_messages = seen_messages;
                 ImGui::SetScrollHereY(1.0f);
@@ -655,11 +655,11 @@ static void draw_console(Application& app)
         if (ImGui::BeginTabItem("stdout")) {
             ImGui::BeginChild("StdOUTEntries");
 
-            ImGui::TextUnformatted(app._stdout.get());
-            if (app._stdout.size() > last_stdout_size) {
+            ImGui::TextUnformatted(app._stdout.Get());
+            if (app._stdout.GetCount() > last_stdout_size) {
                 ImGui::SetScrollHereY(1.0f);
             }
-            last_stdout_size = app._stdout.size();
+            last_stdout_size = app._stdout.GetCount();
 
             ImGui::EndChild();
             ImGui::EndTabItem();
@@ -667,11 +667,11 @@ static void draw_console(Application& app)
 
         if (ImGui::BeginTabItem("stderr")) {
             ImGui::BeginChild("StdERREntries");
-            ImGui::TextUnformatted(app._stderr.get());
-            if (app._stderr.size() > last_stderr_size) {
+            ImGui::TextUnformatted(app._stderr.Get());
+            if (app._stderr.GetCount() > last_stderr_size) {
                 ImGui::SetScrollHereY(1.0f);
             }
-            last_stderr_size = app._stderr.size();
+            last_stderr_size = app._stderr.GetCount();
             ImGui::EndChild();
             ImGui::EndTabItem();
         }
@@ -681,7 +681,7 @@ static void draw_console(Application& app)
     ImGui::EndChild();
 }
 
-static void draw_threads(UserInterface& ui, std::optional<lldb::SBProcess> process,
+static void draw_threads(UserInterface& ui, Opt<lldb::SBProcess> process,
                          float stack_height)
 {
     ImGui::BeginChild(
@@ -697,7 +697,7 @@ static void draw_threads(UserInterface& ui, std::optional<lldb::SBProcess> proce
         if (ImGui::BeginTabItem("threads")) {
             Defer(ImGui::EndTabItem());
             if (process.has_value() && process_is_stopped(*process)) {
-                const uint32_t nthreads = process->GetNumThreads();
+                const uint32 nthreads = process->GetNumThreads();
 
                 if (ui.viewed_thread_index >= nthreads) {
                     ui.viewed_thread_index = nthreads - 1;
@@ -733,7 +733,7 @@ static void draw_threads(UserInterface& ui, std::optional<lldb::SBProcess> proce
 }
 
 static void draw_stack_trace(UserInterface& ui, OpenFiles& open_files,
-                             std::optional<lldb::SBProcess> process, float stack_height)
+                             Opt<lldb::SBProcess> process, float stack_height)
 {
     ImGui::BeginChild("#StackTraceChild", ImVec2(0, stack_height));
 
@@ -751,25 +751,25 @@ static void draw_stack_trace(UserInterface& ui, OpenFiles& open_files,
                 ImGui::Separator();
 
                 lldb::SBThread viewed_thread = process->GetThreadAtIndex(ui.viewed_thread_index);
-                const uint32_t nframes = viewed_thread.GetNumFrames();
+                const uint32 nframes = viewed_thread.GetNumFrames();
 
                 if (ui.viewed_frame_index >= nframes) {
                     ui.viewed_frame_index = nframes - 1;
                 }
 
                 for (int i = 0; i < viewed_thread.GetNumFrames(); i++) {
-                    auto frame = StackFrame::create(viewed_thread.GetFrameAtIndex(i));
+                    auto frame = StackFrame::Create(viewed_thread.GetFrameAtIndex(i));
 
                     if (!frame) continue;
 
-                    if (ImGui::Selectable(frame->function_name.c_str(), i == ui.viewed_frame_index,
+                    if (ImGui::Selectable(frame->function_name.Begin(), i == ui.viewed_frame_index,
                                           ImGuiSelectableFlags_SpanAllColumns)) {
                         manually_open_and_or_focus_file(ui, open_files, frame->file_handle);
                         ui.viewed_frame_index = i;
                     }
                     ImGui::NextColumn();
 
-                    ImGui::TextUnformatted(frame->file_handle.filename().c_str());
+                    ImGui::TextUnformatted(frame->file_handle.GetFilename().Begin());
                     ImGui::NextColumn();
 
                     String linebuf = Format("%d", (int)frame->line);
@@ -836,7 +836,7 @@ static void draw_local_recursive(lldb::SBValue local)
     }
 }
 
-static void draw_locals_and_registers(UserInterface& ui, std::optional<lldb::SBProcess> process,
+static void draw_locals_and_registers(UserInterface& ui, Opt<lldb::SBProcess> process,
                                       float stack_height)
 {
     ImGui::BeginChild("#LocalsChild", ImVec2(0, stack_height));
@@ -916,7 +916,7 @@ static void draw_locals_and_registers(UserInterface& ui, std::optional<lldb::SBP
 }
 
 static void draw_breakpoints_and_watchpoints(UserInterface& ui, OpenFiles& open_files,
-                                             std::optional<lldb::SBTarget> target,
+                                             Opt<lldb::SBTarget> target,
                                              float stack_height)
 {
     ImGui::BeginChild("#BreakWatchPointChild", ImVec2(0, stack_height));
@@ -937,7 +937,7 @@ static void draw_breakpoints_and_watchpoints(UserInterface& ui, OpenFiles& open_
                 ImGui::Separator();
                 Defer(ImGui::Columns(1));
 
-                const uint32_t nbreakpoints = target->GetNumBreakpoints();
+                const uint32 nbreakpoints = target->GetNumBreakpoints();
                 if (ui.viewed_breakpoint_index >= nbreakpoints) {
                     ui.viewed_breakpoint_index = nbreakpoints - 1;
                 }
@@ -984,9 +984,9 @@ static void draw_breakpoints_and_watchpoints(UserInterface& ui, OpenFiles& open_
 
                     if (ImGui::Selectable(filename, i == ui.viewed_breakpoint_index,
                                           ImGuiSelectableFlags_SpanAllColumns)) {
-                        fs::path breakpoint_filepath = fs::path(directory) / fs::path(filename);
+                        VfsPath breakpoint_filepath = VfsPath(directory) / VfsPath(filename);
                         manually_open_and_or_focus_file(ui, open_files,
-                                                        breakpoint_filepath.c_str());
+                                                        breakpoint_filepath.Begin());
                         ui.viewed_breakpoint_index = i;
                     }
                     ImGui::NextColumn();
@@ -1022,7 +1022,7 @@ static void draw_debug_stream_popup(UserInterface& ui)
     ImGui::PushFont(ui.font);
 
     if (ImGui::Begin("Debug Stream", 0)) {
-        for (const auto& [xkey, xstr] : s_debug_stream) {
+        for (const auto& [xkey, xstr] : ~s_debug_stream) {
             String debug_line = Format("%s : %s", (String)xkey, (String)xstr);
             ImGui::TextUnformatted(~debug_line);
         }
@@ -1050,14 +1050,14 @@ __attribute__((flatten)) static void draw(Application& app)
     ImGui::PushFont(ui.font);
 
     {
-        Splitter("##S1", true, 3.0f, &ui.file_browser_width, &ui.file_viewer_width,
+        StrSplitter("##S1", true, 3.0f, &ui.file_browser_width, &ui.file_viewer_width,
                  0.05 * ui.window_width, 0.05 * ui.window_width, ui.window_height);
 
         ImGui::BeginGroup();
         ImGui::BeginChild("ControlBarAndFileBrowser", ImVec2(ui.file_browser_width, 0));
         draw_control_bar(app.debugger, app.cmdline, app.listener, app.ui);
         ImGui::Separator();
-        draw_file_browser(app, app.file_browser.get(), 0);
+        DrawFileBrowser(app, app.file_browser.Get(), 0);
         ImGui::EndChild();
         ImGui::EndGroup();
     }
@@ -1065,7 +1065,7 @@ __attribute__((flatten)) static void draw(Application& app)
     ImGui::SameLine();
 
     {
-        Splitter("##S2", false, 3.0f, &ui.file_viewer_height, &ui.console_height,
+        StrSplitter("##S2", false, 3.0f, &ui.file_viewer_height, &ui.console_height,
                  0.1 * ui.window_height, 0.1 * ui.window_height, ui.file_viewer_width);
 
         ImGui::BeginGroup();
@@ -1083,10 +1083,10 @@ __attribute__((flatten)) static void draw(Application& app)
         // TODO: let locals tab have all the expanded space
         const float stack_height = (ui.window_height - 2 * ImGui::GetFrameHeightWithSpacing()) / 4;
 
-        draw_threads(ui, find_process(app.debugger), stack_height);
-        draw_stack_trace(ui, open_files, find_process(app.debugger), stack_height);
-        draw_locals_and_registers(ui, find_process(app.debugger), stack_height);
-        draw_breakpoints_and_watchpoints(ui, open_files, find_target(app.debugger), stack_height);
+        draw_threads(ui, FindProcess(app.debugger), stack_height);
+        draw_stack_trace(ui, open_files, FindProcess(app.debugger), stack_height);
+        draw_locals_and_registers(ui, FindProcess(app.debugger), stack_height);
+        draw_breakpoints_and_watchpoints(ui, open_files, FindTarget(app.debugger), stack_height);
 
         ImGui::EndGroup();
     }
@@ -1115,12 +1115,12 @@ static void handle_lldb_events(lldb::SBDebugger& debugger, lldb::SBListener& lis
         event.GetDescription(event_description);
         LOG("Event Description => " << event_description.GetData());
 
-        auto target = find_target(debugger);
-        auto process = find_process(debugger);
+        auto target = FindTarget(debugger);
+        auto process = FindProcess(debugger);
 
         if (target.has_value() && event.BroadcasterMatchesRef(target->GetBroadcaster())) {
             LOG("Found target event");
-            file_viewer.synchronize_breakpoint_cache(*target);
+            file_viewer.SynchronizeBreakpointCache(*target);
         }
         else if (process.has_value() && event.BroadcasterMatchesRef(process->GetBroadcaster())) {
             const lldb::StateType new_state = lldb::SBProcess::GetStateFromEvent(event);
@@ -1132,13 +1132,13 @@ static void handle_lldb_events(lldb::SBDebugger& debugger, lldb::SBListener& lis
 
             // For now we find the first (if any) stopped thread and construct a StopInfo.
             if (new_state == lldb::eStateStopped) {
-                const uint32_t nthreads = process->GetNumThreads();
+                const uint32 nthreads = process->GetNumThreads();
                 for (int i = 0; i < nthreads; i++) {
                     lldb::SBThread th = process->GetThreadAtIndex(i);
                     switch (th.GetStopReason()) {
                         case lldb::eStopReasonBreakpoint: {
                             // https://lldb.llvm.org/cpp_reference/classlldb_1_1SBThread.html#af284261156e100f8d63704162f19ba76
-                            assert(th.GetStopReasonDataCount() == 2);
+                            ASSERT(th.GetStopReasonDataCount() == 2);
                             lldb::break_id_t breakpoint_id = th.GetStopReasonDataAtIndex(0);
                             lldb::SBBreakpoint breakpoint =
                                 target->FindBreakpointByID(breakpoint_id);
@@ -1148,8 +1148,8 @@ static void handle_lldb_events(lldb::SBDebugger& debugger, lldb::SBListener& lis
                                 breakpoint.FindLocationByID(location_id);
 
                             const auto [filepath, linum] = resolve_breakpoint(location);
-                            manually_open_and_or_focus_file(ui, open_files, filepath.c_str());
-                            file_viewer.set_highlight_line(linum);
+                            manually_open_and_or_focus_file(ui, open_files, filepath.ToString().Begin());
+                            file_viewer.SetHighlightLine(linum);
                             break;
                         }
                         default: {
@@ -1159,7 +1159,7 @@ static void handle_lldb_events(lldb::SBDebugger& debugger, lldb::SBListener& lis
                 }
             }
             else if (new_state == lldb::eStateRunning) {
-                file_viewer.unset_highlight_line();
+                file_viewer.UnsetHighlightLine();
             }
         }
         else {
@@ -1182,7 +1182,7 @@ static void tick(Application& app)
 	    DUMP(ui.file_viewer_width);
 	    DUMP(ui.file_viewer_height);
 	    DUMP(ui.console_height);
-	    DUMP(app.fps_timer.current_fps());
+	    DUMP(app.fps_timer.GetCurrentFPS());
     }
     #endif
 
@@ -1195,7 +1195,7 @@ static void update_window_dimensions(UserInterface& ui)
     int new_height = -1;
 
     glfwGetFramebufferSize(ui.window, &new_width, &new_height);
-    assert(new_width > 0 && new_height > 0);
+    ASSERT(new_width > 0 && new_height > 0);
 
     ui.window_resized_last_frame = new_width != ui.window_width || new_height != ui.window_height;
 
@@ -1237,23 +1237,23 @@ int main_loop(Application& app)
         // TODO: develop bettery strategy for when to read stdout,
         // possible upon receiving certain types of LLDBEvent?
         if (app.ui.frames_rendered % 10 == 0) {
-            if (auto process = find_process(app.debugger); process.has_value()) {
-                app._stdout.update(*process);
-                app._stderr.update(*process);
+            if (auto process = FindProcess(app.debugger); process.has_value()) {
+                app._stdout.Update(*process);
+                app._stderr.Update(*process);
             }
         }
 
         update_window_dimensions(app.ui);
 
-        app.fps_timer.wait_for_frame_duration(1.75 * 16666);
-        app.fps_timer.frame_end();
+        app.fps_timer.WaitForFrameDuration(1.75 * 16666);
+        app.fps_timer.FrameEnd();
         app.ui.frames_rendered++;
     }
 
     return EXIT_SUCCESS;
 }
 
-std::optional<UserInterface> UserInterface::init(void)
+Opt<UserInterface> UserInterface::init()
 {
     UserInterface ui;
 
@@ -1320,25 +1320,25 @@ std::optional<UserInterface> UserInterface::init(void)
     return ui;
 }
 
-Application::Application(const UserInterface& ui_, std::optional<fs::path> workdir)
+Application::Application(const UserInterface& ui_, Opt<VfsPath> workdir)
     : debugger(lldb::SBDebugger::Create()),
       listener(debugger.GetListener()),
       cmdline(debugger),
       _stdout(StreamBuffer::StreamSource::StdOut),
       _stderr(StreamBuffer::StreamSource::StdErr),
-      file_browser(FileBrowserNode::create(workdir)),
+      file_browser(FileBrowserNode::Create(workdir)),
       ui(ui_)
 {
 }
 
 Application::~Application()
 {
-    if (auto process = find_process(this->debugger); process.has_value() && process->IsValid()) {
+    if (auto process = FindProcess(this->debugger); process.has_value() && process->IsValid()) {
         LOG("warning: Found active process while closing Application.");
         kill_process(*process);
     }
 
-    if (auto target = find_target(this->debugger); target.has_value() && target->IsValid()) {
+    if (auto target = FindTarget(this->debugger); target.has_value() && target->IsValid()) {
         LOG("warning: Found active target while closing Application.");
         this->debugger.DeleteTarget(*target);
     }

@@ -4,9 +4,9 @@
 
 // TODO: this struct doesn't need to be publically exposed
 struct UserInterface {
-    uint32_t viewed_thread_index = 0;
-    uint32_t viewed_frame_index = 0;
-    uint32_t viewed_breakpoint_index = 0;
+    uint32 viewed_thread_index = 0;
+    uint32 viewed_frame_index = 0;
+    uint32 viewed_breakpoint_index = 0;
 
     float window_width = -1.f;   // in pixels
     float window_height = -1.f;  // in pixels
@@ -25,7 +25,7 @@ struct UserInterface {
     ImFont* font = nullptr;
     GLFWwindow* window = nullptr;
 
-    static std::optional<UserInterface> init(void);
+    static Opt<UserInterface> init();
 
 private:
     UserInterface() = default;
@@ -39,12 +39,12 @@ struct Application {
     StreamBuffer _stderr;
 
     OpenFiles open_files;
-    std::unique_ptr<FileBrowserNode> file_browser;
+    One<FileBrowserNode> file_browser;
     UserInterface ui;
     FileViewer file_viewer;
     FPSTimer fps_timer;
 
-    Application(const UserInterface&, std::optional<fs::path>);
+    Application(const UserInterface&, Opt<VfsPath>);
     ~Application();
 
     Application() = delete;

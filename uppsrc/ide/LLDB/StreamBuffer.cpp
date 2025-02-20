@@ -1,7 +1,7 @@
 #include "LLDB.h"
 
 
-void StreamBuffer::update(lldb::SBProcess process)
+void StreamBuffer::Update(lldb::SBProcess process)
 {
     while (m_capacity < StreamBuffer::MAX_CAPACITY) {
         size_t bytes_written = 0;
@@ -27,7 +27,7 @@ void StreamBuffer::update(lldb::SBProcess process)
         }
         else {
             const size_t new_capacity = m_capacity * 2;
-            assert(new_capacity > m_offset);
+            ASSERT(new_capacity > m_offset);
 
             LOG("Reallocating stream buffer for larger capacity: " << m_capacity
                 << " bytes -> " << new_capacity << " bytes");
@@ -35,7 +35,7 @@ void StreamBuffer::update(lldb::SBProcess process)
             m_capacity = new_capacity;
 
             char* new_data = (char*)malloc(sizeof(char) * m_capacity);
-            assert(new_data != nullptr);
+            ASSERT(new_data != nullptr);
 
             for (size_t i = 0; i < m_offset; i++) {
                 new_data[i] = m_data[i];
@@ -52,7 +52,7 @@ void StreamBuffer::update(lldb::SBProcess process)
     LOG("warning: Exceeded maximum stream buffer capacity.");
 }
 
-void StreamBuffer::clear(void)
+void StreamBuffer::Clear()
 {
     for (size_t i = 0; i < m_capacity; i++) {
         m_data[i] = '\0';
@@ -66,10 +66,10 @@ StreamBuffer::StreamBuffer(StreamSource source)
       m_data((char*)malloc(sizeof(char) * m_capacity)),
       m_source(source)
 {
-    this->clear();
+    this->Clear();
 }
 
-StreamBuffer::~StreamBuffer(void)
+StreamBuffer::~StreamBuffer()
 {
     if (m_data != nullptr) {
         free(m_data);

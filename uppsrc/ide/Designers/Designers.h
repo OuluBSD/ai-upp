@@ -189,8 +189,6 @@ struct JsonViewDes : TreeViewDes {
 
 INITIALIZE(JsonViewDes)
 
-#ifdef flagAI
-
 struct IdeEditPos : Moveable<IdeEditPos> {
 	Time filetime = Null;
 	LineEdit::EditPos editpos;
@@ -202,6 +200,8 @@ static VectorMap<String, IdeEditPos>& sEPai()
 	static VectorMap<String, IdeEditPos> x;
 	return x;
 }
+
+#ifdef flagAI
 
 #include <AI/AI.h>
 

@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include <Core/Core.h>
+#include <AI/AI.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -30,11 +31,16 @@
 #include "lldb/API/LLDB.h"
 
 // clang-format off
-#ifdef flagLINUX
+#if defined flagLINUX
 	#include <imgui/imgui.h>
 	#include <imgui/imgui_internal.h>
 	#include <imgui/imgui_impl_glfw.h>
 	#include <imgui/imgui_impl_opengl2.h>
+#elif defined flagFREEBSD
+	#include <imgui.h>
+	#include <imgui_internal.h>
+	#include <imgui_impl_glfw.h>
+	#include <imgui_impl_opengl2.h>
 #else
 	#include "imgui.h"
 	#include "imgui_internal.h"
@@ -44,6 +50,10 @@
 // clang-format on
 
 using namespace Upp;
+
+namespace UPP {
+template <class T> using Opt = std:: optional<T>;
+}
 
 //#include <cxxopts.hpp>
 //#include <fmt/format.h>

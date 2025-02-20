@@ -1,5 +1,6 @@
 #include "Ctrl.h"
 #include <ide/ide.h>
+#include <ide/Designers/Designers.h>
 
 NAMESPACE_UPP
 

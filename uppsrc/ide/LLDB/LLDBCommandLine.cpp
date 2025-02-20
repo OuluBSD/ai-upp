@@ -22,20 +22,20 @@ lldb::SBCommandReturnObject LLDBCommandLine::run_command(const char* command,
     }
 
     CommandLineEntry entry;
-    entry.input = std::string(command);
+    entry.input = String(command);
 
     lldb::SBCommandReturnObject ret;
     m_interpreter.HandleCommand(command, ret);
 
     if (ret.GetOutput()) {
-        entry.output = std::string(ret.GetOutput());
+        entry.output = String(ret.GetOutput());
     }
 
     entry.succeeded = ret.Succeeded();
 
     if (!entry.succeeded) {
         if (ret.GetError()) {
-            entry.error_msg = std::string(ret.GetError());
+            entry.error_msg = String(ret.GetError());
         }
         else {
             entry.error_msg = "Unknown failure reason!";
@@ -43,13 +43,13 @@ lldb::SBCommandReturnObject LLDBCommandLine::run_command(const char* command,
     }
 
     if (!hide_from_history) {
-        m_history.emplace_back(std::move(entry));
+        m_history.Add(std::move(entry));
     }
 
     return ret;
 }
 
-std::optional<std::string> LLDBCommandLine::expand_and_unalias_command(const char* command)
+Opt<String> LLDBCommandLine::expand_and_unalias_command(const char* command)
 {
     if (!command) {
         LOG("warning: Attempted to expand/unalias empty command!");
@@ -61,7 +61,7 @@ std::optional<std::string> LLDBCommandLine::expand_and_unalias_command(const cha
 
     const char* output = ret.GetOutput();
     if (ret.Succeeded() && output) {
-        return std::string(output);
+        return String(output);
     }
     else {
         return {};

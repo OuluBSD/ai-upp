@@ -5,13 +5,13 @@ class StreamBuffer {
 public:
     enum class StreamSource { StdOut, StdErr };
 
-    void update(lldb::SBProcess process);
-    inline const char* get(void) const { return m_data; }
-    void clear(void);
-    inline size_t size(void) const { return m_offset; }
+    void Update(lldb::SBProcess process);
+    const char* Get() const { return m_data; }
+    void Clear();
+    size_t GetCount() const { return m_offset; }
 
     StreamBuffer(StreamSource source);
-    ~StreamBuffer(void);
+    ~StreamBuffer();
 
     StreamBuffer(const StreamBuffer&) = delete;
     StreamBuffer& operator=(const StreamBuffer&) = delete;

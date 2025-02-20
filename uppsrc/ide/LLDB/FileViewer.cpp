@@ -1,12 +1,13 @@
 #include "LLDB.h"
 
 
-std::optional<int> FileViewer::render(void)
+Opt<int> FileViewer::Render()
 {
-    const std::unordered_set<int>* const bps =
-        (m_breakpoints.has_value() && m_breakpoints != m_breakpoint_cache.end())
-            ? &(*m_breakpoints)->second
-            : nullptr;
+	Panic("TODO"); // what the hell is this?
+    const Index<int>* const bps = 0;
+        /*(m_breakpoints.GetCount() && m_breakpoints != m_breakpoint_cache.end())
+            ? &m_breakpoints
+            : nullptr;*/
 
     ImGuiContext& g = *GImGui;
     auto& style = g.Style;
@@ -17,10 +18,10 @@ std::optional<int> FileViewer::render(void)
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, style.Colors[ImGuiCol_TitleBg]);
     Defer(ImGui::PopStyleColor());
 
-    std::optional<int> clicked_line = {};
+    Opt<int> clicked_line = {};
 
     String line_buffer;
-    for (size_t i = 0; i < m_lines.size(); i++) {
+    for (size_t i = 0; i < m_lines.GetCount(); i++) {
         const size_t line_number = i + 1;
 
         line_buffer = Format("   %d  %s\n", (int)line_number, (String)m_lines[i]);
@@ -35,12 +36,12 @@ std::optional<int> FileViewer::render(void)
             }
         }
 
-        ImGui::Selectable(~line_buffer, selected);
+        ImGui::Selectable(line_buffer, selected);
         if (ImGui::IsItemClicked()) {
             clicked_line = line_number;
         }
 
-        if (bps != nullptr && bps->find(line_number) != bps->end()) {
+        if (bps && bps->Find(line_number) >= 0) {
             ImVec2 pad = style.FramePadding;
             ImVec2 pos = window->DC.CursorPos;
             ImVec2 txt = ImGui::CalcTextSize("X");
@@ -55,9 +56,9 @@ std::optional<int> FileViewer::render(void)
     return clicked_line;
 }
 
-void FileViewer::synchronize_breakpoint_cache(lldb::SBTarget target)
+void FileViewer::SynchronizeBreakpointCache(lldb::SBTarget target)
 {
-    for (auto& [_, bps] : m_breakpoint_cache) bps.clear();
+    for (auto& bps : m_breakpoint_cache) bps.Clear();
 
     for (int i = 0; i < target.GetNumBreakpoints(); i++) {
         lldb::SBBreakpoint bp = target.GetBreakpointAtIndex(i);
@@ -86,29 +87,23 @@ void FileViewer::synchronize_breakpoint_cache(lldb::SBTarget target)
 			(String)line_entry.GetFileSpec().GetDirectory(),
 			(String)line_entry.GetFileSpec().GetFilename());
 
-        const auto maybe_handle = FileHandle::create(~bp_filepath);
+        const auto maybe_handle = FileHandle::Create(bp_filepath);
         if (!maybe_handle) {
             LOG("error: Invalid filepath found for breakpoint: " << bp_filepath);
             continue;
         }
         const FileHandle handle = *maybe_handle;
 
-        if (auto it = m_breakpoint_cache.find(handle); it == m_breakpoint_cache.end()) {
-            m_breakpoint_cache.emplace(handle,
-                                       std::unordered_set<int>({(int)line_entry.GetLine()}));
-        }
-        else {
-            it->second.insert((int)line_entry.GetLine());
-        }
+        m_breakpoint_cache.GetAdd(handle).FindAdd(line_entry.GetLine());
     }
 }
 
-void FileViewer::show(FileHandle handle)
+void FileViewer::Show(FileHandle handle)
 {
-    m_lines = handle.contents();
+    m_lines <<= handle.GetContents();
 
-    if (const auto it = m_breakpoint_cache.find(handle); it != m_breakpoint_cache.end()) {
-        m_breakpoints = it;
+    if (int i = m_breakpoint_cache.Find(handle); i >= 0) {
+        m_breakpoints = &m_breakpoint_cache[i];
     }
     else {
         m_breakpoints = {};

@@ -1,5 +1,8 @@
+noblitz;
+
 uses
-	Core;
+	Core,
+	AI;
 
 library
 	"lldb glfw imgui GL GLEW";
@@ -22,5 +25,18 @@ file
 	Log.cpp,
 	StreamBuffer.h,
 	StreamBuffer.cpp,
-	Timer.h;
+	Timer.h,
+	imgui readonly separator,
+	imgui.h,
+	imconfig.h,
+	imgui_impl_glfw.h,
+	imgui_impl_opengl2.h,
+	imgui.cpp,
+	imgui_demo.cpp,
+	imgui_draw.cpp,
+	imgui_widgets.cpp,
+	imstb_rectpack.h,
+	imstb_textedit.h,
+	imstb_truetype.h,
+	imgui_internal.h;
 

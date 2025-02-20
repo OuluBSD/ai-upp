@@ -28,15 +28,15 @@ CONSOLE_APP_MAIN
     // TODO: make mutually exclusive arguments, for example attach vs. launch file
     // clang-format off
     options.add_options()
-        ("n,attach-name", "Tells the debugger to attach to a process with the given name.", cxxopts::value<std::string>())
-        ("p,attach-pid", "Tells the debugger to attach to a process with the given pid.", cxxopts::value<std::string>())
-        ("w,wait-for", "Tells the debugger to wait for a process with the given pid or name to launch before attaching.", cxxopts::value<std::string>())
-        ("f,file", "Tells the debugger to use <filename> as the program to be debugged.", cxxopts::value<std::string>())
-        ("S,source-before-file", "Tells the debugger to read in and execute the lldb  commands  in the given file, before any file has been loaded.", cxxopts::value<std::string>())
-        ("s,source", "Tells the debugger to read in and execute the lldb commands in the given file, after any file has been loaded.", cxxopts::value<std::string>())
-        ("workdir", "Specify base directory of file explorer tree", cxxopts::value<std::string>())
+        ("n,attach-name", "Tells the debugger to attach to a process with the given name.", cxxopts::value<String>())
+        ("p,attach-pid", "Tells the debugger to attach to a process with the given pid.", cxxopts::value<String>())
+        ("w,wait-for", "Tells the debugger to wait for a process with the given pid or name to launch before attaching.", cxxopts::value<String>())
+        ("f,file", "Tells the debugger to use <filename> as the program to be debugged.", cxxopts::value<String>())
+        ("S,source-before-file", "Tells the debugger to read in and execute the lldb  commands  in the given file, before any file has been loaded.", cxxopts::value<String>())
+        ("s,source", "Tells the debugger to read in and execute the lldb commands in the given file, after any file has been loaded.", cxxopts::value<String>())
+        ("workdir", "Specify base directory of file explorer tree", cxxopts::value<String>())
         ("h,help", "Print out usage information.")
-        ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
+        ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<Vector<String>>())
         ;
     // clang-format on
 
@@ -57,8 +57,8 @@ CONSOLE_APP_MAIN
     UPP::String source_file; // source;
     Vector<UPP::String> positional; // positional;
     
-    String option;
-    for (String arg : CommandLine()) {
+    UPP::String option;
+    for (UPP::String arg : CommandLine()) {
         if (arg[0] == '-') {
             option = arg.Mid(1);
         }
@@ -78,8 +78,8 @@ CONSOLE_APP_MAIN
     
     if (auto lldb_error = lldb::SBDebugger::InitializeWithErrorHandling(); !lldb_error.Success()) {
         const char* lldb_error_cstr = lldb_error.GetCString();
-        std::cerr << (lldb_error_cstr ? lldb_error_cstr : "Unknown LLDB error!");
-        std::cerr << "Failed to initialize LLDB, exiting...";
+        UPP::VppLog() << (lldb_error_cstr ? lldb_error_cstr : "Unknown LLDB error!");
+        UPP::VppLog() << "Failed to initialize LLDB, exiting...";
         SetExitCode(1);
         return;
     }
@@ -92,10 +92,10 @@ CONSOLE_APP_MAIN
         return;
     }
 
-    std::optional<fs::path> workdir = {};
+    Opt<VfsPath> workdir = {};
     if (param_workdir.Is()) {
-        fs::path workdir_request = fs::path(~param_workdir);
-        if (fs::exists(workdir_request) && fs::is_directory(workdir_request)) {
+        VfsPath workdir_request = StrVfs(param_workdir);
+        if (workdir_request.IsSysDirectory()) {
             workdir = workdir_request;
         }
     }
@@ -103,10 +103,10 @@ CONSOLE_APP_MAIN
     Application app(*ui, workdir);
 
     if (source_path.Is()) {
-        auto handle = FileHandle::create(~source_path);
+        auto handle = FileHandle::Create(source_path);
         if (handle.has_value()) {
-            for (const std::string& line : handle->contents()) {
-                auto ret = run_lldb_command(app, line.c_str());
+            for (const String& line : handle->GetContents()) {
+                auto ret = run_lldb_command(app, line);
             }
             LOG("Successfully executed commands in source file: " << source_path);
         }
@@ -131,10 +131,10 @@ CONSOLE_APP_MAIN
     }
 
     if (source_file.Is()) {
-        auto handle = FileHandle::create(~source_file);
+        auto handle = FileHandle::Create(~source_file);
         if (handle.has_value()) {
-            for (const std::string& line : handle->contents()) {
-                auto ret = run_lldb_command(app, line.c_str());
+            for (const String& line : handle->GetContents()) {
+                auto ret = run_lldb_command(app, line);
             }
             LOG("Successfully executed commands in source file: " << source_file);
         }

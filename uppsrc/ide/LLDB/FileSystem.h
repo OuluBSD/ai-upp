@@ -23,14 +23,12 @@ public:
     const Vector<String>& GetContents();
     const String& GetFilepath();
     const String& GetFilename();
+    hash_t GetHashValue() const {return m_hash;}
 
-    inline friend bool operator==(const FileHandle& a, const FileHandle& b)
-    {
+    inline friend bool operator==(const FileHandle& a, const FileHandle& b) {
         return a.m_hash == b.m_hash;
     }
-
-    inline friend bool operator<(const FileHandle& a, const FileHandle& b)
-    {
+    inline friend bool operator<(const FileHandle& a, const FileHandle& b) {
         return a.m_hash < b.m_hash;
     }
 };

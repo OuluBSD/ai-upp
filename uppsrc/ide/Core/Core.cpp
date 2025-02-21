@@ -414,3 +414,4 @@ String GetLineEndings(const String& data, const String& default_eol)
 	}
 	return default_eol;
 }
+

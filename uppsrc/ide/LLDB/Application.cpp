@@ -984,9 +984,9 @@ static void draw_breakpoints_and_watchpoints(UserInterface& ui, OpenFiles& open_
 
                     if (ImGui::Selectable(filename, i == ui.viewed_breakpoint_index,
                                           ImGuiSelectableFlags_SpanAllColumns)) {
-                        VfsPath breakpoint_filepath = VfsPath(directory) / VfsPath(filename);
+                        VfsPath breakpoint_filepath = StrVfs(directory) / StrVfs(filename);
                         manually_open_and_or_focus_file(ui, open_files,
-                                                        breakpoint_filepath.Begin());
+                                                        breakpoint_filepath.Get().Begin());
                         ui.viewed_breakpoint_index = i;
                     }
                     ImGui::NextColumn();

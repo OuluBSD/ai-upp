@@ -454,7 +454,9 @@ void Ide::SetupFormat() {
 		(ide.setmain_newide, setmain_newide)
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
+#ifdef flagAI
 		(ai.global_proxy, global_proxy)
+#endif
 	;
 	
 #ifdef flagAI

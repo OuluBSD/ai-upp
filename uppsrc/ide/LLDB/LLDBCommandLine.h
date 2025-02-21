@@ -3,7 +3,7 @@
 
 // TODO: convert to variant to represent either user command, stdout, sterr, or log
 // message
-struct CommandLineEntry {
+struct CommandLineEntry : Moveable<CommandLineEntry> {
     String input;
     String output;
     String error_msg;  // TODO: use Opt and eliminate 'succeeded' bool

@@ -98,6 +98,11 @@ VfsPath VirtualFSComponentCtrl::GetCursorRelativePath() const {
 	return vnode_path;
 }
 
+void VirtualFSComponentCtrl::EditPos(JsonIO& json) {
+	if (vnode_ctrl)
+		vnode_ctrl->EditPos(json);
+}
+
 void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 	// Fill tree with virtual-node data: visit root
 	tree.WhenCursor.Clear(); // prevent useless calls
@@ -193,6 +198,7 @@ Value ValueVFSComponentCtrl::Get(Value key) {
 	}
 	return Value();
 }
+
 
 
 
@@ -745,6 +751,12 @@ void EntityEditorCtrl::DataEcsTree() {
 void EntityEditorCtrl::DataExtCtrl() {
 	if (ext_ctrl) {
 		ext_ctrl->DataTree(content_tree);
+		
+		// Do postponed tree cursor loading
+		if (post_content_cursor >= 0 && post_content_cursor < content_tree.GetLineCount())
+			content_tree.SetCursor(post_content_cursor);
+		post_content_cursor = -1;
+		
 		ext_ctrl->Data();
 	}
 }
@@ -1066,11 +1078,16 @@ void EntityEditorCtrl::Do(int i) {
 
 void EntityEditorCtrl::EditPos(JsonIO& json) {
 	int ecs_i = ecs_tree.IsCursor() ? ecs_tree.GetCursor() : -1;
+	int content_i = content_tree.IsCursor() ? content_tree.GetCursor() : -1;
 	json	("ecs_tree", ecs_i)
+			("content_tree", content_i)
 			;
 	if (json.IsLoading()) {
 		if (ecs_i >= 0 && ecs_i < ecs_tree.GetLineCount())
 			ecs_tree.SetCursor(ecs_i);
+		
+		// Content tree haven't loaded yet, so postpone loading until tree visit has finished
+		post_content_cursor = content_i;
 	}
 	
 	if (ext_ctrl)

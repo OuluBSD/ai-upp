@@ -187,7 +187,7 @@ void Sentinel(Stream& s, const char *txt)
 
 void Ide::Serialize(Stream& s)
 {
-	int version = 32;
+	int version = 33;
 	Sentinel(s, "before 12341234");
 	s.Magic(0x12341234);
 	Sentinel(s, "after magic");
@@ -393,10 +393,14 @@ void Ide::Serialize(Stream& s)
 	if(version >= 32)
 		s % global_proxy % ai_manager;
 
+	if(version >= 33)
+		s % editassolver;
+
 #ifdef PLATFORM_WIN32
 	if(s.IsLoading() && HostConsole == "/usr/bin/xterm -e")
 		HostConsole = "powershell.exe";
 #endif
+
 }
 
 Time Ide::ConfigTime()

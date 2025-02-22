@@ -110,6 +110,7 @@ protected:
 	void DataTree(TreeCtrl& tree) override;
 	VfsPath GetCursorPath() const override;
 	VfsPath GetCursorRelativePath() const;
+	void EditPos(JsonIO& json) override;
 public:
 	typedef VirtualFSComponentCtrl CLASSNAME;
 	
@@ -149,6 +150,7 @@ public:
 	DatasetPtrs RealizeEntityVfsObject(const VirtualNode& vnode, int kind);
 	int GetKind() const {return kind;}
 	virtual void Data() {}
+	virtual void EditPos(JsonIO& json) {}
 	
 	VirtualNode GetVnode() const {return vnode;}
 	template <class T>
@@ -193,6 +195,7 @@ class EntityEditorCtrl : public ToolAppCtrl {
 	Ctrl ext_place;
 	One<MetaExtCtrl> ext_ctrl;
 	int ext_ctrl_kind = -1;
+	int post_content_cursor = -1;
 	
 	void DataEcsTreeVisit(int treeid, MetaNode& n);
 	

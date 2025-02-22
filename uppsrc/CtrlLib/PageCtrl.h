@@ -77,6 +77,7 @@ public:
 	void  Remove(int i);
 
 	int   GetTab(Point p) const;
+	Vector<int> GetPagesOnSight() const;
 
 	int   GetCount() const                       { return tab.GetCount(); }
 	Item& GetItem(int i)                         { return tab[i]; }

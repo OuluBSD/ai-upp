@@ -40,6 +40,12 @@ void ScriptTextProcess::DoPhase() {
 	else if (IsPhase(PHASE_TOKENIZE)) {
 		Tokenize();
 	}
+	else if (IsPhase(PHASE_ANALYZE_ARTISTS)) {
+		AnalyzeArtists();
+	}
+	else if (IsPhase(PHASE_ANALYZE_ELEMENTS)) {
+		AnalyzeElements();
+	}
 	else {
 		SetNotRunning();
 	}
@@ -327,7 +333,166 @@ void ScriptTextProcess::Tokenize() {
 	}
 }
 
-ScriptTextProcess& ScriptTextProcess::Get(DatasetPtrs p, VfsPath path, Value params, SrcTextData& data, Event<> WhenReady) {
+void ScriptTextProcess::AnalyzeArtists() {
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	
+	bool user_genres = params("genres").Is<ValueArray>();
+	
+	if (batch >= src.authors.GetCount() || user_genres) {
+		NextPhase();
+		return;
+	}
+	
+	AuthorDataset& ent = src.authors[batch];
+	if (ent.genres.GetCount()) {
+		NextBatch();
+		return;
+	}
+	args.fn = 1;
+	args.artist = ent.name;
+	
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	m.GetSourceDataAnalysis(args, [this](String result) {
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
+		SourceDataAnalysisArgs& args = this->args;
+		
+		RemoveEmptyLines3(result);
+		RemoveEmptyLines2(result);
+		//LOG(result);
+		
+		Vector<String> genres = Split(result, "\n");
+		for (String& genre : genres) {
+			genre = ToLower(TrimBoth(genre));
+			int i = genre.Find(":");
+			if (i >= 0)
+				genre = TrimBoth(genre.Mid(i+1));
+		}
+		AuthorDataset& ent = src.authors[batch];
+		ent.genres <<= genres;
+		
+		NextBatch();
+		SetWaiting(false);
+	});
+}
+
+void ScriptTextProcess::AnalyzeElements() {
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	Vector<AuthorDataset>& entities = src.authors;
+	
+	if (batch >= src.scripts.GetCount()) {
+		NextPhase();
+		return;
+	}
+	ScriptStruct& ss = src.scripts[batch];
+	if (ss.parts.GetCount() && ss.parts[0].cls >= 0) {
+		NextBatch();
+		return;
+	}
+	
+	args.fn = 0;
+	args.text = TrimBoth(src.GetScriptDump(batch));
+	Vector<String> all_sections = Split(args.text, "[");
+	if (args.text.IsEmpty() || all_sections.GetCount() >= 50) {
+		NextBatch();
+		return;
+	}
+	
+	// Another hotfix
+	if (args.text.Find("http://") >= 0 || args.text.Find("https://") >= 0) {
+		NextBatch();
+		return;
+	}
+	
+	bool keep_going = true;
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	if (m.keep_going_counter >= 50) {
+		SetNotRunning();
+		return;
+	}
+	
+	m.GetSourceDataAnalysis(args, [this](String result) {
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
+		SourceDataAnalysisArgs& args = this->args;
+		ScriptStruct& ss = src.scripts[batch];
+		
+		RemoveEmptyLines3(result);
+		//LOG(result);
+		
+		Vector<String> lines = Split(result, "\n");
+		VectorMap<String,String> section_values;
+		for (String& l : lines) {
+			int a = l.Find("[");
+			if (a < 0) continue;
+			a++;
+			int b = l.Find("]", a);
+			if (b < 0) continue;
+			String key = l.Mid(a,b-a);
+			a = l.Find(":", b);
+			if (a < 0) continue;
+			a++;
+			String value = ToLower(TrimBoth(l.Mid(a)));
+			RemoveQuotes(value);
+			for(int i = 0; i < key.GetCount(); i++) {
+				int chr = key[i];
+				if (chr == '.' || IsDigit(chr))
+					continue;
+				key = key.Left(i);
+				break;
+			}
+			if (key.IsEmpty() || value.IsEmpty())
+				continue;
+			section_values.GetAdd(key, value);
+		}
+		for(int i = 0; i < ss.parts.GetCount(); i++) {
+			auto& p = ss.parts[i];
+			String key;
+			key << i;
+			int l = section_values.Find(key);
+			if (l >= 0) {
+				String& val = section_values[l];
+				int el_i = src.element_keys.FindAdd(val);
+				p.cls = el_i;
+			}
+			
+			for(int j = 0; j < p.sub.GetCount(); j++) {
+				auto& s = p.sub[j];
+				String key;
+				key << i << "." << j;
+				int l = section_values.Find(key);
+				if (l >= 0) {
+					String& val = section_values[l];
+					int el_i = src.element_keys.FindAdd(val);
+					s.cls = el_i;
+				}
+				
+				for(int k = 0; k < s.sub.GetCount(); k++) {
+					auto& ss = s.sub[k];
+					String key;
+					key << i << "." << j << "." << k;
+					int l = section_values.Find(key);
+					if (l >= 0) {
+						String& val = section_values[l];
+						int el_i = src.element_keys.FindAdd(val);
+						ss.cls = el_i;
+					}
+				}
+			}
+		}
+		
+		NextBatch();
+		SetWaiting(false);
+	}, keep_going);
+	
+	
+}
+
+ScriptTextProcess& ScriptTextProcess::Get(DatasetPtrs p, VfsPath path, Value params, SrcTextData& data, Event<> WhenStopped) {
 	static ArrayMap<hash_t, ScriptTextProcess> arr;
 	String key = (String)path + ";" + StoreAsJson(params);
 	hash_t hash = key.GetHashValue();
@@ -335,9 +500,10 @@ ScriptTextProcess& ScriptTextProcess::Get(DatasetPtrs p, VfsPath path, Value par
 	o.p = p;
 	o.params = params;
 	o.data = &data;
-	o.WhenReady = WhenReady;
+	o.WhenStopped = WhenStopped;
 	ASSERT(params.Is<ValueMap>());
 	ASSERT(p.srctxt);
+	ASSERT_(p.src, "A complete database must be present");
 	return o;
 }
 

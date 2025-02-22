@@ -21,6 +21,10 @@ void SolverBase::Process() {
 		ProcessInParallel();
 	else
 		ProcessInOrder();
+	
+	WhenStopped();
+	if (!last_error.IsEmpty())
+		WhenError(last_error);
 }
 
 void SolverBase::ProcessInParallel() {

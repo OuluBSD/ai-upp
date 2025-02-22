@@ -72,6 +72,8 @@ public:
 	Callback2<int,int> WhenProgress;
 	Callback1<String> WhenRemaining;
 	Event<> WhenReady;
+	Event<> WhenStopped;
+	Event<String> WhenError;
 	
 };
 

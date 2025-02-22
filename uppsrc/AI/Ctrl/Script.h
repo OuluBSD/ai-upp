@@ -66,8 +66,10 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 	bool process_automatically = false;
 	
 	bool TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) override;
-	void StartProcess();
+	void StartProcess(bool user_started);
 	void StopProcess();
+	void OnStop();
+	void PostOnStop();
 public:
 	typedef ScriptTextCtrl CLASSNAME;
 	ScriptTextCtrl();

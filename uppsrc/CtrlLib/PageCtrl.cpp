@@ -188,6 +188,16 @@ int  PageCtrl::GetTab(Point p) const
 	return -1;
 }
 
+Vector<int> PageCtrl::GetPagesOnSight() const
+{
+	Rect r = GetSize();
+	Vector<int> v;
+	for(int i = 0; i < tab.GetCount(); i++)
+		if (tab[i].rect.Intersects(r))
+			v << i;
+	return v;
+}
+
 int  PageCtrl::Find(const Ctrl& slave) const
 {
 	for(int i = 0; i < tab.GetCount(); i++)
@@ -450,7 +460,7 @@ PageCtrl::PageCtrl()
 	SetStyle(StyleDefault());
 	AddFrame(sb.Vert());
 	sb.WhenScroll = [=] { Layout(); };
-	sb.SetLine(style->pageheight / 5);
+	sb.SetLine(max(1,style->pageheight / 10));
 }
 
 }

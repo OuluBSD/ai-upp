@@ -27,7 +27,16 @@ void ScriptTextCtrl::SubTab::PageView(int page) {
 }
 
 void ScriptTextCtrl::SubTab::Data() {
-	
+	Vector<int> pages = dbproc.GetPagesOnSight();
+	for (int page : pages)
+		PageView(page);
+}
+
+void ScriptTextCtrl::SubTab::EditPos(JsonIO& json) {
+	int tab_i = tabs.Get();
+	json("tab", tab_i);
+	if (json.IsLoading() && tab_i >= 0 && tab_i < tabs.GetCount())
+		tabs.Set(tab_i);
 }
 
 void ScriptTextCtrl::SubTab::AddRootTabs() {
@@ -115,6 +124,14 @@ bool ScriptTextCtrl::TreeItemString(const VirtualNode& n, const Value& key, Stri
 	return false;
 }
 
+void ScriptTextCtrl::EditPos(JsonIO& json) {
+	json("process_automatically", process_automatically);
+	VirtualFSComponentCtrl::EditPos(json);
+	
+	if (json.IsLoading() && process_automatically)
+		PostCallback(THISBACK(StartProcess));
+}
+
 void ScriptTextCtrl::DataTree(TreeCtrl& tree) {
 	VirtualFSComponentCtrl::DataTree(tree);
 	tree.WhenBar = [this,&tree](Bar& b) {
@@ -129,26 +146,41 @@ void ScriptTextCtrl::DataTree(TreeCtrl& tree) {
 }
 
 void ScriptTextCtrl::ToolMenu(Bar& bar) {
-	RefreshParams();
-	bar.Add("Refresh", [this]{this->Data();}).Key(K_CTRL_Q);
-	if (!active_process) {
-		bar.Add("Start process", [this]{
-			auto* c = GetVNodeComponentCtrl();
-			if (!c) return;
-			DatasetPtrs p = c->GetDataset();
-			if (p.srctxt) {
-				active_process = &ScriptTextProcess::Get(
-					p,
-					this->GetNode().GetPath(),
-					params,
-					*p.srctxt,
-					[this]{this->Data();});
-				active_process->Start();
-			}
-		}).Key(K_F5);
-	}
+	
+	bar.Add("Refresh", [this]{
+		this->Data();
+	}).Key(K_CTRL_Q);
+	bar.Separator();
+	bar.Add("Process automatically", [this]{process_automatically = !process_automatically;}).Check(process_automatically);
+	if (!active_process)
+		bar.Add("Start process", THISBACK(StartProcess)).Key(K_F5);
 	else
-		bar.Add("Stop process", [this]{active_process->Stop();}).Key(K_F5);
+		bar.Add("Stop process", THISBACK(StopProcess)).Key(K_F5);
+}
+
+void ScriptTextCtrl::StartProcess() {
+	auto* c = GetVNodeComponentCtrl();
+	if (!c) return;
+	RefreshParams();
+	DatasetPtrs p = c->GetDataset();
+	if (p.srctxt) {
+		active_process = &ScriptTextProcess::Get(
+			p,
+			this->GetNode().GetPath(),
+			params,
+			*p.srctxt,
+			[this]{
+			PostCallback([this]{
+				active_process = nullptr;
+				this->Data();
+			});
+		});
+		active_process->Start();
+	}
+}
+
+void ScriptTextCtrl::StopProcess() {
+	active_process->Stop();
 }
 
 void ScriptTextCtrl::AddPart() {

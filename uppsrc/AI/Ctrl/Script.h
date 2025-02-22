@@ -28,6 +28,7 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		typedef SubTab CLASSNAME;
 		SubTab(ScriptTextCtrl&, const VirtualNode& vnode);
 		void Data() override;
+		void EditPos(JsonIO& json) override;
 		void PageView(int page);
 		void AddRootTabs();
 		void AddLineOwnerTabs();
@@ -62,13 +63,16 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 	void RefreshParams();
 	void ImportProofread(VirtualNode new_node, TranscriptProofread& proofread);
 	ScriptTextProcess* active_process = 0;
+	bool process_automatically = false;
 	
 	bool TreeItemString(const VirtualNode& n, const Value& key, String& qtf_value) override;
-	
+	void StartProcess();
+	void StopProcess();
 public:
 	typedef ScriptTextCtrl CLASSNAME;
 	ScriptTextCtrl();
 	
+	void EditPos(JsonIO& json) override;
 	void DataTree(TreeCtrl& tree) override;
 	void ToolMenu(Bar& bar) override;
 	void Init() override;

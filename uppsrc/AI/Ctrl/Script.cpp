@@ -129,7 +129,7 @@ void ScriptTextCtrl::EditPos(JsonIO& json) {
 	VirtualFSComponentCtrl::EditPos(json);
 	
 	if (json.IsLoading() && process_automatically)
-		PostCallback(THISBACK(StartProcess));
+		PostCallback(THISBACK1(StartProcess, false));
 }
 
 void ScriptTextCtrl::DataTree(TreeCtrl& tree) {
@@ -153,34 +153,50 @@ void ScriptTextCtrl::ToolMenu(Bar& bar) {
 	bar.Separator();
 	bar.Add("Process automatically", [this]{process_automatically = !process_automatically;}).Check(process_automatically);
 	if (!active_process)
-		bar.Add("Start process", THISBACK(StartProcess)).Key(K_F5);
+		bar.Add("Start process", THISBACK1(StartProcess, true)).Key(K_F5);
 	else
 		bar.Add("Stop process", THISBACK(StopProcess)).Key(K_F5);
 }
 
-void ScriptTextCtrl::StartProcess() {
+void ScriptTextCtrl::StartProcess(bool user_started) {
 	auto* c = GetVNodeComponentCtrl();
 	if (!c) return;
 	RefreshParams();
 	DatasetPtrs p = c->GetDataset();
+	if (!p.src) {
+		if (user_started) {
+			PromptOK("Database context is needed. Set one in entity");
+		}
+		PostOnStop();
+		return;
+	}
 	if (p.srctxt) {
 		active_process = &ScriptTextProcess::Get(
 			p,
 			this->GetNode().GetPath(),
 			params,
 			*p.srctxt,
-			[this]{
-			PostCallback([this]{
-				active_process = nullptr;
-				this->Data();
-			});
-		});
+			THISBACK(PostOnStop));
+		active_process->WhenError << [this](String err) {PostOnStop();};
 		active_process->Start();
 	}
 }
 
 void ScriptTextCtrl::StopProcess() {
 	active_process->Stop();
+}
+
+void ScriptTextCtrl::PostOnStop() {
+	Ptr<ScriptTextCtrl> p = this;
+	PostCallback([p]{
+		if (p)
+			p->OnStop();
+	});
+}
+
+void ScriptTextCtrl::OnStop() {
+	active_process = nullptr;
+	this->Data();
 }
 
 void ScriptTextCtrl::AddPart() {
@@ -270,6 +286,7 @@ void ScriptTextCtrl::RefreshParams() {
 		input_text.Add(text);
 	}
 	params("input_text") = input_text;
+	params("genres") = ValueArray();
 }
 
 void ScriptTextCtrl::RealizeData() {

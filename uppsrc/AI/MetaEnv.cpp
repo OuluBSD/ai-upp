@@ -4,22 +4,26 @@
 
 NAMESPACE_UPP
 
+#define DO_TEMP_CHECK 1
+
 int CreateTempCheck(int src) {
 	static int counter = 0;
-	if (0) {
-		LOG("CreateTemp " << src << ", id=" << counter);
-		if (counter == 25) {
-			LOG("__BREAK__");
-		}
+	#if DO_TEMP_CHECK
+	LOG("CreateTemp " << src << ", id=" << counter);
+	if (counter == 25) {
+		LOG("__BREAK__");
 	}
+	#endif
 	return counter++;
 }
 
 void ClearTempCheck(int id) {
-	if (0) {
-		LOG("ClearTemp id=" << id);
-	}
+	#if DO_TEMP_CHECK
+	LOG("ClearTemp id=" << id);
+	#endif
 }
+
+#undef DO_TEMP_CHECK
 
 
 bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir,

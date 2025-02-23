@@ -52,7 +52,7 @@ static bool process_is_running(lldb::SBProcess& process)
     return process.IsValid() && process.GetState() == lldb::eStateRunning;
 }
 
-static bool process_is_stopped(lldb::SBProcess& process)
+bool process_is_stopped(lldb::SBProcess& process)
 {
     const auto state = process.GetState();
     return process.IsValid() && (state == lldb::eStateStopped || state == lldb::eStateUnloaded);

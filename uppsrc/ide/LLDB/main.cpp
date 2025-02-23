@@ -4,7 +4,7 @@
 
 
 
-CONSOLE_APP_MAIN
+GUI_APP_MAIN
 {
 	StdLogSetup(LOG_FILE|LOG_ELAPSED|LOG_COUT);
 	if (CommandLine().IsEmpty()) {
@@ -85,66 +85,73 @@ CONSOLE_APP_MAIN
     }
     Defer(lldb::SBDebugger::Terminate());
 
-    auto ui = UserInterface::init();
-    if (!ui.has_value()) {
-        Cerr() << "Failed to initialize graphics/UI.\n Exiting...";
-        SetExitCode(1);
-        return;
-    }
 
-    Opt<VfsPath> workdir = {};
-    if (param_workdir.Is()) {
-        VfsPath workdir_request = StrVfs(param_workdir);
-        if (workdir_request.IsSysDirectory()) {
-            workdir = workdir_request;
-        }
-    }
-
-    Application app(*ui, workdir);
-
-    if (source_path.Is()) {
-        auto handle = FileHandle::Create(source_path);
-        if (handle.has_value()) {
-            for (const String& line : handle->GetContents()) {
-                auto ret = run_lldb_command(app, line);
-            }
-            LOG("Successfully executed commands in source file: " << source_path);
-        }
-        else {
-            LOG("Invalid filepath passed to source-before-file argument: " << source_path);
-        }
-    }
-
-    if (file.Is()) {
-        // TODO: detect and open main file of specified executable
-        String target_set_cmd = Format("file %s", file);
-        run_lldb_command(app, ~target_set_cmd);
-
-        if (positional) {
-            String argset_command;
-            argset_command = "settings set target.run-args ";
-            for (const auto& arg : positional) {
-                argset_command += arg;
-            }
-            run_lldb_command(app, ~argset_command);
-        }
-    }
-
-    if (source_file.Is()) {
-        auto handle = FileHandle::Create(~source_file);
-        if (handle.has_value()) {
-            for (const String& line : handle->GetContents()) {
-                auto ret = run_lldb_command(app, line);
-            }
-            LOG("Successfully executed commands in source file: " << source_file);
-        }
-        else {
-            Cerr() << "Invalid filepath passed to --source argument: " << source_file << "\n";
-        }
-    }
-
-    int ret = main_loop(app);
-    SetExitCode(ret);
+	if (1) {
+		LLDBDebuggerApp app;
+		app.Run();
+	}
+	else {
+	    auto ui = UserInterface::init();
+	    if (!ui.has_value()) {
+	        Cerr() << "Failed to initialize graphics/UI.\n Exiting...";
+	        SetExitCode(1);
+	        return;
+	    }
+	
+	    Opt<VfsPath> workdir = {};
+	    if (param_workdir.Is()) {
+	        VfsPath workdir_request = StrVfs(param_workdir);
+	        if (workdir_request.IsSysDirectory()) {
+	            workdir = workdir_request;
+	        }
+	    }
+	    
+	    Application app(*ui, workdir);
+	
+	    if (source_path.Is()) {
+	        auto handle = FileHandle::Create(source_path);
+	        if (handle.has_value()) {
+	            for (const String& line : handle->GetContents()) {
+	                auto ret = run_lldb_command(app, line);
+	            }
+	            LOG("Successfully executed commands in source file: " << source_path);
+	        }
+	        else {
+	            LOG("Invalid filepath passed to source-before-file argument: " << source_path);
+	        }
+	    }
+	
+	    if (file.Is()) {
+	        // TODO: detect and open main file of specified executable
+	        String target_set_cmd = Format("file %s", file);
+	        run_lldb_command(app, ~target_set_cmd);
+	
+	        if (positional) {
+	            String argset_command;
+	            argset_command = "settings set target.run-args ";
+	            for (const auto& arg : positional) {
+	                argset_command += arg;
+	            }
+	            run_lldb_command(app, ~argset_command);
+	        }
+	    }
+	
+	    if (source_file.Is()) {
+	        auto handle = FileHandle::Create(~source_file);
+	        if (handle.has_value()) {
+	            for (const String& line : handle->GetContents()) {
+	                auto ret = run_lldb_command(app, line);
+	            }
+	            LOG("Successfully executed commands in source file: " << source_file);
+	        }
+	        else {
+	            Cerr() << "Invalid filepath passed to --source argument: " << source_file << "\n";
+	        }
+	    }
+	
+	    int ret = main_loop(app);
+	    SetExitCode(ret);
+	}
 }
 
 #endif

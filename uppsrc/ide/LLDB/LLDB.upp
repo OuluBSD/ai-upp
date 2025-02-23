@@ -10,6 +10,7 @@ file
 	Copying,
 	LLDB.h,
 	main.cpp,
+	DebuggerApp.lay,
 	DebuggerApp.h,
 	DebuggerApp.cpp,
 	Application.h,

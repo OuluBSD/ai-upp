@@ -24,6 +24,7 @@
 
 #include <Core/Core.h>
 #include <AI/AI.h>
+#include <CodeEditor/CodeEditor.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -48,6 +49,10 @@
 	#include "imgui_impl_opengl2.h"
 #endif
 // clang-format on
+
+#define LAYOUTFILE <ide/LLDB/DebuggerApp.lay>
+#include <CtrlCore/lay.h>
+
 
 using namespace Upp;
 

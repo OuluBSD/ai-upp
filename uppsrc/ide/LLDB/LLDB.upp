@@ -13,8 +13,6 @@ file
 	DebuggerApp.lay,
 	DebuggerApp.h,
 	DebuggerApp.cpp,
-	Application.h,
-	Application.cpp,
 	Defer.h,
 	FileSystem.h,
 	FileSystem.cpp,
@@ -27,7 +25,10 @@ file
 	Log.cpp,
 	StreamBuffer.h,
 	StreamBuffer.cpp,
-	Timer.h;
+	Timer.h,
+	Trash readonly separator,
+	Application.h,
+	Application.cpp;
 
 mainconfig
 	"" = "GUI AI LCLANG";

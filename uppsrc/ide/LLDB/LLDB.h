@@ -74,6 +74,7 @@ template <class T> using Opt = std:: optional<T>;
 #include "Timer.h"
 
 #include "Application.h"
+#include "DebuggerApp.h"
 
 
 

@@ -59,4 +59,6 @@ lldb::SBCommandReturnObject run_lldb_command(Application& app, const char* comma
                                              bool hide_from_history = false);
 
 
+bool process_is_stopped(lldb::SBProcess& process);
+
 #endif

@@ -14,6 +14,8 @@ public:
 		// 2
 		PHASE_ANALYZE_ARTISTS,
 		PHASE_ANALYZE_ELEMENTS,
+		// 3
+		PHASE_GET,
 		
 		PHASE_COUNT
 	};
@@ -27,6 +29,9 @@ public:
 	// Params
 	TaskArgs args;
 	
+	// Configuration
+	int words_per_action_task = 100;
+	
 	// Temp (per phase)
 	int total = 0, actual = 0;
 	TimeStop ts;
@@ -36,6 +41,8 @@ public:
 	// 2
 	void AnalyzeArtists();
 	void AnalyzeElements();
+	// 3
+	void Get();
 	
 public:
 	typedef ScriptTextProcess CLASSNAME;

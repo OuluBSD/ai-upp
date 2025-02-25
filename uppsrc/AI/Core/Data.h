@@ -519,6 +519,7 @@ struct SrcTextData : EntityData {
 	VectorMap<int, int> GetSortedElementsOfPhraseParts();
 	
 	String GetTokenTextString(const TokenText& txt) const;
+	String GetTokenTextString(const Vector<int>& tokens) const;
 	void Serialize(Stream& s);
 	int GetKind() const override {return METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT;}
 	void Visit(NodeVisitor& s) override;

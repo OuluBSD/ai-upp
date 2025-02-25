@@ -14,6 +14,7 @@ void ScriptTextCtrl::SubTab::PageView(int page) {
 	#define CREATE(x, txt) if (i++ == page) x->Data();
 	CREATE(srcdata, "Source data")
 	CREATE(tk, "Analyzed")
+	CREATE(el, "Elements")
 	CREATE(awp, "Tokens")
 	CREATE(vp, "Ambiguous Word Pairs")
 	CREATE(vpp, "Virtual Phrases")
@@ -56,7 +57,8 @@ void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 		auto& page = dbproc.Add(*x, txt); \
 		if (height > 0) page.Height(height); }
 	CREATE(srcdata, "Source data", 200)
-	CREATE(tk, "Analyzed", 0)
+	CREATE(tk, "Analyzed", 200)
+	CREATE(el, "Elements", 200)
 	CREATE(awp, "Tokens", 0)
 	CREATE(vp, "Ambiguous Word Pairs", 0)
 	CREATE(vpp, "Virtual Phrases", 0)

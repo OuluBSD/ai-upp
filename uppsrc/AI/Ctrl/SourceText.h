@@ -45,6 +45,18 @@ public:
 	void Data();
 };
 
+
+class TextElements : public ParentCtrl {
+	DatasetProvider& o;
+	ArrayCtrl list;
+	
+public:
+	typedef TextElements CLASSNAME;
+	TextElements(DatasetProvider& o);
+	
+	void Data();
+};
+
 // TODO rename
 class TextDataWords : public ParentCtrl {
 	DatasetProvider& o;

@@ -87,10 +87,14 @@ void SrcTextData::Serialize(Stream& s) {
 }
 
 String SrcTextData::GetTokenTextString(const TokenText& txt) const {
+	return GetTokenTextString(txt.tokens);
+}
+
+String SrcTextData::GetTokenTextString(const Vector<int>& tokens) const {
 	String o;
-	for(int tk_i : txt.tokens) {
-		//const Token& tk = tokens[tk_i];
-		const String& key = tokens.GetKey(tk_i);
+	for(int tk_i : tokens) {
+		//const Token& tk = this->tokens[tk_i];
+		const String& key = this->tokens.GetKey(tk_i);
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 			o << key;

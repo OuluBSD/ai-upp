@@ -15,6 +15,7 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		
 		One<AuthorDataCtrl>			srcdata;
 		One<TokensPage>				tk;
+		One<TextElements>			el;
 		One<AmbiguousWordPairs>		awp;
 		One<VirtualPhrases>			vp;
 		One<VirtualPhraseParts>		vpp;

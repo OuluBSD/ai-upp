@@ -352,6 +352,112 @@ void AiTask::CreateInput_Default()
 			.Set("/query/script/text", args.params("text"));
 		input.response_length = 2048;
 	}
+	else if(args.fn == FN_GET_WORD_DATA) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+			"query": {
+				"__comment__": {
+					"incomplete list of word classes": [
+						"Nouns",
+						"Verbs",
+						"Adjectives",
+						"Adverbs",
+						"Pronouns",
+						"Prepositions",
+						"Conjunctions",
+						"Determiners",
+						"Interjections",
+						"Articles",
+						"Modal verbs",
+						"Gerunds",
+						"Infinitives",
+						"Participles",
+						"Definite article",
+						"Indefinite article",
+						"Proper nouns",
+						"Collective nouns",
+						"Concrete nouns",
+						"Abstract nouns",
+						"Irregular verbs",
+						"Regular verbs",
+						"Transitive verbs",
+						"Intransitive verbs",
+						"Auxiliary verbs",
+						"Reflexive verbs",
+						"Imperative verbs",
+						"First person pronouns",
+						"Second person pronouns",
+						"Third person pronouns",
+						"Possessive pronouns",
+						"Demonstrative pronouns",
+						"Relative pronouns",
+						"Intensive pronouns",
+						"Indefinite pronouns",
+						"Personal pronouns",
+						"Subject pronouns",
+						"Objective pronouns",
+						"Possessive determiners",
+						"Possessive adjectives",
+						"Comparative adjectives",
+						"Superlative adjectives",
+						"Proper adjectives",
+						"Positive adjectives",
+						"Negative adjectives",
+						"etc."
+					]
+				},
+				"script": {
+					"words": [
+						[
+							"you",
+							"what's",
+							"smile"
+						]
+					],
+					"__comment__": "Analyze words and write word classes"
+				}
+			},
+			"response-full": {
+				"words & word classes": [
+					[
+						[
+							"you",
+							"pronoun"
+						],
+						[
+							"what's",
+							"contraction (what + is)"
+						],
+						[
+							"smile",
+							"noun | verb"
+						]
+					]
+				]
+			},
+			"response-short": {
+				"word classes": [
+					[
+						"pronoun",
+						"contraction (what + is)",
+						"noun | verb"
+					]
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "words": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/words", args.params("words"));
+		input.response_length = 2048;
+	}
 	else
 		SetError("Invalid function");
 }

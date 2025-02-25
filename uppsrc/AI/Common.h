@@ -22,6 +22,7 @@ typedef enum : TASKFN_TYPE {
 	FN_STORYLINE_DIALOG_1,
 	
 	FN_ANALYZE_ELEMENTS,
+	FN_GET_WORD_DATA,
 	
 } TaskFn;
 

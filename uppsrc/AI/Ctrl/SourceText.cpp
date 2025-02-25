@@ -229,6 +229,50 @@ void TokensPage::Data() {
 
 
 
+TextElements::TextElements(DatasetProvider& o) : o(o) {
+	Add(list.SizePos());
+	
+	list.AddColumn("Text");
+	list.AddColumn("Element");
+	list.ColumnWidths("3 1");
+	
+}
+
+void TextElements::Data() {
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) {
+		list.Clear();
+		return;
+	}
+	auto& src = *p.srctxt;
+	
+	if (src.scripts.GetCount() == 1) {
+		int line = 0;
+		const auto& s = src.scripts[0];
+		for(const auto& part : s.parts) {
+			for(const auto& sub1 : part.sub) {
+				for(const auto& sub2 : sub1.sub) {
+					String s = src.GetTokenTextString(sub2.token_texts);
+					list.Set(line, 0, s);
+					if (sub2.cls >= 0)
+						list.Set(line, 1, src.element_keys[sub2.cls]);
+					else
+						list.Set(line, 1, Value());
+					line++;
+				}
+			}
+		}
+		list.SetCount(line);
+	}
+	else list.Clear();
+	
+}
+
+
+
+
+
+
 
 
 AmbiguousWordPairs::AmbiguousWordPairs(DatasetProvider& o) : o(o) {

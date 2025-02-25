@@ -46,6 +46,9 @@ void ScriptTextProcess::DoPhase() {
 	else if (IsPhase(PHASE_ANALYZE_ELEMENTS)) {
 		AnalyzeElements();
 	}
+	else if (IsPhase(PHASE_GET)) {
+		Get();
+	}
 	else {
 		SetNotRunning();
 	}
@@ -428,13 +431,9 @@ void ScriptTextProcess::AnalyzeElements() {
 		TaskArgs& args = this->args;
 		ScriptStruct& ss = src.scripts[batch];
 		
-		LOG(result);
 		Value v = ParseJSON(result);
 		Value elements = v("response-short")("elements");
-		LOG(UPP::AsJSON(v, true));
-		LOG(UPP::AsJSON(elements, true));
 		Value input_lines = args.params("text");
-		LOG(UPP::AsJSON(input_lines, true));
 		
 		ValueArray arr0 = elements;
 		for(int i = 0; i < ss.parts.GetCount(); i++) {
@@ -459,6 +458,121 @@ void ScriptTextProcess::AnalyzeElements() {
 	});
 	
 	
+}
+
+void ScriptTextProcess::Get() {
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	
+	args.fn = FN_GET_WORD_DATA;
+	args.params = ValueMap();
+	
+	if (batch == 0) total = 0;
+	
+	int begin = batch * words_per_action_task;
+	int end = begin + words_per_action_task;
+	end = min(end, src.tokens.GetCount());
+	int count = end - begin;
+	if (count <= 0) {
+		NextPhase();
+		return;
+	}
+	
+	ValueArray words;
+	for(int i = begin; i < end; i++) {
+		const String& tk = src.tokens.GetKey(i);
+		words << tk;
+	}
+	args.params("words") = words;
+	
+	total += count;
+	
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	m.Get(args, [this](String result) {
+		TaskArgs& args = this->args;
+		auto& src = p.src->Data();
+		
+		Value v = ParseJSON(result);
+		Value word_classes = v("response-short")("word classes");
+		Value input_words = args.params("words");
+		LOG(AsJSON(v, true));
+		
+		#if 0
+		
+		// 9. suppose: verb | noun
+		
+		result.Replace("\r", "");
+		Vector<String> lines = Split(result, "\n");
+		
+		int offset = 3+1;
+		
+		for (String& line : lines) {
+			line = TrimBoth(line);
+			
+			if (line.IsEmpty() ||!IsDigit(line[0]))
+				continue;
+			
+			/*int line_i = ScanInt(line);
+			line_i -= offset;
+			if (line_i < 0 || line_i >= args.words.GetCount())
+				continue;
+			
+			const String& orig_word = args.words[line_i];*/
+			
+			int a = line.Find(".");
+			if (a < 0) continue;
+			line = TrimBoth(line.Mid(a+1));
+			
+			a = line.Find(":");
+			if (a == 0) {
+				// Rare case of ":" being asked
+				line = ":" + line;
+				a = 1;
+			}
+			else if (a < 0)
+				continue;
+			
+			//int orig_word_i = ;
+			
+			String result_word = TrimBoth(line.Left(a));
+			
+			/*ExportWord& wrd =
+				orig_word_i >= 0 ?
+					da.words[orig_word_i] :
+					da.words.GetAdd(result_word, orig_word_i);*/
+			int orig_word_i = -1;
+			ExportWord& wrd = MapGetAdd(src.words, result_word, orig_word_i);
+			
+			//TODO // token to word
+			
+			line = TrimBoth(line.Mid(a+1));
+			
+			a = line.Find("(");
+			if (a >= 0)
+				line = line.Left(a);
+			
+			Vector<String> parts = Split(line, "|");
+			for (String& p : parts) {
+				p = TrimBoth(p);
+				int wc_i = src.word_classes.FindAdd(p);
+				if (wrd.class_count < wrd.MAX_CLASS_COUNT)
+					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
+			}
+			
+			actual++;
+		}
+		
+		
+		src.diagnostics.GetAdd("tokens: total") = IntStr(total);
+		src.diagnostics.GetAdd("tokens: actual") =  IntStr(actual);
+		src.diagnostics.GetAdd("tokens: percentage") =  DblStr((double)actual / (double) total * 100);
+		
+		#endif
+		
+		NextBatch();
+		SetWaiting(false);
+	});
 }
 
 ScriptTextProcess& ScriptTextProcess::Get(DatasetPtrs p, VfsPath path, Value params, SrcTextData& data, Event<> WhenStopped) {

@@ -11,7 +11,7 @@ void AiTask::CreateInput_GetTokenData() {
 	TokenArgs args;
 	args.Put(this->args[0]);
 	
-	
+	// TODO remove
 	if (args.fn == 0) {
 		{
 			auto& list = input.AddSub().Title("List of word classes");

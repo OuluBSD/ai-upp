@@ -15,7 +15,32 @@ public:
 		PHASE_ANALYZE_ARTISTS,
 		PHASE_ANALYZE_ELEMENTS,
 		// 3
-		PHASE_GET,
+		PHASE_WORD_CLASSES,
+		// 4
+		PHASE_AMBIGUOUS_WORD_PAIRS,
+		// 5
+		PHASE_IMPORT_TOKEN_TEXTS,
+		PHASE_CLASSIFY_SENTENCES,
+		// 6
+		PHASE_VIRTUAL_PHRASE_PARTS,
+		// 7
+		PHASE_VIRTUAL_PHRASE_PART_STRUCTS,
+		// 8
+		PHASE_ELEMENT,
+		PHASE_COLOR,
+		PHASE_ATTR,
+		PHASE_ACTIONS,
+		PHASE_SCORES,
+		PHASE_TYPECLASS,
+		PHASE_CONTENT,
+		// 9
+		PHASE_COLORS,
+		PHASE_ATTRS,
+		// 10
+		PHASE_MAIN_GROUPS,
+		PHASE_SIMPLIFY_ATTRS,
+		PHASE_JOIN_ORPHANED,
+		PHASE_FIX_DATA,
 		
 		PHASE_COUNT
 	};
@@ -42,7 +67,28 @@ public:
 	void AnalyzeArtists();
 	void AnalyzeElements();
 	// 3
-	void Get();
+	void WordClasses();
+	// 4
+	void AmbiguousWordPairs();
+	// 5
+	void ImportTokenTexts();
+	void ClassifySentences();
+	// 6
+	void VirtualPhraseParts();
+	// 7
+	void VirtualPhraseStructs();
+	// 8
+	void PhrasePartAnalysis();
+	// 9
+	void Prepare(int fn);
+	void Colors();
+	void Attrs();
+	// 10
+	void MainGroups();
+	void SimplifyAttrs();
+	void JoinOrphaned();
+	void FixData();
+	void RealizeBatch_AttrExtremesBatch();
 	
 public:
 	typedef ScriptTextProcess CLASSNAME;

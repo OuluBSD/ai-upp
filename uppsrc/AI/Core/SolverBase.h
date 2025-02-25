@@ -60,6 +60,7 @@ public:
 	static void StopAll();
 	
 	bool IsPhase(int i) const {return phase == i;}
+	bool IsPhaseRange(int a, int b) const {return phase >= a && phase <= b;}
 	bool IsRunning() const {return running;}
 	bool IsPhaseInit() const {return batch == 0 && sub_batch == 0;}
 	

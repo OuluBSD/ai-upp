@@ -25,7 +25,7 @@ public:
 	One<NaturalTokenizer> tk;
 	
 	// Params
-	SourceDataAnalysisArgs args;
+	TaskArgs args;
 	
 	// Temp (per phase)
 	int total = 0, actual = 0;

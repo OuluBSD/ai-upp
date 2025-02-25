@@ -22,9 +22,11 @@ void SolverBase::Process() {
 	else
 		ProcessInOrder();
 	
-	WhenStopped();
-	if (!last_error.IsEmpty())
-		WhenError(last_error);
+	if (!Thread::IsShutdownThreads()) {
+		WhenStopped();
+		if (!last_error.IsEmpty())
+			WhenError(last_error);
+	}
 }
 
 void SolverBase::ProcessInParallel() {

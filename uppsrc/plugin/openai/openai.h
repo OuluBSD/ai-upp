@@ -252,7 +252,7 @@ private:
 // Given a prompt, the model will return one or more predicted completions, and can also return the probabilities of alternative tokens at each position.
 struct CategoryCompletion {
     Json create(Json input);
-    Json create_gpt4(Json input);
+    Json create_chat(Json input);
 
     CategoryCompletion(OpenAI& openai) : openai_{openai} {}
 
@@ -633,7 +633,7 @@ inline Json CategoryModel::retrieve(const std::string& model) {
 inline Json CategoryCompletion::create(Json input) {
     return openai_.post("completions", input);
 }
-inline Json CategoryCompletion::create_gpt4(Json input) {
+inline Json CategoryCompletion::create_chat(Json input) {
     return openai_.post("chat/completions", input);
 }
 

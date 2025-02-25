@@ -21,6 +21,8 @@ typedef enum : TASKFN_TYPE {
 	FN_PROOFREAD_STORYLINE_1,
 	FN_STORYLINE_DIALOG_1,
 	
+	FN_ANALYZE_ELEMENTS,
+	
 } TaskFn;
 
 struct TaskArgs : Moveable<TaskArgs> {
@@ -184,6 +186,7 @@ bool RangeContains(const Point& pos, const Point& begin, const Point& end);
 // TextTool classes
 // TODO optimize & merge
 
+// TODO remove
 struct SourceDataAnalysisArgs {
 	int fn;
 	String artist, song, text;

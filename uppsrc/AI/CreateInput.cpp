@@ -287,6 +287,71 @@ void AiTask::CreateInput_Default()
 		
 		
 	}
+	else if(args.fn == FN_ANALYZE_ELEMENTS) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "incomplete list of elements to define a part of a script": [
+		                "exposition",
+		                "climax",
+		                "call to action",
+		                "high stakes obstacle",
+		                "rock bottom",
+		                "rising action",
+		                "falling action",
+		                "conclusion",
+		                "happy ending",
+		                "tragedy",
+		                "bittersweet ending",
+		                "suspense",
+		                "crisis",
+		                "resolution",
+		                "intensity",
+		                "conflict",
+		                "iteration"
+		            ]
+		        },
+		        "script": {
+		            "text": [
+		                [
+		                    "Hello"
+		                ]
+		            ],
+		            "__comment__": "Analyze script and write matching word for all depths of script from the list A (e.g. \"exposition\")"
+		        }
+		    },
+		    "response-full": {
+		        "text & elements": [
+		            [
+		                [
+		                    "Hello",
+		                    "greeting"
+		                ]
+		            ]
+		        ]
+		    },
+		    "response-short": {
+		        "elements": [
+		            [
+		                "greeting"
+		            ]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "text": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/text", args.params("text"));
+		input.response_length = 2048;
+	}
 	else
 		SetError("Invalid function");
 }

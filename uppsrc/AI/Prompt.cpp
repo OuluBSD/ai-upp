@@ -321,5 +321,111 @@ String AiPrompt::AsString() const
 	return s;
 }
 
+
+
+
+
+
+JsonPrompt::JsonPrompt() {
+	
+}
+
+void JsonPrompt::Clear() {
+	messages.Clear();
+}
+
+JsonPrompt::Message& JsonPrompt::Add(String json, int type) {
+	Message& m = messages.Add();
+	m.type = type;
+	try {
+		m.val = ParseJSON(json);
+	}
+	catch (Exc& e) {
+		LOG("JsonPrompt::AddAssist: parsing json failed: " + e);
+		ASSERT(0);
+	}
+	catch(...) {
+		ASSERT(0);
+	}
+	return m;
+}
+
+JsonPrompt::Message& JsonPrompt::AddDefaultSystem() {
+	return AddSystem(
+		"You are a helpful assistant, who reads queries and gives responses in JSON format. "
+		"Look '__comment__' key/value-pairs in queries for more instructions. "
+		"Give shortest response possible. "
+		"Ensure that a response has the same amount of array-values that was in the query.");
+}
+
+JsonPrompt::Message& JsonPrompt::AddSystem(String msg) {
+	Message& m = messages.Add();
+	m.type = SYSTEM;
+	m.val = msg;
+	return m;
+}
+
+JsonPrompt::Message& JsonPrompt::AddAssist(String json) {
+	return Add(json, ASSIST);
+}
+
+JsonPrompt::Message& JsonPrompt::AddUser(String json) {
+	return Add(json, USER);
+}
+
+JsonPrompt::Message& JsonPrompt::Message::Set(String vfs_path, Value value) {
+	return Set(StrVfs(vfs_path), value);
+}
+
+JsonPrompt::Message& JsonPrompt::Message::Set(const VfsPath& vfs_path, Value value) {
+	ASSERT(vfs_path.GetPartCount());
+	if (!vfs_path.IsEmpty())
+		val = MapSet(vfs_path, 0, val, value);
+	return *this;
+}
+
+Value JsonPrompt::Message::MapSet(const VfsPath& vfs_path, int i, Value cur, const Value& v) {
+	ASSERT(cur.Is<ValueMap>());
+	ValueMap map = cur;
+	Value key = vfs_path.Parts()[i];
+	if (i+1 >= vfs_path.GetPartCount()) {
+		map.Set(key, v);
+	}
+	else {
+		map.Set(key, MapSet(vfs_path, i+1, map.GetAdd(key), v));
+	}
+	return map;
+}
+
+String JsonPrompt::Message::GetTypeString() const {
+	if (type == JsonPrompt::SYSTEM)
+		return "developer";
+	else if (type == JsonPrompt::ASSIST)
+		return "assistant";
+	else if (type == JsonPrompt::USER)
+		return "user";
+	Panic("TODO");
+	return "";
+}
+
+String JsonPrompt::Message::GetContentString() const {
+	if (type == JsonPrompt::SYSTEM)
+		return val.ToString();
+	else
+		return ::UPP::AsJSON(val, false);
+}
+
+bool JsonPrompt::IsEmpty() const {
+	return messages.IsEmpty();
+}
+
+String JsonPrompt::AsJSON(bool pretty) const {
+	String s;
+	for (const auto& msg : messages)
+		s += ::UPP::AsJSON(msg.val, pretty) + "\n";
+	return s;
+}
+
+
 END_UPP_NAMESPACE
 

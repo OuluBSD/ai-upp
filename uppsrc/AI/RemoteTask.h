@@ -233,6 +233,7 @@ public:
 	int quality = 0;
 
 	AiPrompt input;
+	JsonPrompt json_input;
 	String raw_input;
 	String binary_param;
 
@@ -280,6 +281,9 @@ public:
 	void SetAutoReturnFail() { auto_ret_fail = true; }
 	String GetInputHash() const;
 	String GetOutputHash() const;
+	bool HasAnyInput() const;
+	bool HasJsonInput() const;
+	String MakeInputString() const;
 
 	void CreateInput_Translate();
 	void CreateInput_CreateImage();

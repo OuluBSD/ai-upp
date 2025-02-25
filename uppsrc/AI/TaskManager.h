@@ -46,7 +46,7 @@ struct TaskMgr {
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title=String());
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
 	void GetTranscription(const TranscriptionArgs& args, Event<String> WhenResult);
-	void Get(const TaskArgs& args, Event<String> WhenResult, String title=String());
+	void Get(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
 
 
 

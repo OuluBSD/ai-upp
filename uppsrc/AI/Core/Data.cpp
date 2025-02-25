@@ -215,6 +215,44 @@ String SrcTextData::GetActionString(const Vector<int>& actions) const {
 	return o;
 }
 
+Value SrcTextData::GetScriptValue(int i) const {
+	ValueArray arr0;
+	const ScriptStruct& ss = this->scripts[i];
+	for(int i = 0; i < ss.parts.GetCount(); i++) {
+		const auto& part = ss.parts[i];
+		ValueArray arr1;
+		for(int j = 0; j < part.sub.GetCount(); j++) {
+			const auto& sub = part.sub[j];
+			ValueArray arr2;
+			bool show_subsub = sub.sub.GetCount() > 1;
+			for(int k = 0; k < sub.sub.GetCount(); k++) {
+				const auto& ssub = sub.sub[k];
+				if (show_subsub) {
+					ValueArray arr3;
+					for(int l = 0; l < ssub.token_texts.GetCount(); l++) {
+						int tt_i = ssub.token_texts[l];
+						if (tt_i < 0) continue;
+						const TokenText& tt = this->token_texts[tt_i];
+						arr3.Add(this->GetTokenTextString(tt));
+					}
+					arr2.Add(arr3);
+				}
+				else {
+					for(int l = 0; l < ssub.token_texts.GetCount(); l++) {
+						int tt_i = ssub.token_texts[l];
+						if (tt_i < 0) continue;
+						const TokenText& tt = this->token_texts[tt_i];
+						arr2.Add(this->GetTokenTextString(tt));
+					}
+				}
+			}
+			arr1.Add(arr2);
+		}
+		arr0.Add(arr1);
+	}
+	return arr0;
+}
+
 String SrcTextData::GetScriptDump(int i) const {
 	String s;
 	const ScriptStruct& ss = this->scripts[i];

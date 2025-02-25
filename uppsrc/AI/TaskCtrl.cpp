@@ -74,6 +74,8 @@ void TaskCtrl::DataTask()
 	if(cursor != data_cursor || (output.GetLength() == 0 && t.output.GetCount())) {
 		if(t.raw_input.GetCount())
 			input.SetData(t.raw_input);
+		else if(!t.json_input.IsEmpty())
+			input.SetData(t.json_input.AsJSON(true));
 		else
 			input.SetData(t.input.AsString().ToWString());
 		output.SetData(t.output.ToWString());

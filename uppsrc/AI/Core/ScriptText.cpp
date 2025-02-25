@@ -349,6 +349,8 @@ void ScriptTextProcess::AnalyzeArtists() {
 		NextBatch();
 		return;
 	}
+	Panic("TODO");
+	#if 0
 	args.fn = 1;
 	args.artist = ent.name;
 	
@@ -376,6 +378,7 @@ void ScriptTextProcess::AnalyzeArtists() {
 		NextBatch();
 		SetWaiting(false);
 	});
+	#endif
 }
 
 void ScriptTextProcess::AnalyzeElements() {
@@ -393,19 +396,23 @@ void ScriptTextProcess::AnalyzeElements() {
 		return;
 	}
 	
-	args.fn = 0;
-	args.text = TrimBoth(src.GetScriptDump(batch));
-	Vector<String> all_sections = Split(args.text, "[");
-	if (args.text.IsEmpty() || all_sections.GetCount() >= 50) {
+	ValueArray text_arg = src.GetScriptValue(batch);
+	
+	args.fn = FN_ANALYZE_ELEMENTS;
+	args.params = ValueMap();
+	args.params("text") = text_arg;
+	
+	//Vector<String> all_sections = Split(args.text, "[");
+	if (text_arg.GetCount() == 0 /*|| all_sections.GetCount() >= 50*/) {
 		NextBatch();
 		return;
 	}
 	
 	// Another hotfix
-	if (args.text.Find("http://") >= 0 || args.text.Find("https://") >= 0) {
+	/*if (args.text.Find("http://") >= 0 || args.text.Find("https://") >= 0) {
 		NextBatch();
 		return;
-	}
+	}*/
 	
 	bool keep_going = true;
 	SetWaiting(true);
@@ -415,69 +422,31 @@ void ScriptTextProcess::AnalyzeElements() {
 		return;
 	}
 	
-	m.GetSourceDataAnalysis(args, [this](String result) {
+	m.Get(args, [this](String result) {
 		ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
-		SourceDataAnalysisArgs& args = this->args;
+		TaskArgs& args = this->args;
 		ScriptStruct& ss = src.scripts[batch];
 		
-		RemoveEmptyLines3(result);
-		//LOG(result);
+		LOG(result);
+		Value v = ParseJSON(result);
+		Value elements = v("response-short")("elements");
+		LOG(UPP::AsJSON(v, true));
+		LOG(UPP::AsJSON(elements, true));
+		Value input_lines = args.params("text");
+		LOG(UPP::AsJSON(input_lines, true));
 		
-		Vector<String> lines = Split(result, "\n");
-		VectorMap<String,String> section_values;
-		for (String& l : lines) {
-			int a = l.Find("[");
-			if (a < 0) continue;
-			a++;
-			int b = l.Find("]", a);
-			if (b < 0) continue;
-			String key = l.Mid(a,b-a);
-			a = l.Find(":", b);
-			if (a < 0) continue;
-			a++;
-			String value = ToLower(TrimBoth(l.Mid(a)));
-			RemoveQuotes(value);
-			for(int i = 0; i < key.GetCount(); i++) {
-				int chr = key[i];
-				if (chr == '.' || IsDigit(chr))
-					continue;
-				key = key.Left(i);
-				break;
-			}
-			if (key.IsEmpty() || value.IsEmpty())
-				continue;
-			section_values.GetAdd(key, value);
-		}
+		ValueArray arr0 = elements;
 		for(int i = 0; i < ss.parts.GetCount(); i++) {
 			auto& p = ss.parts[i];
-			String key;
-			key << i;
-			int l = section_values.Find(key);
-			if (l >= 0) {
-				String& val = section_values[l];
-				int el_i = src.element_keys.FindAdd(val);
-				p.cls = el_i;
-			}
-			
+			ValueArray arr1 = arr0[i];
+			int pos = 0;
 			for(int j = 0; j < p.sub.GetCount(); j++) {
 				auto& s = p.sub[j];
-				String key;
-				key << i << "." << j;
-				int l = section_values.Find(key);
-				if (l >= 0) {
-					String& val = section_values[l];
-					int el_i = src.element_keys.FindAdd(val);
-					s.cls = el_i;
-				}
-				
 				for(int k = 0; k < s.sub.GetCount(); k++) {
 					auto& ss = s.sub[k];
-					String key;
-					key << i << "." << j << "." << k;
-					int l = section_values.Find(key);
-					if (l >= 0) {
-						String& val = section_values[l];
+					String val = arr1[pos++].ToString();
+					if (!val.IsEmpty()) {
 						int el_i = src.element_keys.FindAdd(val);
 						ss.cls = el_i;
 					}
@@ -487,7 +456,7 @@ void ScriptTextProcess::AnalyzeElements() {
 		
 		NextBatch();
 		SetWaiting(false);
-	}, keep_going);
+	});
 	
 	
 }

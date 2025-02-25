@@ -514,6 +514,7 @@ struct SrcTextData : EntityData {
 	String GetTypeString(const Vector<int>& word_classes) const;
 	String GetActionString(const Vector<int>& actions) const;
 	String GetScriptDump(int i) const;
+	Value GetScriptValue(int i) const;
 	VectorMap<int, int> GetSortedElements();
 	VectorMap<int, int> GetSortedElementsOfPhraseParts();
 	

@@ -189,7 +189,7 @@ void ScriptTextCtrl::StopProcess() {
 void ScriptTextCtrl::PostOnStop() {
 	Ptr<ScriptTextCtrl> p = this;
 	PostCallback([p]{
-		if (p)
+		if (p && !Thread::IsShutdownThreads())
 			p->OnStop();
 	});
 }

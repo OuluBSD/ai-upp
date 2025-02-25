@@ -320,7 +320,7 @@ void TaskMgr::GetTranscription(const TranscriptionArgs& args, Event<String> When
 	TaskMgrConfig().Single().Realize();
 }
 
-void TaskMgr::Get(const TaskArgs& args, Event<String> WhenResult, String title)
+void TaskMgr::Get(const TaskArgs& args, Event<String> WhenResult, String title, bool keep_going)
 {
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
 	TaskMgr& p = *this;
@@ -338,6 +338,7 @@ void TaskMgr::Get(const TaskArgs& args, Event<String> WhenResult, String title)
 
 	t.args << s;
 	t.WhenResult << WhenResult;
+	t.keep_going = keep_going;
 	task_lock.Leave();
 	
 	TaskMgrConfig().Single().Realize();

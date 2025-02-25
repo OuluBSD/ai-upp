@@ -121,7 +121,7 @@ public:
 	
 	VirtualNode GetAdd(const VfsPath& rel_path, int kind);
 	VirtualNode Find(const VfsPath& rel_path);
-	VNodeComponentCtrl* GetVNodeComponentCtrl() {return &*vnode_ctrl;}
+	VNodeComponentCtrl* GetVNodeComponentCtrl() {return vnode_ctrl ? &*vnode_ctrl : 0;}
 };
 
 class ValueVFSComponentCtrl : public VirtualFSComponentCtrl {

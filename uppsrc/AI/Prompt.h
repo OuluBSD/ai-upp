@@ -211,6 +211,37 @@ struct AiPrompt {
 	}
 };
 
+struct JsonPrompt {
+	enum {
+		SYSTEM,
+		ASSIST,
+		USER,
+	};
+	struct Message {
+		int type;
+		Value val;
+		
+		Message& Set(String vfs_path, Value value);
+		Message& Set(const VfsPath& vfs_path, Value value);
+		String GetTypeString() const;
+		String GetContentString() const;
+		private:
+		Value MapSet(const VfsPath& vfs_path, int i, Value cur, const Value& v);
+	};
+	
+	Array<Message> messages;
+	
+	JsonPrompt();
+	void Clear();
+	Message& Add(String json, int type);
+	Message& AddDefaultSystem();
+	Message& AddSystem(String msg);
+	Message& AddAssist(String json);
+	Message& AddUser(String json);
+	bool IsEmpty() const;
+	String AsJSON(bool pretty) const;
+};
+
 END_UPP_NAMESPACE
 
 #endif

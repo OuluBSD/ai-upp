@@ -56,7 +56,7 @@ void AiTask::SetError(String s)
 
 String AiTask::GetInputHash() const
 {
-	String input = raw_input.GetCount() ? raw_input : this->input.AsString();
+	String input = MakeInputString();
 	hash_t h = input.GetHashValue();
 	if(binary_param.GetCount()) {
 		CombineHash c;
@@ -71,6 +71,23 @@ String AiTask::GetOutputHash() const
 {
 	hash_t h = output.GetHashValue();
 	return HexString((void*)&h, sizeof(h));
+}
+
+bool AiTask::HasAnyInput() const {
+	return !raw_input.IsEmpty() || !input.IsEmpty() || !json_input.IsEmpty();
+}
+
+bool AiTask::HasJsonInput() const {
+	return raw_input.IsEmpty() && !json_input.IsEmpty();
+}
+
+String AiTask::MakeInputString() const {
+	if (raw_input.GetCount())
+		return raw_input;
+	else if (!json_input.IsEmpty())
+		return json_input.AsJSON(false);
+	else
+		return input.AsString();
 }
 
 String AiTask::GetDescription() const
@@ -96,6 +113,7 @@ bool AiTask::ProcessInput()
 
 		// Create input with given function
 		if(TaskRule::input) {
+			json_input.Clear();
 			input.Clear();
 			(this->*TaskRule::input)();
 			if(fast_exit)
@@ -112,7 +130,7 @@ bool AiTask::ProcessInput()
 	output = TrimBoth(output);
 
 	// Request output from completion-mode AI
-	if((!raw_input.IsEmpty() || !input.IsEmpty()) && output.IsEmpty()) {
+	if(HasAnyInput() && output.IsEmpty()) {
 		ok = RunOpenAI();
 	}
 
@@ -257,7 +275,7 @@ bool AiTask::RunOpenAI_Image()
 {
 	output.Clear();
 
-	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
+	String prompt = MakeInputString();
 
 	prompt.Replace("\\", "\\\\");
 	prompt.Replace("\n", " ");
@@ -426,7 +444,7 @@ bool AiTask::RunOpenAI_Completion()
 		LOG("warning: no response length set");
 		input.response_length = 1024;
 	}
-	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
+	String prompt = MakeInputString();
 
 	prompt = FixInvalidChars(prompt); // NOTE: warning: might break something
 
@@ -462,37 +480,61 @@ bool AiTask::RunOpenAI_Completion()
 			prompt = ToCharset(CHARSET_UTF8, prompt, CHARSET_DEFAULT);
 
 		String txt;
-		if(quality == 1) {
+		bool chat_completion = HasJsonInput() || quality == 1;
+		if (HasJsonInput()) {
 			txt = R"_({
-    "model": "gpt-4-turbo",
-    "messages":[
-		{"role": "system", "content": "This is an impersonal text completion system like gpt-3.5-turbo. This is not chat mode. Do not repeat the last part of the input text in your result."},
-		{"role":"user", "content": ")_" +
-			      prompt + R"_("}
-	],
-    "max_tokens": )_" +
-			      IntStr(input.response_length) + R"_(,
-    "temperature": 1
-})_";
+			    "model": ")_" + String(quality == 1 ? "gpt-4-turbo" : "gpt-3.5-turbo") + R"_(",
+			    "messages":[)_";
+			for(int i = 0; i < json_input.messages.GetCount(); i++) {
+				const auto& msg = json_input.messages[i];
+				String part_content = msg.GetContentString();
+				EscapeString(part_content);
+				txt << "{\"role\": \""
+					<< msg.GetTypeString() << "\", \"content\": [{\"type\": \"text\", \"text\": \""
+					<< part_content
+					<< "\"}]}";
+				if (i+1 < json_input.messages.GetCount())
+					txt << ",\n";
+			}
+			txt << R"_(],
+			    "max_tokens": )_" + IntStr(input.response_length) + R"_(,
+			    "temperature": 1
+			})_";
+			//LOG(txt);
 		}
 		else {
-			txt = R"_({
-    "model": "gpt-3.5-turbo-instruct",
-    "stop": "<|endoftext|>",
-    "prompt": ")_" +
-			      prompt + R"_(",
-    "max_tokens": )_" +
-			      IntStr(input.response_length) + R"_(,
-    "temperature": 1
-})_";
+			if(quality == 1) {
+				txt = R"_({
+				    "model": "gpt-4-turbo",
+				    "messages":[
+						{"role": "system", "content": "This is an impersonal text completion system like gpt-3.5-turbo. This is not chat mode. Do not repeat the last part of the input text in your result."},
+						{"role":"user", "content": ")_" +
+							      prompt + R"_("}
+					],
+				    "max_tokens": )_" +
+							      IntStr(input.response_length) + R"_(,
+				    "temperature": 1
+				})_";
+			}
+			else {
+				txt = R"_({
+				    "model": "gpt-3.5-turbo-instruct",
+				    "stop": "<|endoftext|>",
+				    "prompt": ")_" +
+							      prompt + R"_(",
+				    "max_tokens": )_" +
+							      IntStr(input.response_length) + R"_(,
+				    "temperature": 1
+				})_";
+			}
 		}
 		// LOG(txt);
-		return TryOpenAI(prompt, txt, [this,txt]{
+		return TryOpenAI(prompt, txt, [this,txt,chat_completion]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
 
-			if(quality == 1) {
-				auto completion = openai::completion().create_gpt4(json);
+			if(chat_completion) {
+				auto completion = openai::completion().create_chat(json);
 				LoadFromJson(response, String(completion.dump(2)));
 			}
 			else {
@@ -520,7 +562,7 @@ bool AiTask::RunOpenAI_Vision()
 		LOG("warning: no response length set");
 		input.response_length = 1024;
 	}
-	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
+	String prompt = MakeInputString();
 
 	String base64 = Base64Encode(this->binary_param);
 
@@ -585,7 +627,7 @@ bool AiTask::RunOpenAI_Vision()
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
 
-			auto completion = openai::completion().create_gpt4(json);
+			auto completion = openai::completion().create_chat(json);
 			LoadFromJson(response, String(completion.dump(2)));
 
 			if(response.choices.GetCount())
@@ -609,7 +651,7 @@ bool AiTask::RunOpenAI_Transcription()
 		LOG("warning: no response length set");
 		input.response_length = 1024;
 	}
-	String prompt = raw_input.GetCount() ? raw_input : input.AsString();
+	String prompt = MakeInputString();
 	
 	{
 		EscapeString(prompt);
@@ -753,6 +795,7 @@ bool AiTask::TryOpenAI(String prompt, String txt, Event<> cb) {
 void AiTask::Retry(bool skip_prompt, bool skip_cache)
 {
 	if(!skip_prompt) {
+		json_input.Clear();
 		input.Clear();
 		output.Clear();
 	}

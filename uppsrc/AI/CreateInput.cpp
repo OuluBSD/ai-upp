@@ -699,7 +699,8 @@ void AiTask::CreateInput_Default()
 	
 	else if (args.fn == FN_CLASSIFY_PHRASE_COLOR) {
 		json_input.AddDefaultSystem();
-		json_input.AddAssist(R"ML({
+		json_input.AddAssist(R"ML(
+		{
 		    "query": {
 		        "script": {
 		            "sentences": [
@@ -1288,14 +1289,14 @@ void AiTask::CreateInput_Default()
 						["attention-event","unpleasant smell"],
 						["msg","expressing physical desire"]
 					],
-					"__comment2__": "Analyze actions and write matchin metaphorical colors"
+					"__comment2__": "Analyze actions and write matching metaphorical colors"
 				}
 		    },
 		    "response-full": {
 				"__comment__": "Syntax translation: RGB(128,255,0) <-> [128,255,0]",
 				"actions & colors": [
 					[["attention-event","unpleasant smell"], "RGB(128,0,0)"],
-					[["msg","expressing physical desire"], [255, 192, 203]]
+					[["msg","expressing physical desire"], "RGB(255, 192, 203)"]
 				]
 		    },
 		    "response-short": {
@@ -1318,312 +1319,167 @@ void AiTask::CreateInput_Default()
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTION_ATTR) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"__comment__": "Definition of attribute list with various attributes",
-				"attributes": {
-					"FAITH_AND_REASON_SEEKER": ["faith and reason seekers", "divine worshipers", "rational thinker"],
-					"GROUP_FAITH": ["group faith", "individual spirituality", "organized religion"],
-					"BELIF_SPECTRUM": ["belief spectrum", "believer", "non-believer"],
-					"OLD_AND_NEW_BELIEVER": ["old and new believers", "new age spirituality", "traditional religion"],
-					"BELIF_COMMUNITY": ["belief communities", "secular society", "religious community"],
-					"THEOLOGICAL_OPPOSITE": ["theological opposites", "theistic", "atheistic"],
-					"SEEKER_OF_TRUTH": ["seekers of truth", "spiritual seeker", "skeptic"],
-					"INTUITIVE_THINKER": ["intuitive thinkers", "rationalist", "mystic practitioner"],
-					"RATIONAL_BELIEF": ["rational believers", "religious", "scientific"],
-					"PHYSICAL_PREFERENCE": ["physical preference", "body enhancing beauty", "natural beauty"],
-					"SEXUAL_ORIENTATION": ["sexual orientation", "heterosexual", "homosexual"],
-					"SEXUAL_PREFERENCE": ["sexual preference", "normal", "kinky"],
-					"FAITH_EXTREME": ["faith extremes", "agnostic", "religious fundamentalist"],
-					// Add more attributes as needed
-				},
-				"script": {
-					"lyrics": [
-						"2 AM, howlin outside",
-						"Lookin, but I cannot find"
-					],
-					"actions_per_line": [
-						"\"2 AM, howlin outside\": attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving) + tone(urgent) + msg(trying to reach someone) + bias(romantic + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside)",
-						"\"Lookin, but I cannot find\": attention-action(looking) + attention-physical state(tired) + emotion(frustration) + attention-emotional_state(desperation) + attention-time(late at night)"
-					],
-					"attribute_list_A": [
-						"faith and reason seekers / divine worshipers / rational thinker",
-						"group faith / individual spirituality / organized religion",
-						"belief spectrum / believer / non-believer",
-						// Add more attribute list A items as needed
-					],
-					"primary_attributes": [
-						"\"I won't blindly follow the crowd\": group faith / individual spirituality",
-						"\"feeling blue and green with envy\": sexual preference / kinky",
-						"\"2 AM, howlin outside\": faith and reason seekers / divine worshipers",
-						"\"Lookin, but I cannot find\": truthfulness / personal experience"
-					],
-					"actions_list_C": [
-						"\"attention-event(unpleasant smell)\"",
-						"\"transition(activities/roles)\""
-					],
-					"additional_actions_C": [
-						"\"attention-event(unpleasant smell)\": sexualization / non-sexual",
-						"\"transition(activities/roles)\": integrity / twisted"
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "__comment__": {
+						"info": "List of attribute groups and their opposite polarised attribute values",
+						"format": ["group", "positive extreme", "negative extreme"],
+						"list": [)ML"
+						#define ATTR_ITEM(a,b,c,d) "[\"" b "\",\"" c "\",\"" d "\"],"
+						ATTR_LIST
+						#undef ATTR_ITEM
+						"[]"
+						R"ML(],
+						"examples of phrases and attributes": [
+							["I won't blindly follow the crowd", ["group faith", "individual spirituality"]],
+							["feeling blue and green with envy", ["sexual preference", "kinky"]],
+							["2 AM, howlin outside", ["faith and reason seekers", "divine worshipers"]],
+							["Lookin, but I cannot find", ["truthfulness", "personal experience"]]
+						],
+						"examples of phrases and actions (group & value)": [
+							["2 AM, howlin outside", [
+								["attention-time","night"],
+								["attention-emotional_state","desire"],
+								["attention-action","howling"]
+							]],
+							["Lookin, but I cannot find", [
+								["attention-action","looking"],
+								["attention-physical state","tired"],
+								["emotion","frustration"]
+							]]
+						]
+					},
+		            "actions": [
+						["attention-event", "unpleasant smell"],
+						["transition", "activities/roles"]
 					]
 				}
-			}
-		})ML";
-		{
-			auto& list = input.AddSub().Title("Lyrics");
-			list.NoListChar();
-			list.Add("2 AM, howlin outside");
-			list.Add("Lookin, but I cannot find");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Actions per a line of lyrics. With the most matching actions of list \"B\"");
-			list.NoListChar();
-			list.Add("\"2 AM, howlin outside\": attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving) + tone(urgent) + msg(trying to reach someone) + bias(romantic + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside)");
-			list.Add("\"Lookin, but I cannot find\": attention-action(looking) + attention-physical state(tired) + emotion(frustration) + attention-emotional_state(desperation) + attention-time(late at night)");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Attribute list \"A\" (key, group, primary value, opposite value)");
-			#define ATTR_ITEM(e, g, i0, i1) list.Add(g " / " i0 " / " i1);
-			ATTR_LIST
-			#undef ATTR_ITEM
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Primary attribute groups and values of sentences from attribute list \"A\"");
-			list.Add("\"I won't blindly follow the crowd\": group faith / individual spirituality");
-			list.Add("\"feeling blue and green with envy\": sexual preference / kinky");
-			list.Add("\"2 AM, howlin outside\": faith and reason seekers / divine worshipers");
-			list.Add("\"Lookin, but I cannot find\": truthfulness / personal experience");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Actions of the list \"C\"");
-			list.NoListChar();
-			list.Add("\"attention-event(unpleasant smell)\"");
-			list.Add("\"transition(activities/roles)\"");
-			for (const String& s : args.actions)
-				list.Add("\"" + s + "\"");
-		}
-		
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("Primary attribute groups and values of sentences from attribute list \"A\" for actions of the list \"C\"");
-			answer.NoListChar();
-			answer.Add("\"attention-event(unpleasant smell)\" sexualization / non-sexual");
-			answer.Add("\"transition(activities/roles)\" integrity / twisted");
-			answer.Add("");
-		}
-		input.response_length = 2*1024;
-		#endif
-	}
-	else if (args.fn == FN_SORT_ATTRS) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"list_A_values": {
-					"title": "List \"A\" values in the same group '" + args.group + "'",
-					"values": [
-						"Value 1",
-						"Value 2",
-						"Value 3"
-					]
-				},
-				"results": {
-					"summary_main_values": {
-						"title": "2 main values of list \"A\", which summarizes all values in a way",
-						"description": "The first value is the common attribute of modern pop/rock/edm songs, and the second value is the polar opposite of the first"
-					},
-					"sorted_values": {
-						"title": "Sort 2 values of list \"A\" in a way",
-						"description": "The first value is the one which is closer to a common attribute of modern pop/rock/edm songs. Use same values, but just sort the values. Don't add any text"
-					}
-				}
-			}
-		})ML";
-		auto& list = input.AddSub().Title("List \"A\" values in the same group '" + args.group + "'");
-		int end = min(200, args.values.GetCount());
-		for(int i = 0; i < end; i++) {
-			const String& s = args.values[i];
-			list.Add(s);
-		}
-		if (end > 2) {
-			TaskTitledList& results = input.PreAnswer();
-			results.Title("2 main values of list \"A\", which summarizes all values in a way, that the first value is the common attribute of modern pop/rock/edm songs, and the second value is the polar opposite of the first");
-			results.NumberedLines();
-			results.Add("");
-		}
-		else {
-			list.NumberedLines();
-			TaskTitledList& results = input.PreAnswer();
-			results.Title("Sort 2 values of list \"A\" in a way, that the first value is the once which is closer to a common attribute of modern pop/rock/edm songs. Use same values, but just sort the values. Don't add any text");
-			results.NumberedLines();
-			results.Add("");
-			tmp_str = "1. ";
-		}
-		input.response_length = 2048;
-		#endif
-	}
-	else if (args.fn == FN_ATTR_POLAR_OPPOSITES) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"__assertions__": [
-					"args.attr0.GetCount()",
-					"args.attr1.GetCount()"
-				],
-				"tasks": [
+			},
+		    "response-full": {
+				"actions & attributes": [
 					{
-						"title": "List \"A\" values in the same group 'socioeconomic status'",
-						"values": ["urban", "gang affiliation", "drug dealing"]
+						"action": ["attention-event", "unpleasant smell"],
+						"attribute": ["sexualization", "non-sexual"]
 					},
 					{
-						"title": "List \"B\" polar opposites of the group 'socioeconomic status'",
-						"values": ["positive: wealth", "negative: poverty"]
-					},
-					{
-						"title": "Values of list \"A\", with their closest polar opposite value of list \"B\". Either 'positive' or 'negative'",
-						"values": ["positive", "negative", "negative"]
-					},
-					{
-						"title": "List \"C\" values in the same group '{{args.group}}'",
-						"values": "[dynamic values here]"
-					},
-					{
-						"title": "List \"D\" polar opposites of the group '{{args.group}}'",
-						"values": ["positive: {{args.attr0}}", "negative: {{args.attr1}}"]
+						"action": ["transition", "activities/roles"],
+						"attribute": ["integrity", "twisted"]
 					}
 				]
 			},
-			"response": {
-				"results": {
-					"title": "Values of list \"C\", with their closest polar opposite value of list \"D\". Either 'positive' or 'negative",
-					"values": ["[dynamic values here]"]
-				}
+			"response-short": {
+				"attributes": [
+					["sexualization", "non-sexual"],
+					["integrity", "twisted"]
+				]
 			}
-		})ML";
-		ASSERT(args.attr0.GetCount());
-		ASSERT(args.attr1.GetCount());
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List \"A\" values in the same group 'socioeconomic status'");
-			list.NumberedLines();
-			list.Add("urban");
-			list.Add("gang affiliation");
-			list.Add("drug dealing");
-		}
-		{
-			auto& list = input.AddSub().Title("List \"B\" polar opposites of the group 'socioeconomic status'");
-			list.Add("positive: wealth");
-			list.Add("negative: poverty");
-		}
-		{
-			auto& list = input.AddSub().Title("Values of list \"A\", with their closest polar opposite value of list \"B\". Either 'positive' or 'negative");
-			list.NumberedLines();
-			list.Add("positive");
-			list.Add("negative");
-			list.Add("negative");
-		}
-		{
-			auto& list = input.AddSub().Title("List \"C\" values in the same group '" + args.group + "'");
-			list.NumberedLines();
-			for(int i = 0; i < args.values.GetCount(); i++) {
-				const String& s = args.values[i];
-				list.Add(s);
-			}
-		}
-		{
-			auto& list = input.AddSub().Title("List \"D\" polar opposites of the group '" + args.group + "'");
-			list.Add("positive: " + args.attr0);
-			list.Add("negative: " + args.attr1);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.Title("Values of list \"C\", with their closest polar opposite value of list \"D\". Either 'positive' or 'negative");
-			results.NumberedLines();
-			results.Add("");
-			//results.Add(args.values[0] + ":");
-			//tmp_str = args.values[0] + ":";
-		}
-		input.response_length = 2048;
-		#endif
+		    "query": {
+		        "script": {
+		            "actions": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/actions", args.params("actions"));
+		input.response_length = 2*1024;
 	}
-	else if (args.fn == FN_MATCHING_ATTR) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"__comment__": "Ensure necessary data present in args object",
-				"attributes_groups": {
-					"list_A": [
-						"Attribute Group 1",
-						"Attribute Group 2",
-						"Attribute Group 3"
-					]
-				},
-				"orphaned_groups_values": {
-					"list_B": [
-						"culture: mainstream success",
-						"Value 1",
-						"Value 2",
-						"Value 3"
-					]
+	else if (args.fn == FN_SORT_ATTRS) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment1__": "attributes in the same category",
+				"attributes": [
+					"Light yellow", "Grey", "Black", "White", "Dark grey", "Dark blue"
+				],
+		        "__comment2__": "pick 2 values from the given attribute list, which summarizes all values"
+			},
+			"response": {
+				"2 attributes": [
+					"Black",
+					"White"
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+	            "attributes": [],
+	            "__comment__": "get response"
+		    }
+		})ML")
+			.Set("/query/attributes", args.params("attributes"));
+		input.response_length = 2*1024;
+	}
+	else if (args.fn == FN_ATTR_POLAR_OPPOSITES) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "__comment1__": "incomplete list of 'socioeconomic status' values",
+		            "values": ["urban", "gang affiliation", "drug dealing"],
+		            "__comment2__": "analyze the group of values and write polar opposites for the group"
 				}
 			},
 			"response": {
-				"mapping_results": {
-					"title": "For the values of list \"B\", their closest matching group and polarised extreme value from list \"A\"",
-					"results": {
-						"1": {
-							"value": "5 +",
-							"mapping": ""
-						},
-						"2": {
-							"value": "Value 1",
-							"mapping": "Attribute Group 1: extreme value 1"
-						},
-						"3": {
-							"value": "Value 2",
-							"mapping": "Attribute Group 2: extreme value 2"
-						},
-						"4": {
-							"value": "Value 3",
-							"mapping": "Attribute Group 3: extreme value 3"
-						}
-					}
-				}
+				"polar opposites": {"positive": "wealth", "negative": "poverty"}
 			}
-		})ML";
-		ASSERT(args.groups.GetCount());
-		ASSERT(args.values.GetCount());
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List \"A\" attribute groups with polarised extremes");
-			list.NumberedLines();
-			for(int i = 0; i < args.groups.GetCount(); i++)
-				list.Add(args.groups[i]);
-		}
+		    "query": {
+		        "script": {
+		            "values": [],
+		            "__comment__": "get response"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/values", args.params("values"));
+		input.response_length = 2*1024;
+	}
+	else if (args.fn == FN_MATCHING_ATTR) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
 		{
-			auto& list = input.AddSub().Title("List \"B\" orphaned groups/value pairs");
-			list.NumberedLines();
-			list.Add("culture: mainstream success");
-			for(int i = 0; i < args.values.GetCount(); i++)
-				list.Add(args.values[i]);
-		}
+		    "query": {
+				"polar opposites": ["wealth", "poverty"],
+	            "values": ["urban", "gang affiliation", "drug dealing"],
+		        "__comment__": "find closest polar opposite for values"
+			},
+			"response-full": {
+				"values & polar opposites": [
+					{"value": "urban", "polar opposite": "wealth"},
+					{"value": "gang affiliation", "polar opposite": "poverty"},
+					{"value": "drug dealing", "polar opposite": "poverty"}
+				]
+			},
+			"response-short": {
+				"polar opposites": ["wealth", "poverty", "poverty"]
+			},
+			"response-shortest": {
+				"polar opposites": [0, 1, 1]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			TaskTitledList& results = input.PreAnswer();
-			results.Title("For the values of the list \"B\", their closest matching group and polarised extreme value from the list \"A\"");
-			results.NumberedLines();
-			results.Add("5 +");
-			results.Add("");
-			//results.Add(args.values[0] + ":");
-			//tmp_str = args.values[0] + ":";
-		}
-		input.response_length = 2048;
-		#endif
+		    "query": {
+		        "script": {
+		            "polar opposites": [],
+		            "values": [],
+		            "__comment__": "get response-shortest"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/polar opposites", args.params("polar opposites"))
+			.Set("/query/script/values", args.params("values"));
+		input.response_length = 2*1024;
 	}
 	else
 		SetError("Invalid function");

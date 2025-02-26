@@ -139,6 +139,7 @@ void ScriptTextProcess::Tokenize() {
 	
 	String str = script.text;
 	
+	// TODO merge duplicate code in these if-elseif-else conditionals to one
 	if (str.Left(1) == "[") {
 		Value v = ParseJSON(str);
 		str.Clear();

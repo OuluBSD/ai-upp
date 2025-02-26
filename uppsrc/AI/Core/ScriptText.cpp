@@ -1256,7 +1256,7 @@ void ScriptTextProcess::PhrasePartAnalysis() {
 	#if 0
 	PhraseArgs& args = phrase_args;
 	switch (phase) {
-		case PHASE_ELEMENT:		args.fn = FN_CLASSIFY_PHRASE_ELEMENT; break;
+		case PHASE_ELEMENT:		Panic("check if duplicate"); args.fn = FN_ANALYZE_ELEMENTS; break;
 		case PHASE_COLOR:		args.fn = FN_CLASSIFY_PHRASE_COLOR; break;
 		case PHASE_ATTR:		args.fn = FN_CLASSIFY_PHRASE_ATTR; break;
 		case PHASE_ACTIONS:		args.fn = FN_CLASSIFY_PHRASE_ACTIONS; break;
@@ -1448,7 +1448,7 @@ void ScriptTextProcess::Prepare(int fn) {
 }
 
 void ScriptTextProcess::Colors() {
-	Prepare(FN_CLASSIFY_PHRASE_METAPHORICAL_COLOR);
+	Prepare(FN_CLASSIFY_ACTION_COLOR);
 	
 	Panic("TODO");
 	#if 0

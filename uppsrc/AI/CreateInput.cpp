@@ -1021,330 +1021,301 @@ void AiTask::CreateInput_Default()
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_SCORES) {
 		json_input.AddDefaultSystem();
-		json_input.AddAssist(R"ML({
-			"query": {
-				"action_planner": {
-					"heuristic_score_factors": [
-						"S0: High like count from the audience. Low count means that the idea behind the phrase was bad.",
-						"S1: High comment count from the audience. Low count means that there was no emotion in the phrase.",
-						"S2: High listen count from the audience. Low count means that there was bad so-called hook in the phrase.",
-						"S3: High share count from the audience. Low count means that the phrase was not relatable.",
-						"S4: High bookmark count from the audience. Low count means that the phrase had no value.",
-						"S5: High reference count towards comedy from the audience. Low count means that the phrase was not funny.",
-						"S6: High reference count towards sex from the audience. Low count means that the phrase was not sensual.",
-						"S7: High reference count towards politics from the audience. Low count means that the phrase was not thought-provoking.",
-						"S8: High reference count towards love from the audience. Low count means that the phrase was not romantic.",
-						"S9: High reference count towards social issues from the audience. Low count means that the phrase was not impactful."
-					]
-				},
-				"example_1": {
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+					"heuristic_score_factors": {
+						"S0": "High like count from the audience. Low count means that the idea behind the phrase was bad.",
+						"S1": "High comment count from the audience. Low count means that there was no emotion in the phrase.",
+						"S2": "High listen count from the audience. Low count means that there was bad so-called hook in the phrase.",
+						"S3": "High share count from the audience. Low count means that the phrase was not relatable.",
+						"S4": "High bookmark count from the audience. Low count means that the phrase had no value.",
+						"S5": "High reference count towards comedy from the audience. Low count means that the phrase was not funny.",
+						"S6": "High reference count towards sex from the audience. Low count means that the phrase was not sensual.",
+						"S7": "High reference count towards politics from the audience. Low count means that the phrase was not thought-provoking.",
+						"S8": "High reference count towards love from the audience. Low count means that the phrase was not romantic.",
+						"S9": "High reference count towards social issues from the audience. Low count means that the phrase was not impactful."
+					},
 					"description": [
-						"Score factors are S0-S9",
+						"Score factors are S0-S9 and can be considered as a vector of 10 integer numbers",
 						"The value of a score factor is between 0-10",
 						"Phrase is \"bleeding after you\"",
 						"Score factors for the phrase \"bleeding after you\": S0: 9, S1: 8, S2: 8, S3: 6, S4: 7, S5: 9, S6: 4, S7: 2, S8: 3, S9: 2",
 						"The score factors in shortened format: 9 8 8 6 7 9 4 2 3 2"
 					]
 				},
-				"list_A_phrases": {
-					"number_of_phrases": "2",
-					"phrases": [
+		        "script": {
+		            "phrases": [
 						"bleeding after you"
-					]
-				},
-				"results": {
-					"2_score_factors_for_list_A_phrases": "9 8 8 6 7 9 4 2 3 2"
-				}
-			}
-		})ML";
-		String audience = "audience";
+		            ],
+		            "__comment__": "Analyze phrases and give rating (values S0-S9)"
+		        }
+		    },
+		    "response-full": {
+		        "phrases & score factors": [
+	                [
+	                    "bleeding after you",
+	                    [9, 8, 8, 6, 7, 9, 4, 2, 3, 2]
+	                ]
+		        ]
+		    },
+		    "response-short": {
+		        "score factors": [
+		            [9, 8, 8, 6, 7, 9, 4, 2, 3, 2]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("Action planner heuristic score factors");
-			list.Add("S0: High like count from the " + audience + ". Low count means that the idea behind the phrase was bad.");
-			list.Add("S1: High comment count from the " + audience + ". Low count means that there was no emotion in the phrase.");
-			list.Add("S2: High listen count from the " + audience + ". Low count means that there was bad so called hook in the phrase.");
-			list.Add("S3: High share count from the " + audience + ". Low count means that the phrase was not relatable.");
-			list.Add("S4: High bookmark count from the " + audience + ". Low count means that the phrase had no value.");
-			list.Add("S5: High reference count towards comedy from the " + audience + ". Low count means that the phrase was not funny.");
-			list.Add("S6: High reference count towards sex from the " + audience + ". Low count means that the phrase was not sensual.");
-			list.Add("S7: High reference count towards politics from the " + audience + ". Low count means that the phrase was not thought-provoking.");
-			list.Add("S8: High reference count towards love from the " + audience + ". Low count means that the phrase was not romantic.");
-			list.Add("S9: High reference count towards social issues from the " + audience + ". Low count means that the phrase was not impactful.");
-		}
-		{
-			auto& list = input.AddSub().Title("Example 1");
-			list.Add("Score factors are S0-S9");
-			list.Add("The value of a score factor is between 0-10");
-			list.Add("Phrase is \"bleeding after you\"");
-			list.Add("Score factors for the phrase \"bleeding after you\": S0: 9, S1: 8, S2: 8, S3: 6, S4: 7, S5: 9, S6: 4, S7: 2, S8: 3, S9: 2");
-			list.Add("The score factors in shortened format: 9 8 8 6 7 9 4 2 3 2");
-		}
-		
-		String pc = IntStr(1 + args.phrases.GetCount());
-		{
-			auto& list = input.AddSub().Title("List \"A\" of " + pc + " phrases, with example arguments for making the action plan");
-			list.NumberedLines();
-			list.Add("bleeding after you");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.NumberedLines();
-			results.NoListChar();
-			results.Title(pc + " score factors for list \"A\" of phrases");
-			results.Add("9 8 8 6 7 9 4 2 3 2");
-		}
+		    "query": {
+		        "script": {
+		            "phrases": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/phrases", args.params("phrases"));
 		input.response_length = 2048;
-		#endif
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_TYPECLASS) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"__comment__": "I am not sure how 'args' and 'input' are defined in the original code snippet. Assuming they are part of a larger context.",
-				"Typeclasses of artist profiles in relation to the lyrics": {
-					"typeclasses": args.typeclasses
-				},
-				"List \"A\" of [pc] phrases": {
-					"phrases": [
-						"bleeding after you",
-						args.phrases
-					]
-				}
-			},
-			"response-full": {
-				"taskResults": {
-					"sequences": {
-						"sequence": "1 51 42 10 11 13 24 28 30 44",
-						"description": "phrases can be used in these (numbered) typeclasses"
-					}
-				}
-			}
-		}
-		Note: This conversion is based on the assumption of the structure and variables used in the original C++ code snippet.)ML";
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
 		{
-			auto& list = input.AddSub().Title("Typeclasses of artist profiles in relation to the lyrics");
-			list.NumberedLines();
-			ASSERT(args.typeclasses.GetCount());
-			for (String tc : args.typeclasses)
-				list.Add(tc);
-		}
-		String pc = IntStr(1 + args.phrases.GetCount());
-		{
-			auto& list = input.AddSub().Title("List \"A\" of " + pc + " phrases");
-			list.NumberedLines();
-			list.Add("bleeding after you");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.NumberedLines();
-			results.NoListChar();
-			results.Title(pc + " typeclass-number sequences for list \"A\" of phrases. Description: phrases can be used in these (numbered) typeclasses");
-			results.Add("1 51 42 10 11 13 24 28 30 44");
-			results.Add("");
-		}
-		input.response_length = 2048;
-		#endif
-	}
-	else if (args.fn == FN_CLASSIFY_PHRASE_CONTENT) {
-		Panic("TODO");
-		#if 0
-		R"ML({
 			"query": {
 				"__comment__": {
-					"List of names for archetypical parts of storyline of a modern pop/rock/edm songs, which contrasts each other": [
+					"incomplete list of typeclasses of profiles in relation to the text": {
+						0: "Heartbroken/lovesick",
+						1: "Rebel/anti-establishment",
+						2: "Political activist",
+						3: "Social justice advocate",
+						4: "Party/club",
+						5: "Hopeful/dreamer",
+						6: "Confident/empowered",
+						7: "Vulnerable/raw",
+						8: "Romantic/love-driven",
+						9: "Failure/loser",
+						10: "Spiritual/faithful",
+						11: "Passionate/determined",
+						12: "Reflective/self-reflective",
+						13: "Witty/sarcastic",
+						14: "Melancholic/sad",
+						15: "Humble/down-to-earth",
+						16: "Charismatic/charming",
+						17: "Resilient/overcoming adversity",
+						18: "Carefree/joyful",
+						19: "Dark/mysterious",
+						20: "Comical/humorous",
+						21: "Controversial/provocative",
+						22: "Nostalgic/sentimental",
+						23: "Wise/philosophical",
+						24: "Angry/outspoken",
+						25: "Calm/peaceful.",
+						26: "Confident/self-assured",
+						27: "Self-destructive/self-sabotaging",
+						28: "Hopeful/optimistic",
+						29: "Fearful/anxious",
+						30: "Eccentric/quirky",
+						31: "Sensitive/emotional",
+						32: "Bitter/resentful",
+						33: "Unique/nonconformist",
+						34: "Free-spirited/nonconformist",
+						35: "Sultry/seductive",
+						36: "Inspirational/motivational",
+						37: "Authentic/real",
+						38: "Mysterious/enigmatic",
+						39: "Carefree/bohemian",
+						40: "Street-smart/tough",
+						41: "Romantic/idealistic",
+						42: "Nurturing/motherly",
+						43: "Dark/tormented",
+						44: "Remorseful/regretful",
+						45: "Bold/brave",
+						46: "Outcast/rebel",
+						47: "Lost/disconnected",
+						48: "Tough/badass",
+						49: "Sincere/genuine",
+						50: "Honest/vulnerable",
+						51: "Innocent/naive",
+						52: "Bold/risk-taking"
+					}
+				},
+		        "script": {
+		            "phrases": [
 						"bleeding after you",
-						"phrases would fit to following storyline parts"
+					],
+		            "__comment__": "Analyze phrases and give one or more typeclasses than could use this phrase"
+				}
+		    },
+		    "response-full": {
+		        "phrases & typeclasses": [
+	                [
+	                    "bleeding after you",
+	                    [1, 51, 42, 10, 11, 13, 24, 28, 30, 44]
+	                ]
+		        ]
+		    },
+		    "response-short": {
+		        "score factors": [
+					[1, 51, 42, 10, 11, 13, 24, 28, 30, 44]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "phrases": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/phrases", args.params("phrases"));
+		input.response_length = 2048;
+	}
+	else if (args.fn == FN_CLASSIFY_PHRASE_CONTENT) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+			"query": {
+				"__comment__": {
+					"incomplete list of short storylines": {
+						0: "Seductive intro",
+						1: "Rise and fall",
+						2: "Fun and games",
+						3: "Love at first sight",
+						4: "Struggle and triumph",
+						5: "Ups and downs",
+						6: "Escape to paradise",
+						7: "Rebellious spirit",
+						8: "Broken and mended",
+						9: "Chase your dreams",
+						10: "Dark secrets",
+						11: "Rags to riches",
+						12: "Lost and found",
+						13: "Ignite the fire",
+						14: "From the ashes",
+						15: "Fame and fortune",
+						16: "Healing in the darkness",
+						17: "City lights and lonely nights",
+						18: "Breaking the mold",
+						19: "Haunted by the past",
+						20: "Wild and free",
+						21: "Clash of opinions",
+						22: "Long distance love",
+						23: "Finding inner strength",
+						24: "Living a double life",
+						25: "Caught in the spotlight",
+						26: "Love and war",
+						27: "The art of letting go",
+						28: "Living in the moment",
+						29: "Conquering fears"
+					},
+					"incomplete list of 3 phases of a storyline": {
+						"generic": ["beginning", "middle", "end"],
+						"encoded": ["A", "B", "C"],
+						"Rise and fall": ["rise, "neutral", "fall"],
+						"Escape to paradise": ["not in paradise", "going to paradise", "in paradise"]
+					}
+				},
+		        "script": {
+		            "phrases": [
+						"bleeding after you"
+					],
+		            "__comment__": "Analyze phrases and write the matching storyline and 1 one of the 3 phases"
+				}
+		    },
+		    "response-full": {
+				"__comment__": "the phase is always in the encoded format: e.g. beginning = A",
+		        "phrases & storylines": [
+	                [
+	                    "bleeding after you",
+	                    [[10, "A"], [2, "C"], [5, "B"], [6, "A"], [26,"B"], [27,"A"]]
+	                ]
+		        ]
+		    },
+		    "response-short": {
+		        "storylines": [
+					[[10, "A"], [2, "C"], [5, "B"], [6, "A"], [26,"B"], [27,"A"]]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "phrases": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/phrases", args.params("phrases"));
+		input.response_length = 2048;
+	}
+	else if (args.fn == FN_CLASSIFY_ACTION_COLOR) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+			"query": {
+				"__comment__": {
+					"examples of phrases and actions (group & value)": [
+						["2 AM, howlin outside", [
+							["attention-time","night"],
+							["attention-emotional_state","desire"],
+							["attention-action","howling"],
+							["attention-activity","driving"],
+							["tone","urgent"],
+							["msg","trying to reach someone"],
+							["bias","romantic"],
+							["emotion","uncertainty"],
+							["level-of-certainty","trying/desire"],
+							["gesturing","pointing"],
+							["describing-surroundings","anywhere in the dark"],
+							["attention-place","outside"]
+						]],
+						["Lookin, but I cannot find", [
+							["attention-action","looking"],
+							["attention-physical state","tired"],
+							["emotion","frustration"],
+							["attention-emotional_state","desperation"],
+							["attention-time","late at night"]
+						]]
 					]
 				},
-				"script": {
-					"contents": [],
-					"phrases": []
-				}
-			},
-			"response": {
-				"archetypical_part_sequences": {
-					"1-archetypical-part-number-alpha-sequences-for-list-A-of-phrases": [
-						"33A",
-						"15C",
-						"9B",
-						"31B",
-						"32A",
-						"34B",
-						"36C",
-						"27C",
-						"40C"
-					]
-				}
-			}
-		})ML";
-		{
-			auto& list = input.AddSub().Title("List of names for archetypical parts of storyline of a modern pop/rock/edm songs, which contrasts each other");
-			list.NumberedLines();
-			ASSERT(args.contents.GetCount());
-			for (const auto& it : args.contents)
-				list.Add(it);
-		}
-		String pc = IntStr(1 + args.phrases.GetCount());
-		{
-			auto& list = input.AddSub().Title("List \"A\" of " + pc + " phrases");
-			list.NumberedLines();
-			list.Add("bleeding after you");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.NumberedLines();
-			results.NoListChar();
-			results.Title(pc + " archetypical part number-alpha sequences for list \"A\" of phrases. Description: phrases would fit to following storyline parts");
-			results.Add("33A 15C 9B 31B 32A 34B 36C 27C 40C");
-			results.Add("");
-		}
-		input.response_length = 1024*3/2;
-		#endif
-	}
-	else if (args.fn == FN_CLASSIFY_PHRASE_ELEMENT) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"script": {
-					"conceptual_elements": [
-						"List of conceptual elements of storyline of a modern pop/rock/edm songs"
+		        "script": {
+					"__comment1__": "actions have two parts: group & value",
+		            "actions": [
+						["attention-event","unpleasant smell"],
+						["msg","expressing physical desire"]
 					],
-					"elements": [
-						"element1",
-						"element2",
-						"element3",
-						"element4"
-					],
-					"list_A_phrases": [
-						"List \"A\" of 5 phrases"
-					],
-					"phrases": [
-						"bleeding after you",
-						"phrase1",
-						"phrase2",
-						"phrase3",
-						"phrase4"
-					]
+					"__comment2__": "Analyze actions and write matchin metaphorical colors"
 				}
-			},
-			"response": {
-				"results": {
-					"conceptual_elements_description": [
-						"1. exposition",
-						"2. "
-					]
-				}
-			}
-		})ML";
+		    },
+		    "response-full": {
+				"__comment__": "Syntax translation: RGB(128,255,0) <-> [128,255,0]",
+				"actions & colors": [
+					[["attention-event","unpleasant smell"], "RGB(128,0,0)"],
+					[["msg","expressing physical desire"], [255, 192, 203]]
+				]
+		    },
+		    "response-short": {
+		        "colors": [
+					[128,0,0],
+					[255,192,203]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List of conceptual elements of storyline of a modern pop/rock/edm songs");
-			list.NumberedLines();
-			for (const auto& e : args.elements) {
-				list.Add(e);
-			}
-		}
-		String pc = IntStr(1 + args.phrases.GetCount());
-		{
-			auto& list = input.AddSub().Title("List \"A\" of " + pc + " phrases");
-			list.NumberedLines();
-			list.Add("bleeding after you");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.NumberedLines();
-			results.NoListChar();
-			results.Title(pc + " conceptual elements for list \"A\" of phrases. Description: some element of the list that would be closest fit to following storyline parts");
-			results.Add("exposition");
-			results.Add("");
-			tmp_str = "2. ";
-		}
-		input.response_length = 1024*3/2;
-		#endif
-	}
-	else if (args.fn == FN_CLASSIFY_PHRASE_METAPHORICAL_COLOR) {
-		Panic("TODO");
-		#if 0
-		R"ML({
-			"query": {
-				"storyline_elements": {
-					"elements": [
-						"Character introduction",
-						"Conflict development",
-						"Resolution of conflict",
-						"Emotional climax",
-						"Conclusion"
-					]
-				},
-				"phrases_list": {
-					"phrases_count": 3,
-					"phrases": [
-						"bleeding after you",
-						"phrases 1",
-						"phrases 2"
-					]
-				}
-			},
-			"response": {
-				"conceptual_elements": {
-					"1": "exposition",
-					"2": "",
-					"3": "some element of the list that would be closest fit to following storyline parts"
-				}
-			}
-		})ML";
-		{
-			auto& list = input.AddSub().Title("Lyrics");
-			list.NoListChar();
-			list.Add("2 AM, howlin outside");
-			list.Add("Lookin, but I cannot find");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Actions per a line of lyrics. With the most matching actions of list \"B\"");
-			list.NoListChar();
-			list.Add("\"2 AM, howlin outside\": attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving) + tone(urgent) + msg(trying to reach someone) + bias(romantic + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside)");
-			list.Add("\"Lookin, but I cannot find\": attention-action(looking) + attention-physical state(tired) + emotion(frustration) + attention-emotional_state(desperation) + attention-time(late at night)");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Phrases with the metaphorical color RGB integer (r,g,b) code at the end of the line");
-			list.NoListChar();
-			list.Add("\"sassy\": RGB(255,140,0)");
-			list.Add("\"golden opportunities\": RGB(255,215,0)");
-			list.Add("\"blue ocean, green trees, live in harmony\", RGB(0,128,0)");
-			list.Add("\"2 AM, howlin outside\", RGB(0,0,128)");
-			list.Add("\"Lookin, but I cannot find\", RGB(128,128,128)");
-		}
-		
-		{
-			auto& list = input.AddSub().Title("Actions of the list \"C\"");
-			list.NoListChar();
-			list.Add("\"attention-event(unpleasant smell)\"");
-			list.Add("\"msg(expressing physical desire)\"");
-			for (const String& s : args.actions)
-				list.Add("\"" + s + "\"");
-		}
-		
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("Metaphorical RGB value of actions in the list \"C\"");
-			answer.NoListChar();
-			answer.Add("\"attention-event(unpleasant smell)\" RGB(128,0,0)");
-			answer.Add("\"msg(expressing physical desire)\" RGB(255, 192, 203)");
-			answer.Add("");
-		}
-		input.response_length = 2*1024;
-		#endif
+		    "query": {
+		        "script": {
+		            "actions": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/actions", args.params("actions"));
+		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTION_ATTR) {
 		Panic("TODO");

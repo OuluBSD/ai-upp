@@ -1,4 +1,5 @@
 #include "AI.h"
+#include <AI/Core/Defs.h>
 
 NAMESPACE_UPP
 
@@ -463,402 +464,599 @@ void AiTask::CreateInput_Default()
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_WORD_PAIR_CLASSES) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+		    "query": {
+		        "__comment__": {
+		            "incomplete list of word classes": [
+		                "Nouns",
+		                "Verbs",
+		                "Adjectives",
+		                "Adverbs",
+		                "Pronouns",
+		                "Prepositions",
+		                "Conjunctions",
+		                "Determiners",
+		                "Interjections",
+		                "Articles",
+		                "Modal verbs",
+		                "Gerunds",
+		                "Infinitives",
+		                "Participles",
+		                "Definite article",
+		                "Indefinite article",
+		                "Proper nouns",
+		                "Collective nouns",
+		                "Concrete nouns",
+		                "Abstract nouns",
+		                "Irregular verbs",
+		                "Regular verbs",
+		                "Transitive verbs",
+		                "Intransitive verbs",
+		                "Auxiliary verbs",
+		                "Reflexive verbs",
+		                "Imperative verbs",
+		                "First person pronouns",
+		                "Second person pronouns",
+		                "Third person pronouns",
+		                "Possessive pronouns",
+		                "Demonstrative pronouns",
+		                "Relative pronouns",
+		                "Intensive pronouns",
+		                "Indefinite pronouns",
+		                "Personal pronouns",
+		                "Subject pronouns",
+		                "Objective pronouns",
+		                "Possessive determiners",
+		                "Possessive adjectives",
+		                "Comparative adjectives",
+		                "Superlative adjectives",
+		                "Proper adjectives",
+		                "Positive adjectives",
+		                "Negative adjectives"
+		            ]
+		        },
+		        "script": {
+		            "word pairs": [
+		                [
+		                    "automobile",
+		                    "drives"
+		                ]
+		            ],
+		            "__comment__": "Analyze word pairs and write word classes"
+		        }
+		    },
+		    "response-full": {
+		        "word pairs & word pairs classes": [
+		            [
+		                [
+		                    "automobile",
+		                    "drives"
+		                ],
+		                [
+		                    "noun",
+		                    "verb"
+		                ]
+		            ]
+		        ]
+		    },
+		    "response-short": {
+		        "word pairs classes": [
+		            [
+		                [
+		                    "noun",
+		                    "verb"
+		                ]
+		            ]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List of word classes");
-			list.Add("Nouns");
-			list.Add("Verbs");
-			list.Add("Adjectives");
-			list.Add("Adverbs");
-			list.Add("Pronouns");
-			list.Add("Prepositions");
-			list.Add("Conjunctions");
-			list.Add("Determiners");
-			list.Add("Interjections");
-			list.Add("Articles");
-			list.Add("Modal verbs");
-			list.Add("Gerunds");
-			list.Add("Infinitives");
-			list.Add("Participles");
-			list.Add("Definite article");
-			list.Add("Indefinite article");
-			list.Add("Proper nouns");
-			list.Add("Collective nouns");
-			list.Add("Concrete nouns");
-			list.Add("Abstract nouns");
-			list.Add("Irregular verbs");
-			list.Add("Regular verbs");
-			list.Add("Transitive verbs");
-			list.Add("Intransitive verbs");
-			list.Add("Auxiliary verbs");
-			list.Add("Reflexive verbs");
-			list.Add("Imperative verbs");
-			list.Add("First person pronouns");
-			list.Add("Second person pronouns");
-			list.Add("Third person pronouns");
-			list.Add("Possessive pronouns");
-			list.Add("Demonstrative pronouns");
-			list.Add("Relative pronouns");
-			list.Add("Intensive pronouns");
-			list.Add("Indefinite pronouns");
-			list.Add("Personal pronouns");
-			list.Add("Subject pronouns");
-			list.Add("Objective pronouns");
-			list.Add("Possessive determiners");
-			list.Add("Possessive adjectives");
-			list.Add("Comparative adjectives");
-			list.Add("Superlative adjectives");
-			list.Add("Proper adjectives");
-			list.Add("Positive adjectives");
-			list.Add("Negative adjectives");
-			list.Add("etc.");
-		}
-		{
-			auto& list = input.AddSub().Title("List \"A\" word pairs");
-			list.NumberedLines();
-			list.Add("automobile drives");
-			for(int i = 0; i < args.words.GetCount(); i++)
-				list.Add(args.words[i]);
-		}
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("Word classes for the list \"A\" (lowercase)");
-			answer.NumberedLines();
-			answer.Add("automobile drives: noun, verb");
-		}
+		    "query": {
+		        "script": {
+		            "word pairs": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/word pairs", args.params("word pairs"));
 		input.response_length = 2*1024;
-		#endif
 	}
 	else if (args.fn == FN_CLASSIFY_SENTENCE) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+			"query": {
+				"__comment__": {
+					"incomplete list of sentence structures": [
+						"declarative sentence",
+						"conditional sentence",
+						"descriptive sentence",
+						"causal sentence",
+						"subject-verb-object sentence",
+						"subject-verb-adjective sentence",
+						"etc."
+					],
+					"incomplete list of classes of sentences": [
+						"independent clause",
+						"dependent clause",
+						"coordinating clause",
+						"modifying clause",
+						"non-coordinating clause",
+						"subordinating clause",
+						"etc."
+					]
+				},
+				"script": {
+					"classified_sentences": [
+						[
+							["noun","verb","adjective"],
+							["adjective","noun","preposition","noun"],
+							["conjunction","pronoun","verb","noun"]
+						]
+					],
+					"__comment__": "Analyze classified sentences based on word classes"
+				}
+			},
+			"response-full": {
+				"titles_of_classified_sentences": [
+					[
+						[["noun","verb","adjective"], "independent clause"],
+						[["adjective","noun","preposition","noun"], "prepositional sentence"],
+						[["conjunction","pronoun","verb","noun"], "complex sentence"]
+					]
+				]
+			},
+			"response-short": {
+				"titles": [
+					[
+						"independent clause",
+						"prepositional sentence",
+						"complex sentence"
+					]
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List of sentence structures");
-			list.Add("declarative sentence");
-			list.Add("conditional sentence");
-			list.Add("descriptive sentence");
-			list.Add("causal sentence");
-			list.Add("subject-verb-object sentence");
-			list.Add("subject-verb-adjective sentence");
-			list.Add("etc.");
-		}
-		{
-			auto& list = input.AddSub().Title("List of classes of sentences");
-			list.Add("independent clause");
-			list.Add("dependent clause ");
-			list.Add("coordinating clause ");
-			list.Add("modifying clause ");
-			list.Add("non-coordinating clause");
-			list.Add("subordinating clause ");
-			list.Add("etc.");
-		}
-		{
-			auto& list = input.AddSub().Title("List of classified sentences");
-			list.NumberedLines();
-			list.Add("noun,verb,adjective");
-			list.Add("adjective,noun,preposition,noun");
-			list.Add("conjunction,pronoun,verb,noun");
-			for(int i = 0; i < args.words.GetCount(); i++)
-				list.Add(args.words[i]);
-		}
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("List of titles of classified sentences");
-			answer.NumberedLines();
-			answer.Add("noun,verb,adjective: independent clause");
-			answer.Add("adjective,noun,preposition,noun: prepositional sentence");
-			answer.Add("conjunction,pronoun,verb,noun: complex sentence");
-		}
+		    "query": {
+		        "script": {
+		            "classified_sentences": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/classified_sentences", args.params("classified_sentences"));
 		input.response_length = 2*1024;
-		#endif
 	}
 	else if (args.fn == FN_CLASSIFY_SENTENCE_STRUCTURES) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+		    "query": {
+		        "script": {
+		            "classes of sentences": [
+		                [
+		                    "noun phrase",
+		                    "independent clause"
+		                ],
+		                [
+		                    "independent clause",
+		                    "dependent clause"
+		                ],
+		                [
+		                    "prepositional phrase",
+		                    "independent clause"
+		                ]
+		            ],
+		            "__comment__": "Identify sentence structures"
+		        }
+		    },
+		    "response-full": {
+		        "Sentence structure categorizations": [
+		            [
+		                [
+		                    "noun phrase",
+		                    "independent clause"
+		                ],
+		                "declarative sentence"
+		            ],
+		            [
+		                [
+		                    "independent clause",
+		                    "dependent clause"
+		                ],
+		                "conditional sentence"
+		            ],
+		            [
+		                [
+		                    "prepositional phrase",
+		                    "independent clause"
+		                ],
+		                "descriptive sentence"
+		            ]
+		        ]
+		    },
+		    "response-short": {
+		        "categories": [
+		            "declarative sentence",
+		            "conditional sentence",
+		            "descriptive sentence"
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List \"B\" Classes of Sentences");
-			list.NumberedLines();
-			list.Add("noun phrase + independent clause");
-			list.Add("independent clause + dependent clause");
-			list.Add("prepositional phrase + independent clause");
-			for(int i = 0; i < args.words.GetCount(); i++)
-				list.Add(args.words[i]);
-		}
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("List \"B\" Categorizations of sentence structures");
-			answer.NumberedLines();
-			answer.Add("noun phrase + independent clause: declarative sentence");
-			answer.Add("independent clause + dependent clause: conditional sentence");
-			answer.Add("prepositional phrase + independent clause: descriptive sentence");
-		}
+		    "query": {
+		        "script": {
+		            "classes of sentences": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/classified_sentences", args.params("classified_sentences"));
 		input.response_length = 2*1024;
-		#endif
 	}
 	
 	else if (args.fn == FN_CLASSIFY_PHRASE_COLOR) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+		    "query": {
+		        "script": {
+		            "sentences": [
+						"everyone of us loves her",
+						"they need to be silenced",
+						"you need help and we can contribute"
+					],
+		            "__comment__": "Identify sentence metaphorical colors"
+				}
+		    },
+		    "response-full": {
+		         "__comment__": "Syntax translation: RGB(128,255,0) <-> [128,255,0]",
+		        "sentences & metaphorical RGB colors": [
+					["everyone of us loves her", [153, 255, 153]],
+					["they need to be silenced",[153, 0, 0]],
+					["you need help and we can contribute", [255, 153, 204]]
+				]
+			},
+		    "response-short": {
+		        "metaphorical RGB colors": [
+					[153, 255, 153],
+					[153, 0, 0],
+					[255, 153, 204]
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			auto& list = input.AddSub().Title("List \"A\" of sentences");
-			list.NumberedLines();
-			list.Add("everyone of us loves her");
-			list.Add("they need to be silenced");
-			list.Add("you need help and we can contribute");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("Metaphorical RGB colors of sentences of list \"A\"");
-			answer.NumberedLines();
-			answer.Add("RGB(153, 255, 153)");
-			answer.Add("RGB(153, 0, 0)");
-			answer.Add("RGB(255, 153, 204)");
-		}
+		    "query": {
+		        "script": {
+		            "classes of sentences": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/sentences", args.params("sentences"));
 		input.response_length = 2*1024;
-		#endif
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ATTR) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist((String)R"ML({
+		    "query": {
+		        "script": {
+		            "__comment__": {
+						"info": "List of attribute groups and their opposite polarised attribute values",
+						"format": ["group", "positive extreme", "negative extreme"],
+						"list": [)ML"
+						#define ATTR_ITEM(a,b,c,d) "[\"" b "\",\"" c "\",\"" d "\"],"
+						ATTR_LIST
+						#undef ATTR_ITEM
+						"[]"
+						R"ML(]
+					},
+		            "sentences": [
+						"everyone of us loves her",
+						"they need to be silenced",
+						"you need help and we can contribute"
+					]
+				}
+			},
+		    "response-full": {
+				"group_and_value_matches": [
+					{
+						"text": "everyone of us loves her",
+						"attribute": "belief communities",
+						"value": "acceptance"
+					},
+					{
+						"text": "they need to be silenced",
+						"attribute": "theological opposites",
+						"value": "authoritarian"
+					},
+					{
+						"text": "you need help and we can contribute",
+						"attribute": "faith and reason seekers",
+						"value": "rational thinker"
+					}
+				]
+			},
+			"response-short": {
+				"group_and_value_matches": [
+					["belief communities", "acceptance"],
+					["theological opposites", "authoritarian"],
+					["attribute", "rational thinker"]
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			TaskTitledList& list = input.AddSub().Title("List of attribute groups and their opposite polarised attribute values");
-			list.NumberedLines();
-			#define ATTR_ITEM(e, g, i0, i1) list.Add(g ": " i0); list.Add(g ": " i1);
-			ATTR_LIST
-			#undef ATTR_ITEM
-		}
-		{
-			auto& list = input.AddSub().Title("List \"A\" of sentences");
-			list.NumberedLines();
-			list.Add("everyone of us loves her");
-			list.Add("they need to be silenced");
-			list.Add("you need help and we can contribute");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			auto& answer = input.PreAnswer();
-			answer.Title("Matching group and value for sentences of list \"A\"");
-			answer.NumberedLines();
-			answer.Add("belief communities: acceptance");
-			answer.Add("theological opposites: authoritarian");
-			answer.Add("faith and reason seekers: rational thinker");
-		}
-		input.response_length = 1024*3/2;
-		#endif
+		    "query": {
+		        "script": {
+		            "sentences": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/sentences", args.params("sentences"));
+		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTIONS) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+		  "query": {
+		    "__comment__": {
+		      "incomplete list of action planner's action states for a narrating person": [
+		        "saying",
+		        "tone",
+		        "msg",
+		        "bias",
+		        "emotion",
+		        "level-of-certainty",
+		        "gesturing",
+		        "pointing",
+		        "describing-surroundings",
+		        "interrupting",
+		        "emphasizing",
+		        "summarizing",
+		        "referencing",
+		        "introducing",
+		        "concluding",
+		        "predicting",
+		        "transitioning",
+		        "questioning",
+		        "reflecting",
+		        "persuading",
+		        "comparing",
+		        "linking",
+		        "agreeing",
+		        "disagreeing",
+		        "apologizing",
+		        "commanding",
+		        "comforting",
+		        "complimenting",
+		        "complaining",
+		        "congratulating",
+		        "correcting",
+		        "denying",
+		        "explaining",
+		        "greeting",
+		        "inviting",
+		        "promising",
+		        "suggesting",
+		        "thanking",
+		        "warning",
+		        "attention-attribute",
+		        "attention-person",
+		        "attention-person-implied",
+		        "attention-action",
+		        "attention-event",
+		        "attention-recipient",
+		        "attention-recipient-implied",
+		        "attention-relationship",
+		        "attention-purpose",
+		        "attention-place",
+		        "attention-time",
+		        "attention-topic",
+		        "attention-audience",
+		        "attention-occasion",
+		        "attention-conversation ",
+		        "attention-activity",
+		        "attention-emotional_state",
+		        "attention-physical_state",
+		        "attention-mental_state",
+		        "attention-relationship_status",
+		        "attention-goals",
+		        "attention-fears",
+		        "attention-preferences",
+		        "attention-beliefs",
+		        "attention-values",
+		        "attention-traits",
+		        "attention-education",
+		        "attention-work",
+		        "attention-hobbies",
+		        "attention-interests",
+		        "attention-achievement",
+		        "attention-experiences",
+		        "attention-likes",
+		        "attention-dislikes",
+		        "attention-tests",
+		        "attention-evaluation_criteria",
+		        "attention-qualifications",
+		        "attention-requirements",
+		        "attention-qualifications_acquired",
+		        "attention-qualifications_needed",
+		        "attention-suggestions",
+		        "attention-feedback",
+		        "attention-likes_dislikes_comments",
+		        "attention-expectations",
+		        "attention-motivations",
+		        "attention-priorities",
+		        "attention-challenges",
+		        "attention-opportunities",
+		        "attention-problems",
+		        "attention-decisions",
+		        "attention-recommendations",
+		        "attention-trial_discussion",
+		        "attention-agreement",
+		        "attention-disagreement",
+		        "attention-agreement-explanation",
+		        "attention-disagreement-explanation",
+		        "attention-reasoning",
+		        "attention-possibility",
+		        "attention-probability",
+		        "attention-improbable",
+		        "attention-necessity",
+		        "attention-priority",
+		        "attention-order",
+		        "attention-procedure",
+		        "attention-target",
+		        "attention-advocacy",
+		        "attention-advocacy-reasoning",
+		        "attention-evidences",
+		        "attention-negations",
+		        "attention-conclusions",
+		        "attention-persuasion",
+		        "attention-epiphany",
+		        "attention-choosing",
+		        "attention-concepts",
+		        "attention-situations",
+		        "attention-actionplan",
+		        "attention-outcome",
+		        "attention-plan-communication",
+		        "attention-plan-task",
+		        "attention-awakening",
+		        "attention-thinking",
+		        "attention-believing",
+		        "attention-knowing",
+		        "attention-learning",
+		        "attention-realization",
+		        "attention-incidences",
+		        "attention-causations",
+		        "attention-effects",
+		        "attention-solutions",
+		        "attention-progress",
+		        "attention-failure",
+		        "attention-change",
+		        "attention-impact",
+		        "attention-feeling",
+		        "attention-challenge",
+		        "attention-aspiration",
+		        "attention-doubt",
+		        "attention-relationship_goals",
+		        "attention-career_goals",
+		        "attention-emotional_goals",
+		        "attention-physical_goals",
+		        "attention-mental_goals",
+		        "attention-achievements",
+		        "attention-experiences_difficulties",
+		        "attention-explaining",
+		        "attention-analogy",
+		        "attention-fact",
+		        "attention-evidence",
+		        "attention-opinion",
+		        "attention-assumption",
+		        "attention-consequence",
+		        "attention-belief",
+		        "attention-value",
+		        "attention-confirmation",
+		        "attention-excuse",
+		        "attention-exception",
+		        "attention-exciting_feature",
+		        "attention-changemaker",
+		        "attention-mentor",
+		        "attention-friend",
+		        "attention-criticalopinion",
+		        "attention-conflict",
+		        "attention-perspective",
+		        "attention-prediction",
+		        "attention-regret",
+		        "attention-usefulness",
+		        "attention-solidarity",
+		        "attention-compliance",
+		        "attention-lack",
+		        "attention-attention",
+		        "attention-criticism",
+		        "attention-support",
+		        "attention-collaboration",
+		        "attention-anticipation",
+		        "attention-example"
+		      ]
+		    },
+		    "script": {
+		      "phrases": [
+		        [
+		          "2 AM, howlin outside",
+		          "Lookin, but I cannot find",
+		          "Only you can stand my mind"
+		        ]
+		      ],
+		      "__comment__": "analyze action planner action states for phrases"
+		    }
+		  },
+		  "response-full": {
+		    "phrases & action states": [
+		      {"text":"2 AM, howlin outside", "actions":[["tone","urgent"], ["msg","trying to reach someone"], ["bias","romantic"], ["emotion","uncertainty"], ["level-of-certainty","trying/desire"], ["gesturing","pointing"], ["describing-surroundings","anywhere in the dark"], ["attention-place","outside"], ["attention-time","night"], ["attention-emotional_state","desire"], ["attention-action","howling"], ["attention-activity","driving"]]},
+		      {"text":"Lookin, but I cannot find", "actions":[["msg","searching for someone"], ["bias","doubt"], ["emotion","frustration"], ["level-of-certainty","cannot find"], ["attention-action","searching"], ["attention-relationship","checking for person's presence"]]},
+		      {"text":"Only you can stand my mind", "actions":[["tone","affectionate"], ["msg","expressing feelings"], ["bias","feeling understood by person"], ["emotion","love"], ["level-of-certainty","statement"], ["attention-person","addressed to person"], ["attention-emotional_state","love/affection"], ["attention-mental_state","thinking about person constantly"], ["attention-relationship","checking for compatibility"]]}
+		    ]
+		  },
+		  "response-short": {
+		    "action states": [
+		      [["tone","urgent"], ["msg","trying to reach someone"], ["bias","romantic"], ["emotion","uncertainty"], ["level-of-certainty","trying/desire"], ["gesturing","pointing"], ["describing-surroundings","anywhere in the dark"], ["attention-place","outside"], ["attention-time","night"], ["attention-emotional_state","desire"], ["attention-action","howling"], ["attention-activity","driving"]],
+		      [["msg","searching for someone"], ["bias","doubt"], ["emotion","frustration"], ["level-of-certainty","cannot find"], ["attention-action","searching"], ["attention-relationship","checking for person's presence"]],
+		      [["tone","affectionate"], ["msg","expressing feelings"], ["bias","feeling understood by person"], ["emotion","love"], ["level-of-certainty","statement"], ["attention-person","addressed to person"], ["attention-emotional_state","love/affection"], ["attention-mental_state","thinking about person constantly"], ["attention-relationship","checking for compatibility"]]
+		    ]
+		  }
+		})ML");
+		json_input.AddUser(R"ML(
 		{
-			// NOTE duplicate
-			auto& list = input.AddSub().Title("List \"B\": Action planner action states for narrator person");
-			list.Add("saying");
-			list.Add("tone");
-			list.Add("msg");
-			list.Add("bias");
-			list.Add("emotion");
-			list.Add("level-of-certainty");
-			list.Add("gesturing");
-			list.Add("pointing");
-			list.Add("describing-surroundings");
-			list.Add("interrupting");
-			list.Add("emphasizing");
-			list.Add("summarizing");
-			list.Add("referencing");
-			list.Add("introducing");
-			list.Add("concluding");
-			list.Add("predicting");
-			list.Add("transitioning");
-			list.Add("questioning");
-			list.Add("reflecting");
-			list.Add("persuading");
-			list.Add("comparing");
-			list.Add("linking");
-			list.Add("agreeing");
-			list.Add("disagreeing");
-			list.Add("apologizing");
-			list.Add("commanding");
-			list.Add("comforting");
-			list.Add("complimenting");
-			list.Add("complaining");
-			list.Add("congratulating");
-			list.Add("correcting");
-			list.Add("denying");
-			list.Add("explaining");
-			list.Add("greeting");
-			list.Add("inviting");
-			list.Add("promising");
-			list.Add("-suggesting");
-			list.Add("thanking");
-			list.Add("warning");
-			list.Add("attention-attribute");
-			list.Add("attention-person");
-			list.Add("attention-person-implied");
-			list.Add("attention-action");
-			list.Add("attention-event");
-			list.Add("attention-recipient");
-			list.Add("attention-recipient-implied");
-			list.Add("attention-relationship");
-			list.Add("attention-purpose");
-			list.Add("attention-place");
-			list.Add("attention-time");
-			list.Add("attention-topic");
-			list.Add("attention-audience");
-			list.Add("attention-occasion");
-			list.Add("attention-conversation ");
-			list.Add("attention-activity");
-			list.Add("attention-emotional_state");
-			list.Add("attention-physical_state");
-			list.Add("attention-mental_state");
-			list.Add("attention-relationship_status");
-			list.Add("attention-goals");
-			list.Add("attention-fears");
-			list.Add("attention-preferences");
-			list.Add("attention-beliefs");
-			list.Add("attention-values");
-			list.Add("attention-traits");
-			list.Add("attention-education");
-			list.Add("attention-work");
-			list.Add("attention-hobbies");
-			list.Add("attention-interests");
-			list.Add("attention-achievement");
-			list.Add("attention-experiences");
-			list.Add("attention-likes");
-			list.Add("attention-dislikes");
-			list.Add("attention-tests");
-			list.Add("attention-evaluation_criteria");
-			list.Add("attention-qualifications");
-			list.Add("attention-requirements");
-			list.Add("attention-qualifications_acquired");
-			list.Add("attention-qualifications_needed");
-			list.Add("attention-suggestions");
-			list.Add("attention-feedback");
-			list.Add("attention-likes_dislikes_comments");
-			list.Add("attention-expectations");
-			list.Add("attention-motivations");
-			list.Add("attention-priorities");
-			list.Add("attention-challenges");
-			list.Add("attention-opportunities");
-			list.Add("attention-problems");
-			list.Add("attention-decisions");
-			list.Add("attention-recommendations");
-			list.Add("attention-trial_discussion");
-			list.Add("attention-agreement");
-			list.Add("attention-disagreement");
-			list.Add("attention-agreement-explanation");
-			list.Add("attention-disagreement-explanation");
-			list.Add("attention-reasoning");
-			list.Add("attention-possibility");
-			list.Add("attention-probability");
-			list.Add("attention-improbable");
-			list.Add("attention-necessity");
-			list.Add("attention-priority");
-			list.Add("attention-order");
-			list.Add("attention-procedure");
-			list.Add("attention-target");
-			list.Add("attention-advocacy");
-			list.Add("attention-advocacy-reasoning");
-			list.Add("attention-evidences");
-			list.Add("attention-negations");
-			list.Add("attention-conclusions");
-			list.Add("attention-persuasion");
-			list.Add("attention-epiphany");
-			list.Add("attention-choosing");
-			list.Add("attention-concepts");
-			list.Add("attention-situations");
-			list.Add("attention-actionplan");
-			list.Add("attention-outcome");
-			list.Add("attention-plan-communication");
-			list.Add("attention-plan-task");
-			list.Add("attention-awakening");
-			list.Add("attention-thinking");
-			list.Add("attention-believing");
-			list.Add("attention-knowing");
-			list.Add("attention-learning");
-			list.Add("attention-realization");
-			list.Add("attention-incidences");
-			list.Add("attention-causations");
-			list.Add("attention-effects");
-			list.Add("attention-solutions");
-			list.Add("attention-progress");
-			list.Add("attention-failure");
-			list.Add("attention-change");
-			list.Add("attention-impact");
-			list.Add("attention-feeling");
-			list.Add("attention-challenge");
-			list.Add("attention-aspiration");
-			list.Add("attention-doubt");
-			list.Add("attention-relationship_goals");
-			list.Add("attention-career_goals");
-			list.Add("attention-emotional_goals");
-			list.Add("attention-physical_goals");
-			list.Add("attention-mental_goals");
-			list.Add("attention-achievements");
-			list.Add("attention-experiences_difficulties");
-			list.Add("attention-explaining");
-			list.Add("attention-analogy");
-			list.Add("attention-fact");
-			list.Add("attention-evidence");
-			list.Add("attention-opinion");
-			list.Add("attention-assumption");
-			list.Add("attention-consequence");
-			list.Add("attention-belief");
-			list.Add("attention-value");
-			list.Add("attention-confirmation");
-			list.Add("attention-excuse");
-			list.Add("attention-exception");
-			list.Add("attention-exciting_feature");
-			list.Add("attention-changemaker");
-			list.Add("attention-mentor");
-			list.Add("attention-friend");
-			list.Add("attention-criticalopinion");
-			list.Add("attention-conflict");
-			list.Add("attention-perspective");
-			list.Add("attention-prediction");
-			list.Add("attention-regret");
-			list.Add("attention-usefulness");
-			list.Add("attention-solidarity");
-			list.Add("attention-compliance");
-			list.Add("attention-lack");
-			list.Add("attention-attention");
-			list.Add("attention-criticism");
-			list.Add("attention-support");
-			list.Add("attention-collaboration");
-			list.Add("attention-anticipation");
-			list.Add("attention-example");
-			list.Add("etc.");
-		}
-		
-		String pc = IntStr(3 + args.phrases.GetCount());
-		{
-			auto& list = input.AddSub().Title(pc + " lines of lyrics");
-			list.NumberedLines();
-			list.Add("2 AM, howlin outside");
-			list.Add("Lookin, but I cannot find");
-			list.Add("Only you can stand my mind");
-			for(int i = 0; i < args.phrases.GetCount(); i++)
-				list.Add(args.phrases[i]);
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.NumberedLines();
-			results.NoListChar();
-			results.Title("Action planner action states for " + pc + " lines of lyrics. With the most matching actions of list \"B\"");
-			results.Add("tone(urgent) + msg(trying to reach someone) + bias(romantic) + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside) + attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving)");
-			results.Add("msg(searching for someone) + bias(doubt) + emotion(frustration) + level-of-certainty(cannot find) + attention-action(searching) + attention-relationship(checking for person's presence)");
-			results.Add("tone(affectionate) + msg(expressing feelings) + bias(feeling understood by person) + emotion(love) + level-of-certainty(statement) + attention-person(addressed to person) + attention-emotional_state(love/affection) + attention-mental_state(thinking about person constantly) + attention-relationship(checking for compatibility)");
-			results.Add("");
-		}
-		input.response_length = 2048;
-		#endif
+		    "query": {
+		        "script": {
+		            "phrases": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/phrases", args.params("phrases"));
+		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_SCORES) {
-		Panic("TODO");
-		#if 0
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML({
+			"query": {
+				"action_planner": {
+					"heuristic_score_factors": [
+						"S0: High like count from the audience. Low count means that the idea behind the phrase was bad.",
+						"S1: High comment count from the audience. Low count means that there was no emotion in the phrase.",
+						"S2: High listen count from the audience. Low count means that there was bad so-called hook in the phrase.",
+						"S3: High share count from the audience. Low count means that the phrase was not relatable.",
+						"S4: High bookmark count from the audience. Low count means that the phrase had no value.",
+						"S5: High reference count towards comedy from the audience. Low count means that the phrase was not funny.",
+						"S6: High reference count towards sex from the audience. Low count means that the phrase was not sensual.",
+						"S7: High reference count towards politics from the audience. Low count means that the phrase was not thought-provoking.",
+						"S8: High reference count towards love from the audience. Low count means that the phrase was not romantic.",
+						"S9: High reference count towards social issues from the audience. Low count means that the phrase was not impactful."
+					]
+				},
+				"example_1": {
+					"description": [
+						"Score factors are S0-S9",
+						"The value of a score factor is between 0-10",
+						"Phrase is \"bleeding after you\"",
+						"Score factors for the phrase \"bleeding after you\": S0: 9, S1: 8, S2: 8, S3: 6, S4: 7, S5: 9, S6: 4, S7: 2, S8: 3, S9: 2",
+						"The score factors in shortened format: 9 8 8 6 7 9 4 2 3 2"
+					]
+				},
+				"list_A_phrases": {
+					"number_of_phrases": "2",
+					"phrases": [
+						"bleeding after you"
+					]
+				},
+				"results": {
+					"2_score_factors_for_list_A_phrases": "9 8 8 6 7 9 4 2 3 2"
+				}
+			}
+		})ML";
 		String audience = "audience";
 		{
 			auto& list = input.AddSub().Title("Action planner heuristic score factors");
@@ -903,6 +1101,29 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_CLASSIFY_PHRASE_TYPECLASS) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"__comment__": "I am not sure how 'args' and 'input' are defined in the original code snippet. Assuming they are part of a larger context.",
+				"Typeclasses of artist profiles in relation to the lyrics": {
+					"typeclasses": args.typeclasses
+				},
+				"List \"A\" of [pc] phrases": {
+					"phrases": [
+						"bleeding after you",
+						args.phrases
+					]
+				}
+			},
+			"response-full": {
+				"taskResults": {
+					"sequences": {
+						"sequence": "1 51 42 10 11 13 24 28 30 44",
+						"description": "phrases can be used in these (numbered) typeclasses"
+					}
+				}
+			}
+		}
+		Note: This conversion is based on the assumption of the structure and variables used in the original C++ code snippet.)ML";
 		{
 			auto& list = input.AddSub().Title("Typeclasses of artist profiles in relation to the lyrics");
 			list.NumberedLines();
@@ -932,6 +1153,35 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_CLASSIFY_PHRASE_CONTENT) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"__comment__": {
+					"List of names for archetypical parts of storyline of a modern pop/rock/edm songs, which contrasts each other": [
+						"bleeding after you",
+						"phrases would fit to following storyline parts"
+					]
+				},
+				"script": {
+					"contents": [],
+					"phrases": []
+				}
+			},
+			"response": {
+				"archetypical_part_sequences": {
+					"1-archetypical-part-number-alpha-sequences-for-list-A-of-phrases": [
+						"33A",
+						"15C",
+						"9B",
+						"31B",
+						"32A",
+						"34B",
+						"36C",
+						"27C",
+						"40C"
+					]
+				}
+			}
+		})ML";
 		{
 			auto& list = input.AddSub().Title("List of names for archetypical parts of storyline of a modern pop/rock/edm songs, which contrasts each other");
 			list.NumberedLines();
@@ -961,6 +1211,39 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_CLASSIFY_PHRASE_ELEMENT) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"script": {
+					"conceptual_elements": [
+						"List of conceptual elements of storyline of a modern pop/rock/edm songs"
+					],
+					"elements": [
+						"element1",
+						"element2",
+						"element3",
+						"element4"
+					],
+					"list_A_phrases": [
+						"List \"A\" of 5 phrases"
+					],
+					"phrases": [
+						"bleeding after you",
+						"phrase1",
+						"phrase2",
+						"phrase3",
+						"phrase4"
+					]
+				}
+			},
+			"response": {
+				"results": {
+					"conceptual_elements_description": [
+						"1. exposition",
+						"2. "
+					]
+				}
+			}
+		})ML";
 		{
 			auto& list = input.AddSub().Title("List of conceptual elements of storyline of a modern pop/rock/edm songs");
 			list.NumberedLines();
@@ -991,6 +1274,34 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_CLASSIFY_PHRASE_METAPHORICAL_COLOR) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"storyline_elements": {
+					"elements": [
+						"Character introduction",
+						"Conflict development",
+						"Resolution of conflict",
+						"Emotional climax",
+						"Conclusion"
+					]
+				},
+				"phrases_list": {
+					"phrases_count": 3,
+					"phrases": [
+						"bleeding after you",
+						"phrases 1",
+						"phrases 2"
+					]
+				}
+			},
+			"response": {
+				"conceptual_elements": {
+					"1": "exposition",
+					"2": "",
+					"3": "some element of the list that would be closest fit to following storyline parts"
+				}
+			}
+		})ML";
 		{
 			auto& list = input.AddSub().Title("Lyrics");
 			list.NoListChar();
@@ -1038,6 +1349,57 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTION_ATTR) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"__comment__": "Definition of attribute list with various attributes",
+				"attributes": {
+					"FAITH_AND_REASON_SEEKER": ["faith and reason seekers", "divine worshipers", "rational thinker"],
+					"GROUP_FAITH": ["group faith", "individual spirituality", "organized religion"],
+					"BELIF_SPECTRUM": ["belief spectrum", "believer", "non-believer"],
+					"OLD_AND_NEW_BELIEVER": ["old and new believers", "new age spirituality", "traditional religion"],
+					"BELIF_COMMUNITY": ["belief communities", "secular society", "religious community"],
+					"THEOLOGICAL_OPPOSITE": ["theological opposites", "theistic", "atheistic"],
+					"SEEKER_OF_TRUTH": ["seekers of truth", "spiritual seeker", "skeptic"],
+					"INTUITIVE_THINKER": ["intuitive thinkers", "rationalist", "mystic practitioner"],
+					"RATIONAL_BELIEF": ["rational believers", "religious", "scientific"],
+					"PHYSICAL_PREFERENCE": ["physical preference", "body enhancing beauty", "natural beauty"],
+					"SEXUAL_ORIENTATION": ["sexual orientation", "heterosexual", "homosexual"],
+					"SEXUAL_PREFERENCE": ["sexual preference", "normal", "kinky"],
+					"FAITH_EXTREME": ["faith extremes", "agnostic", "religious fundamentalist"],
+					// Add more attributes as needed
+				},
+				"script": {
+					"lyrics": [
+						"2 AM, howlin outside",
+						"Lookin, but I cannot find"
+					],
+					"actions_per_line": [
+						"\"2 AM, howlin outside\": attention-time(night) + attention-emotional_state(desire) + attention-action(howling) + attention-activity(driving) + tone(urgent) + msg(trying to reach someone) + bias(romantic + emotion(uncertainty) + level-of-certainty(trying/desire) + gesturing(pointing) + describing-surroundings(anywhere in the dark) + attention-place(outside)",
+						"\"Lookin, but I cannot find\": attention-action(looking) + attention-physical state(tired) + emotion(frustration) + attention-emotional_state(desperation) + attention-time(late at night)"
+					],
+					"attribute_list_A": [
+						"faith and reason seekers / divine worshipers / rational thinker",
+						"group faith / individual spirituality / organized religion",
+						"belief spectrum / believer / non-believer",
+						// Add more attribute list A items as needed
+					],
+					"primary_attributes": [
+						"\"I won't blindly follow the crowd\": group faith / individual spirituality",
+						"\"feeling blue and green with envy\": sexual preference / kinky",
+						"\"2 AM, howlin outside\": faith and reason seekers / divine worshipers",
+						"\"Lookin, but I cannot find\": truthfulness / personal experience"
+					],
+					"actions_list_C": [
+						"\"attention-event(unpleasant smell)\"",
+						"\"transition(activities/roles)\""
+					],
+					"additional_actions_C": [
+						"\"attention-event(unpleasant smell)\": sexualization / non-sexual",
+						"\"transition(activities/roles)\": integrity / twisted"
+					]
+				}
+			}
+		})ML";
 		{
 			auto& list = input.AddSub().Title("Lyrics");
 			list.NoListChar();
@@ -1090,6 +1452,28 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_SORT_ATTRS) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"list_A_values": {
+					"title": "List \"A\" values in the same group '" + args.group + "'",
+					"values": [
+						"Value 1",
+						"Value 2",
+						"Value 3"
+					]
+				},
+				"results": {
+					"summary_main_values": {
+						"title": "2 main values of list \"A\", which summarizes all values in a way",
+						"description": "The first value is the common attribute of modern pop/rock/edm songs, and the second value is the polar opposite of the first"
+					},
+					"sorted_values": {
+						"title": "Sort 2 values of list \"A\" in a way",
+						"description": "The first value is the one which is closer to a common attribute of modern pop/rock/edm songs. Use same values, but just sort the values. Don't add any text"
+					}
+				}
+			}
+		})ML";
 		auto& list = input.AddSub().Title("List \"A\" values in the same group '" + args.group + "'");
 		int end = min(200, args.values.GetCount());
 		for(int i = 0; i < end; i++) {
@@ -1116,6 +1500,42 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_ATTR_POLAR_OPPOSITES) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"__assertions__": [
+					"args.attr0.GetCount()",
+					"args.attr1.GetCount()"
+				],
+				"tasks": [
+					{
+						"title": "List \"A\" values in the same group 'socioeconomic status'",
+						"values": ["urban", "gang affiliation", "drug dealing"]
+					},
+					{
+						"title": "List \"B\" polar opposites of the group 'socioeconomic status'",
+						"values": ["positive: wealth", "negative: poverty"]
+					},
+					{
+						"title": "Values of list \"A\", with their closest polar opposite value of list \"B\". Either 'positive' or 'negative'",
+						"values": ["positive", "negative", "negative"]
+					},
+					{
+						"title": "List \"C\" values in the same group '{{args.group}}'",
+						"values": "[dynamic values here]"
+					},
+					{
+						"title": "List \"D\" polar opposites of the group '{{args.group}}'",
+						"values": ["positive: {{args.attr0}}", "negative: {{args.attr1}}"]
+					}
+				]
+			},
+			"response": {
+				"results": {
+					"title": "Values of list \"C\", with their closest polar opposite value of list \"D\". Either 'positive' or 'negative",
+					"values": ["[dynamic values here]"]
+				}
+			}
+		})ML";
 		ASSERT(args.attr0.GetCount());
 		ASSERT(args.attr1.GetCount());
 		{
@@ -1164,6 +1584,49 @@ void AiTask::CreateInput_Default()
 	else if (args.fn == FN_MATCHING_ATTR) {
 		Panic("TODO");
 		#if 0
+		R"ML({
+			"query": {
+				"__comment__": "Ensure necessary data present in args object",
+				"attributes_groups": {
+					"list_A": [
+						"Attribute Group 1",
+						"Attribute Group 2",
+						"Attribute Group 3"
+					]
+				},
+				"orphaned_groups_values": {
+					"list_B": [
+						"culture: mainstream success",
+						"Value 1",
+						"Value 2",
+						"Value 3"
+					]
+				}
+			},
+			"response": {
+				"mapping_results": {
+					"title": "For the values of list \"B\", their closest matching group and polarised extreme value from list \"A\"",
+					"results": {
+						"1": {
+							"value": "5 +",
+							"mapping": ""
+						},
+						"2": {
+							"value": "Value 1",
+							"mapping": "Attribute Group 1: extreme value 1"
+						},
+						"3": {
+							"value": "Value 2",
+							"mapping": "Attribute Group 2: extreme value 2"
+						},
+						"4": {
+							"value": "Value 3",
+							"mapping": "Attribute Group 3: extreme value 3"
+						}
+					}
+				}
+			}
+		})ML";
 		ASSERT(args.groups.GetCount());
 		ASSERT(args.values.GetCount());
 		{

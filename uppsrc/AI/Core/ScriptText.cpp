@@ -532,8 +532,10 @@ void ScriptTextProcess::WordClasses() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
-		auto& src = p.src->Data();
+		ScriptStruct& ss = src.scripts[batch];
 		
 		Value v = ParseJSON(result);
 		ValueArray word_classes = v("response-short")("word classes");
@@ -864,68 +866,41 @@ void ScriptTextProcess::ClassifySentences() {
 		
 		Value v = ParseJSON(res);
 		LOG(AsJSON(v, true));
-		Value out = v("response-short")("titles");
+		ValueArray titles = v("response-short")("titles");
 		ValueArray input_words = args.params("classified_sentences");
-		if (!out.Is<ValueArray>()) {
+		if (titles.IsEmpty()) {
 			ASSERT(0);
 		}
-		ValueArray word_pair_classes = out;
 		
 		actual = 0;
 		total = 0;
+		bool line_match = tmp_vpp_ptrs.GetCount() == titles.GetCount();
+		ASSERT(line_match);
 		
-		RemoveEmptyLines(res);
-		Vector<String> lines = Split(res, "\n");
-		bool line_match = tmp_vpp_ptrs.GetCount() == lines.GetCount();
-		
-		Vector<int> word_classes;
-		int line_i = -1;
-		for (String& line : lines) {
-			line_i++;
-			line = TrimBoth(line);
-			
-			if (line.IsEmpty() ||!IsDigit(line[0]))
-				continue;
-			
-			int a = line.Find(".");
-			if (a < 0) continue;
-			line = TrimBoth(line.Mid(a+1));
-			
-			a = line.ReverseFind(":");
-			if (a < 0)
-				continue;
-			
-			Vector<String> classes = Split(TrimBoth(line.Left(a)), ",");
-			word_classes.SetCount(0);
-			
-			VirtualPhrasePart* vpp_p;
-			if (line_match)
-				vpp_p = (VirtualPhrasePart*)tmp_vpp_ptrs[line_i];
-			else {
+		int c = min(titles.GetCount(), input_words.GetCount());
+		for(int i = 0; i < c; i++) {
+			ValueArray classes = input_words[i];
+			String title = titles[i].ToString();
+			Vector<int> word_classes;
+			VirtualPhrasePart& vpp = *tmp_vpp_ptrs[i];
+			{
 				bool fail = false;
-				CombineHash ch;
-				for (String& c : classes) {
-					c = TrimBoth(c);
+				for (Value v : classes) {
+					String c = v.ToString();
 					int wc_i = src.word_classes.FindAdd(c);
 					if (wc_i < 0) {
 						fail = true;
 						break;
 					}
 					word_classes << wc_i;
-					ch.Do(wc_i).Put(1);
 				}
 				if (fail) continue;
-				hash_t h = ch;
-				vpp_p = &src.virtual_phrase_parts.GetAdd(h);
 			}
-			VirtualPhrasePart& vpp = *vpp_p;
 			
 			if (vpp.word_classes.IsEmpty())
 				vpp.word_classes <<= word_classes;
 			
-			line = TrimBoth(line.Mid(a+1));
-			
-			vpp.struct_part_type = src.struct_part_types.FindAdd(line);
+			vpp.struct_part_type = src.struct_part_types.FindAdd(title);
 		}
 		
 		int a = 0;

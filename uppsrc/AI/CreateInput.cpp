@@ -293,7 +293,7 @@ void AiTask::CreateInput_Default()
 		
 	}
 	else if(args.fn == FN_ANALYZE_PUBLIC_FIGURE) {
-		String word_for_person = params("word_for_person") ;
+		String word_for_person = args.params("word_for_person") ;
 		
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
@@ -659,11 +659,9 @@ void AiTask::CreateInput_Default()
 			},
 			"response-short": {
 				"titles": [
-					[
-						"independent clause",
-						"prepositional sentence",
-						"complex sentence"
-					]
+					"independent clause",
+					"prepositional sentence",
+					"complex sentence"
 				]
 			}
 		})ML");

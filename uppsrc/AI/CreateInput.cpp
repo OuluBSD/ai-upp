@@ -292,6 +292,62 @@ void AiTask::CreateInput_Default()
 		
 		
 	}
+	else if(args.fn == FN_ANALYZE_PUBLIC_FIGURE) {
+		String word_for_person = params("word_for_person") ;
+		
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "incomplete list of types of public figures": [
+			            "Actress",
+						"Athlete",
+						"Author",
+						"Chef",
+						"Comedian",
+						"Influencer",
+						"Journalist",
+						"Model",
+						"Musician",
+						"Politician"
+					],
+					"incomplete list of genres for actresses": [
+						"Drama",
+						"Romance",
+						"Comedy",
+						"Thriller",
+						"Science Fiction"
+					]
+				},
+				"person": {
+					"name": "Donald Trump",
+					"type": "Politician",
+					"description": "Donald Trump is a divisive businessman, reality TV star, and former President of the United States known for his controversial policies and rhetoric.",
+					"__comment__": "Analyze this person and write genres"
+				}
+			},
+			"response": {
+				"genres" : ["Business", "Politics", "Reality Television"]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "person": {
+		            "name": "",
+		            "type": "",
+		            "description": "",
+		            "__comment__": "get response"
+		        }
+		    }
+		})ML")
+			.Set("/query/person/name", args.params("name"))
+			.Set("/query/person/type", args.params("type"))
+			.Set("/query/person/description", args.params("description"))
+			;
+		input.response_length = 2048;
+	}
 	else if(args.fn == FN_ANALYZE_ELEMENTS) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
@@ -414,11 +470,9 @@ void AiTask::CreateInput_Default()
 				},
 				"script": {
 					"words": [
-						[
-							"you",
-							"what's",
-							"smile"
-						]
+						"you",
+						"what's",
+						"smile"
 					],
 					"__comment__": "Analyze words and write word classes"
 				}
@@ -426,28 +480,24 @@ void AiTask::CreateInput_Default()
 			"response-full": {
 				"words & word classes": [
 					[
-						[
-							"you",
-							"pronoun"
-						],
-						[
-							"what's",
-							"contraction (what + is)"
-						],
-						[
-							"smile",
-							"noun | verb"
-						]
+						"you",
+						["pronoun"]
+					],
+					[
+						"what's",
+						["contraction (what + is)"]
+					],
+					[
+						"smile",
+						["noun", "verb"]
 					]
 				]
 			},
 			"response-short": {
 				"word classes": [
-					[
-						"pronoun",
-						"contraction (what + is)",
-						"noun | verb"
-					]
+					["pronoun"],
+					["contraction (what + is)"],
+					["noun", "verb"]
 				]
 			}
 		})ML");

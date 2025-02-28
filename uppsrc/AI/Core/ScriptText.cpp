@@ -18,7 +18,7 @@ int ScriptTextProcess::GetBatchCount(int phase) const {
 int ScriptTextProcess::GetSubBatchCount(int phase, int batch) const {
 	return 1;
 }
-	
+
 void ScriptTextProcess::DoPhase() {
 	SrcTextData& data = *this->data;
 	
@@ -40,8 +40,8 @@ void ScriptTextProcess::DoPhase() {
 	else if (IsPhase(PHASE_TOKENIZE)) {
 		Tokenize();
 	}
-	else if (IsPhase(PHASE_ANALYZE_ARTISTS)) {
-		AnalyzeArtists();
+	else if (IsPhase(PHASE_ANALYZE_PUBLIC_FIGURE)) {
+		AnalyzePublicFigure();
 	}
 	else if (IsPhase(PHASE_ANALYZE_ELEMENTS)) {
 		AnalyzeElements();
@@ -373,9 +373,10 @@ void ScriptTextProcess::Tokenize() {
 	}
 }
 
-void ScriptTextProcess::AnalyzeArtists() {
+void ScriptTextProcess::AnalyzePublicFigure() {
 	ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
+	
 	
 	bool user_genres = params("genres").Is<ValueArray>();
 	
@@ -389,36 +390,40 @@ void ScriptTextProcess::AnalyzeArtists() {
 		NextBatch();
 		return;
 	}
-	Panic("TODO");
-	#if 0
-	args.fn = 1;
-	args.artist = ent.name;
+	
+	args.fn = FN_ANALYZE_PUBLIC_FIGURE;
+	args.params = ValueMap();
+	
+	args.params("type") = params("type");
+	if (args.params("type").IsVoid())
+		args.params("type") = "public figure"; // TODO artist, producer, etc.
+	
+	args.params("name") = params("name");
+	if (args.params("name").IsVoid())
+		args.params("name") = ent.name;
+	
+	args.params("description") = params("description");
+	if (args.params("description").IsVoid())
+		args.params("description") = "";
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.GetSourceDataAnalysis(args, [this](String result) {
+	m.Get(args, [this](String result) {
 		ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
-		SourceDataAnalysisArgs& args = this->args;
+		TaskArgs& args = this->args;
 		
-		RemoveEmptyLines3(result);
-		RemoveEmptyLines2(result);
-		//LOG(result);
+		Value v = ParseJSON(result);
+		ValueArray genres = v("response")("genres");
 		
-		Vector<String> genres = Split(result, "\n");
-		for (String& genre : genres) {
-			genre = ToLower(TrimBoth(genre));
-			int i = genre.Find(":");
-			if (i >= 0)
-				genre = TrimBoth(genre.Mid(i+1));
-		}
 		AuthorDataset& ent = src.authors[batch];
-		ent.genres <<= genres;
+		ent.genres.Clear();
+		for(int i = 0; i < genres.GetCount(); i++)
+			ent.genres.Add(genres[i].ToString());
 		
 		NextBatch();
 		SetWaiting(false);
 	});
-	#endif
 }
 
 void ScriptTextProcess::AnalyzeElements() {
@@ -531,81 +536,29 @@ void ScriptTextProcess::WordClasses() {
 		auto& src = p.src->Data();
 		
 		Value v = ParseJSON(result);
-		Value word_classes = v("response-short")("word classes");
-		Value input_words = args.params("words");
-		LOG(AsJSON(v, true));
+		ValueArray word_classes = v("response-short")("word classes");
+		ValueArray input_words = args.params("words");
+		//LOG(AsJSON(v, true));
+		int count = min(word_classes.GetCount(), input_words.GetCount());
 		
-		#if 0
-		
-		// 9. suppose: verb | noun
-		
-		result.Replace("\r", "");
-		Vector<String> lines = Split(result, "\n");
-		
-		int offset = 3+1;
-		
-		for (String& line : lines) {
-			line = TrimBoth(line);
+		for(int i = 0; i < count; i++) {
+			String result_word = input_words[i].ToString();
 			
-			if (line.IsEmpty() ||!IsDigit(line[0]))
-				continue;
-			
-			/*int line_i = ScanInt(line);
-			line_i -= offset;
-			if (line_i < 0 || line_i >= args.words.GetCount())
-				continue;
-			
-			const String& orig_word = args.words[line_i];*/
-			
-			int a = line.Find(".");
-			if (a < 0) continue;
-			line = TrimBoth(line.Mid(a+1));
-			
-			a = line.Find(":");
-			if (a == 0) {
-				// Rare case of ":" being asked
-				line = ":" + line;
-				a = 1;
-			}
-			else if (a < 0)
-				continue;
-			
-			//int orig_word_i = ;
-			
-			String result_word = TrimBoth(line.Left(a));
-			
-			/*ExportWord& wrd =
-				orig_word_i >= 0 ?
-					da.words[orig_word_i] :
-					da.words.GetAdd(result_word, orig_word_i);*/
 			int orig_word_i = -1;
 			ExportWord& wrd = MapGetAdd(src.words, result_word, orig_word_i);
 			
-			//TODO // token to word
-			
-			line = TrimBoth(line.Mid(a+1));
-			
-			a = line.Find("(");
-			if (a >= 0)
-				line = line.Left(a);
-			
-			Vector<String> parts = Split(line, "|");
-			for (String& p : parts) {
-				p = TrimBoth(p);
-				int wc_i = src.word_classes.FindAdd(p);
+			ValueArray classes = word_classes[i];
+			for(int j = 0; j < classes.GetCount(); j++) {
+				String cls = classes[j].ToString();
+				int wc_i = src.word_classes.FindAdd(cls);
 				if (wrd.class_count < wrd.MAX_CLASS_COUNT)
 					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
 			}
-			
 			actual++;
 		}
-		
-		
 		src.diagnostics.GetAdd("tokens: total") = IntStr(total);
 		src.diagnostics.GetAdd("tokens: actual") =  IntStr(actual);
 		src.diagnostics.GetAdd("tokens: percentage") =  DblStr((double)actual / (double) total * 100);
-		
-		#endif
 		
 		NextBatch();
 		SetWaiting(false);
@@ -613,22 +566,19 @@ void ScriptTextProcess::WordClasses() {
 }
 
 void ScriptTextProcess::AmbiguousWordPairs() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	args.fn = FN_WORD_PAIR_CLASSES;
+	args.params = ValueMap();
 	
-	Panic("TODO");
-	#if 0
-	args.words.Clear();
-	
-	int begin = batch * per_action_task;
-	int end = begin + per_action_task;
+	int begin = batch * words_per_action_task;
+	int end = begin + words_per_action_task;
 	end = min(end, src.ambiguous_word_pairs.GetCount());
 	int iter = 0;
 	
-	tmp_ptrs.Clear();
-	
+	ValueArray word_pairs;
+	tmp_wp_ptrs.Clear();
 	for (const WordPairType& wp : src.ambiguous_word_pairs.GetValues()) {
 		if (wp.from < 0 || wp.to < 0)
 			continue;
@@ -638,59 +588,60 @@ void ScriptTextProcess::AmbiguousWordPairs() {
 		if (iter >= begin && iter < end) {
 			const String& from = src.words.GetKey(wp.from);
 			const String& to = src.words.GetKey(wp.to);
-			args.words << (from + " " + to);
-			tmp_ptrs << (void*)&wp;
+			ValueArray arr;
+			arr.Add(from);
+			arr.Add(to);
+			word_pairs.Add(arr);
+			tmp_wp_ptrs.Add(&wp);
 		}
 		else if (iter >= end)
 			break;
 		iter++;
 	}
-	if (args.words.IsEmpty()) {
+	if (word_pairs.IsEmpty()) {
 		NextPhase();
 		return;
 	}
 	
+	args.params("word pairs") = word_pairs;
+	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.GetTokenData(args, [this](String res) {
-		TokenArgs& args = token_args;
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+	m.Get(args, [this](String res) {
+		TaskArgs& args = this->args;
+		auto& src = *p.srctxt;
+		
+		Value v = ParseJSON(res);
+		LOG(AsJSON(v, true));
+		Value out = v("response-short")("word pairs classes");
+		ValueArray input_words = args.params("word pairs");
+		if (!out.Is<ValueArray>()) {
+			ASSERT(0);
+		}
+		ValueArray word_pair_classes = out;
 		
 		// 9. is something : verb, noun
 		
 		RemoveEmptyLines(res);
 		Vector<String> lines = Split(res, "\n");
 		
-		bool line_match = tmp_ptrs.GetCount() == lines.GetCount();
+		bool line_match = word_pair_classes.GetCount() == input_words.GetCount();
 		int offset = 1+1;
 		
 		int line_i = -1;
-		for (String& line : lines) {
-			line_i++;
-			line = TrimBoth(line);
-			
-			if (line.IsEmpty() ||!IsDigit(line[0]))
-				continue;
-			
-			int a = line.Find(".");
-			if (a < 0) continue;
-			line = TrimBoth(line.Mid(a+1));
-			
-			a = line.ReverseFind(":");
-			if (a < 0)
-				continue;
-			
-			Vector<String> result_words = Split(TrimBoth(line.Left(a)), " ");
+		for(int i = 0; i < word_pair_classes.GetCount(); i++) {
+			ValueArray result_words = word_pair_classes[i];
 			if (result_words.GetCount() != 2)
 				continue;
 			
 			WordPairType* wpp;
 			if (line_match)
-				wpp = (WordPairType*)tmp_ptrs[line_i];
+				wpp = (WordPairType*)tmp_wp_ptrs[line_i];
 			else {
-				int w_i0 = src.words.Find(result_words[0]);
-				int w_i1 = src.words.Find(result_words[1]);
+				String s0 = result_words[0];
+				String s1 = result_words[1];
+				int w_i0 = src.words.Find(s0);
+				int w_i1 = src.words.Find(s1);
 				CombineHash ch;
 				ch.Do(w_i0).Put(1).Do(w_i1);
 				hash_t h = ch;
@@ -701,15 +652,9 @@ void ScriptTextProcess::AmbiguousWordPairs() {
 			}
 			WordPairType& wp = *wpp;
 			
-			line = TrimBoth(line.Mid(a+1));
-			
-			Vector<String> parts = Split(line, ",");
-			if (parts.GetCount() != 2)
-				continue;
 			int wc_i_list[2];
-			for(int i = 0; i < parts.GetCount(); i++) {
-				String& p = parts[i];
-				p = TrimBoth(p);
+			for(int i = 0; i < result_words.GetCount(); i++) {
+				String p = result_words[i].ToString();
 				wc_i_list[i] = src.word_classes.FindAdd(p);
 			}
 			
@@ -731,12 +676,11 @@ void ScriptTextProcess::AmbiguousWordPairs() {
 		NextBatch();
 		SetWaiting(false);
 	});
-	#endif
 }
 
 void ScriptTextProcess::ImportTokenTexts() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	Vector<int> word_is, word_classes;
 	actual = 0;
@@ -854,21 +798,20 @@ void ScriptTextProcess::ImportTokenTexts() {
 }
 
 void ScriptTextProcess::ClassifySentences() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	args.fn = FN_CLASSIFY_SENTENCE;
-	Panic("TODO");
-	#if 0
-	args.words.Clear();
+	args.params = ValueMap();
 	
 	int iter = 0;
-	int begin = batch * per_action_task;
-	int end = begin + per_action_task;
+	int begin = batch * words_per_action_task;
+	int end = begin + words_per_action_task;
 	end = min(end, src.virtual_phrase_parts.GetCount());
-	tmp_ptrs.Clear();
+	tmp_vpp_ptrs.Clear();
 	
-	for (const VirtualPhrasePart& vpp : src.virtual_phrase_parts.GetValues()) {
+	ValueArray classified_sentences;
+	for (VirtualPhrasePart& vpp : src.virtual_phrase_parts.GetValues()) {
 		
 		if (vpp.struct_part_type >= 0)
 			continue;
@@ -897,16 +840,17 @@ void ScriptTextProcess::ClassifySentences() {
 			if (punct_count > 8 || fail)
 				continue;
 			
-			args.words << s;
-			tmp_ptrs << (void*)&vpp;
+			classified_sentences << s;
+			tmp_vpp_ptrs << &vpp;
 		}
 		else if (iter >= end)
 			break;
 		
 		iter++;
 	}
+	args.params("classified_sentences") = classified_sentences;
 	
-	if (args.words.IsEmpty()) {
+	if (classified_sentences.IsEmpty()) {
 		NextPhase();
 		return;
 	}
@@ -914,17 +858,25 @@ void ScriptTextProcess::ClassifySentences() {
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.GetTokenData(args, [this](String res) {
-		TokenArgs& args = token_args;
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+	m.Get(args, [this](String res) {
+		TaskArgs& args = this->args;
+		auto& src = *p.srctxt;
+		
+		Value v = ParseJSON(res);
+		LOG(AsJSON(v, true));
+		Value out = v("response-short")("titles");
+		ValueArray input_words = args.params("classified_sentences");
+		if (!out.Is<ValueArray>()) {
+			ASSERT(0);
+		}
+		ValueArray word_pair_classes = out;
 		
 		actual = 0;
 		total = 0;
 		
 		RemoveEmptyLines(res);
 		Vector<String> lines = Split(res, "\n");
-		bool line_match = tmp_ptrs.GetCount() == lines.GetCount();
+		bool line_match = tmp_vpp_ptrs.GetCount() == lines.GetCount();
 		
 		Vector<int> word_classes;
 		int line_i = -1;
@@ -948,7 +900,7 @@ void ScriptTextProcess::ClassifySentences() {
 			
 			VirtualPhrasePart* vpp_p;
 			if (line_match)
-				vpp_p = (VirtualPhrasePart*)tmp_ptrs[line_i];
+				vpp_p = (VirtualPhrasePart*)tmp_vpp_ptrs[line_i];
 			else {
 				bool fail = false;
 				CombineHash ch;
@@ -976,7 +928,6 @@ void ScriptTextProcess::ClassifySentences() {
 			vpp.struct_part_type = src.struct_part_types.FindAdd(line);
 		}
 		
-		
 		int a = 0;
 		for (const VirtualPhrasePart& vpp : src.virtual_phrase_parts.GetValues())
 			if (vpp.struct_part_type >= 0)
@@ -985,19 +936,17 @@ void ScriptTextProcess::ClassifySentences() {
 		src.diagnostics.GetAdd("virtual phrases: actual") =  IntStr(a);
 		src.diagnostics.GetAdd("virtual phrases: percentage") =  DblStr((double)a / (double) src.virtual_phrase_parts.GetCount() * 100);
 		
-		
 		NextBatch();
 		SetWaiting(false);
 	});
-	#endif
 }
 
 void ScriptTextProcess::VirtualPhraseParts() {
 	Panic("TODO");
 	#if 0
 	TokenArgs& args = token_args;
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	args.fn = FN_CLASSIFY_SENTENCE_STRUCTURES;
 	args.words.Clear();
@@ -1056,8 +1005,8 @@ void ScriptTextProcess::VirtualPhraseParts() {
 	TaskMgr& m = AiTaskManager();
 	m.GetTokenData(args, [this](String res) {
 		TokenArgs& args = token_args;
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		// 61. compound-complex sentence + complex sentence: compound-complex sentence
 		
@@ -1129,8 +1078,8 @@ void ScriptTextProcess::VirtualPhraseParts() {
 }
 
 void ScriptTextProcess::VirtualPhraseStructs() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	
 	if (batch >= src.token_texts.GetCount()) {
@@ -1249,8 +1198,8 @@ void ScriptTextProcess::VirtualPhraseStructs() {
 }
 
 void ScriptTextProcess::PhrasePartAnalysis() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	Panic("TODO");
 	#if 0
@@ -1401,8 +1350,8 @@ void ScriptTextProcess::PhrasePartAnalysis() {
 
 void ScriptTextProcess::Prepare(int fn) {
 	//DatasetPtrs p = GetDataset();
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	Panic("TODO");
 	#if 0
@@ -1455,8 +1404,8 @@ void ScriptTextProcess::Colors() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetActionAnalysis(args, [this](String result) {
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		// "attention-humor(not taking life too seriously)" RGB(255, 255, 0)
 		
@@ -1526,8 +1475,8 @@ void ScriptTextProcess::Attrs() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetActionAnalysis(args, [this](String result) {
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		// "attention-procedures(planning)" problem solving strategy / shortcut taking
 		
@@ -1587,8 +1536,8 @@ void ScriptTextProcess::Attrs() {
 
 
 void ScriptTextProcess::MainGroups() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	RealizeBatch_AttrExtremesBatch();
 	
 	Panic("TODO");
@@ -1623,8 +1572,8 @@ void ScriptTextProcess::MainGroups() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		RemoveEmptyLines2(res);
 		Vector<String> parts = Split(res, "\n");
@@ -1712,8 +1661,8 @@ void ScriptTextProcess::MainGroups() {
 void ScriptTextProcess::RealizeBatch_AttrExtremesBatch() {
 	Panic("TODO");
 	#if 0
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	/*if (uniq_attrs.IsEmpty())*/ {
 		uniq_attrs.Clear();
@@ -1753,8 +1702,8 @@ void ScriptTextProcess::RealizeBatch_AttrExtremesBatch() {
 }
 
 void ScriptTextProcess::SimplifyAttrs() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	int per_batch = 50;
 	
 	Panic("TODO");
@@ -1821,8 +1770,8 @@ void ScriptTextProcess::SimplifyAttrs() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		RemoveEmptyLines2(res);
 		Vector<String> lines = Split(res, "\n");
@@ -1869,8 +1818,8 @@ void ScriptTextProcess::SimplifyAttrs() {
 }
 
 void ScriptTextProcess::JoinOrphaned() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	int per_batch = 35;
 	Panic("TODO");
@@ -1933,8 +1882,8 @@ void ScriptTextProcess::JoinOrphaned() {
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.GetAttributes(args, [this](String res) {
-		ASSERT(p.src);
-		auto& src = p.src->Data();
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		
 		RemoveEmptyLines2(res);
 		Vector<String> lines = Split(res, "\n");
@@ -1996,8 +1945,8 @@ void ScriptTextProcess::JoinOrphaned() {
 }
 
 void ScriptTextProcess::FixData() {
-	ASSERT(p.src);
-	auto& src = p.src->Data();
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
 	for(int i = 0; i < src.attrs.GetCount(); i++) {
 		src.attrs[i].simple_attr = -1;

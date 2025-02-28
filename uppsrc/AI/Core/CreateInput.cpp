@@ -53,19 +53,6 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 		input.response_length = 1024;
 	}
 	
-	else if (args.fn == 1) {
-		{
-			auto& list = input.AddSub().Title("Artist: " + args.artist);
-			list.NoColon();
-		}
-		{
-			TaskTitledList& results = input.PreAnswer();
-			results.Title("Music genres");
-			results.Add("");
-		}
-		input.response_length = 1024;
-	}
-	
 	else if (args.fn == 4) {
 		{
 			auto& list = input.AddSub().Title("List of words \"A\"");

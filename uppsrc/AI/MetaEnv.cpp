@@ -4,7 +4,7 @@
 
 NAMESPACE_UPP
 
-#define DO_TEMP_CHECK 1
+#define DO_TEMP_CHECK 0
 
 int CreateTempCheck(int src) {
 	static int counter = 0;

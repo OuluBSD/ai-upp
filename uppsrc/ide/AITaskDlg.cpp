@@ -34,9 +34,9 @@ AITaskDlg::AITaskDlg() {
 	Title("AI");
 	
 	Add(tabs.SizePos());
+	tabs.Add(tasks.SizePos(), "Tasks");
 	tabs.Add(playground.SizePos(), "Playground");
 	tabs.Add(menv.SizePos(), "Meta Env. Tree");
-	tabs.Add(tasks.SizePos(), "Tasks");
 	
 	
 	

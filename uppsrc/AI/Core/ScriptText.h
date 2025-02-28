@@ -12,7 +12,7 @@ public:
 		// 1
 		PHASE_TOKENIZE,
 		// 2
-		PHASE_ANALYZE_ARTISTS,
+		PHASE_ANALYZE_PUBLIC_FIGURE,
 		PHASE_ANALYZE_ELEMENTS,
 		// 3
 		PHASE_WORD_CLASSES,
@@ -60,11 +60,13 @@ public:
 	// Temp (per phase)
 	int total = 0, actual = 0;
 	TimeStop ts;
+	Vector<const WordPairType*> tmp_wp_ptrs;
+	Vector<VirtualPhrasePart*> tmp_vpp_ptrs;
 	
 	// 1
 	void Tokenize();
 	// 2
-	void AnalyzeArtists();
+	void AnalyzePublicFigure();
 	void AnalyzeElements();
 	// 3
 	void WordClasses();

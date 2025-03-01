@@ -2271,11 +2271,11 @@ void PhrasePartAnalysisProcess::Do(int fn) {
 	args.typeclasses.Clear();
 	args.contents.Clear();
 	
-	ASSERT(src.typeclasses.GetCount());
-	ASSERT(src.contents.GetCount());
-	args.typeclasses <<= src.typeclasses.GetKeys();
-	for(int i = 0; i < src.contents.GetCount(); i++) {
-		const auto& it = src.contents[i];
+	ASSERT(src.ctx.typeclass.labels.GetCount());
+	ASSERT(src.ctx.content.labels.GetCount());
+	args.typeclasses <<= src.ctx.typeclass.labels.GetKeys();
+	for(int i = 0; i < src.ctx.content.labels.GetCount(); i++) {
+		const auto& it = src.ctx.content.labels[i];
 		String s;
 		s << "A: " << it.parts[0] << ", B: " << it.parts[1] << ", C: " << it.parts[2];
 		args.contents << s;

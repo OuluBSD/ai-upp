@@ -556,8 +556,8 @@ void ScriptSolver::CopyState(ScriptSolverArgs::State& to, const NavigatorState& 
 	COPY(clr_i)
 	to.act_action = from.act.action;
 	to.act_arg = from.act.arg;
-	to.typeclass = from.typeclass_i >= 0 ? src.typeclasses[from.typeclass_i] : String();
-	const auto& cons = src.contents;
+	to.typeclass = from.typeclass_i >= 0 ? src.ctx.typeclass.labels[from.typeclass_i] : String();
+	const auto& cons = src.ctx.content.labels;
 	int c0 = from.con_i / PART_COUNT;
 	int c1 = from.con_i % PART_COUNT;
 	to.content.Clear();

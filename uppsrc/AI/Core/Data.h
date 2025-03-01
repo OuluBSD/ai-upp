@@ -178,15 +178,15 @@ struct PhrasePart : Moveable<PhrasePart> {
 	}
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
-		(1)	("", words)
-			("", tt_i)
-			("", virtual_phrase_part)
-			("", attr)
-			("", el_i)
-			("", clr)
-			("", actions)
-			("", typecasts)
-			("", contrasts);
+		(1)	("words", words)
+			("tt_i", tt_i)
+			("virtual_phrase_part", virtual_phrase_part)
+			("attr", attr)
+			("el_i", el_i)
+			("clr", clr)
+			("actions", actions)
+			("typecasts", typecasts)
+			("contrasts", contrasts);
 		for(int i = 0; i < SCORE_COUNT; i++)
 			v("s" + IntStr(i), scores[i]);
 	}
@@ -469,42 +469,60 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 struct SrcTextData : EntityData {
 	String filepath;
 	
-	// Persitent
-	// --- sorted ---
+	// INPUT
 	Vector<AuthorDataset> authors;
-	// --- not sorted ---
 	VectorMap<hash_t, ScriptStruct> scripts;
+	
+	// WORDS
 	VectorMap<String, Token> tokens;
-	VectorMap<hash_t, TokenText> token_texts;
-	Index<String> element_keys;
 	Index<String> word_classes;
 	VectorMap<String, ExportWord> words;
 	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
+	
+	// PHRASES
+	VectorMap<hash_t, TokenText> token_texts;
 	VectorMap<hash_t, VirtualPhrase> virtual_phrases;
 	VectorMap<hash_t, VirtualPhrasePart> virtual_phrase_parts;
 	VectorMap<hash_t, VirtualPhraseStruct> virtual_phrase_structs;
 	VectorMap<hash_t, PhrasePart> phrase_parts;
 	Index<String> struct_part_types;
 	Index<String> struct_types;
+	VectorMap<String, ExportSimpleAttr> simple_attrs;
+	
+	// CLASSIFIERS
+	Index<String> element_keys;
 	VectorMap<AttrHeader, ExportAttr> attrs;
 	VectorMap<ActionHeader, ExportAction> actions;
+	
+	// UNUSED ???
 	VectorMap<int, VectorMap<int, ExportParallel>> parallel; // TODO make these work again?
 	VectorMap<int, VectorMap<int, ExportTransition>> trans;
 	VectorMap<String, ExportDepActionPhrase> action_phrases;
 	VectorMap<hash_t, ExportWordnet> wordnets;
+	
+	// DIAGNOSTICS
 	VectorMap<String, String> diagnostics;
-	VectorMap<String, ExportSimpleAttr> simple_attrs;
-	Index<String> typeclasses;
-	Vector<ContentType> contents;
-	Vector<String> content_parts;
+	
+	struct {
+		struct {
+			Index<String> labels;
+			String name;
+		} typeclass;
+		struct {
+			Vector<ContentType> labels;
+			String name;
+			Vector<String> parts;
+		} content;
+		String name;
+	} ctx;
 	dword lang = LNG_enUS;
 	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT];
 	
-	const Vector<ContentType>& GetContents() {return contents;}
-	const Vector<String>& GetContentParts() {return content_parts;}
-	const Index<String>& GetTypeclasses() {return typeclasses;}
-	int GetContentCount() {return contents.GetCount();}
-	int GetTypeclassCount() {return typeclasses.GetCount();}
+	const Vector<ContentType>& GetContents() {return ctx.content.labels;}
+	const Vector<String>& GetContentParts() {return ctx.content.parts;}
+	//const Index<String>& GetTypeclasses() {return typeclasses;}
+	int GetContentCount() {return ctx.content.labels.GetCount();}
+	//int GetTypeclassCount() {return typeclasses.GetCount();}
 	int GetLanguage() const {return lang;}
 	
 	AuthorDataset& GetAddAuthor(String name);

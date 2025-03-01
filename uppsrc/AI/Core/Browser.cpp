@@ -678,7 +678,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);
-			it.str = src.typeclasses[tc];
+			it.str = src.ctx.typeclass.labels[tc];
 			it.count = vmap[i];
 			it.idx = tc;
 		}
@@ -693,7 +693,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		}
 		SortByValue(vmap, StdGreater<int>());
 		type_items.SetCount(1 + vmap.GetCount());
-		const auto& cons = src.contents;
+		const auto& cons = src.ctx.content.labels;
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);

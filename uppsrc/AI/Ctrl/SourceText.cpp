@@ -1038,10 +1038,10 @@ void PhrasePartAnalysis2::DataElement() {
 	auto& src = *p.srctxt;
 	
 	// Set typeclasses
-	const auto& tc = src.typeclasses;
+	const auto& tc = src.ctx.typeclass.labels;
 	typecasts.Set(0, 0, "All");
 	for(int i = 0; i < tc.GetCount(); i++) {
-		typecasts.Set(1+i, 0, tc[i]);
+		typecasts.Set(1+i, 0, "DEPRECATED: " + tc[i]);
 		typecasts.Set(1+i, 1, 0);
 	}
 	INHIBIT_CURSOR(typecasts);
@@ -1064,7 +1064,7 @@ void PhrasePartAnalysis2::DataTypeclass() {
 	}
 	auto& src = *p.srctxt;
 	
-	const auto& vec = src.contents;
+	const auto& vec = src.ctx.content.labels;
 	contrasts.Set(0, 0, "All");
 	for(int i = 0; i < vec.GetCount(); i++) {
 		/*DatabaseBrowser::ActionGroup& a = b.groups[i];
@@ -1117,8 +1117,8 @@ void PhrasePartAnalysis2::DataColor() {
 	int clr_i = colors.GetCursor() - 1;
 	bool clr_filter = clr_i >= 0;
 	
-	const auto& tc_v = src.typeclasses;
-	const auto& con_v = src.contents;
+	const auto& tc_v = src.ctx.typeclass.labels;
+	const auto& con_v = src.ctx.content.labels;
 	
 	//int count = min(b.data.GetCount(), 10000);
 	int count = src.phrase_parts.GetCount();

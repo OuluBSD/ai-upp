@@ -64,6 +64,20 @@ ATTR_LIST
 ATTR_COUNT
 };
 
+enum {
+#define TYPECAST(idx, str, c) TYPECAST_##idx,
+TYPECAST_LIST
+#undef TYPECAST
+TYPECAST_COUNT
+};
+
+enum {
+#define CONTENT(idx, str) CONTENT_##idx,
+CONTENT_LIST
+#undef TYPECAST
+CONTENT_COUNT
+};
+
 // Categories (with opposites... see pairs)
 enum {
 	CATEGORY_CODE,

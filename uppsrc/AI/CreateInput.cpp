@@ -293,8 +293,6 @@ void AiTask::CreateInput_Default()
 		
 	}
 	else if(args.fn == FN_ANALYZE_PUBLIC_FIGURE) {
-		String word_for_person = params("word_for_person") ;
-		
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
 		{
@@ -579,24 +577,22 @@ void AiTask::CreateInput_Default()
 		    "response-full": {
 		        "word pairs & word pairs classes": [
 		            [
-		                [
-		                    "automobile",
-		                    "drives"
-		                ],
-		                [
-		                    "noun",
-		                    "verb"
-		                ]
+		                {
+		                    "word": "automobile",
+		                    "class": "noun"
+		                },
+		                {
+		                    "word": "drives",
+		                    "class": "verb"
+						}
 		            ]
 		        ]
 		    },
 		    "response-short": {
 		        "word pairs classes": [
 		            [
-		                [
-		                    "noun",
-		                    "verb"
-		                ]
+	                    "noun",
+	                    "verb"
 		            ]
 		        ]
 		    }
@@ -639,31 +635,25 @@ void AiTask::CreateInput_Default()
 				},
 				"script": {
 					"classified_sentences": [
-						[
-							["noun","verb","adjective"],
-							["adjective","noun","preposition","noun"],
-							["conjunction","pronoun","verb","noun"]
-						]
+						["noun","verb","adjective"],
+						["adjective","noun","preposition","noun"],
+						["conjunction","pronoun","verb","noun"]
 					],
 					"__comment__": "Analyze classified sentences based on word classes"
 				}
 			},
 			"response-full": {
 				"titles_of_classified_sentences": [
-					[
-						[["noun","verb","adjective"], "independent clause"],
-						[["adjective","noun","preposition","noun"], "prepositional sentence"],
-						[["conjunction","pronoun","verb","noun"], "complex sentence"]
-					]
+					{"sentence":["noun","verb","adjective"], "title":"independent clause"},
+					{"sentence":["adjective","noun","preposition","noun"], "title":"prepositional sentence"},
+					{"sentence":["conjunction","pronoun","verb","noun"], "title":"complex sentence"}
 				]
 			},
 			"response-short": {
 				"titles": [
-					[
-						"independent clause",
-						"prepositional sentence",
-						"complex sentence"
-					]
+					"independent clause",
+					"prepositional sentence",
+					"complex sentence"
 				]
 			}
 		})ML");
@@ -738,7 +728,7 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "classes of sentences": [],
+		            "classified_sentences": [],
 		            "__comment__": "get response-short"
 		        }
 		    }
@@ -747,13 +737,84 @@ void AiTask::CreateInput_Default()
 		input.response_length = 2*1024;
 	}
 	
+	else if (args.fn == FN_CLASSIFY_PHRASE_ELEMENTS) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "incomplete list of elements to define a part of a script": [
+		                "exposition",
+		                "climax",
+		                "call to action",
+		                "high stakes obstacle",
+		                "rock bottom",
+		                "rising action",
+		                "falling action",
+		                "conclusion",
+		                "happy ending",
+		                "tragedy",
+		                "bittersweet ending",
+		                "suspense",
+		                "crisis",
+		                "resolution",
+		                "intensity",
+		                "conflict",
+		                "iteration"
+		            ]
+		        },
+		        "script": {
+		            "phrases": [
+		                "everyone of us loves her",
+		                "they need to be silenced",
+		                "you need help and we can contribute"
+		            ],
+		            "__comment__": "Analyze phrases and write matching element"
+		        }
+		    },
+		    "response-full": {
+		        "phrases & elements": [
+		            {
+		                "phrase": "everyone of us loves her",
+		                "element": "exposition"
+		            },
+		            {
+		                "phrase": "they need to be silenced",
+		                "element": "high stakes obstacle"
+		            },
+		            {
+		                "phrase": "you need help and we can contribute",
+		                "element": "call to action"
+		            }
+		        ]
+		    },
+		    "response-short": {
+		        "elements": [
+		            exposition"
+		            "high stakes obstacle",
+		            "call to action"
+		        ]
+		    }
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "phrases": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/phrases", args.params("phrases"));
+		input.response_length = 2048;
+	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_COLOR) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
 		{
 		    "query": {
 		        "script": {
-		            "sentences": [
+		            "phrases": [
 						"everyone of us loves her",
 						"they need to be silenced",
 						"you need help and we can contribute"
@@ -763,7 +824,7 @@ void AiTask::CreateInput_Default()
 		    },
 		    "response-full": {
 		         "__comment__": "Syntax translation: RGB(128,255,0) <-> [128,255,0]",
-		        "sentences & metaphorical RGB colors": [
+		        "phrases & metaphorical RGB colors": [
 					["everyone of us loves her", [153, 255, 153]],
 					["they need to be silenced",[153, 0, 0]],
 					["you need help and we can contribute", [255, 153, 204]]
@@ -781,12 +842,12 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "classes of sentences": [],
+		            "phrases": [],
 		            "__comment__": "get response-short"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/sentences", args.params("sentences"));
+			.Set("/query/script/phrases", args.params("phrases"));
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ATTR) {
@@ -804,7 +865,7 @@ void AiTask::CreateInput_Default()
 						"[]"
 						R"ML(]
 					},
-		            "sentences": [
+		            "phrases": [
 						"everyone of us loves her",
 						"they need to be silenced",
 						"you need help and we can contribute"
@@ -842,12 +903,12 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "sentences": [],
+		            "phrases": [],
 		            "__comment__": "get response-short"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/sentences", args.params("sentences"));
+			.Set("/query/script/phrases", args.params("phrases"));
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTIONS) {
@@ -1136,59 +1197,11 @@ void AiTask::CreateInput_Default()
 			"query": {
 				"__comment__": {
 					"incomplete list of typeclasses of profiles in relation to the text": {
-						0: "Heartbroken/lovesick",
-						1: "Rebel/anti-establishment",
-						2: "Political activist",
-						3: "Social justice advocate",
-						4: "Party/club",
-						5: "Hopeful/dreamer",
-						6: "Confident/empowered",
-						7: "Vulnerable/raw",
-						8: "Romantic/love-driven",
-						9: "Failure/loser",
-						10: "Spiritual/faithful",
-						11: "Passionate/determined",
-						12: "Reflective/self-reflective",
-						13: "Witty/sarcastic",
-						14: "Melancholic/sad",
-						15: "Humble/down-to-earth",
-						16: "Charismatic/charming",
-						17: "Resilient/overcoming adversity",
-						18: "Carefree/joyful",
-						19: "Dark/mysterious",
-						20: "Comical/humorous",
-						21: "Controversial/provocative",
-						22: "Nostalgic/sentimental",
-						23: "Wise/philosophical",
-						24: "Angry/outspoken",
-						25: "Calm/peaceful.",
-						26: "Confident/self-assured",
-						27: "Self-destructive/self-sabotaging",
-						28: "Hopeful/optimistic",
-						29: "Fearful/anxious",
-						30: "Eccentric/quirky",
-						31: "Sensitive/emotional",
-						32: "Bitter/resentful",
-						33: "Unique/nonconformist",
-						34: "Free-spirited/nonconformist",
-						35: "Sultry/seductive",
-						36: "Inspirational/motivational",
-						37: "Authentic/real",
-						38: "Mysterious/enigmatic",
-						39: "Carefree/bohemian",
-						40: "Street-smart/tough",
-						41: "Romantic/idealistic",
-						42: "Nurturing/motherly",
-						43: "Dark/tormented",
-						44: "Remorseful/regretful",
-						45: "Bold/brave",
-						46: "Outcast/rebel",
-						47: "Lost/disconnected",
-						48: "Tough/badass",
-						49: "Sincere/genuine",
-						50: "Honest/vulnerable",
-						51: "Innocent/naive",
-						52: "Bold/risk-taking"
+						)ML"
+						#define TYPECAST(idx, str, c) #idx ": \"" str "\","
+						TYPECAST_LIST
+						#undef TYPECAST
+						R"ML(
 					}
 				},
 		        "script": {
@@ -1231,36 +1244,11 @@ void AiTask::CreateInput_Default()
 			"query": {
 				"__comment__": {
 					"incomplete list of short storylines": {
-						0: "Seductive intro",
-						1: "Rise and fall",
-						2: "Fun and games",
-						3: "Love at first sight",
-						4: "Struggle and triumph",
-						5: "Ups and downs",
-						6: "Escape to paradise",
-						7: "Rebellious spirit",
-						8: "Broken and mended",
-						9: "Chase your dreams",
-						10: "Dark secrets",
-						11: "Rags to riches",
-						12: "Lost and found",
-						13: "Ignite the fire",
-						14: "From the ashes",
-						15: "Fame and fortune",
-						16: "Healing in the darkness",
-						17: "City lights and lonely nights",
-						18: "Breaking the mold",
-						19: "Haunted by the past",
-						20: "Wild and free",
-						21: "Clash of opinions",
-						22: "Long distance love",
-						23: "Finding inner strength",
-						24: "Living a double life",
-						25: "Caught in the spotlight",
-						26: "Love and war",
-						27: "The art of letting go",
-						28: "Living in the moment",
-						29: "Conquering fears"
+						)ML"
+						#define CONTENT(idx, str) #idx ": \"" str "\","
+						CONTENT_LIST
+						#undef CONTENT
+						R"ML(
 					},
 					"incomplete list of 3 phases of a storyline": {
 						"generic": ["beginning", "middle", "end"],
@@ -1445,13 +1433,14 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "__comment1__": "attributes in the same category",
+				"category": "colors",
 				"attributes": [
 					"Light yellow", "Grey", "Black", "White", "Dark grey", "Dark blue"
 				],
 		        "__comment2__": "pick 2 values from the given attribute list, which summarizes all values"
 			},
 			"response": {
-				"2 attributes": [
+				"attribute_summarization": [
 					"Black",
 					"White"
 				]
@@ -1460,11 +1449,14 @@ void AiTask::CreateInput_Default()
 		json_input.AddUser(R"ML(
 		{
 		    "query": {
+	            "category": "",
 	            "attributes": [],
 	            "__comment__": "get response"
 		    }
 		})ML")
-			.Set("/query/attributes", args.params("attributes"));
+			.Set("/query/attributes", args.params("attributes"))
+			.Set("/query/category", args.params("category"))
+			;
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_ATTR_POLAR_OPPOSITES) {
@@ -1473,25 +1465,45 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "__comment1__": "incomplete list of 'socioeconomic status' values",
+		            "__comment1__": "incomplete list of values in the group and 2 polar opposite values inside the group",
+		            "group": "socioeconomic status",
 		            "values": ["urban", "gang affiliation", "drug dealing"],
-		            "__comment2__": "analyze the group of values and write polar opposites for the group"
+		            "polar_opposites": {"positive": "wealth", "negative": "poverty"},
+		            "__comment2__": "analyze values and write the closest polar opposite for the value"
 				}
 			},
-			"response": {
-				"polar opposites": {"positive": "wealth", "negative": "poverty"}
+			"response-full": {
+				"values & polar_opposites": [
+					{"value": "urban", "polar_opposite": "wealth", "polarity_key": "positive", "polarity_key_idx": 0},
+					{"value": "gang affiliation", "polar_opposite": "poverty", "polarity_key": "negative", "polarity_key_idx": 1},
+					{"value": "drug dealing", "polar_opposite": "poverty", "polarity_key": "negative", "polarity_key_idx": 1}
+				]
+			},
+			"response-short": {
+				"__comment__": "list of polarity_key_idx",
+				"polar_opposites": [
+					0,
+					1,
+					1
+				]
 			}
 		})ML");
 		json_input.AddUser(R"ML(
 		{
 		    "query": {
 		        "script": {
+					"group": "",
 		            "values": [],
-		            "__comment__": "get response"
+		            "polar_opposites": {"positive": "", "negative": ""},
+		            "__comment__": "get response-short"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/values", args.params("values"));
+			.Set("/query/script/group", args.params("group"))
+			.Set("/query/script/values", args.params("values"))
+			.Set("/query/script/polar_opposites/positive", args.params("attr0"))
+			.Set("/query/script/polar_opposites/negative", args.params("attr1"))
+			;
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_MATCHING_ATTR) {
@@ -1521,13 +1533,13 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "polar opposites": [],
+		            "groups": [],
 		            "values": [],
 		            "__comment__": "get response-shortest"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/polar opposites", args.params("polar opposites"))
+			.Set("/query/script/groups", args.params("groups"))
 			.Set("/query/script/values", args.params("values"));
 		input.response_length = 2*1024;
 	}

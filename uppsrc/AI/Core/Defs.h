@@ -109,6 +109,93 @@
 	ATTR_ITEM(MOOD_PLAYFUL_SERIOUS, "mood 5", "playful", "serious") \
 	
 
+#define TYPECAST_LIST \
+	TYPECAST(1, "Creative/Innovative", "Emphasizing originality and new ideas.") \
+	TYPECAST(2, "Efficient/Optimized", "Focused on performance and resourcefulness.") \
+	TYPECAST(3, "Collaborative/Inclusive", "Encouraging teamwork and participation.") \
+	TYPECAST(4, "Experimental/Adventurous", "Willingness to try new approaches.") \
+	TYPECAST(5, "Reliable/Consistent", "Dependable and stable.") \
+	TYPECAST(6, "Scalable/Expandable", "Able to grow and adapt to increasing demands.") \
+	TYPECAST(7, "Immutable/Constant", "Unchanging and steady.") \
+	TYPECAST(8, "Structured/Organized", "Well-planned and systematic.") \
+	TYPECAST(9, "Legacy/Traditional", "Rooted in established practices.") \
+	TYPECAST(10, "Pure/Simple", "Uncomplicated and straightforward.") \
+	TYPECAST(11, "Modular/Component-Based", "Made up of distinct parts that fit together.") \
+	TYPECAST(12, "Reflective/Introspective", "Thoughtful and self-examining.") \
+	TYPECAST(13, "Dynamic/Flexible", "Able to adapt to change.") \
+	TYPECAST(14, "Challenging/Complex", "Involving intricate or difficult elements.") \
+	TYPECAST(15, "Basic/Foundational", "Core and essential elements.") \
+	TYPECAST(16, "User-Friendly/Accessible", "Easy to understand and engage with.") \
+	TYPECAST(17, "Performant/Fast", "Quick and efficient.") \
+	TYPECAST(18, "Lightweight/Minimalist", "Simple and not overbearing.") \
+	TYPECAST(19, "Mysterious/Enigmatic", "Puzzling and intriguing.") \
+	TYPECAST(20, "Clear/Understandable", "Easy to comprehend.") \
+	TYPECAST(21, "Controversial/Debated", "Provoking discussion or disagreement.") \
+	TYPECAST(22, "Compatible/Integrable", "Able to work well with others.") \
+	TYPECAST(23, "Logical/Rational", "Thought through and reasoned.") \
+	TYPECAST(24, "Verbose/Descriptive", "Expressive and detailed.") \
+	TYPECAST(25, "Cross-disciplinary", "Spanning multiple areas or fields.") \
+	TYPECAST(26, "Stable/Secure", "Safe and consistent.") \
+	TYPECAST(27, "Unstable/Fragile", "Prone to change or damage.") \
+	TYPECAST(28, "Forward-Thinking/Future-Oriented", "Looking towards future developments.") \
+	TYPECAST(29, "Intricate/Complicated", "Containing many elements and details.") \
+	TYPECAST(30, "Unique/Unconventional", "Original and different.") \
+	TYPECAST(31, "Sensitive/Responsive", "Quickly reacting to inputs or changes.") \
+	TYPECAST(32, "Inefficient/Laborious", "Requiring more effort or resources than necessary.") \
+	TYPECAST(33, "Customizable/Adaptable", "Easily modified to suit different needs.") \
+	TYPECAST(34, "Portable/Transferrable", "Easily moved or applied in different contexts.") \
+	TYPECAST(35, "Secure/Protected", "Safe and guarded.") \
+	TYPECAST(36, "Standardized/Common", "Widely accepted or used.") \
+	TYPECAST(37, "Authentic/Real", "Genuine and true to original form.") \
+	TYPECAST(38, "Encapsulated/Contained", "Self-contained and separate.") \
+	TYPECAST(39, "Spontaneous/Unplanned", "Arising without premeditation.") \
+	TYPECAST(40, "Smooth/Effortless", "Operating with minimal difficulty.") \
+	TYPECAST(41, "Abstract/Conceptual", "Not tied to concrete systems, existing in ideas.") \
+	TYPECAST(42, "Supportive/Nurturing", "Encouraging and helpful.") \
+	TYPECAST(43, "Historic/Old-School", "Reflecting old methods or styles.") \
+	TYPECAST(44, "Resilient/Fault-Tolerant", "Able to withstand or recover from difficulties.") \
+	TYPECAST(45, "Bold/Expressive", "Strong and vivid.") \
+	TYPECAST(46, "Independent/Self-Sufficient", "Able to function autonomously.") \
+	TYPECAST(47, "Disconnected/Detached", "Not connected or linked.") \
+	TYPECAST(48, "Robust/Resilient", "Strong and able to handle change.") \
+	TYPECAST(49, "Sincere/Genuine", "Honest and direct.") \
+	TYPECAST(50, "Transparent/Open", "Clear and easy to understand or access.") \
+	TYPECAST(51, "Simple/Easy", "Not complex and easily approachable.") \
+	TYPECAST(52, "Risk-Taking/Daring", "Willing to take risks for potential gain.")
+
+
+#define CONTENT_LIST \
+	CONTENT(0, "Creative introduction") \
+	CONTENT(1, "Progression and regression") \
+	CONTENT(2, "Exploration and experimentation") \
+	CONTENT(3, "Discovery and fascination") \
+	CONTENT(4, "Challenge and victory") \
+	CONTENT(5, "Fluctuations and fluctuations") \
+	CONTENT(6, "Seeking solace and tranquility") \
+	CONTENT(7, "Rebellion against norms") \
+	CONTENT(8, "Breaking and rebuilding") \
+	CONTENT(9, "Pursuing ambitions and aspirations") \
+	CONTENT(10, "Unearthing hidden truths") \
+	CONTENT(11, "Transformation from struggle to success") \
+	CONTENT(12, "Rediscovery and renewal") \
+	CONTENT(13, "Igniting passion and motivation") \
+	CONTENT(14, "Emerging stronger from adversity") \
+	CONTENT(15, "Recognition and prosperity") \
+	CONTENT(16, "Finding resilience in hardship") \
+	CONTENT(17, "Navigating urban chaos and solitude") \
+	CONTENT(18, "Defying conventions and forging new paths") \
+	CONTENT(19, "Haunted by ghosts of the past") \
+	CONTENT(20, "Embracing freedom and spontaneity") \
+	CONTENT(21, "Encountering conflicting viewpoints") \
+	CONTENT(22, "Navigating distant connections") \
+	CONTENT(23, "Harnessing inner strength and fortitude") \
+	CONTENT(24, "Balancing dual identities") \
+	CONTENT(25, "Thriving under the spotlight") \
+	CONTENT(26, "Navigating love and conflict") \
+	CONTENT(27, "Mastering the art of letting go") \
+	CONTENT(28, "Living in the present moment") \
+	CONTENT(29, "Overcoming fears and obstacles")
+
 
 struct CallbackInhibitor {
 	Event<> cb;

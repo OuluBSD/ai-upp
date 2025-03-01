@@ -39,10 +39,13 @@ public:
 		// 10
 		PHASE_MAIN_GROUPS,
 		PHASE_SIMPLIFY_ATTRS,
+		
+		PHASE_COUNT,
+		
+		// TODO check if these are needed. Remove if not... if data is okay without -> remove
+		// note: export and reconstruct old database before removing
 		PHASE_JOIN_ORPHANED,
 		PHASE_FIX_DATA,
-		
-		PHASE_COUNT
 	};
 	
 	hash_t hash = 0;
@@ -56,12 +59,18 @@ public:
 	
 	// Configuration
 	int words_per_action_task = 100;
+	int vpp_per_action_task = 65;
 	
 	// Temp (per phase)
 	int total = 0, actual = 0;
 	TimeStop ts;
-	Vector<const WordPairType*> tmp_wp_ptrs;
+	Vector<WordPairType*> tmp_wp_ptrs;
 	Vector<VirtualPhrasePart*> tmp_vpp_ptrs;
+	Vector<VirtualPhraseStruct*> tmp_vps_ptrs;
+	Vector<PhrasePart*> tmp_pp_ptrs;
+	Vector<int> tmp, tmp_iters;
+	VectorMap<int,int> vmap;
+	VectorMap<String, VectorMap<String, int>> uniq_acts;
 	
 	// 1
 	void Tokenize();
@@ -81,11 +90,42 @@ public:
 	void VirtualPhraseStructs();
 	// 8
 	void PhrasePartAnalysis();
+	void OnPhraseElements(String result);
+	void OnPhraseColors(String result);
+	void OnPhraseAttrs(String result);
+	void OnPhraseActions(String result);
+	void OnPhraseScores(String result);
+	void OnPhraseTypeclasses(String result);
+	void OnPhraseContrast(String result);
+	void OnPhraseElement(String result);
 	// 9
-	void Prepare(int fn);
+	void Prepare(TaskFn fn);
 	void Colors();
 	void Attrs();
 	// 10
+	struct AttrExtremesBatch : Moveable<AttrExtremesBatch> {
+		String group;
+	};
+	struct Batch : Moveable<Batch> {
+		AuthorDataset* artist;
+		ScriptDataset* scripts;
+		String txt;
+		int lng_i;
+		bool song_begins;
+	};
+	struct AttrPolarBatch : Moveable<AttrPolarBatch> {
+		String group, attr0, attr1;
+		Vector<String> attrs;
+	};
+	struct AttrJoinBatch : Moveable<AttrJoinBatch> {
+		Vector<String> groups;
+		Vector<AttrHeader> values;
+	};
+	VectorMap<String,Index<String>> uniq_attrs;
+	Vector<AttrExtremesBatch> attr_extremes_batches;
+	Vector<AttrPolarBatch> attr_polar_batches;
+	Vector<AttrJoinBatch> attr_join_batches;
+	Vector<Batch> batches;
 	void MainGroups();
 	void SimplifyAttrs();
 	void JoinOrphaned();

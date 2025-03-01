@@ -43,9 +43,9 @@ void SrcTextData::Visit(NodeVisitor& s) {
 		("diagnostics", diagnostics)
 		("simple_attrs", simple_attrs, VISIT_MAP)
 		("entities", authors, VISIT_VECTOR)
-		("typeclasses", typeclasses)
-		("contents", contents, VISIT_VECTOR)
-		("content_parts", content_parts)
+		("typeclasses", ctx.typeclass.labels)
+		("contents", ctx.content.labels, VISIT_VECTOR)
+		("content_parts", ctx.content.parts)
 		("lang", (int&)lang);
 	for(int i = 0; i < TCENT_COUNT; i++)
 		s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
@@ -77,9 +77,9 @@ void SrcTextData::Serialize(Stream& s) {
 		s % diagnostics;				ASSERT(!s.IsError());
 		s % simple_attrs;				ASSERT(!s.IsError());
 		s % authors;					ASSERT(!s.IsError());
-		s % typeclasses;				ASSERT(!s.IsError());
-		s % contents;					ASSERT(!s.IsError());
-		s % content_parts;				ASSERT(!s.IsError());
+		s % ctx.typeclass.labels;		ASSERT(!s.IsError());
+		s % ctx.content.labels;			ASSERT(!s.IsError());
+		s % ctx.content.parts;			ASSERT(!s.IsError());
 		s % lang;						ASSERT(!s.IsError());
 		for(int i = 0; i < TCENT_COUNT; i++)
 			s % typeclass_entities[i];

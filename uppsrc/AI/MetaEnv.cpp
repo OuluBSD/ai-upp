@@ -174,7 +174,7 @@ void MetaSrcFile::Visit(NodeVisitor& vis)
 String MetaSrcFile::UpdateStoring()
 {
 	ASSERT_(managed_file, "Trying to jsonize non-managed file");
-	ASSERT(temp);
+	if (temp.IsEmpty()) return String();
 	MetaNode& file_nodes = *temp;
 	
 	ASSERT(id >= 0 && pkg->id >= 0);

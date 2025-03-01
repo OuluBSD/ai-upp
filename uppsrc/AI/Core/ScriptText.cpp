@@ -534,9 +534,11 @@ void ScriptTextProcess::WordClasses()
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
+		ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
-		auto& src = p.src->Data();
-
+		ScriptStruct& ss = src.scripts[batch];
+		
 		Value v = ParseJSON(result);
 		ValueArray word_classes = v("response-short")("word classes");
 		ValueArray input_words = args.params("words");
@@ -852,22 +854,47 @@ void ScriptTextProcess::ClassifySentences()
 		auto& src = *p.srctxt;
 
 		Value v = ParseJSON(res);
-		// LOG(AsJSON(v, true));
+		LOG(AsJSON(v, true));
 		ValueArray titles = v("response-short")("titles");
 		ValueArray input_words = args.params("classified_sentences");
+		if (titles.IsEmpty()) {
+			ASSERT(0);
+		}
+		
+		actual = 0;
+		total = 0;
+		int a = tmp_vpp_ptrs.GetCount();
+		int b = titles.GetCount();
 		int c = min(titles.GetCount(), input_words.GetCount());
-
-		bool line_match = titles.GetCount() == input_words.GetCount();
-		ASSERT(line_match);
-
-		int line_i = -1;
+		bool line_match = a == b;
+		ASSERT(line_match); // soft assert -> stop process & show error message
+		
 		for(int i = 0; i < c; i++) {
-			VirtualPhrasePart& vpp = *tmp_vpp_ptrs[line_i];
+			ValueArray classes = input_words[i];
 			String title = titles[i].ToString();
+			Vector<int> word_classes;
+			VirtualPhrasePart& vpp = *tmp_vpp_ptrs[i];
+			{
+				bool fail = false;
+				for (Value v : classes) {
+					String c = v.ToString();
+					int wc_i = src.word_classes.FindAdd(c);
+					if (wc_i < 0) {
+						fail = true;
+						break;
+					}
+					word_classes << wc_i;
+				}
+				if (fail) continue;
+			}
+			
+			if (vpp.word_classes.IsEmpty())
+				vpp.word_classes <<= word_classes;
+			
 			vpp.struct_part_type = src.struct_part_types.FindAdd(title);
 		}
 
-		int a = 0;
+		a = 0;
 		for(const VirtualPhrasePart& vpp : src.virtual_phrase_parts.GetValues())
 			if(vpp.struct_part_type >= 0)
 				a++;

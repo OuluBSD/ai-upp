@@ -24,7 +24,9 @@ IdeShellHost::IdeShellHost() {
 	AddProgram("intra",	THISBACK(StartIntranet));
 	#endif
 	
+	#ifdef flagAI
 	ShellReg_MetaEnv(*this);
+	#endif
 }
 
 const String& IdeShellHost::GetOutput() const {

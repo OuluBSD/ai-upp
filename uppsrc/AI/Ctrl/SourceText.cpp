@@ -229,6 +229,440 @@ void TokensPage::Data() {
 
 
 
+
+
+
+ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
+	Add(tabs.SizePos());
+	#define LIST \
+		ITEM(tokens) ITEM(word_classes) ITEM(words) ITEM(ambiguous_word_pairs) \
+		ITEM(token_texts) ITEM(virtual_phrases) ITEM(virtual_phrase_parts) ITEM(virtual_phrase_structs) \
+		ITEM(phrase_parts) ITEM(struct_part_types) ITEM(struct_types) ITEM(simple_attrs) \
+		ITEM(element_keys) ITEM(attrs) ITEM(actions)
+	#define ITEM(x) tabs.Add(x.SizePos(), #x);
+	LIST
+	#undef ITEM
+	
+	tabs.WhenSet = THISBACK(Data);
+	
+	tokens.AddColumn("#");
+	tokens.AddColumn("String");
+	tokens.AddColumn("# Word");
+	tokens.AddColumn("(Word string)");
+	
+	word_classes.AddColumn("#");
+	word_classes.AddColumn("Word class");
+	
+	words.AddColumn("#");
+	words.AddColumn("Word");
+	words.AddColumn("Spelling");
+	words.AddColumn("Phonetic");
+	words.AddColumn("Count");
+	words.AddColumn("Clr");
+	words.AddColumn("Class count");
+	words.AddColumn("Classes");
+	words.AddColumn("Link");
+	
+	ambiguous_word_pairs.AddColumn("#");
+	ambiguous_word_pairs.AddColumn("Hash");
+	ambiguous_word_pairs.AddColumn("From");
+	ambiguous_word_pairs.AddColumn("From Type");
+	ambiguous_word_pairs.AddColumn("To");
+	ambiguous_word_pairs.AddColumn("To Type");
+	
+	token_texts.AddColumn("#");
+	token_texts.AddColumn("Hash");
+	token_texts.AddColumn("Tokens");
+	token_texts.AddColumn("Virtual phrase");
+	token_texts.ColumnWidths("1 2 8 3");
+	
+	virtual_phrases.AddColumn("#");
+	virtual_phrases.AddColumn("Hash");
+	virtual_phrases.AddColumn("Word classes");
+	virtual_phrases.AddColumn("Virtual phrase struct");
+	
+	virtual_phrase_parts.AddColumn("#");
+	virtual_phrase_parts.AddColumn("Hash");
+	virtual_phrase_parts.AddColumn("Word classes");
+	virtual_phrase_parts.AddColumn("Struct part type");
+	virtual_phrase_parts.AddColumn("Count");
+	
+	virtual_phrase_structs.AddColumn("#");
+	virtual_phrase_structs.AddColumn("Hash");
+	virtual_phrase_structs.AddColumn("Virtual phrase parts");
+	virtual_phrase_structs.AddColumn("Struct type");
+	
+	phrase_parts.AddColumn("#");
+	phrase_parts.AddColumn("Hash");
+	phrase_parts.AddColumn("Words");
+	phrase_parts.AddColumn("Token text");
+	phrase_parts.AddColumn("Virtual phrase part");
+	phrase_parts.AddColumn("Attr");
+	phrase_parts.AddColumn("Element");
+	phrase_parts.AddColumn("Color");
+	phrase_parts.AddColumn("Actions");
+	phrase_parts.AddColumn("Typecasts");
+	phrase_parts.AddColumn("Contrasts");
+	phrase_parts.AddColumn("Scores");
+	
+	struct_part_types.AddColumn("#");
+	struct_part_types.AddColumn("Struct part type");
+	
+	struct_types.AddColumn("#");
+	struct_types.AddColumn("Struct type");
+	
+	simple_attrs.AddColumn("#");
+	simple_attrs.AddColumn("Key");
+	simple_attrs.AddColumn("Attr 0");
+	simple_attrs.AddColumn("Attr 1");
+	
+	element_keys.AddColumn("#");
+	element_keys.AddColumn("Element key");
+	
+	attrs.AddColumn("#");
+	attrs.AddColumn("Attr Action");
+	attrs.AddColumn("Attr Arg");
+	attrs.AddColumn("Simple attr");
+	attrs.AddColumn("Positive");
+	attrs.AddColumn("Link");
+	attrs.AddColumn("Count");
+	
+	actions.AddColumn("#");
+	actions.AddColumn("Action");
+	actions.AddColumn("Action Arg");
+	actions.AddColumn("Attr");
+	actions.AddColumn("Color");
+	actions.AddColumn("Count");
+	
+}
+
+void ScriptTextDebuggerPage::Data() {
+	int tab = tabs.Get();
+	int i = 0;
+	enum {
+	#define ITEM(x) PAGE_##x,
+	LIST
+	#undef ITEM
+	};
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) {
+		#define ITEM(x) x.Clear();
+		LIST
+		#undef ITEM
+	}
+	const auto& src = *p.srctxt;
+	
+	if (tab == PAGE_tokens) {
+		int i = 0;
+		for(auto it : ~src.tokens) {
+			tokens.Set(i, 0, i);
+			tokens.Set(i, 1, it.key);
+			tokens.Set(i, 2, it.value.word_);
+			if (it.value.word_ >= 0 && it.value.word_ < src.words.GetCount())
+				tokens.Set(i, 3, src.words.GetKey(it.value.word_));
+			else
+				tokens.Set(i, 3, Value());
+			i++;
+		}
+		tokens.SetCount(src.tokens.GetCount());
+	}
+	if (tab == PAGE_word_classes) {
+		int i = 0;
+		for(auto it : src.word_classes) {
+			word_classes.Set(i, 0, i);
+			word_classes.Set(i, 1, it);
+			i++;
+		}
+		word_classes.SetCount(src.word_classes.GetCount());
+	}
+	if (tab == PAGE_words) {
+		int i = 0;
+		for(auto it : ~src.words) {
+			words.Set(i, 0, i);
+			words.Set(i, 1, it.key);
+			words.Set(i, 2, it.value.spelling);
+			words.Set(i, 3, it.value.phonetic);
+			words.Set(i, 4, it.value.count);
+			words.Set(i, 5, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
+			words.Set(i, 6, it.value.class_count);
+			String s;
+			for(int j = 0; j < it.value.class_count; j++) {
+				if (j) s << ", ";
+				int cls = it.value.classes[j];
+				if (cls >= 0 && cls < src.word_classes.GetCount())
+					s << src.word_classes[cls];
+				else
+					break;
+			}
+			words.Set(i, 7, s);
+			words.Set(i, 8, it.value.link);
+			i++;
+		}
+		words.SetCount(src.words.GetCount());
+	}
+	if (tab == PAGE_ambiguous_word_pairs) {
+		int i = 0;
+		for(auto it : ~src.ambiguous_word_pairs) {
+			ambiguous_word_pairs.Set(i, 0, i);
+			ambiguous_word_pairs.Set(i, 1, HexStr64(it.key));
+			
+			if (it.value.from >= 0)
+				ambiguous_word_pairs.Set(i, 2, src.words.GetKey(it.value.from));
+			else
+				ambiguous_word_pairs.Set(i, 2, Value());
+			
+			if (it.value.from_type >= 0)
+				ambiguous_word_pairs.Set(i, 3, src.word_classes[it.value.from_type]);
+			else
+				ambiguous_word_pairs.Set(i, 3, Value());
+			
+			if (it.value.to >= 0)
+				ambiguous_word_pairs.Set(i, 4, src.words.GetKey(it.value.to));
+			else
+				ambiguous_word_pairs.Set(i, 4, Value());
+			
+			if (it.value.to_type >= 0)
+				ambiguous_word_pairs.Set(i, 5, src.word_classes[it.value.to_type]);
+			else
+				ambiguous_word_pairs.Set(i, 5, Value());
+			i++;
+		}
+		ambiguous_word_pairs.SetCount(src.ambiguous_word_pairs.GetCount());
+	}
+	if (tab == PAGE_token_texts) {
+		int i = 0;
+		for(auto it : ~src.token_texts) {
+			token_texts.Set(i, 0, i);
+			token_texts.Set(i, 1, HexStr64(it.key));
+			String s;
+			for (int tk_i : it.value.tokens) {
+				if (!s.IsEmpty()) s << " ";
+				if (tk_i >= 0 && tk_i < src.tokens.GetCount())
+					s << src.tokens.GetKey(tk_i);
+				else
+					s << "<" << tk_i << ">";
+			}
+			token_texts.Set(i, 2, s);
+			
+			int vp_i = it.value.virtual_phrase;
+			if (vp_i >= 0 && vp_i < src.virtual_phrases.GetCount())
+				token_texts.Set(i, 3, HexStr64(src.virtual_phrases.GetKey(vp_i)));
+			else if (vp_i >= 0)
+				token_texts.Set(i, 3, "Error: " + IntStr(vp_i));
+			else
+				token_texts.Set(i, 3, Value());
+			i++;
+		}
+		token_texts.SetCount(src.token_texts.GetCount());
+	}
+	if (tab == PAGE_virtual_phrases) {
+		int i = 0;
+		for(auto it : ~src.virtual_phrases) {
+			virtual_phrases.Set(i, 0, i);
+			virtual_phrases.Set(i, 1, HexStr64(it.key));
+			String s;
+			for (int wc_i : it.value.word_classes) {
+				if (!s.IsEmpty()) s << " ";
+				if (wc_i >= 0 && wc_i < src.word_classes.GetCount())
+					s << src.word_classes[wc_i];
+				else
+					s << "<" << wc_i << ">";
+			}
+			virtual_phrases.Set(i, 2, s);
+			
+			int vps_i = it.value.virtual_phrase_struct;
+			if (vps_i >= 0 && vps_i < src.virtual_phrase_structs.GetCount())
+				virtual_phrases.Set(i, 3, HexStr64(src.virtual_phrase_structs.GetKey(vps_i)));
+			else if (vps_i >= 0)
+				virtual_phrases.Set(i, 3, "Error: " + IntStr(vps_i));
+			else
+				virtual_phrases.Set(i, 3, Value());
+			i++;
+		}
+		virtual_phrases.SetCount(src.virtual_phrases.GetCount());
+	}
+	if (tab == PAGE_virtual_phrase_parts) {
+		int i = 0;
+		for(auto it : ~src.virtual_phrase_parts) {
+			virtual_phrase_parts.Set(i, 0, i);
+			virtual_phrase_parts.Set(i, 1, HexStr64(it.key));
+			String s;
+			for (int wc_i : it.value.word_classes) {
+				if (!s.IsEmpty()) s << " ";
+				if (wc_i >= 0 && wc_i < src.word_classes.GetCount())
+					s << src.word_classes[wc_i];
+				else
+					s << "<" << wc_i << ">";
+			}
+			virtual_phrase_parts.Set(i, 2, s);
+			
+			int spt_i = it.value.struct_part_type;
+			if (spt_i >= 0 && spt_i < src.struct_part_types.GetCount())
+				virtual_phrase_parts.Set(i, 3, src.struct_part_types[spt_i]);
+			else if (spt_i >= 0)
+				virtual_phrase_parts.Set(i, 3, "Error: " + IntStr(spt_i));
+			else
+				virtual_phrase_parts.Set(i, 3, Value());
+			i++;
+		}
+		virtual_phrase_parts.SetCount(src.virtual_phrase_parts.GetCount());
+	}
+	if (tab == PAGE_virtual_phrase_structs) {
+		int i = 0;
+		for(auto it : ~src.virtual_phrase_structs) {
+			virtual_phrase_structs.Set(i, 0, i);
+			virtual_phrase_structs.Set(i, 1, HexStr64(it.key));
+			String s;
+			for (int vpp_i : it.value.virtual_phrase_parts) {
+				if (!s.IsEmpty()) s << " ";
+				if (vpp_i >= 0 && vpp_i < src.virtual_phrase_parts.GetCount())
+					s << "<" << i << ":" << HexStr64(src.virtual_phrase_parts.GetKey(vpp_i)) << ">";
+				else
+					s << "<" << vpp_i << ">";
+			}
+			virtual_phrase_structs.Set(i, 2, s);
+			
+			int st_i = it.value.struct_type;
+			if (st_i >= 0 && st_i < src.struct_types.GetCount())
+				virtual_phrase_structs.Set(i, 3, src.struct_types[st_i]);
+			else if (st_i >= 0)
+				virtual_phrase_structs.Set(i, 3, "Error: " + IntStr(st_i));
+			else
+				virtual_phrase_structs.Set(i, 3, Value());
+			i++;
+		}
+		virtual_phrase_structs.SetCount(src.virtual_phrase_structs.GetCount());
+	}
+	if (tab == PAGE_phrase_parts) {
+		int i = 0;
+		for(auto it : ~src.phrase_parts) {
+			phrase_parts.Set(i, 0, i);
+			phrase_parts.Set(i, 1, HexStr64(it.key));
+			String s;
+			for(int wrd_i : it.value.words) {
+				if (!s.IsEmpty()) s << " ";
+				s << src.words.GetKey(wrd_i);
+			}
+			phrase_parts.Set(i, 2, s);
+			phrase_parts.Set(i, 3, it.value.tt_i);
+			phrase_parts.Set(i, 4, it.value.virtual_phrase_part);
+			phrase_parts.Set(i, 5, it.value.attr);
+			phrase_parts.Set(i, 6, it.value.el_i);
+			phrase_parts.Set(i, 7, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
+			
+			s = "";
+			for (int act_i : it.value.actions) {
+				if (!s.IsEmpty()) s << " ";
+				const auto& ah = src.actions.GetKey(act_i);
+				s << ah.action << "(" << ah.arg << ")";
+			}
+			phrase_parts.Set(i, 8, s);
+			
+			s = "";
+			for (int tc_i : it.value.typecasts) {
+				if (!s.IsEmpty()) s << " ";
+				const auto& tc = src.ctx.typeclass.labels[tc_i];
+				s << tc;
+			}
+			phrase_parts.Set(i, 9, s);
+			
+			s = "";
+			for (int con_i : it.value.contrasts) {
+				if (!s.IsEmpty()) s << " ";
+				const auto& con = src.ctx.content.labels[con_i];
+				s << con;
+			}
+			phrase_parts.Set(i, 10, s);
+			i++;
+		}
+		phrase_parts.SetCount(src.phrase_parts.GetCount());
+	}
+	if (tab == PAGE_struct_part_types) {
+		int i = 0;
+		for(auto it : src.struct_part_types) {
+			struct_part_types.Set(i, 0, i);
+			struct_part_types.Set(i, 1, it);
+			i++;
+		}
+		struct_part_types.SetCount(src.struct_part_types.GetCount());
+	}
+	if (tab == PAGE_struct_types) {
+		int i = 0;
+		for(auto it : src.struct_types) {
+			struct_types.Set(i, 0, i);
+			struct_types.Set(i, 1, it);
+			i++;
+		}
+		struct_types.SetCount(src.struct_types.GetCount());
+	}
+	if (tab == PAGE_simple_attrs) {
+		int i = 0;
+		for(auto it : ~src.simple_attrs) {
+			simple_attrs.Set(i, 0, i);
+			simple_attrs.Set(i, 1, it.key);
+			if (it.value.attr_i0 >= 0)
+				simple_attrs.Set(i, 2, src.attrs.GetKey(it.value.attr_i0).ToString());
+			else
+				simple_attrs.Set(i, 2, Value());
+			if (it.value.attr_i1 >= 0)
+				simple_attrs.Set(i, 3, src.attrs.GetKey(it.value.attr_i1).ToString());
+			else
+				simple_attrs.Set(i, 3, Value());
+			i++;
+		}
+		simple_attrs.SetCount(src.simple_attrs.GetCount());
+	}
+	if (tab == PAGE_element_keys) {
+		int i = 0;
+		for(auto it : src.element_keys) {
+			element_keys.Set(i, 0, i);
+			element_keys.Set(i, 1, it);
+			i++;
+		}
+		element_keys.SetCount(src.element_keys.GetCount());
+	}
+	if (tab == PAGE_attrs) {
+		int i = 0;
+		for(auto it : ~src.attrs) {
+			attrs.Set(i, 0, i);
+			attrs.Set(i, 1, it.key.group);
+			attrs.Set(i, 2, it.key.value);
+			if (it.value.simple_attr >= 0)
+				attrs.Set(i, 3, src.simple_attrs.GetKey(it.value.simple_attr));
+			else
+				attrs.Set(i, 3, Value());
+			attrs.Set(i, 4, it.value.positive ? "True" : "False");
+			attrs.Set(i, 5, it.value.link);
+			attrs.Set(i, 6, it.value.count);
+			i++;
+		}
+		attrs.SetCount(src.attrs.GetCount());
+	}
+	if (tab == PAGE_actions) {
+		int i = 0;
+		for(auto it : ~src.actions) {
+			actions.Set(i, 0, i);
+			actions.Set(i, 1, it.key.action);
+			actions.Set(i, 2, it.key.arg);
+			if (it.value.attr >= 0)
+				actions.Set(i, 3, src.attrs.GetKey(it.value.attr).ToString());
+			else
+				actions.Set(i, 3, Value());
+			actions.Set(i, 4, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
+			actions.Set(i, 5, it.value.count);
+			i++;
+		}
+		actions.SetCount(src.actions.GetCount());
+	}
+}
+
+
+
+
+
+
+
 TextElements::TextElements(DatasetProvider& o) : o(o) {
 	Add(list.SizePos());
 	

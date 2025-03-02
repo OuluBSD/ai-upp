@@ -32,6 +32,20 @@ public:
 };
 
 
+class ScriptTextDebuggerPage : public ParentCtrl {
+	DatasetProvider& o;
+	TabCtrl tabs;
+	ArrayCtrl tokens, word_classes, words, ambiguous_word_pairs;
+	ArrayCtrl token_texts, virtual_phrases, virtual_phrase_parts, virtual_phrase_structs;
+	ArrayCtrl phrase_parts, struct_part_types, struct_types, simple_attrs;
+	ArrayCtrl element_keys, attrs, actions;
+public:
+	typedef ScriptTextDebuggerPage CLASSNAME;
+	ScriptTextDebuggerPage(DatasetProvider& o);
+	
+	void Data();
+};
+
 // TODO rename
 class TokensPage : public ParentCtrl {
 	DatasetProvider& o;

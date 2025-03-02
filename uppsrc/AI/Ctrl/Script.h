@@ -14,6 +14,7 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		PageCtrl dbproc;
 		
 		One<AuthorDataCtrl>			srcdata;
+		One<ScriptTextDebuggerPage>	dbg;
 		One<TokensPage>				tk;
 		One<TextElements>			el;
 		One<AmbiguousWordPairs>		awp;

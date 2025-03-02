@@ -2,6 +2,8 @@
 
 NAMESPACE_UPP
 
+#define PROCESS_ASSERT(x)  if (!(x)) {SetError("assert failed: " #x); SetNotRunning(); LOG("ScriptTextProcess: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " #x); return;}
+
 ScriptTextProcess::ScriptTextProcess() {}
 
 int ScriptTextProcess::GetPhaseCount() const { return PHASE_COUNT; }
@@ -91,7 +93,7 @@ void ScriptTextProcess::Tokenize()
 		tk.Create();
 	NaturalTokenizer& tk = *this->tk;
 
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	Vector<int> token_is;
 	Vector<AuthorDataset>& entities = src.authors;
@@ -376,7 +378,7 @@ void ScriptTextProcess::Tokenize()
 
 void ScriptTextProcess::AnalyzePublicFigure()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	bool user_genres = params("genres").Is<ValueArray>();
@@ -410,7 +412,7 @@ void ScriptTextProcess::AnalyzePublicFigure()
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
-		ASSERT(p.srctxt);
+		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
 
@@ -429,7 +431,7 @@ void ScriptTextProcess::AnalyzePublicFigure()
 
 void ScriptTextProcess::AnalyzeElements()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	Vector<AuthorDataset>& entities = src.authors;
 
@@ -470,7 +472,7 @@ void ScriptTextProcess::AnalyzeElements()
 	}
 
 	m.Get(args, [this](String result) {
-		ASSERT(p.srctxt);
+		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
 		ScriptStruct& ss = src.scripts[batch];
@@ -504,7 +506,7 @@ void ScriptTextProcess::AnalyzeElements()
 
 void ScriptTextProcess::WordClasses()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	args.fn = FN_WORD_CLASSES;
@@ -534,7 +536,7 @@ void ScriptTextProcess::WordClasses()
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
-		ASSERT(p.srctxt);
+		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
 		ScriptStruct& ss = src.scripts[batch];
@@ -572,7 +574,7 @@ void ScriptTextProcess::WordClasses()
 
 void ScriptTextProcess::AmbiguousWordPairs()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	args.fn = FN_WORD_PAIR_CLASSES;
@@ -624,7 +626,7 @@ void ScriptTextProcess::AmbiguousWordPairs()
 		int c = min(word_pair_classes.GetCount(), input_words.GetCount());
 
 		bool line_match = word_pair_classes.GetCount() == input_words.GetCount();
-		ASSERT(line_match);
+		PROCESS_ASSERT(line_match);
 		int offset = 1 + 1;
 
 		for(int i = 0; i < word_pair_classes.GetCount(); i++) {
@@ -663,7 +665,7 @@ void ScriptTextProcess::AmbiguousWordPairs()
 
 void ScriptTextProcess::ImportTokenTexts()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	Vector<int> word_is, word_classes;
@@ -784,7 +786,7 @@ void ScriptTextProcess::ImportTokenTexts()
 
 void ScriptTextProcess::ClassifySentences()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	args.fn = FN_CLASSIFY_SENTENCE;
@@ -857,9 +859,7 @@ void ScriptTextProcess::ClassifySentences()
 		LOG(AsJSON(v, true));
 		ValueArray titles = v("response-short")("titles");
 		ValueArray input_words = args.params("classified_sentences");
-		if (titles.IsEmpty()) {
-			ASSERT(0);
-		}
+		PROCESS_ASSERT(!titles.IsEmpty());
 		
 		actual = 0;
 		total = 0;
@@ -867,7 +867,7 @@ void ScriptTextProcess::ClassifySentences()
 		int b = titles.GetCount();
 		int c = min(titles.GetCount(), input_words.GetCount());
 		bool line_match = a == b;
-		ASSERT(line_match); // soft assert -> stop process & show error message
+		PROCESS_ASSERT(line_match); // soft assert -> stop process & show error message
 		
 		for(int i = 0; i < c; i++) {
 			ValueArray classes = input_words[i];
@@ -911,7 +911,7 @@ void ScriptTextProcess::ClassifySentences()
 
 void ScriptTextProcess::VirtualPhraseParts()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	args.fn = FN_CLASSIFY_SENTENCE_STRUCTURES;
@@ -979,7 +979,7 @@ void ScriptTextProcess::VirtualPhraseParts()
 		int c = min(categories.GetCount(), input_words.GetCount());
 
 		bool line_match = tmp_vps_ptrs.GetCount() == input_words.GetCount();
-		ASSERT(line_match);
+		PROCESS_ASSERT(line_match);
 
 		for(int i = 0; i < c; i++) {
 			VirtualPhraseStruct& vps = *tmp_vps_ptrs[i];
@@ -1004,7 +1004,7 @@ void ScriptTextProcess::VirtualPhraseParts()
 
 void ScriptTextProcess::VirtualPhraseStructs()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	if(batch >= src.token_texts.GetCount()) {
@@ -1123,7 +1123,7 @@ void ScriptTextProcess::VirtualPhraseStructs()
 
 void ScriptTextProcess::PhrasePartAnalysis()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	switch(phase) {
@@ -1159,7 +1159,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	#define TYPECAST(idx, str, c) typeclasses.Add(str);
 	TYPECAST_LIST
 	#undef TYPECAST
-	ASSERT(src.ctx.content.labels.GetCount());
+	PROCESS_ASSERT(src.ctx.content.labels.GetCount());
 	
 	for(int i = 0; i < src.ctx.content.labels.GetCount(); i++) {
 		const auto& it = src.ctx.content.labels[i];
@@ -1255,7 +1255,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	}
 
 	if(phase == PHASE_ELEMENT) {
-		ASSERT(vmap.GetCount());
+		PROCESS_ASSERT(vmap.GetCount());
 		int max_elements = 30;
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			int el_i = vmap.GetKey(i);
@@ -1299,7 +1299,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 
 void ScriptTextProcess::OnPhraseColors(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1309,7 +1309,7 @@ void ScriptTextProcess::OnPhraseColors(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	Color black(0,0,0);
 	Color non_black(1,1,1);
@@ -1344,7 +1344,7 @@ void ScriptTextProcess::OnPhraseColors(String res) {
 
 void ScriptTextProcess::OnPhraseAttrs(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1354,7 +1354,7 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
@@ -1363,7 +1363,7 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 		if (pp.attr >= 0)
 			continue;
 		ValueArray attr = output[i];
-		ASSERT(attr.GetCount() == 2);
+		PROCESS_ASSERT(attr.GetCount() == 2);
 		if (attr.GetCount() < 2)
 			continue;
 		
@@ -1387,7 +1387,7 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 
 void ScriptTextProcess::OnPhraseActions(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1397,18 +1397,18 @@ void ScriptTextProcess::OnPhraseActions(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 	Vector<int> actions;
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		ValueArray phrase_actions = output[i];
-		ASSERT(phrase_actions.GetCount());
+		PROCESS_ASSERT(phrase_actions.GetCount());
 		
 		actions.SetCount(0);
 		for(int i = 0; i < phrase_actions.GetCount(); i++) {
 			ValueArray act_arr = phrase_actions[i];
-			ASSERT(act_arr.GetCount() == 2);
+			PROCESS_ASSERT(act_arr.GetCount() == 2);
 			
 			ActionHeader aa;
 			aa.action = act_arr[0].ToString();
@@ -1434,7 +1434,7 @@ void ScriptTextProcess::OnPhraseActions(String res) {
 
 void ScriptTextProcess::OnPhraseScores(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1444,12 +1444,12 @@ void ScriptTextProcess::OnPhraseScores(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		ValueArray scores = output[i];
-		ASSERT(scores.GetCount() == SCORE_COUNT);
+		PROCESS_ASSERT(scores.GetCount() == SCORE_COUNT);
 		
 		// Expect x values
 		if (scores.GetCount() != SCORE_COUNT)
@@ -1474,7 +1474,7 @@ void ScriptTextProcess::OnPhraseScores(String res) {
 
 void ScriptTextProcess::OnPhraseTypeclasses(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1484,12 +1484,12 @@ void ScriptTextProcess::OnPhraseTypeclasses(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		ValueArray values = output[i];
-		ASSERT(values.GetCount() > 0);
+		PROCESS_ASSERT(values.GetCount() > 0);
 		if (values.IsEmpty())
 			continue;
 		
@@ -1518,7 +1518,7 @@ void ScriptTextProcess::OnPhraseTypeclasses(String res) {
 
 void ScriptTextProcess::OnPhraseContrast(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1528,12 +1528,12 @@ void ScriptTextProcess::OnPhraseContrast(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		ValueArray out = output[i];
-		ASSERT(out.GetCount());
+		PROCESS_ASSERT(out.GetCount());
 		
 		if (out.IsEmpty())
 			continue;
@@ -1548,7 +1548,7 @@ void ScriptTextProcess::OnPhraseContrast(String res) {
 				continue;
 			}
 			String part = val[1].ToString();
-			ASSERT(part.GetCount());
+			PROCESS_ASSERT(part.GetCount());
 			int mod = -1;
 			if      (part.Find("A") >= 0 || part.Find("a") >= 0) mod = 0;
 			else if (part.Find("B") >= 0 || part.Find("b") >= 0) mod = 1;
@@ -1575,7 +1575,7 @@ void ScriptTextProcess::OnPhraseContrast(String res) {
 
 void ScriptTextProcess::OnPhraseElement(String res) {
 	TaskArgs& args = this->args;
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	Value v = ParseJSON(res);
@@ -1585,12 +1585,12 @@ void ScriptTextProcess::OnPhraseElement(String res) {
 	int c = min(output.GetCount(), input.GetCount());
 
 	bool line_match = tmp_pp_ptrs.GetCount() == output.GetCount();
-	ASSERT(line_match);
+	PROCESS_ASSERT(line_match);
 
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		String element = output[i].ToString();
-		ASSERT(element.Is());
+		PROCESS_ASSERT(element.Is());
 		if (element.IsEmpty()) continue;
 		pp.el_i = src.element_keys.FindAdd(element);
 	}
@@ -1601,7 +1601,7 @@ void ScriptTextProcess::OnPhraseElement(String res) {
 
 void ScriptTextProcess::Prepare(TaskFn fn)
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	args.fn = fn;
@@ -1665,11 +1665,11 @@ void ScriptTextProcess::Colors()
 		// LOG(AsJSON(v, true));
 		ValueArray colors = v("response-short")("colors");
 		ValueArray input_words = args.params("actions");
-		ASSERT(input_words.GetCount());
+		PROCESS_ASSERT(input_words.GetCount());
 		int c = min(colors.GetCount(), input_words.GetCount());
 
 		bool line_match = tmp_vps_ptrs.GetCount() == input_words.GetCount();
-		ASSERT(line_match);
+		PROCESS_ASSERT(line_match);
 
 		Color black(0,0,0);
 		Color non_black(1,1,1);
@@ -1677,7 +1677,7 @@ void ScriptTextProcess::Colors()
 		for(int i = 0; i < c; i++) {
 			ValueArray act = input_words[i];
 			ValueArray clr_val = colors[i];
-			ASSERT(clr_val.GetCount() == 3);
+			PROCESS_ASSERT(clr_val.GetCount() == 3);
 			int R = clr_val[0];
 			int G = clr_val[1];
 			int B = clr_val[2];
@@ -1721,17 +1721,17 @@ void ScriptTextProcess::Attrs()
 		// LOG(AsJSON(v, true));
 		ValueArray output = v("response-short")("attributes");
 		ValueArray input = args.params("actions");
-		ASSERT(input.GetCount());
+		PROCESS_ASSERT(input.GetCount());
 		int c = min(output.GetCount(), input.GetCount());
 
 		bool line_match = tmp_vps_ptrs.GetCount() == input.GetCount();
-		ASSERT(line_match);
+		PROCESS_ASSERT(line_match);
 
 		for(int i = 0; i < c; i++) {
 			ValueArray attrs = output[i];
 			ValueArray acts = input[i];
-			ASSERT(attrs.GetCount() == 2);
-			ASSERT(acts.GetCount() == 2);
+			PROCESS_ASSERT(attrs.GetCount() == 2);
+			PROCESS_ASSERT(acts.GetCount() == 2);
 			if (attrs.GetCount() != 2) continue;
 			ActionHeader ah;
 			ah.action = acts[0];
@@ -1758,7 +1758,7 @@ void ScriptTextProcess::Attrs()
 
 void ScriptTextProcess::MainGroups()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	RealizeBatch_AttrExtremesBatch();
 	
@@ -1802,8 +1802,8 @@ void ScriptTextProcess::MainGroups()
 		// LOG(AsJSON(v, true));
 		ValueArray input = args.params("attributes");
 		ValueArray output = v("response-short")("attribute_summarization");
-		ASSERT(input.GetCount());
-		ASSERT(output.GetCount() == 2);
+		PROCESS_ASSERT(input.GetCount());
+		PROCESS_ASSERT(output.GetCount() == 2);
 		
 		if (output.GetCount() == 2) {
 			String group = ToLower(batch.group);
@@ -1828,7 +1828,7 @@ void ScriptTextProcess::MainGroups()
 
 void ScriptTextProcess::RealizeBatch_AttrExtremesBatch()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
 	/*if (uniq_attrs.IsEmpty())*/ {
@@ -1869,7 +1869,7 @@ void ScriptTextProcess::RealizeBatch_AttrExtremesBatch()
 
 void ScriptTextProcess::SimplifyAttrs()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	int per_batch = 50;
 
@@ -1886,7 +1886,7 @@ void ScriptTextProcess::SimplifyAttrs()
 			AttrPolarBatch& b = batches.Add();
 			b.attr0 = src.attrs.GetKey(gsa.attr_i0).value;
 			b.attr1 = src.attrs.GetKey(gsa.attr_i1).value;
-			ASSERT(src.attrs.GetKey(gsa.attr_i0).group == group);
+			PROCESS_ASSERT(src.attrs.GetKey(gsa.attr_i0).group == group);
 			b.group = group;
 			for(int j = 0; j < v.GetCount(); j++) {
 				if (batches.Top().attrs.GetCount() >= per_batch) {
@@ -1938,15 +1938,15 @@ void ScriptTextProcess::SimplifyAttrs()
 	m.Get(args, [this](String result) {
 		Vector<AttrPolarBatch>& batches = attr_polar_batches;
 		AttrPolarBatch& batch = batches[this->batch];
-		ASSERT(p.srctxt);
+		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		
 		Value v = ParseJSON(result);
 		// LOG(AsJSON(v, true));
 		ValueArray input = args.params("values");
 		ValueArray output = v("response-short")("attribute_summarization");
-		ASSERT(input.GetCount());
-		ASSERT(output.GetCount() == input.GetCount());
+		PROCESS_ASSERT(input.GetCount());
+		PROCESS_ASSERT(output.GetCount() == input.GetCount());
 		int c = min(output.GetCount(), input.GetCount());
 		
 		String group = batch.group;
@@ -1987,8 +1987,8 @@ void ScriptTextProcess::SimplifyAttrs()
 
 void ScriptTextProcess::JoinOrphaned()
 {
-	ASSERT(uniq_attrs.GetCount());
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(uniq_attrs.GetCount());
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	int per_batch = 35;
 	
@@ -2058,24 +2058,24 @@ void ScriptTextProcess::JoinOrphaned()
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
 		AttrJoinBatch& batch = attr_join_batches[this->batch];
-		ASSERT(p.srctxt);
+		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		
 		Value v = ParseJSON(result);
 		// LOG(AsJSON(v, true));
 		ValueArray input = args.params("values");
 		ValueArray output = v("response-short")("attribute_summarization");
-		ASSERT(input.GetCount());
+		PROCESS_ASSERT(input.GetCount());
 		int c = min(output.GetCount(), input.GetCount());
 		
 		bool line_match = input.GetCount() == batch.values.GetCount();
-		ASSERT(line_match);
+		PROCESS_ASSERT(line_match);
 		if (line_match) {
 			
 			for(int i = 0; i < c; i++) {
 				AttrHeader& ah = batch.values[i];
 				ValueArray out = output[i];
-				ASSERT(out.GetCount());
+				PROCESS_ASSERT(out.GetCount());
 				
 				int attr_i = src.attrs.Find(ah);
 				if (attr_i < 0)
@@ -2123,7 +2123,7 @@ void ScriptTextProcess::JoinOrphaned()
 
 void ScriptTextProcess::FixData()
 {
-	ASSERT(p.srctxt);
+	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 
 	for(int i = 0; i < src.attrs.GetCount(); i++) {
@@ -2142,7 +2142,7 @@ void ScriptTextProcess::FixData()
 		for(int j = 0; j < values.GetCount(); j++) {
 			ah.value = values[j];
 			int k = src.attrs.Find(ah);
-			ASSERT(k >= 0);
+			PROCESS_ASSERT(k >= 0);
 			ExportAttr& ea = src.attrs[k];
 			ea.simple_attr = sa_i;
 		}

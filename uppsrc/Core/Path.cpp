@@ -169,6 +169,14 @@ String AppendUnixFileName(const String& path, const char *fileName) {
 	return result;
 }
 
+String AppendUnixFileName(String a, String b) {
+	if (a.GetCount() && a[a.GetCount()-1] == '/')
+		a = a.Left(a.GetCount()-1);
+	if (b.GetCount() && b[0] == '/')
+		b = b.Mid(1);
+	return a + "/" + b;
+}
+
 String AppendCpmFileName(const String& path, const char *fileName) {
 	String result = path;
 	if(result.GetLength() && *result.Last() != '\\' && *fileName != '\\')

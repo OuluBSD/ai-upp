@@ -71,14 +71,6 @@ bool IsAllDigit(const String& s) {
 	return true;
 }
 
-String AppendUnixFileName(String a, String b) {
-	if (a.GetCount() && a[a.GetCount()-1] == '/')
-		a = a.Left(a.GetCount()-1);
-	if (b.GetCount() && b[0] == '/')
-		b = b.Mid(1);
-	return a + "/" + b;
-}
-
 
 // TODO: this function might be too dirty hack
 ValueMap& ValueToMap(Value& val) {

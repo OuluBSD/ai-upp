@@ -807,6 +807,7 @@ struct ContentType : Moveable<ContentType> {
 		parts[PART_MID] = mid;
 		parts[PART_END] = end;
 	}
+	String ToString() const {return key;}
 };
 const Vector<ContentType>& GetContents(int appmode);
 const Vector<String>& GetContentParts(int appmode);

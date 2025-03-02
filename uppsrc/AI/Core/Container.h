@@ -46,6 +46,7 @@ struct ActionHeader : Moveable<ActionHeader> {
 		action = TrimBoth(action);
 		arg = TrimBoth(arg);
 	}
+	String ToString() const {return action + "(" + arg + ")";}
 };
 
 struct AttrHeader : Moveable<AttrHeader> {
@@ -96,6 +97,7 @@ struct AttrHeader : Moveable<AttrHeader> {
 		group = TrimBoth(group);
 		value = TrimBoth(value);
 	}
+	String ToString() const {return group + "(" + value + ")";}
 };
 
 

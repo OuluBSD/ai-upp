@@ -6,6 +6,14 @@ NAMESPACE_UPP
 class DropTerm;
 class ToolAppCtrl;
 
+#ifndef flagAI
+class ToolAppCtrl : public Ctrl {
+	public:
+	void ToolMenu(Bar&) {}
+	String GetStatusText() const {return String();}
+};
+#endif
+
 class ConsoleCtrl : public ParentCtrl, IdeShellHost {
 	
 protected:

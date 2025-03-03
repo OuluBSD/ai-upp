@@ -3,7 +3,7 @@
 
 Opt<int> FileViewer::Render()
 {
-	Panic("TODO"); // what the hell is this?
+	TODO; // what the hell is this?
     const Index<int>* const bps = 0;
         /*(m_breakpoints.GetCount() && m_breakpoints != m_breakpoint_cache.end())
             ? &m_breakpoints

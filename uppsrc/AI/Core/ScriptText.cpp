@@ -230,7 +230,7 @@ void ScriptTextProcess::Tokenize()
 		data_lock.Leave();
 	}
 	else if(str.Left(1) == "{") {
-		Panic("TODO");
+		TODO;
 	}
 	else {
 		Vector<String> lines = Split(str, "\n");
@@ -1160,7 +1160,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 		args.fn = FN_CLASSIFY_PHRASE_CONTENT;
 		break;
 	default:
-		Panic("TODO");
+		TODO;
 	}
 	ValueArray phrases;
 	ValueArray elements;
@@ -2140,7 +2140,7 @@ void ScriptTextProcess::FixData()
 	for(int i = 0; i < src.attrs.GetCount(); i++) {
 		src.attrs[i].simple_attr = -1;
 	}
-	Panic("TODO");
+	TODO;
 #if 0
 	// Fix: add simple_attr index value to ExportAttr
 	for(int i = 0; i < uniq_attrs.GetCount(); i++) {

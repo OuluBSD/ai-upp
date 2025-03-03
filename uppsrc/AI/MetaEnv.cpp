@@ -227,10 +227,10 @@ bool MetaSrcFile::Store(bool forced)
 		if(saved_hash == hash && !total_hash_diffs)
 			return true;
 		if(saved_hash == hash && total_hash_diffs) {
-			Panic("TODO");
+			TODO;
 		}
 		else if(total_hash_diffs) {
-			Panic("TODO");
+			TODO;
 		}
 	}
 	saved_hash = hash;
@@ -542,7 +542,7 @@ String MetaSrcPkg::GetRelativePath(const String& path) const
 		return s;
 	}
 	else
-		Panic("TODO"); // return NormalizePath(path, dir);
+		TODO; // return NormalizePath(path, dir);
 	return String();
 }
 
@@ -952,7 +952,7 @@ bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& pa
 		file_node = &fn;
 	}
 	else {
-		Panic("TODO");
+		TODO;
 	}
 	
 	ASSERT(vis.IsLoading());
@@ -2219,7 +2219,7 @@ Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n)
 		return v;
 	}
 	else
-		Panic("TODO");
+		TODO;
 	return v;
 }
 

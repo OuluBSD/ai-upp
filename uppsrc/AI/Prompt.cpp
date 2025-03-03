@@ -404,7 +404,7 @@ String JsonPrompt::Message::GetTypeString() const {
 		return "assistant";
 	else if (type == JsonPrompt::USER)
 		return "user";
-	Panic("TODO");
+	TODO;
 	return "";
 }
 

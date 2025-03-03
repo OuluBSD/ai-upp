@@ -52,7 +52,7 @@ void ImageViewerCtrl::Clear() {
 }
 
 void ImageViewerCtrl::Menu(Bar& menu) {
-	Panic("TODO");
+	TODO;
 	#if 0
 	menu.Add("Save Image as", [this]() {
 		String file = SelectFileSaveAs("*.jpg\n*.*");
@@ -108,7 +108,7 @@ void ImageAspectFixerTool::Data() {
 		form.queue.Set(i, 0, GetFileName(queue[i]));
 	}
 	
-	Panic("TODO");
+	TODO;
 	#if 0
 	INHIBIT_CURSOR(form.queue);
 	form.queue.SetCount(queue.GetCount());

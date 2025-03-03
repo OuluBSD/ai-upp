@@ -193,7 +193,7 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 			break;
 			
 		#ifdef flagDEBUG
-		default: Panic("TODO"); break;
+		default: TODO; break;
 		#endif
 	}
 	return false;

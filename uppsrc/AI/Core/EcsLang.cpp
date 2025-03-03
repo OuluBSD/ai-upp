@@ -52,7 +52,7 @@ bool EcsIndexer::LoadEcsSpace(String path) {
 #endif
 
 bool EcsIndexer::RunCurrentFile() {
-	Panic("TODO");
+	TODO;
 	
 	return false;
 }

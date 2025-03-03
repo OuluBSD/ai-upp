@@ -63,6 +63,7 @@ public:
 	
 	// Temp (per phase)
 	int total = 0, actual = 0;
+	int iter;
 	TimeStop ts;
 	Vector<WordPairType*> tmp_wp_ptrs;
 	Vector<VirtualPhrasePart*> tmp_vpp_ptrs;

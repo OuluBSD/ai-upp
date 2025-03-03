@@ -107,7 +107,11 @@ hash_t ClangCursorInfo::TypeHash()
 				typehash = clang_hashCursor(cursor);
 			}
 			else {
-				Panic("TODO");
+				#ifdef flagDEBUG
+				TODO;
+				#else
+				RLOG("ClangCursorInfo::TypeHash: error: invalid clang kind: " << GetCursorSpelling(ref) << ": (" << (int)ref.kind << ")");
+				#endif
 			}
 		}
 		else {

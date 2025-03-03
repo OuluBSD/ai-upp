@@ -150,7 +150,7 @@ VirtualNode VirtualFSComponentCtrl::Find(const VfsPath& rel_path) {
 
 VirtualNode VirtualFSComponentCtrl::GetAdd(const VfsPath& rel_path, int kind) {
 	VirtualNode n = Root();
-	Panic("TODO");
+	TODO;
 	return n;
 }
 
@@ -237,7 +237,7 @@ VirtualNode VirtualNode::Find(Value name) {
 				if (i >= 0)
 					n.Create(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
 			}
-			else Panic("TODO");
+			else TODO;
 		}
 		else if (data->node) {
 			MetaNode& mn = *data->node;
@@ -247,7 +247,7 @@ VirtualNode VirtualNode::Find(Value name) {
 				n.Create(data->path + name, &sub);
 			}
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	return n;
 }
@@ -259,13 +259,13 @@ void VirtualNode::RemoveSubNodes() {
 		if (data->value->Is<ValueMap>()) {
 			*data->value = ValueMap();
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	else if (data->node) {
 		MetaNode& mn = *data->node;
 		mn.sub.Clear();
 	}
-	else Panic("TODO");
+	else TODO;
 }
 
 void VirtualNode::Remove(const Value& name) {
@@ -277,7 +277,7 @@ void VirtualNode::Remove(const Value& name) {
 			map.RemoveKey(name);
 			*data->value = map;
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	else if (data->node) {
 		MetaNode& mn = *data->node;
@@ -286,7 +286,7 @@ void VirtualNode::Remove(const Value& name) {
 		if (i >= 0)
 			mn.Remove(i);
 	}
-	else Panic("TODO");
+	else TODO;
 }
 
 Vector<VirtualNode> VirtualNode::GetAll() {
@@ -323,13 +323,13 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 				else {
 					LOG(data->value->GetTypeName());
 					LOG(data->value->ToString());
-					Panic("TODO");
+					TODO;
 				}
 			}
 			else if (data->node) {
 				ASSERT_(0, "only entity pointer in value based vfs");
 			}
-			else Panic("TODO");
+			else TODO;
 		}
 		else if (mode == VirtualNode::VFS_ENTITY) {
 			if (data->node) {
@@ -346,9 +346,9 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 			else if (data->value) {
 				ASSERT_(0, "only value pointer in entity based vfs");
 			}
-			else Panic("TODO");
+			else TODO;
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	return v;
 }
@@ -392,7 +392,7 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 				n.Create(data->path + name, &sub);
 			}
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	return n;
 }
@@ -407,7 +407,7 @@ Value VirtualNode::GetName() const {
 			if (data->node)
 				return data->node->id;
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	return Value();
 }
@@ -432,7 +432,7 @@ String VirtualNode::GetKindString() const {
 			if (data->node)
 				return data->node->GetKindString();
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	return String();
 }
@@ -454,7 +454,7 @@ int VirtualNode::GetKind() const {
 			if (data->node)
 				return data->node->kind;
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 	ASSERT_(0, "no pointer");
 	return 0;
@@ -471,14 +471,14 @@ void VirtualNode::SetKind(int k) {
 				map.Set(".kind", k);
 				*data->value = map;
 			}
-			else Panic("TODO");
+			else TODO;
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
 			if (data->node)
 				data->node->kind = k;
-			else Panic("TODO");
+			else TODO;
 		}
-		else Panic("TODO");
+		else TODO;
 	}
 }
 

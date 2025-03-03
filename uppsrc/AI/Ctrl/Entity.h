@@ -78,19 +78,19 @@ struct VirtualNode : Moveable<VirtualNode> {
 					if (o)
 						return *o;
 				}
-				Panic("TODO"); void* p = 0; return *(T*)p;
+				TODO; void* p = 0; return *(T*)p;
 			}
 			else if (n.data->mode == VFS_VALUE) {
 				Value val = *n.data->value;
 				if (val.Is<T>())
 					return val.Get<T>();
-				Panic("TODO"); void* p = 0; return *(T*)p;
+				TODO; void* p = 0; return *(T*)p;
 			}
 		}
 		else {
 			
 		}*/
-		Panic("TODO"); void* p = 0; return *(T*)p;
+		TODO; void* p = 0; return *(T*)p;
 	}
 };
 

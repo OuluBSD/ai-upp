@@ -1,8 +1,6 @@
 #ifndef _AI_TextCore_Defs_h_
 #define _AI_TextCore_Defs_h_
 
-#define TODO Panic("TODO");
-
 #define DBROWSER_MODE_LIST \
 	MODE(ELEMENT_ATTR_COLOR_ACTION) \
 	MODE(ELEMENT_COLOR_ATTR_ACTION) \

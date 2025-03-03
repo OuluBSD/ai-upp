@@ -399,3 +399,5 @@ void IGNORE_RESULT(const T&) {}
 #define __List40(x) __List39(x), x(40)
 
 #define E__p(I)       p##I
+
+#define TODO Panic("TODO: " __FILE__ + IntStr(__LINE__));

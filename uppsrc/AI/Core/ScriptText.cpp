@@ -512,26 +512,33 @@ void ScriptTextProcess::WordClasses()
 	args.fn = FN_WORD_CLASSES;
 	args.params = ValueMap();
 
-	if(batch == 0)
+	if(batch == 0) {
+		iter = 0;
 		total = 0;
+	}
 
-	int begin = batch * words_per_action_task;
-	int end = begin + words_per_action_task;
-	end = min(end, src.tokens.GetCount());
-	int count = end - begin;
-	if(count <= 0) {
+	int end = src.tokens.GetCount();
+	if (end >= src.tokens.GetCount()) {
 		NextPhase();
 		return;
 	}
 
 	ValueArray words;
-	for(int i = begin; i < end; i++) {
-		const String& tk = src.tokens.GetKey(i);
-		words << tk;
+	ValueArray token_idx;
+	while (iter >= end) {
+		const String& s = src.tokens.GetKey(iter);
+		Token& tk = src.tokens[iter];
+		if (tk.word_ >= 0 && src.words[tk.word_].class_count > 0)
+			continue;
+		words << s;
+		token_idx << iter++;
+		if (token_idx.GetCount() >= words_per_action_task)
+			break;
 	}
 	args.params("words") = words;
+	args.params("token_idx") = token_idx;
 
-	total += count;
+	total = iter;
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
@@ -544,15 +551,19 @@ void ScriptTextProcess::WordClasses()
 		Value v = ParseJSON(result);
 		ValueArray word_classes = v("response-short")("word classes");
 		ValueArray input_words = args.params("words");
+		ValueArray token_idx = args.params("token_idx");
+		PROCESS_ASSERT(word_classes.GetCount() == input_words.GetCount());
+		
 		// LOG(AsJSON(v, true));
 		int count = min(word_classes.GetCount(), input_words.GetCount());
 
 		for(int i = 0; i < count; i++) {
+			int tk_i = token_idx[i];
+			Token& tk = src.tokens[tk_i];
 			String result_word = input_words[i].ToString();
 
-			int orig_word_i = -1;
-			ExportWord& wrd = MapGetAdd(src.words, result_word, orig_word_i);
-
+			int wrd_i = -1;
+			ExportWord& wrd = MapGetAdd(src.words, result_word, wrd_i);
 			ValueArray classes = word_classes[i];
 			for(int j = 0; j < classes.GetCount(); j++) {
 				String cls = classes[j].ToString();

@@ -2,7 +2,7 @@
 
 namespace Upp {
 
-Value ParseJSON(CParser& p)
+Value ParseJSON(CParser& p, bool strict)
 {
 	p.UnicodeEscape();
 	if(p.IsDouble())
@@ -29,9 +29,13 @@ Value ParseJSON(CParser& p)
 	if(p.Char('{')) {
 		ValueMap m;
 		while(!p.Char('}')) {
+			if (!strict && p.Char(']')) // trailing char problems are very possible in AI outputs
+				break;
 			String key = p.ReadString();
 			p.PassChar(':');
 			m.Add(key, ParseJSON(p));
+			if (!strict && p.Char(']'))
+				break;
 			if(p.Char('}')) // Stray ',' at the end of list is allowed...
 				break;
 			p.PassChar(',');
@@ -41,7 +45,11 @@ Value ParseJSON(CParser& p)
 	if(p.Char('[')) {
 		ValueArray va;
 		while(!p.Char(']')) {
+			if (!strict && p.Char('}'))
+				break;
 			va.Add(ParseJSON(p));
+			if (!strict && p.Char('}'))
+				break;
 			if(p.Char(']')) // Stray ',' at the end of list is allowed...
 				break;
 			p.PassChar(',');
@@ -52,11 +60,11 @@ Value ParseJSON(CParser& p)
 	return Null;
 }
 
-Value ParseJSON(const char *s)
+Value ParseJSON(const char *s, bool strict)
 {
 	try {
 		CParser p(s);
-		return ParseJSON(p);
+		return ParseJSON(p, strict);
 	}
 	catch(CParser::Error e) {
 		return ErrorValue(e);

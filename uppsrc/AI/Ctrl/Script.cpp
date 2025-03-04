@@ -185,7 +185,8 @@ void ScriptTextCtrl::StartProcess(bool user_started) {
 			params,
 			*p.srctxt,
 			THISBACK(PostOnStop));
-		active_process->WhenError << [this](String err) {PostOnStop();};
+		Ptr<Ctrl> alive = this;
+		active_process->WhenError << [this,alive](String err) {if (alive) PostOnStop();};
 		active_process->Start();
 	}
 }
@@ -195,7 +196,7 @@ void ScriptTextCtrl::StopProcess() {
 }
 
 void ScriptTextCtrl::PostOnStop() {
-	Ptr<ScriptTextCtrl> p = this;
+	Ptr<ScriptTextCtrl> p =  this;
 	PostCallback([p]{
 		if (p && !Thread::IsShutdownThreads())
 			p->OnStop();

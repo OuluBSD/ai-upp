@@ -476,6 +476,7 @@ void AiTask::CreateInput_Default()
 				}
 			},
 			"response-full": {
+				"__comment__": "the next list must have the same number of values in array that was in query.script.words list",
 				"words & word classes": [
 					[
 						"you",
@@ -634,6 +635,7 @@ void AiTask::CreateInput_Default()
 					]
 				},
 				"script": {
+					"sentence_count": 3,
 					"classified_sentences": [
 						["noun","verb","adjective"],
 						["adjective","noun","preposition","noun"],
@@ -643,6 +645,7 @@ void AiTask::CreateInput_Default()
 				}
 			},
 			"response-full": {
+				"sentence_count": 3,
 				"titles_of_classified_sentences": [
 					{"sentence":["noun","verb","adjective"], "title":"independent clause"},
 					{"sentence":["adjective","noun","preposition","noun"], "title":"prepositional sentence"},
@@ -650,6 +653,7 @@ void AiTask::CreateInput_Default()
 				]
 			},
 			"response-short": {
+				"sentence_count": 3,
 				"titles": [
 					"independent clause",
 					"prepositional sentence",
@@ -661,12 +665,14 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
+					"sentence_count": 0,
 		            "classified_sentences": [],
 		            "__comment__": "get response-short"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/classified_sentences", args.params("classified_sentences"));
+			.Set("/query/script/classified_sentences", args.params("classified_sentences"))
+			.Set("/query/script/sentence_count", args.params("classified_sentences").GetCount());
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_SENTENCE_STRUCTURES) {

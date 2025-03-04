@@ -58,7 +58,7 @@ public:
 	TaskArgs args;
 	
 	// Configuration
-	int words_per_action_task = 100;
+	int words_per_action_task = 25; // WordClasses()
 	int vpp_per_action_task = 65;
 	
 	// Temp (per phase)

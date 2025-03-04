@@ -255,6 +255,7 @@ ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 	
 	words.AddColumn("#");
 	words.AddColumn("Word");
+	words.AddColumn("Language");
 	words.AddColumn("Spelling");
 	words.AddColumn("Phonetic");
 	words.AddColumn("Count");
@@ -381,11 +382,12 @@ void ScriptTextDebuggerPage::Data() {
 		for(auto it : ~src.words) {
 			words.Set(i, 0, i);
 			words.Set(i, 1, it.key);
-			words.Set(i, 2, it.value.spelling);
-			words.Set(i, 3, it.value.phonetic);
-			words.Set(i, 4, it.value.count);
-			words.Set(i, 5, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
-			words.Set(i, 6, it.value.class_count);
+			words.Set(i, 2, Value());
+			words.Set(i, 3, it.value.spelling);
+			words.Set(i, 4, it.value.phonetic);
+			words.Set(i, 5, it.value.count);
+			words.Set(i, 6, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
+			words.Set(i, 7, it.value.class_count);
 			String s;
 			for(int j = 0; j < it.value.class_count; j++) {
 				if (j) s << ", ";
@@ -395,8 +397,8 @@ void ScriptTextDebuggerPage::Data() {
 				else
 					break;
 			}
-			words.Set(i, 7, s);
-			words.Set(i, 8, it.value.link);
+			words.Set(i, 8, s);
+			words.Set(i, 9, it.value.link);
 			i++;
 		}
 		words.SetCount(src.words.GetCount());

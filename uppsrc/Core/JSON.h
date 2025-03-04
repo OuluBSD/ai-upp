@@ -1,5 +1,5 @@
-Value  ParseJSON(CParser& p);
-Value  ParseJSON(const char *s);
+Value  ParseJSON(CParser& p, bool strict=true);
+Value  ParseJSON(const char *s, bool strict=true);
 
 inline String AsJSON(int i)             { return IsNull(i) ? String("null") : AsString(i); }
 inline String AsJSON(double n)          { return IsNull(n) ? String("null") : AsString(n); }

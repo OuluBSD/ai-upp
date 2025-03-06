@@ -426,4 +426,35 @@ String SrcTxtHeader::SaveData() {
 
 INITIALIZER_COMPONENT(SrcTxtHeader)
 
+
+
+
+
+
+
+
+ContextType ContextType::Lyrical() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				EMOTIONALITY_BIT  |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT |
+				STABILITY_BIT     |
+				INNOVATIVE_BIT    |
+				EXPERIMENTAL_BIT;
+	return t;
+}
+
+ContextType ContextType::Programming() {
+	ContextType t;
+	t.value =	TECHNICALITY_BIT  |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT |
+				STABILITY_BIT     |
+				INNOVATIVE_BIT    |
+				EXPERIMENTAL_BIT;
+	return t;
+}
+
+
 END_UPP_NAMESPACE

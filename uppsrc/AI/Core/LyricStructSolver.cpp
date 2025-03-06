@@ -218,11 +218,13 @@ hash_t SoftMatchString::GetHashValue() const {
 
 void TryStrDistSectionSolverBase::MakeLines() {
 	String s = input;
-	ASSERT(s.GetCount());
 	s.Replace("\r", "");
 	Vector<String> txt_lines = Split(s, "\n");
 	lines.SetCount(0);
 	sections.SetCount(0);
+	LOG("TryStrDistSectionSolverBase::MakeLines: warning: empty line!");
+	if (input.IsEmpty())
+		return;
 	
 	VectorMap<hash_t, TextDescriptor::Item> items;
 	

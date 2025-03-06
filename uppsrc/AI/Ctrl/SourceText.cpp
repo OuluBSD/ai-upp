@@ -238,7 +238,8 @@ ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 		ITEM(tokens) ITEM(word_classes) ITEM(words) ITEM(ambiguous_word_pairs) \
 		ITEM(token_texts) ITEM(virtual_phrases) ITEM(virtual_phrase_parts) ITEM(virtual_phrase_structs) \
 		ITEM(phrase_parts) ITEM(struct_part_types) ITEM(struct_types) ITEM(simple_attrs) \
-		ITEM(element_keys) ITEM(attrs) ITEM(actions)
+		ITEM(element_keys) ITEM(attrs) ITEM(actions) \
+		ITEM(wordnets) ITEM(action_phrases) ITEM(trans) ITEM(parallel)
 	#define ITEM(x) tabs.Add(x.SizePos(), #x);
 	LIST
 	#undef ITEM
@@ -688,13 +689,16 @@ void TextElements::Data() {
 		for(const auto& part : s.parts) {
 			for(const auto& sub1 : part.sub) {
 				for(const auto& sub2 : sub1.sub) {
-					String s = src.GetTokenTextString(sub2.token_texts);
-					list.Set(line, 0, s);
-					if (sub2.cls >= 0)
-						list.Set(line, 1, src.element_keys[sub2.cls]);
-					else
-						list.Set(line, 1, Value());
-					line++;
+					for (int tt_i : sub2.token_texts) {
+						const TokenText& tt = src.token_texts[tt_i];
+						String s = src.GetTokenTextString(tt);
+						list.Set(line, 0, s);
+						if (sub2.cls >= 0)
+							list.Set(line, 1, src.element_keys[sub2.cls]);
+						else
+							list.Set(line, 1, Value());
+						line++;
+					}
 				}
 			}
 		}

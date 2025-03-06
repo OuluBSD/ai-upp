@@ -153,11 +153,13 @@ void SourceDataImporter::Tokenize() {
 			part->type = msect.type;
 			part->num = msect.num;
 			subpart->repeat = sect.repeat;
+			subpart->repeat_ = sect.repeat;
 			ssub_line_i = 0;
 		}
 		else if (prev_sect != line.section) {
 			subpart = &part->sub.Add();
 			subpart->repeat = sect.repeat;
+			subpart->repeat_ = sect.repeat;
 			ssubpart = &subpart->sub.Add();
 			ssub_line_i = 0;
 		}
@@ -3790,7 +3792,7 @@ int MergeProcess::TransferTokenText(int tt_i0) {
 		int tk_i1 = TransferToken(tk_i0);
 		tt1.tokens << tk_i1;
 	}
-	tt1.virtual_phrase = TransferVirtualPhrase(tt0.virtual_phrase);
+	d1.token_texts[tt_i1].virtual_phrase = TransferVirtualPhrase(tt0.virtual_phrase);
 	
 	int pp_i0 = tt0.phrase_part;
 	// Find PhrasePart the hard way
@@ -3807,7 +3809,7 @@ int MergeProcess::TransferTokenText(int tt_i0) {
 		hash_t pp_hash = ch;
 		pp_i0 = d0.phrase_parts.Find(pp_hash);
 	}
-	tt1.phrase_part = TransferPhrasePart(pp_i0);
+	d1.token_texts[tt_i1].phrase_part = TransferPhrasePart(pp_i0);
 	
 	return tt_i1;
 }
@@ -3829,7 +3831,7 @@ int MergeProcess::TransferToken(int tk_i0) {
 	int tk_i1 = -1;
 	auto& tk1 = d1.tokens.GetAddPos(key, tk_i1);
 	token_transfer.Add(tk_i0, tk_i1);
-	tk1.word_ = TransferWord(tk0.word_);
+	d1.tokens[tk_i1].word_ = TransferWord(tk0.word_);
 	return tk_i1;
 }
 
@@ -3899,13 +3901,15 @@ int MergeProcess::TransferVirtualPhraseStruct(int vps_i0) {
 	auto& vps1 = d1.virtual_phrase_structs.GetAddPos(key, vps_i1);
 	vps_transfer.Add(vps_i0, vps_i1);
 	
-	vps1.struct_type = TransferStructType(vps0.struct_type);
+	d1.virtual_phrase_structs[vps_i1].struct_type = TransferStructType(vps0.struct_type);
 	ASSERT(vps1.virtual_phrase_parts.IsEmpty());
-	vps1.virtual_phrase_parts.Clear();
+	Vector<int> vps_v;
 	for (int vpp_i0 : vps0.virtual_phrase_parts) {
 		int vpp_i1 = TransferVirtualPhrasePart(vpp_i0);
-		vps1.virtual_phrase_parts << vpp_i1;
+		vps_v << vpp_i1;
 	}
+	d1.virtual_phrase_structs[vps_i1].virtual_phrase_parts <<= vps_v;
+	
 	return vps_i1;
 }
 
@@ -3946,16 +3950,17 @@ int MergeProcess::TransferVirtualPhrasePart(int vpp_i0) {
 	const auto& vpp0 = d0.virtual_phrase_parts[vpp_i0];
 	int vpp_i1 = -1;
 	auto& vpp1 = d1.virtual_phrase_parts.GetAddPos(key, vpp_i1);
+	vpp_transfer.Add(vpp_i0, vpp_i1);
 	
-	vpp1.count = 0;
-	vpp1.struct_part_type = TransferStructPartType(vpp0.struct_part_type);
 	ASSERT(vpp1.word_classes.IsEmpty());
-	vpp1.word_classes.Clear();
+	vpp1.count = 0;
+	d1.virtual_phrase_parts[vpp_i1].struct_part_type = TransferStructPartType(vpp0.struct_part_type);
+	Vector<int> wcs;
 	for (int wc_i0 : vpp1.word_classes) {
 		int wc_i1 = TransferWordClass(wc_i0);
-		vpp1.word_classes << wc_i1;
+		wcs << wc_i1;
 	}
-	vpp_transfer.Add(vpp_i0, vpp_i1);
+	d1.virtual_phrase_parts[vpp_i1].word_classes <<= wcs;
 	return vpp_i1;
 }
 
@@ -3983,30 +3988,32 @@ int MergeProcess::TransferPhrasePart(int pp_i0) {
 	const auto& pp0 = d0.phrase_parts[pp_i0];
 	int pp_i1 = -1;
 	auto& pp1 = d1.phrase_parts.GetAddPos(key, pp_i1);
+	pp_transfer.Add(pp_i0, pp_i1);
 	
 	ASSERT(pp1.words.IsEmpty());
-	pp1.words.SetCount(pp0.words.GetCount());
-	auto w_i1 = pp1.words.Begin();
-	for(int w_i0 : pp0.words) {
-		*w_i1++ = TransferWord(w_i0);
-	}
-	pp1.tt_i = TransferTokenText(pp0.tt_i);
-	pp1.virtual_phrase_part = TransferVirtualPhrasePart(pp0.virtual_phrase_part);
-	pp1.attr = TransferAttribute(pp0.attr);
-	pp1.el_i = TransferElement(pp0.el_i);
 	pp1.clr = pp0.clr;
-	
-	pp1.actions.SetCount(pp0.actions.GetCount());
-	auto act_i1 = pp1.actions.Begin();
-	for(int act_i0 : pp0.actions)
-		*act_i1++ = TransferAction(act_i0);
-	
 	pp1.typecasts <<= pp0.typecasts;
 	pp1.contrasts <<= pp0.contrasts;
 	for(int i = 0; i < SCORE_COUNT; i++)
 		pp1.scores[i] = pp0.scores[i];
 	pp1.lang = current_language;
 	ASSERT(current_language != 0xFF);
+	
+	Vector<int> w_is;
+	for(int w_i0 : pp0.words) {
+		w_is << TransferWord(w_i0);
+	}
+	d1.phrase_parts[pp_i1].words <<= w_is;
+	d1.phrase_parts[pp_i1].tt_i = TransferTokenText(pp0.tt_i);
+	d1.phrase_parts[pp_i1].virtual_phrase_part = TransferVirtualPhrasePart(pp0.virtual_phrase_part);
+	d1.phrase_parts[pp_i1].attr = TransferAttribute(pp0.attr);
+	d1.phrase_parts[pp_i1].el_i = TransferElement(pp0.el_i);
+	
+	Vector<int> acts;
+	for(int act_i0 : pp0.actions)
+		acts << TransferAction(act_i0);
+	d1.phrase_parts[pp_i1].actions <<= acts;
+	
 	
 	return pp_i1;
 }
@@ -4025,8 +4032,8 @@ int MergeProcess::TransferAttribute(int attr_i0) {
 	attr_transfer.Add(attr_i0, attr_i1);
 	
 	attr1.count = 0;
-	attr1.simple_attr = TransferSimpleAttr(attr0.simple_attr);
 	attr1.positive = attr0.positive;
+	d1.attrs[attr_i1].simple_attr = TransferSimpleAttr(attr0.simple_attr);
 	
 	return attr_i1;
 }
@@ -4044,8 +4051,9 @@ int MergeProcess::TransferSimpleAttr(int sa_i0) {
 	auto& sa1 = d1.simple_attrs.GetAddPos(key, sa_i1);
 	sa_transfer.Add(sa_i0, sa_i1);
 	
-	sa1.attr_i0 = TransferAttribute(sa0.attr_i0);
-	sa1.attr_i1 = TransferAttribute(sa0.attr_i1);
+	d1.simple_attrs[sa_i1].attr_i0 = TransferAttribute(sa0.attr_i0);
+	d1.simple_attrs[sa_i1].attr_i1 = TransferAttribute(sa0.attr_i1);
+	
 	return sa_i1;
 }
 
@@ -4062,9 +4070,9 @@ int MergeProcess::TransferAction(int act_i0) {
 	auto& act1 = d1.actions.GetAddPos(key, act_i1);
 	act_transfer.Add(act_i0, act_i1);
 	
-	act1.attr = TransferAttribute(act0.attr);
-	act1.clr = act0.clr;
 	act1.count = 0;
+	act1.clr = act0.clr;
+	d1.actions[act_i1].attr = TransferAttribute(act0.attr);
 	
 	return act_i1;
 }

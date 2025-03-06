@@ -95,7 +95,7 @@ public:
 	T&       GetAdd(K&& k, const T& x)              { return GetAdd_(pick(k), x); }
 	T&       GetAdd(K&& k, T&& x)                   { return GetAdd_(pick(k), pick(x)); }
 	
-	T& GetAdd(const K& k, int& pos) {
+	T& GetAddPos(const K& k, int& pos) {
 		pos = Find(k);
 		if (pos >= 0) return value[pos];
 		pos = value.GetCount();

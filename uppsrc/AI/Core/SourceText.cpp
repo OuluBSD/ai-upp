@@ -91,12 +91,12 @@ void SourceDataImporter::Tokenize() {
 	}
 	
 	// Ignore files with hard ambiguities
-	if (str.Find(" well ") >= 0) {
+	/*if (str.Find(" well ") >= 0) {
 		// well or we'll... too expensive to figure out
 		well_filter_loss++;
 		NextSubBatch();
 		return;
-	}
+	}*/
 	
 	static thread_local TryNo5tStructureSolver solver;
 	static thread_local NaturalTokenizer tk;
@@ -335,7 +335,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 		return;
 	}
 	ScriptStruct& ss = src.scripts[batch];
-	if (ss.parts.GetCount() && ss.parts[0].cls >= 0) {
+	if (ss.parts.GetCount() && ss.parts[0].el_i >= 0) {
 		NextBatch();
 		return;
 	}
@@ -404,7 +404,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 			if (l >= 0) {
 				String& val = section_values[l];
 				int el_i = src.element_keys.FindAdd(val);
-				p.cls = el_i;
+				p.el_i = el_i;
 			}
 			
 			for(int j = 0; j < p.sub.GetCount(); j++) {
@@ -415,7 +415,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 				if (l >= 0) {
 					String& val = section_values[l];
 					int el_i = src.element_keys.FindAdd(val);
-					s.cls = el_i;
+					s.el_i = el_i;
 				}
 				
 				for(int k = 0; k < s.sub.GetCount(); k++) {
@@ -426,7 +426,7 @@ void SourceAnalysisProcess::AnalyzeElements() {
 					if (l >= 0) {
 						String& val = section_values[l];
 						int el_i = src.element_keys.FindAdd(val);
-						ss.cls = el_i;
+						ss.el_i = el_i;
 					}
 				}
 			}
@@ -3612,5 +3612,472 @@ void AttributesProcess::RealizeBatch_AttrExtremesBatch() {
 		}
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MergeProcess::MergeProcess() {
+	
+}
+
+int MergeProcess::GetPhaseCount() const {
+	return PHASE_COUNT;
+}
+
+int MergeProcess::GetBatchCount(int phase) const {
+	ASSERT(p.src);
+	auto& src = p.src->Data();
+	return src.scripts.GetCount();
+}
+
+int MergeProcess::GetSubBatchCount(int phase, int batch) const {
+	return 1;
+}
+
+void MergeProcess::DoPhase() {
+	ASSERT(p.src);
+	auto& src = p.src->Data();
+	if (phase == PHASE_RESET) {
+		el_transfer.Clear();
+		target.Clear();
+		target.Create();
+		NextPhase();
+	}
+	else if (phase == PHASE_TRANSFER_SCRIPTS) {
+		TransferScripts();
+	}
+	else NextPhase();
+}
+
+void MergeProcess::TransferScripts() {
+	ASSERT(p.src);
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	batch_err.Clear();
+	if (batch >= d0.authors.GetCount()) {
+		NextPhase();
+		return;
+	}
+	
+	const auto& author0 = d0.authors[batch];
+	if (sub_batch >= author0.scripts.GetCount()) {
+		NextBatch();
+		return;
+	}
+	const auto& script0 = author0.scripts[sub_batch];
+	
+	String script_title = author0.name + " - " + script0.title;
+	hash_t ss_hash = script_title.GetHashValue();
+	int ss_i0 = d0.scripts.Find(ss_hash);
+	if (ss_i0 < 0) {
+		NextSubBatch();
+		return;
+	}
+	
+	auto& author1 = d1.GetAddAuthor(author0.name);
+	auto& script1 = author1.GetAddScript(script0.title);
+	script1.text = script0.text;
+	
+	int ss_i1 = -1;
+	const ScriptStruct& ss0 = d0.scripts[ss_i0];
+	ScriptStruct& ss1 = d1.scripts.GetAddPos(ss_hash, ss_i1);
+	PROCESS_ASSERT(ss1.parts.IsEmpty());
+	
+	for (const auto& part0 : ss0.parts) {
+		auto& part1 = ss1.parts.Add();
+		part1.type = part0.type;
+		part1.num = part0.num;
+		part1.el_i = TransferElement(part0.el_i);
+		part1.typeclass = TransferTypeclass(part0.typeclass);
+		part1.content = TransferContent(part0.content);
+		
+		for (const auto& sub0 : part0.sub) {
+			auto& sub1 = part1.sub.Add();
+			sub1.el_i = TransferElement(sub0.el_i);
+			sub1.repeat = sub0.repeat;
+			sub1.repeat_ = sub0.repeat_;
+			
+			for (const auto& ssub0 : sub0.sub) {
+				auto& ssub1 = sub1.sub.Add();
+				ssub1.el_i = TransferElement(ssub0.el_i);
+				
+				ssub1.token_texts.SetCount(ssub0.token_texts.GetCount());
+				auto tt_i1 = ssub1.token_texts.Begin();
+				for (int tt_i0 : ssub0.token_texts)
+					*tt_i1++ = TransferTokenText(tt_i0);
+			}
+		}
+	}
+	
+	
+	if (batch_err.GetCount()) {
+		TODO // Reduce size of vectors to same as in the beginning of this function
+		NextSubBatch();
+		return;
+	}
+	
+	
+
+	// Transfer typeclasses (idx is kept)
+	
+	
+	// Transfer contents (idx is kept)
+	
+	
+	// Count: vpp, etc.?
+	
+	
+	// Compare counts d0 vs d1 : loss percentage
+	
+	
+	// Maybe transfer rest of the phrase parts anyway?
+	
+	
+	NextSubBatch();
+}
+
+int MergeProcess::TransferElement(int el_i0) {
+	if (el_i0 < 0) return -1;
+	int i = el_transfer.Find(el_i0);
+	if (i >= 0) return el_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	const String& el = d0.element_keys[el_i0];
+	int el_i1 = d1.element_keys.FindAdd(el);
+	el_transfer.Add(el_i0, el_i1);
+	
+	return el_i1;
+}
+
+int MergeProcess::TransferTypeclass(int tc_i0) {
+	return tc_i0;
+}
+
+ContentIdx MergeProcess::TransferContent(ContentIdx con_i0) {
+	return con_i0;
+}
+
+int MergeProcess::TransferTokenText(int tt_i0) {
+	if (tt_i0 < 0) return -1;
+	int i = tt_transfer.Find(tt_i0);
+	if (i >= 0) return tt_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	int tt_i1 = -1;
+	hash_t key = d0.token_texts.GetKey(tt_i0);
+	const auto& tt0 = d0.token_texts[tt_i0];
+	auto& tt1 = d1.token_texts.GetAddPos(key, tt_i1);
+	tt_transfer.Add(tt_i0, tt_i1);
+	
+	ASSERT(tt1.tokens.IsEmpty());
+	tt1.tokens.Clear();
+	for (int tk_i0 : tt0.tokens) {
+		int tk_i1 = TransferToken(tk_i0);
+		tt1.tokens << tk_i1;
+	}
+	tt1.virtual_phrase = TransferVirtualPhrase(tt0.virtual_phrase);
+	
+	int pp_i0 = tt0.phrase_part;
+	// Find PhrasePart the hard way
+	if (pp_i0 < 0) {
+		CombineHash ch;
+		for (int tk_i0 : tt0.tokens) {
+			const Token& tk0 = d0.tokens[tk_i0];
+			if (tk0.word_ < 0) {
+				SetBatchError("no word");
+				return tt_i1;
+			}
+			ch.Do(tk0.word_).Put(1);
+		}
+		hash_t pp_hash = ch;
+		pp_i0 = d0.phrase_parts.Find(pp_hash);
+	}
+	tt1.phrase_part = TransferPhrasePart(pp_i0);
+	
+	return tt_i1;
+}
+
+int MergeProcess::TransferToken(int tk_i0) {
+	if (tk_i0 < 0) return -1;
+	int i = token_transfer.Find(tk_i0);
+	if (i >= 0) return token_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	String key = d0.tokens.GetKey(tk_i0);
+	{
+		WString wkey = key.ToWString();
+		wkey = ToLower(wkey);
+		key = wkey.ToString();
+	}
+	const auto& tk0 = d0.tokens[tk_i0];
+	int tk_i1 = -1;
+	auto& tk1 = d1.tokens.GetAddPos(key, tk_i1);
+	token_transfer.Add(tk_i0, tk_i1);
+	tk1.word_ = TransferWord(tk0.word_);
+	return tk_i1;
+}
+
+int MergeProcess::TransferWord(int wrd_i0) {
+	if (wrd_i0 < 0) return -1;
+	int i = word_transfer.Find(wrd_i0);
+	if (i >= 0) return word_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	String key = d0.words.GetKey(wrd_i0);
+	{
+		WString wkey = key.ToWString();
+		wkey = ToLower(wkey);
+		key = wkey.ToString();
+	}
+	const auto& wrd0 = d0.words[wrd_i0];
+	int wrd_i1 = -1;
+	auto& wrd1 = d1.words.GetAddPos(key, wrd_i1);
+	word_transfer.Add(wrd_i0, wrd_i1);
+	
+	wrd1.spelling = wrd0.spelling;
+	wrd1.phonetic = wrd0.phonetic;
+	wrd1.count = 0;
+	wrd1.clr = wrd0.clr;
+	wrd1.class_count = wrd0.class_count;
+	for(int i = 0; i < wrd1.class_count; i++) {
+		int wc_i1 = TransferWordClass(wrd0.classes[i]);
+		wrd1.classes[i] = wc_i1;
+	}
+	
+	return wrd_i1;
+}
+
+int MergeProcess::TransferVirtualPhrase(int vp_i0) {
+	if (vp_i0 < 0) return -1;
+	int i = vp_transfer.Find(vp_i0);
+	if (i >= 0) return vp_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	int vp_i1 = -1;
+	hash_t key = d0.virtual_phrases.GetKey(vp_i0);
+	const VirtualPhrase& vp0 = d0.virtual_phrases[vp_i0];
+	VirtualPhrase& vp1 = d1.virtual_phrases.GetAddPos(vp_i0, vp_i1);
+	vp_transfer.Add(vp_i0, vp_i1);
+	vp1.virtual_phrase_struct = TransferVirtualPhraseStruct(vp0.virtual_phrase_struct);
+	vp1.word_classes.SetCount(vp0.word_classes.GetCount());
+	auto wc_i1 = vp1.word_classes.Begin();
+	for (int wc_i0 : vp0.word_classes) {
+		*wc_i1++ = TransferWordClass(wc_i0);
+	}
+	return vp_i1;
+}
+
+int MergeProcess::TransferVirtualPhraseStruct(int vps_i0) {
+	if (vps_i0 < 0) return -1;
+	int i = vps_transfer.Find(vps_i0);
+	if (i >= 0) return vps_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	hash_t key = d0.virtual_phrase_structs.GetKey(vps_i0);
+	const auto& vps0 = d0.virtual_phrase_structs[vps_i0];
+	
+	int vps_i1 = -1;
+	auto& vps1 = d1.virtual_phrase_structs.GetAddPos(key, vps_i1);
+	vps_transfer.Add(vps_i0, vps_i1);
+	
+	vps1.struct_type = TransferStructType(vps0.struct_type);
+	ASSERT(vps1.virtual_phrase_parts.IsEmpty());
+	vps1.virtual_phrase_parts.Clear();
+	for (int vpp_i0 : vps0.virtual_phrase_parts) {
+		int vpp_i1 = TransferVirtualPhrasePart(vpp_i0);
+		vps1.virtual_phrase_parts << vpp_i1;
+	}
+	return vps_i1;
+}
+
+int MergeProcess::TransferWordClass(int wc_i0) {
+	if (wc_i0 < 0) return -1;
+	int i = wordclass_transfer.Find(wc_i0);
+	if (i >= 0) return wordclass_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	String key = d0.word_classes[wc_i0];
+	int wc_i1 = d1.word_classes.FindAdd(key);
+	wordclass_transfer.Add(wc_i0, wc_i1);
+	return wc_i1;
+}
+
+int MergeProcess::TransferStructType(int st_i0) {
+	if (st_i0 < 0) return -1;
+	int i = structtype_transfer.Find(st_i0);
+	if (i >= 0) return structtype_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	String key = d0.struct_types[st_i0];
+	int st_i1 = d1.struct_types.FindAdd(key);
+	structtype_transfer.Add(st_i0, st_i1);
+	return st_i1;
+}
+
+int MergeProcess::TransferVirtualPhrasePart(int vpp_i0) {
+	if (vpp_i0 < 0) return -1;
+	int i = vpp_transfer.Find(vpp_i0);
+	if (i >= 0) return vpp_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	hash_t key = d0.virtual_phrase_parts.GetKey(vpp_i0);
+	const auto& vpp0 = d0.virtual_phrase_parts[vpp_i0];
+	int vpp_i1 = -1;
+	auto& vpp1 = d1.virtual_phrase_parts.GetAddPos(key, vpp_i1);
+	
+	vpp1.count = 0;
+	vpp1.struct_part_type = TransferStructPartType(vpp0.struct_part_type);
+	ASSERT(vpp1.word_classes.IsEmpty());
+	vpp1.word_classes.Clear();
+	for (int wc_i0 : vpp1.word_classes) {
+		int wc_i1 = TransferWordClass(wc_i0);
+		vpp1.word_classes << wc_i1;
+	}
+	vpp_transfer.Add(vpp_i0, vpp_i1);
+	return vpp_i1;
+}
+
+int MergeProcess::TransferStructPartType(int spt_i0) {
+	if (spt_i0 < 0) return -1;
+	int i = spt_transfer.Find(spt_i0);
+	if (i >= 0) return spt_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	String key = d0.struct_part_types[spt_i0];
+	int spt_i1 = d1.struct_part_types.FindAdd(key);
+	spt_transfer.Add(spt_i0, spt_i1);
+	return spt_i1;
+}
+
+int MergeProcess::TransferPhrasePart(int pp_i0) {
+	if (pp_i0 < 0) return -1;
+	int i = pp_transfer.Find(pp_i0);
+	if (i >= 0) return pp_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	hash_t key = d0.phrase_parts.GetKey(pp_i0);
+	const auto& pp0 = d0.phrase_parts[pp_i0];
+	int pp_i1 = -1;
+	auto& pp1 = d1.phrase_parts.GetAddPos(key, pp_i1);
+	
+	ASSERT(pp1.words.IsEmpty());
+	pp1.words.SetCount(pp0.words.GetCount());
+	auto w_i1 = pp1.words.Begin();
+	for(int w_i0 : pp0.words) {
+		*w_i1++ = TransferWord(w_i0);
+	}
+	pp1.tt_i = TransferTokenText(pp0.tt_i);
+	pp1.virtual_phrase_part = TransferVirtualPhrasePart(pp0.virtual_phrase_part);
+	pp1.attr = TransferAttribute(pp0.attr);
+	pp1.el_i = TransferElement(pp0.el_i);
+	pp1.clr = pp0.clr;
+	
+	pp1.actions.SetCount(pp0.actions.GetCount());
+	auto act_i1 = pp1.actions.Begin();
+	for(int act_i0 : pp0.actions)
+		*act_i1++ = TransferAction(act_i0);
+	
+	pp1.typecasts <<= pp0.typecasts;
+	pp1.contrasts <<= pp0.contrasts;
+	for(int i = 0; i < SCORE_COUNT; i++)
+		pp1.scores[i] = pp0.scores[i];
+	pp1.lang = current_language;
+	ASSERT(current_language != 0xFF);
+	
+	return pp_i1;
+}
+
+int MergeProcess::TransferAttribute(int attr_i0) {
+	if (attr_i0 < 0) return -1;
+	int i = attr_transfer.Find(attr_i0);
+	if (i >= 0) return attr_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	const auto& key = d0.attrs.GetKey(attr_i0);
+	const auto& attr0 = d0.attrs[attr_i0];
+	int attr_i1 = -1;
+	auto& attr1 = d1.attrs.GetAddPos(key, attr_i1);
+	attr_transfer.Add(attr_i0, attr_i1);
+	
+	attr1.count = 0;
+	attr1.simple_attr = TransferSimpleAttr(attr0.simple_attr);
+	attr1.positive = attr0.positive;
+	
+	return attr_i1;
+}
+
+int MergeProcess::TransferSimpleAttr(int sa_i0) {
+	if (sa_i0 < 0) return -1;
+	int i = sa_transfer.Find(sa_i0);
+	if (i >= 0) return sa_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	const auto& key = d0.simple_attrs.GetKey(sa_i0);
+	const auto& sa0 = d0.simple_attrs[sa_i0];
+	int sa_i1 = -1;
+	auto& sa1 = d1.simple_attrs.GetAddPos(key, sa_i1);
+	sa_transfer.Add(sa_i0, sa_i1);
+	
+	sa1.attr_i0 = TransferAttribute(sa0.attr_i0);
+	sa1.attr_i1 = TransferAttribute(sa0.attr_i1);
+	return sa_i1;
+}
+
+int MergeProcess::TransferAction(int act_i0) {
+	if (act_i0 < 0) return -1;
+	int i = act_transfer.Find(act_i0);
+	if (i >= 0) return act_transfer[i];
+	
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	const auto& key = d0.actions.GetKey(act_i0);
+	const auto& act0 = d0.actions[act_i0];
+	int act_i1 = -1;
+	auto& act1 = d1.actions.GetAddPos(key, act_i1);
+	act_transfer.Add(act_i0, act_i1);
+	
+	act1.attr = TransferAttribute(act0.attr);
+	act1.clr = act0.clr;
+	act1.count = 0;
+	
+	return act_i1;
+}
+
+MergeProcess& MergeProcess::Get(DatasetPtrs p) {
+	static ArrayMap<String, MergeProcess> arr;
+	ASSERT(p.src);
+	String key = p.src->filepath;
+	ASSERT(key.GetCount());
+	auto& ts = arr.GetAdd(key);
+	ts.p = pick(p);
+	return ts;
+}
+
 
 END_UPP_NAMESPACE

@@ -292,14 +292,14 @@ VectorMap<int,int> SrcTextData::GetSortedElements() {
 	VectorMap<int,int> vmap;
 	for(const ScriptStruct& ss : this->scripts.GetValues()) {
 		for(const auto& part : ss.parts) {
-			if (part.cls >= 0)
-				vmap.GetAdd(part.cls,0)++;
+			if (part.el_i >= 0)
+				vmap.GetAdd(part.el_i,0)++;
 			for(const auto& sub : part.sub) {
-				if (sub.cls >= 0)
-					vmap.GetAdd(sub.cls,0)++;
+				if (sub.el_i >= 0)
+					vmap.GetAdd(sub.el_i,0)++;
 				for(const auto& ssub : sub.sub) {
-					if (sub.cls >= 0)
-						vmap.GetAdd(sub.cls,0)++;
+					if (sub.el_i >= 0)
+						vmap.GetAdd(sub.el_i,0)++;
 				}
 			}
 		}

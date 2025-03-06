@@ -693,8 +693,8 @@ void TextElements::Data() {
 						const TokenText& tt = src.token_texts[tt_i];
 						String s = src.GetTokenTextString(tt);
 						list.Set(line, 0, s);
-						if (sub2.cls >= 0)
-							list.Set(line, 1, src.element_keys[sub2.cls]);
+						if (sub2.el_i >= 0)
+							list.Set(line, 1, src.element_keys[sub2.el_i]);
 						else
 							list.Set(line, 1, Value());
 						line++;
@@ -2044,6 +2044,21 @@ void TextDataDiagnostics::Data() {
 
 
 
+
+SourceTextMergerCtrl::SourceTextMergerCtrl(DatasetProvider& o) : o(o) {
+	
+}
+
+void SourceTextMergerCtrl::Data() {
+	
+}
+
+
+
+
+
+
+
 SourceTextCtrl::SourceTextCtrl() :
 	tk(*this),
 	src(*this),
@@ -2055,7 +2070,8 @@ SourceTextCtrl::SourceTextCtrl() :
 	vpa2(*this),
 	aap(*this),
 	att(*this),
-	diag(*this)
+	diag(*this),
+	merger(*this)
 {
 	data_type.Add("Source");
 	data_type.Add("Analyzed");
@@ -2069,6 +2085,7 @@ SourceTextCtrl::SourceTextCtrl() :
 	data_type.Add("Action Attrs Page");
 	data_type.Add("Attributes");
 	data_type.Add("Text Data Diagnostics");
+	data_type.Add("Merger");
 	data_type.SetIndex(0);
 	data_type.WhenAction << THISBACK(SetDataCtrl);
 	PostCallback(THISBACK(SetDataCtrl));
@@ -2096,6 +2113,7 @@ void SourceTextCtrl::SetDataCtrl() {
 	RemoveChild(&aap);
 	RemoveChild(&att);
 	RemoveChild(&diag);
+	RemoveChild(&merger);
 	
 	int idx = data_type.GetIndex();
 	switch (idx) {
@@ -2111,6 +2129,7 @@ void SourceTextCtrl::SetDataCtrl() {
 		case 9: Add(aap.SizePos()); break;
 		case 10: Add(att.SizePos()); break;
 		case 11: Add(diag.SizePos()); break;
+		case 12: Add(merger.SizePos()); break;
 	}
 	Data();
 }
@@ -2130,6 +2149,7 @@ void SourceTextCtrl::Data() {
 		case 9: aap.Data(); break;
 		case 10: att.Data(); break;
 		case 11: diag.Data(); break;
+		case 12: merger.Data(); break;
 	}
 }
 
@@ -2189,6 +2209,7 @@ void SourceTextCtrl::Do(int fn) {
 		case 9: DoT<ActionAttrsProcess>(fn); break; // aap
 		case 10: DoT<AttributesProcess>(fn); break; // att
 		case 11: break; // diag
+		case 12: DoT<MergeProcess>(fn); break;
 		default: break;
 	}
 }

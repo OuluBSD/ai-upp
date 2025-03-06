@@ -70,7 +70,7 @@ class ScriptStructureSolverBase {
 public:
 	struct MetaSection : Moveable<MetaSection> {
 		Vector<int> sections;
-		int type = -1;
+		TextPartType type = TXT_INVALID;
 		int num = -1;
 		int count = 0;
 	};

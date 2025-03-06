@@ -94,7 +94,14 @@ public:
 	T&       GetAdd(K&& k)                          { return GetAdd_(pick(k)); }
 	T&       GetAdd(K&& k, const T& x)              { return GetAdd_(pick(k), x); }
 	T&       GetAdd(K&& k, T&& x)                   { return GetAdd_(pick(k), pick(x)); }
-
+	
+	T& GetAdd(const K& k, int& pos) {
+		pos = Find(k);
+		if (pos >= 0) return value[pos];
+		pos = value.GetCount();
+		return Add(k);
+	}
+	
 	T&       GetPut(const K& k)                     { return GetPut_(k); }
 	T&       GetPut(const K& k, const T& x)         { return GetPut_(k, x); }
 	T&       GetPut(const K& k, T&& x)              { return GetPut_(k, pick(x)); }

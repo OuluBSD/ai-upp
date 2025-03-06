@@ -14,8 +14,10 @@ public:
 		// 2
 		PHASE_ANALYZE_PUBLIC_FIGURE,
 		PHASE_ANALYZE_ELEMENTS,
-		// 3
+		// 3.0
 		PHASE_WORD_CLASSES,
+		// 3.1
+		PHASE_COUNT_WORDS,
 		// 4
 		PHASE_AMBIGUOUS_WORD_PAIRS,
 		// 5
@@ -78,8 +80,10 @@ public:
 	// 2
 	void AnalyzePublicFigure();
 	void AnalyzeElements();
-	// 3
+	// 3.0
 	void WordClasses();
+	// 3.1
+	void CountWords();
 	// 4
 	void AmbiguousWordPairs();
 	// 5

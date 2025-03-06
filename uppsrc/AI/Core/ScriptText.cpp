@@ -47,6 +47,9 @@ void ScriptTextProcess::DoPhase()
 	else if(IsPhase(PHASE_WORD_CLASSES)) {
 		WordClasses();
 	}
+	else if(IsPhase(PHASE_COUNT_WORDS)) {
+		CountWords();
+	}
 	else if(IsPhase(PHASE_AMBIGUOUS_WORD_PAIRS)) {
 		AmbiguousWordPairs();
 	}
@@ -505,6 +508,37 @@ void ScriptTextProcess::AnalyzeElements()
 	});
 }
 
+void ScriptTextProcess::CountWords()
+{
+	PROCESS_ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	
+	if (1) {
+		for (auto it : ~src.words)
+			it.value.count = 0;
+	}
+	
+	for(auto script : ~src.scripts) {
+		for(auto& part : script.value.parts) {
+			for(auto& sub0 : part.sub) {
+				for(auto& sub1 : sub0.sub) {
+					for (int tt_i : sub1.token_texts) {
+						TokenText& tt = src.token_texts[tt_i];
+						for (int tk_i : tt.tokens) {
+							int wrd_i = src.tokens[tk_i].word_;
+							PROCESS_ASSERT(wrd_i >= 0);
+							if (wrd_i >= 0)
+								src.words[wrd_i].count++;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	NextPhase();
+}
+
 void ScriptTextProcess::WordClasses()
 {
 	PROCESS_ASSERT(p.srctxt);
@@ -571,6 +605,9 @@ void ScriptTextProcess::WordClasses()
 
 			int wrd_i = -1;
 			ExportWord& wrd = MapGetAdd(src.words, result_word, wrd_i);
+			if (tk.word_ < 0) {
+				tk.word_ = wrd_i;
+			}
 			ValueArray classes = word_classes[i];
 			for(int j = 0; j < classes.GetCount(); j++) {
 				String cls = classes[j].ToString();
@@ -705,6 +742,7 @@ void ScriptTextProcess::ImportTokenTexts()
 					key = ToLower(src.tokens.GetKey(tk_i));
 					w_i = src.words.Find(key);
 				}
+				PROCESS_ASSERT(w_i >= 0);
 				tk.word_ = w_i;
 			}
 			word_is << w_i;
@@ -822,36 +860,27 @@ void ScriptTextProcess::ClassifySentences()
 			continue;
 
 		if(iter >= begin && iter < end) {
-			String s;
+			ValueArray arr;
 			int punct_count = 0;
 			bool fail = false;
 			for(int j = 0; j < vpp.word_classes.GetCount(); j++) {
-				if(j)
-					s << ",";
 				int wc_i = vpp.word_classes[j];
 				if(wc_i >= src.word_classes.GetCount()) {
 					fail = true;
 					break;
 				}
 				String wc = src.word_classes[wc_i];
-
-				int a = wc.Find("(");
-				if(a >= 0)
-					wc = wc.Left(a);
-				a = wc.Find(",");
-				if(a >= 0)
-					wc = wc.Left(a);
-
+				
 				if(wc.Find("punctuation") >= 0)
 					punct_count++;
-
-				s << wc;
+				
+				arr.Add(wc);
 			}
-
+			
 			if(punct_count > 8 || fail)
 				continue;
-
-			classified_sentences << s;
+			
+			classified_sentences.Add(arr);
 			tmp_vpp_ptrs << &vpp;
 		}
 		else if(iter >= end)
@@ -978,7 +1007,7 @@ void ScriptTextProcess::VirtualPhraseParts()
 		NextPhase();
 		return;
 	}
-	params("classified_sentences") = sents;
+	args.params("classified_sentences") = sents;
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
@@ -1035,8 +1064,8 @@ void ScriptTextProcess::VirtualPhraseStructs()
 	Vector<int> word_is, word_classes;
 	int i = batch;
 	{
-		const TokenText& txt = src.token_texts[i];
-		if(txt.virtual_phrase < 0) {
+		const TokenText& tt = src.token_texts[i];
+		if(tt.virtual_phrase < 0) {
 			NextBatch();
 			return;
 		}
@@ -1045,10 +1074,11 @@ void ScriptTextProcess::VirtualPhraseStructs()
 		bool succ = true;
 		word_is.SetCount(0);
 		word_classes.SetCount(0);
-		for(int tk_i : txt.tokens) {
+		for(int tk_i : tt.tokens) {
 			const Token& tk = src.tokens[tk_i];
 			int w_i = tk.word_;
-			if(w_i < 0) {
+			PROCESS_ASSERT(w_i >= 0);
+			/*if(w_i < 0) {
 				String key = src.tokens.GetKey(tk_i);
 				w_i = src.words.Find(key);
 				if(w_i < 0) {
@@ -1056,11 +1086,11 @@ void ScriptTextProcess::VirtualPhraseStructs()
 					w_i = src.words.Find(key);
 				}
 				tk.word_ = w_i;
-			}
+			}*/
 			word_is << w_i;
 		}
 
-		const VirtualPhrase& vp = src.virtual_phrases[txt.virtual_phrase];
+		const VirtualPhrase& vp = src.virtual_phrases[tt.virtual_phrase];
 		if(word_is.GetCount() != vp.word_classes.GetCount()) {
 			NextBatch();
 			return;
@@ -1654,7 +1684,7 @@ void ScriptTextProcess::Prepare(TaskFn fn)
 		NextPhase();
 		return; // ready
 	}
-	params("actions") = actions;
+	args.params("actions") = actions;
 }
 
 void ScriptTextProcess::Colors()

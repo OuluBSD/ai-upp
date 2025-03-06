@@ -39,6 +39,7 @@ class ScriptTextDebuggerPage : public ParentCtrl {
 	ArrayCtrl token_texts, virtual_phrases, virtual_phrase_parts, virtual_phrase_structs;
 	ArrayCtrl phrase_parts, struct_part_types, struct_types, simple_attrs;
 	ArrayCtrl element_keys, attrs, actions;
+	ArrayCtrl parallel, trans, action_phrases, wordnets;
 public:
 	typedef ScriptTextDebuggerPage CLASSNAME;
 	ScriptTextDebuggerPage(DatasetProvider& o);

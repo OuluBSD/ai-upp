@@ -168,6 +168,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 	Vector<int> typecasts;
 	Vector<int> contrasts;
 	int scores[SCORE_COUNT] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	byte lang = 0xFF;
 
 	bool HasScores() const
 	{
@@ -189,6 +190,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 			("contrasts", contrasts);
 		for(int i = 0; i < SCORE_COUNT; i++)
 			v("s" + IntStr(i), scores[i]);
+		v(2)("lang", lang);
 	}
 	void Serialize(Stream& s)
 	{
@@ -466,6 +468,63 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	double GetNormalScore() const;
 };
 
+#define CONTEXTLIST \
+	CTX(0,CREATIVITY, Creativity, "Is the context focused on originality and expression?") \
+	CTX(1,TECHNICALITY, Technicality, "Is there an emphasis on technical precision or functionality?") \
+	CTX(2,EMOTIONALITY, Emotionality, " Does the context evoke emotions or aim to connect on an emotional level?") \
+	CTX(3,EFFICIENCY, Efficiency, "Is the context concerned with optimization and performance?") \
+	CTX(4,COLLABORATIVE, Collaborative, "Does the context involve teamwork or community involvement?") \
+	CTX(5,STABILITY, Stability, "Is there a focus on reliability and consistency?") \
+	CTX(6,INNOVATIVE, Innovative, "Is there an intention to introduce new ideas or techniques?") \
+	CTX(7,EXPERIMENTAL, Experimental, "Is the context about trial and error or trying unproven methods?")
+
+struct ContextType : Moveable<ContextType> {
+	byte value = 0;
+	
+	typedef enum {
+		#define CTX(a,b,c,d) b,
+		CONTEXTLIST
+		#undef CTX
+		CTX_COUNT
+	} Feature;
+	
+	typedef enum {
+		#define CTX(a,b,c,d) b##_BIT = 1 << a,
+		CONTEXTLIST
+		#undef CTX
+	} Bit;
+	
+	static ContextType Lyrical();
+	static ContextType Programming();
+};
+
+struct ContextData : Moveable<ContextData> {
+	String name;
+	Index<String> typeclasses;
+	Vector<String> contents;
+	Vector<String> part_names;
+	Vector<Vector<String>> parts;
+	VectorMap<String,Vector<Vector<String>>> typeclass_entities; // e.g. "safe female" > hardcoded typeclass enum > "Alanis Moarriset"
+	
+};
+
+struct WordTranslation : Moveable<WordTranslation> {
+	byte lang = 0xFF;
+	String text;
+	WString spelling;
+};
+
+struct WordData : Moveable<WordData> {
+	static const int MAX_CLASS_COUNT = 8;
+	
+	Vector<WordTranslation> translations;
+	int count = 0;
+	Color clr;
+	byte class_count = 0;
+	byte classes[MAX_CLASS_COUNT];
+	
+};
+
 struct SrcTextData : EntityData {
 	String filepath;
 	
@@ -494,11 +553,11 @@ struct SrcTextData : EntityData {
 	VectorMap<AttrHeader, ExportAttr> attrs;
 	VectorMap<ActionHeader, ExportAction> actions;
 	
-	// UNUSED ???
-	VectorMap<int, VectorMap<int, ExportParallel>> parallel; // TODO make these work again?
-	VectorMap<int, VectorMap<int, ExportTransition>> trans;
-	VectorMap<String, ExportDepActionPhrase> action_phrases;
+	// TRANSITION VALUES
 	VectorMap<hash_t, ExportWordnet> wordnets;
+	VectorMap<String, ExportDepActionPhrase> action_phrases;
+	VectorMap<int, VectorMap<int, ExportTransition>> trans;
+	VectorMap<int, VectorMap<int, ExportParallel>> parallel;
 	
 	// DIAGNOSTICS
 	VectorMap<String, String> diagnostics;
@@ -516,7 +575,35 @@ struct SrcTextData : EntityData {
 		String name;
 	} ctx;
 	dword lang = LNG_enUS;
+	
+	// ????
 	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT];
+	
+	// NEXT VERSION
+	/* note:
+			make guis: parallel, trans, action_phrases, wordnets...
+			remove:
+					words
+					ctx
+					lang
+					attrs, actions
+					tokens
+			convert:
+					map ExportWord -> vector WordData
+					transition values...
+					AttrHeader -> AttrIdx
+						--> use new AttrText vector for attribute strings (bc clr etc.)
+					ActionHeader -> ActionIdx
+						--> use new ActionText vector for action strings (bc clr etc.)
+					element_keys->
+						---> use ElementText for element strings (bc clr etc.)
+			add:
+					temporary tokens (token to multiple words/langs)
+	*/
+	ArrayMap<ContextType, ContextData> ctxs;
+	Vector<WordData> words_;
+	VectorMap<String, VectorMap<hash_t,int>> langwords;
+	
 	
 	const Vector<ContentType>& GetContents() {return ctx.content.labels;}
 	const Vector<String>& GetContentParts() {return ctx.content.parts;}

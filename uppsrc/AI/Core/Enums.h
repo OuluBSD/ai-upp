@@ -795,6 +795,8 @@ enum {
 
 	PART_COUNT
 };
+
+// TODO: Remove
 struct ContentType : Moveable<ContentType> {
 	String key, parts[PART_COUNT];
 

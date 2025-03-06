@@ -24,8 +24,10 @@ void SolverBase::Process() {
 	
 	if (!Thread::IsShutdownThreads()) {
 		WhenStopped();
-		if (!last_error.IsEmpty())
+		if (!last_error.IsEmpty()) {
 			WhenError(last_error);
+			SetWaiting(0);
+		}
 	}
 }
 

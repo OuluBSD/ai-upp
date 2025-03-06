@@ -69,8 +69,7 @@ public:
 	template <class T>
 	void DoT(int fn)
 	{
-		DatasetPtrs p;
-		TODO
+		DatasetPtrs p = GetDataset();
 		T& sdi = T::Get(p);
 		prog.Attach(sdi);
 		sdi.WhenRemaining <<

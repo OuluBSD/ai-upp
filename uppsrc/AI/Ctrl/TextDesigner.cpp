@@ -95,7 +95,7 @@ DatasetPtrs ToolAppCtrl::GetDataset() const {
 	DatasetPtrs p;
 	MetaNode* n = GetFileNode();
 	if (n)
-		FillDataset(p, *n, 0);
+		FillDataset(p, *n, dynamic_cast<Component*>(const_cast<ToolAppCtrl*>(this)));
 	return p;
 }
 

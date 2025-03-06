@@ -3,16 +3,6 @@
 
 NAMESPACE_UPP
 
-// TODO rename LYRICPART_
-typedef enum : int {
-	TXT_NORMAL,
-	TXT_PRE_REPEAT,
-	TXT_REPEAT,
-	TXT_TWIST,
-	TXT_NULL,
-
-	TXT_COUNT
-} TextPartType;
 
 String GetTextTypeString(int i);
 void ParseTextPartType(String part_name, TextPartType& text_type, int& text_num);

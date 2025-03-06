@@ -3,6 +3,21 @@
 
 NAMESPACE_UPP
 
+typedef int ContentIdx;
+inline int GetContentMain(ContentIdx i) {return i / 3;}
+inline int GetContentSub(ContentIdx i) {return i % 3;}
+
+typedef enum : int {
+	TXT_INVALID = -1,
+	TXT_NORMAL,
+	TXT_PRE_REPEAT,
+	TXT_REPEAT,
+	TXT_TWIST,
+	TXT_NULL,
+
+	TXT_COUNT
+} TextPartType;
+
 #if 0
 // TODO remove EditorPtrs & use DatasetPtrs
 struct Script;
@@ -41,9 +56,14 @@ struct Token : Moveable<Token> {
 struct TokenText : Moveable<TokenText> {
 	Vector<int> tokens;
 	int virtual_phrase = -1;
+	int phrase_part = -1;
 
 	void Serialize(Stream& d) { d % tokens / virtual_phrase; }
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("t",tokens)("vp", virtual_phrase);}
+	void Visit(NodeVisitor& v) {
+		v.Ver(2)
+		(1)("t",tokens)("vp", virtual_phrase)
+		(2)("pp",phrase_part);
+	}
 };
 
 struct ExportWord : Moveable<ExportWord> {
@@ -55,7 +75,7 @@ struct ExportWord : Moveable<ExportWord> {
 	Color clr;
 	int class_count = 0;
 	int classes[MAX_CLASS_COUNT];
-	int link = -1;
+	int link = -1; // TODO Remove
 
 	void Serialize(Stream& s)
 	{
@@ -386,52 +406,68 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 	struct SubSubPart : Moveable<SubSubPart> {
 		Vector<int> token_texts;
-		int cls = -1;
+		int el_i = -1;
 
 		SubSubPart() {}
 		SubSubPart(const SubSubPart& s) { *this = s; }
-		void Serialize(Stream& s) { s % token_texts % cls; }
-		void Visit(NodeVisitor& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", cls); }
+		void Serialize(Stream& s) { s % token_texts % el_i; }
+		void Visit(NodeVisitor& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", el_i); }
 		void operator=(const SubSubPart& s)
 		{
 			token_texts <<= s.token_texts;
-			cls = s.cls;
+			el_i = s.el_i;
 		}
 	};
 	struct SubPart : Moveable<SubPart> {
 		Vector<SubSubPart> sub;
-		int cls = -1;
-		int repeat = 0; // TODO: should be 'double', but old db from TextTool has int (rewrite dbs)
+		int el_i = -1;
+		int repeat = 0; // TODO remove (see below)
+		double repeat_ = 0;
 
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
-		void Serialize(Stream& s) { s % sub % cls % repeat; }
-		void Visit(NodeVisitor& json) { json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("cls", cls)("repeat", repeat); }
+		// TODO remove Serialize and int repeat
+		void Serialize(Stream& s) { s % sub % el_i % repeat; if (s.IsLoading() && repeat && !repeat_) repeat_ = repeat;}
+		void Visit(NodeVisitor& json) {
+			if (json.IsLoading() && json.file_ver == 1) {
+				int repeat;
+				json.Ver(1)
+				(1)("sub", sub, VISIT_VECTOR)("cls", el_i)("repeat", repeat);
+				repeat_ = repeat;
+			}
+			else {
+				json.Ver(2)
+				(2)("sub", sub, VISIT_VECTOR)("el_i", el_i)("repeat", repeat_);
+				if (json.IsLoading()) repeat = repeat_;
+			}
+		}
 		void operator=(const SubPart& s)
 		{
 			sub <<= s.sub;
-			cls = s.cls;
+			el_i = s.el_i;
 			repeat = s.repeat;
+			repeat_ = s.repeat_;
 		}
 	};
 	struct Part : Moveable<Part> {
 		Vector<SubPart> sub;
-		int type = -1;
+		TextPartType type = TXT_INVALID;
 		int num = -1;
-		int cls = -1, typeclass = -1, content = -1;
+		int el_i = -1, typeclass = -1;
+		ContentIdx content = -1;
 
 		Part() {}
 		Part(const Part& p) { *this = p; }
 		void Serialize(Stream& s) {
 			s % sub;	ASSERT(!s.IsError());
-			s % type;	ASSERT(!s.IsError());
+			s % (int&)type;	ASSERT(!s.IsError());
 			s % num;	ASSERT(!s.IsError());
-			s % cls % typeclass % content;
+			s % el_i % typeclass % content;
 			ASSERT(!s.IsError());
 		}
 		void Visit(NodeVisitor& json)
 		{
-			json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("type", type)("num", num)("cls", cls)("tc", typeclass)("c",
+			json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("type", (int&)type)("num", num)("cls", el_i)("tc", typeclass)("c",
 			                                                                        content);
 		}
 		void operator=(const Part& s)
@@ -439,7 +475,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 			sub <<= s.sub;
 			type = s.type;
 			num = s.num;
-			cls = s.cls;
+			el_i = s.el_i;
 			typeclass = s.typeclass;
 			content = s.content;
 		}
@@ -452,13 +488,13 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	bool HasAnyClasses() const
 	{
 		for(const auto& p : parts) {
-			if(p.cls >= 0)
+			if(p.el_i >= 0)
 				return true;
 			for(const auto& s : p.sub) {
-				if(s.cls >= 0)
+				if(s.el_i >= 0)
 					return true;
 				for(const auto& ss : s.sub) {
-					if(ss.cls >= 0)
+					if(ss.el_i >= 0)
 						return true;
 				}
 			}

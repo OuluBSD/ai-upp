@@ -2,9 +2,6 @@
 
 NAMESPACE_UPP
 
-#define PROCESS_ASSERT(x)  if (!(x)) {SetError("assert failed: " #x); SetNotRunning(); RLOG("ScriptTextProcess: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " #x); SetWaiting(0); return;}
-#define PROCESS_ASSERT_CMP(a,b)  if (!(a == b)) {String s = #a " == " #b": " + IntStr(a) + " != " + IntStr(b); SetError("assert failed: " + s); SetNotRunning(); RLOG("ScriptTextProcess: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " << s); SetWaiting(0); return;}
-
 ScriptTextProcess::ScriptTextProcess() {}
 
 int ScriptTextProcess::GetPhaseCount() const { return PHASE_COUNT; }
@@ -175,7 +172,7 @@ void ScriptTextProcess::Tokenize()
 				part = &ss.parts.Add();
 				subpart = &part->sub.Add();
 				ssubpart = &subpart->sub.Add();
-				part->type = -1;
+				part->type = TXT_INVALID;
 				part->num = -1;
 				subpart->repeat = 0;
 				ssub_line_i = 0;
@@ -444,7 +441,7 @@ void ScriptTextProcess::AnalyzeElements()
 		return;
 	}
 	ScriptStruct& ss = src.scripts[batch];
-	if(ss.parts.GetCount() && ss.parts[0].cls >= 0) {
+	if(ss.parts.GetCount() && ss.parts[0].el_i >= 0) {
 		NextBatch();
 		return;
 	}
@@ -497,7 +494,7 @@ void ScriptTextProcess::AnalyzeElements()
 					String val = arr1[pos++].ToString();
 					if(!val.IsEmpty()) {
 						int el_i = src.element_keys.FindAdd(val);
-						ss.cls = el_i;
+						ss.el_i = el_i;
 					}
 				}
 			}

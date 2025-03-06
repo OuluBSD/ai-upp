@@ -411,7 +411,7 @@ void TryStrDistSectionSolverBase::MakeMetaSections() {
 	
 	meta_sections.Clear();
 	
-	int prev_type = -1;
+	TextPartType prev_type = TXT_INVALID;
 	int prev_section = -1;
 	int meta_sect = -1;
 	int type_counts[TXT_COUNT];
@@ -425,7 +425,7 @@ void TryStrDistSectionSolverBase::MakeMetaSections() {
 			Section& sect = sections[line.section];
 			Section* next_sect = next_line ? &sections[next_line->section] : 0;
 			
-			int type = -1;
+			TextPartType type = TXT_INVALID;
 			if (sect.flag_repeating || sect.repeat > 0.666) {
 				type = TXT_REPEAT;
 			}

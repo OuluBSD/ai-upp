@@ -253,6 +253,16 @@ public:
 	void Data();
 };
 
+class SourceTextMergerCtrl : public ParentCtrl {
+	DatasetProvider& o;
+	
+public:
+	typedef SourceTextMergerCtrl CLASSNAME;
+	SourceTextMergerCtrl(DatasetProvider& o);
+	
+	void Data();
+};
+
 class SourceTextCtrl : public ToolAppCtrl {
 	DropList				data_type;
 	AuthorDataCtrl			src;
@@ -266,6 +276,7 @@ class SourceTextCtrl : public ToolAppCtrl {
 	ActionAttrsPage			aap;
 	Attributes				att;
 	TextDataDiagnostics		diag;
+	SourceTextMergerCtrl	merger;
 	
 	void Load();
 public:

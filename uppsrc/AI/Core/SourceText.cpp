@@ -3660,23 +3660,21 @@ void MergeProcess::DoPhase() {
 	else if (phase == PHASE_TRANSFER_AMBIGUOUS_WORDS) {
 		TransferAmbiguous();
 	}
+	else if (phase == PHASE_TRANSFER_CONTEXT) {
+		TransferContext();
+	}
+	else if (phase == PHASE_TRANSFER_COUNT) {
+		CountValues();
+	}
 	else {
-		// Transfer typeclasses (idx is kept)
-		
-		
-		// Transfer contents (idx is kept)
-		
-		
-		// Count: vpp, etc.?
-		
-		
-		// Compare counts d0 vs d1 : loss percentage
-		
-		
 		// Maybe transfer rest of the phrase parts anyway?
 		
 		
 		// Convert old classes to new (e.g. attrs, actions)
+		
+		
+		// Compare counts d0 vs d1 : loss percentage
+		
 		
 		NextPhase();
 	}
@@ -4130,7 +4128,59 @@ void MergeProcess::TransferAmbiguous() {
 	NextPhase();
 }
 
-MergeProcess& MergeProcess::Get(DatasetPtrs p, String language) {
+void MergeProcess::TransferContext() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	ASSERT(d0.ctx.typeclass.labels.GetCount() == TYPECAST_COUNT);
+	
+	ContextType ctxtype;
+	if (context_str == "lyrical")
+		ctxtype = ContextType::Lyrical();
+	else
+		TODO;
+	ContextData& data = d1.ctxs.GetAdd(ctxtype);
+	data.name = context_str;
+	data.part_names <<= d0.ctx.content.parts;
+	DUMPC(d0.ctx.content.parts);
+	
+	data.typeclasses.Clear();
+	data.contents.Clear();
+	data.parts.Clear();
+	
+	for (String s : d0.ctx.typeclass.labels)
+		data.typeclasses << s;
+	
+	for(int i = 0; i < d0.ctx.content.labels.GetCount(); i++) {
+		const ContentType& con = d0.ctx.content.labels[i];
+		data.contents << con.key;
+		auto& v = data.parts.Add();
+		for(int j = 0; j < 3; j++)
+			v << con.parts[j];
+	}
+	
+	NextPhase();
+}
+
+void MergeProcess::CountValues() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	// Zero
+	for (auto it : ~d1.words)
+		it.value.count = 0;
+	for (auto it : ~d1.virtual_phrase_parts)
+		it.value.count = 0;
+	
+	for (auto it : ~d1.tokens)
+		d1.words[it.value.word_].count++;
+	for (auto it : ~d1.virtual_phrase_structs)
+		for (auto vpp_i : it.value.virtual_phrase_parts)
+			d1.virtual_phrase_parts[vpp_i].count++;
+	
+}
+
+MergeProcess& MergeProcess::Get(DatasetPtrs p, String language, String ctx) {
 	static ArrayMap<String, MergeProcess> arr;
 	ASSERT(p.src);
 	language = ToLower(language);
@@ -4139,6 +4189,7 @@ MergeProcess& MergeProcess::Get(DatasetPtrs p, String language) {
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
 	ts.language_str = language;
+	ts.context_str = ctx;
 	return ts;
 }
 

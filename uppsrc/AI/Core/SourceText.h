@@ -417,8 +417,10 @@ public:
 
 class MergeProcess : public SolverBase {
 	
-	void TransferScripts();
+	void TransferContext();
 	void TransferAmbiguous();
+	void TransferScripts();
+	void CountValues();
 	
 	int TransferElement(int el_i0);
 	int TransferTypeclass(int tc_i0);
@@ -447,8 +449,10 @@ class MergeProcess : public SolverBase {
 public:
 	enum {
 		PHASE_RESET,
-		PHASE_TRANSFER_SCRIPTS,
+		PHASE_TRANSFER_CONTEXT,
 		PHASE_TRANSFER_AMBIGUOUS_WORDS,
+		PHASE_TRANSFER_SCRIPTS,
+		PHASE_TRANSFER_COUNT,
 		
 		PHASE_COUNT
 	};
@@ -460,10 +464,11 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static MergeProcess& Get(DatasetPtrs p, String language="english");
+	static MergeProcess& Get(DatasetPtrs p, String language="english", String ctx="lyrical");
 	
 	One<SrcTextData> target;
 	String language_str;
+	String context_str;
 	
 };
 

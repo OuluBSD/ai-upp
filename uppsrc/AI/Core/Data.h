@@ -543,11 +543,14 @@ struct ContextType : Moveable<ContextType> {
 	
 	static ContextType Lyrical();
 	static ContextType Programming();
+	bool operator==(const ContextType& t) const {return value;}
+	hash_t GetHashValue() const {return value;}
+	
 };
 
 struct ContextData : Moveable<ContextData> {
 	String name;
-	Index<String> typeclasses;
+	Vector<String> typeclasses;
 	Vector<String> contents;
 	Vector<String> part_names;
 	Vector<Vector<String>> parts;

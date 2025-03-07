@@ -64,6 +64,8 @@ struct TokenText : Moveable<TokenText> {
 		(1)("t",tokens)("vp", virtual_phrase)
 		(2)("pp",phrase_part);
 	}
+	static hash_t GetHash(const Vector<int>& tokens) {CombineHash c; for (int tk : tokens) c.Do(tk); return c;}
+	hash_t GetHashValue() const {return GetHash(tokens);}
 };
 
 struct ExportWord : Moveable<ExportWord> {
@@ -76,7 +78,8 @@ struct ExportWord : Moveable<ExportWord> {
 	int class_count = 0;
 	int classes[MAX_CLASS_COUNT];
 	int link = -1; // TODO Remove
-
+	byte lang = 0xFF;
+	
 	void Serialize(Stream& s)
 	{
 		s / spelling / phonetic / count / clr / class_count;
@@ -84,7 +87,7 @@ struct ExportWord : Moveable<ExportWord> {
 		s / link;
 	}
 	void Visit(NodeVisitor& v) {
-		v.Ver(1)
+		v.Ver(2)
 		(1)	("spelling", spelling)
 			("phonetic", phonetic)
 			("count", count)
@@ -94,6 +97,7 @@ struct ExportWord : Moveable<ExportWord> {
 			v("cls" + IntStr(i), classes[i]);
 		}
 		v("link", link);
+		v(2)("lang",lang);
 	}
 
 	void CopyFrom(const ExportWord& wa, bool reset)
@@ -135,13 +139,14 @@ struct VirtualPhrase : Moveable<VirtualPhrase> {
 	void Serialize(Stream& d) { d % word_classes / virtual_phrase_struct; }
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("vps",virtual_phrase_struct);}
 	
-	hash_t GetHashValue() const
+	static hash_t GetHash(const Vector<int>& word_classes)
 	{
 		CombineHash c;
 		for(int wc_i : word_classes)
-			c.Do(wc_i).Put(1);
+			c.Do(wc_i);
 		return c;
 	}
+	hash_t GetHashValue() const {return GetHash(word_classes);}
 };
 
 struct VirtualPhrasePart : Moveable<VirtualPhrasePart> {
@@ -152,13 +157,14 @@ struct VirtualPhrasePart : Moveable<VirtualPhrasePart> {
 	void Serialize(Stream& d) { d % word_classes / struct_part_type / count;}
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("spt",struct_part_type)("c",count);}
 
-	hash_t GetHashValue() const
+	static hash_t GetHash(const Vector<int>& word_classes)
 	{
 		CombineHash c;
 		for(int wc_i : word_classes)
 			c.Do(wc_i).Put(1);
 		return c;
 	}
+	hash_t GetHashValue() const {return GetHash(word_classes);}
 };
 
 struct VirtualPhraseStruct : Moveable<VirtualPhraseStruct> {
@@ -168,12 +174,16 @@ struct VirtualPhraseStruct : Moveable<VirtualPhraseStruct> {
 	void Serialize(Stream& d) { d % virtual_phrase_parts / struct_type; }
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("vps",virtual_phrase_parts)("st",struct_type);}
 
-	hash_t GetHashValue() const
+	static hash_t GetHash(const Vector<int>& virtual_phrase_parts)
 	{
 		CombineHash c;
 		for(int part : virtual_phrase_parts)
 			c.Do(part).Put(1);
 		return c;
+	}
+	hash_t GetHashValue() const
+	{
+		return GetHash(virtual_phrase_parts);
 	}
 };
 
@@ -217,13 +227,14 @@ struct PhrasePart : Moveable<PhrasePart> {
 		s % words / tt_i / virtual_phrase_part / attr / el_i / clr % actions % typecasts % contrasts;
 		for(int i = 0; i < SCORE_COUNT; i++) s / scores[i];
 	}
-	hash_t GetHashValue() const
+	static hash_t GetHash(const Vector<int>& words)
 	{
 		CombineHash c;
 		for(int w_i : words)
 			c.Do(w_i).Put(1);
 		return c;
 	}
+	hash_t GetHashValue() const {return GetHash(words);}
 };
 
 struct ScriptSuggestion : Moveable<ScriptSuggestion> {

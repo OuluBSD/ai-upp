@@ -757,10 +757,7 @@ void ScriptTextProcess::ImportTokenTexts()
 			succ = false;
 
 		if(succ) {
-			CombineHash ch;
-			for(int wc_i : word_classes)
-				ch.Do(wc_i);
-			hash_t h = ch;
+			hash_t h = VirtualPhrase::GetHash(word_classes);
 
 			int vp_i = -1;
 			VirtualPhrase& vp = MapGetAdd(src.virtual_phrases, h, vp_i);
@@ -811,10 +808,7 @@ void ScriptTextProcess::ImportTokenTexts()
 		CombineHash struct_ch;
 		Vector<int> vpp_is;
 		for(const Vector<int>& tmp : tmps) {
-			CombineHash ch;
-			for(int type : tmp)
-				ch.Do(type).Put(1);
-			hash_t h = ch;
+			hash_t h = VirtualPhrasePart::GetHash(tmp);
 
 			int vpp_i = -1;
 			VirtualPhrasePart& vpp = MapGetAdd(src.virtual_phrase_parts, h, vpp_i);

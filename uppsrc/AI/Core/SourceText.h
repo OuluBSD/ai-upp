@@ -418,6 +418,8 @@ public:
 class MergeProcess : public SolverBase {
 	
 	void TransferScripts();
+	void TransferAmbiguous();
+	
 	int TransferElement(int el_i0);
 	int TransferTypeclass(int tc_i0);
 	int TransferTokenText(int tt_i0);
@@ -430,7 +432,7 @@ class MergeProcess : public SolverBase {
 	int TransferStructType(int st_i0);
 	int TransferVirtualPhrasePart(int vpp_i0);
 	int TransferStructPartType(int spt_i0);
-	int TransferPhrasePart(int pp_i0);
+	int TransferPhrasePart(int pp_i0, const TokenText* tt0);
 	int TransferAttribute(int attr_i0);
 	int TransferAction(int act_i0);
 	int TransferSimpleAttr(int sa_i0);
@@ -446,6 +448,7 @@ public:
 	enum {
 		PHASE_RESET,
 		PHASE_TRANSFER_SCRIPTS,
+		PHASE_TRANSFER_AMBIGUOUS_WORDS,
 		
 		PHASE_COUNT
 	};
@@ -457,9 +460,10 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static MergeProcess& Get(DatasetPtrs p);
+	static MergeProcess& Get(DatasetPtrs p, String language="english");
 	
 	One<SrcTextData> target;
+	String language_str;
 	
 };
 

@@ -2046,6 +2046,8 @@ void TextDataDiagnostics::Data() {
 
 
 SourceTextMergerCtrl::SourceTextMergerCtrl(DatasetProvider& o) : o(o) {
+	CtrlLayout(ctrl);
+	Add(ctrl.SizePos());
 	
 }
 

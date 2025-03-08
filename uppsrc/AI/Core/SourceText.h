@@ -420,7 +420,13 @@ class MergeProcess : public SolverBase {
 	void TransferContext();
 	void TransferAmbiguous();
 	void TransferScripts();
+	void TransferOrphanedScripts();
+	void TransferPhraseParts();
+	void TransferWordnets();
+	void TransferActionPhrases();
+	void TransferActionTransitions();
 	void CountValues();
+	void TransferScript(const ScriptStruct& ss0, ScriptStruct& ss1);
 	
 	int TransferElement(int el_i0);
 	int TransferTypeclass(int tc_i0);
@@ -444,6 +450,7 @@ class MergeProcess : public SolverBase {
 	VectorMap<int,int> spt_transfer, pp_transfer, attr_transfer, sa_transfer, act_transfer;
 	String batch_err;
 	byte current_language = 0xFF;
+	ContextType current_ctx;
 	
 	void SetBatchError(String s) {batch_err = s;}
 public:
@@ -452,6 +459,11 @@ public:
 		PHASE_TRANSFER_CONTEXT,
 		PHASE_TRANSFER_AMBIGUOUS_WORDS,
 		PHASE_TRANSFER_SCRIPTS,
+		PHASE_TRANSFER_OPRHANED_SCRIPTS,
+		PHASE_TRANSFER_PHRASE_PARTS,
+		PHASE_TRANSFER_WORDNETS,
+		PHASE_TRANSFER_ACTION_PHRASES,
+		PHASE_TRANSFER_ACTION_TRANSITION,
 		PHASE_TRANSFER_COUNT,
 		
 		PHASE_COUNT

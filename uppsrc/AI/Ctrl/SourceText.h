@@ -255,6 +255,7 @@ public:
 
 class SourceTextMergerCtrl : public ParentCtrl {
 	DatasetProvider& o;
+	WithMergerLayout<Ctrl> ctrl;
 	
 public:
 	typedef SourceTextMergerCtrl CLASSNAME;

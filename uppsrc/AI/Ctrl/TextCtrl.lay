@@ -508,3 +508,16 @@ END_LAYOUT
 LAYOUT(ScriptSpeech, 400, 200)
 END_LAYOUT
 
+LAYOUT(MergerLayout, 400, 164)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Database merger")).HSizePosZ(4, 8).VSizePosZ(4, 8))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Output-path:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(20, 19))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Append:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(44, 19))
+	ITEM(Upp::Option, append, LeftPosZ(100, 56).TopPosZ(44, 20))
+	ITEM(Upp::Label, dv___4, SetLabel(t_("Language:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(68, 19))
+	ITEM(Upp::EditString, language, LeftPosZ(100, 144).TopPosZ(68, 20))
+	ITEM(Upp::Label, dv___6, SetLabel(t_("Context:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(92, 19))
+	ITEM(Upp::EditString, context, LeftPosZ(100, 144).TopPosZ(92, 20))
+	ITEM(Upp::EditString, path, LeftPosZ(100, 284).TopPosZ(20, 19))
+	ITEM(Upp::Button, process, SetLabel(t_("Process")).LeftPosZ(268, 116).TopPosZ(124, 24))
+END_LAYOUT
+

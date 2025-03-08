@@ -47,10 +47,13 @@ struct EditorPtrs {
 #endif
 
 struct Token : Moveable<Token> {
-	mutable int word_ = -1;
+	mutable int word_ = -1; // TODO remove
 
 	void Serialize(Stream& d) { d / word_; }
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("w", word_);}
+	void Visit(NodeVisitor& v) {
+		v.Ver(2)
+		(1)("w", word_);
+	}
 };
 
 struct TokenText : Moveable<TokenText> {
@@ -199,6 +202,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 	Vector<int> contrasts;
 	int scores[SCORE_COUNT] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	byte lang = 0xFF;
+	byte ctx = 0;
 
 	bool HasScores() const
 	{
@@ -220,7 +224,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 			("contrasts", contrasts);
 		for(int i = 0; i < SCORE_COUNT; i++)
 			v("s" + IntStr(i), scores[i]);
-		v(2)("lang", lang);
+		v(2)("lang", lang)("ctx", ctx);
 	}
 	void Serialize(Stream& s)
 	{
@@ -368,6 +372,19 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 		for(int i = 0; i < SCORE_COUNT; i++)
 			v("sc" + IntStr(i), scores[i]);
 	}
+	static hash_t GetHash(const Vector<int>& words)
+	{
+		CombineHash c;
+		for(int w_i : words)
+			c.Do(w_i).Put(1);
+		return c;
+	}
+	hash_t GetHashValue() const {
+		CombineHash c;
+		for(int i = 0; i < word_count; i++)
+			c.Do(words[i]).Put(1);
+		return c;
+	}
 };
 
 struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
@@ -492,9 +509,14 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 		}
 	};
 	Vector<Part> parts;
+	String author, title;
 
 	void Serialize(Stream& s) { s % parts; }
-	void Visit(NodeVisitor& json) { json.Ver(1)(1)("parts", parts, VISIT_VECTOR); }
+	void Visit(NodeVisitor& json) {
+		json.Ver(2)
+		(1)("parts", parts, VISIT_VECTOR)
+		(2)("author", author)("title", title);
+	}
 	
 	bool HasAnyClasses() const
 	{
@@ -549,29 +571,44 @@ struct ContextType : Moveable<ContextType> {
 };
 
 struct ContextData : Moveable<ContextData> {
+	struct Typeclass : Moveable<Typeclass> {
+		String name;
+		Vector<Vector<String>> entities;
+	};
+	struct Content : Moveable<Content> {
+		String name;
+		Vector<String> parts;
+	};
 	String name;
-	Vector<String> typeclasses;
-	Vector<String> contents;
+	Vector<Typeclass> typeclasses;
+	Vector<Content> contents;
 	Vector<String> part_names;
-	Vector<Vector<String>> parts;
-	VectorMap<String,Vector<Vector<String>>> typeclass_entities; // e.g. "safe female" > hardcoded typeclass enum > "Alanis Moarriset"
+	Index<String> entity_groups;
 	
-};
-
-struct WordTranslation : Moveable<WordTranslation> {
-	byte lang = 0xFF;
-	String text;
-	WString spelling;
+	int FindAddEntityGroup(String s);
 };
 
 struct WordData : Moveable<WordData> {
-	static const int MAX_CLASS_COUNT = 8;
-	
-	Vector<WordTranslation> translations;
+	byte lang = 0xFF;
+	String text;
+	String spelling;
 	int count = 0;
 	Color clr;
-	byte class_count = 0;
-	byte classes[MAX_CLASS_COUNT];
+	int word_class = -1;
+	int translation = -1;
+	
+	static hash_t GetHash(byte lang, const String& text, int word_class) {
+		CombineHash ch;
+		ch.Put(lang).Do(text).Do(word_class);
+		return ch;
+	}
+	hash_t GetHashValue() const {return GetHash(lang, text, word_class);}
+};
+
+struct WordTranslation : Moveable<WordTranslation> {
+	static const int MAX_CLASS_COUNT = 8;
+	
+	Vector<int> translations;
 	
 };
 
@@ -639,20 +676,17 @@ struct SrcTextData : EntityData {
 					attrs, actions
 					tokens
 			convert:
-					map ExportWord -> vector WordData
-					transition values...
 					AttrHeader -> AttrIdx
 						--> use new AttrText vector for attribute strings (bc clr etc.)
 					ActionHeader -> ActionIdx
 						--> use new ActionText vector for action strings (bc clr etc.)
 					element_keys->
 						---> use ElementText for element strings (bc clr etc.)
-			add:
-					temporary tokens (token to multiple words/langs)
 	*/
 	ArrayMap<ContextType, ContextData> ctxs;
 	Vector<WordData> words_;
-	VectorMap<String, VectorMap<hash_t,int>> langwords;
+	VectorMap<String, VectorMap<hash_t,VectorMap<int,int>>> langwords;
+	Vector<WordTranslation> translations;
 	
 	
 	const Vector<ContentType>& GetContents() {return ctx.content.labels;}

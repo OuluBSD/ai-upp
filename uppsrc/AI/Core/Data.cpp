@@ -3,6 +3,15 @@
 NAMESPACE_UPP
 
 
+int ContextData::FindAddEntityGroup(String s) {
+	int i = entity_groups.FindAdd(s);
+	for (auto& tc : typeclasses) {
+		if (i >= tc.entities.GetCount())
+			tc.entities.SetCount(i+1);
+	}
+	return i;
+}
+
 ScriptDataset& AuthorDataset::GetAddScript(String title) {
 	for (ScriptDataset& s : scripts)
 		if (s.title == title)

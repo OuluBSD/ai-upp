@@ -108,58 +108,59 @@
 	
 
 #define TYPECAST_LIST \
-	TYPECAST(1, "Creative/Innovative", "Emphasizing originality and new ideas.") \
-	TYPECAST(2, "Efficient/Optimized", "Focused on performance and resourcefulness.") \
-	TYPECAST(3, "Collaborative/Inclusive", "Encouraging teamwork and participation.") \
-	TYPECAST(4, "Experimental/Adventurous", "Willingness to try new approaches.") \
-	TYPECAST(5, "Reliable/Consistent", "Dependable and stable.") \
-	TYPECAST(6, "Scalable/Expandable", "Able to grow and adapt to increasing demands.") \
-	TYPECAST(7, "Immutable/Constant", "Unchanging and steady.") \
-	TYPECAST(8, "Structured/Organized", "Well-planned and systematic.") \
-	TYPECAST(9, "Legacy/Traditional", "Rooted in established practices.") \
-	TYPECAST(10, "Pure/Simple", "Uncomplicated and straightforward.") \
-	TYPECAST(11, "Modular/Component-Based", "Made up of distinct parts that fit together.") \
-	TYPECAST(12, "Reflective/Introspective", "Thoughtful and self-examining.") \
-	TYPECAST(13, "Dynamic/Flexible", "Able to adapt to change.") \
-	TYPECAST(14, "Challenging/Complex", "Involving intricate or difficult elements.") \
-	TYPECAST(15, "Basic/Foundational", "Core and essential elements.") \
-	TYPECAST(16, "User-Friendly/Accessible", "Easy to understand and engage with.") \
-	TYPECAST(17, "Performant/Fast", "Quick and efficient.") \
-	TYPECAST(18, "Lightweight/Minimalist", "Simple and not overbearing.") \
-	TYPECAST(19, "Mysterious/Enigmatic", "Puzzling and intriguing.") \
-	TYPECAST(20, "Clear/Understandable", "Easy to comprehend.") \
-	TYPECAST(21, "Controversial/Debated", "Provoking discussion or disagreement.") \
-	TYPECAST(22, "Compatible/Integrable", "Able to work well with others.") \
-	TYPECAST(23, "Logical/Rational", "Thought through and reasoned.") \
-	TYPECAST(24, "Verbose/Descriptive", "Expressive and detailed.") \
-	TYPECAST(25, "Cross-disciplinary", "Spanning multiple areas or fields.") \
-	TYPECAST(26, "Stable/Secure", "Safe and consistent.") \
-	TYPECAST(27, "Unstable/Fragile", "Prone to change or damage.") \
-	TYPECAST(28, "Forward-Thinking/Future-Oriented", "Looking towards future developments.") \
-	TYPECAST(29, "Intricate/Complicated", "Containing many elements and details.") \
-	TYPECAST(30, "Unique/Unconventional", "Original and different.") \
-	TYPECAST(31, "Sensitive/Responsive", "Quickly reacting to inputs or changes.") \
-	TYPECAST(32, "Inefficient/Laborious", "Requiring more effort or resources than necessary.") \
-	TYPECAST(33, "Customizable/Adaptable", "Easily modified to suit different needs.") \
-	TYPECAST(34, "Portable/Transferrable", "Easily moved or applied in different contexts.") \
-	TYPECAST(35, "Secure/Protected", "Safe and guarded.") \
-	TYPECAST(36, "Standardized/Common", "Widely accepted or used.") \
-	TYPECAST(37, "Authentic/Real", "Genuine and true to original form.") \
-	TYPECAST(38, "Encapsulated/Contained", "Self-contained and separate.") \
-	TYPECAST(39, "Spontaneous/Unplanned", "Arising without premeditation.") \
-	TYPECAST(40, "Smooth/Effortless", "Operating with minimal difficulty.") \
-	TYPECAST(41, "Abstract/Conceptual", "Not tied to concrete systems, existing in ideas.") \
-	TYPECAST(42, "Supportive/Nurturing", "Encouraging and helpful.") \
-	TYPECAST(43, "Historic/Old-School", "Reflecting old methods or styles.") \
-	TYPECAST(44, "Resilient/Fault-Tolerant", "Able to withstand or recover from difficulties.") \
-	TYPECAST(45, "Bold/Expressive", "Strong and vivid.") \
-	TYPECAST(46, "Independent/Self-Sufficient", "Able to function autonomously.") \
-	TYPECAST(47, "Disconnected/Detached", "Not connected or linked.") \
-	TYPECAST(48, "Robust/Resilient", "Strong and able to handle change.") \
-	TYPECAST(49, "Sincere/Genuine", "Honest and direct.") \
-	TYPECAST(50, "Transparent/Open", "Clear and easy to understand or access.") \
-	TYPECAST(51, "Simple/Easy", "Not complex and easily approachable.") \
-	TYPECAST(52, "Risk-Taking/Daring", "Willing to take risks for potential gain.")
+	TYPECAST(0, "Descriptive/expressive", "Emphasizes detailed and articulated communication") \
+	TYPECAST(1, "Efficient/optimized", "Prioritizes performance and resource management") \
+	TYPECAST(2, "Innovative/creative", "Focuses on originality and new ideas") \
+	TYPECAST(3, "Collaborative/cooperative", "Encourages teamwork and shared goals") \
+	TYPECAST(4, "Experimental/adventurous", "Open to trying new and untested concepts") \
+	TYPECAST(5, "Reliable/stable", "Consistently dependable and trustworthy") \
+	TYPECAST(6, "Scalable/expandable", "Capable of growing and adapting to larger scopes") \
+	TYPECAST(7, "Vulnerable/immutable", "Either open to change or resistant to it") \
+	TYPECAST(8, "Structured/organized", "Embraces order and systematic arrangements") \
+	TYPECAST(9, "Outdated/deprecated", "Considered old-fashioned or obsolete") \
+	TYPECAST(10, "Logical/rational", "Based on reasoning and logical principles") \
+	TYPECAST(11, "Modular/component-based", "Composed of distinct and independent parts") \
+	TYPECAST(12, "Reflective/introspective", "Inclined to self-examination and contemplation") \
+	TYPECAST(13, "Dynamic/flexible", "Adapts easily to changes and new conditions") \
+	TYPECAST(14, "Buggy/error-prone", "Susceptible to mistakes or errors") \
+	TYPECAST(15, "Simplistic/basic", "Straightforward and uncomplicated") \
+	TYPECAST(16, "User-friendly/intuitive", "Easy to use and understand, minimal learning curve") \
+	TYPECAST(17, "Performant/high-speed", "Achieves results with speed and efficiency") \
+	TYPECAST(18, "Lightweight/minimalist", "Focuses on simplicity and reduced overhead") \
+	TYPECAST(19, "Cryptic/obfuscated", "Difficult to interpret or understand") \
+	TYPECAST(20, "Readable/maintainable", "Easily interpreted and kept in good condition") \
+	TYPECAST(21, "Controversial/provocative", "Likely to provoke debate or disagreement") \
+	TYPECAST(22, "Compatible/consistent", "Works well with other elements, maintains continuity") \
+	TYPECAST(23, "Wise/philosophical", "Exhibits deep understanding and thoughtful insight") \
+	TYPECAST(24, "Verbose/detailed", "Provides extensive and thorough details") \
+	TYPECAST(25, "Cross-platform/universal", "Suitable for multiple environments or platforms") \
+	TYPECAST(26, "Typed/static", "Characterized by strict or fixed definitions") \
+	TYPECAST(27, "Unstable/fragile", "Prone to instability or breaking under pressure") \
+	TYPECAST(28, "Hopeful/forward-looking", "Full of optimism and anticipation for the future") \
+	TYPECAST(29, "Complex/complicated", "Consists of many interrelated parts or elements") \
+	TYPECAST(30, "Unique/unconventional", "Distinct from the norm or standard") \
+	TYPECAST(31, "Sensitive/emotional", "Highly responsive to emotional or external stimuli") \
+	TYPECAST(32, "Inefficient/sluggish", "Lacking speed or economy in performance") \
+	TYPECAST(33, "Adaptable/customizable", "Easily modified to suit various needs") \
+	TYPECAST(34, "Portable/movable", "Easy to transfer or adapt to different contexts") \
+	TYPECAST(35, "Secure/safe", "Provides protection and minimizes risk") \
+	TYPECAST(36, "Standardized/normalized", "Conforms to established norms or standards") \
+	TYPECAST(37, "Authentic/real", "Genuine and true to its nature or origin") \
+	TYPECAST(38, "Isolated/encapsulated", "Self-contained or separated from external influences") \
+	TYPECAST(39, "Loose/informal", "Unrestricted by rigidity or formal constraints") \
+	TYPECAST(40, "Effortless/smooth", "Performed with ease and fluidity") \
+	TYPECAST(41, "High-level/abstract", "Operates on a broad perspective, often simplified") \
+	TYPECAST(42, "Supportive/helpful", "Provides assistance and encouragement") \
+	TYPECAST(43, "Deprecated/obsolete", "No longer in active use, outdated") \
+	TYPECAST(44, "Fault-tolerant/resilient", "Able to continue operating despite setbacks") \
+	TYPECAST(45, "Powerful/influential", "Exercises significant control or effect") \
+	TYPECAST(46, "Independent/self-sufficient", "Reliant on one's own resources or abilities") \
+	TYPECAST(47, "Disconnected/detached", "Separated or lacking connection") \
+	TYPECAST(48, "Robust/durable", "Strong and able to withstand adverse conditions") \
+	TYPECAST(49, "Clear/translucent", "Easily visible and understandable") \
+	TYPECAST(50, "Transparent/open", "Transparent or straightforward in its operation") \
+	TYPECAST(51, "Simple/easy-to-learn", "Not complicated and accessible to beginners") \
+	TYPECAST(52, "Adventurous/risk-taking", "Open to taking risks and exploring unknowns") \
 
 
 #define CONTENT_LIST \

@@ -3652,10 +3652,18 @@ void MergeProcess::DoPhase() {
 		target->langwords.Add(language_str); // always first?
 		this->current_language = target->langwords.Find(language_str); // non-optimized
 		
+		if (context_str == "lyrical")
+			this->current_ctx = ContextType::Lyrical();
+		else
+			TODO;
+		
 		NextPhase();
 	}
 	else if (phase == PHASE_TRANSFER_SCRIPTS) {
 		TransferScripts();
+	}
+	else if (phase == PHASE_TRANSFER_OPRHANED_SCRIPTS) {
+		TransferOrphanedScripts();
 	}
 	else if (phase == PHASE_TRANSFER_AMBIGUOUS_WORDS) {
 		TransferAmbiguous();
@@ -3663,17 +3671,25 @@ void MergeProcess::DoPhase() {
 	else if (phase == PHASE_TRANSFER_CONTEXT) {
 		TransferContext();
 	}
+	else if (phase == PHASE_TRANSFER_PHRASE_PARTS) {
+		TransferPhraseParts();
+	}
+	else if (phase == PHASE_TRANSFER_WORDNETS) {
+		TransferWordnets();
+	}
 	else if (phase == PHASE_TRANSFER_COUNT) {
 		CountValues();
 	}
+	else if (phase == PHASE_TRANSFER_ACTION_PHRASES) {
+		TransferActionPhrases();
+	}
+	else if (phase == PHASE_TRANSFER_ACTION_TRANSITION) {
+		TransferActionTransitions();
+	}
 	else {
-		// Maybe transfer rest of the phrase parts anyway?
-		
-		
-		// Convert old classes to new (e.g. attrs, actions)
-		
-		
-		// Compare counts d0 vs d1 : loss percentage
+		// Write "db-src" compatible stuff to multiple compressed parts
+		///// Merge & Append mode for multiple sources: lyrical, twitter, dialog
+		/////// GUI!!!!! output-path, append/overwrite?, language, context
 		
 		
 		NextPhase();
@@ -3713,6 +3729,36 @@ void MergeProcess::TransferScripts() {
 	int ss_i1 = -1;
 	const ScriptStruct& ss0 = d0.scripts[ss_i0];
 	ScriptStruct& ss1 = d1.scripts.GetAddPos(ss_hash, ss_i1);
+	ss1.author = author0.name;
+	ss1.title = script0.title;
+	TransferScript(ss0, ss1);
+}
+
+void MergeProcess::TransferOrphanedScripts() {
+	ASSERT(p.src);
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	if (batch >= d0.scripts.GetCount()) {
+		NextPhase();
+		return;
+	}
+	
+	hash_t ss_hash = d0.scripts.GetKey(batch);
+	if (d1.scripts.Find(ss_hash) < 0) {
+		const ScriptStruct& ss0 = d0.scripts[batch];
+		int ss_i1 = -1;
+		ScriptStruct& ss1 = d1.scripts.GetAddPos(ss_hash, ss_i1);
+		TransferScript(ss0, ss1);
+	}
+	
+	NextBatch();
+}
+
+void MergeProcess::TransferScript(const ScriptStruct& ss0, ScriptStruct& ss1) {
+	ASSERT(p.src);
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
 	PROCESS_ASSERT(ss1.parts.IsEmpty());
 	
 	for (const auto& part0 : ss0.parts) {
@@ -3765,10 +3811,16 @@ int MergeProcess::TransferElement(int el_i0) {
 }
 
 int MergeProcess::TransferTypeclass(int tc_i0) {
+	ASSERT(tc_i0 >= -1 && tc_i0 < TYPECAST_COUNT);
+	if (tc_i0 >= TYPECAST_COUNT)
+		return -1;
 	return tc_i0;
 }
 
 ContentIdx MergeProcess::TransferContent(ContentIdx con_i0) {
+	ASSERT(con_i0 >= -1 && con_i0 < CONTENT_COUNT);
+	if (con_i0 >= CONTENT_COUNT)
+		return -1;
 	return con_i0;
 }
 
@@ -3811,15 +3863,15 @@ int MergeProcess::TransferTokenText(int tt_i0) {
 			}
 			ch.Do(wrd_i0).Put(1);
 		}
-		hash_t pp_hash = ch;
+		hash_t pp_hash0 = ch;
 		if (fail) {
-			pp_i0 = d0.phrase_parts.Find(pp_hash);
+			pp_i0 = d0.phrase_parts.Find(pp_hash0);
 			if (pp_i0 >= 0) {
 				LOG("warning: using tainted hash");
 			}
 		}
 		else {
-			pp_i0 = d0.phrase_parts.Find(pp_hash);
+			pp_i0 = d0.phrase_parts.Find(pp_hash0);
 		}
 	}
 	if (pp_i0 >= 0)
@@ -3857,34 +3909,70 @@ int MergeProcess::TransferWord(int wrd_i0) {
 	const auto& d0 = p.src->Data();
 	auto& d1 = *target;
 	String key = d0.words.GetKey(wrd_i0);
-	{
-		WString wkey = key.ToWString();
-		wkey = ToLower(wkey);
-		key = wkey.ToString();
-	}
+	String hash_str = ToLower(key.ToWString()).ToString();
 	const auto& wrd0 = d0.words[wrd_i0];
 	int wrd_i1 = -1;
-	auto& wrd1 = d1.words.GetAddPos(key, wrd_i1);
-	word_transfer.Add(wrd_i0, wrd_i1);
 	
-	wrd1.spelling = wrd0.spelling;
-	wrd1.phonetic = wrd0.phonetic;
-	wrd1.count = 0;
-	wrd1.clr = wrd0.clr;
-	wrd1.class_count = wrd0.class_count;
-	wrd1.lang = current_language;
-	
-	Vector<int> classes;
-	for(int i = 0; i < wrd1.class_count; i++) {
-		int wc_i1 = TransferWordClass(wrd0.classes[i]);
-		classes << wc_i1;
+	if (1) {
+		auto& lw1 = d1.langwords[current_language];
+		hash_t h = hash_str.GetHashValue();
+		auto& v = lw1.GetAdd(h);
+		if (v.GetCount()) {
+			wrd_i1 = v[0];
+			word_transfer.Add(wrd_i0, wrd_i1);
+		}
+		else {
+			if (wrd0.class_count == 0) {
+				int wrd_i1 = d1.words_.GetCount();
+				WordData& wrd1 = d1.words_.Add();
+				wrd1.clr = wrd0.clr;
+				wrd1.count = 0;
+				wrd1.word_class = -1;
+				wrd1.lang = current_language;
+				wrd1.text = key;
+				wrd1.spelling = wrd0.spelling;
+				v.Add(-1, wrd_i1);
+			}
+			else {
+				for(int i = 0; i < wrd0.class_count; i++) {
+					int wrd_i1 = d1.words_.GetCount();
+					WordData& wrd1 = d1.words_.Add();
+					wrd1.clr = wrd0.clr;
+					wrd1.count = 0;
+					wrd1.word_class = wrd0.classes[i];
+					wrd1.lang = current_language;
+					wrd1.text = key;
+					wrd1.spelling = wrd0.spelling;
+					v.Add(wrd1.word_class, wrd_i1);
+				}
+				wrd_i1 = v[0];
+				word_transfer.Add(wrd_i0, wrd_i1);
+			}
+		}
 	}
-	{
-		auto& wrd1 = d1.words[wrd_i1]; // ref might be broken after Transfer function
-		int c = min(ExportWord::MAX_CLASS_COUNT, classes.GetCount());
-		wrd1.class_count = c;
-		for(int i = 0; i < c; i++)
-			wrd1.classes[i] = classes[i];
+	else {
+		auto& wrd1 = d1.words.GetAddPos(key, wrd_i1);
+		word_transfer.Add(wrd_i0, wrd_i1);
+		
+		wrd1.spelling = wrd0.spelling;
+		wrd1.phonetic = wrd0.phonetic;
+		wrd1.count = 0;
+		wrd1.clr = wrd0.clr;
+		wrd1.class_count = wrd0.class_count;
+		wrd1.lang = current_language;
+		
+		Vector<int> classes;
+		for(int i = 0; i < wrd1.class_count; i++) {
+			int wc_i1 = TransferWordClass(wrd0.classes[i]);
+			classes << wc_i1;
+		}
+		{
+			auto& wrd1 = d1.words[wrd_i1]; // ref might be broken after Transfer function
+			int c = min(ExportWord::MAX_CLASS_COUNT, classes.GetCount());
+			wrd1.class_count = c;
+			for(int i = 0; i < c; i++)
+				wrd1.classes[i] = classes[i];
+		}
 	}
 	return wrd_i1;
 }
@@ -4033,6 +4121,7 @@ int MergeProcess::TransferPhrasePart(int pp_i0, const TokenText* tt0) {
 	pp1.lang = current_language;
 	ASSERT(current_language != 0xFF);
 	pp1.words <<= w_is;
+	pp1.ctx = this->current_ctx.value;
 	
 	d1.phrase_parts[pp_i1].tt_i = TransferTokenText(pp0.tt_i);
 	d1.phrase_parts[pp_i1].virtual_phrase_part = TransferVirtualPhrasePart(pp0.virtual_phrase_part);
@@ -4043,6 +4132,7 @@ int MergeProcess::TransferPhrasePart(int pp_i0, const TokenText* tt0) {
 	for(int act_i0 : pp0.actions)
 		acts << TransferAction(act_i0);
 	d1.phrase_parts[pp_i1].actions <<= acts;
+	
 	
 	return pp_i1;
 }
@@ -4133,30 +4223,120 @@ void MergeProcess::TransferContext() {
 	auto& d1 = *target;
 	
 	ASSERT(d0.ctx.typeclass.labels.GetCount() == TYPECAST_COUNT);
+	ASSERT(d0.ctx.content.labels.GetCount() == CONTENT_COUNT);
 	
-	ContextType ctxtype;
-	if (context_str == "lyrical")
-		ctxtype = ContextType::Lyrical();
-	else
-		TODO;
-	ContextData& data = d1.ctxs.GetAdd(ctxtype);
+	ContextData& data = d1.ctxs.GetAdd(current_ctx);
 	data.name = context_str;
 	data.part_names <<= d0.ctx.content.parts;
-	DUMPC(d0.ctx.content.parts);
 	
 	data.typeclasses.Clear();
 	data.contents.Clear();
-	data.parts.Clear();
 	
-	for (String s : d0.ctx.typeclass.labels)
-		data.typeclasses << s;
+	for(int i = 0; i < TYPECAST_COUNT; i++)
+		data.typeclasses.Add().name = d0.ctx.typeclass.labels[i];
 	
-	for(int i = 0; i < d0.ctx.content.labels.GetCount(); i++) {
-		const ContentType& con = d0.ctx.content.labels[i];
-		data.contents << con.key;
-		auto& v = data.parts.Add();
+	for(int i = 0; i < CONTENT_COUNT; i++) {
+		const ContentType& con0 = d0.ctx.content.labels[i];
+		auto& con1 = data.contents.Add();
+		con1.name = con0.key;
 		for(int j = 0; j < 3; j++)
-			v << con.parts[j];
+			con1.parts << con0.parts[j];
+	}
+	
+	for(int i = 0; i < TCENT_COUNT; i++) {
+		String tc_key;
+		switch (i) {
+			case TCENT_SAFE_MALE: tc_key = "safe male"; break;
+			case TCENT_SAFE_FEMALE: tc_key = "safe female"; break;
+			case TCENT_UNSAFE_MALE: tc_key = "unsafe male"; break;
+			case TCENT_UNSAFE_FEMALE: tc_key = "unsafe female"; break;
+			default: TODO; break;
+		}
+		int entkey_i = data.FindAddEntityGroup(tc_key);
+		
+		const auto& tce0 = d0.typeclass_entities[i];
+		for(int j = 0; j < tce0.GetCount(); j++) {
+			const String& type = tce0.GetKey(j);
+			const auto& ents0 = tce0[j];
+			int tc_i0 = d0.ctx.typeclass.labels.Find(type);
+			if (tc_i0 < 0)
+				tc_i0 = d0.ctx.typeclass.labels.Find(type + "."); // buggy data
+			ASSERT(tc_i0 >= 0);
+			int tc_i1 = TransferTypeclass(tc_i0);
+			auto& tc1 = data.typeclasses[tc_i1];
+			auto& entgroup1 = tc1.entities[entkey_i];
+			ASSERT(entgroup1.IsEmpty());
+			for(int k = 0; k < ents0.GetCount(); k++) {
+				String ent = ents0[k];
+				entgroup1.Add(ent);
+			}
+		}
+	}
+	
+	
+	NextPhase();
+}
+
+void MergeProcess::TransferPhraseParts() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	if (pp_transfer.GetCount() == d0.phrase_parts.GetCount()) {
+		LOG("MergeProcess::TransferPhraseParts: no orphaned phrase parts");
+		NextPhase();
+		return;
+	}
+	
+	int orphaned_count = 0;
+	for(int i = 0; i < d0.phrase_parts.GetCount(); i++) {
+		int j = pp_transfer.Find(i);
+		if (j >= 0)
+			continue;
+		
+		TransferPhrasePart(i, 0);
+		orphaned_count++;
+	}
+	double perc = (double)orphaned_count / d0.phrase_parts.GetCount() * 100.0;
+	LOG("MergeProcess::TransferPhraseParts: orphaned phrase parts: " << orphaned_count << "/" << d0.phrase_parts.GetCount() << ", " << perc << "%");
+	NextPhase();
+}
+
+void MergeProcess::TransferWordnets() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	ASSERT(d1.wordnets.IsEmpty());
+	for(int i = 0; i < d0.wordnets.GetCount(); i++) {
+		const ExportWordnet& wn0 = d0.wordnets[i];
+		ASSERT(wn0.word_count >= 0 && wn0.word_count <= ExportWordnet::MAX_WORDS);
+		ASSERT(wn0.word_clr_count >= 0 && wn0.word_clr_count <= ExportWordnet::MAX_WORDS);
+		
+		Vector<int> w_is;
+		for(int j = 0; j < wn0.word_count; j++)
+			w_is << TransferWord(wn0.words[j]);
+		Sort(w_is, StdLess<int>());
+		hash_t key1 = ExportWordnet::GetHash(w_is);
+		
+		if (d1.wordnets.Find(key1) >= 0)
+			continue;
+		ExportWordnet& wn1 = d1.wordnets.Add(key1);
+		memset(wn1.words, 0xFF, sizeof(wn1.words));
+		memset(wn1.word_clrs, 0, sizeof(wn1.word_clrs));
+		memset(wn1.scores, 0, sizeof(wn1.scores));
+		
+		wn1.word_count = w_is.GetCount();
+		for(int j = 0; j < w_is.GetCount(); j++)
+			wn1.words[j] = w_is[j];
+		
+		wn1.word_clr_count = wn0.word_clr_count;
+		for(int j = 0; j < wn0.word_clr_count; j++)
+			wn1.word_clrs[j] = wn0.word_clrs[j];
+		
+		wn1.main_class = TransferWordClass(wn0.main_class);
+		wn1.attr = TransferAttribute(wn0.attr);
+		wn1.clr = wn0.clr;
+		for(int j = 0; j < SCORE_COUNT; j++)
+			wn1.scores[j]= wn0.scores[j];
 	}
 	
 	NextPhase();
@@ -4173,11 +4353,119 @@ void MergeProcess::CountValues() {
 		it.value.count = 0;
 	
 	for (auto it : ~d1.tokens)
-		d1.words[it.value.word_].count++;
+		if (it.value.word_ >= 0)
+			d1.words[it.value.word_].count++;
 	for (auto it : ~d1.virtual_phrase_structs)
 		for (auto vpp_i : it.value.virtual_phrase_parts)
-			d1.virtual_phrase_parts[vpp_i].count++;
+			if (vpp_i >= 0)
+				d1.virtual_phrase_parts[vpp_i].count++;
 	
+	
+	/// COMPARE
+	#define CMP(x) LOG("MergeProcess::CountValues: compare " #x ": " << d0.x.GetCount() << " vs. " << d1.x.GetCount() << ": " << (double)d0.x.GetCount() / (double)d1.x.GetCount());
+	CMP(authors)
+	CMP(scripts)
+	CMP(tokens)
+	CMP(word_classes)
+	CMP(words)
+	CMP(ambiguous_word_pairs)
+	CMP(token_texts)
+	CMP(virtual_phrases)
+	CMP(virtual_phrase_parts)
+	CMP(virtual_phrase_structs)
+	CMP(phrase_parts)
+	CMP(struct_part_types)
+	CMP(struct_types)
+	CMP(simple_attrs)
+	CMP(element_keys)
+	CMP(attrs)
+	CMP(actions)
+	CMP(wordnets)
+	
+	NextPhase();
+}
+
+void MergeProcess::TransferActionPhrases() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	d1.action_phrases.Reserve(d0.action_phrases.GetCount());
+	
+	for(auto it : ~d0.action_phrases) {
+		int i = d1.action_phrases.Find(it.key);
+		if (i >= 0)
+			continue;
+		const auto& dae0 = it.value;
+		auto& dae1 = d1.action_phrases.Add(it.key);
+		
+		dae1.actions.SetCount(dae0.actions.GetCount());
+		for(int i = 0; i < dae0.actions.GetCount(); i++)
+			dae1.actions[i] = TransferAction(dae0.actions[i]);
+		
+		dae1.next_phrases.SetCount(dae0.next_phrases.GetCount());
+		for(int i = 0; i < dae0.next_phrases.GetCount(); i++)
+			dae1.next_phrases[i] = TransferPhrasePart(dae0.next_phrases[i], 0);
+		
+		dae1.next_scores <<= dae0.next_scores;
+		dae1.first_lines = dae0.first_lines;
+		dae1.attr = TransferAttribute(dae0.attr);
+		dae1.clr = dae0.clr;
+	}
+	
+	NextPhase();
+}
+
+void MergeProcess::TransferActionTransitions() {
+	const auto& d0 = p.src->Data();
+	auto& d1 = *target;
+	
+	d1.trans.Reserve(d0.trans.GetCount());
+	
+	for(auto it : ~d0.trans) {
+		const auto& to_map0 = it.value;
+		int from_act0 = it.key;
+		int from_act1 = TransferAction(from_act0);
+		auto& to_map1 = d1.trans.GetAdd(from_act1);
+		
+		for (auto it_to0 : ~to_map0) {
+			int to_act0 = it_to0.key;
+			int to_act1 = TransferAction(to_act0);
+			
+			int i = to_map1.Find(to_act1);
+			if (i >= 0)
+				continue;
+			
+			const auto& to0 = it_to0.value;
+			auto& to1 = to_map1.Add(to_act1);
+			
+			to1.count = to0.count;
+			to1.score_sum = to0.score_sum;
+		}
+	}
+	
+	for(auto it : ~d0.parallel) {
+		const auto& to_map0 = it.value;
+		int from_act0 = it.key;
+		int from_act1 = TransferAction(from_act0);
+		auto& to_map1 = d1.parallel.GetAdd(from_act1);
+		
+		for (auto it_to0 : ~to_map0) {
+			int to_act0 = it_to0.key;
+			int to_act1 = TransferAction(to_act0);
+			
+			int i = to_map1.Find(to_act1);
+			if (i >= 0)
+				continue;
+			
+			const auto& to0 = it_to0.value;
+			auto& to1 = to_map1.Add(to_act1);
+			
+			to1.count = to0.count;
+			to1.score_sum = to0.score_sum;
+		}
+	}
+	
+	NextPhase();
 }
 
 MergeProcess& MergeProcess::Get(DatasetPtrs p, String language, String ctx) {

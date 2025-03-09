@@ -417,6 +417,7 @@ public:
 
 class MergeProcess : public SolverBase {
 	
+	void LoadForAppending();
 	void TransferContext();
 	void TransferAmbiguous();
 	void TransferScripts();
@@ -427,6 +428,7 @@ class MergeProcess : public SolverBase {
 	void TransferActionTransitions();
 	void CountValues();
 	void TransferScript(const ScriptStruct& ss0, ScriptStruct& ss1);
+	void Write();
 	
 	int TransferElement(int el_i0);
 	int TransferTypeclass(int tc_i0);
@@ -451,11 +453,13 @@ class MergeProcess : public SolverBase {
 	String batch_err;
 	byte current_language = 0xFF;
 	ContextType current_ctx;
+	bool skip_typeclass_content = false;
 	
 	void SetBatchError(String s) {batch_err = s;}
 public:
 	enum {
 		PHASE_RESET,
+		PHASE_LOAD,
 		PHASE_TRANSFER_CONTEXT,
 		PHASE_TRANSFER_AMBIGUOUS_WORDS,
 		PHASE_TRANSFER_SCRIPTS,
@@ -465,6 +469,7 @@ public:
 		PHASE_TRANSFER_ACTION_PHRASES,
 		PHASE_TRANSFER_ACTION_TRANSITION,
 		PHASE_TRANSFER_COUNT,
+		PHASE_WRITE,
 		
 		PHASE_COUNT
 	};
@@ -476,11 +481,13 @@ public:
 	int GetSubBatchCount(int phase, int batch) const override;
 	void DoPhase() override;
 	
-	static MergeProcess& Get(DatasetPtrs p, String language="english", String ctx="lyrical");
+	static MergeProcess& Get(DatasetPtrs p, String path, String language, String ctx, bool append);
 	
 	One<SrcTextData> target;
 	String language_str;
 	String context_str;
+	String path_str;
+	bool append = false;
 	
 };
 

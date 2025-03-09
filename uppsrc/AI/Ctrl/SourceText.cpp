@@ -2046,13 +2046,42 @@ void TextDataDiagnostics::Data() {
 
 
 SourceTextMergerCtrl::SourceTextMergerCtrl(DatasetProvider& o) : o(o) {
-	CtrlLayout(ctrl);
-	Add(ctrl.SizePos());
+	CtrlLayout(conf);
+	TabCtrl::Add(conf.SizePos(), "Conf");
+	NoTransparent();
+	
+	conf.path.SetData("/common/sblo/Dev/local-upp/txtsrc/Database/NaturalLanguage.db-src");
+	conf.context.SetData("");
+	conf.language.SetData("english");
+	conf.process <<= THISBACK1(Do, 0);
 	
 }
 
 void SourceTextMergerCtrl::Data() {
 	
+}
+
+void SourceTextMergerCtrl::Do(int fn) {
+	ToolAppCtrl& app = dynamic_cast<ToolAppCtrl&>(o);
+	DatasetPtrs p = o.GetDataset();
+	String path = conf.path.GetData();
+	String ctx = conf.context.GetData();
+	String lang = conf.language.GetData();
+	bool append = conf.append.Get();
+	if (path.IsEmpty() || ctx.IsEmpty() || lang.IsEmpty()) {
+		PromptOK("All parameters are required");
+		return;
+	}
+	MergeProcess& sdi = MergeProcess::Get(p, path, lang, ctx, append);
+	// causes crash
+	/*app.prog.Attach(sdi); 
+	sdi.WhenRemaining <<
+		[this](String s) { PostCallback([this, s]() {
+		dynamic_cast<ToolAppCtrl&>(o).remaining.SetLabel(s); }); };*/
+	if(fn == 0)
+		sdi.Start();
+	else
+		sdi.Stop();
 }
 
 
@@ -2211,7 +2240,7 @@ void SourceTextCtrl::Do(int fn) {
 		case 9: DoT<ActionAttrsProcess>(fn); break; // aap
 		case 10: DoT<AttributesProcess>(fn); break; // att
 		case 11: break; // diag
-		case 12: DoT<MergeProcess>(fn); break;
+		case 12: merger.Do(fn); break;
 		default: break;
 	}
 }

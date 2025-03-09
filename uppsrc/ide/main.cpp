@@ -183,7 +183,9 @@ GUI_APP_MAIN
 void AppMain___()
 #endif
 {
+#if HAVE_ALWAYS_THEIDE_CONFIG
 	SetConfigName("theide");
+#endif
 #ifdef DYNAMIC_LIBCLANG
 	if(FindIndex(CommandLine(), "--noclang") < 0) {
 		String wfile = ConfigFile(".nolibclang");

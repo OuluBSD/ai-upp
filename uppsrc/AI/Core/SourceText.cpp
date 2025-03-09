@@ -3652,12 +3652,23 @@ void MergeProcess::DoPhase() {
 		target->langwords.Add(language_str); // always first?
 		this->current_language = target->langwords.Find(language_str); // non-optimized
 		
-		if (context_str == "lyrical")
+		if (context_str == "song")
 			this->current_ctx = ContextType::Lyrical();
+		else if (context_str == "twitter")
+			this->current_ctx = ContextType::PublicShortMessage();
+		else if (context_str == "blog")
+			this->current_ctx = ContextType::PersonalBlog();
+		else if (context_str == "dialog")
+			this->current_ctx = ContextType::Dialog();
+		else if (context_str == "storyboard")
+			this->current_ctx = ContextType::Storyboard();
 		else
 			TODO;
 		
 		NextPhase();
+	}
+	else if (phase == PHASE_LOAD) {
+		LoadForAppending();
 	}
 	else if (phase == PHASE_TRANSFER_SCRIPTS) {
 		TransferScripts();
@@ -3680,6 +3691,9 @@ void MergeProcess::DoPhase() {
 	else if (phase == PHASE_TRANSFER_COUNT) {
 		CountValues();
 	}
+	else if (phase == PHASE_WRITE) {
+		Write();
+	}
 	else if (phase == PHASE_TRANSFER_ACTION_PHRASES) {
 		TransferActionPhrases();
 	}
@@ -3687,11 +3701,6 @@ void MergeProcess::DoPhase() {
 		TransferActionTransitions();
 	}
 	else {
-		// Write "db-src" compatible stuff to multiple compressed parts
-		///// Merge & Append mode for multiple sources: lyrical, twitter, dialog
-		/////// GUI!!!!! output-path, append/overwrite?, language, context
-		
-		
 		NextPhase();
 	}
 }
@@ -3723,14 +3732,22 @@ void MergeProcess::TransferScripts() {
 	}
 	
 	auto& author1 = d1.GetAddAuthor(author0.name);
+	if (author1.scripts.IsEmpty())
+		author1.ctx = current_ctx;
+	else if (author1.ctx.value != 0)
+		author1.ctx.value = 0; // reset context if author has multiple contexts
+	
 	auto& script1 = author1.GetAddScript(script0.title);
 	script1.text = script0.text;
+	script1.ctx = current_ctx;
 	
 	int ss_i1 = -1;
 	const ScriptStruct& ss0 = d0.scripts[ss_i0];
 	ScriptStruct& ss1 = d1.scripts.GetAddPos(ss_hash, ss_i1);
 	ss1.author = author0.name;
 	ss1.title = script0.title;
+	ss1.ctx = current_ctx;
+	
 	TransferScript(ss0, ss1);
 }
 
@@ -3811,6 +3828,8 @@ int MergeProcess::TransferElement(int el_i0) {
 }
 
 int MergeProcess::TransferTypeclass(int tc_i0) {
+	if (skip_typeclass_content)
+		return -1;
 	ASSERT(tc_i0 >= -1 && tc_i0 < TYPECAST_COUNT);
 	if (tc_i0 >= TYPECAST_COUNT)
 		return -1;
@@ -3818,6 +3837,8 @@ int MergeProcess::TransferTypeclass(int tc_i0) {
 }
 
 ContentIdx MergeProcess::TransferContent(ContentIdx con_i0) {
+	if (skip_typeclass_content)
+		return -1;
 	ASSERT(con_i0 >= -1 && con_i0 < CONTENT_COUNT);
 	if (con_i0 >= CONTENT_COUNT)
 		return -1;
@@ -4107,8 +4128,12 @@ int MergeProcess::TransferPhrasePart(int pp_i0, const TokenText* tt0) {
 	for(int w_i0 : pp0.words)
 		w_is << TransferWord(w_i0);
 	hash_t key1 = PhrasePart::GetHash(w_is);
+	int pp_i1 = d1.phrase_parts.Find(key1);
+	if (pp_i1 >= 0) {
+		pp_transfer.Add(pp_i0, pp_i1);
+		return pp_i1;
+	}
 	
-	int pp_i1 = -1;
 	auto& pp1 = d1.phrase_parts.GetAddPos(key1, pp_i1);
 	pp_transfer.Add(pp_i0, pp_i1);
 	
@@ -4222,6 +4247,12 @@ void MergeProcess::TransferContext() {
 	const auto& d0 = p.src->Data();
 	auto& d1 = *target;
 	
+	if (append) {
+		skip_typeclass_content = true;
+		NextPhase();
+		return;
+	}
+	
 	ASSERT(d0.ctx.typeclass.labels.GetCount() == TYPECAST_COUNT);
 	ASSERT(d0.ctx.content.labels.GetCount() == CONTENT_COUNT);
 	
@@ -4305,7 +4336,6 @@ void MergeProcess::TransferWordnets() {
 	const auto& d0 = p.src->Data();
 	auto& d1 = *target;
 	
-	ASSERT(d1.wordnets.IsEmpty());
 	for(int i = 0; i < d0.wordnets.GetCount(); i++) {
 		const ExportWordnet& wn0 = d0.wordnets[i];
 		ASSERT(wn0.word_count >= 0 && wn0.word_count <= ExportWordnet::MAX_WORDS);
@@ -4347,14 +4377,14 @@ void MergeProcess::CountValues() {
 	auto& d1 = *target;
 	
 	// Zero
-	for (auto it : ~d1.words)
-		it.value.count = 0;
+	for (auto it : d1.words_)
+		it.count = 0;
 	for (auto it : ~d1.virtual_phrase_parts)
 		it.value.count = 0;
 	
 	for (auto it : ~d1.tokens)
 		if (it.value.word_ >= 0)
-			d1.words[it.value.word_].count++;
+			d1.words_[it.value.word_].count++;
 	for (auto it : ~d1.virtual_phrase_structs)
 		for (auto vpp_i : it.value.virtual_phrase_parts)
 			if (vpp_i >= 0)
@@ -4468,7 +4498,135 @@ void MergeProcess::TransferActionTransitions() {
 	NextPhase();
 }
 
-MergeProcess& MergeProcess::Get(DatasetPtrs p, String language, String ctx) {
+void MergeProcess::LoadForAppending() {
+	if (!append) {
+		NextPhase();
+		return;
+	}
+	
+	if (!FileExists(path_str)) {
+		SetError("file doesn't exist: " + path_str);
+		SetNotRunning();
+		return;
+	}
+	auto& d1 = *target;
+	Value val = ParseJSON(LoadFile(path_str));
+	
+	int ver = val("version");
+	if (ver != 2) {
+		SetError("unexpected version number: " + IntStr(ver));
+		SetNotRunning();
+		return;
+	}
+	
+	int size = val("size");
+	if (size == 0) {
+		SetError("size is 0");
+		SetNotRunning();
+		return;
+	}
+	String sha1_val = val("sha1");
+	if (sha1_val.IsEmpty()) {
+		SetError("sha1 is empty");
+		SetNotRunning();
+		return;
+	}
+	
+	Vector<String> files;
+	ValueArray files_val = val("files");
+	for(int i = 0; i < files_val.GetCount(); i++)
+		files << files_val[i].ToString();
+	if (files.IsEmpty()) {
+		SetError("files empty");
+		SetNotRunning();
+		return;
+	}
+	
+	String filepath = path_str;
+	String compressed;
+	String dir = GetFileDirectory(filepath);
+	for(int i = 0; i < files.GetCount(); i++) {
+		String path = AppendFileName(dir, files[i]);
+		String data = LoadFile(path);
+		
+		compressed.Cat(data);
+		
+		int per_file = 1024 * 1024 * 25;
+		Logi() << "SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False");
+	}
+	String decompressed = BZ2Decompress(compressed);
+	if (decompressed.GetCount() != size) {
+		SetError("SrcTxtHeader::LoadData: error: size mismatch when loading: " + filepath);
+		SetNotRunning();
+		return;
+	}
+	String sha1 = SHA1String(decompressed);
+	if (sha1 != sha1_val) {
+		SetError("SrcTxtHeader::LoadData: error: sha1 mismatch when loading: " + filepath);
+		SetNotRunning();
+		return;
+	}
+	StringStream decomp_stream(decompressed);
+	NodeVisitor vis(decomp_stream);
+	d1.Visit(vis);
+	
+	NextPhase();
+}
+
+void MergeProcess::Write() {
+	auto& d1 = *target;
+	String filepath = path_str;
+	
+	Value out = ValueMap();
+	out("written") = StoreAsJsonValue(GetUtcTime());
+	out("version") = 2;
+	
+	String dir = GetFileDirectory(filepath);
+	String filename = GetFileName(filepath);
+	StringStream decomp_stream;
+	NodeVisitor vis(decomp_stream);
+	d1.Visit(vis);
+	String decompressed = decomp_stream.GetResult();
+	
+	int per_file = 1024 * 1024 * 25;
+	out("sha1") = SHA1String(decompressed);
+	out("size") = decompressed.GetCount();
+	out("per_file") = per_file;
+	
+	String compressed = BZ2Compress(decompressed);
+	StringStream comp_stream;
+	comp_stream % compressed;
+	
+	ValueArray files;
+	int parts = 1 + (compressed.GetCount() + 1) / per_file;
+	for(int i = 0; i < parts; i++) {
+		int begin = i * per_file;
+		int end = min(begin+per_file, compressed.GetCount());
+		String part = compressed.Mid(begin,end-begin);
+		String part_path = filepath + "." + IntStr(i);
+		FileOut fout(part_path);
+		fout.Put(part);
+		files.Add(filename + "." + IntStr(i));
+	}
+	for (int i = parts;;) {
+		String part_path = filepath + "." + IntStr(i);
+		if (FileExists(part_path))
+			DeleteFile(part_path);
+		else
+			break;
+	}
+	out("files") = files;
+	
+	String json = AsJSON(out, true);
+	LOG(json);
+	
+	FileOut fout(filepath);
+	fout << json;
+	
+	NextPhase();
+}
+
+MergeProcess& MergeProcess::Get(DatasetPtrs p, String path, String language, String ctx, bool append) {
 	static ArrayMap<String, MergeProcess> arr;
 	ASSERT(p.src);
 	language = ToLower(language);
@@ -4476,8 +4634,10 @@ MergeProcess& MergeProcess::Get(DatasetPtrs p, String language, String ctx) {
 	ASSERT(key.GetCount());
 	auto& ts = arr.GetAdd(key);
 	ts.p = pick(p);
+	ts.path_str = path;
 	ts.language_str = language;
 	ts.context_str = ctx;
+	ts.append = append;
 	return ts;
 }
 

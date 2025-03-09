@@ -54,19 +54,25 @@ struct NodeVisitor {
 		return *this;
 	}
 	
+	void ChkSerializeMagic();
 	
 	
 	// VisitVector functions are for Vector<T> or Array<T> etc.
 	
 	template<class T>
 	void VisitVectorSerialize(T& o) {
+		ChkSerializeMagic();
 		Ver(1)(1);
-		int count = o.GetCount();
+		int count = max(0,o.GetCount());
 		(*stream) / count;
 		if (!storing)
 			o.SetCount(count);
-		for (auto& v : o)
+		int dbg_i = 0;
+		for (auto& v : o) {
+			ChkSerializeMagic();
 			v.Visit(*this);
+			dbg_i++;
+		}
 	}
 	template<class T>
 	void VisitJsonItem(JsonIO& j, T& o) {
@@ -79,7 +85,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitVectorHash(T& o) {
-		hash.Put(o.GetCount());
+		hash.Put(max(0,o.GetCount()));
 		for (auto& v : o)
 			v.Visit(*this);
 	}
@@ -110,8 +116,9 @@ struct NodeVisitor {
 	
 	template<class T>
 	void VisitVectorVectorSerialize(T& o) {
+		ChkSerializeMagic();
 		Ver(1)(1);
-		int count = o.GetCount();
+		int count = max(0,o.GetCount());
 		(*stream) / count;
 		if (!storing)
 			o.SetCount(count);
@@ -128,7 +135,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitVectorVectorHash(T& o) {
-		hash.Put(o.GetCount());
+		hash.Put(max(0,o.GetCount()));
 		for (auto& v : o)
 			VisitVectorHash(v);
 	}
@@ -160,9 +167,10 @@ struct NodeVisitor {
 	
 	template<class T>
 	void VisitMapSerialize(T& o) {
+		ChkSerializeMagic();
 		using KeyType = decltype(o.PopKey());
 		Ver(1)(1);
-		int count = o.GetCount();
+		int count = max(0,o.GetCount());
 		(*stream) / count;
 		if (storing) {
 			for (auto it : ~o) {
@@ -226,7 +234,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapHash(T& o) {
-		hash.Put(o.GetCount());
+		hash.Put(max(0,o.GetCount()));
 		for (auto it : ~o) {
 			hash.Do(it.key);
 			it.value.Visit(*this);
@@ -258,9 +266,10 @@ struct NodeVisitor {
 	
 	template<class T>
 	void VisitMapMapSerialize(T& o) {
+		ChkSerializeMagic();
 		using KeyType = decltype(o.PopKey());
 		Ver(1)(1);
-		int count = o.GetCount();
+		int count = max(0,o.GetCount());
 		(*stream) / count;
 		if (storing) {
 			for (auto it : ~o) {
@@ -311,7 +320,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapMapHash(T& o) {
-		hash.Put(o.GetCount());
+		hash.Put(max(0,o.GetCount()));
 		for (auto it0 : ~o) {
 			hash.Do(it0.key);
 			for (auto it1 : ~it0.value) {
@@ -351,9 +360,10 @@ struct NodeVisitor {
 	
 	template<class T>
 	void VisitMapKVSerialize(T& o) {
+		ChkSerializeMagic();
 		using KeyType = decltype(o.PopKey());
 		Ver(1)(1);
-		int count = o.GetCount();
+		int count = max(0,o.GetCount());
 		(*stream) / count;
 		if (storing) {
 			for (auto it : ~o) {
@@ -406,7 +416,7 @@ struct NodeVisitor {
 	}
 	template<class T>
 	void VisitMapKVHash(T& o) {
-		hash.Put(o.GetCount());
+		hash.Put(max(0,o.GetCount()));
 		for (auto& v : o)
 			v.Visit(*this);
 	}
@@ -440,6 +450,18 @@ struct NodeVisitor {
 	
 	
 	
+	int PeekVersion() {
+		if (storing) return -1;
+		int ver = 0;
+		if (!storing && mode == MODE_STREAM) {
+			ver = stream->Get32();
+			stream->SeekCur(-4);
+		}
+		else {
+			TODO
+		}
+		return ver;
+	}
 	
 	NodeVisitor& Ver(int version) {
 		if (mode != MODE_STREAM) return *this;
@@ -485,7 +507,7 @@ inline void VersionControlSystem::BeginMapKV(String key, T& o) {
 	using KeyType = decltype(o.PopKey());
 	Push(ST_MAP_KV, key);
 	if (storing)
-		RemoveIdxFolders(o.GetCount());
+		RemoveIdxFolders(max(0,o.GetCount()));
 	else {
 		o.Clear();
 		String dir = GetCurrentDirectory();

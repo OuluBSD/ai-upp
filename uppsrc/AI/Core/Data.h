@@ -18,6 +18,74 @@ typedef enum : int {
 	TXT_COUNT
 } TextPartType;
 
+#define CONTEXTLIST \
+	CTX(0,CREATIVITY, Creativity, "Is the context focused on originality and expression?") \
+	CTX(1,TECHNICALITY, Technicality, "Is there an emphasis on technical precision or functionality?") \
+	CTX(2,EMOTIONALITY, Emotionality, " Does the context evoke emotions or aim to connect on an emotional level?") \
+	CTX(3,EFFICIENCY, Efficiency, "Is the context concerned with optimization and performance?") \
+	CTX(4,COLLABORATIVE, Collaborative, "Does the context involve teamwork or community involvement?") \
+	CTX(5,STABILITY, Stability, "Is there a focus on reliability and consistency?") \
+	CTX(6,INNOVATIVE, Innovative, "Is there an intention to introduce new ideas or techniques?") \
+	CTX(7,EXPERIMENTAL, Experimental, "Is the context about trial and error or trying unproven methods?")
+
+struct ContextType : Moveable<ContextType> {
+	byte value = 0;
+	
+	typedef enum {
+		#define CTX(a,b,c,d) b,
+		CONTEXTLIST
+		#undef CTX
+		CTX_COUNT
+	} Feature;
+	
+	typedef enum {
+		#define CTX(a,b,c,d) b##_BIT = 1 << a,
+		CONTEXTLIST
+		#undef CTX
+	} Bit;
+	
+	static ContextType Lyrical();
+	static ContextType Programming();
+	static ContextType PublicShortMessage();
+	static ContextType PersonalBlog();
+	static ContextType CorporateBlog();
+	static ContextType Dialog();
+	static ContextType Storyboard();
+	
+	bool operator==(const ContextType& t) const {return value;}
+	hash_t GetHashValue() const {return value;}
+	void Visit(NodeVisitor& vis) {vis("value", value);}
+};
+
+struct ContextData : Moveable<ContextData> {
+	struct Typeclass : Moveable<Typeclass> {
+		String name;
+		Vector<Vector<String>> entities;
+		void Visit(NodeVisitor& v) {v.Ver(1)(1)("n",name)("e",entities);}
+	};
+	struct Content : Moveable<Content> {
+		String name;
+		Vector<String> parts;
+		void Visit(NodeVisitor& v) {v.Ver(1)(1)("n",name)("p",parts);}
+	};
+	String name;
+	Vector<Typeclass> typeclasses;
+	Vector<Content> contents;
+	Vector<String> part_names;
+	Index<String> entity_groups;
+	
+	int FindAddEntityGroup(String s);
+	void Visit(NodeVisitor& vis) {
+		vis.Ver(1)
+		(1)	("name", name)
+			("typeclasses", typeclasses, VISIT_VECTOR)
+			("contents", contents, VISIT_VECTOR)
+			("part_names", part_names)
+			("entity_groups", entity_groups)
+			;
+	}
+};
+
 #if 0
 // TODO remove EditorPtrs & use DatasetPtrs
 struct Script;
@@ -390,7 +458,7 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	int attr_i0 = -1, attr_i1 = -1;
 
-	void Serialize(Stream& d) { d / attr_i0 / attr_i1; }
+	void Serialize(Stream& d) { d / attr_i0 / attr_i1; } // Todo remove
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("ai0", attr_i0)
@@ -403,11 +471,13 @@ ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex();
 struct ScriptDataset : Moveable<ScriptDataset> {
 	String title;
 	String text;
-	void Serialize(Stream& s) {s / title / text;}
+	ContextType ctx;
+	void Serialize(Stream& s) {s / title / text;} // Todo remove
 	void Visit(NodeVisitor& v) {
-		v.Ver(1)
+		v.Ver(2)
 		(1)	("name", title)
-			("txt", text);
+			("txt", text)
+		(2)	("ctx", ctx, VISIT_NODE);
 	}
 };
 
@@ -415,14 +485,16 @@ struct AuthorDataset : Moveable<AuthorDataset> {
 	String name;
 	Vector<ScriptDataset> scripts;
 	Vector<String> genres;
+	ContextType ctx;
 	
 	ScriptDataset& GetAddScript(String title);
 	void Serialize(Stream& s) {s % name % scripts % genres;}
 	void Visit(NodeVisitor& v) {
-		v.Ver(1)
+		v.Ver(2)
 		(1)	("name", name)
 			("scripts", scripts, VISIT_VECTOR)
-			("genres", genres);
+			("genres", genres)
+		(2)	("ctx", ctx, VISIT_NODE);
 	}
 };
 
@@ -456,17 +528,16 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 		SubPart(const SubPart& s) { *this = s; }
 		// TODO remove Serialize and int repeat
 		void Serialize(Stream& s) { s % sub % el_i % repeat; if (s.IsLoading() && repeat && !repeat_) repeat_ = repeat;}
-		void Visit(NodeVisitor& json) {
-			if (json.IsLoading() && json.file_ver == 1) {
+		void Visit(NodeVisitor& v) {
+			v.Ver(2);
+			if (v.file_ver == 1) {
 				int repeat;
-				json.Ver(1)
-				(1)("sub", sub, VISIT_VECTOR)("cls", el_i)("repeat", repeat);
+				v(1)("sub", sub, VISIT_VECTOR)("cls", el_i)("repeat", repeat);
 				repeat_ = repeat;
 			}
 			else {
-				json.Ver(2)
-				(2)("sub", sub, VISIT_VECTOR)("el_i", el_i)("repeat", repeat_);
-				if (json.IsLoading()) repeat = repeat_;
+				v(2)("sub", sub, VISIT_VECTOR)("el_i", el_i)("repeat", repeat_);
+				if (v.IsLoading()) repeat = repeat_;
 			}
 		}
 		void operator=(const SubPart& s)
@@ -493,10 +564,15 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 			s % el_i % typeclass % content;
 			ASSERT(!s.IsError());
 		}
-		void Visit(NodeVisitor& json)
+		void Visit(NodeVisitor& v)
 		{
-			json.Ver(1)(1)("sub", sub, VISIT_VECTOR)("type", (int&)type)("num", num)("cls", el_i)("tc", typeclass)("c",
-			                                                                        content);
+			v.Ver(1)
+			(1)	("sub", sub, VISIT_VECTOR)
+				("type", (int&)type)
+				("num", num)
+				("cls", el_i)
+				("tc", typeclass)
+				("c", (int&)content);
 		}
 		void operator=(const Part& s)
 		{
@@ -510,12 +586,14 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	};
 	Vector<Part> parts;
 	String author, title;
+	ContextType ctx;
 
 	void Serialize(Stream& s) { s % parts; }
 	void Visit(NodeVisitor& json) {
-		json.Ver(2)
+		json.Ver(3)
 		(1)("parts", parts, VISIT_VECTOR)
-		(2)("author", author)("title", title);
+		(2)("author", author)("title", title)
+		(3)("ctx", ctx, VISIT_NODE);
 	}
 	
 	bool HasAnyClasses() const
@@ -537,57 +615,6 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	double GetNormalScore() const;
 };
 
-#define CONTEXTLIST \
-	CTX(0,CREATIVITY, Creativity, "Is the context focused on originality and expression?") \
-	CTX(1,TECHNICALITY, Technicality, "Is there an emphasis on technical precision or functionality?") \
-	CTX(2,EMOTIONALITY, Emotionality, " Does the context evoke emotions or aim to connect on an emotional level?") \
-	CTX(3,EFFICIENCY, Efficiency, "Is the context concerned with optimization and performance?") \
-	CTX(4,COLLABORATIVE, Collaborative, "Does the context involve teamwork or community involvement?") \
-	CTX(5,STABILITY, Stability, "Is there a focus on reliability and consistency?") \
-	CTX(6,INNOVATIVE, Innovative, "Is there an intention to introduce new ideas or techniques?") \
-	CTX(7,EXPERIMENTAL, Experimental, "Is the context about trial and error or trying unproven methods?")
-
-struct ContextType : Moveable<ContextType> {
-	byte value = 0;
-	
-	typedef enum {
-		#define CTX(a,b,c,d) b,
-		CONTEXTLIST
-		#undef CTX
-		CTX_COUNT
-	} Feature;
-	
-	typedef enum {
-		#define CTX(a,b,c,d) b##_BIT = 1 << a,
-		CONTEXTLIST
-		#undef CTX
-	} Bit;
-	
-	static ContextType Lyrical();
-	static ContextType Programming();
-	bool operator==(const ContextType& t) const {return value;}
-	hash_t GetHashValue() const {return value;}
-	
-};
-
-struct ContextData : Moveable<ContextData> {
-	struct Typeclass : Moveable<Typeclass> {
-		String name;
-		Vector<Vector<String>> entities;
-	};
-	struct Content : Moveable<Content> {
-		String name;
-		Vector<String> parts;
-	};
-	String name;
-	Vector<Typeclass> typeclasses;
-	Vector<Content> contents;
-	Vector<String> part_names;
-	Index<String> entity_groups;
-	
-	int FindAddEntityGroup(String s);
-};
-
 struct WordData : Moveable<WordData> {
 	byte lang = 0xFF;
 	String text;
@@ -603,6 +630,17 @@ struct WordData : Moveable<WordData> {
 		return ch;
 	}
 	hash_t GetHashValue() const {return GetHash(lang, text, word_class);}
+	void Visit(NodeVisitor& vis) {
+		vis.Ver(1)
+		(1)	("lang", lang)
+			("text", text)
+			("spelling", spelling)
+			("count", count)
+			("clr", clr)
+			("word_class", word_class)
+			("translation", translation)
+			;
+	}
 };
 
 struct WordTranslation : Moveable<WordTranslation> {
@@ -610,6 +648,10 @@ struct WordTranslation : Moveable<WordTranslation> {
 	
 	Vector<int> translations;
 	
+	void Visit(NodeVisitor& vis) {
+		vis.Ver(1)
+		(1)	("t", translations);
+	}
 };
 
 struct SrcTextData : EntityData {
@@ -622,7 +664,7 @@ struct SrcTextData : EntityData {
 	// WORDS
 	VectorMap<String, Token> tokens;
 	Index<String> word_classes;
-	VectorMap<String, ExportWord> words;
+	VectorMap<String, ExportWord> words; // TODO remove
 	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
 	
 	// PHRASES
@@ -660,11 +702,11 @@ struct SrcTextData : EntityData {
 			Vector<String> parts;
 		} content;
 		String name;
-	} ctx;
-	dword lang = LNG_enUS;
+	} ctx; // TODO remove
+	dword lang = LNG_enUS; // TODO remove
 	
 	// ????
-	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT];
+	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT]; // TODO remove
 	
 	// NEXT VERSION
 	/* note:
@@ -722,6 +764,7 @@ struct SrcTxtHeader : Component {
 	int64 size = 0;
 	String sha1;
 	Vector<String> files;
+	int version = 1;
 	void Visit(NodeVisitor& v) override;
 	String GetName() const override {return "Source Database";}
 	

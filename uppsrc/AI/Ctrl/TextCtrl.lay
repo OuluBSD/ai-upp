@@ -509,7 +509,7 @@ LAYOUT(ScriptSpeech, 400, 200)
 END_LAYOUT
 
 LAYOUT(MergerLayout, 400, 164)
-	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Database merger")).HSizePosZ(4, 8).VSizePosZ(4, 8))
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Database merger")).LeftPosZ(4, 388).TopPosZ(4, 152))
 	ITEM(Upp::Label, dv___1, SetLabel(t_("Output-path:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(20, 19))
 	ITEM(Upp::Label, dv___2, SetLabel(t_("Append:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(8, 88).TopPosZ(44, 19))
 	ITEM(Upp::Option, append, LeftPosZ(100, 56).TopPosZ(44, 20))

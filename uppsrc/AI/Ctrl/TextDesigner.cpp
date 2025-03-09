@@ -10,7 +10,8 @@ SolverBaseIndicator::SolverBaseIndicator() {
 }
 
 void SolverBaseIndicator::Attach(SolverBase& sb) {
-	sb.WhenProgress << [this](int a, int t) {PostCallback(THISBACK2(SetProgress, a,t));};
+	Ptr<SolverBase> sbp = &sb;
+	sb.WhenProgress << [this,sbp](int a, int t) {if (sbp) PostCallback(THISBACK2(SetProgress, a,t));};
 }
 
 void SolverBaseIndicator::SetProgress(int a, int t) {

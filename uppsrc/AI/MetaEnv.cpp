@@ -4,7 +4,7 @@
 
 NAMESPACE_UPP
 
-#define DO_TEMP_CHECK 0
+#define DO_TEMP_CHECK 1
 
 int CreateTempCheck(int src) {
 	static int counter = 0;
@@ -947,6 +947,12 @@ bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& pa
 	}
 	else if (ext == ".ecs") {
 		MetaNode& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_ECS_SPACE);
+		if (fn.id.IsEmpty())
+			fn.id = GetFileTitle(path);
+		file_node = &fn;
+	}
+	else if (ext == ".env") {
+		MetaNode& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_PKG_ENV);
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
@@ -2399,6 +2405,19 @@ void MetaNodeExt::Serialize(Stream& s){
 void MetaNodeExt::Jsonize(JsonIO& json){
 	NodeVisitor vis(json);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);
+}
+
+void NodeVisitor::ChkSerializeMagic() {
+	ASSERT(mode == MODE_STREAM);
+	if (storing) {
+		byte magic = 0x55;
+		stream->Put(&magic, 1);
+	}
+	else {
+		byte magic = 0;
+		stream->Get(&magic, 1);
+		ASSERT(magic == 0x55);
+	}
 }
 
 END_UPP_NAMESPACE

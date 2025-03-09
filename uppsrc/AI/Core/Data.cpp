@@ -29,35 +29,65 @@ ScriptDataset& AuthorDataset::GetAddScript(String title) {
 
 
 void SrcTextData::Visit(NodeVisitor& s) {
-	s.Ver(1)
-	(1)	("scripts", scripts, VISIT_MAP)
-		("tokens", tokens, VISIT_MAP)
-		("token_texts", token_texts, VISIT_MAP)
-		("element_keys", element_keys)
-		("word_classes", word_classes)
-		("words", words, VISIT_MAP)
-		("ambiguous_word_pairs", ambiguous_word_pairs, VISIT_MAP)
-		("virtual_phrases", virtual_phrases, VISIT_MAP)
-		("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
-		("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
-		("phrase_parts", phrase_parts, VISIT_MAP)
-		("struct_part_types", struct_part_types)
-		("struct_types", struct_types)
-		("attrs", attrs, VISIT_MAP_KV)
-		("actions", actions, VISIT_MAP_KV)
-		("parallel", parallel, VISIT_MAPMAP)
-		("trans", trans, VISIT_MAPMAP)
-		("action_phrases", action_phrases, VISIT_MAP)
-		("wordnets", wordnets, VISIT_MAP)
-		("diagnostics", diagnostics)
-		("simple_attrs", simple_attrs, VISIT_MAP)
-		("entities", authors, VISIT_VECTOR)
-		("typeclasses", ctx.typeclass.labels)
-		("contents", ctx.content.labels, VISIT_VECTOR)
-		("content_parts", ctx.content.parts)
-		("lang", (int&)lang);
-	for(int i = 0; i < TCENT_COUNT; i++)
-		s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
+	int peek_version = s.PeekVersion();
+	s.Ver(2);
+	if (s.IsLoading() && peek_version == 1) {
+		s(1)("scripts", scripts, VISIT_MAP)
+			("tokens", tokens, VISIT_MAP)
+			("token_texts", token_texts, VISIT_MAP)
+			("element_keys", element_keys)
+			("word_classes", word_classes)
+			("words", words, VISIT_MAP)
+			("ambiguous_word_pairs", ambiguous_word_pairs, VISIT_MAP)
+			("virtual_phrases", virtual_phrases, VISIT_MAP)
+			("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
+			("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
+			("phrase_parts", phrase_parts, VISIT_MAP)
+			("struct_part_types", struct_part_types)
+			("struct_types", struct_types)
+			("attrs", attrs, VISIT_MAP_KV)
+			("actions", actions, VISIT_MAP_KV)
+			("parallel", parallel, VISIT_MAPMAP)
+			("trans", trans, VISIT_MAPMAP)
+			("action_phrases", action_phrases, VISIT_MAP)
+			("wordnets", wordnets, VISIT_MAP)
+			("diagnostics", diagnostics)
+			("simple_attrs", simple_attrs, VISIT_MAP)
+			("entities", authors, VISIT_VECTOR)
+			("typeclasses", ctx.typeclass.labels)
+			("contents", ctx.content.labels, VISIT_VECTOR)
+			("content_parts", ctx.content.parts)
+			("lang", (int&)lang);
+		for(int i = 0; i < TCENT_COUNT; i++)
+			s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
+	}
+	else {
+		s(2)("authors", authors, VISIT_VECTOR)
+			("scripts", scripts, VISIT_MAP)
+			("tokens", tokens, VISIT_MAP)
+			("word_classes", word_classes)
+			("ambiguous_word_pairs", ambiguous_word_pairs, VISIT_MAP)
+			("token_texts", token_texts, VISIT_MAP)
+			("virtual_phrases", virtual_phrases, VISIT_MAP)
+			("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
+			("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
+			("phrase_parts", phrase_parts, VISIT_MAP)
+			("struct_part_types", struct_part_types)
+			("struct_types", struct_types)
+			("simple_attrs", simple_attrs, VISIT_MAP)
+			("element_keys", element_keys)
+			("attrs", attrs, VISIT_MAP_KV)
+			("actions", actions, VISIT_MAP_KV)
+			("wordnets", wordnets, VISIT_MAP)
+			("action_phrases", action_phrases, VISIT_MAP)
+			("trans", trans, VISIT_MAPMAP)
+			("parallel", parallel, VISIT_MAPMAP)
+			("diagnostics", diagnostics)
+			("ctxs", ctxs, VISIT_MAP_KV)
+			("words", words_, VISIT_VECTOR)
+			("langwords", langwords)
+			("translations", translations, VISIT_VECTOR);
+	}
 }
 
 // TODO remove SrcTextData::Serialize
@@ -339,11 +369,13 @@ SrcTxtHeader::~SrcTxtHeader() {
 }
 
 void SrcTxtHeader::Visit(NodeVisitor& v) {
-	v.Ver(1)
+	v.Ver(2)
 	(1)	("written",written)
 		("size",size)
 		("sha1",sha1)
-		("files",files);
+		("files",files)
+	(2)	("version",version)
+		;
 	
 	if (v.IsStoring()) {
 		LOG("SrcTxtHeader::Visit: error: storing data not implemented yet");
@@ -362,7 +394,10 @@ bool SrcTxtHeader::LoadData() {
 	//	if (!LoadFromJsonFile(*this, filepath))
 	//		return false;
 	//}
-	ASSERT(files.GetCount());
+	if (files.GetCount() == 0) {
+		RLOG("SrcTxtHeader::LoadData: warning: no files in SrcTxtHeader");
+		return false;
+	}
 	
 	String compressed;
 	String dir = GetFileDirectory(filepath);
@@ -388,7 +423,13 @@ bool SrcTxtHeader::LoadData() {
 	StringStream decomp_stream(decompressed);
 	
 	this->data.Create();
-	this->data->Serialize(decomp_stream);
+	
+	if (version == 1)
+		this->data->Serialize(decomp_stream);
+	else {
+		NodeVisitor vis(decomp_stream);
+		this->data->Visit(vis);
+	}
 	
 	return true;
 }
@@ -411,7 +452,7 @@ String SrcTxtHeader::SaveData() {
 	comp_stream % compressed;
 	
 	this->files.Clear();
-	int per_file = 1024 * 1024 * 25;
+	int per_file = 1024 * 1024 * 25; // todo read from ecs-db file
 	int parts = 1 + (compressed.GetCount() + 1) / per_file;
 	for(int i = 0; i < parts; i++) {
 		int begin = i * per_file;
@@ -464,6 +505,66 @@ ContextType ContextType::Programming() {
 				EXPERIMENTAL_BIT;
 	return t;
 }
+/*
+CTX(0,CREATIVITY, Creativity, "Is the context focused on originality and expression?") \
+CTX(1,TECHNICALITY, Technicality, "Is there an emphasis on technical precision or functionality?") \
+CTX(2,EMOTIONALITY, Emotionality, " Does the context evoke emotions or aim to connect on an emotional level?") \
+CTX(3,EFFICIENCY, Efficiency, "Is the context concerned with optimization and performance?") \
+CTX(4,COLLABORATIVE, Collaborative, "Does the context involve teamwork or community involvement?") \
+CTX(5,STABILITY, Stability, "Is there a focus on reliability and consistency?") \
+CTX(6,INNOVATIVE, Innovative, "Is there an intention to introduce new ideas or techniques?") \
+CTX(7,EXPERIMENTAL, Experimental, "Is the context about trial and error or trying unproven methods?")
+*/
 
+ContextType ContextType::PublicShortMessage() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT;
+	return t;
+}
+
+ContextType ContextType::PersonalBlog() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				EMOTIONALITY_BIT  |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT |
+				EXPERIMENTAL_BIT
+				;
+	return t;
+}
+ContextType ContextType::CorporateBlog() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				TECHNICALITY_BIT  |
+				COLLABORATIVE_BIT |
+				STABILITY_BIT |
+				INNOVATIVE_BIT
+				;
+	return t;
+}
+
+ContextType ContextType::Dialog() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				EMOTIONALITY_BIT  |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT |
+				INNOVATIVE_BIT    |
+				EXPERIMENTAL_BIT;
+	return t;
+}
+
+ContextType ContextType::Storyboard() {
+	ContextType t;
+	t.value =	CREATIVITY_BIT    |
+				TECHNICALITY_BIT  |
+				EMOTIONALITY_BIT  |
+				EFFICIENCY_BIT    |
+				COLLABORATIVE_BIT |
+				INNOVATIVE_BIT;
+	return t;
+}
 
 END_UPP_NAMESPACE

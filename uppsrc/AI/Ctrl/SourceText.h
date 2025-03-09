@@ -253,15 +253,16 @@ public:
 	void Data();
 };
 
-class SourceTextMergerCtrl : public ParentCtrl {
+class SourceTextMergerCtrl : public TabCtrl {
 	DatasetProvider& o;
-	WithMergerLayout<Ctrl> ctrl;
+	WithMergerLayout<Ctrl> conf;
 	
 public:
 	typedef SourceTextMergerCtrl CLASSNAME;
 	SourceTextMergerCtrl(DatasetProvider& o);
 	
 	void Data();
+	void Do(int fn);
 };
 
 class SourceTextCtrl : public ToolAppCtrl {

@@ -449,7 +449,7 @@ struct NodeVisitor {
 	}
 	
 	
-	
+	#if 0
 	int PeekVersion() {
 		if (storing) return -1;
 		int ver = 0;
@@ -462,6 +462,7 @@ struct NodeVisitor {
 		}
 		return ver;
 	}
+	#endif
 	
 	NodeVisitor& Ver(int version) {
 		if (mode != MODE_STREAM) return *this;
@@ -478,11 +479,14 @@ struct NodeVisitor {
 	template <class T> NodeVisitor& operator()(const char* key, T& o) {
 		if (skip) return *this;
 		switch (mode) {
-			case MODE_JSON: (*json)(key,o); return *this;
-			case MODE_STREAM: *stream % o; return *this;
-			case MODE_HASH: DoHash<T>(o); return *this;
-			case MODE_VCS: vcs->Do(key, o); return *this;
-			default: return *this;
+		case MODE_JSON: (*json)(key,o); return *this;
+		case MODE_STREAM:
+			ChkSerializeMagic();
+			*stream % o;
+			return *this;
+		case MODE_HASH: DoHash<T>(o); return *this;
+		case MODE_VCS: vcs->Do(key, o); return *this;
+		default: return *this;
 		}
 	}
 	

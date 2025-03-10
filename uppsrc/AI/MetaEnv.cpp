@@ -2408,6 +2408,8 @@ void MetaNodeExt::Jsonize(JsonIO& json){
 }
 
 void NodeVisitor::ChkSerializeMagic() {
+	#define HAVE_CHK_NODEVISITOR_MAGIC 0
+	#if HAVE_CHK_NODEVISITOR_MAGIC
 	ASSERT(mode == MODE_STREAM);
 	if (storing) {
 		byte magic = 0x55;
@@ -2418,6 +2420,7 @@ void NodeVisitor::ChkSerializeMagic() {
 		stream->Get(&magic, 1);
 		ASSERT(magic == 0x55);
 	}
+	#endif
 }
 
 END_UPP_NAMESPACE

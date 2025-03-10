@@ -29,9 +29,8 @@ ScriptDataset& AuthorDataset::GetAddScript(String title) {
 
 
 void SrcTextData::Visit(NodeVisitor& s) {
-	int peek_version = s.PeekVersion();
 	s.Ver(2);
-	if (s.IsLoading() && peek_version == 1) {
+	if (s.file_ver == 1) {
 		s(1)("scripts", scripts, VISIT_MAP)
 			("tokens", tokens, VISIT_MAP)
 			("token_texts", token_texts, VISIT_MAP)
@@ -72,8 +71,6 @@ void SrcTextData::Visit(NodeVisitor& s) {
 			("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
 			("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
 			("phrase_parts", phrase_parts, VISIT_MAP)
-			("struct_part_types", struct_part_types)
-			("struct_types", struct_types)
 			("simple_attrs", simple_attrs, VISIT_MAP)
 			("element_keys", element_keys)
 			("attrs", attrs, VISIT_MAP_KV)
@@ -87,6 +84,10 @@ void SrcTextData::Visit(NodeVisitor& s) {
 			("words", words_, VISIT_VECTOR)
 			("langwords", langwords)
 			("translations", translations, VISIT_VECTOR);
+		// Moved here for debugging
+		s
+			("struct_part_types", struct_part_types)
+			("struct_types", struct_types);
 	}
 }
 

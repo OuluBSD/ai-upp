@@ -4392,12 +4392,13 @@ void MergeProcess::CountValues() {
 	
 	
 	/// COMPARE
-	#define CMP(x) LOG("MergeProcess::CountValues: compare " #x ": " << d0.x.GetCount() << " vs. " << d1.x.GetCount() << ": " << (double)d0.x.GetCount() / (double)d1.x.GetCount());
+	#define CMP2(a,b) LOG("MergeProcess::CountValues: compare " #a ": " << d0.a.GetCount() << " vs. " << d1.b.GetCount() << ": " << (double)d0.a.GetCount() / (double)d1.b.GetCount());
+	#define CMP(x) CMP2(x,x)
 	CMP(authors)
 	CMP(scripts)
 	CMP(tokens)
 	CMP(word_classes)
-	CMP(words)
+	CMP2(words,words_)
 	CMP(ambiguous_word_pairs)
 	CMP(token_texts)
 	CMP(virtual_phrases)
@@ -4411,6 +4412,8 @@ void MergeProcess::CountValues() {
 	CMP(attrs)
 	CMP(actions)
 	CMP(wordnets)
+	#undef CMP
+	#undef CMP2
 	
 	NextPhase();
 }
@@ -4569,6 +4572,27 @@ void MergeProcess::LoadForAppending() {
 	StringStream decomp_stream(decompressed);
 	NodeVisitor vis(decomp_stream);
 	d1.Visit(vis);
+	
+	#define CMP(x) LOG("MergeProcess::LoadForAppending: " #x ": " << d1.x.GetCount());
+	CMP(authors)
+	CMP(scripts)
+	CMP(tokens)
+	CMP(word_classes)
+	CMP(words_)
+	CMP(ambiguous_word_pairs)
+	CMP(token_texts)
+	CMP(virtual_phrases)
+	CMP(virtual_phrase_parts)
+	CMP(virtual_phrase_structs)
+	CMP(phrase_parts)
+	CMP(struct_part_types)
+	CMP(struct_types)
+	CMP(simple_attrs)
+	CMP(element_keys)
+	CMP(attrs)
+	CMP(actions)
+	CMP(wordnets)
+	#undef CMP
 	
 	NextPhase();
 }

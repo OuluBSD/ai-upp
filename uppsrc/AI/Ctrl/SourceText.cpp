@@ -184,7 +184,6 @@ TokensPage::TokensPage(DatasetProvider& o) : o(o) {
 	hsplit.SetPos(2000);
 	
 	tokens.AddColumn(t_("Token"));
-	tokens.AddColumn(t_("Count"));
 	tokens.AddIndex("IDX");
 	tokens.ColumnWidths("3 1");
 	tokens.WhenBar << [this](Bar& bar){
@@ -208,13 +207,6 @@ void TokensPage::Data() {
 		const String& txt = src.tokens.GetKey(j);
 		const Token& tk = src.tokens[j];
 		tokens.Set(j, 0, txt);
-		if (tk.word_ >= 0) {
-			const WordData& ew = src.words_[tk.word_];
-			tokens.Set(j, 1, ew.count);
-		}
-		else {
-			tokens.Set(j, 1, Value());
-		}
 	}
 	tokens.SetCount(src.tokens.GetCount());
 	
@@ -248,8 +240,6 @@ ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 	
 	tokens.AddColumn("#");
 	tokens.AddColumn("String");
-	tokens.AddColumn("# Word");
-	tokens.AddColumn("(Word string)");
 	
 	word_classes.AddColumn("#");
 	word_classes.AddColumn("Word class");
@@ -358,11 +348,6 @@ void ScriptTextDebuggerPage::Data() {
 		for(auto it : ~src.tokens) {
 			tokens.Set(i, 0, i);
 			tokens.Set(i, 1, it.key);
-			tokens.Set(i, 2, it.value.word_);
-			if (it.value.word_ >= 0 && it.value.word_ < src.words_.GetCount())
-				tokens.Set(i, 3, src.words_[it.value.word_].text);
-			else
-				tokens.Set(i, 3, Value());
 			i++;
 		}
 		tokens.SetCount(src.tokens.GetCount());

@@ -262,16 +262,7 @@ int MergeProcess::TransferTokenText(int tt_i0) {
 	if (pp_i0 < 0) {
 		CombineHash ch;
 		bool fail = false;
-		for (int tk_i0 : tt0.tokens) {
-			const Token& tk0 = d0.tokens[tk_i0];
-			int wrd_i0 = tk0.word_;
-			if (wrd_i0 < 0) {
-				String key = ToLower(d0.tokens.GetKey(tk_i0));
-				wrd_i0 = d0.FindAnyWord(key, this->current_language);
-				if (wrd_i0 < 0) {
-					fail = true;
-				}
-			}
+		for (int wrd_i0 : tt0.words) {
 			ch.Do(wrd_i0).Put(1);
 		}
 		hash_t pp_hash0 = ch;
@@ -308,7 +299,7 @@ int MergeProcess::TransferToken(int tk_i0) {
 	int tk_i1 = -1;
 	auto& tk1 = d1.tokens.GetAddPos(key, tk_i1);
 	token_transfer.Add(tk_i0, tk_i1);
-	d1.tokens[tk_i1].word_ = TransferWord(tk0.word_);
+	
 	return tk_i1;
 }
 
@@ -698,9 +689,9 @@ void MergeProcess::CountValues() {
 	for (auto it : ~d1.virtual_phrase_parts)
 		it.value.count = 0;
 	
-	for (auto it : ~d1.tokens)
-		if (it.value.word_ >= 0)
-			d1.words_[it.value.word_].count++;
+	for (auto tt_it : ~d1.token_texts)
+		for (int w_i : tt_it.value.words)
+			d1.words_[w_i].count++;
 	for (auto it : ~d1.virtual_phrase_structs)
 		for (auto vpp_i : it.value.virtual_phrase_parts)
 			if (vpp_i >= 0)

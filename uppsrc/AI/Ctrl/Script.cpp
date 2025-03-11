@@ -27,6 +27,10 @@ void ScriptTextCtrl::SubTab::PageView(int page) {
 	CREATE(aap, "Action Attrs Page")
 	CREATE(att, "Attributes")
 	CREATE(diag, "Text Data Diagnostics")
+	CREATE(wn, "Wordnets")
+	CREATE(pp, "Phrase-transfer")
+	CREATE(apar, "Parallel-actions")
+	CREATE(atra, "Transition-actions")
 	#undef CREATE
 }
 
@@ -74,6 +78,10 @@ void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 	CREATE(aap, "Action Attrs Page", 0)
 	CREATE(att, "Attributes", 0)
 	CREATE(diag, "Text Data Diagnostics", 0)
+	CREATE(wn, "Wordnets", 0)
+	CREATE(pp, "Phrase-transfer", 0)
+	CREATE(apar, "Parallel-actions", 0)
+	CREATE(atra, "Transition-actions", 0)
 	#undef CREATE
 	
 	srcdata->SetMixed();

@@ -265,6 +265,92 @@ public:
 	void Do(int fn);
 };
 
+class TextDataWordnet : public ParentCtrl {
+	DatasetProvider& o;
+	Splitter vsplit, hsplit;
+	ArrayCtrl attrs, colors, wordnets;
+	Mutex lock;
+	String tmp_first_line;
+	
+public:
+	typedef TextDataWordnet CLASSNAME;
+	TextDataWordnet(DatasetProvider& o);
+	
+	void EnableAll();
+	void DisableAll();
+	void Data();
+	void DataMain();
+	void DataAttribute();
+	void DataColor();
+	void ToolMenu(Bar& bar);
+	
+	void ToggleGettingColorAlternatives();
+	void GetColorAlternatives(int batch_i);
+	void OnColorAlternatives(String res, int batch_i);
+	
+	void DoWordnet(int fn);
+	
+};
+
+// TODO rename
+class PhraseParts : public ParentCtrl {
+	DatasetProvider& o;
+	Splitter vsplit, hsplit;
+	ArrayCtrl texts, parts;
+	
+public:
+	typedef PhraseParts CLASSNAME;
+	PhraseParts(DatasetProvider& o);
+	
+	void Data();
+	void ToolMenu(Bar& bar);
+	void DoWords(int fn);
+	void DoWordsUsingExisting(int fn);
+	
+};
+
+class ActionParallelsPage : public ParentCtrl {
+	DatasetProvider& o;
+	Splitter vsplit, hsplit;
+	ArrayCtrl actions, action_args, parallels;
+	Mutex lock;
+	
+	VectorMap<String, VectorMap<String, int>> uniq_acts;
+	
+public:
+	typedef ActionParallelsPage CLASSNAME;
+	ActionParallelsPage(DatasetProvider& o);
+	
+	void Data();
+	void ToolMenu(Bar& bar);
+	void DataMain();
+	void DataAction();
+	void DataActionHeader();
+	void UpdateParallels();
+	
+};
+
+class ActionTransitionsPage : public ParentCtrl {
+	DatasetProvider& o;
+	Splitter vsplit, hsplit;
+	ArrayCtrl actions, action_args, transitions;
+	Mutex lock;
+	
+	VectorMap<String, VectorMap<String, int>> uniq_acts;
+	
+public:
+	typedef ActionTransitionsPage CLASSNAME;
+	ActionTransitionsPage(DatasetProvider& o);
+	
+	void Data();
+	void ToolMenu(Bar& bar);
+	void DataMain();
+	void DataAction();
+	void DataActionHeader();
+	void UpdateTransitions();
+	
+};
+
 class SourceTextCtrl : public ToolAppCtrl {
 	DropList				data_type;
 	AuthorDataCtrl			src;
@@ -278,6 +364,10 @@ class SourceTextCtrl : public ToolAppCtrl {
 	ActionAttrsPage			aap;
 	Attributes				att;
 	TextDataDiagnostics		diag;
+	TextDataWordnet			wn;
+	PhraseParts				pp;
+	ActionParallelsPage		apar;
+	ActionTransitionsPage	atra;
 	SourceTextMergerCtrl	merger;
 	
 	void Load();

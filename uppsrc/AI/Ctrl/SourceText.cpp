@@ -2026,6 +2026,782 @@ void TextDataDiagnostics::Data() {
 
 
 
+TextDataWordnet::TextDataWordnet(DatasetProvider& o) : o(o) {
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << vsplit << wordnets;
+	hsplit.SetPos(2000);
+	
+	vsplit.Vert() << attrs << colors;
+	vsplit.SetPos(1000,0);
+	
+	attrs.AddColumn(t_("Group"));
+	attrs.AddColumn(t_("Value"));
+	attrs.AddIndex("GROUP");
+	attrs.AddIndex("VALUE");
+	attrs.ColumnWidths("1 1");
+	attrs.WhenCursor << THISBACK(DataAttribute);
+	
+	colors.AddColumn(t_("Colors"));
+	colors.WhenCursor << THISBACK(DataColor);
+	
+	wordnets.AddColumn(t_("Group"));
+	wordnets.AddColumn(t_("Value"));
+	wordnets.AddColumn(t_("Main class"));
+	wordnets.AddColumn(t_("Anchor word"));
+	wordnets.AddColumn(t_("#1 alternative"));
+	wordnets.AddColumn(t_("#2 alternative"));
+	wordnets.AddColumn(t_("#3 alternative"));
+	wordnets.AddColumn(t_("#4 alternative"));
+	wordnets.AddColumn(t_("#5 alternative"));
+	wordnets.AddColumn(t_("#6 alternative"));
+	wordnets.AddColumn(t_("#7 alternative"));
+	wordnets.AddIndex("IDX");
+	wordnets.ColumnWidths("1 2 1 1 1 1 1 1 1 1 1");
+	
+	
+}
+
+void TextDataWordnet::EnableAll() {
+	
+}
+
+void TextDataWordnet::DisableAll() {
+	
+}
+
+void TextDataWordnet::Data() {
+	
+}
+
+void TextDataWordnet::DataMain() {
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	auto& src = *p.srctxt;
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	
+	
+	int gi = 0;
+	int i = 0;
+	
+	attrs.Set(i, 0, "All");
+	attrs.Set(i, 1, "All");
+	attrs.Set(i, "GROUP", -1);
+	attrs.Set(i, "VALUE", -1);
+	i++;
+	
+	#define ATTR_ITEM(e, g, i0, i1) \
+		attrs.Set(i, 0, g); \
+		attrs.Set(i, 1, i0); \
+		attrs.Set(i, "GROUP", gi); \
+		attrs.Set(i, "VALUE", 0); \
+		i++; \
+		attrs.Set(i, 0, g); \
+		attrs.Set(i, 1, i1); \
+		attrs.Set(i, "GROUP", gi); \
+		attrs.Set(i, "VALUE", 1); \
+		i++, gi++;
+	ATTR_LIST
+	#undef ATTR_ITEM
+
+	if (!attrs.IsCursor() && attrs.GetCount())
+		attrs.SetCursor(0);
+	
+	
+	DataAttribute();
+	#endif
+}
+
+void TextDataWordnet::DataAttribute() {
+	if (!attrs.IsCursor())
+		return;
+	
+	
+	
+	colors.SetCount(1+GetColorGroupCount());
+	colors.Set(0, 0, t_("All words"));
+	for(int i = 0; i < GetColorGroupCount(); i++) {
+		colors.Set(1+i, 0,
+			AttrText("#" + IntStr(i))
+				.NormalPaper(GetGroupColor(i)).NormalInk(Black())
+				.Paper(Blend(GrayColor(), GetGroupColor(i))).Ink(White()));
+	}
+	if (colors.GetCount() && !colors.IsCursor())
+		colors.SetCursor(0);
+	
+	
+	DataColor();
+}
+
+void TextDataWordnet::DataColor() {
+	if (!colors.IsCursor() || !attrs.IsCursor())
+		return;
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	int clr_i = colors.GetCursor();
+	int attr_group_i = attrs.Get("GROUP");
+	int attr_value_i = attrs.Get("VALUE");
+	String group_str = attr_group_i >= 0 ? ToLower(Attr::AttrKeys[attr_group_i][1]) : String();
+	String value_str = attr_group_i >= 0 ? ToLower(Attr::AttrKeys[attr_group_i][2 + attr_value_i]) : String();
+	
+	bool clr_filter = clr_i > 0;
+	bool attr_filter = attr_group_i >= 0;
+	clr_i--;
+	
+	lock.Enter();
+	
+	int row = 0;
+	for(int i = 0; i < da.wordnets.GetCount(); i++) {
+		ExportWordnet& wn = da.wordnets[i];
+		
+		// Filter by color group
+		if (clr_filter && GetColorGroup(wn.clr) != clr_i)
+			continue;
+		
+		// Filter by attribute
+		if (attr_filter) {
+			if (wn.attr < 0)
+				continue;
+			const AttrHeader& ah = da.attrs.GetKey(wn.attr);
+			if (ah.group != group_str || ah.value != value_str)
+				continue;
+		}
+		
+		wordnets.Set(row, "IDX", i);
+		
+		if (wn.attr >= 0) {
+			const AttrHeader& ah = da.attrs.GetKey(wn.attr);
+			wordnets.Set(row, 0, ah.group);
+			wordnets.Set(row, 1, ah.value);
+		}
+		else {
+			wordnets.Set(row, 0, Value());
+			wordnets.Set(row, 1, Value());
+		}
+		
+		// Colored main class
+		/*bool has_main_class_clr = false;
+		Color main_class_clr;
+		{
+			int j = GetWordgroupColors().Find(wn.main_class);
+			if (j >= 0) {
+				main_class_clr = GetWordgroupColors()[j];
+				has_main_class_clr = true;
+			}
+		}
+		if (has_main_class_clr) {
+			wordnets.Set(row, 2,
+				AttrText(wn.main_class)
+					.NormalPaper(Blend(main_class_clr, White(), 128+64)).NormalInk(Black())
+					.Paper(Blend(main_class_clr, GrayColor())).Ink(White())
+			);
+		}
+		else {*/
+		if (wn.main_class >= 0)
+			wordnets.Set(row, 2, da.word_classes[wn.main_class]);
+		else
+			wordnets.Set(row, 2, Value());
+		//}
+		
+		
+		// Anchor word
+		if (wn.word_count > 0) {
+			wordnets.Set(row, 3,
+				AttrText(wn.words[0])
+					.NormalPaper(Blend(wn.clr, White(), 128+64)).NormalInk(Black())
+					.Paper(Blend(GrayColor(), wn.clr)).Ink(White()));
+		}
+		
+		
+		// Alternative words
+		int c = min(8, wn.word_count);
+		for(int j = 1; j < c; j++) {
+			const String& w = da.words.GetKey(wn.words[j]);
+			SetColoredListValue(
+				wordnets,
+				row, 3+j, w,
+				wn.word_clrs[j]);
+		}
+		for(int j = c; j < 8; j++)
+			wordnets.Set(row, 3+j, Value());
+		
+		row++;
+	}
+	wordnets.SetCount(row);
+	wordnets.SetSortColumn(1, false);
+	
+	
+	lock.Leave();
+	#endif
+}
+
+void TextDataWordnet::ToolMenu(Bar& bar) {
+	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Separator();
+	//bar.Add(t_("Make wordnets from template phrases"), TextImgs::RedRing(), THISBACK1(DoWordnet, 0)).Key(K_F5);
+	bar.Add(t_("Get color alternatives"), TextImgs::RedRing(), THISBACK1(DoWordnet, 1)).Key(K_F6);
+}
+
+void TextDataWordnet::DoWordnet(int fn) {
+	//TextLib::TaskManager& tm = GetTaskManager();
+	//tm.DoWordnet(fn);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+PhraseParts::PhraseParts(DatasetProvider& o) : o(o) {
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << vsplit;
+	hsplit.SetPos(2000);
+	
+	vsplit.Vert() << texts << parts;
+	
+	texts.AddColumn(t_("Phrase"));
+	texts.AddColumn(t_("Types"));
+	texts.AddColumn(t_("Structural name"));
+	texts.AddIndex("IDX");
+	texts.ColumnWidths("1 1 1");
+	texts.WhenBar << [this](Bar& bar){
+		bar.Add("Copy virtual type", [this]() {
+			int i = texts.GetCursor();
+			String text = texts.Get(i, 0);
+			WriteClipboardText(text);
+		});
+		bar.Add("Copy type", [this]() {
+			int i = texts.GetCursor();
+			String text = texts.Get(i, 1);
+			WriteClipboardText(text);
+		});
+	};
+	
+	parts.AddColumn(t_("Phrase"));
+	parts.AddColumn(t_("Next scores"));
+	parts.AddColumn(t_("Score sum"));
+	parts.AddIndex("IDX");
+	parts.ColumnWidths("6 3 1");
+	
+}
+
+void PhraseParts::Data() {
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sd.a.dataset;
+	int row = 0;
+	for(int i = 0; i < da.phrase_parts.GetCount(); i++) {
+		const PhrasePart& pp = da.phrase_parts[i];
+		
+		String struct_part_type, type_str;
+		if (pp.virtual_phrase_part >= 0) {
+			const VirtualPhrasePart& vpp = da.virtual_phrase_parts[pp.virtual_phrase_part];
+			type_str = da.GetTypeString(vpp.word_classes);
+			
+			if (vpp.struct_part_type >= 0)
+				const String& struct_part_type = da.struct_part_types[vpp.struct_part_type];
+		}
+		
+		String phrase = da.GetWordString(pp.words);
+		
+		texts.Set(row, 0, phrase);
+		texts.Set(row, 1, type_str);
+		texts.Set(row, 2, struct_part_type);
+		texts.Set(row, "IDX", i);
+		row++;
+		
+		if (row >= 10000) break;
+	}
+	texts.SetCount(row);
+	
+	
+	row = 0;
+	for(int i = 0; i < da.action_phrases.GetCount(); i++) {
+		const String& phrase = da.action_phrases.GetKey(i);
+		const ExportDepActionPhrase& ap = da.action_phrases[i];
+		
+		parts.Set(row, 0, phrase);
+		
+		String ns;
+		int score_sum = 0;
+		for(int j = 0; j < ap.next_scores.GetCount(); j++) {
+			if (j) ns << ", ";
+			int row_sum = 0;
+			for (int s : ap.next_scores[j])
+				row_sum += s;
+			ns << row_sum;
+			score_sum += row_sum;
+		}
+		parts.Set(row, 1, ns);
+		parts.Set(row, 2, score_sum);
+		parts.Set(row, "IDX", i);
+		row++;
+		
+		if (row >= 10000) break;
+	}
+	parts.SetCount(row);
+	parts.SetSortColumn(2, true);
+	#endif
+}
+
+void PhraseParts::ToolMenu(Bar& bar) {
+	bar.Add(t_("Update Data"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Separator();
+	bar.Add(t_("Get all line actions"), TextImgs::RedRing(), THISBACK1(DoWords, 3)).Key(K_F5);
+	bar.Separator();
+	// Won't ever work--> bar.Add(t_("Get line change scores using existing"), TextImgs::VioletRing(), THISBACK(DoWordsUsingExisting)).Key(K_F6);
+	bar.Add(t_("Get line change scores"), TextImgs::RedRing(), THISBACK1(DoWords, 4)).Key(K_F6);
+	
+}
+
+void PhraseParts::DoWordsUsingExisting(int fn) {
+	/*int lng_i = MetaDatabase::Single().GetOtherLanguageIndex();
+	TextLib::TaskManager& tm = GetTaskManager();
+	tm.DoWordsUsingExisting(lng_i, fn);*/
+}
+
+void PhraseParts::DoWords(int fn) {
+	/*int lng_i = MetaDatabase::Single().GetOtherLanguageIndex();
+	TextLib::TaskManager& tm = GetTaskManager();
+	tm.DoWords(lng_i, fn);*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ActionParallelsPage::ActionParallelsPage(DatasetProvider& o) : o(o) {
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << vsplit << parallels;
+	hsplit.SetPos(2000);
+	
+	vsplit.Vert() << actions << action_args;
+	
+	actions.AddColumn(t_("Action"));
+	actions.AddColumn(t_("Count"));
+	actions.ColumnWidths("3 1");
+	actions.WhenCursor << THISBACK(DataAction);
+	
+	action_args.AddColumn(t_("Action args"));
+	action_args.AddColumn(t_("Count"));
+	action_args.ColumnWidths("3 1");
+	action_args.WhenCursor << THISBACK(DataActionHeader);
+	
+	parallels.AddColumn(t_("From action"));
+	parallels.AddColumn(t_("From action arg"));
+	parallels.AddColumn(t_("To action"));
+	parallels.AddColumn(t_("To action arg"));
+	parallels.AddColumn(t_("Score"));
+	parallels.AddColumn(t_("Count"));
+	parallels.AddColumn(t_("Weight"));
+	parallels.AddIndex("IDX0");
+	parallels.AddIndex("IDX1");
+	parallels.ColumnWidths("2 2 2 2 1 1 1");
+	
+}
+
+void ActionParallelsPage::Data() {
+	
+}
+
+void ActionParallelsPage::ToolMenu(Bar& bar) {
+	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Separator();
+	bar.Add(t_("Update parallels"), TextImgs::RedRing(), THISBACK(UpdateParallels)).Key(K_F6);
+	
+}
+
+void ActionParallelsPage::DataMain() {
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	uniq_acts.Clear();
+	for (const ActionHeader& ah : da.actions.GetKeys()) {
+		uniq_acts.GetAdd(ah.action).GetAdd(ah.arg, 0)++;
+	}
+	struct Sorter {
+		bool operator()(const VectorMap<String, int>& a, const VectorMap<String, int>& b) const {
+			return a.GetCount() > b.GetCount();
+		}
+	};
+	SortByValue(uniq_acts, Sorter());
+	for (auto& v : uniq_acts.GetValues())
+		SortByValue(v, StdGreater<int>());
+	
+	actions.Set(0, 0, "All");
+	actions.Set(0, 1, da.actions.GetCount());
+	for(int i = 0; i < uniq_acts.GetCount(); i++) {
+		actions.Set(1+i, 0, uniq_acts.GetKey(i));
+		actions.Set(1+i, 1, uniq_acts[i].GetCount());
+	}
+	actions.SetCount(1+uniq_acts.GetCount());
+	if (!actions.IsCursor() && actions.GetCount())
+		actions.SetCursor(0);
+	
+	DataAction();
+	#endif
+}
+
+void ActionParallelsPage::DataAction() {
+	if (!actions.IsCursor())
+		return;
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	
+	String action = actions.Get(0);
+	int i = uniq_acts.Find(action);
+	if (i < 0) {
+		action_args.SetCount(1);
+		action_args.Set(0, 0, "All");
+		action_args.Set(0, 1, da.actions.GetCount());
+	}
+	else {
+		auto& args = uniq_acts[i];
+		action_args.Set(0, 0, "All");
+		action_args.Set(0, 1, args.GetCount());
+		for(int i = 0; i < args.GetCount(); i++) {
+			action_args.Set(1+i, 0, args.GetKey(i));
+			action_args.Set(1+i, 1, args[i]);
+		}
+		action_args.SetCount(1+args.GetCount());
+	}
+	if (!action_args.IsCursor() && action_args.GetCount())
+		action_args.SetCursor(0);
+	
+	DataActionHeader();
+	#endif
+}
+
+void ActionParallelsPage::DataActionHeader() {
+	if (!actions.IsCursor() || !action_args.IsCursor())
+		return;
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	String action = actions.Get(0);
+	String action_arg = action_args.Get(0);
+	bool filter_action = action != "All";
+	bool filter_action_arg = action_arg != "All";
+	
+	int idx = -1;
+	int row = 0;
+	for(int i = 0; i < da.parallel.GetCount(); i++) {
+		int from_a = da.parallel.GetKey(i);
+		const ActionHeader& at0 = da.actions.GetKey(from_a);
+		const Vector<ExportParallel>& to_v = da.parallel.GetValues(i);
+		
+		bool at0_skipped = false;
+		if (filter_action) {
+			if (at0.action != action || (filter_action_arg && at0.arg != action_arg))
+				at0_skipped = true;
+		}
+		
+		for(int j = 0; j < to_v.GetCount(); j++) {
+			int to_a = da.parallel.GetKey(i, j);
+			const ActionHeader& at1 = da.actions.GetKey(to_a);
+			const ExportParallel& at = to_v[j];
+			
+			bool at1_skipped = false;
+			if (filter_action && at0_skipped) {
+				if (at1.action != action || (filter_action_arg && at1.arg != action_arg))
+					at1_skipped = true;
+			}
+			if (at1_skipped && at1_skipped)
+				continue;
+			
+			parallels.Set(row, "IDX0", i);
+			parallels.Set(row, "IDX1", j);
+			parallels.Set(row, 0, at0.action);
+			parallels.Set(row, 1, at0.arg);
+			parallels.Set(row, 2, at1.action);
+			parallels.Set(row, 3, at1.arg);
+			
+			double score = at.count > 0 ? at.score_sum / at.count : 0;
+			
+			parallels.Set(row, 4, score);
+			parallels.Set(row, 5, at.count);
+			parallels.Set(row, 6, at.score_sum);
+			
+			row++;
+			if (row >= 10000) break;
+		}
+		if (row >= 10000) break;
+	}
+	parallels.SetCount(row);
+	parallels.SetSortColumn(6, true);
+	if (!parallels.IsCursor() && parallels.GetCount())
+		parallels.SetCursor(0);
+	#endif
+}
+
+void ActionParallelsPage::UpdateParallels() {
+	//TextLib::TaskManager& tm = GetTaskManager();
+	//tm.DoActionParallel(0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+ActionTransitionsPage::ActionTransitionsPage(DatasetProvider& o) : o(o) {
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << vsplit << transitions;
+	hsplit.SetPos(2000);
+	
+	vsplit.Vert() << actions << action_args;
+	
+	actions.AddColumn(t_("Action"));
+	actions.AddColumn(t_("Count"));
+	actions.ColumnWidths("3 1");
+	actions.WhenCursor << THISBACK(DataAction);
+	
+	action_args.AddColumn(t_("Action args"));
+	action_args.AddColumn(t_("Count"));
+	action_args.ColumnWidths("3 1");
+	action_args.WhenCursor << THISBACK(DataActionHeader);
+	
+	transitions.AddColumn(t_("From action"));
+	transitions.AddColumn(t_("From action arg"));
+	transitions.AddColumn(t_("To action"));
+	transitions.AddColumn(t_("To action arg"));
+	transitions.AddColumn(t_("Score"));
+	transitions.AddColumn(t_("Count"));
+	transitions.AddColumn(t_("Weight"));
+	transitions.AddIndex("IDX0");
+	transitions.AddIndex("IDX1");
+	transitions.ColumnWidths("2 2 2 2 1 1 1");
+	
+}
+
+void ActionTransitionsPage::Data() {
+	
+}
+
+void ActionTransitionsPage::ToolMenu(Bar& bar) {
+	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Separator();
+	bar.Add(t_("Update transitions"), TextImgs::RedRing(), THISBACK(UpdateTransitions)).Key(K_F6);
+	
+}
+
+void ActionTransitionsPage::DataMain() {
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	uniq_acts.Clear();
+	for (const ActionHeader& ah : da.actions.GetKeys()) {
+		uniq_acts.GetAdd(ah.action).GetAdd(ah.arg, 0)++;
+	}
+	struct Sorter {
+		bool operator()(const VectorMap<String, int>& a, const VectorMap<String, int>& b) const {
+			return a.GetCount() > b.GetCount();
+		}
+	};
+	SortByValue(uniq_acts, Sorter());
+	for (auto& v : uniq_acts.GetValues())
+		SortByValue(v, StdGreater<int>());
+	
+	actions.Set(0, 0, "All");
+	actions.Set(0, 1, da.actions.GetCount());
+	for(int i = 0; i < uniq_acts.GetCount(); i++) {
+		actions.Set(1+i, 0, uniq_acts.GetKey(i));
+		actions.Set(1+i, 1, uniq_acts[i].GetCount());
+	}
+	actions.SetCount(1+uniq_acts.GetCount());
+	if (!actions.IsCursor() && actions.GetCount())
+		actions.SetCursor(0);
+	
+	DataAction();
+	#endif
+}
+
+void ActionTransitionsPage::DataAction() {
+	if (!actions.IsCursor())
+		return;
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	
+	String action = actions.Get(0);
+	int i = uniq_acts.Find(action);
+	if (i < 0) {
+		action_args.SetCount(1);
+		action_args.Set(0, 0, "All");
+		action_args.Set(0, 1, da.actions.GetCount());
+	}
+	else {
+		auto& args = uniq_acts[i];
+		action_args.Set(0, 0, "All");
+		action_args.Set(0, 1, args.GetCount());
+		for(int i = 0; i < args.GetCount(); i++) {
+			action_args.Set(1+i, 0, args.GetKey(i));
+			action_args.Set(1+i, 1, args[i]);
+		}
+		action_args.SetCount(1+args.GetCount());
+	}
+	if (!action_args.IsCursor() && action_args.GetCount())
+		action_args.SetCursor(0);
+	
+	DataActionHeader();
+	#endif
+}
+
+void ActionTransitionsPage::DataActionHeader() {
+	if (!actions.IsCursor() || !action_args.IsCursor())
+		return;
+	
+	DatasetPtrs p = o.GetDataset();
+	if (!p.srctxt) return;
+	auto& src = *p.srctxt;
+	#if 0
+	SourceData& sd = db.src_data;
+	SourceDataAnalysis& sda = db.src_data.a;
+	DatasetAnalysis& da = sda.dataset;
+	
+	String action = actions.Get(0);
+	String action_arg = action_args.Get(0);
+	bool filter_action = action != "All";
+	bool filter_action_arg = action_arg != "All";
+	
+	int idx = -1;
+	int row = 0;
+	for(int i = 0; i < da.trans.GetCount(); i++) {
+		int from_a = da.trans.GetKey(i);
+		const ActionHeader& at0 = da.actions.GetKey(from_a);
+		const Vector<ExportTransition>& to_v = da.trans.GetValues(i);
+		
+		bool at0_skipped = false;
+		if (filter_action) {
+			if (at0.action != action || (filter_action_arg && at0.arg != action_arg))
+				at0_skipped = true;
+		}
+		
+		for(int j = 0; j < to_v.GetCount(); j++) {
+			int to_a = da.trans.GetKey(i, j);
+			const ActionHeader& at1 = da.actions.GetKey(to_a);
+			const ExportTransition& at = to_v[j];
+			
+			bool at1_skipped = false;
+			if (filter_action && at0_skipped) {
+				if (at1.action != action || (filter_action_arg && at1.arg != action_arg))
+					at1_skipped = true;
+			}
+			if (at1_skipped && at1_skipped)
+				continue;
+			
+			transitions.Set(row, "IDX0", i);
+			transitions.Set(row, "IDX1", j);
+			transitions.Set(row, 0, at0.action);
+			transitions.Set(row, 1, at0.arg);
+			if (at0.action != at1.action || at0.arg != at1.arg) {
+				transitions.Set(row, 2, at1.action);
+				transitions.Set(row, 3, at1.arg);
+			}
+			else {
+				// no change
+				transitions.Set(row, 2, Value());
+				transitions.Set(row, 3, Value());
+			}
+			
+			double score = at.count > 0 ? at.score_sum / at.count : 0;
+			
+			transitions.Set(row, 4, score);
+			transitions.Set(row, 5, at.count);
+			transitions.Set(row, 6, at.score_sum);
+			
+			row++;
+			if (row >= 10000) break;
+		}
+		if (row >= 10000) break;
+	}
+	transitions.SetCount(row);
+	transitions.SetSortColumn(6, true);
+	if (!transitions.IsCursor() && transitions.GetCount())
+		transitions.SetCursor(0);
+	#endif
+}
+
+void ActionTransitionsPage::UpdateTransitions() {
+	//TextLib::TaskManager& tm = GetTaskManager();
+	//tm.DoActionTransition(0);
+}
+
+
+
+
+
+
+
 
 SourceTextMergerCtrl::SourceTextMergerCtrl(DatasetProvider& o) : o(o) {
 	CtrlLayout(conf);
@@ -2084,6 +2860,10 @@ SourceTextCtrl::SourceTextCtrl() :
 	aap(*this),
 	att(*this),
 	diag(*this),
+	wn(*this),
+	pp(*this),
+	apar(*this),
+	atra(*this),
 	merger(*this)
 {
 	data_type.Add("Source");
@@ -2098,6 +2878,10 @@ SourceTextCtrl::SourceTextCtrl() :
 	data_type.Add("Action Attrs Page");
 	data_type.Add("Attributes");
 	data_type.Add("Text Data Diagnostics");
+	data_type.Add("Wordnet");
+	data_type.Add("Phrase-actions");
+	data_type.Add("Parallels");
+	data_type.Add("Transition");
 	data_type.Add("Merger");
 	data_type.SetIndex(0);
 	data_type.WhenAction << THISBACK(SetDataCtrl);
@@ -2126,6 +2910,10 @@ void SourceTextCtrl::SetDataCtrl() {
 	RemoveChild(&aap);
 	RemoveChild(&att);
 	RemoveChild(&diag);
+	RemoveChild(&wn);
+	RemoveChild(&pp);
+	RemoveChild(&apar);
+	RemoveChild(&atra);
 	RemoveChild(&merger);
 	
 	int idx = data_type.GetIndex();
@@ -2142,7 +2930,11 @@ void SourceTextCtrl::SetDataCtrl() {
 		case 9: Add(aap.SizePos()); break;
 		case 10: Add(att.SizePos()); break;
 		case 11: Add(diag.SizePos()); break;
-		case 12: Add(merger.SizePos()); break;
+		case 12: Add(wn.SizePos()); break;
+		case 13: Add(pp.SizePos()); break;
+		case 14: Add(apar.SizePos()); break;
+		case 15: Add(atra.SizePos()); break;
+		case 16: Add(merger.SizePos()); break;
 	}
 	Data();
 }
@@ -2162,7 +2954,11 @@ void SourceTextCtrl::Data() {
 		case 9: aap.Data(); break;
 		case 10: att.Data(); break;
 		case 11: diag.Data(); break;
-		case 12: merger.Data(); break;
+		case 12: wn.Data(); break;
+		case 13: pp.Data(); break;
+		case 14: apar.Data(); break;
+		case 15: atra.Data(); break;
+		case 16: merger.Data(); break;
 	}
 }
 
@@ -2224,7 +3020,7 @@ void SourceTextCtrl::Do(int fn) {
 		case 10: DoT<AttributesProcess>(fn); break; // att
 		case 11: break; // diag
 		#endif
-		case 12: merger.Do(fn); break;
+		case 16: merger.Do(fn); break;
 		default: break;
 	}
 }

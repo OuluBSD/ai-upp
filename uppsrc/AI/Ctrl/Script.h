@@ -26,6 +26,10 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		One<ActionAttrsPage>		aap;
 		One<Attributes>				att;
 		One<TextDataDiagnostics>	diag;
+		One<TextDataWordnet>		wn;
+		One<PhraseParts>			pp;
+		One<ActionParallelsPage>	apar;
+		One<ActionTransitionsPage>	atra;
 		
 		typedef SubTab CLASSNAME;
 		SubTab(ScriptTextCtrl&, const VirtualNode& vnode);

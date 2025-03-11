@@ -113,17 +113,8 @@ String SrcTextData::GetTokenTextString(const Vector<int>& tokens) const {
 }
 
 String SrcTextData::GetTokenTypeString(const TokenText& txt) const {
-	
-	
 	String o;
-	for(int tk_i : txt.tokens) {
-		const Token& tk = this->tokens[tk_i];
-		int w_i = tk.word_;
-		if (w_i < 0) {
-			String key = ToLower(this->tokens.GetKey(tk_i));
-			w_i = this->FindAnyWord(key);
-			tk.word_ = w_i;
-		}
+	for(int w_i : txt.words) {
 		if (w_i < 0) {
 			o << "{error}";
 		}
@@ -135,14 +126,6 @@ String SrcTextData::GetTokenTypeString(const TokenText& txt) const {
 			else
 				o << "error";
 			o << "}";
-			/*if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
-				o << key;
-			}
-			else {
-				if (!o.IsEmpty())
-					o << " ";
-				o << key;
-			}*/
 		}
 	}
 	return o;

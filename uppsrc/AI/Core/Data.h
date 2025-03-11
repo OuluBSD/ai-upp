@@ -115,23 +115,28 @@ struct EditorPtrs {
 #endif
 
 struct Token : Moveable<Token> {
-	mutable int word_ = -1; // TODO remove
+	byte pad;
 
 	void Visit(NodeVisitor& v) {
-		v.Ver(2)
-		(1)("w", word_);
+		v.Ver(3);
+		if (v.file_ver < 3) {
+			int word_;
+			v(1)("w", word_);
+		}
 	}
 };
 
 struct TokenText : Moveable<TokenText> {
 	Vector<int> tokens;
+	Vector<int> words;
 	int virtual_phrase = -1;
 	int phrase_part = -1;
 
 	void Visit(NodeVisitor& v) {
-		v.Ver(2)
+		v.Ver(3)
 		(1)("t",tokens)("vp", virtual_phrase)
-		(2)("pp",phrase_part);
+		(2)("pp",phrase_part)
+		(3)("w",words);
 	}
 	static hash_t GetHash(const Vector<int>& tokens) {CombineHash c; for (int tk : tokens) c.Do(tk); return c;}
 	hash_t GetHashValue() const {return GetHash(tokens);}

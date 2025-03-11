@@ -525,8 +525,7 @@ void ScriptTextProcess::CountWords()
 				for(auto& sub1 : sub0.sub) {
 					for (int tt_i : sub1.token_texts) {
 						TokenText& tt = src.token_texts[tt_i];
-						for (int tk_i : tt.tokens) {
-							int wrd_i = src.tokens[tk_i].word_;
+						for (int wrd_i : tt.words) {
 							PROCESS_ASSERT(wrd_i >= 0);
 							if (wrd_i >= 0)
 								src.words_[wrd_i].count++;
@@ -548,6 +547,8 @@ void ScriptTextProcess::WordClasses()
 	args.fn = FN_WORD_CLASSES;
 	args.params = ValueMap();
 
+	TODO // This whole phase is to be removed: find word classes from TokenTexts earlier
+	#if 0
 	if(batch == 0) {
 		iter = 0;
 		total = 0;
@@ -560,20 +561,20 @@ void ScriptTextProcess::WordClasses()
 	}
 
 	ValueArray words;
-	ValueArray token_idx;
+	ValueArray word_idx;
 	while (iter < end) {
 		int i = iter++;
-		const String& s = src.tokens.GetKey(i);
-		Token& tk = src.tokens[i];
-		if (tk.word_ >= 0 && src.words_[tk.word_].word_class >= 0)
+		const auto& w = src.words_[i];
+		if (w.word_class >= 0)
 			continue;
+		const String& s = w.text;
 		words << s;
-		token_idx << i;
-		if (token_idx.GetCount() >= words_per_action_task)
+		word_idx << i;
+		if (word_idx.GetCount() >= words_per_action_task)
 			break;
 	}
 	args.params("words") = words;
-	args.params("token_idx") = token_idx;
+	args.params("word_idx") = word_idx;
 
 	total = iter;
 
@@ -593,18 +594,17 @@ void ScriptTextProcess::WordClasses()
 		}
 		ValueArray word_classes = v("response-short")("word classes");
 		ValueArray input_words = args.params("words");
-		ValueArray token_idx = args.params("token_idx");
+		ValueArray word_idx = args.params("word_idx");
 		// LOG(AsJSON(v, true));
 		PROCESS_ASSERT_CMP(word_classes.GetCount(), input_words.GetCount());
 		
 		int count = min(word_classes.GetCount(), input_words.GetCount());
 
 		for(int i = 0; i < count; i++) {
-			int tk_i = token_idx[i];
-			Token& tk = src.tokens[tk_i];
+			int wrd_i = word_idx[i];
+			auto& wrd = src.words_[wrd_i];
 			String result_word = input_words[i].ToString();
 
-			int wrd_i = -1;
 			TODO
 			#if 0
 			ExportWord& wrd = MapGetAdd(src.words_, result_word, wrd_i);
@@ -629,6 +629,7 @@ void ScriptTextProcess::WordClasses()
 		NextBatch();
 		SetWaiting(false);
 	});
+	#endif
 }
 
 void ScriptTextProcess::AmbiguousWordPairs()
@@ -736,34 +737,14 @@ void ScriptTextProcess::ImportTokenTexts()
 		bool succ = true;
 		word_is.SetCount(0);
 		word_classes.SetCount(0);
-		for(int tk_i : txt.tokens) {
-			const Token& tk = src.tokens[tk_i];
-			int w_i = tk.word_;
-			if(w_i < 0) {
-				String key = src.tokens.GetKey(tk_i);
-				TODO
-				#if 0
-				w_i = src.words.Find(key);
-				if(w_i < 0) {
-					key = ToLower(src.tokens.GetKey(tk_i));
-					w_i = src.words.Find(key);
-				}
-				PROCESS_ASSERT(w_i >= 0);
-				tk.word_ = w_i;
-				#endif
-			}
-			word_is << w_i;
-		}
-
+		ASSERT(txt.words.GetCount());
 		int prev_w_i = -1;
-		for(int j = 0; j < word_is.GetCount(); j++) {
-			int w_i = word_is[j];
-			int next_w_i = j + 1 < word_is.GetCount() ? word_is[j] : -1;
-			TODO
-			#if 0
-			succ = succ && GetTypePhrase(word_classes, src, next_w_i, w_i, prev_w_i);
-			#endif
-			prev_w_i = w_i;
+		for(int j = 0; j < txt.words.GetCount(); j++) {
+			int w_i = txt.words[j];
+			int cls = src.words_[w_i].word_class;
+			if (cls < 0)
+				succ = false;
+			word_classes << cls;
 		}
 
 		if(word_classes.IsEmpty())
@@ -1078,20 +1059,12 @@ void ScriptTextProcess::VirtualPhraseStructs()
 		bool succ = true;
 		word_is.SetCount(0);
 		word_classes.SetCount(0);
-		for(int tk_i : tt.tokens) {
-			const Token& tk = src.tokens[tk_i];
-			int w_i = tk.word_;
+		for(int w_i : tt.words) {
+			const auto& wrd = src.words_[w_i];
 			PROCESS_ASSERT(w_i >= 0);
-			/*if(w_i < 0) {
-				String key = src.tokens.GetKey(tk_i);
-				w_i = src.words.Find(key);
-				if(w_i < 0) {
-					key = ToLower(src.tokens.GetKey(tk_i));
-					w_i = src.words.Find(key);
-				}
-				tk.word_ = w_i;
-			}*/
 			word_is << w_i;
+			word_classes << wrd.word_class;
+			ASSERT(wrd.word_class >= 0);
 		}
 
 		const VirtualPhrase& vp = src.virtual_phrases[tt.virtual_phrase];

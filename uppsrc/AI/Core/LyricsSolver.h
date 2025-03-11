@@ -24,7 +24,7 @@ struct NavigatorState {
 void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit);
 
 
-
+// TODO Remove?
 class ScriptSolver : public SolverBase {
 	enum {
 		LS_COUNT,

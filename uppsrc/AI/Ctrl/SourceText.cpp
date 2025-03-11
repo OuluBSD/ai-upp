@@ -530,6 +530,9 @@ void ScriptTextDebuggerPage::Data() {
 	if (tab == PAGE_phrase_parts) {
 		int i = 0;
 		for(auto it : ~src.phrase_parts) {
+			const ContextData* cd = src.FindContext(it.value.ctx);
+			ASSERT(cd);
+			if (!cd) continue;
 			phrase_parts.Set(i, 0, i);
 			phrase_parts.Set(i, 1, HexStr64(it.key));
 			String s;
@@ -555,7 +558,6 @@ void ScriptTextDebuggerPage::Data() {
 			s = "";
 			for (int tc_i : it.value.typecasts) {
 				if (!s.IsEmpty()) s << " ";
-				ContextData* cd = src.FindContext(it.value.ctx);
 				ASSERT(cd);
 				const auto& tc = cd->typeclasses[tc_i].name;
 				s << tc;
@@ -565,8 +567,8 @@ void ScriptTextDebuggerPage::Data() {
 			s = "";
 			for (int con_i : it.value.contrasts) {
 				if (!s.IsEmpty()) s << " ";
-				const auto& con = src.ctx.content.labels[con_i];
-				s << con;
+				const auto& con = cd->contents[con_i];
+				s << con.name;
 			}
 			phrase_parts.Set(i, 10, s);
 			i++;
@@ -747,8 +749,8 @@ void AmbiguousWordPairs::Data() {
 	for(int i = 0; i < src.ambiguous_word_pairs.GetCount(); i++) {
 		const WordPairType& wp = src.ambiguous_word_pairs[i];
 		if (wp.from >= 0 && wp.to >= 0) {
-			const String& from = src.words.GetKey(wp.from);
-			const String& to = src.words.GetKey(wp.to);
+			const String& from = src.words_[wp.from].text;
+			const String& to = src.words_[wp.to].text;
 			
 			texts.Set(row, 0, from);
 			texts.Set(row, 1, to);
@@ -1470,10 +1472,11 @@ void PhrasePartAnalysis2::DataElement() {
 	auto& src = *p.srctxt;
 	
 	// Set typeclasses
-	const auto& tc = src.ctx.typeclass.labels;
+	auto& ctx = src.ctxs[0];
+	const auto& tc = ctx.typeclasses;
 	typecasts.Set(0, 0, "All");
 	for(int i = 0; i < tc.GetCount(); i++) {
-		typecasts.Set(1+i, 0, "DEPRECATED: " + tc[i]);
+		typecasts.Set(1+i, 0, "DEPRECATED: " + tc[i].name);
 		typecasts.Set(1+i, 1, 0);
 	}
 	INHIBIT_CURSOR(typecasts);
@@ -1496,13 +1499,14 @@ void PhrasePartAnalysis2::DataTypeclass() {
 	}
 	auto& src = *p.srctxt;
 	
-	const auto& vec = src.ctx.content.labels;
+	auto& ctx = src.ctxs[0];
+	const auto& vec = ctx.contents;
 	contrasts.Set(0, 0, "All");
 	for(int i = 0; i < vec.GetCount(); i++) {
 		/*DatabaseBrowser::ActionGroup& a = b.groups[i];
 		contrasts.Set(i, 0, a.group);
 		contrasts.Set(i, 1, a.count);*/
-		contrasts.Set(1+i, 0, vec[i].key);
+		contrasts.Set(1+i, 0, vec[i].name);
 		contrasts.Set(1+i, 1, 0);
 	}
 	INHIBIT_CURSOR(contrasts);
@@ -1549,8 +1553,9 @@ void PhrasePartAnalysis2::DataColor() {
 	int clr_i = colors.GetCursor() - 1;
 	bool clr_filter = clr_i >= 0;
 	
-	const auto& tc_v = src.ctx.typeclass.labels;
-	const auto& con_v = src.ctx.content.labels;
+	auto& ctx = src.ctxs[0];
+	const auto& tc_v = ctx.typeclasses;
+	const auto& con_v = ctx.contents;
 	
 	//int count = min(b.data.GetCount(), 10000);
 	int count = src.phrase_parts.GetCount();
@@ -1588,7 +1593,7 @@ void PhrasePartAnalysis2::DataColor() {
 		{
 			String s;
 			for (int j : pp.typecasts)
-				s << tc_v[j] << ", ";
+				s << tc_v[j].name << ", ";
 			parts.Set(row, 1, s);
 		}
 		{
@@ -1597,7 +1602,7 @@ void PhrasePartAnalysis2::DataColor() {
 				int con_i = j / PART_COUNT;
 				int con_j = j % PART_COUNT;
 				if (con_i < con_v.GetCount())
-					s << con_v[con_i].key << " #" << (con_j+1) << ", ";
+					s << con_v[con_i].name << " #" << (con_j+1) << ", ";
 			}
 			parts.Set(row, 2, s);
 		}
@@ -2220,6 +2225,7 @@ void SourceTextCtrl::ToolMenu(Bar& bar) {
 void SourceTextCtrl::Do(int fn) {
 	int page = data_type.GetIndex();
 	switch (page) {
+		#if 0
 		case 0: DoT<SourceDataImporter>(fn - 0); break;
 		case 1: DoT<SourceAnalysisProcess>(fn - 2); break;
 		case 2: DoT<TokenDataProcess>(fn - 4); break;
@@ -2232,6 +2238,7 @@ void SourceTextCtrl::Do(int fn) {
 		case 9: DoT<ActionAttrsProcess>(fn); break; // aap
 		case 10: DoT<AttributesProcess>(fn); break; // att
 		case 11: break; // diag
+		#endif
 		case 12: merger.Do(fn); break;
 		default: break;
 	}

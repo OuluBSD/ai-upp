@@ -117,7 +117,6 @@ struct EditorPtrs {
 struct Token : Moveable<Token> {
 	mutable int word_ = -1; // TODO remove
 
-	void Serialize(Stream& d) { d / word_; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(2)
 		(1)("w", word_);
@@ -129,7 +128,6 @@ struct TokenText : Moveable<TokenText> {
 	int virtual_phrase = -1;
 	int phrase_part = -1;
 
-	void Serialize(Stream& d) { d % tokens / virtual_phrase; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(2)
 		(1)("t",tokens)("vp", virtual_phrase)
@@ -139,60 +137,10 @@ struct TokenText : Moveable<TokenText> {
 	hash_t GetHashValue() const {return GetHash(tokens);}
 };
 
-struct ExportWord : Moveable<ExportWord> {
-	static const int MAX_CLASS_COUNT = 8;
-
-	String spelling;
-	WString phonetic;
-	int count = 0;
-	Color clr;
-	int class_count = 0;
-	int classes[MAX_CLASS_COUNT];
-	int link = -1; // TODO Remove
-	byte lang = 0xFF;
-	
-	void Serialize(Stream& s)
-	{
-		s / spelling / phonetic / count / clr / class_count;
-		for(int i = 0; i < MAX_CLASS_COUNT; i++) s / classes[i];
-		s / link;
-	}
-	void Visit(NodeVisitor& v) {
-		v.Ver(2)
-		(1)	("spelling", spelling)
-			("phonetic", phonetic)
-			("count", count)
-			("clr", clr)
-			("class_count", class_count);
-		for(int i = 0; i < MAX_CLASS_COUNT; i++) {
-			v("cls" + IntStr(i), classes[i]);
-		}
-		v("link", link);
-		v(2)("lang",lang);
-	}
-
-	void CopyFrom(const ExportWord& wa, bool reset)
-	{
-		spelling.Clear();
-		phonetic.Clear();
-		spelling = wa.spelling;
-		phonetic = wa.phonetic;
-		clr = wa.clr;
-		class_count = wa.class_count;
-		for(int i = 0; i < class_count; i++)
-			classes[i] = wa.classes[i];
-		if(reset) {
-			count = 0;
-			link = -1;
-		}
-	}
-};
-
 struct WordPairType : Moveable<WordPairType> {
 	int from = -1, to = -1;           // word index
 	int from_type = -1, to_type = -1; // word class index
 
-	void Serialize(Stream& d) { d / from / to / from_type / to_type;}
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("f",from)("t",to)("ft",from_type)("tt",to_type);}
 	
 	hash_t GetHashValue() const
@@ -207,7 +155,6 @@ struct VirtualPhrase : Moveable<VirtualPhrase> {
 	Vector<int> word_classes;
 	int virtual_phrase_struct = -1;
 
-	void Serialize(Stream& d) { d % word_classes / virtual_phrase_struct; }
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("vps",virtual_phrase_struct);}
 	
 	static hash_t GetHash(const Vector<int>& word_classes)
@@ -225,7 +172,6 @@ struct VirtualPhrasePart : Moveable<VirtualPhrasePart> {
 	int struct_part_type = -1;
 	int count = 0;
 
-	void Serialize(Stream& d) { d % word_classes / struct_part_type / count;}
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("spt",struct_part_type)("c",count);}
 
 	static hash_t GetHash(const Vector<int>& word_classes)
@@ -242,7 +188,6 @@ struct VirtualPhraseStruct : Moveable<VirtualPhraseStruct> {
 	Vector<int> virtual_phrase_parts;
 	int struct_type = -1;
 
-	void Serialize(Stream& d) { d % virtual_phrase_parts / struct_type; }
 	void Visit(NodeVisitor& v) {v.Ver(1)(1)("vps",virtual_phrase_parts)("st",struct_type);}
 
 	static hash_t GetHash(const Vector<int>& virtual_phrase_parts)
@@ -294,11 +239,6 @@ struct PhrasePart : Moveable<PhrasePart> {
 			v("s" + IntStr(i), scores[i]);
 		v(2)("lang", lang)("ctx", ctx);
 	}
-	void Serialize(Stream& s)
-	{
-		s % words / tt_i / virtual_phrase_part / attr / el_i / clr % actions % typecasts % contrasts;
-		for(int i = 0; i < SCORE_COUNT; i++) s / scores[i];
-	}
 	static hash_t GetHash(const Vector<int>& words)
 	{
 		CombineHash c;
@@ -341,7 +281,6 @@ struct ExportAttr : Moveable<ExportAttr> {
 	int positive = -1, link = -1;
 	int count = 0;
 
-	void Serialize(Stream& d) { d / simple_attr / unused / positive / link / count; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("s", simple_attr)
@@ -357,7 +296,6 @@ struct ExportAction : Moveable<ExportAction> {
 	Color clr;
 	int count = 0;
 
-	void Serialize(Stream& d) { d / attr / clr / count; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("a", attr)
@@ -369,7 +307,6 @@ struct ExportAction : Moveable<ExportAction> {
 struct ExportParallel : Moveable<ExportParallel> {
 	int count = 0, score_sum = 0;
 
-	void Serialize(Stream& d) { d / count / score_sum; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("c", count)
@@ -380,7 +317,6 @@ struct ExportParallel : Moveable<ExportParallel> {
 struct ExportTransition : Moveable<ExportTransition> {
 	int count = 0, score_sum = 0;
 
-	void Serialize(Stream& d) { d / count / score_sum; }
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("c", count)
@@ -396,9 +332,6 @@ struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
 	int attr = -1;
 	Color clr = Black();
 
-	void Serialize(Stream& d) {
-		d % actions % next_phrases % next_scores / first_lines / attr / clr;
-	}
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("ac", actions)
@@ -420,13 +353,7 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 	int attr = -1;
 	Color clr;
 	int scores[SCORE_COUNT] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-	void Serialize(Stream& s) {
-		s / word_count;
-		for(int i = 0; i < MAX_WORDS; i++) s / words[i] / word_clrs[i];
-		s / word_clr_count / main_class / attr / clr;
-		for(int i = 0; i < SCORE_COUNT; i++) s / scores[i];
-	}
+	
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("wc", word_count);
@@ -458,7 +385,6 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	int attr_i0 = -1, attr_i1 = -1;
 
-	void Serialize(Stream& d) { d / attr_i0 / attr_i1; } // Todo remove
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
 		(1)	("ai0", attr_i0)
@@ -472,7 +398,6 @@ struct ScriptDataset : Moveable<ScriptDataset> {
 	String title;
 	String text;
 	ContextType ctx;
-	void Serialize(Stream& s) {s / title / text;} // Todo remove
 	void Visit(NodeVisitor& v) {
 		v.Ver(2)
 		(1)	("name", title)
@@ -488,7 +413,6 @@ struct AuthorDataset : Moveable<AuthorDataset> {
 	ContextType ctx;
 	
 	ScriptDataset& GetAddScript(String title);
-	void Serialize(Stream& s) {s % name % scripts % genres;}
 	void Visit(NodeVisitor& v) {
 		v.Ver(2)
 		(1)	("name", name)
@@ -510,7 +434,6 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		SubSubPart() {}
 		SubSubPart(const SubSubPart& s) { *this = s; }
-		void Serialize(Stream& s) { s % token_texts % el_i; }
 		void Visit(NodeVisitor& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", el_i); }
 		void operator=(const SubSubPart& s)
 		{
@@ -526,8 +449,6 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
-		// TODO remove Serialize and int repeat
-		void Serialize(Stream& s) { s % sub % el_i % repeat; if (s.IsLoading() && repeat && !repeat_) repeat_ = repeat;}
 		void Visit(NodeVisitor& v) {
 			v.Ver(2);
 			if (v.file_ver == 1) {
@@ -557,13 +478,6 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		Part() {}
 		Part(const Part& p) { *this = p; }
-		void Serialize(Stream& s) {
-			s % sub;	ASSERT(!s.IsError());
-			s % (int&)type;	ASSERT(!s.IsError());
-			s % num;	ASSERT(!s.IsError());
-			s % el_i % typeclass % content;
-			ASSERT(!s.IsError());
-		}
 		void Visit(NodeVisitor& v)
 		{
 			v.Ver(1)
@@ -588,7 +502,6 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	String author, title;
 	ContextType ctx;
 
-	void Serialize(Stream& s) { s % parts; }
 	void Visit(NodeVisitor& json) {
 		json.Ver(3)
 		(1)("parts", parts, VISIT_VECTOR)
@@ -699,6 +612,10 @@ struct SrcTextData : EntityData {
 	VectorMap<String, String> diagnostics;
 	
 	
+	
+	// TEMP
+	String current_language;
+	
 	#if 0
 	const Vector<ContentType>& GetContents() {return ctx.content.labels;}
 	const Vector<String>& GetContentParts() {return ctx.content.parts;}
@@ -708,7 +625,11 @@ struct SrcTextData : EntityData {
 	int GetLanguage() const {return lang;}
 	#endif
 	
+	SrcTextData();
+	int FindAnyWord(const String& s) const; // deprecated: avoid using
+	int FindAnyWord(const String& s, byte lang) const;
 	ContextData* FindContext(byte ctx);
+	const ContextData* FindContext(byte ctx) const;
 	AuthorDataset& GetAddAuthor(String name);
 	String GetTokenTypeString(const TokenText& txt) const;
 	String GetWordString(const Vector<int>& words) const;
@@ -722,7 +643,6 @@ struct SrcTextData : EntityData {
 	
 	String GetTokenTextString(const TokenText& txt) const;
 	String GetTokenTextString(const Vector<int>& tokens) const;
-	void Serialize(Stream& s);
 	int GetKind() const override {return METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT;}
 	void Visit(NodeVisitor& s) override;
 };

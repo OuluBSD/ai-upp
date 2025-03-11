@@ -101,12 +101,14 @@ void ScriptTextProcess::Tokenize()
 
 	int well_filter_loss = 0, parse_loss = 0, foreign_loss = 0;
 
+	#if 0
 	bool filter_foreign = true;
 	{
 		int lng_i = src.GetLanguage();
 		if(lng_i != LNG_ENGLISH)
 			filter_foreign = false;
 	}
+	#endif
 
 	int phase = this->phase, batch = this->batch, sub_batch = this->sub_batch;
 	if(parallel) {
@@ -260,11 +262,13 @@ void ScriptTextProcess::Tokenize()
 			NextSubBatch();
 			return;
 		}
+		#if 0
 		if(filter_foreign && tk.HasForeign()) {
 			foreign_loss++;
 			NextSubBatch();
 			return;
 		}
+		#endif
 
 		String script_title = author.name + " - " + script.title;
 		hash_t ss_hash = script_title.GetHashValue();
@@ -511,8 +515,8 @@ void ScriptTextProcess::CountWords()
 	auto& src = *p.srctxt;
 	
 	if (1) {
-		for (auto it : ~src.words)
-			it.value.count = 0;
+		for (auto it : src.words_)
+			it.count = 0;
 	}
 	
 	for(auto script : ~src.scripts) {
@@ -525,7 +529,7 @@ void ScriptTextProcess::CountWords()
 							int wrd_i = src.tokens[tk_i].word_;
 							PROCESS_ASSERT(wrd_i >= 0);
 							if (wrd_i >= 0)
-								src.words[wrd_i].count++;
+								src.words_[wrd_i].count++;
 						}
 					}
 				}
@@ -561,7 +565,7 @@ void ScriptTextProcess::WordClasses()
 		int i = iter++;
 		const String& s = src.tokens.GetKey(i);
 		Token& tk = src.tokens[i];
-		if (tk.word_ >= 0 && src.words[tk.word_].class_count > 0)
+		if (tk.word_ >= 0 && src.words_[tk.word_].word_class >= 0)
 			continue;
 		words << s;
 		token_idx << i;
@@ -601,7 +605,9 @@ void ScriptTextProcess::WordClasses()
 			String result_word = input_words[i].ToString();
 
 			int wrd_i = -1;
-			ExportWord& wrd = MapGetAdd(src.words, result_word, wrd_i);
+			TODO
+			#if 0
+			ExportWord& wrd = MapGetAdd(src.words_, result_word, wrd_i);
 			if (tk.word_ < 0) {
 				tk.word_ = wrd_i;
 			}
@@ -612,6 +618,7 @@ void ScriptTextProcess::WordClasses()
 				if(wrd.class_count < wrd.MAX_CLASS_COUNT)
 					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
 			}
+			#endif
 			actual++;
 		}
 		src.diagnostics.GetAdd("tokens: total") = IntStr(total);
@@ -646,8 +653,8 @@ void ScriptTextProcess::AmbiguousWordPairs()
 			continue;
 
 		if(iter >= begin && iter < end) {
-			const String& from = src.words.GetKey(wp.from);
-			const String& to = src.words.GetKey(wp.to);
+			const String& from = src.words_[wp.from].text;
+			const String& to = src.words_[wp.to].text;
 			ValueArray arr;
 			arr.Add(from);
 			arr.Add(to);
@@ -734,6 +741,8 @@ void ScriptTextProcess::ImportTokenTexts()
 			int w_i = tk.word_;
 			if(w_i < 0) {
 				String key = src.tokens.GetKey(tk_i);
+				TODO
+				#if 0
 				w_i = src.words.Find(key);
 				if(w_i < 0) {
 					key = ToLower(src.tokens.GetKey(tk_i));
@@ -741,6 +750,7 @@ void ScriptTextProcess::ImportTokenTexts()
 				}
 				PROCESS_ASSERT(w_i >= 0);
 				tk.word_ = w_i;
+				#endif
 			}
 			word_is << w_i;
 		}
@@ -749,7 +759,10 @@ void ScriptTextProcess::ImportTokenTexts()
 		for(int j = 0; j < word_is.GetCount(); j++) {
 			int w_i = word_is[j];
 			int next_w_i = j + 1 < word_is.GetCount() ? word_is[j] : -1;
+			TODO
+			#if 0
 			succ = succ && GetTypePhrase(word_classes, src, next_w_i, w_i, prev_w_i);
+			#endif
 			prev_w_i = w_i;
 		}
 
@@ -1193,6 +1206,9 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	#define TYPECAST(idx, str, c) typeclasses.Add(str);
 	TYPECAST_LIST
 	#undef TYPECAST
+
+	TODO // resolve context before this
+	#if 0
 	PROCESS_ASSERT(src.ctx.content.labels.GetCount());
 	
 	for(int i = 0; i < src.ctx.content.labels.GetCount(); i++) {
@@ -1329,6 +1345,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	else
 		TODO;
 	m.Get(args, cb);
+	#endif
 }
 
 void ScriptTextProcess::OnPhraseColors(String res) {

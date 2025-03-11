@@ -1103,6 +1103,23 @@ bool VisitToJsonFile(T& var, const char *file = NULL)
 	return true;
 }
 
+template <class T>
+void VisitCopy(const T& src, T& dst) {
+	StringStream ss;
+	{
+		NodeVisitor vis(ss);
+		ASSERT(vis.IsStoring());
+		const_cast<T&>(src).Visit(vis);
+	}
+	ss.Seek(0);
+	ss.SetLoading();
+	{
+		NodeVisitor vis(ss);
+		ASSERT(vis.IsLoading());
+		dst.Visit(vis);
+	}
+}
+
 END_UPP_NAMESPACE
 
 #endif

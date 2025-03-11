@@ -541,20 +541,26 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 
 void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender) {
 	const DatasetPtrs p = GetDataset();
-	ASSERT(p.src);
+	ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
 	
-	auto& src = p.src->Data();
-	int tcent = GetTypeclassEntity(unsafe, gender);
-	const auto& types = src.typeclass_entities[tcent];
+	ContextType ctxtype = ContextType::Lyrical();
+	String str;
+	str << (unsafe ? "unsafe " : "safe ") << (gender ? "female" : "male");
+	ContextData& data = src.ctxs.Get(ctxtype);
 	line_form.style_type.Clear();
 	line_form.style_entity.Clear();
 	
-	for(int i = 0; i < types.GetCount(); i++) {
-		line_form.style_type.Add(types.GetKey(i));
+	for(int i = 0; i < data.typeclasses.GetCount(); i++) {
+		line_form.style_type.Add(data.typeclasses[i].name);
 	}
-	dl.style_type = max(0, min(dl.style_type, types.GetCount()-1));
+	dl.style_type = max(0, min(dl.style_type, data.typeclasses.GetCount()-1));
 	line_form.style_type.SetIndex(dl.style_type);
 	
+	int ent_i = data.entity_groups.Find(str);
+	ASSERT(ent_i >= 0);
+	int tcent = GetTypeclassEntity(unsafe, gender);
+	const auto& types = data.typeclasses[dl.style_type].entities[ent_i];
 	
 	const auto& ents = types[dl.style_type];
 	for(int i = 0; i < ents.GetCount(); i++) {

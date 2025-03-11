@@ -149,6 +149,8 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 	
 	int gender = p.entity->GetGender();
 	
+	TODO
+	#if 0
 	for(int i = 0; i < part.sub.GetCount(); i++) {
 		const auto& s = part.sub[i];
 		for(int j = 0; j < s.lines.GetCount(); j++) {
@@ -181,6 +183,7 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 		
 		this->WhenPartiallyReady();
 	});
+	#endif
 }
 
 void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
@@ -201,6 +204,8 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 	
 	int gender = p.entity->GetGender();
 	
+	TODO
+	#if 0
 	NavigatorState line_state;
 	for(int i = 0; i < lines.GetCount(); i++) {
 		const DynLine& dl = *lines[i];
@@ -270,6 +275,7 @@ void ScriptSolver::GetSuggestions2(int part_i, int sub_i, const Vector<const Dyn
 		
 		this->WhenPartiallyReady();
 	});
+	#endif
 }
 
 void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const DynLine*>& lines, Event<> WhenPartiallyReady) {
@@ -290,6 +296,8 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 	
 	int gender = p.entity->GetGender();
 	
+	TODO
+	#if 0
 	NavigatorState line_state;
 	for(int i = 0; i < lines.GetCount(); i++) {
 		const DynLine& dl = *lines[i];
@@ -335,6 +343,7 @@ void ScriptSolver::GetStyleSuggestion(int part_i, int sub_i, const Vector<const 
 		
 		this->WhenPartiallyReady();
 	});
+	#endif
 }
 
 void ScriptSolver::GetSubStory(int part_i, int sub_i, Event<> WhenPartiallyReady) {
@@ -548,6 +557,9 @@ void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, 
 }
 
 void ScriptSolver::CopyState(ScriptSolverArgs::State& to, const NavigatorState& from) {
+	
+	TODO
+	#if 0
 	auto& src = p.src->Data();
 	#define COPY(x) to.x = from.x;
 	COPY(element)
@@ -567,6 +579,7 @@ void ScriptSolver::CopyState(ScriptSolverArgs::State& to, const NavigatorState& 
 		to.content_mod = cons[c0].parts[c1];
 	}
 	#undef COPY
+	#endif
 }
 
 

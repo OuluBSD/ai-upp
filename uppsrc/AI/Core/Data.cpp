@@ -28,37 +28,14 @@ ScriptDataset& AuthorDataset::GetAddScript(String title) {
 //int EditorPtrs::GetActiveScriptIndex() const {if (!entity || !script) return -1; return VectorFindPtr(static_cast<Component*>(script), entity->comps);}
 
 
+SrcTextData::SrcTextData() {
+	current_language = "english";
+}
+
 void SrcTextData::Visit(NodeVisitor& s) {
 	s.Ver(2);
 	if (s.file_ver == 1) {
-		s(1)("scripts", scripts, VISIT_MAP)
-			("tokens", tokens, VISIT_MAP)
-			("token_texts", token_texts, VISIT_MAP)
-			("element_keys", element_keys)
-			("word_classes", word_classes)
-			("words", words, VISIT_MAP)
-			("ambiguous_word_pairs", ambiguous_word_pairs, VISIT_MAP)
-			("virtual_phrases", virtual_phrases, VISIT_MAP)
-			("virtual_phrase_parts", virtual_phrase_parts, VISIT_MAP)
-			("virtual_phrase_structs", virtual_phrase_structs, VISIT_MAP)
-			("phrase_parts", phrase_parts, VISIT_MAP)
-			("struct_part_types", struct_part_types)
-			("struct_types", struct_types)
-			("attrs", attrs, VISIT_MAP_KV)
-			("actions", actions, VISIT_MAP_KV)
-			("parallel", parallel, VISIT_MAPMAP)
-			("trans", trans, VISIT_MAPMAP)
-			("action_phrases", action_phrases, VISIT_MAP)
-			("wordnets", wordnets, VISIT_MAP)
-			("diagnostics", diagnostics)
-			("simple_attrs", simple_attrs, VISIT_MAP)
-			("entities", authors, VISIT_VECTOR)
-			("typeclasses", ctx.typeclass.labels)
-			("contents", ctx.content.labels, VISIT_VECTOR)
-			("content_parts", ctx.content.parts)
-			("lang", (int&)lang);
-		for(int i = 0; i < TCENT_COUNT; i++)
-			s("typeclass_entities" + IntStr(i), typeclass_entities[i]);
+		Panic("Not loading version 1 anymore. Use commit 00809ced5a09e2293b2a9aa36b54a18251b14fb3");
 	}
 	else {
 		s(2)("authors", authors, VISIT_VECTOR)
@@ -91,39 +68,26 @@ void SrcTextData::Visit(NodeVisitor& s) {
 	}
 }
 
-// TODO remove SrcTextData::Serialize
-void SrcTextData::Serialize(Stream& s) {
-	int v = 1; s % v;
-	if (v >= 1) {
-		s % scripts;					ASSERT(!s.IsError());
-		s % tokens;						ASSERT(!s.IsError());
-		s % token_texts;				ASSERT(!s.IsError());
-		s % element_keys;				ASSERT(!s.IsError());
-		s % word_classes;				ASSERT(!s.IsError());
-		s % words;						ASSERT(!s.IsError());
-		s % ambiguous_word_pairs;		ASSERT(!s.IsError());
-		s % virtual_phrases;			ASSERT(!s.IsError());
-		s % virtual_phrase_parts;		ASSERT(!s.IsError());
-		s % virtual_phrase_structs;		ASSERT(!s.IsError());
-		s % phrase_parts;				ASSERT(!s.IsError());
-		s % struct_part_types;			ASSERT(!s.IsError());
-		s % struct_types;				ASSERT(!s.IsError());
-		s % attrs;						ASSERT(!s.IsError());
-		s % actions;					ASSERT(!s.IsError());
-		s % parallel;					ASSERT(!s.IsError());
-		s % trans;						ASSERT(!s.IsError());
-		s % action_phrases;				ASSERT(!s.IsError());
-		s % wordnets;					ASSERT(!s.IsError());
-		s % diagnostics;				ASSERT(!s.IsError());
-		s % simple_attrs;				ASSERT(!s.IsError());
-		s % authors;					ASSERT(!s.IsError());
-		s % ctx.typeclass.labels;		ASSERT(!s.IsError());
-		s % ctx.content.labels;			ASSERT(!s.IsError());
-		s % ctx.content.parts;			ASSERT(!s.IsError());
-		s % lang;						ASSERT(!s.IsError());
-		for(int i = 0; i < TCENT_COUNT; i++)
-			s % typeclass_entities[i];
-	}
+int SrcTextData::FindAnyWord(const String& s) const {
+	if (s.IsEmpty())
+		return -1;
+	int lang = langwords.Find(current_language);
+	ASSERT(lang >= 0 && lang < 256);
+	return FindAnyWord(s, (byte)lang);
+}
+
+int SrcTextData::FindAnyWord(const String& s, byte lang) const {
+	if (s.IsEmpty())
+		return -1;
+	const auto& words_idx = langwords[lang];
+	hash_t h = s.GetHashValue();
+	int i = words_idx.Find(h);
+	if (i < 0)
+		return -1;
+	const auto& v = words_idx[i];
+	if (v.IsEmpty())
+		return -1;
+	return v[0];
 }
 
 String SrcTextData::GetTokenTextString(const TokenText& txt) const {
@@ -149,27 +113,27 @@ String SrcTextData::GetTokenTextString(const Vector<int>& tokens) const {
 }
 
 String SrcTextData::GetTokenTypeString(const TokenText& txt) const {
+	
+	
 	String o;
 	for(int tk_i : txt.tokens) {
 		const Token& tk = this->tokens[tk_i];
 		int w_i = tk.word_;
 		if (w_i < 0) {
 			String key = ToLower(this->tokens.GetKey(tk_i));
-			w_i = this->words.Find(key);
+			w_i = this->FindAnyWord(key);
 			tk.word_ = w_i;
 		}
 		if (w_i < 0) {
 			o << "{error}";
 		}
 		else {
-			const ExportWord& ew = this->words[w_i];
+			const auto& ew = this->words_[w_i];
 			o << "{";
-			for(int i = 0; i < ew.class_count; i++) {
-				if (i) o << "|";
-				int class_i = ew.classes[i];
-				const String& wc = this->word_classes[class_i];
-				o << wc;
-			}
+			if (ew.word_class >= 0)
+				o << this->word_classes[ew.word_class];
+			else
+				o << "error";
 			o << "}";
 			/*if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 				o << key;
@@ -191,6 +155,13 @@ ContextData* SrcTextData::FindContext(byte ctx) {
 	return 0;
 }
 
+const ContextData* SrcTextData::FindContext(byte ctx) const {
+	for (auto it : ~ctxs)
+		if (it.key.value == ctx)
+			return &it.value;
+	return 0;
+}
+
 AuthorDataset& SrcTextData::GetAddAuthor(String name) {
 	for (AuthorDataset& a : authors)
 		if (a.name == name)
@@ -204,7 +175,7 @@ String SrcTextData::GetWordString(const Vector<int>& words) const {
 	String o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const String& key = this->words_.GetKey(w_i);
+		const String& key = this->words_[w_i].text;
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 			o << key;
@@ -222,7 +193,7 @@ WString SrcTextData::GetWordPronounciation(const Vector<int>& words) const {
 	WString o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const ExportWord& ew = this->words[w_i];
+		const auto& ew = this->words_[w_i];
 		const WString& key = ew.phonetic;
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
@@ -432,8 +403,10 @@ bool SrcTxtHeader::LoadData() {
 	
 	this->data.Create();
 	
-	if (version == 1)
-		this->data->Serialize(decomp_stream);
+	if (version == 1) {
+		Panic("SrcTxtHeader::LoadData: error: version 1 is not supported anymore");
+		return false;
+	}
 	else {
 		NodeVisitor vis(decomp_stream);
 		this->data->Visit(vis);

@@ -349,7 +349,7 @@ bool DatabaseBrowser::FilterPronounciation(SrcTextData& da, const PhrasePart& pp
 		bool found = false;
 		int count = pp.words.GetCount() - 1;
 		for(int i = 0; i < count; i++) {
-			WString phonetic = da.words[pp.words[i]].phonetic;
+			WString phonetic = da.words_[pp.words[i]].phonetic;
 			double limit = mid_rhyme_distance_limit;
 
 			// Limit phonetic word using only ending (easy solution)
@@ -374,7 +374,7 @@ bool DatabaseBrowser::FilterPronounciation(SrcTextData& da, const PhrasePart& pp
 	}
 	if(filter_end_rhyme) {
 		int last_wrd = pp.words.Top();
-		WString phonetic = da.words[last_wrd].phonetic;
+		WString phonetic = da.words_[last_wrd].phonetic;
 		double limit = end_rhyme_distance_limit;
 
 		// Limit phonetic word using only ending (easy solution)
@@ -552,6 +552,11 @@ void DatabaseBrowser::FillItems(ColumnType t)
 	it.str = "All";
 	it.count = phrase_parts.GetCount();
 	it.idx = -1;
+	
+	
+	// TODO get context actually
+	LOG("DatabaseBrowser::FillItems: warning: TODO: get context actually");
+	const ContextData& cd = src.ctxs[0];
 
 	switch(t) {
 	case ELEMENT: {
@@ -678,7 +683,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);
-			it.str = src.ctx.typeclass.labels[tc];
+			it.str = cd.typeclasses[tc].name;
 			it.count = vmap[i];
 			it.idx = tc;
 		}
@@ -693,7 +698,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 		}
 		SortByValue(vmap, StdGreater<int>());
 		type_items.SetCount(1 + vmap.GetCount());
-		const auto& cons = src.ctx.content.labels;
+		const auto& cons = cd.contents;
 		for(int i = 0; i < vmap.GetCount(); i++) {
 			Item& it = type_items[1 + i];
 			int tc = vmap.GetKey(i);
@@ -701,7 +706,7 @@ void DatabaseBrowser::FillItems(ColumnType t)
 			int mod_i = tc % 3;
 			if(tc_i < cons.GetCount()) {
 				const auto& con = cons[tc_i];
-				it.str = con.key + ": " + con.parts[mod_i];
+				it.str = con.name + ": " + con.parts[mod_i];
 			}
 			else
 				it.str = "<Error>";

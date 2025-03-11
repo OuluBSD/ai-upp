@@ -619,6 +619,7 @@ struct WordData : Moveable<WordData> {
 	byte lang = 0xFF;
 	String text;
 	String spelling;
+	WString phonetic;
 	int count = 0;
 	Color clr;
 	int word_class = -1;
@@ -635,6 +636,7 @@ struct WordData : Moveable<WordData> {
 		(1)	("lang", lang)
 			("text", text)
 			("spelling", spelling)
+			("phonetic", phonetic)
 			("count", count)
 			("clr", clr)
 			("word_class", word_class)
@@ -661,10 +663,15 @@ struct SrcTextData : EntityData {
 	Vector<AuthorDataset> authors;
 	VectorMap<hash_t, ScriptStruct> scripts;
 	
+	// CONTEXT
+	ArrayMap<ContextType, ContextData> ctxs;
+	
 	// WORDS
 	VectorMap<String, Token> tokens;
+	Vector<WordData> words_;
+	VectorMap<String, VectorMap<hash_t,VectorMap<int,int>>> langwords;
+	Vector<WordTranslation> translations;
 	Index<String> word_classes;
-	VectorMap<String, ExportWord> words; // TODO remove
 	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
 	
 	// PHRASES
@@ -691,53 +698,17 @@ struct SrcTextData : EntityData {
 	// DIAGNOSTICS
 	VectorMap<String, String> diagnostics;
 	
-	struct {
-		struct {
-			Index<String> labels;
-			String name;
-		} typeclass;
-		struct {
-			Vector<ContentType> labels;
-			String name;
-			Vector<String> parts;
-		} content;
-		String name;
-	} ctx; // TODO remove
-	dword lang = LNG_enUS; // TODO remove
 	
-	// ????
-	VectorMap<String,Vector<String>> typeclass_entities[TCENT_COUNT]; // TODO remove
-	
-	// NEXT VERSION
-	/* note:
-			make guis: parallel, trans, action_phrases, wordnets...
-			remove:
-					words
-					ctx
-					lang
-					attrs, actions
-					tokens
-			convert:
-					AttrHeader -> AttrIdx
-						--> use new AttrText vector for attribute strings (bc clr etc.)
-					ActionHeader -> ActionIdx
-						--> use new ActionText vector for action strings (bc clr etc.)
-					element_keys->
-						---> use ElementText for element strings (bc clr etc.)
-	*/
-	ArrayMap<ContextType, ContextData> ctxs;
-	Vector<WordData> words_;
-	VectorMap<String, VectorMap<hash_t,VectorMap<int,int>>> langwords;
-	Vector<WordTranslation> translations;
-	
-	
+	#if 0
 	const Vector<ContentType>& GetContents() {return ctx.content.labels;}
 	const Vector<String>& GetContentParts() {return ctx.content.parts;}
 	//const Index<String>& GetTypeclasses() {return typeclasses;}
 	int GetContentCount() {return ctx.content.labels.GetCount();}
 	//int GetTypeclassCount() {return typeclasses.GetCount();}
 	int GetLanguage() const {return lang;}
+	#endif
 	
+	ContextData* FindContext(byte ctx);
 	AuthorDataset& GetAddAuthor(String name);
 	String GetTokenTypeString(const TokenText& txt) const;
 	String GetWordString(const Vector<int>& words) const;

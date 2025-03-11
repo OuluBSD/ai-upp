@@ -3952,6 +3952,7 @@ int MergeProcess::TransferWord(int wrd_i0) {
 				wrd1.lang = current_language;
 				wrd1.text = key;
 				wrd1.spelling = wrd0.spelling;
+				wrd1.phonetic = wrd0.phonetic;
 				v.Add(-1, wrd_i1);
 			}
 			else {
@@ -3964,6 +3965,7 @@ int MergeProcess::TransferWord(int wrd_i0) {
 					wrd1.lang = current_language;
 					wrd1.text = key;
 					wrd1.spelling = wrd0.spelling;
+					wrd1.phonetic = wrd0.phonetic;
 					v.Add(wrd1.word_class, wrd_i1);
 				}
 				wrd_i1 = v[0];

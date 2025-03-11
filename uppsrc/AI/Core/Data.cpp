@@ -184,6 +184,13 @@ String SrcTextData::GetTokenTypeString(const TokenText& txt) const {
 	return o;
 }
 
+ContextData* SrcTextData::FindContext(byte ctx) {
+	for (auto it : ~ctxs)
+		if (it.key.value == ctx)
+			return &it.value;
+	return 0;
+}
+
 AuthorDataset& SrcTextData::GetAddAuthor(String name) {
 	for (AuthorDataset& a : authors)
 		if (a.name == name)
@@ -197,7 +204,7 @@ String SrcTextData::GetWordString(const Vector<int>& words) const {
 	String o;
 	for(int w_i : words) {
 		if (w_i < 0) continue;
-		const String& key = this->words.GetKey(w_i);
+		const String& key = this->words_.GetKey(w_i);
 		
 		if (key.GetCount() == 1 && NaturalTokenizer::IsToken(key[0])) {
 			o << key;

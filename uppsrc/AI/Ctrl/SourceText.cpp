@@ -209,7 +209,7 @@ void TokensPage::Data() {
 		const Token& tk = src.tokens[j];
 		tokens.Set(j, 0, txt);
 		if (tk.word_ >= 0) {
-			const ExportWord& ew = src.words[tk.word_];
+			const WordData& ew = src.words_[tk.word_];
 			tokens.Set(j, 1, ew.count);
 		}
 		else {
@@ -261,9 +261,7 @@ ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 	words.AddColumn("Phonetic");
 	words.AddColumn("Count");
 	words.AddColumn("Clr");
-	words.AddColumn("Class count");
 	words.AddColumn("Classes");
-	words.AddColumn("Link");
 	
 	ambiguous_word_pairs.AddColumn("#");
 	ambiguous_word_pairs.AddColumn("Hash");
@@ -361,8 +359,8 @@ void ScriptTextDebuggerPage::Data() {
 			tokens.Set(i, 0, i);
 			tokens.Set(i, 1, it.key);
 			tokens.Set(i, 2, it.value.word_);
-			if (it.value.word_ >= 0 && it.value.word_ < src.words.GetCount())
-				tokens.Set(i, 3, src.words.GetKey(it.value.word_));
+			if (it.value.word_ >= 0 && it.value.word_ < src.words_.GetCount())
+				tokens.Set(i, 3, src.words_[it.value.word_].text);
 			else
 				tokens.Set(i, 3, Value());
 			i++;
@@ -380,29 +378,21 @@ void ScriptTextDebuggerPage::Data() {
 	}
 	if (tab == PAGE_words) {
 		int i = 0;
-		for(auto it : ~src.words) {
+		for(auto it : src.words_) {
 			words.Set(i, 0, i);
-			words.Set(i, 1, it.key);
+			words.Set(i, 1, it.text);
 			words.Set(i, 2, Value());
-			words.Set(i, 3, it.value.spelling);
-			words.Set(i, 4, it.value.phonetic);
-			words.Set(i, 5, it.value.count);
-			words.Set(i, 6, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
-			words.Set(i, 7, it.value.class_count);
+			words.Set(i, 3, it.spelling);
+			words.Set(i, 4, it.phonetic);
+			words.Set(i, 5, it.count);
+			words.Set(i, 6, AttrText("").NormalPaper(it.clr).Paper(it.clr));
 			String s;
-			for(int j = 0; j < it.value.class_count; j++) {
-				if (j) s << ", ";
-				int cls = it.value.classes[j];
-				if (cls >= 0 && cls < src.word_classes.GetCount())
-					s << src.word_classes[cls];
-				else
-					break;
-			}
-			words.Set(i, 8, s);
-			words.Set(i, 9, it.value.link);
+			if (it.word_class >= 0 && it.word_class < src.word_classes.GetCount())
+				s = src.word_classes[it.word_class];
+			words.Set(i, 7, s);
 			i++;
 		}
-		words.SetCount(src.words.GetCount());
+		words.SetCount(src.words_.GetCount());
 	}
 	if (tab == PAGE_ambiguous_word_pairs) {
 		int i = 0;
@@ -411,7 +401,7 @@ void ScriptTextDebuggerPage::Data() {
 			ambiguous_word_pairs.Set(i, 1, HexStr64(it.key));
 			
 			if (it.value.from >= 0)
-				ambiguous_word_pairs.Set(i, 2, src.words.GetKey(it.value.from));
+				ambiguous_word_pairs.Set(i, 2, src.words_[it.value.from].text);
 			else
 				ambiguous_word_pairs.Set(i, 2, Value());
 			
@@ -421,7 +411,7 @@ void ScriptTextDebuggerPage::Data() {
 				ambiguous_word_pairs.Set(i, 3, Value());
 			
 			if (it.value.to >= 0)
-				ambiguous_word_pairs.Set(i, 4, src.words.GetKey(it.value.to));
+				ambiguous_word_pairs.Set(i, 4, src.words_[it.value.to].text);
 			else
 				ambiguous_word_pairs.Set(i, 4, Value());
 			
@@ -545,7 +535,7 @@ void ScriptTextDebuggerPage::Data() {
 			String s;
 			for(int wrd_i : it.value.words) {
 				if (!s.IsEmpty()) s << " ";
-				s << src.words.GetKey(wrd_i);
+				s << src.words_[wrd_i].text;
 			}
 			phrase_parts.Set(i, 2, s);
 			phrase_parts.Set(i, 3, it.value.tt_i);
@@ -565,7 +555,9 @@ void ScriptTextDebuggerPage::Data() {
 			s = "";
 			for (int tc_i : it.value.typecasts) {
 				if (!s.IsEmpty()) s << " ";
-				const auto& tc = src.ctx.typeclass.labels[tc_i];
+				ContextData* cd = src.FindContext(it.value.ctx);
+				ASSERT(cd);
+				const auto& tc = cd->typeclasses[tc_i].name;
 				s << tc;
 			}
 			phrase_parts.Set(i, 9, s);

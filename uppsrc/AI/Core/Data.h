@@ -354,13 +354,19 @@ struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
 struct ExportWordnet : Moveable<ExportWordnet> {
 	static const int MAX_WORDS = 64;
 	int word_count = 0;
-	int words[MAX_WORDS] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+	int words[MAX_WORDS];
 	int word_clr_count = 0;
 	Color word_clrs[MAX_WORDS];
 	int main_class = -1;
 	int attr = -1;
 	Color clr;
-	int scores[SCORE_COUNT] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int scores[SCORE_COUNT];
+	
+	ExportWordnet() {
+		memset(words, 0xFF, sizeof(words));
+		memset(word_clrs, 0, sizeof(word_clrs));
+		memset(scores, 0, sizeof(scores));
+	}
 	
 	void Visit(NodeVisitor& v) {
 		v.Ver(1)
@@ -577,6 +583,21 @@ struct WordTranslation : Moveable<WordTranslation> {
 	}
 };
 
+struct TextKeypoint : Moveable<TextKeypoint> {
+	struct Register : Moveable<Register> {
+		int type = -1; // e.g. pronouns (I, you, he, they);
+		int attr = -1, action = -1;
+		int element = -1, typecast = -1, content = -1;
+		Color clr;
+	};
+	Vector<int> token_texts;
+	Vector<Register> registers;
+	Vector<double> descriptor;
+	int descriptor_cluster = -1;
+	
+};
+
+
 struct SrcTextData : EntityData {
 	String filepath;
 	
@@ -615,6 +636,9 @@ struct SrcTextData : EntityData {
 	VectorMap<String, ExportDepActionPhrase> action_phrases;
 	VectorMap<int, VectorMap<int, ExportTransition>> trans;
 	VectorMap<int, VectorMap<int, ExportParallel>> parallel;
+	
+	// TEXT CLASSIFIER
+	Vector<TextKeypoint> text_keypoints;
 	
 	// DIAGNOSTICS
 	VectorMap<String, String> diagnostics;

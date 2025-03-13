@@ -92,6 +92,29 @@ void ScriptTextProcess::DoPhase()
 	else if(IsPhase(PHASE_SIMPLIFY_ATTRS)) {
 		SimplifyAttrs();
 	}
+	else if(IsPhase(PHASE_WORDNET)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_PHRASE_TRANSFER)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TRANSITION_PARALLEL)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TRANSITION_SERIAL)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TEXT_KEYPOINTS)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TEXT_KEYPOINT_DESCRIPTORS)) {
+		// Convert registers to fixed width descriptor
+		//		Requires knowing "size" of value spaces for all fields -> random forest...
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TEXT_KEYPOINT_CLUSTERS)) {
+		NextPhase();
+	}
 	
 	// NOT IN USE:
 	else if(IsPhase(PHASE_JOIN_ORPHANED)) {
@@ -138,7 +161,7 @@ void ScriptTextProcess::RealizeContext()
 			Value v = ParseJSON(result, false);
 			// LOG(AsJSON(v, true));
 			ValueArray output = v("response")("typecasts");
-			PROCESS_ASSERT(output.GetCount() == TYPECAST_COUNT);
+			PROCESS_ASSERT_CMP(output.GetCount(), TYPECAST_COUNT);
 			
 			ctx.typeclasses.SetCount(TYPECAST_COUNT);
 			for(int i = 0; i < output.GetCount(); i++) {
@@ -160,7 +183,7 @@ void ScriptTextProcess::RealizeContext()
 		}
 	}
 	else if (batch == 1) {
-		if (ctx.typeclasses.GetCount()) {
+		if (ctx.contents.GetCount()) {
 			NextBatch();
 			return;
 		}
@@ -174,7 +197,7 @@ void ScriptTextProcess::RealizeContext()
 			Value v = ParseJSON(result, false);
 			// LOG(AsJSON(v, true));
 			ValueArray output = v("response")("contents");
-			PROCESS_ASSERT(output.GetCount() == CONTENT_COUNT);
+			PROCESS_ASSERT_CMP(output.GetCount(), CONTENT_COUNT);
 			
 			ctx.contents.SetCount(CONTENT_COUNT);
 			for(int i = 0; i < output.GetCount(); i++) {
@@ -218,11 +241,11 @@ void ScriptTextProcess::RealizeContext()
 			Value v = ParseJSON(result, false);
 			// LOG(AsJSON(v, true));
 			ValueArray output = v("response")("parts");
-			PROCESS_ASSERT(output.GetCount() == CONTENT_COUNT);
+			PROCESS_ASSERT_CMP(output.GetCount(), CONTENT_COUNT);
 			
 			for(int i = 0; i < output.GetCount(); i++) {
 				ValueArray out_parts = output[i];
-				PROCESS_ASSERT(out_parts.GetCount() == ctx.part_names.GetCount());
+				PROCESS_ASSERT_CMP(out_parts.GetCount(), ctx.part_names.GetCount());
 				auto& con = ctx.contents[i];
 				con.parts.Clear();
 				for(int j = 0; j < out_parts.GetCount(); j++)
@@ -1457,7 +1480,7 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 		if (pp.attr >= 0)
 			continue;
 		ValueArray attr = output[i];
-		PROCESS_ASSERT(attr.GetCount() == 2);
+		PROCESS_ASSERT_CMP(attr.GetCount(), 2);
 		if (attr.GetCount() < 2)
 			continue;
 		
@@ -1501,7 +1524,7 @@ void ScriptTextProcess::OnPhraseActions(String res) {
 		actions.SetCount(0);
 		for(int i = 0; i < phrase_actions.GetCount(); i++) {
 			ValueArray act_arr = phrase_actions[i];
-			PROCESS_ASSERT(act_arr.GetCount() == 2);
+			PROCESS_ASSERT_CMP(act_arr.GetCount(), 2);
 			
 			ActionHeader aa;
 			aa.action = act_arr[0].ToString();
@@ -1541,7 +1564,7 @@ void ScriptTextProcess::OnPhraseScores(String res) {
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
 		ValueArray scores = output[i];
-		PROCESS_ASSERT(scores.GetCount() == SCORE_COUNT);
+		PROCESS_ASSERT_CMP(scores.GetCount(), SCORE_COUNT);
 		
 		// Expect x values
 		if (scores.GetCount() != SCORE_COUNT)
@@ -1765,7 +1788,7 @@ void ScriptTextProcess::Colors()
 		for(int i = 0; i < c; i++) {
 			ValueArray act = input_words[i];
 			ValueArray clr_val = colors[i];
-			PROCESS_ASSERT(clr_val.GetCount() == 3);
+			PROCESS_ASSERT_CMP(clr_val.GetCount(), 3);
 			int R = clr_val[0];
 			int G = clr_val[1];
 			int B = clr_val[2];
@@ -1817,8 +1840,8 @@ void ScriptTextProcess::Attrs()
 		for(int i = 0; i < c; i++) {
 			ValueArray attrs = output[i];
 			ValueArray acts = input[i];
-			PROCESS_ASSERT(attrs.GetCount() == 2);
-			PROCESS_ASSERT(acts.GetCount() == 2);
+			PROCESS_ASSERT_CMP(attrs.GetCount(), 2);
+			PROCESS_ASSERT_CMP(acts.GetCount(), 2);
 			if (attrs.GetCount() != 2) continue;
 			ActionHeader ah;
 			ah.action = acts[0];
@@ -1890,7 +1913,7 @@ void ScriptTextProcess::MainGroups()
 		ValueArray input = args.params("attributes");
 		ValueArray output = v("response-short")("attribute_summarization");
 		PROCESS_ASSERT(input.GetCount());
-		PROCESS_ASSERT(output.GetCount() == 2);
+		PROCESS_ASSERT_CMP(output.GetCount(), 2);
 		
 		if (output.GetCount() == 2) {
 			String group = ToLower(batch.group);

@@ -515,6 +515,8 @@ void ScriptTextDebuggerPage::Data() {
 	if (tab == PAGE_phrase_parts) {
 		int i = 0;
 		for(auto it : ~src.phrase_parts) {
+			if (!it.value.ctx)
+				continue;
 			const ContextData* cd = src.FindContext(it.value.ctx);
 			ASSERT(cd);
 			if (!cd) continue;
@@ -1580,7 +1582,8 @@ void PhrasePartAnalysis2::DataColor() {
 		{
 			String s;
 			for (int j : pp.typecasts)
-				s << tc_v[j].name << ", ";
+				if (j >= 0 && j < tc_v.GetCount())
+					s << tc_v[j].name << ", ";
 			parts.Set(row, 1, s);
 		}
 		{
@@ -2073,17 +2076,13 @@ void TextDataWordnet::DisableAll() {
 }
 
 void TextDataWordnet::Data() {
-	
+	DataMain();
 }
 
 void TextDataWordnet::DataMain() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
-	auto& src = *p.srctxt;
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
 	
 	
 	int gi = 0;
@@ -2114,7 +2113,6 @@ void TextDataWordnet::DataMain() {
 	
 	
 	DataAttribute();
-	#endif
 }
 
 void TextDataWordnet::DataAttribute() {
@@ -2145,16 +2143,12 @@ void TextDataWordnet::DataColor() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
 	
 	int clr_i = colors.GetCursor();
 	int attr_group_i = attrs.Get("GROUP");
 	int attr_value_i = attrs.Get("VALUE");
-	String group_str = attr_group_i >= 0 ? ToLower(Attr::AttrKeys[attr_group_i][1]) : String();
-	String value_str = attr_group_i >= 0 ? ToLower(Attr::AttrKeys[attr_group_i][2 + attr_value_i]) : String();
+	String group_str = attr_group_i >= 0 ? ToLower(AttrKeys[attr_group_i][1]) : String();
+	String value_str = attr_group_i >= 0 ? ToLower(AttrKeys[attr_group_i][2 + attr_value_i]) : String();
 	
 	bool clr_filter = clr_i > 0;
 	bool attr_filter = attr_group_i >= 0;
@@ -2163,8 +2157,8 @@ void TextDataWordnet::DataColor() {
 	lock.Enter();
 	
 	int row = 0;
-	for(int i = 0; i < da.wordnets.GetCount(); i++) {
-		ExportWordnet& wn = da.wordnets[i];
+	for(int i = 0; i < src.wordnets.GetCount(); i++) {
+		ExportWordnet& wn = src.wordnets[i];
 		
 		// Filter by color group
 		if (clr_filter && GetColorGroup(wn.clr) != clr_i)
@@ -2174,7 +2168,7 @@ void TextDataWordnet::DataColor() {
 		if (attr_filter) {
 			if (wn.attr < 0)
 				continue;
-			const AttrHeader& ah = da.attrs.GetKey(wn.attr);
+			const AttrHeader& ah = src.attrs.GetKey(wn.attr);
 			if (ah.group != group_str || ah.value != value_str)
 				continue;
 		}
@@ -2182,7 +2176,7 @@ void TextDataWordnet::DataColor() {
 		wordnets.Set(row, "IDX", i);
 		
 		if (wn.attr >= 0) {
-			const AttrHeader& ah = da.attrs.GetKey(wn.attr);
+			const AttrHeader& ah = src.attrs.GetKey(wn.attr);
 			wordnets.Set(row, 0, ah.group);
 			wordnets.Set(row, 1, ah.value);
 		}
@@ -2210,7 +2204,7 @@ void TextDataWordnet::DataColor() {
 		}
 		else {*/
 		if (wn.main_class >= 0)
-			wordnets.Set(row, 2, da.word_classes[wn.main_class]);
+			wordnets.Set(row, 2, src.word_classes[wn.main_class]);
 		else
 			wordnets.Set(row, 2, Value());
 		//}
@@ -2218,8 +2212,14 @@ void TextDataWordnet::DataColor() {
 		
 		// Anchor word
 		if (wn.word_count > 0) {
+			int w_i = wn.words[0];
+			String w;
+			if (w_i >= 0 && w_i < src.words_.GetCount())
+				w = src.words_[w_i].text;
+			else
+				w = "<error>";
 			wordnets.Set(row, 3,
-				AttrText(wn.words[0])
+				AttrText(w)
 					.NormalPaper(Blend(wn.clr, White(), 128+64)).NormalInk(Black())
 					.Paper(Blend(GrayColor(), wn.clr)).Ink(White()));
 		}
@@ -2228,7 +2228,12 @@ void TextDataWordnet::DataColor() {
 		// Alternative words
 		int c = min(8, wn.word_count);
 		for(int j = 1; j < c; j++) {
-			const String& w = da.words.GetKey(wn.words[j]);
+			int w_i = wn.words[j];
+			String w;
+			if (w_i >= 0 && w_i < src.words_.GetCount())
+				w = src.words_[w_i].text;
+			else
+				w = "<error>";
 			SetColoredListValue(
 				wordnets,
 				row, 3+j, w,
@@ -2244,7 +2249,6 @@ void TextDataWordnet::DataColor() {
 	
 	
 	lock.Leave();
-	#endif
 }
 
 void TextDataWordnet::ToolMenu(Bar& bar) {
@@ -2309,25 +2313,21 @@ void PhraseParts::Data() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
 	
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sd.a.dataset;
 	int row = 0;
-	for(int i = 0; i < da.phrase_parts.GetCount(); i++) {
-		const PhrasePart& pp = da.phrase_parts[i];
+	for(int i = 0; i < src.phrase_parts.GetCount(); i++) {
+		const PhrasePart& pp = src.phrase_parts[i];
 		
 		String struct_part_type, type_str;
 		if (pp.virtual_phrase_part >= 0) {
-			const VirtualPhrasePart& vpp = da.virtual_phrase_parts[pp.virtual_phrase_part];
-			type_str = da.GetTypeString(vpp.word_classes);
+			const VirtualPhrasePart& vpp = src.virtual_phrase_parts[pp.virtual_phrase_part];
+			type_str = src.GetTypeString(vpp.word_classes);
 			
 			if (vpp.struct_part_type >= 0)
-				const String& struct_part_type = da.struct_part_types[vpp.struct_part_type];
+				const String& struct_part_type = src.struct_part_types[vpp.struct_part_type];
 		}
 		
-		String phrase = da.GetWordString(pp.words);
+		String phrase = src.GetWordString(pp.words);
 		
 		texts.Set(row, 0, phrase);
 		texts.Set(row, 1, type_str);
@@ -2341,9 +2341,9 @@ void PhraseParts::Data() {
 	
 	
 	row = 0;
-	for(int i = 0; i < da.action_phrases.GetCount(); i++) {
-		const String& phrase = da.action_phrases.GetKey(i);
-		const ExportDepActionPhrase& ap = da.action_phrases[i];
+	for(int i = 0; i < src.action_phrases.GetCount(); i++) {
+		const String& phrase = src.action_phrases.GetKey(i);
+		const ExportDepActionPhrase& ap = src.action_phrases[i];
 		
 		parts.Set(row, 0, phrase);
 		
@@ -2366,7 +2366,6 @@ void PhraseParts::Data() {
 	}
 	parts.SetCount(row);
 	parts.SetSortColumn(2, true);
-	#endif
 }
 
 void PhraseParts::ToolMenu(Bar& bar) {
@@ -2450,13 +2449,9 @@ void ActionParallelsPage::DataMain() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
 	
 	uniq_acts.Clear();
-	for (const ActionHeader& ah : da.actions.GetKeys()) {
+	for (const ActionHeader& ah : src.actions.GetKeys()) {
 		uniq_acts.GetAdd(ah.action).GetAdd(ah.arg, 0)++;
 	}
 	struct Sorter {
@@ -2469,7 +2464,7 @@ void ActionParallelsPage::DataMain() {
 		SortByValue(v, StdGreater<int>());
 	
 	actions.Set(0, 0, "All");
-	actions.Set(0, 1, da.actions.GetCount());
+	actions.Set(0, 1, src.actions.GetCount());
 	for(int i = 0; i < uniq_acts.GetCount(); i++) {
 		actions.Set(1+i, 0, uniq_acts.GetKey(i));
 		actions.Set(1+i, 1, uniq_acts[i].GetCount());
@@ -2479,7 +2474,6 @@ void ActionParallelsPage::DataMain() {
 		actions.SetCursor(0);
 	
 	DataAction();
-	#endif
 }
 
 void ActionParallelsPage::DataAction() {
@@ -2489,18 +2483,13 @@ void ActionParallelsPage::DataAction() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
-	
 	
 	String action = actions.Get(0);
 	int i = uniq_acts.Find(action);
 	if (i < 0) {
 		action_args.SetCount(1);
 		action_args.Set(0, 0, "All");
-		action_args.Set(0, 1, da.actions.GetCount());
+		action_args.Set(0, 1, src.actions.GetCount());
 	}
 	else {
 		auto& args = uniq_acts[i];
@@ -2516,7 +2505,6 @@ void ActionParallelsPage::DataAction() {
 		action_args.SetCursor(0);
 	
 	DataActionHeader();
-	#endif
 }
 
 void ActionParallelsPage::DataActionHeader() {
@@ -2526,10 +2514,6 @@ void ActionParallelsPage::DataActionHeader() {
 	DatasetPtrs p = o.GetDataset();
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
-	#if 0
-	SourceData& sd = db.src_data;
-	SourceDataAnalysis& sda = db.src_data.a;
-	DatasetAnalysis& da = sda.dataset;
 	
 	String action = actions.Get(0);
 	String action_arg = action_args.Get(0);
@@ -2538,10 +2522,10 @@ void ActionParallelsPage::DataActionHeader() {
 	
 	int idx = -1;
 	int row = 0;
-	for(int i = 0; i < da.parallel.GetCount(); i++) {
-		int from_a = da.parallel.GetKey(i);
-		const ActionHeader& at0 = da.actions.GetKey(from_a);
-		const Vector<ExportParallel>& to_v = da.parallel.GetValues(i);
+	for(int i = 0; i < src.parallel.GetCount(); i++) {
+		int from_a = src.parallel.GetKey(i);
+		const ActionHeader& at0 = src.actions.GetKey(from_a);
+		const auto& to_v = src.parallel[i];
 		
 		bool at0_skipped = false;
 		if (filter_action) {
@@ -2550,8 +2534,8 @@ void ActionParallelsPage::DataActionHeader() {
 		}
 		
 		for(int j = 0; j < to_v.GetCount(); j++) {
-			int to_a = da.parallel.GetKey(i, j);
-			const ActionHeader& at1 = da.actions.GetKey(to_a);
+			int to_a = to_v.GetKey(j);
+			const ActionHeader& at1 = src.actions.GetKey(to_a);
 			const ExportParallel& at = to_v[j];
 			
 			bool at1_skipped = false;
@@ -2584,7 +2568,6 @@ void ActionParallelsPage::DataActionHeader() {
 	parallels.SetSortColumn(6, true);
 	if (!parallels.IsCursor() && parallels.GetCount())
 		parallels.SetCursor(0);
-	#endif
 }
 
 void ActionParallelsPage::UpdateParallels() {

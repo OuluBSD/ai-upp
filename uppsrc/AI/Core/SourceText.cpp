@@ -42,17 +42,8 @@ void MergeProcess::DoPhase() {
 		target->langwords.Add(language_str); // always first?
 		this->current_language = target->langwords.Find(language_str); // non-optimized
 		
-		if (context_str == "song")
-			this->current_ctx = ContextType::Lyrical();
-		else if (context_str == "twitter")
-			this->current_ctx = ContextType::PublicShortMessage();
-		else if (context_str == "blog")
-			this->current_ctx = ContextType::PersonalBlog();
-		else if (context_str == "dialog")
-			this->current_ctx = ContextType::Dialog();
-		else if (context_str == "storyboard")
-			this->current_ctx = ContextType::Storyboard();
-		else
+		this->current_ctx = ContextType::GetFromString(context_str);
+		if (this->current_ctx.value == 0)
 			TODO;
 		
 		NextPhase();

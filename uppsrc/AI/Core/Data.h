@@ -51,8 +51,11 @@ struct ContextType : Moveable<ContextType> {
 	static ContextType CorporateBlog();
 	static ContextType Dialog();
 	static ContextType Storyboard();
+	static ContextType GetFromString(const String& s);
+	static String GetName(const ContextType& t);
+	static String GetBitName(int i);
 	
-	bool operator==(const ContextType& t) const {return value;}
+	bool operator==(const ContextType& t) const {return value == t.value;}
 	hash_t GetHashValue() const {return value;}
 	void Visit(NodeVisitor& vis) {vis("value", value);}
 };
@@ -590,7 +593,7 @@ struct SrcTextData : EntityData {
 	VectorMap<String, VectorMap<hash_t,VectorMap<int,int>>> langwords;
 	Vector<WordTranslation> translations;
 	Index<String> word_classes;
-	VectorMap<hash_t, WordPairType> ambiguous_word_pairs;
+	VectorMap<hash_t, WordPairType> ambiguous_word_pairs; // todo remove
 	
 	// PHRASES
 	VectorMap<hash_t, TokenText> token_texts;

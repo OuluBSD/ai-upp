@@ -9,17 +9,16 @@ public:
 	enum {
 		// 0
 		PHASE_INPUT,
+		PHASE_CONTEXT,
 		// 1
 		PHASE_TOKENIZE,
 		// 2
 		PHASE_ANALYZE_PUBLIC_FIGURE,
 		PHASE_ANALYZE_ELEMENTS,
-		// 3.0
-		PHASE_WORD_CLASSES,
-		// 3.1
+		// 3
+		PHASE_TOKENS_TO_WORDS,
 		PHASE_COUNT_WORDS,
 		// 4
-		PHASE_AMBIGUOUS_WORD_PAIRS,
 		// 5
 		PHASE_IMPORT_TOKEN_TEXTS,
 		PHASE_CLASSIFY_SENTENCES,
@@ -55,12 +54,14 @@ public:
 	Value params;
 	SrcTextData* data = 0;
 	One<NaturalTokenizer> tk;
+	ContextType ctxtype;
 	
 	// Params
 	TaskArgs args;
 	
 	// Configuration
-	int words_per_action_task = 25; // WordClasses()
+	int tokentexts_per_action_task = 5;
+	int words_per_action_task = 25;
 	int vpp_per_action_task = 65;
 	
 	// Temp (per phase)
@@ -77,15 +78,15 @@ public:
 	
 	// 1
 	void Tokenize();
+	void RealizeContext();
 	// 2
 	void AnalyzePublicFigure();
 	void AnalyzeElements();
 	// 3.0
-	void WordClasses();
+	void TokensToWords();
 	// 3.1
 	void CountWords();
 	// 4
-	void AmbiguousWordPairs();
 	// 5
 	void ImportTokenTexts();
 	void ClassifySentences();

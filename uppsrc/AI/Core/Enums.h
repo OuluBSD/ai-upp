@@ -74,7 +74,7 @@ TYPECAST_COUNT
 enum {
 #define CONTENT(idx, str) CONTENT_##idx,
 CONTENT_LIST
-#undef TYPECAST
+#undef CONTENT
 CONTENT_COUNT
 };
 

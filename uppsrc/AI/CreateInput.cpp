@@ -1,5 +1,6 @@
 #include "AI.h"
 #include <AI/Core/Defs.h>
+#include <AI/Core/Enums.h>
 
 NAMESPACE_UPP
 
@@ -292,6 +293,251 @@ void AiTask::CreateInput_Default()
 		
 		
 	}
+	else if(args.fn == FN_ANALYZE_CONTEXT_TYPECLASSES) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "context name": "generic",
+		            "typecasts": [
+						)ML"
+			            #define TYPECAST(idx, str, c) "\"" str "\","
+						TYPECAST_LIST
+						#undef TYPECAST
+						R"ML(
+					],
+		            "number of typecasts": )ML" + IntStr(TYPECAST_COUNT) + R"ML(
+				},
+				"typecasts": {
+					"context name": "lyrical",
+					"context bits": [
+						"Creativity",
+						"Emotionality",
+						"Efficiency",
+						"Collaborative",
+						"Stability",
+						"Innovative",
+						"Experimental"
+					],
+					"typecast count": )ML" + IntStr(TYPECAST_COUNT) + R"ML(,
+					"__comment__": "convert generic typecasts for the new context"
+				}
+			},
+			"response": {
+				"__comment__": "following 'typecasts' array must have )ML" + IntStr(TYPECAST_COUNT) + R"ML( string values",
+				"context name": "lyrical",
+				"typecast count": )ML" + IntStr(TYPECAST_COUNT) + R"ML(,
+				"typecasts" : [
+					"Heartbroken/lovesick",
+					"Rebel/anti-establishment",
+					"Political activist",
+					"Social justice advocate",
+					"Party/club",
+					"Hopeful/dreamer",
+					"Confident/empowered",
+					"Vulnerable/raw",
+					"Romantic/love-driven",
+					"Failure/loser",
+					"Spiritual/faithful",
+					"Passionate/determined",
+					"Reflective/self-reflective",
+					"Witty/sarcastic",
+					"Melancholic/sad",
+					"Humble/down-to-earth",
+					"Charismatic/charming",
+					"Resilient/overcoming adversity",
+					"Carefree/joyful",
+					"Dark/mysterious",
+					"Comical/humorous",
+					"Controversial/provocative",
+					"Nostalgic/sentimental",
+					"Wise/philosophical",
+					"Angry/outspoken",
+					"Calm/peaceful.",
+					"Confident/self-assured",
+					"Self-destructive/self-sabotaging",
+					"Hopeful/optimistic",
+					"Fearful/anxious",
+					"Eccentric/quirky",
+					"Sensitive/emotional",
+					"Bitter/resentful",
+					"Unique/nonconformist",
+					"Free-spirited/nonconformist",
+					"Sultry/seductive",
+					"Inspirational/motivational",
+					"Authentic/real",
+					"Mysterious/enigmatic",
+					"Carefree/bohemian",
+					"Street-smart/tough",
+					"Romantic/idealistic",
+					"Nurturing/motherly",
+					"Dark/tormented",
+					"Remorseful/regretful",
+					"Bold/brave",
+					"Outcast/rebel",
+					"Lost/disconnected",
+					"Tough/badass",
+					"Sincere/genuine",
+					"Honest/vulnerable",
+					"Innocent/naive",
+					"Bold/risk-taking"
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "typecasts": {
+					"context name": "",
+					"context bits": [],
+					"typecast count": )ML" + IntStr(TYPECAST_COUNT) + R"ML(,
+		            "__comment__": "get response"
+		        }
+		    }
+		})ML")
+			.Set("/query/typecasts/context name", args.params("context name"))
+			.Set("/query/typecasts/context bits", args.params("context bits"))
+			;
+		input.response_length = 2048;
+	}
+	else if(args.fn == FN_ANALYZE_CONTEXT_CONTENTS) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "context name": "generic",
+		            "contents": [
+						)ML"
+						#define CONTENT(idx, str) "\"" str "\","
+						CONTENT_LIST
+						#undef CONTENT
+						R"ML(
+					],
+		            "number of contents": )ML" + IntStr(CONTENT_COUNT) + R"ML(
+				},
+				"contents": {
+					"context name": "lyrical",
+					"context bits": [
+						"Creativity",
+						"Emotionality",
+						"Efficiency",
+						"Collaborative",
+						"Stability",
+						"Innovative",
+						"Experimental"
+					],
+					"content count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+					"__comment__": "convert generic contents for the new context"
+				}
+			},
+			"response": {
+				"__comment__": "following 'contents' array must have )ML" + IntStr(CONTENT_COUNT) + R"ML( string values",
+				"context name": "lyrical",
+				"content count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+				"contents" : [
+					"Seductive intro",
+					"Rise and fall",
+					"Fun and games",
+					"Love at first sight",
+					"Struggle and triumph",
+					"Ups and downs",
+					"Escape to paradise",
+					"Rebellious spirit",
+					"Broken and mended",
+					"Chase your dreams",
+					"Dark secrets",
+					"Rags to riches",
+					"Lost and found",
+					"Ignite the fire",
+					"From the ashes",
+					"Fame and fortune",
+					"Healing in the darkness",
+					"City lights and lonely nights",
+					"Breaking the mold",
+					"Haunted by the past",
+					"Wild and free",
+					"Clash of opinions",
+					"Long distance love",
+					"Finding inner strength",
+					"Living a double life",
+					"Caught in the spotlight",
+					"Love and war",
+					"The art of letting go",
+					"Living in the moment",
+					"Conquering fears"
+				]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "contents": {
+					"context name": "",
+					"context bits": [],
+					"content count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+		            "__comment__": "get response"
+		        }
+		    }
+		})ML")
+			.Set("/query/contents/context name", args.params("context name"))
+			.Set("/query/contents/context bits", args.params("context bits"))
+			;
+		input.response_length = 2048;
+	}
+	else if(args.fn == FN_ANALYZE_CONTEXT_PARTS) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+		    "query": {
+		        "__comment__": {
+		            "context name": "generic",
+		            "component names": ["begin","middle","end"],
+		            "part count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+		            "number of components in a part": 3
+				},
+				"parts": {
+					"context name": "lyrical",
+					"context bits": [
+						"Creativity",
+						"Emotionality",
+						"Efficiency",
+						"Collaborative",
+						"Stability",
+						"Innovative",
+						"Experimental"
+					],
+					"part count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+					"__comment__": "generate generic parts for the new context"
+				}
+			},
+			"response": {
+				"__comment__": "following 'parts' array must have )ML" + IntStr(CONTENT_COUNT) + R"ML( string values",
+				"context name": "lyrical",
+				"part count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+		        "number of components in a part": 3,
+				"parts" : [["a seductive and sultry melody draws the listener in","the scripts talk about a passionate and intense relationship","the mood shifts as the singer realizes they are not truly in love"],["the beat builds and intensifies, creating a sense of excitement and anticipation","the scripts tell a story of overcoming obstacles and achieving success","the energy drops suddenly and the singer reflects on the sacrifices and struggles that came with their success"],["a carefree and lively melody sets the tone for a carefree party anthem","the scripts are about enjoying life and living in the moment","the party comes to an end and the reality of responsibilities and consequences sink in"],["a romantic and dreamy melody introduces the concept of falling in love at first sight","the scripts describe the intense feelings and desires that come with falling for someone instantly","the singer wakes up from the fantasy and realizes"],["a slower and melancholic melody sets the scene for a character facing challenges and adversity","the scripts depict the struggles and hardships they have faced","the pace picks up and the music becomes more triumphant as the character overcomes their struggles and achieves success"],["a catchy and upbeat melody reflects the highs of a new relationship","the scripts delve into the challenges and conflicts that arise within the relationship","the music slows down as the couple try to work through their problems and find a resolution"],["a tropical and laid-back beat transports the listener to a paradise destination","the scripts describe a desire to escape from reality and find solace in a beautiful location","the singer comes back to reality and faces the consequences of leaving everything behind"],["a rebellious and edgy guitar riff sets the rebellious tone of the song","the scripts speak of breaking rules and societal expectations","the song ends with the realization that rebellion can have consequences"],["a somber and melancholic melody reflects a heartbroken state","the scripts describe the pain and sadness of a broken relationship","the tone shifts as the singer begins to heal and move on from the heartbreak"],["an uplifting and motivational melody encourages listeners to chase their dreams","the scripts tell a story of overcoming obstacles and pursuing one's passions","the song concludes with a sense of fulfillment and the realization that the journey towards achieving dreams is never-ending"],["a haunting and mysterious introduction sets the tone for secrets and deceit","the scripts reveal dark secrets and hidden motives among the characters","the song ends with a sense of betrayal and the consequences of keeping secrets"],["a humble and modest melody represents the beginnings of a character's journey","the scripts describe the climb to success and wealth","the music becomes more grandiose as the character achieves their dreams and reflects on their journey"],["a haunting and melancholic melody portrays a sense of being lost and alone","the scripts depict a journey of self-discovery and finding one's place in the world","the music becomes more uplifting as the character finds a sense of belonging and purpose"],["an energetic and intense beat sparks excitement and passion","the scripts describe the power and intensity of a new love or passion","the music dies down as the flame fades and the singer is left with the memories of the passion that once consumed them"],["a slow and mournful melody sets the scene for a character who has hit rock bottom","the scripts depict the struggles and hardships they have faced","the music picks up as the character rises from the ashes and rebuilds their life"],["a flashy and upbeat melody represents the allure of fame and fortune","the scripts describe the glamorous lifestyle and perks that come with success","the song ends with a cautionary tale about the emptiness and pitfalls of a life solely focused on money and fame"],["a haunting and ethereal melody reflects a state of darkness and pain","the scripts speak of finding light and healing in the darkest times","the music builds to a triumphant and uplifting finale as the singer finds strength and hope in their struggles"],["a bustling and energetic beat represents the excitement of the city at night","the scripts tell a story of chasing dreams and living life to the fullest in the city","the song ends with a sense of loneliness and longing for something more meaningful outside of the fast-paced city life"],["a unique and unconventional melody sets the tone for breaking the norm","the scripts describe defying expectations and being true to oneself","the song ends with a sense of liberation and empowerment as the singer embraces their individuality"],["a haunting and eerie melody reflects the weight of a character's past traumas","the scripts delve into the pain and struggles of moving on from the past","the music becomes more hopeful as the character learns to let go and move forward"],["a carefree and adventurous melody embodies the thrill of living life on the edge","the scripts describe the rush and excitement of taking risks and living in the moment","the song concludes with a reminder that with freedom comes consequences and responsibilities"],["a catchy and upbeat melody sets the tone for a heated argument","the scripts depict conflicting opinions and viewpoints","the song ends with the understanding that sometimes it's best to agree to disagree and move on"],["a soft and tender melody represents the longing and distance in a relationship","the scripts tell a story of the struggles and sacrifices of maintaining a long distance love","the song ends with a sense of hope and determination to make the relationship work"],["a slow and contemplative melody represents a character facing inner struggles","the scripts speak of finding courage and strength from within to overcome challenges","the song crescendos as the singer embraces their inner strength and triumphs over their struggles"],["a mysterious and seductive beat sets the stage for a character leading a secretive life","the scripts tell the story of juggling two separate identities and the dangers that come with it","the song concludes with the realization that living a lie is destructive and unsustainable"],["a bright and flashy melody reflects the thrill of being in the spotlight","the scripts depict the pressure and challenges of fame and constantly being in the public eye","the music slows down as the singer reflects on the toll fame has taken on their personal life"],["a powerful and intense beat represents the passionate and tumultuous nature of love","the scripts depict a couple's constant battle and struggle to make their relationship work","the song ends with a bittersweet realization that love can be both beautiful and painful"],["a slow and somber melody sets the tone for learning to let go","the scripts describe the struggles of moving on and leaving the past behind","the music builds to a hopeful and empowering finale as the singer finally finds the strength to let go"],["an upbeat and carefree melody represents living life with no regrets","the scripts encourage taking chances and embracing every moment","the song ends with a reminder to cherish the present and not dwell on the past or worry about the future"],["a tense and ominous melody reflects the fear and anxiety a character faces","the scripts speak of overcoming fears and finding courage to face them","the music becomes triumphant and uplifting as the character conquers their fears and grows stronger"]]
+			}
+		})ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "parts": {
+					"context name": "",
+					"context bits": [],
+					"component names": [],
+					"part count": )ML" + IntStr(CONTENT_COUNT) + R"ML(,
+		            "__comment__": "get response"
+		        }
+		    }
+		})ML")
+			.Set("/query/parts/context name", args.params("context name"))
+			.Set("/query/parts/context bits", args.params("context bits"))
+			.Set("/query/parts/component names", args.params("part names"))
+			;
+		input.response_length = 2048;
+	}
 	else if(args.fn == FN_ANALYZE_PUBLIC_FIGURE) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
@@ -409,6 +655,95 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/text", args.params("text"));
+		input.response_length = 2048;
+	}
+	else if(args.fn == FN_TOKENS_TO_WORDS) {
+		json_input.AddSystem("You are a helpful assistant...");
+		json_input.AddAssist(R"ML(
+		{
+			"query": {
+				"__comment__": {
+					"incomplete list of word classes": [
+						"Nouns",
+						"Verbs",
+						"Adjectives",
+						"Adverbs",
+						"Pronouns",
+						"Prepositions",
+						"Conjunctions",
+						"Determiners",
+						"Interjections",
+						"Articles",
+						"Modal verbs",
+						"Gerunds",
+						"Infinitives",
+						"Participles",
+						"Definite article",
+						"Indefinite article",
+						"Proper nouns",
+						"Collective nouns",
+						"Concrete nouns",
+						"Regular verbs",
+						"Transitive verbs",
+						"First person pronouns",
+						"Second person pronouns",
+						"Possessive determiners",
+						"Possessive adjectives",
+						"Comparative adjectives"
+					]
+				},
+				"incomplete list of possible languages": [
+					"english","finnish"
+				],
+				"script": {
+					"texts": [
+						["apple","is","red"],
+						["were","all","humans"],
+						["omena","on","red"]
+					],
+					"__comment__": "Analyze the words and rewrite the words and give the word class"
+				}
+			},
+			"response-long": {
+				"__comment__": "the next list must have the same number of values in array that was in query.script.texts list",
+				"languages & words & word classes": [
+					[["english","apple","noun"], ["english","is","verb"], ["english","red","adjective"]],
+					[["english","we're","verb"], ["english","all","determiner"], ["english","humans", "noun"]],
+					[["finnish","omena","noun"], ["finnish","on","verb"], ["english","red","adjective"]]
+				]
+			},
+			"response-short": {
+				"__comment__": "the response-short must have 4 fields: unique languages, unique word classes, unique words, response texts",
+				"__comment__1": "index of unique values of languages",
+				"unique languages": ["english","finnish"],
+				"__comment__2": "index of unique values of word classes",
+				"unique word classes": ["noun","verb","adjective","determiner"],
+				"__comment__3": "the response format of words is: [[index-of-language, \"string-word\", index-of-word-class]]",
+				"unique words": [
+					[0,"apple",0], [0,"is",1], [0,"red",2],
+					[0,"we're",1], [0,"all",3], [0,"humans",0],
+					[1,"omena",0,1], [1,"on",1]
+				],
+				"__comment__4": "the response format of texts is: [[index-of-words]]",
+				"__comment__5": "the next list must have the same number of values in array that was in query.script.texts list",
+				"response texts": [
+					[0, 1, 2],
+					[3, 4, 5],
+					[6, 7, 2]
+				]
+			}
+		}
+		)ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "texts": [],
+		            "__comment__": "get response-short"
+		        }
+		    }
+		})ML")
+			.Set("/query/script/texts", args.params("texts"));
 		input.response_length = 2048;
 	}
 	else if(args.fn == FN_WORD_CLASSES) {

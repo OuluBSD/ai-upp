@@ -15,22 +15,40 @@ void ScriptTextProcess::DoPhase()
 	SrcTextData& data = *this->data;
 
 	if(IsPhase(PHASE_INPUT)) {
+		String ctx = params("ctx");
 		String genre = params("genre");
 		String author = params("author");
 		String title = params("title");
 		Value input_text = params("input_text");
-		if(genre.IsEmpty())
+		if (genre.IsEmpty()) {
+			LOG("ScriptTextProcess::DoPhase: warning: no genre param");
 			genre = "User input";
-		if(author.IsEmpty())
+		}
+		if (author.IsEmpty()) {
+			LOG("ScriptTextProcess::DoPhase: warning: no author param");
 			author = "User";
-		if(title.IsEmpty())
+		}
+		if (title.IsEmpty()) {
+			LOG("ScriptTextProcess::DoPhase: warning: no title param");
 			title = "<No title>";
+		}
+		if (ctx.IsEmpty()) {
+			LOG("ScriptTextProcess::DoPhase: warning: no context param");
+			ctx = "lyrical";
+		}
+		
+		this->ctxtype = ContextType::GetFromString(ctx);
+		PROCESS_ASSERT(this->ctxtype.value != 0);
+		
 		AuthorDataset& ed = data.GetAddAuthor(author);
 		VectorFindAdd(ed.genres, genre);
 		ScriptDataset& script = ed.GetAddScript(title);
 		script.text = AsJSON(input_text, true);
 
 		NextPhase();
+	}
+	else if(IsPhase(PHASE_CONTEXT)) {
+		RealizeContext();
 	}
 	else if(IsPhase(PHASE_TOKENIZE)) {
 		Tokenize();
@@ -41,14 +59,11 @@ void ScriptTextProcess::DoPhase()
 	else if(IsPhase(PHASE_ANALYZE_ELEMENTS)) {
 		AnalyzeElements();
 	}
-	else if(IsPhase(PHASE_WORD_CLASSES)) {
-		WordClasses();
+	else if(IsPhase(PHASE_TOKENS_TO_WORDS)) {
+		TokensToWords();
 	}
 	else if(IsPhase(PHASE_COUNT_WORDS)) {
 		CountWords();
-	}
-	else if(IsPhase(PHASE_AMBIGUOUS_WORD_PAIRS)) {
-		AmbiguousWordPairs();
 	}
 	else if(IsPhase(PHASE_IMPORT_TOKEN_TEXTS)) {
 		ImportTokenTexts();
@@ -77,15 +92,157 @@ void ScriptTextProcess::DoPhase()
 	else if(IsPhase(PHASE_SIMPLIFY_ATTRS)) {
 		SimplifyAttrs();
 	}
+	
+	// NOT IN USE:
 	else if(IsPhase(PHASE_JOIN_ORPHANED)) {
 		JoinOrphaned();
 	}
 	else if(IsPhase(PHASE_FIX_DATA)) {
 		FixData();
 	}
+	
 	else {
 		SetNotRunning();
 	}
+}
+
+void ScriptTextProcess::RealizeContext()
+{
+	PROCESS_ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	ContextData& ctx = src.ctxs.GetAdd(ctxtype);
+	
+	args.params = ValueMap();
+	String name = ContextType::GetName(ctxtype);
+	args.params("context name") = name;
+	ValueArray ctx_bits;
+	for(int i = 0; i < 8; i++) {
+		if ((i << 0) & ctxtype.value) {
+			ctx_bits.Add(ContextType::GetBitName(i));
+		}
+	}
+	args.params("context bits") = ctx_bits;
+	
+	if (batch == 0) {
+		if (ctx.typeclasses.GetCount()) {
+			NextBatch();
+			return;
+		}
+		args.fn = FN_ANALYZE_CONTEXT_TYPECLASSES;
+		
+		Event<String> handle_response = [this](String result) {
+			TaskArgs& args = this->args;
+			auto& src = *p.srctxt;
+			ContextData& ctx = src.ctxs.GetAdd(ctxtype);
+			
+			Value v = ParseJSON(result, false);
+			// LOG(AsJSON(v, true));
+			ValueArray output = v("response")("typecasts");
+			PROCESS_ASSERT(output.GetCount() == TYPECAST_COUNT);
+			
+			ctx.typeclasses.SetCount(TYPECAST_COUNT);
+			for(int i = 0; i < output.GetCount(); i++) {
+				auto& tc = ctx.typeclasses[i];
+				tc.name = output[i];
+			}
+			
+			SetWaiting(false);
+			NextBatch();
+		};
+		
+		if (name == "lyrical") {
+			handle_response(R"ML({"response":{"typecasts":["Heartbroken/lovesick","Rebel/anti-establishment","Political activist","Social justice advocate","Party/club","Hopeful/dreamer","Confident/empowered","Vulnerable/raw","Romantic/love-driven","Failure/loser","Spiritual/faithful","Passionate/determined","Reflective/self-reflective","Witty/sarcastic","Melancholic/sad","Humble/down-to-earth","Charismatic/charming","Resilient/overcoming adversity","Carefree/joyful","Dark/mysterious","Comical/humorous","Controversial/provocative","Nostalgic/sentimental","Wise/philosophical","Angry/outspoken","Calm/peaceful.","Confident/self-assured","Self-destructive/self-sabotaging","Hopeful/optimistic","Fearful/anxious","Eccentric/quirky","Sensitive/emotional","Bitter/resentful","Unique/nonconformist","Free-spirited/nonconformist","Sultry/seductive","Inspirational/motivational","Authentic/real","Mysterious/enigmatic","Carefree/bohemian","Street-smart/tough","Romantic/idealistic","Nurturing/motherly","Dark/tormented","Remorseful/regretful","Bold/brave","Outcast/rebel","Lost/disconnected","Tough/badass","Sincere/genuine","Honest/vulnerable","Innocent/naive","Bold/risk-taking"]}})ML");
+		}
+		else {
+			SetWaiting(true);
+			TaskMgr& m = AiTaskManager();
+			m.Get(args, handle_response);
+		}
+	}
+	else if (batch == 1) {
+		if (ctx.typeclasses.GetCount()) {
+			NextBatch();
+			return;
+		}
+		args.fn = FN_ANALYZE_CONTEXT_CONTENTS;
+		
+		Event<String> handle_response = [this](String result) {
+			TaskArgs& args = this->args;
+			auto& src = *p.srctxt;
+			ContextData& ctx = src.ctxs.GetAdd(ctxtype);
+			
+			Value v = ParseJSON(result, false);
+			// LOG(AsJSON(v, true));
+			ValueArray output = v("response")("contents");
+			PROCESS_ASSERT(output.GetCount() == CONTENT_COUNT);
+			
+			ctx.contents.SetCount(CONTENT_COUNT);
+			for(int i = 0; i < output.GetCount(); i++) {
+				auto& con = ctx.contents[i];
+				con.name = output[i];
+			}
+			
+			SetWaiting(false);
+			NextBatch();
+		};
+		
+		if (name == "lyrical") {
+			handle_response(R"ML({"response":{"contents":["Seductive intro","Rise and fall","Fun and games","Love at first sight","Struggle and triumph","Ups and downs","Escape to paradise","Rebellious spirit","Broken and mended","Chase your dreams","Dark secrets","Rags to riches","Lost and found","Ignite the fire","From the ashes","Fame and fortune","Healing in the darkness","City lights and lonely nights","Breaking the mold","Haunted by the past","Wild and free","Clash of opinions","Long distance love","Finding inner strength","Living a double life","Caught in the spotlight","Love and war","The art of letting go","Living in the moment","Conquering fears"]}})ML");
+		}
+		else {
+			SetWaiting(true);
+			TaskMgr& m = AiTaskManager();
+			m.Get(args, handle_response);
+		}
+	}
+	else if (batch == 2) {
+		if (ctx.part_names.GetCount()) {
+			NextBatch();
+			return;
+		}
+		args.fn = FN_ANALYZE_CONTEXT_PARTS;
+		
+		// todo resolve better part names
+		ctx.part_names << "begin" << "middle" << "end";
+		
+		ValueArray part_names;
+		for (auto s : ctx.part_names)
+			part_names.Add(s);
+		args.params("part names") = part_names;
+		
+		Event<String> handle_response = [this](String result) {
+			TaskArgs& args = this->args;
+			auto& src = *p.srctxt;
+			ContextData& ctx = src.ctxs.GetAdd(ctxtype);
+			
+			Value v = ParseJSON(result, false);
+			// LOG(AsJSON(v, true));
+			ValueArray output = v("response")("parts");
+			PROCESS_ASSERT(output.GetCount() == CONTENT_COUNT);
+			
+			for(int i = 0; i < output.GetCount(); i++) {
+				ValueArray out_parts = output[i];
+				PROCESS_ASSERT(out_parts.GetCount() == ctx.part_names.GetCount());
+				auto& con = ctx.contents[i];
+				con.parts.Clear();
+				for(int j = 0; j < out_parts.GetCount(); j++)
+					con.parts << out_parts[j].ToString();
+			}
+			
+			SetWaiting(false);
+			NextBatch();
+		};
+		
+		if (name == "lyrical") {
+			handle_response(R"ML({"response":{"parts":[["a seductive and sultry melody draws the listener in","the scripts talk about a passionate and intense relationship","the mood shifts as the singer realizes they are not truly in love"],["the beat builds and intensifies, creating a sense of excitement and anticipation","the scripts tell a story of overcoming obstacles and achieving success","the energy drops suddenly and the singer reflects on the sacrifices and struggles that came with their success"],["a carefree and lively melody sets the tone for a carefree party anthem","the scripts are about enjoying life and living in the moment","the party comes to an end and the reality of responsibilities and consequences sink in"],["a romantic and dreamy melody introduces the concept of falling in love at first sight","the scripts describe the intense feelings and desires that come with falling for someone instantly","the singer wakes up from the fantasy and realizes"],["a slower and melancholic melody sets the scene for a character facing challenges and adversity","the scripts depict the struggles and hardships they have faced","the pace picks up and the music becomes more triumphant as the character overcomes their struggles and achieves success"],["a catchy and upbeat melody reflects the highs of a new relationship","the scripts delve into the challenges and conflicts that arise within the relationship","the music slows down as the couple try to work through their problems and find a resolution"],["a tropical and laid-back beat transports the listener to a paradise destination","the scripts describe a desire to escape from reality and find solace in a beautiful location","the singer comes back to reality and faces the consequences of leaving everything behind"],["a rebellious and edgy guitar riff sets the rebellious tone of the song","the scripts speak of breaking rules and societal expectations","the song ends with the realization that rebellion can have consequences"],["a somber and melancholic melody reflects a heartbroken state","the scripts describe the pain and sadness of a broken relationship","the tone shifts as the singer begins to heal and move on from the heartbreak"],["an uplifting and motivational melody encourages listeners to chase their dreams","the scripts tell a story of overcoming obstacles and pursuing one's passions","the song concludes with a sense of fulfillment and the realization that the journey towards achieving dreams is never-ending"],["a haunting and mysterious introduction sets the tone for secrets and deceit","the scripts reveal dark secrets and hidden motives among the characters","the song ends with a sense of betrayal and the consequences of keeping secrets"],["a humble and modest melody represents the beginnings of a character's journey","the scripts describe the climb to success and wealth","the music becomes more grandiose as the character achieves their dreams and reflects on their journey"],["a haunting and melancholic melody portrays a sense of being lost and alone","the scripts depict a journey of self-discovery and finding one's place in the world","the music becomes more uplifting as the character finds a sense of belonging and purpose"],["an energetic and intense beat sparks excitement and passion","the scripts describe the power and intensity of a new love or passion","the music dies down as the flame fades and the singer is left with the memories of the passion that once consumed them"],["a slow and mournful melody sets the scene for a character who has hit rock bottom","the scripts depict the struggles and hardships they have faced","the music picks up as the character rises from the ashes and rebuilds their life"],["a flashy and upbeat melody represents the allure of fame and fortune","the scripts describe the glamorous lifestyle and perks that come with success","the song ends with a cautionary tale about the emptiness and pitfalls of a life solely focused on money and fame"],["a haunting and ethereal melody reflects a state of darkness and pain","the scripts speak of finding light and healing in the darkest times","the music builds to a triumphant and uplifting finale as the singer finds strength and hope in their struggles"],["a bustling and energetic beat represents the excitement of the city at night","the scripts tell a story of chasing dreams and living life to the fullest in the city","the song ends with a sense of loneliness and longing for something more meaningful outside of the fast-paced city life"],["a unique and unconventional melody sets the tone for breaking the norm","the scripts describe defying expectations and being true to oneself","the song ends with a sense of liberation and empowerment as the singer embraces their individuality"],["a haunting and eerie melody reflects the weight of a character's past traumas","the scripts delve into the pain and struggles of moving on from the past","the music becomes more hopeful as the character learns to let go and move forward"],["a carefree and adventurous melody embodies the thrill of living life on the edge","the scripts describe the rush and excitement of taking risks and living in the moment","the song concludes with a reminder that with freedom comes consequences and responsibilities"],["a catchy and upbeat melody sets the tone for a heated argument","the scripts depict conflicting opinions and viewpoints","the song ends with the understanding that sometimes it's best to agree to disagree and move on"],["a soft and tender melody represents the longing and distance in a relationship","the scripts tell a story of the struggles and sacrifices of maintaining a long distance love","the song ends with a sense of hope and determination to make the relationship work"],["a slow and contemplative melody represents a character facing inner struggles","the scripts speak of finding courage and strength from within to overcome challenges","the song crescendos as the singer embraces their inner strength and triumphs over their struggles"],["a mysterious and seductive beat sets the stage for a character leading a secretive life","the scripts tell the story of juggling two separate identities and the dangers that come with it","the song concludes with the realization that living a lie is destructive and unsustainable"],["a bright and flashy melody reflects the thrill of being in the spotlight","the scripts depict the pressure and challenges of fame and constantly being in the public eye","the music slows down as the singer reflects on the toll fame has taken on their personal life"],["a powerful and intense beat represents the passionate and tumultuous nature of love","the scripts depict a couple's constant battle and struggle to make their relationship work","the song ends with a bittersweet realization that love can be both beautiful and painful"],["a slow and somber melody sets the tone for learning to let go","the scripts describe the struggles of moving on and leaving the past behind","the music builds to a hopeful and empowering finale as the singer finally finds the strength to let go"],["an upbeat and carefree melody represents living life with no regrets","the scripts encourage taking chances and embracing every moment","the song ends with a reminder to cherish the present and not dwell on the past or worry about the future"],["a tense and ominous melody reflects the fear and anxiety a character faces","the scripts speak of overcoming fears and finding courage to face them","the music becomes triumphant and uplifting as the character conquers their fears and grows stronger"]]}})ML");
+		}
+		else {
+			SetWaiting(true);
+			TaskMgr& m = AiTaskManager();
+			m.Get(args, handle_response);
+		}
+	}
+	else NextPhase();
 }
 
 void ScriptTextProcess::Tokenize()
@@ -514,70 +671,64 @@ void ScriptTextProcess::CountWords()
 	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
-	if (1) {
-		for (auto it : src.words_)
-			it.count = 0;
-	}
+	for (auto it : src.words_)
+		it.count = 0;
 	
-	for(auto script : ~src.scripts) {
-		for(auto& part : script.value.parts) {
-			for(auto& sub0 : part.sub) {
-				for(auto& sub1 : sub0.sub) {
-					for (int tt_i : sub1.token_texts) {
-						TokenText& tt = src.token_texts[tt_i];
-						for (int wrd_i : tt.words) {
-							PROCESS_ASSERT(wrd_i >= 0);
-							if (wrd_i >= 0)
-								src.words_[wrd_i].count++;
-						}
-					}
-				}
-			}
+	for(auto tt : ~src.token_texts) {
+		for (int wrd_i : tt.value.words) {
+			PROCESS_ASSERT(wrd_i >= 0);
+			if (wrd_i >= 0)
+				src.words_[wrd_i].count++;
 		}
 	}
 	
 	NextPhase();
 }
 
-void ScriptTextProcess::WordClasses()
+void ScriptTextProcess::TokensToWords()
 {
 	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
-
-	args.fn = FN_WORD_CLASSES;
+	
+	args.fn = FN_TOKENS_TO_WORDS;
 	args.params = ValueMap();
-
-	TODO // This whole phase is to be removed: find word classes from TokenTexts earlier
-	#if 0
+	
 	if(batch == 0) {
 		iter = 0;
 		total = 0;
 	}
 
-	int end = src.tokens.GetCount();
+	int end = src.token_texts.GetCount();
 	if (iter >= end) {
 		NextPhase();
 		return;
 	}
-
-	ValueArray words;
-	ValueArray word_idx;
+	
+	ValueArray texts;
+	ValueArray text_idx;
+	int token_count = 0;
 	while (iter < end) {
-		int i = iter++;
-		const auto& w = src.words_[i];
-		if (w.word_class >= 0)
+		int tt_i = iter++;
+		const auto& tt = src.token_texts[tt_i];
+		if (tt.words.GetCount() > 0) {
+			ASSERT(tt.words.GetCount() == tt.tokens.GetCount());
 			continue;
-		const String& s = w.text;
-		words << s;
-		word_idx << i;
-		if (word_idx.GetCount() >= words_per_action_task)
+		}
+		token_count += tt.tokens.GetCount();
+		ValueArray tokens;
+		for (int tk_i : tt.tokens) {
+			tokens << src.tokens.GetKey(tk_i);
+		}
+		texts.Add(tokens);
+		text_idx.Add(tt_i);
+		if (texts.GetCount() >= tokentexts_per_action_task)
+			break;
+		if (token_count >= words_per_action_task)
 			break;
 	}
-	args.params("words") = words;
-	args.params("word_idx") = word_idx;
-
-	total = iter;
-
+	args.params("texts") = texts;
+	args.params("text_idx") = text_idx;
+	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	m.Get(args, [this](String result) {
@@ -592,133 +743,55 @@ void ScriptTextProcess::WordClasses()
 			SetNotRunning();
 			return;
 		}
-		ValueArray word_classes = v("response-short")("word classes");
-		ValueArray input_words = args.params("words");
-		ValueArray word_idx = args.params("word_idx");
-		// LOG(AsJSON(v, true));
-		PROCESS_ASSERT_CMP(word_classes.GetCount(), input_words.GetCount());
-		
-		int count = min(word_classes.GetCount(), input_words.GetCount());
-
-		for(int i = 0; i < count; i++) {
-			int wrd_i = word_idx[i];
-			auto& wrd = src.words_[wrd_i];
-			String result_word = input_words[i].ToString();
-
-			TODO
-			#if 0
-			ExportWord& wrd = MapGetAdd(src.words_, result_word, wrd_i);
-			if (tk.word_ < 0) {
-				tk.word_ = wrd_i;
-			}
-			ValueArray classes = word_classes[i];
-			for(int j = 0; j < classes.GetCount(); j++) {
-				String cls = classes[j].ToString();
-				int wc_i = src.word_classes.FindAdd(cls);
-				if(wrd.class_count < wrd.MAX_CLASS_COUNT)
-					FixedIndexFindAdd(wrd.classes, wrd.MAX_CLASS_COUNT, wrd.class_count, wc_i);
-			}
-			#endif
-			actual++;
-		}
-		src.diagnostics.GetAdd("tokens: total") = IntStr(total);
-		src.diagnostics.GetAdd("tokens: actual") = IntStr(actual);
-		src.diagnostics.GetAdd("tokens: percentage") =
-			DblStr((double)actual / (double)total * 100);
-
-		NextBatch();
-		SetWaiting(false);
-	});
-	#endif
-}
-
-void ScriptTextProcess::AmbiguousWordPairs()
-{
-	PROCESS_ASSERT(p.srctxt);
-	auto& src = *p.srctxt;
-
-	args.fn = FN_WORD_PAIR_CLASSES;
-	args.params = ValueMap();
-
-	int begin = batch * words_per_action_task;
-	int end = begin + words_per_action_task;
-	end = min(end, src.ambiguous_word_pairs.GetCount());
-	int iter = 0;
-
-	ValueArray word_pairs;
-	tmp_wp_ptrs.Clear();
-	for(WordPairType& wp : src.ambiguous_word_pairs.GetValues()) {
-		if(wp.from < 0 || wp.to < 0)
-			continue;
-		if(wp.from_type >= 0 && wp.to_type >= 0)
-			continue;
-
-		if(iter >= begin && iter < end) {
-			const String& from = src.words_[wp.from].text;
-			const String& to = src.words_[wp.to].text;
-			ValueArray arr;
-			arr.Add(from);
-			arr.Add(to);
-			word_pairs.Add(arr);
-			tmp_wp_ptrs.Add(&wp);
-		}
-		else if(iter >= end)
-			break;
-		iter++;
-	}
-	if(word_pairs.IsEmpty()) {
-		NextPhase();
-		return;
-	}
-
-	args.params("word pairs") = word_pairs;
-
-	SetWaiting(true);
-	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String res) {
-		TaskArgs& args = this->args;
-		auto& src = *p.srctxt;
-
-		Value v = ParseJSON(res, false);
+		ValueArray output_langs = v("response-short")("unique languages");
+		ValueArray output_classes = v("response-short")("unique word classes");
+		ValueArray output_words = v("response-short")("unique words");
+		ValueArray output_texts = v("response-short")("response texts");
+		ValueArray input_texts = args.params("texts");
+		ValueArray text_idx = args.params("text_idx");
 		LOG(AsJSON(v, true));
-		ValueArray word_pair_classes = v("response-short")("word pairs classes");
-		ValueArray input_words = args.params("word pairs");
-		int c = min(word_pair_classes.GetCount(), input_words.GetCount());
-
-		PROCESS_ASSERT_CMP(word_pair_classes.GetCount(), input_words.GetCount());
-		int offset = 1 + 1;
-
-		for(int i = 0; i < word_pair_classes.GetCount(); i++) {
-			ValueArray input_word_pair = input_words[i];
-			ValueArray result_words = word_pair_classes[i];
-			if(result_words.GetCount() != 2)
-				continue;
-
-			WordPairType& wp = *tmp_wp_ptrs[i];
-			int wc_i_list[2];
-			for(int i = 0; i < result_words.GetCount(); i++) {
-				String p = result_words[i].ToString();
-				wc_i_list[i] = src.word_classes.FindAdd(p);
+		PROCESS_ASSERT_CMP(output_texts.GetCount(), input_texts.GetCount());
+		ASSERT(text_idx.GetCount() == input_texts.GetCount());
+		
+		
+		for(int i = 0; i < text_idx.GetCount(); i++) {
+			int tt_i = text_idx[i];
+			auto& tt = src.token_texts[tt_i];
+			ValueArray text_vals = output_texts[i];
+			Vector<int> w_is;
+			for(int j = 0; j < text_vals.GetCount(); j++) {
+				int wrd_int = text_vals[j];
+				if (j == tt.tokens.GetCount() && wrd_int >= output_words.GetCount())
+					break;
+				PROCESS_ASSERT(wrd_int >= 0 && wrd_int < output_words.GetCount());
+				ValueArray wrd3 = output_words[wrd_int];
+				PROCESS_ASSERT(wrd3.GetCount() == 3);
+				int lng_int = wrd3[0];
+				int cls_int = wrd3[2];
+				PROCESS_ASSERT(lng_int >= 0 && lng_int < output_langs.GetCount());
+				PROCESS_ASSERT(cls_int >= 0 && cls_int < output_classes.GetCount());
+				String lng = ToLower(output_langs[lng_int].ToString());
+				String wrd = ToLower(wrd3[1].ToString());
+				String cls = ToLower(output_classes[cls_int].ToString());
+				wrd = ToLower(wrd.ToWString()).ToString();
+				int wc_i = src.word_classes.FindAdd(cls);
+				auto& langwords = src.langwords.GetAdd(lng);
+				hash_t wrd_hash = wrd.GetHashValue();
+				auto& langword_classes = langwords.GetAdd(wrd_hash);
+				int& wrd_i = langword_classes.GetAdd(wc_i,-1);
+				if (wrd_i < 0) {
+					wrd_i = src.words_.GetCount();
+					WordData& wd = src.words_.Add();
+					wd.text = wrd;
+					wd.word_class = wc_i;
+				}
+				w_is << wrd_i;
 			}
-			wp.from_type = wc_i_list[0];
-			wp.to_type = wc_i_list[1];
+			tt.words <<= w_is;
 		}
-
-		int a = 0;
-		for(const WordPairType& wp : src.ambiguous_word_pairs.GetValues()) {
-			if(wp.from < 0 || wp.to < 0)
-				continue;
-			if(wp.from_type >= 0 && wp.to_type >= 0)
-				a++;
-		}
-		src.diagnostics.GetAdd("ambiguous word pairs: total") =
-			IntStr(src.ambiguous_word_pairs.GetCount());
-		src.diagnostics.GetAdd("ambiguous word pairs: actual") = IntStr(a);
-		src.diagnostics.GetAdd("ambiguous word pairs: percentage") =
-			DblStr((double)a / (double)src.ambiguous_word_pairs.GetCount() * 100);
-
+		
 		NextBatch();
-		SetWaiting(false);
+		SetWaiting(0);
 	});
 }
 
@@ -887,7 +960,7 @@ void ScriptTextProcess::ClassifySentences()
 		auto& src = *p.srctxt;
 
 		Value v = ParseJSON(res, false);
-		LOG(AsJSON(v, true));
+		//LOG(AsJSON(v, true));
 		ValueArray titles = v("response-short")("titles");
 		ValueArray input_words = args.params("classified_sentences");
 		PROCESS_ASSERT(!titles.IsEmpty());
@@ -1179,15 +1252,15 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	#define TYPECAST(idx, str, c) typeclasses.Add(str);
 	TYPECAST_LIST
 	#undef TYPECAST
-
-	TODO // resolve context before this
-	#if 0
-	PROCESS_ASSERT(src.ctx.content.labels.GetCount());
 	
-	for(int i = 0; i < src.ctx.content.labels.GetCount(); i++) {
-		const auto& it = src.ctx.content.labels[i];
+	ASSERT(ctxtype.value);
+	ContextData& ctx = src.ctxs.Get(ctxtype);
+	PROCESS_ASSERT(ctx.contents.GetCount() > 0);
+	PROCESS_ASSERT(ctx.part_names.GetCount() > 0);
+	
+	for(const auto& it : ctx.contents) {
 		ValueArray arr;
-		for(int j = 0; j < 3; j++)
+		for(int j = 0; j < ctx.part_names.GetCount(); j++)
 			arr.Add(it.parts[j]);
 		contents.Add(arr);
 	}
@@ -1318,7 +1391,6 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	else
 		TODO;
 	m.Get(args, cb);
-	#endif
 }
 
 void ScriptTextProcess::OnPhraseColors(String res) {

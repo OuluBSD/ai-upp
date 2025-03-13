@@ -1457,6 +1457,8 @@ void PhrasePartAnalysis2::DataElement() {
 	auto& src = *p.srctxt;
 	
 	// Set typeclasses
+	if (src.ctxs.IsEmpty())
+		return;
 	auto& ctx = src.ctxs[0];
 	const auto& tc = ctx.typeclasses;
 	typecasts.Set(0, 0, "All");

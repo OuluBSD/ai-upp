@@ -531,4 +531,41 @@ ContextType ContextType::Storyboard() {
 	return t;
 }
 
+ContextType ContextType::GetFromString(const String& context_str) {
+	if (context_str == "song" || context_str == "lyrical")
+		return ContextType::Lyrical();
+	else if (context_str == "twitter")
+		return ContextType::PublicShortMessage();
+	else if (context_str == "blog")
+		return ContextType::PersonalBlog();
+	else if (context_str == "dialog")
+		return ContextType::Dialog();
+	else if (context_str == "storyboard")
+		return ContextType::Storyboard();
+	else
+		return ContextType();
+}
+
+String ContextType::GetName(const ContextType& t) {
+	if (t == ContextType::Lyrical())
+		return "lyrical";
+	if (t == ContextType::PublicShortMessage())
+		return "twitter";
+	if (t == ContextType::PersonalBlog())
+		return "blog";
+	if (t == ContextType::Dialog())
+		return "dialog";
+	if (t == ContextType::Storyboard())
+		return "storyboard";
+	
+	return "unnamed";
+}
+
+String ContextType::GetBitName(int i) {
+	#define CTX(idx, e, n, str) if (i == idx) return #n;
+	CONTEXTLIST
+	#undef CTX
+	return String();
+}
+
 END_UPP_NAMESPACE

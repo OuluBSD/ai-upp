@@ -299,8 +299,8 @@ VectorMap<int,int> SrcTextData::GetSortedElements() {
 				if (sub.el_i >= 0)
 					vmap.GetAdd(sub.el_i,0)++;
 				for(const auto& ssub : sub.sub) {
-					if (sub.el_i >= 0)
-						vmap.GetAdd(sub.el_i,0)++;
+					if (ssub.el_i >= 0)
+						vmap.GetAdd(ssub.el_i,0)++;
 				}
 			}
 		}

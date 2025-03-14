@@ -59,6 +59,9 @@ void ScriptTextProcess::DoPhase()
 	else if(IsPhase(PHASE_ANALYZE_ELEMENTS)) {
 		AnalyzeElements();
 	}
+	else if(IsPhase(PHASE_TOKENS_TO_LANGUAGES)) {
+		TokensToLanguages();
+	}
 	else if(IsPhase(PHASE_TOKENS_TO_WORDS)) {
 		TokensToWords();
 	}
@@ -113,6 +116,9 @@ void ScriptTextProcess::DoPhase()
 		NextPhase();
 	}
 	else if(IsPhase(PHASE_TEXT_KEYPOINT_CLUSTERS)) {
+		NextPhase();
+	}
+	else if(IsPhase(PHASE_TEXT_OPPOSITES)) {
 		NextPhase();
 	}
 	
@@ -674,11 +680,11 @@ void ScriptTextProcess::AnalyzeElements()
 			for(int j = 0; j < p.sub.GetCount(); j++) {
 				auto& s = p.sub[j];
 				for(int k = 0; k < s.sub.GetCount(); k++) {
-					auto& ss = s.sub[k];
+					auto& ssub = s.sub[k];
 					String val = arr1[pos++].ToString();
 					if(!val.IsEmpty()) {
 						int el_i = src.element_keys.FindAdd(val);
-						ss.el_i = el_i;
+						ssub.el_i = el_i;
 					}
 				}
 			}
@@ -706,6 +712,104 @@ void ScriptTextProcess::CountWords()
 	}
 	
 	NextPhase();
+}
+
+void ScriptTextProcess::TokensToLanguages()
+{
+	PROCESS_ASSERT(p.srctxt);
+	auto& src = *p.srctxt;
+	
+	args.params = ValueMap();
+	
+	if(batch == 0 && sub_batch == 0) {
+		iter = 0;
+		total = 0;
+		tokens_to_languages.Clear();
+	}
+
+	int end = src.token_texts.GetCount();
+	if (iter >= end) {
+		NextPhase();
+		return;
+	}
+	
+	ValueArray words;
+	ValueArray text_idx;
+	Index<String> word_idx;
+	while (iter < end) {
+		int tt_i = iter++;
+		const auto& tt = src.token_texts[tt_i];
+		if (tt.words.GetCount() > 0) {
+			ASSERT(tt.words.GetCount() == tt.tokens.GetCount());
+			continue;
+		}
+		for (int tk_i : tt.tokens) {
+			String s = src.tokens.GetKey(tk_i);
+			if (s.GetCount() == 1 && IsPunct(s[0]))
+				continue;
+			word_idx.FindAdd(s);
+		}
+		text_idx.Add(tt_i);
+		if (text_idx.GetCount() >= tokentexts_per_action_task)
+			break;
+		if (word_idx.GetCount() >= words_per_action_task)
+			break;
+	}
+	for (auto s : word_idx)
+		words.Add(s);
+	args.params("words") = words;
+	args.params("text_idx") = text_idx;
+	
+	args.fn = FN_TOKENS_TO_LANGUAGES;
+	SetWaiting(true);
+	TaskMgr& m = AiTaskManager();
+	m.Get(args, [this](String result) {
+		PROCESS_ASSERT(p.srctxt);
+		auto& src = *p.srctxt;
+		TaskArgs& args = this->args;
+		
+		Value v = ParseJSON(result, false);
+		if (v.IsError()) {
+			SetError(v.ToString());
+			SetNotRunning();
+			return;
+		}
+		//LOG(result);
+		//LOG(AsJSON(v, true));
+		ValueMap response = v("response");
+		VectorMap<String,String> word_to_lang;
+		for(int i = 0; i < response.GetCount(); i++) {
+			String key = ToLower(response.GetKey(i).ToString());
+			if (key.Left(1) == "_") continue;
+			ValueArray arr = response.GetValue(i);
+			if (arr.IsEmpty()) continue;
+			for(int j = 0; j < arr.GetCount(); j++)
+				word_to_lang.Add(ToLower(arr[j].ToString()), key);
+		}
+		ValueArray text_idx = args.params("text_idx");
+		for(int i = 0; i < text_idx.GetCount(); i++) {
+			int tt_i = text_idx[i];
+			auto& tt = src.token_texts[tt_i];
+			for(int j = 0; j < tt.tokens.GetCount(); j++) {
+				int tk_i = tt.tokens[j];
+				String s = ToLower(src.tokens.GetKey(tk_i));
+				String lng;
+				if (s.GetCount() == 1 && IsPunct(s[0]))
+					lng = "punctuation";
+				else {
+					int k = word_to_lang.Find(s);
+					PROCESS_ASSERT_(k >= 0, "Can't find the word: " + s);
+					lng = word_to_lang[k];
+				}
+				int lng_i = -1;
+				src.langwords.GetAddPos(lng, lng_i);
+				this->tokens_to_languages.Add(tk_i, lng_i);
+			}
+		}
+		
+		SetWaiting(false);
+		NextBatch();
+	});
 }
 
 void ScriptTextProcess::TokensToWords()
@@ -766,39 +870,29 @@ void ScriptTextProcess::TokensToWords()
 			SetNotRunning();
 			return;
 		}
-		ValueArray output_langs = v("response-short")("unique languages");
-		ValueArray output_classes = v("response-short")("unique word classes");
-		ValueArray output_words = v("response-short")("unique words");
-		ValueArray output_texts = v("response-short")("response texts");
+		ValueArray output = v("response")("words_and_word_classes");
 		ValueArray input_texts = args.params("texts");
 		ValueArray text_idx = args.params("text_idx");
-		LOG(AsJSON(v, true));
-		PROCESS_ASSERT_CMP(output_texts.GetCount(), input_texts.GetCount());
+		//LOG(AsJSON(v, true));
+		PROCESS_ASSERT_CMP(output.GetCount(), input_texts.GetCount());
 		ASSERT(text_idx.GetCount() == input_texts.GetCount());
 		
 		
 		for(int i = 0; i < text_idx.GetCount(); i++) {
 			int tt_i = text_idx[i];
 			auto& tt = src.token_texts[tt_i];
-			ValueArray text_vals = output_texts[i];
+			ValueArray text_vals = output[i];
 			Vector<int> w_is;
+			PROCESS_ASSERT_CMP(text_vals.GetCount(), tt.tokens.GetCount());
 			for(int j = 0; j < text_vals.GetCount(); j++) {
-				int wrd_int = text_vals[j];
-				if (j == tt.tokens.GetCount() && wrd_int >= output_words.GetCount())
-					break;
-				PROCESS_ASSERT(wrd_int >= 0 && wrd_int < output_words.GetCount());
-				ValueArray wrd3 = output_words[wrd_int];
-				PROCESS_ASSERT(wrd3.GetCount() == 3);
-				int lng_int = wrd3[0];
-				int cls_int = wrd3[2];
-				PROCESS_ASSERT(lng_int >= 0 && lng_int < output_langs.GetCount());
-				PROCESS_ASSERT(cls_int >= 0 && cls_int < output_classes.GetCount());
-				String lng = ToLower(output_langs[lng_int].ToString());
-				String wrd = ToLower(wrd3[1].ToString());
-				String cls = ToLower(output_classes[cls_int].ToString());
+				int tt_i = tt.tokens[j];
+				ValueArray wrd2 = text_vals[j];
+				int lng_i = this->tokens_to_languages.Get(tt_i);
+				String wrd = ToLower(wrd2[0].ToString());
+				String cls = ToLower(wrd2[1].ToString());
 				wrd = ToLower(wrd.ToWString()).ToString();
 				int wc_i = src.word_classes.FindAdd(cls);
-				auto& langwords = src.langwords.GetAdd(lng);
+				auto& langwords = src.langwords[lng_i];
 				hash_t wrd_hash = wrd.GetHashValue();
 				auto& langword_classes = langwords.GetAdd(wrd_hash);
 				int& wrd_i = langword_classes.GetAdd(wc_i,-1);
@@ -807,6 +901,8 @@ void ScriptTextProcess::TokensToWords()
 					WordData& wd = src.words_.Add();
 					wd.text = wrd;
 					wd.word_class = wc_i;
+					wd.lang = lng_i;
+					ASSERT(lng_i >= 0 && lng_i < 0xFF);
 				}
 				w_is << wrd_i;
 			}
@@ -1231,6 +1327,7 @@ void ScriptTextProcess::VirtualPhraseStructs()
 			pp.words <<= w_is;
 			pp.tt_i = i;
 			pp.virtual_phrase_part = src.virtual_phrase_parts.Find(wc_h);
+			pp.ctx = this->ctxtype.value;
 		}
 	}
 
@@ -1358,7 +1455,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 			iter++;
 		}
 	}
-
+	
 	for(int i = begin; i < end && i < tmp_iters.GetCount(); i++) {
 		int idx = tmp_iters[i];
 		PhrasePart& pp = src.phrase_parts[idx];
@@ -1367,13 +1464,13 @@ void ScriptTextProcess::PhrasePartAnalysis()
 		tmp_pp_ptrs << &pp;
 		tmp << idx;
 	}
-
-	if(phrases.IsEmpty()) {
+	
+	if (phrases.IsEmpty()) {
 		NextPhase();
 		return;
 	}
-
-	if(phase == PHASE_ELEMENT) {
+	
+	if (phase == PHASE_ELEMENT) {
 		PROCESS_ASSERT(vmap.GetCount());
 		int max_elements = 30;
 		for(int i = 0; i < vmap.GetCount(); i++) {
@@ -1386,30 +1483,28 @@ void ScriptTextProcess::PhrasePartAnalysis()
 				break;
 		}
 	}
-
+	
 	args.params("phrases") = phrases;
 	args.params("elements") = elements;
 	args.params("typeclasses") = typeclasses;
 	args.params("contents") = contents;
-
-	Panic("TODO add params to prompt");
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
 	Event<String> cb;
-	if(args.fn == PHASE_ELEMENT)
+	if(args.fn == FN_CLASSIFY_PHRASE_ELEMENTS)
 		cb = THISBACK(OnPhraseElement);
-	else if(args.fn == PHASE_COLOR)
+	else if(args.fn == FN_CLASSIFY_PHRASE_COLOR)
 		cb =THISBACK(OnPhraseColors);
-	else if(args.fn == PHASE_ATTR)
+	else if(args.fn == FN_CLASSIFY_PHRASE_ATTR)
 		cb =THISBACK(OnPhraseAttrs);
-	else if(args.fn == PHASE_ACTIONS)
+	else if(args.fn == FN_CLASSIFY_PHRASE_ACTIONS)
 		cb =THISBACK(OnPhraseActions);
-	else if(args.fn == PHASE_SCORES)
+	else if(args.fn == FN_CLASSIFY_PHRASE_SCORES)
 		cb =THISBACK(OnPhraseScores);
-	else if(args.fn == PHASE_TYPECLASS)
+	else if(args.fn == FN_CLASSIFY_PHRASE_TYPECLASS)
 		cb =THISBACK(OnPhraseTypeclasses);
-	else if(args.fn == PHASE_CONTENT)
+	else if(args.fn == FN_CLASSIFY_PHRASE_CONTENT)
 		cb =THISBACK(OnPhraseContrast);
 	else
 		TODO;
@@ -1423,7 +1518,7 @@ void ScriptTextProcess::OnPhraseColors(String res) {
 	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("metaphorical RGB colors");
+	ValueArray output = v("response-short")("colors");
 	ValueArray input = args.params("phrases");
 	int c = min(output.GetCount(), input.GetCount());
 
@@ -1434,16 +1529,19 @@ void ScriptTextProcess::OnPhraseColors(String res) {
 	
 	for(int i = 0; i < c; i++) {
 		PhrasePart& pp = *tmp_pp_ptrs[i];
-		ValueArray clr_arr = output[i];
-		int R = clr_arr[0];
-		int G = clr_arr[1];
-		int B = clr_arr[2];
-		Color clr(R,G,B);
-		
-		if (clr == black)
-			clr = non_black;
-		
-		pp.clr = clr;
+		String clr_str = output[i];
+		Vector<String> parts = Split(clr_str.Mid(4, clr_str.GetCount()-5), ",");
+		if (parts.GetCount() == 3) {
+			int R = ScanInt(TrimLeft(parts[0]));
+			int G = ScanInt(TrimLeft(parts[1]));
+			int B = ScanInt(TrimLeft(parts[2]));
+			Color clr(R,G,B);
+			
+			if (clr == black)
+				clr = non_black;
+			
+			pp.clr = clr;
+		}
 	}
 	
 	
@@ -1465,9 +1563,12 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 	PROCESS_ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
+	// {"response-short":{"attributes":["2+","17+","2+","17+","0+","17+","1+","17+"]}}
+	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("group_and_value_matches");
+	ValueArray output = v("response-short")("attribute texts");
+	if (output.IsEmpty()) output = v("attribute texts");
 	ValueArray input = args.params("phrases");
 	int c = min(output.GetCount(), input.GetCount());
 	
@@ -1479,14 +1580,25 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 		// This shouldn't happen
 		if (pp.attr >= 0)
 			continue;
-		ValueArray attr = output[i];
-		PROCESS_ASSERT_CMP(attr.GetCount(), 2);
-		if (attr.GetCount() < 2)
-			continue;
+		
+		String attr_str = output[i];
+		PROCESS_ASSERT(!attr_str.IsEmpty());
 		
 		AttrHeader ah;
-		ah.group = ToLower(attr[0].ToString());
-		ah.value = ToLower(attr[1].ToString());
+		if (attr_str.Find(":") < 0) {
+			int len = attr_str.GetCount();
+			char polarity = attr_str[len-1];
+			int attr_i = ScanInt(attr_str);
+			PROCESS_ASSERT(attr_i >= 0);
+			#define ATTR_ITEM(a,b,c,d) if (attr_i == a) {ah.group = ToLower(b); ah.value = ToLower(polarity == '+' ? c : d);}
+			ATTR_LIST
+			#undef ATTR_ITEM
+		}
+		else {
+			Vector<String> attr = Split(attr_str, ":");
+			ah.group = ToLower(TrimBoth(attr[0]));
+			ah.value = ToLower(TrimBoth(attr[1]));
+		}
 		MapGetAdd(src.attrs, ah, pp.attr);
 	}
 	

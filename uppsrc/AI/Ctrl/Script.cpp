@@ -18,7 +18,6 @@ void ScriptTextCtrl::SubTab::PageView(int page) {
 	#endif
 	CREATE(tk, "Analyzed")
 	CREATE(el, "Elements")
-	CREATE(awp, "Tokens")
 	CREATE(vp, "Ambiguous Word Pairs")
 	CREATE(vpp, "Virtual Phrases")
 	CREATE(vps, "Virtual Phrase Structs")
@@ -69,7 +68,6 @@ void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
 	#endif
 	CREATE(tk, "Analyzed", 200)
 	CREATE(el, "Elements", 200)
-	CREATE(awp, "Tokens", 200)
 	CREATE(vp, "Ambiguous Word Pairs", 0)
 	CREATE(vpp, "Virtual Phrases", 0)
 	CREATE(vps, "Virtual Phrase Structs", 200)

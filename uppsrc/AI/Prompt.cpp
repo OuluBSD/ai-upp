@@ -373,6 +373,11 @@ JsonPrompt::Message& JsonPrompt::AddUser(String json) {
 	return Add(json, USER);
 }
 
+JsonPrompt& JsonPrompt::UseLegacyCompletion(bool b) {
+	force_completion = b;
+	return *this;
+}
+	
 JsonPrompt::Message& JsonPrompt::Message::Set(String vfs_path, Value value) {
 	return Set(StrVfs(vfs_path), value);
 }

@@ -283,6 +283,7 @@ public:
 	String GetOutputHash() const;
 	bool HasAnyInput() const;
 	bool HasJsonInput() const;
+	bool ForceCompletion() const;
 	String MakeInputString() const;
 
 	void CreateInput_Translate();

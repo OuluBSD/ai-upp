@@ -230,6 +230,7 @@ struct JsonPrompt {
 	};
 	
 	Array<Message> messages;
+	bool force_completion = false;
 	
 	JsonPrompt();
 	void Clear();
@@ -238,6 +239,7 @@ struct JsonPrompt {
 	Message& AddSystem(String msg);
 	Message& AddAssist(String json);
 	Message& AddUser(String json);
+	JsonPrompt& UseLegacyCompletion(bool b=true);
 	bool IsEmpty() const;
 	String AsJSON(bool pretty) const;
 };

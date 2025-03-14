@@ -657,8 +657,42 @@ void AiTask::CreateInput_Default()
 			.Set("/query/script/text", args.params("text"));
 		input.response_length = 2048;
 	}
+	else if(args.fn == FN_TOKENS_TO_LANGUAGES) {
+		json_input.AddDefaultSystem();
+		json_input.AddAssist(R"ML(
+		{
+			"query": {
+				"script": {
+					"__comment__": "get for languages for following words",
+					"words": [
+						"apple","is","red",
+						"were","all","humans",
+						"omena","on","red"
+					]
+				},
+				"__comment__": "analyze words and give a array of words per languages. All input words must belong to some language array. Use only valid names for languages, e.g. 'english' but no 'extra' nor 'words'"
+			},
+			"response": {
+				"__comment__": "no unrelated languages and word lists, only words that were in the query",
+				"english": ["apple","is","red","were","all","humans"],
+				"finnish":["omena","on"]
+			}
+		}
+		)ML");
+		json_input.AddUser(R"ML(
+		{
+		    "query": {
+		        "script": {
+		            "__comment__": "get response for this query: related languages and word lists",
+		            "words": []
+		        }
+		    }
+		})ML")
+			.Set("/query/script/words", args.params("words"));
+		input.response_length = 2048;
+	}
 	else if(args.fn == FN_TOKENS_TO_WORDS) {
-		json_input.AddSystem("You are a helpful assistant...");
+		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
 		{
 			"query": {
@@ -692,44 +726,21 @@ void AiTask::CreateInput_Default()
 						"Comparative adjectives"
 					]
 				},
-				"incomplete list of possible languages": [
-					"english","finnish"
-				],
 				"script": {
-					"texts": [
-						["apple","is","red"],
-						["were","all","humans"],
+					"words": [
+						["apple","is","red",","],
+						["were","all","humans","."],
 						["omena","on","red"]
 					],
 					"__comment__": "Analyze the words and rewrite the words and give the word class"
 				}
 			},
-			"response-long": {
-				"__comment__": "the next list must have the same number of values in array that was in query.script.texts list",
-				"languages & words & word classes": [
-					[["english","apple","noun"], ["english","is","verb"], ["english","red","adjective"]],
-					[["english","we're","verb"], ["english","all","determiner"], ["english","humans", "noun"]],
-					[["finnish","omena","noun"], ["finnish","on","verb"], ["english","red","adjective"]]
-				]
-			},
-			"response-short": {
-				"__comment__": "the response-short must have 4 fields: unique languages, unique word classes, unique words, response texts",
-				"__comment__1": "index of unique values of languages",
-				"unique languages": ["english","finnish"],
-				"__comment__2": "index of unique values of word classes",
-				"unique word classes": ["noun","verb","adjective","determiner"],
-				"__comment__3": "the response format of words is: [[index-of-language, \"string-word\", index-of-word-class]]",
-				"unique words": [
-					[0,"apple",0], [0,"is",1], [0,"red",2],
-					[0,"we're",1], [0,"all",3], [0,"humans",0],
-					[1,"omena",0,1], [1,"on",1]
-				],
-				"__comment__4": "the response format of texts is: [[index-of-words]]",
-				"__comment__5": "the next list must have the same number of values in array that was in query.script.texts list",
-				"response texts": [
-					[0, 1, 2],
-					[3, 4, 5],
-					[6, 7, 2]
+			"response": {
+				"__comment__": "the number of values must be the same as in query.script.words",
+				"words_and_word_classes": [
+					[["apple","noun"], ["is","verb"], ["red","adjective"], [",","punctuation"]],
+					[["we're","verb"], ["all","determiner"], ["humans", "noun"], [".","punctuation"]],
+					[["omena","noun"], ["on","verb"], ["red","adjective"]]
 				]
 			}
 		}
@@ -738,12 +749,13 @@ void AiTask::CreateInput_Default()
 		{
 		    "query": {
 		        "script": {
-		            "texts": [],
-		            "__comment__": "get response-short"
+		            "words": [],
+		            "__comment__": "get response with response.words_and_word_classes"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/texts", args.params("texts"));
+			.Set("/query/script/words", args.params("texts"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}
 	else if(args.fn == FN_WORD_CLASSES) {
@@ -1080,30 +1092,28 @@ void AiTask::CreateInput_Default()
 	
 	else if (args.fn == FN_CLASSIFY_PHRASE_ELEMENTS) {
 		json_input.AddDefaultSystem();
-		json_input.AddAssist(R"ML(
+		auto& in = json_input.AddAssist(R"ML(
 		{
 		    "query": {
-		        "__comment__": {
-		            "incomplete list of elements to define a part of a script": [
-		                "exposition",
-		                "climax",
-		                "call to action",
-		                "high stakes obstacle",
-		                "rock bottom",
-		                "rising action",
-		                "falling action",
-		                "conclusion",
-		                "happy ending",
-		                "tragedy",
-		                "bittersweet ending",
-		                "suspense",
-		                "crisis",
-		                "resolution",
-		                "intensity",
-		                "conflict",
-		                "iteration"
-		            ]
-		        },
+	            "incomplete list of elements": [
+	                "exposition",
+	                "climax",
+	                "call to action",
+	                "high stakes obstacle",
+	                "rock bottom",
+	                "rising action",
+	                "falling action",
+	                "conclusion",
+	                "happy ending",
+	                "tragedy",
+	                "bittersweet ending",
+	                "suspense",
+	                "crisis",
+	                "resolution",
+	                "intensity",
+	                "conflict",
+	                "iteration"
+	            ],
 		        "script": {
 		            "phrases": [
 		                "everyone of us loves her",
@@ -1131,7 +1141,7 @@ void AiTask::CreateInput_Default()
 		    },
 		    "response-short": {
 		        "elements": [
-		            exposition"
+		            "exposition",
 		            "high stakes obstacle",
 		            "call to action"
 		        ]
@@ -1147,6 +1157,11 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		
+		ValueArray elements = args.params("elements");
+		if (elements.GetCount() >= 10)
+			in.Set("/query/script/incomplete list of elements", args.params("elements"));
+		
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_COLOR) {
@@ -1160,22 +1175,22 @@ void AiTask::CreateInput_Default()
 						"they need to be silenced",
 						"you need help and we can contribute"
 					],
-		            "__comment__": "Identify sentence metaphorical colors"
+		            "__comment__": "write metaphorical colors for phrases"
 				}
 		    },
 		    "response-full": {
-		         "__comment__": "Syntax translation: RGB(128,255,0) <-> [128,255,0]",
-		        "phrases & metaphorical RGB colors": [
-					["everyone of us loves her", [153, 255, 153]],
-					["they need to be silenced",[153, 0, 0]],
-					["you need help and we can contribute", [255, 153, 204]]
+				"__comment__": "the number of results must be the same as in query.script.phrases",
+		        "results": [
+					{"phrase":"everyone of us loves her", "color":"RGB(153,255,153)"},
+					{"phrase":"they need to be silenced","color":"RGB(153,0,0)"},
+					{"phrase":"you need help and we can contribute", "color":"RGB(255,153,204)"}
 				]
 			},
 		    "response-short": {
-		        "metaphorical RGB colors": [
-					[153, 255, 153],
-					[153, 0, 0],
-					[255, 153, 204]
+		        "colors": [
+					"RGB(153,255,153)",
+					"RGB(153,0,0)",
+					"RGB(255,153,204)"
 		        ]
 		    }
 		})ML");
@@ -1189,22 +1204,22 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ATTR) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist((String)R"ML({
 		    "query": {
+				"id": 1,
 		        "script": {
 		            "__comment__": {
-						"info": "List of attribute groups and their opposite polarised attribute values",
-						"format": ["group", "positive extreme", "negative extreme"],
-						"list": [)ML"
-						#define ATTR_ITEM(a,b,c,d) "[\"" b "\",\"" c "\",\"" d "\"],"
+						"info": "incomplete list of attribute groups and their opposite polarised attribute values",
+						"attributes": {)ML"
+						#define ATTR_ITEM(a,b,c,d) "\"" + IntStr(a) + "\":{\"name\":\"" b "\",\"+\":\"" c "\",\"-\":\"" d "\"},"
 						ATTR_LIST
 						#undef ATTR_ITEM
-						"[]"
-						R"ML(]
+						R"ML("":""}
 					},
 		            "phrases": [
 						"everyone of us loves her",
@@ -1214,35 +1229,39 @@ void AiTask::CreateInput_Default()
 				}
 			},
 		    "response-full": {
-				"group_and_value_matches": [
+				"id": 1,
+				"phrases & attributes": [
 					{
 						"text": "everyone of us loves her",
-						"attribute": "belief communities",
-						"value": "acceptance"
+						"attribute": "4+",
+						"attribute text": "belief communities: secular society"
 					},
 					{
 						"text": "they need to be silenced",
-						"attribute": "theological opposites",
-						"value": "authoritarian"
+						"attribute": "26+",
+						"attribute text": "social: authoritarian"
 					},
 					{
 						"text": "you need help and we can contribute",
-						"attribute": "faith and reason seekers",
-						"value": "rational thinker"
+						"attribute": "0-",
+						"attribute text": "faith and reason seekers: rational thinker"
 					}
 				]
 			},
 			"response-short": {
-				"group_and_value_matches": [
-					["belief communities", "acceptance"],
-					["theological opposites", "authoritarian"],
-					["attribute", "rational thinker"]
+				"id": 1,
+				"__comment__": "attribute texts can be outside of the given incomplete list, but they must be in the format 'group: polarity' (so they must have exactly one ':' character)",
+				"attribute texts": [
+					"belief communities: secular society",
+					"social: authoritarian",
+					"faith and reason seekers: rational thinker"
 				]
 			}
 		})ML");
-		json_input.AddUser(R"ML(
+				json_input.AddUser(R"ML(
 		{
 		    "query": {
+				"id": 2,
 		        "script": {
 		            "phrases": [],
 		            "__comment__": "get response-short"
@@ -1250,6 +1269,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		SetHighQuality();
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTIONS) {
@@ -1470,6 +1490,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_SCORES) {
@@ -1529,6 +1550,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_TYPECLASS) {
@@ -1576,6 +1598,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_CONTENT) {
@@ -1630,6 +1653,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_ACTION_COLOR) {
@@ -1695,6 +1719,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/actions", args.params("actions"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTION_ATTR) {
@@ -1705,13 +1730,11 @@ void AiTask::CreateInput_Default()
 		        "script": {
 		            "__comment__": {
 						"info": "List of attribute groups and their opposite polarised attribute values",
-						"format": ["group", "positive extreme", "negative extreme"],
-						"list": [)ML"
-						#define ATTR_ITEM(a,b,c,d) "[\"" b "\",\"" c "\",\"" d "\"],"
+						"attributes": {)ML"
+						#define ATTR_ITEM(a,b,c,d) "\"" #a "\":{\"name\":\"" b "\",\"+\":\"" c "\",\"-\":\"" d "\"},"
 						ATTR_LIST
 						#undef ATTR_ITEM
-						"[]"
-						R"ML(],
+						R"ML("":""},
 						"examples of phrases and attributes": [
 							["I won't blindly follow the crowd", ["group faith", "individual spirituality"]],
 							["feeling blue and green with envy", ["sexual preference", "kinky"]],
@@ -1766,6 +1789,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/actions", args.params("actions"));
+		json_input.UseLegacyCompletion();
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_SORT_ATTRS) {

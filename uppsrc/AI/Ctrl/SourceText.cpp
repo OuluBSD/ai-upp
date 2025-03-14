@@ -227,8 +227,9 @@ void TokensPage::Data() {
 ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 	Add(tabs.SizePos());
 	#define LIST \
-		ITEM(tokens) ITEM(word_classes) ITEM(words) ITEM(ambiguous_word_pairs) \
-		ITEM(token_texts) ITEM(virtual_phrases) ITEM(virtual_phrase_parts) ITEM(virtual_phrase_structs) \
+		ITEM(tokens) ITEM(token_texts) \
+		ITEM(word_classes) ITEM(words) \
+		ITEM(virtual_phrases) ITEM(virtual_phrase_parts) ITEM(virtual_phrase_structs) \
 		ITEM(phrase_parts) ITEM(struct_part_types) ITEM(struct_types) ITEM(simple_attrs) \
 		ITEM(element_keys) ITEM(attrs) ITEM(actions) \
 		ITEM(wordnets) ITEM(action_phrases) ITEM(trans) ITEM(parallel)
@@ -253,18 +254,12 @@ ScriptTextDebuggerPage::ScriptTextDebuggerPage(DatasetProvider& o) : o(o) {
 	words.AddColumn("Clr");
 	words.AddColumn("Classes");
 	
-	ambiguous_word_pairs.AddColumn("#");
-	ambiguous_word_pairs.AddColumn("Hash");
-	ambiguous_word_pairs.AddColumn("From");
-	ambiguous_word_pairs.AddColumn("From Type");
-	ambiguous_word_pairs.AddColumn("To");
-	ambiguous_word_pairs.AddColumn("To Type");
-	
 	token_texts.AddColumn("#");
 	token_texts.AddColumn("Hash");
 	token_texts.AddColumn("Tokens");
+	token_texts.AddColumn("Words");
 	token_texts.AddColumn("Virtual phrase");
-	token_texts.ColumnWidths("1 2 8 3");
+	token_texts.ColumnWidths("1 2 8 4 3");
 	
 	virtual_phrases.AddColumn("#");
 	virtual_phrases.AddColumn("Hash");
@@ -366,19 +361,25 @@ void ScriptTextDebuggerPage::Data() {
 		for(auto it : src.words_) {
 			words.Set(i, 0, i);
 			words.Set(i, 1, it.text);
-			words.Set(i, 2, Value());
+			if (it.lang != 0xFF && it.lang < src.langwords.GetCount())
+				words.Set(i, 2, src.langwords.GetKey(it.lang));
+			else if (it.lang != 0xFF)
+				words.Set(i, 2, "<error>");
+			else
+				words.Set(i, 2, Value());
 			words.Set(i, 3, it.spelling);
 			words.Set(i, 4, it.phonetic);
 			words.Set(i, 5, it.count);
-			words.Set(i, 6, AttrText("").NormalPaper(it.clr).Paper(it.clr));
+			words.Set(i, 6, AttrText(" ").NormalPaper(it.clr).Paper(it.clr));
 			String s;
 			if (it.word_class >= 0 && it.word_class < src.word_classes.GetCount())
 				s = src.word_classes[it.word_class];
 			words.Set(i, 7, s);
 			i++;
 		}
-		words.SetCount(src.words_.GetCount());
+		words.SetCount(i);
 	}
+	#if 0
 	if (tab == PAGE_ambiguous_word_pairs) {
 		int i = 0;
 		for(auto it : ~src.ambiguous_word_pairs) {
@@ -408,6 +409,7 @@ void ScriptTextDebuggerPage::Data() {
 		}
 		ambiguous_word_pairs.SetCount(src.ambiguous_word_pairs.GetCount());
 	}
+	#endif
 	if (tab == PAGE_token_texts) {
 		int i = 0;
 		for(auto it : ~src.token_texts) {
@@ -423,13 +425,23 @@ void ScriptTextDebuggerPage::Data() {
 			}
 			token_texts.Set(i, 2, s);
 			
+			s.Clear();
+			for (int wrd_i : it.value.words) {
+				if (!s.IsEmpty()) s << " ";
+				if (wrd_i >= 0 && wrd_i < src.words_.GetCount())
+					s << src.words_[wrd_i].text;
+				else
+					s << "<" << wrd_i << ">";
+			}
+			token_texts.Set(i, 3, s);
+			
 			int vp_i = it.value.virtual_phrase;
 			if (vp_i >= 0 && vp_i < src.virtual_phrases.GetCount())
-				token_texts.Set(i, 3, HexStr64(src.virtual_phrases.GetKey(vp_i)));
+				token_texts.Set(i, 4, HexStr64(src.virtual_phrases.GetKey(vp_i)));
 			else if (vp_i >= 0)
-				token_texts.Set(i, 3, "Error: " + IntStr(vp_i));
+				token_texts.Set(i, 4, "Error: " + IntStr(vp_i));
 			else
-				token_texts.Set(i, 3, Value());
+				token_texts.Set(i, 4, Value());
 			i++;
 		}
 		token_texts.SetCount(src.token_texts.GetCount());
@@ -531,7 +543,12 @@ void ScriptTextDebuggerPage::Data() {
 			phrase_parts.Set(i, 3, it.value.tt_i);
 			phrase_parts.Set(i, 4, it.value.virtual_phrase_part);
 			phrase_parts.Set(i, 5, it.value.attr);
-			phrase_parts.Set(i, 6, it.value.el_i);
+			
+			if (it.value.el_i >= 0 && it.value.el_i < src.element_keys.GetCount())
+				phrase_parts.Set(i, 6, src.element_keys[it.value.el_i]);
+			else
+				phrase_parts.Set(i, 6, Value());
+			
 			phrase_parts.Set(i, 7, AttrText("").NormalPaper(it.value.clr).Paper(it.value.clr));
 			
 			s = "";
@@ -693,63 +710,6 @@ void TextElements::Data() {
 
 
 
-
-
-
-AmbiguousWordPairs::AmbiguousWordPairs(DatasetProvider& o) : o(o) {
-	Add(hsplit.VSizePos(0,30).HSizePos());
-	
-	hsplit.Horz() << texts;
-	hsplit.SetPos(2000);
-	
-	texts.AddColumn(t_("From"));
-	texts.AddColumn(t_("To"));
-	texts.AddColumn(t_("From Type"));
-	texts.AddColumn(t_("To Type"));
-	texts.AddColumn();
-	texts.AddIndex("IDX");
-	texts.ColumnWidths("1 1 1 1 6");
-	texts.WhenBar << [this](Bar& bar){
-		bar.Add("Copy", [this]() {
-			int i = texts.GetCursor();
-			String text = texts.Get(i, 0);
-			WriteClipboardText(text);
-		});
-		bar.Add("Copy virtual text", [this]() {
-			int i = texts.GetCursor();
-			String text = texts.Get(i, 1);
-			WriteClipboardText(text);
-		});
-	};
-	
-}
-
-void AmbiguousWordPairs::Data() {
-	DatasetPtrs p = o.GetDataset();
-	if (!p.srctxt) {
-		texts.Clear();
-		return;
-	}
-	auto& src = *p.srctxt;
-	
-	int row = 0;
-	for(int i = 0; i < src.ambiguous_word_pairs.GetCount(); i++) {
-		const WordPairType& wp = src.ambiguous_word_pairs[i];
-		if (wp.from >= 0 && wp.to >= 0) {
-			const String& from = src.words_[wp.from].text;
-			const String& to = src.words_[wp.to].text;
-			
-			texts.Set(row, 0, from);
-			texts.Set(row, 1, to);
-			texts.Set(row, 2, wp.from_type >= 0 ? src.word_classes[wp.from_type] : String());
-			texts.Set(row, 3, wp.to_type >= 0 ? src.word_classes[wp.to_type] : String());
-			
-			row++;
-		}
-	}
-	texts.SetCount(row);
-	
-}
 
 
 
@@ -2836,7 +2796,6 @@ void SourceTextMergerCtrl::Do(int fn) {
 SourceTextCtrl::SourceTextCtrl() :
 	tk(*this),
 	src(*this),
-	awp(*this),
 	vp(*this),
 	vpp(*this),
 	vps(*this),
@@ -2886,7 +2845,6 @@ void SourceTextCtrl::SetFont(Font fnt) {
 void SourceTextCtrl::SetDataCtrl() {
 	RemoveChild(&src);
 	RemoveChild(&tk);
-	RemoveChild(&awp);
 	RemoveChild(&vp);
 	RemoveChild(&vpp);
 	RemoveChild(&vps);
@@ -2906,20 +2864,19 @@ void SourceTextCtrl::SetDataCtrl() {
 		case 0:
 		case 1: Add(src.SizePos()); break;
 		case 2: Add(tk.SizePos()); break;
-		case 3: Add(awp.SizePos()); break;
-		case 4: Add(vp.SizePos()); break;
-		case 5: Add(vpp.SizePos()); break;
-		case 6: Add(vps.SizePos()); break;
-		case 7: Add(vpa.SizePos()); break;
-		case 8: Add(vpa2.SizePos()); break;
-		case 9: Add(aap.SizePos()); break;
-		case 10: Add(att.SizePos()); break;
-		case 11: Add(diag.SizePos()); break;
-		case 12: Add(wn.SizePos()); break;
-		case 13: Add(pp.SizePos()); break;
-		case 14: Add(apar.SizePos()); break;
-		case 15: Add(atra.SizePos()); break;
-		case 16: Add(merger.SizePos()); break;
+		case 3: Add(vp.SizePos()); break;
+		case 4: Add(vpp.SizePos()); break;
+		case 5: Add(vps.SizePos()); break;
+		case 6: Add(vpa.SizePos()); break;
+		case 7: Add(vpa2.SizePos()); break;
+		case 8: Add(aap.SizePos()); break;
+		case 9: Add(att.SizePos()); break;
+		case 10: Add(diag.SizePos()); break;
+		case 11: Add(wn.SizePos()); break;
+		case 12: Add(pp.SizePos()); break;
+		case 13: Add(apar.SizePos()); break;
+		case 14: Add(atra.SizePos()); break;
+		case 15: Add(merger.SizePos()); break;
 	}
 	Data();
 }
@@ -2930,20 +2887,19 @@ void SourceTextCtrl::Data() {
 		case 0:
 		case 1: src.SetDataType((AuthorDataCtrl::Type)idx); src.Data(); break;
 		case 2: tk.Data(); break;
-		case 3: awp.Data(); break;
-		case 4: vp.Data(); break;
-		case 5: vpp.Data(); break;
-		case 6: vps.Data(); break;
-		case 7: vpa.Data(); break;
-		case 8: vpa2.Data(); break;
-		case 9: aap.Data(); break;
-		case 10: att.Data(); break;
-		case 11: diag.Data(); break;
-		case 12: wn.Data(); break;
-		case 13: pp.Data(); break;
-		case 14: apar.Data(); break;
-		case 15: atra.Data(); break;
-		case 16: merger.Data(); break;
+		case 3: vp.Data(); break;
+		case 4: vpp.Data(); break;
+		case 5: vps.Data(); break;
+		case 6: vpa.Data(); break;
+		case 7: vpa2.Data(); break;
+		case 8: aap.Data(); break;
+		case 9: att.Data(); break;
+		case 10: diag.Data(); break;
+		case 11: wn.Data(); break;
+		case 12: pp.Data(); break;
+		case 13: apar.Data(); break;
+		case 14: atra.Data(); break;
+		case 15: merger.Data(); break;
 	}
 }
 

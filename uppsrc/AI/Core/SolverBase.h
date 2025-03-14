@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 
 #define PROCESS_ASSERT(x)  if (!(x)) {SetError("assert failed: " #x); SetNotRunning(); RLOG("PROCESS ASSERT: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " #x); SetWaiting(0); return;}
+#define PROCESS_ASSERT_(x, str)  if (!(x)) {SetError("assert failed: " + (String)(str) + " (" #x ")"); SetNotRunning(); RLOG("PROCESS ASSERT: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " #x); SetWaiting(0); return;}
 #define PROCESS_ASSERT_CMP(a,b)  if (!(a == b)) {String s = #a " == " #b": " + IntStr(a) + " != " + IntStr(b); SetError("assert failed: " + s); SetNotRunning(); RLOG("ScriptTextProcess: " << __FILE__ << ":" << __LINE__ << ": error: assert failed: " << s); SetWaiting(0); return;}
 
 class SolverBase : public Pte<SolverBase> {

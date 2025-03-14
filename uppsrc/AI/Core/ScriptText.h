@@ -16,6 +16,7 @@ public:
 		PHASE_ANALYZE_PUBLIC_FIGURE,
 		PHASE_ANALYZE_ELEMENTS,
 		// 3
+		PHASE_TOKENS_TO_LANGUAGES,
 		PHASE_TOKENS_TO_WORDS,
 		PHASE_COUNT_WORDS,
 		// 4
@@ -49,6 +50,7 @@ public:
 		PHASE_TEXT_KEYPOINTS,
 		PHASE_TEXT_KEYPOINT_DESCRIPTORS,
 		PHASE_TEXT_KEYPOINT_CLUSTERS,
+		PHASE_TEXT_OPPOSITES,
 		
 		PHASE_COUNT,
 		
@@ -84,6 +86,7 @@ public:
 	Vector<int> tmp, tmp_iters;
 	VectorMap<int,int> vmap;
 	VectorMap<String, VectorMap<String, int>> uniq_acts;
+	VectorMap<int,int> tokens_to_languages;
 	
 	// 1
 	void Tokenize();
@@ -92,6 +95,7 @@ public:
 	void AnalyzePublicFigure();
 	void AnalyzeElements();
 	// 3.0
+	void TokensToLanguages();
 	void TokensToWords();
 	// 3.1
 	void CountWords();

@@ -35,7 +35,7 @@ public:
 class ScriptTextDebuggerPage : public ParentCtrl {
 	DatasetProvider& o;
 	TabCtrl tabs;
-	ArrayCtrl tokens, word_classes, words, ambiguous_word_pairs;
+	ArrayCtrl tokens, word_classes, words;
 	ArrayCtrl token_texts, virtual_phrases, virtual_phrase_parts, virtual_phrase_structs;
 	ArrayCtrl phrase_parts, struct_part_types, struct_types, simple_attrs;
 	ArrayCtrl element_keys, attrs, actions;
@@ -101,19 +101,6 @@ class TokenPhrases : public ParentCtrl {
 public:
 	typedef TokenPhrases CLASSNAME;
 	TokenPhrases(DatasetProvider& o);
-	
-	void Data();
-};
-
-// TODO rename
-class AmbiguousWordPairs : public ParentCtrl {
-	DatasetProvider& o;
-	Splitter vsplit, hsplit;
-	ArrayCtrl texts;
-	
-public:
-	typedef AmbiguousWordPairs CLASSNAME;
-	AmbiguousWordPairs(DatasetProvider& o);
 	
 	void Data();
 };
@@ -355,7 +342,6 @@ class SourceTextCtrl : public ToolAppCtrl {
 	DropList				data_type;
 	AuthorDataCtrl			src;
 	TokensPage				tk;
-	AmbiguousWordPairs		awp;
 	VirtualPhrases			vp;
 	VirtualPhraseParts		vpp;
 	VirtualPhraseStructs	vps;

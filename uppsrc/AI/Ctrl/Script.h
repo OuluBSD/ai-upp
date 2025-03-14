@@ -17,7 +17,6 @@ class ScriptTextCtrl : public ValueVFSComponentCtrl {
 		One<ScriptTextDebuggerPage>	dbg;
 		One<TokensPage>				tk;
 		One<TextElements>			el;
-		One<AmbiguousWordPairs>		awp;
 		One<VirtualPhrases>			vp;
 		One<VirtualPhraseParts>		vpp;
 		One<VirtualPhraseStructs>	vps;

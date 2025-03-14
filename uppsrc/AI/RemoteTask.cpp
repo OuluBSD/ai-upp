@@ -81,6 +81,10 @@ bool AiTask::HasJsonInput() const {
 	return raw_input.IsEmpty() && !json_input.IsEmpty();
 }
 
+bool AiTask::ForceCompletion() const {
+	return json_input.force_completion;
+}
+
 String AiTask::MakeInputString() const {
 	if (raw_input.GetCount())
 		return raw_input;
@@ -480,8 +484,9 @@ bool AiTask::RunOpenAI_Completion()
 			prompt = ToCharset(CHARSET_UTF8, prompt, CHARSET_DEFAULT);
 
 		String txt;
-		bool chat_completion = HasJsonInput() || quality == 1;
-		if (HasJsonInput()) {
+		bool is_chat_json_input = HasJsonInput() && !ForceCompletion();
+		bool chat_completion = is_chat_json_input || quality == 1;
+		if (is_chat_json_input) {
 			txt = R"_({
 			    "model": ")_" + String(quality == 1 ? "gpt-4-turbo" : "gpt-3.5-turbo") + R"_(",
 			    "messages":[)_";

@@ -151,7 +151,7 @@ class Sound:public ASound{
 	StreamCallbackData scallback;
 public:
 	Callback1<StreamCallbackArgs&> WhenAction;
-	Callback1<void *> WhenFinished;
+	Callback1<void*> WhenFinished;
 
 	Sound(){}
 	Sound(const Sound &){}
@@ -211,12 +211,26 @@ public:
 	int index;
 	const char* name;
 	int API;
-	int InputChannels,OutputChannels;
+	int InputChannels, OutputChannels;
 	double LowInputLatency,LowOutputLatency,HighInputLatency,HighOutputLatency;
 	double SampleRate;
+	
 	SoundDevice():index(Null),name("Null"){};
 	SoundDevice(const Nuller&):index(Null),name("Null"){}
 	SoundDevice(int n);
+	SoundDevice(const SoundDevice& sd) {*this = sd;}
+	void operator=(const SoundDevice& sd) {
+		index = sd.index;
+		name = sd.name;
+		API = sd.API;
+		InputChannels = sd.InputChannels;
+		OutputChannels = sd.OutputChannels;
+		LowInputLatency = sd.LowInputLatency;
+		LowOutputLatency = sd.LowOutputLatency;
+		HighInputLatency = sd.HighInputLatency;
+		HighOutputLatency = sd.HighOutputLatency;
+		SampleRate = sd.SampleRate;
+	}
 	bool IsNullInstance()const            {return IsNull(index);}
 	String ToString()const;
 	operator int()const                   {return index;}

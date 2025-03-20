@@ -661,6 +661,7 @@ Stream& Stream::operator/(int& i)            { dword w = 0; if(IsStoring()) w = 
 Stream& Stream::operator/(unsigned int& i)   { dword w = 0; if(IsStoring()) w = i + 1; Pack(w); i = w - 1; return *this; }
 Stream& Stream::operator/(long& i)           { dword w = 0; if(IsStoring()) w = i + 1; Pack(w); i = w - 1; return *this; }
 Stream& Stream::operator/(unsigned long& i)  { dword w = 0; if(IsStoring()) w = i + 1; Pack(w); i = w - 1; return *this; }
+#if CPU_64
 Stream& Stream::operator/(hash_t& i)         {
 	union {
 		qword qw = 0;
@@ -673,6 +674,7 @@ Stream& Stream::operator/(hash_t& i)         {
 	i = qw - 1;
 	return *this;
 }
+#endif
 
 void Stream::Magic(dword magic) {
 	dword a = magic;

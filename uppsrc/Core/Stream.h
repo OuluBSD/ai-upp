@@ -225,7 +225,9 @@ public:
 	Stream&   operator/(unsigned int& i);
 	Stream&   operator/(long& i);
 	Stream&   operator/(unsigned long& i);
+	#if CPU_64
 	Stream&   operator/(hash_t& i);
+	#endif
 	
 	Stream&   Serialize64(long& d)           { uint64 m = d; *this % m; d = (long) m; return *this; }
 	Stream&   Serialize64(unsigned long& d)  { uint64 m = d; *this % m; d = (unsigned long) m; return *this; }

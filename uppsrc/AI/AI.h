@@ -5,9 +5,15 @@
 #include <CtrlLib/CtrlLib.h>
 #include <ide/clang/clang.h>
 #include <ide/Shell/Shell.h>
+#include <Sound/Sound.h>
 
 #define LAYOUTFILE <AI/AI.lay>
 #include <CtrlCore/lay.h>
+
+#define IMAGECLASS AIImages
+#define IMAGEFILE <AI/Images.iml>
+#include <Draw/iml_header.h>
+
 
 #include "Common.h"
 
@@ -22,6 +28,7 @@
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
+#include "DaemonCtrl.h"
 
 #include "ImgGen.h"
 #include "ImgAspectFixer.h"

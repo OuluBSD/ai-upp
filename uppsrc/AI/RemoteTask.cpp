@@ -696,6 +696,9 @@ bool AiTask::RunOpenAI_Transcription()
 			});
 		}
 		else if (prov.type == AiServiceProvider::API_WHISPERFILE_TRANSCRIPT) {
+			#ifdef flagWIN32
+			TODO
+			#else
 			String output = ConfigFile("curl-output.txt");
 			// TODO use api
 			String cmd =
@@ -718,6 +721,7 @@ bool AiTask::RunOpenAI_Transcription()
 				output.Clear();
 				return false;
 			}
+			#endif
 		}
 	}
 	return false;

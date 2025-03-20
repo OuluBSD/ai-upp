@@ -4,7 +4,8 @@ uses
 	CtrlLib,
 	plugin/openai,
 	AI/Ctrl,
-	ide/Shell;
+	ide/Shell,
+	Sound;
 
 library(!WIN32) curl;
 
@@ -12,7 +13,9 @@ library(WIN32) libcurl.lib;
 
 file
 	AI.h,
+	AI.cpp,
 	AI.lay,
+	Images.iml,
 	Meta readonly separator,
 	MetaEnv.h,
 	MetaEnv.cpp,
@@ -27,6 +30,8 @@ file
 	MetaCodeCtrl.cpp,
 	ProcessCtrl.h,
 	ProcessCtrl.cpp,
+	DaemonCtrl.h,
+	DaemonCtrl.cpp,
 	Processes readonly separator,
 	ProcessBase.h,
 	ProcessBase.cpp,

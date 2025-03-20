@@ -658,7 +658,10 @@ public:
 	bool      bar_branch = true;
 	String    global_proxy;
 	AiServiceProviderManager ai_manager;
-	
+	int       audio_src = -1;
+	bool      autostart_audio_src = false;
+	double    audio_timelimit = 1.0;
+	double    audio_volumetreshold = 0.1;
 	bool      search_downloads =
 #ifdef PLATFORM_MACOS
 		false

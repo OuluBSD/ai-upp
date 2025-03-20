@@ -19,6 +19,7 @@ struct AITaskDlg : TopWindow {
 	MetaEnvTree menv;
 	TaskCtrl tasks;
 	PlaygroundCtrl playground;
+	DaemonCtrl daemon;
 	
 	Ide* theide = 0;
 	
@@ -34,11 +35,10 @@ AITaskDlg::AITaskDlg() {
 	Title("AI");
 	
 	Add(tabs.SizePos());
+	tabs.Add(daemon.SizePos(), "Daemon");
 	tabs.Add(tasks.SizePos(), "Tasks");
 	tabs.Add(playground.SizePos(), "Playground");
 	tabs.Add(menv.SizePos(), "Meta Env. Tree");
-	
-	
 	
 	
 }

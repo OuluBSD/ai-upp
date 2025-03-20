@@ -15,7 +15,7 @@ template<> inline void SetNull(Ctrl::LogPos& l) { l.x = l.y = Ctrl::Logc(); }
 inline Ctrl::LogPos   Nvl(Ctrl::LogPos a, Ctrl::LogPos b)             { return IsNull(a) ? b : a; }
 inline Ctrl::LogPos   Nvl(Ctrl::LogPos a)                             { return Nvl(a, Ctrl::LogPos()); }
 
-template<> inline unsigned ValueGetHashValue(const Ctrl::LogPos& l) {
+template<> inline hash_t ValueGetHashValue(const Ctrl::LogPos& l) {
 	CombineHash ch;
 	ch << l.x.GetAlign() << l.x.GetA() << l.x.GetB();
 	ch << l.y.GetAlign() << l.y.GetA() << l.y.GetB();

@@ -395,4 +395,17 @@ String GetGlobalProxy() {
 	return TheIde()->global_proxy;
 }
 
+Value FindValueRecursively(Value val, String key) {
+	ValueMap map = val;
+	int i = map.Find(key);
+	if (i >= 0)
+		return map.GetValue(i);
+	for(int i = 0; i < map.GetCount(); i++) {
+		Value val = FindValueRecursively(map.GetValue(i), key);
+		if (!val.IsNull())
+			return val;
+	}
+	return Value();
+}
+
 END_UPP_NAMESPACE

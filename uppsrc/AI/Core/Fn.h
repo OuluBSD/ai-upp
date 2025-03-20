@@ -198,6 +198,8 @@ template <class T> bool LoadFromJsonFile_VisitorNode(T& o, String path) {
 }
 
 
+Value FindValueRecursively(Value val, String key);
+
 END_UPP_NAMESPACE
 
 #endif

@@ -1366,17 +1366,18 @@ void ScriptTextProcess::PhrasePartAnalysis()
 	}
 	ValueArray phrases;
 	ValueArray elements;
-	ValueArray typeclasses;
+	ValueMap typeclasses;
 	ValueArray contents;
-
-	#define TYPECAST(idx, str, c) typeclasses.Add(str);
-	TYPECAST_LIST
-	#undef TYPECAST
 	
 	ASSERT(ctxtype.value);
 	ContextData& ctx = src.ctxs.Get(ctxtype);
+	PROCESS_ASSERT(ctx.typeclasses.GetCount() > 0);
 	PROCESS_ASSERT(ctx.contents.GetCount() > 0);
 	PROCESS_ASSERT(ctx.part_names.GetCount() > 0);
+	
+	int c = min(ctx.typeclasses.GetCount(), (int)TYPECAST_COUNT);
+	for(int i = 0; i < c; i++)
+		typeclasses.Add(IntStr(i), ctx.typeclasses[i].name);
 	
 	for(const auto& it : ctx.contents) {
 		ValueArray arr;
@@ -1521,9 +1522,9 @@ void ScriptTextProcess::OnPhraseColors(String res) {
 	ValueArray output = v("response-short")("colors");
 	ValueArray input = args.params("phrases");
 	int c = min(output.GetCount(), input.GetCount());
-
+	
 	PROCESS_ASSERT_CMP(tmp_pp_ptrs.GetCount(), output.GetCount());
-
+	
 	Color black(0,0,0);
 	Color non_black(1,1,1);
 	
@@ -1567,8 +1568,7 @@ void ScriptTextProcess::OnPhraseAttrs(String res) {
 	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("attribute texts");
-	if (output.IsEmpty()) output = v("attribute texts");
+	ValueArray output = FindValueRecursively(v, "attribute texts");
 	ValueArray input = args.params("phrases");
 	int c = min(output.GetCount(), input.GetCount());
 	
@@ -1621,7 +1621,7 @@ void ScriptTextProcess::OnPhraseActions(String res) {
 	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("action states");
+	ValueArray output = FindValueRecursively(v, "action states");
 	ValueArray input = args.params("phrases");
 	int c = min(output.GetCount(), input.GetCount());
 
@@ -1667,7 +1667,7 @@ void ScriptTextProcess::OnPhraseScores(String res) {
 	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("score factors");
+	ValueArray output = FindValueRecursively(v,"score factors");
 	ValueArray input = args.params("phrases");
 
 	PROCESS_ASSERT_CMP(tmp_pp_ptrs.GetCount(), output.GetCount());
@@ -1706,7 +1706,7 @@ void ScriptTextProcess::OnPhraseTypeclasses(String res) {
 	
 	Value v = ParseJSON(res, false);
 	// LOG(AsJSON(v, true));
-	ValueArray output = v("response-short")("score factors");
+	ValueArray output = FindValueRecursively(v,"typeclasses");
 	ValueArray input = args.params("phrases");
 
 	PROCESS_ASSERT_CMP(tmp_pp_ptrs.GetCount(), output.GetCount());

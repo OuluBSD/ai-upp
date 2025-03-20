@@ -284,7 +284,7 @@ public:
 	bool HasAnyInput() const;
 	bool HasJsonInput() const;
 	bool ForceCompletion() const;
-	String MakeInputString() const;
+	String MakeInputString(bool pretty=false) const;
 
 	void CreateInput_Translate();
 	void CreateInput_CreateImage();

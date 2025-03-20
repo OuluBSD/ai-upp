@@ -85,11 +85,11 @@ bool AiTask::ForceCompletion() const {
 	return json_input.force_completion;
 }
 
-String AiTask::MakeInputString() const {
+String AiTask::MakeInputString(bool pretty) const {
 	if (raw_input.GetCount())
 		return raw_input;
 	else if (!json_input.IsEmpty())
-		return json_input.AsJSON(false);
+		return json_input.AsJSON(pretty);
 	else
 		return input.AsString();
 }
@@ -448,7 +448,7 @@ bool AiTask::RunOpenAI_Completion()
 		LOG("warning: no response length set");
 		input.response_length = 1024;
 	}
-	String prompt = MakeInputString();
+	String prompt = MakeInputString(true);
 
 	prompt = FixInvalidChars(prompt); // NOTE: warning: might break something
 

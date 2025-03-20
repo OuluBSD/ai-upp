@@ -1277,195 +1277,31 @@ void AiTask::CreateInput_Default()
 		json_input.AddAssist(R"ML({
 		  "query": {
 		    "__comment__": {
-		      "incomplete list of action planner's action states for a narrating person": [
-		        "saying",
-		        "tone",
-		        "msg",
-		        "bias",
-		        "emotion",
-		        "level-of-certainty",
-		        "gesturing",
-		        "pointing",
-		        "describing-surroundings",
-		        "interrupting",
-		        "emphasizing",
-		        "summarizing",
-		        "referencing",
-		        "introducing",
-		        "concluding",
-		        "predicting",
-		        "transitioning",
-		        "questioning",
-		        "reflecting",
-		        "persuading",
-		        "comparing",
-		        "linking",
-		        "agreeing",
-		        "disagreeing",
-		        "apologizing",
-		        "commanding",
-		        "comforting",
-		        "complimenting",
-		        "complaining",
-		        "congratulating",
-		        "correcting",
-		        "denying",
-		        "explaining",
-		        "greeting",
-		        "inviting",
-		        "promising",
-		        "suggesting",
-		        "thanking",
-		        "warning",
-		        "attention-attribute",
-		        "attention-person",
-		        "attention-person-implied",
-		        "attention-action",
-		        "attention-event",
-		        "attention-recipient",
-		        "attention-recipient-implied",
-		        "attention-relationship",
-		        "attention-purpose",
-		        "attention-place",
-		        "attention-time",
-		        "attention-topic",
-		        "attention-audience",
-		        "attention-occasion",
-		        "attention-conversation ",
-		        "attention-activity",
-		        "attention-emotional_state",
-		        "attention-physical_state",
-		        "attention-mental_state",
-		        "attention-relationship_status",
-		        "attention-goals",
-		        "attention-fears",
-		        "attention-preferences",
-		        "attention-beliefs",
-		        "attention-values",
-		        "attention-traits",
-		        "attention-education",
-		        "attention-work",
-		        "attention-hobbies",
-		        "attention-interests",
-		        "attention-achievement",
-		        "attention-experiences",
-		        "attention-likes",
-		        "attention-dislikes",
-		        "attention-tests",
-		        "attention-evaluation_criteria",
-		        "attention-qualifications",
-		        "attention-requirements",
-		        "attention-qualifications_acquired",
-		        "attention-qualifications_needed",
-		        "attention-suggestions",
-		        "attention-feedback",
-		        "attention-likes_dislikes_comments",
-		        "attention-expectations",
-		        "attention-motivations",
-		        "attention-priorities",
-		        "attention-challenges",
-		        "attention-opportunities",
-		        "attention-problems",
-		        "attention-decisions",
-		        "attention-recommendations",
-		        "attention-trial_discussion",
-		        "attention-agreement",
-		        "attention-disagreement",
-		        "attention-agreement-explanation",
-		        "attention-disagreement-explanation",
-		        "attention-reasoning",
-		        "attention-possibility",
-		        "attention-probability",
-		        "attention-improbable",
-		        "attention-necessity",
-		        "attention-priority",
-		        "attention-order",
-		        "attention-procedure",
-		        "attention-target",
-		        "attention-advocacy",
-		        "attention-advocacy-reasoning",
-		        "attention-evidences",
-		        "attention-negations",
-		        "attention-conclusions",
-		        "attention-persuasion",
-		        "attention-epiphany",
-		        "attention-choosing",
-		        "attention-concepts",
-		        "attention-situations",
-		        "attention-actionplan",
-		        "attention-outcome",
-		        "attention-plan-communication",
-		        "attention-plan-task",
-		        "attention-awakening",
-		        "attention-thinking",
-		        "attention-believing",
-		        "attention-knowing",
-		        "attention-learning",
-		        "attention-realization",
-		        "attention-incidences",
-		        "attention-causations",
-		        "attention-effects",
-		        "attention-solutions",
-		        "attention-progress",
-		        "attention-failure",
-		        "attention-change",
-		        "attention-impact",
-		        "attention-feeling",
-		        "attention-challenge",
-		        "attention-aspiration",
-		        "attention-doubt",
-		        "attention-relationship_goals",
-		        "attention-career_goals",
-		        "attention-emotional_goals",
-		        "attention-physical_goals",
-		        "attention-mental_goals",
-		        "attention-achievements",
-		        "attention-experiences_difficulties",
-		        "attention-explaining",
-		        "attention-analogy",
-		        "attention-fact",
-		        "attention-evidence",
-		        "attention-opinion",
-		        "attention-assumption",
-		        "attention-consequence",
-		        "attention-belief",
-		        "attention-value",
-		        "attention-confirmation",
-		        "attention-excuse",
-		        "attention-exception",
-		        "attention-exciting_feature",
-		        "attention-changemaker",
-		        "attention-mentor",
-		        "attention-friend",
-		        "attention-criticalopinion",
-		        "attention-conflict",
-		        "attention-perspective",
-		        "attention-prediction",
-		        "attention-regret",
-		        "attention-usefulness",
-		        "attention-solidarity",
-		        "attention-compliance",
-		        "attention-lack",
-		        "attention-attention",
-		        "attention-criticism",
-		        "attention-support",
-		        "attention-collaboration",
-		        "attention-anticipation",
-		        "attention-example"
+		      "incomplete list of action planner's action states for a narrating person. Every list item has two string values: the group and the value": [
+		        ["msg", "statement"],
+		        ["msg", "addressed to person"],
+		        ["tone", "love"],
+		        ["tone", "sadness"],
+		        ["tone", "positive"],
+		        ["bias", "assertion"],
+		        ["bias", "defensive"],
+		        ["attention-action", "showing off"],
+		        ["attention-person", "the speaker"],
+		        ["gesturing", "pointing"],
+		        ["describing-surrounding", "near the ocean"]
 		      ]
 		    },
 		    "script": {
 		      "phrases": [
-		        [
 		          "2 AM, howlin outside",
 		          "Lookin, but I cannot find",
 		          "Only you can stand my mind"
-		        ]
 		      ],
 		      "__comment__": "analyze action planner action states for phrases"
 		    }
 		  },
 		  "response-full": {
+		    "__comment__": "the number of results must be the same as in query.script.phrases",
 		    "phrases & action states": [
 		      {"text":"2 AM, howlin outside", "actions":[["tone","urgent"], ["msg","trying to reach someone"], ["bias","romantic"], ["emotion","uncertainty"], ["level-of-certainty","trying/desire"], ["gesturing","pointing"], ["describing-surroundings","anywhere in the dark"], ["attention-place","outside"], ["attention-time","night"], ["attention-emotional_state","desire"], ["attention-action","howling"], ["attention-activity","driving"]]},
 		      {"text":"Lookin, but I cannot find", "actions":[["msg","searching for someone"], ["bias","doubt"], ["emotion","frustration"], ["level-of-certainty","cannot find"], ["attention-action","searching"], ["attention-relationship","checking for person's presence"]]},
@@ -1490,7 +1326,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
-		json_input.UseLegacyCompletion();
+		SetHighQuality();
 		input.response_length = 2*1024;
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_SCORES) {
@@ -1527,11 +1363,12 @@ void AiTask::CreateInput_Default()
 		        }
 		    },
 		    "response-full": {
-		        "phrases & score factors": [
-	                [
-	                    "bleeding after you",
-	                    [9, 8, 8, 6, 7, 9, 4, 2, 3, 2]
-	                ]
+		        "__comment__": "the number of results must be the same as in query.script.phrases",
+				"phrases & score factors": [
+	                {
+	                    "phrase":"bleeding after you",
+	                    "score factors": [9, 8, 8, 6, 7, 9, 4, 2, 3, 2]
+					}
 		        ]
 		    },
 		    "response-short": {
@@ -1558,33 +1395,43 @@ void AiTask::CreateInput_Default()
 		json_input.AddAssist(R"ML(
 		{
 			"query": {
-				"__comment__": {
-					"incomplete list of typeclasses of profiles in relation to the text": {
-						)ML"
-						#define TYPECAST(idx, str, c) #idx ": \"" str "\","
-						TYPECAST_LIST
-						#undef TYPECAST
-						R"ML(
-					}
+				"list of possible typeclasses": {
+					"0": "heartbroken/lovesick",
+					"1": "rebel/anti-establishment",
+					"2": "political activist",
+					"3": "social justice advocate",
+					"4": "party/club",
+					"5": "hopeful/dreamer"
 				},
 		        "script": {
 		            "phrases": [
-						"bleeding after you",
+						"bleeding after you"
 					],
 		            "__comment__": "Analyze phrases and give one or more typeclasses than could use this phrase"
 				}
 		    },
 		    "response-full": {
-		        "phrases & typeclasses": [
-	                [
-	                    "bleeding after you",
-	                    [1, 51, 42, 10, 11, 13, 24, 28, 30, 44]
-	                ]
+		        "__comment__": "the number of results must be the same as in query.script.phrases. Only 1 typeclass per phrase",
+				"phrases & typeclasses": [
+	                {
+	                    "phrase": "bleeding after you",
+	                    "typeclasses": [
+							{
+			                    "typeclass text": "heartbroken/lovesick",
+			                    "typeclass": 0,
+			                    "__comment__": "typeclass is the index of the item in the list of possible typeclasses"
+							},
+							{
+			                    "typeclass text": "party/club",
+			                    "typeclass": 4
+							}
+						]
+	                }
 		        ]
 		    },
 		    "response-short": {
-		        "score factors": [
-					[1, 51, 42, 10, 11, 13, 24, 28, 30, 44]
+		        "typeclasses": [
+					[0,4]
 		        ]
 		    }
 		})ML");
@@ -1593,11 +1440,14 @@ void AiTask::CreateInput_Default()
 		    "query": {
 		        "script": {
 		            "phrases": [],
-		            "__comment__": "get response-short"
+		            "list of possible typeclasses": {},
+		            "__comment__": "get response-short only"
 		        }
 		    }
 		})ML")
-			.Set("/query/script/phrases", args.params("phrases"));
+			.Set("/query/script/phrases", args.params("phrases"))
+			.Set("/query/script/list of possible typeclasses", args.params("typeclasses"))
+			;
 		json_input.UseLegacyCompletion();
 		input.response_length = 2048;
 	}

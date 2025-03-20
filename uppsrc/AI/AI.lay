@@ -200,3 +200,20 @@ LAYOUT(ImageAspectForm, 912, 176)
 	ITEM(Upp::Button, process_all, SetLabel(t_("Process all")).RightPosZ(4, 84).BottomPosZ(0, 24))
 END_LAYOUT
 
+LAYOUT(SoundDaemon, 544, 264)
+	ITEM(Upp::Button, refresh, SetLabel(t_("Refresh")).Tip(t_("Record 5 seconds from your microphone")).LeftPosZ(4, 96).TopPosZ(4, 24))
+	ITEM(Upp::DropTree, src, AutoResize(true).HSizePosZ(104, 208).TopPosZ(4, 24))
+	ITEM(Upp::Option, autostart, SetLabel(t_("Record at startup")).RightPosZ(104, 100).TopPosZ(4, 24))
+	ITEM(Upp::Button, rec, SetLabel(t_("Record")).Tip(t_("Record 5 seconds from your microphone")).RightPosZ(4, 96).TopPosZ(4, 24))
+	ITEM(Upp::RichTextCtrl, error, SetFrame(Upp::InsetFrame()).HSizePosZ(256, 4).TopPosZ(32, 172))
+	ITEM(Upp::LabelBox, dv___5, SetLabel(t_("Vol. treshold")).SetAlign(Upp::ALIGN_CENTER).LeftPosZ(4, 80).TopPosZ(32, 172))
+	ITEM(Upp::SliderCtrl, volume_slide, LeftPosZ(28, 32).TopPosZ(48, 128))
+	ITEM(Upp::EditFloatSpin, volume_val, SetInc(0.01).Min(0.01).Max(1).LeftPosZ(8, 72).TopPosZ(180, 19))
+	ITEM(Upp::LabelBox, dv___8, SetLabel(t_("Time treshold")).SetAlign(Upp::ALIGN_CENTER).LeftPosZ(88, 80).TopPosZ(32, 172))
+	ITEM(Upp::SliderCtrl, time_slide, LeftPosZ(112, 32).TopPosZ(48, 128))
+	ITEM(Upp::EditFloatSpin, time_val, SetInc(0.2).Min(0.2).Max(5).LeftPosZ(92, 72).TopPosZ(180, 19))
+	ITEM(Upp::LabelBox, dv___11, SetLabel(t_("Volume")).SetAlign(Upp::ALIGN_CENTER).LeftPosZ(172, 80).TopPosZ(32, 172))
+	ITEM(Ctrl, volume, LeftPosZ(196, 32).TopPosZ(48, 128))
+	ITEM(Upp::ArrayCtrl, log, HSizePosZ(0, 0).VSizePosZ(208, 0))
+END_LAYOUT
+

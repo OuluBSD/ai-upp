@@ -223,13 +223,13 @@ bool Ole::Invoke(int autoType, VARIANT *pvResult, IDispatch *pDisp, String name,
     char buf[200];
     char szName[200];
     WString wname = name.ToWString();
-	WStringBuffer ptName(wname);
+	std::wstring stdName = wname.ToStd();
 
     // Convert down to ANSI
-    WideCharToMultiByte(CP_ACP, 0, ptName, -1, szName, 256, NULL, NULL);
+    WideCharToMultiByte(CP_ACP, 0, stdName.c_str(), -1, szName, 256, NULL, NULL);
 
     // Get DISPID for name passed
-    hr = pDisp->GetIDsOfNames(IID_NULL, (LPOLESTR *)&ptName, 1, LOCALE_USER_DEFAULT, &dispID);
+    hr = pDisp->GetIDsOfNames(IID_NULL, (LPOLESTR *)stdName.c_str(), 1, LOCALE_USER_DEFAULT, &dispID);
     if(FAILED(hr)) {
         sprintf(buf, "Ole::Invoke(\"%s\") not found for object or problem when running it", szName);
         LOG(buf);
@@ -263,7 +263,8 @@ bool Ole::Invoke(int autoType, VARIANT *pvResult, IDispatch *pDisp, String name,
 
 ObjectOle Ole::CreateObject(String application) {
 	CLSID clsid;
-	HRESULT hr = CLSIDFromProgID(application.ToWString(), &clsid);	// Get CLSID for our server
+	std::wstring ws = application.ToWString().ToStd();
+	HRESULT hr = CLSIDFromProgID(ws.c_str(), &clsid);	// Get CLSID for our server
 	if(FAILED(hr)) {
 		LOG("CLSIDFromProgID() failed");
 		return NULL;

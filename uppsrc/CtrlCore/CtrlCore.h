@@ -1297,9 +1297,9 @@ public:
 
 	Ctrl&   BackPaint(int bp = FULLBACKPAINT)  { backpaint = bp; return *this; }
 	Ctrl&   BackPaintHint()                    { return BackPaint(); }
-/*	Ctrl&   TransparentBackPaint()             { backpaint = TRANSPARENTBACKPAINT; return *this; }
+	Ctrl&   TransparentBackPaint()             { backpaint = TRANSPARENTBACKPAINT; return *this; }
 	Ctrl&   NoBackPaint()                      { return BackPaint(NOBACKPAINT); }
-	int     GetBackPaint() const               { return backpaint; }*/
+	int     GetBackPaint() const               { return backpaint; }
 	Ctrl&   Transparent(bool bp = true)        { transparent = bp; return *this; }
 	Ctrl&   NoTransparent()                    { return Transparent(false); }
 	bool    IsTransparent() const              { return transparent; }

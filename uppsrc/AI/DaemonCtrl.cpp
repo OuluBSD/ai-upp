@@ -157,10 +157,11 @@ DaemonCtrl::DaemonCtrl() {
 	form.autostart.WhenAction = [this]{TheIde()->autostart_audio_src = form.autostart.Get();};
 	
 	// Silence detection time limit
-	form.time_slide.SetData(ide->audio_timelimit);
+	form.time_slide.MinMax(2,500);
+	form.time_slide.SetData(ide->audio_timelimit * 100);
 	form.time_val.SetData(ide->audio_timelimit);
 	form.time_slide.WhenSlideFinish =[this]{
-		double t = form.time_slide.GetData();
+		double t = (double)form.time_slide.GetData() * 0.01;
 		TheIde()->audio_timelimit = t;
 		SoundDaemon::Static().silence_timelimit = t;
 		form.time_val.SetData(t);
@@ -169,23 +170,24 @@ DaemonCtrl::DaemonCtrl() {
 		double t = form.time_val.GetData();
 		TheIde()->audio_timelimit = t;
 		SoundDaemon::Static().silence_timelimit = t;
-		form.time_slide.SetData(t);
+		form.time_slide.SetData(t * 100);
 	};
 	
 	// Silence detection volume treshold
-	form.volume_slide.SetData(ide->audio_volumetreshold);
+	form.volume_slide.MinMax(1,100);
+	form.volume_slide.SetData(ide->audio_volumetreshold * 100);
 	form.volume_val.SetData(ide->audio_volumetreshold);
 	form.volume_slide.WhenSlideFinish =[this]{
-		double t = form.volume_slide.GetData();
+		double t = (double)form.volume_slide.GetData() * 0.01;
 		TheIde()->audio_volumetreshold = t;
 		SoundDaemon::Static().silence_treshold = t;
 		form.volume_val.SetData(t);
 	};
-	form.time_val.WhenEnter = [this]{
+	form.volume_val.WhenEnter = [this]{
 		double t = form.volume_val.GetData();
 		TheIde()->audio_volumetreshold = t;
 		SoundDaemon::Static().silence_treshold = t;
-		form.volume_slide.SetData(t);
+		form.volume_slide.SetData(t * 100);
 	};
 	
 	SoundDaemon& sd = SoundDaemon::Static();

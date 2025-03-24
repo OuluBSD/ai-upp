@@ -31,7 +31,7 @@ void ASound::OpenStream(PaStreamCallback* cb, void* data,
                         const StreamParameters& inparam, const StreamParameters& outparam){
 	ASSERT(SoundSystem::Exists());
 	const PaStreamParameters* noparam=NULL;
-	err = Pa_OpenStream(&stream, IsNull(inparam)?noparam:inparam, IsNull(outparam)?noparam:outparam,
+	err = Pa_OpenStream(&stream, IsNull(inparam)?noparam:&inparam, IsNull(outparam)?noparam:&outparam,
 	                    samplerate, fpb, flags, cb, data);
 	CHECK_ERR;
 }

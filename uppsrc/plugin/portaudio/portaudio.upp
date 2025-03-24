@@ -10,11 +10,11 @@ acceptflags
 	WASAPI,
 	WDMKS;
 
-flags(POSIX & (!ALSA & !JACK & !OSS & !ASIHPI)) OSS;
+flags(LINUX & (!ALSA & !JACK & !OSS & !ASIHPI)) ALSA;
 
-flags(POSIX & (!ALSA & !JACK & !OSS & !ASIHPI)) ALSA;
+flags(FREEBSD & (!ALSA & !JACK & !OSS & !ASIHPI)) OSS;
 
-flags(!POSIX & (!WMME & !DSOUND & !WASAPI & !WDMKS )) "WASAPI WMME";
+flags(WIN32 & (!WMME & !DSOUND & !WASAPI & !WDMKS )) "WASAPI WMME";
 
 library(POSIX) "rt pthread m";
 

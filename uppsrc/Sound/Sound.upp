@@ -1,5 +1,6 @@
-uses
-	plugin/portaudio;
+uses(!SYS_PORTAUDIO) plugin/portaudio;
+
+library(SYS_PORTAUDIO) portaudio;
 
 file
 	Sound.h,

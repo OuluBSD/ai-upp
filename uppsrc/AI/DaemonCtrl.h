@@ -3,14 +3,20 @@
 
 NAMESPACE_UPP
 
+#define SOUNDDAEMON_8BIT 1
 
 class SoundDaemon {
+	#if SOUNDDAEMON_8BIT
+	typedef uint8 Sample;
+	#else
+	typedef int16 Sample;
+	#endif
 	int samplerate = 44100;
 	Sound snd;
 	struct Data{
 		int index;  /* Index into sample array. */
-		Vector<uint8> capture;
-		Vector<uint8> meter_loop;
+		Vector<SoundDaemon::Sample> capture;
+		Vector<SoundDaemon::Sample> meter_loop;
 		int meter_index = 0;
 	};
 	Data userdata;

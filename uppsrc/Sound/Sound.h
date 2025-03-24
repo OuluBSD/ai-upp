@@ -1,7 +1,11 @@
 #ifndef _portaudio_Sound_h_
 #define _portaudio_Sound_h_
 
-#include <plugin/portaudio/portaudio.h>
+#ifndef flagSYS_PORTAUDIO
+	#include <plugin/portaudio/portaudio.h>
+#else
+	#include <portaudio.h>
+#endif
 #include <Core/Core.h>
 
 NAMESPACE_UPP;
@@ -83,22 +87,21 @@ struct StreamCallbackData{
 	                          func(function),finish(whenfinish),data(userdata){}
 };
 
-struct StreamParameters{
-	StreamParameters():device(Null){}
-	StreamParameters(Nuller):device(Null){}
-	StreamParameters(const StreamParameters& p):
-	  device(p.device),channels(p.channels),format(p.format),latency(p.latency),APISpecificInfo(p.APISpecificInfo){}
-	StreamParameters(int dev,int channels,SampleFormat format,PaTime latency,void* APISpecificInfo=NULL):
-	  device(dev),channels(channels),format(format),latency(latency),APISpecificInfo(APISpecificInfo){}
-	bool IsNullInstance()const{return IsNull(device);}
-	int device;
-	int channels;
-	SampleFormat format;
-	double latency;
-	void* APISpecificInfo;
-	operator const PaStreamParameters*()const{
-		return reinterpret_cast<const PaStreamParameters*>(this);
+struct StreamParameters : PaStreamParameters {
+	StreamParameters(){Zero();}
+	StreamParameters(Nuller){Zero();}
+	StreamParameters(const StreamParameters& p) {
+		memcpy((PaStreamParameters*)this, (const PaStreamParameters*)&p, sizeof(*this));
 	}
+	StreamParameters(int dev,int channels,SampleFormat format,PaTime latency,void* APISpecificInfo=NULL){
+		this->device = dev;
+		this->channelCount = channels;
+		this->sampleFormat = format;
+		this->suggestedLatency = latency;
+		this->hostApiSpecificStreamInfo = APISpecificInfo;
+	}
+	void Zero() {memset((PaStreamParameters*)this, 0, sizeof(*this));}
+	bool IsNullInstance()const{return channelCount == 0;}
 };
 
 class ASound{

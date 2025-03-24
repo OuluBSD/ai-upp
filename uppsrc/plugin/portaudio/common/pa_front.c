@@ -750,7 +750,7 @@ const PaDeviceInfo* Pa_GetDeviceInfo( PaDeviceIndex device )
 */
 static int SampleFormatIsValid( PaSampleFormat format )
 {
-    switch( format & ~paNonInterleaved )
+    switch( format & 0xFFFFFFF )
     {
     case paFloat32: return 1;
     case paInt16: return 1;
@@ -1186,6 +1186,7 @@ PaError Pa_OpenStream( PaStream** stream,
 
     if( inputParameters )
     {
+		assert(inputParameters->sampleFormat < 0x100000000);
         hostApiInputParameters.device = hostApiInputDevice;
         hostApiInputParameters.channelCount = inputParameters->channelCount;
         hostApiInputParameters.sampleFormat = inputParameters->sampleFormat;
@@ -1200,6 +1201,7 @@ PaError Pa_OpenStream( PaStream** stream,
 
     if( outputParameters )
     {
+		assert(outputParameters->sampleFormat < 0x100000000);
         hostApiOutputParameters.device = hostApiOutputDevice;
         hostApiOutputParameters.channelCount = outputParameters->channelCount;
         hostApiOutputParameters.sampleFormat = outputParameters->sampleFormat;

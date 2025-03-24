@@ -4274,6 +4274,8 @@ static void *CallbackThreadFunc( void *userData )
         }
     }
 
+error:
+    PA_DEBUG(( "%s: Thread %d is canceled due to error %d\n ", __FUNCTION__, pthread_self(), result ));
 end:
     ; /* Hack to fix "label at end of compound statement" error caused by pthread_cleanup_pop(1) macro. */
     /* Match pthread_cleanup_push */
@@ -4281,10 +4283,6 @@ end:
 
     PA_DEBUG(( "%s: Thread %d exiting\n ", __FUNCTION__, pthread_self() ));
     PaUnixThreading_EXIT( result );
-
-error:
-    PA_DEBUG(( "%s: Thread %d is canceled due to error %d\n ", __FUNCTION__, pthread_self(), result ));
-    goto end;
 }
 
 /* Blocking interface */

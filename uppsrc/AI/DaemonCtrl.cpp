@@ -25,7 +25,7 @@ void SoundDaemon::StartRecord(SoundDevice dev) {
 	silence_duration = 0;
 	is_silence = true;
 	userdata.capture.Clear();
-	StreamParameters param(dev,1,SND_UINT8,dev.LowInputLatency);
+	StreamParameters param(dev,1,SND_INT16,dev.LowInputLatency);
 	snd <<= THISBACK(RecordCallback);
 	snd.Open(&userdata, param, Null);
 	if(snd.IsError()){
@@ -77,10 +77,17 @@ void SoundDaemon::RecordCallback(StreamCallbackArgs& args) {
 	int meter_sample_count = max<int>(1, samplerate * meter_duration);
 	data->meter_loop.SetCount(meter_sample_count, 0);
 	data->meter_index = data->meter_index % meter_sample_count;
+	#if SOUNDDAEMON_8BIT
 	uint8* meter_begin = data->meter_loop.Begin();
 	uint8* meter_end = data->meter_loop.End();
 	uint8* meter_it = meter_begin + data->meter_index;
 	const uint8 *rptr = (const uint8*)args.input;
+	#else
+	int16* meter_begin = data->meter_loop.Begin();
+	int16* meter_end = data->meter_loop.End();
+	int16* meter_it = meter_begin + data->meter_index;
+	const int16 *rptr = (const int16*)args.input;
+	#endif
 	if (!is_silence) {
 		if (was_silence) {
 			data->index = 0;
@@ -88,23 +95,25 @@ void SoundDaemon::RecordCallback(StreamCallbackArgs& args) {
 			WhenClipBegin();
 		}
 		data->capture.Reserve(data->index + args.fpb);
-		if (args.input != NULL)
+		if (args.input != NULL) {
 			for (int i=0; i<args.fpb; i++) {
-				uint8 v = *rptr++;
+				auto v = *rptr++;
 				data->capture.Add(v);
 				*meter_it++ = v;
 				if (meter_it == meter_end)
 					meter_it =meter_begin ;
 			}
+		}
 		data->index += args.fpb;
 	}
 	else {
-		if (args.input != NULL)
+		if (args.input != NULL) {
 			for (int i=0; i<args.fpb; i++) {
 				*meter_it++ = *rptr++;
 				if (meter_it == meter_end)
 					meter_it = meter_begin ;
 			}
+		}
 	}
 	data->meter_index = (data->meter_index + args.fpb) % meter_sample_count;
 	
@@ -125,6 +134,7 @@ double SoundDaemon::GetVolume() const {
 	if (!userdata.meter_loop.IsEmpty()) {
 		int count = userdata.meter_loop.GetCount();
 		int64 sum = 0;
+		#if SOUNDDAEMON_8BIT
 		const uint8* it = userdata.meter_loop.Begin();
 		const uint8* it_end = userdata.meter_loop.End();
 		while (it != it_end) {
@@ -133,6 +143,16 @@ double SoundDaemon::GetVolume() const {
 			sum += c > 0 ? c : -c;
 		}
 		double av = sum / (double)count / 128.0;
+		#else
+		const int16* it = userdata.meter_loop.Begin();
+		const int16* it_end = userdata.meter_loop.End();
+		while (it != it_end) {
+			int16 val = *it++;
+			sum += (int64)val;
+		}
+		double av16 = sum / (double)count;
+		double av = av16 / (double)INT16_MAX;
+		#endif
 		return av;
 	}
 	return 0;

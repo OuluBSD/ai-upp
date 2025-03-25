@@ -273,6 +273,9 @@ public:
 
 SoundSystem& SoundSys();
 
-END_UPP_NAMESPACE;
+END_UPP_NAMESPACE
+
+#include "SoundDaemon.h"
+
 
 #endif

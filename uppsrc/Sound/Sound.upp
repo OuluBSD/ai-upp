@@ -6,5 +6,7 @@ file
 	Sound.h,
 	Sound.cpp,
 	SoundStream.cpp,
-	SoundSystem.cpp;
+	SoundSystem.cpp,
+	SoundDaemon.h,
+	SoundDaemon.cpp;
 

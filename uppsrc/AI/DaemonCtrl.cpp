@@ -25,15 +25,22 @@ void SoundDaemon::StartRecord(SoundDevice dev) {
 	silence_duration = 0;
 	is_silence = true;
 	userdata.capture.Clear();
-	StreamParameters param(dev,1,SND_INT16,dev.LowInputLatency);
+	#if SOUNDDAEMON_8BIT
+	SampleFormat fmt = SND_UINT8;
+	#else
+	SampleFormat fmt = SND_INT16;
+	#endif
+	StreamParameters param(dev,1,fmt,dev.LowInputLatency);
 	snd <<= THISBACK(RecordCallback);
 	snd.Open(&userdata, param, Null);
 	if(snd.IsError()){
+		LOG(snd.GetError());
 		WhenError(snd.GetError());
 		return;
 	}
 	snd.Start();
 	if(snd.IsError()){
+		LOG(snd.GetError());
 		WhenError(snd.GetError());
 		return;
 	}
@@ -117,12 +124,15 @@ void SoundDaemon::RecordCallback(StreamCallbackArgs& args) {
 	}
 	data->meter_index = (data->meter_index + args.fpb) % meter_sample_count;
 	
-	if(!running)
+	if(!running) {
 		args.state=SND_COMPLETE;
+		stopped = true;
+	}
 }
 
 void SoundDaemon::Stop() {
 	running = false;
+	snd.Stop();
 	while (!stopped)
 		Sleep(10);
 }

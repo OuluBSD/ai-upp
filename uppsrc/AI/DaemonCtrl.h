@@ -8,17 +8,23 @@ class DaemonCtrl : public Ctrl {
 	TimeCallback tc;
 	
 	struct VolumeMeterCtrl : Ctrl {
-		VolumeMeterCtrl();
+		DaemonCtrl& c;
+		VolumeMeterCtrl(DaemonCtrl* c);
 		void Paint(Draw& d) override;
 	};
 	VolumeMeterCtrl meter;
 	
+	// User params
+	double silence_treshold = 0.1;
+	double silence_timelimit = 1.0;
+	Ptr<SoundDaemon::ThreadBase> thrd;
 	
 	void EnableMeter();
 	void DisableMeter();
 	void OnStart();
 	void Stop();
 	void PopulateSrc();
+	void OnCapture(SoundClip<uint8> data);
 	void OnRecord();
 	void OnFinish(void*);
 	void OnError(String s);

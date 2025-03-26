@@ -8,5 +8,7 @@ file
 	SoundStream.cpp,
 	SoundSystem.cpp,
 	SoundDaemon.h,
-	SoundDaemon.cpp;
+	SoundDaemon.inl highlight cpp,
+	SoundDaemon.cpp,
+	SoundThread.cpp;
 

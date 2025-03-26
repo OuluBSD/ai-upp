@@ -19,7 +19,7 @@ NAMESPACE_UPP;
 #endif
 #define CHECK_ERR CHECK_ERROR(*this)
 
-enum SampleFormat{
+enum SampleFormat : int {
 	SND_FLOAT32 = paFloat32,
 	SND_INT32 = paInt32,
 	SND_INT24 = paInt24,
@@ -28,6 +28,17 @@ enum SampleFormat{
 	SND_UINT8 = paUInt8,
 	SND_UNKNOWN = -1
 };
+
+template <class T> SampleFormat GetSampleFormat();
+template <> inline SampleFormat GetSampleFormat<float>() {return SND_FLOAT32;}
+template <> inline SampleFormat GetSampleFormat<int32>() {return SND_INT32;}
+template <> inline SampleFormat GetSampleFormat<int16>() {return SND_INT16;}
+template <> inline SampleFormat GetSampleFormat<int8>() {return SND_INT8;}
+template <> inline SampleFormat GetSampleFormat<uint8>() {return SND_UINT8;}
+
+template <class T> double SampleToDouble(T v) {return (double)v / (double)std::numeric_limits<T>::max();}
+template <> inline double SampleToDouble<float>(float f) {return f;}
+template <> inline double SampleToDouble<uint8>(uint8 v) {return ((int)v - 128) / 128.0;}
 
 enum StreamFlags{
 	SND_NOFLAG    = paNoFlag,
@@ -107,10 +118,10 @@ struct StreamParameters : PaStreamParameters {
 class ASound{
 protected:
 	mutable int err;
-	PaStream* stream;
+	PaStream* stream = 0;
 	
-	double samplerate;
-	dword fpb;
+	double samplerate = 0;
+	dword fpb = 0;
 	StreamFlags flags;
 	
 public:
@@ -233,6 +244,13 @@ public:
 		HighInputLatency = sd.HighInputLatency;
 		HighOutputLatency = sd.HighOutputLatency;
 		SampleRate = sd.SampleRate;
+	}
+	hash_t GetHashValue() const {
+		CombineHash ch;
+		ch	.Do(index).Do(String(name)).Do(API).Do(InputChannels)
+			.Do(OutputChannels).Do(LowInputLatency).Do(LowOutputLatency)
+			.Do(HighInputLatency).Do(HighOutputLatency).Do(SampleRate);
+		return ch;
 	}
 	bool IsNullInstance()const            {return IsNull(index);}
 	String ToString()const;

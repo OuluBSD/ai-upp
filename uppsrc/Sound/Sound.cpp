@@ -23,13 +23,17 @@ extern "C"{
 
 /* ASound */
 
-ASound::ASound():err(paNoError),samplerate(44100), fpb(1024),flags(SND_NOFLAG){
+ASound::ASound():err(paNoError),samplerate(0), fpb(1024),flags(SND_NOFLAG){
 	SoundSys();
 }
 
 void ASound::OpenStream(PaStreamCallback* cb, void* data,
                         const StreamParameters& inparam, const StreamParameters& outparam){
 	ASSERT(SoundSystem::Exists());
+	if (!samplerate) {
+		const PaDeviceInfo* info = Pa_GetDeviceInfo(inparam.device);
+		samplerate = info->defaultSampleRate;
+	}
 	const PaStreamParameters* noparam=NULL;
 	err = Pa_OpenStream(&stream, IsNull(inparam)?noparam:&inparam, IsNull(outparam)?noparam:&outparam,
 	                    samplerate, fpb, flags, cb, data);
@@ -39,6 +43,8 @@ void ASound::OpenStream(PaStreamCallback* cb, void* data,
 void ASound::OpenDefaultStream(PaStreamCallback* cb, void* data,
                                int inchannels,int outchannels, SampleFormat format){
 	ASSERT(SoundSystem::Exists());
+	if (!samplerate)
+		samplerate = 44100;
 	err = Pa_OpenDefaultStream(&stream,inchannels,outchannels,format,samplerate,fpb,cb,data);
 	CHECK_ERR;
 }

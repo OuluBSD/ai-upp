@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-DaemonCtrl::DaemonCtrl() {
+DaemonCtrl::DaemonCtrl() : meter(this) {
 	CtrlLayout(form);
 	Add(form.SizePos());
 	form.volume.Add(meter.SizePos());
@@ -24,13 +24,13 @@ DaemonCtrl::DaemonCtrl() {
 	form.time_slide.WhenSlideFinish =[this]{
 		double t = (double)form.time_slide.GetData() * 0.01;
 		TheIde()->audio_timelimit = t;
-		SoundDaemon::Static().silence_timelimit = t;
+		silence_timelimit = t;
 		form.time_val.SetData(t);
 	};
 	form.time_val.WhenEnter = [this]{
 		double t = form.time_val.GetData();
 		TheIde()->audio_timelimit = t;
-		SoundDaemon::Static().silence_timelimit = t;
+		silence_timelimit = t;
 		form.time_slide.SetData(t * 100);
 	};
 	
@@ -41,23 +41,18 @@ DaemonCtrl::DaemonCtrl() {
 	form.volume_slide.WhenSlideFinish =[this]{
 		double t = (double)form.volume_slide.GetData() * 0.01;
 		TheIde()->audio_volumetreshold = t;
-		SoundDaemon::Static().silence_treshold = t;
+		this->silence_treshold = t;
 		form.volume_val.SetData(t);
 	};
 	form.volume_val.WhenEnter = [this]{
 		double t = form.volume_val.GetData();
 		TheIde()->audio_volumetreshold = t;
-		SoundDaemon::Static().silence_treshold = t;
+		this->silence_treshold = t;
 		form.volume_slide.SetData(t * 100);
 	};
 	
-	SoundDaemon& sd = SoundDaemon::Static();
-	sd.WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};
-	sd.silence_timelimit = TheIde()->audio_timelimit;
-	sd.silence_treshold = TheIde()->audio_volumetreshold;
-	
-	if (sd.GetSound().IsOpen())
-		OnStart();
+	silence_timelimit = TheIde()->audio_timelimit;
+	silence_treshold = TheIde()->audio_volumetreshold;
 	
 	PopulateSrc();
 }
@@ -85,6 +80,11 @@ void DaemonCtrl::PopulateSrc() {
 	form.src <<= ide->audio_src;
 }
 
+void DaemonCtrl::OnCapture(SoundClip<uint8> data) {
+	LOG("DATA");
+	TODO
+}
+
 void DaemonCtrl::OnRecord() {
 	form.error.Clear();
 	
@@ -105,7 +105,14 @@ void DaemonCtrl::OnRecord() {
 	ide->audio_src = n;
 	
 	SoundDaemon& sd = SoundDaemon::Static();
-	sd.StartRecord(dev);
+	hash_t stream_hash = dev.GetHashValue();
+	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
+	
+	Ptr<Ctrl> p = this;
+	thrd->WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};
+	
+	thrd->Start();
+	
 	OnStart();
 }
 
@@ -117,9 +124,10 @@ void DaemonCtrl::OnStart() {
 }
 
 void DaemonCtrl::Stop() {
-	SoundDaemon& sd = SoundDaemon::Static();
-	sd.Stop();
-	OnFinish(0);
+	if (thrd) {
+		thrd->Stop();
+		OnFinish(0);
+	}
 }
 
 void DaemonCtrl::EnableMeter() {
@@ -143,17 +151,19 @@ void DaemonCtrl::OnFinish(void*) {
 	DisableMeter();
 }
 
-DaemonCtrl::VolumeMeterCtrl::VolumeMeterCtrl() {
+DaemonCtrl::VolumeMeterCtrl::VolumeMeterCtrl(DaemonCtrl* c) : c(*c) {
 	SetFrame(InsetFrame());
 }
 
 void DaemonCtrl::VolumeMeterCtrl::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, White());
-	double vol = SoundDaemon::Static().GetVolume();
-	int h = sz.cy * vol;
-	Color clr = Blue();
-	d.DrawRect(RectC(0,sz.cy-h,sz.cx,h), clr);
+	if (c.thrd) {
+		double vol = c.thrd->GetVolume();
+		int h = sz.cy * vol;
+		Color clr = Blue();
+		d.DrawRect(RectC(0,sz.cy-h,sz.cx,h), clr);
+	}
 }
 
 

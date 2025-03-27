@@ -65,6 +65,9 @@ void SoundDaemon::ThreadBase::Stop() {
 		Sleep(10);
 }
 
+void SoundDaemon::ThreadBase::Attach(DiscussionManager& m) {
+	TODO
+}
 
 
 END_UPP_NAMESPACE

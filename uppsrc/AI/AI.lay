@@ -214,6 +214,6 @@ LAYOUT(SoundDaemon, 544, 264)
 	ITEM(Upp::EditFloatSpin, time_val, SetInc(0.2).Min(0.2).Max(5).LeftPosZ(92, 72).TopPosZ(180, 19))
 	ITEM(Upp::LabelBox, dv___11, SetLabel(t_("Volume")).SetAlign(Upp::ALIGN_CENTER).LeftPosZ(172, 80).TopPosZ(32, 172))
 	ITEM(Ctrl, volume, LeftPosZ(196, 32).TopPosZ(48, 128))
-	ITEM(Upp::ArrayCtrl, log, HSizePosZ(0, 0).VSizePosZ(208, 0))
+	ITEM(Splitter, split, HSizePosZ(0, 0).VSizePosZ(208, 0))
 END_LAYOUT
 

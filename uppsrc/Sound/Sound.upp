@@ -4,11 +4,14 @@ library(SYS_PORTAUDIO) portaudio;
 
 file
 	Sound.h,
+	SoundSystem.h,
 	Sound.cpp,
 	SoundStream.cpp,
 	SoundSystem.cpp,
 	SoundDaemon.h,
 	SoundDaemon.inl highlight cpp,
 	SoundDaemon.cpp,
-	SoundThread.cpp;
+	SoundThread.cpp,
+	Discussion.h,
+	Discussion.cpp;
 

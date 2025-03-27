@@ -3,7 +3,6 @@
 
 NAMESPACE_UPP
 
-
 template <class Sample>
 struct SoundClip : Moveable<SoundClip<Sample>>, Pte<SoundClip<Sample>> {
 	struct Data {
@@ -63,6 +62,7 @@ public:
 		void SetDevice(SoundDevice dev, int channels);
 		void Start();
 		void Stop();
+		void Attach(DiscussionManager& m);
 		virtual SampleFormat GetSampleFormat() const = 0;
 		virtual void ClearData() = 0;
 		virtual void* GetDataPtr() = 0;

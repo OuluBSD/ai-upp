@@ -7,8 +7,18 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 	CtrlLayout(form);
 	Add(form.SizePos());
 	form.volume.Add(meter.SizePos());
-	
 	form.autostart.Set(TheIde()->autostart_audio_src);
+	form.split.Horz() << discussions << messages << phrases;
+	
+	discussions.AddColumn("#");
+	discussions.AddColumn("Discussion");
+	discussions.AddIndex("IDX");
+	messages.AddColumn("#");
+	messages.AddColumn("Message");
+	messages.AddIndex("IDX");
+	phrases.AddColumn("#");
+	phrases.AddColumn("Phrase");
+	phrases.AddIndex("IDX");
 	
 	Ptr<Ctrl> p = this;
 	auto* ide = TheIde();
@@ -59,6 +69,66 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 
 void DaemonCtrl::Data() {
 	
+	DataManager();
+}
+
+void DaemonCtrl::DataManager() {
+	
+	
+	for(int i = 0; i < dm.discussions.GetCount(); i++) {
+		const SoundDiscussion& sd = dm.discussions[i];
+		discussions.Set(i, 0, i);
+		discussions.Set(i, "IDX", i);
+	}
+	discussions.SetCount(dm.discussions.GetCount());
+	if (!discussions.IsCursor() && discussions.GetCount())
+		discussions.SetCursor(0);
+	
+}
+
+void DaemonCtrl::DataDiscussion() {
+	
+	if (!discussions.IsCursor()) {
+		messages.Clear();
+		phrases.Clear();
+		return;
+	}
+	int dis_i = discussions.Get("IDX");
+	const SoundDiscussion& sd = dm.discussions[dis_i];
+	
+	for(int i = 0; i < sd.messages.GetCount(); i++) {
+		const auto& it = sd.messages[i];
+		messages.Set(i, 0, i);
+		messages.Set(i, "IDX", i);
+	}
+	messages.SetCount(sd.messages.GetCount());
+	if (!messages.IsCursor() && messages.GetCount())
+		messages.SetCursor(0);
+	
+}
+
+void DaemonCtrl::DataMessage() {
+	
+	if (!discussions.IsCursor() || !messages.IsCursor()) {
+		phrases.Clear();
+		return;
+	}
+	
+	int dis_i = discussions.Get("IDX");
+	const SoundDiscussion& sd = dm.discussions[dis_i];
+	int msg_i = messages.Get("IDX");
+	const SoundMessage& sm = sd.messages[msg_i];
+	
+	for(int i = 0; i < sm.phrases.GetCount(); i++) {
+		const auto& it = sm.phrases[i];
+		phrases.Set(i, 0, i);
+		phrases.Set(i, "IDX", i);
+	}
+	phrases.SetCount(sm.phrases.GetCount());
+	if (!phrases.IsCursor() && phrases.GetCount())
+		phrases.SetCursor(0);
+	
+	
 }
 
 void DaemonCtrl::PopulateSrc() {
@@ -107,6 +177,8 @@ void DaemonCtrl::OnRecord() {
 	SoundDaemon& sd = SoundDaemon::Static();
 	hash_t stream_hash = dev.GetHashValue();
 	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
+	
+	thrd->Attach(dm);
 	
 	Ptr<Ctrl> p = this;
 	thrd->WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};

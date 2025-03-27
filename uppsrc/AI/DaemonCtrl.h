@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 class DaemonCtrl : public Ctrl {
 	WithSoundDaemon<Ctrl> form;
+	ArrayCtrl discussions, messages, phrases;
 	TimeCallback tc;
 	
 	struct VolumeMeterCtrl : Ctrl {
@@ -13,11 +14,12 @@ class DaemonCtrl : public Ctrl {
 		void Paint(Draw& d) override;
 	};
 	VolumeMeterCtrl meter;
+	Ptr<SoundDaemon::ThreadBase> thrd;
+	DiscussionManager dm;
 	
 	// User params
 	double silence_treshold = 0.1;
 	double silence_timelimit = 1.0;
-	Ptr<SoundDaemon::ThreadBase> thrd;
 	
 	void EnableMeter();
 	void DisableMeter();
@@ -33,6 +35,9 @@ public:
 	DaemonCtrl();
 	
 	void Data();
+	void DataManager();
+	void DataDiscussion();
+	void DataMessage();
 };
 
 

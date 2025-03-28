@@ -30,6 +30,8 @@ file
 	MetaCodeCtrl.cpp,
 	ProcessCtrl.h,
 	ProcessCtrl.cpp,
+	Discussion.h,
+	Discussion.cpp,
 	DaemonCtrl.h,
 	DaemonCtrl.cpp,
 	Processes readonly separator,

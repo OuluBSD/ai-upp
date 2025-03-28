@@ -28,6 +28,7 @@
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
+#include "Discussion.h"
 #include "DaemonCtrl.h"
 
 #include "ImgGen.h"

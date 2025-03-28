@@ -19,6 +19,10 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 			silence_duration += ts;
 			if (silence_duration >= silence_timelimit) {
 				is_silence = true;
+				if (phrase) {
+					phrase->Finish();
+					phrase = 0;
+				}
 				WhenClipEnd(current);
 			}
 		}
@@ -47,6 +51,10 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 			cdata.channels = 1;
 			cdata.samplerate = samplerate;
 			WhenClipBegin(current);
+			if (msg) {
+				phrase = &msg->Add();
+				phrase->BeginClip(*data);
+			}
 		}
 		Clip::Data& cdata = *data->data;
 		int index = cdata.data.GetCount();

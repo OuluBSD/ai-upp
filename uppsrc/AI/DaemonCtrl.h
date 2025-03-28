@@ -15,7 +15,6 @@ class DaemonCtrl : public Ctrl {
 	};
 	VolumeMeterCtrl meter;
 	Ptr<SoundDaemon::ThreadBase> thrd;
-	DiscussionManager dm;
 	
 	// User params
 	double silence_treshold = 0.1;

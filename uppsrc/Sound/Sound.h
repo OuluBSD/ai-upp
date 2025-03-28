@@ -8,6 +8,8 @@
 #endif
 #include <Core/Core.h>
 
+#include "Types.h"
+#include "SoundClip.h"
 #include "Discussion.h"
 #include "SoundSystem.h"
 #include "SoundDaemon.h"

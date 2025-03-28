@@ -66,7 +66,10 @@ void SoundDaemon::ThreadBase::Stop() {
 }
 
 void SoundDaemon::ThreadBase::Attach(DiscussionManager& m) {
-	TODO
+	mgr = &m;
+	discussion = &mgr->Add();
+	msg = &discussion->Add();
+	phrase = 0;
 }
 
 

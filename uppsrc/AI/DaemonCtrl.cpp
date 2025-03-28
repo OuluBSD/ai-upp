@@ -73,7 +73,7 @@ void DaemonCtrl::Data() {
 }
 
 void DaemonCtrl::DataManager() {
-	
+	AiDiscussionManager& dm = AiDiscussionManager::Single();
 	
 	for(int i = 0; i < dm.discussions.GetCount(); i++) {
 		const SoundDiscussion& sd = dm.discussions[i];
@@ -87,6 +87,7 @@ void DaemonCtrl::DataManager() {
 }
 
 void DaemonCtrl::DataDiscussion() {
+	AiDiscussionManager& dm = AiDiscussionManager::Single();
 	
 	if (!discussions.IsCursor()) {
 		messages.Clear();
@@ -108,6 +109,7 @@ void DaemonCtrl::DataDiscussion() {
 }
 
 void DaemonCtrl::DataMessage() {
+	AiDiscussionManager& dm = AiDiscussionManager::Single();
 	
 	if (!discussions.IsCursor() || !messages.IsCursor()) {
 		phrases.Clear();
@@ -178,7 +180,8 @@ void DaemonCtrl::OnRecord() {
 	hash_t stream_hash = dev.GetHashValue();
 	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
 	
-	thrd->Attach(dm);
+	AiDiscussionManager& aidm = AiDiscussionManager::Single();
+	thrd->Attach(aidm);
 	
 	Ptr<Ctrl> p = this;
 	thrd->WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};

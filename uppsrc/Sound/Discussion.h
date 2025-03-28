@@ -4,30 +4,52 @@
 
 NAMESPACE_UPP
 
+struct DiscussionManager;
+struct SoundDiscussion;
+struct SoundMessage;
 
-struct SoundPhrase {
-	SoundPhrase() {}
+struct SoundPhrase : Pte<SoundPhrase> {
+	SoundMessage& owner;
+	One<SoundClipBase> current;
 	
+	SoundPhrase(SoundMessage& o) : owner(o) {}
+	
+	void Finish();
+	template<class T> void BeginClip(SoundClip<T>& clip) {
+		current.Create(clip);
+		
+	}
 };
 
-struct SoundMessage {
+struct SoundMessage : Pte<SoundMessage> {
+	SoundDiscussion& owner;
 	Array<SoundPhrase> phrases;
 	
-	SoundMessage() {}
+	SoundMessage(SoundDiscussion& o) : owner(o) {}
+	SoundPhrase& Add();
+	void Finish();
 	
 };
 
-struct SoundDiscussion {
+struct SoundDiscussion : Pte<SoundDiscussion> {
+	DiscussionManager& owner;
 	Array<SoundMessage> messages;
 	
-	SoundDiscussion() {}
+	SoundDiscussion(DiscussionManager& o) : owner(o) {}
+	SoundMessage& Add();
+	void Finish();
 	
 };
 
-struct DiscussionManager {
+struct DiscussionManager : Pte<DiscussionManager> {
 	Array<SoundDiscussion> discussions;
 	
 	DiscussionManager() {}
+	SoundDiscussion& Add();
+	
+	virtual void OnPhraseEnd(SoundPhrase&) {}
+	virtual void OnMessageEnd(SoundMessage&) {}
+	virtual void OnDiscussionEnd(SoundDiscussion&) {}
 	
 	//DiscussionManager& Static() {static DiscussionManager d; return d;}
 	

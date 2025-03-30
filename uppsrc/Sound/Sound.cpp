@@ -7,6 +7,8 @@ extern "C"{
 	int StreamCallback(const void *input, void *output, unsigned long frames, 
 	          const PaStreamCallbackTimeInfo *timeinfo, unsigned long flags, void *data)
 	{
+		if (Thread::IsShutdownThreads())
+			return SND_COMPLETE;
 		StreamCallbackData *scd = static_cast<StreamCallbackData*>(data);
 		StreamCallbackArgs sca(input, output, frames, timeinfo, flags,scd->data);
 		scd->func(sca);

@@ -6,8 +6,10 @@ NAMESPACE_UPP
 class DaemonCtrl : public Ctrl {
 	WithSoundDaemon<Ctrl> form;
 	ArrayCtrl discussions, messages, phrases;
+	Splitter split[3];
 	WithSoundDaemonClip<Ctrl> waveform;
 	TimeCallback tc;
+	WaveformCtrl wavectrl;
 	
 	struct VolumeMeterCtrl : Ctrl {
 		DaemonCtrl& c;
@@ -16,10 +18,6 @@ class DaemonCtrl : public Ctrl {
 	};
 	VolumeMeterCtrl meter;
 	Ptr<SoundDaemon::ThreadBase> thrd;
-	
-	// User params
-	double silence_treshold = 0.1;
-	double silence_timelimit = 1.0;
 	
 	void EnableMeter();
 	void DisableMeter();

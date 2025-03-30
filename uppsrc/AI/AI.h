@@ -6,6 +6,7 @@
 #include <ide/clang/clang.h>
 #include <ide/Shell/Shell.h>
 #include <Sound/Sound.h>
+#include <SoundCtrl/SoundCtrl.h>
 
 #define LAYOUTFILE <AI/AI.lay>
 #include <CtrlCore/lay.h>

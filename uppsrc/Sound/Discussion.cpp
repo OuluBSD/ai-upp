@@ -18,15 +18,41 @@ void SoundDiscussion::Finish() {
 
 
 SoundPhrase& SoundMessage::Add() {
-	return phrases.Add(new SoundPhrase(*this));
+	auto& o = phrases.Add(new SoundPhrase(*this));
+	owner.owner.OnPhraseBegin(o);
+	return o;
 }
 
 SoundMessage& SoundDiscussion::Add() {
-	return messages.Add(new SoundMessage(*this));
+	auto& o = messages.Add(new SoundMessage(*this));
+	owner.OnMessageBegin(o);
+	return o;
 }
 
 SoundDiscussion& DiscussionManager::Add() {
-	return discussions.Add(new SoundDiscussion(*this));
+	auto& o = discussions.Add(new SoundDiscussion(*this));
+	OnDiscussionBegin(o);
+	return o;
+}
+
+void DiscussionManager::OnPhraseBegin(SoundPhrase& s) {
+	WhenPhraseBegin(s);
+}
+
+void DiscussionManager::OnMessageBegin(SoundMessage& s) {
+	WhenMessageBegin(s);
+}
+
+void DiscussionManager::OnDiscussionBegin(SoundDiscussion& s) {
+	WhenDiscussionBegin(s);
+}
+
+
+
+
+double SoundClipBase::GetDuration() const {
+	int r = GetSampleRate();
+	return r > 0 ? GetCount() / (double)r : 0;
 }
 
 END_UPP_NAMESPACE

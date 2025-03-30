@@ -217,3 +217,16 @@ LAYOUT(SoundDaemon, 544, 264)
 	ITEM(Splitter, split, HSizePosZ(0, 0).VSizePosZ(208, 0))
 END_LAYOUT
 
+LAYOUT(SoundDaemonClip, 424, 256)
+	ITEM(Ctrl, waveform, HSizePosZ(0, 0).TopPosZ(0, 120))
+	ITEM(Upp::LabelBox, dv___1, SetLabel(t_("Waveform")).HSizePosZ(4, 4).VSizePosZ(124, 4))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Duration:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 112).TopPosZ(144, 20))
+	ITEM(Upp::EditString, duration, SetEditable(false).HSizePosZ(128, 12).TopPosZ(144, 20))
+	ITEM(Upp::Label, dv___4, SetLabel(t_("Channels:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 112).TopPosZ(168, 20))
+	ITEM(Upp::EditString, channels, SetEditable(false).HSizePosZ(128, 12).TopPosZ(168, 20))
+	ITEM(Upp::Label, dv___6, SetLabel(t_("Sample format:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 112).TopPosZ(192, 20))
+	ITEM(Upp::EditString, sampleformat, SetEditable(false).HSizePosZ(128, 12).TopPosZ(192, 20))
+	ITEM(Upp::Label, dv___8, SetLabel(t_("Sample rate:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 112).TopPosZ(216, 20))
+	ITEM(Upp::EditString, samplerate, SetEditable(false).HSizePosZ(128, 12).TopPosZ(216, 20))
+END_LAYOUT
+

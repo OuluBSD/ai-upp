@@ -8,7 +8,7 @@ AiDiscussionManager::AiDiscussionManager() {
 }
 	
 void AiDiscussionManager::OnPhraseEnd(SoundPhrase& p) {
-	TODO
+	LOG("TODO");
 	
 	// get transcript
 }

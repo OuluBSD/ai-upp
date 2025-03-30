@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-SoundDaemon::ThreadBase::ThreadBase() {
+SoundDaemon::ThreadBase::ThreadBase(SoundDaemon& owner) : owner(owner) {
 	snd.WhenFinished = THISBACK(OnFinish);
 	
 }
@@ -17,7 +17,7 @@ void SoundDaemon::ThreadBase::Start() {
 	Stop();
 	time_duration = 0;
 	silence_duration = 0;
-	is_silence = true;
+	is_recording = false;
 	ClearData();
 	
 	snd <<= THISBACK(RecordCallback);

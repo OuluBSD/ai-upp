@@ -16,7 +16,7 @@ struct SoundPhrase : Pte<SoundPhrase> {
 	
 	void Finish();
 	template<class T> void BeginClip(SoundClip<T>& clip) {
-		current.Create(clip);
+		current = new SoundClip<T>(clip);
 		
 	}
 };
@@ -47,12 +47,19 @@ struct DiscussionManager : Pte<DiscussionManager> {
 	DiscussionManager() {}
 	SoundDiscussion& Add();
 	
+	virtual void OnPhraseBegin(SoundPhrase&);
+	virtual void OnMessageBegin(SoundMessage&);
+	virtual void OnDiscussionBegin(SoundDiscussion&);
+	
 	virtual void OnPhraseEnd(SoundPhrase&) {}
 	virtual void OnMessageEnd(SoundMessage&) {}
 	virtual void OnDiscussionEnd(SoundDiscussion&) {}
 	
 	//DiscussionManager& Static() {static DiscussionManager d; return d;}
 	
+	Event<SoundPhrase&> WhenPhraseBegin;
+	Event<SoundMessage&> WhenMessageBegin;
+	Event<SoundDiscussion&> WhenDiscussionBegin;
 };
 
 END_UPP_NAMESPACE

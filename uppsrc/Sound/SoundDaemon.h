@@ -6,12 +6,13 @@ NAMESPACE_UPP
 class SoundDaemon {
 public:
 	struct ThreadBase : Pte<ThreadBase> {
+		SoundDaemon& owner;
 		Sound snd;
 		bool running = false, stopped = true;
 		double meter_duration = 0.1;
 		double time_duration = 0;
 		double silence_duration = 0;
-		bool is_silence = false;
+		bool is_recording = false;
 		StreamParameters param;
 		Ptr<DiscussionManager> mgr;
 		Ptr<SoundDiscussion> discussion;
@@ -26,7 +27,7 @@ public:
 		Event<String> WhenError;
 		
 		typedef ThreadBase CLASSNAME;
-		ThreadBase();
+		ThreadBase(SoundDaemon& owner);
 		virtual ~ThreadBase();
 		bool IsRunning() const;
 		bool IsOpen() const;
@@ -36,6 +37,7 @@ public:
 		void Start();
 		void Stop();
 		void Attach(DiscussionManager& m);
+		void CheckEnd(StreamCallbackArgs& args);
 		virtual SampleFormat GetSampleFormat() const = 0;
 		virtual void ClearData() = 0;
 		virtual void* GetDataPtr() = 0;
@@ -50,7 +52,7 @@ public:
 		Clip meter;
 		int meter_index = 0;
 		
-		Thread() {}
+		Thread(SoundDaemon& owner) : ThreadBase(owner) {}
 		SampleFormat GetSampleFormat() const override {return ::UPP::template GetSampleFormat<Sample>();}
 		void ClearData() override {current.Clear(); meter.Clear();}
 		void* GetDataPtr() override {return &current;}
@@ -82,7 +84,7 @@ public:
 		int i = thrds.Find(h);
 		if (i >= 0)
 			return dynamic_cast<SoundDaemon::Thread<T>&>(thrds[i]);
-		auto* p = new SoundDaemon::Thread<T>();
+		auto* p = new SoundDaemon::Thread<T>(*this);
 		p->SetDevice(dev, channels);
 		thrds.Add(h, p);
 		return *p;

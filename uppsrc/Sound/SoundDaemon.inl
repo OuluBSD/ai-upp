@@ -2,34 +2,8 @@
 template <class Sample>
 void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	double samplerate = snd.GetSampleRate();
-	double ts = args.fpb / (double)samplerate;
-	time_duration += ts;
-	
-	bool was_silence = is_silence;
-	double vol = GetVolume();
-	bool to_be_silenced = vol <= silence_treshold;
-	if (is_silence) {
-		if (!to_be_silenced) {
-			is_silence = false;
-			silence_duration = 0;
-		}
-	}
-	else {
-		if (to_be_silenced) {
-			silence_duration += ts;
-			if (silence_duration >= silence_timelimit) {
-				is_silence = true;
-				if (phrase) {
-					phrase->Finish();
-					phrase = 0;
-				}
-				WhenClipEnd(current);
-			}
-		}
-		else {
-			silence_duration = 0;
-		}
-	}
+	bool was_recording = is_recording;
+	CheckEnd(args);
 	
 	Clip *data = &current;// (Clip*)args.data;
 	if (!data) return;
@@ -44,15 +18,18 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	Sample* meter_end = meter.data.End();
 	Sample* meter_it = meter_begin + meter_index;
 	const Sample *rptr = (const Sample*)args.input;
-	if (!is_silence) {
-		if (was_silence) {
+	if (is_recording) {
+		if (!was_recording) {
+			WhenClipEnd(current);
+			if (phrase && mgr)
+				mgr->OnPhraseEnd(*phrase);
 			data->Create();
 			Clip::Data& cdata = *data->data;
 			cdata.channels = 1;
 			cdata.samplerate = samplerate;
 			WhenClipBegin(current);
 			if (msg) {
-				phrase = &msg->Add();
+				phrase = &msg->Add(); // calls OnPhraseBegin
 				phrase->BeginClip(*data);
 			}
 		}
@@ -65,7 +42,7 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 				cdata.data.Add(v);
 				*meter_it++ = v;
 				if (meter_it == meter_end)
-					meter_it =meter_begin ;
+					meter_it = meter_begin ;
 			}
 		}
 	}
@@ -98,7 +75,7 @@ double SoundDaemon::Thread<Sample>::GetVolume() const {
 		const Sample* it_end = meter.End();
 		while (it != it_end) {
 			Sample val = *it++;
-			double dbl = SampleToDouble<Sample>(val);
+			double dbl = fabs(SampleToDouble<Sample>(val));
 			sum += dbl;
 		}
 		double av = sum / (double)count;

@@ -39,7 +39,7 @@ AITaskDlg::AITaskDlg() {
 	tabs.Add(tasks.SizePos(), "Tasks");
 	tabs.Add(playground.SizePos(), "Playground");
 	tabs.Add(menv.SizePos(), "Meta Env. Tree");
-	
+	tabs.WhenSet = THISBACK(Update);
 	
 }
 
@@ -52,7 +52,15 @@ bool AITaskDlg::Key(dword key, int count) {
 }
 
 void AITaskDlg::Update() {
+	int tab = tabs.Get();
 	
+	switch (tab) {
+		case 0: daemon.Data(); break;
+		case 1: tasks.Data(); break;
+		//case 2: playground.Data(); break;
+		case 3: menv.Data(); break;
+		default: break;
+	}
 }
 
 void AITaskDlg::Serialize(Stream& s) {

@@ -5,6 +5,13 @@ NAMESPACE_UPP
 
 struct SoundClipBase : Pte<SoundClipBase> {
 	virtual ~SoundClipBase() {}
+	
+	virtual int GetSampleRate() const = 0;
+	virtual int GetChannels() const = 0;
+	virtual SampleFormat GetFormat() const = 0;
+	virtual int GetCount() const = 0;
+	
+	double GetDuration() const;
 };
 
 template <class Sample>
@@ -27,7 +34,6 @@ struct SoundClip : Moveable<SoundClip<Sample>>, SoundClipBase {
 	void operator=(const SoundClip& c) {Clear(); data = c.data; if (data) data->refs++;}
 	bool IsEmpty() const {return !data || data->data.IsEmpty();}
 	bool IsNull() const {return !data;}
-	int GetCount() const {return data ? data->data.GetCount() : 0;}
 	Sample* Begin() {return data ? data->data.Begin() : 0;}
 	Sample* End() {return data ? data->data.End() : 0;}
 	const Sample* Begin() const {return data ? data->data.Begin() : 0;}
@@ -35,6 +41,12 @@ struct SoundClip : Moveable<SoundClip<Sample>>, SoundClipBase {
 	bool Read(Vector<float>& out);
 	bool Write(Vector<float>& out);
 	static SampleFormat GetSampleFormat() {return ::UPP::GetSampleFormat<Sample>();}
+	
+	int GetSampleRate() const override {return data ? data->samplerate : 0;}
+	int GetChannels() const override {return data ? data->samplerate : 0;}
+	SampleFormat GetFormat() const override {return GetSampleFormat();}
+	int GetCount() const override {return data ? data->data.GetCount() : 0;}
+	
 };
 
 END_UPP_NAMESPACE

@@ -5,10 +5,11 @@ NAMESPACE_UPP
 
 DaemonCtrl::DaemonCtrl() : meter(this) {
 	CtrlLayout(form);
+	CtrlLayout(waveform);
 	Add(form.SizePos());
 	form.volume.Add(meter.SizePos());
 	form.autostart.Set(TheIde()->autostart_audio_src);
-	form.split.Horz() << discussions << messages << phrases;
+	form.split.Horz() << discussions << messages << phrases << waveform;
 	
 	discussions.AddColumn("#");
 	discussions.AddColumn("Discussion");
@@ -92,6 +93,7 @@ void DaemonCtrl::DataDiscussion() {
 	if (!discussions.IsCursor()) {
 		messages.Clear();
 		phrases.Clear();
+		ClearWaveform();
 		return;
 	}
 	int dis_i = discussions.Get("IDX");
@@ -113,6 +115,7 @@ void DaemonCtrl::DataMessage() {
 	
 	if (!discussions.IsCursor() || !messages.IsCursor()) {
 		phrases.Clear();
+		ClearWaveform();
 		return;
 	}
 	
@@ -131,6 +134,40 @@ void DaemonCtrl::DataMessage() {
 		phrases.SetCursor(0);
 	
 	
+}
+
+void DaemonCtrl::DataPhrase() {
+	AiDiscussionManager& dm = AiDiscussionManager::Single();
+	
+	if (!phrases.IsCursor()) {
+		ClearWaveform();
+		return;
+	}
+	
+	int dis_i = discussions.Get("IDX");
+	const SoundDiscussion& sd = dm.discussions[dis_i];
+	int msg_i = messages.Get("IDX");
+	const SoundMessage& sm = sd.messages[msg_i];
+	int phrase_i = phrases.Get("IDX");
+	const SoundPhrase& sp = sm.phrases[phrase_i];
+	
+	if (!sp.current) {
+		ClearWaveform();
+		return;
+	}
+	
+	const SoundClipBase& clip = *sp.current;
+	waveform.duration.SetData(Format("%f seconds", clip.GetDuration()));
+	waveform.channels.SetData(IntStr(clip.GetChannels()));
+	waveform.samplerate.SetData(IntStr(clip.GetSampleRate()));
+	waveform.sampleformat.SetData(GetSampleFormatString(clip.GetFormat()));
+}
+
+void DaemonCtrl::ClearWaveform() {
+	waveform.duration.SetData(Value());
+	waveform.channels.SetData(Value());
+	waveform.samplerate.SetData(Value());
+	waveform.sampleformat.SetData(Value());
 }
 
 void DaemonCtrl::PopulateSrc() {
@@ -181,7 +218,11 @@ void DaemonCtrl::OnRecord() {
 	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
 	
 	AiDiscussionManager& aidm = AiDiscussionManager::Single();
+	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};
+	aidm.WhenMessageBegin = [this](SoundMessage& m) {PostCallback(THISBACK(DataDiscussion));};
+	aidm.WhenPhraseBegin = [this](SoundPhrase& p) {PostCallback(THISBACK(DataMessage));};
 	thrd->Attach(aidm);
+	
 	
 	Ptr<Ctrl> p = this;
 	thrd->WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};

@@ -23,6 +23,18 @@ enum SampleFormat : int {
 	SND_UNKNOWN = -1
 };
 
+inline String GetSampleFormatString(SampleFormat fmt) {
+	switch (fmt) {
+		case SND_FLOAT32: return "float";
+		case SND_INT32:   return "int32";
+		case SND_INT24:   return "int24";
+		case SND_INT16:   return "int16";
+		case SND_INT8:    return "int8";
+		case SND_UINT8:   return "uint8";
+		default:          return "unknown";
+	}
+}
+
 template <class T> SampleFormat GetSampleFormat();
 template <> inline SampleFormat GetSampleFormat<float>() {return SND_FLOAT32;}
 template <> inline SampleFormat GetSampleFormat<int32>() {return SND_INT32;}

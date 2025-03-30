@@ -6,6 +6,7 @@ NAMESPACE_UPP
 class DaemonCtrl : public Ctrl {
 	WithSoundDaemon<Ctrl> form;
 	ArrayCtrl discussions, messages, phrases;
+	WithSoundDaemonClip<Ctrl> waveform;
 	TimeCallback tc;
 	
 	struct VolumeMeterCtrl : Ctrl {
@@ -29,6 +30,7 @@ class DaemonCtrl : public Ctrl {
 	void OnRecord();
 	void OnFinish(void*);
 	void OnError(String s);
+	void ClearWaveform();
 public:
 	typedef DaemonCtrl CLASSNAME;
 	DaemonCtrl();
@@ -37,6 +39,7 @@ public:
 	void DataManager();
 	void DataDiscussion();
 	void DataMessage();
+	void DataPhrase();
 };
 
 

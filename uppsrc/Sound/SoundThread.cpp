@@ -2,18 +2,18 @@
 
 NAMESPACE_UPP
 
-SoundDaemon::ThreadBase::ThreadBase(SoundDaemon& owner) : owner(owner) {
+SoundThreadBase::SoundThreadBase(SoundDaemon& owner) : owner(owner) {
 	snd.WhenFinished = THISBACK(OnFinish);
 	
 }
 
-SoundDaemon::ThreadBase::~ThreadBase() {
+SoundThreadBase::~SoundThreadBase() {
 	Stop();
 	if (snd.IsOpen())
 		snd.Stop();
 }
 
-void SoundDaemon::ThreadBase::Start() {
+void SoundThreadBase::Start() {
 	ASSERT(param.device >= 0);
 	Stop();
 	time_duration = 0;
@@ -40,44 +40,54 @@ void SoundDaemon::ThreadBase::Start() {
 	stopped = false;
 }
 
-void SoundDaemon::ThreadBase::SetDevice(SoundDevice dev, int channels) {
+void SoundThreadBase::SetDevice(SoundDevice dev, int channels) {
 	SampleFormat fmt = GetSampleFormat();
 	this->param = StreamParameters(dev,channels,fmt,dev.LowInputLatency);
 }
 
-bool SoundDaemon::ThreadBase::IsRunning() const {
+bool SoundThreadBase::IsRunning() const {
 	return running;
 }
 
-bool SoundDaemon::ThreadBase::IsOpen() const {
+bool SoundThreadBase::IsOpen() const {
 	return snd.IsOpen();
 }
 
-void SoundDaemon::ThreadBase::OnFinish(void* p) {
+void SoundThreadBase::OnFinish(void* p) {
 	running = false;
 	stopped = true;
 	WhenFinished(p);
 }
 
-void SoundDaemon::ThreadBase::Stop() {
+void SoundThreadBase::Stop() {
 	running = false;
 	while (!stopped)
 		Sleep(10);
 }
 
-void SoundDaemon::ThreadBase::SetNotRunning() {
+void SoundThreadBase::SetNotRunning() {
 	running = false;
 }
 
-void SoundDaemon::ThreadBase::Wait() {
+void SoundThreadBase::Wait() {
 	while (!stopped)
 		Sleep(10);
 }
 
-void SoundDaemon::ThreadBase::Attach(DiscussionManager& m) {
+void SoundThreadBase::Attach(SoundDiscussionManager& m) {
+	m.thrd = this;
 	mgr = &m;
 	discussion = &mgr->Add();
 	msg = &discussion->Add();
+	phrase = 0;
+}
+
+void SoundThreadBase::Detach() {
+	if (mgr && mgr->thrd == this)
+		mgr->thrd = 0;
+	mgr = 0;
+	discussion = 0;
+	msg = 0;
 	phrase = 0;
 }
 

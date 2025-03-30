@@ -4,7 +4,7 @@
 
 NAMESPACE_UPP
 
-struct DiscussionManager;
+struct SoundDiscussionManager;
 struct SoundDiscussion;
 struct SoundMessage;
 
@@ -32,19 +32,20 @@ struct SoundMessage : Pte<SoundMessage> {
 };
 
 struct SoundDiscussion : Pte<SoundDiscussion> {
-	DiscussionManager& owner;
+	SoundDiscussionManager& owner;
 	Array<SoundMessage> messages;
 	
-	SoundDiscussion(DiscussionManager& o) : owner(o) {}
+	SoundDiscussion(SoundDiscussionManager& o) : owner(o) {}
 	SoundMessage& Add();
 	void Finish();
 	
 };
 
-struct DiscussionManager : Pte<DiscussionManager> {
+struct SoundDiscussionManager : Pte<SoundDiscussionManager> {
 	Array<SoundDiscussion> discussions;
+	Ptr<SoundThreadBase> thrd;
 	
-	DiscussionManager() {}
+	SoundDiscussionManager() {}
 	SoundDiscussion& Add();
 	
 	virtual void OnPhraseBegin(SoundPhrase&);
@@ -55,7 +56,7 @@ struct DiscussionManager : Pte<DiscussionManager> {
 	virtual void OnMessageEnd(SoundMessage&) {}
 	virtual void OnDiscussionEnd(SoundDiscussion&) {}
 	
-	//DiscussionManager& Static() {static DiscussionManager d; return d;}
+	//SoundDiscussionManager& Static() {static SoundDiscussionManager d; return d;}
 	
 	Event<SoundPhrase&> WhenPhraseBegin;
 	Event<SoundMessage&> WhenMessageBegin;

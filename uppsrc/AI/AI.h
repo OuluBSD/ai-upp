@@ -29,8 +29,8 @@
 #include "CodeProcess.h"
 #include "CodeVisitor.h"
 #include "ProcessCtrl.h"
-#include "Discussion.h"
-#include "DaemonCtrl.h"
+#include "Omni.h"
+#include "OmniCtrl.h"
 
 #include "ImgGen.h"
 #include "ImgAspectFixer.h"

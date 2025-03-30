@@ -3,40 +3,40 @@
 
 NAMESPACE_UPP
 
-DaemonCtrl::DaemonCtrl() : meter(this) {
+
+	
+OmniCtrl::OmniCtrl() {
+	TabCtrl::Add(detailed.SizePos());
+	TabCtrl::Add(snd.SizePos());
+}
+
+void OmniCtrl::Data() {
+	int tab = Get();
+	int i = 0;
+	if (i++ == tab)	detailed.Data();
+	if (i++ == tab)	snd.Data();
+}
+
+void OmniCtrl::SetThread(Ptr<SoundThreadBase> thrd) {
+	snd.SetThread(thrd);
+	detailed.SetThread(thrd);
+	PostCallback(THISBACK(Data));
+}
+
+
+OmniSoundIO::OmniSoundIO() : meter(this) {
 	CtrlLayout(form);
-	CtrlLayout(waveform);
+	
 	Add(form.SizePos());
 	form.volume.Add(meter.SizePos());
 	form.autostart.Set(TheIde()->autostart_audio_src);
-	form.split.Horz();
-	for(int i = 0; i < 3; i++)
-		form.split << split[i];
-	split[0].Vert() << discussions;
-	split[1].Vert() << messages;
-	split[2].Vert() << phrases << waveform;
-	
-	waveform.waveform.Add(wavectrl.SizePos());
-	
-	discussions.AddColumn("#");
-	discussions.AddColumn("Discussion");
-	discussions.AddIndex("IDX");
-	discussions.WhenAction = THISBACK(DataDiscussion);
-	messages.AddColumn("#");
-	messages.AddColumn("Message");
-	messages.AddIndex("IDX");
-	messages.WhenAction = THISBACK(DataMessage);
-	phrases.AddColumn("#");
-	phrases.AddColumn("Phrase");
-	phrases.AddIndex("IDX");
-	phrases.WhenAction = THISBACK(DataPhrase);
-	
-	Ptr<Ctrl> p = this;
-	auto* ide = TheIde();
 	
 	OnFinish(0);
 	form.refresh <<= THISBACK(PopulateSrc);
 	form.autostart.WhenAction = [this]{TheIde()->autostart_audio_src = form.autostart.Get();};
+	
+	Ptr<Ctrl> p = this;
+	auto* ide = TheIde();
 	
 	// Silence detection time limit
 	form.time_slide.MinMax(2,500);
@@ -75,13 +75,65 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 	PopulateSrc();
 }
 
-void DaemonCtrl::Data() {
+void OmniSoundIO::Data() {
+	PopulateSrc();
+}
+
+void OmniSoundIO::SetThread(Ptr<SoundThreadBase> t) {
+	thrd = t;
+	Data();
+}
+
+
+
+
+OmniDetailedCtrl::OmniDetailedCtrl() {
+	Add(hsplit.SizePos());
+	CtrlLayout(waveform);
+	hsplit.Horz();
+	for(int i = 0; i < 3; i++)
+		hsplit << split[i];
+	split[0].Vert() << discussions;
+	split[1].Vert() << messages;
+	split[2].Vert() << phrases << waveform;
+	
+	waveform.waveform.Add(wavectrl.SizePos());
+	
+	discussions.AddColumn("#");
+	discussions.AddColumn("Discussion");
+	discussions.AddIndex("IDX");
+	discussions.WhenAction = THISBACK(DataDiscussion);
+	messages.AddColumn("#");
+	messages.AddColumn("Message");
+	messages.AddIndex("IDX");
+	messages.WhenAction = THISBACK(DataMessage);
+	phrases.AddColumn("#");
+	phrases.AddColumn("Phrase");
+	phrases.AddIndex("IDX");
+	phrases.WhenAction = THISBACK(DataPhrase);
+	
+	
+}
+
+void OmniDetailedCtrl::SetThread(Ptr<SoundThreadBase> t) {
+	if (thrd)
+		thrd->Detach();
+	thrd = t;
+	
+	OmniThread& aidm = OmniThread::Single();
+	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};
+	aidm.WhenMessageBegin = [this](SoundMessage& m) {PostCallback(THISBACK(DataDiscussion));};
+	aidm.WhenPhraseBegin = [this](SoundPhrase& p) {PostCallback(THISBACK(DataMessage));};
+	thrd->Attach(aidm);
+}
+
+void OmniDetailedCtrl::Data() {
 	
 	DataManager();
 }
 
-void DaemonCtrl::DataManager() {
-	AiDiscussionManager& dm = AiDiscussionManager::Single();
+void OmniDetailedCtrl::DataManager() {
+	OmniThread& dm = OmniThread::Single();
 	
 	for(int i = 0; i < dm.discussions.GetCount(); i++) {
 		const SoundDiscussion& sd = dm.discussions[i];
@@ -94,8 +146,8 @@ void DaemonCtrl::DataManager() {
 	
 }
 
-void DaemonCtrl::DataDiscussion() {
-	AiDiscussionManager& dm = AiDiscussionManager::Single();
+void OmniDetailedCtrl::DataDiscussion() {
+	OmniThread& dm = OmniThread::Single();
 	
 	if (!discussions.IsCursor()) {
 		messages.Clear();
@@ -117,8 +169,8 @@ void DaemonCtrl::DataDiscussion() {
 	
 }
 
-void DaemonCtrl::DataMessage() {
-	AiDiscussionManager& dm = AiDiscussionManager::Single();
+void OmniDetailedCtrl::DataMessage() {
+	OmniThread& dm = OmniThread::Single();
 	
 	if (!discussions.IsCursor() || !messages.IsCursor()) {
 		phrases.Clear();
@@ -146,8 +198,8 @@ void DaemonCtrl::DataMessage() {
 	
 }
 
-void DaemonCtrl::DataPhrase() {
-	AiDiscussionManager& dm = AiDiscussionManager::Single();
+void OmniDetailedCtrl::DataPhrase() {
+	OmniThread& dm = OmniThread::Single();
 	
 	if (!phrases.IsCursor()) {
 		ClearWaveform();
@@ -175,7 +227,7 @@ void DaemonCtrl::DataPhrase() {
 	wavectrl.Refresh();
 }
 
-void DaemonCtrl::ClearWaveform() {
+void OmniDetailedCtrl::ClearWaveform() {
 	waveform.duration.SetData(Value());
 	waveform.channels.SetData(Value());
 	waveform.samplerate.SetData(Value());
@@ -183,7 +235,7 @@ void DaemonCtrl::ClearWaveform() {
 	wavectrl.Clear();
 }
 
-void DaemonCtrl::PopulateSrc() {
+void OmniSoundIO::PopulateSrc() {
 	const SoundSystem& s=SoundSys();
 	form.src.Clear();
 	form.src->SetRoot(Null,-1,"Use default input device");
@@ -202,12 +254,7 @@ void DaemonCtrl::PopulateSrc() {
 	form.src <<= ide->audio_src;
 }
 
-void DaemonCtrl::OnCapture(SoundClip<uint8> data) {
-	LOG("DATA");
-	TODO
-}
-
-void DaemonCtrl::OnRecord() {
+void OmniSoundIO::OnRecord() {
 	form.error.Clear();
 	
 	SoundDevice dev;
@@ -228,17 +275,10 @@ void DaemonCtrl::OnRecord() {
 	
 	SoundDaemon& sd = SoundDaemon::Static();
 	hash_t stream_hash = dev.GetHashValue();
-	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
+	thrd = &sd.template GetAddThread<uint8>(dev, 1);
 	
 	thrd->silence_timelimit = TheIde()->audio_timelimit;
 	thrd->silence_treshold = TheIde()->audio_volumetreshold;
-	
-	AiDiscussionManager& aidm = AiDiscussionManager::Single();
-	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};
-	aidm.WhenMessageBegin = [this](SoundMessage& m) {PostCallback(THISBACK(DataDiscussion));};
-	aidm.WhenPhraseBegin = [this](SoundPhrase& p) {PostCallback(THISBACK(DataMessage));};
-	thrd->Attach(aidm);
-	
 	
 	Ptr<Ctrl> p = this;
 	thrd->WhenFinished = [this,p](void* arg){if (p) OnFinish(arg);};
@@ -248,34 +288,34 @@ void DaemonCtrl::OnRecord() {
 	OnStart();
 }
 
-void DaemonCtrl::OnStart() {
+void OmniSoundIO::OnStart() {
 	form.rec.SetImage(Image());
 	form.rec.SetLabel(t_("Stop"));
 	form.rec.WhenAction = THISBACK(Stop);
 	EnableMeter();
 }
 
-void DaemonCtrl::Stop() {
+void OmniSoundIO::Stop() {
 	if (thrd) {
 		thrd->Stop();
 		OnFinish(0);
 	}
 }
 
-void DaemonCtrl::EnableMeter() {
+void OmniSoundIO::EnableMeter() {
 	tc.Set(-100, [this]{meter.Refresh();});
 }
 
-void DaemonCtrl::DisableMeter() {
+void OmniSoundIO::DisableMeter() {
 	tc.Kill();
 }
 
-void DaemonCtrl::OnError(String s) {
+void OmniSoundIO::OnError(String s) {
 	form.error <<= "[1 Error: " + s;
 	DisableMeter();
 }
 
-void DaemonCtrl::OnFinish(void*) {
+void OmniSoundIO::OnFinish(void*) {
 	GuiLock __;
 	form.rec.SetImage(AIImages::Record());
 	form.rec.SetLabel(t_("Record"));
@@ -283,11 +323,11 @@ void DaemonCtrl::OnFinish(void*) {
 	DisableMeter();
 }
 
-DaemonCtrl::VolumeMeterCtrl::VolumeMeterCtrl(DaemonCtrl* c) : c(*c) {
+OmniSoundIO::VolumeMeterCtrl::VolumeMeterCtrl(OmniSoundIO* c) : c(*c) {
 	SetFrame(InsetFrame());
 }
 
-void DaemonCtrl::VolumeMeterCtrl::Paint(Draw& d) {
+void OmniSoundIO::VolumeMeterCtrl::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, White());
 	if (c.thrd) {

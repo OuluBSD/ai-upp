@@ -1,6 +1,6 @@
 
 template <class Sample>
-void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
+void SoundThread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	double samplerate = snd.GetSampleRate();
 	bool was_recording = is_recording;
 	CheckEnd(args);
@@ -67,7 +67,7 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 }
 
 template<class Sample>
-double SoundDaemon::Thread<Sample>::GetVolume() const {
+double SoundThread<Sample>::GetVolume() const {
 	if (meter.IsEmpty())
 		return 0;
 	

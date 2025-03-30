@@ -12,6 +12,7 @@ file
 	SoundDaemon.h,
 	SoundDaemon.cpp,
 	SoundDaemon.inl highlight cpp,
+	SoundThread.h,
 	SoundThread.cpp,
 	Discussion.h,
 	Discussion.cpp,

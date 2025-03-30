@@ -10,8 +10,9 @@
 
 #include "Types.h"
 #include "SoundClip.h"
-#include "Discussion.h"
 #include "SoundSystem.h"
+#include "SoundThread.h"
+#include "Discussion.h"
 #include "SoundDaemon.h"
 
 #endif

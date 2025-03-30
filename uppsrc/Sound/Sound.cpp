@@ -4,7 +4,7 @@ NAMESPACE_UPP;
 
 extern "C"{
 	//this is a C callable function, to wrap U++ Callback into PaStreamCallback
-	int StreamCallback(const void *input, void *output, unsigned long frames, 
+	int StreamCallback(const void *input, void *output, unsigned long frames,
 	          const PaStreamCallbackTimeInfo *timeinfo, unsigned long flags, void *data)
 	{
 		if (Thread::IsShutdownThreads())

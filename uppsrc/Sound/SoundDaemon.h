@@ -36,6 +36,8 @@ public:
 		void SetDevice(SoundDevice dev, int channels);
 		void Start();
 		void Stop();
+		void SetNotRunning();
+		void Wait();
 		void Attach(DiscussionManager& m);
 		void CheckEnd(StreamCallbackArgs& args);
 		virtual SampleFormat GetSampleFormat() const = 0;

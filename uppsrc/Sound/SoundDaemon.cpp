@@ -8,7 +8,10 @@ SoundDaemon::SoundDaemon() {
 }
 
 SoundDaemon::~SoundDaemon() {
-	
+	for (auto it : ~thrds)
+		it.value.SetNotRunning();
+	for (auto it : ~thrds)
+		it.value.Wait();
 }
 
 SoundDaemon& SoundDaemon::Static() {

@@ -8,6 +8,7 @@ SoundDaemon::ThreadBase::ThreadBase(SoundDaemon& owner) : owner(owner) {
 }
 
 SoundDaemon::ThreadBase::~ThreadBase() {
+	Stop();
 	if (snd.IsOpen())
 		snd.Stop();
 }
@@ -60,7 +61,15 @@ void SoundDaemon::ThreadBase::OnFinish(void* p) {
 
 void SoundDaemon::ThreadBase::Stop() {
 	running = false;
-	snd.Stop();
+	while (!stopped)
+		Sleep(10);
+}
+
+void SoundDaemon::ThreadBase::SetNotRunning() {
+	running = false;
+}
+
+void SoundDaemon::ThreadBase::Wait() {
 	while (!stopped)
 		Sleep(10);
 }

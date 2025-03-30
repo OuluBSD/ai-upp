@@ -9,17 +9,27 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 	Add(form.SizePos());
 	form.volume.Add(meter.SizePos());
 	form.autostart.Set(TheIde()->autostart_audio_src);
-	form.split.Horz() << discussions << messages << phrases << waveform;
+	form.split.Horz();
+	for(int i = 0; i < 3; i++)
+		form.split << split[i];
+	split[0].Vert() << discussions;
+	split[1].Vert() << messages;
+	split[2].Vert() << phrases << waveform;
+	
+	waveform.waveform.Add(wavectrl.SizePos());
 	
 	discussions.AddColumn("#");
 	discussions.AddColumn("Discussion");
 	discussions.AddIndex("IDX");
+	discussions.WhenAction = THISBACK(DataDiscussion);
 	messages.AddColumn("#");
 	messages.AddColumn("Message");
 	messages.AddIndex("IDX");
+	messages.WhenAction = THISBACK(DataMessage);
 	phrases.AddColumn("#");
 	phrases.AddColumn("Phrase");
 	phrases.AddIndex("IDX");
+	phrases.WhenAction = THISBACK(DataPhrase);
 	
 	Ptr<Ctrl> p = this;
 	auto* ide = TheIde();
@@ -35,14 +45,14 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 	form.time_slide.WhenSlideFinish =[this]{
 		double t = (double)form.time_slide.GetData() * 0.01;
 		TheIde()->audio_timelimit = t;
-		silence_timelimit = t;
 		form.time_val.SetData(t);
+		if (thrd) thrd->silence_timelimit = t;
 	};
 	form.time_val.WhenEnter = [this]{
 		double t = form.time_val.GetData();
 		TheIde()->audio_timelimit = t;
-		silence_timelimit = t;
 		form.time_slide.SetData(t * 100);
+		if (thrd) thrd->silence_timelimit = t;
 	};
 	
 	// Silence detection volume treshold
@@ -52,18 +62,15 @@ DaemonCtrl::DaemonCtrl() : meter(this) {
 	form.volume_slide.WhenSlideFinish =[this]{
 		double t = (double)form.volume_slide.GetData() * 0.01;
 		TheIde()->audio_volumetreshold = t;
-		this->silence_treshold = t;
 		form.volume_val.SetData(t);
+		if (thrd) thrd->silence_treshold = t;
 	};
 	form.volume_val.WhenEnter = [this]{
 		double t = form.volume_val.GetData();
 		TheIde()->audio_volumetreshold = t;
-		this->silence_treshold = t;
 		form.volume_slide.SetData(t * 100);
+		if (thrd) thrd->silence_treshold = t;
 	};
-	
-	silence_timelimit = TheIde()->audio_timelimit;
-	silence_treshold = TheIde()->audio_volumetreshold;
 	
 	PopulateSrc();
 }
@@ -124,15 +131,18 @@ void DaemonCtrl::DataMessage() {
 	int msg_i = messages.Get("IDX");
 	const SoundMessage& sm = sd.messages[msg_i];
 	
-	for(int i = 0; i < sm.phrases.GetCount(); i++) {
+	int prev_c = phrases.GetCount();
+	int c = sm.phrases.GetCount();
+	for(int i = 0; i < c; i++) {
 		const auto& it = sm.phrases[i];
 		phrases.Set(i, 0, i);
 		phrases.Set(i, "IDX", i);
 	}
-	phrases.SetCount(sm.phrases.GetCount());
-	if (!phrases.IsCursor() && phrases.GetCount())
+	phrases.SetCount(c);
+	if (c && prev_c == c-1 && sm.phrases[c-1].current && sm.phrases[c-1].current->IsUpdating())
+		phrases.SetCursor(c-1);
+	else if (!phrases.IsCursor() && phrases.GetCount())
 		phrases.SetCursor(0);
-	
 	
 }
 
@@ -157,10 +167,12 @@ void DaemonCtrl::DataPhrase() {
 	}
 	
 	const SoundClipBase& clip = *sp.current;
-	waveform.duration.SetData(Format("%f seconds", clip.GetDuration()));
+	waveform.duration.SetData(Format("%f.1 seconds", clip.GetDuration()));
 	waveform.channels.SetData(IntStr(clip.GetChannels()));
 	waveform.samplerate.SetData(IntStr(clip.GetSampleRate()));
 	waveform.sampleformat.SetData(GetSampleFormatString(clip.GetFormat()));
+	wavectrl.SetClip(clip);
+	wavectrl.Refresh();
 }
 
 void DaemonCtrl::ClearWaveform() {
@@ -168,6 +180,7 @@ void DaemonCtrl::ClearWaveform() {
 	waveform.channels.SetData(Value());
 	waveform.samplerate.SetData(Value());
 	waveform.sampleformat.SetData(Value());
+	wavectrl.Clear();
 }
 
 void DaemonCtrl::PopulateSrc() {
@@ -216,6 +229,9 @@ void DaemonCtrl::OnRecord() {
 	SoundDaemon& sd = SoundDaemon::Static();
 	hash_t stream_hash = dev.GetHashValue();
 	thrd = &sd.template GetAddThread<uint8>(dev, 1, THISBACK(OnCapture));
+	
+	thrd->silence_timelimit = TheIde()->audio_timelimit;
+	thrd->silence_treshold = TheIde()->audio_volumetreshold;
 	
 	AiDiscussionManager& aidm = AiDiscussionManager::Single();
 	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};

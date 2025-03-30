@@ -20,6 +20,8 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	const Sample *rptr = (const Sample*)args.input;
 	if (is_recording) {
 		if (!was_recording) {
+			if (current.data)
+				current.data->updating = false;
 			WhenClipEnd(current);
 			if (phrase && mgr)
 				mgr->OnPhraseEnd(*phrase);
@@ -27,6 +29,7 @@ void SoundDaemon::Thread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 			Clip::Data& cdata = *data->data;
 			cdata.channels = 1;
 			cdata.samplerate = samplerate;
+			cdata.updating = true;
 			WhenClipBegin(current);
 			if (msg) {
 				phrase = &msg->Add(); // calls OnPhraseBegin

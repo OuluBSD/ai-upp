@@ -5,66 +5,9 @@ NAMESPACE_UPP
 
 class SoundDaemon {
 public:
-	struct ThreadBase : Pte<ThreadBase> {
-		SoundDaemon& owner;
-		Sound snd;
-		bool running = false, stopped = true;
-		double meter_duration = 0.1;
-		double time_duration = 0;
-		double silence_duration = 0;
-		bool is_recording = false;
-		StreamParameters param;
-		Ptr<DiscussionManager> mgr;
-		Ptr<SoundDiscussion> discussion;
-		Ptr<SoundMessage> msg;
-		Ptr<SoundPhrase> phrase;
-		
-		// User params
-		double silence_treshold = 0.1;
-		double silence_timelimit = 1.0;
-		
-		Event<void*> WhenFinished;
-		Event<String> WhenError;
-		
-		typedef ThreadBase CLASSNAME;
-		ThreadBase(SoundDaemon& owner);
-		virtual ~ThreadBase();
-		bool IsRunning() const;
-		bool IsOpen() const;
-		void OnFinish(void*);
-		const Sound& GetSound() const {return snd;}
-		void SetDevice(SoundDevice dev, int channels);
-		void Start();
-		void Stop();
-		void SetNotRunning();
-		void Wait();
-		void Attach(DiscussionManager& m);
-		void CheckEnd(StreamCallbackArgs& args);
-		virtual SampleFormat GetSampleFormat() const = 0;
-		virtual void ClearData() = 0;
-		virtual void* GetDataPtr() = 0;
-		virtual double GetVolume() const = 0;
-		virtual void RecordCallback(StreamCallbackArgs& args) = 0;
-	};
 	
-	template <class Sample>
-	struct Thread : ThreadBase {
-		using Clip = SoundClip<Sample>;
-		Clip current;
-		Clip meter;
-		int meter_index = 0;
-		
-		Thread(SoundDaemon& owner) : ThreadBase(owner) {}
-		SampleFormat GetSampleFormat() const override {return ::UPP::template GetSampleFormat<Sample>();}
-		void ClearData() override {current.Clear(); meter.Clear();}
-		void* GetDataPtr() override {return &current;}
-		double GetVolume() const override;
-		void RecordCallback(StreamCallbackArgs& args) override;
-		
-		Event<Clip> WhenClipBegin, WhenClipEnd;
-	};
 private:
-	ArrayMap<hash_t, ThreadBase> thrds;
+	ArrayMap<hash_t, SoundThreadBase> thrds;
 	
 public:
 	typedef SoundDaemon CLASSNAME;
@@ -73,10 +16,10 @@ public:
 	
 	static SoundDaemon& Static();
 	
-	ThreadBase& GetAddThread(SoundDevice dev, SampleFormat sample, int channels);
+	SoundThreadBase& GetAddThread(SoundDevice dev, SampleFormat sample, int channels);
 	
 	template <class T>
-	SoundDaemon::Thread<T>& GetAddThread(SoundDevice dev, int channels, Event<SoundClip<T>> WhenCapture=Event<SoundClip<T>>()) {
+	SoundThread<T>& GetAddThread(SoundDevice dev, int channels) {
 		SampleFormat sample = GetSampleFormat<T>();
 		CombineHash ch;
 		ch.Do(dev);
@@ -85,8 +28,8 @@ public:
 		hash_t h = ch;
 		int i = thrds.Find(h);
 		if (i >= 0)
-			return dynamic_cast<SoundDaemon::Thread<T>&>(thrds[i]);
-		auto* p = new SoundDaemon::Thread<T>(*this);
+			return dynamic_cast<SoundThread<T>&>(thrds[i]);
+		auto* p = new SoundThread<T>(*this);
 		p->SetDevice(dev, channels);
 		thrds.Add(h, p);
 		return *p;

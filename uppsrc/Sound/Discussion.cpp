@@ -29,21 +29,21 @@ SoundMessage& SoundDiscussion::Add() {
 	return o;
 }
 
-SoundDiscussion& DiscussionManager::Add() {
+SoundDiscussion& SoundDiscussionManager::Add() {
 	auto& o = discussions.Add(new SoundDiscussion(*this));
 	OnDiscussionBegin(o);
 	return o;
 }
 
-void DiscussionManager::OnPhraseBegin(SoundPhrase& s) {
+void SoundDiscussionManager::OnPhraseBegin(SoundPhrase& s) {
 	WhenPhraseBegin(s);
 }
 
-void DiscussionManager::OnMessageBegin(SoundMessage& s) {
+void SoundDiscussionManager::OnMessageBegin(SoundMessage& s) {
 	WhenMessageBegin(s);
 }
 
-void DiscussionManager::OnDiscussionBegin(SoundDiscussion& s) {
+void SoundDiscussionManager::OnDiscussionBegin(SoundDiscussion& s) {
 	WhenDiscussionBegin(s);
 }
 

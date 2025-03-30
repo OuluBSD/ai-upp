@@ -19,7 +19,7 @@ struct AITaskDlg : TopWindow {
 	MetaEnvTree menv;
 	TaskCtrl tasks;
 	PlaygroundCtrl playground;
-	DaemonCtrl daemon;
+	OmniCtrl daemon;
 	
 	Ide* theide = 0;
 	

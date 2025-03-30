@@ -19,7 +19,7 @@ SoundDaemon& SoundDaemon::Static() {
 	return sd;
 }
 
-SoundDaemon::ThreadBase& SoundDaemon::GetAddThread(SoundDevice dev, SampleFormat sample, int channels) {
+SoundThreadBase& SoundDaemon::GetAddThread(SoundDevice dev, SampleFormat sample, int channels) {
 	CombineHash ch;
 	ch.Do(dev);
 	ch.Do((int)sample);
@@ -29,23 +29,23 @@ SoundDaemon::ThreadBase& SoundDaemon::GetAddThread(SoundDevice dev, SampleFormat
 	if (i >= 0)
 		return thrds[i];
 	if (sample == paUInt8) {
-		auto& t = thrds.Add(h, new SoundDaemon::Thread<uint8>(*this));
+		auto& t = thrds.Add(h, new SoundThread<uint8>(*this));
 		t.SetDevice(dev, channels);
 		return t;
 	}
 	else if (sample == paInt16) {
-		auto& t = thrds.Add(h, new SoundDaemon::Thread<int16>(*this));
+		auto& t = thrds.Add(h, new SoundThread<int16>(*this));
 		t.SetDevice(dev, channels);
 		return t;
 	}
 	else {
 		TODO
-		static SoundDaemon::Thread<int16> t(*this);
+		static SoundThread<int16> t(*this);
 		return t;
 	}
 }
 
-void SoundDaemon::ThreadBase::CheckEnd(StreamCallbackArgs& args) {
+void SoundThreadBase::CheckEnd(StreamCallbackArgs& args) {
 	double samplerate = snd.GetSampleRate();
 	double ts = args.fpb / (double)samplerate;
 	time_duration += ts;

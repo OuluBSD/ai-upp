@@ -11,6 +11,10 @@ CtrlFrame& TreeDropFrame()
 }
 
 PopUpTree::PopUpTree() {
+	showpos = Null;
+	maxheight = Null;
+	showwidth = Null;
+	up = Null;
 	SetFrame(TreeDropFrame());
 	Accel();
 	MouseMoveCursor();

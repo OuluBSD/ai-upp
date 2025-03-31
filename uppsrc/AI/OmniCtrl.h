@@ -3,6 +3,7 @@
 
 NAMESPACE_UPP
 
+class OmniCtrl;
 
 struct OmniDetailedCtrl : Ctrl {
 	Splitter hsplit;
@@ -14,7 +15,7 @@ struct OmniDetailedCtrl : Ctrl {
 	
 	typedef OmniDetailedCtrl CLASSNAME;
 	OmniDetailedCtrl();
-	void SetThread(Ptr<SoundThreadBase> thrd);
+	void SetSoundThread(Ptr<SoundThreadBase> thrd);
 	void Data();
 	void DataManager();
 	void DataDiscussion();
@@ -24,22 +25,27 @@ struct OmniDetailedCtrl : Ctrl {
 };
 
 
-struct OmniSoundIO : Ctrl {
+struct OmniDeviceIO : PageCtrl {
 	struct VolumeMeterCtrl : Ctrl {
-		OmniSoundIO& c;
-		VolumeMeterCtrl(OmniSoundIO* c);
+		OmniDeviceIO* c = 0;
+		VolumeMeterCtrl();
 		void Paint(Draw& d) override;
 	};
 	
-	WithSoundDaemon<Ctrl> form;
-	VolumeMeterCtrl meter;
-	Ptr<SoundThreadBase> thrd;
-	TimeCallback tc;
+	struct {
+		WithSoundDaemon<Ctrl> form;
+		VolumeMeterCtrl meter;
+		Ptr<SoundThreadBase> thrd;
+		TimeCallback tc;
+	} snd;
 	
-	typedef OmniSoundIO CLASSNAME;
-	OmniSoundIO();
+	OmniCtrl* owner = 0;
+	
+	typedef OmniDeviceIO CLASSNAME;
+	OmniDeviceIO();
+	void InitSound();
 	void Data();
-	void SetThread(Ptr<SoundThreadBase> thrd);
+	void SetSoundThread(Ptr<SoundThreadBase> thrd);
 	void PopulateSrc();
 	void OnFinish(void*);
 	void EnableMeter();
@@ -52,14 +58,14 @@ struct OmniSoundIO : Ctrl {
 
 class OmniCtrl : public TabCtrl {
 	OmniDetailedCtrl detailed;
-	OmniSoundIO snd;
+	OmniDeviceIO dev;
 	
 public:
 	typedef OmniCtrl CLASSNAME;
 	OmniCtrl();
 	
 	void Data();
-	void SetThread(Ptr<SoundThreadBase> thrd);
+	void SetSoundThread(Ptr<SoundThreadBase> thrd);
 };
 
 

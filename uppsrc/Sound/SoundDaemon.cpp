@@ -49,7 +49,7 @@ void SoundThreadBase::CheckEnd(StreamCallbackArgs& args) {
 	double samplerate = snd.GetSampleRate();
 	double ts = args.fpb / (double)samplerate;
 	time_duration += ts;
-	double vol = GetVolume();
+	double vol = GetPeakValue();
 	bool do_recording = vol > silence_treshold;
 	if (!is_recording) {
 		if (do_recording) {

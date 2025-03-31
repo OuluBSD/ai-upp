@@ -4,6 +4,13 @@
 
 NAMESPACE_UPP
 
+class CompletionThread {
+	
+public:
+	typedef CompletionThread CLASSNAME;
+	
+};
+
 /*
 ChatAgent
 	- inter-agent-communication
@@ -52,6 +59,7 @@ public:
 };
 
 class OmniThread :
+	public CompletionThread,
 	public ChatThread,
 	public SpeechTranscriptionThread,
 	public SpeechGenerationThread,

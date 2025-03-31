@@ -234,7 +234,7 @@ protected:
 	Vector<int> line2;
 
 	struct SyntaxPos {
-		int    line;
+		int    line = 0;
 		String data;
 		
 		void Clear() { line = 0; data.Clear(); }

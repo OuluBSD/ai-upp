@@ -8,14 +8,17 @@ SoundThreadBase::SoundThreadBase(SoundDaemon& owner) : owner(owner) {
 }
 
 SoundThreadBase::~SoundThreadBase() {
-	Stop();
 	if (snd.IsOpen())
-		snd.Stop();
+		snd.Abort();
 }
 
 void SoundThreadBase::Start() {
 	ASSERT(param.device >= 0);
-	Stop();
+	if (snd.IsOpen()) {
+		snd.Abort();
+		running = false;
+		stopped = true;
+	}
 	time_duration = 0;
 	silence_duration = 0;
 	is_recording = false;
@@ -67,6 +70,11 @@ void SoundThreadBase::Stop() {
 
 void SoundThreadBase::SetNotRunning() {
 	running = false;
+}
+
+void SoundThreadBase::Abort() {
+	if (snd.IsOpen())
+		snd.Abort();
 }
 
 void SoundThreadBase::Wait() {

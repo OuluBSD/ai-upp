@@ -5,12 +5,9 @@ void SoundThread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	bool was_recording = is_recording;
 	CheckEnd(args);
 	
-	Clip *data = &current;// (Clip*)args.data;
-	if (!data) return;
-	
 	if (meter.IsNull())
 		meter.Create();
-	Clip::Data& meter = *this->meter.data;
+	auto& meter = *this->meter.data;
 	int meter_sample_count = max<int>(1, samplerate * meter_duration);
 	meter.data.SetCount(meter_sample_count, 0);
 	meter_index = meter_index % meter_sample_count;
@@ -25,18 +22,17 @@ void SoundThread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 			WhenClipEnd(current);
 			if (phrase && mgr)
 				mgr->OnPhraseEnd(*phrase);
-			data->Create();
-			Clip::Data& cdata = *data->data;
-			cdata.channels = 1;
-			cdata.samplerate = samplerate;
-			cdata.updating = true;
+			current.Create();
+			current.data->channels = 1;
+			current.data->samplerate = samplerate;
+			current.data->updating = true;
 			WhenClipBegin(current);
 			if (msg) {
 				phrase = &msg->Add(); // calls OnPhraseBegin
-				phrase->BeginClip(*data);
+				phrase->BeginClip(current);
 			}
 		}
-		Clip::Data& cdata = *data->data;
+		auto& cdata = *current.data;
 		int index = cdata.data.GetCount();
 		cdata.data.Reserve(index + args.fpb);
 		if (args.input != NULL) {

@@ -11,9 +11,9 @@ file
 	SoundSystem.cpp,
 	SoundDaemon.h,
 	SoundDaemon.cpp,
-	SoundDaemon.inl highlight cpp,
 	SoundThread.h,
 	SoundThread.cpp,
+	SoundThread.inl highlight cpp,
 	Discussion.h,
 	Discussion.cpp,
 	SoundClip.h;

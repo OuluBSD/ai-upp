@@ -26,10 +26,6 @@ void OmniCtrl::SetSoundThread(Ptr<SoundThreadBase> thrd) {
 
 
 OmniDeviceIO::OmniDeviceIO() {
-	InitSound();
-}
-
-void OmniDeviceIO::InitSound() {
 	auto& form = snd.form;
 	auto& thrd = snd.thrd;
 	auto& meter = snd.meter;
@@ -86,7 +82,7 @@ void OmniDeviceIO::InitSound() {
 		if (thrd) thrd->silence_treshold = t;
 	};
 	
-	PopulateSrc();
+	PostCallback(THISBACK(PopulateSrc));
 }
 
 void OmniDeviceIO::Data() {

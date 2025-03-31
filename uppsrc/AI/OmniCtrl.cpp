@@ -6,34 +6,44 @@ NAMESPACE_UPP
 
 	
 OmniCtrl::OmniCtrl() {
-	TabCtrl::Add(detailed.SizePos());
-	TabCtrl::Add(snd.SizePos());
+	dev.owner = this;
+	TabCtrl::Add(detailed.SizePos(), "Detailed");
+	TabCtrl::Add(dev.SizePos(), "Devices");
 }
 
 void OmniCtrl::Data() {
 	int tab = Get();
 	int i = 0;
 	if (i++ == tab)	detailed.Data();
-	if (i++ == tab)	snd.Data();
+	if (i++ == tab)	dev.Data();
 }
 
-void OmniCtrl::SetThread(Ptr<SoundThreadBase> thrd) {
-	snd.SetThread(thrd);
-	detailed.SetThread(thrd);
+void OmniCtrl::SetSoundThread(Ptr<SoundThreadBase> thrd) {
+	dev.SetSoundThread(thrd);
+	detailed.SetSoundThread(thrd);
 	PostCallback(THISBACK(Data));
 }
 
 
-OmniSoundIO::OmniSoundIO() : meter(this) {
+OmniDeviceIO::OmniDeviceIO() {
+	InitSound();
+}
+
+void OmniDeviceIO::InitSound() {
+	auto& form = snd.form;
+	auto& thrd = snd.thrd;
+	auto& meter = snd.meter;
+	
+	meter.c = this;
 	CtrlLayout(form);
 	
-	Add(form.SizePos());
+	PageCtrl::Add(form.SizePos(), "Sound").Height(320);
 	form.volume.Add(meter.SizePos());
 	form.autostart.Set(TheIde()->autostart_audio_src);
 	
 	OnFinish(0);
 	form.refresh <<= THISBACK(PopulateSrc);
-	form.autostart.WhenAction = [this]{TheIde()->autostart_audio_src = form.autostart.Get();};
+	form.autostart.WhenAction = [this]{TheIde()->autostart_audio_src = snd.form.autostart.Get();};
 	
 	Ptr<Ctrl> p = this;
 	auto* ide = TheIde();
@@ -42,13 +52,15 @@ OmniSoundIO::OmniSoundIO() : meter(this) {
 	form.time_slide.MinMax(2,500);
 	form.time_slide.SetData(ide->audio_timelimit * 100);
 	form.time_val.SetData(ide->audio_timelimit);
-	form.time_slide.WhenSlideFinish =[this]{
+	form.time_slide.WhenSlideFinish = [this]{
+		auto& form = snd.form; auto& thrd = snd.thrd;
 		double t = (double)form.time_slide.GetData() * 0.01;
 		TheIde()->audio_timelimit = t;
 		form.time_val.SetData(t);
 		if (thrd) thrd->silence_timelimit = t;
 	};
 	form.time_val.WhenEnter = [this]{
+		auto& form = snd.form; auto& thrd = snd.thrd;
 		double t = form.time_val.GetData();
 		TheIde()->audio_timelimit = t;
 		form.time_slide.SetData(t * 100);
@@ -60,12 +72,14 @@ OmniSoundIO::OmniSoundIO() : meter(this) {
 	form.volume_slide.SetData(ide->audio_volumetreshold * 100);
 	form.volume_val.SetData(ide->audio_volumetreshold);
 	form.volume_slide.WhenSlideFinish =[this]{
+		auto& form = snd.form; auto& thrd = snd.thrd;
 		double t = (double)form.volume_slide.GetData() * 0.01;
 		TheIde()->audio_volumetreshold = t;
 		form.volume_val.SetData(t);
 		if (thrd) thrd->silence_treshold = t;
 	};
 	form.volume_val.WhenEnter = [this]{
+		auto& form = snd.form; auto& thrd = snd.thrd;
 		double t = form.volume_val.GetData();
 		TheIde()->audio_volumetreshold = t;
 		form.volume_slide.SetData(t * 100);
@@ -75,12 +89,12 @@ OmniSoundIO::OmniSoundIO() : meter(this) {
 	PopulateSrc();
 }
 
-void OmniSoundIO::Data() {
+void OmniDeviceIO::Data() {
 	PopulateSrc();
 }
 
-void OmniSoundIO::SetThread(Ptr<SoundThreadBase> t) {
-	thrd = t;
+void OmniDeviceIO::SetSoundThread(Ptr<SoundThreadBase> t) {
+	snd.thrd = t;
 	Data();
 }
 
@@ -115,7 +129,7 @@ OmniDetailedCtrl::OmniDetailedCtrl() {
 	
 }
 
-void OmniDetailedCtrl::SetThread(Ptr<SoundThreadBase> t) {
+void OmniDetailedCtrl::SetSoundThread(Ptr<SoundThreadBase> t) {
 	if (thrd)
 		thrd->Detach();
 	thrd = t;
@@ -235,7 +249,9 @@ void OmniDetailedCtrl::ClearWaveform() {
 	wavectrl.Clear();
 }
 
-void OmniSoundIO::PopulateSrc() {
+void OmniDeviceIO::PopulateSrc() {
+	auto& form = snd.form;
+	auto& thrd = snd.thrd;
 	const SoundSystem& s=SoundSys();
 	form.src.Clear();
 	form.src->SetRoot(Null,-1,"Use default input device");
@@ -254,7 +270,9 @@ void OmniSoundIO::PopulateSrc() {
 	form.src <<= ide->audio_src;
 }
 
-void OmniSoundIO::OnRecord() {
+void OmniDeviceIO::OnRecord() {
+	auto& form = snd.form;
+	auto& thrd = snd.thrd;
 	form.error.Clear();
 	
 	SoundDevice dev;
@@ -275,7 +293,11 @@ void OmniSoundIO::OnRecord() {
 	
 	SoundDaemon& sd = SoundDaemon::Static();
 	hash_t stream_hash = dev.GetHashValue();
-	thrd = &sd.template GetAddThread<uint8>(dev, 1);
+	
+	if (owner)
+		owner->SetSoundThread(&sd.template GetAddThread<uint8>(dev, 1));
+	else
+		SetSoundThread(&sd.template GetAddThread<uint8>(dev, 1));
 	
 	thrd->silence_timelimit = TheIde()->audio_timelimit;
 	thrd->silence_treshold = TheIde()->audio_volumetreshold;
@@ -288,34 +310,38 @@ void OmniSoundIO::OnRecord() {
 	OnStart();
 }
 
-void OmniSoundIO::OnStart() {
+void OmniDeviceIO::OnStart() {
+	auto& form = snd.form;
+	auto& thrd = snd.thrd;
 	form.rec.SetImage(Image());
 	form.rec.SetLabel(t_("Stop"));
 	form.rec.WhenAction = THISBACK(Stop);
 	EnableMeter();
 }
 
-void OmniSoundIO::Stop() {
+void OmniDeviceIO::Stop() {
+	auto& thrd = snd.thrd;
 	if (thrd) {
 		thrd->Stop();
 		OnFinish(0);
 	}
 }
 
-void OmniSoundIO::EnableMeter() {
-	tc.Set(-100, [this]{meter.Refresh();});
+void OmniDeviceIO::EnableMeter() {
+	snd.tc.Set(-100, [this]{snd.meter.Refresh();});
 }
 
-void OmniSoundIO::DisableMeter() {
-	tc.Kill();
+void OmniDeviceIO::DisableMeter() {
+	snd.tc.Kill();
 }
 
-void OmniSoundIO::OnError(String s) {
-	form.error <<= "[1 Error: " + s;
+void OmniDeviceIO::OnError(String s) {
+	snd.form.error <<= "[1 Error: " + s;
 	DisableMeter();
 }
 
-void OmniSoundIO::OnFinish(void*) {
+void OmniDeviceIO::OnFinish(void*) {
+	auto& form = snd.form;
 	GuiLock __;
 	form.rec.SetImage(AIImages::Record());
 	form.rec.SetLabel(t_("Record"));
@@ -323,15 +349,15 @@ void OmniSoundIO::OnFinish(void*) {
 	DisableMeter();
 }
 
-OmniSoundIO::VolumeMeterCtrl::VolumeMeterCtrl(OmniSoundIO* c) : c(*c) {
+OmniDeviceIO::VolumeMeterCtrl::VolumeMeterCtrl() {
 	SetFrame(InsetFrame());
 }
 
-void OmniSoundIO::VolumeMeterCtrl::Paint(Draw& d) {
+void OmniDeviceIO::VolumeMeterCtrl::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, White());
-	if (c.thrd) {
-		double vol = c.thrd->GetVolume();
+	if (c && c->snd.thrd) {
+		double vol = c->snd.thrd->GetVolume();
 		int h = sz.cy * vol;
 		Color clr = Blue();
 		d.DrawRect(RectC(0,sz.cy-h,sz.cx,h), clr);

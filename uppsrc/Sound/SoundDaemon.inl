@@ -67,6 +67,25 @@ void SoundThread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 }
 
 template<class Sample>
+double SoundThread<Sample>::GetPeakValue() const {
+	if (meter.IsEmpty())
+		return 0;
+	
+	if (!meter.IsEmpty()) {
+		const Sample* it = meter.Begin();
+		const Sample* it_end = meter.End();
+		double peak = 0;
+		while (it != it_end) {
+			Sample val = *it++;
+			double dbl = fabs(SampleToDouble<Sample>(val));
+			peak = max(peak, dbl);
+		}
+		return peak;
+	}
+	return 0;
+}
+
+template<class Sample>
 double SoundThread<Sample>::GetVolume() const {
 	if (meter.IsEmpty())
 		return 0;

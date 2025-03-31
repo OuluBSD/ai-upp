@@ -56,7 +56,7 @@ struct SoundClip : Moveable<SoundClip<Sample>>, SoundClipBase {
 	bool IsUpdating() const override {return data ? data->updating : false;}
 	SoundClipBase* Clone() const override {return new SoundClip<Sample>(*this);}
 	int GetSampleRate() const override {return data ? data->samplerate : 0;}
-	int GetChannels() const override {return data ? data->samplerate : 0;}
+	int GetChannels() const override {return data ? data->channels : 0;}
 	SampleFormat GetFormat() const override {return GetSampleFormat();}
 	int GetCount() const override {return data ? data->data.GetCount() : 0;}
 	void GetValues(int begin, int end, Vector<double>& values) override {

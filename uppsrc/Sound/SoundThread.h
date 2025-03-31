@@ -24,7 +24,7 @@ struct SoundThreadBase : Pte<SoundThreadBase> {
 	Ptr<SoundPhrase> phrase;
 	
 	// User params
-	double silence_treshold = 0.1;
+	double silence_treshold = 0.01;
 	double silence_timelimit = 1.0;
 	
 	Event<void*> WhenFinished;
@@ -49,6 +49,7 @@ struct SoundThreadBase : Pte<SoundThreadBase> {
 	virtual void ClearData() = 0;
 	virtual void* GetDataPtr() = 0;
 	virtual double GetVolume() const = 0;
+	virtual double GetPeakValue() const = 0;
 	virtual void RecordCallback(StreamCallbackArgs& args) = 0;
 };
 
@@ -64,6 +65,7 @@ struct SoundThread : SoundThreadBase {
 	void ClearData() override {current.Clear(); meter.Clear();}
 	void* GetDataPtr() override {return &current;}
 	double GetVolume() const override;
+	double GetPeakValue() const override;
 	void RecordCallback(StreamCallbackArgs& args) override;
 	
 	Event<Clip> WhenClipBegin, WhenClipEnd;

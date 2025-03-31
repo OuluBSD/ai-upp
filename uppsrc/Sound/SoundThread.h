@@ -41,6 +41,7 @@ struct SoundThreadBase : Pte<SoundThreadBase> {
 	void Start();
 	void Stop();
 	void SetNotRunning();
+	void Abort();
 	void Wait();
 	void Attach(SoundDiscussionManager& m);
 	void CheckEnd(StreamCallbackArgs& args);
@@ -70,7 +71,6 @@ struct SoundThread : SoundThreadBase {
 	
 	Event<Clip> WhenClipBegin, WhenClipEnd;
 };
-
 
 END_UPP_NAMESPACE
 

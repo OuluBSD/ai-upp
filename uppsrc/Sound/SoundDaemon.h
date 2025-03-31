@@ -37,8 +37,6 @@ public:
 
 };
 
-#include "SoundDaemon.inl"
-
 END_UPP_NAMESPACE
 
 #endif

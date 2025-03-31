@@ -63,6 +63,8 @@ struct SoundDiscussionManager : Pte<SoundDiscussionManager> {
 	Event<SoundDiscussion&> WhenDiscussionBegin;
 };
 
+#include "SoundThread.inl"
+
 END_UPP_NAMESPACE
 
 

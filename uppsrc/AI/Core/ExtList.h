@@ -18,7 +18,9 @@
 
 #define COMPONENT_LIST \
 	DATASET_ITEM(ProjectWizardView,	prjwiz,			METAKIND_ECS_COMPONENT_PROJECT_WIZARD,		CATEGORY_ASSET, "Code Project Wizard") \
+	/*TODO SrcTxtHeader: non-component kind can't be added, but it's ok*/ \
 	DATASET_ITEM(SrcTxtHeader,		src,			METAKIND_DATABASE_SOURCE,					CATEGORY_DISPOSABLE, "Source Database") \
+	DATASET_ITEM(AiChatComponent,	ai_chat,		METAKIND_ECS_COMPONENT_AI_CHAT,				CATEGORY_DISPOSABLE, "AI: Chat") \
 	\
 	DATASET_ITEM(Owner,					owner,				METAKIND_ECS_COMPONENT_OWNER,						CATEGORY_PRIVATE, "Owner") /* TODO rename to human? */ \
 	DATASET_ITEM(Notepad,				notepad,			METAKIND_ECS_COMPONENT_NOTEPAD,						CATEGORY_PRIVATE, "Notepad") \

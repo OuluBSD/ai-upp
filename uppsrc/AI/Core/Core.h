@@ -22,10 +22,11 @@
 // Asset
 #include "ProjectWizard.h"
 
-// Recycle
+// Disposable
 #include "Data.h"
 #include "Browser.h"
 #include "SourceText.h"
+#include "AiChat.h"
 
 // Private
 #include "Owner.h"

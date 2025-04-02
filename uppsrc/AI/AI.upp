@@ -31,6 +31,7 @@ file
 	MetaCodeCtrl.cpp,
 	ProcessCtrl.h,
 	ProcessCtrl.cpp,
+	Omni readonly separator,
 	Omni.h,
 	Omni.cpp,
 	OmniCtrl.h,

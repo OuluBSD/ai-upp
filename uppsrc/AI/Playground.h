@@ -4,15 +4,36 @@
 NAMESPACE_UPP
 
 
-class CompletionCtrl : public WithCompletion<Ctrl> {
+struct AiThreadCtrlBase {
+	Ptr<AiThread> ai_thrd;
+	
+	bool HasThread() const {return ai_thrd;}
+	template <class T>
+	T& CastThread() {
+		// this function is required, bc OmniThread inherits virtual AiThread with Pte<AiThread>
+		ASSERT(ai_thrd);
+		if (!ai_thrd) throw Exc("No thread");
+		T* t = dynamic_cast<T*>(&*ai_thrd);
+		ASSERT(t);
+		if (!t) throw Exc("Can't cast AiThread");
+		return *t;
+	}
+	CompletionThread& GetCompletionThread() {return CastThread<CompletionThread>();}
+	
+	void SetThread(AiThread& t);
+};
+
+class CompletionCtrl : public WithCompletion<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef CompletionCtrl CLASSNAME;
 	CompletionCtrl();
 	
+	void Submit();
+	CompletionThread& Thread();
 };
 
-class TextToSpeechCtrl : public WithTTS<Ctrl> {
+class TextToSpeechCtrl : public WithTTS<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef TextToSpeechCtrl CLASSNAME;
@@ -20,7 +41,7 @@ public:
 	
 };
 
-class AssistantCtrl : public WithAssistants<Ctrl> {
+class AssistantCtrl : public WithAssistants<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef AssistantCtrl CLASSNAME;
@@ -28,7 +49,7 @@ public:
 	
 };
 
-class RealtimeAiCtrl : public WithRealtimeAI<Ctrl> {
+class RealtimeAiCtrl : public WithRealtimeAI<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef RealtimeAiCtrl CLASSNAME;
@@ -36,7 +57,7 @@ public:
 	
 };
 
-class ChatAiCtrl : public WithChatAI<Ctrl> {
+class ChatAiCtrl : public WithChatAI<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef ChatAiCtrl CLASSNAME;
@@ -44,7 +65,7 @@ public:
 	
 };
 
-class CustomBiasesCtrl : public WithCustomBiases<Ctrl> {
+class CustomBiasesCtrl : public WithCustomBiases<Ctrl>, public AiThreadCtrlBase {
 	
 public:
 	typedef CustomBiasesCtrl CLASSNAME;
@@ -62,13 +83,34 @@ class PlaygroundCtrl : public Ctrl {
 	CustomBiasesCtrl bias;
 	EditImage edit_img;
 	EditImage img_aspect;
+	TaskCtrl tasks;
+	
+	One<OmniThread> omni;
 	
 public:
 	typedef PlaygroundCtrl CLASSNAME;
 	
 	PlaygroundCtrl();
+	void Data();
+	
+	void CreateThread();
+	void SetThread(OmniThread& t);
 	
 };
+
+
+class PlaygroundApp : public TopWindow {
+	PlaygroundCtrl pg;
+	MenuBar menu;
+	
+public:
+	typedef PlaygroundApp CLASSNAME;
+	PlaygroundApp();
+	
+	
+};
+
+void RunAiPlayground();
 
 END_UPP_NAMESPACE
 

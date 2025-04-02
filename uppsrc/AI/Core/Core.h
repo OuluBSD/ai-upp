@@ -26,6 +26,7 @@
 #include "Data.h"
 #include "Browser.h"
 #include "SourceText.h"
+#include "AiCompletion.h"
 #include "AiChat.h"
 
 // Private

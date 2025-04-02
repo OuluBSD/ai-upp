@@ -6,6 +6,8 @@ NAMESPACE_UPP
 
 
 struct AiChatComponent : Component {
+	OmniThread omni;
+	
 	void Visit(NodeVisitor& v) override;
 	String GetName() const override {return "AI: Chat";}
 	

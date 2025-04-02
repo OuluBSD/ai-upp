@@ -4,7 +4,11 @@
 
 NAMESPACE_UPP
 
-class CompletionThread {
+struct AiThread : Pte<AiThread> {
+	virtual ~AiThread() {}
+};
+
+class CompletionThread : public virtual AiThread {
 	
 public:
 	typedef CompletionThread CLASSNAME;
@@ -16,42 +20,42 @@ ChatAgent
 	- inter-agent-communication
 ChatDirectorAgent
 */
-class ChatThread {
+class ChatThread : public virtual AiThread {
 	
 public:
 	typedef ChatThread CLASSNAME;
 	
 };
 
-class SpeechTranscriptionThread {
+class SpeechTranscriptionThread : public virtual AiThread {
 	
 public:
 	typedef SpeechTranscriptionThread CLASSNAME;
 	
 };
 
-class SpeechGenerationThread {
+class SpeechGenerationThread : public virtual AiThread {
 	
 public:
 	typedef SpeechGenerationThread CLASSNAME;
 	
 };
 
-class ImageGenerationThread {
+class ImageGenerationThread : public virtual AiThread {
 	
 public:
 	typedef ImageGenerationThread CLASSNAME;
 	
 };
 
-class ImageVisionThread {
+class ImageVisionThread : public virtual AiThread {
 	
 public:
 	typedef ChatThread CLASSNAME;
 	
 };
 
-class MetaEnvThread {
+class MetaEnvThread : public virtual AiThread {
 	
 public:
 	typedef MetaEnvThread CLASSNAME;

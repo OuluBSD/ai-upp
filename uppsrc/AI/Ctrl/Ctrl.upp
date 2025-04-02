@@ -26,6 +26,8 @@ file
 	Disposable readonly separator,
 	SourceText.h,
 	SourceText.cpp,
+	AiCompletion.h,
+	AiCompletion.cpp,
 	AiChat.h,
 	AiChat.cpp,
 	Private readonly separator,

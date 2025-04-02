@@ -35,6 +35,8 @@ file
 	Browser.cpp,
 	SourceText.h,
 	SourceText.cpp,
+	AiCompletion.h,
+	AiCompletion.cpp,
 	AiChat.h,
 	AiChat.cpp,
 	Private readonly separator,

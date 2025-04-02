@@ -13,7 +13,9 @@ public:
 	
 	void Data() override;
 	void ToolMenu(Bar& bar) override {}
+	void Run();
 	
+	OmniThread& GetThread();
 };
 
 INITIALIZE(AiChatComponentCtrl)

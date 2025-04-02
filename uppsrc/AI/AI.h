@@ -34,13 +34,14 @@
 
 #include "ImgGen.h"
 #include "ImgAspectFixer.h"
-#include "Playground.h"
 
 #include "MetaCodeCtrl.h"
 #include "Prompt.h"
 #include "RemoteTask.h"
 #include "TaskCtrl.h"
 #include "TaskManager.h"
+
+#include "Playground.h"
 
 NAMESPACE_UPP
 

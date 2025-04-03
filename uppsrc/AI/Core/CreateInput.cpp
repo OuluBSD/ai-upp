@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-void AiTask::CreateInput_GetSourceDataAnalysis() {
+void AiTask::CreateInput_GetSourceDataAnalysis(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -50,7 +50,7 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			tmp_str = lines[0] + ": \"";
 			results.Add(tmp_str);
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	
 	else if (args.fn == 4) {
@@ -76,7 +76,7 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			results.Title("Syllables and phonetic syllables of words \"B\"");
 			results.EmptyLine();
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 
 	else if (args.fn == 5) {
@@ -100,7 +100,7 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			results.Title("Main class, metaphorical color in RGB value for the wordlist \"B\"");
 			results.EmptyLine();
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 
 	else if (args.fn == 7) {
@@ -157,7 +157,7 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			s = s.Left(s.Find(","));
 			results.Add(s + " ->");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 
 	if (args.fn == 10 || args.fn == 11) {
@@ -378,7 +378,7 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			results.Add("tone(affectionate) + msg(expressing feelings) + bias(feeling understood by person) + emotion(love) + level-of-certainty(statement) + attention-person(addressed to person) + attention-emotional_state(love/affection) + attention-mental_state(thinking about person constantly) + attention-relationship(checking for compatibility)");
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 
 	if (args.fn == 11) {
@@ -416,12 +416,12 @@ void AiTask::CreateInput_GetSourceDataAnalysis() {
 			results.Title("Change of actions between 2 lines in list \"C\" with " + pc + " lines of actions. Score of stopping actions in the first line and value of starting actions in the second line. Scores and score factors S0-S9. Value is between 0-10:");
 			results.Add("Stop line 1 & start line 2: S0:");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 
 }
 
-void AiTask::CreateInput_GetActionAnalysis() {
+void AiTask::CreateInput_GetActionAnalysis(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -433,7 +433,7 @@ void AiTask::CreateInput_GetActionAnalysis() {
 	
 }
 
-void AiTask::CreateInput_ScriptSolver() {
+void AiTask::CreateInput_ScriptSolver(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -517,7 +517,7 @@ void AiTask::CreateInput_ScriptSolver() {
 			tmp_str = first_word + " ";
 			results.Add(first_word);
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == 19) {
 		if (args.previously.GetCount()){
@@ -594,7 +594,7 @@ void AiTask::CreateInput_ScriptSolver() {
 			results.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	else if (args.fn == 20) {
 		int limit = 9000 / (1 + args.line_states.GetCount());
@@ -649,7 +649,7 @@ void AiTask::CreateInput_ScriptSolver() {
 			results.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	else if (args.fn == 21) {
 		const char* conn_str[3] = {
@@ -698,7 +698,7 @@ void AiTask::CreateInput_ScriptSolver() {
 			results.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	else if (args.fn == 22) {
 		const char* len_str[4] = {
@@ -769,7 +769,7 @@ void AiTask::CreateInput_ScriptSolver() {
 			tmp_str = "\"";
 			results.Add(tmp_str);
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == 23) {
 		for(int i = 0; i < args.line_states.GetCount(); i++) {
@@ -805,13 +805,13 @@ void AiTask::CreateInput_ScriptSolver() {
 			results.NumberedLines();
 			results.Add("#");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else TODO
 }
 
 
-void AiTask::CreateInput_Social() {
+void AiTask::CreateInput_Social(BasicPrompt& input) {
 	TODO
 	#if 0
 	MetaDatabase& mdb = MetaDatabase::Single();
@@ -921,7 +921,7 @@ void AiTask::CreateInput_Social() {
 			TaskTitledList& results = input.PreAnswer();
 			results.Title("The merged reaction. This should 1-2 times the length of average reaction");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	else if (args.fn == 6) {
 		{
@@ -942,7 +942,7 @@ void AiTask::CreateInput_Social() {
 			TaskTitledList& results = input.PreAnswer();
 			results.Title("The public description of the person #1 at a website");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 		SetHighQuality();
 	}
 	else if (args.fn == 7) {
@@ -959,7 +959,7 @@ void AiTask::CreateInput_Social() {
 			TaskTitledList& results = input.PreAnswer();
 			results.Title("Description of the person converted to first person message (like 'I am this'). Description should fit to a social media site profile description.");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 		//SetHighQuality();
 	}
 	else if (args.fn == 8) {
@@ -982,7 +982,7 @@ void AiTask::CreateInput_Social() {
 			TaskTitledList& results = input.PreAnswer();
 			results.Title(t);
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 		//SetHighQuality();
 	}
 	else if (args.fn == 9) {
@@ -1014,7 +1014,7 @@ void AiTask::CreateInput_Social() {
 			TaskTitledList& results = input.PreAnswer();
 			results.Title("The explanation of the discussion in the message-thread. Use names of persons. Keep track what was said or asked last");
 		}
-		input.response_length = 1024;
+		SetMaxLength(1024);
 	}
 	else if (args.fn == 10) {
 		{
@@ -1218,7 +1218,7 @@ void AiTask::CreateInput_Social() {
 	#endif
 }
 
-void AiTask::CreateInput_BiographySummaryProcess() {
+void AiTask::CreateInput_BiographySummaryProcess(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -1273,7 +1273,7 @@ void AiTask::CreateInput_BiographySummaryProcess() {
 	}
 }
 
-void AiTask::CreateInput_LeadSolver() {
+void AiTask::CreateInput_LeadSolver(BasicPrompt& input) {
 	TODO
 	#if 0
 	MetaDatabase& mdb = MetaDatabase::Single();
@@ -1330,7 +1330,7 @@ void AiTask::CreateInput_LeadSolver() {
 			//results.Add("true");
 			results.Add("");
 		}
-		input.response_length = 1024*1;
+		SetMaxLength(1024);
 		this->SetHighQuality();
 	}
 	
@@ -1353,7 +1353,7 @@ void AiTask::CreateInput_LeadSolver() {
 			//results.Add("true");
 			results.Add("");
 		}
-		input.response_length = 1024*1;
+		SetMaxLength(1024);
 		//this->SetHighQuality();
 	}
 	
@@ -1375,7 +1375,7 @@ void AiTask::CreateInput_LeadSolver() {
 			results.Add("list of related words for this listing: [music, song, opportunity, A&R]");
 			results.Add("");
 		}
-		input.response_length = 1024*1;
+		SetMaxLength(1024);
 		//this->SetHighQuality();
 	}
 	// Average payout estimation
@@ -1396,7 +1396,7 @@ void AiTask::CreateInput_LeadSolver() {
 			results.Title("List of probabilities (in percentages) to get accepted per stage for the accepted song for the previous listing. Include total chance of acceptance percentage also");
 			//results.Add("");
 		}
-		input.response_length = 1024*1;
+		SetMaxLength(1024);
 	}
 	// Typecast
 	else if (args.fn == 4) {
@@ -1566,7 +1566,7 @@ void AiTask::CreateInput_LeadSolver() {
 	#endif
 }
 
-void AiTask::CreateInput_SocialBeliefsProcess() {
+void AiTask::CreateInput_SocialBeliefsProcess(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -1589,7 +1589,7 @@ void AiTask::CreateInput_SocialBeliefsProcess() {
 			results.NumberedLines();
 			results.Add("");
 		}
-		input.response_length = 1024*2;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == 1) {
 		String c = IntStr(args.pos.GetCount());
@@ -1606,11 +1606,11 @@ void AiTask::CreateInput_SocialBeliefsProcess() {
 			results.NumberedLines();
 			results.Add("");
 		}
-		input.response_length = 1024*2;
+		SetMaxLength(2048);
 	}
 }
 
-void AiTask::CreateInput_Marketplace() {
+void AiTask::CreateInput_Marketplace(BasicPrompt& input) {
 	if (args.IsEmpty()) {
 		SetFatalError("no args");
 		return;
@@ -1634,7 +1634,7 @@ void AiTask::CreateInput_Marketplace() {
 			results.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 }
 

@@ -58,10 +58,10 @@ String AiTask::GetInputHash() const
 {
 	String input = MakeInputString();
 	hash_t h = input.GetHashValue();
-	if(binary_param.GetCount()) {
+	if (vision) {
 		CombineHash c;
 		c.Put(h);
-		c.Do(binary_param);
+		vision->AppendHash(c);
 		h = c;
 	}
 	return HexString((void*)&h, sizeof(h));
@@ -73,25 +73,65 @@ String AiTask::GetOutputHash() const
 	return HexString((void*)&h, sizeof(h));
 }
 
-bool AiTask::HasAnyInput() const {
-	return !raw_input.IsEmpty() || !input.IsEmpty() || !json_input.IsEmpty();
-}
-
 bool AiTask::HasJsonInput() const {
-	return raw_input.IsEmpty() && !json_input.IsEmpty();
+	return !completion && !input_json.IsEmpty();
 }
 
-bool AiTask::ForceCompletion() const {
-	return json_input.force_completion;
+bool AiTask::HasAnyInput() const {
+	if (completion)
+		return true;
+	else if (vision)
+		return true;
+	else if (transcription)
+		return true;
+	else if (image)
+		return true;
+	else
+		return false;
+}
+
+void AiTask::SetMaxLength(int tokens) {
+	if (completion)
+		completion->max_length = tokens;
+	else if (vision)
+		vision->max_length = tokens;
+	else if (transcription)
+		transcription->max_length = tokens;
+	else if (image)
+		;
+	else
+		TODO
+}
+
+void AiTask::SetPrompt(String s)
+{
+	if (completion)
+		completion->prompt = s;
+	else if (vision)
+		vision->prompt = s;
+	else if (transcription)
+		transcription->prompt = s;
+	else if (image)
+		;
+	else
+		TODO
 }
 
 String AiTask::MakeInputString(bool pretty) const {
-	if (raw_input.GetCount())
-		return raw_input;
-	else if (!json_input.IsEmpty())
-		return json_input.AsJSON(pretty);
+	if (completion)
+		return completion->prompt;
+	if (vision)
+		return vision->prompt;
+	if (transcription)
+		return transcription->prompt;
+	if (image)
+		return image->prompt;
+	TODO
+	return String();
+	/*else if (!input_json.IsEmpty())
+		return input_json.AsJSON(pretty);
 	else
-		return input.AsString();
+		return input_basic.AsString();*/
 }
 
 String AiTask::GetDescription() const
@@ -106,28 +146,47 @@ String AiTask::GetTypeString() const { return TaskRule::name; }
 bool AiTask::ProcessInput()
 {
 	bool ok = true;
+	
+	bool premade_prompt =
+		(completion && completion->prompt.GetCount()) ||
+		(vision && vision->prompt.GetCount()) ||
+		(transcription && transcription->prompt.GetCount()) ||
+		(image && image->prompt.GetCount());
+	
+	if (premade_prompt) {
+		Load();
+	}
+	else if (TaskRule::input_basic) {
+		input_basic.Clear();
+		input_basic.Create();
+		(this->*TaskRule::input_basic)(*input_basic);
+		if(fast_exit)
+			return true;
 
-	if(raw_input.GetCount()) {
+		if(failed)
+			return false;
+		
+		SetPrompt(input_basic->AsString());
+
+		Load();
+	}
+	else if (TaskRule::input_json) {
+		input_json.Clear();
+		input_json.Create();
+		(this->*TaskRule::input_json)(*input_json);
+		if(fast_exit)
+			return true;
+
+		if(failed)
+			return false;
+		
+		TODO // set prompt?
+		
 		Load();
 	}
 	else {
 		// Return if this task won't have input function
-		if(!TaskRule::input)
-			return ok;
-
-		// Create input with given function
-		if(TaskRule::input) {
-			json_input.Clear();
-			input.Clear();
-			(this->*TaskRule::input)();
-			if(fast_exit)
-				return true;
-
-			if(failed)
-				return false;
-
-			Load();
-		}
+		return ok;
 	}
 
 	// Remove Win32 uselessness (\r in newline)
@@ -277,9 +336,12 @@ void AiTask::RemoveParenthesis(String& s)
 
 bool AiTask::RunOpenAI_Image()
 {
+	if (!image)
+		return false;
+	ImageArgs& args = *image;
 	output.Clear();
 
-	String prompt = MakeInputString();
+	String prompt = args.prompt;
 
 	prompt.Replace("\\", "\\\\");
 	prompt.Replace("\n", " ");
@@ -343,65 +405,16 @@ bool AiTask::RunOpenAI_Image()
 		}
 	}
 	catch(std::runtime_error e) {
-		if(keep_going) {
-			output = " ";
-			GetTaskMgr().keep_going_counter++;
-			return true;
-		}
-		LOG(prompt);
-		fatal_error = true;
-		SetError(e.what());
-		Array<Image> res;
-		WhenResultImages(res);
-		if(auto_ret_fail)
-			ReturnFail();
-		return false;
+		return OnImageException(e.what());
 	}
 	catch(std::string e) {
-		if(keep_going) {
-			output = " ";
-			GetTaskMgr().keep_going_counter++;
-			return true;
-		}
-		LOG(prompt);
-		fatal_error = true;
-		SetError(e.c_str());
-		Array<Image> res;
-		WhenResultImages(res);
-		if(auto_ret_fail)
-			ReturnFail();
-		return false;
+		return OnImageException(e.c_str());
 	}
 	catch(NLOHMANN_JSON_NAMESPACE::detail::parse_error e) {
-		if(keep_going) {
-			output = " ";
-			GetTaskMgr().keep_going_counter++;
-			return true;
-		}
-		LOG(prompt);
-		LOG(e.what());
-		fatal_error = true;
-		SetError(e.what());
-		Array<Image> res;
-		WhenResultImages(res);
-		if(auto_ret_fail)
-			ReturnFail();
-		return false;
+		return OnImageException(e.what());
 	}
 	catch(std::exception e) {
-		if(keep_going) {
-			output = " ";
-			GetTaskMgr().keep_going_counter++;
-			return true;
-		}
-		LOG(prompt);
-		SetError(e.what());
-		fatal_error = true;
-		Array<Image> res;
-		WhenResultImages(res);
-		if(auto_ret_fail)
-			ReturnFail();
-		return false;
+		return OnImageException(e.what());
 	}
 	DalleResponse response;
 	LoadFromJson(response, recv);
@@ -440,15 +453,35 @@ bool AiTask::RunOpenAI_Image()
 	return output.GetCount() > 0;
 }
 
+bool AiTask::OnImageException(String msg) {
+	if(keep_going) {
+		output = " ";
+		GetTaskMgr().keep_going_counter++;
+		return true;
+	}
+	fatal_error = true;
+	SetError(msg);
+	Array<Image> res;
+	WhenResultImages(res);
+	if(auto_ret_fail)
+		ReturnFail();
+	return false;
+}
+
 bool AiTask::RunOpenAI_Completion()
 {
 	output.Clear();
+	
+	ASSERT(completion);
+	if (!completion)
+		return false;
 
-	if(!input.response_length) {
+	CompletionArgs& args = *completion;
+	if(!args.max_length) {
 		LOG("warning: no response length set");
-		input.response_length = 1024;
+		args.max_length = 1024;
 	}
-	String prompt = MakeInputString(true);
+	String prompt = args.prompt;
 
 	prompt = FixInvalidChars(prompt); // NOTE: warning: might break something
 
@@ -466,89 +499,36 @@ bool AiTask::RunOpenAI_Completion()
 			fout.Close();
 		}
 	}
-
-#ifdef flagLLAMACPP
-	if(1) {
-		LlamaCppResponse response;
-		response.SetPrompt(prompt);
-		response.SetMaxTokens(input.response_length);
-		response.Process();
-		output = response.GetOutput();
-	}
-	else
-#endif
+	
 	{
 		EscapeString(prompt);
 
 		if(GetDefaultCharset() != CHARSET_UTF8)
 			prompt = ToCharset(CHARSET_UTF8, prompt, CHARSET_DEFAULT);
 
-		String txt;
-		bool is_chat_json_input = HasJsonInput() && !ForceCompletion();
-		bool chat_completion = is_chat_json_input || quality == 1;
-		if (is_chat_json_input) {
-			txt = R"_({
-			    "model": ")_" + String(quality == 1 ? "gpt-4-turbo" : "gpt-3.5-turbo") + R"_(",
-			    "messages":[)_";
-			for(int i = 0; i < json_input.messages.GetCount(); i++) {
-				const auto& msg = json_input.messages[i];
-				String part_content = msg.GetContentString();
-				EscapeString(part_content);
-				txt << "{\"role\": \""
-					<< msg.GetTypeString() << "\", \"content\": [{\"type\": \"text\", \"text\": \""
-					<< part_content
-					<< "\"}]}";
-				if (i+1 < json_input.messages.GetCount())
-					txt << ",\n";
-			}
-			txt << R"_(],
-			    "max_tokens": )_" + IntStr(input.response_length) + R"_(,
-			    "temperature": 1
-			})_";
-			//LOG(txt);
-		}
-		else {
-			if(quality == 1) {
-				txt = R"_({
-				    "model": "gpt-4-turbo",
-				    "messages":[
-						{"role": "system", "content": "This is an impersonal text completion system like gpt-3.5-turbo. This is not chat mode. Do not repeat the last part of the input text in your result."},
-						{"role":"user", "content": ")_" +
-							      prompt + R"_("}
-					],
-				    "max_tokens": )_" +
-							      IntStr(input.response_length) + R"_(,
-				    "temperature": 1
-				})_";
-			}
-			else {
-				txt = R"_({
-				    "model": "gpt-3.5-turbo-instruct",
-				    "stop": "<|endoftext|>",
-				    "prompt": ")_" +
-							      prompt + R"_(",
-				    "max_tokens": )_" +
-							      IntStr(input.response_length) + R"_(,
-				    "temperature": 1
-				})_";
-			}
-		}
-		// LOG(txt);
-		return TryOpenAI(prompt, txt, [this,txt,chat_completion]{
+		ASSERT(!(input_json && input_json->force_completion));
+		
+		//TODO // move <|endoftext|> to somewhere useful place
+		
+		String txt = R"_({
+		    "model": "gpt-3.5-turbo-instruct",
+		    "stop": "<|endoftext|>",
+		    "prompt": ")_" +
+					      prompt + R"_(",
+		    "max_tokens": )_" +
+					      IntStr(args.max_length) + R"_(,
+		    "temperature": 1
+		})_";
+		
+		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
-
-			if(chat_completion) {
-				auto completion = openai::completion().create_chat(json);
-				LoadFromJson(response, String(completion.dump(2)));
-			}
-			else {
-				auto completion = openai::completion().create(json);
-				// LOG("Response is:\n" << completion.dump(2));
-				LoadFromJson(response, String(completion.dump(2)));
-				// LOG(response.ToString());
-			}
-
+			
+			auto completion = openai::completion().create(json);
+			// LOG("Response is:\n" << completion.dump(2));
+			LoadFromJson(response, String(completion.dump(2)));
+			// LOG(response.ToString());
+			
 			if(response.choices.GetCount())
 				output = response.choices[0].GetText();
 			else {
@@ -557,19 +537,27 @@ bool AiTask::RunOpenAI_Completion()
 			}
 		});
 	}
+	return false;
 }
 
 bool AiTask::RunOpenAI_Vision()
 {
+	if (!vision)
+		return false;
 	output.Clear();
 
-	if(!input.response_length) {
+	VisionArgs& args = *vision;
+	if(!args.max_length) {
 		LOG("warning: no response length set");
-		input.response_length = 1024;
+		args.max_length = 1024;
 	}
-	String prompt = MakeInputString();
-
-	String base64 = Base64Encode(this->binary_param);
+	String prompt = args.prompt;
+	
+	if (args.jpeg.IsEmpty()) {
+		SetError("no jpeg set");
+		return false;
+	}
+	String jpeg_base64 = Base64Encode(args.jpeg);
 
 	{
 		EscapeString(prompt);
@@ -592,13 +580,13 @@ bool AiTask::RunOpenAI_Vision()
 				"type":"image_url",
 				"image_url": {
 					"url": "data:image/jpeg;base64,)_" +
-			      base64 + R"_("
+			      jpeg_base64 + R"_("
 				}
 			}
 		]}
 	],
     "max_tokens": )_" +
-			      IntStr(input.response_length) + R"_(,
+			      IntStr(args.max_length) + R"_(,
     "temperature": 1
 })_";
 		}
@@ -616,13 +604,13 @@ bool AiTask::RunOpenAI_Vision()
 				"type":"image_url",
 				"image_url": {
 					"url": "data:image/jpeg;base64,)_" +
-			      base64 + R"_("
+			      jpeg_base64 + R"_("
 				}
 			}
 		]}
 	],
     "max_tokens": )_" +
-			      IntStr(input.response_length) + R"_(,
+			      IntStr(args.max_length) + R"_(,
     "temperature": 1
 })_";
 		}
@@ -647,16 +635,17 @@ bool AiTask::RunOpenAI_Vision()
 
 bool AiTask::RunOpenAI_Transcription()
 {
-	TranscriptionArgs args;
-	args.Put(this->args[0]);
+	if (!transcription)
+		return false;
+	TranscriptionArgs& args = *transcription;
 	
 	output.Clear();
 
-	if(!input.response_length) {
+	if(!args.max_length) {
 		LOG("warning: no response length set");
-		input.response_length = 1024;
+		args.max_length = 1024;
 	}
-	String prompt = MakeInputString();
+	String prompt = args.prompt;
 	
 	{
 		EscapeString(prompt);
@@ -804,8 +793,8 @@ bool AiTask::TryOpenAI(String prompt, String txt, Event<> cb) {
 void AiTask::Retry(bool skip_prompt, bool skip_cache)
 {
 	if(!skip_prompt) {
-		json_input.Clear();
-		input.Clear();
+		input_json.Clear();
+		input_basic.Clear();
 		output.Clear();
 	}
 	skip_load = skip_cache;

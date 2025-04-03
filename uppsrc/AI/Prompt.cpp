@@ -84,7 +84,7 @@ String TaskTitledList::GetTreeString(int indent) const
 	return s;
 }
 
-String AiPrompt::GetTreeString() const
+String BasicPrompt::GetTreeString() const
 {
 	String s;
 
@@ -99,9 +99,7 @@ String AiPrompt::GetTreeString() const
 		s << pre_answer->GetTreeString(1);
 		s << "}\n";
 	}
-
-	s << "response_length: " << response_length << "\n";
-
+	
 	return s;
 }
 
@@ -301,7 +299,7 @@ String TaskTitledList::AsString() const
 	return s;
 }
 
-String AiPrompt::AsString() const
+String BasicPrompt::AsString() const
 {
 	String s;
 

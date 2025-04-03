@@ -9,6 +9,101 @@ struct CurrentFileContext;
 NAMESPACE_UPP
 
 
+struct CompletionArgs : Moveable<CompletionArgs> {
+	typedef enum : int {
+		NO_PROBABILITIES,
+		MOST_LIKELY,
+		LEAST_LIKELY,
+		FULL_SPECTRUM
+	} ShowProbs;
+	
+	String prompt;
+	double temperature = 0;
+	int max_length = 2048;
+	String stop_seq;
+	double top_prob = 1;
+	double frequency_penalty = 0;
+	double presence_penalty = 0;
+	int best_of = 1;
+	String inject_start_text;
+	String inject_restart_text;
+	ShowProbs show_probabilities = NO_PROBABILITIES;
+	
+	void Jsonize(JsonIO& json) {
+		json("prompt", prompt)
+			("temperature", temperature)
+			("max_length", max_length)
+			("stop_seq", stop_seq)
+			("top_prob", top_prob)
+			("frequency_penalty", frequency_penalty)
+			("presence_penalty", presence_penalty)
+			("best_of", best_of)
+			("inject_start_text", inject_start_text)
+			("inject_restart_text", inject_restart_text)
+			("show_probabilities", (int&)show_probabilities)
+			;
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+struct VisionArgs : Moveable<VisionArgs> {
+	String prompt;
+	String jpeg;
+	int max_length = 2048;
+	
+	void AppendHash(CombineHash& c) const {c.Do(jpeg);}
+	void Jsonize(JsonIO& json) {
+		json("prompt", prompt)
+			("jpeg", jpeg)
+			("max_length", max_length)
+			;
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+struct TranscriptionArgs {
+	String prompt;
+	int max_length = 2048;
+	
+	String file;
+	String language;
+	String misspelled;
+	int ai_provider_idx = -1;
+
+	void Jsonize(JsonIO& json) {
+		json("prompt", prompt)
+			("max_length", max_length)
+			("ai_provider_idx", ai_provider_idx)
+			("file", file)
+			("language", language)
+			("misspelled", misspelled);
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+struct ImageArgs {
+	String prompt;
+	
+	void Jsonize(JsonIO& json) {
+		json("prompt", prompt)
+			;
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+
+
+
+
+
+
+
+
+
 #define TASKFN_TYPE int
 typedef enum : TASKFN_TYPE {
 	FN_INVALID = -1,
@@ -52,26 +147,6 @@ struct TaskArgs : Moveable<TaskArgs> {
 	Value params;
 	
 	void Jsonize(JsonIO& json) {json("fn", (TASKFN_TYPE&)fn)("params", params);}
-	String Get() const { return StoreAsJson(*this); }
-	void Put(const String& s) { LoadFromJson(*this, s); }
-};
-
-struct VisionArgs {
-	int fn = 0;
-
-	void Jsonize(JsonIO& json) { json("fn", fn); }
-	String Get() const { return StoreAsJson(*this); }
-	void Put(const String& s) { LoadFromJson(*this, s); }
-};
-
-struct TranscriptionArgs {
-	int fn = 0;
-	String file;
-	String language;
-	String misspelled;
-	int ai_provider_idx = -1;
-
-	void Jsonize(JsonIO& json) { json("fn", fn)("ai_provider_idx", ai_provider_idx)("file", file)("language", language)("misspelled", misspelled); }
 	String Get() const { return StoreAsJson(*this); }
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };

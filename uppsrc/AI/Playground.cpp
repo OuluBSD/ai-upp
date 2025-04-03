@@ -23,6 +23,8 @@ CompletionCtrl::CompletionCtrl() {
 	show_probs.Add("Full spectrum");
 	show_probs.SetIndex(0);
 	submit <<= THISBACK(Submit);
+	prompt.LineNumbers(true);
+	prompt.WithCutLine(true);
 }
 
 void AiThreadCtrlBase::SetThread(AiThread& t) {
@@ -36,12 +38,25 @@ void CompletionCtrl::Submit() {
 	CompletionThread& t = GetCompletionThread();
 	TaskMgr& m = AiTaskManager();
 	
-	String txt = this->text.GetData();
+	String txt = this->prompt.GetData();
 	
-	m.RawCompletion(txt, [this,txt](String res) {
+	CompletionArgs args;
+	args.prompt = txt;
+	args.temperature = this->temperature.GetData();
+	args.max_length = this->max_length.GetData();
+	args.stop_seq = this->stop_seq.GetData();
+	args.top_prob = this->top_p.GetData();
+	args.frequency_penalty = this->freq_penalty.GetData();
+	args.presence_penalty = this->presence_penalty.GetData();
+	args.best_of = this->best_of.GetData();
+	args.inject_start_text = this->inject_start.GetData();
+	args.inject_restart_text = this->inject_restart.GetData();
+	args.show_probabilities = (CompletionArgs::ShowProbs)this->show_probs.GetIndex();
+	
+	m.GetCompletion(args, [this, txt](String res) {
 		String new_data = txt + res;
 		GuiLock __;
-		this->text.SetData(new_data);
+		this->prompt.SetData(new_data);
 	});
 }
 
@@ -108,13 +123,15 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	Add(tabs.SizePos());
 	
 	tabs.Add(completion.SizePos(), "Completion");
-	tabs.Add(tts.SizePos(), "TTS");
-	tabs.Add(ass.SizePos(), "Assistant");
-	tabs.Add(rt.SizePos(), "Realtime");
 	tabs.Add(chat.SizePos(), "Chat");
-	tabs.Add(bias.SizePos(), "Custom Biases");
-	tabs.Add(edit_img.SizePos(), "Image Generation");
+	tabs.Add(placeholder.SizePos(), "JSON chat");
+	tabs.Add(edit_img.SizePos(), "Image");
 	tabs.Add(img_aspect.SizePos(), "Image Aspect Fixer");
+	tabs.Add(placeholder.SizePos(), "Transcribe");
+	tabs.Add(tts.SizePos(), "TTS");
+	tabs.Add(rt.SizePos(), "Realtime");
+	tabs.Add(ass.SizePos(), "Assistant");
+	tabs.Add(bias.SizePos(), "Custom Biases");
 	tabs.Add(tasks.SizePos(), "Tasks");
 	
 	tabs.WhenSet = THISBACK(Data);
@@ -127,8 +144,13 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	*/
 }
 
+PlaygroundCtrl::~PlaygroundCtrl() {
+	StoreThis();
+}
+
 void PlaygroundCtrl::CreateThread() {
 	omni.Create();
+	LoadThis();
 	SetThread(*omni);
 }
 
@@ -148,6 +170,16 @@ void PlaygroundCtrl::Data() {
 		case 8: tasks.Data(); break;
 		default: break;
 	}
+}
+
+void PlaygroundCtrl::StoreThis() {
+	if (!omni) return;
+	VisitToJsonFile(*omni, ConfigFile("playground.json"));
+}
+
+void PlaygroundCtrl::LoadThis() {
+	if (!omni) return;
+	VisitFromJsonFile(*omni, ConfigFile("playground.json"));
 }
 
 

@@ -6,7 +6,18 @@ NAMESPACE_UPP
 OmniThread::OmniThread() {
 	
 }
-	
+
+void OmniThread::Visit(NodeVisitor& vis) {
+	vis	.VisitT("CompletionThread", (CompletionThread&)*this)
+		.VisitT("ChatThread", (ChatThread&)*this)
+		.VisitT("SpeechTranscriptionThread", (SpeechTranscriptionThread&)*this)
+		.VisitT("SpeechGenerationThread", (SpeechGenerationThread&)*this)
+		.VisitT("ImageGenerationThread", (ImageGenerationThread&)*this)
+		.VisitT("ImageVisionThread", (ImageVisionThread&)*this)
+		.VisitT("MetaEnvThread", (MetaEnvThread&)*this)
+	;
+}
+
 void OmniThread::OnPhraseEnd(SoundPhrase& p) {
 	LOG("TODO");
 	

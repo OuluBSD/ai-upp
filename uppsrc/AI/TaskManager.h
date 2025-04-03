@@ -43,10 +43,13 @@ struct TaskMgr {
 	void VariateImage(Image orig, int count, Event<Array<Image>&> WhenResult,
 	                  Event<> WhenError = Event<>());
 	void RawCompletion(String prompt, Event<String> WhenResult);
+	void GetCompletion(CompletionArgs& args, Event<String> WhenResult);
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title=String());
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
 	void GetTranscription(const TranscriptionArgs& args, Event<String> WhenResult);
-	void Get(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
+	void GetBasic(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
+	void GetJson(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
+	void Get(bool json, const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
 
 
 

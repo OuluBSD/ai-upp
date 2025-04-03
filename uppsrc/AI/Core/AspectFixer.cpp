@@ -30,8 +30,6 @@ void AspectFixer::DoPhase() {
 		String jpeg = enc.SaveString(img);
 		
 		VisionArgs args;
-		args.fn = 0;
-		
 		SetWaiting(1);
 		TaskMgr& m = AiTaskManager();
 		m.GetVision(jpeg, args, [this](String res) {

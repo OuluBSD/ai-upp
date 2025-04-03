@@ -4,11 +4,11 @@
 
 NAMESPACE_UPP
 
-void AiTask::CreateInput_GetTokenData() {}
-void AiTask::CreateInput_GetPhraseData() {}
-void AiTask::CreateInput_GetAttributes() {}
+void AiTask::CreateInput_GetTokenData(BasicPrompt& input) {}
+void AiTask::CreateInput_GetPhraseData(BasicPrompt& input) {}
+void AiTask::CreateInput_GetAttributes(BasicPrompt& input) {}
 
-void AiTask::CreateInput_Translate()
+void AiTask::CreateInput_Translate(BasicPrompt& input)
 {
 	String orig_lng = args[0];
 	String orig_txt = args[1];
@@ -29,10 +29,10 @@ void AiTask::CreateInput_Translate()
 	TaskTitledList& results = input.PreAnswer();
 	results.Title(t);
 
-	input.response_length = 1024 * 2;
+	SetMaxLength(2048);
 }
 
-void AiTask::CreateInput_CreateImage()
+void AiTask::CreateInput_CreateImage(BasicPrompt& input)
 {
 	int count = StrInt(args[1]);
 	int reduce_size_mode = StrInt(args[2]);
@@ -57,7 +57,7 @@ void AiTask::CreateInput_CreateImage()
 	input.PreAnswer().NoColon().Title(args[0]);
 }
 
-void AiTask::CreateInput_EditImage()
+void AiTask::CreateInput_EditImage(BasicPrompt& input)
 {
 	int count = StrInt(args[1]);
 	Image orig = send_images[0];
@@ -89,7 +89,7 @@ void AiTask::CreateInput_EditImage()
 	skip_load = true;
 }
 
-void AiTask::CreateInput_VariateImage()
+void AiTask::CreateInput_VariateImage(BasicPrompt& input)
 {
 	int count = StrInt(args[0]);
 	Image orig = send_images[0];
@@ -122,7 +122,7 @@ void AiTask::CreateInput_VariateImage()
 	// skip_load = true;
 }
 
-void AiTask::CreateInput_Vision()
+void AiTask::CreateInput_Vision(BasicPrompt& input)
 {
 	this->type = TYPE_VISION;
 
@@ -133,8 +133,7 @@ void AiTask::CreateInput_Vision()
 
 	VisionArgs args;
 	args.Put(this->args[0]);
-
-	if(args.fn == 0) {
+	{
 		{
 			input.AddSub()
 				.Title("Task: describe content of the image in a detailed way, which enables "
@@ -142,17 +141,15 @@ void AiTask::CreateInput_Vision()
 				.NoColon();
 		}
 	}
-	else
-		SetError("Invalid function");
 }
 
-void AiTask::CreateInput_Transcription()
+void AiTask::CreateInput_Transcription(BasicPrompt& input)
 {
 	this->type = TYPE_TRANSCRIPTION;
-	raw_input = this->args[0]; // hash is made of raw_input == arguments
+	TODO //raw_input = this->args[0]; // hash is made of raw_input == arguments
 }
 
-void AiTask::CreateInput_Default()
+void AiTask::CreateInput_DefaultBasic(BasicPrompt& input)
 {
 	if(args.IsEmpty()) {
 		SetFatalError("no args");
@@ -176,7 +173,7 @@ void AiTask::CreateInput_Default()
 				.Title("List of 1-4 best lines  to split transcript");
 			results.Add("line #");
 		}
-		input.response_length = 50;
+		SetMaxLength(50);
 		tmp_str = "line #";
 	}
 	else if(args.fn == FN_VOICEOVER_2A_SUMMARIZE) {
@@ -199,7 +196,7 @@ void AiTask::CreateInput_Default()
 				.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_VOICEOVER_2B_SUMMARIZE_TOTAL) {
 		ValueMap params = args.params;
@@ -213,7 +210,7 @@ void AiTask::CreateInput_Default()
 				.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_TRANSCRIPT_PROOFREAD_1) {
 		String text = args.params("text");
@@ -240,7 +237,7 @@ void AiTask::CreateInput_Default()
 				;
 			results.Add("#0:");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_PROOFREAD_STORYLINE_1 ||
 			args.fn == FN_STORYLINE_DIALOG_1) {
@@ -286,14 +283,27 @@ void AiTask::CreateInput_Default()
 				.NoListChar();
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_STORYLINE_DIALOG_1) {
 		
 		
 		
 	}
-	else if(args.fn == FN_ANALYZE_CONTEXT_TYPECLASSES) {
+	else TODO
+}
+
+void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
+{
+	if(args.IsEmpty()) {
+		SetFatalError("no args");
+		return;
+	}
+
+	TaskArgs args;
+	args.Put(this->args[0]);
+
+	if(args.fn == FN_ANALYZE_CONTEXT_TYPECLASSES) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
 		{
@@ -399,7 +409,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/typecasts/context name", args.params("context name"))
 			.Set("/query/typecasts/context bits", args.params("context bits"))
 			;
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_ANALYZE_CONTEXT_CONTENTS) {
 		json_input.AddDefaultSystem();
@@ -484,7 +494,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/contents/context name", args.params("context name"))
 			.Set("/query/contents/context bits", args.params("context bits"))
 			;
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_ANALYZE_CONTEXT_PARTS) {
 		json_input.AddDefaultSystem();
@@ -536,7 +546,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/parts/context bits", args.params("context bits"))
 			.Set("/query/parts/component names", args.params("part names"))
 			;
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_ANALYZE_PUBLIC_FIGURE) {
 		json_input.AddDefaultSystem();
@@ -590,7 +600,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/person/type", args.params("type"))
 			.Set("/query/person/description", args.params("description"))
 			;
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_ANALYZE_ELEMENTS) {
 		json_input.AddDefaultSystem();
@@ -655,7 +665,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/text", args.params("text"));
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_TOKENS_TO_LANGUAGES) {
 		json_input.AddDefaultSystem();
@@ -689,7 +699,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/words", args.params("words"));
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_TOKENS_TO_WORDS) {
 		json_input.AddDefaultSystem();
@@ -756,7 +766,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/words", args.params("texts"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if(args.fn == FN_WORD_CLASSES) {
 		json_input.AddDefaultSystem();
@@ -857,7 +867,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/words", args.params("words"));
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_WORD_PAIR_CLASSES) {
 		json_input.AddDefaultSystem();
@@ -955,7 +965,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/word pairs", args.params("word pairs"));
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_SENTENCE) {
 		json_input.AddDefaultSystem();
@@ -1020,7 +1030,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/classified_sentences", args.params("classified_sentences"))
 			.Set("/query/script/sentence_count", args.params("classified_sentences").GetCount());
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_SENTENCE_STRUCTURES) {
 		json_input.AddDefaultSystem();
@@ -1087,7 +1097,7 @@ void AiTask::CreateInput_Default()
 		    }
 		})ML")
 			.Set("/query/script/classified_sentences", args.params("classified_sentences"));
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	
 	else if (args.fn == FN_CLASSIFY_PHRASE_ELEMENTS) {
@@ -1162,7 +1172,7 @@ void AiTask::CreateInput_Default()
 		if (elements.GetCount() >= 10)
 			in.Set("/query/script/incomplete list of elements", args.params("elements"));
 		
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_COLOR) {
 		json_input.AddDefaultSystem();
@@ -1205,7 +1215,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ATTR) {
 		json_input.AddDefaultSystem();
@@ -1270,7 +1280,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
 		SetHighQuality();
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTIONS) {
 		json_input.AddDefaultSystem();
@@ -1327,7 +1337,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
 		SetHighQuality();
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_SCORES) {
 		json_input.AddDefaultSystem();
@@ -1388,7 +1398,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_TYPECLASS) {
 		json_input.AddDefaultSystem();
@@ -1449,7 +1459,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/script/list of possible typeclasses", args.params("typeclasses"))
 			;
 		json_input.UseLegacyCompletion();
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_CONTENT) {
 		json_input.AddDefaultSystem();
@@ -1504,7 +1514,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/phrases", args.params("phrases"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_ACTION_COLOR) {
 		json_input.AddDefaultSystem();
@@ -1570,7 +1580,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/actions", args.params("actions"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_CLASSIFY_PHRASE_ACTION_ATTR) {
 		json_input.AddDefaultSystem();
@@ -1640,7 +1650,7 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/actions", args.params("actions"));
 		json_input.UseLegacyCompletion();
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_SORT_ATTRS) {
 		json_input.AddDefaultSystem();
@@ -1672,7 +1682,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/attributes", args.params("attributes"))
 			.Set("/query/category", args.params("category"))
 			;
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_ATTR_POLAR_OPPOSITES) {
 		json_input.AddDefaultSystem();
@@ -1719,7 +1729,7 @@ void AiTask::CreateInput_Default()
 			.Set("/query/script/polar_opposites/positive", args.params("attr0"))
 			.Set("/query/script/polar_opposites/negative", args.params("attr1"))
 			;
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else if (args.fn == FN_MATCHING_ATTR) {
 		json_input.AddDefaultSystem();
@@ -1756,13 +1766,13 @@ void AiTask::CreateInput_Default()
 		})ML")
 			.Set("/query/script/groups", args.params("groups"))
 			.Set("/query/script/values", args.params("values"));
-		input.response_length = 2*1024;
+		SetMaxLength(2048);
 	}
 	else
 		SetError("Invalid function");
 }
 
-void AiTask::CreateInput_GenericPrompt()
+void AiTask::CreateInput_GenericPrompt(BasicPrompt& input)
 {
 	if(args.IsEmpty()) {
 		SetFatalError("no args");
@@ -1795,11 +1805,11 @@ void AiTask::CreateInput_GenericPrompt()
 				results.NumberedLines();
 			results.Add("");
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 }
 
-void AiTask::CreateInput_Code()
+void AiTask::CreateInput_Code(BasicPrompt& input)
 {
 	if(args.IsEmpty()) {
 		SetFatalError("no args");
@@ -1826,7 +1836,7 @@ void AiTask::CreateInput_Code()
 				tmp_str = "line #0: \"";
 			results.Add(tmp_str);
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 	if(args.fn == CodeArgs::FUNCTIONALITY) {
 		#if 0
@@ -1864,7 +1874,7 @@ void AiTask::CreateInput_Code()
 			//tmp_str = "- type #";
 			results.Add(tmp_str);
 		}
-		input.response_length = 2048;
+		SetMaxLength(2048);
 	}
 }
 

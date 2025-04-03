@@ -84,6 +84,7 @@ class PlaygroundCtrl : public Ctrl {
 	EditImage edit_img;
 	EditImage img_aspect;
 	TaskCtrl tasks;
+	Ctrl placeholder;
 	
 	One<OmniThread> omni;
 	
@@ -91,8 +92,10 @@ public:
 	typedef PlaygroundCtrl CLASSNAME;
 	
 	PlaygroundCtrl();
+	~PlaygroundCtrl();
 	void Data();
-	
+	void StoreThis();
+	void LoadThis();
 	void CreateThread();
 	void SetThread(OmniThread& t);
 	

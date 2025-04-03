@@ -72,12 +72,13 @@ void TaskCtrl::DataTask()
 	m.active_task = &t;
 
 	if(cursor != data_cursor || (output.GetLength() == 0 && t.output.GetCount())) {
-		if(t.raw_input.GetCount())
-			input.SetData(t.raw_input);
-		else if(!t.json_input.IsEmpty())
-			input.SetData(t.json_input.AsJSON(true));
+		/*if(t.completion)
+			input.SetData(t.completion->prompt);
+		else if(!t.input_json.IsEmpty())
+			input.SetData(t.input_json.AsJSON(true));
 		else
-			input.SetData(t.input.AsString().ToWString());
+			input.SetData(t.input_basic.AsString().ToWString());*/
+		input.SetData(t.MakeInputString(true));
 		output.SetData(t.output.ToWString());
 		data_cursor = cursor;
 	}

@@ -174,7 +174,8 @@ struct TaskRule {
 		TYPE_TRANSCRIPTION,
 	} Type;
 	String name;
-	void (AiTask::*input)() = 0;
+	void (AiTask::*input_basic)(BasicPrompt&) = 0;
+	void (AiTask::*input_json)(JsonPrompt&) = 0;
 	void (AiTask::*process)() = 0;
 	bool spawnable = false;
 	bool multi_spawnable = false;
@@ -192,7 +193,8 @@ struct TaskRule {
 	
 	bool IsAnyImageTask() const {return type == TYPE_IMAGE_GENERATION || type == TYPE_IMAGE_EDIT || type == TYPE_IMAGE_VARIATE;}
 	TaskRule& SetRule(const String& name);
-	TaskRule& Input(void (AiTask::*fn)());
+	TaskRule& Input(void (AiTask::*fn)(BasicPrompt&));
+	TaskRule& Input(void (AiTask::*fn)(JsonPrompt&));
 	TaskRule& Process(void (AiTask::*fn)());
 	TaskRule& Spawnable(bool b = true);
 	TaskRule& MultiSpawnable(bool b = true);
@@ -232,10 +234,13 @@ public:
 	bool auto_ret_fail = false;
 	int quality = 0;
 
-	AiPrompt input;
-	JsonPrompt json_input;
-	String raw_input;
-	String binary_param;
+	One<BasicPrompt> input_basic;
+	One<JsonPrompt> input_json;
+	
+	One<CompletionArgs> completion;
+	One<VisionArgs> vision;
+	One<TranscriptionArgs> transcription;
+	One<ImageArgs> image;
 
 	// Temp
 	Array<AiTask> result_tasks;
@@ -265,6 +270,7 @@ public:
 	bool RunOpenAI_Image();
 	bool RunOpenAI_Vision();
 	bool RunOpenAI_Transcription();
+	bool OnImageException(String msg);
 	bool ProcessInput();
 	void Process();
 	bool TryOpenAI(String prompt, String txt, Event<> cb);
@@ -279,37 +285,39 @@ public:
 	void SetHighQuality() { quality = 1; }
 	void ReturnFail();
 	void SetAutoReturnFail() { auto_ret_fail = true; }
+	void SetMaxLength(int tokens);
 	String GetInputHash() const;
 	String GetOutputHash() const;
 	bool HasAnyInput() const;
 	bool HasJsonInput() const;
-	bool ForceCompletion() const;
 	String MakeInputString(bool pretty=false) const;
+	void SetPrompt(String s);
 
-	void CreateInput_Translate();
-	void CreateInput_CreateImage();
-	void CreateInput_EditImage();
-	void CreateInput_VariateImage();
-	void CreateInput_RawCompletion();
-	void CreateInput_Vision();
-	void CreateInput_Transcription();
-	void CreateInput_Default();
+	void CreateInput_Translate(BasicPrompt& input);
+	void CreateInput_CreateImage(BasicPrompt& input);
+	void CreateInput_EditImage(BasicPrompt& input);
+	void CreateInput_VariateImage(BasicPrompt& input);
+	void CreateInput_RawCompletion(BasicPrompt& input);
+	void CreateInput_Vision(BasicPrompt& input);
+	void CreateInput_Transcription(BasicPrompt& input);
+	void CreateInput_DefaultBasic(BasicPrompt& input);
+	void CreateInput_DefaultJson(JsonPrompt& json_input);
 	
 	
 	// TODO convert these to use different (cleaner) interface
-	void CreateInput_GenericPrompt();
-	void CreateInput_Code();
-	void CreateInput_GetTokenData();
-	void CreateInput_GetSourceDataAnalysis();
-	void CreateInput_GetPhraseData();
-	void CreateInput_GetActionAnalysis();
-	void CreateInput_GetAttributes();
-	void CreateInput_ScriptSolver();
-	void CreateInput_Social();
-	void CreateInput_BiographySummaryProcess();
-	void CreateInput_LeadSolver();
-	void CreateInput_SocialBeliefsProcess();
-	void CreateInput_Marketplace();
+	void CreateInput_GenericPrompt(BasicPrompt& input);
+	void CreateInput_Code(BasicPrompt& input);
+	void CreateInput_GetTokenData(BasicPrompt& input);
+	void CreateInput_GetSourceDataAnalysis(BasicPrompt& input);
+	void CreateInput_GetPhraseData(BasicPrompt& input);
+	void CreateInput_GetActionAnalysis(BasicPrompt& input);
+	void CreateInput_GetAttributes(BasicPrompt& input);
+	void CreateInput_ScriptSolver(BasicPrompt& input);
+	void CreateInput_Social(BasicPrompt& input);
+	void CreateInput_BiographySummaryProcess(BasicPrompt& input);
+	void CreateInput_LeadSolver(BasicPrompt& input);
+	void CreateInput_SocialBeliefsProcess(BasicPrompt& input);
+	void CreateInput_Marketplace(BasicPrompt& input);
 	
 	void Process_CreateImage();
 	void Process_EditImage();

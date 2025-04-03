@@ -185,7 +185,7 @@ void ScriptTextProcess::RealizeContext()
 		else {
 			SetWaiting(true);
 			TaskMgr& m = AiTaskManager();
-			m.Get(args, handle_response);
+			m.GetJson(args, handle_response);
 		}
 	}
 	else if (batch == 1) {
@@ -221,7 +221,7 @@ void ScriptTextProcess::RealizeContext()
 		else {
 			SetWaiting(true);
 			TaskMgr& m = AiTaskManager();
-			m.Get(args, handle_response);
+			m.GetJson(args, handle_response);
 		}
 	}
 	else if (batch == 2) {
@@ -268,7 +268,7 @@ void ScriptTextProcess::RealizeContext()
 		else {
 			SetWaiting(true);
 			TaskMgr& m = AiTaskManager();
-			m.Get(args, handle_response);
+			m.GetJson(args, handle_response);
 		}
 	}
 	else NextPhase();
@@ -602,7 +602,7 @@ void ScriptTextProcess::AnalyzePublicFigure()
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
@@ -662,7 +662,7 @@ void ScriptTextProcess::AnalyzeElements()
 		return;
 	}
 
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
@@ -763,7 +763,7 @@ void ScriptTextProcess::TokensToLanguages()
 	args.fn = FN_TOKENS_TO_LANGUAGES;
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
@@ -858,7 +858,7 @@ void ScriptTextProcess::TokensToWords()
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		PROCESS_ASSERT(p.srctxt);
 		auto& src = *p.srctxt;
 		TaskArgs& args = this->args;
@@ -1074,7 +1074,7 @@ void ScriptTextProcess::ClassifySentences()
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String res) {
+	m.GetJson(args, [this](String res) {
 		TaskArgs& args = this->args;
 		auto& src = *p.srctxt;
 
@@ -1188,7 +1188,7 @@ void ScriptTextProcess::VirtualPhraseParts()
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String res) {
+	m.GetJson(args, [this](String res) {
 		TaskArgs& args = this->args;
 		auto& src = *p.srctxt;
 
@@ -1509,7 +1509,7 @@ void ScriptTextProcess::PhrasePartAnalysis()
 		cb =THISBACK(OnPhraseContrast);
 	else
 		TODO;
-	m.Get(args, cb);
+	m.GetJson(args, cb);
 }
 
 void ScriptTextProcess::OnPhraseColors(String res) {
@@ -1881,7 +1881,7 @@ void ScriptTextProcess::Colors()
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		TaskArgs& args = this->args;
 		auto& src = *p.srctxt;
 
@@ -1936,7 +1936,7 @@ void ScriptTextProcess::Attrs()
 
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		TaskArgs& args = this->args;
 		auto& src = *p.srctxt;
 
@@ -2014,7 +2014,7 @@ void ScriptTextProcess::MainGroups()
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		Vector<AttrExtremesBatch>& batches = attr_extremes_batches;
 		AttrExtremesBatch& batch = batches[this->batch];
 		TaskArgs& args = this->args;
@@ -2157,7 +2157,7 @@ void ScriptTextProcess::SimplifyAttrs()
 	
 	SetWaiting(true);
 	TaskMgr& m = AiTaskManager();
-	m.Get(args, [this](String result) {
+	m.GetJson(args, [this](String result) {
 		Vector<AttrPolarBatch>& batches = attr_polar_batches;
 		AttrPolarBatch& batch = batches[this->batch];
 		PROCESS_ASSERT(p.srctxt);

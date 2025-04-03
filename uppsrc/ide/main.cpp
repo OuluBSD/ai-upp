@@ -448,7 +448,11 @@ void AppMain___()
 				ide.isscanning--;
 				ide.MakeTitle();
 				#ifdef flagAI
-				if (dropdown.IsEnabled()) {
+				TaskMgr::Setup(&ide);
+				if (FindIndex(CommandLine(), "--playground") >= 0 ||
+					ToLower(GetExeTitle()) == "playground")
+					RunAiPlayground();
+				else if (dropdown.IsEnabled()) {
 					ide.Close();
 					do {
 						dropdown.Reset();

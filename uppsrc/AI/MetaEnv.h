@@ -54,6 +54,19 @@ struct NodeVisitor {
 		return *this;
 	}
 	
+	template<class T>
+	NodeVisitor& VisitT(const char* key, T& o) {
+		if      (mode == MODE_STREAM) o.T::Visit(*this);
+		else if (mode == MODE_JSON) json->Var(key, o, THISBACK(VisitJsonItemT<T>));
+		else if (mode == MODE_HASH) o.T::Visit(*this);
+		else if (mode == MODE_VCS) {
+			vcs->BeginObject(key);
+			o.T::Visit(*this);
+			vcs->End();
+		}
+		return *this;
+	}
+	
 	void ChkSerializeMagic();
 	
 	
@@ -78,6 +91,11 @@ struct NodeVisitor {
 	void VisitJsonItem(JsonIO& j, T& o) {
 		NodeVisitor v(j);
 		o.Visit(v);
+	}
+	template<class T>
+	void VisitJsonItemT(JsonIO& j, T& o) {
+		NodeVisitor v(j);
+		o.T::Visit(v);
 	}
 	template<class T>
 	void VisitVectorJson(const char* key, T& o) {

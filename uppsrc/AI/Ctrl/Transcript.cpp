@@ -105,7 +105,7 @@ void TranscriptProofreadCtrl::Start() {
 		args.params("misspelled") = comp.value("misspelled");
 		args.params("text") = comp.value("text");
 		PostCallback([this,&comp]{this->status.SetLabel("Making proofread of transcript of: " + (String)comp.value("path"));});
-		m.Get(args, [this](String s) {
+		m.GetJson(args, [this](String s) {
 			COMPNAME& comp = GetExt<COMPNAME>();
 			s = "- #" + s;
 			//DLOG(s);

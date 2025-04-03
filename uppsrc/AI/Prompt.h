@@ -171,16 +171,14 @@ private:
 	void LineBegin(int i, String& s) const;
 };
 
-struct AiPrompt {
+struct BasicPrompt {
 	Array<TaskTitledList> titled_lists;
 	One<TaskTitledList> pre_answer;
-	int response_length = 0;
 
 	void Clear()
 	{
 		titled_lists.Clear();
 		pre_answer.Clear();
-		response_length = 0;
 	}
 	TaskTitledList& PreAnswer()
 	{

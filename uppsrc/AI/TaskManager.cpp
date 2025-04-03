@@ -158,10 +158,24 @@ void TaskMgr::RawCompletion(String prompt, Event<String> WhenResult)
 	AiTask& t = AddTask();
 
 	t.SetRule("raw prompt completion").Process(&AiTask::Process_Default);
-
-	t.raw_input = prompt;
+	
+	t.completion.Create();
+	t.completion->prompt = prompt;
 	t.WhenResult << WhenResult;
 	
+	TaskMgrConfig().Single().Realize();
+}
+
+void TaskMgr::GetCompletion(CompletionArgs& args, Event<String> WhenResult)
+{
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	AiTask& t = AddTask();
+	t.completion.Create();
+	t.completion->Put(args.Get());
+	t.SetRule("completion").Process(&AiTask::Process_Default);
+	t.args << args.Get();
+	t.WhenResult << WhenResult;
 	TaskMgrConfig().Single().Realize();
 }
 
@@ -288,12 +302,13 @@ void TaskMgr::GetVision(const String& jpeg, const VisionArgs& args, Event<String
 
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(MakeName(args, "vision"))
+	t.SetRule("vision")
 		.Input(&AiTask::CreateInput_Vision)
 		.Process(&AiTask::Process_Default);
 
 	t.args << s;
-	t.binary_param = jpeg;
+	t.vision.Create();
+	t.vision->jpeg = jpeg;
 	t.WhenResult << WhenResult;
 	task_lock.Leave();
 	
@@ -309,7 +324,7 @@ void TaskMgr::GetTranscription(const TranscriptionArgs& args, Event<String> When
 
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(MakeName(args, "transcription"))
+	t.SetRule("transcription")
 		.Input(&AiTask::CreateInput_Transcription)
 		.Process(&AiTask::Process_Default);
 
@@ -320,22 +335,35 @@ void TaskMgr::GetTranscription(const TranscriptionArgs& args, Event<String> When
 	TaskMgrConfig().Single().Realize();
 }
 
-void TaskMgr::Get(const TaskArgs& args, Event<String> WhenResult, String title, bool keep_going)
+void TaskMgr::GetBasic(const TaskArgs& args, Event<String> WhenResult, String title, bool keep_going) {
+	Get(false, args, WhenResult, title, keep_going);
+}
+
+void TaskMgr::GetJson(const TaskArgs& args, Event<String> WhenResult, String title, bool keep_going) {
+	Get(true, args, WhenResult, title, keep_going);
+}
+
+void TaskMgr::Get(bool json, const TaskArgs& args, Event<String> WhenResult, String title, bool keep_going)
 {
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
 	TaskMgr& p = *this;
-
+	
 	String s = args.Get();
-
+	
 	if (title.IsEmpty())
 		title = "unnamed";
 	
 	task_lock.Enter();
 	AiTask& t = tasks.Add();
-	t.SetRule(MakeName(args, title))
-		.Input(&AiTask::CreateInput_Default)
-		.Process(&AiTask::Process_Default);
-
+	if (json)
+		t.SetRule(MakeName(args, title))
+			.Input(&AiTask::CreateInput_DefaultJson)
+			.Process(&AiTask::Process_Default);
+	else
+		t.SetRule(MakeName(args, title))
+			.Input(&AiTask::CreateInput_DefaultBasic)
+			.Process(&AiTask::Process_Default);
+	
 	t.args << s;
 	t.WhenResult << WhenResult;
 	t.keep_going = keep_going;
@@ -589,9 +617,15 @@ TaskRule& TaskRule::SetRule(const String& name)
 	return *this;
 }
 
-TaskRule& TaskRule::Input(void (AiTask::*fn)())
+TaskRule& TaskRule::Input(void (AiTask::*fn)(BasicPrompt&))
 {
-	this->input = fn;
+	this->input_basic = fn;
+	return *this;
+}
+
+TaskRule& TaskRule::Input(void (AiTask::*fn)(JsonPrompt&))
+{
+	this->input_json = fn;
 	return *this;
 }
 

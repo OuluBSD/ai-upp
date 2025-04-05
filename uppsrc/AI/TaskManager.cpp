@@ -150,6 +150,19 @@ void TaskMgr::Translate(String orig_lang, String orig_txt, String trans_lang,
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetModels(const ModelArgs& args, Event<String> WhenResult) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	AiTask& t = AddTask();
+	t.ModelTask();
+	t.model.Create();
+	t.model->Put(args.Get());
+	t.SetRule("models").Process(&AiTask::Process_Default);
+	t.args << args.Get();
+	t.WhenResult << WhenResult;
+	TaskMgrConfig().Single().Realize();
+}
+
 void TaskMgr::RawCompletion(String prompt, Event<String> WhenResult)
 {
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
@@ -666,19 +679,25 @@ TaskRule& TaskRule::DebugInput(bool b)
 	return *this;
 }
 
-TaskRule& TaskRule::ImageTask(bool b)
+TaskRule& TaskRule::ModelTask()
+{
+	type = TYPE_MODEL;
+	return *this;
+}
+
+TaskRule& TaskRule::ImageTask()
 {
 	type = TYPE_IMAGE_GENERATION;
 	return *this;
 }
 
-TaskRule& TaskRule::ImageEditTask(bool b)
+TaskRule& TaskRule::ImageEditTask()
 {
 	type = TYPE_IMAGE_EDIT;
 	return *this;
 }
 
-TaskRule& TaskRule::ImageVariateTask(bool b)
+TaskRule& TaskRule::ImageVariateTask()
 {
 	type = TYPE_IMAGE_VARIATE;
 	return *this;

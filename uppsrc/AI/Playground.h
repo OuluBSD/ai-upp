@@ -24,11 +24,21 @@ struct AiThreadCtrlBase {
 };
 
 class CompletionCtrl : public WithCompletion<Ctrl>, public AiThreadCtrlBase {
+	struct Model : Moveable<Model> {
+		String name;
+		bool use_chat = false;
+	};
+	Vector<Model> models;
 	
+	int GetModelCount(bool use_chat);
+	bool CannotDoCompletion(String model_name);
+	void UpdateCompletionModels();
+	void AddModel(String name, bool use_chat=false);
 public:
 	typedef CompletionCtrl CLASSNAME;
 	CompletionCtrl();
 	
+	void Data();
 	void Submit();
 	CompletionThread& Thread();
 };

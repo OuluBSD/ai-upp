@@ -5,6 +5,34 @@ NAMESPACE_UPP
 
 struct TaskMgr;
 
+struct OpenAiModelResponse {
+	struct Data : Moveable<Data> {
+		String id;
+		String object;
+		int64 created;
+		String owned_by;
+
+		void Jsonize(JsonIO& json) { json("id", id)("object", object)("created", created)("owned_by", owned_by); }
+		String ToString() const {
+			String s;
+			s << "id: " << id << ", owned_by: " << owned_by << "\n";
+			return s;
+		}
+	};
+
+	String object;
+	Vector<Data> data;
+
+	void Jsonize(JsonIO& json) { json("object", object)("data", data); }
+	String ToString() const
+	{
+		String s;
+		s << "object: " << object << "\n";
+		s << data.ToString();
+		return s;
+	}
+};
+
 struct OpenAiResponse {
 	struct Msg : Moveable<Msg> {
 		String content, role;
@@ -166,6 +194,7 @@ struct AiTask;
 
 struct TaskRule {
 	typedef enum : int {
+		TYPE_MODEL,
 		TYPE_COMPLETION,
 		TYPE_IMAGE_GENERATION,
 		TYPE_IMAGE_EDIT,
@@ -201,9 +230,10 @@ struct TaskRule {
 	TaskRule& CrossMode(bool b = true);
 	TaskRule& SeparateItems(bool b = true);
 	TaskRule& DebugInput(bool b = true);
-	TaskRule& ImageTask(bool b = true);
-	TaskRule& ImageEditTask(bool b = true);
-	TaskRule& ImageVariateTask(bool b = true);
+	TaskRule& ModelTask();
+	TaskRule& ImageTask();
+	TaskRule& ImageEditTask();
+	TaskRule& ImageVariateTask();
 };
 
 struct AiTask : TaskRule {
@@ -237,6 +267,7 @@ public:
 	One<BasicPrompt> input_basic;
 	One<JsonPrompt> input_json;
 	
+	One<ModelArgs> model;
 	One<CompletionArgs> completion;
 	One<VisionArgs> vision;
 	One<TranscriptionArgs> transcription;
@@ -266,6 +297,7 @@ public:
 	void Store(bool force = false);
 	void Load();
 	bool RunOpenAI();
+	bool RunOpenAI_Model();
 	bool RunOpenAI_Completion();
 	bool RunOpenAI_Image();
 	bool RunOpenAI_Vision();

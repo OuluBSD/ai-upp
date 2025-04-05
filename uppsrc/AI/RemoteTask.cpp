@@ -78,7 +78,9 @@ bool AiTask::HasJsonInput() const {
 }
 
 bool AiTask::HasAnyInput() const {
-	if (completion)
+	if (model)
+		return true;
+	else if (completion)
 		return true;
 	else if (vision)
 		return true;
@@ -91,7 +93,9 @@ bool AiTask::HasAnyInput() const {
 }
 
 void AiTask::SetMaxLength(int tokens) {
-	if (completion)
+	if (model)
+		;
+	else if (completion)
 		completion->max_length = tokens;
 	else if (vision)
 		vision->max_length = tokens;
@@ -105,7 +109,9 @@ void AiTask::SetMaxLength(int tokens) {
 
 void AiTask::SetPrompt(String s)
 {
-	if (completion)
+	if (model)
+		;
+	else if (completion)
 		completion->prompt = s;
 	else if (vision)
 		vision->prompt = s;
@@ -118,6 +124,8 @@ void AiTask::SetPrompt(String s)
 }
 
 String AiTask::MakeInputString(bool pretty) const {
+	if (model)
+		return String();
 	if (completion)
 		return completion->prompt;
 	if (vision)
@@ -148,6 +156,7 @@ bool AiTask::ProcessInput()
 	bool ok = true;
 	
 	bool premade_prompt =
+		(model) ||
 		(completion && completion->prompt.GetCount()) ||
 		(vision && vision->prompt.GetCount()) ||
 		(transcription && transcription->prompt.GetCount()) ||
@@ -269,6 +278,7 @@ void AiTask::Process()
 bool AiTask::RunOpenAI()
 {
 	switch (type) {
+		case TYPE_MODEL:			return RunOpenAI_Model();
 		case TYPE_COMPLETION:		return RunOpenAI_Completion();
 		case TYPE_IMAGE_GENERATION:	return RunOpenAI_Image();
 		case TYPE_IMAGE_EDIT:		return RunOpenAI_Image();
@@ -468,6 +478,34 @@ bool AiTask::OnImageException(String msg) {
 	return false;
 }
 
+bool AiTask::RunOpenAI_Model()
+{
+	output.Clear();
+	
+	ASSERT(model);
+	if (!model)
+		return false;
+
+	return TryOpenAI("", "", [this]{
+		ModelArgs& args = *model;
+		
+		if (args.fn == ModelArgs::FN_LIST) {
+			OpenAiModelResponse response;
+			auto model_list = openai::model().list();
+			LOG("Response is:\n" << model_list.dump(2));
+			LoadFromJson(response, String(model_list.dump(2)));
+			// LOG(response.ToString());
+			
+			Vector<String> models;
+			for (auto it : response.data)
+				models.Add(it.id);
+			output = StoreAsJson(models);
+			WhenResult(output);
+		}
+		else TODO
+	});
+}
+
 bool AiTask::RunOpenAI_Completion()
 {
 	output.Clear();
@@ -486,7 +524,7 @@ bool AiTask::RunOpenAI_Completion()
 	prompt = FixInvalidChars(prompt); // NOTE: warning: might break something
 
 	// Cache prompts too (for crash debugging)
-	if(1) {
+	{
 		String prompt_cache_dir = ConfigFile("prompt-cache");
 		String fname = IntStr64(prompt.GetHashValue()) + ".txt";
 		// DUMP(fname);
@@ -508,16 +546,16 @@ bool AiTask::RunOpenAI_Completion()
 
 		ASSERT(!(input_json && input_json->force_completion));
 		
-		//TODO // move <|endoftext|> to somewhere useful place
-		
 		String txt = R"_({
-		    "model": "gpt-3.5-turbo-instruct",
-		    "stop": "<|endoftext|>",
-		    "prompt": ")_" +
-					      prompt + R"_(",
-		    "max_tokens": )_" +
-					      IntStr(args.max_length) + R"_(,
-		    "temperature": 1
+		    "model": )_" + AsJSON(args.model_name) + R"_(,
+		    "prompt": )_" + AsJSON(args.prompt) + R"_(,
+		    "best_of": )_" + IntStr(args.best_of) + R"_(,
+		    "frequency_penalty": )_" + DblStr(args.frequency_penalty) + R"_(,
+		    "max_tokens": )_" + IntStr(args.max_length) + R"_(,
+		    "presence_penalty": )_" + DblStr(args.presence_penalty) + R"_(,
+		    "stop": )_" + AsJSON(args.stop_seq) + R"_(,
+		    "temperature": )_" + DblStr(args.temperature) + R"_(,
+		    "top_p": )_" + DblStr(args.top_prob) + R"_(
 		})_";
 		
 		return TryOpenAI(prompt, txt, [this,txt]{

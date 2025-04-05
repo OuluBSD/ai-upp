@@ -42,6 +42,7 @@ struct TaskMgr {
 	                  Event<Array<Image>&> WhenResult, Event<> WhenError = Event<>());
 	void VariateImage(Image orig, int count, Event<Array<Image>&> WhenResult,
 	                  Event<> WhenError = Event<>());
+	void GetModels(const ModelArgs& args, Event<String> WhenResult);
 	void RawCompletion(String prompt, Event<String> WhenResult);
 	void GetCompletion(CompletionArgs& args, Event<String> WhenResult);
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title=String());

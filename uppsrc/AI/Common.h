@@ -9,6 +9,24 @@ struct CurrentFileContext;
 NAMESPACE_UPP
 
 
+struct ModelArgs : Moveable<ModelArgs> {
+	enum {
+		FN_LIST,
+		FN_RETRIEVE,
+		FN_DELETE
+	};
+	int fn = FN_LIST;
+	String model;
+	
+	void Jsonize(JsonIO& json) {
+		json("fn", fn)
+			("model", model)
+			;
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
 struct CompletionArgs : Moveable<CompletionArgs> {
 	typedef enum : int {
 		NO_PROBABILITIES,
@@ -18,12 +36,13 @@ struct CompletionArgs : Moveable<CompletionArgs> {
 	} ShowProbs;
 	
 	String prompt;
-	double temperature = 0;
+	String model_name;
+	double temperature = 1;
 	int max_length = 2048;
 	String stop_seq;
 	double top_prob = 1;
-	double frequency_penalty = 0;
-	double presence_penalty = 0;
+	double frequency_penalty = 0; // between -2 and 2
+	double presence_penalty = 0; // between -2 and 2
 	int best_of = 1;
 	String inject_start_text;
 	String inject_restart_text;
@@ -31,6 +50,7 @@ struct CompletionArgs : Moveable<CompletionArgs> {
 	
 	void Jsonize(JsonIO& json) {
 		json("prompt", prompt)
+			("model_name", model_name)
 			("temperature", temperature)
 			("max_length", max_length)
 			("stop_seq", stop_seq)
@@ -41,6 +61,19 @@ struct CompletionArgs : Moveable<CompletionArgs> {
 			("inject_start_text", inject_start_text)
 			("inject_restart_text", inject_restart_text)
 			("show_probabilities", (int&)show_probabilities)
+			;
+	}
+	String Get() const { return StoreAsJson(*this); }
+	void Put(const String& s) { LoadFromJson(*this, s); }
+};
+
+struct ChatArgs : Moveable<ChatArgs> {
+	String prompt;
+	String model_name;
+	
+	void Jsonize(JsonIO& json) {
+		json("prompt", prompt)
+			("model_name", model_name)
 			;
 	}
 	String Get() const { return StoreAsJson(*this); }

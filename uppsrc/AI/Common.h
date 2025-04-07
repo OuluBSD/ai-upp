@@ -68,12 +68,43 @@ struct CompletionArgs : Moveable<CompletionArgs> {
 };
 
 struct ChatArgs : Moveable<ChatArgs> {
-	String prompt;
+	typedef enum : int {
+		MSG_NULL,
+		MSG_USER,
+		MSG_DEVELOPER,
+		MSG_SYSTEM = MSG_DEVELOPER,
+		MSG_ASSISTANTE,
+		MSG_TOOL,
+		MSG_FUNCTION,
+	} MsgType;
+	
+	struct Message : Moveable<Message> {
+		MsgType type = MSG_NULL;
+		
+		void Jsonize(JsonIO& json) {
+			json("type",(int&)type);
+		}
+	};
 	String model_name;
+	Vector<Message> messages;
+	String system_instructions;
+	int response_format;
+	double temperature = 1.0;
+	String stop_seq;
+	double top_prob = 1;
+	double frequency_penalty = 0; // between -2 and 2
+	double presence_penalty = 0; // between -2 and 2
 	
 	void Jsonize(JsonIO& json) {
-		json("prompt", prompt)
-			("model_name", model_name)
+		json("model_name", model_name)
+			("messages", messages)
+			("system_instructions", system_instructions)
+			("response_format", response_format)
+			("temperature", temperature)
+			("stop_seq", stop_seq)
+			("top_prob", top_prob)
+			("frequency_penalty", frequency_penalty)
+			("presence_penalty", presence_penalty)
 			;
 	}
 	String Get() const { return StoreAsJson(*this); }

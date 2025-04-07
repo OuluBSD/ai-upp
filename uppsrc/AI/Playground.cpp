@@ -14,6 +14,7 @@ CompletionCtrl::CompletionCtrl() {
 	AddModel("gpt-4o", true);
 	*/
 	
+	model_name.WhenAction = [this]{this->model_i = this->model_name.GetIndex();};
 	temperature.SetData(1);
 	max_length.SetData(2048);
 	top_p.SetData(1);
@@ -30,13 +31,26 @@ CompletionCtrl::CompletionCtrl() {
 	prompt.WithCutLine(true);
 }
 
-void CompletionCtrl::AddModel(String name, bool use_chat) {
+void AiThreadCtrlBase::AddModel(String name, bool use_chat) {
 	auto& m = models.Add();
 	m.name = name;
 	m.use_chat = use_chat;
 }
 
-int CompletionCtrl::GetModelCount(bool use_chat) {
+void AiThreadCtrlBase::MainMenu(Bar& bar) {
+	bar.Add("Update", [this]{this->Data();}).Key(K_F5);
+	bar.Add("Submit", [this]{this->Submit();}).Key(K_CTRL_ENTER);
+}
+
+void AiThreadCtrlBase::Serialize(Stream& s) {
+	int ver = 0;
+	s % ver;
+	
+	if (ver >= 0)
+		s % model_i;
+}
+
+int AiThreadCtrlBase::GetModelCount(bool use_chat) {
 	int c = 0;
 	for (auto it : models)
 		if (it.use_chat == use_chat)
@@ -44,11 +58,19 @@ int CompletionCtrl::GetModelCount(bool use_chat) {
 	return c;
 }
 
-void CompletionCtrl::UpdateCompletionModels() {
+void AiThreadCtrlBase::UpdateCompletionModels() {
+	UpdateModels(true);
+}
+
+void AiThreadCtrlBase::UpdateChatModels() {
+	UpdateModels(false);
+}
+
+void AiThreadCtrlBase::UpdateModels(bool completion) {
 	TaskMgr& m = AiTaskManager();
 	ModelArgs args;
-	Ptr<Ctrl> p = this;
-	m.GetModels(args, [this, p](String res){
+	Ptr<Ctrl> p = GetCtrl();
+	m.GetModels(args, [this, p, completion](String res){
 		if (!p) return;
 		Vector<String> models;
 		LoadFromJson(models, res);
@@ -61,16 +83,14 @@ void CompletionCtrl::UpdateCompletionModels() {
 			this->models.Remove(rm);
 		
 		for (String m : models)
-			if (!CannotDoCompletion(m))
+			if (CannotDoCompletion(m) == !completion)
 				AddModel(m, false);
 		
-		PostCallback(THISBACK(Data));
+		PostCallback([this]{this->Data();});
 	});
-	
-	
 }
 
-bool CompletionCtrl::CannotDoCompletion(String model_name) {
+bool AiThreadCtrlBase::CannotDoCompletion(String model_name) {
 	thread_local static Vector<String> non_completions;
 	if (non_completions.IsEmpty()) {
 		non_completions	<< "gpt-4"
@@ -102,12 +122,14 @@ void CompletionCtrl::Data() {
 	if (!GetModelCount(false)) {
 		UpdateCompletionModels();
 	}
-	else if (model.GetCount() != models.GetCount()) {
-		model.Clear();
+	else if (model_name.GetCount() != models.GetCount()) {
+		model_name.Clear();
 		for (auto it : models)
-			model.Add(it.name);
-		if (model.GetCount())
-			model.SetIndex(0);
+			model_name.Add(it.name);
+		if (model_i >= 0 && model_i < model_name.GetCount())
+			model_name.SetIndex(model_i);
+		else if (model_name.GetCount())
+			model_name.SetIndex(0);
 	}
 }
 
@@ -119,7 +141,7 @@ void AiThreadCtrlBase::SetThread(AiThread& t) {
 
 void CompletionCtrl::Submit() {
 	if (!HasThread()) return;
-	if (model.GetCount() == 0) return;
+	if (this->model_name.GetCount() == 0) return;
 	CompletionThread& t = GetCompletionThread();
 	TaskMgr& m = AiTaskManager();
 	
@@ -127,7 +149,7 @@ void CompletionCtrl::Submit() {
 	txt.Replace("\r","");
 	
 	
-	int model_i = model.GetIndex();
+	int model_i = this->model_name.GetIndex();
 	String model_name = models[model_i].name;
 	bool model_uses_chat_mode = models[model_i].use_chat;
 	
@@ -199,8 +221,16 @@ TextToSpeechCtrl::TextToSpeechCtrl() {
 	
 }
 
+void TextToSpeechCtrl::Data() {
+	
+}
+
 AssistantCtrl::AssistantCtrl() {
 	CtrlLayout(*this);
+	
+}
+
+void AssistantCtrl::Data() {
 	
 }
 
@@ -209,14 +239,56 @@ RealtimeAiCtrl::RealtimeAiCtrl() {
 	
 }
 
+void RealtimeAiCtrl::Data() {
+	
+}
+
 ChatAiCtrl::ChatAiCtrl() {
 	CtrlLayout(*this);
 	frequency_penalty.SetData(1);
 	presence_penalty.SetData(1);
+	model_name.WhenAction = [this]{this->model_i = this->model_name.GetIndex();};
+	this->system_instructions.SetData("You are a helpful assistant...");
+	
+}
+
+void ChatAiCtrl::Data() {
+	if (!GetModelCount(false)) {
+		UpdateChatModels();
+	}
+	else if (model_name.GetCount() != models.GetCount()) {
+		model_name.Clear();
+		for (auto it : models)
+			model_name.Add(it.name);
+		if (model_i >= 0 && model_i < model_name.GetCount())
+			model_name.SetIndex(model_i);
+		else if (model_name.GetCount())
+			model_name.SetIndex(0);
+	}
+}
+
+void ChatAiCtrl::Submit() {
+	if (this->model_name.GetCount() == 0) return;
+	
+	ChatArgs args;
+	args.model_name = models[this->model_name.GetIndex()].name;
+	args.system_instructions = this->system_instructions.GetData();
+	args.response_format = this->response_format.GetData();
+	args.temperature = this->temperature.GetData();
+	args.stop_seq = this->stop_seq.GetData();
+	args.top_prob = this->top_p.GetData();
+	args.frequency_penalty = this->frequency_penalty.GetData();
+	args.presence_penalty = this->presence_penalty.GetData();
+	
+	
 }
 
 CustomBiasesCtrl::CustomBiasesCtrl() {
 	CtrlLayout(*this);
+	
+}
+
+void CustomBiasesCtrl::Data() {
 	
 }
 
@@ -235,8 +307,12 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(bias.SizePos(), "Custom Biases");
 	tabs.Add(tasks.SizePos(), "Tasks");
 	
-	tabs.WhenSet = THISBACK(Data);
+	tabs.WhenSet = [this]{
+		this->Data();
+		WhenTab();
+	};
 	
+	PostCallback(THISBACK(LoadThis));
 	PostCallback(THISBACK(Data));
 	/*
 	TODO
@@ -265,24 +341,62 @@ void PlaygroundCtrl::SetThread(OmniThread& t) {
 	bias.SetThread(t);
 }
 
+void PlaygroundCtrl::TabMenu(Bar& b) {
+	int tab = tabs.Get();
+	
+	switch (tab) {
+		case 0: completion.MainMenu(b); break;
+		case 1: chat.MainMenu(b); break;
+		default: break;
+	}
+}
+
 void PlaygroundCtrl::Data() {
 	int tab = tabs.Get();
 	
 	switch (tab) {
 		case 0: completion.Data(); break;
+		case 1: chat.Data(); break;
 		case 8: tasks.Data(); break;
 		default: break;
 	}
 }
 
+void PlaygroundCtrl::Serialize(Stream& s) {
+	int ver = 0;
+	s % ver;
+	
+	int tab = 0;
+	
+	if (ver >= 0) {
+		tab = tabs.Get();
+		s % tab;
+		
+		s % (AiThreadCtrlBase&)completion;
+		s % (AiThreadCtrlBase&)chat;
+		//s % tts;
+		//s % ass;
+		//s % rt;
+		//s % bias;
+		//s % edit_img;
+		//s % img_aspect;
+		//s % tasks;
+	}
+	
+	if (s.IsLoading())
+		tabs.Set(tab);
+}
+
 void PlaygroundCtrl::StoreThis() {
-	if (!omni) return;
-	VisitToJsonFile(*omni, ConfigFile("playground.json"));
+	if (omni)
+		VisitToJsonFile(*omni, ConfigFile("playground.json"));
+	StoreToFile(*this, ConfigFile("playground-gui.bin"));
 }
 
 void PlaygroundCtrl::LoadThis() {
-	if (!omni) return;
-	VisitFromJsonFile(*omni, ConfigFile("playground.json"));
+	if (omni)
+		VisitFromJsonFile(*omni, ConfigFile("playground.json"));
+	LoadFromFile(*this, ConfigFile("playground-gui.bin"));
 }
 
 
@@ -293,8 +407,21 @@ PlaygroundApp::PlaygroundApp() {
 	
 	Add(pg.SizePos());
 	AddFrame(menu);
+	PostCallback(THISBACK(UpdateMenu));
 	
+	pg.WhenTab << THISBACK(UpdateMenu);
 	pg.CreateThread();
+}
+
+void PlaygroundApp::UpdateMenu() {
+	menu.Set(THISBACK(MainMenu));
+}
+
+void PlaygroundApp::MainMenu(Bar& bar) {
+	bar.Sub("App", [this](Bar& bar) {
+		bar.Add("Quit", [this]{this->Close();});
+	});
+	bar.Sub("Tab", [this](Bar& bar) {pg.TabMenu(bar);});
 }
 
 void RunAiPlayground() {

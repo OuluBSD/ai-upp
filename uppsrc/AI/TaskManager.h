@@ -45,6 +45,7 @@ struct TaskMgr {
 	void GetModels(const ModelArgs& args, Event<String> WhenResult);
 	void RawCompletion(String prompt, Event<String> WhenResult);
 	void GetCompletion(CompletionArgs& args, Event<String> WhenResult);
+	void GetChat(ChatArgs& args, Event<String> WhenResult);
 	void GetGenericPrompt(const GenericPromptArgs& args, Event<String> WhenResult, String title=String());
 	void GetVision(const String& jpeg, const VisionArgs& args, Event<String> WhenResult);
 	void GetTranscription(const TranscriptionArgs& args, Event<String> WhenResult);

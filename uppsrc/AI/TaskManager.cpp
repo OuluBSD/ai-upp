@@ -192,6 +192,20 @@ void TaskMgr::GetCompletion(CompletionArgs& args, Event<String> WhenResult)
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetChat(ChatArgs& args, Event<String> WhenResult)
+{
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	AiTask& t = AddTask();
+	t.type = AiTask::TYPE_CHAT;
+	t.chat.Create();
+	t.chat->Put(args.Get());
+	t.SetRule("chat").Process(&AiTask::Process_Default);
+	t.args << args.Get();
+	t.WhenResult << WhenResult;
+	TaskMgrConfig().Single().Realize();
+}
+
 void TaskMgr::CreateImage(String prompt, int count, Event<Array<Image>&> WhenResult,
                           int reduce_size_mode, Event<> WhenError)
 {

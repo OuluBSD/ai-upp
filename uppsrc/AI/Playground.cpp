@@ -179,6 +179,7 @@ void CompletionCtrl::Submit() {
 			String new_data = txt + res;
 			GuiLock __;
 			this->prompt.SetData(new_data);
+			this->prompt.SetCursor(this->prompt.GetLength());
 		});
 	}
 }
@@ -247,9 +248,16 @@ ChatAiCtrl::ChatAiCtrl() {
 	CtrlLayout(*this);
 	frequency_penalty.SetData(1);
 	presence_penalty.SetData(1);
+	top_p.SetData(1);
+	temperature.SetData(1);
 	model_name.WhenAction = [this]{this->model_i = this->model_name.GetIndex();};
 	this->system_instructions.SetData("You are a helpful assistant...");
 	
+	sessions.AddColumn("Name");
+	sessions.AddColumn("Changed");
+	sessions.AddIndex("IDX");
+	
+	submit <<= THISBACK(Submit);
 }
 
 void ChatAiCtrl::Data() {
@@ -265,22 +273,102 @@ void ChatAiCtrl::Data() {
 		else if (model_name.GetCount())
 			model_name.SetIndex(0);
 	}
+	
+	// Update sessions
+	if (!HasThread()) return;
+	ChatThread& t = GetChatThread();
+	if (t.sessions.IsEmpty())
+		AddSession();
+	if (sessions.GetCount() != t.sessions.GetCount()) {
+		for(int i = 0; i < t.sessions.GetCount(); i++) {
+			auto& session = t.sessions[i];
+			sessions.Set(i, "IDX", i);
+			sessions.Set(i, 0, session.name);
+			sessions.Set(i, 1, session.changed);
+		}
+		sessions.SetCount(t.sessions.GetCount());
+		sessions.SetSortColumn(1, true);
+		if (!sessions.IsCursor())
+			sessions.SetCursor(0);
+	}
+	
+	DataSession();
+}
+
+void ChatAiCtrl::ClearSessionCtrl() {
+	
+}
+
+void ChatAiCtrl::AddSession() {
+	ChatThread& t = GetChatThread();
+	auto& session = t.sessions.Add();
+	session.created = GetSysTime();
+	session.name = "Unnamed";
+}
+
+void ChatAiCtrl::DataSession() {
+	if (!sessions.IsCursor()) {
+		ClearSessionCtrl();
+		return;
+	}
+	
+	session_i = sessions.Get("IDX");
+	ChatThread& t = GetChatThread();
+	const auto& session = t.sessions[session_i];
+	
+	
 }
 
 void ChatAiCtrl::Submit() {
+	if (!HasThread()) return;
 	if (this->model_name.GetCount() == 0) return;
+	if (session_i < 0) return;
+	
+	ChatThread& t = GetChatThread();
+	TaskMgr& m = AiTaskManager();
+	
+	String txt = this->prompt.GetData();
+	txt.Replace("\r","");
+	
+	{
+		if (session_i < 0 || session_i >= t.sessions.GetCount())
+			return;
+		auto& session = t.sessions[session_i];
+		auto& item = session.items.Add();
+		item.type = MSG_USER;
+		item.text = txt;
+		item.username = "";
+		session.changed = item.created = GetSysTime();
+		PostCallback([this]{
+			this->prompt.Clear();
+			DataSession();
+		});
+	}
+	
 	
 	ChatArgs args;
+	{
+		auto& msg = args.messages.Add();
+		msg.type = MSG_SYSTEM;
+		msg.content = this->system_instructions.GetData();
+	}
+	{
+		auto& msg = args.messages.Add();
+		msg.type = MSG_USER;
+		msg.content = txt;
+	}
 	args.model_name = models[this->model_name.GetIndex()].name;
-	args.system_instructions = this->system_instructions.GetData();
-	args.response_format = this->response_format.GetData();
+	//args.response_format = this->response_format.GetData();
 	args.temperature = this->temperature.GetData();
 	args.stop_seq = this->stop_seq.GetData();
 	args.top_prob = this->top_p.GetData();
 	args.frequency_penalty = this->frequency_penalty.GetData();
 	args.presence_penalty = this->presence_penalty.GetData();
 	
-	
+	m.GetChat(args, [this, txt](String res) {
+		GuiLock __;
+		this->prompt.Clear();
+	});
 }
 
 CustomBiasesCtrl::CustomBiasesCtrl() {

@@ -195,6 +195,7 @@ struct AiTask;
 struct TaskRule {
 	typedef enum : int {
 		TYPE_MODEL,
+		TYPE_CHAT,
 		TYPE_COMPLETION,
 		TYPE_IMAGE_GENERATION,
 		TYPE_IMAGE_EDIT,
@@ -269,6 +270,7 @@ public:
 	
 	One<ModelArgs> model;
 	One<CompletionArgs> completion;
+	One<ChatArgs> chat;
 	One<VisionArgs> vision;
 	One<TranscriptionArgs> transcription;
 	One<ImageArgs> image;
@@ -298,6 +300,7 @@ public:
 	void Load();
 	bool RunOpenAI();
 	bool RunOpenAI_Model();
+	bool RunOpenAI_Chat();
 	bool RunOpenAI_Completion();
 	bool RunOpenAI_Image();
 	bool RunOpenAI_Vision();

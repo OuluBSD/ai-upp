@@ -48,9 +48,62 @@ ChatDirectorAgent
 class ChatThread : public virtual AiThread {
 	
 public:
+	struct Attachment : Moveable<Attachment> {
+		String mime;
+		String filepath; // if any
+		String data; // if any
+		String source_info; // if any
+		void Visit(NodeVisitor& vis) {
+			vis.Ver(1)
+			(1)	("mime", mime)
+				("filepath", filepath)
+				("data", data)
+				("source_info", source_info);
+		}
+	};
+	struct Session {
+		struct Item : Moveable<Item> {
+			AiMsgType type = MSG_NULL;
+			String text;
+			String username;
+			Time created;
+			Vector<Attachment> attachments;
+			
+			void Visit(NodeVisitor& vis) {
+				vis.Ver(1)
+				(1)	("type", (int&)type)
+					("text", text)
+					("username", username)
+					("created", created)
+					("attachments", attachments, VISIT_VECTOR)
+					;
+			}
+		};
+		String name;
+		Time created;
+		Time changed;
+		Vector<Item> items;
+		
+		void Visit(NodeVisitor& vis) {
+			vis.Ver(1)
+			(1)	("name", name)
+				("created", created)
+				("changed", changed)
+				("items", items, VISIT_VECTOR)
+				;
+		}
+	};
+	
+	Array<Session> sessions;
+	
+public:
 	typedef ChatThread CLASSNAME;
 	
-	void Visit(NodeVisitor& vis) override {vis.Ver(0);}
+	void Visit(NodeVisitor& vis) override {
+		vis.Ver(1)
+		(1)	("sessions",sessions, VISIT_VECTOR)
+			;
+	}
 };
 
 class SpeechTranscriptionThread : public virtual AiThread {

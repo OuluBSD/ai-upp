@@ -16,8 +16,7 @@
 #include "ProjectWizard.h"
 
 #include "SourceText.h"
-#include "AiCompletion.h"
-#include "AiChat.h"
+#include "Ai.h"
 
 #include "Owner.h"
 #include "Notepad.h"

@@ -1,5 +1,5 @@
-#ifndef _AI_Ctrl_AiCompletion_h_
-#define _AI_Ctrl_AiCompletion_h_
+#ifndef _AI_Ctrl_Ai_h_
+#define _AI_Ctrl_Ai_h_
 
 
 NAMESPACE_UPP
@@ -19,6 +19,23 @@ public:
 };
 
 INITIALIZE(AiCompletionComponentCtrl)
+
+
+class AiChatComponentCtrl : public ComponentCtrl {
+	ChatAiCtrl ctrl;
+	
+public:
+	typedef AiChatComponentCtrl CLASSNAME;
+	AiChatComponentCtrl();
+	
+	void Data() override;
+	void ToolMenu(Bar& bar) override {}
+	
+	OmniThread& GetThread();
+};
+
+INITIALIZE(AiChatComponentCtrl)
+
 
 
 END_UPP_NAMESPACE

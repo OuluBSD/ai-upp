@@ -42,6 +42,7 @@ struct AiThreadCtrlBase {
 		return *t;
 	}
 	CompletionThread& GetCompletionThread() {return CastThread<CompletionThread>();}
+	ChatThread& GetChatThread() {return CastThread<ChatThread>();}
 	
 	void SetThread(AiThread& t);
 };
@@ -89,12 +90,16 @@ public:
 };
 
 class ChatAiCtrl : public WithChatAI<Ctrl>, public AiThreadCtrlBase {
+	int session_i = -1;
 	
 public:
 	typedef ChatAiCtrl CLASSNAME;
 	ChatAiCtrl();
 	void Submit() override;
 	void Data() override;
+	void DataSession();
+	void ClearSessionCtrl();
+	void AddSession();
 	Ctrl* GetCtrl() override {return this;}
 };
 

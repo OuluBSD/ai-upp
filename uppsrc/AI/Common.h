@@ -67,44 +67,143 @@ struct CompletionArgs : Moveable<CompletionArgs> {
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };
 
+typedef enum : int {
+	MSG_NULL,
+	MSG_USER,
+	MSG_DEVELOPER,
+	MSG_SYSTEM = MSG_DEVELOPER,
+	MSG_ASSISTANT,
+	MSG_TOOL,
+	MSG_FUNCTION,
+} AiMsgType;
+
+typedef enum : int {
+	REASONING_NULL = 0,
+	REASONING_LOW,
+	REASONING_MEDIUM,
+	REASONING_HIGH,
+} ReasoningEffort;
+
+inline String GetReasoningEffortString(ReasoningEffort reasoning_effort) {
+	switch (reasoning_effort) {
+		case REASONING_LOW:    return "low";
+		case REASONING_MEDIUM: return "medium";
+		case REASONING_HIGH:   return "high";
+		default: return "";
+	}
+}
+
 struct ChatArgs : Moveable<ChatArgs> {
-	typedef enum : int {
-		MSG_NULL,
-		MSG_USER,
-		MSG_DEVELOPER,
-		MSG_SYSTEM = MSG_DEVELOPER,
-		MSG_ASSISTANTE,
-		MSG_TOOL,
-		MSG_FUNCTION,
-	} MsgType;
 	
-	struct Message : Moveable<Message> {
-		MsgType type = MSG_NULL;
-		
+	struct ToolFunction : Moveable<ToolFunction> {
+		String arguments, name;
+		void Jsonize(JsonIO& json) {json("arguments",arguments)("name",name);}
+	};
+	struct ToolCall : Moveable<ToolCall> {
+		ToolFunction function;
+		String id, type;
+		bool IsEmpty() const {return type.IsEmpty();}
+		void Jsonize(JsonIO& json) {json("function",function)("id",id)("type",type);}
+	};
+	struct ToolDeclaration : Moveable<ToolDeclaration> {
+		ToolFunction function;
+		String type;
+		bool IsEmpty() const {return type.IsEmpty();}
+		void Jsonize(JsonIO& json) {json("function",function)("type",type);}
+	};
+	struct UrlCitation : Moveable<UrlCitation> {
+		int end_index = -1, start_index = -1;
+		String title, url;
 		void Jsonize(JsonIO& json) {
-			json("type",(int&)type);
+			json("end_index",end_index)
+				("start_index",start_index)
+				("title",title)
+				("url",url)
+				;
 		}
 	};
-	String model_name;
+	struct Annotation : Moveable<Annotation> {
+		String type;
+		UrlCitation url_citation;
+		void Jsonize(JsonIO& json) {
+			json("type",type)
+				("url_citation",url_citation)
+				;
+		}
+	};
+	struct Message : Moveable<Message> {
+		AiMsgType type = MSG_NULL;
+		String content, name, refusal;
+		Vector<ToolCall> tool_calls;
+		Vector<Annotation> annotations;
+		
+		void Jsonize(JsonIO& json) {
+			json("type",(int&)type)
+				("content",content)
+				("name",name)
+				("refusal",refusal)
+				("tool_calls",tool_calls)
+				("annotations",annotations)
+				;
+		}
+	};
+	struct Prediction : Moveable<Prediction> {
+		struct Part : Moveable<Part> {
+			String text, type;
+			void Jsonize(JsonIO& json) {json("text",text)("type",type);}
+		};
+		String content_txt;
+		Vector<Part> content_parts;
+		bool IsEmpty() const {return content_txt.IsEmpty() && content_parts.IsEmpty();}
+		void Jsonize(JsonIO& json) {json("content_txt",content_txt)("content_parts",content_parts);}
+	};
+	struct ApproximateLocation : Moveable<ApproximateLocation> {
+		String country, city, region;
+		void Jsonize(JsonIO& json) {json("country",country)("city",city)("region",region);}
+	};
+	struct UserLocation : Moveable<UserLocation> {
+		String type;
+		ApproximateLocation approximate;
+		void Jsonize(JsonIO& json) {json("type",type)("approximate",approximate);}
+	};
+	struct WebSearchOptions : Moveable<WebSearchOptions> {
+		UserLocation user_location;
+		ReasoningEffort search_context_size = REASONING_NULL;
+		bool IsEmpty() const {return user_location.type.IsEmpty();}
+		void Jsonize(JsonIO& json) {json("user_location",user_location)("search_context_size",(int&)search_context_size);}
+	};
 	Vector<Message> messages;
-	String system_instructions;
-	int response_format;
-	double temperature = 1.0;
-	String stop_seq;
-	double top_prob = 1;
+	String model_name;
 	double frequency_penalty = 0; // between -2 and 2
+	int max_completion_tokens = 0;
+	Vector<String> modalities;
+	int count = 1;
+	Prediction prediction;
 	double presence_penalty = 0; // between -2 and 2
+	ReasoningEffort reasoning_effort = REASONING_NULL;
+	double temperature = 1.0;
+	ToolCall tool_choice;
+	Vector<ToolDeclaration> tools;
+	double top_prob = 1;
+	String stop_seq;
+	WebSearchOptions web_search_options;
 	
 	void Jsonize(JsonIO& json) {
-		json("model_name", model_name)
-			("messages", messages)
-			("system_instructions", system_instructions)
-			("response_format", response_format)
-			("temperature", temperature)
-			("stop_seq", stop_seq)
-			("top_prob", top_prob)
+		json("messages", messages)
+			("model_name", model_name)
 			("frequency_penalty", frequency_penalty)
+			("max_completion_tokens", max_completion_tokens)
+			("modalities", modalities)
+			("count", count)
 			("presence_penalty", presence_penalty)
+			("prediction", prediction)
+			("reasoning_effort", (int&)reasoning_effort)
+			("temperature", temperature)
+			("tool_choice", tool_choice)
+			("tools", tools)
+			("top_prob", top_prob)
+			("stop_seq", stop_seq)
+			("web_search_options", web_search_options)
 			;
 	}
 	String Get() const { return StoreAsJson(*this); }

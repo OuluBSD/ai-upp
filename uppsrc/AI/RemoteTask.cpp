@@ -82,6 +82,8 @@ bool AiTask::HasAnyInput() const {
 		return true;
 	else if (completion)
 		return true;
+	else if (chat)
+		return true;
 	else if (vision)
 		return true;
 	else if (transcription)
@@ -97,6 +99,8 @@ void AiTask::SetMaxLength(int tokens) {
 		;
 	else if (completion)
 		completion->max_length = tokens;
+	else if (chat)
+		chat->max_completion_tokens = tokens;
 	else if (vision)
 		vision->max_length = tokens;
 	else if (transcription)
@@ -113,6 +117,9 @@ void AiTask::SetPrompt(String s)
 		;
 	else if (completion)
 		completion->prompt = s;
+	else if (chat) {
+		ASSERT_(0, "can't set prompt to chat args");
+	}
 	else if (vision)
 		vision->prompt = s;
 	else if (transcription)
@@ -128,6 +135,8 @@ String AiTask::MakeInputString(bool pretty) const {
 		return String();
 	if (completion)
 		return completion->prompt;
+	if (chat)
+		return StoreAsJson(chat->messages);
 	if (vision)
 		return vision->prompt;
 	if (transcription)
@@ -158,6 +167,7 @@ bool AiTask::ProcessInput()
 	bool premade_prompt =
 		(model) ||
 		(completion && completion->prompt.GetCount()) ||
+		(chat && chat->messages.GetCount()) ||
 		(vision && vision->prompt.GetCount()) ||
 		(transcription && transcription->prompt.GetCount()) ||
 		(image && image->prompt.GetCount());
@@ -279,6 +289,7 @@ bool AiTask::RunOpenAI()
 {
 	switch (type) {
 		case TYPE_MODEL:			return RunOpenAI_Model();
+		case TYPE_CHAT:				return RunOpenAI_Chat();
 		case TYPE_COMPLETION:		return RunOpenAI_Completion();
 		case TYPE_IMAGE_GENERATION:	return RunOpenAI_Image();
 		case TYPE_IMAGE_EDIT:		return RunOpenAI_Image();
@@ -565,6 +576,147 @@ bool AiTask::RunOpenAI_Completion()
 			auto completion = openai::completion().create(json);
 			// LOG("Response is:\n" << completion.dump(2));
 			LoadFromJson(response, String(completion.dump(2)));
+			// LOG(response.ToString());
+			
+			if(response.choices.GetCount())
+				output = response.choices[0].GetText();
+			else {
+				SetError("invalid output");
+				output.Clear();
+			}
+		});
+	}
+	return false;
+}
+
+bool AiTask::RunOpenAI_Chat()
+{
+	output.Clear();
+	
+	ASSERT(chat);
+	if (!chat)
+		return false;
+
+	ChatArgs& args = *chat;
+	if(!args.max_completion_tokens) {
+		LOG("warning: no response length set");
+		args.max_completion_tokens = 1024;
+	}
+	String prompt = StoreAsJson(args);
+	
+	// Cache prompts too (for crash debugging)
+	{
+		String prompt_cache_dir = ConfigFile("prompt-cache");
+		String fname = IntStr64(prompt.GetHashValue()) + ".txt";
+		// DUMP(fname);
+		String path = prompt_cache_dir + DIR_SEPS + fname;
+		if(!FileExists(path)) {
+			RealizeDirectory(prompt_cache_dir);
+			FileOut fout(path);
+			fout << prompt;
+			fout.Flush();
+			fout.Close();
+		}
+	}
+	
+	{
+		String sys_key;
+		if (args.model_name.GetCount() >= 2 &&
+			args.model_name[0] == 'o' &&
+			IsDigit(args.model_name[1]))
+			sys_key = "developer";
+		else
+			sys_key = "system";
+		
+		String messages_txt = "[";
+		for(int i = 0; i < args.messages.GetCount(); i++) {
+			if (i) messages_txt.Cat(',');
+			const auto& msg = args.messages[i];
+			
+			if (msg.type == MSG_DEVELOPER) {
+				messages_txt <<
+					"{" <<
+						"\"content\":" << AsJSON(msg.content) << "," <<
+						"\"role\":\"" << sys_key << "\"";
+				if (msg.name.GetCount())
+					messages_txt << ",\"name\": " << AsJSON(msg.name);
+				messages_txt << "}";
+			}
+			else if (msg.type == MSG_USER) {
+				messages_txt <<
+					"{" <<
+						"\"content\":" << AsJSON(msg.content) << "," <<
+						"\"role\":\"user\"";
+				if (msg.name.GetCount())
+					messages_txt << ",\"name\": " << AsJSON(msg.name);
+				messages_txt << "}";
+			}
+			else if (msg.type == MSG_ASSISTANT) {
+				messages_txt <<
+					"{" <<
+						"\"content\":" << AsJSON(msg.content) << "," <<
+						"\"role\":\"assistant\"";
+				if (msg.name.GetCount())
+					messages_txt << ",\"name\": " << AsJSON(msg.name);
+				if (msg.refusal.GetCount())
+					messages_txt << ",\"refusal\": " << AsJSON(msg.refusal);
+				if (msg.tool_calls.GetCount())
+					messages_txt = ",\"tool_calls\":" << AsJSON(msg.tool_calls);
+				messages_txt << "}";
+			}
+			else if (msg.type == MSG_FUNCTION) {
+				messages_txt <<
+					"{" <<
+						"\"content\":" << AsJSON(msg.content) << ","
+						"\"role\":\"function\","
+						"\"name\": " << AsJSON(msg.name) <<
+					"}";
+			}
+			else TODO
+		}
+		messages_txt << "]";
+		
+		if (args.modalities.IsEmpty())
+			args.modalities << "text";
+		
+		String txt = R"_({
+		    "messages": )_" + messages_txt + R"_(,
+		    "model": )_" + AsJSON(args.model_name) + R"_(,
+		    "frequency_penalty": )_" + DblStr(args.frequency_penalty) + R"_(,
+		    "max_completion_tokens": )_" + IntStr(args.max_completion_tokens) + R"_(,
+		    "modalities": )_" + StoreAsJson(args.modalities) + R"_(,
+		    "top_p": )_" + AsJSON(args.top_prob) + R"_(,
+		    "n": )_" + IntStr(args.count) + R"_(,
+			"presence_penalty": )_" + DblStr(args.presence_penalty) + R"_(,
+		    "temperature": )_" + DblStr(args.temperature);
+		if (!args.prediction.IsEmpty()) {
+			txt += R"_(,"prediction":)_";
+			if (!args.prediction.content_txt.IsEmpty())
+				txt += AsJSON(args.prediction.content_txt);
+			else
+				txt += AsJSON(args.prediction.content_parts);
+		}
+		if (args.reasoning_effort)
+			txt += ",\"reasoning_effort\":" + AsJSON(GetReasoningEffortString(args.reasoning_effort));
+		if (!args.tool_choice.IsEmpty())
+			txt += ",\"tool_choice\":" + StoreAsJson(args.tool_choice);
+		if (!args.tools.IsEmpty())
+			txt += ",\"tools\":" + StoreAsJson(args.tools);
+		if (!args.stop_seq.IsEmpty())
+			txt += ",\"stop\":" + AsJSON(args.stop_seq);
+		if (!args.web_search_options.IsEmpty())
+			txt += ",\"web_search_options\":" + StoreAsJson(args.web_search_options);
+		txt += "\n}";
+		
+		LOG(txt);
+		
+		return TryOpenAI(prompt, txt, [this,txt]{
+			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
+			OpenAiResponse response;
+			
+			auto chat = openai::chat().create(json);
+			LOG("Response is:\n" << chat.dump(2));
+			LoadFromJson(response, String(chat.dump(2)));
 			// LOG(response.ToString());
 			
 			if(response.choices.GetCount())

@@ -40,6 +40,7 @@ class Bar;
 #include <CtrlLib/TreeCtrl.h>
 #include <CtrlLib/Splitter.h>
 #include <CtrlLib/RichText.h>
+#include <CtrlLib/ChatCtrl.h>
 #include <CtrlLib/TextEdit.h>
 #include <CtrlLib/SliderCtrl.h>
 #include <CtrlLib/ColumnList.h>

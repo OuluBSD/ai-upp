@@ -16,6 +16,9 @@ public:
 	typedef ChatCtrl CLASSNAME;
 	ChatCtrl();
 	
+	void Clear();
+	int GetMessageCount() const;
+	Message& GetMessage(int i);
 	Message& AddMessage();
 	Message& AddMessage(String user, String qtf);
 	Message& AddMessage(String user, Image icon, String qtf);

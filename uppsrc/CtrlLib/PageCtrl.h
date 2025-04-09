@@ -74,6 +74,7 @@ public:
 	PageCtrl::Item& Insert(int i, Ctrl& slave, const char *text);
 	PageCtrl::Item& Insert(int i, Ctrl& slave, const Image& m, const char *text);
 
+	void  Clear();
 	void  Remove(int i);
 
 	int   GetTab(Point p) const;

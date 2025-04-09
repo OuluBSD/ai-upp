@@ -246,6 +246,7 @@ void RealtimeAiCtrl::Data() {
 
 ChatAiCtrl::ChatAiCtrl() {
 	CtrlLayout(*this);
+	chat_ctrl.Add(chat.SizePos());
 	frequency_penalty.SetData(1);
 	presence_penalty.SetData(1);
 	top_p.SetData(1);
@@ -348,14 +349,26 @@ void ChatAiCtrl::Submit() {
 	
 	ChatArgs args;
 	{
-		auto& msg = args.messages.Add();
-		msg.type = MSG_SYSTEM;
-		msg.content = this->system_instructions.GetData();
+		bool found = false;
+		String c = this->system_instructions.GetData();
+		for (int i = args.messages.GetCount()-1; i >= 0; i--) {
+			auto& msg = args.messages[i];
+			if (msg.type == MSG_SYSTEM) {
+				found = msg.content == c;
+				break;
+			}
+		}
+		if (!found) {
+			auto& msg = args.messages.Add();
+			msg.type = MSG_SYSTEM;
+			msg.content = c;
+		}
 	}
 	{
 		auto& msg = args.messages.Add();
 		msg.type = MSG_USER;
 		msg.content = txt;
+		chat.AddMessage("User", txt);
 	}
 	args.model_name = models[this->model_name.GetIndex()].name;
 	//args.response_format = this->response_format.GetData();
@@ -366,8 +379,10 @@ void ChatAiCtrl::Submit() {
 	args.presence_penalty = this->presence_penalty.GetData();
 	
 	m.GetChat(args, [this, txt](String res) {
-		GuiLock __;
-		this->prompt.Clear();
+		PostCallback([this,res]{
+			this->prompt.Clear();
+			chat.AddMessage("System", res);
+		});
 	});
 }
 

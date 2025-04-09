@@ -91,6 +91,7 @@ public:
 
 class ChatAiCtrl : public WithChatAI<Ctrl>, public AiThreadCtrlBase {
 	int session_i = -1;
+	ChatCtrl chat;
 	
 public:
 	typedef ChatAiCtrl CLASSNAME;

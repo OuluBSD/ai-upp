@@ -101,6 +101,10 @@ public:
 	void DataSession();
 	void ClearSessionCtrl();
 	void AddSession();
+	void RemoveSession();
+	void ClearSession();
+	void MainMenu(Bar& bar) override;
+	void SessionMenu(Bar& bar);
 	Ctrl* GetCtrl() override {return this;}
 };
 

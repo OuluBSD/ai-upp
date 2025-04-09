@@ -64,7 +64,7 @@ public:
 	struct Session {
 		struct Item : Moveable<Item> {
 			AiMsgType type = MSG_NULL;
-			String text;
+			String content;
 			String username;
 			Time created;
 			Vector<Attachment> attachments;
@@ -72,7 +72,7 @@ public:
 			void Visit(NodeVisitor& vis) {
 				vis.Ver(1)
 				(1)	("type", (int&)type)
-					("text", text)
+					("content", content)
 					("username", username)
 					("created", created)
 					("attachments", attachments, VISIT_VECTOR)

@@ -77,6 +77,18 @@ typedef enum : int {
 	MSG_FUNCTION,
 } AiMsgType;
 
+inline String GetMessageTypeString(AiMsgType t) {
+	switch(t) {
+		case MSG_NULL: return "";
+		case MSG_USER: return "User";
+		case MSG_DEVELOPER: return "Developer";
+		case MSG_ASSISTANT: return "Assistant";
+		case MSG_TOOL: return "Tool";
+		case MSG_FUNCTION: return "Function";
+		default: return "<error>";
+	}
+}
+
 typedef enum : int {
 	REASONING_NULL = 0,
 	REASONING_LOW,

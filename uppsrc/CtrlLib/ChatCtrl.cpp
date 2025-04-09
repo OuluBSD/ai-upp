@@ -21,6 +21,21 @@ ChatCtrl::ChatCtrl() {
 	
 }
 
+void ChatCtrl::Clear() {
+	for (auto& it : messages)
+		RemoveChild(&it.textctrl);
+	PageCtrl::Clear();
+	messages.Clear();
+}
+
+int ChatCtrl::GetMessageCount() const {
+	return messages.GetCount();
+}
+
+ChatCtrl::Message& ChatCtrl::GetMessage(int i) {
+	return messages[i];
+}
+
 ChatCtrl::Message& ChatCtrl::AddMessage() {
 	Message& msg = messages.Add();
 	auto& item = PageCtrl::Add(msg.textctrl, "");

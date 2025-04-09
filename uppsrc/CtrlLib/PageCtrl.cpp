@@ -273,7 +273,7 @@ Value PageCtrl::GetData() const
 void PageCtrl::Set(int i)
 {
 	if (i >= 0 && i < tab.GetCount()) {
-		sb.ScrollInto(tab[i].rect.top);
+		sb.ScrollInto(tab[i].rect.bottom);
 	}
 }
 
@@ -345,6 +345,21 @@ PageCtrl::Item& PageCtrl::Insert(int i, Ctrl& slave, const Image& m, const char 
 	return Insert(i, slave, text).SetImage(m);
 }
 
+
+void PageCtrl::Clear()
+{
+	CancelMode();
+	for(int i = 0; i < tab.GetCount(); i++) {
+		if(tab[i].ctrl)
+			tab[i].ctrl->Remove();
+		if(tab[i].slave)
+			tab[i].slave->Remove();
+	}
+	tab.Clear();
+	Layout();
+	accept_current = false;
+	WhenSet();
+}
 
 void PageCtrl::Remove(int i)
 {

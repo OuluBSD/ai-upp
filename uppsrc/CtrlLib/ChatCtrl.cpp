@@ -32,7 +32,8 @@ ChatCtrl::Message& ChatCtrl::AddMessage(String user, String qtf) {
 	msg.textctrl.SetQTF(qtf);
 	auto& item = PageCtrl::Add(msg.textctrl, user);
 	PostCallback([this,&msg,&item]{
-		int h = msg.textctrl.GetCy();
+		int w = GetTabWidth();
+		int h = msg.textctrl.Get().GetHeight(w);
 		item.Height(h);
 		Layout();
 	});
@@ -44,7 +45,8 @@ ChatCtrl::Message& ChatCtrl::AddMessage(String user, Image icon, String qtf) {
 	msg.textctrl.SetQTF(qtf);
 	auto& item = PageCtrl::Add(msg.textctrl, icon, user);
 	PostCallback([this,&msg,&item]{
-		int h = msg.textctrl.GetCy();
+		int w = GetTabWidth();
+		int h = msg.textctrl.Get().GetHeight(w);
 		item.Height(h);
 		Layout();
 	});

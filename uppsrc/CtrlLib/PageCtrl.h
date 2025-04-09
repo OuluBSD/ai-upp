@@ -85,6 +85,7 @@ public:
 
 	void Set(int i);
 	int  Get() const;
+	int  GetTabWidth() const;
 	
 	void Set(Ctrl& slave);
 	int  Find(const Ctrl& slave) const;

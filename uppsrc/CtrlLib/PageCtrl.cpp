@@ -66,6 +66,14 @@ PageCtrl::Item& PageCtrl::Item::SetRect(Rect r)
 	return *this;
 }
 
+int PageCtrl::GetTabWidth() const
+{
+	Size sz = GetSize();
+	double wmul = style->pagewidth / 10000.0;
+	int w = sz.cx * wmul;
+	return w;
+}
+
 void PageCtrl::Layout()
 {
 	Size sz = GetSize();

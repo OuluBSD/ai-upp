@@ -10,7 +10,7 @@ public:
 	virtual void  SetData(const Value& data);
 
 public:
-	class Item {
+	class Item : public Pte<Item> {
 	protected:
 		friend class PageCtrl;
 		PageCtrl  *owner;

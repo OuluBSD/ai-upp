@@ -3,17 +3,17 @@
 namespace Upp {
 
 ChatCtrl::Message& ChatCtrl::Message::SetUser(String s) {
-	user = s;
+	if (item) item->Text(s);
 	return *this;
 }
 
 ChatCtrl::Message& ChatCtrl::Message::SetText(String qtf) {
-	this->qtf = qtf;
+	this->textctrl.SetQTF(qtf);
 	return *this;
 }
 
 ChatCtrl::Message& ChatCtrl::Message::SetImage(Image img) {
-	this->icon = img;
+	if (item) item->SetImage(img);
 	return *this;
 }
 
@@ -23,7 +23,8 @@ ChatCtrl::ChatCtrl() {
 
 ChatCtrl::Message& ChatCtrl::AddMessage() {
 	Message& msg = messages.Add();
-	PageCtrl::Add(msg.textctrl, "");
+	auto& item = PageCtrl::Add(msg.textctrl, "");
+	msg.item = &item;
 	return msg;
 }
 
@@ -31,6 +32,7 @@ ChatCtrl::Message& ChatCtrl::AddMessage(String user, String qtf) {
 	Message& msg = messages.Add();
 	msg.textctrl.SetQTF(qtf);
 	auto& item = PageCtrl::Add(msg.textctrl, user);
+	msg.item = &item;
 	PostCallback([this,&msg,&item]{
 		int w = GetTabWidth();
 		int h = msg.textctrl.Get().GetHeight(w);
@@ -44,6 +46,7 @@ ChatCtrl::Message& ChatCtrl::AddMessage(String user, Image icon, String qtf) {
 	Message& msg = messages.Add();
 	msg.textctrl.SetQTF(qtf);
 	auto& item = PageCtrl::Add(msg.textctrl, icon, user);
+	msg.item = &item;
 	PostCallback([this,&msg,&item]{
 		int w = GetTabWidth();
 		int h = msg.textctrl.Get().GetHeight(w);

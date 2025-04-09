@@ -3,6 +3,7 @@ class ChatCtrl : public PageCtrl {
 public:
 	struct Message : Pte<Message> {
 		RichTextCtrl textctrl;
+		Ptr<PageCtrl::Item> item;
 		Message& SetUser(String s);
 		Message& SetText(String qtf);
 		Message& SetImage(Image img);

@@ -86,6 +86,8 @@ file
 	PageCtrl readonly separator,
 	PageCtrl.h,
 	PageCtrl.cpp,
+	ChatCtrl.h,
+	ChatCtrl.cpp,
 	DlgColor readonly separator,
 	DlgColor.h,
 	DlgColor.cpp,

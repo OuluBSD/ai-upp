@@ -257,8 +257,11 @@ ChatAiCtrl::ChatAiCtrl() {
 	sessions.AddColumn("Name");
 	sessions.AddColumn("Changed");
 	sessions.AddIndex("IDX");
+	sessions.WhenBar = THISBACK(SessionMenu);
 	
 	submit <<= THISBACK(Submit);
+	clear <<= THISBACK(ClearSession);
+	
 }
 
 void ChatAiCtrl::Data() {
@@ -297,6 +300,7 @@ void ChatAiCtrl::Data() {
 }
 
 void ChatAiCtrl::ClearSessionCtrl() {
+	chat.Clear();
 	
 }
 
@@ -307,17 +311,62 @@ void ChatAiCtrl::AddSession() {
 	session.name = "Unnamed";
 }
 
+void ChatAiCtrl::RemoveSession() {
+	if (!sessions.IsCursor())
+		return;
+	int idx = sessions.Get("IDX");
+	ChatThread& t = GetChatThread();
+	t.sessions.Remove(idx);
+	PostCallback(THISBACK(Data));
+}
+
+void ChatAiCtrl::ClearSession() {
+	if (!sessions.IsCursor())
+		return;
+	int idx = sessions.Get("IDX");
+	ChatThread& t = GetChatThread();
+	auto& session = t.sessions[idx];
+	session.items.Clear();
+	session.changed = GetSysTime();
+	PostCallback(THISBACK(DataSession));
+}
+
+void ChatAiCtrl::MainMenu(Bar& bar) {
+	AiThreadCtrlBase::MainMenu(bar);
+	bar.Separator();
+	SessionMenu(bar);
+}
+
+void ChatAiCtrl::SessionMenu(Bar& bar) {
+	if (sessions.IsCursor())
+		bar.Add("Remove session", THISBACK(RemoveSession));
+	bar.Add("Add session", THISBACK(AddSession));
+}
+
 void ChatAiCtrl::DataSession() {
 	if (!sessions.IsCursor()) {
 		ClearSessionCtrl();
 		return;
 	}
 	
+	int prev_session_i = session_i;
 	session_i = sessions.Get("IDX");
 	ChatThread& t = GetChatThread();
 	const auto& session = t.sessions[session_i];
 	
+	if (session_i != prev_session_i ||
+		chat.GetMessageCount() > session.items.GetCount())
+		chat.Clear();
 	
+	int begin = chat.GetMessageCount();
+	for(int i = begin; i < session.items.GetCount(); i++) {
+		const auto& item = session.items[i];
+		chat.AddMessage(
+			GetMessageTypeString(item.type),
+			item.content);
+	}
+	if (begin < session.items.GetCount())
+		chat.Set(begin);
 }
 
 void ChatAiCtrl::Submit() {
@@ -331,45 +380,55 @@ void ChatAiCtrl::Submit() {
 	String txt = this->prompt.GetData();
 	txt.Replace("\r","");
 	
+	if (session_i < 0 || session_i >= t.sessions.GetCount())
+		return;
+	auto& session = t.sessions[session_i];
 	{
-		if (session_i < 0 || session_i >= t.sessions.GetCount())
-			return;
-		auto& session = t.sessions[session_i];
-		auto& item = session.items.Add();
-		item.type = MSG_USER;
-		item.text = txt;
-		item.username = "";
-		session.changed = item.created = GetSysTime();
+		bool found = false;
+		String c = this->system_instructions.GetData();
+		for (int i = session.items.GetCount()-1; i >= 0; i--) {
+			const auto& item = session.items[i];
+			if (item.type == MSG_SYSTEM) {
+				String a = item.content;
+				found = a == c;
+				break;
+			}
+		}
+		if (!found) {
+			auto& item = session.items.Add();
+			item.type = MSG_SYSTEM;
+			item.content = c;
+			session.changed = item.created = GetSysTime();
+		}
+	}
+	{
+		bool found = false;
+		if (session.items.GetCount()) {
+			auto& item = session.items.Top();
+			if (item.type == MSG_USER && item.content == txt)
+				found = true;
+		}
+		if (!found) {
+			auto& item = session.items.Add();
+			item.type = MSG_USER;
+			item.content = txt;
+			item.username = "";
+			session.changed = item.created = GetSysTime();
+		}
 		PostCallback([this]{
 			this->prompt.Clear();
 			DataSession();
 		});
 	}
 	
-	
 	ChatArgs args;
-	{
-		bool found = false;
-		String c = this->system_instructions.GetData();
-		for (int i = args.messages.GetCount()-1; i >= 0; i--) {
-			auto& msg = args.messages[i];
-			if (msg.type == MSG_SYSTEM) {
-				found = msg.content == c;
-				break;
-			}
-		}
-		if (!found) {
-			auto& msg = args.messages.Add();
-			msg.type = MSG_SYSTEM;
-			msg.content = c;
-		}
-	}
-	{
+	for (const auto& it : session.items) {
 		auto& msg = args.messages.Add();
-		msg.type = MSG_USER;
-		msg.content = txt;
-		chat.AddMessage("User", txt);
+		msg.type = it.type;
+		msg.content = it.content;
+		msg.name = it.username;
 	}
+	
 	args.model_name = models[this->model_name.GetIndex()].name;
 	//args.response_format = this->response_format.GetData();
 	args.temperature = this->temperature.GetData();
@@ -378,10 +437,17 @@ void ChatAiCtrl::Submit() {
 	args.frequency_penalty = this->frequency_penalty.GetData();
 	args.presence_penalty = this->presence_penalty.GetData();
 	
-	m.GetChat(args, [this, txt](String res) {
+	m.GetChat(args, [this](String res) {
 		PostCallback([this,res]{
-			this->prompt.Clear();
-			chat.AddMessage("System", res);
+			ChatThread& t = GetChatThread();
+			if (session_i < 0 || session_i >= t.sessions.GetCount())
+				return;
+			auto& session = t.sessions[session_i];
+			auto& item = session.items.Add();
+			item.type = MSG_ASSISTANT;
+			item.content = res;
+			item.created = GetSysTime();
+			DataSession();
 		});
 	});
 }

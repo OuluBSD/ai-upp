@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-struct AiThreadCtrlBase {
+struct AiThreadCtrlBase : Ctrl {
 	struct Model : Moveable<Model> {
 		String name;
 		bool use_chat = false;
@@ -47,7 +47,7 @@ struct AiThreadCtrlBase {
 	void SetThread(AiThread& t);
 };
 
-class CompletionCtrl : public WithCompletion<Ctrl>, public AiThreadCtrlBase {
+class CompletionCtrl : public WithCompletion<AiThreadCtrlBase> {
 	
 public:
 	typedef CompletionCtrl CLASSNAME;
@@ -59,7 +59,46 @@ public:
 	CompletionThread& Thread();
 };
 
-class TextToSpeechCtrl : public WithTTS<Ctrl>, public AiThreadCtrlBase {
+class AiStageCtrl : public AiThreadCtrlBase {
+	Splitter hsplit, lsplit1, lsplit2, rsplit;
+	ArrayCtrl session, versions, stages, stagenamepreset, examplelist;
+	WithStageEditor<Ctrl> stage;
+	TreeCtrl example;
+	
+public:
+	typedef AiStageCtrl CLASSNAME;
+	AiStageCtrl();
+	
+	void Data() override;
+	Ctrl* GetCtrl() override {return this;}
+	
+	void SessionMenu(Bar& b);
+	void AddSession();
+	void RemoveSession();
+	void RenameSession();
+	
+	void VersionMenu(Bar& b);
+	void AddVersion();
+	void RemoveVersion();
+	void RenameVersion();
+	
+	void StageNameMenu(Bar& b);
+	void AddStageName();
+	void RemoveStageName();
+	void EditStageName();
+	
+	void StageMenu(Bar& b);
+	void AddStage();
+	void RemoveStage();
+	
+	void ExampleListMenu(Bar& b);
+	void AddExample();
+	void RemoveExample();
+	void EditExample();
+	
+};
+
+class TextToSpeechCtrl : public WithTTS<AiThreadCtrlBase> {
 	
 public:
 	typedef TextToSpeechCtrl CLASSNAME;
@@ -69,7 +108,7 @@ public:
 	Ctrl* GetCtrl() override {return this;}
 };
 
-class AssistantCtrl : public WithAssistants<Ctrl>, public AiThreadCtrlBase {
+class AssistantCtrl : public WithAssistants<AiThreadCtrlBase> {
 	
 public:
 	typedef AssistantCtrl CLASSNAME;
@@ -79,7 +118,7 @@ public:
 	Ctrl* GetCtrl() override {return this;}
 };
 
-class RealtimeAiCtrl : public WithRealtimeAI<Ctrl>, public AiThreadCtrlBase {
+class RealtimeAiCtrl : public WithRealtimeAI<AiThreadCtrlBase> {
 	
 public:
 	typedef RealtimeAiCtrl CLASSNAME;
@@ -89,7 +128,7 @@ public:
 	Ctrl* GetCtrl() override {return this;}
 };
 
-class ChatAiCtrl : public WithChatAI<Ctrl>, public AiThreadCtrlBase {
+class ChatAiCtrl : public WithChatAI<AiThreadCtrlBase> {
 	int session_i = -1;
 	ChatCtrl chat;
 	
@@ -108,7 +147,7 @@ public:
 	Ctrl* GetCtrl() override {return this;}
 };
 
-class CustomBiasesCtrl : public WithCustomBiases<Ctrl>, public AiThreadCtrlBase {
+class CustomBiasesCtrl : public WithCustomBiases<AiThreadCtrlBase> {
 	
 public:
 	typedef CustomBiasesCtrl CLASSNAME;
@@ -121,6 +160,7 @@ public:
 class PlaygroundCtrl : public Ctrl {
 	TabCtrl tabs;
 	CompletionCtrl completion;
+	AiStageCtrl stage;
 	TextToSpeechCtrl tts;
 	AssistantCtrl ass;
 	RealtimeAiCtrl rt;

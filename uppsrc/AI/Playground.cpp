@@ -86,7 +86,8 @@ void AiThreadCtrlBase::UpdateModels(bool completion) {
 			if (CannotDoCompletion(m) == !completion)
 				AddModel(m, false);
 		
-		PostCallback([this]{this->Data();});
+		Ptr<AiThreadCtrlBase> c = this;
+		PostCallback([c]{if (c) c->Data();});
 	});
 }
 
@@ -185,6 +186,138 @@ void CompletionCtrl::Submit() {
 }
 
 
+
+
+
+
+AiStageCtrl::AiStageCtrl() {
+	CtrlLayout(stage);
+	
+	Add(hsplit.SizePos());
+	
+	hsplit.Horz() << lsplit1 << lsplit2 << stage << rsplit;
+	hsplit.SetPos(1000,0).SetPos(2000,1).SetPos(6000,2);
+	lsplit1.Vert() << session << versions;
+	lsplit2.Vert() << stagenamepreset << stages;
+	lsplit2.SetPos(1100);
+	rsplit.Vert() << examplelist << example;
+	rsplit.SetPos(1100);
+	
+	session.AddColumn("Session");
+	session.WhenBar = THISBACK(SessionMenu);
+	
+	versions.AddColumn("Version");
+	versions.WhenBar = THISBACK(VersionMenu);
+	
+	stagenamepreset.AddColumn("Stage-name-preset");
+	stagenamepreset.WhenBar = THISBACK(StageNameMenu);
+	
+	stages.AddColumn("Stage");
+	stages.WhenBar = THISBACK(StageMenu);
+	
+	examplelist.AddColumn("Example-list");
+	examplelist.WhenBar = THISBACK(ExampleListMenu);
+	
+}
+
+void AiStageCtrl::Data() {
+	
+}
+
+void AiStageCtrl::SessionMenu(Bar& b) {
+	b.Add("Add session", THISBACK(AddSession));
+	b.Add("Remove session", THISBACK(RemoveSession));
+	b.Add("Rename session", THISBACK(RenameSession));
+}
+
+void AiStageCtrl::AddSession() {
+	
+}
+
+void AiStageCtrl::RemoveSession() {
+	
+}
+
+void AiStageCtrl::RenameSession() {
+	
+}
+
+void AiStageCtrl::VersionMenu(Bar& b) {
+	b.Add("Add version", THISBACK(AddVersion));
+	b.Add("Remove version", THISBACK(RemoveVersion));
+	b.Add("Rename version", THISBACK(RenameVersion));
+}
+
+void AiStageCtrl::AddVersion() {
+	
+}
+
+void AiStageCtrl::RemoveVersion() {
+	
+}
+
+void AiStageCtrl::RenameVersion() {
+	
+}
+
+void AiStageCtrl::StageNameMenu(Bar& b) {
+	b.Add("Add stage-name", THISBACK(AddStageName));
+	b.Add("Remove stage-name", THISBACK(RemoveStageName));
+	b.Add("Edit stage-name", THISBACK(EditStageName));
+}
+
+void AiStageCtrl::AddStageName() {
+	
+}
+
+void AiStageCtrl::RemoveStageName() {
+	
+}
+
+void AiStageCtrl::EditStageName() {
+	
+}
+
+void AiStageCtrl::StageMenu(Bar& b) {
+	b.Add("Add stage", THISBACK(AddStage));
+	b.Add("Remove stage", THISBACK(RemoveStage));
+}
+
+void AiStageCtrl::AddStage() {
+	
+}
+
+void AiStageCtrl::RemoveStage() {
+	
+}
+
+void AiStageCtrl::ExampleListMenu(Bar& b) {
+	b.Add("Add example", THISBACK(AddExample));
+	b.Add("Remove example", THISBACK(RemoveExample));
+	b.Add("Edit example", THISBACK(EditExample));
+}
+
+void AiStageCtrl::AddExample() {
+	
+}
+
+void AiStageCtrl::RemoveExample() {
+	
+}
+
+void AiStageCtrl::EditExample() {
+	
+}
+
+
+
+
+
+
+
+
+
+
 TextToSpeechCtrl::TextToSpeechCtrl() {
 	CtrlLayout(*this);
 	
@@ -258,6 +391,7 @@ ChatAiCtrl::ChatAiCtrl() {
 	sessions.AddColumn("Changed");
 	sessions.AddIndex("IDX");
 	sessions.WhenBar = THISBACK(SessionMenu);
+	sessions.WhenCursor = THISBACK(DataSession);
 	
 	submit <<= THISBACK(Submit);
 	clear <<= THISBACK(ClearSession);
@@ -466,7 +600,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	
 	tabs.Add(completion.SizePos(), "Completion");
 	tabs.Add(chat.SizePos(), "Chat");
-	tabs.Add(placeholder.SizePos(), "JSON chat");
+	tabs.Add(stage.SizePos(), "Stage");
 	tabs.Add(edit_img.SizePos(), "Image");
 	tabs.Add(img_aspect.SizePos(), "Image Aspect Fixer");
 	tabs.Add(placeholder.SizePos(), "Transcribe");

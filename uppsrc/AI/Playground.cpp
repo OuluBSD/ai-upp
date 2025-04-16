@@ -42,12 +42,10 @@ void AiThreadCtrlBase::MainMenu(Bar& bar) {
 	bar.Add("Submit", [this]{this->Submit();}).Key(K_CTRL_ENTER);
 }
 
-void AiThreadCtrlBase::Serialize(Stream& s) {
-	int ver = 0;
-	s % ver;
-	
-	if (ver >= 0)
-		s % model_i;
+void AiThreadCtrlBase::Visit(NodeVisitor& s) {
+	s.Ver(1)
+	(1)	("model_i", model_i)
+		;
 }
 
 int AiThreadCtrlBase::GetModelCount(bool use_chat) {
@@ -195,25 +193,22 @@ AiStageCtrl::AiStageCtrl() {
 	
 	Add(hsplit.SizePos());
 	
-	hsplit.Horz() << lsplit1 << lsplit2 << stage << rsplit;
-	hsplit.SetPos(1000,0).SetPos(2000,1).SetPos(6000,2);
-	lsplit1.Vert() << session << versions;
-	lsplit2.Vert() << stagenamepreset << stages;
-	lsplit2.SetPos(1100);
+	hsplit.Horz() << session << stage << rsplit;
+	hsplit.SetPos(1500,0).SetPos(5750,1);
 	rsplit.Vert() << examplelist << example;
 	rsplit.SetPos(1100);
 	
 	session.AddColumn("Session");
+	session.AddColumn("Version");
+	session.AddIndex("IDX");
 	session.WhenBar = THISBACK(SessionMenu);
+	session.WhenCursor = THISBACK(DataSession);
 	
-	versions.AddColumn("Version");
-	versions.WhenBar = THISBACK(VersionMenu);
+	stage.stagenamepreset.AddColumn("Stage-name-preset");
+	stage.stagenamepreset.WhenBar = THISBACK(StageNameMenu);
 	
-	stagenamepreset.AddColumn("Stage-name-preset");
-	stagenamepreset.WhenBar = THISBACK(StageNameMenu);
-	
-	stages.AddColumn("Stage");
-	stages.WhenBar = THISBACK(StageMenu);
+	stage.structure.WhenBar = THISBACK(StageMenu);
+	stage.structure.WhenCursor = THISBACK(DataItem);
 	
 	examplelist.AddColumn("Example-list");
 	examplelist.WhenBar = THISBACK(ExampleListMenu);
@@ -221,6 +216,31 @@ AiStageCtrl::AiStageCtrl() {
 }
 
 void AiStageCtrl::Data() {
+	auto& list = this->session;
+	StageThread& t = GetStageThread();
+	for(int i = 0; i < t.sessions.GetCount(); i++) {
+		const auto& it = t.sessions[i];
+		list.Set(i, 0, it.id);
+		list.Set(i, 1, it.version);
+		list.Set(i,"IDX", i);
+	}
+	list.SetCount(t.sessions.GetCount());
+	if (!list.IsCursor() && list.GetCount())
+		list.SetCursor(0);
+	else
+		DataSession();
+}
+
+void AiStageCtrl::DataSession() {
+	if (!session.IsCursor())
+		return;
+	StageThread& t = GetStageThread();
+	int ses_i = session.Get("IDX");
+	const auto& ses = t.sessions[ses_i];
+	
+}
+
+void AiStageCtrl::DataItem() {
 	
 }
 
@@ -228,36 +248,71 @@ void AiStageCtrl::SessionMenu(Bar& b) {
 	b.Add("Add session", THISBACK(AddSession));
 	b.Add("Remove session", THISBACK(RemoveSession));
 	b.Add("Rename session", THISBACK(RenameSession));
+	b.Add("Duplicate session", THISBACK(DuplicateSession));
+	b.Add("Set session's version", THISBACK(SetSessionVersion));
 }
 
 void AiStageCtrl::AddSession() {
-	
+	String name;
+	if (!EditText(name, "Session's name", "Name"))
+		return;
+	StageThread& t = GetStageThread();
+	for(int i = 0; i < t.sessions.GetCount(); i++) {
+		if (t.sessions[i].id == name) {
+			PromptOK("Session with that name exists already");
+			return;
+		}
+	}
+	auto& ses = t.sessions.Add();
+	ses.id = name;
+	ses.version = 1;
+	PostCallback(THISBACK(Data));
 }
 
 void AiStageCtrl::RemoveSession() {
-	
+	if (!session.IsCursor())
+		return;
+	int ses_id = session.Get("IDX");
+	StageThread& t = GetStageThread();
+	t.sessions.Remove(ses_id);
+	PostCallback(THISBACK(Data));
 }
 
 void AiStageCtrl::RenameSession() {
-	
+	if (!session.IsCursor())
+		return;
+	int ses_id = session.Get("IDX");
+	StageThread& t = GetStageThread();
+	auto& ses = t.sessions[ses_id];
+	String name = ses.id;
+	if (!EditText(name, "Session's name", "Name"))
+		return;
+	ses.id = name;
+	PostCallback(THISBACK(Data));
 }
 
-void AiStageCtrl::VersionMenu(Bar& b) {
-	b.Add("Add version", THISBACK(AddVersion));
-	b.Add("Remove version", THISBACK(RemoveVersion));
-	b.Add("Rename version", THISBACK(RenameVersion));
+void AiStageCtrl::DuplicateSession() {
+	if (!session.IsCursor())
+		return;
+	int ses_id = session.Get("IDX");
+	StageThread& t = GetStageThread();
+	const auto& ses0 = t.sessions[ses_id];
+	auto& ses1 = t.sessions.Add();
+	VisitCopy(ses0, ses1);
+	PostCallback(THISBACK(Data));
 }
 
-void AiStageCtrl::AddVersion() {
-	
-}
-
-void AiStageCtrl::RemoveVersion() {
-	
-}
-
-void AiStageCtrl::RenameVersion() {
-	
+void AiStageCtrl::SetSessionVersion() {
+	if (!session.IsCursor())
+		return;
+	int ses_id = session.Get("IDX");
+	StageThread& t = GetStageThread();
+	auto& ses = t.sessions[ses_id];
+	String json = AsJSON(ses.version);
+	if (!EditText(json, "Session's version as JSON", "Version JSON"))
+		return;
+	ses.version = ParseJSON(json);
+	PostCallback(THISBACK(Data));
 }
 
 void AiStageCtrl::StageNameMenu(Bar& b) {
@@ -637,10 +692,11 @@ void PlaygroundCtrl::CreateThread() {
 
 void PlaygroundCtrl::SetThread(OmniThread& t) {
 	completion.SetThread(t);
+	chat.SetThread(t);
+	stage.SetThread(t);
 	tts.SetThread(t);
 	ass.SetThread(t);
 	rt.SetThread(t);
-	chat.SetThread(t);
 	bias.SetThread(t);
 }
 
@@ -650,6 +706,7 @@ void PlaygroundCtrl::TabMenu(Bar& b) {
 	switch (tab) {
 		case 0: completion.MainMenu(b); break;
 		case 1: chat.MainMenu(b); break;
+		case 2: stage.MainMenu(b); break;
 		default: break;
 	}
 }
@@ -660,46 +717,46 @@ void PlaygroundCtrl::Data() {
 	switch (tab) {
 		case 0: completion.Data(); break;
 		case 1: chat.Data(); break;
+		case 2: stage.Data(); break;
 		case 8: tasks.Data(); break;
 		default: break;
 	}
 }
 
-void PlaygroundCtrl::Serialize(Stream& s) {
-	int ver = 0;
-	s % ver;
+void PlaygroundCtrl::Visit(NodeVisitor& s) {
+	int tab = tabs.Get();
 	
-	int tab = 0;
+	s.Ver(1)
+	(1)	("tab",tab)
+		("completion", (AiThreadCtrlBase&)completion)
+		("chat", (AiThreadCtrlBase&)chat)
+		("stage", (AiThreadCtrlBase&)stage)
+		;
+	//s % tts;
+	//s % ass;
+	//s % rt;
+	//s % bias;
+	//s % edit_img;
+	//s % img_aspect;
+	//s % tasks;
 	
-	if (ver >= 0) {
-		tab = tabs.Get();
-		s % tab;
-		
-		s % (AiThreadCtrlBase&)completion;
-		s % (AiThreadCtrlBase&)chat;
-		//s % tts;
-		//s % ass;
-		//s % rt;
-		//s % bias;
-		//s % edit_img;
-		//s % img_aspect;
-		//s % tasks;
+	if (s.IsLoading()) {
+		PostCallback([this,tab]{
+			tabs.Set(tab);
+		});
 	}
-	
-	if (s.IsLoading())
-		tabs.Set(tab);
 }
 
 void PlaygroundCtrl::StoreThis() {
 	if (omni)
 		VisitToJsonFile(*omni, ConfigFile("playground.json"));
-	StoreToFile(*this, ConfigFile("playground-gui.bin"));
+	VisitToJsonFile(*this, ConfigFile("playground-gui.json"));
 }
 
 void PlaygroundCtrl::LoadThis() {
 	if (omni)
 		VisitFromJsonFile(*omni, ConfigFile("playground.json"));
-	LoadFromFile(*this, ConfigFile("playground-gui.bin"));
+	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
 }
 
 

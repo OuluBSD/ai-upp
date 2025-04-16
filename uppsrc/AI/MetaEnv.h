@@ -549,6 +549,8 @@ inline void VersionControlSystem::BeginMapKV(String key, T& o) {
 template <> inline void NodeVisitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
 template <> inline void NodeVisitor::DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}
 
+template <class T> inline hash_t GetVisitJsonHash(const T& o) {return VisitToJson<T>(const_cast<T&>(o)).GetHashValue();}
+
 bool MakeRelativePath(const String& includes, const String& dir, String& best_ai_dir, String& best_rel_dir);
 Vector<String> FindParentUppDirectories(const String& dir);
 

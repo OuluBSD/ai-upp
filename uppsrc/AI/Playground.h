@@ -12,17 +12,19 @@ struct AiThreadCtrlBase : Ctrl {
 	
 	Ptr<AiThread> ai_thrd;
 	Vector<Model> models;
+	Ptr<MetaNode> node;
 	
 	// Persistent
 	int model_i = -1;
 	
-	void Serialize(Stream& s);
+	void Visit(NodeVisitor& s);
 	int GetModelCount(bool use_chat);
 	bool CannotDoCompletion(String model_name);
 	void UpdateCompletionModels();
 	void UpdateChatModels();
 	void UpdateModels(bool completion);
 	void AddModel(String name, bool use_chat=false);
+	hash_t GetHashValue() const {return GetVisitJsonHash(*this);}
 	
 	virtual ~AiThreadCtrlBase(){}
 	virtual Ctrl* GetCtrl() = 0;
@@ -43,8 +45,10 @@ struct AiThreadCtrlBase : Ctrl {
 	}
 	CompletionThread& GetCompletionThread() {return CastThread<CompletionThread>();}
 	ChatThread& GetChatThread() {return CastThread<ChatThread>();}
+	StageThread& GetStageThread() {return CastThread<StageThread>();}
 	
 	void SetThread(AiThread& t);
+	
 };
 
 class CompletionCtrl : public WithCompletion<AiThreadCtrlBase> {
@@ -60,8 +64,8 @@ public:
 };
 
 class AiStageCtrl : public AiThreadCtrlBase {
-	Splitter hsplit, lsplit1, lsplit2, rsplit;
-	ArrayCtrl session, versions, stages, stagenamepreset, examplelist;
+	Splitter hsplit, rsplit;
+	ArrayCtrl session, examplelist;
 	WithStageEditor<Ctrl> stage;
 	TreeCtrl example;
 	
@@ -70,17 +74,16 @@ public:
 	AiStageCtrl();
 	
 	void Data() override;
+	void DataSession();
+	void DataItem();
 	Ctrl* GetCtrl() override {return this;}
 	
 	void SessionMenu(Bar& b);
 	void AddSession();
 	void RemoveSession();
 	void RenameSession();
-	
-	void VersionMenu(Bar& b);
-	void AddVersion();
-	void RemoveVersion();
-	void RenameVersion();
+	void SetSessionVersion();
+	void DuplicateSession();
 	
 	void StageNameMenu(Bar& b);
 	void AddStageName();
@@ -178,7 +181,7 @@ public:
 	
 	PlaygroundCtrl();
 	~PlaygroundCtrl();
-	void Serialize(Stream&);
+	void Visit(NodeVisitor&);
 	void Data();
 	void StoreThis();
 	void LoadThis();

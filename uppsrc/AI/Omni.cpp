@@ -35,4 +35,6 @@ void OmniThread::OnDiscussionEnd(SoundDiscussion&) {
 	TODO
 }
 
+INITIALIZER_COMPONENT(StageThread)
+
 END_UPP_NAMESPACE

@@ -136,6 +136,14 @@ void AiThreadCtrlBase::SetThread(AiThread& t) {
 	ai_thrd = &t;
 }
 
+void AiThreadCtrlBase::SetNode(MetaNode& n) {
+	node = &n;
+}
+
+StageThread& AiThreadExt::GetStageThread() {
+	auto& o = GetNode();
+	return o.GetExt<StageThread>();
+}
 
 
 void CompletionCtrl::Submit() {
@@ -187,6 +195,8 @@ void CompletionCtrl::Submit() {
 
 
 
+
+INITIALIZER_COMPONENT_CTRL(StageThread, AiStageCtrl)
 
 AiStageCtrl::AiStageCtrl() {
 	CtrlLayout(stage);
@@ -241,6 +251,10 @@ void AiStageCtrl::DataSession() {
 }
 
 void AiStageCtrl::DataItem() {
+	
+}
+
+void AiStageCtrl::ToolMenu(Bar& bar) {
 	
 }
 
@@ -681,7 +695,9 @@ PlaygroundCtrl::PlaygroundCtrl() {
 }
 
 PlaygroundCtrl::~PlaygroundCtrl() {
+	stage.ext = 0;
 	StoreThis();
+	omni.Clear();
 }
 
 void PlaygroundCtrl::CreateThread() {
@@ -693,7 +709,6 @@ void PlaygroundCtrl::CreateThread() {
 void PlaygroundCtrl::SetThread(OmniThread& t) {
 	completion.SetThread(t);
 	chat.SetThread(t);
-	stage.SetThread(t);
 	tts.SetThread(t);
 	ass.SetThread(t);
 	rt.SetThread(t);
@@ -706,7 +721,7 @@ void PlaygroundCtrl::TabMenu(Bar& b) {
 	switch (tab) {
 		case 0: completion.MainMenu(b); break;
 		case 1: chat.MainMenu(b); break;
-		case 2: stage.MainMenu(b); break;
+		case 2: stage.ToolMenu(b); break;
 		default: break;
 	}
 }
@@ -759,6 +774,12 @@ void PlaygroundCtrl::LoadThis() {
 	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
 }
 
+void PlaygroundCtrl::SetNode(MetaNode& n) {
+	auto& stage_n = n.GetAdd("stage", "", METAKIND_ECS_COMPONENT_AI_STAGE);
+	ASSERT(stage_n.ext);
+	stage.ext = &*stage_n.ext;
+}
+
 
 
 PlaygroundApp::PlaygroundApp() {
@@ -771,6 +792,14 @@ PlaygroundApp::PlaygroundApp() {
 	
 	pg.WhenTab << THISBACK(UpdateMenu);
 	pg.CreateThread();
+	
+	omni_node.Create();
+	VisitFromJsonFile(*omni_node, ConfigFile("playground-root.json"));
+	pg.SetNode(*omni_node);
+}
+
+PlaygroundApp::~PlaygroundApp() {
+	VisitToJsonFile(*omni_node, ConfigFile("playground-root.json"));
 }
 
 void PlaygroundApp::UpdateMenu() {

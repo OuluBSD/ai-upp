@@ -45,9 +45,14 @@ struct AiThreadCtrlBase : Ctrl {
 	}
 	CompletionThread& GetCompletionThread() {return CastThread<CompletionThread>();}
 	ChatThread& GetChatThread() {return CastThread<ChatThread>();}
-	StageThread& GetStageThread() {return CastThread<StageThread>();}
 	
 	void SetThread(AiThread& t);
+	void SetNode(MetaNode& n);
+	
+};
+
+struct AiThreadExt : MetaExtCtrl {
+	StageThread& GetStageThread();
 	
 };
 
@@ -63,7 +68,7 @@ public:
 	CompletionThread& Thread();
 };
 
-class AiStageCtrl : public AiThreadCtrlBase {
+class AiStageCtrl : public AiThreadExt {
 	Splitter hsplit, rsplit;
 	ArrayCtrl session, examplelist;
 	WithStageEditor<Ctrl> stage;
@@ -76,7 +81,7 @@ public:
 	void Data() override;
 	void DataSession();
 	void DataItem();
-	Ctrl* GetCtrl() override {return this;}
+	void ToolMenu(Bar& bar) override;
 	
 	void SessionMenu(Bar& b);
 	void AddSession();
@@ -100,6 +105,8 @@ public:
 	void EditExample();
 	
 };
+
+INITIALIZE(AiStageCtrl)
 
 class TextToSpeechCtrl : public WithTTS<AiThreadCtrlBase> {
 	
@@ -187,6 +194,7 @@ public:
 	void LoadThis();
 	void CreateThread();
 	void SetThread(OmniThread& t);
+	void SetNode(MetaNode& n);
 	void TabMenu(Bar& bar);
 	
 	Event<> WhenTab;
@@ -197,10 +205,12 @@ public:
 class PlaygroundApp : public TopWindow {
 	PlaygroundCtrl pg;
 	MenuBar menu;
+	One<MetaNode> omni_node;
 	
 public:
 	typedef PlaygroundApp CLASSNAME;
 	PlaygroundApp();
+	~PlaygroundApp();
 	
 	void UpdateMenu();
 	void MainMenu(Bar& bar);

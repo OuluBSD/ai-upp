@@ -106,6 +106,46 @@ public:
 	}
 };
 
+class StageThread : public virtual AiThread {
+	
+public:
+	struct Stage {
+		
+		void Visit(NodeVisitor& vis) {
+			vis.Ver(1)
+			(1)	;
+		}
+	};
+	
+	struct Session {
+		String id;
+		Value version;
+		Array<Stage> stages;
+		
+		void Visit(NodeVisitor& vis) {
+			vis.Ver(1)
+			(1)	("id", id)
+				("version", version)
+				("stages", stages, VISIT_VECTOR)
+				;
+		}
+	};
+	
+	Array<Session> sessions;
+	Vector<String> stage_name_presets;
+	
+public:
+	typedef StageThread CLASSNAME;
+	
+	void Visit(NodeVisitor& vis) override {
+		vis.Ver(1)
+		(1)	("sessions", sessions, VISIT_VECTOR)
+			("stage_name_presets", stage_name_presets)
+		;
+	}
+	
+};
+
 class SpeechTranscriptionThread : public virtual AiThread {
 	
 public:
@@ -149,6 +189,7 @@ public:
 class OmniThread :
 	public CompletionThread,
 	public ChatThread,
+	public StageThread,
 	public SpeechTranscriptionThread,
 	public SpeechGenerationThread,
 	public ImageGenerationThread,

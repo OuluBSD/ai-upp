@@ -106,7 +106,7 @@ public:
 	}
 };
 
-class StageThread : public virtual AiThread {
+class StageThread : public MetaNodeExt {
 	
 public:
 	struct Stage {
@@ -136,6 +136,7 @@ public:
 	
 public:
 	typedef StageThread CLASSNAME;
+	StageThread(MetaNode& n) : MetaNodeExt(n) {}
 	
 	void Visit(NodeVisitor& vis) override {
 		vis.Ver(1)
@@ -144,7 +145,11 @@ public:
 		;
 	}
 	
+	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_STAGE;}
+	
 };
+
+INITIALIZE(StageThread)
 
 class SpeechTranscriptionThread : public virtual AiThread {
 	
@@ -189,7 +194,6 @@ public:
 class OmniThread :
 	public CompletionThread,
 	public ChatThread,
-	public StageThread,
 	public SpeechTranscriptionThread,
 	public SpeechGenerationThread,
 	public ImageGenerationThread,

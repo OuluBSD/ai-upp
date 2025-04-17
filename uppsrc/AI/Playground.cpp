@@ -228,13 +228,15 @@ AiStageCtrl::AiStageCtrl() {
 void AiStageCtrl::Data() {
 	auto& list = this->session;
 	StageThread& t = GetStageThread();
-	for(int i = 0; i < t.sessions.GetCount(); i++) {
-		const auto& it = t.sessions[i];
+	MetaNode& n = GetNode();
+	sessions = n.FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION);
+	for(int i = 0; i < sessions.GetCount(); i++) {
+		const auto& it = *sessions[i];
 		list.Set(i, 0, it.id);
-		list.Set(i, 1, it.version);
+		list.Set(i, 1, it.type);
 		list.Set(i,"IDX", i);
 	}
-	list.SetCount(t.sessions.GetCount());
+	list.SetCount(sessions.GetCount());
 	if (!list.IsCursor() && list.GetCount())
 		list.SetCursor(0);
 	else
@@ -246,8 +248,23 @@ void AiStageCtrl::DataSession() {
 		return;
 	StageThread& t = GetStageThread();
 	int ses_i = session.Get("IDX");
-	const auto& ses = t.sessions[ses_i];
+	MetaNode& n = *sessions[ses_i];
 	
+	structure_nodes.Clear();
+	structure_nodes.Add(0, &n);
+	stage.structure.Clear();
+	stage.structure.SetRoot(AIImages::StageRoot(), "Session");
+	VisitNode(0, n);
+	stage.structure.OpenDeep(0);
+}
+
+void AiStageCtrl::VisitNode(int tree_i, MetaNode& n) {
+	for(int i = 0; i < n.sub.GetCount(); i++) {
+		auto& s = n.sub[i];
+		int cur = stage.structure.Add(tree_i, AIImages::StageNode(), s.id);
+		structure_nodes.Add(cur, &s);
+		VisitNode(cur, s);
+	}
 }
 
 void AiStageCtrl::DataItem() {
@@ -271,15 +288,14 @@ void AiStageCtrl::AddSession() {
 	if (!EditText(name, "Session's name", "Name"))
 		return;
 	StageThread& t = GetStageThread();
-	for(int i = 0; i < t.sessions.GetCount(); i++) {
-		if (t.sessions[i].id == name) {
+	for(int i = 0; i < sessions.GetCount(); i++) {
+		if (sessions[i]->id == name) {
 			PromptOK("Session with that name exists already");
 			return;
 		}
 	}
-	auto& ses = t.sessions.Add();
-	ses.id = name;
-	ses.version = 1;
+	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, name);
+	ses.type = "1";
 	PostCallback(THISBACK(Data));
 }
 
@@ -287,8 +303,9 @@ void AiStageCtrl::RemoveSession() {
 	if (!session.IsCursor())
 		return;
 	int ses_id = session.Get("IDX");
+	MetaNode* ses = sessions[ses_id];
 	StageThread& t = GetStageThread();
-	t.sessions.Remove(ses_id);
+	GetNode().Remove(ses);
 	PostCallback(THISBACK(Data));
 }
 
@@ -297,7 +314,7 @@ void AiStageCtrl::RenameSession() {
 		return;
 	int ses_id = session.Get("IDX");
 	StageThread& t = GetStageThread();
-	auto& ses = t.sessions[ses_id];
+	auto& ses = *sessions[ses_id];
 	String name = ses.id;
 	if (!EditText(name, "Session's name", "Name"))
 		return;
@@ -310,8 +327,8 @@ void AiStageCtrl::DuplicateSession() {
 		return;
 	int ses_id = session.Get("IDX");
 	StageThread& t = GetStageThread();
-	const auto& ses0 = t.sessions[ses_id];
-	auto& ses1 = t.sessions.Add();
+	const auto& ses0 = *sessions[ses_id];
+	auto& ses1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, "");
 	VisitCopy(ses0, ses1);
 	PostCallback(THISBACK(Data));
 }
@@ -321,11 +338,11 @@ void AiStageCtrl::SetSessionVersion() {
 		return;
 	int ses_id = session.Get("IDX");
 	StageThread& t = GetStageThread();
-	auto& ses = t.sessions[ses_id];
-	String json = AsJSON(ses.version);
-	if (!EditText(json, "Session's version as JSON", "Version JSON"))
+	auto& ses = *sessions[ses_id];
+	String s = ses.type;
+	if (!EditText(s, "Session's version", "Version"))
 		return;
-	ses.version = ParseJSON(json);
+	ses.type = s;
 	PostCallback(THISBACK(Data));
 }
 
@@ -348,16 +365,38 @@ void AiStageCtrl::EditStageName() {
 }
 
 void AiStageCtrl::StageMenu(Bar& b) {
-	b.Add("Add stage", THISBACK(AddStage));
-	b.Add("Remove stage", THISBACK(RemoveStage));
+	if (stage.structure.IsCursor()) {
+		b.Add("Add", THISBACK(AddStageNode));
+		b.Add("Remove", THISBACK(RemoveStageNode));
+	}
 }
 
-void AiStageCtrl::AddStage() {
-	
+void AiStageCtrl::AddStageNode() {
+	if (!stage.structure.IsCursor()) return;
+	int cur = stage.structure.GetCursor();
+	int i = structure_nodes.Find(cur);
+	if (i < 0) {PromptOK("Internal error"); return;}
+	MetaNode& n = *structure_nodes[i];
+	String id;
+	if (!EditText(id, "Node's id", "id"))
+		return;
+	MetaNode& s = n.Add(METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE, id);
+	PostCallback(THISBACK(Data));
 }
 
-void AiStageCtrl::RemoveStage() {
-	
+void AiStageCtrl::RemoveStageNode() {
+	if (!stage.structure.IsCursor()) return;
+	int cur = stage.structure.GetCursor();
+	if (!cur) return; // can't remove root
+	int i = structure_nodes.Find(cur);
+	if (i < 0) {PromptOK("Internal error"); return;}
+	MetaNode& n = *structure_nodes[i];
+	int owner = stage.structure.GetParent(cur);
+	i = structure_nodes.Find(owner);
+	if (i < 0) {PromptOK("Internal error"); return;}
+	MetaNode& o = *structure_nodes[i];
+	o.Remove(&n);
+	PostCallback(THISBACK(Data));
 }
 
 void AiStageCtrl::ExampleListMenu(Bar& b) {
@@ -784,7 +823,7 @@ void PlaygroundCtrl::SetNode(MetaNode& n) {
 
 PlaygroundApp::PlaygroundApp() {
 	Title("Playground").MaximizeBox().MinimizeBox();
-	Maximize();
+	Sizeable().Maximize();
 	
 	Add(pg.SizePos());
 	AddFrame(menu);

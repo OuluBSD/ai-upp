@@ -10,7 +10,6 @@ OmniThread::OmniThread() {
 void OmniThread::Visit(NodeVisitor& vis) {
 	vis	.VisitT("CompletionThread", (CompletionThread&)*this)
 		.VisitT("ChatThread", (ChatThread&)*this)
-		.VisitT("StageThread", (StageThread&)*this)
 		.VisitT("SpeechTranscriptionThread", (SpeechTranscriptionThread&)*this)
 		.VisitT("SpeechGenerationThread", (SpeechGenerationThread&)*this)
 		.VisitT("ImageGenerationThread", (ImageGenerationThread&)*this)

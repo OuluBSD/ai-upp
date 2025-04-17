@@ -73,6 +73,8 @@ class AiStageCtrl : public AiThreadExt {
 	ArrayCtrl session, examplelist;
 	WithStageEditor<Ctrl> stage;
 	TreeCtrl example;
+	Vector<MetaNode*> sessions;
+	VectorMap<int,MetaNode*> structure_nodes;
 	
 public:
 	typedef AiStageCtrl CLASSNAME;
@@ -82,6 +84,7 @@ public:
 	void DataSession();
 	void DataItem();
 	void ToolMenu(Bar& bar) override;
+	void VisitNode(int tree_i, MetaNode& n);
 	
 	void SessionMenu(Bar& b);
 	void AddSession();
@@ -96,8 +99,8 @@ public:
 	void EditStageName();
 	
 	void StageMenu(Bar& b);
-	void AddStage();
-	void RemoveStage();
+	void AddStageNode();
+	void RemoveStageNode();
 	
 	void ExampleListMenu(Bar& b);
 	void AddExample();

@@ -109,6 +109,7 @@ public:
 class StageThread : public MetaNodeExt {
 	
 public:
+	/*
 	struct Stage {
 		
 		void Visit(NodeVisitor& vis) {
@@ -116,7 +117,6 @@ public:
 			(1)	;
 		}
 	};
-	
 	struct Session {
 		String id;
 		Value version;
@@ -132,6 +132,7 @@ public:
 	};
 	
 	Array<Session> sessions;
+	*/
 	Vector<String> stage_name_presets;
 	
 public:
@@ -140,7 +141,7 @@ public:
 	
 	void Visit(NodeVisitor& vis) override {
 		vis.Ver(1)
-		(1)	("sessions", sessions, VISIT_VECTOR)
+		(1)	//("sessions", sessions, VISIT_VECTOR)
 			("stage_name_presets", stage_name_presets)
 		;
 	}

@@ -70,9 +70,8 @@ public:
 
 class AiStageCtrl : public AiThreadExt {
 	Splitter hsplit, rsplit;
-	ArrayCtrl session, examplelist;
-	WithStageEditor<Ctrl> stage;
-	TreeCtrl example;
+	ArrayCtrl session;
+	TreeCtrl structure;
 	Vector<MetaNode*> sessions;
 	VectorMap<int,MetaNode*> structure_nodes;
 	
@@ -84,6 +83,9 @@ public:
 	void DataSession();
 	void DataItem();
 	void ToolMenu(Bar& bar) override;
+	void SaveTemplate();
+	void LoadTemplate(MetaNode* n);
+	void RemoveTemplate(MetaNode* n);
 	void VisitNode(int tree_i, MetaNode& n);
 	
 	void SessionMenu(Bar& b);
@@ -93,19 +95,10 @@ public:
 	void SetSessionVersion();
 	void DuplicateSession();
 	
-	void StageNameMenu(Bar& b);
-	void AddStageName();
-	void RemoveStageName();
-	void EditStageName();
-	
 	void StageMenu(Bar& b);
-	void AddStageNode();
+	void AddStageNode(int kind);
+	void RenameStageNode();
 	void RemoveStageNode();
-	
-	void ExampleListMenu(Bar& b);
-	void AddExample();
-	void RemoveExample();
-	void EditExample();
 	
 };
 

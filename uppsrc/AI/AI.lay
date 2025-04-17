@@ -229,11 +229,3 @@ LAYOUT(SoundDaemonClip, 424, 256)
 	ITEM(Upp::EditString, samplerate, SetEditable(false).HSizePosZ(128, 12).TopPosZ(216, 20))
 END_LAYOUT
 
-LAYOUT(StageEditor, 680, 300)
-	ITEM(Upp::TreeCtrl, structure, HSizePosZ(4, 280).VSizePosZ(4, 4))
-	ITEM(Upp::LabelBox, dv___1, SetLabel(t_("Stage")).RightPosZ(4, 272).BottomPosZ(4, 160))
-	ITEM(Upp::Button, variate, SetLabel(t_("Make variation")).RightPosZ(8, 264).BottomPosZ(116, 32))
-	ITEM(Upp::ArrayCtrl, stagenamepreset, RightPosZ(8, 264).BottomPosZ(12, 100))
-	ITEM(Ctrl, placeholder, RightPosZ(8, 268).VSizePosZ(4, 164))
-END_LAYOUT
-

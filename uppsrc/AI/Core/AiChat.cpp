@@ -16,6 +16,7 @@ void AiChatComponent::Visit(NodeVisitor& v) {
 }
 
 INITIALIZER_COMPONENT(AiChatComponent);
+INITIALIZER_COMPONENT(AiStageExample);
 
 
 END_UPP_NAMESPACE

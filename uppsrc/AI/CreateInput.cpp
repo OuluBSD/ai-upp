@@ -1477,7 +1477,7 @@ void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 					"incomplete list of 3 phases of a storyline": {
 						"generic": ["beginning", "middle", "end"],
 						"encoded": ["A", "B", "C"],
-						"Rise and fall": ["rise, "neutral", "fall"],
+						"Rise and fall": ["rise", "neutral", "fall"],
 						"Escape to paradise": ["not in paradise", "going to paradise", "in paradise"]
 					}
 				},

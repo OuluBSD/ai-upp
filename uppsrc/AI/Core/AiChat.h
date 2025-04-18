@@ -21,6 +21,10 @@ struct AiChatComponent : Component {
 INITIALIZE(AiChatComponent);
 
 
+
+INITIALIZE_VALUECOMPONENT(AiStageExample, METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE);
+
+
 END_UPP_NAMESPACE
 
 

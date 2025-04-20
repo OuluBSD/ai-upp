@@ -70,17 +70,17 @@ void AiChainCtrl::ToolMenu(Bar& bar) {
 void AiChainCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
 	for(int i = 0; i < n.sub.GetCount(); i++) {
 		auto& s = n.sub[i];
-		if (s.kind == METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE)
-			continue;
+		/*if (s.kind == METAKIND_ECS_COMPONENT_AI_CHAIN_EXAMPLE)
+			continue;*/
 		Image img;
 		bool is_value_node = false;
 		/*switch (s.kind) {
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE:          img = AIImages::StageNode(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY:         img = AIImages::StageQuery(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE:      img = AIImages::StageResponse(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT:       img = AIImages::StageComment(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE: img = AIImages::StageExample(); is_value_node = true; break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE:   img = AIImages::StageValue();   is_value_node = true; break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_NODE:          img = AIImages::StageNode(); break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_QUERY:         img = AIImages::StageQuery(); break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_RESPONSE:      img = AIImages::StageResponse(); break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_COMMENT:       img = AIImages::StageComment(); break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_EXAMPLE_VALUE: img = AIImages::StageExample(); is_value_node = true; break;
+			case METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_INPUT_VALUE:   img = AIImages::StageValue();   is_value_node = true; break;
 		}*/
 		TODO
 		int cur = structure.Add(tree_i, img, s.id);
@@ -123,7 +123,7 @@ void AiChainCtrl::AddSession() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, name);
+	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION, name);
 	ses.type = "1";
 	PostCallback(THISBACK(Data));
 }
@@ -170,7 +170,7 @@ void AiChainCtrl::DuplicateSession() {
 	int ses_id = session.Get("IDX");
 	ChainThread& t = GetChainThread();
 	const auto& ses0 = *sessions[ses_id];
-	auto& ses1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, "");
+	auto& ses1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION, "");
 	VisitCopy(ses0, ses1);
 	PostCallback(THISBACK(Data));
 }
@@ -184,16 +184,16 @@ void AiChainCtrl::StageMenu(Bar& b) {
 			b.Add("Set JSON", THISBACK1(EditExampleValue, false));
 			return;
 		}*/
-		b.Add("Add comment", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT));
+		/*b.Add("Add comment", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_COMMENT));
 		if (!cur) {
-			b.Add("Add query", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY));
-			b.Add("Add response", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE));
+			b.Add("Add query", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_QUERY));
+			b.Add("Add response", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_RESPONSE));
 		}
 		else {
-			b.Add("Add", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE));
-			b.Add("Add example value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE));
-			b.Add("Add input value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE));
-		}
+			b.Add("Add", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_NODE));
+			b.Add("Add example value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_EXAMPLE_VALUE));
+			b.Add("Add input value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_CHAIN_PROMPT_INPUT_VALUE));
+		}*/
 		b.Add("Remove", THISBACK(RemoveStageNode));
 		b.Add("Rename", THISBACK(RenameStageNode));
 		/*if (!cur) {
@@ -205,13 +205,13 @@ void AiChainCtrl::StageMenu(Bar& b) {
 					b.Separator();
 				}
 				b.Sub("Remove", [this](Bar& b) {
-					auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE);
+					auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 					for(int i = 0; i < tmpls.GetCount(); i++) {
 						MetaNode& n = *tmpls[i];
 						b.Add(n.id, THISBACK1(RemoveTemplate, &n));
 					}
 				});
-				auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE);
+				auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 				for(int i = 0; i < tmpls.GetCount(); i++) {
 					MetaNode& n = *tmpls[i];
 					b.Add(n.id, THISBACK1(LoadTemplate, &n));

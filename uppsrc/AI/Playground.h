@@ -53,6 +53,7 @@ struct AiThreadCtrlBase : Ctrl {
 
 struct AiThreadExt : MetaExtCtrl {
 	StageThread& GetStageThread();
+	ChainThread& GetChainThread();
 	
 };
 
@@ -117,6 +118,41 @@ public:
 
 INITIALIZE(AiStageCtrl)
 
+class AiChainCtrl : public AiThreadExt {
+	Splitter hsplit, msplit, rsplit;
+	ArrayCtrl session;
+	TreeCtrl structure;
+	Vector<MetaNode*> sessions;
+	VectorMap<int,MetaNode*> structure_nodes;
+	VectorMap<int,String> structure_values;
+	
+public:
+	typedef AiChainCtrl CLASSNAME;
+	AiChainCtrl();
+	
+	void Data() override;
+	void DataSession();
+	void DataItem();
+	void ToolMenu(Bar& bar) override;
+	void VisitNode(int tree_i, MetaNode& n, String path);
+	MetaNode* GetSession();
+	
+	void SessionMenu(Bar& b);
+	void AddSession();
+	void RemoveSession();
+	void RenameSession();
+	void SetSessionVersion();
+	void DuplicateSession();
+	
+	void StageMenu(Bar& b);
+	void AddStageNode(int kind);
+	void RenameStageNode();
+	void RemoveStageNode();
+	
+};
+
+INITIALIZE(AiChainCtrl)
+
 class TextToSpeechCtrl : public WithTTS<AiThreadCtrlBase> {
 	
 public:
@@ -180,6 +216,7 @@ class PlaygroundCtrl : public Ctrl {
 	TabCtrl tabs;
 	CompletionCtrl completion;
 	AiStageCtrl stage;
+	AiChainCtrl chain;
 	TextToSpeechCtrl tts;
 	AssistantCtrl ass;
 	RealtimeAiCtrl rt;

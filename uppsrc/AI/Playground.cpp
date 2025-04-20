@@ -146,6 +146,11 @@ StageThread& AiThreadExt::GetStageThread() {
 	return o.GetExt<StageThread>();
 }
 
+ChainThread& AiThreadExt::GetChainThread() {
+	auto& o = GetNode();
+	return o.GetExt<ChainThread>();
+}
+
 
 void CompletionCtrl::Submit() {
 	if (!HasThread()) return;
@@ -935,6 +940,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(completion.SizePos(), "Completion");
 	tabs.Add(chat.SizePos(), "Chat");
 	tabs.Add(stage.SizePos(), "Stage");
+	tabs.Add(chain.SizePos(), "Filesystem-chat");
 	tabs.Add(edit_img.SizePos(), "Image");
 	tabs.Add(img_aspect.SizePos(), "Image Aspect Fixer");
 	tabs.Add(placeholder.SizePos(), "Transcribe");
@@ -961,6 +967,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 
 PlaygroundCtrl::~PlaygroundCtrl() {
 	stage.ext = 0;
+	chain.ext = 0;
 	StoreThis();
 	omni.Clear();
 }
@@ -987,6 +994,7 @@ void PlaygroundCtrl::TabMenu(Bar& b) {
 		case 0: completion.MainMenu(b); break;
 		case 1: chat.MainMenu(b); break;
 		case 2: stage.ToolMenu(b); break;
+		case 3: chain.ToolMenu(b); break;
 		default: break;
 	}
 }
@@ -998,6 +1006,7 @@ void PlaygroundCtrl::Data() {
 		case 0: completion.Data(); break;
 		case 1: chat.Data(); break;
 		case 2: stage.Data(); break;
+		case 3: chain.Data(); break;
 		case 8: tasks.Data(); break;
 		default: break;
 	}
@@ -1010,7 +1019,7 @@ void PlaygroundCtrl::Visit(NodeVisitor& s) {
 	(1)	("tab",tab)
 		("completion", (AiThreadCtrlBase&)completion)
 		("chat", (AiThreadCtrlBase&)chat)
-		("stage", (AiThreadCtrlBase&)stage)
+		//("stage", (AiThreadCtrlBase&)stage)
 		;
 	//s % tts;
 	//s % ass;
@@ -1043,6 +1052,10 @@ void PlaygroundCtrl::SetNode(MetaNode& n) {
 	auto& stage_n = n.GetAdd("stage", "", METAKIND_ECS_COMPONENT_AI_STAGE);
 	ASSERT(stage_n.ext);
 	stage.ext = &*stage_n.ext;
+	
+	auto& chain_n = n.GetAdd("chain", "", METAKIND_ECS_COMPONENT_AI_CHAIN);
+	ASSERT(chain_n.ext);
+	chain.ext = &*chain_n.ext;
 }
 
 

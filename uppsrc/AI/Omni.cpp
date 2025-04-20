@@ -36,4 +36,7 @@ void OmniThread::OnDiscussionEnd(SoundDiscussion&) {
 
 INITIALIZER_COMPONENT(StageThread)
 
+
+INITIALIZER_COMPONENT(ChainThread)
+
 END_UPP_NAMESPACE

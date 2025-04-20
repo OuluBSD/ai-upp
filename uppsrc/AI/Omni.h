@@ -152,6 +152,19 @@ public:
 
 INITIALIZE(StageThread)
 
+class ChainThread : public MetaNodeExt {
+public:
+	typedef ChainThread CLASSNAME;
+	ChainThread(MetaNode& n) : MetaNodeExt(n) {}
+	void Visit(NodeVisitor& vis) override {
+		vis.Ver(0)
+			;
+	}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_CHAIN;}
+};
+
+INITIALIZE(ChainThread)
+
 class SpeechTranscriptionThread : public virtual AiThread {
 	
 public:

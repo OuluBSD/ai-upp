@@ -1,7 +1,5 @@
-#ifndef _ide_Shell_VFS_h_
-#define _ide_Shell_VFS_h_
-
-NAMESPACE_UPP
+#ifndef _Core_VFS_h_
+#define _Core_VFS_h_
 
 /*
 	Internal path notation (default is INTERNAL_COMB):
@@ -35,7 +33,7 @@ NAMESPACE_UPP
 	#define INTERNAL_ROOT_FILE(x) x ":"
 #endif
 
-struct NodeVisitor;
+struct Visitor;
 
 struct VfsPath : Moveable<VfsPath> {
 	VfsPath();
@@ -69,7 +67,7 @@ struct VfsPath : Moveable<VfsPath> {
 	hash_t  GetHashValue() const;
 	bool operator==(const VfsPath& p) const;
 	bool operator==(const String& p) const;
-	void    Visit(NodeVisitor& v);
+	void    Visit(Visitor& v);
 	bool    IsSysDirectory() const;
 	bool    IsSysFile() const;
 private:
@@ -117,7 +115,5 @@ struct SystemFS : VFS {
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
 	VfsItemType CheckItem(const VfsPath& rel_path) override;
 };
-
-END_UPP_NAMESPACE
 
 #endif

@@ -1,7 +1,5 @@
-#ifndef _ide_Shell_Mount_h_
-#define _ide_Shell_Mount_h_
-
-NAMESPACE_UPP
+#ifndef _Core_Mount_h_
+#define _Core_Mount_h_
 
 struct MountManager {
 	struct MountPoint {
@@ -28,6 +26,5 @@ struct MountManager {
 	static MountManager& System() {static MountManager m; return m;}
 };
 
-END_UPP_NAMESPACE
 
 #endif

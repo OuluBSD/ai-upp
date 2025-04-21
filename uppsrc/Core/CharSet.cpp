@@ -2266,4 +2266,16 @@ bool IsDoubleWidth(int c)
 			|| (c >= 0x30000 && c <= 0x3FFFD)
 			);
 }
+
+
+bool IsAllDigit(const String& s) {
+	if (s.IsEmpty()) return false;
+	const char* c = s.Begin();
+	const char* e = s.End();
+	while (c != e)
+		if (!IsDigit(*c++))
+			return false;
+	return true;
+}
+
 }

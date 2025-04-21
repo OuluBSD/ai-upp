@@ -1,5 +1,4 @@
-#include "Shell.h"
-#include <AI/AI.h>
+#include "Core.h"
 
 NAMESPACE_UPP
 
@@ -42,7 +41,7 @@ VfsPath::VfsPath(VfsPath&& path) {
 	parts = pick(path.parts);
 }
 
-void VfsPath::Visit(NodeVisitor& v) {
+void VfsPath::Visit(Visitor& v) {
 	v.Ver(1)
 	(1)	("str", str)
 		("parts", parts);

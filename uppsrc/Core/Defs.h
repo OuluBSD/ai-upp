@@ -176,6 +176,8 @@ inline bool IsNaN(double d)        { return std::isnan(d); }
 inline bool IsInf(double d)        { return std::isinf(d); }
 inline bool IsFin(double d)        { return !IsNaN(d) && !IsInf(d); }
 
+bool IsClose(double a, double b);
+
 #ifdef COMPILER_MSC
 	#define I64(c) ((int64)COMBINE(c, i64))
 #else

@@ -343,15 +343,20 @@ String Garble(const String& s)
 
 String Encode64(const String& s)
 {
+	return Encode64(s.Begin(), s.GetLength());
+}
+
+String Encode64(const void* s, int l)
+{
+	const char* cc = (const char*)s;
 	String enc;
-	int l = s.GetLength();
 	enc << l << ':';
 	for(int i = 0; i < l;)
 	{
 		char a = 0, b = 0, c = 0;
-		if(i < l) a = s[i++];
-		if(i < l) b = s[i++];
-		if(i < l) c = s[i++];
+		if(i < l) a = cc[i++];
+		if(i < l) b = cc[i++];
+		if(i < l) c = cc[i++];
 		enc.Cat(' ' + 1 + ((a >> 2) & 0x3F));
 		enc.Cat(' ' + 1 + ((a << 4) & 0x30) + ((b >> 4) & 0x0F));
 		enc.Cat(' ' + 1 + ((b << 2) & 0x3C) + ((c >> 6) & 0x03));

@@ -60,6 +60,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include <ctype.h>
+#include <random>
 
 #ifdef CPU_X86
 #include <immintrin.h>
@@ -410,6 +411,8 @@ class JsonIO;
 #include "Mount.h"
 #include "VCS.h"
 #include "Visitor.h"
+
+#include "Math.h"
 
 #ifdef CPU_SIMD
 String AsString(const f32x4& x);

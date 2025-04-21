@@ -46,6 +46,18 @@ public:
 	void SetPrettyJson(bool b=true) {pretty_json = b;}
 	
 	
+	void DoBinary(String key, void* data, int len) {
+		String path = GetCurrentPath(key + ".bin");
+		if (storing) {
+			FileOut fout(path);
+			fout.Put(data, len);
+		}
+		else {
+			FileIn fin(path);
+			fin.Get(data, len);
+		}
+	}
+	
 	template <class T>
 	void BeginVector(String key, T& o) {
 		Push(ST_VECTOR, key);

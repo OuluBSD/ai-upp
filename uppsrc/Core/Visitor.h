@@ -477,6 +477,39 @@ struct Visitor {
 		}
 	}
 	
+	Visitor& VisitBinary(const char* key, void* data, int size) {
+		if (skip) return *this;
+		if (storing) {
+			switch (mode) {
+			case MODE_JSON: {
+				String s;
+				(*json)(key, s);
+				String ds = Decode64(s);
+				size = min(size, ds.GetCount());
+				memcpy(data, ds.Begin(), size);
+				return *this;
+			}
+			case MODE_STREAM: stream->Get(data, size); return *this;
+			case MODE_HASH: hash.DoBinary(data,size); return *this;
+			case MODE_VCS: vcs->DoBinary(key, data,size); return *this;
+			default: return *this;
+			}
+		}
+		else {
+			switch (mode) {
+			case MODE_JSON: {
+				String s = Encode64(data,size);
+				(*json)(key, s);
+				return *this;
+			}
+			case MODE_STREAM: stream->Get(data, size); return *this;
+			case MODE_HASH: return *this;
+			case MODE_VCS: vcs->DoBinary(key, data,size); return *this;
+			default: return *this;
+			}
+		}
+	}
+	
 	
 	template<class T> Visitor& operator()(const char* key, T& o, int) {return VisitVector(key, o);}
 	template<class T> Visitor& operator()(const char* key, T& o, int, int) {return VisitMap(key, o);}

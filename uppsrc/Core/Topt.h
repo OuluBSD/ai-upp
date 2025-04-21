@@ -495,7 +495,7 @@ struct CombineHash {
 	hash_t hash;
 
 	template <class T> CombineHash& Do(const T& x)                  { Put(GetHashValue(x)); return *this; }
-
+	CombineHash& DoBinary(void* data, int len)                      { Put(memhash(data, len)); return *this; }
 public:
 	CombineHash& Put(hash_t h)                                      { hash = HASH_CONST2 * hash + h; return *this; }
 

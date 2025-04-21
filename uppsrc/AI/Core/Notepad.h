@@ -13,7 +13,7 @@ struct Notepad : Component
 		String reference;
 		String description;
 		Time created;
-		void Visit(NodeVisitor& v) {
+		void Visit(Vis& v) {
 			v.Ver(1)
 			(1)	("title", title)
 				("outcome", outcome)
@@ -27,7 +27,7 @@ struct Notepad : Component
 	
 	COMPONENT_CONSTRUCTOR(Notepad)
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("notes", notes, VISIT_VECTOR)
 			;

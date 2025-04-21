@@ -829,7 +829,6 @@ struct MarketplaceArgs {
 	void Put(const String& s) {LoadFromJson(*this, s);}
 };
 
-bool IsAllDigit(const String& s);
 String AppendUnixFileName(String a, String b);
 ValueMap& ValueToMap(Value& val);
 ValueArray& ValueToArray(Value& val);

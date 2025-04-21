@@ -7,8 +7,8 @@ OmniThread::OmniThread() {
 	
 }
 
-void OmniThread::Visit(NodeVisitor& vis) {
-	vis	.VisitT("CompletionThread", (CompletionThread&)*this)
+void OmniThread::Visit(Vis& v) {
+	v	.VisitT("CompletionThread", (CompletionThread&)*this)
 		.VisitT("ChatThread", (ChatThread&)*this)
 		.VisitT("SpeechTranscriptionThread", (SpeechTranscriptionThread&)*this)
 		.VisitT("SpeechGenerationThread", (SpeechGenerationThread&)*this)

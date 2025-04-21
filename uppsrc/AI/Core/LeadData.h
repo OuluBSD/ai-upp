@@ -8,7 +8,7 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 		int id;
 		String name;
 		bool primary;
-		void Visit(NodeVisitor& v);
+		void Visit(Vis& v);
 		String ToString() const;
 	};
 	
@@ -86,7 +86,7 @@ struct LeadOpportunity : Moveable<LeadOpportunity> {
 	int GetCount() const;
 	Value operator[](int i) const;
 	const char* GetKey(int i) const;
-	void Visit(NodeVisitor& v);
+	void Visit(Vis& v);
 };
 
 // TODO: rename to GigList or something
@@ -97,7 +97,7 @@ struct LeadData : Component {
 	void Load();
 	void Store();
 	LeadOpportunity& GetAddOpportunity(int leadsite, String id);
-	void Visit(NodeVisitor& v);
+	void Visit(Vis& v);
 	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_DATA;}
 	

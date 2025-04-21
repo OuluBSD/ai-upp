@@ -32,7 +32,7 @@ SrcTextData::SrcTextData() {
 	current_language = "english";
 }
 
-void SrcTextData::Visit(NodeVisitor& s) {
+void SrcTextData::Visit(Vis& s) {
 	s.Ver(2);
 	if (s.file_ver == 1) {
 		Panic("Not loading version 1 anymore. Use commit 00809ced5a09e2293b2a9aa36b54a18251b14fb3");
@@ -330,7 +330,7 @@ SrcTxtHeader::~SrcTxtHeader() {
 	
 }
 
-void SrcTxtHeader::Visit(NodeVisitor& v) {
+void SrcTxtHeader::Visit(Vis& v) {
 	v.Ver(2)
 	(1)	("written",written)
 		("size",size)
@@ -391,7 +391,7 @@ bool SrcTxtHeader::LoadData() {
 		return false;
 	}
 	else {
-		NodeVisitor vis(decomp_stream);
+		Vis vis(decomp_stream);
 		this->data->Visit(vis);
 	}
 	

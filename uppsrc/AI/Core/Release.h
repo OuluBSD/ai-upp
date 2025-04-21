@@ -47,7 +47,7 @@ struct Release : Component
 	Component& GetAddComponent(String name);
 	//Component& RealizeReversed(Component& s);
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("title", title)
 			("date", date)

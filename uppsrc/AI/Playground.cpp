@@ -43,7 +43,7 @@ void AiThreadCtrlBase::MainMenu(Bar& bar) {
 	bar.Add("Submit", [this]{this->Submit();}).Key(K_CTRL_ENTER);
 }
 
-void AiThreadCtrlBase::Visit(NodeVisitor& s) {
+void AiThreadCtrlBase::Visit(Vis& s) {
 	s.Ver(1)
 	(1)	("model_i", model_i)
 		;
@@ -1012,7 +1012,7 @@ void PlaygroundCtrl::Data() {
 	}
 }
 
-void PlaygroundCtrl::Visit(NodeVisitor& s) {
+void PlaygroundCtrl::Visit(Vis& s) {
 	int tab = tabs.Get();
 	
 	s.Ver(1)

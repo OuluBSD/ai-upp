@@ -12,7 +12,7 @@ struct BioImage {
 	int time_accuracy = TIME_ACCURACY_NONE;
 	int64 image_hash = 0;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("keywords", keywords)
 			("text", text)
@@ -36,7 +36,7 @@ struct BioRange : Moveable<BioRange> {
 	void operator=(const BioRange& r) {off = r.off; len = r.len;}
 	hash_t GetHashValue() const {CombineHash c; c.Do(off).Do(len); return c;}
 	bool operator==(const BioRange& r) const {return r.off == off && r.len == len;}
-	void Visit(NodeVisitor& v) {v("off", off)("len", len);}
+	void Visit(Vis& v) {v("off", off)("len", len);}
 	bool operator()(const BioRange& a, const BioRange& b) const {
 		int a0 = a.off + a.len - 1; // last item in range
 		int b0 = b.off + b.len - 1;
@@ -50,7 +50,7 @@ struct BioYear {
 	struct Element : Moveable<Element> {
 		String key, value;
 		byte scores[SCORE_COUNT] = {0,0,0,0,0, 0,0,0,0,0};
-		void Visit(NodeVisitor& v) {v("k",key)("v",value); for(int i = 0; i < SCORE_COUNT; i++) v("s" + IntStr(i),scores[i]);}
+		void Visit(Vis& v) {v("k",key)("v",value); for(int i = 0; i < SCORE_COUNT; i++) v("s" + IntStr(i),scores[i]);}
 		void ResetScore() {memset(scores, 0, sizeof(scores));}
 		double GetAverageScore() const;
 	};
@@ -62,7 +62,7 @@ struct BioYear {
 	Vector<Element> elements;
 	hash_t source_hash = 0;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("year", year)
 			("keywords", keywords)
@@ -92,7 +92,7 @@ struct BiographyCategory {
 	
 	BiographyCategory() {}
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	.VisitVector("years", years)
 			.VisitMapKV("summaries", summaries)
@@ -124,7 +124,7 @@ public:
 		}
 	};
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("categories", categories, VISIT_MAP)
 			;
@@ -164,7 +164,7 @@ struct PhotoPrompt : Moveable<PhotoPrompt> {
 	String prompt;
 	Vector<String> instructions;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("prompt", prompt)
 			("instructions", instructions)
@@ -179,7 +179,7 @@ struct PlatformAnalysisPhoto : Moveable<PlatformAnalysisPhoto> {
 	String description;
 	Array<PhotoPrompt> prompts;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("description", description)
 			.VisitVector("prompts", prompts)
@@ -202,7 +202,7 @@ struct ConceptStory : Moveable<ConceptStory> {
 		String key, value;
 		Color clr;
 		byte scores[SCORE_COUNT] = {0,0,0,0,0, 0,0,0,0,0};
-		void Visit(NodeVisitor& v) {
+		void Visit(Vis& v) {
 			v.Ver(1)
 			(1)	("k",key)("v",value)("clr",clr);
 			for(int i = 0; i < SCORE_COUNT; i++)
@@ -224,7 +224,7 @@ struct ConceptStory : Moveable<ConceptStory> {
 	
 	int FindElement(const String& key) const;
 	int FindImprovedElement(const String& key) const;
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("hash", (int64&)hash)
 			("desc", desc)
@@ -254,7 +254,7 @@ struct Concept {
 	
 	int FindStory(hash_t h) const;
 	ConceptStory& GetAddStory(hash_t h);
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("belief_uniq", belief_uniq)
 			("name", name)
@@ -272,7 +272,7 @@ struct BiographyPerspectives : Component {
 	
 	BiographyPerspectives(MetaNode& o) : Component(o) {}
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("revision", revision)
 			("last_modified", last_modified)

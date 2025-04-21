@@ -179,7 +179,7 @@ bool ToolAppCtrl::LoadDirectory(const String& includes, const String& filename, 
 	if (DirectoryExists(dirpath)) {
 		VersionControlSystem vcs;
 		vcs.Initialize(dirpath, false);
-		NodeVisitor vis(vcs);
+		Vis vis(vcs);
 		this->Visit(vis);
 		vcs.Close();
 	}
@@ -200,7 +200,7 @@ void ToolAppCtrl::Save(Stream& s, byte charset) {
 void ToolAppCtrl::SaveDirectory(String dirpath, byte charset) {
 	VersionControlSystem vcs;
 	vcs.Initialize(dirpath, true);
-	NodeVisitor vis(vcs);
+	Vis vis(vcs);
 	this->Visit(vis);
 	vcs.Close();
 	data.Clear();

@@ -103,14 +103,14 @@ EntityData* Entity::FindData(const VfsPath& path) {
 	return 0;
 }
 
-void Entity::Visit(NodeVisitor& v) {
+void Entity::Visit(Vis& v) {
 	v.Ver(2)
 	(1)	("data",data);
 	if (v.file_ver >= 2) {
 		struct Item : Moveable<Item> {
 			VfsPath path;
 			int kind;
-			void Visit(NodeVisitor& v) {v("path",path,VISIT_NODE)("kind",kind);}
+			void Visit(Vis& v) {v("path",path,VISIT_NODE)("kind",kind);}
 		};
 		if (v.IsLoading()) {
 			Vector<Item> header;

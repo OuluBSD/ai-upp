@@ -52,7 +52,7 @@ public:
 struct AspectFixerLayer : TempImageLayer {
 	AspectFixerLayer(MetaNode& owner) : TempImageLayer(owner) {}
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1);
 	}

@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-void LeadData::Visit(NodeVisitor& v) {
+void LeadData::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("opportunities", opportunities, VISIT_VECTOR);
 }
@@ -99,7 +99,7 @@ LeadOpportunity& LeadData::GetAddOpportunity(int leadsite, String id) {
 	ITEMV(genres) \
 	ITEMV(promoter_group_genres) \
 
-void LeadOpportunity::Visit(NodeVisitor& v) {
+void LeadOpportunity::Visit(Vis& v) {
 	v.Ver(1)
 	(1)
 	#define ITEM(x) (#x, x)
@@ -115,7 +115,7 @@ void LeadOpportunity::Visit(NodeVisitor& v) {
 	;
 }
 
-void LeadOpportunity::Genre::Visit(NodeVisitor& v) {
+void LeadOpportunity::Genre::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("id", id)
 		("name", name)

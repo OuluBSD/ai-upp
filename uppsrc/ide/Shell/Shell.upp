@@ -14,10 +14,6 @@ file
 	IdeShellHost.cpp,
 	EscCmds.h,
 	EscCmds.cpp,
-	Mount.h,
-	Mount.cpp,
-	VFS.h,
-	VFS.cpp,
 	Widgets readonly separator,
 	SmallWidgets.h,
 	SmallWidgets.cpp;

@@ -65,8 +65,5 @@ file
 	ImgGen.h,
 	ImgGen.cpp,
 	ImgAspectFixer.h,
-	ImgAspectFixer.cpp,
-	"Version Control" readonly separator,
-	VCS.h,
-	VCS.cpp;
+	ImgAspectFixer.cpp;
 

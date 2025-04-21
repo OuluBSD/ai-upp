@@ -12,14 +12,14 @@ struct Perspective : Component
 	struct Attr : Moveable<Attr> {
 		String		positive;
 		String		negative;
-		void Visit(NodeVisitor& v) {v.Ver(1)(1)("positive",positive)("negative",negative);}
+		void Visit(Vis& v) {v.Ver(1)(1)("positive",positive)("negative",negative);}
 	};
 	String			description;
 	String			reference;
 	Vector<Attr>	attrs;
 	Vector<String>	user;
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("description", description)
 			("reference", reference)

@@ -39,7 +39,7 @@ struct ActionHeader : Moveable<ActionHeader> {
 	}
 	bool IsEmpty() const { return action.IsEmpty() || arg.IsEmpty(); }
 	void Jsonize(JsonIO& json) { json("act", action)("arg", arg); }
-	void Visit(NodeVisitor& v) { v("act", action)("arg", arg); }
+	void Visit(Vis& v) { v("act", action)("arg", arg); }
 	void Serialize(Stream& s) { s % action % arg; }
 	void Trim()
 	{
@@ -90,7 +90,7 @@ struct AttrHeader : Moveable<AttrHeader> {
 	}
 	bool IsEmpty() const { return group.IsEmpty() || value.IsEmpty(); }
 	void Jsonize(JsonIO& json) { json("grp", group)("val", value); }
-	void Visit(NodeVisitor& v) { v("g", group)("v", value); }
+	void Visit(Vis& v) { v("g", group)("v", value); }
 	void Serialize(Stream& s) { s % group % value; }
 	void Trim()
 	{

@@ -44,7 +44,7 @@ struct Component : MetaNodeExt, DatasetProvider {
 
 #define COMPONENT_CONSTRUCTOR_(x) x(MetaNode& n) : Component(n)
 #define COMPONENT_CONSTRUCTOR(x) COMPONENT_CONSTRUCTOR_(x) {}
-#define COMPONENT_OVERRIDE_TODO void Visit(NodeVisitor& s) override {TODO}
+#define COMPONENT_OVERRIDE_TODO void Visit(Vis& s) override {TODO}
 #define METANODE_EXT_CONSTRUCTOR_(x) x(MetaNode& n) : MetaNodeExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
 
@@ -52,7 +52,7 @@ struct Component : MetaNodeExt, DatasetProvider {
 struct type : Component \
 { \
 	COMPONENT_CONSTRUCTOR(type) \
-	void Visit(NodeVisitor& v) override { \
+	void Visit(Vis& v) override { \
 		v.Ver(1)(1);} \
 	static int GetKind() {return kind;} \
 }; \
@@ -64,13 +64,13 @@ INITIALIZE(type)
 struct EntityData : Pte<EntityData> {
 	virtual ~EntityData() {}
 	virtual int GetKind() const = 0;
-	virtual void Visit(NodeVisitor& s) = 0;
+	virtual void Visit(Vis& s) = 0;
 };
 
 struct Entity : MetaNodeExt {
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
-	void Visit(NodeVisitor& v) override;
+	void Visit(Vis& v) override;
 	int GetGender() const;
 	EntityData* FindData(const VfsPath& path);
 	
@@ -97,7 +97,7 @@ struct ValueComponentBase : Component
 {
 	Value value;
 	ValueComponentBase(MetaNode& n) : Component(n) {}
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("value",value);
 	}

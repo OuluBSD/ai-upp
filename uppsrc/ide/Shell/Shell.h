@@ -14,8 +14,6 @@
 #define KEYFILE      <ide/Shell/Shell.key>
 #include             <CtrlLib/key_header.h>
 
-#include "VFS.h"
-#include "Mount.h"
 #include "EscCmds.h"
 #include "IdeShell.h"
 #include "Widget.h"

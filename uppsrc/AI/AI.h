@@ -18,7 +18,6 @@
 
 #include "Common.h"
 
-#include "VCS.h"
 #include "MetaEnv.h"
 #include "MetaEnvTree.h"
 #include "PkgEnv.h"

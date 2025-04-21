@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 INITIALIZER_COMPONENT(LeadDataPublisher);
 
-void LeadDataTemplate::Visit(NodeVisitor& v) {
+void LeadDataTemplate::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("templates", templates, 0)
 		("author_classes", author_classes)

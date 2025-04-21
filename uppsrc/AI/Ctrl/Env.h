@@ -29,7 +29,7 @@ public:
 	MetaSrcFile& RealizeFileRoot();
 	void AddContext();
 	void RemoveContext();
-	void Visit(NodeVisitor& vis) override;
+	void Visit(Vis& v) override;
 	void OnValueChange();
 	void OnOption(Option* opt, MetaNode* db);
 	

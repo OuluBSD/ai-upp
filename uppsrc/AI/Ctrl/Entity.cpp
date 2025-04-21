@@ -772,17 +772,17 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 		bar.Add("", Callback());
 }
 
-void EntityEditorCtrl::Visit(NodeVisitor& vis) {
-	if (vis.IsLoading()) {
+void EntityEditorCtrl::Visit(Vis& v) {
+	if (v.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, n);
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}
 	else {
 		MetaSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
-		file.Visit(vis);
+		file.Visit(v);
 		file.ClearTemp();
 	}
 }

@@ -13,7 +13,7 @@ struct BiographyProfileAnalysis {
 		int year, category;
 		String text, keywords;
 		double score[BIOSCORE_COUNT] = {0,0,0,0};
-		void Visit(NodeVisitor& v) {
+		void Visit(Vis& v) {
 			v.Ver(1)
 			(1)	("year", year)
 				("cat", category)
@@ -29,7 +29,7 @@ struct BiographyProfileAnalysis {
 	VectorMap<int, String> categories;
 	String biography_reaction;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	.VisitVector("responses", responses)
 			("categories", categories)
@@ -41,7 +41,7 @@ struct BiographyProfileAnalysis {
 struct BiographyRoleAnalysis {
 	Vector<String> merged_biography_reactions;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("merged_biography_reactions", merged_biography_reactions)
 			;
@@ -56,7 +56,7 @@ struct PlatformBiographyPlatform {
 	bool platform_enabled = false;
 	ArrayMap<String,PlatformAnalysisPhoto> epk_photos;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("packed_reactions", packed_reactions)
 			("profile_description_from_biography", profile_description_from_biography)
@@ -77,7 +77,7 @@ struct PhotoPromptGroupAnalysis {
 	int image_count = 0;
 	String prompt;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	.VisitVector("cluster_centers", cluster_centers)
 			("image_count", image_count)
@@ -106,7 +106,7 @@ struct MarketplaceItem : Moveable<MarketplaceItem> {
 	int category = 0, subcategory = 0;
 	int year_of_manufacturing = 0;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("priority",priority)
 			("added",added)
@@ -152,7 +152,7 @@ struct BiographyPlatform : Component {
 	COMPONENT_CONSTRUCTOR(BiographyPlatform)
 	void Realize();
 	void RealizePromptImageTypes();
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("profiles", profiles, VISIT_VECTOR_VECTOR)
 			("roles", roles, VISIT_VECTOR)

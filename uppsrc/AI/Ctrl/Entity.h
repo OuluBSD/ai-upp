@@ -215,7 +215,7 @@ public:
 	void DataEcsTree();
 	void DataExtension();
 	void DataExtCtrl();
-	void Visit(NodeVisitor& vis) override;
+	void Visit(Vis& v) override;
 	void MoveNode(MetaNode* n);
 	void RemoveNode(MetaNode* n);
 	void AddNode(MetaNode* n, int kind, String id);

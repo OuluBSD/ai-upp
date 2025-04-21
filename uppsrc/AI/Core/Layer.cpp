@@ -20,7 +20,7 @@ void ImageLayer::LoadString(const String& bz_enc) {
 	}
 }
 
-void ImageLayer::Visit(NodeVisitor& v) {
+void ImageLayer::Visit(Vis& v) {
 	if (v.IsHashing()) {
 		v.hash.Do(img);
 	}

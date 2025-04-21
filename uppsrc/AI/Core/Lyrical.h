@@ -242,7 +242,7 @@ struct LyricalStructure : Component {
 	
 	LyricalStructure(MetaNode& owner) : Component(owner) {}
 	~LyricalStructure() {}
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("parts", parts);
 	}
@@ -268,7 +268,7 @@ struct Script : Component {
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("simple_attrs", simple_attrs)
 			("clr_list", clr_list)
@@ -312,7 +312,7 @@ struct Lyrics : Component {
 	
 	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("name", name)
 			("content_vision", content_vision)

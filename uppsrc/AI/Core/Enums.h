@@ -800,7 +800,7 @@ enum {
 struct ContentType : Moveable<ContentType> {
 	String key, parts[PART_COUNT];
 
-	void Visit(NodeVisitor& vis);
+	void Visit(Vis& v);
 	void Serialize(Stream& s) {s / key; for(int i = 0; i < PART_COUNT; i++) s / parts[i];}
 	void Set(String key, String begin, String mid, String end, const char* p3=0)
 	{

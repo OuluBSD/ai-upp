@@ -19,35 +19,6 @@
 
 
 
-#ifndef M_2PI
-#define M_2PI	6.283185307179586
-#endif
-
-#ifndef M_PI
-#define M_PI	3.1415926535897932384626433832795
-#endif
-
-#ifndef M_PIDIV2
-#define M_PIDIV2	1.5707963267948966
-#endif
-
-#ifndef M_PIDIV4
-#define M_PIDIV4	0.7853981633974483
-#endif
-
-
-#ifndef M_PIf
-	#define M_PIf	3.1415926535897932f
-#endif
-
-#ifndef M_PI_2f
-	#define M_PI_2f	1.5707963267948966f
-#endif
-
-#ifndef M_2PIf
-	#define M_2PIf	(2.f * 3.1415926535897932f)
-#endif
-
 
 
 #endif

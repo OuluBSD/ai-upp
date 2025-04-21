@@ -16,13 +16,13 @@ ModelNode::ModelNode(const ModelNode& n) {
 	*this = n;
 }
 
-void ModelNode::Visit(Vis& e) {
-	e % name
-	  % index
-	  % parent_node_index
-	  % local_transform;
+void ModelNode::Visit(Vis& v) {
+	_VIS_(name)
+	 VIS_(index)
+	 VIS_(parent_node_index)
+	 VISN(local_transform);
 	
-	if (e.IsLoading())
+	if (v.IsLoading())
 		++modify_count;
 }
 
@@ -33,27 +33,30 @@ void ModelNode::Visit(Vis& e) {
 
 
 
-void Model::Texture::Visit(Vis& e) {
-	e % img
-	  % path;
+void Model::Texture::Visit(Vis& v) {
+	v VISN(img)
+	  VIS_(path);
 }
 
-void Model::CubeTexture::Visit(Vis& e) {
-	for(int i = 0; i < 6; i++) {
-		e % img[i];
-	}
-	e % path;
+void Model::CubeTexture::Visit(Vis& v) {
+	v VISN(img[0])
+	  VISN(img[1])
+	  VISN(img[2])
+	  VISN(img[3])
+	  VISN(img[4])
+	  VISN(img[5])
+	  VIS_(path);
 }
 
-void Model::Visit(Vis& e) {
-	e % meshes
-	  % nodes
-	  % materials
-	  % textures
-	  % cube_textures
-	  % path
-	  % directory;
-	if (e.IsLoading()) {
+void Model::Visit(Vis& v) {
+	v VISV(meshes)
+	 VISV(nodes)
+	 VISM(materials)
+	 VISM(textures)
+	 VISM(cube_textures)
+	 VIS_(path)
+	 VIS_(directory);
+	if (v.IsLoading()) {
 		for (Mesh& m : meshes)
 			m.owner = this;
 		for (Material& m : materials.GetValues())
@@ -298,14 +301,11 @@ void ModelLoader::Clear() {
 
 void ModelLoader::Set(const Model& m) {
 	model = new Model(m);
-	model->SetParent(this);
 }
 
 void ModelLoader::Attach(Model* m) {
 	Clear();
 	model = m;
-	if (m)
-		m->SetParent(this);
 }
 
 void ModelLoader::operator=(const Model & m) {
@@ -316,14 +316,19 @@ ModelLoader::operator bool() const {
 	return !model.IsEmpty();
 }
 
-void ModelLoader::Visit(RuntimeVisitor& vis) {
+void ModelLoader::Visit(Vis& vis) {
+	bool has_model = !model.IsEmpty();
+	vis("has_model", has_model);
+	if (vis.IsLoading()) {
+		if (has_model && model.IsEmpty())
+			model.Create();
+	}
 	if (model)
-		vis % *model;
+		vis("model", *model, VISIT_NODE);
 }
 
 Model& ModelLoader::Create() {
 	model.Create();
-	model->SetParent(this);
 	return *model;
 }
 
@@ -334,8 +339,8 @@ Model& ModelLoader::Realize() {
 		return Create();
 }
 
-Ref<Model> ModelLoader::GetModel() {
-	return model ? model->AsRefT() : Null;
+Ptr<Model> ModelLoader::GetModel() {
+	return model ? &*model : 0;
 }
 
 
@@ -487,7 +492,6 @@ void ModelLoader::ProcessMesh(Model& model, Mesh& out, aiMesh *mesh, const aiSce
 
 void ModelLoader::operator=(ModelBuilder& mb) {
 	model = mb.Detach();
-	model->SetParent(this);
 }
 
 

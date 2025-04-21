@@ -16,7 +16,7 @@ class Mesh : public BoundingBox, Moveable<Mesh> {
 public:
 	Model* owner = 0;
     Vector<Vertex> vertices;
-    Vector<uint32> indices;
+    Vector<int> indices;
     VectorMap<String, NodeIndex> named_vertices;
 	int material = -1;
 	bool disable_textures = false;
@@ -42,7 +42,7 @@ public:
         c.Put(use_quad);
         return c;
     }
-    void Visit(Vis& e);
+    void Visit(Vis& v);
     
 	void Clear();
 	void ReverseFaces();

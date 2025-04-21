@@ -1,5 +1,7 @@
 #include "Geometry.h"
 
+#if 0
+
 NAMESPACE_UPP
 
 
@@ -103,3 +105,5 @@ void WmrFusionSystemReceiver::GetEvent(Ether& in, Ether& out) {
 }
 
 END_UPP_NAMESPACE
+
+#endif

@@ -1,8 +1,8 @@
 description "Classes for 2D/3D/etc operations.\377B128,0,54";
 
 uses
-	Local,
-	ports/mikktspace;
+	ports/mikktspace,
+	Draw;
 
 uses(!UWP) ports/tiny_gltf;
 

@@ -91,6 +91,7 @@ bool Quadtree::Contains(vec3 pos) {
 	}
 	else {
 		TODO
+		return false;
 	}
 }
 
@@ -124,6 +125,7 @@ uint64 Quadtree::GetSeekBits(vec3 pos, int level) const {
 	}
 	else {
 		TODO
+		return 0;
 	}
 }
 

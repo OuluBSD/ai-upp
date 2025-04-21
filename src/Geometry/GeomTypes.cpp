@@ -3,12 +3,12 @@
 NAMESPACE_UPP
 
 
-void Vertex::Visit(Vis& e) {
-	e % position
-	  % normal
-	  % tex_coord
-	  % tangent
-	  % mdl_transform_idx;
+void Vertex::Visit(Vis& v) {
+	v VISN(position)
+	  VISN(normal)
+	  VISN(tex_coord)
+	  VISN(tangent)
+	  VIS_(mdl_transform_idx);
 }
 
 void Vertex::SetPosTex(vec3 pos, vec2 tex) {

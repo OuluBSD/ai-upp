@@ -2,7 +2,7 @@
 #define _Geometry_Vr_h_
 
 
-
+#if 0
 
 class VrSystemTestGenerator {
 	
@@ -56,7 +56,7 @@ struct WmrFusionSystemReceiver {
 	
 };
 
-
+#endif
 
 
 #endif

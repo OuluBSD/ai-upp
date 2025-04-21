@@ -1,12 +1,8 @@
 #ifndef _ManyCore_Octree_h_
 #define _ManyCore_Octree_h_
 
-
-
-
 class OctreeNode;
 class Octree;
-
 
 struct OctreeObject {
 	OctreeNode* owner;
@@ -23,13 +19,8 @@ struct OctreeObject {
 };
 
 struct OctreeDescriptorPoint : OctreeObject {
-	
 	PositionOrientationAverage av;
-	union {
-		byte b[DESCRIPTOR_BYTES];
-		uint32 u[DESCRIPTOR_UINTS];
-		uint64 u64[DESCRIPTOR_UINT64];
-	};
+	Descriptor32 descriptor;
 	
 };
 

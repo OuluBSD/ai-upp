@@ -9,7 +9,7 @@ struct TrackedTriangle;
 
 struct TrackedPoint {
 	static const int MAX_TRIANGLES = 5;
-	uint32 descriptor[DESCRIPTOR_UINTS];
+	uint32 descriptor[Descriptor32::Uints];
 	OctreeDescriptorPoint* dp = 0;
 	
 	TrackedTriangle* triangles[MAX_TRIANGLES] = {0,0,0,0,0};
@@ -18,8 +18,8 @@ struct TrackedPoint {
 	bool has_local_tgt = false;
 	vec3 local_tgt, global_tgt;
 	
-	mutable const Descriptor* l = 0;
-	mutable const Descriptor* r = 0;
+	mutable const Descriptor32* l = 0;
+	mutable const Descriptor32* r = 0;
 	mutable bool has_next_local_tgt = false;
 	mutable vec3 next_local_tgt, next_global_tgt;
 	
@@ -63,7 +63,7 @@ protected:
 	
 	
 	void UpdateOctreePosition(MeshTrackerFrame& to, TrackedPoint& tp, bool local_value, bool next_value);
-	const TrackedPoint* FindTrackedPoint(const MeshTrackerFrame& from, const Descriptor& d);
+	const TrackedPoint* FindTrackedPoint(const MeshTrackerFrame& from, const Descriptor32& d);
 	bool IsAlreadyInSameTriangle(const TrackedPoint& a, const TrackedPoint& b);
 	OctreeDescriptorPoint* GetAddNode(const vec3& global_tgt, const uint32* descriptor_value, Octree& o);
 	

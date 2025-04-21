@@ -36,7 +36,7 @@ public:
         c.Put(*(dword*)&occlusion_strength);
         return c;
     }
-    void Visit(Vis& e);
+    void Visit(Vis& v);
 	void Clear();
 	
 };
@@ -65,7 +65,7 @@ public:
         return c;
     }
     
-    void Visit(Vis& e);
+    void Visit(Vis& v);
     
     // Create a flat (no texture) material.
     Material& SetDiffuse(const Color& clr);

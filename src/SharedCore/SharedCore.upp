@@ -5,7 +5,6 @@ file
 	SharedDefs.h,
 	Policies.h,
 	RTTIDummy.h,
-	Shared.h,
 	Object.h,
 	Object.cpp,
 	CtrlEvent.h,

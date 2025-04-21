@@ -272,22 +272,6 @@ void RuntimeDiagnosticVisitor::RecursiveUnfocus(Scope& s) {
 
 
 
-Vector<Callback> __exit_cbs;
-
-EXITBLOCK {
-	for (Callback& cb : __exit_cbs)
-		cb();
-	__exit_cbs.Clear();
-}
-
-void CallInExitBlock(Callback cb) {
-	static StaticMutex m;
-	m.Enter();
-	__exit_cbs << cb;
-	m.Leave();
-}
-
-
 String RefDebugVisitor::Item::ToString() const {
 	String s;
 	s << "[" << HexStr(mem) << "]";

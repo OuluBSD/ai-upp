@@ -107,15 +107,6 @@ inline String HexStr(void* i) {return Format("0x%X", (int64)i);}
 typedef Image RawSysTexture;
 #endif
 
-using NullOpt = std::nullopt_t;
-
-#define null_opt std::nullopt
-
-template <class T> using Optional = std::optional<T>;
-
-//template <class T, class ...Args> std::optional<T> MakeOptional(Args... args) {return std::make_optional(args...);}
-template <class T> std::optional<T> MakeOptional(const T& o) {return std::make_optional(o);}
-
 NAMESPACE_UPP_END
 
 #include <SharedCore/SharedCore.h>

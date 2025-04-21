@@ -76,17 +76,16 @@ END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 
-void TransformMatrix::Visit(Vis& e) {
-	e % mode
-	  % is_stereo
-	  % position
-	  % direction
-	  % up
-	  % axes
-	  % orientation
-	  % eye_dist
-	  % fov;
-	
+void TransformMatrix::Visit(Vis& v) {
+	_VIS_(mode)
+	 VIS_(is_stereo)
+	 VISN(position)
+	 VISN(direction)
+	 VISN(up)
+	 VISN(axes)
+	 VISN(orientation)
+	 VIS_(eye_dist)
+	 VIS_(fov);
 }
 
 void TransformMatrix::Clear() {
@@ -165,13 +164,13 @@ String TransformMatrix::GetAxesString() const {
 
 
 
-void CalibrationData::Visit(Vis& e) {
-	e % is_enabled
-	  % axes
-	  % position
-	  % fov
-	  % scale
-	  % eye_dist;
+void CalibrationData::Visit(Vis& v) {
+	_VIS_(is_enabled)
+	 VISN(axes)
+	 VISN(position)
+	 VIS_(fov)
+	 VIS_(scale)
+	 VIS_(eye_dist);
 }
 
 String CalibrationData::ToString() const {

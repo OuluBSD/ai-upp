@@ -16,7 +16,7 @@ VirtualStereoUncamera::VirtualStereoUncamera() {
 }
 
 void VirtualStereoUncamera::Unrender(const UncameraFrame& from, UncameraFrame& to) {
-	ASSERT(from.l_img.GetResolution() == from.r_img.GetResolution());
+	ASSERT(from.l_img.GetSize() == from.r_img.GetSize());
 	StageStereoKeypoints(from, to);
 	MeshTracker::SolveTransform(from, to);
 	StageProcessTransform(from, to);
@@ -77,7 +77,7 @@ void VirtualStereoUncamera::ResetTempVariables(UncameraFrame& to) {
 }
 
 void VirtualStereoUncamera::FindPreviousFrameMatches(const UncameraFrame& from, UncameraFrame& to) {
-	for (const Descriptor& d : to.l_dimg.GetDescriptors()) {
+	for (const Descriptor32& d : to.l_dimg.GetDescriptors()) {
 		int yi = (int)(d.y / y_level_h);
 		if (yi >= 0 && yi < y_levels) {
 			const TrackedPoint* tp = FindTrackedPoint(from, d);
@@ -87,7 +87,7 @@ void VirtualStereoUncamera::FindPreviousFrameMatches(const UncameraFrame& from, 
 				to.l_desc[yi].Add(&d);
 		}
 	}
-	for (const Descriptor& d : to.r_dimg.GetDescriptors()) {
+	for (const Descriptor32& d : to.r_dimg.GetDescriptors()) {
 		int yi = (int)(d.y / y_level_h);
 		if (yi >= 0 && yi < y_levels) {
 			const TrackedPoint* tp = FindTrackedPoint(from, d);
@@ -121,13 +121,13 @@ void VirtualStereoUncamera::UpdateStereoTargets(const UncameraFrame& from) {
 
 void VirtualStereoUncamera::FindHorizontalMatches(UncameraFrame& to) {
 	for(int i = 0; i < y_levels; i++) {
-		Vector<const Descriptor*>& lv = to.l_desc[i];
-		Vector<const Descriptor*>& rv = to.r_desc[i];
-		for (const Descriptor* l : lv) {
+		Vector<const Descriptor32*>& lv = to.l_desc[i];
+		Vector<const Descriptor32*>& rv = to.r_desc[i];
+		for (const Descriptor32* l : lv) {
 			int best_dist = 32*8;
-			const Descriptor* best_match = 0;
+			const Descriptor32* best_match = 0;
 			
-			for (const Descriptor* r : rv) {
+			for (const Descriptor32* r : rv) {
 				int dist = 0;
 				for(int j = 0; j < 8; j++) {
 					dist += PopCount32(l->u[j] ^ r->u[j]);
@@ -140,7 +140,7 @@ void VirtualStereoUncamera::FindHorizontalMatches(UncameraFrame& to) {
 			}
 			
 			if (best_match) {
-				const Descriptor* r = best_match;
+				const Descriptor32* r = best_match;
 				axes2 l_eye = Unproject(0, vec2(l->x, l->y));
 				axes2 r_eye = Unproject(1, vec2(r->x, r->y));
 				axes2s eyes = AxesMonoStereo(l_eye, r_eye);
@@ -183,7 +183,7 @@ void VirtualStereoUncamera::AddHorizontalMatches(const UncameraFrame& from, Unca
 		TrackedPoint& t = to.tracked_points.Add();
 		t.local_tgt = f.next_local_tgt;
 		t.has_local_tgt = true;
-		memcpy(t.descriptor, f.descriptor, DESCRIPTOR_BYTES);
+		memcpy(t.descriptor, f.descriptor, Descriptor32::Bytes);
 		
 		#if 1
 		GetAddTrackedPoint(to, t);
@@ -197,7 +197,7 @@ void VirtualStereoUncamera::AddHorizontalMatches(const UncameraFrame& from, Unca
 		hm.tp = &tp;
 		tp.local_tgt = hm.local_tgt;
 		tp.has_local_tgt = true;
-		memcpy(tp.descriptor, descriptor_value, DESCRIPTOR_BYTES);
+		memcpy(tp.descriptor, descriptor_value, Descriptor32::Bytes);
 		
 		#if 1
 		GetAddTrackedPoint(to, tp);

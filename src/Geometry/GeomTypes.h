@@ -14,7 +14,7 @@ struct Vertex : Moveable<Vertex> {
     vec4			tangent;
     NodeIndex		mdl_transform_idx;
     
-    void Visit(Vis& e);
+    void Visit(Vis& v);
     void SetPosTex(vec3 pos, vec2 tex);
     void Set(vec3 pos, vec3 norm);
     void Set(vec3 pos, vec3 norm, vec3 tan, vec2 tex);

@@ -382,83 +382,6 @@ void CommandLineArguments::PrintHelp() {
 
 
 
-String FindShareDir() {
-	String config_share = ConfigFile("share");
-	if (DirectoryExists(config_share))
-		return config_share;
-	
-	#if defined flagUWP && defined flagRELPKG
-	String home_upphub_share = "ms-appx://share";
-	#elif defined flagUWP && !defined flagRELPKG
-	String home_upphub_share = ConfigFile("share");
-	#elif defined flagWIN32
-	String home_upphub_share = "C:\\git\\libtopside\\share";
-	if (!DirectoryExists(home_upphub_share))
-		home_upphub_share = "C:\\libtopside\\share";
-	#else
-	String home_upphub_share = AppendFileName(GetHomeDirFile("libtopside"), "share");
-	#endif
-	
-	if (DirectoryExists(home_upphub_share))
-		return home_upphub_share;
-	
-	#if defined flagLINUX
-	return "/usr/share";
-	#elif defined flagFREEBSD
-	return "/usr/local/share";
-	#else
-	return config_share;
-	#endif
-}
-
-String ShareDirFile(String file) {
-	return AppendFileName(FindShareDir(), file);
-}
-
-String RealizeShareFile(String rel_path) {
-	if (rel_path.IsEmpty())
-		return String();
-	
-	#ifdef flagPOSIX
-	if (rel_path.Left(2) == "~/") {
-		rel_path = AppendFileName(GetHomeDirectory(), rel_path.Mid(2));
-	}
-	#endif
-	
-	int tries_count = 8;
-	#ifdef flagDEBUG
-	tries_count++;
-	#endif
-	
-	for (int tries = 0; tries < tries_count; tries++) {
-		String path;
-		switch (tries) {
-			case 0: path = rel_path; break;
-			case 1: path = ShareDirFile(rel_path); break;
-			case 2: path = ShareDirFile(AppendFileName("imgs", rel_path)); break;
-			case 3: path = ShareDirFile(AppendFileName("videos", rel_path)); break;
-			case 4: path = ShareDirFile(AppendFileName("sounds", rel_path)); break;
-			case 5: path = ShareDirFile(AppendFileName("models", rel_path)); break;
-			case 6: path = ShareDirFile(AppendFileName("sounds", rel_path)); break;
-			case 7: path = ShareDirFile(AppendFileName("soundfonts", rel_path)); break;
-			#ifdef flagDEBUG
-			case 8: path = GetDataDirectoryFile(rel_path); break;
-			#endif
-		}
-		
-		//LOG("RealizeShareFile: testing path: " << path);
-		
-		if (FileExists(path) || DirectoryExists(path))
-			return path;
-	}
-	
-	String local_file = FindLocalFile(rel_path);
-	if (FileExists(local_file) || DirectoryExists(local_file))
-		return local_file;
-	
-	return rel_path;
-}
-
 String TrimTrailingDirSep(String file) {
 	while (file.GetCount() && file[file.GetCount()-1] == DIR_SEP)
 		file = file.Left(file.GetCount()-1);
@@ -515,26 +438,6 @@ String FormatScientific(double d) {
 float ConvertDipsToPixels(float dips, float dpi) {
     constexpr float dips_per_inch = 96.0f;
     return floorf(dips * dpi / dips_per_inch + 0.5f); // Round to nearest integer.
-}
-
-Vector<String> local_file_dirs;
-
-void AddLocalFileDirectory(String dir) {
-	local_file_dirs.Add(dir);
-}
-
-String FindLocalFile(String filename) {
-	String exe_dir_file = GetExeDirFile(filename);
-	if (FileExists(exe_dir_file))
-		return exe_dir_file;
-	
-	for(int i = 0; i < local_file_dirs.GetCount(); i++) {
-		String dir_file = AppendFileName(local_file_dirs[i], filename);
-		if (FileExists(dir_file) || DirectoryExists(dir_file))
-			return dir_file;
-	}
-	
-	return ConfigFile(filename);
 }
 
 

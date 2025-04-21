@@ -62,7 +62,7 @@ MeshTracker::MeshTracker() {
 	
 }
 
-const TrackedPoint* MeshTracker::FindTrackedPoint(const MeshTrackerFrame& from, const Descriptor& d) {
+const TrackedPoint* MeshTracker::FindTrackedPoint(const MeshTrackerFrame& from, const Descriptor32& d) {
 	const TrackedPoint* best_tp_match = 0;
 	int best_tp_dist = INT_MAX;
 	for (const TrackedPoint& p : from.tracked_points) {
@@ -97,7 +97,7 @@ OctreeDescriptorPoint* MeshTracker::GetAddNode(const vec3& global_tgt, const uin
 			OctreeObject& obj = *one_obj;
 			OctreeDescriptorPoint* dp = CastPtr<OctreeDescriptorPoint>(&obj);
 			if (dp) {
-				int dist = GetDescriptor8HammingDistance(dp->u, descriptor_value);
+				int dist = GetDescriptor8HammingDistance(dp->descriptor.u, descriptor_value);
 				if (dist <= distance_limit && dist < best_dp_dist) {
 					best_dp_dist = dist;
 					best_dp_match = dp;

@@ -19,7 +19,7 @@ struct ModelNode : Moveable<ModelNode>
         c.Put(local_transform.GetHashValue());
         return c;
     }
-    void Visit(Vis& e);
+    void Visit(Vis& v);
     
     void Set(const mat4& local_transform, String name, NodeIndex index, NodeIndex parent_node_index) {
         this->name = name;
@@ -68,8 +68,7 @@ private:
 
 
 
-class Model :
-	public RefScopeEnabler<Model,ModelLoader>
+class Model : public Pte<Model>
 {
 	
 public:
@@ -83,7 +82,7 @@ public:
 	        c.Put(path.GetHashValue());
 	        return c;
 	    }
-		void Visit(Vis& e);
+		void Visit(Vis& v);
 	};
 	
 	struct CubeTexture {
@@ -97,7 +96,7 @@ public:
 	        c.Put(path.GetHashValue());
 	        return c;
 	    }
-		void Visit(Vis& e);
+		void Visit(Vis& v);
 	};
 	
 public:
@@ -143,7 +142,6 @@ public:
         ch.Put(directory.GetHashValue());
         return ch;
     }
-    void Visit(RuntimeVisitor& vis) {/*vis | meshes | textures;*/}
     
 	void operator=(const Model& src) {
         meshes <<= src.meshes;
@@ -161,7 +159,7 @@ public:
 	bool LoadCubemapFile(Mesh& mesh, TexType type, String path);
 	
 	void MakeModel(Shape2DWrapper& shape);
-    void Visit(Vis& e);
+    void Visit(Vis& v);
     void Dump();
     void ReverseFaces();
     Mesh& AddMesh();
@@ -184,14 +182,12 @@ public:
     
 };
 
-using ModelRef = Ref<Model, RefParent1<ModelLoader>>;
 
 
 class ModelBuilder;
 
 
-class ModelLoader :
-	public RefScopeEnabler<ModelLoader,RefRoot>
+class ModelLoader
 {
 	
 public:
@@ -203,12 +199,12 @@ public:
     void operator=(const Model& m);
     void operator=(ModelBuilder& mb);
 	operator bool() const;
-    void Visit(RuntimeVisitor& vis);
+    void Visit(Vis& vis);
 	bool LoadModel(String path);
 	
 	Model& Create();
 	Model& Realize();
-	Ref<Model> GetModel();
+	Ptr<Model> GetModel();
 	
 	
 public:

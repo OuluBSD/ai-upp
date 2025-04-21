@@ -7,7 +7,6 @@
 
 #include "SharedDefs.h"
 #include "RTTIDummy.h"
-#include "Shared.h"
 #include "Object.h"
 #include "CtrlEvent.h"
 #include "Container.h"

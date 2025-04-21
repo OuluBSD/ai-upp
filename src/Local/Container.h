@@ -646,57 +646,6 @@ using EnvStateRef			= Ref<EnvState,				EnvStateParent>;
 
 
 
-template <typename T>
-class TrackChanges {
-public:
-	TrackChanges() {
-		change_count = 0;
-	}
-	TrackChanges(TrackChanges<T> && o) : value(std::move(o.value)) {
-		change_count = 0;
-	}
-	TrackChanges(const TrackChanges<T>& o) : value(o.Get()) {
-		change_count = 0;
-	}
-	
-	TrackChanges<T>& operator=(TrackChanges<T> && o) {
-		++change_count;
-		value = std::move(o.value);
-		return *this;
-	}
-	
-	TrackChanges<T>& operator=(const TrackChanges<T>& o) {
-		++change_count;
-		value = o.value;
-		return *this;
-	}
-	
-	template <typename Func>
-	void Set(Func func) {
-		++change_count;
-		func(value);
-	}
-	
-	bool UpdateChangeCountBookmark(uint32* change_count_bookmark) const {
-		uint32 new_value = *change_count_bookmark;
-		uint32 prev = change_count.exchange(new_value);
-		return prev != new_value;
-	}
-	
-	const T& Get() const {
-		return value;
-	}
-	
-	T* operator->() {return &value;}
-	const T* operator->() const {return &value;}
-	
-	T& operator*() {return value;}
-	void operator++() {++change_count;}
-private:
-	T value;
-	mutable Atomic change_count;
-};
-
 
 
 

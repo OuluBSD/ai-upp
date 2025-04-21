@@ -18,18 +18,18 @@ void MaterialParameters::Clear() {
 	
 }
 
-void MaterialParameters::Visit(Vis& e) {
-	e % diffuse
-	  % ambient
-	  % specular
-	  % shininess
+void MaterialParameters::Visit(Vis& v) {
+	v VISN(diffuse)
+	  VISN(ambient)
+	  VISN(specular)
+	  VIS_(shininess)
 	
-	  % base_clr_factor
-	  % metallic_factor
-	  % roughness_factor
-	  % emissive_factor
-	  % normal_scale
-	  % occlusion_strength;
+	 VISN(base_clr_factor)
+	 VIS_(metallic_factor)
+	 VIS_(roughness_factor)
+	 VISN(emissive_factor)
+	 VIS_(normal_scale)
+	 VIS_(occlusion_strength);
 }
 
 
@@ -38,18 +38,19 @@ Material::Material() {
 	Clear();
 }
 
-void Material::Visit(Vis& e) {
-	e % id
-	  % *params;
-	if (e.IsStoring()) ++params;
+void Material::Visit(Vis& v) {
+	_VIS_(id)
+	 VISN(*params);
 	
-	if (e.IsLoading()) {
-		e.Get(tex_id, sizeof(tex_id));
-		e.Get(tex_filter, sizeof(tex_filter));
+	if (v.IsStoring()) ++params;
+	
+	if (v.IsLoading()) {
+		v.VisitBinary("tex_id", tex_id, sizeof(tex_id));
+		v.VisitBinary("tex_filter", tex_filter, sizeof(tex_filter));
 	}
-	else if (e.IsStoring()) {
-		e.Put(tex_id, sizeof(tex_id));
-		e.Put(tex_filter, sizeof(tex_filter));
+	else if (v.IsStoring()) {
+		v.VisitBinary("tex_id", tex_id, sizeof(tex_id));
+		v.VisitBinary("tex_filter", tex_filter, sizeof(tex_filter));
 	}
 }
 

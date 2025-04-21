@@ -93,7 +93,7 @@ struct Vec : Moveable<Vec<T, I> > {
 	Vec(Nuller) {SetNull();}
 	//Vec(const byte* b, T mul, T offset) {Set(b, mul, offset);}
 	
-    void Visit(Vis& e) {e.VisitBinary("data", data, sizeof(data));}
+    void Visit(Vis& v) {v.VisitBinary("data", data, sizeof(data));}
 	void SetNull() {for(int i = 0; i < I; i++) data[i] = std::numeric_limits<T>::max();}
 	bool IsNull() const {for(int i = 0; i < I; i++) if (data[i] != std::numeric_limits<T>::max()) return false; return true;}
 	//operator bool() const {return !IsNull();}
@@ -256,7 +256,7 @@ struct quat {
 	quat(const quat& q) {*this = q;}
 	quat(float x, float y, float z, float w) : data(x,y,z,w) {}
 	
-    void Visit(Vis& e) {data.Visit(e);}
+    void Visit(Vis& v) {data.Visit(v);}
     
 	void operator=(const quat& q) {data = q.data;}
 	
@@ -360,10 +360,10 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		int i = 0; for(auto& v : list) {data[i / C].data[i % C] = v; i++;}
 	}
 	
-    void Visit(Vis& e) {
+    void Visit(Vis& v) {
         char key[] = "v0";
         for(int i = 0; i < R; i++) {
-            e.Visit(key, data[i]);
+            v.Visit(key, data[i]);
             key[1]++;
         }
     }
@@ -1062,7 +1062,7 @@ using PositionOrientationAverage = PositionOrientationAverageT<>;
 struct Square : Moveable<Square> {
 	vec3 tl, tr, br, bl;
 	
-	void Visit(Vis& e) {e("tl",tl)("tr",tr)("br",br)("bl",bl);}
+	void Visit(Vis& v) {v("tl",tl, VISIT_NODE)("tr",tr, VISIT_NODE)("br",br, VISIT_NODE)("bl",bl, VISIT_NODE);}
 };
 
 
@@ -1134,7 +1134,7 @@ public:
 	TransformMatrix() {}
 	TransformMatrix(const TransformMatrix& m) {*this = m;}
 	
-	void Visit(Vis& e);
+	void Visit(Vis& v);
 	void operator=(const TransformMatrix& m);
 	
 	void Clear();
@@ -1260,7 +1260,7 @@ struct CalibrationData {
 	float eye_dist = 0;
 	
 	
-	void Visit(Vis& e);
+	void Visit(Vis& v);
 	String ToString() const;
 	void Dump();
 	

@@ -15,7 +15,6 @@ file
 	Types.h,
 	Types.cpp,
 	Chrono.h,
-	Recycler.h,
 	LinkedList.h,
 	TypeTraits.h,
 	Visitor.h,

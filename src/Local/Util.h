@@ -7,8 +7,6 @@ NAMESPACE_TOPSIDE_BEGIN
 
 template <class T> inline T Mid(const T& low, const T& mid, const T& high) {return std::max(std::min(mid, high), low);}
 
-template<class T> inline bool IsPositive(const T& o);
-template<>        inline bool IsPositive(const Size& o) {return o.cx > 0 && o.cy > 0;}
 
 int HexDigitAny(int c);
 
@@ -252,10 +250,6 @@ inline int HammingDistance64(int count, const uint64* a, const uint64* b) {
 }
 
 
-#if IS_UPP_CORE
-inline String GetDataDirectory() {return GetDataFile("");}
-#endif
-inline String GetDataDirectoryFile(String file) {return AppendFileName(GetDataDirectory(), file);}
 void SetSharedDirectory(String d);
 String GetSharedDirectory();
 String SharedFile(String file);
@@ -520,10 +514,6 @@ public:
 };
 
 
-String FindShareDir();
-String ShareDirFile(String file);
-String TrimTrailingDirSep(String file);
-String RealizeShareFile(String rel_path);
 
 
 
@@ -628,8 +618,6 @@ struct InternalPacketData : RTTIBase {
 // Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
 float ConvertDipsToPixels(float dips, float dpi);
 
-void AddLocalFileDirectory(String dir);
-String FindLocalFile(String filename);
 
 
 NAMESPACE_TOPSIDE_END

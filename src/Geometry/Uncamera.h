@@ -13,8 +13,8 @@ public:
 };
 
 struct HorizontalMatch : Moveable<HorizontalMatch> {
-	const Descriptor* l;
-	const Descriptor* r;
+	const Descriptor32* l;
+	const Descriptor32* r;
 	axes2s eyes;
 	vec3 local_tgt;
 	vec3 global_tgt;
@@ -29,7 +29,7 @@ struct UncameraFrame : MeshTrackerFrame {
 	//Vector<vec3> points;
 	
 	// temp
-	Vector<Vector<const Descriptor*>> l_desc, r_desc;
+	Vector<Vector<const Descriptor32*>> l_desc, r_desc;
 	Vector<HorizontalMatch> horz_match;
 };
 

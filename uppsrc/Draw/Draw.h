@@ -980,6 +980,7 @@ IsJPGFnType GetIsJPGFn();
 #include "DDARasterizer.h"
 #include "SDraw.h"
 #include "SimpleImage.h"
+#include "GEnums.h"
 
 enum {
 	CMAP_GLYPHS = 1,

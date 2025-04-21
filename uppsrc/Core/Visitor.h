@@ -550,6 +550,13 @@ inline void VersionControlSystem::BeginMapKV(String key, T& o) {
 
 using Vis = Visitor;
 
+#define _VIS_(x) v(#x, x)
+#define VIS_(x) (#x, x)
+#define VIS0(x, y) (#x, x, y)
+#define VISN(x) (#x, x, VISIT_NODE)
+#define VISV(x) (#x, x, VISIT_VECTOR)
+#define VISM(x) (#x, x, VISIT_MAP)
+
 template <> inline void Visitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}
 template <> inline void Visitor::DoHash<Index<String>>(Index<String>& o) {hash.Do(o.GetKeys());}
 

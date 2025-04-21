@@ -61,6 +61,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <random>
+#include <optional>
 
 #ifdef CPU_X86
 #include <immintrin.h>
@@ -351,6 +352,9 @@ class JsonIO;
 #include "ValueUtil.h"
 
 #include "Tuple.h"
+#include "Shared.h"
+#include "Recycler.h"
+#include "LinkedList.h"
 
 #include "Uuid.h"
 #include "Ptr.h"

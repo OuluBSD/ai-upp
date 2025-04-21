@@ -143,6 +143,12 @@ int scatter(const C& c, Args& ...args)
 	return scatter_n(c.size(), c, args...);
 }
 
+template <class C, class A>
+inline C* CastPtr(A* a) {return dynamic_cast<C*>(a);}
+
+template <class C, class A>
+inline const C* CastConstPtr(const A* a) {return dynamic_cast<const C*>(a);}
+
 // DEPRECATED
 
 template <class T> // deprecated name, use clamp

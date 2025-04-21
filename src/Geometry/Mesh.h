@@ -1,14 +1,14 @@
 #ifndef _Geometry_Mesh_h_
 #define _Geometry_Mesh_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class Model;
 
 
-struct GfxMesh : RTTIBase {
-	RTTI_DECL0(GfxMesh)
+struct GfxMesh {
+	
 };
 
 class Mesh : public BoundingBox, Moveable<Mesh> {
@@ -42,7 +42,7 @@ public:
         c.Put(use_quad);
         return c;
     }
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
     
 	void Clear();
 	void ReverseFaces();
@@ -132,6 +132,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

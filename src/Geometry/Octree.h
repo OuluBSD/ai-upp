@@ -1,19 +1,18 @@
 #ifndef _ManyCore_Octree_h_
 #define _ManyCore_Octree_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class OctreeNode;
 class Octree;
 
 
-struct OctreeObject : RTTIBase {
+struct OctreeObject {
 	OctreeNode* owner;
 	vec3 rel_pos;
 	
 	
-	RTTI_DECL0(OctreeObject);
 	OctreeObject();
 	virtual ~OctreeObject() {}
 	
@@ -24,7 +23,6 @@ struct OctreeObject : RTTIBase {
 };
 
 struct OctreeDescriptorPoint : OctreeObject {
-	RTTI_DECL1(OctreeDescriptorPoint, OctreeObject);
 	
 	PositionOrientationAverage av;
 	union {
@@ -230,7 +228,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 
 #endif

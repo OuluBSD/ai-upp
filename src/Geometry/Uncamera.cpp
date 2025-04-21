@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 Uncamera::Uncamera() {
@@ -234,4 +234,4 @@ void VirtualStereoUncamera::ProcessHorizontalMatches(UncameraFrame& to) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

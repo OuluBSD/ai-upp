@@ -1,9 +1,6 @@
 #ifndef _Geometry_Geom3D_h_
 #define _Geometry_Geom3D_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 
 struct CollisionManifold : Moveable<CollisionManifold> {
 	bool colliding;
@@ -182,6 +179,5 @@ CollisionManifold FindCollisionFeatures(const OBB& A, const Sphere& B);
 CollisionManifold FindCollisionFeatures(const OBB& A, const OBB& B);
 
 
-NAMESPACE_TOPSIDE_END
 
 #endif

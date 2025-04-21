@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 quat quat::GetConjugate() const {
 	// https://mathworld.wolfram.com/QuaternionConjugate.html
@@ -69,14 +69,14 @@ quat quat::Mix(const quat& q, float f) const {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 
 
 NAMESPACE_UPP
 
-void TransformMatrix::Etherize(Ether& e) {
+void TransformMatrix::Visit(Vis& e) {
 	e % mode
 	  % is_stereo
 	  % position
@@ -165,7 +165,7 @@ String TransformMatrix::GetAxesString() const {
 
 
 
-void CalibrationData::Etherize(Ether& e) {
+void CalibrationData::Visit(Vis& e) {
 	e % is_enabled
 	  % axes
 	  % position

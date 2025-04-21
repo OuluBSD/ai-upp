@@ -1,7 +1,7 @@
 #ifndef _Geometry_Compare_h_
 #define _Geometry_Compare_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 union Float_t {
@@ -27,6 +27,6 @@ bool AlmostEqualUlpsAndAbs(float A, float B, float max_diff, int max_ulps_diff);
 bool AlmostEqualRelativeAndAbs(float A, float B, float max_diff, float max_rel_diff = FLT_EPSILON);
 bool CMP(float x, float y);
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

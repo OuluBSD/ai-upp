@@ -3,7 +3,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class ModelPainter : public Draw3 {
@@ -91,7 +91,7 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif
 #endif

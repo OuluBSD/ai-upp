@@ -1,8 +1,5 @@
-#ifndef _Math_Util_h_
-#define _Math_Util_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Geometry_Util_h_
+#define _Geometry_Util_h_
 
 
 template <class T> T zero() {T o; memset(&o, 0, sizeof(T));return o;}
@@ -367,8 +364,5 @@ void MakeSpecBRDF(FloatImage& img, int sz);
 
 vec3 mix(const vec3& a, const vec3& b, float fade);
 
-NAMESPACE_TOPSIDE_END
-
 
 #endif
-	

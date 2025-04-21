@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 OctreePointModel::OctreePointModel() {
@@ -120,4 +120,4 @@ void WmrMotionControllerModel::AddPoint(const Point& pt, float x_sum, float roll
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

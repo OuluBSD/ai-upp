@@ -1,7 +1,7 @@
 #ifndef _Geometry_Material_h_
 #define _Geometry_Material_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class Model;
@@ -36,7 +36,7 @@ public:
         c.Put(*(dword*)&occlusion_strength);
         return c;
     }
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
 	void Clear();
 	
 };
@@ -65,7 +65,7 @@ public:
         return c;
     }
     
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
     
     // Create a flat (no texture) material.
     Material& SetDiffuse(const Color& clr);
@@ -97,6 +97,6 @@ public:
 Material DefaultMaterial();
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

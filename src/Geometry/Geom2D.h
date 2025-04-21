@@ -1,12 +1,9 @@
-#ifndef _Math_Geom2D_h_
-#define _Math_Geom2D_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Geometry_Geom2D_h_
+#define _Geometry_Geom2D_h_
 
 
 
-struct Circle {
+struct Circle : Moveable<Circle> {
 	typedef float F;
 	
 	union {
@@ -41,7 +38,7 @@ struct Circle {
 //	- it's origin + size, not min + max
 //  - it's positive y value upwards, not downwards (as is easier in 2d gui)
 
-struct FixedRectangle {
+struct FixedRectangle : Moveable<FixedRectangle> {
 	typedef float F;
 	typedef Vec<F, 2> vec2;
 	
@@ -89,7 +86,7 @@ struct FixedRectangle {
 
 // OrientedRectangle differs from Rectangle by:
 //  - having center point and half-extents instead of origin and size
-struct OrientedRectangle {
+struct OrientedRectangle : Moveable<OrientedRectangle> {
 	typedef float F;
 	typedef Vec<F, 2> vec2;
 	
@@ -146,10 +143,8 @@ inline ShapeId GetRandomShape2() {return (ShapeId)Random(4);}
 
 struct Shape2DWrapper : Moveable<Shape2DWrapper> {
 	
-	struct ShapeBase :
-		RTTIBase
+	struct ShapeBase
 	{
-		RTTI_DECL0(ShapeBase)
 		virtual ~ShapeBase() {}
 		virtual bool Intersects(const line2&) = 0;
 		virtual bool Intersects(const Circle&) = 0;
@@ -165,10 +160,9 @@ struct Shape2DWrapper : Moveable<Shape2DWrapper> {
 	};
 	
 	struct ShapeLine : public ShapeBase {
-		RTTI_DECL1(ShapeLine, ShapeBase)
 		line2 l;
 		ShapeLine(line2 l) : l(l) {}
-		bool Intersects(const line2& l) override {THROW(Exc("Not implemented"));}
+		bool Intersects(const line2& l) override {throw(Exc("Not implemented"));}
 		bool Intersects(const Circle& c) override {return c.Intersects(l);}
 		bool Intersects(const FixedRectangle& r) override {return r.Intersects(l);}
 		bool Intersects(const OrientedRectangle& o) override {return o.Intersects(l);}
@@ -180,7 +174,6 @@ struct Shape2DWrapper : Moveable<Shape2DWrapper> {
 	};
 	
 	struct ShapeCircle : public ShapeBase {
-		RTTI_DECL1(ShapeCircle, ShapeBase)
 		Circle c;
 		ShapeCircle(Circle c) : c(c) {}
 		bool Intersects(const line2& l) override {return c.Intersects(l);}
@@ -195,7 +188,6 @@ struct Shape2DWrapper : Moveable<Shape2DWrapper> {
 	};
 	
 	struct ShapeRect : public ShapeBase {
-		RTTI_DECL1(ShapeRect, ShapeBase)
 		FixedRectangle r;
 		ShapeRect(FixedRectangle r) : r(r) {}
 		bool Intersects(const line2& l) override {return r.Intersects(l);}
@@ -210,7 +202,6 @@ struct Shape2DWrapper : Moveable<Shape2DWrapper> {
 	};
 	
 	struct ShapeOrientedRect : public ShapeBase {
-		RTTI_DECL1(ShapeOrientedRect, ShapeBase)
 		OrientedRectangle o;
 		ShapeOrientedRect(OrientedRectangle o) : o(o) {}
 		bool Intersects(const line2& l) override {return o.Intersects(l);}
@@ -279,7 +270,5 @@ private:
 
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

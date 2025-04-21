@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 namespace Colors {
@@ -39,4 +39,4 @@ void DrawGeometry::DrawHLine(int x0, int x1, int y, int line_width, Color c) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

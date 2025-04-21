@@ -1,9 +1,9 @@
-#ifndef _Math_Transform_h_
-#define _Math_Transform_h_
+#ifndef _Geometry_Transform_h_
+#define _Geometry_Transform_h_
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 inline vec3 right(const mat4& transform) {
@@ -105,7 +105,7 @@ inline mat4 make_mat4_rotation_x(float radians) {
 				0,  0, 0, 1);
 }
 
-NAMESPACE_TOPSIDE_END
+
 
 
 #endif

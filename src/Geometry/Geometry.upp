@@ -56,8 +56,6 @@ file
 	Uncamera.cpp,
 	Vr.h,
 	Vr.cpp,
-	Serializer.h,
-	Serializer.cpp,
 	Trash readonly separator,
 	ModelPainter.h,
 	ModelPainter.cpp,

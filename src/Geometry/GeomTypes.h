@@ -1,7 +1,7 @@
 #ifndef _ManyCore_GeomTypes_h_
 #define _ManyCore_GeomTypes_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 typedef int NodeIndex;
@@ -14,7 +14,7 @@ struct Vertex : Moveable<Vertex> {
     vec4			tangent;
     NodeIndex		mdl_transform_idx;
     
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
     void SetPosTex(vec3 pos, vec2 tex);
     void Set(vec3 pos, vec3 norm);
     void Set(vec3 pos, vec3 norm, vec3 tan, vec2 tex);
@@ -274,6 +274,6 @@ struct RaycastResult : Moveable<RaycastResult> {
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

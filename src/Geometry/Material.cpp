@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void MaterialParameters::Clear() {
@@ -18,7 +18,7 @@ void MaterialParameters::Clear() {
 	
 }
 
-void MaterialParameters::Etherize(Ether& e) {
+void MaterialParameters::Visit(Vis& e) {
 	e % diffuse
 	  % ambient
 	  % specular
@@ -38,7 +38,7 @@ Material::Material() {
 	Clear();
 }
 
-void Material::Etherize(Ether& e) {
+void Material::Visit(Vis& e) {
 	e % id
 	  % *params;
 	if (e.IsStoring()) ++params;
@@ -141,4 +141,4 @@ Material DefaultMaterial() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

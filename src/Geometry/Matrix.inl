@@ -1,4 +1,3 @@
-NAMESPACE_TOPSIDE_BEGIN
 
 #if 1
 template <class T, int I>
@@ -25,6 +24,3 @@ Vec<T,I> Vec<T,I>::operator*(const Matrix<T,I,I>& m) const {
 	return r;
 }
 #endif
-
-
-NAMESPACE_TOPSIDE_END

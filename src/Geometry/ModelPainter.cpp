@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ModelPainter::ModelPainter(Volf sz, ModelPainter& p, DrawCommand& begin, DrawCommand& end)
@@ -512,6 +512,6 @@ void ModelPainter::Clear() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

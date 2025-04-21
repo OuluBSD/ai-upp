@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 float Length(const line3& line) {
@@ -1617,4 +1617,4 @@ CollisionManifold FindCollisionFeatures(const OBB& A, const Sphere& B) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

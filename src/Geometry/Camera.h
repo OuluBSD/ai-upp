@@ -1,7 +1,7 @@
 #ifndef _Geometry_Camera_h_
 #define _Geometry_Camera_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 
@@ -123,6 +123,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

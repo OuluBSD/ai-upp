@@ -1,7 +1,7 @@
 #ifndef _Geometry_Uncamera_h_
 #define _Geometry_Uncamera_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class Uncamera : public MeshTracker {
@@ -77,6 +77,6 @@ struct StagedVirtualStereoUncamera : VirtualStereoUncamera {
 
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

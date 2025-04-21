@@ -31,7 +31,6 @@
 #include "StringUtil.h"
 #include "Util.h"
 #include "Process.h"
-#include "Math.h"
 #include "Crypto.h"
 #include "Neural.h"
 #include "CLI.h"

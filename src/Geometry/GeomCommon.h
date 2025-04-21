@@ -1,8 +1,5 @@
-#ifndef _Math_GeomCommon_h_
-#define _Math_GeomCommon_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Geometry_GeomCommon_h_
+#define _Geometry_GeomCommon_h_
 
 
 struct Interval {
@@ -167,9 +164,6 @@ bool IntersectsSAT(const S0& s0, const S1& s1) {
 	// No separating axis found, the objects do not intersect
 	return false;
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

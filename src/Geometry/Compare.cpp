@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool Float_t::Negative() const { return i < 0; }
@@ -59,4 +59,4 @@ bool AlmostEqualRelativeAndAbs(float A, float B, float max_diff, float max_rel_d
 bool CMP(float x, float y) {return AlmostEqualRelativeAndAbs(x, y, 0.005f);}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,9 +1,9 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
-void Vertex::Etherize(Ether& e) {
+void Vertex::Visit(Vis& e) {
 	e % position
 	  % normal
 	  % tex_coord
@@ -232,4 +232,4 @@ bool OBB::Intersects(const Sphere& o) const {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

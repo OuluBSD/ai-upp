@@ -1,7 +1,5 @@
-#ifndef _Math_Common_h_
-#define _Math_Common_h_
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Geometry_Common_h_
+#define _Geometry_Common_h_
 
 
 inline float Determinant3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3) {
@@ -10,7 +8,5 @@ inline float Determinant3(float a1, float a2, float a3, float b1, float b2, floa
 			c1 * (a2 * b3 - a3 * b2);
 }
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

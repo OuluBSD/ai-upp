@@ -1,7 +1,7 @@
 #include "Geometry.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Circle::SetContainerFromPoints(const Vector<vec2>& pts) {
@@ -792,4 +792,4 @@ bool Triangulate::Process(const Vector<vec2> &contour, Vector<float> &result) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

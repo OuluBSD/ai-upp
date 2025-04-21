@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ModelDraw::ModelDraw() /*: fb(state), shader(state)*/ {
@@ -136,6 +136,6 @@ void ModelDraw::DetachTo(ModelPainter& pp) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

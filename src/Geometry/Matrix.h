@@ -1,7 +1,5 @@
-#ifndef _Math_Matrix_h_
-#define _Math_Matrix_h_
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Geometry_Matrix_h_
+#define _Geometry_Matrix_h_
 
 #define STRICT_MTX_CHECK(x) ASSERT(x)
 
@@ -95,10 +93,7 @@ struct Vec : Moveable<Vec<T, I> > {
 	Vec(Nuller) {SetNull();}
 	//Vec(const byte* b, T mul, T offset) {Set(b, mul, offset);}
 	
-    void Etherize(Ether& e) {
-        if (e.IsLoading()) e.Get(data, sizeof(data));
-        else e.Put(data, sizeof(data));
-    }
+    void Visit(Vis& e) {e.VisitBinary("data", data, sizeof(data));}
 	void SetNull() {for(int i = 0; i < I; i++) data[i] = std::numeric_limits<T>::max();}
 	bool IsNull() const {for(int i = 0; i < I; i++) if (data[i] != std::numeric_limits<T>::max()) return false; return true;}
 	//operator bool() const {return !IsNull();}
@@ -261,10 +256,7 @@ struct quat {
 	quat(const quat& q) {*this = q;}
 	quat(float x, float y, float z, float w) : data(x,y,z,w) {}
 	
-    void Etherize(Ether& e) {
-        if (e.IsLoading()) e.Get(data.data, sizeof(data.data));
-        else e.Put(data.data, sizeof(data.data));
-    }
+    void Visit(Vis& e) {data.Visit(e);}
     
 	void operator=(const quat& q) {data = q.data;}
 	
@@ -368,9 +360,12 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		int i = 0; for(auto& v : list) {data[i / C].data[i % C] = v; i++;}
 	}
 	
-    void Etherize(Ether& e) {
-        if (e.IsLoading()) e.Get(data, sizeof(data));
-        else e.Put(data, sizeof(data));
+    void Visit(Vis& e) {
+        char key[] = "v0";
+        for(int i = 0; i < R; i++) {
+            e.Visit(key, data[i]);
+            key[1]++;
+        }
     }
     
 	void SetNull() {for(int i = 0; i < R; i++) data[i].SetNull();}
@@ -677,7 +672,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 	bool IsClose(const Matrix& m) const {
 		for(int r = 0; r < R; r++)
 			for(int c = 0; c < C; c++)
-				if (!TS::IsClose(data[r][c], m.data[r][c]))
+				if (!UPP::IsClose(data[r][c], m.data[r][c]))
 					return false;
 		return true;
 	}
@@ -1067,16 +1062,14 @@ using PositionOrientationAverage = PositionOrientationAverageT<>;
 struct Square : Moveable<Square> {
 	vec3 tl, tr, br, bl;
 	
-	void Etherize(Ether& e) {e % tl % tr % br % bl;}
+	void Visit(Vis& e) {e("tl",tl)("tr",tr)("br",br)("bl",bl);}
 };
 
 
 
 
 // Classes for RTTI requirements
-struct Quaternion : RTTIBase {
-	RTTI_DECL0(Quaternion);
-	
+struct Quaternion {
 	quat data;
 	
 	String ToString() const {return data.ToString();}
@@ -1086,9 +1079,7 @@ struct Quaternion : RTTIBase {
 	
 };
 
-struct Vector3 : RTTIBase {
-	RTTI_DECL0(Vector3);
-	
+struct Vector3 {
 	vec3 data;
 	
 	String ToString() const {return data.ToString();}
@@ -1098,9 +1089,7 @@ struct Vector3 : RTTIBase {
 	
 };
 
-struct Matrix4 : RTTIBase {
-	RTTI_DECL0(Matrix4);
-	
+struct Matrix4 {
 	mat4 data;
 	
 	String ToString() const {return data.ToString();}
@@ -1112,16 +1101,13 @@ struct Matrix4 : RTTIBase {
 
 
 
-NAMESPACE_TOPSIDE_END
 
-NAMESPACE_UPP
-using namespace TS;
+
+
 #undef TransformMatrix
-class TransformMatrix : RTTIBase {
+class TransformMatrix : Moveable<TransformMatrix> {
 	
 public:
-	RTTI_DECL0(TransformMatrix);
-	
 	typedef enum : byte {
 		MODE_POSITION,
 		MODE_LOOKAT,
@@ -1148,7 +1134,7 @@ public:
 	TransformMatrix() {}
 	TransformMatrix(const TransformMatrix& m) {*this = m;}
 	
-	void Etherize(Ether& e);
+	void Visit(Vis& e);
 	void operator=(const TransformMatrix& m);
 	
 	void Clear();
@@ -1168,9 +1154,7 @@ public:
 	
 };
 
-struct ControllerMatrix : RTTIBase {
-	RTTI_DECL0(ControllerMatrix);
-	
+struct ControllerMatrix {
 	typedef enum {
 		INVALID = -1,
 		
@@ -1256,6 +1240,7 @@ struct ControllerMatrix : RTTIBase {
 	
 };
 
+#if 0
 struct ControllerState {
 	ControllerSource* source = 0;
 	ControllerMatrix props;
@@ -1264,7 +1249,7 @@ struct ControllerState {
 	const ControllerMatrix& GetControllerProperties() const {return props;}
 	
 };
-
+#endif
 
 struct CalibrationData {
 	bool is_enabled = false;
@@ -1275,7 +1260,7 @@ struct CalibrationData {
 	float eye_dist = 0;
 	
 	
-	void Etherize(Ether& e);
+	void Visit(Vis& e);
 	String ToString() const;
 	void Dump();
 	
@@ -1306,9 +1291,8 @@ struct OnlineAverageVector {
 	}
 };
 
-END_UPP_NAMESPACE
+
 
 #include "Matrix.inl"
-
 
 #endif

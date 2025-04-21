@@ -1,7 +1,7 @@
 #include "Geometry.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -15,7 +15,7 @@ void Mesh::Clear() {
 	
 }
 
-void Mesh::Etherize(Ether& e) {
+void Mesh::Visit(Vis& e) {
 	e % vertices
 	  % indices
 	  % named_vertices
@@ -229,5 +229,5 @@ void Mesh::Dump(int indent) {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

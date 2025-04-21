@@ -5,7 +5,7 @@
 #define _VEC_UP      vec3(0.0f, 1.0f, 0.0f)
 #define _VEC_FORWARD vec3(0.0f, 0.0f, 1.0f)
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool mb_disable_textures = false;
@@ -1187,4 +1187,4 @@ void MeshFactory::CreateDiamondBrilliantCut(Mesh& mesh,
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

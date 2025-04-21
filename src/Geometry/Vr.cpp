@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -102,4 +102,4 @@ void WmrFusionSystemReceiver::GetEvent(Ether& in, Ether& out) {
 	ev_sendable = true;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

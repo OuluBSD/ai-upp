@@ -4,7 +4,7 @@
 #undef NEAR
 #undef FAR
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 float Classify(const AABB& aabb, const Plane& plane);
@@ -56,6 +56,6 @@ struct Frustum {
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

@@ -27,6 +27,8 @@ struct TypeCls : std::reference_wrapper<const std::type_info> {
 	bool operator!=(const TypeCls& t) const {return GetHashValue() != t.GetHashValue();}
 };
 
+template <> inline constexpr bool is_upp_guest<TypeCls> = true;
+
 struct RTTI {
 	RTTI& GetRTTI() {return *this;}
 	const RTTI& GetRTTI() const {return *this;}

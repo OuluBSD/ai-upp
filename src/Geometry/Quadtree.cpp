@@ -1,7 +1,7 @@
 #include "Geometry.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -129,4 +129,4 @@ uint64 Quadtree::GetSeekBits(vec3 pos, int level) const {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

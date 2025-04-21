@@ -1,7 +1,7 @@
 #ifndef _Geometry_Model_h_
 #define _Geometry_Model_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 class ModelLoader;
 
@@ -19,7 +19,7 @@ struct ModelNode : Moveable<ModelNode>
         c.Put(local_transform.GetHashValue());
         return c;
     }
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
     
     void Set(const mat4& local_transform, String name, NodeIndex index, NodeIndex parent_node_index) {
         this->name = name;
@@ -69,8 +69,7 @@ private:
 
 
 class Model :
-	public RefScopeEnabler<Model,ModelLoader>,
-	RTTIBase
+	public RefScopeEnabler<Model,ModelLoader>
 {
 	
 public:
@@ -84,7 +83,7 @@ public:
 	        c.Put(path.GetHashValue());
 	        return c;
 	    }
-		void Etherize(Ether& e);
+		void Visit(Vis& e);
 	};
 	
 	struct CubeTexture {
@@ -98,7 +97,7 @@ public:
 	        c.Put(path.GetHashValue());
 	        return c;
 	    }
-		void Etherize(Ether& e);
+		void Visit(Vis& e);
 	};
 	
 public:
@@ -112,7 +111,6 @@ public:
     
     
 public:
-	RTTI_DECL_R0(Model)
 	Model() {}
 	Model(const Model& m) {*this = m;}
     
@@ -163,7 +161,7 @@ public:
 	bool LoadCubemapFile(Mesh& mesh, TexType type, String path);
 	
 	void MakeModel(Shape2DWrapper& shape);
-    void Etherize(Ether& e);
+    void Visit(Vis& e);
     void Dump();
     void ReverseFaces();
     Mesh& AddMesh();
@@ -197,7 +195,6 @@ class ModelLoader :
 {
 	
 public:
-	RTTI_DECL_R0(ModelLoader)
 	ModelLoader();
 	
 	void Clear();
@@ -231,6 +228,6 @@ protected:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

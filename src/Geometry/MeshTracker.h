@@ -1,7 +1,7 @@
 #ifndef _Geometry_MeshTracker_h_
 #define _Geometry_MeshTracker_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 struct TrackedTriangle;
@@ -96,6 +96,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

@@ -229,32 +229,6 @@ typedef Vector<bool>			BoolVec;
 void FillVector(Vector<double>& v);
 String UpperBegin(String s);
 
-inline int PopCount64(uint64 i) {
-	#ifdef flagMSC
-	#if CPU_64
-	return (int)__popcnt64(i);
-	#elif CPU_32
-	return __popcnt(i) + __popcnt(i >> 32);
-	#endif
-	#else
-	return (int)__builtin_popcountll(i);
-	#endif
-}
-
-inline int PopCount32(dword i) {
-	#ifdef flagMSC
-	return (int)__popcnt64(i);
-	#else
-	return (int)__builtin_popcountl(i);
-	#endif
-	
-	#if 0
-	i -= ((i >> 1) & 0x55555555);
-    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-    return (((i + (i >> 4))& 0xF0F0F0F)* 0x1010101) >> 24;
-    #endif
-}
-
 typedef std::atomic<uint64> Atomic64;
 
 
@@ -311,8 +285,6 @@ typedef DtorValueSetter<bool, 0> FlagDisabler;
 
 
 
-
-bool IsClose(double a, double b);
 
 
 

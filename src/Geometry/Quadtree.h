@@ -1,7 +1,7 @@
 #ifndef _ManyCore_Quadtree_h_
 #define _ManyCore_Quadtree_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class QuadtreeNode;
@@ -82,7 +82,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 
 #endif

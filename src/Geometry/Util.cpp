@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 vec3 Lerp(const vec3& pos, const vec3& tgt_pos, float easing_factor) {
@@ -2104,4 +2104,4 @@ vec3 mix(const vec3& a, const vec3& b, float fade) {
 	return (a * (fade-1)) + (b * fade);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

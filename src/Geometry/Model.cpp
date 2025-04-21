@@ -1,7 +1,7 @@
 #include "Geometry.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -16,7 +16,7 @@ ModelNode::ModelNode(const ModelNode& n) {
 	*this = n;
 }
 
-void ModelNode::Etherize(Ether& e) {
+void ModelNode::Visit(Vis& e) {
 	e % name
 	  % index
 	  % parent_node_index
@@ -33,19 +33,19 @@ void ModelNode::Etherize(Ether& e) {
 
 
 
-void Model::Texture::Etherize(Ether& e) {
+void Model::Texture::Visit(Vis& e) {
 	e % img
 	  % path;
 }
 
-void Model::CubeTexture::Etherize(Ether& e) {
+void Model::CubeTexture::Visit(Vis& e) {
 	for(int i = 0; i < 6; i++) {
 		e % img[i];
 	}
 	e % path;
 }
 
-void Model::Etherize(Ether& e) {
+void Model::Visit(Vis& e) {
 	e % meshes
 	  % nodes
 	  % materials
@@ -493,5 +493,5 @@ void ModelLoader::operator=(ModelBuilder& mb) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

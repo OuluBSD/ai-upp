@@ -1,7 +1,7 @@
 #ifndef _Geometry_Draw_h_
 #define _Geometry_Draw_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 namespace Colors {
 
@@ -25,7 +25,6 @@ class DrawGeometry : public DrawProxy {
 	
 	
 public:
-	RTTI_DECL1_(DrawGeometry, DrawProxy)
 	DrawGeometry(Draw& d) {SetTarget(&d);}
 	
 	void DrawLine(const vec2& a, const vec2& b, int line_width, Color c);
@@ -49,6 +48,6 @@ T GetOffsets(const T& a, const T& b, double width) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

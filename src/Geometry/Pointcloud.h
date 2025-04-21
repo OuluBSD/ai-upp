@@ -1,7 +1,7 @@
 #ifndef _Geometry_Pointcloud_h_
 #define _Geometry_Pointcloud_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class OctreePointModel {
@@ -42,6 +42,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif

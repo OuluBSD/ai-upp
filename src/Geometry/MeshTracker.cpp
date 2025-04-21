@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void TrackedPoint::Attach(TrackedTriangle& tt) {
@@ -295,4 +295,4 @@ WmrMotionControllerTracker::WmrMotionControllerTracker() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

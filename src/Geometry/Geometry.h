@@ -21,11 +21,8 @@
 	#endif
 #endif
 
-#include <Local/Local.h>
+#include <Draw/Draw.h>
 
-/*#ifdef flagGUI
-	#include <LocalCtrl/LocalCtrl.h>
-#endif*/
 
 #undef rad2
 #undef far
@@ -57,6 +54,8 @@
 #endif
 
 
+NAMESPACE_UPP
+
 #include "Common.h"
 #include "Matrix.h"
 #include "Util.h"
@@ -80,16 +79,8 @@
 #include "MeshTracker.h"
 #include "Uncamera.h"
 #include "Vr.h"
-#include "Serializer.h"
 
-
-NAMESPACE_UPP_BEGIN
-
-NTL_MOVEABLE(TS::Circle);
-NTL_MOVEABLE(TS::FixedRectangle);
-NTL_MOVEABLE(TS::OrientedRectangle);
-
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 
 
 #endif

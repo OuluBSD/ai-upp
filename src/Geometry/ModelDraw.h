@@ -3,7 +3,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+
 
 
 class ModelDraw : public DrawProxy3 {
@@ -18,7 +18,6 @@ public:
 	
 	void LinkRender();
 public:
-	RTTI_DECL1(ModelDraw, Draw3)
 	ModelDraw();
 	ModelDraw(Volf sz);
 	ModelDraw(float w, float h, float z);
@@ -39,7 +38,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+
 
 #endif
 #endif

@@ -106,6 +106,9 @@ Image	MirrorVertical(const Image& img);
 
 template <int bytes>
 struct Descriptor : Moveable<Descriptor<bytes>> {
+	static const int Bytes = bytes;
+	static const int Uints = bytes / 4;
+	
 	float x, y;
 	byte angle;
 	union {

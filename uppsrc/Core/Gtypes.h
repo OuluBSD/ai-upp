@@ -746,3 +746,6 @@ inline Rect_<T> Lerp(Rect_<T> a, Rect_<T> b, double t)
 // deprecated because of confusing name:
 	
 inline double Bearing(const Pointf& p) { return Direction(p); }
+
+template<class T> inline bool IsPositive(const T& o);
+template<>        inline bool IsPositive(const Size& o) {return o.cx > 0 && o.cy > 0;}

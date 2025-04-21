@@ -317,4 +317,110 @@ public:
 	LRUCache() { head = -1; size = 0; count = 0; ClearCounters(); }
 };
 
+template <class T>
+struct ManagedStatic {
+	T o;
+	bool destructed = false;
+	const char* file;
+	int line;
+	
+	typedef ManagedStatic CLASSNAME;
+	ManagedStatic(const char* f, int l);
+	template <class Arg> ManagedStatic(const char* f, int l, const Arg& value);
+	~ManagedStatic() {
+		ASSERT(destructed);
+		Destruct();
+	}
+	void Destruct() {if (!destructed) {Clear(); destructed = true;}}
+	void Clear() {o.Clear();}
+};
+
+template <class T>
+struct ManagedStaticThreadLocal {
+	T o;
+	bool destructed = false;
+	const char* file;
+	int line;
+	
+	typedef ManagedStaticThreadLocal CLASSNAME;
+	ManagedStaticThreadLocal(const char* f, int l);
+	template <class Arg> ManagedStaticThreadLocal(const char* f, int l, const Arg& value);
+	~ManagedStaticThreadLocal() {if (!destructed) Destruct();}
+	void Destruct() {if (!destructed) {Clear(); destructed = true;}}
+	void Clear() {o.Clear();}
+};
+
+#define MAKE_STATIC(t, x) static ::UPP::ManagedStatic<t> __##x(__FILE__,__LINE__); t& x = __##x.o;
+#define MAKE_STATIC_(t, x, param) static ::UPP::ManagedStatic<t> __##x(__FILE__,__LINE__,param); t& x = __##x.o;
+#define MAKE_STATIC_LOCAL(t, x) thread_local static ::UPP::ManagedStaticThreadLocal<t> __##x(__FILE__,__LINE__); t& x = __##x.o;
+
+template <typename T>
+class TrackChanges {
+public:
+	TrackChanges() {
+		change_count = 0;
+	}
+	TrackChanges(TrackChanges<T> && o) : value(std::move(o.value)) {
+		change_count = 0;
+	}
+	TrackChanges(const TrackChanges<T>& o) : value(o.Get()) {
+		change_count = 0;
+	}
+	
+	TrackChanges<T>& operator=(TrackChanges<T> && o) {
+		++change_count;
+		value = std::move(o.value);
+		return *this;
+	}
+	
+	TrackChanges<T>& operator=(const TrackChanges<T>& o) {
+		++change_count;
+		value = o.value;
+		return *this;
+	}
+	
+	template <typename Func>
+	void Set(Func func) {
+		++change_count;
+		func(value);
+	}
+	
+	bool UpdateChangeCountBookmark(uint32* change_count_bookmark) const {
+		uint32 new_value = *change_count_bookmark;
+		uint32 prev = change_count.exchange(new_value);
+		return prev != new_value;
+	}
+	
+	const T& Get() const {
+		return value;
+	}
+	
+	T* operator->() {return &value;}
+	const T* operator->() const {return &value;}
+	
+	T& operator*() {return value;}
+	void operator++() {++change_count;}
+private:
+	T value;
+	mutable Atomic change_count;
+};
+
+
+using NullOpt = std::nullopt_t;
+
+#define null_opt std::nullopt
+
+template <class T> using Optional = std::optional<T>;
+
+//template <class T, class ...Args> std::optional<T> MakeOptional(Args... args) {return std::make_optional(args...);}
+template <class T> std::optional<T> MakeOptional(const T& o) {return std::make_optional(o);}
+
+
+
+template <class T> void RemoveLast(T& o) {
+	int c = o.GetCount();
+	if (c > 0)
+		o.Remove(c-1);
+}
+
 #include "Other.hpp"

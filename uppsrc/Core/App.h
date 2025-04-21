@@ -30,6 +30,13 @@ String GetUserConfigDir(bool *sandboxed = NULL);
 String  GetConfigFolder();
 String  ConfigFile(const char *file);
 String  ConfigFile();
+String  FindShareDir();
+String  ShareDirFile(String file);
+String  TrimTrailingDirSep(String file);
+String  RealizeShareFile(String rel_path);
+String  FindLocalFile(String filename);
+void    AddLocalFileDirectory(String dir);
+String  GetDataDirectoryFile(String file);
 
 void    SetConfigName(const String& s);
 
@@ -94,6 +101,7 @@ void ConsoleMainFn_()
 String  GetDataFile(const char *filename);
 String  LoadDataFile(const char *filename);
 void    SetDataPath(const char *path);
+String  GetDataDirectory();
 
 void    LaunchWebBrowser(const String& url);
 

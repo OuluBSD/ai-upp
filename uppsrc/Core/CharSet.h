@@ -260,3 +260,5 @@ String  FromUnicode(const WString& src, byte charset = CHARSET_DEFAULT, int defc
 
 int  ToUnicode(int chr, byte charset);
 int  FromUnicode(wchar wchr, byte charset, int defchar = DEFAULTCHAR);
+
+bool IsAllDigit(const String& s);

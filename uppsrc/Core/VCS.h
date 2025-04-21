@@ -1,7 +1,5 @@
-#ifndef _AI_VCS_h_
-#define _AI_VCS_h_
-
-NAMESPACE_UPP
+#ifndef _Core_VCS_h_
+#define _Core_VCS_h_
 
 struct NodeVisitor;
 
@@ -107,7 +105,5 @@ public:
 	String GetCurrentPath(String name) const;
 	int ResolveCount() const;
 };
-
-END_UPP_NAMESPACE
 
 #endif

@@ -150,23 +150,23 @@ void MetaSrcFile::ClearTemp() {
 	temp_id = -1;
 }
 
-void MetaSrcFile::Visit(NodeVisitor& vis)
+void MetaSrcFile::Visit(Vis& v)
 {
-	if (vis.IsLoading()) {
+	if (v.IsLoading()) {
 		if (!temp.IsEmpty())
 			ClearTemp(); // TODO this is very unoptimized clear
 		CreateTemp(1);
 	}
-	else if (vis.IsStoring())
+	else if (v.IsStoring())
 		UpdateStoring();
-	vis.Ver(1)
+	v.Ver(1)
 	(1)	("id", id)
 		("hash", saved_hash)
 		("highest_seen_serial", (int64&)highest_seen_serial)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
-	if (vis.IsLoading()) {
+	if (v.IsLoading()) {
 		UpdateLoading();
 	}
 }
@@ -245,13 +245,13 @@ bool MetaSrcFile::Store(bool forced)
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
 		vcs.Initialize(full_path, true);
-		NodeVisitor vis(vcs);
+		Vis vis(vcs);
 		this->Visit(vis);
 		vcs.Close();
 	}
 	else if (IsBinary()) {
 		FileOut s(full_path);
-		NodeVisitor vis(s);
+		Vis vis(s);
 		this->Visit(vis);
 		s.Close();
 	}
@@ -294,13 +294,13 @@ bool MetaSrcFile::Load()
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
 		vcs.Initialize(full_path, false);
-		NodeVisitor vis(vcs);
+		Vis vis(vcs);
 		this->Visit(vis);
 		vcs.Close();
 	}
 	else if (IsBinary()) {
 		FileIn s(full_path);
-		NodeVisitor vis(s);
+		Vis vis(s);
 		if(s.GetSize() > 0)
 			this->Visit(vis);
 		s.Close();
@@ -557,8 +557,8 @@ String MetaSrcPkg::GetFullPath(int file_i) const
 	return files[file_i].full_path;
 }
 
-void MetaSrcPkg::Visit(NodeVisitor& vis) {
-	vis.Ver(1)
+void MetaSrcPkg::Visit(Vis& v) {
+	v.Ver(1)
 	(1)	("files", files, VISIT_VECTOR);
 }
 
@@ -881,7 +881,7 @@ MetaNode* MetaEnvironment::FindNodeEnv(Entity& n)
 }
 
 // see SRC_TXT_HEADER_ENABLE
-MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, NodeVisitor& vis) {
+MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, Vis& v) {
 	if (!file.pkg)
 		return 0;
 	MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
@@ -889,7 +889,7 @@ MetaNode* MetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String pat
 		One<SrcTxtHeader> ext;
 		ext.Create(filenode);
 		ext->filepath = path;
-		ext->Visit(vis);
+		ext->Visit(v);
 		DatasetIndex().GetAdd(path) = &*ext;
 		filenode.serial = NewSerial();
 		filenode.ext = ext.Detach();
@@ -911,7 +911,7 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 		String json = LoadFile(path);
 		Value jv = ParseJSON(json);
 		JsonIO j(jv);
-		NodeVisitor vis(j);
+		Vis vis(j);
 		if (LoadDatabaseSourceVisit(file, path, vis)) {
 			file.ClearTemp();
 			return true;
@@ -930,7 +930,7 @@ bool MetaEnvironment::LoadFileRoot(const String& includes, const String& path, b
 	return false;
 }
 
-bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, NodeVisitor& vis, bool manage_file, MetaNode*& file_node) {
+bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, MetaNode*& file_node) {
 	file_node = 0;
 	
 	MetaSrcFile& file = ResolveFile(includes, path);
@@ -939,7 +939,7 @@ bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& pa
 	// Hotfix for old .db-src file
 	String ext = GetFileExt(path);
 	if (ext == ".db-src") {
-		MetaNode* fn = LoadDatabaseSourceVisit(file, path, vis);
+		MetaNode* fn = LoadDatabaseSourceVisit(file, path, v);
 		if (fn) {
 			file_node = fn;
 			return true;
@@ -961,9 +961,9 @@ bool MetaEnvironment::LoadFileRootVisit(const String& includes, const String& pa
 		TODO;
 	}
 	
-	ASSERT(vis.IsLoading());
-	file.Visit(vis);
-	if (!vis.IsError()) {
+	ASSERT(v.IsLoading());
+	file.Visit(v);
+	if (!v.IsError()) {
 		OnLoadFile(file);
 		file.ClearTemp();
 		return true;
@@ -1914,9 +1914,9 @@ hash_t MetaNode::GetTotalHash() const
 	return ch;
 }
 
-void MetaNode::Visit(NodeVisitor& vis) {
+void MetaNode::Visit(Vis& v) {
 	#define Do(x) (#x,x)
-	vis.Ver(1)
+	v.Ver(1)
 	(1)	Do(kind)
 		Do(id)
 		Do(type)
@@ -1933,21 +1933,21 @@ void MetaNode::Visit(NodeVisitor& vis) {
 		;
 	
 	bool has_ext = ext;
-	vis("has_ext", has_ext);
+	v("has_ext", has_ext);
 	if (has_ext) {
-		if (vis.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
+		if (v.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
 		if (ext)
-			vis("ext",*ext, VISIT_NODE);
+			v("ext",*ext, VISIT_NODE);
 	}
-	vis
+	v
 		("sub", sub, VISIT_VECTOR)
 		;
 	#undef Do
-	if (vis.IsLoading())
+	if (v.IsLoading())
 		FixParent();
 	
 	#if 1
-	if (vis.IsLoading())
+	if (v.IsLoading())
 		Chk();
 	#endif
 }
@@ -2379,11 +2379,11 @@ int MetaExtFactory::FindKindCategory(int k) {
 void MetaNodeExt::CopyFrom(const MetaNodeExt& e) {
 	StringStream s;
 	s.SetStoring();
-	NodeVisitor read(s);
+	Vis read(s);
 	const_cast<MetaNodeExt&>(e).Visit(read); // reading
 	s.SetLoading();
 	s.Seek(0);
-	NodeVisitor write(s);
+	Vis write(s);
 	Visit(write);
 }
 
@@ -2392,22 +2392,22 @@ bool MetaNodeExt::operator==(const MetaNodeExt& e) const {
 }
 
 hash_t MetaNodeExt::GetHashValue() const {
-	NodeVisitor vis(0);
+	Vis vis(0);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);
 	return vis.hash;
 }
 
 void MetaNodeExt::Serialize(Stream& s){
-	NodeVisitor vis(s);
+	Vis vis(s);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);
 }
 
 void MetaNodeExt::Jsonize(JsonIO& json){
-	NodeVisitor vis(json);
+	Vis vis(json);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);
 }
 
-void NodeVisitor::ChkSerializeMagic() {
+void Vis::ChkSerializeMagic() {
 	#define HAVE_CHK_NODEVISITOR_MAGIC 0
 	#if HAVE_CHK_NODEVISITOR_MAGIC
 	ASSERT(mode == MODE_STREAM);

@@ -1155,7 +1155,7 @@ const Vector<Platform>& GetPlatforms() {
 	return a;
 }
 
-void ProfileData::Visit(NodeVisitor& v) {
+void ProfileData::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	.VisitVector("platforms", platforms)
 		;

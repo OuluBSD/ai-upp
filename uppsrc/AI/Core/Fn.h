@@ -160,7 +160,7 @@ template <class T> bool LoadFromJsonFile_VisitorNodePrompt(T& o) {
 				if(jv.IsError())
 					return false;
 				JsonIO jio(jv);
-				NodeVisitor vis(jio);
+				Vis vis(jio);
 				o.Visit(vis);
 			}
 			catch(ValueTypeError) {
@@ -183,7 +183,7 @@ template <class T> bool LoadFromJsonFile_VisitorNode(T& o, String path) {
 			if(jv.IsError())
 				return false;
 			JsonIO jio(jv);
-			NodeVisitor vis(jio);
+			Vis vis(jio);
 			o.Visit(vis);
 		}
 		catch(ValueTypeError) {

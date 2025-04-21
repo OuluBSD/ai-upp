@@ -364,7 +364,7 @@ public:
 	void SetFont(Font fnt);
 	void Data() override;
 	void ToolMenu(Bar& bar) override;
-	void Visit(NodeVisitor& vis) override;
+	void Visit(Vis& v) override;
 	bool Load(const String& includes, const String& filename, Stream& in, byte charset) override;
 	void Do(int fn);
 	void SetDataCtrl();

@@ -11,7 +11,7 @@ AiCompletionComponent::~AiCompletionComponent() {
 	
 }
 
-void AiCompletionComponent::Visit(NodeVisitor& v) {
+void AiCompletionComponent::Visit(Vis& v) {
 	v.Ver(0);
 }
 

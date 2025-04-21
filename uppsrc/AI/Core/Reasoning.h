@@ -10,7 +10,7 @@ struct ScriptReasoning : Component
 	
 	COMPONENT_CONSTRUCTOR(ScriptReasoning)
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1);
 	}

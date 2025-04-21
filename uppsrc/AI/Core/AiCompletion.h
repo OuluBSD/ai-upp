@@ -8,7 +8,7 @@ NAMESPACE_UPP
 struct AiCompletionComponent : Component {
 	OmniThread omni;
 	
-	void Visit(NodeVisitor& v) override;
+	void Visit(Vis& v) override;
 	String GetName() const override {return "AI: Completion";}
 	
 	AiCompletionComponent(MetaNode& owner);

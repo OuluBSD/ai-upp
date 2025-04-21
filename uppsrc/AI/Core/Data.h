@@ -57,19 +57,19 @@ struct ContextType : Moveable<ContextType> {
 	
 	bool operator==(const ContextType& t) const {return value == t.value;}
 	hash_t GetHashValue() const {return value;}
-	void Visit(NodeVisitor& vis) {vis("value", value);}
+	void Visit(Vis& v) {v("value", value);}
 };
 
 struct ContextData : Moveable<ContextData> {
 	struct Typeclass : Moveable<Typeclass> {
 		String name;
 		Vector<Vector<String>> entities;
-		void Visit(NodeVisitor& v) {v.Ver(1)(1)("n",name)("e",entities);}
+		void Visit(Vis& v) {v.Ver(1)(1)("n",name)("e",entities);}
 	};
 	struct Content : Moveable<Content> {
 		String name;
 		Vector<String> parts;
-		void Visit(NodeVisitor& v) {v.Ver(1)(1)("n",name)("p",parts);}
+		void Visit(Vis& v) {v.Ver(1)(1)("n",name)("p",parts);}
 	};
 	String name;
 	Vector<Typeclass> typeclasses;
@@ -78,8 +78,8 @@ struct ContextData : Moveable<ContextData> {
 	Index<String> entity_groups;
 	
 	int FindAddEntityGroup(String s);
-	void Visit(NodeVisitor& vis) {
-		vis.Ver(1)
+	void Visit(Vis& v) {
+		v.Ver(1)
 		(1)	("name", name)
 			("typeclasses", typeclasses, VISIT_VECTOR)
 			("contents", contents, VISIT_VECTOR)
@@ -120,7 +120,7 @@ struct EditorPtrs {
 struct Token : Moveable<Token> {
 	byte pad;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(3);
 		if (v.file_ver < 3) {
 			int word_;
@@ -135,7 +135,7 @@ struct TokenText : Moveable<TokenText> {
 	int virtual_phrase = -1;
 	int phrase_part = -1;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(3)
 		(1)("t",tokens)("vp", virtual_phrase)
 		(2)("pp",phrase_part)
@@ -149,7 +149,7 @@ struct WordPairType : Moveable<WordPairType> {
 	int from = -1, to = -1;           // word index
 	int from_type = -1, to_type = -1; // word class index
 
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("f",from)("t",to)("ft",from_type)("tt",to_type);}
+	void Visit(Vis& v) {v.Ver(1)(1)("f",from)("t",to)("ft",from_type)("tt",to_type);}
 	
 	hash_t GetHashValue() const
 	{
@@ -163,7 +163,7 @@ struct VirtualPhrase : Moveable<VirtualPhrase> {
 	Vector<int> word_classes;
 	int virtual_phrase_struct = -1;
 
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("vps",virtual_phrase_struct);}
+	void Visit(Vis& v) {v.Ver(1)(1)("wc",word_classes)("vps",virtual_phrase_struct);}
 	
 	static hash_t GetHash(const Vector<int>& word_classes)
 	{
@@ -180,7 +180,7 @@ struct VirtualPhrasePart : Moveable<VirtualPhrasePart> {
 	int struct_part_type = -1;
 	int count = 0;
 
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("wc",word_classes)("spt",struct_part_type)("c",count);}
+	void Visit(Vis& v) {v.Ver(1)(1)("wc",word_classes)("spt",struct_part_type)("c",count);}
 
 	static hash_t GetHash(const Vector<int>& word_classes)
 	{
@@ -196,7 +196,7 @@ struct VirtualPhraseStruct : Moveable<VirtualPhraseStruct> {
 	Vector<int> virtual_phrase_parts;
 	int struct_type = -1;
 
-	void Visit(NodeVisitor& v) {v.Ver(1)(1)("vps",virtual_phrase_parts)("st",struct_type);}
+	void Visit(Vis& v) {v.Ver(1)(1)("vps",virtual_phrase_parts)("st",struct_type);}
 
 	static hash_t GetHash(const Vector<int>& virtual_phrase_parts)
 	{
@@ -232,7 +232,7 @@ struct PhrasePart : Moveable<PhrasePart> {
 				return true;
 		return false;
 	}
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("words", words)
 			("tt_i", tt_i)
@@ -274,14 +274,14 @@ struct ScriptSuggestion : Moveable<ScriptSuggestion> {
 struct PhraseComb : Moveable<PhraseComb> {
 	Vector<int> phrase_parts;
 	
-	void Visit(NodeVisitor& json) {json.Ver(1)(1)("phrase_parts", phrase_parts);}
+	void Visit(Vis& json) {json.Ver(1)(1)("phrase_parts", phrase_parts);}
 };
 
 struct TranslatedPhrasePart : Moveable<TranslatedPhrasePart> {
 	String phrase;
 	int scores[SCORE_COUNT] = {0,0,0,0,0,0,0,0,0,0};
 	
-	void Visit(NodeVisitor& json) {json.Ver(1)(1)("phrase", phrase); for(int i = 0; i < SCORE_COUNT; i++) json("score[" + IntStr(i) + "]", scores[i]);}
+	void Visit(Vis& json) {json.Ver(1)(1)("phrase", phrase); for(int i = 0; i < SCORE_COUNT; i++) json("score[" + IntStr(i) + "]", scores[i]);}
 };
 
 struct ExportAttr : Moveable<ExportAttr> {
@@ -289,7 +289,7 @@ struct ExportAttr : Moveable<ExportAttr> {
 	int positive = -1, link = -1;
 	int count = 0;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("s", simple_attr)
 			("u", unused)
@@ -304,7 +304,7 @@ struct ExportAction : Moveable<ExportAction> {
 	Color clr;
 	int count = 0;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("a", attr)
 			("clr", clr)
@@ -315,7 +315,7 @@ struct ExportAction : Moveable<ExportAction> {
 struct ExportParallel : Moveable<ExportParallel> {
 	int count = 0, score_sum = 0;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("c", count)
 			("ss", score_sum);
@@ -325,7 +325,7 @@ struct ExportParallel : Moveable<ExportParallel> {
 struct ExportTransition : Moveable<ExportTransition> {
 	int count = 0, score_sum = 0;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("c", count)
 			("ss", score_sum);
@@ -340,7 +340,7 @@ struct ExportDepActionPhrase : Moveable<ExportDepActionPhrase> {
 	int attr = -1;
 	Color clr = Black();
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("ac", actions)
 			("np", next_phrases)
@@ -368,7 +368,7 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 		memset(scores, 0, sizeof(scores));
 	}
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("wc", word_count);
 		for(int i = 0; i < MAX_WORDS; i++)
@@ -399,7 +399,7 @@ struct ExportWordnet : Moveable<ExportWordnet> {
 struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	int attr_i0 = -1, attr_i1 = -1;
 
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("ai0", attr_i0)
 			("ai1", attr_i1);
@@ -412,7 +412,7 @@ struct ScriptDataset : Moveable<ScriptDataset> {
 	String title;
 	String text;
 	ContextType ctx;
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(2)
 		(1)	("name", title)
 			("txt", text)
@@ -427,7 +427,7 @@ struct AuthorDataset : Moveable<AuthorDataset> {
 	ContextType ctx;
 	
 	ScriptDataset& GetAddScript(String title);
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(2)
 		(1)	("name", name)
 			("scripts", scripts, VISIT_VECTOR)
@@ -448,7 +448,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		SubSubPart() {}
 		SubSubPart(const SubSubPart& s) { *this = s; }
-		void Visit(NodeVisitor& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", el_i); }
+		void Visit(Vis& json) { json.Ver(1)(1)("token_texts", token_texts)("cls", el_i); }
 		void operator=(const SubSubPart& s)
 		{
 			token_texts <<= s.token_texts;
@@ -463,7 +463,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		SubPart() {}
 		SubPart(const SubPart& s) { *this = s; }
-		void Visit(NodeVisitor& v) {
+		void Visit(Vis& v) {
 			v.Ver(2);
 			if (v.file_ver == 1) {
 				int repeat;
@@ -492,7 +492,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 
 		Part() {}
 		Part(const Part& p) { *this = p; }
-		void Visit(NodeVisitor& v)
+		void Visit(Vis& v)
 		{
 			v.Ver(1)
 			(1)	("sub", sub, VISIT_VECTOR)
@@ -516,7 +516,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 	String author, title;
 	ContextType ctx;
 
-	void Visit(NodeVisitor& json) {
+	void Visit(Vis& json) {
 		json.Ver(3)
 		(1)("parts", parts, VISIT_VECTOR)
 		(2)("author", author)("title", title)
@@ -558,8 +558,8 @@ struct WordData : Moveable<WordData> {
 		return ch;
 	}
 	hash_t GetHashValue() const {return GetHash(lang, text, word_class);}
-	void Visit(NodeVisitor& vis) {
-		vis.Ver(1)
+	void Visit(Vis& v) {
+		v.Ver(1)
 		(1)	("lang", lang)
 			("text", text)
 			("spelling", spelling)
@@ -577,8 +577,8 @@ struct WordTranslation : Moveable<WordTranslation> {
 	
 	Vector<int> translations;
 	
-	void Visit(NodeVisitor& vis) {
-		vis.Ver(1)
+	void Visit(Vis& v) {
+		v.Ver(1)
 		(1)	("t", translations);
 	}
 };
@@ -676,7 +676,7 @@ struct SrcTextData : EntityData {
 	String GetTokenTextString(const TokenText& txt) const;
 	String GetTokenTextString(const Vector<int>& tokens) const;
 	int GetKind() const override {return METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT;}
-	void Visit(NodeVisitor& s) override;
+	void Visit(Vis& s) override;
 };
 
 
@@ -688,7 +688,7 @@ struct SrcTxtHeader : Component {
 	String sha1;
 	Vector<String> files;
 	int version = 1;
-	void Visit(NodeVisitor& v) override;
+	void Visit(Vis& v) override;
 	String GetName() const override {return "Source Database";}
 	
 	String filepath;

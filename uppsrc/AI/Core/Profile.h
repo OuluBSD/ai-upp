@@ -15,7 +15,7 @@ struct Profile : Component
 	
 	Profile(MetaNode& owner) : Component(owner) {}
 	String GetName() const override {return name;}
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)
 			("name", name)

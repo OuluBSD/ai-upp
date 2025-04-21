@@ -15,7 +15,7 @@ struct Platform : Moveable<Platform> {
 	
 	Platform& operator << (const char* fn) {functions << fn; return *this;}
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1);
 	}
@@ -36,7 +36,7 @@ struct PlatformComment {
 	int GetTotalComments() const;
 	void ClearMerged();
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("user", user)
 			("orig_message", orig_message)
@@ -57,7 +57,7 @@ struct PlatformThread {
 	
 	int GetTotalComments() const;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("user", user)
 			("title", title)
@@ -70,7 +70,7 @@ struct PlatformEntry {
 	Array<PlatformThread> threads;
 	String title, subforum;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("threads", threads, VISIT_VECTOR)
 			("title", title)
@@ -84,7 +84,7 @@ struct PlatformData {
 	
 	
 	int GetTotalEntryCount() const;
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("entries", entries, VISIT_VECTOR)
 			;
@@ -98,7 +98,7 @@ struct ProfileData {
 	Profile* profile = 0;
 	
 	
-	void Visit(NodeVisitor& v);
+	void Visit(Vis& v);
 	void Load();
 	void Store();
 	
@@ -116,7 +116,7 @@ struct PlatformAnalysis {
 	VectorMap<String,PlatformAnalysisPhoto> epk_photos;
 	
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("roles", roles)
 			("epk_text_fields", epk_text_fields)
@@ -134,7 +134,7 @@ struct SocietyRoleAnalysis {
 	
 	SocietyRoleAnalysis() {scores.SetCount(SOCIETYROLE_SCORE_COUNT,0);}
 	void Zero() {for (int& i : scores) i = 0;}
-	void Visit(NodeVisitor& vis) {vis.Ver(1)(1)("scores",scores);}
+	void Visit(Vis& v) {v.Ver(1)(1)("scores",scores);}
 	int GetScoreSum() const {return Sum(scores);}
 };
 
@@ -143,7 +143,7 @@ struct PlatformManager : Component {
 	ArrayMap<String, SocietyRoleAnalysis> roles;
 	
 	COMPONENT_CONSTRUCTOR(PlatformManager)
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("roles", roles, VISIT_MAP)
 			("platforms", platforms, VISIT_MAP)

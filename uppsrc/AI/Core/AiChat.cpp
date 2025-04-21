@@ -11,7 +11,7 @@ AiChatComponent::~AiChatComponent() {
 	
 }
 
-void AiChatComponent::Visit(NodeVisitor& v) {
+void AiChatComponent::Visit(Vis& v) {
 	v.Ver(0);
 }
 

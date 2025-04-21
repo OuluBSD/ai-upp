@@ -9,7 +9,7 @@ struct Artist : Component
 	VectorMap<String,Value> data;
 	
 	COMPONENT_CONSTRUCTOR(Artist)
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("data", data);
 	}

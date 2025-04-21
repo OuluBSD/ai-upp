@@ -868,7 +868,7 @@ void MergeProcess::LoadForAppending() {
 		return;
 	}
 	StringStream decomp_stream(decompressed);
-	NodeVisitor vis(decomp_stream);
+	Vis vis(decomp_stream);
 	d1.Visit(vis);
 	
 	#define CMP(x) LOG("MergeProcess::LoadForAppending: " #x ": " << d1.x.GetCount());
@@ -906,7 +906,7 @@ void MergeProcess::Write() {
 	String dir = GetFileDirectory(filepath);
 	String filename = GetFileName(filepath);
 	StringStream decomp_stream;
-	NodeVisitor vis(decomp_stream);
+	Vis vis(decomp_stream);
 	d1.Visit(vis);
 	String decompressed = decomp_stream.GetResult();
 	

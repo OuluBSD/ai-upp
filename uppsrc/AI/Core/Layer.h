@@ -10,7 +10,7 @@ struct ImageLayer : Component {
 	~ImageLayer(){}
 	String StoreString();
 	void LoadString(const String& bz_enc);
-	void Visit(NodeVisitor& v) override;
+	void Visit(Vis& v) override;
 	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_LAYER;}
 };
 
@@ -21,7 +21,7 @@ struct TempImageLayer : Component {
 	
 	TempImageLayer(MetaNode& owner) : Component(owner) {}
 	~TempImageLayer(){}
-	void Visit(NodeVisitor& v) override {}
+	void Visit(Vis& v) override {}
 };
 
 struct ImageGenLayer : TempImageLayer {

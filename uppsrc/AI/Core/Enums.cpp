@@ -1933,7 +1933,7 @@ String GetSnapshotAnalysisKey(int i) {
 }
 
 
-void ContentType::Visit(NodeVisitor& v) {
+void ContentType::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("key",key)
 		("p0", parts[0])

@@ -17,7 +17,7 @@ struct AiThreadCtrlBase : Ctrl {
 	// Persistent
 	int model_i = -1;
 	
-	void Visit(NodeVisitor& s);
+	void Visit(Vis& s);
 	int GetModelCount(bool use_chat);
 	bool CannotDoCompletion(String model_name);
 	void UpdateCompletionModels();
@@ -234,7 +234,7 @@ public:
 	
 	PlaygroundCtrl();
 	~PlaygroundCtrl();
-	void Visit(NodeVisitor&);
+	void Visit(Vis&);
 	void Data();
 	void StoreThis();
 	void LoadThis();

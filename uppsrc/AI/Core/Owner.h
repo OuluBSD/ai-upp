@@ -10,7 +10,7 @@ struct LeadOpportunity;
 struct PlatformNeed {
 	bool enabled = false;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("enabled", enabled)
 			;
@@ -22,7 +22,7 @@ struct Need {
 	Vector<String> causes, messages;
 	Array<PlatformNeed> platforms;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("name", name)
 			("causes", causes)
@@ -36,7 +36,7 @@ struct RoleEvent {
 	String text;
 	VectorMap<int,String> entries;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("text", text)
 			("entries", entries)
@@ -48,14 +48,14 @@ struct RoleAction {
 	struct NeedCause : Moveable<NeedCause> {
 		int need_i = -1;
 		int cause_i = -1;
-		void Visit(NodeVisitor& v) {v("n", need_i)("c", cause_i);}
+		void Visit(Vis& v) {v("n", need_i)("c", cause_i);}
 	};
 	String name;
 	Vector<NeedCause> need_causes;
 	Array<RoleEvent> events;
 	
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("name", name)
 			.VisitVector("need_causes", need_causes)
@@ -71,7 +71,7 @@ struct Role {
 	Array<Need> needs;
 	Array<RoleAction> actions;
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)	("name", name)
 			.VisitVector("needs", needs)
@@ -95,7 +95,7 @@ struct Owner : Component
 	void Load(String name);
 	
 	String GetName() const override {return name;}
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("name", name)
 			("born", born)

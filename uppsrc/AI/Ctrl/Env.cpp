@@ -158,17 +158,17 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 	
 }
 
-void EnvEditorCtrl::Visit(NodeVisitor& vis) {
-	if (vis.IsLoading()) {
+void EnvEditorCtrl::Visit(Vis& v) {
+	if (v.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), vis, true, n);
+		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}
 	else {
 		MetaSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
-		file.Visit(vis);
+		file.Visit(v);
 		file.ClearTemp();
 	}
 }

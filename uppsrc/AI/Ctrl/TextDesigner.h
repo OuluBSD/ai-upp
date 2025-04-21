@@ -64,7 +64,7 @@ public:
 	virtual void SaveDirectory(String dirpath, byte charset);
 	virtual void EditPos(JsonIO& jio);
 	virtual void SetPickUndoData(LineEdit::UndoData undodata);
-	virtual void Visit(NodeVisitor& vis) = 0;
+	virtual void Visit(Vis& v) = 0;
 	
 	template <class T>
 	void DoT(int fn)

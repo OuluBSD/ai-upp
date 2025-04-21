@@ -43,7 +43,7 @@ struct Song : Component
 	void ReloadStructure();
 	String GetAnyTitle(Entity& a) const;
 	
-	void Visit(NodeVisitor& v) override {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("entity", entity)
 			("prj_name", prj_name)

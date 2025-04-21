@@ -16,7 +16,7 @@ struct LeadTemplate {
 	Index<int> organizational_reasons;
 	
 	
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)		("hash", (int64&)hash)
 				("lng", orig_lead_lng)
@@ -38,7 +38,7 @@ struct LeadDataPublisher : Component {
 	Vector<String> artists;
 	
 	COMPONENT_CONSTRUCTOR(LeadDataPublisher)
-	void Visit(NodeVisitor& v) {
+	void Visit(Vis& v) {
 		v.Ver(1)
 		(1)		("name", name)
 				("info", info)
@@ -62,7 +62,7 @@ struct LeadDataTemplate : Component {
 	LeadDataTemplate(MetaNode& n) : Component(n) {}
 	void Load();
 	void Store();
-	void Visit(NodeVisitor& json) override;
+	void Visit(Vis& json) override;
 	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_TEMPLATE;}
 	
 	

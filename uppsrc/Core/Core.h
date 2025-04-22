@@ -398,6 +398,7 @@ class JsonIO;
 #include "LocalProcess.h"
 
 #include "Inet.h"
+#include "Daemon.h"
 
 #include "Win32Util.h"
 

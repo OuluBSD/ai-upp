@@ -550,3 +550,15 @@ struct sPaintRedirectCtrl : Ctrl {
 		ctrl->Paint(w);
 	}
 };
+
+class GridCtrl : public ParentCtrl {
+	int cols = 2, rows = 2;
+	
+public:
+	typedef GridCtrl CLASSNAME;
+	GridCtrl();
+	
+	void SetGridSize(int rows, int cols);
+	void Layout() override;
+	
+};

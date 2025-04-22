@@ -1,2 +1,5 @@
 description "\377B";
 
+file
+	ExtPoint.h;
+

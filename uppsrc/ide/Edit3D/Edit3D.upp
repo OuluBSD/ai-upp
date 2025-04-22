@@ -1,23 +1,18 @@
+description "\377B";
+
 uses
 	CtrlLib,
-	LocalCtrl,
 	Geometry,
 	ComputerVision,
 	plugin/jpg,
-	SoftRend,
 	ports/enet;
 
 file
 	Edit3D.h,
 	main.cpp,
-	EditClientService.h,
-	EditClientService.cpp,
 	Editor.h,
 	Editor.cpp,
 	GeomProjectCtrl.cpp,
-	Remote.h,
-	Remote.cpp,
-	RemoteCtrl.cpp,
 	Geom.h,
 	Geom.cpp,
 	Renderer.h,
@@ -31,7 +26,12 @@ file
 	Images.iml,
 	Trash readonly separator,
 	SoftRendCtrl.h,
-	SoftRendCtrl.cpp;
+	SoftRendCtrl.cpp,
+	EditClientService.h,
+	EditClientService.cpp,
+	Remote.h,
+	Remote.cpp,
+	RemoteCtrl.cpp;
 
 mainconfig
 	"" = "GUI";

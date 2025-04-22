@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void DrawRect(Size sz, Draw& d, const mat4& view, const vec3& p, Size rect_sz, const Color& c, bool z_cull) {
@@ -61,7 +61,7 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 		const Model& mdl = *go.mdl;
 		for (const Mesh& mesh : mdl.meshes) {
 			int tri_count = mesh.indices.GetCount() / 3;
-			const uint32* tri_idx = mesh.indices.Begin();
+			const auto* tri_idx = mesh.indices.Begin();
 			for(int i = 0; i < tri_count; i++) {
 				const Vertex& v0 = mesh.vertices[tri_idx[0]];
 				const Vertex& v1 = mesh.vertices[tri_idx[1]];
@@ -425,4 +425,4 @@ bool EditRenderer::Key(dword key, int count) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

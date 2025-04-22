@@ -1,7 +1,8 @@
 #ifndef _Edit3D_EditClientService_h_
 #define _Edit3D_EditClientService_h_
+#if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class EditClientService : public DaemonService {
@@ -16,10 +17,7 @@ public:
 	bool debug = false;
 	bool ready = false;
 	
-	
 public:
-	RTTI_DECL1(EditClientService, DaemonService);
-	
 	bool Init(String name) override;
 	void Update() override;
 	void Stop() override;
@@ -31,6 +29,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
+#endif
 #endif

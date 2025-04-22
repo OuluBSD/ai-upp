@@ -1,6 +1,8 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+#if 0
+
+NAMESPACE_UPP
 
 
 bool EditClientService::Init(String name) {
@@ -51,4 +53,6 @@ void EditClientService::Deinit() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
+
+#endif

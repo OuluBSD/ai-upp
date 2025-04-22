@@ -4,16 +4,12 @@
 
 
 GUI_APP_MAIN {
-	using namespace TS;
 	using namespace UPP;
-	//TS::ChFlatDarkSkin();
-	//TS::ChDarkSkin();
-	TS::ChGraySkin();
-	//TS::ChStdSkin();
+	ChGraySkin();
 	
 	SetCoutLog();
 	
-	DaemonBase::Register<EditClientService>("EditClient");
+	//DaemonBase::Register<EditClientService>("EditClient");
 	
 	CommandLineArguments cmd;
 	DaemonBase daemon;
@@ -40,6 +36,7 @@ GUI_APP_MAIN {
 	
 	String pointcloud_dir;
 	
+	#if 0
 	if (cmd.IsArg('c')) {
 		daemon.Add("EditClient");
 		daemon.Add("EnetClient");
@@ -61,7 +58,9 @@ GUI_APP_MAIN {
 		pointcloud_dir = cmd.GetArg('n');
 		mode = POINTCLOUD;
 	}
-	else if (cmd.IsArg('t')) {
+	else
+	#endif
+	if (cmd.IsArg('t')) {
 		mode = PROJECT0;
 	}
 	
@@ -70,12 +69,14 @@ GUI_APP_MAIN {
 	
 	Edit3D app;
 	
-	
+	#if 0
 	if (mode == REMOTE_DEBUG)
 		app.LoadRemote(daemon.FindServiceT<EditClientService>(), true);
 	else if (mode == REMOTE)
 		app.LoadRemote(daemon.FindServiceT<EditClientService>(), false);
-	else if (mode == POINTCLOUD)
+	else
+	#endif
+	if (mode == POINTCLOUD)
 		app.LoadWmrStereoPointcloud(pointcloud_dir);
 	else if (mode == PROJECT0)
 		app.LoadTestProject(0);

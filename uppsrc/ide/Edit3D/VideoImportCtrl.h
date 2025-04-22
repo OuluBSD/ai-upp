@@ -1,7 +1,7 @@
 #ifndef _Edit3D_VideoImportCtrl_h_
 #define _Edit3D_VideoImportCtrl_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct VideoImportCtrl;
@@ -79,6 +79,6 @@ struct VideoImportCtrl : ParentCtrl {
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

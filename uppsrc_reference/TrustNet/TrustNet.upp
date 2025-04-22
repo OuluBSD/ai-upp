@@ -1,7 +1,7 @@
 description "TrustLib usage\377";
 
 uses
-	AI/TrustCore;
+	TrustCore;
 
 file
 	main.cpp,

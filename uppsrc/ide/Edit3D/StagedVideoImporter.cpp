@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomStagedVideo::GeomStagedVideo() {
@@ -132,4 +132,4 @@ void GeomStagedVideo::Update(double dt) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

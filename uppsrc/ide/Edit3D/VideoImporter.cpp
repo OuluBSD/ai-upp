@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomVideo::GeomVideo() {
@@ -138,4 +138,4 @@ void GeomVideo::Next() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

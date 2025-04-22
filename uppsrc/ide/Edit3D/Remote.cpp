@@ -1,6 +1,7 @@
 #include "Edit3D.h"
+#if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 RemoteExchange::RemoteExchange() {
 	
@@ -152,4 +153,6 @@ void RemoteExchange::SyncEntity(const GeomObjectState& os) {
 	write.UnbindEntity();
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
+
+#endif

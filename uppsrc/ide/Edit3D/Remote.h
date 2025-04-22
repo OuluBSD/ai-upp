@@ -1,7 +1,9 @@
 #ifndef _Edit3D_Remote_h_
 #define _Edit3D_Remote_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+#if 0
+
+NAMESPACE_UPP
 
 
 class EngineSerializer {
@@ -64,6 +66,7 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
+#endif
 #endif

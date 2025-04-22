@@ -114,13 +114,13 @@ HANDLE WinPtyCreateProcess(const char *cmdptr, const char *envptr, const char *c
 	Buffer<wchar> cmd, env;
 	sCmdToUnicode(cmd, cmdptr);
 	sEnvToUnicode(env, envptr);
-
+	
 	auto hSpawnConfig = winpty_spawn_config_new(
 		WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN,
-		cmd,
+		WString(cmd).ToStd().c_str(),
 		nullptr,
-		cd ? ~WString(cd) : nullptr,
-		env,
+		cd ? String(cd).ToWString().ToStd().c_str() : nullptr,
+		WString(env).ToStd().c_str(),
 		nullptr);
 		
 	if(!hSpawnConfig) {

@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 VideoImportCtrl::VideoImportCtrl(Edit3D* e) {
@@ -179,14 +179,14 @@ void KeypointImageCtrl::Paint(Draw& w) {
 	float factor = (float)img_h / (float)orig_img_sz.cy;
 	
 	float x_off = r.left;
-	for(const Descriptor& d : frame.l_dimg.GetDescriptors()) {
+	for(const Descriptor32& d : frame.l_dimg.GetDescriptors()) {
 		float y = factor * d.y;
 		float x = x_off + factor * d.x;
 		
 		w.DrawRect(x,y,1,1,clr);
 	}
 	
-	for(const Descriptor& d : frame.r_dimg.GetDescriptors()) {
+	for(const Descriptor32& d : frame.r_dimg.GetDescriptors()) {
 		float y = img_h + factor * d.y;
 		float x = x_off + factor * d.x;
 		
@@ -250,4 +250,4 @@ void TriangleImageCtrl::Paint(Draw& w) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

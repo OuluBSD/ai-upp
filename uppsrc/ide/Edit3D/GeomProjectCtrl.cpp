@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
@@ -149,4 +149,4 @@ void GeomProjectCtrl::TimelineData() {
 	time.Refresh();
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

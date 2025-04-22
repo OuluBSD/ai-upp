@@ -1,7 +1,7 @@
 #ifndef _Edit3D_Renderer_h_
 #define _Edit3D_Renderer_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct Edit3D;
@@ -50,6 +50,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

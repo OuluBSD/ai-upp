@@ -2,16 +2,13 @@
 #define _Edit3D_Editor_h_
 
 #define IMAGECLASS ImagesImg
-#define IMAGEFILE <Edit3D/Images.iml>
+#define IMAGEFILE <ide/Edit3D/Images.iml>
 #include <Draw/iml_header.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
+NAMESPACE_UPP
 
 struct Edit3D;
-class EditClientService;
-
 
 struct EditConfiguration {
 	Color background_clr;
@@ -50,14 +47,13 @@ struct Edit3D : TopWindow {
 		VIEW_NONE,
 		VIEW_GEOMPROJECT,
 		VIEW_VIDEOIMPORT,
-		VIEW_REMOTE_DEBUG,
 	} ViewType;
 	
 	ViewType view = VIEW_NONE;
 	
 	GeomProjectCtrl v0;
 	VideoImportCtrl v1;
-	RemoteDebugCtrl v_rdbg;
+	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
 	ToolBar tool;
 	
@@ -72,9 +68,6 @@ struct Edit3D : TopWindow {
 	TimeCallback tc;
 	TimeStop ts;
 	
-	EditClientService* svc = 0;
-	bool debug_remote = false;
-	
 	void CreateDefaultInit();
 	void CreateDefaultPostInit();
 	void LoadTestCirclingCube();
@@ -84,7 +77,6 @@ public:
 	typedef Edit3D CLASSNAME;
 	Edit3D();
 	
-	void LoadRemote(EditClientService* svc, bool debug);
 	void SetView(ViewType view);
 	void Update();
 	void Data();
@@ -108,6 +100,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

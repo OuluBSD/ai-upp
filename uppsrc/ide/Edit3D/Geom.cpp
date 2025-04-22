@@ -1,6 +1,6 @@
 #include "Edit3D.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomObjectCollection::GeomObjectCollection(GeomDirectory& d) {
@@ -402,4 +402,4 @@ void GeomAnim::Play() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

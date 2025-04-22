@@ -2,20 +2,19 @@
 
 
 #define IMAGECLASS ImagesImg
-#define IMAGEFILE <Edit3D/Images.iml>
+#define IMAGEFILE <ide/Edit3D/Images.iml>
 #include <Draw/iml_source.h>
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
 
 Edit3D::Edit3D() :
 	v0(this),
-	v1(this),
-	v_rdbg(this)
+	v1(this)
 {
 	state.prj = &prj;
 	anim.state = &state;
@@ -37,7 +36,6 @@ Edit3D::Edit3D() :
 		bar.Sub(t_("View"), [this](Bar& bar) {
 			bar.Add(t_("Geometry"), THISBACK1(SetView, VIEW_GEOMPROJECT)).Key(K_ALT|K_1);
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
-			bar.Add(t_("Remote debug"), THISBACK1(SetView, VIEW_REMOTE_DEBUG)).Key(K_ALT|K_3);
 		});
 		
 	});
@@ -56,8 +54,6 @@ void Edit3D::SetView(ViewType view) {
 		RemoveChild(&v0.hsplit);
 	else if (this->view == VIEW_VIDEOIMPORT)
 		RemoveChild(&v1);
-	else if (this->view == VIEW_REMOTE_DEBUG)
-		RemoveChild(&v_rdbg);
 	
 	this->view = view;
 	
@@ -65,8 +61,6 @@ void Edit3D::SetView(ViewType view) {
 		Add(v0.hsplit.SizePos());
 	else if (this->view == VIEW_VIDEOIMPORT)
 		Add(v1.SizePos());
-	else if (this->view == VIEW_REMOTE_DEBUG)
-		Add(v_rdbg.SizePos());
 	
 }
 
@@ -271,6 +265,7 @@ void Edit3D::LoadWmrStereoPointcloud(String directory) {
 	SetView(VIEW_VIDEOIMPORT);
 }
 
+#if 0
 void Edit3D::LoadRemote(EditClientService* svc, bool debug) {
 	this->svc = svc;
 	this->debug_remote = debug;
@@ -292,6 +287,7 @@ void Edit3D::LoadRemote(EditClientService* svc, bool debug) {
 	svc->sync.SetRequireAllSync();
 	svc->SetReady();
 }
+#endif
 
 void Edit3D::OnDebugMetadata() {
 	
@@ -309,7 +305,7 @@ EditConfiguration::EditConfiguration() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

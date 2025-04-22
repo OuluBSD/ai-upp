@@ -1,7 +1,7 @@
 #ifndef _Edit3D_Geom_h_
 #define _Edit3D_Geom_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -212,6 +212,6 @@ struct GeomAnim {
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

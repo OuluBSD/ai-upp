@@ -1,6 +1,7 @@
 #include "Edit3D.h"
+#if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 RemoteDebugCtrl::RemoteDebugCtrl(Edit3D* e) : e(e) {
 	/*
@@ -31,4 +32,6 @@ void RemoteDebugCtrl::Data() {
 	
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
+
+#endif

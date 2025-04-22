@@ -231,4 +231,8 @@ INITIALIZE(IdeAIDes)
 
 #endif
 
+#define EXTPOINT_DESIGNER 1
+#include <ide/ExtPoint/ExtPoint.h>
+#undef EXTPOINT_DESIGNER
+
 #endif

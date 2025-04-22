@@ -25,7 +25,7 @@ PerspectiveCtrl::PerspectiveCtrl() {
 }
 
 void PerspectiveCtrl::Data() {
-	Perspective& b = GetExt<Perspective>();
+	PerspectiveComponent& b = GetExt<PerspectiveComponent>();
 	
 	info.description.SetData(b.description);
 	info.reference.SetData(b.reference);
@@ -36,7 +36,7 @@ void PerspectiveCtrl::Data() {
 	user.SetCount(b.user.GetCount());
 	
 	for(int i = 0; i < b.attrs.GetCount(); i++) {
-		Perspective::Attr& a = b.attrs[i];
+		PerspectiveComponent::Attr& a = b.attrs[i];
 		attrs.Set(i, 0, a.positive);
 		attrs.Set(i, 1, a.negative);
 	}
@@ -63,7 +63,7 @@ void PerspectiveCtrl::Do(int fn) {
 		ss.Stop();
 	}
 	else if (fn == 2) {
-		Perspective& b = GetExt<Perspective>();
+		PerspectiveComponent& b = GetExt<PerspectiveComponent>();
 		String res = ReadClipboardText();
 		RemoveEmptyLines3(res);
 		b.user <<= Split(res, "\n");
@@ -72,7 +72,7 @@ void PerspectiveCtrl::Do(int fn) {
 }
 
 void PerspectiveCtrl::OnValueChange() {
-	Perspective& b = GetExt<Perspective>();
+	PerspectiveComponent& b = GetExt<PerspectiveComponent>();
 	
 	b.description = info.description.GetData();
 	b.reference = info.reference.GetData();
@@ -102,7 +102,7 @@ void PerspectiveProcess::DoPhase() {
 	ASSERT(p.perspective);
 	
 	if (phase == PHASE_GET_POSITIVE_ATTRS) {
-		Perspective& b = *p.perspective;
+		PerspectiveComponent& b = *p.perspective;
 		if (b.attrs.GetCount()) {
 			NextPhase();
 			return;
@@ -133,7 +133,7 @@ void PerspectiveProcess::DoPhase() {
 		});
 	}
 	else if (phase == PHASE_GET_NEGATIVE_ATTRS) {
-		Perspective& b = *p.perspective;
+		PerspectiveComponent& b = *p.perspective;
 		if (!b.attrs.GetCount() || b.attrs[0].negative.GetCount()) {
 			NextPhase();
 			return;
@@ -186,6 +186,6 @@ PerspectiveProcess& PerspectiveProcess::Get(DatasetPtrs p) {
 
 
 
-INITIALIZER_COMPONENT_CTRL(Perspective, PerspectiveCtrl)
+INITIALIZER_COMPONENT_CTRL(PerspectiveComponent, PerspectiveCtrl)
 
 END_UPP_NAMESPACE

@@ -1,7 +1,7 @@
 #include "enet.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -20,7 +20,7 @@ String GetHostAddress(const ENetPeer* peer) {
 
 
 String EnetServerClient::GetHostAddress() const {
-	return TS::GetHostAddress(addr);
+	return UPP::GetHostAddress(addr);
 }
 
 
@@ -245,8 +245,8 @@ void EnetServiceServer::ReceiveHandler(ENetEvent& e) {
 	int got = 0, sent = 0;
 	uint32 magic = 0, call_id = 0, in_sz = 0, out_sz = 0;
 	
-	ReadEther sin(e.packet->data, e.packet->dataLength);
-	WriteEther& sout = c.sout;
+	MemStream sin(e.packet->data, e.packet->dataLength);
+	auto& sout = c.sout;
 	sout.SetSize(0);
 	
 	#define RECV(x) \
@@ -470,8 +470,8 @@ bool EnetServiceClient::CallStream(uint32 magic, Callback1<Stream&> cb) {
 	
 	cb(tcp);
 	
-	return true;
 	#endif
+	return true;
 }
 
 bool EnetServiceClient::Init(String name) {
@@ -600,4 +600,4 @@ void EnetServiceClient::ReceiveHandler(ENetEvent& e) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

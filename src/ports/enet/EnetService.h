@@ -5,7 +5,7 @@
 // This additional custom code is included in this package to get Init functions called
 // when the package is included (usually conditionally).
 
-#include <Local/Local.h>
+#include <Core/Core.h>
 #include "Service.h"
 
 

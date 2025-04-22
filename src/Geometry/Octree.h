@@ -24,6 +24,16 @@ struct OctreeDescriptorPoint : OctreeObject {
 	
 };
 
+namespace Pointcloud {
+	
+struct Point : OctreeObject {
+	
+	
+	
+};
+
+}
+
 class OctreeNode {
 	
 protected:

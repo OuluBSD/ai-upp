@@ -100,9 +100,6 @@ inline void GetSysSeedValues(int64* a, int64* b, int64* c) {
 	if(c) sSeed((uint64*)c);
 }
 
-inline String HexStr(int64 i) {return Format("0x%X", i);}
-inline String HexStr(void* i) {return Format("0x%X", (int64)i);}
-
 #if 0
 typedef Image RawSysTexture;
 #endif

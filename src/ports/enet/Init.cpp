@@ -1,12 +1,12 @@
 #include "enet.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
-INITBLOCK_(enet) {
+INITBLOCK {
 	DaemonBase::Register<EnetServiceServer>("EnetServer");
 	DaemonBase::Register<EnetServiceClient>("EnetClient");
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

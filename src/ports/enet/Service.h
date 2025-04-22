@@ -1,7 +1,7 @@
 #ifndef _ports_enet_Service_h_
 #define _ports_enet_Service_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class GlobalEnet {
@@ -26,7 +26,7 @@ struct EnetServerClient {
 	SerialServiceBase::HandlerBase* handler = 0;
 	
 	// Temp vars
-	WriteEther sout;
+	StringStream sout;
 	
 	String GetHostAddress() const;
 	
@@ -55,7 +55,6 @@ class EnetServiceServer : public SerialServiceBase {
 	EnetServerClient* FindClientByPeer(ENetPeer* peer);
 	
 public:
-	RTTI_DECL1(EnetServiceServer, SerialServiceBase)
 	typedef EnetServiceServer CLASSNAME;
 	EnetServiceServer();
 	~EnetServiceServer();
@@ -149,7 +148,6 @@ public:
 	RWMutex lock;
 	
 public:
-	RTTI_DECL1(EnetServiceClient, SerialServiceBase)
 	typedef EnetServiceClient CLASSNAME;
 	EnetServiceClient();
 	~EnetServiceClient();
@@ -223,7 +221,7 @@ public:
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

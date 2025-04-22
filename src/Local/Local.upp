@@ -95,8 +95,6 @@ file
 	GEnums.h,
 	Ether.h,
 	Ether.cpp,
-	Daemon.h,
-	Daemon.cpp,
 	Network.h,
 	Network.cpp;
 

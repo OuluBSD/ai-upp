@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -148,4 +148,4 @@ void Haar::DetectMultiScale(Vector<BBox>& rects, const Vector<int>& int_sum, con
 	
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

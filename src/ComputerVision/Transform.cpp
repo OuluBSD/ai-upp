@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void transform::Perspective4PointTransform(
 		Vector<float>& mat,
@@ -159,4 +159,4 @@ void transform::InvertPerspectiveTransform(const Vector<double>& src, Vector<dou
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

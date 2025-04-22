@@ -2,8 +2,6 @@
 #define _ComputerVision_Math_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
 template <class T>
 void GetGaussianKernel(int size, double sigma, Vector<T>& kernel) {
 	double sum = 0.0;
@@ -248,7 +246,5 @@ T Median(Vector<T>& array, int low, int high) {
 	return 0;
 }
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

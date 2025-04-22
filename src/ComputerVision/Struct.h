@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_Struct_h_
 #define _ComputerVision_Struct_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 struct BBox : Moveable<BBox> {
 	double	x;
 	double	y;
@@ -118,8 +115,5 @@ public:
 	}
 	
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void SimpleCascadeClassifier::Jsonize(JsonIO& json) {
@@ -218,9 +218,9 @@ bool LoadCascadeJs(String path, String dst_title, String dst_dir) {
 		}
 		
 		fout	<< "#include \"ComputerVision.h\"\n\n\n"
-				<< "NAMESPACE_TOPSIDE_BEGIN\n\n"
+				<< "NAMESPACE_UPP\n\n"
 				<< loader
-				<< "NAMESPACE_TOPSIDE_END\n\n"
+				<< "END_UPP_NAMESPACE\n\n"
 		;
 		fout.Close();
 		
@@ -251,9 +251,9 @@ bool LoadCascadeJs(String path, String dst_title, String dst_dir) {
 		}
 		
 		fout	<< "#include \"ComputerVision.h\"\n\n\n"
-				<< "NAMESPACE_TOPSIDE_BEGIN\n\n"
+				<< "NAMESPACE_UPP\n\n"
 				<< loader
-				<< "NAMESPACE_TOPSIDE_END\n\n"
+				<< "END_UPP_NAMESPACE\n\n"
 		;
 		fout.Close();
 		
@@ -285,4 +285,4 @@ void LoadCascadeProfileFace(ComplexCascade& c) {LoadCascadeJsonFile(c, "ProfileF
 void LoadCascadeUpperBody(ComplexCascade& c) {LoadCascadeJsonFile(c, "UpperBody");}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void KeypointMatch::Set(int screen_idx, int pattern_lev, int pattern_idx, int distance) {
@@ -376,4 +376,4 @@ void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<B
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

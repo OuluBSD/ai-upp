@@ -2,9 +2,6 @@
 #define _ComputerVision_ORB_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 struct KeypointMatch : Moveable<KeypointMatch> {
     int screen_idx;
     int pattern_lev;
@@ -30,7 +27,5 @@ public:
 	
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

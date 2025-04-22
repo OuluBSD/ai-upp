@@ -25,7 +25,6 @@
 #include <SharedCore/Container.h>
 #include "Container.h"
 #include "RTuple.h"
-#include <SharedCore/Shared.h>
 #include "StringUtil.h"
 #include "Util.h"
 #include "Process.h"

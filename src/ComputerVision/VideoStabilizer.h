@@ -2,9 +2,6 @@
 #define _ComputerVision_VideoStabilizer_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 enum {
 	MM_AFFINE,
 	MM_HOMOGRAPHY
@@ -21,9 +18,6 @@ T& GetAt(int idx, int len, Vector<T>& items) {
 
 int GetRingIndex(int idx, int len);
 void GetMotion(FloatMat& M, int from, int to, Vector<FloatMat>& motions);
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

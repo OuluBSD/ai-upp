@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -141,4 +141,4 @@ const FloatMat& KeypointMotionEstimator::Estimate(ByteMat& frame0, ByteMat& fram
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

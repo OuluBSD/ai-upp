@@ -2,10 +2,6 @@
 #define _ComputerVision_OnepassStabilizer_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
-
 int GetAreaSign(const Keypoint& a, const Keypoint& b, const Keypoint& c);
 bool IsSegmentIntersect(const Keypoint& a, const Keypoint& b, const Keypoint& c, const Keypoint& d);
 int IsRectInside(const Vector<Keypoint>& a, const Vector<Keypoint>& b);
@@ -49,9 +45,6 @@ public:
 	void StabilizeFrame();
 	
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

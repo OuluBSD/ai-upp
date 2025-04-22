@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 const int FastCorners::offsets16[] = {0, 3, 1, 3, 2, 2, 3, 1, 3, 0, 3, -1, 2, -2, 1, -3, 0, -3, -1, -3, -2, -2, -3, -1, -3, 0, -3, 1, -2, 2, -1, 3};
 
@@ -244,5 +244,5 @@ int FastCorners::Detect(const ByteMat& src, Vector<Keypoint>& corners, int borde
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

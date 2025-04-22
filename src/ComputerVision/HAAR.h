@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_HAAR_h_
 #define _ComputerVision_HAAR_h_
 
-
-NAMESPACE_TOPSIDE_BEGIN
-
 class Haar {
 	double edges_density = 0.07;
 	
@@ -18,9 +15,5 @@ public:
 	
 	
 };
-
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

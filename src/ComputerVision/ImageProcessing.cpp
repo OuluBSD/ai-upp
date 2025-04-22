@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void ResampleByte(const pyra8::Mat& src, pyra8::Mat& dst, int nw, int nh) {
@@ -653,4 +653,4 @@ void WarpAffine(const ByteMat& src, ByteMat& dst, const FloatMat& transform, int
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

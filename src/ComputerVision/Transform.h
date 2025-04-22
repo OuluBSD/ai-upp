@@ -2,8 +2,6 @@
 #define _ComputerVision_Transform_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
 class transform {
 	
 public:
@@ -20,7 +18,5 @@ public:
 	
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -238,14 +238,6 @@ inline int64 HexInt64(const char *s) {
 	return neg ? n : -n;
 }
 
-template <class T> ManagedStatic<T>::ManagedStatic(const char* f, int l) : file(f), line(l) {}
-template <class T> template <class Arg>
-ManagedStatic<T>::ManagedStatic(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {}
-
-template <class T> ManagedStaticThreadLocal<T>::ManagedStaticThreadLocal(const char* f, int l) : file(f), line(l) {}
-template <class T> template <class Arg>
-ManagedStaticThreadLocal<T>::ManagedStaticThreadLocal(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {}
-
 
 //#if !(defined flagMSC && !defined flagUWP)
 inline WString FromUtf8(String s) {return s.ToWString();}

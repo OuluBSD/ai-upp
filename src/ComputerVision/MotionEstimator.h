@@ -2,9 +2,6 @@
 #define _ComputerVision_MotionEstimator_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 inline double Square(double x) {return x*x;}
 
 
@@ -358,8 +355,5 @@ public:
 	
 };
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

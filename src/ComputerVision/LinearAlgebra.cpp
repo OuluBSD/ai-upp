@@ -2,7 +2,7 @@
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void EigenVV(const FloatMat& A, FloatMat* vects, FloatMat* vals) {
@@ -27,4 +27,4 @@ void EigenVV(const FloatMat& A, FloatMat* vects, FloatMat* vals) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -2,8 +2,6 @@
 #define _ComputerVision_YAPE06_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
 class Yape06 {
 	
 public:
@@ -17,8 +15,5 @@ public:
 	
 };
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

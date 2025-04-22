@@ -2,9 +2,6 @@
 #define _ComputerVision_LinearAlgebra_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 template <class T>
 void Swap(Vector<T>& A, int i0, int i1, T& t) {
 	t = A[i0];
@@ -662,7 +659,5 @@ void SVDInvert(const DMatrix<T>& Ai, const DMatrix<T>& A) {
 
 void EigenVV(const FloatMat& A, FloatMat* vects=0, FloatMat* vals=0);
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

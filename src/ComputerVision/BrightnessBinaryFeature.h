@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_BrightnessBinaryFeature_h_
 #define _ComputerVision_BrightnessBinaryFeature_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 class BrightnessBinaryFeature {
 	int interval = 4;
 	double scale = 1.1486;
@@ -21,8 +18,5 @@ public:
 	
 	
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

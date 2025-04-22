@@ -2,9 +2,6 @@
 #define _ComputerVision_Matrix_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 template <class T>
 void Identity(DMatrix<T>& M, int value = 1) {
 	auto& src = M.data;
@@ -249,7 +246,5 @@ double Determinant3x3(	T M11, T M12, T M13,
 			M21 * M12 * M33 + M21 * M13 * M32 +
 			M31 * M12 * M23 - M31 * M13 * M22;
 }
-
-NAMESPACE_TOPSIDE_END
 
 #endif

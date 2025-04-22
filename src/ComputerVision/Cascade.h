@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_Cascade_h_
 #define _ComputerVision_Cascade_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 struct SimpleCascadeClassifier : Moveable<SimpleCascadeClassifier> {
 	Vector<Vector<int>>		features;
 	double					threshold = 0;
@@ -120,8 +117,5 @@ void LoadCascadeHandOpen(ComplexCascade& c);
 void LoadCascadeMouth(ComplexCascade& c);
 void LoadCascadeProfileFace(ComplexCascade& c);
 void LoadCascadeUpperBody(ComplexCascade& c);
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Yape06::ComputeLaplacian(const Vector<byte>& src, Vector<int>& dst, int w, int h, int Dxx, int Dyy, int sx, int sy, int ex, int ey) {
@@ -92,4 +92,4 @@ int Yape06::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

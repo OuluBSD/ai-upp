@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_OpticalFlowLK_h_
 #define _ComputerVision_OpticalFlowLK_h_
 
-
-NAMESPACE_TOPSIDE_BEGIN
-
 class OpticalFlowLK {
 	
 public:
@@ -14,7 +11,5 @@ public:
 		double eps = 0.01, double min_eigen_threshold = 0.0001);
 	
 };
-
-NAMESPACE_TOPSIDE_END
 
 #endif

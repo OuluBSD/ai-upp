@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 int GetAreaSign(const Keypoint& a, const Keypoint& b, const Keypoint& c) {
@@ -372,4 +372,4 @@ void OnepassStabilizer::StabilizeFrame() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

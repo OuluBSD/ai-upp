@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 int GetRingIndex(int idx, int len) {
@@ -32,4 +32,4 @@ void GetMotion(FloatMat& M, int from, int to, Vector<FloatMat>& motions) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -2,9 +2,6 @@
 #define _ComputerVision_KeypointMotionEstimator_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 class KeypointMotionEstimator {
 	FloatMat mm3x3;
 	Homography2D homo;
@@ -34,9 +31,6 @@ public:
     int GetMotionModel() const {return motionModel;}
     
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

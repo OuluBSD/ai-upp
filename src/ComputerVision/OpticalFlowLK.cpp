@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void OpticalFlowLK::Track(const pyra8& prev_pyr, pyra8& curr_pyr,
@@ -254,4 +254,4 @@ void OpticalFlowLK::Track(const pyra8& prev_pyr, pyra8& curr_pyr,
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

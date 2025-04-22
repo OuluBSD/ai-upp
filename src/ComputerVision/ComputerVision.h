@@ -1,9 +1,10 @@
 #ifndef _ComputerVision_ComputerVision_h_
 #define _ComputerVision_ComputerVision_h_
 
-#include <Local/Local.h>
+#include <Draw/Draw.h>
 #include <Geometry/Geometry.h>
 
+NAMESPACE_UPP
 
 #include "Cascade.h"
 #include "Struct.h"
@@ -26,5 +27,6 @@
 #include "OnepassStabilizer.h"
 #include "OrbSystem.h"
 
+END_UPP_NAMESPACE
 
 #endif

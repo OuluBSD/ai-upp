@@ -127,13 +127,6 @@ template <class T> const char* GetTypeNameT() {return typeid(T).name();}
 #ifdef NTL_MOVEABLE
 	NTL_MOVEABLE(TypeCls)
 #endif
-template <class T, class S> T*			CastPtr(S* o) {
-	return dynamic_cast<T*>(o);
-}
-
-template <class T, class S> const T*	CastConstPtr(const S* o) {
-	return dynamic_cast<const T*>(o);
-}
 
 template <class T, class S> T&			CastRef(S& o) {
 	return dynamic_cast<T&>(o);

@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void YapeTableLevel::Set(int w, int h, int r) {
@@ -735,4 +735,4 @@ int Yape::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

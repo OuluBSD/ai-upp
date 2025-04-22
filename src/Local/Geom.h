@@ -438,12 +438,6 @@ bool IsColliding(Pointf a, Pointf b, Pointf c, Pointf d);
 
 
 
-struct ColorLine : Moveable<ColorLine> {
-	Point a, b;
-	Color clr;
-	byte alpha = 255;
-};
-
 
 template <class I, class R=typename I::Pt> R FirstCorner(const I&);
 template <> inline Point FirstCorner(const Rect& r) {return r.TopLeft();}

@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool HaveCollinearPoints(Vector<Keypoint>& points, int count) {
@@ -375,4 +375,4 @@ bool Homography2D::Run(const Vector<Keypoint>& from, Vector<Keypoint>& to, Float
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

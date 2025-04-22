@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 double hypot(double a, double b) {
@@ -75,4 +75,4 @@ bool LUSolve(DMatrix<float>& A, DMatrix<float>& B) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

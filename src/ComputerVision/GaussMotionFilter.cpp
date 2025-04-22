@@ -1,7 +1,7 @@
 #include "ComputerVision.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -62,4 +62,4 @@ FloatMat& GaussMotionFilter::Stabilize(int idx, Vector<FloatMat>& motions, int f
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

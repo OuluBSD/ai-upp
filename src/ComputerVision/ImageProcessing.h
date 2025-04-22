@@ -2,9 +2,6 @@
 #define _ComputerVision_ImageProcessing_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 void Grayscale(const ByteMat& src, ByteMat& dst);
 
 
@@ -867,8 +864,5 @@ void SkinDetector(const DMatrix<T>& src, DMatrix<T>& dst) {
 	}
 }
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

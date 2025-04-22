@@ -1,9 +1,6 @@
 #ifndef _ComputerVision_FAST_h_
 #define _ComputerVision_FAST_h_
 
-
-NAMESPACE_TOPSIDE_BEGIN
-
 class FastCorners {
 	typedef Vector<int> PixVec;
 	
@@ -28,7 +25,5 @@ private:
 	
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

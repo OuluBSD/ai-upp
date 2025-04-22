@@ -2,7 +2,7 @@
 #define _ComputerVision_CachePool_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class cache {
@@ -74,6 +74,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

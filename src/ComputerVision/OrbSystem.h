@@ -1,8 +1,11 @@
 #ifndef _ComputerVision_OrbSystem_h_
 #define _ComputerVision_OrbSystem_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
+struct ColorLine : Moveable<ColorLine> {
+	Point a, b;
+	Color clr;
+	byte alpha = 255;
+};
 
 class OrbSystem {
     DMatrix<byte> lev0_img;
@@ -59,8 +62,5 @@ public:
 	Vector<ColorLine> lines;
 
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

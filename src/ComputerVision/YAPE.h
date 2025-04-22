@@ -2,9 +2,6 @@
 #define _ComputerVision_YAPE_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
 struct YapeTableLevel : Moveable<YapeTableLevel> {
 	int width, height, radius;
 	Vector<int> dirs;
@@ -34,8 +31,5 @@ public:
 	
 };
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

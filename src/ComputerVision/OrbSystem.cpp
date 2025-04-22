@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void OrbSystem::SetInput(Image i) {
@@ -473,4 +473,4 @@ void OrbSystem::render_pattern_shape() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,6 +1,6 @@
 #include "ComputerVision.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -170,4 +170,4 @@ void GroupRectangles(const Vector<BBox>& rects, Vector<BBox>& result_seq, int mi
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

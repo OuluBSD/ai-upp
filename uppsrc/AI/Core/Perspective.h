@@ -5,9 +5,9 @@
 NAMESPACE_UPP
 
 
-struct Perspective : Component
+struct PerspectiveComponent : Component
 {
-	COMPONENT_CONSTRUCTOR(Perspective)
+	COMPONENT_CONSTRUCTOR(PerspectiveComponent)
 	
 	struct Attr : Moveable<Attr> {
 		String		positive;
@@ -29,7 +29,7 @@ struct Perspective : Component
 	static int GetKind() {return METAKIND_ECS_COMPONENT_PERSPECTIVE;}
 };
 
-INITIALIZE(Perspective);
+INITIALIZE(PerspectiveComponent);
 
 
 END_UPP_NAMESPACE

@@ -42,6 +42,10 @@
 
 #include "Playground.h"
 
+#define EXTPOINT_AI_AI_H 1
+#include <ide/ExtPoint/ExtPoint.h>
+#undef EXTPOINT_AI_AI_H
+
 NAMESPACE_UPP
 
 

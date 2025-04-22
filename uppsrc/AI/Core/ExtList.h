@@ -30,7 +30,7 @@
 	DATASET_ITEM(BiographyPerspectives,	snap,				METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES,		CATEGORY_PRIVATE, "Biography Perspectives") \
 	DATASET_ITEM(Profile,				profile,			METAKIND_ECS_COMPONENT_PROFILE,						CATEGORY_PUBLIC, "Profile") \
 	DATASET_ITEM(Release,				release,			METAKIND_ECS_COMPONENT_RELEASE,						CATEGORY_PUBLIC, "Release") \
-	DATASET_ITEM(Perspective,			perspective,		METAKIND_ECS_COMPONENT_PERSPECTIVE,					CATEGORY_PUBLIC, "Perspective") \
+	DATASET_ITEM(PerspectiveComponent,	perspective,		METAKIND_ECS_COMPONENT_PERSPECTIVE,					CATEGORY_PUBLIC, "Perspective") \
 	DATASET_ITEM(Artist,				artist,				METAKIND_ECS_COMPONENT_ARTIST,						CATEGORY_PUBLIC, "Artist") \
 	DATASET_ITEM(ReleaseBriefing,		rel_brief,			METAKIND_ECS_COMPONENT_RELEASE_BRIEFING,			CATEGORY_PUBLIC, "Release Briefing") \
 	DATASET_ITEM(ReleaseCoverImage,		rel_cover_img,		METAKIND_ECS_COMPONENT_RELEASE_COVER_IMAGE,			CATEGORY_PUBLIC, "Release Cover Image") \

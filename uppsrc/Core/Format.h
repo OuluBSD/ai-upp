@@ -135,3 +135,5 @@ inline String         Format64(uint64 a)                    { return FormatUInt6
 inline String         FormatDoubleFix(double x, int digits) { return FormatF(x, digits); }
 inline String         FormatDoubleExp(double x, int digits) { return FormatE(x, digits); }
 
+inline String         HexStr(int64 i) {return Format("0x%X", i);}
+inline String         HexStr(void* i) {return Format("0x%X", (int64)i);}

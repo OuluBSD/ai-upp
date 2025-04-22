@@ -549,3 +549,66 @@ inline int PopCount32(dword i) {
     return (((i + (i >> 4))& 0xF0F0F0F)* 0x1010101) >> 24;
     #endif
 }
+
+class RunningFlagSingle {
+	bool running = false, stopped = true;
+	
+public:
+	RunningFlagSingle() {}
+	bool IsRunning() const {return running;}
+	void SetStopped() {stopped = true;}
+	void SetNotRunning() {running = false;}
+	void Start() {running = true; stopped = false;}
+	void Stop();
+	
+};
+
+struct RunningFlag {
+	int sleep_time = 100;
+	bool running = false;
+	Atomic workers_running;
+	
+	RunningFlag() {workers_running = 0;}
+	void Start(int count) {Stop(); running = true; workers_running = count;}
+	void Stop();
+	void SetNotRunning() {running = false;}
+	void IncreaseRunning() {workers_running++;}
+	int DecreaseRunning() {int r = workers_running--; if (workers_running == 0) running = false; return r-1;}
+	bool IsRunning() const {return running;}
+	void Wait();
+};
+
+struct CmdArg {
+	char key;
+	String desc, value_desc;
+	bool has_value;
+};
+
+struct CmdInput {
+	char key;
+	String value;
+};
+
+class CommandLineArguments {
+	static const int max_inputs = 300;
+	static const int max_args = 100;
+	
+	Array<CmdArg>				args;
+	Array<CmdInput>				inputs;
+	VectorMap<String,Value>		vars;
+	
+public:
+	CommandLineArguments() {}
+	
+	void AddArg(char key, const char* desc, bool has_value, String value_desc="value");
+	bool Parse();
+	void PrintHelp();
+	
+	int GetInputCount() const {return inputs.GetCount();}
+	bool IsArg(char c) const;
+	String GetArg(char c) const;
+	
+	const Array<CmdInput>& GetInputs() const {return inputs;}
+	const VectorMap<String,Value>& GetVariables() const {return vars;}
+	
+};

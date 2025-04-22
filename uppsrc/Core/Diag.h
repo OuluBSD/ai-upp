@@ -23,6 +23,7 @@ String   GetStdLogPath();
 
 Stream&  UppLog();
 void     SetUppLog(Stream& log);
+void     SetCoutLog();
 
 typedef void (*LogLineFn)(const char *buffer, int len, int depth);
 

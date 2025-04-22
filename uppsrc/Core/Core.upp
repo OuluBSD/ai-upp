@@ -193,6 +193,8 @@ file
 	Socket.cpp,
 	Http.cpp,
 	WebSocket.cpp,
+	Daemon.h,
+	Daemon.cpp,
 	"Runtime linking" readonly separator,
 	dli.h,
 	dli_header.h,

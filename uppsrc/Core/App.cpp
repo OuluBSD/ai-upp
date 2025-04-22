@@ -892,7 +892,7 @@ String FindShareDir() {
 	#elif defined flagUWP && !defined flagRELPKG
 	String home_upphub_share = ConfigFile("share");
 	#elif defined flagWIN32
-	String home_upphub_share = AppendFileName("Shared");
+	String home_upphub_share = GetHomeDirFile("Shared");
 	#else
 	String home_upphub_share = AppendFileName(GetHomeDirFile(".share"), "u++");
 	#endif

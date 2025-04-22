@@ -335,6 +335,10 @@ struct ManagedStatic {
 	void Clear() {o.Clear();}
 };
 
+template <class T> ManagedStatic<T>::ManagedStatic(const char* f, int l) : file(f), line(l) {}
+template <class T> template <class Arg>
+ManagedStatic<T>::ManagedStatic(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {}
+
 template <class T>
 struct ManagedStaticThreadLocal {
 	T o;
@@ -349,6 +353,10 @@ struct ManagedStaticThreadLocal {
 	void Destruct() {if (!destructed) {Clear(); destructed = true;}}
 	void Clear() {o.Clear();}
 };
+
+template <class T> ManagedStaticThreadLocal<T>::ManagedStaticThreadLocal(const char* f, int l) : file(f), line(l) {}
+template <class T> template <class Arg>
+ManagedStaticThreadLocal<T>::ManagedStaticThreadLocal(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {}
 
 #define MAKE_STATIC(t, x) static ::UPP::ManagedStatic<t> __##x(__FILE__,__LINE__); t& x = __##x.o;
 #define MAKE_STATIC_(t, x, param) static ::UPP::ManagedStatic<t> __##x(__FILE__,__LINE__,param); t& x = __##x.o;

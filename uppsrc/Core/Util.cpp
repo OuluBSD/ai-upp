@@ -999,4 +999,14 @@ String GetP7Signature(const String& data, const String& cert_pem, const String& 
 	return GetP7Signature(data, data.GetLength(), cert_pem, pkey_pem);
 }
 
+bool IsClose(double a, double b) {
+	if (IsFin(a) && IsFin(b)) {
+		double diff = fabs(a - b);
+		return diff < 0.001;
+	}
+	else {
+		return *(uint64*)&a == *(uint64*)&b;
+	}
+}
+
 }

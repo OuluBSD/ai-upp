@@ -209,6 +209,7 @@ file
 	VCS.h,
 	VCS.cpp,
 	Visitor.h,
+	Visitor.cpp,
 	Math readonly separator,
 	Math.h,
 	Math.cpp,

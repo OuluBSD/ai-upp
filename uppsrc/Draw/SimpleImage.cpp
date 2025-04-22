@@ -434,6 +434,7 @@ Image MirrorVertical(const Image& img) {
 	#if 1
 	
 	TODO
+	return Image();
 	
 	#else
 	Image::ImageDataRef* data = img.GetData();

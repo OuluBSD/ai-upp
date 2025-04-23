@@ -254,8 +254,7 @@ EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_
 	return EscValue();
 }
 
-#if USE_ESC_BYTECODE
-EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
+EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
 {
 	Esc sub(global, expression, oplimit, "", 0);
 	auto& var = sub.Var();
@@ -265,18 +264,6 @@ EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, i
 	v = sub.GetExp();
 	for(int i = 0; i < var.GetCount(); i++)
 		global.GetAdd(var.GetKey(i)) = var[i];
-	return v;
-}
-#else
-EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
-{
-	Esc sub(global, expression, oplimit, "", 0);
-	for(int i = 0; i < global.GetCount(); i++)
-		sub.var.Add(global.GetKey(i), global[i]);
-	EscValue v;
-	v = sub.GetExp();
-	for(int i = 0; i < sub.var.GetCount(); i++)
-		global.GetAdd(sub.var.GetKey(i)) = sub.var[i];
 	return v;
 }
 
@@ -300,19 +287,31 @@ String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
 	String out;
 	const char *term = doc;
 	bool cond = true;
-	while(*term)
+	while(*term) {
 		if(term[0] == '<' && term[1] == ':') {
 			term += 2;
 			try {
 				Esc sub(global, term, oplimit, "", 0);
+				auto& var = sub.Var();
 				for(int i = 0; i < global.GetCount(); i++)
-					sub.var.Add(global.GetKey(i), global[i]);
+					var.Add(global.GetKey(i), global[i]);
 				EscValue v;
 				if(*term == '{') {
 					sub.Run();
 					v = sub.return_value;
 				}
 				else
+				#if USE_ESC_BYTECODE
+				{
+					String sub_out;
+					cond = sub.RunExpand(sub_out);
+					if(cond)
+						out << sub_out;
+					int len = sub.GetCodeLength();
+					ASSERT(len > 0);
+					term += len;
+				}
+				#else
 				if(sub.Char('!')) {
 					EscValue& v = global.GetPut(sub.ReadId());
 					v = ReadLambda(sub);
@@ -332,6 +331,7 @@ String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
 					out << format(StdValueFromEsc(v));
 				sub.Spaces();
 				term = sub.GetPtr();
+				#endif
 				if(term[0] != ':' || term[1] != '>')
 					throw CParser::Error("missing :>" + String(term));
 				term += 2;
@@ -345,8 +345,8 @@ String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
 				out.Cat(*term);
 			term++;
 		}
+	}
 	return out;
 }
-#endif
 
 }

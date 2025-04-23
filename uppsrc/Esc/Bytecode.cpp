@@ -683,6 +683,35 @@ void EscCompiler::Exp()
 	stack_level++;
 }
 
+IrValue EscCompiler::GetExpand() {
+	TODO
+	#if 0
+	if(Char( '!')) {
+		//Emit(IR_PUSH_RSELF_EMPTY);
+		//String id = ReadId();
+			
+		Emit(IR_PUSH_R_EMPTY);
+		//EscValue& v = global.GetPut(sub.ReadId());
+		//v = ReadLambda(sub);
+		IrValue a = ReadLambda();
+		Emit(IR_POP_R);
+		return a;
+	}
+	else
+	if(sub.Char('?'))
+		cond = IsTrue(sub.GetExp());
+	else
+	if(sub.Char('/'))
+		cond = !cond;
+	else
+	if(sub.Char('.'))
+		cond = true;
+	else
+		v = sub.GetExp();
+	#endif
+	return IrValue();
+}
+
 IrValue EscCompiler::GetExp() {
 	Emit(IR_PUSH_R_EMPTY);
 	Exp();
@@ -1129,8 +1158,6 @@ void EscCompiler::OnError(String msg) {
 	LOG("EscCompiler::OnError: " << msg);
 	return;
 }
-
-
 
 }
 

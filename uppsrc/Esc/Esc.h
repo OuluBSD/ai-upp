@@ -341,6 +341,8 @@ struct EscEscape {
 	  : esc(esc), self(self), arg(arg) {}
 };
 
+using EscGlobal = ArrayMap<String, EscValue>;
+
 void Escape(ArrayMap<String, EscValue>& globals, const char *function, void (*escape)(EscEscape& e));
 
 inline // resolve overloading with Function...

@@ -118,7 +118,7 @@ public:
 		T* out = 0;
 		Event<> cb;
 		void Execute(const void* data, int data_len) override {
-			ReadEther s(data, data_len);
+			MemStream s((void*)data, data_len);
 			Etherize(s, *out);
 			cb();
 		}
@@ -136,7 +136,7 @@ public:
 	struct CallEventSerializedT : CallBase {
 		Event<const T&> cb;
 		void Execute(const void* data, int data_len) override {
-			ReadEther s(data, data_len);
+			MemStream s((void*)data, data_len);
 			T o;
 			s % o;
 			cb(o);
@@ -173,7 +173,7 @@ public:
 	bool CallEventSerialized(uint32 magic, const In& in, Event<const Out&> out) {
 		CallEventSerializedT<Out>* cb = new CallEventSerializedT<Out>;
 		cb->cb = out;
-		WriteEther ss;
+		StringStream ss;
 		ss % const_cast<In&>(in);
 		String data = ss.GetResult();
 		return CallMem(magic, data.Begin(), data.GetCount(), 0, cb);
@@ -192,7 +192,7 @@ public:
 		CallSerializedT<Out>* cb = new CallSerializedT<Out>;
 		cb->cb = user_cb;
 		cb->out = &out;
-		WriteEther ss;
+		StringStream ss;
 		ss.SetStoring();
 		ss % in;
 		String in_data = ss.GetResult();

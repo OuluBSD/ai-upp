@@ -1,0 +1,10 @@
+uses
+	AI;
+
+file
+	GraphTests.h,
+	GraphTests.cpp;
+
+mainconfig
+	"" = "AI";
+

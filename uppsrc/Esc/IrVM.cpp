@@ -228,10 +228,7 @@ EscValue& Esc::Self() {
 
 void Esc::ThrowError(const char *s) {
 	LLOG("Esc::Error: " << s);
-	LLOG(~String(term, min((int)strlen((const char *)term), 512)));
-	Pos pos = GetPos();
-	Error err(fn + Format("(%d,%d): ", line, pos.GetColumn()) + s);
-//	err.term = (const char *)term;
+	Exc err(s);
 	throw err;
 }
 
@@ -628,13 +625,18 @@ void IrVM::SetReturnArg(IrVM& vm, String arg) {
 void IrVM::InitSubcall() {
 	ASSERT(fn);
 	EscLambda& l			= *fn;
-	Array<SRVal>& arg	= *parent->call_arg;
+	Array<SRVal>& arg		= *parent->call_arg;
 	
 	if(l.varargs) {
 		EscValue& argv = var.GetAdd("argv");
 		argv.SetEmptyArray();
-		for(int i = l.arg.GetCount(); i < arg.GetCount(); i++)
-			Get(arg[i], argv.ArrayAdd(EscValue()));
+		for(int i = l.arg.GetCount(); i < arg.GetCount(); i++) {
+			int j = argv.GetCount();
+			argv.ArrayAdd(EscValue());
+			EscValue v;
+			Get(arg[i], v);
+			argv.ArraySet(j, v);
+		}
 	}
 }
 
@@ -1043,8 +1045,7 @@ void IrVM::ExecuteInstruction(const IR& ir) {
 		a = ReadVar(ir.arg[0]);
 		b = ReadVar(ir.arg[1]);
 		if(a.IsArray() && b.IsArray()) {
-			if(!a.Replace(a.GetCount(), 0, b))
-				OutOfMemory();
+			a.Replace(a.GetCount(), 0, b);
 			Assign(r_stack.Top(), a);
 		}
 		else
@@ -1420,7 +1421,7 @@ void IrVM::GetSbs(const SRVal& r, EscValue& v) {
 						}
 					}
 					if(i >= 0 && n >= 0 && i + n <= count)
-						v = v.ArrayGetMid(i, n);
+						v = v.ArrayGet(i, n);
 					else
 						OnError("slice out of range");
 				}
@@ -1527,8 +1528,7 @@ void IrVM::WriteRegister(const IrValue& reg, const EscValue& v) {
 void IrVM::AddAssign1(SRVal& r, const EscValue& a, const EscValue& b) {
 	if (a.IsArray() && b.IsArray()) {
 		EscValue aa = a;
-		if (!aa.Replace(aa.GetCount(), 0, b))
-			OutOfMemory();
+		aa.Replace(aa.GetCount(), 0, b);
 		r = aa;
 	}
 	else if (!(a.IsArray() && b.IsVoid())) {
@@ -1548,8 +1548,7 @@ void IrVM::AddAssign1(SRVal& r, const EscValue& a, const EscValue& b) {
 void IrVM::AddAssign2(SRVal& r, const EscValue& a, const EscValue& b) {
 	if (a.IsArray() && b.IsArray()) {
 		EscValue aa = a;
-		if (!aa.Replace(aa.GetCount(), 0, b))
-			OutOfMemory();
+		aa.Replace(aa.GetCount(), 0, b);
 		Assign(r, aa);
 	}
 	else if (!(a.IsArray() && b.IsVoid())) {
@@ -1603,8 +1602,7 @@ void IrVM::Assign(EscValue& val, const Vector<EscValue>& sbs, int si, const EscV
 				EscValue x = val.ArrayGet((int)i);
 				val.ArraySet((int)i, 0.0);
 				Assign(x, sbs, si, src);
-				if(!val.ArraySet((int)i, x))
-					OutOfMemory();
+				val.ArraySet((int)i, x);
 				return;
 			}
 		}
@@ -1639,8 +1637,7 @@ void IrVM::Assign(EscValue& val, const Vector<EscValue>& sbs, int si, const EscV
 				if(i < 0)
 					i = count + i;
 				if(i >= 0 && i < INT_MAX) {
-					if(!val.ArraySet((int)i, src))
-						OnError("out of memory");
+					val.ArraySet((int)i, src);
 					return;
 				}
 			}
@@ -1686,10 +1683,8 @@ EscValue IrVM::MulArray(EscValue array, EscValue times)
 	r.SetEmptyArray();
 	for(int n = times.GetInt(); n > 0; n >>= 1) {
 		if(n & 1)
-			if(!r.Append(array))
-				OutOfMemory();
-		if(!array.Append(array))
-			OutOfMemory();
+			r.Append(array);
+		array.Append(array);
 		TestLimit();
 	}
 	return r;
@@ -1782,8 +1777,13 @@ EscValue IrVM::ExecuteLambda(const String& id, EscValue& lambda, SRVal& self, Ar
 		if(l.varargs) {
 			EscValue& argv = sub.Var().GetAdd("argv");
 			argv.SetEmptyArray();
-			for(int i = l.arg.GetCount(); i < arg.GetCount(); i++)
-				Get(arg[i], argv.ArrayAdd(EscValue()));
+			for(int i = l.arg.GetCount(); i < arg.GetCount(); i++) {
+				int j = argv.GetCount();
+				argv.ArrayAdd(EscValue());
+				EscValue v;
+				Get(arg[i], v);
+				argv.ArraySet(j, v);
+			}
 		}
 		sub.Run();
 		retval = sub.return_value;

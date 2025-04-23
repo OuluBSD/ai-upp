@@ -3,7 +3,7 @@
 
 #include <Core/Core.h>
 
-#ifndef flagBYTEVM
+#ifdef flagOLDESC
 	#define USE_ESC_BYTECODE 0
 #else
 	#define USE_ESC_BYTECODE 1

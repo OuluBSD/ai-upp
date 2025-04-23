@@ -92,13 +92,9 @@ void ESC_reverse(EscEscape& e)
 }
 
 struct EscCmp {
-	Esc *esc;
+	EscEscape::Vm *esc;
 	bool operator()(const EscValue& a, const EscValue& b) const {
-		#if USE_ESC_BYTECODE
-		return esc->GetVM().DoCompare(a, b, "< (sort)") < 0;
-		#else
 		return esc->DoCompare(a, b, "< (sort)") < 0;
-		#endif
 	}
 };
 

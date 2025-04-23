@@ -273,7 +273,7 @@ public:
 	
 	template <class In, class Out>
 	bool CallSerialized(uint32 magic, In& in, Out& out) {
-		WriteEther ss;
+		StringStream ss;
 		ss.SetStoring();
 		ss % in;
 		String in_data = ss.GetResult();
@@ -281,8 +281,7 @@ public:
 		out_data.SetCount(0);
 		if (!CallMem(magic, (const void*)in_data.Begin(), in_data.GetCount(), out_data))
 			return false;
-		ReadEther ms(out_data.Begin(), out_data.GetCount());
-		//ms.SetLoading();
+		MemStream ms(out_data.Begin(), out_data.GetCount());
 		ms % out;
 		return true;
 	}

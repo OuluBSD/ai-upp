@@ -168,11 +168,11 @@ void EscCompiler::Term()
 		return;
 	}
 	if(IsString()) {
-		Emit1(IR_ASSIGN_R, IrValue(FromUtf8(ReadString())));
+		Emit1(IR_ASSIGN_R, IrValue(ReadString().ToWString()));
 		return;
 	}
 	if(IsChar('\'')) {
-		WString s = FromUtf8(ReadString('\'', true));
+		WString s = ReadString('\'', true).ToWString();
 		if(s.GetLength() != 1)
 			ThrowError("invalid character literal");
 		Emit1(IR_ASSIGN_R, (int64)s[0]);

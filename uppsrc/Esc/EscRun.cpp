@@ -176,7 +176,7 @@ void Scan(ArrayMap<String, EscValue>& global, const char *file, const char *file
 
 #if USE_ESC_BYTECODE
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int op_limit)
+                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit)
 {
 	const EscLambda& l = lambda.GetLambda();
 	if(arg.GetCount() != l.arg.GetCount()) {
@@ -254,7 +254,20 @@ EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_
 	return EscValue();
 }
 
-#if !USE_ESC_BYTECODE
+#if USE_ESC_BYTECODE
+EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
+{
+	Esc sub(global, expression, oplimit, "", 0);
+	auto& var = sub.Var();
+	for(int i = 0; i < global.GetCount(); i++)
+		var.Add(global.GetKey(i), global[i]);
+	EscValue v;
+	v = sub.GetExp();
+	for(int i = 0; i < var.GetCount(); i++)
+		global.GetAdd(var.GetKey(i)) = var[i];
+	return v;
+}
+#else
 EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
 {
 	Esc sub(global, expression, oplimit, "", 0);

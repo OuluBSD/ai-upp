@@ -138,7 +138,7 @@ struct IrVM {
 	VmState*				s;
 	VmState					state;
 	RunningFlagSingle		flag;
-	int&					op_limit;
+	int64&					op_limit;
 	Vector<int>				lbl_pos;
 	VectorMap<String, int>	lbl_names;
 	bool					fail = 0;
@@ -158,7 +158,7 @@ struct IrVM {
 	ArrayMap<String, EscValue>&	var;
 	const Vector<IR>&			ir;
 	
-	IrVM(Esc* esc, ArrayMap<String, EscValue>& g, ArrayMap<String, EscValue>& v, int& op_limit, const Vector<IR>& ir)
+	IrVM(Esc* esc, ArrayMap<String, EscValue>& g, ArrayMap<String, EscValue>& v, int64& op_limit, const Vector<IR>& ir)
 		: esc(*esc), global(g), var(v), op_limit(op_limit), ir(ir)
 		{s = &state;}
 	
@@ -205,7 +205,7 @@ struct IrVM {
 
 struct Esc {
 	ArrayMap<String, EscValue>& global;
-	int& oplimit;
+	int64& oplimit;
 	
 	typedef enum {
 		EVALX,
@@ -244,7 +244,7 @@ protected:
 	TimeStop ts;
 	
 public:
-	Esc(ArrayMap<String, EscValue>& global, const char *s, int& oplimit,
+	Esc(ArrayMap<String, EscValue>& global, const char *s, int64& oplimit,
 	    const String& fn, int line = 1)
 		: global(global), oplimit(oplimit) {
 	    Call& c = calls.Add();
@@ -254,7 +254,7 @@ public:
 	    c.line = line;
 	}
 	
-	Esc(ArrayMap<String, EscValue>& global, int& oplimit, EscLambda& l)
+	Esc(ArrayMap<String, EscValue>& global, int64& oplimit, EscLambda& l)
 		: global(global), oplimit(oplimit) {
 	    Call& c = calls.Add();
 	    c.type = LAMBDA;

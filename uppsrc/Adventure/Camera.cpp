@@ -33,8 +33,7 @@ void Program::CameraFollow(SObj actor) {
 	
 	// auto-switch to room actor resides in
 	SObj r = GetInRoom(cam_following_actor);
-	ASSERT(r);
-	if (r != room_curr)
+	if (r && r != room_curr)
 		ChangeRoom(r, 1);
 }
 
@@ -98,10 +97,12 @@ bool Program::Fades(int fade, int dir) {
 }
 
 Point Program::CenterCamera(Point val) {
-	int map_w = room_curr("map")(2);
+	ASSERT(room_curr.IsMap());
+	auto v = room_curr.MapGet("map").ArrayGet(2);
+	int map_w = v.GetInt();
 	
 	Point pt(0,0);
-	pt.x = Mid(0, val.x-64, (map_w*8) -128 );
+	pt.x = clamp(val.x-64, 0, (map_w*8) -128 );
 	return pt;
 }
 

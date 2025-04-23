@@ -7,12 +7,12 @@ SObj Program::GetSelectedActor() {
 	auto& global = ctx.global;
 	//DUMPC(global.GetKeys());
 	//ASSERT(global.Find("selected_actor") >= 0);
-	return global.Get("selected_actor", HiValue());
+	return global.Get("selected_actor", EscValue());
 }
 
 
 // actions to perform when object doesn't have an entry for (verb
-void Program::UnsupportedAction(HiValue verb, SObj& obj1, SObj& obj2) {
+void Program::UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2) {
 	bool is_actor = HasFlag(Classes(obj1), "class_actor");
 
 	if (verb == V_WALKTO)
@@ -79,7 +79,7 @@ void Program::SayLineActor(SObj& actor, String msg, bool use_caps, float duratio
 }
 
 void Program::SayLine(String msg) {
-	HiValue selected_actor = ctx.GetGlobal("selected_actor");
+	EscValue selected_actor = ctx.GetGlobal("selected_actor");
 	if (selected_actor)
 		SayLineActor(selected_actor, msg, false, 0);
 }
@@ -87,13 +87,13 @@ void Program::SayLine(String msg) {
 // stop everyone talking & remove displayed text
 void Program::StopTalking() {
 	talking_curr.Clear();
-	talking_actor = HiValue();
+	talking_actor = EscValue();
 }
 
 void Program::StopActor(SObj& actor) {
 	// 0=stopped, 1=walking, 2=arrived
-	actor.Set("moving", 0);
-	actor.Set("curr_anim", 0);
+	actor.MapSet("moving", 0);
+	actor.MapSet("curr_anim", 0);
 	
 	// no need to) {DoAnim(idle) here, as actor_draw code handles this
 	ClearCurrCmd();
@@ -102,7 +102,7 @@ void Program::StopActor(SObj& actor) {
 // walk actor to position
 void Program::WalkTo(SObj a, int x, int y) {
 	Point actor_cell_pos = GetCellPos(a);
-	HiValue map = room_curr("map");
+	EscValue map = room_curr("map");
 	int map_x = map(0,0);
 	int map_y = map(1,0);
 	int celx = x / 8 + map_x;
@@ -112,7 +112,7 @@ void Program::WalkTo(SObj a, int x, int y) {
 	// use pathfinding!
 	FindPath(actor_cell_pos, target_cell_pos, path);
 	
-	a.Set("moving", 1);
+	a.MapSet("moving", 1);
 	
 	for (int c = 0; c < path.GetCount(); c++) {
 		Point p = path[c];
@@ -159,28 +159,28 @@ void Program::WalkTo(SObj a, int x, int y) {
 					return;
 				}
 			    
-				a.Set("flip", step_x < 0);
+				a.MapSet("flip", step_x < 0);
 				    
 				// choose walk anim based on dir
 				//if (abs(step_x) < abs(step_y) {
 				if (abs(step_x) < scaled_speed / 2) {
 					// vertical walk
-					a.Set("curr_anim", step_y > 0 ? a("walk_anim_front") : a("walk_anim_back"));
-					a.Set("face_dir", step_y > 0 ? "face_front" : "face_back");
+					a.MapSet("curr_anim", step_y > 0 ? a("walk_anim_front") : a("walk_anim_back"));
+					a.MapSet("face_dir", step_y > 0 ? "face_front" : "face_back");
 				}
 				else {
 					// horizontal walk
-					a.Set("curr_anim", a("walk_anim_side"));
+					a.MapSet("curr_anim", a("walk_anim_side"));
 					
 					// face dir (at end of walk)
-					a.Set("face_dir", a("flip") ? "face_left" : "face_right");
+					a.MapSet("face_dir", a("flip") ? "face_left" : "face_right");
 				}
 				
 				// actually move actor
 				actor_x = a("x");
 				actor_y = a("y");
-				a.Set("x", actor_x + step_x);
-				a.Set("y", actor_y + step_y);
+				a.MapSet("x", actor_x + step_x);
+				a.MapSet("y", actor_y + step_y);
 				
 				// yield();
 			}
@@ -188,7 +188,7 @@ void Program::WalkTo(SObj a, int x, int y) {
 		}
 	}
 	
-	a.Set("moving", 2);
+	a.MapSet("moving", 2);
 }
 
 void Program::WaitForActor(SObj& actor) {
@@ -206,7 +206,7 @@ void Program::WaitForActor(SObj& actor) {
 bool Program::WalkScript() {
 	auto& global = ctx.global;
 	
-	HiValue selected_actor = global.Get("selected_actor");
+	EscValue selected_actor = global.Get("selected_actor");
 	WalkTo(selected_actor, cursor_x + cam.x, cursor_y - stage_top);
 	
 	// clear current command
@@ -214,7 +214,7 @@ bool Program::WalkScript() {
 	return false;
 }
 
-bool Program::VerbScript(HiValue vc2) {
+bool Program::VerbScript(EscValue vc2) {
 	auto& global = ctx.global;
 	
 	// if (obj not in inventory (or about to give/use it)...
@@ -257,7 +257,7 @@ bool Program::VerbScript(HiValue vc2) {
 		String verb_name = verb_curr("name");
 		SObj verb_lambda = nc_verbs(verb_name);
 		ASSERT(verb_lambda.IsLambda());
-		StartScriptHi(0, verb_lambda, false, noun1_curr, noun2_curr);
+		StartScriptEsc(0, verb_lambda, false, noun1_curr, noun2_curr);
 	}
 	else {
 		// check for door

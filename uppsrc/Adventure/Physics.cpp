@@ -13,11 +13,11 @@ void Program::CheckCollisions() {
 		return;
 		
 	// reset hover collisions
-	hover_curr_verb			= HiValue();
-	hover_curr_default_verb	= HiValue();
-	hover_curr_object		= HiValue();
-	//hover_curr_sentence	= HiValue();
-	hover_curr_arrow		= HiValue();
+	hover_curr_verb			= EscValue();
+	hover_curr_default_verb	= EscValue();
+	hover_curr_object		= EscValue();
+	//hover_curr_sentence	= EscValue();
+	hover_curr_arrow		= EscValue();
 	
 	// are we in dialog mode?
 	if (dialog_curr && dialog_curr.visible) {
@@ -33,12 +33,12 @@ void Program::CheckCollisions() {
 	ResetZPlanes();
 	
 	// check room/object collisions
-	HiValue objects = room_curr["objects"];
-	Vector<HiValue>& room_arr = const_cast<Vector<HiValue>&>(objects.GetArray());
-	for (HiValue& obj : room_arr) {
+	EscValue objects = room_curr("objects");
+	Vector<EscValue>& room_arr = const_cast<Vector<EscValue>&>(objects.GetArray());
+	for (EscValue& obj : room_arr) {
 		// capture bounds (even for ("invisible", but not untouchable/dependent, objects)
-		HiValue c = Classes(obj);
-		HiValue dep_on = global.Get(obj.MapGet("dependent_on").ToString(), HiValue());
+		EscValue c = Classes(obj);
+		EscValue dep_on = global.Get(obj.MapGet("dependent_on").ToString(), EscValue());
 		if ((c.IsVoid() || (!c.IsVoid() && !HasFlag(c, "class_untouchable")))
 			&& (dep_on.IsVoid() // object has a valid dependent state?
 			 || dep_on.MapGet("state") == obj.MapGet("dependent_on_state"))) {
@@ -48,7 +48,7 @@ void Program::CheckCollisions() {
 		}
 		else {
 			// reset bounds
-			obj.Set("bounds", HiValue());
+			obj.MapSet("bounds", EscValue());
 		}
 		
 		if (IsCursorColliding(obj)) {
@@ -67,13 +67,13 @@ void Program::CheckCollisions() {
 	SObj selected_actor = GetSelectedActor();
 	
 	// check actor collisions
-	SObj actors = global.Get("actors", HiValue());
+	SObj actors = global.Get("actors", EscValue());
 	if (actors.IsArray()) {
 		int actor_count = actors.GetArray().GetCount();
 		for(int k = 0; k < actor_count; k++) {
 			SObj actor = actors.ArrayGet(k);
-			if (actor["in_room"] == room_curr) {
-				RecalculateBounds(actor, (int)actor["w"]*8, (int)actor["h"]*8, cam.x, cam.y);
+			if (actor("in_room") == room_curr) {
+				RecalculateBounds(actor, (int)actor("w")*8, (int)actor("h")*8, cam.x, cam.y);
 				
 				// recalc z-plane
 				RecalcZPlane(actor);
@@ -87,26 +87,29 @@ void Program::CheckCollisions() {
 	
 	if (selected_actor) {
 		// check ui/inventory collisions
-		for (const HiValue& v : verbs.GetArray()) {
+		for (const EscValue& v : verbs.GetArray()) {
 			if (IsCursorColliding(v))
 				hover_curr_verb = v;
 		}
-		for (const HiValue& a : ui_arrows.GetArray()) {
+		for (const EscValue& a : ui_arrows.GetArray()) {
 			if (IsCursorColliding(a))
 				hover_curr_arrow = a;
 		}
 		    
 		// check room/object collisions
-		for (const HiValue& obj : selected_actor["inventory"].GetArray()) {
+		for (const EscValue& obj : selected_actor("inventory").GetArray()) {
 			if (IsCursorColliding(obj)) {
 				hover_curr_object = obj;
 				// pickup override for (inventory objects
 				if (verb_curr == V_PICKUP && !hover_curr_object.MapGet("owner").IsVoid())
-					verb_curr = HiValue();
+					verb_curr = EscValue();
 			}
 			// check for (disowned objects!
-			if (obj.MapGet("owner") != selected_actor)
-				selected_actor["inventory"].ArrayRemoveValue(obj);
+			if (obj.MapGet("owner") != selected_actor) {
+				auto arr = selected_actor("inventory");
+				arr.ArrayRemoveValue(obj);
+				selected_actor.MapSet("inventory", arr);
+			}
 		}
 		
 		// default to walkto (if (nothing set)
@@ -129,10 +132,10 @@ void Program::ResetZPlanes() {
 void Program::RecalcZPlane(SObj& obj) {
 	// calculate the correct z-plane
 	// based on obj || x,y pos + elevation
-	HiValue y = obj.MapGet("y");
-	HiValue h = obj.MapGet("h");
-	HiValue z = obj.MapGet("z");
-	HiValue offset_y = obj.MapGet("offset_y");
+	EscValue y = obj.MapGet("y");
+	EscValue h = obj.MapGet("h");
+	EscValue z = obj.MapGet("z");
+	EscValue offset_y = obj.MapGet("offset_y");
 	int idx;
 	if (z.IsInt())
 		idx = z.GetInt();
@@ -174,19 +177,19 @@ void Program::RecalculateBounds(SObj o, int w, int h, int cam_off_x, int cam_off
 		int offset_y = y - (h * 8) + 1;
 		x = offset_x;
 		y = offset_y;
-		o.Set("offset_x", offset_x);
-		o.Set("offset_y", offset_y);
+		o.MapSet("offset_x", offset_x);
+		o.MapSet("offset_y", offset_y);
 	}
 	
-	HiValue bounds;
+	EscValue bounds;
 	bounds.SetEmptyMap();
-	bounds.Set("x", x);
-	bounds.Set("y", y + stage_top);
-	bounds.Set("x1", x + w - 1);
-	bounds.Set("y1", y + h + stage_top - 1);
-	bounds.Set("cam_off_x", cam_off_x);
-	bounds.Set("cam_off_y", cam_off_y);
-	o.Set("bounds", bounds);
+	bounds.MapSet("x", x);
+	bounds.MapSet("y", y + stage_top);
+	bounds.MapSet("x1", x + w - 1);
+	bounds.MapSet("y1", y + h + stage_top - 1);
+	bounds.MapSet("cam_off_x", cam_off_x);
+	bounds.MapSet("cam_off_y", cam_off_y);
+	o.MapSet("bounds", bounds);
 }
 
 
@@ -251,15 +254,15 @@ void Program::FindPath(Point start, Point goal, Vector<Point>& path) {
 				
 				Point next_pt(current.pt.x + x, current.pt.y + y);
 				
-				if (    next_pt.x >= rc_map_x && next_pt.x <= rc_map_x + rc_map_w
-					and next_pt.y >= rc_map_y && next_pt.y <= rc_map_y + rc_map_h
-					and IsCellWalkable(next_pt.x, next_pt.y)
+				if (   next_pt.x >= rc_map_x && next_pt.x <= rc_map_x + rc_map_w
+					&& next_pt.y >= rc_map_y && next_pt.y <= rc_map_y + rc_map_h
+					&& IsCellWalkable(next_pt.x, next_pt.y)
 					
 					// squeeze check for (corners
-					and((abs(x) != abs(y))
-						or IsCellWalkable(next_pt.x, current.pt.y)
-						or IsCellWalkable(next_pt.x - x, next_pt.y)
-						or enable_diag_squeeze)) {
+					&&((abs(x) != abs(y))
+						|| IsCellWalkable(next_pt.x, current.pt.y)
+						|| IsCellWalkable(next_pt.x - x, next_pt.y)
+						|| enable_diag_squeeze)) {
 					// process a valid neighbor
 					double new_cost = current.cost + (x * y == 0 ? 1.0 : 1.414); // diagonals cost more
 					
@@ -311,14 +314,14 @@ bool Program::IsCursorColliding(const Sentence& obj) {
 
 bool Program::IsCursorColliding(const SObj& obj) {
 	// check params / not in cutscene
-	HiValue bounds = obj("bounds");
+	EscValue bounds = obj("bounds");
 	if (!bounds || cutscene_curr) return false;
 
-	int cam_off_x = bounds["cam_off_x"];
-	int x1 = bounds["x1"];
-	int y1 = bounds["y1"];
-	int x = bounds["x"];
-	int y = bounds["y"];
+	int cam_off_x = bounds("cam_off_x");
+	int x1 = bounds("x1");
+	int y1 = bounds("y1");
+	int x = bounds("x");
+	int y = bounds("y");
 	
 	return !((cursor_x + cam_off_x > x1 || cursor_x + cam_off_x < x) || (cursor_y > y1 || cursor_y < y));
 }

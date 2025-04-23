@@ -23,12 +23,12 @@ struct Room {
 	
 };
 
-using SObj = HiValue;
+using SObj = EscValue;
 using StrMap = VectorMap<String,String>;
 using StrVec = Vector<String>;
 
-Color ReadColor(const SObj& o, HiValue key, Color def);
-bool TryReadColor(const SObj& o, HiValue key, Color& c);
+Color ReadColor(const SObj& o, EscValue key, Color def);
+bool TryReadColor(const SObj& o, EscValue key, Color& c);
 bool ReadFlag(const SObj& o, String key);
 bool HasArrayValue(SObj arr, SObj value);
 
@@ -96,7 +96,7 @@ struct Dialog {
 	
 };
 /*
-struct Script : public HiAnimProgram {
+struct Script : public EscAnimProgram {
 	int op_limit = 1000000;
 	static const int op_limit_at_once = 100;
 	
@@ -106,22 +106,22 @@ struct Script : public HiAnimProgram {
 	TimeCallback tc;
 	SObj* paused_cam_following = 0;
 	dword flags = 0;
-	HiGlobal* global = 0;
+	EscGlobal* global = 0;
 	String fn_name;
-	HiValue a0, a1;
-	One<Hi> esc;
+	EscValue a0, a1;
+	One<Esc> esc;
 	bool is_esc = false;
 	Callback1<Script*> WhenStop;
 	
 	typedef Script CLASSNAME;
 	void Clear();
-	Script& Set(Gate0 cb, HiValue a0=HiValue(), HiValue a1=HiValue());
-	Script& Set(HiGlobal& g, HiValue *self, HiValue fn, HiValue a0=HiValue(), HiValue a1=HiValue());
+	Script& Set(Gate0 cb, EscValue a0=EscValue(), EscValue a1=EscValue());
+	Script& Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0=EscValue(), EscValue a1=EscValue());
 	Script& Start();
 	Script& Stop();
 	void Execute();
-	bool ProcessHi();
-	bool RunHiSteps();
+	bool ProcessEsc();
+	bool RunEscSteps();
 	
 };*/
 
@@ -142,7 +142,7 @@ struct TalkingState {
 };
 
 struct ZPlane : Moveable<ZPlane> {
-	Vector<HiValue> objs;
+	Vector<EscValue> objs;
 	
 	
 };
@@ -231,7 +231,7 @@ protected:
 	Array<Script> cutscenes;		// table of scripts for (the active Cutscene(s)
 	*/
 	
-	using Script = HiAnimProgram;
+	using Script = EscAnimProgram;
 	
 	
 	Script& AddScript(String name, int group);
@@ -287,14 +287,14 @@ protected:
 	Array<TalkingState> talking_curr;
 	SObj talking_actor;
 	
-	HiValue ui_arrows;
+	EscValue ui_arrows;
 	SObj arrow[2];
 	
-	HiValue hover_curr_default_verb;
-	HiValue hover_curr_verb;
+	EscValue hover_curr_default_verb;
+	EscValue hover_curr_verb;
 	Sentence* hover_curr_sentence = 0;
 	
-	HiValue verb_curr;
+	EscValue verb_curr;
 	SObj noun1_curr;
 	SObj noun2_curr;
 	SObj hover_curr_object;
@@ -308,12 +308,12 @@ protected:
 	dword mouse_pressed = 0;
 	
 	// Script
-	HiAnimContext ctx;
-	HiValue rooms;
-	HiValue cutscene_override;
-	HiValue verbs;
-	HiValue V_DEFAULT, V_USE, V_GIVE, V_PUSH, V_PULL, V_WALKTO, V_PICKUP, V_LOOKAT, V_OPEN, V_CLOSE, V_TALKTO;
-	HiValue room_curr;
+	EscAnimContext ctx;
+	EscValue rooms;
+	EscValue cutscene_override;
+	EscValue verbs;
+	EscValue V_DEFAULT, V_USE, V_GIVE, V_PUSH, V_PULL, V_WALKTO, V_PICKUP, V_LOOKAT, V_OPEN, V_CLOSE, V_TALKTO;
+	EscValue room_curr;
 	Script* scr_obj = 0;
 	int V_COUNT = 0;
 	Index<String> verb_idx;
@@ -334,65 +334,65 @@ public:
 	
 	Program();
 	
-	bool AddHighFunctions();
+	bool AddEscFunctions();
 	bool ReadGame();
-	HiValue RunLambda1(HiValue* self, const HiValue& l, const HiValue& arg0);
-	void ProcessHi();
+	EscValue RunLambda1(EscValue* self, const EscValue& l, const EscValue& arg0);
+	void ProcessEsc();
 	void ResetPalette();
 	void ResetUI();
 	void Shake(bool enabled);
-	HiValue FindDefaultVerb(SObj& obj);
-	void UnsupportedAction(HiValue verb, SObj& obj1, SObj& obj2);
+	EscValue FindDefaultVerb(SObj& obj);
+	void UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2);
 	void CameraAt(const Point& val);
 	
 	
-	void HiCameraFollow(HiEscape& e);
-	void HiChangeRoom(HiEscape& e);
-	void HiCutscene(HiEscape& e);
-	void HiPutAt(HiEscape& e);
-	void HiPrintLine(HiEscape& e);
-	void HiBreakTime(HiEscape& e);
-	void HiSelectActor(HiEscape& e);
-	void HiPickupObject(HiEscape& e);
-	void HiSetTransparencyColor(HiEscape& e);
-	void HiFades(HiEscape& e);
-	void HiMap(HiEscape& e);
-	void HiSayLine(HiEscape& e);
-	void HiSayLineActor(HiEscape& e);
-	void HiCameraAt(HiEscape& e);
-	void HiCameraPanTo(HiEscape& e);
-	void HiCameraPanToCoord(HiEscape& e);
-	void HiWaitForCamera(HiEscape& e);
-	void HiDrawRectFill(HiEscape& e);
-	void HiDrawLine(HiEscape& e);
-	void HiDrawCircleFill(HiEscape& e);
-	void HiComeOutDoor(HiEscape& e);
-	void HiStartScript(HiEscape& e);
-	void HiStopScript(HiEscape& e);
-	void HiSoundFx0(HiEscape& e);
-	void HiSoundFx1(HiEscape& e);
-	void HiDoAnimation(HiEscape& e);
-	void HiShake(HiEscape& e);
-	void HiScriptRunning(HiEscape& e);
-	void HiWalkTo(HiEscape& e);
-	void HiOpenDoor(HiEscape& e);
-	void HiCloseDoor(HiEscape& e);
-	void HiDialogSet(HiEscape& e);
-	void HiDialogStart(HiEscape& e);
-	void HiDialogHide(HiEscape& e);
-	void HiDialogClear(HiEscape& e);
-	void HiTodo(HiEscape& e);
+	void EscCameraFollow(EscEscape& e);
+	void EscChangeRoom(EscEscape& e);
+	void EscCutscene(EscEscape& e);
+	void EscPutAt(EscEscape& e);
+	void EscPrintLine(EscEscape& e);
+	void EscBreakTime(EscEscape& e);
+	void EscSelectActor(EscEscape& e);
+	void EscPickupObject(EscEscape& e);
+	void EscSetTransparencyColor(EscEscape& e);
+	void EscFades(EscEscape& e);
+	void EscMap(EscEscape& e);
+	void EscSayLine(EscEscape& e);
+	void EscSayLineActor(EscEscape& e);
+	void EscCameraAt(EscEscape& e);
+	void EscCameraPanTo(EscEscape& e);
+	void EscCameraPanToCoord(EscEscape& e);
+	void EscWaitForCamera(EscEscape& e);
+	void EscDrawRectFill(EscEscape& e);
+	void EscDrawLine(EscEscape& e);
+	void EscDrawCircleFill(EscEscape& e);
+	void EscComeOutDoor(EscEscape& e);
+	void EscStartScript(EscEscape& e);
+	void EscStopScript(EscEscape& e);
+	void EscSoundFx0(EscEscape& e);
+	void EscSoundFx1(EscEscape& e);
+	void EscDoAnimation(EscEscape& e);
+	void EscShake(EscEscape& e);
+	void EscScriptRunning(EscEscape& e);
+	void EscWalkTo(EscEscape& e);
+	void EscOpenDoor(EscEscape& e);
+	void EscCloseDoor(EscEscape& e);
+	void EscDialogSet(EscEscape& e);
+	void EscDialogStart(EscEscape& e);
+	void EscDialogHide(EscEscape& e);
+	void EscDialogClear(EscEscape& e);
+	void EscTodo(EscEscape& e);
 	
 	void ClearCutsceneOverride(Script& s);
 	void CameraFollow(SObj actor);
 	void ChangeRoom(SObj new_room, SObj fade);
 	bool CamScript0();
 	bool CamScript1();
-	bool VerbScript(HiValue vc2);
+	bool VerbScript(EscValue vc2);
 	bool WalkScript();
 	void CameraPanTo(SObj& val);
 	bool ScriptRunning(Script& script);
-	void Cutscene(SceneType type, HiValue* self, HiValue func_cutscene, HiValue func_override);
+	void Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override);
 	void DialogAdd(const String& msg);
 	void DialogStart(int col, int hlcol);
 	void DialogHide();
@@ -405,10 +405,10 @@ public:
 	void CloseDoor(SObj door_obj1, SObj door_obj2);
 	void ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect);
 	bool Fades(int fade, int dir);
-	bool IsValidVerb(HiValue verb, SObj object);
+	bool IsValidVerb(EscValue verb, SObj object);
 	void PickupObj(SObj& obj, SObj& actor);
-	HiAnimProgram& StartScript(Gate0 func, bool bg, HiValue noun1=HiValue(), HiValue noun2=HiValue());
-	HiAnimProgram& StartScriptHi(HiValue* self, HiValue func, bool bg, HiValue noun1=HiValue(), HiValue noun2=HiValue());
+	EscAnimProgram& StartScript(Gate0 func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
+	EscAnimProgram& StartScriptEsc(EscValue* self, EscValue func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
 	void StopScript(Script& func);
 	void RemoveStoppedScripts();
 	void BreakTime(int jiffies=0);
@@ -422,7 +422,7 @@ public:
 	void WalkTo(SObj a, int x, int y);
 	void WaitForActor(SObj& actor);
 	double Proximity(SObj& obj1, SObj& obj2);
-	HiValue GetVerb(int idx);
+	EscValue GetVerb(int idx);
 	String GetVerbString(int idx);
 	String GetVerbString(SObj v);
 	void ClearCurrCmd();
@@ -451,14 +451,14 @@ public:
 	String Autotype(const String& str_value);
 	void FindPath(Point start, Point goal, Vector<Point>& pt);
 	double GetHeuristic(Point chk, Point goal);
-	void AddTextObject(HiEscape& e, String txt, int x, int y, int col, int align, bool use_caps, float duration, bool big_font);
+	void AddTextObject(EscEscape& e, String txt, int x, int y, int col, int align, bool use_caps, float duration, bool big_font);
 	
 	bool Init();
 	
 	const SObj* FindRoom(const String& name) const;
 	const SObj* FindDeep(const String& name) const;
 	const SObj* FindDeep(const String& name, const SObj* o) const;
-	HiValue Classes(SObj s);
+	EscValue Classes(SObj s);
 	String State(SObj& s);
 	//String GetInRoomString(SObj& o);
 	SObj GetInRoom(SObj o);
@@ -513,7 +513,7 @@ class ProgramDraw : public Ctrl {
 	
 	void LoadBuiltinGfx();
 	void Animate(SObj obj);
-	void GetPaletteImage(const Vector<byte>& src, Size src_sz, Image& out);
+	void GetPaletteImage(const byte* src, Size src_sz, Image& out);
 	
 	
 protected:

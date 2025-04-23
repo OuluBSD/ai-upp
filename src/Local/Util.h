@@ -5,7 +5,6 @@ NAMESPACE_TOPSIDE_BEGIN
 
 
 
-template <class T> inline T Mid(const T& low, const T& mid, const T& high) {return std::max(std::min(mid, high), low);}
 
 
 int HexDigitAny(int c);

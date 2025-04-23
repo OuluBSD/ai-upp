@@ -28,18 +28,19 @@ void Program::ResetUI() {
 	
 	ui_arrows.SetEmptyArray();
 	
-	HiValue up = ui_arrows.ArrayAdd(HiValue());
+	EscValue up;
 	up.SetEmptyMap();
 	up.MapSet("spr", ui_uparrowspr);
 	up.MapSet("x", 75);
 	up.MapSet("y", stage_top + 60);
+	ui_arrows.ArrayAdd(up);
 	
-	HiValue& down = ui_arrows.ArrayAdd(HiValue());
+	EscValue down;
 	down.SetEmptyMap();
 	down.MapSet("spr", ui_dnarrowspr);
 	down.MapSet("x", 75);
 	down.MapSet("y", stage_top + 72);
-	
+	ui_arrows.ArrayAdd(down);
 	
 }
 
@@ -124,7 +125,7 @@ void Program::InputButtonPressed(dword button_index) {
 	if (executing_cmd)
 		ClearCurrCmd();
 	
-	HiValue noun1_curr, noun2_curr;
+	EscValue noun1_curr, noun2_curr;
 	if (hover_curr_verb) {
 		// change verb and now reset any active objects
 		verb_curr = GetVerb(hover_curr_verb);
@@ -207,13 +208,13 @@ void Program::InputButtonPressed(dword button_index) {
 	
 }
 
-HiValue Program::RunLambda1(HiValue* self, const HiValue& l, const HiValue& arg0) {
+EscValue Program::RunLambda1(EscValue* self, const EscValue& l, const EscValue& arg0) {
 	auto& global = ctx.global;
 	
 	ASSERT(l.IsLambda());
 	
 	try {
-		Vector<HiValue> args;
+		Vector<EscValue> args;
 		args.Add(arg0);
 		return Execute(global, self, l, args, 10000);
 	}
@@ -222,7 +223,7 @@ HiValue Program::RunLambda1(HiValue* self, const HiValue& l, const HiValue& arg0
 		ASSERT(0);
 	}
 	
-	return HiValue();
+	return EscValue();
 }
 
 void Upt(int max_length, WString& curword, WString& currline, Vector<String>& lines) {

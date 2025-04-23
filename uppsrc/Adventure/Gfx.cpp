@@ -33,7 +33,7 @@ Color GetPicoPalette(PaletteColor idx) {
 
 
 
-Color ReadColor(const SObj& o, HiValue key, Color def) {
+Color ReadColor(const SObj& o, EscValue key, Color def) {
 	if (o.IsMap()) {
 		const auto& m = o.GetMap();
 		int i = m.Find(key);
@@ -45,7 +45,7 @@ Color ReadColor(const SObj& o, HiValue key, Color def) {
 	return def;
 }
 
-bool TryReadColor(const SObj& o, HiValue key, Color& c) {
+bool TryReadColor(const SObj& o, EscValue key, Color& c) {
 	if (o.IsMap()) {
 		const auto& m = o.GetMap();
 		int i = m.Find(key);

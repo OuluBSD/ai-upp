@@ -130,9 +130,9 @@ void Program::DoAnim(SObj thing, const String& param1, int& param2) {
 	else {
 		// must be an explicit animation (e.g. "idle")
 		// so start it now
-		thing.Set("curr_anim", param1);
-		thing.Set("anim_pos", 1);
-		thing.Set("tmr", 1);
+		thing.MapSet("curr_anim", param1);
+		thing.MapSet("anim_pos", 1);
+		thing.MapSet("tmr", 1);
 	}
 	
 }
@@ -175,8 +175,8 @@ StateType Program::GetState(SObj o) {
 }
 
 void Program::SetState(SObj o, StateType s) {
-	if      (s == STATE_OPEN)	o.Set("state", "state_open");
-	else if (s == STATE_CLOSED)	o.Set("state", "state_closed");
+	if      (s == STATE_OPEN)	o.MapSet("state", "state_open");
+	else if (s == STATE_CLOSED)	o.MapSet("state", "state_closed");
 	else ASSERT(0);
 }
 

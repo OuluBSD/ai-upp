@@ -9,7 +9,7 @@ namespace Adventure {
 	auto& global = ctx.global;
 	
 	if (game.IsVoid())
-		game = global.Get("game", HiValue());
+		game = global.Get("game", EscValue());
 }*/
 
 bool Program::ReadGame() {
@@ -37,7 +37,7 @@ bool Program::ReadGame() {
 	}
 	
 	//rooms = game.MapGet("rooms");
-	rooms = global.Get("rooms", HiValue());
+	rooms = global.Get("rooms", EscValue());
 	
 	if (!rooms.IsArray() || rooms.GetArray().IsEmpty()) {
 		LOG("Program::ParseGame: error: could not find rooms");
@@ -50,9 +50,9 @@ bool Program::ReadGame() {
 		return false;
 	}
 	
-	const Vector<HiValue>& verb_arr = verbs.GetArray();
+	const Vector<EscValue>& verb_arr = verbs.GetArray();
 	for(int i = 0; i < verb_arr.GetCount(); i++) {
-		const HiValue& verb = verb_arr[i];
+		const EscValue& verb = verb_arr[i];
 		if (!verb.IsMap() || verb.GetMap().Find("name") < 0 || verb.GetMap().Find("text") < 0) {
 			LOG("Invalid verb");
 			return false;
@@ -110,12 +110,12 @@ bool Program::ReadGame() {
 bool Program::InitGame() {
 	auto& global = ctx.global;
 	
-	//game = HiValue();
+	//game = EscValue();
 	
 	try {
-		HiValue empty_lambda;
+		EscValue empty_lambda;
 		empty_lambda.CreateLambda();
-		Vector<HiValue> arg;
+		Vector<EscValue> arg;
 		Execute(global, 0, global.Get("main", empty_lambda), arg, INT_MAX);
 		//RealizeGame();
 		Execute(global, 0, global.Get("startup_script", empty_lambda), arg, INT_MAX);

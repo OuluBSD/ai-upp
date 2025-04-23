@@ -10,8 +10,8 @@ namespace Adventure {
 void Script::Clear() {
 	Stop();
 	fn.Clear();
-	a0 = HiValue();
-	a1 = HiValue();
+	a0 = EscValue();
+	a1 = EscValue();
 	flags = 0;
 	paused_cam_following = 0;
 	type = SCENE_NULL;
@@ -19,7 +19,7 @@ void Script::Clear() {
 	
 }
 
-Script& Script::Set(Gate0 cb, HiValue a0, HiValue a1) {
+Script& Script::Set(Gate0 cb, EscValue a0, EscValue a1) {
 	Clear();
 	this->a0 = a0;
 	this->a1 = a1;
@@ -30,12 +30,12 @@ Script& Script::Set(Gate0 cb, HiValue a0, HiValue a1) {
 	return *this;
 }
 
-Script& Script::Set(HiGlobal& g, HiValue *self, HiValue fn, HiValue a0, HiValue a1) {
+Script& Script::Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0, EscValue a1) {
 	Clear();
 	is_esc = false;
 	
 	// Find & check lambda before setting fields
-	HiValue lambda;
+	EscValue lambda;
 	String fn_name;
 	if (fn.IsLambda()) {
 		lambda = fn;
@@ -47,7 +47,7 @@ Script& Script::Set(HiGlobal& g, HiValue *self, HiValue fn, HiValue a0, HiValue 
 		if (self && self->IsMap())
 			lambda = self->MapGet(fn_name);
 		if (!lambda.IsLambda()) {
-			lambda = g.Get(fn_name, HiValue());
+			lambda = g.Get(fn_name, EscValue());
 			if (!lambda.IsLambda()) {
 				LOG("Key '" << fn_name << "' is not lambda");
 				return *this;
@@ -55,7 +55,7 @@ Script& Script::Set(HiGlobal& g, HiValue *self, HiValue fn, HiValue a0, HiValue 
 		}
 	}
 	
-	Vector<HiValue> arg;
+	Vector<EscValue> arg;
 	if (!a0.IsVoid()) arg << a0;
 	if (!a0.IsVoid() && !a1.IsVoid()) arg << a1;
 	
@@ -77,7 +77,7 @@ Script& Script::Set(HiGlobal& g, HiValue *self, HiValue fn, HiValue a0, HiValue 
 	
 	// Initialize esc runner
 	op_limit = 1000000;
-	esc = new Hi(g, l.code, op_limit, l.filename, l.line);
+	esc = new Esc(g, l.code, op_limit, l.filename, l.line);
 	auto& e = *esc;
 	if (self)
 		e.Self() = *self;
@@ -120,19 +120,19 @@ void Script::Execute() {
 	}
 }
 
-bool Script::ProcessHi() {
-	LOG("Script::ProcessHi");
-	if (!esc || !RunHiSteps()) {
+bool Script::ProcessEsc() {
+	LOG("Script::ProcessEsc");
+	if (!esc || !RunEscSteps()) {
 		tc.Kill();
 		running = false;
-		LOG("Script::ProcessHi: stopped " << fn_name);
+		LOG("Script::ProcessEsc: stopped " << fn_name);
 		WhenStop(this);
 	}
 	return running;
 }
 
-bool Script::RunHiSteps() {
-	LOG("Script::RunHiSteps");
+bool Script::RunEscSteps() {
+	LOG("Script::RunEscSteps");
 	auto& e = *esc;
 	int op = 0;
 //	try {
@@ -142,7 +142,7 @@ bool Script::RunHiSteps() {
 //		}
 //	}
 //	catch (CParser::Error e) {
-//		LOG("Script::RunHiSteps: error: " << e);
+//		LOG("Script::RunEscSteps: error: " << e);
 //		return false;
 //	}
 //	
@@ -157,7 +157,7 @@ bool Script::RunHiSteps() {
 
 
 
-void Program::Cutscene(SceneType type, HiValue* self, HiValue func_cutscene, HiValue func_override) {
+void Program::Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override) {
 	
 	/*cut = {
 		flags = type,
@@ -178,35 +178,35 @@ void Program::Cutscene(SceneType type, HiValue* self, HiValue func_cutscene, HiV
 		cutscene_curr = &cut;
 	}
 	else {
-		StartScriptHi(self, cutscene_override, 0);
+		StartScriptEsc(self, cutscene_override, 0);
 	}
 }
 
 void Program::ClearCutsceneOverride(Script& s) {
-	cutscene_override = HiValue();
+	cutscene_override = EscValue();
 	
 	if (&s == cutscene_curr)
 		cutscene_curr = 0;
 }
 
 
-HiAnimProgram& Program::AddScript(String name, int group) {
+EscAnimProgram& Program::AddScript(String name, int group) {
 	return ctx.CreateProgramT<Script>(name, group);
 }
 
-HiAnimProgram& Program::AddLocal(String name) {
+EscAnimProgram& Program::AddLocal(String name) {
 	return AddScript(name, SCRIPT_LOCAL);
 }
 
-HiAnimProgram& Program::AddGlobal(String name) {
+EscAnimProgram& Program::AddGlobal(String name) {
 	return AddScript(name, SCRIPT_GLOBAL);
 }
 
-HiAnimProgram& Program::AddCutscene(String name) {
+EscAnimProgram& Program::AddCutscene(String name) {
 	return AddScript(name, SCRIPT_CUTSCENE);
 }
 
-HiAnimProgram& Program::StartScript(Gate0 func, bool bg, HiValue noun1, HiValue noun2) {
+EscAnimProgram& Program::StartScript(Gate0 func, bool bg, EscValue noun1, EscValue noun2) {
 	RemoveStoppedScripts();
 	
 	// background || local?
@@ -217,9 +217,9 @@ HiAnimProgram& Program::StartScript(Gate0 func, bool bg, HiValue noun1, HiValue 
 		return AddLocal("script").Set(func, noun1, noun2);
 }
 
-HiAnimProgram& Program::StartScriptHi(HiValue* self, HiValue script_name, bool bg, HiValue noun1, HiValue noun2) {
+EscAnimProgram& Program::StartScriptEsc(EscValue* self, EscValue script_name, bool bg, EscValue noun1, EscValue noun2) {
 	
-	//LOG("Program::StartScriptHi: " << script_name);
+	//LOG("Program::StartScriptEsc: " << script_name);
 	RemoveStoppedScripts();
 	
 	// background || local?
@@ -245,70 +245,70 @@ void Program::RemoveStoppedScripts() {
 	ctx.RemoveStopped();
 }
 
-bool Program::AddHighFunctions() {
+bool Program::AddEscFunctions() {
 	auto& global = ctx.global;
 	
-	//HighCall(global, "Print(x)", SIC_Print);
-	//HighCall(global, "Input()", SIC_Input);
-	//HighCall(global, "InputNumber()", SIC_InputNumber);
-	HighCall(global, "print_line(txt, x, y, col, align, use_caps, duration, big_font)", THISBACK(HiPrintLine));
-	HighCall(global, "break_time(t)", THISBACK(HiBreakTime));
-	HighCall(global, "put_at(obj, x, y, room)", THISBACK(HiPutAt));
-	HighCall(global, "camera_follow(actor)", THISBACK(HiCameraFollow));
-	HighCall(global, "change_room(new_room, fade)", THISBACK(HiChangeRoom));
-	//HighCall(global, "set_global_game(game)", THISBACK(HiSetGlobalGame));
-	HighCall(global, "cutscene(type, func_cutscene, func_override)", THISBACK(HiCutscene));
-	HighCall(global, "sub(type, func_cutscene, func_override)", THISBACK(HiCutscene));
-	HighCall(global, "select_actor(name)", THISBACK(HiSelectActor));
-	HighCall(global, "pickup_obj(me)", THISBACK(HiPickupObject));
-	HighCall(global, "set_trans_col(clr, boolean)", THISBACK(HiSetTransparencyColor));
-	HighCall(global, "fades(a, b)", THISBACK(HiFades));
-	HighCall(global, "map(celx, cely, sx, sy, celw, celh)", THISBACK(HiMap));
-	HighCall(global, "say_line(str)", THISBACK(HiSayLine));
-	HighCall(global, "say_line_actor(actor, str, caps, duration)", THISBACK(HiSayLineActor));
-	HighCall(global, "camera_at(a)", THISBACK(HiCameraAt));
-	HighCall(global, "camera_pan_to(a)", THISBACK(HiCameraPanTo));
-	HighCall(global, "camera_pan_to_coord(x,y)", THISBACK(HiCameraPanToCoord));
-	HighCall(global, "wait_for_camera()", THISBACK(HiWaitForCamera));
-	HighCall(global, "rectfill(a, b, c, d, e)", THISBACK(HiDrawRectFill));
-	HighCall(global, "line(a, b, c, d, e)", THISBACK(HiDrawLine));
-	HighCall(global, "circfill(a, b, c)", THISBACK(HiDrawCircleFill));
-	HighCall(global, "come_out_door(a, b)", THISBACK(HiComeOutDoor));
-	HighCall(global, "start_script(a, b)", THISBACK(HiStartScript));
-	HighCall(global, "stop_script(a, b)", THISBACK(HiStopScript));
-	HighCall(global, "sfx0()", THISBACK(HiSoundFx0));
-	HighCall(global, "sfx1()", THISBACK(HiSoundFx1));
-	HighCall(global, "do_anim(a, b, c)", THISBACK(HiDoAnimation));
-	HighCall(global, "shake(a)", THISBACK(HiShake));
-	HighCall(global, "script_running(a)", THISBACK(HiScriptRunning));
-	HighCall(global, "walk_to(a, b, c)", THISBACK(HiWalkTo));
-	HighCall(global, "open_door(a, b)", THISBACK(HiOpenDoor));
-	HighCall(global, "close_door(a)", THISBACK(HiCloseDoor));
-	HighCall(global, "dialog_set(a)", THISBACK(HiDialogSet));
-	HighCall(global, "dialog_start(a, b)", THISBACK(HiDialogStart));
-	HighCall(global, "dialog_hide()", THISBACK(HiDialogHide));
-	HighCall(global, "dialog_clear()", THISBACK(HiDialogClear));
+	//Escape(global, "Print(x)", SIC_Print);
+	//Escape(global, "Input()", SIC_Input);
+	//Escape(global, "InputNumber()", SIC_InputNumber);
+	Escape(global, "print_line(txt, x, y, col, align, use_caps, duration, big_font)", THISBACK(EscPrintLine));
+	Escape(global, "break_time(t)", THISBACK(EscBreakTime));
+	Escape(global, "put_at(obj, x, y, room)", THISBACK(EscPutAt));
+	Escape(global, "camera_follow(actor)", THISBACK(EscCameraFollow));
+	Escape(global, "change_room(new_room, fade)", THISBACK(EscChangeRoom));
+	//Escape(global, "set_global_game(game)", THISBACK(EscSetGlobalGame));
+	Escape(global, "cutscene(type, func_cutscene, func_override)", THISBACK(EscCutscene));
+	Escape(global, "sub(type, func_cutscene, func_override)", THISBACK(EscCutscene));
+	Escape(global, "select_actor(name)", THISBACK(EscSelectActor));
+	Escape(global, "pickup_obj(me)", THISBACK(EscPickupObject));
+	Escape(global, "set_trans_col(clr, boolean)", THISBACK(EscSetTransparencyColor));
+	Escape(global, "fades(a, b)", THISBACK(EscFades));
+	Escape(global, "map(celx, cely, sx, sy, celw, celh)", THISBACK(EscMap));
+	Escape(global, "say_line(str)", THISBACK(EscSayLine));
+	Escape(global, "say_line_actor(actor, str, caps, duration)", THISBACK(EscSayLineActor));
+	Escape(global, "camera_at(a)", THISBACK(EscCameraAt));
+	Escape(global, "camera_pan_to(a)", THISBACK(EscCameraPanTo));
+	Escape(global, "camera_pan_to_coord(x,y)", THISBACK(EscCameraPanToCoord));
+	Escape(global, "wait_for_camera()", THISBACK(EscWaitForCamera));
+	Escape(global, "rectfill(a, b, c, d, e)", THISBACK(EscDrawRectFill));
+	Escape(global, "line(a, b, c, d, e)", THISBACK(EscDrawLine));
+	Escape(global, "circfill(a, b, c)", THISBACK(EscDrawCircleFill));
+	Escape(global, "come_out_door(a, b)", THISBACK(EscComeOutDoor));
+	Escape(global, "start_script(a, b)", THISBACK(EscStartScript));
+	Escape(global, "stop_script(a, b)", THISBACK(EscStopScript));
+	Escape(global, "sfx0()", THISBACK(EscSoundFx0));
+	Escape(global, "sfx1()", THISBACK(EscSoundFx1));
+	Escape(global, "do_anim(a, b, c)", THISBACK(EscDoAnimation));
+	Escape(global, "shake(a)", THISBACK(EscShake));
+	Escape(global, "script_running(a)", THISBACK(EscScriptRunning));
+	Escape(global, "walk_to(a, b, c)", THISBACK(EscWalkTo));
+	Escape(global, "open_door(a, b)", THISBACK(EscOpenDoor));
+	Escape(global, "close_door(a)", THISBACK(EscCloseDoor));
+	Escape(global, "dialog_set(a)", THISBACK(EscDialogSet));
+	Escape(global, "dialog_start(a, b)", THISBACK(EscDialogStart));
+	Escape(global, "dialog_hide()", THISBACK(EscDialogHide));
+	Escape(global, "dialog_clear()", THISBACK(EscDialogClear));
 	
 	return true;
 }
 
-void Program::HiCameraFollow(HiEscape& e) {
+void Program::EscCameraFollow(EscEscape& e) {
 	CameraFollow(e[0]);
 }
 
-void Program::HiChangeRoom(HiEscape& e) {
+void Program::EscChangeRoom(EscEscape& e) {
 	ChangeRoom(e[0], e[1]);
 }
 
-/*void Program::HiSetGlobalGame(HiEscape& e) {
+/*void Program::EscSetGlobalGame(EscEscape& e) {
 	game = e[0];
 }*/
 
-void Program::HiCutscene(HiEscape& e) {
+void Program::EscCutscene(EscEscape& e) {
 	Cutscene((SceneType)e[0].GetInt(), &e.self, e[1], e[2]);
 }
 
-void Program::HiPutAt(HiEscape& e) {
+void Program::EscPutAt(EscEscape& e) {
 	if (e.arg.GetCount() == 4) {
 		PutAt(
 			e[0],
@@ -321,7 +321,7 @@ void Program::HiPutAt(HiEscape& e) {
 	}
 }
 
-void Program::HiPrintLine(HiEscape& e) {
+void Program::EscPrintLine(EscEscape& e) {
 	String txt = e[0].ToString();
 	int x = e[1].GetInt();
 	int y = e[2].GetInt();
@@ -337,7 +337,7 @@ void Program::HiPrintLine(HiEscape& e) {
 	AddTextObject(e, txt, x, y, col, align, use_caps, duration, big_font);
 }
 
-void Program::AddTextObject(HiEscape& e, String txt, int x, int y, int col, int align, bool use_caps, float duration, bool big_font) {
+void Program::AddTextObject(EscEscape& e, String txt, int x, int y, int col, int align, bool use_caps, float duration, bool big_font) {
 	LOG("Program::AddTextObject: " << x << "," << y << ": " << txt);
 	
 	if (use_caps)
@@ -347,7 +347,7 @@ void Program::AddTextObject(HiEscape& e, String txt, int x, int y, int col, int 
 	
 	Animation& a = ctx.a;
 	AnimPlayer& p = ctx.p;
-	HiAnimProgram* prog = ctx.FindProgram(e);
+	EscAnimProgram* prog = ctx.FindProgram(e);
 	ASSERT(prog);
 	
 	AnimScene& s = a.GetActiveScene();
@@ -364,39 +364,39 @@ void Program::AddTextObject(HiEscape& e, String txt, int x, int y, int col, int 
 	p.AddTimedRemoveObject(ms, o, prog->ContinueCallback());
 	
 	//e.esc.hi.SleepReleasing(ms);
-	e.esc.hi.SleepInfiniteReleasing();
+	e.esc.esc.SleepInfiniteReleasing();
 }
 
-void Program::HiBreakTime(HiEscape& e) {
+void Program::EscBreakTime(EscEscape& e) {
 	int t = e[0].GetInt();
 	
-	LOG("Program::HiPrintLine: " << t);
+	LOG("Program::EscPrintLine: " << t);
 	
 	TODO
 }
 
-void Program::HiSelectActor(HiEscape& e) {
+void Program::EscSelectActor(EscEscape& e) {
 	
 	TODO
 	
 }
 
-void Program::HiPickupObject(HiEscape& e) {
+void Program::EscPickupObject(EscEscape& e) {
 	TODO
 }
 
-void Program::HiSetTransparencyColor(HiEscape& e) {
+void Program::EscSetTransparencyColor(EscEscape& e) {
 	int col = e[0];
 	int is_transparent = e[1];
 	
 	if (draw) draw->SetTransCol(col, is_transparent);
 }
 
-void Program::HiFades(HiEscape& e) {
+void Program::EscFades(EscEscape& e) {
 	TODO
 }
 
-void Program::HiMap(HiEscape& e) {
+void Program::EscMap(EscEscape& e) {
 	int celx = e[0];
 	int cely = e[1];
 	int sx = e[2];
@@ -407,119 +407,119 @@ void Program::HiMap(HiEscape& e) {
 	if (draw) draw->PaintMap(*draw->img_draw, celx, cely, sx, sy, celw, celh);
 }
 
-void Program::HiSayLine(HiEscape& e) {
+void Program::EscSayLine(EscEscape& e) {
 	String str = e[0];
 	SayLine(str);
 }
 
-void Program::HiSayLineActor(HiEscape& e) {
-	HiValue actor = e[0];
+void Program::EscSayLineActor(EscEscape& e) {
+	EscValue actor = e[0];
 	String str = e[1];
 	int use_caps = e[2];
 	double duration = e[3];
 	SayLineActor(actor, str, use_caps, duration);
 }
 
-void Program::HiCameraAt(HiEscape& e) {
+void Program::EscCameraAt(EscEscape& e) {
 	Point pt;
 	pt.x = e[0];
 	pt.y = 0;
 	CameraAt(pt);
 }
 
-void Program::HiCameraPanTo(HiEscape& e) {
-	HiValue o = e[0];
+void Program::EscCameraPanTo(EscEscape& e) {
+	EscValue o = e[0];
 	CameraPanTo(o);
 }
 
-void Program::HiCameraPanToCoord(HiEscape& e) {
+void Program::EscCameraPanToCoord(EscEscape& e) {
 	int x = e[0];
 	int y = e[1];
-	HiValue o;
+	EscValue o;
 	o.SetEmptyMap();
-	o.Set("x", x);
-	o.Set("y", y);
+	o.MapSet("x", x);
+	o.MapSet("y", y);
 	CameraPanTo(o);
 }
 
-void Program::HiWaitForCamera(HiEscape& e) {
+void Program::EscWaitForCamera(EscEscape& e) {
 	if (cam_script && ScriptRunning(*cam_script))
 		e.esc.Yield();
 }
 
-void Program::HiDrawRectFill(HiEscape& e) {
+void Program::EscDrawRectFill(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDrawLine(HiEscape& e) {
+void Program::EscDrawLine(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDrawCircleFill(HiEscape& e) {
+void Program::EscDrawCircleFill(EscEscape& e) {
 	TODO
 }
 
-void Program::HiComeOutDoor(HiEscape& e) {
+void Program::EscComeOutDoor(EscEscape& e) {
 	TODO
 }
 
-void Program::HiStartScript(HiEscape& e) {
+void Program::EscStartScript(EscEscape& e) {
 	TODO
 }
 
-void Program::HiStopScript(HiEscape& e) {
+void Program::EscStopScript(EscEscape& e) {
 	TODO
 }
 
-void Program::HiSoundFx0(HiEscape& e) {
+void Program::EscSoundFx0(EscEscape& e) {
 	TODO
 }
 
-void Program::HiSoundFx1(HiEscape& e) {
+void Program::EscSoundFx1(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDoAnimation(HiEscape& e) {
+void Program::EscDoAnimation(EscEscape& e) {
 	TODO
 }
 
-void Program::HiShake(HiEscape& e) {
+void Program::EscShake(EscEscape& e) {
 	TODO
 }
 
-void Program::HiScriptRunning(HiEscape& e) {
+void Program::EscScriptRunning(EscEscape& e) {
 	TODO
 }
 
-void Program::HiWalkTo(HiEscape& e) {
+void Program::EscWalkTo(EscEscape& e) {
 	TODO
 }
 
-void Program::HiOpenDoor(HiEscape& e) {
+void Program::EscOpenDoor(EscEscape& e) {
 	TODO
 }
 
-void Program::HiCloseDoor(HiEscape& e) {
+void Program::EscCloseDoor(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDialogSet(HiEscape& e) {
+void Program::EscDialogSet(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDialogStart(HiEscape& e) {
+void Program::EscDialogStart(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDialogHide(HiEscape& e) {
+void Program::EscDialogHide(EscEscape& e) {
 	TODO
 }
 
-void Program::HiDialogClear(HiEscape& e) {
+void Program::EscDialogClear(EscEscape& e) {
 	TODO
 }
 
-void Program::HiTodo(HiEscape& e) {
+void Program::EscTodo(EscEscape& e) {
 	TODO
 }
 

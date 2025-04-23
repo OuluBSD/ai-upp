@@ -18,19 +18,25 @@ const SObj* Program::FindRoom(const String& name) const {
 SObj Program::GetInRoom(SObj o) {
 	//LOG(o.ToString());
 	if (o.IsMap()) {
-		SObj in_room = o.MapGet("in_room");
-		if (in_room.IsMap())
-			return in_room;
-		
-		//LOG(in_room.ToString());
-		/*String name = in_room;
-		if (name.GetCount()) {
-			const SObj* ptr = FindDeep(name);
-			if (ptr) {
-				ASSERT(ptr->IsMap());
-				return *ptr;
-			}
-		}*/
+		const auto& map = o.GetMap();
+		int i = map.Find("in_room");
+		if (i >= 0) {
+			SObj in_room = o.MapGet("in_room");
+			if (in_room.IsMap())
+				return in_room;
+			
+			DUMPM(o.GetMap());
+			TODO
+			/*LOG(in_room.ToString());
+			String name = in_room;
+			if (name.GetCount()) {
+				const SObj* ptr = FindDeep(name);
+				if (ptr) {
+					ASSERT(ptr->IsMap());
+					return *ptr;
+				}
+			}*/
+		}
 	}
 	return SObj();
 }
@@ -68,7 +74,7 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 		ShowError("target door does not exist");
 		return;
 	}*/
-	HiValue selected_actor = GetSelectedActor();
+	EscValue selected_actor = GetSelectedActor();
 	
 	StateType from_state = GetState(from_door);
 	if (from_state != STATE_OPEN) {
@@ -103,10 +109,10 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 		opp_dir = FACE_FRONT;
 	}
 	
-	selected_actor.Set("face_dir", GetFaceString(opp_dir));
+	selected_actor.MapSet("face_dir", GetFaceString(opp_dir));
 	
 	// is target dir left? flip?
-	selected_actor.Set("flip", GetFaceDir(selected_actor) == FACE_LEFT);
+	selected_actor.MapSet("flip", GetFaceDir(selected_actor) == FACE_LEFT);
 	
 }
 
@@ -147,7 +153,7 @@ void Program::ChangeRoom(SObj new_room, SObj fade_) {
 	// switch to new room
 	// execute the exit() script of old room
 	if (room_curr) {
-		StartScriptHi(&room_curr, "exit", 0, room_curr); // run script directly, so wait to finish
+		StartScriptEsc(&room_curr, "exit", 0, room_curr); // run script directly, so wait to finish
 	}
 	
 	// stop all active (local) scripts
@@ -180,7 +186,7 @@ void Program::ChangeRoom(SObj new_room, SObj fade_) {
 
 	// execute the enter() script of new room
 	if (room_curr) {
-		StartScriptHi(&room_curr, "enter", 0, room_curr);
+		StartScriptEsc(&room_curr, "enter", 0, room_curr);
 	}
 	else {
 		LOG("Program::ChangeRoom. error: room is not string");
@@ -203,21 +209,21 @@ void Program::PutAt(SObj obj, int x, int y, SObj room) {
 			ASSERT(in_room.IsMap() || in_room.IsVoid());
 			if (in_room.IsMap()) {
 				SObj objects = in_room.MapGet("objects");
-				Vector<HiValue>& arr = (Vector<HiValue>&)objects.GetArray();
+				Vector<EscValue>& arr = (Vector<EscValue>&)objects.GetArray();
 				VectorRemoveKey(arr, obj);
 			}
-			obj.Set("owner", HiValue());
+			obj.MapSet("owner", EscValue());
 			SObj objects = room.MapGet("objects");
 			ASSERT(objects.IsArray());
 			objects.ArrayAdd(obj);
 		}
 	}
-	obj.Set("in_room", room);
+	obj.MapSet("in_room", room);
 	
 	//LOG(obj.ToString());
 	ASSERT(obj.IsMap());
-	obj.Set("x", x);
-	obj.Set("y", y);
+	obj.MapSet("x", x);
+	obj.MapSet("y", y);
 }
 
 

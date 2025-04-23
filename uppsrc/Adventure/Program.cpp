@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "builtin.brc"
 
 namespace Adventure {
 
@@ -11,14 +12,33 @@ bool ReadFlag(const SObj& o, String key) {
 
 
 
-extern const char* builtin_map;
-extern const char* builtin_gff;
+void ProgramDraw::LoadBuiltinGfx() {
+	//Program::LoadBuiltinGfxStr(builtin_gfx, gfx_data, gfx_sz);
+	//Program::LoadBuiltinGfxStr(builtin_lbl, lbl_data, lbl_sz);
+	gfx_sz = Size(128,128);
+	lbl_sz = Size(128,128);
+	int gfx_len = gfx_sz.cx * gfx_sz.cy;
+	int lbl_len = lbl_sz.cx * lbl_sz.cy;
+	ASSERT(gfx_len == builtin_gfx_length);
+	ASSERT(lbl_len == builtin_lbl_length);
+	
+	GetPaletteImage(builtin_gfx, gfx_sz, gfx);
+	GetPaletteImage(builtin_lbl, lbl_sz, lbl);
+}
+
+
 
 Program::Program() {
 	draw_zplanes.SetCount(128+1);
 	
-	LoadBuiltinGfxStr(builtin_map, map, map_sz);
-	LoadBuiltinGfxStr(builtin_gff, gff, gff_sz);
+	map_sz = Size(256,32);
+	gff_sz = Size(256,2);
+	
+	map.SetCount(builtin_map_length);
+	memcpy(map.Begin(), builtin_map, builtin_map_length);
+	
+	gff.SetCount(builtin_gff_length);
+	memcpy(gff.Begin(), builtin_gff, builtin_gff_length);
 	
 	ResetUI();
 }
@@ -47,7 +67,7 @@ bool Program::Init() {
 	if (!ctx.Init(false))
 		return false;
 	
-	if (!AddHighFunctions())
+	if (!AddEscFunctions())
 		return false;
 	
 	// init all the rooms/objects/actors
@@ -62,32 +82,32 @@ bool Program::Init() {
 	return true;
 }
 
-/*void Program::ProcessHi() {
-	//LOG("Program::ProcessHi: start");
+/*void Program::ProcessEsc() {
+	//LOG("Program::ProcessEsc: start");
 	
 	int i = 0;
 	for (Script& s : global_scripts) {
 		if (s.is_esc && s.IsRunning()) {
-			s.ProcessHi();
+			s.ProcessEsc();
 			i++;
 		}
 	}
 	
 	for (Script& s : local_scripts) {
 		if (s.is_esc && s.IsRunning()) {
-			s.ProcessHi();
+			s.ProcessEsc();
 			i++;
 		}
 	}
 	
 	for (Script& s : cutscenes) {
 		if (s.is_esc && s.IsRunning()) {
-			s.ProcessHi();
+			s.ProcessEsc();
 			i++;
 		}
 	}
 	
-	//LOG("Program::ProcessHi: end " << i);
+	//LOG("Program::ProcessEsc: end " << i);
 }*/
 
 const SObj* Program::FindDeep(const String& name) const {
@@ -112,7 +132,7 @@ const SObj* Program::FindDeep(const String& name, const SObj* o) const {
 	return 0;
 }
 
-HiValue Program::Classes(SObj s) {
+EscValue Program::Classes(SObj s) {
 	if (!s.IsMap()) {DUMP(s);}
 	ASSERT(s.IsMap());
 	//DUMP(s);
@@ -142,8 +162,8 @@ String Program::State(SObj& s) {
 
 
 
-HiValue Program::FindDefaultVerb(SObj& obj) {
-	HiValue default_verb = V_LOOKAT;
+EscValue Program::FindDefaultVerb(SObj& obj) {
+	EscValue default_verb = V_LOOKAT;
 
 	if (HasFlag(Classes(obj), "class_talkable"))
 		default_verb = V_TALKTO;
@@ -251,8 +271,8 @@ double Program::Proximity(SObj& obj1, SObj& obj2) {
 	return keys;
 }*/
 
-HiValue Program::GetVerb(int idx) {
-	HiValue ret = verbs(idx);
+EscValue Program::GetVerb(int idx) {
+	EscValue ret = verbs(idx);
 	//DUMP(ret);
 	return ret;
 }
@@ -264,6 +284,11 @@ String Program::GetVerbString(int i) {
 }
 
 String Program::GetVerbString(SObj v) {
+	if (v.IsVoid())
+		return String();
+	if (!v.IsMap()) {
+		LOG(v.ToString());
+	}
 	ASSERT(v.IsMap());
 	String name = v.MapGet("name");
 	ASSERT(name.GetCount() > 0);
@@ -275,8 +300,8 @@ void Program::ClearCurrCmd() {
 	verb_curr = V_DEFAULT;
 	executing_cmd = 0;
 	cmd_curr.Clear();
-	noun1_curr = HiValue();
-	noun2_curr = HiValue();
+	noun1_curr = EscValue();
+	noun2_curr = EscValue();
 	//me.Clear();
 }
 
@@ -285,7 +310,7 @@ void Program::ClearCurrCmd() {
 void Program::Update() {
 	SObj selected_actor = GetSelectedActor();
 	
-	// See HiAnimContext::Iterate
+	// See EscAnimContext::Iterate
 	// It is implemented here
 	ASSERT(ctx.IsRunning());
 	
@@ -301,7 +326,7 @@ void Program::Update() {
 
 			// restore follow-cam if (flag allows (and had a value!)
 			dword& flags = cut.user_flags;
-			HiValue& paused_cam_following = cut.user;
+			EscValue& paused_cam_following = cut.user;
 			if (flags != 3 && paused_cam_following) {
 				CameraFollow(paused_cam_following);
 				
@@ -313,7 +338,7 @@ void Program::Update() {
 			ctx.RemoveStoppedGroup(SCRIPT_CUTSCENE);
 
 			// any more cutscenes?
-			Vector<HiAnimProgram*> cutscenes = ctx.FindGroupPrograms(SCRIPT_CUTSCENE);
+			Vector<EscAnimProgram*> cutscenes = ctx.FindGroupPrograms(SCRIPT_CUTSCENE);
 			if (!cutscenes.IsEmpty()) {
 				cutscene_curr = cutscenes.Top();
 				ASSERT(cutscene_curr);
@@ -381,8 +406,8 @@ bool Program::IsTable(SObj& t) {
 
 Point Program::GetCellPos(SObj& obj) {
 	Point p;
-	int map_x = room_curr("map")(0,0);
-	int map_y = room_curr("map")(1,0);
+	int map_x = room_curr("map").ArrayGetDef(0,0);
+	int map_y = room_curr("map").ArrayGetDef(1,0);
 	int obj_x = obj("x");
 	int obj_y = obj("y");
 	p.x = obj_x/8 + map_x;

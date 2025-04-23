@@ -941,6 +941,8 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(chat.SizePos(), "Chat");
 	tabs.Add(stage.SizePos(), "Stage");
 	tabs.Add(chain.SizePos(), "Filesystem-chat");
+	tabs.Add(placeholder.SizePos(), "Animation");
+	tabs.Add(placeholder.SizePos(), "Adventure");
 	tabs.Add(edit_img.SizePos(), "Image");
 	tabs.Add(img_aspect.SizePos(), "Image Aspect Fixer");
 	tabs.Add(placeholder.SizePos(), "Transcribe");

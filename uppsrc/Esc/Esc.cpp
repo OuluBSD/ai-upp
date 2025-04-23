@@ -1,5 +1,6 @@
 #include <Esc/Esc.h>
 
+#if !USE_ESC_BYTECODE
 
 namespace Upp {
 
@@ -1238,3 +1239,5 @@ void  Esc::Run()
 }
 
 }
+
+#endif

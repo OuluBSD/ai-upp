@@ -90,6 +90,12 @@ const EscLambda& EscValue::GetLambda() const
 	return *lambda;
 }
 
+EscLambda& EscValue::GetLambdaRW() const
+{
+	ASSERT(IsLambda());
+	return *lambda;
+}
+
 int EscValue::GetCount() const
 {
 	switch(type) {

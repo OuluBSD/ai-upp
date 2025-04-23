@@ -12,6 +12,11 @@ file
 	EscRun.cpp,
 	EscStdLib.cpp,
 	Value.cpp,
+	IR.h,
+	Bytecode.h,
+	IrList.inl,
+	Bytecode.cpp,
+	IrVM.cpp,
 	Info readonly separator,
 	srcdoc.tpp,
 	Copying;

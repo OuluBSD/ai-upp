@@ -1238,6 +1238,10 @@ void  Esc::Run()
 		DoStatement();
 }
 
+ArrayMap<String, EscValue>& Esc::Var() {
+	return var;
+}
+
 }
 
 #endif

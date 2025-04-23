@@ -92,6 +92,7 @@ public:
 	IrValue		Get();
 	void		Assign(const IrValue& src);
 
+	IrValue		GetExpand();
 	IrValue		GetExp();
 	
 
@@ -213,6 +214,7 @@ struct Esc {
 		LAMBDA,
 		STRING,
 		FN_NAME,
+		FN_EXPAND,
 	} CallType;
 		
 	struct Call {
@@ -242,6 +244,7 @@ protected:
 	bool spinning_sleep = false;
 	double sleep_s = 0;
 	TimeStop ts;
+	int code_len = 0;
 	
 public:
 	Esc(ArrayMap<String, EscValue>& global, const char *s, int64& oplimit,
@@ -262,6 +265,7 @@ public:
 	}
 	
 	void		Run();
+	bool		RunExpand(String& out);
 	void		Stop();
 	double		Number(const EscValue& a, const char *oper);
 	int64		Int(const EscValue& a, const char *oper);
@@ -279,6 +283,7 @@ public:
 	bool		IsSleepFinished() const;
 	bool		CheckSleepFinished();
 	IrVM&		GetVM();
+	int			GetCodeLength() const;
 	
 	ArrayMap<String, EscValue>& Var();
 	EscValue& Self();

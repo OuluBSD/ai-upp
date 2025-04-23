@@ -17,6 +17,10 @@ IrVM& Esc::GetVM() {
 	throw Exc("No IrVM found");
 }
 
+int Esc::GetCodeLength() const {
+	return code_len;
+}
+
 void Esc::SleepSpinning(int ms) {
 	sleep = true;
 	spinning_sleep = true;
@@ -85,6 +89,17 @@ void Esc::Stop() {
 	fail = false;
 }
 
+bool Esc::RunExpand(String& out) {
+	Call& c = calls.Add();
+	c.type = FN_EXPAND;
+	Run();
+	//v = c.out_var
+	//if(cond)
+	//	out << format(StdValueFromEsc(v));
+	TODO
+	return false;
+}
+
 void Esc::Run() {
 	return_value = EscValue();
 	
@@ -120,7 +135,9 @@ void Esc::Run() {
 				
 				EscCompiler comp(code, filename, line);
 				
-				if (c.get_exp)
+				if (c.type == FN_EXPAND)
+					c.out_var = comp.GetExpand(); // untested
+				else if (c.get_exp)
 					c.out_var = comp.GetExp();
 				else
 					comp.Run();
@@ -134,6 +151,10 @@ void Esc::Run() {
 					comp.WriteLambda(*c.l);
 				else
 					comp.SwapIR(c.tmp_ir);
+				
+				comp.Spaces();
+				code_len = comp.GetPtr() - code.Begin();
+				ASSERT(code_len >= 0);
 			}
 			
 			c.vm = new IrVM(this, global, c.var, oplimit, c.l ? c.l->ir : c.tmp_ir);
@@ -420,10 +441,12 @@ String IrValue::GetString() const {
 
 int IrValue::GetCount() const {
 	TODO
+	return 0;
 }
 
 const VectorMap<IrValue, IrValue>& IrValue::GetMap() const {
 	TODO
+	return Single<VectorMap<IrValue, IrValue>>();
 }
 
 String IrValue::GetTypeString() const {

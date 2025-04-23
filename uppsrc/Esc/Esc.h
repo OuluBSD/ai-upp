@@ -256,6 +256,7 @@ struct Esc : public CParser {
 	double     DoCompare(const SRVal& a, const char *op);
 	String     ReadName();
 	EscValue   ExecuteLambda(const String& id, EscValue lambda, SRVal self, Vector<SRVal>& arg);
+	ArrayMap<String, EscValue>& Var();
 
 	void       Assign(EscValue& val, const Vector<SRVal::Subscript>& sbs, int si, const EscValue& src);
 

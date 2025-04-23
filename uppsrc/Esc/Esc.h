@@ -3,6 +3,11 @@
 
 #include <Core/Core.h>
 
+#ifndef flagBYTEVM
+	#define USE_ESC_BYTECODE 0
+#else
+	#define USE_ESC_BYTECODE 1
+#endif
 
 namespace Upp {
 
@@ -81,6 +86,7 @@ public:
 
 	bool                                 IsLambda() const     { return type == ESC_LAMBDA; }
 	const EscLambda&                     GetLambda() const;
+	EscLambda&                           GetLambdaRW() const;
 	EscLambda&                           CreateLambda();
 
 
@@ -161,6 +167,10 @@ struct EscHandle {
 	virtual ~EscHandle()       {}
 };
 
+#if USE_ESC_BYTECODE
+#include "IR.h"
+#endif
+
 class EscLambda {
 	Atomic   refcount;
 
@@ -182,7 +192,11 @@ public:
 	bool                  varargs;
 	String                filename;
 	int                   line;
-
+	#if USE_ESC_BYTECODE
+	bool                  compiled = false;
+	Vector<IR>            ir;
+	#endif
+	
 private:
 	EscLambda(const EscLambda&);
 	void operator=(const EscLambda&);
@@ -199,6 +213,10 @@ bool     IsTrue(const EscValue& a);
 void     SkipBlock(CParser& p);
 EscValue ReadLambda(CParser& p, bool args = true, const char *alt_args = nullptr);
 EscValue ReadLambda(const char *s);
+
+#if USE_ESC_BYTECODE
+#include "Bytecode.h"
+#else
 
 struct Esc : public CParser {
 	struct SRVal : Moveable<SRVal> {
@@ -287,10 +305,18 @@ struct Esc : public CParser {
 	~Esc() { stack_level = r_stack_level; }
 };
 
+#endif
+
 struct EscEscape {
-	Esc&              esc;
+	#if USE_ESC_BYTECODE
+	using Vm = IrVM;
+	#else
+	using Vm = Esc;
+	#endif
+	
+	Vm&               esc;
 	EscValue          self;
-	Array<EscValue>& arg;
+	Array<EscValue>&  arg;
 	EscValue          ret_val;
 	String            id;
 
@@ -310,7 +336,7 @@ struct EscEscape {
 	double       Number(int i);
 	int          Int(int i);
 
-	EscEscape(Esc& esc, EscValue self, Array<EscValue>& arg)
+	EscEscape(Vm& esc, EscValue self, Array<EscValue>& arg)
 	  : esc(esc), self(self), arg(arg) {}
 };
 

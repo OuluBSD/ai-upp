@@ -174,6 +174,39 @@ void Scan(ArrayMap<String, EscValue>& global, const char *file, const char *file
 	}
 }
 
+#if USE_ESC_BYTECODE
+EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+                 const EscValue& lambda, Vector<EscValue>& arg, int op_limit)
+{
+	const EscLambda& l = lambda.GetLambda();
+	if(arg.GetCount() != l.arg.GetCount()) {
+		String argnames;
+		for(int i = 0; i < l.arg.GetCount(); i++)
+			argnames << (i ? ", " : "") << l.arg[i];
+		throw CParser::Error(Format("invalid number of arguments (%d passed, expected: %s)", arg.GetCount(), argnames));
+	}
+	EscValue ret;
+	{
+		Esc sub(global, op_limit, lambda.GetLambdaRW());
+		EscValue& sub_self = sub.Self();
+		if(self)
+			sub_self = *self;
+		for(int i = 0; i < l.arg.GetCount(); i++)
+			sub.VarGetAdd(l.arg[i]) = arg[i];
+		for (;;) {
+			sub.Run();
+			if (!sub.IsSleepExit())
+				break;
+			while (!sub.CheckSleepFinished())
+				Sleep(1);
+		}
+		if(self)
+			*self = sub_self;
+		ret = sub.return_value;
+	}
+	return ret;
+}
+#else
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
                  const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit)
 {
@@ -198,6 +231,7 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	}
 	return ret;
 }
+#endif
 
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
                  const char *name, Vector<EscValue>& arg, int64 op_limit)
@@ -220,6 +254,7 @@ EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_
 	return EscValue();
 }
 
+#if !USE_ESC_BYTECODE
 EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
 {
 	Esc sub(global, expression, oplimit, "", 0);
@@ -299,5 +334,6 @@ String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
 		}
 	return out;
 }
+#endif
 
 }

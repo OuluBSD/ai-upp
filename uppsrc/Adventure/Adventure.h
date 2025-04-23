@@ -2,12 +2,9 @@
 #define _Adventure_Adventure_h_
 
 #include <LocalCtrl/LocalCtrl.h>
-#include <HighLib/HighLib.h>
-using namespace TS;
+#include <EscAnim/EscAnim.h>
 using namespace Upp;
 
 #include "Program.h"
-
-
 
 #endif

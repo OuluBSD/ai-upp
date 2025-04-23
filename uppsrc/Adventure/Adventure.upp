@@ -1,6 +1,6 @@
 uses
 	LocalCtrl,
-	HighLib;
+	EscAnim;
 
 file
 	Copying,

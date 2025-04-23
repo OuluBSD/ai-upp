@@ -201,38 +201,4 @@ static VectorMap<String, IdeEditPos>& sEPai()
 	return x;
 }
 
-#ifdef flagAI
-
-#include <AI/AI.h>
-
-struct IdeAIDes : IdeDesigner, ParentCtrl {
-	Ide*            ide = 0;
-	String			filename;
-	MetaCodeCtrl	code;
-	TimeCallback	delay;
-
-	virtual void GotFocus();
-	virtual String GetFileName() const        { return filename; }
-	virtual void   Save();
-	virtual void   SaveEditPos();
-	virtual void   EditMenu(Bar& menu);
-	virtual Ctrl&  DesignerCtrl()             { return *this; }
-	
-	virtual void   Serialize(Stream& s);
-	
-	void    Preview();
-
-	bool   Load(const String& includes, const String& filename);
-
-	IdeAIDes();
-};
-
-INITIALIZE(IdeAIDes)
-
-#endif
-
-#define EXTPOINT_DESIGNER 1
-#include <ide/ExtPoint/ExtPoint.h>
-#undef EXTPOINT_DESIGNER
-
 #endif

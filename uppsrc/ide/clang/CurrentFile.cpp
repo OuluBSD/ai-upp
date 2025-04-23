@@ -1,5 +1,8 @@
 #include "clang.h"
-#include <AI/AI.h>
+
+#ifdef flagAI
+#include <AICore/AICore.h>
+#endif
 
 #define LLOG(x) // LOG(x)
 

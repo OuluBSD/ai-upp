@@ -1,0 +1,25 @@
+description "\377B128,0,0";
+
+uses
+	Core;
+
+file
+	Meta.h,
+	Defs.h,
+	Enum.h,
+	Common.h,
+	ExtList.h,
+	Node.h,
+	Node.cpp,
+	Entity.h,
+	Entity.cpp,
+	ClangTypeResolver.h,
+	ClangTypeResolver.cpp,
+	CodeVisitor.h,
+	CodeVisitor.cpp,
+	CodeGenerator.h,
+	CodeGenerator.cpp,
+	SolverBase.h,
+	SolverBase.cpp,
+	src.tpp;
+

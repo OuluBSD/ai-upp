@@ -22,9 +22,9 @@ uses
 	plugin/md,
 	ide/clang,
 	ide/Shell,
-	ide/ExtPoint;
-
-uses(AI) DropTerm;
+	ide/ExtPoint,
+	DropTerm,
+	ide/AI;
 
 file
 	IDE readonly separator,

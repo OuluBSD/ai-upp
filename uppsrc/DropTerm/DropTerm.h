@@ -11,7 +11,7 @@
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
-#include <AI/Ctrl/Ctrl.h>
+#include <AICtrl/AICtrl.h>
 #include <ide/Shell/Shell.h>
 using namespace Upp;
 

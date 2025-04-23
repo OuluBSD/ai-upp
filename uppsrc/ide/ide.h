@@ -20,7 +20,11 @@
 #include <ide/Designers/Designers.h>
 #include <ide/Android/Android.h>
 #include <plugin/md/Markdown.h>
+#ifdef flagAI
+#include <ide/AI/AI.h>
+#endif
 #include <ide/Shell/Shell.h>
+#include <ide/ExtPoint/ExtPoint.h>
 
 #include "About.h"
 #include "MethodsCtrls.h"

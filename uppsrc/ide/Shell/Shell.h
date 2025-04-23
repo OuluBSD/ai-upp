@@ -5,6 +5,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
 #include <ide/Core/Core.h>
+#include <MetaCtrl/MetaCtrl.h>
 
 #define LAYOUTFILE <ide/Shell/Shell.lay>
 #include <CtrlCore/lay.h>

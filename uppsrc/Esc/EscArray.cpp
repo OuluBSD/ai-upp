@@ -29,6 +29,15 @@ EscValue EscValue::ArrayGet(int i, int n) const
 	return t;
 }
 
+EscValue EscValue::ArrayGetDef(int i, EscValue def) const
+{
+	LTIMING("ArrayGetDef");
+	const Vector<EscValue>& sa = GetArray();
+	if (i >= 0 && i < sa.GetCount())
+		return sa[i];
+	return def;
+}
+
 void EscValue::SetEmptyArray()
 {
 	Free();
@@ -40,6 +49,21 @@ void EscValue::ArraySet(int i, EscValue val)
 {
 	LTIMING("ArraySet");
 	CloneArray().At(i) = val;
+}
+
+void EscValue::ArrayRemoveValue(EscValue val)
+{
+	LTIMING("ArrayRemoveValue");
+	if (array) {
+		Vector<int> rmlist;
+		for(int i = 0; i < array->array.GetCount(); i++)
+			if (array->array[i] == val)
+				rmlist << i;
+		if (!rmlist.IsEmpty()) {
+			auto& arr = CloneArray();
+			arr.Remove(rmlist);
+		}
+	}
 }
 
 void EscValue::ArrayAdd(EscValue val)

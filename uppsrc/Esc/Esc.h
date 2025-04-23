@@ -65,7 +65,9 @@ public:
 	const Vector<EscValue>& GetArray() const;
 	EscValue                ArrayGet(int i) const;
 	EscValue                ArrayGet(int i, int n) const;
+	EscValue                ArrayGetDef(int i, EscValue def) const;
 	void                    ArraySet(int i, EscValue val);
+	void                    ArrayRemoveValue(EscValue val);
 	void                    Replace(int i, int n, EscValue a);
 	void                    SetEmptyArray();
 	void                    ArrayAdd(EscValue val);
@@ -103,6 +105,12 @@ public:
 	hash_t   GetHashValue() const;
 	bool     operator==(const EscValue& a) const;
 	bool     operator!=(const EscValue& a) const              { return !(*this == a); }
+	EscValue operator()(EscValue key) const;
+	EscValue operator()(EscValue key, EscValue def) const;
+	EscValue operator[](EscValue key) const;
+	operator int() const {return IsInt() ? GetInt() : INT_MIN;}
+	operator double() const {return IsNumber() ? GetNumber() : 0;}
+	operator bool() const {return !IsVoid();}
 
 	String ToString(int maxlen = INT_MAX, int indent_step = 4, bool hex = false, int indent = 0) const;
 
@@ -155,6 +163,30 @@ inline
 EscValue EscValue::MapGet(EscValue key) const
 {
 	return GetMap().Get(key, EscValue());
+}
+
+inline
+EscValue EscValue::operator()(EscValue key) const
+{
+	if (IsMap())
+		return map->map.Get(key, EscValue());
+	return EscValue();
+}
+
+inline
+EscValue EscValue::operator()(EscValue key, EscValue def) const
+{
+	if (IsMap())
+		return map->map.Get(key, def);
+	return def;
+}
+
+inline
+EscValue EscValue::operator[](EscValue key) const
+{
+	if (IsArray())
+		return array->array.Get(key, EscValue());
+	return EscValue();
 }
 
 struct EscHandle {

@@ -7,7 +7,6 @@ uses
 
 file
 	AICtrl.h,
-	Images.iml,
 	TextCtrl.lay,
 	AI.lay,
 	TaskCtrl.h,

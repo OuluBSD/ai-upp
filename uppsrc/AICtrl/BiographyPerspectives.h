@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class ConceptualFrameworkNavigator : public ComponentCtrl {
+class ConceptualFrameworkNavigator : public AiComponentCtrl {
 	Splitter cfsplit, vsplit, tsplit, bsplit;
 	ArrayCtrl cfs;
 	ArrayCtrl stories;

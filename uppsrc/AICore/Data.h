@@ -472,7 +472,7 @@ struct ScriptStruct : Moveable<ScriptStruct> {
 			}
 			else {
 				v(2)("sub", sub, VISIT_VECTOR)("el_i", el_i)("repeat", repeat_);
-				if (v.IsLoading()) repeat = repeat_;
+				if (v.IsLoading()) repeat = (int)repeat_;
 			}
 		}
 		void operator=(const SubPart& s)

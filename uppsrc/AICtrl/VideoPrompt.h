@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class VideoPromptMakerCtrl : public ComponentCtrl {
+class VideoPromptMakerCtrl : public AiComponentCtrl {
 	Splitter vsplit, storyboard_prompt_split;
 	ArrayCtrl storyboard_parts;
 	ArrayCtrl storyboard_prompt_keys, storyboard_prompt_values;

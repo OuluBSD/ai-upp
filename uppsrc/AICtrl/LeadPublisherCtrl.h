@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class LeadPublisherCtrl : public ComponentCtrl {
+class LeadPublisherCtrl : public AiComponentCtrl {
 	Splitter hsplit, vsplit;
 	ArrayCtrl artists;
 	WithPublisherInfo<Ctrl> info;

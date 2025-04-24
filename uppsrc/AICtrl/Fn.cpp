@@ -1,4 +1,4 @@
-#include "Ctrl.h"
+#include "AICtrl.h"
 
 
 NAMESPACE_UPP
@@ -56,5 +56,20 @@ String PhotoPrompt::GetFilePath(String dir, int i) const {
 	return path;
 }
 
+
+
+
+
+const Index<String>& AiComponentCtrl::GetTypeclasses() const {
+	TODO static Index<String> i; return i;
+}
+
+const Vector<ContentType>& AiComponentCtrl::GetContents() const {
+	TODO static Vector<ContentType> i; return i;
+}
+
+const Vector<String>& AiComponentCtrl::GetContentParts() const {
+	TODO static Vector<String> i; return i;
+}
 
 END_UPP_NAMESPACE

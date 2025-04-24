@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 
 
-class BiographyCtrl : public ComponentCtrl {
+class BiographyCtrl : public AiComponentCtrl {
 	Splitter hsplit;
 	TabCtrl tabs;
 	ArrayCtrl categories;

@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class LeadTemplateCtrl : public ComponentCtrl {
+class LeadTemplateCtrl : public AiComponentCtrl {
 	ArrayCtrl templates;
 	
 public:

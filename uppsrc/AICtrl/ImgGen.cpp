@@ -1,4 +1,4 @@
-#include "AI.h"
+#include "AICtrl.h"
 #include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP

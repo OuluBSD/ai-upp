@@ -40,7 +40,7 @@ public:
 void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, NavigatorState& state, int depth_limit);
 
 // TODO rename
-class ScriptReferenceMakerCtrl : public ComponentCtrl {
+class ScriptReferenceMakerCtrl : public AiComponentCtrl {
 	String data;
 	
 protected:

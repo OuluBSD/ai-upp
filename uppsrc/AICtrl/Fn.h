@@ -9,6 +9,12 @@ String ThumbnailImageFile(String dir, hash_t h);
 String FullImageFile(String dir, hash_t h);
 Image RescaleToFit(const Image& img, int smaller_side_length);
 
+struct AiComponentCtrl : ComponentCtrl {
+	const Index<String>& GetTypeclasses() const;
+	const Vector<ContentType>& GetContents() const;
+	const Vector<String>& GetContentParts() const;
+};
+
 END_UPP_NAMESPACE
 
 #endif

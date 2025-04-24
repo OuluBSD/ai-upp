@@ -11,6 +11,54 @@ struct IdeShell;
 class ClangTypeResolver;
 class ToolAppCtrl;
 
+#define DATASET_ITEM(type, name, kind, group, desc) struct type;
+EXT_LIST
+#undef DATASET_ITEM
+struct SrcTextData;
+
+struct EntityData : Pte<EntityData> {
+	virtual ~EntityData() {}
+	virtual int GetKind() const = 0;
+	virtual void Visit(Vis& s) = 0;
+};
+
+struct DatasetPtrs {
+	#define DATASET_ITEM(type, name, kind, group, desc) Ptr<type> name;
+	DATASET_LIST
+	#undef DATASET_ITEM
+	
+	bool editable_biography = false;
+	
+	DatasetPtrs() {}
+	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
+	void operator=(const DatasetPtrs& p);
+	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
+	void Clear();
+	
+};
+
+// "int I" is required because the operation "p.name = o;" must be delayed after full
+// declaration, which has been done when MetaExtFactory::Register is being called.
+template <class T, int I>
+struct DatasetAssigner {
+	static void Set(DatasetPtrs& p, T* o);
+};
+
+#define DATASET_ITEM(type, name, kind, group, desc) \
+template <int I> struct DatasetAssigner<type,I> {\
+	static void Set(DatasetPtrs& p, type* o) {p.name = o;}\
+};
+EXT_LIST
+#undef DATASET_ITEM
+
+void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp);
+
+class DatasetProvider {
+public:
+	virtual DatasetPtrs GetDataset() const = 0;
+	
+};
+
 struct MetaNodeExt : Pte<MetaNodeExt> {
 	MetaNode& node;
 	
@@ -26,10 +74,17 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	void Jsonize(JsonIO& json);
 };
 
+template <bool b, class T>
+struct EntityDataCreator {static EntityData* CreateEntityDataFn();};
+template <class T> struct EntityDataCreator<false,T> {static EntityData* New() {return 0;}};
+template <class T> struct EntityDataCreator<true, T> {static EntityData* New() {return new T;}};
+
 struct MetaExtFactory {
 	typedef MetaNodeExt* (*NewFn)(MetaNode&);
 	typedef MetaExtCtrl* (*NewCtrl)();
 	typedef bool (*IsFn)(const MetaNodeExt& e);
+	typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
+	typedef EntityData* (*CreateEntityData)();
 	
 	struct Factory {
 		int kind;
@@ -38,7 +93,10 @@ struct MetaExtFactory {
 		String ctrl_name;
 		NewFn new_fn = 0;
 		NewCtrl new_ctrl_fn = 0;
+		SetDatasetEntityData set_data_ed_fn = 0;
+		CreateEntityData create_ed_fn = 0;
 		IsFn is_fn = 0;
+		const std::type_info* type = 0;
 	};
 	
 	
@@ -49,21 +107,37 @@ struct MetaExtFactory {
 	template<class T> struct CtrlFunctions {
 		static MetaExtCtrl* CreateCtrl() {return new T;}
 	};
+	template <class T> static void DatasetEntityData(DatasetPtrs& p, EntityData& ed) {
+		T* o = dynamic_cast<T*>(&ed);
+		ASSERT(o);
+		DatasetAssigner<T,0>::Set(p,o);
+	}
 	static Array<Factory>& List() {static Array<Factory> f; return f;}
-	
+	static void Set(DatasetPtrs& p, int o_kind, EntityData& data) {
+		for (const auto& f : List()) {
+			if (o_kind == f.kind) {
+				f.set_data_ed_fn(p, data);
+				return;
+			}
+		}
+		ASSERT_(0, "Kind not registered");
+	}
 	template <class T> inline static void Register(String name) {
-		static_assert(!std::is_base_of<::UPP::Ctrl, T>());
+		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
 		Factory& f = List().Add();
 		f.kind = T::GetKind();
 		f.category = FindKindCategory(f.kind);
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
+		f.set_data_ed_fn = &DatasetEntityData<T>;
+		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
+		f.type = &typeid(T);
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
-		static_assert(std::is_base_of<::UPP::Ctrl, Ctrl>());
-		static_assert(!std::is_base_of<::UPP::Ctrl, Comp>());
+		static_assert(std::is_base_of<::UPP::Ctrl, Ctrl>::value);
+		static_assert(!std::is_base_of<::UPP::Ctrl, Comp>::value);
 		for (Factory& f : List()) {
 			if (f.is_fn == &Functions<Comp>::IsNodeExt) {
 				ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");

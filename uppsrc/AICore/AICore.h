@@ -5,6 +5,8 @@
 #include <Sound/Sound.h>
 
 #include "Defs.h"
+#include "Enums.h"
+#include "Types.h"
 
 #include "Common.h"
 #include "ProcessBase.h"
@@ -15,8 +17,6 @@
 
 #include "Omni.h"
 
-#include "Enums.h"
-#include "Types.h"
 #include "Container.h"
 #include "Fn.h"
 #include "Phoneme.h"

@@ -19,9 +19,7 @@
 #define LAYOUTFILE <AICtrl/AI.lay>
 #include <CtrlCore/lay.h>
 
-#define IMAGECLASS AIImages
-#define IMAGEFILE <AICtrl/Images.iml>
-#include <Draw/iml_header.h>
+#include "Fn.h"
 
 #include "TaskCtrl.h"
 #include "OmniCtrl.h"
@@ -29,7 +27,6 @@
 #include "ImgAspectFixer.h"
 #include "Playground.h"
 
-#include "Fn.h"
 
 
 #include "ProjectWizard.h"

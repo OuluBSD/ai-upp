@@ -1,4 +1,4 @@
-#include "AI.h"
+#include "AICore.h"
 #include <ide/ide.h>
 #include <plugin/openai/openai.h>
 

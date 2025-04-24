@@ -1,4 +1,4 @@
-#include "Ctrl.h"
+#include "MetaCtrl.h"
 
 NAMESPACE_UPP
 
@@ -12,18 +12,6 @@ DatasetPtrs ComponentCtrl::GetDataset() const {
 
 Script& ComponentCtrl::GetScript() {
 	return *GetDataset().script; // TODO fix: unsafe
-}
-
-const Index<String>& ComponentCtrl::GetTypeclasses() const {
-	TODO static Index<String> i; return i;
-}
-
-const Vector<ContentType>& ComponentCtrl::GetContents() const {
-	TODO static Vector<ContentType> i; return i;
-}
-
-const Vector<String>& ComponentCtrl::GetContentParts() const {
-	TODO static Vector<String> i; return i;
 }
 
 
@@ -113,7 +101,7 @@ void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 	if (name.IsEmpty())
 		name = "This component";
 	tree.SetDisplay(QTFDisplay());
-	tree.SetRoot(TextImgs::RedRing(), name);
+	tree.SetRoot(MetaImgs::RedRing(), name);
 	Visit(tree, 0, Root());
 	tree.OpenDeep(0);
 	tree.SetCursor(0);
@@ -129,7 +117,7 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 		String qtf;
 		if (!TreeItemString(s, name, qtf))
 			qtf = DeQtf(name.ToString() + " (" + s.GetKindString() + ")");
-		int sub_id = tree.Add(id, TextImgs::BlueRing(), name, qtf);
+		int sub_id = tree.Add(id, MetaImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))
 			return false;
 	}
@@ -528,6 +516,24 @@ DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode,
 	
 	//DUMP(vnode.data->path);
 	
+	for (const auto& it : MetaExtFactory::List()) {
+		if (it.kind == kind) {
+			VfsPath path = vnode.data->path;
+			path.Add(it.name);
+			int i = p.entity->objs.Find(path);
+			if (i >= 0) {
+				EntityData& data = p.entity->objs[i];
+				MetaExtFactory::Set(p, it.kind, data);
+			}
+			else {
+				type* o = new type();
+				p.field = o;
+				p.entity->objs.Add(path, o);
+			}
+			break;
+		}
+	}
+	
 	#define DATASET_ITEM(type,field,item_kind,d,e) \
 	if (kind == item_kind) { \
 		VfsPath path = vnode.data->path; \
@@ -591,7 +597,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	lsplit.Vert() << ecs_tree << content_tree;
 	lsplit.SetPos(10000*2/3);
 	
-	ecs_tree.SetRoot(TextImgs::RedRing(), "Project");
+	ecs_tree.SetRoot(MetaImgs::RedRing(), "Project");
 	ecs_tree.WhenCursor = THISBACK(DataEcsTree);
 	ecs_tree.WhenBar = [this](Bar& b) {
 		if (ecs_tree.IsCursor()) {
@@ -659,7 +665,7 @@ void EntityEditorCtrl::Data() {
 	}
 	
 	String key = file_root->id + " (" + file_root->GetKindString() + ")";
-	ecs_tree.SetRoot(TextImgs::RedRing(), key);
+	ecs_tree.SetRoot(MetaImgs::RedRing(), key);
 	ecs_tree_nodes.SetCount(1);
 	ecs_tree_nodes[0] = file_root;
 	
@@ -678,20 +684,20 @@ void EntityEditorCtrl::DataEcsTreeVisit(int treeid, MetaNode& n) {
 	for(MetaNode& s : n.sub) {
 		if (s.kind == METAKIND_ECS_SPACE) {
 			String key = s.id + " (" + s.GetKindString() + ")";
-			int id = ecs_tree.Add(treeid, TextImgs::RedRing(), key);
+			int id = ecs_tree.Add(treeid, MetaImgs::RedRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
 		else if (s.kind == METAKIND_ECS_ENTITY) {
 			String key = s.id + " (" + s.GetKindString() + ")";
-			int id = ecs_tree.Add(treeid, TextImgs::VioletRing(), key);
+			int id = ecs_tree.Add(treeid, MetaImgs::VioletRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
 		else if (s.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
 				 s.kind <= METAKIND_ECS_COMPONENT_END) {
 			String key = s.id + " (" + s.GetKindString() + ")";
-			int id = ecs_tree.Add(treeid, TextImgs::BlueRing(), key);
+			int id = ecs_tree.Add(treeid, MetaImgs::BlueRing(), key);
 			ecs_tree_nodes.Add(&s);
 			// Don't visit component: DataEcsTreeVisit(id, s);
 		}

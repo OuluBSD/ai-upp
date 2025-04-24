@@ -1,6 +1,8 @@
 #include <ide/ide.h>
-#include <AI/AI.h>
 
+#ifdef flagAI
+#include <AICore/AICore.h>
+#endif
 
 #define LTIMING(x)   //RTIMING(x)
 #define LTIMESTOP(x) //RTIMESTOP(x)

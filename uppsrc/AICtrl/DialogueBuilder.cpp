@@ -1,4 +1,4 @@
-#include "Ctrl.h"
+#include "AICtrl.h"
 
 #if HAVE_DIALOGUE_BUILDER
 

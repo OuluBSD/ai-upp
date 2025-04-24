@@ -1,5 +1,5 @@
 uses
-	AI;
+	AICore;
 
 file
 	GraphTests.h,

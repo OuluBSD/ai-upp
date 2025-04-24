@@ -1,7 +1,7 @@
 #ifndef _GraphTests_GraphTests_h_
 #define _GraphTests_GraphTests_h_
 
-#include <AI/AI.h>
+#include <AICore/AICore.h>
 
 
 #endif

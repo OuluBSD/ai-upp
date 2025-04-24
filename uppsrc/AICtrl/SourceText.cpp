@@ -2212,10 +2212,10 @@ void TextDataWordnet::DataColor() {
 }
 
 void TextDataWordnet::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Add(t_("Update data"), MetaImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
 	bar.Separator();
-	//bar.Add(t_("Make wordnets from template phrases"), TextImgs::RedRing(), THISBACK1(DoWordnet, 0)).Key(K_F5);
-	bar.Add(t_("Get color alternatives"), TextImgs::RedRing(), THISBACK1(DoWordnet, 1)).Key(K_F6);
+	//bar.Add(t_("Make wordnets from template phrases"), MetaImgs::RedRing(), THISBACK1(DoWordnet, 0)).Key(K_F5);
+	bar.Add(t_("Get color alternatives"), MetaImgs::RedRing(), THISBACK1(DoWordnet, 1)).Key(K_F6);
 }
 
 void TextDataWordnet::DoWordnet(int fn) {
@@ -2329,12 +2329,12 @@ void PhraseParts::Data() {
 }
 
 void PhraseParts::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update Data"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Update Data"), MetaImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Get all line actions"), TextImgs::RedRing(), THISBACK1(DoWords, 3)).Key(K_F5);
+	bar.Add(t_("Get all line actions"), MetaImgs::RedRing(), THISBACK1(DoWords, 3)).Key(K_F5);
 	bar.Separator();
-	// Won't ever work--> bar.Add(t_("Get line change scores using existing"), TextImgs::VioletRing(), THISBACK(DoWordsUsingExisting)).Key(K_F6);
-	bar.Add(t_("Get line change scores"), TextImgs::RedRing(), THISBACK1(DoWords, 4)).Key(K_F6);
+	// Won't ever work--> bar.Add(t_("Get line change scores using existing"), MetaImgs::VioletRing(), THISBACK(DoWordsUsingExisting)).Key(K_F6);
+	bar.Add(t_("Get line change scores"), MetaImgs::RedRing(), THISBACK1(DoWords, 4)).Key(K_F6);
 	
 }
 
@@ -2399,9 +2399,9 @@ void ActionParallelsPage::Data() {
 }
 
 void ActionParallelsPage::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Add(t_("Update data"), MetaImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Update parallels"), TextImgs::RedRing(), THISBACK(UpdateParallels)).Key(K_F6);
+	bar.Add(t_("Update parallels"), MetaImgs::RedRing(), THISBACK(UpdateParallels)).Key(K_F6);
 	
 }
 
@@ -2582,9 +2582,9 @@ void ActionTransitionsPage::Data() {
 }
 
 void ActionTransitionsPage::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update data"), TextImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
+	bar.Add(t_("Update data"), MetaImgs::BlueRing(), THISBACK(DataMain)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Update transitions"), TextImgs::RedRing(), THISBACK(UpdateTransitions)).Key(K_F6);
+	bar.Add(t_("Update transitions"), MetaImgs::RedRing(), THISBACK(UpdateTransitions)).Key(K_F6);
 	
 }
 
@@ -2938,10 +2938,10 @@ void SourceTextCtrl::ToolMenu(Bar& bar) {
 	// TODO improve gui look and user experience
 	bar.Add(data_type, Size(200,24));
 	bar.Separator();
-	bar.Add(t_("Refresh"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Refresh"), MetaImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
 void SourceTextCtrl::Do(int fn) {

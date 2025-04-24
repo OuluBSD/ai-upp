@@ -35,6 +35,9 @@ struct DatasetPtrs {
 	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
 	void Clear();
 	
+	// Prevent forward declaration errors with "class _"
+	template <class T, class _> struct Getter {static T& Get(DatasetPtrs& d);};
+	template <class T> T& Get() {return Getter<T,int>::Get(*this);}
 };
 
 // "int I" is required because the operation "p.name = o;" must be delayed after full
@@ -48,6 +51,11 @@ struct DatasetAssigner {
 template <int I> struct DatasetAssigner<type,I> {\
 	static void Set(DatasetPtrs& p, type* o) {p.name = o;}\
 };
+EXT_LIST
+#undef DATASET_ITEM
+
+#define DATASET_ITEM(type, name, kind, group, desc) \
+template <class _> struct DatasetPtrs::Getter<type,_> {static type& Get(DatasetPtrs& p) {return *p.name;}};
 EXT_LIST
 #undef DATASET_ITEM
 

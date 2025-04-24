@@ -107,9 +107,9 @@ void VideoStoryboardCtrl::OnValueChange() {
 }
 
 void VideoStoryboardCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Update"), MetaImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Make video prompts"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Make video prompts"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 }
 
 void VideoStoryboardCtrl::Do(int fn) {

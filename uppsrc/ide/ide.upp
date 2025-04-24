@@ -23,8 +23,9 @@ uses
 	ide/clang,
 	ide/Shell,
 	ide/ExtPoint,
-	DropTerm,
-	ide/AI;
+	DropTerm;
+
+uses(AI) ide/AI;
 
 file
 	IDE readonly separator,

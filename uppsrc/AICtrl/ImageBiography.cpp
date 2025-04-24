@@ -296,21 +296,21 @@ void BiographyCtrl::Image_OnKeywords(int fn, String s) {
 }
 
 void BiographyCtrl::Image_ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Image_Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Image_Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Image_Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Image_Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Image_Translate));
-	bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 0));
-	bar.Add(t_("Make keywords (image)"), TextImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 1));
+	bar.Add(t_("Translate"), MetaImgs::BlueRing(), THISBACK(Image_Translate));
+	bar.Add(t_("Make keywords"), MetaImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 0));
+	bar.Add(t_("Make keywords (image)"), MetaImgs::BlueRing(), THISBACK1(Image_MakeKeywords, 1));
 	bar.Separator();
-	bar.Add(t_("Paste Image path"), TextImgs::BlueRing(), THISBACK(Image_PasteImagePath)).Key(K_CTRL_V);
+	bar.Add(t_("Paste Image path"), MetaImgs::BlueRing(), THISBACK(Image_PasteImagePath)).Key(K_CTRL_V);
 	bar.Separator();
-	bar.Add(t_("Analyse image"), TextImgs::RedRing(), THISBACK(Image_AnalyseImage)).Key(K_F7);
+	bar.Add(t_("Analyse image"), MetaImgs::RedRing(), THISBACK(Image_AnalyseImage)).Key(K_F7);
 }
 
 void BiographyCtrl::Image_EntryListMenu(Bar& bar) {
-	bar.Add(t_("Add Entry"), TextImgs::BlueRing(), THISBACK(Image_AddEntry)).Key(K_CTRL_T);
-	bar.Add(t_("Remove Entry"), TextImgs::BlueRing(), THISBACK(Image_RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
+	bar.Add(t_("Add Entry"), MetaImgs::BlueRing(), THISBACK(Image_AddEntry)).Key(K_CTRL_T);
+	bar.Add(t_("Remove Entry"), MetaImgs::BlueRing(), THISBACK(Image_RemoveEntry)).Key(K_CTRL|K_SHIFT|K_W);
 	
 }
 

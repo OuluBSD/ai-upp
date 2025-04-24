@@ -322,8 +322,8 @@ void BiographyPlatformCtrl::Platforms::Needs::DataEntry() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	
 }
 

@@ -37,7 +37,7 @@ void LeadPublisherCtrl::Data() {
 }
 
 void LeadPublisherCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Paste artist list"), TextImgs::VioletRing(), THISBACK(PasteArtists));
+	bar.Add(t_("Paste artist list"), MetaImgs::VioletRing(), THISBACK(PasteArtists));
 	bar.Separator();
 	bar.Add(t_("Import Json"), THISBACK(ImportJson));
 }

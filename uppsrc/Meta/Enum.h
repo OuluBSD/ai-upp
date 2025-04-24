@@ -127,4 +127,61 @@ inline bool IsEcsComponentKind(int kind) {
 	return kind > METAKIND_ECS_COMPONENT_BEGIN && kind < METAKIND_ECS_COMPONENT_END;
 }
 
+
+// Categories (with opposites... see pairs)
+// NOTE: This is kinda nonsensical placeholder at the moment.
+//       This should evolve to a dynamic group/value list.
+enum {
+	CATEGORY_CODE,
+	CATEGORY_ECS,
+	
+	CATEGORY_ASSET,
+	CATEGORY_DISPOSABLE,
+	
+	CATEGORY_PRIVATE,
+	CATEGORY_PUBLIC,
+	
+	CATEGORY_MALE,
+	CATEGORY_FEMALE,
+	
+	CATEGORY_BUYER,
+	CATEGORY_SELLER,
+	
+	CATEGORY_CONSUMER,
+	CATEGORY_MARKETER,
+	
+	CATEGORY_SOUND,
+	CATEGORY_TEXT,
+	
+	CATEGORY_PHOTO,
+	CATEGORY_VIDEO,
+	
+	#if 0
+	CATEGORY_2D,
+	CATEGORY_3D,
+	
+	CATEGORY_STATIC,
+	CATEGORY_DYNAMIC,
+	#endif
+	
+	CATEGORY_COUNT // feel free to add
+};
+
+enum {
+	CATEGORY_GROUP_PROGRAMMING,
+	CATEGORY_GROUP_VALUE,
+	CATEGORY_GROUP_VISIBILITY,
+	CATEGORY_GROUP_GENDER,
+	CATEGORY_GROUP_TRANSACTION,
+	CATEGORY_GROUP_DESIRABILITY,
+	CATEGORY_GROUP_AUDIO_PRODUCT,
+	CATEGORY_GROUP_VISUAL_PRODUCT,
+	
+	CATEGORY_GROUP_COUNT
+};
+String GetCategoryGroupString(int i);
+String GetCategoryString(int i);
+Vector<String> GetCategories();
+int FindCategory(const String& s);
+
 #endif

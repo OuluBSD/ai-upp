@@ -1,5 +1,4 @@
 #include "AICtrl.h"
-#include <AI/Core/Core.h>
 
 NAMESPACE_UPP
 
@@ -324,7 +323,7 @@ void AiStageCtrl::DataExample() {
 	structure_nodes.Clear();
 	structure_nodes.Add(0, ses);
 	structure.Clear();
-	structure.SetRoot(AIImages::StageRoot(), "Session");
+	structure.SetRoot(MetaImgs::StageRoot(), "Session");
 	structure_values.Clear();
 	VisitNode(0, *ses, "");
 	structure.OpenDeep(0);
@@ -343,12 +342,12 @@ void AiStageCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
 		Image img;
 		bool is_value_node = false;
 		switch (s.kind) {
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE: img = AIImages::StageNode(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY: img = AIImages::StageQuery(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE: img = AIImages::StageResponse(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT: img = AIImages::StageComment(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE: img = AIImages::StageExample(); is_value_node = true; break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE:   img = AIImages::StageValue();   is_value_node = true; break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE: img = MetaImgs::StageNode(); break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY: img = MetaImgs::StageQuery(); break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE: img = MetaImgs::StageResponse(); break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT: img = MetaImgs::StageComment(); break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE: img = MetaImgs::StageExample(); is_value_node = true; break;
+			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE:   img = MetaImgs::StageValue();   is_value_node = true; break;
 		}
 		int cur = structure.Add(tree_i, img, s.id);
 		structure_nodes.Add(cur, &s);
@@ -356,7 +355,7 @@ void AiStageCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
 		if (is_value_node) {
 			Value val = GetExampleValue(s_path);
 			String str = val.ToString();
-			int val_cur = structure.Add(cur, AIImages::StageDynamic(), str);
+			int val_cur = structure.Add(cur, MetaImgs::StageDynamic(), str);
 			structure_values.Add(val_cur, s_path);
 		}
 		VisitNode(cur, s, s_path);

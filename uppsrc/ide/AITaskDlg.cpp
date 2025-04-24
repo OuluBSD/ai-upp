@@ -1,7 +1,7 @@
 #include "ide.h"
 
 #ifdef flagAI
-#include <AI/AI.h>
+#include <AICore/AICore.h>
 
 
 INITBLOCK {

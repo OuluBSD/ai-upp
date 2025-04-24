@@ -1,8 +1,5 @@
 #include "AICore.h"
 
-#define IMAGECLASS TextImgs
-#define IMAGEFILE <AI/Core/Images.iml>
-#include <Draw/iml_source.h>
 
 NAMESPACE_UPP
 

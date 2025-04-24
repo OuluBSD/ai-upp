@@ -295,6 +295,8 @@ struct MetaNode : Pte<MetaNode> {
 	}
 };
 
+using Nod = MetaNode;
+
 struct MetaNodeSubset {
 	Array<MetaNodeSubset> sub;
 	Ptr<MetaNode> n;

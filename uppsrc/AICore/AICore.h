@@ -24,7 +24,6 @@
 #include "Container.h"
 #include "Fn.h"
 #include "Phoneme.h"
-#include "EcsLang.h"
 #include "NatLang.h"
 
 // Asset

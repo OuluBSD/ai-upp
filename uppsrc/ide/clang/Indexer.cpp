@@ -2,6 +2,7 @@
 
 #ifdef flagAI
 #include <AICore/AICore.h>
+#include <ide/Meta/Meta.h>
 #endif
 
 #define LTIMING(x)   //RTIMING(x)
@@ -318,7 +319,7 @@ void Indexer::IndexerThread()
 				CodeIndex().GetAdd(path) = pick(f);
 				#ifdef flagAI
 				if (i++ == 0)
-					MetaEnv().Store(job.includes, path, v.ast);
+					Store(MetaEnv(), job.includes, path, v.ast);
 				#endif
 			}
 

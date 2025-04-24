@@ -131,7 +131,9 @@ struct MetaExtFactory {
 		ASSERT_(0, "Kind not registered");
 	}
 	template <class T> inline static void Register(String name) {
+		#ifdef flagGUI
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
+		#endif
 		Factory& f = List().Add();
 		f.kind = T::GetKind();
 		f.category = FindKindCategory(f.kind);
@@ -144,8 +146,10 @@ struct MetaExtFactory {
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
+		#ifdef flagGUI
 		static_assert(std::is_base_of<::UPP::Ctrl, Ctrl>::value);
 		static_assert(!std::is_base_of<::UPP::Ctrl, Comp>::value);
+		#endif
 		for (Factory& f : List()) {
 			if (f.is_fn == &Functions<Comp>::IsNodeExt) {
 				ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
@@ -195,7 +199,6 @@ struct MetaNode : Pte<MetaNode> {
 	~MetaNode();
 	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
-	void Assign(MetaNode* owner, const ClangNode& n);
 	void CopyFrom(const MetaNode& n);
 	void CopyFieldsFrom(const MetaNode& n, bool forced_downgrade=false);
 	void CopySubFrom(const MetaNode& n);
@@ -423,7 +426,6 @@ struct MetaEnvironment : VFS {
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
 	bool LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, MetaNode*& file_node);
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
-	void Store(String& includes, const String& path, ClangNode& n);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
 	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id);
 	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id);
@@ -444,7 +446,6 @@ struct MetaEnvironment : VFS {
 	MetaNode& RealizeFileNode(int pkg, int file, int kind);
 	void OnLoadFile(MetaSrcFile& file);
 	MetaNode* FindNodeEnv(Entity& n);
-	void UpdateWorkspace(Workspace& wspc);
 	Vector<MetaNode*> FindAllEnvs();
 	MetaNode* LoadDatabaseSourceVisit(MetaSrcFile& file, String path, Vis& v);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;

@@ -13,11 +13,15 @@
 #include <ide/Shell/Shell.h>
 */
 
+NAMESPACE_UPP
+
 #define LAYOUTFILE <AICtrl/TextCtrl.lay>
 #include <CtrlCore/lay.h>
 
 #define LAYOUTFILE <AICtrl/AI.lay>
 #include <CtrlCore/lay.h>
+
+END_UPP_NAMESPACE
 
 #include "Fn.h"
 

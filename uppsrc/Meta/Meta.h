@@ -2,7 +2,21 @@
 #define _Meta_Meta_h_
 
 #include <Core/Core.h>
-#include <ide/clang/clang.h>
+
+#ifndef flagLCLANG
+	#ifdef PLATFORM_POSIX
+	#define DYNAMIC_LIBCLANG // dynamic loading of clang experiment (does not seem to work in Win32)
+	#endif
+#endif
+#ifdef DYNAMIC_LIBCLANG
+#include <ide/clang/libclang.h>
+#else
+#include <clang-c/Index.h>
+#endif
+
+#ifdef flagGUI
+#include <CtrlCore/CtrlCore.h>
+#endif
 
 struct FileAnnotation;
 
@@ -18,7 +32,6 @@ NAMESPACE_UPP
 #include "ExtList.h"
 #include "Node.h"
 #include "Entity.h"
-#include "ClangTypeResolver.h"
 #include "CodeVisitor.h"
 #include "CodeGenerator.h"
 #include "SolverBase.h"

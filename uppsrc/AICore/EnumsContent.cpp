@@ -166,16 +166,6 @@ VectorMap<String,Vector<String>>& GetTypeclassEntities(int appmode, bool unsafe,
 	return Single<VectorMap<String,Vector<String>>>();
 }
 
-void SetIndexCursor(ArrayCtrl& arr, int cur) {
-	for(int i = 0; i < arr.GetCount(); i++) {
-		int idx = arr.Get(i, "IDX");
-		if (idx == cur) {
-			arr.SetCursor(i);
-			break;
-		}
-	}
-}
-
 
 
 

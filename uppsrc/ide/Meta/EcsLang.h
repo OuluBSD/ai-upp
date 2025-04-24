@@ -1,7 +1,6 @@
-#ifndef _AI_TextCore_EcsLang_h_
-#define _AI_TextCore_EcsLang_h_
+#ifndef _ide_Meta_EcsLang_h_
+#define _ide_Meta_EcsLang_h_
 
-NAMESPACE_UPP
 
 class EcsIndexer : public IndexerExtension {
 	int pkg_i = -1;
@@ -21,6 +20,5 @@ public:
 
 INITIALIZE(EcsIndexer)
 
-END_UPP_NAMESPACE
 
 #endif

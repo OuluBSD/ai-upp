@@ -1,4 +1,4 @@
-description "\377B0,0,128";
+description "\377B141,42,0";
 
 uses
 	Meta,
@@ -40,8 +40,6 @@ file
 	CreateInput2.cpp,
 	Phoneme.h,
 	Phoneme.cpp,
-	EcsLang.h,
-	EcsLang.cpp,
 	NatLang.h,
 	NatLang.cpp,
 	Asset readonly separator,

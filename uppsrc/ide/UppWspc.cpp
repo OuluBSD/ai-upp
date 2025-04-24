@@ -1,6 +1,7 @@
 #include "ide.h"
 #ifdef flagAI
 #include <AICore/AICore.h>
+#include <ide/Meta/Meta.h>
 #endif
 
 const char tempaux[] = "<temp-aux>";
@@ -146,7 +147,7 @@ void WorkspaceWork::ScanWorkspace() {
 	SyncErrorPackages();
 	
 	#ifdef flagAI
-	MetaEnv().UpdateWorkspace(wspc);
+	UpdateWorkspace(MetaEnv(), wspc);
 	#endif
 }
 

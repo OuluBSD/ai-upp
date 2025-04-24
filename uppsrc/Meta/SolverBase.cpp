@@ -9,9 +9,9 @@ SolverBase::SolverBase() {
 
 void SolverBase::Fail(String e, String title) {
 	if (!title.IsEmpty())
-		Loge("error: " + title + ": " + e);
+		WhenError("error: " + title + ": " + e);
 	else
-		Loge("error: " + e);
+		WhenError("error: " + e);
 	SetError(e);
 	SetNotRunning();
 }

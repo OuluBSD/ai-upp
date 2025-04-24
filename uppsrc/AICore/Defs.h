@@ -1,6 +1,8 @@
 #ifndef _AI_TextCore_Defs_h_
 #define _AI_TextCore_Defs_h_
 
+NAMESPACE_UPP
+
 #define DBROWSER_MODE_LIST \
 	MODE(ELEMENT_ATTR_COLOR_ACTION) \
 	MODE(ELEMENT_COLOR_ATTR_ACTION) \
@@ -209,6 +211,6 @@ struct CallbackInhibitor {
 #define INHIBIT_ACTION(x) CallbackInhibitor __act(x.WhenAction)
 #define INHIBIT_ACTION_(x, id) CallbackInhibitor __##id(x.WhenAction)
 
-
+END_UPP_NAMESPACE
 
 #endif

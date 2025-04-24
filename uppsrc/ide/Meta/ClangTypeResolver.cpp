@@ -172,4 +172,20 @@ String ClangTypeResolver::GetTemplateScopePath(ClangNode& cn) {
 	return str;
 }
 
+bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr)
+{
+	const VectorMap<hash_t, Index<String>>& scope_paths = ctr.GetScopePaths();
+	auto& translation = ctr.GetTypeTranslation();
+
+	for(int i = 0; i < scope_paths.GetCount(); i++) {
+		hash_t src_hash = scope_paths.GetKey(i);
+		const Index<String>& idx = scope_paths[i];
+		String path = idx[0];
+		hash_t dst_hash = RealizeTypePath(path);
+		translation.GetAdd(src_hash, dst_hash);
+	}
+
+	return true;
+}
+
 END_UPP_NAMESPACE

@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_Types_h_
-#define _ParallelMach_Types_h_
+#ifndef _Eon_Types_h_
+#define _Eon_Types_h_
 
 #define COPY_PANIC(T) void operator=(const T& t) {Panic("Can't copy " #T);}
 

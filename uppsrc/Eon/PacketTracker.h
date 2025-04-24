@@ -1,5 +1,5 @@
-#ifndef _SerialCore_PacketTracker_h_
-#define _SerialCore_PacketTracker_h_
+#ifndef _Eon_PacketTracker_h_
+#define _Eon_PacketTracker_h_
 
 
 

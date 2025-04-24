@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_Formats_h_
-#define _ParallelMach_Formats_h_
+#ifndef _Eon_Formats_h_
+#define _Eon_Formats_h_
 
 
 

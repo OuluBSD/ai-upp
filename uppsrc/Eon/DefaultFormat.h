@@ -1,5 +1,5 @@
-#ifndef _ParallelCore_Types_h_
-#define _ParallelCore_Types_h_
+#ifndef _Eon_Types_h_
+#define _Eon_Types_h_
 
 
 

@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_Samples_h_
-#define _ParallelMach_Samples_h_
+#ifndef _Eon_Samples_h_
+#define _Eon_Samples_h_
 
 
 

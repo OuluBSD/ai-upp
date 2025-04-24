@@ -1,5 +1,5 @@
-#ifndef _SerialMach_Base_h_
-#define _SerialMach_Base_h_
+#ifndef _Eon_Base_h_
+#define _Eon_Base_h_
 
 
 

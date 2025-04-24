@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_PacketBuffer_h_
-#define _ParallelMach_PacketBuffer_h_
+#ifndef _Eon_PacketBuffer_h_
+#define _Eon_PacketBuffer_h_
 
 
 

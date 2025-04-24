@@ -1,7 +1,8 @@
 #ifndef _Eon_Eon_h_
 #define _Eon_Eon_h_
 
-#include <Meta/Meta.h>
+#include <AICore/AICore.h>
+#include <Geometry/Geometry.h>
 
 NAMESPACE_UPP
 

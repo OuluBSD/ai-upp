@@ -1,5 +1,5 @@
-#ifndef _ParallelLib_BaseAudio_h_
-#define _ParallelLib_BaseAudio_h_
+#ifndef _Eon_BaseAudio_h_
+#define _Eon_BaseAudio_h_
 
 
 

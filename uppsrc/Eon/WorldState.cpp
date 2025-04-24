@@ -1,5 +1,4 @@
-#include "ParallelCore.h"
-#include <SerialScript/SerialScript.h>
+#include "Eon.h"
 
 
 NAMESPACE_UPP

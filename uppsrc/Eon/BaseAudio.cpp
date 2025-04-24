@@ -1,8 +1,6 @@
-#include "ParallelLib.h"
-
+#include "Eon.h"
 
 NAMESPACE_UPP
-
 
 AudioGenBase::AudioGenBase() {
 	fmt.SetAudio(DevCls::CENTER, SoundSample::U8_LE, 2, 44100, 777);

@@ -1,5 +1,5 @@
-#ifndef _SerialMach_Link_h_
-#define _SerialMach_Link_h_
+#ifndef _Eon_Link_h_
+#define _Eon_Link_h_
 
 
 

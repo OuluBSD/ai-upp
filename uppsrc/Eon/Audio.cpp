@@ -1,8 +1,6 @@
-#include "ParallelMach.h"
-
+#include "Eon.h"
 
 NAMESPACE_UPP
-
 
 template <typename SRC, typename DST, bool SRC_NATIVE_ENDIAN, bool DST_NATIVE_ENDIAN>
 static void AudioTypeConvert(int src_ch_samples, const AudioFormat& src_fmt, const byte* src, const AudioFormat& dst_fmt, byte* dst) {

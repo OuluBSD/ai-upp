@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_ValDevScope_h_
-#define _ParallelMach_ValDevScope_h_
+#ifndef _Eon_ValDevScope_h_
+#define _Eon_ValDevScope_h_
 
 
 

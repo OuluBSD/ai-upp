@@ -1,5 +1,5 @@
-#ifndef _ParallelCore_Serial_h_
-#define _ParallelCore_Serial_h_
+#ifndef _Eon_Serial_h_
+#define _Eon_Serial_h_
 
 
 

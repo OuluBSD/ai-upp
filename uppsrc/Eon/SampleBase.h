@@ -1,5 +1,5 @@
-#ifndef _ParallelMach_SampleBase_h_
-#define _ParallelMach_SampleBase_h_
+#ifndef _Eon_SampleBase_h_
+#define _Eon_SampleBase_h_
 
 
 

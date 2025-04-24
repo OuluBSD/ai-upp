@@ -353,17 +353,17 @@ void ConceptualFrameworkNavigator::OnValueChange() {
 }
 
 void ConceptualFrameworkNavigator::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update"), TextImgs::BlueRing(), THISBACK1(DataAll, true)).Key(K_CTRL_Q);
+	bar.Add(t_("Update"), MetaImgs::BlueRing(), THISBACK1(DataAll, true)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Previous sort column"), TextImgs::BlueRing(), THISBACK1(MoveSortColumn, -1)).Key(K_F1);
-	bar.Add(t_("Next sort column"), TextImgs::BlueRing(), THISBACK1(MoveSortColumn, +1)).Key(K_F2);
+	bar.Add(t_("Previous sort column"), MetaImgs::BlueRing(), THISBACK1(MoveSortColumn, -1)).Key(K_F1);
+	bar.Add(t_("Next sort column"), MetaImgs::BlueRing(), THISBACK1(MoveSortColumn, +1)).Key(K_F2);
 }
 
 void BiographyPerspectiveCtrl::ToolMenu(Bar& bar) {
 	ConceptualFrameworkNavigator::ToolMenu(bar);
 	bar.Separator();
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 }
 
 void ConceptualFrameworkNavigator::MoveSortColumn(int i) {

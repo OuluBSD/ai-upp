@@ -52,18 +52,6 @@ LAYOUT(EditorLine, 488, 384)
 	ITEM(Upp::EditString, begin, HSizePosZ(108, 4).TopPosZ(328, 20))
 END_LAYOUT
 
-LAYOUT(ComponentSelection, 492, 380)
-	ITEM(Upp::Label, dv___0, SetLabel(t_("Group:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(4, 20))
-	ITEM(Upp::DropList, group, HSizePosZ(124, 4).TopPosZ(4, 20))
-	ITEM(Upp::Label, dv___2, SetLabel(t_("Category group:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(28, 20))
-	ITEM(Upp::DropList, catgroup, HSizePosZ(124, 4).TopPosZ(28, 20))
-	ITEM(Upp::Label, dv___4, SetLabel(t_("Category:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(52, 20))
-	ITEM(Upp::DropList, category, HSizePosZ(124, 4).TopPosZ(52, 20))
-	ITEM(Upp::ArrayCtrl, complist, HSizePosZ(4, 4).VSizePosZ(76, 28))
-	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(108, 100).BottomPosZ(4, 20))
-	ITEM(Upp::Button, ok, SetLabel(t_("Ok")).RightPosZ(4, 100).BottomPosZ(4, 20))
-END_LAYOUT
-
 LAYOUT(OwnerInfo, 672, 292)
 	ITEM(Upp::LabelBox, lbl_owner, SetLabel(t_("Owner")).LeftPosZ(4, 664).TopPosZ(0, 288))
 	ITEM(Upp::Label, lbl_name, SetLabel(t_("Name:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 148).TopPosZ(16, 20))
@@ -373,12 +361,6 @@ END_LAYOUT
 
 LAYOUT(ScriptTextInput, 448, 316)
 	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("\001[g [h4 [*@(28.85.0)$(255.42.0) Script Text][@(28.85.0)$(255.42.0)2  ][/@(28.85.0)$(255.42.0)+75 (? ? ?)]]")).HSizePosZ(4, 4).VSizePosZ(4, 4))
-END_LAYOUT
-
-LAYOUT(TreeDialog, 300, 300)
-	ITEM(Upp::TreeCtrl, tree, HSizePosZ(0, 0).VSizePosZ(0, 28))
-	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(96, 88).BottomPosZ(4, 20))
-	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(4, 88).BottomPosZ(4, 20))
 END_LAYOUT
 
 LAYOUT(VideoSourceFile, 460, 376)

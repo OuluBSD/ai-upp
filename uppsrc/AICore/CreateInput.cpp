@@ -1,6 +1,6 @@
 #include "AICore.h"
-#include <AI/Core/Defs.h>
-#include <AI/Core/Enums.h>
+#include <AICore/Defs.h>
+#include <AICore/Enums.h>
 
 NAMESPACE_UPP
 

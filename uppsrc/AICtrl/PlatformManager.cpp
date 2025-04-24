@@ -169,12 +169,12 @@ void PlatformManagerCtrl::DataPlatform() {
 }
 
 void PlatformManagerCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Fetch text prompt image"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_CTRL_Q);
+	bar.Add(t_("Fetch text prompt image"), MetaImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_CTRL_Q);
 	bar.Separator();
-	bar.Add(t_("Import Json"), TextImgs::BlueRing(), THISBACK(ImportJson));
+	bar.Add(t_("Import Json"), MetaImgs::BlueRing(), THISBACK(ImportJson));
 	
 }
 

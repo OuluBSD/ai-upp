@@ -253,12 +253,12 @@ void OmniDeviceIO::PopulateSrc() {
 	form.src->SetRoot(Null,-1,"Use default input device");
 	for(int i=0;i<s.GetAPICount();i++){
 		SoundAPI a=s.GetAPI(i);
-		form.src->Add(0,AIImages::API(),a.index,a.name + String(" (default input device)"),true);
+		form.src->Add(0,MetaImgs::API(),a.index,a.name + String(" (default input device)"),true);
 	}
 	for(int i=0;i<s.GetCount();i++){
 		SoundDevice d=s[i];
 		if(d.InputChannels)
-			form.src->Add(form.src->Find(d.API),AIImages::Device(),d.index+1024,d.name,false);
+			form.src->Add(form.src->Find(d.API),MetaImgs::Device(),d.index+1024,d.name,false);
 	}
 	form.src->OpenDeep(0);
 	
@@ -339,7 +339,7 @@ void OmniDeviceIO::OnError(String s) {
 void OmniDeviceIO::OnFinish(void*) {
 	auto& form = snd.form;
 	GuiLock __;
-	form.rec.SetImage(AIImages::Record());
+	form.rec.SetImage(MetaImgs::Record());
 	form.rec.SetLabel(t_("Record"));
 	form.rec.WhenAction = THISBACK(OnRecord);
 	DisableMeter();

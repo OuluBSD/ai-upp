@@ -73,7 +73,6 @@ INITIALIZE(SourceTextDes)
 INITIALIZE(EnvEditorDes)
 INITIALIZE(EntityEditorDes)
 
-
 END_UPP_NAMESPACE
 
 #endif

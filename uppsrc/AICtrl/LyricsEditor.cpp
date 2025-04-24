@@ -139,20 +139,20 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 }
 
 void ScriptTextSolverCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Update Data"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
-	bar.Add(t_("Switch editor text"), TextImgs::BlueRing(), THISBACK(SwitchEditorText)).Key(K_CTRL_W);
-	bar.Add(t_("Copy from previous"), TextImgs::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_R);
-	bar.Add(t_("Copy to clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 11)).Key(K_CTRL_T);
-	bar.Add(t_("Copy from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 12)).Key(K_CTRL_Y);
+	bar.Add(t_("Update Data"), MetaImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Switch editor text"), MetaImgs::BlueRing(), THISBACK(SwitchEditorText)).Key(K_CTRL_W);
+	bar.Add(t_("Copy from previous"), MetaImgs::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_R);
+	bar.Add(t_("Copy to clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 11)).Key(K_CTRL_T);
+	bar.Add(t_("Copy from clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 12)).Key(K_CTRL_Y);
 	bar.Separator();
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Fn 1"), TextImgs::RedRing(), THISBACK1(Do, 2)).Key(K_F7);
-	bar.Add(t_("Fn 2"), TextImgs::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
-	bar.Add(t_("Fn 3"), TextImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
-	bar.Add(t_("Fn 4"), TextImgs::RedRing(), THISBACK1(Do, 5)).Key(K_F10);
-	bar.Add(t_("Fn 5"), TextImgs::RedRing(), THISBACK1(Do, 6)).Key(K_F11);
+	bar.Add(t_("Fn 1"), MetaImgs::RedRing(), THISBACK1(Do, 2)).Key(K_F7);
+	bar.Add(t_("Fn 2"), MetaImgs::RedRing(), THISBACK1(Do, 3)).Key(K_F8);
+	bar.Add(t_("Fn 3"), MetaImgs::RedRing(), THISBACK1(Do, 4)).Key(K_F9);
+	bar.Add(t_("Fn 4"), MetaImgs::RedRing(), THISBACK1(Do, 5)).Key(K_F10);
+	bar.Add(t_("Fn 5"), MetaImgs::RedRing(), THISBACK1(Do, 6)).Key(K_F11);
 }
 
 void ScriptTextSolverCtrl::SwitchEditorText() {

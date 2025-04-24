@@ -166,10 +166,10 @@ void BiographyCtrl::ImageSummary_OnKeywords(String s) {
 }
 
 void BiographyCtrl::ImageSummary_ToolMenu(Bar& bar) {
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(ImageSummary_Do, 0)).Key(K_F5);
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(ImageSummary_Do, 1)).Key(K_F6);
-	//bar.Add(t_("Translate"), TextImgs::BlueRing(), THISBACK(Translate)).Key(K_F5);
-	//bar.Add(t_("Make keywords"), TextImgs::BlueRing(), THISBACK(MakeKeywords)).Key(K_F6);
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(ImageSummary_Do, 0)).Key(K_F5);
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(ImageSummary_Do, 1)).Key(K_F6);
+	//bar.Add(t_("Translate"), MetaImgs::BlueRing(), THISBACK(Translate)).Key(K_F5);
+	//bar.Add(t_("Make keywords"), MetaImgs::BlueRing(), THISBACK(MakeKeywords)).Key(K_F6);
 }
 
 void BiographyCtrl::ImageSummary_Do(int fn) {

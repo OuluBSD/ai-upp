@@ -142,11 +142,11 @@ void ReleaseCoverImageCtrl::OnSuggestionChange() {
 }
 
 void ReleaseCoverImageCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Make all images"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Make all images"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
 	
-	/*bar.Add(t_("Create suggestions for prompts"), TextImgs::Part(), THISBACK(CreateSuggestionsForPrompts)).Key(K_F5);
-	bar.Add(t_("Make single image"), TextImgs::Part(), THISBACK(MakeSingleImage)).Key(K_F6);
-	bar.Add(t_("Make all images"), TextImgs::Part(), THISBACK(MakeAllImages)).Key(K_F7);
+	/*bar.Add(t_("Create suggestions for prompts"), MetaImgs::Part(), THISBACK(CreateSuggestionsForPrompts)).Key(K_F5);
+	bar.Add(t_("Make single image"), MetaImgs::Part(), THISBACK(MakeSingleImage)).Key(K_F6);
+	bar.Add(t_("Make all images"), MetaImgs::Part(), THISBACK(MakeAllImages)).Key(K_F7);
 	*/
 }
 
@@ -171,7 +171,7 @@ void ReleaseCoverImageCtrl::CreateSuggestionsForPrompts() {
 }
 
 void ReleaseCoverImageCtrl::SuggestionMenu(Bar& bar) {
-	bar.Add(t_("Add suggestion"), TextImgs::RedRing(), [this]() {
+	bar.Add(t_("Add suggestion"), MetaImgs::RedRing(), [this]() {
 		DatasetPtrs p = GetDataset();
 		p.release->cover_suggestions.Add();
 		PostCallback(THISBACK(Data));

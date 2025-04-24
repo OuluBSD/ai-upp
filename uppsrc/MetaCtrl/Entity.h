@@ -7,7 +7,6 @@ class ToolAppCtrl;
 
 struct ComponentCtrl : MetaExtCtrl, DatasetProvider {
 	DatasetPtrs GetDataset() const override;
-	Script& GetScript();
 };
 
 struct VirtualNode : Moveable<VirtualNode> {
@@ -155,10 +154,14 @@ public:
 		T& o = vnode.template GetAddExt<T>(name);
 		return o;
 	}
+	
+	// NOTE requires full declaration instead of fwd decl only
+	/*
 	#define DATASET_ITEM(type, field, kind, cat, strname) \
 		type& GetAdd##type() {return this->template GetAddValue<type>(#field);}
 	VIRTUALNODE_DATASET_LIST
 	#undef DATASET_ITEM
+	*/
 };
 
 class EntityInfoCtrl : public MetaExtCtrl, public DatasetProvider {

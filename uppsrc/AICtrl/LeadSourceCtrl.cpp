@@ -438,13 +438,13 @@ void LeadSourceCtrl::DataAnalyzedList() {
 }
 
 void LeadSourceCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Refresh"), TextImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
+	bar.Add(t_("Refresh"), MetaImgs::BlueRing(), THISBACK(Data)).Key(K_CTRL_Q);
 	bar.Separator();
-	//bar.Add(t_("Update website leads"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Update website leads (with MetaEntity)"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	//bar.Add(t_("Update website leads"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Update website leads (with MetaEntity)"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Create script"), TextImgs::BlueRing(), THISBACK(CreateScript)).Key(K_F7);
-	bar.Add(t_("Copy script header to clipboard"), TextImgs::BlueRing(), THISBACK(CopyHeaderClipboard)).Key(K_F8);
+	bar.Add(t_("Create script"), MetaImgs::BlueRing(), THISBACK(CreateScript)).Key(K_F7);
+	bar.Add(t_("Copy script header to clipboard"), MetaImgs::BlueRing(), THISBACK(CopyHeaderClipboard)).Key(K_F8);
 	bar.Separator();
 	bar.Add(t_("Import json"), THISBACK(ImportJson));
 }

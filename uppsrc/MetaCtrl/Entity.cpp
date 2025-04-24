@@ -10,9 +10,6 @@ DatasetPtrs ComponentCtrl::GetDataset() const {
 	return comp.GetDataset();
 }
 
-Script& ComponentCtrl::GetScript() {
-	return *GetDataset().script; // TODO fix: unsafe
-}
 
 
 
@@ -526,32 +523,16 @@ DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode,
 				MetaExtFactory::Set(p, it.kind, data);
 			}
 			else {
-				type* o = new type();
-				p.field = o;
-				p.entity->objs.Add(path, o);
+				EntityData* data = it.create_ed_fn();
+				ASSERT(data); // ???
+				if (data) {
+					MetaExtFactory::Set(p, it.kind, *data);
+					p.entity->objs.Add(path, data);
+				}
 			}
 			break;
 		}
 	}
-	
-	#define DATASET_ITEM(type,field,item_kind,d,e) \
-	if (kind == item_kind) { \
-		VfsPath path = vnode.data->path; \
-		path.Add(#field); \
-		int i = p.entity->objs.Find(path); \
-		if (i >= 0) { \
-			EntityData& data = p.entity->objs[i]; \
-			p.field = dynamic_cast<type*>(&data); \
-			ASSERT(p.field); \
-		} \
-		else {\
-			type* o = new type(); \
-			p.field = o; \
-			p.entity->objs.Add(path, o); \
-		} \
-	}
-	VIRTUALNODE_DATASET_LIST
-	#undef DATASET_ITEM
 	
 	return p;
 }
@@ -566,15 +547,7 @@ DatasetPtrs VNodeComponentCtrl::GetDataset() const {
 			if (ed.key.IsLeft(path) && ed.key.GetPartCount() == path.GetPartCount()+1) {
 				EntityData& data = ed.value;
 				int data_kind = data.GetKind();
-				switch (data_kind) {
-					#define DATASET_ITEM(type,field,kind,d,e) \
-					case kind: { \
-						p.field = dynamic_cast<type*>(&data); \
-						ASSERT(p.field);}
-					VIRTUALNODE_DATASET_LIST
-					#undef DATASET_ITEM
-					default: break;
-				}
+				MetaExtFactory::Set(p, data_kind, data);
 			}
 		}
 	}

@@ -1,5 +1,7 @@
 #include "AI.h"
 
+NAMESPACE_UPP
+
 IdeAIDes::IdeAIDes()
 {
 	code << [=] { delay.KillSet(250, [=] { Preview(); }); };
@@ -136,3 +138,4 @@ INITIALIZER(IdeAIDes)
 	RegisterGlobalConfig("aides-ctrl");
 }
 
+END_UPP_NAMESPACE

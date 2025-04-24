@@ -421,10 +421,10 @@ Vector<String> ProjectWizardView::MakeItems(String file_path) {
 }
 
 void ProjectWizardCtrl::ToolMenu(Bar& bar) {
-	bar.Add(t_("Refresh"), TextImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
-	bar.Add(t_("Additional button function"), TextImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
+	bar.Add(t_("Refresh"), MetaImgs::RedRing(), THISBACK1(Do, 0)).Key(K_F5);
+	bar.Add(t_("Additional button function"), MetaImgs::RedRing(), THISBACK1(Do, 1)).Key(K_F6);
 	bar.Separator();
-	bar.Add(t_("Press all 'Refresh' buttons in this file"), TextImgs::RedRing(), THISBACK1(Do, 2)).Key(K_F9);
+	bar.Add(t_("Press all 'Refresh' buttons in this file"), MetaImgs::RedRing(), THISBACK1(Do, 2)).Key(K_F9);
 }
 
 ProjectWizardView& ProjectWizardCtrl::GetView() {

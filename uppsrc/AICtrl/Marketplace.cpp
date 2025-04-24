@@ -128,22 +128,22 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataPlatform() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::ToolMenu(Bar& bar) {
-	bar.Add(t_("Add item"), TextImgs::BlueRing(), THISBACK1(Do, 0)).Key(K_CTRL_T);
-	bar.Add(t_("Remove item"), TextImgs::BlueRing(), THISBACK1(Do, 1)).Key(K_CTRL|K_W|K_SHIFT);
+	bar.Add(t_("Add item"), MetaImgs::BlueRing(), THISBACK1(Do, 0)).Key(K_CTRL_T);
+	bar.Add(t_("Remove item"), MetaImgs::BlueRing(), THISBACK1(Do, 1)).Key(K_CTRL|K_W|K_SHIFT);
 	bar.Separator();
-	bar.Add(t_("Rotate image clockwise"), TextImgs::BlueRing(), THISBACK1(Do, 9)).Key(K_CTRL_F);
-	bar.Add(t_("Rotate image counter-clockwise"), TextImgs::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_G);
+	bar.Add(t_("Rotate image clockwise"), MetaImgs::BlueRing(), THISBACK1(Do, 9)).Key(K_CTRL_F);
+	bar.Add(t_("Rotate image counter-clockwise"), MetaImgs::BlueRing(), THISBACK1(Do, 10)).Key(K_CTRL_G);
 	bar.Separator();
-	bar.Add(t_("Set recursive image directory from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 8)).Key(K_F3);
-	bar.Add(t_("Set image directory from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 7)).Key(K_F4);
-	bar.Add(t_("Add image from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F5);
-	bar.Add(t_("Set image from clipboard"), TextImgs::BlueRing(), THISBACK1(Do, 3)).Key(K_F6);
-	bar.Add(t_("Remove image"), TextImgs::BlueRing(), THISBACK1(Do, 4)).Key(K_F7);
-	bar.Add(t_("Move up"), TextImgs::BlueRing(), THISBACK1(Do, 5)).Key(K_F8);
-	bar.Add(t_("Move down"), TextImgs::BlueRing(), THISBACK1(Do, 6)).Key(K_F9);
+	bar.Add(t_("Set recursive image directory from clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 8)).Key(K_F3);
+	bar.Add(t_("Set image directory from clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 7)).Key(K_F4);
+	bar.Add(t_("Add image from clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 2)).Key(K_F5);
+	bar.Add(t_("Set image from clipboard"), MetaImgs::BlueRing(), THISBACK1(Do, 3)).Key(K_F6);
+	bar.Add(t_("Remove image"), MetaImgs::BlueRing(), THISBACK1(Do, 4)).Key(K_F7);
+	bar.Add(t_("Move up"), MetaImgs::BlueRing(), THISBACK1(Do, 5)).Key(K_F8);
+	bar.Add(t_("Move down"), MetaImgs::BlueRing(), THISBACK1(Do, 6)).Key(K_F9);
 	bar.Separator();
-	bar.Add(t_("Start"), TextImgs::RedRing(), THISBACK1(Do, 11));
-	bar.Add(t_("Stop"), TextImgs::RedRing(), THISBACK1(Do, 12));
+	bar.Add(t_("Start"), MetaImgs::RedRing(), THISBACK1(Do, 11));
+	bar.Add(t_("Stop"), MetaImgs::RedRing(), THISBACK1(Do, 12));
 	
 }
 

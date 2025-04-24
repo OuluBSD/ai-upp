@@ -612,16 +612,16 @@ void ScriptReferenceMakerCtrl::OnValueChange() {
 }
 
 void ScriptReferenceMakerCtrl::ToolMenu(Bar& bar) {
-	/*bar.Add(t_("Jump to previous group value"), TextImgs::BlueRing(), [this](){
+	/*bar.Add(t_("Jump to previous group value"), MetaImgs::BlueRing(), [this](){
 		int tab = tabs.Get();
 		if (tab == 0) db0.JumpToGroupValue(-1);
 	}).Key(K_CTRL_W);
-	bar.Add(t_("Jump to next group value"), TextImgs::BlueRing(), [this](){
+	bar.Add(t_("Jump to next group value"), MetaImgs::BlueRing(), [this](){
 		int tab = tabs.Get();
 		if (tab == 0) db0.JumpToGroupValue(+1);
 	}).Key(K_CTRL_E);
 	bar.Separator();*/
-	bar.Add(t_("Set as line text"), TextImgs::BlueRing(), THISBACK(SetLineText)).Key(K_F4);
+	bar.Add(t_("Set as line text"), MetaImgs::BlueRing(), THISBACK(SetLineText)).Key(K_F4);
 	
 }
 

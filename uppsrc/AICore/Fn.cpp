@@ -1,4 +1,4 @@
-#include "Core.h"
+#include "AICore.h"
 #include <ide/ide.h>
 
 NAMESPACE_UPP

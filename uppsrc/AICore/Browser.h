@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 class ToolAppCtrl;
-class ComponentCtrl;
+struct ComponentCtrl;
 class TextDatabase;
 
 struct VMapSumSorter {

@@ -1,32 +1,6 @@
 #ifndef _Meta_Entity_h_
 #define _Meta_Entity_h_
 
-#define DATASET_ITEM(type, name, kind, group, desc) class type;
-DATASET_LIST
-#undef DATASET_ITEM
-
-struct DatasetPtrs {
-	#define DATASET_ITEM(type, name, kind, group, desc) Ptr<type> name;
-	DATASET_LIST
-	#undef DATASET_ITEM
-	
-	bool editable_biography = false;
-	
-	DatasetPtrs() {}
-	DatasetPtrs(const DatasetPtrs& p) {*this = p;}
-	void operator=(const DatasetPtrs& p);
-	static DatasetPtrs& Single() {static DatasetPtrs p; return p;}
-	void Clear();
-};
-
-void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp);
-
-class DatasetProvider {
-public:
-	virtual DatasetPtrs GetDataset() const = 0;
-	
-};
-
 struct Component : MetaNodeExt, DatasetProvider {
 	Component(MetaNode& owner) : MetaNodeExt(owner) {}
 	DatasetPtrs GetDataset() const override;
@@ -51,12 +25,6 @@ INITIALIZE(type)
 
 #define COMPONENT_STUB_IMPL(type, kind) \
 	INITIALIZER_COMPONENT(type);
-
-struct EntityData : Pte<EntityData> {
-	virtual ~EntityData() {}
-	virtual int GetKind() const = 0;
-	virtual void Visit(Vis& s) = 0;
-};
 
 struct Entity : MetaNodeExt {
 	METANODE_EXT_CONSTRUCTOR(Entity)

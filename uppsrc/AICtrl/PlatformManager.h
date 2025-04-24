@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class PlatformManagerCtrl : public ComponentCtrl {
+class PlatformManagerCtrl : public AiComponentCtrl {
 	Splitter hsplit, vsplit, bottom, epk_photo_prompt_split;
 	TabCtrl plat_tabs, epk_tabs;
 	ArrayCtrl roles, platforms, epk_text_fields, epk_photo_types, epk_photo_prompts;

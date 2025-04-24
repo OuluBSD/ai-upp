@@ -1,11 +1,11 @@
-#ifndef _AI_Ctrl_Ai_h_
-#define _AI_Ctrl_Ai_h_
+#ifndef _AICtrl_Ai_h_
+#define _AICtrl_Ai_h_
 
 
 NAMESPACE_UPP
 
 
-class AiCompletionComponentCtrl : public ComponentCtrl {
+class AiCompletionComponentCtrl : public AiComponentCtrl {
 	CompletionCtrl ctrl;
 	
 public:
@@ -21,7 +21,7 @@ public:
 INITIALIZE(AiCompletionComponentCtrl)
 
 
-class AiChatComponentCtrl : public ComponentCtrl {
+class AiChatComponentCtrl : public AiComponentCtrl {
 	ChatAiCtrl ctrl;
 	
 public:

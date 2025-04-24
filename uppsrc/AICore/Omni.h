@@ -106,9 +106,8 @@ public:
 	}
 };
 
-class StageThread : public MetaNodeExt {
+struct StageThread : MetaNodeExt {
 	
-public:
 	/*
 	struct Stage {
 		

@@ -1,21 +1,13 @@
 #ifndef _AI_TextCtrl_Entity_h_
 #define _AI_TextCtrl_Entity_h_
 
-NAMESPACE_UPP
 
 struct Script;
 class ToolAppCtrl;
 
-class ComponentCtrl : public MetaExtCtrl, DatasetProvider {
-	
-public:
+struct ComponentCtrl : MetaExtCtrl, DatasetProvider {
 	DatasetPtrs GetDataset() const override;
 	Script& GetScript();
-	
-	const Index<String>& GetTypeclasses() const;
-	const Vector<ContentType>& GetContents() const;
-	const Vector<String>& GetContentParts() const;
-	
 };
 
 struct VirtualNode : Moveable<VirtualNode> {
@@ -65,9 +57,13 @@ struct VirtualNode : Moveable<VirtualNode> {
 	T& GetAddExt(String name) {
 		ASSERT(data && data->mode == VFS_VALUE);
 		int kind = 0;
-		#define DATASET_ITEM(a,b,c,d,e) if (!kind && typeid(T) == typeid(a)) kind = c;
-		VIRTUALNODE_DATASET_LIST
-		#undef DATASET_ITEM
+		const std::type_info& type = typeid(T);
+		for (const auto it : MetaExtFactory::List()) {
+			if (*it.type == type) {
+				kind = it.kind;
+				break;
+			}
+		}
 		ASSERT(kind > 0);
 		/*VirtualNode n = Find(name);
 		if (n.data) {
@@ -236,6 +232,5 @@ public:
 	void Do(int i);
 };
 
-END_UPP_NAMESPACE
 
 #endif

@@ -7,6 +7,7 @@ uses
 file
 	MetaCtrl.h,
 	MetaCtrl.cpp,
+	MetaCtrl.lay,
 	Images.iml,
 	Common.h,
 	Node.h,

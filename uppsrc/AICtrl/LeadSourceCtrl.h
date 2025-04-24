@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class LeadSourceCtrl : public ComponentCtrl {
+class LeadSourceCtrl : public AiComponentCtrl {
 	Splitter vsplit, hsplit, mainsplit, bsplit, bvsplit, bssplit;
 	ArrayCtrl list, payouts, prices, attrs;
 	ArrayCtrl bools, strings, list_names, list_values;

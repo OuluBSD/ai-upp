@@ -61,7 +61,7 @@ public:
 };
 
 // TODO rename
-class ScriptTextSolverCtrl : public ComponentCtrl {
+class ScriptTextSolverCtrl : public AiComponentCtrl {
 	Splitter hsplit;
 	StructuredScriptEditor editor;
 	TabCtrl tabs;

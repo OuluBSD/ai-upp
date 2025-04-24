@@ -130,7 +130,7 @@ void Pdb::LoadPrettyScripts()
 		Pdb::Val val;
 		val.type = v.MapGet("type").GetInt();
 		val.address = v.MapGet("address").GetInt64();
-		val = GetAttr(val, e[1]);
+		val = GetAttr(val, (String)e[1]);
 		SetVal(v, val);
 		e = v;
 	});

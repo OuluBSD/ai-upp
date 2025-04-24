@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class NotepadCtrl : public ComponentCtrl {
+class NotepadCtrl : public AiComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl list;
 	WithNotepad<Ctrl> idea;

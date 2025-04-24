@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class ReleaseCoverImageCtrl : public ComponentCtrl {
+class ReleaseCoverImageCtrl : public AiComponentCtrl {
 	Splitter vsplit, hsplit[3];
 	ArrayCtrl attr_list, sugg_list;
 	DocEdit attr_text, sugg_text;

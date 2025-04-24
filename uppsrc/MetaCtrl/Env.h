@@ -1,7 +1,6 @@
 #ifndef _AI_TextCtrl_Env_h_
 #define _AI_TextCtrl_Env_h_
 
-NAMESPACE_UPP
 
 
 class EnvEditorCtrl : public ToolAppCtrl {
@@ -38,7 +37,5 @@ public:
 	static String MakeIdString(const Vector<MetaNode*>& v);
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

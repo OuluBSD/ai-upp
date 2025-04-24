@@ -12,7 +12,7 @@ struct LabeledEditString : public Ctrl {
 	LabeledEditString();
 };
 
-class ProjectWizardCtrl : public ComponentCtrl {
+class ProjectWizardCtrl : public AiComponentCtrl {
 	Splitter hsplit, vsplit, optsplit;
 	ArrayCtrl dirs, files, items, options;
 	DocEdit option;

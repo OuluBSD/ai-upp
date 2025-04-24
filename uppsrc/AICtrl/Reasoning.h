@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class ScriptReasoningCtrl : public ComponentCtrl {
+class ScriptReasoningCtrl : public AiComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl itemlist;
 	

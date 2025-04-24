@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class ReleaseBriefingCtrl : public ComponentCtrl {
+class ReleaseBriefingCtrl : public AiComponentCtrl {
 	WithKeyValueList<Ctrl> values;
 	ArrayCtrl list;
 	Splitter vsplit;

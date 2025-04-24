@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class VideoStoryboardCtrl : public ComponentCtrl {
+class VideoStoryboardCtrl : public AiComponentCtrl {
 	Splitter split, vsplit0, vsplit1;
 	ArrayCtrl list;
 	ImageViewerCtrl img[4];

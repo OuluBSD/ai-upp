@@ -1,4 +1,4 @@
-#include "AI.h"
+#include "AICtrl.h"
 #include <AI/Core/Core.h>
 
 NAMESPACE_UPP

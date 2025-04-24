@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class PerspectiveCtrl : public ComponentCtrl {
+class PerspectiveCtrl : public AiComponentCtrl {
 	Splitter hsplit;
 	ArrayCtrl attrs, user;
 	WithSocialBelief<Ctrl> info;

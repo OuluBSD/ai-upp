@@ -47,7 +47,7 @@ public:
 	Event<double> WhenSetBegin, WhenSetEnd, WhenTime;
 };
 
-class VideoSourceFileRangeCtrl : public ComponentCtrl {
+class VideoSourceFileRangeCtrl : public AiComponentCtrl {
 	WithVideoSourceFileRange<Ctrl> header;
 	ImageViewerCtrl viewer;
 	RangeCtrl range;

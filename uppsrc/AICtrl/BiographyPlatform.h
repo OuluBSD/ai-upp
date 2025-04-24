@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-class BiographyPlatformCtrl : public ComponentCtrl {
+class BiographyPlatformCtrl : public AiComponentCtrl {
 	TabCtrl tabs;
 	
 	

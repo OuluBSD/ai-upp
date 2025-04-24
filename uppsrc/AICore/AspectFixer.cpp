@@ -1,4 +1,4 @@
-#include "Core.h"
+#include "AICore.h"
 #include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP

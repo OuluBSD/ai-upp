@@ -10,6 +10,9 @@
 #define IMAGEFILE <MetaCtrl/Images.iml>
 #include <Draw/iml_header.h>
 
+#define LAYOUTFILE <MetaCtrl/MetaCtrl.lay>
+#include <CtrlCore/lay.h>
+
 NAMESPACE_UPP
 
 #include "Common.h"

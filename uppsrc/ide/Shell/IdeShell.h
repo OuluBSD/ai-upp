@@ -30,7 +30,7 @@ struct IdeShellHost : IdeShellHostBase {
 	void ListFiles(IdeShell& shell, Value arg);
 	void ChangeDirectory(IdeShell& shell, Value arg);
 	
-	#ifdef flagHAVE_INTRANET
+	#ifdef flagNET
 	void StartIntranet(IdeShell& shell, Value arg);
 	#endif
 	

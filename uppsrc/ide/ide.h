@@ -22,8 +22,8 @@
 #include <plugin/md/Markdown.h>
 #ifdef flagAI
 #include <ide/AI/AI.h>
-#endif
 #include <ide/Shell/Shell.h>
+#endif
 #include <ide/ExtPoint/ExtPoint.h>
 
 #include "About.h"
@@ -217,6 +217,17 @@ public:
 	typedef TopicCtrl CLASSNAME;
 
 	TopicCtrl();
+};
+
+struct IdeCalc : CodeEditor {
+	virtual bool Key(dword key, int count);
+	virtual void LeftDouble(Point p, dword flags);
+
+	ArrayMap<String, EscValue> vars;
+
+	void    Execute();
+
+	IdeCalc();
 };
 
 extern bool splash_screen;
@@ -499,7 +510,11 @@ public:
 	Vector<String> linking_line;
 	bool        removing_notes;
 
+	#ifdef flagAI
 	ConsoleCtrl calc;
+	#else
+	IdeCalc     calc;
+	#endif
 	bool        calc_in_menubar = true;
 	Ptr<Ctrl>   bottomctrl; // debugger pane
 

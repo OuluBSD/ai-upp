@@ -375,7 +375,7 @@ void IdeDropdownTerminal::Init() {
 	enabled = true;
 	
 	enable_intranet = FindIndex(CommandLine(), "--intranet") >= 0;
-	#ifdef flagHAVE_INTRANET
+	#ifdef flagNET
 	if (enable_intranet)
 		Thread::Start(IntranetDaemon);
 	#endif

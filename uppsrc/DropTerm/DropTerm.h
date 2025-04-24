@@ -11,12 +11,14 @@
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
-#include <AICtrl/AICtrl.h>
+#ifdef flagAI
+	#include <AICtrl/AICtrl.h>
+#endif
 #include <ide/Shell/Shell.h>
 using namespace Upp;
 
 
-#ifdef flagHAVE_INTRANET
+#ifdef flagNET
 #include <Intranet/Intranet.h>
 #endif
 

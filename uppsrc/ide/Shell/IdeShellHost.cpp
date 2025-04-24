@@ -20,7 +20,7 @@ IdeShellHost::IdeShellHost() {
 	AddProgram("ls",	THISBACK(ListFiles));
 	AddProgram("cd",	THISBACK(ChangeDirectory));
 	
-	#ifdef flagHAVE_INTRANET
+	#ifdef flagNET
 	AddProgram("intra",	THISBACK(StartIntranet));
 	#endif
 	
@@ -151,7 +151,7 @@ void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
 	}
 }
 
-#ifdef flagHAVE_INTRANET
+#ifdef flagNET
 void IdeShellHost::StartIntranet(IdeShell& shell, Value arg) {
 	Thread::Start(IntranetDaemon);
 }

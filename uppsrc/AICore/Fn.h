@@ -3,14 +3,6 @@
 
 NAMESPACE_UPP
 
-struct CallbackInhibitor {
-	Event<> cb;
-	Event<>& ref;
-	
-	CallbackInhibitor(Event<>& other) : cb(other), ref(other) {other.Clear();}
-	~CallbackInhibitor() {ref = cb;}
-};
-
 template <class T, class PTR>
 int VectorFindPtr(PTR* p, T& arr) {
 	int i = 0;
@@ -102,44 +94,12 @@ void RemoveQuotes2(String& s);
 
 void GetWords(const String& line, Vector<String>& words);
 
-void SetCountForArray(ArrayCtrl& arr, int count);
-void SetCountWithDefaultCursor(ArrayCtrl& arr, int count);
-void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool descending=false);
-
 String KeyToName(String s);
 String StringToName(String s);
 
 String DeHtml(String html, Vector<String>& links);
 bool IsAllUpper(const String& s);
 String GetGlobalProxy();
-
-template <class T> bool LoadFromJsonFile_VisitorNodePrompt(T& o) {
-	FileSelNative sel;
-	sel.ActiveDir(GetHomeDirectory());
-	sel.Type("JSON", "*.json");
-	if (sel.ExecuteOpen("Select json file to import")) {
-		String path = sel.Get();
-		if (FileExists(path)) {
-			try {
-				String json = LoadFile(path);
-				Value jv = ParseJSON(json);
-				if(jv.IsError())
-					return false;
-				JsonIO jio(jv);
-				Vis vis(jio);
-				o.Visit(vis);
-			}
-			catch(ValueTypeError) {
-				return false;
-			}
-			catch(JsonizeError) {
-				return false;
-			}
-			return true;
-		}
-	}
-	return false;
-}
 
 template <class T> bool LoadFromJsonFile_VisitorNode(T& o, String path) {
 	if (FileExists(path)) {

@@ -5,15 +5,16 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Sound/Sound.h>
 #include <SoundCtrl/SoundCtrl.h>
+#include <CodeEditor/CodeEditor.h>
 
 #define IMAGECLASS MetaImgs
 #define IMAGEFILE <MetaCtrl/Images.iml>
 #include <Draw/iml_header.h>
 
+NAMESPACE_UPP
+
 #define LAYOUTFILE <MetaCtrl/MetaCtrl.lay>
 #include <CtrlCore/lay.h>
-
-NAMESPACE_UPP
 
 #include "Common.h"
 #include "Node.h"

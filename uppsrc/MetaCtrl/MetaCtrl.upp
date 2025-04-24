@@ -2,7 +2,8 @@ description "\377B0,0,128";
 
 uses
 	Meta,
-	CtrlLib;
+	CtrlLib,
+	CodeEditor;
 
 file
 	MetaCtrl.h,

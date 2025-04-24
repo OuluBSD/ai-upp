@@ -15,6 +15,38 @@ struct AiComponentCtrl : ComponentCtrl {
 	const Vector<String>& GetContentParts() const;
 };
 
+void SetCountForArray(ArrayCtrl& arr, int count);
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count);
+void SetCountWithDefaultCursor(ArrayCtrl& arr, int count, int sort_row, bool descending=false);
+
+template <class T> bool LoadFromJsonFile_VisitorNodePrompt(T& o) {
+	FileSelNative sel;
+	sel.ActiveDir(GetHomeDirectory());
+	sel.Type("JSON", "*.json");
+	if (sel.ExecuteOpen("Select json file to import")) {
+		String path = sel.Get();
+		if (FileExists(path)) {
+			try {
+				String json = LoadFile(path);
+				Value jv = ParseJSON(json);
+				if(jv.IsError())
+					return false;
+				JsonIO jio(jv);
+				Vis vis(jio);
+				o.Visit(vis);
+			}
+			catch(ValueTypeError) {
+				return false;
+			}
+			catch(JsonizeError) {
+				return false;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 END_UPP_NAMESPACE
 
 #endif

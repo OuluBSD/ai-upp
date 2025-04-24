@@ -2,6 +2,7 @@
 
 #ifdef flagAI
 #include <AICore/AICore.h>
+#include <ide/Meta/Meta.h>
 #endif
 
 #define LLOG(x) // LOG(x)
@@ -124,7 +125,7 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			CodeIndex().GetAdd(path) = pick(fa);
 			#ifdef flagAI
-			MetaEnv().Store(fa.includes, path, v.ast);
+			Store(MetaEnv(), fa.includes, path, v.ast);
 			#endif
 		}
 	});

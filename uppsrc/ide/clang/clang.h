@@ -1,7 +1,10 @@
 #ifndef _clang_clang_h
 #define _clang_clang_h
 
+
 #include <ide/Common/Common.h>
+
+#include <Core/Core.h>
 
 #define UBUNTU2204_WORKAROUND // there appears to be a bug in Ubuntu 22.04.1LTS libclang 14
 
@@ -71,7 +74,7 @@ String GetTypeDeclarationSpelling(CXCursor cursor);
 struct SourceLocation : Moveable<SourceLocation> {
 	String path;
 	Point  pos, begin, end;
-	
+
 	bool operator==(const SourceLocation& b) const { return path == b.path && pos == b.pos; }
 	bool operator!=(const SourceLocation& b) const { return !operator==(b); }
 	void Serialize(Stream& s)                      { s % path % pos % begin % end; }
@@ -117,7 +120,7 @@ enum {
 	ITEM_SIGN,
 	ITEM_UPP,
 	ITEM_TYPE,
-	
+
 	ITEM_PTYPE = ITEM_TYPE + 10000,
 };
 
@@ -157,7 +160,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	bool   definition = false;
 	bool   isvirtual = false;
 	bool   isstatic = false;
-	
+
 	void Serialize(Stream& s);
 	void Jsonize(JsonIO& json);
 	void operator=(const AnnotationItem& b);
@@ -178,7 +181,7 @@ struct ReferenceItem : Moveable<ReferenceItem> {
 	String	id;
 	Point	pos;
 	Point	ref_pos;
-	
+
 	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
 	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
 	String ToString() const;
@@ -192,7 +195,7 @@ struct StatementItem : Moveable<StatementItem> {
 	int		kind = Null;
 	Point	begin;
 	Point	end;
-	
+
 	bool operator==(const StatementItem& b) const { return begin == b.begin && end == b.end; }
 	hash_t GetHashValue() const                   { return CombineHash(kind, begin, end); }
 	void Serialize(Stream& s);
@@ -231,7 +234,7 @@ struct Clang {
 	           const String& filename2 = Null, const String& content2 = Null);
 	bool ReParse(const String& filename, const String& content,
 	             const String& filename2 = Null, const String& content2 = Null);
-	
+
 	Clang();
 	~Clang();
 };
@@ -260,7 +263,7 @@ struct ClangNode {
 	bool is_ref = false;
 	bool is_definition = false;
 	bool is_type_builtin = false;
-	
+
 	void Clear() {sub.Clear(); kind = -1; id.Clear(); type.Clear(); begin = Null; end = Null; filepos_hash = 0; is_ref = false; is_definition = false; type_hash = 0; is_type_builtin = false;}
 	String GetTreeString(int depth=0) const;
 	hash_t GetCommonHash() const;
@@ -270,7 +273,7 @@ struct ClangNode {
 class ClangVisitor {
 	bool initialized = false;
 	CXPrintingPolicy pp_id, pp_pretty;
-	
+
 	bool           ProcessNode(CXCursor c);
 
 	friend CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clientData);
@@ -278,11 +281,11 @@ class ClangVisitor {
 	VectorMap<CXFile, String>                 cxfile; // accelerate CXFile (CXFile has to be valid across tree as there is no Dispose)
 	VectorMap<CXFile, bool>                   do_file; // accelerate WhenFile
 	VectorMap<String, Index<ReferenceItem>>   ref_done; // avoid self-references, multiple references
-	
+
 	struct MCXCursor : Moveable<MCXCursor> {
 		CXCursor cursor;
 	};
-	
+
 	ArrayMap<SourceLocation, MCXCursor>  tfn; // to convert e.g. Index<String>::Find(String) to Index::Find(T)
 
 	struct CXLocation {
@@ -297,14 +300,14 @@ class ClangVisitor {
 	CXLocation      GetLocation(CXSourceLocation cxlocation);
 	CXRange         GetRange(CXSourceRange cxrange);
 	SourceLocation  GetSourceLocation(const CXLocation& p, const CXRange& r);
-	
+
 	bool locals = false;
 
 public:
 	VectorMap<String, CppFileInfo> info;
 	ClangNode ast;
 	Vector<ClangNode*> scope;
-	
+
 	Gate<const String&> WhenFile;
 
 	void Do(CXTranslationUnit tu);
@@ -334,7 +337,7 @@ String FindMasterSource(PPInfo& ppi, const Workspace& wspc, const String& header
 struct MasterSourceCacheRecord : Moveable<MasterSourceCacheRecord> {
 	String master;
 	VectorMap<String, Time> chain;
-	
+
 	bool CheckTimes(PPInfo& ppi) const;
 	void Serialize(Stream& s);
 };
@@ -384,7 +387,7 @@ class Indexer {
 	static bool               running_scheduler;
 	static String             main, includes, defines;
 	static bool               relaxed;
-	
+
 	static void IndexerThread();
 	static void SchedulerThread();
 	static void BuildingPause();
@@ -395,7 +398,7 @@ public:
 	static int    GetJobsCount()       { return jobs_count; }
 	static bool   IsSchedulerRunning() { return running_scheduler; }
 	static double Progress();
-	
+
 public:
 	typedef IndexerExtension* (*NewExt)();
 	typedef bool (*AcceptExt)(String);

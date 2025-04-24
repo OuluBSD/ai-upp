@@ -6,6 +6,20 @@
 
 NAMESPACE_UPP
 
+
+String FetchString(CXString cs)
+{
+	String result = clang_getCString(cs);
+	clang_disposeString(cs);
+	return result;
+}
+
+String GetCursorKindName(CXCursorKind cursorKind)
+{
+	return FetchString(clang_getCursorKindSpelling(cursorKind));
+}
+
+
 #define DO_TEMP_CHECK 0
 
 int CreateTempCheck(int src) {
@@ -27,43 +41,6 @@ void ClearTempCheck(int id) {
 
 #undef DO_TEMP_CHECK
 
-
-bool MakeRelativePath(const String& includes_, const String& dir, String& best_ai_dir,
-                      String& best_rel_dir)
-{
-	bool found = false;
-	Vector<String> ai_dirs = GetAiDirsRaw();
-	if(!ai_dirs.IsEmpty()) {
-		int def_cand_parts = INT_MAX;
-		String ai_dir = ai_dirs.Top();
-		String includes = includes_;
-		MergeWith(includes, ";", GetClangInternalIncludes());
-		for(const String& s : Split(includes, ';')) {
-#ifdef PLATFORM_WIN32 // we need to ignore internal VC++ headers
-			static VectorMap<String, bool> use;
-			int q = use.Find(s);
-			if(q < 0) {
-				q = use.GetCount();
-				use.Add(s, !FileExists(AppendFileName(s, "vcruntime.h")));
-			}
-			if(use[q])
-#endif
-			{
-				if(dir.Find(s) == 0) {
-					String rel_dir = dir.Mid(s.GetCount());
-					int cand_parts = Split(rel_dir, DIR_SEPS).GetCount();
-					// Prefer the shortest directory
-					if(cand_parts < def_cand_parts) {
-						best_ai_dir = ai_dir;
-						best_rel_dir = rel_dir;
-						found = true;
-					}
-				}
-			}
-		}
-	}
-	return found;
-}
 
 String GetAiPathCandidate(const String& includes_, String dir)
 {
@@ -837,23 +814,6 @@ hash_t MetaEnvironment::NewSerial() {
 	return new_hash;
 }
 
-void MetaEnvironment::UpdateWorkspace(Workspace& wspc) {
-	for(int i = 0; i < wspc.package.GetCount(); i++) {
-		String pkg_name = wspc.package.GetKey(i);
-		auto& pkg = wspc.package[i];
-		String dir = GetFileDirectory(pkg.path);
-		MetaSrcPkg& mpkg = GetAddPkg(dir);
-		for (auto& file : pkg.file) {
-			if (file.separator) continue;
-			String filename = file;
-			String ext = GetFileExt(filename);
-			String path = AppendFileName(dir, filename);
-			if (EcsIndexer::AcceptExt(ext))
-				EcsIndexer::RunPath(path);
-		}
-	}
-}
-
 Vector<MetaNode*> MetaEnvironment::FindAllEnvs() {
 	Vector<MetaNode*> v;
 	for (const MetaSrcPkg& pkg : pkgs) {
@@ -1003,34 +963,6 @@ void MetaEnvironment::OnLoadFile(MetaSrcFile& file)
 	for(auto* c : comments)
 		c->trace_kill = true;
 #endif
-}
-
-void MetaEnvironment::Store(String& includes, const String& path, ClangNode& cn)
-{
-	ClangTypeResolver ctr;
-	if(!ctr.Process(cn)) {
-		LOG("MetaEnvironment::Store: error: clang type resolving failed: " + ctr.GetError());
-		return;
-	}
-	if(!MergeResolver(ctr)) {
-		LOG("MetaEnvironment::Store: error: merging resolver failed");
-		return;
-	}
-
-	cn.TranslateTypeHash(ctr.GetTypeTranslation());
-
-	// LOG(n.GetTreeString());
-	MetaSrcFile& file = ResolveFile(includes, path);
-	MetaSrcPkg& pkg = *file.pkg;
-	MetaNode n;
-	n.Assign(0, cn);
-	n.SetPkgDeep(pkg.id);
-	n.SetFileDeep(file.id);
-	n.RealizeSerial();
-	if(!MergeNode(root, n, MERGEMODE_OVERWRITE_OLD))
-		return;
-
-	pkg.Store(false);
 }
 
 bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode)
@@ -1657,24 +1589,6 @@ void MetaNode::Destroy()
 	}
 }
 
-void MetaNode::Assign(MetaNode* owner, const ClangNode& n)
-{
-	this->owner = owner;
-	int c = n.sub.GetCount();
-	sub.SetCount(c);
-	for(int i = 0; i < c; i++)
-		sub[i].Assign(this, n.sub[i]);
-	kind = n.kind;
-	id = n.id;
-	type = n.type;
-	type_hash = n.type_hash;
-	begin = n.begin;
-	end = n.end;
-	filepos_hash = n.filepos_hash;
-	is_ref = n.is_ref;
-	is_definition = n.is_definition;
-}
-
 MetaNode& MetaNode::GetAdd(String id, String type, int kind)
 {
 	for(MetaNode& s : sub)
@@ -2250,22 +2164,6 @@ MetaNode* MetaEnvironment::FindTypeDeclaration(hash_t type_hash)
 			return &p;
 	}
 	return 0;
-}
-
-bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr)
-{
-	const VectorMap<hash_t, Index<String>>& scope_paths = ctr.GetScopePaths();
-	auto& translation = ctr.GetTypeTranslation();
-
-	for(int i = 0; i < scope_paths.GetCount(); i++) {
-		hash_t src_hash = scope_paths.GetKey(i);
-		const Index<String>& idx = scope_paths[i];
-		String path = idx[0];
-		hash_t dst_hash = RealizeTypePath(path);
-		translation.GetAdd(src_hash, dst_hash);
-	}
-
-	return true;
 }
 
 hash_t MetaEnvironment::RealizeTypePath(const String& path)

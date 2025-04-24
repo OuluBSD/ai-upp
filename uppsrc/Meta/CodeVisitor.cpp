@@ -2,6 +2,20 @@
 
 NAMESPACE_UPP
 
+bool IsStruct(int kind)
+{
+	return findarg(kind, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_ClassDecl,
+	                     CXCursor_ClassTemplate) >= 0;
+}
+
+bool IsFunction(int kind)
+{
+	return findarg(kind, CXCursor_FunctionTemplate, CXCursor_FunctionDecl, CXCursor_Constructor,
+	                     CXCursor_Destructor, CXCursor_ConversionFunction, CXCursor_CXXMethod) >= 0;
+}
+
+
+
 CodeVisitorProfile::CodeVisitorProfile() {
 	memset(&cfg, 0, sizeof(cfg));
 }

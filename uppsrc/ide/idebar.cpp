@@ -1008,8 +1008,10 @@ void Ide::MainMenu(Bar& menu)
 		.Help("Informations, code browsing and assistance");
 	menu.Add("Setup", THISBACK(Setup))
 		.Help("Paths, editor settings, connection to remote host");
+	#ifdef flagAI
 	if (calc_in_menubar && calc.IsMenuBarVisible())
 		menu.Sub("Calculator", [this](Bar& b) {calc.Menu(b);});
+	#endif
 	if (addon_menu) {
 		menu.Sub("Add-on", addon_menu);
 	}

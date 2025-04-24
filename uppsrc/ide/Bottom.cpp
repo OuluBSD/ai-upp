@@ -193,6 +193,7 @@ void Ide::SyncBottom()
 		editor_bottom.NoZoom();
 	console.Show(q == BCONSOLE);
 	error.Show(q == BERRORS);
+	#ifdef flagAI
 	if (calc_in_menubar)
 		calc.WhenViewChange << THISBACK(SetMenuBar);
 	else
@@ -201,6 +202,7 @@ void Ide::SyncBottom()
 	shell.Show(q == BCALC);
 	shell.LoadHlStyles(editor.StoreHlStyles());
 	shell.SetFont(editorfont);
+	#endif
 	SetBar();
 	if(q == BCALC)
 		ActiveFocus(calc);

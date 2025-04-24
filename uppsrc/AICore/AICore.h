@@ -4,6 +4,10 @@
 #include <Meta/Meta.h>
 #include <Sound/Sound.h>
 
+#ifndef flagAI
+#error AI flag is not set
+#endif
+
 #include "Defs.h"
 #include "Enums.h"
 #include "Types.h"

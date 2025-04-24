@@ -6,6 +6,10 @@
 
 struct FileAnnotation;
 
+#ifndef flagAI
+	#error AI flag is currently still required
+#endif
+
 NAMESPACE_UPP
 
 #include "Defs.h"

@@ -10,17 +10,11 @@ file
 	Fn.h,
 	Types.h,
 	Types.cpp,
-	Link.h,
-	Link.cpp,
 	LinkFwd.cpp,
 	LinkStore.h,
 	LinkStore.cpp,
 	LinkSystem.h,
 	LinkSystem.cpp,
 	Factory.h,
-	Factory.cpp,
-	LinkUtil.h,
-	LinkUtil.cpp,
-	Base.h,
-	Base.cpp;
+	Factory.cpp;
 

@@ -1,0 +1,40 @@
+description "\377B85,42,0";
+
+uses
+	AICore;
+
+file
+	Eon.h,
+	WorldState.h,
+	WorldState.cpp,
+	DefaultFormat.h,
+	DefaultFormat.cpp,
+	Base.h,
+	Base.cpp,
+	BaseAudio.h,
+	BaseAudio.cpp,
+	BaseVideo.h,
+	BaseVideo.cpp,
+	Types.h,
+	Types.cpp,
+	SampleBase.h,
+	SampleBase.cpp,
+	Formats.h,
+	Formats.cpp,
+	Samples.h,
+	Samples.cpp,
+	PacketBuffer.h,
+	PacketBuffer.cpp,
+	ValDevScope.h,
+	ValDevScope.cpp,
+	Audio.cpp,
+	PacketTracker.h,
+	PacketTracker.cpp,
+	Link.h,
+	Link.cpp,
+	LinkUtil.h,
+	LinkUtil.cpp,
+	LinkBase.h,
+	LinkBase.cpp,
+	_ readonly separator;
+

@@ -9,8 +9,6 @@ file
 	Defs.h,
 	Types.h,
 	Types.cpp,
-	PacketTracker.h,
-	PacketTracker.cpp,
 	Loop.h,
 	Loop.cpp,
 	LoopStore.h,

@@ -6,8 +6,6 @@ uses
 file
 	ParallelCore.h,
 	Defs.h,
-	Types.h,
-	Types.cpp,
 	Interface.h,
 	Interface.cpp,
 	Atom.h,
@@ -21,7 +19,5 @@ file
 	AtomSystem.h,
 	AtomSystem.cpp,
 	AtomStore.h,
-	AtomStore.cpp,
-	WorldState.h,
-	WorldState.cpp;
+	AtomStore.cpp;
 

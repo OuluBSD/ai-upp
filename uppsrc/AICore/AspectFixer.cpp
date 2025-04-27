@@ -1,7 +1,9 @@
 #include "AICore.h"
-#include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP
+
+// ImageDraw class requires CtrlCore
+#ifdef flagGUI
 
 AspectFixer::AspectFixer() {
 	save_debug_images = true;
@@ -343,6 +345,8 @@ AspectFixer& AspectFixer::Get(const Image& src_image, int w, int h, int w_extra,
 	af.h_extra = h_extra;
 	return af;
 }
+
+#endif
 
 INITIALIZER_COMPONENT(AspectFixerLayer);
 

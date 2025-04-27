@@ -61,7 +61,10 @@ public:
 };
 
 AiServiceProviderManager& AiManager();
+inline String& GlobalProxy() {static String s; return s;}
 
 END_UPP_NAMESPACE
+
+#include "AiProvider.inl"
 
 #endif

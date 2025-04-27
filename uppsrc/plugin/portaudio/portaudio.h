@@ -44,6 +44,9 @@
  @brief The portable PortAudio API.
 */
 
+#if defined flagWIN32 && !defined flagMSC
+	#error Compiler not supported
+#endif
 
 #ifdef __cplusplus
 extern "C"

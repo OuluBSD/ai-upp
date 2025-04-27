@@ -1,7 +1,7 @@
 #ifndef _Meta_Meta_h_
 #define _Meta_Meta_h_
 
-#include <Core/Core.h>
+#include <Draw/Draw.h>
 
 #ifndef flagLCLANG
 	#ifdef PLATFORM_POSIX
@@ -33,7 +33,6 @@ NAMESPACE_UPP
 #include "Node.h"
 #include "Entity.h"
 #include "CodeVisitor.h"
-#include "CodeGenerator.h"
 #include "SolverBase.h"
 
 END_UPP_NAMESPACE

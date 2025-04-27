@@ -391,7 +391,7 @@ void Ide::Serialize(Stream& s)
 		s % blk0_header;
 
 	if(version >= 32)
-		s % global_proxy % ai_manager;
+		s % GlobalProxy() % AiManager();
 
 	if(version >= 33)
 		s % editassolver;

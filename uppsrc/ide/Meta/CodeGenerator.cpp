@@ -24,7 +24,8 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 	MetaNode& n = *np.n;
 	ASSERT(!n.only_temporary);
 	
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& ienv = IdeMetaEnv();
+	MetaEnvironment& env = ienv.env;
 	files.Clear();
 	
 	// Find all unique files
@@ -83,7 +84,7 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		}
 		
 		// Load original file
-		const auto& pkg = env.pkgs[key.pkg];
+		const auto& pkg = ienv.pkgs[key.pkg];
 		String path = pkg.GetFullPath(key.file);
 		String content = LoadFile(path);
 		

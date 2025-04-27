@@ -13,7 +13,6 @@ IdeShellHostBase::~IdeShellHostBase() {
 
 
 
-void ShellReg_MetaEnv(IdeShellHost& host);
 
 IdeShellHost::IdeShellHost() {
 	AddProgram("cwd",	THISBACK(CurrentWorkingDirectory));
@@ -45,7 +44,7 @@ void IdeShellHost::PutLine(const String& s) {
 	out << s << "\n";
 }
 
-void IdeShellHost::AddProgram(String cmd, Callback2<IdeShell&,Value> cb) {
+void IdeShellHost::AddProgram(String cmd, Event<IdeShell&,Value> cb) {
 	commands.Add(cmd, cb);
 }
 
@@ -154,6 +153,68 @@ void IdeShellHost::ChangeDirectory(IdeShell& shell, Value arg) {
 #ifdef flagNET
 void IdeShellHost::StartIntranet(IdeShell& shell, Value arg) {
 	Thread::Start(IntranetDaemon);
+}
+#endif
+
+
+
+#ifdef flagAI
+void InitShellHost(MetaEnvironment& env, IdeShellHost& host) {
+	host.AddProgram("blog", [&env](IdeShell& is, Value val){EcsExt(env,is,val);});
+}
+
+void ShellReg_MetaEnv(IdeShellHost& host) {
+	InitShellHost(MetaEnv(), host);
+}
+
+void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value) {
+	MountManager& mm = MountManager::System();
+	
+	ConsoleCtrl* con = shell.host.GetConsole();
+	if (!con)
+		return;
+	
+	VfsPath cwd = shell.cwd;
+	
+	// Empty path is not sane... check current project file
+	if (cwd.IsEmpty()) {
+		MountManager::MountPoint* mp = mm.Find(INTERNAL_ROOT_FILE("prj"));
+		if (!mp) return;
+		if (mp->vfs) {
+			Vector<VfsItem> items;
+			mp->vfs->GetFiles(VfsPath(), items);
+			if (items.GetCount() == 1) {
+				cwd.Set(INTERNAL_ROOT_FILE("prj"));
+				cwd.Add(items[0].name);
+			}
+		}
+	}
+	
+	VfsPath rel_path;
+	MountManager::MountPoint* mp = mm.Find(cwd, &rel_path);
+	
+	if (mp && mp->vfs) {
+		MetaEnvironment* env = dynamic_cast<MetaEnvironment*>(&*mp->vfs);
+		if (env) {
+			MetaNode* n = env->root.FindPath(rel_path);
+			if (!n)
+				return;
+			
+			if (n->kind == METAKIND_ECS_SPACE) {
+				String ent_name = "Blog";
+				n = &n->GetAdd(ent_name, "", METAKIND_ECS_ENTITY);
+			}
+			else if (n->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+					 n->kind <= METAKIND_ECS_COMPONENT_END) {
+				n = n->owner;
+			}
+			
+			if (n->kind == METAKIND_ECS_ENTITY) {
+				EntityEditorCtrl& c = con->EcsExt<EntityEditorCtrl>(shell, value);
+				
+			}
+		}
+	}
 }
 #endif
 

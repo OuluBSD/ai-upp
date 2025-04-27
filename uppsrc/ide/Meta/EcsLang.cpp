@@ -15,15 +15,15 @@ void EcsIndexer::RunJob(IndexerJob& job) {
 }
 
 void EcsIndexer::RunPath(String path) {
-	MetaEnvironment& env = MetaEnv();
-	if (!env.LoadFileRoot("", path, true)) {
+	auto& ienv = IdeMetaEnv();
+	if (!ienv.LoadFileRoot("", path, true)) {
 		LOG(path + ": error: failed to run path (at EcsIndexer::RunPath)");
 	}
 }
 
 #if 0
 bool EcsIndexer::LoadEcsSpace(String path) {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	EcsSpace space;
 	LoadFromJsonFile(space, path);

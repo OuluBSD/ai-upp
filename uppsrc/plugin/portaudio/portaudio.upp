@@ -14,7 +14,9 @@ flags(LINUX & (!ALSA & !JACK & !OSS & !ASIHPI)) ALSA;
 
 flags(FREEBSD & (!ALSA & !JACK & !OSS & !ASIHPI)) OSS;
 
-flags(WIN32 & (!WMME & !DSOUND & !WASAPI & !WDMKS )) "WASAPI WMME";
+flags(WIN32 & (!WMME & !DSOUND & !WASAPI & !WDMKS ) & !MSC) WMME;
+
+flags(WIN32 & (!WMME & !DSOUND & !WASAPI & !WDMKS ) & MSC) "WMME WASAPI";
 
 library(POSIX) "rt pthread m";
 
@@ -56,11 +58,9 @@ options(!POSIX & ASIO) -DPA_USE_ASIO=1;
 options(!POSIX & (!DSOUND & !WASAPI & !WDMKS & !WMME)) "-DPA_USE_WMME=1 -DPA_USE_WASAPI=1";
 
 include
-	../portaudio,
 	common,
 	os/unix,
-	os/win,
-	hostapi/wasapi/mingw-include;
+	os/win;
 
 file
 	Upp readonly separator,

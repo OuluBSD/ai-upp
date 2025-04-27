@@ -3,22 +3,6 @@
 
 NAMESPACE_UPP
 
-void NavigatorState::Clear() {
-	line = 0;
-	depth = -1;
-	el = 0;
-	sorter = 0;
-	element.Clear();
-	attr.group.Clear();
-	attr.value.Clear();
-	clr_i = -1;
-	act.action.Clear();
-	act.arg.Clear();
-	ActionHeader act;
-	typeclass_i = -1;
-	con_i = -1;
-}
-
 
 ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ComponentCtrl& o) : o(o) {
 	Add(mode.TopPos(0,30).HSizePos());

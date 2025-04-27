@@ -1,5 +1,5 @@
-#ifndef _AI_ImgCore_Layer_h_
-#define _AI_ImgCore_Layer_h_
+#ifndef _AICore_Layer_h_
+#define _AICore_Layer_h_
 
 NAMESPACE_UPP
 

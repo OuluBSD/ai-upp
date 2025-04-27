@@ -1,6 +1,4 @@
 #include "AICore.h"
-#include <plugin/openai/openai.h>
-#include <ide/ide.h>
 
 NAMESPACE_UPP
 
@@ -843,7 +841,7 @@ bool AiTask::RunOpenAI_Transcription()
 		if(GetDefaultCharset() != CHARSET_UTF8)
 			prompt = ToCharset(CHARSET_UTF8, prompt, CHARSET_DEFAULT);
 
-		auto& ai_mgr = TheIde()->ai_manager;
+		auto& ai_mgr = AiManager();
 		ASSERT(args.ai_provider_idx >= 0 && args.ai_provider_idx < ai_mgr.GetCount());
 		const auto& prov = ai_mgr[args.ai_provider_idx];
 		

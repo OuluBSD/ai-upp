@@ -2906,7 +2906,7 @@ void SourceTextCtrl::Data() {
 void SourceTextCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
+		IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}

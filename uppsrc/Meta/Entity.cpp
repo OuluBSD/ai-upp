@@ -65,8 +65,10 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 		db_src = &n;
 	}
 	
+	TODO
+	#if 0
 	if (p.entity) {
-		p.env = MetaEnv().FindNodeEnv(*p.entity);
+		p.env = IdeMetaEnv().FindNodeEnv(*p.entity);
 		if (p.env && !db_src) {
 			bool found_db_src = false;
 			for (MetaNode& s : p.env->sub) {
@@ -99,6 +101,7 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 				p.srctxt = &*p.src->data;
 		}
 	}
+	#endif
 }
 
 int Entity::GetGender() const {

@@ -44,6 +44,7 @@ protected:
 	friend class VNodeComponentCtrl;
 	friend struct MetaEnvironment;
 	friend struct VirtualNode;
+	friend struct IdeMetaEnvironment;
 	VectorMap<String, Value> data;
 	ArrayMap<VfsPath, EntityData> objs;
 	Value& Data(const String& key) {return data.GetAdd(key);}

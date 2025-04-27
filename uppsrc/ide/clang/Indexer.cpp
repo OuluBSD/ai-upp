@@ -319,7 +319,7 @@ void Indexer::IndexerThread()
 				CodeIndex().GetAdd(path) = pick(f);
 				#ifdef flagAI
 				if (i++ == 0)
-					Store(MetaEnv(), job.includes, path, v.ast);
+					Store(IdeMetaEnv(), job.includes, path, v.ast);
 				#endif
 			}
 
@@ -501,7 +501,7 @@ void Indexer::SchedulerThread()
 							}
 						}
 						#ifdef flagAI
-						MetaEnv().Load(includes, path);
+						IdeMetaEnv().Load(includes, path);
 						#endif
 					}
 					if(f.defines != defines || f.includes != includes || f.time != m.value) {

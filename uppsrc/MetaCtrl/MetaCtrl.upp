@@ -12,16 +12,10 @@ file
 	Images.iml,
 	Common.h,
 	Node.h,
-	MetaCodeCtrl.h,
-	MetaCodeCtrl.cpp,
-	MetaEnvTree.h,
-	MetaEnvTree.cpp,
 	ProcessCtrl.h,
 	ProcessCtrl.cpp,
 	TextDesigner.h,
 	TextDesigner.cpp,
 	Entity.h,
-	Entity.cpp,
-	Env.h,
-	Env.cpp;
+	Entity.cpp;
 

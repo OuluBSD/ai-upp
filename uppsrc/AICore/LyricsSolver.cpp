@@ -16,6 +16,22 @@ void NavigatorState::RemoveDuplicate(const NavigatorState& s) {
 	if (con_i == s.con_i) con_i = -1;
 }
 
+void NavigatorState::Clear() {
+	line = 0;
+	depth = -1;
+	el = 0;
+	sorter = 0;
+	element.Clear();
+	attr.group.Clear();
+	attr.value.Clear();
+	clr_i = -1;
+	act.action.Clear();
+	act.arg.Clear();
+	ActionHeader act;
+	typeclass_i = -1;
+	con_i = -1;
+}
+
 ArrayMap<String, ScriptSolver>& __ScriptSolvers() {
 	static ArrayMap<String, ScriptSolver> map;
 	return map;
@@ -126,7 +142,9 @@ void ScriptSolver::GetExpanded(int part_i, int sub_i, int line_i, Event<> WhenPa
 	auto& l = *p.lyric_struct;
 	auto& ly = *p.lyrics;
 	if (part_i >= l.parts.GetCount()) {
-		Loge(("ScriptSolver::GetExpanded: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount())));
+		String err = "ScriptSolver::GetExpanded: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount());
+		LOG(err);
+		WhenError(err);
 		return;
 	}
 	DynPart& part = l.parts[part_i];
@@ -351,7 +369,9 @@ void ScriptSolver::GetSubStory(int part_i, int sub_i, Event<> WhenPartiallyReady
 	auto& l = *p.lyric_struct;
 	auto& ly = *p.lyrics;
 	if (part_i >= l.parts.GetCount()) {
-		Loge(("ScriptSolver::GetSubStory: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount())));
+		String err = "ScriptSolver::GetSubStory: error: part_i >= l.parts.GetCount(): " + IntStr(part_i) + " >= " + IntStr(l.parts.GetCount());
+		LOG(err);
+		WhenError(err);
 		return;
 	}
 	DynPart& part = l.parts[part_i];

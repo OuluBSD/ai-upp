@@ -2,16 +2,18 @@
 #define _ide_Meta_Meta_h_
 
 #include <ide/clang/clang.h>
-#include <Meta/Meta.h>
+#include <MetaCtrl/MetaCtrl.h>
 
 NAMESPACE_UPP
 
+#include "Ide.h"
 #include "ClangTypeResolver.h"
 #include "EcsLang.h"
-
-void Assign(MetaNode& mn, MetaNode* owner, const ClangNode& n);
-void Store(MetaEnvironment& env, String& includes, const String& path, ClangNode& n);
-void UpdateWorkspace(MetaEnvironment& env, Workspace& wspc);
+#include "CodeGenerator.h"
+#include "MetaCodeCtrl.h"
+#include "MetaEnvTree.h"
+#include "EditorCtrl.h"
+#include "Env.h"
 
 END_UPP_NAMESPACE
 	

@@ -7,6 +7,10 @@
 #include <SoundCtrl/SoundCtrl.h>
 #include <CodeEditor/CodeEditor.h>
 
+#ifndef flagGUI
+#error GUI flag is required
+#endif
+
 #define IMAGECLASS MetaImgs
 #define IMAGEFILE <MetaCtrl/Images.iml>
 #include <Draw/iml_header.h>
@@ -18,12 +22,9 @@ NAMESPACE_UPP
 
 #include "Common.h"
 #include "Node.h"
-#include "MetaEnvTree.h"
 #include "ProcessCtrl.h"
-#include "MetaCodeCtrl.h"
 #include "TextDesigner.h"
 #include "Entity.h"
-#include "Env.h"
 
 END_UPP_NAMESPACE
 

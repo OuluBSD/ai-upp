@@ -1,6 +1,6 @@
 #include "AICore.h"
-#include <ide/ide.h>
-#include <plugin/openai/openai.h>
+
+class Ide;
 
 NAMESPACE_UPP
 
@@ -722,7 +722,7 @@ void TaskMgrConfig::SetupInstance(::Ide* ide)
 	this->ide = ide;
 	
 	if(!instance) {
-		auto& mgr = ide->ai_manager;
+		auto& mgr = AiManager();
 		for(int i = 0; i < mgr.GetCount(); i++) {
 			auto& prov = mgr[i];
 			if (prov.type == AiServiceProvider::OPENAI) {
@@ -731,7 +731,7 @@ void TaskMgrConfig::SetupInstance(::Ide* ide)
 					if (instance) {
 						String proxy = prov.proxy;
 						if (proxy.IsEmpty())
-							proxy = ide->global_proxy;
+							proxy = GlobalProxy();
 						instance->setProxy(proxy.Begin());
 					}
 					break;

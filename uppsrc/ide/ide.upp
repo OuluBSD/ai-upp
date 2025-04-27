@@ -100,7 +100,7 @@ file
 	Upgrade.cpp,
 	UppHub.cpp,
 	AiProvider.h,
-	AiProvider.cpp,
+	AiProvider.inl highlight cpp,
 	Calc.cpp,
 	Compile readonly separator,
 	MethodsCtrls.h,

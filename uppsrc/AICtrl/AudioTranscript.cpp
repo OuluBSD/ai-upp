@@ -88,7 +88,7 @@ void AudioTranscriptCtrl::Start() {
 
 void SetAiProviders(DropList& ai, int ai_idx) {
 	ai.Clear();
-	auto& ai_mgr = TheIde()->ai_manager;
+	auto& ai_mgr = AiManager();
 	for(int i = 0; i < ai_mgr.GetCount(); i++) {
 		auto& prov = ai_mgr[i];
 		if (prov.IsFeatureAudioToText())

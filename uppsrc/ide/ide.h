@@ -675,8 +675,6 @@ public:
 	bool      win_deactivated = false;
 	bool      block_caret = false;
 	bool      bar_branch = true;
-	String    global_proxy;
-	AiServiceProviderManager ai_manager;
 	int       audio_src = -1;
 	bool      autostart_audio_src = false;
 	double    audio_timelimit = 1.0;

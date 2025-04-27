@@ -3,11 +3,13 @@ description "\377B141,42,0";
 uses
 	Meta,
 	plugin/openai,
-	Sound;
+	Sound,
+	plugin/jpg,
+	plugin/bz2;
 
-library(!WIN32) curl;
+library(!MSC) curl;
 
-library(WIN32) libcurl.lib;
+library(MSC) libcurl.lib;
 
 file
 	AICore.h,
@@ -45,7 +47,6 @@ file
 	Asset readonly separator,
 	ProjectWizard.h,
 	ProjectWizard.cpp,
-	ProjectWizardInit.icpp,
 	Disposable readonly separator,
 	Data.h,
 	Data.cpp,

@@ -853,7 +853,7 @@ void MergeProcess::LoadForAppending() {
 		compressed.Cat(data);
 		
 		int per_file = 1024 * 1024 * 25;
-		Logi() << "SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False");
+		LOG("SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False"));
 	}
 	String decompressed = BZ2Decompress(compressed);
 	if (decompressed.GetCount() != size) {

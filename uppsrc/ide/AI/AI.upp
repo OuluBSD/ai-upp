@@ -9,5 +9,6 @@ file
 	AI.h,
 	Designer.h,
 	IdeAIDes.cpp,
-	DesT.cpp;
+	DesT.cpp,
+	AICore.cpp;
 

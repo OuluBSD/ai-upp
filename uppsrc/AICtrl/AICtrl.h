@@ -6,6 +6,10 @@
 #include <SoundCtrl/SoundCtrl.h>
 #include <MetaCtrl/MetaCtrl.h>
 
+#ifndef flagGUI
+#error GUI flag is required
+#endif
+
 /*
 #include <CodeEditor/CodeEditor.h>
 #include <CtrlLib/CtrlLib.h>

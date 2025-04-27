@@ -1,4 +1,4 @@
-#include "AICore.h"
+#include "AICtrl.h"
 
 
 void InitDummy();

@@ -49,13 +49,6 @@ String FullImageFile(String dir, hash_t h) {
 	return thumb_path;
 }
 
-String PhotoPrompt::GetFilePath(String dir, int i) const {
-	dir = AppendFileName(dir, "images" DIR_SEPS "prompts");
-	String filename = IntStr64(prompt.GetHashValue()) + "_" + IntStr(i) + ".jpg";
-	String path = AppendFileName(dir, filename);
-	return path;
-}
-
 
 
 

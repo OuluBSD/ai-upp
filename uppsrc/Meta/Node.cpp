@@ -5,7 +5,7 @@
 
 NAMESPACE_UPP
 
-
+#if 0
 String FetchString(CXString cs)
 {
 	String result = clang_getCString(cs);
@@ -17,7 +17,7 @@ String GetCursorKindName(CXCursorKind cursorKind)
 {
 	return FetchString(clang_getCursorKindSpelling(cursorKind));
 }
-
+#endif
 
 #define DO_TEMP_CHECK 0
 
@@ -851,7 +851,7 @@ String MetaNode::GetKindString() const { return GetKindString(kind); }
 String MetaNode::GetKindString(int kind)
 {
 	if(kind >= 0 && kind <= CXCursor_OverloadCandidate)
-		return GetCursorKindName((CXCursorKind)kind);
+		TODO; //return GetCursorKindName((CXCursorKind)kind);
 	switch (kind) {
 		#define DATASET_ITEM(type, name, kind, group, desc) case kind: return desc;
 		DATASET_LIST

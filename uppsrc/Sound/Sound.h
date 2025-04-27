@@ -1,12 +1,13 @@
 #ifndef _Sound_Sound_h_
 #define _Sound_Sound_h_
 
-#ifndef flagSYS_PORTAUDIO
-	#include <plugin/portaudio/portaudio.h>
-#else
-	#include <portaudio.h>
-#endif
 #include <Core/Core.h>
+
+#if defined flagSYS_PORTAUDIO || (defined flagWIN32 && !defined flagMSC)
+	#include <portaudio.h>
+#else
+	#include <plugin/portaudio/portaudio.h>
+#endif
 
 #include "Types.h"
 #include "SoundClip.h"

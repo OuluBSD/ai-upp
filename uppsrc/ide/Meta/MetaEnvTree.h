@@ -1,5 +1,5 @@
-#ifndef _MetaCtrl_MetaEnvTree_h_
-#define _MetaCtrl_MetaEnvTree_h_
+#ifndef _ide_Meta_MetaEnvTree_h_
+#define _ide_Meta_MetaEnvTree_h_
 
 class MetaEnvTree : public ParentCtrl {
 	Splitter split, lsplit, ltsplit;

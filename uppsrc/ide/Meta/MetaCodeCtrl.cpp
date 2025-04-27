@@ -1,4 +1,4 @@
-#include "MetaCtrl.h"
+#include "Meta.h"
 #include <ide/ide.h>
 
 #ifdef flagAI
@@ -48,8 +48,7 @@ void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, by
 	this->filepath = NormalizePath(filename);
 	this->includes = includes;
 	
-	MetaEnvironment& env = MetaEnv();
-	env.Load(filepath, includes);
+	IdeMetaEnv().Load(filepath, includes);
 
 	this->content = str.Get((int)str.GetSize());
 	this->charset = charset;
@@ -59,12 +58,12 @@ void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, by
 
 void MetaCodeCtrl::UpdateEditor()
 {
-	auto& env = MetaEnv();
-	MetaSrcFile& file = env.ResolveFile(this->includes, this->filepath);
+	auto& ienv = IdeMetaEnv();
+	MetaSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	MetaSrcPkg& pkg = *file.pkg;
 	ASSERT(pkg.id >= 0 && file.id >= 0);
 	MetaNodeSubset sub;
-	env.SplitNode(env.root, sub, pkg.id, file.id);
+	ienv.SplitNode(ienv.env.root, sub, pkg.id, file.id);
 	
 	gen.Process(sub);
 	gen_file = gen.GetResultFile(pkg.id, file.id);
@@ -257,8 +256,8 @@ void MetaCodeCtrl::OnTab() {
 
 void MetaCodeCtrl::StoreMetaFile()
 {
-	auto& env = MetaEnv();
-	MetaSrcFile& file = env.ResolveFile(this->includes, this->filepath);
+	auto& ienv = IdeMetaEnv();
+	MetaSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	if (file.managed_file) {
 		file.MakeTempFromEnv(false);
 		file.Store(true);

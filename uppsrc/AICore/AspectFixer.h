@@ -1,7 +1,10 @@
-#ifndef _AI_ImgCore_AspectFixer_h_
-#define _AI_ImgCore_AspectFixer_h_
+#ifndef _AICore_AspectFixer_h_
+#define _AICore_AspectFixer_h_
 
 NAMESPACE_UPP
+
+// ImageDraw class requires CtrlCore
+#ifdef flagGUI
 
 class AspectFixer : public SolverBase {
 	
@@ -48,6 +51,8 @@ public:
 	static Image MakeMask(const Image& src);
 	
 };
+
+#endif
 
 struct AspectFixerLayer : TempImageLayer {
 	AspectFixerLayer(MetaNode& owner) : TempImageLayer(owner) {}

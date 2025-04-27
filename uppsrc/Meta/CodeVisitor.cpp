@@ -181,7 +181,7 @@ void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
 	MetaNode* decl = env.FindDeclaration(n);
 	if (decl) {
 		link_it.link_node = decl;
-		String filepath = env.GetFilepath(decl->pkg, decl->file);
+		TODO // String filepath = env.GetFilepath(decl->pkg, decl->file);
 		Visit(filepath, *decl);
 	}
 	else /*if (FindItem(&n) < 0)*/ {

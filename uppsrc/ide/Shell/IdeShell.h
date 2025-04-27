@@ -25,7 +25,7 @@ struct IdeShellHost : IdeShellHostBase {
 	const String& GetError() const override;
 	void Put(const String& s);
 	void PutLine(const String& s);
-	void AddProgram(String cmd, Callback2<IdeShell&, Value> cb);
+	void AddProgram(String cmd, Event<IdeShell&, Value> cb);
 	void CurrentWorkingDirectory(IdeShell& shell, Value arg);
 	void ListFiles(IdeShell& shell, Value arg);
 	void ChangeDirectory(IdeShell& shell, Value arg);
@@ -35,7 +35,7 @@ struct IdeShellHost : IdeShellHostBase {
 	#endif
 	
 	String out, err;
-	ArrayMap<String, Callback2<IdeShell&,Value>> commands;
+	ArrayMap<String, Event<IdeShell&,Value>> commands;
 };
 
 struct IdeShell : Upp::CodeEditor {
@@ -55,6 +55,9 @@ struct IdeShell : Upp::CodeEditor {
 
 };
 
+void InitShellHost(MetaEnvironment& env, IdeShellHost& host);
+void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value);
+void ShellReg_MetaEnv(IdeShellHost& host);
 
 END_UPP_NAMESPACE
 

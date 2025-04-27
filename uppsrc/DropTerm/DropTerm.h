@@ -11,6 +11,11 @@
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
+
+#ifndef flagGUI
+	#error GUI flag is required
+#endif
+
 #ifdef flagAI
 	#include <AICtrl/AICtrl.h>
 #endif

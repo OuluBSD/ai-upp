@@ -147,7 +147,7 @@ void WorkspaceWork::ScanWorkspace() {
 	SyncErrorPackages();
 	
 	#ifdef flagAI
-	UpdateWorkspace(MetaEnv(), wspc);
+	UpdateWorkspace(IdeMetaEnv(), wspc);
 	#endif
 }
 

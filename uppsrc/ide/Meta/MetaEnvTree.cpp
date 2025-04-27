@@ -1,6 +1,5 @@
-#include "MetaCtrl.h"
+#include "Meta.h"
 
-NAMESPACE_UPP
 
 MetaEnvTree::MetaEnvTree() {
 	AddFrame(menu);
@@ -31,7 +30,7 @@ MetaEnvTree::MetaEnvTree() {
 }
 
 void MetaEnvTree::Data() {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	int row = 0;
 	pkgs.Set(row, 0, "<global>");
@@ -51,7 +50,7 @@ void MetaEnvTree::Data() {
 }
 
 void MetaEnvTree::DataPkg() {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	if (!pkgs.IsCursor()) {
 		files.Clear();
@@ -82,7 +81,7 @@ void MetaEnvTree::DataPkg() {
 }
 
 void MetaEnvTree::DataFile() {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	if (!pkgs.IsCursor() || !files.IsCursor()) {
 		stmts.Clear();
@@ -99,18 +98,18 @@ void MetaEnvTree::DataFile() {
 	stmts.Clear();
 	stmt_ptrs.SetCount(0);
 	if (pkg_i < 0) {
-		AddStmtNodes(0, env.root, 0);
+		AddStmtNodes(0, env.env.root, 0);
 	}
 	else if (pkg_i >= 0 && file_i < 0) {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitNode(env.root, subset, pkg_i);
+		env.SplitNode(env.env.root, subset, pkg_i);
 		AddStmtNodes(0, *subset.n, &subset);
 	}
 	else {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitNode(env.root, subset, pkg_i, file_i);
+		env.SplitNode(env.env.root, subset, pkg_i, file_i);
 		AddStmtNodes(0, *subset.n, &subset);
 	}
 	stmts.OpenDeep(0);
@@ -138,7 +137,7 @@ void MetaEnvTree::DataTreeSelection() {
 }
 
 void MetaEnvTree::DataFocusSelection() {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	code.Clear();
 	if (!focus.IsCursor())
 		return;
@@ -219,4 +218,3 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	}
 }
 
-END_UPP_NAMESPACE

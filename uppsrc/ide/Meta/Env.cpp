@@ -1,4 +1,4 @@
-#include "MetaCtrl.h"
+#include "Meta.h"
 
 NAMESPACE_UPP
 
@@ -29,7 +29,7 @@ EnvEditorCtrl::EnvEditorCtrl() {
 void EnvEditorCtrl::RefreshDatabases() {
 	dbs.SetCount(0);
 	
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
 		MetaSrcPkg& pkg = env.pkgs[i];
@@ -161,7 +161,7 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 void EnvEditorCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
 		MetaNode* n = 0;
-		MetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
+		IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}
@@ -174,7 +174,7 @@ void EnvEditorCtrl::Visit(Vis& v) {
 }
 
 MetaSrcFile& EnvEditorCtrl::RealizeFileRoot() {
-	MetaEnvironment& env = MetaEnv();
+	IdeMetaEnvironment& env = IdeMetaEnv();
 	String path = this->GetFilePath();
 	MetaSrcFile& file = env.ResolveFile("", path);
 	MetaSrcPkg& pkg = *file.pkg;

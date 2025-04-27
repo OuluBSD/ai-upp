@@ -370,16 +370,16 @@ bool SrcTxtHeader::LoadData() {
 		compressed.Cat(data);
 		
 		int per_file = 1024 * 1024 * 25;
-		Logi() << "SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False");
+		LOG("SrcTxtHeader::LoadData" << data.GetCount() << " vs expected " << per_file << ": " << (data.GetCount() == per_file ? "True" : "False"));
 	}
 	String decompressed = BZ2Decompress(compressed);
 	if (decompressed.GetCount() != this->size) {
-		Loge() << "SrcTxtHeader::LoadData: error: size mismatch when loading: " << filepath;
+		LOG("SrcTxtHeader::LoadData: error: size mismatch when loading: " << filepath);
 		return false;
 	}
 	String sha1 = SHA1String(decompressed);
 	if (sha1 != this->sha1) {
-		Loge() << "SrcTxtHeader::LoadData: error: sha1 mismatch when loading: " << filepath;
+		LOG("SrcTxtHeader::LoadData: error: sha1 mismatch when loading: " << filepath);
 		return false;
 	}
 	StringStream decomp_stream(decompressed);

@@ -3,17 +3,6 @@
 
 NAMESPACE_UPP
 
-const VectorMap<String, Vector<String>>& GetMarketplaceSections() {
-	static VectorMap<String, Vector<String>> m;
-	if (!m.IsEmpty()) return m;
-	{
-		auto& v = m.Add("Labor");
-		v.Add("Skilled");
-		v.Add("Unskilled");
-	}
-	return m;
-}
-
 
 void BiographyPlatformCtrl::Platforms::Marketplace::Ctor() {
 	this->p.tabs.Add(hsplit.SizePos(), "Marketplace");

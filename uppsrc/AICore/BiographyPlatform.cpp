@@ -100,6 +100,17 @@ Vector<PhotoPromptLink> BiographyPlatform::GetImageTypePrompts(String image_type
 	return o;
 }
 
+const VectorMap<String, Vector<String>>& GetMarketplaceSections() {
+	static VectorMap<String, Vector<String>> m;
+	if (!m.IsEmpty()) return m;
+	{
+		auto& v = m.Add("Labor");
+		v.Add("Skilled");
+		v.Add("Unskilled");
+	}
+	return m;
+}
+
 INITIALIZER_COMPONENT(BiographyPlatform)
 
 

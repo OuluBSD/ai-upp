@@ -1,5 +1,5 @@
-#ifndef _MetaCtrl_MetaCodeCtrl_h_
-#define _MetaCtrl_MetaCodeCtrl_h_
+#ifndef _ide_Meta_MetaCodeCtrl_h_
+#define _ide_Meta_MetaCodeCtrl_h_
 
 struct MetaCodeCtrl : ParentCtrl {
 	Splitter			hsplit, rsplit;

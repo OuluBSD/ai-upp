@@ -1,8 +1,7 @@
 description "\377B128,0,0";
 
 uses
-	Core,
-	ide/clang;
+	Draw;
 
 file
 	Meta.h,
@@ -16,8 +15,6 @@ file
 	Entity.cpp,
 	CodeVisitor.h,
 	CodeVisitor.cpp,
-	CodeGenerator.h,
-	CodeGenerator.cpp,
 	SolverBase.h,
 	SolverBase.cpp,
 	src.tpp;

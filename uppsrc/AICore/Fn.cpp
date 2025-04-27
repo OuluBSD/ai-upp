@@ -1,5 +1,4 @@
 #include "AICore.h"
-#include <ide/ide.h>
 
 NAMESPACE_UPP
 
@@ -372,7 +371,7 @@ bool IsAllUpper(const String& s) {
 }
 
 String GetGlobalProxy() {
-	return TheIde()->global_proxy;
+	return GlobalProxy();
 }
 
 Value FindValueRecursively(Value val, String key) {

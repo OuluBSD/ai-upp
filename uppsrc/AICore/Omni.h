@@ -151,8 +151,7 @@ public:
 
 INITIALIZE(StageThread)
 
-class ChainThread : public MetaNodeExt {
-public:
+struct ChainThread : MetaNodeExt {
 	typedef ChainThread CLASSNAME;
 	ChainThread(MetaNode& n) : MetaNodeExt(n) {}
 	void Visit(Vis& v) override {

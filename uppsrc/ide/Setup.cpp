@@ -455,7 +455,7 @@ void Ide::SetupFormat() {
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
 #ifdef flagAI
-		(ai.global_proxy, global_proxy)
+		(ai.global_proxy, GlobalProxy())
 #endif
 	;
 	
@@ -474,6 +474,7 @@ void Ide::SetupFormat() {
 		ai.type.SetIndex(0);
 	}
 	ai.refresh.WhenAction = [this,&ai] {
+		auto& ai_manager = AiManager();
 		ai.providers.SetCount(ai_manager.GetCount());
 		for(int i = 0; i < ai_manager.GetCount(); i++) {
 			AiServiceProvider& prov = ai_manager[i];
@@ -485,12 +486,14 @@ void Ide::SetupFormat() {
 		}
 	};
 	ai.add.WhenAction = [this,&ai] {
+		auto& ai_manager = AiManager();
 		AiServiceProvider& prov = ai_manager.Add();
 		ai.refresh.WhenAction(); // Refresh
 		if (ai.providers.GetCount() > 0)
 			ai.providers.SetCursor(ai.providers.GetCount()-1);
 	};
 	ai.delete_.WhenAction = [this,&ai] {
+		auto& ai_manager = AiManager();
 		if (!ai.providers.IsCursor()) return;
 		int idx = ai.providers.Get("IDX");
 		ai_manager.Remove(idx);
@@ -501,6 +504,7 @@ void Ide::SetupFormat() {
 	ai.refresh.WhenAction();
 	ai.providers.WhenCursor.Clear();
 	ai.providers.WhenCursor = [this,&ai]{
+		auto& ai_manager = AiManager();
 		if (!ai.providers.IsCursor()) return;
 		int idx = ai.providers.Get("IDX");
 		AiServiceProvider& prov = ai_manager[idx];

@@ -3,6 +3,11 @@
 
 #include <Meta/Meta.h>
 #include <Sound/Sound.h>
+#include <plugin/bz2/bz2.h>
+#include <plugin/png/png.h>
+#include <plugin/jpg/jpg.h>
+#include <plugin/openai/openai.h>
+#include <ide/AiProvider.h>
 
 #ifndef flagAI
 #error AI flag is not set

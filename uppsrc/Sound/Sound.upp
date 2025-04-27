@@ -1,3 +1,5 @@
+flags(WIN32 & !MSC) SYS_PORTAUDIO;
+
 uses(!SYS_PORTAUDIO) plugin/portaudio;
 
 library(SYS_PORTAUDIO) portaudio;

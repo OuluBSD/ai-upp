@@ -209,7 +209,7 @@ void ProjectWizardView::DefaultDynamic(const FileNode* n) {
 	
 	GenericPromptArgs args;
 	if (!MakeArgs(args, *n)) {
-		PromptOK(error);
+		LOG(error);
 		return;
 	}
 	
@@ -1063,6 +1063,70 @@ FileNode& ProjectWizardView::RealizeFileNode(const String& path, const Configura
 	
 	FileNode& n = nodes.Add(path, new FileNode(path, title, *cf));
 	return n;
+}
+
+Vector<String> ProjectWizardView::MakeItems(String file_path) {
+	VectorMap<String,String> res;
+	if (file_path.IsEmpty()) file_path = "/";
+	ASSERT(file_path.Find(":") < 0);
+	ASSERT(file_path.Find("[") < 0);
+	String static_cmp = file_path + ":";
+	
+	nodes.Clear();
+	
+	// Static nodes
+	const char* k0 = static_cmp.Begin();
+	int c0 = static_cmp.GetCount();
+	const auto& confs = GetConfs();
+	for(int i = 0; i < confs.GetCount(); i++) {
+		const String& key = confs.GetKey(i);
+		const ConfigurationNode& cf = confs[i];
+		if (cf.is_dynamic)
+			continue;
+		
+		if (key.GetCount() >= c0) {
+			const char* k1 = key.Begin();
+			if (strncmp(k0, k1, c0) == 0) {
+				String s = key.Mid(c0);
+				if (s.IsEmpty()) continue;
+				res.GetAdd(s) = Format("%05d", i);
+				
+				RealizeFileNode(cf.path, &cf);
+			}
+		}
+	}
+	
+	// Dynamic nodes
+	const auto& file = GetFile(file_path);
+	for(int i = 0; i < file.GetCount(); i++) {
+		String key = file.GetKey(i);
+		if (key.IsEmpty()) continue;
+		
+		if (key[key.GetCount()-1] == ']') {
+			int a = key.Find("[");
+			if (a < 0) continue;
+			
+			String rule_path = file_path + ":" + key.Left(a);
+			int j = confs.Find(rule_path);
+			if (j < 0) continue;
+			
+			String item_path = file_path + ":" + key;
+			
+			FileNode& n0 = RealizeFileNode(item_path, &confs[j]);
+			for(int j = 0; j < confs.GetCount(); j++) {
+				if (&confs[j] == &n0.conf) {
+					res.GetAdd(key) = Format("%05d-%s", j, item_path);
+					break;
+				}
+			}
+		}
+	}
+	
+	SortByValue(res, StdLess<String>());
+	
+	Vector<String> v;
+	v <<= res.GetKeys();
+	return v;
 }
 
 

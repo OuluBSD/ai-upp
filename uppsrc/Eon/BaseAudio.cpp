@@ -11,7 +11,7 @@ AudioGenBase::AudioGenBase() {
 	
 }
 
-bool AudioGenBase::Initialize(const Script::WorldState& ws) {
+bool AudioGenBase::Initialize(const WorldState& ws) {
 	String waveform = ws.Get(".waveform");
 	
 	if (waveform == "noise")
@@ -68,7 +68,7 @@ AudioMixerBase::AudioMixerBase() {
 	
 }
 
-bool AudioMixerBase::Initialize(const Script::WorldState& ws) {
+bool AudioMixerBase::Initialize(const WorldState& ws) {
 	auto_limit = ws.GetBool(".auto.limit", false);
 	sync = ws.GetBool(".sync", false);
 	max_sync_drift_time = (float)ws.GetDouble(".sync.drift.limit", 0.010f); // ms
@@ -81,7 +81,7 @@ bool AudioMixerBase::PostInitialize() {
 	int sink_count = sink->GetSinkCount();
 	for(int i = 1; i < sink_count; i++) {
 		Value& v = sink->GetValue(i);
-		Format fmt = v.GetFormat();
+		ValueFormat fmt = v.GetFormat();
 		ASSERT(fmt.IsAudio());
 		if (fmt.IsAudio()) {
 			AudioFormat& afmt = fmt;
@@ -92,7 +92,7 @@ bool AudioMixerBase::PostInitialize() {
 	
 	ISourceRef src = GetSource();
 	Value& v = src->GetSourceValue(0);
-	Format fmt = v.GetFormat();
+	ValueFormat fmt = v.GetFormat();
 	ASSERT(fmt.IsAudio());
 	AudioFormat& afmt = fmt;
 	afmt.SetType(BinarySample::FLT_LE);
@@ -112,8 +112,7 @@ bool AudioMixerBase::IsReady(PacketIO& io) {
 }
 
 bool AudioMixerBase::Recv(int sink_ch, const Packet& in) {
-	
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsAudio()) {
 		if (sink_ch >= queue.GetCount())
 			queue.SetCount(sink_ch+1);
@@ -255,7 +254,7 @@ void AudioMixerBase::Finalize(RealtimeSourceConfig& cfg) {
 }
 
 bool AudioMixerBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
 		ASSERT(afmt.IsSampleFloat());

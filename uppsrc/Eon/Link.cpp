@@ -12,11 +12,11 @@ LinkBase::~LinkBase() {
 	DBG_DESTRUCT
 }
 
-Parallel::AtomBase* LinkBase::GetAtom() {
+Atom* LinkBase::GetAtom() {
 	return atom;
 }
 
-Parallel::Machine& LinkBase::GetMachine() {
+Machine& LinkBase::GetMachine() {
 	return atom->GetMachine();
 }
 
@@ -63,7 +63,7 @@ void LinkBase::ForwardAsync() {
 	fwd.Forward();
 }
 
-bool LinkBase::NegotiateSourceFormat(int src_ch, const Format& fmt) {
+bool LinkBase::NegotiateSourceFormat(int src_ch, const ValueFormat& fmt) {
 	if (src_ch > 0) {
 		Exchange* e = 0;
 		for (Exchange& ex : side_sink_conn)
@@ -94,7 +94,7 @@ bool LinkBase::NegotiateSourceFormat(int src_ch, const Format& fmt) {
 	return true;
 }
 
-void LinkBase::UpdateLinkedExchangeFormats(int src_ch, const Format& fmt) {
+void LinkBase::UpdateLinkedExchangeFormats(int src_ch, const ValueFormat& fmt) {
 	
 	for (Exchange& e : side_sink_conn) {
 		if (e.local_ch_i == src_ch) {
@@ -110,7 +110,7 @@ void LinkBase::UpdateLinkedExchangeFormats(int src_ch, const Format& fmt) {
 	
 }
 
-bool LinkBase::NegotiateSinkFormat(int sink_ch, const Format& fmt, bool chk_other) {
+bool LinkBase::NegotiateSinkFormat(int sink_ch, const ValueFormat& fmt, bool chk_other) {
 	if (!chk_other) {
 		if (!atom->NegotiateSinkFormat(*this, sink_ch, fmt))
 			return false;
@@ -145,7 +145,7 @@ bool LinkBase::NegotiateSinkFormat(int sink_ch, const Format& fmt, bool chk_othe
 }
 
 Packet LinkBase::InitialPacket(int src_ch, off32 off) {
-	Format src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
+	ValueFormat src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
 	Packet to = CreatePacket(off);
 	to->SetFormat(src_fmt);
 	InternalPacketData& data = to->template SetData<InternalPacketData>();
@@ -153,7 +153,7 @@ Packet LinkBase::InitialPacket(int src_ch, off32 off) {
 }
 
 Packet LinkBase::ReplyPacket(int src_ch, const Packet& in) {
-	Format src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
+	ValueFormat src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
 	off32 off = in->GetOffset();
 	Packet to = CreatePacket(off);
 	to->SetFormat(src_fmt);
@@ -166,8 +166,8 @@ Packet LinkBase::ReplyPacket(int src_ch, const Packet& in) {
 }
 
 Packet LinkBase::ReplyPacket(int src_ch, const Packet& in, Packet content) {
-	Format content_fmt = content->GetFormat();
-	Format src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
+	ValueFormat content_fmt = content->GetFormat();
+	ValueFormat src_fmt = GetSource()->GetSourceValue(src_ch).GetFormat();
 	off32 off = in->GetOffset();
 	Packet to;
 	if (content_fmt.IsCopyCompatible(src_fmt)) {
@@ -208,7 +208,7 @@ String LinkBase::GetInlineConnectionsString() const {
 	return s;
 }
 
-bool LinkBase::LinkSideSink(LinkBaseRef sink, int local_ch_i, int other_ch_i) {
+bool LinkBase::LinkSideSink(LinkBasePtr sink, int local_ch_i, int other_ch_i) {
 	ASSERT(sink);
 	if (!sink)
 		return false;
@@ -272,12 +272,12 @@ String LinkBase::Exchange::ToString() const {
 }
 
 
-bool Serial_Link_ForwardAsyncMem(Link* l, byte* data, int size) {
+bool Serial_Link_ForwardAsyncMem(LinkBase* l, byte* data, int size) {
 	ASSERT(l);
 	return l ? l->ForwardAsyncMem(data, size) : 0;
 }
 
-void Serial_Link_PostContinueForward(Link* l) {
+void Serial_Link_PostContinueForward(LinkBase* l) {
 	ASSERT(l);
 	if (l)
 		l->PostContinueForward();

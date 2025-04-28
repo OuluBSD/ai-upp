@@ -268,12 +268,10 @@ public:
 
 
 
-struct DevBase : RTTIBase {
+struct DevBase {
 	TypeCls dev_spec;
 	
 public:
-	RTTI_DECL0(DevBase)
-	
 	DevBase() {dev_spec = AsVoidTypeCls();}
 	
 	void	Clear() {dev_spec = AsVoidTypeCls();}

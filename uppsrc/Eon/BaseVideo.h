@@ -36,7 +36,7 @@ class VideoGenBase :
 	public virtual Atom
 {
 	DebugVideoGenerator		gen;
-	Format					fmt;
+	ValueFormat				fmt;
 	String					last_error;
 	int						mode = 0;
 	int						preset_i = -1;
@@ -50,13 +50,12 @@ class VideoGenBase :
 	void GenerateStereoSine(const VideoFormat& fmt);
 	
 public:
-	RTTI_DECL1(VideoGenBase, Atom)
 	VideoGenBase();
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	void SetPreset(int i) {preset_i = i;}
 	String GetLastError() const {return last_error;}

@@ -1,36 +1,21 @@
-#ifndef _SerialCore_Atom_h_
-#define _SerialCore_Atom_h_
+#ifndef _Eon_Atom_h_
+#define _Eon_Atom_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-namespace Serial {
-
-namespace Script {
 class WorldState;
 class Plan;
-}
-
-}
-NAMESPACE_TOPSIDE_END
-
-
-NAMESPACE_PARALLEL_BEGIN
-using namespace Serial;
-
 class AtomBase;
 
-template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const Script::WorldState& from, const AtomTypeCls& sink_type, const Script::WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
+template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
 template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
 
 class AtomBase :
-	public Destroyable,
-	public Enableable,
-	public PacketForwarderData,
-	public RefScopeEnabler<AtomBase, MetaSpaceBase>
+	public MetaNodeExt,
+	public PacketForwarderData
 {
 	
 	
 public:
-	using AtomBaseRef = Ref<AtomBase, AtomParent>;
+	using AtomBasePtr = Ptr<AtomBase>;
 	
 	struct CustomerData {
 		RealtimeSourceConfig	cfg;
@@ -43,10 +28,10 @@ public:
 	
 	
 protected:
-	friend class Serial::ScriptLoopLoader;
-	friend class Serial::ScriptDriverLoader;
-	friend class Serial::Loop;
-	friend class Parallel::Space;
+	friend class ScriptLoopLoader;
+	friend class ScriptDriverLoader;
+	friend class Loop;
+	friend class Space;
 	
 	int						id = -1;
 	bool					is_running = false;
@@ -57,25 +42,25 @@ protected:
 	void					SetInitialized(bool b=true) {is_initialized = b;}
 	
 protected:
-	friend class Serial::LinkBase;
+	friend class LinkBase;
 	
 	Mutex					fwd_lock;
 	IfaceConnTuple			iface;
-	Serial::LinkBase*		link = 0;
+	LinkBase*				link = 0;
 	AtomBase*				atom_dependency = 0;
 	int						dep_count = 0;
-	HiValue					user_data;
+	EscValue				user_data;
 	
 	
 public:
 	virtual AtomTypeCls		GetType() const = 0;
 	virtual void			CopyTo(AtomBase* atom) const = 0;
-	virtual bool			Initialize(const Script::WorldState& ws) = 0;
-	virtual bool			InitializeAtom(const Script::WorldState& ws) = 0;
+	virtual bool			Initialize(const WorldState& ws) = 0;
+	virtual bool			InitializeAtom(const WorldState& ws) = 0;
 	virtual void			Uninitialize() = 0;
 	virtual void			UninitializeAtom() = 0;
-	virtual void			VisitSource(RuntimeVisitor& vis) = 0;
-	virtual void			VisitSink(RuntimeVisitor& vis) = 0;
+	virtual void			VisitSource(Vis& vis) = 0;
+	virtual void			VisitSink(Vis& vis) = 0;
 	virtual void			ClearSinkSource() = 0;
 	virtual ISourceRef		GetSource() = 0;
 	virtual ISinkRef		GetSink() = 0;
@@ -83,7 +68,7 @@ public:
 	
 	virtual bool			Start() {return true;}
 	virtual void			Stop() {}
-	virtual void			Visit(RuntimeVisitor& vis) {}
+	virtual void			Visit(Vis& vis) {}
 	virtual bool			PostInitialize() {return true;}
 	virtual void			Update(double dt) {}
 	virtual String			ToString() const;
@@ -98,9 +83,9 @@ public:
 	virtual bool			AttachContext(AtomBase& a) {Panic("Unimplemented"); NEVER(); return false;}
 	virtual void			DetachContext(AtomBase& a) {Panic("Unimplemented"); NEVER();}
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
-	virtual bool			NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) {return false;}
+	virtual bool			NegotiateSinkFormat(Link& link, int sink_ch, const Format& new_fmt) {return false;}
 	
-	HiValue&				UserData() {return user_data;}
+	EscValue&				UserData() {return user_data;}
 	bool					IsRunning() const {return is_running;}
 	bool					IsInitialized() const {return is_initialized;}
 	void					AddAtomToUpdateList();
@@ -127,9 +112,9 @@ public:
 	virtual ~AtomBase();
 	
 	
-	SpaceRef		GetSpace();
+	SpacePtr		GetSpace();
 	Space&			GetParent();
-	Serial::Link*	GetLink();
+	Link*			GetLink();
 	int				GetId() const {return id;}
 	
 	template <class T> RefT_Atom<T> As() {return AtomBase_Static_As<T>(this);}
@@ -168,7 +153,7 @@ public:
 	using SourceT = DefaultInterfaceSource;
 	
 	
-	bool InitializeAtom(const Script::WorldState& ws) override {
+	bool InitializeAtom(const WorldState& ws) override {
 		return SinkT::Initialize() && SourceT::Initialize();
 	}
 	
@@ -182,17 +167,17 @@ public:
 		SourceT::ClearSource();
 	}
 	
-	void Visit(RuntimeVisitor& vis) override {
+	void Visit(Vis& vis) override {
 		vis.VisitThis<AtomBase>(this);
 		vis.VisitThis<SinkT>(this);
 		vis.VisitThis<SourceT>(this);
 	}
 	
-	void VisitSource(RuntimeVisitor& vis) override {
+	void VisitSource(Vis& vis) override {
 		vis.VisitThis<SourceT>(this);
 	}
 	
-	void VisitSink(RuntimeVisitor& vis) override {
+	void VisitSink(Vis& vis) override {
 		vis.VisitThis<SinkT>(this);
 	}
 
@@ -300,8 +285,5 @@ public:
 	#undef IS_EMPTY_SHAREDPTR
 	
 };
+
 #endif
-
-
-NAMESPACE_PARALLEL_END
-

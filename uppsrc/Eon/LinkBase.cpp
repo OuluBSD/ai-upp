@@ -8,8 +8,8 @@ CustomerLink::CustomerLink() {
 	
 }
 
-bool CustomerLink::Initialize(const Script::WorldState& ws) {
-	LinkBaseRef r = LinkBase::AsRefT();
+bool CustomerLink::Initialize(const WorldState& ws) {
+	LinkBasePtr r = LinkBase::AsRefT();
 	ASSERT(r);
 	LinkSystemRef as = GetMachine().template Get<LinkSystem>();
 	as->AddCustomer(r);
@@ -18,7 +18,7 @@ bool CustomerLink::Initialize(const Script::WorldState& ws) {
 }
 
 void CustomerLink::Uninitialize() {
-	LinkBaseRef r = LinkBase::AsRefT();
+	LinkBasePtr r = LinkBase::AsRefT();
 	ASSERT(r);
 	GetMachine().template Get<LinkSystem>()->RemoveCustomer(r);
 }
@@ -68,7 +68,7 @@ void CustomerLink::Forward(FwdScope& fwd) {
 		
 		Value&			sink_val = sink_iface->GetValue(0);
 		PacketBuffer&	sink_buf = sink_val.GetBuffer();
-		Format			fmt = sink_val.GetFormat();
+		ValueFormat		fmt = sink_val.GetFormat();
 		
 		off32 init_off(&off_gen, 0);
 		Packet p = CreatePacket(init_off);
@@ -102,7 +102,7 @@ PipeLink::PipeLink() {
 	
 }
 
-bool PipeLink::Initialize(const Script::WorldState& ws) {
+bool PipeLink::Initialize(const WorldState& ws) {
 	
 	return true;
 }
@@ -111,7 +111,7 @@ void PipeLink::Uninitialize() {
 	
 }
 
-bool DefaultProcessPackets(Link& link, AtomBase& atom, PacketIO& io) {
+bool DefaultProcessPackets(LinkBase& link, Atom& atom, PacketIO& io) {
 	const int sink_ch = 0;
 	const int src_ch = 0;
 	
@@ -155,7 +155,7 @@ PipeOptSideLink::PipeOptSideLink() {
 	
 }
 
-bool PipeOptSideLink::Initialize(const Script::WorldState& ws) {
+bool PipeOptSideLink::Initialize(const WorldState& ws) {
 	
 	return true;
 }
@@ -241,7 +241,7 @@ IntervalPipeLink::~IntervalPipeLink() {
 	ASSERT(!flag.IsRunning());
 }
 
-bool IntervalPipeLink::Initialize(const Script::WorldState& ws) {
+bool IntervalPipeLink::Initialize(const WorldState& ws) {
 	flag.Start(1);
 	//GetSink()->GetValue(0).SetMinQueueSize(5);
 	Thread::Start(THISBACK(IntervalSinkProcess));
@@ -264,7 +264,7 @@ void IntervalPipeLink::IntervalSinkProcess() {
 	
 	InterfaceSinkRef sink = GetSink();
 	Value& sink_value = sink->GetValue(sink_ch_i);
-	Format fmt = sink_value.GetFormat();
+	ValueFormat fmt = sink_value.GetFormat();
 	
 	bool raw_data = fmt.IsAudio();
 	
@@ -326,7 +326,7 @@ PollerLink::~PollerLink() {
 	
 }
 
-bool PollerLink::Initialize(const Script::WorldState& ws) {
+bool PollerLink::Initialize(const WorldState& ws) {
 	SetFPS(60);
 	
 	AddLinkToUpdateList();
@@ -398,7 +398,7 @@ ExternalPipeLink::~ExternalPipeLink() {
 	
 }
 
-bool ExternalPipeLink::Initialize(const Script::WorldState& ws) {
+bool ExternalPipeLink::Initialize(const WorldState& ws) {
 	//GetSink()->GetValue(0).SetMinQueueSize(5);
 	
 	return true;
@@ -426,7 +426,7 @@ DriverLink::~DriverLink() {
 	
 }
 
-bool DriverLink::Initialize(const Script::WorldState& ws) {
+bool DriverLink::Initialize(const WorldState& ws) {
 	DLOG("DriverLink::Initialize");
 	return true;
 }
@@ -453,8 +453,8 @@ MergerLink::MergerLink() {
 	
 }
 
-bool MergerLink::Initialize(const Script::WorldState& ws) {
-	Format fmt = GetSink()->GetValue(1).GetFormat();
+bool MergerLink::Initialize(const WorldState& ws) {
+	ValueFormat fmt = GetSink()->GetValue(1).GetFormat();
 	if (fmt.IsAudio()) {
 		//GetAtom()->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}
@@ -550,8 +550,8 @@ JoinerLink::JoinerLink() {
 	
 }
 
-bool JoinerLink::Initialize(const Script::WorldState& ws) {
-	Format fmt = GetSink()->GetValue(1).GetFormat();
+bool JoinerLink::Initialize(const WorldState& ws) {
+	ValueFormat fmt = GetSink()->GetValue(1).GetFormat();
 	/*if (fmt.IsAudio()) {
 		GetAtom()->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}*/
@@ -642,7 +642,7 @@ SplitterLink::SplitterLink() {
 	
 }
 
-bool SplitterLink::Initialize(const Script::WorldState& ws) {
+bool SplitterLink::Initialize(const WorldState& ws) {
 	
 	return true;
 }
@@ -670,14 +670,14 @@ bool SplitterLink::ProcessPackets(PacketIO& io) {
 	prim_src.from_sink_ch = sink_ch;
 	prim_src.p = ReplyPacket(0, sink.p);
 	
-	Format in_fmt = sink.p->GetFormat();
+	ValueFormat in_fmt = sink.p->GetFormat();
 	
 	InterfaceSourceRef src_iface = GetSource();
 	for(int i = 1; i < io.srcs.GetCount(); i++) {
 		PacketIO::Source& src = io.srcs[i];
 		if (!src.val)
 			continue;
-		Format src_fmt = src_iface->GetSourceValue(i).GetFormat();
+		ValueFormat src_fmt = src_iface->GetSourceValue(i).GetFormat();
 		src.from_sink_ch = sink_ch;
 		if (src_fmt.IsCopyCompatible(in_fmt)) {
 			src.p = sink.p;

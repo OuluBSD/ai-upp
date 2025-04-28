@@ -17,12 +17,14 @@ from this test 24.4.2025
 
 CONSOLE_APP_MAIN {
 	Nod root;
-	Nod& worker = root.AddPath(METAKIND_RT_WORKER, "main");
-	Nod& world  = root.AddPath(METAKIND_RT_WORLDSTATE, "world");
-	Nod& loop   = root.AddPath(METAKIND_RT_LOOP, "tester/generator");
-	Nod& atom0  = loop.AddPath(METAKIND_RT_CENTER_CUSTOMER, "center/customer");
-	Nod& atom1  = loop.AddPath(METAKIND_RT_CENTER_AUDIO_SRC_TEST, "center/audio/src/test");
-	Nod& atom2  = loop.AddPath(METAKIND_RT_CENTER_AUDIO_SINK_TEST, "center/audio/sink/test/realtime");
+	#if 0
+	Nod& worker = root.Add(METAKIND_RT_WORKER, "main");
+	Nod& world  = root.Add(METAKIND_RT_WORLDSTATE, "world");
+	Nod& loop   = root.Add(METAKIND_RT_LOOP, "loop0");
+	Nod& atom0  = loop.Add(METAKIND_RT_CENTER_CUSTOMER, "customer");
+	Nod& atom1  = loop.Add(METAKIND_RT_CENTER_AUDIO_SRC_TEST, "source");
+	Nod& atom2  = loop.Add(METAKIND_RT_CENTER_AUDIO_SINK_TEST, "sink");
+	#endif
 	
 	// Initialize atoms with the world state
 	//world...

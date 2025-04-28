@@ -1,5 +1,5 @@
-#ifndef _Eon_Serial_h_
-#define _Eon_Serial_h_
+#ifndef _Eon_WorldState_h_
+#define _Eon_WorldState_h_
 
 
 
@@ -23,12 +23,12 @@ protected:
 	friend class ActionPlanner;
 	friend class ActionPlannerWrapper;
 	friend class ActionNode;
-	friend class ::TS::Serial::ScriptLoader;
-	friend class ::TS::Serial::ScriptLoopLoader;
-	friend class ::TS::Serial::ScriptDriverLoader;
+	friend class ScriptLoader;
+	friend class ScriptLoopLoader;
+	friend class ScriptDriverLoader;
 	
 	
-	ArrayMap<String, Object> values;
+	ArrayMap<String, Value> values;
 	
 public:
 	
@@ -65,7 +65,7 @@ public:
 	
 	WorldState& operator=(const WorldState& src);
 	
-	const ArrayMap<String, Object>& GetValues() const {return values;}
+	const ArrayMap<String, Value>& GetValues() const {return values;}
 	
 	bool operator==(const WorldState& ws) const {return GetHashValue() == ws.GetHashValue();}
 	bool operator!=(const WorldState& ws) const {return GetHashValue() != ws.GetHashValue();}

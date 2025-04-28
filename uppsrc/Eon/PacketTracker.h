@@ -2,12 +2,6 @@
 #define _Eon_PacketTracker_h_
 
 
-
-
-
-#define RTTI_CTX_SYS(sys) \
-		RTTI_DECL1(sys, System<sys>)
-
 class PacketTracker : public System<PacketTracker>
 {
 	PacketId id_counter = 1;

@@ -1,11 +1,11 @@
-#ifndef _SerialLib_LinkUtil_h_
-#define _SerialLib_LinkUtil_h_
+#ifndef _Eon_LinkUtil_h_
+#define _Eon_LinkUtil_h_
 
 
 
 
 class AsyncMemForwarderBase :
-	public Link
+	public LinkBase
 {
 	Packet			partial_packet;
 	byte*			write_mem = 0;
@@ -22,9 +22,8 @@ class AsyncMemForwarderBase :
 	void	Consume(int data_begin, Packet p); // "const Packet&"" is invalid here
 	
 public:
-	RTTI_DECL1(AsyncMemForwarderBase, Link)
 	AsyncMemForwarderBase();
-	void	Visit(RuntimeVisitor& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
 	
 	bool	IsReady(PacketIO& io) final;
 	bool	ForwardAsyncMem(byte* mem, int size) override;
@@ -37,19 +36,17 @@ public:
 
 
 class FramePollerBase :
-	public Link
+	public LinkBase
 {
 	double		dt = 0;
 	double		frame_age = 0;
 	
 	
 public:
-	RTTI_DECL1(FramePollerBase, Link)
-	
 	void	Update(double dt) override;
 	bool	IsReady(PacketIO& io) override;
 	
-	void	Visit(RuntimeVisitor& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
 	
 	void	SetFPS(int fps) {dt = 1.0 / (double)fps;}
 	
@@ -57,21 +54,19 @@ public:
 
 
 class CenterDriver :
-	public Link
+	public LinkBase
 {
 	
 protected:
-	using CustomerData = AtomBase::CustomerData;
+	using CustomerData = Atom::CustomerData;
 	
 	One<CustomerData>		customer;
 	
 	
 public:
-	RTTI_DECL1(CenterDriver, Link)
-	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
-	void	Visit(RuntimeVisitor& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
 	
 	RealtimeSourceConfig* GetConfig() final {ASSERT(customer); return customer ? &customer->cfg : 0;}
 	

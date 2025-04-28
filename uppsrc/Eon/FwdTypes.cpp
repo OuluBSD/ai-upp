@@ -1,9 +1,7 @@
-#include "ParallelMach.h"
+#include "Eon.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
-namespace Serial {
-using namespace Parallel;
+NAMESPACE_UPP
 
 
 String GetSubLinkString(SubLinkCls t) {
@@ -32,5 +30,4 @@ hash_t LinkTypeCls::GetHashValue() const {
 	return c;
 }
 
-}
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,9 +1,6 @@
-#ifndef _ParallelMach_FwdTypes_h_
-#define _ParallelMach_FwdTypes_h_
+#ifndef _Eon_FwdTypes_h_
+#define _Eon_FwdTypes_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-namespace Serial {
-using namespace Parallel;
 
 
 #define LINK_TYPE_LIST \
@@ -92,22 +89,5 @@ using RefLinkTypeMapIndirect	= RefLinkedMapIndirect<LinkTypeCls, T, Parent>;
 
 
 
-
-class EntitySystem;
-using EntitySystemRef		= Ref<EntitySystem, ParallelSystemParent>;
-
-}
-
-
-
-namespace Ecs {
-class Engine;
-//class WindowSystem;
-//using WindowSystemRef = Ref<WindowSystem, RefParent1<Engine>>;
-}
-
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

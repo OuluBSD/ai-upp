@@ -147,13 +147,13 @@ void AsyncMemForwarderBase::Consume(int data_begin, Packet p) {
 	int sz = data_sz - data_begin;
 	int remaining = write_size - write_pos;
 	
-	Format fmt = p->GetFormat();
+	ValueFormat fmt = p->GetFormat();
 	
 	if (sz > 0 && remaining > 0) {
 		int cp_sz = min(sz, remaining);
 		byte* dst = write_mem + write_pos;
 		const byte* src = (const byte*)data.Begin() + data_begin;
-		MemoryCopy(dst, src, cp_sz);
+		memcpy(dst, src, cp_sz);
 		write_pos += cp_sz;
 		int p_remaining = data_sz - data_begin - cp_sz;
 		ASSERT(p_remaining >= 0);

@@ -13,7 +13,6 @@ class Value :
 	bool locked = false;
 	
 public:
-	RTTI_DECL1(Value, RealtimeStream)
 	Value() = default;
 	virtual ~Value() = default;
 	
@@ -24,7 +23,7 @@ public:
 	virtual int GetQueueSize() const = 0;
 	virtual int GetMinPackets() const = 0;
 	virtual int GetMaxPackets() const = 0;
-	virtual Format GetFormat() const = 0;
+	virtual ValueFormat GetFormat() const = 0;
 	virtual bool IsQueueFull() const = 0;
 	virtual PacketBuffer& GetBuffer() = 0;
 	virtual void LockFormat() {}
@@ -38,10 +37,9 @@ public:
 class DefaultExchangePoint :
 	public ExchangePoint
 {
-	Serial::Loop* loop = 0;
+	Loop* loop = 0;
 	
 public:
-	RTTI_DECL1(DefaultExchangePoint, ExchangePoint)
 	typedef DefaultExchangePoint CLASSNAME;
 	DefaultExchangePoint() {}
 	~DefaultExchangePoint() {Deinit();}
@@ -73,7 +71,6 @@ class Ex :
 	const RealtimeSourceConfig* src_conf = 0;
 	
 public:
-	RTTI_DECL1(Ex, ExchangeBase)
 	Ex(DefaultExchangePoint* expt) : expt(expt) {}
 	Ex(DefaultExchangePoint& expt) : expt(&expt) {}
 	
@@ -92,7 +89,6 @@ class Proxy :
 	Value* o = 0;
 	
 public:
-	RTTI_DECL1(Proxy, Value)
 	Proxy() = default;
 	Proxy(Value* o) : o(o) {}
 	
@@ -101,7 +97,7 @@ public:
 	operator bool() const {return o != 0;}
 	void Exchange(Ex& e) override {if (o) o->Exchange(e);}
 	int GetQueueSize() const override {if (o) return o->GetQueueSize(); return 0;}
-	Format GetFormat() const override {if (o) return o->GetFormat(); return Format();}
+	ValueFormat GetFormat() const override {if (o) return o->GetFormat(); return ValueFormat();}
 	bool IsQueueFull() const override {if (o) return o->IsQueueFull(); return 0;}
 	PacketBuffer& GetBuffer() override {if (o) return o->GetBuffer(); PANIC("Empty proxy");}
 };
@@ -110,7 +106,7 @@ public:
 class SimpleValue :
 	public Value
 {
-	Format			fmt;
+	ValueFormat		fmt;
 	double			time = 0;
 	PacketBuffer	buf;
 	int				min_packets = 1;
@@ -118,13 +114,12 @@ class SimpleValue :
 	bool			lock_format = false;
 	
 public:
-	RTTI_DECL1(SimpleValue, Value)
 	~SimpleValue() {/*LOG("dtor SimpleValue " << HexStr((void*)this));*/ ASSERT(buf.IsEmpty());}
-	void			Visit(RuntimeVisitor& vis) {}
+	void			Visit(Vis& vis) {}
 	void			Clear() override {/*LOG("clear SimpleValue " << HexStr((void*)this));*/ fmt.Clear(); time = 0; buf.Clear(); min_packets = 1; max_packets = 2;}
 	void			Exchange(Ex& e) override;
 	int				GetQueueSize() const override;
-	Format			GetFormat() const override;
+	ValueFormat		GetFormat() const override;
 	bool			IsQueueFull() const override;
 	PacketBuffer&	GetBuffer() override {return buf;}
 	void			SetFormat(Format fmt) override {ASSERT(!lock_format); this->fmt = fmt;}
@@ -139,7 +134,7 @@ public:
 
 
 
-bool Convert(const Format& src_fmt, const byte* src, const Format& dst_fmt, byte* dst);
+bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst);
 bool Convert(const Packet& src, Packet& dst, bool keep_tracking=true);
 
 

@@ -1,9 +1,10 @@
-#include "ParallelCore.h"
+#include "Eon.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
-// incomplete Script::Plan dtor in header
+
+// incomplete Plan dtor in header
 AtomBase::CustomerData::CustomerData() : cfg(gen) {}
 AtomBase::CustomerData::~CustomerData() {}
 
@@ -39,7 +40,7 @@ Space& AtomBase::GetParent() {
 	return *((SP*)this)->GetParent().AsStatic<Space>();
 }
 
-Serial::Link* AtomBase::GetLink() {
+Link* AtomBase::GetLink() {
 	return link;
 }
 
@@ -140,12 +141,4 @@ void AtomBase::SetQueueSize(int queue_size) {
 }
 
 
-
-
-
-
-
-
-
-NAMESPACE_PARALLEL_END
-
+END_UPP_NAMESPACE

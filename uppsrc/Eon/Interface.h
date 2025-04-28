@@ -1,12 +1,9 @@
-#ifndef _SerialCore_Interface_h_
-#define _SerialCore_Interface_h_
-
-
-NAMESPACE_PARALLEL_BEGIN
+#ifndef _Eon_Interface_h_
+#define _Eon_Interface_h_
 
 
 template <class T>
-class InterfaceContainer : RTTIBase {
+class InterfaceContainer {
 	
 	
 public:
@@ -49,8 +46,7 @@ public:
 	
 	
 public:
-	RTTI_DECL0(InterfaceContainer<T>)
-	void Visit(RuntimeVisitor& vis) {}
+	void Visit(Vis& vis) {}
 	
 	
 	int GetContainerCount() const {return items.GetCount();}
@@ -90,17 +86,14 @@ public:
 };
 
 
-class InterfaceBase :
-	RTTIBase
+class InterfaceBase
 {
 public:
-	RTTI_DECL0(InterfaceBase)
-	
 	virtual AtomBase* AsAtomBase() = 0;
 	AtomTypeCls GetAtomType() const;
 	ValDevTuple GetSinkCls() const {return GetAtomType().iface.sink;}
 	ValDevTuple GetSourceCls() const {return GetAtomType().iface.src;}
-	void Visit(RuntimeVisitor& vis) {}
+	void Visit(Vis& vis) {}
 	
 };
 
@@ -109,15 +102,12 @@ class InterfaceSink :
 	public InterfaceBase,
 	public ExchangeSinkProvider
 {
-protected:
-	
 public:
-	RTTI_DECL2(InterfaceSink, InterfaceBase, ExchangeSinkProvider)
 	InterfaceSink() {}
 	
 	
 	// Catches the type for CollectInterfacesVisitor
-	void Visit(RuntimeVisitor& vis) {
+	void Visit(Vis& vis) {
 		vis.VisitThis<InterfaceBase>(this);
 		vis.VisitThis<ExchangeSinkProvider>(this);
 	}
@@ -141,12 +131,11 @@ class InterfaceSource :
 	
 	
 public:
-	RTTI_DECL2(InterfaceSource, InterfaceBase, ExchangeSourceProvider)
 	InterfaceSource() {}
 	
 	
 	// Catches the type for CollectInterfacesVisitor
-	void Visit(RuntimeVisitor& vis) {
+	void Visit(Vis& vis) {
 		vis.VisitThis<InterfaceBase>(this);
 		vis.VisitThis<ExchangeSourceProvider>(this);
 	}
@@ -187,7 +176,7 @@ public:
 	bool Initialize();
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
-	void Visit(RuntimeVisitor& vis) {
+	void Visit(Vis& vis) {
 		vis.VisitThis<InterfaceSink>(this);
 		vis.VisitThis<Container>(this);
 	}
@@ -223,7 +212,7 @@ public:
 	bool Initialize();
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
-	void Visit(RuntimeVisitor& vis) {
+	void Visit(Vis& vis) {
 		vis.VisitThis<InterfaceSource>(this);
 		vis.VisitThis<Container>(this);
 	}
@@ -240,7 +229,5 @@ public:
 using DefaultInterfaceSourceRef			= Ref<DefaultInterfaceSource,		AtomParent>;
 using DefaultInterfaceSinkRef			= Ref<DefaultInterfaceSink,			AtomParent>;
 
-
-NAMESPACE_PARALLEL_END
 
 #endif

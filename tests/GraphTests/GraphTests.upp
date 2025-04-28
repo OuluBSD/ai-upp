@@ -1,4 +1,5 @@
 uses
+	Eon,
 	Eon;
 
 file
@@ -6,5 +7,6 @@ file
 	GraphTests.cpp;
 
 mainconfig
+	"" = "AI DEBUG_RT",
 	"" = "AI";
 

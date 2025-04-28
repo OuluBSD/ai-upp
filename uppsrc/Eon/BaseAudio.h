@@ -98,7 +98,7 @@ class AudioGenBase :
 	public Atom
 {
 	DebugSoundGenerator<uint8> gen;
-	Format fmt;
+	ValueFormat fmt;
 	String last_error;
 	int mode = 0;
 	int preset_i = -1;
@@ -114,14 +114,13 @@ class AudioGenBase :
 	void GenerateStereoSine(const AudioFormat& fmt);
 	
 public:
-	RTTI_DECL1(AudioGenBase, Atom)
 	AudioGenBase();
 	
-	bool Initialize(const Script::WorldState& ws) final;
+	bool Initialize(const WorldState& ws) final;
 	void Uninitialize() final;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	void SetPreset(int i) {preset_i = i;}
 	String GetLastError() const {return last_error;}
@@ -142,7 +141,7 @@ class AudioMixerBase :
 		Array<Packet> packets;
 		bool skip = false;
 		int offset = 0;
-		Format fmt;
+		ValueFormat fmt;
 	};
 	
 	Array<Item> queue;
@@ -150,10 +149,9 @@ class AudioMixerBase :
 	int channels = 2;
 	
 public:
-	RTTI_DECL1(AudioMixerBase, Atom)
 	AudioMixerBase();
 	
-	bool Initialize(const Script::WorldState& ws) final;
+	bool Initialize(const WorldState& ws) final;
 	bool PostInitialize() override;
 	void Uninitialize() final;
 	bool Recv(int sink_ch, const Packet& in) override;
@@ -161,7 +159,7 @@ public:
 	void Finalize(RealtimeSourceConfig& cfg) override;
 	bool IsReady(PacketIO& io) override;
 	
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	
 };

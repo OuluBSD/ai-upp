@@ -1,11 +1,11 @@
-#ifndef _Eon_Types_h_
-#define _Eon_Types_h_
+#ifndef _Eon_DefaultFormat_h_
+#define _Eon_DefaultFormat_h_
 
 
 
 
 
-Format GetDefaultFormat(ValDevCls type);
+ValueFormat GetDefaultFormat(ValDevCls type);
 
 
 

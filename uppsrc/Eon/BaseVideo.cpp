@@ -149,11 +149,11 @@ void DebugVideoGenerator::GenerateSine(const VideoFormat& fmt) {
 
 
 VideoGenBase::VideoGenBase() {
-	fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, TS::default_width, TS::default_height, 60, 1);
+	fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, default_width, default_height, 60, 1);
 	
 }
 
-bool VideoGenBase::Initialize(const Script::WorldState& ws) {
+bool VideoGenBase::Initialize(const WorldState& ws) {
 	String mode = ws.Get(".mode");
 	if (mode == "sine")
 		gen.GenerateSine(fmt);

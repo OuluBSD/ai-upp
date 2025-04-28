@@ -248,7 +248,7 @@ int ProgFormat::GetFrameSize() const {
 
 #define PROXY_CHK_(x,y) ASSERT(IsValid()); PROXY_(x,y)
 
-String Format::ToString() const {
+String ValueFormat::ToString() const {
 	if (IsAudio()) return "AudioFormat(" + vd.ToString() + ", " + aud.ToString() + ")";
 	if (IsVideo()) return "VideoFormat(" + vd.ToString() + ", " + vid.ToString() + ")";
 	if (IsVolume()) return "VolumeFormat(" + vd.ToString() + ", " + vol.ToString() + ")";
@@ -258,93 +258,93 @@ String Format::ToString() const {
 	if (IsProg())   return "ProgFormat(" + vd.ToString() + ", " + prog.ToString() + ")";
 	if (vd.val.type == ValCls::ORDER) return "OrderFormat";
 	if (vd.val.type == ValCls::RECEIPT) return "ReceiptFormat";
-	return "Invalid Format";
+	return "Invalid ValueFormat";
 }
 
-int Format::GetSampleSize() const {
+int ValueFormat::GetSampleSize() const {
 	PROXY_CHK(GetSampleSize)
 }
 
-int Format::GetScalar() const {
+int ValueFormat::GetScalar() const {
 	PROXY_CHK(GetScalar)
 }
 
-int Format::GetFrameSize() const {
+int ValueFormat::GetFrameSize() const {
 	PROXY_CHK(GetFrameSize)
 }
 
-double Format::GetFrameSeconds() const {
+double ValueFormat::GetFrameSeconds() const {
 	PROXY_CHK(GetFrameSeconds)
 }
 
-bool Format::HasData() const {
+bool ValueFormat::HasData() const {
 	return	vd.val != ValCls::ORDER &&
 			vd.val != ValCls::RECEIPT;
 }
 
-bool Format::IsValid() const {
+bool ValueFormat::IsValid() const {
 	if (!vd.IsValid()) return false;
 	if (!HasData()) return true;
 	PROXY(IsValid)
 }
 
-bool Format::IsSame(const Format& f) const {
+bool ValueFormat::IsSame(const ValueFormat& f) const {
 	if (vd != f.vd) return false;
 	if (!HasData()) return true;
 	PROXY_CHK_(IsSame, f)
 }
 
-bool Format::IsCopyCompatible(const Format& f) const {
+bool ValueFormat::IsCopyCompatible(const ValueFormat& f) const {
 	if (vd != f.vd) return false;
 	if (!HasData()) return true;
 	PROXY_CHK_(IsCopyCompatible, f)
 }
 
-bool Format::operator ==(const Format& f) {
+bool ValueFormat::operator ==(const ValueFormat& f) {
 	return IsSame(f);
 }
 
-bool Format::operator !=(const Format& f) {
+bool ValueFormat::operator !=(const ValueFormat& f) {
 	return !IsSame(f);
 }
 
-void Format::SetDefault(ValDevCls t) {
+void ValueFormat::SetDefault(ValDevCls t) {
 	TODO
 }
 
-void Format::Clear() {
+void ValueFormat::Clear() {
 	vd.Clear();
 	memset(data, 0, sizeof(data));
 }
 
 
-void Format::SetAudio(DevCls dev, SoundSample::Type t, int channels, int freq, int sample_rate) {
+void ValueFormat::SetAudio(DevCls dev, SoundSample::Type t, int channels, int freq, int sample_rate) {
 	vd.dev = dev;
 	vd.val = ValCls::AUDIO;
 	memset(data, 0, sizeof(data));
 	aud.Set(t, channels, freq, sample_rate);
 }
 
-void Format::SetOrder(DevCls dev) {
+void ValueFormat::SetOrder(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::ORDER;
 	memset(data, 0, sizeof(data));
 }
 
-void Format::SetReceipt(DevCls dev) {
+void ValueFormat::SetReceipt(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::RECEIPT;
 	memset(data, 0, sizeof(data));
 }
 
-void Format::SetMidi(DevCls dev) {
+void ValueFormat::SetMidi(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::MIDI;
 	memset(data, 0, sizeof(data));
 	mid.SetDefault();
 }
 
-void Format::SetVolume(DevCls dev, BinarySample::Type t, int w, int h, int d, int freq, int sample_rate) {
+void ValueFormat::SetVolume(DevCls dev, BinarySample::Type t, int w, int h, int d, int freq, int sample_rate) {
 	vd.dev = dev;
 	vd.val = ValCls::VOLUME;
 	memset(data, 0, sizeof(data));
@@ -352,21 +352,21 @@ void Format::SetVolume(DevCls dev, BinarySample::Type t, int w, int h, int d, in
 	ASSERT(IsValid());
 }
 
-void Format::SetVideo(DevCls dev, LightSampleFD::Type t, int w, int h, int freq, int sample_rate) {
+void ValueFormat::SetVideo(DevCls dev, LightSampleFD::Type t, int w, int h, int freq, int sample_rate) {
 	vd.dev = dev;
 	vd.val = ValCls::VIDEO;
 	memset(data, 0, sizeof(data));
 	vid.Set(t, w, h, freq, sample_rate);
 }
 
-void Format::SetVideo(DevCls dev, const VideoFormat& vid) {
+void ValueFormat::SetVideo(DevCls dev, const VideoFormat& vid) {
 	vd.dev = dev;
 	vd.val = ValCls::VIDEO;
 	memset(data, 0, sizeof(data));
 	this->vid = vid;
 }
 
-void Format::SetFbo(DevCls dev, BinarySample::Type t, int w, int h, int d, int freq, int sample_rate) {
+void ValueFormat::SetFbo(DevCls dev, BinarySample::Type t, int w, int h, int d, int freq, int sample_rate) {
 	vd.dev = dev;
 	vd.val = ValCls::FBO;
 	memset(data, 0, sizeof(data));
@@ -374,19 +374,19 @@ void Format::SetFbo(DevCls dev, BinarySample::Type t, int w, int h, int d, int f
 	ASSERT(IsValid());
 }
 
-void Format::SetEvent(DevCls dev) {
+void ValueFormat::SetEvent(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::EVENT;
 	memset(data, 0, sizeof(data));
 }
 
-void Format::SetProg(DevCls dev) {
+void ValueFormat::SetProg(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::PROG;
 	memset(data, 0, sizeof(data));
 }
 
-void Format::operator=(const Format& f) {
+void ValueFormat::operator=(const ValueFormat& f) {
 	vd = f.vd;
 	memcpy(data, f.data, sizeof(data));
 }
@@ -394,8 +394,8 @@ void Format::operator=(const Format& f) {
 
 
 GVar::Sample GetGVarSampleFromBinarySample(BinarySample::Type t) {
-	int sz = Parallel::BinarySample::GetPackedSingleSize(t);
-	if (Parallel::BinarySample::IsFloating(t)) {
+	int sz = BinarySample::GetPackedSingleSize(t);
+	if (BinarySample::IsFloating(t)) {
 		if (sz == 4)
 			return GVar::SAMPLE_FLOAT;
 	}
@@ -403,7 +403,7 @@ GVar::Sample GetGVarSampleFromBinarySample(BinarySample::Type t) {
 		switch (sz) {
 			case 1:	return GVar::SAMPLE_U8;
 			case 2:	return GVar::SAMPLE_U16;
-			case 4:	return Parallel::BinarySample::IsSigned(t) ? GVar::SAMPLE_S32 : GVar::SAMPLE_U32;
+			case 4:	return BinarySample::IsSigned(t) ? GVar::SAMPLE_S32 : GVar::SAMPLE_U32;
 			default: break;
 		}
 	}

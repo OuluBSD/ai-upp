@@ -1,9 +1,7 @@
-#include "ParallelCore.h"
-#include <SerialMach/SerialMach.h>
+#include "Eon.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
-
+NAMESPACE_UPP
 
 
 AtomTypeCls InterfaceBase::GetAtomType() const {
@@ -150,6 +148,4 @@ bool DefaultInterfaceSource::Initialize() {
 }
 
 
-
-NAMESPACE_PARALLEL_END
-
+END_UPP_NAMESPACE

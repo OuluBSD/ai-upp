@@ -24,16 +24,16 @@
 
 #if HAVE_PACKETTRACKER
 struct TrackerInfo {
-	const RTTI* handler_cls = 0;
+	TypeCls handler_cls;
 	const char* handler_fn = 0;
 	const char* file = 0;
 	int line = 0;
 	
 	TrackerInfo() {}
 	TrackerInfo(const TrackerInfo& i) {*this = i;}
-	TrackerInfo(const RTTI& o) {handler_cls = &o;}
-	template <class T> TrackerInfo(const T* o) {handler_cls = &o->GetRTTI();}
-	template <class T> TrackerInfo(const T* o, const char* file, int line) : handler_cls(&o->GetRTTI()), file(file), line(line) {}
+	TrackerInfo(const TypeCls& o) {handler_cls = o;}
+	template <class T> TrackerInfo(const T* o) {handler_cls = typeid(T);}
+	template <class T> TrackerInfo(const T* o, const char* file, int line) : handler_cls(typeid(T)), file(file), line(line) {}
 	TrackerInfo(const char* fn, const char* file, int line) : handler_fn(fn), file(file), line(line) {}
 	
 	void operator=(const TrackerInfo& i) {
@@ -65,11 +65,10 @@ struct PacketTimingManager {
 
 
 class PacketValue :
-	RTTIBase,
 	Moveable<PacketValue>
 {
 	Vector<byte>		data;
-	Format				fmt;
+	ValueFormat			fmt;
 	off32				offset;
 	TypeCls				custom_data;
 	#if HAVE_PACKETTRACKER
@@ -93,20 +92,19 @@ public:
 	using Pool = RecyclerPool<PacketValue>;
 	
 	
-	RTTI_DECL0(PacketValue);
 	PacketValue(off32 offset) : offset(offset) {custom_data = AsVoidTypeCls();}
 	~PacketValue();
 	
 	void					Pick(PacketValue& p);
 	Vector<byte>&			Data() {return data;}
-	void					Set(Format fmt, double time) {this->fmt = fmt; this->time = time;}
-	void					SetFormat(Format fmt) {this->fmt = fmt;}
+	void					Set(ValueFormat fmt, double time) {this->fmt = fmt; this->time = time;}
+	void					SetFormat(ValueFormat fmt) {this->fmt = fmt;}
 	void					SetTime(double seconds) {time = seconds;}
 	void					Clear();
 	void					SetOffset(off32 o) {offset = o;}
 	
 	const Vector<byte>&		GetData() const {return data;}
-	Format					GetFormat() const {return fmt;}
+	ValueFormat				GetFormat() const {return fmt;}
 	off32					GetOffset() const {return offset;}
 	double					GetTime() const {return time;}
 	bool					IsOffset(const off32& o) const {return offset.value == o.value;}
@@ -142,7 +140,7 @@ public:
 	String					ToString() const;
 	String					ToStringWithHash() const;
 	
-	void					ClearDataType() {custom_data = Null;}
+	void					ClearDataType() {custom_data = AsVoidTypeCls();}
 	
 	template <class T> T& SetData() {
 		custom_data = AsTypeCls<T>();
@@ -202,9 +200,8 @@ static Packet CreatePacket(off32 off) {
 }
 
 
-struct ValStreamState : RTTIBase {
-	RTTI_DECL0(ValStreamState)
-	Format fmt;
+struct ValStreamState {
+	ValueFormat fmt;
 	TimeStop frame_time;
 	double total_seconds = 0;
 	double frame_seconds = 0;
@@ -219,21 +216,7 @@ struct ValStreamState : RTTIBase {
 	void Step();
 };
 
-
-class AtomBase;
-
-class PacketBufferParent :
-	public RefScopeEnabler<PacketBufferParent, AtomBase>,
-	RTTIBase
-{
-public:
-	RTTI_DECL0(PacketBufferParent)
-	
-};
-
-
-class Value;
-
+struct Atom;
 
 struct PacketIO {
 	
@@ -286,13 +269,9 @@ struct PacketIO {
 };
 
 
-struct PacketBufferBase :
-	public RefScopeEnabler<PacketBufferBase, PacketBufferParent>,
-	RTTIBase
+struct PacketBufferBase : Pte<PacketBufferBase>
 {
 public:
-	RTTI_DECL0(PacketBufferBase)
-	
 	PacketBuffer buf;
 	int max_packets = 2;
 	
@@ -308,12 +287,9 @@ public:
 	
 };
 
-struct PacketBufferBasePtr :
-	RTTIBase
+struct PacketBufferBasePtr
 {
-	Ref<PacketBufferBase> base;
-	
-	RTTI_DECL0(PacketBufferBasePtr)
+	Ptr<PacketBufferBase> base;
 	
 	
 };

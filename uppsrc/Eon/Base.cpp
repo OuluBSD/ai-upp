@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-bool CustomerBase::Initialize(const Script::WorldState& ws) {
+bool CustomerBase::Initialize(const WorldState& ws) {
 	RTLOG("CustomerBase::Initialize");
 	
 	customer.Create();
@@ -69,8 +69,8 @@ void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
 
 
 
-bool RollingValueBase::Initialize(const Script::WorldState& ws) {
-	AtomTypeCls type = ((AtomBase*)this)->GetType();
+bool RollingValueBase::Initialize(const WorldState& ws) {
+	AtomTypeCls type = ((Atom*)this)->GetType();
 	ValDevCls main_vd = type.iface.src.channels[0].vd;
 	if (main_vd.dev != DevCls::CENTER) {
 		RTLOG("RollingValueBase::Initialize: error: invalid device");
@@ -82,7 +82,7 @@ bool RollingValueBase::Initialize(const Script::WorldState& ws) {
 		this->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}
 	else if (main_vd.val == ValCls::VIDEO)
-		internal_fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, TS::default_width, TS::default_height, 60, 1);
+		internal_fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, default_width, default_height, 60, 1);
 	else
 		TODO;
 	
@@ -106,13 +106,13 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		Vector<byte>& data = out.Data();
 		data.SetCount(sz);
 		AudioFormat& afmt = internal_fmt;
-		if (afmt.type == TS::Serial::BinarySample::FLT_LE) {
+		if (afmt.type == BinarySample::FLT_LE) {
 			float* f = (float*)(byte*)data.Begin();
 			float* end = f + sz / sizeof(float);
 			while (f != end)
 				*f++ = rolling_value++ / 255.0f * 2.0f - 1.0f;
 		}
-		else if (afmt.type == TS::Serial::BinarySample::U16_LE) {
+		else if (afmt.type == BinarySample::U16_LE) {
 			uint16* f = (uint16*)(byte*)data.Begin();
 			uint16* end = f + sz / sizeof(uint16);
 			while (f != end)
@@ -138,7 +138,7 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 
 
 
-bool VoidSinkBase::Initialize(const Script::WorldState& ws) {
+bool VoidSinkBase::Initialize(const WorldState& ws) {
 	dbg_limit = ws.GetInt(".dbg_limit", 100);
 	
 	return true;
@@ -171,7 +171,7 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 		// Verify data
 		bool fail = false;
 		int dbg_i = 0, dbg_count = 0;
-		if (afmt.type == TS::Serial::BinarySample::FLT_LE) {
+		if (afmt.type == BinarySample::FLT_LE) {
 			float* it = (float*)data;
 			float* end = (float*)((byte*)data + len);
 			dbg_count = (int)(end - it);
@@ -182,7 +182,7 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 					fail = true;
 			}
 		}
-		else if (afmt.type == TS::Serial::BinarySample::U16_LE) {
+		else if (afmt.type == BinarySample::U16_LE) {
 			uint16* it = (uint16*)data;
 			uint16* end = (uint16*)((byte*)data + len);
 			dbg_count = (int)(end - it);
@@ -214,7 +214,7 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 	return true;
 }
 
-bool VoidSinkBase::NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool VoidSinkBase::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	if (new_fmt.IsAudio())
 		return true;
 	return false;
@@ -236,7 +236,7 @@ bool VoidSinkBase::NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Fo
 
 
 
-bool VoidPollerSinkBase::Initialize(const Script::WorldState& ws) {
+bool VoidPollerSinkBase::Initialize(const WorldState& ws) {
 	RTLOG("VoidPollerSinkBase::Initialize");
 	dbg_limit = ws.GetInt(".dbg_limit", 100);
 	dt = 1.0/60.0;
@@ -288,9 +288,9 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 	RTLOG("VoidPollerSinkBase::Recv: sink #" << IntStr(sink_ch) << ": " << in.ToString());
 	#endif
 	
-	Parallel::Format fmt = in.GetFormat();
+	ValueFormat fmt = in.GetFormat();
 	if (fmt.IsAudio()) {
-		Serial::AudioFormat& afmt = fmt;
+		AudioFormat& afmt = fmt;
 		uint32 thrd_id = 0;
 		#if HAVE_PACKETTRACKER
 		thrd_id = route_desc;
@@ -311,7 +311,7 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 			LOG("VoidPollerSinkBase::Recv: error: thrd #" << i << " empty data");
 			fail = true;
 		}
-		else if (afmt.type == TS::Serial::BinarySample::FLT_LE) {
+		else if (afmt.type == BinarySample::FLT_LE) {
 			float* it = (float*)(void*)data.begin();
 			float* end = (float*)(void*)data.end();
 			int dbg_i = 0;
@@ -329,7 +329,7 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 			
 			RTLOG("VoidPollerSinkBase::Recv: thrd #" << i << " successfully verified frame size " << data.GetCount());
 		}
-		else if (afmt.type == TS::Serial::BinarySample::U16_LE) {
+		else if (afmt.type == BinarySample::U16_LE) {
 			uint16* it = (uint16*)(void*)data.begin();
 			uint16* end = (uint16*)(void*)data.end();
 			int dbg_i = 0;
@@ -390,7 +390,7 @@ EnvState& EventStateBase::GetState() const {
 	return *s;
 }
 
-bool EventStateBase::Initialize(const Script::WorldState& ws) {
+bool EventStateBase::Initialize(const WorldState& ws) {
 	RTLOG("EventStateBase::Initialize");
 	
 	dbg_limit = ws.GetInt(".dbg_limit", 0);
@@ -446,7 +446,7 @@ bool EventStateBase::Recv(int sink_ch, const Packet& p) {
 	RTLOG("EventStateBase::Recv");
 	const PacketValue& in = *p;
 	
-	Format fmt = in.GetFormat();
+	ValueFormat fmt = in.GetFormat();
 	if (fmt.vd.val == ValCls::EVENT) {
 		if (in.IsData<CtrlEvent>()) {
 			const CtrlEvent& ev = in.GetData<CtrlEvent>();
@@ -703,7 +703,7 @@ TestEventSrcBase::TestEventSrcBase() {
 	
 }
 
-bool TestEventSrcBase::Initialize(const Script::WorldState& ws) {
+bool TestEventSrcBase::Initialize(const WorldState& ws) {
 	RTLOG("TestEventSrcBase::Initialize");
 	return true;
 }
@@ -723,7 +723,7 @@ bool TestEventSrcBase::IsReady(PacketIO& io) {
 
 bool TestEventSrcBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	RTLOG("TestEventSrcBase::Send");
-	Format out_fmt = out.GetFormat();
+	ValueFormat out_fmt = out.GetFormat();
 	
 	ASSERT(out_fmt.vd.val == ValCls::EVENT);
 	if (out_fmt.vd.val == ValCls::EVENT) {

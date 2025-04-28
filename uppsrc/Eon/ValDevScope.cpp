@@ -11,7 +11,7 @@ void SimpleValue::Exchange(Ex& e) {
 	
 	SimpleValue* src_val;
 	//Format src_fmt = src.GetFormat();
-	Format& sink_fmt = fmt;
+	ValueFormat& sink_fmt = fmt;
 	
 	if ((src_val = CastPtr<SimpleValue>(&src))) {
 		auto& src_buf = src_val->GetBuffer();
@@ -21,7 +21,7 @@ void SimpleValue::Exchange(Ex& e) {
 			Packet p = src_buf.First();
 			src_buf.RemoveFirst();
 			RTLOG("SimpleValue::Exchange: " << p->ToString());
-			Format pk_fmt = p->GetFormat();
+			ValueFormat pk_fmt = p->GetFormat();
 			
 			if (!pk_fmt.IsCopyCompatible(sink_fmt)) {
 				Packet dst = CreatePacket(p->GetOffset());
@@ -91,7 +91,7 @@ Packet SimpleValue::Pick() {
 
 
 
-bool Convert(const Format& src_fmt, const byte* src, const Format& dst_fmt, byte* dst) {
+bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst) {
 	TODO
 }
 
@@ -108,8 +108,8 @@ bool Convert(const Packet& src, Packet& dst, bool keep_tracking) {
 	
 	bool ret = false;
 	
-	Format src_fmt = src->GetFormat();
-	Format dst_fmt = dst->GetFormat();
+	ValueFormat src_fmt = src->GetFormat();
+	ValueFormat dst_fmt = dst->GetFormat();
 	if (src_fmt.IsAudio() && dst_fmt.IsAudio()) {
 		AudioFormat& srcf = src_fmt;
 		AudioFormat& dstf = dst_fmt;

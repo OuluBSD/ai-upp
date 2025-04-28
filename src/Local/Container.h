@@ -64,48 +64,6 @@ struct SimpleFixedArray {
 };
 
 template <class T, int I>
-struct FixedArray : RTTIBase {
-	RTTI_DECL0(FixedArray)
-	
-	static const int size = I;
-	
-	struct Iterator {
-		T* ptr = 0;
-		
-		Iterator() {}
-		Iterator(T* p) : ptr(p) {}
-		T* operator->() const {return ptr;}
-		T& operator*() const {return *ptr;}
-		bool operator!=(const Iterator& i) const {return ptr != i.ptr;}
-		bool operator==(const Iterator& i) const {return ptr == i.ptr;}
-		void operator++() {++ptr;}
-		void operator--() {--ptr;}
-	};
-	
-	T vector[I];
-	
-	int GetCount() const {return size;}
-	T&       operator[](int i)       {ASSERT(i >= 0 && i < size); return vector[i];}
-	const T& operator[](int i) const {ASSERT(i >= 0 && i < size); return vector[i];}
-	void operator=(const T& value) {for(int i = 0; i < I; i++) this->vector[i] = value;}
-	T& Top() {return vector[I-1];}
-	
-	Iterator begin() {return Iterator(&vector[0]);}
-	Iterator end() {return Iterator(&vector[0] + I);}
-	
-	bool IsEmpty() const {return false;}
-	void SetAll(const T& o) {for(int i = 0; i < I; i++) vector[i] = o;}
-	String ToString() const {return "FixedArray";}
-	int ToInt() const {return I;}
-	double ToDouble() const {return I;}
-	operator double() const {return I;}
-	
-	hash_t GetHashValue() const {CombineHash c; for(int i = 0; i < I; i++) c.Put(UPP::GetHashValue<T>(vector[i])); return c;}
-	T* Get() {return vector;}
-	
-};
-
-template <class T, int I>
 struct ReservedArray {
 	static const int size = I;
 	typedef T value_type;

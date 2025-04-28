@@ -47,36 +47,17 @@ typedef dword SpaceId;
 typedef dword AtomId;
 
 
-class AtomBase;
+struct Atom;
 class AtomStore;
 class AtomSystem;
 class SoundSample;
 class Machine;
 
 
-using ParallelSystemParent	= MetaSystemParent;
-using AtomParent			= ExchangeBaseParent;
-
-
-template <class T>
-using RefT_Machine			= Ref<T,					ParallelSystemParent>;
-using AtomBaseRef			= Ref<AtomBase,				AtomParent>;
-using AtomStoreRef			= Ref<AtomStore,			ParallelSystemParent>;
-using AtomSystemRef			= Ref<AtomSystem,			ParallelSystemParent>;
-
-using StateVec				= RefLinkedList<EnvState,	EnvStateParent>;
-
-template <class T> using RefT_Atom = Ref<T, AtomParent>;
-
 typedef enum {
 	SIDE_NOT_ACCEPTED,
 	SIDE_ACCEPTED,
 } SideStatus;
-
-
-
-
-
 
 
 struct ValCls : Moveable<ValCls> {
@@ -176,7 +157,7 @@ struct ValDevCls : Moveable<ValDevCls> {
 	String GetActionName() const {return ToLower(dev.GetName()) + "." + ToLower(val.GetName());}
 };
 
-#define VD(dev, val) Parallel::ValDevCls(Parallel::DevCls::dev, Parallel::ValCls::val)
+#define VD(dev, val) ValDevCls(DevCls::dev, ValCls::val)
 
 
 
@@ -473,11 +454,6 @@ template <class T> ParallelTypeCls AsParallelTypeCls(ValDevCls vd) {
 
 template <class T> AtomTypeCls AsAtomTypeCls() {return T::GetAtomType();}
 
-template<class T, class Parent = RefParent1<typename T::Parent>>
-using RefAtomTypeMapIndirect	= RefLinkedMapIndirect<AtomTypeCls, T, Parent>;
-
-
-
 typedef void (*DataCallbackFn)(void*, char* data, int size);
 
 
@@ -494,9 +470,7 @@ typedef FixedArray<byte, 256> KeyVec;
 
 struct GfxDataState;
 
-struct RendererContent : RTTIBase {
-	RTTI_DECL0(RendererContent)
-	
+struct RendererContent {
 	virtual bool Load(GfxDataState& state) = 0;
 	
 	static Vector<RendererContent*>& Content() {static Vector<RendererContent*> v; return v;}

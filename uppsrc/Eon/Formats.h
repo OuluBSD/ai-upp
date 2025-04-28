@@ -7,9 +7,9 @@
 #define STD_FMT_SIZE (4*16)
 
 struct AudioFormat :
-	public SampleBase<SoundSample>,
-	public DimBase<1>,
-	public TimeSeriesBase
+	SampleBase<SoundSample>,
+	DimBase<1>,
+	TimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<SoundSample>) +
@@ -31,9 +31,9 @@ struct AudioFormat :
 	static_assert(std::is_trivially_constructible<x>::value == true, #x " must be trivial to construct");
 
 struct VideoFormat :
-	public SampleBase<LightSampleFD>,
-	public DimBase<2>,
-	public TimeSeriesBase
+	SampleBase<LightSampleFD>,
+	DimBase<2>,
+	TimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<LightSampleFD>) +
@@ -60,9 +60,9 @@ struct VideoFormat :
 };
 
 struct VolumeFormat :
-	public SampleBase<BinarySample>,
-	public DimBase<3>,
-	public TimeSeriesBase
+	SampleBase<BinarySample>,
+	DimBase<3>,
+	TimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<BinarySample>) +
@@ -84,9 +84,9 @@ struct VolumeFormat :
 };
 
 struct FboFormat :
-	public SampleBase<BinarySample>,
-	public DimBase<3>,
-	public TimeSeriesBase
+	SampleBase<BinarySample>,
+	DimBase<3>,
+	TimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<LightSampleFD>) +
@@ -107,9 +107,9 @@ struct FboFormat :
 typedef FboFormat OglFormat;
 
 struct MidiFormat :
-	public SampleBase<MidiSample>,
-	public DimBase<1>,
-	public SparseTimeSeriesBase
+	SampleBase<MidiSample>,
+	DimBase<1>,
+	SparseTimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<MidiSample>) +
@@ -135,9 +135,9 @@ struct DataFormat
 };
 
 struct EventFormat :
-	public SampleBase<EventSample>,
-	public DimBase<1>,
-	public SparseTimeSeriesBase
+	SampleBase<EventSample>,
+	DimBase<1>,
+	SparseTimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<EventSample>) +
@@ -154,9 +154,9 @@ struct EventFormat :
 };
 
 struct ProgFormat :
-	public SampleBase<BinarySample>,
-	public DimBase<1>,
-	public SparseTimeSeriesBase
+	SampleBase<BinarySample>,
+	DimBase<1>,
+	SparseTimeSeriesBase
 {
 	static constexpr int base_size =
 		sizeof(SampleBase<BinarySample>) +
@@ -181,10 +181,8 @@ TEST_FORMAT(VideoFormat)
 TEST_FORMAT(DataFormat)
 TEST_FORMAT(EventFormat)
 
-class Format : RTTIBase {
+class ValueFormat {
 public:
-	RTTI_DECL0(Format)
-	
 	ValDevCls			vd;
 	union {
 		byte				data[STD_FMT_SIZE];
@@ -199,8 +197,8 @@ public:
 	};
 	
 public:
-	Format() {memset(data, 0, sizeof(data));}
-	Format(const Format& f) : vd(f.vd) {memcpy(data, f.data, sizeof(data));}
+	ValueFormat() {memset(data, 0, sizeof(data));}
+	ValueFormat(const ValueFormat& f) : vd(f.vd) {memcpy(data, f.data, sizeof(data));}
 	
 	String	ToString() const;
 	DevCls	GetDevSpec() const {return vd.dev;}
@@ -220,11 +218,11 @@ public:
 	bool IsProg()   const {return vd.val == ValCls::PROG;}
 	bool IsOgl()   const {return vd.dev == DevCls::OGL;}
 	bool IsValid() const;
-	bool IsSame(const Format& f) const;
-	bool IsCopyCompatible(const Format& f) const;
-	bool operator ==(const Format& f);
-	bool operator !=(const Format& f);
-	void operator=(const Format& f);
+	bool IsSame(const ValueFormat& f) const;
+	bool IsCopyCompatible(const ValueFormat& f) const;
+	bool operator ==(const ValueFormat& f);
+	bool operator !=(const ValueFormat& f);
+	void operator=(const ValueFormat& f);
 	void SetDefault(ValDevCls t);
 	void Clear();
 	bool HasData() const;

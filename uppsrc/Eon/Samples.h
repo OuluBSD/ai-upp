@@ -38,9 +38,8 @@ public:
 
 
 
-class MidiSample : RTTIBase {
-	RTTI_DECL0(MidiSample)
-
+class MidiSample {
+	
 public:
 	static const int def_sample_rate = 1;
 
@@ -67,9 +66,8 @@ public:
 };
 
 
-class EventSample : RTTIBase {
-	RTTI_DECL0(EventSample)
-
+class EventSample {
+	
 public:
 	static const int def_sample_rate = 1;
 
@@ -96,9 +94,8 @@ public:
 };
 
 
-class OrderSample : RTTIBase {
-	RTTI_DECL0(OrderSample)
-
+class OrderSample {
+	
 public:
 	static const int def_sample_rate = 1;
 
@@ -126,9 +123,8 @@ public:
 };
 
 
-class ReceiptSample : RTTIBase {
-	RTTI_DECL0(ReceiptSample)
-
+class ReceiptSample {
+	
 public:
 	static const int def_sample_rate = 1;
 
@@ -156,9 +152,8 @@ public:
 };
 
 
-class DataSample : RTTIBase {
-	RTTI_DECL0(DataSample)
-
+class DataSample {
+	
 public:
 	static const int def_sample_rate = 1;
 

@@ -12,16 +12,14 @@ class CustomerBase :
 	
 protected:
 	friend class Space;
-	using CustomerData = AtomBase::CustomerData;
+	using CustomerData = Atom::CustomerData;
 	
 	One<CustomerData>		customer;
 	
 	
 public:
-	RTTI_DECL1(CustomerBase, Atom)
-	
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
-	bool Initialize(const Script::WorldState& ws) override;
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
@@ -42,12 +40,11 @@ class RollingValueBase :
 	byte				rolling_value = 0;
 	uint64				seq = 0;
 	double				time = 0;
-	Format				internal_fmt;
+	ValueFormat			internal_fmt;
 	
 public:
-	RTTI_DECL1(RollingValueBase, Atom)
-	bool Initialize(const Script::WorldState& ws) override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	bool Initialize(const WorldState& ws) override;
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	void Uninitialize() override {}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
@@ -58,23 +55,22 @@ class VoidSinkBase :
 	public Atom
 {
 	byte				rolling_value = 0;
-	Format				internal_fmt;
+	ValueFormat			internal_fmt;
 	int					dbg_total_samples = 0;
 	int					dbg_total_bytes = 0;
 	int					dbg_iter = 0;
 	int					dbg_limit = 0;
-	Format				fmt;
+	ValueFormat			fmt;
 	
 public:
-	RTTI_DECL1(VoidSinkBase, Atom)
 	typedef VoidSinkBase CLASSNAME;
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool Consume(const void* data, int len) override;
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override;
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
 	
 	
 };
@@ -87,7 +83,7 @@ class VoidPollerSinkBase :
 		double				time = 0;
 	};
 	ArrayMap<uint64, Thread> thrds;
-	Format				internal_fmt;
+	ValueFormat			internal_fmt;
 	double				dt = 0;
 	double				ts = 0;
 	bool				fail = false;
@@ -96,12 +92,11 @@ class VoidPollerSinkBase :
 	int					dbg_limit = 0;
 	
 public:
-	RTTI_DECL1(VoidPollerSinkBase, Atom)
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void Update(double dt) override;
 	bool IsReady(PacketIO& io) override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
@@ -113,10 +108,9 @@ class VoidBase :
 {
 	
 public:
-	RTTI_DECL1(VoidBase, Atom)
-	bool Initialize(const Script::WorldState& ws) override {return true;}
+	bool Initialize(const WorldState& ws) override {return true;}
 	void Uninitialize() override {}
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {return true;}
 	
 };
@@ -135,14 +129,12 @@ class EventStateBase :
 	static EventStateBase* latest;
 	
 public:
-	RTTI_DECL1(EventStateBase, Atom)
-	
 	EventStateBase();
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this); vis & state;}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this); vis & state;}
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
@@ -177,12 +169,10 @@ class TestEventSrcBase :
 	ControllerMatrix ctrl;
 	
 public:
-	RTTI_DECL1(TestEventSrcBase, Atom)
-	
 	TestEventSrcBase();
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	bool IsReady(PacketIO& io) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	

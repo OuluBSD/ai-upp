@@ -1,37 +1,5 @@
-#ifndef _Local_Exchange_h_
-#define _Local_Exchange_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
-class ExchangeBase;
-class ExchangeProviderBase;
-class ExchangeSinkProvider;
-class ExchangeSourceProvider;
-class ExchangeSideSinkProvider;
-class ExchangeSideSourceProvider;
-class ExchangeProviderCookie;
-class ExchangePoint;
-class MetaDirectoryBase;
-class MetaSpaceBase;
-class MetaSystemBase;
-class MetaMachineBase;
-
-using MetaSystemParent				= RefParent1<MetaMachineBase>;
-using ExBaseParent					= RefParent1<MetaSpaceBase>;
-using HierExBaseParent				= RefParent2<MetaSystemBase, MetaSpaceBase>;
-using DirExBaseParent				= RefParent2<MetaSystemBase, MetaDirectoryBase>;
-using ExchangeBaseParent			= RefParent1<MetaSpaceBase>;
-
-using ExchangeBaseRef				= Ref<ExchangeBase,					ExchangeBaseParent>;
-using ExchangeProviderBaseRef		= Ref<ExchangeProviderBase,			ExBaseParent>;
-using ExchangeSinkProviderRef		= Ref<ExchangeSinkProvider,			ExBaseParent>;
-using ExchangeSourceProviderRef		= Ref<ExchangeSourceProvider,		ExBaseParent>;
-using ExchangeSideSinkProviderRef	= Ref<ExchangeSideSinkProvider,		ExBaseParent>;
-using ExchangeSideSourceProviderRef	= Ref<ExchangeSideSourceProvider,	ExBaseParent>;
-using ExchangePointRef				= Ref<ExchangePoint,				RefParent1<MetaSpaceBase>>;
-using CookieRef						= Ref<ExchangeProviderCookie,		RefParent1<ExchangePoint>>;
+#ifndef _Eon_Exchange_h_
+#define _Eon_Exchange_h_
 
 
 template<class T> class OffsetGen;
@@ -150,18 +118,15 @@ using RTSrcConfig = RealtimeSourceConfig;
 
 
 
+// TODO Remove
 
+#if 0
 
-class ExchangeBase :
-	public RefScopeEnabler<ExchangeBase,ExchangeProviderBase>
+class ExchangeBase
 {
 	bool fail = false;
 	
-protected:
-	
-	
 public:
-	RTTI_DECL_R0(ExchangeBase)
 	ExchangeBase();
 	virtual ~ExchangeBase();
 	
@@ -182,13 +147,9 @@ public:
 
 
 
-class ExchangeProviderCookie :
-	public RefScopeEnabler<ExchangeProviderCookie,ExchangePoint>
+class ExchangeProviderCookie
 {
-	
 public:
-	RTTI_DECL_R0(ExchangeProviderCookie)
-	
 	
 };
 
@@ -198,7 +159,7 @@ public:
 
 
 template <class R>
-class ExchangeProviderT : RTTIBase {
+class ExchangeProviderT {
 	using ExchangeProviderTmpl = ExchangeProviderT<R>;
 	
 private:
@@ -221,8 +182,7 @@ protected:
 	
 	
 public:
-	RTTI_DECL0(ExchangeProviderTmpl);
-	void Visit(RuntimeVisitor& vis) {(vis & expt) & dst;}
+	void Visit(Vis& vis) {(vis & expt) & dst;}
 	
 	
 	void				ClearLink() {expt.Clear(); dst.Clear();}
@@ -232,13 +192,9 @@ public:
 };
 
 
-class ExchangeProviderBase :
-	public RefScopeEnabler<ExchangeProviderBase, MetaSpaceBase>
+class ExchangeProviderBase
 {
-	
 public:
-	RTTI_DECL_R0(ExchangeProviderBase)
-	
 	virtual String GetConfigString() {return String();}
 	
 };
@@ -259,7 +215,6 @@ public:
 	using SinkProv = ExchangeSinkProviderRef;
 	using SourceProv = ExchangeSourceProviderRef;
 	using Cookie = CookieRef;
-	RTTI_DECL1(ExchangeSinkProvider, ExchangeProviderBase)
 	
 protected:
 	friend class ExchangePoint;
@@ -274,7 +229,7 @@ public:
 	virtual ~ExchangeSinkProvider();
 	
 	void						ClearLink() {base.ClearLink();}
-	void						Visit(RuntimeVisitor& vis) {vis % base;}
+	void						Visit(Vis& vis) {vis % base;}
 	ExchangePointRef			GetExPt() const {return base.GetExPt();}
 	ExchangeSourceProviderRef	GetSinkLink() const {return base.GetLink();}
 	
@@ -297,7 +252,6 @@ public:
 	using SinkProv = ExchangeSinkProviderRef;
 	using SourceProv = ExchangeSourceProviderRef;
 	using Cookie = CookieRef;
-	RTTI_DECL1(ExchangeSourceProvider, ExchangeProviderBase)
 	
 protected:
 	friend class ExchangePoint;
@@ -313,7 +267,7 @@ public:
 	virtual bool				Accept(SinkProv sink, Cookie& src_c, Cookie& sink_c) {return true;}
 	void						Link(ExchangePointRef expt, SinkProv sink, Cookie& src_c, Cookie& sink_c);
 	void						ClearLink() {base.ClearLink();}
-	void						Visit(RuntimeVisitor& vis) {base.Visit(vis);}
+	void						Visit(Vis& vis) {base.Visit(vis);}
 	ExchangePointRef			GetExPt() const {return base.GetExPt();}
 	ExchangeSinkProviderRef		GetSourceLink() const {return base.GetLink();}
 	
@@ -343,7 +297,6 @@ public:
 	using SideSinkProv = ExchangeSideSinkProviderRef;
 	using SideSourceProv = ExchangeSideSourceProviderRef;
 	using Cookie = CookieRef;
-	RTTI_DECL1(ExchangeSideSinkProvider, ExchangeProviderBase)
 	
 protected:
 	friend class ExchangePoint;
@@ -358,7 +311,7 @@ public:
 	virtual ~ExchangeSideSinkProvider();
 	
 	void							ClearLink() {base.ClearLink();}
-	void							Visit(RuntimeVisitor& vis) {base.Visit(vis);}
+	void							Visit(Vis& vis) {base.Visit(vis);}
 	ExchangePointRef				GetExPt() const {return base.GetExPt();}
 	ExchangeSideSourceProviderRef	GetSideSinkLink() const {return base.GetLink();}
 	
@@ -379,7 +332,6 @@ public:
 	using SideSinkProv = ExchangeSideSinkProviderRef;
 	using SideSourceProv = ExchangeSideSourceProviderRef;
 	using Cookie = CookieRef;
-	RTTI_DECL1(ExchangeSideSourceProvider, ExchangeProviderBase)
 	
 protected:
 	friend class ExchangePoint;
@@ -395,7 +347,7 @@ public:
 	virtual bool					Accept(SideSinkProv sink, Cookie& src_c, Cookie& sink_c) {return true;}
 	void							Link(ExchangePointRef expt, SideSinkProv sink, Cookie& src_c, Cookie& sink_c);
 	void							ClearLink() {base.ClearLink();}
-	void							Visit(RuntimeVisitor& vis) {base.Visit(vis);}
+	void							Visit(Vis& vis) {base.Visit(vis);}
 	ExchangePointRef				GetExPt() const {return base.GetExPt();}
 	ExchangeSideSinkProviderRef		GetSideSourceLink() const {return base.GetLink();}
 	
@@ -405,6 +357,8 @@ typedef ExchangeSideSourceProviderRef ExchangeSideSourceProviderRef;
 
 
 
+
+#endif
 
 class PacketForwarder;
 
@@ -456,33 +410,28 @@ public:
 	
 };
 
-class PacketForwarder :
-	RTTIBase
+class PacketForwarder : public Pte<PacketForwarder>
 {
 public:
-	RTTI_DECL0(PacketForwarder)
 	virtual void ForwardSetup(FwdScope& fwd) {}
-	virtual void ForwardAtom(FwdScope& fwd) {Panic("not implemented in " + String(GetDynamicName()));}
-	virtual void ForwardExchange(FwdScope& fwd) {Panic("not implemented " + String(GetDynamicName()));}
-	virtual bool IsPacketStuck() {Panic("not implemented " + String(GetDynamicName())); return true;}
-	virtual bool IsLoopComplete(FwdScope& fwd) {Panic("not implemented " + String(GetDynamicName())); return true;}
+	virtual void ForwardAtom(FwdScope& fwd) {Panic("not implemented");}
+	virtual void ForwardExchange(FwdScope& fwd) {Panic("not implemented");}
+	virtual bool IsPacketStuck() {Panic("not implemented"); return true;}
+	virtual bool IsLoopComplete(FwdScope& fwd) {Panic("not implemented"); return true;}
 	virtual String GetSecondaryName() {return "";}
 	virtual void* GetSecondaryPtr() {return 0;}
 	PacketForwarder& GetPacketForwarder() {return *this;}
 	
 };
 
-class PacketForwarderData :
-	RTTIBase
+class PacketForwarderData
 {
 public:
-	RTTI_DECL0(PacketForwarderData)
 	
 };
 
 class ExchangePoint :
-	virtual public PacketForwarder,
-	public RefScopeEnabler<ExchangePoint,MetaSpaceBase>
+	virtual public PacketForwarder
 {
 	
 protected:
@@ -494,7 +443,6 @@ protected:
 	CookieRef					sink_cookie;
 	
 public:
-	RTTI_DECL_R1(ExchangePoint, PacketForwarder)
 	typedef ExchangePoint CLASSNAME;
 	ExchangePoint();
 	virtual ~ExchangePoint();
@@ -504,7 +452,7 @@ public:
 	void Clear();
 	void Set(ExchangeSourceProviderRef src, ExchangeSinkProviderRef sink);
 	void Set(ExchangeSourceProviderRef src, ExchangeSinkProviderRef sink, CookieRef sink_cookie, CookieRef src_cookie);
-	void Visit(RuntimeVisitor& vis) {vis & src & sink & src_cookie & sink_cookie;}
+	void Visit(Vis& vis) {vis & src & sink & src_cookie & sink_cookie;}
 	bool IsLoopComplete(FwdScope& fwd) override {return false;}
 	
 	ExchangeSourceProviderRef Source() {return src;}
@@ -515,33 +463,29 @@ public:
 };
 
 
-class MetaMachineBase :
-	public RefScopeEnabler<MetaMachineBase,RefRoot>
+#if 0
+
+class MetaMachineBase
 {
 	
 public:
 	
 };
 
-class MetaSystemBase :
-	public RefScopeEnabler<MetaSystemBase, MetaMachineBase>
+class MetaSystemBase
 {
-	
 public:
 	virtual ~MetaSystemBase() {}
-	using RScope = RefScopeEnabler<MetaSystemBase, MetaMachineBase>;
 	
 };
 
-class MetaSpaceBase :
-	public RefScopeEnabler<MetaSpaceBase, MetaSystemBase, RefParent2<MetaSystemBase, MetaSpaceBase>>
+class MetaSpaceBase
 {
 	
 protected:
 	RefLinkedListIndirect<ExchangePoint> pts;
 	
 public:
-	RTTI_DECL_R0(MetaSpaceBase)
 	typedef MetaSpaceBase CLASSNAME;
 	MetaSpaceBase();
 	virtual ~MetaSpaceBase();
@@ -574,7 +518,7 @@ public:
 	
 	String ToString() const;
 	
-	void Visit(RuntimeVisitor& vis) {vis || pts;}
+	void Visit(Vis& vis) {vis || pts;}
 	
 	
 	
@@ -594,24 +538,20 @@ public:
 	
 };
 
-class MetaDirectoryBase :
-	public RefScopeEnabler<MetaDirectoryBase, MetaSystemBase, RefParent2<MetaSystemBase, MetaDirectoryBase>>
+class MetaDirectoryBase
 {
 	
 public:
-	RTTI_DECL_R0(MetaDirectoryBase)
 	typedef MetaDirectoryBase CLASSNAME;
 	MetaDirectoryBase();
 	virtual ~MetaDirectoryBase();
 	
 	String ToString() const;
 	
-	void Visit(RuntimeVisitor& vis) {}
+	void Visit(Vis& vis) {}
 	
 };
 
 
-NAMESPACE_TOPSIDE_END
-
-
+#endif
 #endif

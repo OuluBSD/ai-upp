@@ -1,9 +1,6 @@
-#include "Local.h"
+#include "Eon.h"
 
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
+NAMESPACE_UPP
 
 void RealtimeSourceConfig::Update(double dt, bool buffer_full) {
 	sync_age += dt;
@@ -37,6 +34,8 @@ void RealtimeSourceConfig::Update(double dt, bool buffer_full) {
 }
 
 
+// TODO remove
+#if 0
 
 ExchangeBase::ExchangeBase() {
 	//DBG_CONSTRUCT
@@ -347,12 +346,6 @@ String MetaDirectoryBase::ToString() const {
 	return s;
 }
 
+#endif
 
-
-
-
-
-
-
-
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

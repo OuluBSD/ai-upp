@@ -9,7 +9,7 @@ struct Visitor {
 	int mode = -1;
 	int file_ver = -1;
 	bool skip = false;
-	enum {MODE_JSON, MODE_STREAM, MODE_HASH, MODE_VCS};
+	enum {MODE_JSON, MODE_STREAM, MODE_HASH, MODE_VCS, MODE_RUNTIMEVISIT};
 	bool storing = false;
 	String error;
 	
@@ -508,6 +508,22 @@ struct Visitor {
 			default: return *this;
 			}
 		}
+	}
+	
+	template <class T>
+	Visitor& operator&(T o) {
+		if (o) {
+			TODO // runtime-visit a single pointer
+		}
+		return *this;
+	}
+	
+	template <class T>
+	Visitor& operator||(T& o) {
+		if (o) {
+			TODO // runtime-visit a vector of pointers
+		}
+		return *this;
 	}
 	
 	

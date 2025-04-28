@@ -32,11 +32,11 @@ LinkTypeCls LinkBase::GetLinkType() const {
 	TODO
 }
 
-ISourceRef LinkBase::GetSource() {
+ISourcePtr LinkBase::GetSource() {
 	return atom->GetSource();
 }
 
-ISinkRef LinkBase::GetSink() {
+ISinkPtr LinkBase::GetSink() {
 	return atom->GetSink();
 }
 
@@ -98,13 +98,13 @@ void LinkBase::UpdateLinkedExchangeFormats(int src_ch, const ValueFormat& fmt) {
 	
 	for (Exchange& e : side_sink_conn) {
 		if (e.local_ch_i == src_ch) {
-			ISinkRef sink = e.other->GetSink();
+			ISinkPtr sink = e.other->GetSink();
 			Value& val = sink->GetValue(e.other_ch_i);
 			val.SetFormat(fmt);
 		}
 	}
 	
-	ISinkRef sink = prim_link_sink->GetSink();
+	ISinkPtr sink = prim_link_sink->GetSink();
 	Value& val = sink->GetValue(0);
 	val.SetFormat(fmt);
 	
@@ -234,8 +234,8 @@ bool LinkBase::LinkSideSink(LinkBasePtr sink, int local_ch_i, int other_ch_i) {
 		
 		// as in LinkBase::LinkSideSink
 		
-		InterfaceSourceRef src_iface = GetSource();
-		InterfaceSinkRef sink_iface = sink->GetSink();
+		InterfaceSourcePtr src_iface = GetSource();
+		InterfaceSinkPtr sink_iface = sink->GetSink();
 		Value& src_val = src_iface->GetSourceValue(local_ch_i);
 		Value& sink_val = sink_iface->GetValue(other_ch_i);
 		int src_max_packets = src_val.GetMaxPackets();

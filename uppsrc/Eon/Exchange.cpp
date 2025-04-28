@@ -59,7 +59,7 @@ bool ExchangeSourceProvider::print_debug = false;
 
 
 
-void ExchangeSourceProvider::Link(ExchangePointRef expt, SinkProv sink, Cookie& src_c, Cookie& sink_c) {
+void ExchangeSourceProvider::Link(ExchangePointPtr expt, SinkProv sink, Cookie& src_c, Cookie& sink_c) {
 	ASSERT(expt);
 	ASSERT_(CastPtr<LockedScopeRefCounter>(this) != CastPtr<LockedScopeRefCounter>(&*sink), "Linking to itself is not allowed");
 	if (print_debug) {
@@ -260,16 +260,16 @@ void ExchangePoint::Clear() {
 	sink_cookie.Clear();
 }
 
-void ExchangePoint::Set(ExchangeSourceProviderRef src, ExchangeSinkProviderRef sink) {
+void ExchangePoint::Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr sink) {
 	Clear();
 	this->src	= src;
 	this->sink	= sink;
-	ExchangePointRef thisref = AsRef<ExchangePoint>();
+	ExchangePointPtr thisref = AsPtr<ExchangePoint>();
 	src->SetSink(thisref, sink);
 	sink->SetSource(thisref, src);
 }
 
-void ExchangePoint::Set(ExchangeSourceProviderRef src, ExchangeSinkProviderRef sink, CookieRef sink_cookie, CookieRef src_cookie) {
+void ExchangePoint::Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr sink, CookiePtr sink_cookie, CookiePtr src_cookie) {
 	Clear();
 	this->src_cookie	= src_cookie;
 	this->sink_cookie	= sink_cookie;
@@ -320,7 +320,7 @@ void MetaSpaceBase::UnlinkAll() {
 	pts.Clear();
 }
 
-ExchangePointRef MetaSpaceBase::Add(TypeCls expt) {
+ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	const auto& m = MetaSpaceBase::ExptDataMap();
 	const auto& d = m.Get(expt);
 	ExchangePoint* o = d.new_fn();

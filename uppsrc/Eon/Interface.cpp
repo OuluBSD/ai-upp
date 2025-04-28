@@ -16,12 +16,12 @@ bool DefaultExchangePoint::IsPacketStuck() {
 }
 
 void DefaultExchangePoint::ForwardExchange(FwdScope& fwd) {
-	Ref<DefaultInterfaceSink> sink = this->sink;
+	Ptr<DefaultInterfaceSink> sink = this->sink;
 	fwd.AddNext(sink->AsAtomBase()->GetLink()->GetPacketForwarder());
 }
 
 void DefaultExchangePoint::ForwardSetup(FwdScope& fwd) {
-	DefaultInterfaceSinkRef sink = this->Sink();
+	DefaultInterfaceSinkPtr sink = this->Sink();
 	ASSERT(sink);
 	
 	int ch_i = 0;
@@ -45,8 +45,8 @@ void DefaultExchangePoint::ForwardAtom(FwdScope& fwd) {
 	WhenEnterValExPtForward(*this);
 	
 	RTLOG("DefaultExchangePoint::Forward: " << GetDynamicName() << "(" << HexStr(this) << ") begin");
-	Ref<DefaultInterfaceSource>	src			= this->src;
-	Ref<DefaultInterfaceSink>	sink		= this->sink;
+	Ptr<DefaultInterfaceSource>	src			= this->src;
+	Ptr<DefaultInterfaceSink>	sink		= this->sink;
 	
 	
 	Ex ex(this);
@@ -96,12 +96,12 @@ void DefaultExchangePoint::Init(MetaSpaceBase* mexpt) {
 	USING_VALDEVCORE(ValSystem)
 	this->conn = conn;
 	if (conn) {
-		SpaceRef loop = GetConnectorBaseSpace(conn);
+		SpacePtr loop = GetConnectorBaseSpace(conn);
 		Machine& mach = GetSpaceMachine(loop);
-		Ref<ValSystem> sys = mach.Get<ValSystem>();
+		Ptr<ValSystem> sys = mach.Get<ValSystem>();
 		ASSERT(sys);
 		if (sys)
-			sys->Add(AsRef<ExchangePoint>());
+			sys->Add(AsPtr<ExchangePoint>());
 	}
 	#endif
 }
@@ -110,12 +110,12 @@ void DefaultExchangePoint::Deinit() {
 	#if HAVE_VALSYSTEM
 	USING_VALDEVCORE(ValSystem)
 	if (conn) {
-		SpaceRef loop = GetConnectorBaseSpace(conn);
+		SpacePtr loop = GetConnectorBaseSpace(conn);
 		Machine& mach = GetSpaceMachine(loop);
-		Ref<ValSystem> sys = mach.Get<ValSystem>();
+		Ptr<ValSystem> sys = mach.Get<ValSystem>();
 		ASSERT(sys);
 		if (sys)
-			sys->Remove(AsRef<ExchangePoint>());
+			sys->Remove(AsPtr<ExchangePoint>());
 		conn = 0;
 	}
 	#endif

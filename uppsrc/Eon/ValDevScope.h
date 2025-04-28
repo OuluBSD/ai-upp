@@ -60,7 +60,7 @@ public:
 	
 };
 
-using DefaultExchangePointRef	= Ref<DefaultExchangePoint,	RefParent1<MetaSpaceBase>>;
+using DefaultExchangePointPtr	= Ptr<DefaultExchangePoint>;
 
 
 class Ex :

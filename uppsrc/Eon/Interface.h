@@ -148,10 +148,10 @@ protected:
 	
 };
 
-using InterfaceSinkRef			= Ref<InterfaceSink,		AtomParent>;
-using InterfaceSourceRef		= Ref<InterfaceSource,		AtomParent>;
-using ISinkRef					= Ref<InterfaceSink,		AtomParent>;
-using ISourceRef				= Ref<InterfaceSource,		AtomParent>;
+using InterfaceSinkPtr			= Ptr<InterfaceSink>;
+using InterfaceSourcePtr		= Ptr<InterfaceSource>;
+using ISinkPtr					= Ptr<InterfaceSink>;
+using ISourcePtr				= Ptr<InterfaceSource>;
 
 
 
@@ -226,8 +226,8 @@ public:
 	
 };
 
-using DefaultInterfaceSourceRef			= Ref<DefaultInterfaceSource,		AtomParent>;
-using DefaultInterfaceSinkRef			= Ref<DefaultInterfaceSink,			AtomParent>;
+using DefaultInterfaceSourcePtr			= Ptr<DefaultInterfaceSource,		AtomParent>;
+using DefaultInterfaceSinkPtr			= Ptr<DefaultInterfaceSink,			AtomParent>;
 
 
 #endif

@@ -97,8 +97,8 @@ public:
 	String					GetInlineConnectionsString() const;
 	String					ToString() const;
 	AtomTypeCls				GetAtomType() const;
-	ISourceRef				GetSource();
-	ISinkRef				GetSink();
+	ISourcePtr				GetSource();
+	ISinkPtr				GetSink();
 	void					AddLinkToUpdateList();
 	void					RemoveLinkFromUpdateList();
 	

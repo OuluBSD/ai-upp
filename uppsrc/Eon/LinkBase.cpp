@@ -11,7 +11,7 @@ CustomerLink::CustomerLink() {
 bool CustomerLink::Initialize(const WorldState& ws) {
 	LinkBasePtr r = LinkBase::AsRefT();
 	ASSERT(r);
-	LinkSystemRef as = GetMachine().template Get<LinkSystem>();
+	LinkSystemPtr as = GetMachine().template Get<LinkSystem>();
 	as->AddCustomer(r);
 	
 	return true;
@@ -61,7 +61,7 @@ void CustomerLink::Forward(FwdScope& fwd) {
 	
 	while (atom->IsForwardReady()) {
 		RTLOG("CustomerLink::Forward: create packet");
-		InterfaceSinkRef sink_iface = GetSink();
+		InterfaceSinkPtr sink_iface = GetSink();
 		
 		int sink_count = sink_iface->GetSinkCount();
 		ASSERT(sink_count == 1);
@@ -189,7 +189,7 @@ bool PipeOptSideLink::ProcessPackets(PacketIO& io) {
 	
 	PacketIO::Sink& prim_sink = io.sinks[0];
 	
-	InterfaceSourceRef src_iface = this->GetSource();
+	InterfaceSourcePtr src_iface = this->GetSource();
 	int src_count = src_iface->GetSourceCount();
 	for (int src_ch = 1; src_ch < src_count; src_ch++) {
 		PacketIO::Source& src = io.srcs[src_ch];
@@ -262,7 +262,7 @@ void IntervalPipeLink::IntervalSinkProcess() {
 	
 	const int sink_ch_i = 0;
 	
-	InterfaceSinkRef sink = GetSink();
+	InterfaceSinkPtr sink = GetSink();
 	Value& sink_value = sink->GetValue(sink_ch_i);
 	ValueFormat fmt = sink_value.GetFormat();
 	
@@ -513,7 +513,7 @@ bool MergerLink::ProcessPackets(PacketIO& io) {
 	src.from_sink_ch = 0;
 	out = ReplyPacket(src_ch, prim_sink.p);
 	
-	InterfaceSourceRef src_iface = this->GetSource();
+	InterfaceSourcePtr src_iface = this->GetSource();
 	int src_count = src_iface->GetSourceCount();
 	for (int src_ch = 1; src_ch < src_count; src_ch++) {
 		PacketIO::Source& src = io.srcs[src_ch];
@@ -672,7 +672,7 @@ bool SplitterLink::ProcessPackets(PacketIO& io) {
 	
 	ValueFormat in_fmt = sink.p->GetFormat();
 	
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSourcePtr src_iface = GetSource();
 	for(int i = 1; i < io.srcs.GetCount(); i++) {
 		PacketIO::Source& src = io.srcs[i];
 		if (!src.val)

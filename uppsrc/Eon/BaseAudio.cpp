@@ -77,7 +77,7 @@ bool AudioMixerBase::Initialize(const WorldState& ws) {
 }
 
 bool AudioMixerBase::PostInitialize() {
-	ISinkRef sink = GetSink();
+	ISinkPtr sink = GetSink();
 	int sink_count = sink->GetSinkCount();
 	for(int i = 1; i < sink_count; i++) {
 		Value& v = sink->GetValue(i);
@@ -90,7 +90,7 @@ bool AudioMixerBase::PostInitialize() {
 		}
 	}
 	
-	ISourceRef src = GetSource();
+	ISourcePtr src = GetSource();
 	Value& v = src->GetSourceValue(0);
 	ValueFormat fmt = v.GetFormat();
 	ASSERT(fmt.IsAudio());

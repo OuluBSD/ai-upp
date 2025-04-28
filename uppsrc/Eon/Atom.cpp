@@ -32,7 +32,7 @@ void AtomBase::UninitializeDeep() {
 	UninitializeAtom();
 }
 
-SpaceRef AtomBase::GetSpace() {
+SpacePtr AtomBase::GetSpace() {
 	return GetParent().AsRefT();
 }
 
@@ -69,7 +69,7 @@ void AtomBase::RemoveAtomFromUpdateList() {
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {
-	InterfaceSourceRef src = GetSource();
+	InterfaceSourcePtr src = GetSource();
 	int c = src->GetSourceCount();
 	for(int i = 0; i < c; i++) {
 		Value& v = src->GetSourceValue(i);
@@ -81,7 +81,7 @@ int AtomBase::FindSourceWithValDev(ValDevCls vd) {
 }
 
 int AtomBase::FindSinkWithValDev(ValDevCls vd) {
-	InterfaceSinkRef src = GetSink();
+	InterfaceSinkPtr src = GetSink();
 	int c = src->GetSinkCount();
 	for(int i = 0; i < c; i++) {
 		Value& v = src->GetValue(i);
@@ -93,7 +93,7 @@ int AtomBase::FindSinkWithValDev(ValDevCls vd) {
 }
 
 void AtomBase::UpdateSinkFormat(ValCls vc, Format fmt) {
-	InterfaceSinkRef sink_iface = GetSink();
+	InterfaceSinkPtr sink_iface = GetSink();
 	int sink_count = sink_iface->GetSinkCount();
 	for(int i = 0; i < sink_count; i++) {
 		Value& val = sink_iface->GetValue(i);
@@ -118,8 +118,8 @@ bool AtomBase::Recv(int sink_ch, const Packet& in) {
 }
 
 void AtomBase::SetQueueSize(int queue_size) {
-	InterfaceSinkRef sink_iface = this->GetSink();
-	InterfaceSourceRef src_iface = this->GetSource();
+	InterfaceSinkPtr sink_iface = this->GetSink();
+	InterfaceSourcePtr src_iface = this->GetSource();
 	if (queue_size == 1) {
 		int c = sink_iface->GetSinkCount();
 		for(int i = 0; i < c; i++)

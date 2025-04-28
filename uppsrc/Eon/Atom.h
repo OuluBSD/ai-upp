@@ -62,8 +62,8 @@ public:
 	virtual void			VisitSource(Vis& vis) = 0;
 	virtual void			VisitSink(Vis& vis) = 0;
 	virtual void			ClearSinkSource() = 0;
-	virtual ISourceRef		GetSource() = 0;
-	virtual ISinkRef		GetSink() = 0;
+	virtual ISourcePtr		GetSource() = 0;
+	virtual ISinkPtr		GetSink() = 0;
 	virtual bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) = 0;
 	
 	virtual bool			Start() {return true;}
@@ -121,14 +121,14 @@ public:
 	
 	template <class S, class R>
 	void AddToSystem(R ref) {
-		Ref<S> sys = GetMachine().Get<S>();
+		Ptr<S> sys = GetMachine().Get<S>();
 		if (sys)
 			sys->Add(ref);
 	}
 	
 	template <class S, class R>
 	void RemoveFromSystem(R ref) {
-		Ref<S> sys = GetMachine().Get<S>();
+		Ptr<S> sys = GetMachine().Get<S>();
 		if (sys)
 			sys->Remove(ref);
 	}
@@ -188,16 +188,16 @@ public:
 	}
 	
 	
-	InterfaceSourceRef GetSource() override {
+	InterfaceSourcePtr GetSource() override {
 		InterfaceSource* src = static_cast<InterfaceSource*>(this);
 		ASSERT(src);
-		return InterfaceSourceRef(GetParentUnsafe(), src);
+		return InterfaceSourcePtr(GetParentUnsafe(), src);
 	}
 	
-	InterfaceSinkRef GetSink() override {
+	InterfaceSinkPtr GetSink() override {
 		InterfaceSink* sink = static_cast<InterfaceSink*>(this);
 		ASSERT(sink);
-		return InterfaceSinkRef(GetParentUnsafe(), sink);
+		return InterfaceSinkPtr(GetParentUnsafe(), sink);
 	}
 	
 	AtomBase* AsAtomBase() override {return static_cast<AtomBase*>(this);}
@@ -213,7 +213,7 @@ public:
 
 #define ATOM_RTTI(x)  RTTI_DECL1(x, Atom<x>)
 
-using AtomRefMap	= ArrayMap<AtomTypeCls,Ref<AtomBase>>;
+using AtomRefMap	= ArrayMap<AtomTypeCls,Ptr<AtomBase>>;
 using AtomMapBase	= RefAtomTypeMapIndirect<AtomBase>;
 
 class AtomMap : public AtomMapBase {
@@ -237,7 +237,7 @@ public:
 		if (it.IsEmpty())
 			THROW(Exc("Could not find atom " + (String)AsTypeName<AtomT>()));
 		
-		return it->AsRef<AtomT>();
+		return it->AsPtr<AtomT>();
 	}
 	
 	template<typename AtomT>
@@ -248,7 +248,7 @@ public:
 		if (IS_EMPTY_SHAREDPTR(it))
 			return Null;
 		else
-			return it->AsRef<AtomT>();
+			return it->AsPtr<AtomT>();
 	}
 	
 	template<typename AtomT>
@@ -261,7 +261,7 @@ public:
 	}
 	
 	template<typename AtomT>
-	void Remove(AtomStoreRef s) {
+	void Remove(AtomStorePtr s) {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
 		
 		AtomMapBase::Iterator iter = AtomMapBase::Find(AsParallelTypeCls<AtomT>());

@@ -23,7 +23,7 @@ void CustomerBase::Uninitialize() {
 
 void CustomerBase::UpdateConfig(double dt) {
 	ASSERT(customer);
-	DefaultInterfaceSourceRef src = this->GetSource();
+	DefaultInterfaceSourcePtr src = this->GetSource();
 	ASSERT(src);
 	if (src) {
 		int count = src->GetSourceCount();
@@ -145,7 +145,7 @@ bool VoidSinkBase::Initialize(const WorldState& ws) {
 }
 
 bool VoidSinkBase::PostInitialize() {
-	InterfaceSinkRef sink = GetSink();
+	InterfaceSinkPtr sink = GetSink();
 	const int sink_ch_i = sink->GetSinkCount() - 1;
 	Value& sink_value = sink->GetValue(sink_ch_i);
 	fmt = sink_value.GetFormat();

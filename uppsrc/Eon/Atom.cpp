@@ -72,7 +72,7 @@ int AtomBase::FindSourceWithValDev(ValDevCls vd) {
 	InterfaceSourcePtr src = GetSource();
 	int c = src->GetSourceCount();
 	for(int i = 0; i < c; i++) {
-		Value& v = src->GetSourceValue(i);
+		ValueBase& v = src->GetSourceValue(i);
 		Format f = v.GetFormat();
 		if (f.vd == vd)
 			return i;
@@ -84,7 +84,7 @@ int AtomBase::FindSinkWithValDev(ValDevCls vd) {
 	InterfaceSinkPtr src = GetSink();
 	int c = src->GetSinkCount();
 	for(int i = 0; i < c; i++) {
-		Value& v = src->GetValue(i);
+		ValueBase& v = src->GetValue(i);
 		Format f = v.GetFormat();
 		if (f.vd == vd)
 			return i;
@@ -96,7 +96,7 @@ void AtomBase::UpdateSinkFormat(ValCls vc, Format fmt) {
 	InterfaceSinkPtr sink_iface = GetSink();
 	int sink_count = sink_iface->GetSinkCount();
 	for(int i = 0; i < sink_count; i++) {
-		Value& val = sink_iface->GetValue(i);
+		ValueBase& val = sink_iface->GetValue(i);
 		Format val_fmt = val.GetFormat();
 		if (val_fmt.vd.val == vc && val_fmt != fmt) {
 			RTLOG("AudioOutput::UpdateSinkFormat: updating sink #" << i << " format to " << fmt.ToString());

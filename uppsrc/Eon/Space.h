@@ -1,9 +1,9 @@
-#ifndef _ParallelCore_Space_h_
-#define _ParallelCore_Space_h_
+#ifndef _Eon_Space_h_
+#define _Eon_Space_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
-
+class Loop;
+class AtomBase;
 
 class Space :
 	public MetaSpaceBase
@@ -18,18 +18,17 @@ class Space :
 	
 protected:
 	friend class SpaceStore;
-	friend class Serial::ScriptLoader;
+	friend class ScriptLoader;
 	
-	Serial::Loop*		loop = 0;
+	Loop*		loop = 0;
 	
 	void SetId(SpaceId i) {id = i;}
 	
 public:
 	typedef Space CLASSNAME;
-	
+	using SpacePtr = Ptr<Space>;
 	static SpaceId GetNextId();
 	
-	RTTI_DECL1(Space, MetaSpaceBase)
 	Space();
 	~Space();
 	
@@ -53,7 +52,7 @@ public:
 	void				Dump();
 	String				GetTreeString(int indent=0);
 	
-	Serial::Loop*		GetLoop() const;
+	Loop*				GetLoop() const;
 	Space*				GetParent() const;
 	Machine&			GetMachine() const;
 	String				GetName() const {return name;}
@@ -63,34 +62,34 @@ public:
 	
 	void				Initialize(Space& l, String prefab="Custom");
 	
-	SpaceRef			CreateEmpty();
-	SpaceRef			GetAddEmpty(String name);
+	SpacePtr			CreateEmpty();
+	SpacePtr			GetAddEmpty(String name);
 	void				CopyTo(Space& l) const;
 	
-	bool				Link(AtomBaseRef src_comp, AtomBaseRef dst_comp, ValDevCls iface);
+	bool				Link(AtomBase* src_comp, AtomBase* dst_comp, ValDevCls iface);
 	
-	AtomBaseRef			GetTypeCls(AtomTypeCls atom_type);
-	AtomBaseRef			AddTypeCls(AtomTypeCls cls);
-	AtomBaseRef			GetAddTypeCls(AtomTypeCls cls);
-	AtomBaseRef			FindTypeCls(AtomTypeCls atom_type);
-	SpaceRef			FindSpaceByName(String name);
-	AtomBaseRef			FindAtom(TypeCls type);
-	AtomBaseRef			FindDeepCls(TypeCls type);
+	AtomBase*			GetTypeCls(AtomTypeCls atom_type);
+	AtomBase*			AddTypeCls(AtomTypeCls cls);
+	AtomBase*			GetAddTypeCls(AtomTypeCls cls);
+	AtomBase*			FindTypeCls(AtomTypeCls atom_type);
+	SpacePtr			FindSpaceByName(String name);
+	AtomBase*			FindAtom(TypeCls type);
+	AtomBase*			FindDeepCls(TypeCls type);
 	
 	template <class T>
-	RefT_Atom<T> FindDeep() {auto r = FindDeepCls(T::TypeIdClass()); return r ? r->template AsRefT<T>() : RefT_Atom<T>();}
+	T* FindDeep() {auto r = FindDeepCls(T::TypeIdClass()); return r ? r->template AsRefT<T>() : RefT_Atom<T>();}
 	
 	
-	AtomBaseRef			AddPtr(AtomBase* atom);
+	AtomBase*			AddPtr(AtomBase* atom);
 	void				InitializeAtoms();
 	void				InitializeAtom(AtomBase& atom);
-	void				InitializeAtomRef(AtomBaseRef atom) {return InitializeAtom(*atom);}
+	void				InitializeAtomRef(AtomBase* atom) {return InitializeAtom(*atom);}
 	void				UninitializeAtoms();
 	void				ClearAtoms();
 	void				AppendCopy(const Space& l);
 	
 	int					GetSpaceDepth() const;
-	bool				HasSpaceParent(SpaceRef pool) const;
+	bool				HasSpaceParent(SpacePtr pool) const;
 	
 	void				UnlinkExchangePoints();
 	
@@ -105,8 +104,8 @@ public:
 	}
 	
 	template<typename T> RefT_Atom<T> FindNearestAtomCast(int nearest_loop_depth);
-	EnvStateRef FindNearestState(String name);
-	EnvStateRef FindStateDeep(String name);
+	EnvStatePtr FindNearestState(String name);
+	EnvStatePtr FindStateDeep(String name);
 	
 	StateVec& GetStates() {return states;}
 	AtomMap& GetAtoms() {return atoms;}
@@ -115,7 +114,7 @@ public:
 	const AtomMap& GetAtoms() const {return atoms;}
 	const SpaceVec& GetSpaces() const {return spaces;}
 	
-	SpaceRef AddSpace(String name="") {
+	SpacePtr AddSpace(String name="") {
 		Space& p = spaces.Add();
 		p.SetParent(HierExBaseParent(0, this));
 		p.SetName(name);
@@ -123,27 +122,27 @@ public:
 		return p;
 	}
 	
-	SpaceRef GetAddSpace(String name) {
-		for (SpaceRef& pool : spaces)
+	SpacePtr GetAddSpace(String name) {
+		for (SpacePtr& pool : spaces)
 			if (pool->GetName() == name)
 				return pool;
 		return AddSpace(name);
 	}
 	
-	EnvStateRef AddState(String name="") {
+	EnvStatePtr AddState(String name="") {
 		EnvState& p = states.Add();
 		p.SetParent(this);
 		p.SetName(name);
 		return p;
 	}
 	
-	EnvStateRef GetAddEnv(String name) {
-		if (EnvStateRef e = FindState(name))
+	EnvStatePtr GetAddEnv(String name) {
+		if (EnvStatePtr e = FindState(name))
 			return e;
 		return AddState(name);
 	}
 	
-	EnvStateRef FindState(String name) {
+	EnvStatePtr FindState(String name) {
 		for (EnvStateRef& s : states)
 			if (s->GetName() == name)
 				return s;
@@ -154,9 +153,9 @@ public:
 	AtomMap::Iterator			end()			{return atoms.end();}
 	SpaceVec::Iterator			BeginSpace()		{return spaces.begin();}
 	
-	void Visit(RuntimeVisitor& vis);
-	void VisitSinks(RuntimeVisitor& vis);
-	void VisitSources(RuntimeVisitor& vis);
+	void Visit(Vis& vis);
+	void VisitSinks(Vis& vis);
+	void VisitSources(Vis& vis);
 	
 private:
 	StateVec				states;
@@ -165,12 +164,11 @@ private:
 };
 
 
-class SpaceHashVisitor : public RuntimeVisitor {
+class SpaceHashVisitor : public Vis {
 	CombineHash ch;
 	
 	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
 public:
-	RTTI_DECL1(SpaceHashVisitor, RuntimeVisitor)
 	
 	
 	operator hash_t() const {return ch;}
@@ -196,6 +194,5 @@ RefT_Atom<T> Space::FindNearestAtomCast(int nearest_space_depth) {
 }
 
 
-NAMESPACE_PARALLEL_END
 
 #endif

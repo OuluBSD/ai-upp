@@ -1,7 +1,5 @@
-#ifndef _SerialCore_Loop_h_
-#define _SerialCore_Loop_h_
-
-NAMESPACE_SERIAL_BEGIN
+#ifndef _Eon_Loop_h_
+#define _Eon_Loop_h_
 
 
 class Loop :
@@ -15,7 +13,7 @@ protected:
 	friend class LoopStore;
 	friend class ScriptLoader;
 	
-	Serial::Space*		space = 0;
+	Space*		space = 0;
 	
 	void SetId(LoopId i) {id = i;}
 	
@@ -24,7 +22,6 @@ public:
 	
 	static LoopId GetNextId();
 	
-	RTTI_DECL1(Loop, MetaDirectoryBase)
 	Loop();
 	~Loop();
 	
@@ -50,16 +47,16 @@ public:
 	
 	void				Initialize(Loop& l, String prefab="Custom");
 	
-	LoopRef				CreateEmpty();
-	LoopRef				GetAddEmpty(String name);
+	LoopPtr				CreateEmpty();
+	LoopPtr				GetAddEmpty(String name);
 	
-	bool				MakeLink(AtomBaseRef src_atom, AtomBaseRef dst_atom);
+	bool				MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom);
 	
 	void				OnChange();
 	LinkBaseRef			AddTypeCls(LinkTypeCls cls);
 	LinkBaseRef			GetAddTypeCls(LinkTypeCls cls);
 	LinkBaseRef			FindTypeCls(LinkTypeCls atom_type);
-	LoopRef				FindLoopByName(String name);
+	LoopPtr				FindLoopByName(String name);
 	
 	
 	
@@ -69,11 +66,11 @@ public:
 	void				AppendCopy(const Loop& l);
 	
 	int					GetLoopDepth() const;
-	bool				HasLoopParent(LoopRef pool) const;
+	bool				HasLoopParent(LoopPtr pool) const;
 	
 	LoopVec& GetLoops() {return loops;}
 	
-	LoopRef AddLoop(String name="") {
+	LoopPtr AddLoop(String name="") {
 		Loop& p = loops.Add();
 		p.SetParent(DirExBaseParent(0, this));
 		p.SetName(name);
@@ -81,16 +78,16 @@ public:
 		return p;
 	}
 	
-	LoopRef GetAddLoop(String name) {
-		for (LoopRef& pool : loops)
+	LoopPtr GetAddLoop(String name) {
+		for (LoopPtr& pool : loops)
 			if (pool->GetName() == name)
 				return pool;
 		return AddLoop(name);
 	}
 	
-	EnvStateRef GetAddEnv(String name) {return space->GetAddEnv(name);}
+	EnvStatePtr GetAddEnv(String name) {return space->GetAddEnv(name);}
 	
-	void Visit(RuntimeVisitor& vis);
+	void Visit(Vis& vis);
 	
 private:
 	LinkMap					links;
@@ -98,22 +95,16 @@ private:
 };
 
 
-class LoopHashVisitor : public RuntimeVisitor {
+class LoopHashVisitor : public Vis {
 	CombineHash ch;
 	
 	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
 public:
-	RTTI_DECL1(LoopHashVisitor, RuntimeVisitor)
 	
 	
 	operator hash_t() const {return ch;}
 	
 };
 
-
-
-
-
-NAMESPACE_SERIAL_END
 
 #endif

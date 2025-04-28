@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 void SimpleValue::Exchange(Ex& e) {
-	Value& src = e.Source();
+	ValueBase& src = e.Source();
 	auto& sink_buf = GetBuffer();
 	
 	// Arguments for this individual SimpleValue::Exchange event

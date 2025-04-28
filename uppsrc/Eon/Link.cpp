@@ -87,7 +87,7 @@ bool LinkBase::NegotiateSourceFormat(int src_ch, const ValueFormat& fmt) {
 			return false;
 		}
 	}
-	Value& src = GetSource()->GetSourceValue(src_ch);
+	ValueBase& src = GetSource()->GetSourceValue(src_ch);
 	src.SetFormat(fmt);
 	
 	
@@ -99,13 +99,13 @@ void LinkBase::UpdateLinkedExchangeFormats(int src_ch, const ValueFormat& fmt) {
 	for (Exchange& e : side_sink_conn) {
 		if (e.local_ch_i == src_ch) {
 			ISinkPtr sink = e.other->GetSink();
-			Value& val = sink->GetValue(e.other_ch_i);
+			ValueBase& val = sink->GetValue(e.other_ch_i);
 			val.SetFormat(fmt);
 		}
 	}
 	
 	ISinkPtr sink = prim_link_sink->GetSink();
-	Value& val = sink->GetValue(0);
+	ValueBase& val = sink->GetValue(0);
 	val.SetFormat(fmt);
 	
 }
@@ -236,8 +236,8 @@ bool LinkBase::LinkSideSink(LinkBasePtr sink, int local_ch_i, int other_ch_i) {
 		
 		InterfaceSourcePtr src_iface = GetSource();
 		InterfaceSinkPtr sink_iface = sink->GetSink();
-		Value& src_val = src_iface->GetSourceValue(local_ch_i);
-		Value& sink_val = sink_iface->GetValue(other_ch_i);
+		ValueBase& src_val = src_iface->GetSourceValue(local_ch_i);
+		ValueBase& sink_val = sink_iface->GetValue(other_ch_i);
 		int src_max_packets = src_val.GetMaxPackets();
 		int src_min_packets = src_val.GetMinPackets();
 		int sink_max_packets = sink_val.GetMaxPackets();

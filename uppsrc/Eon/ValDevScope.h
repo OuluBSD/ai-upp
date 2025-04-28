@@ -1,23 +1,19 @@
 #ifndef _Eon_ValDevScope_h_
 #define _Eon_ValDevScope_h_
 
-
-
-
-
 class Ex;
 
-class Value :
+class ValueBase :
 	virtual public RealtimeStream
 {
 	bool locked = false;
 	
 public:
-	Value() = default;
-	virtual ~Value() = default;
+	ValueBase() = default;
+	virtual ~ValueBase() = default;
 	
 	virtual void Exchange(Ex& e) = 0;
-	virtual void SetFormat(Format f) = 0;
+	virtual void SetFormat(ValueFormat f) = 0;
 	virtual void SetMinQueueSize(int i) = 0;
 	virtual void SetMaxQueueSize(int i) = 0;
 	virtual int GetQueueSize() const = 0;
@@ -67,18 +63,18 @@ class Ex :
 	public ExchangeBase
 {
 	DefaultExchangePoint* expt = 0;
-	Value* src = 0;
+	ValueBase* src = 0;
 	const RealtimeSourceConfig* src_conf = 0;
 	
 public:
 	Ex(DefaultExchangePoint* expt) : expt(expt) {}
 	Ex(DefaultExchangePoint& expt) : expt(&expt) {}
 	
-	Value&						Source() const {return *src;}
+	ValueBase&					Source() const {return *src;}
 	const RealtimeSourceConfig&	SourceConfig() const {ASSERT(src_conf); return *src_conf;}
 	DefaultExchangePoint&		GetExchangePoint() {return *expt;}
 	
-	void	Set(Value& src, const RealtimeSourceConfig& conf) {this->src = &src; src_conf = &conf;}
+	void	Set(ValueBase& src, const RealtimeSourceConfig& conf) {this->src = &src; src_conf = &conf;}
 	
 };
 
@@ -122,7 +118,7 @@ public:
 	ValueFormat		GetFormat() const override;
 	bool			IsQueueFull() const override;
 	PacketBuffer&	GetBuffer() override {return buf;}
-	void			SetFormat(Format fmt) override {ASSERT(!lock_format); this->fmt = fmt;}
+	void			SetFormat(ValueFormat fmt) override {ASSERT(!lock_format); this->fmt = fmt;}
 	void			LockFormat() override {lock_format = true;}
 	void			SetMinQueueSize(int i) override {min_packets = i; max_packets = max(i, max_packets);}
 	void			SetMaxQueueSize(int i) override {max_packets = i; min_packets = min(i, min_packets);}
@@ -133,11 +129,8 @@ public:
 };
 
 
-
 bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst);
 bool Convert(const Packet& src, Packet& dst, bool keep_tracking=true);
-
-
 
 
 #endif

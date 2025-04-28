@@ -8,8 +8,6 @@ file
 	Defs.h,
 	Interface.h,
 	Interface.cpp,
-	Space.h,
-	Space.cpp,
 	SpaceStore.h,
 	SpaceStore.cpp,
 	Factory.h,

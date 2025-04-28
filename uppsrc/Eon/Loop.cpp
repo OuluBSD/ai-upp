@@ -1,7 +1,7 @@
-#include "SerialCore.h"
+#include "Eon.h"
 
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
 
 
 Loop::Loop() {
@@ -35,7 +35,7 @@ int Loop::GetLoopDepth() const {
 	return d;
 }
 
-bool Loop::HasLoopParent(LoopRef pool) const {
+bool Loop::HasLoopParent(LoopPtr pool) const {
 	const Loop* p = this;
 	while (p) {
 		if (p == &*pool)
@@ -57,7 +57,7 @@ void Loop::UnrefDeep() {
 }
 
 void Loop::UninitializeLinksDeep() {
-	for (LoopRef& l : loops)
+	for (LoopPtr& l : loops)
 		l->UninitializeLinksDeep();
 	
 	for (auto it = links.rbegin(); it != links.rend(); --it) {
@@ -67,15 +67,15 @@ void Loop::UninitializeLinksDeep() {
 }
 
 void Loop::ClearDeep() {
-	for (LoopRef& p : loops)
+	for (LoopPtr& p : loops)
 		p->ClearDeep();
 	loops.Clear();
 	
 	links.Clear();
 }
 
-LoopRef Loop::GetAddEmpty(String name) {
-	LoopRef l = FindLoopByName(name);
+LoopPtr Loop::GetAddEmpty(String name) {
+	LoopPtr l = FindLoopByName(name);
 	if (l)
 		return l;
 	l = CreateEmpty();
@@ -83,7 +83,7 @@ LoopRef Loop::GetAddEmpty(String name) {
 	return l;
 }
 
-LoopRef Loop::CreateEmpty() {
+LoopPtr Loop::CreateEmpty() {
 	Loop& l = loops.Add();
 	l.SetParent(this);
 	l.SetId(GetNextId());
@@ -96,21 +96,21 @@ void Loop::Initialize(Loop& l, String prefab) {
 	
 }
 
-void Loop::Visit(RuntimeVisitor& vis) {
+void Loop::Visit(Vis& vis) {
 	vis || links;
 	vis || loops;
 }
 
-LinkBaseRef Loop::AddTypeCls(LinkTypeCls cls) {
+LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
 	return AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
 }
 
-LinkBaseRef Loop::GetAddTypeCls(LinkTypeCls cls) {
-	LinkBaseRef cb = FindTypeCls(cls);
+LinkBasePtr Loop::GetAddTypeCls(LinkTypeCls cls) {
+	LinkBasePtr cb = FindTypeCls(cls);
 	return cb ? cb : AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
 }
 
-LinkBaseRef Loop::AddPtr(LinkBase* comp) {
+LinkBasePtr Loop::AddPtr(LinkBase* comp) {
 	comp->SetParent(this);
 	LinkTypeCls type = comp->GetLinkType();
 	links.Add(type, comp);
@@ -118,7 +118,7 @@ LinkBaseRef Loop::AddPtr(LinkBase* comp) {
 	return LinkBaseRef(this, comp);
 }
 
-LinkBaseRef Loop::FindTypeCls(LinkTypeCls atom_type) {
+LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
 	for (LinkBaseRef& l : links) {
 		LinkTypeCls type = l->GetLinkType();
 		if (type == atom_type)
@@ -128,11 +128,11 @@ LinkBaseRef Loop::FindTypeCls(LinkTypeCls atom_type) {
 	return LinkBaseRef();
 }
 
-LoopRef Loop::FindLoopByName(String name) {
-	for (LoopRef object : loops)
+LoopPtr Loop::FindLoopByName(String name) {
+	for (LoopPtr object : loops)
 		if (object->GetName() == name)
 			return object;
-	return LoopRef();
+	return LoopPtr();
 }
 
 void Loop::Dump() {
@@ -159,16 +159,16 @@ String Loop::GetTreeString(int indent) {
 	for (LinkBaseRef& l : links)
 		s << l->ToString();
 	
-	for (LoopRef& l : loops)
+	for (LoopPtr& l : loops)
 		s << l->GetTreeString(indent+1);
 	
 	return s;
 }
 
-bool Loop::MakeLink(AtomBaseRef src_atom, AtomBaseRef dst_atom) {
+bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	// This is for primary link (src_ch==0 to sink_ch== 0) only...
-	InterfaceSourceRef src = src_atom->GetSource();
-	InterfaceSinkRef sink = dst_atom->GetSink();
+	InterfaceSourcePtr src = src_atom->GetSource();
+	InterfaceSinkPtr sink = dst_atom->GetSink();
 	ASSERT(src && sink);
 	if (!src || !sink)
 		return false;
@@ -188,7 +188,7 @@ bool Loop::MakeLink(AtomBaseRef src_atom, AtomBaseRef dst_atom) {
 	ASSERT(src_atom->GetLink() != dst_atom->GetLink()); // "stupid" but important
 	ASSERT(src	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(AsRefT()));
 	ASSERT(sink	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(AsRefT()));
-	CookieRef src_cookie, sink_cookie;
+	CookiePtr src_cookie, sink_cookie;
 	
 	if (src->Accept(sink, src_cookie, sink_cookie)) {
 		
@@ -210,7 +210,7 @@ bool Loop::MakeLink(AtomBaseRef src_atom, AtomBaseRef dst_atom) {
 		TypeCls expt_type = src_d.cls;
 		ASSERT(expt_type != GetTypeIdClass<void>());
 		
-		ExchangePointRef ep = space->MetaSpaceBase::Add(expt_type);
+		ExchangePointPtr ep = space->MetaSpaceBase::Add(expt_type);
 		RTLOG("Loop::Link(...): created " << ep->GetDynamicName() << " at " << HexStr(&ep->GetRTTI()));
 		RTLOG("                 src-atom: " << HexStr(&src_atom->GetRTTI()));
 		RTLOG("                 src-link: " << HexStr(&src_atom->GetLink()->GetRTTI()));
@@ -258,4 +258,4 @@ bool LoopHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 	return true;
 }
 
-NAMESPACE_SERIAL_END
+END_UPP_NAMESPACE

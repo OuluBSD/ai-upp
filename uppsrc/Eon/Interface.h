@@ -16,7 +16,7 @@ public:
 			val.Clear();
 		}
 		
-		Value& GetContainerValue() {
+		ValueBase& GetContainerValue() {
 			ASSERT(val);
 			return *val;
 		}
@@ -38,7 +38,7 @@ public:
 			ClearContainer();
 		}
 		
-		One<SimpleValue>	val;
+		One<SimpleValue> val;
 	};
 	
 	
@@ -55,7 +55,7 @@ public:
 		GetContainerStream(i).Clear();
 	}
 	
-	Value& GetContainerValue(int i) {
+	ValueBase& GetContainerValue(int i) {
 		return items[i].GetContainerValue();
 	}
 	
@@ -112,7 +112,7 @@ public:
 		vis.VisitThis<ExchangeSinkProvider>(this);
 	}
 	
-	virtual Value&				GetValue(int i) = 0;
+	virtual ValueBase&				GetValue(int i) = 0;
 	virtual void				ClearSink() = 0;
 	virtual int					GetSinkCount() const = 0;
 	
@@ -141,7 +141,7 @@ public:
 	}
 	
 	virtual void				ClearSource() = 0;
-	virtual Value&				GetSourceValue(int i) = 0;
+	virtual ValueBase&				GetSourceValue(int i) = 0;
 	virtual int					GetSourceCount() const = 0;
 	
 protected:
@@ -158,8 +158,7 @@ using ISourcePtr				= Ptr<InterfaceSource>;
 
 class DefaultInterfaceSink :
 	public InterfaceSink,
-	public InterfaceContainer<DefaultInterfaceSink>,
-	RTTIBase
+	public InterfaceContainer<DefaultInterfaceSink>
 {
 	
 protected:
@@ -169,7 +168,6 @@ protected:
 	
 public:
 	using Container = InterfaceContainer<DefaultInterfaceSink>;
-	RTTI_DECL2(DefaultInterfaceSink, InterfaceSink, Container)
 	
 	DefaultInterfaceSink() {}
 	
@@ -183,10 +181,10 @@ public:
 	
 	//TypeCls GetTypeCls() override {return TypeId(AsTypeCls<ValDevSpec>());}
 	
-	Value&						GetSinkValue(int i)       {return GetContainerValue(i);}
+	ValueBase&						GetSinkValue(int i)       {return GetContainerValue(i);}
 	
 	virtual void				ClearSink() override {ClearContainers();}
-	virtual Value&				GetValue(int i) override {return GetContainerValue(i);}
+	virtual ValueBase&				GetValue(int i) override {return GetContainerValue(i);}
 	virtual int					GetSinkCount() const override {return GetContainerCount();}
 	
 };
@@ -194,8 +192,7 @@ public:
 
 class DefaultInterfaceSource :
 	public InterfaceSource,
-	public InterfaceContainer<DefaultInterfaceSource>,
-	RTTIBase
+	public InterfaceContainer<DefaultInterfaceSource>
 {
 	
 protected:
@@ -205,7 +202,6 @@ protected:
 	
 public:
 	using Container = InterfaceContainer<DefaultInterfaceSource>;
-	RTTI_DECL2(DefaultInterfaceSource, InterfaceSource, Container)
 	
 	DefaultInterfaceSource() {}
 	
@@ -222,12 +218,12 @@ public:
 	
 	virtual void				ClearSource() override {ClearContainers();}
 	virtual int					GetSourceCount() const override {return GetContainerCount();}
-	Value&						GetSourceValue(int i) override {return GetContainerValue(i);}
+	ValueBase&						GetSourceValue(int i) override {return GetContainerValue(i);}
 	
 };
 
-using DefaultInterfaceSourcePtr			= Ptr<DefaultInterfaceSource,		AtomParent>;
-using DefaultInterfaceSinkPtr			= Ptr<DefaultInterfaceSink,			AtomParent>;
+using DefaultInterfaceSourcePtr			= Ptr<DefaultInterfaceSource>;
+using DefaultInterfaceSinkPtr			= Ptr<DefaultInterfaceSink>;
 
 
 #endif

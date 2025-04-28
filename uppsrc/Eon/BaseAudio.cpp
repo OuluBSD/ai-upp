@@ -20,7 +20,7 @@ bool AudioGenBase::Initialize(const WorldState& ws) {
 		gen.GenerateStereoSine(fmt);
 	
 	const int src_ch_i = 0;
-	Value& src_val = GetSource()->GetSourceValue(src_ch_i);
+	ValueBase& src_val = GetSource()->GetSourceValue(src_ch_i);
 	src_val.SetFormat(fmt);
 	return true;
 }
@@ -80,7 +80,7 @@ bool AudioMixerBase::PostInitialize() {
 	ISinkPtr sink = GetSink();
 	int sink_count = sink->GetSinkCount();
 	for(int i = 1; i < sink_count; i++) {
-		Value& v = sink->GetValue(i);
+		ValueBase& v = sink->GetValue(i);
 		ValueFormat fmt = v.GetFormat();
 		ASSERT(fmt.IsAudio());
 		if (fmt.IsAudio()) {
@@ -91,7 +91,7 @@ bool AudioMixerBase::PostInitialize() {
 	}
 	
 	ISourcePtr src = GetSource();
-	Value& v = src->GetSourceValue(0);
+	ValueBase& v = src->GetSourceValue(0);
 	ValueFormat fmt = v.GetFormat();
 	ASSERT(fmt.IsAudio());
 	AudioFormat& afmt = fmt;

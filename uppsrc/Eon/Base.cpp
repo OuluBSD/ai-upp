@@ -29,7 +29,7 @@ void CustomerBase::UpdateConfig(double dt) {
 		int count = src->GetSourceCount();
 		bool any_full = false;
 		for(int i = 0; i < count; i++) {
-			Value& val = src->GetSourceValue(i);
+			ValueBase& val = src->GetSourceValue(i);
 			any_full = any_full || val.IsQueueFull();
 		}
 		customer->cfg.Update(dt, any_full);
@@ -147,7 +147,7 @@ bool VoidSinkBase::Initialize(const WorldState& ws) {
 bool VoidSinkBase::PostInitialize() {
 	InterfaceSinkPtr sink = GetSink();
 	const int sink_ch_i = sink->GetSinkCount() - 1;
-	Value& sink_value = sink->GetValue(sink_ch_i);
+	ValueBase& sink_value = sink->GetValue(sink_ch_i);
 	fmt = sink_value.GetFormat();
 	
 	return true;

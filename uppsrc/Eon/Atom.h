@@ -6,7 +6,7 @@ class Plan;
 class AtomBase;
 
 template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
-template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
+//template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
 
 class AtomBase :
 	public MetaNodeExt,
@@ -107,7 +107,6 @@ public:
 	void					SetPrimarySinkQueueSize(int i);
 	
 public:
-	RTTI_DECL_R3(AtomBase, Destroyable, Enableable, PacketForwarderData)
 	AtomBase();
 	virtual ~AtomBase();
 	
@@ -148,7 +147,6 @@ struct Atom :
 	public DefaultInterfaceSource
 {
 public:
-	RTTI_DECL3(Atom, AtomBase, DefaultInterfaceSink, DefaultInterfaceSource)
 	using SinkT = DefaultInterfaceSink;
 	using SourceT = DefaultInterfaceSource;
 	
@@ -211,7 +209,6 @@ public:
 };
 
 
-#define ATOM_RTTI(x)  RTTI_DECL1(x, Atom<x>)
 
 using AtomRefMap	= ArrayMap<AtomTypeCls,Ptr<AtomBase>>;
 using AtomMapBase	= RefAtomTypeMapIndirect<AtomBase>;

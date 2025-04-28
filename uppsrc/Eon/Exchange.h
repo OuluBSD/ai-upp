@@ -145,12 +145,8 @@ public:
 
 
 
-class ExchangeProviderCookie
-{
-public:
-	
-};
-
+struct ExchangeProviderCookie : Pte<ExchangeProviderCookie> {};
+typedef Ptr<ExchangeProviderCookie> CookiePtr;
 
 
 
@@ -183,7 +179,7 @@ public:
 	void Visit(Vis& vis) {(vis & expt) & dst;}
 	
 	
-	void				ClearLink() {expt.Clear(); dst.Clear();}
+	void				ClearLink() {expt = 0; dst = 0;}
 	ExchangePoint*		GetExPt() const {return expt;}
 	R					GetLink() const {return dst;}
 	
@@ -217,8 +213,8 @@ public:
 protected:
 	friend class ExchangePoint;
 	
-	void SetSource(ExchangePointPtr expt, ExchangeSourceProviderPtr src) {base.SetLink(expt, src);}
-	int IsSource(ExchangeSourceProviderPtr src) {return base.IsLink(src);}
+	void SetSource(ExchangePoint* expt, ExchangeSourceProvider* src) {base.SetLink(expt, src);}
+	int IsSource(ExchangeSourceProvider* src) {return base.IsLink(src);}
 	
 	virtual void OnLink(SourceProv src, Cookie src_c, Cookie sink_c) {}
 	
@@ -227,12 +223,13 @@ public:
 	virtual ~ExchangeSinkProvider();
 	
 	void						ClearLink() {base.ClearLink();}
-	void						Visit(Vis& vis) {vis % base;}
-	ExchangePointPtr			GetExPt() const {return base.GetExPt();}
-	ExchangeSourceProviderPtr	GetSinkLink() const {return base.GetLink();}
+	void						Visit(Vis& vis) {vis("base", base, VISIT_NODE);}
+	ExchangePoint*				GetExPt() const {return base.GetExPt();}
+	ExchangeSourceProvider*		GetSinkLink() const {return base.GetLink();}
 	
 };
 
+typedef Ptr<ExchangeSinkProvider> ExchangeSinkProviderPtr;
 
 
 class ExchangeSourceProvider :
@@ -248,13 +245,13 @@ private:
 	
 public:
 	using SinkProv = ExchangeSinkProviderPtr;
-	using SourceProv = ExchangeSourceProviderPtr;
+	using SourceProv = Ptr<ExchangeSourceProvider>;
 	using Cookie = CookiePtr;
 	
 protected:
 	friend class ExchangePoint;
 	
-	void SetSink(ExchangePointPtr expt, ExchangeSinkProviderPtr sink) {base.SetLink(expt, sink);}
+	void SetSink(ExchangePoint* expt, ExchangeSinkProviderPtr sink) {base.SetLink(expt, sink);}
 	int IsSink(ExchangeSinkProviderPtr sink) {return base.IsLink(sink);}
 	virtual void OnLink(SinkProv sink, Cookie src_c, Cookie sink_c) {}
 	
@@ -263,11 +260,11 @@ public:
 	virtual ~ExchangeSourceProvider();
 	
 	virtual bool				Accept(SinkProv sink, Cookie& src_c, Cookie& sink_c) {return true;}
-	void						Link(ExchangePointPtr expt, SinkProv sink, Cookie& src_c, Cookie& sink_c);
+	void						Link(ExchangePoint* expt, SinkProv sink, Cookie& src_c, Cookie& sink_c);
 	void						ClearLink() {base.ClearLink();}
 	void						Visit(Vis& vis) {base.Visit(vis);}
-	ExchangePointPtr			GetExPt() const {return base.GetExPt();}
-	ExchangeSinkProviderPtr		GetSourceLink() const {return base.GetLink();}
+	ExchangePoint*				GetExPt() const {return base.GetExPt();}
+	ExchangeSinkProvider*		GetSourceLink() const {return base.GetLink();}
 	
 };
 
@@ -287,20 +284,20 @@ class ExchangeSideSinkProvider :
 protected:
 	friend class ExchangeSideSourceProvider;
 	
-	using ExProv = ExchangeProviderT<ExchangeSideSourceProviderPtr>;
+	using ExProv = ExchangeProviderT<ExchangeSideSourceProvider*>;
 	
 	ExProv base;
 	
 public:
-	using SideSinkProv = ExchangeSideSinkProviderPtr;
-	using SideSourceProv = ExchangeSideSourceProviderPtr;
+	using SideSinkProv = Ptr<ExchangeSideSinkProvider>;
+	using SideSourceProv = ExchangeSideSourceProvider*;
 	using Cookie = CookiePtr;
 	
 protected:
 	friend class ExchangePoint;
 	
-	void SetSideSource(ExchangePointPtr expt, ExchangeSideSourceProviderPtr src) {base.SetLink(expt, src);}
-	int IsSideSource(ExchangeSideSourceProviderPtr src) {return base.IsLink(src);}
+	void SetSideSource(ExchangePoint* expt, ExchangeSideSourceProvider* src) {base.SetLink(expt, src);}
+	int IsSideSource(ExchangeSideSourceProvider* src) {return base.IsLink(src);}
 	
 	virtual void OnLink(SideSourceProv src, Cookie src_c, Cookie sink_c) {}
 	
@@ -310,10 +307,12 @@ public:
 	
 	void							ClearLink() {base.ClearLink();}
 	void							Visit(Vis& vis) {base.Visit(vis);}
-	ExchangePointPtr				GetExPt() const {return base.GetExPt();}
-	ExchangeSideSourceProviderPtr	GetSideSinkLink() const {return base.GetLink();}
+	ExchangePoint*					GetExPt() const {return base.GetExPt();}
+	ExchangeSideSourceProvider*		GetSideSinkLink() const {return base.GetLink();}
 	
 };
+
+using ExchangeSideSinkProviderPtr = Ptr<ExchangeSideSinkProvider>;
 
 class ExchangeSideSourceProvider :
 	public ExchangeProviderBase
@@ -328,13 +327,13 @@ private:
 	
 public:
 	using SideSinkProv = ExchangeSideSinkProviderPtr;
-	using SideSourceProv = ExchangeSideSourceProviderPtr;
+	using SideSourceProv = Ptr<ExchangeSideSourceProvider>;
 	using Cookie = CookiePtr;
 	
 protected:
 	friend class ExchangePoint;
 	
-	void SetSideSink(ExchangePointPtr expt, ExchangeSideSinkProviderPtr sink) {base.SetLink(expt, sink);}
+	void SetSideSink(ExchangePoint* expt, ExchangeSideSinkProvider* sink) {base.SetLink(expt, sink);}
 	int IsSideSink(ExchangeSideSinkProviderPtr sink) {return base.IsLink(sink);}
 	virtual void OnLink(SideSinkProv sink, Cookie src_c, Cookie sink_c) {}
 	
@@ -343,11 +342,11 @@ public:
 	virtual ~ExchangeSideSourceProvider();
 	
 	virtual bool					Accept(SideSinkProv sink, Cookie& src_c, Cookie& sink_c) {return true;}
-	void							Link(ExchangePointPtr expt, SideSinkProv sink, Cookie& src_c, Cookie& sink_c);
+	void							Link(ExchangePoint* expt, SideSinkProv sink, Cookie& src_c, Cookie& sink_c);
 	void							ClearLink() {base.ClearLink();}
 	void							Visit(Vis& vis) {base.Visit(vis);}
-	ExchangePointPtr				GetExPt() const {return base.GetExPt();}
-	ExchangeSideSinkProviderPtr		GetSideSourceLink() const {return base.GetLink();}
+	ExchangePoint*					GetExPt() const {return base.GetExPt();}
+	ExchangeSideSinkProvider*		GetSideSourceLink() const {return base.GetLink();}
 	
 };
 
@@ -459,8 +458,8 @@ public:
 	
 };
 
+typedef Ptr<ExchangePoint> ExchangePointPtr;
 
-#if 0
 
 class MetaMachineBase
 {
@@ -480,7 +479,7 @@ class MetaSpaceBase
 {
 	
 protected:
-	RefLinkedListIndirect<ExchangePoint> pts;
+	Vector<ExchangePointPtr> pts;
 	
 public:
 	typedef MetaSpaceBase CLASSNAME;
@@ -550,5 +549,4 @@ public:
 };
 
 
-#endif
 #endif

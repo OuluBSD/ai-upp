@@ -1,8 +1,7 @@
-#include "ParallelCore.h"
+#include "Eon.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
-
+NAMESPACE_UPP
 
 
 Space::Space() {
@@ -18,7 +17,7 @@ SpaceId Space::GetNextId() {
 	return ++next_id;
 }
 
-Serial::Loop* Space::GetLoop() const {
+Loop* Space::GetLoop() const {
 	return loop;
 }
 
@@ -44,7 +43,7 @@ Machine& Space::GetMachine() const {
 	THROW(Exc("Machine ptr not found"));
 }
 
-AtomBaseRef Space::GetTypeCls(AtomTypeCls atom_type) {
+AtomBasePtr Space::GetTypeCls(AtomTypeCls atom_type) {
 	for (AtomBaseRef& comp : atoms) {
 		AtomTypeCls type = comp->GetType();
 		ASSERT(type.IsValid());
@@ -54,16 +53,16 @@ AtomBaseRef Space::GetTypeCls(AtomTypeCls atom_type) {
 	return AtomBaseRef();
 }
 
-AtomBaseRef Space::AddTypeCls(AtomTypeCls cls) {
+AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
 	return AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
 }
 
-AtomBaseRef Space::GetAddTypeCls(AtomTypeCls cls) {
-	AtomBaseRef cb = FindTypeCls(cls);
+AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
+	AtomBasePtr cb = FindTypeCls(cls);
 	return cb ? cb : AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
 }
 
-AtomBaseRef Space::FindTypeCls(AtomTypeCls atom_type) {
+AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
 	for (AtomBaseRef& comp : atoms) {
 		AtomTypeCls type = comp->GetType();
 		if (type == atom_type)
@@ -72,7 +71,7 @@ AtomBaseRef Space::FindTypeCls(AtomTypeCls atom_type) {
 	return AtomBaseRef();
 }
 
-AtomBaseRef Space::FindAtom(TypeCls atom_type) {
+AtomBasePtr Space::FindAtom(TypeCls atom_type) {
 	for (AtomBaseRef& comp : atoms) {
 		#if IS_TS_CORE
 		// This version checks inherited types too
@@ -88,7 +87,7 @@ AtomBaseRef Space::FindAtom(TypeCls atom_type) {
 	return AtomBaseRef();
 }
 
-AtomBaseRef Space::AddPtr(AtomBase* comp) {
+AtomBasePtr Space::AddPtr(AtomBase* comp) {
 	comp->SetParent(this);
 	TypeCls type = comp->GetTypeId();
 	atoms.AddBase(comp);
@@ -107,7 +106,7 @@ void Space::InitializeAtom(AtomBase& comp) {
 
 
 void Space::ClearAtoms() {
-	AtomStoreRef sys = GetMachine().Get<AtomStore>();
+	AtomStorePtr sys = GetMachine().Get<AtomStore>();
 	for (auto iter = atoms.rbegin(); iter; --iter)
 		sys->ReturnAtom(atoms.Detach(iter));
 	ASSERT(atoms.IsEmpty());
@@ -121,18 +120,18 @@ void Space::AppendCopy(const Space& l) {
 	TODO
 }
 
-void Space::Visit(RuntimeVisitor& vis) {
+void Space::Visit(Vis& vis) {
 	vis || atoms;
 	vis || spaces;
 	vis || states;
 }
 
-void Space::VisitSinks(RuntimeVisitor& vis) {
+void Space::VisitSinks(Vis& vis) {
 	for(AtomBaseRef& c : atoms)
 		c->VisitSink(vis);
 }
 
-void Space::VisitSources(RuntimeVisitor& vis){
+void Space::VisitSources(Vis& vis){
 	for(AtomBaseRef& c : atoms)
 		c->VisitSource(vis);
 }
@@ -148,7 +147,7 @@ int Space::GetSpaceDepth() const {
 	return d;
 }
 
-bool Space::HasSpaceParent(SpaceRef pool) const {
+bool Space::HasSpaceParent(SpacePtr pool) const {
 	const Space* p = this;
 	while (p) {
 		if (p == &*pool)
@@ -166,7 +165,7 @@ void Space::Initialize(Space& l, String prefab) {
 	
 }
 
-SpaceRef Space::CreateEmpty() {
+SpacePtr Space::CreateEmpty() {
 	Space& l = spaces.Add();
 	l.SetParent(this);
 	l.SetId(GetNextId());
@@ -252,8 +251,8 @@ void Space::ClearDeep() {
 	states.Clear();
 }
 
-SpaceRef Space::GetAddEmpty(String name) {
-	SpaceRef l = FindSpaceByName(name);
+SpacePtr Space::GetAddEmpty(String name) {
+	SpacePtr l = FindSpaceByName(name);
 	if (l)
 		return l;
 	l = CreateEmpty();
@@ -261,18 +260,18 @@ SpaceRef Space::GetAddEmpty(String name) {
 	return l;
 }
 
-SpaceRef Space::FindSpaceByName(String name) {
-	for (SpaceRef object : spaces)
+SpacePtr Space::FindSpaceByName(String name) {
+	for (SpacePtr object : spaces)
 		if (object->GetName() == name)
 			return object;
-	return SpaceRef();
+	return SpacePtr();
 }
 
-AtomBaseRef Space::FindDeepCls(TypeCls type) {
-	AtomBaseRef b = FindAtom(type);
+AtomBasePtr Space::FindDeepCls(TypeCls type) {
+	AtomBasePtr b = FindAtom(type);
 	if (b)
 		return b;
-	for (SpaceRef object : spaces) {
+	for (SpacePtr object : spaces) {
 		b = object->FindDeepCls(type);
 		if (b)
 			return b;
@@ -295,16 +294,16 @@ String Space::GetTreeString(int indent) {
 	for (AtomBaseRef& a : atoms)
 		s << a->ToString();
 	
-	for (SpaceRef& l : spaces)
+	for (SpacePtr& l : spaces)
 		s << l->GetTreeString(indent+1);
 	
 	return s;
 }
 
-EnvStateRef Space::FindNearestState(String name) {
+EnvStatePtr Space::FindNearestState(String name) {
 	Space* l = this;
 	while (l) {
-		EnvStateRef e = l->FindState(name);
+		EnvStatePtr e = l->FindState(name);
 		if (e)
 			return e;
 		l = l->GetParent();
@@ -312,13 +311,13 @@ EnvStateRef Space::FindNearestState(String name) {
 	return EnvStateRef();
 }
 
-EnvStateRef Space::FindStateDeep(String name) {
-	EnvStateRef e = FindState(name);
+EnvStatePtr Space::FindStateDeep(String name) {
+	EnvStatePtr e = FindState(name);
 	if (e)
 		return e;
 	
-	for (SpaceRef& p : spaces) {
-		EnvStateRef e = p->FindStateDeep(name);
+	for (SpacePtr& p : spaces) {
+		EnvStatePtr e = p->FindStateDeep(name);
 		if (e)
 			return e;
 	}
@@ -364,4 +363,4 @@ bool SpaceHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* de
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

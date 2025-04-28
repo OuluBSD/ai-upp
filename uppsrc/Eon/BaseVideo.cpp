@@ -162,7 +162,7 @@ bool VideoGenBase::Initialize(const WorldState& ws) {
 	
 	const int src_ch_i = 0;
 	
-	Value& src_val = GetSource()->GetSourceValue(src_ch_i);
+	ValueBase& src_val = GetSource()->GetSourceValue(src_ch_i);
 	src_val.SetFormat(fmt);
 	return true;
 }

@@ -66,7 +66,7 @@ void CustomerLink::Forward(FwdScope& fwd) {
 		int sink_count = sink_iface->GetSinkCount();
 		ASSERT(sink_count == 1);
 		
-		Value&			sink_val = sink_iface->GetValue(0);
+		ValueBase&			sink_val = sink_iface->GetValue(0);
 		PacketBuffer&	sink_buf = sink_val.GetBuffer();
 		ValueFormat		fmt = sink_val.GetFormat();
 		
@@ -263,7 +263,7 @@ void IntervalPipeLink::IntervalSinkProcess() {
 	const int sink_ch_i = 0;
 	
 	InterfaceSinkPtr sink = GetSink();
-	Value& sink_value = sink->GetValue(sink_ch_i);
+	ValueBase& sink_value = sink->GetValue(sink_ch_i);
 	ValueFormat fmt = sink_value.GetFormat();
 	
 	bool raw_data = fmt.IsAudio();

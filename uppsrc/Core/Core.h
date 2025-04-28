@@ -260,6 +260,7 @@ typedef int SOCKET;
 #include <exception>
 #include <stdexcept>
 #include <tuple>
+#include <typeindex>
 
 // fix MSC8 beta problem....
 #ifdef COMPILER_MSC

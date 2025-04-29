@@ -2,6 +2,8 @@
 #define _Eon_Interface_h_
 
 
+class AtomBase;
+
 template <class T>
 class InterfaceContainer {
 	
@@ -108,8 +110,8 @@ public:
 	
 	// Catches the type for CollectInterfacesVisitor
 	void Visit(Vis& vis) {
-		vis.VisitThis<InterfaceBase>(this);
-		vis.VisitThis<ExchangeSinkProvider>(this);
+		vis.VisitT<InterfaceBase>("InterfaceBase",*this);
+		vis.VisitT<ExchangeSinkProvider>("ExchangeSinkProvider",*this);
 	}
 	
 	virtual ValueBase&				GetValue(int i) = 0;
@@ -136,8 +138,8 @@ public:
 	
 	// Catches the type for CollectInterfacesVisitor
 	void Visit(Vis& vis) {
-		vis.VisitThis<InterfaceBase>(this);
-		vis.VisitThis<ExchangeSourceProvider>(this);
+		vis.VisitT<InterfaceBase>("InterfaceBase", *this);
+		vis.VisitT<ExchangeSourceProvider>("ExchangeSourceProvider", *this);
 	}
 	
 	virtual void				ClearSource() = 0;
@@ -175,8 +177,8 @@ public:
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
 	void Visit(Vis& vis) {
-		vis.VisitThis<InterfaceSink>(this);
-		vis.VisitThis<Container>(this);
+		vis.VisitT<InterfaceSink>("InterfaceSink", *this);
+		vis.VisitT<Container>("Container", *this);
 	}
 	
 	//TypeCls GetTypeCls() override {return TypeId(AsTypeCls<ValDevSpec>());}
@@ -209,8 +211,8 @@ public:
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
 	void Visit(Vis& vis) {
-		vis.VisitThis<InterfaceSource>(this);
-		vis.VisitThis<Container>(this);
+		vis.VisitT<InterfaceSource>("InterfaceSource", *this);
+		vis.VisitT<Container>("Container", *this);
 	}
 	
 	using ExPt = DefaultExchangePoint;

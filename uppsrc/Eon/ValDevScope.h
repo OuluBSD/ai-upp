@@ -2,6 +2,7 @@
 #define _Eon_ValDevScope_h_
 
 class Ex;
+class Loop;
 
 class ValueBase :
 	virtual public RealtimeStream
@@ -80,27 +81,27 @@ public:
 
 
 class Proxy :
-	public Value
+	public ValueBase
 {
-	Value* o = 0;
+	ValueBase* o = 0;
 	
 public:
 	Proxy() = default;
-	Proxy(Value* o) : o(o) {}
+	Proxy(ValueBase* o) : o(o) {}
 	
-	void Set(Value* o) {this->o = o;}
+	void Set(ValueBase* o) {this->o = o;}
 	
 	operator bool() const {return o != 0;}
 	void Exchange(Ex& e) override {if (o) o->Exchange(e);}
 	int GetQueueSize() const override {if (o) return o->GetQueueSize(); return 0;}
 	ValueFormat GetFormat() const override {if (o) return o->GetFormat(); return ValueFormat();}
 	bool IsQueueFull() const override {if (o) return o->IsQueueFull(); return 0;}
-	PacketBuffer& GetBuffer() override {if (o) return o->GetBuffer(); PANIC("Empty proxy");}
+	PacketBuffer& GetBuffer() override {if (o) return o->GetBuffer(); throw("Empty proxy");}
 };
 
 
 class SimpleValue :
-	public Value
+	public ValueBase
 {
 	ValueFormat		fmt;
 	double			time = 0;

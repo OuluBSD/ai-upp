@@ -40,7 +40,7 @@ Space& AtomBase::GetParent() {
 	return *((SP*)this)->GetParent().AsStatic<Space>();
 }
 
-Link* AtomBase::GetLink() {
+LinkBase* AtomBase::GetLink() {
 	return link;
 }
 
@@ -92,7 +92,7 @@ int AtomBase::FindSinkWithValDev(ValDevCls vd) {
 	return -1;
 }
 
-void AtomBase::UpdateSinkFormat(ValCls vc, Format fmt) {
+void AtomBase::UpdateSinkFormat(ValCls vc, ValueFormat fmt) {
 	InterfaceSinkPtr sink_iface = GetSink();
 	int sink_count = sink_iface->GetSinkCount();
 	for(int i = 0; i < sink_count; i++) {

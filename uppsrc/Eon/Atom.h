@@ -3,7 +3,7 @@
 
 class WorldState;
 class Plan;
-class AtomBase;
+class LinkBase;
 
 template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
 //template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
@@ -83,7 +83,7 @@ public:
 	virtual bool			AttachContext(AtomBase& a) {Panic("Unimplemented"); NEVER(); return false;}
 	virtual void			DetachContext(AtomBase& a) {Panic("Unimplemented"); NEVER();}
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
-	virtual bool			NegotiateSinkFormat(Link& link, int sink_ch, const Format& new_fmt) {return false;}
+	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
 	
 	EscValue&				UserData() {return user_data;}
 	bool					IsRunning() const {return is_running;}
@@ -94,7 +94,7 @@ public:
 	AtomBase*				GetDependency() const {return atom_dependency;}
 	int						GetDependencyCount() const {return dep_count;}
 	void					ClearDependency() {SetDependency(0);}
-	void					UpdateSinkFormat(ValCls val, Format fmt);
+	void					UpdateSinkFormat(ValCls val, ValueFormat fmt);
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);
 	
@@ -111,12 +111,12 @@ public:
 	virtual ~AtomBase();
 	
 	
-	SpacePtr		GetSpace();
+	Space*			GetSpace();
 	Space&			GetParent();
-	Link*			GetLink();
+	LinkBase*		GetLink();
 	int				GetId() const {return id;}
 	
-	template <class T> RefT_Atom<T> As() {return AtomBase_Static_As<T>(this);}
+	template <class T> Ptr<T> As() {return AtomBase_Static_As<T>(this);}
 	
 	template <class S, class R>
 	void AddToSystem(R ref) {
@@ -166,17 +166,17 @@ public:
 	}
 	
 	void Visit(Vis& vis) override {
-		vis.VisitThis<AtomBase>(this);
-		vis.VisitThis<SinkT>(this);
-		vis.VisitThis<SourceT>(this);
+		vis.VisitT<AtomBase>("AtomBase", *this);
+		vis.VisitT<SinkT>("SinkT", *this);
+		vis.VisitT<SourceT>("SourceT", *this);
 	}
 	
 	void VisitSource(Vis& vis) override {
-		vis.VisitThis<SourceT>(this);
+		vis.VisitT<SourceT>("SourceT", *this);
 	}
 	
 	void VisitSink(Vis& vis) override {
-		vis.VisitThis<SinkT>(this);
+		vis.VisitT<SinkT>("SinkT", *this);
 	}
 
 	void CopyTo(AtomBase* target) const override {
@@ -189,13 +189,13 @@ public:
 	InterfaceSourcePtr GetSource() override {
 		InterfaceSource* src = static_cast<InterfaceSource*>(this);
 		ASSERT(src);
-		return InterfaceSourcePtr(GetParentUnsafe(), src);
+		return InterfaceSourcePtr(src);
 	}
 	
 	InterfaceSinkPtr GetSink() override {
 		InterfaceSink* sink = static_cast<InterfaceSink*>(this);
 		ASSERT(sink);
-		return InterfaceSinkPtr(GetParentUnsafe(), sink);
+		return InterfaceSinkPtr(sink);
 	}
 	
 	AtomBase* AsAtomBase() override {return static_cast<AtomBase*>(this);}
@@ -210,23 +210,37 @@ public:
 
 
 
-using AtomRefMap	= ArrayMap<AtomTypeCls,Ptr<AtomBase>>;
-using AtomMapBase	= RefAtomTypeMapIndirect<AtomBase>;
+//using AtomRefMap	= ArrayMap<AtomTypeCls,Ptr<AtomBase>>;
+using AtomBasePtr = Ptr<AtomBase>;
 
-class AtomMap : public AtomMapBase {
+class AtomMap {
+	struct Item : Moveable<Item> {
+		AtomTypeCls type;
+		AtomBasePtr atom;
+	};
+	Vector<Item> atoms;
 	
+	void Add(AtomTypeCls type, AtomBasePtr ptr) {
+		Item& i = atoms.Add();
+		i.type = type;
+		i.atom = ptr;
+	}
 	void ReturnAtom(AtomStore& s, AtomBase* c);
 	
 public:
+	using Iterator = Vector<Item>::Iterator;
 	
 	AtomMap() {}
 	
 	#define IS_EMPTY_SHAREDPTR(x) (x.IsEmpty())
 	
 	void Dump();
+	bool IsEmpty() const {return atoms.IsEmpty();}
+	Iterator begin() {return atoms.begin();}
+	Iterator end() {return atoms.end();}
 	
 	template<typename AtomT>
-	RefT_Atom<AtomT> Get() {
+	Ptr<AtomT> Get() {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
 		
 		AtomMapBase::Iterator it = AtomMapBase::Find(AsParallelTypeCls<AtomT>());
@@ -238,7 +252,7 @@ public:
 	}
 	
 	template<typename AtomT>
-	RefT_Atom<AtomT> Find() {
+	Ptr<AtomT> Find() {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
 		
 		AtomMapBase::Iterator it = AtomMapBase::Find(AsParallelTypeCls<AtomT>());
@@ -257,6 +271,7 @@ public:
 		AtomMapBase::Add(type, atom);
 	}
 	
+	#if 0
 	template<typename AtomT>
 	void Remove(AtomStorePtr s) {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
@@ -271,12 +286,13 @@ public:
 		ReturnAtom(*s, iter.value.GetItem()->value.Detach());
 		AtomMapBase::Remove(iter);
 	}
+	#endif
 	
 	void AddBase(AtomBase* atom) {
 		AtomTypeCls type = atom->GetType();
 		ASSERT(type.IsValid());
 		//AtomMapBase::Iterator it = AtomMapBase::Find(type);
-		AtomMapBase::Add(type, atom);
+		Add(type, atom);
 	}
 	
 	#undef IS_EMPTY_SHAREDPTR

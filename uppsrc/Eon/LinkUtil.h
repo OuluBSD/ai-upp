@@ -23,7 +23,7 @@ class AsyncMemForwarderBase :
 	
 public:
 	AsyncMemForwarderBase();
-	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	bool	IsReady(PacketIO& io) final;
 	bool	ForwardAsyncMem(byte* mem, int size) override;
@@ -46,7 +46,7 @@ public:
 	void	Update(double dt) override;
 	bool	IsReady(PacketIO& io) override;
 	
-	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	void	SetFPS(int fps) {dt = 1.0 / (double)fps;}
 	
@@ -66,7 +66,7 @@ protected:
 public:
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
-	void	Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	RealtimeSourceConfig* GetConfig() final {ASSERT(customer); return customer ? &customer->cfg : 0;}
 	

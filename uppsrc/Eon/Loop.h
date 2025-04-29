@@ -2,6 +2,7 @@
 #define _Eon_Loop_h_
 
 
+
 class Loop :
 	public MetaDirectoryBase
 {
@@ -19,7 +20,8 @@ protected:
 	
 public:
 	typedef Loop CLASSNAME;
-	
+	using LoopPtr = Ptr<Loop>;
+	using LoopVec = Array<Loop>;
 	static LoopId GetNextId();
 	
 	Loop();
@@ -53,14 +55,14 @@ public:
 	bool				MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom);
 	
 	void				OnChange();
-	LinkBaseRef			AddTypeCls(LinkTypeCls cls);
-	LinkBaseRef			GetAddTypeCls(LinkTypeCls cls);
-	LinkBaseRef			FindTypeCls(LinkTypeCls atom_type);
+	LinkBasePtr			AddTypeCls(LinkTypeCls cls);
+	LinkBasePtr			GetAddTypeCls(LinkTypeCls cls);
+	LinkBasePtr			FindTypeCls(LinkTypeCls atom_type);
 	LoopPtr				FindLoopByName(String name);
 	
 	
 	
-	LinkBaseRef			AddPtr(LinkBase* link);
+	LinkBasePtr			AddPtr(LinkBase* link);
 	void				InitializeLink(LinkBase& atom);
 	void				InitializeLinks();
 	void				AppendCopy(const Loop& l);

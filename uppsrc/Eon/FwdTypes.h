@@ -26,7 +26,7 @@ typedef enum : byte {
 	LINK_TYPE_LIST
 	#undef LINK_TYPE
 	
-	SUBCOMP_COUNT
+	SUBLINK_COUNT
 } SubLinkCls;
 
 #define LINK_ROLE_LIST \
@@ -36,13 +36,13 @@ typedef enum : byte {
 
 
 typedef enum : int {
-	INVALID_ROLE=-1,
+	INVALID_LINKROLE=-1,
 	
 	#define LINK_ROLE(x) LINKROLE_##x,
 	LINK_ROLE_LIST
 	#undef LINK_ROLE
 	
-	ROLE_COUNT
+	LINKROLE_COUNT
 } LinkRole;
 
 
@@ -55,11 +55,11 @@ String GetLinkRoleString(LinkRole t);
 
 struct LinkTypeCls : Moveable<LinkTypeCls> {
 	SubLinkCls sub = SubLinkCls::INVALID_LINK;
-	LinkRole role = LinkRole::INVALID_ROLE;
+	LinkRole role = LinkRole::INVALID_LINKROLE;
 	
-	bool IsValid() const {return sub != SubLinkCls::INVALID_LINK && role != LinkRole::INVALID_ROLE;}
+	bool IsValid() const {return sub != SubLinkCls::INVALID_LINK && role != LinkRole::INVALID_LINKROLE;}
 	hash_t GetHashValue() const;
-	void operator=(const Nuller& n) {sub = SubLinkCls::INVALID_LINK; role = LinkRole::INVALID_ROLE;}
+	void operator=(const Nuller& n) {sub = SubLinkCls::INVALID_LINK; role = LinkRole::INVALID_LINKROLE;}
 	void operator=(const LinkTypeCls& o) {
 		sub = o.sub;
 		role = o.role;
@@ -80,8 +80,8 @@ struct LinkTypeCls : Moveable<LinkTypeCls> {
 	
 };
 
-template<class T, class Parent = RefParent1<typename T::Parent>>
-using RefLinkTypeMapIndirect	= RefLinkedMapIndirect<LinkTypeCls, T, Parent>;
+//template<class T, class Parent = RefParent1<typename T::Parent>>
+//using RefLinkTypeMapIndirect	= RefLinkedMapIndirect<LinkTypeCls, T, Parent>;
 
 
 

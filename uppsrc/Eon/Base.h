@@ -18,7 +18,7 @@ protected:
 	
 	
 public:
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	bool Recv(int sink_ch, const Packet& in) override;
@@ -44,7 +44,7 @@ class RollingValueBase :
 	
 public:
 	bool Initialize(const WorldState& ws) override;
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	void Uninitialize() override {}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
@@ -67,7 +67,7 @@ public:
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool Consume(const void* data, int len) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
@@ -96,7 +96,7 @@ public:
 	void Uninitialize() override;
 	void Update(double dt) override;
 	bool IsReady(PacketIO& io) override;
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
@@ -110,7 +110,7 @@ class VoidBase :
 public:
 	bool Initialize(const WorldState& ws) override {return true;}
 	void Uninitialize() override {}
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {return true;}
 	
 };
@@ -134,7 +134,7 @@ public:
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this); vis & state;}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this); vis & state;}
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
@@ -172,7 +172,7 @@ public:
 	TestEventSrcBase();
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool IsReady(PacketIO& io) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	

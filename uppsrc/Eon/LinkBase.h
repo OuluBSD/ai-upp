@@ -20,7 +20,7 @@ public:
 	RTSrcConfig*	GetConfig() override;
 	void			Forward(FwdScope& fwd) override;
 	bool			IsLoopComplete(FwdScope& fwd) override;
-	void			Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	static LinkTypeCls GetType();
 	LinkTypeCls GetLinkType() const override {return GetType();}
@@ -37,7 +37,7 @@ public:
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
 	bool			ProcessPackets(PacketIO& io) override;
-	void			Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	static LinkTypeCls GetType();
 	LinkTypeCls GetLinkType() const override {return GetType();}
@@ -55,7 +55,7 @@ public:
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
 	bool			ProcessPackets(PacketIO& io) override;
-	void			Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	void			SetFinalizeOnSide(bool b=true) {finalize_on_side = b;}
 	
 	static LinkTypeCls GetType();
@@ -74,7 +74,7 @@ public:
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
-	void			Visit(Vis& vis) override {vis.VisitThis<AsyncMemForwarderBase>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<AsyncMemForwarderBase>("AsyncMemForwarderBase", *this);}
 	
 	static LinkTypeCls GetType();
 	LinkTypeCls GetLinkType() const override {return GetType();}
@@ -93,7 +93,7 @@ public:
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
-	void			Visit(Vis& vis) override {vis.VisitThis<FramePollerBase>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<FramePollerBase>("FramePollerBase", *this);}
 	bool			IsReady(PacketIO& io) override;
 	bool			ProcessPackets(PacketIO& io) final;
 	void			SetFinalizeOnSide(bool b=true) {finalize_on_side = b;}
@@ -113,7 +113,7 @@ public:
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
-	void			Visit(Vis& vis) override {vis.VisitThis<AsyncMemForwarderBase>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<AsyncMemForwarderBase>("AsyncMemForwarderBase", *this);}
 	
 	static LinkTypeCls GetType();
 	LinkTypeCls GetLinkType() const override {return GetType();}
@@ -129,7 +129,7 @@ public:
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
-	void			Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	bool			ProcessPackets(PacketIO& io) override;
 	
 	static LinkTypeCls GetType();
@@ -146,7 +146,7 @@ public:
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
-	void Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	bool IsReady(PacketIO& io) override;
 	bool ProcessPackets(PacketIO& io) override;
 	
@@ -164,7 +164,7 @@ public:
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
-	void Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	bool IsReady(PacketIO& io) override;
 	bool ProcessPackets(PacketIO& io) override;
 	
@@ -180,7 +180,7 @@ public:
 	SplitterLink();
 	bool Initialize(const WorldState& ws) final;
 	void Uninitialize() final;
-	void Visit(Vis& vis) override {vis.VisitThis<Link>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	bool IsReady(PacketIO& io) final;
 	bool ProcessPackets(PacketIO& io) override;
 	

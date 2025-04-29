@@ -27,6 +27,7 @@ protected:
 public:
 	typedef Space CLASSNAME;
 	using SpacePtr = Ptr<Space>;
+	using SpaceVec = Array<Space>;
 	static SpaceId GetNextId();
 	
 	Space();
@@ -94,16 +95,16 @@ public:
 	void				UnlinkExchangePoints();
 	
 	template<typename T>
-	RefT_Atom<T> FindCast() {
-		for (Ref<AtomBase>& a : atoms.GetValues()) {
+	T* FindCast() {
+		for (AtomBasePtr& a : atoms.GetValues()) {
 			T* o = CastPtr<T>(&*a);
 			if (o)
 				return o->template AsRef<T>();
 		}
-		return RefT_Atom<T>();
+		return 0;
 	}
 	
-	template<typename T> RefT_Atom<T> FindNearestAtomCast(int nearest_loop_depth);
+	template<typename T> T* FindNearestAtomCast(int nearest_loop_depth);
 	EnvStatePtr FindNearestState(String name);
 	EnvStatePtr FindStateDeep(String name);
 	
@@ -116,24 +117,24 @@ public:
 	
 	SpacePtr AddSpace(String name="") {
 		Space& p = spaces.Add();
-		p.SetParent(HierExBaseParent(0, this));
+		//p.SetParent(HierExBaseParent(0, this));
 		p.SetName(name);
 		p.SetId(GetNextId());
-		return p;
+		return &p;
 	}
 	
 	SpacePtr GetAddSpace(String name) {
-		for (SpacePtr& pool : spaces)
-			if (pool->GetName() == name)
-				return pool;
+		for (Space& pool : spaces)
+			if (pool.GetName() == name)
+				return &pool;
 		return AddSpace(name);
 	}
 	
 	EnvStatePtr AddState(String name="") {
 		EnvState& p = states.Add();
-		p.SetParent(this);
+		//p.SetParent(this);
 		p.SetName(name);
-		return p;
+		return &p;
 	}
 	
 	EnvStatePtr GetAddEnv(String name) {
@@ -143,10 +144,10 @@ public:
 	}
 	
 	EnvStatePtr FindState(String name) {
-		for (EnvStateRef& s : states)
-			if (s->GetName() == name)
-				return s;
-		return EnvStateRef();
+		for (EnvState& s : states)
+			if (s.GetName() == name)
+				return &s;
+		return EnvStatePtr();
 	}
 	
 	AtomMap::Iterator			begin()			{return atoms.begin();}
@@ -163,22 +164,21 @@ private:
 	SpaceVec				spaces;
 };
 
-
+#if 0
 class SpaceHashVisitor : public Vis {
 	CombineHash ch;
 	
-	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
+	bool OnEntry(const TypeCls& type, TypeCls derived, const char* derived_name, void* mem) override;
 public:
 	
 	
 	operator hash_t() const {return ch;}
 	
 };
-
-
+#endif
 
 template<typename T>
-RefT_Atom<T> Space::FindNearestAtomCast(int nearest_space_depth) {
+T* Space::FindNearestAtomCast(int nearest_space_depth) {
 	if (auto r = FindCast<T>())
 		return r;
 	

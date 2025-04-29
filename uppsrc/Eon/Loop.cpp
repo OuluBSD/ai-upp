@@ -115,17 +115,17 @@ LinkBasePtr Loop::AddPtr(LinkBase* comp) {
 	LinkTypeCls type = comp->GetLinkType();
 	links.Add(type, comp);
 	InitializeLink(*comp);
-	return LinkBaseRef(this, comp);
+	return LinkBasePtr(this, comp);
 }
 
 LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
-	for (LinkBaseRef& l : links) {
+	for (LinkBasePtr& l : links) {
 		LinkTypeCls type = l->GetLinkType();
 		if (type == atom_type)
 			return l;
 	}
 	ASSERT(!links.Find(atom_type));
-	return LinkBaseRef();
+	return LinkBasePtr();
 }
 
 LoopPtr Loop::FindLoopByName(String name) {
@@ -156,7 +156,7 @@ String Loop::GetTreeString(int indent) {
 	
 	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
 	
-	for (LinkBaseRef& l : links)
+	for (LinkBasePtr& l : links)
 		s << l->ToString();
 	
 	for (LoopPtr& l : loops)

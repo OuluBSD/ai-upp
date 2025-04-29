@@ -276,7 +276,7 @@ typedef enum : byte {
 	SERIAL_TYPE_LIST
 	#undef SERIAL_TYPE
 	
-	SUBCOMP_COUNT
+	SUBATOM_COUNT
 } SubAtomCls;
 
 
@@ -288,13 +288,13 @@ typedef enum : byte {
 
 
 typedef enum : int8 {
-	INVALID_ROLE=-1,
+	INVALID_ATOMROLE=-1,
 	
 	#define ATOM_ROLE(x) x,
 	ATOM_ROLE_LIST
 	#undef ATOM_ROLE
 	
-	ROLE_COUNT
+	ATOMROLE_COUNT
 } AtomRole;
 
 
@@ -341,11 +341,11 @@ struct AtomIfaceTypeCls : Moveable<AtomIfaceTypeCls> {
 struct AtomTypeCls : Moveable<AtomTypeCls> {
 	AtomIfaceTypeCls iface;
 	SubAtomCls sub = SubAtomCls::INVALID_ATOM;
-	AtomRole role = AtomRole::INVALID_ROLE;
+	AtomRole role = AtomRole::INVALID_ATOMROLE;
 	
-	bool IsValid() const {return iface.IsValid() && sub != SubAtomCls::INVALID_ATOM && role != AtomRole::INVALID_ROLE;}
+	bool IsValid() const {return iface.IsValid() && sub != SubAtomCls::INVALID_ATOM && role != AtomRole::INVALID_ATOMROLE;}
 	hash_t GetHashValue() const;
-	void operator=(const Nuller& n) {iface = n; sub = SubAtomCls::INVALID_ATOM; role = AtomRole::INVALID_ROLE;}
+	void operator=(const Nuller& n) {iface = n; sub = SubAtomCls::INVALID_ATOM; role = AtomRole::INVALID_ATOMROLE;}
 	void operator=(const AtomTypeCls& o) {
 		iface = o.iface;
 		sub = o.sub;
@@ -481,7 +481,7 @@ struct RendererContent {
 
 
 
-
+typedef dword LoopId;
 
 
 #endif

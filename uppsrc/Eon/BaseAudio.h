@@ -120,7 +120,7 @@ public:
 	void Uninitialize() final;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	
 	void SetPreset(int i) {preset_i = i;}
 	String GetLastError() const {return last_error;}
@@ -159,7 +159,7 @@ public:
 	void Finalize(RealtimeSourceConfig& cfg) override;
 	bool IsReady(PacketIO& io) override;
 	
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	
 	
 };

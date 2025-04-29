@@ -476,53 +476,6 @@ public:
 
 
 
-class EnvState :
-	public RefScopeEnabler<EnvState, MetaSpaceBase>
-{
-	VectorMap<dword, Object> data;
-	String name;
-	
-public:
-	RTTI_DECL0(EnvState)
-	
-	void Visit(RuntimeVisitor& vis) {}
-	void SetName(String s) {name = s;}
-	const String& GetName() const {return name;}
-	
-	
-	bool&	SetBool(dword key, bool b);
-	int&	SetInt(dword key, int i);
-	
-	bool&	GetBool(dword key);
-	int&	GetInt(dword key);
-	
-	template <class T>
-	T& Set(dword key) {
-		Object& o = data.GetAdd(key);
-		if (o.Is<T>())
-			return o.Get<T>();
-		else
-			return o.Create<T>();
-	}
-	
-	template <class T>
-	T* Get(dword key) {
-		int i = data.Find(key);
-		if (i < 0)
-			return 0;
-		Object& o = data[i];
-		if (o.Is<T>())
-			return &o.Get<T>();
-		return 0;
-	}
-};
-
-using ExchangeBaseParent	= RefParent1<MetaSpaceBase>;
-using EnvStateParent		= ExchangeBaseParent;
-using EnvStateRef			= Ref<EnvState,				EnvStateParent>;
-
-
-
 
 
 

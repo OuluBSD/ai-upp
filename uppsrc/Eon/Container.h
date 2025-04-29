@@ -2,7 +2,7 @@
 #define _Eon_Container_h_
 
 
-class EnvState
+class EnvState : public Pte<EnvState>
 {
 	VectorMap<dword, Value> data;
 	String name;

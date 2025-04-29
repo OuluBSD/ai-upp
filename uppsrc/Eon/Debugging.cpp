@@ -1,6 +1,7 @@
-#include "Local.h"
+#include "Eon.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+
+NAMESPACE_UPP
 
 
 String StackDebugger::Item::ToString() const {
@@ -89,7 +90,7 @@ void StackDebugger::Log(String type, const Item& it) {
 
 
 
-
+#if 0
 void RuntimeDiagnostics::CaptureSnapshot() {
 	vis.Clear();
 	vis.SetActiveRefCounter();
@@ -315,6 +316,6 @@ void DebugRefVisits_RemoveRef(RefCommon* mem) {
 	RefDebugVisitor::Static().Remove(mem);
 }
 
+#endif
 
-
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

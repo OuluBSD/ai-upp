@@ -186,7 +186,7 @@ public:
 };
 
 
-class ExchangeProviderBase
+class ExchangeProviderBase : public Pte<ExchangeProviderBase>
 {
 public:
 	virtual String GetConfigString() {return String();}
@@ -427,7 +427,7 @@ public:
 };
 
 class ExchangePoint :
-	virtual public PacketForwarder
+	public PacketForwarder
 {
 	
 protected:
@@ -475,7 +475,7 @@ public:
 	
 };
 
-class MetaSpaceBase
+class MetaSpaceBase : public MetaNodeExt
 {
 	
 protected:
@@ -483,7 +483,7 @@ protected:
 	
 public:
 	typedef MetaSpaceBase CLASSNAME;
-	MetaSpaceBase();
+	MetaSpaceBase(MetaNode& n);
 	virtual ~MetaSpaceBase();
 	
 	virtual void UnlinkAll();
@@ -534,7 +534,7 @@ public:
 	
 };
 
-class MetaDirectoryBase
+class MetaDirectoryBase : public Pte<MetaDirectoryBase>
 {
 	
 public:

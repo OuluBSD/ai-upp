@@ -64,7 +64,7 @@ int SimpleValue::GetQueueSize() const {
 	return buf.GetCount();
 }
 
-Format SimpleValue::GetFormat() const {
+ValueFormat SimpleValue::GetFormat() const {
 	return fmt;
 }
 
@@ -93,6 +93,7 @@ Packet SimpleValue::Pick() {
 
 bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst) {
 	TODO
+	return false;
 }
 
 

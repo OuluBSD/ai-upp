@@ -8,6 +8,8 @@ file
 	Eon.h,
 	Defs.h,
 	Container.h,
+	Debugging.h,
+	Debugging.cpp,
 	WorldState.h,
 	WorldState.cpp,
 	SampleBase.h,

@@ -73,7 +73,6 @@ file
 	Html.cpp,
 	Url.h,
 	Url.cpp,
-	Debugging.h,
 	DrawCommand.h,
 	DrawCommand.cpp,
 	Draw2D.h,

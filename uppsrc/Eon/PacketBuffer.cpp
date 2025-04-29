@@ -8,7 +8,7 @@ String TrackerInfo::ToString() const {
 	String s;
 	
 	if (handler_cls)
-		s << "@" << handler_cls->GetDynamicName();
+		s << "@" << handler_cls.GetName();
 	if (handler_fn)
 		s << "::" << handler_fn;
 	

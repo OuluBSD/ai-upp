@@ -292,7 +292,7 @@ void ExchangePoint::Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr s
 
 
 
-MetaSpaceBase::MetaSpaceBase() {
+MetaSpaceBase::MetaSpaceBase(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -313,7 +313,7 @@ void MetaSpaceBase::Remove(ExchangePoint* expt) {
 			return;
 		}
 	}
-	THROW(Exc("MetaSpaceBase::Remove: internal error"));
+	throw Exc("MetaSpaceBase::Remove: internal error");
 }
 
 void MetaSpaceBase::UnlinkAll() {

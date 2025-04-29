@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Space::Space() {
+Space::Space(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -21,11 +21,11 @@ Loop* Space::GetLoop() const {
 	return loop;
 }
 
-Space* Space::GetParent() const {
+/*Space* Space::GetParent() const {
 	return static_cast<Space*>(RefScopeParent<SpaceParent>::GetParentUnsafe().b);
-}
+}*/
 
-Machine& Space::GetMachine() const {
+/*Machine& Space::GetMachine() const {
 	if (machine)
 		return *machine;
 	const Space* l = this;
@@ -40,17 +40,17 @@ Machine& Space::GetMachine() const {
 		ASSERT(l != par.b);
 		l = static_cast<Space*>(par.b);
 	}
-	THROW(Exc("Machine ptr not found"));
-}
+	throw Exc("Machine ptr not found");
+}*/
 
 AtomBasePtr Space::GetTypeCls(AtomTypeCls atom_type) {
-	for (AtomBaseRef& comp : atoms) {
-		AtomTypeCls type = comp->GetType();
+	for (AtomBase& comp : atoms) {
+		AtomTypeCls type = comp.GetType();
 		ASSERT(type.IsValid());
 		if (type == atom_type)
-			return comp;
+			return &comp;
 	}
-	return AtomBaseRef();
+	return 0;
 }
 
 AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {

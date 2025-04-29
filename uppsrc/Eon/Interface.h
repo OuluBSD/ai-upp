@@ -28,7 +28,7 @@ public:
 			
 			ValDevCls vd = vt.channels[0].vd;
 			ASSERT(vd.IsValid());
-			Format val_fmt = GetDefaultFormat(vd);
+			ValueFormat val_fmt = GetDefaultFormat(vd);
 			if (!val_fmt.IsValid()) {DUMP(val_fmt);}
 			ASSERT(val_fmt.IsValid());
 			
@@ -88,9 +88,10 @@ public:
 };
 
 
-class InterfaceBase
+class InterfaceBase // No Pte because of Pte<ExchangeProviderBase>
 {
 public:
+	virtual ~InterfaceBase() {}
 	virtual AtomBase* AsAtomBase() = 0;
 	AtomTypeCls GetAtomType() const;
 	ValDevTuple GetSinkCls() const {return GetAtomType().iface.sink;}

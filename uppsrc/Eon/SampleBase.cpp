@@ -49,7 +49,7 @@ int BinarySample::GetPackedSingleSize(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::GetPackedSingleSize invalid type"));
+	throw Exc("BinarySample::GetPackedSingleSize invalid type");
 	return 0;
 }
 
@@ -67,7 +67,7 @@ int BinarySample::GetPackedCount(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::GetPackedCount invalid type"));
+	throw Exc("BinarySample::GetPackedCount invalid type");
 	return 0;
 }
 
@@ -85,7 +85,7 @@ bool BinarySample::IsUnsigned(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsUnsigned invalid type"));
+	throw Exc("BinarySample::IsUnsigned invalid type");
 	return false;
 }
 
@@ -103,7 +103,7 @@ bool BinarySample::IsSigned(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsSigned invalid type"));
+	throw Exc("BinarySample::IsSigned invalid type");
 	return false;
 }
 
@@ -121,7 +121,7 @@ bool BinarySample::IsFloating(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsFloating invalid type"));
+	throw Exc("BinarySample::IsFloating invalid type");
 	return false;
 }
 
@@ -139,7 +139,7 @@ bool BinarySample::IsDecimal(Type t) {
 		#undef TYPE
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsDecimal invalid type"));
+	throw Exc("BinarySample::IsDecimal invalid type");
 	return false;
 }
 
@@ -160,7 +160,7 @@ bool BinarySample::IsLittleEndian(Type t) {
 		#undef ENDIANESS
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsLittleEndian invalid type"));
+	throw Exc("BinarySample::IsLittleEndian invalid type");
 	return false;
 }
 
@@ -181,7 +181,7 @@ bool BinarySample::IsBigEndian(Type t) {
 		#undef ENDIANESS
 		default: break;
 	}
-	THROW(Exc("BinarySample::IsBigEndian invalid type"));
+	throw Exc("BinarySample::IsBigEndian invalid type");
 	return false;
 }
 

@@ -271,6 +271,10 @@ String LinkBase::Exchange::ToString() const {
 	return s;
 }
 
+bool LinkBase::IsReady(PacketIO& io) {
+	return atom->IsReady(io);
+}
+
 
 bool Serial_Link_ForwardAsyncMem(LinkBase* l, byte* data, int size) {
 	ASSERT(l);

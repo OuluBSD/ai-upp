@@ -16,18 +16,19 @@ bool DefaultExchangePoint::IsPacketStuck() {
 }
 
 void DefaultExchangePoint::ForwardExchange(FwdScope& fwd) {
-	Ptr<DefaultInterfaceSink> sink = this->sink;
+	DefaultInterfaceSinkPtr sink = dynamic_cast<DefaultInterfaceSink*>(&*this->sink);
+	ASSERT(sink);
 	fwd.AddNext(sink->AsAtomBase()->GetLink()->GetPacketForwarder());
 }
 
 void DefaultExchangePoint::ForwardSetup(FwdScope& fwd) {
-	DefaultInterfaceSinkPtr sink = this->Sink();
+	DefaultInterfaceSinkPtr sink = dynamic_cast<DefaultInterfaceSink*>(&*this->sink);
 	ASSERT(sink);
 	
 	int ch_i = 0;
 	
 	ValueBase& to_val = sink->GetValue(ch_i);
-	Format to_fmt = to_val.GetFormat();
+	ValueFormat to_fmt = to_val.GetFormat();
 	if (!to_fmt.IsValid()) {
 		ValDevTuple t = sink->GetSinkCls();
 		ASSERT(t.IsValid());
@@ -44,9 +45,11 @@ void DefaultExchangePoint::ForwardAtom(FwdScope& fwd) {
 	
 	WhenEnterValExPtForward(*this);
 	
-	RTLOG("DefaultExchangePoint::Forward: " << GetDynamicName() << "(" << HexStr(this) << ") begin");
-	Ptr<DefaultInterfaceSource>	src			= this->src;
-	Ptr<DefaultInterfaceSink>	sink		= this->sink;
+	RTLOG("DefaultExchangePoint::Forward: (" << HexStr(this) << ") begin");
+	DefaultInterfaceSourcePtr src = dynamic_cast<DefaultInterfaceSource*>(&*this->src);
+	DefaultInterfaceSinkPtr sink = dynamic_cast<DefaultInterfaceSink*>(&*this->sink);
+	ASSERT(src);
+	ASSERT(sink);
 	
 	
 	Ex ex(this);

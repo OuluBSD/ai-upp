@@ -75,7 +75,8 @@ String OrderSample::ToString(Type t) {
 }
 
 int OrderSample::GetSize(Type t) {
-	PANIC("Invalid call. (Do not use OrderSample with SimpleBufferedValue)");
+	Panic("Invalid call. (Do not use OrderSample with SimpleBufferedValue)");
+	return -1;
 }
 
 
@@ -98,7 +99,8 @@ String ReceiptSample::ToString(Type t) {
 }
 
 int ReceiptSample::GetSize(Type t) {
-	PANIC("Invalid call. (Do not use ReceiptSample with SimpleBufferedValue)");
+	Panic("Invalid call. (Do not use ReceiptSample with SimpleBufferedValue)");
+	return -1;
 }
 
 
@@ -121,7 +123,8 @@ String DataSample::ToString(Type t) {
 }
 
 int DataSample::GetSize(Type t) {
-	PANIC("Invalid call. (Do not use DataSample with SimpleBufferedValue)");
+	Panic("Invalid call. (Do not use DataSample with SimpleBufferedValue)");
+	return -1;
 }
 
 

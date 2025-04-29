@@ -1,8 +1,6 @@
 #ifndef _Local_Debugging_h_
 #define _Local_Debugging_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-
 
 class StackDebugger {
 	enum {
@@ -68,7 +66,7 @@ public:
 
 
 
-
+#if 0
 class RuntimeDiagnosticVisitor : public RuntimeVisitor {
 	struct Var {
 		void* mem;
@@ -192,7 +190,6 @@ template <class T> void DumpRuntimeDiagnostics(T* o) {
 	vis.Visit(*o);
 	vis.Dump();
 }
-
-NAMESPACE_TOPSIDE_END
+#endif
 
 #endif

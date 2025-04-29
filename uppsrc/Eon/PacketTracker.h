@@ -2,17 +2,17 @@
 #define _Eon_PacketTracker_h_
 
 
-class PacketTracker : public System<PacketTracker>
+class PacketTracker 
 {
 	PacketId id_counter = 1;
 	
 	
 protected:
-    bool Initialize() override;
-    void Start() override;
-    void Update(double dt) override;
-    void Stop() override;
-    void Uninitialize() override;
+    bool Initialize();
+    void Start();
+    void Update(double dt);
+    void Stop();
+    void Uninitialize();
     
     #if HAVE_PACKETTRACKER
 	void Track0(TrackerInfo info, PacketValue& p);
@@ -22,9 +22,8 @@ protected:
 	
 	static PacketTracker*& active_tracker() {static PacketTracker* p; return p;}
 public:
-	RTTI_CTX_SYS(PacketTracker)
-    SYS_CTOR(PacketTracker)
-	SYS_DEF_VISIT
+    PacketTracker();
+	void Visit(Vis& vis) {}
 	
 	#if HAVE_PACKETTRACKER
 	static void Track(TrackerInfo info, Packet& p) {Track(info, *p);}
@@ -38,8 +37,6 @@ public:
 };
 
 #undef RTTI_CTX_SYS
-
-
 
 
 #endif

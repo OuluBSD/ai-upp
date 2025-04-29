@@ -40,6 +40,8 @@ bool AudioFormat::IsSame(const AudioFormat& b) const {
 
 
 
+int VideoFormat::default_width = 1280;
+int VideoFormat::default_height = 720;
 
 void VideoFormat::Set(LightSampleFD::Type type, int w, int h, int freq, int sample_rate) {
 	SampleBase<LightSampleFD>::SetType(type);
@@ -232,7 +234,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsEvent()) return ev.x(); \
 	if (IsFbo())   return fbo.x(); \
 	if (IsProg())  return prog.x(); \
-	PANIC("Invalid type");
+	Panic("Invalid type");
 
 #define PROXY_(x,y) \
 	if (IsAudio()) return aud.x((const AudioFormat&)y); \
@@ -242,7 +244,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsEvent()) return ev.x((const EventFormat&)y); \
 	if (IsFbo())   return fbo.x((const FboFormat&)y); \
 	if (IsProg())  return prog.x((const ProgFormat&)y); \
-	PANIC("Invalid type");
+	Panic("Invalid type");
 
 #define PROXY_CHK(x) ASSERT(IsValid()); PROXY(x)
 

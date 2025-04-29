@@ -74,16 +74,16 @@ public:
 	
 	LoopPtr AddLoop(String name="") {
 		Loop& p = loops.Add();
-		p.SetParent(DirExBaseParent(0, this));
+		//p.SetParent(DirExBaseParent(0, this));
 		p.SetName(name);
 		//p.SetId(GetNextId());
-		return p;
+		return &p;
 	}
 	
 	LoopPtr GetAddLoop(String name) {
-		for (LoopPtr& pool : loops)
-			if (pool->GetName() == name)
-				return pool;
+		for (Loop& pool : loops)
+			if (pool.GetName() == name)
+				return &pool;
 		return AddLoop(name);
 	}
 	
@@ -100,7 +100,7 @@ private:
 class LoopHashVisitor : public Vis {
 	CombineHash ch;
 	
-	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
+	//bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
 public:
 	
 	

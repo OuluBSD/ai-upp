@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Format GetDefaultFormat(ValDevCls type) {
+ValueFormat GetDefaultFormat(ValDevCls type) {
 	//DUMP(type)
 	ValueFormat fmt;
 	
@@ -24,13 +24,13 @@ Format GetDefaultFormat(ValDevCls type) {
 		fmt.SetVolume(type.dev, BinarySample::U8_LE_A, 512, 512, 512, 1, 1);
 	}
 	else if (type.val == ValCls::VIDEO) {
-		fmt.SetVideo(type.dev, LightSampleFD::U8_LE_ABC, default_width, default_height, 60, 1);
+		fmt.SetVideo(type.dev, LightSampleFD::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 60, 1);
 	}
 	else if (type.val == ValCls::EVENT) {
 		fmt.SetEvent(type.dev);
 	}
 	else if (type.val == ValCls::FBO) {
-		fmt.SetFbo(type.dev, BinarySample::U8_LE_ABC, default_width, default_height, 0, 60, 1);
+		fmt.SetFbo(type.dev, BinarySample::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 0, 60, 1);
 	}
 	else if (type.val == ValCls::PROG) {
 		fmt.SetProg(type.dev);

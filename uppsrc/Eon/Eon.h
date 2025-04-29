@@ -10,6 +10,7 @@ NAMESPACE_UPP
 
 #include "Defs.h"
 #include "Container.h"
+#include "Debugging.h"
 #include "WorldState.h"
 #include "SampleBase.h"
 #include "Samples.h"

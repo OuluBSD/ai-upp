@@ -9,7 +9,7 @@ AtomBase::CustomerData::CustomerData() : cfg(gen) {}
 AtomBase::CustomerData::~CustomerData() {}
 
 
-AtomBase::AtomBase() {
+AtomBase::AtomBase(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -18,9 +18,9 @@ AtomBase::~AtomBase() {
 	DBG_DESTRUCT
 }
 
-Machine& AtomBase::GetMachine() {
+/*Machine& AtomBase::GetMachine() {
 	return GetParent().GetMachine();
-}
+}*/
 
 void AtomBase::UninitializeDeep() {
 	if (IsInitialized()) {
@@ -32,20 +32,21 @@ void AtomBase::UninitializeDeep() {
 	UninitializeAtom();
 }
 
-SpacePtr AtomBase::GetSpace() {
-	return GetParent().AsRefT();
+Space* AtomBase::GetSpace() {
+	TODO; return 0; //return GetParent().AsRefT();
 }
 
-Space& AtomBase::GetParent() {
+/*Space& AtomBase::GetParent() {
 	return *((SP*)this)->GetParent().AsStatic<Space>();
-}
+}*/
 
 LinkBase* AtomBase::GetLink() {
 	return link;
 }
 
 String AtomBase::ToString() const {
-	return GetDynamicName();
+	TODO //return GetDynamicName();
+	return String();
 }
 
 void AtomBase::SetInterface(const IfaceConnTuple& iface) {
@@ -61,11 +62,11 @@ void AtomBase::SetPrimarySinkQueueSize(int i) {
 }
 
 void AtomBase::AddAtomToUpdateList() {
-	AtomBase::GetMachine().template Get<AtomSystem>()->AddUpdated(AtomBase::AsRefT());
+	TODO //AtomBase::GetMachine().template Get<AtomSystem>()->AddUpdated(this);
 }
 
 void AtomBase::RemoveAtomFromUpdateList() {
-	AtomBase::GetMachine().template Get<AtomSystem>()->RemoveUpdated(AtomBase::AsRefT());
+	TODO //AtomBase::GetMachine().template Get<AtomSystem>()->RemoveUpdated(this);
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {
@@ -73,7 +74,7 @@ int AtomBase::FindSourceWithValDev(ValDevCls vd) {
 	int c = src->GetSourceCount();
 	for(int i = 0; i < c; i++) {
 		ValueBase& v = src->GetSourceValue(i);
-		Format f = v.GetFormat();
+		ValueFormat f = v.GetFormat();
 		if (f.vd == vd)
 			return i;
 	}
@@ -85,7 +86,7 @@ int AtomBase::FindSinkWithValDev(ValDevCls vd) {
 	int c = src->GetSinkCount();
 	for(int i = 0; i < c; i++) {
 		ValueBase& v = src->GetValue(i);
-		Format f = v.GetFormat();
+		ValueFormat f = v.GetFormat();
 		if (f.vd == vd)
 			return i;
 	}
@@ -97,7 +98,7 @@ void AtomBase::UpdateSinkFormat(ValCls vc, ValueFormat fmt) {
 	int sink_count = sink_iface->GetSinkCount();
 	for(int i = 0; i < sink_count; i++) {
 		ValueBase& val = sink_iface->GetValue(i);
-		Format val_fmt = val.GetFormat();
+		ValueFormat val_fmt = val.GetFormat();
 		if (val_fmt.vd.val == vc && val_fmt != fmt) {
 			RTLOG("AudioOutput::UpdateSinkFormat: updating sink #" << i << " format to " << fmt.ToString());
 			val.SetFormat(fmt);
@@ -109,7 +110,7 @@ void AtomBase::UpdateSinkFormat(ValCls vc, ValueFormat fmt) {
 void AtomBase::PostContinueForward() {
 	RTLOG("AtomBase::PostContinueForward");
 	
-	Serial_Link_PostContinueForward(link);
+	TODO //Serial_Link_PostContinueForward(link);
 }
 
 bool AtomBase::Recv(int sink_ch, const Packet& in) {

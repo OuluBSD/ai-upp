@@ -3,7 +3,7 @@
 
 
 class LinkBase :
-	virtual public PacketForwarder
+	public PacketForwarder
 {
 	
 protected:
@@ -64,7 +64,7 @@ public:
 	virtual bool			IsConsumedPartialPacket() {return 0;}
 	virtual void			Forward(FwdScope& fwd);
 	virtual bool			PostInitialize() {return true;}
-	virtual bool			IsReady(PacketIO& io) {return atom->IsReady(io);}
+	virtual bool			IsReady(PacketIO& io);
 	virtual bool			PassLinkSideSink(LinkBasePtr sink) {return true;}
 	virtual bool			PassLinkSideSource(LinkBasePtr src) {return true;}
 	virtual LinkTypeCls		GetLinkType() const = 0;
@@ -127,6 +127,7 @@ public:
 };
 
 using LinkBasePtr = Ptr<LinkBase>;
+using LinkMap = VectorMap<TypeCls, LinkBase>;
 
 bool Serial_Link_ForwardAsyncMem(LinkBase* l, byte* data, int size);
 

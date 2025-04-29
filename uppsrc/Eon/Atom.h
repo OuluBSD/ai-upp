@@ -107,12 +107,12 @@ public:
 	void					SetPrimarySinkQueueSize(int i);
 	
 public:
-	AtomBase();
+	AtomBase(MetaNode& n);
 	virtual ~AtomBase();
 	
 	
 	Space*			GetSpace();
-	Space&			GetParent();
+	//Space&			GetParent();
 	LinkBase*		GetLink();
 	int				GetId() const {return id;}
 	
@@ -246,7 +246,7 @@ public:
 		AtomMapBase::Iterator it = AtomMapBase::Find(AsParallelTypeCls<AtomT>());
 		ASSERT(!IS_EMPTY_SHAREDPTR(it));
 		if (it.IsEmpty())
-			THROW(Exc("Could not find atom " + (String)AsTypeName<AtomT>()));
+			throw Exc("Could not find atom " + (String)AsTypeName<AtomT>());
 		
 		return it->AsPtr<AtomT>();
 	}

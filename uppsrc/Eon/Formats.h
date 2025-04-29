@@ -57,6 +57,8 @@ struct VideoFormat :
 	
 	bool	cubemap;
 	byte	pad[STD_FMT_SIZE - base_size - 5];
+	
+	static int default_width, default_height;
 };
 
 struct VolumeFormat :

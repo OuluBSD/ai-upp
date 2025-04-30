@@ -526,6 +526,14 @@ struct Visitor {
 		return *this;
 	}
 	
+	template <class T>
+	Visitor& operator|(T& o) {
+		if (o) {
+			TODO // runtime-visit a vector
+		}
+		return *this;
+	}
+	
 	
 	template<class T> Visitor& operator()(const char* key, T& o, int) {return VisitVector(key, o);}
 	template<class T> Visitor& operator()(const char* key, T& o, int, int) {return VisitMap(key, o);}

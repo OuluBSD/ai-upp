@@ -476,7 +476,10 @@ struct FixedArray {
 struct TypeCls : Moveable<TypeCls>, std::type_index {
 	TypeCls() : std::type_index(typeid(void)) {}
 	TypeCls(const TypeCls& t) : std::type_index(t) {}
-	
+	TypeCls(const std::type_info& t) : std::type_index(t) {}
+	operator bool() const {return *this != std::type_index(typeid(void));}
+	String GetName() const {return this->name();}
+	hash_t GetHashValue() const {return this->hash_code();}
 };
 
 template <class T> TypeCls GetTypeCls() {return std::type_index(T);}

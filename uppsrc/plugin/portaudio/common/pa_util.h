@@ -49,7 +49,7 @@
 */
 
 
-#include "portaudio.h"
+#include "../portaudio.h"
 
 #ifdef __cplusplus
 extern "C"

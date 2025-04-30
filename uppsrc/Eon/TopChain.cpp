@@ -1,10 +1,10 @@
-#include "SerialScript.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-ScriptTopChainLoader::ScriptTopChainLoader(int mode, ScriptMachineLoader& parent, ScriptTopChainLoader* chain_parent, int id, Script::ChainDefinition& def) :
+ScriptTopChainLoader::ScriptTopChainLoader(int mode, ScriptMachineLoader& parent, ScriptTopChainLoader* chain_parent, int id, Eon::ChainDefinition& def) :
 	Base(parent, id, def),
 	chain_parent(chain_parent)
 {
@@ -21,19 +21,19 @@ ScriptTopChainLoader::ScriptTopChainLoader(int mode, ScriptMachineLoader& parent
 	
 	if (mode == SPLITTED_CHAIN) {
 		bool all_subchains_terminal = true;
-		for (Script::ChainDefinition& subchain : def.subchains)
+		for (Eon::ChainDefinition& subchain : def.subchains)
 			if (!subchain.subchains.IsEmpty())
 				all_subchains_terminal = false;
 		
 		if (all_subchains_terminal) {
 			use_subchains = false;
-			for (Script::ChainDefinition& subchain : def.subchains) {
+			for (Eon::ChainDefinition& subchain : def.subchains) {
 				ScriptChainLoader& loader = chains.Add(new ScriptChainLoader(*this, chains.GetCount(), subchain));
 			}
 		}
 		else {
 			use_subchains = true;
-			for (Script::ChainDefinition& subchain : def.subchains) {
+			for (Eon::ChainDefinition& subchain : def.subchains) {
 				ScriptTopChainLoader& loader = subchains.Add(new ScriptTopChainLoader(NORMAL, parent, this, subchains.GetCount(), subchain));
 			}
 		}
@@ -98,4 +98,5 @@ void ScriptTopChainLoader::GetStates(Vector<ScriptStateLoader*>& v) {
 }
 
 
-NAMESPACE_SERIAL_END
+}
+END_UPP_NAMESPACE

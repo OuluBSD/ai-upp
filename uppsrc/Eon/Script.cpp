@@ -1,9 +1,7 @@
-#include "Internal.h"
+#include "Eon.h"
 
-NAMESPACE_SERIAL_BEGIN
-
-
-namespace Script {
+NAMESPACE_UPP
+namespace Eon {
 
 
 String Id::ToString() const {
@@ -17,7 +15,7 @@ String Id::ToString() const {
 }
 
 
-}
+
 
 
 
@@ -220,7 +218,7 @@ bool ScriptLoader::ImplementScript() {
 	return true;
 }
 
-bool ScriptLoader::GetPathId(Script::Id& script_id, AstNode* from, AstNode* to) {
+bool ScriptLoader::GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to) {
 	Vector<Endpoint> path;
 	
 	if (from == to) {
@@ -260,7 +258,7 @@ bool ScriptLoader::LoadCompilationUnit(AstNode* root) {
 	return true;
 }
 
-bool ScriptLoader::LoadGlobalScope(Script::GlobalScope& def, AstNode* n) {
+bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 	ASSERT(n);
 	if (!n) return false;
 	
@@ -277,7 +275,7 @@ bool ScriptLoader::LoadGlobalScope(Script::GlobalScope& def, AstNode* n) {
 			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
-			Script::MachineDefinition& mach_def = def.machs.Add();
+			Eon::MachineDefinition& mach_def = def.machs.Add();
 			
 			if (!GetPathId(mach_def.id, n, item))
 				return false;
@@ -293,7 +291,7 @@ bool ScriptLoader::LoadGlobalScope(Script::GlobalScope& def, AstNode* n) {
 	}
 	
 	if (!has_machine) {
-		Script::MachineDefinition& mach = def.machs.Add();
+		Eon::MachineDefinition& mach = def.machs.Add();
 		return LoadMachine(mach, n);
 	}
 	
@@ -311,7 +309,7 @@ bool ScriptLoader::LoadGlobalScope(Script::GlobalScope& def, AstNode* n) {
 			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
-			Script::WorldDefinition& world_def = def.worlds.Add();
+			Eon::WorldDefinition& world_def = def.worlds.Add();
 			
 			if (!GetPathId(world_def.id, n, item))
 				return false;
@@ -330,7 +328,7 @@ bool ScriptLoader::LoadGlobalScope(Script::GlobalScope& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadMachine(Script::MachineDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints(items, (SemanticType)(SEMT_ECS_ANY | SEMT_MACH_ANY));
 	Sort(items, AstNodeLess());
@@ -340,13 +338,13 @@ bool ScriptLoader::LoadMachine(Script::MachineDefinition& def, AstNode* n) {
 		return false;
 	}
 	
-	Script::ChainDefinition* anon_chain = 0;
+	Eon::ChainDefinition* anon_chain = 0;
 	
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
 		if (item->src == SEMT_CHAIN) {
-			Script::ChainDefinition& chain_def = def.chains.Add();
+			Eon::ChainDefinition& chain_def = def.chains.Add();
 			
 			if (!GetPathId(chain_def.id, n, item))
 				return false;
@@ -378,14 +376,14 @@ bool ScriptLoader::LoadMachine(Script::MachineDefinition& def, AstNode* n) {
 	}
 	
 	if (!has_chain) {
-		Script::ChainDefinition& chain = def.chains.Add();
+		Eon::ChainDefinition& chain = def.chains.Add();
 		return LoadChain(chain, n);
 	}
 	
 	return true;
 }
 
-bool ScriptLoader::LoadWorld(Script::WorldDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints(items, SEMT_ECS_ANY);
 	Sort(items, AstNodeLess());
@@ -395,13 +393,13 @@ bool ScriptLoader::LoadWorld(Script::WorldDefinition& def, AstNode* n) {
 		return false;
 	}
 	
-	Script::PoolDefinition* anon_pool = 0;
+	Eon::PoolDefinition* anon_pool = 0;
 	
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
 		if (item->src == SEMT_POOL) {
-			Script::PoolDefinition& pool_def = def.pools.Add();
+			Eon::PoolDefinition& pool_def = def.pools.Add();
 			
 			if (!GetPathId(pool_def.id, n, item))
 				return false;
@@ -423,7 +421,7 @@ bool ScriptLoader::LoadWorld(Script::WorldDefinition& def, AstNode* n) {
 			has_chain = true;
 		}
 		else if (item->src == SEMT_SYSTEM) {
-			Script::EcsSysDefinition& sys_def = def.systems.Add();
+			Eon::EcsSysDefinition& sys_def = def.systems.Add();
 			
 			if (!GetPathId(sys_def.id, n, item))
 				return false;
@@ -439,19 +437,19 @@ bool ScriptLoader::LoadWorld(Script::WorldDefinition& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadDriver(Script::DriverDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadDriver(Eon::DriverDefinition& def, AstNode* n) {
 	
 	TODO
 	
 }
 
-bool ScriptLoader::LoadTopChain(Script::ChainDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadTopChain(Eon::ChainDefinition& def, AstNode* n) {
 	
 	TODO
 	
 }
 
-bool ScriptLoader::LoadEcsSystem(Script::EcsSysDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n) {
 	
 	if (!LoadArguments(def.args, n))
 		return false;
@@ -459,7 +457,7 @@ bool ScriptLoader::LoadEcsSystem(Script::EcsSysDefinition& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadPool(Script::PoolDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 	const auto& map = Parallel::Factory::AtomDataMap();
 	Vector<Endpoint> items;
 	
@@ -470,7 +468,7 @@ bool ScriptLoader::LoadPool(Script::PoolDefinition& def, AstNode* n) {
 	for (Endpoint& ep : items) {
 		AstNode* item = ep.n;
 		if (item->src == SEMT_POOL) {
-			Script::PoolDefinition& pool_def = def.pools.Add();
+			Eon::PoolDefinition& pool_def = def.pools.Add();
 			pool_def.loc = item->loc;
 			
 			if (!GetPathId(pool_def.id, n, item))
@@ -480,7 +478,7 @@ bool ScriptLoader::LoadPool(Script::PoolDefinition& def, AstNode* n) {
 				return false;
 		}
 		else if (item->src == SEMT_ENTITY) {
-			Script::EntityDefinition& ent_def = def.ents.Add();
+			Eon::EntityDefinition& ent_def = def.ents.Add();
 			ent_def.loc = item->loc;
 			
 			if (!GetPathId(ent_def.id, n, item))
@@ -494,19 +492,19 @@ bool ScriptLoader::LoadPool(Script::PoolDefinition& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadTopPool(Script::PoolDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadTopPool(Eon::PoolDefinition& def, AstNode* n) {
 	
 	TODO
 	
 }
 
-bool ScriptLoader::LoadState(Script::StateDeclaration& def, AstNode* n) {
+bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
 	
 	TODO
 	
 }
 
-bool ScriptLoader::LoadEntity(Script::EntityDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
 	LOG(n->GetTreeString(0));
 	
 	const auto& map = Parallel::Factory::AtomDataMap();
@@ -517,7 +515,7 @@ bool ScriptLoader::LoadEntity(Script::EntityDefinition& def, AstNode* n) {
 	
 	for (Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		Script::ComponentDefinition& comp_def = def.comps.Add();
+		Eon::ComponentDefinition& comp_def = def.comps.Add();
 		comp_def.loc = item->loc;
 		
 		if (!GetPathId(comp_def.id, n, item))
@@ -533,7 +531,7 @@ bool ScriptLoader::LoadEntity(Script::EntityDefinition& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadComponent(Script::ComponentDefinition& def, AstNode* n) {
+bool ScriptLoader::LoadComponent(Eon::ComponentDefinition& def, AstNode* n) {
 	
 	if (!LoadArguments(def.args, n))
 		return false;
@@ -541,7 +539,7 @@ bool ScriptLoader::LoadComponent(Script::ComponentDefinition& def, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
+bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	const auto& map = Parallel::Factory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
 	
@@ -553,7 +551,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 		AstNode* loop = ep.n;
 		bool is_driver = loop->src == SEMT_DRIVER;
 		
-		Script::LoopDefinition& loop_def = chain.loops.Add();
+		Eon::LoopDefinition& loop_def = chain.loops.Add();
 		loop_def.loc = loop->loc;
 		loop_def.is_driver = is_driver;
 		
@@ -587,7 +585,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 		
 		for (Endpoint& ep : atoms) {
 			AstNode* atom = ep.n;
-			Script::AtomDefinition& atom_def = loop_def.atoms.Add();
+			Eon::AtomDefinition& atom_def = loop_def.atoms.Add();
 			
 			if (!GetPathId(atom_def.id, loop, atom))
 				return false;
@@ -649,7 +647,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 						
 						bool succ = false;
 						if (expr->op == OP_EQ) {
-							Script::AtomDefinition::LinkCandidate& cand =
+							Eon::AtomDefinition::LinkCandidate& cand =
 								is_src ?
 									atom_def.src_link_cands.Add(src_conn_i) :
 									atom_def.sink_link_cands.Add(sink_conn_i);
@@ -694,8 +692,8 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 		
 	}
 	
-	for (Script::LoopDefinition& src_loop : chain.loops) {
-		for (Script::AtomDefinition& src_atom : src_loop.atoms) {
+	for (Eon::LoopDefinition& src_loop : chain.loops) {
+		for (Eon::AtomDefinition& src_atom : src_loop.atoms) {
 			int src_count = src_atom.iface.type.iface.src.GetCount();
 			
 			for(int src_i = 1; src_i < src_count; src_i++) {
@@ -707,17 +705,17 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 				bool connected = false;
 				
 				int sink_cand_i = src_atom.src_link_cands.Find(src_i);
-				Script::AtomDefinition::LinkCandidate* src_cand =
+				Eon::AtomDefinition::LinkCandidate* src_cand =
 					sink_cand_i >= 0 ?
 						&src_atom.src_link_cands[sink_cand_i] : 0;
 				
 				ASSERT(src_conn.conn < 0);
 				
-				for (Script::LoopDefinition& sink_loop : chain.loops) {
+				for (Eon::LoopDefinition& sink_loop : chain.loops) {
 					if (&src_loop == &sink_loop)
 						continue;
 					
-					for (Script::AtomDefinition& sink_atom : sink_loop.atoms) {
+					for (Eon::AtomDefinition& sink_atom : sink_loop.atoms) {
 						int sink_count = sink_atom.iface.type.iface.sink.GetCount();
 						
 						for(int sink_i = 1; sink_i < sink_count; sink_i++) {
@@ -727,7 +725,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 							IfaceConnLink& sink_conn = sink_atom.iface.sink[sink_i];
 							
 							int sink_cand_i = sink_atom.sink_link_cands.Find(sink_i);
-							Script::AtomDefinition::LinkCandidate* sink_cand =
+							Eon::AtomDefinition::LinkCandidate* sink_cand =
 								sink_cand_i >= 0 ?
 									&sink_atom.sink_link_cands[sink_cand_i] : 0;
 							
@@ -752,8 +750,8 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 										else {
 											int j = sink_loop.args.Find(key);
 											if (j >= 0) {
-												const Object& src_obj = src_cand->req_args[i];
-												const Object& sink_obj = sink_loop.args[j];
+												const Value& src_obj = src_cand->req_args[i];
+												const Value& sink_obj = sink_loop.args[j];
 												if (src_obj != sink_obj)
 													cond_prevents = true;
 											}
@@ -774,8 +772,8 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 										else {
 											int j = src_loop.args.Find(key);
 											if (j >= 0) {
-												const Object& sink_obj = sink_cand->req_args[i];
-												const Object& src_obj = src_loop.args[j];
+												const Value& sink_obj = sink_cand->req_args[i];
+												const Value& src_obj = src_loop.args[j];
 												if (sink_obj != src_obj)
 													cond_prevents = true;
 											}
@@ -822,7 +820,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 	Sort(states, AstNodeLess());
 	for (Endpoint& ep : states) {
 		AstNode* state = ep.n;
-		Script::StateDeclaration& state_def = chain.states.Add();
+		Eon::StateDeclaration& state_def = chain.states.Add();
 		state_def.loc = state->loc;
 		
 		if (!GetPathId(state_def.id, n, state))
@@ -833,7 +831,7 @@ bool ScriptLoader::LoadChain(Script::ChainDefinition& chain, AstNode* n) {
 	return true;
 }
 
-bool ScriptLoader::LoadArguments(ArrayMap<String, Object>& args, AstNode* n) {
+bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	if (!n)
 		return true; // only failed statements returns false
 	
@@ -943,12 +941,12 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Object>& args, AstNode* n) {
 	return true;
 }
 
-LoopRef ScriptLoader::ResolveLoop(Script::Id& id) {
+LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
 	ASSERT(es);
-	LoopRef l0;
-	LoopRef l1 = es->GetRoot();
-	SpaceRef s0;
-	SpaceRef s1 = ss->GetRoot();
+	LoopPtr l0;
+	LoopPtr l1 = es->GetRoot();
+	SpacePtr s0;
+	SpacePtr s1 = ss->GetRoot();
 	int i = 0, count = id.parts.GetCount();
 	
 	for (const String& part : id.parts) {
@@ -973,8 +971,8 @@ LoopRef ScriptLoader::ResolveLoop(Script::Id& id) {
 bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1) {
 	
 	int dbg_i = 0;
-	for (AtomBaseRef& sink : loop0.atoms) {
-		LinkBaseRef sink_link = sink->GetLink()->AsRefT();
+	for (AtomBasePtr& sink : loop0.atoms) {
+		LinkBasePtr sink_link = sink->GetLink()->AsRefT();
 		const IfaceConnTuple& sink_iface = sink->GetInterface();
 		for (int sink_ch = 1; sink_ch < sink_iface.type.iface.sink.GetCount(); sink_ch++) {
 			const IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
@@ -983,8 +981,8 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 			if (sink_conn.conn < 0 && sink_iface.type.IsSinkChannelOptional(sink_ch))
 				continue;
 			bool found = false;
-			for (AtomBaseRef& src : loop1.atoms) {
-				LinkBaseRef src_link = src->GetLink()->AsRefT();
+			for (AtomBasePtr& src : loop1.atoms) {
+				LinkBasePtr src_link = src->GetLink()->AsRefT();
 				const IfaceConnTuple& src_iface = src->GetInterface();
 				for (int src_ch = 1; src_ch < src_iface.type.iface.src.GetCount(); src_ch++) {
 					const IfaceConnLink& src_conn = src_iface.src[src_ch];
@@ -1026,5 +1024,5 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 }
 
 
-NAMESPACE_SERIAL_END
-
+}
+END_UPP_NAMESPACE

@@ -1,18 +1,18 @@
-#include "SerialScript.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-ScriptChainLoader::ScriptChainLoader(ScriptTopChainLoader& parent, int id, Script::ChainDefinition& def) :
+ScriptChainLoader::ScriptChainLoader(ScriptTopChainLoader& parent, int id, Eon::ChainDefinition& def) :
 	Base(parent, id, def)
 {
 	
-	for (Script::LoopDefinition& loop : def.loops) {
+	for (Eon::LoopDefinition& loop : def.loops) {
 		ScriptLoopLoader& loader = loops.Add(new ScriptLoopLoader(*this, loops.GetCount(), loop));
 	}
 	
-	for (Script::StateDeclaration& state : def.states) {
+	for (Eon::StateDeclaration& state : def.states) {
 		ScriptStateLoader& loader = states.Add(new ScriptStateLoader(*this, states.GetCount(), state));
 	}
 	
@@ -46,9 +46,10 @@ void ScriptChainLoader::GetStates(Vector<ScriptStateLoader*>& v) {
 	}
 }
 
-Script::Id ScriptChainLoader::GetDeepId() const {
+Eon::Id ScriptChainLoader::GetDeepId() const {
 	return parent.GetDeepId(); // chain & topchain has same id
 }
 
 
-NAMESPACE_SERIAL_END
+}
+END_UPP_NAMESPACE

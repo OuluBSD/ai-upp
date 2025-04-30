@@ -1,10 +1,7 @@
-#ifndef _SerialScript_Def_h_
-#define _SerialScript_Def_h_
+#ifndef _Eon_Def_h_
+#define _Eon_Def_h_
 
-NAMESPACE_SERIAL_BEGIN
-using namespace Parallel;
-
-namespace Script {
+namespace Eon {
 
 
 
@@ -30,7 +27,7 @@ struct Id {
 struct AtomDefinition {
 	struct LinkCandidate : Moveable<LinkCandidate> {
 		AtomDefinition* atom = 0;
-		VectorMap<String, Object> req_args;
+		VectorMap<String, Value> req_args;
 		
 		LinkCandidate() {}
 		LinkCandidate(const LinkCandidate& v) {*this = v;}
@@ -38,14 +35,14 @@ struct AtomDefinition {
 	};
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	IfaceConnTuple					iface;
 	LinkTypeCls						link;
 	VectorMap<int, LinkCandidate>	src_link_cands, sink_link_cands;
 	
 	AtomDefinition() {}
 	AtomDefinition(const AtomDefinition& v) {*this = v;}
-	void Set(String key, const Object& val) {args.GetAdd(key) = val;}
+	void Set(String key, const Value& val) {args.GetAdd(key) = val;}
 	void operator=(const AtomDefinition& v) {id = v.id; loc = v.loc; args <<= v.args; iface = v.iface; src_link_cands <<= v.src_link_cands; sink_link_cands <<= v.sink_link_cands;}
 	
 };
@@ -54,13 +51,13 @@ struct AtomDefinition {
 struct LoopDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	Array<AtomDefinition>			atoms;
 	bool							is_driver = false;
 	
 	LoopDefinition() {}
 	LoopDefinition(const LoopDefinition& v) {*this = v;}
-	void Set(const String& key, const Object& value) {args.GetAdd(key) = value;}
+	void Set(const String& key, const Value& value) {args.GetAdd(key) = value;}
 	String GetTreeString(int indent=0) const;
 	String ToString() const;
 	bool IsPathTrailMatch(const Vector<String>& parts) const;
@@ -80,7 +77,7 @@ struct StateDeclaration {
 struct ChainDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	LinkedList<StateDeclaration>	states;
 	LinkedList<LoopDefinition>		loops;
 	LinkedList<ChainDefinition>		subchains;
@@ -90,13 +87,13 @@ struct ChainDefinition {
 	void Clear() {id.Clear(); args.Clear(); states.Clear(); loops.Clear(); subchains.Clear();}
 	void operator=(const ChainDefinition& v) {id = v.id; loc = v.loc; args <<= v.args; states <<= v.states; loops <<= v.loops; subchains <<= v.subchains;}
 	String GetTreeString(int indent=0) const;
-	void GetSubChainPointers(LinkedList<Script::ChainDefinition*>& ptrs);
+	void GetSubChainPointers(LinkedList<Eon::ChainDefinition*>& ptrs);
 };
 
 struct DriverDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	
 	DriverDefinition() {}
 	DriverDefinition(const DriverDefinition& v) {*this = v;}
@@ -110,7 +107,7 @@ struct DriverDefinition {
 struct ComponentDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	
 	ComponentDefinition() {}
 	ComponentDefinition(const ComponentDefinition& v) {*this = v;}
@@ -122,7 +119,7 @@ struct ComponentDefinition {
 struct EntityDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	LinkedList<ComponentDefinition>	comps;
 	
 	EntityDefinition() {}
@@ -135,7 +132,7 @@ struct EntityDefinition {
 struct EcsSysDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	
 	EcsSysDefinition() {}
 	EcsSysDefinition(const EcsSysDefinition& v) {*this = v;}
@@ -147,7 +144,7 @@ struct EcsSysDefinition {
 struct PoolDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	LinkedList<EntityDefinition>	ents;
 	LinkedList<PoolDefinition>		pools;
 	
@@ -161,7 +158,7 @@ struct PoolDefinition {
 struct WorldDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	LinkedList<EcsSysDefinition>	systems;
 	LinkedList<PoolDefinition>		pools;
 	
@@ -175,7 +172,7 @@ struct WorldDefinition {
 struct MachineDefinition {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	LinkedList<ChainDefinition>		chains;
 	LinkedList<DriverDefinition>	drivers;
 	
@@ -189,8 +186,8 @@ struct MachineDefinition {
 struct State {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
-	ArrayMap<String, Object>		ret_list;
+	ArrayMap<String, Value>			args;
+	ArrayMap<String, Value>			ret_list;
 	
 	State() {}
 	State(const State& v) {*this = v;}
@@ -202,7 +199,7 @@ struct State {
 struct GlobalScope {
 	Id								id;
 	FileLocation					loc;
-	ArrayMap<String, Object>		args;
+	ArrayMap<String, Value>			args;
 	Array<MachineDefinition>		machs;
 	Array<WorldDefinition>			worlds;
 	Array<State>					states;
@@ -226,9 +223,6 @@ struct CompilationUnit {
 };
 
 
-
-
 }
-NAMESPACE_SERIAL_END
 
 #endif

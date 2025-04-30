@@ -1,10 +1,10 @@
-#include "SerialScript.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-ScriptStateLoader::ScriptStateLoader(ScriptChainLoader& parent, int id, Script::StateDeclaration& def):
+ScriptStateLoader::ScriptStateLoader(ScriptChainLoader& parent, int id, Eon::StateDeclaration& def):
 	Base(parent, id, def)
 {
 	
@@ -20,15 +20,15 @@ String ScriptStateLoader::GetTreeString(int indent) {
 bool ScriptStateLoader::Load() {
 	id = def.id;
 	
-	Script::Id parent_id = parent.GetDeepId();
+	Eon::Id parent_id = parent.GetDeepId();
 	LOG(id.ToString());
 	LOG(parent_id.ToString());
 	
 	ScriptLoader& loader = GetLoader();
 	
-	LoopRef l = loader.ResolveLoop(parent_id);
+	LoopPtr l = loader.ResolveLoop(parent_id);
 	
-	EnvStateRef env = l->GetAddEnv(id.ToString());
+	EnvStatePtr env = l->GetAddEnv(id.ToString());
 	ASSERT(env);
 	
 	// ready
@@ -43,5 +43,5 @@ bool ScriptStateLoader::PostInitialize() {
 }
 
 
-NAMESPACE_SERIAL_END
-
+}
+END_UPP_NAMESPACE

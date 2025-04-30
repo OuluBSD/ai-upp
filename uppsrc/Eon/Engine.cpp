@@ -1,18 +1,18 @@
-#include "SerialScript.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-ScriptWorldLoader::ScriptWorldLoader(ScriptSystemLoader& parent, int id, Script::WorldDefinition& def) :
+ScriptWorldLoader::ScriptWorldLoader(ScriptSystemLoader& parent, int id, Eon::WorldDefinition& def) :
 	Base(parent, id, def)
 {
 	
-	for (Script::EcsSysDefinition& sys : def.systems) {
+	for (Eon::EcsSysDefinition& sys : def.systems) {
 		systems.Add(new ScriptEcsSystemLoader(*this, systems.GetCount(), sys));
 	}
 	
-	for (Script::PoolDefinition& pool : def.pools) {
+	for (Eon::PoolDefinition& pool : def.pools) {
 		pools.Add(new ScriptPoolLoader(*this, 0, pools.GetCount(), pool));
 	}
 	
@@ -42,5 +42,5 @@ ExtScriptEcsLoaderBase* __ecs_script_loader;
 
 
 
-NAMESPACE_SERIAL_END
-
+}
+END_UPP_NAMESPACE

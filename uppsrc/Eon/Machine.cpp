@@ -1,14 +1,14 @@
-#include "Internal.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-ScriptMachineLoader::ScriptMachineLoader(ScriptSystemLoader& parent, int id, Script::MachineDefinition& def) :
+ScriptMachineLoader::ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def) :
 	Base(parent, id, def)
 {
 	
-	for (Script::ChainDefinition& chain : def.chains) {
+	for (Eon::ChainDefinition& chain : def.chains) {
 		ScriptTopChainLoader& loader = chains.Add(new ScriptTopChainLoader(0, *this, 0, chains.GetCount(), chain));
 	}
 	
@@ -43,4 +43,5 @@ void ScriptMachineLoader::GetStates(Vector<ScriptStateLoader*>& v) {
 }
 
 
-NAMESPACE_SERIAL_END
+}
+END_UPP_NAMESPACE

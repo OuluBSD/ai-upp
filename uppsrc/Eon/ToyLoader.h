@@ -1,11 +1,11 @@
-#ifndef _SerialScript_ToyLoader_h_
-#define _SerialScript_ToyLoader_h_
+#ifndef _Eon_ToyLoader_h_
+#define _Eon_ToyLoader_h_
 
 
 // ShaderToy file loader (libtopside .toy format == unpacked .js + stage info + separate glsl)
 
+namespace Eon {
 
-NAMESPACE_SERIAL_BEGIN
 
 
 struct ToyInput : Moveable<ToyInput> {
@@ -50,18 +50,17 @@ public:
 	typedef ToyLoader CLASSNAME;
 	ToyLoader();
 	
-	bool Load(Object& o);
+	bool Load(Value& o);
 	
 	String GetResult();
 	
 	
-	static const ObjectMap* GetStageMap(int i, Object& o);
-	static String GetStageType(int i, Object& o);
-	static String GetStagePath(int i, Object& o);
+	static const ValueMap* GetStageMap(int i, Value& o);
+	static String GetStageType(int i, Value& o);
+	static String GetStagePath(int i, Value& o);
 	
 };
 
-
-NAMESPACE_SERIAL_END
+}
 
 #endif

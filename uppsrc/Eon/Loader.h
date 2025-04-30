@@ -1,15 +1,12 @@
-#ifndef _SerialScript_Loader_h_
-#define _SerialScript_Loader_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-namespace Serial {
+#ifndef _Eon_Loader_h_
+#define _Eon_Loader_h_
 
 
-namespace Script {
+
+namespace Eon {
+	
 class WorldState;
 class Action;
-}
-
 class ScriptLoader;
 class ScriptLoopLoader;
 class ScriptStateLoader;
@@ -18,18 +15,14 @@ class ScriptTopChainLoader;
 class ScriptChainLoader;
 class ScriptMachineLoader;
 class ScriptWorldLoader;
-
-void GetAtomActions(const Script::WorldState& src, Vector<Script::Action>& acts);
-
-
-using namespace Parallel;
-
-
 class ScriptLoader;
+
+void GetAtomActions(const Eon::WorldState& src, Vector<Eon::Action>& acts);
+
 
 
 template <class ParserDef, class LoaderParent>
-class ScriptLoaderBase : RTTIBase {
+class ScriptLoaderBase {
 	
 	
 protected:
@@ -38,7 +31,6 @@ protected:
 	
 	
 public:
-	RTTI_DECL0(ScriptLoaderBase)
 	virtual ~ScriptLoaderBase() {}
 	
 	LoaderParent&				parent;
@@ -52,10 +44,10 @@ public:
 	String				GetErrorString() const {return err_str;}
 	void				AddError(const FileLocation& loc, String msg) {parent.AddError(loc, msg);}
 	
-	virtual Script::Id	GetDeepId() const {Script::Id id = parent.GetDeepId(); id.Append(def.id); return id;}
+	virtual Eon::Id	GetDeepId() const {Eon::Id id = parent.GetDeepId(); id.Append(def.id); return id;}
 	
 	virtual bool		Load() = 0;
-	virtual void		Visit(RuntimeVisitor& vis) = 0;
+	virtual void		Visit(Vis& vis) = 0;
 	virtual String		GetTreeString(int indent) = 0;
 	virtual void		GetLoops(Vector<ScriptLoopLoader*>& v) = 0;
 	virtual void		GetStates(Vector<ScriptStateLoader*>& v) {Panic("not implemented");}
@@ -66,22 +58,21 @@ public:
 
 
 
-class ScriptLoopLoader : public ScriptLoaderBase<Script::LoopDefinition, ScriptChainLoader> {
+class ScriptLoopLoader : public ScriptLoaderBase<Eon::LoopDefinition, ScriptChainLoader> {
 	
 protected:
 	
 	// Implement found loop
 	struct AddedAtom {
-		AtomBaseRef		a;
-		LinkBaseRef		l;
+		AtomBasePtr		a;
+		LinkBasePtr		l;
 		IfaceConnTuple	iface;
 	};
 	
 	Array<AddedAtom>		added_atoms;
 	
 public:
-	using Base = ScriptLoaderBase<Script::LoopDefinition, ScriptChainLoader>;
-	RTTI_DECL1(ScriptLoopLoader, Base)
+	using Base = ScriptLoaderBase<Eon::LoopDefinition, ScriptChainLoader>;
 	
 	
 protected:
@@ -104,7 +95,7 @@ protected:
 		
 	};
 	
-	Array<AtomBaseRef>				atoms;
+	Array<AtomBasePtr>				atoms;
 	Vector<AtomSideLinks>			atom_links;
 	
 	
@@ -115,7 +106,7 @@ protected:
 	
 	
 public:
-	ScriptLoopLoader(ScriptChainLoader& parent, int id, Script::LoopDefinition& def);
+	ScriptLoopLoader(ScriptChainLoader& parent, int id, Eon::LoopDefinition& def);
 	
 	
 	void		Forward();
@@ -133,23 +124,22 @@ public:
 	int			GetAtomLinkCount() const {return atom_links.GetCount();}
 	
 	bool		Load() override;
-	void		Visit(RuntimeVisitor& vis) override {vis && atoms;}
+	void		Visit(Vis& vis) override {vis && atoms;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 };
 
-class ScriptChainLoader : public ScriptLoaderBase<Script::ChainDefinition, ScriptTopChainLoader> {
+class ScriptChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader> {
 	
 public:
-	using Base = ScriptLoaderBase<Script::ChainDefinition, ScriptTopChainLoader>;
-	RTTI_DECL1(ScriptChainLoader, Base)
+	using Base = ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader>;
 	
 public:
 	Array<ScriptLoopLoader>			loops;
 	Array<ScriptStateLoader>		states;
 	
 	
-	ScriptChainLoader(ScriptTopChainLoader& parent, int id, Script::ChainDefinition& def);
+	ScriptChainLoader(ScriptTopChainLoader& parent, int id, Eon::ChainDefinition& def);
 	
 	void		Forward();
 	void		MakeOptionLinkVector();
@@ -157,20 +147,19 @@ public:
 	void		LinkPlanner();
 	void		Linker();
 	
-	void		Visit(RuntimeVisitor& vis) override {vis | loops | states;}
+	void		Visit(Vis& vis) override {vis | loops | states;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
-	Script::Id	GetDeepId() const override;
+	Eon::Id	GetDeepId() const override;
 	bool		Load() override;
 	
 };
 
 
-class ScriptTopChainLoader : public ScriptLoaderBase<Script::ChainDefinition, ScriptMachineLoader> {
+class ScriptTopChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptMachineLoader> {
 public:
-	using Base = ScriptLoaderBase<Script::ChainDefinition, ScriptMachineLoader>;
-	RTTI_DECL1(ScriptTopChainLoader, Base)
+	using Base = ScriptLoaderBase<Eon::ChainDefinition, ScriptMachineLoader>;
 	
 public:
 	enum {NORMAL, SPLITTED_CHAIN, SPLITTED_LOOPS};
@@ -181,9 +170,9 @@ public:
 	bool							use_subchains = false;
 	
 	
-	ScriptTopChainLoader(int mode, ScriptMachineLoader& parent, ScriptTopChainLoader* chain_parent, int id, Script::ChainDefinition& def);
+	ScriptTopChainLoader(int mode, ScriptMachineLoader& parent, ScriptTopChainLoader* chain_parent, int id, Eon::ChainDefinition& def);
 	
-	void		Visit(RuntimeVisitor& vis) override {vis | subchains | chains;}
+	void		Visit(Vis& vis) override {vis | subchains | chains;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
@@ -191,20 +180,19 @@ public:
 	
 };
 
-class ScriptStateLoader : public ScriptLoaderBase<Script::StateDeclaration, ScriptChainLoader> {
+class ScriptStateLoader : public ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader> {
 	
 protected:
-	Script::Id		id;
+	Eon::Id		id;
 	
 public:
-	using Base = ScriptLoaderBase<Script::StateDeclaration, ScriptChainLoader>;
-	RTTI_DECL1(ScriptStateLoader, Base)
+	using Base = ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader>;
 	
 public:
 	
 	
-	ScriptStateLoader(ScriptChainLoader& parent, int id, Script::StateDeclaration& def);
-	void		Visit(RuntimeVisitor& vis) override {}
+	ScriptStateLoader(ScriptChainLoader& parent, int id, Eon::StateDeclaration& def);
+	void		Visit(Vis& vis) override {}
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override {}
 	void		GetStates(Vector<ScriptStateLoader*>& v) override {}
 	String		GetTreeString(int indent) override;
@@ -214,17 +202,16 @@ public:
 	
 };
 
-class ScriptMachineLoader : public ScriptLoaderBase<Script::MachineDefinition, ScriptSystemLoader> {
+class ScriptMachineLoader : public ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader> {
 public:
-	using Base = ScriptLoaderBase<Script::MachineDefinition, ScriptSystemLoader>;
-	RTTI_DECL1(ScriptMachineLoader, Base)
+	using Base = ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader>;
 	
 public:
 	Array<ScriptTopChainLoader>		chains;
 	
 	
-	ScriptMachineLoader(ScriptSystemLoader& parent, int id, Script::MachineDefinition& def);
-	void		Visit(RuntimeVisitor& vis) override {vis | chains;}
+	ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def);
+	void		Visit(Vis& vis) override {vis | chains;}
 	bool		Load() override;
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
@@ -232,19 +219,18 @@ public:
 	
 };
 
-class ScriptSystemLoader : public ScriptLoaderBase<Script::GlobalScope, ScriptLoader> {
+class ScriptSystemLoader : public ScriptLoaderBase<Eon::GlobalScope, ScriptLoader> {
 public:
-	using Base = ScriptLoaderBase<Script::GlobalScope, ScriptLoader>;
-	RTTI_DECL1(ScriptSystemLoader, Base)
+	using Base = ScriptLoaderBase<Eon::GlobalScope, ScriptLoader>;
 	
 public:
 	Array<ScriptMachineLoader>		machs;
 	Array<ScriptWorldLoader>		worlds;
 	
 	
-	ScriptSystemLoader(ScriptLoader& parent, int id, Script::GlobalScope& glob);
+	ScriptSystemLoader(ScriptLoader& parent, int id, Eon::GlobalScope& glob);
 	
-	void		Visit(RuntimeVisitor& vis) override {vis | machs | worlds;}
+	void		Visit(Vis& vis) override {vis | machs | worlds;}
 	String		GetTreeString(int indent=0) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
@@ -274,12 +260,12 @@ protected:
 	
 	Vector<String> post_load_file;
 	Vector<String> post_load_string;
-	LoopStoreRef es;
-	SpaceStoreRef ss;
-	Script::CompilationUnit cunit;
+	LoopStorePtr es;
+	SpaceStorePtr ss;
+	Eon::CompilationUnit cunit;
 	bool collect_errors = false;
 	
-	bool GetPathId(Script::Id& script_id, AstNode* from, AstNode* to);
+	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	
 public:
 	SYS_RTTI(ScriptLoader)
@@ -314,26 +300,26 @@ protected:
 	bool		ImplementScript();
 	
 	bool		LoadCompilationUnit(AstNode* root);
-	bool		LoadGlobalScope(Script::GlobalScope& glob, AstNode* root);
-	bool		LoadChain(Script::ChainDefinition& chain, AstNode* root);
-	bool		LoadMachine(Script::MachineDefinition& mach, AstNode* root);
-	bool		LoadWorld(Script::WorldDefinition& def, AstNode* n);
-	bool		LoadDriver(Script::DriverDefinition& def, AstNode* n);
-	bool		LoadTopChain(Script::ChainDefinition& def, AstNode* n);
-	bool		LoadEcsSystem(Script::EcsSysDefinition& def, AstNode* n);
-	bool		LoadPool(Script::PoolDefinition& def, AstNode* n);
-	bool		LoadTopPool(Script::PoolDefinition& def, AstNode* n);
-	bool		LoadState(Script::StateDeclaration& def, AstNode* n);
-	bool		LoadEntity(Script::EntityDefinition& def, AstNode* n);
-	bool		LoadComponent(Script::ComponentDefinition& def, AstNode* n);
-	bool		LoadArguments(ArrayMap<String, Object>& args, AstNode* n);
+	bool		LoadGlobalScope(Eon::GlobalScope& glob, AstNode* root);
+	bool		LoadChain(Eon::ChainDefinition& chain, AstNode* root);
+	bool		LoadMachine(Eon::MachineDefinition& mach, AstNode* root);
+	bool		LoadWorld(Eon::WorldDefinition& def, AstNode* n);
+	bool		LoadDriver(Eon::DriverDefinition& def, AstNode* n);
+	bool		LoadTopChain(Eon::ChainDefinition& def, AstNode* n);
+	bool		LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n);
+	bool		LoadPool(Eon::PoolDefinition& def, AstNode* n);
+	bool		LoadTopPool(Eon::PoolDefinition& def, AstNode* n);
+	bool		LoadState(Eon::StateDeclaration& def, AstNode* n);
+	bool		LoadEntity(Eon::EntityDefinition& def, AstNode* n);
+	bool		LoadComponent(Eon::ComponentDefinition& def, AstNode* n);
+	bool		LoadArguments(ArrayMap<String, Value>& args, AstNode* n);
 	
 	
 	
 protected:
 	friend class ScriptStateLoader;
 	
-	LoopRef		ResolveLoop(Script::Id& id);
+	LoopRef		ResolveLoop(Eon::Id& id);
 	
 	
 public:
@@ -342,14 +328,13 @@ public:
 	Callback1<SystemBase&>	WhenEnterScriptLoad;
 	Callback				WhenLeaveScriptLoad;
 	
-	Script::Id	GetDeepId() const {return Script::Id();}
+	Eon::Id	GetDeepId() const {return Eon::Id();}
 	
 };
 
-using ScriptLoaderRef = Ref<ScriptLoader, SerialSystemParent>;
+using ScriptLoaderPtr = Ref<ScriptLoader, SerialSystemParent>;
 
 
 }
-NAMESPACE_TOPSIDE_END
 
 #endif

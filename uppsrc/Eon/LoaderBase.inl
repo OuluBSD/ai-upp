@@ -1,6 +1,6 @@
 #include "SerialPlanner.h"
 
-NAMESPACE_SERIAL_BEGIN
+namespace Eon {
 
 
 template <class ParserDef, class LoaderParent>
@@ -116,4 +116,4 @@ void ScriptLoaderBase<ParserDef,LoaderParent>::CheckFlags() {
 }
 
 
-NAMESPACE_SERIAL_END
+}

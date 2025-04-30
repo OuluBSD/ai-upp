@@ -1,10 +1,9 @@
-#include "Internal.h"
+#include "Eon.h"
+
+NAMESPACE_UPP
+namespace Eon {
 
 
-NAMESPACE_SERIAL_BEGIN
-
-
-namespace Script {
 bool LoopDefinition::IsPathTrailMatch(const Vector<String>& parts) const {
 	if (parts.IsEmpty() || parts.GetCount() > id.parts.GetCount())
 		return false;
@@ -18,12 +17,11 @@ bool LoopDefinition::IsPathTrailMatch(const Vector<String>& parts) const {
 	}
 	return true;
 }
-}
 
 
 
 
-ScriptLoopLoader::ScriptLoopLoader(ScriptChainLoader& parent, int id, Script::LoopDefinition& def) :
+ScriptLoopLoader::ScriptLoopLoader(ScriptChainLoader& parent, int id, Eon::LoopDefinition& def) :
 	Base(parent, id, def)
 {
 	
@@ -128,19 +126,19 @@ bool ScriptLoopLoader::Load() {
 	bool has_link = !def.is_driver;
 	
 	// Target entity for atoms
-	Script::Id deep_id = GetDeepId();
-	LoopRef l = loader.ResolveLoop(deep_id);
+	Eon::Id deep_id = GetDeepId();
+	LoopPtr l = loader.ResolveLoop(deep_id);
 	if (!l) {
 		AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
 		return false;
 	}
 	
 	const auto& map = Parallel::Factory::AtomDataMap();
-	LinkBaseRef first_lb;
-	AtomBaseRef first_ab;
+	LinkBasePtr first_lb;
+	AtomBasePtr first_ab;
 	
 	for(int i = 0; i < def.atoms.GetCount(); i++) {
-		const Script::AtomDefinition& atom_def = def.atoms[i];
+		const Eon::AtomDefinition& atom_def = def.atoms[i];
 		const AtomTypeCls atom = atom_def.iface.type;
 		const LinkTypeCls link = atom_def.link;
 		
@@ -148,8 +146,8 @@ bool ScriptLoopLoader::Load() {
 		
 		bool is_first = i == 0;
 		bool is_last = i == def.atoms.GetCount();
-		LinkBaseRef lb;
-		AtomBaseRef ab;
+		LinkBasePtr lb;
+		AtomBasePtr ab;
 		
 		if (is_last) {
 			ab = first_ab;
@@ -202,11 +200,11 @@ bool ScriptLoopLoader::Load() {
 		
 		// Add arguments to ws
 		
-		Script::WorldState ws;
+		Eon::WorldState ws;
 		
 		for(int i = 0; i < atom_def.args.GetCount(); i++) {
 			String key = atom_def.args.GetKey(i);
-			const Object& obj = atom_def.args[i];
+			const Value& obj = atom_def.args[i];
 			ws.values.GetAdd("." + key) = obj;
 		}
 		
@@ -236,11 +234,11 @@ bool ScriptLoopLoader::Load() {
 		
 		for(int i = 0; i < added_atoms.GetCount(); i++) {
 			AddedAtom& src_info = added_atoms[i];
-			AtomBaseRef src = src_info.a;
+			AtomBasePtr src = src_info.a;
 			
 			int next_i = (i + 1) % added_atoms.GetCount();
 			AddedAtom& sink_info = added_atoms[next_i];
-			AtomBaseRef sink = sink_info.a;
+			AtomBasePtr sink = sink_info.a;
 			
 			if (!l->MakeLink(src, sink)) {
 				AddError(FileLocation(), "could not link atoms");
@@ -272,7 +270,7 @@ void ScriptLoopLoader::UpdateLoopLimits() {
 	
 	for(int i = 0; i < c; i++) {
 		AddedAtom& info = added_atoms[i];
-		InterfaceSourceRef src = info.a->GetSource();
+		InterfaceSourcePtr src = info.a->GetSource();
 		int src_c = src->GetSourceCount();
 		for(int j = 0; j < src_c; j++) {
 			int src_min_packets = src->GetSourceValue(j).GetMinPackets();
@@ -281,7 +279,7 @@ void ScriptLoopLoader::UpdateLoopLimits() {
 			total_max = min(total_max, src_max_packets);
 		}
 		
-		InterfaceSinkRef sink = info.a->GetSink();
+		InterfaceSinkPtr sink = info.a->GetSink();
 		int sink_c = sink->GetSinkCount();
 		for(int j = 0; j < sink_c; j++) {
 			int sink_min_packets = sink->GetValue(j).GetMinPackets();
@@ -300,8 +298,8 @@ void ScriptLoopLoader::UpdateLoopLimits() {
 	for(int i = 0; i < c; i++) {
 		AddedAtom& info = added_atoms[i];
 		
-		InterfaceSourceRef src = info.a->GetSource();
-		InterfaceSinkRef sink = info.a->GetSink();
+		InterfaceSourcePtr src = info.a->GetSource();
+		InterfaceSinkPtr sink = info.a->GetSink();
 		
 		int sink_c = sink->GetSinkCount();
 		for(int k = 0; k < sink_c; k++) {
@@ -349,6 +347,5 @@ bool ScriptLoopLoader::Start() {
 
 
 
-NAMESPACE_SERIAL_END
-
-
+}
+END_UPP_NAMESPACE

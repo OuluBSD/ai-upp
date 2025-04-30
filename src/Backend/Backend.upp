@@ -1,8 +1,7 @@
 description "\377B128,0,255";
 
 uses
-	Local,
-	High;
+	Local;
 
 file
 	TODO.txt,

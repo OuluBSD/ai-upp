@@ -1,17 +1,17 @@
-#include "Internal.h"
+#include "Eon.h"
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
+namespace Eon {
 
-
-ScriptSystemLoader::ScriptSystemLoader(ScriptLoader& parent, int id, Script::GlobalScope& def) :
+ScriptSystemLoader::ScriptSystemLoader(ScriptLoader& parent, int id, Eon::GlobalScope& def) :
 	Base(parent, id, def)
 {
 	
-	for (Script::MachineDefinition& mach : def.machs) {
+	for (Eon::MachineDefinition& mach : def.machs) {
 		ScriptMachineLoader& loader = machs.Add(new ScriptMachineLoader(*this, machs.GetCount(), mach));
 	}
 	
-	for (Script::WorldDefinition& world : def.worlds) {
+	for (Eon::WorldDefinition& world : def.worlds) {
 		ScriptWorldLoader& loader = worlds.Add(new ScriptWorldLoader(*this, worlds.GetCount(), world));
 	}
 	
@@ -81,4 +81,5 @@ void ScriptSystemLoader::GetStates(Vector<ScriptStateLoader*>& v) {
 }
 
 
-NAMESPACE_SERIAL_END
+}
+END_UPP_NAMESPACE

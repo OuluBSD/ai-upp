@@ -33,12 +33,16 @@ NAMESPACE_UPP
 #include "LinkBase.h"
 #include "Loop.h"
 #include "Audio.h"
-
-// unordered
 #include "Base.h"
 #include "BaseAudio.h"
 #include "BaseVideo.h"
 #include "PacketTracker.h"
+
+// unordered
+#include "ToyLoader.h"
+#include "Def.h"
+#include "Loader.h"
+#include "Ecs.h"
 
 END_UPP_NAMESPACE
 

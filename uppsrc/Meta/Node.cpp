@@ -1386,6 +1386,10 @@ hash_t MetaNodeExt::GetHashValue() const {
 	return vis.hash;
 }
 
+int MetaNodeExt::GetKind() const {
+	return node.kind;
+}
+
 void MetaNodeExt::Serialize(Stream& s){
 	Vis vis(s);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);

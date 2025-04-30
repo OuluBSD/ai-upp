@@ -75,6 +75,7 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual void Visit(Vis& s) = 0;
 	virtual String GetName() const {return String();}
 	hash_t GetHashValue() const;
+	int GetKind() const;
 	
 	void CopyFrom(const MetaNodeExt& e);
 	bool operator==(const MetaNodeExt& e) const;

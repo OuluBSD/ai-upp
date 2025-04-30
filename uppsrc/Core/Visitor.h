@@ -18,6 +18,7 @@ struct Visitor {
 	Visitor(Stream& s) {stream = &s; mode = MODE_STREAM; storing = s.IsStoring();}
 	Visitor(VersionControlSystem& v) {vcs = &v; mode = MODE_VCS; storing = vcs->IsStoring();}
 	Visitor(hash_t) {mode = MODE_HASH; storing = true;}
+	Visitor(void*) {mode = MODE_RUNTIMEVISIT;}
 	template <class T> void DoHash(T& o) {hash.Do(o);}
 	bool IsLoading() const {return !storing;}
 	bool IsStoring() const {return storing;}
@@ -530,6 +531,14 @@ struct Visitor {
 	Visitor& operator|(T& o) {
 		if (o) {
 			TODO // runtime-visit a vector
+		}
+		return *this;
+	}
+	
+	template <class T>
+	Visitor& operator>(T& o) {
+		if (!o.IsEmpty()) {
+			TODO // runtime-visit a map of pointers
 		}
 		return *this;
 	}

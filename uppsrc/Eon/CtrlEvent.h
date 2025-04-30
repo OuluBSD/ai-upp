@@ -1,7 +1,6 @@
-#ifndef _CoreAlt_CtrlEvent_h_
-#define _CoreAlt_CtrlEvent_h_
+#ifndef _Eon_CtrlEvent_h_
+#define _Eon_CtrlEvent_h_
 
-NAMESPACE_UPP
 
 enum {
 	HOLO_CALIB_FOV,
@@ -73,8 +72,7 @@ inline String GetEventTypeString(int event) {
 }
 
 
-struct ControllerSource : RTTIBase {
-	RTTI_DECL0(ControllerSource);
+struct ControllerSource {
 	virtual ~ControllerSource() {}
 	
 	//virtual bool GetLocation(float* matrix4x4) const {return false;}
@@ -160,8 +158,6 @@ struct GeomEvent : Moveable<GeomEvent> {
 	ControllerState* state = 0;
 	
 	
-	RTTI_TYPEIDCLS
-	
 	const ControllerState& GetState() const {ASSERT(state); return *state;}
 	const ControllerMatrix& GetControllerMatrix() const {ASSERT(ctrl); return *ctrl;}
 	
@@ -198,8 +194,7 @@ struct GeomEvent : Moveable<GeomEvent> {
 	}
 };
 
-struct GeomEventCollection : Vector<GeomEvent>, RTTIBase {
-	RTTI_DECL0(GeomEventCollection)
+struct GeomEventCollection : Vector<GeomEvent> {
 	
 };
 
@@ -223,10 +218,14 @@ typedef GeomEventCollection CtrlEventCollection;
 inline double ResetSeconds(TimeStop& ts) {double s = ts.Seconds(); ts.Reset(); return s;}
 
 
+struct MidiEvent {
+	int pad;
+	
+};
 
-#include "Keycodes.inl"
+
+//#include "Keycodes.inl"
 
 
-END_UPP_NAMESPACE
 
 #endif

@@ -80,10 +80,12 @@ bool WorldState::IsFalse(int idx) const {
 
 bool WorldState::IsUndefined(const String& key) const {
 	TODO
+	return false;
 }
 
 bool WorldState::IsUndefined(int idx) const {
 	TODO
+	return false;
 }
 
 String WorldState::Get(const String& key, String def) const {
@@ -161,19 +163,23 @@ String WorldState::ToString() const {
 
 String WorldState::GetFullString() const {
 	TODO
+	return String();
 }
 
 bool WorldState::Contains(const WorldState& ws) const {
 	TODO
+	return false;
 }
 
 bool WorldState::Conflicts(const WorldState& ws) const {
 	TODO
+	return false;
 }
 
 
 int WorldState::Compare(int idx, const WorldState& ws) const {
 	TODO
+	return 0;
 }
 
 

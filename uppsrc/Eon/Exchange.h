@@ -414,9 +414,11 @@ public:
 	virtual void ForwardExchange(FwdScope& fwd) {Panic("not implemented");}
 	virtual bool IsPacketStuck() {Panic("not implemented"); return true;}
 	virtual bool IsLoopComplete(FwdScope& fwd) {Panic("not implemented"); return true;}
+	virtual TypeCls GetType() const = 0;
 	virtual String GetSecondaryName() {return "";}
 	virtual void* GetSecondaryPtr() {return 0;}
 	PacketForwarder& GetPacketForwarder() {return *this;}
+	String GetDynamicName() const {return GetType().GetName();}
 	
 };
 
@@ -487,6 +489,7 @@ public:
 	virtual ~MetaSpaceBase();
 	
 	virtual void UnlinkAll();
+	virtual TypeCls GetType() const = 0;
 	
 	template <class T>
 	Ptr<T> Add() {
@@ -543,6 +546,7 @@ public:
 	virtual ~MetaDirectoryBase();
 	
 	String ToString() const;
+	virtual TypeCls GetType() const = 0;
 	
 	void Visit(Vis& vis) {}
 	

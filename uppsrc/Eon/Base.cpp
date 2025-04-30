@@ -23,7 +23,7 @@ void CustomerBase::Uninitialize() {
 
 void CustomerBase::UpdateConfig(double dt) {
 	ASSERT(customer);
-	DefaultInterfaceSourcePtr src = this->GetSource();
+	DefaultInterfaceSourcePtr src = this->GetSourceT<DefaultInterfaceSource>();
 	ASSERT(src);
 	if (src) {
 		int count = src->GetSourceCount();
@@ -51,11 +51,14 @@ bool CustomerBase::IsForwardReady() {
 }
 
 void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
+	TODO
+	#if 0
 	InternalPacketData& data = out.template SetData<InternalPacketData>();
 	data.pos = 0;
 	data.count = 1;
 	
 	packet_count++;
+	#endif
 }
 
 
@@ -82,7 +85,7 @@ bool RollingValueBase::Initialize(const WorldState& ws) {
 		this->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}
 	else if (main_vd.val == ValCls::VIDEO)
-		internal_fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, default_width, default_height, 60, 1);
+		internal_fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 60, 1);
 	else
 		TODO;
 	
@@ -163,7 +166,7 @@ bool VoidSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 }
 
 bool VoidSinkBase::Consume(const void* data, int len) {
-	RTLOG("VoidSinkBase::Consume: " << HexStr((size_t)data) << ", len=" << len);
+	RTLOG("VoidSinkBase::Consume: " << HexStr64((size_t)data) << ", len=" << len);
 	
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
@@ -201,11 +204,11 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 		dbg_iter++;
 		
 		if (fail || (dbg_limit > 0 && dbg_iter >= dbg_limit)) {
-			GetMachine().SetNotRunning();
+			TODO//GetMachine().SetNotRunning();
 			LOG("VoidSinkBase::Consume: stops. total-samples=" << dbg_total_samples << ", total-bytes=" << dbg_total_bytes);
 			if (!fail) {LOG("VoidSinkBase::Consume: success!");}
 			else       {LOG("VoidSinkBase::Consume: fail :(");}
-			if (fail) GetMachine().SetFailed("VoidSinkBase error");
+			TODO//if (fail) GetMachine().SetFailed("VoidSinkBase error");
 		}
 		
 		RTLOG("VoidSinkBase::Consume: successfully verified frame");
@@ -252,7 +255,7 @@ void VoidPollerSinkBase::Uninitialize() {
 		fail = true;
 	if (!fail) {LOG("VoidPollerSinkBase::Uninitialize: success!");}
 	else       {LOG("VoidPollerSinkBase::Uninitialize: fail :(");}
-	if (fail) GetMachine().SetFailed("VoidPollerSinkBase error");
+	TODO//if (fail) GetMachine().SetFailed("VoidPollerSinkBase error");
 	RemoveAtomFromUpdateList();
 }
 
@@ -283,7 +286,7 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 	
 	#if HAVE_PACKETTRACKER
 	uint64 route_desc = in.GetRouteDescriptor();
-	RTLOG("VoidPollerSinkBase::Recv: sink #" << IntStr(sink_ch) << ": " << in.ToString() << ", descriptor " << HexStr(route_desc));
+	RTLOG("VoidPollerSinkBase::Recv: sink #" << IntStr(sink_ch) << ": " << in.ToString() << ", descriptor " << HexStr64(route_desc));
 	#else
 	RTLOG("VoidPollerSinkBase::Recv: sink #" << IntStr(sink_ch) << ": " << in.ToString());
 	#endif
@@ -291,7 +294,7 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 	ValueFormat fmt = in.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
-		uint32 thrd_id = 0;
+		uint64 thrd_id = 0;
 		#if HAVE_PACKETTRACKER
 		thrd_id = route_desc;
 		#else
@@ -350,11 +353,11 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 		else {
 			LOG("VoidPollerSinkBase::Recv: error: thrd #" << i << " invalid audio format");
 			fail = true;
-			GetMachine().SetFailed("VoidPollerSinkBase error");
+			TODO//GetMachine().SetFailed("VoidPollerSinkBase error");
 		}
 		
 		if (dbg_limit > 0 && t.rolling_value >= dbg_limit) {
-			GetMachine().SetNotRunning();
+			TODO//GetMachine().SetNotRunning();
 			LOG("VoidPollerSinkBase::Recv: stops");
 		}
 	}
@@ -480,7 +483,7 @@ void EventStateBase::Event(const CtrlEvent& e) {
 	if (dbg_print) {
 		LOG(e.ToString());
 		if (dbg_limit > 0 && ++dbg_iter > dbg_limit)
-			GetMachine().SetNotRunning();
+			TODO; //GetMachine().SetNotRunning();
 	}
 	
 	if (e.type == EVENT_INVALID) {
@@ -699,7 +702,7 @@ void EventStateBase::RemoveBinder(BinderIfaceEvents* iface) {
 
 
 
-TestEventSrcBase::TestEventSrcBase() {
+TestEventSrcBase::TestEventSrcBase(MetaNode& n) : Atom(n) {
 	
 }
 
@@ -714,7 +717,7 @@ void TestEventSrcBase::Uninitialize() {
 	bool succ = sent_count >= 2;
 	if (succ) {LOG("TestEventSrcBase::Uninitialize: success! " << sent_count << " packets sent");}
 	else       {LOG("TestEventSrcBase::Uninitialize: fail :(");}
-	if (!succ) GetMachine().SetFailed("TestEventSrcBase error");
+	TODO//if (!succ) GetMachine().SetFailed("TestEventSrcBase error");
 }
 
 bool TestEventSrcBase::IsReady(PacketIO& io) {

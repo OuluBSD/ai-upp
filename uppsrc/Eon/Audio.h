@@ -1,14 +1,10 @@
-#ifndef _Local_Audio_h_
-#define _Local_Audio_h_
+#ifndef _Eon_Audio_h_
+#define _Eon_Audio_h_
 
-NAMESPACE_UPP
 inline void EndianSwap(unsigned char&)	{}
 inline void EndianSwap(char&)			{}
 inline void EndianSwap(float& f)		{EndianSwap(*(dword*)&f);}
 inline void EndianSwap(double& d)		{EndianSwap(*(uint64*)&d);}
-END_UPP_NAMESPACE
-
-NAMESPACE_TOPSIDE_BEGIN
 
 
 template <typename SRC, typename DST, bool SRC_NATIVE_ENDIAN=1, bool DST_NATIVE_ENDIAN=1> DST ConvertAudioSample(SRC v) {
@@ -135,6 +131,5 @@ struct GlobalAudioTime {
 	void Clear() {time = 0;}
 };
 
-NAMESPACE_TOPSIDE_END
 
 #endif

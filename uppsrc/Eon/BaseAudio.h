@@ -47,11 +47,10 @@ public:
 		int size = frame_part_size * pan_frames;
 		frame.SetCount(size);
 		T* f = frame.Begin();
-		auto& rng = RNG::Local();
 		for (int p = 0; p < pan_frames; p++) {
 			for(int i = 0; i < fmt.sample_rate; i++) {
 				for(int j = 0; j < fmt.res[0]; j++) {
-					*f = ConvertAudioSample<double, T>(rng.Randomf());
+					*f = ConvertAudioSample<double, T>(Randomf());
 					f++;
 				}
 			}
@@ -114,7 +113,7 @@ class AudioGenBase :
 	void GenerateStereoSine(const AudioFormat& fmt);
 	
 public:
-	AudioGenBase();
+	AudioGenBase(MetaNode& n);
 	
 	bool Initialize(const WorldState& ws) final;
 	void Uninitialize() final;
@@ -149,7 +148,7 @@ class AudioMixerBase :
 	int channels = 2;
 	
 public:
-	AudioMixerBase();
+	AudioMixerBase(MetaNode& n);
 	
 	bool Initialize(const WorldState& ws) final;
 	bool PostInitialize() override;

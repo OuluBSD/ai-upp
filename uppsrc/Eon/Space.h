@@ -30,7 +30,7 @@ public:
 	using SpaceVec = Array<Space>;
 	static SpaceId GetNextId();
 	
-	Space();
+	Space(MetaNode& n);
 	~Space();
 	
 	
@@ -54,8 +54,8 @@ public:
 	String				GetTreeString(int indent=0);
 	
 	Loop*				GetLoop() const;
-	Space*				GetParent() const;
-	Machine&			GetMachine() const;
+	//Space*				GetParent() const;
+	//Machine&			GetMachine() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;
 	bool				HasAtoms() const {return !atoms.IsEmpty();}
@@ -69,19 +69,19 @@ public:
 	
 	bool				Link(AtomBase* src_comp, AtomBase* dst_comp, ValDevCls iface);
 	
-	AtomBase*			GetTypeCls(AtomTypeCls atom_type);
-	AtomBase*			AddTypeCls(AtomTypeCls cls);
-	AtomBase*			GetAddTypeCls(AtomTypeCls cls);
-	AtomBase*			FindTypeCls(AtomTypeCls atom_type);
+	AtomBasePtr			AsTypeCls(AtomTypeCls atom_type);
+	AtomBasePtr			AddTypeCls(AtomTypeCls cls);
+	AtomBasePtr			GetAddTypeCls(AtomTypeCls cls);
+	AtomBasePtr			FindTypeCls(AtomTypeCls atom_type);
 	SpacePtr			FindSpaceByName(String name);
-	AtomBase*			FindAtom(TypeCls type);
-	AtomBase*			FindDeepCls(TypeCls type);
+	AtomBasePtr			FindAtom(AtomTypeCls atom_type);
+	AtomBasePtr			FindDeepCls(AtomTypeCls atom_type);
 	
 	template <class T>
-	T* FindDeep() {auto r = FindDeepCls(T::TypeIdClass()); return r ? r->template AsRefT<T>() : RefT_Atom<T>();}
+	Ptr<T> FindDeep() {auto r = FindDeepCls(T::TypeIdClass()); return r ? r->template AsRefT<T>() : RefT_Atom<T>();}
 	
 	
-	AtomBase*			AddPtr(AtomBase* atom);
+	AtomBasePtr			AddPtr(AtomBase* atom);
 	void				InitializeAtoms();
 	void				InitializeAtom(AtomBase& atom);
 	void				InitializeAtomRef(AtomBase* atom) {return InitializeAtom(*atom);}
@@ -116,11 +116,12 @@ public:
 	const SpaceVec& GetSpaces() const {return spaces;}
 	
 	SpacePtr AddSpace(String name="") {
-		Space& p = spaces.Add();
+		/*Space& p = spaces.Add();
 		//p.SetParent(HierExBaseParent(0, this));
 		p.SetName(name);
 		p.SetId(GetNextId());
-		return &p;
+		return &p;*/
+		TODO; return 0;
 	}
 	
 	SpacePtr GetAddSpace(String name) {
@@ -152,7 +153,7 @@ public:
 	
 	AtomMap::Iterator			begin()			{return atoms.begin();}
 	AtomMap::Iterator			end()			{return atoms.end();}
-	SpaceVec::Iterator			BeginSpace()		{return spaces.begin();}
+	//SpaceVec::Iterator			BeginSpace()	{return spaces.begin();}
 	
 	void Visit(Vis& vis);
 	void VisitSinks(Vis& vis);
@@ -163,6 +164,8 @@ private:
 	AtomMap					atoms;
 	SpaceVec				spaces;
 };
+
+using SpacePtr = Ptr<Space>;
 
 #if 0
 class SpaceHashVisitor : public Vis {

@@ -32,6 +32,7 @@ public:
 	void SetName(String s)			{name = s;}
 	void SetPrefab(String s)		{prefab = s;}
 	
+	TypeCls				GetType() const override {return typeid(Loop);}
 	void				Clear();
 	void				ClearInterfacesDeep();
 	void				UnrefDeep();
@@ -40,7 +41,7 @@ public:
 	void				Dump();
 	String				GetTreeString(int indent=0);
 	
-	Loop*				GetParent() const;
+	//Loop*				GetParent() const;
 	Space*				GetSpace() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;
@@ -96,6 +97,7 @@ private:
 	LoopVec					loops;
 };
 
+using LoopPtr = Ptr<Loop>;
 
 class LoopHashVisitor : public Vis {
 	CombineHash ch;

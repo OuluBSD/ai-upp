@@ -9,18 +9,18 @@ CustomerLink::CustomerLink() {
 }
 
 bool CustomerLink::Initialize(const WorldState& ws) {
-	LinkBasePtr r = LinkBase::AsRefT();
+	LinkBasePtr r = this;
 	ASSERT(r);
-	LinkSystemPtr as = GetMachine().template Get<LinkSystem>();
-	as->AddCustomer(r);
+	TODO/*LinkSystemPtr as = GetMachine().template Get<LinkSystem>();
+	as->AddCustomer(r);*/
 	
 	return true;
 }
 
 void CustomerLink::Uninitialize() {
-	LinkBasePtr r = LinkBase::AsRefT();
+	LinkBasePtr r = this;
 	ASSERT(r);
-	GetMachine().template Get<LinkSystem>()->RemoveCustomer(r);
+	TODO//GetMachine().template Get<LinkSystem>()->RemoveCustomer(r);
 }
 
 bool CustomerLink::ProcessPackets(PacketIO& io) {

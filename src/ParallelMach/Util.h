@@ -17,12 +17,6 @@ ArrayMap<String,String>& ToyShaderHashToName();
 #endif
 
 
-#ifdef flagDEBUG
-	#define DEFAULT_AUDIO_QUEUE_SIZE	10
-#else
-	#define DEFAULT_AUDIO_QUEUE_SIZE	4
-#endif
-
 
 #if HAVE_SCRIPTLOADER_MACHVER
 

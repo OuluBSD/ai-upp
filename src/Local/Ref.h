@@ -890,15 +890,6 @@ using TypeRefMap			= LinkedMap<TypeCls, Ref<T,Parent>>;
 
 
 
-class RefClearVisitor : public RuntimeVisitor {
-	
-public:
-	RefClearVisitor() {
-		SetClearRefs();
-	}
-	
-};
-
 NAMESPACE_TOPSIDE_END
 
 

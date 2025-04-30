@@ -265,18 +265,22 @@ String ValueFormat::ToString() const {
 
 int ValueFormat::GetSampleSize() const {
 	PROXY_CHK(GetSampleSize)
+	return 0;
 }
 
 int ValueFormat::GetScalar() const {
 	PROXY_CHK(GetScalar)
+	return 0;
 }
 
 int ValueFormat::GetFrameSize() const {
 	PROXY_CHK(GetFrameSize)
+	return 0;
 }
 
 double ValueFormat::GetFrameSeconds() const {
 	PROXY_CHK(GetFrameSeconds)
+	return 0;
 }
 
 bool ValueFormat::HasData() const {
@@ -288,18 +292,21 @@ bool ValueFormat::IsValid() const {
 	if (!vd.IsValid()) return false;
 	if (!HasData()) return true;
 	PROXY(IsValid)
+	return 0;
 }
 
 bool ValueFormat::IsSame(const ValueFormat& f) const {
 	if (vd != f.vd) return false;
 	if (!HasData()) return true;
 	PROXY_CHK_(IsSame, f)
+	return 0;
 }
 
 bool ValueFormat::IsCopyCompatible(const ValueFormat& f) const {
 	if (vd != f.vd) return false;
 	if (!HasData()) return true;
 	PROXY_CHK_(IsCopyCompatible, f)
+	return 0;
 }
 
 bool ValueFormat::operator ==(const ValueFormat& f) {

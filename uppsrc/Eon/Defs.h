@@ -14,4 +14,10 @@
 	#define RTLOG(x) {}
 #endif
 
+#ifdef flagDEBUG
+	#define DEFAULT_AUDIO_QUEUE_SIZE	10
+#else
+	#define DEFAULT_AUDIO_QUEUE_SIZE	4
+#endif
+
 #endif

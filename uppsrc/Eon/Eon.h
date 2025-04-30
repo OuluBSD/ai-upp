@@ -9,6 +9,8 @@
 NAMESPACE_UPP
 
 #include "Defs.h"
+#include "Fn.h"
+#include "CtrlEvent.h"
 #include "Container.h"
 #include "Debugging.h"
 #include "WorldState.h"
@@ -30,6 +32,7 @@ NAMESPACE_UPP
 #include "LinkUtil.h"
 #include "LinkBase.h"
 #include "Loop.h"
+#include "Audio.h"
 
 // unordered
 #include "Base.h"

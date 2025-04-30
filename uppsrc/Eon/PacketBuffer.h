@@ -2,7 +2,7 @@
 #define _Eon_PacketBuffer_h_
 
 
-
+class ValueBase;
 
 
 // Disabling packet tracker breaks tests:
@@ -221,7 +221,7 @@ struct Atom;
 struct PacketIO {
 	
 	struct Sink : Moveable<Sink> {
-		Value*			val = 0;
+		ValueBase*		val = 0;
 		PacketBuffer*	buf = 0;
 		Packet			p;
 		bool			filled = false;
@@ -237,7 +237,7 @@ struct PacketIO {
 	};
 	
 	struct Source : Moveable<Source> {
-		Value*			val = 0;
+		ValueBase*	val = 0;
 		Packet			p;
 		int				from_sink_ch = -1;
 		bool			is_full = false;
@@ -300,5 +300,40 @@ void PacketTracker_Track(const char* fn, const char* file, int line, PacketValue
 void PacketTracker_Checkpoint(const char* fn, const char* file, int line, PacketValue& p);
 void PacketTracker_StopTracking(const char* fn, const char* file, int line, PacketValue& p);
 
+
+struct InternalPacketData {
+	void*	ptr = 0;
+	
+	union {
+		double	dbl;
+		int64	i64;
+		int64	pos;
+		char	txt[8];
+	};
+	
+	union {
+		int32	i32;
+		uint32	u32;
+		uint32	count;
+	};
+	
+	
+	int GetTextLength() const			{return (int)strnlen(txt, 8);}
+	String GetText() const				{return String(txt, GetTextLength());}
+	#ifdef COMPILER_MSC
+	void SetText(const char* s)			{
+		for(int i = 0; i < 8; i++) {
+			txt[i] = s[i];
+			if (!s[i])
+				break;
+		}
+	}
+	#else
+	void SetText(const char* s)			{strncpy(txt, s, 8);}
+	#endif
+	bool IsText(const char* s) const	{return strncmp(txt, s, 8) == 0;}
+	
+	//void ClearLinks() {dev_comp = 0;}
+};
 
 #endif

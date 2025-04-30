@@ -5,11 +5,6 @@
 NAMESPACE_TOPSIDE_BEGIN
 
 
-struct MidiEvent {
-	int pad;
-	
-};
-
 
 NAMESPACE_TOPSIDE_END
 

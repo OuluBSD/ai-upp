@@ -144,7 +144,7 @@ public:
 	}
 	
 	virtual void				ClearSource() = 0;
-	virtual ValueBase&				GetSourceValue(int i) = 0;
+	virtual ValueBase&			GetSourceValue(int i) = 0;
 	virtual int					GetSourceCount() const = 0;
 	
 protected:
@@ -182,7 +182,7 @@ public:
 		vis.VisitT<Container>("Container", *this);
 	}
 	
-	//TypeCls GetTypeCls() override {return TypeId(AsTypeCls<ValDevSpec>());}
+	//TypeCls AsTypeCls() override {return TypeId(AsTypeCls<ValDevSpec>());}
 	
 	ValueBase&						GetSinkValue(int i)       {return GetContainerValue(i);}
 	
@@ -221,7 +221,7 @@ public:
 	
 	virtual void				ClearSource() override {ClearContainers();}
 	virtual int					GetSourceCount() const override {return GetContainerCount();}
-	ValueBase&						GetSourceValue(int i) override {return GetContainerValue(i);}
+	ValueBase&					GetSourceValue(int i) override {return GetContainerValue(i);}
 	
 };
 

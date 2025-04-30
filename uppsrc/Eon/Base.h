@@ -169,7 +169,7 @@ class TestEventSrcBase :
 	ControllerMatrix ctrl;
 	
 public:
-	TestEventSrcBase();
+	TestEventSrcBase(MetaNode& n);
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}

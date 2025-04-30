@@ -296,7 +296,7 @@ void RefDebugVisitor::Remove(void* mem) {
 		items.Remove(i);
 	}
 	else {
-		LOG("\twarning: trying to remove unfollowed Ref at " << HexStr(mem) << " (it's ok if SetDebugRefVisits() was called later than ctor)");
+		LOG("\twarning: trying to remove unfollowed Ptr at " << HexStr(mem) << " (it's ok if SetDebugRefVisits() was called later than ctor)");
 	}
 }
 

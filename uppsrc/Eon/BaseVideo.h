@@ -50,7 +50,7 @@ class VideoGenBase :
 	void GenerateStereoSine(const VideoFormat& fmt);
 	
 public:
-	VideoGenBase();
+	VideoGenBase(MetaNode& n);
 	
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;

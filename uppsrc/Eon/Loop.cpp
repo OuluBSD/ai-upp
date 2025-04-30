@@ -12,9 +12,9 @@ Loop::~Loop() {
 	DBG_DESTRUCT
 }
 
-Loop* Loop::GetParent() const {
+/*Loop* Loop::GetParent() const {
 	return static_cast<Loop*>(RefScopeParent<LoopParent>::GetParentUnsafe().b);
-}
+}*/
 
 Space* Loop::GetSpace() const {
 	return space;
@@ -27,21 +27,23 @@ void Loop::AppendCopy(const Loop& l) {
 int Loop::GetLoopDepth() const {
 	int d = 0;
 	const Loop* p = this;
-	while (1) {
+	TODO
+	/*while (1) {
 		p = p->GetParent();
 		if (!p) break;
 		++d;
-	}
+	}*/
 	return d;
 }
 
 bool Loop::HasLoopParent(LoopPtr pool) const {
 	const Loop* p = this;
-	while (p) {
+	TODO
+	/*while (p) {
 		if (p == &*pool)
 			return true;
 		p = p->GetParent();
-	}
+	}*/
 	return false;
 }
 
@@ -53,22 +55,21 @@ void Loop::Clear() {
 
 void Loop::UnrefDeep() {
 	RefClearVisitor vis;
-	vis.Visit(*this);
+	Visit(vis);
 }
 
 void Loop::UninitializeLinksDeep() {
-	for (LoopPtr& l : loops)
-		l->UninitializeLinksDeep();
+	for (Loop& l : loops)
+		l.UninitializeLinksDeep();
 	
-	for (auto it = links.rbegin(); it != links.rend(); --it) {
-		it().Uninitialize();
+	for (int i = links.GetCount()-1; i >= 0; i--) {
+		links[i].Uninitialize();
 	}
-	
 }
 
 void Loop::ClearDeep() {
-	for (LoopPtr& p : loops)
-		p->ClearDeep();
+	for (Loop& p : loops)
+		p.ClearDeep();
 	loops.Clear();
 	
 	links.Clear();
@@ -85,10 +86,10 @@ LoopPtr Loop::GetAddEmpty(String name) {
 
 LoopPtr Loop::CreateEmpty() {
 	Loop& l = loops.Add();
-	l.SetParent(this);
+	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
-	return l;
+	return &l;
 }
 
 void Loop::Initialize(Loop& l, String prefab) {
@@ -97,41 +98,40 @@ void Loop::Initialize(Loop& l, String prefab) {
 }
 
 void Loop::Visit(Vis& vis) {
-	vis || links;
-	vis || loops;
+	vis > links;
+	vis | loops;
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
-	return AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
+	TODO return 0;//return AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
 }
 
 LinkBasePtr Loop::GetAddTypeCls(LinkTypeCls cls) {
 	LinkBasePtr cb = FindTypeCls(cls);
-	return cb ? cb : AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
+	TODO return 0;//return cb ? cb : AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
 }
 
 LinkBasePtr Loop::AddPtr(LinkBase* comp) {
-	comp->SetParent(this);
-	LinkTypeCls type = comp->GetLinkType();
-	links.Add(type, comp);
+	//comp->SetParent(this);
+	links.Add(comp->GetLinkType(), comp);
 	InitializeLink(*comp);
-	return LinkBasePtr(this, comp);
+	return LinkBasePtr(comp);
 }
 
 LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
-	for (LinkBasePtr& l : links) {
-		LinkTypeCls type = l->GetLinkType();
+	for (LinkBase& l : links) {
+		LinkTypeCls type = l.GetLinkType();
 		if (type == atom_type)
-			return l;
+			return &l;
 	}
 	ASSERT(!links.Find(atom_type));
 	return LinkBasePtr();
 }
 
 LoopPtr Loop::FindLoopByName(String name) {
-	for (LoopPtr object : loops)
-		if (object->GetName() == name)
-			return object;
+	for (Loop& object : loops)
+		if (object.GetName() == name)
+			return &object;
 	return LoopPtr();
 }
 
@@ -140,12 +140,12 @@ void Loop::Dump() {
 }
 
 void Loop::InitializeLinks() {
-	for(auto& comp : links.GetValues())
-		InitializeLink(*comp);
+	for(auto it : ~links)
+		InitializeLink(it.value);
 }
 
 void Loop::InitializeLink(LinkBase& comp) {
-	comp.SetParent(this);
+	TODO //comp.SetParent(this);
 }
 
 String Loop::GetTreeString(int indent) {
@@ -156,11 +156,11 @@ String Loop::GetTreeString(int indent) {
 	
 	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
 	
-	for (LinkBasePtr& l : links)
-		s << l->ToString();
+	for (LinkBase& l : links)
+		s << l.ToString();
 	
-	for (LoopPtr& l : loops)
-		s << l->GetTreeString(indent+1);
+	for (Loop& l : loops)
+		s << l.GetTreeString(indent+1);
 	
 	return s;
 }
@@ -168,17 +168,18 @@ String Loop::GetTreeString(int indent) {
 bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	// This is for primary link (src_ch==0 to sink_ch== 0) only...
 	InterfaceSourcePtr src = src_atom->GetSource();
-	InterfaceSinkPtr sink = dst_atom->GetSink();
-	ASSERT(src && sink);
-	if (!src || !sink)
+	auto sink = dst_atom->GetSink();
+	Ptr<ExchangeSinkProvider> sinkT = dst_atom->GetSinkT<ExchangeSinkProvider>();
+	ASSERT(src && sink && sinkT);
+	if (!src || !sink || !sinkT)
 		return false;
 	
 	int src_ch = 0;
 	int sink_ch = 0;
 	
 	
-	Format src_fmt = src->GetSourceValue(src_ch).GetFormat();
-	Format sink_fmt = sink->GetValue(sink_ch).GetFormat();
+	ValueFormat src_fmt = src->GetSourceValue(src_ch).GetFormat();
+	ValueFormat sink_fmt = sink->GetValue(sink_ch).GetFormat();
 	if (src_fmt.vd != sink_fmt.vd) {
 		LOG("error: sink and source device-value-class mismatch: src(" + src_fmt.vd.ToString() + "), sink(" + sink_fmt.vd.ToString() + ")");
 		return false;
@@ -186,14 +187,16 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	
 	ASSERT(src_atom != dst_atom);
 	ASSERT(src_atom->GetLink() != dst_atom->GetLink()); // "stupid" but important
-	ASSERT(src	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(AsRefT()));
-	ASSERT(sink	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(AsRefT()));
+	ASSERT(src	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(this));
+	ASSERT(sink	->AsAtomBase()->GetSpace()->GetLoop()->HasLoopParent(this));
 	CookiePtr src_cookie, sink_cookie;
 	
-	if (src->Accept(sink, src_cookie, sink_cookie)) {
+	if (src->Accept(sinkT, src_cookie, sink_cookie)) {
 		
 		// Create exchange-point object
-		auto& sdmap = Parallel::Factory::IfaceLinkDataMap();
+		TODO
+		#if 0
+		auto& sdmap = Factory::IfaceLinkDataMap();
 		int i = sdmap.Find(src_fmt.vd);
 		if (i < 0) {
 			LOG("error: no exchange-point class set for type " + src_fmt.vd.ToString());
@@ -221,6 +224,7 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 		ep->Set(src, sink, src_cookie, sink_cookie);
 		src_atom->GetLink()->SetPrimarySink(dst_atom->GetLink()->AsRefT());
 		dst_atom->GetLink()->SetPrimarySource(src_atom->GetLink()->AsRefT());
+		#endif
 		return true;
 	}
 	return false;
@@ -228,11 +232,12 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 
 String Loop::GetDeepName() const {
 	String s = name;
-	Loop* l = GetParent();
+	/*Loop* l = GetParent();
 	while (l) {
 		s = l->name + "." + s;
 		l = l->GetParent();
-	}
+	}*/
+	TODO
 	return s;
 }
 
@@ -243,7 +248,7 @@ LoopId Loop::GetNextId() {
 
 
 
-
+#if 0
 bool LoopHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) {
 	if (derived == AsTypeCls<Loop>()) {
 		Loop& e = *(Loop*)mem;
@@ -257,5 +262,6 @@ bool LoopHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 	}
 	return true;
 }
+#endif
 
 END_UPP_NAMESPACE

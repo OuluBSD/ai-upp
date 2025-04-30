@@ -34,8 +34,6 @@ void RealtimeSourceConfig::Update(double dt, bool buffer_full) {
 }
 
 
-// TODO remove
-#if 0
 
 ExchangeBase::ExchangeBase() {
 	//DBG_CONSTRUCT
@@ -59,7 +57,9 @@ bool ExchangeSourceProvider::print_debug = false;
 
 
 
-void ExchangeSourceProvider::Link(ExchangePointPtr expt, SinkProv sink, Cookie& src_c, Cookie& sink_c) {
+void ExchangeSourceProvider::Link(ExchangePoint* expt, SinkProv sink, Cookie& src_c, Cookie& sink_c) {
+	TODO
+	#if 0
 	ASSERT(expt);
 	ASSERT_(CastPtr<LockedScopeRefCounter>(this) != CastPtr<LockedScopeRefCounter>(&*sink), "Linking to itself is not allowed");
 	if (print_debug) {
@@ -81,6 +81,7 @@ void ExchangeSourceProvider::Link(ExchangePointPtr expt, SinkProv sink, Cookie& 
 	sink->base.SetLink(expt, AsRefT());
 	OnLink(sink, src_c, sink_c);
 	sink->OnLink(AsRefT(), src_c, sink_c);
+	#endif
 }
 
 
@@ -177,12 +178,12 @@ void FwdScope::ForwardWeak() {
 	if (cur) {
 		int pos = read_i-1;
 		if (!cur->IsPacketStuck()) {
-			RTLOG("FwdScope::ForwardWeak: fwd " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(&cur->GetRTTI()) << ", " << HexStr(cur->GetSecondaryPtr()) << ")");
+			RTLOG("FwdScope::ForwardWeak: fwd " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
 			cur->ForwardSetup(*this);
 			cur->ForwardAtom(*this);
 		}
 		else {
-			RTLOG("FwdScope::ForwardWeak: skip " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(&cur->GetRTTI()) << ", " << HexStr(cur->GetSecondaryPtr()) << ")");
+			RTLOG("FwdScope::ForwardWeak: skip " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
 		}
 		cur->ForwardExchange(*this);
 		
@@ -194,7 +195,7 @@ void FwdScope::ForwardWeak() {
 void FwdScope::Forward() {
 	if (cur) {
 		int pos = read_i-1;
-		RTLOG("FwdScope::Forward: " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(&cur->GetRTTI()) << ", " << HexStr(cur->GetSecondaryPtr()) << ")");
+		RTLOG("FwdScope::Forward: " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
 		cur->ForwardSetup(*this);
 		cur->ForwardAtom(*this);
 		cur->ForwardExchange(*this);
@@ -254,17 +255,17 @@ ExchangePoint::~ExchangePoint() {
 }
 
 void ExchangePoint::Clear() {
-	src.Clear();
-	sink.Clear();
-	src_cookie.Clear();
-	sink_cookie.Clear();
+	src = 0;
+	sink = 0;
+	src_cookie = 0;
+	sink_cookie = 0;
 }
 
 void ExchangePoint::Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr sink) {
 	Clear();
 	this->src	= src;
 	this->sink	= sink;
-	ExchangePointPtr thisref = AsPtr<ExchangePoint>();
+	ExchangePointPtr thisref = this;
 	src->SetSink(thisref, sink);
 	sink->SetSource(thisref, src);
 }
@@ -301,15 +302,16 @@ MetaSpaceBase::~MetaSpaceBase() {
 }
 
 String MetaSpaceBase::ToString() const {
-	String s = GetDynamicName();
+	String s = GetType().GetName();
 	s << " [expts: " << pts.GetCount() << "]";
 	return s;
 }
 
 void MetaSpaceBase::Remove(ExchangePoint* expt) {
-	for (auto iter = pts.begin(); iter; ++iter) {
-		if (*iter == expt) {
-			pts.Remove(iter);
+	for(int i = 0; i < pts.GetCount(); i++) {
+		auto& iter = pts[i];
+		if (iter == expt) {
+			pts.Remove(i);
 			return;
 		}
 	}
@@ -325,8 +327,8 @@ ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	const auto& d = m.Get(expt);
 	ExchangePoint* o = d.new_fn();
 	pts.Add(o);
-	o->SetParent(this);
-	return o->AsRefT();
+	//o->SetParent(this);
+	return o;
 }
 
 
@@ -342,10 +344,9 @@ MetaDirectoryBase::~MetaDirectoryBase() {
 }
 
 String MetaDirectoryBase::ToString() const {
-	String s = GetDynamicName();
+	String s = GetType().GetName();
 	return s;
 }
 
-#endif
 
 END_UPP_NAMESPACE

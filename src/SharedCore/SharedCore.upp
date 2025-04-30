@@ -7,8 +7,6 @@ file
 	RTTIDummy.h,
 	Object.h,
 	Object.cpp,
-	CtrlEvent.h,
-	CtrlEvent.cpp,
 	Keycodes.inl highlight cpp,
 	Container.h,
 	Container.cpp,

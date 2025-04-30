@@ -76,7 +76,7 @@ public:
 	virtual void			Update(double dt) {Panic("Unimplemented");}
 	
 	Atom*					GetAtom();
-	Machine&				GetMachine();
+	//Machine&				GetMachine();
 	int						GetId() const;
 	void					ForwardAsync();
 	Packet					InitialPacket(int src_ch, off32 off);
@@ -127,7 +127,7 @@ public:
 };
 
 using LinkBasePtr = Ptr<LinkBase>;
-using LinkMap = VectorMap<TypeCls, LinkBase>;
+using LinkMap = ArrayMap<LinkTypeCls, LinkBase>;
 
 bool Serial_Link_ForwardAsyncMem(LinkBase* l, byte* data, int size);
 

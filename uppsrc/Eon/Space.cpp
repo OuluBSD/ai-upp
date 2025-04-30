@@ -4,12 +4,12 @@
 NAMESPACE_UPP
 
 
-Space::Space(MetaNode& n) : MetaNodeExt(n) {
-	DBG_CONSTRUCT
+Space::Space(MetaNode& n) : MetaSpaceBase(n) {
+	
 }
 
 Space::~Space() {
-	DBG_DESTRUCT
+	
 }
 
 SpaceId Space::GetNextId() {
@@ -43,8 +43,9 @@ Loop* Space::GetLoop() const {
 	throw Exc("Machine ptr not found");
 }*/
 
-AtomBasePtr Space::GetTypeCls(AtomTypeCls atom_type) {
-	for (AtomBase& comp : atoms) {
+AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
+	for (auto& it : atoms) {
+		auto& comp = *it.atom;
 		AtomTypeCls type = comp.GetType();
 		ASSERT(type.IsValid());
 		if (type == atom_type)
@@ -54,62 +55,57 @@ AtomBasePtr Space::GetTypeCls(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
-	return AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
+	TODO return 0;//return AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
 }
 
 AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
 	AtomBasePtr cb = FindTypeCls(cls);
-	return cb ? cb : AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
+	TODO return 0;//return cb ? cb : AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
 }
 
 AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
-	for (AtomBaseRef& comp : atoms) {
-		AtomTypeCls type = comp->GetType();
+	for (auto& it : atoms) {
+		auto& comp = *it.atom;
+		AtomTypeCls type = comp.GetType();
 		if (type == atom_type)
-			return comp;
+			return &comp;
 	}
-	return AtomBaseRef();
+	return AtomBasePtr();
 }
 
-AtomBasePtr Space::FindAtom(TypeCls atom_type) {
-	for (AtomBaseRef& comp : atoms) {
-		#if IS_TS_CORE
-		// This version checks inherited types too
-		void* base = comp->GetBasePtr(atom_type);
-		if (base)
-			return comp;
-		#else
-		TypeCls type = comp->GetTypeId();
+AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
+	for (auto& it : atoms) {
+		auto& comp = *it.atom;
+		AtomTypeCls type = comp.GetType();
 		if (type == atom_type)
-			return comp;
-		#endif
+			return &comp;
 	}
-	return AtomBaseRef();
+	return AtomBasePtr();
 }
 
 AtomBasePtr Space::AddPtr(AtomBase* comp) {
-	comp->SetParent(this);
-	TypeCls type = comp->GetTypeId();
+	//comp->SetParent(this);
 	atoms.AddBase(comp);
 	InitializeAtom(*comp);
-	return AtomBaseRef(this, comp);
+	return AtomBasePtr(comp);
 }
 
 void Space::InitializeAtoms() {
-	for(auto& comp : atoms.GetValues())
-		InitializeAtom(*comp);
+	for(auto& it : atoms)
+		InitializeAtom(*it.atom);
 }
 
 void Space::InitializeAtom(AtomBase& comp) {
-	comp.SetParent(this);
+	TODO //comp.SetParent(this);
 }
 
 
 void Space::ClearAtoms() {
-	AtomStorePtr sys = GetMachine().Get<AtomStore>();
+	TODO
+	/*AtomStorePtr sys = GetMachine().Get<AtomStore>();
 	for (auto iter = atoms.rbegin(); iter; --iter)
 		sys->ReturnAtom(atoms.Detach(iter));
-	ASSERT(atoms.IsEmpty());
+	ASSERT(atoms.IsEmpty());*/
 }
 
 void Space::CopyTo(Space& l) const {
@@ -121,56 +117,61 @@ void Space::AppendCopy(const Space& l) {
 }
 
 void Space::Visit(Vis& vis) {
-	vis || atoms;
-	vis || spaces;
-	vis || states;
+	vis > atoms;
+	vis | spaces;
+	vis | states;
 }
 
 void Space::VisitSinks(Vis& vis) {
-	for(AtomBaseRef& c : atoms)
-		c->VisitSink(vis);
+	for(auto& it : atoms)
+		it.atom->VisitSink(vis);
 }
 
 void Space::VisitSources(Vis& vis){
-	for(AtomBaseRef& c : atoms)
-		c->VisitSource(vis);
+	for(auto& it : atoms)
+		it.atom->VisitSource(vis);
 }
 
 int Space::GetSpaceDepth() const {
 	int d = 0;
 	const Space* p = this;
-	while (1) {
+	TODO
+	/*while (1) {
 		p = p->GetParent();
 		if (!p) break;
 		++d;
-	}
+	}*/
 	return d;
 }
 
 bool Space::HasSpaceParent(SpacePtr pool) const {
 	const Space* p = this;
-	while (p) {
+	TODO
+	/*while (p) {
 		if (p == &*pool)
 			return true;
 		p = p->GetParent();
-	}
+	}*/
 	return false;
 }
 
 void Space::Initialize(Space& l, String prefab) {
-	uint64 ticks = GetMachine().GetTicks();
+	TODO/*uint64 ticks = GetMachine().GetTicks();
 	l.SetPrefab(prefab);
 	l.SetCreated(ticks);
-	l.SetChanged(ticks);
-	
+	l.SetChanged(ticks);*/
 }
 
 SpacePtr Space::CreateEmpty() {
+	TODO
+	#if 0
 	Space& l = spaces.Add();
-	l.SetParent(this);
+	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
-	return l;
+	return &l;
+	#endif
+	return 0;
 }
 
 void Space::Clear() {
@@ -185,39 +186,39 @@ void Space::Clear() {
 
 void Space::UnrefDeep() {
 	RefClearVisitor vis;
-	vis.Visit(*this);
+	Visit(vis);
 }
 
 void Space::UninitializeAtomsDeep() {
-	for (auto p = spaces.rpbegin(), end = spaces.rpend(); p != end; --p)
-		p->UninitializeAtomsDeep();
+	for (int i = spaces.GetCount()-1; i >= 0; i--)
+		spaces[i].UninitializeAtomsDeep();
 	
-	for (auto it = atoms.rpbegin(); it != atoms.rpend(); --it) {
-		it().UninitializeDeep();
-	}
+	for (int i = atoms.GetCount()-1; i >= 0; i--)
+		atoms[i].UninitializeDeep();
 	
 }
 
 void Space::StopDeep() {
-	for (auto it = spaces.rpbegin(); it != spaces.rpend(); --it) {
-		it().StopDeep();
-	}
+	for (int i = spaces.GetCount()-1; i >= 0; i--)
+		spaces[i].StopDeep();
 	
 	Stop();
 }
 
 void Space::Stop() {
-	for (auto it = atoms.rpbegin(); it != atoms.rpend(); --it) {
-		if (it->IsRunning()) {
-			it->Stop();
-			it->SetRunning(false);
+	for (int i = atoms.GetCount()-1; i >= 0; i--) {
+		auto& it = atoms[i];
+		if (it.IsRunning()) {
+			it.Stop();
+			it.SetRunning(false);
 		}
 	}
 }
 
 void Space::UnlinkDeep() {
-	for (auto it = spaces.rpbegin(); it != spaces.rpend(); --it) {
-		it().UnlinkDeep();
+	for (int i = atoms.GetCount()-1; i >= 0; i--) {
+		auto& it = atoms[i];
+		TODO //it.UnlinkDeep();
 	}
 	
 	UnlinkExchangePoints();
@@ -225,26 +226,27 @@ void Space::UnlinkDeep() {
 }
 
 void Space::ClearStatesDeep() {
-	for (auto p = spaces.pbegin(), end = spaces.pend(); p != end; ++p)
-		p->ClearStatesDeep();
+	for (auto& p : spaces)
+		p.ClearStatesDeep();
 	
 	states.Clear();
 }
 
 void Space::ClearAtomsDeep() {
-	for (auto p = spaces.pbegin(), end = spaces.pend(); p != end; ++p)
-		p->ClearAtomsDeep();
+	for (auto& p : spaces)
+		p.ClearAtomsDeep();
 	
-	AtomStore* sys = GetMachine().GetPtr<AtomStore>();
-	for (auto it = atoms.rpbegin(); it != atoms.rpend(); --it) {
+	TODO
+	/*AtomStore* sys = GetMachine().GetPtr<AtomStore>();
+	for (int i = atoms.GetCount()-1; i >= 0; i--) {
+		auto& it = atoms[i];
 		sys->ReturnAtom(atoms.Detach(it));
-	}
-	
+	}*/
 }
 
 void Space::ClearDeep() {
-	for (auto p = spaces.pbegin(), end = spaces.pend(); p != end; ++p)
-		p->ClearDeep();
+	for (auto& p : spaces)
+		p.ClearDeep();
 	spaces.Clear();
 	
 	atoms.Clear();
@@ -261,18 +263,18 @@ SpacePtr Space::GetAddEmpty(String name) {
 }
 
 SpacePtr Space::FindSpaceByName(String name) {
-	for (SpacePtr object : spaces)
-		if (object->GetName() == name)
-			return object;
+	for (Space& object : spaces)
+		if (object.GetName() == name)
+			return &object;
 	return SpacePtr();
 }
 
-AtomBasePtr Space::FindDeepCls(TypeCls type) {
+AtomBasePtr Space::FindDeepCls(AtomTypeCls type) {
 	AtomBasePtr b = FindAtom(type);
 	if (b)
 		return b;
-	for (SpacePtr object : spaces) {
-		b = object->FindDeepCls(type);
+	for (Space& object : spaces) {
+		b = object.FindDeepCls(type);
 		if (b)
 			return b;
 	}
@@ -291,24 +293,25 @@ String Space::GetTreeString(int indent) {
 	
 	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
 	
-	for (AtomBaseRef& a : atoms)
-		s << a->ToString();
+	for (auto& it : atoms)
+		s << it.atom->ToString();
 	
-	for (SpacePtr& l : spaces)
-		s << l->GetTreeString(indent+1);
+	for (Space& l : spaces)
+		s << l.GetTreeString(indent+1);
 	
 	return s;
 }
 
 EnvStatePtr Space::FindNearestState(String name) {
 	Space* l = this;
-	while (l) {
+	TODO
+	/*while (l) {
 		EnvStatePtr e = l->FindState(name);
 		if (e)
 			return e;
 		l = l->GetParent();
-	}
-	return EnvStateRef();
+	}*/
+	return EnvStatePtr();
 }
 
 EnvStatePtr Space::FindStateDeep(String name) {
@@ -316,27 +319,28 @@ EnvStatePtr Space::FindStateDeep(String name) {
 	if (e)
 		return e;
 	
-	for (SpacePtr& p : spaces) {
-		EnvStatePtr e = p->FindStateDeep(name);
+	for (Space& p : spaces) {
+		EnvStatePtr e = p.FindStateDeep(name);
 		if (e)
 			return e;
 	}
 	
-	return EnvStateRef();
+	return EnvStatePtr();
 }
 
 String Space::GetDeepName() const {
 	String s = name;
-	Space* l = GetParent();
+	TODO
+	/*Space* l = GetParent();
 	while (l) {
 		s = l->name + "." + s;
 		l = l->GetParent();
-	}
+	}*/
 	return s;
 }
 
 void Space::UnlinkExchangePoints() {
-	for (ExchangePointRef& pt : pts) {
+	for (ExchangePointPtr& pt : pts) {
 		pt->Source()	->ClearLink();
 		pt->Sink()		->ClearLink();
 		pt->Clear();
@@ -345,7 +349,7 @@ void Space::UnlinkExchangePoints() {
 }
 
 
-
+#if 0
 bool SpaceHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) {
 	if (derived == AsTypeCls<Space>()) {
 		Space& e = *(Space*)mem;
@@ -359,6 +363,7 @@ bool SpaceHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* de
 	}
 	return true;
 }
+#endif
 
 
 

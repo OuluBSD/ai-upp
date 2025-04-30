@@ -2,12 +2,16 @@ description "\377B85,42,0";
 
 uses
 	AICore,
-	Geometry;
+	Geometry,
+	Esc;
 
 file
 	Eon.h,
 	Defs.h,
+	Fn.h,
 	Container.h,
+	CtrlEvent.h,
+	CtrlEvent.cpp,
 	Debugging.h,
 	Debugging.cpp,
 	WorldState.h,
@@ -39,6 +43,7 @@ file
 	FwdTypes.cpp,
 	Link.h,
 	Link.cpp,
+	LinkFwd.cpp,
 	LinkUtil.h,
 	LinkUtil.cpp,
 	LinkBase.h,
@@ -55,6 +60,7 @@ file
 	BaseAudio.cpp,
 	BaseVideo.h,
 	BaseVideo.cpp,
+	Audio.h,
 	Audio.cpp,
 	PacketTracker.h,
 	PacketTracker.cpp,

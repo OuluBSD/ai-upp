@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-AudioGenBase::AudioGenBase() {
+AudioGenBase::AudioGenBase(MetaNode& n) : Atom(n) {
 	fmt.SetAudio(DevCls::CENTER, SoundSample::U8_LE, 2, 44100, 777);
 	if (1)
 		gen.GenerateNoise(fmt);
@@ -64,7 +64,7 @@ bool AudioGenBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 
 
 
-AudioMixerBase::AudioMixerBase() {
+AudioMixerBase::AudioMixerBase(MetaNode& n) : Atom(n) {
 	
 }
 

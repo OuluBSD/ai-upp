@@ -1,10 +1,5 @@
-#ifndef _Local_LinkedList_h_
-#define _Local_LinkedList_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
-
+#ifndef _Eon_Fn_h_
+#define _Eon_Fn_h_
 
 
 template <class T>
@@ -31,8 +26,5 @@ void EndianSwapT(T& o) {
 	}
 }
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

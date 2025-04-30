@@ -16,12 +16,12 @@ Atom* LinkBase::GetAtom() {
 	return atom;
 }
 
-Machine& LinkBase::GetMachine() {
+/*Machine& LinkBase::GetMachine() {
 	return atom->GetMachine();
-}
+}*/
 
 String LinkBase::ToString() const {
-	return GetDynamicName();
+	TODO return "";//return GetDynamicName();
 }
 
 AtomTypeCls LinkBase::GetAtomType() const {
@@ -29,7 +29,7 @@ AtomTypeCls LinkBase::GetAtomType() const {
 }
 
 LinkTypeCls LinkBase::GetLinkType() const {
-	TODO
+	TODO return LinkTypeCls();
 }
 
 ISourcePtr LinkBase::GetSource() {
@@ -41,11 +41,11 @@ ISinkPtr LinkBase::GetSink() {
 }
 
 void LinkBase::AddLinkToUpdateList() {
-	LinkBase::GetMachine().template Get<LinkSystem>()->AddUpdated(LinkBase::AsRefT());
+	TODO//LinkBase::GetMachine().template Get<LinkSystem>()->AddUpdated(LinkBase::AsRefT());
 }
 
 void LinkBase::RemoveLinkFromUpdateList() {
-	LinkBase::GetMachine().template Get<LinkSystem>()->RemoveUpdated(LinkBase::AsRefT());
+	TODO//LinkBase::GetMachine().template Get<LinkSystem>()->RemoveUpdated(LinkBase::AsRefT());
 }
 
 int LinkBase::GetId() const {
@@ -215,7 +215,7 @@ bool LinkBase::LinkSideSink(LinkBasePtr sink, int local_ch_i, int other_ch_i) {
 	
 	AtomTypeCls type = sink->GetAtomType();
 	ASSERT(type.IsRolePipe());
-	if (PassLinkSideSink(sink) && sink->PassLinkSideSource(AsRefT())) {
+	if (PassLinkSideSink(sink) && sink->PassLinkSideSource(this)) {
 		RTLOG("LinkBase::LinkSideSink: local " << local_ch_i << " other " << other_ch_i << ": " << GetLinkType().ToString());
 		
 		{
@@ -227,7 +227,7 @@ bool LinkBase::LinkSideSink(LinkBasePtr sink, int local_ch_i, int other_ch_i) {
 		
 		{
 			Exchange& ex = sink->side_src_conn.Add();
-			ex.other = AsRefT();
+			ex.other = this;
 			ex.local_ch_i = other_ch_i;
 			ex.other_ch_i = local_ch_i;
 		}

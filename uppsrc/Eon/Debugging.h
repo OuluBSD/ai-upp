@@ -98,7 +98,6 @@ class RuntimeDiagnosticVisitor : public RuntimeVisitor {
 	void RecursiveUnfocus(Scope& s);
 	
 public:
-	RTTI_DECL1(RuntimeDiagnosticVisitor, RuntimeVisitor)
 	bool IsEmpty() const {return root.var.mem == 0;}
 	void Clear();
 	void Dump();
@@ -164,7 +163,6 @@ class RefDebugVisitor : public RuntimeVisitor {
 	
 public:
 	typedef RefDebugVisitor CLASSNAME;
-	RTTI_DECL1(RefDebugVisitor, RuntimeVisitor)
 	RefDebugVisitor() {}
 	~RefDebugVisitor() {Clear();}
 	
@@ -191,5 +189,16 @@ template <class T> void DumpRuntimeDiagnostics(T* o) {
 	vis.Dump();
 }
 #endif
+
+
+class RefClearVisitor : public Visitor {
+	
+public:
+	RefClearVisitor() : Visitor(nullptr) {
+		TODO //SetClearRefs();
+	}
+	
+};
+
 
 #endif

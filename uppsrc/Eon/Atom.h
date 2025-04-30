@@ -98,7 +98,7 @@ public:
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);
 	
-	Machine&				GetMachine();
+	//Machine&				GetMachine();
 	void					UninitializeDeep();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
@@ -110,6 +110,8 @@ public:
 	AtomBase(MetaNode& n);
 	virtual ~AtomBase();
 	
+	template <class T> T* GetSourceT() {return dynamic_cast<T*>(&*this->GetSource());}
+	template <class T> T* GetSinkT()   {return dynamic_cast<T*>(&*this->GetSink());}
 	
 	Space*			GetSpace();
 	//Space&			GetParent();
@@ -120,16 +122,16 @@ public:
 	
 	template <class S, class R>
 	void AddToSystem(R ref) {
-		Ptr<S> sys = GetMachine().Get<S>();
+		TODO/*Ptr<S> sys = GetMachine().Get<S>();
 		if (sys)
-			sys->Add(ref);
+			sys->Add(ref);*/
 	}
 	
 	template <class S, class R>
 	void RemoveFromSystem(R ref) {
-		Ptr<S> sys = GetMachine().Get<S>();
+		TODO/*Ptr<S> sys = GetMachine().Get<S>();
 		if (sys)
-			sys->Remove(ref);
+			sys->Remove(ref);*/
 	}
 	
 	template <class ValDevSpec, class T> bool LinkManually(T& o, String* err_msg=0);
@@ -150,6 +152,8 @@ public:
 	using SinkT = DefaultInterfaceSink;
 	using SourceT = DefaultInterfaceSource;
 	
+	
+	Atom(MetaNode& n) : AtomBase(n) {}
 	
 	bool InitializeAtom(const WorldState& ws) override {
 		return SinkT::Initialize() && SourceT::Initialize();
@@ -236,6 +240,9 @@ public:
 	
 	void Dump();
 	bool IsEmpty() const {return atoms.IsEmpty();}
+	int GetCount() const {return atoms.GetCount();}
+	AtomBase& operator[](int i) {return *atoms[i].atom;}
+	void Clear() {atoms.Clear();}
 	Iterator begin() {return atoms.begin();}
 	Iterator end() {return atoms.end();}
 	

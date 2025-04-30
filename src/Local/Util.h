@@ -491,43 +491,6 @@ public:
 
 
 
-struct InternalPacketData : RTTIBase {
-	RTTI_DECL0(InternalPacketData)
-	
-	void*	ptr;
-	
-	union {
-		double	dbl;
-		int64	i64;
-		int64	pos;
-		char	txt[8];
-	};
-	
-	union {
-		int32	i32;
-		uint32	u32;
-		uint32	count;
-	};
-	
-	
-	int GetTextLength() const			{return (int)strnlen(txt, 8);}
-	String GetText() const				{return String(txt, GetTextLength());}
-	#ifdef COMPILER_MSC
-	void SetText(const char* s)			{
-		for(int i = 0; i < 8; i++) {
-			txt[i] = s[i];
-			if (!s[i])
-				break;
-		}
-	}
-	#else
-	void SetText(const char* s)			{strncpy(txt, s, 8);}
-	#endif
-	bool IsText(const char* s) const	{return strncmp(txt, s, 8) == 0;}
-	
-	//void ClearLinks() {dev_comp = 0;}
-};
-
 
 
 // Converts a length in device-independent pixels (DIPs) to a length in physical pixels.

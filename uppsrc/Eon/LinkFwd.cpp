@@ -1,7 +1,7 @@
-#include "SerialMach.h"
+#include "Eon.h"
 
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
 
 
 void LinkBase::ForwardAtom(FwdScope& fwd) {
@@ -31,8 +31,8 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 	
 	Forward(fwd);
 	
-	InterfaceSinkRef sink_iface = GetSink();
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSinkPtr sink_iface = GetSink();
+	InterfaceSourcePtr src_iface = GetSource();
 	int sink_ch_count = sink_iface->GetSinkCount();
 	int src_ch_count = src_iface->GetSourceCount();
 	ASSERT(src_ch_count);
@@ -72,14 +72,14 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 		// Set some channels directly (only primary channel currently)
 		for (int src_ch = 0; src_ch < 1; src_ch++) {
 			PacketIO::Source& iface = io.srcs[src_ch];
-			iface.val = &src_iface->GetSourceValue(src_ch);
+			iface.val = dynamic_cast<ValueBase*>(&src_iface->GetSourceValue(src_ch));
 		}
 		// Set side channels using far link
 		for (Exchange& ex : side_sink_conn) {
 			ASSERT(ex.local_ch_i > 0 && ex.local_ch_i < io.srcs.GetCount());
 			PacketIO::Source& iface = io.srcs[ex.local_ch_i];
-			InterfaceSinkRef sink_iface = ex.other->GetSink();
-			iface.val = &sink_iface->GetValue(ex.other_ch_i);
+			InterfaceSinkPtr sink_iface = ex.other->GetSink();
+			iface.val = dynamic_cast<ValueBase*>(&sink_iface->GetValue(ex.other_ch_i));
 		}
 		// Make src full mask
 		io.full_src_mask = 0;
@@ -105,7 +105,7 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 			PacketIO::Sink& iface = io.sinks[sink_ch];
 			if (!iface.filled)
 				continue;
-			Value& sink_value = sink_iface->GetValue(sink_ch);
+			ValueBase& sink_value = sink_iface->GetValue(sink_ch);
 			PacketBuffer& sink_buf = sink_value.GetBuffer();
 			ASSERT(!sink_buf.IsEmpty());
 			iface.val = &sink_value;
@@ -149,7 +149,7 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 				iter_forwarded = true;
 				
 				ASSERT(iface.from_sink_ch >= 0);
-				Value& src_val = src_iface->GetSourceValue(src_ch);
+				ValueBase& src_val = src_iface->GetSourceValue(src_ch);
 				RTLOG("LinkBase::ForwardPipe: packet from sink #" << iface.from_sink_ch << " to #" << src_ch << " src_val=" << HexStr(&src_val) << " sink_val=" << HexStr(iface.val));
 				ASSERT(!src_val.IsQueueFull());
 				
@@ -188,47 +188,49 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 }
 
 void LinkBase::PostContinueForward() {
-	if (last_cfg)
-		GetMachine().Get<LinkSystem>()->AddOnce(*this, *last_cfg);
+	TODO
+	//if (last_cfg)
+	//	GetMachine().Get<LinkSystem>()->AddOnce(*this, *last_cfg);
 }
 
 void LinkBase::ForwardExchange(FwdScope& fwd) {
 	ExchangeSourceProvider* src = CastPtr<ExchangeSourceProvider>(atom);
 	ASSERT(src);
-	ExchangePointRef expt = src->GetExPt();
+	ExchangePointPtr expt = src->GetExPt();
 	if (expt) {
 		fwd.AddNext(*expt);
 	}
 }
 
 String LinkBase::GetSecondaryName() {
-	return atom ? atom->GetDynamicName() : "";
+	return atom ? atom->GetType().ToString() : "";
 }
 
 void* LinkBase::GetSecondaryPtr() {
-	return atom ? &atom->GetRTTI() : 0;
+	TODO //&std::type_info -> return atom ? &atom->GetRTTI() : 0;
+	return 0;
 }
 
 bool LinkBase::IsPacketStuck() {
 	AtomTypeCls type = GetAtomType();
-	InterfaceSinkRef sink_iface = GetSink();
+	InterfaceSinkPtr sink_iface = GetSink();
 	int sink_c = sink_iface->GetSinkCount();
 	for(int i = 0; i < sink_c; i++) {
 		if (type.iface.sink[i].is_opt)
 			continue;
-		Value& val = sink_iface->GetValue(i);
+		ValueBase& val = sink_iface->GetValue(i);
 		if (val.GetQueueSize() == 0) {
 			RTLOG("LinkBase::IsPacketStuck: true: sink #" << i << " empty");
 			return true;
 		}
 	}
 	
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSourcePtr src_iface = GetSource();
 	int src_c = src_iface->GetSourceCount();
 	for(int i = 0; i < src_c; i++) {
 		if (type.iface.src[i].is_opt)
 			continue;
-		Value& val = src_iface->GetSourceValue(i);
+		ValueBase& val = src_iface->GetSourceValue(i);
 		if (val.IsQueueFull()) {
 			RTLOG("LinkBase::IsPacketStuck: true: src #" << i << " full");
 			return true;
@@ -239,7 +241,7 @@ bool LinkBase::IsPacketStuck() {
 }
 
 int LinkBase::GetSinkPacketCount() {
-	InterfaceSinkRef sink_iface = GetSink();
+	InterfaceSinkPtr sink_iface = GetSink();
 	int sink_count = sink_iface->GetSinkCount();
 	int c = 0;
 	for(int i = 0; i < sink_count; i++)
@@ -248,7 +250,7 @@ int LinkBase::GetSinkPacketCount() {
 }
 
 int LinkBase::GetSourcePacketCount() {
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSourcePtr src_iface = GetSource();
 	int src_count = src_iface->GetSourceCount();
 	int c = 0;
 	for(int i = 0; i < src_count; i++)
@@ -269,8 +271,8 @@ bool LinkBase::IsAllSideSourcesFull(const Vector<int>& src_chs) {
 					break;
 			}
 			if (src_ch == ex.local_ch_i) {
-				InterfaceSinkRef sink_iface = ex.other->GetSink();
-				Value& sink_val = sink_iface->GetValue(ex.other_ch_i);
+				InterfaceSinkPtr sink_iface = ex.other->GetSink();
+				ValueBase& sink_val = sink_iface->GetValue(ex.other_ch_i);
 				if (!sink_val.IsQueueFull())
 					return false;
 				if (++it == end)
@@ -294,8 +296,8 @@ bool LinkBase::IsAnySideSourceFull(const Vector<int>& src_chs) {
 					break;
 			}
 			if (src_ch == ex.local_ch_i) {
-				InterfaceSinkRef sink_iface = ex.other->GetSink();
-				Value& sink_val = sink_iface->GetValue(ex.other_ch_i);
+				InterfaceSinkPtr sink_iface = ex.other->GetSink();
+				ValueBase& sink_val = sink_iface->GetValue(ex.other_ch_i);
 				if (sink_val.IsQueueFull())
 					return true;
 				if (++it == end)
@@ -307,35 +309,35 @@ bool LinkBase::IsAnySideSourceFull(const Vector<int>& src_chs) {
 }
 
 bool LinkBase::IsPrimarySourceFull() {
-	InterfaceSourceRef src_iface = GetSource();
-	Value& src_val = src_iface->GetSourceValue(0);
+	InterfaceSourcePtr src_iface = GetSource();
+	ValueBase& src_val = src_iface->GetSourceValue(0);
 	return src_val.IsQueueFull();
 }
 
 void LinkBase::ForwardSideConnections() {
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSourcePtr src_iface = GetSource();
 	
 	for (Exchange& ex : side_sink_conn) {
 		ASSERT(ex.local_ch_i > 0 && ex.other_ch_i > 0);
-		Value& src_val = src_iface->GetSourceValue(ex.local_ch_i);
+		ValueBase& src_val = src_iface->GetSourceValue(ex.local_ch_i);
 		PacketBuffer& src_buf = src_val.GetBuffer();
 		src_buf.EnterWrite();
 		if (src_buf.GetCount()) {
-			InterfaceSinkRef sink_iface = ex.other->GetSink();
-			Value& sink_val = sink_iface->GetValue(ex.other_ch_i);
+			InterfaceSinkPtr sink_iface = ex.other->GetSink();
+			ValueBase& sink_val = sink_iface->GetValue(ex.other_ch_i);
 			RTLOG("LinkBase::ForwardSideConnections: #" << ex.local_ch_i << " src_val=" << HexStr(&src_val) << " sink_val=" << HexStr(&sink_val));
 			if (sink_val.IsQueueFull())
 				Panic("internal error: Atom sent packet to already full source interface. Improve custom atom IsReady function to prevent this.");
 			PacketBuffer& sink_buf = sink_val.GetBuffer();
 			
 			#if 1
-			Format sink_fmt = sink_val.GetFormat();
+			ValueFormat sink_fmt = sink_val.GetFormat();
 			while (src_buf.GetCount()) {
 				Packet p = src_buf.First();
 				src_buf.RemoveFirst();
 				Packet to_p;
 				
-				Format in_fmt = p->GetFormat();
+				ValueFormat in_fmt = p->GetFormat();
 				if (sink_fmt.IsCopyCompatible(in_fmt)) {
 					to_p = p;
 				}
@@ -369,5 +371,4 @@ void LinkBase::ForwardSideConnections() {
 }
 
 
-
-NAMESPACE_SERIAL_END
+END_UPP_NAMESPACE

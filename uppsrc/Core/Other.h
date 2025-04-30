@@ -335,9 +335,9 @@ struct ManagedStatic {
 	void Clear() {o.Clear();}
 };
 
-template <class T> ManagedStatic<T>::ManagedStatic(const char* f, int l) : file(f), line(l) {}
+template <class T> ManagedStatic<T>::ManagedStatic(const char* f, int l) : file(f), line(l) {CallInExitBlock([this]{this->Destruct();});}
 template <class T> template <class Arg>
-ManagedStatic<T>::ManagedStatic(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {}
+ManagedStatic<T>::ManagedStatic(const char* f, int l, const Arg& value) : file(f), line(l), o(value) {CallInExitBlock([this]{this->Destruct();});}
 
 template <class T>
 struct ManagedStaticThreadLocal {

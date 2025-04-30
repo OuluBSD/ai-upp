@@ -866,18 +866,21 @@ String GetProgramDataFolder() { return String("/var/opt"); }
 #endif
 
 
-Vector<Callback> __exit_cbs;
-
-EXITBLOCK {
-	for (Callback& cb : __exit_cbs)
-		cb();
-	__exit_cbs.Clear();
+Vector<Event<>>& __ExitEvents() {
+	static Vector<Event<>> v;
+	return v;
 }
 
-void CallInExitBlock(Callback cb) {
+EXITBLOCK {
+	for (Event<>& cb : __ExitEvents())
+		cb();
+	__ExitEvents().Clear();
+}
+
+void CallInExitBlock(Event<> cb) {
 	static StaticMutex m;
 	m.Enter();
-	__exit_cbs << cb;
+	__ExitEvents().Add(cb);
 	m.Leave();
 }
 

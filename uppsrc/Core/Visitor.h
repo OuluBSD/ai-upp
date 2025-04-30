@@ -529,7 +529,7 @@ struct Visitor {
 	
 	template <class T>
 	Visitor& operator|(T& o) {
-		if (o) {
+		if (!o.IsEmpty()) {
 			TODO // runtime-visit a vector
 		}
 		return *this;

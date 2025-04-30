@@ -46,7 +46,7 @@
 */
 
 
-#include "portaudio.h"  /* for PaSampleFormat */
+#include "../portaudio.h"  /* for PaSampleFormat */
 
 #ifdef __cplusplus
 extern "C"

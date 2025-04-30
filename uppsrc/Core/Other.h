@@ -482,7 +482,7 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 	hash_t GetHashValue() const {return this->hash_code();}
 };
 
-template <class T> TypeCls GetTypeCls() {return std::type_index(T);}
+template <class T> TypeCls AsTypeCls() {return typeid(T);}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 
 #include "Other.hpp"

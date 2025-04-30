@@ -49,6 +49,22 @@ inline int     DblInt(double d)        { return IsNull(d) ? int(Null) : fround(d
 inline String  HexStr(int i)           { return Format("%X",i); }
 inline String  HexStr64(int64 i)       { return Format("%X",i); }
 
+template<class T>
+String BinStr(const T& o, const char* chrs=".|") {
+	String s;
+	int bytes = sizeof(T);
+	const byte* b = (const byte*)&o;
+	b += bytes-1;
+	for(int i = bytes-1; i >= 0; i--) {
+		for(int j = 7; j >= 0; j--) {
+			bool bit = *b & (1 << j);
+			s.Cat(chrs[bit ? 1 : 0]);
+		}
+		b--;
+	}
+	return s;
+}
+
 Value          StrDblValue(const char* s);
 Value          StrFltValue(const char* s);
 

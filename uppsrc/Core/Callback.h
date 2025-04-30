@@ -152,4 +152,4 @@ public:
 template <class T>
 using CallbackArgTarget = CallbackNArgTarget<T>;
 
-void CallInExitBlock(Callback cb);
+void CallInExitBlock(Event<> cb);

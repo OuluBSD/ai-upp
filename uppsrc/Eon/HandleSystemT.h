@@ -68,7 +68,7 @@ public:
 
 #if IS_UPP_CORE
 using WindowSystem = HandleSystemT<CtxUpp2D>;
-using WindowSystemRef = Ref<WindowSystem>;
+using WindowSystemPtr = Ptr<WindowSystem>;
 #endif
 
 

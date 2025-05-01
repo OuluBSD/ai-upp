@@ -10,7 +10,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 	const AppFlags& flags = GetAppFlags();
 	Machine& mach = GetActiveMachine();
 	
-	RegistrySystemRef reg = mach.Add<RegistrySystem>();
+	RegistrySystemPtr reg = mach.Add<RegistrySystem>();
 	
 	mach.Add<AtomStore>();
 	mach.Add<LinkStore>();

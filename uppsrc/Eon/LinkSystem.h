@@ -44,14 +44,14 @@ protected:
     
     
 public:
-    void AddUpdated(LinkBaseRef p);
-    void AddCustomer(LinkBaseRef p);
-    void AddDriver(LinkBaseRef p);
-    void AddPolling(LinkBaseRef p);
-    void RemoveUpdated(LinkBaseRef p);
-    void RemoveCustomer(LinkBaseRef p);
-    void RemoveDriver(LinkBaseRef p);
-    void RemovePolling(LinkBaseRef p);
+    void AddUpdated(LinkBasePtr p);
+    void AddCustomer(LinkBasePtr p);
+    void AddDriver(LinkBasePtr p);
+    void AddPolling(LinkBasePtr p);
+    void RemoveUpdated(LinkBasePtr p);
+    void RemoveCustomer(LinkBasePtr p);
+    void RemoveDriver(LinkBasePtr p);
+    void RemovePolling(LinkBasePtr p);
     
     String GetDebugPacketString(LinkBaseRef& c, RealtimeSourceConfig* cfg);
     

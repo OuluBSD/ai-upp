@@ -23,6 +23,7 @@ NAMESPACE_UPP
 #include "Exchange.h"
 #include "PacketBuffer.h"
 #include "Util.h"
+#include "Verifier.h"
 #include "Machine.h"
 #include "DefaultFormat.h"
 #include "Realtime.h"
@@ -34,6 +35,7 @@ NAMESPACE_UPP
 #include "Factory.h"
 #include "AtomStore.h"
 #include "AtomSystem.h"
+#include "AtomDebug.h"
 #include "FwdTypes.h"
 #include "Link.h"
 #include "LinkUtil.h"
@@ -57,7 +59,6 @@ NAMESPACE_UPP
 #include "Rendering.h"
 #include "ModelCache.h"
 
-// unordered
 #include "ToyLoader.h"
 #include "Def.h"
 #include "Loader.h"

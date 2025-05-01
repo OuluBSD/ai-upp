@@ -99,7 +99,7 @@ public:
 		for (AtomBasePtr& a : atoms.GetValues()) {
 			T* o = CastPtr<T>(&*a);
 			if (o)
-				return o->template AsRef<T>();
+				return o->template AsPtr<T>();
 		}
 		return 0;
 	}

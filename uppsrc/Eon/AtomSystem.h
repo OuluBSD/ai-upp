@@ -33,8 +33,8 @@ protected:
     
 public:
 	
-    void AddUpdated(AtomBaseRef p);
-    void RemoveUpdated(AtomBaseRef p);
+    void AddUpdated(AtomBasePtr p);
+    void RemoveUpdated(AtomBasePtr p);
 	
 	
 	

@@ -665,7 +665,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							}
 							if (key.GetCount()) {
 								if (a1->src == SEMT_CONSTANT) {
-									a1->CopyToObject(cand.req_args.GetAdd(key));
+									a1->CopyToValue(cand.req_args.GetAdd(key));
 									succ = true;
 								}
 								else if (a1->src == SEMT_UNRESOLVED) {
@@ -867,8 +867,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						if (key->src == SEMT_UNRESOLVED && key->str.GetCount()) {
 							String key_str = key->str;
 							if (value->src == SEMT_CONSTANT) {
-								Object val_obj;
-								value->CopyToObject(val_obj);
+								Value val_obj;
+								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -877,7 +877,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 								succ = true;
 							}
 							else if (value->src == SEMT_EXPR) {
-								Object val_obj = EvaluateAstNodeObject(*value);
+								Value val_obj = EvaluateAstNodeValue(*value);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -889,8 +889,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						else if (key->src == SEMT_VARIABLE) {
 							String key_str = key->name;
 							if (value->src == SEMT_CONSTANT) {
-								Object val_obj;
-								value->CopyToObject(val_obj);
+								Value val_obj;
+								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}

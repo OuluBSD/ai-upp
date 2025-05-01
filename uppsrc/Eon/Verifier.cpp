@@ -1,4 +1,4 @@
-#include "AtomDebug.h"
+#include "Eon.h"
 
 
 #if 0
@@ -8,7 +8,7 @@
 #endif
 
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
 
 
 MachineVerifier* __latest_mver;
@@ -93,7 +93,7 @@ void MachineVerifier::SetDefaultExpected() {
 	scope.AddEnter(UPDATE);
 }
 
-VerifierSystem& MachineVerifier::AddSystem(TypeCls t, SerialTypeCls et) {
+VerifierSystem& MachineVerifier::AddSystem(TypeCls t, ParallelTypeCls et) {
 	VerifierSystem& sys = this->sys.Add();
 	sys.type = t;
 	sys.ecs_type = et;
@@ -584,11 +584,11 @@ bool MachineVerifier::LoopLoaderData::MayCreateAtoms() const {
 
 
 
-void VerifierAtom::SetSourceFormat(Format fmt) {
+void VerifierAtom::SetSourceFormat(ValueFormat fmt) {
 	src_fmt = fmt;
 }
 
-void VerifierAtom::SetSinkFormat(Format fmt) {
+void VerifierAtom::SetSinkFormat(ValueFormat fmt) {
 	sink_fmt = fmt;
 }
 
@@ -605,10 +605,11 @@ void VerifierAtom::LinkTo(VerifierAtom& comp) {
 
 
 
-VerifierAtom& VerifierEntity::AddAtomWith(SerialTypeCls t) {
+VerifierAtom& VerifierEntity::AddAtomWith(ParallelTypeCls t) {
 	VerifierAtom& e = ext.Add();
 	e.type = t;
 	return e;
 }
 
-NAMESPACE_SERIAL_END
+
+END_UPP_NAMESPACE

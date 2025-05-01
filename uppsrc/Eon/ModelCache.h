@@ -23,14 +23,14 @@ public:
     SYS_CTOR(ModelCache)
 	SYS_DEF_VISIT
 	
-	ModelRef Attach(Model* mdl);
-	ModelRef GetAddModelFile(String path);
+	ModelPtr Attach(Model* mdl);
+	ModelPtr GetAddModelFile(String path);
 	
 	//void CalibrationEvent(CtrlEvent& ev);
 	
 };
 
-using ModelCacheRef = Ref<ModelCache>;
+using ModelCachePtr = Ptr<ModelCache>;
 
 
 #endif

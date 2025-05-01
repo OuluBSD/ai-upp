@@ -332,7 +332,7 @@ public:
 	
 };
 
-using ScriptLoaderPtr = Ref<ScriptLoader, SerialSystemParent>;
+using ScriptLoaderPtr = Ptr<ScriptLoader, SerialSystemParent>;
 
 
 }

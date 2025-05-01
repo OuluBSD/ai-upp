@@ -10,17 +10,17 @@ ToyLoader::ToyLoader() {
 const ValueMap* ToyLoader::GetStageMap(int i, Value& o) {
 	#define TOY_ASSERT(x) if (!(x)) {return 0;}
 	TOY_ASSERT(o.IsMap());
-	const ValueMap& map = o.Get<ObjectMap>();
+	const ValueMap& map = o.Get<ValueMap>();
 	TOY_ASSERT(map.Find("stages") >= 0);
 	const Value& stages_o = map.Get("stages");
 	TOY_ASSERT(stages_o.IsArray());
-	const ValueArray& stages = stages_o.Get<ObjectArray>();
-	LOG(GetObjectTreeString(stages_o));
+	const ValueArray& stages = stages_o.Get<ValueArray>();
+	LOG(GetValueTreeString(stages_o));
 	int stage_count = stages.GetCount();
 	TOY_ASSERT(i >= 0 && i < stage_count)
 	const Value& stage = stages[i];
 	TOY_ASSERT(stage.IsMap());
-	const ValueMap& stage_map = stage.Get<ObjectMap>();
+	const ValueMap& stage_map = stage.Get<ValueMap>();
 	return &stage_map;
 	#undef TOY_ASSERT
 }
@@ -38,22 +38,22 @@ String ToyLoader::GetStagePath(int i, Value& o) {
 	String stage_str = "stage" + IntStr(i);
 	#define TOY_ASSERT(x) if (!(x)) {return String();}
 	TOY_ASSERT(o.IsMap());
-	const ValueMap& map = o.Get<ObjectMap>();
+	const ValueMap& map = o.Get<ValueMap>();
 	TOY_ASSERT(map.Find(stage_str + "_path") >= 0);
 	return map.Get(stage_str + "_path");;
 	#undef TOY_ASSERT
 }
 
 bool ToyLoader::Load(Value& o) {
-	LOG(GetObjectTreeString(o));
+	LOG(GetValueTreeString(o));
 	#define TOY_ASSERT(x) if (!(x)) {LOG("ToyLoader::Load: error: assertion failed (" #x ")"); return false;}
 	TOY_ASSERT(o.IsMap());
-	const ValueMap& map = o.Get<ObjectMap>();
+	const ValueMap& map = o.Get<ValueMap>();
 	TOY_ASSERT(map.Find("stages") >= 0);
 	const Value& stages_o = map.Get("stages");
 	TOY_ASSERT(stages_o.IsArray());
-	const ValueArray& stages = stages_o.Get<ObjectArray>();
-	LOG(GetObjectTreeString(stages_o));
+	const ValueArray& stages = stages_o.Get<ValueArray>();
+	LOG(GetValueTreeString(stages_o));
 	int stage_count = stages.GetCount();
 	
 	
@@ -64,18 +64,18 @@ bool ToyLoader::Load(Value& o) {
 		const Value& stage = stages[i];
 		TOY_ASSERT(stage.IsMap());
 		
-		const ValueMap& stage_map = stage.Get<ObjectMap>();
+		const ValueMap& stage_map = stage.Get<ValueMap>();
 		TOY_ASSERT(stage_map.Find("type") >= 0);
 		const Value& type_o = stage_map.Get("type");
 		
 		const Value& outputs = stage_map.Get("outputs");
 		TOY_ASSERT(outputs.IsArray());
-		const ValueArray& output_arr = outputs.Get<ObjectArray>();
+		const ValueArray& output_arr = outputs.Get<ValueArray>();
 		TOY_ASSERT(!output_arr.IsEmpty());
 		
 		const Value& inputs = stage_map.Get("inputs");
 		TOY_ASSERT(inputs.IsArray());
-		const ValueArray& input_arr = inputs.Get<ObjectArray>();
+		const ValueArray& input_arr = inputs.Get<ValueArray>();
 		
 		String type_str = type_o.ToString();
 		String stage_str = "stage" + IntStr(i);
@@ -86,7 +86,7 @@ bool ToyLoader::Load(Value& o) {
 		
 		const Value& output = output_arr[0];
 		ASSERT(output.IsMap());
-		const ValueMap& output_map = output.Get<ObjectMap>();
+		const ValueMap& output_map = output.Get<ValueMap>();
 		TOY_ASSERT(output_map.Find("id") >= 0);
 		String output_id_str = output_map.Get("id").ToString();
 		
@@ -101,7 +101,7 @@ bool ToyLoader::Load(Value& o) {
 			ToyInput& to_in = to.inputs[j];
 			const Value& in = input_arr[j];
 			TOY_ASSERT(in.IsMap());
-			const ValueMap& in_map = in.Get<ObjectMap>();
+			const ValueMap& in_map = in.Get<ValueMap>();
 			
 			if (in_map.Find("id") < 0)
 				continue;

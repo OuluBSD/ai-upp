@@ -18,7 +18,7 @@ public:
 	SYS_CTOR_(LoopStore) {InitRoot();}
 	SYS_DEF_VISIT_(vis || root)
 	
-	LoopRef GetRoot() {
+	LoopPtr GetRoot() {
 		if (root.IsEmpty())
 			return LoopRef();
 		Loop& l = root.GetFirst();
@@ -37,7 +37,7 @@ protected:
 	
 };
 
-using LoopStoreRef = Ref<LoopStore>;
+using LoopStorePtr = Ptr<LoopStore>;
 
 
 #endif

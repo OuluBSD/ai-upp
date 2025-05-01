@@ -35,12 +35,12 @@ void AtomSystem::Uninitialize() {
 	updated.Clear();
 }
 
-void AtomSystem::AddUpdated(AtomBaseRef p) {
+void AtomSystem::AddUpdated(AtomBasePtr p) {
 	if (p)
 		updated.FindAdd(p);
 }
 
-void AtomSystem::RemoveUpdated(AtomBaseRef p) {
+void AtomSystem::RemoveUpdated(AtomBasePtr p) {
 	updated.RemoveKey(p);
 }
 

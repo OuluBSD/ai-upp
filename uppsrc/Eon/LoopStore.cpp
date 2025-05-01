@@ -11,7 +11,7 @@ void LoopStore::InitRoot() {
 	p.SetName("root");
 	p.SetId(Loop::GetNextId());
 	
-	Ref<SpaceStore> ss = GetMachine().Find<SpaceStore>();
+	Ptr<SpaceStore> ss = GetMachine().Find<SpaceStore>();
 	if (ss) {
 		p.space = &*ss->GetRoot();
 	}

@@ -3,7 +3,7 @@
 
 
 class RegistrySystem : public System<RegistrySystem> {
-	ObjectMap reg;
+	ValueMap reg;
 	
 	
 protected:
@@ -18,8 +18,8 @@ public:
     SYS_CTOR(RegistrySystem)
 	SYS_DEF_VISIT
 	
-	void Set(String key, Object value) {reg.GetAdd(key) = value;}
-	Object Get(String key) {int i = reg.Find(key); return i >= 0 ? reg[i] : Object();}
+	void Set(String key, Value value) {reg.GetAdd(key) = value;}
+	Value Get(String key) {int i = reg.Find(key); return i >= 0 ? reg[i] : Value();}
 	
 	
 	void SetAppName(String name) {Set("app.name", name);}
@@ -31,7 +31,7 @@ public:
 	
 };
 
-using RegistrySystemRef = Ref<RegistrySystem>;
+using RegistrySystemPtr = Ptr<RegistrySystem>;
 
 
 #endif

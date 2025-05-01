@@ -12,7 +12,7 @@ bool IsShellMode(ShellMode m);
 
 
 void DefaultStartup();
-void DefaultRunner(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Object>* extra_args=0, const char* extra_str=0);
+void DefaultRunner(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
 void DefaultRunnerStop();
 bool DefaultInitializer(bool skip_eon_file);
 void DefaultSerialInitializer();

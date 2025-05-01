@@ -18,7 +18,7 @@ public:
 	SYS_CTOR_(SpaceStore) {InitRoot();}
 	SYS_DEF_VISIT_(vis || root)
 	
-	SpaceRef GetRoot() {
+	SpacePtr GetRoot() {
 		if (root.IsEmpty())
 			return SpaceRef();
 		Space& l = root.GetFirst();
@@ -44,7 +44,7 @@ protected:
 	
 };
 
-using SpaceStoreRef = Ref<SpaceStore>;
+using SpaceStorePtr = Ptr<SpaceStore>;
 
 
 #endif

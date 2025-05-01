@@ -1,17 +1,20 @@
-#ifndef _AtomDebug_Verifier_h_
-#define _AtomDebug_Verifier_h_
+#ifndef _Eon_Verifier_h_
+#define _Eon_Verifier_h_
 
-NAMESPACE_SERIAL_BEGIN
+
+class AtomBase;
+class DefaultExchangePoint;
+
 
 struct VerifierAtom {
 	VerifierAtom* src = 0;
-	SerialTypeCls type;
-	Format sink_fmt;
-	Format src_fmt;
+	ParallelTypeCls type;
+	ValueFormat sink_fmt;
+	ValueFormat src_fmt;
 	
 	
-	void SetSourceFormat(Format fmt);
-	void SetSinkFormat(Format fmt);
+	void SetSourceFormat(ValueFormat fmt);
+	void SetSinkFormat(ValueFormat fmt);
 	void LinkTo(VerifierAtom& comp);
 	
 	
@@ -26,8 +29,8 @@ struct VerifierEntity {
 	Array<VerifierAtom> ext;
 	
 	
-	VerifierAtom& AddAtomWith(SerialTypeCls t);
-	template <class T> VerifierAtom& AddAtomWith(ValDevCls vd) {return AddAtomWith(AsSerialTypeCls<T>(vd));}
+	VerifierAtom& AddAtomWith(ParallelTypeCls t);
+	template <class T> VerifierAtom& AddAtomWith(ValDevCls vd) {return AddAtomWith(AsParallelTypeCls<T>(vd));}
 	
 };
 
@@ -44,7 +47,7 @@ struct VerifierLoop {
 
 struct VerifierSystem {
 	TypeCls			type;
-	SerialTypeCls	ecs_type;
+	ParallelTypeCls	ecs_type;
 	
 };
 
@@ -179,11 +182,10 @@ public:
 	
 	VerifierLoop& GetRoot() {return root;}
 	
-	VerifierSystem& AddSystem(TypeCls t, SerialTypeCls et);
-	template<class T> VerifierSystem& AddSystem() {return AddSystem(AsTypeCls<T>(), AsSerialTypeCls<T>(VD(CENTER,ORDER)));}
+	VerifierSystem& AddSystem(TypeCls t, ParallelTypeCls et);
+	template<class T> VerifierSystem& AddSystem() {return AddSystem(AsTypeCls<T>(), AsParallelTypeCls<T>(VD(CENTER,ORDER)));}
 	
 };
 
-NAMESPACE_SERIAL_END
 
 #endif

@@ -6,7 +6,7 @@ using namespace Serial;
 
 
 
-ModelRef ModelCache::GetAddModelFile(String path) {
+ModelPtr ModelCache::GetAddModelFile(String path) {
 	int i = model_cache.Find(path);
 	if (i >= 0)
 		return model_cache[i].GetModel();
@@ -15,7 +15,7 @@ ModelRef ModelCache::GetAddModelFile(String path) {
 	return l.GetModel();
 }
 
-ModelRef ModelCache::Attach(Model* mdl) {
+ModelPtr ModelCache::Attach(Model* mdl) {
 	if (!mdl)
 		return ModelRef();
 	

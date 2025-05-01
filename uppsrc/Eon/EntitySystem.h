@@ -7,7 +7,7 @@ TS::Ecs::Engine* CreateEcsEngine();
 
 class EntitySystem : public System<EntitySystem> {
 	TS::Ecs::Engine* engine = 0;
-	ObjectMap reg;
+	ValueMap reg;
 	
 	
 protected:

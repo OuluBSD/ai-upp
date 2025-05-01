@@ -147,7 +147,7 @@ public:
 
 #if IS_UPP_CORE
 using WindowManager = ScopeT<CtxUpp2D>;
-using WindowManagerRef = Ref<WindowManager>;
+using WindowManagerPtr = Ptr<WindowManager>;
 #endif
 
 

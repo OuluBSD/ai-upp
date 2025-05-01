@@ -70,6 +70,8 @@ file
 	Util.h,
 	Util.cpp,
 	ECS readonly separator,
+	Verifier.h,
+	Verifier.cpp,
 	Machine.h,
 	Machine.cpp,
 	AtomStore.h,

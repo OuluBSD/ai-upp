@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-using ObjMap = VectorMap<String,Object>;
+using ObjMap = VectorMap<String,Value>;
 MAKE_STATIC(ObjMap, __def_args)
 MAKE_STATIC(String, eon_script)
 MAKE_STATIC(String, eon_file)
@@ -130,7 +130,7 @@ void DefaultSerialInitializerInternalEon() {
 	DefaultSerialInitializer0(true);
 }
 
-void DefaultRunner(bool main_loop, String app_name, String override_eon_file, VectorMap<String,Object>* extra_args, const char* extra_str) {
+void DefaultRunner(bool main_loop, String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
 	
 	if (!override_eon_file.IsEmpty())
 		eon_file = override_eon_file;
@@ -212,7 +212,7 @@ void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
     RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
-void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Object>& args, bool dbg_ref_visits, uint64 dbg_ref) {
+void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
 	using namespace Parallel;
 	
 	SetCoutLog();
@@ -242,37 +242,37 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
-					RegistrySystemRef reg	= mach.FindAdd<RegistrySystem>();
-					LoopStoreRef ls			= mach.FindAdd<LoopStore>();
-					AtomStoreRef as			= mach.FindAdd<AtomStore>();
-				    AtomSystemRef asys		= mach.FindAdd<AtomSystem>();
-				    ScriptLoaderRef script	= mach.FindAdd<ScriptLoader>();
+					RegistrySystemPtr reg	= mach.FindAdd<RegistrySystem>();
+					LoopStorePtr ls			= mach.FindAdd<LoopStore>();
+					AtomStorePtr as			= mach.FindAdd<AtomStore>();
+				    AtomSystemPtr asys		= mach.FindAdd<AtomSystem>();
+				    ScriptLoaderPtr script	= mach.FindAdd<ScriptLoader>();
 					
 					#ifdef flagGUI
-				    Gu::GuboSystemRef gubo	= mach.FindAdd<Gu::GuboSystem>();
+				    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
 				    #endif
 				    
 				    #if IS_UPP_CORE && defined flagGUI
-				    WindowSystemRef win		= mach.FindAdd<WindowSystem>();
+				    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
 				    #endif
 				    
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				LoopStoreRef ls			= mach.Find<LoopStore>();
+				LoopStorePtr ls			= mach.Find<LoopStore>();
 				if (!ls) {
 					LOG("No LoopStore added to machine and the machine is already started");
 					return;
 				}
 				
 				
-				ScriptLoaderRef script	= mach.Find<ScriptLoader>();
+				ScriptLoaderPtr script	= mach.Find<ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
 				
-				LoopRef root = ls->GetRoot();
+				LoopPtr root = ls->GetRoot();
 				
 				if (IsShellMode(SHELLMODE_INTERPRETER)) {
 					String path = RealizeEonFile(script_file);

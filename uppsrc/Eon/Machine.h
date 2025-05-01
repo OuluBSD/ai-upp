@@ -68,7 +68,7 @@ public:
 	
 	
     template<typename SystemT>
-    Ref<SystemT> Get() {
+    Ptr<SystemT> Get() {
         auto system = Find<SystemT>();
         ASSERT_(system, "System " << AsTypeName<SystemT>() << " was not found in the Machine");
         return system;
@@ -81,16 +81,16 @@ public:
     }
 
     template<typename SystemT>
-    Ref<SystemT> Find()
+    Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         
         SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
-        return it ? it->AsRef<SystemT>() : Ref<SystemT>();
+        return it ? it->AsPtr<SystemT>() : Ptr<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
-    Ref<SystemT> Add(Args&&... args)
+    Ptr<SystemT> Add(Args&&... args)
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 		
@@ -101,9 +101,9 @@ public:
     
 
     template<typename SystemT, typename... Args>
-    Ref<SystemT> FindAdd(Args&&... args)
+    Ptr<SystemT> FindAdd(Args&&... args)
     {
-		Ref<SystemT> ret = Find<SystemT>();
+		Ptr<SystemT> ret = Find<SystemT>();
 		if (ret)
 			return ret;
 		

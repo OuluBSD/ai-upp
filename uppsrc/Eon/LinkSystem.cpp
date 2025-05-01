@@ -120,39 +120,39 @@ void LinkSystem::Uninitialize() {
 	WhenUninit()();
 }
 
-void LinkSystem::AddUpdated(LinkBaseRef p) {
+void LinkSystem::AddUpdated(LinkBasePtr p) {
 	if (p)
 		updated.FindAdd(p);
 }
 
-void LinkSystem::AddCustomer(LinkBaseRef p) {
+void LinkSystem::AddCustomer(LinkBasePtr p) {
 	if (p)
 		customers.FindAdd(p);
 }
 
-void LinkSystem::AddDriver(LinkBaseRef p) {
+void LinkSystem::AddDriver(LinkBasePtr p) {
 	if (p)
 		drivers.FindAdd(p);
 }
 
-void LinkSystem::AddPolling(LinkBaseRef p) {
+void LinkSystem::AddPolling(LinkBasePtr p) {
 	if (p)
 		pollers.FindAdd(p);
 }
 
-void LinkSystem::RemoveUpdated(LinkBaseRef p) {
+void LinkSystem::RemoveUpdated(LinkBasePtr p) {
 	updated.RemoveKey(p);
 }
 
-void LinkSystem::RemoveCustomer(LinkBaseRef p) {
+void LinkSystem::RemoveCustomer(LinkBasePtr p) {
 	customers.RemoveKey(p);
 }
 
-void LinkSystem::RemoveDriver(LinkBaseRef p) {
+void LinkSystem::RemoveDriver(LinkBasePtr p) {
 	drivers.RemoveKey(p);
 }
 
-void LinkSystem::RemovePolling(LinkBaseRef p) {
+void LinkSystem::RemovePolling(LinkBasePtr p) {
 	pollers.RemoveKey(p);
 }
 
@@ -188,7 +188,7 @@ String LinkSystem::GetDebugPacketString(LinkBaseRef& c, RealtimeSourceConfig* cf
 			
 			line << (line.IsEmpty() ? "| " : " | ");
 			
-			InterfaceSinkRef sink_iface = ab->GetSink();
+			InterfaceSinkPtr sink_iface = ab->GetSink();
 			int c = sink_iface->GetSinkCount();
 			for(int i = 0; i < c; i++) {
 				if (i) line << "+";
@@ -197,7 +197,7 @@ String LinkSystem::GetDebugPacketString(LinkBaseRef& c, RealtimeSourceConfig* cf
 			
 			line << "__";
 			
-			InterfaceSourceRef src_iface = ab->GetSource();
+			InterfaceSourcePtr src_iface = ab->GetSource();
 			c = src_iface->GetSourceCount();
 			for(int i = 0; i < c; i++) {
 				if (i) line << "+";

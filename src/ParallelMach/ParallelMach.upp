@@ -5,14 +5,6 @@ uses
 
 file
 	ParallelMach.h,
-	Generated.h,
-	GenAtom.inl highlight cpp,
 	Fwd.h,
-	FwdTypes.h,
-	FwdTypes.cpp,
-	Util.h,
-	Util.cpp,
-	Defs.h,
-	Machine.h,
-	Machine.cpp;
+	Defs.h;
 

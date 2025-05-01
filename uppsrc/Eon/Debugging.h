@@ -1,5 +1,5 @@
-#ifndef _Local_Debugging_h_
-#define _Local_Debugging_h_
+#ifndef _Eon_Debugging_h_
+#define _Eon_Debugging_h_
 
 
 class StackDebugger {
@@ -67,7 +67,7 @@ public:
 
 
 #if 0
-class RuntimeDiagnosticVisitor : public RuntimeVisitor {
+class RuntimeDiagnosticVisitor : public Visitor {
 	struct Var {
 		void* mem;
 		TypeCls root_type, derived_type;
@@ -139,7 +139,7 @@ public:
 
 
 
-class RefDebugVisitor : public RuntimeVisitor {
+class RefDebugVisitor : public Visitor {
 	struct Item {
 		void* mem;
 		bool visited;

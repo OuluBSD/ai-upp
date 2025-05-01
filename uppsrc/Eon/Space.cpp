@@ -21,11 +21,11 @@ Loop* Space::GetLoop() const {
 	return loop;
 }
 
-/*Space* Space::GetParent() const {
+Space* Space::GetParent() const {
 	return static_cast<Space*>(RefScopeParent<SpaceParent>::GetParentUnsafe().b);
-}*/
+}
 
-/*Machine& Space::GetMachine() const {
+Machine& Space::GetMachine() const {
 	if (machine)
 		return *machine;
 	const Space* l = this;
@@ -41,7 +41,7 @@ Loop* Space::GetLoop() const {
 		l = static_cast<Space*>(par.b);
 	}
 	throw Exc("Machine ptr not found");
-}*/
+}
 
 AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
 	for (auto& it : atoms) {
@@ -330,12 +330,11 @@ EnvStatePtr Space::FindStateDeep(String name) {
 
 String Space::GetDeepName() const {
 	String s = name;
-	TODO
-	/*Space* l = GetParent();
+	Space* l = GetParent();
 	while (l) {
 		s = l->name + "." + s;
 		l = l->GetParent();
-	}*/
+	}
 	return s;
 }
 

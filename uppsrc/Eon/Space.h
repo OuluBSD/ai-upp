@@ -54,8 +54,8 @@ public:
 	String				GetTreeString(int indent=0);
 	
 	Loop*				GetLoop() const;
-	//Space*				GetParent() const;
-	//Machine&			GetMachine() const;
+	Space*				GetParent() const;
+	Machine&			GetMachine() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;
 	bool				HasAtoms() const {return !atoms.IsEmpty();}

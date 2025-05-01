@@ -2,7 +2,7 @@
 
 #ifdef flagMAIN
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 bool SingleMachine::Open(void(*arg_fn)()) {return false;}
 void SingleMachine::Close() {}
@@ -56,7 +56,7 @@ void TestEonTests(String dir_title, String prefix="", int single=-1) {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 CONSOLE_APP_MAIN {

@@ -41,7 +41,7 @@ public:
 	void				Dump();
 	String				GetTreeString(int indent=0);
 	
-	//Loop*				GetParent() const;
+	Loop*				GetParent() const;
 	Space*				GetSpace() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;

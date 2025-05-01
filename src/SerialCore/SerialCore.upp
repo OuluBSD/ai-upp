@@ -7,11 +7,5 @@ file
 	TODO.txt,
 	SerialCore.h,
 	Defs.h,
-	Types.h,
-	Types.cpp,
-	Loop.h,
-	Loop.cpp,
-	LoopStore.h,
-	LoopStore.cpp,
 	_ readonly separator;
 

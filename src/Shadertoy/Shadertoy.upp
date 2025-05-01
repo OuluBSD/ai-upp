@@ -4,8 +4,5 @@ uses
 	Structural;
 
 file
-	Shadertoy.h,
-	Shadertoy.cpp,
-	Loader.h,
-	Loader.cpp;
+	Shadertoy.h;
 

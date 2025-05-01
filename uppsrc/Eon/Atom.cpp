@@ -33,12 +33,12 @@ void AtomBase::UninitializeDeep() {
 }
 
 Space* AtomBase::GetSpace() {
-	TODO; return 0; //return GetParent().AsRefT();
+	return &GetParent();
 }
 
-/*Space& AtomBase::GetParent() {
-	return *((SP*)this)->GetParent().AsStatic<Space>();
-}*/
+Space& AtomBase::GetParent() {
+	return *GetParent();
+}
 
 LinkBase* AtomBase::GetLink() {
 	return link;

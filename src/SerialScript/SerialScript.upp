@@ -7,7 +7,6 @@ uses
 file
 	SerialScript.h,
 	Internal.h,
-	main.cpp,
 	Verifier.cpp,
 	_ readonly separator;
 

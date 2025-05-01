@@ -1,0 +1,11 @@
+#include "Eon.h"
+
+NAMESPACE_UPP
+
+
+INITBLOCK_(ShaderToy) {
+	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
+}
+
+
+END_UPP_NAMESPACE

@@ -9,15 +9,5 @@ file
 	ParallelLib.h,
 	ParallelLib.cpp,
 	Interfaces.h,
-	RegistrySystem.h,
-	RegistrySystem.cpp,
-	"U++ CtrlCore" readonly separator,
-	HandleTypes.h,
-	HandleSystemT.h,
-	HandleSystemT.cpp,
-	ScopeT.h,
-	ScopeT.cpp,
-	FrameT.h,
-	FrameT.cpp,
 	_ readonly separator;
 

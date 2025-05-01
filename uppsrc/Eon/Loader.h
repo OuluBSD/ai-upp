@@ -124,7 +124,7 @@ public:
 	int			GetAtomLinkCount() const {return atom_links.GetCount();}
 	
 	bool		Load() override;
-	void		Visit(Vis& vis) override {vis && atoms;}
+	void		Visit(Vis& vis) override {vis | atoms;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 };

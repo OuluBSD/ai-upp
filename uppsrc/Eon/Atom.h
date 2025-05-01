@@ -114,7 +114,7 @@ public:
 	template <class T> T* GetSinkT()   {return dynamic_cast<T*>(&*this->GetSink());}
 	
 	Space*			GetSpace();
-	//Space&			GetParent();
+	Space&			GetParent();
 	LinkBase*		GetLink();
 	int				GetId() const {return id;}
 	

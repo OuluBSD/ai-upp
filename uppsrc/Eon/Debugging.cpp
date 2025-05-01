@@ -147,7 +147,7 @@ void RuntimeDiagnosticVisitor::Scope::Clear() {
 }
 
 void RuntimeDiagnosticVisitor::Clear() {
-	RuntimeVisitor::Clear();
+	Visitor::Clear();
 	root.Clear();
 	cur_scope = 0;
 }

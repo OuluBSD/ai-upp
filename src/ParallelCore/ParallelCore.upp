@@ -5,15 +5,5 @@ uses
 
 file
 	ParallelCore.h,
-	Defs.h,
-	Interface.h,
-	Interface.cpp,
-	SpaceStore.h,
-	SpaceStore.cpp,
-	Factory.h,
-	Factory.cpp,
-	AtomSystem.h,
-	AtomSystem.cpp,
-	AtomStore.h,
-	AtomStore.cpp;
+	Defs.h;
 

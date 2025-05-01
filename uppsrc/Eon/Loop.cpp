@@ -12,9 +12,9 @@ Loop::~Loop() {
 	DBG_DESTRUCT
 }
 
-/*Loop* Loop::GetParent() const {
-	return static_cast<Loop*>(RefScopeParent<LoopParent>::GetParentUnsafe().b);
-}*/
+Loop* Loop::GetParent() const {
+	TODO; return 0; //return static_cast<Loop*>(RefScopeParent<LoopParent>::GetParentUnsafe().b);
+}
 
 Space* Loop::GetSpace() const {
 	return space;
@@ -232,12 +232,11 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 
 String Loop::GetDeepName() const {
 	String s = name;
-	/*Loop* l = GetParent();
+	Loop* l = GetParent();
 	while (l) {
 		s = l->name + "." + s;
 		l = l->GetParent();
-	}*/
-	TODO
+	}
 	return s;
 }
 

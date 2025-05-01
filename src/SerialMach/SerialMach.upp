@@ -9,12 +9,5 @@ file
 	SerialMach.cpp,
 	Fn.h,
 	Types.h,
-	Types.cpp,
-	LinkFwd.cpp,
-	LinkStore.h,
-	LinkStore.cpp,
-	LinkSystem.h,
-	LinkSystem.cpp,
-	Factory.h,
-	Factory.cpp;
+	Types.cpp;
 

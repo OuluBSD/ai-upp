@@ -5,6 +5,20 @@
 class AtomBase;
 class DefaultExchangePoint;
 
+typedef enum {
+	IN_BEGINNING,
+	WAITING_CHILDREN,
+	WAITING_OTHER_LOOPS,
+	SEARCH_SEGMENT,
+	PRUNE_SEGMENT_GOALS,
+	WAITING_PARENT_SIDE_LINKS,
+	MAKE_OPTION_LINK_VECTOR,
+	PRUNE_OPTION_LINKS,
+	LINK_PLANNER,
+	LINKER,
+	FAILED,
+	READY
+} ScriptStatus;
 
 struct VerifierAtom {
 	VerifierAtom* src = 0;

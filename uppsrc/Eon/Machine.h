@@ -1,8 +1,11 @@
 #ifndef _Eon_Machine_h_
 #define _Eon_Machine_h_
 
-
+namespace Ecs {
 class Engine;
+}
+
+class MachineVerifier;
 
 
 class SystemBase : public MetaSystemBase {

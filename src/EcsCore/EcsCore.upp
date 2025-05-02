@@ -5,23 +5,6 @@ uses
 	EcsMach;
 
 file
-	TODO.txt,
 	EcsCore.h,
-	EcsCore.cpp,
-	Defs.h,
-	EntityStore.h,
-	EntityStore.cpp,
-	Component.h,
-	Component.cpp,
-	Factory.h,
-	Factory.cpp,
-	Entity.h,
-	Entity.cpp,
-	ComponentStore.h,
-	ComponentStore.cpp,
-	Pool.h,
-	Pool.cpp,
-	EntityVisitor.h,
-	EntityVisitor.cpp,
-	Trash readonly separator;
+	Defs.h;
 

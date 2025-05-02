@@ -9,7 +9,5 @@ file
 	EcsMach.h,
 	Defs.h,
 	Common.h,
-	TypeTraits.h,
-	Engine.h,
-	Engine.cpp;
+	TypeTraits.h;
 

@@ -303,14 +303,14 @@ void ScriptLoopLoader::UpdateLoopLimits() {
 		
 		int sink_c = sink->GetSinkCount();
 		for(int k = 0; k < sink_c; k++) {
-			Value& v = sink->GetValue(k);
+			ValueBase& v = sink->GetValue(k);
 			v.SetMinQueueSize(total_min);
 			v.SetMaxQueueSize(total_max);
 		}
 		
 		int src_c = src->GetSourceCount();
 		for(int k = 0; k < src_c; k++) {
-			Value& v = src->GetSourceValue(k);
+			ValueBase& v = src->GetSourceValue(k);
 			v.SetMinQueueSize(total_min);
 			v.SetMaxQueueSize(total_max);
 		}

@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 template <class Dim>
 HandleSystemT<Dim>::HandleSystemT(Machine& m) :
-	RefScopeEnabler<MetaSystemBase, MetaMachineBase>::SP(m) {
+	MetaNodeExt(m) {
 	
 }
 

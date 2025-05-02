@@ -1,0 +1,9 @@
+#include "Eon.h"
+
+NAMESPACE_UPP
+
+INITBLOCK {
+	DaemonBase::Register<EcsService>("Ecs");
+}
+
+END_UPP_NAMESPACE

@@ -1,0 +1,120 @@
+#ifndef _Eon_RenderingSystem_h_
+#define _Eon_RenderingSystem_h_
+
+namespace Ecs {
+
+
+class Renderable : public Component<Renderable> {
+	
+public:
+	RTTI_COMP0(Renderable)
+	COMP_DEF_VISIT
+	
+	
+	RGBA color;
+	mat4 offset;
+	float alpha_multiplier;
+	
+	
+	void Etherize(Ether& e) override;
+	void Initialize() override;
+	void Uninitialize() override;
+	
+	void ResetModel(mat4 offset = zero<mat4>()) {
+		color = RGBAZero();
+		this->offset = offset;
+		alpha_multiplier = 0;
+	}
+	
+    void operator=(const Renderable& e) {
+        color = e.color;
+        offset = e.offset;
+        alpha_multiplier = e.alpha_multiplier;
+    }
+    
+    
+	Callback cb;
+	
+	
+};
+
+using RenderablePtr = Ref<Renderable>;
+
+
+class VirtualGui;
+
+
+class RenderingSystem :
+	public System<RenderingSystem>
+{
+	
+protected:
+	friend class Ecs::VirtualGui;
+	
+	#ifdef flagSDL2
+	Parallel::BufferT<SdlSwGfx>* sdl_sw_buf = 0;
+	#ifdef flagOGL
+	Parallel::BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
+	#endif
+	#endif
+	Array<RenderableRef>		rends;
+	Array<ViewableRef>			views;
+	Array<ModelComponentRef>	models;
+	Vector<CameraBase*>			cams;
+	
+	double						time = 0;
+	bool						is_dummy = false;
+	
+	// calibration
+	CalibrationData				calib;
+	
+	//ArrayMap<String, ModelLoader> model_cache;
+	
+protected:
+    bool Initialize() override;
+    void Start() override;
+    void Update(double dt) override;
+    void Stop() override;
+    void Uninitialize() override;
+    bool Arg(String key, Value value) override;
+    
+    
+    
+public:
+	using Base = System<RenderingSystem>;
+    ECS_SYS_CTOR(RenderingSystem)
+	ECS_SYS_DEF_VISIT
+	
+	//ModelPtr GetAddModelFile(String path);
+	
+	void Render(GfxDataState& s);
+	
+	void AddViewable(ViewablePtr v);
+	void AddRenderable(RenderablePtr b);
+	void AddModel(ModelComponentPtr m);
+	void AddCamera(CameraBase& c);
+	
+	void RemoveViewable(ViewablePtr v);
+	void RemoveRenderable(RenderablePtr b);
+	void RemoveModel(ModelComponentPtr m);
+	void RemoveCamera(CameraBase& c);
+	
+	void CalibrationEvent(CtrlEvent& ev);
+	
+	
+	#ifdef flagSDL2
+	void Attach(String key, Parallel::BufferT<SdlSwGfx>* b);
+	#ifdef flagOGL
+	void Attach(String key, Parallel::BufferT<SdlOglGfx>* b);
+	#endif
+	#endif
+	
+};
+
+using RenderingSystemPtr = Ref<RenderingSystem>;
+
+
+
+}
+
+#endif

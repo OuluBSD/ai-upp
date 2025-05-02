@@ -4,7 +4,6 @@
 #include <AtomNonScreen/AtomNonScreen.h>
 #include <AtomLocal/AtomLocal.h>
 
-#include "Verifier.h"
 
 
 NAMESPACE_SERIAL_BEGIN

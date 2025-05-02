@@ -3,8 +3,7 @@
 
 
 template <class Dim>
-class ScopeT :
-	public RefScopeEnabler<ScopeT<Dim>, HandleSystemT<Dim>>
+class ScopeT : public Pte<ScopeT<Dim>>
 {
 
 public:

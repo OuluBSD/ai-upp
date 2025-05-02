@@ -5,7 +5,5 @@ uses
 	AtomVR;
 
 file
-	EcsVR.h,
-	EcsVR.cpp,
-	_ readonly separator;
+	EcsVR.h;
 

@@ -165,6 +165,7 @@ private:
 	SpaceVec				spaces;
 };
 
+using SpaceVec = Array<Space>;
 using SpacePtr = Ptr<Space>;
 
 #if 0

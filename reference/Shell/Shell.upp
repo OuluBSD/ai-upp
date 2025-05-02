@@ -1,7 +1,8 @@
 description "Libtopside main package\377";
 
 uses
-	Complete;
+	Complete,
+	AtomDebug;
 
 uses(GUI) EcsComplete;
 

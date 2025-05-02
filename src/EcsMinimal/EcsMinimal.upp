@@ -5,6 +5,5 @@ uses
 	EcsPhysics;
 
 file
-	EcsMinimal.h,
-	EcsMinimal.cpp;
+	EcsMinimal.h;
 

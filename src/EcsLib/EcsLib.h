@@ -23,15 +23,6 @@
 #define BIG_NUMBER 100000000
 
 #include "Defs.h"
-#include "CommonComponents.h"
-#include "Camera.h"
-#include "RegistrySystem.h"
-#include "Model.h"
-#include "RenderingSystem.h"
-#include "EventSystem.h"
-#include "Prefab.h"
-#include "EonLoader.h"
-#include "WorldLogic.h"
 #include "Gui.h"
 #include "Absolute2D.h"
 #include "Geom2DComponent.h"

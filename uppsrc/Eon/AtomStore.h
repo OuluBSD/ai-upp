@@ -42,8 +42,7 @@ class AtomStore :
 public:
 	using Main = Space;
 	using Base = AtomBase;
-	SYS_RTTI(AtomStore)
-    SYS_CTOR(AtomStore)
+	SYS_CTOR(AtomStore)
 	SYS_DEF_VISIT
 	
 	

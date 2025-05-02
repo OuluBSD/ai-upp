@@ -2,10 +2,8 @@
 
 NAMESPACE_UPP
 
-
-INITBLOCK_(ShaderToy) {
+INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 }
-
 
 END_UPP_NAMESPACE

@@ -1,9 +1,8 @@
 #include "Eon.h"
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
-
-INITBLOCK_(SerialLib) {
+INITBLOCK {
 	
 	#define ECS_CTX(dev, val, prefix) \
 		TS::Factory::RegisterInterfaceLink<TS::DefaultExchangePoint>(TS::DevCls::dev, TS::ValCls::val);
@@ -18,4 +17,4 @@ INITBLOCK_(SerialLib) {
 	
 }
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE

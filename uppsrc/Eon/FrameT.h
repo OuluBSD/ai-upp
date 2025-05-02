@@ -8,8 +8,8 @@ template <class Dim> class ScopeT;
 
 template <class Dim>
 class FrameT :
-	public Dim::Container,
-	public RefScopeEnabler<FrameT<Dim>, ScopeT<Dim>>
+	public Pte<FrameT<Dim>>,
+	public Dim::Container
 {
 public:
 	using Base = FrameT<Dim>;

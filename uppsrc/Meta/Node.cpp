@@ -1381,7 +1381,7 @@ bool MetaNodeExt::operator==(const MetaNodeExt& e) const {
 }
 
 hash_t MetaNodeExt::GetHashValue() const {
-	Vis vis(0);
+	Vis vis(1);
 	const_cast<MetaNodeExt*>(this)->Visit(vis);
 	return vis.hash;
 }

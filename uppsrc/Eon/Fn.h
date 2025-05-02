@@ -5,9 +5,9 @@
 template <class T>
 void MemSwap(T& a, T& b) {
 	uint8 tmp[sizeof(T)];
-	MemoryCopy((void*)tmp, (void*)&a, sizeof(T));
-	MemoryCopy((void*)&a, (void*)&b, sizeof(T));
-	MemoryCopy((void*)&b, (void*)tmp, sizeof(T));
+	memcpy((void*)tmp, (void*)&a, sizeof(T));
+	memcpy((void*)&a, (void*)&b, sizeof(T));
+	memcpy((void*)&b, (void*)tmp, sizeof(T));
 }
 
 

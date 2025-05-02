@@ -2,7 +2,7 @@
 #define _Eon_AtomStore_h_
 
 
-
+class Space;
 template<class T> using ParallelTypeMap	= LinkedMap<ParallelTypeCls, T>;
 template<class T> using AtomTypeMap		= LinkedMap<AtomTypeCls, T>;
 

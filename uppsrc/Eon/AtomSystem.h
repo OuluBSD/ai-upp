@@ -10,7 +10,6 @@ class AtomSystem :
 	Mutex lock;
 	
 public:
-	SYS_RTTI(AtomSystem)
 	SYS_CTOR(AtomSystem);
 	SYS_DEF_VISIT_(vis && updated)
 	

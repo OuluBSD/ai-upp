@@ -43,7 +43,7 @@ public:
 	
 	System() {};
     TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitThisPure<SystemBase>(this);}
+    void Visit(Vis& vis) override {vis.VisitT<SystemBase>(this);}
     
 };
 
@@ -54,10 +54,10 @@ public:
 #define SYS_CTOR_(x) \
 	typedef x CLASSNAME; \
 	x(Machine& m) : SP(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitThis<System<CLASSNAME>>(this);}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitThis<System<CLASSNAME>>(this);}
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>(this);}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>(this);}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitThis<System<CLASSNAME>>(this);}
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>(this);}
 
 class Machine :
 	public MetaMachineBase
@@ -77,11 +77,11 @@ public:
         return system;
     }
 
-    template<typename SystemT>
+    /*template<typename SystemT>
     SystemT* GetPtr() {
         SystemCollection::PtrIterator it = FindSystemPtr(AsTypeCls<SystemT>());
         return CastPtr<SystemT>(&*it);
-    }
+    }*/
 
     template<typename SystemT>
     Ptr<SystemT> Find()
@@ -89,7 +89,7 @@ public:
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         
         SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
-        return it ? it->AsPtr<SystemT>() : Ptr<SystemT>();
+        return it ? &*it : Ptr<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
@@ -158,7 +158,7 @@ public:
 	static Callback WhenPreFirstUpdate;
 	
 private:
-    using SystemCollection = RefTypeMapIndirect<SystemBase> ;
+    using SystemCollection = ArrayMap<TypeCls,SystemBase> ;
     SystemCollection systems;
 
     bool is_started = false;
@@ -168,8 +168,9 @@ private:
     bool is_failed = false;
     String fail_msg;
     
-    SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}
-    SystemCollection::PtrIterator FindSystemPtr(TypeCls type_id) {return systems.FindPtr(type_id);}
+    int FindSystem(TypeCls type_id) {return systems.Find(type_id);}
+    //SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}
+    //SystemCollection::PtrIterator FindSystemPtr(TypeCls type_id) {return systems.FindPtr(type_id);}
     void Add(TypeCls type_id, SystemBase* system);
     void Remove(TypeCls typeId);
     

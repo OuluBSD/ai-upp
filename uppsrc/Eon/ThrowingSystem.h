@@ -9,7 +9,7 @@ class ThrowingComponent :
 	
 public:
 	RTTI_COMP1(ThrowingComponent, CustomToolComponent)
-	void Visit(Vis& vis) override {vis.VisitThis<CustomToolComponent>(this); vis & ball_object;}
+	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); vis & ball_object;}
 	
 	
 	void Etherize(Ether& e) override;
@@ -38,7 +38,7 @@ class ThrowingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;
 	ECS_SYS_CTOR(ThrowingInteractionSystemBase);
-	void Visit(Vis& vis) override {vis.VisitThis<ToolSys>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<ToolSys>(this);}
 	
 	using Parent = Engine;
 	float ball_holding_distance;

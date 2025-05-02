@@ -4,6 +4,7 @@
 class WorldState;
 class Plan;
 class LinkBase;
+class Space;
 
 template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
 //template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
@@ -250,23 +251,23 @@ public:
 	Ptr<AtomT> Get() {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
 		
-		AtomMapBase::Iterator it = AtomMapBase::Find(AsParallelTypeCls<AtomT>());
-		ASSERT(!IS_EMPTY_SHAREDPTR(it));
-		if (it.IsEmpty())
+		int i = Find(AsParallelTypeCls<AtomT>());
+		ASSERT(i >= 0);
+		if (i < 0)
 			throw Exc("Could not find atom " + (String)AsTypeName<AtomT>());
 		
-		return it->AsPtr<AtomT>();
+		return &atoms[i];
 	}
 	
 	template<typename AtomT>
 	Ptr<AtomT> Find() {
 		CXX2A_STATIC_ASSERT(AtomStore::IsAtom<AtomT>::value, "T should derive from Atom");
 		
-		AtomMapBase::Iterator it = AtomMapBase::Find(AsParallelTypeCls<AtomT>());
-		if (IS_EMPTY_SHAREDPTR(it))
+		int i = Find(AsParallelTypeCls<AtomT>());
+		if (i < 0)
 			return Null;
 		else
-			return it->AsPtr<AtomT>();
+			return &atoms[i];
 	}
 	
 	template<typename AtomT>

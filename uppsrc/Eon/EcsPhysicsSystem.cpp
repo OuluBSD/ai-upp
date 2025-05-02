@@ -1,6 +1,4 @@
 #include "Eon.h"
-#include <SerialCore/SerialCore.h>
-
 
 NAMESPACE_UPP namespace Ecs {
 

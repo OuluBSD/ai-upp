@@ -6,6 +6,7 @@ class AtomBase;
 class DefaultExchangePoint;
 
 typedef enum {
+	UNASSIGNED,
 	IN_BEGINNING,
 	WAITING_CHILDREN,
 	WAITING_OTHER_LOOPS,

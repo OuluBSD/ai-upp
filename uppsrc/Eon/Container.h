@@ -25,7 +25,7 @@ public:
 		if (o.Is<T>())
 			return o.Get<T>();
 		else
-			return o.Create<T>();
+			return CreateRawValue<T>(o);
 	}
 	
 	template <class T>

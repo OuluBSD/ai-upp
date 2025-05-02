@@ -94,7 +94,7 @@ public:
 	RTTI_COMP1(ChaseCam, CameraBase)
 	
 	void Etherize(Ether& e) override;
-	void Visit(Vis& vis) override {vis.VisitThis<ComponentT>(this); vis & target & viewable & vport;}
+	void Visit(Vis& vis) override {vis.VisitT<ComponentT>(this); vis & target & viewable & vport;}
 	void Initialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;

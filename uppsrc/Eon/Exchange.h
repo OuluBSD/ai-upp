@@ -2,6 +2,11 @@
 #define _Eon_Exchange_h_
 
 
+class ExchangeSourceProvider;
+class ExchangeSideSourceProvider;
+class MetaSpaceBase;
+
+
 template<class T> class OffsetGen;
 class ExchangePoint;
 

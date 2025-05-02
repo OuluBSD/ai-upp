@@ -11,7 +11,7 @@ class PaintComponent :
 	
 public:
 	RTTI_COMP1(PaintComponent, CustomToolComponent)
-	void Visit(Vis& vis) override {vis.VisitThis<CustomToolComponent>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this);}
 	
 	
 	
@@ -64,7 +64,7 @@ public:
 	ECS_SYS_CTOR(PaintingInteractionSystemBase);
 	
 	void Visit(Vis& vis) override {
-		vis.VisitThis<ToolSys>(this);
+		vis.VisitT<ToolSys>(this);
 		for (auto& v : persistent_strokes)
 			for (auto& r : v)
 				vis & r;

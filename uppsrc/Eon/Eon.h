@@ -6,6 +6,10 @@
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
 
+#if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
+	#include <cxxabi.h>
+#endif
+
 NAMESPACE_UPP
 
 #include "Defs.h"
@@ -29,11 +33,11 @@ NAMESPACE_UPP
 #include "Realtime.h"
 #include "ValDevScope.h"
 #include "Interface.h"
+#include "AtomStore.h"
 #include "Atom.h"
 #include "Space.h"
 #include "SpaceStore.h"
 #include "Factory.h"
-#include "AtomStore.h"
 #include "AtomSystem.h"
 #include "FwdTypes.h"
 #include "Link.h"
@@ -60,10 +64,10 @@ NAMESPACE_UPP
 #include "ShadertoyLoader.h"
 
 #include "EntityStore.h"
-#include "Component.h"
+#include "EcsComponent.h"
 #include "Factory.h"
 #include "Entity.h"
-#include "EcsComponentStore.h"
+#include "ComponentStore.h"
 #include "EcsPool.h"
 #include "EntityVisitor.h"
 
@@ -78,7 +82,6 @@ NAMESPACE_UPP
 #include "WorldLogic.h"
 
 #include "EcsCommonComponents.h"
-#include "Viewport.h"
 #include "EasingSystem.h"
 #include "PaintStrokeSystem.h"
 #include "InteractionSystem.h"

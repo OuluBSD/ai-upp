@@ -66,7 +66,7 @@ class ToolSystemBaseT :
 	
 public:
 	typedef ToolSystemBaseT<T, ToolComponent> CLASSNAME;
-	void Visit(Vis& vis) override {vis.VisitThis<ToolSystemBase>(this); /*vis && m_entities;*/}
+	void Visit(Vis& vis) override {vis.VisitT<ToolSystemBase>(this); /*vis && m_entities;*/}
 	TypeCls GetType() const override {return AsTypeCls<T>();}
 	
 	

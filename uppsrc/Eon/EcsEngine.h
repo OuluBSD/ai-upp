@@ -43,7 +43,7 @@ public:
 	System() {};
 	System(Engine& e) : SystemBase(e) {};
     TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitThisPure<SystemBase>(this);}
+    void Visit(Vis& vis) override {vis.VisitTPure<SystemBase>(this);}
     
 };
 
@@ -54,9 +54,9 @@ public:
 #define ECS_SYS_CTOR_DERIVED(x, derived_from) \
 	typedef x CLASSNAME; \
 	x(Engine& m) : derived_from(m) {}
-#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitThis<Ecs::System<CLASSNAME>>(this);}
-#define ECS_SYS_DEF_VISIT_DERIVED(x) void Visit(Vis& vis) override {vis.VisitThis<x>(this);}
-#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitThis<Ecs::System<CLASSNAME>>(this);}
+#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<Ecs::System<CLASSNAME>>(this);}
+#define ECS_SYS_DEF_VISIT_DERIVED(x) void Visit(Vis& vis) override {vis.VisitT<x>(this);}
+#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<Ecs::System<CLASSNAME>>(this);}
 
 struct ComponentBaseUpdater : Pte<ComponentBaseUpdater> {
 	

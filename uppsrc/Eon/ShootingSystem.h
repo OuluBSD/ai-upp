@@ -9,7 +9,7 @@ class ShootingComponent :
 	
 public:
 	RTTI_COMP1(ShootingComponent, CustomToolComponent)
-	void Visit(Vis& vis) override {vis.VisitThis<CustomToolComponent>(this); /*vis & gun;*/}
+	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); /*vis & gun;*/}
 	
 	
 	void Etherize(Ether& e) override;
@@ -35,7 +35,7 @@ class ShootingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;
 	ECS_SYS_CTOR(ShootingInteractionSystemBase);
-	void Visit(Vis& vis) override {vis.VisitThis<ToolSys>(this);}
+	void Visit(Vis& vis) override {vis.VisitT<ToolSys>(this);}
 	
 	using Parent = Engine;
 	

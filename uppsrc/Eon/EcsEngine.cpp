@@ -36,7 +36,7 @@ void EntitySystem::ClearEngine() {
 }
 
 void EntitySystem::Visit(Vis& vis) {
-	vis.VisitThis<System<CLASSNAME>>(this);
+	vis.VisitT<System<CLASSNAME>>(this);
 	if (engine)
 		vis % *engine;
 }

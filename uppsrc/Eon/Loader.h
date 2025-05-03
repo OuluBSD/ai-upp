@@ -318,7 +318,7 @@ protected:
 protected:
 	friend class ScriptStateLoader;
 	
-	LoopRef		ResolveLoop(Eon::Id& id);
+	LoopPtr		ResolveLoop(Eon::Id& id);
 	
 	
 public:
@@ -331,7 +331,7 @@ public:
 	
 };
 
-using ScriptLoaderPtr = Ptr<ScriptLoader, SerialSystemParent>;
+using ScriptLoaderPtr = Ptr<ScriptLoader>;
 
 
 }

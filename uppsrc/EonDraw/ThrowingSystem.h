@@ -8,7 +8,6 @@ class ThrowingComponent :
 	public CustomToolComponent {
 	
 public:
-	RTTI_COMP1(ThrowingComponent, CustomToolComponent)
 	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); vis & ball_object;}
 	
 	
@@ -25,7 +24,7 @@ public:
 	float scale = 0.25f;
 };
 
-using ThrowingComponentPtr = Ref<ThrowingComponent>;
+using ThrowingComponentPtr = Ptr<ThrowingComponent>;
 
 
 // ThrowingInteractionSystem

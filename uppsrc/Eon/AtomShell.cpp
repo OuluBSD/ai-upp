@@ -113,7 +113,7 @@ size_t break_addr = 0;
 void DefaultSerialInitializer() {DefaultSerialInitializer0(false);}
 
 void DefaultSerialInitializer0(bool skip_eon_file) {
-	using namespace Serial;
+	
 	
 	SetCoutLog();
 	
@@ -184,7 +184,7 @@ void DebugMainLoop() {
 }
 
 void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
-	using namespace Parallel;
+	
 	
 	int iter = 0;
     TimeStop t, total;
@@ -213,7 +213,7 @@ void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
 }
 
 void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
-	using namespace Parallel;
+	
 	
 	SetCoutLog();
 	
@@ -332,7 +332,7 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 }
 
 void DefaultRunnerStop() {
-	using namespace Parallel;
+	
 	Machine& mach = GetActiveMachine();
 	mach.SetNotRunning();
 	mach.Stop();

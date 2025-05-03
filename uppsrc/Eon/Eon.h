@@ -61,6 +61,7 @@ NAMESPACE_UPP
 #include "ShadertoyLoader.h"
 
 #include "EcsComponent.h"
+#include "TypeTraits.h"
 #include "Entity.h"
 #include "EcsPool.h"
 #include "EntityStore.h"
@@ -69,33 +70,21 @@ NAMESPACE_UPP
 #include "EntityVisitor.h"
 
 #include "CommonComponents.h"
-#include "Camera.h"
 #include "EcsRegistrySystem.h"
-#include "Model.h"
-#include "RenderingSystem.h"
-#include "EventSystem.h"
-#include "Prefab.h"
-#include "EonLoader.h"
 #include "WorldLogic.h"
 
 #include "EcsCommonComponents.h"
 #include "EasingSystem.h"
-#include "PaintStrokeSystem.h"
+#include "EcsEngine.h"
 #include "InteractionSystem.h"
-#include "ToolboxSystem.h"
-#include "ToolSystem.h"
 #include "Player.h"
 #include "EcsPhysicsSystem.h"
-#include "PaintingSystem.h"
-#include "ShootingSystem.h"
-#include "ThrowingSystem.h"
-#include "Prefabs.h"
-#include "DesktopSystem.h"
 
 #include "ToyLoader.h"
 #include "Def.h"
 #include "Loader.h"
 #include "Ecs.h"
+#include "EonLoader.h"
 
 END_UPP_NAMESPACE
 

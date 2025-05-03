@@ -5,7 +5,7 @@ namespace Ecs {
 
 
 class PlayerBodyComponent;
-using PlayerBodyComponentPtr = RefT_Entity<PlayerBodyComponent>;
+using PlayerBodyComponentPtr = Ptr<PlayerBodyComponent>;
 
 
 typedef enum : byte {
@@ -56,7 +56,6 @@ struct HandActionSourceLocation : HandSourceLocation {
 class PlayerHandComponent : public Component<PlayerHandComponent> {
 	
 public:
-	RTTI_COMP0(PlayerHandComponent)
 	COMP_DEF_VISIT_(vis & body)
 	
 	COPY_PANIC(PlayerHandComponent)
@@ -69,7 +68,7 @@ public:
     bool IsSource(const ControllerSource& rhs) const;
 	
 	
-	PlayerBodyComponentRef				body;
+	PlayerBodyComponentPtr				body;
     const HandLocationSource*			source = 0;
     HandActionSourceLocation*			location = 0;
 	
@@ -79,14 +78,13 @@ public:
     
 };
 
-using PlayerHandComponentPtr = Ref<PlayerHandComponent>;
+using PlayerHandComponentPtr = Ptr<PlayerHandComponent>;
 
 
 
 class PlayerHeadComponent : public Component<PlayerHeadComponent> {
 	
 public:
-	RTTI_COMP0(PlayerHeadComponent)
 	COMP_DEF_VISIT_(vis & body)
 	
 	COPY_PANIC(PlayerHeadComponent)
@@ -97,11 +95,11 @@ public:
 	bool Arg(String key, Value value) override;
 	
 	
-	PlayerBodyComponentRef				body;
+	PlayerBodyComponentPtr				body;
 	
 };
 
-using PlayerHeadComponentPtr = Ref<PlayerHeadComponent>;
+using PlayerHeadComponentPtr = Ptr<PlayerHeadComponent>;
 
 
 
@@ -116,7 +114,6 @@ protected:
 	float height = 1.8f;
 	
 public:
-	RTTI_COMP0(PlayerBodyComponent)
 	COMP_DEF_VISIT_(vis & hands[0] & hands[1] & head)
 	COPY_PANIC(PlayerBodyComponent)
 	
@@ -166,7 +163,7 @@ protected:
 private:
     void RefreshComponentsForSource(const HandLocationSource& source);
     
-    Ref<InteractionSystem> iasys;
+    Ptr<InteractionSystem> iasys;
     Array<PlayerBodyComponentPtr> bodies;
     
 };

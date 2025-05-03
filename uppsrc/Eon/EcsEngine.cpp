@@ -243,25 +243,25 @@ void Engine::RemoveFromUpdateList(ComponentBaseUpdater* c) {
 	VectorRemoveKey(update_list, c);
 }
 
-Ref<SystemBase> Engine::Add(TypeCls type, bool startup)
+Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
 {
     NewSystemFn fn = TypeNewFn().Get(type, 0);
     ASSERT(fn);
     if (!fn)
-        return Ref<SystemBase>();
+        return Ptr<SystemBase>();
 	SystemBase* syst = fn(*this);
     Add(type, syst, startup);
-    return syst->AsRefT<SystemBase>();
+    return syst;
 }
 
-Ref<SystemBase> Engine::GetAdd(String id, bool startup) {
+Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
     int i = EonToType().Find(id);
     if (i < 0)
-        return Ref<SystemBase>();
+        return Ptr<SystemBase>();
     TypeCls type = EonToType()[i];
-    SystemCollection::Iterator it = FindSystem(type);
-    if (it)
-        return it->AsRef<SystemBase>();
+    i = systems.Find(type);
+    if (i >= 0)
+        return &systems[i];
     return Add(type, startup);
 }
 

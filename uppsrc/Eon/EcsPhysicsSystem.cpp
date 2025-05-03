@@ -26,8 +26,8 @@ void PhysicsSystem::Update(double dt)
 		
 		
 		EntityPtr ent = b->GetEntity();
-		Ref<RigidBody> rigid_body = ent->Find<RigidBody>();
-		Ref<Transform> transform = ent->Find<Transform>();
+		Ptr<RigidBody> rigid_body = ent->Find<RigidBody>();
+		Ptr<Transform> transform = ent->Find<Transform>();
 		
 		if (rigid_body && transform && rigid_body->IsEnabled()) {
 			rigid_body->velocity += rigid_body->acceleration * (float)dt;
@@ -174,7 +174,7 @@ bool PhysicsBody::BindDefault() {
 		return false;
 	}
 	
-	Ref<PhysicsSystem> fys = GetEngine().TryGet<PhysicsSystem>();
+	Ptr<PhysicsSystem> fys = GetEngine().TryGet<PhysicsSystem>();
 	if (!fys) {
 		LOG("PhysicsBody::BindDefault: error: no PhysicsSystem in engine");
 		return false;
@@ -189,7 +189,7 @@ bool PhysicsBody::BindDefault() {
 void PhysicsBody::UnbindDefault() {
 	ASSERT(is_bound);
 	
-	Ref<PhysicsSystem> fys = GetEngine().TryGet<PhysicsSystem>();
+	Ptr<PhysicsSystem> fys = GetEngine().TryGet<PhysicsSystem>();
 	if (!fys) {
 		LOG("PhysicsBody::UnbindDefault: error: no PhysicsSystem in engine");
 		return;

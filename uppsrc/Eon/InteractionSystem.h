@@ -94,7 +94,7 @@ struct VrControllerSource : ControllerSource {
 
 struct VrSpatialInteractionManager : InteractionManager {
 	EnvStatePtr state;
-	Ecs::RenderingSystemPtr rend;
+	//Ecs::RenderingSystemPtr rend;
 	VrControllerSource ctrl;
 	InteractionSystem* sys = 0;
 	Point prev_mouse = Point(0,0);
@@ -157,11 +157,11 @@ struct InteractionListener : Pte<InteractionListener>
     
     virtual bool IsEnabled() const;
     
-    static bool Initialize(Engine& e, Ref<InteractionListener, RefParent1<Engine>> l);
-    static void Uninitialize(Engine& e, Ref<InteractionListener, RefParent1<Engine>> l);
+    static bool Initialize(Engine& e, Ptr<InteractionListener> l);
+    static void Uninitialize(Engine& e, Ptr<InteractionListener> l);
 };
 
-using InteractionListenerPtr = Ref<InteractionListener, RefParent1<Ecs::Engine>>;
+using InteractionListenerPtr = Ptr<InteractionListener>;
 
 
 

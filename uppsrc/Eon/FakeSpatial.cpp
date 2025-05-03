@@ -43,7 +43,7 @@ void FakeSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Serial::Machine& m = Serial::GetActiveMachine();
+		Machine& m = GetActiveMachine();
 		Ref<LoopStore> ls = m.Find<LoopStore>();
 		LoopPtr l = ls->GetRoot();
 		state = l->GetSpace()->FindStateDeep(env_name);

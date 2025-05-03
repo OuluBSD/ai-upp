@@ -14,13 +14,13 @@ void Transform::Initialize() {
 	data.direction = VEC_FWD; // "look at" alternative to quaternion
 	data.up = VEC_UP; // "look at" alternative to quaternion
 	
-	Ref<WorldLogicSystem> sys = GetEngine().TryGet<WorldLogicSystem>();
+	Ptr<WorldLogicSystem> sys = GetEngine().TryGet<WorldLogicSystem>();
 	if (sys)
 		sys->Attach(this);
 }
 
 void Transform::Uninitialize() {
-	Ref<WorldLogicSystem> sys = GetEngine().TryGet<WorldLogicSystem>();
+	Ptr<WorldLogicSystem> sys = GetEngine().TryGet<WorldLogicSystem>();
 	if (sys)
 		sys->Detach(this);
 }

@@ -1,5 +1,5 @@
-#ifndef _Eon_RenderingSystem_h_
-#define _Eon_RenderingSystem_h_
+#ifndef _EonDraw_RenderingSystem_h_
+#define _EonDraw_RenderingSystem_h_
 
 namespace Ecs {
 
@@ -7,7 +7,6 @@ namespace Ecs {
 class Renderable : public Component<Renderable> {
 	
 public:
-	RTTI_COMP0(Renderable)
 	COMP_DEF_VISIT
 	
 	
@@ -38,7 +37,7 @@ public:
 	
 };
 
-using RenderablePtr = Ref<Renderable>;
+using RenderablePtr = Ptr<Renderable>;
 
 
 class VirtualGui;
@@ -111,7 +110,7 @@ public:
 	
 };
 
-using RenderingSystemPtr = Ref<RenderingSystem>;
+using RenderingSystemPtr = Ptr<RenderingSystem>;
 
 
 

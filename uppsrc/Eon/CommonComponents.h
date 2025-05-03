@@ -10,7 +10,6 @@ extern const vec3 EarthGravity;
 class Transform : public Component<Transform> {
 	
 public:
-	RTTI_COMP0(Transform)
 	COMP_DEF_VISIT
 	
 	TransformMatrix data;
@@ -32,7 +31,7 @@ public:
 	
 };
 
-typedef Ref<Transform> TransformRef;
+typedef Ptr<Transform> TransformPtr;
 
 
 void CopyTransformPos(EntityPtr from, EntityPtr to);
@@ -40,7 +39,6 @@ void CopyTransformPos(EntityPtr from, EntityPtr to);
 class Transform2D : public Component<Transform2D> {
 	
 public:
-	RTTI_COMP0(Transform2D)
 	COMP_DEF_VISIT
 	
 	

@@ -1,8 +1,8 @@
-#ifndef _Eon_Camera_h_
-#define _Eon_Camera_h_
+#ifndef _EonDraw_Camera_h_
+#define _EonDraw_Camera_h_
 
 namespace Ecs {
-using namespace Parallel;
+
 
 
 class Viewable :
@@ -10,7 +10,6 @@ class Viewable :
 {
 	
 public:
-	RTTI_COMP0(Viewable)
 	COMP_DEF_VISIT
 	
 	void Serialize(Stream& e) override {}
@@ -27,7 +26,6 @@ public:
 
 class Viewport : public Component<Viewport> {
 public:
-	RTTI_COMP0(Viewport)
 	COMP_DEF_VISIT
 	
 	
@@ -91,7 +89,6 @@ class ChaseCam :
 	
 public:
 	typedef ChaseCam CLASSNAME;
-	RTTI_COMP1(ChaseCam, CameraBase)
 	
 	void Serialize(Stream& e) override;
 	void Visit(Vis& vis) override {vis.VisitT<ComponentT>(this); vis & target & viewable & vport;}

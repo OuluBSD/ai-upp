@@ -10,7 +10,6 @@ class PaintComponent :
 	public CustomToolComponent {
 	
 public:
-	RTTI_COMP1(PaintComponent, CustomToolComponent)
 	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this);}
 	
 	

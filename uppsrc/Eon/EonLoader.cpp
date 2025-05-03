@@ -13,7 +13,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		String id = loader.def.id.ToString();
 		RTLOG("ScriptEngineLoader::Load: " << id);
 		
-		Ref<Ecs::SystemBase> sys = eng.GetAdd(id, false); // skip startup
+		Ptr<Ecs::SystemBase> sys = eng.GetAdd(id, false); // skip startup
 		if (sys.IsEmpty()) {
 			SetError("could not find ecs system with id '" + id + "'");
 			return false;

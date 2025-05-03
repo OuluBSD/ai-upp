@@ -1,5 +1,5 @@
-#ifndef _EcsMech_Engine_h_
-#define _EcsMech_Engine_h_
+#ifndef _Eon_EcsEngine_h_
+#define _Eon_EcsEngine_h_
 
 
 namespace Ecs {
@@ -11,7 +11,7 @@ class SystemBase : public Pte<SystemBase>
 {
 public:
     SystemBase();
-    SystemBase(Engine& e);
+    SystemBase(MetaNode& m);
     virtual ~SystemBase();
 
     virtual TypeCls GetType() const = 0;
@@ -40,21 +40,11 @@ public:
 	using SystemT = System<T>;
     using SystemBase::SystemBase;
 	
-	System() {};
-	System(Engine& e) : SystemBase(e) {};
+	System(MetaNode& m) : SystemBase(m) {};
     TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitTPure<SystemBase>(this);}
+    void Visit(Vis& vis) override {vis.VisitT<SystemBase>(this);}
     
 };
-
-#define ECS_SYS_CTOR(x) \
-	typedef x CLASSNAME; \
-	x(Engine& m) : SP(m) {}
-#define ECS_SYS_CTOR_DERIVED(x, derived_from) \
-	typedef x CLASSNAME; \
-	x(Engine& m) : derived_from(m) {}
-#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
-#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
 
 
 class Engine : public Pte<Engine>
@@ -66,26 +56,26 @@ public:
 	
 	
     template<typename SystemT>
-    Ref<SystemT> Get() {
+    Ptr<SystemT> Get() {
         auto system = TryGet<SystemT>();
         ASSERT(system);
         return system;
     }
 
     template<typename SystemT>
-    Ref<SystemT> TryGet()
+    Ptr<SystemT> TryGet()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         
         SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
         if (it)
-            return it->AsRef<SystemT>();
+            return &*it;
         
-        return Ref<SystemT>();
+        return Ptr<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
-    Ref<SystemT> Add(Args&&... args)
+    Ptr<SystemT> Add(Args&&... args)
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 		
@@ -95,10 +85,10 @@ public:
     }
 
     template<typename SystemT, typename... Args>
-    Ref<SystemT> GetAdd(Args&&... args) {
+    Ptr<SystemT> GetAdd(Args&&... args) {
         SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
         if (it)
-            return it->AsRef<SystemT>();
+            return &*it;
         return Add<SystemT>(args...);
     }
     
@@ -133,8 +123,8 @@ public:
 	void AddToUpdateList(ComponentBaseUpdater* c);
 	void RemoveFromUpdateList(ComponentBaseUpdater* c);
 	
-	Ref<SystemBase> Add(TypeCls type, bool startup=true);
-	Ref<SystemBase> GetAdd(String id, bool startup=true);
+	Ptr<SystemBase> Add(TypeCls type, bool startup=true);
+	Ptr<SystemBase> GetAdd(String id, bool startup=true);
     
 	Callback WhenEnterUpdate;
 	Callback1<SystemBase&> WhenEnterSystemUpdate;
@@ -146,16 +136,16 @@ public:
 	static Callback WhenInitialize;
 	static Callback WhenPreFirstUpdate;
 	
-	Serial::EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}
-	Serial::Machine& GetMachine() {return sys->GetMachine();}
+	EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}
+	Machine& GetMachine() {return sys->GetMachine();}
 	
 protected:
-	friend class Serial::EntitySystem;
+	friend class EntitySystem;
 	
-	Serial::EntitySystem* sys = 0;
+	EntitySystem* sys = 0;
 	
 private:
-    using SystemCollection = RefTypeMapIndirect<SystemBase> ;
+    using SystemCollection = ArrayMap<TypeCls, SystemBase>;
     SystemCollection systems;
 	
 	bool is_started = false;
@@ -164,7 +154,7 @@ private:
     bool is_running = false;
     bool is_looping_systems = false;
     
-    SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}
+    int FindSystem(TypeCls type_id) {return systems.Find(type_id);}
     void Add(TypeCls type_id, SystemBase* system, bool startup=true);
     void Remove(TypeCls typeId);
     
@@ -215,6 +205,23 @@ inline void ComponentBase::RemoveFromSystem(R ref) {
 		sys->Remove(ref);
 }
 
+
+template<typename T>
+void Entity::Remove0() {
+	comps.Remove<T>(GetEngine().Get<ComponentStore>());
+}
+
+template<typename T>
+T* Entity::Add0(bool initialize) {
+	T* comp = GetEngine().Get<ComponentStore>()->CreateComponent<T>();
+	ASSERT(comp);
+	comps.Add(comp);
+	if (initialize) {
+		InitializeComponent(*comp);
+	}
+	ASSERT(comp->GetEntity());
+	return comp;
+}
 
 
 }

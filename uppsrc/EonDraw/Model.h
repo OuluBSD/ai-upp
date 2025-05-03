@@ -1,10 +1,10 @@
-#ifndef _Eon_Model_h_
-#define _Eon_Model_h_
+#ifndef _EonDraw_Model_h_
+#define _EonDraw_Model_h_
 
 namespace Ecs {
 
 
-typedef RTuple<Ref<Model>, TransformRef, RenderablePtr> RendModel;
+typedef Tuple<Ptr<Model>, TransformPtr, RenderablePtr> RendModel;
 typedef Vector<RendModel> VectorRendModel;
 
 
@@ -13,7 +13,6 @@ class ModelComponent :
 {
 	
 public:
-	RTTI_COMP0(ModelComponent);
 	COMP_DEF_VISIT_(vis & model)
 	
 	
@@ -27,7 +26,7 @@ public:
     bool Load(GfxDataState& state);
     bool LoadModel(String path);
     bool AddTextureFile(int mesh_i, TexType type, String path);
-	Ref<Model> GetModel() {return loader.GetModel();}
+	Ptr<Model> GetModel() {return loader.GetModel();}
     ModelLoader& GetLoader() {return loader;}
     
 	void GetModels(VectorRendModel& models);
@@ -75,7 +74,7 @@ protected:
 	
 };
 
-using ModelComponentPtr = Ref<ModelComponent>;
+using ModelComponentPtr = Ptr<ModelComponent>;
 
 
 

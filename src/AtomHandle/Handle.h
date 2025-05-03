@@ -9,7 +9,7 @@ class HandleEventsBase :
 	public Atom
 {
 	String						target;
-	EnvStateRef					state;
+	EnvStatePtr					state;
 	int							prev_iter = -1;
 	static HandleEventsBase*	active;
 	
@@ -31,7 +31,7 @@ public:
 	static Callback1<HandleEventsBase*>	WhenInitialize;
 	static HandleEventsBase* Active() {return active;}
 	
-	EnvStateRef& State() {return state;}
+	EnvStatePtr& State() {return state;}
 	
 };
 
@@ -46,7 +46,7 @@ class HandleVideoBase :
 	static HandleVideoBase* active;
 	
 	String					target;
-	EnvStateRef				state;
+	EnvStatePtr				state;
 	int						prev_iter = -1;
 	ValDevCls				src_type;
 	//ProgDraw				pd;

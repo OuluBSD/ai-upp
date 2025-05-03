@@ -121,7 +121,7 @@ class EventStateBase :
 {
 	static Vector<BinderIfaceEvents*>	binders;
 	String			target;
-	EnvStateRef		state;
+	EnvStatePtr		state;
 	bool			dbg_print = false;
 	int				dbg_iter = 0;
 	int				dbg_limit = 0;

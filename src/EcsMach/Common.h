@@ -78,29 +78,6 @@ using RefT_Engine			= Ref<T,					EcsSystemParent>;
 
 
 
-#define PREFAB_BEGIN(x) \
-struct x##_ : RTTIBase {RTTI_DECL0(x##_)}; \
-\
-struct x : \
-	x##_, \
-	TS::ECS::EntityPrefab<
-
-#define PREFAB_END \
-> { \
-	 \
-    static Components Make(TS::ECS::Entity& e) \
-    { \
-        auto components = EntityPrefab::Make(e); \
-		return components; \
-    } \
-};
-
-
-
-#define COMP_DEF_VISIT void Visit(RuntimeVisitor& vis) override {vis.VisitThis<ComponentT>(this);}
-#define COMP_DEF_VISIT_(x) void Visit(RuntimeVisitor& vis) override {vis.VisitThis<ComponentT>(this); x;}
-
-#define COPY_PANIC(T) void operator=(const T& t) {Panic("Can't copy " #T);}
 
 
 

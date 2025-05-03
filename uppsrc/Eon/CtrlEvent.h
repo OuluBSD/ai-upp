@@ -81,6 +81,15 @@ struct ControllerSource {
 	
 };
 
+struct ControllerState {
+	ControllerSource* source = 0;
+	ControllerMatrix props;
+	
+	const ControllerSource& GetSource() const {ASSERT(source); return *source;}
+	const ControllerMatrix& GetControllerProperties() const {return props;}
+	
+};
+
 struct ControllerProperties {
 	typedef enum {
 		LEFT,

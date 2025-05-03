@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 INITBLOCK {
-	using namespace Serial;
+	
 	using namespace Ecs;
 	
 	// Core

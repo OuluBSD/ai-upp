@@ -69,7 +69,7 @@ public:
 	}
 	
 	template<typename T>
-	Entity* FindNearestEntityWith();
+	T* FindNearestEntityWith();
 	
 	template<typename T>
 	Pool* FindNearestPoolWith();
@@ -200,10 +200,10 @@ struct EntityPrefab {
 	using Components = Tuple<ComponentTs*...>;
 	
 	static String GetComponentNames() {
-		return Tuple<ComponentTs*...>::GetTypeNames();
+		return Tuple<ComponentTs*...>::AsTypeNames();
 	}
 	
-    static String GetTypeName() {
+    static String AsTypeName() {
         static auto s = "EntityPrefab<" + GetComponentNames() + ">" ; return s;
     }
     

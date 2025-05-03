@@ -27,7 +27,7 @@ struct FboAtomT :
 	Vector<BinderIfaceVideo*> binders;
 	One<BinderIfaceVideo>	own_binder;
 	String					target;
-	EnvStateRef				state;
+	EnvStatePtr				state;
 	int						prev_iter = -1;
 	ValDevCls				src_type;
 	One<ImageDraw>			id;

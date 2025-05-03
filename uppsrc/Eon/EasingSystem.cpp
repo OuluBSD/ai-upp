@@ -15,13 +15,13 @@ void Easing::Serialize(Stream& e) {
 }
 
 void Easing::Initialize() {
-	Ref<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
+	Ptr<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
 	if (sys)
 		sys->Attach(this);
 }
 
 void Easing::Uninitialize() {
-	Ref<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
+	Ptr<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
 	if (sys)
 		sys->Detach(this);
 }
@@ -34,7 +34,7 @@ void Easing::Uninitialize() {
 void EasingSystem::Update(double dt)
 {
 	for (Easing* easing : comps) {
-		Ref<Transform> transform = easing->GetEntity()->Find<Transform>();
+		Ptr<Transform> transform = easing->GetEntity()->Find<Transform>();
 		if (!transform)
 			continue;
         

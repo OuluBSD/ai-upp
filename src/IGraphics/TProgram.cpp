@@ -267,14 +267,14 @@ void ProgramStateT<Gfx>::SetVar(ContextState& ctx, ModelState& mdl, int var, con
 }
 
 template <class Gfx>
-void ProgramStateT<Gfx>::SetVars(ContextState& ctx, EnvStateRef& env, const RealtimeSourceConfig& cfg) {
+void ProgramStateT<Gfx>::SetVars(ContextState& ctx, EnvStatePtr& env, const RealtimeSourceConfig& cfg) {
 	for(int i = 0; i < GVar::VAR_COUNT; i++)
 		if (!GVar::gvars[i].is_obj_var && var_idx[i] >= 0)
 			SetVar(ctx, env, i, cfg);
 }
 
 template <class Gfx>
-void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStateRef& env, int var, const RealtimeSourceConfig& cfg) {
+void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStatePtr& env, int var, const RealtimeSourceConfig& cfg) {
 	using namespace GVar;
 	int uindex = var_idx[var];
 	ASSERT(uindex >= 0);

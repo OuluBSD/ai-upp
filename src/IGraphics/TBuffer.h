@@ -150,7 +150,7 @@ struct BufferT : GfxBuffer {
 	
 	// set by user
 	Vector<byte>				fb_out;
-	EnvStateRef					env;
+	EnvStatePtr					env;
 	
 	ArrayMap<String, DataState>	data;
 	Array<BufferStage>			stages;

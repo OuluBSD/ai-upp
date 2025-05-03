@@ -34,14 +34,13 @@ using IsSystem = std::is_base_of<SystemBase, T>;
 
 
 template<typename T>
-class System :
-	public SystemBase
+class System : public SystemBase
 {
 	using SystemT = System<T>;
 public:
 	System(MetaNode& n) : SystemBase(n) {}
 	TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitT<SystemBase>(this);}
+    void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",this);}
     
 };
 
@@ -52,10 +51,10 @@ public:
 #define SYS_CTOR_(x) \
 	typedef x CLASSNAME; \
 	x(MetaNode& m) : System<x>(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x;}
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
 
 class Machine :
 	public MetaMachineBase

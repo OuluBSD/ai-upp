@@ -9,7 +9,6 @@ class Easing :
 {
 	
 public:
-	RTTI_COMP0(Easing)
 	COMP_DEF_VISIT
 	
 	
@@ -31,7 +30,7 @@ public:
     
 };
 
-using EasingPtr = Ref<Easing>;
+using EasingPtr = Ptr<Easing>;
 
 
 

@@ -8,7 +8,6 @@ namespace Ecs {
 class RigidBody : public Component<RigidBody> {
 	
 public:
-	RTTI_COMP0(RigidBody)
 	COMP_DEF_VISIT
 	
 	
@@ -34,7 +33,7 @@ public:
 	
 };
 
-using RigidBodyPtr = Ref<RigidBody>;
+using RigidBodyPtr = Ptr<RigidBody>;
 
 
 
@@ -47,7 +46,6 @@ class TextRenderable :
 {
 	
 public:
-	RTTI_COMP0(TextRenderable)
 	COPY_PANIC(TextRenderable);
 	COMP_DEF_VISIT
 	

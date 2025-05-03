@@ -76,7 +76,7 @@ public:
 	
 	void Reset();
 	void Skip(Pool::Bit entpool_bit);
-	EntityPtr GetCurrent() const {return *cur;}
+	const Entity& GetCurrent() const {return *cur;}
 	
 	Entity* operator->();
 	EntityPtr operator*();
@@ -106,7 +106,7 @@ public:
 
 template<typename... ComponentTs>
 class EntityComponentVisitor : public EntityVisitor {
-	RTuple<Ref<ComponentTs>...> cur_comps;
+	Tuple<ComponentTs*...> cur_comps;
 	
 	bool FindComps() {
 		Entity& e = *GetCurrent();
@@ -132,7 +132,7 @@ public:
 	EntityComponentVisitor(Engine& m) : EntityVisitor(m) {Init();}
 	
 	
-	template<typename ComponentT> RefT_Entity<ComponentT> Get() {return cur_comps.template Get<RefT_Entity<ComponentT>>();}
+	template<typename ComponentT> ComponentT* Get() {return cur_comps.template Get<ComponentT*>();}
 	
 	void operator++(int) {FindNextDepthFirstWithComps();}
 	

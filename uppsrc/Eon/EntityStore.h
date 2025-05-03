@@ -21,7 +21,7 @@ public:
 	ECS_SYS_CTOR_(EntityStore) {InitRoot();}
 	ECS_SYS_DEF_VISIT_(vis || root)
 	
-	PoolPtr GetRoot()	{return *root.begin();}
+	PoolPtr GetRoot()	{return &root[0];}
 	PoolVec& GetRootVec()	{return root;}
 	
 	EntityPtr FindEntity(String path);

@@ -84,26 +84,6 @@ private:
 };
 
 
-template<typename T>
-void Entity::Remove0() {
-	comps.Remove<T>(GetEngine().Get<ComponentStore>());
-}
-
-template<typename T>
-RefT_Entity<T> Entity::Add0(bool initialize) {
-	T* comp = GetEngine().Get<ComponentStore>()->CreateComponent<T>();
-	ASSERT(comp);
-	comps.Add(comp);
-	if (initialize) {
-		InitializeComponent(*comp);
-	}
-	else {
-		comp->SetParent(this);
-	}
-	ASSERT(comp->GetEntity());
-	return comp->AsRefT();
-}
-
 
 
 

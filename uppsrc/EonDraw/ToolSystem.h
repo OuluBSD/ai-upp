@@ -27,7 +27,6 @@ class ToolSelectorKey :
 	public Component<ToolSelectorKey> {
 	
 public:
-	RTTI_COMP0(ToolSelectorKey)
 	COPY_PANIC(ToolSelectorKey)
 	COMP_DEF_VISIT
 	

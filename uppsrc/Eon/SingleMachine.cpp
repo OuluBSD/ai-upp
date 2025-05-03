@@ -4,8 +4,8 @@ NAMESPACE_UPP
 
 
 bool SingleMachine::Open(void(*arg_fn)()) {
-	using namespace Parallel;
-	using namespace Serial;
+	
+	
 	
 	const AppFlags& flags = GetAppFlags();
 	Machine& mach = GetActiveMachine();
@@ -49,7 +49,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 }
 
 void SingleMachine::Close() {
-	using namespace Parallel;
+	
 	
 	Machine& mach = GetActiveMachine();
 	mach.Stop();

@@ -16,7 +16,11 @@ void HugePersistent::StoreData() {
 	if (FileExists(file)) {
 		if (FileExists(prev_file))
 			DeleteFile(prev_file);
+		#ifdef flagPOSIX
+		rename(file, prev_file);
+		#else
 		RenameFile(file, prev_file);
+		#endif
 	}
 	FileOut fout(file);
 	fout.Put(&persistent_size, sizeof(persistent_size));
@@ -91,32 +95,6 @@ void HugePersistent::LoadData() {
 
 
 
-
-bool& EnvState::SetBool(dword key, bool b) {
-	Object& o = data.GetAdd(key);
-	return o.Set<bool>(b);
-}
-
-int& EnvState::SetInt(dword key, int i) {
-	Object& o = data.GetAdd(key);
-	return o.Set<int>(i);
-}
-
-bool& EnvState::GetBool(dword key) {
-	Object& o = data.GetAdd(key);
-	if (o.Is<bool>())
-		return o.Get<bool>();
-	else
-		return o.Create<bool>(false);
-}
-
-int& EnvState::GetInt(dword key) {
-	Object& o = data.GetAdd(key);
-	if (o.Is<int>())
-		return o.Get<int>();
-	else
-		return o.Create<int>(0);
-}
 
 
 END_UPP_NAMESPACE

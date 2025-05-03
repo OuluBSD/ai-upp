@@ -20,6 +20,48 @@
 	#define DEFAULT_AUDIO_QUEUE_SIZE	4
 #endif
 
+#ifndef CXX2A_STATIC_ASSERT
+	#if defined flagMSC && !defined flagUWP
+		#define CXX2A_STATIC_ASSERT(x, y) static_assert(x, y)
+	#else
+		#define CXX2A_STATIC_ASSERT(x, y)
+	#endif
+#endif
+
+#define ECS_SYS_CTOR_(x) \
+	typedef x CLASSNAME; \
+	x(MetaNode& e) : System<x>(e)
+
+#define ECS_SYS_CTOR(x) \
+	typedef x CLASSNAME; \
+	x(MetaNode& m) : System<x>(m) {}
+#define ECS_SYS_CTOR_DERIVED(x, derived_from) \
+	typedef x CLASSNAME; \
+	x(MetaNode& m) : derived_from(m) {}
+#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
+#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
+#define PREFAB_BEGIN(x) \
+struct x##_ : RTTIBase {RTTI_DECL0(x##_)}; \
+\
+struct x : \
+	x##_, \
+	TS::ECS::EntityPrefab<
+
+#define PREFAB_END \
+> { \
+	 \
+    static Components Make(TS::ECS::Entity& e) \
+    { \
+        auto components = EntityPrefab::Make(e); \
+		return components; \
+    } \
+};
+
+#define COMP_DEF_VISIT void Visit(Vis& vis) override {}
+#define COMP_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
+
+#define COPY_PANIC(T) void operator=(const T& t) {Panic("Can't copy " #T);}
+
 using EntityId				= int32;
 using PoolId				= int32;
 

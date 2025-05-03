@@ -16,7 +16,6 @@ class CustomToolComponent :
 	public Component<CustomToolComponent> {
 	
 public:
-	RTTI_COMP0(CustomToolComponent)
 	COPY_PANIC(CustomToolComponent)
 	COMP_DEF_VISIT
 	
@@ -27,14 +26,13 @@ public:
 	
 };
 
-using CustomToolComponentPtr = Ref<CustomToolComponent>;
+using CustomToolComponentPtr = Ptr<CustomToolComponent>;
 
 
 
 class ToolComponent : public Component<ToolComponent> {
 	
 public:
-	RTTI_COMP0(ToolComponent)
 	COPY_PANIC(ToolComponent)
 	COMP_DEF_VISIT_(vis & active_tool & active_hand; vis && tools;)
 	
@@ -59,7 +57,7 @@ public:
 	
 };
 
-using ToolComponentPtr = Ref<ToolComponent>;
+using ToolComponentPtr = Ptr<ToolComponent>;
 
 
 class ToolboxSystemBase :
@@ -108,7 +106,7 @@ protected:
 	
 };
 
-using ToolboxSystemBasePtr = Ref<ToolboxSystemBase>;
+using ToolboxSystemBasePtr = Ptr<ToolboxSystemBase>;
 
 
 }

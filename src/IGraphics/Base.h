@@ -122,7 +122,7 @@ struct KeyboardBaseT :
 	public BufferBaseT<Gfx>
 {
 	String			target;
-	EnvStateRef		state;
+	EnvStatePtr		state;
 	
 	
 public:

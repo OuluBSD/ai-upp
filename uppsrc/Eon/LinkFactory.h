@@ -27,7 +27,7 @@ public:
 		LinkData& d = LinkDataMap().GetAdd(cls);
 		d.rtti_cls = AsTypeCls<T>();
 		d.cls = cls;
-		d.name = GetTypeNameT<T>();
+		d.name = AsTypeName<T>();
 		d.new_fn = &CreateLink<T>;
 	}
 	

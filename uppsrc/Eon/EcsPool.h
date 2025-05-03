@@ -74,7 +74,7 @@ public:
 		static_assert(TupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
 		Entity& e = objects.Add();
-		e.SetParent(this);
+		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);
 		Initialize(e, PrefabT::GetComponentNames());
@@ -90,7 +90,7 @@ public:
 		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
 		
 		for (Entity& object : objects) {
-			auto requested_components = object->TryGetComponents<ComponentTs...>();
+			auto requested_components = object.TryGetComponents<ComponentTs...>();
 			
 			if (AllValidComponents(requested_components)) {
 				Tuple<EntityPtr, ComponentTs*...> t(object, requested_components);
@@ -108,8 +108,8 @@ public:
 		
 		Vector<Tuple<ComponentTs*...>> components;
 		
-		for (EntityPtr object : objects) {
-			auto requested_components = object->TryGetComponents<ComponentTs...>();
+		for (Entity& object : objects) {
+			auto requested_components = object.TryGetComponents<ComponentTs...>();
 			
 			if (AllValidComponents(requested_components)) {
 				components.Add(requested_components);
@@ -126,10 +126,10 @@ public:
 	EntityPtr FindEntity(T* component) {
 		if (!component)
 			return EntityPtr();
-		for (EntityPtr object : objects) {
-			T* t = object->Find<T>();
+		for (Entity& object : objects) {
+			T* t = object.Find<T>();
 			if (t == component)
-				return object;
+				return &object;
 		}
 		return EntityPtr();
 	}
@@ -164,6 +164,7 @@ public:
 };
 
 using PoolVec = Array<Pool>;
+using PoolPtr = Ptr<Pool>;
 
 class PoolHashVisitor : public Vis {
 	CombineHash ch;
@@ -183,8 +184,8 @@ T* Entity::FindNearestEntityWith() {
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			for (EntityPtr& e : *p) {
-				c = e->Find<T>();
+			for (Entity& e : *p) {
+				c = e.Find<T>();
 				if (c) break;
 			}
 			p = p->GetParent();
@@ -216,7 +217,7 @@ inline void ComponentBase::EtherizeRef(Ether& e, EntityPtr& ref) {
 }
 
 template <class T>
-void ComponentBase::EtherizeRef(Ether& e, Ref<T>& ref) {
+void ComponentBase::EtherizeRef(Ether& e, Ptr<T>& ref) {
 	thread_local static Vector<String> path;
 	EntityPtr ent = GetEntity();
 	bool has_ref = !ref.IsEmpty();

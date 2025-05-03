@@ -119,7 +119,7 @@ public:
 	LinkBase*		GetLink();
 	int				GetId() const {return id;}
 	
-	template <class T> Ptr<T> As() {return AtomBase_Static_As<T>(this);}
+	template <class T> Ptr<T> As() {return ::UPP::CastPtr<T>(this);}
 	
 	template <class S, class R>
 	void AddToSystem(R ref) {

@@ -23,7 +23,7 @@ public:
 	T& Set(dword key) {
 		Value& o = data.GetAdd(key);
 		if (o.Is<T>())
-			return o.Get<T>();
+			return const_cast<T&>(o.Get<T>());
 		else
 			return CreateRawValue<T>(o);
 	}
@@ -35,7 +35,7 @@ public:
 			return 0;
 		Value& o = data[i];
 		if (o.Is<T>())
-			return &o.Get<T>();
+			return &const_cast<T&>(o.Get<T>());
 		return 0;
 	}
 };

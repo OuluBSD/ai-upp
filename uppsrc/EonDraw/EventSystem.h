@@ -1,9 +1,9 @@
-#ifndef _Eon_EventSystem_h_
-#define _Eon_EventSystem_h_
+#ifndef _EonDraw_EventSystem_h_
+#define _EonDraw_EventSystem_h_
 
 
 namespace Ecs {
-using namespace Parallel;
+
 
 
 class EventSystem :
@@ -29,7 +29,7 @@ public:
 	
 };
 
-using EventSystemPtr = Ref<EventSystem>;
+using EventSystemPtr = Ptr<EventSystem>;
 
 
 }

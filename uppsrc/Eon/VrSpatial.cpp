@@ -42,8 +42,8 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Serial::Machine& m = Serial::GetActiveMachine();
-		Ref<LoopStore> ls = m.Find<LoopStore>();
+		Machine& m = GetActiveMachine();
+		Ptr<LoopStore> ls = m.Find<LoopStore>();
 		LoopPtr l = ls->GetRoot();
 		state = l->GetSpace()->FindStateDeep(env_name);
 		if (!state) {
@@ -76,8 +76,8 @@ void VrSpatialInteractionManager::UpdateState() {
 	}
 	
 	if (sys->is_calibration) {
-		if (!rend)
-			rend = sys->GetEngine().TryGet<Ecs::RenderingSystem>();
+		//if (!rend)
+		//	rend = sys->GetEngine().TryGet<Ecs::RenderingSystem>();
 		UpdateCalibrationStateKeyboard();
 	}
 	

@@ -78,7 +78,7 @@ public:
 	AtomBasePtr			FindDeepCls(AtomTypeCls atom_type);
 	
 	template <class T>
-	Ptr<T> FindDeep() {auto r = FindDeepCls(T::TypeIdClass()); return r ? r->template AsRefT<T>() : RefT_Atom<T>();}
+	Ptr<T> FindDeep() {return FindDeepCls(T::TypeIdClass());}
 	
 	
 	AtomBasePtr			AddPtr(AtomBase* atom);
@@ -194,7 +194,7 @@ T* Space::FindNearestAtomCast(int nearest_space_depth) {
 	if (Space* p = GetParent())
 		return p->FindNearestAtomCast<T>(nearest_space_depth);
 	
-	return RefT_Atom<T>();
+	return 0;
 }
 
 

@@ -9,7 +9,6 @@ class PaintStrokeComponent :
 	public Component<PaintStrokeComponent> {
 	
 public:
-	RTTI_COMP0(PaintStrokeComponent)
 	COPY_PANIC(PaintStrokeComponent)
 	COMP_DEF_VISIT
 	

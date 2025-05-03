@@ -31,7 +31,7 @@ struct ComponentFactory {
 		CompData& d = CompDataMap().Add(cls);
 		d.eon_id = eon_id;
 		d.rtti_cls = cls;
-		d.name = T::GetTypeName();
+		d.name = T::AsTypeName();
 		d.new_fn = &CreateComp<T>;
 	}
 	

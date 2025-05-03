@@ -102,19 +102,19 @@ public:
 	
 	template<typename ComponentT>
 	Ptr<ComponentT> Get() {
-		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
+		CXX2A_STATIC_ASSERT(IsComponent<ComponentT>::value, "T should derive from Component");
 		
 		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
 		ASSERT(i >= 0);
 		if (i < 0)
-			throw (Exc("Could not find component " + AsTypeString<ComponentT>()));
+			throw (Exc("Could not find component " + AsTypeName<ComponentT>()));
 		
 		return &ComponentMapBase::operator[](i);
 	}
 	
 	template<typename ComponentT>
 	Ptr<ComponentT> Find() {
-		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
+		CXX2A_STATIC_ASSERT(IsComponent<ComponentT>::value, "T should derive from Component");
 		
 		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
 		if (i < 0)
@@ -125,7 +125,7 @@ public:
 	
 	template<typename ComponentT>
 	void Add(ComponentT* component) {
-		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
+		CXX2A_STATIC_ASSERT(IsComponent<ComponentT>::value, "T should derive from Component");
 		
 		TypeCls type = ComponentT::TypeIdClass();
 		ASSERT(type);
@@ -136,7 +136,7 @@ public:
 	
 	template<typename ComponentT>
 	void Remove(ComponentStore* s) {
-		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
+		CXX2A_STATIC_ASSERT(IsComponent<ComponentT>::value, "T should derive from Component");
 		
 		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
 		ASSERT_(i < 0, "Tried to remove non-existent component");

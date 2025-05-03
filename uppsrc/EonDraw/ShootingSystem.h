@@ -8,7 +8,6 @@ class ShootingComponent :
 	public CustomToolComponent {
 	
 public:
-	RTTI_COMP1(ShootingComponent, CustomToolComponent)
 	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); /*vis & gun;*/}
 	
 	
@@ -21,7 +20,7 @@ public:
 	mat4 barrel_to_ctrl;
 };
 
-using ShootingComponentPtr = Ref<ShootingComponent>;
+using ShootingComponentPtr = Ptr<ShootingComponent>;
 
 
 // ShootingInteractionSystem

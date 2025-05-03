@@ -1240,17 +1240,6 @@ struct ControllerMatrix {
 	
 };
 
-#if 0
-struct ControllerState {
-	ControllerSource* source = 0;
-	ControllerMatrix props;
-	
-	const ControllerSource& GetSource() const {ASSERT(source); return *source;}
-	const ControllerMatrix& GetControllerProperties() const {return props;}
-	
-};
-#endif
-
 struct CalibrationData {
 	bool is_enabled = false;
 	vec3 axes = vec3(0,0,0);

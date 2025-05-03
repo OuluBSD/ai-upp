@@ -2,10 +2,10 @@
 
 NAMESPACE_UPP
 
-MAKE_STATIC(Serial::ExtScriptEcsLoader, __ext_script_loader);
+MAKE_STATIC(ExtScriptEcsLoader, __ext_script_loader);
 
 INITBLOCK {
-	using namespace Serial;
+	
 	using namespace Ecs;
 	
 	__ecs_script_loader = &__ext_script_loader;

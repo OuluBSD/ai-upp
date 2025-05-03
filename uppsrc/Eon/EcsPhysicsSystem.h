@@ -55,11 +55,10 @@ public:
 	int test_fn;
 	bool is_bound = false;
 	
-	Ref<Transform> trans;
-	Ref<PlayerBodyComponent> player;
+	Ptr<Transform> trans;
+	Ptr<PlayerBodyComponent> player;
 	
 public:
-	RTTI_COMP0(PhysicsBody)
 	COMP_DEF_VISIT_(vis & trans & player)
 	
 	void Serialize(Stream& e) override;
@@ -74,7 +73,7 @@ public:
 	
 };
 
-using PhysicsBodyPtr = Ref<PhysicsBody>;
+using PhysicsBodyPtr = Ptr<PhysicsBody>;
 
 
 

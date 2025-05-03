@@ -155,8 +155,8 @@ struct ProgramStateT : GfxProgramState {
 	
 	void SetVars(ContextState&, ModelState&, const DataObject& o, ViewTarget vtgt);
 	void SetVar(ContextState&, ModelState&, int var, const DataObject& o, ViewTarget vtgt);
-	void SetVars(ContextState& ctx, EnvStateRef& env, const RealtimeSourceConfig& cfg);
-	void SetVar(ContextState& ctx, EnvStateRef& env, int var, const RealtimeSourceConfig& cfg);
+	void SetVars(ContextState& ctx, EnvStatePtr& env, const RealtimeSourceConfig& cfg);
+	void SetVar(ContextState& ctx, EnvStatePtr& env, int var, const RealtimeSourceConfig& cfg);
 	void SetInputVolume(int in_id);
 	void SetInputCubemap(int in_id);
 	

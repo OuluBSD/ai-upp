@@ -483,6 +483,7 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 };
 
 template <class T> TypeCls AsTypeCls() {return typeid(T);}
+template <class T> String AsTypeName() {return typeid(T).name();}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 
 #include "Other.hpp"

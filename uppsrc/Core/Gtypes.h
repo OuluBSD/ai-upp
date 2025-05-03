@@ -819,12 +819,6 @@ struct Vol_ : Moveable<Vol_<T>> {
 	Vol_(T v) : cx(v), cy(v), cz(v) {}
 	Vol_(T cx, T cy, T cz) : cx(cx), cy(cy), cz(cz) {}
 	
-	#ifdef flagSTDRTTI
-	static TypeCls TypeIdClass() {return typeid(Vol_<T>);}
-	#else
-	static TypeCls TypeIdClass() {static int d = 0; return (size_t) &d;}
-	#endif
-	
 	static const char* GetTypeName() {return "Vol_<T>";}
 	
 	void Clear() {cx = 0; cy = 0; cz = 0;}

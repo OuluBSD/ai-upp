@@ -18,7 +18,6 @@ class EntityStore : public System<EntityStore> {
 	
 	void InitRoot();
 public:
-	SYS_RTTI(EntityStore)
 	ECS_SYS_CTOR_(EntityStore) {InitRoot();}
 	ECS_SYS_DEF_VISIT_(vis || root)
 	

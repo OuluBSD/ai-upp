@@ -12,7 +12,7 @@ public:
 	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); /*vis & gun;*/}
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool LoadModel(ModelComponent&) override;
@@ -30,7 +30,7 @@ using ShootingComponentPtr = Ref<ShootingComponent>;
 class ShootingInteractionSystemBase :
 	public ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>
 {
-	Array<ShootingComponentRef> comps;
+	Array<ShootingComponentPtr> comps;
 	
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;

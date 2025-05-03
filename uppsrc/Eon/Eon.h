@@ -5,6 +5,7 @@
 #include <AICore/AICore.h>
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
+#include <Core2/Core.h>
 
 #if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
 	#include <cxxabi.h>
@@ -37,9 +38,9 @@ NAMESPACE_UPP
 #include "Atom.h"
 #include "Space.h"
 #include "SpaceStore.h"
+#include "FwdTypes.h"
 #include "Factory.h"
 #include "AtomSystem.h"
-#include "FwdTypes.h"
 #include "Link.h"
 #include "LinkUtil.h"
 #include "LinkBase.h"
@@ -50,25 +51,21 @@ NAMESPACE_UPP
 #include "BaseVideo.h"
 #include "PacketTracker.h"
 
-#include "Factory.h"
 #include "SpaceStore.h"
 #include "RegistrySystem.h"
 #include "LinkStore.h"
 #include "LinkSystem.h"
-#include "LinkFactory.h"
 #include "LoopStore.h"
 #include "EntitySystem.h"
 #include "AtomShell.h"
-#include "Rendering.h"
-#include "ModelCache.h"
 #include "ShadertoyLoader.h"
 
-#include "EntityStore.h"
 #include "EcsComponent.h"
-#include "Factory.h"
 #include "Entity.h"
-#include "ComponentStore.h"
 #include "EcsPool.h"
+#include "EntityStore.h"
+#include "Factory.h"
+#include "ComponentStore.h"
 #include "EntityVisitor.h"
 
 #include "CommonComponents.h"

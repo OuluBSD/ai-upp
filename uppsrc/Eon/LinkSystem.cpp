@@ -6,9 +6,9 @@ NAMESPACE_UPP
 SYS_DEF_VISIT_I(LinkSystem, vis && updated && customers && drivers && pollers)
 
 
-void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBaseRef>& atoms) {
+void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>& atoms) {
 	int dbg_i = 0;
-	for (LinkBaseRef& c : atoms) {
+	for (LinkBasePtr& c : atoms) {
 		RTLOG("LinkSystem::ForwardLinks: begin " << (String)id << " #" << dbg_i << " (" << c->ToString() << " " << HexStr(&*c) << ")");
 		
 		RealtimeSourceConfig* cfg = c->GetConfig();
@@ -90,11 +90,11 @@ void LinkSystem::Update(double dt) {
 		WhenLeaveOnceForward();
 	}
 	
-	for (LinkBaseRef& c : updated) {
+	for (LinkBasePtr& c : updated) {
 		c->Update(dt);
 	}
 	
-	for (LinkBaseRef& c : customers) {
+	for (LinkBasePtr& c : customers) {
 		c->atom->UpdateConfig(dt);
 	}
 	
@@ -174,7 +174,7 @@ void LinkSystem::AddOnce(PacketForwarder& fwd, RealtimeSourceConfig& cfg) {
 	lock.Leave();
 }
 
-String LinkSystem::GetDebugPacketString(LinkBaseRef& c, RealtimeSourceConfig* cfg) {
+String LinkSystem::GetDebugPacketString(LinkBasePtr& c, RealtimeSourceConfig* cfg) {
 	int dbg_j = 0;
 	
 	String line;

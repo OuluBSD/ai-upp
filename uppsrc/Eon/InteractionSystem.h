@@ -195,7 +195,7 @@ protected:
 	bool is_calibration = false;
 	
 private:
-    Array<InteractionListenerRef> interaction_listeners;
+    Array<InteractionListenerPtr> interaction_listeners;
     One<FakeSpatialInteractionManager> fake_spatial_interaction_manager;
     One<VrSpatialInteractionManager> vr_spatial_interaction_manager;
     InteractionManager* spatial_interaction_manager = 0;

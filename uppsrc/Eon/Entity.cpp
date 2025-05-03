@@ -14,7 +14,7 @@ Entity::~Entity() {
 	DBG_DESTRUCT
 }
 
-void Entity::Etherize(Ether& e) {
+void Entity::Serialize(Stream& e) {
 	/*
 	EntityId id = -1;
 	int64 created = 0;
@@ -75,7 +75,7 @@ String Entity::GetTreeString(int indent) {
 	
 	s << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << ": " << prefab << "\n";
 	
-	for (ComponentBaseRef& c : comps) {
+	for (ComponentBasePtr& c : comps) {
 		s.Cat('\t', indent+1);
 		s << c->ToString();
 		s.Cat('\n');
@@ -89,12 +89,12 @@ void Entity::OnChange() {
 }
 
 ComponentBasePtr Entity::GetTypeCls(TypeCls comp_type) {
-	for (ComponentBaseRef& comp : comps) {
+	for (ComponentBasePtr& comp : comps) {
 		TypeCls type = comp->GetTypeId();
 		if (type == comp_type)
 			return comp;
 	}
-	return ComponentBaseRef();
+	return ComponentBasePtr();
 }
 
 ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
@@ -103,12 +103,12 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 }
 
 ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {
-	for (ComponentBaseRef& comp : comps) {
+	for (ComponentBasePtr& comp : comps) {
 		TypeCls type = comp->GetTypeId();
 		if (type == comp_type)
 			return comp;
 	}
-	return ComponentBaseRef();
+	return ComponentBasePtr();
 }
 
 ComponentBasePtr Entity::AddPtr(ComponentBase* comp) {
@@ -153,7 +153,7 @@ EntityPtr Entity::Clone() const {
 ComponentBasePtr Entity::CreateEon(String id) {
 	int i = ComponentFactory::CompEonIds().Find(id);
 	if (i < 0)
-		return ComponentBaseRef();
+		return ComponentBasePtr();
 	
 	const auto& d = ComponentFactory::CompDataMap()[i];
 	return GetAddTypeCls(d.rtti_cls);
@@ -236,7 +236,7 @@ bool Entity::HasPoolParent(PoolPtr pool) const {
 ComponentBasePtr Entity::GetAdd(String comp_name) {
 	TypeCls type = ComponentFactory::GetComponentType(comp_name);
 	if (type == TypeCls())
-		return ComponentBaseRef();
+		return ComponentBasePtr();
 	
 	ComponentBasePtr c = FindTypeCls(type);
 	if (c)

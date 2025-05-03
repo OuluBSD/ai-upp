@@ -47,7 +47,7 @@ Geom2DComponent::Geom2DComponent() :
 	*/
 }
 
-void Geom2DComponent::Etherize(Ether& e) {
+void Geom2DComponent::Serialize(Stream& e) {
 	e % stored_rect
 	  % id
 	  % pending_partial_redraw;
@@ -566,7 +566,7 @@ void Geom2DComponent::Paint(Draw& id) {
 
 
 
-void Geom2DComponentLink::Etherize(Ether& e) {
+void Geom2DComponentLink::Serialize(Stream& e) {
 	TODO // ptr
 }
 

@@ -3,11 +3,11 @@ description "\377B85,42,0";
 uses
 	AICore,
 	Geometry,
-	Esc;
+	Esc,
+	Core2;
 
 file
 	Eon.h,
-	SerialLib.icpp,
 	Shadertoy.icpp,
 	EcsCore.icpp,
 	EcsLib.icpp,
@@ -108,18 +108,12 @@ file
 	LinkStore.cpp,
 	LinkSystem.h,
 	LinkSystem.cpp,
-	LinkFactory.h,
-	LinkFactory.cpp,
 	LoopStore.h,
 	LoopStore.cpp,
 	AtomShell.h,
 	AtomShell.cpp,
 	EntitySystem.h,
 	EntitySystem.cpp,
-	Rendering.h,
-	Rendering.cpp,
-	ModelCache.h,
-	ModelCache.cpp,
 	SingleMachine.cpp,
 	ShadertoyLoader.h,
 	ShadertoyLoader.cpp,

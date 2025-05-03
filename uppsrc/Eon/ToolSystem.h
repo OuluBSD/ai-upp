@@ -34,7 +34,7 @@ public:
 	
 	TypeId type { AsVoidTypeId() };
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	
 };
 
@@ -49,8 +49,8 @@ struct ToolSelectorPrefab :
 	
 	static Components Make(Entity& e) {
 		auto components = EntityPrefab::Make(e);
-		RigidBodyPtr rb = components.Get<RigidBodyRef>();
-		EasingPtr ea = components.Get<EasingRef>();
+		RigidBodyPtr rb = components.Get<RigidBodyPtr>();
+		EasingPtr ea = components.Get<EasingPtr>();
 		rb->angular_velocity = { 0.0f, -3.0f, 0.0f }; // Spin in place
 		rb->damping_factor = 1.0f;
 		ea->position_easing_factor = 0.1f;

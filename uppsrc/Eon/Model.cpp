@@ -4,7 +4,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-void ModelComponent::Etherize(Ether& e) {
+void ModelComponent::Serialize(Stream& e) {
 	e % color
 	  % prefab_name
 	  % skybox_diffuse
@@ -184,7 +184,7 @@ void ModelComponent::RefreshExtModel() {
 	have_ext_model = true;
 	mat4 rotate = AxesMat(yaw, pitch, roll);
 	mat4 tran = Translate(offset);
-	mat4 scale = TS::Scale(this->scale);
+	mat4 scale = Scale(this->scale);
 	this->ext_model = rotate * tran * scale;
 }
 
@@ -350,7 +350,7 @@ bool ModelComponent::Load(GfxDataState& state) {
 	if (trans) {
 		mat4 pos = Translate(trans->data.position);
 		mat4 rot = QuatMat(trans->data.orientation);
-		mat4 sz = TS::Scale(trans->size);
+		mat4 sz = Scale(trans->size);
 		
 		model_mat = pos * rot * sz;
 		

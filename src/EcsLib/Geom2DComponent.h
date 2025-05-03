@@ -162,7 +162,7 @@ public:
 	//Windows* GetWindows() const {return wins;}
 	TopWindow* GetTopWindow() const;
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	//String GetTitle() const override;
@@ -191,7 +191,7 @@ struct Geom2DComponentLink : public Component<Geom2DComponentLink> {
 	Geom2DComponent* linked = 0;
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	

@@ -18,7 +18,7 @@ Pool::~Pool() {
 	DBG_DESTRUCT
 }
 
-void Pool::Etherize(Ether& e) {
+void Pool::Serialize(Stream& e) {
 	/*
 	e % freeze_bits
 	  % name
@@ -81,7 +81,7 @@ Engine& Pool::GetEngine() {
 		ASSERT(p != par.b);
 		p = par.b;
 	}
-	THROW(Exc("Engine ptr not found"));
+	throw (Exc("Engine ptr not found"));
 }
 
 void Pool::Initialize(Entity& e, String prefab) {
@@ -129,7 +129,7 @@ void Pool::UnrefDeep() {
 }
 
 void Pool::UninitializeComponentsDeep() {
-	for (PoolRef& p : pools)
+	for (PoolPtr& p : pools)
 		p->UninitializeComponentsDeep();
 	
 	for (auto it = objects.rbegin(); it != objects.rend(); --it) {
@@ -139,7 +139,7 @@ void Pool::UninitializeComponentsDeep() {
 }
 
 void Pool::ClearComponentsDeep() {
-	for (PoolRef& p : pools)
+	for (PoolPtr& p : pools)
 		p->ClearComponentsDeep();
 	
 	for (auto it = objects.rbegin(); it != objects.rend(); --it) {
@@ -149,7 +149,7 @@ void Pool::ClearComponentsDeep() {
 }
 
 void Pool::ClearDeep() {
-	for (PoolRef& p : pools)
+	for (PoolPtr& p : pools)
 		p->ClearDeep();
 	pools.Clear();
 	
@@ -186,28 +186,28 @@ String Pool::GetTreeString(int indent) {
 	
 	s << ".." << name << "[" << id << "]\n";
 	
-	for (EntityRef& e : objects)
+	for (EntityPtr& e : objects)
 		s << e->GetTreeString(indent+1);
 	
-	for (PoolRef& p : pools)
+	for (PoolPtr& p : pools)
 		s << p->GetTreeString(indent+1);
 	
 	return s;
 }
 
 PoolPtr Pool::FindPool(String name) {
-	for (PoolRef& p : pools) {
+	for (PoolPtr& p : pools) {
 		if (p->GetName() == name)
 			return p;
 	}
-	return PoolRef();
+	return PoolPtr();
 }
 
 EntityPtr Pool::FindEntityByName(String name) {
 	for (EntityPtr object : objects)
 		if (object->GetName() == name)
 			return object;
-	return EntityRef();
+	return EntityPtr();
 }
 
 PoolPtr Pool::AddPool(String name) {
@@ -219,7 +219,7 @@ PoolPtr Pool::AddPool(String name) {
 }
 
 PoolPtr Pool::GetAddPool(String name) {
-	for (PoolRef& pool : pools)
+	for (PoolPtr& pool : pools)
 		if (pool->GetName() == name)
 			return pool;
 	return AddPool(name);
@@ -242,7 +242,7 @@ void Pool::RemoveEntity(Entity* e) {
 ComponentBasePtr Pool::RealizeComponentPath(const Vector<String>& path) {
 	int c = path.GetCount();
 	ASSERT(c >= 2);
-	if (c < 2) return ComponentBaseRef();
+	if (c < 2) return ComponentBasePtr();
 	
 	String ent_name = path[c-2];
 	String comp_name = path[c-1];
@@ -267,7 +267,7 @@ ComponentBasePtr Pool::RealizeComponentPath(const Vector<String>& path) {
 EntityPtr Pool::RealizeEntityPath(const Vector<String>& path) {
 	int c = path.GetCount();
 	ASSERT(c >= 1);
-	if (c < 1) return EntityRef();
+	if (c < 1) return EntityPtr();
 	
 	String ent_name = path[c-1];
 	ASSERT(!ent_name.IsEmpty())

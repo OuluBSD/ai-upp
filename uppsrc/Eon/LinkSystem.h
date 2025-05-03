@@ -10,11 +10,10 @@ class LinkSystem :
 		RealtimeSourceConfig*	cfg;
 	};
 	One<LinkedList<Once>> once_cbs;
-	LinkedList<LinkBaseRef> updated, customers, drivers, pollers;
+	LinkedList<LinkBasePtr> updated, customers, drivers, pollers;
 	Mutex lock;
 	
 public:
-	SYS_RTTI(LinkSystem)
 	SYS_CTOR(LinkSystem);
 	SYS_DEF_VISIT_H
 	
@@ -40,7 +39,7 @@ protected:
     void Stop() override;
     void Uninitialize() override;
     
-    void ForwardLinks(double dt, const char* id, LinkedList<LinkBaseRef>& links);
+    void ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>& links);
     
     
 public:
@@ -53,7 +52,7 @@ public:
     void RemoveDriver(LinkBasePtr p);
     void RemovePolling(LinkBasePtr p);
     
-    String GetDebugPacketString(LinkBaseRef& c, RealtimeSourceConfig* cfg);
+    String GetDebugPacketString(LinkBasePtr& c, RealtimeSourceConfig* cfg);
     
 };
 

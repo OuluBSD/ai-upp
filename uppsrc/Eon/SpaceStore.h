@@ -14,20 +14,19 @@ class SpaceStore : public System<SpaceStore> {
 	
 	void InitRoot();
 public:
-	SYS_RTTI(SpaceStore)
 	SYS_CTOR_(SpaceStore) {InitRoot();}
 	SYS_DEF_VISIT_(vis || root)
 	
 	SpacePtr GetRoot() {
 		if (root.IsEmpty())
-			return SpaceRef();
-		Space& l = root.GetFirst();
-		return l;
+			return SpacePtr();
+		Space& l = root[0];
+		return &l;
 	}
 	Space* GetRootPtr() {
 		if (root.IsEmpty())
 			return 0;
-		Space& l = root.GetFirst();
+		Space& l = root[0];
 		return &l;
 	}
 	SpaceVec& GetRootVec()	{return root;}

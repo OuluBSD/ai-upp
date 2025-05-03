@@ -1,7 +1,7 @@
-#include "Local.h"
+#include "EonDraw.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ProgPainter::ProgPainter(void* hash, Size sz, ProgPainter& p, DrawCommand& begin, DrawCommand& end)
@@ -994,4 +994,4 @@ Pointf GetPointOffsets(const Pointf& a, const Pointf& b, double width) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

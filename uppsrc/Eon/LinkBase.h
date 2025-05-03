@@ -22,8 +22,8 @@ public:
 	bool			IsLoopComplete(FwdScope& fwd) override;
 	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -39,8 +39,8 @@ public:
 	bool			ProcessPackets(PacketIO& io) override;
 	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -58,8 +58,8 @@ public:
 	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	void			SetFinalizeOnSide(bool b=true) {finalize_on_side = b;}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -76,8 +76,8 @@ public:
 	void			Uninitialize() override;
 	void			Visit(Vis& vis) override {vis.VisitT<AsyncMemForwarderBase>("AsyncMemForwarderBase", *this);}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 	void IntervalSinkProcess();
 	
@@ -98,8 +98,8 @@ public:
 	bool			ProcessPackets(PacketIO& io) final;
 	void			SetFinalizeOnSide(bool b=true) {finalize_on_side = b;}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 	
 };
@@ -115,8 +115,8 @@ public:
 	void			Uninitialize() override;
 	void			Visit(Vis& vis) override {vis.VisitT<AsyncMemForwarderBase>("AsyncMemForwarderBase", *this);}
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -132,8 +132,8 @@ public:
 	void			Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	bool			ProcessPackets(PacketIO& io) override;
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -150,8 +150,8 @@ public:
 	bool IsReady(PacketIO& io) override;
 	bool ProcessPackets(PacketIO& io) override;
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -168,8 +168,8 @@ public:
 	bool IsReady(PacketIO& io) override;
 	bool ProcessPackets(PacketIO& io) override;
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 
@@ -184,8 +184,8 @@ public:
 	bool IsReady(PacketIO& io) final;
 	bool ProcessPackets(PacketIO& io) override;
 	
-	static LinkTypeCls GetType();
-	LinkTypeCls GetLinkType() const override {return GetType();}
+	static LinkTypeCls GetLinkTypeStatic();
+	LinkTypeCls GetLinkType() const override {return GetLinkTypeStatic();}
 	
 };
 

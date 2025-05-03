@@ -6,7 +6,7 @@ NAMESPACE_UPP namespace Ecs {
 
 	
 
-void RigidBody::Etherize(Ether& e) {
+void RigidBody::Serialize(Stream& e) {
 	e % velocity
 	  % acceleration
 	  % angular_velocity

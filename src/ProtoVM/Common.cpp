@@ -50,7 +50,7 @@ ElectricNodeBase& ElectricNodeBase::operator[](String code) {
 			i++;
 		}
 	}
-	THROW(Exc("did not find pin " + code + " in " + GetDynamicName()));
+	throw (Exc("did not find pin " + code + " in " + GetDynamicName()));
 }
 
 ElectricNodeBase& ElectricNodeBase::NotRequired(String code) {
@@ -64,7 +64,7 @@ ElectricNodeBase& ElectricNodeBase::NotRequired(String code) {
 		for (Connector& c : conns) {
 			if (c.name == code) {
 				if (i+range > conns.GetCount())
-					THROW(Exc("range exceeds pin count"));
+					throw (Exc("range exceeds pin count"));
 				for(int j = 0; j < range; j++)
 					conns[i+j].SetRequired(false);
 				return *this;
@@ -82,14 +82,14 @@ ElectricNodeBase& ElectricNodeBase::NotRequired(String code) {
 			i++;
 		}
 	}
-	THROW(Exc("did not find pin " + code + " in " + GetDynamicName()));
+	throw (Exc("did not find pin " + code + " in " + GetDynamicName()));
 }
 
 ElectricNodeBase& ElectricNodeBase::operator[](int i) {
 	if (i >= 0 && i < conns.GetCount())
 		return pcb->AddReferenceSingle(*this, i);
 	
-	THROW(Exc("invalid pin index " + IntStr(i)));
+	throw (Exc("invalid pin index " + IntStr(i)));
 }
 
 bool ElectricNodeBase::IsEmpty() const {

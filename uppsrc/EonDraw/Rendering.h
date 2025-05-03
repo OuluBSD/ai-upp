@@ -1,5 +1,5 @@
-#ifndef _Eon_Rendering_h_
-#define _Eon_Rendering_h_
+#ifndef _EonDraw_Rendering_h_
+#define _EonDraw_Rendering_h_
 
 
 struct RendererBase :
@@ -21,7 +21,7 @@ struct RendererBase :
 	
 	RendererBase();
 	void operator=(const RendererBase& t) {Panic("Can't copy RendererBase");}
-	void Visit(Vis& vis) override {vis % loader;}
+	void Visit(Vis& vis) override {vis % ("loader",loader,NODE_VISIT);}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;

@@ -4,7 +4,7 @@
 namespace Ecs {
 
 
-typedef RTuple<Ref<Model>, TransformRef, RenderableRef> RendModel;
+typedef RTuple<Ref<Model>, TransformRef, RenderablePtr> RendModel;
 typedef Vector<RendModel> VectorRendModel;
 
 
@@ -17,7 +17,7 @@ public:
 	COMP_DEF_VISIT_(vis & model)
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;

@@ -60,11 +60,11 @@ END_UPP_NAMESPACE
 
 
 CONSOLE_APP_MAIN {
-	//TS::TestEonTests("lang", "meta", 13);
-	TS::TestEonTests("lang", "meta");
-	//TS::TestEonTests("lang", "test");
-	//TS::TestEonTests("tests", "", 65);
-	TS::TestEonTests("tests");
+	//TestEonTests("lang", "meta", 13);
+	TestEonTests("lang", "meta");
+	//TestEonTests("lang", "test");
+	//TestEonTests("tests", "", 65);
+	TestEonTests("tests");
 }
 
 

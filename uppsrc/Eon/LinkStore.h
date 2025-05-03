@@ -40,8 +40,7 @@ class LinkStore :
 public:
 	using Main = Space;
 	using Base = LinkBase;
-	SYS_RTTI(LinkStore)
-    SYS_CTOR(LinkStore)
+	SYS_CTOR(LinkStore)
 	SYS_DEF_VISIT
 	
 	

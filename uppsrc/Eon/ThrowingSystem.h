@@ -12,7 +12,7 @@ public:
 	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); vis & ball_object;}
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
@@ -33,7 +33,7 @@ using ThrowingComponentPtr = Ref<ThrowingComponent>;
 class ThrowingInteractionSystemBase :
 	public ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>
 {
-	Array<ThrowingComponentRef> comps;
+	Array<ThrowingComponentPtr> comps;
 	
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;

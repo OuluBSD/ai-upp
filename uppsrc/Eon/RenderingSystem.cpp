@@ -19,7 +19,7 @@ void Renderable::Uninitialize() {
 		rend->RemoveRenderable(AsRef<ComponentBase>());
 }
 
-void Renderable::Etherize(Ether& e) {
+void Renderable::Serialize(Stream& e) {
 	e % color % offset % alpha_multiplier;
 }
 
@@ -69,7 +69,7 @@ void RenderingSystem::Update(double dt) {
 }
 
 void RenderingSystem::Render(GfxDataState& state) {
-	for (ModelComponentRef& m : models) {
+	for (ModelComponentPtr& m : models) {
 		
 		m->Load(state);
 		

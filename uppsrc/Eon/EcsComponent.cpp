@@ -51,6 +51,8 @@ void ComponentBase::GetComponentPath(Vector<String>& path) {
 	Reverse(path);
 }
 
+void ComponentBase::AddToUpdateList() {GetEngine().AddToUpdateList(this);}
+void ComponentBase::RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
 
 
 

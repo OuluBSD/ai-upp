@@ -43,9 +43,7 @@ public:
     typedef HandleSystemT<Dim> CLASSNAME;
 	HandleSystemT(Machine& m);
 	
-	SYS_RTTI(HandleSystemT)
 	SYS_DEF_VISIT
-	
 	
 	Scope& AddScope();
 	void Close();

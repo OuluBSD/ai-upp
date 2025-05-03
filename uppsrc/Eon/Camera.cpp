@@ -78,7 +78,7 @@ bool Viewport::Arg(String key, Value value) {
 
 
 
-void CameraBase::Etherize(Ether& e) {
+void CameraBase::Serialize(Stream& e) {
 	e % use_stereo
 	  % calib;
 	
@@ -89,7 +89,7 @@ void CameraBase::Etherize(Ether& e) {
 	}
 }
 
-void ChaseCam::Etherize(Ether& e) {
+void ChaseCam::Serialize(Stream& e) {
 	CameraBase::Etherize(e);
 	
 	e % view
@@ -211,8 +211,8 @@ void ChaseCam::UpdateProjection() {
 }
 
 void ChaseCam::UpdateView() {
-	int width = TS::default_width;
-	int height = TS::default_height;
+	int width = default_width;
+	int height = default_height;
 	
 	float eye_dist = 0.064f;
 	

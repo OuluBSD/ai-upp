@@ -1,7 +1,7 @@
-#include "Local.h"
+#include "EonDraw.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 DrawCommand& DrawCommandCache::CreateCommand() {
@@ -147,4 +147,4 @@ String DrawCommand::GetQueueString() const {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -20,7 +20,7 @@ public:
 	float damping_factor;
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	
     void operator=(const RigidBody& r) {
@@ -56,7 +56,7 @@ public:
     double				font_size = 60.0;
     
     
-	void Etherize(Ether& e) override {e % text % font_size;}
+	void Serialize(Stream& e) override {e % text % font_size;}
     
     
 };

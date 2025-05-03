@@ -1,9 +1,5 @@
-#ifndef _Local_Container_h_
-#define _Local_Container_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
+#ifndef _Core2_Container_h_
+#define _Core2_Container_h_
 
 
 
@@ -472,15 +468,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

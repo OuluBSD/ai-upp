@@ -110,7 +110,7 @@ bool ScriptLoader::LoadFile(String path) {
 		LOG("Could not find EON file");
 		return false;
 	}
-	String eon = TS::LoadFile(path);
+	String eon = LoadFile(path);
 	return Load(eon, path);
 }
 

@@ -268,7 +268,6 @@ protected:
 	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	
 public:
-	SYS_RTTI(ScriptLoader)
 	typedef ScriptLoader CLASSNAME;
 	ScriptLoader(Machine& m);
 	SYS_DEF_VISIT_((vis & es & ss); if (!loader.IsEmpty()) vis % *loader;)

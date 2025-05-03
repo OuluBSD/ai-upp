@@ -135,7 +135,7 @@ public:
 	
 	//Interaction* GetLastSub();
 	TopContainer* GetVisibleTopContainer();
-	TopContainer& GetVisibleTopContainerRef() { return *GetVisibleTopContainer(); }
+	TopContainer& GetVisibleTopContainerPtr() { return *GetVisibleTopContainer(); }
 	
 	CmdDraw& GetDraw() {return pd;}
 	Desktop& GetDesktop() {return desktop;}

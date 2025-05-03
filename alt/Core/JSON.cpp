@@ -42,7 +42,7 @@ Object ParseArray(CParser& p) {
 			arr.Add(dbl);
 		}
 		else {
-			THROW(Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
+			throw (Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
 		}
 		
 		p.Char(',');
@@ -65,7 +65,7 @@ Object ParseMap(CParser& p) {
 		else if (p.IsString())
 			key = p.ReadString();
 		else {
-			THROW(Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
+			throw (Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
 		}
 		
 		if (p.IsChar(',') || p.IsChar('}')) {
@@ -104,7 +104,7 @@ Object ParseMap(CParser& p) {
 			vm.Add(key, value);
 		}
 		else {
-			THROW(Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
+			throw (Exc("Unexpected token at " + IntStr(p.GetLine()) + ":" + IntStr(p.GetColumn())));
 		}
 		
 		p.Char(',');

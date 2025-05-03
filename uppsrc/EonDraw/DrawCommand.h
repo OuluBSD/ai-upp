@@ -1,8 +1,5 @@
-#ifndef _SharedCore_Draw_h_
-#define _SharedCore_Draw_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _EonDraw_DrawCommand_h_
+#define _EonDraw_DrawCommand_h_
 
 
 #define DRAWCMD_LIST \
@@ -93,9 +90,6 @@ public:
 	static DrawCommandCache& Local() {thread_local static DrawCommandCache c; return c;}
 	
 };
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

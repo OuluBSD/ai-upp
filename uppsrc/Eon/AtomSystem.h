@@ -6,12 +6,12 @@
 class AtomSystem :
 	public System<AtomSystem>
 {
-	LinkedList<AtomBaseRef> updated;
+	LinkedList<AtomBasePtr> updated;
 	Mutex lock;
 	
 public:
 	SYS_CTOR(AtomSystem);
-	SYS_DEF_VISIT_(vis && updated)
+	SYS_DEF_VISIT_(vis || updated)
 	
 	void AddOnce(PacketForwarder& fwd, RealtimeSourceConfig& cfg);
 	
@@ -27,7 +27,7 @@ protected:
     void Stop() override;
     void Uninitialize() override;
     
-    void ForwardLinks(double dt, const char* id, LinkedList<AtomBaseRef>& atoms);
+    void ForwardLinks(double dt, const char* id, LinkedList<AtomBasePtr>& atoms);
     
     
 public:

@@ -20,4 +20,7 @@
 	#define DEFAULT_AUDIO_QUEUE_SIZE	4
 #endif
 
+using EntityId				= int32;
+using PoolId				= int32;
+
 #endif

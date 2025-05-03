@@ -4,12 +4,11 @@
 
 namespace Ecs {
 
-class Pool;
-
-
 
 class Pool : public Pte<Pool>
 {
+	using PoolVec = Array<Pool>;
+	
 	Engine*				machine = 0;
 	BitField<dword>		freeze_bits;
 	String				name;
@@ -24,7 +23,7 @@ protected:
 	
 public:
 	typedef Pool CLASSNAME;
-	
+	using PoolPtr = Ptr<Pool>;
 	//using RScope		= RefScopeEnabler<Pool, EntityStore, PoolParent>;
 	
 	static PoolId GetNextId();
@@ -37,7 +36,7 @@ public:
 		BIT_TRANSFORM,
 	} Bit;
 	
-	void Etherize(Ether& e);
+	void Serialize(Stream& e);
 	
 	PoolId GetId() const {return id;}
 	
@@ -65,14 +64,14 @@ public:
 	bool				HasPools() const {return !pools.IsEmpty();}
 	
 	void				Initialize(Entity& e, String prefab="Custom");
-	EntityRef			CreateEmpty();
-	EntityRef			GetAddEmpty(String name);
-	EntityRef			Clone(const Entity& e);
-	EntityRef			RealizeEntityPath(const Vector<String>& path);
+	EntityPtr			CreateEmpty();
+	EntityPtr			GetAddEmpty(String name);
+	EntityPtr			Clone(const Entity& e);
+	EntityPtr			RealizeEntityPath(const Vector<String>& path);
 	
 	template<typename PrefabT>
 	EntityPtr Create() {
-		static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
+		static_assert(TupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
 		Entity& e = objects.Add();
 		e.SetParent(this);
@@ -80,21 +79,21 @@ public:
 		PrefabT::Make(e);
 		Initialize(e, PrefabT::GetComponentNames());
 		
-		return e.AsRefT();
+		return &e;
 	}
 	
 	template<typename... ComponentTs>
-	Vector<RTuple<EntityRef,RefT_Entity<ComponentTs>...>> GetComponentsWithEntity() {
+	Vector<Tuple<EntityPtr,ComponentTs*...>> GetComponentsWithEntity() {
 		static_assert(sizeof...(ComponentTs) > 0, "Need at least one component");
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
-		Vector<RTuple<EntityRef,RefT_Entity<ComponentTs>...>> components;
+		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
 		
-		for (EntityPtr object : objects) {
+		for (Entity& object : objects) {
 			auto requested_components = object->TryGetComponents<ComponentTs...>();
 			
 			if (AllValidComponents(requested_components)) {
-				RTuple<EntityRef, RefT_Entity<ComponentTs>...> t(object, requested_components);
+				Tuple<EntityPtr, ComponentTs*...> t(object, requested_components);
 				components.Add(t);
 			}
 		}
@@ -103,11 +102,11 @@ public:
 	}
 	
 	template<typename... ComponentTs>
-	Vector<RTuple<RefT_Entity<ComponentTs>...>> GetComponents() {
+	Vector<Tuple<ComponentTs*...>> GetComponents() {
 		static_assert(sizeof...(ComponentTs) > 0, "Need at least one component");
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
-		Vector<RTuple<RefT_Entity<ComponentTs>...>> components;
+		Vector<Tuple<ComponentTs*...>> components;
 		
 		for (EntityPtr object : objects) {
 			auto requested_components = object->TryGetComponents<ComponentTs...>();
@@ -126,13 +125,13 @@ public:
 	template <class T>
 	EntityPtr FindEntity(T* component) {
 		if (!component)
-			return EntityRef();
+			return EntityPtr();
 		for (EntityPtr object : objects) {
-			RefT_Entity<T> t = object->Find<T>();
+			T* t = object->Find<T>();
 			if (t == component)
 				return object;
 		}
-		return EntityRef();
+		return EntityPtr();
 	}
 	
 	EntityPtr FindEntityByName(String name);
@@ -164,11 +163,12 @@ public:
 	
 };
 
+using PoolVec = Array<Pool>;
 
 class PoolHashVisitor : public Vis {
 	CombineHash ch;
 	
-	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
+	//bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
 public:
 	
 	operator hash_t() const {return ch;}
@@ -178,12 +178,12 @@ public:
 
 
 template<typename T>
-RefT_Entity<T> Entity::FindNearestEntityWith() {
-	RefT_Entity<T> c = Find<T>();
+T* Entity::FindNearestEntityWith() {
+	T* c = Find<T>();
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			for (EntityRef& e : *p) {
+			for (EntityPtr& e : *p) {
 				c = e->Find<T>();
 				if (c) break;
 			}
@@ -193,9 +193,9 @@ RefT_Entity<T> Entity::FindNearestEntityWith() {
 	return c;
 }
 
-
+#if 0
 template <>
-inline void ComponentBase::EtherizeRef(Ether& e, EntityRef& ref) {
+inline void ComponentBase::EtherizeRef(Ether& e, EntityPtr& ref) {
 	thread_local static Vector<String> path;
 	bool has_ref = !ref.IsEmpty();
 	e % has_ref;
@@ -252,7 +252,7 @@ void ComponentBase::EtherizeRefContainer(Ether& e, T& cont) {
 		EtherizeRef(e, ref);
 	}
 }
-
+#endif
 
 }
 

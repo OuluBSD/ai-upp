@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-void PlayerHandComponent::Etherize(Ether& e) {
+void PlayerHandComponent::Serialize(Stream& e) {
 	e % is_simulated
 	  % attach_ctrl_model
 	  % req_hand;
@@ -65,7 +65,7 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 
 
 
-void PlayerHeadComponent::Etherize(Ether& e) {
+void PlayerHeadComponent::Serialize(Stream& e) {
 	EtherizeRef(e, body);
 }
 
@@ -103,7 +103,7 @@ bool PlayerHeadComponent::Arg(String key, Value value) {
 
 
 
-void PlayerBodyComponent::Etherize(Ether& e) {
+void PlayerBodyComponent::Serialize(Stream& e) {
 	e % height;
 	
 	EtherizeRef(e, hands[0]);
@@ -176,7 +176,7 @@ void PlayerBodySystem::Start() {
 }
 
 void PlayerBodySystem::Update(double dt) {
-	for (PlayerBodyComponentRef& b : bodies) {
+	for (PlayerBodyComponentPtr& b : bodies) {
 		EntityPtr e = b->GetEntity();
 		TransformPtr trans = e->Find<Transform>();
 		if (!trans)
@@ -272,7 +272,7 @@ void PlayerBodySystem::OnControllerReleased(const CtrlEvent& e) {
 
 void PlayerBodySystem::OnControllerUpdated(const CtrlEvent& e) {
 	if (e.type == EVENT_HOLO_LOOK) {
-		for (PlayerBodyComponentRef& b : bodies) {
+		for (PlayerBodyComponentPtr& b : bodies) {
 			if (b->head && e.trans) {
 				TransformPtr trans = b->head->GetEntity()->Find<Transform>();
 				if (trans) {
@@ -315,7 +315,7 @@ void PlayerBodySystem::OnControllerUpdated(const CtrlEvent& e) {
 		}
 	}
 	else if (e.type == EVENT_HOLO_MOVE_FAR_RELATIVE) {
-		for (PlayerBodyComponentRef& b : bodies) {
+		for (PlayerBodyComponentPtr& b : bodies) {
 			TransformPtr trans = b->GetEntity()->Find<Transform>();
 			if (trans) {
 				trans->data.position += e.trans->position;

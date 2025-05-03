@@ -236,21 +236,21 @@ public:
 	K& Add() {
 		if (count + 1 > alloc) IncreaseReserved();
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		new (&data[count]) K();
 		return data[count++];
 	}
 	K& Add(const K& v) {
 		if (count + 1 > alloc) IncreaseReserved();
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		new (&data[count]) K(v);
 		return data[count++];
 	}
 	K& AddPick(K&& v) {
 		if (count + 1 > alloc) IncreaseReserved();
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		new (&data[count]) K(v);
 		return data[count++];
 	}
@@ -402,7 +402,7 @@ public:
 	K& Insert(int i) {
 		if (count + 1 > alloc) IncreaseReserved();
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		int tail = this->count - i;
 		if (tail > 0)
 			MemoryMove(data + i + 1, data + i, tail * sizeof(K));
@@ -413,7 +413,7 @@ public:
 	K& Insert(int i, const K& key) {
 		if (count + 1 > alloc) IncreaseReserved();
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		int tail = this->count - i;
 		if (tail > 0)
 			MemoryMove(data + i + 1, data + i, tail * sizeof(K));
@@ -426,7 +426,7 @@ public:
 		ASSERT(i >= 0 && i <= count);
 		if (count + n > alloc) Reserve(count + n);
 		if (count >= alloc)
-			THROW(MemoryLimitExc("Vector maximum size exceeded"));
+			throw (MemoryLimitExc("Vector maximum size exceeded"));
 		int tail = this->count - i;
 		if (tail > 0)
 			MemoryMove(data + i + n, data + i, tail * sizeof(K));
@@ -693,7 +693,7 @@ public:
 		while (cur != end) {
 			hash_t hash = GetHashValue(*cur);
 			if (chk_duplicates && FindHash(hash) >= 0)
-				THROW(Exc("Index has value already"));
+				throw (Exc("Index has value already"));
 			hashes.Add(hash);
 			values.Add(*cur++);
 		}
@@ -725,14 +725,14 @@ public:
 	const K& Add(const K& value) {
 		hash_t hash = GetHashValue(value);
 		if (chk_duplicates && FindHash(hash) >= 0)
-			THROW(Exc("Index has value already"));
+			throw (Exc("Index has value already"));
 		hashes.Add(hash);
 		return values.Add(value);
 	}
 	K& Insert(int i, const K& value) {
 		hash_t hash = GetHashValue(value);
 		if (chk_duplicates && FindHash(hash) >= 0)
-			THROW(Exc("Index has value already"));
+			throw (Exc("Index has value already"));
 		hashes.Insert(i, hash);
 		return values.Insert(i, value);
 	}

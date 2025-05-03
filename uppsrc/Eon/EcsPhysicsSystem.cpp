@@ -33,7 +33,7 @@ void PhysicsSystem::Update(double dt)
 			rigid_body->velocity += rigid_body->acceleration * (float)dt;
 			transform->data.position += rigid_body->velocity * (float)dt;
 			
-			vec3 adjusted_angular = TS::VectorTransform(rigid_body->angular_velocity, Inverse(QuatMat(transform->data.orientation)));
+			vec3 adjusted_angular = VectorTransform(rigid_body->angular_velocity, Inverse(QuatMat(transform->data.orientation)));
 			
 			float angle = adjusted_angular.GetLength();
 			if (angle > 0.0f) {
@@ -120,7 +120,7 @@ void PhysicsSystem::TestPlayerMoveFn(PhysicsBody& b, vec3 rel_dir, float step) {
 
 
 
-void PhysicsBody::Etherize(Ether& e) {
+void PhysicsBody::Serialize(Stream& e) {
 	e % test_fn
 	  % is_bound;
 	EtherizeRef(e, trans);

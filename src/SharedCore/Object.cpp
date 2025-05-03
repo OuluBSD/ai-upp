@@ -67,25 +67,25 @@ ObjectMap* Object::TryGetMap() {
 
 const ObjectMap& Object::GetMap() const {
 	if (!Is<ObjectMap>())
-		THROW(Exc("Not a ObjectMap"));
+		throw (Exc("Not a ObjectMap"));
 	return Get<ObjectMap>();
 }
 
 const ObjectArray& Object::GetArray() const {
 	if (!Is<ObjectArray>())
-		THROW(Exc("Not a ObjectArray"));
+		throw (Exc("Not a ObjectArray"));
 	return Get<ObjectArray>();
 }
 
 ObjectMap& Object::GetMap() {
 	if (!Is<ObjectMap>())
-		THROW(Exc("Not a ObjectMap"));
+		throw (Exc("Not a ObjectMap"));
 	return Get<ObjectMap>();
 }
 
 ObjectArray& Object::GetArray() {
 	if (!Is<ObjectArray>())
-		THROW(Exc("Not a ObjectArray"));
+		throw (Exc("Not a ObjectArray"));
 	return Get<ObjectArray>();
 }
 

@@ -17,7 +17,7 @@ void AtomSystem::Start() {
 
 void AtomSystem::Update(double dt) {
 	
-	for (AtomBaseRef& c : updated) {
+	for (AtomBasePtr& c : updated) {
 		c->Update(dt);
 	}
 	

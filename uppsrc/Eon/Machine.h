@@ -10,7 +10,7 @@ class MachineVerifier;
 
 class SystemBase : public MetaSystemBase {
 public:
-    SystemBase();
+    SystemBase(MetaNode&);
     virtual ~SystemBase();
 
     virtual TypeCls GetType() const = 0;
@@ -39,10 +39,8 @@ class System :
 {
 	using SystemT = System<T>;
 public:
-    using SystemBase::SystemBase;
-	
-	System() {};
-    TypeCls GetType() const override {return AsTypeCls<T>();}
+	System(MetaNode& n) : SystemBase(n) {}
+	TypeCls GetType() const override {return AsTypeCls<T>();}
     void Visit(Vis& vis) override {vis.VisitT<SystemBase>(this);}
     
 };
@@ -50,14 +48,14 @@ public:
 
 #define SYS_CTOR(x) \
 	typedef x CLASSNAME; \
-	x(Machine& m) : SP(m) {}
+	x(MetaNode& m) : System<x>(m) {}
 #define SYS_CTOR_(x) \
 	typedef x CLASSNAME; \
-	x(Machine& m) : SP(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>(this);}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>(this);}
+	x(MetaNode& m) : System<x>(m)
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>(this);}
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x;}
 
 class Machine :
 	public MetaMachineBase

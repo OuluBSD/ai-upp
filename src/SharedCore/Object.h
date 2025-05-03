@@ -230,19 +230,19 @@ template <class T> T* Object::Try() const {
 template <class T> Object::operator const T&() const {
 	if (obj && obj->GetType() == ObjectTypeNo<T>(0))
 		return *(const T*)obj->Get();
-	THROW(Exc("Unexpected value type"));
+	throw (Exc("Unexpected value type"));
 }
 
 template <class T> Object::operator T&() const {
 	if (obj && obj->GetType() == ObjectTypeNo<T>(0))
 		return *(T*)obj->Get();
-	THROW(Exc("Unexpected value type"));
+	throw (Exc("Unexpected value type"));
 }
 
 template <class T> T& Object::Get() const {
 	if (obj && obj->GetType() == ObjectTypeNo<T>(0))
 		return *(T*)obj->Get();
-	THROW(Exc("Unexpected value type"));
+	throw (Exc("Unexpected value type"));
 }
 
 class ObjectArray {
@@ -299,8 +299,8 @@ public:
 	Object			TryGet(String key, Object def=Object()) {int i = Find(key); if (i >= 0) return GetObject(i); else return def;}
 	Object*			TryFind(String key) {int i = Find(key); if (i >= 0) return &GetObject(i); return NULL;}
 	int				Find(String key) const {for(int i = 0; i < keys.GetCount(); i++) if (keys[i] == key) return i; return -1;}
-	Object&			Get(String key) {int i = Find(key); if (i == -1) THROW(Exc("Unexpected key")); return values[i];}
-	const Object&	Get(String key) const {int i = Find(key); if (i == -1) THROW(Exc("Unexpected key")); return values[i];}
+	Object&			Get(String key) {int i = Find(key); if (i == -1) throw (Exc("Unexpected key")); return values[i];}
+	const Object&	Get(String key) const {int i = Find(key); if (i == -1) throw (Exc("Unexpected key")); return values[i];}
 	int				GetIterPos(Object* v) const {for(int i = 0; i < values.GetCount(); i++) if (&values[i] == v) return i; return -1;}
 	void			SetAt(int i, const Object& v) {values[i] = v;}
 	void			SetKey(int i, const String& key) {keys[i] = key;}

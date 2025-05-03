@@ -4,13 +4,18 @@
 namespace Ecs {
 
 class ComponentBase;
-namespace Eon {class WorldState;}
+class WorldState;
+class Entity;
+class ComponentStore;
 
 
+//template <class T> inline T* ComponentBase_Static_As(ComponentBase*) {return 0;}
 
-
-
-template <class T> inline RefT_Entity<T> ComponentBase_Static_As(ComponentBase*) {return RefT_Entity<T>();}
+struct ComponentBaseUpdater : Pte<ComponentBaseUpdater> {
+	
+	virtual void Update(double dt) {Panic("unimplemented");}
+	
+};
 
 class ComponentBase :
 	public ComponentBaseUpdater,
@@ -23,6 +28,7 @@ protected:
 public:
 	virtual void CopyTo(ComponentBase* component) const = 0;
 	virtual void Visit(Vis& vis) = 0; // linking errors here means invalid derived visit
+	virtual TypeCls GetTypeCls() const = 0;
 	virtual void Initialize() {};
 	virtual void Uninitialize() {};
 	// moved to inherited: virtual void Update(double dt) {Panic("unimplemented");}
@@ -31,45 +37,34 @@ public:
 	
 	Engine& GetEngine();
 	
-	void AddToUpdateList() {GetEngine().AddToUpdateList(this);}
-	void RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
+	void AddToUpdateList();
+	void RemoveFromUpdateList();
 	
 public:
 	ComponentBase();
 	virtual ~ComponentBase();
 	
-	EntityPtr GetEntity();
+	Entity* GetEntity();
 	
-	virtual void Etherize(Ether& e) = 0;
+	virtual void Serialize(Stream& e) = 0;
 	
 	virtual bool Arg(String key, Value value) {return true;}
 	
-	template <class T> RefT_Entity<T> As() {return ComponentBase_Static_As<T>(this);}
+	//template <class T> RefT_Entity<T> As() {return ComponentBase_Static_As<T>(this);}
 	
-	template <class S, class R>
-	void AddToSystem(R ref) {
-		Ref<S> sys = GetEngine().Get<S>();
-		if (sys)
-			sys->Add(ref);
-	}
-	
-	template <class S, class R>
-	void RemoveFromSystem(R ref) {
-		Ref<S> sys = GetEngine().Get<S>();
-		if (sys)
-			sys->Remove(ref);
-	}
+	template <class S, class R> void AddToSystem(R ref);
+	template <class S, class R> void RemoveFromSystem(R ref);
 	
 	template <class ValDevSpec, class T> bool LinkManually(T& o, String* err_msg=0);
 	
-	template <class T> void EtherizeRef(Ether& e, Ref<T>& ref);
-	template <class T> void EtherizeRefContainer(Ether& e, T& cont);
+	//template <class T> void EtherizeRef(Ether& e, Ref<T>& ref);
+	//template <class T> void EtherizeRefContainer(Ether& e, T& cont);
 	
 	void GetComponentPath(Vector<String>& path);
 	
 };
 
-
+using ComponentBasePtr = Ptr<ComponentBase>;
 
 
 template<typename T>
@@ -82,7 +77,7 @@ public:
 	void Visit(Vis& v) override {} // don't visit ComponentBase (for error detection reasons)
 	
 	void CopyTo(ComponentBase* target) const override {
-		ASSERT(target->GetTypeId() == GetTypeId());
+		ASSERT(target->GetTypeCls() == GetTypeCls());
 	    
 		*static_cast<T*>(target) = *static_cast<const T*>(this);
 	}
@@ -90,10 +85,8 @@ public:
 };
 
 
-#define COMP_RTTI(x)  RTTI_DECL1(x, Component<x>)
-
-using ComponentMapBase	= RefTypeMapIndirect<ComponentBase>;
-using ComponentRefMap	= ArrayMap<TypeCls,Ref<ComponentBase>>;
+using ComponentMapBase	= ArrayMap<TypeCls,ComponentBase>;
+//using ComponentRefMap	= ArrayMap<TypeCls,Ref<ComponentBase>>;
 
 class ComponentMap : public ComponentMapBase {
 	
@@ -108,56 +101,57 @@ public:
 	void Dump();
 	
 	template<typename ComponentT>
-	RefT_Entity<ComponentT> Get() {
-		CXX2A_STATIC_ASSERT(ComponentStore::IsComponent<ComponentT>::value, "T should derive from Component");
+	Ptr<ComponentT> Get() {
+		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
 		
-		ComponentMapBase::Iterator it = ComponentMapBase::Find(AsTypeCls<ComponentT>());
-		ASSERT(!IS_EMPTY_SHAREDPTR(it));
-		if (it.IsEmpty())
-			THROW(Exc("Could not find component " + AsTypeString<ComponentT>()));
+		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
+		ASSERT(i >= 0);
+		if (i < 0)
+			throw (Exc("Could not find component " + AsTypeString<ComponentT>()));
 		
-		return it->AsRef<ComponentT>();
+		return &ComponentMapBase::operator[](i);
 	}
 	
 	template<typename ComponentT>
-	RefT_Entity<ComponentT> Find() {
-		CXX2A_STATIC_ASSERT(ComponentStore::IsComponent<ComponentT>::value, "T should derive from Component");
+	Ptr<ComponentT> Find() {
+		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
 		
-		ComponentMapBase::Iterator it = ComponentMapBase::Find(AsTypeCls<ComponentT>());
-		if (IS_EMPTY_SHAREDPTR(it))
+		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
+		if (i < 0)
 			return Null;
 		else
-			return it->AsRef<ComponentT>();
+			return &ComponentMapBase::operator[](i);
 	}
 	
 	template<typename ComponentT>
 	void Add(ComponentT* component) {
-		CXX2A_STATIC_ASSERT(ComponentStore::IsComponent<ComponentT>::value, "T should derive from Component");
+		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
 		
 		TypeCls type = ComponentT::TypeIdClass();
-		ASSERT(type != 0);
-		ComponentMapBase::Iterator it = ComponentMapBase::Find(type);
-		ASSERT_(IS_EMPTY_SHAREDPTR(it), "Cannot have duplicate componnets");
+		ASSERT(type);
+		int i = ComponentMapBase::Find(type);
+		ASSERT_(i < 0, "Cannot have duplicate componnets");
 		ComponentMapBase::Add(type, component);
 	}
 	
 	template<typename ComponentT>
-	void Remove(ComponentStorePtr s) {
-		CXX2A_STATIC_ASSERT(ComponentStore::IsComponent<ComponentT>::value, "T should derive from Component");
+	void Remove(ComponentStore* s) {
+		CXX2A_STATIC_ASSERT(IsBaseOf<ComponentBase,ComponentT>::value, "T should derive from Component");
 		
-		ComponentMapBase::Iterator iter = ComponentMapBase::Find(AsTypeCls<ComponentT>());
-		ASSERT_(iter, "Tried to remove non-existent component");
+		int i = ComponentMapBase::Find(AsTypeCls<ComponentT>());
+		ASSERT_(i < 0, "Tried to remove non-existent component");
 		
-		iter.value().Uninitialize();
-		iter.value().Destroy();
+		auto& comp = ComponentMapBase::operator[](i);
+		comp.Uninitialize();
+		comp.Destroy();
 		
-		ReturnComponent(*s, iter.value.GetItem()->value.Detach());
-		ComponentMapBase::Remove(iter);
+		ReturnComponent(*s, Detach(i));
 	}
 	
 	void AddBase(ComponentBase* component) {
-		TypeCls type = component->GetTypeId();
-		ComponentMapBase::Iterator it = ComponentMapBase::Find(type);
+		TypeCls type = component->GetTypeCls();
+		int i = ComponentMapBase::Find(type);
+		ASSERT(i < 0);
 		ComponentMapBase::Add(type, component);
 	}
 	

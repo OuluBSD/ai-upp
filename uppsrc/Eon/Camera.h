@@ -13,7 +13,7 @@ public:
 	RTTI_COMP0(Viewable)
 	COMP_DEF_VISIT
 	
-	void Etherize(Ether& e) override {}
+	void Serialize(Stream& e) override {}
 	void Initialize() override;
 	void Uninitialize() override;
 	
@@ -39,7 +39,7 @@ public:
 	vec3 GetTarget() const {return target;}
 	void SetTraget(const vec3& v) {target = v;}
 	
-	void Etherize(Ether& e) override {e % target % fov % angle;}
+	void Serialize(Stream& e) override {e % target % fov % angle;}
 	bool Arg(String key, Value value) override;
 	
 	void operator=(const Viewport& vp) {
@@ -61,7 +61,7 @@ struct CameraBase : Pte<CameraBase>
 	
 	virtual bool Load(GfxDataState& state) = 0;
 	virtual void UpdateCalibration() = 0;
-	void Etherize(Ether& e);
+	void Serialize(Stream& e);
 	
 };
 
@@ -93,7 +93,7 @@ public:
 	typedef ChaseCam CLASSNAME;
 	RTTI_COMP1(ChaseCam, CameraBase)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Visit(Vis& vis) override {vis.VisitT<ComponentT>(this); vis & target & viewable & vport;}
 	void Initialize() override;
 	void Uninitialize() override;
@@ -120,7 +120,7 @@ struct CameraPrefab : EntityPrefab<Transform, Viewport, Viewable>
     {
         auto components = EntityPrefab::Make(e);
 		
-		TransformPtr t = components.Get<TransformRef>();
+		TransformPtr t = components.Get<TransformPtr>();
 		t->data.mode = TransformMatrix::MODE_POSITION;
 		t->data.position[2] = 10.0;
 		t->data.position[1] = 3.0;

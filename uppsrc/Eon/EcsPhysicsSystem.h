@@ -62,7 +62,7 @@ public:
 	RTTI_COMP0(PhysicsBody)
 	COMP_DEF_VISIT_(vis & trans & player)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;

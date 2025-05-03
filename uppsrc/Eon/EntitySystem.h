@@ -1,12 +1,14 @@
 #ifndef _Eon_EntitySystem_h_
 #define _Eon_EntitySystem_h_
 
+namespace Ecs {
 class Engine;
+}
 
-TS::Ecs::Engine* CreateEcsEngine();
+Ecs::Engine* CreateEcsEngine();
 
 class EntitySystem : public System<EntitySystem> {
-	TS::Ecs::Engine* engine = 0;
+	Ecs::Engine* engine = 0;
 	ValueMap reg;
 	
 	
@@ -20,14 +22,13 @@ protected:
     void ClearEngine();
     
 public:
-	SYS_RTTI(EntitySystem)
-    SYS_CTOR(EntitySystem)
+	SYS_CTOR(EntitySystem)
 	void Visit(Vis& vis) override;
 	~EntitySystem() {ClearEngine();}
 	
 	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::ENTITY_SYSTEM;}
 	
-	TS::Ecs::Engine& GetEngine() {return *engine;}
+	Ecs::Engine& GetEngine() {return *engine;}
 	
 };
 

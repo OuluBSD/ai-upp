@@ -7,7 +7,7 @@ NAMESPACE_UPP namespace Ecs {
 
 
 
-void Easing::Etherize(Ether& e) {
+void Easing::Serialize(Stream& e) {
 	e % target_position
 	  % target_orientation
 	  % position_easing_factor

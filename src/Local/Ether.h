@@ -7,13 +7,13 @@ NAMESPACE_TOPSIDE_BEGIN
 class Ether;
 template <class T> void EtherizeContainer(Ether& e, T& o);
 template <class T> void EtherizeMapContainer(Ether& e, T& o);
-template <class T> void Etherize(Ether& e, T& o) {o.Etherize(e);}
-template <class T> void Etherize(Ether& e, Vector<T>& o) {EtherizeContainer(e, o);}
-template <class T> void Etherize(Ether& e, Array<T>& o) {EtherizeContainer(e, o);}
-template <class T> void Etherize(Ether& e, LinkedList<T>& o) {EtherizeContainer(e, o);}
-template <class K, class V> void Etherize(Ether& e, VectorMap<K,V>& o) {EtherizeMapContainer(e, o);}
-template <class K, class V> void Etherize(Ether& e, ArrayMap<K,V>& o)  {EtherizeMapContainer(e, o);}
-template <class K, class V> void Etherize(Ether& e, LinkedMap<K,V>& o) {EtherizeMapContainer(e, o);}
+template <class T> void Serialize(Stream& e, T& o) {o.Etherize(e);}
+template <class T> void Serialize(Stream& e, Vector<T>& o) {EtherizeContainer(e, o);}
+template <class T> void Serialize(Stream& e, Array<T>& o) {EtherizeContainer(e, o);}
+template <class T> void Serialize(Stream& e, LinkedList<T>& o) {EtherizeContainer(e, o);}
+template <class K, class V> void Serialize(Stream& e, VectorMap<K,V>& o) {EtherizeMapContainer(e, o);}
+template <class K, class V> void Serialize(Stream& e, ArrayMap<K,V>& o)  {EtherizeMapContainer(e, o);}
+template <class K, class V> void Serialize(Stream& e, LinkedMap<K,V>& o) {EtherizeMapContainer(e, o);}
 
 
 class Ether {
@@ -60,7 +60,7 @@ public:
 	
 };
 
-#define DEFAULT_ETHERIZER(type) template <> inline void Etherize(Ether& e, type& o) {\
+#define DEFAULT_ETHERIZER(type) template <> inline void Serialize(Stream& e, type& o) {\
 	if (e.IsLoading()) e.Get(&o, sizeof(type)); \
 	else e.Put(&o, sizeof(type)); \
 }
@@ -87,7 +87,7 @@ DEFAULT_ETHERIZER(RGBA)
 DEFAULT_ETHERIZER(dword)
 #endif
 
-template <> inline void Etherize(Ether& e, String& s) {
+template <> inline void Serialize(Stream& e, String& s) {
 	if (e.IsLoading()) s = e.GetString();
 	else e.Put(s);
 }

@@ -8,7 +8,6 @@ class WorldLogicSystem : public System<WorldLogicSystem>
 	
 	
 public:
-	SYS_RTTI(WorldLogicSystem)
     ECS_SYS_CTOR(WorldLogicSystem)
 	ECS_SYS_DEF_VISIT
 	

@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-SystemBase::SystemBase() {
+SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
 }
 

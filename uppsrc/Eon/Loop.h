@@ -97,6 +97,7 @@ private:
 	LoopVec					loops;
 };
 
+using LoopVec = Array<Loop>;
 using LoopPtr = Ptr<Loop>;
 
 class LoopHashVisitor : public Vis {

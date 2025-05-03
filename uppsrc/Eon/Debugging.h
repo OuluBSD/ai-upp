@@ -9,7 +9,7 @@ class StackDebugger {
 	};
 	struct Item : Moveable<Item> {
 		int event;
-		TypeId type;
+		TypeCls type;
 		void* ptr;
 		
 		bool operator!=(const Item& it) const {return event != it.event || ptr != it.ptr;}
@@ -36,8 +36,8 @@ public:
 	
 	template <class T> void Construct(T* o) {Construct(Item {{}, CTOR, AsTypeCls<T>(), o});}
 	template <class T> void Destruct(T* o) {Destruct(Item {{}, CTOR, AsTypeCls<T>(), o});}
-	template <class T> void IncRef(T* o, TypeId type) {IncRef(Item {{}, REF, type, o});}
-	template <class T> void DecRef(T* o, TypeId type) {DecRef(Item {{}, REF, type, o});}
+	template <class T> void IncRef(T* o, TypeCls type) {IncRef(Item {{}, REF, type, o});}
+	template <class T> void DecRef(T* o, TypeCls type) {DecRef(Item {{}, REF, type, o});}
 	
 	
 	static StackDebugger& Static() {MAKE_STATIC(StackDebugger, s); return s;}

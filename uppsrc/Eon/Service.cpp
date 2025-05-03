@@ -92,10 +92,10 @@ void EcsService::SendEngine(Ether& in, Ether& out) {
 	
 }
 
-Ecs::EntityPtr EcsService::ResolveEntity(Ecs::PoolRef& root, String path) {
+Ecs::EntityPtr EcsService::ResolveEntity(Ecs::PoolPtr& root, String path) {
 	Vector<String> names = Split(path, "/");
 	if (names.IsEmpty())
-		return Ecs::EntityRef();
+		return Ecs::EntityPtr();
 	
 	Ecs::PoolPtr pool = root;
 	for(int i = 0; i < names.GetCount()-1; i++) {

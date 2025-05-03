@@ -41,7 +41,7 @@ EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
 }
 
 void ThrowingInteractionSystemBase::Update(double dt) {
-	for (ThrowingComponentRef& throwing : comps) {
+	for (ThrowingComponentPtr& throwing : comps) {
 		EntityPtr entity = throwing->GetEntity();
 		TransformPtr trans = entity->Find<Transform>();
 		if (!trans)
@@ -71,7 +71,7 @@ void ThrowingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 
 void ThrowingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
 	if (e.type == EVENT_HOLO_PRESSED && e.value == ControllerMatrix::TRIGGER) {
-		for (ThrowingComponentRef& throwing : comps) {
+		for (ThrowingComponentPtr& throwing : comps) {
 			if (!throwing->IsEnabled()) continue;
 			
 			throwing->ball_object = GetPool()->Create<Baseball>();
@@ -89,7 +89,7 @@ void ThrowingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
 		const ControllerMatrix& source_props = source_state.props;
 		const ControllerSource& source = source_state.GetSource();
 		
-		for (ThrowingComponentRef& throwing : comps) {
+		for (ThrowingComponentPtr& throwing : comps) {
 			if (!throwing->IsEnabled()) continue;
 			
 			EntityPtr entity = throwing->GetEntity();
@@ -169,7 +169,7 @@ void ThrowingInteractionSystemBase::Deactivate(EntityPtr entity) {
 
 
 
-void ThrowingComponent::Etherize(Ether& e) {
+void ThrowingComponent::Serialize(Stream& e) {
 	CustomToolComponent::Etherize(e);
 	
 	e % distance_from_pointer

@@ -1,15 +1,9 @@
-#ifndef _Local_Types_h_
-#define _Local_Types_h_
+#ifndef _EonDraw_Binder_h_
+#define _EonDraw_Binder_h_
 
-NAMESPACE_UPP
 
 class Draw;
 
-END_UPP_NAMESPACE
-
-
-
-NAMESPACE_TOPSIDE_BEGIN
 using namespace UPP;
 
 #undef Bool
@@ -24,14 +18,12 @@ typedef void			Void;
 
 typedef float			TimeSpan;
 
-class RuntimeVisitor;
 class EnvState;
 
 
-class BinderIfaceEvents : RTTIBase {
+class BinderIfaceEvents {
 	
 public:
-	RTTI_DECL0(BinderIfaceEvents);
 	virtual ~BinderIfaceEvents() {}
 	
 	virtual void Dispatch(const CtrlEvent& state) = 0;
@@ -39,10 +31,9 @@ public:
 };
 
 
-class BinderIfaceVideo : RTTIBase {
+class BinderIfaceVideo {
 	
 public:
-	RTTI_DECL0(BinderIfaceVideo);
 	BinderIfaceVideo();
 	virtual ~BinderIfaceVideo() {}
 	
@@ -52,7 +43,7 @@ public:
 	virtual bool RenderProg(DrawCommand*& begin, DrawCommand*& end) {return false;}
 	virtual void Initialize() {}
 	virtual void Uninitialize() {}
-	virtual void Visit(RuntimeVisitor& vis) {}
+	virtual void Visit(Vis& vis) {}
 	
 };
 
@@ -60,10 +51,9 @@ public:
 /*class CpuBuffer;
 class CpuShader;
 
-class BinderIfaceCpu : RTTIBase {
+class BinderIfaceCpu {
 	
 public:
-	RTTI_DECL0(BinderIfaceCpu);
 	
 	virtual void Render(const CpuBuffer& buf, CpuShader& shader) = 0;
 	
@@ -73,16 +63,14 @@ public:
 class OglBuffer;
 class OglShader;
 
-class BinderIfaceOgl : RTTIBase {
+class BinderIfaceOgl {
 	
 public:
-	RTTI_DECL0(BinderIfaceOgl);
 	
 	virtual void Render(const OglBuffer& buf, OglShader& shader) = 0;
 	
 };*/
 
 
-NAMESPACE_TOPSIDE_END
 
 #endif

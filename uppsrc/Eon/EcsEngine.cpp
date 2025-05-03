@@ -48,7 +48,7 @@ END_UPP_NAMESPACE
 NAMESPACE_UPP namespace Ecs {
 
 
-SystemBase::SystemBase() {
+SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
 }
 

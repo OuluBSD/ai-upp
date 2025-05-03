@@ -7,7 +7,7 @@ NAMESPACE_UPP namespace Ecs {
 
 
 
-void PaintStrokeComponent::Etherize(Ether& e) {
+void PaintStrokeComponent::Serialize(Stream& e) {
 	e % squares
 	  % stroke_changed;
 }

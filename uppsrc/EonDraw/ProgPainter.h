@@ -1,8 +1,5 @@
-#ifndef _Local_ProgPainter_h_
-#define _Local_ProgPainter_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _EonDraw_ProgPainter_h_
+#define _EonDraw_ProgPainter_h_
 
 
 class TriangulatePointf {
@@ -48,12 +45,6 @@ class ProgPainter : public SDraw {
 	#endif
 	
 public:
-	#if IS_UPP_CORE
-	RTTI_DECL0_(ProgPainter);
-	#else
-	RTTI_DECL1(ProgPainter, SDraw);
-	#endif
-	
 	ProgPainter(void* hash, Size sz, DrawCommand& prev, DrawCommand& begin, DrawCommand& end, DrawCommand& next);
 	ProgPainter(void* hash, Size sz, ProgPainter& p, DrawCommand& begin, DrawCommand& end);
 	~ProgPainter() {/*Clear();*/}
@@ -130,10 +121,6 @@ public:
 	
 	
 };
-
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

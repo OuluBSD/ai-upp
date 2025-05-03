@@ -1,13 +1,7 @@
-#include "Local.h"
+#include "Core.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
-
-
-
-
+NAMESPACE_UPP
 
 
 void HugePersistent::StoreData() {
@@ -125,5 +119,4 @@ int& EnvState::GetInt(dword key) {
 }
 
 
-
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

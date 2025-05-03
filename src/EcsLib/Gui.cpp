@@ -23,7 +23,7 @@ void DefaultGuiAppComponent::Visit(RuntimeVisitor& vis) {
 	vis & trans2;
 }
 
-void DefaultGuiAppComponent::Etherize(Ether& e) {
+void DefaultGuiAppComponent::Serialize(Stream& e) {
 	e % prev_mouse;
 	
 	EtherizeRef(e, cw);

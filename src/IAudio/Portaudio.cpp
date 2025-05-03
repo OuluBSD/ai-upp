@@ -72,7 +72,7 @@ Format ConvertPortaudioFormat(PortaudioFormat pa_fmt) {
 			r.SetType(SoundSample::U8_LE);
 			break;
 		default:
-			THROW(Exc("invalid portaudio sound sample format"));
+			throw (Exc("invalid portaudio sound sample format"));
 	}
 	return fmt;
 }

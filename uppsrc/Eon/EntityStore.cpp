@@ -63,7 +63,7 @@ EntityPtr EntityStore::FindEntity(String path) {
 			break;
 		pool = new_pool;
 	}
-	return EntityRef();
+	return EntityPtr();
 }
 
 

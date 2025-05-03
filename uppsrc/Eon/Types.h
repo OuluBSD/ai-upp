@@ -195,7 +195,7 @@ struct ValDevTuple : Moveable<ValDevTuple> {
 	ValDevTuple(const ValDevTuple& v) {*this = v;}
 	
 	
-	
+	void Clear() {channels.Clear();}
 	int GetCount() const {return channels.GetCount();}
 	
 	
@@ -223,7 +223,7 @@ struct ValDevTuple : Moveable<ValDevTuple> {
 		return true;
 	}
 	
-	void operator=(const Nuller& n) {memset(this, 0, sizeof(ValDevTuple));}
+	void operator=(const Nuller& n) {Clear();}
 	void operator=(const ValDevTuple& o) {
 		channels <<= o.channels;
 	}

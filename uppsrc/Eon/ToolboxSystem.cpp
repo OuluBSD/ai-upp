@@ -19,7 +19,7 @@ bool HitTest(vec3 positionA, vec3 positionB, float diameter) {
 
 
 
-void ToolComponent::Etherize(Ether& e) {
+void ToolComponent::Serialize(Stream& e) {
 	e % title
 	  % description;
 	
@@ -80,7 +80,7 @@ void ToolComponent::SwitchNext() {
 		idx = 0;
 	else {
 		int i = 0;
-		for (CustomToolComponentRef& cb : tools) {
+		for (CustomToolComponentPtr& cb : tools) {
 			if (cb == active_tool) {
 				idx = i;
 				break;
@@ -188,7 +188,7 @@ void ToolboxSystemBase::Start() {
 	for (size_t i = 0; i < ctrls.GetCount(); ++i) {
 		const ControllerHand hand = static_cast<ControllerHand>(i);
 		ctrls[i].hand = hand;
-		EntityRef& e = ctrls[i].ctrl;
+		EntityPtr& e = ctrls[i].ctrl;
 		e = es->GetRoot()->Create<ToolComponentPrefab>();
 		ASSERT(e);
 		entities.Add(e);
@@ -281,7 +281,7 @@ void ToolboxSystemBase::OnControllerPressed(const CtrlEvent& e) {
 
 	if (e.type == EVENT_HOLO_PRESSED && e.value == ControllerMatrix::SQUEEZE) {
 		if (test_tool_changer) {
-			for (ToolComponentRef& tool : tools)
+			for (ToolComponentPtr& tool : tools)
 				tool->SwitchNext();
 		}
 	}
@@ -289,7 +289,7 @@ void ToolboxSystemBase::OnControllerPressed(const CtrlEvent& e) {
 
 void ToolboxSystemBase::Update(double dt) {
 	
-	for (ToolComponentRef& tool : tools) {
+	for (ToolComponentPtr& tool : tools) {
 		if (tool->active_hand) {
 			TransformPtr trans = tool->GetEntity()->Find<Transform>();
 			TransformPtr hand_trans = tool->active_hand->GetEntity()->Find<Transform>();

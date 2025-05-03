@@ -24,7 +24,7 @@ public:
 	mat4 GetMatrix() const;
 	vec3 GetForwardDirection() const;
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -49,7 +49,7 @@ public:
 	
 	void operator=(const Transform2D& t);
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	
 };
 

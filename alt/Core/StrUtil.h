@@ -13,7 +13,7 @@ template<> inline const char* AsTypeName<Exc>() {return "Exc";}
 template<> inline const char* AsTypeName<String>() {return "String";}
 template<> inline const char* AsTypeName<WString>() {return "WString";}
 
-#define NEVER() THROW(NeverExc())
+#define NEVER() throw (NeverExc())
 
 inline int ToUpper(int chr) {
 	if (chr >= 'a' && chr <= 'z')

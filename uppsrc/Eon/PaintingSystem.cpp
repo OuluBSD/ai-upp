@@ -165,8 +165,8 @@ void PaintingInteractionSystemBase::ClearStrokes() {
 	#if 0
 	// Destroy all the paint strokes currently active
 	for (auto& enabled_entity : GetEnabledEntities()) {
-		auto entity = enabled_entity.Get<EntityRef>();
-		auto paint = enabled_entity.Get<PaintComponentRef>();
+		auto entity = enabled_entity.Get<EntityPtr>();
+		auto paint = enabled_entity.Get<PaintComponentPtr>();
 		
 		for (auto& stroke : paint->strokes) {
 			stroke->Destroy();
@@ -208,7 +208,7 @@ void PaintingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
 void PaintingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 	const bool dbg_log = 0;
 	
-	for (PaintComponentRef& paint : comps) {
+	for (PaintComponentPtr& paint : comps) {
 		if (!paint->IsEnabled()) continue;
 		
 		EntityPtr entity = paint->GetEntity();
@@ -341,7 +341,7 @@ void PaintingInteractionSystemBase::Update(double dt) {
 	ASSERT(tb);
 	if (!tb) return;
 	
-	for (PaintComponentRef& paint : comps) {
+	for (PaintComponentPtr& paint : comps) {
 		if (!paint->IsEnabled()) continue;
 		
 		EntityPtr entity = paint->GetEntity();
@@ -350,7 +350,7 @@ void PaintingInteractionSystemBase::Update(double dt) {
 		if (!tool)
 			continue;
 		
-		PlayerHandComponentRef& controller = tool->active_hand;
+		PlayerHandComponentPtr& controller = tool->active_hand;
 		if (!controller)
 			continue;
 		
@@ -458,7 +458,7 @@ vec4 PaintingInteractionSystemBase::SelectColor(double x, double y) {
 
 
 
-void PaintComponent::Etherize(Ether& e) {
+void PaintComponent::Serialize(Stream& e) {
 	CustomToolComponent::Etherize(e);
 	
 	e % selected_color

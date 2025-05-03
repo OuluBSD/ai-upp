@@ -276,7 +276,9 @@ public:
 		
 		AtomTypeCls type = atom->GetType();
 		ASSERT(type.IsValid());
-		AtomMapBase::Add(type, atom);
+		auto& it = atoms.Add();
+		it.type = type;
+		it.atom = atom;
 	}
 	
 	#if 0
@@ -299,8 +301,9 @@ public:
 	void AddBase(AtomBase* atom) {
 		AtomTypeCls type = atom->GetType();
 		ASSERT(type.IsValid());
-		//AtomMapBase::Iterator it = AtomMapBase::Find(type);
-		Add(type, atom);
+		auto& it = atoms.Add();
+		it.type = type;
+		it.atom = atom;
 	}
 	
 	#undef IS_EMPTY_SHAREDPTR

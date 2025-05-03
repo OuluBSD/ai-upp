@@ -468,16 +468,18 @@ public:
 typedef Ptr<ExchangePoint> ExchangePointPtr;
 
 
-class MetaMachineBase
+class MetaMachineBase : public MetaNodeExt
 {
 	
 public:
+	using MetaNodeExt::MetaNodeExt;
 	
 };
 
-class MetaSystemBase
+class MetaSystemBase : public MetaNodeExt
 {
 public:
+	using MetaNodeExt::MetaNodeExt;
 	virtual ~MetaSystemBase() {}
 	
 };

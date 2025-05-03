@@ -22,7 +22,7 @@ public:
 		ColorSelection
 	} State;
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
@@ -34,8 +34,8 @@ public:
 	EntityPtr stroke_in_progress;
 	EntityPtr paint_brush;
 	EntityPtr beam;
-	LinkedList<EntityRef> clr_pick_objects;
-	LinkedList<EntityRef> strokes;
+	LinkedList<EntityPtr> clr_pick_objects;
+	LinkedList<EntityPtr> strokes;
 	HandSourceLocation* prev_manip_loc = 0;
 	
 	vec4 selected_color = Colors::White;
@@ -124,8 +124,8 @@ private:
 	};
 	
 	ToolboxSystemBasePtr tb;
-	Array<PaintComponentRef> comps;
-	LinkedList<LinkedList<EntityRef>> persistent_strokes;
+	Array<PaintComponentPtr> comps;
+	LinkedList<LinkedList<EntityPtr>> persistent_strokes;
 	bool dbg_model = false;
 	
 	

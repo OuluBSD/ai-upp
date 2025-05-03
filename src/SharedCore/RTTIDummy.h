@@ -56,7 +56,7 @@ template <class T> const char* GetTypeNameT() {return typeid(T).name();}
 #ifdef flagSTDEXC
 	template <class T> void Throw(const T& o) {throw o;}
 	#define THROW_SPECIFIER		throw()
-	#define THROW(x)			{throw(x);}
+	#define throw (x)			{throw(x);}
 	#define TYPE_WRAPPER		std::reference_wrapper<const std::type_info>
 	#define TYPE_WRAPPER_CTOR	reference_wrapper::reference_wrapper
 #else
@@ -65,7 +65,7 @@ template <class T> const char* GetTypeNameT() {return typeid(T).name();}
 	#endif
 	template <class T> void Throw(const T& o) {const char* name = AsTypeName<T>(); __BREAK__;}
 	#define THROW_SPECIFIER
-	#define THROW(x)			{UPP::Throw(x); UNREACHABLE;}
+	#define throw (x)			{UPP::Throw(x); UNREACHABLE;}
 	#define TYPE_WRAPPER		RTTIWrapper
 	#define TYPE_WRAPPER_CTOR	RTTIWrapper::RTTIWrapper
 #endif

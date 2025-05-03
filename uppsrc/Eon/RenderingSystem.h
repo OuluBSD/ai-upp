@@ -16,7 +16,7 @@ public:
 	float alpha_multiplier;
 	
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	
@@ -57,9 +57,9 @@ protected:
 	Parallel::BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
 	#endif
 	#endif
-	Array<RenderableRef>		rends;
-	Array<ViewableRef>			views;
-	Array<ModelComponentRef>	models;
+	Array<RenderablePtr>		rends;
+	Array<ViewablePtr>			views;
+	Array<ModelComponentPtr>	models;
 	Vector<CameraBase*>			cams;
 	
 	double						time = 0;

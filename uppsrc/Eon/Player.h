@@ -61,7 +61,7 @@ public:
 	
 	COPY_PANIC(PlayerHandComponent)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -91,7 +91,7 @@ public:
 	
 	COPY_PANIC(PlayerHeadComponent)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -120,7 +120,7 @@ public:
 	COMP_DEF_VISIT_(vis & hands[0] & hands[1] & head)
 	COPY_PANIC(PlayerBodyComponent)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -129,7 +129,7 @@ public:
 	bool SetHead(PlayerHeadComponentPtr head);
 	
 	float GetHeight() const {return height;}
-	const PlayerHeadComponentRef& GetHead() const {return head;}
+	const PlayerHeadComponentPtr& GetHead() const {return head;}
 	
 };
 
@@ -145,7 +145,7 @@ public:
 	ECS_SYS_CTOR(PlayerBodySystem)
 	ECS_SYS_DEF_VISIT_(vis && bodies)
 	
-	const Array<PlayerBodyComponentRef>& GetComponents() const {return bodies;}
+	const Array<PlayerBodyComponentPtr>& GetComponents() const {return bodies;}
 	
 	void Attach(PlayerBodyComponentPtr h);
 	void Detach(PlayerBodyComponentPtr h);
@@ -167,7 +167,7 @@ private:
     void RefreshComponentsForSource(const HandLocationSource& source);
     
     Ref<InteractionSystem> iasys;
-    Array<PlayerBodyComponentRef> bodies;
+    Array<PlayerBodyComponentPtr> bodies;
     
 };
 

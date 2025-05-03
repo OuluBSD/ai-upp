@@ -1,10 +1,10 @@
-#include "Eon.h"
+#include "EonDraw.h"
 
 NAMESPACE_UPP
 
 
 RendererBase::RendererBase() {
-	sz = Size(TS::default_width, TS::default_height);
+	sz = Size(default_width, default_height);
 	
 	if (0) {
 		obj = "cube.obj";

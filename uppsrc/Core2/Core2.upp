@@ -1,0 +1,8 @@
+description "\377B128,0,0";
+
+file
+	Core.h,
+	TypeTraits.h,
+	Container.h,
+	Container.cpp;
+

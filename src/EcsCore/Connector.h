@@ -76,7 +76,7 @@ public:
 		ConnectorMapBase::Iterator it = ConnectorMapBase::Find(AsTypeCls<ConnectorT>());
 		ASSERT(!IS_EMPTY_SHAREDPTR(it));
 		if (it.IsEmpty())
-			THROW(Exc("Could not find component " + AsTypeString<ConnectorT>()));
+			throw (Exc("Could not find component " + AsTypeString<ConnectorT>()));
 		
 		return it->AsRef<ConnectorT>();
 	}

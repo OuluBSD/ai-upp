@@ -5,7 +5,7 @@
 namespace Ecs {
 
 class Engine;
-
+struct ComponentBaseUpdater;
 
 class SystemBase : public Pte<SystemBase>
 {
@@ -47,22 +47,14 @@ public:
     
 };
 
-#define SYS_RTTI(x)  RTTI_DECL1(x, System<x>)
 #define ECS_SYS_CTOR(x) \
 	typedef x CLASSNAME; \
 	x(Engine& m) : SP(m) {}
 #define ECS_SYS_CTOR_DERIVED(x, derived_from) \
 	typedef x CLASSNAME; \
 	x(Engine& m) : derived_from(m) {}
-#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<Ecs::System<CLASSNAME>>(this);}
-#define ECS_SYS_DEF_VISIT_DERIVED(x) void Visit(Vis& vis) override {vis.VisitT<x>(this);}
-#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<Ecs::System<CLASSNAME>>(this);}
-
-struct ComponentBaseUpdater : Pte<ComponentBaseUpdater> {
-	
-	virtual void Update(double dt) {Panic("unimplemented");}
-	
-};
+#define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
+#define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
 
 
 class Engine : public Pte<Engine>
@@ -208,6 +200,20 @@ public:
 Engine& GetActiveEngine();
 void SetActiveEngine(Engine& e);
 void ClearActiveEngine();
+
+template <class S, class R>
+inline void ComponentBase::AddToSystem(R ref) {
+	S* sys = GetEngine().Get<S>();
+	if (sys)
+		sys->Add(ref);
+}
+
+template <class S, class R>
+inline void ComponentBase::RemoveFromSystem(R ref) {
+	S* sys = GetEngine().Get<S>();
+	if (sys)
+		sys->Remove(ref);
+}
 
 
 

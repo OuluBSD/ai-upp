@@ -42,8 +42,8 @@ struct StaticSphere : EntityPrefab<Transform, ModelComponent>
     {
         auto components = EntityPrefab::Make(e);
 
-        components.Get<ModelComponentRef>()->SetPrefabModel(KnownModelNames::UnitSphere);
-        components.Get<ModelComponentRef>()->color = vec4(0.5, 0.5, 0.5, 1.0);
+        components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::UnitSphere);
+        components.Get<ModelComponentPtr>()->color = vec4(0.5, 0.5, 0.5, 1.0);
 
         return components;
     }
@@ -55,8 +55,8 @@ struct StaticCube : EntityPrefab<Transform, ModelComponent>
     {
         auto components = EntityPrefab::Make(e);
 
-        components.Get<ModelComponentRef>()->SetPrefabModel(KnownModelNames::UnitCube);
-        components.Get<ModelComponentRef>()->color = vec4(0.5, 0.5, 0.5, 1.0);
+        components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::UnitCube);
+        components.Get<ModelComponentPtr>()->color = vec4(0.5, 0.5, 0.5, 1.0);
 		
         return components;
     }

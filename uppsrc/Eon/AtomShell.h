@@ -57,27 +57,27 @@ struct SerialLoaderFactory {
 
 
 #define APP_INITIALIZE_DEFAULT \
-	APP_INITIALIZE_STARTUP_(TS::DefaultSerialInitializer, TS::DefaultStartup)
+	APP_INITIALIZE_STARTUP_(DefaultSerialInitializer, DefaultStartup)
 
 #define APP_INITIALIZE_DEFAULT_INTERNAL_EON \
-	APP_INITIALIZE_STARTUP_(TS::DefaultSerialInitializerInternalEon, TS::DefaultStartup)
+	APP_INITIALIZE_STARTUP_(DefaultSerialInitializerInternalEon, DefaultStartup)
 
 #define APP_INITIALIZE_DEFAULT_INTERNAL_EON_(x) \
-	APP_INITIALIZE_STARTUP_2(TS::DefaultSerialInitializerInternalEon, TS::DefaultStartup, x)
+	APP_INITIALIZE_STARTUP_2(DefaultSerialInitializerInternalEon, DefaultStartup, x)
 
 
 
 #define DEFAULT_ATOMSHELL_(title_str) \
 	APP_INITIALIZE_DEFAULT \
-	RENDER_APP_MAIN {TS::DefaultRunner(true, title_str);}
+	RENDER_APP_MAIN {DefaultRunner(true, title_str);}
 
 #define DEFAULT_ECS_SHELL_(title_str) \
-	APP_INITIALIZE_STARTUP2_2(TS::DefaultSerialInitializer, TS::DefaultStartup, TS::BindEcsToSerial) \
-	ECS_APP_MAIN {TS::DefaultRunner(true, title_str);}
+	APP_INITIALIZE_STARTUP2_2(DefaultSerialInitializer, DefaultStartup, BindEcsToSerial) \
+	ECS_APP_MAIN {DefaultRunner(true, title_str);}
 
 #define DEFAULT_ECS_SHELL_EON(title_str, eon_path) \
-	APP_INITIALIZE_STARTUP2_2(TS::DefaultSerialInitializer, TS::DefaultStartup, TS::BindEcsToSerial) \
-	ECS_APP_MAIN {TS::DefaultRunner(true, title_str, eon_path);}
+	APP_INITIALIZE_STARTUP2_2(DefaultSerialInitializer, DefaultStartup, BindEcsToSerial) \
+	ECS_APP_MAIN {DefaultRunner(true, title_str, eon_path);}
 
 
 #define DEFAULT_ATOMSHELL DEFAULT_ATOMSHELL_("AtomShell")

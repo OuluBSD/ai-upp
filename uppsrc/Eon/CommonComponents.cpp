@@ -30,7 +30,7 @@ void Transform::operator=(const Transform& t) {
     size = t.size;
 }
 
-void Transform::Etherize(Ether& e) {
+void Transform::Serialize(Stream& e) {
 	e % data
 	  % size
 	  % relative_position
@@ -78,7 +78,7 @@ String Transform::ToString() const {
 
 
 
-void Transform2D::Etherize(Ether& e) {
+void Transform2D::Serialize(Stream& e) {
 	e % position
 	  % size;
 }

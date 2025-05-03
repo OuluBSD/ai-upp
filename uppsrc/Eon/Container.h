@@ -75,7 +75,7 @@ public:
     String DemangledName() const {return Demangle(name());}
 	String CleanDemangledName() const {
 		String s(DemangledName());
-		if (s.Find("TS::") == 0)
+		if (s.Find("") == 0)
 			s = s.Mid(6);
 		return s;
 	}

@@ -496,7 +496,7 @@ public:
 			if (j == i)
 				return *it;
 		ASSERT(0);
-		THROW(Exc("Position not found in RefLinkedList: " + IntStr(i)));
+		throw (Exc("Position not found in RefLinkedList: " + IntStr(i)));
 	}
 	
 	Iterator begin()	{return Iterator(first);}
@@ -853,7 +853,7 @@ public:
 			if (j == i)
 				return *it;
 		ASSERT(0);
-		THROW(Exc("Position not found in RefLinkedMapIndirect: " + IntStr(i)));
+		throw (Exc("Position not found in RefLinkedMapIndirect: " + IntStr(i)));
 	}
 	
 	

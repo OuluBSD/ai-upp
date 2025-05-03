@@ -67,7 +67,7 @@ void ShootingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
 void ShootingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
 	
 	if (e.type == EVENT_HOLO_PRESSED && e.value == ControllerMatrix::TRIGGER) {
-		for (ShootingComponentRef& shooting : comps) {
+		for (ShootingComponentPtr& shooting : comps) {
 			if (!shooting->IsEnabled())
 				continue;
 			EntityPtr entity = shooting->GetEntity();
@@ -110,7 +110,7 @@ void ShootingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
 }
 
 void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
-	for (ShootingComponentRef& shooting : comps) {
+	for (ShootingComponentPtr& shooting : comps) {
 		if (!shooting->IsEnabled()) continue;
 		
 		EntityPtr entity = shooting->GetEntity();
@@ -137,7 +137,7 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 
 
 
-void ShootingComponent::Etherize(Ether& e) {
+void ShootingComponent::Serialize(Stream& e) {
 	CustomToolComponent::Etherize(e);
 	
 	e % bullet_speed

@@ -4,7 +4,7 @@
 
 namespace Ecs {
 
-
+class Pool;
 
 class Entity :
 	public Pte<Entity>,
@@ -40,7 +40,7 @@ public:
 	
 	static EntityId GetNextId();
 	
-	void Etherize(Ether& e);
+	void Serialize(Stream& e);
 	
 	void SetPrefab(String s) {prefab = s;}
 	String GetPrefab() const {return prefab;}
@@ -59,69 +59,67 @@ public:
 	ComponentBasePtr FindTypeCls(TypeCls comp_type);
 	
 	template<typename T>
-	RefT_Entity<T> Get() {
+	T& Get() {
 		return comps.Get<T>();
 	}
 	
 	template<typename T>
-	RefT_Entity<T> Find() {
+	T* Find() {
 		return comps.Find<T>();
 	}
 	
 	template<typename T>
-	RefT_Entity<T> FindNearestEntityWith();
+	Entity* FindNearestEntityWith();
 	
 	template<typename T>
-	RefT_Pool<T> FindNearestPoolWith();
+	Pool* FindNearestPoolWith();
 	
 	template<typename T>
-	RefT_Entity<T> FindCast() {
-		RefT_Entity<T> o;
-		for(Ref<ComponentBase>& comp : comps.GetValues()) {
-			T* p = CastPtr<T>(&*comp);
-			if (p) {
-				o = RefT_Entity<T>(p->GetParent(), p);
+	T* FindCast() {
+		T* o = 0;
+		for(ComponentBase& comp : comps.GetValues()) {
+			o = CastPtr<T>(&comp);
+			if (o)
 				break;
-			}
 		}
 		return o;
 	}
 	
 	template<typename T>
-	RefT_Entity<T> FindInterface() {
-		RefT_Entity<T> o;
-		for(Ref<ComponentBase>& comp : comps.GetValues())
-			if ((o = comp->As<T>()))
+	Entity* FindInterface() {
+		Entity* o = 0;
+		for(ComponentBase& comp : comps.GetValues())
+			if ((o = CastPtr<T>(&comp)))
 				break;
 		return o;
 	}
 	
 	template<typename T>
-	LinkedList<RefT_Entity<T>> FindInterfaces() {
-		LinkedList<RefT_Entity<T>> v;
-		RefT_Entity<T> o;
-		for(Ref<ComponentBase>& comp : comps.GetValues())
-			if ((o = comp->As<T>()))
+	Vector<Ptr<T>> FindInterfaces() {
+		Vector<Ptr<T>> v;
+		Entity* o = 0;
+		for(ComponentBase& comp : comps.GetValues())
+			if ((o = CastPtr<T>(&comp)))
 				v.Add(o);
 		return v;
 	}
 	
-	template<typename T> RefT_Pool<T> FindConnector();
-	template<typename T> RefT_Pool<T> FindCommonConnector(EntityPtr sink);
+	template<typename T> T* FindConnector();
+	template<typename T> T* FindCommonConnector(Entity* sink);
 	int GetPoolDepth() const;
-	bool HasPoolParent(PoolPtr pool) const;
+	bool HasPoolParent(Pool* pool) const;
 	
 	template<typename T> void Remove() {
 		OnChange();
 		Remove0<T>();
 	}
-	template<typename T> RefT_Entity<T> Add() {
+	template<typename T> T& Add() {
 		OnChange();
 		auto comp = Add0<T>(true);
 		return comp;
 	}
-	template<typename T> RefT_Entity<T> GetAdd() {
-		RefT_Entity<T> o = Find<T>();
+	template<typename T> T& GetAdd() {
+		T* o = Find<T>();
 		if (o)
 			return o;
 		OnChange();
@@ -129,18 +127,18 @@ public:
 		return comp;
 	}
 	
-	ComponentBaseRef	GetAdd(String comp_name);
+	ComponentBase&	GetAdd(String comp_name);
 	
 	template<typename... ComponentTs>
-	RTuple<RefT_Entity<ComponentTs>...> TryGetComponents() {
+	Tuple<ComponentTs*...> TryGetComponents() {
 		return MakeRTuple(comps.Find<ComponentTs>()...);
 	}
 	
 	
-	EntityRef			Clone() const;
+	Entity*				Clone() const;
 	void				InitializeComponents();
 	void				InitializeComponent(ComponentBase& comp);
-	void				InitializeComponentRef(ComponentBasePtr comp) {return InitializeComponent(*comp);}
+	void				InitializeComponentPtr(ComponentBasePtr comp) {return InitializeComponent(*comp);}
 	void				UninitializeComponents();
 	void				ClearComponents();
 	
@@ -158,10 +156,10 @@ public:
 	const ComponentMap&	GetComponents() const {return comps;}
 	
 	template<typename... ComponentTs>
-	RTuple<RefT_Entity<ComponentTs>...> CreateComponents() {
+	Tuple<ComponentTs*...> CreateComponents() {
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all be a component");
 		
-		auto tuple =  RTuple<RefT_Entity<ComponentTs>...> {{
+		auto tuple =  Tuple<ComponentTs*...> {{
 				Add0<ComponentTs>(false)
 			}
 			...
@@ -179,7 +177,7 @@ public:
 private:
 	
 	template<typename T> void Remove0();
-	template<typename T> RefT_Entity<T> Add0(bool initialize);
+	template<typename T> T* Add0(bool initialize);
 	
 	
 	ComponentBasePtr AddPtr(ComponentBase* comp);
@@ -187,7 +185,8 @@ private:
 	
 };
 
-
+using EntityPtr = Ptr<Entity>;
+using EntityVec = Array<Entity>;
 
 
 
@@ -198,10 +197,10 @@ template<typename... ComponentTs>
 struct EntityPrefab {
 	static_assert(AllComponents<ComponentTs...>::value, "All components should derive from Component");
 	
-	using Components = RTuple<RefT_Entity<ComponentTs>...>;
+	using Components = Tuple<ComponentTs*...>;
 	
 	static String GetComponentNames() {
-		return RTuple<ComponentTs...>::GetTypeNames();
+		return Tuple<ComponentTs*...>::GetTypeNames();
 	}
 	
     static String GetTypeName() {
@@ -217,7 +216,7 @@ struct EntityPrefab {
 class EntityHashVisitor : public Vis {
 	CombineHash ch;
 	
-	bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
+	//bool OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) override;
 	
 public:
 	

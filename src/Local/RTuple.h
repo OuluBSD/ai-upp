@@ -41,7 +41,7 @@ struct RTuple : Moveable<RTuple<First, Rest...>> {
 	
 	template <class T> T& Get() {
 		T* ptr = Find<T>();
-		if (!ptr) THROW(Exc("Could not find type from tuple"))
+		if (!ptr) throw (Exc("Could not find type from tuple"))
 		return *ptr;
 	}
 	
@@ -75,7 +75,7 @@ struct RTuple<First> : Moveable<RTuple<First>> {
 	
 	template <class T> T& Get() {
 		T* ptr = Find<T>();
-		if (!ptr) THROW(Exc("Could not find type from tuple"))
+		if (!ptr) throw (Exc("Could not find type from tuple"))
 		return *ptr;
 	}
 	
@@ -108,7 +108,7 @@ auto Get(const RTuple<First, Rest...>& t) -> decltype(GetImpl<index, First, Rest
 
 template <class T, class A> T Get(const A& a) {
 	T* ptr = a.template Find<T>();
-	if (!ptr) THROW(Exc("Couldn't find type from tuple"))
+	if (!ptr) throw (Exc("Couldn't find type from tuple"))
 	return *ptr;
 }
 

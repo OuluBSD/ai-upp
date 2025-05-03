@@ -10,7 +10,7 @@ class EngineSerializer {
 	
 	
 public:
-	void Etherize(Ether& e) {TODO}
+	void Serialize(Stream& e) {TODO}
 	
 };
 

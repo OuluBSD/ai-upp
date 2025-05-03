@@ -18,8 +18,7 @@ protected:
     
     
 public:
-	SYS_RTTI(DesktopSuiteSystem)
-    ECS_SYS_CTOR(DesktopSuiteSystem)
+	ECS_SYS_CTOR(DesktopSuiteSystem)
 	void Visit(Vis& vis) override;
 	~DesktopSuiteSystem() {ASSERT(apps.IsEmpty());}
 	

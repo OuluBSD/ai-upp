@@ -25,7 +25,7 @@ public:
         orientation_easing_factor = e.orientation_easing_factor;
     }
     
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
     void Initialize() override;
     void Uninitialize() override;
     
@@ -39,8 +39,7 @@ class EasingSystem : public System<EasingSystem>
 {
 	Vector<Easing*> comps;
 public:
-	SYS_RTTI(EasingSystem)
-    ECS_SYS_CTOR(EasingSystem)
+	ECS_SYS_CTOR(EasingSystem)
 	ECS_SYS_DEF_VISIT
 	
 	void Attach(Easing* e);

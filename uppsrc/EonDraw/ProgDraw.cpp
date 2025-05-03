@@ -1,6 +1,7 @@
-#include "Local.h"
+#include "EonDraw.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+
+NAMESPACE_UPP
 
 
 ProgDraw::ProgDraw() /*: fb(state), shader(state)*/ {
@@ -200,4 +201,4 @@ void ProgDraw::DrawEllipseOp(const Rect& r, Color color, int pen, Color pencolor
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

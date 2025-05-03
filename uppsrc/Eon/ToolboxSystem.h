@@ -22,7 +22,7 @@ public:
 	
 	virtual bool LoadModel(ModelComponent&) = 0;
 	
-	void Etherize(Ether& e) override {}
+	void Serialize(Stream& e) override {}
 	
 	
 };
@@ -38,7 +38,7 @@ public:
 	COPY_PANIC(ToolComponent)
 	COMP_DEF_VISIT_(vis & active_tool & active_hand; vis && tools;)
 	
-	void Etherize(Ether& e) override;
+	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -54,7 +54,7 @@ public:
 	TypeId tool_type { AsVoidTypeId() };
 	
 	CustomToolComponentPtr active_tool;
-	Array<CustomToolComponentRef> tools;
+	Array<CustomToolComponentPtr> tools;
 	PlayerHandComponentPtr active_hand;
 	
 };
@@ -81,7 +81,7 @@ public:
 	void Attach(ToolComponentPtr tool);
 	void Detach(ToolComponentPtr tool);
 	
-	const Array<ToolComponentRef>& GetTools() const {return tools;}
+	const Array<ToolComponentPtr>& GetTools() const {return tools;}
 	
 protected:
 	// System
@@ -93,9 +93,9 @@ protected:
 	bool Arg(String key, Value value) override;
 	
 private:
-	Array<ToolComponentRef> tools;
-	TypeMap<ToolSystemBaseRef> selectors;
-	TypeMap<EntityRef> selector_objects;
+	Array<ToolComponentPtr> tools;
+	TypeMap<ToolSystemBasePtr> selectors;
+	TypeMap<EntityPtr> selector_objects;
 	
 	bool test_tool_changer{ false };
 	bool show_toolbox{ false };

@@ -123,7 +123,7 @@ public:
 
 
 #ifdef flagDEBUG
-void InterfaceDebugPrint(TypeId type, String s);
+void InterfaceDebugPrint(TypeCls type, String s);
 #endif
 
 

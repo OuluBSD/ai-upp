@@ -108,7 +108,7 @@ struct OrientedRectangle : Moveable<OrientedRectangle> {
 	OrientedRectangle(const OrientedRectangle& r) { *this = r; }
 	OrientedRectangle(const vec2& ct, const vec2& hext, float rot) : ct(ct), hext(hext), rot(rot) {}
 
-	void operator=(const OrientedRectangle& src) {memcpy(this, &src, sizeof(OrientedRectangle));}
+	void operator=(const OrientedRectangle& src) {Panic("TODO");}//memcpy(this, &src, sizeof(OrientedRectangle));}
 	void operator=(const FixedRectangle& src) {
 		ct = src.GetCenter();
 		hext = src.GetSize() * 0.5;

@@ -14,15 +14,14 @@ class LoopStore : public System<LoopStore> {
 	
 	void InitRoot();
 public:
-	SYS_RTTI(LoopStore)
 	SYS_CTOR_(LoopStore) {InitRoot();}
 	SYS_DEF_VISIT_(vis || root)
 	
 	LoopPtr GetRoot() {
 		if (root.IsEmpty())
-			return LoopRef();
-		Loop& l = root.GetFirst();
-		return l;
+			return LoopPtr();
+		Loop& l = root[0];
+		return &l;
 	}
 	LoopVec& GetRootVec()	{return root;}
 	

@@ -1,12 +1,5 @@
-#ifndef _Local_TypeTraits_h_
-#define _Local_TypeTraits_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
-
-
-
+#ifndef _Core2_TypeTraits_h_
+#define _Core2_TypeTraits_h_
 
 
 template<typename T1, typename T2>
@@ -33,12 +26,10 @@ void EraseIf(Container* container, Predicate&& predicate)
     //container->Remove(RemoveIf(container->begin(), container->end(), Pick(predicate)), container->end());
 }
 
-class Destroyable :
-	RTTIBase
+class Destroyable
 {
 public:
-	RTTI_DECL0(Destroyable)
-    virtual ~Destroyable() = default;
+	virtual ~Destroyable() = default;
 
     virtual void Destroy() { destroyed = true; }
     virtual bool IsDestroyed() const { return destroyed; }
@@ -60,12 +51,10 @@ protected:
 };
 
 
-class Enableable :
-	RTTIBase
+class Enableable
 {
 public:
-	RTTI_DECL0(Enableable)
-    virtual ~Enableable() = default;
+	virtual ~Enableable() = default;
 
     virtual void SetEnabled(bool enable) { m_enabled = enable; }
     virtual bool IsEnabled() const { return m_enabled; }
@@ -74,7 +63,7 @@ protected:
     bool m_enabled{ true };
 };
 
-
+#if 0
 template<typename T, typename ProducerT, typename RefurbisherT>
 class FactoryT
 {
@@ -83,7 +72,7 @@ public:
     using Producer = ProducerT;
     using Refurbisher = RefurbisherT;
 
-    void RegisterProducer(const TypeId& typeId, Producer producer, Refurbisher refurbisher)
+    void RegisterProducer(const TypeCls& typeId, Producer producer, Refurbisher refurbisher)
     {
         auto p = producers.find(typeId);
         AssertFalse(p != producers.end(), "multiple registrations for the same type is not allowed");
@@ -99,12 +88,7 @@ protected:
     TypeMap<RefurbisherT> refurbishers;
     
 };
-
-
-
-
-
-
+#endif
 
 template<bool...>
 struct bool_pack;
@@ -113,22 +97,20 @@ template <typename Base, typename T>
 using IsBaseOf = std::is_base_of<Base, T>;
 
 template<bool... Bs>
-using AllTrue = std::is_same<bool_pack<Bs..., true>, bool_pack<true, Bs...>>;
+using IsAllTrue = std::is_same<bool_pack<Bs..., true>, bool_pack<true, Bs...>>;
 
 
 template <typename Base, typename... Ts>
-using AllBaseOf = AllTrue<std::is_base_of<Base, Ts>::value...>;
+using IsAllBaseOf = IsAllTrue<std::is_base_of<Base, Ts>::value...>;
 
 template <typename To, typename... Ts>
-using AllConvertibleTo = AllTrue<std::is_convertible<Ts, To>::value...>;
+using IsAllConvertibleTo = IsAllTrue<std::is_convertible<Ts, To>::value...>;
 
 template <typename T, typename... Ts>
-using AllSame = AllTrue<std::is_same<T, Ts>::value...>;
+using IsAllSame = IsAllTrue<std::is_same<T, Ts>::value...>;
 
 template <typename T, typename Base>
 bool IsInstance(const Base& o) {return CastConstPtr<T>(&o) != 0;}
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

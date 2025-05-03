@@ -17,7 +17,7 @@ ModelPtr ModelCache::GetAddModelFile(String path) {
 
 ModelPtr ModelCache::Attach(Model* mdl) {
 	if (!mdl)
-		return ModelRef();
+		return ModelPtr();
 	
 	if (mdl->path.IsEmpty())
 		mdl->path = IntStr64(mdl->GetHashValue());

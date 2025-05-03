@@ -1,9 +1,8 @@
-#ifndef _Local_ProgDraw_h_
-#define _Local_ProgDraw_h_
+#ifndef _EonDraw_ProgDraw_h_
+#define _EonDraw_ProgDraw_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
+class ProgPainter;
 
 class ProgDraw : public DrawProxy
 {
@@ -15,12 +14,9 @@ public:
 	DrawCommand cmd_screen_begin, cmd_screen_end;
 	DrawCommand render_begin, render_end;
 	
-	
 	void LinkRender();
+	
 public:
-	#if IS_TS_CORE
-	RTTI_DECL1(ProgDraw, Draw)
-	#endif
 	ProgDraw();
 	ProgDraw(void* hash, Size sz);
 	ProgDraw(void* hash, int w, int h);
@@ -42,7 +38,5 @@ public:
 	
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -14,8 +14,7 @@ protected:
     void Uninitialize() override;
     
 public:
-	SYS_RTTI(RegistrySystem)
-    SYS_CTOR(RegistrySystem)
+	SYS_CTOR(RegistrySystem)
 	SYS_DEF_VISIT
 	
 	void Set(String key, Value value) {reg.GetAdd(key) = value;}

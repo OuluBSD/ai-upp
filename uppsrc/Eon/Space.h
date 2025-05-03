@@ -96,10 +96,10 @@ public:
 	
 	template<typename T>
 	T* FindCast() {
-		for (AtomBasePtr& a : atoms.GetValues()) {
-			T* o = CastPtr<T>(&*a);
+		for (auto& it : atoms) {
+			T* o = CastPtr<T>(&*it.atom);
 			if (o)
-				return o->template AsPtr<T>();
+				return o;
 		}
 		return 0;
 	}
@@ -188,7 +188,7 @@ T* Space::FindNearestAtomCast(int nearest_space_depth) {
 	
 	if (nearest_space_depth > 0)
 		for (auto& space : spaces)
-			if (auto ret = space->FindNearestAtomCast<T>(nearest_space_depth-1))
+			if (auto ret = space.FindNearestAtomCast<T>(nearest_space_depth-1))
 				return ret;
 	
 	if (Space* p = GetParent())

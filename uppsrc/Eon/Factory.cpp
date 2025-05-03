@@ -15,6 +15,11 @@ void Factory::Dump() {
 		const auto& d = fns[i];
 		LOG("\t\t" << i << ": " << d.name << "(" << d.cls.ToString() << ")");
 	}
+	LOG("\tlinks (" << fns.GetCount() << "):");
+	for(int i = 0; i < fns.GetCount(); i++) {
+		const auto& d = fns[i];
+		LOG("\t\t" << i << ": " << d.name << "(" << d.cls.ToString() << ")");
+	}
 }
 
 

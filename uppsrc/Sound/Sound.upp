@@ -1,0 +1,22 @@
+flags(WIN32 & !MSC) SYS_PORTAUDIO;
+
+uses(!SYS_PORTAUDIO) plugin/portaudio;
+
+library(SYS_PORTAUDIO) portaudio;
+
+file
+	Sound.h,
+	Types.h,
+	SoundSystem.h,
+	Sound.cpp,
+	SoundStream.cpp,
+	SoundSystem.cpp,
+	SoundDaemon.h,
+	SoundDaemon.cpp,
+	SoundThread.h,
+	SoundThread.cpp,
+	SoundThread.inl highlight cpp,
+	Discussion.h,
+	Discussion.cpp,
+	SoundClip.h;
+

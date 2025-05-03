@@ -1,0 +1,20 @@
+rm uppsrc/AI.json
+rm uppsrc/CodeEditor/AI.json
+rm uppsrc/Core/AI.json
+rm uppsrc/Core/SSL/AI.json
+rm uppsrc/CtrlCore/AI.json
+rm uppsrc/CtrlLib/AI.json
+rm uppsrc/Draw/AI.json
+rm uppsrc/Esc/AI.json
+rm uppsrc/Painter/AI.json
+rm uppsrc/PdfDraw/AI.json
+rm uppsrc/plugin/bmp/AI.json
+rm uppsrc/plugin/gif/AI.json
+rm uppsrc/plugin/jpg/AI.json
+rm uppsrc/plugin/pcre/AI.json
+rm uppsrc/plugin/png/AI.json
+rm uppsrc/plugin/z/AI.json
+rm uppsrc/RichEdit/AI.json
+rm uppsrc/RichText/AI.json
+rm uppsrc/VirtualGui/AI.json
+

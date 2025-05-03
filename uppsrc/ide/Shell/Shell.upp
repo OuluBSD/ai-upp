@@ -1,0 +1,23 @@
+description "\377B";
+
+uses
+	AICtrl;
+
+file
+	Shell.h,
+	Shell.cpp,
+	Shell.lay,
+	Shell.key,
+	Console.h,
+	Console.cpp,
+	Widget.h,
+	Widget.cpp,
+	IdeShell.h,
+	IdeShell.cpp,
+	IdeShellHost.cpp,
+	EscCmds.h,
+	EscCmds.cpp,
+	Widgets readonly separator,
+	SmallWidgets.h,
+	SmallWidgets.cpp;
+

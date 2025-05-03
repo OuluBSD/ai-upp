@@ -1,0 +1,21 @@
+description "\377B128,0,0";
+
+uses
+	Draw;
+
+file
+	Meta.h,
+	Defs.h,
+	Enum.h,
+	Common.h,
+	ExtList.h,
+	Node.h,
+	Node.cpp,
+	Entity.h,
+	Entity.cpp,
+	CodeVisitor.h,
+	CodeVisitor.cpp,
+	SolverBase.h,
+	SolverBase.cpp,
+	src.tpp;
+

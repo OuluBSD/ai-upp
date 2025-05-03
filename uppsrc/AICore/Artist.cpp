@@ -1,0 +1,10 @@
+#include "AICore.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(Artist);
+
+
+END_UPP_NAMESPACE

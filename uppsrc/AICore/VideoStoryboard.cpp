@@ -1,0 +1,9 @@
+#include "AICore.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(VideoStoryboard)
+
+END_UPP_NAMESPACE

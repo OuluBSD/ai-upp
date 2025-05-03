@@ -1,0 +1,7 @@
+uses
+	Sound;
+
+file
+	SoundCtrl.h,
+	SoundCtrl.cpp;
+

@@ -1,0 +1,9559 @@
+{
+	"saved_hash": "1a9ac10c99fe55f5d6b8a64ea0f1dfee768b4dcd",
+	"files": [
+		{
+			"key": "PdfDraw.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "LDUMP",
+						"t": "",
+						"i": "LDUMP",
+						"r": "LDUMP",
+						"s": "",
+						"u": "LDUMP",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2ea08c3f31df288e30ec5c02db16b3d948516e1c"
+							}
+						]
+					},
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "LLOG",
+						"t": "",
+						"i": "LLOG",
+						"r": "LLOG",
+						"s": "",
+						"u": "LLOG",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d83c43df219c111fa516fe33b765574dc658780b"
+							}
+						]
+					},
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PDF_COMPRESS",
+						"t": "",
+						"i": "PDF_COMPRESS",
+						"r": "PDF_COMPRESS",
+						"s": "",
+						"u": "PDF_COMPRESS",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f7cb37c2e8bb7ca83739b506fd03084725db973f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "GetInfo",
+						"t": "dword () const",
+						"i": "Upp::PdfDraw::GetInfo()const",
+						"r": "dword GetInfo() const",
+						"s": "Upp",
+						"u": "GETINFO",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3dd04dee3e6478659f1968ad3bc2812b82baddb9"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "GetPageSize",
+						"t": "Size () const",
+						"i": "Upp::PdfDraw::GetPageSize()const",
+						"r": "Size GetPageSize() const",
+						"s": "Upp",
+						"u": "GETPAGESIZE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "82980a0dbd19b5f25402bfe357e57c6f5fb996dd"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Init",
+						"t": "void (int, int, int, bool)",
+						"i": "Upp::PdfDraw::Init(int,int,int,bool)",
+						"r": "void Init(int pagecx, int pagecy, int _margin, bool _pdfa)",
+						"s": "Upp",
+						"u": "INIT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f4d8df0d55cf036f9c298f345164bd10d68f5371"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Clear",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::Clear()",
+						"r": "void Clear()",
+						"s": "Upp",
+						"u": "CLEAR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "341f744b6409c960569aafb5e12d8ab94f6fbe85"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "BeginObj",
+						"t": "int ()",
+						"i": "Upp::PdfDraw::BeginObj()",
+						"r": "int BeginObj()",
+						"s": "Upp",
+						"u": "BEGINOBJ",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "22dac099532576b23302f74abb919e69c03770f3"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "EndObj",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndObj()",
+						"r": "void EndObj()",
+						"s": "Upp",
+						"u": "ENDOBJ",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "32562e3a3ccaec108d28f2d5e86ba88d528c68be"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutRect",
+						"t": "void (const Rect &)",
+						"i": "Upp::PdfDraw::PutRect(const Rect&)",
+						"r": "void PutRect(const Rect& rc)",
+						"s": "Upp",
+						"u": "PUTRECT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "adf77bfd2d682f941bc093714878da5c13964e3e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutStream",
+						"t": "int (const String &, const String &, bool)",
+						"i": "Upp::PdfDraw::PutStream(const String&,const String&,bool)",
+						"r": "int PutStream(const String& data, const String& keys = Null, bool compress = true)",
+						"s": "Upp",
+						"u": "PUTSTREAM",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a6edd8b30246572b065f5b25aefc7caafd8eddf7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutrgColor",
+						"t": "void (Color, uint64)",
+						"i": "Upp::PdfDraw::PutrgColor(Color,uint64)",
+						"r": "void PutrgColor(Color rg, uint64 pattern = 0)",
+						"s": "Upp",
+						"u": "PUTRGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a457a922efaf0a4190c59fbb86bd95f44f6222db"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutRGColor",
+						"t": "void (Color)",
+						"i": "Upp::PdfDraw::PutRGColor(Color)",
+						"r": "void PutRGColor(Color RG)",
+						"s": "Upp",
+						"u": "PUTRGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2813debcb535795b24d835eb6316cded181d6ffc"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutLineWidth",
+						"t": "void (int)",
+						"i": "Upp::PdfDraw::PutLineWidth(int)",
+						"r": "void PutLineWidth(int lw)",
+						"s": "Upp",
+						"u": "PUTLINEWIDTH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dc1e3ee9b85ae58e7018b82a0912d14fb0440b9e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "StartPage",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::StartPage()",
+						"r": "void StartPage()",
+						"s": "Upp",
+						"u": "STARTPAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a003c635601da6740269f98e1fb85c252395606a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "EndPage",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndPage()",
+						"r": "void EndPage()",
+						"s": "Upp",
+						"u": "ENDPAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6bb798d30335799d1e855573145ee4ebc0b1ae3e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PushOffset",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::PushOffset()",
+						"r": "void PushOffset()",
+						"s": "Upp",
+						"u": "PUSHOFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "edc95d0f6243b956227831d4789d996d3adf6838"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PopOffset",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::PopOffset()",
+						"r": "void PopOffset()",
+						"s": "Upp",
+						"u": "POPOFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fcc4a970f652ce54f9cceee553e47bcdf6fe4c58"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "BeginOp",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::BeginOp()",
+						"r": "void BeginOp()",
+						"s": "Upp",
+						"u": "BEGINOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cf6f0d1047a8ea6c222e1b93bbed69300ba851c6"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "EndOp",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndOp()",
+						"r": "void EndOp()",
+						"s": "Upp",
+						"u": "ENDOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "578b0fcb2e006f149402dc3363d2c69d04326e9c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "OffsetOp",
+						"t": "void (Point)",
+						"i": "Upp::PdfDraw::OffsetOp(Point)",
+						"r": "void OffsetOp(Point p)",
+						"s": "Upp",
+						"u": "OFFSETOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e3ec6591417ee200d430014e4f0dd73d2edfa281"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "ClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ClipOp(const Rect&)",
+						"r": "bool ClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "CLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9ef8c24e4e8fea8828df7b87c962e84222943eee"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "ClipoffOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ClipoffOp(const Rect&)",
+						"r": "bool ClipoffOp(const Rect& r)",
+						"s": "Upp",
+						"u": "CLIPOFFOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a412e6adae53892c48081c7eac51a28327cc06e3"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "ExcludeClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ExcludeClipOp(const Rect&)",
+						"r": "bool ExcludeClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "EXCLUDECLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "10150595b670b000ba8977cb6975a59f3a50b4b6"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "IntersectClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::IntersectClipOp(const Rect&)",
+						"r": "bool IntersectClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "INTERSECTCLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3448fccfd516e4e824e294a3339069af1034c603"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "IsPaintingOp",
+						"t": "bool (const Rect &) const",
+						"i": "Upp::PdfDraw::IsPaintingOp(const Rect&)const",
+						"r": "bool IsPaintingOp(const Rect&) const",
+						"s": "Upp",
+						"u": "ISPAINTINGOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "84e59151d36fcd9dffd7c67d05d441598c240149"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetCharPos",
+						"t": "PdfDraw::CharPos (Font, wchar)",
+						"i": "Upp::PdfDraw::GetCharPos(Font,wchar)",
+						"r": "PdfDraw::CharPos GetCharPos(Font fnt, wchar chr)",
+						"s": "Upp",
+						"u": "GETCHARPOS",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9cb6d8e87dcb1280ddd2855f06cd53197445c500"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "FlushText",
+						"t": "void (int, int, int, const String &)",
+						"i": "Upp::PdfDraw::FlushText(int,int,int,const String&)",
+						"r": "void FlushText(int dx, int fi, int height, const String& txt)",
+						"s": "Upp",
+						"u": "FLUSHTEXT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "df4bcc011a765c4b8f7bd105b9af89f38dbc316e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfColor",
+						"t": "String (Color)",
+						"i": "Upp::PdfDraw::PdfColor(Color)",
+						"r": "String PdfColor(Color c)",
+						"s": "Upp",
+						"u": "PDFCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cf021beace954c93e2b0c444ebb62e87ff749740"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfString",
+						"t": "String (const char *)",
+						"i": "Upp::PdfDraw::PdfString(const char*)",
+						"r": "String PdfString(const char *s)",
+						"s": "Upp",
+						"u": "PDFSTRING",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f05aeadf914874901ee26ad76e9bdd76518f91e2"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PutFontHeight",
+						"t": "void (int, double)",
+						"i": "Upp::PdfDraw::PutFontHeight(int,double)",
+						"r": "void PutFontHeight(int fi, double ht)",
+						"s": "Upp",
+						"u": "PUTFONTHEIGHT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fece0b273c2f3045d596e1bfcc6b83b247c29b26"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetOutlineInfo",
+						"t": "PdfDraw::OutlineInfo (Font)",
+						"i": "Upp::PdfDraw::GetOutlineInfo(Font)",
+						"r": "PdfDraw::OutlineInfo GetOutlineInfo(Font fnt)",
+						"s": "Upp",
+						"u": "GETOUTLINEINFO",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cae63bd1491cb1c86c3fffe3415eb6f93a564c0f"
+							}
+						]
+					},
+					{
+						"k": 5,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.cpp:311:1)",
+						"t": "Upp::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.cpp:311:1)",
+						"i": "Upp::(unnamed at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.)",
+						"r": "enum",
+						"s": "Upp",
+						"u": "(UNNAMED ENUM AT C:\\USERS\\SBLO\\AI-UPP\\UPPSRC\\PDFDRAW\\PDFDRAW.CPP:311:1)",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "10594f5815acc7bfeac7fe9ff882ee6e9fc1b4ef"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "FONTHEIGHT_TTF",
+						"t": "Upp::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.cpp:311:1)",
+						"i": "Upp::FONTHEIGHT_TTF",
+						"r": "FONTHEIGHT_TTF",
+						"s": "Upp",
+						"u": "FONTHEIGHT_TTF",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "5a084e03ebd70146fe5c50a792212ed0cc07bbc8"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "RenderGlyph",
+						"t": "Image (int, int, Font, int, int, int, Color, Color)",
+						"i": "Upp::RenderGlyph(int,int,Font,int,int,int,Color,Color)",
+						"r": "Image RenderGlyph(int cx, int x, Font font, int chr, int py, int pcy, Color fg, Color bg)",
+						"s": "Upp",
+						"u": "RENDERGLYPH",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4416bf45ddccbac8ee313009675c7a2b192a8884"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ColorGlyph",
+						"t": "PdfDraw::CGlyph (Font, int)",
+						"i": "Upp::PdfDraw::ColorGlyph(Font,int)",
+						"r": "PdfDraw::CGlyph ColorGlyph(Font fnt, int chr)",
+						"s": "Upp",
+						"u": "COLORGLYPH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d8a8063ee6a196d48c3094f8ab41a9bf7cd5c4aa"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawTextOp",
+						"t": "void (int, int, int, const wchar *, Font, Color, int, const int *)",
+						"i": "Upp::PdfDraw::DrawTextOp(int,int,int,const wchar*,Font,Color,int,const int*)",
+						"r": "void DrawTextOp(int x, int y, int angle, const wchar *s, Font fnt, Color ink, int n, const int *dx)",
+						"s": "Upp",
+						"u": "DRAWTEXTOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "60e5c76e5cd5ec4948320a22ab28875cdc1e5cc0"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "Escape",
+						"t": "void (const String &)",
+						"i": "Upp::PdfDraw::Escape(const String&)",
+						"r": "void Escape(const String& data)",
+						"s": "Upp",
+						"u": "ESCAPE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f173f1a327e7fc3a13078f75d87b2c49fdca1287"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "RasterGlyph",
+						"t": "PdfDraw::RGlyph (Font, int)",
+						"i": "Upp::PdfDraw::RasterGlyph(Font,int)",
+						"r": "PdfDraw::RGlyph RasterGlyph(Font fnt, int chr)",
+						"s": "Upp",
+						"u": "RASTERGLYPH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "73bb643284ae1436b2e002c8ac44cac7d2215841"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawRectOp",
+						"t": "void (int, int, int, int, Color)",
+						"i": "Upp::PdfDraw::DrawRectOp(int,int,int,int,Color)",
+						"r": "void DrawRectOp(int x, int y, int cx, int cy, Color color)",
+						"s": "Upp",
+						"u": "DRAWRECTOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "5a293c0a911828d9a8407e8aa5138ee7cb54be78"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawLineOp",
+						"t": "void (int, int, int, int, int, Color)",
+						"i": "Upp::PdfDraw::DrawLineOp(int,int,int,int,int,Color)",
+						"r": "void DrawLineOp(int x1, int y1, int x2, int y2, int width, Color color)",
+						"s": "Upp",
+						"u": "DRAWLINEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "99289ee2864b85dce482e32bc8a077ec9c295536"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "sJPEGDummy",
+						"t": "Image ()",
+						"i": "Upp::sJPEGDummy()",
+						"r": "static Image sJPEGDummy()",
+						"s": "Upp",
+						"u": "SJPEGDUMMY",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fc760359b585aad291da47bbc597dc453af850b0"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "DrawJPEG",
+						"t": "void (Draw &, int, int, int, int, const String &)",
+						"i": "Upp::DrawJPEG(Draw&,int,int,int,int,const String&)",
+						"r": "void DrawJPEG(Draw& w, int x, int y, int cx, int cy, const String& jpeg_data)",
+						"s": "Upp",
+						"u": "DRAWJPEG",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "13762b91c2aa5e17024985feb9c3218702ace6a2"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfImage",
+						"t": "int (const Image &, const Rect &)",
+						"i": "Upp::PdfDraw::PdfImage(const Image&,const Rect&)",
+						"r": "int PdfImage(const Image& img, const Rect& src)",
+						"s": "Upp",
+						"u": "PDFIMAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "64536f337cf477de0f7d37235a0a49a9adc735e3"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawImageOp",
+						"t": "void (int, int, int, int, const Image &, const Rect &, Color)",
+						"i": "Upp::PdfDraw::DrawImageOp(int,int,int,int,const Image&,const Rect&,Color)",
+						"r": "void DrawImageOp(int x, int y, int cx, int cy, const Image& _img, const Rect& src, Color c)",
+						"s": "Upp",
+						"u": "DRAWIMAGEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "20d61cbdf2dd29752598f5b1466072d55c0a162f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawPolyPolylineOp",
+						"t": "void (const Point *, int, const int *, int, int, Color, Color)",
+						"i": "Upp::PdfDraw::DrawPolyPolylineOp(const Point*,int,const int*,int,int,Color,Color)",
+						"r": "void DrawPolyPolylineOp(const Point *vertices, int vertex_count, const int *counts, int count_count, int width, Color color, Color doxor)",
+						"s": "Upp",
+						"u": "DRAWPOLYPOLYLINEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3a5f2b777aca881c27812bb6c292c8d373f7e0a5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawEllipseOp",
+						"t": "void (const Rect &, Color, int, Color)",
+						"i": "Upp::PdfDraw::DrawEllipseOp(const Rect&,Color,int,Color)",
+						"r": "void DrawEllipseOp(const Rect& r, Color color, int pen, Color outline)",
+						"s": "Upp",
+						"u": "DRAWELLIPSEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1ed2fcf237e967fde0667fed4c052854eece0932"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawArcOp",
+						"t": "void (const Rect &, Point, Point, int, Color)",
+						"i": "Upp::PdfDraw::DrawArcOp(const Rect&,Point,Point,int,Color)",
+						"r": "void DrawArcOp(const Rect& rc, Point start, Point end, int width, Color color)",
+						"s": "Upp",
+						"u": "DRAWARCOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "28cecf1c293657ef7d711054dec83fcb37e70561"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "DrawPolyPolyPolygonOp",
+						"t": "void (const Point *, int, const int *, int, const int *, int, Color, int, Color, uint64, Color)",
+						"i": "Upp::PdfDraw::DrawPolyPolyPolygonOp(const Point*,int,const int*,int,const int*,int,Color,int,Color,uint64,Color)",
+						"r": "void DrawPolyPolyPolygonOp(const Point *vertices, int vertex_count, const int *subpolygon_counts, int subpolygon_count_count, const int *disjunct_polygon_counts, int disjunct_polygon_count_count, Color color, int width, Color outline, uint64 pattern, Color doxor)",
+						"s": "Upp",
+						"u": "DRAWPOLYPOLYPOLYGONOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "528972ba0095e684ca8378197c3689e92f74addc"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetMonoPdfImage",
+						"t": "String (const Image &, const Rect &)",
+						"i": "Upp::GetMonoPdfImage(const Image&,const Rect&)",
+						"r": "String GetMonoPdfImage(const Image& m, const Rect& sr)",
+						"s": "Upp",
+						"u": "GETMONOPDFIMAGE",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1f0108276fa9714e24934f20c415e9eb8f755f06"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetGrayPdfImage",
+						"t": "String (const Image &, const Rect &)",
+						"i": "Upp::GetGrayPdfImage(const Image&,const Rect&)",
+						"r": "String GetGrayPdfImage(const Image& m, const Rect& sr)",
+						"s": "Upp",
+						"u": "GETGRAYPDFIMAGE",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6e7b10c6c77119ff8738cfcd9a1973bfd7e9ba6e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Finish",
+						"t": "String (const PdfSignatureInfo *)",
+						"i": "Upp::PdfDraw::Finish(const PdfSignatureInfo*)",
+						"r": "String Finish(const PdfSignatureInfo *sign = 0)",
+						"s": "Upp",
+						"u": "FINISH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c42ac26983af3909b7c3f0cdb1c07b28f4bf1ed6"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "ICCColorSpace.i",
+			"value": {
+				"items": [
+					{
+						"k": 9,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "ICC_ColorSpaceInfo",
+						"t": "const char[2575]",
+						"i": "Upp::ICC_ColorSpaceInfo",
+						"r": "static const char ICC_ColorSpaceInfo[]",
+						"s": "Upp",
+						"u": "ICC_COLORSPACEINFO",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "85fe8654b1c07fed93c140ccfcae413d9b2110a2"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "PdfDraw.h",
+			"value": {
+				"items": [
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "_PDF_pdf_h_",
+						"t": "",
+						"i": "_PDF_pdf_h_",
+						"r": "_PDF_pdf_h_",
+						"s": "",
+						"u": "_PDF_PDF_H_",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e78b10da493d8c6fdca47a48d4f9c68dd3db1019"
+							}
+						]
+					},
+					{
+						"k": 9,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "PdfDraw__initialize_dummy",
+						"t": "struct PdfDraw__initialize_struct",
+						"i": "Upp::PdfDraw__initialize_dummy",
+						"r": "static PdfDraw__initialize_struct PdfDraw__initialize_dummy",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZE_DUMMY",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d9a69dc5e7e77b3f8cb72c8f3b6bb9b27c8ed972"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initialize_struct",
+						"t": "Upp::PdfDraw__initialize_struct",
+						"i": "Upp::PdfDraw__initialize_struct",
+						"r": "PdfDraw__initialize_struct",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZE_STRUCT",
+						"q": "Upp::PdfDraw__initialize_struct",
+						"w": "UPP::PDFDRAW__INITIALIZE_STRUCT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d9a69dc5e7e77b3f8cb72c8f3b6bb9b27c8ed972"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initialize_struct",
+						"t": "void ()",
+						"i": "Upp::PdfDraw__initialize_struct::PdfDraw__initialize_struct()",
+						"r": "PdfDraw__initialize_struct()",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZE_STRUCT",
+						"q": "Upp::PdfDraw__initialize_struct",
+						"w": "UPP::PDFDRAW__INITIALIZE_STRUCT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d9a69dc5e7e77b3f8cb72c8f3b6bb9b27c8ed972"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initialize_struct",
+						"t": "Upp::PdfDraw__initialize_struct",
+						"i": "Upp::PdfDraw__initialize_struct",
+						"r": "PdfDraw__initialize_struct",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZE_STRUCT",
+						"q": "Upp::PdfDraw__initialize_struct",
+						"w": "UPP::PDFDRAW__INITIALIZE_STRUCT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d9a69dc5e7e77b3f8cb72c8f3b6bb9b27c8ed972"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initializer",
+						"t": "void ()",
+						"i": "Upp::PdfDraw__initializer()",
+						"r": "void PdfDraw__initializer()",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZER",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d9a69dc5e7e77b3f8cb72c8f3b6bb9b27c8ed972"
+							}
+						]
+					},
+					{
+						"k": 4,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "TTFReader",
+						"t": "Upp::TTFReader",
+						"i": "Upp::TTFReader",
+						"r": "TTFReader",
+						"s": "Upp",
+						"u": "TTFREADER",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1a2e9bc2983ccc79cfcd122f00d5efe8f412de30"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "TTFStream",
+						"t": "Upp::TTFReader::TTFStream",
+						"i": "Upp::TTFReader::TTFStream",
+						"r": "TTFStream",
+						"s": "Upp",
+						"u": "TTFSTREAM",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "465793b95841016202feeee0fb3ec3ae699802f6"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Fail",
+						"t": "Upp::TTFReader::TTFStream::Fail",
+						"i": "Upp::TTFReader::TTFStream::Fail",
+						"r": "Fail",
+						"s": "Upp",
+						"u": "FAIL",
+						"q": "Upp::TTFReader::TTFStream::Fail",
+						"w": "UPP::TTFREADER::TTFSTREAM::FAIL",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "33c92a9191af8e7fc1180ff59925cf358131f5c8"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "Raw",
+						"t": "void (void *, int)",
+						"i": "Upp::TTFReader::TTFStream::Raw(void*,int)",
+						"r": "void Raw(void *ptr, int count)",
+						"s": "Upp",
+						"u": "RAW",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ce5eec704839b863339d23b6dbd902654e6cf860"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFStream &(byte &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(byte&)",
+						"r": "TTFStream& operator%(byte& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d8acac9aec3c530797e21868eb1e3ed81eb3267a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFStream &(int32 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(int32&)",
+						"r": "TTFStream& operator%(int32& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "baa7d620ae0757de872145c879c60f81b2da054b"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFStream &(uint32 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(uint32&)",
+						"r": "TTFStream& operator%(uint32& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7f1a984d6867fc2f0d685e51446f097c35ff2872"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFStream &(int16 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(int16&)",
+						"r": "TTFStream& operator%(int16& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dac02ef4595e56b3c2966d464cd5bc56ef83eb4c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFStream &(uint16 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(uint16&)",
+						"r": "TTFStream& operator%(uint16& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e7597b0e30839d4d8d749bf2fc2a854e5ff2f9a3"
+							}
+						]
+					},
+					{
+						"k": 25,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "~TTFStream",
+						"t": "void () noexcept",
+						"i": "Upp::TTFReader::TTFStream::~()",
+						"r": "~TTFStream()",
+						"s": "Upp",
+						"u": "~TTFSTREAM",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b31696e4894c0dd924f92c91190af84be6163a3b"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "TTFStreamIn",
+						"t": "Upp::TTFReader::TTFStreamIn",
+						"i": "Upp::TTFReader::TTFStreamIn",
+						"r": "TTFStreamIn : TTFStream",
+						"s": "Upp",
+						"u": "TTFSTREAMIN",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "Upp::TTFReader::TTFStream",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "10471a16c55993d8577a71f0e6c2c90003f15287"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "beg",
+						"t": "const char *",
+						"i": "Upp::TTFReader::TTFStreamIn::beg",
+						"r": "const char *beg",
+						"s": "Upp",
+						"u": "BEG",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "653dfb50ab5927f29a99836b8a534bad89b5ecff"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "s",
+						"t": "const char *",
+						"i": "Upp::TTFReader::TTFStreamIn::s",
+						"r": "const char *s",
+						"s": "Upp",
+						"u": "S",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "187317ff56da7bf65c10d837bbce44e0e8855706"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "lim",
+						"t": "const char *",
+						"i": "Upp::TTFReader::TTFStreamIn::lim",
+						"r": "const char *lim",
+						"s": "Upp",
+						"u": "LIM",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0a5e04ca3b727bc250b6fecb5d774397830357a4"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "Raw",
+						"t": "void (void *, int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Raw(void*,int)",
+						"r": "void Raw(void *ptr, int count)",
+						"s": "Upp",
+						"u": "RAW",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1bf465d05cdaf7608f3c9d5e3eee9f5a932a170a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "void (int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Seek(int)",
+						"r": "void Seek(int offset)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2f7870c6100f1236e690048a98e02235779f82b5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Get8",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get8()",
+						"r": "int Get8()",
+						"s": "Upp",
+						"u": "GET8",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "96dfa2d9d396bae5ff72a1850eb1b11674ad1a48"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Get16",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get16()",
+						"r": "int Get16()",
+						"s": "Upp",
+						"u": "GET16",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6eb092ad790210ae98c445280d5c9b37dffe381d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Get32",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get32()",
+						"r": "int Get32()",
+						"s": "Upp",
+						"u": "GET32",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4d399e5032ec6a63775f618d09b8e69d79f574ed"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Get",
+						"t": "String (int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Get(int)",
+						"r": "String Get(int n)",
+						"s": "Upp",
+						"u": "GET",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3b0745665fc740aaef8cf1f6ca935ea86d3d889b"
+							}
+						]
+					},
+					{
+						"k": 25,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "~TTFStreamIn",
+						"t": "void () noexcept",
+						"i": "Upp::TTFReader::TTFStreamIn::~()",
+						"r": "~TTFStreamIn()",
+						"s": "Upp",
+						"u": "~TTFSTREAMIN",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0f07ab8383dd0e0c200243552da71f1f702ffe9c"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "TTFStreamOut",
+						"t": "Upp::TTFReader::TTFStreamOut",
+						"i": "Upp::TTFReader::TTFStreamOut",
+						"r": "TTFStreamOut : TTFStream",
+						"s": "Upp",
+						"u": "TTFSTREAMOUT",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "Upp::TTFReader::TTFStream",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ea293478d4e415c9d8c3ed39ff03faeecb8f662d"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "out",
+						"t": "String",
+						"i": "Upp::TTFReader::TTFStreamOut::out",
+						"r": "String out",
+						"s": "Upp",
+						"u": "OUT",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4aae4eded4945e69606141880a246381b5b18d78"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "Raw",
+						"t": "void (void *, int)",
+						"i": "Upp::TTFReader::TTFStreamOut::Raw(void*,int)",
+						"r": "void Raw(void *ptr, int count)",
+						"s": "Upp",
+						"u": "RAW",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9540bf3947f90b8a1a21a80037c2c70deaacf8b5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Put8",
+						"t": "void (int)",
+						"i": "Upp::TTFReader::TTFStreamOut::Put8(int)",
+						"r": "void Put8(int data)",
+						"s": "Upp",
+						"u": "PUT8",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "97effdf7a180208101ffaff41427de5a431fda8c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Put16",
+						"t": "void (int)",
+						"i": "Upp::TTFReader::TTFStreamOut::Put16(int)",
+						"r": "void Put16(int data)",
+						"s": "Upp",
+						"u": "PUT16",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "caf235bba87362c561c5f9912baa795ee92a3650"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Put32",
+						"t": "void (int)",
+						"i": "Upp::TTFReader::TTFStreamOut::Put32(int)",
+						"r": "void Put32(int data)",
+						"s": "Upp",
+						"u": "PUT32",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "32cc048d752cf270ad4aa484d7661d2d0b39fc48"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Put",
+						"t": "void (const String &)",
+						"i": "Upp::TTFReader::TTFStreamOut::Put(const String&)",
+						"r": "void Put(const String& s)",
+						"s": "Upp",
+						"u": "PUT",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "316f98eda358b929360a02dafe522e1738e07de4"
+							}
+						]
+					},
+					{
+						"k": 26,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator String",
+						"t": "String () const",
+						"i": "Upp::TTFReader::TTFStreamOut::operator String()const",
+						"r": "operator String() const",
+						"s": "Upp",
+						"u": "OPERATOR STRING",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a558a1fac52b0bce4620fff12faa05d9a08afbb2"
+							}
+						]
+					},
+					{
+						"k": 25,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "~TTFStreamOut",
+						"t": "void () noexcept",
+						"i": "Upp::TTFReader::TTFStreamOut::~()",
+						"r": "~TTFStreamOut()",
+						"s": "Upp",
+						"u": "~TTFSTREAMOUT",
+						"q": "Upp::TTFReader::TTFStreamOut",
+						"w": "UPP::TTFREADER::TTFSTREAMOUT",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a87d8612c76ac36d6ce571e5f66017fae141316b"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "font",
+						"t": "Font",
+						"i": "Upp::TTFReader::font",
+						"r": "Font font",
+						"s": "Upp",
+						"u": "FONT",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2a5bd6f8a88b08ef72ec54ff81ee96c5b95fb7b2"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "current_table",
+						"t": "String",
+						"i": "Upp::TTFReader::current_table",
+						"r": "String current_table",
+						"s": "Upp",
+						"u": "CURRENT_TABLE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8a1b99c41c10b4798ad0fb211808ca6c0ff217fe"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Table",
+						"t": "Upp::TTFReader::Table",
+						"i": "Upp::TTFReader::Table",
+						"r": "Table : Moveable<Table>",
+						"s": "Upp",
+						"u": "TABLE",
+						"q": "Upp::TTFReader::Table",
+						"w": "UPP::TTFREADER::TABLE",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0125d158b9841c59ce11076f5e09cb82e7d54536"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "offset",
+						"t": "int",
+						"i": "Upp::TTFReader::Table::offset",
+						"r": "int offset",
+						"s": "Upp",
+						"u": "OFFSET",
+						"q": "Upp::TTFReader::Table",
+						"w": "UPP::TTFREADER::TABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9ea3b3ea73a78bf6e6c9c5c2567799f0337f1c02"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "length",
+						"t": "int",
+						"i": "Upp::TTFReader::Table::length",
+						"r": "int length",
+						"s": "Upp",
+						"u": "LENGTH",
+						"q": "Upp::TTFReader::Table",
+						"w": "UPP::TTFREADER::TABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f6c199c95e597803f650dfa3b82bb820048d6310"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "table",
+						"t": "VectorMap<String, Table>",
+						"i": "Upp::TTFReader::table",
+						"r": "VectorMap<String, Table> table",
+						"s": "Upp",
+						"u": "TABLE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9d9085087f4ac3a574e2122059913bb2a7471e53"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "glyph_map",
+						"t": "VectorMap<wchar, int>",
+						"i": "Upp::TTFReader::glyph_map",
+						"r": "VectorMap<wchar, int> glyph_map",
+						"s": "Upp",
+						"u": "GLYPH_MAP",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1451f7a820c78fb3ef3dc660c3f128966df987d6"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GlyphInfo",
+						"t": "Upp::TTFReader::GlyphInfo",
+						"i": "Upp::TTFReader::GlyphInfo",
+						"r": "GlyphInfo : Moveable<GlyphInfo>",
+						"s": "Upp",
+						"u": "GLYPHINFO",
+						"q": "Upp::TTFReader::GlyphInfo",
+						"w": "UPP::TTFREADER::GLYPHINFO",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6d484651ed6e0699eaa9a39e769b8a20c6b9a3bd"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "offset",
+						"t": "int",
+						"i": "Upp::TTFReader::GlyphInfo::offset",
+						"r": "int offset",
+						"s": "Upp",
+						"u": "OFFSET",
+						"q": "Upp::TTFReader::GlyphInfo",
+						"w": "UPP::TTFREADER::GLYPHINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "de88b422ef729aa983f90ab501d56b1a8140983c"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "size",
+						"t": "int",
+						"i": "Upp::TTFReader::GlyphInfo::size",
+						"r": "int size",
+						"s": "Upp",
+						"u": "SIZE",
+						"q": "Upp::TTFReader::GlyphInfo",
+						"w": "UPP::TTFREADER::GLYPHINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "10a175c8951a83b17008fd02cb6ae60029ce79b6"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "advanceWidth",
+						"t": "uint16",
+						"i": "Upp::TTFReader::GlyphInfo::advanceWidth",
+						"r": "uint16 advanceWidth",
+						"s": "Upp",
+						"u": "ADVANCEWIDTH",
+						"q": "Upp::TTFReader::GlyphInfo",
+						"w": "UPP::TTFREADER::GLYPHINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "54a2bbe677913a7901351a1c4bd1f885937831d2"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "leftSideBearing",
+						"t": "int16",
+						"i": "Upp::TTFReader::GlyphInfo::leftSideBearing",
+						"r": "int16 leftSideBearing",
+						"s": "Upp",
+						"u": "LEFTSIDEBEARING",
+						"q": "Upp::TTFReader::GlyphInfo",
+						"w": "UPP::TTFREADER::GLYPHINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b956c5fc319511cf9425a8d1fb2034da9c2cd43d"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "glyphinfo",
+						"t": "Vector<GlyphInfo>",
+						"i": "Upp::TTFReader::glyphinfo",
+						"r": "Vector<GlyphInfo> glyphinfo",
+						"s": "Upp",
+						"u": "GLYPHINFO",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0d43884e273cceb7a5e1162a2d2199824b89f6f3"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "SetGlyph",
+						"t": "void (wchar, word)",
+						"i": "Upp::TTFReader::SetGlyph(wchar,word)",
+						"r": "void SetGlyph(wchar ch, word glyph)",
+						"s": "Upp",
+						"u": "SETGLYPH",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "49125284e7971145c656b32b7af1b12bfe206947"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Fail",
+						"t": "Upp::TTFReader::Fail",
+						"i": "Upp::TTFReader::Fail",
+						"r": "Fail",
+						"s": "Upp",
+						"u": "FAIL",
+						"q": "Upp::TTFReader::Fail",
+						"w": "UPP::TTFREADER::FAIL",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "33c92a9191af8e7fc1180ff59925cf358131f5c8"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "Error",
+						"t": "void ()",
+						"i": "Upp::TTFReader::Error()",
+						"r": "static void Error()",
+						"s": "Upp",
+						"u": "ERROR",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f98ef840c8add44fe0d10af2f07539121db6abc5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek8",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek8(const char*)",
+						"r": "int Peek8(const char *s)",
+						"s": "Upp",
+						"u": "PEEK8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2e1b407d49d1656608cde2119827e7de87a8066e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek16",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek16(const char*)",
+						"r": "int Peek16(const char *s)",
+						"s": "Upp",
+						"u": "PEEK16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9a8c04a2438e6311f797a457c392fcfa9c2f2900"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek32",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek32(const char*)",
+						"r": "int Peek32(const char *s)",
+						"s": "Upp",
+						"u": "PEEK32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "de58bf8e63aa413aaa9e065ac78eeb0a375e4ba3"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek8",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek8(const char*,int)",
+						"r": "int Peek8(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9ff3dba484a6542a141e0f06d5ff971cc6201c84"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek16",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek16(const char*,int)",
+						"r": "int Peek16(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "33fff84328beeda9df92dd9f80bb23e97e044b7c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Peek32",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek32(const char*,int)",
+						"r": "int Peek32(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "747eb29555f0aa9e5acc7d0807e739c6db2b758d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Read8",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read8(const char*&)",
+						"r": "int Read8(const char *&s)",
+						"s": "Upp",
+						"u": "READ8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f93e58f7bf589938f036d1813646a1ea45730e20"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Read16",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read16(const char*&)",
+						"r": "int Read16(const char *&s)",
+						"s": "Upp",
+						"u": "READ16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2a37981cc32776730d0c6401cf6643ee29f10acd"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Read32",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read32(const char*&)",
+						"r": "int Read32(const char *&s)",
+						"s": "Upp",
+						"u": "READ32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c8edb176eed6a9a10511cd806c8d08c343e7632e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Read",
+						"t": "String (const char *&, int)",
+						"i": "Upp::TTFReader::Read(const char*&,int)",
+						"r": "String Read(const char *&s, int n)",
+						"s": "Upp",
+						"u": "READ",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "984bf94f8aabaf032d49f4cbefd6b27b08ce0356"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Reset",
+						"t": "void ()",
+						"i": "Upp::TTFReader::Reset()",
+						"r": "void Reset()",
+						"s": "Upp",
+						"u": "RESET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "34d8845266bf1c9688c521be7a63791576cc722d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "const char *(const char *, int &)",
+						"i": "Upp::TTFReader::Seek(const char*,int&)",
+						"r": "const char *Seek(const char *tab, int& len)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "31da92215a3ec0cfaef44f91f425d72a20bfbf22"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "const char *(const char *)",
+						"i": "Upp::TTFReader::Seek(const char*)",
+						"r": "const char *Seek(const char *tab)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "30e2be56856172b65241e9b3480db3a3ae8402db"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "void (const char *, TTFStreamIn &)",
+						"i": "Upp::TTFReader::Seek(const char*,TTFStreamIn&)",
+						"r": "void Seek(const char *tab, TTFStreamIn& s)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "86e9803d011a9cf3dc69c72406fd9ab504675ca2"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "GetTable",
+						"t": "String (const char *)",
+						"i": "Upp::TTFReader::GetTable(const char*)",
+						"r": "String GetTable(const char *tab)",
+						"s": "Upp",
+						"u": "GETTABLE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ecdeae935851c700902c83b2c100c9080ba6c765"
+							}
+						]
+					},
+					{
+						"k": 5,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::(unnamed at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.)",
+						"r": "enum",
+						"s": "Upp",
+						"u": "(UNNAMED ENUM AT C:\\USERS\\SBLO\\AI-UPP\\UPPSRC\\PDFDRAW\\PDFDRAW.H:102:2)",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "86b4a769bd8b2cf12f9776bf2a114aa80edb2066"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ARG_1_AND_2_ARE_WORDS",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::ARG_1_AND_2_ARE_WORDS",
+						"r": "ARG_1_AND_2_ARE_WORDS",
+						"s": "Upp",
+						"u": "ARG_1_AND_2_ARE_WORDS",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b3bcb223ba180a1a67884c64aac1817a346e14a5"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ARGS_ARE_XY_VALUES",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::ARGS_ARE_XY_VALUES",
+						"r": "ARGS_ARE_XY_VALUES",
+						"s": "Upp",
+						"u": "ARGS_ARE_XY_VALUES",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3950e8020a46933095804ef37348b16feb2540fd"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ROUND_XY_TO_GRID",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::ROUND_XY_TO_GRID",
+						"r": "ROUND_XY_TO_GRID",
+						"s": "Upp",
+						"u": "ROUND_XY_TO_GRID",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3feca295e1df79aec2f6471330c0e121e74f117a"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "WE_HAVE_A_SCALE",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::WE_HAVE_A_SCALE",
+						"r": "WE_HAVE_A_SCALE",
+						"s": "Upp",
+						"u": "WE_HAVE_A_SCALE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b74ec4ed616246563b647071083156f7e384468d"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "MORE_COMPONENTS",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::MORE_COMPONENTS",
+						"r": "MORE_COMPONENTS",
+						"s": "Upp",
+						"u": "MORE_COMPONENTS",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a81f78e253f609e17b3c1f2943b5444575037371"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "WE_HAVE_AN_X_AND_Y_SCALE",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::WE_HAVE_AN_X_AND_Y_SCALE",
+						"r": "WE_HAVE_AN_X_AND_Y_SCALE",
+						"s": "Upp",
+						"u": "WE_HAVE_AN_X_AND_Y_SCALE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "abae96dd623c49d8731d4e1b99d673cb83fda740"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "WE_HAVE_A_TWO_BY_TWO",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::WE_HAVE_A_TWO_BY_TWO",
+						"r": "WE_HAVE_A_TWO_BY_TWO",
+						"s": "Upp",
+						"u": "WE_HAVE_A_TWO_BY_TWO",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c1412f6e69678315b3ac275901e42c5d2cd4f85a"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "WE_HAVE_INSTRUCTIONS",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::WE_HAVE_INSTRUCTIONS",
+						"r": "WE_HAVE_INSTRUCTIONS",
+						"s": "Upp",
+						"u": "WE_HAVE_INSTRUCTIONS",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3c2cc924c3a63bd9b923774b05665c1dd7fbaa45"
+							}
+						]
+					},
+					{
+						"k": 7,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "USE_MY_METRICS",
+						"t": "Upp::TTFReader::(unnamed enum at C:\\Users\\sblo\\ai-upp\\uppsrc\\PdfDraw\\PdfDraw.h:102:2)",
+						"i": "Upp::TTFReader::USE_MY_METRICS",
+						"r": "USE_MY_METRICS",
+						"s": "Upp",
+						"u": "USE_MY_METRICS",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "401bcf238e5c009a00068fb788925c018cf16138"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "NewTable",
+						"t": "Upp::TTFReader::NewTable",
+						"i": "Upp::TTFReader::NewTable",
+						"r": "NewTable",
+						"s": "Upp",
+						"u": "NEWTABLE",
+						"q": "Upp::TTFReader::NewTable",
+						"w": "UPP::TTFREADER::NEWTABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ae095d8aef18d04cee02066071617a3ee5ac6198"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "name",
+						"t": "String",
+						"i": "Upp::TTFReader::NewTable::name",
+						"r": "String name",
+						"s": "Upp",
+						"u": "NAME",
+						"q": "Upp::TTFReader::NewTable",
+						"w": "UPP::TTFREADER::NEWTABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "5233278cb3ddd461efca2b742dc40bb7e9dfde0f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "data",
+						"t": "String",
+						"i": "Upp::TTFReader::NewTable::data",
+						"r": "String data",
+						"s": "Upp",
+						"u": "DATA",
+						"q": "Upp::TTFReader::NewTable",
+						"w": "UPP::TTFREADER::NEWTABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1955e47bec4259eebe1eb010f6e11ac42e2b057e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "checksum",
+						"t": "dword",
+						"i": "Upp::TTFReader::NewTable::checksum",
+						"r": "dword checksum",
+						"s": "Upp",
+						"u": "CHECKSUM",
+						"q": "Upp::TTFReader::NewTable",
+						"w": "UPP::TTFREADER::NEWTABLE",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "346736ec83265aa19a55081d8063f8b9e344fe9e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": true,
+						"n": "Add",
+						"t": "void (Array<NewTable> &, const char *, const String &)",
+						"i": "Upp::TTFReader::Add(Array&,const char*,const String&)",
+						"r": "static void Add(Array<NewTable>& t, const char *name, const String& data)",
+						"s": "Upp",
+						"u": "ADD",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fe8889cbab9a03cc93a03b0ea7271c2ddbe70c3d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": true,
+						"n": "Set",
+						"t": "void (NewTable &, const String &)",
+						"i": "Upp::TTFReader::Set(NewTable&,const String&)",
+						"r": "static void Set(NewTable& m, const String& data)",
+						"s": "Upp",
+						"u": "SET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f875e540f3c7af8c0976658091ef79c28855a31b"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": true,
+						"n": "CreateHeader",
+						"t": "String (const Array<NewTable> &)",
+						"i": "Upp::TTFReader::CreateHeader(const Array&)",
+						"r": "static String CreateHeader(const Array<NewTable>& t)",
+						"s": "Upp",
+						"u": "CREATEHEADER",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "54c8a28ca801982369246f1a353a881506512a71"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "Copy8",
+						"t": "int (TTFStreamOut &, TTFStreamIn &)",
+						"i": "Upp::TTFReader::Copy8(TTFStreamOut&,TTFStreamIn&)",
+						"r": "static int Copy8(TTFStreamOut& out, TTFStreamIn& in)",
+						"s": "Upp",
+						"u": "COPY8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7c88c1883fee4e3c094d7765e36683e1324ecc22"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "Copy16",
+						"t": "int (TTFStreamOut &, TTFStreamIn &)",
+						"i": "Upp::TTFReader::Copy16(TTFStreamOut&,TTFStreamIn&)",
+						"r": "static int Copy16(TTFStreamOut& out, TTFStreamIn& in)",
+						"s": "Upp",
+						"u": "COPY16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2fe49b5df479ab6d224ccce71aa23bbbefa74994"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "Copy32",
+						"t": "int (TTFStreamOut &, TTFStreamIn &)",
+						"i": "Upp::TTFReader::Copy32(TTFStreamOut&,TTFStreamIn&)",
+						"r": "static int Copy32(TTFStreamOut& out, TTFStreamIn& in)",
+						"s": "Upp",
+						"u": "COPY32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4715c8d647a672fbe63b08d4d03de9408d39020f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": true,
+						"n": "Copy",
+						"t": "String (TTFStreamOut &, TTFStreamIn &, int)",
+						"i": "Upp::TTFReader::Copy(TTFStreamOut&,TTFStreamIn&,int)",
+						"r": "static String Copy(TTFStreamOut& out, TTFStreamIn& in, int n)",
+						"s": "Upp",
+						"u": "COPY",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bc2c2698e0e008d2b105b87289bb5152bc422421"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Head",
+						"t": "Upp::TTFReader::Head",
+						"i": "Upp::TTFReader::Head",
+						"r": "Head",
+						"s": "Upp",
+						"u": "HEAD",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e9a80975f4cc435dfeec5ec4c411c79677ee4edd"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "version",
+						"t": "dword",
+						"i": "Upp::TTFReader::Head::version",
+						"r": "dword version",
+						"s": "Upp",
+						"u": "VERSION",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d2528f41bc4338744b2b1e6151857132c7eb2704"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "fontRevision",
+						"t": "dword",
+						"i": "Upp::TTFReader::Head::fontRevision",
+						"r": "dword fontRevision",
+						"s": "Upp",
+						"u": "FONTREVISION",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "52c90c3cc872bc19afbe288bab442475f103f0ff"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "checkSumAdjustment",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Head::checkSumAdjustment",
+						"r": "uint32 checkSumAdjustment",
+						"s": "Upp",
+						"u": "CHECKSUMADJUSTMENT",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "defd49fcdabb1d372eae5a76394c8c489d7b065c"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "magicNumber",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Head::magicNumber",
+						"r": "uint32 magicNumber",
+						"s": "Upp",
+						"u": "MAGICNUMBER",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6aa7055c8e087cfd7a277dad495554e48d87ab52"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "flags",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Head::flags",
+						"r": "uint16 flags",
+						"s": "Upp",
+						"u": "FLAGS",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "512968ca7a7d79121cf531164518e385c4ed424b"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "unitsPerEm",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Head::unitsPerEm",
+						"r": "uint16 unitsPerEm",
+						"s": "Upp",
+						"u": "UNITSPEREM",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d97cb91700832644def59aff14919b1c1670db27"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "created",
+						"t": "byte[8]",
+						"i": "Upp::TTFReader::Head::created",
+						"r": "byte created[8]",
+						"s": "Upp",
+						"u": "CREATED",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e87af837c5d398bc9f6ac0909505364672ff15c7"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "modified",
+						"t": "byte[8]",
+						"i": "Upp::TTFReader::Head::modified",
+						"r": "byte modified[8]",
+						"s": "Upp",
+						"u": "MODIFIED",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "29301bcb6107a54d9a50e1b3d50c3de7fdc36701"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "xMin",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::xMin",
+						"r": "int16 xMin",
+						"s": "Upp",
+						"u": "XMIN",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c90cb64af2095bb6488d57ea61f59b69dbba5d54"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "yMin",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::yMin",
+						"r": "int16 yMin",
+						"s": "Upp",
+						"u": "YMIN",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a4f8590a3c58f47d5d656be0873bb6df04ab49f9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "xMax",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::xMax",
+						"r": "int16 xMax",
+						"s": "Upp",
+						"u": "XMAX",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "137ab259ca9e376035628741930411f8d3b670f9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "yMax",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::yMax",
+						"r": "int16 yMax",
+						"s": "Upp",
+						"u": "YMAX",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "39360a931f7527c321584092e9d19abe39c895a2"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "macStyle",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Head::macStyle",
+						"r": "uint16 macStyle",
+						"s": "Upp",
+						"u": "MACSTYLE",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "edbc53f467386b5eb4f8d4d44bcd7b179bc41513"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "lowestRecPPEM",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Head::lowestRecPPEM",
+						"r": "uint16 lowestRecPPEM",
+						"s": "Upp",
+						"u": "LOWESTRECPPEM",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b67e4bc7bd6362d9c6291d2a564ea98079c68a61"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "fontDirectionHint",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::fontDirectionHint",
+						"r": "int16 fontDirectionHint",
+						"s": "Upp",
+						"u": "FONTDIRECTIONHINT",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b9ff6bf4a41e0bfefcfd96fbe10c0d81aba1381f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "indexToLocFormat",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::indexToLocFormat",
+						"r": "int16 indexToLocFormat",
+						"s": "Upp",
+						"u": "INDEXTOLOCFORMAT",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3386074ae19447157658aa94d708cd1177520ba2"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "glyphDataFormat",
+						"t": "int16",
+						"i": "Upp::TTFReader::Head::glyphDataFormat",
+						"r": "int16 glyphDataFormat",
+						"s": "Upp",
+						"u": "GLYPHDATAFORMAT",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "aa6272a4a2bdb40be92db85bd8e2d904862e8aa0"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Head::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d0fd1df96ba090e284b58784423176c4bd8de608"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Hhea",
+						"t": "Upp::TTFReader::Hhea",
+						"i": "Upp::TTFReader::Hhea",
+						"r": "Hhea",
+						"s": "Upp",
+						"u": "HHEA",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "76f8866592bc02523e15124f6972965b37810cbc"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "version",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Hhea::version",
+						"r": "uint32 version",
+						"s": "Upp",
+						"u": "VERSION",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f7150ef8f30de64f7b352bcfacc4fe6d9c4c3432"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ascent",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::ascent",
+						"r": "int16 ascent",
+						"s": "Upp",
+						"u": "ASCENT",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9532de7b93710abe514feb3d63c6c6e28875aebb"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "descent",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::descent",
+						"r": "int16 descent",
+						"s": "Upp",
+						"u": "DESCENT",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "91492329cb79e9904ea728cdb681a22b93e34e9f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "lineGap",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::lineGap",
+						"r": "int16 lineGap",
+						"s": "Upp",
+						"u": "LINEGAP",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f059e6b204b45a7c154e55cb395cff12e8504c5e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "advanceWidthMax",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Hhea::advanceWidthMax",
+						"r": "uint16 advanceWidthMax",
+						"s": "Upp",
+						"u": "ADVANCEWIDTHMAX",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e44aba3a189e558578b82c31e442abb72ed1dfd8"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "minLeftSideBearing",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::minLeftSideBearing",
+						"r": "int16 minLeftSideBearing",
+						"s": "Upp",
+						"u": "MINLEFTSIDEBEARING",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "58e70bfb9dbc33df8353052899bc905d4e56fd77"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "minRightSideBearing",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::minRightSideBearing",
+						"r": "int16 minRightSideBearing",
+						"s": "Upp",
+						"u": "MINRIGHTSIDEBEARING",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dee3d23a36d1187cac0d59076fcdd7913f1be5c5"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "xMaxExtent",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::xMaxExtent",
+						"r": "int16 xMaxExtent",
+						"s": "Upp",
+						"u": "XMAXEXTENT",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8e7eb8534e4690c8c6577513840532a7ec4b2b5c"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "caretSlopeRise",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::caretSlopeRise",
+						"r": "int16 caretSlopeRise",
+						"s": "Upp",
+						"u": "CARETSLOPERISE",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "54fdeb87b56894702af6e482ed057bfd0fc742b1"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "caretSlopeRun",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::caretSlopeRun",
+						"r": "int16 caretSlopeRun",
+						"s": "Upp",
+						"u": "CARETSLOPERUN",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "872a9a73bc3b9b803e541deb3f4bea679eefe75a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "caretOffset",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::caretOffset",
+						"r": "int16 caretOffset",
+						"s": "Upp",
+						"u": "CARETOFFSET",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "998ccfc7ee54cc9e3c48acad7efc8b40e41d8615"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reserved1",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::reserved1",
+						"r": "int16 reserved1",
+						"s": "Upp",
+						"u": "RESERVED1",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9d483f30f17468ce4cbeaec488c3e1aaed1f46f8"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reserved2",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::reserved2",
+						"r": "int16 reserved2",
+						"s": "Upp",
+						"u": "RESERVED2",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b1b31bcf47ec8ec6206a8fc0de0235fe7f9e1ee1"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reserved3",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::reserved3",
+						"r": "int16 reserved3",
+						"s": "Upp",
+						"u": "RESERVED3",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9f7d845a40b9d8e1cde629282b723aada673562f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reserved4",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::reserved4",
+						"r": "int16 reserved4",
+						"s": "Upp",
+						"u": "RESERVED4",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "80a51edfd714a6e8ecc78180316304b043a401c9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "metricDataFormat",
+						"t": "int16",
+						"i": "Upp::TTFReader::Hhea::metricDataFormat",
+						"r": "int16 metricDataFormat",
+						"s": "Upp",
+						"u": "METRICDATAFORMAT",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f6fd9b32d820b58666cb5fe267e3169386ec56e8"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "numOfLongHorMetrics",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Hhea::numOfLongHorMetrics",
+						"r": "uint16 numOfLongHorMetrics",
+						"s": "Upp",
+						"u": "NUMOFLONGHORMETRICS",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1476edad2d0887ec6ef6b7fd1ad6e7ea08b635a7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Hhea::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d0fd1df96ba090e284b58784423176c4bd8de608"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Maxp",
+						"t": "Upp::TTFReader::Maxp",
+						"i": "Upp::TTFReader::Maxp",
+						"r": "Maxp",
+						"s": "Upp",
+						"u": "MAXP",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "61bc19e027449480ed25ceee327441293c128672"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "version",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Maxp::version",
+						"r": "uint32 version",
+						"s": "Upp",
+						"u": "VERSION",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f7150ef8f30de64f7b352bcfacc4fe6d9c4c3432"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "numGlyphs",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::numGlyphs",
+						"r": "uint16 numGlyphs",
+						"s": "Upp",
+						"u": "NUMGLYPHS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "de4ef450340b2f27dede96fe1184f571ab1a6dfd"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxPoints",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxPoints",
+						"r": "uint16 maxPoints",
+						"s": "Upp",
+						"u": "MAXPOINTS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "31354f77a776dce4073f70628d05b015b35fbde7"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxContours",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxContours",
+						"r": "uint16 maxContours",
+						"s": "Upp",
+						"u": "MAXCONTOURS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6a7bfb613a024db5f6b4550cccdf3614c3718b57"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxComponentPoints",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxComponentPoints",
+						"r": "uint16 maxComponentPoints",
+						"s": "Upp",
+						"u": "MAXCOMPONENTPOINTS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "503715ebd5085cf070fb740271d5344f312d90bf"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxComponentContours",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxComponentContours",
+						"r": "uint16 maxComponentContours",
+						"s": "Upp",
+						"u": "MAXCOMPONENTCONTOURS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9f9d0f354b8f0a5b2d8f05c1477160c5705be5cc"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxZones",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxZones",
+						"r": "uint16 maxZones",
+						"s": "Upp",
+						"u": "MAXZONES",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e2b941c9f478e3cfddd23ee9b0d3c868fa638e7e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxTwilightPoints",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxTwilightPoints",
+						"r": "uint16 maxTwilightPoints",
+						"s": "Upp",
+						"u": "MAXTWILIGHTPOINTS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "99665e3f19a5f95c3723f3b4896f483cf506ac6a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxStorage",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxStorage",
+						"r": "uint16 maxStorage",
+						"s": "Upp",
+						"u": "MAXSTORAGE",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3cb8f77c3a0efd7dad61be12e27163c95ca9351e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxFunctionDefs",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxFunctionDefs",
+						"r": "uint16 maxFunctionDefs",
+						"s": "Upp",
+						"u": "MAXFUNCTIONDEFS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c02364b525d0e8f5e9943b58befdae815d8f435e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxInstructionDefs",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxInstructionDefs",
+						"r": "uint16 maxInstructionDefs",
+						"s": "Upp",
+						"u": "MAXINSTRUCTIONDEFS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8876c51a4e4f3da022ab90acd5bc386756a0b704"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxStackElements",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxStackElements",
+						"r": "uint16 maxStackElements",
+						"s": "Upp",
+						"u": "MAXSTACKELEMENTS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "edb093424100d4daa06493640ce18431c8e7a7c9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxSizeOfInstructions",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxSizeOfInstructions",
+						"r": "uint16 maxSizeOfInstructions",
+						"s": "Upp",
+						"u": "MAXSIZEOFINSTRUCTIONS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "30b3d52053735e18c5ba028cedde677d7ff87b6a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxComponentElements",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxComponentElements",
+						"r": "uint16 maxComponentElements",
+						"s": "Upp",
+						"u": "MAXCOMPONENTELEMENTS",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "27d91c98421fcc3e4a92cf2eb1726b47833bb992"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxComponentDepth",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Maxp::maxComponentDepth",
+						"r": "uint16 maxComponentDepth",
+						"s": "Upp",
+						"u": "MAXCOMPONENTDEPTH",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d92fcf3846f062dd0e49f77452bde7ad8e295cae"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Maxp::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d0fd1df96ba090e284b58784423176c4bd8de608"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Post",
+						"t": "Upp::TTFReader::Post",
+						"i": "Upp::TTFReader::Post",
+						"r": "Post",
+						"s": "Upp",
+						"u": "POST",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dddccef3cce20049403aa6d654d0edf2de3a8078"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "format",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Post::format",
+						"r": "uint32 format",
+						"s": "Upp",
+						"u": "FORMAT",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6911e609f8a2b0c31af366397c528f873ec760c5"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "italicAngle",
+						"t": "int32",
+						"i": "Upp::TTFReader::Post::italicAngle",
+						"r": "int32 italicAngle",
+						"s": "Upp",
+						"u": "ITALICANGLE",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c8b73a096c29f54ee5a4977f2a29542309ef9e39"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "underlinePosition",
+						"t": "int16",
+						"i": "Upp::TTFReader::Post::underlinePosition",
+						"r": "int16 underlinePosition",
+						"s": "Upp",
+						"u": "UNDERLINEPOSITION",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "5f914488f2b0eb22dd1c81587ed3c7d1af3401ea"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "underlineThickness",
+						"t": "int16",
+						"i": "Upp::TTFReader::Post::underlineThickness",
+						"r": "int16 underlineThickness",
+						"s": "Upp",
+						"u": "UNDERLINETHICKNESS",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f425d3324770f7de6d9e2fb2102265cbee0a12fe"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "isFixedPitch",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Post::isFixedPitch",
+						"r": "uint16 isFixedPitch",
+						"s": "Upp",
+						"u": "ISFIXEDPITCH",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8d3ca66ca6399b62f81d1fd8f9d06c004ecd0892"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reserved",
+						"t": "uint16",
+						"i": "Upp::TTFReader::Post::reserved",
+						"r": "uint16 reserved",
+						"s": "Upp",
+						"u": "RESERVED",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "483bce499f451a5ba62f0d14f5e8b4c846e74f1c"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "minMemType42",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Post::minMemType42",
+						"r": "uint32 minMemType42",
+						"s": "Upp",
+						"u": "MINMEMTYPE42",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a5f0487eda4e7a7b7011dc1bb1116e7c69c804de"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxMemType42",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Post::maxMemType42",
+						"r": "uint32 maxMemType42",
+						"s": "Upp",
+						"u": "MAXMEMTYPE42",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "af37314993999756f94b405bd4bce5e879b96488"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "minMemType1",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Post::minMemType1",
+						"r": "uint32 minMemType1",
+						"s": "Upp",
+						"u": "MINMEMTYPE1",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "41f37a0ed65cf2fdf019f6f8e60648b24a3edf8e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxMemType1",
+						"t": "uint32",
+						"i": "Upp::TTFReader::Post::maxMemType1",
+						"r": "uint32 maxMemType1",
+						"s": "Upp",
+						"u": "MAXMEMTYPE1",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c7c5aea97c55984e2c6721fa804cc9cb99c32761"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Post::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d0fd1df96ba090e284b58784423176c4bd8de608"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "head",
+						"t": "Head",
+						"i": "Upp::TTFReader::head",
+						"r": "Head head",
+						"s": "Upp",
+						"u": "HEAD",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bbe9c796dabd2567147ae30f08b90ecbff0d6c1a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "hhea",
+						"t": "Hhea",
+						"i": "Upp::TTFReader::hhea",
+						"r": "Hhea hhea",
+						"s": "Upp",
+						"u": "HHEA",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6595bc2c5882b8494175a797515c5504511bbcea"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "maxp",
+						"t": "Maxp",
+						"i": "Upp::TTFReader::maxp",
+						"r": "Maxp maxp",
+						"s": "Upp",
+						"u": "MAXP",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4dcb295bc8563b0b5b80f2709e2125a464be877d"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "post",
+						"t": "Post",
+						"i": "Upp::TTFReader::post",
+						"r": "Post post",
+						"s": "Upp",
+						"u": "POST",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d40134d81d6c58f1c4330257abba63f64f8d4594"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ps_name",
+						"t": "String",
+						"i": "Upp::TTFReader::ps_name",
+						"r": "String ps_name",
+						"s": "Upp",
+						"u": "PS_NAME",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4f935a6d5555706639e116ba85ab8cef0fee3da1"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetGlyph",
+						"t": "int (wchar)",
+						"i": "Upp::TTFReader::GetGlyph(wchar)",
+						"r": "int GetGlyph(wchar chr)",
+						"s": "Upp",
+						"u": "GETGLYPH",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b1cc61fc0d1f94fcf50bc456225280c2253dffc8"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetAdvanceWidth",
+						"t": "word (wchar)",
+						"i": "Upp::TTFReader::GetAdvanceWidth(wchar)",
+						"r": "word GetAdvanceWidth(wchar chr)",
+						"s": "Upp",
+						"u": "GETADVANCEWIDTH",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "57d0807b657f34aa70bb3e7d37ed7d3dcf748297"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Subset",
+						"t": "String (const Vector<wchar> &, int, bool)",
+						"i": "Upp::TTFReader::Subset(const Vector&,int,bool)",
+						"r": "String Subset(const Vector<wchar>& chars, int first = 0, bool os2 = false)",
+						"s": "Upp",
+						"u": "SUBSET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c39cc861fb743551433ece0ed7cbcbf332657fea"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Open",
+						"t": "bool (const Font &, bool, bool)",
+						"i": "Upp::TTFReader::Open(const Font&,bool,bool)",
+						"r": "bool Open(const Font& fnt, bool symbol = false, bool justcheck = false)",
+						"s": "Upp",
+						"u": "OPEN",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a701a3ff3b038ee8a237c86bec848e83156ca1de"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "TTFReader",
+						"t": "void ()",
+						"i": "Upp::TTFReader::TTFReader()",
+						"r": "TTFReader()",
+						"s": "Upp",
+						"u": "TTFREADER",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dd2f430ae878e680ce5aa9c93de4d7d14c4ef3f0"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfSignatureInfo",
+						"t": "Upp::PdfSignatureInfo",
+						"i": "Upp::PdfSignatureInfo",
+						"r": "PdfSignatureInfo",
+						"s": "Upp",
+						"u": "PDFSIGNATUREINFO",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8bb50ec45af4cd27297d7bfa1c4625298a33192c"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "pkey",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::pkey",
+						"r": "String pkey",
+						"s": "Upp",
+						"u": "PKEY",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0527d78eb762162f39867359f1320f5da8cc98a7"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "cert",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::cert",
+						"r": "String cert",
+						"s": "Upp",
+						"u": "CERT",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6685cf3eb33ba318b916463fd60478d43e77d0c6"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "name",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::name",
+						"r": "String name",
+						"s": "Upp",
+						"u": "NAME",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "5233278cb3ddd461efca2b742dc40bb7e9dfde0f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "location",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::location",
+						"r": "String location",
+						"s": "Upp",
+						"u": "LOCATION",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d632d1d77e3157e4ed41533e1ee2d27b5bdc8539"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "reason",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::reason",
+						"r": "String reason",
+						"s": "Upp",
+						"u": "REASON",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "64fe17c3204cd8135b8f2c79ad1e57be2c24b063"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "contact_info",
+						"t": "String",
+						"i": "Upp::PdfSignatureInfo::contact_info",
+						"r": "String contact_info",
+						"s": "Upp",
+						"u": "CONTACT_INFO",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a309298d3aea5c4cc45512a6670f63df140941cb"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "time",
+						"t": "Time",
+						"i": "Upp::PdfSignatureInfo::time",
+						"r": "Time time",
+						"s": "Upp",
+						"u": "TIME",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "136b05061f3a4f1cdb86fd171e810034a408ddd8"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfSignatureInfo",
+						"t": "void ()",
+						"i": "Upp::PdfSignatureInfo::PdfSignatureInfo()",
+						"r": "PdfSignatureInfo()",
+						"s": "Upp",
+						"u": "PDFSIGNATUREINFO",
+						"q": "Upp::PdfSignatureInfo",
+						"w": "UPP::PDFSIGNATUREINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3c9befe4b752865eb84d1809766462db6b93edc4"
+							}
+						]
+					},
+					{
+						"k": 4,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw",
+						"t": "Upp::PdfDraw",
+						"i": "Upp::PdfDraw",
+						"r": "PdfDraw : public Draw",
+						"s": "Upp",
+						"u": "PDFDRAW",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "Upp::Draw",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3779138898658fab6a0871d91675c431bff86761"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "GetInfo",
+						"t": "dword () const",
+						"i": "Upp::PdfDraw::GetInfo()const",
+						"r": "dword GetInfo() const",
+						"s": "Upp",
+						"u": "GETINFO",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fafa298670291d6550c701301514d61ac67992b9"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "GetPageSize",
+						"t": "Size () const",
+						"i": "Upp::PdfDraw::GetPageSize()const",
+						"r": "Size GetPageSize() const",
+						"s": "Upp",
+						"u": "GETPAGESIZE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c330da0bb0c0af3586639b8951f4954c9540ae79"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "StartPage",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::StartPage()",
+						"r": "void StartPage()",
+						"s": "Upp",
+						"u": "STARTPAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "52ef3e625712dfbe7642fca6dbd2afac64f1115b"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "EndPage",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndPage()",
+						"r": "void EndPage()",
+						"s": "Upp",
+						"u": "ENDPAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cb47ed2f55946b386d54d52850807451d641b3c4"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "BeginOp",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::BeginOp()",
+						"r": "void BeginOp()",
+						"s": "Upp",
+						"u": "BEGINOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6149155c116b1c2eda313bf8966cca8d3538984c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "EndOp",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndOp()",
+						"r": "void EndOp()",
+						"s": "Upp",
+						"u": "ENDOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "042a71e21c74a27fbecc1cab3f6022ee23203a6f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "OffsetOp",
+						"t": "void (Point)",
+						"i": "Upp::PdfDraw::OffsetOp(Point)",
+						"r": "void OffsetOp(Point p)",
+						"s": "Upp",
+						"u": "OFFSETOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bd76df2f9e0b106bee66a89dc0ac6e0551573b2d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "ClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ClipOp(const Rect&)",
+						"r": "bool ClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "CLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ace2789ad042ef90483a7a20905034ccf2d66968"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "ClipoffOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ClipoffOp(const Rect&)",
+						"r": "bool ClipoffOp(const Rect& r)",
+						"s": "Upp",
+						"u": "CLIPOFFOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a425a10f87d052d2d69abb468524505c03116aaa"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "ExcludeClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::ExcludeClipOp(const Rect&)",
+						"r": "bool ExcludeClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "EXCLUDECLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fe76695ae17ffc402c047ef4d7c47fc4ce73a4e0"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "IntersectClipOp",
+						"t": "bool (const Rect &)",
+						"i": "Upp::PdfDraw::IntersectClipOp(const Rect&)",
+						"r": "bool IntersectClipOp(const Rect& r)",
+						"s": "Upp",
+						"u": "INTERSECTCLIPOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fdbe5c356fdbee34a615ef2a80304d7cf1c0d110"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "IsPaintingOp",
+						"t": "bool (const Rect &) const",
+						"i": "Upp::PdfDraw::IsPaintingOp(const Rect&)const",
+						"r": "bool IsPaintingOp(const Rect& r) const",
+						"s": "Upp",
+						"u": "ISPAINTINGOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "591243f6dd939b393c0f9d292d76820e757f5ba8"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawRectOp",
+						"t": "void (int, int, int, int, Color)",
+						"i": "Upp::PdfDraw::DrawRectOp(int,int,int,int,Color)",
+						"r": "void DrawRectOp(int x, int y, int cx, int cy, Color color)",
+						"s": "Upp",
+						"u": "DRAWRECTOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6c4bf2a2ecfe4d8ca9575f0ec5fffb139d32cafa"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawImageOp",
+						"t": "void (int, int, int, int, const Image &, const Rect &, Color)",
+						"i": "Upp::PdfDraw::DrawImageOp(int,int,int,int,const Image&,const Rect&,Color)",
+						"r": "void DrawImageOp(int x, int y, int cx, int cy, const Image& img, const Rect& src, Color color)",
+						"s": "Upp",
+						"u": "DRAWIMAGEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "05818f967e383655f46ec52a8db5b2547de8e7f7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawLineOp",
+						"t": "void (int, int, int, int, int, Color)",
+						"i": "Upp::PdfDraw::DrawLineOp(int,int,int,int,int,Color)",
+						"r": "void DrawLineOp(int x1, int y1, int x2, int y2, int width, Color color)",
+						"s": "Upp",
+						"u": "DRAWLINEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "05e8316e7b0834b8227f6aae43a1951acccaf7c2"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawPolyPolylineOp",
+						"t": "void (const Point *, int, const int *, int, int, Color, Color)",
+						"i": "Upp::PdfDraw::DrawPolyPolylineOp(const Point*,int,const int*,int,int,Color,Color)",
+						"r": "void DrawPolyPolylineOp(const Point *vertices, int vertex_count, const int *counts, int count_count, int width, Color color, Color doxor)",
+						"s": "Upp",
+						"u": "DRAWPOLYPOLYLINEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "aba48383463edaaefca312308df4657deaf9d48e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawPolyPolyPolygonOp",
+						"t": "void (const Point *, int, const int *, int, const int *, int, Color, int, Color, uint64, Color)",
+						"i": "Upp::PdfDraw::DrawPolyPolyPolygonOp(const Point*,int,const int*,int,const int*,int,Color,int,Color,uint64,Color)",
+						"r": "void DrawPolyPolyPolygonOp(const Point *vertices, int vertex_count, const int *subpolygon_counts, int scc, const int *disjunct_polygon_counts, int dpcc, Color color, int width, Color outline, uint64 pattern, Color doxor)",
+						"s": "Upp",
+						"u": "DRAWPOLYPOLYPOLYGONOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "32ed12301b99d05b86b24d43f83c4a4418d328b1"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawEllipseOp",
+						"t": "void (const Rect &, Color, int, Color)",
+						"i": "Upp::PdfDraw::DrawEllipseOp(const Rect&,Color,int,Color)",
+						"r": "void DrawEllipseOp(const Rect& r, Color color, int pen, Color pencolor)",
+						"s": "Upp",
+						"u": "DRAWELLIPSEOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "db41f8ad0b2d70b4a1f256b2efcc043f0c7d93c7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawArcOp",
+						"t": "void (const Rect &, Point, Point, int, Color)",
+						"i": "Upp::PdfDraw::DrawArcOp(const Rect&,Point,Point,int,Color)",
+						"r": "void DrawArcOp(const Rect& rc, Point start, Point end, int width, Color color)",
+						"s": "Upp",
+						"u": "DRAWARCOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "759b22a86dd5bf2bd70f3a79628991d14e25d153"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "DrawTextOp",
+						"t": "void (int, int, int, const wchar *, Font, Color, int, const int *)",
+						"i": "Upp::PdfDraw::DrawTextOp(int,int,int,const wchar*,Font,Color,int,const int*)",
+						"r": "void DrawTextOp(int x, int y, int angle, const wchar *text, Font font, Color ink, int n, const int *dx)",
+						"s": "Upp",
+						"u": "DRAWTEXTOP",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2b55e07e06f52ae47de0c81e6bcda3e0dd9808ab"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": true,
+						"is": false,
+						"n": "Escape",
+						"t": "void (const String &)",
+						"i": "Upp::PdfDraw::Escape(const String&)",
+						"r": "void Escape(const String& data)",
+						"s": "Upp",
+						"u": "ESCAPE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cff1ff15120ea3de9f4020afa96d2796b380beda"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "CharPos",
+						"t": "Upp::PdfDraw::CharPos",
+						"i": "Upp::PdfDraw::CharPos",
+						"r": "CharPos : Moveable<CharPos>",
+						"s": "Upp",
+						"u": "CHARPOS",
+						"q": "Upp::PdfDraw::CharPos",
+						"w": "UPP::PDFDRAW::CHARPOS",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "45b03c12a1f95119df9631ebdbdf81bef451d677"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "fi",
+						"t": "word",
+						"i": "Upp::PdfDraw::CharPos::fi",
+						"r": "word fi",
+						"s": "Upp",
+						"u": "FI",
+						"q": "Upp::PdfDraw::CharPos",
+						"w": "UPP::PDFDRAW::CHARPOS",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c85d6910c283edef5e0fafb518ca35cf2329e7bc"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "ci",
+						"t": "word",
+						"i": "Upp::PdfDraw::CharPos::ci",
+						"r": "word ci",
+						"s": "Upp",
+						"u": "CI",
+						"q": "Upp::PdfDraw::CharPos",
+						"w": "UPP::PDFDRAW::CHARPOS",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d86a0a2588cacd76541a7372beab9bade9aa40c2"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "OutlineInfo",
+						"t": "Upp::PdfDraw::OutlineInfo",
+						"i": "Upp::PdfDraw::OutlineInfo",
+						"r": "OutlineInfo : Moveable<OutlineInfo>",
+						"s": "Upp",
+						"u": "OUTLINEINFO",
+						"q": "Upp::PdfDraw::OutlineInfo",
+						"w": "UPP::PDFDRAW::OUTLINEINFO",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0ba18dd97a1d370217a0c8c4657eaafe6b4bfaf2"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "standard_ttf",
+						"t": "bool",
+						"i": "Upp::PdfDraw::OutlineInfo::standard_ttf",
+						"r": "bool standard_ttf",
+						"s": "Upp",
+						"u": "STANDARD_TTF",
+						"q": "Upp::PdfDraw::OutlineInfo",
+						"w": "UPP::PDFDRAW::OUTLINEINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6055694feb7933c21542782743cddeb03d991a41"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "sitalic",
+						"t": "bool",
+						"i": "Upp::PdfDraw::OutlineInfo::sitalic",
+						"r": "bool sitalic",
+						"s": "Upp",
+						"u": "SITALIC",
+						"q": "Upp::PdfDraw::OutlineInfo",
+						"w": "UPP::PDFDRAW::OUTLINEINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e3334c1d8e64fa6c84d6f2747d8f3c1c8049aba4"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "sbold",
+						"t": "bool",
+						"i": "Upp::PdfDraw::OutlineInfo::sbold",
+						"r": "bool sbold",
+						"s": "Upp",
+						"u": "SBOLD",
+						"q": "Upp::PdfDraw::OutlineInfo",
+						"w": "UPP::PDFDRAW::OUTLINEINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e4c7ec735633cbbccbef4d11f96eda9b640a625d"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "UrlInfo",
+						"t": "Upp::PdfDraw::UrlInfo",
+						"i": "Upp::PdfDraw::UrlInfo",
+						"r": "UrlInfo",
+						"s": "Upp",
+						"u": "URLINFO",
+						"q": "Upp::PdfDraw::UrlInfo",
+						"w": "UPP::PDFDRAW::URLINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d1bd8885dd9fbcaf76b0bcdbe3dda1f747db189f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "rect",
+						"t": "Rectf",
+						"i": "Upp::PdfDraw::UrlInfo::rect",
+						"r": "Rectf rect",
+						"s": "Upp",
+						"u": "RECT",
+						"q": "Upp::PdfDraw::UrlInfo",
+						"w": "UPP::PDFDRAW::URLINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b6ebe3082598b7aefb7828b5211e06e600f4d851"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "url",
+						"t": "String",
+						"i": "Upp::PdfDraw::UrlInfo::url",
+						"r": "String url",
+						"s": "Upp",
+						"u": "URL",
+						"q": "Upp::PdfDraw::UrlInfo",
+						"w": "UPP::PDFDRAW::URLINFO",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "66af81accc3e70c7ab83de7ced8aae21d27e889a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "outline_info",
+						"t": "VectorMap<Font, OutlineInfo>",
+						"i": "Upp::PdfDraw::outline_info",
+						"r": "VectorMap<Font, OutlineInfo> outline_info",
+						"s": "Upp",
+						"u": "OUTLINE_INFO",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fc139cfe2c50841e9da8f11ba7ab8fe7075b5b00"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "pdffont",
+						"t": "VectorMap<Font, Vector<wchar>>",
+						"i": "Upp::PdfDraw::pdffont",
+						"r": "VectorMap<Font, Vector<wchar>> pdffont",
+						"s": "Upp",
+						"u": "PDFFONT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "95233ee68311367b7670b7ddcf9baf44a0bcd574"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "fontchars",
+						"t": "VectorMap<Font, VectorMap<wchar, CharPos>>",
+						"i": "Upp::PdfDraw::fontchars",
+						"r": "VectorMap<Font, VectorMap<wchar, CharPos>> fontchars",
+						"s": "Upp",
+						"u": "FONTCHARS",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7ba28fec12791595e5b48fc6757175c1bfce2663"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "patterns",
+						"t": "Index<uint64>",
+						"i": "Upp::PdfDraw::patterns",
+						"r": "Index<uint64> patterns",
+						"s": "Upp",
+						"u": "PATTERNS",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1c9792779ce1d26c89e0e471be38357e8db6d148"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "images",
+						"t": "VectorMap<Tuple2<int64, Rect>, Image>",
+						"i": "Upp::PdfDraw::images",
+						"r": "VectorMap<Tuple2<int64, Rect>, Image> images",
+						"s": "Upp",
+						"u": "IMAGES",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d8503184242884d21d1687f29192d61feb424ab9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "page_url",
+						"t": "Array<Array<UrlInfo>>",
+						"i": "Upp::PdfDraw::page_url",
+						"r": "Array<Array<UrlInfo>> page_url",
+						"s": "Upp",
+						"u": "PAGE_URL",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "87c8ce37d36a8a177053c255a3ed86458de47ffe"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "data",
+						"t": "String",
+						"i": "Upp::PdfDraw::data",
+						"r": "String data",
+						"s": "Upp",
+						"u": "DATA",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3ec42ec1d1a074bddd28a271f9249f977734821b"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "jpeg",
+						"t": "Vector<String>",
+						"i": "Upp::PdfDraw::jpeg",
+						"r": "Vector<String> jpeg",
+						"s": "Upp",
+						"u": "JPEG",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "717e9c1caffff7f789fbb7fb1c2942085d38c1cb"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "offset",
+						"t": "Vector<int>",
+						"i": "Upp::PdfDraw::offset",
+						"r": "Vector<int> offset",
+						"s": "Upp",
+						"u": "OFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4f4e7956a90305e97a8675607e8622b97eb62ddb"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "out",
+						"t": "StringBuffer",
+						"i": "Upp::PdfDraw::out",
+						"r": "StringBuffer out",
+						"s": "Upp",
+						"u": "OUT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7127b46184497214a9ae5bde23a2122a79b1eec9"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "page",
+						"t": "StringBuffer",
+						"i": "Upp::PdfDraw::page",
+						"r": "StringBuffer page",
+						"s": "Upp",
+						"u": "PAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f6d454d5dfc17c0878d79cf7af95fed297316e12"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "pgsz",
+						"t": "Size",
+						"i": "Upp::PdfDraw::pgsz",
+						"r": "Size pgsz",
+						"s": "Upp",
+						"u": "PGSZ",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ad40a7af3789976fd7c51119d8057bf5f4a2f723"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "rgcolor",
+						"t": "Color",
+						"i": "Upp::PdfDraw::rgcolor",
+						"r": "Color rgcolor",
+						"s": "Upp",
+						"u": "RGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "54640c491467c0e7bc508ea67e5e0f00bdcc5b09"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "RGcolor",
+						"t": "Color",
+						"i": "Upp::PdfDraw::RGcolor",
+						"r": "Color RGcolor",
+						"s": "Upp",
+						"u": "RGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d8ab07cf34d2ca64c5be11f6b79001afe452e67b"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "fontid",
+						"t": "int",
+						"i": "Upp::PdfDraw::fontid",
+						"r": "int fontid",
+						"s": "Upp",
+						"u": "FONTID",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ea50d5551983cba1956a55f81a900c8360586aae"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "textht",
+						"t": "double",
+						"i": "Upp::PdfDraw::textht",
+						"r": "double textht",
+						"s": "Upp",
+						"u": "TEXTHT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6fa0890a8a2e61ae3a51bf8109a9b7dbdf76c85f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "linewidth",
+						"t": "double",
+						"i": "Upp::PdfDraw::linewidth",
+						"r": "double linewidth",
+						"s": "Upp",
+						"u": "LINEWIDTH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "56a80f4fe2262312f7f3f02c1c44af2ccab8441f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "margin",
+						"t": "int",
+						"i": "Upp::PdfDraw::margin",
+						"r": "int margin",
+						"s": "Upp",
+						"u": "MARGIN",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "ba91197735d8eb70021715b644ac111beb267a6b"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "patternid",
+						"t": "uint64",
+						"i": "Upp::PdfDraw::patternid",
+						"r": "uint64 patternid",
+						"s": "Upp",
+						"u": "PATTERNID",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7ec0e63bd0c1d88d24fd418ccd2e81d5457b3192"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "pdfa",
+						"t": "bool",
+						"i": "Upp::PdfDraw::pdfa",
+						"r": "bool pdfa",
+						"s": "Upp",
+						"u": "PDFA",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f21ee930556242785e1483c91f10e8cedf717a7a"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "empty",
+						"t": "bool",
+						"i": "Upp::PdfDraw::empty",
+						"r": "bool empty",
+						"s": "Upp",
+						"u": "EMPTY",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7d709d68988ec52fe2a0f0a6d55789e7207284ba"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "url",
+						"t": "String",
+						"i": "Upp::PdfDraw::url",
+						"r": "String url",
+						"s": "Upp",
+						"u": "URL",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a03f59a912b0e919950794457cd57afb353e5022"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "offset_stack",
+						"t": "Vector<Point>",
+						"i": "Upp::PdfDraw::offset_stack",
+						"r": "Vector<Point> offset_stack",
+						"s": "Upp",
+						"u": "OFFSET_STACK",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c4c67a5f47466bb63904c3c3400b5e78dbfc9d41"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "current_offset",
+						"t": "Point",
+						"i": "Upp::PdfDraw::current_offset",
+						"r": "Point current_offset",
+						"s": "Upp",
+						"u": "CURRENT_OFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "05ee23f60f86ad79fbb2aefbd5546d1e444b5b81"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Pt",
+						"t": "double (double)",
+						"i": "Upp::PdfDraw::Pt(double)",
+						"r": "double Pt(double dot)",
+						"s": "Upp",
+						"u": "PT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e4f3122aa819e7d221b2e77dcfb5b2a774528a27"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Ptf",
+						"t": "String (double)",
+						"i": "Upp::PdfDraw::Ptf(double)",
+						"r": "String Ptf(double dot)",
+						"s": "Upp",
+						"u": "PTF",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "cb4842cf57a7e286fdfa06dffc403b3289b4ba40"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Pos",
+						"t": "int ()",
+						"i": "Upp::PdfDraw::Pos()",
+						"r": "int Pos()",
+						"s": "Upp",
+						"u": "POS",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6b4ae4cad4af1cd25136bab3debd3f96321c1dc5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "BeginObj",
+						"t": "int ()",
+						"i": "Upp::PdfDraw::BeginObj()",
+						"r": "int BeginObj()",
+						"s": "Upp",
+						"u": "BEGINOBJ",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "05252c9c66b061df410b665ce7f7e1cf3668a85f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "EndObj",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::EndObj()",
+						"r": "void EndObj()",
+						"s": "Upp",
+						"u": "ENDOBJ",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "7998144cc6150a9b7909672c2c88dcfa97e83a82"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutStream",
+						"t": "int (const String &, const String &, bool)",
+						"i": "Upp::PdfDraw::PutStream(const String&,const String&,bool)",
+						"r": "int PutStream(const String& data, const String& keys = Null, bool compress = true)",
+						"s": "Upp",
+						"u": "PUTSTREAM",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b77bb8937291d4b2b7964591daf3eeaf4c441bf7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutRect",
+						"t": "void (const Rect &)",
+						"i": "Upp::PdfDraw::PutRect(const Rect&)",
+						"r": "void PutRect(const Rect& rc)",
+						"s": "Upp",
+						"u": "PUTRECT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2e166307f7bbe44c187c2fa53a05aca8937419e6"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutrgColor",
+						"t": "void (Color, uint64)",
+						"i": "Upp::PdfDraw::PutrgColor(Color,uint64)",
+						"r": "void PutrgColor(Color rg, uint64 pattern = 0)",
+						"s": "Upp",
+						"u": "PUTRGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "07a64fc553f49043fb6b792f9d20e2a07679f270"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutRGColor",
+						"t": "void (Color)",
+						"i": "Upp::PdfDraw::PutRGColor(Color)",
+						"r": "void PutRGColor(Color RG)",
+						"s": "Upp",
+						"u": "PUTRGCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1192edefa79c419c7354ea529c8974f580fbae3b"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutFontHeight",
+						"t": "void (int, double)",
+						"i": "Upp::PdfDraw::PutFontHeight(int,double)",
+						"r": "void PutFontHeight(int fi, double ht)",
+						"s": "Upp",
+						"u": "PUTFONTHEIGHT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9e56473b0e0874cda4c4827a3a8c30d9fa040bf9"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PutLineWidth",
+						"t": "void (int)",
+						"i": "Upp::PdfDraw::PutLineWidth(int)",
+						"r": "void PutLineWidth(int lw)",
+						"s": "Upp",
+						"u": "PUTLINEWIDTH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8b8c0d8bf3e18767a4a9f402f9ac016249c88c62"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "GetCharPos",
+						"t": "CharPos (Font, wchar)",
+						"i": "Upp::PdfDraw::GetCharPos(Font,wchar)",
+						"r": "CharPos GetCharPos(Font fnt, wchar chr)",
+						"s": "Upp",
+						"u": "GETCHARPOS",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b9cc2c6683a0e5e29c224b550b0f65834f6c32f2"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "FlushText",
+						"t": "void (int, int, int, const String &)",
+						"i": "Upp::PdfDraw::FlushText(int,int,int,const String&)",
+						"r": "void FlushText(int dx, int fi, int height, const String& txt)",
+						"s": "Upp",
+						"u": "FLUSHTEXT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "043b40bddcff7e1413ba57de1f545b9d5d36c7c9"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": true,
+						"n": "PdfColor",
+						"t": "String (Color)",
+						"i": "Upp::PdfDraw::PdfColor(Color)",
+						"r": "static String PdfColor(Color c)",
+						"s": "Upp",
+						"u": "PDFCOLOR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f75a48fbf5ab255c2612f6de5fbca8dd1f845ade"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": true,
+						"n": "PdfString",
+						"t": "String (const char *)",
+						"i": "Upp::PdfDraw::PdfString(const char*)",
+						"r": "static String PdfString(const char *s)",
+						"s": "Upp",
+						"u": "PDFSTRING",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9eef26c471620df9a62d2ebee0aadeee636ad826"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PushOffset",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::PushOffset()",
+						"r": "void PushOffset()",
+						"s": "Upp",
+						"u": "PUSHOFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "99d1add8aeb1a9c9ccf77cd85c14e388ec1845a6"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PopOffset",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::PopOffset()",
+						"r": "void PopOffset()",
+						"s": "Upp",
+						"u": "POPOFFSET",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a4c7cfacd095292006324729c85c9aa4ab58ae17"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "GetOutlineInfo",
+						"t": "OutlineInfo (Font)",
+						"i": "Upp::PdfDraw::GetOutlineInfo(Font)",
+						"r": "OutlineInfo GetOutlineInfo(Font fnt)",
+						"s": "Upp",
+						"u": "GETOUTLINEINFO",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f954dc2c96666ee88bbff4d300be54e821fc279d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Init",
+						"t": "void (int, int, int, bool)",
+						"i": "Upp::PdfDraw::Init(int,int,int,bool)",
+						"r": "void Init(int pagecx, int pagecy, int margin, bool pdfa)",
+						"s": "Upp",
+						"u": "INIT",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4cf7d878570913936bc7510d4bde72d23bb5c06e"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "RGlyph",
+						"t": "Upp::PdfDraw::RGlyph",
+						"i": "Upp::PdfDraw::RGlyph",
+						"r": "RGlyph : Moveable<RGlyph>",
+						"s": "Upp",
+						"u": "RGLYPH",
+						"q": "Upp::PdfDraw::RGlyph",
+						"w": "UPP::PDFDRAW::RGLYPH",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e6062edf3b0d85bc5d9f2a1e83f78573b77cc422"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "data",
+						"t": "String",
+						"i": "Upp::PdfDraw::RGlyph::data",
+						"r": "String data",
+						"s": "Upp",
+						"u": "DATA",
+						"q": "Upp::PdfDraw::RGlyph",
+						"w": "UPP::PDFDRAW::RGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1955e47bec4259eebe1eb010f6e11ac42e2b057e"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "sz",
+						"t": "Size",
+						"i": "Upp::PdfDraw::RGlyph::sz",
+						"r": "Size sz",
+						"s": "Upp",
+						"u": "SZ",
+						"q": "Upp::PdfDraw::RGlyph",
+						"w": "UPP::PDFDRAW::RGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "72eecb376115e5345f46e7cf003d4fe43cc03a1f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "x",
+						"t": "int",
+						"i": "Upp::PdfDraw::RGlyph::x",
+						"r": "int x",
+						"s": "Upp",
+						"u": "X",
+						"q": "Upp::PdfDraw::RGlyph",
+						"w": "UPP::PDFDRAW::RGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "20807a7ad6ae5b565e5574582e97bd8a070c0aa0"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "color_image",
+						"t": "int",
+						"i": "Upp::PdfDraw::RGlyph::color_image",
+						"r": "int color_image",
+						"s": "Upp",
+						"u": "COLOR_IMAGE",
+						"q": "Upp::PdfDraw::RGlyph",
+						"w": "UPP::PDFDRAW::RGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "9079595f4f942b37dd11966e56c2243b307e61ac"
+							}
+						]
+					},
+					{
+						"k": 2,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "CGlyph",
+						"t": "Upp::PdfDraw::CGlyph",
+						"i": "Upp::PdfDraw::CGlyph",
+						"r": "CGlyph : Moveable<CGlyph>",
+						"s": "Upp",
+						"u": "CGLYPH",
+						"q": "Upp::PdfDraw::CGlyph",
+						"w": "UPP::PDFDRAW::CGLYPH",
+						"y": "Upp::Moveable",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e575352b5706fc81ed3fe50f00d345c94e517fb3"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "sz",
+						"t": "Size",
+						"i": "Upp::PdfDraw::CGlyph::sz",
+						"r": "Size sz",
+						"s": "Upp",
+						"u": "SZ",
+						"q": "Upp::PdfDraw::CGlyph",
+						"w": "UPP::PDFDRAW::CGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "72eecb376115e5345f46e7cf003d4fe43cc03a1f"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "x",
+						"t": "int",
+						"i": "Upp::PdfDraw::CGlyph::x",
+						"r": "int x",
+						"s": "Upp",
+						"u": "X",
+						"q": "Upp::PdfDraw::CGlyph",
+						"w": "UPP::PDFDRAW::CGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "20807a7ad6ae5b565e5574582e97bd8a070c0aa0"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "image",
+						"t": "int",
+						"i": "Upp::PdfDraw::CGlyph::image",
+						"r": "int image",
+						"s": "Upp",
+						"u": "IMAGE",
+						"q": "Upp::PdfDraw::CGlyph",
+						"w": "UPP::PDFDRAW::CGLYPH",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "54cc7006804b665c57a36efd79b2a24b901ccb05"
+							}
+						]
+					},
+					{
+						"k": 6,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "color_glyph",
+						"t": "VectorMap<Tuple<Font, int>, CGlyph>",
+						"i": "Upp::PdfDraw::color_glyph",
+						"r": "VectorMap<Tuple<Font, int>, CGlyph> color_glyph",
+						"s": "Upp",
+						"u": "COLOR_GLYPH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0d8fe4a5a9883307e72708180b057536f0d9f2fd"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "PdfImage",
+						"t": "int (const Image &, const Rect &)",
+						"i": "Upp::PdfDraw::PdfImage(const Image&,const Rect&)",
+						"r": "int PdfImage(const Image& img, const Rect& src)",
+						"s": "Upp",
+						"u": "PDFIMAGE",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "12423fd6ebc4df1f343c8a74131b8449acf7163a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "ColorGlyph",
+						"t": "CGlyph (Font, int)",
+						"i": "Upp::PdfDraw::ColorGlyph(Font,int)",
+						"r": "CGlyph ColorGlyph(Font fnt, int chr)",
+						"s": "Upp",
+						"u": "COLORGLYPH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "21bb917d22e26afe6c948faceac91ef0bc4f0157"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "RasterGlyph",
+						"t": "RGlyph (Font, int)",
+						"i": "Upp::PdfDraw::RasterGlyph(Font,int)",
+						"r": "RGlyph RasterGlyph(Font fnt, int chr)",
+						"s": "Upp",
+						"u": "RASTERGLYPH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1bc8ae5a3b982d992011c32566545dc0c5183a2b"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Finish",
+						"t": "String (const PdfSignatureInfo *)",
+						"i": "Upp::PdfDraw::Finish(const PdfSignatureInfo*)",
+						"r": "String Finish(const PdfSignatureInfo *sign = 0)",
+						"s": "Upp",
+						"u": "FINISH",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d01187e1bdc38948d547137edde1891b2f1d35e5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Clear",
+						"t": "void ()",
+						"i": "Upp::PdfDraw::Clear()",
+						"r": "void Clear()",
+						"s": "Upp",
+						"u": "CLEAR",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bca0157ce9e51e58effc44fd5677da21a5a4904f"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "IsEmpty",
+						"t": "bool () const",
+						"i": "Upp::PdfDraw::IsEmpty()const",
+						"r": "bool IsEmpty() const",
+						"s": "Upp",
+						"u": "ISEMPTY",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bc4977edd1501a201d54081b4ecdca29d76ff958"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw",
+						"t": "void (int, int, bool)",
+						"i": "Upp::PdfDraw::PdfDraw(int,int,bool)",
+						"r": "PdfDraw(int pagecx, int pagecy, bool pdfa = false)",
+						"s": "Upp",
+						"u": "PDFDRAW",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "c2efcf06053c9cadb24dd3753d57dca83e088749"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw",
+						"t": "void (Size, bool)",
+						"i": "Upp::PdfDraw::PdfDraw(Size,bool)",
+						"r": "PdfDraw(Size pgsz = Size(5100, 6600), bool pdfa = false)",
+						"s": "Upp",
+						"u": "PDFDRAW",
+						"q": "Upp::PdfDraw",
+						"w": "UPP::PDFDRAW",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8eead5a77a59f3192cc1072ae8815ba52a20c680"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "DrawJPEG",
+						"t": "void (Draw &, int, int, int, int, const String &)",
+						"i": "Upp::DrawJPEG(Draw&,int,int,int,int,const String&)",
+						"r": "void DrawJPEG(Draw& w, int x, int y, int cx, int cy, const String& jpeg_data)",
+						"s": "Upp",
+						"u": "DRAWJPEG",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "52cdd3bafe5cd39842aa179d3023dae54d43b90f"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "Pdf",
+						"t": "String (const Array<Drawing> &, Size, int, bool, const PdfSignatureInfo *)",
+						"i": "Upp::Pdf(const Array&,Size,int,bool,const PdfSignatureInfo*)",
+						"r": "String Pdf(const Array<Drawing>& report, Size pagesize, int margin, bool pdfa = false, const PdfSignatureInfo *sign = 0)",
+						"s": "Upp",
+						"u": "PDF",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e1ce0765af6f2ad9075ca426f4f6ac8d29b3a327"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "TTFStream.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFReader::TTFStream &(byte &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(byte&)",
+						"r": "TTFReader::TTFStream& operator%(byte& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2996eec0a48f1ee9717aee330f6fe980c9627912"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFReader::TTFStream &(int32 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(int32&)",
+						"r": "TTFReader::TTFStream& operator%(int32& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8420445d1e2837001db992d5e3307895fff24d48"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFReader::TTFStream &(uint32 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(uint32&)",
+						"r": "TTFReader::TTFStream& operator%(uint32& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "121f4222f5f45cafc0e40ba68568dbe1fdb72448"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFReader::TTFStream &(int16 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(int16&)",
+						"r": "TTFReader::TTFStream& operator%(int16& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "49cac7668f694fe360b50d247dc65086ffa5cf1d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "operator%",
+						"t": "TTFReader::TTFStream &(uint16 &)",
+						"i": "Upp::TTFReader::TTFStream::operator%(uint16&)",
+						"r": "TTFReader::TTFStream& operator%(uint16& q)",
+						"s": "Upp",
+						"u": "OPERATOR%",
+						"q": "Upp::TTFReader::TTFStream",
+						"w": "UPP::TTFREADER::TTFSTREAM",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "bbc7e71e60c83a6723ce284c2f5c299147a83841"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "void (int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Seek(int)",
+						"r": "void Seek(int offset)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4da1d3dff22799ca251764075cbb421cc517543d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Get8",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get8()",
+						"r": "int Get8()",
+						"s": "Upp",
+						"u": "GET8",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "dacf0eb03cca98b36773eb0aad0966fc90d8ce29"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Get16",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get16()",
+						"r": "int Get16()",
+						"s": "Upp",
+						"u": "GET16",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d99dfb7dafeda6ba526aa4a4d1b408685aae80fb"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Get32",
+						"t": "int ()",
+						"i": "Upp::TTFReader::TTFStreamIn::Get32()",
+						"r": "int Get32()",
+						"s": "Upp",
+						"u": "GET32",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "4d63a4025ef3b07a4ee77a98efbb1b3b1ef556fa"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Get",
+						"t": "String (int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Get(int)",
+						"r": "String Get(int n)",
+						"s": "Upp",
+						"u": "GET",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "3ac70c377ad76630fc32e0b3ba129551558da091"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": true,
+						"is": false,
+						"n": "Raw",
+						"t": "void (void *, int)",
+						"i": "Upp::TTFReader::TTFStreamIn::Raw(void*,int)",
+						"r": "void Raw(void *ptr, int count)",
+						"s": "Upp",
+						"u": "RAW",
+						"q": "Upp::TTFReader::TTFStreamIn",
+						"w": "UPP::TTFREADER::TTFSTREAMIN",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "a31bc865b732ddfefae82cd1374b19545d7a01b1"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "TTFSubset.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "sCheckSum",
+						"t": "dword (const String &)",
+						"i": "Upp::sCheckSum(const String&)",
+						"r": "dword sCheckSum(const String& data)",
+						"s": "Upp",
+						"u": "SCHECKSUM",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "8cb06338f2d3f2b1f069fdf229dee980f5fd18da"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Set",
+						"t": "void (NewTable &, const String &)",
+						"i": "Upp::TTFReader::Set(NewTable&,const String&)",
+						"r": "void Set(NewTable& m, const String& data)",
+						"s": "Upp",
+						"u": "SET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b1eaa4c6dee5c0e6fdd51c23248ae394f7df3fa1"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Add",
+						"t": "void (Array<NewTable> &, const char *, const String &)",
+						"i": "Upp::TTFReader::Add(Array&,const char*,const String&)",
+						"r": "void Add(Array<NewTable>& t, const char *name, const String& data)",
+						"s": "Upp",
+						"u": "ADD",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "50859ac0b619872bc43c99ee5ce87ca479c1d536"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "CreateHeader",
+						"t": "String (const Array<NewTable> &)",
+						"i": "Upp::TTFReader::CreateHeader(const Array&)",
+						"r": "String CreateHeader(const Array<NewTable>& t)",
+						"s": "Upp",
+						"u": "CREATEHEADER",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f53d2bcf1b16aae3c50afd6cc0c2fbec119fd82e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Subset",
+						"t": "String (const Vector<wchar> &, int, bool)",
+						"i": "Upp::TTFReader::Subset(const Vector&,int,bool)",
+						"r": "String Subset(const Vector<wchar>& chars, int first = 0, bool os2 = false)",
+						"s": "Upp",
+						"u": "SUBSET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e7b68bde4070e527f98c7eea85246de733f07439"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "TTFReader.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "LLOG",
+						"t": "",
+						"i": "LLOG",
+						"r": "LLOG",
+						"s": "",
+						"u": "LLOG",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d83c43df219c111fa516fe33b765574dc658780b"
+							}
+						]
+					},
+					{
+						"k": 501,
+						"d": false,
+						"iv": false,
+						"is": false,
+						"n": "LDUMP",
+						"t": "",
+						"i": "LDUMP",
+						"r": "LDUMP",
+						"s": "",
+						"u": "LDUMP",
+						"q": "",
+						"w": "",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2ea08c3f31df288e30ec5c02db16b3d948516e1c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek8",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek8(const char*)",
+						"r": "int Peek8(const char *s)",
+						"s": "Upp",
+						"u": "PEEK8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2382f921d955a0ea2ac4fa02ca62c633748d53f1"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek16",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek16(const char*)",
+						"r": "int Peek16(const char *s)",
+						"s": "Upp",
+						"u": "PEEK16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "2c76d210a236f50636b0de39a26e5e3cd08cd3fc"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek32",
+						"t": "int (const char *)",
+						"i": "Upp::TTFReader::Peek32(const char*)",
+						"r": "int Peek32(const char *s)",
+						"s": "Upp",
+						"u": "PEEK32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6ea2df13fa0708497c8b91c4ff6ec3ac2c362a01"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek8",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek8(const char*,int)",
+						"r": "int Peek8(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "789d61e3b391a54b9195c8637c318ae013e67753"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek16",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek16(const char*,int)",
+						"r": "int Peek16(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "01ae0481e8024dc6696e061c22e8bfa3ce2e7dbd"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Peek32",
+						"t": "int (const char *, int)",
+						"i": "Upp::TTFReader::Peek32(const char*,int)",
+						"r": "int Peek32(const char *s, int i)",
+						"s": "Upp",
+						"u": "PEEK32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "389afbc6e0e52084f7d04069ce99a83cb04b8c7c"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Read8",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read8(const char*&)",
+						"r": "int Read8(const char *&s)",
+						"s": "Upp",
+						"u": "READ8",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "435cf46e743fb04e2ae64c1244b5f10019dc5fe6"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Read16",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read16(const char*&)",
+						"r": "int Read16(const char *&s)",
+						"s": "Upp",
+						"u": "READ16",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "31155b53a32a0ba8eea8a7c4ef99e8f02d1dfe8e"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Read32",
+						"t": "int (const char *&)",
+						"i": "Upp::TTFReader::Read32(const char*&)",
+						"r": "int Read32(const char *&s)",
+						"s": "Upp",
+						"u": "READ32",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "0f603fb182070ee6b27bfa75a55e836a64e6dbb5"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Read",
+						"t": "String (const char *&, int)",
+						"i": "Upp::TTFReader::Read(const char*&,int)",
+						"r": "String Read(const char *&s, int n)",
+						"s": "Upp",
+						"u": "READ",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "fb97fb725a9cb8eda7a5fe368c46e3bbf7b4ba6a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Reset",
+						"t": "void ()",
+						"i": "Upp::TTFReader::Reset()",
+						"r": "void Reset()",
+						"s": "Upp",
+						"u": "RESET",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "89c6e825c40de5488a9e4c88091cd04bba72f84a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "SetGlyph",
+						"t": "void (wchar, word)",
+						"i": "Upp::TTFReader::SetGlyph(wchar,word)",
+						"r": "void SetGlyph(wchar chr, word glyph)",
+						"s": "Upp",
+						"u": "SETGLYPH",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "07feb04a5856d226960b6bea449b45b316ae8a8a"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "const char *(const char *, int &)",
+						"i": "Upp::TTFReader::Seek(const char*,int&)",
+						"r": "const char *Seek(const char *tab, int& len)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "49105625deaacbcae1cfaa7a015793f8698441d7"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "const char *(const char *)",
+						"i": "Upp::TTFReader::Seek(const char*)",
+						"r": "const char *Seek(const char *tab)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "09dd9ef6f620fb52c1db45aca98df6a6e012deed"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Seek",
+						"t": "void (const char *, TTFStreamIn &)",
+						"i": "Upp::TTFReader::Seek(const char*,TTFStreamIn&)",
+						"r": "void Seek(const char *tab, TTFStreamIn& s)",
+						"s": "Upp",
+						"u": "SEEK",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d095456573b6998f82d8aea616cf787241adc31d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "GetTable",
+						"t": "String (const char *)",
+						"i": "Upp::TTFReader::GetTable(const char*)",
+						"r": "String GetTable(const char *tab)",
+						"s": "Upp",
+						"u": "GETTABLE",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6e6d1293fab55be1e4d2b1c4b308a303fa9f0003"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Open",
+						"t": "bool (const Font &, bool, bool)",
+						"i": "Upp::TTFReader::Open(const Font&,bool,bool)",
+						"r": "bool Open(const Font& fnt, bool symbol = false, bool justcheck = false)",
+						"s": "Upp",
+						"u": "OPEN",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "d3933dce4f09f5ec92b1684adc7372ce795a5c96"
+							}
+						]
+					},
+					{
+						"k": 24,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "TTFReader",
+						"t": "void ()",
+						"i": "Upp::TTFReader::TTFReader()",
+						"r": "TTFReader()",
+						"s": "Upp",
+						"u": "TTFREADER",
+						"q": "Upp::TTFReader",
+						"w": "UPP::TTFREADER",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "1fada38d0f1d69a1bf6512e4ec5bd3fb21a7ffec"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "PdfReport.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Pdf",
+						"t": "String (const Array<Drawing> &, Size, int, bool, const PdfSignatureInfo *)",
+						"i": "Upp::Pdf(const Array&,Size,int,bool,const PdfSignatureInfo*)",
+						"r": "String Pdf(const Array<Drawing>& report, Size sz, int margin, bool pdfa = false, const PdfSignatureInfo *sign = 0)",
+						"s": "Upp",
+						"u": "PDF",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "b6494c224122b64be52cac1a9ad27d77b404f11b"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initializer_fn",
+						"t": "void ()",
+						"i": "Upp::PdfDraw__initializer_fn()",
+						"r": "void PdfDraw__initializer_fn()",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZER_FN",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6084fecfe6370cebb1dff01e048c2aa9387e564d"
+							}
+						]
+					},
+					{
+						"k": 8,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "PdfDraw__initializer",
+						"t": "void ()",
+						"i": "Upp::PdfDraw__initializer()",
+						"r": "void PdfDraw__initializer()",
+						"s": "Upp",
+						"u": "PDFDRAW__INITIALIZER",
+						"q": "Upp",
+						"w": "UPP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "876a4bd9485be464b46d1c692063dbb81d85cd33"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "TTFStruct.cpp",
+			"value": {
+				"items": [
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Head::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Head",
+						"w": "UPP::TTFREADER::HEAD",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "e4680cb5e462eeaf2d593824a9ac37d07ee462d0"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Hhea::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Hhea",
+						"w": "UPP::TTFREADER::HHEA",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "6498c91bc2ee03b331e314c95eaa2f9974dee89d"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Maxp::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Maxp",
+						"w": "UPP::TTFREADER::MAXP",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "efc81c4a43dcd845f66770e3c24f3c32034cc183"
+							}
+						]
+					},
+					{
+						"k": 21,
+						"d": true,
+						"iv": false,
+						"is": false,
+						"n": "Serialize",
+						"t": "void (TTFStream &)",
+						"i": "Upp::TTFReader::Post::Serialize(TTFStream&)",
+						"r": "void Serialize(TTFStream& s)",
+						"s": "Upp",
+						"u": "SERIALIZE",
+						"q": "Upp::TTFReader::Post",
+						"w": "UPP::TTFREADER::POST",
+						"y": "",
+						"da": [
+
+						],
+						"sf": [
+							{
+								"items": [
+
+								],
+								"h": "f692d53d86cbfbfe5d54986d895fb604c63ba491"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"key": "PdfInit.icpp",
+			"value": {
+				"items": [
+
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,10 @@
+#include "AICore.h"
+
+
+NAMESPACE_UPP
+
+
+INITIALIZER_COMPONENT(VideoSourceFile)
+INITIALIZER_COMPONENT(VideoSourceFileRange)
+
+END_UPP_NAMESPACE

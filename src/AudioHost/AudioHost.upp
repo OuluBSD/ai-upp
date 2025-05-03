@@ -1,0 +1,15 @@
+description "Loads midi files and makes lv2-instrument and effect system from them\377B255,0,255";
+
+file
+	Copying,
+	main.cpp,
+	AudioHost.h,
+	AudioHost.cpp,
+	Loader.h,
+	Loader.cpp,
+	LV2 readonly separator,
+	Util.h,
+	Util.cpp,
+	Host.h,
+	Host.cpp;
+

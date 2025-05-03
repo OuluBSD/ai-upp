@@ -1,0 +1,14 @@
+description "\3770,128,128";
+
+uses
+	AtomAudio;
+
+file
+	AtomHandle.h,
+	AtomHandle.cpp,
+	Init.cpp,
+	Generated.h,
+	Generated.cpp,
+	Handle.h,
+	Handle.cpp;
+

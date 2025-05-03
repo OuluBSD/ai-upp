@@ -1,0 +1,25 @@
+description "\377B84,84,84";
+
+uses
+	CtrlLib,
+	VirtualGui/Atom,
+	LocalCtrl;
+
+file
+	Notes.txt,
+	DesktopSuite.h,
+	Init.cpp,
+	Factory.h,
+	Factory.cpp,
+	TaskBar.h,
+	TaskBar.cpp,
+	Explorer.h,
+	Explorer.cpp,
+	ControlPanel.h,
+	ControlPanel.cpp,
+	Debug readonly separator,
+	Events.h,
+	Events.cpp,
+	Tester.h,
+	Tester.cpp;
+

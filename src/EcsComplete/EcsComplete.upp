@@ -1,0 +1,20 @@
+description "\377B0,131,159";
+
+uses
+	EcsLocal,
+	EcsMinimal,
+	EcsAudioCore,
+	Complete,
+	EcsMultimedia,
+	EcsDummy;
+
+uses(GUI) EcsCtrl;
+
+uses(VR) EcsVR;
+
+uses(DX12) EcsWin;
+
+file
+	EcsComplete.h,
+	EcsComplete.cpp;
+

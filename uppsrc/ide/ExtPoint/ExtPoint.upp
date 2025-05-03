@@ -1,0 +1,10 @@
+description "\377B";
+
+uses
+	ide/Edit3D;
+
+file
+	Readme.txt,
+	ExtPoint.h,
+	Designer.h;
+

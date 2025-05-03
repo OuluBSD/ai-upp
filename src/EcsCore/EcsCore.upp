@@ -1,0 +1,10 @@
+description "ECS and base classes for machin abstraction\377B0,0,128";
+
+uses
+	Agent,
+	EcsMach;
+
+file
+	EcsCore.h,
+	Defs.h;
+

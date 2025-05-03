@@ -1,0 +1,12 @@
+description "Using Esc scripting language in an application\377";
+
+uses
+	Esc;
+
+file
+	EscApp.cpp,
+	script.esc;
+
+mainconfig
+	"" = "";
+

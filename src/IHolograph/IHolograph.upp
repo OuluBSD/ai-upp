@@ -1,0 +1,25 @@
+description "\377B85,42,150";
+
+uses
+	ParallelLib,
+	IMedia;
+
+uses(LINUX) ports/hcidump;
+
+uses(LOCALHMD) LocalHMD;
+
+library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+
+file
+	IHolograph.h,
+	OpenHMD.cpp,
+	LocalHMD.cpp,
+	RemoteVRServer.cpp,
+	DevUsb.cpp,
+	DevBluetooth.cpp,
+	OpenVR.cpp,
+	IfaceFuncs.inl highlight cpp;
+
+mainconfig
+	"" = "";
+

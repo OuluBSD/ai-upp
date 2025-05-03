@@ -1,0 +1,10 @@
+uses
+	Local;
+
+file
+	MakefileUpdater.h,
+	MakefileUpdater.cpp;
+
+mainconfig
+	"" = "";
+

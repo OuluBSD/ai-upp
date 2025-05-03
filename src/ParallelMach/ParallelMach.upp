@@ -1,0 +1,10 @@
+description "\377B41,32,114";
+
+uses
+	LocalPlan;
+
+file
+	ParallelMach.h,
+	Fwd.h,
+	Defs.h;
+

@@ -1,0 +1,19 @@
+description "\377B128,0,0";
+
+file
+	SharedCore.h,
+	SharedDefs.h,
+	Policies.h,
+	RTTIDummy.h,
+	Object.h,
+	Object.cpp,
+	Keycodes.inl highlight cpp,
+	Container.h,
+	Container.cpp,
+	TokenParser.h,
+	TokenParser.cpp,
+	String.h,
+	String.cpp,
+	Random.h,
+	Random.cpp;
+

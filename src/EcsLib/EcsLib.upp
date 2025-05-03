@@ -1,0 +1,18 @@
+description "Components\377B0,87,128";
+
+uses
+	EcsCore;
+
+file
+	TODO.txt,
+	EcsLib.h,
+	NonGui.cpp,
+	Defs.h,
+	Gui.h,
+	Gui.cpp,
+	Geom2DComponent.h,
+	Geom2DComponent.cpp,
+	Trash readonly separator,
+	Absolute2D.h,
+	Absolute2D.cpp;
+

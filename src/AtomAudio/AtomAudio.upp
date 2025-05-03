@@ -1,0 +1,14 @@
+description "\3770,128,128";
+
+uses
+	ISynth,
+	IEffect,
+	IMidiFile,
+	IMidiHw;
+
+file
+	AtomAudio.h,
+	AtomAudio.cpp,
+	Generated.h,
+	Generated.cpp;
+

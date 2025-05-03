@@ -1,0 +1,14 @@
+description "Homebrew cryptographic example\377";
+
+noblitz;
+
+uses
+	Local,
+	plugin/bz2;
+
+file
+	Crypto.cpp;
+
+mainconfig
+	"" = "";
+

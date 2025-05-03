@@ -1,0 +1,29 @@
+description "\377B200,179,81";
+
+uses
+	ParallelLib,
+	SoftInstru,
+	SoftSynth,
+	AudioCore;
+
+uses(FLUIDLITE) ports/fluidlite;
+
+uses(LV2) ports/lilv;
+
+uses(LV2) AudioHost;
+
+library(FLUIDSYNTH) fluidsynth;
+
+file
+	ISynth.h,
+	Soft.cpp,
+	Fluidsynth.cpp,
+	FmSynth.cpp,
+	CoreSynth.cpp,
+	CoreDrummer.cpp,
+	LV2.cpp,
+	IfaceFuncs.inl highlight cpp;
+
+mainconfig
+	"" = "";
+

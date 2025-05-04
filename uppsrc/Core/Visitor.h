@@ -520,7 +520,7 @@ struct Visitor {
 	}
 	
 	template <class T>
-	Visitor& operator||(T& o) {
+	Visitor& operator&&(T& o) {
 		if (o) {
 			TODO // runtime-visit a vector of pointers
 		}
@@ -529,6 +529,12 @@ struct Visitor {
 	
 	template <class T>
 	Visitor& operator|(T& o) {
+		TODO // runtime-visit a single item
+		return *this;
+	}
+	
+	template <class T>
+	Visitor& operator||(T& o) {
 		if (!o.IsEmpty()) {
 			TODO // runtime-visit a vector
 		}

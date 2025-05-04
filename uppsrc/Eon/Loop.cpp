@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Loop::Loop() {
+Loop::Loop(MetaNode& n) : MetaDirectoryBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -59,19 +59,20 @@ void Loop::UnrefDeep() {
 }
 
 void Loop::UninitializeLinksDeep() {
+	auto loops = node.FindAllDeep<Loop>();
 	for (Loop& l : loops)
 		l.UninitializeLinksDeep();
 	
-	for (int i = links.GetCount()-1; i >= 0; i--) {
+	auto links = node.FindAllDeep<LinkBase>();
+	for (int i = links.GetCount()-1; i >= 0; i--)
 		links[i].Uninitialize();
-	}
+	
 }
 
 void Loop::ClearDeep() {
 	for (Loop& p : loops)
 		p.ClearDeep();
 	loops.Clear();
-	
 	links.Clear();
 }
 
@@ -99,7 +100,7 @@ void Loop::Initialize(Loop& l, String prefab) {
 
 void Loop::Visit(Vis& vis) {
 	vis > links;
-	vis | loops;
+	vis || loops;
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {

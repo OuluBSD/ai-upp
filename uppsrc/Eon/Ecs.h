@@ -69,7 +69,7 @@ public:
 	
 	
 	ScriptEntityLoader(ScriptPoolLoader& parent, int id, Eon::EntityDefinition& def);
-	void		Visit(Vis& vis) override {vis | comps;}
+	void		Visit(Vis& vis) override {vis || comps;}
 	bool		Load() override;
 	
 };
@@ -88,7 +88,7 @@ public:
 	
 	ScriptPoolLoader(ScriptWorldLoader& parent, ScriptPoolLoader* chain_parent, int id, Eon::PoolDefinition& def);
 	
-	void		Visit(Vis& vis) override {vis | entities | pools;}
+	void		Visit(Vis& vis) override {vis || entities || pools;}
 	bool		Load() override;
 	
 };
@@ -103,7 +103,7 @@ public:
 	
 	
 	ScriptWorldLoader(ScriptSystemLoader& parent, int id, Eon::WorldDefinition& def);
-	void		Visit(Vis& vis) override {vis | systems | pools;}
+	void		Visit(Vis& vis) override {vis || systems || pools;}
 	String		GetTreeString(int indent) override;
 	bool		Load() override;
 	

@@ -70,7 +70,7 @@ void MachineVerifier::Attach(Machine& mach) {
 	
 }
 
-void MachineVerifier::Attach(ScriptLoader& sl) {
+void MachineVerifier::Attach(Eon::ScriptLoader& sl) {
 	sl.WhenEnterScriptLoad << THISBACK(OnEnterScriptLoad);
 	sl.WhenLeaveScriptLoad << THISBACK(OnLeaveScriptLoad);
 }

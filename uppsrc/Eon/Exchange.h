@@ -544,12 +544,12 @@ public:
 	
 };
 
-class MetaDirectoryBase : public Pte<MetaDirectoryBase>
+class MetaDirectoryBase : public MetaNodeExt
 {
 	
 public:
 	typedef MetaDirectoryBase CLASSNAME;
-	MetaDirectoryBase();
+	MetaDirectoryBase(MetaNode& n);
 	virtual ~MetaDirectoryBase();
 	
 	String ToString() const;

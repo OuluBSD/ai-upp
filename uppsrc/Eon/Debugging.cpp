@@ -10,7 +10,7 @@ String StackDebugger::Item::ToString() const {
 		s << "()";
 	else if (event == REF)
 		s << "->";
-	s << type.CleanDemangledName() << "[" << HexStr(ptr) << "]";
+	s << type.GetName() << "[" << HexStr(ptr) << "]";
 	return s;
 }
 

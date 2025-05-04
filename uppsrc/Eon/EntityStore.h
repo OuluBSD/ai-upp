@@ -7,7 +7,7 @@ namespace Ecs {
 
 class EntityStore : public System<EntityStore> {
     Vector<Entity*>					destroy_list;
-	PoolVec							root;
+	//PoolVec							root;
 	
 	Mutex							lock;
 	
@@ -19,10 +19,10 @@ class EntityStore : public System<EntityStore> {
 	void InitRoot();
 public:
 	ECS_SYS_CTOR_(EntityStore) {InitRoot();}
-	ECS_SYS_DEF_VISIT_(vis || root)
+	ECS_SYS_DEF_VISIT
 	
-	PoolPtr GetRoot()	{return &root[0];}
-	PoolVec& GetRootVec()	{return root;}
+	PoolPtr GetRoot();//	{return &root[0];}
+	//PoolVec& GetRootVec()	{return root;}
 	
 	EntityPtr FindEntity(String path);
 	void AddToDestroyList(Entity* e);

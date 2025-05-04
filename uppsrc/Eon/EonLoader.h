@@ -1,8 +1,9 @@
 #ifndef _Eon_EonLoader_h_
 #define _Eon_EonLoader_h_
 
+namespace Eon {
 
-struct ExtScriptEcsLoader : ExtScriptEcsLoaderBase {
+struct ExtScriptEcsLoader : Eon::ExtScriptEcsLoaderBase {
 	
 	
 	
@@ -14,5 +15,6 @@ struct ExtScriptEcsLoader : ExtScriptEcsLoaderBase {
 	
 };
 
+}
 
 #endif

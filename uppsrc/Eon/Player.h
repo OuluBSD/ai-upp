@@ -140,9 +140,9 @@ class PlayerBodySystem :
 	
 public:
 	ECS_SYS_CTOR(PlayerBodySystem)
-	ECS_SYS_DEF_VISIT_(vis && bodies)
+	ECS_SYS_DEF_VISIT_(vis || bodies)
 	
-	const Array<PlayerBodyComponentPtr>& GetComponents() const {return bodies;}
+	const Vector<PlayerBodyComponentPtr>& GetComponents() const {return bodies;}
 	
 	void Attach(PlayerBodyComponentPtr h);
 	void Detach(PlayerBodyComponentPtr h);
@@ -164,7 +164,7 @@ private:
     void RefreshComponentsForSource(const HandLocationSource& source);
     
     Ptr<InteractionSystem> iasys;
-    Array<PlayerBodyComponentPtr> bodies;
+    Vector<PlayerBodyComponentPtr> bodies;
     
 };
 

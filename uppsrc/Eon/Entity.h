@@ -7,7 +7,7 @@ namespace Ecs {
 class Pool;
 
 class Entity :
-	public Pte<Entity>,
+	public MetaNodeExt,
 	public Destroyable,
 	public Enableable
 {
@@ -18,7 +18,7 @@ class Entity :
 	String prefab;
 	String name;
 	
-	ComponentMap comps;
+	//ComponentMap comps;
 	EntityId m_id;
 	
 protected:
@@ -35,7 +35,7 @@ protected:
 	
 public:
 	typedef Entity CLASSNAME;
-	Entity();
+	Entity(MetaNode& n);
 	virtual ~Entity();
 	
 	static EntityId GetNextId();
@@ -152,8 +152,8 @@ public:
 	Pool&				GetRoot();
 	void				GetEntityPath(Vector<String>& path);
 	
-	ComponentMap&		GetComponents() {return comps;}
-	const ComponentMap&	GetComponents() const {return comps;}
+	//ComponentMap&		GetComponents() {return comps;}
+	//const ComponentMap&	GetComponents() const {return comps;}
 	
 	template<typename... ComponentTs>
 	Tuple<ComponentTs*...> CreateComponents() {
@@ -172,7 +172,7 @@ public:
 	ComponentBasePtr CreateComponent(TypeCls type);
 	
 	
-	void Visit(Vis& vis) {vis || comps;}
+	//void Visit(Vis& vis) {vis || comps;}
 	
 private:
 	
@@ -186,7 +186,7 @@ private:
 };
 
 using EntityPtr = Ptr<Entity>;
-using EntityVec = Array<Entity>;
+//using EntityVec = Array<Entity>;
 
 
 

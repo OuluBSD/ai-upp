@@ -140,7 +140,7 @@ protected:
 	};
 	
 	struct LoopLoaderData {
-		ScriptLoopLoader*	ll;
+		Eon::ScriptLoopLoader*	ll;
 		ScriptStatus		status0 = UNASSIGNED;
 		ScriptStatus		status1 = UNASSIGNED;
 		Array<LoopAtomData>	atoms;
@@ -155,7 +155,7 @@ public:
 	
 	
 	void Attach(Machine& mach);
-	void Attach(ScriptLoader& sl);
+	void Attach(Eon::ScriptLoader& sl);
 	void Clear();
 	
 	void OnEnterUpdate();
@@ -188,12 +188,12 @@ public:
 	void OnLeaveScriptLoopLoaderForwardRetry(size_t call_id);
 	void OnLeaveScriptLoopLoaderForwardSides(size_t call_id);
 	
-	void OnLoopLoader_Status(ScriptLoopLoader* ll);
-	void OnLoopLoader_RealizeAtoms(ScriptLoopLoader* ll);
-	void OnLoopLoader_AtomLinked(ScriptLoopLoader* ll);
-	void OnLoopLoader_SearchNewSegment(ScriptLoopLoader* ll);
+	void OnLoopLoader_Status(Eon::ScriptLoopLoader* ll);
+	void OnLoopLoader_RealizeAtoms(Eon::ScriptLoopLoader* ll);
+	void OnLoopLoader_AtomLinked(Eon::ScriptLoopLoader* ll);
+	void OnLoopLoader_SearchNewSegment(Eon::ScriptLoopLoader* ll);
 	
-	void UpdateLoopData(ScriptLoopLoader* ll);
+	void UpdateLoopData(Eon::ScriptLoopLoader* ll);
 	
 	VerifierLoop& GetRoot() {return root;}
 	

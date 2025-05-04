@@ -27,7 +27,7 @@ protected:
 public:
 	typedef Space CLASSNAME;
 	using SpacePtr = Ptr<Space>;
-	using SpaceVec = Array<Space>;
+	//using SpaceVec = Array<Space>;
 	static SpaceId GetNextId();
 	
 	Space(MetaNode& n);
@@ -58,8 +58,8 @@ public:
 	Machine&			GetMachine() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;
-	bool				HasAtoms() const {return !atoms.IsEmpty();}
-	bool				HasSpaces() const {return !spaces.IsEmpty();}
+	//bool				HasAtoms() const {return !atoms.IsEmpty();}
+	bool				HasSpaces() const;// {return !spaces.IsEmpty();}
 	
 	void				Initialize(Space& l, String prefab="Custom");
 	
@@ -108,12 +108,9 @@ public:
 	EnvStatePtr FindNearestState(String name);
 	EnvStatePtr FindStateDeep(String name);
 	
-	StateVec& GetStates() {return states;}
-	AtomMap& GetAtoms() {return atoms;}
-	SpaceVec& GetSpaces() {return spaces;}
-	const StateVec& GetStates() const {return states;}
-	const AtomMap& GetAtoms() const {return atoms;}
-	const SpaceVec& GetSpaces() const {return spaces;}
+	Vector<EnvStatePtr> GetStates() const;// {return states;}
+	Vector<AtomBasePtr> GetAtoms() const;// {return atoms;}
+	Vector<SpacePtr> GetSpaces() const;// {return spaces;}
 	
 	SpacePtr AddSpace(String name="") {
 		/*Space& p = spaces.Add();
@@ -124,48 +121,48 @@ public:
 		TODO; return 0;
 	}
 	
-	SpacePtr GetAddSpace(String name) {
+	SpacePtr GetAddSpace(String name); /*{
 		for (Space& pool : spaces)
 			if (pool.GetName() == name)
 				return &pool;
 		return AddSpace(name);
-	}
+	}*/
 	
-	EnvStatePtr AddState(String name="") {
+	EnvStatePtr AddState(String name=""); /*{
 		EnvState& p = states.Add();
 		//p.SetParent(this);
 		p.SetName(name);
 		return &p;
-	}
+	}*/
 	
-	EnvStatePtr GetAddEnv(String name) {
+	EnvStatePtr GetAddEnv(String name); /*{
 		if (EnvStatePtr e = FindState(name))
 			return e;
 		return AddState(name);
-	}
+	}*/
 	
-	EnvStatePtr FindState(String name) {
+	EnvStatePtr FindState(String name); /*{
 		for (EnvState& s : states)
 			if (s.GetName() == name)
 				return &s;
 		return EnvStatePtr();
-	}
+	}*/
 	
-	AtomMap::Iterator			begin()			{return atoms.begin();}
-	AtomMap::Iterator			end()			{return atoms.end();}
+	//AtomMap::Iterator			begin()			{return atoms.begin();}
+	//AtomMap::Iterator			end()			{return atoms.end();}
 	//SpaceVec::Iterator			BeginSpace()	{return spaces.begin();}
 	
 	void Visit(Vis& vis);
 	void VisitSinks(Vis& vis);
 	void VisitSources(Vis& vis);
-	
+	/*
 private:
 	StateVec				states;
 	AtomMap					atoms;
-	SpaceVec				spaces;
+	SpaceVec				spaces;*/
 };
 
-using SpaceVec = Array<Space>;
+//using SpaceVec = Array<Space>;
 using SpacePtr = Ptr<Space>;
 
 #if 0

@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-Entity::Entity() {
+Entity::Entity(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -34,6 +34,8 @@ void Entity::Serialize(Stream& e) {
 	  ;
 	*/
 	
+	TODO
+	#if 0
 	GeomVar type;
 	if (e.IsLoading()) {
 		TODO
@@ -56,11 +58,12 @@ void Entity::Serialize(Stream& e) {
 			e.PutT(type);
 		}
 	}
+	#endif
 }
 
 void Entity::UnrefDeep() {
 	RefClearVisitor vis;
-	vis.Visit(*this);
+	vis.VisitT<MetaNodeExt>("MetaNodeExt",*this);
 }
 
 EntityId Entity::GetNextId() {
@@ -75,7 +78,8 @@ String Entity::GetTreeString(int indent) {
 	
 	s << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << ": " << prefab << "\n";
 	
-	for (ComponentBasePtr& c : comps) {
+	auto comps = node.FindAll<ComponentBase>();
+	for (auto& c : comps) {
 		s.Cat('\t', indent+1);
 		s << c->ToString();
 		s.Cat('\n');
@@ -89,62 +93,64 @@ void Entity::OnChange() {
 }
 
 ComponentBasePtr Entity::GetTypeCls(TypeCls comp_type) {
-	for (ComponentBasePtr& comp : comps) {
-		TypeCls type = comp->GetTypeId();
+	auto comps = node.FindAll<ComponentBase>();
+	for (auto& c : comps) {
+		TypeCls type = c->GetTypeCls();
 		if (type == comp_type)
-			return comp;
+			return c;
 	}
 	return ComponentBasePtr();
 }
 
 ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 	ComponentBasePtr cb = FindTypeCls(cls);
-	return cb ? cb : AddPtr(GetEngine().Get<ComponentStore>()->CreateComponentTypeCls(cls));
+	if (cb)
+		return cb;
+	return AddPtr(GetEngine().Get<ComponentStore>()->CreateComponentTypeCls(cls));
 }
 
 ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {
-	for (ComponentBasePtr& comp : comps) {
-		TypeCls type = comp->GetTypeId();
+	auto comps = node.FindAll<ComponentBase>();
+	for (auto& c : comps) {
+		TypeCls type = c->GetTypeCls();
 		if (type == comp_type)
-			return comp;
+			return c;
 	}
 	return ComponentBasePtr();
 }
 
 ComponentBasePtr Entity::AddPtr(ComponentBase* comp) {
-	comp->SetParent(this);
 	comps.AddBase(comp);
 	InitializeComponent(*comp);
-	return ComponentBaseRef(this, comp);
+	return comp;
 }
 
 void Entity::InitializeComponents() {
 	for(auto& comp : comps.GetValues())
-		InitializeComponent(*comp);
+		InitializeComponent(comp);
 }
 
 void Entity::InitializeComponent(ComponentBase& comp) {
-	comp.SetParent(this);
 	comp.Initialize();
 }
 
 void Entity::UninitializeComponents() {
 	auto& comps = this->comps.GetValues();
 	int dbg_i = 0;
-	for (auto it = comps.rbegin(); it != comps.rend(); --it) {
-		it().Uninitialize();
+	for (auto it = comps.End()-1; it != comps.Begin()-1; --it) {
+		it->Uninitialize();
 		dbg_i++;
 	}
 }
 
 void Entity::ClearComponents() {
 	ComponentStorePtr sys = GetEngine().Get<ComponentStore>();
-	for (auto iter = comps.rbegin(); iter; --iter)
-		sys->ReturnComponent(comps.Detach(iter));
+	for (int i = comps.GetCount()-1; i >= 0; i--)
+		sys->ReturnComponent(comps.Detach(i));
 	ASSERT(comps.IsEmpty());
 }
 
-EntityPtr Entity::Clone() const {
+Entity* Entity::Clone() const {
 	EntityPtr ent = GetPool().Clone(*this);
 	ent->InitializeComponents();
 	return ent;
@@ -167,7 +173,7 @@ void Entity::Destroy() {
 	Destroyable::Destroy();
 	
 	for (auto& component : comps.GetValues()) {
-		component->Destroy();
+		component.Destroy();
 	}
 	
 	if (auto es = GetEngine().TryGet<EntityStore>())
@@ -184,7 +190,7 @@ const Engine& Entity::GetEngine() const {
 }
 
 Pool& Entity::GetPool() const {
-	Pool* p = RefScopeParent<EntityParent>::GetParent().o;
+	Pool* p = node.GetOwnerExt<Pool>();
 	ASSERT(p);
 	return *p;
 }

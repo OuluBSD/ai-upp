@@ -19,6 +19,8 @@ void WorldLogicSystem::Update(double dt)
 }
 
 void WorldLogicSystem::UpdateByVisit(double dt) {
+	TODO // use a generic Stepper-Runtime-Visitor for Transform
+	#if 0
 	EntityComponentVisitor<Transform> visitor(GetEngine());
 	visitor.Skip(Pool::BIT_TRANSFORM);
     for (;visitor; visitor++)
@@ -27,6 +29,7 @@ void WorldLogicSystem::UpdateByVisit(double dt) {
         TransformPtr transform = visitor.Get<Transform>();
         UpdateTransform(*transform, dt);
     }
+    #endif
 }
 
 void WorldLogicSystem::UpdateByList(double dt) {

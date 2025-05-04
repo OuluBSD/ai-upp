@@ -1,25 +1,19 @@
 description "\377B85,42,0";
 
-noblitz;
-
 uses
 	AICore,
 	Geometry,
 	Esc,
-	Core2;
+	Core2,
+	Backend;
 
 file
 	Eon.h,
-	Shadertoy.icpp,
-	EcsCore.icpp,
-	EcsLib.icpp,
-	EcsLocal.icpp,
-	EcsService.icpp,
+	Eon.icpp,
 	Defs.h,
 	Fn.h,
 	Container.h,
-	Process.h,
-	Process.cpp,
+	Container.cpp,
 	CtrlEvent.h,
 	CtrlEvent.cpp,
 	Debugging.h,

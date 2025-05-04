@@ -36,9 +36,9 @@ void EntitySystem::ClearEngine() {
 }
 
 void EntitySystem::Visit(Vis& vis) {
-	vis.VisitT<System<CLASSNAME>>(this);
+	vis.VisitT<System<CLASSNAME>>("System",*this);
 	if (engine)
-		vis % *engine;
+		vis("engine",*engine);
 }
 
 END_UPP_NAMESPACE
@@ -52,16 +52,15 @@ SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
 }
 
-SystemBase::SystemBase(Engine& e) {
-	SetParent(&e);
-}
-
 SystemBase::~SystemBase() {
 	DBG_DESTRUCT
 }
 
 Engine& SystemBase::GetEngine() const {
-	return *GetParent().AsStatic<Engine>();
+	Engine* e = node.GetOwnerExt<Engine>();
+	ASSERT(e);
+	if (!e) throw Exc("no engine");
+	return *e;
 }
 
 
@@ -72,7 +71,7 @@ Callback Engine::WhenPreFirstUpdate;
 
 
 
-Engine::Engine() {
+Engine::Engine(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -90,17 +89,17 @@ bool Engine::Start() {
 	
 	is_looping_systems = true;
 	
-	for (auto system : systems) {
-		if (!system->Initialize()) {
-			LOG("Could not initialize system " << system->GetDynamicName());
+	for (auto it : ~systems) {
+		if (!it.value.Initialize()) {
+			LOG("Could not initialize system " << it.key.GetName());
 			return false;
 		}
 	}
 	
 	is_initialized = true;
 	
-	for (auto& system : systems) {
-		system->Start();
+	for (auto it : ~systems) {
+		it.value.Start();
 	}
 	
 	is_looping_systems = false;
@@ -136,11 +135,11 @@ void Engine::Update(double dt) {
 	
 	is_looping_systems = true;
 	
-	for (auto& system : systems) {
-		SystemBase* b = &*system;
+	for (auto it : ~systems) {
+		SystemBase* b = &it.value;
 		WhenEnterSystemUpdate(*b);
 		
-		system->Update(dt);
+		b->Update(dt);
 		
 		WhenLeaveSystemUpdate();
 	}
@@ -163,14 +162,14 @@ void Engine::Stop() {
 	
 	is_looping_systems = true;
 	
-	for (auto it = systems.rbegin(); it != systems.rend(); --it) {
-		(*it)->Stop();
+	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
+		it->Stop();
 	}
 	
 	is_initialized = false;
 	
-	for (auto it = systems.rbegin(); it != systems.rend(); --it) {
-		(*it)->Uninitialize();
+	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
+		it->Uninitialize();
 	}
 	
 	is_looping_systems = false;
@@ -191,11 +190,11 @@ bool Engine::HasStarted() const {
 void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 	ASSERT(is_started);
 	if (system->Initialize()) {
-		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetDynamicName());
+		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetType().GetName());
 		
 		bool has_already = false;
-		for (auto r : systems)
-			if (&*r == system)
+		for (auto r : ~systems)
+			if (&r.value == system)
 				has_already = true;
 		if (!has_already)
 			systems.Add(type_id, system);
@@ -203,7 +202,7 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 		system->Start();
 	}
 	else {
-		RTLOG("Engine::SystemStartup: error: could not initialize system in already running engine: " << system->GetDynamicName());
+		RTLOG("Engine::SystemStartup: error: could not initialize system in already running engine: " << system->GetType().GetName());
 		delete system;
 	}
 }
@@ -211,8 +210,8 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 void Engine::Add(TypeCls type_id, SystemBase* system, bool startup) {
 	ASSERT_(!is_looping_systems, "adding systems while systems are being iterated is error-prone");
 	
-	auto it = FindSystem(type_id);
-	ASSERT(!it);
+	int i = FindSystem(type_id);
+	ASSERT(i >= 0);
 	
 	ASSERT(system->GetParent());
 	if (startup && is_started)
@@ -224,10 +223,10 @@ void Engine::Add(TypeCls type_id, SystemBase* system, bool startup) {
 void Engine::Remove(TypeCls type_id) {
 	ASSERT_(!is_started, "removing systems after the machine has started is error-prone");
 	
-	Engine::SystemCollection::Iterator it = FindSystem(type_id);
-	ASSERT(it);
+	int i = FindSystem(type_id);
+	ASSERT(i >= 0);
 	
-	systems.Remove(it);
+	systems.Remove(i);
 }
 
 void Engine::Visit(Vis& vis) {

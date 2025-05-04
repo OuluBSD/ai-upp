@@ -3,7 +3,7 @@
 
 
 class LoopStore : public System<LoopStore> {
-	LoopVec				root;
+	//LoopVec				root;
 	
 	Mutex				lock;
 	
@@ -15,15 +15,15 @@ class LoopStore : public System<LoopStore> {
 	void InitRoot();
 public:
 	SYS_CTOR_(LoopStore) {InitRoot();}
-	SYS_DEF_VISIT_(vis || root)
+	SYS_DEF_VISIT
 	
-	LoopPtr GetRoot() {
+	LoopPtr GetRoot(); /*{
 		if (root.IsEmpty())
 			return LoopPtr();
 		Loop& l = root[0];
 		return &l;
-	}
-	LoopVec& GetRootVec()	{return root;}
+	}*/
+	//LoopVec& GetRootVec()	{return root;}
 	
 	
 	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::LOOP_STORE;}

@@ -90,7 +90,7 @@ public:
 	template <class T> static LinkBase* CreateLink() {return new T();}
 	
 	template <class T> static void RegisterLink() {
-		LinkTypeCls cls = T::GetType();
+		LinkTypeCls cls = T::GetLinkTypeStatic();
 		ASSERT(cls.IsValid());
 		LinkData& d = LinkDataMap().GetAdd(cls);
 		d.rtti_cls = AsTypeCls<T>();

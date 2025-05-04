@@ -3,7 +3,7 @@
 
 
 class SpaceStore : public System<SpaceStore> {
-	SpaceVec		root;
+	//SpaceVec		root;
 	
 	Mutex			lock;
 	
@@ -15,21 +15,21 @@ class SpaceStore : public System<SpaceStore> {
 	void InitRoot();
 public:
 	SYS_CTOR_(SpaceStore) {InitRoot();}
-	SYS_DEF_VISIT_(vis || root)
+	SYS_DEF_VISIT
 	
-	SpacePtr GetRoot() {
+	SpacePtr GetRoot(); /*{
 		if (root.IsEmpty())
 			return SpacePtr();
 		Space& l = root[0];
 		return &l;
-	}
-	Space* GetRootPtr() {
+	}*/
+	Space* GetRootPtr(); /*{
 		if (root.IsEmpty())
 			return 0;
 		Space& l = root[0];
 		return &l;
-	}
-	SpaceVec& GetRootVec()	{return root;}
+	}*/
+	//SpaceVec& GetRootVec()	{return root;}
 	
 	
 	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::LOOP_STORE;}

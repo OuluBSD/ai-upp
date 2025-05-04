@@ -335,7 +335,7 @@ ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 
 
 
-MetaDirectoryBase::MetaDirectoryBase() {
+MetaDirectoryBase::MetaDirectoryBase(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 

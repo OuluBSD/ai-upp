@@ -3,6 +3,13 @@ description "\377B128,0,0";
 file
 	Core.h,
 	TypeTraits.h,
+	String.h,
+	Util.h,
+	Util.cpp,
+	Process.h,
+	Process.cpp,
+	Tokenizer.h,
+	Tokenizer.cpp,
 	Container.h,
 	Container.cpp;
 

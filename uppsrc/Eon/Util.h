@@ -36,10 +36,10 @@ MACHVER_FWDFN_LIST
 #define MACHVER_STATUS(fn, ptr)	{static byte __; MachineVerifier_On##fn(ptr);}
 
 
-void MachineVerifier_OnLoopLoader_Status(ScriptLoopLoader* ll);
-void MachineVerifier_OnLoopLoader_RealizeAtoms(ScriptLoopLoader* ll);
-void MachineVerifier_OnLoopLoader_AtomLinked(ScriptLoopLoader* ll);
-void MachineVerifier_OnLoopLoader_SearchNewSegment(ScriptLoopLoader* ll);
+void MachineVerifier_OnLoopLoader_Status(Eon::ScriptLoopLoader* ll);
+void MachineVerifier_OnLoopLoader_RealizeAtoms(Eon::ScriptLoopLoader* ll);
+void MachineVerifier_OnLoopLoader_AtomLinked(Eon::ScriptLoopLoader* ll);
+void MachineVerifier_OnLoopLoader_SearchNewSegment(Eon::ScriptLoopLoader* ll);
 
 #else
 

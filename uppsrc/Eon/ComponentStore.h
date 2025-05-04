@@ -83,7 +83,7 @@ private:
 	
 };
 
-
+using ComponentStorePtr = Ptr<ComponentStore>;
 
 
 

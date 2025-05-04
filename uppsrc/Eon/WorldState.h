@@ -3,13 +3,13 @@
 
 
 
-
+namespace Eon {
 class ScriptLoader;
 class ScriptLoopLoader;
 class ScriptDriverLoader;
+}
 class ActionPlanner;
 class ActionNode;
-
 
 class WorldState : public Moveable<WorldState> {
 
@@ -23,9 +23,9 @@ protected:
 	friend class ActionPlanner;
 	friend class ActionPlannerWrapper;
 	friend class ActionNode;
-	friend class ScriptLoader;
-	friend class ScriptLoopLoader;
-	friend class ScriptDriverLoader;
+	friend class Eon::ScriptLoader;
+	friend class Eon::ScriptLoopLoader;
+	friend class Eon::ScriptDriverLoader;
 	
 	
 	ArrayMap<String, Value> values;

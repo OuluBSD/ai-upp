@@ -37,7 +37,7 @@ Space* AtomBase::GetSpace() {
 }
 
 Space& AtomBase::GetParent() {
-	return *GetParent();
+	node.GetOwnerExt<Space>();
 }
 
 LinkBase* AtomBase::GetLink() {

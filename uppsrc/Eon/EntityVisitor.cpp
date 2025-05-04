@@ -164,7 +164,7 @@ void EntityVisitor::PoolPushSub() {
 
 
 
-
+#if 0
 
 EntityParentVisitor::EntityParentVisitor(Pool& pool) : base(pool) {
 	Reset();
@@ -225,5 +225,6 @@ bool EntityParentVisitor::FindNextChildFirst() {
 	return false;
 }
 
+#endif
 
 } END_UPP_NAMESPACE

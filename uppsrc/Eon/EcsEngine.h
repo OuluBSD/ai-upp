@@ -7,7 +7,7 @@ namespace Ecs {
 class Engine;
 struct ComponentBaseUpdater;
 
-class SystemBase : public Pte<SystemBase>
+class SystemBase : public MetaSystemBase
 {
 public:
     SystemBase();
@@ -42,12 +42,12 @@ public:
 	
 	System(MetaNode& m) : SystemBase(m) {};
     TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitT<SystemBase>(this);}
+    void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
 };
 
 
-class Engine : public Pte<Engine>
+class Engine : public MetaNodeExt
 {
 	int64 ticks = 0;
 	
@@ -67,9 +67,9 @@ public:
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         
-        SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
-        if (it)
-            return &*it;
+        int i = FindSystem(AsTypeCls<SystemT>());
+        if (i >= 0)
+            return &systems[i];
         
         return Ptr<SystemT>();
     }
@@ -86,9 +86,9 @@ public:
 
     template<typename SystemT, typename... Args>
     Ptr<SystemT> GetAdd(Args&&... args) {
-        SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
-        if (it)
-            return &*it;
+        int i = FindSystem(AsTypeCls<SystemT>());
+        if (i >= 0)
+            return &systems[i];
         return Add<SystemT>(args...);
     }
     
@@ -103,7 +103,7 @@ public:
         Remove(AsTypeCls<SystemT>());
     }
 
-    Engine();
+    Engine(MetaNode& n);
     virtual ~Engine();
 
     bool HasStarted() const;
@@ -114,7 +114,7 @@ public:
     void Suspend();
     void Resume();
     void DieFast() {Start(); Update(0); Stop();}
-	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0; systems.Clear();}
+	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0; /*systems.Clear();*/}
 	
     bool IsRunning() const {return is_running;}
 	void SetNotRunning() {is_running = false;}
@@ -145,8 +145,8 @@ protected:
 	EntitySystem* sys = 0;
 	
 private:
-    using SystemCollection = ArrayMap<TypeCls, SystemBase>;
-    SystemCollection systems;
+    //using SystemCollection = ArrayMap<TypeCls, SystemBase>;
+    //SystemCollection systems;
 	
 	bool is_started = false;
     bool is_initialized = false;
@@ -154,7 +154,7 @@ private:
     bool is_running = false;
     bool is_looping_systems = false;
     
-    int FindSystem(TypeCls type_id) {return systems.Find(type_id);}
+    int FindSystem(TypeCls type_id);// {return systems.Find(type_id);}
     void Add(TypeCls type_id, SystemBase* system, bool startup=true);
     void Remove(TypeCls typeId);
     
@@ -175,7 +175,7 @@ public:
 	static void Register(String id) {
 		//String id = T::GetEonId();
 		ASSERT(id.GetCount() > 0);
-		TypeCls type = T::TypeIdClass();
+		TypeCls type = AsTypeCls<T>();
 		ASSERT(EonToType().Find(id) < 0);
 		EonToType().Add(id, type);
 		ASSERT(TypeNewFn().Find(type) < 0);

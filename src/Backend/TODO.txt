@@ -1,2 +1,0 @@
- - AstRunner
-	- rpath is probably useless because of AstNode::next_obj

@@ -63,23 +63,19 @@ PoolId Pool::GetNextId() {
 }
 
 Pool* Pool::GetParent() const {
-	return RefScopeParent<PoolParent>::GetParent().b;
+	return node.GetOwnerExt<Pool>();
 }
 
 Engine& Pool::GetEngine() {
 	if (machine)
 		return *machine;
-	Pool* p = this;
+	MetaNode* n = &node;
 	int levels = 0;
-	while (p && levels++ < 1000) {
-		const PoolParent& par = p->RefScopeParent<PoolParent>::GetParent();
-		if (par.a) {
-			machine = &par.a->GetEngine();
-			ASSERT(machine);
+	while (n && levels++ < 1000) {
+		machine = n->Find<Engine>();
+		if (machine)
 			return *machine;
-		}
-		ASSERT(p != par.b);
-		p = par.b;
+		n = n->owner;
 	}
 	throw (Exc("Engine ptr not found"));
 }
@@ -93,11 +89,10 @@ void Pool::Initialize(Entity& e, String prefab) {
 }
 
 EntityPtr Pool::CreateEmpty() {
-	Entity& e = objects.Add();
-	e.SetParent(this);
+	Entity& e = node.Add<Entity>();
 	e.SetId(GetNextId());
 	Initialize(e);
-	return e;
+	return &e;
 }
 
 EntityPtr Pool::GetAddEmpty(String name) {

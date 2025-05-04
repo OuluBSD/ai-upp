@@ -9,12 +9,12 @@ class EntityVisitor : public Pte<EntityVisitor>
 {
 	struct Item : Moveable<Item> {
 		int pool_pos;
-		PoolVec::Iterator pool;
-		EntityVec::Iterator ent;
+		//PoolVec::Iterator pool;
+		//EntityVec::Iterator ent;
 		bool finished = false;
 	};
 	
-	PoolVec& base;
+	//PoolVec& base;
 	BitField<dword> freeze_checks;
 	Vector<Item> stack;
 	EntityPtr cur;
@@ -32,10 +32,12 @@ public:
 		POOL_CURRENT_ONLY,
 		POOL_CHILDREN_ONLY
 	};
-	
+	#if 0
 	EntityVisitor(PoolVec& pool, int mode=POOL_CURRENT_AND_CHILDREN);
 	EntityVisitor(Engine& m, int mode=POOL_CURRENT_AND_CHILDREN);
 	EntityVisitor(Entity& e, int mode=POOL_CURRENT_AND_CHILDREN);
+	#endif
+	EntityVisitor(MetaNode& n, int mode=POOL_CURRENT_AND_CHILDREN);
 	
 	void Reset();
 	void Skip(Pool::Bit entpool_bit);
@@ -62,6 +64,7 @@ public:
 	void operator++(int) {once = false;}
 };
 
+#if 0
 class EntityParentVisitor {
 	Pool& base;
 	BitField<dword> freeze_checks;
@@ -138,6 +141,7 @@ public:
 	
 };
 
+#endif
 
 }
 

@@ -40,7 +40,7 @@ class System : public SystemBase
 public:
 	System(MetaNode& n) : SystemBase(n) {}
 	TypeCls GetType() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",this);}
+    void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
 };
 
@@ -85,8 +85,8 @@ public:
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         
-        SystemCollection::Iterator it = FindSystem(AsTypeCls<SystemT>());
-        return it ? &*it : Ptr<SystemT>();
+        int i = FindSystem(AsTypeCls<SystemT>());
+        return i >= 0 ? &systems[i] : Ptr<SystemT>();
     }
 
     template<typename SystemT, typename... Args>

@@ -21,10 +21,10 @@ protected:
 public:
 	typedef Loop CLASSNAME;
 	using LoopPtr = Ptr<Loop>;
-	using LoopVec = Array<Loop>;
+	//using LoopVec = Array<Loop>;
 	static LoopId GetNextId();
 	
-	Loop();
+	Loop(MetaNode& n);
 	~Loop();
 	
 	LoopId GetId() const {return id;}
@@ -45,8 +45,8 @@ public:
 	Space*				GetSpace() const;
 	String				GetName() const {return name;}
 	String				GetDeepName() const;
-	bool				HasAtoms() const {return !links.IsEmpty();}
-	bool				HasLoops() const {return !loops.IsEmpty();}
+	bool				HasAtoms() const;//{return !links.IsEmpty();}
+	bool				HasLoops() const;// {return !loops.IsEmpty();}
 	
 	void				Initialize(Loop& l, String prefab="Custom");
 	
@@ -71,33 +71,33 @@ public:
 	int					GetLoopDepth() const;
 	bool				HasLoopParent(LoopPtr pool) const;
 	
-	LoopVec& GetLoops() {return loops;}
+	//LoopVec& GetLoops() {return loops;}
 	
-	LoopPtr AddLoop(String name="") {
+	LoopPtr AddLoop(String name=""); /*{
 		Loop& p = loops.Add();
 		//p.SetParent(DirExBaseParent(0, this));
 		p.SetName(name);
 		//p.SetId(GetNextId());
 		return &p;
-	}
+	}*/
 	
-	LoopPtr GetAddLoop(String name) {
+	LoopPtr GetAddLoop(String name); /*{
 		for (Loop& pool : loops)
 			if (pool.GetName() == name)
 				return &pool;
 		return AddLoop(name);
-	}
+	}*/
 	
 	EnvStatePtr GetAddEnv(String name) {return space->GetAddEnv(name);}
 	
 	void Visit(Vis& vis);
 	
 private:
-	LinkMap					links;
-	LoopVec					loops;
+	//LinkMap					links;
+	//LoopVec					loops;
 };
 
-using LoopVec = Array<Loop>;
+//using LoopVec = Array<Loop>;
 using LoopPtr = Ptr<Loop>;
 
 class LoopHashVisitor : public Vis {

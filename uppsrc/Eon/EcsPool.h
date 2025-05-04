@@ -5,16 +5,15 @@
 namespace Ecs {
 
 
-class Pool : public Pte<Pool>
+class Pool : public MetaNodeExt
 {
-	using PoolVec = Array<Pool>;
+	//using PoolVec = Array<Pool>;
 	
-	Engine*				machine = 0;
+	//Engine*				machine = 0;
 	BitField<dword>		freeze_bits;
 	String				name;
 	PoolId				id;
-	EntityVec			objects;
-	PoolVec				pools;
+	//PoolVec				pools;
 	
 protected:
 	friend class EntityStore;
@@ -60,8 +59,8 @@ public:
 	Pool*				GetParent() const;
 	Engine&				GetEngine();
 	String				GetName() const {return name;}
-	bool				HasEntities() const {return !objects.IsEmpty();}
-	bool				HasPools() const {return !pools.IsEmpty();}
+	bool				HasEntities() const;// {return !objects.IsEmpty();}
+	//bool				HasPools() const {return !pools.IsEmpty();}
 	
 	void				Initialize(Entity& e, String prefab="Custom");
 	EntityPtr			CreateEmpty();
@@ -145,25 +144,25 @@ public:
 		return all_valid_components;
 	}
 	
-	EntityVec& GetEntities() {return objects;}
-	PoolVec& GetPools() {return pools;}
+	//EntityVec& GetEntities() {return objects;}
+	//PoolVec& GetPools() {return pools;}
 	
 	PoolPtr FindPool(String name);
 	PoolPtr AddPool(String name="");
 	PoolPtr GetAddPool(String name);
-	EntityVec::Iterator			begin()			{return objects.begin();}
-	EntityVec::Iterator			end()			{return objects.end();}
-	PoolVec::Iterator			BeginPool()		{return pools.begin();}
+	//EntityVec::Iterator			begin()			{return objects.begin();}
+	//EntityVec::Iterator			end()			{return objects.end();}
+	//PoolVec::Iterator			BeginPool()		{return pools.begin();}
 	
 	ComponentBasePtr RealizeComponentPath(const Vector<String>& path);
 	
-	void Visit(Vis& vis) {
+	/*void Visit(Vis& vis) {
 		vis || objects || pools;
-	}
+	}*/
 	
 };
 
-using PoolVec = Array<Pool>;
+//using PoolVec = Array<Pool>;
 using PoolPtr = Ptr<Pool>;
 
 class PoolHashVisitor : public Vis {

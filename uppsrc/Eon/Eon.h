@@ -6,6 +6,7 @@
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
 #include <Core2/Core.h>
+#include <Backend/Backend.h>
 
 #if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
 	#include <cxxabi.h>
@@ -17,7 +18,6 @@ NAMESPACE_UPP
 #include "Fn.h"
 #include "CtrlEvent.h"
 #include "Container.h"
-#include "Process.h"
 #include "Debugging.h"
 #include "WorldState.h"
 #include "SampleBase.h"
@@ -68,6 +68,7 @@ NAMESPACE_UPP
 #include "Factory.h"
 #include "ComponentStore.h"
 #include "EntityVisitor.h"
+#include "EcsFactory.h"
 
 #include "CommonComponents.h"
 #include "EcsRegistrySystem.h"

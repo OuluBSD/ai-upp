@@ -7,7 +7,6 @@ namespace Eon {
 	
 class WorldState;
 class Action;
-class ScriptLoader;
 class ScriptLoopLoader;
 class ScriptStateLoader;
 class ScriptSystemLoader;
@@ -124,7 +123,7 @@ public:
 	int			GetAtomLinkCount() const {return atom_links.GetCount();}
 	
 	bool		Load() override;
-	void		Visit(Vis& vis) override {vis | atoms;}
+	void		Visit(Vis& vis) override {vis || atoms;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 };
@@ -147,7 +146,7 @@ public:
 	void		LinkPlanner();
 	void		Linker();
 	
-	void		Visit(Vis& vis) override {vis | loops | states;}
+	void		Visit(Vis& vis) override {vis || loops || states;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
@@ -172,7 +171,7 @@ public:
 	
 	ScriptTopChainLoader(int mode, ScriptMachineLoader& parent, ScriptTopChainLoader* chain_parent, int id, Eon::ChainDefinition& def);
 	
-	void		Visit(Vis& vis) override {vis | subchains | chains;}
+	void		Visit(Vis& vis) override {vis || subchains || chains;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
@@ -211,7 +210,7 @@ public:
 	
 	
 	ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def);
-	void		Visit(Vis& vis) override {vis | chains;}
+	void		Visit(Vis& vis) override {vis || chains;}
 	bool		Load() override;
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
@@ -230,7 +229,7 @@ public:
 	
 	ScriptSystemLoader(ScriptLoader& parent, int id, Eon::GlobalScope& glob);
 	
-	void		Visit(Vis& vis) override {vis | machs | worlds;}
+	void		Visit(Vis& vis) override {vis || machs || worlds;}
 	String		GetTreeString(int indent=0) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
@@ -270,7 +269,7 @@ protected:
 public:
 	typedef ScriptLoader CLASSNAME;
 	ScriptLoader(Machine& m);
-	SYS_DEF_VISIT_((vis & es & ss); if (!loader.IsEmpty()) vis % *loader;)
+	SYS_DEF_VISIT_((vis & es & ss); if (!loader.IsEmpty()) vis("loader",*loader);)
 	
 	void PostLoadFile(const String& path) {post_load_file << path;}
 	void PostLoadString(const String& s) {post_load_string << s;}

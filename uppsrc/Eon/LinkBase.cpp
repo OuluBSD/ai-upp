@@ -49,7 +49,7 @@ bool CustomerLink::ProcessPackets(PacketIO& io) {
 	return r;
 }
 
-LinkTypeCls CustomerLink::GetType() {
+LinkTypeCls CustomerLink::GetLinkTypeStatic() {
 	return LINKTYPE(CUSTOMER, CUSTOMER);
 }
 
@@ -137,7 +137,7 @@ bool PipeLink::ProcessPackets(PacketIO& io) {
 	return DefaultProcessPackets(*this, *atom, io);
 }
 
-LinkTypeCls PipeLink::GetType() {
+LinkTypeCls PipeLink::GetLinkTypeStatic() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
@@ -219,7 +219,7 @@ bool PipeOptSideLink::ProcessPackets(PacketIO& io) {
 	return b;
 }
 
-LinkTypeCls PipeOptSideLink::GetType() {
+LinkTypeCls PipeOptSideLink::GetLinkTypeStatic() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
@@ -253,7 +253,7 @@ void IntervalPipeLink::Uninitialize() {
 	flag.Stop();
 }
 
-LinkTypeCls IntervalPipeLink::GetType() {
+LinkTypeCls IntervalPipeLink::GetLinkTypeStatic() {
 	return LINKTYPE(INTERVAL_PIPE, PROCESS);
 }
 
@@ -338,7 +338,7 @@ void PollerLink::Uninitialize() {
 	RemoveLinkFromUpdateList();
 }
 
-LinkTypeCls PollerLink::GetType() {
+LinkTypeCls PollerLink::GetLinkTypeStatic() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
@@ -408,7 +408,7 @@ void ExternalPipeLink::Uninitialize() {
 	
 }
 
-LinkTypeCls ExternalPipeLink::GetType() {
+LinkTypeCls ExternalPipeLink::GetLinkTypeStatic() {
 	return LINKTYPE(EXTERNAL_PIPE, PROCESS);
 }
 
@@ -439,7 +439,7 @@ bool DriverLink::ProcessPackets(PacketIO& io) {
 	return true;
 }
 
-LinkTypeCls DriverLink::GetType() {
+LinkTypeCls DriverLink::GetLinkTypeStatic() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
@@ -536,7 +536,7 @@ bool MergerLink::ProcessPackets(PacketIO& io) {
 	return b;
 }
 
-LinkTypeCls MergerLink::GetType() {
+LinkTypeCls MergerLink::GetLinkTypeStatic() {
 	return LINKTYPE(MERGER, PROCESS);
 }
 
@@ -628,7 +628,7 @@ bool JoinerLink::ProcessPackets(PacketIO& io) {
 	return true;
 }
 
-LinkTypeCls JoinerLink::GetType() {
+LinkTypeCls JoinerLink::GetLinkTypeStatic() {
 	return LINKTYPE(JOINER, PROCESS);
 }
 
@@ -707,7 +707,7 @@ bool SplitterLink::ProcessPackets(PacketIO& io) {
 	return true;
 }
 
-LinkTypeCls SplitterLink::GetType() {
+LinkTypeCls SplitterLink::GetLinkTypeStatic() {
 	return LINKTYPE(SPLITTER, PROCESS);
 }
 

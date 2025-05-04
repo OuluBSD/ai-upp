@@ -1,8 +1,8 @@
 #include "Eon.h"
 
 
-
 NAMESPACE_UPP
+namespace Eon {
 using namespace Ecs;
 
 
@@ -112,7 +112,6 @@ bool ExtScriptEcsLoader::Load(ScriptComponentLoader& l, Ecs::ComponentBase& cb) 
 }
 
 
-
-
+}
 END_UPP_NAMESPACE
 

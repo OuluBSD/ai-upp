@@ -1,0 +1,37 @@
+#include "Eon.h"
+
+NAMESPACE_UPP
+
+//MAKE_STATIC(Eon::ExtScriptEcsLoader, __ext_script_loader);
+
+INITBLOCK {
+	using namespace Ecs;
+	//__ecs_script_loader = &__ext_script_loader;
+	
+	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
+	
+	// System
+	Engine::Register<EasingSystem>("easing");
+	Engine::Register<WorldLogicSystem>("world.logic");
+	Engine::Register<PhysicsSystem>("physics");
+	Engine::Register<PlayerBodySystem>("player");
+	Engine::Register<InteractionSystem>("interaction");
+	Engine::Register<Ecs::RegistrySystem>("registry");
+	Engine::Register<EntityStore>("entity.store");
+	Engine::Register<ComponentStore>("component.store");
+	
+	// Component
+	Ecs::ComponentFactory::Register<RigidBody>("body");
+	Ecs::ComponentFactory::Register<TextRenderable>("text");
+	Ecs::ComponentFactory::Register<Easing>("easing");
+	Ecs::ComponentFactory::Register<PhysicsBody>("physics");
+	Ecs::ComponentFactory::Register<Transform>("transform3");
+	Ecs::ComponentFactory::Register<Transform2D>("transform2");
+	
+	
+	//DaemonBase::Register<EcsService>("Ecs");
+	
+	
+}
+
+END_UPP_NAMESPACE

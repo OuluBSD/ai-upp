@@ -22,23 +22,19 @@ Loop* Space::GetLoop() const {
 }
 
 Space* Space::GetParent() const {
-	return static_cast<Space*>(RefScopeParent<SpaceParent>::GetParentUnsafe().b);
+	TODO return 0 ;//return static_cast<Space*>(RefScopeParent<SpaceParent>::GetParentUnsafe().b);
 }
 
 Machine& Space::GetMachine() const {
 	if (machine)
 		return *machine;
-	const Space* l = this;
+	MetaNode* n = &node;
 	int levels = 0;
-	while (l && levels++ < 1000) {
-		const SpaceParent& par = l->RefScopeParent<SpaceParent>::GetParent();
-		if (par.a) {
-			machine = &static_cast<SpaceStore*>(par.a)->GetMachine();
-			ASSERT(machine);
+	while (n && levels++ < 1000) {
+		machine = n->Find<Machine>();
+		if (machine)
 			return *machine;
-		}
-		ASSERT(l != par.b);
-		l = static_cast<Space*>(par.b);
+		n = n->owner;
 	}
 	throw Exc("Machine ptr not found");
 }
@@ -118,8 +114,8 @@ void Space::AppendCopy(const Space& l) {
 
 void Space::Visit(Vis& vis) {
 	vis > atoms;
-	vis | spaces;
-	vis | states;
+	vis || spaces;
+	vis || states;
 }
 
 void Space::VisitSinks(Vis& vis) {

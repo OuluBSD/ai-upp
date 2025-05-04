@@ -1,5 +1,5 @@
-#ifndef _Eon_Factory_h_
-#define _Eon_Factory_h_
+#ifndef _Eon_EcsFactory_h_
+#define _Eon_EcsFactory_h_
 
 namespace Ecs {
 

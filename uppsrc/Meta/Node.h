@@ -297,6 +297,10 @@ struct MetaNode : Pte<MetaNode> {
 	template <class T> T& GetExt() {
 		return dynamic_cast<T&>(*ext);
 	}
+	
+	template <class T> T* GetOwnerExt() const {
+		return owner ? owner->ext ? CastPtr<T>(&*owner->ext) : 0 : 0;
+	}
 };
 
 using Nod = MetaNode;

@@ -117,7 +117,7 @@ struct EditorPtrs {
 };
 #endif
 
-struct Token : Moveable<Token> {
+struct TokenIdx : Moveable<TokenIdx> {
 	byte pad;
 
 	void Visit(Vis& v) {
@@ -609,7 +609,7 @@ struct SrcTextData : EntityData {
 	ArrayMap<ContextType, ContextData> ctxs;
 	
 	// WORDS
-	VectorMap<String, Token> tokens;
+	VectorMap<String, TokenIdx> tokens;
 	Vector<WordData> words_;
 	VectorMap<String, VectorMap<hash_t,VectorMap<int,int>>> langwords;
 	Vector<WordTranslation> translations;

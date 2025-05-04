@@ -5,7 +5,7 @@
 namespace Ecs {
 
 class Engine;
-struct ComponentBaseUpdater;
+struct ComponentBase;
 
 class SystemBase : public MetaSystemBase
 {
@@ -66,29 +66,25 @@ public:
     Ptr<SystemT> TryGet()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
-        
-        int i = FindSystem(AsTypeCls<SystemT>());
-        if (i >= 0)
-            return &systems[i];
-        
-        return Ptr<SystemT>();
+        return node.Find<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
     Ptr<SystemT> Add(Args&&... args)
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
-		
-		SystemT* syst = new SystemT(*this, args...);
-        Add(AsTypeCls<SystemT>(), syst);
-        return syst->template AsRef<SystemT>();
+        MetaNode& sub = node.Add();
+        sub.kind = 0; TODO // solve kind by SystemT from Factory
+		SystemT* syst = new SystemT(sub, args...);
+		sub.ext = syst;
+        return syst;
     }
 
     template<typename SystemT, typename... Args>
     Ptr<SystemT> GetAdd(Args&&... args) {
-        int i = FindSystem(AsTypeCls<SystemT>());
-        if (i >= 0)
-            return &systems[i];
+        auto sys = node.Find<SystemT>();
+        if (sys)
+            return sys;
         return Add<SystemT>(args...);
     }
     
@@ -100,7 +96,15 @@ public:
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 
         ASSERT(is_initialized && is_started);
-        Remove(AsTypeCls<SystemT>());
+        for(int i = 0; i < node.sub.GetCount(); i++) {
+			auto& n = node.sub[i];
+			if (n.ext) {
+				SystemT* t = CastPtr<SystemT>(&*n.ext);
+				if (t) {
+					node.sub.Remove(i--);
+				}
+			}
+        }
     }
 
     Engine(MetaNode& n);
@@ -120,8 +124,8 @@ public:
 	void SetNotRunning() {is_running = false;}
 	void Visit(Vis& vis);
 	
-	void AddToUpdateList(ComponentBaseUpdater* c);
-	void RemoveFromUpdateList(ComponentBaseUpdater* c);
+	void AddToUpdateList(ComponentBase* c);
+	void RemoveFromUpdateList(ComponentBase* c);
 	
 	Ptr<SystemBase> Add(TypeCls type, bool startup=true);
 	Ptr<SystemBase> GetAdd(String id, bool startup=true);
@@ -158,7 +162,7 @@ private:
     void Add(TypeCls type_id, SystemBase* system, bool startup=true);
     void Remove(TypeCls typeId);
     
-    Vector<ComponentBaseUpdater*> update_list;
+    Vector<ComponentBase*> update_list;
     
     
 private:
@@ -208,15 +212,24 @@ inline void ComponentBase::RemoveFromSystem(R ref) {
 
 template<typename T>
 void Entity::Remove0() {
-	comps.Remove<T>(GetEngine().Get<ComponentStore>());
+	for(int i = 0; i < node.sub.GetCount(); i++) {
+		auto& n = node.sub[i];
+		if (n.ext) {
+			T* t = CastPtr<T>(&*n.ext);
+			if (t) {
+				node.sub.Remove(i--);
+			}
+		}
+    }
 }
 
 template<typename T>
 T* Entity::Add0(bool initialize) {
-	T* comp = GetEngine().Get<ComponentStore>()->CreateComponent<T>();
-	ASSERT(comp);
-	comps.Add(comp);
-	if (initialize) {
+	MetaNode& sub = node.Add();
+    sub.kind = 0; TODO // solve kind by T from Factory
+	T* comp = new T(sub);
+	sub.ext = comp;
+    if (initialize) {
 		InitializeComponent(*comp);
 	}
 	ASSERT(comp->GetEntity());

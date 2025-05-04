@@ -11,14 +11,8 @@ class ComponentStore;
 
 //template <class T> inline T* ComponentBase_Static_As(ComponentBase*) {return 0;}
 
-struct ComponentBaseUpdater : Pte<ComponentBaseUpdater> {
-	
-	virtual void Update(double dt) {Panic("unimplemented");}
-	
-};
-
 class ComponentBase :
-	public ComponentBaseUpdater,
+	public MetaNodeExt,
 	public Destroyable,
 	public Enableable
 {
@@ -31,7 +25,7 @@ public:
 	virtual TypeCls GetTypeCls() const = 0;
 	virtual void Initialize() {};
 	virtual void Uninitialize() {};
-	// moved to inherited: virtual void Update(double dt) {Panic("unimplemented");}
+	virtual void Update(double dt) {Panic("unimplemented");}
 	virtual String ToString() const;
 	
 	
@@ -41,7 +35,7 @@ public:
 	void RemoveFromUpdateList();
 	
 public:
-	ComponentBase();
+	ComponentBase(MetaNode& n);
 	virtual ~ComponentBase();
 	
 	Entity* GetEntity();

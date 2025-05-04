@@ -4,11 +4,13 @@
 NAMESPACE_UPP namespace Ecs {
 
 void EntityStore::InitRoot() {
-	root.Clear();
-	Pool& p = root.Add();
-	p.SetParent(PoolParent(this,0));
-	p.SetName("root");
-	p.SetId(Pool::GetNextId());
+	node.RemoveAllShallow<Pool>();
+	MetaNode& n = node.Add();
+	n.kind = 0; TODO // solve kind
+	Pool* p = new Pool(n);
+	n.ext = p;
+	p->SetName("root");
+	p->SetId(Pool::GetNextId());
 }
 
 bool EntityStore::Initialize() {

@@ -43,7 +43,7 @@ public:
 	
 	Loop*				GetParent() const;
 	Space*				GetSpace() const;
-	String				GetName() const {return name;}
+	String				GetName() const override {return name;}
 	String				GetDeepName() const;
 	bool				HasAtoms() const;//{return !links.IsEmpty();}
 	bool				HasLoops() const;// {return !loops.IsEmpty();}

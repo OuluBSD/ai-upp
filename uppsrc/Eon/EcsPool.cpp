@@ -10,7 +10,7 @@ Engine& GetPoolEngine(PoolPtr pool) {return pool->GetEngine();}
 
 
 
-Pool::Pool() {
+Pool::Pool(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 

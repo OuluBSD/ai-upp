@@ -7,8 +7,8 @@ class Engine;
 
 Ecs::Engine* CreateEcsEngine();
 
+// TODO remove this
 class EntitySystem : public System<EntitySystem> {
-	Ecs::Engine* engine = 0;
 	ValueMap reg;
 	
 	
@@ -28,7 +28,6 @@ public:
 	
 	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::ENTITY_SYSTEM;}
 	
-	Ecs::Engine& GetEngine() {return *engine;}
 	
 };
 

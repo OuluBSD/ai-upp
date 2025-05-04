@@ -4,49 +4,53 @@
 NAMESPACE_UPP
 
 bool EntitySystem::Initialize() {
+	#if 1
+	ASSERT(node.FindOwnerDeep<Ecs::Engine>());
+	TODO // should this really start engine etc?
+	#else
 	engine = new Ecs::Engine;
 	engine->sys = this;
 	SetActiveEngine(*engine);
+	#endif
 	return true;
 }
 
 void EntitySystem::Start() {
-	engine->Start();
+	TODO // should this really start engine? engine->Start();
 }
 
 void EntitySystem::Update(double dt) {
-	if (engine->IsRunning())
-		engine->Update(dt);
+	//if (engine->IsRunning())
+	//	engine->Update(dt);
 }
 
 void EntitySystem::Stop() {
-	engine->Stop();
+	//engine->Stop();
 }
 
 void EntitySystem::Uninitialize() {
-	ClearEngine();
+	//ClearEngine();
 }
 
 void EntitySystem::ClearEngine() {
-	if (engine) {
+	/*if (engine) {
 		engine->Clear();
 		delete engine;
 		engine = 0;
-	}
+	}*/
 }
 
 void EntitySystem::Visit(Vis& vis) {
-	vis.VisitT<System<CLASSNAME>>("System",*this);
+	/*vis.VisitT<System<CLASSNAME>>("System",*this);
 	if (engine)
-		vis("engine",*engine);
+		vis("engine",*engine);*/
 }
 
-END_UPP_NAMESPACE
 
 
 
-NAMESPACE_UPP namespace Ecs {
 
+namespace Ecs {
 
 SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
@@ -77,7 +81,6 @@ Engine::Engine(MetaNode& n) : MetaNodeExt(n) {
 
 Engine::~Engine() {
 	ASSERT_(!is_initialized && !is_started, "Engine should be in a clean state upon destruction");
-	systems.Clear();
 	DBG_DESTRUCT
 }
 
@@ -89,17 +92,18 @@ bool Engine::Start() {
 	
 	is_looping_systems = true;
 	
-	for (auto it : ~systems) {
-		if (!it.value.Initialize()) {
-			LOG("Could not initialize system " << it.key.GetName());
+	auto systems = node.FindAll<Ecs::SystemBase>();
+	for (auto it : systems) {
+		if (!it->Initialize()) {
+			LOG("Could not initialize system " << it->GetType().GetName());
 			return false;
 		}
 	}
 	
 	is_initialized = true;
 	
-	for (auto it : ~systems) {
-		it.value.Start();
+	for (auto it : systems) {
+		it->Start();
 	}
 	
 	is_looping_systems = false;
@@ -129,14 +133,14 @@ void Engine::Update(double dt) {
 		return;
 	}
 	
-	for (ComponentBaseUpdater* cb : update_list) {
+	for (ComponentBase* cb : update_list) {
 		cb->Update(dt);
 	}
 	
 	is_looping_systems = true;
 	
-	for (auto it : ~systems) {
-		SystemBase* b = &it.value;
+	auto systems = node.FindAll<SystemBase>();
+	for (SystemBase* b : systems) {
 		WhenEnterSystemUpdate(*b);
 		
 		b->Update(dt);
@@ -162,14 +166,15 @@ void Engine::Stop() {
 	
 	is_looping_systems = true;
 	
+	auto systems = node.FindAll<SystemBase>();
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
-		it->Stop();
+		(*it)->Stop();
 	}
 	
 	is_initialized = false;
 	
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
-		it->Uninitialize();
+		(*it)->Uninitialize();
 	}
 	
 	is_looping_systems = false;
@@ -193,12 +198,13 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetType().GetName());
 		
 		bool has_already = false;
-		for (auto r : ~systems)
-			if (&r.value == system)
+		auto systems = node.FindAll<SystemBase>();
+		for (auto r : systems)
+			if (&*r == system)
 				has_already = true;
-		if (!has_already)
-			systems.Add(type_id, system);
-		
+		if (!has_already) {
+			Panic("error"); // previously system was added to systems list here, but now it has owner already
+		}
 		system->Start();
 	}
 	else {
@@ -207,6 +213,7 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 	}
 }
 
+#if 0
 void Engine::Add(TypeCls type_id, SystemBase* system, bool startup) {
 	ASSERT_(!is_looping_systems, "adding systems while systems are being iterated is error-prone");
 	
@@ -228,17 +235,18 @@ void Engine::Remove(TypeCls type_id) {
 	
 	systems.Remove(i);
 }
+#endif
 
 void Engine::Visit(Vis& vis) {
-	for (auto iter = systems.begin(); iter; ++iter)
-		vis.Visit(iter());
+	//for (auto iter = systems.begin(); iter; ++iter)
+	//	vis.Visit(iter());
 }
 
-void Engine::AddToUpdateList(ComponentBaseUpdater* c) {
+void Engine::AddToUpdateList(ComponentBase* c) {
 	VectorFindAdd(update_list, c);
 }
 
-void Engine::RemoveFromUpdateList(ComponentBaseUpdater* c) {
+void Engine::RemoveFromUpdateList(ComponentBase* c) {
 	VectorRemoveKey(update_list, c);
 }
 
@@ -253,6 +261,7 @@ Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
     return syst;
 }
 
+#if 0
 Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
     int i = EonToType().Find(id);
     if (i < 0)
@@ -263,6 +272,7 @@ Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
         return &systems[i];
     return Add(type, startup);
 }
+#endif
 
 
 

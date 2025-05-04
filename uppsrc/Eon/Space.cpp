@@ -40,8 +40,9 @@ Machine& Space::GetMachine() const {
 }
 
 AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
+	auto atoms = node.FindAll<AtomBase>();
 	for (auto& it : atoms) {
-		auto& comp = *it.atom;
+		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
 		ASSERT(type.IsValid());
 		if (type == atom_type)
@@ -60,8 +61,9 @@ AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
 }
 
 AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
+	auto atoms = node.FindAll<AtomBase>();
 	for (auto& it : atoms) {
-		auto& comp = *it.atom;
+		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
 		if (type == atom_type)
 			return &comp;
@@ -70,8 +72,9 @@ AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
+	auto atoms = node.FindAll<AtomBase>();
 	for (auto& it : atoms) {
-		auto& comp = *it.atom;
+		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
 		if (type == atom_type)
 			return &comp;
@@ -80,15 +83,17 @@ AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::AddPtr(AtomBase* comp) {
-	//comp->SetParent(this);
-	atoms.AddBase(comp);
+	MetaNode& sub = node.Add();
+	sub.kind = 0; TODO // solve from comp
+	sub.ext = comp;
 	InitializeAtom(*comp);
 	return AtomBasePtr(comp);
 }
 
 void Space::InitializeAtoms() {
+	auto atoms = node.FindAll<AtomBase>();
 	for(auto& it : atoms)
-		InitializeAtom(*it.atom);
+		InitializeAtom(*it);
 }
 
 void Space::InitializeAtom(AtomBase& comp) {
@@ -113,19 +118,19 @@ void Space::AppendCopy(const Space& l) {
 }
 
 void Space::Visit(Vis& vis) {
-	vis > atoms;
-	vis || spaces;
-	vis || states;
+	vis.VisitT<MetaSpaceBase>("MetaSpaceBase",*this);
 }
 
 void Space::VisitSinks(Vis& vis) {
+	auto atoms = node.FindAll<AtomBase>();
 	for(auto& it : atoms)
-		it.atom->VisitSink(vis);
+		it->VisitSink(vis);
 }
 
 void Space::VisitSources(Vis& vis){
+	auto atoms = node.FindAll<AtomBase>();
 	for(auto& it : atoms)
-		it.atom->VisitSource(vis);
+		it->VisitSource(vis);
 }
 
 int Space::GetSpaceDepth() const {
@@ -186,24 +191,28 @@ void Space::UnrefDeep() {
 }
 
 void Space::UninitializeAtomsDeep() {
+	auto spaces = node.FindAll<Space>();
 	for (int i = spaces.GetCount()-1; i >= 0; i--)
-		spaces[i].UninitializeAtomsDeep();
+		spaces[i]->UninitializeAtomsDeep();
 	
+	auto atoms = node.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--)
-		atoms[i].UninitializeDeep();
+		atoms[i]->UninitializeDeep();
 	
 }
 
 void Space::StopDeep() {
+	auto spaces = node.FindAll<Space>();
 	for (int i = spaces.GetCount()-1; i >= 0; i--)
-		spaces[i].StopDeep();
+		spaces[i]->StopDeep();
 	
 	Stop();
 }
 
 void Space::Stop() {
+	auto atoms = node.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
-		auto& it = atoms[i];
+		auto& it = *atoms[i];
 		if (it.IsRunning()) {
 			it.Stop();
 			it.SetRunning(false);
@@ -212,8 +221,9 @@ void Space::Stop() {
 }
 
 void Space::UnlinkDeep() {
+	auto atoms = node.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
-		auto& it = atoms[i];
+		auto& it = *atoms[i];
 		TODO //it.UnlinkDeep();
 	}
 	
@@ -222,15 +232,17 @@ void Space::UnlinkDeep() {
 }
 
 void Space::ClearStatesDeep() {
+	auto spaces = node.FindAll<Space>();
 	for (auto& p : spaces)
-		p.ClearStatesDeep();
+		p->ClearStatesDeep();
 	
-	states.Clear();
+	node.RemoveAllShallow<EnvState>();
 }
 
 void Space::ClearAtomsDeep() {
+	auto spaces = node.FindAll<Space>();
 	for (auto& p : spaces)
-		p.ClearAtomsDeep();
+		p->ClearAtomsDeep();
 	
 	TODO
 	/*AtomStore* sys = GetMachine().GetPtr<AtomStore>();
@@ -241,12 +253,13 @@ void Space::ClearAtomsDeep() {
 }
 
 void Space::ClearDeep() {
+	auto spaces = node.FindAll<Space>();
 	for (auto& p : spaces)
-		p.ClearDeep();
+		p->ClearDeep();
 	spaces.Clear();
 	
-	atoms.Clear();
-	states.Clear();
+	node.RemoveAllShallow<AtomBase>();
+	node.RemoveAllShallow<EnvState>();
 }
 
 SpacePtr Space::GetAddEmpty(String name) {
@@ -259,9 +272,10 @@ SpacePtr Space::GetAddEmpty(String name) {
 }
 
 SpacePtr Space::FindSpaceByName(String name) {
-	for (Space& object : spaces)
-		if (object.GetName() == name)
-			return &object;
+	auto spaces = node.FindAll<Space>();
+	for (Space* object : spaces)
+		if (object->GetName() == name)
+			return object;
 	return SpacePtr();
 }
 
@@ -269,8 +283,9 @@ AtomBasePtr Space::FindDeepCls(AtomTypeCls type) {
 	AtomBasePtr b = FindAtom(type);
 	if (b)
 		return b;
-	for (Space& object : spaces) {
-		b = object.FindDeepCls(type);
+	auto spaces = node.FindAll<Space>();
+	for (Space* object : spaces) {
+		b = object->FindDeepCls(type);
 		if (b)
 			return b;
 	}
@@ -289,11 +304,13 @@ String Space::GetTreeString(int indent) {
 	
 	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
 	
+	auto atoms = node.FindAll<AtomBase>();
 	for (auto& it : atoms)
-		s << it.atom->ToString();
+		s << it->ToString();
 	
-	for (Space& l : spaces)
-		s << l.GetTreeString(indent+1);
+	auto spaces = node.FindAll<Space>();
+	for (Space* l : spaces)
+		s << l->GetTreeString(indent+1);
 	
 	return s;
 }
@@ -315,8 +332,9 @@ EnvStatePtr Space::FindStateDeep(String name) {
 	if (e)
 		return e;
 	
-	for (Space& p : spaces) {
-		EnvStatePtr e = p.FindStateDeep(name);
+	auto spaces = node.FindAll<Space>();
+	for (Space* p : spaces) {
+		EnvStatePtr e = p->FindStateDeep(name);
 		if (e)
 			return e;
 	}

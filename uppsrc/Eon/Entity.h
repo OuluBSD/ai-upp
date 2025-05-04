@@ -44,7 +44,7 @@ public:
 	
 	void SetPrefab(String s) {prefab = s;}
 	String GetPrefab() const {return prefab;}
-	String GetName() const {return name;}
+	String GetName() const override {return name;}
 	EntityId GetId() const {return id;}
 	int64 GetCreatedTick() const {return created;}
 	int64 GetChangedTick() const {return changed;}
@@ -60,12 +60,16 @@ public:
 	
 	template<typename T>
 	T& Get() {
-		return comps.Get<T>();
+		auto comps = node.FindAll<T>();
+		ASSERT(comps.GetCount());
+		if (comps.IsEmpty()) throw Exc("Can't find component " + AsTypeName<T>());
+		return comps[0];
 	}
 	
 	template<typename T>
 	T* Find() {
-		return comps.Find<T>();
+		auto comps = node.FindAll<T>();
+		return comps.IsEmpty() ? 0 : comps[0];
 	}
 	
 	template<typename T>
@@ -76,9 +80,10 @@ public:
 	
 	template<typename T>
 	T* FindCast() {
+		auto comps = node.FindAll<T>();
 		T* o = 0;
-		for(ComponentBase& comp : comps.GetValues()) {
-			o = CastPtr<T>(&comp);
+		for(auto& comp : comps) {
+			o = CastPtr<T>(&*comp);
 			if (o)
 				break;
 		}
@@ -87,19 +92,21 @@ public:
 	
 	template<typename T>
 	Entity* FindInterface() {
+		auto comps = node.FindAll<T>();
 		Entity* o = 0;
-		for(ComponentBase& comp : comps.GetValues())
-			if ((o = CastPtr<T>(&comp)))
+		for(auto& comp : comps)
+			if ((o = CastPtr<T>(&*comp)))
 				break;
 		return o;
 	}
 	
 	template<typename T>
 	Vector<Ptr<T>> FindInterfaces() {
+		auto comps = node.FindAll<T>();
 		Vector<Ptr<T>> v;
 		Entity* o = 0;
-		for(ComponentBase& comp : comps.GetValues())
-			if ((o = CastPtr<T>(&comp)))
+		for(auto& comp : comps)
+			if ((o = CastPtr<T>(&*comp)))
 				v.Add(o);
 		return v;
 	}
@@ -131,7 +138,7 @@ public:
 	
 	template<typename... ComponentTs>
 	Tuple<ComponentTs*...> TryGetComponents() {
-		return MakeRTuple(comps.Find<ComponentTs>()...);
+		return MakeTuple(node.Find<ComponentTs>()...);
 	}
 	
 	

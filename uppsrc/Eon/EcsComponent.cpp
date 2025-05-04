@@ -9,7 +9,7 @@ NAMESPACE_UPP namespace Ecs {
 
 
 
-ComponentBase::ComponentBase() {
+ComponentBase::ComponentBase(MetaNode& n) : MetaNodeExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -18,15 +18,15 @@ ComponentBase::~ComponentBase() {
 }
 
 Engine& ComponentBase::GetEngine() {
-	return GetParent()->GetEngine();
+	return *node.FindOwnerDeep<Engine>();
 }
 
 EntityPtr ComponentBase::GetEntity() {
-	return GetParent()->AsRefT();
+	return node.FindOwnerDeep<Entity>();
 }
 
 String ComponentBase::ToString() const {
-	return GetDynamicName();
+	return GetTypeCls().GetName();
 }
 
 void ComponentBase::GetComponentPath(Vector<String>& path) {

@@ -27,7 +27,7 @@ public:
 	
 	static PoolId GetNextId();
 	
-	Pool();
+	Pool(MetaNode& n);
 	~Pool();
 	
 	typedef enum {
@@ -36,6 +36,7 @@ public:
 	} Bit;
 	
 	void Serialize(Stream& e);
+	void Visit(Vis& vis) override {vis.VisitT<MetaNodeExt>("Base", *this);}
 	
 	PoolId GetId() const {return id;}
 	
@@ -72,7 +73,7 @@ public:
 	EntityPtr Create() {
 		static_assert(TupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
-		Entity& e = objects.Add();
+		Entity& e = node.Add<Entity>();
 		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);
@@ -87,12 +88,12 @@ public:
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
 		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
-		
-		for (Entity& object : objects) {
-			auto requested_components = object.TryGetComponents<ComponentTs...>();
+		auto ents = node.FindAll<Entity>();
+		for (auto& ent : ents) {
+			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
 			if (AllValidComponents(requested_components)) {
-				Tuple<EntityPtr, ComponentTs*...> t(object, requested_components);
+				Tuple<EntityPtr, ComponentTs*...> t(*ent, requested_components);
 				components.Add(t);
 			}
 		}
@@ -107,8 +108,9 @@ public:
 		
 		Vector<Tuple<ComponentTs*...>> components;
 		
-		for (Entity& object : objects) {
-			auto requested_components = object.TryGetComponents<ComponentTs...>();
+		auto ents = node.FindAll<Entity>();
+		for (auto& ent : ents) {
+			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
 			if (AllValidComponents(requested_components)) {
 				components.Add(requested_components);
@@ -125,10 +127,11 @@ public:
 	EntityPtr FindEntity(T* component) {
 		if (!component)
 			return EntityPtr();
-		for (Entity& object : objects) {
-			T* t = object.Find<T>();
+		auto ents = node.FindAll<Entity>();
+		for (auto& ent : ents) {
+			T* t = ent->Find<T>();
 			if (t == component)
-				return &object;
+				return ent;
 		}
 		return EntityPtr();
 	}
@@ -183,8 +186,9 @@ T* Entity::FindNearestEntityWith() {
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			for (Entity& e : *p) {
-				c = e.Find<T>();
+			auto ents = p->node.FindAll<Entity>();
+			for (Entity* e : ents) {
+				c = e->Find<T>();
 				if (c) break;
 			}
 			p = p->GetParent();

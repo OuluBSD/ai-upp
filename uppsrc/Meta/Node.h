@@ -340,7 +340,7 @@ struct MetaNode : Pte<MetaNode> {
 		if (o)
 			v.Add(o);
 		for (auto& s : sub)
-			s.FindAdllDeep0<T>(v);
+			s.FindAllDeep0<T>(v);
 	}
 	template <class T> void RemoveAllDeep() {
 		Vector<int> rmlist;

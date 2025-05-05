@@ -602,5 +602,12 @@ template <> inline void Visitor::DoHash<Index<String>>(Index<String>& o) {hash.D
 bool MakeRelativePath(const String& includes, const String& dir, String& best_ai_dir, String& best_rel_dir);
 Vector<String> FindParentUppDirectories(const String& dir);
 
+class PtrClearVisitor : public Visitor {
+	
+public:
+	typedef PtrClearVisitor CLASSNAME;
+	PtrClearVisitor();
+	
+};
 
 #endif

@@ -4,7 +4,7 @@
 
 namespace Ecs {
 
-
+#if 0
 class EntityVisitor : public Pte<EntityVisitor>
 {
 	struct Item : Moveable<Item> {
@@ -64,7 +64,7 @@ public:
 	void operator++(int) {once = false;}
 };
 
-#if 0
+
 class EntityParentVisitor {
 	Pool& base;
 	BitField<dword> freeze_checks;

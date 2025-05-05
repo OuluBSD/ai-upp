@@ -1,5 +1,6 @@
 #include "Eon.h"
 
+#if 0
 
 NAMESPACE_UPP namespace Ecs {
 
@@ -164,7 +165,6 @@ void EntityVisitor::PoolPushSub() {
 
 
 
-#if 0
 
 EntityParentVisitor::EntityParentVisitor(Pool& pool) : base(pool) {
 	Reset();
@@ -225,6 +225,6 @@ bool EntityParentVisitor::FindNextChildFirst() {
 	return false;
 }
 
-#endif
-
 } END_UPP_NAMESPACE
+
+#endif

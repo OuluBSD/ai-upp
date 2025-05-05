@@ -5,7 +5,7 @@
 namespace Ecs {
 
 class Engine;
-struct ComponentBase;
+class ComponentBase;
 
 class SystemBase : public MetaSystemBase
 {

@@ -46,7 +46,7 @@ public:
 	bool IsFrozenTransform() const	{return freeze_bits.Is(BIT_TRANSFORM);}
 	bool IsFrozenOverlap() const	{return freeze_bits.Is(BIT_OVERLAP);}
 	
-	void				ReverseEntities();
+	//void				ReverseEntities();
 	void				Clear();
 	void				UnlinkDeep();
 	void				UnrefDeep();

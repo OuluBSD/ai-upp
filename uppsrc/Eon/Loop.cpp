@@ -60,20 +60,21 @@ void Loop::UnrefDeep() {
 
 void Loop::UninitializeLinksDeep() {
 	auto loops = node.FindAllDeep<Loop>();
-	for (Loop& l : loops)
-		l.UninitializeLinksDeep();
+	for (Loop* l : loops)
+		l->UninitializeLinksDeep();
 	
 	auto links = node.FindAllDeep<LinkBase>();
 	for (int i = links.GetCount()-1; i >= 0; i--)
-		links[i].Uninitialize();
+		links[i]->Uninitialize();
 	
 }
 
 void Loop::ClearDeep() {
-	for (Loop& p : loops)
-		p.ClearDeep();
-	loops.Clear();
-	links.Clear();
+	auto loops = node.FindAllDeep<Loop>();
+	for (Loop* p : loops)
+		p->ClearDeep();
+	node.RemoveAllDeep<Loop>();
+	node.RemoveAllDeep<LinkBase>();
 }
 
 LoopPtr Loop::GetAddEmpty(String name) {
@@ -86,7 +87,7 @@ LoopPtr Loop::GetAddEmpty(String name) {
 }
 
 LoopPtr Loop::CreateEmpty() {
-	Loop& l = loops.Add();
+	Loop& l = node.Add<Loop>();
 	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
@@ -99,8 +100,10 @@ void Loop::Initialize(Loop& l, String prefab) {
 }
 
 void Loop::Visit(Vis& vis) {
-	vis > links;
-	vis || loops;
+	vis	("name", name)
+		("prefab", prefab)
+		("id", id);
+	vis & space;
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
@@ -114,25 +117,30 @@ LinkBasePtr Loop::GetAddTypeCls(LinkTypeCls cls) {
 
 LinkBasePtr Loop::AddPtr(LinkBase* comp) {
 	//comp->SetParent(this);
+	TODO return 0;
+	#if 0
 	links.Add(comp->GetLinkType(), comp);
 	InitializeLink(*comp);
 	return LinkBasePtr(comp);
+	#endif
 }
 
 LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
-	for (LinkBase& l : links) {
-		LinkTypeCls type = l.GetLinkType();
+	auto links = node.FindAllDeep<LinkBase>();
+	for (auto& l : links) {
+		LinkTypeCls type = l->GetLinkType();
 		if (type == atom_type)
-			return &l;
+			return l;
 	}
-	ASSERT(!links.Find(atom_type));
+	ASSERT_(0, "type not found");
 	return LinkBasePtr();
 }
 
 LoopPtr Loop::FindLoopByName(String name) {
-	for (Loop& object : loops)
-		if (object.GetName() == name)
-			return &object;
+	auto loops = node.FindAllDeep<Loop>();
+	for (Loop* o : loops)
+		if (o->GetName() == name)
+			return o;
 	return LoopPtr();
 }
 
@@ -141,8 +149,9 @@ void Loop::Dump() {
 }
 
 void Loop::InitializeLinks() {
-	for(auto it : ~links)
-		InitializeLink(it.value);
+	auto links = node.FindAllDeep<LinkBase>();
+	for(auto& it : links)
+		InitializeLink(*it);
 }
 
 void Loop::InitializeLink(LinkBase& comp) {
@@ -157,11 +166,13 @@ String Loop::GetTreeString(int indent) {
 	
 	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
 	
-	for (LinkBase& l : links)
-		s << l.ToString();
+	auto links = node.FindAllDeep<LinkBase>();
+	for (LinkBase* l : links)
+		s << l->ToString();
 	
-	for (Loop& l : loops)
-		s << l.GetTreeString(indent+1);
+	auto loops = node.FindAllDeep<Loop>();
+	for (Loop* l : loops)
+		s << l->GetTreeString(indent+1);
 	
 	return s;
 }

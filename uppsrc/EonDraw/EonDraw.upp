@@ -43,3 +43,6 @@ file
 	ToolSystem.h,
 	_ readonly separator;
 
+mainconfig
+	"" = "AI";
+

@@ -4,9 +4,9 @@
 
 namespace Ecs {
 
-
+// TODO remove
 class EntityStore : public System<EntityStore> {
-    Vector<Entity*>					destroy_list;
+    Vector<Entity*>					destroy_list; // not needed
 	//PoolVec							root;
 	
 	Mutex							lock;

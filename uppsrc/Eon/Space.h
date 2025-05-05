@@ -156,11 +156,11 @@ public:
 	void Visit(Vis& vis);
 	void VisitSinks(Vis& vis);
 	void VisitSources(Vis& vis);
-	/*
+	
 private:
 	StateVec				states;
-	AtomMap					atoms;
-	SpaceVec				spaces;*/
+	//AtomMap					atoms;
+	//SpaceVec				spaces;
 };
 
 //using SpaceVec = Array<Space>;

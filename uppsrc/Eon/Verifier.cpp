@@ -28,22 +28,22 @@ MachineVerifier* __latest_mver;
 MACHVER_FWDFN_LIST
 #undef MACHVER_FWD_FN
 
-void MachineVerifier_OnLoopLoader_Status(ScriptLoopLoader* ll) {
+void MachineVerifier_OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
 	if (__latest_mver)
 		__latest_mver->OnLoopLoader_Status(ll);
 }
 
-void MachineVerifier_OnLoopLoader_RealizeAtoms(ScriptLoopLoader* ll) {
+void MachineVerifier_OnLoopLoader_RealizeAtoms(Eon::ScriptLoopLoader* ll) {
 	if (__latest_mver)
 		__latest_mver->OnLoopLoader_RealizeAtoms(ll);
 }
 
-void MachineVerifier_OnLoopLoader_AtomLinked(ScriptLoopLoader* ll) {
+void MachineVerifier_OnLoopLoader_AtomLinked(Eon::ScriptLoopLoader* ll) {
 	if (__latest_mver)
 		__latest_mver->OnLoopLoader_AtomLinked(ll);
 }
 
-void MachineVerifier_OnLoopLoader_SearchNewSegment(ScriptLoopLoader* ll) {
+void MachineVerifier_OnLoopLoader_SearchNewSegment(Eon::ScriptLoopLoader* ll) {
 	if (__latest_mver)
 		__latest_mver->OnLoopLoader_SearchNewSegment(ll);
 }

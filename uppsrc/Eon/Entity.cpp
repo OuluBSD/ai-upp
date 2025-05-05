@@ -120,14 +120,19 @@ ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {
 }
 
 ComponentBasePtr Entity::AddPtr(ComponentBase* comp) {
+	TODO
+	#if 0
 	comps.AddBase(comp);
 	InitializeComponent(*comp);
 	return comp;
+	#endif
+	return 0;
 }
 
 void Entity::InitializeComponents() {
-	for(auto& comp : comps.GetValues())
-		InitializeComponent(comp);
+	auto comps = node.FindAll<ComponentBase>();
+	for(auto& comp : comps)
+		InitializeComponent(*comp);
 }
 
 void Entity::InitializeComponent(ComponentBase& comp) {
@@ -135,19 +140,16 @@ void Entity::InitializeComponent(ComponentBase& comp) {
 }
 
 void Entity::UninitializeComponents() {
-	auto& comps = this->comps.GetValues();
+	auto comps = node.FindAll<ComponentBase>();
 	int dbg_i = 0;
 	for (auto it = comps.End()-1; it != comps.Begin()-1; --it) {
-		it->Uninitialize();
+		(*it)->Uninitialize();
 		dbg_i++;
 	}
 }
 
 void Entity::ClearComponents() {
-	ComponentStorePtr sys = GetEngine().Get<ComponentStore>();
-	for (int i = comps.GetCount()-1; i >= 0; i--)
-		sys->ReturnComponent(comps.Detach(i));
-	ASSERT(comps.IsEmpty());
+	node.RemoveAllDeep<ComponentBase>();
 }
 
 Entity* Entity::Clone() const {
@@ -172,12 +174,12 @@ ComponentBasePtr Entity::CreateComponent(TypeCls type) {
 void Entity::Destroy() {
 	Destroyable::Destroy();
 	
-	for (auto& component : comps.GetValues()) {
-		component.Destroy();
-	}
+	auto comps = node.FindAll<ComponentBase>();
+	for (auto& component : comps)
+		component->Destroy();
 	
-	if (auto es = GetEngine().TryGet<EntityStore>())
-		es->AddToDestroyList(this);
+	//if (auto es = GetEngine().TryGet<EntityStore>())
+	//	es->AddToDestroyList(this);
 	
 }
 
@@ -196,20 +198,16 @@ Pool& Entity::GetPool() const {
 }
 
 Pool& Entity::GetRoot() {
-	Pool* p = &GetPool();
-	while (p) {
-		Pool* par = RefScopeParent<EntityParent>::GetParent().o;
-		if (!par)
-			return *p;
-		p = par;
-	}
+	Pool* p = node.FindOwnerDeep<Pool>();
+	ASSERT(p);
+	if (!p) throw Exc("no pool");
 	return *p;
 }
 
 void Entity::GetEntityPath(Vector<String>& path) {
-	Pool* p = &GetPool();
+	Pool* p = node.FindOwner<Pool>();
 	while (p) {
-		Pool* par = RefScopeParent<EntityParent>::GetParent().o;
+		Pool* par = p->node.FindOwner<Pool>();
 		if (!par)
 			break;
 		path.Add(p->GetName());
@@ -229,14 +227,8 @@ int Entity::GetPoolDepth() const {
 	return d;
 }
 
-bool Entity::HasPoolParent(PoolPtr pool) const {
-	Pool* p = &GetPool();
-	while (p) {
-		if (p == &*pool)
-			return true;
-		p = p->GetParent();
-	}
-	return false;
+bool Entity::HasPoolParent(Pool* pool) const {
+	return node.IsOwnerDeep(*pool);
 }
 
 ComponentBasePtr Entity::GetAdd(String comp_name) {
@@ -258,7 +250,7 @@ ComponentBasePtr Entity::GetAdd(String comp_name) {
 
 
 
-
+#if 0
 bool EntityHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) {
 	if (derived == AsTypeCls<Entity>()) {
 		Entity& e = *(Entity*)mem;
@@ -272,6 +264,6 @@ bool EntityHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* d
 	}
 	return true;
 }
-
+#endif
 
 } END_UPP_NAMESPACE

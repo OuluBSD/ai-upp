@@ -75,12 +75,16 @@ EntityPtr EntityStore::FindEntity(String path) {
 
 
 Ecs::Engine& Machine::GetEngine() {
+	TODO
+	#if 0
 	EntitySystemPtr es = Get<EntitySystem>();
 	if (es)
 		return es->GetEngine();
 	
 	Panic("No EntitySystem in machine");
 	UNREACHABLE;
+	#endif
+	throw Exc("unreachable");
 }
 
 

@@ -22,8 +22,8 @@ public:
 	using LinkBasePtr = Ptr<LinkBase>;
 	
 protected:
-	friend class ScriptLoopLoader;
-	friend class ScriptDriverLoader;
+	friend class Eon::ScriptLoopLoader;
+	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
 	
 	int						id = -1;

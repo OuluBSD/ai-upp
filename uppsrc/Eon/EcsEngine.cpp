@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 bool EntitySystem::Initialize() {
 	#if 1
-	ASSERT(node.FindOwnerDeep<Ecs::Engine>());
+	ASSERT(node.FindOwner<Ecs::Engine>());
 	TODO // should this really start engine etc?
 	#else
 	engine = new Ecs::Engine;

@@ -134,7 +134,7 @@ public:
 		return comp;
 	}
 	
-	ComponentBase&	GetAdd(String comp_name);
+	ComponentBasePtr	GetAdd(String comp_name);
 	
 	template<typename... ComponentTs>
 	Tuple<ComponentTs*...> TryGetComponents() {

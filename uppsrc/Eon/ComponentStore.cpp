@@ -1,6 +1,6 @@
 #include "Eon.h"
 
-
+#if 0
 NAMESPACE_UPP namespace Ecs {
 
 
@@ -53,4 +53,4 @@ ComponentBase* ComponentStore::CreateComponentTypeCls(TypeCls cls) {
 
 
 } END_UPP_NAMESPACE
-
+#endif

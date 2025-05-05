@@ -21,7 +21,7 @@ Engine& ComponentBase::GetEngine() {
 	return *node.FindOwnerDeep<Engine>();
 }
 
-EntityPtr ComponentBase::GetEntity() {
+Entity* ComponentBase::GetEntity() {
 	return node.FindOwnerDeep<Entity>();
 }
 
@@ -32,7 +32,7 @@ String ComponentBase::ToString() const {
 void ComponentBase::GetComponentPath(Vector<String>& path) {
 	path.Clear();
 	
-	String name = ComponentFactory::GetComponentName(GetTypeId());
+	String name = ComponentFactory::GetComponentName(GetTypeCls());
 	ASSERT(!name.IsEmpty());
 	path.Add(name);
 	
@@ -54,10 +54,13 @@ void ComponentBase::GetComponentPath(Vector<String>& path) {
 void ComponentBase::AddToUpdateList() {GetEngine().AddToUpdateList(this);}
 void ComponentBase::RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
 
+String ComponentBase::GetDynamicName() const {
+	return GetTypeCls().GetName();
+}
 
 
 
-
+#if 0
 void ComponentMap::Dump() {
 	auto iter = ComponentMapBase::begin();
 	for(int i = 0; iter; ++iter, ++i) {
@@ -70,7 +73,7 @@ void ComponentMap::Dump() {
 void ComponentMap::ReturnComponent(ComponentStore& s, ComponentBase* c) {
 	s.ReturnComponent(c);
 }
-
+#endif
 
 
 

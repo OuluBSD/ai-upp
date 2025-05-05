@@ -236,7 +236,7 @@ void Space::ClearStatesDeep() {
 	for (auto& p : spaces)
 		p->ClearStatesDeep();
 	
-	node.RemoveAllShallow<EnvState>();
+	states.Clear();
 }
 
 void Space::ClearAtomsDeep() {
@@ -259,7 +259,7 @@ void Space::ClearDeep() {
 	spaces.Clear();
 	
 	node.RemoveAllShallow<AtomBase>();
-	node.RemoveAllShallow<EnvState>();
+	states.Clear();
 }
 
 SpacePtr Space::GetAddEmpty(String name) {
@@ -317,13 +317,12 @@ String Space::GetTreeString(int indent) {
 
 EnvStatePtr Space::FindNearestState(String name) {
 	Space* l = this;
-	TODO
-	/*while (l) {
+	while (l) {
 		EnvStatePtr e = l->FindState(name);
 		if (e)
 			return e;
-		l = l->GetParent();
-	}*/
+		l = l->node.FindOwner<Space>();
+	}
 	return EnvStatePtr();
 }
 

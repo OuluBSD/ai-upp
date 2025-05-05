@@ -35,7 +35,7 @@ protected:
 };
 
 
-
+#if 0
 class ComponentStore :
 	public System<ComponentStore>,
 	public EcsFactory<ComponentBase*, std::function<ComponentBase*()>, std::function<void(ComponentBase*)> >
@@ -84,7 +84,7 @@ private:
 };
 
 using ComponentStorePtr = Ptr<ComponentStore>;
-
+#endif
 
 
 }

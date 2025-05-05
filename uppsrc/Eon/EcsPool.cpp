@@ -19,12 +19,8 @@ Pool::~Pool() {
 }
 
 void Pool::Serialize(Stream& e) {
-	/*
-	e % freeze_bits
-	  % name
-	  % id
-	  ;
-	*/
+	TODO
+	#if 0
 	GeomVar type;
 	if (e.IsLoading()) {
 		TODO
@@ -55,6 +51,7 @@ void Pool::Serialize(Stream& e) {
 			e.PutT(type);
 		}
 	}
+	#endif
 }
 
 PoolId Pool::GetNextId() {
@@ -67,17 +64,10 @@ Pool* Pool::GetParent() const {
 }
 
 Engine& Pool::GetEngine() {
-	if (machine)
-		return *machine;
-	MetaNode* n = &node;
-	int levels = 0;
-	while (n && levels++ < 1000) {
-		machine = n->Find<Engine>();
-		if (machine)
-			return *machine;
-		n = n->owner;
-	}
-	throw (Exc("Engine ptr not found"));
+	Engine* e = node.FindOwner<Engine>();
+	ASSERT(e);
+	if (!e) throw Exc("No engine found");
+	return *e;
 }
 
 void Pool::Initialize(Entity& e, String prefab) {
@@ -105,55 +95,60 @@ EntityPtr Pool::GetAddEmpty(String name) {
 }
 
 EntityPtr Pool::Clone(const Entity& c) {
-	EntityPtr e = CreateEmpty();
-	e->CopyHeader(c);
-	GetEngine().Get<ComponentStore>()->Clone(*e, c);
-	return e;
+	Ecs::Entity& e = node.Add<Ecs::Entity>();
+	VisitCopy(c, e);
+	return &e;
 }
 
 void Pool::UnlinkDeep() {
-	for (auto it = pools.rbegin(); it != pools.rend(); --it) {
-		it().UnlinkDeep();
+	auto pools = node.FindAll<Pool>();
+	for (int i = pools.GetCount()-1; i >= 0; i--) {
+		pools[i]->UnlinkDeep();
 	}
-	
 }
 
 void Pool::UnrefDeep() {
 	RefClearVisitor vis;
-	vis.Visit(*this);
+	TODO // implemented?
+	vis.Visit("Pool",*this);
 }
 
 void Pool::UninitializeComponentsDeep() {
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		p->UninitializeComponentsDeep();
 	
-	for (auto it = objects.rbegin(); it != objects.rend(); --it) {
-		it().UninitializeComponents();
-	}
+	auto ents = node.FindAll<Entity>();
+	for (int i = ents.GetCount()-1; i >= 0; i--)
+		ents[i]->UninitializeComponents();
 	
 }
 
 void Pool::ClearComponentsDeep() {
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		p->ClearComponentsDeep();
 	
-	for (auto it = objects.rbegin(); it != objects.rend(); --it) {
-		it().ClearComponents();
-	}
+	auto ents = node.FindAll<Entity>();
+	for (int i = ents.GetCount()-1; i >= 0; i--)
+		ents[i]->ClearComponents();
 	
 }
 
 void Pool::ClearDeep() {
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		p->ClearDeep();
-	pools.Clear();
 	
-	objects.Clear();
+	node.RemoveAllDeep<Pool>();
+	node.RemoveAllDeep<Entity>();
 }
 
+#if 0
 void Pool::ReverseEntities() {
 	objects.Reverse();
 }
+#endif
 
 void Pool::Clear() {
 	UnrefDeep();
@@ -164,9 +159,18 @@ void Pool::Clear() {
 }
 
 void Pool::PruneFromContainer() {
+	auto pools = node.FindAll<Pool>();
 	for (auto& pool : pools)
 		pool->PruneFromContainer();
-	Destroyable::PruneFromContainer(objects);
+	
+	Vector<int> rmlist;
+	for(int i = 0; i < node.sub.GetCount(); i++) {
+		auto& s = node.sub[i];
+		Entity* e = s.ext ? CastPtr<Entity>(&*s.ext) : 0;
+		if (e && e->destroyed)
+			rmlist << i;
+	}
+	node.sub.Remove(rmlist);
 }
 
 void Pool::Dump() {

@@ -40,6 +40,7 @@ public:
 	
 	Entity* GetEntity();
 	
+	String GetDynamicName() const;
 	virtual void Serialize(Stream& e) = 0;
 	
 	virtual bool Arg(String key, Value value) {return true;}
@@ -79,6 +80,7 @@ public:
 };
 
 
+#if 0
 using ComponentMapBase	= ArrayMap<TypeCls,ComponentBase>;
 //using ComponentRefMap	= ArrayMap<TypeCls,Ref<ComponentBase>>;
 
@@ -152,7 +154,7 @@ public:
 	#undef IS_EMPTY_SHAREDPTR
 	
 };
-
+#endif
 
 }
 

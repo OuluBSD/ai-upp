@@ -389,7 +389,7 @@ void ScriptTextProcess::Tokenize()
 				for(const WString& line : line) {
 					String s = line.ToString();
 					int tk_i = -1;
-					Token& tk = MapGetAdd(src.tokens, s, tk_i);
+					TokenIdx& tk = MapGetAdd(src.tokens, s, tk_i);
 					ch.Do(tk_i);
 					token_is << tk_i;
 				}
@@ -521,7 +521,7 @@ void ScriptTextProcess::Tokenize()
 				for(const WString& line : line) {
 					String s = line.ToString();
 					int tk_i = -1;
-					Token& tk = MapGetAdd(src.tokens, s, tk_i);
+					TokenIdx& tk = MapGetAdd(src.tokens, s, tk_i);
 					ch.Do(tk_i);
 					token_is << tk_i;
 				}

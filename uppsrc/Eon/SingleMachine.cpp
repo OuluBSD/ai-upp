@@ -1,7 +1,7 @@
 #include "Eon.h"
 
+#if 0
 NAMESPACE_UPP
-
 
 bool SingleMachine::Open(void(*arg_fn)()) {
 	
@@ -55,5 +55,6 @@ void SingleMachine::Close() {
 	mach.Stop();
 }
 
-
 END_UPP_NAMESPACE
+
+#endif

@@ -1,6 +1,6 @@
 #include "Eon.h"
 
-
+#if 0
 NAMESPACE_UPP
 
 
@@ -33,3 +33,4 @@ void LoopStore::Update(double dt) {
 
 
 END_UPP_NAMESPACE
+#endif

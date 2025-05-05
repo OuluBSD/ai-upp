@@ -237,7 +237,7 @@ struct PacketIO {
 	};
 	
 	struct Source : Moveable<Source> {
-		ValueBase*	val = 0;
+		ValueBase*		val = 0;
 		Packet			p;
 		int				from_sink_ch = -1;
 		bool			is_full = false;

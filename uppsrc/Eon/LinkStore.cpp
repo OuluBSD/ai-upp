@@ -21,6 +21,8 @@ LinkBase* LinkStore::CreateLink(LinkTypeCls cls) {
 }
 
 LinkBase* LinkStore::CreateLinkTypeCls(LinkTypeCls cls) {
+	TODO
+	#if 0
 	auto it = Factory::producers.Find(cls);
 	if (!it) {
 		auto new_fn = Factory::LinkDataMap().Get(cls).new_fn;
@@ -31,6 +33,8 @@ LinkBase* LinkStore::CreateLinkTypeCls(LinkTypeCls cls) {
 	}
 	
 	return CreateLink(cls);
+	#endif
+	return 0;
 }
 
 

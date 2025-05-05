@@ -1,7 +1,7 @@
 #ifndef _Eon_SpaceStore_h_
 #define _Eon_SpaceStore_h_
 
-
+#if 0
 class SpaceStore : public System<SpaceStore> {
 	//SpaceVec		root;
 	
@@ -44,6 +44,6 @@ protected:
 };
 
 using SpaceStorePtr = Ptr<SpaceStore>;
-
+#endif
 
 #endif

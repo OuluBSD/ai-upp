@@ -51,8 +51,8 @@ bool ShadertoyContextLoader::LoadFileToy(String path, Value& dst) {
 	bool fail = false;
 	dst = ParseJSON(LoadFile(path));
 	
-	ASSERT(dst.IsMap());
-	ValueMap& map = dst.GetMap();
+	ASSERT(dst.Is<ValueMap>());
+	ValueMap map = dst;
 	for(int i = 0; i < 100; i++) {
 		String stage = "stage" + IntStr(i);
 		String stage_file = AppendFileName(file_dir, stage + ".glsl");
@@ -68,6 +68,7 @@ bool ShadertoyContextLoader::LoadFileToy(String path, Value& dst) {
 			map.Add(stage + "_content", glsl);
 		}
 	}
+	dst = map;
 	
 	if (fail) {
 		OnError(fn_name, last_error);
@@ -80,46 +81,46 @@ bool ShadertoyContextLoader::LoadFileToy(String path, Value& dst) {
 }
 
 void ShadertoyContextLoader::MakeUniqueIds(Value& v) {
-	if (!v.IsMap())
+	if (!v.Is<ValueMap>())
 		return;
 	//DLOG(GetValueTreeString(v));
-	ValueMap& map = v.GetMap();
-	Value& stages = map.GetAdd("stages", ValueArray());
-	if (!stages.IsArray())
+	ValueMap map = v.Get<ValueMap>();
+	Value stages = map.GetAdd("stages");
+	if (!stages.Is<ValueArray>())
 		return;
 	VectorMap<int,int> ids;
-	ValueArray& st_arr = stages.GetArray();
+	ValueArray st_arr = stages;
 	VectorMap<int, Value> stage_ids;
 	for(int i = 0; i < st_arr.GetCount(); i++) {
 		int stage_id = -1;
-		Value& st_el = st_arr.Get(i);
-		if (st_el.IsMap()) {
-			ValueMap& st_map = st_el.GetMap();
-			Value& inputs = st_map.GetAdd("inputs", ValueArray());
-			if (inputs.IsArray()) {
-				ValueArray& in_arr = inputs.GetArray();
+		Value st_el = st_arr.Get(i);
+		if (st_el.Is<ValueMap>()) {
+			ValueMap st_map = st_el;
+			Value inputs = st_map.GetAdd("inputs");
+			if (inputs.Is<ValueArray>()) {
+				ValueArray in_arr = inputs;
 				for(int i = 0; i < in_arr.GetCount(); i++) {
-					Value& in_el = in_arr.Get(i);
-					if (!in_el.IsMap())
+					Value in_el = in_arr.Get(i);
+					if (!in_el.Is<ValueMap>())
 						continue;
-					ValueMap& in_map = in_el.GetMap();
+					ValueMap in_map = in_el.Get<ValueMap>();
 					int j = in_map.Find("id");
 					if (j >= 0)
-						in_map.SetAt(j, MakeUniqueId(ids, (int)in_map.GetValue(j).ToInt()));
+						in_map.SetAt(j, MakeUniqueId(ids, (int)in_map.GetValue(j)));
 				}
 			}
 			
-			Value& outputs = st_map.GetAdd("outputs", ValueArray());
-			if (outputs.IsArray()) {
-				ValueArray& out_arr = outputs.GetArray();
+			Value outputs = st_map.GetAdd("outputs");
+			if (outputs.Is<ValueArray>()) {
+				ValueArray out_arr = outputs;
 				for(int i = 0; i < out_arr.GetCount(); i++) {
-					Value& out_el = out_arr.Get(i);
-					if (!out_el.IsMap())
+					Value out_el = out_arr.Get(i);
+					if (!out_el.Is<ValueMap>())
 						continue;
-					ValueMap& out_map = out_el.GetMap();
+					ValueMap out_map = out_el;
 					int j = out_map.Find("id");
 					if (j >= 0) {
-						int id = MakeUniqueId(ids, (int)out_map.GetValue(j).ToInt());
+						int id = MakeUniqueId(ids, (int)out_map.GetValue(j));
 						if (!i)
 							stage_id = id;
 						out_map.SetAt(j, id);
@@ -152,7 +153,7 @@ void ShadertoyContextLoader::MakeUniqueIds(Value& v) {
 	
 	if (0) {
 		DLOG("ShadertoyContextLoader::MakeUniqueIds: result");
-		DLOG(GetValueTreeString(v));
+		//DLOG(GetValueTreeString(v));
 		for(int i = 0; i < stage_ids.GetCount(); i++) {
 			DLOG("\t" << stage_ids.GetKey(i) << ": <source>");
 		}
@@ -197,7 +198,7 @@ String SerialShadertoyLoader::LoadFile(String file_path) {
 		return String();
 	}
 	
-	ToyLoader ser_loader;
+	Eon::ToyLoader ser_loader;
 	if (!ser_loader.Load(o)) {
 		LOG("SerialShadertoyLoader::LoadFile: error: toy object loading failed");
 		return String();

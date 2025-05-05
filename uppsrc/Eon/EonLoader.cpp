@@ -14,7 +14,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		RTLOG("ScriptEngineLoader::Load: " << id);
 		
 		Ptr<Ecs::SystemBase> sys = eng.GetAdd(id, false); // skip startup
-		if (sys.IsEmpty()) {
+		if (!sys) {
 			SetError("could not find ecs system with id '" + id + "'");
 			return false;
 		}
@@ -25,7 +25,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		}
 	}
 	
-	EntityStorePtr ents = eng.Get<EntityStore>();
+	Ptr<EntityStore> ents = eng.Get<EntityStore>();
 	PoolPtr pool = ents->GetRoot();
 	
 	for (ScriptPoolLoader& loader : l.pools) {
@@ -52,15 +52,15 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
 	}
 	
 	Ecs::Engine& eng = Ecs::GetActiveEngine();
-	TypeCls type = sys.GetTypeId();
+	TypeCls type = sys.GetTypeCls();
 	eng.SystemStartup(type, &sys);
 	
 	return true;
 }
 
 bool ExtScriptEcsLoader::Load(ScriptPoolLoader& l, Ecs::Pool& pool) {
-	EntityVec& ents = pool.GetEntities();
-	PoolVec& pools = pool.GetPools();
+	auto ents = pool.node.FindAll<Entity>();
+	auto pools = pool.node.FindAll<Pool>();
 	
 	for (ScriptEntityLoader& e : l.entities) {
 		String name = e.def.id.ToString();

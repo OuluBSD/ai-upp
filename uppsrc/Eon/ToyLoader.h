@@ -55,7 +55,7 @@ public:
 	String GetResult();
 	
 	
-	static const ValueMap* GetStageMap(int i, Value& o);
+	static ValueMap GetStageMap(int i, Value& o);
 	static String GetStageType(int i, Value& o);
 	static String GetStagePath(int i, Value& o);
 	

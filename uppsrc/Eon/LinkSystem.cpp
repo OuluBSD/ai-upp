@@ -60,7 +60,6 @@ void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>
 
 
 bool LinkSystem::Initialize() {
-	ASSERT_(!GetMachine().Find<LinkStore>().IsEmpty(), "LinkStore must be added before LinkSystem");
 	once_cbs.Create();
 	return true;
 }

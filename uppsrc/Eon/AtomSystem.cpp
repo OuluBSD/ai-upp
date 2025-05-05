@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 
 bool AtomSystem::Initialize() {
-	ASSERT_(!GetMachine().Find<AtomStore>().IsEmpty(), "AtomStore must be added before AtomSystem");
+	ASSERT_(GetMachine().Find<AtomStore>(), "AtomStore must be added before AtomSystem");
 	return true;
 }
 

@@ -12,6 +12,7 @@ MAKE_STATIC(String, eon_file)
 
 dword active_shell_mode;
 
+void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 
 bool IsShellMode(ShellMode m) {
 	return active_shell_mode & (dword)m;
@@ -48,6 +49,8 @@ bool DefaultInitializer(bool skip_eon_file) {
 	__def_args <<= cmd.GetVariables();
 	
 	// Arguments for remote connection
+	TODO // include enet or virtualize ?
+	#if 0
 	if (cmd.IsArg('l')) {
 		daemon.Add("EnetServer");
 		daemon.Add("Ecs");
@@ -58,6 +61,7 @@ bool DefaultInitializer(bool skip_eon_file) {
 		}
 		SetShellMode(SHELLMODE_REMOTE);
 	}
+	#endif
 	
 	// Arguments for script interpreter platform
 	const auto& inputs = cmd.GetInputs();
@@ -209,7 +213,7 @@ void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
             mach.SetNotRunning();
     }
     
-    RuntimeDiagnostics::Static().CaptureSnapshot();
+    //RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
 void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
@@ -224,17 +228,12 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 		}
 	}
 	
-	if (dbg_ref)
-		BreakRefAdd(dbg_ref);
-	
-	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0).ToInt32();
+	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
 		Machine& mach = GetActiveMachine();
 		
-		if (dbg_ref_visits)
-			SetDebugRefVisits();
-		RuntimeDiagnostics::Static().SetRoot(mach);
+		//RuntimeDiagnostics::Static().SetRoot(mach);
 		
 	    #ifdef flagSTDEXC
 	    try {
@@ -243,10 +242,10 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 			{
 				if (!mach.IsStarted()) {
 					RegistrySystemPtr reg	= mach.FindAdd<RegistrySystem>();
-					LoopStorePtr ls			= mach.FindAdd<LoopStore>();
-					AtomStorePtr as			= mach.FindAdd<AtomStore>();
-				    AtomSystemPtr asys		= mach.FindAdd<AtomSystem>();
-				    ScriptLoaderPtr script	= mach.FindAdd<ScriptLoader>();
+					//LoopStorePtr ls			= mach.FindAdd<LoopStore>();
+					//AtomStorePtr as			= mach.FindAdd<AtomStore>();
+				    Ptr<AtomSystem> asys		= mach.FindAdd<AtomSystem>();
+				    Ptr<ScriptLoader> script	= mach.FindAdd<ScriptLoader>();
 					
 					#ifdef flagGUI
 				    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
@@ -259,20 +258,21 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				LoopStorePtr ls			= mach.Find<LoopStore>();
+				Ptr<LoopStore> ls			= mach.Find<LoopStore>();
 				if (!ls) {
 					LOG("No LoopStore added to machine and the machine is already started");
 					return;
 				}
 				
 				
-				ScriptLoaderPtr script	= mach.Find<ScriptLoader>();
+				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
 				
-				LoopPtr root = ls->GetRoot();
+				TODO
+				LoopPtr root; // = ls->GetRoot();
 				
 				if (IsShellMode(SHELLMODE_INTERPRETER)) {
 					String path = RealizeEonFile(script_file);

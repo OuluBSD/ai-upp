@@ -259,8 +259,8 @@ protected:
 	
 	Vector<String> post_load_file;
 	Vector<String> post_load_string;
-	LoopStorePtr es;
-	SpaceStorePtr ss;
+	//LoopStorePtr es;
+	//SpaceStorePtr ss;
 	Eon::CompilationUnit cunit;
 	bool collect_errors = false;
 	
@@ -269,7 +269,7 @@ protected:
 public:
 	typedef ScriptLoader CLASSNAME;
 	ScriptLoader(Machine& m);
-	SYS_DEF_VISIT_((vis & es & ss); if (!loader.IsEmpty()) vis("loader",*loader);)
+	SYS_DEF_VISIT_(if (!loader.IsEmpty()) vis("loader",*loader);)
 	
 	void PostLoadFile(const String& path) {post_load_file << path;}
 	void PostLoadString(const String& s) {post_load_string << s;}

@@ -269,6 +269,8 @@ void MachineVerifier::OnEnterFwdScopeForward(FwdScope& f) {
 	cur_pk.Clear();
 	c = 0;
 	vep = 0;
+	TODO
+	#if 0
 	if ((c = CastPtr<AtomBase>(f.GetCurrent()))) {
 		if (!c->WhenEnterProcessPackets) {
 			c->WhenEnterProcessPackets << THISBACK(OnEnterProcessPackets);
@@ -282,7 +284,7 @@ void MachineVerifier::OnEnterFwdScopeForward(FwdScope& f) {
 		}
 	}
 	else TODO;
-	
+	#endif
 }
 
 void MachineVerifier::OnEnterProcessPackets(AtomBase& b, PacketIO& p) {
@@ -367,7 +369,7 @@ void MachineVerifier::OnLeaveProcessPackets(AtomBase& b, PacketIO& io) {
 	
 	MVER_LOG("MachineVerifier::OnLeaveStorePacket");
 
-	PacketIO::Source& prim_src = io.src[0];
+	PacketIO::Source& prim_src = io.srcs[0];
 	ASSERT_(prim_src.p, "primary packet must be forwarded always");
 	
 	Packet& prim_p = prim_src.p;
@@ -474,18 +476,19 @@ void MachineVerifier::OnLeaveScriptLoopLoaderForwardSides(size_t call_id) {
 void MachineVerifier::OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);
 	data.ll = ll;
+	
+	TODO
+	#if 0
 	auto new_status = ll->GetStatus();
 	MVER_LOG("MachineVerifier::OnLoopLoader_Status: set loop " << ll->def.id.ToString() << " " << HexStr(ll) << " status to " << GetScriptStatusString(new_status) << " (from " << GetScriptStatusString(data.status0) << ")");
-	
 	
 	data.status1 = data.status0;
 	data.status0 = new_status;
 	
-	
 	Scope& cur = stack.Top();
 	if (cur.type == LOOPLOADER_SEARCH_NEW_SEGMENT)
 		cur.may_leave = true;
-	
+	#endif
 }
 
 void MachineVerifier::UpdateLoopData(Eon::ScriptLoopLoader* ll) {
@@ -564,12 +567,11 @@ bool MachineVerifier::LoopLoaderData::MayCreateAtoms() const {
 		return true;
 	
 	const LoopAtomData& last_atom = atoms.Top();
-	
-	for (LoopAtomSideData& side : last_atom.sink_sides)
+	for (const LoopAtomSideData& side : last_atom.sink_sides)
 		if (!side.has_link && side.is_required)
 			return false;
 	
-	for (LoopAtomSideData& side : last_atom.src_sides)
+	for (const LoopAtomSideData& side : last_atom.src_sides)
 		if (!side.has_link && side.is_required)
 			return false;
 	

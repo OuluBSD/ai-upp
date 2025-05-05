@@ -1,7 +1,7 @@
 #ifndef _Eon_LoopStore_h_
 #define _Eon_LoopStore_h_
 
-
+#if 0
 class LoopStore : public System<LoopStore> {
 	//LoopVec				root;
 	
@@ -37,6 +37,7 @@ protected:
 };
 
 using LoopStorePtr = Ptr<LoopStore>;
+#endif
 
 
 #endif

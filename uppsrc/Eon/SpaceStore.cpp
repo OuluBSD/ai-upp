@@ -1,6 +1,6 @@
 #include "Eon.h"
 
-
+#if 0
 NAMESPACE_UPP
 
 
@@ -30,3 +30,4 @@ void SpaceStore::Update(double dt) {
 
 
 END_UPP_NAMESPACE
+#endif

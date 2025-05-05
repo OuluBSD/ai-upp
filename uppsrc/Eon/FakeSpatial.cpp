@@ -44,12 +44,15 @@ void FakeSpatialInteractionManager::Update(double dt) {
 	
 	if (!env_name.IsEmpty()) {
 		Machine& m = GetActiveMachine();
+		TODO
+		#if 0
 		Ref<LoopStore> ls = m.Find<LoopStore>();
 		LoopPtr l = ls->GetRoot();
 		state = l->GetSpace()->FindStateDeep(env_name);
 		if (!state) {
 			LOG("InteractionSystem::Update: error: environment state with name '" << env_name << "' not found");
 		}
+		#endif
 		env_name.Clear();
 		
 		DetectController();
@@ -77,6 +80,8 @@ void FakeSpatialInteractionManager::UpdateState() {
 }
 
 void FakeSpatialInteractionManager::UpdateStateKeyboard() {
+	TODO
+	#if 0
 	FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	
 	if (state->GetBool(MOUSE_LEFTDOWN)) {
@@ -164,7 +169,7 @@ void FakeSpatialInteractionManager::UpdateStateKeyboard() {
 	}
 	
 	prev = data;
-	
+	#endif
 }
 
 void FakeSpatialInteractionManager::Pressed(ControllerMatrix::Value b) {

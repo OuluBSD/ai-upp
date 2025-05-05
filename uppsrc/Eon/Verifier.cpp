@@ -161,6 +161,8 @@ void MachineVerifier::OnEnterSystemUpdate(SystemBase& base) {
 	cur.AddEnter(ONCE_FORWARD);
 	cur.AddEnter(SCRIPT_LOAD);
 		
+	TODO
+	#if 0
 	if (!ext_sys && (ext_sys = CastPtr<AtomSystem>(&base))) {
 		ext_sys->WhenEnterOnceForward << THISBACK(OnEnterOnceForward);
 		ext_sys->WhenEnterAtomForward << THISBACK(OnEnterAtomForward);
@@ -170,8 +172,7 @@ void MachineVerifier::OnEnterSystemUpdate(SystemBase& base) {
 		ext_sys->WhenLeaveAtomForward << THISBACK(OnLeaveAtomForward);
 		ext_sys->WhenLeaveFwdScopeForward << THISBACK(OnLeaveFwdScopeForward);
 	}
-	
-	
+	#endif
 }
 
 void MachineVerifier::OnEnterScriptLoad(SystemBase& base) {
@@ -470,7 +471,7 @@ void MachineVerifier::OnLeaveScriptLoopLoaderForwardSides(size_t call_id) {
 
 
 
-void MachineVerifier::OnLoopLoader_Status(ScriptLoopLoader* ll) {
+void MachineVerifier::OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);
 	data.ll = ll;
 	auto new_status = ll->GetStatus();
@@ -487,7 +488,7 @@ void MachineVerifier::OnLoopLoader_Status(ScriptLoopLoader* ll) {
 	
 }
 
-void MachineVerifier::UpdateLoopData(ScriptLoopLoader* ll) {
+void MachineVerifier::UpdateLoopData(Eon::ScriptLoopLoader* ll) {
 	int atom_count = ll->atom_links.GetCount();
 	
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);
@@ -499,7 +500,7 @@ void MachineVerifier::UpdateLoopData(ScriptLoopLoader* ll) {
 		Panic("Loop may not create atoms");
 	
 	for(int i = 0; i < atom_count; i++) {
-		const ScriptLoopLoader::AtomSideLinks& ll_atom = ll->atom_links[i];
+		const Eon::ScriptLoopLoader::AtomSideLinks& ll_atom = ll->atom_links[i];
 		LoopAtomData& atom = data.atoms[i];
 		
 		atom.type = ll_atom.type;
@@ -511,7 +512,7 @@ void MachineVerifier::UpdateLoopData(ScriptLoopLoader* ll) {
 		atom.sink_sides.SetCount(sink_side_count);
 		
 		for(int j = 0; j < src_side_count; j++) {
-			const ScriptLoopLoader::SideLink& ll_side = ll_atom.src_side_conns[j];
+			const Eon::ScriptLoopLoader::SideLink& ll_side = ll_atom.src_side_conns[j];
 			LoopAtomSideData& side = atom.src_sides[j];
 			
 			ASSERT_(!(side.has_link && ll_side.link == NULL), "link disappeared");
@@ -521,7 +522,7 @@ void MachineVerifier::UpdateLoopData(ScriptLoopLoader* ll) {
 		}
 		
 		for(int j = 0; j < sink_side_count; j++) {
-			const ScriptLoopLoader::SideLink& ll_side = ll_atom.sink_side_conns[j];
+			const Eon::ScriptLoopLoader::SideLink& ll_side = ll_atom.sink_side_conns[j];
 			LoopAtomSideData& side = atom.sink_sides[j];
 			
 			ASSERT_(!(side.has_link && ll_side.link == NULL), "link disappeared");
@@ -532,7 +533,7 @@ void MachineVerifier::UpdateLoopData(ScriptLoopLoader* ll) {
 	}
 }
 
-void MachineVerifier::OnLoopLoader_RealizeAtoms(ScriptLoopLoader* ll) {
+void MachineVerifier::OnLoopLoader_RealizeAtoms(Eon::ScriptLoopLoader* ll) {
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);
 	int prev_count = data.atoms.GetCount();
 	
@@ -541,14 +542,14 @@ void MachineVerifier::OnLoopLoader_RealizeAtoms(ScriptLoopLoader* ll) {
 	int atoms_added = data.atoms.GetCount() - prev_count;
 }
 
-void MachineVerifier::OnLoopLoader_AtomLinked(ScriptLoopLoader* ll) {
+void MachineVerifier::OnLoopLoader_AtomLinked(Eon::ScriptLoopLoader* ll) {
 	
 	UpdateLoopData(ll);
 	
 	MVER_LOG("MachineVerifier::OnLoopLoader_AtomLinked: linked interface in loop " << HexStr(ll));
 }
 
-void MachineVerifier::OnLoopLoader_SearchNewSegment(ScriptLoopLoader* ll) {
+void MachineVerifier::OnLoopLoader_SearchNewSegment(Eon::ScriptLoopLoader* ll) {
 	MVER_LOG("MachineVerifier::OnLoopLoader_SearchNewSegment");
 	
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);

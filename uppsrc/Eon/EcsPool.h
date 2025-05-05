@@ -59,7 +59,7 @@ public:
 	
 	Pool*				GetParent() const;
 	Engine&				GetEngine();
-	String				GetName() const {return name;}
+	String				GetName() const override {return name;}
 	bool				HasEntities() const;// {return !objects.IsEmpty();}
 	//bool				HasPools() const {return !pools.IsEmpty();}
 	

@@ -106,7 +106,9 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 	ComponentBasePtr cb = FindTypeCls(cls);
 	if (cb)
 		return cb;
-	return AddPtr(GetEngine().Get<ComponentStore>()->CreateComponentTypeCls(cls));
+	TODO
+	//return AddPtr(GetEngine().Get<ComponentStore>()->CreateComponentTypeCls(cls));
+	return 0;
 }
 
 ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {

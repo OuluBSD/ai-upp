@@ -119,7 +119,7 @@ public:
         Remove(AsTypeCls<SystemT>());
     }
 
-    Machine();
+    Machine(MetaNode& n);
     virtual ~Machine();
 
     bool HasStarted() const;
@@ -185,7 +185,7 @@ Machine& GetActiveMachine();
 void SetActiveMachine(Machine& m);
 void ClearActiveMachine();
 
-
+#if 0
 class SingleMachine {
 	
 protected:
@@ -203,6 +203,6 @@ public:
 	bool Start() {return Open(0);}
 	void Stop() {Close();}
 };
-
+#endif
 
 #endif

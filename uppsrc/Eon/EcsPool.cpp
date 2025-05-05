@@ -185,9 +185,11 @@ String Pool::GetTreeString(int indent) {
 	
 	s << ".." << name << "[" << id << "]\n";
 	
+	auto objects = node.FindAll<Entity>();
 	for (EntityPtr& e : objects)
 		s << e->GetTreeString(indent+1);
 	
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		s << p->GetTreeString(indent+1);
 	
@@ -195,6 +197,7 @@ String Pool::GetTreeString(int indent) {
 }
 
 PoolPtr Pool::FindPool(String name) {
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools) {
 		if (p->GetName() == name)
 			return p;
@@ -203,6 +206,7 @@ PoolPtr Pool::FindPool(String name) {
 }
 
 EntityPtr Pool::FindEntityByName(String name) {
+	auto objects = node.FindAll<Entity>();
 	for (EntityPtr object : objects)
 		if (object->GetName() == name)
 			return object;
@@ -210,14 +214,14 @@ EntityPtr Pool::FindEntityByName(String name) {
 }
 
 PoolPtr Pool::AddPool(String name) {
-	Pool& p = pools.Add();
-	p.SetParent(PoolParent(0, this));
+	Pool& p = node.Add<Pool>();
 	p.SetName(name);
 	p.SetId(GetNextId());
-	return p;
+	return &p;
 }
 
 PoolPtr Pool::GetAddPool(String name) {
+	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& pool : pools)
 		if (pool->GetName() == name)
 			return pool;
@@ -225,12 +229,13 @@ PoolPtr Pool::GetAddPool(String name) {
 }
 
 void Pool::RemoveEntity(Entity* e) {
+	auto objects = node.FindAll<Entity>();
 	int i = 0;
 	auto it = objects.begin();
 	auto end = objects.end();
 	while (it != end) {
 		if (e == &**it) {
-			objects.Remove(it);
+			objects.Remove(i);
 			break;
 		}
 		++i;
@@ -245,8 +250,8 @@ ComponentBasePtr Pool::RealizeComponentPath(const Vector<String>& path) {
 	
 	String ent_name = path[c-2];
 	String comp_name = path[c-1];
-	ASSERT(!ent_name.IsEmpty())
-	ASSERT(!comp_name.IsEmpty())
+	ASSERT(!ent_name.IsEmpty());
+	ASSERT(!comp_name.IsEmpty());
 	
 	Pool* pool = this;
 	for(int i = 0; i < c-2; i++) {
@@ -269,7 +274,7 @@ EntityPtr Pool::RealizeEntityPath(const Vector<String>& path) {
 	if (c < 1) return EntityPtr();
 	
 	String ent_name = path[c-1];
-	ASSERT(!ent_name.IsEmpty())
+	ASSERT(!ent_name.IsEmpty());
 	
 	Pool* pool = this;
 	for(int i = 0; i < c-1; i++) {
@@ -286,7 +291,7 @@ EntityPtr Pool::RealizeEntityPath(const Vector<String>& path) {
 
 
 
-
+#if 0
 bool PoolHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) {
 	if (derived == AsTypeCls<Pool>()) {
 		Pool& p = *(Pool*)mem;
@@ -294,7 +299,7 @@ bool PoolHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 	}
 	return true;
 }
-
+#endif
 
 
 

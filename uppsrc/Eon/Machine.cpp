@@ -24,7 +24,7 @@ Callback Machine::WhenPreFirstUpdate;
 
 
 
-Machine::Machine() {
+Machine::Machine(MetaNode& n) : MetaMachineBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -49,9 +49,10 @@ bool Machine::Start() {
 	
 	is_started = true;
 	
+	auto systems = node.FindAll<SystemBase>();
 	for (auto system : systems) {
 		if (!system->Initialize()) {
-			LOG("Could not initialize system " << system->GetDynamicName());
+			LOG("Could not initialize system " << system->GetType().GetName());
 			return false;
 		}
 	}
@@ -96,6 +97,7 @@ void Machine::Update(double dt) {
 		return;
 	}
 	
+	auto systems = node.FindAll<SystemBase>();
 	for (auto& system : systems) {
 		SystemBase* b = &*system;
 		WhenEnterSystemUpdate(*b);
@@ -115,6 +117,7 @@ void Machine::Update(double dt) {
 
 void Machine::Stop() {
 	bool was_started = is_started;
+	auto systems = node.FindAll<SystemBase>();
 	
 	is_running = false;
 	is_started = false;
@@ -122,15 +125,15 @@ void Machine::Stop() {
 	DBG_BEGIN_UNREF_CHECK
 	
 	if (was_started) {
-		for (auto it = systems.rpbegin(); it != systems.rpend(); --it) {
-			it->Stop();
+		for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
+			(*it)->Stop();
 		}
 	}
 	
 	is_initialized = false;
 	
-	for (auto it = systems.rpbegin(); it != systems.rpend(); --it) {
-		it->Uninitialize();
+	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
+		(*it)->Uninitialize();
 	}
 	
 	if (is_failed) {
@@ -157,7 +160,7 @@ void Machine::Add(TypeCls type_id, SystemBase* system) {
 	int i = FindSystem(type_id);
 	ASSERT(i >= 0);
 	
-	ASSERT(system->GetParent());
+	ASSERT(system->node.owner);
 	systems.Add(type_id, system);
 }
 
@@ -171,8 +174,9 @@ void Machine::Remove(TypeCls type_id) {
 }
 
 void Machine::Visit(Vis& vis) {
-	for (auto iter = systems.begin(); iter; ++iter)
-		vis.Visit(iter());
+	auto systems = node.FindAll<SystemBase>();
+	for (auto& it : systems)
+		it->Visit(vis);
 }
 
 void Machine::WarnDeveloper(String msg) {
@@ -213,14 +217,13 @@ END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 
-
+#if 0
 void SingleMachine::Run(void(*fn)(), void(*arg_fn)()) {
 	if (Open(arg_fn)) {
 		fn();
 		Close();
 	}
 }
-
-
+#endif
 
 END_UPP_NAMESPACE

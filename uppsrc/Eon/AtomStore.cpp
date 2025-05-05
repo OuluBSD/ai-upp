@@ -25,11 +25,14 @@ AtomBase* AtomStore::CreateAtom(AtomTypeCls cls) {
 AtomBase* AtomStore::CreateAtomTypeCls(AtomTypeCls cls) {
 	auto it = Factory::producers.Find(cls);
 	if (!it) {
+		TODO
+		#if 0
 		auto new_fn = Factory::AtomDataMap().Get(cls).new_fn;
 		std::function<AtomBase*()> p([new_fn] { return new_fn();});
 		std::function<void(AtomBase*)> r([] (Base* b){ delete b;});
 		Factory::producers.Add(cls) = p;
 		Factory::refurbishers.Add(cls) = r;
+		#endif
 	}
 	
 	return CreateAtom(cls);

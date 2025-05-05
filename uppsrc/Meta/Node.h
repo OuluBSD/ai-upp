@@ -255,6 +255,7 @@ struct MetaNode : Pte<MetaNode> {
 	VfsPath GetPath() const;
 	void DeepChk();
 	void Chk();
+	bool IsOwnerDeep(MetaNodeExt& n) const;
 	
 	template <class T>
 	T& Add() {
@@ -301,6 +302,73 @@ struct MetaNode : Pte<MetaNode> {
 	template <class T> T* GetOwnerExt() const {
 		return owner ? owner->ext ? CastPtr<T>(&*owner->ext) : 0 : 0;
 	}
+	
+	template <class T> T* FindOwner() const {
+		MetaNode* n = owner;
+		while (n) {
+			if (owner->ext) {
+				T* o = CastPtr<T>(&*owner->ext);
+				if (o)
+					return o;
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
+	template <class T> T* FindOwnerDeep() const {
+		MetaNode* n = owner;
+		T* root = 0;
+		while (n) {
+			if (owner->ext) {
+				T* o = CastPtr<T>(&*owner->ext);
+				if (o)
+					root = o;
+			}
+			n = n->owner;
+		}
+		return root;
+	}
+	
+	template <class T> Vector<Ptr<T>> FindAllDeep() {
+		Vector<Ptr<T>> v;
+		FindAllDeep0<T>(v);
+		return v;
+	}
+	template <class T> void FindAllDeep0(Vector<Ptr<T>>& v) {
+		T* o = ext ? CastPtr<T>(&*ext) : 0;
+		if (o)
+			v.Add(o);
+		for (auto& s : sub)
+			s.FindAdllDeep0<T>(v);
+	}
+	template <class T> void RemoveAllDeep() {
+		Vector<int> rmlist;
+		int i = 0;
+		for (auto& s : sub) {
+			T* o = s.ext ? CastPtr<T>(&*s.ext) : 0;
+			if (o)
+				rmlist << i;
+			else
+				s.RemoveAllDeep<T>();
+			i++;
+		}
+		if (!rmlist.IsEmpty())
+			sub.Remove(rmlist);
+	}
+	template <class T> void RemoveAllShallow() {
+		Vector<int> rmlist;
+		int i = 0;
+		for (auto& s : sub) {
+			T* o = s.ext ? CastPtr<T>(&*s.ext) : 0;
+			if (o)
+				rmlist << i;
+			i++;
+		}
+		if (!rmlist.IsEmpty())
+			sub.Remove(rmlist);
+	}
+	
 };
 
 using Nod = MetaNode;

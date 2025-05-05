@@ -1013,6 +1013,16 @@ void MetaNode::Chk() {
 	#endif
 }
 
+bool MetaNode::IsOwnerDeep(MetaNodeExt& n) const {
+	const MetaNode* p = this;
+	while (p) {
+		if (p->ext && (&*p->ext) == &n)
+			return true;
+		p = p->owner;
+	}
+	return false;
+}
+
 hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
 {
 	if(kind < 0 || kind >= METAKIND_BEGIN)

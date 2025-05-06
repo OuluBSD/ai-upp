@@ -354,6 +354,7 @@ void SerialServiceServer::ClientHandler(TcpSocket* ptr) {
 					LOG("SerialServiceServer::ClientHandler: error: couldn't send full structure (" << sent << " < " << hb.out_sz << ")");
 					break;
 				}
+				break;
 			}
 			
 			case FN_SERIALIZED:
@@ -380,6 +381,7 @@ void SerialServiceServer::ClientHandler(TcpSocket* ptr) {
 					LOG("SerialServiceServer::ClientHandler: error: couldn't send full memory (" << sent << " < " << result.GetCount() << ")");
 					break;
 				}
+				break;
 			}
 		}
 	}

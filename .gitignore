@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 .DS_Store
-uppsrc/ide/ExtPoint/**
-=======
 *.core
 *vgcore*
 .vs
@@ -25,5 +22,3 @@ vs/**/Generated Files/**
 vs**/x64/**
 **/*.trace
 *.trace
-
->>>>>>> origin/uglyold

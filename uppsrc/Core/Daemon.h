@@ -153,10 +153,6 @@ public:
 				tmp_in.Create();
 				tmp_out.Create();
 			}
-			uint32 in_sz, out_sz;
-			in.Get(&in_sz, 4);
-			in.Get(&out_sz, 4);
-			
 			in % *tmp_in;
 			cb(*tmp_in, *tmp_out);
 			out % *tmp_out;
@@ -267,8 +263,8 @@ public:
 	//bool CallSocket(uint32 magic, Callback1<TcpSocket&> cb);
 	
 	template <class In, class Out>
-	bool Call(uint32 magic, const In& in, Event<const Out&> fn) {
-		return CallMem(magic, (const void*)&in, sizeof(In), fn);
+	bool Call(uint32 magic, const In& in, Out& out) {
+		return CallMem(magic, (const void*)&in, sizeof(In), (void*)&out, sizeof(Out));
 	}
 	
 	template <class In, class Out>

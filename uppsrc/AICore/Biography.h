@@ -270,6 +270,7 @@ struct BiographyPerspectives : Component {
 	Time last_modified;
 	Array<Concept> concepts;
 	
+	CLASSTYPE(BiographyPerspectives)
 	BiographyPerspectives(MetaNode& o) : Component(o) {}
 	
 	void Visit(Vis& v) override {

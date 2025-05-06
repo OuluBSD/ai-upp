@@ -240,6 +240,7 @@ String GetStructText(const Array<DynPart>& parts, bool src_text);
 struct LyricalStructure : Component {
 	Array<DynPart>			parts;
 	
+	CLASSTYPE(LyricalStructure)
 	LyricalStructure(MetaNode& owner) : Component(owner) {}
 	~LyricalStructure() {}
 	void Visit(Vis& v) override {
@@ -264,6 +265,7 @@ struct Script : Component {
 	Vector<bool>			actions_enabled;
 	Vector<int>				phrase_parts[PART_COUNT];
 	
+	CLASSTYPE(Script)
 	Script(MetaNode& owner) : Component(owner) {}
 	~Script();
 	void Store(Entity& a);
@@ -309,7 +311,7 @@ struct Lyrics : Component {
 	*/
 	
 	
-	
+	CLASSTYPE(Lyrics)
 	Lyrics(MetaNode& owner) : Component(owner) {}
 	~Lyrics() {}
 	void Visit(Vis& v) override {

@@ -11,6 +11,7 @@ struct AiChatComponent : Component {
 	void Visit(Vis& v) override;
 	String GetName() const override {return "AI: Chat";}
 	
+	CLASSTYPE(AiChatComponent)
 	AiChatComponent(MetaNode& owner);
 	~AiChatComponent();
 	

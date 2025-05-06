@@ -694,6 +694,7 @@ struct SrcTxtHeader : Component {
 	String filepath;
 	One<SrcTextData> data;
 	
+	CLASSTYPE(SrcTxtHeader)
 	SrcTxtHeader(MetaNode& owner) : Component(owner) {}
 	~SrcTxtHeader();
 	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}

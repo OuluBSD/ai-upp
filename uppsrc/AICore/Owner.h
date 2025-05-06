@@ -89,6 +89,7 @@ struct Owner : Component
 	String description, environment;
 	Array<Role> roles;
 	
+	CLASSTYPE(Owner)
 	Owner(MetaNode& owner) : Component(owner) {}
 	int FindRole(const String& name) const;
 	void Store();

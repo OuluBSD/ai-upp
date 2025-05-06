@@ -13,6 +13,7 @@ struct Profile : Component
 	
 	BiographyPerspectives* FindSnapshotRevision(int i);
 	
+	CLASSTYPE(Profile)
 	Profile(MetaNode& owner) : Component(owner) {}
 	String GetName() const override {return name;}
 	void Visit(Vis& v) override {

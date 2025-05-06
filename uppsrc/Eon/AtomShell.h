@@ -1,0 +1,88 @@
+#ifndef _Eon_AtomShell_h_
+#define _Eon_AtomShell_h_
+
+
+
+typedef enum {
+	SHELLMODE_INTERPRETER	= 1 << 0,
+	SHELLMODE_REMOTE		= 1 << 1,
+} ShellMode;
+
+bool IsShellMode(ShellMode m);
+
+
+void DefaultStartup();
+void DefaultRunner(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
+void DefaultRunnerStop();
+bool DefaultInitializer(bool skip_eon_file);
+void DefaultSerialInitializer();
+void DefaultSerialInitializer0(bool skip_eon_file=false);
+void DefaultSerialInitializerInternalEon();
+void DebugMainLoop();
+void DebugMainLoop(Machine& mach, bool (*fn)(void*)=0, void* arg=0);
+
+struct SerialLoaderBase {
+	
+	virtual ~SerialLoaderBase() {}
+	virtual String LoadFile(String file_path) = 0;
+	
+};
+
+struct SerialLoaderFactory {
+	typedef SerialLoaderBase*(*NewFn)();
+	struct Loader : Moveable<Loader> {
+		NewFn fn;
+		
+	};
+	
+	static VectorMap<String,Loader>& GetLoaders() {static VectorMap<String,Loader> l; return l;}
+	
+	
+	template <class T>
+	static SerialLoaderBase* New() {return new T();}
+	
+	
+	template <class T>
+	static void Register(String file_ext) {
+		Loader& l = GetLoaders().Add(file_ext);
+		l.fn = &New<T>;
+	}
+	
+	
+	static String LoadFile(String file_path);
+};
+
+
+
+
+
+#define APP_INITIALIZE_DEFAULT \
+	APP_INITIALIZE_STARTUP_(DefaultSerialInitializer, DefaultStartup)
+
+#define APP_INITIALIZE_DEFAULT_INTERNAL_EON \
+	APP_INITIALIZE_STARTUP_(DefaultSerialInitializerInternalEon, DefaultStartup)
+
+#define APP_INITIALIZE_DEFAULT_INTERNAL_EON_(x) \
+	APP_INITIALIZE_STARTUP_2(DefaultSerialInitializerInternalEon, DefaultStartup, x)
+
+
+
+#define DEFAULT_ATOMSHELL_(title_str) \
+	APP_INITIALIZE_DEFAULT \
+	RENDER_APP_MAIN {DefaultRunner(true, title_str);}
+
+#define DEFAULT_ECS_SHELL_(title_str) \
+	APP_INITIALIZE_STARTUP2_2(DefaultSerialInitializer, DefaultStartup, BindEcsToSerial) \
+	ECS_APP_MAIN {DefaultRunner(true, title_str);}
+
+#define DEFAULT_ECS_SHELL_EON(title_str, eon_path) \
+	APP_INITIALIZE_STARTUP2_2(DefaultSerialInitializer, DefaultStartup, BindEcsToSerial) \
+	ECS_APP_MAIN {DefaultRunner(true, title_str, eon_path);}
+
+
+#define DEFAULT_ATOMSHELL DEFAULT_ATOMSHELL_("AtomShell")
+#define DEFAULT_ECS_SHELL DEFAULT_ECS_SHELL_("EcsShell")
+
+
+
+#endif

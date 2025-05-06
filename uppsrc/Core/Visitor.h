@@ -610,4 +610,98 @@ public:
 	
 };
 
+
+template <class T>
+bool VisitFromJson(T& var, const char *json)
+{
+	try {
+		Value jv = ParseJSON(json);
+		if(jv.IsError())
+			return false;
+		JsonIO io(jv);
+		Vis vis(io);
+		var.Visit(vis);
+	}
+	catch(ValueTypeError) {
+		return false;
+	}
+	catch(JsonizeError) {
+		return false;
+	}
+	return true;
+}
+
+template <class T>
+bool VisitFromJsonFile(T& var, const char *file = NULL)
+{
+	return VisitFromJson(var, LoadFile(sJsonFile(file)));
+}
+
+template <class T>
+String VisitToJson(T& var)
+{
+	try {
+		JsonIO io;
+		Vis vis(io);
+		var.Visit(vis);
+		Value val = io.GetResult();
+		return AsJSON(val);
+	}
+	catch (...) {
+		return String();
+	}
+}
+
+template <class T> inline hash_t GetVisitJsonHash(const T& o) {return VisitToJson<T>(const_cast<T&>(o)).GetHashValue();}
+
+template <class T>
+bool DoVisitToJson(T& var, String& res, bool pretty=false)
+{
+	try {
+		JsonIO io;
+		Vis vis(io);
+		var.Visit(vis);
+		if (vis.IsError())
+			return false;
+		Value val = io.GetResult();
+		res = AsJSON(val, pretty);
+	}
+	catch (...) {
+		return false;
+	}
+	return true;
+}
+
+template <class T>
+bool VisitToJsonFile(T& var, const char *file = NULL)
+{
+	try {
+		String json = VisitToJson(var);
+		FileOut s(file);
+		s << json;
+		s.Close();
+	}
+	catch (...) {
+		return false;
+	}
+	return true;
+}
+
+template <class T>
+void VisitCopy(const T& src, T& dst) {
+	StringStream ss;
+	{
+		Vis vis(ss);
+		ASSERT(vis.IsStoring());
+		const_cast<T&>(src).Visit(vis);
+	}
+	ss.Seek(0);
+	ss.SetLoading();
+	{
+		Vis vis(ss);
+		ASSERT(vis.IsLoading());
+		dst.Visit(vis);
+	}
+}
+
 #endif

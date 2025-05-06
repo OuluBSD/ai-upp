@@ -693,3 +693,17 @@ template <class T> int ArrayRemoveKey(Array<T>& v, const T& o) {
 	}
 	return rem_count;
 }
+
+template <class T> hash_t TypedStringHasher(const char* s) {
+	struct Hasher {
+		hash_t h = 0;
+		Hasher(const char* s) {
+			if (!s || s[0] == 0) {
+				Panic("Type has not been set yet");
+			}
+			h = String(s).GetHashValue();
+		}
+	};
+	static Hasher h(s);
+	return h.h;
+}

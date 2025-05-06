@@ -1,0 +1,17 @@
+description "\377B128,0,0";
+
+file
+	AICore.h,
+	Structural.h,
+	Graph.h,
+	Graph.cpp,
+	Tests.cpp,
+	GeneticOptimizer.h,
+	Neural.h,
+	Neural.cpp,
+	Node.h,
+	SearchAlgos.h,
+	ActionPlanner.h,
+	ActionPlanner.cpp,
+	QueryTable.h;
+

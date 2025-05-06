@@ -1,14 +1,41 @@
 description "Libtopside main package\377";
 
 uses
-	Complete,
-	AtomDebug;
+	api/MidiFile,
+	api/MidiHw,
+	GuboLib,
+	AICore2,
+	api/Audio,
+	api/AudioFileOut,
+	api/Camera,
+	api/Media,
+	api/Volumetric,
+	SoftPhys,
+	SoftAudio,
+	api/Physics,
+	DesktopSuite;
 
-uses(GUI) EcsComplete;
+uses(DX12) EonWin;
+
+uses(GUI) EonCtrl;
+
+uses(GUI | SCREEN) api/Graphics;
+
+uses(GUI | SCREEN) api/Hal;
+
+uses((GUI | SCREEN) & !EMSCRIPTEN) api/Screen;
 
 file
 	EcsShell.h,
-	EcsShell.cpp;
+	EcsShell.cpp,
+	Prefabs.h,
+	PrefabsMinimal.h,
+	AtomDebug.cpp,
+	EcsComplete.cpp,
+	EcsLocal.cpp,
+	Defs.h,
+	Defs2.h,
+	_ readonly separator;
 
 mainconfig
 	"Have everything (Linux)" = "GUI SCREEN SDL2 OGL FFMPEG OPENCV VR LOCALHMD FLUIDSYNTH BUILTIN_PORTAUDIO PORTMIDI",

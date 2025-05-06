@@ -3,8 +3,13 @@
 
 #include <Eon/Eon.h>
 
+#ifdef flagMSC
+	#pragma warning( disable : 4250 ) // C4250: useless Inheritance via dominance warning
+#endif
+
 NAMESPACE_UPP
 
+#include "GEnums.h"
 #include "DrawCommand.h"
 #include "ProgPainter.h"
 #include "ProgDraw.h"

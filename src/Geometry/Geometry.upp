@@ -1,12 +1,12 @@
 description "Classes for 2D/3D/etc operations.\377B128,0,54";
 
 uses
-	ports/mikktspace,
+	plugin/mikktspace,
 	Draw;
 
-uses(!UWP) ports/tiny_gltf;
+uses(!UWP) plugin/tiny_gltf;
 
-uses(!UWP & (BUILTIN_ASSIMP | LINUX)) ports/assimp;
+uses(!UWP & (BUILTIN_ASSIMP | LINUX)) plugin/assimp;
 
 library(!BUILTIN_ASSIMP & POSIX & !LINUX) assimp;
 

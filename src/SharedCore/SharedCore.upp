@@ -10,8 +10,6 @@ file
 	Keycodes.inl highlight cpp,
 	Container.h,
 	Container.cpp,
-	TokenParser.h,
-	TokenParser.cpp,
 	String.h,
 	String.cpp,
 	Random.h,

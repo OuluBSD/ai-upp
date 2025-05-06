@@ -1,8 +1,0 @@
-description "\377B255,0,255";
-
-uses
-	Structural;
-
-file
-	Shadertoy.h;
-

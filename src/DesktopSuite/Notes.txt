@@ -1,3 +1,0 @@
-
-- .config: the base directory relative to which user-specific configuration files should be stored
-	--> class UserRegistry

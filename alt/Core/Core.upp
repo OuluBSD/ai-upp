@@ -5,12 +5,12 @@ noblitz;
 options(BUILDER_OPTION) NOWARNINGS;
 
 uses
-	ports/bz2lib,
+	plugin/bz2lib,
 	RTTI,
 	SharedCore,
-	ports/md5;
+	plugin/md5;
 
-uses(GCC WIN32) ports/MingwThreads;
+uses(GCC WIN32) plugin/MingwThreads;
 
 library(WIN32) "shlwapi comdlg32";
 

@@ -1,8 +1,7 @@
 description "\377B28,127,255";
 
 uses
-	CtrlCore,
-	SerialLib;
+	CtrlCore;
 
 file
 	GuboCore.h,

@@ -1,9 +1,15 @@
+description "\377B128,0,255";
+
 uses
-	Eon;
+	Eon,
+	Draw2;
 
 file
 	EonDraw.h,
 	EonDraw.icpp,
+	Local.icpp,
+	GEnums.h,
+	Graphics.cpp,
 	ModelCache.h,
 	ModelCache.cpp,
 	Binder.h,

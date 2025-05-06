@@ -1,7 +1,4 @@
-description "\377128,128,0";
-
-uses
-	Local;
+description "\377128,0,0";
 
 file
 	Copying,

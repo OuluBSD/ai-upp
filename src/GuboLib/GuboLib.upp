@@ -3,8 +3,7 @@ description "\377B28,127,255";
 uses
 	GuboCore,
 	Geometry,
-	VirtualGui3D,
-	SerialLib;
+	VirtualGui3D;
 
 file
 	GuboLib.h,

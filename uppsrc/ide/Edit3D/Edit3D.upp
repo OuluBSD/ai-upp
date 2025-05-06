@@ -5,7 +5,7 @@ uses
 	Geometry,
 	ComputerVision,
 	plugin/jpg,
-	ports/enet;
+	plugin/enet;
 
 file
 	Edit3D.h,

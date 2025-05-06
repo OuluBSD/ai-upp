@@ -6,7 +6,7 @@ uses
 	Esc,
 	Core2,
 	Backend,
-	ports/enet;
+	plugin/enet;
 
 file
 	Eon.h,
@@ -68,6 +68,7 @@ file
 	BaseVideo.cpp,
 	Audio.h,
 	Audio.cpp,
+	Audio2.cpp,
 	PacketTracker.h,
 	PacketTracker.cpp,
 	Util.h,

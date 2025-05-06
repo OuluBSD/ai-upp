@@ -2,7 +2,7 @@ description "\377B128,0,0";
 
 uses
 	Local,
-	ports/chips;
+	plugin/chips;
 
 file
 	ProtoVM.h,

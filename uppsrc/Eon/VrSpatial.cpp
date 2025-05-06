@@ -43,12 +43,15 @@ void VrSpatialInteractionManager::Update(double dt) {
 	
 	if (!env_name.IsEmpty()) {
 		Machine& m = GetActiveMachine();
+		TODO
+		#if 0
 		Ptr<LoopStore> ls = m.Find<LoopStore>();
 		LoopPtr l = ls->GetRoot();
 		state = l->GetSpace()->FindStateDeep(env_name);
 		if (!state) {
 			LOG("InteractionSystem::Update: error: environment state with name '" << env_name << "' not found");
 		}
+		#endif
 		env_name.Clear();
 		
 		DetectController();

@@ -5,7 +5,8 @@ uses
 	Geometry,
 	Esc,
 	Core2,
-	Backend;
+	Backend,
+	ports/enet;
 
 file
 	Eon.h,
@@ -14,6 +15,8 @@ file
 	Fn.h,
 	Container.h,
 	Container.cpp,
+	Network.h,
+	Network.cpp,
 	CtrlEvent.h,
 	CtrlEvent.cpp,
 	Debugging.h,

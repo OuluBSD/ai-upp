@@ -1,3 +1,6 @@
+#ifndef _Core2_Ctrl_h_
+#define _Core2_Ctrl_h_
+
 
 enum EventStateKey {
 	KEYBOARD_PRESSED,
@@ -79,3 +82,6 @@ enum EventStateKey {
 	//#endif
 	
 };
+
+
+#endif

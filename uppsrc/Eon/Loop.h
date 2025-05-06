@@ -12,14 +12,14 @@ class Loop :
 	
 protected:
 	friend class LoopStore;
-	friend class ScriptLoader;
+	friend class Eon::ScriptLoader;
 	
 	Space*		space = 0;
 	
 	void SetId(LoopId i) {id = i;}
 	
 public:
-	typedef Loop CLASSNAME;
+	CLASSTYPE(Loop)
 	using LoopPtr = Ptr<Loop>;
 	//using LoopVec = Array<Loop>;
 	static LoopId GetNextId();

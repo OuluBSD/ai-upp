@@ -10,7 +10,7 @@ class Pool : public MetaNodeExt
 	//using PoolVec = Array<Pool>;
 	
 	//Engine*				machine = 0;
-	BitField<dword>		freeze_bits;
+	BitField<int>		freeze_bits;
 	String				name;
 	PoolId				id;
 	//PoolVec				pools;
@@ -21,12 +21,10 @@ protected:
 	void SetId(PoolId i) {id = i;}
 	
 public:
-	typedef Pool CLASSNAME;
 	using PoolPtr = Ptr<Pool>;
 	//using RScope		= RefScopeEnabler<Pool, EntityStore, PoolParent>;
-	
 	static PoolId GetNextId();
-	
+	CLASSTYPE(Pool)
 	Pool(MetaNode& n);
 	~Pool();
 	
@@ -35,8 +33,7 @@ public:
 		BIT_TRANSFORM,
 	} Bit;
 	
-	void Serialize(Stream& e);
-	void Visit(Vis& vis) override {vis.VisitT<MetaNodeExt>("Base", *this);}
+	void Visit(Vis& vis) override;
 	
 	PoolId GetId() const {return id;}
 	
@@ -73,7 +70,7 @@ public:
 	EntityPtr Create() {
 		static_assert(TupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
-		Entity& e = node.Add<Entity>();
+		Entity& e = node.Add<Ecs::Entity>();
 		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);
@@ -88,7 +85,7 @@ public:
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
 		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
-		auto ents = node.FindAll<Entity>();
+		auto ents = node.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -108,7 +105,7 @@ public:
 		
 		Vector<Tuple<ComponentTs*...>> components;
 		
-		auto ents = node.FindAll<Entity>();
+		auto ents = node.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -127,7 +124,7 @@ public:
 	EntityPtr FindEntity(T* component) {
 		if (!component)
 			return EntityPtr();
-		auto ents = node.FindAll<Entity>();
+		auto ents = node.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			T* t = ent->Find<T>();
 			if (t == component)
@@ -186,7 +183,7 @@ T* Entity::FindNearestEntityWith() {
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			auto ents = p->node.FindAll<Entity>();
+			auto ents = p->node.FindAll<Ecs::Entity>();
 			for (Entity* e : ents) {
 				c = e->Find<T>();
 				if (c) break;
@@ -199,7 +196,7 @@ T* Entity::FindNearestEntityWith() {
 
 #if 0
 template <>
-inline void ComponentBase::EtherizeRef(Ether& e, EntityPtr& ref) {
+inline void ComponentBase::EtherizeRef(Stream& e, EntityPtr& ref) {
 	thread_local static Vector<String> path;
 	bool has_ref = !ref.IsEmpty();
 	e % has_ref;
@@ -220,7 +217,7 @@ inline void ComponentBase::EtherizeRef(Ether& e, EntityPtr& ref) {
 }
 
 template <class T>
-void ComponentBase::EtherizeRef(Ether& e, Ptr<T>& ref) {
+void ComponentBase::EtherizeRef(Stream& e, Ptr<T>& ref) {
 	thread_local static Vector<String> path;
 	EntityPtr ent = GetEntity();
 	bool has_ref = !ref.IsEmpty();
@@ -248,7 +245,7 @@ void ComponentBase::EtherizeRef(Ether& e, Ptr<T>& ref) {
 }
 
 template <class T>
-void ComponentBase::EtherizeRefContainer(Ether& e, T& cont) {
+void ComponentBase::EtherizeRefContainer(Stream& e, T& cont) {
 	int d = cont.GetCount();
 	e % d;
 	cont.SetCount(d);

@@ -30,10 +30,20 @@ Machine::Machine(MetaNode& n) : MetaMachineBase(n) {
 
 Machine::~Machine() {
 	ASSERT_(!is_initialized && !is_started, "Machine should be in a clean state upon destruction");
-	systems.Clear();
 	DBG_DESTRUCT
 }
 
+Ecs::Engine& Machine::GetEngine() {
+	if (node.owner) {
+		auto engs = node.owner->FindAll<Ecs::Engine>();
+		if (engs.GetCount())
+			return *engs[0];
+	}
+	Ecs::Engine* e = node.FindOwner<Ecs::Engine>();
+	ASSERT(e);
+	if (!e) throw Exc("cannot find engine");
+	return *e;
+}
 
 bool Machine::Start() {
 	ASSERT_(!is_initialized && !is_started, "Shouldn't call Start if we already started");
@@ -150,10 +160,23 @@ void Machine::Resume() {
 	is_suspended = false;
 }
 
+void Machine::DieFast() {Start(); Update(0); Stop();}
+
+void Machine::Clear() {
+	ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0;
+	node.RemoveAllDeep<SystemBase>();
+}
+
 bool Machine::HasStarted() const {
 	return is_started;
 }
 
+SystemBase* Machine::FindSystem(TypeCls type_id) {
+	MetaNode* n = node.FindDeep(type_id);
+	return n && n->ext ? CastPtr<SystemBase>(&*n->ext) : 0;
+}
+
+#if 0
 void Machine::Add(TypeCls type_id, SystemBase* system) {
 	ASSERT_(!is_started, "Invalid to add systems after the machine has started");
 	
@@ -172,11 +195,20 @@ void Machine::Remove(TypeCls type_id) {
 	
 	systems.Remove(i);
 }
+#endif
 
-void Machine::Visit(Vis& vis) {
-	auto systems = node.FindAll<SystemBase>();
-	for (auto& it : systems)
-		it->Visit(vis);
+void Machine::Visit(Vis& v) {
+	_VIS_(ticks)
+	 VIS_(last_warnings)
+	 VIS_(warning_age)
+	 VIS_(is_started)
+	 VIS_(is_initialized)
+	 VIS_(is_suspended)
+	 VIS_(is_running)
+	 VIS_(is_failed)
+	 VIS_(fail_msg);
+	v & mver;
+	v.VisitT<MetaMachineBase>("Base", *this);
 }
 
 void Machine::WarnDeveloper(String msg) {

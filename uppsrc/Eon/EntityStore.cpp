@@ -1,14 +1,14 @@
 #include "Eon.h"
 
-
+#if 0
 NAMESPACE_UPP namespace Ecs {
 
 void EntityStore::InitRoot() {
 	node.RemoveAllShallow<Pool>();
 	MetaNode& n = node.Add();
-	n.kind = 0; TODO // solve kind
 	Pool* p = new Pool(n);
 	n.ext = p;
+	n.type_hash = p->GetTypeHash();
 	p->SetName("root");
 	p->SetId(Pool::GetNextId());
 }
@@ -89,3 +89,4 @@ Ecs::Engine& Machine::GetEngine() {
 
 
 END_UPP_NAMESPACE
+#endif

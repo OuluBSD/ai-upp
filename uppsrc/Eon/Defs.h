@@ -29,14 +29,14 @@
 #endif
 
 #define ECS_SYS_CTOR_(x) \
-	typedef x CLASSNAME; \
+	CLASSTYPE(x) \
 	x(MetaNode& e) : System<x>(e)
 
 #define ECS_SYS_CTOR(x) \
-	typedef x CLASSNAME; \
+	CLASSTYPE(x) \
 	x(MetaNode& m) : System<x>(m) {}
 #define ECS_SYS_CTOR_DERIVED(x, derived_from) \
-	typedef x CLASSNAME; \
+	CLASSTYPE(x) \
 	x(MetaNode& m) : derived_from(m) {}
 #define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
 #define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
@@ -62,7 +62,7 @@ struct x : \
 
 #define COPY_PANIC(T) void operator=(const T& t) {Panic("Can't copy " #T);}
 
-using EntityId				= int32;
-using PoolId				= int32;
+using EntityId				= int;
+using PoolId				= int;
 
 #endif

@@ -33,11 +33,14 @@ void AtomBase::UninitializeDeep() {
 }
 
 Space* AtomBase::GetSpace() {
-	return &GetParent();
+	return node.FindOwner<Space>();
 }
 
 Space& AtomBase::GetParent() {
-	node.GetOwnerExt<Space>();
+	Space* s = GetSpace();
+	ASSERT(s);
+	if (!s) throw Exc("space not found");
+	return *s;
 }
 
 LinkBase* AtomBase::GetLink() {

@@ -1132,9 +1132,11 @@ public:
 	
 public:
 	TransformMatrix() {}
+	TransformMatrix(Nuller& n) {}
 	TransformMatrix(const TransformMatrix& m) {*this = m;}
 	
 	void Visit(Vis& v);
+	void operator=(const Upp::Nuller& n) {Clear();}
 	void operator=(const TransformMatrix& m);
 	
 	void Clear();
@@ -1211,6 +1213,14 @@ struct ControllerMatrix {
 			trans = c.trans;
 		}
 		
+		void Clear() {
+			is_enabled = false;
+			for(int i = 0; i < VALUE_COUNT; i++) {
+				is_value[i] = false;
+				value[i] = 0;
+			}
+			trans.Clear();
+		}
 		float GetTouchpadX(int i=0) const {return value[ANALOG_X0 + i];}
 		float GetTouchpadY(int i=0) const {return value[ANALOG_Y0 + i];}
 		float GetThumbstickX(int i=0) const {return value[ANALOG_X1 + i];}
@@ -1227,11 +1237,13 @@ struct ControllerMatrix {
 	ControllerMatrix() {}
 	ControllerMatrix(const ControllerMatrix& m) {*this = m;}
 	
+	void Clear() {for(int i = 0; i < CTRL_COUNT; i++) ctrl[i].Clear();}
 	String ToString() const {return "ControllerMatrix";}
 	int ToInt() const {return 0;}
 	double ToDouble() const {return 0;}
 	hash_t GetHashValue() const {return 0;}
 	
+	void operator=(const Upp::Nuller& n) {Clear();}
 	void operator=(const ControllerMatrix& m) {
 		for(int i = 0; i < CTRL_COUNT; i++)
 			ctrl[i] = m.ctrl[i];

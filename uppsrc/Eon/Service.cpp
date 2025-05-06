@@ -34,13 +34,15 @@ void EcsService::Deinit() {
 	
 }
 
-void EcsService::ReceiveGeoms(Ether& in, Ether& out) {
-	Parallel::Machine& mach = GetActiveMachine();
+void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
+	Machine& mach = GetActiveMachine();
 	Ecs::Engine& eng = mach.GetEngine();
+	TODO
+	#if 0
 	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
 	
 	in % *root;
-	
+	#endif
 	/*for (GeomSerializer::Item& item : read.items) {
 		
 		switch (item.type) {
@@ -82,14 +84,16 @@ void EcsService::ReceiveGeoms(Ether& in, Ether& out) {
 	
 }
 
-void EcsService::SendEngine(Ether& in, Ether& out) {
+void EcsService::SendEngine(Stream& in, Stream& out) {
 	
-	Parallel::Machine& mach = GetActiveMachine();
+	Machine& mach = GetActiveMachine();
+	TODO
+	#if 0
 	Ecs::Engine& eng = mach.GetEngine();
 	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
 	
 	out % *root;
-	
+	#endif
 }
 
 Ecs::EntityPtr EcsService::ResolveEntity(Ecs::PoolPtr& root, String path) {

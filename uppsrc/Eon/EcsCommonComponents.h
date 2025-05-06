@@ -8,9 +8,7 @@ namespace Ecs {
 class RigidBody : public Component<RigidBody> {
 	
 public:
-	COMP_DEF_VISIT
-	
-	
+	ECS_COMPONENT_CTOR(RigidBody)
 	vec3 velocity;
 	vec3 acceleration;
 	vec3 angular_velocity;
@@ -19,7 +17,7 @@ public:
 	float damping_factor;
 	
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	
     void operator=(const RigidBody& r) {
@@ -46,15 +44,15 @@ class TextRenderable :
 {
 	
 public:
-	COPY_PANIC(TextRenderable);
-	COMP_DEF_VISIT
-	
-	
+	ECS_COMPONENT_CTOR(TextRenderable)
     String				text = "";
     double				font_size = 60.0;
     
-    
-	void Serialize(Stream& e) override {e % text % font_size;}
+	void Visit(Vis& v) override {
+		_VIS_(text)
+		 VIS_(font_size);
+		VISIT_COMPONENT
+	}
     
     
 };

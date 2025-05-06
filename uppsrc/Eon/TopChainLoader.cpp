@@ -47,6 +47,7 @@ ScriptTopChainLoader::ScriptTopChainLoader(int mode, ScriptMachineLoader& parent
 
 bool ScriptTopChainLoader::Load() {
 	TODO
+	return false;
 }
 
 String ScriptTopChainLoader::GetTreeString(int indent) {

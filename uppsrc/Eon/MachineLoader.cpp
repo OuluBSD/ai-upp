@@ -16,6 +16,7 @@ ScriptMachineLoader::ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon
 
 bool ScriptMachineLoader::Load() {
 	TODO
+	return false;
 }
 
 String ScriptMachineLoader::GetTreeString(int indent) {

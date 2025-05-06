@@ -473,7 +473,7 @@ class MetaMachineBase : public MetaNodeExt
 	
 public:
 	using MetaNodeExt::MetaNodeExt;
-	
+	void Visit(Vis&) override {}
 };
 
 class MetaSystemBase : public MetaNodeExt
@@ -481,7 +481,7 @@ class MetaSystemBase : public MetaNodeExt
 public:
 	using MetaNodeExt::MetaNodeExt;
 	virtual ~MetaSystemBase() {}
-	
+	void Visit(Vis&) override {}
 };
 
 class MetaSpaceBase : public MetaNodeExt
@@ -524,7 +524,7 @@ public:
 	
 	String ToString() const;
 	
-	void Visit(Vis& vis) {vis || pts;}
+	void Visit(Vis& vis) override {vis || pts;}
 	
 	
 	

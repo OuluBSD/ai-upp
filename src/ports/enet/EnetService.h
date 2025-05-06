@@ -6,6 +6,7 @@
 // when the package is included (usually conditionally).
 
 #include <Core/Core.h>
+#include "enet.h"
 #include "Service.h"
 
 

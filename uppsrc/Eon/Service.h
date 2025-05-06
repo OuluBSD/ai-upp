@@ -5,15 +5,14 @@
 class EcsService : public DaemonService {
 	EnetServiceServer* server = 0;
 	Ecs::EntityPtr bound_entity;
-	
 	Ecs::EntityPtr ResolveEntity(Ecs::PoolPtr& root, String path);
 	
 public:
 	// Remote connection
 	//GeomSerializer write, read;
 	
-	void ReceiveGeoms(Ether& in, Ether& out);
-	void SendEngine(Ether& in, Ether& out);
+	void ReceiveGeoms(Stream& in, Stream& out);
+	void SendEngine(Stream& in, Stream& out);
 	
 public:
 	typedef EcsService CLASSNAME;

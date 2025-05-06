@@ -25,7 +25,7 @@ public:
 	
 	virtual bool		Load() = 0;
 	virtual void		Visit(Vis& vis) = 0;
-	virtual String		GetTreeString(int indent) {TODO}
+	virtual String		GetTreeString(int indent) {TODO; return String();}
 	void				SetError(String s) {err_str = s;}
 	String				GetErrorString() const {return err_str;}
 	

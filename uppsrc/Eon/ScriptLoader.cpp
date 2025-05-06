@@ -22,14 +22,25 @@ String Id::ToString() const {
 int ScriptLoader::loop_counter = 0;
 
 
-ScriptLoader::ScriptLoader(Machine& m) :
-	SP(m),
+ScriptLoader::ScriptLoader(MetaNode& n) :
+	System<CLASSNAME>(n),
 	ErrorSource("ScriptLoader") {
 	
 }
 
 ScriptLoader::~ScriptLoader() {
 	
+}
+
+void ScriptLoader::Visit(Vis& v) {
+	if (!loader.IsEmpty())
+		v("loader",*loader,VISIT_NODE);
+	
+	_VIS_(tmp_side_id_counter)
+	 VIS_(post_load_file)
+	 VIS_(post_load_string)
+	 VISN(cunit)
+	 VIS_(collect_errors);
 }
 
 void ScriptLoader::LogMessage(ProcMsg msg) {
@@ -42,6 +53,7 @@ bool ScriptLoader::Initialize() {
 	if (!WhenMessage)
 		WhenMessage << THISBACK(LogMessage);
 	
+	#if 0
 	es = mach.Find<LoopStore>();
 	if (!es) {
 		LOG("ScriptLoader requires LoopStore present in machine");
@@ -53,6 +65,7 @@ bool ScriptLoader::Initialize() {
 		LOG("ScriptLoader requires SpaceStore present in machine");
 		return false;
 	}
+	#endif
 	
 	if (!DoPostLoad())
 		return false;
@@ -100,8 +113,8 @@ void ScriptLoader::Stop() {
 }
 
 void ScriptLoader::Uninitialize() {
-	es.Clear();
-	ss.Clear();
+	//es.Clear();
+	//ss.Clear();
 	loader.Clear();
 }
 
@@ -110,7 +123,7 @@ bool ScriptLoader::LoadFile(String path) {
 		LOG("Could not find EON file");
 		return false;
 	}
-	String eon = LoadFile(path);
+	String eon = UPP::LoadFile(path);
 	return Load(eon, path);
 }
 
@@ -440,13 +453,13 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 bool ScriptLoader::LoadDriver(Eon::DriverDefinition& def, AstNode* n) {
 	
 	TODO
-	
+	return false;
 }
 
 bool ScriptLoader::LoadTopChain(Eon::ChainDefinition& def, AstNode* n) {
 	
 	TODO
-	
+	return false;
 }
 
 bool ScriptLoader::LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n) {
@@ -495,13 +508,13 @@ bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 bool ScriptLoader::LoadTopPool(Eon::PoolDefinition& def, AstNode* n) {
 	
 	TODO
-	
+	return false;
 }
 
 bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
 	
 	TODO
-	
+	return false;
 }
 
 bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
@@ -942,6 +955,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 }
 
 LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
+	TODO
+	#if 0
 	ASSERT(es);
 	LoopPtr l0;
 	LoopPtr l1 = es->GetRoot();
@@ -966,13 +981,15 @@ LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
 	
 	ASSERT(l0->GetSpace());
 	return l0;
+	#endif
+	return 0;
 }
 
 bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1) {
 	
 	int dbg_i = 0;
 	for (AtomBasePtr& sink : loop0.atoms) {
-		LinkBasePtr sink_link = sink->GetLink()->AsRefT();
+		LinkBasePtr sink_link = sink->GetLink();
 		const IfaceConnTuple& sink_iface = sink->GetInterface();
 		for (int sink_ch = 1; sink_ch < sink_iface.type.iface.sink.GetCount(); sink_ch++) {
 			const IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
@@ -982,7 +999,7 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 				continue;
 			bool found = false;
 			for (AtomBasePtr& src : loop1.atoms) {
-				LinkBasePtr src_link = src->GetLink()->AsRefT();
+				LinkBasePtr src_link = src->GetLink();
 				const IfaceConnTuple& src_iface = src->GetInterface();
 				for (int src_ch = 1; src_ch < src_iface.type.iface.src.GetCount(); src_ch++) {
 					const IfaceConnLink& src_conn = src_iface.src[src_ch];

@@ -3,7 +3,7 @@
 
 namespace Ecs {
 	
-class WorldLogicSystem : public System<WorldLogicSystem>
+class WorldLogicSystem : public Ecs::System<WorldLogicSystem>
 {
 	
 	

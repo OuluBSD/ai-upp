@@ -56,11 +56,8 @@ struct HandActionSourceLocation : HandSourceLocation {
 class PlayerHandComponent : public Component<PlayerHandComponent> {
 	
 public:
-	COMP_DEF_VISIT_(vis & body)
-	
-	COPY_PANIC(PlayerHandComponent)
-	
-	void Serialize(Stream& e) override;
+	ECS_COMPONENT_CTOR(PlayerHandComponent)
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -85,11 +82,8 @@ using PlayerHandComponentPtr = Ptr<PlayerHandComponent>;
 class PlayerHeadComponent : public Component<PlayerHeadComponent> {
 	
 public:
-	COMP_DEF_VISIT_(vis & body)
-	
-	COPY_PANIC(PlayerHeadComponent)
-	
-	void Serialize(Stream& e) override;
+	ECS_COMPONENT_CTOR(PlayerHeadComponent)
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -114,10 +108,10 @@ protected:
 	float height = 1.8f;
 	
 public:
-	COMP_DEF_VISIT_(vis & hands[0] & hands[1] & head)
+	ECS_COMPONENT_CTOR(PlayerBodyComponent)
 	COPY_PANIC(PlayerBodyComponent)
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -125,7 +119,7 @@ public:
 	bool SetHand(PlayerHandedness hand, PlayerHandComponentPtr comp);
 	bool SetHead(PlayerHeadComponentPtr head);
 	
-	float GetHeight() const {return height;}
+	double GetHeight() const {return height;}
 	const PlayerHeadComponentPtr& GetHead() const {return head;}
 	
 };
@@ -134,13 +128,13 @@ public:
 
 
 class PlayerBodySystem :
-    public System<PlayerBodySystem>,
+    public Ecs::System<PlayerBodySystem>,
     public InteractionListener
 {
 	
 public:
 	ECS_SYS_CTOR(PlayerBodySystem)
-	ECS_SYS_DEF_VISIT_(vis || bodies)
+	ECS_SYS_DEF_VISIT_((vis && bodies) & iasys)
 	
 	const Vector<PlayerBodyComponentPtr>& GetComponents() const {return bodies;}
 	
@@ -153,6 +147,7 @@ protected:
     void Update(double dt) override;
     void Stop() override;
     void Uninitialize() override;
+    Ecs::SystemBase* GetSystem() override {return this;}
 	
 	void OnControllerDetected(const CtrlEvent& e) override;
 	void OnControllerLost(const CtrlEvent& e) override;

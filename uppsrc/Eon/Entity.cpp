@@ -14,56 +14,18 @@ Entity::~Entity() {
 	DBG_DESTRUCT
 }
 
-void Entity::Serialize(Stream& e) {
-	/*
-	EntityId id = -1;
-	int64 created = 0;
-	int64 changed = 0;
-
-	String prefab;
-	String name;
-	
-	ComponentMap comps;
-	EntityId m_id;
-	*/
-	
-	/*
-	e % freeze_bits
-	  % name
-	  % id
-	  ;
-	*/
-	
-	TODO
-	#if 0
-	GeomVar type;
-	if (e.IsLoading()) {
-		TODO
-		while (!e.IsEof()) {
-			e.GetT(type);
-			
-		}
-	}
-	else {
-		for (ComponentPtr c : comps) {
-			type = GEOMVAR_PUSH_COMPONENT;
-			e.PutT(type);
-			TypeCls cls = c->GetTypeId();
-			String name = ComponentFactory::GetComponentName(cls);
-			e.Put(name);
-			
-			c->Etherize(e);
-			
-			type = GEOMVAR_POP_COMPONENT;
-			e.PutT(type);
-		}
-	}
-	#endif
+void Entity::Visit(Vis& v) {
+	_VIS_((int&)id)
+	 VIS_(created)
+	 VIS_(changed)
+	 VIS_(prefab)
+	 VIS_(name)
+	 VIS_((int&)m_id);
 }
 
 void Entity::UnrefDeep() {
 	RefClearVisitor vis;
-	vis.VisitT<MetaNodeExt>("MetaNodeExt",*this);
+	node.Visit(vis);
 }
 
 EntityId Entity::GetNextId() {
@@ -170,7 +132,7 @@ ComponentBasePtr Entity::CreateEon(String id) {
 }
 
 ComponentBasePtr Entity::CreateComponent(TypeCls type) {
-	return AddPtr(ComponentFactory::CreateComponent(type));
+	return ComponentFactory::CreateComponent(node, type);
 }
 
 void Entity::Destroy() {
@@ -200,7 +162,7 @@ Pool& Entity::GetPool() const {
 }
 
 Pool& Entity::GetRoot() {
-	Pool* p = node.FindOwnerDeep<Pool>();
+	Pool* p = node.FindOwnerRoot<Pool>();
 	ASSERT(p);
 	if (!p) throw Exc("no pool");
 	return *p;
@@ -254,7 +216,7 @@ ComponentBasePtr Entity::GetAdd(String comp_name) {
 
 #if 0
 bool EntityHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* derived_name, void* mem, LockedScopeRefCounter* ref) {
-	if (derived == AsTypeCls<Entity>()) {
+	if (derived == AsTypeCls<Ecs::Entity>()) {
 		Entity& e = *(Entity*)mem;
 		ch.Put(1);
 		ch.Put(e.GetId());

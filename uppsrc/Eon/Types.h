@@ -481,7 +481,7 @@ struct RendererContent {
 
 
 
-typedef dword LoopId;
+typedef int LoopId;
 
 
 #endif

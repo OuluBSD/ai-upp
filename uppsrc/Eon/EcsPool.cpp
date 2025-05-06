@@ -18,40 +18,10 @@ Pool::~Pool() {
 	DBG_DESTRUCT
 }
 
-void Pool::Serialize(Stream& e) {
-	TODO
-	#if 0
-	GeomVar type;
-	if (e.IsLoading()) {
-		TODO
-		while (!e.IsEof()) {
-			e.GetT(type);
-			
-		}
-	}
-	else {
-		for (PoolPtr p : pools) {
-			type = GEOMVAR_PUSH_POOL_REL;
-			e.PutT(type);
-			e.Put(p->name);
-			
-			p->Etherize(e);
-			
-			type = GEOMVAR_POP_POOL;
-			e.PutT(type);
-		}
-		for (EntityPtr o : objects) {
-			type = GEOMVAR_PUSH_ENTITY_REL;
-			e.PutT(type);
-			e.Put(o->name);
-			
-			o->Etherize(e);
-			
-			type = GEOMVAR_POP_ENTITY;
-			e.PutT(type);
-		}
-	}
-	#endif
+void Pool::Visit(Vis& v) {
+	_VIS_(freeze_bits)
+	 VIS_(name)
+	 VIS_(id);
 }
 
 PoolId Pool::GetNextId() {
@@ -79,7 +49,7 @@ void Pool::Initialize(Entity& e, String prefab) {
 }
 
 EntityPtr Pool::CreateEmpty() {
-	Entity& e = node.Add<Entity>();
+	Entity& e = node.Add<Ecs::Entity>();
 	e.SetId(GetNextId());
 	Initialize(e);
 	return &e;
@@ -118,7 +88,7 @@ void Pool::UninitializeComponentsDeep() {
 	for (PoolPtr& p : pools)
 		p->UninitializeComponentsDeep();
 	
-	auto ents = node.FindAll<Entity>();
+	auto ents = node.FindAll<Ecs::Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->UninitializeComponents();
 	
@@ -129,7 +99,7 @@ void Pool::ClearComponentsDeep() {
 	for (PoolPtr& p : pools)
 		p->ClearComponentsDeep();
 	
-	auto ents = node.FindAll<Entity>();
+	auto ents = node.FindAll<Ecs::Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->ClearComponents();
 	
@@ -141,7 +111,7 @@ void Pool::ClearDeep() {
 		p->ClearDeep();
 	
 	node.RemoveAllDeep<Pool>();
-	node.RemoveAllDeep<Entity>();
+	node.RemoveAllDeep<Ecs::Entity>();
 }
 
 #if 0
@@ -166,7 +136,7 @@ void Pool::PruneFromContainer() {
 	Vector<int> rmlist;
 	for(int i = 0; i < node.sub.GetCount(); i++) {
 		auto& s = node.sub[i];
-		Entity* e = s.ext ? CastPtr<Entity>(&*s.ext) : 0;
+		Entity* e = s.ext ? CastPtr<Ecs::Entity>(&*s.ext) : 0;
 		if (e && e->destroyed)
 			rmlist << i;
 	}
@@ -185,7 +155,7 @@ String Pool::GetTreeString(int indent) {
 	
 	s << ".." << name << "[" << id << "]\n";
 	
-	auto objects = node.FindAll<Entity>();
+	auto objects = node.FindAll<Ecs::Entity>();
 	for (EntityPtr& e : objects)
 		s << e->GetTreeString(indent+1);
 	
@@ -206,7 +176,7 @@ PoolPtr Pool::FindPool(String name) {
 }
 
 EntityPtr Pool::FindEntityByName(String name) {
-	auto objects = node.FindAll<Entity>();
+	auto objects = node.FindAll<Ecs::Entity>();
 	for (EntityPtr object : objects)
 		if (object->GetName() == name)
 			return object;
@@ -229,7 +199,7 @@ PoolPtr Pool::GetAddPool(String name) {
 }
 
 void Pool::RemoveEntity(Entity* e) {
-	auto objects = node.FindAll<Entity>();
+	auto objects = node.FindAll<Ecs::Entity>();
 	int i = 0;
 	auto it = objects.begin();
 	auto end = objects.end();

@@ -1,11 +1,12 @@
 #ifndef _Eon_EntityStore_h_
 #define _Eon_EntityStore_h_
 
+// TODO remove
+#if 0
 
 namespace Ecs {
 
-// TODO remove
-class EntityStore : public System<EntityStore> {
+class EntityStore : public Ecs::System<EntityStore> {
     Vector<Entity*>					destroy_list; // not needed
 	//PoolVec							root;
 	
@@ -36,8 +37,8 @@ protected:
 	
 };
 
-
 }
 
+#endif
 
 #endif

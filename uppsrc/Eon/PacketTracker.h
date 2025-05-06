@@ -2,7 +2,7 @@
 #define _Eon_PacketTracker_h_
 
 
-class PacketTracker 
+class PacketTracker : public System<PacketTracker>
 {
 	PacketId id_counter = 1;
 	
@@ -22,8 +22,8 @@ protected:
 	
 	static PacketTracker*& active_tracker() {static PacketTracker* p; return p;}
 public:
-    PacketTracker();
-	void Visit(Vis& vis) {}
+    SYS_CTOR(PacketTracker)
+	SYS_DEF_VISIT
 	
 	#if HAVE_PACKETTRACKER
 	static void Track(TrackerInfo info, Packet& p) {Track(info, *p);}

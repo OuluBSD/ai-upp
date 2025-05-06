@@ -4,7 +4,6 @@
 namespace Ecs {
 
 class ComponentBase;
-class WorldState;
 class Entity;
 class ComponentStore;
 
@@ -41,7 +40,7 @@ public:
 	Entity* GetEntity();
 	
 	String GetDynamicName() const;
-	virtual void Serialize(Stream& e) = 0;
+	//virtual void Visit(Vis& v) = 0;
 	
 	virtual bool Arg(String key, Value value) {return true;}
 	
@@ -52,8 +51,8 @@ public:
 	
 	template <class ValDevSpec, class T> bool LinkManually(T& o, String* err_msg=0);
 	
-	//template <class T> void EtherizeRef(Ether& e, Ref<T>& ref);
-	//template <class T> void EtherizeRefContainer(Ether& e, T& cont);
+	//template <class T> void EtherizeRef(Stream& e, Ref<T>& ref);
+	//template <class T> void EtherizeRefContainer(Stream& e, T& cont);
 	
 	void GetComponentPath(Vector<String>& path);
 	
@@ -68,17 +67,24 @@ struct Component :
 {
 public:
 	using ComponentT = Component<T>;
+	using ComponentBase::ComponentBase;
 
-	void Visit(Vis& v) override {} // don't visit ComponentBase (for error detection reasons)
+	void Visit(Vis& v) override {}
 	
 	void CopyTo(ComponentBase* target) const override {
 		ASSERT(target->GetTypeCls() == GetTypeCls());
-	    
-		*static_cast<T*>(target) = *static_cast<const T*>(this);
+	    if (target->GetTypeCls() == GetTypeCls())
+	        VisitCopy<ComponentBase>(*this, *target);
 	}
 	
 };
 
+#define ECS_COMPONENT_CTOR_(x) \
+	CLASSTYPE(x) \
+	x(MetaNode& e) : Component<x>(e)
+#define ECS_COMPONENT_CTOR(x) ECS_COMPONENT_CTOR_(x) {}
+
+#define VISIT_COMPONENT v.VisitT<Component<CLASSNAME>>("Base", *this);
 
 #if 0
 using ComponentMapBase	= ArrayMap<TypeCls,ComponentBase>;

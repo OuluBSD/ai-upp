@@ -1,7 +1,5 @@
-#ifndef _Local_Network_h_
-#define _Local_Network_h_
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Eon_Network_h_
+#define _Eon_Network_h_
 
 
 enum {
@@ -18,7 +16,7 @@ enum {
 
 
 
-class TcpSocketReadStream : public Ether {
+class TcpSocketReadStream : public Stream {
 	TcpSocket* sock = 0;
 	
 	void  _Put(const void *data, dword size) override;
@@ -33,7 +31,7 @@ public:
 	
 };
 
-class TcpSocketWriteStream : public Ether {
+class TcpSocketWriteStream : public Stream {
 	TcpSocket* sock = 0;
 	
 	void  _Put(const void *data, dword size) override;
@@ -49,8 +47,5 @@ public:
 };
 
 
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

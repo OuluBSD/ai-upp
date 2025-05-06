@@ -84,8 +84,8 @@ AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
 
 AtomBasePtr Space::AddPtr(AtomBase* comp) {
 	MetaNode& sub = node.Add();
-	sub.kind = 0; TODO // solve from comp
 	sub.ext = comp;
+	sub.type_hash = comp->GetTypeHash();
 	InitializeAtom(*comp);
 	return AtomBasePtr(comp);
 }
@@ -117,8 +117,15 @@ void Space::AppendCopy(const Space& l) {
 	TODO
 }
 
-void Space::Visit(Vis& vis) {
-	vis.VisitT<MetaSpaceBase>("MetaSpaceBase",*this);
+void Space::Visit(Vis& v) {
+	_VIS_(name)
+	 VIS_(prefab)
+	 VIS_((int&)id)
+	 VIS_(created)
+	 VIS_(changed)
+	 VISV(states);
+	v & machine & loop;
+	v.VisitT<MetaSpaceBase>("MetaSpaceBase",*this);
 }
 
 void Space::VisitSinks(Vis& vis) {
@@ -358,6 +365,26 @@ void Space::UnlinkExchangePoints() {
 		pt->Clear();
 	}
 	pts.Clear();
+}
+
+EnvStatePtr Space::AddState(String name) {
+	EnvState& p = states.Add();
+	//p.SetParent(this);
+	p.SetName(name);
+	return &p;
+}
+
+EnvStatePtr Space::GetAddEnv(String name) {
+	if (EnvStatePtr e = FindState(name))
+		return e;
+	return AddState(name);
+}
+
+EnvStatePtr Space::FindState(String name) {
+	for (EnvState& s : states)
+		if (s.GetName() == name)
+			return &s;
+	return EnvStatePtr();
 }
 
 

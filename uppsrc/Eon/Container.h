@@ -4,23 +4,23 @@
 
 class EnvState : public Pte<EnvState>
 {
-	VectorMap<dword, Value> data;
+	VectorMap<int, Value> data;
 	String name;
 	
 public:
-	void Visit(Vis& vis) {}
+	void Visit(Vis& v) {_VIS_(data) VIS_(name);}
 	void SetName(String s) {name = s;}
 	const String& GetName() const {return name;}
 	
 	
-	bool&	SetBool(dword key, bool b);
-	int&	SetInt(dword key, int i);
+	bool&	SetBool(int key, bool b);
+	int&	SetInt(int key, int i);
 	
-	bool&	GetBool(dword key);
-	int&	GetInt(dword key);
+	bool&	GetBool(int key);
+	int&	GetInt(int key);
 	
 	template <class T>
-	T& Set(dword key) {
+	T& Set(int key) {
 		Value& o = data.GetAdd(key);
 		if (o.Is<T>())
 			return const_cast<T&>(o.Get<T>());
@@ -29,7 +29,7 @@ public:
 	}
 	
 	template <class T>
-	T* Get(dword key) {
+	T* Get(int key) {
 		int i = data.Find(key);
 		if (i < 0)
 			return 0;

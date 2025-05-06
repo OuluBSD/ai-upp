@@ -8,7 +8,7 @@ namespace Ecs {
 class PhysicsBody;
 
 
-class PhysicsSystem : public System<PhysicsSystem>
+class PhysicsSystem : public Ecs::System<PhysicsSystem>
 {
 	Vector<PhysicsBody*> bodies;
 	double time = 0;
@@ -30,13 +30,15 @@ protected:
     void RunTestFn(PhysicsBody& b);
     
 public:
+	CLASSTYPE(PhysicsSystem);
     vec3	gravity;
     
-    PhysicsSystem(Engine& e);
+    PhysicsSystem(MetaNode& n);
 
     
     void Attach(PhysicsBody& b);
     void Detach(PhysicsBody& b);
+    void Visit(Vis&) override;
     
 };
 
@@ -59,15 +61,12 @@ public:
 	Ptr<PlayerBodyComponent> player;
 	
 public:
-	COMP_DEF_VISIT_(vis & trans & player)
-	
-	void Serialize(Stream& e) override;
+	ECS_COMPONENT_CTOR(PhysicsBody)
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
-    void operator=(const PhysicsBody& r);
-    
 	bool BindDefault();
 	void UnbindDefault();
 	

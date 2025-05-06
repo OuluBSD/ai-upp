@@ -29,8 +29,8 @@ public:
 	
 	
 protected:
-	friend class ScriptLoopLoader;
-	friend class ScriptDriverLoader;
+	friend class Eon::ScriptLoopLoader;
+	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
 	friend class Space;
 	

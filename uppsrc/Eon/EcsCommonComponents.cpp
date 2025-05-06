@@ -6,12 +6,15 @@ NAMESPACE_UPP namespace Ecs {
 
 	
 
-void RigidBody::Serialize(Stream& e) {
-	e % velocity
-	  % acceleration
-	  % angular_velocity
-	  % angular_acceleration
-	  % damping_factor;
+void RigidBody::Visit(Vis& v) {
+	v
+	 VISN(velocity)
+	 VISN(acceleration)
+	 VISN(angular_velocity)
+	 VISN(angular_acceleration)
+	 VIS_(damping_factor);
+	
+	VISIT_COMPONENT
 }
 
 void RigidBody::Initialize() {

@@ -5,7 +5,6 @@
 
 namespace Eon {
 	
-class WorldState;
 class Action;
 class ScriptLoopLoader;
 class ScriptStateLoader;
@@ -16,7 +15,7 @@ class ScriptMachineLoader;
 class ScriptWorldLoader;
 class ScriptLoader;
 
-void GetAtomActions(const Eon::WorldState& src, Vector<Eon::Action>& acts);
+void GetAtomActions(const WorldState& src, Vector<Eon::Action>& acts);
 
 
 
@@ -267,10 +266,10 @@ protected:
 	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	
 public:
-	typedef ScriptLoader CLASSNAME;
-	ScriptLoader(Machine& m);
-	SYS_DEF_VISIT_(if (!loader.IsEmpty()) vis("loader",*loader);)
-	
+	CLASSTYPE(ScriptLoader);
+	ScriptLoader(MetaNode& m);
+	void Visit(Vis& v) override;
+
 	void PostLoadFile(const String& path) {post_load_file << path;}
 	void PostLoadString(const String& s) {post_load_string << s;}
 	

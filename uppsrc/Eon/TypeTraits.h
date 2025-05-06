@@ -3,26 +3,30 @@
 
 namespace Ecs {
 
+class Engine;
+class ComponentBase;
+class SystemBase;
+
 template <typename Base, typename... Ts>
 using AllRefBaseOf = IsAllTrue<std::is_base_of<Base, typename Ts::Type>::value...>;
 
 template<typename T>
-using IsComponent = std::is_base_of<ComponentBase, T>;
+using IsComponent = std::is_base_of<Ecs::ComponentBase, T>;
 
 template<typename T>
-using IsSystem = std::is_base_of<SystemBase, T>;
+using IsSystem = std::is_base_of<Ecs::SystemBase, T>;
 
 template<typename... Ts>
-using AllComponents = IsAllBaseOf<ComponentBase, Ts...>;
+using AllComponents = IsAllBaseOf<Ecs::ComponentBase, Ts...>;
 
 template<typename... Ts>
-using AllSystems = IsAllBaseOf<SystemBase, Ts...>;
+using AllSystems = IsAllBaseOf<Ecs::SystemBase, Ts...>;
 
 template <typename Tuple>
 struct TupleAllComponents : std::false_type {};
 
 template <typename... Ts>
-struct TupleAllComponents<Tuple<Ts...>> : AllRefBaseOf<ComponentBase, Ts...> {};
+struct TupleAllComponents<Tuple<Ts...>> : AllRefBaseOf<Ecs::ComponentBase, Ts...> {};
 
 }
 

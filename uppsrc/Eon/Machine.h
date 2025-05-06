@@ -14,7 +14,7 @@ public:
     virtual ~SystemBase();
 
     virtual TypeCls GetType() const = 0;
-	virtual void Visit(Vis& vis) = 0;
+	virtual void Visit(Vis& vis) {}
 	Machine& GetMachine() const;
 	
 protected:
@@ -46,15 +46,15 @@ public:
 
 
 #define SYS_CTOR(x) \
-	typedef x CLASSNAME; \
+	CLASSTYPE(x) \
 	x(MetaNode& m) : System<x>(m) {}
 #define SYS_CTOR_(x) \
-	typedef x CLASSNAME; \
+	CLASSTYPE(x) \
 	x(MetaNode& m) : System<x>(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>("Base",*this);}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>("Base",*this);}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>("CLASSNAME",*this);}
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>("Base",*this);}
 
 class Machine :
 	public MetaMachineBase
@@ -84,9 +84,8 @@ public:
     Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
-        
-        int i = FindSystem(AsTypeCls<SystemT>());
-        return i >= 0 ? &systems[i] : Ptr<SystemT>();
+        auto v = this->node.FindAll<typename SystemT>();
+        return v.IsEmpty() ? 0 : v[0];
     }
 
     template<typename SystemT, typename... Args>
@@ -94,9 +93,11 @@ public:
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 		
-		SystemT* syst = new SystemT(*this, args...);
-        Add(AsTypeCls<SystemT>(), syst);
-        return syst->AsRefT();
+		MetaNode& n = node.Add();
+		SystemT* syst = new SystemT(n, args...);
+        n.ext = syst;
+        n.type_hash = syst->GetTypeHash();
+        return syst;
     }
     
 
@@ -119,6 +120,7 @@ public:
         Remove(AsTypeCls<SystemT>());
     }
 
+	CLASSTYPE(Machine)
     Machine(MetaNode& n);
     virtual ~Machine();
 
@@ -130,8 +132,8 @@ public:
     void Stop();
     void Suspend();
     void Resume();
-    void DieFast() {Start(); Update(0); Stop();}
-	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0; systems.Clear();}
+    void DieFast();
+	void Clear();
 	
     bool IsStarted() const {return is_started;}
     bool IsRunning() const {return is_running;}
@@ -155,9 +157,6 @@ public:
 	static Callback WhenPreFirstUpdate;
 	
 private:
-    using SystemCollection = ArrayMap<TypeCls,SystemBase> ;
-    SystemCollection systems;
-
     bool is_started = false;
     bool is_initialized = false;
     bool is_suspended = false;
@@ -165,7 +164,7 @@ private:
     bool is_failed = false;
     String fail_msg;
     
-    int FindSystem(TypeCls type_id) {return systems.Find(type_id);}
+    SystemBase* FindSystem(TypeCls type_id);
     //SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}
     //SystemCollection::PtrIterator FindSystemPtr(TypeCls type_id) {return systems.FindPtr(type_id);}
     void Add(TypeCls type_id, SystemBase* system);

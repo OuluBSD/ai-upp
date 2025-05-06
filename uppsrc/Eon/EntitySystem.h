@@ -1,6 +1,7 @@
 #ifndef _Eon_EntitySystem_h_
 #define _Eon_EntitySystem_h_
 
+#if 0
 namespace Ecs {
 class Engine;
 }
@@ -8,7 +9,7 @@ class Engine;
 Ecs::Engine* CreateEcsEngine();
 
 // TODO remove this
-class EntitySystem : public System<EntitySystem> {
+class EntitySystem : public Ecs::System<EntitySystem> {
 	ValueMap reg;
 	
 	
@@ -32,4 +33,5 @@ public:
 };
 
 
+#endif
 #endif

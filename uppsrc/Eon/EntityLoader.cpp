@@ -14,6 +14,7 @@ ScriptEntityLoader::ScriptEntityLoader(ScriptPoolLoader& parent, int id, Eon::En
 
 bool ScriptEntityLoader::Load() {
 	TODO
+	return false;
 }
 
 

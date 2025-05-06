@@ -30,13 +30,16 @@ void Transform::operator=(const Transform& t) {
     size = t.size;
 }
 
-void Transform::Serialize(Stream& e) {
-	e % data
-	  % size
-	  % relative_position
-	  % anchor_position
-	  % anchor_orientation
-	  % verbose;
+void Transform::Visit(Vis& v) {
+	v
+	 VISN(data)
+	 VISN(size)
+	 VISN(relative_position)
+	 VISN(anchor_position)
+	 VISN(anchor_orientation)
+	 VIS_(verbose);
+	
+	VISIT_COMPONENT
 }
 
 mat4 Transform::GetMatrix() const {
@@ -78,9 +81,12 @@ String Transform::ToString() const {
 
 
 
-void Transform2D::Serialize(Stream& e) {
-	e % position
-	  % size;
+void Transform2D::Visit(Vis& v) {
+	v
+	 VISN(position)
+	 VISN(size);
+	
+	VISIT_COMPONENT
 }
 
 void Transform2D::operator=(const Transform2D& t) {

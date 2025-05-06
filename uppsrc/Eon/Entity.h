@@ -35,12 +35,13 @@ protected:
 	
 public:
 	typedef Entity CLASSNAME;
+	CLASSTYPE(Entity)
 	Entity(MetaNode& n);
 	virtual ~Entity();
 	
 	static EntityId GetNextId();
 	
-	void Serialize(Stream& e);
+	void Visit(Vis& v);
 	
 	void SetPrefab(String s) {prefab = s;}
 	String GetPrefab() const {return prefab;}
@@ -192,8 +193,8 @@ private:
 	
 };
 
-using EntityPtr = Ptr<Entity>;
-//using EntityVec = Array<Entity>;
+using EntityPtr = Ptr<Ecs::Entity>;
+//using EntityVec = Array<Ecs::Entity>;
 
 
 
@@ -210,10 +211,6 @@ struct EntityPrefab {
 		return Tuple<ComponentTs*...>::AsTypeNames();
 	}
 	
-    static String AsTypeName() {
-        static auto s = "EntityPrefab<" + GetComponentNames() + ">" ; return s;
-    }
-    
 	static Components Make(Entity& e) {
 		return e.CreateComponents<ComponentTs...>();
 	}

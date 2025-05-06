@@ -8,6 +8,8 @@
 #include <Core2/Core.h>
 #include <Backend/Backend.h>
 
+#include <ports/enet/EnetService.h>
+
 #if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
 	#include <cxxabi.h>
 #endif
@@ -18,6 +20,7 @@ NAMESPACE_UPP
 #include "Fn.h"
 #include "CtrlEvent.h"
 #include "Container.h"
+#include "Network.h"
 #include "Debugging.h"
 #include "WorldState.h"
 #include "SampleBase.h"
@@ -71,12 +74,12 @@ NAMESPACE_UPP
 #include "EcsFactory.h"
 
 #include "CommonComponents.h"
-#include "EcsRegistrySystem.h"
-#include "WorldLogic.h"
 
 #include "EcsCommonComponents.h"
-#include "EasingSystem.h"
 #include "EcsEngine.h"
+#include "WorldLogic.h"
+#include "EcsRegistrySystem.h"
+#include "EasingSystem.h"
 #include "InteractionSystem.h"
 #include "Player.h"
 #include "EcsPhysicsSystem.h"
@@ -86,6 +89,7 @@ NAMESPACE_UPP
 #include "Loader.h"
 #include "Ecs.h"
 #include "EonLoader.h"
+#include "Service.h"
 
 END_UPP_NAMESPACE
 

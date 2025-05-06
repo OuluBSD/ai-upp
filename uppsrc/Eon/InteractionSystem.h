@@ -149,6 +149,7 @@ struct VrSpatialInteractionManager : InteractionManager {
 
 struct InteractionListener : Pte<InteractionListener>
 {
+	virtual Ecs::SystemBase* GetSystem() = 0;
     virtual void OnControllerDetected(const CtrlEvent& e) {};
     virtual void OnControllerLost(const CtrlEvent& e) {};
     virtual void OnControllerPressed(const CtrlEvent& e) {};

@@ -37,7 +37,7 @@ protected:
 
 #if 0
 class ComponentStore :
-	public System<ComponentStore>,
+	public Ecs::System<ComponentStore>,
 	public EcsFactory<ComponentBase*, std::function<ComponentBase*()>, std::function<void(ComponentBase*)> >
 {
 	

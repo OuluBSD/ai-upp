@@ -10,6 +10,7 @@ ScriptEcsSystemLoader::ScriptEcsSystemLoader(ScriptWorldLoader& parent, int id, 
 
 bool ScriptEcsSystemLoader::Load() {
 	TODO
+	return false;
 }
 
 }

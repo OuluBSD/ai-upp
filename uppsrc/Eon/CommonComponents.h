@@ -10,8 +10,7 @@ extern const vec3 EarthGravity;
 class Transform : public Component<Transform> {
 	
 public:
-	COMP_DEF_VISIT
-	
+	ECS_COMPONENT_CTOR(Transform)
 	TransformMatrix data;
 	vec3 size;
 	vec3 relative_position;
@@ -23,7 +22,7 @@ public:
 	mat4 GetMatrix() const;
 	vec3 GetForwardDirection() const;
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -39,15 +38,13 @@ void CopyTransformPos(EntityPtr from, EntityPtr to);
 class Transform2D : public Component<Transform2D> {
 	
 public:
-	COMP_DEF_VISIT
-	
-	
+	ECS_COMPONENT_CTOR(Transform2D)
 	vec2 position = zero<vec2>();
 	vec2 size = one<vec2>();
 	
 	void operator=(const Transform2D& t);
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	
 };
 

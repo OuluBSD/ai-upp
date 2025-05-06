@@ -20,6 +20,7 @@ ScriptChainLoader::ScriptChainLoader(ScriptTopChainLoader& parent, int id, Eon::
 
 bool ScriptChainLoader::Load() {
 	TODO
+	return false;
 }
 
 String ScriptChainLoader::GetTreeString(int indent) {

@@ -4,7 +4,7 @@
 namespace Ecs {
 
 
-class RegistrySystem : public System<RegistrySystem> {
+class RegistrySystem : public Ecs::System<RegistrySystem> {
 	ValueMap reg;
 	
 	

@@ -20,6 +20,7 @@ ScriptWorldLoader::ScriptWorldLoader(ScriptSystemLoader& parent, int id, Eon::Wo
 
 bool ScriptWorldLoader::Load() {
 	TODO
+	return false;
 }
 
 String ScriptWorldLoader::GetTreeString(int indent) {

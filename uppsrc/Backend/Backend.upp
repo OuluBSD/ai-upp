@@ -1,8 +1,5 @@
 description "\377B128,0,255";
 
-uses
-	Local;
-
 file
 	src.tpp,
 	Backend.h,

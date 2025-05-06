@@ -1,12 +1,7 @@
-#include "Local.h"
+#include "Eon.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
-
-
-
-
-
+NAMESPACE_UPP
 
 
 void  TcpSocketReadStream::_Put(const void *data, dword size) {
@@ -57,4 +52,4 @@ void  TcpSocketWriteStream::SetSize(int64 size) {
 }
 
 	
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

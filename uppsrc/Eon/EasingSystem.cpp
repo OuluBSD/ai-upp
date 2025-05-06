@@ -7,11 +7,14 @@ NAMESPACE_UPP namespace Ecs {
 
 
 
-void Easing::Serialize(Stream& e) {
-	e % target_position
-	  % target_orientation
-	  % position_easing_factor
-	  % orientation_easing_factor;
+void Easing::Visit(Vis& v) {
+	v
+	 VISN(target_position)
+	 VISN(target_orientation)
+	 VIS_(position_easing_factor)
+	 VIS_(orientation_easing_factor);
+	
+	VISIT_COMPONENT
 }
 
 void Easing::Initialize() {

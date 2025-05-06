@@ -18,7 +18,7 @@ class Space :
 	
 protected:
 	friend class SpaceStore;
-	friend class ScriptLoader;
+	friend class Eon::ScriptLoader;
 	
 	Loop*		loop = 0;
 	
@@ -129,25 +129,9 @@ public:
 		return AddSpace(name);
 	}*/
 	
-	EnvStatePtr AddState(String name=""); /*{
-		EnvState& p = states.Add();
-		//p.SetParent(this);
-		p.SetName(name);
-		return &p;
-	}*/
-	
-	EnvStatePtr GetAddEnv(String name); /*{
-		if (EnvStatePtr e = FindState(name))
-			return e;
-		return AddState(name);
-	}*/
-	
-	EnvStatePtr FindState(String name); /*{
-		for (EnvState& s : states)
-			if (s.GetName() == name)
-				return &s;
-		return EnvStatePtr();
-	}*/
+	EnvStatePtr AddState(String name="");
+	EnvStatePtr GetAddEnv(String name);
+	EnvStatePtr FindState(String name);
 	
 	//AtomMap::Iterator			begin()			{return atoms.begin();}
 	//AtomMap::Iterator			end()			{return atoms.end();}

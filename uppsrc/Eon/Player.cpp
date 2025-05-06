@@ -3,14 +3,14 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-void PlayerHandComponent::Serialize(Stream& e) {
-	e % is_simulated
-	  % attach_ctrl_model
-	  % req_hand;
+void PlayerHandComponent::Visit(Vis& v) {
+	_VIS_(is_simulated)
+	 VIS_(attach_ctrl_model)
+	 VIS_(req_hand);
 	
-	EtherizeRef(e, body);
+	v & body & source & location;
 	
-	// ptrs can be ignored for now
+	VISIT_COMPONENT;
 }
 
 void PlayerHandComponent::Initialize() {
@@ -23,6 +23,7 @@ void PlayerHandComponent::Uninitialize() {
 
 bool PlayerHandComponent::IsSource(const ControllerSource& rhs) const {
 	TODO
+	return false;
 }
 
 bool PlayerHandComponent::Arg(String key, Value value) {
@@ -35,6 +36,8 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 			return false;
 	}
 	else if (key == "body") {
+		TODO
+		#if 0
 		EntityStorePtr es = GetEngine().TryGet<EntityStore>();
 		if (!es)
 			return false;
@@ -49,6 +52,7 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 			LOG("PlayerHandComponent::Arg: could not find entity: " + value.ToString());
 			return false;
 		}
+		#endif
 	}
 	else if (key == "simulated")
 		is_simulated = value.ToString() == "true";
@@ -65,8 +69,9 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 
 
 
-void PlayerHeadComponent::Serialize(Stream& e) {
-	EtherizeRef(e, body);
+void PlayerHeadComponent::Visit(Vis& v) {
+	v & body;
+	VISIT_COMPONENT
 }
 
 void PlayerHeadComponent::Initialize() {
@@ -79,9 +84,8 @@ void PlayerHeadComponent::Uninitialize() {
 
 bool PlayerHeadComponent::Arg(String key, Value value) {
 	if (key == "body") {
-		EntityStorePtr es = GetEngine().TryGet<EntityStore>();
-		if (!es)
-			return false;
+		TODO
+		#if 0
 		EntityPtr e = es->FindEntity(value);
 		if (e) {
 			PlayerBodyComponentPtr bc = e->Find<PlayerBodyComponent>();
@@ -93,6 +97,7 @@ bool PlayerHeadComponent::Arg(String key, Value value) {
 			LOG("PlayerHeadComponent::Arg: could not find entity: " + value.ToString());
 			return false;
 		}
+		#endif
 	}
 	return true;
 }
@@ -103,29 +108,27 @@ bool PlayerHeadComponent::Arg(String key, Value value) {
 
 
 
-void PlayerBodyComponent::Serialize(Stream& e) {
-	e % height;
-	
-	EtherizeRef(e, hands[0]);
-	EtherizeRef(e, hands[1]);
-	EtherizeRef(e, head);
+void PlayerBodyComponent::Visit(Vis& v) {
+	_VIS_(height);
+	v & hands[0] & hands[1] & head;
+	VISIT_COMPONENT
 }
 
 void PlayerBodyComponent::Initialize() {
-	Ref<PlayerBodySystem> sys = GetEngine().TryGet<PlayerBodySystem>();
+	PlayerBodySystem* sys = node.FindOwner<PlayerBodySystem>();
 	ASSERT(sys);
-	if (sys) sys->Attach(AsRefT());
+	if (sys) sys->Attach(this);
 }
 
 void PlayerBodyComponent::Uninitialize() {
-	Ref<PlayerBodySystem> sys = GetEngine().TryGet<PlayerBodySystem>();
+	PlayerBodySystem* sys = node.FindOwner<PlayerBodySystem>();
 	ASSERT(sys);
-	if (sys) sys->Detach(AsRefT());
+	if (sys) sys->Detach(this);
 }
 
 bool PlayerBodyComponent::Arg(String key, Value value) {
 	if (key == "height")
-		height = (float)StrDbl(value);
+		height = (float)(double)value;
 	
 	return true;
 }
@@ -160,14 +163,14 @@ bool PlayerBodyComponent::SetHead(PlayerHeadComponentPtr head) {
 
 
 bool PlayerBodySystem::Initialize() {
-	if (!InteractionListener::Initialize(GetEngine(), AsRefT<InteractionListener>()))
+	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
 	return true;
 }
 
 void PlayerBodySystem::Uninitialize() {
-	InteractionListener::Uninitialize(GetEngine(), AsRefT<InteractionListener>());
+	InteractionListener::Uninitialize(GetEngine(), this);
 	
 }
 
@@ -247,11 +250,11 @@ void PlayerBodySystem::RefreshComponentsForSource(const HandLocationSource& sour
 }
 
 void PlayerBodySystem::Attach(PlayerBodyComponentPtr h) {
-	ArrayFindAdd(bodies, h);
+	VectorFindAdd(bodies, h);
 }
 
 void PlayerBodySystem::Detach(PlayerBodyComponentPtr h) {
-	ArrayRemoveKey(bodies, h);
+	VectorRemoveKey(bodies, h);
 }
 
 void PlayerBodySystem::OnControllerDetected(const CtrlEvent& e) {

@@ -241,11 +241,11 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
-					RegistrySystemPtr reg	= mach.FindAdd<RegistrySystem>();
-					//LoopStorePtr ls			= mach.FindAdd<LoopStore>();
-					//AtomStorePtr as			= mach.FindAdd<AtomStore>();
-				    Ptr<AtomSystem> asys		= mach.FindAdd<AtomSystem>();
-				    Ptr<ScriptLoader> script	= mach.FindAdd<ScriptLoader>();
+					RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
+					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
+					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
+				    Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
+				    Ptr<Eon::ScriptLoader> script	= mach.FindAdd<Eon::ScriptLoader>();
 					
 					#ifdef flagGUI
 				    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
@@ -258,11 +258,11 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				Ptr<LoopStore> ls			= mach.Find<LoopStore>();
+				/*Ptr<LoopStore> ls			= mach.Find<LoopStore>();
 				if (!ls) {
 					LOG("No LoopStore added to machine and the machine is already started");
 					return;
-				}
+				}*/
 				
 				
 				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();

@@ -25,6 +25,8 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		}
 	}
 	
+	TODO
+	#if 0
 	Ptr<EntityStore> ents = eng.Get<EntityStore>();
 	PoolPtr pool = ents->GetRoot();
 	
@@ -37,6 +39,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 			return false;
 		}
 	}
+	#endif
 	
 	return true;
 }
@@ -59,7 +62,7 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
 }
 
 bool ExtScriptEcsLoader::Load(ScriptPoolLoader& l, Ecs::Pool& pool) {
-	auto ents = pool.node.FindAll<Entity>();
+	auto ents = pool.node.FindAll<Ecs::Entity>();
 	auto pools = pool.node.FindAll<Pool>();
 	
 	for (ScriptEntityLoader& e : l.entities) {

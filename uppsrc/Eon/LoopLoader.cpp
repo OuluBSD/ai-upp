@@ -186,7 +186,8 @@ bool ScriptLoopLoader::Load() {
 			lb->SetId(id);
 		
 			ab->link = &*lb;
-			lb->atom = &*ab;
+			lb->atom = CastPtr<Atom>(&*ab);
+			ASSERT(lb->atom);
 		}
 		
 		auto& c = added_atoms.Add();
@@ -200,7 +201,7 @@ bool ScriptLoopLoader::Load() {
 		
 		// Add arguments to ws
 		
-		Eon::WorldState ws;
+		WorldState ws;
 		
 		for(int i = 0; i < atom_def.args.GetCount(); i++) {
 			String key = atom_def.args.GetKey(i);

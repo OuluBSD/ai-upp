@@ -3,6 +3,7 @@
 
 NAMESPACE_UPP
 
+#if 0
 bool EntitySystem::Initialize() {
 	#if 1
 	ASSERT(node.FindOwner<Ecs::Engine>());
@@ -44,8 +45,9 @@ void EntitySystem::Visit(Vis& vis) {
 	/*vis.VisitT<System<CLASSNAME>>("System",*this);
 	if (engine)
 		vis("engine",*engine);*/
+	
 }
-
+#endif
 
 
 
@@ -238,15 +240,21 @@ void Engine::Remove(TypeCls type_id) {
 #endif
 
 void Engine::Visit(Vis& vis) {
-	//for (auto iter = systems.begin(); iter; ++iter)
-	//	vis.Visit(iter());
+	vis && update_list;
 }
 
-void Engine::AddToUpdateList(ComponentBase* c) {
+Machine& Engine::GetMachine() {
+	Machine* m = node.FindOwnerRoot<Machine>();
+	ASSERT(m);
+	if (!m) throw Exc("cannot find Machine");
+	return *m;
+}
+
+void Engine::AddToUpdateList(ComponentBasePtr c) {
 	VectorFindAdd(update_list, c);
 }
 
-void Engine::RemoveFromUpdateList(ComponentBase* c) {
+void Engine::RemoveFromUpdateList(ComponentBasePtr c) {
 	VectorRemoveKey(update_list, c);
 }
 
@@ -256,23 +264,27 @@ Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
     ASSERT(fn);
     if (!fn)
         return Ptr<SystemBase>();
+    MetaNode& sub = node.Add();
 	SystemBase* syst = fn(*this);
-    Add(type, syst, startup);
+	sub.ext = syst;
+	sub.type_hash = syst->GetTypeHash();
+    
+	if (startup && is_started)
+		SystemStartup(type, syst);
+	
     return syst;
 }
 
-#if 0
 Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
     int i = EonToType().Find(id);
     if (i < 0)
         return Ptr<SystemBase>();
     TypeCls type = EonToType()[i];
-    i = systems.Find(type);
-    if (i >= 0)
-        return &systems[i];
+    auto v = node.FindAll(type);
+    if (v.GetCount())
+        return v[0]->ext ? CastPtr<SystemBase>(&*v[0]->ext) : 0;
     return Add(type, startup);
 }
-#endif
 
 
 

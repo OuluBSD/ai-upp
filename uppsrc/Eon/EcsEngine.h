@@ -7,7 +7,11 @@ namespace Ecs {
 class Engine;
 class ComponentBase;
 
-class SystemBase : public MetaSystemBase
+// TODO remove Ecs duplicate classes like SystemBase
+class SystemBase :
+	public MetaSystemBase,
+	public Destroyable,
+	public Enableable
 {
 public:
     SystemBase();
@@ -15,7 +19,7 @@ public:
     virtual ~SystemBase();
 
     virtual TypeCls GetType() const = 0;
-	virtual void Visit(Vis& vis) = 0;
+	virtual void Visit(Vis& vis) {}
     virtual bool Arg(String key, Value value) {return true;}
 	
 	Engine& GetEngine() const;
@@ -65,18 +69,18 @@ public:
     template<typename SystemT>
     Ptr<SystemT> TryGet()
     {
-        CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
+        CXX2A_STATIC_ASSERT(Ecs::IsSystem<SystemT>::value, "T should derive from System");
         return node.Find<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
     Ptr<SystemT> Add(Args&&... args)
     {
-        CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
+        CXX2A_STATIC_ASSERT(Ecs::IsSystem<SystemT>::value, "T should derive from System");
         MetaNode& sub = node.Add();
-        sub.kind = 0; TODO // solve kind by SystemT from Factory
-		SystemT* syst = new SystemT(sub, args...);
+        SystemT* syst = new SystemT(sub, args...);
 		sub.ext = syst;
+		sub.type_hash = syst->GetTypeHash();
         return syst;
     }
 
@@ -107,6 +111,7 @@ public:
         }
     }
 
+	CLASSTYPE(Engine)
     Engine(MetaNode& n);
     virtual ~Engine();
 
@@ -124,8 +129,8 @@ public:
 	void SetNotRunning() {is_running = false;}
 	void Visit(Vis& vis);
 	
-	void AddToUpdateList(ComponentBase* c);
-	void RemoveFromUpdateList(ComponentBase* c);
+	void AddToUpdateList(ComponentBasePtr c);
+	void RemoveFromUpdateList(ComponentBasePtr c);
 	
 	Ptr<SystemBase> Add(TypeCls type, bool startup=true);
 	Ptr<SystemBase> GetAdd(String id, bool startup=true);
@@ -140,13 +145,9 @@ public:
 	static Callback WhenInitialize;
 	static Callback WhenPreFirstUpdate;
 	
-	EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}
-	Machine& GetMachine() {return sys->GetMachine();}
+	//EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}
+	Machine& GetMachine();
 	
-protected:
-	friend class EntitySystem;
-	
-	EntitySystem* sys = 0;
 	
 private:
     //using SystemCollection = ArrayMap<TypeCls, SystemBase>;
@@ -162,7 +163,7 @@ private:
     void Add(TypeCls type_id, SystemBase* system, bool startup=true);
     void Remove(TypeCls typeId);
     
-    Vector<ComponentBase*> update_list;
+    Vector<ComponentBasePtr> update_list;
     
     
 private:
@@ -171,7 +172,13 @@ private:
     static VectorMap<TypeCls, NewSystemFn>& TypeNewFn() {static VectorMap<TypeCls, NewSystemFn> m; return m;}
 	
 	template <class T>
-	static SystemBase* NewSystem(Ecs::Engine& e) {return new T(e);}
+	static SystemBase* NewSystem(Ecs::Engine& e) {
+		MetaNode& n = e.node.Add();
+		T* o = new T(n);
+		n.ext = o;
+		n.type_hash = AsTypeHash<T>();
+		return o;
+	}
 	
 public:
 	
@@ -226,9 +233,9 @@ void Entity::Remove0() {
 template<typename T>
 T* Entity::Add0(bool initialize) {
 	MetaNode& sub = node.Add();
-    sub.kind = 0; TODO // solve kind by T from Factory
-	T* comp = new T(sub);
+    T* comp = new T(sub);
 	sub.ext = comp;
+	sub.type_hash = comp->GetTypeHash();
     if (initialize) {
 		InitializeComponent(*comp);
 	}

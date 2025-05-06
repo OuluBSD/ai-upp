@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-PhysicsSystem::PhysicsSystem(Engine& e) : SP(e) {
+PhysicsSystem::PhysicsSystem(MetaNode& n) : System<CLASSNAME>(n) {
 	gravity = vec3{ 0, -9.8f, 0 };
 	
 }
@@ -62,10 +62,10 @@ bool PhysicsSystem::Arg(String key, Value value) {
 		debug_log = value.ToString() == "debug";
 	}
 	if (key == "rm.outsiders") {
-		remove_outside_area = value.ToString() == "true";
+		remove_outside_area = value.ToString() == "true" || value == true;
 	}
 	if (key == "rm.area.size") {
-		area_length = value.ToFloat();
+		area_length = value;
 	}
 	
 	return true;
@@ -115,28 +115,39 @@ void PhysicsSystem::TestPlayerMoveFn(PhysicsBody& b, vec3 rel_dir, float step) {
 	
 }
 
-
-
-
-
-
-void PhysicsBody::Serialize(Stream& e) {
-	e % test_fn
-	  % is_bound;
-	EtherizeRef(e, trans);
-	EtherizeRef(e, player);
+void PhysicsSystem::Visit(Vis& v) {
+	_VIS_(time)
+	 VIS_(last_dt)
+	 VIS_(debug_log)
+	 VIS_(area_length)
+	 VIS_(remove_outside_area)
+	 VISN(gravity);
+	v && bodies;
 }
 
-void PhysicsBody::operator=(const PhysicsBody& r) {
+
+
+
+
+
+void PhysicsBody::Visit(Vis& v) {
+	_VIS_(test_fn)
+	 VIS_(is_bound);
+	v & trans & player;
 	
+	VISIT_COMPONENT
 }
 
 void PhysicsBody::Initialize() {
 	test_fn = 0;
 	is_bound = 0;
 	
-	Entity& e = GetParent();
-	trans = e.Find<Transform>();
+	Ecs::Entity* e = node.FindOwner<Ecs::Entity>();
+	if (!e) {
+		LOG("PhysicsBody:Initialize: error: entity not found");
+		return;
+	}
+	trans = e->Find<Transform>();
 	if (!trans) {
 		LOG("PhysicsBody:Initialize: error: transform component was not found");
 	}

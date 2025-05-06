@@ -453,6 +453,8 @@ public:
 	BitField() {}
 	BitField(const BitField& f) : bits(f.bits) {}
 	
+	void Serialize(Stream& s) {s % bits;}
+	void Jsonize(JsonIO& io) {io("bits", bits);}
 	void operator=(const BitField& f) {bits = f.bits;}
 	
 	void Check(int bit) const {ASSERT(bit >= 0 && bit < sizeof(bits) * 8);}
@@ -460,7 +462,7 @@ public:
 	void SetTrue(int bit) {Check(bit); bits |= ((T)1 << (T)bit);}
 	void SetFalse(int bit) {Check(bit); bits &= ~((T)1 << (T)bit);}
 	bool Is(int bit) const {Check(bit); return bits & ((T)1 << (T)bit);}
-	
+	hash_t GetHashValue() const {return ::UPP::GetHashValue(bits);}
 	
 };
 

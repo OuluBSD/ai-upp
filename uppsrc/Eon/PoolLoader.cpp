@@ -20,6 +20,7 @@ ScriptPoolLoader::ScriptPoolLoader(ScriptWorldLoader& parent, ScriptPoolLoader* 
 
 bool ScriptPoolLoader::Load() {
 	TODO
+	return false;
 }
 
 

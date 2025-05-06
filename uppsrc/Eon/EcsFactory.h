@@ -5,7 +5,7 @@ namespace Ecs {
 
 
 struct ComponentFactory {
-	typedef ComponentBase* (*NewFn)();
+	typedef ComponentBase* (*NewFn)(MetaNode&);
 	struct CompData : Moveable<CompData> {
 		NewFn new_fn;
 		String name;
@@ -17,9 +17,9 @@ struct ComponentFactory {
 	static CompMap& CompDataMap() {MAKE_STATIC(CompMap, m); return m;}
 	static Index<String>& CompEonIds() {MAKE_STATIC(Index<String>, idx); return idx;}
 	
-	template <class T> static ComponentBase* CreateComp() {return new T();}
+	template <class T> static ComponentBase* CreateComp(MetaNode& n) {return new T(n);}
 	
-	static ComponentBase* CreateComponent(TypeCls type);
+	static ComponentBase* CreateComponent(MetaNode& n, TypeCls type);
 	
 	template <class T> static void Register(String eon_id) {
 		TypeCls cls = AsTypeCls<T>();
@@ -31,7 +31,7 @@ struct ComponentFactory {
 		CompData& d = CompDataMap().Add(cls);
 		d.eon_id = eon_id;
 		d.rtti_cls = cls;
-		d.name = T::AsTypeName();
+		d.name = AsTypeName<T>();
 		d.new_fn = &CreateComp<T>;
 	}
 	

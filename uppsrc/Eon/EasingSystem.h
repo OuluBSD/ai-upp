@@ -9,9 +9,7 @@ class Easing :
 {
 	
 public:
-	COMP_DEF_VISIT
-	
-	
+	ECS_COMPONENT_CTOR(Easing)
     vec3 target_position = { 0,0,0 };
     quat target_orientation = Identity<quat>();
     float position_easing_factor = 0;
@@ -24,7 +22,7 @@ public:
         orientation_easing_factor = e.orientation_easing_factor;
     }
     
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
     void Initialize() override;
     void Uninitialize() override;
     
@@ -34,7 +32,7 @@ using EasingPtr = Ptr<Easing>;
 
 
 
-class EasingSystem : public System<EasingSystem>
+class EasingSystem : public Ecs::System<EasingSystem>
 {
 	Vector<Easing*> comps;
 public:

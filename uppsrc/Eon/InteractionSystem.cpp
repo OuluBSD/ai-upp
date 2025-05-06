@@ -26,9 +26,9 @@ void InteractionListener::Uninitialize(Engine& e, Ptr<InteractionListener> l) {
 }
 
 bool InteractionListener::IsEnabled() const {
-	ComponentBase* cb = CastPtr<ComponentBase>(this);
+	Ecs::SystemBase* cb = const_cast<InteractionListener*>(this)->GetSystem();
 	if(cb)
-		return cb->GetEntity()->IsEnabled();
+		return cb->IsEnabled();
 	
 	return true;
 }

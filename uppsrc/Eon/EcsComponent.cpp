@@ -18,11 +18,11 @@ ComponentBase::~ComponentBase() {
 }
 
 Engine& ComponentBase::GetEngine() {
-	return *node.FindOwnerDeep<Engine>();
+	return *node.FindOwnerRoot<Engine>();
 }
 
 Entity* ComponentBase::GetEntity() {
-	return node.FindOwnerDeep<Entity>();
+	return node.FindOwnerRoot<Ecs::Entity>();
 }
 
 String ComponentBase::ToString() const {

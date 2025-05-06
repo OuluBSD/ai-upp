@@ -80,8 +80,6 @@ file
 	GI2D.cpp,
 	GI3D.cpp,
 	Workspace.h,
-	Ctrl.h,
-	Ctrl.inl highlight cpp,
 	Graphics.cpp,
 	GEnums.h,
 	Ether.h,

@@ -104,6 +104,7 @@ void Loop::Visit(Vis& vis) {
 		("prefab", prefab)
 		("id", id);
 	vis & space;
+	vis.VisitT<MetaDirectoryBase>("Base", *this);
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {

@@ -17,8 +17,8 @@ INITBLOCK {
 	Engine::Register<PlayerBodySystem>("player");
 	Engine::Register<InteractionSystem>("interaction");
 	Engine::Register<Ecs::RegistrySystem>("registry");
-	Engine::Register<EntityStore>("entity.store");
-	Engine::Register<ComponentStore>("component.store");
+	//Engine::Register<EntityStore>("entity.store");
+	//Engine::Register<ComponentStore>("component.store");
 	
 	// Component
 	Ecs::ComponentFactory::Register<RigidBody>("body");

@@ -15,11 +15,15 @@ void ComponentFactory::Dump() {
 	}
 }
 
-ComponentBase* ComponentFactory::CreateComponent(TypeCls type) {
+ComponentBase* ComponentFactory::CreateComponent(MetaNode& n, TypeCls type) {
 	int i = CompDataMap().Find(type);
 	if (i < 0) return 0;
 	CompData& d = CompDataMap()[i];
-	return d.new_fn();
+	MetaNode& sub = n.sub.Add();
+	ComponentBase* c = d.new_fn(sub);
+	sub.ext = c;
+	sub.type_hash = c->GetTypeHash();
+	return c;
 }
 
 String ComponentFactory::GetComponentName(TypeCls type) {

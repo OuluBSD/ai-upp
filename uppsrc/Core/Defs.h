@@ -277,6 +277,7 @@ public:
 	operator float() const              { return FLOAT_NULL; }
 	operator bool() const               { return false; }
 	operator void*() const              { return 0; }
+	operator byte() const               { return 0; }
 
 	Nuller() {}
 };

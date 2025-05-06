@@ -451,9 +451,13 @@ struct FixedArray {
 	
 	T vector[I];
 	
+	FixedArray() {}
+	FixedArray(const Nuller& n) {for(int i = 0; i < I; i++) vector[i] = n;}
 	int GetCount() const {return size;}
 	T&       operator[](int i)       {ASSERT(i >= 0 && i < size); return vector[i];}
 	const T& operator[](int i) const {ASSERT(i >= 0 && i < size); return vector[i];}
+	void Clear() {for(int i = 0; i < I; i++) vector[i] = Null;}
+	void operator=(const Nuller& n) {for(int i = 0; i < I; i++) vector[i] = n;}
 	void operator=(const T& value) {for(int i = 0; i < I; i++) this->vector[i] = value;}
 	T& Top() {return vector[I-1];}
 	
@@ -484,6 +488,12 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 
 template <class T> TypeCls AsTypeCls() {return typeid(T);}
 template <class T> String AsTypeName() {return typeid(T).name();}
+// Note: AsTypeHash is considered to be persistent and cross-platform (& cross-compiler),
+//       which currently requires the user to set the type string.
+//       If std had demangler or mangled name was standard, this would be unnecessary.
+//       Usage: call TypedStringHasher<T>("name of T") early in constructor or main.
+//       Use AsTypeCls().GetHashValue() if you need easy & non-persistent hash.
+template <class T> hash_t AsTypeHash() {return TypedStringHasher<T>(0);}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 
 #include "Other.hpp"

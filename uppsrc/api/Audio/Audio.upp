@@ -1,0 +1,14 @@
+description "\377B0,128,0";
+
+uses(BUILTIN_PORTAUDIO) plugin/portaudio_;
+
+library(PORTAUDIO) portaudio;
+
+file
+	IAudio.h,
+	Portaudio.cpp,
+	IfaceFuncs.inl highlight cpp;
+
+mainconfig
+	"" = "";
+

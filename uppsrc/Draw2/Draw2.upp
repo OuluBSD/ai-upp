@@ -1,0 +1,24 @@
+description "\377B128,0,255";
+
+uses
+	VirtualGui3D;
+
+library(POSIX) png;
+
+file
+	Draw.h,
+	Draw.cpp,
+	Factory.h,
+	Factory.cpp,
+	Backends readonly separator,
+	Sdl2.h,
+	Sdl2.cpp,
+	Various.h,
+	Various.cpp,
+	Lib readonly separator,
+	tga_reader.h,
+	tga_reader.c,
+	_ readonly separator,
+	DrawBackend.h,
+	DrawBackend.cpp;
+

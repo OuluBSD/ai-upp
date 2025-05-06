@@ -1,0 +1,12 @@
+uses
+	Eon,
+	Eon;
+
+file
+	GraphTests.h,
+	GraphTests.cpp;
+
+mainconfig
+	"" = "AI DEBUG_RT",
+	"" = "AI";
+

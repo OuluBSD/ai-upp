@@ -1,0 +1,56 @@
+#include "EonDraw.h"
+
+NAMESPACE_UPP
+
+INITBLOCK {
+	
+	#define ECS_CTX(dev, val, prefix) \
+		Factory::RegisterInterfaceLink<DefaultExchangePoint>(DevCls::dev, ValCls::val);
+	#define IFACE_CTX_CLS(dev, value, prefix) ECS_CTX(dev, value, prefix)
+	#define IFACE(x) DEV_IFACE(x)
+	IFACE_LIST
+	#undef IFACE
+	#undef IFACE_CTX_CLS
+	#undef ECS_CTX
+	
+	GfxProgramLibrary::template AddProgramClass<RendererBase>("the_renderer_program");
+	
+	
+	// System
+	Engine::Register<Ecs::EventSystem>("events");
+	Engine::Register<Ecs::RenderingSystem>("rendering");
+	Engine::Register<PaintStrokeSystemBase>("paintstroke");
+	Engine::Register<ToolboxSystemBase>("toolbox");
+	Engine::Register<PaintingInteractionSystemBase>("painting");
+	Engine::Register<ShootingInteractionSystemBase>("shooting");
+	Engine::Register<ThrowingInteractionSystemBase>("throwing");
+	Engine::Register<Ecs::DesktopSuiteSystem>("desktop");
+	
+	
+	// Component
+	ComponentFactory::Register<Viewable>("viewable");
+	ComponentFactory::Register<Viewport>("viewport");
+	ComponentFactory::Register<ChaseCam>("camera.chase");
+	ComponentFactory::Register<Renderable>("renderable");
+	ComponentFactory::Register<ModelComponent>("model");
+	ComponentFactory::Register<ToolComponent>("tool");
+	ComponentFactory::Register<ToolSelectorKey>("tool.selector");
+	ComponentFactory::Register<PlayerHandComponent>("player.hand");
+	ComponentFactory::Register<PlayerHeadComponent>("player.head");
+	ComponentFactory::Register<PlayerBodyComponent>("player.body");
+	ComponentFactory::Register<PaintStrokeComponent>("paint.stroke");
+	
+	// CustomToolComponent
+	ComponentFactory::Register<PaintComponent>("paint");
+	ComponentFactory::Register<ShootingComponent>("shoot");
+	ComponentFactory::Register<ThrowingComponent>("throw");
+	
+	#ifdef flagGUI
+	DesktopFactory::Register<GuiTesterApp>("guitester");
+	ComponentFactory::Register<DefaultGuiAppComponent>("gui.app");
+	#endif
+	
+	
+}
+
+END_UPP_NAMESPACE

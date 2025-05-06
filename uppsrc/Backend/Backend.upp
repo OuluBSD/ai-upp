@@ -1,0 +1,30 @@
+description "\377B128,0,255";
+
+file
+	src.tpp,
+	Backend.h,
+	Defs.h,
+	Exporter.h,
+	Exporter.cpp,
+	Util.h,
+	Util.cpp,
+	Builtin.h,
+	Builtin.cpp,
+	Node.h,
+	Node.cpp,
+	TokenStructure.h,
+	TokenStructure.cpp,
+	Ast.h,
+	Ast.cpp,
+	EonStd.h,
+	EonStd.cpp,
+	SemanticParser.h,
+	SemanticParser.cpp,
+	AstRunner.h,
+	AstRunner.cpp,
+	AstBuilder.cpp,
+	AstExporter.h,
+	AstExporter.cpp,
+	Compiler.h,
+	Compiler.cpp;
+

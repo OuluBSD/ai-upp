@@ -1,0 +1,11 @@
+description "Shows route planner, action planner, decision table, etc.\377";
+
+uses
+	AICore;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";
+

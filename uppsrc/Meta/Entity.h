@@ -7,10 +7,10 @@ struct Component : MetaNodeExt, DatasetProvider {
 	
 };
 
-#define COMPONENT_CONSTRUCTOR_(x) x(MetaNode& n) : Component(n)
+#define COMPONENT_CONSTRUCTOR_(x) CLASSTYPE(x) x(MetaNode& n) : Component(n)
 #define COMPONENT_CONSTRUCTOR(x) COMPONENT_CONSTRUCTOR_(x) {}
 #define COMPONENT_OVERRIDE_TODO void Visit(Vis& s) override {TODO}
-#define METANODE_EXT_CONSTRUCTOR_(x) x(MetaNode& n) : MetaNodeExt(n)
+#define METANODE_EXT_CONSTRUCTOR_(x) CLASSTYPE(x) x(MetaNode& n) : MetaNodeExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
 
 #define COMPONENT_STUB_HEADER(type, kind) \
@@ -73,6 +73,7 @@ struct ValueComponent : ValueComponentBase
 
 #define INITIALIZE_VALUECOMPONENT(x, kind) \
 struct x : ValueComponent<kind> { \
+	CLASSTYPE(x) \
 	x(MetaNode& n) : ValueComponent(n) {} \
 }; \
 INITIALIZE(x)

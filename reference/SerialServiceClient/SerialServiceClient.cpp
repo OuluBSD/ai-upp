@@ -1,6 +1,5 @@
-#include <Local/Local.h>
-using namespace UPP;
-using namespace TS;
+#include <Core/Core.h>
+using namespace Upp;
 
 
 
@@ -45,7 +44,7 @@ CONSOLE_APP_MAIN {
 			FixedAnswer ans;
 			args.number = Random(1000);
 			for(int i = 0; i < 5; i++) {
-				args.cstr[i] = 'A' + Random('Z' - 'A' + 1);
+				args.cstr[i] = 'A' + (char)Random('Z' - 'A' + 1);
 			}
 			args.cstr[5] = 0;
 			

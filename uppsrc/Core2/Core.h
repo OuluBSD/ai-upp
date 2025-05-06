@@ -13,6 +13,9 @@ NAMESPACE_UPP
 #include "Tokenizer.h"
 #include "Container.h"
 
+#include "Random.h"
+#include "CKMeans.h"
+
 END_UPP_NAMESPACE
 
 #endif

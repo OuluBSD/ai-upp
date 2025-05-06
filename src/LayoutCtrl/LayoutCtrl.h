@@ -1,7 +1,7 @@
 #ifndef _LayoutCtrl_LayoutCtrl_h
 #define _LayoutCtrl_LayoutCtrl_h
 
-#include <LocalCtrl/LocalCtrl.h>
+#include <CtrlLib/CtrlLib.h>
 
 
 #include "Defs.h"

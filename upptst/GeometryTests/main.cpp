@@ -1,5 +1,5 @@
 #include <Geometry/Geometry.h>
-using namespace TS;
+using namespace Upp;
 
 
 bool MatCompareTest(const mat4& m0, const mat4& m1, bool succ_result=true) {

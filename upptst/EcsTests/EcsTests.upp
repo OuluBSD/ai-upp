@@ -1,9 +1,0 @@
-uses
-	EcsComplete;
-
-file
-	EcsTests.cpp;
-
-mainconfig
-	"" = "";
-

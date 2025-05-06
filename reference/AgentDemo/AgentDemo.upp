@@ -1,7 +1,7 @@
 description "Shows route planner, action planner, decision table, etc.\377";
 
 uses
-	Agent;
+	AICore;
 
 file
 	main.cpp;

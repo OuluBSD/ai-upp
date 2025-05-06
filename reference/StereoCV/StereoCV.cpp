@@ -1,6 +1,6 @@
 #include "StereoCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 StereoCV::StereoCV() {
@@ -353,12 +353,11 @@ void ImageProcBase::RenderCorners(const ByteMat& bg, const ByteMat* mini_img, co
 }
 
 
-NAMESPACE_TOPSIDE_END
-
+END_UPP_NAMESPACE
 
 
 GUI_APP_MAIN {
-	using namespace TS;
+	using namespace Upp;
 	
 	SetCoutLog();
 	

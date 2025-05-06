@@ -1,6 +1,6 @@
 #include "StereoCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 PointcloudBase::PointcloudBase() {
@@ -19,4 +19,4 @@ void PointcloudBase::Process() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

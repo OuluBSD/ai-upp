@@ -4,11 +4,11 @@
 
 
 #define LAYOUT							Layout
-#define NAMESPACE_LAYOUT_BEGIN		namespace  TS { namespace  LAYOUT {
+#define NAMESPACE_LAYOUT_BEGIN		    namespace  Upp { namespace  LAYOUT {
 #define NAMESPACE_LAYOUT_END			}}
 
 NAMESPACE_LAYOUT_BEGIN
-using namespace UPP;
+using namespace Upp;
 
 typedef Vector<String> StringVector;
 

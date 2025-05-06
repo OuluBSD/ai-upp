@@ -1,6 +1,5 @@
-#include <Local/Local.h>
-using namespace UPP;
-using namespace TS;
+#include <Core/Core.h>
+using namespace Upp;
 
 
 struct FixedArgs {

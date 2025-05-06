@@ -340,8 +340,8 @@ bool IsClose(const quat& a, const quat& b);
 bool IsClose(const vec3& a, const vec3& b, float dist_limit=0.001);
 bool IsClose(const vec4& a, const vec4& b);
 bool IsClose(const mat4& a, const mat4& b);
-bool IsClose(const axes2& a, const axes2& b, float dist_limit=0.001);
-bool IsClose(const axes3s& a, const axes3s& b, float dist_limit=0.001);
+bool IsCloseAxes(const axes2& a, const axes2& b, float dist_limit=0.001);
+bool IsCloseAxes(const axes3s& a, const axes3s& b, float dist_limit=0.001);
 
 axes2s LookAtStereoAngles(float eye_dist, const vec3& pt);
 axes2s LookAtStereoAngles(float eye_dist, const vec3& pt, axes2& l, axes2& r);

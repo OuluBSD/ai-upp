@@ -1,7 +1,6 @@
 description "\37728,170,255";
 
 uses
-	Local,
 	GuboLib;
 
 file

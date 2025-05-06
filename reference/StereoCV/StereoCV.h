@@ -2,11 +2,11 @@
 #define _StereoCV_StereoCV_h_
 
 #include <ComputerVision/ComputerVision.h>
-#include <LocalCtrl/LocalCtrl.h>
+#include <CtrlLib/CtrlLib.h>
 #include <plugin/jpg/jpg.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class ImageProcBase {
@@ -118,6 +118,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

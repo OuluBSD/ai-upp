@@ -1,5 +1,5 @@
-#include <Pointcloud/Pointcloud.h>
-using namespace TS;
+#include <Geometry/Geometry.h>
+using namespace Upp;
 
 
 int CalcLens();
@@ -43,8 +43,8 @@ CONSOLE_APP_MAIN {
 		
 		axes2 l1 = lp.Unproject(lp.Project(l));
 		axes2 r1 = lp.Unproject(lp.Project(r));
-		ASSERT(IsClose(l, l1));
-		ASSERT(IsClose(r, r1));
+		ASSERT(IsCloseAxes(l, l1));
+		ASSERT(IsCloseAxes(r, r1));
 	}
 	
 	if (tests & (1 << 2)) {
@@ -63,8 +63,8 @@ CONSOLE_APP_MAIN {
 		
 		axes2 l1 = lp.Unproject(lp.Project(l));
 		axes2 r1 = lp.Unproject(lp.Project(r));
-		ASSERT(IsClose(l, l1));
-		ASSERT(IsClose(r, r1));
+		ASSERT(IsCloseAxes(l, l1));
+		ASSERT(IsCloseAxes(r, r1));
 		
 		vec3 out;
 		bool b = CalculateStereoTarget(

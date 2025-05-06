@@ -1,8 +1,8 @@
-#include <Agent/Agent.h>
+#include <AICore/AICore.h>
 
 int TestDeepNN();
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 // Function which sets Node<Value> value in GenerateTree function
 void SetValue(NodeValue* i) {
@@ -243,13 +243,12 @@ void ActionPlannerExample() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
-using namespace UPP;
-using namespace TS;
 
 CONSOLE_APP_MAIN {
+	using namespace UPP;
 	
 	
 	// Simple game algorithms

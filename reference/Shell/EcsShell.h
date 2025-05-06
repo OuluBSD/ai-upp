@@ -30,6 +30,10 @@
 	#include <EcsVR/EcsVR.h>
 #endif
 
+#ifdef flagGUBO
+	#include <GuboSuite/GuboSuite.h>
+#endif
+
 NAMESPACE_UPP
 
 void BindEcsToSerial();

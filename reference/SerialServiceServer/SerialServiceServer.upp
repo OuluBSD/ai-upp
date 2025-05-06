@@ -1,5 +1,5 @@
 uses
-	Local;
+	Core;
 
 file
 	SerialServiceServer.cpp;

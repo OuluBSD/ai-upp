@@ -1,6 +1,6 @@
-#include <Local/Local.h>
-#include <ports/enet/enet.h>
-using namespace TS;
+#include <Core/Core.h>
+#include <plugin/enet/enet.h>
+using namespace Upp;
 
 
 enum {
@@ -10,7 +10,6 @@ enum {
 };
 
 struct Tester : public DaemonService {
-	RTTI_DECL1(Tester, DaemonService)
 	typedef Tester CLASSNAME;
 	
 	EnetServiceServer* server = 0;

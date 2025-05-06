@@ -1,4 +1,0 @@
-description "\377B128,0,255";
-
-uses(GUI) VirtualGui3D;
-

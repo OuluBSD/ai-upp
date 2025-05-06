@@ -3,8 +3,8 @@ description "Homebrew cryptographic example\377";
 noblitz;
 
 uses
-	Local,
-	plugin/bz2;
+	plugin/bz2,
+	Core;
 
 file
 	Crypto.cpp;

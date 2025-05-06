@@ -33,13 +33,13 @@ void UserGuiMainFn() {
 }
 
 CONSOLE_APP_MAIN {
-	TS::Serial::Machine::WhenInitialize << callback(TS::DefaultSerialInitializer);
-	TS::Serial::Machine::WhenPreFirstUpdate << callback(TS::DefaultStartup);
-	TS::Serial::Machine::WhenUserProgram << callback(UserGuiMainFn);
+	Machine::WhenInitialize << callback(DefaultSerialInitializer);
+	Machine::WhenPreFirstUpdate << callback(DefaultStartup);
+	Machine::WhenUserProgram << callback(UserGuiMainFn);
 	
-	TS::SingleMachine mach;
+	SingleMachine mach;
 	if (mach.Start()) {
-		TS::DefaultRunner(0, "Gui App", GUBO_EON);
+		DefaultRunner(0, "Gui App", GUBO_EON);
 		
 		mach.Stop();
 	}

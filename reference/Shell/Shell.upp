@@ -3,7 +3,6 @@ description "Libtopside main package\377";
 uses
 	api/MidiFile,
 	api/MidiHw,
-	GuboLib,
 	AICore2,
 	api/Audio,
 	api/AudioFileOut,
@@ -13,7 +12,10 @@ uses
 	SoftPhys,
 	SoftAudio,
 	api/Physics,
-	DesktopSuite;
+	DesktopSuite,
+	SoftVR;
+
+uses(GUBO) GuboSuite;
 
 uses(DX12) EonWin;
 
@@ -35,6 +37,9 @@ file
 	EcsLocal.cpp,
 	Defs.h,
 	Defs2.h,
+	DesktopShell.cpp,
+	GuboShell.cpp,
+	SurfaceShell.cpp,
 	_ readonly separator;
 
 mainconfig

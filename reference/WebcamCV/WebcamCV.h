@@ -2,7 +2,7 @@
 #define _WebcamCV_WebcamCV_h_
 
 #include <ComputerVision/ComputerVision.h>
-#include <LocalCtrl/LocalCtrl.h>
+#include <CtrlLib/CtrlLib.h>
 
 
 NAMESPACE_TOPSIDE_BEGIN

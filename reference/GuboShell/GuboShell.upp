@@ -3,8 +3,7 @@ uses
 	GuboSuite;
 
 file
-	GuboShell.h,
-	GuboShell.cpp;
+	GuboShell.h;
 
 mainconfig
 	"" = "GUI SCREEN SDL2 OGL",

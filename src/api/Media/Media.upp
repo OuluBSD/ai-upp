@@ -1,5 +1,8 @@
 description "\377B0,128,0";
 
+uses
+	Eon;
+
 library(FFMPEG) "swscale avcodec avformat avutil swresample avdevice avfilter";
 
 library(OPENCV & POSIX) v4l2;
@@ -11,7 +14,7 @@ library(OPENCV & WIN32 & DEBUG) opencv_world454d;
 library(OPENCV & WIN32 & !DEBUG) opencv_world454;
 
 file
-	IMedia.h,
+	Media.h,
 	Types.h,
 	Types.cpp,
 	MediaAtomBase.h,
@@ -22,8 +25,8 @@ file
 	Audio.cpp,
 	Video.h,
 	Video.cpp,
-	Media.h,
-	Media.cpp,
+	MediaStream.h,
+	MediaStream.cpp,
 	"Support classes" readonly separator,
 	DeviceManager_V4L2.h,
 	DeviceManager_V4L2.cpp,

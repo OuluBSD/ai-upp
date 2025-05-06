@@ -1,9 +1,9 @@
 #ifndef _GuboTests_GuboTests_h_
 #define _GuboTests_GuboTests_h_
 
-#include <Complete/Complete.h>
+#include <GuboLib/GuboLib.h>
 #include <DesktopSuite/DesktopSuite.h>
-using namespace UPP;
+using namespace Upp;
 
 
 class GuboTester : public TopGubo {

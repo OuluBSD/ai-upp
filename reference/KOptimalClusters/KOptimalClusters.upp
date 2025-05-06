@@ -1,7 +1,7 @@
 description "K-means clustering\377";
 
 uses
-	Statistics;
+	Core;
 
 file
 	main.cpp;

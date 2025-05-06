@@ -1,7 +1,5 @@
-#include <Local/Local.h>
-using namespace TS::Crypto;
-using namespace TS;
-using namespace UPP;
+#include <Core/Core.h>
+using namespace Upp;
 
 
 

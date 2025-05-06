@@ -1,8 +1,8 @@
-#include <Multimedia/Multimedia.h>
+#include <api/Media/Media.h>
 
 
 void TestFfmpeg() {
-	using namespace TS;
+	using namespace Upp;
 	
 	AudioFrame aframe;
 	MediaVideoFrame vframe;

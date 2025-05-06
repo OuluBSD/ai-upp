@@ -37,5 +37,9 @@ file
 	Crypto.cpp,
 	TokenParser.h,
 	TokenParser.cpp,
+	CKMeans.h,
+	CKMeans.cpp,
+	Random.h,
+	Random.cpp,
 	_ readonly separator;
 

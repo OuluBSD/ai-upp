@@ -1,5 +1,6 @@
 uses
-	Complete;
+	Complete,
+	GuboLib;
 
 file
 	GuboTests.h,

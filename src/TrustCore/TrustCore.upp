@@ -1,9 +1,5 @@
 description "\377B255,42,150";
 
-uses
-	Local,
-	Statistics;
-
 file
 	TrustCore.h,
 	Net.h,

@@ -1,6 +1,6 @@
 uses
-	LocalCtrl,
-	ComputerVision;
+	ComputerVision,
+	CtrlLib;
 
 file
 	WebcamCV.h,

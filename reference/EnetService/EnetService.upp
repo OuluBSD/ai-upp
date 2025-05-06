@@ -1,8 +1,8 @@
 description "Enet daemon service. This should work on all Core backends.\377";
 
 uses
-	Local,
-	plugin/enet;
+	plugin/enet,
+	Core;
 
 file
 	Main.cpp;

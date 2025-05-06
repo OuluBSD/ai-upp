@@ -1040,6 +1040,15 @@ hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
 	return ch;
 }
 
+Vector<MetaNode*> MetaNode::FindAll(TypeCls type)
+{
+	Vector<MetaNode*> vec;
+	for(auto& s : sub)
+		if(s.ext && s.ext->GetTypeCls() == type)
+			vec << &s;
+	return vec;
+}
+
 Vector<MetaNode*> MetaNode::FindAllShallow(int kind)
 {
 	Vector<MetaNode*> vec;
@@ -1047,6 +1056,16 @@ Vector<MetaNode*> MetaNode::FindAllShallow(int kind)
 		if(s.kind == kind)
 			vec << &s;
 	return vec;
+}
+
+MetaNode* MetaNode::FindDeep(TypeCls type)
+{
+	if (ext && ext->GetTypeCls() == type)
+		return this;
+	for (MetaNode& n : sub)
+		if (auto r = n.FindDeep(type))
+			return r;
+	return 0;
 }
 
 void MetaNode::FindAllDeep(int kind, Vector<MetaNode*>& out)

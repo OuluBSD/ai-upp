@@ -11,6 +11,7 @@ struct AiCompletionComponent : Component {
 	void Visit(Vis& v) override;
 	String GetName() const override {return "AI: Completion";}
 	
+	CLASSTYPE(AiCompletionComponent)
 	AiCompletionComponent(MetaNode& owner);
 	~AiCompletionComponent();
 	

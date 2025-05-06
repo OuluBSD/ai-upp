@@ -494,12 +494,12 @@ void ScriptTextProcess::Tokenize()
 				ssubpart = &subpart->sub.Add();
 				part->type = msect.type;
 				part->num = msect.num;
-				subpart->repeat = sect.repeat;
+				subpart->repeat = sect.repeat; // TODO FIX: this really is an error
 				ssub_line_i = 0;
 			}
 			else if(prev_sect != line.section) {
 				subpart = &part->sub.Add();
-				subpart->repeat = sect.repeat;
+				subpart->repeat = sect.repeat; // TODO FIX: this really is an error
 				ssubpart = &subpart->sub.Add();
 				ssub_line_i = 0;
 			}

@@ -38,7 +38,7 @@ struct LeadDataPublisher : Component {
 	Vector<String> artists;
 	
 	COMPONENT_CONSTRUCTOR(LeadDataPublisher)
-	void Visit(Vis& v) {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)		("name", name)
 				("info", info)
@@ -59,6 +59,7 @@ struct LeadDataTemplate : Component {
 	Index<String> profit_reasons;
 	Index<String> organizational_reasons;
 	
+	CLASSTYPE(LeadDataTemplate)
 	LeadDataTemplate(MetaNode& n) : Component(n) {}
 	void Load();
 	void Store();

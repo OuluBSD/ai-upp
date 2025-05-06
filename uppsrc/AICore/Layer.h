@@ -6,6 +6,7 @@ NAMESPACE_UPP
 struct ImageLayer : Component {
 	Image img;
 	
+	CLASSTYPE(ImageLayer)
 	ImageLayer(MetaNode& owner) : Component(owner) {}
 	~ImageLayer(){}
 	String StoreString();
@@ -19,12 +20,14 @@ INITIALIZE(ImageLayer);
 struct TempImageLayer : Component {
 	Vector<Image> imgs;
 	
+	CLASSTYPE(TempImageLayer)
 	TempImageLayer(MetaNode& owner) : Component(owner) {}
 	~TempImageLayer(){}
 	void Visit(Vis& v) override {}
 };
 
 struct ImageGenLayer : TempImageLayer {
+	CLASSTYPE(ImageGenLayer)
 	ImageGenLayer(MetaNode& owner) : TempImageLayer(owner) {}
 	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_GEN_LAYER;}

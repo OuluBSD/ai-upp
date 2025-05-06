@@ -135,7 +135,7 @@ struct StageThread : MetaNodeExt {
 	Vector<String> stage_name_presets;
 	
 public:
-	typedef StageThread CLASSNAME;
+	CLASSTYPE(StageThread)
 	StageThread(MetaNode& n) : MetaNodeExt(n) {}
 	
 	void Visit(Vis& v) override {
@@ -152,7 +152,7 @@ public:
 INITIALIZE(StageThread)
 
 struct ChainThread : MetaNodeExt {
-	typedef ChainThread CLASSNAME;
+	CLASSTYPE(ChainThread)
 	ChainThread(MetaNode& n) : MetaNodeExt(n) {}
 	void Visit(Vis& v) override {
 		v.Ver(0)

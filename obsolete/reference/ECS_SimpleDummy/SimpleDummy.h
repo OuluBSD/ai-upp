@@ -4,7 +4,7 @@
 #include <CompleteDummy/CompleteDummy.h>
 using namespace TS;
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -36,6 +36,6 @@ PREFAB_END
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

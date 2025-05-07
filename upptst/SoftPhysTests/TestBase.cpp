@@ -1,7 +1,7 @@
 #include "SoftPhysTests.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 TestBase::TestBase() {
@@ -53,4 +53,4 @@ void TestBase::Refresh(GfxDataState& s) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,6 +1,6 @@
 #include "WebcamCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void GaussianBlurBase::Process() {
     Grayscale(input, tmp0);
@@ -13,4 +13,4 @@ void GaussianBlurBase::Process() {
     OutputFromGray(tmp1);
 }
    
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

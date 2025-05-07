@@ -2,7 +2,7 @@
 
 using namespace UPP;
 using namespace TS;
-using namespace TS::Language;
+using namespace Upp::Language;
 
 
 class LanguageEditorWindow : public TopWindow {

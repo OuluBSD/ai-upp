@@ -1,6 +1,6 @@
 #include "WebcamCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void PyramidDownsampleBase::Process() {
 	int levels = 4;
@@ -43,4 +43,4 @@ void PyramidDownsampleBase::render_mono_image(const Vector<byte>& src, ByteMat& 
     }
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

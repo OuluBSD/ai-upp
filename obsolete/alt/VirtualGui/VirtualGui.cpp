@@ -1,7 +1,7 @@
 #include <CtrlCore/CtrlCore.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool GetCtrl() {TODO}
@@ -9,7 +9,7 @@ bool GetAlt() {TODO}
 bool GetShift() {TODO}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

@@ -5,7 +5,7 @@ Tutorial 6a:
 	This tutorial shows how shaders are used by the engine.
 */
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Graphics6a::Initialize() {
@@ -64,9 +64,9 @@ void Graphics6aInitializer() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
-RENDER_APP_(TS::Graphics6a)
-APP_INITIALIZE_(TS::Graphics6aStartup);
+RENDER_APP_(Upp::Graphics6a)
+APP_INITIALIZE_(Upp::Graphics6aStartup);
 APP_DEFAULT_GFX_(GFX_OPENGL);

@@ -15,7 +15,7 @@
 */
 using namespace UPP;
 using namespace TS;
-using namespace TS::Language;
+using namespace Upp::Language;
 
 
 CONSOLE_APP_MAIN {

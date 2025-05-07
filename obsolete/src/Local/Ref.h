@@ -2,7 +2,7 @@
 #define _Local_Ref_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -890,7 +890,7 @@ using TypeRefMap			= LinkedMap<TypeCls, Ref<T,Parent>>;
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

@@ -1,6 +1,6 @@
 #include "Local.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void RuntimeVisitor::Clear() {
@@ -9,4 +9,4 @@ void RuntimeVisitor::Clear() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

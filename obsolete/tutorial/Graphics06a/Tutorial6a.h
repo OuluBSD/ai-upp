@@ -5,7 +5,7 @@
 #include <AccelCore/AccelCore.h>
 using namespace TS;
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 struct Graphics6a : public Component<Graphics6a>, public DisplaySink {
 	NS_SHADER::MultiStage ms;
@@ -24,6 +24,6 @@ struct Graphics6a : public Component<Graphics6a>, public DisplaySink {
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

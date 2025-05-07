@@ -1,7 +1,7 @@
 #ifndef _Sequencer_Simple_h_
 #define _Sequencer_Simple_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class SimpleOscillator : public Core {
 	
@@ -46,6 +46,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

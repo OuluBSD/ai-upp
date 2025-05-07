@@ -1,5 +1,5 @@
-#ifndef _SerialLib_RenderingSystem_h_
-#define _SerialLib_RenderingSystem_h_
+#ifndef _EonLib_RenderingSystem_h_
+#define _EonLib_RenderingSystem_h_
 
 #if 0
 

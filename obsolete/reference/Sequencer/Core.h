@@ -5,7 +5,7 @@
 #define SRATE 44100
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct AudioFrames {
@@ -100,6 +100,6 @@ public:
 };*/
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

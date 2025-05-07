@@ -1,5 +1,5 @@
-#ifndef _Eon_ThrowingSystem_h_
-#define _Eon_ThrowingSystem_h_
+#ifndef _EonDraw_ThrowingSystem_h_
+#define _EonDraw_ThrowingSystem_h_
 
 namespace Ecs {
 

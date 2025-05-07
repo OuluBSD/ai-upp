@@ -5,7 +5,7 @@
 #include <SharedCore/SharedDefs.h>
 #include <SharedCore/RTTIDummy.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace Parallel {
 struct CtxUpp2D;
 struct Ctx2D;
@@ -15,11 +15,11 @@ template <class Dim> class ScopeT;
 template <class Dim> class FrameT;
 	
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 namespace UPP {
 
-using TopWindowFrame = TS::Parallel::FrameT<TS::Parallel::CtxUpp2D>;
+using TopWindowFrame = Upp::Parallel::FrameT<Upp::Parallel::CtxUpp2D>;
 
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>

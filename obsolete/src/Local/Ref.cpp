@@ -1,6 +1,6 @@
 #include "Local.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 bool __dbg_ref_visits;
 bool IsDebugRefVisits() {return __dbg_ref_visits;}
@@ -69,4 +69,4 @@ void LockedScopeRefCounter::DecRef() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

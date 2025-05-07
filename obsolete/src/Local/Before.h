@@ -87,9 +87,9 @@ static constexpr bool is_in_parallel = true;
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

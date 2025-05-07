@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 TrackListCtrl::TrackListCtrl() {
@@ -538,4 +538,4 @@ void BlockCtrl::Backward() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

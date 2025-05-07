@@ -1,6 +1,6 @@
 #include "WebcamCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void SobelBase::Process() {
 	auto& img_u8 = tmp0;
@@ -12,4 +12,4 @@ void SobelBase::Process() {
     OutputFromXY(img_gxgy);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

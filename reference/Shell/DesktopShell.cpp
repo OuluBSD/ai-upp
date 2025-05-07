@@ -1,7 +1,7 @@
-#include "DesktopShell.h"
+#include "Shell.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void VguiMain() {
@@ -13,7 +13,7 @@ void VguiMain() {
 	#endif
 	
 	
-	TS::EventsTester app;
+	Upp::EventsTester app;
 	//GuiTesterApp app;
 	//CtrlTesterApp app;
 	app.OpenMain();
@@ -35,7 +35,7 @@ void DesktopMain() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 GUI_APP_MAIN

@@ -8,7 +8,7 @@ Tutorial 3:
 */
 
 using namespace TS;
-using namespace TS::Ecs;
+using namespace Upp::Ecs;
 
 
 struct Tutorial3 :

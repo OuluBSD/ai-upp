@@ -2,7 +2,7 @@
 #define _Editor_Bottom_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct TheCalc : public CodeEditor {
@@ -68,7 +68,7 @@ struct ElepDisplay : public Display {
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

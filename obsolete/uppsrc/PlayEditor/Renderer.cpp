@@ -1,6 +1,6 @@
 #include "PlayEditor.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -871,4 +871,4 @@ Image PlayRenderer::LoadNotes() {
 }*/
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

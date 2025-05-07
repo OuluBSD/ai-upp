@@ -233,7 +233,7 @@ void CLASSNAME::EventsBase_Finalize(NativeEventsBase& ev, AtomBase& a, RealtimeS
 	
 }
 
-bool CLASSNAME::EventsBase_NegotiateSinkFormat(NativeEventsBase& ev, AtomBase& a, LinkBase& link, int sink_ch, const Format& new_fmt) {
+bool CLASSNAME::EventsBase_NegotiateSinkFormat(NativeEventsBase& ev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	
 	return false;
 }
@@ -792,9 +792,9 @@ LRESULT CALLBACK WinD11_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 	case WM_SIZE:
 		word width = lParam & 0xFFFF;
 		word height = (lParam >> 16) & 0xFFFF;
-		if (!TS::default_width) {
-			TS::default_width = width;
-			TS::default_height = height;
+		if (!Upp::default_width) {
+			Upp::default_width = width;
+			Upp::default_height = height;
 		}
 		dev.sz.cx = width;
 		dev.sz.cy = height;

@@ -1,6 +1,6 @@
 #include "WaveEditor.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 WaveEditor::WaveEditor() {
 	Title("WaveEditor");
@@ -157,12 +157,12 @@ void WaveEditor::Reverb() {
 	
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 
 GUI_APP_MAIN {
-	TS::WaveEditor ed;
+	Upp::WaveEditor ed;
 	
 	const auto& args = CommandLine();
 	if (args.GetCount())

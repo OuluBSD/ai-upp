@@ -2,7 +2,7 @@
 #define _Local_Upp_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct UppAssemblyData;
@@ -97,7 +97,7 @@ struct UppAssemblyCache {
 	Callback1<int> WhenLoaded;
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

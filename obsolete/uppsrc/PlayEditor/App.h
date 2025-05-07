@@ -5,7 +5,7 @@ using namespace Upp;
 #define LAYOUTFILE <PlayEditor/App.lay>
 #include <CtrlCore/lay.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class PlayEditor : public TopWindow {
@@ -99,6 +99,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

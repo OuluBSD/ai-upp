@@ -1,7 +1,7 @@
 #ifndef _PlayEditor_FileFormat_h_
 #define _PlayEditor_FileFormat_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class PlayTokenizer : public ErrorSource {
@@ -247,6 +247,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

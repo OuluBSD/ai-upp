@@ -1,6 +1,6 @@
 #include "PlayEditor.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 PlayEditor::PlayEditor() : renderer(script), exporter(script) {
@@ -511,4 +511,4 @@ void PlayEditor::OnExportingProgressUpdate() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

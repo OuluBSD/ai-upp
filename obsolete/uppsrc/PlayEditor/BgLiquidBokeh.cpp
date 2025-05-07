@@ -1,7 +1,7 @@
 #include "PlayEditor.h"
 #include <Geometry/Geometry.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -75,4 +75,4 @@ Image LiquidBokeh(Size sz, float time, Color a, Color b)
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

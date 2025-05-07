@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ICMem8Base::ICMem8Base(byte* data, int size, bool writable) {
@@ -151,4 +151,4 @@ bool ICMem8Base::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bit
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

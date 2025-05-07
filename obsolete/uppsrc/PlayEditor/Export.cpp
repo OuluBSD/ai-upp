@@ -1,7 +1,7 @@
 #include "PlayEditor.h"
 #include <plugin/jpg/jpg.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 VideoExporter::VideoExporter(PlayScript& script) : script(script) {
@@ -230,4 +230,4 @@ String VideoExporter::GetSrtTimeString(int time) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

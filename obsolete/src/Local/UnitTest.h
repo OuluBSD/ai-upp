@@ -3,7 +3,7 @@
 
 #ifdef flagSTDEXC
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class UnitTest {
@@ -35,7 +35,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

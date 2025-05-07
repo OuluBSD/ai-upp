@@ -1,6 +1,6 @@
 #include "WebcamCV.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 WebcamCV::WebcamCV() {
@@ -350,7 +350,7 @@ void ImageProcBase::RenderCorners(const ByteMat& bg, const ByteMat* mini_img, co
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -199,4 +199,4 @@ void System::SetEffect(Bus& bus, int i, const CoreParams& params) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

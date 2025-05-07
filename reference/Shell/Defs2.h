@@ -1,5 +1,5 @@
-#ifndef _EcsLib_Defs_h_
-#define _EcsLib_Defs_h_
+#ifndef _Shell_Defs2_h_
+#define _Shell_Defs2_h_
 
 
 NAMESPACE_UPP
@@ -23,7 +23,7 @@ void Close_NonGUI_ECS();
 	void EcsMainFn_()
 
 
-#define CONSOLE_ECS_APP_(x) ECS_MAIN {TS::SimpleEntityApp<x>();}
+#define CONSOLE_ECS_APP_(x) ECS_MAIN {Upp::SimpleEntityApp<x>();}
 
 
 #endif

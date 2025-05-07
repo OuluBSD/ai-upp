@@ -5,7 +5,7 @@
 #include <CtrlLib/CtrlLib.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class ImageProcBase {
@@ -421,6 +421,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

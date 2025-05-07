@@ -1,7 +1,7 @@
 #include <Language/Language.h>
 
 using namespace UPP;
-using namespace TS::Language;
+using namespace Upp::Language;
 
 
 CONSOLE_APP_MAIN {

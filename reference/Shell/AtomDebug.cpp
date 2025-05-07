@@ -1,7 +1,7 @@
-#include "AtomDebug.h"
+#include "Shell.h"
 
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
 
 
 void DebugMain(String script_content, String script_file, VectorMap<String,Object>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
@@ -118,4 +118,4 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Objec
 }
 
 
-NAMESPACE_SERIAL_END
+END_UPP_NAMESPACE

@@ -1,8 +1,8 @@
 #include "AtomTests.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
-using namespace TS::Serial;
+NAMESPACE_UPP
+using namespace Upp::Serial;
 
 
 
@@ -82,12 +82,12 @@ void Main() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #ifdef flagGUI
-GUI_APP_MAIN {TS::Main();}
+GUI_APP_MAIN {Upp::Main();}
 #else
-CONSOLE_APP_MAIN {TS::Main();}
+CONSOLE_APP_MAIN {Upp::Main();}
 #endif
 

@@ -1,7 +1,7 @@
 #ifndef _Local_Draw3D_h_
 #define _Local_Draw3D_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class Model;
 
@@ -315,6 +315,6 @@ public:
 	
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

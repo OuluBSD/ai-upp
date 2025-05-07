@@ -1,5 +1,5 @@
-#ifndef _EcsLib_Gui_h_
-#define _EcsLib_Gui_h_
+#ifndef _EonLib_Gui_h_
+#define _EonLib_Gui_h_
 
 NAMESPACE_UPP
 

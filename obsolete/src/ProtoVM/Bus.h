@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_Bus_h_
 #define _ProtoVM_Bus_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 template <int Width>
@@ -95,6 +95,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

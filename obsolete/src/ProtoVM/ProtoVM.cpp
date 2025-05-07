@@ -6,7 +6,7 @@ Links:
 */
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void SetupTest1_Memory(Machine& mach);
 void SetupTest2_6502(Machine& mach);
@@ -14,7 +14,7 @@ void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #ifdef flagMAIN
 

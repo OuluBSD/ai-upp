@@ -1,6 +1,6 @@
 #include "Local.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 #if IS_UPP_CORE
@@ -480,4 +480,4 @@ void NilDraw3::DrawPaintingOp(const Cubf& target, const Painting& w) {}
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

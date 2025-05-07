@@ -2,7 +2,7 @@
 #define _Sequencer_Midi_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class Midi {
@@ -30,6 +30,6 @@ public:
 inline Midi& GetMidi() {return Single<Midi>();}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

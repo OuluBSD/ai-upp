@@ -1,5 +1,5 @@
-#ifndef _Eon_ShootingSystem_h_
-#define _Eon_ShootingSystem_h_
+#ifndef _EonDraw_ShootingSystem_h_
+#define _EonDraw_ShootingSystem_h_
 
 namespace Ecs {
 

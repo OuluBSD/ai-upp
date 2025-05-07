@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 /*
 Links:
@@ -71,4 +71,4 @@ void SetupTest2_6502(Machine& mach) {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

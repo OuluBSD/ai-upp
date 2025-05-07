@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool Machine::Init() {
@@ -82,4 +82,4 @@ Pcb& Machine::AddPcb() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

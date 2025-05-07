@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_Link_h_
 #define _ProtoVM_Link_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct Link {
@@ -64,6 +64,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

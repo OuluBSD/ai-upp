@@ -1,7 +1,7 @@
 #ifndef _SoftPhysTests_Rendering_h_
 #define _SoftPhysTests_Rendering_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 using Point2D = vec2;
@@ -68,6 +68,6 @@ void FixedFunctionSubdivCone(float *v1, float *v2, int subdiv, float height, flo
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,7 +1,7 @@
 #include "WebcamCV.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Yape06Base::SetSize(Size sz) {
@@ -29,4 +29,4 @@ void Yape06Base::Process() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

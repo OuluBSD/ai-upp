@@ -46,7 +46,7 @@ void Ctrl::SetDesktopSize(Size sz) {
 void Ctrl::EventLoop(Ctrl *ctrl) {
 	/*bool quit = false;
 	TimeStop t;
-	TS::Machine& mach = TS::GetMachine();
+	Upp::Machine& mach = Upp::GetMachine();
 	ProcessEvents(&quit);
 	while (!quit && !Thread::IsShutdownThreads() && mach.IsRunning()) {
 		double dt = t.ResetSeconds();

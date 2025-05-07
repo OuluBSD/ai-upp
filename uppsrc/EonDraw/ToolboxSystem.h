@@ -1,5 +1,5 @@
-#ifndef _Eon_ToolboxSystem_h_
-#define _Eon_ToolboxSystem_h_
+#ifndef _EonDraw_ToolboxSystem_h_
+#define _EonDraw_ToolboxSystem_h_
 
 
 namespace Ecs {

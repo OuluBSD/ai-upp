@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void SetupTest1_Memory(Machine& mach) {
 	struct MemTester : Chip {
@@ -142,4 +142,4 @@ void SetupTest1_Memory(Machine& mach) {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

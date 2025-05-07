@@ -1,6 +1,6 @@
 #include "Local.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 CLI::CLI() {
 	
@@ -25,4 +25,4 @@ void CLI::RunStdIO() {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

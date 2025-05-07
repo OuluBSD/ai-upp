@@ -41,7 +41,7 @@ public:
 	void LocalMenu(Bar& bar);
 };
 
-class Windows : public TS::Workspace2D {
+class Windows : public Upp::Workspace2D {
 	RTTI_DECL1(Windows, Workspace2D)
 	virtual void Visit(RuntimeVisitor& vis) {}
 	

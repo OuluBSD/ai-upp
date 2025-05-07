@@ -500,7 +500,7 @@ void Ctrl::InitFB()
 	ChStdSkin();
 	
 	using namespace TS;
-	using namespace TS::Parallel;
+	using namespace Upp::Parallel;
 	
 	#if IS_UPP_CORE
 	Machine& mach = GetActiveMachine();

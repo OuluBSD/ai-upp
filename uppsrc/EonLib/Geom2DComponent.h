@@ -1,5 +1,5 @@
-#ifndef _EcsLib_Geom2DComponent_h_
-#define _EcsLib_Geom2DComponent_h_
+#ifndef _EonLib_Geom2DComponent_h_
+#define _EonLib_Geom2DComponent_h_
 
 #ifdef flagGUI
 

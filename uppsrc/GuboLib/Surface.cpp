@@ -1,7 +1,7 @@
 #include "GuboLib.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void TopSurface::CreateGeom2DComponent() {
@@ -17,4 +17,4 @@ void TopSurface::CreateGeom2DComponent() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

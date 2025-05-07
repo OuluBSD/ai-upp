@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #ifdef flagSDL2
 #ifdef flagOGL
@@ -127,4 +127,4 @@ void SdlSwGfx::ClearFramebufferRef(NativeFrameBufferRef& fb) {
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

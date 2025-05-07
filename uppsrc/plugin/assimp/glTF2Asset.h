@@ -58,9 +58,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 
 #define RAPIDJSON_HAS_STDSTRING 1
-#include <ports/rapidjson/rapidjson.h>
-#include <ports/rapidjson/document.h>
-#include <ports/rapidjson/error/en.h>
+#include <plugin/rapidjson/rapidjson.h>
+#include <plugin/rapidjson/document.h>
+#include <plugin/rapidjson/error/en.h>
 
 #ifdef ASSIMP_API
 #   include <memory>
@@ -189,7 +189,7 @@ namespace glTF2
 	#define AI_MATKEY_GLTF_MAPPINGFILTER_MIN(type, N) _AI_MATKEY_GLTF_MAPPINGFILTER_MIN_BASE, type, N
 
     #ifdef ASSIMP_API
-        #include <ports/assimp/Compiler/pushpack1.h>
+        #include <plugin/assimp/Compiler/pushpack1.h>
     #endif
 
     //! For binary .glb files
@@ -208,7 +208,7 @@ namespace glTF2
     } PACK_STRUCT;
 
     #ifdef ASSIMP_API
-        #include <ports/assimp/Compiler/poppack1.h>
+        #include <plugin/assimp/Compiler/poppack1.h>
     #endif
 
 

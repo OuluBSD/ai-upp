@@ -4,9 +4,9 @@
 #ifndef _IVolumetric_IVolumetric_h_
 #define _IVolumetric_IVolumetric_h_
 
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define VOL_CLS_LIST(x) \
 	VOL_CLS(StaticSource, x) \
@@ -34,8 +34,8 @@ struct VolRawByte {
 };
 
 struct VolStaticSource : public Atom {
-	RTTI_DECL1(VolStaticSource, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(VolStaticSource, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~VolStaticSource() {}
 };
@@ -43,13 +43,13 @@ struct VolStaticSource : public Atom {
 
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
-	RTTI_DECL1(CLASSNAME, VolStaticSource)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, VolStaticSource)
+	void Visit(Vis& vis) override {
 		if (dev) Vol::StaticSource_Visit(*dev, *this, vis);
 		vis.VisitThis<VolStaticSource>(this);
 	}
 	typename Vol::NativeStaticSource* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Vol::StaticSource_Create(dev))
 			return false;
 		if (!Vol::StaticSource_Initialize(*dev, *this, ws))
@@ -84,6 +84,6 @@ template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 
 using RawByteStaticSource = VolumetricStaticSourceT<VolRawByte>;
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

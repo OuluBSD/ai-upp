@@ -1,6 +1,6 @@
 #include "AudioHost.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 INITBLOCK_(AudioHost) {
@@ -8,4 +8,4 @@ INITBLOCK_(AudioHost) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

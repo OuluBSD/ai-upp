@@ -1,4 +1,4 @@
-#include "EcsLib.h"
+#include "EonLib.h"
 
 #if 0
 
@@ -9,14 +9,14 @@ Absolute2D::Absolute2D() : id(-1) {
 	
 }
 
-void Absolute2D::Init(TS::Ecs::Geom2DComponent* cw, int id) {
+void Absolute2D::Init(Upp::Ecs::Geom2DComponent* cw, int id) {
 	this->cw = cw;
 	this->id = id;
 	
 	TODO
 	#if 0
-	TS::Ecs::Windows* wins = GetWindows();
-	TS::Ecs::WindowManager* wm = GetWindowManager();
+	Upp::Ecs::Windows* wins = GetWindows();
+	Upp::Ecs::WindowManager* wm = GetWindowManager();
 	String title = GetTitle();
 	if (title.IsEmpty())
 		title = wins->GetTitle(id);
@@ -25,7 +25,7 @@ void Absolute2D::Init(TS::Ecs::Geom2DComponent* cw, int id) {
 	#endif
 }
 
-TS::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
+Upp::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
 	auto* win = GetWindow();
 	ASSERT(win);
 	if (!win) return 0;
@@ -36,7 +36,7 @@ TS::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
 	ASSERT(wins);
 	if (!wins) return 0;
 	
-	TS::Ecs::WindowManager* wm = wins->GetWindowManager();
+	Upp::Ecs::WindowManager* wm = wins->GetWindowManager();
 	ASSERT(wm);
 	return wm;
 	#endif
@@ -45,7 +45,7 @@ TS::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
 void Absolute2D::Title(const String& title) {
 	TODO
 	#if 0
-	TS::Ecs::Windows* wins = GetWindows();
+	Upp::Ecs::Windows* wins = GetWindows();
 	ASSERT(wins);
 	if (wins)
 		wins->SetTitle(id, title);
@@ -73,7 +73,7 @@ String Absolute2D::GetTitle() const {
 	TODO
 }
 
-TS::Ecs::Windows* Absolute2D::GetWindows() {
+Upp::Ecs::Windows* Absolute2D::GetWindows() {
 	return cw ? cw->GetWindows() : 0;
 }
 

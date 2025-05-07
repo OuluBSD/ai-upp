@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "OgreStructs.h"
 #include "OgreParsingUtils.h"
 
-#include <ports/assimp/material.h>
+#include <plugin/assimp/material.h>
 
 namespace Assimp
 {

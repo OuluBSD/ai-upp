@@ -1,7 +1,6 @@
-#ifndef _Core2_Neural_h_
-#define _Core2_Neural_h_
+#ifndef _AICore2_Neural_h_
+#define _AICore2_Neural_h_
 
-NAMESPACE_TOPSIDE_BEGIN
 
 struct VolumeData : Moveable<VolumeData> {
 	int W = 0;
@@ -255,6 +254,5 @@ struct Neural {
 	void Adadelta();
 };
 
-NAMESPACE_TOPSIDE_END
 
 #endif

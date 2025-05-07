@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 namespace detail {
@@ -149,14 +149,14 @@ protected:
 #endif
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 // Specialization for our type_id
 namespace std {
 template<>
-struct hash<TS::detail::type_id> {
-    size_t operator()(const TS::detail::type_id& id) const {
+struct hash<Upp::detail::type_id> {
+    size_t operator()(const Upp::detail::type_id& id) const {
         return id.hash_code();
     }
 };

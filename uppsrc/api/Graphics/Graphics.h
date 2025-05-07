@@ -12,7 +12,7 @@
 #if defined flagOGL
 	#if UPP_OLD_VERSION || (defined flagGCC && defined flagWIN32)
 		#define GLEW_STATIC 1
-		#include <ports/glew/glew.h>
+		#include <plugin/glew/glew.h>
 	#else
 		#include <GL/glew.h>
 	#endif
@@ -62,7 +62,7 @@
 
 #include <Draw/Draw.h>
 #include <Geometry/Geometry.h>
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 #include <SoftRend/SoftRend.h>
 
 
@@ -98,7 +98,7 @@ typedef unsigned int	Gxbf;
 #include "Types.h"
 #include "State.h"
 #include "GfxClasses.h"
-#include "ImageBase.h"
+#include "mageBase.h"
 
 #include "TPipeline.h"
 #include "TState.h"

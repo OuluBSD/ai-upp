@@ -4,10 +4,10 @@
 #ifndef _IScreen_IScreen_h_
 #define _IScreen_IScreen_h_
 
-#include <ParallelLib/ParallelLib.h>
-#include <IGraphics/IGraphics.h>
+#include <Eon/Eon.h>
+#include <api/Graphics/Graphics.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define SCR_CLS_LIST(x) \
 	SCR_CLS(SinkDevice, x) \
@@ -109,22 +109,22 @@ struct ScrWinD11 {
 #endif
 
 struct ScrSinkDevice : public Atom {
-	RTTI_DECL1(ScrSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(ScrSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~ScrSinkDevice() {}
 };
 
 struct ScrContext : public Atom {
-	RTTI_DECL1(ScrContext, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(ScrContext, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~ScrContext() {}
 };
 
 struct ScrEventsBase : public Atom {
-	RTTI_DECL1(ScrEventsBase, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(ScrEventsBase, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~ScrEventsBase() {}
 };
@@ -132,13 +132,13 @@ struct ScrEventsBase : public Atom {
 
 template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
-	RTTI_DECL1(CLASSNAME, ScrSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, ScrSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Scr::SinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrSinkDevice>(this);
 	}
 	typename Scr::NativeSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Scr::SinkDevice_Create(dev))
 			return false;
 		if (!Scr::SinkDevice_Initialize(*dev, *this, ws))
@@ -175,19 +175,19 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	bool IsReady(PacketIO& io) override {
 		return Scr::SinkDevice_IsReady(*dev, *this, io);
 	}
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Scr::SinkDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
 };
 template <class Scr> struct ScreenContextT : ScrContext {
 	using CLASSNAME = ScreenContextT<Scr>;
-	RTTI_DECL1(CLASSNAME, ScrContext)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, ScrContext)
+	void Visit(Vis& vis) override {
 		if (dev) Scr::Context_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrContext>(this);
 	}
 	typename Scr::NativeContext* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Scr::Context_Create(dev))
 			return false;
 		if (!Scr::Context_Initialize(*dev, *this, ws))
@@ -224,19 +224,19 @@ template <class Scr> struct ScreenContextT : ScrContext {
 	bool IsReady(PacketIO& io) override {
 		return Scr::Context_IsReady(*dev, *this, io);
 	}
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Scr::Context_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
 };
 template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
-	RTTI_DECL1(CLASSNAME, ScrEventsBase)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, ScrEventsBase)
+	void Visit(Vis& vis) override {
 		if (dev) Scr::EventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrEventsBase>(this);
 	}
 	typename Scr::NativeEventsBase* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Scr::EventsBase_Create(dev))
 			return false;
 		if (!Scr::EventsBase_Initialize(*dev, *this, ws))
@@ -273,7 +273,7 @@ template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 	bool IsReady(PacketIO& io) override {
 		return Scr::EventsBase_IsReady(*dev, *this, io);
 	}
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Scr::EventsBase_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
 };
@@ -304,6 +304,6 @@ using WinD11Context = ScreenContextT<ScrWinD11>;
 using WinD11EventsBase = ScreenEventsBaseT<ScrWinD11>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

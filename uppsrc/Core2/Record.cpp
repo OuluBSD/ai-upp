@@ -1,7 +1,7 @@
-#include "Local.h"
+#include "Core.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -26,10 +26,6 @@ void Record::Clear() {
 		data->Retain();
 		data = 0;
 	}
-}
-
-void Record::SetData(FFT1& fft, int ch, int pos, int count) {
-	TODO
 }
 
 #define PROXY_TO_DATA(x, def) if (data) data->buffer.x; return def;
@@ -64,7 +60,8 @@ bool Record::IsEmpty() const {
 
 Record StreamRecord::LoadAny(String path) {
 	TODO
+	return Record();
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

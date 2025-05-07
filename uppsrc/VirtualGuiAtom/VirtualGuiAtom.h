@@ -2,11 +2,9 @@
 #define _VirtualGuiAtom_VirtualGuiAtom_h
 
 #include <CtrlLib/CtrlLib.h>
-#include <SerialLib/SerialLib.h>
+#include <Eon/Eon.h>
 
 namespace UPP {
-using namespace TS;
-using namespace TS::Serial;
 	
 struct AtomVirtualGui : VirtualGui {
 	virtual dword       GetOptions();

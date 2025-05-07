@@ -1,7 +1,7 @@
 #ifndef _IMedia_Video_h_
 #define _IMedia_Video_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -67,12 +67,12 @@ template <class Backend>
 class VideoInputFrameT : public PacketBufferBase {
 	
 public:
-	RTTI_DECL1(VideoInputFrameT, PacketBufferBase)
+	//RTTI_DECL1(VideoInputFrameT, PacketBufferBase)
 	
 	
-	Format fmt;
+	ValueFormat fmt;
 	
-	const Format&		GetFormat() const {return fmt;}
+	const ValueFormat&		GetFormat() const {return fmt;}
 	
 };
 
@@ -80,7 +80,7 @@ template <class Backend>
 class VideoOutputFrameT : public PacketBufferBase {
 	
 public:
-	RTTI_DECL1(VideoOutputFrameT, PacketBufferBase)
+	//RTTI_DECL1(VideoOutputFrameT, PacketBufferBase)
 	
 };
 
@@ -101,16 +101,16 @@ class VideoLoaderBaseT :
 public:
 	VideoLoaderBaseT();
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(RuntimeVisitor& vis) override {}
+	void Visit(Vis& vis) override {}
 	
 	bool LoadFile();
 	
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

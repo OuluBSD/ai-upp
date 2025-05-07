@@ -1,7 +1,7 @@
 #include "SoftPhys.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
@@ -42,4 +42,4 @@ int Collide(Geometry& g0, Geometry& g1, int count, Contact* c, int ptr_pitch) {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

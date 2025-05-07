@@ -1,8 +1,8 @@
-#include "ISynth.h"
+#include "Synth.h"
 #include <MidiFile/MidiFile.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct SynSoft::NativeInstrument {
     SoftInstru::Instrument instrument;
@@ -21,11 +21,11 @@ void SynSoft::Instrument_Destroy(NativeInstrument*& dev) {
 	delete dev;
 }
 
-void SynSoft::Instrument_Visit(NativeInstrument& dev, AtomBase&, RuntimeVisitor& vis) {
+void SynSoft::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.sample_rate = 1024;
 	
 	//String sf2 = ws.GetString(".filepath", "FluidR3_GM.sf2");
@@ -136,5 +136,5 @@ bool SynSoft::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, PacketIO& i
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 

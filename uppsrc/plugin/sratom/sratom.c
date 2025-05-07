@@ -1,7 +1,7 @@
 // Copyright 2012-2021 David Robillard <d@drobilla.net>
 // SPDX-License-Identifier: ISC
 
-#include <ports/sratom/sratom.h>
+#include <plugin/sratom/sratom.h>
 
 #include "lv2/atom/atom.h"
 #include "lv2/atom/forge.h"

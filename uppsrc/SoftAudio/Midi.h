@@ -1,7 +1,7 @@
 #ifndef _AudioCore_Midi_h_
 #define _AudioCore_Midi_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class MidiFrame {
@@ -13,6 +13,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

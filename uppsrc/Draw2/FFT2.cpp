@@ -1,8 +1,8 @@
-#include "Local.h"
+#include "Core.h"
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 FFT2::FFT2(const Image& input )
@@ -443,6 +443,6 @@ Image GetSquareImage(const Image& img) {
 	return ib;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

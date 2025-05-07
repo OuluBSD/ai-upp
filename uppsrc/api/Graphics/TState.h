@@ -1,7 +1,7 @@
 #ifndef _IGraphics_TState_h_
 #define _IGraphics_TState_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 template <class Gfx> struct DataStateT;
 template <class Gfx> struct ModelStateT;
@@ -11,7 +11,7 @@ template <class Gfx> struct PipelineStateT;
 template <class Gfx>
 struct DataObjectT : GfxDataObject {
 	using Base = DataObjectT<Gfx>;
-	RTTI_DECL1(DataObjectT, GfxDataObject)
+	//RTTI_DECL1(DataObjectT, GfxDataObject)
 	
 	using DataState = DataStateT<Gfx>;
 	using NatTex = typename Gfx::NativeTexture;
@@ -49,7 +49,7 @@ template <class Gfx> struct FramebufferT;
 
 template <class Gfx>
 struct MaterialT : GfxMaterial {
-	RTTI_DECL1(MaterialT, GfxMaterial)
+	//RTTI_DECL1(MaterialT, GfxMaterial)
 	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
 	
 	int id = -1;
@@ -62,7 +62,7 @@ struct MaterialT : GfxMaterial {
 
 template <class Gfx>
 struct ModelStateT : GfxModelState {
-	RTTI_DECL1(ModelStateT, GfxModelState)
+	//RTTI_DECL1(ModelStateT, GfxModelState)
 	using Base = ModelStateT<Gfx>;
 	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
 	using NativeDepthBufferRef = typename Gfx::NativeDepthBufferRef;
@@ -110,7 +110,7 @@ protected:
 
 template <class Gfx>
 struct DataStateT : GfxDataState {
-	RTTI_DECL1(DataStateT, GfxDataState)
+	//RTTI_DECL1(DataStateT, GfxDataState)
 	using Base = DataStateT<Gfx>;
 	using NativeProgram  = typename Gfx::NativeProgram;
 	using NativePipeline = typename Gfx::NativePipeline;
@@ -147,6 +147,6 @@ struct DataStateT : GfxDataState {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

@@ -2,13 +2,13 @@
 #define _IGraphics_ObjViewProg_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct ObjViewProg :
 	public BinderIfaceVideo
 {
-	RTTI_DECL1(ObjViewProg, BinderIfaceVideo)
+	//RTTI_DECL1(ObjViewProg, BinderIfaceVideo)
 	
 	ModelLoader loader;
 	String obj;
@@ -26,7 +26,7 @@ struct ObjViewProg :
 	
 	ObjViewProg();
 	void operator=(const ObjViewProg& t) {Panic("Can't copy ObjViewProgT");}
-	void Visit(RuntimeVisitor& vis) override {vis % loader;}
+	void Visit(Vis& vis) override {vis % loader;}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;
@@ -37,7 +37,7 @@ struct ObjViewProg :
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 
 #endif

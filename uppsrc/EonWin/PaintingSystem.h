@@ -2,7 +2,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 static constexpr float PaintTipThickness = 0.008f;
@@ -10,7 +10,7 @@ static constexpr float PaintTipThickness = 0.008f;
 
 struct PaintComponent : Component<PaintComponent>
 {
-	RTTI_DECL1(PaintComponent, Component<PaintComponent>)
+	//RTTI_DECL1(PaintComponent, Component<PaintComponent>)
 	COPY_PANIC(PaintComponent)
 	
     enum class State
@@ -61,7 +61,7 @@ class PaintingInteractionSystem :
 {
 public:
 	using Base = ToolSystem<PaintingInteractionSystem, PaintComponent>;
-	RTTI_DECL1(PaintingInteractionSystem, Base)
+	//RTTI_DECL1(PaintingInteractionSystem, Base)
 	
     using ToolSystem::ToolSystem;
 
@@ -111,5 +111,5 @@ private:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

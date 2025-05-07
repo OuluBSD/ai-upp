@@ -2,14 +2,12 @@
 #define _AICore2_Node_h_
 
 
-
 template <class T>
 class Node :
-	public T,
-	RTTIBase
+	public T
 {
 public:
-	RTTI_DECL1(Node, T)
+	//RTTI_DECL1(Node, T)
 	
 	typedef T ValueType;
 	
@@ -318,7 +316,7 @@ public:
 
 
 
-typedef Node<Object> NodeValue;
+typedef Node<Value> NodeValue;
 
 template <class T>
 void GenerateTree(T& root, int total, int branching_low, int branching_high, Callback1<T*> set_value) {
@@ -350,7 +348,6 @@ void GenerateTree(T& root, int total, int branching_low, int branching_high, Cal
 		}
 	}
 }
-
 
 
 #endif

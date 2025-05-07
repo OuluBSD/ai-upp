@@ -7,13 +7,13 @@
 
 #include <GuboCore/GuboCore.h>
 #include <Geometry/Geometry.h>
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 
 #if IS_UPP_CORE
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
-struct VirtualGui3D : RTTIBase {
-	RTTI_DECL0(VirtualGui3D)
+struct VirtualGui3D {
+	//RTTI_DECL0(VirtualGui3D)
 	
 	virtual bool        Poll(UPP::CtrlEvent& e) = 0;
 	virtual Size        GetSize() = 0;
@@ -27,7 +27,7 @@ struct VirtualGui3D : RTTIBase {
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 #endif
 
 #include "CoordinateSystem.h"

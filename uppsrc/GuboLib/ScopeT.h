@@ -2,13 +2,13 @@
 #define _GuboCore_ScopeT_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 namespace Parallel {
 struct GfxDataState;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 NAMESPACE_GUBO_BEGIN
 
@@ -96,7 +96,7 @@ public:
 	void SetFrameWithMouse(ContainerFrame* c) { frame_with_mouse = c; }
 
 public:
-	RTTI_DECL_R2(Scope, Container, RendererContent)
+	//RTTI_DECL_R2(Scope, Container, RendererContent)
 	typedef ScopeT<Dim> CLASSNAME;
 	ScopeT();
 

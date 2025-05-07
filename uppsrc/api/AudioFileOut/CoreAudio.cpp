@@ -1,8 +1,8 @@
-#include "IAudioFileOut.h"
-#include <AudioCore/AudioCore.h>
+#include "AudioFileOut.h"
+#include <SoftAudio/SoftAudio.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct AFOCoreAudio::NativeSink {
@@ -21,7 +21,7 @@ void AFOCoreAudio::Sink_Destroy(NativeSink*& dev) {
 	delete dev;
 }
 
-bool AFOCoreAudio::Sink_Initialize(NativeSink& dev, AtomBase& a, const Script::WorldState& ws) {
+bool AFOCoreAudio::Sink_Initialize(NativeSink& dev, AtomBase& a, const Eon::WorldState& ws) {
 	String filepath = ws.GetString(".filepath", "");
 	
 	if (filepath.IsEmpty()) {
@@ -58,7 +58,7 @@ bool AFOCoreAudio::Sink_Send(NativeSink&, AtomBase&, RealtimeSourceConfig& cfg, 
 	return true;
 }
 
-void AFOCoreAudio::Sink_Visit(NativeSink&, AtomBase&, RuntimeVisitor& vis) {
+void AFOCoreAudio::Sink_Visit(NativeSink&, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -99,4 +99,4 @@ bool AFOCoreAudio::Sink_IsReady(NativeSink& dev, AtomBase& a, PacketIO& io) {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

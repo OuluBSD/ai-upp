@@ -5,7 +5,7 @@ uses(BUILTIN_PORTAUDIO) plugin/portaudio_;
 library(PORTAUDIO) portaudio;
 
 file
-	IAudio.h,
+	Audio.h,
 	Portaudio.cpp,
 	IfaceFuncs.inl highlight cpp;
 

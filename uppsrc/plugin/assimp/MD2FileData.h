@@ -46,10 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_MD2FILEHELPER_H_INC
 #define AI_MD2FILEHELPER_H_INC
 
-#include <ports/assimp/types.h>
+#include <plugin/assimp/types.h>
 #include <stdint.h>
 
-#include <ports/assimp/Compiler/pushpack1.h>
+#include <plugin/assimp/Compiler/pushpack1.h>
 
 namespace Assimp    {
 namespace MD2   {
@@ -146,7 +146,7 @@ struct Skin
     char name[AI_MD2_MAXQPATH];              /* texture file name */
 } PACK_STRUCT;
 
-#include <ports/assimp/Compiler/poppack1.h>
+#include <plugin/assimp/Compiler/poppack1.h>
 
 
 // ---------------------------------------------------------------------------

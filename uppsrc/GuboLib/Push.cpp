@@ -1,6 +1,6 @@
 #include "GuboLib.h"
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 
 Button2::Button2() {
@@ -63,4 +63,4 @@ void Button3::Paint(Draw3& d) {
 }
 
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE

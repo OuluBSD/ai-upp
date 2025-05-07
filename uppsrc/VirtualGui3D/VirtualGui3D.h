@@ -2,7 +2,7 @@
 #define _VirtualGui3D_VirtualGui3D_h_
 
 #include <Draw/Draw.h>
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include <StaticInterface/Screen.h>
 
 #if IS_TS_CORE
@@ -15,7 +15,7 @@ struct VirtualGui3D;
 
 class SystemDraw : public DrawProxy {
 public:
-	RTTI_DECL1(SystemDraw, DrawProxy)
+	//RTTI_DECL1(SystemDraw, DrawProxy)
 	
 	bool    CanSetSurface()                         { return false; }
 	static void Flush()                             {}
@@ -73,8 +73,8 @@ END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 
-struct VirtualGui3D : RTTIBase {
-	RTTI_DECL0(VirtualGui3D)
+struct VirtualGui3D {
+	//RTTI_DECL0(VirtualGui3D)
 	
 	virtual bool        Poll(UPP::CtrlEvent& e) = 0;
 	virtual Size        GetSize() = 0;

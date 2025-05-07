@@ -2,7 +2,7 @@
 #define _GuboCore_TopGubo_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class TopGubo :
@@ -10,7 +10,7 @@ class TopGubo :
 {
 	
 public:
-	RTTI_DECL1(TopGubo, Gubo)
+	//RTTI_DECL1(TopGubo, Gubo)
 	TopGubo();
 	virtual ~TopGubo() {}
 	
@@ -24,7 +24,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

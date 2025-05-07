@@ -53,17 +53,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ASSIMP_BUILD_NO_MD3_IMPORTER
 
 #include "MD3Loader.h"
-#include <ports/assimp/SceneCombiner.h>
+#include <plugin/assimp/SceneCombiner.h>
 #include "GenericProperty.h"
 #include "RemoveComments.h"
 #include "ParsingUtils.h"
 #include "Importer.h"
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 #include <memory>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/material.h>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 #include <cctype>
 
 using namespace Assimp;

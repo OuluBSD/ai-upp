@@ -379,14 +379,14 @@ void ModelLoader::ProcessMaterials(Model& model, const aiScene *scene) {
 	for(int i = 0; i < (int)scene->mNumMaterials; i++) {
 		const aiMaterial* m = scene->mMaterials[i];
 		ASSERT(m);
-		TS::Material& mat = model.materials.Add(i);
+		Upp::Material& mat = model.materials.Add(i);
 		mat.id = i;
 		ProcessMaterial(model, mat, m);
 	}
 	
 }
 
-void ModelLoader::ProcessMaterial(Model& model, TS::Material& m, const aiMaterial *mat) {
+void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMaterial *mat) {
 	for (int type = 0; type <= aiTextureType_UNKNOWN; type++) {
 		int c = mat->GetTextureCount((aiTextureType) type);
 		if (c > 1) {

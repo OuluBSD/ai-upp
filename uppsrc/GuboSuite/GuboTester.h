@@ -7,7 +7,7 @@ NAMESPACE_GUBO_BEGIN
 class Ground : public Gubo {
 	
 public:
-	RTTI_DECL1(Ground, Gubo)
+	//RTTI_DECL1(Ground, Gubo)
 	typedef Ground CLASSNAME;
 	Ground();
 	
@@ -21,7 +21,7 @@ public:
 class Box : public Gubo {
 	
 public:
-	RTTI_DECL1(Box, Gubo)
+	//RTTI_DECL1(Box, Gubo)
 	typedef Box CLASSNAME;
 	Box();
 	
@@ -33,7 +33,7 @@ public:
 
 
 struct GuboTester : TopGubo {
-	RTTI_DECL1(GuboTester, TopGubo)
+	//RTTI_DECL1(GuboTester, TopGubo)
 	Ground gnd;
 	Array<Box> boxes;
 	

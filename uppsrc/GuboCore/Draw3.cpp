@@ -1,6 +1,6 @@
 #include "GuboCore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ProgDraw3::ProgDraw3() /*: fb(state), shader(state)*/ {
@@ -201,4 +201,4 @@ void ProgDraw3::DrawEllipseOp(const Cubf& r, Color color, float pen, Color penco
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

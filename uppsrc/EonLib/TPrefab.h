@@ -1,14 +1,14 @@
 #ifndef _EcsPhysics_TPrefab_h_
 #define _EcsPhysics_TPrefab_h_
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 template <class Fys>
 struct StaticGroundPlane : public Component<StaticGroundPlane<Fys>>, public Fys::Object {
 	using Object = typename Fys::Object;
 	using ComponentT = Component<StaticGroundPlane<Fys>>;
-	RTTI_DECL2(StaticGroundPlane, Object, Component<StaticGroundPlane>)
+	//RTTI_DECL2(StaticGroundPlane, Object, Component<StaticGroundPlane>)
 	
 	typedef StaticGroundPlane CLASSNAME;
 	
@@ -67,7 +67,7 @@ struct StaticBox : public Fys::Object {
 	using Object = typename Fys::Object;
 	double width = 1.0, height = 1.0, length = 1.0;
 	
-	RTTI_DECL1(StaticBox, Object)
+	//RTTI_DECL1(StaticBox, Object)
 	StaticBox& Set(double w, double h, double l) {width=w; height=h; length=l; return *this;}
 	
 	void OnAttach() override;
@@ -76,6 +76,6 @@ struct StaticBox : public Fys::Object {
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

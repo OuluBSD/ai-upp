@@ -51,10 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FileLogStream.h"
 #include "StringUtils.h"
 
-#include <ports/assimp/DefaultIOSystem.h>
-#include <ports/assimp/NullLogger.hpp>
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/ai_assert.h>
+#include <plugin/assimp/DefaultIOSystem.h>
+#include <plugin/assimp/NullLogger.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/ai_assert.h>
 #include <iostream>
 #include <stdio.h>
 

@@ -1,8 +1,8 @@
-#include "IEffect.h"
+#include "Effect.h"
 
 #ifdef flagLV2
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -14,7 +14,7 @@ void FxLV2::Effect_Destroy(NativeEffect*& dev){
 	
 }
 
-bool FxLV2::Effect_Initialize(NativeEffect&, AtomBase&, const Script::WorldState&){
+bool FxLV2::Effect_Initialize(NativeEffect&, AtomBase&, const Eon::WorldState&){
 	
 }
 
@@ -38,7 +38,7 @@ bool FxLV2::Effect_Send(NativeEffect&, AtomBase&, RealtimeSourceConfig& cfg, Pac
 	
 }
 
-void FxLV2::Effect_Visit(NativeEffect&, AtomBase&, RuntimeVisitor& vis){
+void FxLV2::Effect_Visit(NativeEffect&, AtomBase&, Visitor& vis){
 	
 }
 
@@ -56,6 +56,6 @@ bool FxLV2::Effect_IsReady(NativeEffect&, AtomBase&, PacketIO& io){
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

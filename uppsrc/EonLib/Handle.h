@@ -2,7 +2,7 @@
 #define _AtomHandle_Handle_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class HandleEventsBase :
@@ -14,18 +14,18 @@ class HandleEventsBase :
 	static HandleEventsBase*	active;
 	
 public:
-	RTTI_DECL1(HandleEventsBase, Atom);
+	//RTTI_DECL1(HandleEventsBase, Atom);
 	
 	HandleEventsBase();
 	
-	bool			Initialize(const Script::WorldState& ws) override;
+	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
 	bool			Recv(int sink_ch, const Packet& in) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
-	void			Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this); vis & state;}
+	void			Visit(Vis& vis) override {vis.VisitThis<Atom>(this); vis & state;}
 	
 	
 	static Callback1<HandleEventsBase*>	WhenInitialize;
@@ -68,13 +68,13 @@ class HandleVideoBase :
 	//void			RedrawScreen();
 	
 public:
-	RTTI_DECL1(HandleVideoBase, Atom);
+	//RTTI_DECL1(HandleVideoBase, Atom);
 	
 	HandleVideoBase();
 	
 	bool			IsScreenMode() const {return screen_id >= 0;}
 	
-	bool			Initialize(const Script::WorldState& ws) override;
+	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Stop() override;
 	void			Uninitialize() override;
@@ -82,7 +82,7 @@ public:
 	bool			Recv(int sink_ch, const Packet& in) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void			Visit(RuntimeVisitor& vis) override;
+	void			Visit(Vis& vis) override;
 	
 	//void			AddWindow3D(Binder&, Geom2DComponent&);
 	//void			RemoveWindow3D(Binder&, Handle::Geom2DComponent&);
@@ -108,17 +108,17 @@ class HandleOglBase :
 	Vector<BinderIfaceOgl*> binders;
 	
 public:
-	RTTI_DECL1(HandleOglBase, OglBufferBase);
+	//RTTI_DECL1(HandleOglBase, OglBufferBase);
 	
 	HandleOglBase();
 	
-	bool			Initialize(const Script::WorldState& ws) override;
+	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
 	bool			Recv(int sink_ch, const Packet& in) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void			Visit(RuntimeVisitor& vis) override {}
+	void			Visit(Vis& vis) override {}
 	
 	void AddBinder(BinderIfaceOgl* iface);
 	void RemoveBinder(BinderIfaceOgl* iface);
@@ -129,6 +129,6 @@ public:
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

@@ -6,7 +6,7 @@ class InterfaceConnectionGraph : public Ctrl {
 	
 	
 public:
-	RTTI_DECL1(InterfaceConnectionGraph, Ctrl)
+	//RTTI_DECL1(InterfaceConnectionGraph, Ctrl)
 	typedef InterfaceConnectionGraph CLASSNAME;
 	InterfaceConnectionGraph();
 	

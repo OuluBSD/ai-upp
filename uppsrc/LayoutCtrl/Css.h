@@ -10,7 +10,7 @@ class Css : public Object
 	CssSelector::vector	selectors;
 	
 public:
-	RTTI_DECL1(Css, Object)
+	//RTTI_DECL1(Css, Object)
 	Css() {}
 	Css(const Css& src) {
 		for (auto& it : src.selectors)

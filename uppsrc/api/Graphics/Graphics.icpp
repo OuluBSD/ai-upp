@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 
 INITBLOCK_(IGraphics) {
@@ -10,4 +10,4 @@ INITBLOCK_(IGraphics) {
 }
 
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE

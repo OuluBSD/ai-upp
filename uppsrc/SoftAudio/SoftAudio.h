@@ -9,13 +9,13 @@
 
 #include <sys/stat.h>
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include <Geometry/Geometry.h>
 #include <MidiFile/MidiFile.h>
 
 
-#define NAMESPACE_AUDIO_BEGIN NAMESPACE_TOPSIDE_BEGIN namespace Audio {
-#define NAMESPACE_AUDIO_END   NAMESPACE_TOPSIDE_END }
+#define NAMESPACE_AUDIO_BEGIN NAMESPACE_UPP namespace Audio {
+#define NAMESPACE_AUDIO_END   END_UPP_NAMESPACE }
 
 #define DEFAULT_LOWEST_FREQ 60
 

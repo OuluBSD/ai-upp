@@ -8,10 +8,10 @@
 #define INCLUDED_AI_X3D_EXPORTER_H
 
 // Header files, Assimp.
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/Exporter.hpp>
-#include <ports/assimp/material.h>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/Exporter.hpp>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/scene.h>
 
 // Header files, stdlib.
 #include <list>

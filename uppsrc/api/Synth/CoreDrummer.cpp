@@ -1,7 +1,7 @@
-#include "ISynth.h"
+#include "Synth.h"
 
 #if 1
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct SynCoreDrummer::NativeInstrument {
@@ -44,7 +44,7 @@ const int SynCoreDrummer::NativeInstrument::toms_notes[] = {41,43,45,47,48,50,60
 
 
 template <class T>
-void CreateSynCoreInstrument(SynCoreDrummer::NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+void CreateSynCoreInstrument(SynCoreDrummer::NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	String preset_file = ws.Get(".preset");
 	String preset;
 	
@@ -70,11 +70,11 @@ void SynCoreDrummer::Instrument_Destroy(NativeInstrument*& dev) {
 	delete dev;
 }
 
-void SynCoreDrummer::Instrument_Visit(NativeInstrument& dev, AtomBase&, RuntimeVisitor& vis) {
+void SynCoreDrummer::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.polyphone = min(128, max(0, ws.GetInt(".polyphone", 12)));
 	
 	String instrument = ToLower(ws.GetString(".instrument", "plucked"));
@@ -294,6 +294,6 @@ bool SynCoreDrummer::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, Pack
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

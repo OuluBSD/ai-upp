@@ -47,9 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fast_atof.h"
 #include "ParsingUtils.h"
 #include "MaterialSystem.h"
-#include <ports/assimp/types.h>
-#include <ports/assimp/material.h>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/DefaultLogger.hpp>
 #include "Macros.h"
 
 using namespace Assimp;

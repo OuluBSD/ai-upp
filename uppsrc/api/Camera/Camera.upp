@@ -4,7 +4,7 @@ uses
 	api/Media;
 
 file
-	ICamera.h,
+	Camera.h,
 	V4L2OpenCV.cpp,
 	IfaceFuncs.inl highlight cpp;
 

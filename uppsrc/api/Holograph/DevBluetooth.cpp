@@ -1,9 +1,9 @@
-#include "IHolograph.h"
+#include "Holograph.h"
 
 
 #if defined flagHACK && ((defined flagLINUX) || (defined flagFREEBSD))
 
-#include <ports/hcidump/hcidump.h>
+#include <plugin/hcidump/hcidump.h>
 
 /*
 	If data can't be read, run:
@@ -15,7 +15,7 @@ extern "C" {
 int hcidump_device(int device);
 }
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -39,11 +39,11 @@ void HoloDevBluetooth::SinkDevice_Destroy(NativeSink*& dev) {
 	delete dev;
 }
 
-void HoloDevBluetooth::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, RuntimeVisitor& vis) {
+void HoloDevBluetooth::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloDevBluetooth::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HoloDevBluetooth::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.ctrl_idx[0] = ws.GetInt(".controller.left.idx", -1);
 	dev.ctrl_idx[1] = ws.GetInt(".controller.right.idx", -1);
 	
@@ -272,6 +272,6 @@ bool HoloDevBluetooth::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase& a, Pa
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

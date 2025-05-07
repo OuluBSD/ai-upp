@@ -47,7 +47,7 @@ private:
 	void __CheckStyleDefaultValues();
 	
 public:
-	RTTI_DECL1(Style, Object)
+	//RTTI_DECL1(Style, Object)
 	Style();
 	Style(const Style& val);
 
@@ -516,7 +516,7 @@ public:
 	Ptr<MediaQueryList>		media_query;
 	
 public:
-	RTTI_DECL1(CssSelector, Object)
+	//RTTI_DECL1(CssSelector, Object)
 	CssSelector(MediaQueryList* media)
 	{
 		media_query	= media;
@@ -593,7 +593,7 @@ inline bool operator < (CssSelector* v1, CssSelector* v2)
 class UsedSelector : public Object
 {
 public:
-	RTTI_DECL1(UsedSelector, Object)
+	//RTTI_DECL1(UsedSelector, Object)
 	typedef Vector<UsedSelector*>	vector;
 
 	ConstCssSelector*	selector;

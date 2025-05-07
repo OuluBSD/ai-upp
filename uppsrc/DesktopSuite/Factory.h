@@ -1,7 +1,7 @@
 #ifndef _DesktopSuite_Factory_h_
 #define _DesktopSuite_Factory_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class DesktopFactory {
@@ -41,6 +41,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

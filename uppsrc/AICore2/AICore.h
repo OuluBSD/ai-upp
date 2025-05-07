@@ -1,7 +1,7 @@
 #ifndef _AICore2_Agent_h_
 #define _AICore2_Agent_h_
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 
 NAMESPACE_UPP
 
@@ -10,6 +10,9 @@ NAMESPACE_UPP
 #include "ActionPlanner.h"
 #include "QueryTable.h"
 #include "Structural.h"
+#include "Graph.h"
+#include "Neural.h"
+#include "GeneticOptimizer.h"
 
 END_UPP_NAMESPACE
 

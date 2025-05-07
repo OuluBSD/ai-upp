@@ -45,9 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "RemoveVCProcess.h"
-#include <ports/assimp/postprocess.h>
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/postprocess.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
 
 using namespace Assimp;
 

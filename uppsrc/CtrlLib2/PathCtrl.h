@@ -1,12 +1,12 @@
 #ifndef _CtrlLib_PathCtrl_h_
 #define _CtrlLib_PathCtrl_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class ToolBarBg : public Ctrl {
 	
 public:
-	RTTI_DECL1_(ToolBarBg, Ctrl)
+	//RTTI_DECL1_(ToolBarBg, Ctrl)
 	ToolBarBg();
 	
 	virtual void Paint(Draw& d) override;
@@ -24,7 +24,7 @@ class PathCtrl : public ParentCtrl {
 	void RefreshEdit();
 	
 public:
-	RTTI_DECL1_(PathCtrl, ParentCtrl)
+	//RTTI_DECL1_(PathCtrl, ParentCtrl)
 	typedef PathCtrl CLASSNAME;
 	PathCtrl();
 	
@@ -40,6 +40,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

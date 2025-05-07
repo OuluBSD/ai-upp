@@ -1,9 +1,9 @@
 #pragma once
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
-using namespace ::TS::Ecs;
+using namespace ::Upp::Ecs;
 
 class HolographicScene;
 class TextRenderer;
@@ -21,7 +21,7 @@ class HolographicRenderer :
 public:
 	using System<HolographicRenderer>::System;
 	using Base = System<HolographicRenderer>;
-	RTTI_DECL2(HolographicRenderer, Base, IDeviceNotify)
+	//RTTI_DECL2(HolographicRenderer, Base, IDeviceNotify)
 	
     HolographicRenderer(
         Machine& core,
@@ -89,4 +89,4 @@ private:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

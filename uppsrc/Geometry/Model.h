@@ -217,7 +217,7 @@ protected:
     void ProcessMaterials(Model& model, const aiScene *scene);
     void ProcessNode(Model& model, aiNode *node, const aiScene *scene);
     void ProcessMesh(Model& mout, Mesh& out, aiMesh *mesh, const aiScene *scene);
-    void ProcessMaterial(Model& mout, TS::Material& m, const aiMaterial *mat);
+    void ProcessMaterial(Model& mout, Upp::Material& m, const aiMaterial *mat);
 	#endif
 	
     

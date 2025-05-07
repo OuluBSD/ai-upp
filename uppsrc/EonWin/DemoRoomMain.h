@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 // Updates, renders, and presents holographic content using Direct3D.
@@ -38,4 +38,4 @@ private:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

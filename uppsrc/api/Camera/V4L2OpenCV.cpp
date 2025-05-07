@@ -1,10 +1,9 @@
-#include "ICamera.h"
-#include <SerialMach/SerialMach.h>
+#include "Camera.h"
 
 #if (defined flagOPENCV) && (defined flagLINUX)
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct CamV4L2OpenCV::NativeCamera {
@@ -19,7 +18,7 @@ struct CamV4L2OpenCV::NativeCamera {
     double time_step;
     int prev_frame_i;
     Vector<byte> values;
-    Format fmt;
+    ValueFormat fmt;
     String filepath;
     Size3 sz;
     int stride;
@@ -39,11 +38,11 @@ void CamV4L2OpenCV::Camera_Destroy(NativeCamera*& dev) {
 	delete dev;
 }
 
-void CamV4L2OpenCV::Camera_Visit(NativeCamera& dev, AtomBase&, RuntimeVisitor& vis) {
+void CamV4L2OpenCV::Camera_Visit(NativeCamera& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool CamV4L2OpenCV::Camera_Initialize(NativeCamera& dev, AtomBase& a, const Script::WorldState& ws) {
+bool CamV4L2OpenCV::Camera_Initialize(NativeCamera& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.cap = 0;
 	dev.time_step = 0;
 	dev.prev_frame_i = 0;
@@ -162,6 +161,6 @@ bool CamV4L2OpenCV::Camera_IsReady(NativeCamera& dev, AtomBase& a, PacketIO& io)
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

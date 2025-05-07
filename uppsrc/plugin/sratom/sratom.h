@@ -9,8 +9,8 @@
 #include "lv2/atom/atom.h"
 #include "lv2/atom/forge.h"
 #include "lv2/urid/urid.h"
-#include <ports/serd/serd.h>
-#include <ports/sord/sord.h>
+#include <plugin/serd/serd.h>
+#include <plugin/sord/sord.h>
 
 #include <stdbool.h>
 #include <stdint.h>

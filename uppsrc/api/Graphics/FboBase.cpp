@@ -1,7 +1,6 @@
-#include "IGraphics.h"
-#include <SerialMach/SerialMach.h>
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -18,7 +17,7 @@ FboAtomT<Gfx>::FboAtomT() {
 }
 
 template <class Gfx>
-bool FboAtomT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool FboAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	ISourceRef src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	Value& val = src->GetSourceValue(src_count-1);
@@ -240,4 +239,4 @@ WINDX_EXCPLICIT_INITIALIZE_CLASS(FboAtomT)
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

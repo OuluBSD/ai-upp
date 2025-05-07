@@ -1,7 +1,7 @@
 #include "GuboCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 TopSurface::TopSurface() {
@@ -66,4 +66,4 @@ void TopSurface::UpdateFromTransform2D() {
 #endif
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

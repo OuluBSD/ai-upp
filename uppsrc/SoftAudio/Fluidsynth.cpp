@@ -4,7 +4,7 @@
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 Fluidsynth::Fluidsynth() {
 	
@@ -188,6 +188,6 @@ void Fluidsynth::ConfigureTrack(const MidiIO::File& file, int track_i) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

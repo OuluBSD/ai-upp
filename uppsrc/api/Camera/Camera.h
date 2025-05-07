@@ -4,10 +4,10 @@
 #ifndef _ICamera_ICamera_h_
 #define _ICamera_ICamera_h_
 
-#include <ParallelLib/ParallelLib.h>
-#include <IMedia/IMedia.h>
+#include <Eon/Eon.h>
+#include <api/Media/Media.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define CAM_CLS_LIST(x) \
 	CAM_CLS(Camera, x) \
@@ -37,8 +37,8 @@ struct CamV4L2OpenCV {
 #endif
 
 struct CamCamera : public Atom {
-	RTTI_DECL1(CamCamera, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(CamCamera, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~CamCamera() {}
 };
@@ -46,13 +46,13 @@ struct CamCamera : public Atom {
 
 template <class Cam> struct CameraCameraT : CamCamera {
 	using CLASSNAME = CameraCameraT<Cam>;
-	RTTI_DECL1(CLASSNAME, CamCamera)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, CamCamera)
+	void Visit(Vis& vis) override {
 		if (dev) Cam::Camera_Visit(*dev, *this, vis);
 		vis.VisitThis<CamCamera>(this);
 	}
 	typename Cam::NativeCamera* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Cam::Camera_Create(dev))
 			return false;
 		if (!Cam::Camera_Initialize(*dev, *this, ws))
@@ -89,6 +89,6 @@ template <class Cam> struct CameraCameraT : CamCamera {
 using V4L2OpenCVCamera = CameraCameraT<CamV4L2OpenCV>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

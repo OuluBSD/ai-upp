@@ -1,8 +1,5 @@
-#ifndef _Local_Color_h_
-#define _Local_Color_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Core2_Color_h_
+#define _Core2_Color_h_
 
 
 struct RgbaRange : Moveable<RgbaRange> {
@@ -55,10 +52,6 @@ RGBA TransformHue(const RGBA& in, float angle);
 RGBA InvertRGBA(const RGBA& c);
 RGBA InvertRGBA_InvertHue(const RGBA& c);
 RGBA InvertRGBA_GrayOnly(const RGBA& c, int gray_range=5);
-
-
-
-NAMESPACE_TOPSIDE_END
 
 
 #endif

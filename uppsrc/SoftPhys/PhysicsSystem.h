@@ -8,8 +8,8 @@ NAMESPACE_SOFTPHYS_BEGIN
 struct Geometry;
 
 
-class PhysicsSystem : RTTIBase {
-	RTTI_DECL0(PhysicsSystem)
+class PhysicsSystem {
+	//RTTI_DECL0(PhysicsSystem)
 	
 protected:
 	Vector<Space*> spaces;
@@ -33,7 +33,7 @@ public:
 
 	PhysicsSystem();
 
-	virtual void Visit(RuntimeVisitor& vis) {}
+	virtual void Visit(Vis& vis) {}
 	void Collide(Space& space, void* data, NearCallback cb);
 	void Update(float dt);
 	

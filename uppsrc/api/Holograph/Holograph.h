@@ -4,11 +4,11 @@
 #ifndef _IHolograph_IHolograph_h_
 #define _IHolograph_IHolograph_h_
 
-#include <ParallelLib/ParallelLib.h>
-#include <IMedia/IMedia.h>
-#include <LocalHMD/LocalHMD.h>
+#include <Eon/Eon.h>
+#include <api/Media/Media.h>
+#include <SoftHMD/SoftHMD.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define HOLO_CLS_LIST(x) \
 	HOLO_CLS(SinkDevice, x) \
@@ -113,8 +113,8 @@ struct HoloOpenVR {
 #endif
 
 struct HoloSinkDevice : public Atom {
-	RTTI_DECL1(HoloSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HoloSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HoloSinkDevice() {}
 };
@@ -122,13 +122,13 @@ struct HoloSinkDevice : public Atom {
 
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
-	RTTI_DECL1(CLASSNAME, HoloSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Holo::SinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HoloSinkDevice>(this);
 	}
 	typename Holo::NativeSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Holo::SinkDevice_Create(dev))
 			return false;
 		if (!Holo::SinkDevice_Initialize(*dev, *this, ws))
@@ -186,6 +186,6 @@ using DevBluetoothSinkDevice = HolographSinkDeviceT<HoloDevBluetooth>;
 using OpenVRSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

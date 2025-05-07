@@ -49,9 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_VERTEX_H_INC
 #define AI_VERTEX_H_INC
 
-#include <ports/assimp/vector3.h>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/ai_assert.h>
+#include <plugin/assimp/vector3.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/ai_assert.h>
 #include <functional>
 
 namespace Assimp    {

@@ -796,11 +796,11 @@ NAMESPACE_HMD_END
 
 
 INITBLOCK_(LocalVR) {
-	::TS::DaemonBase::Register<TS::HMD::LocalVRService>("LocalVR");
-	::TS::DaemonBase::Register<TS::HMD::WmrFusionService>("WmrFusion");
+	::Upp::DaemonBase::Register<Upp::HMD::LocalVRService>("LocalVR");
+	::Upp::DaemonBase::Register<Upp::HMD::WmrFusionService>("WmrFusion");
 	
 	#ifdef flagDEBUG_SERVER
-	::TS::DaemonBase::Register<TS::HMD::LocalVRDebugService>("LocalVRDebug");
+	::Upp::DaemonBase::Register<Upp::HMD::LocalVRDebugService>("LocalVRDebug");
 	#endif
 }
 
@@ -815,8 +815,8 @@ INITBLOCK_(LocalVR) {
 
 CONSOLE_APP_MAIN
 {
-	using namespace TS;
-	using namespace TS::HMD;
+	using namespace Upp;
+	using namespace Upp::HMD;
 	
 	const auto& cmd = CommandLine();
 	int argc = 0;

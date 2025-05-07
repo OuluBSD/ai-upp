@@ -1,4 +1,4 @@
-#include "GraphLib.h"
+#include "EonCtrl.h"
 
 NAMESPACE_GRAPHLIB_BEGIN
 

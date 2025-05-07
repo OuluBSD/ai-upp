@@ -76,10 +76,10 @@
 #include <EcsLocal/EcsLocal.h>
 
 	
-#include <ports/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION
-#include <ports/tiny_gltf/tiny_gltf.h>
-#include <ports/mikktspace/mikktspace.h>
-#include <ports/DirectXTK/DirectXTK.h>
+#include <plugin/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION
+#include <plugin/tiny_gltf/tiny_gltf.h>
+#include <plugin/mikktspace/mikktspace.h>
+#include <plugin/DirectXTK/DirectXTK.h>
 
 #include "PbrResources.h"
 #include "PbrCommon.h"
@@ -93,7 +93,7 @@
 #include "DeviceResources.h"
 //#include "DDSTextureLoader.h"
 #include "DirectXHelper.h"
-#include <ports/DirectXTK/PlatformHelpers.h>
+#include <plugin/DirectXTK/PlatformHelpers.h>
 
 #include "EngineTypeTraits.h"
 #include "Engine.h"

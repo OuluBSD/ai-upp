@@ -29,7 +29,7 @@ struct MediaQueryExpression : Moveable<MediaQueryExpression>
 class MediaQuery : public Object
 {
 public:
-	RTTI_DECL1(MediaQuery, Object)
+	//RTTI_DECL1(MediaQuery, Object)
 	typedef Vector<MediaQuery*>	vector;
 	
 private:
@@ -50,7 +50,7 @@ class Context;
 class MediaQueryList : public Object, public Pte<MediaQueryList>
 {
 public:
-	RTTI_DECL1(MediaQueryList, Object)
+	//RTTI_DECL1(MediaQueryList, Object)
 	typedef Vector<MediaQueryList*>	vector;
 	
 private:

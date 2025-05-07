@@ -3,27 +3,19 @@
 
 #ifdef flagODE
 
-
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 class OdeSystem;
-
-NAMESPACE_ECS_END
-
-
-NAMESPACE_TOPSIDE_BEGIN
-
-
 class OdeSpace;
 
-class OdeNode : RTTIBase {
+class OdeNode {
 	
 protected:
 	OdeNode* owner = NULL;
 	Vector<OdeNode*> nodes;
 	
 public:
-	RTTI_DECL0(OdeNode)
+	//RTTI_DECL0(OdeNode)
 	
 	OdeNode() {}
 	virtual ~OdeNode() {}
@@ -75,7 +67,7 @@ public:
 	mat4 model_geom = identity<mat4>();
 	
 public:
-	RTTI_DECL1(OdeObject, OdeNode)
+	//RTTI_DECL1(OdeObject, OdeNode)
 	typedef OdeObject CLASSNAME;
 	OdeObject();
 	virtual ~OdeObject();
@@ -107,7 +99,7 @@ protected:
 	int stress = 0;
 	
 public:
-	RTTI_DECL1(OdeJoint, OdeNode)
+	//RTTI_DECL1(OdeJoint, OdeNode)
 	OdeJoint() {
 		
 	}
@@ -159,7 +151,7 @@ protected:
 	bool is_owner = false;
 	
 public:
-	RTTI_DECL1(OdeSpace, OdeNode)
+	//RTTI_DECL1(OdeSpace, OdeNode)
 	
 	
 	void OnAttach() override {
@@ -176,10 +168,10 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 class OdeSystem : public OdeSpace, public System<OdeSystem> {
@@ -192,7 +184,7 @@ protected:
 	
 	
 public:
-	RTTI_DECL2(OdeSystem, OdeSpace, System<OdeSystem>)
+	//RTTI_DECL2(OdeSystem, OdeSpace, System<OdeSystem>)
 	using Parent = Engine;
 	
 	static vec3 EarthGravity;
@@ -275,7 +267,7 @@ void AddEngineOdeSystem();
 
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 
 

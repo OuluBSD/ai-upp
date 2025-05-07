@@ -4,15 +4,15 @@
 #include "sord_config.h" // IWYU pragma: keep
 #include "sord_internal.h"
 
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 #include "sord.h"
 
 #define ZIX_API
-#include <ports/zix/btree.h>
-#include <ports/zix/common.h>
-#include <ports/zix/digest.h>
-#include <ports/zix/hash.h>
-#include <ports/zix/hash.h>
+#include <plugin/zix/btree.h>
+#include <plugin/zix/common.h>
+#include <plugin/zix/digest.h>
+#include <plugin/zix/hash.h>
+#include <plugin/zix/hash.h>
 
 #include <assert.h>
 #include <stdarg.h>

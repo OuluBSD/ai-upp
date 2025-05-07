@@ -1,6 +1,6 @@
 #include "EcsWin.h"
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 using namespace Microsoft::WRL;
@@ -79,4 +79,4 @@ void Primitive::Render(_In_ ID3D11DeviceContext3* context) const
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

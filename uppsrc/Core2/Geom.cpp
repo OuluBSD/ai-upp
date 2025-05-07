@@ -1,7 +1,7 @@
-#include "Local.h"
+#include "Core.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool IsColliding(Pointf a, Pointf b, Pointf c, Pointf d) {
@@ -41,4 +41,4 @@ Pointf Intersect(const Pointf& a, const Pointf& b, const Pointf& c, const Pointf
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

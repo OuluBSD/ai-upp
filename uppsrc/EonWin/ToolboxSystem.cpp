@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 using namespace winrt::Windows::Foundation::Numerics;
@@ -275,5 +275,5 @@ EntityRef ToolboxSystem::FindController(const SpatialInteractionSource& source)
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

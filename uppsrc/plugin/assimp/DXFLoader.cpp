@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fast_atof.h"
 
 #include "DXFHelper.h"
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 
 #include <numeric>
 

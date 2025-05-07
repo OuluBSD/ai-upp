@@ -4,12 +4,12 @@
 #ifndef _ISynth_ISynth_h_
 #define _ISynth_ISynth_h_
 
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 #include <SoftInstru/SoftInstru.h>
 #include <SoftSynth/SoftSynth.h>
-#include <AudioCore/AudioCore.h>
+#include <SoftAudio/SoftAudio.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define SYN_CLS_LIST(x) \
 	SYN_CLS(Instrument, x) \
@@ -106,8 +106,8 @@ struct SynLV2 {
 #endif
 
 struct SynInstrument : public Atom {
-	RTTI_DECL1(SynInstrument, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(SynInstrument, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~SynInstrument() {}
 };
@@ -115,13 +115,13 @@ struct SynInstrument : public Atom {
 
 template <class Syn> struct SynthInstrumentT : SynInstrument {
 	using CLASSNAME = SynthInstrumentT<Syn>;
-	RTTI_DECL1(CLASSNAME, SynInstrument)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, SynInstrument)
+	void Visit(Vis& vis) override {
 		if (dev) Syn::Instrument_Visit(*dev, *this, vis);
 		vis.VisitThis<SynInstrument>(this);
 	}
 	typename Syn::NativeInstrument* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Syn::Instrument_Create(dev))
 			return false;
 		if (!Syn::Instrument_Initialize(*dev, *this, ws))
@@ -171,6 +171,6 @@ using CoreDrummerInstrument = SynthInstrumentT<SynCoreDrummer>;
 using LV2Instrument = SynthInstrumentT<SynLV2>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

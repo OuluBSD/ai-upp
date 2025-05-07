@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "X3DImporter_Macro.hpp"
 
 // Header files, Assimp.
-#include <ports/assimp/DefaultIOSystem.h>
+#include <plugin/assimp/DefaultIOSystem.h>
 
 //#include <regex>
 

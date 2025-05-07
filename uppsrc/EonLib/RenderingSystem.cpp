@@ -1,14 +1,14 @@
-#include "SerialLib.h"
+#include "EonLib.h"
 
 #if 0
 
 #if (defined flagPOSIX && defined flagSCREEN && defined flagOGL)
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 GfxAccelAtom<X11OglGfx>& Get_ScrX11Ogl_Ogl(One<ScrX11Ogl::NativeSinkDevice*& dev);
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace Serial;
 
 
@@ -114,6 +114,6 @@ void RenderingSystem::Attach(Gu::GuboManager* b) {
 	VectorFindAdd(gubo_scopes, b);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

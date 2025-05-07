@@ -1,7 +1,7 @@
 #include "AudioHost.h"
 #ifdef flagLV2
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void LoadAllLV2Plugins(Index<String>& lv2_list) {
@@ -54,6 +54,6 @@ String FindLv2InstrumentForPreset(String preset, Index<String>& lv2_list) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

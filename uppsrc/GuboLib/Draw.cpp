@@ -1,6 +1,6 @@
 #include "GuboLib.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void AtomVirtualGui3D::SetTarget(Draw& d) {
 	sysdraw.SetTarget(&d);
@@ -17,4 +17,4 @@ void AtomVirtualGui3D::CommitDraw()
 	//SDL_GL_SwapWindow(win);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

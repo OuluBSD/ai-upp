@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -470,5 +470,5 @@ void PaintComponent::Destroy()
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

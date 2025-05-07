@@ -1,11 +1,11 @@
 #ifndef _IGraphics_State_h_
 #define _IGraphics_State_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
-struct GfxShaderState : RTTIBase {
-	 RTTI_DECL0(GfxShaderState)
+struct GfxShaderState {
+	 //RTTI_DECL0(GfxShaderState)
 	
 	using ShaderType = GVar::ShaderType;
 	
@@ -42,7 +42,7 @@ struct GfxShaderState : RTTIBase {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 
 #endif

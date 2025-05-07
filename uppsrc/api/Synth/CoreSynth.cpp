@@ -1,7 +1,7 @@
-#include "ISynth.h"
+#include "Synth.h"
 
 #if 1
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct SynCoreSynth::NativeInstrument {
@@ -19,7 +19,7 @@ struct SynCoreSynth::NativeInstrument {
 
 
 template <class T>
-void CreateSynCoreInstrument(SynCoreSynth::NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+void CreateSynCoreInstrument(SynCoreSynth::NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	for(int i = 0; i < dev.polyphone; i++) {
 		T* t = new T();
 		dev.voices.Add(t);
@@ -37,11 +37,11 @@ void SynCoreSynth::Instrument_Destroy(NativeInstrument*& dev) {
 	delete dev;
 }
 
-void SynCoreSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, RuntimeVisitor& vis) {
+void SynCoreSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool SynCoreSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+bool SynCoreSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.polyphone = min(128, max(0, ws.GetInt(".polyphone", 12)));
 	
 	String instrument = ToLower(ws.GetString(".instrument", "plucked"));
@@ -259,6 +259,6 @@ bool SynCoreSynth::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, Packet
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

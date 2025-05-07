@@ -1,6 +1,6 @@
 #include "GuboCore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 ProgPainter3::ProgPainter3(void* hash, Volf sz, ProgPainter3& p, DrawCommand3& begin, DrawCommand3& end) {
 	this->uniq = (hash_t)hash;
@@ -457,4 +457,4 @@ void ProgPainter3::Escape(const String& data) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

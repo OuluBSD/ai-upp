@@ -15,9 +15,9 @@
 #ifdef flagWIN32
 
 #include "stdlib.h"
-#include <ports/portmidi/portmidi.h>
-#include <ports/portmidi/pmutil.h>
-#include <ports/portmidi/pminternal.h>
+#include <plugin/portmidi/portmidi.h>
+#include <plugin/portmidi/pmutil.h>
+#include <plugin/portmidi/pminternal.h>
 #include "pmwinmm.h"
 #ifdef DEBUG
 #include "stdio.h"

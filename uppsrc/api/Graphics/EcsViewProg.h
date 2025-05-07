@@ -1,17 +1,17 @@
 #ifndef _IGraphics_EcsViewProg_h_
 #define _IGraphics_EcsViewProg_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct EcsViewProg :
 	public BinderIfaceVideo
 {
-	RTTI_DECL1(EcsViewProg, BinderIfaceVideo)
+	//RTTI_DECL1(EcsViewProg, BinderIfaceVideo)
 	
 	EcsViewProg();
 	void operator=(const EcsViewProg& t) {Panic("Can't copy EcsViewProgT");}
-	void Visit(RuntimeVisitor& vis) override {}
+	void Visit(Vis& vis) override {}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;
@@ -20,6 +20,6 @@ struct EcsViewProg :
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

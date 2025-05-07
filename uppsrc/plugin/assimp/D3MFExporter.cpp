@@ -44,17 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "D3MFExporter.h"
 
-#include <ports/assimp/scene.h>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/IOStream.hpp>
-#include <ports/assimp/Exporter.hpp>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/IOStream.hpp>
+#include <plugin/assimp/Exporter.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 
 #include "Exceptional.h"
 #include "3MFXmlTags.h"
 #include "D3MFOpcPackage.h"
 
-#include <ports/zlib/zip.h>
+#include <plugin/zlib/zip.h>
 
 namespace Assimp {
 
@@ -326,11 +326,11 @@ void D3MFExporter::writeRelInfoToFile( const std::string &folder, const std::str
 } // Namespace Assimp
 
 #else
-#include <ports/assimp/scene.h>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/IOStream.hpp>
-#include <ports/assimp/Exporter.hpp>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/IOStream.hpp>
+#include <plugin/assimp/Exporter.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 namespace Assimp {
 void ExportScene3MF( const char* pFile, IOSystem* pIOSystem, const aiScene* pScene, const ExportProperties* /*pProperties*/ ) {}
 }

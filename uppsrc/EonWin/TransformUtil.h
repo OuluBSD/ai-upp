@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 // Helpers to extract data from transform matrices
@@ -95,4 +95,4 @@ inline float4x4 matrix(const SpatialInteractionSourceLocation& location)
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

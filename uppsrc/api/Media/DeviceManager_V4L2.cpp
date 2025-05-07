@@ -1,4 +1,4 @@
-#include "IMedia.h"
+#include "Media.h"
 
 #if HAVE_V4L2_DEVMGR
 
@@ -10,7 +10,7 @@
 #include <sys/ioctl.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -100,6 +100,6 @@ void V4L2_DeviceManager::Refresh() {
 	}
 }
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,11 +1,11 @@
-#include "IHolograph.h"
+#include "Holograph.h"
 
 #if defined flagOPENVR
 
 #include <openvr.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -27,11 +27,11 @@ void HoloOpenVR::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void HoloOpenVR::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, RuntimeVisitor& vis) {
+void HoloOpenVR::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloOpenVR::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HoloOpenVR::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.sys.verbose = ws.IsTrue(".verbose", false);
 	
 	if (!dev.sys.Initialise())
@@ -93,6 +93,6 @@ bool HoloOpenVR::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase& a, PacketIO
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

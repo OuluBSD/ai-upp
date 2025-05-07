@@ -48,10 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BaseImporter.h"
 #include "irrXMLWrapper.h"
 #include "LogAux.h"
-#include <ports/assimp/material.h>
-#include <ports/assimp/Importer.hpp>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/light.h>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/Importer.hpp>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/light.h>
 #include <memory>
 #include <map>
 

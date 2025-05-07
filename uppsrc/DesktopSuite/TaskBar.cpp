@@ -1,7 +1,7 @@
 #include "DesktopSuite.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 TaskBar::TaskBar() {
@@ -10,4 +10,4 @@ TaskBar::TaskBar() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

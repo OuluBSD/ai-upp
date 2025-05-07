@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 using namespace DirectX;
@@ -194,4 +194,4 @@ void CameraResources::CommitDirect3D11DepthBuffer(HolographicCameraRenderingPara
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

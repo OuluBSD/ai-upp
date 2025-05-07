@@ -10,12 +10,12 @@ namespace Parallel {
 class CenterCustomer : public CustomerBase {
 
 public:
-	RTTI_DECL1(CenterCustomer, CustomerBase)
+	//RTTI_DECL1(CenterCustomer, CustomerBase)
 	COPY_PANIC(CenterCustomer)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -23,12 +23,12 @@ public:
 class TestRealtimeSrc : public RollingValueBase {
 
 public:
-	RTTI_DECL1(TestRealtimeSrc, RollingValueBase)
+	//RTTI_DECL1(TestRealtimeSrc, RollingValueBase)
 	COPY_PANIC(TestRealtimeSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -36,12 +36,12 @@ public:
 class TestRealtimeSink : public VoidSinkBase {
 
 public:
-	RTTI_DECL1(TestRealtimeSink, VoidSinkBase)
+	//RTTI_DECL1(TestRealtimeSink, VoidSinkBase)
 	COPY_PANIC(TestRealtimeSink)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -49,12 +49,12 @@ public:
 class TestPollerSink : public VoidPollerSinkBase {
 
 public:
-	RTTI_DECL1(TestPollerSink, VoidPollerSinkBase)
+	//RTTI_DECL1(TestPollerSink, VoidPollerSinkBase)
 	COPY_PANIC(TestPollerSink)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -63,12 +63,12 @@ public:
 class PortaudioSink : public PortaudioSinkDevice {
 
 public:
-	RTTI_DECL1(PortaudioSink, PortaudioSinkDevice)
+	//RTTI_DECL1(PortaudioSink, PortaudioSinkDevice)
 	COPY_PANIC(PortaudioSink)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -78,12 +78,12 @@ public:
 class AudioDecoderSrc : public FfmpegSourceDevice {
 
 public:
-	RTTI_DECL1(AudioDecoderSrc, FfmpegSourceDevice)
+	//RTTI_DECL1(AudioDecoderSrc, FfmpegSourceDevice)
 	COPY_PANIC(AudioDecoderSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -92,12 +92,12 @@ public:
 class AudioDbgSrc : public AudioGenBase {
 
 public:
-	RTTI_DECL1(AudioDbgSrc, AudioGenBase)
+	//RTTI_DECL1(AudioDbgSrc, AudioGenBase)
 	COPY_PANIC(AudioDbgSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -105,12 +105,12 @@ public:
 class AudioSplitter : public VoidBase {
 
 public:
-	RTTI_DECL1(AudioSplitter, VoidBase)
+	//RTTI_DECL1(AudioSplitter, VoidBase)
 	COPY_PANIC(AudioSplitter)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -118,12 +118,12 @@ public:
 class AudioSplitterUser : public VoidBase {
 
 public:
-	RTTI_DECL1(AudioSplitterUser, VoidBase)
+	//RTTI_DECL1(AudioSplitterUser, VoidBase)
 	COPY_PANIC(AudioSplitterUser)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -131,12 +131,12 @@ public:
 class AudioJoiner : public VoidBase {
 
 public:
-	RTTI_DECL1(AudioJoiner, VoidBase)
+	//RTTI_DECL1(AudioJoiner, VoidBase)
 	COPY_PANIC(AudioJoiner)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -144,12 +144,12 @@ public:
 class AudioJoinerUser : public VoidBase {
 
 public:
-	RTTI_DECL1(AudioJoinerUser, VoidBase)
+	//RTTI_DECL1(AudioJoinerUser, VoidBase)
 	COPY_PANIC(AudioJoinerUser)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -157,12 +157,12 @@ public:
 class AudioJoiner2User : public VoidBase {
 
 public:
-	RTTI_DECL1(AudioJoiner2User, VoidBase)
+	//RTTI_DECL1(AudioJoiner2User, VoidBase)
 	COPY_PANIC(AudioJoiner2User)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -170,12 +170,12 @@ public:
 class AudioMixer16 : public AudioMixerBase {
 
 public:
-	RTTI_DECL1(AudioMixer16, AudioMixerBase)
+	//RTTI_DECL1(AudioMixer16, AudioMixerBase)
 	COPY_PANIC(AudioMixer16)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -184,12 +184,12 @@ public:
 class VideoDbgSrc : public VideoGenBase {
 
 public:
-	RTTI_DECL1(VideoDbgSrc, VideoGenBase)
+	//RTTI_DECL1(VideoDbgSrc, VideoGenBase)
 	COPY_PANIC(VideoDbgSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -199,12 +199,12 @@ public:
 class WebcamPipe : public V4L2OpenCVCamera {
 
 public:
-	RTTI_DECL1(WebcamPipe, V4L2OpenCVCamera)
+	//RTTI_DECL1(WebcamPipe, V4L2OpenCVCamera)
 	COPY_PANIC(WebcamPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -214,12 +214,12 @@ public:
 class WebcamAtom : public V4L2OpenCVCamera {
 
 public:
-	RTTI_DECL1(WebcamAtom, V4L2OpenCVCamera)
+	//RTTI_DECL1(WebcamAtom, V4L2OpenCVCamera)
 	COPY_PANIC(WebcamAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -229,12 +229,12 @@ public:
 class AudioLoaderAtom : public FfmpegSourceDevice {
 
 public:
-	RTTI_DECL1(AudioLoaderAtom, FfmpegSourceDevice)
+	//RTTI_DECL1(AudioLoaderAtom, FfmpegSourceDevice)
 	COPY_PANIC(AudioLoaderAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -244,12 +244,12 @@ public:
 class VideoLoaderAtom : public FfmpegSourceDevice {
 
 public:
-	RTTI_DECL1(VideoLoaderAtom, FfmpegSourceDevice)
+	//RTTI_DECL1(VideoLoaderAtom, FfmpegSourceDevice)
 	COPY_PANIC(VideoLoaderAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -259,12 +259,12 @@ public:
 class EventStatePipe : public EventStateBase {
 
 public:
-	RTTI_DECL1(EventStatePipe, EventStateBase)
+	//RTTI_DECL1(EventStatePipe, EventStateBase)
 	COPY_PANIC(EventStatePipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -274,12 +274,12 @@ public:
 class X11SwFboProg : public X11SwFboBase {
 
 public:
-	RTTI_DECL1(X11SwFboProg, X11SwFboBase)
+	//RTTI_DECL1(X11SwFboProg, X11SwFboBase)
 	COPY_PANIC(X11SwFboProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -289,12 +289,12 @@ public:
 class X11OglFboProg : public X11OglFboBase {
 
 public:
-	RTTI_DECL1(X11OglFboProg, X11OglFboBase)
+	//RTTI_DECL1(X11OglFboProg, X11OglFboBase)
 	COPY_PANIC(X11OglFboProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -304,12 +304,12 @@ public:
 class SdlSwFboProg : public SdlCenterFboSinkDevice {
 
 public:
-	RTTI_DECL1(SdlSwFboProg, SdlCenterFboSinkDevice)
+	//RTTI_DECL1(SdlSwFboProg, SdlCenterFboSinkDevice)
 	COPY_PANIC(SdlSwFboProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -319,12 +319,12 @@ public:
 class SdlOglFboProg : public SdlOglFboBase {
 
 public:
-	RTTI_DECL1(SdlOglFboProg, SdlOglFboBase)
+	//RTTI_DECL1(SdlOglFboProg, SdlOglFboBase)
 	COPY_PANIC(SdlOglFboProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -334,12 +334,12 @@ public:
 class X11SwShaderPipe : public X11SwShaderBase {
 
 public:
-	RTTI_DECL1(X11SwShaderPipe, X11SwShaderBase)
+	//RTTI_DECL1(X11SwShaderPipe, X11SwShaderBase)
 	COPY_PANIC(X11SwShaderPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -349,12 +349,12 @@ public:
 class X11OglShaderPipe : public X11OglShaderBase {
 
 public:
-	RTTI_DECL1(X11OglShaderPipe, X11OglShaderBase)
+	//RTTI_DECL1(X11OglShaderPipe, X11OglShaderBase)
 	COPY_PANIC(X11OglShaderPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -364,12 +364,12 @@ public:
 class SdlOglShaderPipe : public SdlOglShaderBase {
 
 public:
-	RTTI_DECL1(SdlOglShaderPipe, SdlOglShaderBase)
+	//RTTI_DECL1(SdlOglShaderPipe, SdlOglShaderBase)
 	COPY_PANIC(SdlOglShaderPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -379,12 +379,12 @@ public:
 class X11SwFboAtomPipe : public X11SwSinkDevice {
 
 public:
-	RTTI_DECL1(X11SwFboAtomPipe, X11SwSinkDevice)
+	//RTTI_DECL1(X11SwFboAtomPipe, X11SwSinkDevice)
 	COPY_PANIC(X11SwFboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -394,12 +394,12 @@ public:
 class X11OglFboAtomPipe : public X11OglSinkDevice {
 
 public:
-	RTTI_DECL1(X11OglFboAtomPipe, X11OglSinkDevice)
+	//RTTI_DECL1(X11OglFboAtomPipe, X11OglSinkDevice)
 	COPY_PANIC(X11OglFboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -409,12 +409,12 @@ public:
 class SdlSwFboAtomPipe : public SdlCenterFboSinkDevice {
 
 public:
-	RTTI_DECL1(SdlSwFboAtomPipe, SdlCenterFboSinkDevice)
+	//RTTI_DECL1(SdlSwFboAtomPipe, SdlCenterFboSinkDevice)
 	COPY_PANIC(SdlSwFboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -424,12 +424,12 @@ public:
 class SdlOglFboAtomPipe : public SdlOglVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlOglFboAtomPipe, SdlOglVideoSinkDevice)
+	//RTTI_DECL1(SdlOglFboAtomPipe, SdlOglVideoSinkDevice)
 	COPY_PANIC(SdlOglFboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -439,12 +439,12 @@ public:
 class SdlOglProgAtomPipe : public SdlOglVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlOglProgAtomPipe, SdlOglVideoSinkDevice)
+	//RTTI_DECL1(SdlOglProgAtomPipe, SdlOglVideoSinkDevice)
 	COPY_PANIC(SdlOglProgAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -454,12 +454,12 @@ public:
 class X11ContextAtom : public X11Context {
 
 public:
-	RTTI_DECL1(X11ContextAtom, X11Context)
+	//RTTI_DECL1(X11ContextAtom, X11Context)
 	COPY_PANIC(X11ContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -469,12 +469,12 @@ public:
 class X11SwContextAtom : public X11SwContext {
 
 public:
-	RTTI_DECL1(X11SwContextAtom, X11SwContext)
+	//RTTI_DECL1(X11SwContextAtom, X11SwContext)
 	COPY_PANIC(X11SwContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -484,12 +484,12 @@ public:
 class X11OglContextAtom : public X11OglContext {
 
 public:
-	RTTI_DECL1(X11OglContextAtom, X11OglContext)
+	//RTTI_DECL1(X11OglContextAtom, X11OglContext)
 	COPY_PANIC(X11OglContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -499,12 +499,12 @@ public:
 class X11EventAtomPipe : public X11EventsBase {
 
 public:
-	RTTI_DECL1(X11EventAtomPipe, X11EventsBase)
+	//RTTI_DECL1(X11EventAtomPipe, X11EventsBase)
 	COPY_PANIC(X11EventAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -514,12 +514,12 @@ public:
 class X11SwEventAtomPipe : public X11SwEventsBase {
 
 public:
-	RTTI_DECL1(X11SwEventAtomPipe, X11SwEventsBase)
+	//RTTI_DECL1(X11SwEventAtomPipe, X11SwEventsBase)
 	COPY_PANIC(X11SwEventAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -529,12 +529,12 @@ public:
 class X11OglEventAtomPipe : public X11OglEventsBase {
 
 public:
-	RTTI_DECL1(X11OglEventAtomPipe, X11OglEventsBase)
+	//RTTI_DECL1(X11OglEventAtomPipe, X11OglEventsBase)
 	COPY_PANIC(X11OglEventAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -544,12 +544,12 @@ public:
 class WinContextAtom : public WinContext {
 
 public:
-	RTTI_DECL1(WinContextAtom, WinContext)
+	//RTTI_DECL1(WinContextAtom, WinContext)
 	COPY_PANIC(WinContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -559,12 +559,12 @@ public:
 class WinVideoAtomPipe : public WinSinkDevice {
 
 public:
-	RTTI_DECL1(WinVideoAtomPipe, WinSinkDevice)
+	//RTTI_DECL1(WinVideoAtomPipe, WinSinkDevice)
 	COPY_PANIC(WinVideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -573,12 +573,12 @@ public:
 class DxCustomer : public CustomerBase {
 
 public:
-	RTTI_DECL1(DxCustomer, CustomerBase)
+	//RTTI_DECL1(DxCustomer, CustomerBase)
 	COPY_PANIC(DxCustomer)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -587,12 +587,12 @@ public:
 class WinD11ContextAtom : public WinD11Context {
 
 public:
-	RTTI_DECL1(WinD11ContextAtom, WinD11Context)
+	//RTTI_DECL1(WinD11ContextAtom, WinD11Context)
 	COPY_PANIC(WinD11ContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -602,12 +602,12 @@ public:
 class WinD11FboProg : public WinD11FboBase {
 
 public:
-	RTTI_DECL1(WinD11FboProg, WinD11FboBase)
+	//RTTI_DECL1(WinD11FboProg, WinD11FboBase)
 	COPY_PANIC(WinD11FboProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -617,12 +617,12 @@ public:
 class WinD11FboAtomPipe : public WinD11SinkDevice {
 
 public:
-	RTTI_DECL1(WinD11FboAtomPipe, WinD11SinkDevice)
+	//RTTI_DECL1(WinD11FboAtomPipe, WinD11SinkDevice)
 	COPY_PANIC(WinD11FboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -632,12 +632,12 @@ public:
 class WinD11FboAtomSA : public WinD11SinkDevice {
 
 public:
-	RTTI_DECL1(WinD11FboAtomSA, WinD11SinkDevice)
+	//RTTI_DECL1(WinD11FboAtomSA, WinD11SinkDevice)
 	COPY_PANIC(WinD11FboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -646,12 +646,12 @@ public:
 class OglCustomer : public CustomerBase {
 
 public:
-	RTTI_DECL1(OglCustomer, CustomerBase)
+	//RTTI_DECL1(OglCustomer, CustomerBase)
 	COPY_PANIC(OglCustomer)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -660,12 +660,12 @@ public:
 class SdlContextAtom : public SdlContextBase {
 
 public:
-	RTTI_DECL1(SdlContextAtom, SdlContextBase)
+	//RTTI_DECL1(SdlContextAtom, SdlContextBase)
 	COPY_PANIC(SdlContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -675,12 +675,12 @@ public:
 class SdlEventAtomPipe : public SdlEventsBase {
 
 public:
-	RTTI_DECL1(SdlEventAtomPipe, SdlEventsBase)
+	//RTTI_DECL1(SdlEventAtomPipe, SdlEventsBase)
 	COPY_PANIC(SdlEventAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -689,12 +689,12 @@ public:
 class TestEventSrcPipe : public TestEventSrcBase {
 
 public:
-	RTTI_DECL1(TestEventSrcPipe, TestEventSrcBase)
+	//RTTI_DECL1(TestEventSrcPipe, TestEventSrcBase)
 	COPY_PANIC(TestEventSrcPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -703,12 +703,12 @@ public:
 class SdlOglImageLoader : public SdlOglImageBase {
 
 public:
-	RTTI_DECL1(SdlOglImageLoader, SdlOglImageBase)
+	//RTTI_DECL1(SdlOglImageLoader, SdlOglImageBase)
 	COPY_PANIC(SdlOglImageLoader)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -717,12 +717,12 @@ public:
 class VolumeLoaderAtom : public RawByteStaticSource {
 
 public:
-	RTTI_DECL1(VolumeLoaderAtom, RawByteStaticSource)
+	//RTTI_DECL1(VolumeLoaderAtom, RawByteStaticSource)
 	COPY_PANIC(VolumeLoaderAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -731,12 +731,12 @@ public:
 class X11VideoAtomPipe : public X11SinkDevice {
 
 public:
-	RTTI_DECL1(X11VideoAtomPipe, X11SinkDevice)
+	//RTTI_DECL1(X11VideoAtomPipe, X11SinkDevice)
 	COPY_PANIC(X11VideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -746,12 +746,12 @@ public:
 class X11OglVideoAtomPipe : public X11OglSinkDevice {
 
 public:
-	RTTI_DECL1(X11OglVideoAtomPipe, X11OglSinkDevice)
+	//RTTI_DECL1(X11OglVideoAtomPipe, X11OglSinkDevice)
 	COPY_PANIC(X11OglVideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -761,12 +761,12 @@ public:
 class X11OglFboAtomSA : public X11OglSinkDevice {
 
 public:
-	RTTI_DECL1(X11OglFboAtomSA, X11OglSinkDevice)
+	//RTTI_DECL1(X11OglFboAtomSA, X11OglSinkDevice)
 	COPY_PANIC(X11OglFboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -776,12 +776,12 @@ public:
 class X11SwVideoAtomPipe : public X11SwSinkDevice {
 
 public:
-	RTTI_DECL1(X11SwVideoAtomPipe, X11SwSinkDevice)
+	//RTTI_DECL1(X11SwVideoAtomPipe, X11SwSinkDevice)
 	COPY_PANIC(X11SwVideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -791,12 +791,12 @@ public:
 class X11SwFboAtomSA : public X11SwSinkDevice {
 
 public:
-	RTTI_DECL1(X11SwFboAtomSA, X11SwSinkDevice)
+	//RTTI_DECL1(X11SwFboAtomSA, X11SwSinkDevice)
 	COPY_PANIC(X11SwFboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -806,12 +806,12 @@ public:
 class SdlOglFboAtomSA : public SdlOglVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlOglFboAtomSA, SdlOglVideoSinkDevice)
+	//RTTI_DECL1(SdlOglFboAtomSA, SdlOglVideoSinkDevice)
 	COPY_PANIC(SdlOglFboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -821,12 +821,12 @@ public:
 class SdlUppOglDeviceSA : public SdlUppOglDevice {
 
 public:
-	RTTI_DECL1(SdlUppOglDeviceSA, SdlUppOglDevice)
+	//RTTI_DECL1(SdlUppOglDeviceSA, SdlUppOglDevice)
 	COPY_PANIC(SdlUppOglDeviceSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -836,12 +836,12 @@ public:
 class SdlOglFboPipe : public SdlOglVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlOglFboPipe, SdlOglVideoSinkDevice)
+	//RTTI_DECL1(SdlOglFboPipe, SdlOglVideoSinkDevice)
 	COPY_PANIC(SdlOglFboPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -851,12 +851,12 @@ public:
 class SdlOglFboAtom : public SdlOglVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlOglFboAtom, SdlOglVideoSinkDevice)
+	//RTTI_DECL1(SdlOglFboAtom, SdlOglVideoSinkDevice)
 	COPY_PANIC(SdlOglFboAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -866,12 +866,12 @@ public:
 class SdlUppEventsBasePipe : public SdlUppEventsBase {
 
 public:
-	RTTI_DECL1(SdlUppEventsBasePipe, SdlUppEventsBase)
+	//RTTI_DECL1(SdlUppEventsBasePipe, SdlUppEventsBase)
 	COPY_PANIC(SdlUppEventsBasePipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -881,12 +881,12 @@ public:
 class SdlVideoAtomPipe : public SdlCenterVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlVideoAtomPipe, SdlCenterVideoSinkDevice)
+	//RTTI_DECL1(SdlVideoAtomPipe, SdlCenterVideoSinkDevice)
 	COPY_PANIC(SdlVideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -896,12 +896,12 @@ public:
 class SdlProgAtomPipe : public SdlCenterVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlProgAtomPipe, SdlCenterVideoSinkDevice)
+	//RTTI_DECL1(SdlProgAtomPipe, SdlCenterVideoSinkDevice)
 	COPY_PANIC(SdlProgAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -911,12 +911,12 @@ public:
 class X11ProgAtomPipe : public X11SinkDevice {
 
 public:
-	RTTI_DECL1(X11ProgAtomPipe, X11SinkDevice)
+	//RTTI_DECL1(X11ProgAtomPipe, X11SinkDevice)
 	COPY_PANIC(X11ProgAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -926,12 +926,12 @@ public:
 class X11SwFboGuiProg : public X11SwFboProgBase {
 
 public:
-	RTTI_DECL1(X11SwFboGuiProg, X11SwFboProgBase)
+	//RTTI_DECL1(X11SwFboGuiProg, X11SwFboProgBase)
 	COPY_PANIC(X11SwFboGuiProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -941,12 +941,12 @@ public:
 class X11OglFboGuiProg : public X11OglFboProgBase {
 
 public:
-	RTTI_DECL1(X11OglFboGuiProg, X11OglFboProgBase)
+	//RTTI_DECL1(X11OglFboGuiProg, X11OglFboProgBase)
 	COPY_PANIC(X11OglFboGuiProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -956,12 +956,12 @@ public:
 class SdlOglFboGuiProg : public SdlOglFboProgBase {
 
 public:
-	RTTI_DECL1(SdlOglFboGuiProg, SdlOglFboProgBase)
+	//RTTI_DECL1(SdlOglFboGuiProg, SdlOglFboProgBase)
 	COPY_PANIC(SdlOglFboGuiProg)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -971,12 +971,12 @@ public:
 class SdlVideoAtom : public SdlCenterVideoSinkDevice {
 
 public:
-	RTTI_DECL1(SdlVideoAtom, SdlCenterVideoSinkDevice)
+	//RTTI_DECL1(SdlVideoAtom, SdlCenterVideoSinkDevice)
 	COPY_PANIC(SdlVideoAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -986,12 +986,12 @@ public:
 class SdlAudioAtom : public SdlAudioSinkDevice {
 
 public:
-	RTTI_DECL1(SdlAudioAtom, SdlAudioSinkDevice)
+	//RTTI_DECL1(SdlAudioAtom, SdlAudioSinkDevice)
 	COPY_PANIC(SdlAudioAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1001,12 +1001,12 @@ public:
 class SdlOglShaderAtom : public SdlOglShaderBase {
 
 public:
-	RTTI_DECL1(SdlOglShaderAtom, SdlOglShaderBase)
+	//RTTI_DECL1(SdlOglShaderAtom, SdlOglShaderBase)
 	COPY_PANIC(SdlOglShaderAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1016,12 +1016,12 @@ public:
 class SdlOglShaderAtomSA : public SdlOglShaderBase {
 
 public:
-	RTTI_DECL1(SdlOglShaderAtomSA, SdlOglShaderBase)
+	//RTTI_DECL1(SdlOglShaderAtomSA, SdlOglShaderBase)
 	COPY_PANIC(SdlOglShaderAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1031,12 +1031,12 @@ public:
 class SdlOglTextureSource : public SdlOglTextureBase {
 
 public:
-	RTTI_DECL1(SdlOglTextureSource, SdlOglTextureBase)
+	//RTTI_DECL1(SdlOglTextureSource, SdlOglTextureBase)
 	COPY_PANIC(SdlOglTextureSource)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1046,12 +1046,12 @@ public:
 class SdlOglVolumeSource : public SdlOglTextureBase {
 
 public:
-	RTTI_DECL1(SdlOglVolumeSource, SdlOglTextureBase)
+	//RTTI_DECL1(SdlOglVolumeSource, SdlOglTextureBase)
 	COPY_PANIC(SdlOglVolumeSource)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1061,12 +1061,12 @@ public:
 class SdlOglAudioSink : public SdlOglFboReaderBase {
 
 public:
-	RTTI_DECL1(SdlOglAudioSink, SdlOglFboReaderBase)
+	//RTTI_DECL1(SdlOglAudioSink, SdlOglFboReaderBase)
 	COPY_PANIC(SdlOglAudioSink)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1076,12 +1076,12 @@ public:
 class SdlOglKeyboardSource : public SdlOglKeyboardBase {
 
 public:
-	RTTI_DECL1(SdlOglKeyboardSource, SdlOglKeyboardBase)
+	//RTTI_DECL1(SdlOglKeyboardSource, SdlOglKeyboardBase)
 	COPY_PANIC(SdlOglKeyboardSource)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -1091,12 +1091,12 @@ public:
 class SdlOglAudioSource : public SdlOglAudioBase {
 
 public:
-	RTTI_DECL1(SdlOglAudioSource, SdlOglAudioBase)
+	//RTTI_DECL1(SdlOglAudioSource, SdlOglAudioBase)
 	COPY_PANIC(SdlOglAudioSource)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };

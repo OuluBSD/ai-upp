@@ -1,7 +1,5 @@
-#ifndef _SharedCore_TokenParser_h_
-#define _SharedCore_TokenParser_h_
-
-NAMESPACE_UPP
+#ifndef _Core2_TokenParser_h_
+#define _Core2_TokenParser_h_
 
 
 struct IdParser {
@@ -58,7 +56,5 @@ struct NumberParser {
 	
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

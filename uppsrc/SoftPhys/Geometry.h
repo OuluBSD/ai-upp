@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_Geometry_h_
 #define _SoftPhys_Geometry_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Geometry : Object {
-	RTTI_DECL1(Geometry, Object)
+	//RTTI_DECL1(Geometry, Object)
 	using Object::Object;
 	
 	
@@ -19,7 +19,7 @@ struct Geometry : Object {
 	
 	Geometry();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	void OnBodyMove();
 	
 	vec3 GetPosition() const;
@@ -48,6 +48,6 @@ struct Geometry : Object {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

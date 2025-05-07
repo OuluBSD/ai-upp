@@ -52,8 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IRRShared.h"
 #include "ParsingUtils.h"
 #include "fast_atof.h"
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/material.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/material.h>
 
 
 using namespace Assimp;

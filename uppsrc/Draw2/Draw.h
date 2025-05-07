@@ -6,6 +6,7 @@
 NAMESPACE_UPP
 
 #include "Factory.h"
+#include "FFT.h"
 #include "Sdl2.h"
 #include "Various.h"
 #include "Screen.h"

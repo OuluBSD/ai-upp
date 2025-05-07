@@ -2,7 +2,7 @@
 #include <GuboLib/GuboLib.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 bool      Gubo::do_debug_draw;
 
@@ -616,5 +616,5 @@ void Gubo::PaintDebug(ProgPainter3& pp) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

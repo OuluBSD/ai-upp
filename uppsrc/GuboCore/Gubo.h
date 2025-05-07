@@ -2,7 +2,7 @@
 #define _GuboCore_Gubo_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class Gubo :
@@ -11,7 +11,7 @@ class Gubo :
 {
 	
 public:
-	RTTI_DECL1(Gubo, GeomInteraction3D)
+	//RTTI_DECL1(Gubo, GeomInteraction3D)
 	
 protected:
 	static  bool      do_debug_draw;
@@ -38,12 +38,12 @@ protected:
 	void Refresh0() {Refresh();}
 	
 public:
-	//friend class TS::Ecs::DefaultGuboAppComponent;
+	//friend class Upp::Ecs::DefaultGuboAppComponent;
 	
 	
 protected:
-	//friend class TS::Ecs::VirtualGubo;
-	//friend class TS::Ecs::WindowSystem;
+	//friend class Upp::Ecs::VirtualGubo;
+	//friend class Upp::Ecs::WindowSystem;
 	friend class TopSurface;
 	
 	
@@ -113,7 +113,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

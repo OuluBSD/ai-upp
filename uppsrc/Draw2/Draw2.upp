@@ -1,7 +1,6 @@
 description "\377B128,0,255";
 
-uses
-	VirtualGui3D;
+uses(VIRTUALGUI) VirtualGui3D;
 
 library(POSIX) png;
 
@@ -10,6 +9,9 @@ file
 	Draw.cpp,
 	Factory.h,
 	Factory.cpp,
+	FFT.h,
+	FFT1.cpp,
+	FFT2.cpp,
 	Backends readonly separator,
 	Sdl2.h,
 	Sdl2.cpp,

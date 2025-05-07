@@ -50,9 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "ConvertToLHProcess.h"
-#include <ports/assimp/scene.h>
-#include <ports/assimp/postprocess.h>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/postprocess.h>
+#include <plugin/assimp/DefaultLogger.hpp>
 
 using namespace Assimp;
 

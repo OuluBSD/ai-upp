@@ -5,7 +5,7 @@ interface ID3D11Device;
 interface ID3D11DeviceContext3;
 }
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -41,4 +41,4 @@ inline std::shared_ptr<Pbr::Model> FromGltfBinary(
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

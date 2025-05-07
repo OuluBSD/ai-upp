@@ -1,7 +1,7 @@
 #ifndef _IGraphics_TFramebuffer_h_
 #define _IGraphics_TFramebuffer_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx> struct InputStateT;
@@ -15,7 +15,7 @@ struct FramebufferT : Gfx::FramebufferBase {
 	using NativeFrameBufferRef = typename Gfx::NativeFrameBufferRef;
 	using NativeFrameBufferConstRef = typename Gfx::NativeFrameBufferConstRef;
 	using SystemFrameBufferRef = typename Gfx::SystemFrameBufferRef;
-	RTTI_DECL1(FramebufferT, GfxFramebuffer)
+	//RTTI_DECL1(FramebufferT, GfxFramebuffer)
 	
 	NativeColorBufferRef	color_buf[2];
 	NativeDepthBufferRef	depth_buf[2];
@@ -58,7 +58,7 @@ struct FramebufferT : Gfx::FramebufferBase {
 
 template <class Gfx>
 struct InputStateT : GfxInputState {
-	RTTI_DECL1(InputStateT, GfxInputState)
+	//RTTI_DECL1(InputStateT, GfxInputState)
 	using Base = InputStateT<Gfx>;
 	using BufferStage = BufferStageT<Gfx>;
 	
@@ -72,6 +72,6 @@ struct InputStateT : GfxInputState {
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

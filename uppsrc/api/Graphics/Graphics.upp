@@ -16,8 +16,8 @@ library(MSC) glew32;
 library(MSC) "OpenGL32 Gdi32";
 
 file
-	IGraphics.h,
-	IGraphics.icpp,
+	Graphics.h,
+	Graphics.icpp,
 	dxstdafx.h,
 	Types.h,
 	TypeFuncList.inl highlight cpp,

@@ -5,7 +5,7 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 
 #include <sys/stat.h>
 

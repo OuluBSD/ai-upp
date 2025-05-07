@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_FILESYSTEMFILTER_H_INC
 #define AI_FILESYSTEMFILTER_H_INC
 
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 #include "fast_atof.h"
 #include "ParsingUtils.h"
 

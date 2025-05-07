@@ -8,7 +8,7 @@ uses(BUILTIN_PORTMIDI) plugin/portmidi;
 library(PORTMIDI) portmidi;
 
 file
-	IMidiHw.h,
+	MidiHw.h,
 	Portmidi.cpp,
 	IfaceFuncs.inl highlight cpp;
 

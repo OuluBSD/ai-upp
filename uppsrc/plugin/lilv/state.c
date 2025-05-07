@@ -5,10 +5,10 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/serd/serd.h>
-#include <ports/sord/sord.h>
-#include <ports/sratom/sratom.h>
-#include <ports/zix/tree.h>
+#include <plugin/serd/serd.h>
+#include <plugin/sord/sord.h>
+#include <plugin/sratom/sratom.h>
+#include <plugin/zix/tree.h>
 
 #include "lv2/atom/atom.h"
 #include "lv2/atom/forge.h"

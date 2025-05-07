@@ -2,7 +2,7 @@
 #define _IMedia_MediaAtomBase_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -40,12 +40,12 @@ class MediaAtomBaseT :
 	bool RealizeVideoFormat();
 	
 public:
-	RTTI_DECL1(MediaAtomBaseT, Atom);
+	//RTTI_DECL1(MediaAtomBaseT, Atom);
 	
 	typedef MediaAtomBaseT CLASSNAME;
 	MediaAtomBaseT();
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;
 	//void Forward(FwdScope& fwd) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
@@ -53,7 +53,7 @@ public:
 	bool PostInitialize() override;
 	void Update(double dt) override;
 	
-	void Visit(RuntimeVisitor& vis) override {vis % file_in; vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis % file_in; vis.VisitThis<Atom>(this);}
 	bool LoadFileAny(String path);
 	void OnError();
 	void OnStop();
@@ -77,6 +77,6 @@ using FfmpegSourceDevice = MediaAtomBaseT<FfmpegMedia>;
 using FfmpegSinkDevice = MediaAtomBaseT<FfmpegMedia>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

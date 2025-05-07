@@ -2,14 +2,14 @@
 #define _DesktopSuite_TaskBar_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class TaskBar : public Ctrl {
 	
 	
 public:
-	RTTI_DECL1_(TaskBar, Ctrl);
+	//RTTI_DECL1_(TaskBar, Ctrl);
 	TaskBar();
 	
 	
@@ -17,7 +17,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

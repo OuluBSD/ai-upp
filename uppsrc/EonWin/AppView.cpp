@@ -1,6 +1,6 @@
 #include "EcsWin.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 using namespace concurrency;
 using namespace std::placeholders;
@@ -211,4 +211,4 @@ void ShellConnectorApp::LoadAppState() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

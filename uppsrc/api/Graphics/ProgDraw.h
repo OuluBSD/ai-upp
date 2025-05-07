@@ -3,7 +3,7 @@
 
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class DrawProg : public DrawProxy {
@@ -11,7 +11,7 @@ class DrawProg : public DrawProxy {
 	bool skip_window_commands = false;
 	
 public:
-	RTTI_DECL1_(DrawProg, DrawProxy)
+	//RTTI_DECL1_(DrawProg, DrawProxy)
 	DrawProg();
 	void Process(const DrawCommand* begin, const DrawCommand* end);
 	void SkipWindowCommands(bool b=true);
@@ -103,6 +103,6 @@ public:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

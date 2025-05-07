@@ -4,10 +4,10 @@
 #ifndef _IMidiHw_IMidiHw_h_
 #define _IMidiHw_IMidiHw_h_
 
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 #include <MidiFile/MidiFile.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define MID_CLS_LIST(x) \
 	MID_CLS(Source, x) \
@@ -37,8 +37,8 @@ struct MidPortmidi {
 #endif
 
 struct MidSource : public Atom {
-	RTTI_DECL1(MidSource, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(MidSource, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~MidSource() {}
 };
@@ -46,13 +46,13 @@ struct MidSource : public Atom {
 
 template <class Mid> struct MidiHwSourceT : MidSource {
 	using CLASSNAME = MidiHwSourceT<Mid>;
-	RTTI_DECL1(CLASSNAME, MidSource)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, MidSource)
+	void Visit(Vis& vis) override {
 		if (dev) Mid::Source_Visit(*dev, *this, vis);
 		vis.VisitThis<MidSource>(this);
 	}
 	typename Mid::NativeSource* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Mid::Source_Create(dev))
 			return false;
 		if (!Mid::Source_Initialize(*dev, *this, ws))
@@ -89,6 +89,6 @@ template <class Mid> struct MidiHwSourceT : MidSource {
 using PortmidiSource = MidiHwSourceT<MidPortmidi>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

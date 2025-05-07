@@ -1,9 +1,9 @@
-#include "IMedia.h"
+#include "Media.h"
 
 #if 0
 #if HAVE_V4L2_CAP
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 bool CaptureDevice_V4L2::OpenDevice0(int fmt_i, int res_i) {
@@ -58,7 +58,7 @@ int CaptureDevice_V4L2::FillVideoBuffer() {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

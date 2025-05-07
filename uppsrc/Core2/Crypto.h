@@ -1,7 +1,6 @@
-#ifndef _Local_Crypto_h_
-#define _Local_Crypto_h_
+#ifndef _Core2_Crypto_h_
+#define _Core2_Crypto_h_
 
-NAMESPACE_TOPSIDE_BEGIN
 namespace Crypto {
 	
 typedef uint64 key64;
@@ -87,8 +86,6 @@ public:
 	
 };
 
-
 }
-NAMESPACE_TOPSIDE_END
 
 #endif

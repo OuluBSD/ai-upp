@@ -1,10 +1,10 @@
 #ifndef _AudioCtrl_AudioView_h_
 #define _AudioCtrl_AudioView_h_
 
-#include <AudioCore/AudioCore.h>
+#include <SoftAudio/SoftAudio.h>
 #include <LocalCtrl/LocalCtrl.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 class AudioCtrl;
@@ -20,7 +20,7 @@ protected:
 	int channel;
 	
 public:
-	RTTI_DECL1(AudioWindowCtrl, Ctrl)
+	//RTTI_DECL1(AudioWindowCtrl, Ctrl)
 	AudioWindowCtrl();
 	
 };
@@ -60,7 +60,7 @@ protected:
 	Array<AudioHeatmapCtrl> hmaps;
 	
 public:
-	RTTI_DECL1(AudioViewCtrl, Ctrl)
+	//RTTI_DECL1(AudioViewCtrl, Ctrl)
 	typedef AudioViewCtrl CLASSNAME;
 	AudioViewCtrl();
 	
@@ -69,6 +69,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -108,7 +108,7 @@ public:
 	
 };
 
-class ActionNode : RTTIBase {
+class ActionNode {
 	WorldState* ws;
 	double cost;
 	int act_id;
@@ -117,7 +117,7 @@ class ActionNode : RTTIBase {
 	static ActionNode* goal;
 	
 public:
-	RTTI_DECL0(ActionNode)
+	//RTTI_DECL0(ActionNode)
 	
 	static ArrayMap<hash_t, Node<ActionNode> > tmp_sub;
 	

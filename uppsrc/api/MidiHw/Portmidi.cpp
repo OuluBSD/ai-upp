@@ -1,4 +1,4 @@
-#include "IMidiHw.h"
+#include "MidiHw.h"
 
 #if defined flagPORTMIDI || defined flagBUILTIN_PORTMIDI
 
@@ -6,9 +6,9 @@
 
 
 #if defined flagBUILTIN_PORTMIDI || (defined flagWIN32 && defined flagMSC) || flagFREEBSD
-	#include <ports/portmidi/portmidi.h>
-	#include <ports/portmidi/pmutil.h>
-	#include <ports/portmidi/porttime.h>
+	#include <plugin/portmidi/portmidi.h>
+	#include <plugin/portmidi/pmutil.h>
+	#include <plugin/portmidi/porttime.h>
 #else
 	#include <portmidi.h>
 	#include <porttime.h>
@@ -22,7 +22,7 @@
 // see Sequencer/Midi.h
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct MidPortmidi::NativeSource {
 	PmStream* midi_in;
@@ -46,11 +46,11 @@ void MidPortmidi::Source_Destroy(NativeSource*& dev) {
 	delete dev;
 }
 
-void MidPortmidi::Source_Visit(NativeSource& dev, AtomBase&, RuntimeVisitor& vis) {
+void MidPortmidi::Source_Visit(NativeSource& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool MidPortmidi::Source_Initialize(NativeSource& dev, AtomBase& a, const Script::WorldState& ws) {
+bool MidPortmidi::Source_Initialize(NativeSource& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.msg_count = 0;
 	
 	// Search for usb device by default
@@ -228,6 +228,6 @@ bool MidPortmidi::Source_IsReady(NativeSource& dev, AtomBase& a, PacketIO& io) {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

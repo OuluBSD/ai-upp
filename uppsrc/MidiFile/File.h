@@ -2,9 +2,6 @@
 #define _MIDIFILE_H_INCLUDED
 
 
-NAMESPACE_MIDI_BEGIN
-
-
 #define TIME_STATE_DELTA       0
 #define TIME_STATE_ABSOLUTE    1
 
@@ -273,6 +270,5 @@ struct EventCompare {
 
 Stream& operator<<(Stream& out, File& aFile);
 
-NAMESPACE_MIDI_END
 
 #endif

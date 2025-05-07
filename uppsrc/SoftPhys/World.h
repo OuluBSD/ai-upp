@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_World_h_
 #define _SoftPhys_World_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct World : Object {
-	RTTI_DECL1(World, Object)
+	//RTTI_DECL1(World, Object)
 	
 	using Object::Object;
 	
@@ -27,7 +27,7 @@ public:
 	
 	World();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object); vis % phys_sys;}
+	void Visit(Vis& vis) override {VIS_THIS(Object); vis % phys_sys;}
 	void Collide(Space& space, void* data, NearCallback cb);
 	void Step(float seconds);
 	void AttachThreading(Threading& t);
@@ -49,6 +49,6 @@ public:
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

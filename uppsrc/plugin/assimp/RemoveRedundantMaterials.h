@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_REMOVEREDUNDANTMATERIALS_H_INC
 
 #include "BaseProcess.h"
-#include <ports/assimp/mesh.h>
+#include <plugin/assimp/mesh.h>
 
 class RemoveRedundantMatsTest;
 namespace Assimp    {

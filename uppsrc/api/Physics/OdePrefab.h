@@ -3,12 +3,12 @@
 
 #ifdef flagODE
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
 struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane> {
-	RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
+	//RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
 	
 	typedef StaticGroundPlane CLASSNAME;
 	
@@ -60,7 +60,7 @@ struct StaticGroundPlanePrefab :
 struct StaticBox : public OdeObject {
 	double width = 1.0, height = 1.0, length = 1.0;
 	
-	RTTI_DECL1(StaticBox, OdeObject)
+	//RTTI_DECL1(StaticBox, OdeObject)
 	StaticBox& Set(double w, double h, double l) {width=w; height=h; length=l; return *this;}
 	StaticBox& SetRotationX(double angle) {dMatrix3 R; dRFromAxisAndAngle(R, 1, 0, 0, angle); dGeomSetRotation(geom, R); return *this;}
 	StaticBox& SetRotationY(double angle) {dMatrix3 R; dRFromAxisAndAngle(R, 0, 1, 0, angle); dGeomSetRotation(geom, R); return *this;}
@@ -80,7 +80,7 @@ protected:
 	dReal sides[3];
 	
 public:
-	RTTI_DECL1(OdeScalarObject, OdeObject)
+	//RTTI_DECL1(OdeScalarObject, OdeObject)
 	OdeScalarObject() {
 		for (int k = 0; k < 3; k++) sides[k] = 1.0;
 	}
@@ -95,7 +95,7 @@ struct OdeSphere : public OdeScalarObject {
 	double radius = 0.102;
 	double wmass  = 0.1;
 	
-	RTTI_DECL1(OdeSphere, OdeScalarObject)
+	//RTTI_DECL1(OdeSphere, OdeScalarObject)
 	
 	OdeSphere& Reset(double x, double y, double z) {
 		dQuaternion q;
@@ -127,7 +127,7 @@ struct OdeSphere : public OdeScalarObject {
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

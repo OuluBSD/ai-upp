@@ -1,7 +1,7 @@
 #ifndef _Physics_Types_h_
 #define _Physics_Types_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #define FYS_CLS_LIST(f) \
 	FYS_CLS(Node, f) \
@@ -113,6 +113,6 @@ struct OdeFys {
 	template struct x <TosFys>;
 #endif
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

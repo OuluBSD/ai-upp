@@ -1,6 +1,6 @@
 #include "SoftRend.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 VectorMap<String, SoftShaderLibrary::ShaderFactory>& SoftShaderLibrary::GetMap(int i) {
@@ -31,4 +31,4 @@ void SoftShader::SetSource(String s) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

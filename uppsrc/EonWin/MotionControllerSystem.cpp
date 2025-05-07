@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -49,11 +49,11 @@ std::future<void> LoadAndCacheModel(
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 
-NAMESPACE_PARALLEL_BEGIN
-using namespace ::TS::Ecs;
+NAMESPACE_UPP
+using namespace ::Upp::Ecs;
 
 
 void MotionControllerSystem::Start()
@@ -185,12 +185,12 @@ void MotionControllerSystem::OnSourceLost(const SpatialInteractionSourceEventArg
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 bool MotionControllerComponent::IsSource(const SpatialInteractionSource& rhs) const {
@@ -198,6 +198,6 @@ bool MotionControllerComponent::IsSource(const SpatialInteractionSource& rhs) co
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

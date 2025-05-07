@@ -1,6 +1,6 @@
-#include "Local.h"
+#include "AICore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Neural::AddInput(int w, int h, int d) {
@@ -380,4 +380,4 @@ void Neural::Adadelta() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

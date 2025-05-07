@@ -1,10 +1,10 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
-bool GfxBufferFieldT<Gfx>::Initialize(AtomBase& a, const Script::WorldState& ws) {
+bool GfxBufferFieldT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	if (!buf.Initialize(a, ws))
 		return false;
 	
@@ -40,4 +40,4 @@ bool GfxBufferFieldT<Gfx>::PostInitialize() {
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(GfxBufferFieldT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

@@ -1,11 +1,11 @@
 #ifndef _GuboLib_Atom_h
 #define _GuboLib_Atom_h
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 	
 struct AtomVirtualGui3D : VirtualGui3D {
 	#if IS_TS_CORE
-	RTTI_DECL1(AtomVirtualGui3D, VirtualGui3D)
+	//RTTI_DECL1(AtomVirtualGui3D, VirtualGui3D)
 	#endif
 	
 	virtual dword       GetOptions();
@@ -47,6 +47,6 @@ struct AtomVirtualGui3D : VirtualGui3D {
 void RunVirtualGui3D(VirtualGui3D& gui, Event<> app_main);
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

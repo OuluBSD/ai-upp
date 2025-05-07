@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_LWSLOADER_H_INCLUDED
 
 #include "LWOFileData.h"
-#include <ports/assimp/SceneCombiner.h>
+#include <plugin/assimp/SceneCombiner.h>
 #include "BaseImporter.h"
 
 struct aiImporterDesc;

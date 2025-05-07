@@ -1,6 +1,6 @@
 #include "SoftRend.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -253,4 +253,4 @@ void ObjViewFragment::Process(FragmentShaderArgs& args) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

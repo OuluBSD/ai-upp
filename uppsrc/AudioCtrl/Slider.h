@@ -2,7 +2,7 @@
 #define _AudioCtrl_Slider_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class AudioSlider : public Ctrl {
@@ -10,7 +10,7 @@ class AudioSlider : public Ctrl {
 	int value, min, max, diff;
 	Color bg;
 public:
-	RTTI_DECL1(AudioSlider, Ctrl)
+	//RTTI_DECL1(AudioSlider, Ctrl)
 	AudioSlider();
 	
 	void Set(String name, int value, int min, int max);
@@ -19,7 +19,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

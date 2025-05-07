@@ -1,7 +1,7 @@
 #include "AudioHost.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 MidiEonContextLoader::MidiEonContextLoader() {
@@ -23,7 +23,7 @@ void MidiEonContextLoader::OnError(String fn, String msg) {
 	WhenError();
 }
 
-bool MidiEonContextLoader::Load(String path, Object& o) {
+bool MidiEonContextLoader::Load(String path, Value& o) {
 	LOG("MidiEonContextLoader::Load: " << path);
 	
 	String ext = GetFileExt(path);
@@ -33,7 +33,7 @@ bool MidiEonContextLoader::Load(String path, Object& o) {
 	return false;
 }
 
-bool MidiEonContextLoader::LoadFileMidi(String path, Object& dst) {
+bool MidiEonContextLoader::LoadFileMidi(String path, Value& dst) {
 	const char* fn_name = "LoadFileMidi";
 	Clear();
 	
@@ -279,4 +279,4 @@ String SerialMidiEonLoader::LoadFile(String file_path) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

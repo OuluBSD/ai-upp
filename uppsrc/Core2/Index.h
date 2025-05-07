@@ -1,8 +1,5 @@
-#ifndef _Local_Index_h_
-#define _Local_Index_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-
+#ifndef _Core2_Index_h_
+#define _Core2_Index_h_
 
 
 template <int I, class K=int, class V=double>
@@ -280,6 +277,5 @@ struct FastSortedIndex {
 };
 
 
-NAMESPACE_TOPSIDE_END
 
 #endif

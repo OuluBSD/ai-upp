@@ -8,7 +8,7 @@
 #ifndef SORD_SORD_H
 #define SORD_SORD_H
 
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 
 #include <stdbool.h>
 #include <stddef.h>

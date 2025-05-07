@@ -1,8 +1,8 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
 #if IS_UPP_CORE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #define IMAGECLASS GrayImg
 #define IMAGEFILE <LocalCtrl/GraySkin.iml>
@@ -57,6 +57,6 @@ void InstallGrayBar()
 	InstallGrayToolBar();
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

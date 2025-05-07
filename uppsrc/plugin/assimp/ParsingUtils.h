@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "StringComparison.h"
 #include "StringUtils.h"
-#include <ports/assimp/defs.h>
+#include <plugin/assimp/defs.h>
 
 namespace Assimp {
 

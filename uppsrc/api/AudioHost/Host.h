@@ -3,7 +3,7 @@
 
 #ifdef flagLV2
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 // Lilv: Lv2 host library, and extensions
@@ -135,7 +135,7 @@ protected:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

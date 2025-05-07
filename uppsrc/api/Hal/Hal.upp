@@ -12,7 +12,7 @@ library(SDL2 & WIN32 & !MSC) "SDL2main SDL2 SDL2_image SDL2_ttf glew32 freetype 
 library(SDL2 & WIN32) Ole32;
 
 file
-	IHal.h,
+	Hal.h,
 	Sdl.cpp,
 	Holo.cpp,
 	IfaceFuncs.inl highlight cpp;

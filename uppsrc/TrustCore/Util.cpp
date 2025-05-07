@@ -1,7 +1,7 @@
 #include "TrustCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 int RankToId(double rank, const RankingMap& rankings) {
     for (int i = 0; i < rankings.GetCount(); i++) {
@@ -23,4 +23,4 @@ RankingMap EdgesToRankedForm(const TrustEdgeVec& edges) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

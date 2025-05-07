@@ -4,12 +4,12 @@
 #if 0
 #ifdef flagODE
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
 struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane> {
-	RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
+	//RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
 	
 	typedef StaticGroundPlane CLASSNAME;
 	
@@ -59,7 +59,7 @@ struct StaticGroundPlanePrefab :
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

@@ -61,9 +61,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IFCUtil.h"
 
 #include "MemoryIOWrapper.h"
-#include <ports/assimp/scene.h>
-#include <ports/assimp/Importer.hpp>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/Importer.hpp>
+#include <plugin/assimp/importerdesc.h>
 
 
 namespace Assimp {

@@ -1,11 +1,11 @@
-#include "EcsLib.h"
+#include "EonLib.h"
 
 NAMESPACE_UPP
 
 
 bool Open_NonGUI_ECS() {
-	using namespace TS;
-	using namespace TS::ECS;
+	using namespace Upp;
+	using namespace Upp::ECS;
 	Engine mach;
 	
 	Ecs::RegistrySystem& reg = *mach.Add<Ecs::RegistrySystem>();
@@ -21,8 +21,8 @@ bool Open_NonGUI_ECS() {
 }
 
 void Close_NonGUI_ECS() {
-	using namespace TS;
-	using namespace TS::ECS;
+	using namespace Upp;
+	using namespace Upp::ECS;
 	Engine mach;
 	
 	mach.Stop();

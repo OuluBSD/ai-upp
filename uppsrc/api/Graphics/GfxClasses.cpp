@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 GfxDataState::GfxDataState() {
@@ -16,4 +16,4 @@ String GfxInputState::GetSamplerString() const {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

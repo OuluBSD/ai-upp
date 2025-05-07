@@ -1,7 +1,7 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 TabMgrCtrl::TabMgrCtrl() {
@@ -15,4 +15,4 @@ void TabMgrCtrl::Updated() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

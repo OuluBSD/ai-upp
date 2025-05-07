@@ -1,8 +1,5 @@
-#ifndef _Local_Geom_h_
-#define _Local_Geom_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Core2_Geom_h_
+#define _Core2_Geom_h_
 
 
 Pointf Intersect(const Pointf& a, const Pointf& b, const Pointf& c, const Pointf& d);
@@ -348,7 +345,5 @@ template <class I, class R=typename I::Pt> R FirstCorner(const I&);
 template <> inline Point FirstCorner(const Rect& r) {return r.TopLeft();}
 template <> inline Point3f FirstCorner(const Cubf& r) {return r.TopLeftNear();}
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -1,6 +1,6 @@
-#include "Local.h"
+#include "Core.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace Crypto {
 
 double Basic::log(double d) {return log_fast_lb(d);}
@@ -49,7 +49,7 @@ void Basic::GenerateKeys() {
 		
 		String b = Decrypt(Encrypt(a));
 		if (a.GetCount() == b.GetCount() &&
-			MemoryCompare(a.Begin(), b.Begin(), a.GetCount()) == 0)
+			memcmp(a.Begin(), b.Begin(), a.GetCount()) == 0)
 			return;
 		
 		++iter;
@@ -369,4 +369,4 @@ bool Signer::VerifyCertification(const Basic& crypto) const {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

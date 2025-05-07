@@ -1,7 +1,7 @@
 #ifndef _IGraphics_GfxClasses_h_
 #define _IGraphics_GfxClasses_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -12,7 +12,7 @@ struct GfxDataState;
 
 
 struct GfxDataObject : GfxMesh {
-	RTTI_DECL1(GfxDataObject, GfxMesh)
+	//RTTI_DECL1(GfxDataObject, GfxMesh)
 	
 	virtual ~GfxDataObject() {}
 	
@@ -37,8 +37,8 @@ struct GfxDataObject : GfxMesh {
 	
 };
 
-struct GfxMaterial : RTTIBase {
-	RTTI_DECL0(GfxMaterial)
+struct GfxMaterial {
+	//RTTI_DECL0(GfxMaterial)
 	
 	int		id = -1;
 	
@@ -48,7 +48,7 @@ struct GfxMaterial : RTTIBase {
 };
 
 struct GfxModelState : ErrorReporter {
-	RTTI_DECL1(GfxModelState, ErrorReporter)
+	//RTTI_DECL1(GfxModelState, ErrorReporter)
 	
 	// meta
 	hash_t id = -1;
@@ -69,7 +69,7 @@ struct GfxModelState : ErrorReporter {
 };
 
 struct GfxDataState : ErrorReporter {
-	RTTI_DECL1(GfxDataState, ErrorReporter)
+	//RTTI_DECL1(GfxDataState, ErrorReporter)
 	
 	// meta
 	int		id = -1;
@@ -108,7 +108,7 @@ struct GfxDataState : ErrorReporter {
 
 
 struct GfxInputState : ErrorReporter {
-	RTTI_DECL1(GfxInputState, ErrorReporter)
+	//RTTI_DECL1(GfxInputState, ErrorReporter)
 	
 	using InputType = GVar::InputType;
 	
@@ -157,7 +157,7 @@ struct GfxFramebuffer : ErrorReporter {
 	
 	
 	
-	RTTI_DECL1(GfxFramebuffer, ErrorReporter)
+	//RTTI_DECL1(GfxFramebuffer, ErrorReporter)
 	GfxFramebuffer() : size(0,0) {}
 	virtual ~GfxFramebuffer() {}
 	
@@ -186,7 +186,7 @@ struct GfxFramebuffer : ErrorReporter {
 
 struct GfxShader;
 
-struct GfxShader : RTTIBase {
+struct GfxShader {
 	
 protected:
 	Vector<mat4> stack;
@@ -194,7 +194,7 @@ protected:
 	
 	
 public:
-	RTTI_DECL0(GfxShader)
+	//RTTI_DECL0(GfxShader)
 	
 	virtual ~GfxShader() {}
 	
@@ -207,15 +207,15 @@ public:
 };
 
 struct GfxProgramState : ErrorReporter {
-	RTTI_DECL1(GfxProgramState, ErrorReporter)
+	//RTTI_DECL1(GfxProgramState, ErrorReporter)
 	
 	int		id = -1;
 	bool	pending_compilation = false;
 	
 };
 
-struct GfxPipelineState : RTTIBase {
-	RTTI_DECL0(GfxPipelineState)
+struct GfxPipelineState {
+	//RTTI_DECL0(GfxPipelineState)
 	GfxPipelineState() {}
 	virtual ~GfxPipelineState() {}
 	
@@ -228,21 +228,21 @@ struct GfxCompilerArgs {
 };
 	
 struct GfxCompiler : ErrorReporter {
-	RTTI_DECL1(GfxCompiler, ErrorReporter)
+	//RTTI_DECL1(GfxCompiler, ErrorReporter)
 	
 	virtual ~GfxCompiler() {}
 	
 };
 
 struct GfxLinker : ErrorReporter {
-	RTTI_DECL1(GfxLinker, ErrorReporter)
+	//RTTI_DECL1(GfxLinker, ErrorReporter)
 	
 	virtual ~GfxLinker() {}
 	
 };
 
 struct GfxBuffer : ErrorReporter {
-	RTTI_DECL1(GfxBuffer, ErrorReporter)
+	//RTTI_DECL1(GfxBuffer, ErrorReporter)
 	
 	// For compatibility
 	void BaseUpdateTexBuffers(GfxFramebuffer&) {}
@@ -250,7 +250,7 @@ struct GfxBuffer : ErrorReporter {
 };
 
 struct GfxBufferStage : ErrorReporter {
-	RTTI_DECL1(GfxBufferStage, ErrorReporter)
+	//RTTI_DECL1(GfxBufferStage, ErrorReporter)
 	
 };
 
@@ -264,8 +264,8 @@ struct GfxBufferStage : ErrorReporter {
 
 
 
-struct GfxContextState : RTTIBase {
-	RTTI_DECL0(GfxContextState)
+struct GfxContextState {
+	//RTTI_DECL0(GfxContextState)
 	
 	virtual ~GfxContextState() {}
 	
@@ -285,14 +285,14 @@ struct GfxContextState : RTTIBase {
 	
 };
 
-struct GfxRenderer : RTTIBase {
+struct GfxRenderer {
 	
 protected:
 	Size output_sz = Size(0,0);
 	
 	
 public:
-	RTTI_DECL0(GfxRenderer)
+	//RTTI_DECL0(GfxRenderer)
 	GfxRenderer() {}
 	virtual ~GfxRenderer() {}
 	
@@ -316,7 +316,7 @@ public:
 
 
 struct GfxStateDraw : Draw2 {
-	RTTI_DECL1(GfxStateDraw, Draw)
+	//RTTI_DECL1(GfxStateDraw, Draw)
 	
 	virtual GfxDataState& GetGfxState() = 0;
 	virtual bool HasTarget() const = 0;
@@ -409,8 +409,8 @@ struct Dx11BufferBase : GfxBuffer {
 
 //////// PBR
 
-struct PbrResources : RTTIBase {
-	RTTI_DECL0(PbrResources)
+struct PbrResources {
+	//RTTI_DECL0(PbrResources)
 	
 	
 	virtual void SetLight(const vec4& direction, const vec4& diffuse_color) = 0;
@@ -419,6 +419,6 @@ struct PbrResources : RTTIBase {
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

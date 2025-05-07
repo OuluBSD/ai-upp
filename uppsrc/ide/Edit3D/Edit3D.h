@@ -4,7 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
-#include <ports/enet/enet.h>
+#include <plugin/enet/enet.h>
 
 #include "SoftRendCtrl.h"
 #include "Geom.h"

@@ -2,7 +2,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 struct ThrowingComponent : Component<ThrowingComponent>
@@ -45,5 +45,5 @@ protected:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

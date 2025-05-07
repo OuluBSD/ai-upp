@@ -53,7 +53,7 @@ The chunks are taken from the official LightWave SDK headers.
 #include <list>
 
 // public ASSIMP headers
-#include <ports/assimp/mesh.h>
+#include <plugin/assimp/mesh.h>
 
 // internal headers
 #include "IFF.h"

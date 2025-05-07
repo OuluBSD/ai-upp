@@ -8,8 +8,8 @@
 #include "lv2/event/event.h"
 
 #include "lilv.h"
-#include <ports/sord/sord.h>
-#include <ports/zix/tree.h>
+#include <plugin/sord/sord.h>
+#include <plugin/zix/tree.h>
 
 #include <assert.h>
 #include <stdbool.h>

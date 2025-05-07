@@ -2,8 +2,6 @@
 #define _MIDIEVENT_H_INCLUDED
 
 
-NAMESPACE_MIDI_BEGIN
-
 class Event : public Message {
 	
 public:
@@ -58,7 +56,5 @@ public:
 	void Reset() {midi.SetCount(0);}
 };
 
-
-NAMESPACE_MIDI_END
 
 #endif

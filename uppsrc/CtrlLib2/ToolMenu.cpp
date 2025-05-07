@@ -1,8 +1,8 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
 #if IS_UPP_CORE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 ToolBackground::ToolBackground() {
 	horz = false;
@@ -131,6 +131,6 @@ void ToolList::Layout() {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

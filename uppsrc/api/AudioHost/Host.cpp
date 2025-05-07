@@ -2,7 +2,7 @@
 
 #ifdef flagLV2
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 int Lv2Host::private_id = 0;
@@ -409,6 +409,6 @@ Lv2Host::~Lv2Host() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

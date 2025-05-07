@@ -1,7 +1,7 @@
 #ifndef _Local_GEnums_h_
 #define _Local_GEnums_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 extern int default_width;
 extern int default_height;
@@ -10,6 +10,6 @@ extern int default_height;
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

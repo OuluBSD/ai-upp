@@ -260,7 +260,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			}
 			
 			s	<< "\n"
-				<< "NAMESPACE_PARALLEL_BEGIN\n"
+				<< "NAMESPACE_UPP\n"
 				<< "\n"
 				<< "#define " << cabbr << "_CLS_LIST(x) \\\n";
 			
@@ -337,8 +337,8 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					s << "#if " << GetMacroConditionals(v) << "\n";
 				
 				s	<< "struct " << pkg.abbr << k << " : public Atom {\n"
-					<< "\tRTTI_DECL1(" << pkg.abbr << k << ", Atom)\n"
-					<< "\tvoid Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}\n"
+					<< "\t//RTTI_DECL1(" << pkg.abbr << k << ", Atom)\n"
+					<< "\tvoid Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}\n"
 					<< "\t\n"
 					<< "\tvirtual ~" << pkg.abbr << k << "() {}\n"
 					<< "};\n";
@@ -362,15 +362,15 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				s	<< "template <class " << a << "> struct " << n << k << "T : "<<a<<k<<" {\n"
 				
 					<< "\tusing CLASSNAME = "<<n<<k<<"T<"<<a<<">;\n"
-					<< "\tRTTI_DECL1(CLASSNAME, "<<a<<k<<")\n"
-					<< "\tvoid Visit(RuntimeVisitor& vis) override {\n"
+					<< "\t//RTTI_DECL1(CLASSNAME, "<<a<<k<<")\n"
+					<< "\tvoid Visit(Vis& vis) override {\n"
 					   "\t\tif (dev) "<<a<<"::"<<k<<"_Visit(*dev, *this, vis);\n"
 					   "\t\tvis.VisitThis<"<<a<<k<<">(this);\n"
 					   "\t}\n"
 					
 					<< "\ttypename "<<a<<"::Native"<<k<<"* dev = 0;\n"
 					
-					<< "\tbool Initialize(const Script::WorldState& ws) override {\n"
+					<< "\tbool Initialize(const Eon::WorldState& ws) override {\n"
 				    << "\t\tif (!"<<a<<"::"<<k<<"_Create(dev))\n"
 				    << "\t\t\treturn false;\n"
 				    << "\t\tif (!"<<a<<"::"<<k<<"_Initialize(*dev, *this, ws))\n"
@@ -424,7 +424,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						<< "\t}\n";
 				
 				if (pkg.have_negotiate_format)
-					s	<< "\tbool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {\n"
+					s	<< "\tbool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {\n"
 						<< "\t\treturn "<<a<<"::"<<k<<"_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);\n"
 						<< "\t}\n";
 				
@@ -473,7 +473,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			
 			
 			s	<< "\n"
-				<< "NAMESPACE_PARALLEL_END\n"
+				<< "END_UPP_NAMESPACE\n"
 				<< "\n"
 			
 				<< "#endif\n";
@@ -501,13 +501,13 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				
 				s	<< "static bool " << k << "_Create(Native" + k + "*& dev);\n"
 					<< "static void " << k << "_Destroy(Native" + k + "*& dev);\n"
-					<< "static bool " << k << "_Initialize(" << nat_this_ << "AtomBase&, const Script::WorldState&);\n"
+					<< "static bool " << k << "_Initialize(" << nat_this_ << "AtomBase&, const Eon::WorldState&);\n"
 					<< "static bool " << k << "_PostInitialize(" << nat_this_ << "AtomBase&);\n"
 					<< "static bool " << k << "_Start(" << nat_this_ << "AtomBase&);\n"
 					<< "static void " << k << "_Stop(" << nat_this_ << "AtomBase&);\n"
 					<< "static void " << k << "_Uninitialize(" << nat_this_ << "AtomBase&);\n"
 					<< "static bool " << k << "_Send(" << nat_this_ << "AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);\n"
-					<< "static void " << k << "_Visit(" << nat_this_ << "AtomBase&, RuntimeVisitor& vis);\n"
+					<< "static void " << k << "_Visit(" << nat_this_ << "AtomBase&, Visitor& vis);\n"
 					;
 				
 				if (pkg.have_recv_finalize) {
@@ -519,7 +519,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				}
 				
 				if (pkg.have_negotiate_format) {
-					s	<< "static bool " << k << "_NegotiateSinkFormat(" << nat_this_ << "AtomBase&, Serial::Link& link, int sink_ch, const Format& new_fmt);\n";
+					s	<< "static bool " << k << "_NegotiateSinkFormat(" << nat_this_ << "AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);\n";
 				}
 				
 				if (pkg.have_is_ready) {
@@ -667,12 +667,12 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					s	<< "class " << h.name << " : public " << h.base << " {\n"
 						<< "\n"
 						<< "public:\n"
-						<< "\tRTTI_DECL1(" << h.name << ", " << h.base << ")\n"
+						<< "\t//RTTI_DECL1(" << h.name << ", " << h.base << ")\n"
 						<< "\tCOPY_PANIC(" << h.name << ")\n"
 						<< "\tstatic String GetAction();\n"
 						<< "\tstatic AtomTypeCls GetAtomType();\n"
 						<< "\tstatic LinkTypeCls GetLinkType();\n"
-						<< "\tvoid Visit(RuntimeVisitor& vis) override;\n"
+						<< "\tvoid Visit(Vis& vis) override;\n"
 						<< "\tAtomTypeCls GetType() const override;\n"
 						<< "\t\n"
 						<< "};\n";
@@ -746,7 +746,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						<< "LinkTypeCls " << h.name << "::GetLinkType() {\n"
 						<< "\treturn LINKTYPE(" << ToUpper(h.link_type) << ", " << ToUpper(h.link_role) << ");\n"
 						<< "}\n\n"
-						<< "void " << h.name << "::Visit(RuntimeVisitor& vis) {\n"
+						<< "void " << h.name << "::Visit(Vis& vis) {\n"
 						<< "\tvis.VisitThis<" << h.base << ">(this);\n"
 						<< "}\n\n"
 						<< "AtomTypeCls " << h.name << "::GetType() const {\n"

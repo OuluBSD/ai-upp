@@ -1,4 +1,4 @@
-#include "IHal.h"
+#include "Hal.h"
 
 #if defined flagUWP && defined flagDX12
 
@@ -58,7 +58,7 @@
 
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 using namespace D2D1;
@@ -163,7 +163,7 @@ void HalHolo::ContextBase_Destroy(NativeContextBase*& dev) {
 	delete dev;
 }
 
-bool HalHolo::ContextBase_Initialize(NativeContextBase& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalHolo::ContextBase_Initialize(NativeContextBase& dev, AtomBase& a, const Eon::WorldState& ws) {
 	// Initialize Direct2D resources.
     D2D1_FACTORY_OPTIONS options{};
 
@@ -232,7 +232,7 @@ bool HalHolo::ContextBase_Send(NativeContextBase& dev, AtomBase& a, RealtimeSour
 	TODO
 }
 
-void HalHolo::ContextBase_Visit(NativeContextBase& dev, AtomBase& a, RuntimeVisitor& vis) {
+void HalHolo::ContextBase_Visit(NativeContextBase& dev, AtomBase& a, Visitor& vis) {
 	TODO
 }
 
@@ -280,7 +280,7 @@ void HalHolo::D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev) {
 	delete dev;
 }
 
-bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	if (!NativeContextBase::latest) {
 		LOG("D12VideoSinkDevice_Initialize: error: no context");
 		return false;
@@ -465,7 +465,7 @@ bool HalHolo::D12VideoSinkDevice_Send(NativeD12VideoSinkDevice& dev, AtomBase& a
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice& dev, AtomBase& a, RuntimeVisitor& vis) {
+void HalHolo::D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice& dev, AtomBase& a, Visitor& vis) {
 	TODO
 }
 
@@ -505,7 +505,7 @@ void HalHolo::EventsBase_Destroy(NativeEventsBase*& dev) {
 	delete dev;
 }
 
-bool HalHolo::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalHolo::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon::WorldState& ws) {
 	LOG("HalHolo::EventsBase_Initialize: TODO");
 	return true;
 }
@@ -530,7 +530,7 @@ bool HalHolo::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSource
 	TODO
 }
 
-void HalHolo::EventsBase_Visit(NativeEventsBase& dev, AtomBase& a, RuntimeVisitor& vis) {
+void HalHolo::EventsBase_Visit(NativeEventsBase& dev, AtomBase& a, Visitor& vis) {
 	TODO
 }
 
@@ -560,6 +560,6 @@ void HalHolo::EventsBase_DetachContext(NativeEventsBase& dev, AtomBase& a, AtomB
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

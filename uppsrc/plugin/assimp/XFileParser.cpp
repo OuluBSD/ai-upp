@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TinyFormatter.h"
 #include "ByteSwapper.h"
 #include "StringUtils.h"
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 
 
 using namespace Assimp;

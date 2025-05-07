@@ -1,6 +1,6 @@
-#include "Local.h"
+#include "Core.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -309,4 +309,4 @@ bool OrderedLinkedList::PopBegin(dword& key, dword& value) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

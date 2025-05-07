@@ -2,7 +2,7 @@
 #define _GuboCore_GuboCore_h_
 
 #include <Draw/Draw.h>
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include <CtrlCore/CtrlCore.h>
 #include <LocalCtrl/LocalCtrl.h>
 

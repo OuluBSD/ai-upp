@@ -1,6 +1,6 @@
 #include "DesktopSuite.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ExplorerDirectory::ExplorerDirectory() {
@@ -12,4 +12,4 @@ Explorer::Explorer() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

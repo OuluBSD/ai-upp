@@ -1,7 +1,7 @@
 #ifndef _AudioCtrl_MidiFileCtrl_h_
 #define _AudioCtrl_MidiFileCtrl_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class MidiFileCtrl : public ComponentCtrl {
@@ -19,6 +19,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

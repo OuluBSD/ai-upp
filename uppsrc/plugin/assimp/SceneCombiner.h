@@ -45,9 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_SCENE_COMBINER_H_INC
 #define AI_SCENE_COMBINER_H_INC
 
-#include <ports/assimp/ai_assert.h>
-#include <ports/assimp/types.h>
-#include <ports/assimp/Defines.h>
+#include <plugin/assimp/ai_assert.h>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/Defines.h>
 #include <stddef.h>
 #include <set>
 #include <list>

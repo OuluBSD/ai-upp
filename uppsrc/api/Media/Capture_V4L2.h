@@ -4,13 +4,13 @@
 #if 0
 #if HAVE_V4L2_CAP
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class CaptureDevice_V4L2 : public MediaStream {
 	
 protected:
-	RTTI_DECL1(CaptureDevice_V4L2, MediaStream)
+	//RTTI_DECL1(CaptureDevice_V4L2, MediaStream)
 	
 	friend class V4L2_DeviceManager;
 	
@@ -21,7 +21,7 @@ protected:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 
 #endif

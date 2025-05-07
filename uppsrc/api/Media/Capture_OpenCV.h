@@ -3,12 +3,11 @@
 
 #if flagOPENCV
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
-class OpenCVCaptureDevice :
-	RTTIBase
+class OpenCVCaptureDevice
 {
 	
 protected:
@@ -41,14 +40,14 @@ protected:
 	
 public:
 	typedef OpenCVCaptureDevice CLASSNAME;
-	RTTI_DECL0(OpenCVCaptureDevice);
+	//RTTI_DECL0(OpenCVCaptureDevice);
 	OpenCVCaptureDevice();
 	~OpenCVCaptureDevice();
 	
-	void						Visit(RuntimeVisitor& vis) {}
+	void						Visit(Vis& vis) {}
 	
 	bool						FindClosestFormat(Size cap_sz, double fps, double bw_min, double bw_max, int& ret_fmt, int& ret_res);
-	bool						Open(int fmt_idx, int res_i, bool vflip, Format& fmt);
+	bool						Open(int fmt_idx, int res_i, bool vflip, ValueFormat& fmt);
 	void						Close();
 	void						Start();
 	void						Stop();
@@ -62,7 +61,7 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

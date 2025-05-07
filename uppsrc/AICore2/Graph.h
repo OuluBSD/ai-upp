@@ -1,8 +1,6 @@
-#ifndef _Structural_Graph_h_
-#define _Structural_Graph_h_
+#ifndef _AICore2_Graph_h_
+#define _AICore2_Graph_h_
 
-
-NAMESPACE_TOPSIDE_BEGIN
 
 
 class Graph;
@@ -42,7 +40,7 @@ protected:
 
 class Graph : public ErrorReporter {
 	Vector<Vector<int> > dependers, dependencies;
-	Index<Object> keys;
+	Index<Value> keys;
 	
 	Vector<GraphEdge> queue;
 	Vector<int> sorted, stack;
@@ -63,12 +61,12 @@ public:
 	void BreadthFirstSearch(int key_i, DfsVisitor& vis);
 	void DepthFirstSearch(DfsVisitor& vis);
 	
-	int  AddKey(Object key);
+	int  AddKey(Value key);
 	bool AddEdge(int dependency, int depender);
-	bool AddEdgeKey(Object dependency, Object depender);
+	bool AddEdgeKey(Value dependency, Value depender);
 	
 	int GetKeyCount() const {return keys.GetCount();}
-	Object GetKey(int i) const {return keys[i];}
+	Value GetKey(int i) const {return keys[i];}
 	int GetSortedKey(int i) const;
 	int GetSortedCount() const {return sorted.GetCount();}
 	int GetEdgesInCount(int key_i);
@@ -78,6 +76,5 @@ public:
 	void DumpSorted();
 };
 
-NAMESPACE_TOPSIDE_END
 
 #endif

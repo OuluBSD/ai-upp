@@ -1,12 +1,12 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
 ObjViewProg::ObjViewProg() {
-	sz = Size(TS::default_width, TS::default_height);
+	sz = Size(Upp::default_width, Upp::default_height);
 	
 	if (0) {
 		obj = "cube.obj";
@@ -197,4 +197,4 @@ void ObjViewProg::DrawObj(GfxStateDraw& fb, bool use_texture) {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

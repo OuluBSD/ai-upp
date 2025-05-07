@@ -1,10 +1,10 @@
-#include "IHolograph.h"
+#include "Holograph.h"
 
 #if defined flagOPENHMD && ((defined flagLINUX) || (defined flagFREEBSD))
 #include <openhmd.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct HoloOpenHMD::NativeSinkDevice {
@@ -68,7 +68,7 @@ void HoloOpenHMD::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	bool require_hmd = !ws.IsTrue(".device.optional.hmd", false);
 	bool require_left = !ws.IsTrue(".device.optional.left", true);
 	bool require_right = !ws.IsTrue(".device.optional.right", true);
@@ -415,6 +415,6 @@ void HoloOpenHMD::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, Realti
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

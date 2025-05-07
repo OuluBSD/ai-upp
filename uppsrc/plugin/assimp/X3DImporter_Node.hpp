@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_AI_X3D_IMPORTER_NODE_H
 
 // Header files, Assimp.
-#include <ports/assimp/scene.h>
-#include <ports/assimp/types.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/types.h>
 
 // Header files, stdlib.
 #include <list>

@@ -1,7 +1,7 @@
 #ifndef _SoftRend_Framebuffer_h_
 #define _SoftRend_Framebuffer_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -43,6 +43,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

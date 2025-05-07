@@ -47,9 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // internal headers
 #include "FixNormalsStep.h"
 #include "StringUtils.h"
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/postprocess.h>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/postprocess.h>
+#include <plugin/assimp/scene.h>
 #include <stdio.h>
 
 

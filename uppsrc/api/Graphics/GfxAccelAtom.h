@@ -1,7 +1,7 @@
 #ifndef _IGraphics_GfxAccelAtom_h_
 #define _IGraphics_GfxAccelAtom_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx> bool IsDefaultGfxVal(const ValCls& val);
@@ -29,7 +29,7 @@ template <> inline bool IsDefaultGfxVal<WinD11Gfx>(const ValCls& val) {return va
 
 
 template <class Gfx>
-struct GfxAccelAtom : RTTIBase {
+struct GfxAccelAtom {
 	
 protected:
 	friend class Events;
@@ -89,16 +89,16 @@ protected:
 	
 public:
 	typedef GfxAccelAtom<Gfx> GfxAccelAtomT;
-	RTTI_DECL0(GfxAccelAtomT);
+	//RTTI_DECL0(GfxAccelAtomT);
 	
-	void Visit(RuntimeVisitor& vis) {vis % bf;}
+	void Visit(Vis& vis) {vis % bf;}
 	
-	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,TS::default_width,TS::default_height);}
+	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,Upp::default_width,Upp::default_height);}
 	
 	void SetAtom(AtomBase* ab) {this->ab = ab;}
 	void SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferRef fb);
 	
-	bool Initialize(AtomBase& a, const Script::WorldState& ws);
+	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool PostInitialize();
 	//bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
 	void Uninitialize();
@@ -128,6 +128,6 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

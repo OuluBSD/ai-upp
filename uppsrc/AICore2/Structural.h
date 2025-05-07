@@ -1,17 +1,6 @@
-#ifndef _Structural_Structural_h_
-#define _Structural_Structural_h_
-
-#include <Local/Local.h>
-
-#include "Graph.h"
-
-
-NAMESPACE_TOPSIDE_BEGIN
-
+#ifndef _AICore2_Structural_h_
+#define _AICore2_Structural_h_
 
 void StructuralTests();
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

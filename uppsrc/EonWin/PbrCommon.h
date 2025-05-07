@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 namespace Pbr {
@@ -91,4 +91,4 @@ private:
 
 }
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

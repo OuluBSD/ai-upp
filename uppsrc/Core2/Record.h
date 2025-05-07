@@ -1,15 +1,5 @@
-#ifndef _Local_Record_h_
-#define _Local_Record_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-class Record;
-NAMESPACE_TOPSIDE_END
-
-
-
-NAMESPACE_TOPSIDE_BEGIN
-using namespace UPP;
-
+#ifndef _Core2_Record_h_
+#define _Core2_Record_h_
 
 
 class RecordBuffer : NoCopy {
@@ -56,8 +46,6 @@ public:
 	void operator=(const Record& r);
 	
 	void Clear();
-	void SetData(FFT1& fft, int ch, int pos, int count);
-	
 	int GetSampleRate() const;
 	float Get(int ch, int i) const;
 	int GetCount() const;
@@ -79,10 +67,6 @@ public:
 	static Record LoadAny(String path);
 	
 };
-
-NAMESPACE_TOPSIDE_END
-
-
 
 
 #endif

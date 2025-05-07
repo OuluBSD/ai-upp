@@ -1,7 +1,7 @@
 #ifndef _IGraphics_TUtil_h_
 #define _IGraphics_TUtil_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -21,7 +21,7 @@ struct TextureT {
 
 template <class Gfx>
 struct StateDrawT : GfxStateDraw {
-	RTTI_DECL1(StateDrawT, GfxStateDraw)
+	//RTTI_DECL1(StateDrawT, GfxStateDraw)
 	using Base = StateDrawT<Gfx>;
 	using ShaderPipeline = typename Gfx::ShaderPipeline;
 	using NativeRenderer = typename Gfx::NativeRenderer;
@@ -73,6 +73,6 @@ struct StateDrawT : GfxStateDraw {
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

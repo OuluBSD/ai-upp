@@ -1,9 +1,9 @@
-#include "IHolograph.h"
+#include "Holograph.h"
 
 #if (defined flagLINUX) || (defined flagFREEBSD)
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct HoloDevUsb::NativeSinkDevice {
 	
@@ -21,11 +21,11 @@ void HoloDevUsb::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void HoloDevUsb::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, RuntimeVisitor& vis) {
+void HoloDevUsb::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloDevUsb::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HoloDevUsb::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	TODO
 }
 
@@ -65,6 +65,6 @@ bool HoloDevUsb::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase& a, PacketIO
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

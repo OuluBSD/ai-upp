@@ -73,7 +73,9 @@ public:
 };
 
 
-
+namespace Eon {
+using WorldState = ::Upp::WorldState;
+}
 
 
 

@@ -1,7 +1,7 @@
-#include "IMedia.h"
+#include "Media.h"
 #if HAVE_WIN32_DEVMGR
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 WIN32_Device::WIN32_Device() {
@@ -36,5 +36,5 @@ void WIN32_DeviceManager::Refresh() {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif

@@ -4,7 +4,7 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/zix/tree.h>
+#include <plugin/zix/tree.h>
 
 #include <assert.h>
 #include <stdbool.h>

@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 using namespace Microsoft::WRL;
@@ -292,4 +292,4 @@ ComPtr<ID3D11SamplerState> CreateSampler(_In_ ID3D11Device* device, D3D11_TEXTUR
 
 }
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

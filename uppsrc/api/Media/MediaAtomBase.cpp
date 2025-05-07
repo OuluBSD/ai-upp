@@ -1,7 +1,6 @@
-#include "IMedia.h"
-#include <SerialMach/SerialMach.h>
+#include "Media.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -21,7 +20,7 @@ void MediaAtomBaseT<Backend>::SetError(String s) {
 }
 
 template <class Backend>
-bool MediaAtomBaseT<Backend>::Initialize(const Script::WorldState& ws) {
+bool MediaAtomBaseT<Backend>::Initialize(const Eon::WorldState& ws) {
 	//TODO // DevComponent::Initialize
 	AtomTypeCls type = GetType();
 	
@@ -244,4 +243,4 @@ bool MediaAtomBaseT<Backend>::Send(RealtimeSourceConfig& cfg, PacketValue& out, 
 MEDIA_EXCPLICIT_INITIALIZE_CLASS(MediaAtomBaseT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

@@ -2,7 +2,7 @@
 #define _DesktopSuite_Tester_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class CtrlTester_Ctrl : public Ctrl {
@@ -49,7 +49,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

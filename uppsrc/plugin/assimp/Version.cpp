@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Actually just a dummy, used by the compiler to build the precompiled header.
 
-#include <ports/assimp/version.h>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/version.h>
+#include <plugin/assimp/scene.h>
 #include "ScenePrivate.h"
 
 static const unsigned int MajorVersion = 4;

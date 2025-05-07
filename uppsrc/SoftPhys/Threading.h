@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_Threading_h_
 #define _SoftPhys_Threading_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Threading : Object {
-	RTTI_DECL1(Threading, Object)
+	//RTTI_DECL1(Threading, Object)
 	using Object::Object;
 	
 	Vector<ThreadPool*> pools;
@@ -15,7 +15,7 @@ struct Threading : Object {
 	
 	Threading();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	void Add(ThreadPool& p);
 	void Detach();
 	void DetachWorld();
@@ -24,6 +24,6 @@ struct Threading : Object {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

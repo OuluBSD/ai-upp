@@ -1,7 +1,6 @@
-#ifndef _Local_DCT_h_
-#define _Local_DCT_h_
+#ifndef _Core2_DCT_h_
+#define _Core2_DCT_h_
 
-NAMESPACE_TOPSIDE_BEGIN
 
 static constexpr double param_mul_bwd = 4.0;
 static constexpr double param_mul_fwd = 1.0 / param_mul_bwd;
@@ -17,6 +16,5 @@ void ConvertFromParamsLineAppend(int param_count, const char* params, Point begi
 void ForwardDCT1d8LLM(const double* i, double* o);
 void ForwardDCT1d8AAN(const double* i, double* o);
 
-NAMESPACE_TOPSIDE_END
 
 #endif

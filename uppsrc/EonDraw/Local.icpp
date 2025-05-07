@@ -1,7 +1,7 @@
-#include "Local.h"
+#include "EonDraw.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 INITBLOCK {
@@ -9,7 +9,7 @@ INITBLOCK {
 	DaemonBase::Register<SerialServiceClient>("TcpClient");
 	
 	
-	using namespace TS::GVar;
+	using namespace Upp::GVar;
 	
 	gvars[VAR_AUDIOTIME].Set("iAudioSeconds", true);
 	gvars[VAR_VIEW].Set("iView", true);
@@ -88,4 +88,4 @@ INITBLOCK {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,4 +1,4 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
 NAMESPACE_UPP
 #if IS_UPP_CORE
@@ -9,7 +9,7 @@ FileSel& GFileSel() {static FileSel s; return s;}
 END_UPP_NAMESPACE
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void SetFileDialogDirectory(String path) {
 	FileSel& fs = GFileSel();
@@ -18,4 +18,4 @@ void SetFileDialogDirectory(String path) {
 	StoreToGlobal(fs, "GlobalFileSelector");
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

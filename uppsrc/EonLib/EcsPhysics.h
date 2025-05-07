@@ -8,7 +8,7 @@
 #include "TPrefab.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 #define FYS_ECS_CLS_LIST(f) \
@@ -21,14 +21,14 @@ NAMESPACE_ECS_BEGIN
 #undef FYS_CLS
 
 
-#define FYS_CLS(x, f) struct f##x : x##T<f##Fys> {RTTI_DECL1(f##x,Base); f##x(Engine& e) : Base(e){} void Visit(RuntimeVisitor& vis) override {VIS_THIS(Base)}};
+#define FYS_CLS(x, f) struct f##x : x##T<f##Fys> {//RTTI_DECL1(f##x,Base); f##x(Engine& e) : Base(e){} void Visit(Vis& vis) override {VIS_THIS(Base)}};
 	#define FYS_SYS(x) FYS_ECS_CLS_LIST(x)
 		FYS_FYSSYS_LIST
 	#undef FYS_SYS
 #undef FYS_CLS
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 
 #endif

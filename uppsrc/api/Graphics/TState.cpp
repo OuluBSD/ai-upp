@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -336,7 +336,7 @@ template <class Gfx>
 void ModelStateT<Gfx>::ProcessMaterials(Model& model) {
 	
 	for(int i = 0; i < model.materials.GetCount(); i++) {
-		TS::Material& mat = model.materials[i];
+		Upp::Material& mat = model.materials[i];
 		ASSERT(mat.id >= 0);
 		MaterialT<Gfx>& gfx_mat = materials.GetAdd(mat.id);
 		gfx_mat.id = mat.id;
@@ -448,4 +448,4 @@ GFX3D_EXCPLICIT_INITIALIZE_CLASS(DataObjectT)
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(ModelStateT)
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(DataStateT)
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

@@ -1,13 +1,13 @@
-#include "IAudio.h"
+#include "Audio.h"
 
 #if defined flagBUILTIN_PORTAUDIO
-	#include <ports/portaudio/portaudio.h>
+	#include <plugin/portaudio/portaudio.h>
 #elif defined flagPORTAUDIO
 	#include <portaudio.h>
 #endif
 
 #if defined flagBUILTIN_PORTAUDIO || defined flagPORTAUDIO
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 #ifdef LOG_SOUND_ERRORS
@@ -235,7 +235,7 @@ struct AudPortaudio::NativeSourceDevice {
 	PaStream* p;
 };
 
-void AudPortaudio::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, RuntimeVisitor& vis) {}
+void AudPortaudio::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {}
 
 bool AudPortaudio::SinkDevice_Create(NativeSinkDevice*& dev) {
 	dev = new NativeSinkDevice;
@@ -246,7 +246,7 @@ void AudPortaudio::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, const Script::WorldState& ws) {
+bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, const Eon::WorldState& ws) {
 	PaStream*& dev = dev_.p;
 	
 	bool realtime = ws.GetBool(".realtime", false);
@@ -339,7 +339,7 @@ bool AudPortaudio::SinkDevice_Send(NativeSinkDevice& dev, AtomBase&, RealtimeSou
 	NEVER();
 }
 
-bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	
 	// accept all valid audio formats for now (because packets can be converted)
 	if (new_fmt.IsValid() && new_fmt.IsAudio()) {
@@ -355,11 +355,11 @@ bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBas
 
 
 
-bool AudPortaudio::SourceDevice_Initialize(NativeSourceDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool AudPortaudio::SourceDevice_Initialize(NativeSourceDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	TODO
 }
 
-void AudPortaudio::SourceDevice_Visit(NativeSourceDevice&, AtomBase&, RuntimeVisitor& vis) {
+void AudPortaudio::SourceDevice_Visit(NativeSourceDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -384,6 +384,6 @@ bool AudPortaudio::SourceDevice_Send(NativeSourceDevice& dev, AtomBase&, Realtim
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

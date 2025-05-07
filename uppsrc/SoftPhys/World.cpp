@@ -1,7 +1,7 @@
 #include "SoftPhys.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
@@ -78,4 +78,4 @@ World& World::SetAutoDisableSamples(int i) {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

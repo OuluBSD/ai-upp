@@ -1,6 +1,6 @@
-#include "Local.h"
+#include "Core.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -255,4 +255,4 @@ float FFT1::GetMagnitude(int pos) const {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,16 +1,16 @@
-#include "IScreen.h"
+#include "Screen.h"
 
 #if defined flagWIN32 && defined flagDX11
 
 
-#include <IGraphics/dxstdafx.h>
+#include <api/Graphics/dxstdafx.h>
 
 
 /*
 	Info: https://learn.microsoft.com/en-us/windows/win32/direct3dgetstarted/complete-code-sample-for-using-a-corewindow-with-directx
 */
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class DeviceResources
@@ -245,11 +245,11 @@ void ScrWinD11::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void ScrWinD11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrWinD11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	vis % dev.accel;
 }
 
-bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<WinD11Context>(1);
 	if (!ctx_) {RTLOG("error: could not find WinD11 context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -352,8 +352,8 @@ bool ScrWinD11::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 		int height = lp_rect->bottom - lp_rect->top;
 		ASSERT(width > 0 && height > 0);
 		
-		TS::default_width = width;
-		TS::default_height = height;
+		Upp::default_width = width;
+		Upp::default_height = height;
 	}*/
 	
 	return true;
@@ -396,7 +396,7 @@ bool ScrWinD11::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSour
 	return true;
 }
 
-bool ScrWinD11::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrWinD11::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	TODO
 	return false;
 }
@@ -428,11 +428,11 @@ void ScrWinD11::Context_Destroy(NativeContext*& dev) {
 	delete dev;
 }
 
-void ScrWinD11::Context_Visit(NativeContext& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrWinD11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWinD11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Script::WorldState& ws) {
+bool ScrWinD11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
 	return true;
 }
 
@@ -464,7 +464,7 @@ void ScrWinD11::Context_Finalize(NativeContext& ctx, AtomBase& a, RealtimeSource
 	
 }
 
-bool ScrWinD11::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrWinD11::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	return false;
 }
 
@@ -477,10 +477,10 @@ bool ScrWinD11::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 #define ABBR
 #define WIND11IMPL 1
-#include "Impl.inl"
+#include "mpl.inl"
 #undef ABBR
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif

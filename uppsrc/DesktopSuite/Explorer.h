@@ -1,14 +1,14 @@
 #ifndef _DesktopSuite_Explorer_h_
 #define _DesktopSuite_Explorer_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
-class ExplorerDirectory : RTTIBase {
+class ExplorerDirectory {
 	
 	
 public:
-	RTTI_DECL0(ExplorerDirectory)
+	//RTTI_DECL0(ExplorerDirectory)
 	ExplorerDirectory();
 	
 	
@@ -23,6 +23,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

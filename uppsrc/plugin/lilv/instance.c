@@ -5,7 +5,7 @@
 
 #include "lilv.h"
 #include "lv2/core/lv2.h"
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 
 #include <stdbool.h>
 #include <stdint.h>

@@ -1,11 +1,10 @@
-#include "IGraphics.h"
-#include <SerialMach/SerialMach.h>
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 template <class Gfx>
-bool ShaderBaseT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool ShaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	
 	if (!this->bf.Initialize(*this, ws))
 		return false;
@@ -98,7 +97,7 @@ void ShaderBaseT<Gfx>::Finalize(RealtimeSourceConfig& cfg) {
 
 
 template <class Gfx>
-bool TextureBaseT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool TextureBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	
 	String f = ws.Get(".filter");
 	if (!f.IsEmpty()) {
@@ -276,10 +275,10 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 }
 
 template <class Gfx>
-void TextureBaseT<Gfx>::Visit(RuntimeVisitor& vis) {vis.VisitThis<BufferBase>(this);}
+void TextureBaseT<Gfx>::Visit(Vis& vis) {vis.VisitThis<BufferBase>(this);}
 
 template <class Gfx>
-bool TextureBaseT<Gfx>::NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && (new_fmt.IsVideo() || new_fmt.IsVolume())) {
 		ISinkRef sink = this->GetSink();
@@ -302,7 +301,7 @@ bool TextureBaseT<Gfx>::NegotiateSinkFormat(Serial::Link& link, int sink_ch, con
 
 
 template <class Gfx>
-bool FboReaderBaseT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool FboReaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	ISourceRef src = this->GetSource();
 	Format out_fmt = src->GetSourceValue(src->GetSourceCount()-1).GetFormat();
 	if (out_fmt.IsAudio()) {
@@ -400,14 +399,14 @@ bool FboReaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int 
 }
 
 template <class Gfx>
-bool FboReaderBaseT<Gfx>::NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool FboReaderBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	
 	TODO
 	
 }
 
 template <class Gfx>
-void FboReaderBaseT<Gfx>::Visit(RuntimeVisitor& vis) {
+void FboReaderBaseT<Gfx>::Visit(Vis& vis) {
 	vis.VisitThis<BufferBase>(this);
 }
 
@@ -426,7 +425,7 @@ void FboReaderBaseT<Gfx>::Visit(RuntimeVisitor& vis) {
 
 
 template <class Gfx>
-bool KeyboardBaseT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool KeyboardBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
@@ -532,7 +531,7 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 
 template <class Gfx>
-bool AudioBaseT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool AudioBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	
 	return true;
 }
@@ -639,7 +638,7 @@ bool AudioBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 }
 
 template <class Gfx>
-bool AudioBaseT<Gfx>::NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool AudioBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && new_fmt.IsAudio()) {
 		ISinkRef sink = this->GetSink();
@@ -666,4 +665,4 @@ GFX3D_EXCPLICIT_INITIALIZE_CLASS(KeyboardBaseT)
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(AudioBaseT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

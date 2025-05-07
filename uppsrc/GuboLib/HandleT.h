@@ -46,7 +46,7 @@ protected:
 	Pt left_down_pt;
 	
 public:
-	RTTI_DECL1(GeomDecoration, Interaction)
+	//RTTI_DECL1(GeomDecoration, Interaction)
 	typedef GeomDecorationT CLASSNAME;
 	GeomDecorationT(Handle* h);
 	
@@ -114,7 +114,7 @@ protected:
 	Box resize_start_r;
 	
 public:
-	RTTI_DECL1(Handle, Interaction)
+	//RTTI_DECL1(Handle, Interaction)
 	typedef HandleT<Dim> CLASSNAME;
 	HandleT();
 	

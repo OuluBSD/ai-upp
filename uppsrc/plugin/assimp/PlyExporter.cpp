@@ -47,10 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <cmath>
 #include "Exceptional.h"
-#include <ports/assimp/scene.h>
-#include <ports/assimp/version.h>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/Exporter.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/version.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/Exporter.hpp>
 #include "qnan.h"
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 struct PbrRenderable;
@@ -17,7 +17,7 @@ class PbrModelCache : public System<PbrModelCache>
 {
 public:
 	using Base = System<PbrModelCache>;
-	RTTI_DECL1(PbrModelCache, Base);
+	//RTTI_DECL1(PbrModelCache, Base);
 	
     PbrModelCache(Engine& core, std::shared_ptr<Pbr::Resources> pbrResources);
 
@@ -38,4 +38,4 @@ private:
 
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

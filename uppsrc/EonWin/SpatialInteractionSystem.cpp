@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 using namespace winrt::Windows::UI::Input::Spatial;
@@ -103,5 +103,5 @@ void SpatialInteractionSystem::HandleSourceReleased(
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

@@ -70,7 +70,7 @@ int PageCtrl::GetTabWidth() const
 {
 	Size sz = GetSize();
 	double wmul = style->pagewidth / 10000.0;
-	int w = sz.cx * wmul;
+	int w = (int)(sz.cx * wmul);
 	return w;
 }
 
@@ -90,8 +90,8 @@ void PageCtrl::Layout()
 	
 	double wmul = style->pagewidth / 10000.0;
 	double xoffmul = (1.0 - wmul) * 0.5;
-	int xoff = sz.cx * xoffmul;
-	int w = sz.cx * wmul;
+	int xoff = (int)(sz.cx * xoffmul);
+	int w = (int)(sz.cx * wmul);
 	int y = -sb;
 	for(int i = 0; i < tab.GetCount(); i++) {
 		Item& t = tab[i];
@@ -122,7 +122,7 @@ Size PageCtrl::ComputeSize()
 	for(int i = 0; i < tab.GetCount(); i++) {
 		Ctrl *q = tab[i].slave;
 		if(q) {
-			sz.cx = max<int>(sz.cx, tab[i].rect.Width() * mul);
+			sz.cx = max<int>(sz.cx, (int)(tab[i].rect.Width() * mul));
 			sz.cy += tab[i].rect.Height();
 		}
 	}
@@ -160,8 +160,8 @@ void PageCtrl::Paint(Draw& w)
 	Rect r(sz);
 	double wmul = style->pagewidth / 10000.0;
 	double xoffmul = (1.0 - wmul) * 0.5;
-	int xoff = sz.cx * xoffmul;
-	int width = sz.cx * wmul;
+	int xoff = (int)(sz.cx * xoffmul);
+	int width = (int)(sz.cx * wmul);
 	Font fnt = style->font;
 	fnt.Bold();
 	ChPaint(w, 0, 0, sz.cx, sz.cy, style->body);

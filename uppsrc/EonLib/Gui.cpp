@@ -1,8 +1,8 @@
-#include "EcsLib.h"
+#include "EonLib.h"
 #include <EcsLocal/EcsLocal.h>
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 #ifdef flagGUI
@@ -12,7 +12,7 @@ DefaultGuiAppComponent::DefaultGuiAppComponent() {
 	
 }
 
-void DefaultGuiAppComponent::Visit(RuntimeVisitor& vis) {
+void DefaultGuiAppComponent::Visit(Vis& vis) {
 	vis.VisitThis<ComponentT>(this);
 	/*if (test) vis % *test;*/
 	
@@ -124,4 +124,4 @@ bool DefaultGuiAppComponent::Arg(const String& key, const String& value) {
 #endif
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

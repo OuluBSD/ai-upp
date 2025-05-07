@@ -8,7 +8,7 @@
 
 struct TgaReaderBackend : StaticIfaceBackend {
 	typedef TgaReaderBackend CLASSNAME;
-	RTTI_DECL1(TgaReaderBackend, StaticIfaceBackend)
+	//RTTI_DECL1(TgaReaderBackend, StaticIfaceBackend)
 	
 	
 	Image LoadFileAny(String path) override;
@@ -21,7 +21,7 @@ struct TgaReaderBackend : StaticIfaceBackend {
 #if HAVE_LIBPNG
 struct LibPngBackend : StaticIfaceBackend {
 	typedef LibPngBackend CLASSNAME;
-	RTTI_DECL1(LibPngBackend, StaticIfaceBackend)
+	//RTTI_DECL1(LibPngBackend, StaticIfaceBackend)
 	
 	
 	Image LoadFileAny(String path) override;

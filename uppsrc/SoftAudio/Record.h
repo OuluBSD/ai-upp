@@ -1,13 +1,13 @@
 #ifndef _AudioCore_Record_h_
 #define _AudioCore_Record_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 class Record;
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -80,7 +80,7 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

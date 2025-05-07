@@ -1,10 +1,10 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 // What even is this?
 #if 0
 #ifdef flagSDL2
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -74,7 +74,7 @@ void SdlCpuGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRendere
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

@@ -48,16 +48,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SmoothingGroups.h"
 #include "StringUtils.h"
 #include "qnan.h"
-#include <ports/assimp/material.h>
-#include <ports/assimp/camera.h>
-#include <ports/assimp/light.h>
-#include <ports/assimp/anim.h>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/camera.h>
+#include <plugin/assimp/light.h>
+#include <plugin/assimp/anim.h>
 #include <stdio.h> //sprintf
 
 namespace Assimp    {
 namespace D3DS  {
 
-#include <ports/assimp/Compiler/pushpack1.h>
+#include <plugin/assimp/Compiler/pushpack1.h>
 
 // ---------------------------------------------------------------------------
 /** Discreet3DS class: Helper class for loading 3ds files. Defines chunks
@@ -364,7 +364,7 @@ struct Texture
     int iUVSrc;
 };
 
-#include <ports/assimp/Compiler/poppack1.h>
+#include <plugin/assimp/Compiler/poppack1.h>
 
 // ---------------------------------------------------------------------------
 /** Helper structure representing a 3ds material */

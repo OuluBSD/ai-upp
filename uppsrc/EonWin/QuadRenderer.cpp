@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -254,4 +254,4 @@ void QuadRenderer::ReleaseDeviceDependentResources()
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

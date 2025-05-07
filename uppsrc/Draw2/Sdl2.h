@@ -5,7 +5,7 @@
 
 struct Sdl2FileBackend : StaticIfaceBackend {
 	typedef Sdl2FileBackend CLASSNAME;
-	RTTI_DECL1(Sdl2FileBackend, StaticIfaceBackend)
+	//RTTI_DECL1(Sdl2FileBackend, StaticIfaceBackend)
 	
 	
 	Image LoadFileAny(String path) override;

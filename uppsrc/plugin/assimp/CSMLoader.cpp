@@ -52,13 +52,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SkeletonMeshBuilder.h"
 #include "ParsingUtils.h"
 #include "fast_atof.h"
-#include <ports/assimp/Importer.hpp>
+#include <plugin/assimp/Importer.hpp>
 #include <memory>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/anim.h>
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/anim.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 
 using namespace Assimp;
 

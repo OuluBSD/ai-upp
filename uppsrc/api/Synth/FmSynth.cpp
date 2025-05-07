@@ -1,7 +1,7 @@
-#include "ISynth.h"
+#include "Synth.h"
 
 #if 1
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct SynFmSynth::NativeInstrument {
     SoftSynth::FmSynth instrument;
@@ -21,11 +21,11 @@ void SynFmSynth::Instrument_Destroy(NativeInstrument*& dev) {
 	delete dev;
 }
 
-void SynFmSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, RuntimeVisitor& vis) {
+void SynFmSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.sample_rate = ws.GetInt(".samplerate", 1024);
 	
 	#if 1
@@ -146,6 +146,6 @@ bool SynFmSynth::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, PacketIO
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

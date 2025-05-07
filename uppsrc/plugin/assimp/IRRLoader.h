@@ -48,10 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_IRRLOADER_H_INCLUDED
 
 #include "IRRShared.h"
-#include <ports/assimp/SceneCombiner.h>
+#include <plugin/assimp/SceneCombiner.h>
 #include "Importer.h"
 #include "StringUtils.h"
-#include <ports/assimp/anim.h>
+#include <plugin/assimp/anim.h>
 
 namespace Assimp    {
 

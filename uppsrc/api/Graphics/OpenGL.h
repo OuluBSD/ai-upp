@@ -16,7 +16,7 @@
 		#include <GL/glext.h>
 	#endif
 #elif defined flagMSC
-	#include <ports/glext/glext.h>
+	#include <plugin/glext/glext.h>
 #else
 	#include "glext.h"
 #endif

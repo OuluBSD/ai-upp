@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 // PredictionUpdated event listener
@@ -30,7 +30,7 @@ class HolographicScene : public Parallel::System<HolographicScene>
 public:
     using System::System;
     using Base = Parallel::System<HolographicScene>;
-	RTTI_DECL1(HolographicScene, Base)
+	//RTTI_DECL1(HolographicScene, Base)
 
     HolographicScene(Machine& core, winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace);
 
@@ -67,4 +67,4 @@ private:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

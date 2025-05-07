@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_BYTESWAPPER_H_INC
 #define AI_BYTESWAPPER_H_INC
 
-#include <ports/assimp/ai_assert.h>
-#include <ports/assimp/types.h>
+#include <plugin/assimp/ai_assert.h>
+#include <plugin/assimp/types.h>
 #include <stdint.h>
 
 #if _MSC_VER >= 1400

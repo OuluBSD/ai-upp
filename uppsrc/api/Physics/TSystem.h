@@ -1,7 +1,7 @@
 #ifndef _Physics_TSystem_h_
 #define _Physics_TSystem_h_
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 template <class Fys>
@@ -29,7 +29,7 @@ protected:
 	
 	
 public:
-	RTTI_DECL2(Base, Space, EcsSystem)
+	//RTTI_DECL2(Base, Space, EcsSystem)
 	using Parent = Engine;
 	
 	static vec3 EarthGravity() {return vec3(0,-9.81f,0);}
@@ -101,6 +101,6 @@ public:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

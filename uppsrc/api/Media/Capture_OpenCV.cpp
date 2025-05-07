@@ -10,9 +10,9 @@
 		#include <opencv2/videoio.hpp>
 	#endif
 	
-	#include "IMedia.h"
+	#include "Media.h"
 #else
-	#include "IMedia.h"
+	#include "Media.h"
 	
 	#if flagOPENCV
 		#undef CPU_SSE2
@@ -35,7 +35,7 @@ bool cv::VideoCapture::open(std::__cxx11::basic_string<char, std::char_traits<ch
 #endif
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class OpenCVCaptureDevice::Data {
@@ -54,7 +54,7 @@ public:
 	
 	Data(OpenCVCaptureDevice* dev) : dev(*dev) {}
 	
-	bool OpenDevice0(Size sz, double fps, const Format& fmt, bool vflip) {
+	bool OpenDevice0(Size sz, double fps, const ValueFormat& fmt, bool vflip) {
 		prev_sz = sz;
 		prev_fps = fps;
 		prev_fmt = fmt;
@@ -127,7 +127,7 @@ OpenCVCaptureDevice::~OpenCVCaptureDevice() {
 	Close();
 }
 
-bool OpenCVCaptureDevice::Open(int fmt_i, int res_i, bool vflip, Format& f) {
+bool OpenCVCaptureDevice::Open(int fmt_i, int res_i, bool vflip, ValueFormat& f) {
 	Close();
 	
 	cur_time.Reset();
@@ -243,6 +243,6 @@ bool OpenCVCaptureDevice::IsOpen() const {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

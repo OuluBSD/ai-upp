@@ -1,7 +1,7 @@
 #ifndef _IGraphics_Base_h_
 #define _IGraphics_Base_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -16,9 +16,9 @@ protected:
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(BufferBaseT, Atom);
+	//RTTI_DECL1(BufferBaseT, Atom);
 	
-	void Visit(RuntimeVisitor& vis) override {vis % bf; vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis % bf; vis.VisitThis<Atom>(this);}
 	void Update(double dt) override {bf.Update(dt);}
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
 	
@@ -37,11 +37,11 @@ struct ShaderBaseT :
 public:
 	using ShaderBase = ShaderBaseT<Gfx>;
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(ShaderBase, BufferBase);
+	//RTTI_DECL1(ShaderBase, BufferBase);
 	
 	ShaderBaseT() {}
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	bool Start() override;
 	void Uninitialize() override;
@@ -49,7 +49,7 @@ public:
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	void Finalize(RealtimeSourceConfig& cfg) override;
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<BufferBase>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<BufferBase>(this);}
 	
 	
 };
@@ -69,18 +69,18 @@ struct TextureBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(TextureBaseT, BufferBase);
+	//RTTI_DECL1(TextureBaseT, BufferBase);
 	
 	TextureBaseT() {}
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(RuntimeVisitor& vis) override;
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override;
+	void Visit(Vis& vis) override;
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
 	
 	
 };
@@ -99,18 +99,18 @@ struct FboReaderBaseT :
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	using NativeFrameBufferConstRef = typename Gfx::NativeFrameBufferConstRef;
-	RTTI_DECL1(FboReaderBaseT, BufferBase);
+	//RTTI_DECL1(FboReaderBaseT, BufferBase);
 	
 	FboReaderBaseT() {}
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override;
-	void Visit(RuntimeVisitor& vis) override;
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
+	void Visit(Vis& vis) override;
 	
 };
 
@@ -127,14 +127,14 @@ struct KeyboardBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(KeyboardBaseT, BufferBase);
+	//RTTI_DECL1(KeyboardBaseT, BufferBase);
 	KeyboardBaseT() {}
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(RuntimeVisitor& vis) override {vis & state;}
+	void Visit(Vis& vis) override {vis & state;}
 	
 };
 
@@ -146,17 +146,17 @@ struct AudioBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(AudioBaseT, BufferBase);
+	//RTTI_DECL1(AudioBaseT, BufferBase);
 	AudioBaseT() {}
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override;
-	void Visit(RuntimeVisitor& vis) override {}
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
+	void Visit(Vis& vis) override {}
 	
 };
 
@@ -170,6 +170,6 @@ GFXTYPE_LIST
 #undef GFXTYPE
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

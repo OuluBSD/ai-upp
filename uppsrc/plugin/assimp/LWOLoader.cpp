@@ -54,8 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ByteSwapper.h"
 #include "ProcessHelper.h"
 #include "ConvertToLHProcess.h"
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/importerdesc.h>
 #include <memory>
 #include <sstream>
 #include <iomanip>

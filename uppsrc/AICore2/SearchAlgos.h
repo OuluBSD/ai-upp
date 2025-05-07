@@ -4,12 +4,12 @@
 
 
 template <class T>	inline double GetSearcherUtility(Node<T>& n) {return n.T::GetUtility();}
-template <>			inline double GetSearcherUtility<Object>(NodeValue& n) {
-	Object& o = n.GetData();
-	ObjectArray& arr = o.GetArray();
+template <>			inline double GetSearcherUtility<Value>(NodeValue& n) {
+	Value& o = n.GetData();
+	ValueArray arr = o;
 	ASSERT(arr.GetCount());
-	Object& ov = arr[1];
-	double value = ov.ToDouble();
+	Value ov = arr[1];
+	double value = ov;
 	return value;
 }
 template <class T>	inline double GetSearcherEstimate(Node<T>& n) {return n.T::GetEstimate();}
@@ -26,10 +26,10 @@ public:
 	
 	Searcher() {}
 	
-	inline bool TerminalTest(NodeT& n, NodeT** prev=NULL) {return TS::TerminalTest(n, prev);}
-	inline double Utility(NodeT& n) {return TS::GetSearcherUtility(n);}
-	inline double Estimate(NodeT& n) {return TS::GetSearcherEstimate(n);}
-	inline double Distance(NodeT& n, NodeT& dest) {return TS::GetSearcherDistance(n, dest);}
+	inline bool TerminalTest(NodeT& n, NodeT** prev=NULL) {return Upp::TerminalTest(n, prev);}
+	inline double Utility(NodeT& n) {return Upp::GetSearcherUtility(n);}
+	inline double Estimate(NodeT& n) {return Upp::GetSearcherEstimate(n);}
+	inline double Distance(NodeT& n, NodeT& dest) {return Upp::GetSearcherDistance(n, dest);}
 	
 	virtual Vector<T*> Search(NodeT& src) = 0;
 	

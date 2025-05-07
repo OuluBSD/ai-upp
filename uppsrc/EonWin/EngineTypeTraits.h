@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // TypeTraits used throughout Neso for compile-time validation
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 namespace detail {
@@ -68,6 +68,6 @@ struct tuple_all_components<std::tuple<Ts...>> : all_base_of<Ecs::ComponentBase,
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 

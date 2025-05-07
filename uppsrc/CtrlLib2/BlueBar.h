@@ -1,12 +1,12 @@
 #ifndef _BlueSkin_BlueSkin_h
 #define _BlueSkin_BlueSkin_h
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void InstallBlueToolBar();
 void InstallBlueMenuBar();
 void InstallBlueBar();
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

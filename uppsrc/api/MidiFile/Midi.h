@@ -2,7 +2,7 @@
 #define _AtomLocal_Midi_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class MidiFileReaderAtom : public Atom
@@ -20,13 +20,13 @@ class MidiFileReaderAtom : public Atom
 	MidiIO::MidiFrame tmp;
 	
 public:
-	RTTI_DECL1(MidiFileReaderAtom, Atom)
+	//RTTI_DECL1(MidiFileReaderAtom, Atom)
 	COPY_PANIC(MidiFileReaderAtom);
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	MidiFileReaderAtom();
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
@@ -52,13 +52,13 @@ class MidiNullAtom : public Atom
 	bool verbose = false;
 	
 public:
-	RTTI_DECL1(MidiNullAtom, Atom)
+	//RTTI_DECL1(MidiNullAtom, Atom)
 	COPY_PANIC(MidiNullAtom);
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	MidiNullAtom();
 	
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
@@ -67,7 +67,7 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 
 #endif

@@ -2,7 +2,7 @@
 #include "internal.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 SimpleBluetoothConnection::SimpleBluetoothConnection() {
 	
@@ -71,4 +71,4 @@ bool SimpleBluetoothConnection::ReadPacket(Vector<byte>& data) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

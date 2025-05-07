@@ -1,6 +1,7 @@
 #ifndef _EonDraw_EonDraw_h_
 #define _EonDraw_EonDraw_h_
 
+#include <Draw/Draw.h>
 #include <Eon/Eon.h>
 
 #ifdef flagMSC

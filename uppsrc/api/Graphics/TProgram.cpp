@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -647,4 +647,4 @@ GVar::TextureMode ProgramStateT<Gfx>::GetTexType(int input_i) const {
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(ProgramStateT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

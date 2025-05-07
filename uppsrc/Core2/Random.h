@@ -1,7 +1,5 @@
-#ifndef _Statistics_Random_h_
-#define _Statistics_Random_h_
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Core2_Random_h_
+#define _Core2_Random_h_
 
 
 class RandomNumberGenerator : Moveable<RandomNumberGenerator> {
@@ -29,25 +27,6 @@ class RandomNumberGenerator : Moveable<RandomNumberGenerator> {
 	
 public:
 	
-	static void sSeed(uint64 *s) {
-		for(int pass = 0; pass < 4; pass++) {
-			for(int i = 0; i < 4; i++) {
-				int64 a;
-				int64 b;
-				int64 c;
-				GetSysSeedValues(&a, &b, &c);
-				CombineHash h;
-				h.Put((uint32)(a >> 32ULL));
-				h.Put((uint32)a);
-				h.Put((uint32)(b >> 32ULL));
-				h.Put((uint32)b);
-				h.Put((uint32)(c >> 32ULL));
-				h.Put((uint32)c);
-				s[i] ^= h;
-			}
-		}
-	}
-	
 	RandomNumberGenerator() {Seed();}
 	float  Randomf() {return (sNext(state) >> 11) * (1.f / (UINT64_C(1) << 53));}
 	double Randomd() {return (sNext(state) >> 11) * (1.  / (UINT64_C(1) << 53));}
@@ -55,7 +34,7 @@ public:
 	uint64 Get() {return sNext(state);}
 	void GetN(uint64* t, int n) {for(int i = 0; i < n; i++) t[i] = sNext(state);}
 	operator uint64 () {return Get();}
-	void Seed() {sSeed(state);}
+	void Seed() {GetSysSeedValues(state);}
 	void Seed(uint32 seed) {
 		for(int i = 0; i < 4; i++)
 			state[i] = 12345678 + seed + i; // xoshiro does not work well if all is zero
@@ -67,9 +46,5 @@ public:
 	//static RandomNumberGenerator& Local() {static thread_local RandomNumberGenerator r; return r;}
 };
 
-
-
-
-NAMESPACE_TOPSIDE_END
 
 #endif

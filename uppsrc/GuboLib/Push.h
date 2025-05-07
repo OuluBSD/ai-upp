@@ -1,7 +1,7 @@
 #ifndef _GuboLib_Push_h_
 #define _GuboLib_Push_h_
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 #undef Button2
 #undef Button3
@@ -14,7 +14,7 @@ class Button2 : public Surface {
 	TimeCallback tc;
 	
 public:
-	RTTI_DECL1(Button2, Surface)
+	//RTTI_DECL1(Button2, Surface)
 	typedef Button2 CLASSNAME;
 	Button2();
 	
@@ -35,7 +35,7 @@ class Button3 : public Gubo {
 	
 	
 public:
-	RTTI_DECL1(Button3, Gubo)
+	//RTTI_DECL1(Button3, Gubo)
 	
 	void Paint(Draw3& d) override;
 	
@@ -44,6 +44,6 @@ public:
 };
 
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 
 #endif

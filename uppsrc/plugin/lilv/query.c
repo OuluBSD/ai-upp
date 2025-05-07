@@ -4,8 +4,8 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/sord/sord.h>
-#include <ports/zix/tree.h>
+#include <plugin/sord/sord.h>
+#include <plugin/zix/tree.h>
 
 #include <stdlib.h>
 #include <string.h>

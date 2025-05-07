@@ -12,17 +12,16 @@
 */
 
 #ifdef flagLV2
-#include <ports/lilv/lilv.h>
-#include <ports/lilv/lilvmm.hpp>
-#include <ports/lilv/lilv_config.h>
+#include <plugin/lilv/lilv.h>
+#include <plugin/lilv/lilvmm.hpp>
+#include <plugin/lilv/lilv_config.h>
 #include "lv2/lv2plug.in/ns/ext/event/event.h"
 #include "lv2/lv2plug.in/ns/ext/uri-map/uri-map.h"
 #include "lv2/lv2plug.in/ns/ext/event/event-helpers.h"
 #endif
 
-#include <Local/Local.h>
-#include <Structural/Structural.h>
-#include <SerialLib/SerialLib.h>
+#include <Core2/Core.h>
+#include <Eon/Eon.h>
 #include <MidiFile/MidiFile.h>
 
 #include "Host.h"

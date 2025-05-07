@@ -1,7 +1,7 @@
 #include "TrustCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void Graph::Reset(int node_count) {
 	tmp.Clear();
@@ -84,4 +84,4 @@ int Graph::GetDepth(int root, int node) const {
     return Traverse(root, node);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <map>
-#include <ports/assimp/types.h>
-#include <ports/assimp/mesh.h>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/mesh.h>
 
 namespace Assimp {
 namespace ObjFile {

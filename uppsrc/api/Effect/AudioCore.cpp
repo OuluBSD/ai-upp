@@ -1,9 +1,8 @@
-#include "IEffect.h"
-#include <SerialMach/SerialMach.h>
+#include "Effect.h"
 
 
 #if 1
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct FxAudioCore::NativeEffect {
@@ -13,7 +12,7 @@ struct FxAudioCore::NativeEffect {
     int prim_audio_sink_ch;
     dword packet_in_mask;
     Packet last_audio_in;
-    Format fmt;
+    ValueFormat fmt;
     ArrayMap<int, Packet> last_audio_side_in;
     Vector<float> buffer;
     float buffer_time;
@@ -31,18 +30,18 @@ void FxAudioCore::Effect_Destroy(NativeEffect*& dev) {
 	delete dev;
 }
 
-void FxAudioCore::Effect_Visit(NativeEffect& dev, AtomBase&, RuntimeVisitor& vis) {
+void FxAudioCore::Effect_Visit(NativeEffect& dev, AtomBase&, Visitor& vis) {
 	
 }
 
 template <class T>
-void CreateSynCoreEffect(FxAudioCore::NativeEffect& dev, AtomBase& a, const Script::WorldState& ws) {
+void CreateSynCoreEffect(FxAudioCore::NativeEffect& dev, AtomBase& a, const Eon::WorldState& ws) {
 	T* t = new T();
 	t->LoadState(ws.GetValues());
 	dev.effect = t;
 }
 
-bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Script::WorldState& ws) {
+bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.channel_count = min(16, max(0, ws.GetInt(".channels", 2)));
 	
 	String instrument = ToLower(ws.GetString(".filter", "chorus"));
@@ -129,7 +128,7 @@ bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Script
 bool FxAudioCore::Effect_PostInitialize(NativeEffect& dev, AtomBase& a) {
 	dev.packet_in_mask = 0x1;
 	dev.packet_in_mask |= 1 << dev.prim_audio_sink_ch;
-	Serial::Link* lb = a.GetLink();
+	LinkBase* lb = a.GetLink();
 	const auto& srcs = lb->SideSources();
 	for(const auto& src : srcs) {
 		int ch = src.local_ch_i;
@@ -286,6 +285,6 @@ bool FxAudioCore::Effect_IsReady(NativeEffect& dev, AtomBase& a, PacketIO& io) {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

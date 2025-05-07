@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AMFImporter_Node.hpp"
 
 // Header files, Assimp.
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/importerdesc.h>
-#include <ports/assimp/types.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/importerdesc.h>
+#include <plugin/assimp/types.h>
 #include "BaseImporter.h"
 #include "irrXMLWrapper.h"
 

@@ -1,7 +1,5 @@
-#ifndef _Local_GeneticOptimizer_h_
-#define _Local_GeneticOptimizer_h_
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _AICore2_GeneticOptimizer_h_
+#define _AICore2_GeneticOptimizer_h_
 
 
 #define Element(a,b,c)  a[b][c]
@@ -497,7 +495,5 @@ public:
 #undef RowVector
 #undef CopyVector
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

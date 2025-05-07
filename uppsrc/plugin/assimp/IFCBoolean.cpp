@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IFCUtil.h"
 #include "PolyTools.h"
 #include "ProcessHelper.h"
-#include <ports/assimp/Defines.h>
+#include <plugin/assimp/Defines.h>
 
 #include <iterator>
 #include <tuple>

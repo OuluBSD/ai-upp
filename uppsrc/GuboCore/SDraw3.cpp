@@ -1,6 +1,6 @@
 #include "GuboCore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void SDraw3::Init(const Cubf& r) {
@@ -18,11 +18,11 @@ void SDraw3::Init(const Cubf& r) {
 		Offset(tl);*/
 	
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #include "GuboCore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 dword SDraw3::GetInfo() const { return 0; }
@@ -426,4 +426,4 @@ int  SDraw3::GetCloffLevel() const {TODO}
 void SDraw3::Escape(const String& data) {TODO}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

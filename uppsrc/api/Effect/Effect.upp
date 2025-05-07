@@ -7,7 +7,7 @@ uses
 uses(LV2) plugin/lilv;
 
 file
-	IEffect.h,
+	Effect.h,
 	AudioCore.cpp,
 	LV2.cpp,
 	IfaceFuncs.inl highlight cpp;

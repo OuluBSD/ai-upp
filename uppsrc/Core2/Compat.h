@@ -1,21 +1,9 @@
-#ifndef _Local_Compat_h_
-#define _Local_Compat_h_
+#ifndef _Core2_Compat_h_
+#define _Core2_Compat_h_
 
 
-#ifdef flagFREEBSD
-extern char **environ;
-#endif
-
-#include <optional>
-
-#ifdef UPP_OLD_VERSION
-	#ifdef flagGCC
-		#include <x86intrin.h> // for rdtsc
-	#endif
-#endif
 
 
-#ifdef UPP_VERSION
 
 #if __GNUC__
 	#define UNREACHABLE __builtin_unreachable()
@@ -40,114 +28,11 @@ extern char **environ;
 #define RTTI_TYPEIDCLS
 
 
-NAMESPACE_UPP_BEGIN
-
-#if UPP_OLD_VERSION
-typedef unsigned hash_t;
-#endif
 
 template<class InputIterator, class UnaryPredicate>
 InputIterator FindIf(InputIterator first, InputIterator last, UnaryPredicate pred) {
 	return std::find_if(first, last, pred);
 }
-
-void sSeed(uint64 *s);
-
-inline void GetSysSeedValues(int64* a, int64* b, int64* c) {
-	if(a) sSeed((uint64*)a);
-	if(b) sSeed((uint64*)b);
-	if(c) sSeed((uint64*)c);
-}
-
-#if 0
-typedef Image RawSysTexture;
-#endif
-
-NAMESPACE_UPP_END
-
-#include <SharedCore/SharedCore.h>
-#include <StaticInterface/DrawBackend.h>
-
-#define CompatFileHandle(x) x
-
-
-
-#if !defined(flagGUI)
-NAMESPACE_UPP
-class Ctrl : public Pte<Ctrl> {
-	
-public:
-	enum {
-		UNKNOWN,
-		LEFTDOWN,
-		LEFTDOUBLE,
-		LEFTTRIPLE,
-		LEFTDRAG,
-		LEFTHOLD,
-		LEFTREPEAT,
-		LEFTUP,
-		RIGHTDOWN,
-		RIGHTDOUBLE,
-		RIGHTTRIPLE,
-		RIGHTDRAG,
-		RIGHTHOLD,
-		RIGHTREPEAT,
-		RIGHTUP,
-		MIDDLEDOWN,
-		MIDDLEDOUBLE,
-		MIDDLETRIPLE,
-		MIDDLEDRAG,
-		MIDDLEHOLD,
-		MIDDLEREPEAT,
-		MIDDLEUP,
-	};
-};
-
-enum {
-	K_DELTA        = 0x010000,
-
-	K_ALT          = 0x080000,
-	K_SHIFT        = 0x040000,
-	K_CTRL         = 0x020000,
-
-	K_KEYUP        = 0x100000,
-
-	K_MOUSEMIDDLE  = 0x200000,
-	K_MOUSERIGHT   = 0x400000,
-	K_MOUSELEFT    = 0x800000,
-	K_MOUSEDOUBLE  = 0x1000000,
-	K_MOUSETRIPLE  = 0x2000000,
-
-	K_SHIFT_CTRL = K_SHIFT|K_CTRL,
-
-#ifdef PLATFORM_COCOA
-	K_OPTION       = 0x4000000,
-#endif
-
-	K_PEN          = 0x8000000,
-
-	IK_DBL_CLICK   = 0x40000001, // this is just to get the info that the entry is equal to dbl-click to the menu
-	
-	K_MOUSE_FORWARD = 0x80000001,
-	K_MOUSE_BACKWARD = 0x80000002,
-};
-
-class SystemDraw {
-public:
-	Size GetPageSize() const {return Size(0,0);}
-};
-
-#if UPP_OLD_VERSION
-template<> inline hash_t GetHashValue(const float& a)         { return memhash(&a, sizeof(a)); }
-#endif
-
-
-
-END_UPP_NAMESPACE
-#endif
-
-
-NAMESPACE_UPP
 
 inline bool IsBinDigit(int c) { return c == '0' || c == '1'; }
 inline bool IsHexDigit(int c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
@@ -200,12 +85,5 @@ inline WString FromUtf8(String s) {return s.ToWString();}
 //#endif
 
 
-END_UPP_NAMESPACE
 
-#else
-
-#include <StaticInterface/StaticInterface.h>
-#define CompatFileHandle(x) fileno(x)
-
-#endif
 #endif

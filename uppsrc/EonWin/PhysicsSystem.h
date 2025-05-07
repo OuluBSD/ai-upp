@@ -2,13 +2,13 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsSystem
 // Simple physics system to move objects around with basic integration (acceleration, velocity)
-class PhysicsSystem : public ::TS::Ecs::System<PhysicsSystem>
+class PhysicsSystem : public ::Upp::Ecs::System<PhysicsSystem>
 {
 public:
     using System::System;
@@ -21,5 +21,5 @@ protected:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

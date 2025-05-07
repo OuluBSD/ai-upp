@@ -1,8 +1,8 @@
-#include "IScreen.h"
+#include "Screen.h"
 
 
 #if (defined flagPOSIXDESKTOP && defined flagSCREEN)
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct ScrX11::NativeContext {
     ::Window win;
@@ -50,11 +50,11 @@ void ScrX11::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void ScrX11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrX11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<X11Context>(1);
 	if (!ctx_) {RTLOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -165,8 +165,8 @@ bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Scr
 		XSetFillStyle(display, gc, FillSolid);
 	}
 	
-	TS::default_width = width;
-	TS::default_height = height;
+	Upp::default_width = width;
+	Upp::default_height = height;
 	
 	::XImage*& fb = ctx.fb;
 	fb = XCreateImage(
@@ -372,7 +372,7 @@ bool ScrX11::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSourceC
 	return true;
 }
 
-bool ScrX11::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrX11::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	TODO
 	return false;
 }
@@ -396,11 +396,11 @@ void ScrX11::Context_Destroy(NativeContext*& dev) {
 	delete dev;
 }
 
-void ScrX11::Context_Visit(NativeContext& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrX11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrX11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Script::WorldState& ws) {
+bool ScrX11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
 	return true;
 }
 
@@ -432,7 +432,7 @@ void ScrX11::Context_Finalize(NativeContext& ctx, AtomBase& a, RealtimeSourceCon
 	
 }
 
-bool ScrX11::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrX11::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	return false;
 }
 
@@ -447,11 +447,11 @@ bool ScrX11::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 #define ABBR
 #define X11IMPL 1
-#include "Impl.inl"
+#include "mpl.inl"
 #undef ABBR
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

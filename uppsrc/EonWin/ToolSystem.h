@@ -2,7 +2,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -12,7 +12,7 @@ class ToolSystemBase abstract :
 	public SystemBase
 {
 public:
-	RTTI_DECL1(ToolSystemBase, SystemBase)
+	//RTTI_DECL1(ToolSystemBase, SystemBase)
     using SystemBase::SystemBase;
 
     virtual std::wstring_view GetInstructions() const = 0;
@@ -55,7 +55,7 @@ public:
 	using ToolSystemT = ToolSystem<T,ToolComponent>;
     using ToolSystemBase::ToolSystemBase;
 	
-	RTTI_DECL2(ToolSystemT, ToolSystemBase, ISpatialInteractionListener)
+	//RTTI_DECL2(ToolSystemT, ToolSystemBase, ISpatialInteractionListener)
 	
     // System
     //detail::type_id type() const override {return typeid(T);}
@@ -144,5 +144,5 @@ protected:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

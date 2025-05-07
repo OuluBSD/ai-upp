@@ -1,6 +1,6 @@
-#include "Local.h"
+#include "Core.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void ForwardDCT1d(int values_size, const double* values, int size, double* params) {
 	for(int i = 0; i < size; i++) {
@@ -378,4 +378,4 @@ void ForwardDCT1d8AAN(const double* i, double* o) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -2,8 +2,6 @@
 #define _MIDIEVENTLIST_H_INCLUDED
 
 
-NAMESPACE_MIDI_BEGIN
-
 class EventList {
 
 public:
@@ -44,6 +42,5 @@ protected:
 	
 };
 
-NAMESPACE_MIDI_END
 
 #endif

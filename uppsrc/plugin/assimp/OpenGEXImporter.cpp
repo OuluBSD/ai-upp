@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ASSIMP_BUILD_NO_OPENGEX_IMPORTER
 
 #include "OpenGEXImporter.h"
-#include <ports/assimp/DefaultIOSystem.h>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/DefaultIOSystem.h>
+#include <plugin/assimp/DefaultLogger.hpp>
 #include "MakeVerboseFormat.h"
 #include "StringComparison.h"
 
 #include <openddlparser/OpenDDLParser.h>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/ai_assert.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/ai_assert.h>
+#include <plugin/assimp/importerdesc.h>
 
 #include <vector>
 

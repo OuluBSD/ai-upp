@@ -1,7 +1,6 @@
-#ifndef _Local_Coordinate_h_
-#define _Local_Coordinate_h_
+#ifndef _Core2_Coordinate_h_
+#define _Core2_Coordinate_h_
 
-NAMESPACE_TOPSIDE_BEGIN
 
 typedef double DD;
 
@@ -71,7 +70,5 @@ struct CoordinateDMS : Moveable<CoordinateDMS> {
 
 typedef CoordinateDD Coordinate;
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

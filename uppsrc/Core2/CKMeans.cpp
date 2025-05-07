@@ -1,6 +1,6 @@
-#include "Statistics.h"
+#include "Core.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 MatFloat CreateMatrix(int columns, int rows) {
@@ -205,4 +205,4 @@ MatFloat CKMeans(const VecFloat& input, int cluster_count) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -71,6 +71,10 @@ static void sSeed(uint64 *s)
 #endif
 }
 
+void GetSysSeedValues(uint64 *s) {
+	sSeed(s);
+}
+
 force_inline
 static uint64 *sState()
 {

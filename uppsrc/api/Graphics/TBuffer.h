@@ -1,7 +1,7 @@
 #ifndef _IGraphics_TemplateBuffer_h_
 #define _IGraphics_TemplateBuffer_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -26,7 +26,7 @@ struct BufferStageT : GfxBufferStage {
 	using Compiler = typename Gfx::Compiler;
 	using Linker = typename Gfx::Linker;
 	
-	RTTI_DECL1(BufferStageT, GfxBufferStage);
+	//RTTI_DECL1(BufferStageT, GfxBufferStage);
 	
 	struct ShaderConf {
 		String str;
@@ -64,7 +64,7 @@ struct BufferStageT : GfxBufferStage {
 	vec3						aberr;
 
 	
-	bool Initialize(int id, AtomBase& a, const Script::WorldState& ws);
+	bool Initialize(int id, AtomBase& a, const Eon::WorldState& ws);
 	bool PostInitialize();
 	bool ImageInitialize();
 	void Process(const RealtimeSourceConfig& cfg);
@@ -127,7 +127,7 @@ struct BufferT : GfxBuffer {
 	using NativeProgram = typename Gfx::NativeProgram;
 	using NativeColorBufferConstRef = typename Gfx::NativeColorBufferConstRef;
 	
-	RTTI_DECL1(BufferT, GfxBuffer)
+	//RTTI_DECL1(BufferT, GfxBuffer)
 	
 	
 	enum {
@@ -169,14 +169,14 @@ struct BufferT : GfxBuffer {
 	
 	BufferT() {}
 	
-	void Visit(RuntimeVisitor& vis) override {vis & env;}
+	void Visit(Vis& vis) override {vis & env;}
 	void AddLink(String s) {if (!s.IsEmpty()) link_ids << s;}
 	
 	
 public:
 	void ClearRef() {env.Clear();}
 	void Update(double dt);
-	bool Initialize(AtomBase& a, const Script::WorldState& ws);
+	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_data_states);
 	bool PostInitialize();
 	bool InitializeRenderer();
@@ -204,6 +204,6 @@ public:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

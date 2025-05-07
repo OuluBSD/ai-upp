@@ -1,7 +1,7 @@
 #ifndef _IGraphics_GlobalApi_h_
 #define _IGraphics_GlobalApi_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 inline void Begin(PrimType type) {}
@@ -51,6 +51,6 @@ inline void DepthRange(Float near, Float far) {}
 
 inline void MultiTexCoord(TexArb target, Gxf s, Gxf t, Gxf r, Gxf q) {}
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

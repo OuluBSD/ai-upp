@@ -41,7 +41,7 @@ VfsPath::VfsPath(VfsPath&& path) {
 	parts = pick(path.parts);
 }
 
-void VfsPath::Visit(Visitor& v) {
+void VfsPath::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("str", str)
 		("parts", parts);

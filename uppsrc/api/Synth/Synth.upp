@@ -13,7 +13,7 @@ uses(LV2) plugin/lilv;
 library(FLUIDSYNTH) fluidsynth;
 
 file
-	ISynth.h,
+	Synth.h,
 	Soft.cpp,
 	Fluidsynth.cpp,
 	FmSynth.cpp,

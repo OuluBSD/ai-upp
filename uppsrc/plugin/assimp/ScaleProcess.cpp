@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "ScaleProcess.h"
 
-#include <ports/assimp/scene.h>
-#include <ports/assimp/postprocess.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/postprocess.h>
 
 namespace Assimp {
 

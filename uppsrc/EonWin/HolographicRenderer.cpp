@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -326,4 +326,4 @@ void HolographicRenderer::OnCameraRemoved(
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

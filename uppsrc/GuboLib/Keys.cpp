@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 const static VectorMap<dword, dword> SDL_key_map = {
 //	{ SDLK_BACKSPACE, K_BACK        },
@@ -143,6 +143,6 @@ dword fbKEYtoK(dword chr)
 	return chr;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

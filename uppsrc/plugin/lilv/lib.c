@@ -5,8 +5,8 @@
 
 #include "lilv.h"
 #include "lv2/core/lv2.h"
-#include <ports/serd/serd.h>
-#include <ports/zix/tree.h>
+#include <plugin/serd/serd.h>
+#include <plugin/zix/tree.h>
 
 #ifndef _WIN32
 #  include <dlfcn.h>

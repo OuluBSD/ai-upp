@@ -4,9 +4,9 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/serd/serd.h>
-#include <ports/sord/sord.h>
-#include <ports/zix/tree.h>
+#include <plugin/serd/serd.h>
+#include <plugin/sord/sord.h>
+#include <plugin/zix/tree.h>
 
 #include "lv2/core/lv2.h"
 #include "lv2/ui/ui.h"

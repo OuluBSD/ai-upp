@@ -4,7 +4,7 @@
 #include <GuboCore/GuboCore.h>
 #endif
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool GeomInteraction::do_debug_draw = false;
@@ -309,4 +309,4 @@ GeomInteraction* GeomInteraction::FindProxy() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

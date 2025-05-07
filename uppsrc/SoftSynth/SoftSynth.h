@@ -1,12 +1,12 @@
 #ifndef _SoftSynth_SoftSynth_h_
 #define _SoftSynth_SoftSynth_h_
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include <MidiFile/MidiFile.h>
 #undef Status
 
-#define NAMESPACE_SOFTSYNTH_BEGIN NAMESPACE_TOPSIDE_BEGIN namespace SoftSynth {
-#define NAMESPACE_SOFTSYNTH_END   NAMESPACE_TOPSIDE_END }
+#define NAMESPACE_SOFTSYNTH_BEGIN NAMESPACE_UPP namespace SoftSynth {
+#define NAMESPACE_SOFTSYNTH_END   END_UPP_NAMESPACE }
 
 
 #if CPU_ARM

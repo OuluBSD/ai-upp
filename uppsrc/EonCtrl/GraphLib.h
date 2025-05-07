@@ -42,7 +42,7 @@ class GraphLayout : public Graph, public T, public Ctrl {
 	Rect cached_rect;
 	
 public:
-	RTTI_DECL1(GraphLayout<T>, Ctrl)
+	//RTTI_DECL1(GraphLayout<T>, Ctrl)
 	typedef GraphLayout<T> CLASSNAME;
 	GraphLayout() :
 		rend(static_cast<Graph&>(*this)),

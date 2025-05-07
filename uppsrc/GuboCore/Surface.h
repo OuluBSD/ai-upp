@@ -2,13 +2,13 @@
 #define _GuboCore_Surface_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 class Absolute2D;
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class Surface;
 
@@ -28,7 +28,7 @@ protected:
 	void SetWithMouse(SurfaceFrame* c);
 	
 public:
-	RTTI_DECL1(SurfaceFrame, GeomInteraction2D)
+	//RTTI_DECL1(SurfaceFrame, GeomInteraction2D)
 	
 	virtual void FramePaint(Draw& w, const Rect& r) {}
 	/*virtual void FrameLayout(Rect& r) = 0;
@@ -89,7 +89,7 @@ class Surface :
 {
 	
 public:
-	RTTI_DECL1(Surface, GeomInteraction2D)
+	//RTTI_DECL1(Surface, GeomInteraction2D)
 	
 protected:
 	static  int       LoopLevel;
@@ -190,7 +190,7 @@ public:
 };
 
 class EmptySpaceSurface : public Surface {
-	RTTI_DECL1(EmptySpaceSurface, Surface)
+	//RTTI_DECL1(EmptySpaceSurface, Surface)
 	
 };
 
@@ -199,7 +199,7 @@ class EmptySpaceSurface : public Surface {
 class ParentSurface : public Surface {
 	
 public:
-	RTTI_DECL1(ParentSurface, Surface)
+	//RTTI_DECL1(ParentSurface, Surface)
 	
 	
 	
@@ -211,6 +211,6 @@ public:
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

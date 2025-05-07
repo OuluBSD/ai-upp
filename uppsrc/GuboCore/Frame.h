@@ -1,7 +1,7 @@
 #ifndef _GuboCore_Frame_h_
 #define _GuboCore_Frame_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class Gubo;
@@ -14,7 +14,7 @@ protected:
 	Gubo* gubo = 0;
 	
 public:
-	RTTI_DECL1(GuboFrame, GeomInteraction3D)
+	//RTTI_DECL1(GuboFrame, GeomInteraction3D)
 	
 	virtual void FrameLayout(Cubf& r) = 0;
 	virtual void FrameAddSize(Volf& sz) = 0;
@@ -76,6 +76,6 @@ public:
 /*GuboFrame& NullFrame();
 GuboFrame& InsetFrame();*/
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

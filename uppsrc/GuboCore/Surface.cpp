@@ -1,7 +1,7 @@
 #include "GuboCore.h"
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void DebugMainLoop();
 
@@ -637,8 +637,7 @@ void Surface::PaintAll(bool b) {
 void Surface::InitFB() {
 	SetStdFont(ScreenSans(12));
 	
-	using namespace TS;
-	using namespace TS::Parallel;
+	using namespace Upp;
 	
 	Machine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
@@ -662,4 +661,4 @@ void Surface::SetDesktopSize(Size sz) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

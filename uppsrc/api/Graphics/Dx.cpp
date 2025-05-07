@@ -1,8 +1,8 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 #ifdef flagDX11
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template<class Gfx> void D11GfxT<Gfx>::BindProgramPipeline(NativePipeline& pipeline) {TODO}
@@ -169,6 +169,6 @@ void DxGfx::SetWindowPosition(NativeWindow& win, Point pt) {TODO}
 void DxGfx::SetWindowSize(NativeWindow& win, Size sz) {TODO}
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

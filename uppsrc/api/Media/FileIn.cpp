@@ -1,6 +1,6 @@
-#include "IMedia.h"
+#include "Media.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -386,7 +386,7 @@ void FileChannelT<Backend>::ClearDevice() {
 }
 
 template <class Backend>
-bool FileChannelT<Backend>::OpenVideo(AVFormatContext* file_fmt_ctx, Format& fmt) {
+bool FileChannelT<Backend>::OpenVideo(AVFormatContext* file_fmt_ctx, ValueFormat& fmt) {
 	Clear();
 	fmt.Clear();
 	fmt.vd = VD(CENTER,VIDEO);
@@ -417,7 +417,7 @@ bool FileChannelT<Backend>::OpenVideo(AVFormatContext* file_fmt_ctx, Format& fmt
 }
 
 template <class Backend>
-bool FileChannelT<Backend>::OpenAudio(AVFormatContext* file_fmt_ctx, Format& fmt) {
+bool FileChannelT<Backend>::OpenAudio(AVFormatContext* file_fmt_ctx, ValueFormat& fmt) {
 	Clear();
 	fmt.Clear();
 	fmt.vd = VD(CENTER,AUDIO);
@@ -610,4 +610,4 @@ MEDIA_EXCPLICIT_INITIALIZE_CLASS(VideoFrameQueueT)
 MEDIA_EXCPLICIT_INITIALIZE_CLASS(FileChannelT)
 MEDIA_EXCPLICIT_INITIALIZE_CLASS(FileInputT)
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

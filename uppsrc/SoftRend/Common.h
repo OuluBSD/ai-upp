@@ -1,7 +1,7 @@
 #ifndef _SoftRend_Common_h_
 #define _SoftRend_Common_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
  struct VertexShaderArgs;
@@ -9,8 +9,8 @@ NAMESPACE_TOPSIDE_BEGIN
 
 
 
-struct SoftShaderBase : RTTIBase {
-	RTTI_DECL0(SoftShaderBase)
+struct SoftShaderBase {
+	//RTTI_DECL0(SoftShaderBase)
 	Index<dword> used_uniforms;
 	
 	SoftShaderBase() {
@@ -33,7 +33,7 @@ struct SoftShaderBase : RTTIBase {
 
 struct PassthroughSoftShaderBase : SoftShaderBase {
 	using Base = SoftShaderBase;
-	RTTI_DECL1(PassthroughSoftShaderBase, Base);
+	//RTTI_DECL1(PassthroughSoftShaderBase, Base);
 	
 	void Process(VertexShaderArgs& args) override {}
 	void Process(FragmentShaderArgs& args) override {}
@@ -95,14 +95,14 @@ struct GenericFragmentShaderArgs {
 
 // IGraphics
 
-struct GfxVertexShaderArgs : RTTIBase {
-	RTTI_DECL0(GfxVertexShaderArgs)
+struct GfxVertexShaderArgs {
+	//RTTI_DECL0(GfxVertexShaderArgs)
 	
 	virtual ~GfxVertexShaderArgs() {}
 };
 
-struct GfxFragmentShaderArgs : RTTIBase {
-	RTTI_DECL0(GfxFragmentShaderArgs)
+struct GfxFragmentShaderArgs {
+	//RTTI_DECL0(GfxFragmentShaderArgs)
 	
 	virtual ~GfxFragmentShaderArgs() {}
 };
@@ -113,7 +113,7 @@ struct GfxFragmentShaderArgs : RTTIBase {
 
 struct VertexShaderArgs : GfxVertexShaderArgs {
 	using Base = VertexShaderArgs;
-	RTTI_DECL1(VertexShaderArgs, GfxVertexShaderArgs)
+	//RTTI_DECL1(VertexShaderArgs, GfxVertexShaderArgs)
 	
 	
 	GenericShaderArgs* generic = 0;
@@ -125,7 +125,7 @@ struct VertexShaderArgs : GfxVertexShaderArgs {
 
 
 struct FragmentShaderArgs : GfxFragmentShaderArgs {
-	RTTI_DECL1(FragmentShaderArgs, GfxFragmentShaderArgs)
+	//RTTI_DECL1(FragmentShaderArgs, GfxFragmentShaderArgs)
 	
 	
 	GenericShaderArgs* generic = 0;
@@ -156,6 +156,6 @@ struct FragmentShaderArgs : GfxFragmentShaderArgs {
 	}
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

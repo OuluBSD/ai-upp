@@ -1,7 +1,7 @@
-#include "Statistics.h"
+#include "Core.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 Vector<int> RandomNumberGenerator::Permutation(int num) {
 	Vector<int> v;
@@ -11,4 +11,4 @@ Vector<int> RandomNumberGenerator::Permutation(int num) {
 	return v;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

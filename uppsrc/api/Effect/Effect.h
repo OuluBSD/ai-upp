@@ -4,10 +4,10 @@
 #ifndef _IEffect_IEffect_h_
 #define _IEffect_IEffect_h_
 
-#include <AudioCore/AudioCore.h>
-#include <ParallelLib/ParallelLib.h>
+#include <SoftAudio/SoftAudio.h>
+#include <Eon/Eon.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define FX_CLS_LIST(x) \
 	FX_CLS(Effect, x) \
@@ -50,8 +50,8 @@ struct FxLV2 {
 #endif
 
 struct FxEffect : public Atom {
-	RTTI_DECL1(FxEffect, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(FxEffect, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~FxEffect() {}
 };
@@ -59,13 +59,13 @@ struct FxEffect : public Atom {
 
 template <class Fx> struct EffectEffectT : FxEffect {
 	using CLASSNAME = EffectEffectT<Fx>;
-	RTTI_DECL1(CLASSNAME, FxEffect)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, FxEffect)
+	void Visit(Vis& vis) override {
 		if (dev) Fx::Effect_Visit(*dev, *this, vis);
 		vis.VisitThis<FxEffect>(this);
 	}
 	typename Fx::NativeEffect* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Fx::Effect_Create(dev))
 			return false;
 		if (!Fx::Effect_Initialize(*dev, *this, ws))
@@ -109,6 +109,6 @@ using AudioCoreEffect = EffectEffectT<FxAudioCore>;
 using LV2Effect = EffectEffectT<FxLV2>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

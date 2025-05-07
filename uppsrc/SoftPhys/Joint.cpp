@@ -1,7 +1,7 @@
 #include "SoftPhys.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
@@ -83,4 +83,4 @@ float Joint::GetAngle() const {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

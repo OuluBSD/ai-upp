@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 // Function that reads from a binary file asynchronously.
@@ -130,4 +130,4 @@ inline mat4 ToTs(const XMMATRIX& v) {
 	return m;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

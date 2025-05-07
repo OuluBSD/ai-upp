@@ -758,7 +758,7 @@ void ApplyCharStyle(RichPara::CharFormat& format, const RichPara::CharFormat& f0
 		format.paper = newstyle.paper;
 }
 
-void RichPara::ApplyStyle(const Format& newstyle)
+void RichPara::ApplyStyle(const ValueFormat& newstyle)
 {
 	CharFormat f0 = part.GetCount() ? part[0].format : format;
 	for(int i = 0; i < part.GetCount(); i++)

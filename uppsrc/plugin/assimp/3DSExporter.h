@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "StreamWriter.h"
-#include <ports/assimp/material.h>
+#include <plugin/assimp/material.h>
 
 struct aiScene;
 struct aiNode;

@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 DrawCommandImageRenderer::DrawCommandImageRenderer() {
@@ -84,4 +84,4 @@ DrawCommand* DrawCommandImageRenderer::MoveEnd(DrawCommand* end) {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

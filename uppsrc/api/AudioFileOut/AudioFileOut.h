@@ -4,9 +4,9 @@
 #ifndef _IAudioFileOut_IAudioFileOut_h_
 #define _IAudioFileOut_IAudioFileOut_h_
 
-#include <ParallelLib/ParallelLib.h>
+#include <Eon/Eon.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define AFO_CLS_LIST(x) \
 	AFO_CLS(Sink, x) \
@@ -34,8 +34,8 @@ struct AFOCoreAudio {
 };
 
 struct AFOSink : public Atom {
-	RTTI_DECL1(AFOSink, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(AFOSink, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~AFOSink() {}
 };
@@ -43,13 +43,13 @@ struct AFOSink : public Atom {
 
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
-	RTTI_DECL1(CLASSNAME, AFOSink)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, AFOSink)
+	void Visit(Vis& vis) override {
 		if (dev) AFO::Sink_Visit(*dev, *this, vis);
 		vis.VisitThis<AFOSink>(this);
 	}
 	typename AFO::NativeSink* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!AFO::Sink_Create(dev))
 			return false;
 		if (!AFO::Sink_Initialize(*dev, *this, ws))
@@ -90,6 +90,6 @@ template <class AFO> struct AudioFileOutSinkT : AFOSink {
 
 using CoreAudioSink = AudioFileOutSinkT<AFOCoreAudio>;
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

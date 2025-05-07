@@ -3,11 +3,11 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace Ecs {
 	class Geom2DComponent;
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 NAMESPACE_UPP
@@ -18,7 +18,7 @@ class Absolute2D :
 {
 	
 public:
-	RTTI_DECL1(Absolute2D, Absolute2DInterface)
+	//RTTI_DECL1(Absolute2D, Absolute2DInterface)
 	Absolute2D();
 	virtual ~Absolute2D() {}
 	
@@ -30,20 +30,20 @@ public:
 	String						GetTitle() const override;
 	
 	
-	TS::Ecs::Geom2DComponent* GetWindow();
-	TS::Ecs::Windows* GetWindows();
+	Upp::Ecs::Geom2DComponent* GetWindow();
+	Upp::Ecs::Windows* GetWindows();
 	
 	
 protected:
-	TS::Ecs::Geom2DComponent* cw = NULL;
+	Upp::Ecs::Geom2DComponent* cw = NULL;
 	int id;
 	
 	
 public:
-	void Init(TS::Ecs::Geom2DComponent* cw, int id);
+	void Init(Upp::Ecs::Geom2DComponent* cw, int id);
 	
-	TS::Ecs::Geom2DComponent* GetWindow() const {return cw;}
-	TS::Ecs::WindowManager* GetWindowManager() const;
+	Upp::Ecs::Geom2DComponent* GetWindow() const {return cw;}
+	Upp::Ecs::WindowManager* GetWindowManager() const;
 	
 };
 

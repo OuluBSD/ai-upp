@@ -24,7 +24,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <LocalHMD/LocalHMD.h>
+#include <SoftHMD/SoftHMD.h>
 
 #define flagDEBUG_SERVER 1
 

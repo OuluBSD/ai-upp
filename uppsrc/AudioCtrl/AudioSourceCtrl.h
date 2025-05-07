@@ -1,7 +1,7 @@
 #ifndef _AudioCtrl_AudioSourceCtrl_h_
 #define _AudioCtrl_AudioSourceCtrl_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class AudioSourceCtrl : public InterfaceCtrl {
 	StaticRect s;
@@ -14,6 +14,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

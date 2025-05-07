@@ -3,8 +3,8 @@
 
 
 
-struct StaticIfaceBackend : RTTIBase {
-	RTTI_DECL0(StaticIfaceBackend)
+struct StaticIfaceBackend {
+	//RTTI_DECL0(StaticIfaceBackend)
 	StaticIfaceBackend() {}
 	virtual ~StaticIfaceBackend() {}
 	

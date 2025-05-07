@@ -1,7 +1,7 @@
 #include "AudioCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN;
+NAMESPACE_UPP;
 namespace Portaudio {
 
 AudioDevice::AudioDevice(int n): index(n){
@@ -165,7 +165,7 @@ AudioOutStream AudioOutStream::OpenDefault() {
 
 
 }
-NAMESPACE_TOPSIDE_END;
+END_UPP_NAMESPACE;
 
 
 

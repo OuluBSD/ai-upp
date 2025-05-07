@@ -1,7 +1,7 @@
 #ifndef _GuboCore_Util_h_
 #define _GuboCore_Util_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void EnterGuboMutex();
 bool TryEnterGuboMutex();
@@ -26,6 +26,6 @@ public:
 	~GuboUnlock() { EnterGuboMutex(n); }
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

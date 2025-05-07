@@ -2,6 +2,7 @@ description "\377B128,0,0";
 
 file
 	Core.h,
+	Compat.h,
 	TypeTraits.h,
 	String.h,
 	Ctrl.h,
@@ -20,9 +21,6 @@ file
 	Coordinate.h,
 	Coordinate.cpp,
 	Chrono.h,
-	FFT.h,
-	FFT1.cpp,
-	FFT2.cpp,
 	Record.h,
 	Record.cpp,
 	Color.h,

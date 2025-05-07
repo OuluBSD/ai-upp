@@ -1,6 +1,6 @@
 #include "GuboLib.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #define LDUMP(x) //DDUMP(x)
 
@@ -38,4 +38,4 @@ void AtomVirtualGui3D::SetMouseCursor(const Image& image)
 		wins->OverrideCursor(image);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

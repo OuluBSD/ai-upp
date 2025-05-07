@@ -1,15 +1,12 @@
-#include "IVolumetric.h"
-#include <SerialCore/SerialCore.h>
+#include "Volumetric.h"
 
 
-
-
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct VolRawByte::NativeStaticSource {
     Vector<byte> values;
-    Format fmt;
+    ValueFormat fmt;
     String filepath;
     Size3 sz;
     int stride;
@@ -26,7 +23,7 @@ void VolRawByte::StaticSource_Destroy(NativeStaticSource*& dev) {
 	delete dev;
 }
 
-void VolRawByte::StaticSource_Visit(NativeStaticSource& dev, AtomBase&, RuntimeVisitor& vis) {
+void VolRawByte::StaticSource_Visit(NativeStaticSource& dev, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -107,7 +104,7 @@ bool VolRawByte__LoadFile(VolRawByte::NativeStaticSource& dev, AtomBase& a) {
 	return true;
 }
 
-bool VolRawByte::StaticSource_Initialize(NativeStaticSource& dev, AtomBase& a, const Script::WorldState& ws) {
+bool VolRawByte::StaticSource_Initialize(NativeStaticSource& dev, AtomBase& a, const Eon::WorldState& ws) {
 	dev.vflip = false;
 	
 	String arg_filepath = ws.Get(".filepath");
@@ -167,5 +164,5 @@ bool VolRawByte::StaticSource_IsReady(NativeStaticSource& dev, AtomBase&, Packet
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 

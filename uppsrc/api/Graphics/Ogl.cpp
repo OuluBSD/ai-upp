@@ -1,8 +1,8 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 #ifdef flagOGL
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -1037,6 +1037,6 @@ template struct OglGfxT<SdlOglGfx>;
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

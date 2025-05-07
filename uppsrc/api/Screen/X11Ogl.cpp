@@ -1,9 +1,9 @@
-#include "IScreen.h"
+#include "Screen.h"
 
 
 		
 #if defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct ScrX11Ogl::NativeContext {
     ::Window win;
@@ -99,11 +99,11 @@ void ScrX11Ogl::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void ScrX11Ogl::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrX11Ogl::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	vis % dev.accel;
 }
 
-bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<X11OglContext>(1);
 	if (!ctx_) { LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -419,8 +419,8 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		XFlush(display);
 	}
 	
-	TS::default_width = width;
-	TS::default_height = height;
+	Upp::default_width = width;
+	Upp::default_height = height;
 	
 	XSync(display, False);
 	
@@ -487,7 +487,7 @@ bool ScrX11Ogl::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSour
 	return true;
 }
 
-bool ScrX11Ogl::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrX11Ogl::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	return false;
 }
 
@@ -508,11 +508,11 @@ void ScrX11Ogl::Context_Destroy(NativeContext*& dev) {
 	delete dev;
 }
 
-void ScrX11Ogl::Context_Visit(NativeContext& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrX11Ogl::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrX11Ogl::Context_Initialize(NativeContext& ctx, AtomBase& a, const Script::WorldState& ws) {
+bool ScrX11Ogl::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
 	ctx.running = true;
 	return true;
 }
@@ -545,7 +545,7 @@ void ScrX11Ogl::Context_Finalize(NativeContext& ctx, AtomBase& a, RealtimeSource
 	
 }
 
-bool ScrX11Ogl::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrX11Ogl::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	return false;
 }
 
@@ -556,9 +556,9 @@ bool ScrX11Ogl::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 #define ABBR Ogl
 #define X11IMPL 1
-#include "Impl.inl"
+#include "mpl.inl"
 #undef ABBR
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

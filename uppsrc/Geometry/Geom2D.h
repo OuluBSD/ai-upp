@@ -34,7 +34,7 @@ struct Circle : Moveable<Circle> {
 };
 
 
-// Note: TS::TS::Rectangle differs from TS::Rect:
+// Note: Upp::Upp::Rectangle differs from Upp::Rect:
 //	- it's origin + size, not min + max
 //  - it's positive y value upwards, not downwards (as is easier in 2d gui)
 

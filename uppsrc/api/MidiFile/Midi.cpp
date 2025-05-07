@@ -1,7 +1,6 @@
-#include "IMidiFile.h"
-#include <SerialLib/SerialLib.h>
+#include "MidiFile.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -9,7 +8,7 @@ MidiFileReaderAtom::MidiFileReaderAtom() {
 	
 }
 
-bool MidiFileReaderAtom::Initialize(const Script::WorldState& ws) {
+bool MidiFileReaderAtom::Initialize(const Eon::WorldState& ws) {
 	close_machine = ws.GetBool(".close_machine", false);
 	drum_side_ch = ws.GetInt(".drum.ch", -1);
 	use_global_time = ws.GetBool(".use.global.time", false);
@@ -259,7 +258,7 @@ MidiNullAtom::MidiNullAtom() {
 	
 }
 
-bool MidiNullAtom::Initialize(const Script::WorldState& ws) {
+bool MidiNullAtom::Initialize(const Eon::WorldState& ws) {
 	verbose = ws.GetBool(".verbose", false);
 	
 	return true;
@@ -297,4 +296,4 @@ bool MidiNullAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

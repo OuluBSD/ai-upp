@@ -47,10 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef ASSIMP_BUILD_NO_NDO_IMPORTER
 #include "NDOLoader.h"
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 #include "StreamReader.h"
 #include <map>
 

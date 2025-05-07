@@ -2,7 +2,7 @@
 #define _IMedia_DeviceManager_Win32_h_
 #if HAVE_WIN32_DEVMGR
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class WIN32_Device {
@@ -33,7 +33,7 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

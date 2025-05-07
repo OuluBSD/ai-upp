@@ -1,12 +1,12 @@
 #include "SoftRend.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
 
 SoftRend::SoftRend() {
-	viewport_size = Size(TS::default_width, TS::default_height);
+	viewport_size = Size(Upp::default_width, Upp::default_height);
 	//SET_ZERO(input_texture);
 }
 
@@ -577,4 +577,4 @@ void SoftRend::UnlockTextureToSurface(SoftFramebuffer* tex) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

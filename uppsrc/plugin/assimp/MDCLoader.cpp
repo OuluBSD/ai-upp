@@ -49,11 +49,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MDCLoader.h"
 #include "MD3FileData.h"
 #include "MDCNormalTable.h" // shouldn't be included by other units
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/Importer.hpp>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/Importer.hpp>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 #include <memory>
 
 

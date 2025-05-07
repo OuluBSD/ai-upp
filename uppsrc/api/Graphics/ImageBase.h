@@ -1,7 +1,7 @@
 #ifndef _IGraphics_Image_h_
 #define _IGraphics_Image_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -16,13 +16,13 @@ struct ImageBaseAtomT :
 	bool						swap_top_bottom = false;
 	
 public:
-	RTTI_DECL1(ImageBaseAtomT, Atom)
+	//RTTI_DECL1(ImageBaseAtomT, Atom)
 	COPY_PANIC(ImageBaseAtomT)
 	
 	ImageBaseAtomT();
 	
-	void			Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
-	bool			Initialize(const Script::WorldState& ws) override;
+	void			Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
@@ -48,6 +48,6 @@ using SdlOglImageBase = ImageBaseAtomT<SdlOglGfx>;
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

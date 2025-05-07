@@ -1,10 +1,10 @@
 #ifndef _ProjectCleaner_ProjectCleaner_h_
 #define _ProjectCleaner_ProjectCleaner_h_
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -94,9 +94,9 @@ struct CodeItem : Moveable<CodeItem> {
 	}
 };
 
-NAMESPACE_TOPSIDE_END
-int ClangToolMain(int argc, const char **argv, UPP::Vector<TS::CodeItem>& out);
-NAMESPACE_TOPSIDE_BEGIN
+END_UPP_NAMESPACE
+int ClangToolMain(int argc, const char **argv, UPP::Vector<Upp::CodeItem>& out);
+NAMESPACE_UPP
 
 void CppImportTool(String path, const Vector<String>& includes, const Vector<String>& defines, Vector<CodeItem>& out);
 void CppImportToolFork(String path, const Vector<String>& includes, const Vector<String>& defines, Vector<CodeItem>& out);
@@ -193,6 +193,6 @@ struct UppProjectProcessor {
 	Callback1<int> WhenLoaded;
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

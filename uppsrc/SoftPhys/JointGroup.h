@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_JointGroup_h_
 #define _SoftPhys_JointGroup_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct JointGroup : Object {
-	RTTI_DECL1(JointGroup, Object)
+	//RTTI_DECL1(JointGroup, Object)
 	using Object::Object;
 	
 	World* world = 0;
@@ -15,13 +15,13 @@ struct JointGroup : Object {
 	
 	JointGroup();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	void Detach();
 	
 };
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

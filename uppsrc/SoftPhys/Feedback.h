@@ -1,22 +1,22 @@
 #ifndef _SoftPhys_Feedback_h_
 #define _SoftPhys_Feedback_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Feedback : Object {
-	RTTI_DECL1(Feedback, Object)
+	//RTTI_DECL1(Feedback, Object)
 	using Object::Object;
 	
 	
 	Feedback() {}
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 };
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

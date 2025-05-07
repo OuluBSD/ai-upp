@@ -4,10 +4,10 @@
 #ifndef _IHal_IHal_h_
 #define _IHal_IHal_h_
 
-#include <ParallelLib/ParallelLib.h>
-#include <IGraphics/IGraphics.h>
+#include <Eon/Eon.h>
+#include <api/Graphics/Graphics.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define HAL_CLS_LIST(x) \
 	HAL_CLS(AudioSinkDevice, x) \
@@ -92,30 +92,30 @@ struct HalHolo {
 #endif
 
 struct HalAudioSinkDevice : public Atom {
-	RTTI_DECL1(HalAudioSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalAudioSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalAudioSinkDevice() {}
 };
 
 struct HalCenterVideoSinkDevice : public Atom {
-	RTTI_DECL1(HalCenterVideoSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalCenterVideoSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalCenterVideoSinkDevice() {}
 };
 
 struct HalCenterFboSinkDevice : public Atom {
-	RTTI_DECL1(HalCenterFboSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalCenterFboSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalCenterFboSinkDevice() {}
 };
 
 #if defined flagOGL
 struct HalOglVideoSinkDevice : public Atom {
-	RTTI_DECL1(HalOglVideoSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalOglVideoSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalOglVideoSinkDevice() {}
 };
@@ -123,31 +123,31 @@ struct HalOglVideoSinkDevice : public Atom {
 
 #if defined flagDX12
 struct HalD12VideoSinkDevice : public Atom {
-	RTTI_DECL1(HalD12VideoSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalD12VideoSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalD12VideoSinkDevice() {}
 };
 #endif
 
 struct HalContextBase : public Atom {
-	RTTI_DECL1(HalContextBase, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalContextBase, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalContextBase() {}
 };
 
 struct HalEventsBase : public Atom {
-	RTTI_DECL1(HalEventsBase, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalEventsBase, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalEventsBase() {}
 };
 
 #if defined flagUPPCORE
 struct HalUppEventsBase : public Atom {
-	RTTI_DECL1(HalUppEventsBase, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalUppEventsBase, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalUppEventsBase() {}
 };
@@ -155,8 +155,8 @@ struct HalUppEventsBase : public Atom {
 
 #if (defined flagOGL && defined flagUPPCORE)
 struct HalUppOglDevice : public Atom {
-	RTTI_DECL1(HalUppOglDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(HalUppOglDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~HalUppOglDevice() {}
 };
@@ -165,13 +165,13 @@ struct HalUppOglDevice : public Atom {
 
 template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	using CLASSNAME = HalAudioSinkDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::AudioSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalAudioSinkDevice>(this);
 	}
 	typename Hal::NativeAudioSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::AudioSinkDevice_Create(dev))
 			return false;
 		if (!Hal::AudioSinkDevice_Initialize(*dev, *this, ws))
@@ -220,13 +220,13 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 };
 template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice {
 	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalCenterVideoSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalCenterVideoSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalCenterVideoSinkDevice>(this);
 	}
 	typename Hal::NativeCenterVideoSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::CenterVideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::CenterVideoSinkDevice_Initialize(*dev, *this, ws))
@@ -275,13 +275,13 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 };
 template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalCenterFboSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalCenterFboSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::CenterFboSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalCenterFboSinkDevice>(this);
 	}
 	typename Hal::NativeCenterFboSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::CenterFboSinkDevice_Create(dev))
 			return false;
 		if (!Hal::CenterFboSinkDevice_Initialize(*dev, *this, ws))
@@ -331,13 +331,13 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 #if defined flagOGL
 template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalOglVideoSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalOglVideoSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalOglVideoSinkDevice>(this);
 	}
 	typename Hal::NativeOglVideoSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::OglVideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::OglVideoSinkDevice_Initialize(*dev, *this, ws))
@@ -388,13 +388,13 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 #if defined flagDX12
 template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalD12VideoSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalD12VideoSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalD12VideoSinkDevice>(this);
 	}
 	typename Hal::NativeD12VideoSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::D12VideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::D12VideoSinkDevice_Initialize(*dev, *this, ws))
@@ -444,13 +444,13 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 #endif
 template <class Hal> struct HalContextBaseT : HalContextBase {
 	using CLASSNAME = HalContextBaseT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalContextBase)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalContextBase)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::ContextBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalContextBase>(this);
 	}
 	typename Hal::NativeContextBase* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::ContextBase_Create(dev))
 			return false;
 		if (!Hal::ContextBase_Initialize(*dev, *this, ws))
@@ -499,13 +499,13 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 };
 template <class Hal> struct HalEventsBaseT : HalEventsBase {
 	using CLASSNAME = HalEventsBaseT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalEventsBase)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalEventsBase)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::EventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalEventsBase>(this);
 	}
 	typename Hal::NativeEventsBase* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::EventsBase_Create(dev))
 			return false;
 		if (!Hal::EventsBase_Initialize(*dev, *this, ws))
@@ -555,13 +555,13 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 #if defined flagUPPCORE
 template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalUppEventsBase)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalUppEventsBase)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::UppEventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalUppEventsBase>(this);
 	}
 	typename Hal::NativeUppEventsBase* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::UppEventsBase_Create(dev))
 			return false;
 		if (!Hal::UppEventsBase_Initialize(*dev, *this, ws))
@@ -612,13 +612,13 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 #if (defined flagOGL && defined flagUPPCORE)
 template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
-	RTTI_DECL1(CLASSNAME, HalUppOglDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, HalUppOglDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Hal::UppOglDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalUppOglDevice>(this);
 	}
 	typename Hal::NativeUppOglDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Hal::UppOglDevice_Create(dev))
 			return false;
 		if (!Hal::UppOglDevice_Initialize(*dev, *this, ws))
@@ -706,6 +706,6 @@ using HoloUppOglDevice = HalUppOglDeviceT<HalHolo>;
 #endif
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

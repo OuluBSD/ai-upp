@@ -1,6 +1,6 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #if 0
 CtrlGeomProxy::CtrlGeomProxy() {}
@@ -149,16 +149,16 @@ Image RenderTextBlended(Font font, String s, Color ink) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 // PdfDraw is POSIX only package
 #ifdef flagWIN32
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 void __cdecl PdfDraw__initializer() {
 	
 }
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 #endif

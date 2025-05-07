@@ -8,7 +8,7 @@
 #include <Core2/Core.h>
 #include <Backend/Backend.h>
 
-#include <ports/enet/EnetService.h>
+#include <plugin/enet/EnetService.h>
 
 #if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
 	#include <cxxabi.h>

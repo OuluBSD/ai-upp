@@ -3,7 +3,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace Serial;
 
 class RenderingSystem :
@@ -37,7 +37,7 @@ protected:
     
 public:
 	using Base = System<RenderingSystem>;
-	RTTI_DECL1(RenderingSystem, Base)
+	//RTTI_DECL1(RenderingSystem, Base)
     SYS_CTOR(RenderingSystem)
 	SYS_DEF_VISIT
 	
@@ -58,7 +58,7 @@ public:
 
 using RenderingSystemRef = Ref<RenderingSystem>;
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

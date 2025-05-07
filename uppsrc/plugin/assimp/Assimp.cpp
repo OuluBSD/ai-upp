@@ -43,12 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @brief Implementation of the Plain-C API
  */
 
-#include <ports/assimp/cimport.h>
-#include <ports/assimp/LogStream.hpp>
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/Importer.hpp>
-#include <ports/assimp/importerdesc.h>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/cimport.h>
+#include <plugin/assimp/LogStream.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/Importer.hpp>
+#include <plugin/assimp/importerdesc.h>
+#include <plugin/assimp/scene.h>
 
 #include "GenericProperty.h"
 #include "CInterfaceIOWrapper.h"

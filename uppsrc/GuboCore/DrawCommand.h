@@ -1,7 +1,7 @@
 #ifndef _GuboCore_DrawCommand_h_
 #define _GuboCore_DrawCommand_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 #define DRAWCMD3_LIST \
@@ -96,6 +96,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

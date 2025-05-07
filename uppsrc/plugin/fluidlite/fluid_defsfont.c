@@ -99,7 +99,7 @@ static long ovTell(void* datasource)
 
 #if SF3_SUPPORT == SF3_STB_VORBIS
 #define STB_VORBIS_HEADER_ONLY
-#include <ports/stb/stb_vorbis.c>
+#include <plugin/stb/stb_vorbis.c>
 #endif
 
 /***************************************************************

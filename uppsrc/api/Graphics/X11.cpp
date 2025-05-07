@@ -1,8 +1,8 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 #if defined flagSCREEN && defined flagPOSIXDESKTOP
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #if 0
 // TODO REMOVE CreateWindowAndRenderer etc when SDL2 tests works
@@ -93,6 +93,6 @@ void X11SwGfx::UnlockTextureToSurface(NativeTexture& tex) {
 }*/
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

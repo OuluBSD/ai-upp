@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -23,5 +23,5 @@ void ProgImage::SkipWindowCommands(bool b) {
 //SDLCPU_EXCPLICIT_INITIALIZE_CLASS(ProgImage)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 

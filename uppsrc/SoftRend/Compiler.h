@@ -1,7 +1,7 @@
 #ifndef _SoftRend_Compiler_h_
 #define _SoftRend_Compiler_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -15,6 +15,6 @@ struct SoftCompiler {
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

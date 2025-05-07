@@ -1,6 +1,6 @@
-#include "IMedia.h"
+#include "Media.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -88,4 +88,4 @@ void MediaStreamThreadT<Backend>::PaintOpenGL(GLuint active_tex) {
 MEDIA_EXCPLICIT_INITIALIZE_CLASS(MediaStreamThreadT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

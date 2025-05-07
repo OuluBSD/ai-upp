@@ -1,13 +1,13 @@
 #ifndef _Physics_FysClasses_h_
 #define _Physics_FysClasses_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 using namespace Parallel;
 
 
-struct FysNode : RTTIBase {
-	RTTI_DECL0(FysNode)
+struct FysNode {
+	//RTTI_DECL0(FysNode)
 	
 	virtual ~FysNode() {}
 	
@@ -16,7 +16,7 @@ struct FysNode : RTTIBase {
 };
 
 struct FysObject : FysNode {
-	RTTI_DECL1(FysObject, FysNode)
+	//RTTI_DECL1(FysObject, FysNode)
 	
 	virtual void LoadModel(GfxDataState& s) = 0;
 	virtual void Refresh() = 0;
@@ -24,17 +24,17 @@ struct FysObject : FysNode {
 };
 
 struct FysJoint : FysNode {
-	RTTI_DECL1(FysJoint, FysNode)
+	//RTTI_DECL1(FysJoint, FysNode)
 	
 };
 
 struct FysSpace : FysNode {
-	RTTI_DECL1(FysSpace, FysNode)
+	//RTTI_DECL1(FysSpace, FysNode)
 	
 };
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,9 +1,9 @@
-#include "EcsPhysics.h"
+#include "EonLib.h"
 
 #if 0
 #ifdef flagODE
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 void StaticBox::OnAttach() {
 	OdeObject::OnAttach();
@@ -16,7 +16,7 @@ void StaticBox::OnAttach() {
 	loader = mb;
 }
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

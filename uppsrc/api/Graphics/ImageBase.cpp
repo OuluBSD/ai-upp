@@ -1,9 +1,8 @@
-#include "IGraphics.h"
-#include <SerialMach/SerialMach.h>
+#include "Graphics.h"
 
 #ifdef flagSCREEN
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -14,7 +13,7 @@ ImageBaseAtomT<Gfx>::ImageBaseAtomT()
 }
 
 template <class Gfx>
-bool ImageBaseAtomT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	LOG(ws.ToString());
 	
 	String arg_filepath = ws.Get(".filepath");
@@ -151,6 +150,6 @@ Size ImageBaseAtomT<Gfx>::GetResolution() const {
 
 GFX_EXCPLICIT_INITIALIZE_CLASS(ImageBaseAtomT)
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

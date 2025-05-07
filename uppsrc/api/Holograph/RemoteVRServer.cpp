@@ -1,8 +1,8 @@
-#include "IHolograph.h"
+#include "Holograph.h"
 
 #if (defined flagLINUX) || (defined flagFREEBSD)
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct HoloRemoteVRServer::NativeSinkDevice {
@@ -22,11 +22,11 @@ void HoloRemoteVRServer::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void HoloRemoteVRServer::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, RuntimeVisitor& vis) {
+void HoloRemoteVRServer::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloRemoteVRServer::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HoloRemoteVRServer::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	String addr = ws.GetString(".addr", "127.0.0.1");
 	int port = ws.GetInt(".port", 7776);
 	
@@ -87,6 +87,6 @@ bool HoloRemoteVRServer::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase& a, 
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

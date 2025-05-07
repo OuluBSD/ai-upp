@@ -1,6 +1,6 @@
 #include "DesktopSuite.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void CtrlTester_Ctrl::Paint(Draw& d) {
 	clr = RandomColor(128, 128+32);
@@ -141,4 +141,4 @@ void GuiTesterApp::MouseWheel(Point p, int zdelta, dword keyflags) {
 	
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

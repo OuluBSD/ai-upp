@@ -2,7 +2,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 class ToolSystemBase;
@@ -27,7 +27,7 @@ class ToolboxSystem :
 public:
 	using Base = System<ToolboxSystem>;
     using System::System;
-    RTTI_DECL2(ToolboxSystem, Base, ISpatialInteractionListener)
+    //RTTI_DECL2(ToolboxSystem, Base, ISpatialInteractionListener)
 
     void AddToolSystem(ToolSystemBase& system);
     void RemoveToolSystem(ToolSystemBase& system);
@@ -73,5 +73,5 @@ private:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

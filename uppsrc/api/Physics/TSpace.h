@@ -1,7 +1,7 @@
 #ifndef _Physics_TSpace_h_
 #define _Physics_TSpace_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 template <class Fys>
@@ -15,7 +15,7 @@ protected:
 	bool is_root = false;
 	
 public:
-	RTTI_DECL1(SpaceT, Node)
+	//RTTI_DECL1(SpaceT, Node)
 	
 	
 	void OnAttach() override {
@@ -28,6 +28,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

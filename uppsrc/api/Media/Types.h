@@ -2,7 +2,7 @@
 #define _IMedia_Types_h_
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 #define MEDIA_CLS_LIST(m) \
@@ -137,7 +137,7 @@ struct FfmpegMedia : FfmpegT<FfmpegMedia> {
 	static bool InitParser(AVCodec& c, AVCodecParserContextRef& ctx);
 	static bool FindDecoder(AVFormatContext& ctx, AVCodec& c, int stream_i);
 	static AVCodecContextRef CreateCodecContext(AVCodec& c);
-	static void CopyFramePixels(const Format& fmt, const AVFrame& f, Vector<byte>& data);
+	static void CopyFramePixels(const ValueFormat& fmt, const AVFrame& f, Vector<byte>& data);
 	static ImgConvContextRef GetImgConvContextRef(AVCodecContextRef& ctx, Size sz);
 	static int CreateImage(uint8_t *video_dst_data[4], int video_dst_linesize[4], Size sz);
 	static void DeleteImgConvContextRef(ImgConvContextRef ctx);
@@ -165,6 +165,6 @@ struct V4L2OpenCVMedia : V4L2Media {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

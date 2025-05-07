@@ -257,6 +257,7 @@ double  Randomf();
 void  SeedRandom(dword *seed, int len);
 void  SeedRandom(dword seed);
 void  SeedRandom();
+void  GetSysSeedValues(uint64 *s);
 
 // Math utils
 

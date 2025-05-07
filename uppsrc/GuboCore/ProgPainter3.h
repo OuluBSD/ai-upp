@@ -1,7 +1,7 @@
 #ifndef _GuboCore_ProgPainter3_h_
 #define _GuboCore_ProgPainter3_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class ProgPainter3 : public SDraw3 {
@@ -22,7 +22,7 @@ class ProgPainter3 : public SDraw3 {
 	
 	
 public:
-	RTTI_DECL1(ProgPainter3, SDraw3);
+	//RTTI_DECL1(ProgPainter3, SDraw3);
 	
 	ProgPainter3(void* hash, Volf sz, DrawCommand3& prev, DrawCommand3& begin, DrawCommand3& end, DrawCommand3& next);
 	ProgPainter3(void* hash, Volf sz, ProgPainter3& p, DrawCommand3& begin, DrawCommand3& end);
@@ -92,6 +92,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

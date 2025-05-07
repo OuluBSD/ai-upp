@@ -3,7 +3,7 @@
 
 #if HAVE_V4L2_DEVMGR
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 class V4L2_Device {
 	
@@ -46,7 +46,7 @@ public:
 	
 };
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 #endif

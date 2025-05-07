@@ -1,6 +1,6 @@
 #include "SoftRend.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -46,4 +46,4 @@ void SoftPipeline::Use(SoftProgram& prog, uint32 bmask) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

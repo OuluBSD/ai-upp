@@ -1,5 +1,5 @@
-#include "AtomHandle.h"
-#include <SerialLib/SerialLib.h>
+#include "EonLib.h"
+
 #if IS_UPP_CORE
 #include <VirtualGui/Local.h>
 #include <VirtualGui/Atom/Atom.h>
@@ -9,7 +9,7 @@
 #include <GuboCore/GuboCore.h>
 #endif
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -22,7 +22,7 @@ HandleEventsBase::HandleEventsBase() {
 		active = this;
 }
 
-bool HandleEventsBase::Initialize(const Script::WorldState& ws) {
+bool HandleEventsBase::Initialize(const Eon::WorldState& ws) {
 	
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
@@ -89,8 +89,8 @@ bool HandleEventsBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 
 #if defined flagSCREEN
 
-struct HandleVideoBase::Binder : RTTIBase {
-	RTTI_DECL0(Binder);
+struct HandleVideoBase::Binder {
+	//RTTI_DECL0(Binder);
 	
 	BinderIfaceVideo* iface = 0;
 	//AbsoluteInterface* abs_iface = 0;
@@ -100,7 +100,7 @@ struct HandleVideoBase::Binder : RTTIBase {
 	double resize_multiplier = 0.01;
 	ModelBuilder mb;
 	
-	void Visit(RuntimeVisitor& vis) {
+	void Visit(Vis& vis) {
 		//vis & win3d;
 	}
 };
@@ -119,7 +119,7 @@ bool HandleVideoBase::IsActive() const {
 	return active == this;
 }
 
-bool HandleVideoBase::Initialize(const Script::WorldState& ws) {
+bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
 	ISourceRef src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	Value& val = src->GetSourceValue(src_count-1);
@@ -147,7 +147,7 @@ bool HandleVideoBase::PostInitialize() {
 	if (src_type == VD(CENTER, VIDEO)) {
 		ISourceRef src = this->GetSource();
 		int src_count = src->GetSourceCount();
-		Serial::Link* link = GetLink();
+		LinkBase* link = GetLink();
 		int src_ch = link->SideSinks().GetCount() == 1 ? link->SideSources().First().local_ch_i : src_count-1;
 		Value& val = src->GetSourceValue(src_ch);
 		Format fmt = val.GetFormat();
@@ -179,7 +179,7 @@ void HandleVideoBase::Uninitialize() {
 	}
 }
 
-void HandleVideoBase::Visit(RuntimeVisitor& vis) {
+void HandleVideoBase::Visit(Vis& vis) {
 	vis.VisitThis<Atom>(this);
 	if (IsActive())
 		vis | binders;
@@ -672,7 +672,7 @@ HandleOglBase::HandleOglBase() {
 	
 }
 
-bool HandleOglBase::Initialize(const Script::WorldState& ws) {
+bool HandleOglBase::Initialize(const Eon::WorldState& ws) {
 	
 	if (!WhenInitialize) {
 		LOG("HandleOglBase::Initialize: internal error: expected ecs system to prepare this");
@@ -719,5 +719,5 @@ void HandleOglBase::RemoveBinder(BinderIfaceOgl* iface) {
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 

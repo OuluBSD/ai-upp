@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_Body_h_
 #define _SoftPhys_Body_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Body : Object {
-	RTTI_DECL1(Body, Object)
+	//RTTI_DECL1(Body, Object)
 	using Object::Object;
 	
 	
@@ -29,7 +29,7 @@ struct Body : Object {
 public:
 	Body();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	const vec3& GetPosition() const {return position;}
 	mat43 GetRotationAxisAngle() const;
 	
@@ -46,6 +46,6 @@ public:
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

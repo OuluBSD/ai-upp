@@ -1,9 +1,9 @@
-#include "EcsLib.h"
+#include "EonLib.h"
 
 
 #if HAVE_WINDOWSYSTEM
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -710,6 +710,6 @@ void WindowDecoration::LocalMenu(Bar& bar) {
 #endif
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

@@ -45,11 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_COLLADAEXPORTER_H_INC
 #define AI_COLLADAEXPORTER_H_INC
 
-#include <ports/assimp/ai_assert.h>
-#include <ports/assimp/material.h>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/light.h>
-#include <ports/assimp/Exporter.hpp>
+#include <plugin/assimp/ai_assert.h>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/light.h>
+#include <plugin/assimp/Exporter.hpp>
 #include <sstream>
 #include <vector>
 #include <map>

@@ -19,7 +19,7 @@ Image StreamRaster::LoadStringAny(String content) {
 
 Image StreamRaster::LoadFileAny(String path) {
 	String ext = GetFileExt(path).Mid(1);
-	TS::StaticIfaceBackend* e = TS::StaticIfaceFactory::GetReader(ext);
+	Upp::StaticIfaceBackend* e = Upp::StaticIfaceFactory::GetReader(ext);
 	if (e)
 		return e->LoadFileAny(path);
 	return Image();
@@ -29,14 +29,14 @@ Font Font::LoadFont(String dir, String name, int ptsize, int weight, bool italic
 	String ext = GetFileExt(name).Mid(1);
 	if (ext.IsEmpty())
 		ext = "ttf";
-	TS::StaticIfaceBackend* e = TS::StaticIfaceFactory::GetReader(ext);
+	Upp::StaticIfaceBackend* e = Upp::StaticIfaceFactory::GetReader(ext);
 	if (e)
 		return e->LoadFont(dir, name, ptsize, weight, italic);
 	return Font();
 }
 
 Size GetSysFontTextSize(const SysFont& fnt, const String& s) {
-	auto r = TS::StaticIfaceFactory::GetReader(fnt.raw->backend);
+	auto r = Upp::StaticIfaceFactory::GetReader(fnt.raw->backend);
 	if (r)
 		return r->GetTextSize(fnt, s);
 	return Size(0,0);
@@ -44,7 +44,7 @@ Size GetSysFontTextSize(const SysFont& fnt, const String& s) {
 
 void SysFont::Clear() {
 	if (raw) {
-		auto r = TS::StaticIfaceFactory::GetReader(raw->backend);
+		auto r = Upp::StaticIfaceFactory::GetReader(raw->backend);
 		if (r)
 			r->ClearFont(*this);
 		delete raw;
@@ -54,7 +54,7 @@ void SysFont::Clear() {
 
 void SysImage::Clear() {
 	if (raw) {
-		auto r = TS::StaticIfaceFactory::GetReader(raw->backend);
+		auto r = Upp::StaticIfaceFactory::GetReader(raw->backend);
 		if (r)
 			r->ClearImage(*this);
 		delete raw;

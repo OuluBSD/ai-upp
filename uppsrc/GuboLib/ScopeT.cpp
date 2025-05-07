@@ -1,5 +1,4 @@
 #include "GuboLib.h"
-#include <SerialLib/SerialLib.h>
 
 NAMESPACE_GUBO_BEGIN
 

@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 PbrModelCache::PbrModelCache(
@@ -98,4 +98,4 @@ void PbrModelCache::Uninitialize()
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE

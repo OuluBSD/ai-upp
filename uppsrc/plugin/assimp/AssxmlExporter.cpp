@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  ASSXML exporter main code
  */
 #include <stdarg.h>
-#include <ports/assimp/version.h>
+#include <plugin/assimp/version.h>
 #include "ProcessHelper.h"
-#include <ports/assimp/IOStream.hpp>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/Exporter.hpp>
+#include <plugin/assimp/IOStream.hpp>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/Exporter.hpp>
 
 #ifdef ASSIMP_BUILD_NO_OWN_ZLIB
 #   include <zlib.h>

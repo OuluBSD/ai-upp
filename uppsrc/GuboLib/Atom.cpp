@@ -1,8 +1,7 @@
 #include "GuboLib.h"
-#include <SerialLib/SerialLib.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace Serial;
 
 
@@ -15,7 +14,7 @@ AtomVirtualGui3D::~AtomVirtualGui3D() {
 }
 
 bool AtomVirtualGui3D::Create(const Rect& rect, const char *title) {
-	Machine& mach = TS::Serial::GetActiveMachine();
+	Machine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<Gu::SurfaceSystem>();
 	if (!wins)
 		return false;
@@ -51,4 +50,4 @@ void AtomVirtualGui3D::Quit() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

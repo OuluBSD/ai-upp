@@ -2,7 +2,7 @@
 #define _GuboCore_TopSurface_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -11,7 +11,7 @@ class TopSurface :
 {
 	
 public:
-	RTTI_DECL1(TopSurface, Surface)
+	//RTTI_DECL1(TopSurface, Surface)
 	TopSurface();
 	virtual ~TopSurface() {}
 	
@@ -28,7 +28,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

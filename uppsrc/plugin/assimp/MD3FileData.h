@@ -52,11 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <stdint.h>
 
-#include <ports/assimp/types.h>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/anim.h>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/anim.h>
 
-#include <ports/assimp/Compiler/pushpack1.h>
+#include <plugin/assimp/Compiler/pushpack1.h>
 
 namespace Assimp    {
 namespace MD3   {
@@ -245,7 +245,7 @@ struct Vertex
     uint16_t  NORMAL;
 } /*PACK_STRUCT*/;
 
-#include <ports/assimp/Compiler/poppack1.h>
+#include <plugin/assimp/Compiler/poppack1.h>
 
 // -------------------------------------------------------------------------------
 /** @brief Unpack a Q3 16 bit vector to its full float3 representation

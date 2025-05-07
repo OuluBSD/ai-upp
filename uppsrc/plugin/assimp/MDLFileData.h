@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_MDLFILEHELPER_H_INC
 #define AI_MDLFILEHELPER_H_INC
 
-#include <ports/assimp/anim.h>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/Compiler/pushpack1.h>
+#include <plugin/assimp/anim.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/Compiler/pushpack1.h>
 #include "ByteSwapper.h"
 #include <stdint.h>
 #include <vector>
@@ -708,7 +708,7 @@ struct GroupFrame
     SimpleFrame *frames;
 } PACK_STRUCT;
 
-#include <ports/assimp/Compiler/poppack1.h>
+#include <plugin/assimp/Compiler/poppack1.h>
 
 // -------------------------------------------------------------------------------------
 /** \struct IntFace_MDL7

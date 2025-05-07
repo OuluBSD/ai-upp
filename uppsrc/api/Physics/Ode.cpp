@@ -2,7 +2,7 @@
 
 #ifdef flagODE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void OdeFys::InitializeLibrary() {
@@ -258,6 +258,6 @@ NativeQuat OdeFys::GetDefaultOrientation() {
 	return dQuaternion {0, 1, 0, 0};
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

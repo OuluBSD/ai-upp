@@ -1,12 +1,12 @@
 #ifndef _IGraphics_TContext_h_
 #define _IGraphics_TContext_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
 struct ContextStateT : GfxContextState {
-	RTTI_DECL1(ContextStateT, GfxContextState)
+	//RTTI_DECL1(ContextStateT, GfxContextState)
 	using Base = ContextStateT<Gfx>;
 	
 };
@@ -26,7 +26,7 @@ struct RendererT : GfxRenderer {
 	
 public:
 	using Base = RendererT<Gfx>;
-	RTTI_DECL1(RendererT, GfxRenderer)
+	//RTTI_DECL1(RendererT, GfxRenderer)
 	RendererT() {}
 	virtual ~RendererT() {}
 	
@@ -48,6 +48,6 @@ public:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

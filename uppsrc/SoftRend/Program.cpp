@@ -1,7 +1,7 @@
 #include "SoftRend.h"
 //#include <Graphics/Graphics.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -299,4 +299,4 @@ void SoftProgram::BindTexture(int tex, const ByteImage* buf) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

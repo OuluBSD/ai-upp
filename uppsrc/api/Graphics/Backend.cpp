@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 #ifdef flagPOSIXDESKTOP
@@ -39,4 +39,4 @@ void SdlSwGfx::UnlockTextureToSurface(SoftFramebuffer* tex) {
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

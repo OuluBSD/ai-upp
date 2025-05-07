@@ -1,6 +1,6 @@
 #include <Graphics/Graphics.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace Shaders {
 
 
@@ -25,4 +25,4 @@ void FS_SimpleSingle::Process(SdlCpuFragmentShaderArgs& a)
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

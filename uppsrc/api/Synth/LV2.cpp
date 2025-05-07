@@ -1,14 +1,14 @@
-#include "ISynth.h"
+#include "Synth.h"
 
 #ifdef flagLV2
 
-#include <ports/lilv/lilv.h>
-#include <ports/lilv/lilv_config.h>
-#include <ports/lilv/lilvmm.hpp>
+#include <plugin/lilv/lilv.h>
+#include <plugin/lilv/lilv_config.h>
+#include <plugin/lilv/lilvmm.hpp>
 #include <AudioHost/AudioHost.h>
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 struct SynLV2::NativeInstrument {
@@ -27,7 +27,7 @@ void SynLV2::Instrument_Destroy(NativeInstrument*& dev){
 	delete dev;
 }
 
-bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws){
+bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws){
 	String preset = ws.GetString("preset", "piano");
 	
 	LoadAllLV2Plugins(dev.lv2_list);
@@ -97,7 +97,7 @@ bool SynLV2::Instrument_Send(NativeInstrument&, AtomBase&, RealtimeSourceConfig&
 	
 }
 
-void SynLV2::Instrument_Visit(NativeInstrument&, AtomBase&, RuntimeVisitor& vis) {
+void SynLV2::Instrument_Visit(NativeInstrument&, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -134,6 +134,6 @@ bool SynLV2::Instrument_IsReady(NativeInstrument&, AtomBase&, PacketIO& io) {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

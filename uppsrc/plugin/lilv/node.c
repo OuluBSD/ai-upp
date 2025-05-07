@@ -5,8 +5,8 @@
 #include "lilv_internal.h"
 
 #include "lilv.h"
-#include <ports/serd/serd.h>
-#include <ports/sord/sord.h>
+#include <plugin/serd/serd.h>
+#include <plugin/sord/sord.h>
 
 #include <math.h>
 #include <stdbool.h>

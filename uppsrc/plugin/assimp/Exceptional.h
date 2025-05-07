@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_EXCEPTIONAL_H
 
 #include <stdexcept>
-#include <ports/assimp/DefaultIOStream.h>
+#include <plugin/assimp/DefaultIOStream.h>
 using std::runtime_error;
 
 #ifdef _MSC_VER

@@ -1,13 +1,13 @@
-#include "ISynth.h"
+#include "Synth.h"
 #include <MidiFile/MidiFile.h>
 
 #ifdef flagFLUIDLITE
-	#include <ports/fluidlite/fluidlite.h>
-	#include <ports/fluidlite/types.h>
-	#include <ports/fluidlite/fluid_list.h>
-	#include <ports/fluidlite/fluid_synth.h>
-	#include <ports/fluidlite/fluid_defsfont.h>
-	#include <ports/fluidlite/fluid_sfont.h>
+	#include <plugin/fluidlite/fluidlite.h>
+	#include <plugin/fluidlite/types.h>
+	#include <plugin/fluidlite/fluid_list.h>
+	#include <plugin/fluidlite/fluid_synth.h>
+	#include <plugin/fluidlite/fluid_defsfont.h>
+	#include <plugin/fluidlite/fluid_sfont.h>
 #endif
 
 #ifdef flagFLUIDSYNTH
@@ -22,7 +22,7 @@
 #endif
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define DETECT_DELAY 1
 
@@ -62,7 +62,7 @@ void SynFluidsynth_HandleEvent(SynFluidsynth::NativeInstrument& dev, const MidiI
 void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase* a);
 
 
-bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Script::WorldState& ws) {
+bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
 	int cache = 6;
 	dev.packet_count = 0;
 	dev.sample_rate = 128;
@@ -237,7 +237,7 @@ void SynFluidsynth::Instrument_Destroy(NativeInstrument*& dev) {
 	delete dev;
 }
 
-void SynFluidsynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, RuntimeVisitor& vis) {
+void SynFluidsynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -617,7 +617,7 @@ void SynFluidsynth_HandleEvent(SynFluidsynth::NativeInstrument& dev, const MidiI
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif
 

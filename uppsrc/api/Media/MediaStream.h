@@ -1,7 +1,7 @@
 #ifndef _IMedia_Media_h_
 #define _IMedia_Media_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -48,6 +48,6 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,12 +1,12 @@
 #ifndef _SoftInstru_SoftInstru_h_
 #define _SoftInstru_SoftInstru_h_
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include <MidiFile/MidiFile.h>
 
 
-#define NAMESPACE_SOFTINSTRU_BEGIN NAMESPACE_TOPSIDE_BEGIN namespace SoftInstru {
-#define NAMESPACE_SOFTINSTRU_END } NAMESPACE_TOPSIDE_END
+#define NAMESPACE_SOFTINSTRU_BEGIN NAMESPACE_UPP namespace SoftInstru {
+#define NAMESPACE_SOFTINSTRU_END } END_UPP_NAMESPACE
 
 #include "Common.h"
 #include "Voice.h"

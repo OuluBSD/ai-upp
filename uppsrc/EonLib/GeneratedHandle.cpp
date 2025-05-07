@@ -1,4 +1,4 @@
-#include "AtomHandle.h"
+#include "EonLib.h"
 
 // This file is generated. Do not modify this file.
 
@@ -24,7 +24,7 @@ LinkTypeCls HandleProgEvents::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void HandleProgEvents::Visit(RuntimeVisitor& vis) {
+void HandleProgEvents::Visit(Vis& vis) {
 	vis.VisitThis<HandleEventsBase>(this);
 }
 
@@ -52,7 +52,7 @@ LinkTypeCls CenterProgPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void CenterProgPipe::Visit(RuntimeVisitor& vis) {
+void CenterProgPipe::Visit(Vis& vis) {
 	vis.VisitThis<HandleVideoBase>(this);
 }
 
@@ -80,7 +80,7 @@ LinkTypeCls OglProgPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void OglProgPipe::Visit(RuntimeVisitor& vis) {
+void OglProgPipe::Visit(Vis& vis) {
 	vis.VisitThis<HandleVideoBase>(this);
 }
 
@@ -108,7 +108,7 @@ LinkTypeCls HandleProgVideo::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void HandleProgVideo::Visit(RuntimeVisitor& vis) {
+void HandleProgVideo::Visit(Vis& vis) {
 	vis.VisitThis<HandleVideoBase>(this);
 }
 

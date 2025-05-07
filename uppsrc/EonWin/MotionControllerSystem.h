@@ -1,7 +1,7 @@
 #pragma once
 #if 0
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 struct MotionControllerComponent : Component<MotionControllerComponent>
@@ -20,10 +20,10 @@ struct MotionControllerComponent : Component<MotionControllerComponent>
 using MotionControllerComponentRef = Ref<MotionControllerComponent>;
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +43,7 @@ class MotionControllerSystem :
 public:
 	using Base = System<MotionControllerSystem>;
     using System::System;
-	RTTI_DECL3(MotionControllerSystem, Base, IPredictionUpdateListener, ISpatialInteractionListener)
+	//RTTI_DECL3(MotionControllerSystem, Base, IPredictionUpdateListener, ISpatialInteractionListener)
 
 protected:
     // System
@@ -72,6 +72,6 @@ private:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

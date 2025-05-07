@@ -1,7 +1,7 @@
 #ifndef _Physics_TJoint_h_
 #define _Physics_TJoint_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 template <class Fys>
@@ -23,7 +23,7 @@ protected:
 	int stress = 0;
 	
 public:
-	RTTI_DECL1(JointT, Node)
+	//RTTI_DECL1(JointT, Node)
 	JointT() {}
 	
 	void OnAttach() override {
@@ -69,6 +69,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

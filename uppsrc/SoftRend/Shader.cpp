@@ -1,6 +1,6 @@
 #include "SoftRend.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 VectorMap<String, SoftShaderLibrary::ShaderFactory> SoftShaderLibrary::shader_classes[GVar::SHADERTYPE_COUNT];
@@ -30,4 +30,4 @@ void SoftShader::SetSource(String s) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

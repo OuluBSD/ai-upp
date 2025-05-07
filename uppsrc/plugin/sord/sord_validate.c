@@ -4,7 +4,7 @@
 #define _BSD_SOURCE 1     // for realpath
 #define _DEFAULT_SOURCE 1 // for realpath
 
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 #include "sord.h"
 #include "sord_config.h"
 

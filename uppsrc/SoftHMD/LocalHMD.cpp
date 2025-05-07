@@ -1,9 +1,9 @@
 #include "LocalHMD.h"
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 INITBLOCK_(LocalHMD) {
-	::TS::DaemonBase::Register<TS::HMD::LocalHMDService>("LocalHMD");
+	::Upp::DaemonBase::Register<Upp::HMD::LocalHMDService>("LocalHMD");
 }
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE

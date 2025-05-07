@@ -1,8 +1,8 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
 #if IS_UPP_CORE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #define IMAGECLASS BlueImg
 #define IMAGEFILE <LocalCtrl/BlueSkin.iml>
@@ -57,6 +57,6 @@ void InstallBlueBar()
 	InstallBlueToolBar();
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

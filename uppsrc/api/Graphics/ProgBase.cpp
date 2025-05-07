@@ -1,14 +1,13 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-#include <SerialMach/SerialMach.h>
 
 #ifdef flagSCREEN
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
-bool FboProgAtomT<Gfx>::Initialize(const Script::WorldState& ws) {
+bool FboProgAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	dbg_info = 0;
 	
 	resize_multiplier = ws.GetDouble(".resize.multiplier", 0.004);
@@ -16,7 +15,7 @@ bool FboProgAtomT<Gfx>::Initialize(const Script::WorldState& ws) {
 	write_ecs = ws.GetBool(".write.ecs", false);
 	
 	// Write to ecs, when no side-connections is added
-	Serial::Link* link = this->GetLink();
+	LinkBase* link = this->GetLink();
 	if (link->SideSinks().IsEmpty())
 		write_ecs = true;
 	
@@ -169,6 +168,6 @@ SDLSW_EXCPLICIT_INITIALIZE_CLASS(FboProgAtomT)
 SDLOGL_EXCPLICIT_INITIALIZE_CLASS(FboProgAtomT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

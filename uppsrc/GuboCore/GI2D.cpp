@@ -1,7 +1,7 @@
 #include "GuboCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomInteraction2D::GeomInteraction2D() {
@@ -727,4 +727,4 @@ Point GeomInteraction2D::GetFramePointBetween(GeomInteraction2D& top_owner, Geom
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

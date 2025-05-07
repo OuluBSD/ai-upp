@@ -1,7 +1,7 @@
 // Copyright 2011 David Robillard <d@drobilla.net>
 // SPDX-License-Identifier: ISC
 
-#include <ports/sord/sordmm.hpp>
+#include <plugin/sord/sordmm.hpp>
 
 #ifdef flagMAIN
 int

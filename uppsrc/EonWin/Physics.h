@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 namespace SpatialInputUtilities::Physics {
@@ -39,4 +39,4 @@ static inline std::optional<winrt::Windows::Foundation::Numerics::float3> GetVel
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

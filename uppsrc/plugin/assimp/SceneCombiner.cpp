@@ -51,14 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *       OptimizeGraph step.
   */
 // ----------------------------------------------------------------------------
-#include <ports/assimp/SceneCombiner.h>
+#include <plugin/assimp/SceneCombiner.h>
 #include "StringUtils.h"
 #include "fast_atof.h"
 #include "Hash.h"
 #include "time.h"
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/mesh.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/mesh.h>
 #include <stdio.h>
 #include "ScenePrivate.h"
 

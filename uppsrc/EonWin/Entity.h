@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 #if 0
 class Engine;
@@ -95,5 +95,5 @@ struct EntityPrefab
 
 #endif
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 

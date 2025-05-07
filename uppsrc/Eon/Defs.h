@@ -41,16 +41,16 @@
 #define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
 #define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
 #define PREFAB_BEGIN(x) \
-struct x##_ : RTTIBase {RTTI_DECL0(x##_)}; \
+struct x##_ { \
 \
 struct x : \
 	x##_, \
-	TS::ECS::EntityPrefab<
+	Upp::ECS::EntityPrefab<
 
 #define PREFAB_END \
 > { \
 	 \
-    static Components Make(TS::ECS::Entity& e) \
+    static Components Make(Upp::ECS::Entity& e) \
     { \
         auto components = EntityPrefab::Make(e); \
 		return components; \

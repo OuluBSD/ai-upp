@@ -1,7 +1,7 @@
 #include "SoftPhys.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
@@ -135,4 +135,4 @@ Mass& Mass::SetFunctionBoxTotal(const vec3& dim, float total_mass) {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

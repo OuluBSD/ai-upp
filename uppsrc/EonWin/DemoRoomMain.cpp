@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 using namespace concurrency;
@@ -216,4 +216,4 @@ void DemoRoomMain::LoadAppState()
 #endif
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

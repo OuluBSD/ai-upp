@@ -298,7 +298,7 @@ void System::UpdateData() {
 	
 	
 	for(int i = 0; i < 2; i++) {
-		TS::HMD::Device* d = ctrl[i];
+		Upp::HMD::Device* d = ctrl[i];
 		ControllerMatrix::Ctrl& ctrl = ev3d.ctrl[i];
 		int c = control_count[i];
 		

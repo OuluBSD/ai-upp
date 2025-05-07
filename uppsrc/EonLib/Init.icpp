@@ -1,11 +1,9 @@
-#include "AtomAudio.h"
+#include "EonLib.h"
 
 // This file is generated. Do not modify this file.
 
-INITBLOCK_(AtomAudio) {
-	using namespace TS::Parallel;
-	using namespace TS::Serial;
-	using namespace TS;
+INITBLOCK {
+	using namespace Upp;
 	Factory::RegisterAtom<MidiFileReaderPipe>();
 	Factory::RegisterAtom<MidiFileReader>();
 	Factory::RegisterAtom<MidiFileReader16>();

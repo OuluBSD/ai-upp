@@ -10,7 +10,7 @@ library(POSIX & OGL & !EMSCRIPTEN) "GLX GL GLU GLEW glut";
 library(WIN32 & DX11) D3D11;
 
 file
-	IScreen.h,
+	Screen.h,
 	X11.cpp,
 	X11Sw.cpp,
 	X11Ogl.cpp,

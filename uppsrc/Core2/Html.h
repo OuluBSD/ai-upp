@@ -1,8 +1,5 @@
-#ifndef _Local_Html_h_
-#define _Local_Html_h_
-
-NAMESPACE_TOPSIDE_BEGIN
-
+#ifndef _Core2_Html_h_
+#define _Core2_Html_h_
 
 
 enum {
@@ -112,7 +109,7 @@ struct HtmlToken : Moveable<HtmlToken> {
 			case HTMLTK_COMMENT_END: return WString(L"-->");
 			default: Panic("Unhandled token type");
 		}
-		return ToWString(L"");
+		return WString();
 	}
 };
 
@@ -181,7 +178,7 @@ struct ValidHtmlTags {
 	
 	ValidHtmlTags();
 	void SplitTags(Index<WString>& idx, WString ws);
-	void SplitTags(Index<WString>& idx, const char* s) {SplitTags(idx, ToWString(String(s)));}
+	void SplitTags(Index<WString>& idx, String s) {SplitTags(idx, s.ToWString());}
 	
 };
 
@@ -367,7 +364,5 @@ public:
 	HtmlNode root;
 };
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

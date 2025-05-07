@@ -1,6 +1,6 @@
 #include "GuboCore.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 AtomVirtualGui3D::AtomVirtualGui3D()
 {
@@ -27,7 +27,7 @@ Size AtomVirtualGui3D::GetSize()
 
 bool AtomVirtualGui3D::Create(const Rect& rect, const char *title)
 {
-	Machine& mach = TS::Serial::GetActiveMachine();
+	Machine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<WindowSystem>();
 	if (!wins)
 		return false;
@@ -67,4 +67,4 @@ void AtomVirtualGui3D::Quit()
 	
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,7 +1,7 @@
 #include "ProjectCleaner.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void RecursiveLoad(UppAssemblyData& ass_data, String pkg, int depth=0) {
@@ -960,5 +960,5 @@ void RunArtisticStyleRecursively(String output_dir, String astyle_flags) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

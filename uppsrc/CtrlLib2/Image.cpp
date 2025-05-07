@@ -1,6 +1,6 @@
-#include "LocalCtrl.h"
+#include "CtrlLib.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #ifndef LIBTOPSIDE
 
@@ -18,4 +18,4 @@ NAMESPACE_TOPSIDE_BEGIN
 
 #endif
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

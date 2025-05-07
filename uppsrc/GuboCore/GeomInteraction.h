@@ -1,7 +1,7 @@
 #ifndef _GuboCore_GeomInteraction_h_
 #define _GuboCore_GeomInteraction_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class Surface;
 class Gubo;
@@ -31,7 +31,7 @@ typedef GeomInteraction Gi;
 typedef GeomInteraction2D Gi2;
 typedef GeomInteraction3D Gi3;
 
-class GeomInteraction : RTTIBase {
+class GeomInteraction {
 	
 public:
 	GeomInteraction* owner = NULL;
@@ -55,7 +55,7 @@ public:
 	bool         modify:1;
 	
 public:
-	RTTI_DECL0(GeomInteraction);
+	//RTTI_DECL0(GeomInteraction);
 	typedef GeomInteraction CLASSNAME;
 	GeomInteraction();
 	virtual ~GeomInteraction() {}
@@ -163,7 +163,7 @@ protected:
 	Rect frame_r;
 	
 public:
-	RTTI_DECL1(GeomInteraction2D, GeomInteraction);
+	//RTTI_DECL1(GeomInteraction2D, GeomInteraction);
 	typedef GeomInteraction2D CLASSNAME;
 	GeomInteraction2D();
 	
@@ -267,7 +267,7 @@ protected:
 	Cubf frame_r;
 	
 public:
-	RTTI_DECL1(GeomInteraction3D, GeomInteraction);
+	//RTTI_DECL1(GeomInteraction3D, GeomInteraction);
 	typedef GeomInteraction3D CLASSNAME;
 	GeomInteraction3D();
 	
@@ -353,6 +353,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

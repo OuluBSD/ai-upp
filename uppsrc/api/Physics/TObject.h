@@ -1,7 +1,7 @@
 #ifndef _Physics_TObject_h_
 #define _Physics_TObject_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 template <class Fys>
@@ -25,7 +25,7 @@ struct ObjectT : NodeT<Fys> {
 	mat4 model_geom = Identity<mat4>();
 	
 public:
-	RTTI_DECL1(ObjectT, Node)
+	//RTTI_DECL1(ObjectT, Node)
 	typedef ObjectT CLASSNAME;
 	ObjectT() {orient = Fys::GetDefaultOrientation();}
 	virtual ~ObjectT() {}
@@ -50,6 +50,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

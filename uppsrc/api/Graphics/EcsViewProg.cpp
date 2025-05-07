@@ -1,8 +1,8 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 #include <EcsLib/EcsLib.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 EcsViewProg::EcsViewProg() {
@@ -50,4 +50,4 @@ bool EcsViewProg::Render(Draw& fb) {
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

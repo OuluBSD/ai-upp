@@ -2,14 +2,14 @@
 #define _CtrlLib_Compat_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #if 0
-class CtrlGeomBase : RTTIBase {
+class CtrlGeomBase {
 	
 public:
 	typedef CtrlGeomBase CLASSNAME;
-	RTTI_DECL0(CtrlGeomBase);
+	//RTTI_DECL0(CtrlGeomBase);
 	CtrlGeomBase() {}
 	
 	virtual Ctrl* GetCtrl() = 0;
@@ -24,7 +24,7 @@ class CtrlGeomProxy : public CtrlGeomBase {
 	
 public:
 	typedef CtrlGeomProxy CLASSNAME;
-	RTTI_DECL1(CtrlGeomProxy, CtrlGeomBase);
+	//RTTI_DECL1(CtrlGeomProxy, CtrlGeomBase);
 	CtrlGeomProxy();
 	CtrlGeomProxy(Ctrl& o);
 	void SetTargetCtrl(Ctrl& o);
@@ -69,7 +69,7 @@ class CtrlGeom :
 	
 public:
 	typedef CtrlGeom CLASSNAME;
-	RTTI_DECL1(CtrlGeom, CtrlGeomBase);
+	//RTTI_DECL1(CtrlGeom, CtrlGeomBase);
 	CtrlGeom() : CtrlGeomProxy(c) {}
 	
 };
@@ -83,7 +83,7 @@ class CtrlInterfaceGeom :
 	public Absolute2DProxy {
 	
 public:
-	RTTI_DECL2(CtrlInterfaceGeom, CtrlGeomBase, Absolute2DProxy);
+	//RTTI_DECL2(CtrlInterfaceGeom, CtrlGeomBase, Absolute2DProxy);
 	CtrlInterfaceGeom() {}
 	
 	
@@ -96,7 +96,7 @@ class GuboGeomBase : public GeomInteraction3D {
 	
 public:
 	typedef GuboGeomBase CLASSNAME;
-	RTTI_DECL1(GuboGeomBase, GeomInteraction3D);
+	//RTTI_DECL1(GuboGeomBase, GeomInteraction3D);
 	GuboGeomBase() {}
 	
 	virtual Gubo* GetGubo() = 0;
@@ -108,7 +108,7 @@ class GuboGeomProxy : public GuboGeomBase {
 	
 public:
 	typedef GuboGeomProxy CLASSNAME;
-	RTTI_DECL1(GuboGeomProxy, GuboGeomBase);
+	//RTTI_DECL1(GuboGeomProxy, GuboGeomBase);
 	GuboGeomProxy() {}
 	
 	Gubo* GetGubo() override {TODO}
@@ -157,7 +157,7 @@ inline Rect GetFrameBox<Ctrl,Rect>(const Ctrl& c) {
 Image RenderTextBlended(Font font, String s, Color ink);
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 // U++ VirtualGui bug

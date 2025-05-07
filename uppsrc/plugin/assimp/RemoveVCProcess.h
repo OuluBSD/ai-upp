@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_REMOVEVCPROCESS_H_INCLUDED
 
 #include "BaseProcess.h"
-#include <ports/assimp/mesh.h>
+#include <plugin/assimp/mesh.h>
 
 class RemoveVCProcessTest;
 

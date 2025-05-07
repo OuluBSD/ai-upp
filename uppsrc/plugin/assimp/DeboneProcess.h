@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include "BaseProcess.h"
 
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/scene.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/scene.h>
 
 class DeboneTest;
 

@@ -5,7 +5,7 @@
 
 
 #define STB_TEXTEDIT_IMPLEMENTATION
-#include <ports/stb/stb_textedit.h>
+#include <plugin/stb/stb_textedit.h>
 
 
 NAMESPACE_GUBO_BEGIN

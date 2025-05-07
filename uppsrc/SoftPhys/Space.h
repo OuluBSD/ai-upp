@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_Space_h_
 #define _SoftPhys_Space_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Space : Object {
-	RTTI_DECL1(Space, Object)
+	//RTTI_DECL1(Space, Object)
 	using Object::Object;
 	
 	
@@ -16,7 +16,7 @@ struct Space : Object {
 	
 public:
 	Space();
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	void SetWorld(World& w);
 	void Collide(void* data, NearCallback cb);
 	void Add(Geometry& g);
@@ -32,6 +32,6 @@ int Collide(Geometry& g0, Geometry& g1, int count, Contact* c, int ptr_pitch);
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

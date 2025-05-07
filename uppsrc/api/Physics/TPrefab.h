@@ -1,10 +1,10 @@
 #ifndef _Physics_TPrefab_h_
 #define _Physics_TPrefab_h_
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

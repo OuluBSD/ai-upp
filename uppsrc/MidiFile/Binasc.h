@@ -2,10 +2,6 @@
 #define _BINASC_H_INCLUDED
 
 
-NAMESPACE_MIDI_BEGIN
-using namespace UPP;
-
-
 // Interface to convert bytes between binary and ASCII forms.
 
 class Binasc {
@@ -91,9 +87,6 @@ private:
 	int max_line_length; // number of character in ASCII output on a line.
 	int max_line_bytes;  // number of hex bytes in ASCII output on a line.
 };
-
-
-NAMESPACE_MIDI_END
 
 
 #endif

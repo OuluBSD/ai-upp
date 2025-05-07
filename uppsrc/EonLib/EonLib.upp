@@ -15,6 +15,7 @@ uses(SCREEN) api/Graphics;
 file
 	EonLib.h,
 	EonLib.icpp,
+	Init.icpp,
 	GeneratedAudio.h,
 	GeneratedAudio.cpp,
 	GeneratedHandle.h,

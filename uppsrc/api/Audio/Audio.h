@@ -4,10 +4,10 @@
 #ifndef _IAudio_IAudio_h_
 #define _IAudio_IAudio_h_
 
-#include <ParallelLib/ParallelLib.h>
-#include <ports/portaudio/portaudio.h>
+#include <Eon/Eon.h>
+#include <plugin/portaudio/portaudio.h>
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #define AUD_CLS_LIST(x) \
 	AUD_CLS(SinkDevice, x) \
@@ -39,15 +39,15 @@ struct AudPortaudio {
 #endif
 
 struct AudSinkDevice : public Atom {
-	RTTI_DECL1(AudSinkDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(AudSinkDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~AudSinkDevice() {}
 };
 
 struct AudSourceDevice : public Atom {
-	RTTI_DECL1(AudSourceDevice, Atom)
-	void Visit(RuntimeVisitor& vis) override {vis.VisitThis<Atom>(this);}
+	//RTTI_DECL1(AudSourceDevice, Atom)
+	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
 	
 	virtual ~AudSourceDevice() {}
 };
@@ -55,13 +55,13 @@ struct AudSourceDevice : public Atom {
 
 template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
-	RTTI_DECL1(CLASSNAME, AudSinkDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, AudSinkDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Aud::SinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<AudSinkDevice>(this);
 	}
 	typename Aud::NativeSinkDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Aud::SinkDevice_Create(dev))
 			return false;
 		if (!Aud::SinkDevice_Initialize(*dev, *this, ws))
@@ -89,19 +89,19 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 			return false;
 		return true;
 	}
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Aud::SinkDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
 };
 template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	using CLASSNAME = AudioSourceDeviceT<Aud>;
-	RTTI_DECL1(CLASSNAME, AudSourceDevice)
-	void Visit(RuntimeVisitor& vis) override {
+	//RTTI_DECL1(CLASSNAME, AudSourceDevice)
+	void Visit(Vis& vis) override {
 		if (dev) Aud::SourceDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<AudSourceDevice>(this);
 	}
 	typename Aud::NativeSourceDevice* dev = 0;
-	bool Initialize(const Script::WorldState& ws) override {
+	bool Initialize(const Eon::WorldState& ws) override {
 		if (!Aud::SourceDevice_Create(dev))
 			return false;
 		if (!Aud::SourceDevice_Initialize(*dev, *this, ws))
@@ -129,7 +129,7 @@ template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 			return false;
 		return true;
 	}
-	bool NegotiateSinkFormat(Serial::Link& link, int sink_ch, const Format& new_fmt) override {
+	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Aud::SourceDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
 };
@@ -139,6 +139,6 @@ using PortaudioSinkDevice = AudioSinkDeviceT<AudPortaudio>;
 using PortaudioSourceDevice = AudioSourceDeviceT<AudPortaudio>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

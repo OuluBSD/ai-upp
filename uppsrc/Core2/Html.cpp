@@ -1,8 +1,8 @@
-#include "Local.h"
+#include "Core.h"
 
 #ifdef flagSTDEXC
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ValidHtmlTags::ValidHtmlTags() {
@@ -393,6 +393,6 @@ HtmlNode& HtmlNode::TryGetTag(String key) {
 	throw Exc("Tag not found: " + key);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 using namespace winrt::Windows::Graphics::Holographic;
@@ -110,4 +110,4 @@ HolographicSpace HolographicScene::HolographicSpace() const
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

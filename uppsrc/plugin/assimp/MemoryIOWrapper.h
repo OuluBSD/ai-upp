@@ -44,9 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_MEMORYIOSTREAM_H_INC
 #define AI_MEMORYIOSTREAM_H_INC
 
-#include <ports/assimp/IOStream.hpp>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/ai_assert.h>
+#include <plugin/assimp/IOStream.hpp>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/ai_assert.h>
 #include <stdint.h>
 
 namespace Assimp    {

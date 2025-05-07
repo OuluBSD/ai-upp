@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -647,4 +647,4 @@ template struct SwGfxT<X11SwGfx>;
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

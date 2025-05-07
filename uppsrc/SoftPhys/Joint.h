@@ -1,12 +1,12 @@
 #ifndef _SoftPhys_Joint_h_
 #define _SoftPhys_Joint_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
 struct Joint : Object {
-	RTTI_DECL1(Joint, Object)
+	//RTTI_DECL1(Joint, Object)
 	using Object::Object;
 	
 	struct Hinge {
@@ -37,7 +37,7 @@ struct Joint : Object {
 public:
 	Joint();
 	
-	void Visit(RuntimeVisitor& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& vis) override {VIS_THIS(Object);}
 	void Attach(Body& b0, Body& b1);
 	
 	Joint& SetFeedback(Feedback& f);
@@ -57,6 +57,6 @@ public:
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

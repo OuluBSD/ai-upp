@@ -1,6 +1,6 @@
-#include "IMedia.h"
+#include "Media.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -13,7 +13,7 @@ VideoLoaderBaseT<Backend>::VideoLoaderBaseT() {
 }
 
 template <class Backend>
-bool VideoLoaderBaseT<Backend>::Initialize(const Script::WorldState& ws) {
+bool VideoLoaderBaseT<Backend>::Initialize(const Eon::WorldState& ws) {
 	//LOG(ws.ToString());
 	
 	String arg_filepath = ws.Get(".filepath");
@@ -73,4 +73,4 @@ MEDIA_EXCPLICIT_INITIALIZE_CLASS(VideoOutputFrameT)
 MEDIA_EXCPLICIT_INITIALIZE_CLASS(VideoLoaderBaseT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

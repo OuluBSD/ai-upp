@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TextureTransform.h"
 #include "ASELoader.h"
 #include "fast_atof.h"
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/DefaultLogger.hpp>
 
 using namespace Assimp;
 using namespace Assimp::ASE;

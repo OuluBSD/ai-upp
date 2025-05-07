@@ -4,7 +4,7 @@ uses
 	MidiFile;
 
 file
-	IMidiFile.h,
+	MidiFile.h,
 	Midi.h,
 	Midi.cpp;
 

@@ -1,6 +1,6 @@
 #include "EcsWin.h"
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 using namespace Microsoft::WRL;
@@ -261,5 +261,5 @@ std::shared_ptr<Pbr::Model> FromGltfBinary(
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 

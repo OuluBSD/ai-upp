@@ -11,13 +11,13 @@
 
 #ifdef flagASSIMP
 	#if defined flagBUILTIN_ASSIMP || (defined flagMSC && defined flagWIN32 && !defined flagUWP) || flagLINUX
-		#include <ports/assimp/Importer.hpp>
-		#include <ports/assimp/scene.h>
-		#include <ports/assimp/postprocess.h>
+		#include <plugin/assimp/Importer.hpp>
+		#include <plugin/assimp/scene.h>
+		#include <plugin/assimp/postprocess.h>
 	#else
-		#include <ports/assimp/Importer.hpp>
-		#include <ports/assimp/scene.h>
-		#include <ports/assimp/postprocess.h>
+		#include <plugin/assimp/Importer.hpp>
+		#include <plugin/assimp/scene.h>
+		#include <plugin/assimp/postprocess.h>
 	#endif
 #endif
 

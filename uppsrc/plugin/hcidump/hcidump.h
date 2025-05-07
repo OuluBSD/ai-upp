@@ -1,13 +1,13 @@
 #ifndef _ports_hcidump_hcidump_h_
 #define _ports_hcidump_hcidump_h_
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 #include "internal.h"
 /*extern "C" {
 	struct hcidump_process_data;
 }*/
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class SimpleBluetoothConnection {
 	//struct hcidump_process_data* data = 0;
@@ -33,7 +33,7 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

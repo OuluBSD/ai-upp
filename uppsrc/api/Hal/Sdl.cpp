@@ -1,4 +1,4 @@
-#include "IHal.h"
+#include "Hal.h"
 
 #if defined flagSDL2
 
@@ -35,7 +35,7 @@ END_UPP_NAMESPACE
 	#include <SDL2/SDL_image.h>
 #endif
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 SDL_TimerID waketimer_id;
@@ -196,11 +196,11 @@ void HalSdl::AudioSinkDevice_Destroy(NativeAudioSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -349,11 +349,11 @@ void HalSdl::ContextBase_Destroy(NativeContextBase*& dev) {
 	delete dev;
 }
 
-void HalSdl::ContextBase_Visit(NativeContextBase& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::ContextBase_Visit(NativeContextBase& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const Eon::WorldState& ws) {
 	RTLOG("HalSdl::ContextBase_Initialize");
 	return true;
 }
@@ -453,11 +453,11 @@ void HalSdl::CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -764,11 +764,11 @@ void HalSdl::CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&, Visitor& vis) {
 	vis % dev.accel;
 }
 
-bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	
 	if (!dev.accel.Initialize(a, ws))
 		return false;
@@ -922,11 +922,11 @@ void HalSdl::OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, Visitor& vis) {
 	vis % dev.accel;
 }
 
-bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	
 	if (!dev.accel.Initialize(a, ws))
 		return false;
@@ -1182,11 +1182,11 @@ void HalSdl::EventsBase_Destroy(NativeEventsBase*& dev) {
 	delete dev;
 }
 
-void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Script::WorldState&) {
+bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
 	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -1596,7 +1596,7 @@ void HalSdl::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {
 	delete dev;
 }
 
-bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const Script::WorldState&) {
+bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
 	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -1665,7 +1665,7 @@ bool HalSdl::UppEventsBase_Send(NativeUppEventsBase& dev, AtomBase& a, RealtimeS
 	return true;
 }
 
-void HalSdl::UppEventsBase_Visit(NativeUppEventsBase&, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::UppEventsBase_Visit(NativeUppEventsBase&, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -1713,7 +1713,7 @@ void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 	delete dev;
 }
 
-bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	
 	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
 	ASSERT(ev_ctx);
@@ -1780,7 +1780,7 @@ bool HalSdl::UppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceCon
 	return true;
 }
 
-void HalSdl::UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, RuntimeVisitor& vis) {
+void HalSdl::UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
@@ -2148,6 +2148,6 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif
 

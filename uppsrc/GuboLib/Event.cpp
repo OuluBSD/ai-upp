@@ -2,7 +2,7 @@
 
 #define LLOG(x)
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 extern dword fbKEYtoK(dword chr);
 
@@ -16,9 +16,9 @@ extern bool  sdlMouseIsIn;
 VirtualGui3D* VirtualGui3DPtr;
 
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void RunVirtualGui3D(VirtualGui3D& gui, Event<> app_main)
@@ -261,4 +261,4 @@ void AtomVirtualGui3D::WakeUpGuiThread()
 	//waketimer_id = SDL_AddTimer(20, WakeCb, NULL);
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -1,7 +1,7 @@
 #ifndef _GuboCore_Draw_h_
 #define _GuboCore_Draw_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class ProgPainter3;
@@ -19,7 +19,7 @@ public:
 	
 	void LinkRender();
 public:
-	RTTI_DECL1(ProgDraw3, DrawProxy3)
+	//RTTI_DECL1(ProgDraw3, DrawProxy3)
 	ProgDraw3();
 	ProgDraw3(void* hash, Volf sz);
 	ProgDraw3(void* hash, float w, float h, float d);
@@ -39,6 +39,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

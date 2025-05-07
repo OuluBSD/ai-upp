@@ -1,7 +1,7 @@
 #ifndef _BeBrowser_Image_h_
 #define _BeBrowser_Image_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 #ifndef LIBTOPSIDE
 
@@ -19,6 +19,6 @@ NAMESPACE_TOPSIDE_BEGIN
 
 #endif
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

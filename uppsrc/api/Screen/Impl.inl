@@ -13,11 +13,11 @@ void CLASSNAME::EventsBase_Destroy(NativeEventsBase*& dev) {
 	delete dev;
 }
 
-void CLASSNAME::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, RuntimeVisitor& vis) {
+void CLASSNAME::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Vis& vis) {
 	
 }
 
-bool CLASSNAME::EventsBase_Initialize(NativeEventsBase& ev, AtomBase& a, const Script::WorldState& ws) {
+bool CLASSNAME::EventsBase_Initialize(NativeEventsBase& ev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<CONTEXT>(1);
 	ASSERT(ctx_);
 	if (!ctx_) {RTLOG("error: could not find X11 context"); return false;}
@@ -233,7 +233,7 @@ void CLASSNAME::EventsBase_Finalize(NativeEventsBase& ev, AtomBase& a, RealtimeS
 	
 }
 
-bool CLASSNAME::EventsBase_NegotiateSinkFormat(NativeEventsBase& ev, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool CLASSNAME::EventsBase_NegotiateSinkFormat(NativeEventsBase& ev, AtomBase& a, LinkBase& link, int sink_ch, const Format& new_fmt) {
 	
 	return false;
 }

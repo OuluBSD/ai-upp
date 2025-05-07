@@ -1,7 +1,7 @@
 // Copyright 2011-2015 David Robillard <d@drobilla.net>
 // SPDX-License-Identifier: ISC
 
-#include <ports/serd/serd.h>
+#include <plugin/serd/serd.h>
 #include "sord.h"
 
 #include <stdbool.h>

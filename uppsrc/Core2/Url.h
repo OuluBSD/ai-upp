@@ -1,8 +1,5 @@
-#ifndef _Local_Url_h_
-#define _Local_Url_h_
-
-
-NAMESPACE_TOPSIDE_BEGIN
+#ifndef _Core2_Url_h_
+#define _Core2_Url_h_
 
 
 class UrlParser {
@@ -58,7 +55,5 @@ public:
 
 String JoinUrl(String base, String rel_path);
 
-
-NAMESPACE_TOPSIDE_END
 
 #endif

@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 //#include <stdio.h>
 //#include <cstdint>
-#include <ports/irrxml/irrXML.h>
+#include <plugin/irrxml/irrXML.h>
 
 namespace Assimp {
 

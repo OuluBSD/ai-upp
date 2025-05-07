@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -46,4 +46,4 @@ private:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

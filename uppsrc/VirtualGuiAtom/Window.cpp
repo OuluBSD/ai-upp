@@ -30,7 +30,7 @@ Size AtomVirtualGui::GetSize()
 bool AtomVirtualGui::Create(const Rect& rect, const char *title)
 {
 	#if IS_UPP_CORE
-	Machine& mach = TS::Serial::GetActiveMachine();
+	Machine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<WindowSystem>();
 	if (!wins)
 		return false;

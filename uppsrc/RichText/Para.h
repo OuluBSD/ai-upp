@@ -214,7 +214,7 @@ struct RichPara {
 		int                  GetCount() const        { return line.GetCount(); }
 		Line&                operator[](int i)       { return line[i]; }
 		const Line&          operator[](int i) const { return line[i]; }
-		void                 Justify(const Format& format);
+		void                 Justify(const ValueFormat& format);
 		int                  BodyHeight() const;
 
 		rval_default(Lines);
@@ -253,10 +253,10 @@ struct RichPara {
 	int         GetLength() const;
 	int         GetCount() const                          { return part.GetCount(); }
 	bool        IsEmpty() const;
-	String      Pack(const Format& style, Array<RichObject>& obj) const;
-	void        Unpack(const String& s, const Array<RichObject>& obj, const Format& style);
+	String      Pack(const ValueFormat& style, Array<RichObject>& obj) const;
+	void        Unpack(const String& s, const Array<RichObject>& obj, const ValueFormat& style);
 	
-	void        ApplyStyle(const Format& newstyle);
+	void        ApplyStyle(const ValueFormat& newstyle);
 
 	Part&       operator[](int i)                         { return part[i]; }
 	const Part& operator[](int i) const                   { return part[i]; }

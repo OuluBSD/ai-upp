@@ -1,4 +1,4 @@
-#include "IMedia.h"
+#include "Media.h"
 
 
 #if HAVE_DIRECTSHOW

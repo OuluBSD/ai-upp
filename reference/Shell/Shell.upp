@@ -12,8 +12,9 @@ uses
 	SoftPhys,
 	SoftAudio,
 	api/Physics,
-	DesktopSuite,
 	SoftVR;
+
+uses(GUI & VIRTUALGUI) DesktopSuite;
 
 uses(GUBO) GuboSuite;
 
@@ -43,6 +44,7 @@ file
 	_ readonly separator;
 
 mainconfig
+	"" = "AI",
 	"Have everything (Linux)" = "GUI SCREEN SDL2 OGL FFMPEG OPENCV VR LOCALHMD FLUIDSYNTH BUILTIN_PORTAUDIO PORTMIDI",
 	"Have everything (FreeBSD)" = "GUI SCREEN SDL2 OGL FFMPEG OPENCV VR LOCALHMD FLUIDSYNTH BUILTIN_PORTAUDIO BUILTIN_ASSIMP PORTMIDI",
 	"Have everything (Windows)" = "GUI SCREEN SDL2 OGL VR FLUIDLITE BUILTIN_PORTAUDIO BUILTIN_ASSIMP",

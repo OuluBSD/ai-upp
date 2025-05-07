@@ -1,7 +1,7 @@
 #pragma once
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 namespace GltfHelper {
@@ -61,4 +61,4 @@ const uint8_t* ReadImageAsRGBA(const tinygltf::Image& image, _Inout_ std::vector
 
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

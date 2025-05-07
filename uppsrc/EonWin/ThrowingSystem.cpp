@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -141,5 +141,5 @@ void ThrowingComponent::Destroy()
 }
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

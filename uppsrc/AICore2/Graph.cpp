@@ -1,7 +1,7 @@
 #include "AICore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 Graph::Graph() {
@@ -21,7 +21,7 @@ void Graph::Clear() {
 	dependencies.Clear();
 }
 
-int Graph::AddKey(Object key) {
+int Graph::AddKey(Value key) {
 	int i = keys.GetCount();
 	keys.Add(key);
 	dependers.Add();
@@ -40,7 +40,7 @@ bool Graph::AddEdge(int dependency, int depender) {
 	return true;
 }
 
-bool Graph::AddEdgeKey(Object dependency, Object depender) {
+bool Graph::AddEdgeKey(Value dependency, Value depender) {
 	int a = keys.Find(dependency);
 	if (a < 0) {
 		SetError("Dependency key not found"); return false;}
@@ -180,5 +180,5 @@ void Graph::DumpSorted() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

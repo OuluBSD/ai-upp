@@ -11,12 +11,12 @@ namespace Parallel {
 class HandleProgEvents : public HandleEventsBase {
 
 public:
-	RTTI_DECL1(HandleProgEvents, HandleEventsBase)
+	//RTTI_DECL1(HandleProgEvents, HandleEventsBase)
 	COPY_PANIC(HandleProgEvents)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -26,12 +26,12 @@ public:
 class CenterProgPipe : public HandleVideoBase {
 
 public:
-	RTTI_DECL1(CenterProgPipe, HandleVideoBase)
+	//RTTI_DECL1(CenterProgPipe, HandleVideoBase)
 	COPY_PANIC(CenterProgPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -41,12 +41,12 @@ public:
 class OglProgPipe : public HandleVideoBase {
 
 public:
-	RTTI_DECL1(OglProgPipe, HandleVideoBase)
+	//RTTI_DECL1(OglProgPipe, HandleVideoBase)
 	COPY_PANIC(OglProgPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -56,12 +56,12 @@ public:
 class HandleProgVideo : public HandleVideoBase {
 
 public:
-	RTTI_DECL1(HandleProgVideo, HandleVideoBase)
+	//RTTI_DECL1(HandleProgVideo, HandleVideoBase)
 	COPY_PANIC(HandleProgVideo)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	AtomTypeCls GetType() const override;
 	
 };

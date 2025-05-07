@@ -1,7 +1,7 @@
 #ifndef _IGraphics_TPipeline_h_
 #define _IGraphics_TPipeline_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx> struct ContextStateT;
@@ -15,7 +15,7 @@ template <class Gfx> struct ModelStateT;
 
 template <class Gfx>
 struct CompilerT : GfxCompiler {
-	RTTI_DECL1(CompilerT, GfxCompiler)
+	//RTTI_DECL1(CompilerT, GfxCompiler)
 	using Base = CompilerT<Gfx>;
 	using NativeShaderRef = typename Gfx::NativeShaderRef;
 	using PipelineState = PipelineStateT<Gfx>;
@@ -35,7 +35,7 @@ struct CompilerT : GfxCompiler {
 
 template <class Gfx>
 struct LinkerT : GfxLinker {
-	RTTI_DECL1(LinkerT, GfxLinker)
+	//RTTI_DECL1(LinkerT, GfxLinker)
 	using Base = LinkerT<Gfx>;
 	using PipelineState = PipelineStateT<Gfx>;
 	using ShaderState = ShaderStateT<Gfx>;
@@ -55,7 +55,7 @@ struct LinkerT : GfxLinker {
 
 template <class Gfx>
 struct ShaderStateT : GfxShaderState {
-	RTTI_DECL1(ShaderStateT, GfxShaderState)
+	//RTTI_DECL1(ShaderStateT, GfxShaderState)
 	using Base = ShaderStateT<Gfx>;
 	using NativeShaderRef = typename Gfx::NativeShaderRef;
 	
@@ -81,7 +81,7 @@ struct ShaderT :
 	using FragmentShaderArgs = typename Gfx::FragmentShaderArgs;
 	using DataStateBase = DataStateT<Gfx>;
 	using Framebuffer = FramebufferT<Gfx>;
-	RTTI_DECL1(ShaderT, GfxShader)
+	//RTTI_DECL1(ShaderT, GfxShader)
 	
     DataStateBase* state = 0;
     
@@ -98,7 +98,7 @@ struct ShaderT :
 
 template <class Gfx>
 struct ProgramStateT : GfxProgramState {
-	RTTI_DECL1(ProgramStateT, GfxProgramState)
+	//RTTI_DECL1(ProgramStateT, GfxProgramState)
 	using Base = ProgramStateT<Gfx>;
 	using NativeProgram = typename Gfx::NativeProgram;
 	using NativePipeline = typename Gfx::NativePipeline;
@@ -172,7 +172,7 @@ struct ProgramStateT : GfxProgramState {
 
 template <class Gfx>
 struct PipelineStateT : GfxPipelineState {
-	RTTI_DECL1(PipelineStateT, GfxPipelineState)
+	//RTTI_DECL1(PipelineStateT, GfxPipelineState)
 	using Base = PipelineStateT<Gfx>;
 	using NativeProgram  = typename Gfx::NativeProgram;
 	using NativePipeline = typename Gfx::NativePipeline;
@@ -204,6 +204,6 @@ struct PipelineStateT : GfxPipelineState {
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

@@ -54,14 +54,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Subdivision.h"
 #include "Importer.h"
 #include "BaseImporter.h"
-#include <ports/assimp/Importer.hpp>
-#include <ports/assimp/light.h>
-#include <ports/assimp/DefaultLogger.hpp>
-#include <ports/assimp/material.h>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/config.h>
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/Importer.hpp>
+#include <plugin/assimp/light.h>
+#include <plugin/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/material.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/config.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/importerdesc.h>
 #include <memory>
 
 using namespace Assimp;

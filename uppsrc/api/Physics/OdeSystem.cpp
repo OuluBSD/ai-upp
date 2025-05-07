@@ -2,7 +2,7 @@
 
 #ifdef flagODE
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -126,14 +126,14 @@ void OdeObject::LoadModel(OglDataState& state) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 
 
 
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 vec3 OdeSystem::EarthGravity = {0, -9.81, 0};
@@ -170,7 +170,7 @@ void AddEngineOdeSystem() {
 
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 
 
@@ -184,7 +184,7 @@ NAMESPACE_ECS_END
 NAMESPACE_UPP
 
 INITBLOCK_(OdeSystem) {
-	TS::Engine::WhenInitialize << callback(TS::AddEngineOdeSystem);
+	Upp::Engine::WhenInitialize << callback(Upp::AddEngineOdeSystem);
 }
 
 END_UPP_NAMESPACE

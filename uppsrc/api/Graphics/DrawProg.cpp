@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 DrawProg::DrawProg() {
@@ -446,5 +446,5 @@ void DrawProg::DrawWindowEnd(const DrawCommand& cmd) {
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 

@@ -1,7 +1,7 @@
 #ifndef _IGraphics_ProgBase_h_
 #define _IGraphics_ProgBase_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
@@ -34,16 +34,16 @@ struct FboProgAtomT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	RTTI_DECL1(FboProgAtomT, BufferBase);
+	//RTTI_DECL1(FboProgAtomT, BufferBase);
 	FboProgAtomT() {}
-	bool Initialize(const Script::WorldState& ws) override;
+	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	void Finalize(RealtimeSourceConfig& cfg) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(RuntimeVisitor& vis) override {}
+	void Visit(Vis& vis) override {}
 	
 };
 
@@ -61,6 +61,6 @@ using X11OglFboProgBase = FboProgAtomT<X11OglGfx>;
 using SdlOglFboProgBase = FboProgAtomT<SdlOglGfx>;
 #endif
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

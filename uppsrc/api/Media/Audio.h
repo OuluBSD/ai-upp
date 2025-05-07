@@ -1,7 +1,7 @@
 #ifndef _IMedia_Audio_h_
 #define _IMedia_Audio_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Backend>
@@ -9,14 +9,14 @@ class AudioFrameT : public PacketBufferBase {
 	
 	
 public:
-	RTTI_DECL1(AudioFrameT, PacketBufferBase)
+	//RTTI_DECL1(AudioFrameT, PacketBufferBase)
 	virtual ~AudioFrameT() {}
 	
 	
-	Format fmt;
+	ValueFormat fmt;
 	
 	
-	const Format&		GetFormat() const {return fmt;}
+	const ValueFormat&		GetFormat() const {return fmt;}
 };
 
 
@@ -25,7 +25,7 @@ class AudioInputFrameT : public AudioFrameT<Backend> {
 	
 public:
 	using Base = AudioFrameT<Backend>;
-	RTTI_DECL1(AudioInputFrameT, Base)
+	//RTTI_DECL1(AudioInputFrameT, Base)
 	
 	
 };
@@ -48,6 +48,6 @@ public:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

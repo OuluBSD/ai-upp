@@ -1,7 +1,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 using namespace D2D1;
@@ -318,5 +318,5 @@ void DeviceResources::Present(HolographicFrame frame)
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

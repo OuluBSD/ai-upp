@@ -45,9 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_ASEFILEHELPER_H_INC
 
 // public ASSIMP headers
-#include <ports/assimp/types.h>
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/anim.h>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/anim.h>
 
 #ifndef ASSIMP_BUILD_NO_3DS_IMPORTER
 

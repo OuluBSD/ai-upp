@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "StringUtils.h"
 
 // Header files, Assimp.
-#include <ports/assimp/DefaultIOSystem.h>
+#include <plugin/assimp/DefaultIOSystem.h>
 #include "fast_atof.h"
 #include "FIReader.hpp"
 

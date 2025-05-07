@@ -1,7 +1,6 @@
-#include "IGraphics.h"
-#include <SerialMach/SerialMach.h>
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 #ifdef flagSDL2
 
@@ -143,10 +142,10 @@ void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, 
 }
 
 template <class Gfx>
-bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Script::WorldState& ws) {
+bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	this->ab = &a;
 	
-	Serial::Link* link = a.GetLink();
+	LinkBase* link = a.GetLink();
 	Serial::FramePollerBase* base = CastPtr<Serial::FramePollerBase>(link);
 	Serial::PollerLink* poller = CastPtr<Serial::PollerLink>(link);
 	if (base) {
@@ -467,4 +466,4 @@ void GfxAccelAtom<Gfx>::CommitDraw() {
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(GfxAccelAtom)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

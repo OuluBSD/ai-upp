@@ -1,7 +1,7 @@
 #ifndef _DesktopSuite_Events_h_
 #define _DesktopSuite_Events_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -52,6 +52,6 @@ struct EventsTester : TopWindow {
 	virtual void   Layout();
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

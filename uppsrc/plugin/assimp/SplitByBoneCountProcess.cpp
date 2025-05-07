@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // internal headers of the post-processing framework
 #include "SplitByBoneCountProcess.h"
-#include <ports/assimp/postprocess.h>
-#include <ports/assimp/DefaultLogger.hpp>
+#include <plugin/assimp/postprocess.h>
+#include <plugin/assimp/DefaultLogger.hpp>
 
 #include <limits>
 #include "TinyFormatter.h"

@@ -1,4 +1,4 @@
-#include "IScreen.h"
+#include "Screen.h"
 
 #if defined flagWIN32 && !defined flagUWP
 
@@ -17,7 +17,7 @@
 	Note: to transfer data pointers via hwnd see https://stackoverflow.com/questions/70620450/draw-raw-array-of-pixels-onto-a-window-c-winapi
 */
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 struct ScrWinSinkBase {
 	HRESULT CreateGraphicsResources();
@@ -88,11 +88,11 @@ void ScrWin::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void ScrWin::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrWin::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Script::WorldState& ws) {
+bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<WinContext>(1);
 	if (!ctx_) {RTLOG("error: could not find Win context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -195,8 +195,8 @@ bool ScrWin::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 		int height = lp_rect->bottom - lp_rect->top;
 		ASSERT(width > 0 && height > 0);
 		
-		TS::default_width = width;
-		TS::default_height = height;
+		Upp::default_width = width;
+		Upp::default_height = height;
 	}*/
 	
 	return true;
@@ -356,7 +356,7 @@ bool ScrWin::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSourceC
 	return true;
 }
 
-bool ScrWin::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrWin::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	TODO
 	return false;
 }
@@ -388,11 +388,11 @@ void ScrWin::Context_Destroy(NativeContext*& dev) {
 	delete dev;
 }
 
-void ScrWin::Context_Visit(NativeContext& dev, AtomBase&, RuntimeVisitor& vis) {
+void ScrWin::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWin::Context_Initialize(NativeContext& ctx, AtomBase& a, const Script::WorldState& ws) {
+bool ScrWin::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
 	return true;
 }
 
@@ -424,7 +424,7 @@ void ScrWin::Context_Finalize(NativeContext& ctx, AtomBase& a, RealtimeSourceCon
 	
 }
 
-bool ScrWin::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, Serial::Link& link, int sink_ch, const Format& new_fmt) {
+bool ScrWin::Context_NegotiateSinkFormat(NativeContext& ctx, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	return false;
 }
 
@@ -494,9 +494,9 @@ LRESULT CALLBACK Win_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_SIZE:
 		word width = lParam & 0xFFFF;
 		word height = (lParam >> 16) & 0xFFFF;
-		if (!TS::default_width) {
-			TS::default_width = width;
-			TS::default_height = height;
+		if (!Upp::default_width) {
+			Upp::default_width = width;
+			Upp::default_height = height;
 		}
 		dev.sz.cx = width;
 		dev.sz.cy = height;
@@ -512,10 +512,10 @@ LRESULT CALLBACK Win_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 #define ABBR
 #define WINIMPL 1
-#include "Impl.inl"
+#include "mpl.inl"
 #undef ABBR
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif

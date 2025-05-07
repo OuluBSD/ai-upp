@@ -1,7 +1,7 @@
 #ifndef _GuboCore_SDraw3_h_
 #define _GuboCore_SDraw3_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class SDraw3 : public Draw3 {
@@ -28,7 +28,7 @@ protected:
 	Cubf cur_area;
 	
 public:
-	RTTI_DECL1(SDraw3, Draw3)
+	//RTTI_DECL1(SDraw3, Draw3)
 	virtual ~SDraw3() {}
 	
 	void Init(const Cubf& r);
@@ -81,6 +81,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

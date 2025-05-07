@@ -1,7 +1,7 @@
-#include "IMedia.h"
+#include "Media.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 #ifdef flagFFMPEG
@@ -189,7 +189,7 @@ FfmpegMedia::AVCodecContextRef FfmpegMedia::CreateCodecContext(AVCodec& c) {
 	return avcodec_alloc_context3(c);
 }
 
-void FfmpegMedia::CopyFramePixels(const Format& fmt, const AVFrame& frame, Vector<byte>& data) {
+void FfmpegMedia::CopyFramePixels(const ValueFormat& fmt, const AVFrame& frame, Vector<byte>& data) {
 	
 	// Non-planar data
 	if (frame.data[1] == 0) {
@@ -337,4 +337,4 @@ void FfmpegMedia::Frame::MakePacket(Packet& p) {
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

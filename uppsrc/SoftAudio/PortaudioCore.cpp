@@ -1,7 +1,7 @@
 #include "AudioCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN;
+NAMESPACE_UPP;
 namespace Portaudio {
 
 extern "C"{
@@ -148,5 +148,5 @@ void AudioDeviceStream::SetFinishCallback(){
 
 
 }
-NAMESPACE_TOPSIDE_END;
+END_UPP_NAMESPACE;
 

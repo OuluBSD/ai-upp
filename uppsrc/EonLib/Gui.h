@@ -1,7 +1,7 @@
 #ifndef _EcsLib_Gui_h_
 #define _EcsLib_Gui_h_
 
-NAMESPACE_ECS_BEGIN
+NAMESPACE_UPP
 
 
 #ifdef flagGUI
@@ -10,7 +10,7 @@ struct DefaultGuiAppComponent :
 	public BinderIfaceVideo,
 	public BinderIfaceEvents
 {
-	RTTI_DECL2(DefaultGuiAppComponent, ComponentT, BinderIfaceVideo)
+	//RTTI_DECL2(DefaultGuiAppComponent, ComponentT, BinderIfaceVideo)
 	
 	Point prev_mouse;
 	
@@ -26,7 +26,7 @@ struct DefaultGuiAppComponent :
 	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
-	void Visit(RuntimeVisitor& vis) override;
+	void Visit(Vis& vis) override;
 	void Update(double dt) override;
 	bool Render(Draw& d) override;
 	bool RenderProg(DrawCommand*& begin, DrawCommand*& end) override;
@@ -41,6 +41,6 @@ struct DefaultGuiAppComponent :
 #endif
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 
 #endif

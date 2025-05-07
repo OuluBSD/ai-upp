@@ -1,4 +1,4 @@
-#include "AtomVR.h"
+#include "EonLib.h"
 
 // This file is generated. Do not modify this file.
 
@@ -24,7 +24,7 @@ LinkTypeCls OpenHMDPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void OpenHMDPipe::Visit(RuntimeVisitor& vis) {
+void OpenHMDPipe::Visit(Vis& vis) {
 	vis.VisitThis<OpenHMDSinkDevice>(this);
 }
 
@@ -52,7 +52,7 @@ LinkTypeCls LocalHMDPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void LocalHMDPipe::Visit(RuntimeVisitor& vis) {
+void LocalHMDPipe::Visit(Vis& vis) {
 	vis.VisitThis<LocalHMDSinkDevice>(this);
 }
 
@@ -80,7 +80,7 @@ LinkTypeCls RemoteVRServerPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void RemoteVRServerPipe::Visit(RuntimeVisitor& vis) {
+void RemoteVRServerPipe::Visit(Vis& vis) {
 	vis.VisitThis<RemoteVRServerSinkDevice>(this);
 }
 
@@ -108,7 +108,7 @@ LinkTypeCls BluetoothHoloPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void BluetoothHoloPipe::Visit(RuntimeVisitor& vis) {
+void BluetoothHoloPipe::Visit(Vis& vis) {
 	vis.VisitThis<DevBluetoothSinkDevice>(this);
 }
 
@@ -136,7 +136,7 @@ LinkTypeCls HoloContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void HoloContextAtom::Visit(RuntimeVisitor& vis) {
+void HoloContextAtom::Visit(Vis& vis) {
 	vis.VisitThis<HoloContextBase>(this);
 }
 
@@ -164,7 +164,7 @@ LinkTypeCls HoloEventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void HoloEventAtomPipe::Visit(RuntimeVisitor& vis) {
+void HoloEventAtomPipe::Visit(Vis& vis) {
 	vis.VisitThis<HoloEventsBase>(this);
 }
 
@@ -192,7 +192,7 @@ LinkTypeCls HoloD12FboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void HoloD12FboAtomSA::Visit(RuntimeVisitor& vis) {
+void HoloD12FboAtomSA::Visit(Vis& vis) {
 	vis.VisitThis<HoloD12VideoSinkDevice>(this);
 }
 

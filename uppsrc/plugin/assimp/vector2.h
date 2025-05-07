@@ -111,6 +111,6 @@ struct aiVector2D {
 
 #endif // __cplusplus
 
-#include <ports/assimp/Compiler/poppack1.h>
+#include <plugin/assimp/Compiler/poppack1.h>
 
 #endif // AI_VECTOR2D_H_INC

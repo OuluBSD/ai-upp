@@ -10,7 +10,7 @@ uses(LOCALHMD) SoftHMD;
 library(LINUX & OPENHMD) "openhmd hidapi-libusb";
 
 file
-	IHolograph.h,
+	Holograph.h,
 	OpenHMD.cpp,
 	LocalHMD.cpp,
 	RemoteVRServer.cpp,

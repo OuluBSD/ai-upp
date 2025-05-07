@@ -2,7 +2,7 @@
 #define _AudioHost_Loader_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class MidiEonContextLoader
@@ -12,7 +12,7 @@ class MidiEonContextLoader
 	String		result;
 	
 	
-	bool		LoadFileMidi(String path, Object& dst);
+	bool		LoadFileMidi(String path, Value& dst);
 	void		OnError(TypeCls type, String fn, String msg);
 	void		OnError(String fn, String msg);
 	void		Clear();
@@ -21,7 +21,7 @@ public:
 	typedef MidiEonContextLoader CLASSNAME;
 	MidiEonContextLoader();
 	
-	bool		Load(String path, Object& o);
+	bool		Load(String path, Value& o);
 	String		GetResult() const {return result;}
 	
 	
@@ -36,6 +36,6 @@ struct SerialMidiEonLoader : SerialLoaderBase {
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

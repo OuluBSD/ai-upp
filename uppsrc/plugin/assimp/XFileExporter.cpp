@@ -49,15 +49,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Bitmap.h"
 #include "BaseImporter.h"
 #include "fast_atof.h"
-#include <ports/assimp/SceneCombiner.h>
-#include <ports/assimp/DefaultIOSystem.h>
+#include <plugin/assimp/SceneCombiner.h>
+#include <plugin/assimp/DefaultIOSystem.h>
 #include <ctime>
 #include <set>
 #include <memory>
 #include "Exceptional.h"
-#include <ports/assimp/IOSystem.hpp>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/light.h>
+#include <plugin/assimp/IOSystem.hpp>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/light.h>
 
 using namespace Assimp;
 

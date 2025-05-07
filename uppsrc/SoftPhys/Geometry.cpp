@@ -1,7 +1,7 @@
 #include "SoftPhys.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 
@@ -66,4 +66,4 @@ Geometry& Geometry::SetRotation(const vec3& axis, float angle) {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

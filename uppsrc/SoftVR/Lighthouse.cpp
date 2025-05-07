@@ -1,5 +1,5 @@
-#include "LocalVR.h"
-#include <LocalHMD/Miniz.c>
+#include "SoftVR.h"
+#include <SoftHMD/Miniz.c>
 
 NAMESPACE_HMD_BEGIN
 

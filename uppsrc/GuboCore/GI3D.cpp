@@ -1,7 +1,7 @@
 #include "GuboCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomInteraction3D::GeomInteraction3D() {
@@ -673,4 +673,4 @@ Point3f GeomInteraction3D::GetFramePointBetween(GeomInteraction3D& top_owner, Ge
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -51,9 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "StreamReader.h"
 #include "MemoryIOWrapper.h"
-#include <ports/assimp/mesh.h>
-#include <ports/assimp/scene.h>
-#include <ports/assimp/importerdesc.h>
+#include <plugin/assimp/mesh.h>
+#include <plugin/assimp/scene.h>
+#include <plugin/assimp/importerdesc.h>
 #include <cctype>
 #include <memory>
 

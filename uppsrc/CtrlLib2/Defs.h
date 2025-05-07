@@ -3,15 +3,14 @@
 
 
 #ifndef flagGUI
-	#error <LocalCtrl/LocalCtrl.h> should only be included, when GUI flag is set.
+	#error <LocalCtrl/CtrlLib.h> should only be included, when GUI flag is set.
 #endif
 
-#include <Local/Before.h>
 
 #if defined flagOGL
 	#if UPP_OLD_VERSION || (defined flagWIN32 && defined flagGCC)
 		#define GLEW_STATIC 1
-		#include <ports/glew/glew.h>
+		#include <plugin/glew/glew.h>
 	#else
 		#include <GL/glew.h>
 	#endif
@@ -22,7 +21,7 @@
 #endif
 
 
-#include <Local/Local.h>
+#include <Core2/Core.h>
 
 #include <CtrlLib/CtrlLib.h>
 

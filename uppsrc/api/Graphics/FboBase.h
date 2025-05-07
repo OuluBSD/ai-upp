@@ -1,14 +1,14 @@
 #ifndef _IGraphics_FboBase_h_
 #define _IGraphics_FboBase_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 class GfxAtomBase : public Atom {
 	
 	
 public:
-	RTTI_DECL1(GfxAtomBase, Atom)
+	//RTTI_DECL1(GfxAtomBase, Atom)
 	GfxAtomBase() {}
 	
 };
@@ -42,15 +42,15 @@ struct FboAtomT :
 	static FboAtomT*	latest;
 	
 public:
-	RTTI_DECL1(FboAtomT, GfxAtomBase);
+	//RTTI_DECL1(FboAtomT, GfxAtomBase);
 	FboAtomT();
 	
-	bool			Initialize(const Script::WorldState& ws) override;
+	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void			Visit(RuntimeVisitor& vis) override {vis & state; vis % data; vis.VisitThis<Atom>(this);}
+	void			Visit(Vis& vis) override {vis & state; vis % data; vis.VisitThis<Atom>(this);}
 	bool			Recv(int sink_ch, const Packet& in) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
@@ -83,6 +83,6 @@ using WinD11FboBase = FboAtomT<WinD11Gfx>;
 #endif
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

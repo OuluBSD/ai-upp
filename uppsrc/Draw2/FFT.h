@@ -1,8 +1,6 @@
-#ifndef _Local_FFT_h_
-#define _Local_FFT_h_
+#ifndef _Draw2_FFT_h_
+#define _Draw2_FFT_h_
 
-NAMESPACE_TOPSIDE_BEGIN
-using namespace UPP;
 
 #if 1
 inline float Magnitude(const Complex& c) {
@@ -118,6 +116,5 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
 
 #endif

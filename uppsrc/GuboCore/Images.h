@@ -2,7 +2,7 @@
 #define _GuboCore_Images_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class SurfaceImg {
@@ -14,7 +14,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

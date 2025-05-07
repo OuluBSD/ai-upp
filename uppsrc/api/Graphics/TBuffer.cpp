@@ -1,6 +1,6 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 template <class Gfx>
 Callback2<String, BufferT<Gfx>*> BufferT<Gfx>::WhenLinkInit;
@@ -30,7 +30,7 @@ BufferStageT<Gfx>& BufferT<Gfx>::InitSingle() {
 }
 
 template <class Gfx>
-bool BufferT<Gfx>::Initialize(AtomBase& a, const Script::WorldState& ws) {
+bool BufferT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	String type = ws.Get(".type");
 	
 	ASSERT(stages.IsEmpty());
@@ -133,7 +133,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 				screen_sz = *video_size;
 		}
 		if (screen_sz.cx == 0 && screen_sz.cy == 0)
-			screen_sz = Size(TS::default_width,TS::default_height);
+			screen_sz = Size(Upp::default_width,Upp::default_height);
 	}
 	
 	if (!stages.IsEmpty()) {
@@ -466,4 +466,4 @@ void BufferT<Gfx>::StoreOutputLink(InternalPacketData& v) {
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(BufferT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

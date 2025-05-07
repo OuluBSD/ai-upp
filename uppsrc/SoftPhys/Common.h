@@ -1,7 +1,7 @@
 #ifndef _SoftPhys_Common_h_
 #define _SoftPhys_Common_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 namespace Parallel {
 struct GfxDataState;
@@ -35,15 +35,15 @@ struct Wrap : T, Moveable<Wrap<T>> {
 using OBB_ = Wrap<OBB>;
 using Sphere_ = Wrap<Sphere>;
 
-struct Object : RTTIBase {
-	RTTI_DECL0(Object)
+struct Object {
+	//RTTI_DECL0(Object)
 	
 	bool inited = false;
 	
 	
 	Object() {}
 	Object(const Nuller& n) {}
-	virtual void Visit(RuntimeVisitor& vis) {}
+	virtual void Visit(Vis& vis) {}
 	void Create() {ASSERT(!inited); inited = true;}
 	void Clear() {ASSERT(inited); inited = false;}
 	operator bool() const {return inited;}
@@ -65,6 +65,6 @@ struct PosRot : Moveable<PosRot> {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

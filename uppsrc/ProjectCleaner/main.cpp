@@ -5,7 +5,7 @@
 
 CONSOLE_APP_MAIN {
 	using namespace UPP;
-	using namespace TS;
+	using namespace Upp;
 	
 	const auto& cmds = CommandLine();
 	if (cmds.GetCount() && cmds[0] == "clang") {

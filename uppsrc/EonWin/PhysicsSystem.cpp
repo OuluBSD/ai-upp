@@ -2,7 +2,7 @@
 #include "EcsWin.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -32,5 +32,5 @@ void PhysicsSystem::Update(double dt)
 }
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 #endif

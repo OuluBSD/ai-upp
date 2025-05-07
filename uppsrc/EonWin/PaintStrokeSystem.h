@@ -2,8 +2,8 @@
 #pragma once
 
 
-NAMESPACE_ECS_BEGIN
-using namespace TS;
+NAMESPACE_UPP
+using namespace Upp;
 
 	
 struct PaintStrokeComponent : Component<PaintStrokeComponent>
@@ -40,5 +40,5 @@ private:
 };
 
 
-NAMESPACE_ECS_END
+END_UPP_NAMESPACE
 #endif

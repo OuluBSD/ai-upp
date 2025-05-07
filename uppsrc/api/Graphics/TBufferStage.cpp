@@ -1,7 +1,7 @@
-#include "IGraphics.h"
+#include "Graphics.h"
 
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 extern const char* stereo_vtx_shader;
 extern const char* stereo_frag_shader;
@@ -107,7 +107,7 @@ GfxCompilerArgs BufferStageT<Gfx>::GetCompilerArgs() const {
 }
 
 template <class Gfx>
-bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const Script::WorldState& ws) {
+bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const Eon::WorldState& ws) {
 	ShaderConf& lib_conf = shdr_confs[GVar::SHADERTYPE_COUNT];
 	lib_conf.str = ws.Get(".library");
 	lib_conf.is_path = true;
@@ -204,7 +204,7 @@ bool BufferStageT<Gfx>::PostInitialize() {
 			
 		}
 		else {
-			fb.size = Size(TS::default_width,TS::default_height);
+			fb.size = Size(Upp::default_width,Upp::default_height);
 			fb.channels = 4;
 			fb.fps = 60;
 			fb.sample = GVar::SAMPLE_FLOAT;
@@ -950,4 +950,4 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 GFX3D_EXCPLICIT_INITIALIZE_CLASS(BufferStageT)
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE

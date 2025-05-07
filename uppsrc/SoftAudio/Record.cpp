@@ -1,7 +1,7 @@
 #include "AudioCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -67,4 +67,4 @@ Record StreamRecord::LoadAny(String path) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

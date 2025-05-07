@@ -1,7 +1,7 @@
 #ifndef _CtrlLib_ToolMenu_h_
 #define _CtrlLib_ToolMenu_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class ToolBackground : public Ctrl {
 	bool horz;
@@ -9,7 +9,7 @@ class ToolBackground : public Ctrl {
 	String label;
 	
 public:
-	RTTI_DECL1_(ToolBackground, Ctrl)
+	//RTTI_DECL1_(ToolBackground, Ctrl)
 	ToolBackground();
 	
 	virtual void Paint(Draw& d) override;
@@ -28,7 +28,7 @@ class ToolGrid : public ParentCtrl {
 	int cursor;
 	
 public:
-	RTTI_DECL1_(ToolGrid, ParentCtrl)
+	//RTTI_DECL1_(ToolGrid, ParentCtrl)
 	typedef ToolGrid CLASSNAME;
 	ToolGrid();
 	
@@ -54,7 +54,7 @@ class ToolList : public ParentCtrl {
 	Array<ToolGrid> grids;
 	
 public:
-	RTTI_DECL1_(ToolList, ParentCtrl)
+	//RTTI_DECL1_(ToolList, ParentCtrl)
 	ToolList();
 	
 	ToolGrid& AddGrid(String name);
@@ -64,6 +64,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

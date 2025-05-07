@@ -44,8 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_VTADJACENCY_H_INC
 
 #include "BaseProcess.h"
-#include <ports/assimp/types.h>
-#include <ports/assimp/ai_assert.h>
+#include <plugin/assimp/types.h>
+#include <plugin/assimp/ai_assert.h>
 
 struct aiMesh;
 struct aiFace;

@@ -1,7 +1,7 @@
 #ifndef _IMedia_FileIn_h_
 #define _IMedia_FileIn_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -20,12 +20,12 @@ public:
 	using Base = AudioInputFrameT<Backend>;
 	using AVFrame = typename Backend::AVFrame;
 	using AVSampleFormat = typename Backend::AVSampleFormat;
-	RTTI_DECL1(AudioFrameQueueT, Base)
+	//RTTI_DECL1(AudioFrameQueueT, Base)
 	
 	AudioFrameQueueT() {}
 	
 	void				FillAudioBuffer(double time_pos, AVFrame* frame);
-	void				Visit(RuntimeVisitor& vis) {}
+	void				Visit(Vis& vis) {}
 	
 	void				Close() override;
 	void				FillBuffer() override;
@@ -45,7 +45,7 @@ class VideoFrameQueueT :
 	using AVCodecContextRef = typename Backend::AVCodecContextRef;
 	using ImgConvContextRef = typename Backend::ImgConvContextRef;
 	using Frame = typename Backend::Frame;
-	using Recycler = TS::Recycler<Frame,true>;
+	using Recycler = Upp::Recycler<Frame,true>;
 	using Pool = RecyclerPool<Frame,true>;
 	
 	struct SwsContext*		img_convert_ctx = 0;
@@ -58,10 +58,10 @@ class VideoFrameQueueT :
 public:
 	using FileInput = typename Backend::FileInput;
 	using Base = VideoInputFrameT<Backend>;
-	RTTI_DECL1(VideoFrameQueueT, Base)
+	//RTTI_DECL1(VideoFrameQueueT, Base)
 	~VideoFrameQueueT() {Clear();}
 	
-	void				Visit(RuntimeVisitor& vis) {}
+	void				Visit(Vis& vis) {}
 	void				Init(AVCodecContextRef& ctx);
 	
 	void				Close() override;
@@ -116,8 +116,8 @@ public:
 	void Clear();
 	void ClearDevice();
 	
-	bool OpenVideo(AVFormatContext* file_fmt_ctx, Format& fmt);
-	bool OpenAudio(AVFormatContext* file_fmt_ctx, Format& fmt);
+	bool OpenVideo(AVFormatContext* file_fmt_ctx, ValueFormat& fmt);
+	bool OpenAudio(AVFormatContext* file_fmt_ctx, ValueFormat& fmt);
 	bool OpenDevice();
 	
 	bool ReadFrame(AVPacket& pkt);
@@ -165,12 +165,12 @@ class FileInputT :
 	
 	
 public:
-	RTTI_DECL_R0(FileInputT)
+	//RTTI_DECL_R0(FileInputT)
 	FileInputT();
 	~FileInputT() {Clear();}
 	
 	bool						IsEof() const;
-	void						Visit(RuntimeVisitor& vis) {vis % aframe % vframe;}
+	void						Visit(Vis& vis) {vis % aframe % vframe;}
 	void						Clear();
 	double						GetSeconds() const;
 	bool						IsAudioOpen() const;
@@ -199,6 +199,6 @@ public:
 
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

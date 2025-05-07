@@ -1,11 +1,11 @@
 #ifndef _IGraphics_TBufferField_h_
 #define _IGraphics_TBufferField_h_
 
-NAMESPACE_PARALLEL_BEGIN
+NAMESPACE_UPP
 
 
 template <class Gfx>
-struct GfxBufferFieldT : RTTIBase {
+struct GfxBufferFieldT {
 	
 public:
 	using Buffer = BufferT<Gfx>;
@@ -21,12 +21,12 @@ public:
 	
 public:
 	using GfxBufferField = GfxBufferFieldT<Gfx>;
-	RTTI_DECL0(GfxBufferFieldT);
+	//RTTI_DECL0(GfxBufferFieldT);
 	
-	void Visit(RuntimeVisitor& vis) {vis % buf;}
+	void Visit(Vis& vis) {vis % buf;}
 	
 	void ClearRef() {buf.ClearRef();}
-	bool Initialize(AtomBase& a, const Script::WorldState& ws);
+	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool PostInitialize();
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz);
 	
@@ -42,6 +42,6 @@ public:
 };
 
 
-NAMESPACE_PARALLEL_END
+END_UPP_NAMESPACE
 
 #endif

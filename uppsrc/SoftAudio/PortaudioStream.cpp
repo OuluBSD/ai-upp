@@ -1,7 +1,7 @@
 #include "AudioCore.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN;
+NAMESPACE_UPP;
 namespace Portaudio {
 	
 
@@ -39,4 +39,4 @@ int AudioStream::WriteAvailable() {
 
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

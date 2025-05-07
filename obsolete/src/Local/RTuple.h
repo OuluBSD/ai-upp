@@ -1,7 +1,7 @@
 #ifndef _Local_RTuple_h_
 #define _Local_RTuple_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 template<std::size_t N, typename T, typename... types>
@@ -119,6 +119,6 @@ RTuple<T...> MakeRTuple(T... args) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

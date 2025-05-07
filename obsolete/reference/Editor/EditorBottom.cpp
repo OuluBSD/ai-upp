@@ -1,7 +1,7 @@
 #include "Editor.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Editor::BTabs()
@@ -395,4 +395,4 @@ WString Editor::FormatErrorLineEP(String text, const char *ep, int& linecy)
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

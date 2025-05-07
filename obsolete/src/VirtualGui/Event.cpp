@@ -3,12 +3,12 @@
 
 #ifdef VIRTUALGUI
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 static dword mouseb = 0;
 static dword modkeys = 0;
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 using namespace ::TS;
@@ -184,8 +184,8 @@ void Ctrl::EventLoop(Ctrl *ctrl)
 	//ProcessEvents(&quit);
 	
 	ASSERT(!ctrl);
-	TS::DebugMainLoop(Parallel::GetActiveMachine());
-	//TS::DebugMainLoop(Parallel::GetActiveMachine(), &Ctrl::EventLoopIteration, ctrl);
+	Upp::DebugMainLoop(Parallel::GetActiveMachine());
+	//Upp::DebugMainLoop(Parallel::GetActiveMachine(), &Ctrl::EventLoopIteration, ctrl);
 
 	if(ctrl)
 		LoopCtrl = ploop;

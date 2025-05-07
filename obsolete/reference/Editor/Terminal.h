@@ -2,7 +2,7 @@
 #define _Editor_Terminal_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct ScreenGlyph : Moveable<ScreenGlyph> {
@@ -47,6 +47,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

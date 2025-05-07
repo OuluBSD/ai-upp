@@ -1,5 +1,5 @@
-#ifndef _EcsPhysics_EcsPhysics_h_
-#define _EcsPhysics_EcsPhysics_h_
+#ifndef _EonLib_EcsPhysics_h_
+#define _EonLib_EcsPhysics_h_
 
 
 #include <EcsLocal/EcsLocal.h>

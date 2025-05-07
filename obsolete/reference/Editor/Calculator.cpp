@@ -1,7 +1,7 @@
 #include "Editor.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 ArrayMap<String, EscValue>& UscGlobal()
@@ -86,5 +86,5 @@ bool TheCalc::Key(dword key, int count)
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

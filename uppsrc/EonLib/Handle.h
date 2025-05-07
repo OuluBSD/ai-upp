@@ -1,5 +1,5 @@
-#ifndef _AtomHandle_Handle_h_
-#define _AtomHandle_Handle_h_
+#ifndef _EonLib_Handle_h_
+#define _EonLib_Handle_h_
 
 
 NAMESPACE_UPP

@@ -1,6 +1,6 @@
 #include "Local.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void Ether::Put(const String& s) {
 	dword len = s.GetCount() + 1;
@@ -70,4 +70,4 @@ void ReadEther::SetSize(int64 size) {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

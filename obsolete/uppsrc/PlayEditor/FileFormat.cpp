@@ -1,6 +1,6 @@
 #include "PlayEditor.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 PlayTokenizer::PlayTokenizer() : ErrorSource("PlayTokenizer") {
@@ -1427,4 +1427,4 @@ String PlayScript::Subtitle::ToString() const {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

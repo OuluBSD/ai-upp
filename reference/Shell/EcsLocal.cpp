@@ -1,6 +1,6 @@
-#include "EcsLocal.h"
+#include "Shell.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -28,4 +28,4 @@ void BindEcsToSerial() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

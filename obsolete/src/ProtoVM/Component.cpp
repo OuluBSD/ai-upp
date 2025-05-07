@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 Pin::Pin() {
@@ -144,4 +144,4 @@ ElcCapacitor::ElcCapacitor() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

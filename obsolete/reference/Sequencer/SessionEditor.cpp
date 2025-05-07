@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 SessionEditor::SessionEditor() {
@@ -123,4 +123,4 @@ void SessionEditor::SubBar(Bar& bar) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

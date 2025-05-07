@@ -221,6 +221,6 @@ void LocalFragmentShader::Process(SdlCpuFragmentShaderArgs& args) {
 NAMESPACE_ECS_END
 
 
-SIMPLE_ECS_APP_(TS::ECS::LocalApp, "geom_tutorial_base.eon", "FRAGMENT=softphystest_fragment;VERTEX=softphystest_vertex;DRAWMEM=false")
+SIMPLE_ECS_APP_(Upp::ECS::LocalApp, "geom_tutorial_base.eon", "FRAGMENT=softphystest_fragment;VERTEX=softphystest_vertex;DRAWMEM=false")
 
 

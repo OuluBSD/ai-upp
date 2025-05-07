@@ -1,6 +1,6 @@
 #include "ECS_RouteSearch.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 void DumpTransforms(String s, PoolRef pool) {
 	LOG(s);
@@ -725,8 +725,8 @@ void DummyActor::DoSinkAction(ActGroupId a) {
 	}
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN {
-	TS::RunTest();
+	Upp::RunTest();
 }

@@ -2,7 +2,7 @@
 #define _SoftPhysTests_SoftPhysTests_h_
 
 #include <EcsComplete/EcsComplete.h>
-using namespace TS::SoftPhys;
+using namespace Upp::SoftPhys;
 
 #define SOFTGL 0
 

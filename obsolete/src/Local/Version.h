@@ -1,7 +1,7 @@
 #ifndef _Local_Version_h_
 #define _Local_Version_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 // Class for transforming already stored floats to doubles
@@ -65,6 +65,6 @@ struct Version {
 #define FOR_VER(x) if (v.Is(x))
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

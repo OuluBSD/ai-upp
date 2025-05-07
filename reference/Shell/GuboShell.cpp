@@ -1,7 +1,7 @@
-#include "GuboShell.h"
+#include "Shell.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void VguiMain() {
@@ -34,7 +34,7 @@ void DesktopMain() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 

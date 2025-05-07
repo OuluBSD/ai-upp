@@ -144,7 +144,7 @@ void FmPresetSolver::Solve(Sample& s) {
 		pv.SetCount(dimension);
 		
 		String file = RealizeShareFile("presets/fmsynth/presets/" + p);
-		String content = TS::LoadFile(file);
+		String content = Upp::LoadFile(file);
 		
 		SoftSynth::FmSynth::PresetMetadata meta;
 		s.syn.Reset();

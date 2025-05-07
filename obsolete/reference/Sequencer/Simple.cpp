@@ -1,6 +1,6 @@
 #include "Sequencer.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 double SimpleOscillator::Note::Tick() {
 	double d = sin(phase * 2 * M_PI) * amplitude;
@@ -129,4 +129,4 @@ void SimpleReverb::Configure(const CoreParams& params) {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -67,7 +67,7 @@ Size GetStdFontSize() {
 Font GetStdFont(int size) {
 	size = size < 0 ? GetStdFontSize().cy : size;
 	if (__std_font.IsEmpty()) {
-		__std_font = Font(Font::LoadFont(TS::ShareDirFile("fonts"), "Roboto-Regular.ttf", size));
+		__std_font = Font(Font::LoadFont(Upp::ShareDirFile("fonts"), "Roboto-Regular.ttf", size));
 	}
 	return __std_font;
 }
@@ -89,19 +89,19 @@ Size GetTextSize(WString s, Font fnt) {
 }
 
 Font Arial(int size) {
-	return Font::LoadFont(TS::ShareDirFile("fonts"), "Roboto-Regular.ttf", size);
+	return Font::LoadFont(Upp::ShareDirFile("fonts"), "Roboto-Regular.ttf", size);
 }
 
 Font Monospace(int size) {
-	return Font::LoadFont(TS::ShareDirFile("fonts"), "Inconsolata-Regular.ttf", size);
+	return Font::LoadFont(Upp::ShareDirFile("fonts"), "Inconsolata-Regular.ttf", size);
 }
 
 Font Serif(int size) {
-	return Font::LoadFont(TS::ShareDirFile("fonts"), "PlayfairDisplay-Regular.ttf", size);
+	return Font::LoadFont(Upp::ShareDirFile("fonts"), "PlayfairDisplay-Regular.ttf", size);
 }
 
 Font SansSerif(int size) {
-	return Font::LoadFont(TS::ShareDirFile("fonts"), "LiberationSans-Regular.ttf", size);
+	return Font::LoadFont(Upp::ShareDirFile("fonts"), "LiberationSans-Regular.ttf", size);
 }
 
 Font StdFont(int size) {

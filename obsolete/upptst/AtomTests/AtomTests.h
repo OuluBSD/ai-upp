@@ -4,11 +4,11 @@
 #include <AtomLocal/AtomLocal.h>
 #include <AtomComplete/AtomComplete.h>
 
-NAMESPACE_TOPSIDE_BEGIN
-using namespace TS::Serial;
+NAMESPACE_UPP
+using namespace Upp::Serial;
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

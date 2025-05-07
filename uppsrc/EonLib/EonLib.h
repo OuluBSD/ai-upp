@@ -1,5 +1,5 @@
-#ifndef _AtomAudio_AtomAudio_h_
-#define _AtomAudio_AtomAudio_h_
+#ifndef _EonLib_EonLib_h_
+#define _EonLib_EonLib_h_
 
 #include <EonDraw/EonDraw.h>
 

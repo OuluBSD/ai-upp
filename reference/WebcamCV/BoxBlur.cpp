@@ -1,7 +1,7 @@
 #include "WebcamCV.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void BoxBlurBase::Process() {
@@ -11,4 +11,4 @@ void BoxBlurBase::Process() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

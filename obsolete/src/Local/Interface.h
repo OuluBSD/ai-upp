@@ -1,7 +1,7 @@
 #ifndef _Local_Interface_h_
 #define _Local_Interface_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 using namespace UPP;
 
 
@@ -79,6 +79,6 @@ public:
 #endif
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

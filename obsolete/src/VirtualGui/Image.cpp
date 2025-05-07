@@ -50,7 +50,7 @@ STD_CURSOR(Hand)
 #define FBIMG(x) const Image& FBImg::x() {\
 	static Image img;\
 	if (img.IsEmpty())\
-		img = StreamRaster::LoadFileAny(TS::ShareDirFile("imgs" DIR_SEPS "icons" DIR_SEPS #x ".png")); \
+		img = StreamRaster::LoadFileAny(Upp::ShareDirFile("imgs" DIR_SEPS "icons" DIR_SEPS #x ".png")); \
 	return img;\
 }
 FBIMG(close)

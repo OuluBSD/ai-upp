@@ -3,7 +3,7 @@
 #include <AtomSDL2/AtomSDL2.h>
 //#include <Physics/Physics.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool SingleMachine::Open(void(*arg_fn)()) {
@@ -41,4 +41,4 @@ void SingleMachine::Close() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

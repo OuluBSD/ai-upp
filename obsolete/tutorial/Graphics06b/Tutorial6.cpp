@@ -7,7 +7,7 @@ Tutorial 6b:
 	Source: https://github.com/ssloy/tinyrenderer/wiki/Lesson-6-Shaders-for-the-software-renderer
 */
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void Graphics6Initializer() {
@@ -33,9 +33,9 @@ void Graphics6Initializer() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
-RENDER_APP_(TS::DefaultRenderApp)
-APP_INITIALIZE_(TS::Graphics6Startup);
+RENDER_APP_(Upp::DefaultRenderApp)
+APP_INITIALIZE_(Upp::Graphics6Startup);
 APP_DEFAULT_GFX_(GFX_OPENGL);

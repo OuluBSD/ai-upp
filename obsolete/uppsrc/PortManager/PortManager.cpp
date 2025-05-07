@@ -1,7 +1,7 @@
 #include "PortManager.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 PortManager::PortManager() {
@@ -27,8 +27,8 @@ void PortManagerMain() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
-CONSOLE_APP_MAIN {TS::PortManagerMain();}
+CONSOLE_APP_MAIN {Upp::PortManagerMain();}
 

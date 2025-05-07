@@ -2,7 +2,7 @@
 #define _Local_Draw2D_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 #if IS_UPP_CORE
@@ -28,7 +28,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

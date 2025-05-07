@@ -1,5 +1,5 @@
-#ifndef _AtomShellProto_AtomShellProto_h_
-#define _AtomShellProto_AtomShellProto_h_
+#ifndef _Shell_Shell_h_
+#define _Shell_Shell_h_
 
 
 #include <AICore2/AICore.h>

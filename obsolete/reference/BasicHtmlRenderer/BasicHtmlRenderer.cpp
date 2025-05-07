@@ -3,7 +3,7 @@ using namespace UPP;
 
 
 GUI_APP_MAIN {
-	TS::Layout::Client c;
+	Upp::Layout::Client c;
 	
 	String path;
 	const auto& cmds = CommandLine();

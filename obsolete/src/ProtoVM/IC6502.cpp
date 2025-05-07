@@ -4,7 +4,7 @@
 // https://github.com/floooh/chips-test/blob/master/tests/m6502-int.c
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 IC6502::IC6502()
@@ -206,4 +206,4 @@ void IC6502::SetPin(int i, bool b) {
 		in_pins &= ~mask;
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

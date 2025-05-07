@@ -1,8 +1,8 @@
-#include "EcsComplete.h"
+#include "Shell.h"
 
 
 
-NAMESPACE_SERIAL_BEGIN
+NAMESPACE_UPP
 
 
 void EngineEcsInit();
@@ -45,4 +45,4 @@ void EngineEcsInit() {
 }
 
 
-NAMESPACE_SERIAL_END
+END_UPP_NAMESPACE

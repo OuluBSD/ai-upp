@@ -1,6 +1,6 @@
 #include "ECS_TextEditor.h"
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -47,10 +47,10 @@ void Main() {
     mach.Stop();
 }
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 CONSOLE_APP_MAIN {
-	TS::Main();
+	Upp::Main();
 }
 

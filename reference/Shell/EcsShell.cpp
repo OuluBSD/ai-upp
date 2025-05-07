@@ -1,4 +1,4 @@
-#include "EcsShell.h"
+#include "Shell.h"
 
 
 // UWP solution is different
@@ -13,7 +13,7 @@ using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::UI::Core;
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void DesktopMain() {
@@ -23,7 +23,7 @@ void DesktopMain() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 GUI_APP_MAIN

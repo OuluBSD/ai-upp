@@ -1,5 +1,5 @@
-#ifndef _System_PhysicsPrefab_h_
-#define _System_PhysicsPrefab_h_
+#ifndef _EonLib_PhysicsPrefab_h_
+#define _EonLib_PhysicsPrefab_h_
 
 #if 0
 #ifdef flagODE

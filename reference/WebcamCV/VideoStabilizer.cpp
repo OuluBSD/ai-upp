@@ -1,7 +1,7 @@
 #include "WebcamCV.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 //VideoStabilizerBase::VideoStabilizerBase() : stabilizer(MM_AFFINE) {
@@ -39,5 +39,5 @@ void VideoStabilizerBase::Process() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

@@ -2,7 +2,7 @@
 #define _Local_Visitor_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class LockedScopeRefCounter :
@@ -144,7 +144,7 @@ public:
 #define EMPTY_VISIT void Visit(RuntimeVisitor& vis) override {}
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 NodeParentCtrl::NodeParentCtrl() {
@@ -29,5 +29,5 @@ TrackListCtrl& NodeParentCtrl::GetTrackList() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 

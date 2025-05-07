@@ -1,7 +1,7 @@
 #ifndef _Local_Ether_h_
 #define _Local_Ether_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class Ether;
@@ -174,6 +174,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

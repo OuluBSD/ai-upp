@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool GeomInteraction::do_debug_draw = false;
@@ -370,6 +370,6 @@ bool GeomInteraction::IsVisible() const {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

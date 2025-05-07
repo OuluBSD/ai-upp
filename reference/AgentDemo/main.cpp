@@ -105,7 +105,7 @@ void SendMoreMoneyEasy();
 
 
 void ActionPlannerExample() {
-	using namespace ::TS::Agent;
+	using namespace ::Upp::Agent;
 	
 	// Macros are poor man's meta-programming. Don't underestimate it! (I did it too earlier...)
 	

@@ -2,7 +2,7 @@
 #define _Sequencer_System_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 enum {CORE_INSTRUMENT, CORE_EFFECT};
@@ -116,6 +116,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

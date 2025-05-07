@@ -1,7 +1,7 @@
 #include "Sequencer.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 Track::Track() {
@@ -354,4 +354,4 @@ Note::Note() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

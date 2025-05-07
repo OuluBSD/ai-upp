@@ -1,5 +1,5 @@
-#ifndef _Complete_Prefabs_h_
-#define _Complete_Prefabs_h_
+#ifndef _Shell_Prefabs_h_
+#define _Shell_Prefabs_h_
 
 #if defined flagSDL2
 	#ifdef flagOGL
@@ -36,20 +36,20 @@
 /*#define GUI_APP_MAIN \
 void UserGuiMainFn_(); \
 \
-APP_INITIALIZE_STARTUP_(TS::DefaultSerialInitializer, TS::DefaultStartup) \
+APP_INITIALIZE_STARTUP_(Upp::DefaultSerialInitializer, Upp::DefaultStartup) \
 RENDER_APP_MAIN { \
-	TS::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
-	TS::DefaultRunner(0, "Gui App", GUI_EON);} \
+	Upp::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
+	Upp::DefaultRunner(0, "Gui App", GUI_EON);} \
 \
 void UserGuiMainFn_()*/
 
 #define GUBO_APP_MAIN \
 void UserGuiMainFn_(); \
 \
-APP_INITIALIZE_STARTUP_(TS::DefaultSerialInitializer, TS::DefaultStartup) \
+APP_INITIALIZE_STARTUP_(Upp::DefaultSerialInitializer, Upp::DefaultStartup) \
 RENDER_APP_MAIN { \
-	TS::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
-	TS::DefaultRunner(0, "Gui App", GUBO_EON);} \
+	Upp::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
+	Upp::DefaultRunner(0, "Gui App", GUBO_EON);} \
 \
 void UserGuiMainFn_()
 

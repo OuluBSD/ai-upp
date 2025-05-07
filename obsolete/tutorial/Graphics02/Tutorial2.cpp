@@ -9,7 +9,7 @@ Tutorial 2:
 */
 
 using namespace TS;
-using namespace TS::Ecs;
+using namespace Upp::Ecs;
 
 
 struct Tutorial2 :

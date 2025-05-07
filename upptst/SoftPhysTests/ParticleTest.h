@@ -2,7 +2,7 @@
 #define _SoftPhysTests_ParticleTest_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class ParticleTest : public TestBase {
@@ -34,7 +34,7 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

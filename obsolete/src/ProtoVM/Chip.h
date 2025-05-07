@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_Chip_h_
 #define _ProtoVM_Chip_h_
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 class Chip : public ElcBase {
@@ -12,6 +12,6 @@ class Chip : public ElcBase {
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef _AtomMinimal_Generated_h_
-#define _AtomMinimal_Generated_h_
+#ifndef _EonLib_Generated_h_
+#define _EonLib_Generated_h_
 
 // This file is generated. Do not modify this file.
 

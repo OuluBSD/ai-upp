@@ -17,7 +17,7 @@ bar		64
 #define BARSIZE 64
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 enum {
@@ -236,6 +236,6 @@ public:
 };
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

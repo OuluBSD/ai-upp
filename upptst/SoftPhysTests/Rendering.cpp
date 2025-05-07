@@ -2,7 +2,7 @@
 
 #include <Graphics/IfaceOgl.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 namespace SoftPhys {
 
 #ifndef  M_PI
@@ -818,7 +818,7 @@ template<>
 void Wrap<OBB>::Refresh(GfxDataState& s) {
 	glPushMatrix();
 
-	mat4 scale = TS::scale(size);
+	mat4 scale = Upp::scale(size);
 	mat4 rotation = orientation.Extend();
 	mat4 translation = Translation(position);
 
@@ -1032,4 +1032,4 @@ void CollisionManifold::Refresh(GfxDataState& s) {
 }
 
 }
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

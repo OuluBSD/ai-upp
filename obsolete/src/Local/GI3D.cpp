@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 GeomInteraction3D::GeomInteraction3D() {
@@ -88,6 +88,6 @@ void GeomInteraction3D::Refresh() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

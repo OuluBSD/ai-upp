@@ -6,7 +6,7 @@ using namespace UPP;
 
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 
@@ -43,7 +43,7 @@ public:
 void Initializer();
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

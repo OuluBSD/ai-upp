@@ -1,7 +1,7 @@
 #include "WebcamCV.h"
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 void OpticalFlowLKBase::InitDefault() {
@@ -77,4 +77,4 @@ void OpticalFlowLKBase::PruneOverflowPoints() {
 }
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

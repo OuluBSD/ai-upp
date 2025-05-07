@@ -3,7 +3,7 @@
 #include <EcsLib/EcsLib.h>
 #include <Physics/Physics.h>
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 bool SingleMachine::Open(bool gui) {
@@ -50,4 +50,4 @@ void SingleMachine::Close() {
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE

@@ -12,7 +12,7 @@ static bool SinkDevice_Send(NativeSinkDevice&, AtomBase&, RealtimeSourceConfig& 
 static void SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Vis& vis);
 static bool SinkDevice_Recv(NativeSinkDevice&, AtomBase&, int, const Packet&);
 static void SinkDevice_Finalize(NativeSinkDevice&, AtomBase&, RealtimeSourceConfig&);
-static bool SinkDevice_NegotiateSinkFormat(NativeSinkDevice&, AtomBase&, LinkBase& link, int sink_ch, const Format& new_fmt);
+static bool SinkDevice_NegotiateSinkFormat(NativeSinkDevice&, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
 static bool SinkDevice_IsReady(NativeSinkDevice&, AtomBase&, PacketIO& io);
 
 static bool Context_Create(NativeContext*& dev);
@@ -26,7 +26,7 @@ static bool Context_Send(NativeContext&, AtomBase&, RealtimeSourceConfig& cfg, P
 static void Context_Visit(NativeContext&, AtomBase&, Vis& vis);
 static bool Context_Recv(NativeContext&, AtomBase&, int, const Packet&);
 static void Context_Finalize(NativeContext&, AtomBase&, RealtimeSourceConfig&);
-static bool Context_NegotiateSinkFormat(NativeContext&, AtomBase&, LinkBase& link, int sink_ch, const Format& new_fmt);
+static bool Context_NegotiateSinkFormat(NativeContext&, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
 static bool Context_IsReady(NativeContext&, AtomBase&, PacketIO& io);
 
 static bool EventsBase_Create(NativeEventsBase*& dev);
@@ -40,6 +40,6 @@ static bool EventsBase_Send(NativeEventsBase&, AtomBase&, RealtimeSourceConfig& 
 static void EventsBase_Visit(NativeEventsBase&, AtomBase&, Vis& vis);
 static bool EventsBase_Recv(NativeEventsBase&, AtomBase&, int, const Packet&);
 static void EventsBase_Finalize(NativeEventsBase&, AtomBase&, RealtimeSourceConfig&);
-static bool EventsBase_NegotiateSinkFormat(NativeEventsBase&, AtomBase&, LinkBase& link, int sink_ch, const Format& new_fmt);
+static bool EventsBase_NegotiateSinkFormat(NativeEventsBase&, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
 static bool EventsBase_IsReady(NativeEventsBase&, AtomBase&, PacketIO& io);
 

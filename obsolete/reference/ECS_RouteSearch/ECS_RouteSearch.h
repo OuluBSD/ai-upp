@@ -5,7 +5,7 @@
 #include <Complete/Complete.h>
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 
 struct Tile : Moveable<Tile> {
@@ -201,7 +201,7 @@ PREFAB_END
 
 
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 
 #endif

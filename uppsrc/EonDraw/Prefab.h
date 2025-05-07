@@ -1,5 +1,5 @@
-#ifndef _Eon_Prefab_h_
-#define _Eon_Prefab_h_
+#ifndef _EonDraw_Prefab_h_
+#define _EonDraw_Prefab_h_
 
 namespace Ecs {
 

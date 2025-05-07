@@ -2,7 +2,7 @@
 #define _Sequencer_TrackListCtrl_h_
 
 
-NAMESPACE_TOPSIDE_BEGIN
+NAMESPACE_UPP
 
 class TrackHeaderCtrl : public ExprCtrl {
 	int id = -1;
@@ -138,6 +138,6 @@ public:
 	
 };
 
-NAMESPACE_TOPSIDE_END
+END_UPP_NAMESPACE
 
 #endif

@@ -493,6 +493,7 @@ template <class T> String AsTypeName() {return typeid(T).name();}
 //       If std had demangler or mangled name was standard, this would be unnecessary.
 //       Usage: call TypedStringHasher<T>("name of T") early in constructor or main.
 //       Use AsTypeCls().GetHashValue() if you need easy & non-persistent hash.
+template <class T> hash_t TypedStringHasher(const char* s);
 template <class T> hash_t AsTypeHash() {return TypedStringHasher<T>(0);}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 

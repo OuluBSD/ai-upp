@@ -1,6 +1,6 @@
 #include "AICore.h"
 
-class Ide;
+struct Ide;
 
 NAMESPACE_UPP
 

@@ -12,7 +12,7 @@ struct GeomVideo {
 	OrbSystem orb;
 	bool is_importing = false;
 	int point_limit = 2048;
-	float eye_dist = 0.06;
+	float eye_dist = 0.06f;
 	TimeStop ts;
 	int position = 0;
 	String directory;

@@ -8,7 +8,7 @@ void SoundThread<Sample>::RecordCallback(StreamCallbackArgs& args) {
 	if (meter.IsNull())
 		meter.Create();
 	auto& meter = *this->meter.data;
-	int meter_sample_count = max<int>(1, samplerate * meter_duration);
+	int meter_sample_count = max<int>(1, (int)(samplerate * meter_duration));
 	meter.data.SetCount(meter_sample_count, 0);
 	meter_index = meter_index % meter_sample_count;
 	Sample* meter_begin = meter.data.Begin();

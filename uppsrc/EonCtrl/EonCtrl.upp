@@ -5,6 +5,7 @@ uses
 
 file
 	EonCtrl.h,
+	EonCtrl.icpp,
 	Parts.h,
 	Parts.cpp,
 	ComponentCtrl.h,
@@ -17,6 +18,8 @@ file
 	InterfaceSystemCtrl.cpp,
 	InterfaceConnectionCtrl.h,
 	InterfaceConnectionCtrl.cpp,
+	DesktopSystem.h,
+	DesktopSystem.cpp,
 	GraphLib readonly separator,
 	GraphLib.h,
 	Graph.h,

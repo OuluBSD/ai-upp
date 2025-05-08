@@ -4,9 +4,9 @@
 NAMESPACE_UPP
 
 
-void RandomizeEvent(CtrlEvent& ev) {
+void RandomizeEvent(GeomEvent& ev) {
 	ev.Clear();
-	ev.type = (CtrlEventType)(1+Random(EVENT_TYPE_COUNT-1)); // skip first,
+	ev.type = (GeomEventType)(1+Random(EVENT_TYPE_COUNT-1)); // skip first,
 	
 	switch (ev.type) {
 		case EVENT_WINDOW_RESIZE:

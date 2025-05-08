@@ -84,7 +84,7 @@ public:
     Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
-        auto v = this->node.FindAll<typename SystemT>();
+        auto v = this->node.template FindAll<SystemT>();
         return v.IsEmpty() ? 0 : v[0];
     }
 
@@ -139,7 +139,7 @@ public:
     bool IsRunning() const {return is_running;}
 	void SetNotRunning() {is_running = false;}
 	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
-	void Visit(Vis& vis);
+	void Visit(Vis& vis) override;
 	void WarnDeveloper(String msg);
 	
 	MachineVerifier*	GetMachineVerifier() const {return mver;}

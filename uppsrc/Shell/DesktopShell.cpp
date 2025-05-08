@@ -5,13 +5,10 @@ NAMESPACE_UPP
 
 
 void VguiMain() {
-	#if IS_UPP_CORE
 	SetLanguage(LNG_ENGLISH);
 	SetDefaultCharset(CHARSET_UTF8);
 	
 	ChClassicSkin();
-	#endif
-	
 	
 	Upp::EventsTester app;
 	//GuiTesterApp app;

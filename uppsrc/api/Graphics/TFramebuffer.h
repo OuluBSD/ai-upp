@@ -10,16 +10,16 @@ template <class Gfx> struct InputStateT;
 template <class Gfx>
 struct FramebufferT : Gfx::FramebufferBase {
 	using Base = FramebufferT<Gfx>;
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
-	using NativeDepthBufferPtr = typename Gfx::NativeDepthBufferRef;
-	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
-	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstRef;
-	using SystemFrameBufferPtr = typename Gfx::SystemFrameBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
+	using NativeDepthBufferPtr = typename Gfx::NativeDepthBufferPtr;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferPtr;
+	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstPtr;
+	using SystemFrameBufferPtr = typename Gfx::SystemFrameBufferPtr;
 	//RTTI_DECL1(FramebufferT, GfxFramebuffer)
 	
-	NativeColorBufferRef	color_buf[2];
-	NativeDepthBufferRef	depth_buf[2];
-	NativeFrameBufferRef	frame_buf[2];
+	NativeColorBufferPtr	color_buf[2];
+	NativeDepthBufferPtr	depth_buf[2];
+	NativeFrameBufferPtr	frame_buf[2];
 	bool locked = false;
 	
 	
@@ -28,9 +28,9 @@ struct FramebufferT : Gfx::FramebufferBase {
 	
 	FramebufferT() {
 		for(int i = 0; i < 2; i++) {
-			Gfx::ClearColorBufferRef(color_buf[i]);
-			Gfx::ClearDepthBufferRef(depth_buf[i]);
-			Gfx::ClearFramebufferRef(frame_buf[i]);
+			Gfx::ClearColorBufferPtr(color_buf[i]);
+			Gfx::ClearDepthBufferPtr(depth_buf[i]);
+			Gfx::ClearFramebufferPtr(frame_buf[i]);
 		}
 	}
 	

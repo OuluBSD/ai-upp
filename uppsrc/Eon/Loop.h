@@ -90,7 +90,7 @@ public:
 	
 	EnvStatePtr GetAddEnv(String name) {return space->GetAddEnv(name);}
 	
-	void Visit(Vis& vis);
+	void Visit(Vis& vis) override;
 	
 private:
 	//LinkMap					links;

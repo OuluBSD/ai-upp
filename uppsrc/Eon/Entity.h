@@ -34,14 +34,13 @@ protected:
 	}
 	
 public:
-	typedef Entity CLASSNAME;
 	CLASSTYPE(Entity)
 	Entity(MetaNode& n);
 	virtual ~Entity();
 	
 	static EntityId GetNextId();
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 	
 	void SetPrefab(String s) {prefab = s;}
 	String GetPrefab() const {return prefab;}
@@ -138,8 +137,8 @@ public:
 	ComponentBasePtr	GetAdd(String comp_name);
 	
 	template<typename... ComponentTs>
-	Tuple<ComponentTs*...> TryGetComponents() {
-		return MakeTuple(node.Find<ComponentTs>()...);
+	RTuple<ComponentTs*...> TryGetComponents() {
+		return MakeRTuple(node.Find<ComponentTs>()...);
 	}
 	
 	
@@ -164,15 +163,15 @@ public:
 	//const ComponentMap&	GetComponents() const {return comps;}
 	
 	template<typename... ComponentTs>
-	Tuple<ComponentTs*...> CreateComponents() {
+	RTuple<Ptr<ComponentTs>...> CreateComponents() {
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all be a component");
 		
-		auto tuple =  Tuple<ComponentTs*...> {{
+		auto tuple = RTuple<Ptr<ComponentTs>...> {{
 				Add0<ComponentTs>(false)
 			}
 			...
 		};
-		tuple.ForEach([this](auto& comp) {InitializeComponent(comp.GetMutable());});
+		tuple.ForEach([this](auto& comp) {InitializeComponent(*comp);});
 		return tuple;
 	}
 	
@@ -185,7 +184,7 @@ public:
 private:
 	
 	template<typename T> void Remove0();
-	template<typename T> T* Add0(bool initialize);
+	template<typename T> Ptr<T> Add0(bool initialize);
 	
 	
 	ComponentBasePtr AddPtr(ComponentBase* comp);
@@ -205,13 +204,13 @@ template<typename... ComponentTs>
 struct EntityPrefab {
 	static_assert(AllComponents<ComponentTs...>::value, "All components should derive from Component");
 	
-	using Components = Tuple<ComponentTs*...>;
+	using Components = RTuple<Ptr<ComponentTs>...>;
 	
 	static String GetComponentNames() {
-		return Tuple<ComponentTs*...>::AsTypeNames();
+		return RTuple<Ptr<ComponentTs>...>::AsTypeNames();
 	}
 	
-	static Components Make(Entity& e) {
+	static Components Make(Ecs::Entity& e) {
 		return e.CreateComponents<ComponentTs...>();
 	}
 };

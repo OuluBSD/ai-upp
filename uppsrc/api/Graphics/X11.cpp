@@ -88,7 +88,7 @@ void X11SwGfx::UnlockTextureToSurface(NativeTexture& tex) {
 	// pass
 }
 
-/*void X11SwGfx::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
+/*void X11SwGfx::ClearFramebufferPtr(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }*/
 

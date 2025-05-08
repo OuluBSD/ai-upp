@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 template <class Gfx>
 struct TextureT {
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
 	
 	NativeColorBufferPtr tex;
 	

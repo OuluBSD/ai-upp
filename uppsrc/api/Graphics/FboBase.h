@@ -50,7 +50,7 @@ public:
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void			Visit(Vis& v) override {vis & state; vis % data; VIS_THIS(Atom);}
+	void			Visit(Vis& v) override {v & state; v % data; VIS_THIS(Atom);}
 	bool			Recv(int sink_ch, const Packet& in) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}

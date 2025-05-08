@@ -20,10 +20,10 @@ Image TgaReaderBackend::LoadFileAny(String path) {
 	int bpp = 4; // always, see tgaRead impl
 	void* src = (void*)tgaRead((const unsigned char*)content.Begin(), TGA_READER_ARGB, &w, &h, &depth);
 	int len = w * h * bpp;
-	RawSysImage* img = new RawSysImage();
+	One<RawSysImage> img = new RawSysImage();
 	img->data.SetCount(len);
 	memcpy(img->data.Begin(), src, len);
-	img->backend = GetTypeIdClass<CLASSNAME>();
+	img->backend = AsTypeCls<CLASSNAME>();
 	img->w = w;
 	img->h = h;
 	img->ch = bpp;
@@ -36,7 +36,7 @@ Image TgaReaderBackend::LoadFileAny(String path) {
 	int w0 = data->img.GetWidth();
 	Size sz = i.GetSize();*/
 	
-	return img;
+	return *img;
 }
 
 Image TgaReaderBackend::LoadStringAny(String str) {
@@ -71,12 +71,12 @@ Image LibPngBackend::LoadFileAny(String path) {
 	// open file and test for it being a png */
 	FILE *fp = fopen(path.Begin(), "rb");
 	if (!fp) {
-		RTLOG("LibPngBackend::LoadFileAny: error: File " << path << " could not be opened for reading");
+		LOG("LibPngBackend::LoadFileAny: error: File " << path << " could not be opened for reading");
 		return Image();
 	}
 	fread(header, 1, 8, fp);
 	if (png_sig_cmp(header, 0, 8)) {
-		RTLOG("LibPngBackend::LoadFileAny: error: File " << path << " is not recognized as a PNG file");
+		LOG("LibPngBackend::LoadFileAny: error: File " << path << " is not recognized as a PNG file");
 		return Image();
 	}
 	
@@ -85,18 +85,18 @@ Image LibPngBackend::LoadFileAny(String path) {
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	
 	if (!png_ptr) {
-		RTLOG("LibPngBackend::LoadFileAny: error: png_create_read_struct failed");
+		LOG("LibPngBackend::LoadFileAny: error: png_create_read_struct failed");
 		return Image();
 	}
 	
 	info_ptr = png_create_info_struct(png_ptr);
 	if (!info_ptr) {
-		RTLOG("LibPngBackend::LoadFileAny: error: png_create_info_struct failed");
+		LOG("LibPngBackend::LoadFileAny: error: png_create_info_struct failed");
 		return Image();
 	}
 	
 	if (setjmp(png_jmpbuf(png_ptr))) {
-		RTLOG("LibPngBackend::LoadFileAny: error: Error during init_io");
+		LOG("LibPngBackend::LoadFileAny: error: Error during init_io");
 		return Image();
 	}
 	
@@ -116,7 +116,7 @@ Image LibPngBackend::LoadFileAny(String path) {
 	
 	/* read file */
 	if (setjmp(png_jmpbuf(png_ptr))) {
-		RTLOG("LibPngBackend::LoadFileAny: error: Error during read_image");
+		LOG("LibPngBackend::LoadFileAny: error: Error during read_image");
 		return Image();
 	}
 	
@@ -141,14 +141,14 @@ Image LibPngBackend::LoadFileAny(String path) {
 		default: break;
 	}
 	int len = width * height * bpp;
-	RawSysImage* img = new RawSysImage();
+	One<RawSysImage> img = new RawSysImage();
 	img->data.SetCount(len);
-	img->backend = GetTypeIdClass<CLASSNAME>();
+	img->backend = AsTypeCls<CLASSNAME>();
 	img->w = width;
 	img->h = height;
 	img->ch = bpp;
 	img->pitch = width * bpp;
-	ASSERT(pitch >= img->pitch)
+	ASSERT(pitch >= img->pitch);
 	
 	byte* dst = img->data.Begin();
 	for (y = 0; y < height; y++) {
@@ -174,7 +174,7 @@ Image LibPngBackend::LoadFileAny(String path) {
 	}
 	else {ASSERT(0);}
 	
-	return img;
+	return *img;
 }
 
 Image LibPngBackend::LoadStringAny(String str) {
@@ -192,4 +192,3 @@ void LibPngBackend::ClearImage(SysImage& img) {
 
 END_UPP_NAMESPACE
 
-#endif

@@ -1,11 +1,8 @@
-#if IS_UPP_CORE
-// TopWindow
-#include <CtrlLib/CtrlLib.h>
-#endif
-
 #include "Eon.h"
 
 #ifdef flagGUI
+// TopWindow
+#include <CtrlLib/CtrlLib.h>
 
 NAMESPACE_UPP
 
@@ -685,55 +682,39 @@ void ScopeT<Dim>::SetWithMouse(Container* c) {
 	with_mouse_ctrl = c;
 }*/
 
-#if IS_UPP_CORE
 
 #if 0
 template <>
 void ScopeT<CtxUpp2D>::SetCaptured(GeomInteraction* c) {
 	captured = CastPtr<Interaction>(c);
-	#if IS_UPP_CORE
 	CtrlGeomBase* cgb = CastPtr<CtrlGeomBase>(c);
 	captured_ctrl = cgb ? cgb->GetCtrl() : 0;
-	#else
-	captured_ctrl = CastPtr<Container>(c);
-	#endif
 	ASSERT_(captured || !c, "expected same Dim::Interaction class"); // might be okay, but don't know yet
 }
 
 template <>
 void ScopeT<CtxUpp2D>::SetWithMouse(GeomInteraction* c) {
 	with_mouse = CastPtr<Interaction>(c);
-	#if IS_UPP_CORE
 	CtrlGeomBase* cgb = CastPtr<CtrlGeomBase>(c);
 	with_mouse_ctrl = cgb ? cgb->GetCtrl() : 0;
-	#else
-	with_mouse_ctrl = CastPtr<Container>(c);
-	#endif
 	ASSERT_(with_mouse || !c, "expected same Dim::Interaction class"); // might be okay, but don't know yet
 }
 
 template <>
 void ScopeT<CtxUpp2D>::SetCaptured(Container* c) {
-	#if IS_UPP_CORE
 	TODO // get GeomInteraction2D from Ctrl
-	#else
-	captured = c;
-	#endif
+	//captured = c;
 	captured_ctrl = c;
 }
 
 template <>
 void ScopeT<CtxUpp2D>::SetWithMouse(Container* c) {
-	#if IS_UPP_CORE
 	TODO // get GeomInteraction2D from Ctrl
-	#else
-	with_mouse = c;
-	#endif
+	//with_mouse = c;
 	with_mouse_ctrl = c;
 }
 #endif
 	
-#endif
 
 
 template <class Dim>

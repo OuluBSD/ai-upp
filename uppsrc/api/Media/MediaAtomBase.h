@@ -53,7 +53,7 @@ public:
 	bool PostInitialize() override;
 	void Update(double dt) override;
 	
-	void Visit(Vis& v) override {vis % file_in; VIS_THIS(Atom);}
+	void Visit(Vis& v) override {v % file_in; VIS_THIS(Atom);}
 	bool LoadFileAny(String path);
 	void OnError();
 	void OnStop();

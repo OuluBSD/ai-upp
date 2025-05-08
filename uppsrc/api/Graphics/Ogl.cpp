@@ -942,7 +942,7 @@ template <class Gfx> void OglGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferPtr& 
 }
 
 template <class Gfx>
-Serial::FboFormat& OglGfxT<Gfx>::GetFormat(Parallel::Format& fmt) {
+Serial::FboFormat& OglGfxT<Gfx>::GetFormat(ValueFormat& fmt) {
 	return fmt;
 }
 
@@ -1014,15 +1014,15 @@ template <class Gfx> void OglGfxT<Gfx>::ReadPixels(int x, int y, int w, int h, G
 	glReadPixels(x, y, w, h, GetOglChCode(channels, sample == GVar::SAMPLE_FLOAT), GetGfxType(sample), dst);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
+template <class Gfx> void OglGfxT<Gfx>::ClearFramebufferPtr(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 
-template<class Gfx> void OglGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
+template<class Gfx> void OglGfxT<Gfx>::ClearColorBufferPtr(NativeColorBufferPtr& b) {
 	b = 0;
 }
 
-template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
+template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr& b) {
 	b = 0;
 }
 

@@ -1,6 +1,5 @@
 #include "CtrlLib.h"
 
-#if IS_UPP_CORE
 
 NAMESPACE_UPP
 
@@ -133,4 +132,3 @@ void ToolList::Layout() {
 
 END_UPP_NAMESPACE
 
-#endif

@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-void DebugMain(String script_content, String script_file, VectorMap<String,Object>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
+void DebugMain(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
 	if (script_content.IsEmpty() && script_file.IsEmpty()) {

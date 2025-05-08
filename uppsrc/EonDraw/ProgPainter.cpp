@@ -173,9 +173,7 @@ void ProgPainter::AppendPick(DrawCommand* begin, DrawCommand* end) {
 
 
 void ProgPainter::SetSize(Size sz) {
-	#if IS_UPP_CORE
 	this->sz = sz;
-	#endif
 	
 	Init(sz);
 	DrawCommand& cmd = CreateCommand();
@@ -411,22 +409,14 @@ void ProgPainter::DrawDrawingOp(const Rect& target, const Drawing& w) {
 	DrawCommand& cmd = CreateCommand();
 	cmd.type = DRAW_DRAWING_OP;
 	cmd.r = target;
-	#if IS_UPP_CORE
 	cmd.value = w;
-	#else
-	TODO
-	#endif
 }
 
 void ProgPainter::DrawPaintingOp(const Rect& target, const Painting& w) {
 	DrawCommand& cmd = CreateCommand();
 	cmd.type = DRAW_PAINTING_OP;
 	cmd.r = target;
-	#if IS_UPP_CORE
 	cmd.value = w;
-	#else
-	TODO
-	#endif
 }
 
 Size ProgPainter::GetNativeDpi() const {
@@ -593,7 +583,6 @@ void ProgPainter::DrawText(int x, int y, String txt, Font fnt, RGBA clr) {
 	if (txt.GetCount() == 0 || fnt.IsNullInstance())
 		return;
 	
-	#if IS_UPP_CORE
 	DrawCommand& cmd = CreateCommand();
 	cmd.type = DRAW_TEXT;
 	cmd.i[0] = x;
@@ -601,7 +590,8 @@ void ProgPainter::DrawText(int x, int y, String txt, Font fnt, RGBA clr) {
 	cmd.clr = clr;
 	cmd.fnt = fnt;
 	cmd.txt = txt;
-	#else
+	
+	#if 0
 	SysColor c;
 	#if 0
 	c.r = (byte)(clr.r * 255.0);

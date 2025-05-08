@@ -27,11 +27,9 @@
 	#error No eon file for GUI app on this platform.
 #endif
 
-#if IS_UPP_CORE
-	#ifndef flagMSC
-		#warning TODO
-	#endif
-#else
+#ifndef flagMSC
+	#warning TODO
+#endif
 
 /*#define GUI_APP_MAIN \
 void UserGuiMainFn_(); \

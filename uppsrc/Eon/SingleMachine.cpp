@@ -32,7 +32,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
     mach.Add<Gu::SurfaceSystem>();
     #endif
     
-    #if IS_UPP_CORE && defined flagGUI
+    #if defined flagGUI
     mach.Add<WindowSystem>();
     #endif
     

@@ -42,9 +42,9 @@ protected:
 	using NativeDisplay			= typename Gfx::NativeDisplay;
 	using NativeWindow			= typename Gfx::NativeWindow;
 	using NativeRenderer		= typename Gfx::NativeRenderer;
-	using NativeColorBufferRef	= typename Gfx::NativeColorBufferRef;
-	using NativeFrameBufferRef	= typename Gfx::NativeFrameBufferRef;
-	using SystemFrameBufferRef	= typename Gfx::SystemFrameBufferRef;
+	using NativeColorBufferRef	= typename Gfx::NativeColorBufferPtr;
+	using NativeFrameBufferRef	= typename Gfx::NativeFrameBufferPtr;
+	using SystemFrameBufferRef	= typename Gfx::SystemFrameBufferPtr;
 	using ValFormat				= typename Gfx::ValFormat;
 	using RendererInfo			= typename Gfx::NativeRendererInfo;
 	using GLContext				= typename Gfx::NativeGLContext;
@@ -91,7 +91,7 @@ public:
 	typedef GfxAccelAtom<Gfx> GfxAccelAtomT;
 	//RTTI_DECL0(GfxAccelAtomT);
 	
-	void Visit(Vis& v) {vis % bf;}
+	void Visit(Vis& v) {v % bf;}
 	
 	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,Upp::default_width,Upp::default_height);}
 	

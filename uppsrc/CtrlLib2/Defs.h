@@ -25,11 +25,6 @@
 
 #include <CtrlLib/CtrlLib.h>
 
-#if IS_UPP_CORE
-	#ifndef flagGUI
-		#define flagGUI
-	#endif
-#endif
 
 #ifdef GUIPLATFORM_VIRTUALGUI_INCLUDE
 	#include GUIPLATFORM_VIRTUALGUI_INCLUDE

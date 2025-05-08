@@ -1,7 +1,6 @@
-#ifndef _Local_RTuple_h_
-#define _Local_RTuple_h_
+#ifndef _Core2_RTuple_h_
+#define _Core2_RTuple_h_
 
-NAMESPACE_UPP
 
 
 template<std::size_t N, typename T, typename... types>
@@ -41,7 +40,7 @@ struct RTuple : Moveable<RTuple<First, Rest...>> {
 	
 	template <class T> T& Get() {
 		T* ptr = Find<T>();
-		if (!ptr) throw (Exc("Could not find type from tuple"))
+		if (!ptr) throw (Exc("Could not find type from tuple"));
 		return *ptr;
 	}
 	
@@ -75,7 +74,7 @@ struct RTuple<First> : Moveable<RTuple<First>> {
 	
 	template <class T> T& Get() {
 		T* ptr = Find<T>();
-		if (!ptr) throw (Exc("Could not find type from tuple"))
+		if (!ptr) throw (Exc("Could not find type from tuple"));
 		return *ptr;
 	}
 	
@@ -108,7 +107,7 @@ auto Get(const RTuple<First, Rest...>& t) -> decltype(GetImpl<index, First, Rest
 
 template <class T, class A> T Get(const A& a) {
 	T* ptr = a.template Find<T>();
-	if (!ptr) throw (Exc("Couldn't find type from tuple"))
+	if (!ptr) throw (Exc("Couldn't find type from tuple"));
 	return *ptr;
 }
 
@@ -119,6 +118,5 @@ RTuple<T...> MakeRTuple(T... args) {
 }
 
 
-END_UPP_NAMESPACE
 
 #endif

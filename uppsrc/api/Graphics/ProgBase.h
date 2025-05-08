@@ -11,7 +11,7 @@ struct FboProgAtomT :
 	using DataState = DataStateT<Gfx>;
 	using ModelState = ModelStateT<Gfx>;
 	using Material = MaterialT<Gfx>;
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
 	
     FramebufferT<Gfx> fb;
     Size sz;

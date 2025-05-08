@@ -37,12 +37,10 @@ class ProgPainter : public SDraw {
 	Vector<double> angles;
 	Rect drawingclip;
 	hash_t uniq;
+	Size sz;
 	
 	DrawCommand& CreateCommand();
 	
-	#if IS_UPP_CORE
-	Size sz;
-	#endif
 	
 public:
 	ProgPainter(void* hash, Size sz, DrawCommand& prev, DrawCommand& begin, DrawCommand& end, DrawCommand& next);

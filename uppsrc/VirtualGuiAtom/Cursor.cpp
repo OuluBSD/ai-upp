@@ -35,10 +35,8 @@ SDL_Texture *SDLTextureFromImage(SDL_Renderer *renderer, const Image& m)
 
 void AtomVirtualGui::SetMouseCursor(const Image& image)
 {
-	#if IS_UPP_CORE
 	if (mgr)
 		wins->OverrideCursor(image);
-	#endif
 }
 
 }

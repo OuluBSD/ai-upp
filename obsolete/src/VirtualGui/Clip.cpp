@@ -1,7 +1,5 @@
 #include "Local.h"
 
-#if IS_UPP_CORE
-
 #ifdef VIRTUALGUI
 
 NAMESPACE_UPP
@@ -215,5 +213,4 @@ Vector<String> GetFiles(PasteClip& clip)
 
 END_UPP_NAMESPACE
 
-#endif
 #endif

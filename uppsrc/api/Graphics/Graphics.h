@@ -98,7 +98,7 @@ typedef unsigned int	Gxbf;
 #include "Types.h"
 #include "State.h"
 #include "GfxClasses.h"
-#include "mageBase.h"
+#include "ImageBase.h"
 
 #include "TPipeline.h"
 #include "TState.h"

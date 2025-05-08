@@ -11,6 +11,7 @@ class Viewable :
 {
 	
 public:
+	CLASSTYPE(Viewable)
 	void Visit(Vis& v) override {}
 	void Initialize() override;
 	void Uninitialize() override;
@@ -27,6 +28,7 @@ using ViewablePtr = Ptr<Viewable>;
 
 class Viewport : public Component<Viewport> {
 public:
+	CLASSTYPE(Viewport)
 	vec3 target = zero<vec3>();
 	double fov = M_PI/2;
 	double angle = 0;
@@ -89,7 +91,7 @@ class ChaseCam :
 	float GetUsedFov();
 	
 public:
-	typedef ChaseCam CLASSNAME;
+	CLASSTYPE(ChaseCam)
 	
 	void Visit(Vis& v) override {VIS_THIS(ComponentT); v & target & viewable & vport;}
 	void Initialize() override;

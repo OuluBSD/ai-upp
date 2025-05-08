@@ -203,7 +203,6 @@ Image HandleSystemT<Dim>::DefaultCursor() {
 }
 
 
-#if IS_UPP_CORE
 
 template <>
 bool HandleSystemT<CtxUpp2D>::Initialize() {
@@ -211,7 +210,6 @@ bool HandleSystemT<CtxUpp2D>::Initialize() {
 	return true;
 }
 
-#endif
 
 PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(HandleSystemT)
 

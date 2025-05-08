@@ -1,6 +1,5 @@
 #include "CtrlLib.h"
 
-#if IS_UPP_CORE
 
 NAMESPACE_UPP
 
@@ -126,4 +125,3 @@ void PathCtrl::RefreshEdit() {
 
 END_UPP_NAMESPACE
 
-#endif

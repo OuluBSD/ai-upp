@@ -13,8 +13,7 @@ FrameT<Dim>::FrameT() {
 	TODO
 }
 
-	
-#if IS_UPP_CORE
+
 template <>
 FrameT<CtxUpp2D>::FrameT() {
 	//geom.SetTargetCtrl(*this);
@@ -114,7 +113,6 @@ void FrameT<CtxUpp2D>::Paint(DrawT& w) {
 	id.DrawLine(sz.cx-1, sz.cy-1, 0, sz.cy-1, 1, br);
 	#endif
 }
-#endif
 
 template <class Dim>
 typename Dim::TopContainer* FrameT<Dim>::GetTopContainer() {
@@ -323,11 +321,7 @@ void FrameT<Dim>::MouseMove(Pt, dword keyflags) {
 template <class Dim>
 Image FrameT<Dim>::GetDragImage(Pt dir)
 {
-	#if IS_UPP_CORE
 	static Image (*im[9])() =
-	#else
-	static const Image& (*im[9])() =
-	#endif
 	{
 		Image::SizeTopLeft,  Image::SizeLeft,  Image::SizeBottomLeft,
 		Image::SizeTop,      Image::Arrow,     Image::SizeBottom,
@@ -359,9 +353,7 @@ void FrameT<Dim>::MouseLeave() {
 
 template <class Dim>
 void FrameT<Dim>::RightDown(Pt p, dword keyflags) {
-	#if IS_UPP_CORE
 	MenuBar::Execute(THISBACK(LocalMenu));
-	#endif
 }
 
 template <class Dim>
@@ -440,7 +432,6 @@ void FrameT<Dim>::CloseOthers() {
 
 #endif
 
-#if IS_UPP_CORE
 
 template <>
 void FrameT<CtxUpp2D>::StartDrag()
@@ -513,7 +504,6 @@ void FrameT<CtxUpp2D>::MouseMove(Pt, dword keyflags) {
 	#endif
 }
 
-#endif
 
 PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(FrameT)
 

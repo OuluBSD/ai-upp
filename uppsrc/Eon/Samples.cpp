@@ -37,7 +37,7 @@ int MidiSample::GetSize(Type t) {
 
 String EventSample::ToString(Type t) {
 	switch (t) {
-		case CTRL_EVENT: return "CtrlEvent";
+		case CTRL_EVENT: return "GeomEvent";
 		default: break;
 	}
 	return "<invalid>";
@@ -45,7 +45,7 @@ String EventSample::ToString(Type t) {
 
 int EventSample::GetSize(Type t) {
 	switch (t) {
-		case CTRL_EVENT: return sizeof(CtrlEvent);
+		case CTRL_EVENT: return sizeof(GeomEvent);
 		default: break;
 	}
 	ASSERT_(0, "invalid type");

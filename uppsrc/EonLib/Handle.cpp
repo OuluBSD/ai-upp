@@ -1,9 +1,7 @@
 #include "EonLib.h"
 
-#if IS_UPP_CORE
 #include <VirtualGui/Local.h>
 #include <VirtualGui/Atom/Atom.h>
-#endif
 
 #ifdef flagGUI
 #include <GuboCore/GuboCore.h>
@@ -132,7 +130,7 @@ bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
 	if (GetSourceValue(0).GetFormat().IsReceipt())
 		add_ecs = true;
 	
-	#if IS_UPP_CORE && defined flagGUI
+	#if defined flagGUI
 	wins = GetMachine().Get<WindowSystem>();
 	#else
 	surfs = GetMachine().Get<Gu::SurfaceSystem>();
@@ -164,7 +162,7 @@ bool HandleVideoBase::PostInitialize() {
 
 void HandleVideoBase::Stop() {
 	state.Clear();
-	#if IS_UPP_CORE && defined flagGUI
+	#if defined flagGUI
 	wins.Clear();
 	#endif
 	surfs.Clear();
@@ -185,7 +183,7 @@ void HandleVideoBase::Visit(Vis& vis) {
 		vis | binders;
 	vis & state;
 	
-	#if IS_UPP_CORE && defined flagGUI
+	#if defined flagGUI
 	vis & wins;
 	#endif
 	vis & surfs;
@@ -196,7 +194,7 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	
 	bool render_win = false;
 	
-	#if IS_UPP_CORE && defined flagGUI
+	#if defined flagGUI
 	if (wins && screen_id < wins->GetScreenCount()) {
 		render_win = true;
 	}
@@ -227,7 +225,7 @@ void HandleVideoBase::RedrawScreen() {
 		pd.Create(sz);*/
 	
 	bool render_win = false;
-	#if IS_UPP_CORE && defined flagGUI
+	#if defined flagGUI
 	if (wins && screen_id < wins->GetScreenCount()) {
 		/*ASSERT(sz.cx > 0 && sz.cy > 0);
 		ProgPainter& pp = pd.GetPainter();
@@ -288,7 +286,7 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 		
 		for (Binder& b : binders) {
 			
-			#if IS_UPP_CORE && defined flagGUI
+			#if defined flagGUI
 			if (wins) {
 				int scope_count = wins->GetScopeCount();
 				ASSERT(scope_count);
@@ -381,7 +379,7 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 	Format fmt = out.GetFormat();
 	if (fmt.IsProg()) {
 		if (IsScreenMode()) {
-			#if IS_UPP_CORE && defined flagGUI
+			#if defined flagGUI
 			if (wins && screen_id >= 0 && screen_id < wins->GetScreenCount()) {
 				WindowManager& w = wins->GetScope(screen_id);
 				ProgDraw& pd = w.GetDraw();

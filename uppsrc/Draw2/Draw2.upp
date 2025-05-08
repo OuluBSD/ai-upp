@@ -1,5 +1,8 @@
 description "\377B128,0,255";
 
+uses
+	Core2;
+
 uses(VIRTUALGUI) VirtualGui3D;
 
 library(POSIX) png;
@@ -12,6 +15,11 @@ file
 	FFT.h,
 	FFT1.cpp,
 	FFT2.cpp,
+	Binder.h,
+	Binder.cpp,
+	DrawBackend.h,
+	DrawBackend.cpp,
+	Draw2D.h,
 	Backends readonly separator,
 	Sdl2.h,
 	Sdl2.cpp,
@@ -20,7 +28,5 @@ file
 	Lib readonly separator,
 	tga_reader.h,
 	tga_reader.c,
-	_ readonly separator,
-	DrawBackend.h,
-	DrawBackend.cpp;
+	_ readonly separator;
 

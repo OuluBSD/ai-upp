@@ -30,7 +30,8 @@ class ShootingInteractionSystemBase :
 	
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;
-	ECS_SYS_CTOR(ShootingInteractionSystemBase);
+	CLASSTYPE(ShootingInteractionSystemBase);
+	ShootingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
 	void Visit(Vis& v) override {VIS_THIS(ToolSys);}
 	
 	using Parent = Engine;

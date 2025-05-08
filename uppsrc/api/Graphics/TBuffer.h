@@ -22,7 +22,7 @@ struct BufferStageT : GfxBufferStage {
 	using InputState  = InputStateT<Gfx>;
 	using Texture  = TextureT<Gfx>;
 	using NativeProgram = typename Gfx::NativeProgram;
-	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstPtr;
 	using Compiler = typename Gfx::Compiler;
 	using Linker = typename Gfx::Linker;
 	
@@ -121,11 +121,11 @@ struct BufferT : GfxBuffer {
 	using ShaderPipeline = ShaderPipelineT<Gfx>;
 	using DataObject = DataObjectT<Gfx>;
 	using BufferStage = BufferStageT<Gfx>;
-	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferPtr;
 	using Sample = GVar::Sample;
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
 	using NativeProgram = typename Gfx::NativeProgram;
-	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstPtr;
 	
 	//RTTI_DECL1(BufferT, GfxBuffer)
 	
@@ -169,12 +169,12 @@ struct BufferT : GfxBuffer {
 	
 	BufferT() {}
 	
-	void Visit(Vis& v) override {vis & env;}
+	void Visit(Vis& v) override {v & env;}
 	void AddLink(String s) {if (!s.IsEmpty()) link_ids << s;}
 	
 	
 public:
-	void ClearRef() {env.Clear();}
+	void ClearPtr() {env.Clear();}
 	void Update(double dt);
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_data_states);

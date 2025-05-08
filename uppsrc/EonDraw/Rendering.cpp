@@ -1,4 +1,5 @@
 #include "EonDraw.h"
+#include <api/Graphics/Graphics.h>
 
 NAMESPACE_UPP
 

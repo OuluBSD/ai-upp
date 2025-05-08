@@ -127,7 +127,7 @@ public:
 	
     bool IsRunning() const {return is_running;}
 	void SetNotRunning() {is_running = false;}
-	void Visit(Vis& vis);
+	void Visit(Vis& vis) override;
 	
 	void AddToUpdateList(ComponentBasePtr c);
 	void RemoveFromUpdateList(ComponentBasePtr c);
@@ -231,7 +231,7 @@ void Entity::Remove0() {
 }
 
 template<typename T>
-T* Entity::Add0(bool initialize) {
+Ptr<T> Entity::Add0(bool initialize) {
 	MetaNode& sub = node.Add();
     T* comp = new T(sub);
 	sub.ext = comp;

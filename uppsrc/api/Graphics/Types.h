@@ -71,10 +71,10 @@ template <class Gfx> struct FramebufferT;
 
 template <class Gfx>
 struct SwGfxT {
-	using NativeColorBufferRef		= ByteImage*;
-	using NativeColorBufferConstRef	= ConstByteImage*;
-	using NativeDepthBufferRef		= DepthImage*;
-	using NativeDepthBufferConstRef	= ConstDepthImage*;
+	using NativeColorBufferPtr		= ByteImage*;
+	using NativeColorBufferConstPtr	= ConstByteImage*;
+	using NativeDepthBufferPtr		= DepthImage*;
+	using NativeDepthBufferConstPtr	= ConstDepthImage*;
 	
 	using FramebufferBase	= GfxFramebuffer;
 	
@@ -114,14 +114,14 @@ struct SwGfxT {
 	using NativeElementBuffer = SoftElementBuffer;
 	using NativeProgram = SoftProgram;
 	using NativePipeline = SoftPipeline;
-	using ValFormat = Parallel::VideoFormat;
+	using ValFormat = VideoFormat;
 	using Impl = EmptyClass;
 	
 	static const GVar::GfxType Type = GVar::SW;
 	
 	#include "TypeFuncList.inl"
 	
-	static Serial::VideoFormat& GetFormat(Parallel::Format& fmt) {return fmt.vid;}
+	static VideoFormat& GetFormat(ValueFormat& fmt) {return fmt.vid;}
 	
 	static Thread& Local();
 	static SoftRend& Rend();
@@ -150,7 +150,7 @@ struct OglGfxT {
 	using NativeFrameBufferPtr = GLuint;
 	using NativeFrameBufferConstPtr = GLuint;
 	using NativeBuffer = GLuint;
-	using SystemFrameBufferPtr = NativeFrameBufferRef;
+	using SystemFrameBufferPtr = NativeFrameBufferPtr;
 	using NativeVertexArray = GLuint;
 	using NativeVertexBuffer = GLuint;
 	using NativeElementBuffer = GLuint;
@@ -166,7 +166,7 @@ struct OglGfxT {
 	
 	#include "TypeFuncList.inl"
 	
-	static Serial::FboFormat& GetFormat(Parallel::Format& fmt);
+	static Serial::FboFormat& GetFormat(ValueFormat& fmt);
 	
 };
 #endif
@@ -190,7 +190,7 @@ struct X11Gfx {
 	static void SetTitle(NativeDisplay& display, NativeWindow& win, String title);
 	static void SetWindowFullscreen(NativeWindow& win, bool b=true);
 	static void DestroyRenderer(NativeRenderer& rend);
-	static void ClearRendererRef(NativeRenderer& rend) {rend = 0;}
+	static void ClearRendererPtr(NativeRenderer& rend) {rend = 0;}
 	static void DestroyWindow(NativeWindow& win);
 	static void MaximizeWindow(NativeWindow& win);
 	static void RestoreWindow(NativeWindow& win);
@@ -205,8 +205,8 @@ struct X11SwGfx : SwGfxT<X11SwGfx>, X11Gfx {
 	using NativeGLContext = void*;
 	using BufferBase = GfxBuffer;
 	
-	using NativeTexture = SystemFrameBufferRef;
-	using NativeSurface = NativeColorBufferRef;
+	using NativeTexture = SystemFrameBufferPtr;
+	using NativeSurface = NativeColorBufferPtr;
 	
 	#define GFX_CLS(x, g) using x = x##T<g##Gfx>;
 	GFX_CLS_LIST(X11Sw)
@@ -264,11 +264,11 @@ struct X11OglGfx : OglGfxT<X11OglGfx>, X11Gfx {
 struct CpuGfx {
 	using FramebufferBase	= GfxFramebuffer;
 	
-	using NativeColorBufferRef	= void*;
-	using NativeDepthBufferRef	= void*;
-	using NativeFrameBufferRef	= void*;
-	using NativeFrameBufferConstRef	= void*;
-	using SystemFrameBufferRef	= void*;
+	using NativeColorBufferPtr	= void*;
+	using NativeDepthBufferPtr	= void*;
+	using NativeFrameBufferPtr	= void*;
+	using NativeFrameBufferConstPtr	= void*;
+	using SystemFrameBufferPtr	= void*;
 	
 };
 
@@ -285,7 +285,7 @@ struct SdlGfx {
 	static void SetTitle(NativeDisplay& display, NativeWindow& win, String title);
 	static void SetWindowFullscreen(NativeWindow& win, bool b=true);
 	static void DestroyRenderer(NativeRenderer& rend);
-	static void ClearRendererRef(NativeRenderer& rend) {rend = 0;}
+	static void ClearRendererPtr(NativeRenderer& rend) {rend = 0;}
 	static void DestroyWindow(NativeWindow& win);
 	static void DeleteContext(NativeGLContext& ctx);
 	static void MaximizeWindow(NativeWindow& win);
@@ -322,10 +322,10 @@ struct SdlCpuGfx : CpuGfx, SdlGfx {
 	static void QueryTexture(NativeTexture& tex, uint32& fmt, int& access, int& w, int& h);
 	static void UnlockTextureToSurface(NativeTexture& tex);
 	
-	static void ClearFramebufferRef(NativeTexture& fb) {fb = 0;}
-	static void ClearFramebufferRef(NativeFrameBufferPtr& fb) {fb = 0;}
-	static void ClearColorBufferRef(NativeColorBufferPtr& b) {b = 0;}
-	static void ClearDepthBufferRef(NativeDepthBufferPtr& b) {b = 0;}
+	static void ClearFramebufferPtr(NativeTexture& fb) {fb = 0;}
+	static void ClearFramebufferPtr(NativeFrameBufferPtr& fb) {fb = 0;}
+	static void ClearColorBufferPtr(NativeColorBufferPtr& b) {b = 0;}
+	static void ClearDepthBufferPtr(NativeDepthBufferPtr& b) {b = 0;}
 	
 };
 
@@ -349,8 +349,8 @@ struct SdlSwGfx : SwGfxT<SdlSwGfx>, SdlGfx {
 	static void QueryTexture(SoftFramebuffer* tex, uint32& fmt, int& access, int& w, int& h);
 	static void UnlockTextureToSurface(SoftFramebuffer* tex);
 	
-	static void ClearFramebufferRef(NativeTexture& fb);
-	static void ClearFramebufferRef(NativeFrameBufferPtr& fb);
+	static void ClearFramebufferPtr(NativeTexture& fb);
+	static void ClearFramebufferPtr(NativeFrameBufferPtr& fb);
 	
 };
 
@@ -431,29 +431,29 @@ struct D11GfxT {
 	
 	static const bool is_builtin_shader = false;
 	
-	using NativeDeviceRef			= ComPtr<ID3D11Device>;
-	using NativeDeviceContextRef	= ID3D11DeviceContext3 *;
-	using NativeShaderResourcesRef	= ComPtr<ID3D11ShaderResourceView>;
-	using NativeBlendStateRef		= ComPtr<ID3D11BlendState>;
-	using NativeSamplerStateRef		= ComPtr <ID3D11SamplerState>;
-	using NativeBufferRef			= ComPtr <ID3D11Buffer>;
-	using NativeInputLayoutRef		= ComPtr <ID3D11InputLayout>;
-	using NativeVertexShaderRef		= ComPtr <ID3D11VertexShader>;
-	using NativeGeometryShaderRef	= ComPtr <ID3D11GeometryShader>;
-	using NativePixelShaderRef		= ComPtr <ID3D11PixelShader>;
+	using NativeDevicePtr			= ComPtr<ID3D11Device>;
+	using NativeDeviceContextPtr	= ID3D11DeviceContext3 *;
+	using NativeShaderResourcesPtr	= ComPtr<ID3D11ShaderResourceView>;
+	using NativeBlendStatePtr		= ComPtr<ID3D11BlendState>;
+	using NativeSamplerStatePtr		= ComPtr <ID3D11SamplerState>;
+	using NativeBufferPtr			= ComPtr <ID3D11Buffer>;
+	using NativeInputLayoutPtr		= ComPtr <ID3D11InputLayout>;
+	using NativeVertexShaderPtr		= ComPtr <ID3D11VertexShader>;
+	using NativeGeometryShaderPtr	= ComPtr <ID3D11GeometryShader>;
+	using NativePixelShaderPtr		= ComPtr <ID3D11PixelShader>;
 	using FramebufferBase			= Dx11FramebufferBase;
 	using BufferBase				= Dx11BufferBase;
 	
 	using NativeTexture				=       ComPtr<ID3D11Texture2D>;
 	using NativeShaderPtr = uint32;
-	using NativeColorBufferRef		=       ComPtr<ID3D11Texture2D>;
-	using NativeColorBufferConstRef	= const ComPtr<ID3D11Texture2D>;
-	using NativeDepthBufferRef		=       ComPtr<ID3D11DepthStencilView>;
-	using NativeDepthBufferConstRef	= const ComPtr<ID3D11DepthStencilView>;
-	using NativeFrameBufferRef		=       ComPtr<IDXGISwapChain>;
-	using NativeFrameBufferConstRef	= const ComPtr<IDXGISwapChain>;
+	using NativeColorBufferPtr		=       ComPtr<ID3D11Texture2D>;
+	using NativeColorBufferConstPtr	= const ComPtr<ID3D11Texture2D>;
+	using NativeDepthBufferPtr		=       ComPtr<ID3D11DepthStencilView>;
+	using NativeDepthBufferConstPtr	= const ComPtr<ID3D11DepthStencilView>;
+	using NativeFrameBufferPtr		=       ComPtr<IDXGISwapChain>;
+	using NativeFrameBufferConstPtr	= const ComPtr<IDXGISwapChain>;
 	using NativeBuffer = uint32;
-	using SystemFrameBufferRef		= NativeFrameBufferRef;
+	using SystemFrameBufferPtr		= NativeFrameBufferPtr;
 	using NativeVertexArray = uint32;
 	using NativeVertexBuffer = uint32;
 	using NativeElementBuffer = uint32;
@@ -467,7 +467,7 @@ struct D11GfxT {
 	
 	#include "TypeFuncList.inl"
 	
-	static Serial::FboFormat& GetFormat(Parallel::Format& fmt);
+	static Serial::FboFormat& GetFormat(ValueFormat& fmt);
 	
 };
 
@@ -483,7 +483,7 @@ struct DxGfx {
 	static void SetTitle(NativeDisplay& display, NativeWindow& win, String title);
 	static void SetWindowFullscreen(NativeWindow& win, bool b=true);
 	static void DestroyRenderer(NativeRenderer& rend);
-	static void ClearRendererRef(NativeRenderer& rend);
+	static void ClearRendererPtr(NativeRenderer& rend);
 	static void DestroyWindow(NativeWindow& win);
 	static void DeleteContext(NativeGLContext& ctx);
 	static void MaximizeWindow(NativeWindow& win);
@@ -499,7 +499,7 @@ struct DxGfx {
 struct WinD11Gfx : D11GfxT<WinD11Gfx>, DxGfx {
 	using NativeSurface = void*;
 	using SoftShaderLibrary = DummySoftShaderLibrary;
-	using NativeColorBufferPtr = typename D11GfxT<WinD11Gfx>::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename D11GfxT<WinD11Gfx>::NativeColorBufferPtr;
 	
 	#define GFX_CLS(x, g) using x = x##T<g##Gfx>;
 	GFX_CLS_LIST(WinD11)

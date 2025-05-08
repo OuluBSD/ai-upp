@@ -18,7 +18,7 @@ struct VrSpatialInteractionManager;
 struct InteractionManager {
 	
 	
-	using Cb = Callback2<const InteractionManager&, const CtrlEvent&>;
+	using Cb = Callback2<const InteractionManager&, const GeomEvent&>;
 	Cb WhenSourceDetected;
 	Cb WhenSourcePressed;
 	Cb WhenSourceUpdated;
@@ -150,11 +150,11 @@ struct VrSpatialInteractionManager : InteractionManager {
 struct InteractionListener : Pte<InteractionListener>
 {
 	virtual Ecs::SystemBase* GetSystem() = 0;
-    virtual void OnControllerDetected(const CtrlEvent& e) {};
-    virtual void OnControllerLost(const CtrlEvent& e) {};
-    virtual void OnControllerPressed(const CtrlEvent& e) {};
-    virtual void OnControllerUpdated(const CtrlEvent& e) {};
-    virtual void OnControllerReleased(const CtrlEvent& e) {};
+    virtual void OnControllerDetected(const GeomEvent& e) {};
+    virtual void OnControllerLost(const GeomEvent& e) {};
+    virtual void OnControllerPressed(const GeomEvent& e) {};
+    virtual void OnControllerUpdated(const GeomEvent& e) {};
+    virtual void OnControllerReleased(const GeomEvent& e) {};
     
     virtual bool IsEnabled() const;
     
@@ -208,11 +208,11 @@ private:
     
 	
     // Events Handlers
-    void HandleSourceDetected(const InteractionManager&, const CtrlEvent& e);
-    void HandleSourceLost(const InteractionManager&, const CtrlEvent& e);
-    void HandleSourcePressed(const InteractionManager&, const CtrlEvent& e);
-    void HandleSourceUpdated(const InteractionManager&, const CtrlEvent& e);
-    void HandleSourceReleased(const InteractionManager&, const CtrlEvent& e);
+    void HandleSourceDetected(const InteractionManager&, const GeomEvent& e);
+    void HandleSourceLost(const InteractionManager&, const GeomEvent& e);
+    void HandleSourcePressed(const InteractionManager&, const GeomEvent& e);
+    void HandleSourceUpdated(const InteractionManager&, const GeomEvent& e);
+    void HandleSourceReleased(const InteractionManager&, const GeomEvent& e);
     
 };
 

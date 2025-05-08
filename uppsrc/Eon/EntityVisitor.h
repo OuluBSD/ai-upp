@@ -109,7 +109,7 @@ public:
 
 template<typename... ComponentTs>
 class EntityComponentVisitor : public EntityVisitor {
-	Tuple<ComponentTs*...> cur_comps;
+	RTuple<ComponentTs*...> cur_comps;
 	
 	bool FindComps() {
 		Entity& e = *GetCurrent();

@@ -269,6 +269,13 @@ struct PacketIO {
 };
 
 
+struct PacketBufferParent : Pte<PacketBufferParent>
+{
+public:
+	
+};
+
+
 struct PacketBufferBase : Pte<PacketBufferBase>
 {
 public:

@@ -19,6 +19,8 @@ typedef void			Void;
 typedef float			TimeSpan;
 
 class EnvState;
+class CtrlEvent;
+struct DrawCommand;
 
 
 class BinderIfaceEvents {

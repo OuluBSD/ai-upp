@@ -5,7 +5,6 @@
 
 
 
-int HexDigitAny(int c);
 
 /*
 	Heapless Copying

@@ -302,7 +302,7 @@ Size RichTable::GetSpan(int i, int j) const
 	return Size(c.hspan, c.vspan);
 }
 
-void RichTable::SetFormat(const ValueFormat& fmt)
+void RichTable::SetFormat(const Format& fmt)
 {
 	format = fmt;
 	Upp::SetQTF(header, fmt.header_qtf);

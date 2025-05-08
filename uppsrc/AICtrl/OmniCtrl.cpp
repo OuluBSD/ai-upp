@@ -354,7 +354,7 @@ void OmniDeviceIO::VolumeMeterCtrl::Paint(Draw& d) {
 	d.DrawRect(sz, White());
 	if (c && c->snd.thrd) {
 		double vol = c->snd.thrd->GetVolume();
-		int h = sz.cy * vol;
+		int h = (int)(sz.cy * vol);
 		Color clr = Blue();
 		d.DrawRect(RectC(0,sz.cy-h,sz.cx,h), clr);
 	}

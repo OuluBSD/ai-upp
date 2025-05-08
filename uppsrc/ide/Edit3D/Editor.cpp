@@ -183,7 +183,7 @@ void Edit3D::LoadTestCirclingCube() {
 	mdl.mdl = mb.Detach();
 	
 	scene.length = prj.kps * 4 + 1;
-	float step = M_PI * 2 / 4;
+	float step = M_PIf * 2 / 4;
 	float angle = 0;
 	float cam_radius = 2;
 	for(int i = 0; i < 5; i++) {
@@ -210,7 +210,7 @@ void Edit3D::LoadTestOctree() {
 	for(int i = 0; i < points; i++) {
 		float yaw, pitch;
 		if (random_points) {
-			yaw = Randomf() * M_PI * 2;
+			yaw = Randomf() * M_PIf * 2;
 			float f = (Randomf() * 2 - 1);
 			pitch = f * (M_PI / 2);
 		}
@@ -231,7 +231,7 @@ void Edit3D::LoadTestOctree() {
 	int seconds = 3;
 	scene.length = prj.kps * seconds;
 	int kp_step = 3;
-	float step = M_PI * 2 / (scene.length / kp_step - 1);
+	float step = M_PIf * 2 / (scene.length / kp_step - 1);
 	float angle = 0;
 	float cam_radius = radius + 2;
 	for(int i = 0; i < scene.length; i += kp_step) {

@@ -229,8 +229,8 @@ public:
 	bool                    operator()(int i, int j) const         { return ci[i][j].valid; }
 	void                    SetSpan(int i, int j, int vspan, int hspan);
 	Size                    GetSpan(int i, int j) const;
-	void                    SetFormat(const ValueFormat& fmt);
-	const ValueFormat&           GetFormat() const                      { return format; }
+	void                    SetFormat(const Format& fmt);
+	const Format&           GetFormat() const                      { return format; }
 
 	int                     GetColumns() const                     { return format.column.GetCount(); }
 	int                     GetRows() const                        { return cell.GetCount(); }

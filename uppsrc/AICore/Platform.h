@@ -143,7 +143,7 @@ struct PlatformManager : Component {
 	ArrayMap<String, SocietyRoleAnalysis> roles;
 	
 	COMPONENT_CONSTRUCTOR(PlatformManager)
-	void Visit(Vis& v) {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("roles", roles, VISIT_MAP)
 			("platforms", platforms, VISIT_MAP)

@@ -78,7 +78,6 @@ public:
 	
 	VectorMap<String,Value> data;
 public:
-	typedef ProjectWizardView CLASSNAME;
 	COMPONENT_CONSTRUCTOR(ProjectWizardView)
 	
 	void Data();

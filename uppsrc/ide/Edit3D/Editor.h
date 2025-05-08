@@ -12,7 +12,7 @@ struct Edit3D;
 
 struct EditConfiguration {
 	Color background_clr;
-	float mouse_move_sensitivity = 0.01;
+	float mouse_move_sensitivity = 0.01f;
 	
 	EditConfiguration();
 	

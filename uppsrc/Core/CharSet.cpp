@@ -2278,11 +2278,4 @@ bool IsAllDigit(const String& s) {
 	return true;
 }
 
-int HexDigitAny(int c) {
-	if (c >= 'a' && c <= 'f') return 10 + c - 'a';
-	if (c >= 'A' && c <= 'F') return 10 + c - 'A';
-	if (c >= '0' && c <= '9') return c - '0';
-	return -1;
-}
-
 }

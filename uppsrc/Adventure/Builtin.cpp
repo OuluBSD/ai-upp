@@ -74,7 +74,7 @@ void Program::LoadBuiltinGfxStr(const char* s, Vector<byte>& out, Size& sz) {
 		else if (chr0 == 0)
 			break;
 		else {
-			int n = HexDigitAny(chr0);
+			int n = ctoi(chr0);
 			out.Add(n);
 			
 			col++;
@@ -108,8 +108,8 @@ void Program::LoadBuiltinGfxStr(const char* s, Vector<uint16>& out, Size& sz) {
 		else {
 			int chr1 = *s++;
 			
-			int n0 = HexDigitAny(chr0);
-			int n1 = HexDigitAny(chr1);
+			int n0 = ctoi(chr0);
+			int n1 = ctoi(chr1);
 			ASSERT(n0 >= 0 && n0 < 0x10);
 			ASSERT(n1 >= 0 && n1 < 0x10);
 			int n = (n0 << 4) | n1;

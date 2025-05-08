@@ -205,7 +205,7 @@ void TokensPage::Data() {
 	
 	for(int j = 0; j < src.tokens.GetCount(); j++) {
 		const String& txt = src.tokens.GetKey(j);
-		const Token& tk = src.tokens[j];
+		const TokenIdx& tk = src.tokens[j];
 		tokens.Set(j, 0, txt);
 	}
 	tokens.SetCount(src.tokens.GetCount());
@@ -2906,7 +2906,8 @@ void SourceTextCtrl::Data() {
 void SourceTextCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
 		MetaNode* n = 0;
-		IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
+		TODO // IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
+		//TODO register IdeMetaEnv().LoadFileRootVisit to a function pointer
 		if (n)
 			SetFileNode(n);
 	}

@@ -111,7 +111,7 @@ struct StageThread : MetaNodeExt {
 	/*
 	struct Stage {
 		
-		void Visit(Vis& v) {
+		void Visit(Vis& v) override {
 			v.Ver(1)
 			(1)	;
 		}
@@ -121,7 +121,7 @@ struct StageThread : MetaNodeExt {
 		Value version;
 		Array<Stage> stages;
 		
-		void Visit(Vis& v) {
+		void Visit(Vis& v) override {
 			v.Ver(1)
 			(1)	("id", id)
 				("version", version)

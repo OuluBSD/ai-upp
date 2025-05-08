@@ -20,8 +20,8 @@ void WaveformCtrl::Paint(Draw& d) {
 	
 	if (clip) {
 		int samplerate = clip->GetSampleRate();
-		int begin_sample = samplerate * begin;
-		int end_sample = samplerate * end;
+		int begin_sample = (int)(samplerate * begin);
+		int end_sample = (int)(samplerate * end);
 		clip->GetValues(begin_sample, end_sample, values);
 		
 		if (values.GetCount() >= 2) {
@@ -32,7 +32,7 @@ void WaveformCtrl::Paint(Draw& d) {
 			int h = sz.cy;
 			for (Point& pt : points) {
 				pt.x = (int)(x + 0.5);
-				pt.y = h * (1.0 - (*val++ + 1.0) * 0.5);
+				pt.y = (int)(h * (1.0 - (*val++ + 1.0) * 0.5));
 				x += step;
 			}
 			

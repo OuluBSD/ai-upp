@@ -124,7 +124,7 @@ public:
 		}
 	};
 	
-	void Visit(Vis& v) {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("categories", categories, VISIT_MAP)
 			;

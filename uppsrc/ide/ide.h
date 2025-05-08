@@ -24,7 +24,6 @@
 #include <ide/AI/AI.h>
 #include <ide/Shell/Shell.h>
 #endif
-#include <ide/ExtPoint/ExtPoint.h>
 
 #include "About.h"
 #include "MethodsCtrls.h"

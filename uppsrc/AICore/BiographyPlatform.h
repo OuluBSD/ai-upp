@@ -152,7 +152,7 @@ struct BiographyPlatform : Component {
 	COMPONENT_CONSTRUCTOR(BiographyPlatform)
 	void Realize();
 	void RealizePromptImageTypes();
-	void Visit(Vis& v) {
+	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("profiles", profiles, VISIT_VECTOR_VECTOR)
 			("roles", roles, VISIT_VECTOR)

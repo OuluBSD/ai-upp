@@ -1,8 +1,10 @@
 flags(WIN32 & !MSC) SYS_PORTAUDIO;
 
-uses(!SYS_PORTAUDIO) plugin/portaudio;
+uses(!SYS_PORTAUDIO & !(WIN32 & !MSC)) plugin/portaudio;
 
-library(SYS_PORTAUDIO) portaudio;
+library(SYS_PORTAUDIO | (WIN32 & !MSC)) portaudio;
+
+library(WIN32 & !MSC) libportaudio.dll.a;
 
 file
 	Sound.h,

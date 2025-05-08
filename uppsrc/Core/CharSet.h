@@ -262,5 +262,3 @@ int  ToUnicode(int chr, byte charset);
 int  FromUnicode(wchar wchr, byte charset, int defchar = DEFAULTCHAR);
 
 bool IsAllDigit(const String& s);
-
-int HexDigitAny(int c);

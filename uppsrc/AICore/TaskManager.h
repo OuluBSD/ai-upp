@@ -1,7 +1,7 @@
 #ifndef _AI_TaskManager_h_
 #define _AI_TaskManager_h_
 
-class Ide;
+struct Ide;
 
 NAMESPACE_UPP
 

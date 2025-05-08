@@ -117,9 +117,10 @@ struct SColor : Color { // this is supposed to be static / global
 	SColor(Color (*fn)() = NULL);
 	explicit SColor(Color c) : SColor() { Write(*this, c); }
 	void operator=(Color c)             { Write(*this, c); }
-#ifdef _DEBUG
-	~SColor();
-#endif
+
+private: // has to be static/global, no copies allowed
+	SColor(const SColor& c);
+	void operator=(const SColor& s);
 };
 
 struct AColor : Color {
@@ -146,15 +147,25 @@ inline Color White()     { return Color(255, 255, 255); }
 
 inline Color Red()       { return Color(128, 0, 0); }
 inline Color Green()     { return Color(0, 128, 0); }
-inline Color Brown()     { return Color(128, 128, 0); }
 inline Color Blue()      { return Color(0, 0, 128); }
+inline Color Brown()     { return Color(128, 128, 0); }
+inline Color Orange()    { return Color(255, 128, 0); }
+inline Color Pink()      { return Color(255, 0, 128); }
 inline Color Magenta()   { return Color(128, 0, 255); }
 inline Color Cyan()      { return Color(0, 128, 128); }
 inline Color Yellow()    { return Color(255, 255, 0); }
+
+inline Color DkRed()     { return Color(64, 0, 0); }
+inline Color DkGreen()   { return Color(0, 64, 0); }
+inline Color DkBlue()    { return Color(0, 0, 64); }
+inline Color DkYellow()  { return Color(192, 192, 0); }
+inline Color DkMagenta() { return Color(128, 0, 128); }
+inline Color DkCyan()    { return Color(0, 128, 128); }
+
 inline Color LtRed()     { return Color(255, 0, 0); }
 inline Color LtGreen()   { return Color(0, 255, 0); }
-inline Color LtYellow()  { return Color(255, 255, 192); }
 inline Color LtBlue()    { return Color(0, 0, 255); }
+inline Color LtYellow()  { return Color(255, 255, 192); }
 inline Color LtMagenta() { return Color(255, 0, 255); }
 inline Color LtCyan()    { return Color(0, 255, 255); }
 

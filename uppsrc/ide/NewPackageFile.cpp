@@ -18,10 +18,13 @@ NewPackageFileWindow::NewPackageFileWindow()
 	type.SetDropLines(20);
 	Type("cpp", "C++ source file");
 	Type("h", "C++ header file");
-	type.AddSeparator();
+	Type("c", "C source file");
 	Type("lay", "Layout file (dialog templates)");
 	Type("iml", "Image file (icons)");
-	Type("icpp", "Initialization C++ source file");
+	type.AddSeparator();
+	Type("key", "Keyboard shortcuts file");
+	Type("t", "Translation file");
+	Type("tpp", "Documentation folder");
 	Type("usc", "Escape script file (scripting TheIDE)");
 	Type("dbg", "Debugger pretty printing script file");
 	Type("witz", "Skylark template file (web framework files)");
@@ -29,6 +32,7 @@ NewPackageFileWindow::NewPackageFileWindow()
 	Type("t", "Translation file");
 	Type("tpp", "Documentation folder");
 	Type("aion", "AI description text file");
+	Type("icpp", "Initialization C++ source file (deprecated)");
 	type.AddSeparator();
 	Type("json", "JSON file");
 	Type("xml", "XML file");
@@ -42,6 +46,14 @@ NewPackageFileWindow::NewPackageFileWindow()
 	Type("java", "Java");
 	Type("js", "JavaScript");
 	Type("py", "Python");
+	type.AddSeparator();
+	Type("cu", "CUDA source file");
+	Type("tesc", "GLSL tessellation control shader");
+	Type("vert", "GLSL vertex shader");
+	Type("tese", "GLSL tessellation evaluation shader");
+	Type("geom", "GLSL geometry shader");
+	Type("frag", "GLSL fragment shader");
+	Type("comp", "GLSL compute shader");
 	type.AddSeparator();
 	Type("clang-format", "ClangFormat configuration file");
 	Type("", "Other");
@@ -100,7 +112,7 @@ void NewPackageFileWindow::Type(const char *ext, const char *desc)
 void WorkspaceWork::NewPackageFile()
 {
 	NewPackageFileWindow dlg;
-	dlg.folder = GetFileFolder(GetActivePackagePath());
+	dlg.folder = GetActivePackageDir();
 	dlg.Open();
 	dlg.name.SetFocus();
 	dlg.name.SetSelection(0, 0);

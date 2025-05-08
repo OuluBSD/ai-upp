@@ -23,7 +23,6 @@ Index<String> MakeBuild::PackageConfig(const Workspace& wspc, int package,
                                  const VectorMap<String, String>& bm, String mainparam,
                                  Host& host, Builder& b, String *target)
 {
-	String packagepath = PackagePath(wspc[package]);
 	const Package& pkg = wspc.package[package];
 	cfg.Clear();
 	MergeWith(mainparam, " ", bm.Get(targetmode ? "RELEASE_FLAGS" : "DEBUG_FLAGS", String()),
@@ -109,7 +108,7 @@ void MakeBuild::CreateHost(Host& host, const String& method, bool darkmode, bool
 #else
 		env.GetAdd("PATH") = Join(host.exedirs, ":");
 #endif
-		env.GetAdd("UPP_MAIN__") = GetFileDirectory(PackagePath(GetMain()));
+		env.GetAdd("UPP_MAIN__") = PackageDirectory(GetMain());
 		env.GetAdd("UPP_ASSEMBLY__") = GetVar("UPP");
 		if(disable_uhd)
 			env.GetAdd("UPP_DISABLE_UHD__") = "1";
@@ -206,7 +205,7 @@ One<Builder> MakeBuild::CreateBuilder(Host *host)
 	else {
 		// TODO: cpp builder variables only!!!
 		b->compiler = bm.Get("COMPILER", "");
-		b->include = SplitDirs(Join(GetUppDirs(), ";") + ';' + bm.Get("INCLUDE", "") + ';' + add_includes);
+		b->include = SplitDirs(Join(GetUppDirs(), ";") + ';' + GetVarsIncludes() + ';' + bm.Get("INCLUDE", "") + ';' + add_includes);
 		const Workspace& wspc = GetIdeWorkspace();
 		for(int i = 0; i < wspc.GetCount(); i++) {
 			const Package& pkg = wspc.GetPackage(i);
@@ -221,6 +220,9 @@ One<Builder> MakeBuild::CreateBuilder(Host *host)
 		b->common_link = bm.Get("COMMON_LINK", "");
 		b->debug_link = bm.Get("DEBUG_LINK", "");
 		b->release_link = bm.Get("RELEASE_LINK", "");
+
+		b->debug_cuda = bm.Get("DEBUG_CUDA", "");
+		b->release_cuda = bm.Get("RELEASE_CUDA", "");
 		
 		b->main_conf = !!main_conf.GetCount();
 		b->allow_pch = bm.Get("ALLOW_PRECOMPILED_HEADERS", "") == "1";
@@ -316,6 +318,7 @@ bool MakeBuild::BuildPackage(const Workspace& wspc, int pkindex, int pknumber, i
 	String mainparam, String outfile, Vector<String>& linkfile, Vector<String>& immfile,
 	String& linkopt, bool link)
 {
+	HdependBaseIncludes();
 	String package = wspc[pkindex];
 	String mainpackage = wspc[0];
 	const Package& pkg = wspc.package[pkindex];
@@ -338,6 +341,7 @@ bool MakeBuild::BuildPackage(const Workspace& wspc, int pkindex, int pknumber, i
 	b->method = method;
 	b->outdir = OutDir(b->config, package, bm);
 	host.RealizeDir(b->outdir);
+	HdependAddInclude(b->outdir);
 	String mainfn = Null;
 	Index<String> mcfg = PackageConfig(wspc, 0, bm, mainparam, host, *b, &mainfn);
 	HdependClearDependencies();
@@ -410,6 +414,7 @@ bool MakeBuild::BuildPackage(const Workspace& wspc, int pkindex, int pknumber, i
 void MakeBuild::SetHdependDirs()
 {
 	Vector<String> include = SplitDirs(GetVar("UPP") + ';'
+	    + GetVarsIncludes() + ';'
 		+ GetMethodVars(method).Get("INCLUDE", "") + ';'
 		+ Environment().Get("INCLUDE", "")
 #ifdef PLATFORM_POSIX
@@ -425,7 +430,7 @@ void MakeBuild::SetHdependDirs()
 			include.Add(SourcePath(wspc[i], pkg.include[j].text));
 	}
 
-	HdependSetDirs(pick(include));
+	HdependSetIncludes(pick(include));
 }
 
 Vector<String> MakeBuild::GetAllUses(const Workspace& wspc, int f,
@@ -433,7 +438,6 @@ Vector<String> MakeBuild::GetAllUses(const Workspace& wspc, int f,
 { // Gathers all uses, including subpackages, to support SO builds
 	String package = wspc[f];
 	Index<String> all_uses;
-	bool warn = true;
 	int n = 0;
 	while(f >= 0) {
 		const Package& p = wspc.package[f];
@@ -442,10 +446,6 @@ Vector<String> MakeBuild::GetAllUses(const Workspace& wspc, int f,
 			if(MatchWhen(p.uses[fu].when, config.GetKeys())) {
 				if(p.uses[fu].text != package)
 					all_uses.FindAdd(p.uses[fu].text);
-				else if(warn) {
-					PutConsole(Format("%s: circular 'uses' chain", package));
-					warn = false;
-				}
 			}
 		}
 		f = -1;
@@ -548,6 +548,7 @@ bool MakeBuild::Build(const Workspace& wspc, String mainparam, String outfile, b
 	}
 	EndBuilding(ok);
 	SetErrorEditor();
+	HdependBaseIncludes();
 	return ok;
 }
 

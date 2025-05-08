@@ -270,8 +270,9 @@ void Ide::InsertMenu(Bar& bar)
 				n++;
 			}
 		}
+		if(n > 0)
+			bar.Separator();
 	}
-	bar.Separator();
 	bar.Add("Insert color..", THISBACK(InsertColor));
 	bar.Add("Insert .iml Image..", [=] { InsertImage(); });
 	bar.Add("Insert sequence..", THISBACK(InsertSequence));
@@ -327,8 +328,8 @@ void Ide::ToggleWordwrap()
 void Ide::EditorMenu(Bar& bar)
 {
 	bar.Sub("Assist", [=](Bar& bar) { AssistMenu(bar); });
-	InsertAdvanced(bar);
 	Reformat(bar);
+	InsertAdvanced(bar);
 	bar.MenuSeparator();
 	OnlineSearchMenu(bar);
     bar.Add(IsClipboardAvailableText() && (editor.IsSelection() || editor.GetLength() < 1024*1024),

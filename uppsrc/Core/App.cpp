@@ -268,7 +268,8 @@ void CopyFolder(const char *dst, const char *src)
 }
 
 #ifdef PLATFORM_POSIX
-String GetUserConfigDir(bool *sandboxed)
+
+String GetUserConfigDir(const String& exe, bool *sandboxed)
 {
 	String cfgdir;
 	String h = GetExeFolder();
@@ -292,6 +293,12 @@ String GetUserConfigDir(bool *sandboxed)
 	
 	return cfgdir;
 }
+
+String GetUserConfigDir(bool *sandboxed)
+{
+	return GetUserConfigDir(GetExeFolder(), sandboxed);
+}
+
 #endif
 
 String  ConfigFile(const char *file) {
@@ -612,7 +619,7 @@ void AppExit__()
 #endif
 }
 
-#ifdef flagTURTLE
+#ifdef flagTURTLE // Turtle web backend
 
 void Turtle_PutLink(const String& link);
 
@@ -865,6 +872,30 @@ String GetProgramDataFolder() { return String("/var/opt"); }
 
 #endif
 
+bool IsUserAdmin()
+{
+#ifdef PLATFORM_POSIX
+    return geteuid() == 0;
+#elif PLATFORM_WIN32
+    BOOL isAdmin = FALSE;
+    PSID pAdminGroup = nullptr;
+    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+    if(AllocateAndInitializeSid(
+				&NtAuthority,
+				2,
+				SECURITY_BUILTIN_DOMAIN_RID,
+				DOMAIN_ALIAS_RID_ADMINS,
+				0, 0, 0, 0, 0, 0,
+				&pAdminGroup)) {
+        CheckTokenMembership(nullptr, pAdminGroup, &isAdmin);
+        FreeSid(pAdminGroup);
+    }
+    return isAdmin;
+#else
+    // Unsupported platform. (Assume no elevation.)
+    return false;
+#endif
+}
 
 Vector<Event<>>& __ExitEvents() {
 	static Vector<Event<>> v;

@@ -84,6 +84,7 @@ file
 	CommandLineHandler.h,
 	CommandLineHandler.cpp,
 	About.h,
+	BuildInfo.cpp,
 	About.cpp,
 	Macro.cpp,
 	Help.cpp,
@@ -147,7 +148,6 @@ mainconfig
 	"" = "GUI PEAKMEM",
 	"" = "GUI HEAPLOG",
 	"" = "GUI X11",
-	"" = "GUI DEBUGCODE",
 	"" = "GUI GTK WAYLAND",
 	"" = "GUI DEBUGCODE";
 

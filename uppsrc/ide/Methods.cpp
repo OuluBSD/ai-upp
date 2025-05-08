@@ -362,11 +362,13 @@ void DefaultBuilderSetup::InitSetupCtrlsMap(VectorMap<Id, Ctrl*>& map)
 	map.Add("DEBUG_OPTIONS",             &debug_options);
 	map.Add("DEBUG_FLAGS",               &debug_flags);
 	map.Add("DEBUG_LINK",                &debug_link);
+	map.Add("DEBUG_CUDA",                &debug_cuda);
 	map.Add("RELEASE_BLITZ",             &release_blitz);
 	map.Add("RELEASE_LINKMODE",          &release_linkmode);
 	map.Add("RELEASE_OPTIONS",           &speed_options);
 	map.Add("RELEASE_FLAGS",             &release_flags);
 	map.Add("RELEASE_LINK",              &release_link);
+	map.Add("RELEASE_CUDA",              &release_cuda);
 	map.Add("DEBUGGER",                  &debugger);
 	map.Add("ALLOW_PRECOMPILED_HEADERS", &allow_pch);
 	map.Add("DISABLE_BLITZ",             &disable_blitz);
@@ -949,6 +951,7 @@ String Ide::GetCurrentIncludePath()
 	}
 	
 	include_path = Join(GetUppDirs(), ";") + ';';
+	MergeWith(include_path, ";", GetVarsIncludes());
 	String inc1 = bm.Get("INCLUDE", "");
 	MergeWith(include_path, ";", inc1);
 	
@@ -965,7 +968,7 @@ String Ide::GetCurrentIncludePath()
 		const Package& pkg = wspc.GetPackage(i);
 		for(int j = 0; j < pkg.GetCount(); j++)
 			if(pkg[j] == "import.ext")
-				AddDirs(include_path, GetFileFolder(PackagePath(wspc[i])));
+				AddDirs(include_path, PackageDirectory(wspc[i]));
 	}
 
 	::MainConf(wspc, include_path);
@@ -974,6 +977,8 @@ String Ide::GetCurrentIncludePath()
 		const Package& pkg = wspc.GetPackage(i);
 		for(int j = 0; j < pkg.include.GetCount(); j++)
 			MergeWith(include_path, ";", SourcePath(wspc[i], pkg.include[j].text));
+		if(IsExternalMode()) // just add everything..
+			MergeWith(include_path, ";", PackageDirectory(wspc[i]));
 	}
 
 	return include_path;

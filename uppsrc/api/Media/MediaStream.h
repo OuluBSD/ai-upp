@@ -8,11 +8,11 @@ template <class Backend>
 class MediaStreamThreadT : Moveable<MediaStreamThreadT<Backend>> {
 	using AudioInputFrame = typename Backend::AudioInputFrame;
 	using VideoInputFrame = typename Backend::VideoInputFrame;
-	using AudioInputFrameRef = typename Backend::AudioInputFrameRef;
-	using VideoInputFrameRef = typename Backend::VideoInputFrameRef;
+	using AudioInputFramePtr = typename Backend::AudioInputFrameRef;
+	using VideoInputFramePtr = typename Backend::VideoInputFrameRef;
 	
-	AudioInputFrameRef acap;
-	VideoInputFrameRef vcap;
+	AudioInputFramePtr acap;
+	VideoInputFramePtr vcap;
 	
 	RunningFlagSingle flag;
 	String last_error;
@@ -36,7 +36,7 @@ public:
 	AudioInputFrame& GetAudio() {ASSERT(acap); return *acap;}
 	VideoInputFrame& GetVideo() {ASSERT(vcap); return *vcap;}
 	bool IsCap() const {return acap && vcap;}
-	void SetCap(AudioInputFrameRef acap, VideoInputFrameRef vcap) {this->acap = acap; this->vcap = vcap;}
+	void SetCap(AudioInputFramePtr acap, VideoInputFramePtr vcap) {this->acap = acap; this->vcap = vcap;}
 	bool IsRunning() const {return flag.IsRunning();}
 	
 	String GetLastError() const {return last_error;}

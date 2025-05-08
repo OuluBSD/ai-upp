@@ -1,5 +1,5 @@
-#ifndef __LocalVR_OPENCV_H__
-#define __LocalVR_OPENCV_H__
+#ifndef _SoftVR_OPENCV_H__
+#define _SoftVR_OPENCV_H__
 
 
 NAMESPACE_HMD_BEGIN

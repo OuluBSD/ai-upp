@@ -34,7 +34,7 @@ struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane>
 	String ToString() override {return "StaticGroundPlane";}
 };
 
-using StaticGroundPlaneRef = Ref<StaticGroundPlane>;
+using StaticGroundPlanePtr = Ref<StaticGroundPlane>;
 
 struct StaticGroundPlanePrefab :
 	EntityPrefab<Transform, Renderable, StaticGroundPlane>
@@ -47,9 +47,9 @@ struct StaticGroundPlanePrefab :
 		components.Get<TransformRef>()->position[1] = -5.0;
 		components.Get<RenderableRef>()->cb.Add(ground->GetRefreshCallback());
 		
-		OdeSystemRef w = e.GetEngine().Get<OdeSystem>();
+		OdeSystemPtr w = e.GetEngine().Get<OdeSystem>();
 		OdeSystem& ow = CastRef<OdeSystem>(*w);
-		StaticGroundPlaneRef plane = components.Get<StaticGroundPlaneRef>();
+		StaticGroundPlanePtr plane = components.Get<StaticGroundPlaneRef>();
 		ASSERT(plane);
 		ow.OdeNode::Attach(*plane);
 		

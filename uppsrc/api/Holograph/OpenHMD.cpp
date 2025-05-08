@@ -391,7 +391,7 @@ bool HoloOpenHMD::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSo
 	if (!dev.ev_sendable)
 		return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	RTLOG("HoloOpenHMD::SinkDevice_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {

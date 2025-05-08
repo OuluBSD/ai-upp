@@ -59,7 +59,7 @@ bool HoloRemoteVRServer::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, Rea
 	if (!dev.recv.ev_sendable)
 		return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	RTLOG("HoloRemoteVRServer::SinkDevice_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {

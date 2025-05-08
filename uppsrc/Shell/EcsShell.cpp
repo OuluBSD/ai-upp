@@ -1,4 +1,4 @@
-#include "Shell.h"
+#include "EcsShell.h"
 
 
 // UWP solution is different
@@ -17,7 +17,7 @@ NAMESPACE_UPP
 
 
 void DesktopMain() {
-	using namespace Parallel;
+	
 	
     CoreApplication::Run(AppViewSource());
 }

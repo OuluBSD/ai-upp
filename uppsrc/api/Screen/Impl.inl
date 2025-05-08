@@ -55,7 +55,7 @@ bool CLASSNAME::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSour
 		return false;
 	
 
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	RTLOG("CLASSNAME::EventsBase_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {

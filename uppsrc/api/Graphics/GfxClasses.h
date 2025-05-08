@@ -184,7 +184,6 @@ struct GfxFramebuffer : ErrorReporter {
 
 
 
-struct GfxShader;
 
 struct GfxShader {
 	

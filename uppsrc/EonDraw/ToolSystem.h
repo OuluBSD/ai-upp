@@ -23,17 +23,16 @@ public:
 	virtual void Deactivate(EntityPtr entity) = 0;
 };
 
+using ToolSystemBasePtr = Ptr<ToolSystemBase>;
+
 class ToolSelectorKey :
 	public Component<ToolSelectorKey> {
 	
 public:
-	COPY_PANIC(ToolSelectorKey)
-	COMP_DEF_VISIT
 	
+	TypeCls type { AsVoidTypeCls() };
 	
-	TypeId type { AsVoidTypeId() };
-	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	
 };
 

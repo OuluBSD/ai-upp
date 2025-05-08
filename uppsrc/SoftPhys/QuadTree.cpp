@@ -19,11 +19,11 @@ int QuadTreeNode::NumObjects() {
 		contents[i]->flag = true;
 	}
 
-	LinkedList<QuadTreeNode*> process;
+	Vector<QuadTreeNode*> process;
 	process.Add(this);
 
 	while (process.GetCount() > 0) {
-		QuadTreeNode* processing = process.First();
+		QuadTreeNode* processing = process[0];
 
 		if (!processing->IsLeaf()) {
 			for (int i = 0, size = processing->children.GetCount(); i < size; ++i) {
@@ -39,7 +39,7 @@ int QuadTreeNode::NumObjects() {
 			}
 		}
 		
-		process.RemoveFirst();
+		process.Remove(0);
 	}
 
 	Reset();
@@ -104,11 +104,11 @@ void QuadTreeNode::Shake() {
 		// Children combined have less objects than maximum for the node, collapse!
 		else if (numObjects < max_obj_per_node) {
 			// Loop trough down to leaf nodes, non-recursivley
-			LinkedList<QuadTreeNode*> process;
+			Vector<QuadTreeNode*> process;
 			process.Add(this);
 
 			while (process.GetCount() > 0) {
-				QuadTreeNode* processing = process.First();
+				QuadTreeNode* processing = process[0];
 
 				if (!processing->IsLeaf()) {
 					// Not a leaf node, add children to list to process!
@@ -121,7 +121,7 @@ void QuadTreeNode::Shake() {
 					contents.Append(processing->contents);
 				}
 				
-				process.RemoveFirst();
+				process.Remove(0);
 			}
 
 			children.Clear();

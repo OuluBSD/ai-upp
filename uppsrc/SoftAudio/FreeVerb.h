@@ -26,7 +26,7 @@ public:
 	float Tick( float inputL, float inputR = 0.0f, int channel = 0 );
 	AudioFrames& Tick( AudioFrames& frames, int channel = 0 );
 	AudioFrames& Tick( AudioFrames& in_frames, AudioFrames& out_frames, int in_channel = 0, int out_channel = 0 );
-	void LoadState(const ArrayMap<String, Object>& state) override;
+	void LoadState(const ArrayMap<String, Value>& state) override;
 	
 protected:
 

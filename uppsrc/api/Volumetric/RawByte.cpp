@@ -96,7 +96,7 @@ bool VolRawByte__LoadFile(VolRawByte::NativeStaticSource& dev, AtomBase& a) {
 	}
 	dev.fmt.SetVolume(DevCls::CENTER, type, dev.sz.cx, dev.sz.cy, dev.sz.cz, 1, 1);
 	
-	InterfaceSourceRef iface = a.GetSource();
+	InterfaceSourcePtr iface = a.GetSource();
 	int src_count = iface->GetSourceCount();
 	for(int i = 1; i < src_count; i++)
 		iface->GetSourceValue(i).SetFormat(dev.fmt);
@@ -123,7 +123,7 @@ bool VolRawByte::StaticSource_Initialize(NativeStaticSource& dev, AtomBase& a, c
 }
 
 bool VolRawByte::StaticSource_PostInitialize(NativeStaticSource& dev, AtomBase& a) {
-	InterfaceSourceRef iface = a.GetSource();
+	InterfaceSourcePtr iface = a.GetSource();
 	int src_count = iface->GetSourceCount();
 	for(int i = 1; i < src_count; i++)
 		a.GetLink()->NegotiateSourceFormat(i, dev.fmt);
@@ -148,7 +148,7 @@ bool VolRawByte::StaticSource_Send(NativeStaticSource& dev, AtomBase& a, Realtim
 	if (dev.values.IsEmpty())
 		return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsVolume()) {
 		out.SetFormat(dev.fmt);
 		out.Data() <<= dev.values;

@@ -40,14 +40,14 @@ struct AudPortaudio {
 
 struct AudSinkDevice : public Atom {
 	//RTTI_DECL1(AudSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSinkDevice() {}
 };
 
 struct AudSourceDevice : public Atom {
 	//RTTI_DECL1(AudSourceDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSourceDevice() {}
 };
@@ -56,7 +56,7 @@ struct AudSourceDevice : public Atom {
 template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
 	//RTTI_DECL1(CLASSNAME, AudSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Aud::SinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<AudSinkDevice>(this);
 	}
@@ -96,7 +96,7 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	using CLASSNAME = AudioSourceDeviceT<Aud>;
 	//RTTI_DECL1(CLASSNAME, AudSourceDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Aud::SourceDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<AudSourceDevice>(this);
 	}

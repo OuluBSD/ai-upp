@@ -1,5 +1,5 @@
-#ifndef __LocalVR_IMU_H__
-#define __LocalVR_IMU_H__
+#ifndef _SoftVR_IMU_H__
+#define _SoftVR_IMU_H__
 
 
 NAMESPACE_HMD_BEGIN

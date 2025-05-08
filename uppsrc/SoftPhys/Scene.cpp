@@ -297,11 +297,12 @@ Vector<Model*> Scene::Cull(const Frustum& f) {
 		}
 	}
 	else {
-		LinkedList<OctreeNode*> nodes;
+		Vector<OctreeNode*> nodes;
 		nodes.Add(octree);
 
 		while (nodes.GetCount() > 0) {
-			OctreeNode* active = nodes.PopFirst();
+			OctreeNode* active = nodes[0];
+			nodes.Remove(0);
 
 			// Has child nodes
 			if (active->children != 0) {

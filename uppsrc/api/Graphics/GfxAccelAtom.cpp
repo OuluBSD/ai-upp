@@ -68,7 +68,7 @@ template <>
 bool GfxAccelAtom<X11SwGfx>::GfxRenderer() {
 	ASSERT(fb);
 	
-	NativeColorBufferRef clr = fb->Get(0);
+	NativeColorBufferPtr clr = fb->Get(0);
 	ASSERT(clr);
 	
 	rend.output.Init(fb, clr, screen_sz.cx, screen_sz.cy, fb_stride);
@@ -134,7 +134,7 @@ bool GfxAccelAtom<WinD11Gfx>::GfxRenderer() {
 
 
 template <class Gfx>
-void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferRef fb) {
+void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferPtr fb) {
 	win = window;
 	this->display = display;
 	this->nat_rend = rend ? *rend : 0;
@@ -167,7 +167,7 @@ bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	a.AddAtomToUpdateList();
 	
 	//AtomBase::GetMachine().template Get<AtomSystem>()->AddPolling(AtomBase::AsRefT());
-	ISinkRef sink = a.GetSink();
+	ISinkPtr sink = a.GetSink();
 	sink->GetValue(0).SetMaxQueueSize(1);
 	
 	if (poller) {
@@ -336,7 +336,7 @@ template <class Gfx>
 void GfxAccelAtom<Gfx>::Render(const RealtimeSourceConfig& cfg) {
 	
 	if (raw_packet) {
-		Format fmt = raw_packet->GetFormat();
+		ValueFormat fmt = raw_packet->GetFormat();
 		const auto& vfmt = Gfx::GetFormat(fmt);
 		const Vector<byte>& data = raw_packet->GetData();
 		BeginDraw();
@@ -345,7 +345,7 @@ void GfxAccelAtom<Gfx>::Render(const RealtimeSourceConfig& cfg) {
 		raw_packet.Clear();
 	}
 	else if (fb_packet) {
-		Format fmt = fb_packet->GetFormat();
+		ValueFormat fmt = fb_packet->GetFormat();
 		const auto& vfmt = Gfx::GetFormat(fmt);
 		const InternalPacketData& d = fb_packet->GetData<InternalPacketData>();
 		ShaderPipeline& sd = *(ShaderPipeline*)d.ptr;
@@ -367,7 +367,7 @@ bool GfxAccelAtom<Gfx>::Recv(int ch_i, const Packet& p) {
 	PacketValue& pv = *p;
 	
 	bool succ = true;
-	Format fmt = pv.GetFormat();
+	ValueFormat fmt = pv.GetFormat();
 	if (IsDefaultGfxVal<Gfx>(fmt.vd.val)) {
 		//const auto& vfmt = Gfx::GetFormat(fmt);
 		

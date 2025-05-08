@@ -4,15 +4,14 @@
 namespace Ecs {
 
 
+struct GfxShader;
 
 class Viewable :
 	public Component<Viewable>
 {
 	
 public:
-	COMP_DEF_VISIT
-	
-	void Serialize(Stream& e) override {}
+	void Visit(Vis& v) override {}
 	void Initialize() override;
 	void Uninitialize() override;
 	
@@ -23,12 +22,11 @@ public:
 	
 };
 
+using ViewablePtr = Ptr<Viewable>;
+
 
 class Viewport : public Component<Viewport> {
 public:
-	COMP_DEF_VISIT
-	
-	
 	vec3 target = zero<vec3>();
 	double fov = M_PI/2;
 	double angle = 0;
@@ -37,7 +35,7 @@ public:
 	vec3 GetTarget() const {return target;}
 	void SetTraget(const vec3& v) {target = v;}
 	
-	void Serialize(Stream& e) override {e % target % fov % angle;}
+	void Visit(Vis& v) override {v VISN(target) VIS_(fov) VIS_(angle);}
 	bool Arg(String key, Value value) override;
 	
 	void operator=(const Viewport& vp) {
@@ -46,6 +44,7 @@ public:
 	
 };
 
+using ViewportPtr = Ptr<Viewable>;
 
 struct CameraBase : Pte<CameraBase>
 {
@@ -59,9 +58,11 @@ struct CameraBase : Pte<CameraBase>
 	
 	virtual bool Load(GfxDataState& state) = 0;
 	virtual void UpdateCalibration() = 0;
-	void Serialize(Stream& e);
+	void Visit(Vis& v);
 	
 };
+
+using CameraBasePtr = Ptr<CameraBase>;
 
 class ChaseCam :
 	public Component<ChaseCam>,
@@ -90,8 +91,7 @@ class ChaseCam :
 public:
 	typedef ChaseCam CLASSNAME;
 	
-	void Serialize(Stream& e) override;
-	void Visit(Vis& vis) override {vis.VisitT<ComponentT>(this); vis & target & viewable & vport;}
+	void Visit(Vis& v) override {VIS_THIS(ComponentT); v & target & viewable & vport;}
 	void Initialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
@@ -109,6 +109,8 @@ public:
 		target = vp.target;
 	}
 };
+
+using ChaseCamPtr = Ptr<ChaseCam>;
 
 
 struct CameraPrefab : EntityPrefab<Transform, Viewport, Viewable>

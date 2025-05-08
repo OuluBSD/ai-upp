@@ -338,7 +338,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				
 				s	<< "struct " << pkg.abbr << k << " : public Atom {\n"
 					<< "\t//RTTI_DECL1(" << pkg.abbr << k << ", Atom)\n"
-					<< "\tvoid Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}\n"
+					<< "\tvoid Visit(Vis& vis) override {VIS_THIS(Atom);}\n"
 					<< "\t\n"
 					<< "\tvirtual ~" << pkg.abbr << k << "() {}\n"
 					<< "};\n";

@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 void TopGubo::CreateGeom3DComponent() {
 	using namespace Ecs;
-	using namespace Parallel;
+	
 	
 	
 	Machine& mach = GetActiveMachine();

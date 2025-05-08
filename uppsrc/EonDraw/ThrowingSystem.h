@@ -8,10 +8,7 @@ class ThrowingComponent :
 	public CustomToolComponent {
 	
 public:
-	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); vis & ball_object;}
-	
-	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
@@ -37,7 +34,7 @@ class ThrowingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;
 	ECS_SYS_CTOR(ThrowingInteractionSystemBase);
-	void Visit(Vis& vis) override {vis.VisitT<ToolSys>(this);}
+	void Visit(Vis& vis) override;
 	
 	using Parent = Engine;
 	float ball_holding_distance;
@@ -45,7 +42,7 @@ public:
 	
 	void Attach(ThrowingComponentPtr c);
 	void Detach(ThrowingComponentPtr c);
-	PoolPtr GetPool() const {return GetEngine().Get<EntityStore>()->GetRoot()->GetAddPool(POOL_NAME);}
+	PoolPtr GetPool() const;
 	
 	
 protected:

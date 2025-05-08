@@ -1,5 +1,5 @@
-#ifndef __LocalVR_FLICKER_H__
-#define __LocalVR_FLICKER_H__
+#ifndef _SoftVR_FLICKER_H__
+#define _SoftVR_FLICKER_H__
 
 
 NAMESPACE_HMD_BEGIN

@@ -33,7 +33,7 @@ public:
 
 	PhysicsSystem();
 
-	virtual void Visit(Vis& vis) {}
+	virtual void Visit(Vis& v) {}
 	void Collide(Space& space, void* data, NearCallback cb);
 	void Update(float dt);
 	

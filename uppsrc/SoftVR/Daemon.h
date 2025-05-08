@@ -1,5 +1,5 @@
-#ifndef __LocalVR_OUVRTD_H__
-#define __LocalVR_OUVRTD_H__
+#ifndef _SoftVR_OUVRTD_H__
+#define _SoftVR_OUVRTD_H__
 
 
 struct udev;

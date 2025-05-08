@@ -35,7 +35,7 @@ struct AFOCoreAudio {
 
 struct AFOSink : public Atom {
 	//RTTI_DECL1(AFOSink, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AFOSink() {}
 };
@@ -44,7 +44,7 @@ struct AFOSink : public Atom {
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
 	//RTTI_DECL1(CLASSNAME, AFOSink)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) AFO::Sink_Visit(*dev, *this, vis);
 		vis.VisitThis<AFOSink>(this);
 	}

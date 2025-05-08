@@ -1,5 +1,5 @@
-#ifndef __LocalVR_USB_DEVICE_H__
-#define __LocalVR_USB_DEVICE_H__
+#ifndef _SoftVR_USB_DEVICE_H__
+#define _SoftVR_USB_DEVICE_H__
 
 
 NAMESPACE_HMD_BEGIN

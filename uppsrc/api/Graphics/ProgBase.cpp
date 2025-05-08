@@ -43,7 +43,7 @@ bool FboProgAtomT<Gfx>::IsReady(PacketIO& io) {
 
 template <class Gfx>
 bool FboProgAtomT<Gfx>::Recv(int sink_ch, const Packet& p) {
-	Format fmt = p->GetFormat();
+	ValueFormat fmt = p->GetFormat();
 	
 	if (fmt.IsProg()) {
 		InternalPacketData& data = p->GetData<InternalPacketData>();
@@ -82,7 +82,7 @@ bool FboProgAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 	auto& buf = this->bf.GetBuffer();
 	BufferStageT<Gfx>& stage = buf.InitSingle();
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsFbo()) {
 		InternalPacketData& data = out.SetData<InternalPacketData>();
 		

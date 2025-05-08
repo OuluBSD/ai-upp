@@ -22,7 +22,7 @@ struct BufferStageT : GfxBufferStage {
 	using InputState  = InputStateT<Gfx>;
 	using Texture  = TextureT<Gfx>;
 	using NativeProgram = typename Gfx::NativeProgram;
-	using NativeColorBufferConstRef = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
 	using Compiler = typename Gfx::Compiler;
 	using Linker = typename Gfx::Linker;
 	
@@ -94,7 +94,7 @@ struct BufferStageT : GfxBufferStage {
 	
 	DataState& LocalState() {ASSERT(data); return *data;}
 	DataState& GetState() {ASSERT(data); return *data;}
-	NativeColorBufferConstRef GetOutputTexture(bool reading_self) const;
+	NativeColorBufferConstPtr GetOutputTexture(bool reading_self) const;
 	bool IsInitialized() const {return initialized;}
 	const Framebuffer& GetFramebuffer() const {return fb;}
 	Framebuffer& GetFramebuffer() {return fb;}
@@ -121,11 +121,11 @@ struct BufferT : GfxBuffer {
 	using ShaderPipeline = ShaderPipelineT<Gfx>;
 	using DataObject = DataObjectT<Gfx>;
 	using BufferStage = BufferStageT<Gfx>;
-	using NativeFrameBufferRef = typename Gfx::NativeFrameBufferRef;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
 	using Sample = GVar::Sample;
-	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
 	using NativeProgram = typename Gfx::NativeProgram;
-	using NativeColorBufferConstRef = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
 	
 	//RTTI_DECL1(BufferT, GfxBuffer)
 	
@@ -169,7 +169,7 @@ struct BufferT : GfxBuffer {
 	
 	BufferT() {}
 	
-	void Visit(Vis& vis) override {vis & env;}
+	void Visit(Vis& v) override {vis & env;}
 	void AddLink(String s) {if (!s.IsEmpty()) link_ids << s;}
 	
 	
@@ -197,7 +197,7 @@ public:
 	void SetStereoDataState(DataState* s);
 	void SetDataStateOverride(DataState* s, bool data_writable);
 	
-	NativeColorBufferConstRef GetOutputTexture(bool reading_self) const;
+	NativeColorBufferConstPtr GetOutputTexture(bool reading_self) const;
 	DataState& GetState();
 	
 };

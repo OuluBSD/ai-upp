@@ -38,6 +38,7 @@ void Space::Clear() {
 
 int Collide(Geometry& g0, Geometry& g1, int count, Contact* c, int ptr_pitch) {
 	TODO
+	return 0;
 }
 
 

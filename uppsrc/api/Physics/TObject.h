@@ -3,6 +3,7 @@
 
 NAMESPACE_UPP
 
+struct GfxDataObject;
 
 template <class Fys>
 struct ObjectT : NodeT<Fys> {

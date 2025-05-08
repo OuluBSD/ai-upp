@@ -497,4 +497,6 @@ template <class T> hash_t TypedStringHasher(const char* s);
 template <class T> hash_t AsTypeHash() {return TypedStringHasher<T>(0);}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 
+template <class T> using TypeMap = ArrayMap<TypeCls, T>;
+
 #include "Other.hpp"

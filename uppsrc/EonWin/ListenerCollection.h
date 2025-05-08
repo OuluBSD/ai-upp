@@ -33,7 +33,7 @@ public:
     Array<R> PurgeAndGetListeners()
     {
         TODO
-        /*Array<Ref<T>> result;
+        /*Array<Ptr<T>> result;
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             erase_if(&m_listeners, [&result](const std::weak_ptr<T>& weak)

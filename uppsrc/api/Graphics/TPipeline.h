@@ -17,14 +17,14 @@ template <class Gfx>
 struct CompilerT : GfxCompiler {
 	//RTTI_DECL1(CompilerT, GfxCompiler)
 	using Base = CompilerT<Gfx>;
-	using NativeShaderRef = typename Gfx::NativeShaderRef;
+	using NativeShaderPtr = typename Gfx::NativeShaderRef;
 	using PipelineState = PipelineStateT<Gfx>;
 	using ProgramState = ProgramStateT<Gfx>;
 	using Framebuffer = FramebufferT<Gfx>;
 	using ShaderState = ShaderStateT<Gfx>;
 	using ContextState = ContextStateT<Gfx>;
 	
-	bool CompileShader(String code, GVar::ShaderType type, NativeShaderRef& shader_out);
+	bool CompileShader(String code, GVar::ShaderType type, NativeShaderPtr& shader_out);
 	bool Compile(	const GfxCompilerArgs& args,
 					ProgramState& ps,
 					ShaderState& shdr,
@@ -57,10 +57,10 @@ template <class Gfx>
 struct ShaderStateT : GfxShaderState {
 	//RTTI_DECL1(ShaderStateT, GfxShaderState)
 	using Base = ShaderStateT<Gfx>;
-	using NativeShaderRef = typename Gfx::NativeShaderRef;
+	using NativeShaderPtr = typename Gfx::NativeShaderRef;
 	
 	
-	NativeShaderRef native;
+	NativeShaderPtr native;
 	
 	ShaderStateT() {
 		native = 0;
@@ -112,7 +112,7 @@ struct ProgramStateT : GfxProgramState {
 	using BufferStage = BufferStageT<Gfx>;
 	using Compiler = CompilerT<Gfx>;
 	using Linker = LinkerT<Gfx>;
-	using NativeColorBufferConstRef = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
 	
 	PipelineState*		owner = 0;
 	String				name;
@@ -164,7 +164,7 @@ struct ProgramStateT : GfxProgramState {
 	template <int> int BuiltinShaderT();
 	template <int> bool LoadBuiltinShaderT(GVar::ShaderType shader_type, String id);
 	
-	NativeColorBufferConstRef GetInputTex(int input_i) const;
+	NativeColorBufferConstPtr GetInputTex(int input_i) const;
 	GVar::TextureMode GetTexType(int input_i) const;
 	
 	

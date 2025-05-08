@@ -25,7 +25,7 @@ public:
 	bool			Recv(int sink_ch, const Packet& in) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
-	void			Visit(Vis& vis) override {vis.VisitThis<Atom>(this); vis & state;}
+	void			Visit(Vis& vis) override {VIS_THIS(Atom); vis & state;}
 	
 	
 	static Callback1<HandleEventsBase*>	WhenInitialize;

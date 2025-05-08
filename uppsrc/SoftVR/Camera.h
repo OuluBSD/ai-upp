@@ -1,5 +1,5 @@
-#ifndef __LocalVR_CAMERA_H__
-#define __LocalVR_CAMERA_H__
+#ifndef _SoftVR_CAMERA_H__
+#define _SoftVR_CAMERA_H__
 
 
 NAMESPACE_HMD_BEGIN

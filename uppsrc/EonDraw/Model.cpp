@@ -4,7 +4,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-void ModelComponent::Serialize(Stream& e) {
+void ModelComponent::Visit(Vis& v) {
 	e % color
 	  % prefab_name
 	  % skybox_diffuse
@@ -35,6 +35,8 @@ void ModelComponent::Serialize(Stream& e) {
 			e % *own_model;
 		}
 	}
+	
+	v & model
 }
 
 void ModelComponent::Initialize() {

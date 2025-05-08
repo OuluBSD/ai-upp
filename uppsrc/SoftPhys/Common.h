@@ -43,7 +43,7 @@ struct Object {
 	
 	Object() {}
 	Object(const Nuller& n) {}
-	virtual void Visit(Vis& vis) {}
+	virtual void Visit(Vis& v) {}
 	void Create() {ASSERT(!inited); inited = true;}
 	void Clear() {ASSERT(inited); inited = false;}
 	operator bool() const {return inited;}

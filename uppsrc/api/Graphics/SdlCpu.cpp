@@ -40,9 +40,9 @@ void SdlCpuGfx::UnlockTextureToSurface(NativeTexture& tex) {
 	SDL_UnlockTexture(tex);
 }
 
-void SdlCpuGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void SdlCpuGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	const auto& fb = color_buf;
-	//NativeColorBufferRef& fb = color_buf;
+	//NativeColorBufferPtr& fb = color_buf;
 	
 	#if 0
 	{

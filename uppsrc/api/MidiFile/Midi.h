@@ -22,9 +22,9 @@ class MidiFileReaderAtom : public Atom
 public:
 	//RTTI_DECL1(MidiFileReaderAtom, Atom)
 	COPY_PANIC(MidiFileReaderAtom);
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	MidiFileReaderAtom();
+	MidiFileReaderAtom(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -54,9 +54,9 @@ class MidiNullAtom : public Atom
 public:
 	//RTTI_DECL1(MidiNullAtom, Atom)
 	COPY_PANIC(MidiNullAtom);
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	MidiNullAtom();
+	MidiNullAtom(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;

@@ -9,15 +9,11 @@ class PaintStrokeComponent :
 	public Component<PaintStrokeComponent> {
 	
 public:
-	COPY_PANIC(PaintStrokeComponent)
-	COMP_DEF_VISIT
-	
-	
 	Vector<Square> squares;
 	bool stroke_changed = false;
 	
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	void AddPoint(const mat4& trans_mtx, float width);

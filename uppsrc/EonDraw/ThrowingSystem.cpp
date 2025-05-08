@@ -3,6 +3,14 @@
 NAMESPACE_UPP namespace Ecs {
 
 
+PoolPtr ThrowingInteractionSystemBase::GetPool() const {
+	return node.FindOwner<Pool>();
+}
+
+void ThrowingInteractionSystemBase::Visit(Vis& v) {
+	v VIS_THIS(ToolSys);
+}
+
 bool ThrowingInteractionSystemBase::Initialize() {
 	ball_holding_distance = 0.5f;
 	
@@ -169,13 +177,16 @@ void ThrowingInteractionSystemBase::Deactivate(EntityPtr entity) {
 
 
 
-void ThrowingComponent::Serialize(Stream& e) {
+void ThrowingComponent::Visit(Vis& v) {
 	CustomToolComponent::Etherize(e);
 	
 	e % distance_from_pointer
 	  % scale;
 	
 	EtherizeRef(e, ball_object);
+	
+	v VIS_THIS(CustomToolComponent);
+	v & ball_object;
 }
 
 void ThrowingComponent::Initialize() {

@@ -4,41 +4,6 @@
 namespace Ecs {
 
 
-class Renderable : public Component<Renderable> {
-	
-public:
-	COMP_DEF_VISIT
-	
-	
-	RGBA color;
-	mat4 offset;
-	float alpha_multiplier;
-	
-	
-	void Serialize(Stream& e) override;
-	void Initialize() override;
-	void Uninitialize() override;
-	
-	void ResetModel(mat4 offset = zero<mat4>()) {
-		color = RGBAZero();
-		this->offset = offset;
-		alpha_multiplier = 0;
-	}
-	
-    void operator=(const Renderable& e) {
-        color = e.color;
-        offset = e.offset;
-        alpha_multiplier = e.alpha_multiplier;
-    }
-    
-    
-	Callback cb;
-	
-	
-};
-
-using RenderablePtr = Ptr<Renderable>;
-
 
 class VirtualGui;
 
@@ -56,9 +21,9 @@ protected:
 	Parallel::BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
 	#endif
 	#endif
-	Array<RenderablePtr>		rends;
-	Array<ViewablePtr>			views;
-	Array<ModelComponentPtr>	models;
+	Vector<RenderablePtr>		rends;
+	Vector<ViewablePtr>			views;
+	Vector<ModelComponentPtr>	models;
 	Vector<CameraBase*>			cams;
 	
 	double						time = 0;

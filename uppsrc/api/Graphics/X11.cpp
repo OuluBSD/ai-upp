@@ -56,7 +56,7 @@ void X11OglGfx::DeleteContext(NativeGLContext& ctx) {
 	TODO
 }
 
-void X11OglGfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void X11OglGfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	ASSERT(d && w);
 	glXSwapBuffers(d, w);
 }
@@ -67,7 +67,7 @@ void X11SwGfx::DeleteContext(NativeGLContext& ctx) {
 	TODO
 }
 
-void X11SwGfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void X11SwGfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	ASSERT(d && w);
 	XFlush(d);
 }
@@ -88,7 +88,7 @@ void X11SwGfx::UnlockTextureToSurface(NativeTexture& tex) {
 	// pass
 }
 
-/*void X11SwGfx::ClearFramebufferRef(NativeFrameBufferRef& fb) {
+/*void X11SwGfx::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }*/
 

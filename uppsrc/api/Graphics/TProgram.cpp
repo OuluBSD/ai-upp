@@ -343,10 +343,10 @@ void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStatePtr& env, int var, co
 	else if (var >= VAR_COMPAT_CHANNEL0 && var <= VAR_COMPAT_CHANNEL3) {
 		int ch = var - VAR_COMPAT_CHANNEL0;
 		int tex_ch = COMPAT_OFFSET + ch;
-		NativeColorBufferConstRef tex = GetInputTex(ch);
+		NativeColorBufferConstPtr tex = GetInputTex(ch);
 		// may fail in early program: ASSERT(tex);
 		if (tex) {
-			//typename Gfx::NativeColorBufferConstRef clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
+			//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
 			Gfx::ActiveTexture(tex_ch);
 			Gfx::BindTextureRO(GetTexType(ch), tex);
 			Gfx::TexParameteri(GVar::TEXMODE_2D, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
@@ -608,7 +608,7 @@ void ProgramStateT<Gfx>::RefreshProgramStages() {
 }
 
 template <class Gfx>
-TNG NativeColorBufferConstRef ProgramStateT<Gfx>::GetInputTex(int input_i) const {
+TNG NativeColorBufferConstPtr ProgramStateT<Gfx>::GetInputTex(int input_i) const {
 	const char* fn_name = "GetInputTex";
 	//DLOG("BufferT::GetInputTex");
 	if (input_i < 0 || input_i >= GVar::INPUT_COUNT)
@@ -620,7 +620,7 @@ TNG NativeColorBufferConstRef ProgramStateT<Gfx>::GetInputTex(int input_i) const
 		return 0;
 	}
 	
-	NativeColorBufferConstRef tex = in.stage->GetOutputTexture(in.is_loopback);
+	NativeColorBufferConstPtr tex = in.stage->GetOutputTexture(in.is_loopback);
 	ASSERT(tex);
 	
 	return tex;

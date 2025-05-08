@@ -91,12 +91,12 @@ public:
 	typedef GfxAccelAtom<Gfx> GfxAccelAtomT;
 	//RTTI_DECL0(GfxAccelAtomT);
 	
-	void Visit(Vis& vis) {vis % bf;}
+	void Visit(Vis& v) {vis % bf;}
 	
 	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,Upp::default_width,Upp::default_height);}
 	
 	void SetAtom(AtomBase* ab) {this->ab = ab;}
-	void SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferRef fb);
+	void SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferPtr fb);
 	
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool PostInitialize();

@@ -90,12 +90,12 @@ bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, c
 	dev.group_ch[NativeInstrument::SNARE] = ws.GetInt(".ch.snare", -1);
 	dev.group_ch[NativeInstrument::TOMS] = ws.GetInt(".ch.toms", -1);
 	
-	ISourceRef src = a.GetSource();
+	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
 	float freq = 44100.f;
 	for(int i = 1; i < c; i++) {
 		Value& v = src->GetSourceValue(i);
-		Format fmt = v.GetFormat();
+		ValueFormat fmt = v.GetFormat();
 		if (fmt.IsAudio()) {
 			AudioFormat& afmt = fmt;
 			afmt.SetType(BinarySample::FLT_LE);
@@ -132,7 +132,7 @@ void SynCoreDrummer::Instrument_Uninitialize(NativeInstrument& dev, AtomBase& a)
 }
 
 bool SynCoreDrummer::Instrument_Send(NativeInstrument& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
 		int sr = afmt.GetSampleRate();
@@ -212,7 +212,7 @@ bool SynCoreDrummer::Instrument_Send(NativeInstrument& dev, AtomBase& a, Realtim
 }
 
 bool SynCoreDrummer::Instrument_Recv(NativeInstrument& dev, AtomBase& a, int sink_ch, const Packet& in) {
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsMidi()) {
 		const Vector<byte>& data = in->Data();
 		int count = data.GetCount() / sizeof(MidiIO::Event);

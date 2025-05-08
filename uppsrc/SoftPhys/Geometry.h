@@ -19,7 +19,7 @@ struct Geometry : Object {
 	
 	Geometry();
 	
-	void Visit(Vis& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& v) override {VIS_THIS(Object);}
 	void OnBodyMove();
 	
 	vec3 GetPosition() const;

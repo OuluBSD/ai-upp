@@ -162,7 +162,7 @@ void TopWindow::FocusEvent() {
 
 void TopWindow::CreateGeom2DComponent() {
 	using namespace Ecs;
-	using namespace Parallel;
+	
 	
 	#if IS_UPP_CORE
 	Machine& mach = GetActiveMachine();

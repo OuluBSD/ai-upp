@@ -18,7 +18,7 @@ FboAtomT<Gfx>::FboAtomT() {
 
 template <class Gfx>
 bool FboAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
-	ISourceRef src = this->GetSource();
+	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	Value& val = src->GetSourceValue(src_count-1);
 	src_type = val.GetFormat().vd;
@@ -127,14 +127,14 @@ template <class Gfx>
 bool FboAtomT<Gfx>::PostInitialize() {
 	// Remove alpha channel
 	if (src_type == VD(CENTER, VIDEO)) {
-		ISourceRef src = this->GetSource();
+		ISourcePtr src = this->GetSource();
 		int src_count = src->GetSourceCount();
 		int src_ch =
 			link->SideSinks().GetCount() == 1 ?
 				link->SideSinks().First().local_ch_i :
 				src_count-1;
 		Value& val = src->GetSourceValue(src_ch);
-		Format fmt = val.GetFormat();
+		ValueFormat fmt = val.GetFormat();
 		fmt.vid.SetType(LightSampleFD::RGB_U8_LE);
 		if (!link->NegotiateSourceFormat(src_ch, fmt))
 			return false;

@@ -266,7 +266,7 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 	// Adjust sink format
 	const int sink_ch_i = 0;
 	Value& sink_val = a.GetSink()->GetValue(sink_ch_i);
-	Format fmt = ConvertPortaudioFormat(pa_fmt);
+	ValueFormat fmt = ConvertPortaudioFormat(pa_fmt);
 	ASSERT(fmt.IsValid());
 	sink_val.SetFormat(fmt);
 	sink_val.LockFormat();

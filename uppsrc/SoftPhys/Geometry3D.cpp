@@ -119,12 +119,13 @@ bool MeshAABB(const Mesh& mesh, const AABB& aabb) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -140,7 +141,7 @@ bool MeshAABB(const Mesh& mesh, const AABB& aabb) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (AABBAABB(iterator->children[i].bounds, aabb)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -158,12 +159,13 @@ bool Linetest(const Mesh& mesh, const line3& line) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -179,7 +181,7 @@ bool Linetest(const Mesh& mesh, const line3& line) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (Linetest(iterator->children[i].bounds, line)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -197,12 +199,13 @@ bool MeshSphere(const Mesh& mesh, const Sphere& sphere) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -218,7 +221,7 @@ bool MeshSphere(const Mesh& mesh, const Sphere& sphere) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (SphereAABB(sphere, iterator->children[i].bounds)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -236,12 +239,13 @@ bool MeshOBB(const Mesh& mesh, const OBB& obb) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -257,7 +261,7 @@ bool MeshOBB(const Mesh& mesh, const OBB& obb) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (AABBOBB(iterator->children[i].bounds, obb)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -275,12 +279,13 @@ bool MeshPlane(const Mesh& mesh, const Plane& plane) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -296,7 +301,7 @@ bool MeshPlane(const Mesh& mesh, const Plane& plane) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (AABBPlane(iterator->children[i].bounds, plane)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -314,12 +319,13 @@ bool MeshTriangle(const Mesh& mesh, const tri3& triangle) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -335,7 +341,7 @@ bool MeshTriangle(const Mesh& mesh, const tri3& triangle) {
 				for (int i = 8 - 1; i >= 0; --i) {
 					// Only push children whos bounds intersect the test geometry
 					if (TriangleAABB(triangle, iterator->children[i].bounds)) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}
@@ -364,12 +370,13 @@ float MeshRay(const Mesh& mesh, const Ray& ray) {
 		}
 	}
 	else {
-		LinkedList<BVHNode*> toProcess;
-		toProcess.AddFirst(mesh.accelerator);
+		Vector<BVHNode*> toProcess;
+		toProcess.Insert(0,mesh.accelerator);
 
 		// Recursivley walk the BVH tree
 		while (!toProcess.IsEmpty()) {
-			BVHNode* iterator = toProcess.PopFirst();
+			BVHNode* iterator = toProcess[0];
+			toProcess.Remove(0);
 
 			if (iterator->triangle_count >= 0) {
 				// Iterate trough all triangles of the node
@@ -390,7 +397,7 @@ float MeshRay(const Mesh& mesh, const Ray& ray) {
 					RaycastResult raycast;
 					Raycast(iterator->children[i].bounds, ray, &raycast);
 					if (raycast.t >= 0) {
-						toProcess.AddFirst(&iterator->children[i]);
+						toProcess.Insert(0,&iterator->children[i]);
 					}
 				}
 			}

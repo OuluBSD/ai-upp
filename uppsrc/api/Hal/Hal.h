@@ -93,21 +93,21 @@ struct HalHolo {
 
 struct HalAudioSinkDevice : public Atom {
 	//RTTI_DECL1(HalAudioSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalAudioSinkDevice() {}
 };
 
 struct HalCenterVideoSinkDevice : public Atom {
 	//RTTI_DECL1(HalCenterVideoSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalCenterVideoSinkDevice() {}
 };
 
 struct HalCenterFboSinkDevice : public Atom {
 	//RTTI_DECL1(HalCenterFboSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalCenterFboSinkDevice() {}
 };
@@ -115,7 +115,7 @@ struct HalCenterFboSinkDevice : public Atom {
 #if defined flagOGL
 struct HalOglVideoSinkDevice : public Atom {
 	//RTTI_DECL1(HalOglVideoSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalOglVideoSinkDevice() {}
 };
@@ -124,7 +124,7 @@ struct HalOglVideoSinkDevice : public Atom {
 #if defined flagDX12
 struct HalD12VideoSinkDevice : public Atom {
 	//RTTI_DECL1(HalD12VideoSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalD12VideoSinkDevice() {}
 };
@@ -132,14 +132,14 @@ struct HalD12VideoSinkDevice : public Atom {
 
 struct HalContextBase : public Atom {
 	//RTTI_DECL1(HalContextBase, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalContextBase() {}
 };
 
 struct HalEventsBase : public Atom {
 	//RTTI_DECL1(HalEventsBase, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalEventsBase() {}
 };
@@ -147,7 +147,7 @@ struct HalEventsBase : public Atom {
 #if defined flagUPPCORE
 struct HalUppEventsBase : public Atom {
 	//RTTI_DECL1(HalUppEventsBase, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalUppEventsBase() {}
 };
@@ -156,7 +156,7 @@ struct HalUppEventsBase : public Atom {
 #if (defined flagOGL && defined flagUPPCORE)
 struct HalUppOglDevice : public Atom {
 	//RTTI_DECL1(HalUppOglDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalUppOglDevice() {}
 };
@@ -166,7 +166,7 @@ struct HalUppOglDevice : public Atom {
 template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	using CLASSNAME = HalAudioSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::AudioSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalAudioSinkDevice>(this);
 	}
@@ -221,7 +221,7 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice {
 	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalCenterVideoSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalCenterVideoSinkDevice>(this);
 	}
@@ -276,7 +276,7 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalCenterFboSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::CenterFboSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalCenterFboSinkDevice>(this);
 	}
@@ -332,7 +332,7 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalOglVideoSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalOglVideoSinkDevice>(this);
 	}
@@ -389,7 +389,7 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalD12VideoSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalD12VideoSinkDevice>(this);
 	}
@@ -445,7 +445,7 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 template <class Hal> struct HalContextBaseT : HalContextBase {
 	using CLASSNAME = HalContextBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalContextBase)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::ContextBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalContextBase>(this);
 	}
@@ -500,7 +500,7 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 template <class Hal> struct HalEventsBaseT : HalEventsBase {
 	using CLASSNAME = HalEventsBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalEventsBase)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::EventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalEventsBase>(this);
 	}
@@ -556,7 +556,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalUppEventsBase)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::UppEventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<HalUppEventsBase>(this);
 	}
@@ -613,7 +613,7 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalUppOglDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Hal::UppOglDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<HalUppOglDevice>(this);
 	}

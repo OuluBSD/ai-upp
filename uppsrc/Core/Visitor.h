@@ -528,6 +528,14 @@ struct Visitor {
 	}
 	
 	template <class T>
+	Visitor& operator^(T& o) {
+		if (o) {
+			TODO // runtime-visit a vector of vector of pointers
+		}
+		return *this;
+	}
+	
+	template <class T>
 	Visitor& operator|(T& o) {
 		TODO // runtime-visit a single item
 		return *this;
@@ -589,11 +597,13 @@ inline void VersionControlSystem::BeginMapKV(String key, T& o) {
 
 using Vis = Visitor;
 
+#define VIS_THIS(x) v.VisitT<x>(#x, *this)
 #define _VIS_(x) v(#x, x)
 #define VIS_(x) (#x, x)
 #define VIS0(x, y) (#x, x, y)
 #define VISN(x) (#x, x, VISIT_NODE)
 #define VISV(x) (#x, x, VISIT_VECTOR)
+#define VISVV(x) (#x, x, VISIT_VECTOR_VECTOR)
 #define VISM(x) (#x, x, VISIT_MAP)
 
 template <> inline void Visitor::DoHash<Index<int>>(Index<int>& o) {hash.Do(o.GetKeys());}

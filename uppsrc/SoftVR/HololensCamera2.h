@@ -1,5 +1,5 @@
-#ifndef __LocalVR_HOLOLENS_CAMERA2_H__
-#define __LocalVR_HOLOLENS_CAMERA2_H__
+#ifndef _SoftVR_HOLOLENS_CAMERA2_H__
+#define _SoftVR_HOLOLENS_CAMERA2_H__
 
 
 NAMESPACE_HMD_BEGIN

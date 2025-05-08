@@ -8,10 +8,7 @@ class ShootingComponent :
 	public CustomToolComponent {
 	
 public:
-	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this); /*vis & gun;*/}
-	
-	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool LoadModel(ModelComponent&) override;
@@ -34,7 +31,7 @@ class ShootingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;
 	ECS_SYS_CTOR(ShootingInteractionSystemBase);
-	void Visit(Vis& vis) override {vis.VisitT<ToolSys>(this);}
+	void Visit(Vis& v) override {VIS_THIS(ToolSys);}
 	
 	using Parent = Engine;
 	
@@ -42,7 +39,7 @@ public:
 	
 	void Attach(ShootingComponentPtr c);
 	void Detach(ShootingComponentPtr c);
-	PoolPtr GetPool() const {return GetEngine().Get<EntityStore>()->GetRoot()->GetAddPool(POOL_NAME);}
+	PoolPtr GetPool() const;
 	
 protected:
 	// ToolSystemBase

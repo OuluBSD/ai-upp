@@ -171,7 +171,7 @@ bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon
 	int src_ch = a.FindSinkWithValDev(VD(CENTER,VIDEO));
 	if (src_ch < 0)
 		return false;
-    Format fmt = a.GetSink()->GetValue(src_ch).GetFormat();
+    ValueFormat fmt = a.GetSink()->GetValue(src_ch).GetFormat();
     VideoFormat& vfmt = fmt;
     vfmt.SetType(LightSampleFD::RGB_U8_LE);
     a.GetSink()->GetValue(src_ch).SetFormat(fmt);
@@ -223,7 +223,7 @@ void ScrWin::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 bool ScrWin::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, const Packet& in) {
 	auto& ctx = *dev.ctx;
 	
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsVideo()) {
 		const Vector<byte>& pixmap = in->Data();
 	    

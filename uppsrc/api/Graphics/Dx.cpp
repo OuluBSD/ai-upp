@@ -8,11 +8,11 @@ NAMESPACE_UPP
 template<class Gfx> void D11GfxT<Gfx>::BindProgramPipeline(NativePipeline& pipeline) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::UseProgram(NativeProgram& prog) {TODO}
 //template<class Gfx> void D11GfxT<Gfx>::EnterFramebuffer(NativeFrameBuffer& fb) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferRef b) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferRef fb) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::BindFramebuffer(NativeFrameBufferRef fb) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstRef fb) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::BindRenderbuffer(NativeDepthBufferRef rb) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferPtr b) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferPtr fb) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::BindFramebuffer(NativeFrameBufferPtr fb) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstPtr fb) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::BindRenderbuffer(NativeDepthBufferPtr rb) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::UnbindRenderbuffer() {TODO}
 template<class Gfx> void D11GfxT<Gfx>::RenderbufferStorage(Size sz) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::UnbindProgramPipeline() {TODO}
@@ -28,23 +28,23 @@ template<class Gfx> String D11GfxT<Gfx>::GetShaderTemplate(GVar::ShaderType t) {
 template<class Gfx> void D11GfxT<Gfx>::HotfixShaderCode(String& s) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::ActiveTexture(int ch) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::DeactivateTexture() {TODO}
-template<class Gfx> void D11GfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstRef tex) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferRef tex) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstPtr tex) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferPtr tex) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::ReserveTexture(GVar::TextureMode type, FramebufferT<Gfx>& fb) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::SetTexture(GVar::TextureMode type, Size sz, GVar::Sample sample, int ch, const byte* data) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::SetTexture(GVar::TextureMode type, Size3 sz, GVar::Sample sample, int ch, const byte* data) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::UnbindTexture(GVar::TextureMode type) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::GenerateMipmap(GVar::TextureMode type) {TODO}
-template<class Gfx> bool D11GfxT<Gfx>::CreateShader(GVar::ShaderType t, NativeShaderRef& new_shdr) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::ShaderSource(NativeShaderRef s, String code) {TODO}
-template<class Gfx> bool D11GfxT<Gfx>::CompileShader(NativeShaderRef s) {TODO}
-template<class Gfx> String D11GfxT<Gfx>::GetLastErrorS(NativeShaderRef s) {TODO}
+template<class Gfx> bool D11GfxT<Gfx>::CreateShader(GVar::ShaderType t, NativeShaderPtr& new_shdr) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::ShaderSource(NativeShaderPtr s, String code) {TODO}
+template<class Gfx> bool D11GfxT<Gfx>::CompileShader(NativeShaderPtr s) {TODO}
+template<class Gfx> String D11GfxT<Gfx>::GetLastErrorS(NativeShaderPtr s) {TODO}
 template<class Gfx> String D11GfxT<Gfx>::GetLastErrorP(NativeProgram& s) {TODO}
 template<class Gfx> bool D11GfxT<Gfx>::CreateProgram(NativeProgram& prog) {TODO}
-template<class Gfx> bool D11GfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferRef& b) {TODO}
+template<class Gfx> bool D11GfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferPtr& b) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::ProgramParameteri(NativeProgram& prog, GVar::ParamType type, int i) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderRef shdr) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::DeleteShader(NativeShaderRef& shdr) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderPtr shdr) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::DeleteShader(NativeShaderPtr& shdr) {TODO}
 template<class Gfx> bool D11GfxT<Gfx>::LinkProgram(NativeProgram& prog) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::GetProgramiv(NativeProgram& prog, GVar::ProgParamType type, int& out) {TODO}
 template<class Gfx> String D11GfxT<Gfx>::GetActiveUniform(NativeProgram& prog, int i, int* size_out, int* type_out) {TODO}
@@ -58,8 +58,8 @@ template<class Gfx> void D11GfxT<Gfx>::GenProgramPipeline(NativePipeline& pipe) 
 template<class Gfx> void D11GfxT<Gfx>::UseProgramStages(NativePipeline& pipe, uint32 shader_type_bmask, NativeProgram& prog) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::DeleteProgramPipeline(NativePipeline& pipe) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::TexParameteri(GVar::TextureMode type, GVar::Filter filter, GVar::Wrap repeat) {TODO}
-template<class Gfx> bool D11GfxT<Gfx>::GenTexture(NativeColorBufferRef& fb) {TODO}
-template<class Gfx> bool D11GfxT<Gfx>::CreateFramebuffer(NativeFrameBufferRef& fb) {TODO}
+template<class Gfx> bool D11GfxT<Gfx>::GenTexture(NativeColorBufferPtr& fb) {TODO}
+template<class Gfx> bool D11GfxT<Gfx>::CreateFramebuffer(NativeFrameBufferPtr& fb) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::GenVertexArray(NativeVertexArray& vao) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::GenVertexBuffer(NativeVertexBuffer& vbo) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::GenElementBuffer(NativeElementBuffer& ebo) {TODO}
@@ -81,11 +81,11 @@ template<class Gfx> void D11GfxT<Gfx>::DeactivateVertexStructure() {TODO}
 template<class Gfx> void D11GfxT<Gfx>::DrawVertexElements(int element_limit, bool use_quad) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::TexImage2D(ByteImage& tex) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::TexImage2D(FloatImage& tex) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::DeleteTexture(NativeColorBufferRef& b) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferRef& b) {TODO}
-template<class Gfx> void D11GfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferRef& b) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::DeleteTexture(NativeColorBufferPtr& b) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferPtr& b) {TODO}
+template<class Gfx> void D11GfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferPtr& b) {TODO}
 
-template<class Gfx> void D11GfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferRef fb) {
+template<class Gfx> void D11GfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferPtr fb) {
 	// pass
 }
 
@@ -93,7 +93,7 @@ template<class Gfx> void D11GfxT<Gfx>::BeginRender() {TODO}
 template<class Gfx> void D11GfxT<Gfx>::EndRender() {TODO}
 template<class Gfx> void D11GfxT<Gfx>::BeginRenderObject() {TODO}
 template<class Gfx> void D11GfxT<Gfx>::EndRenderObject() {TODO}
-//template<class Gfx> NativeColorBufferConstRef GetFrameBufferColor(NativeFrameBufferConstRef fb, TexType t) {TODO}
+//template<class Gfx> NativeColorBufferConstPtr GetFrameBufferColor(NativeFrameBufferConstPtr fb, TexType t) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::Uniform1i(int idx, int i) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::Uniform2i(int idx, int i0, int i1) {TODO}
 template<class Gfx> void D11GfxT<Gfx>::Uniform3i(int idx, int i0, int i1, int i2) {TODO}
@@ -122,15 +122,15 @@ template<class Gfx> void D11GfxT<Gfx>::SetDebugOutput(bool b) {
 	// unfortunately not supported
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferRef& fb) {
+template<class Gfx> void D11GfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
 	fb.Reset();
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearColorBufferRef(NativeColorBufferRef& b) {
+template<class Gfx> void D11GfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
 	b.Reset();
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferRef& b) {
+template<class Gfx> void D11GfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
 	b.Reset();
 }
 
@@ -141,7 +141,7 @@ template struct D11GfxT<WinD11Gfx>;
 #endif
 
 
-void WinD11Gfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void WinD11Gfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	
 	TODO
 	

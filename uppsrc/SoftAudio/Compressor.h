@@ -37,7 +37,7 @@ public:
 	void Clear() override;
 	float Tick( float input, int channel ) override;
 	float Tick2( float input1, float input2, int channel ) override;
-	void LoadState(const ArrayMap<String, Object>& state) override;
+	void LoadState(const ArrayMap<String, Value>& state) override;
 	
 protected:
     CompressorParameter param;

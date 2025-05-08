@@ -558,7 +558,7 @@ void AudioFrameQueueT<Backend>::FillAudioBuffer(double time_pos, AVFrame* frame)
 
 
 template <class Backend>
-void VideoFrameQueueT<Backend>::Init(AVCodecContextRef& ctx) {
+void VideoFrameQueueT<Backend>::Init(AVCodecContextPtr& ctx) {
 	Clear();
 	
 	Format& fmt = this->fmt;

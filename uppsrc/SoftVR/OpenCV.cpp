@@ -1,4 +1,4 @@
-#include "LocalVR.h"
+#include "SoftVR.h"
 
 #ifdef flagOPENCV
 

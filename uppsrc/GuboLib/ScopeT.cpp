@@ -686,7 +686,7 @@ bool ScopeT<Dim>::Load(Parallel::GfxDataState& state) {
 
 template <>
 bool ScopeT<Ctx3D>::Load(Parallel::GfxDataState& state) {
-	using namespace Parallel;
+	
 	auto& pp = pd.GetPainter();
 	
 	Render();

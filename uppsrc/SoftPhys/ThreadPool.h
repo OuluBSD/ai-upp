@@ -15,7 +15,7 @@ struct ThreadPool : Object {
 	ThreadPool() {}
 	
 	void ClearThreading() {TODO}
-	void Visit(Vis& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& v) override {VIS_THIS(Object);}
 };
 
 

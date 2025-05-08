@@ -11,8 +11,8 @@ class MediaAtomBaseT :
 {
 	using FileInput = typename Backend::FileInput;
 	using MediaStreamThread = typename Backend::MediaStreamThread;
-	using VideoInputFrameRef = typename Backend::VideoInputFrameRef;
-	using AudioInputFrameRef = typename Backend::AudioInputFrameRef;
+	using VideoInputFramePtr = typename Backend::VideoInputFrameRef;
+	using AudioInputFramePtr = typename Backend::AudioInputFrameRef;
 	
 	typedef enum {
 		INVALID_MODE,
@@ -53,7 +53,7 @@ public:
 	bool PostInitialize() override;
 	void Update(double dt) override;
 	
-	void Visit(Vis& vis) override {vis % file_in; vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {vis % file_in; VIS_THIS(Atom);}
 	bool LoadFileAny(String path);
 	void OnError();
 	void OnStop();

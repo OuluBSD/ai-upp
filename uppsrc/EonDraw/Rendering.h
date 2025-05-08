@@ -2,6 +2,8 @@
 #define _EonDraw_Rendering_h_
 
 
+struct GfxStateDraw;
+
 struct RendererBase :
 	public BinderIfaceVideo
 {
@@ -21,7 +23,7 @@ struct RendererBase :
 	
 	RendererBase();
 	void operator=(const RendererBase& t) {Panic("Can't copy RendererBase");}
-	void Visit(Vis& vis) override {vis % ("loader",loader,NODE_VISIT);}
+	void Visit(Vis& v) override {v VISN(loader);}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;

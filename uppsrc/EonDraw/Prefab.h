@@ -30,7 +30,7 @@ struct StaticSkybox : EntityPrefab<Transform, Renderable, ModelComponent>
         
         Model* m = b.Detach();
         m->ReverseFaces();
-        components.Get<Ref<ModelComponent>>()->Attach(m);
+        components.Get<Ptr<ModelComponent>>()->Attach(m);
         
         return components;
     }

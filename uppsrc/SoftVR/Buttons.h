@@ -1,5 +1,5 @@
-#ifndef __LocalVR_BUTTON_H__
-#define __LocalVR_BUTTON_H__
+#ifndef _SoftVR_BUTTON_H__
+#define _SoftVR_BUTTON_H__
 
 
 NAMESPACE_HMD_BEGIN

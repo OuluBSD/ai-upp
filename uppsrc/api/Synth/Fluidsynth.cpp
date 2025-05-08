@@ -85,10 +85,10 @@ bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, co
 	SynFluidsynth_InitializeSoundfont(dev, patch);
 	
 	
-	ISourceRef src = a.GetSource();
+	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
 	Value& v = src->GetSourceValue(c-1);
-	Format fmt = v.GetFormat();
+	ValueFormat fmt = v.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
 		//dev.sample_rate = afmt.GetSampleRate();
@@ -129,7 +129,7 @@ void SynFluidsynth::Instrument_Uninitialize(NativeInstrument& dev, AtomBase& a) 
 }
 
 bool SynFluidsynth::Instrument_Send(NativeInstrument& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsAudio()) {
 		#if DETECT_DELAY
 		if (!dev.detection_ready && !dev.silence) {
@@ -175,7 +175,7 @@ bool SynFluidsynth::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, Packe
 }
 
 bool SynFluidsynth::Instrument_Recv(NativeInstrument& dev, AtomBase& a, int sink_i, const Packet& in) {
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsMidi()) {
 		#if HAVE_PACKETTIMINGCHECK
 		in->CheckTiming();

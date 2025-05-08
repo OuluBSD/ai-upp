@@ -1,5 +1,5 @@
-#ifndef __LocalVR_HOLOLENS_IMU_H__
-#define __LocalVR_HOLOLENS_IMU_H__
+#ifndef _SoftVR_HOLOLENS_IMU_H__
+#define _SoftVR_HOLOLENS_IMU_H__
 
 
 NAMESPACE_HMD_BEGIN

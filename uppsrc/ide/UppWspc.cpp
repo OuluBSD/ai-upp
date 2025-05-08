@@ -1,4 +1,5 @@
 #include "ide.h"
+
 #ifdef flagAI
 #include <AICore/AICore.h>
 #include <ide/Meta/Meta.h>
@@ -36,7 +37,7 @@ void WorkspaceWork::SetErrorFiles(const Vector<String>& files)
 	SyncErrorPackages();
 }
 
-String WorkspaceWork::PackagePathA(const String& pn) {
+String WorkspaceWork::PackageFileA(const String& pn) {
 	if(pn == prjaux) {
 		String nm;
 		String cfg = ConfigFile("cfg");
@@ -58,9 +59,14 @@ String WorkspaceWork::PackagePathA(const String& pn) {
 		       ));
 	if(pn == METAPACKAGE)
 		return Null;
-	return PackagePath(pn);
+	return PackageFile(pn);
 }
 
+String WorkspaceWork::PackageDirA(const String& pn) {
+	if(findarg(pn, prjaux, ideaux, tempaux, METAPACKAGE) >= 0)
+		return Null;
+	return PackageDirectory(pn);
+}
 
 void WorkspaceWork::SyncErrorPackages()
 {
@@ -68,7 +74,7 @@ void WorkspaceWork::SyncErrorPackages()
 		FileList::File f = package.Get(i);
 		if(!IsAux(f.name)) {
 			FileList::File ff = f;
-			String path = GetFileFolder(PackagePath(f.name));
+			String path = PackageDirectory(f.name);
 		#ifdef PLATFORM_WIN32
 			path = ToLower(path);
 		#endif
@@ -92,7 +98,7 @@ struct PackageOrder {
 	int GetMatchLen(const String& x) const {
 		if(*x == '<')
 			return 0;
-		String h = PackagePath(x);
+		String h = PackageDirectory(x);
 		for(int i = 0; i < mainpath.GetCount(); i++)
 			if(mainpath[i] != h[i])
 				return i;
@@ -119,7 +125,7 @@ void WorkspaceWork::ScanWorkspace() {
 		pks.Add(wspc.package.GetKey(i));
 	if(sort && wspc.GetCount()) {
 		PackageOrder po;
-		po.mainpath = PackagePath(pks[0]);
+		po.mainpath = PackageDirectory(pks[0]);
 		Sort(SubRange(pks, 1, pks.GetCount() - 1), po);
 	}
 	for(int i = 0; i < wspc.package.GetCount(); i++) {
@@ -156,7 +162,7 @@ void WorkspaceWork::SavePackage()
 	if(IsNull(actualpackage) || actualpackage == METAPACKAGE)
 		return;
 	InvalidatePackageInfo(actualpackage);
-	String pp = PackagePathA(actualpackage);
+	String pp = PackageFileA(actualpackage);
 	if(organizer && backup.Find(pp) < 0) {
 		Backup& b = backup.Add(pp);
 		FindFile ff(pp);
@@ -167,7 +173,7 @@ void WorkspaceWork::SavePackage()
 		else
 			b.data = String::GetVoid();
 	}
-	if(FileExists(pp) || actual.GetCount())
+	if(FileExists(pp) || IsExternalMode() || actual.GetCount())
 		actual.Save(pp);
 }
 
@@ -321,10 +327,8 @@ void WorkspaceWork::Fetch(Package& p, const String& pkg)
 			}
 		}
 	}
-	else {
-		String pp = PackagePathA(pkg);
-		p.Load(pp);
-	}
+	else
+		p.Load(PackageFileA(pkg));
 }
 
 void WorkspaceWork::PackageCursor()
@@ -339,6 +343,7 @@ void WorkspaceWork::PackageCursor()
 	if(actualpackage != METAPACKAGE)
 		filelist.WhenBar = THISBACK(FileMenu);
 	repo_dirs = RepoDirs(true).GetCount();
+
 }
 
 Vector<String> WorkspaceWork::RepoDirs(bool actual)
@@ -349,7 +354,7 @@ Vector<String> WorkspaceWork::RepoDirs(bool actual)
 	Index<String> id;
 	const Workspace& w = GetIdeWorkspace();
 	for(int i = 0; i < w.GetCount(); i++) {
-		String pp = PackagePath(w[i]);
+		String pp = PackageDirectory(w[i]);
 		for(String s : u)
 			if(pp.StartsWith(s))
 				id.FindAdd(s);
@@ -358,7 +363,7 @@ Vector<String> WorkspaceWork::RepoDirs(bool actual)
 	Vector<String> d = id.PickKeys();
 	
 	if (actual && !IsAux())
-		d.Insert(0, GetFileFolder(PackagePath(actualpackage)));
+		d.Insert(0, PackageDirectory(actualpackage));
 	Vector<String> r;
 	for(int i = 0; i < d.GetCount(); i++)
 		if(GetRepoKind(d[i]))
@@ -418,7 +423,7 @@ void WorkspaceWork::AddFile(ADDFILE af)
 	RealizeDirectory(GetLocalDir());
 	switch(af)
 	{
-	case PACKAGE_FILE: fs = &BasedSourceFs(); fs->BaseDir(GetFileFolder(PackagePathA(active))); break;
+	case PACKAGE_FILE: fs = &BasedSourceFs(); fs->BaseDir(PackageDirA(active)); break;
 	case ANY_FILE:     fs = &AnySourceFs(); break;
 	case OUTPUT_FILE:  fs->ActiveDir(GetOutputDir()); break;
 	case CONFIG_FILE:  fs->ActiveDir(GetConfigDir()); break;
@@ -498,6 +503,45 @@ ImportDlg::ImportDlg()
 bool FileOrder_(const String& a, const String& b)
 {
 	return stricmp(a, b) < 0;
+}
+
+void SyncPackage(const String& active, Package& actual)
+{
+	Vector<String> file;
+	for(FindFile ff(PackageDirectory(active) + "/*.*"); ff; ff.Next())
+		if(ff.IsFile()) {
+			String n = ff.GetName();
+			if(IsSourceFile(n) || IsHeaderFile(n))
+				file.Add(n);
+		}
+
+	Sort(file, [=](const String& a, const String& b) {
+		int q = CompareNoCase(GetFileTitle(a), GetFileTitle(b));
+		if(q) return q < 0;
+		return GetFileExt(b) < GetFileExt(a); // put .h first
+	});
+	
+	Index<String> ifile(pick(file));
+
+	Index<String> pf;
+	actual.file.RemoveIf([&](int i) { return ifile.Find(actual.file[i]) < 0; });
+	for(String s : actual.file)
+		pf.FindAdd(s);
+	
+	for(String s : ifile)
+		if(pf.Find(s) < 0)
+			actual.file.Add(s);
+}
+
+void SyncEmptyPackage(const String& p)
+{
+	Package pkg;
+	String path = PackageFile(p);
+	pkg.Load(path);
+	if(pkg.file.GetCount() == 0) {
+		SyncPackage(p, pkg);
+		pkg.Save(path);
+	}
 }
 
 void WorkspaceWork::DoImportTree(const String& dir, const String& mask, bool sep, Progress& pi, int from)
@@ -885,12 +929,14 @@ void WorkspaceWork::InsertSpecialMenu(Bar& menu)
 		.Help("Open file selector in Local directory for current package");
 	menu.Add("Insert home directory file(s)..", THISBACK1(AddFile, HOME_FILE))
 		.Help("Open file selector in current user's HOME directory");
-}
-
-void WorkspaceWork::SpecialFileMenu(Bar& menu)
-{
-	InsertSpecialMenu(menu);
-	menu.Add("Import directory tree sources..", THISBACK(Import));
+	menu.Add("Remove all files", [=] {
+		if(PromptYesNo("Remove all files?")) {
+			actual.file.Clear();
+			noemptyload = true;
+			SaveLoadPackage();
+			noemptyload = false;
+		}
+	});
 }
 
 void WorkspaceWork::OpenFileFolder()
@@ -900,7 +946,7 @@ void WorkspaceWork::OpenFileFolder()
 
 void WorkspaceWork::OpenPackageFolder()
 {
-	ShellOpenFolder(GetFileDirectory(GetActivePackagePath()));
+	ShellOpenFolder(GetActivePackageDir());
 }
 
 void WorkspaceWork::FileMenu(Bar& menu)
@@ -919,8 +965,11 @@ void WorkspaceWork::FileMenu(Bar& menu)
 	menu.Add("Insert separator..", IdeImg::SeparatorOpen(), [=] { AddSeparator(); })
 		.Help("Add text separator line");
 	if(!isaux) {
-		menu.Add("Insert special", THISBACK(SpecialFileMenu))
-		    .Help("Less frequently used methods of adding files to the package");
+		menu.Sub("Miscellaneous", [=](Bar& menu) {
+			menu.Add("Sync package with files in package directory..", [=] { ::SyncPackage(GetActivePackage(), actual); SaveLoadPackage(); });
+			InsertSpecialMenu(menu);
+			menu.Add("Import directory tree sources..", [=] { Import(); });
+		});
 	}
 	menu.Separator();
 	if(!organizer) {
@@ -999,9 +1048,32 @@ void WorkspaceWork::ToggleIncludeable()
 void WorkspaceWork::AddNormalUses()
 {
 	String p = SelectPackage("Select package");
-	if(p.IsEmpty()) return;
-	OptItem& m = actual.uses.Add();
-	m.text = p;
+
+	if(p.IsEmpty())
+		return;
+
+	if(IsExternalMode()) // in external mode, if package is empty (new), add all files in the folder
+		SyncEmptyPackage(p);
+
+	actual.uses.Add().text = p;
+	SaveLoadPackage();
+	InvalidateIncludes();
+}
+
+void WorkspaceWork::AddFolderUses()
+{
+	String p = GetActivePackage();
+	if(IsNull(p))
+		return;
+	for(FindFile ff(PackageDirectory(p) + "/*"); ff; ff.Next())
+		if(ff.IsFolder() && IsDirectoryExternalPackage(ff.GetPath())) {
+			String pp = p + '/' + ff.GetName();
+			if(FindMatch(actual.uses, [&](const OptItem& m) { return m.text == pp; }) < 0) {
+				if(IsExternalMode()) // in external mode, if package is empty (new), add all files in the folder
+					SyncEmptyPackage(pp);
+				actual.uses.Add().text = pp;
+			}
+		}
 	SaveLoadPackage();
 	InvalidateIncludes();
 }
@@ -1016,7 +1088,7 @@ void WorkspaceWork::RemovePackageMenu(Bar& bar)
 	for(int i = 0; i < package.GetCount(); i++) {
 		String pn = UnixPath(package[i].name);
 		Package prj;
-		String pp = PackagePath(pn);
+		String pp = PackageFile(pn);
 		prj.Load(pp);
 		for(int i = 0; i < prj.uses.GetCount(); i++)
 			if(UnixPath(prj.uses[i].text) == active) {
@@ -1040,7 +1112,7 @@ void WorkspaceWork::PackageOp(String active, String from_package, String rename)
 	for(int i = 0; i < package.GetCount(); i++)
 		if(*package[i].name != '<' &&
 		   (IsNull(from_package) || UnixPath(package[i].name) == from_package)) {
-			String pp = PackagePath(package[i].name);
+			String pp = PackageFile(package[i].name);
 			Package prj;
 			if(prj.Load(pp)) {
 				for(int i = prj.uses.GetCount(); --i >= 0;)
@@ -1089,7 +1161,7 @@ again:
 		return;
 	String pn = ~dlg.name;
 	String ap = GetActivePackage();
-	if(!RenamePackageFs(PackagePath(ap), pn))
+	if(!RenamePackageFs(ap, pn))
 		goto again;
 	PackageOp(ap, Null, pn);
 }
@@ -1108,7 +1180,7 @@ void WorkspaceWork::DeletePackage()
 		return;
 	if(!PromptYesNo("This operation is irreversible.&Do you really want to proceed?"))
 		return;
-	if(!DeleteFolderDeep(GetFileFolder(GetActivePackagePath()))) {
+	if(!DeleteFolderDeep(GetActivePackageDir())) {
 		Exclamation("Deleting directory has failed.");
 		return;
 	}
@@ -1121,16 +1193,19 @@ void WorkspaceWork::PackageMenu(Bar& menu)
 		bool cando = !IsAux() && package.IsCursor();
 		String act = UnixPath(GetActivePackage());
 		menu.Add(cando, ~Format("Add package to '%s'", act), IdeImg::package_add(), THISBACK(AddNormalUses));
+		if(IsExternalMode())
+			menu.Add(cando, ~Format("Add subfolder packages to '%s'", act), THISBACK(AddFolderUses));
 		RemovePackageMenu(menu);
 		if(menu.IsMenuBar()) {
 			bool main = package.GetCursor() == 0;
-			
-			menu.Add(cando, "Rename package..", THISBACK(RenamePackage));
-			menu.Add(cando && !main, "Delete package", THISBACK(DeletePackage));
-			menu.Separator();
-			BuildPackageMenu(menu);
+			if(!IsExternalMode()) {
+				menu.Add(cando, "Rename package..", THISBACK(RenamePackage));
+				menu.Add(cando && !main, "Delete package", THISBACK(DeletePackage));
+				menu.Separator();
+				BuildPackageMenu(menu);
+			}
 			menu.Add("Open Package Directory",THISBACK(OpenPackageFolder));
-			menu.Add("Terminal at Package Directory", [=] { LaunchTerminal(GetFileDirectory(GetActivePackagePath())); });
+			menu.Add("Terminal at Package Directory", [=] { LaunchTerminal(GetActivePackageDir()); });
 		}
 	}
 }

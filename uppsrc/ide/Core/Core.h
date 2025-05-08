@@ -48,16 +48,16 @@ class PPInfo {
 
 	struct PPFile : Moveable<PPFile> {
 		int                           scan_serial = 0;
-		Vector<Tuple<String, int>>    flags; // "#if... flagXXXX"
+		VectorMap<String, String>     flags; // "#if... flagXXXX", key - flagXXX, value - comment
 		VectorMap<String, String>     all_defines; // #define ..., 1 - speculative
 		VectorMap<String, String>     defines[2]; // #define ..., 1 - speculative
 		Index<String>                 includes[2]; // 1 - speculative includes (in #if conditionals)
 		Index<String>                 define_includes[2]; // #define LAYOUTFILE
-		bool                          guarded; // has include guards
-		int                           blitz; // AUTO, APPROVED, PROHIBITED
+		bool                          guarded = false; // has include guards
+		int                           blitz = 0; // AUTO, APPROVED, PROHIBITED
 		Time                          time = Null; // file time
 		
-		bool                          dirty = true; // need to be rechecked
+		bool                          dirty = true; // need to be rechecked for change (filetime)
 		
 		void Dirty()                          { dirty = true; time = Null; }
 		void Parse(Stream& in);
@@ -73,8 +73,11 @@ class PPInfo {
 	
 	ArrayMap<String, PPFile>                   files;
 	Vector<String>                             includes; // include dirs
+	int                                        includes_base_count; // for trimming out additional includes
 	VectorMap<String, String>                  inc_cache; // cache for FindIncludeFile
 	VectorMap<String, Dir>                     dir_cache; // cache for GetFileTime, FileExists, DirExists
+	String                                     current_dir; // CurrentDirectory for NormalizePath
+	VectorMap<String, String>                  normalize_path_cache; // cache for NormalizePath
 	static std::atomic<int>                    scan_serial;
 	VectorMap<String, Index<String> >          depends; // externally forced dependecies
 
@@ -86,9 +89,14 @@ public:
 	Event<const String&, const String&> WhenBlitzBlock;
 	Time                  GetFileTime(const String& path);
 	bool                  FileExists(const String& path)                        { return !IsNull(GetFileTime(path)); }
+	String                NormalizePath(const String& path, const String& curr_dir);
+	String                NormalizePath(const String& path)                     { return NormalizePath(path, current_dir); }
 
 	void                  SetIncludes(Vector<String>&& includes);
 	void                  SetIncludes(const String& includes);
+	
+	void                  BaseIncludes();
+	void                  AddInclude(const String& include);
 
 	String                FindIncludeFile(const char *s, const String& filedir, const Vector<String>& incdirs);
 	String                FindIncludeFile(const char *s, const String& filedir);
@@ -100,28 +108,26 @@ public:
 
 	Time                  GatherDependencies(const String& path, VectorMap<String, Time>& result,
 	                                         ArrayMap<String, Index<String>>& define_includes,
-	                                         Vector<Tuple<String, String, int>>& flags, bool speculative,
-	                                         const String& include, Vector<String>& chain, bool& found);
+	                                         bool speculative, const String& include, Vector<String>& chain, bool& found);
 	Time                  GatherDependencies(const String& path, VectorMap<String, Time>& result,
-	                                         ArrayMap<String, Index<String>>& define_includes,
-	                                         Vector<Tuple<String, String, int>>& flags, bool speculative = true);
-	void                  GatherDependencies(const String& path, VectorMap<String, Time>& result,
 	                                         ArrayMap<String, Index<String>>& define_includes,
 	                                         bool speculative = true);
 
-	Time                  GetTime(const String& path, const String& additional_include_path);
+	Time                  GetTime(const String& path, VectorMap<String, Time> *ret_result = nullptr);
 	
 	const VectorMap<String, String>& GetFileDefines(const String& path) { return File(NormalizePath(path)).all_defines; }
-	const Vector<Tuple<String, int>>& GetFileFlags(const String& path)  { return File(NormalizePath(path)).flags; }
+	const VectorMap<String, String>& GetFileFlags(const String& path)   { return File(NormalizePath(path)).flags; }
 
 	void                  Dirty();
 };
 
-void                  HdependSetDirs(Vector<String>&& id);
+void                  HdependSetIncludes(Vector<String>&& id);
+void                  HdependBaseIncludes();
+void                  HdependAddInclude(const String& inc);
 void                  HdependTimeDirty();
 void                  HdependClearDependencies();
 void                  HdependAddDependency(const String& file, const String& depends);
-Time                  HdependGetFileTime(const String& path, const String& additional_include_path);
+Time                  HdependGetFileTime(const String& path, VectorMap<String, Time> *ret_result = nullptr);
 Vector<String>        HdependGetDependencies(const String& file, bool bydefine_too = true);
 bool                  HdependBlitzApproved(const String& path);
 const Vector<String>& HdependGetDefines(const String& path);
@@ -279,7 +285,7 @@ class Nest {
 	VectorMap<String, String> var;
 	VectorMap<String, String> package_cache;
 
-	String PackagePath0(const String& name);
+	String PackageDirectory0(const String& name);
 
 public:
 	bool   Save(const char *path);
@@ -288,14 +294,31 @@ public:
 	void   Set(const String& id, const String& val);
 
 	void   InvalidatePackageCache();
-	String PackagePath(const String& name);
+	String PackageDirectory(const String& name);
 };
 
 Nest& MainNest();
 
 String GetUppOut();
+String GetVarsIncludes();
 
 String DefaultHubFilePath();
+
+
+String GetCurrentBuildMethod();
+String GetCurrentMainPackage();
+
+String GetAnyFileName(const char *path);
+String CatAnyPath(String path, const char *more);
+
+bool   IsFullDirectory(const String& d);
+bool   IsFolder(const String& path);
+
+bool   IsCSourceFile(const char *path);
+bool   IsCHeaderFile(const char *path);
+
+String GetLocalDir();
+String LocalPath(const String& filename);
 
 void   SetHubDir(const String& path);
 void   OverrideHubDir(const String& path);
@@ -317,36 +340,22 @@ Vector<String> GetUppDirs();
 Vector<String> GetAiDirsRaw();
 bool   IsHubDir(const String& path);
 String GetUppDir();
+
 void   SetVar(const String& var, const String& val, bool save = true);
 void   SetMainNest(const String& n);
 String GetAssemblyId();
-
-String GetCurrentBuildMethod();
-String GetCurrentMainPackage();
-
-String GetAnyFileName(const char *path);
-String GetAnyFileTitle(const char *path);
-String CatAnyPath(String path, const char *more);
-
 void   InvalidatePackageCache();
-String PackagePath(const String& name);
+
+bool   IsExternalMode();
+
+bool   IsDirectoryExternalPackage(const String& dir);
+bool   IsDirectoryPackage(const String& path);
+String PackageFile(const String& name);
 String SourcePath(const String& package, const String& name);
-inline
-String PackageDirectory(const String& name) { return GetFileDirectory(PackagePath(name)); }
+String PackageDirectory(const String& name);
 bool   IsNestReadOnly(const String& path);
 
 String GetPackagePathNest(const String& path);
-
-String GetLocalDir();
-String LocalPath(const String& filename);
-
-bool   IsFullDirectory(const String& d);
-bool   IsFolder(const String& path);
-
-bool   IsCSourceFile(const char *path);
-bool   IsCHeaderFile(const char *path);
-
-String FollowCygwinSymlink(const String& filename);
 
 void   SplitPathMap(const char *path_map, Vector<String>& local, Vector<String>& remote);
 String JoinPathMap(const Vector<String>& local, const Vector<String>& remote);
@@ -537,6 +546,8 @@ struct Builder {
 	String           c_options;
 	String           debug_options;
 	String           release_options;
+	String           debug_cuda;
+	String           release_cuda;
 	String           common_link;
 	String           debug_link;
 	String           release_link;
@@ -556,6 +567,7 @@ struct Builder {
 	Vector<String>   Macro;
 
 	VectorMap<String, int> tmpfilei; // for naming automatic response files
+	VectorMap<String, Time> dependencies; // dependencies of the last HdependFileTime call
 	
 	static VectorMap<String, String> cmdx_cache; // caching e.g. pkg-config
 
@@ -580,6 +592,7 @@ struct Builder {
 		const Index<String>& common_config, bool exporting, bool last_ws) {}
 	virtual String GetTargetExt() const = 0;
 	virtual void SaveBuildInfo(const String& package) {}
+	virtual String GetBuildInfoPath() const { return String(); }
 	virtual String CompilerName() const { return Null; }
 
 	Builder()          { doall = false; main_conf = false; }

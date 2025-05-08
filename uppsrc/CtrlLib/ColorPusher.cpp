@@ -2,8 +2,6 @@
 
 namespace Upp {
 
-ColorPusher::~ColorPusher() {}
-
 void ColorPusher::Paint(Draw& w)
 {
 	Size sz = GetSize();
@@ -119,8 +117,6 @@ ColorPusher::ColorPusher()
 	SetFrame(EditFieldFrame());
 }
 
-ColorButton::~ColorButton() {}
-
 Size ColorButton::GetMinSize() const
 {
 	return DPI(Size(24, 24));
@@ -142,11 +138,15 @@ void ColorButton::Paint(Draw& w)
 		if(HasMouse())
 			DrawFrame(w, sz, SColorLight, SColorShadow);
 	}
-	if(IsNull(color))
-		w.DrawImage(center.x + push, center.y + push, nullimage);
+	if(IsEnabled()) {
+		if(IsNull(color))
+			w.DrawImage(center.x + push, center.y + push, nullimage);
+		else
+			w.DrawImage(center.x + push, center.y + push, image, colors.IsDarkContent() ? DarkTheme(color) : color);
+		w.DrawImage(center.x + push, center.y + push, staticimage);
+	}
 	else
-		w.DrawImage(center.x + push, center.y + push, image, colors.IsDarkContent() ? DarkTheme(color) : color);
-	w.DrawImage(center.x + push, center.y + push, staticimage);
+		w.DrawImage(center.x + push, center.y + push, staticimage, SColorDisabled());
 }
 
 void  ColorButton::MouseEnter(Point p, dword keyflags)

@@ -74,6 +74,7 @@ struct EscDraw : public EscHandle {
 	void DrawLine(EscEscape& e);
 	void DrawText(EscEscape& e);
 	void DrawSmartText(EscEscape& e);
+	void DrawLabel(EscEscape& e);
 	void DrawQtf(EscEscape& e);
 	void GetTextSize(EscEscape& e);
 	void DrawImage(EscEscape& e);
@@ -281,6 +282,7 @@ public:
 	void   RightDown(Point p, dword keyflags) override;
 	void   Layout() override;
 	bool   HotKey(dword key) override;
+	void   Skin() override;
 
 private:
 	bool   DoKey(dword key, int count);
@@ -473,6 +475,7 @@ private:
 	
 	void        GotoUsing();
 
+	void        InvalidateItems();
 	void        SyncUsc();
 	void        Save();
 	void        CloseDesigner();

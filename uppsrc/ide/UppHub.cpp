@@ -23,11 +23,15 @@ Color StatusPaper(const String& status)
 	static SColor stable([] { return s_Make(SLtGreen()); });
 	static SColor rolling([] { return s_Make(SLtCyan()); });
 
-	return decode(status, "broken", broken,
-	                      "experimental", experimental,
-	                      "stable", stable,
-	                      "rolling", rolling,
-	                      SColorPaper());
+	if(status == "broken")
+		return broken;
+	if(status == "experimental")
+		return experimental;
+	if(status == "stable")
+		return stable;
+	if(status == "rolling")
+		return rolling;
+	return SColorPaper();
 }
 
 void VerifyUppHubRequirements()
@@ -618,6 +622,9 @@ String UppHub()
 
 void UppHubAuto(const String& main)
 {
+	if(IsExternalMode())
+		return;
+
 	bool noprompt = false;
 	Index<String> pmissing;
 	for(;;) {
@@ -626,7 +633,7 @@ void UppHubAuto(const String& main)
 		Index<String> missing;
 		for(int i = 0; i < wspc.GetCount(); i++) {
 			String p = wspc[i];
-			if(!FileExists(PackagePath(p)))
+			if(!FileExists(PackageFile(p)))
 				missing.FindAdd(p);
 		}
 

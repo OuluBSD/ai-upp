@@ -15,7 +15,7 @@
 	
 void Coco_PaintCh(void *cgcontext, int type, int value, int state)
 {
-	void (^dopaint)(void) = ^{
+	auto dopaint = [&] {
 		auto cg = (CGContextRef) cgcontext;
 		if(Upp::IsUHDMode())
 			CGContextScaleCTM(cg, 2, 2);
@@ -57,6 +57,7 @@ void Coco_PaintCh(void *cgcontext, int type, int value, int state)
 			    scroller.floatValue = 0;
 			    scroller.knobProportion = 1;
 				scroller.knobStyle = NSScrollerKnobStyleDefault;
+//				scroller.knobStyle = Upp::IsDarkTheme() ? NSScrollerKnobStyleDark : NSScrollerKnobStyleLight;
 				scroller.scrollerStyle = NSScrollerStyleLegacy;
 				scroller.frame = cr;
 				if(type == COCO_SCROLLTHUMB)
@@ -94,8 +95,11 @@ void Coco_PaintCh(void *cgcontext, int type, int value, int state)
 		    CGContextRestoreGState(cg);
 		}
 	};
-	
-	[NSApp.effectiveAppearance performAsCurrentDrawingAppearance:dopaint];
+	if (@available(macOS 11.0, *)) {
+		[NSApp.effectiveAppearance performAsCurrentDrawingAppearance:^{ dopaint(); }];
+	} else {
+		dopaint();
+	}
 }
 
 #endif

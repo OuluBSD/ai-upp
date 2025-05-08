@@ -6,7 +6,18 @@ namespace Upp {
 
 Color SColorEvenRow()
 {
-	static SColor s([] { return Blend(SColorMark, SColorPaper, 220); });
+	static SColor s([] {
+		Color c;
+		Color hl = SColorHighlight();
+		for(Color c : { Blend(SColorMark, SColorPaper, 220),
+			            AdjustIfDark(Color(220, 255, 220)),
+			            AdjustIfDark(Color(220, 220, 255)),
+						AdjustIfDark(GrayColor(240))
+		}) // Make sure there is enough contrast between cursor and even lines
+			if(Difference(c, hl) > 80)
+				return c;
+		return SColorPaper();
+	});
 	return s;
 }
 
@@ -185,6 +196,12 @@ ArrayCtrl::Column& ArrayCtrl::Column::InsertValue(const Value& v) {
 
 ArrayCtrl::Column& ArrayCtrl::Column::InsertValue(ValueGen& g) {
 	arrayctrl->IndexInfo(arrayctrl->Pos(pos[0])).InsertValue(g);
+	return *this;
+}
+
+ArrayCtrl::Column& ArrayCtrl::Column::Inserts(Function<Value ()> gen)
+{
+	arrayctrl->IndexInfo(arrayctrl->Pos(pos[0])).Inserts(gen);
 	return *this;
 }
 
@@ -2182,6 +2199,21 @@ void ArrayCtrl::Add(__List##I(E__Value)) { \
 __Expand(E__AddF)
 
 void  ArrayCtrl::Insert(int i, int count) {
+	Vector<Vector<Value>> inserts;
+	bool hasins = false;
+	for(int ii = 0; ii < idx.GetCount(); ii++)
+		if(idx[ii].HasInsertValue()) {
+			hasins = true;
+			break;
+		}
+	if(hasins) {
+		inserts.SetCount(count);
+		for(int j = 0; j < count; j++) { // need to compute insert values before array changes
+			inserts[j].SetCount(idx.GetCount());
+			for(int ii = 0; ii < idx.GetCount(); ii++)
+				inserts[j][ii] = idx[ii].GetInsertValue();
+		}
+	}
 	if(i < array.GetCount()) {
 		array.InsertN(i, count);
 		for(int j = 0; j < column.GetCount(); j++)
@@ -2198,13 +2230,16 @@ void  ArrayCtrl::Insert(int i, int count) {
 		Reline(i, y);
 	}
 	if(virtualcount >= 0) virtualcount += count;
+	int ini = 0;
 	while(count--) {
-		for(int ii = 0; ii < idx.GetCount(); ii++) {
-			Value v = idx[ii].GetInsertValue();
-			if(!IsNull(v))
-				Set(i, ii, v);
-		}
+		if(hasins)
+			for(int ii = 0; ii < idx.GetCount(); ii++) {
+				Value v = inserts[ini][ii];
+				if(!IsNull(v))
+					Set(i, ii, v);
+			}
 		i++;
+		ini++;
 	}
 	Refresh();
 	SetSb();
@@ -2797,7 +2832,7 @@ void ArrayCtrl::Reset() {
 	acceptingrow = 0;
 	columnsortfindkey = false;
 	spanwidecells = false;
-	linecy = Draw::GetStdFontCy();
+	linecy = GetStdFontCyA();
 	Clear();
 	sb.SetLine(linecy);
 	columnsortsecondary = NULL;

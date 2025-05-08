@@ -179,10 +179,9 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 	SaveBuildInfo(package);
 
 	int i;
-	String packagepath = PackagePath(package);
 	Package pkg;
-	pkg.Load(packagepath);
-	String packagedir = GetFileFolder(packagepath);
+	pkg.Load(PackageFile(package));
+	String packagedir = PackageDirectory(package);
 	ChDir(packagedir);
 	PutVerbose("cd " + packagedir);
 	IdeConsoleBeginGroup(package);
@@ -215,6 +214,7 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 				String fn = NormalizePath(srcfile[j]);
 				String ext = ToLower(GetFileExt(fn));
 				if(findarg(ext, ".c", ".cpp", ".cc", ".cxx", ".rc", ".brc") >= 0 ||
+				   ext == ".cu" && HasFlag("CUDA") ||
 				   (!release && blitz && ext == ".icpp")) {
 					if(FindIndex(sfile, fn) < 0) {
 						sfile.Add(fn);
@@ -251,6 +251,8 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 			}
 		}
 	}
+	
+	String nvcc = "nvcc -c " + IncludesDefinesTargetTime(package, pkg) + " ";
 
 	String cc = CmdLine(package, pkg);
 	if(HasFlag("EVC")) {
@@ -391,14 +393,20 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 				}
 			}
 			else {
-				String c = cc;
 				int slot = AllocSlot();
-				if(HasAnyDebug())
-					c << Pdb(package, slot, !sContainsPchOptions(cc) && !sContainsPchOptions(soptions[i]));
-				c << " " + soptions[i] + (ext == ".c" ? Join(c_options, " -Tc") : Join(cpp_options, " -Tp")) + ' '
-				     + GetPathQ(fn) + " -Fo" + GetPathQ(objfile);
-				if(nopch.Find(fn) < 0)
-					c << pch_use;
+				String c;
+				if(ext == ".cu")
+					c << nvcc << (release ? release_cuda : debug_cuda) << " " << soptions[i]
+					  << " -o " << GetPathQ(objfile) << " " << GetPathQ(fn);
+				else {
+					c = cc;
+					if(HasAnyDebug())
+						c << Pdb(package, slot, !sContainsPchOptions(cc) && !sContainsPchOptions(soptions[i]));
+					c << " " + soptions[i] + (ext == ".c" ? Join(c_options, " -Tc") : Join(cpp_options, " -Tp")) + ' '
+					     + GetPathQ(fn) + " -Fo" + GetPathQ(objfile);
+					if(nopch.Find(fn) < 0)
+						c << pch_use;
+				}
 				if(slot < 0 || !Run(c, slot, objfile, 1))
 					execerr = true;
 			}
@@ -721,9 +729,8 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 bool MscBuilder::Preprocess(const String& package, const String& file, const String& target, bool)
 {
 	FileOut out(target);
-	String packagepath = PackagePath(package);
 	Package pkg;
-	pkg.Load(packagepath);
+	pkg.Load(PackageFile(package));
 	return Execute(CmdLine(package, pkg) + " -E " + file, out);
 }
 

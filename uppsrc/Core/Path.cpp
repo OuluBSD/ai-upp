@@ -207,7 +207,6 @@ bool   PathIsEqual(const char *p1, const char *p2)
 }
 #endif
 
-#ifndef PLATFORM_WINCE
 String GetCurrentDirectory() {
 #if defined(PLATFORM_WIN32)
 	WCHAR h[MAX_PATH];
@@ -221,7 +220,6 @@ String GetCurrentDirectory() {
 	return Null;
 #endif//PLATFORM
 }
-#endif
 
 #ifdef PLATFORM_POSIX
 
@@ -677,11 +675,7 @@ String FindFile::GetPath() const
 }
 
 String NormalizePath(const char *path) {
-#ifdef PLATFORM_WINCE
-	return NormalizePath(path, "");
-#else
 	return NormalizePath(path, GetCurrentDirectory());
-#endif
 }
 
 bool FileCopy(const char *oldname, const char *newname)

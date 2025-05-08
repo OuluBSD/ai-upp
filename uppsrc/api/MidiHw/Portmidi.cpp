@@ -131,7 +131,7 @@ void MidPortmidi::Source_Uninitialize(NativeSource& dev, AtomBase& a) {
 }
 
 bool MidPortmidi::Source_Send(NativeSource& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	
 	if (fmt.IsMidi()) {
 		Vector<byte>& data = out.Data();

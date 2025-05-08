@@ -1,4 +1,4 @@
-#include "AudioCore.h"
+#include "SoftAudio.h"
 
 #if HAVE_FLUIDSYNTH
 

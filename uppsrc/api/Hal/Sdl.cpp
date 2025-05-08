@@ -565,7 +565,7 @@ bool HalSdl::CenterVideoSinkDevice_Send(NativeCenterVideoSinkDevice& dev, AtomBa
 }
 
 bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {
-	Format fmt = p->GetFormat();
+	ValueFormat fmt = p->GetFormat();
 	if (fmt.IsVideo()) {
 		const Vector<byte>& data = p->GetData();
 		const byte* mem = (const byte*)data.Begin();
@@ -1265,7 +1265,7 @@ bool HalSdl::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSourceC
 		return false;
 	
 
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	RTLOG("HalSdl::EventsBase_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {

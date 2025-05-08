@@ -37,10 +37,10 @@ bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eo
 		return false;
 	}
 	
-	ISourceRef src = a.GetSource();
+	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
 	Value& v = src->GetSourceValue(c-1);
-	Format fmt = v.GetFormat();
+	ValueFormat fmt = v.GetFormat();
 	if (!fmt.IsAudio())
 		return false;
 	
@@ -78,7 +78,7 @@ void SynSoft::Instrument_Uninitialize(NativeInstrument& dev, AtomBase& a) {
 }
 
 bool SynSoft::Instrument_Send(NativeInstrument& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
 		int sr = afmt.GetSampleRate();
@@ -100,7 +100,7 @@ bool SynSoft::Instrument_Send(NativeInstrument& dev, AtomBase& a, RealtimeSource
 }
 
 bool SynSoft::Instrument_Recv(NativeInstrument& dev, AtomBase& a, int sink_ch, const Packet& in) {
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsMidi()) {
 		const Vector<byte>& data = in->Data();
 		int count = data.GetCount() / sizeof(MidiIO::Event);

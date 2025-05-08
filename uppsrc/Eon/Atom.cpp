@@ -18,9 +18,12 @@ AtomBase::~AtomBase() {
 	DBG_DESTRUCT
 }
 
-/*Machine& AtomBase::GetMachine() {
-	return GetParent().GetMachine();
-}*/
+Machine& AtomBase::GetMachine() {
+	Machine* m = node.FindOwner<Machine>();
+	ASSERT(m);
+	if (m) throw Exc("Machine not found");
+	return *m;
+}
 
 void AtomBase::UninitializeDeep() {
 	if (IsInitialized()) {

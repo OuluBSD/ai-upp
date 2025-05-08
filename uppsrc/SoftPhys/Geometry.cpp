@@ -56,6 +56,7 @@ Geometry& Geometry::SetGeomBody(Body& b) {
 
 Geometry& Geometry::ResetRotation() {
 	TODO
+	return *this;
 }
 
 Geometry& Geometry::SetRotation(const vec3& axis, float angle) {

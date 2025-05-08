@@ -182,6 +182,7 @@ public:
     
 };
 
+using ModelPtr = Ptr<Model>;
 
 
 class ModelBuilder;

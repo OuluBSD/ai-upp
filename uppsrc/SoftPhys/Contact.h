@@ -13,7 +13,7 @@ struct Contact : Object {
 	
 	Contact() {}
 	
-	void Visit(Vis& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& v) override {VIS_THIS(Object);}
 };
 
 

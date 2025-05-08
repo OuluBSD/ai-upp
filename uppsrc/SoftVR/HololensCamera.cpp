@@ -1,4 +1,4 @@
-#include "LocalVR.h"
+#include "SoftVR.h"
 
 
 NAMESPACE_HMD_BEGIN

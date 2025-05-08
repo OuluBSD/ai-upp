@@ -49,10 +49,10 @@ bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon
 		return false;
 	}
 	
-	ISourceRef src = a.GetSource();
+	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
 	Value& v = src->GetSourceValue(c-1);
-	Format fmt = v.GetFormat();
+	ValueFormat fmt = v.GetFormat();
 	if (!fmt.IsAudio()) {
 		LOG("SynLV2::Instrument_Initialize: error: internal error");
 		return false;
@@ -102,7 +102,7 @@ void SynLV2::Instrument_Visit(NativeInstrument&, AtomBase&, Visitor& vis) {
 }
 
 bool SynLV2::Instrument_Recv(NativeInstrument& dev, AtomBase& a, int src_ch, const Packet& p) {
-	Format fmt = p->GetFormat();
+	ValueFormat fmt = p->GetFormat();
 	
 	if (fmt.IsMidi()) {
 		const Vector<byte>& data = p->Data();

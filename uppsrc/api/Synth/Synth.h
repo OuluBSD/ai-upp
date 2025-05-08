@@ -107,7 +107,7 @@ struct SynLV2 {
 
 struct SynInstrument : public Atom {
 	//RTTI_DECL1(SynInstrument, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~SynInstrument() {}
 };
@@ -116,7 +116,7 @@ struct SynInstrument : public Atom {
 template <class Syn> struct SynthInstrumentT : SynInstrument {
 	using CLASSNAME = SynthInstrumentT<Syn>;
 	//RTTI_DECL1(CLASSNAME, SynInstrument)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Syn::Instrument_Visit(*dev, *this, vis);
 		vis.VisitThis<SynInstrument>(this);
 	}

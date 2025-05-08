@@ -44,7 +44,7 @@ public:
 	OpenCVCaptureDevice();
 	~OpenCVCaptureDevice();
 	
-	void						Visit(Vis& vis) {}
+	void						Visit(Vis& v) {}
 	
 	bool						FindClosestFormat(Size cap_sz, double fps, double bw_min, double bw_max, int& ret_fmt, int& ret_res);
 	bool						Open(int fmt_idx, int res_i, bool vflip, ValueFormat& fmt);

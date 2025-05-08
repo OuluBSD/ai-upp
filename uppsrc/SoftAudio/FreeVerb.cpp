@@ -1,4 +1,4 @@
-#include "AudioCore.h"
+#include "SoftAudio.h"
 
 
 NAMESPACE_AUDIO_BEGIN
@@ -51,16 +51,16 @@ FreeVerb::FreeVerb() {
 FreeVerb::~FreeVerb() {
 }
 
-void FreeVerb::LoadState(const ArrayMap<String, Object>& state) {
+void FreeVerb::LoadState(const ArrayMap<String, Value>& state) {
 	int i;
 	
 	i = state.Find(".mix");
 	if (i >= 0)
-		SetEffectMix(state[i].ToDouble());
+		SetEffectMix((double)state[i]);
 	
 	i = state.Find(".roomsize");
 	if (i >= 0)
-		SetRoomSize(state[i].ToDouble());
+		SetRoomSize((double)state[i]);
 	
 }
 

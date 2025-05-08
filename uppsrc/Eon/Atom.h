@@ -99,7 +99,7 @@ public:
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);
 	
-	//Machine&				GetMachine();
+	Machine&				GetMachine();
 	void					UninitializeDeep();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;

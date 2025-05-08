@@ -104,7 +104,7 @@ public:
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(Vis& vis) override {}
+	void Visit(Vis& v) override {}
 	
 	bool LoadFile();
 	

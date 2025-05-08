@@ -18,7 +18,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(BufferBaseT, Atom);
 	
-	void Visit(Vis& vis) override {vis % bf; vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {vis % bf; VIS_THIS(Atom);}
 	void Update(double dt) override {bf.Update(dt);}
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
 	
@@ -49,7 +49,7 @@ public:
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	void Finalize(RealtimeSourceConfig& cfg) override;
-	void Visit(Vis& vis) override {vis.VisitThis<BufferBase>(this);}
+	void Visit(Vis& v) override {vis.VisitThis<BufferBase>(this);}
 	
 	
 };
@@ -79,7 +79,7 @@ public:
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
 	
 	
@@ -98,7 +98,7 @@ struct FboReaderBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	using NativeFrameBufferConstRef = typename Gfx::NativeFrameBufferConstRef;
+	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstRef;
 	//RTTI_DECL1(FboReaderBaseT, BufferBase);
 	
 	FboReaderBaseT() {}
@@ -110,7 +110,7 @@ public:
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	
 };
 
@@ -134,7 +134,7 @@ public:
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(Vis& vis) override {vis & state;}
+	void Visit(Vis& v) override {vis & state;}
 	
 };
 
@@ -156,7 +156,7 @@ public:
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
-	void Visit(Vis& vis) override {}
+	void Visit(Vis& v) override {}
 	
 };
 

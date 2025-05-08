@@ -11,7 +11,7 @@ struct EcsViewProg :
 	
 	EcsViewProg();
 	void operator=(const EcsViewProg& t) {Panic("Can't copy EcsViewProgT");}
-	void Visit(Vis& vis) override {}
+	void Visit(Vis& v) override {}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;

@@ -62,13 +62,13 @@ void FramebufferT<Gfx>::DrawFill(const byte* mem, int sz, int pitch) {
 }
 
 template <class Gfx>
-typename Gfx::NativeFrameBufferConstRef FramebufferT<Gfx>::GetReadFramebuffer() const {return frame_buf[this->buf_i];}
+typename Gfx::NativeFrameBufferConstPtr FramebufferT<Gfx>::GetReadFramebuffer() const {return frame_buf[this->buf_i];}
 
 template <class Gfx>
-typename Gfx::NativeColorBufferRef FramebufferT<Gfx>::GetActiveColorBuffer() {return color_buf[this->buf_i];}
+typename Gfx::NativeColorBufferPtr FramebufferT<Gfx>::GetActiveColorBuffer() {return color_buf[this->buf_i];}
 
 template <class Gfx>
-void FramebufferT<Gfx>::Init(NativeColorBufferRef clr, int w, int h, int stride) {
+void FramebufferT<Gfx>::Init(NativeColorBufferPtr clr, int w, int h, int stride) {
 	//Gfx::GenTexture(color_buf[0]);
 	ASSERT(!color_buf[0]);
 	ASSERT(!frame_buf[0]);
@@ -81,7 +81,7 @@ void FramebufferT<Gfx>::Init(NativeColorBufferRef clr, int w, int h, int stride)
 }
 
 template <class Gfx>
-void FramebufferT<Gfx>::Init(NativeFrameBufferRef fbo, NativeColorBufferRef clr, int w, int h, int stride) {
+void FramebufferT<Gfx>::Init(NativeFrameBufferPtr fbo, NativeColorBufferPtr clr, int w, int h, int stride) {
 	//Gfx::GenTexture(color_buf[0]);
 	ASSERT(!color_buf[0]);
 	ASSERT(!frame_buf[0]);

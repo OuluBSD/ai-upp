@@ -180,7 +180,7 @@ void HandleVideoBase::Uninitialize() {
 }
 
 void HandleVideoBase::Visit(Vis& vis) {
-	vis.VisitThis<Atom>(this);
+	VIS_THIS(Atom);
 	if (IsActive())
 		vis | binders;
 	vis & state;

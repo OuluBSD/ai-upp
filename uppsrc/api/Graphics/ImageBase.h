@@ -21,7 +21,7 @@ public:
 	
 	ImageBaseAtomT();
 	
-	void			Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void			Visit(Vis& v) override {VIS_THIS(Atom);}
 	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;

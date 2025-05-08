@@ -98,7 +98,7 @@ bool CamV4L2OpenCV::Camera_Initialize(NativeCamera& dev, AtomBase& a, const Eon:
 }
 
 bool CamV4L2OpenCV::Camera_PostInitialize(NativeCamera& dev, AtomBase& a) {
-	ISourceRef src = a.GetSource();
+	ISourcePtr src = a.GetSource();
 	int src_count = src->GetSourceCount();
 	for(int i = 0; i < src_count; i++) {
 		Value& val = src->GetSourceValue(i);
@@ -131,7 +131,7 @@ void CamV4L2OpenCV::Camera_Uninitialize(NativeCamera& dev, AtomBase& a) {
 bool CamV4L2OpenCV::Camera_Send(NativeCamera& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	if (!dev.cap) return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsVideo()) {
 		dev.prev_frame_i = dev.cap->GetFrameCount();
 		ASSERT(dev.prev_frame_i > 0);

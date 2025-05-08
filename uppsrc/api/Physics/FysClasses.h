@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-using namespace Parallel;
+struct GfxDataState;
 
 
 struct FysNode {

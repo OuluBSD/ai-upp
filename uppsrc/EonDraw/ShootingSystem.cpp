@@ -137,12 +137,13 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 
 
 
-void ShootingComponent::Serialize(Stream& e) {
+void ShootingComponent::Visit(Vis& v) {
 	CustomToolComponent::Etherize(e);
 	
 	e % bullet_speed
 	  % barrel_to_ctrl;
 	
+	v VIS_THIS(CustomToolComponent);
 }
 
 void ShootingComponent::Initialize() {
@@ -163,6 +164,10 @@ void ShootingComponent::Uninitialize() {
 	Ref<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
 	if (sys)
 		sys->Detach(AsRefT());
+}
+
+PoolPtr ShootingComponent::GetPool() const {
+	return node.FindOwner<Pool>();
 }
 
 bool ShootingComponent::LoadModel(ModelComponent& mdl) {

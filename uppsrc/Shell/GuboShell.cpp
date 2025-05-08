@@ -1,4 +1,4 @@
-#include "Shell.h"
+#include "EcsShell.h"
 
 
 NAMESPACE_UPP
@@ -19,7 +19,7 @@ void VguiMain() {
 }
 
 void DesktopMain() {
-	using namespace Parallel;
+	
 	
 	Surface::SetDebugDraw(0);
 	Gubo::SetDebugDraw(0);

@@ -10,11 +10,11 @@ template <class Gfx> struct InputStateT;
 template <class Gfx>
 struct FramebufferT : Gfx::FramebufferBase {
 	using Base = FramebufferT<Gfx>;
-	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
-	using NativeDepthBufferRef = typename Gfx::NativeDepthBufferRef;
-	using NativeFrameBufferRef = typename Gfx::NativeFrameBufferRef;
-	using NativeFrameBufferConstRef = typename Gfx::NativeFrameBufferConstRef;
-	using SystemFrameBufferRef = typename Gfx::SystemFrameBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeDepthBufferPtr = typename Gfx::NativeDepthBufferRef;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
+	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstRef;
+	using SystemFrameBufferPtr = typename Gfx::SystemFrameBufferRef;
 	//RTTI_DECL1(FramebufferT, GfxFramebuffer)
 	
 	NativeColorBufferRef	color_buf[2];
@@ -34,11 +34,11 @@ struct FramebufferT : Gfx::FramebufferBase {
 		}
 	}
 	
-	NativeFrameBufferConstRef GetReadFramebuffer() const;
-	NativeColorBufferRef GetActiveColorBuffer();
+	NativeFrameBufferConstPtr GetReadFramebuffer() const;
+	NativeColorBufferPtr GetActiveColorBuffer();
 	
-	void Init(NativeColorBufferRef clr, int w, int h, int stride);
-	void Init(NativeFrameBufferRef fbo, NativeColorBufferRef clr, int w, int h, int stride);
+	void Init(NativeColorBufferPtr clr, int w, int h, int stride);
+	void Init(NativeFrameBufferPtr fbo, NativeColorBufferPtr clr, int w, int h, int stride);
 	
 	bool Create(int w, int h, int channels=3) override {TODO}
 	void Enter() override {ASSERT(!locked); locked = true;}

@@ -29,7 +29,7 @@ struct Body : Object {
 public:
 	Body();
 	
-	void Visit(Vis& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& v) override {VIS_THIS(Object);}
 	const vec3& GetPosition() const {return position;}
 	mat43 GetRotationAxisAngle() const;
 	

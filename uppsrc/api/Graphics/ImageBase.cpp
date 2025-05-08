@@ -79,11 +79,11 @@ bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 
 template <class Gfx>
 bool ImageBaseAtomT<Gfx>::PostInitialize() {
-	ISourceRef src = GetSource();
+	ISourcePtr src = GetSource();
 	int src_count = src->GetSourceCount();
 	for(int i = 0; i < src_count; i++) {
 		Value& val = src->GetSourceValue(i);
-		Format fmt = val.GetFormat();
+		ValueFormat fmt = val.GetFormat();
 		if (fmt.vd == VD(Center, Video)) {
 			VideoFormat& vfmt = fmt;
 			if (vfmt.GetPackedCount() != 4) {
@@ -114,7 +114,7 @@ template <class Gfx>
 bool ImageBaseAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	if (imgs.IsEmpty()) return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsVideo()) {
 		out.seq = seq++;
 		Image& img = imgs[0];

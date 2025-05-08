@@ -6,7 +6,7 @@
 	#include <ode/ode.h>
 #endif
 
-#include <EcsLocal/EcsLocal.h>
+#include <Eon/Eon.h>
 #include <SoftPhys/SoftPhys.h>
 
 #include "Enums.h"

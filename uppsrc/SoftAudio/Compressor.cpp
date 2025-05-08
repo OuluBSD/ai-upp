@@ -1,4 +1,4 @@
-#include "AudioCore.h"
+#include "SoftAudio.h"
 
 
 NAMESPACE_AUDIO_BEGIN
@@ -221,36 +221,36 @@ float Compressor::Tick2( float input1, float input2, int channel ) {
 	return output;
 }
 
-void Compressor::LoadState(const ArrayMap<String, Object>& state) {
+void Compressor::LoadState(const ArrayMap<String, Value>& state) {
 	int i;
 	
 	i = state.Find(".gain");
 	if (i >= 0)
-		param.gain_db = state[i].ToFloat();
+		param.gain_db = (float)(double)state[i];
 	
 	i = state.Find(".treshold");
 	if (i >= 0)
-		param.th_db = state[i].ToFloat();
+		param.th_db = (float)(double)state[i];
 	
 	i = state.Find(".knee");
 	if (i >= 0)
-		param.w_db = state[i].ToFloat();
+		param.w_db = (float)(double)state[i];
 	
 	i = state.Find(".ratio");
 	if (i >= 0)
-		param.ratio = state[i].ToFloat();
+		param.ratio = (float)(double)state[i];
 	
 	i = state.Find(".attack");
 	if (i >= 0)
-		param.att = state[i].ToFloat();
+		param.att = (float)(double)state[i];
 	
 	i = state.Find(".release");
 	if (i >= 0)
-		param.rlt = state[i].ToFloat();
+		param.rlt = (float)(double)state[i];
 	
 	i = state.Find(".auto.makeup");
 	if (i >= 0)
-		param.is_auto_makeup = state[i].ToBool();
+		param.is_auto_makeup = (bool)state[i];
 	
 	param.Init(param.freq);
 }

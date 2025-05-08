@@ -80,7 +80,7 @@ bool BufferT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	
 	String env_name = ws.Get(".env");
 	if (!env_name.IsEmpty()) {
-		SpaceRef l = a.GetSpace();
+		SpacePtr l = a.GetSpace();
 		env = l->FindNearestState(env_name);
 		if (!env) {
 			LOG("GfxBufferFieldT<Gfx>::Initialize: error: environment state with name '" << env_name << "' not found");

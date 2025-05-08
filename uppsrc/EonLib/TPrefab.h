@@ -48,13 +48,13 @@ struct StaticGroundPlanePrefab :
     static Components Make(Entity& e)
     {
         auto components = Prefab::Make(e);
-		auto ground = components.template Get<Ref<GroundPlane>>();
+		auto ground = components.template Get<Ptr<GroundPlane>>();
 		
-		components.template Get<TransformRef>()->position[1] = -5.0;
-		components.template Get<RenderableRef>()->cb.Add(ground->GetRefreshCallback());
+		components.template Get<TransformPtr>()->position[1] = -5.0;
+		components.template Get<RenderablePtr>()->cb.Add(ground->GetRefreshCallback());
 		
-		Ref<System> w = GetActiveMachine().Get<System>();
-		Ref<GroundPlane> plane = components.template Get<Ref<GroundPlane>>();
+		Ptr<System> w = GetActiveMachine().Get<System>();
+		Ptr<GroundPlane> plane = components.template Get<Ptr<GroundPlane>>();
 		ASSERT(plane);
 		w->Attach(*plane);
 		

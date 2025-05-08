@@ -110,21 +110,21 @@ struct ScrWinD11 {
 
 struct ScrSinkDevice : public Atom {
 	//RTTI_DECL1(ScrSinkDevice, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrSinkDevice() {}
 };
 
 struct ScrContext : public Atom {
 	//RTTI_DECL1(ScrContext, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrContext() {}
 };
 
 struct ScrEventsBase : public Atom {
 	//RTTI_DECL1(ScrEventsBase, Atom)
-	void Visit(Vis& vis) override {vis.VisitThis<Atom>(this);}
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrEventsBase() {}
 };
@@ -133,7 +133,7 @@ struct ScrEventsBase : public Atom {
 template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrSinkDevice)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Scr::SinkDevice_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrSinkDevice>(this);
 	}
@@ -182,7 +182,7 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 template <class Scr> struct ScreenContextT : ScrContext {
 	using CLASSNAME = ScreenContextT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrContext)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Scr::Context_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrContext>(this);
 	}
@@ -231,7 +231,7 @@ template <class Scr> struct ScreenContextT : ScrContext {
 template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrEventsBase)
-	void Visit(Vis& vis) override {
+	void Visit(Vis& v) override {
 		if (dev) Scr::EventsBase_Visit(*dev, *this, vis);
 		vis.VisitThis<ScrEventsBase>(this);
 	}

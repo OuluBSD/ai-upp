@@ -320,7 +320,7 @@ bool ScrX11Sw::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSourc
 bool ScrX11Sw::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && new_fmt.IsVideo()) {
-		ISinkRef sink = a.GetSink();
+		ISinkPtr sink = a.GetSink();
 		Value& val = sink->GetValue(sink_ch);
 		val.SetFormat(new_fmt);
 		return true;

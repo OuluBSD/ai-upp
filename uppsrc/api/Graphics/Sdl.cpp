@@ -5,7 +5,7 @@ NAMESPACE_UPP
 #ifdef flagSDL2
 #ifdef flagOGL
 
-void SdlOglGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void SdlOglGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	SDL_GL_SwapWindow(w);
 }
 
@@ -31,9 +31,9 @@ byte* SdlSwGfx::GetData(NativeSurface& surf) {
 	return (byte*)surf->pixels;
 }
 
-void SdlSwGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf) {
+void SdlSwGfx::ActivateNextFrame(NativeDisplay&, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
 	const auto& fb = color_buf;
-	//NativeColorBufferRef& fb = color_buf;
+	//NativeColorBufferPtr& fb = color_buf;
 	
 	#if 0
 	{
@@ -120,7 +120,7 @@ void SdlSwGfx::ClearFramebufferRef(NativeTexture& fb) {
 	fb = 0;
 }
 
-void SdlSwGfx::ClearFramebufferRef(NativeFrameBufferRef& fb) {
+void SdlSwGfx::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 

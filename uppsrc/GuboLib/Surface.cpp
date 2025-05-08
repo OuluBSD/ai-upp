@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 void TopSurface::CreateGeom2DComponent() {
 	using namespace Ecs;
-	using namespace Parallel;
+	
 	
 	
 	Machine& mach = GetActiveMachine();

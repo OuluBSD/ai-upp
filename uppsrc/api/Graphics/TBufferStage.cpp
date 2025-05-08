@@ -755,7 +755,7 @@ int BufferStageT<Gfx>::NewWriteBuffer() {
 }
 
 template <class Gfx>
-TNG NativeColorBufferConstRef BufferStageT<Gfx>::GetOutputTexture(bool reading_self) const {
+TNG NativeColorBufferConstPtr BufferStageT<Gfx>::GetOutputTexture(bool reading_self) const {
 	ASSERT(!reading_self || fb.is_doublebuf);
 	int buf_i = fb.buf_i;
 	
@@ -776,7 +776,7 @@ template <class Gfx>
 bool BufferStageT<Gfx>::LoadInputLink(int in_id, const PacketValue& v) {
 	if (in_id == 0) {
 		const Vector<byte>& data = v.GetData();
-		Format fmt = v.GetFormat();
+		ValueFormat fmt = v.GetFormat();
 		if (fmt.IsVideo()) {
 			VideoFormat& vfmt = fmt;
 			int frame_sz = vfmt.GetFrameSize();
@@ -826,10 +826,10 @@ void BufferStageT<Gfx>::SetVar(ProgramState& prog, int var, const RealtimeSource
 		
 		if (ch < buf->stages.GetCount()) {
 			auto& stage = buf->stages[ch];
-			NativeColorBufferConstRef tex = stage.fb.color_buf[stage.fb.buf_i];
+			NativeColorBufferConstPtr tex = stage.fb.color_buf[stage.fb.buf_i];
 			// may fail in early program: ASSERT(tex);
 			if (tex) {
-				//typename Gfx::NativeColorBufferConstRef clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
+				//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
 				Gfx::ActiveTexture(tex_ch);
 				Gfx::BindTextureRO(GVar::TEXMODE_2D, tex);
 				Gfx::TexParameteri(GVar::TEXMODE_2D, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);

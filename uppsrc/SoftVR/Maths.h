@@ -1,5 +1,5 @@
-#ifndef __LocalVR_MATHS_H__
-#define __LocalVR_MATHS_H__
+#ifndef _SoftVR_MATHS_H__
+#define _SoftVR_MATHS_H__
 
 
 NAMESPACE_HMD_BEGIN

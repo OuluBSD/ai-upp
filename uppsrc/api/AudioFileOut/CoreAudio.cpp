@@ -63,7 +63,7 @@ void AFOCoreAudio::Sink_Visit(NativeSink&, AtomBase&, Visitor& vis) {
 }
 
 bool AFOCoreAudio::Sink_Recv(NativeSink& dev, AtomBase& a, int ch, const Packet& p) {
-	Format fmt = p->GetFormat();
+	ValueFormat fmt = p->GetFormat();
 	
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;

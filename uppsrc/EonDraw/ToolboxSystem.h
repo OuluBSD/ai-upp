@@ -8,21 +8,14 @@ namespace Ecs {
 class ToolSystemBase;
 class PlayerHandComponent;
 
-using PlayerHandComponentPtr = RefT_Entity<PlayerHandComponent>;
-
-
 
 class CustomToolComponent :
 	public Component<CustomToolComponent> {
 	
 public:
-	COPY_PANIC(CustomToolComponent)
-	COMP_DEF_VISIT
-	
 	virtual bool LoadModel(ModelComponent&) = 0;
 	
-	void Serialize(Stream& e) override {}
-	
+	void Visit(Vis& v) override {}
 	
 };
 
@@ -33,10 +26,7 @@ using CustomToolComponentPtr = Ptr<CustomToolComponent>;
 class ToolComponent : public Component<ToolComponent> {
 	
 public:
-	COPY_PANIC(ToolComponent)
-	COMP_DEF_VISIT_(vis & active_tool & active_hand; vis && tools;)
-	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -49,11 +39,11 @@ public:
 	
 	String title;
 	String description;
-	TypeId tool_type { AsVoidTypeId() };
+	TypeCls tool_type { AsVoidTypeCls() };
 	
 	CustomToolComponentPtr active_tool;
 	Array<CustomToolComponentPtr> tools;
-	PlayerHandComponentPtr active_hand;
+	PlayerHandComponent* active_hand = 0;
 	
 };
 
@@ -66,7 +56,7 @@ class ToolboxSystemBase :
 {
 	
 public:
-	ECS_SYS_DEF_VISIT_(vis && tools && selectors && selector_objects)
+	ECS_SYS_DEF_VISIT_()
 	
 	ECS_SYS_CTOR(ToolboxSystemBase);
 	

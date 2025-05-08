@@ -11,7 +11,7 @@ struct FboProgAtomT :
 	using DataState = DataStateT<Gfx>;
 	using ModelState = ModelStateT<Gfx>;
 	using Material = MaterialT<Gfx>;
-	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
 	
     FramebufferT<Gfx> fb;
     Size sz;
@@ -23,7 +23,7 @@ struct FboProgAtomT :
 	
 	struct Window : Moveable<Window> {
 		DrawCommandImageRenderer rend;
-		NativeColorBufferRef tex;
+		NativeColorBufferPtr tex;
 		int tex_id;
 		bool inited = false;
 	};
@@ -43,7 +43,7 @@ public:
 	void Finalize(RealtimeSourceConfig& cfg) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void Visit(Vis& vis) override {}
+	void Visit(Vis& v) override {}
 	
 };
 

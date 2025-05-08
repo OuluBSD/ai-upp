@@ -4,7 +4,7 @@
 #include <EonDraw/EonDraw.h>
 
 #include <api/MidiFile/MidiFile.h>
-#include <api/MidiFile/MidiHw.h>
+#include <api/MidiHw/MidiHw.h>
 #include <api/Synth/Synth.h>
 #include <api/Effect/Effect.h>
 #include <api/Audio/Audio.h>

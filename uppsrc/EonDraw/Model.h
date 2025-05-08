@@ -4,6 +4,39 @@
 namespace Ecs {
 
 
+class Renderable : public Component<Renderable> {
+	
+public:
+	RGBA color;
+	mat4 offset;
+	float alpha_multiplier;
+	
+	
+	void Visit(Vis& v) override;
+	void Initialize() override;
+	void Uninitialize() override;
+	
+	void ResetModel(mat4 offset = zero<mat4>()) {
+		color = RGBAZero();
+		this->offset = offset;
+		alpha_multiplier = 0;
+	}
+	
+    void operator=(const Renderable& e) {
+        color = e.color;
+        offset = e.offset;
+        alpha_multiplier = e.alpha_multiplier;
+    }
+    
+    
+	Callback cb;
+	
+	
+};
+
+using RenderablePtr = Ptr<Renderable>;
+
+
 typedef Tuple<Ptr<Model>, TransformPtr, RenderablePtr> RendModel;
 typedef Vector<RendModel> VectorRendModel;
 
@@ -13,10 +46,7 @@ class ModelComponent :
 {
 	
 public:
-	COMP_DEF_VISIT_(vis & model)
-	
-	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
@@ -56,7 +86,7 @@ public:
 	bool dbg = false;
 	
 protected:
-	Ref<Model> model;
+	Ptr<Model> model;
 	GfxDataState* gfx_state = 0;
 	
 	ModelLoader loader;

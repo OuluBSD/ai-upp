@@ -35,6 +35,10 @@ bool PaintingInteractionSystemBase::Arg(String key, Value value) {
 	return true;
 }
 
+PoolPtr PaintingInteractionSystemBase::GetPool() const {
+	return node.FindOwner<Pool>();
+}
+
 String PaintingInteractionSystemBase::GetInstructions() const {
 	return "Press and hold trigger to paint.\n\n"
 	       "Touch and press touchpad to choose brush color.\n\n"
@@ -458,7 +462,9 @@ vec4 PaintingInteractionSystemBase::SelectColor(double x, double y) {
 
 
 
-void PaintComponent::Serialize(Stream& e) {
+void PaintComponent::Visit(Vis& v) {
+	VIS_THIS(CustomToolComponent)
+	
 	CustomToolComponent::Etherize(e);
 	
 	e % selected_color

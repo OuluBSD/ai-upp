@@ -64,7 +64,7 @@ bool HoloOpenVR::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSou
 	if (!dev.sys.ev_sendable)
 		return false;
 	
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	RTLOG("HoloOpenVR::SinkDevice_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {

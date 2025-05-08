@@ -29,12 +29,10 @@ protected:
 	
 	
 public:
-	//RTTI_DECL2(Base, Space, EcsSystem)
-	using Parent = Engine;
-	
 	static vec3 EarthGravity() {return vec3(0,-9.81f,0);}
 	
-	ECS_SYS_CTOR_(SystemT) {
+	CLASSTYPE(SystemT<Fys>);
+	SystemT(MetaNode& n) : SP(n) {
 		Fys::InitializeLibrary();
 		Fys::CreateWorld(world);
 		

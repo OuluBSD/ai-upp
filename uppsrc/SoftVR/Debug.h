@@ -1,5 +1,5 @@
-#ifndef __LocalVR_DEBUG_H__
-#define __LocalVR_DEBUG_H__
+#ifndef _SoftVR_DEBUG_H__
+#define _SoftVR_DEBUG_H__
 
 
 NAMESPACE_HMD_BEGIN

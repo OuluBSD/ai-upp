@@ -40,7 +40,7 @@ public:
 	};
 
 	virtual AudioFrames& Tick( AudioFrames& frames, int channel = 0 ) = 0;
-	virtual void LoadState(const ArrayMap<String, Object>& state) {}
+	virtual void LoadState(const ArrayMap<String, Value>& state) {}
 	
 protected:
 

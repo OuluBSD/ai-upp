@@ -91,10 +91,10 @@ struct SwGfxT {
 		SoftVertexArray* vao = 0;
 		
 		struct Tex {
-			NativeColorBufferConstRef r = 0;
-			NativeColorBufferRef rw = 0;
+			NativeColorBufferConstPtr r = 0;
+			NativeColorBufferPtr rw = 0;
 			
-			NativeColorBufferConstRef GetReadTexture() const {return r ? r : rw;}
+			NativeColorBufferConstPtr GetReadTexture() const {return r ? r : rw;}
 		};
 		Tex texture[CHANNEL_COUNT];
 		int active_texture = -1;
@@ -106,9 +106,9 @@ struct SwGfxT {
 	};
 	
 	// not here: using NativeTexture = uint32;
-	using NativeShaderRef = SoftShader*;
-	using NativeFrameBufferRef = SoftFramebuffer*;
-	using NativeFrameBufferConstRef = const SoftFramebuffer*;
+	using NativeShaderPtr = SoftShader*;
+	using NativeFrameBufferPtr = SoftFramebuffer*;
+	using NativeFrameBufferConstPtr = const SoftFramebuffer*;
 	using NativeVertexArray = SoftVertexArray;
 	using NativeVertexBuffer = SoftVertexBuffer;
 	using NativeElementBuffer = SoftElementBuffer;
@@ -126,7 +126,7 @@ struct SwGfxT {
 	static Thread& Local();
 	static SoftRend& Rend();
 	
-	static NativeColorBufferConstRef GetLocalTexture(int ch);
+	static NativeColorBufferConstPtr GetLocalTexture(int ch);
 	
 	static const bool is_builtin_shader = true;
 	
@@ -142,15 +142,15 @@ struct OglGfxT {
 	static const bool is_builtin_shader = false;
 	
 	using NativeTexture = GLuint;
-	using NativeShaderRef = GLuint;
-	using NativeColorBufferRef = GLuint;
-	using NativeColorBufferConstRef = GLuint;
-	using NativeDepthBufferRef = GLuint;
-	using NativeDepthBufferConstRef = GLuint;
-	using NativeFrameBufferRef = GLuint;
-	using NativeFrameBufferConstRef = GLuint;
+	using NativeShaderPtr = GLuint;
+	using NativeColorBufferPtr = GLuint;
+	using NativeColorBufferConstPtr = GLuint;
+	using NativeDepthBufferPtr = GLuint;
+	using NativeDepthBufferConstPtr = GLuint;
+	using NativeFrameBufferPtr = GLuint;
+	using NativeFrameBufferConstPtr = GLuint;
 	using NativeBuffer = GLuint;
-	using SystemFrameBufferRef = NativeFrameBufferRef;
+	using SystemFrameBufferPtr = NativeFrameBufferRef;
 	using NativeVertexArray = GLuint;
 	using NativeVertexBuffer = GLuint;
 	using NativeElementBuffer = GLuint;
@@ -201,7 +201,7 @@ struct X11Gfx {
 };
 
 struct X11SwGfx : SwGfxT<X11SwGfx>, X11Gfx {
-	using SystemFrameBufferRef = SoftFramebuffer*;
+	using SystemFrameBufferPtr = SoftFramebuffer*;
 	using NativeGLContext = void*;
 	using BufferBase = GfxBuffer;
 	
@@ -214,7 +214,7 @@ struct X11SwGfx : SwGfxT<X11SwGfx>, X11Gfx {
 	
 	
 	static void DeleteContext(NativeGLContext& ctx);
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 	static bool LockTextureToSurface(NativeTexture& tex, Rect r, NativeSurface& surf);
 	static void UnlockTextureToSurface(NativeTexture& tex);
@@ -236,7 +236,7 @@ struct X11OglGfx : OglGfxT<X11OglGfx>, X11Gfx {
 	using SoftShaderLibrary = DummySoftShaderLibrary;
 	
 	static void DeleteContext(NativeGLContext& ctx);
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 };
 #endif
@@ -300,19 +300,19 @@ struct SdlGfx {
 
 // used only for FramebufferT direct video
 struct SdlCpuGfx : CpuGfx, SdlGfx {
-	using SystemFrameBufferRef = SDL_Texture*;
+	using SystemFrameBufferPtr = SDL_Texture*;
 	
 	using NativeTexture = SDL_Texture*;
 	using NativeSurface = SDL_Surface*;
-	using NativeColorBufferRef = NativeTexture;
-	using NativeColorBufferConstRef = NativeTexture;
+	using NativeColorBufferPtr = NativeTexture;
+	using NativeColorBufferConstPtr = NativeTexture;
 	
 	#define GFX_CLS(x, g) using x = x##T<g##Gfx>;
 	GFX_CLS_LIST(SdlCpu)
 	#undef GFX_CLS
 	
-	static void SetContextDefaultFramebuffer(NativeFrameBufferRef fb) {}
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void SetContextDefaultFramebuffer(NativeFrameBufferPtr fb) {}
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 	static int GetBytesPerPixel(NativeSurface& surf);
 	static int GetPitch(NativeSurface& surf);
@@ -323,14 +323,14 @@ struct SdlCpuGfx : CpuGfx, SdlGfx {
 	static void UnlockTextureToSurface(NativeTexture& tex);
 	
 	static void ClearFramebufferRef(NativeTexture& fb) {fb = 0;}
-	static void ClearFramebufferRef(NativeFrameBufferRef& fb) {fb = 0;}
-	static void ClearColorBufferRef(NativeColorBufferRef& b) {b = 0;}
-	static void ClearDepthBufferRef(NativeDepthBufferRef& b) {b = 0;}
+	static void ClearFramebufferRef(NativeFrameBufferPtr& fb) {fb = 0;}
+	static void ClearColorBufferRef(NativeColorBufferPtr& b) {b = 0;}
+	static void ClearDepthBufferRef(NativeDepthBufferPtr& b) {b = 0;}
 	
 };
 
 struct SdlSwGfx : SwGfxT<SdlSwGfx>, SdlGfx {
-	using SystemFrameBufferRef = SDL_Texture*;
+	using SystemFrameBufferPtr = SDL_Texture*;
 	
 	using NativeTexture = SDL_Texture*;
 	using NativeSurface = SDL_Surface*;
@@ -339,7 +339,7 @@ struct SdlSwGfx : SwGfxT<SdlSwGfx>, SdlGfx {
 	GFX_CLS_LIST(SdlSw)
 	#undef GFX_CLS
 	
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 	static int GetBytesPerPixel(NativeSurface& surf);
 	static int GetPitch(NativeSurface& surf);
@@ -350,7 +350,7 @@ struct SdlSwGfx : SwGfxT<SdlSwGfx>, SdlGfx {
 	static void UnlockTextureToSurface(SoftFramebuffer* tex);
 	
 	static void ClearFramebufferRef(NativeTexture& fb);
-	static void ClearFramebufferRef(NativeFrameBufferRef& fb);
+	static void ClearFramebufferRef(NativeFrameBufferPtr& fb);
 	
 };
 
@@ -363,7 +363,7 @@ struct SdlOglGfx : OglGfxT<SdlOglGfx>, SdlGfx {
 	GFX_CLS_LIST(SdlOgl)
 	#undef GFX_CLS
 	
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 	static bool LockTextureToSurface(NativeTexture& tex, Rect r, NativeSurface& surf);
 	static void QueryTexture(NativeTexture& tex, uint32& fmt, int& access, int& w, int& h);
@@ -445,7 +445,7 @@ struct D11GfxT {
 	using BufferBase				= Dx11BufferBase;
 	
 	using NativeTexture				=       ComPtr<ID3D11Texture2D>;
-	using NativeShaderRef = uint32;
+	using NativeShaderPtr = uint32;
 	using NativeColorBufferRef		=       ComPtr<ID3D11Texture2D>;
 	using NativeColorBufferConstRef	= const ComPtr<ID3D11Texture2D>;
 	using NativeDepthBufferRef		=       ComPtr<ID3D11DepthStencilView>;
@@ -499,13 +499,13 @@ struct DxGfx {
 struct WinD11Gfx : D11GfxT<WinD11Gfx>, DxGfx {
 	using NativeSurface = void*;
 	using SoftShaderLibrary = DummySoftShaderLibrary;
-	using NativeColorBufferRef = typename D11GfxT<WinD11Gfx>::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename D11GfxT<WinD11Gfx>::NativeColorBufferRef;
 	
 	#define GFX_CLS(x, g) using x = x##T<g##Gfx>;
 	GFX_CLS_LIST(WinD11)
 	#undef GFX_CLS
 	
-	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferRef color_buf);
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
 	
 };
 

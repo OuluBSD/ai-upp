@@ -10,20 +10,20 @@ struct GfxBufferFieldT {
 public:
 	using Buffer = BufferT<Gfx>;
 	using DataState = DataStateT<Gfx>;
-	using NativeFrameBufferRef = typename Gfx::NativeFrameBufferRef;
-	using NativeColorBufferRef = typename Gfx::NativeColorBufferRef;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
 	
 	Buffer buf;
 	DataState data;
-	NativeFrameBufferRef fb = 0;
-	NativeColorBufferRef clr = 0;
+	NativeFrameBufferPtr fb = 0;
+	NativeColorBufferPtr clr = 0;
 	bool add_data_states = false;
 	
 public:
 	using GfxBufferField = GfxBufferFieldT<Gfx>;
 	//RTTI_DECL0(GfxBufferFieldT);
 	
-	void Visit(Vis& vis) {vis % buf;}
+	void Visit(Vis& v) {vis % buf;}
 	
 	void ClearRef() {buf.ClearRef();}
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
@@ -36,8 +36,8 @@ public:
 	
 	bool IsAudio() const {return buf.IsAudio();}
 	
-	NativeFrameBufferRef GetFrame() const {return fb;}
-	NativeColorBufferRef GetColor() const {return clr;}
+	NativeFrameBufferPtr GetFrame() const {return fb;}
+	NativeColorBufferPtr GetColor() const {return clr;}
 	
 };
 

@@ -1,5 +1,5 @@
-#ifndef __LocalVR_LEDS_H__
-#define __LocalVR_LEDS_H__
+#ifndef _SoftVR_LEDS_H__
+#define _SoftVR_LEDS_H__
 
 
 NAMESPACE_HMD_BEGIN

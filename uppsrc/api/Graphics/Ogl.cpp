@@ -244,11 +244,11 @@ template <class Gfx> void OglGfxT<Gfx>::BindProgramPipeline(NativePipeline& pipe
 	glBindProgramPipeline(pipeline);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::BindFramebuffer(NativeFrameBufferRef fb) {
+template <class Gfx> void OglGfxT<Gfx>::BindFramebuffer(NativeFrameBufferPtr fb) {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fb);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstRef fb) {
+template <class Gfx> void OglGfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstPtr fb) {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fb);
 }
 
@@ -256,7 +256,7 @@ template <class Gfx> void OglGfxT<Gfx>::UnbindFramebuffer() {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::BindRenderbuffer(NativeDepthBufferRef rb) {
+template <class Gfx> void OglGfxT<Gfx>::BindRenderbuffer(NativeDepthBufferPtr rb) {
 	glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, rb);
 }
 
@@ -306,11 +306,11 @@ template <class Gfx> void OglGfxT<Gfx>::ActiveTexture(int ch) {
 	glActiveTexture(GL_TEXTURE0 + ch);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstRef tex) {
+template <class Gfx> void OglGfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstPtr tex) {
 	glBindTexture(GetOglTextureMode(type), tex);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferRef tex) {
+template <class Gfx> void OglGfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferPtr tex) {
 	glBindTexture(GetOglTextureMode(type), tex);
 }
 
@@ -566,7 +566,7 @@ void OglGfxT<Gfx>::HotfixShaderCode(String& s) {
 }
 
 template <class Gfx>
-bool OglGfxT<Gfx>::CreateShader(GVar::ShaderType type, NativeShaderRef& new_shdr) {
+bool OglGfxT<Gfx>::CreateShader(GVar::ShaderType type, NativeShaderPtr& new_shdr) {
 	GLenum shader_type;
 	if (type == GVar::FRAGMENT_SHADER) {
 		shader_type = GL_FRAGMENT_SHADER;
@@ -581,14 +581,14 @@ bool OglGfxT<Gfx>::CreateShader(GVar::ShaderType type, NativeShaderRef& new_shdr
 	return new_shdr;
 }
 
-template <class Gfx> void OglGfxT<Gfx>::ShaderSource(NativeShaderRef s, String code) {
+template <class Gfx> void OglGfxT<Gfx>::ShaderSource(NativeShaderPtr s, String code) {
 	const GLchar* src = code.Begin();
 	int len = code.GetCount();
 	glShaderSource(s, 1, &src, &len);
 }
 
 template <class Gfx>
-bool OglGfxT<Gfx>::CompileShader(NativeShaderRef s) {
+bool OglGfxT<Gfx>::CompileShader(NativeShaderPtr s) {
 	glCompileShader(s);
 	GLint status = GL_FALSE;
 	glGetShaderiv(s, GL_COMPILE_STATUS, &status);
@@ -596,7 +596,7 @@ bool OglGfxT<Gfx>::CompileShader(NativeShaderRef s) {
 }
 
 template <class Gfx>
-String OglGfxT<Gfx>::GetLastErrorS(NativeShaderRef s) {
+String OglGfxT<Gfx>::GetLastErrorS(NativeShaderPtr s) {
 	GLint loglen = 0;
 	glGetShaderiv(s, GL_INFO_LOG_LENGTH, &loglen);
 	Vector<GLchar> msg;
@@ -685,11 +685,11 @@ template <class Gfx> void OglGfxT<Gfx>::Clear(GVar::BufferType type) {
 	glClear(gl_type);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderRef shdr) {
+template <class Gfx> void OglGfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderPtr shdr) {
 	glAttachShader(prog, shdr);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::DeleteShader(NativeShaderRef& shdr) {
+template <class Gfx> void OglGfxT<Gfx>::DeleteShader(NativeShaderPtr& shdr) {
 	glDeleteShader(shdr);
 }
 
@@ -761,13 +761,13 @@ template <class Gfx> void OglGfxT<Gfx>::TexParameteri(GVar::TextureMode type, GV
 }
 
 template <class Gfx>
-bool OglGfxT<Gfx>::GenTexture(NativeColorBufferRef& fb) {
+bool OglGfxT<Gfx>::GenTexture(NativeColorBufferPtr& fb) {
 	glGenTextures(1, &fb);
 	return true;
 }
 
 template <class Gfx>
-bool OglGfxT<Gfx>::CreateFramebuffer(NativeFrameBufferRef& fbo) {
+bool OglGfxT<Gfx>::CreateFramebuffer(NativeFrameBufferPtr& fbo) {
 	glGenFramebuffersEXT(1, &fbo);
 	return true;
 }
@@ -921,22 +921,22 @@ template <class Gfx> void OglGfxT<Gfx>::DeleteElementBuffer(NativeElementBuffer&
 	glDeleteBuffers(1, &ebo);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::DeleteTexture(NativeColorBufferRef& b) {
+template <class Gfx> void OglGfxT<Gfx>::DeleteTexture(NativeColorBufferPtr& b) {
 	glDeleteTextures(1, &b);
 }
 
 template <class Gfx>
-bool OglGfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferRef& b) {
+bool OglGfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferPtr& b) {
 	glGenRenderbuffersEXT(1, &b);
 	return true;
 }
 
-template <class Gfx> void OglGfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferRef& b) {
+template <class Gfx> void OglGfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferPtr& b) {
 	glDeleteRenderbuffersEXT(1, &b);
 	b = 0;
 }
 
-template <class Gfx> void OglGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferRef& b) {
+template <class Gfx> void OglGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferPtr& b) {
 	glDeleteFramebuffers(1, &b);
 	b = 0;
 }
@@ -995,17 +995,17 @@ template <class Gfx> void OglGfxT<Gfx>::EndRenderObject() {}
 template <class Gfx> void OglGfxT<Gfx>::BeginRender() {}
 template <class Gfx> void OglGfxT<Gfx>::EndRender() {}
 
-template <class Gfx> void OglGfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferRef fb) {
+template <class Gfx> void OglGfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferPtr fb) {
 	// pass
 }
 
-template <class Gfx> void OglGfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferRef b) {
+template <class Gfx> void OglGfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferPtr b) {
 	int i = (int)tgt;
 	GLenum gl_txt = GL_COLOR_ATTACHMENT0_EXT + i;
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, gl_txt, GL_TEXTURE_2D, b, 0);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferRef fb) {
+template <class Gfx> void OglGfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferPtr fb) {
 	glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, fb);
 }
 
@@ -1014,15 +1014,15 @@ template <class Gfx> void OglGfxT<Gfx>::ReadPixels(int x, int y, int w, int h, G
 	glReadPixels(x, y, w, h, GetOglChCode(channels, sample == GVar::SAMPLE_FLOAT), GetGfxType(sample), dst);
 }
 
-template <class Gfx> void OglGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferRef& fb) {
+template <class Gfx> void OglGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 
-template<class Gfx> void OglGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferRef& b) {
+template<class Gfx> void OglGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
 	b = 0;
 }
 
-template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferRef& b) {
+template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
 	b = 0;
 }
 

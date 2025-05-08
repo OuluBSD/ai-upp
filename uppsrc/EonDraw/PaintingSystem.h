@@ -10,9 +10,6 @@ class PaintComponent :
 	public CustomToolComponent {
 	
 public:
-	void Visit(Vis& vis) override {vis.VisitT<CustomToolComponent>(this);}
-	
-	
 	
 	typedef enum : byte  {
 		Idle,
@@ -21,7 +18,7 @@ public:
 		ColorSelection
 	} State;
 	
-	void Serialize(Stream& e) override;
+	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
@@ -53,6 +50,7 @@ public:
 	
 };
 
+using PaintComponentPtr = Ptr<PaintComponent>;
 
 
 class PaintingInteractionSystemBase :
@@ -62,11 +60,9 @@ public:
 	using ToolSys = ToolSystemBaseT<PaintingInteractionSystemBase, PaintComponent>;
 	ECS_SYS_CTOR(PaintingInteractionSystemBase);
 	
-	void Visit(Vis& vis) override {
-		vis.VisitT<ToolSys>(this);
-		for (auto& v : persistent_strokes)
-			for (auto& r : v)
-				vis & r;
+	void Visit(Vis& v) override {
+		v VIS_THIS(ToolSys)
+		v ^ persistent_strokes;
 	}
 	
 	
@@ -76,7 +72,7 @@ public:
 	static constexpr float paint_tip_thickness = 0.008f;
 	static constexpr const char* POOL_NAME = "painting";
 	
-	PoolPtr GetPool() const {return GetEngine().Get<EntityStore>()->GetRoot()->GetAddPool(POOL_NAME);}
+	PoolPtr GetPool() const;
 	
 	void Attach(PaintComponentPtr c);
 	void Detach(PaintComponentPtr c);
@@ -123,7 +119,7 @@ private:
 	};
 	
 	ToolboxSystemBasePtr tb;
-	Array<PaintComponentPtr> comps;
+	Vector<PaintComponentPtr> comps;
 	LinkedList<LinkedList<EntityPtr>> persistent_strokes;
 	bool dbg_model = false;
 	

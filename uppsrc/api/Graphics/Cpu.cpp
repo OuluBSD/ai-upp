@@ -14,7 +14,7 @@ SoftRend& SwGfxT<Gfx>::Rend() {return Local().rend;}
 
 
 template <class Gfx>
-typename SwGfxT<Gfx>::NativeColorBufferConstRef SwGfxT<Gfx>::GetLocalTexture(int ch) {
+typename SwGfxT<Gfx>::NativeColorBufferConstPtr SwGfxT<Gfx>::GetLocalTexture(int ch) {
 	ASSERT(ch >= 0 && ch < CHANNEL_COUNT);
 	return Local().texture[ch].GetReadTexture();
 }
@@ -200,24 +200,24 @@ void SwGfxT<Gfx>::UniformMatrix4fv(int idx, const mat4& mat) {
 }
 
 template <class Gfx>
-bool SwGfxT<Gfx>::CreateShader(GVar::ShaderType t, NativeShaderRef& new_shdr) {
+bool SwGfxT<Gfx>::CreateShader(GVar::ShaderType t, NativeShaderPtr& new_shdr) {
 	new_shdr = new SoftShader();
 	new_shdr->SetType(t);
 	return true;
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::ShaderSource(NativeShaderRef s, String code) {
+void SwGfxT<Gfx>::ShaderSource(NativeShaderPtr s, String code) {
 	s->SetSource(code);
 }
 
 template <class Gfx>
-bool SwGfxT<Gfx>::CompileShader(NativeShaderRef s) {
+bool SwGfxT<Gfx>::CompileShader(NativeShaderPtr s) {
 	return Local().comp.Compile(*s);
 }
 
 template <class Gfx>
-String SwGfxT<Gfx>::GetLastErrorS(NativeShaderRef s) {
+String SwGfxT<Gfx>::GetLastErrorS(NativeShaderPtr s) {
 	return s->GetLastError();
 }
 
@@ -265,12 +265,12 @@ void SwGfxT<Gfx>::Clear(GVar::BufferType type) {
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderRef shdr) {
+void SwGfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderPtr shdr) {
 	prog.Attach(*shdr);
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::DeleteShader(NativeShaderRef& shdr) {
+void SwGfxT<Gfx>::DeleteShader(NativeShaderPtr& shdr) {
 	shdr->Clear();
 	shdr = 0;
 }
@@ -299,21 +299,21 @@ void SwGfxT<Gfx>::TexParameteri(GVar::TextureMode type, GVar::Filter filter, GVa
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::BindFramebuffer(NativeFrameBufferRef fb) {
+void SwGfxT<Gfx>::BindFramebuffer(NativeFrameBufferPtr fb) {
 	auto& l = Local();
 	ASSERT_(!l.fb || (l.ctx_default_fb && l.fb == l.ctx_default_fb), "previous frambuffer have not been unbound");
 	l.fb = fb;
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstRef fb) {
+void SwGfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstPtr fb) {
 	auto& l = Local();
 	ASSERT_(!l.fb || (l.ctx_default_fb && l.fb == l.ctx_default_fb), "previous frambuffer have not been unbound");
 	l.fb = (NativeFrameBufferRef)fb;
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstRef tex) {
+void SwGfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstPtr tex) {
 	auto& l = Local();
 	auto& t = l.T();
 	t.r = tex;
@@ -323,7 +323,7 @@ void SwGfxT<Gfx>::BindTextureRO(GVar::TextureMode type, NativeColorBufferConstRe
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferRef tex) {
+void SwGfxT<Gfx>::BindTextureRW(GVar::TextureMode type, NativeColorBufferPtr tex) {
 	auto& l = Local();
 	auto& t = l.T();
 	t.r = 0;
@@ -368,14 +368,14 @@ void SwGfxT<Gfx>::RenderScreenRect() {
 }
 
 template <class Gfx>
-bool SwGfxT<Gfx>::GenTexture(NativeColorBufferRef& b) {
+bool SwGfxT<Gfx>::GenTexture(NativeColorBufferPtr& b) {
 	ASSERT(!b);
 	b = new ByteImage();
 	return true;
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferRef fb) {
+void SwGfxT<Gfx>::SetContextDefaultFramebuffer(NativeFrameBufferPtr fb) {
 	auto& l = Local();
 	l.ctx_default_fb = fb;
 	if (!l.fb)
@@ -497,7 +497,7 @@ void SwGfxT<Gfx>::DeleteElementBuffer(NativeElementBuffer& ebo) {
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::DeleteTexture(NativeColorBufferRef& b) {
+void SwGfxT<Gfx>::DeleteTexture(NativeColorBufferPtr& b) {
 	ASSERT(b);
 	if (b) {
 		delete b;
@@ -507,7 +507,7 @@ void SwGfxT<Gfx>::DeleteTexture(NativeColorBufferRef& b) {
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferRef& b) {
+void SwGfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferPtr& b) {
 	ASSERT(b);
 	if (b) {
 		delete b;
@@ -517,7 +517,7 @@ void SwGfxT<Gfx>::DeleteRenderbuffer(NativeDepthBufferRef& b) {
 }
 
 template <class Gfx>
-void SwGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferRef& b) {
+void SwGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferPtr& b) {
 	ASSERT(b);
 	if (b)
 		delete b;
@@ -564,13 +564,13 @@ void SwGfxT<Gfx>::EndRender() {
 template <class Gfx> void SwGfxT<Gfx>::SetupVertexStructure() {}
 template <class Gfx> void SwGfxT<Gfx>::ActivateVertexStructure() {}
 
-template <class Gfx> bool SwGfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferRef& b) {
+template <class Gfx> bool SwGfxT<Gfx>::CreateRenderbuffer(NativeDepthBufferPtr& b) {
 	ASSERT(!b);
 	b = new DepthImage();
 	return true;
 }
 
-template <class Gfx> void SwGfxT<Gfx>::BindRenderbuffer(NativeDepthBufferRef rb) {
+template <class Gfx> void SwGfxT<Gfx>::BindRenderbuffer(NativeDepthBufferPtr rb) {
 	Local().depth = rb;
 }
 
@@ -585,12 +585,12 @@ template <class Gfx> void SwGfxT<Gfx>::UnbindRenderbuffer() {
 	Local().depth = 0;
 }
 
-template <class Gfx> bool SwGfxT<Gfx>::CreateFramebuffer(NativeFrameBufferRef& fb) {
+template <class Gfx> bool SwGfxT<Gfx>::CreateFramebuffer(NativeFrameBufferPtr& fb) {
 	fb = new SoftFramebuffer;
 	return true;
 }
 
-template <class Gfx> void SwGfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferRef tex) {
+template <class Gfx> void SwGfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeColorBufferPtr tex) {
 	auto& fb = Local().fb;
 	ASSERT(fb);
 	ASSERT(tex);
@@ -598,7 +598,7 @@ template <class Gfx> void SwGfxT<Gfx>::FramebufferTexture2D(TexType tgt, NativeC
 		fb->SetColor(tgt, tex);
 }
 
-template <class Gfx> void SwGfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferRef depth) {
+template <class Gfx> void SwGfxT<Gfx>::FramebufferRenderbuffer(NativeDepthBufferPtr depth) {
 	auto& fb = Local().fb;
 	ASSERT(fb);
 	ASSERT(depth);
@@ -625,15 +625,15 @@ void SwGfxT<Gfx>::ReadPixels(int x, int y, int w, int h, GVar::Sample sample, in
 	TODO
 }
 
-template <class Gfx> void SwGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferRef& fb) {
+template <class Gfx> void SwGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 
-template<class Gfx> void SwGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferRef& b) {
+template<class Gfx> void SwGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
 	b = 0;
 }
 
-template<class Gfx> void SwGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferRef& b) {
+template<class Gfx> void SwGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
 	b = 0;
 }
 

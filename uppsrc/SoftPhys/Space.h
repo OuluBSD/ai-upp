@@ -16,7 +16,7 @@ struct Space : Object {
 	
 public:
 	Space();
-	void Visit(Vis& vis) override {VIS_THIS(Object);}
+	void Visit(Vis& v) override {VIS_THIS(Object);}
 	void SetWorld(World& w);
 	void Collide(void* data, NearCallback cb);
 	void Add(Geometry& g);

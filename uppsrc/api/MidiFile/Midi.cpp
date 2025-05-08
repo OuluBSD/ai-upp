@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 
 
-MidiFileReaderAtom::MidiFileReaderAtom() {
+MidiFileReaderAtom::MidiFileReaderAtom(MetaNode& n) : Atom(n) {
 	
 }
 
@@ -159,7 +159,7 @@ bool MidiFileReaderAtom::Recv(int sink_ch, const Packet& in) {
 }
 
 bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	
 	if (fmt.IsMidi()) {
 		Vector<byte>& data = out.Data();
@@ -254,7 +254,7 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 
 
-MidiNullAtom::MidiNullAtom() {
+MidiNullAtom::MidiNullAtom(MetaNode& n) : Atom(n) {
 	
 }
 

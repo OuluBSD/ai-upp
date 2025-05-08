@@ -1,5 +1,9 @@
-#ifndef _LocalVR_LocalVR_h_
-#define _LocalVR_LocalVR_h_
+#ifndef _SoftVR_SoftVR_h_
+#define _SoftVR_SoftVR_h_
+
+#ifndef flagLINUX
+	#error SoftVR must be compiled in LINUX
+#endif
 
 // ouvrt commit: 446354fae08f9851658e92d31fe422d21fd3c47f
 

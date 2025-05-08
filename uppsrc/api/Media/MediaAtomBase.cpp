@@ -27,10 +27,10 @@ bool MediaAtomBaseT<Backend>::Initialize(const Eon::WorldState& ws) {
 	//DUMP(ws);
 	
 	
-	InterfaceSourceRef src_iface = GetSource();
+	InterfaceSourcePtr src_iface = GetSource();
 	int src_count = src_iface->GetSourceCount();
 	for(int i = 0; i < src_count; i++) {
-		Format fmt = src_iface->GetSourceValue(i).GetFormat();
+		ValueFormat fmt = src_iface->GetSourceValue(i).GetFormat();
 		if (fmt.IsAudio())
 			audio_ch = i;
 		else if (fmt.IsVideo())
@@ -143,7 +143,7 @@ bool MediaAtomBaseT<Backend>::LoadFileAny(String path) {
 template <class Backend>
 bool MediaAtomBaseT<Backend>::RealizeAudioFormat() {
 	if (audio_ch >= 0) {
-		Format fmt = file_in.GetAudio().GetFormat();
+		ValueFormat fmt = file_in.GetAudio().GetFormat();
 		if (fmt.IsValid()) {
 			Value& audio_src = GetSource()->GetSourceValue(audio_ch);
 			if (fmt != audio_src.GetFormat() && !GetLink()->NegotiateSourceFormat(audio_ch, fmt))
@@ -156,7 +156,7 @@ bool MediaAtomBaseT<Backend>::RealizeAudioFormat() {
 template <class Backend>
 bool MediaAtomBaseT<Backend>::RealizeVideoFormat() {
 	if (video_ch >= 0) {
-		Format fmt = file_in.GetVideo().GetFormat();
+		ValueFormat fmt = file_in.GetVideo().GetFormat();
 		ASSERT(fmt.IsValid());
 		Value& video_src = GetSource()->GetSourceValue(video_ch);
 		if (fmt != video_src.GetFormat() && !GetLink()->NegotiateSourceFormat(video_ch, fmt))
@@ -224,7 +224,7 @@ bool MediaAtomBaseT<Backend>::IsReady(PacketIO& io) {
 template <class Backend>
 bool MediaAtomBaseT<Backend>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	bool succ = true;
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	
 	if (audio_packet_ready && fmt.IsAudio()) {
 		succ = file_in.GetAudio().StorePacket(out); //, time);

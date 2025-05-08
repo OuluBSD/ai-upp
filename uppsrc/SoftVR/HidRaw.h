@@ -1,5 +1,5 @@
-#ifndef __LocalVR_HIDRAW_H__
-#define __LocalVR_HIDRAW_H__
+#ifndef _SoftVR_HIDRAW_H__
+#define _SoftVR_HIDRAW_H__
 
 
 NAMESPACE_HMD_BEGIN

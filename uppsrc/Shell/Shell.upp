@@ -11,8 +11,9 @@ uses
 	api/Volumetric,
 	SoftPhys,
 	SoftAudio,
-	api/Physics,
-	SoftVR;
+	api/Physics;
+
+uses(LINUX & VR) SoftVR;
 
 uses(GUI & VIRTUALGUI) DesktopSuite;
 

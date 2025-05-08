@@ -12,6 +12,7 @@ Body::Body() {
 
 mat43 Body::GetRotationAxisAngle() const {
 	TODO
+	return mat43();
 }
 
 Body& Body::SetWorld(World& w) {
@@ -81,6 +82,7 @@ Body& Body::SetMass(float kg) {
     
     inv_mass = 1.0f / mass.mass;
     #endif
+	return *this;
 }
 
 

@@ -36,7 +36,7 @@ bool EcsViewProg::Render(Draw& fb) {
 	Machine& mach = *state.mach;
 	Ecs::Engine& eng = mach.GetEngine();
 	
-	Ecs::RenderingSystemRef rend = eng.Get<Ecs::RenderingSystem>();
+	Ecs::RenderingSystemPtr rend = eng.Get<Ecs::RenderingSystem>();
 	ASSERT(rend);
 	
 	

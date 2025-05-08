@@ -27,7 +27,7 @@ public:
 	
 	World();
 	
-	void Visit(Vis& vis) override {VIS_THIS(Object); vis % phys_sys;}
+	void Visit(Vis& v) override {VIS_THIS(Object) VISN(phys_sys);}
 	void Collide(Space& space, void* data, NearCallback cb);
 	void Step(float seconds);
 	void AttachThreading(Threading& t);

@@ -1,5 +1,5 @@
-#ifndef __LocalVR_TRACKER_H__
-#define __LocalVR_TRACKER_H__
+#ifndef _SoftVR_TRACKER_H__
+#define _SoftVR_TRACKER_H__
 
 
 NAMESPACE_HMD_BEGIN

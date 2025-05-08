@@ -159,11 +159,11 @@ ModelStateT<Gfx>::~ModelStateT() {
 
 template <class Gfx>
 void ModelStateT<Gfx>::Free() {
-	for (NativeColorBufferRef& t : textures.GetValues())
+	for (NativeColorBufferPtr& t : textures.GetValues())
 		Gfx::DeleteTexture(t);
 	textures.Clear();
 	
-	for (NativeColorBufferRef& t : cube_textures.GetValues())
+	for (NativeColorBufferPtr& t : cube_textures.GetValues())
 		Gfx::DeleteTexture(t);
 	cube_textures.Clear();
 }
@@ -273,7 +273,7 @@ bool ModelStateT<Gfx>::LoadModelTextures(Model& m) {
 	
 	for(int i = 0; i < m.textures.GetCount(); i++) {
 		int id = m.textures.GetKey(i);
-		NativeColorBufferRef& buf = textures.GetAdd(id);
+		NativeColorBufferPtr& buf = textures.GetAdd(id);
 		ByteImage& tex = m.textures[i].img;
 		
 		if (buf || tex.IsEmpty())
@@ -296,7 +296,7 @@ bool ModelStateT<Gfx>::LoadModelTextures(Model& m) {
 	
 	for(int i = 0; i < m.cube_textures.GetCount(); i++) {
 		int id = m.cube_textures.GetKey(i);
-		NativeColorBufferRef& buf = cube_textures.GetAdd(id);
+		NativeColorBufferPtr& buf = cube_textures.GetAdd(id);
 		if (buf)
 			continue;
 		

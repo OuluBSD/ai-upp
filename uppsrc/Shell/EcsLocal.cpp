@@ -1,4 +1,4 @@
-#include "Shell.h"
+#include "EcsShell.h"
 
 NAMESPACE_UPP
 
@@ -14,7 +14,7 @@ void BindGfxBuffer(String id, Parallel::BufferT<Gfx>* b) {
 }*/
 
 void BindEcsToSerial() {
-	using namespace Parallel;
+	
 	
 	//Serial::EcsEventsBase::WhenInitialize << callback(BindEcsEventsBase);
 	

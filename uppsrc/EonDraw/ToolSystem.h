@@ -29,6 +29,7 @@ class ToolSelectorKey :
 	public Component<ToolSelectorKey> {
 	
 public:
+	ECS_COMPONENT_CTOR(ToolSelectorKey)
 	
 	TypeCls type { AsVoidTypeCls() };
 	
@@ -65,7 +66,7 @@ class ToolSystemBaseT :
 public:
 	typedef ToolSystemBaseT<T, ToolComponent> CLASSNAME;
 	ToolSystemBaseT(MetaNode& n) : ToolSystemBase(n) {}
-	void Visit(Vis& vis) override {vis.VisitT<ToolSystemBase>(this); /*vis && m_entities;*/}
+	void Visit(Vis& v) override {VIS_THIS(ToolSystemBase); /*vis && m_entities;*/}
 	TypeCls GetType() const override {return AsTypeCls<T>();}
 	
 protected:

@@ -42,9 +42,9 @@ protected:
 	using NativeDisplay			= typename Gfx::NativeDisplay;
 	using NativeWindow			= typename Gfx::NativeWindow;
 	using NativeRenderer		= typename Gfx::NativeRenderer;
-	using NativeColorBufferRef	= typename Gfx::NativeColorBufferPtr;
-	using NativeFrameBufferRef	= typename Gfx::NativeFrameBufferPtr;
-	using SystemFrameBufferRef	= typename Gfx::SystemFrameBufferPtr;
+	using NativeColorBufferPtr	= typename Gfx::NativeColorBufferPtr;
+	using NativeFrameBufferPtr	= typename Gfx::NativeFrameBufferPtr;
+	using SystemFrameBufferPtr	= typename Gfx::SystemFrameBufferPtr;
 	using ValFormat				= typename Gfx::ValFormat;
 	using RendererInfo			= typename Gfx::NativeRendererInfo;
 	using GLContext				= typename Gfx::NativeGLContext;
@@ -56,7 +56,7 @@ protected:
     NativeWindow			win;
     NativeDisplay			display;
     NativeRenderer			nat_rend;
-    SystemFrameBufferRef	fb = 0;
+    SystemFrameBufferPtr	fb = 0;
 	AtomBase*				ab = NULL;
 	int						fb_stride;
     RendererInfo			rend_info;

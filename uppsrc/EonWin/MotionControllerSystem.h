@@ -17,13 +17,9 @@ struct MotionControllerComponent : Component<MotionControllerComponent>
 };
 
 
-using MotionControllerComponentRef = Ref<MotionControllerComponent>;
+using MotionControllerComponentPtr = Ptr<MotionControllerComponent>;
 
 
-END_UPP_NAMESPACE
-
-
-NAMESPACE_UPP
 
 
 ////////////////////////////////////////////////////////////////////////////////

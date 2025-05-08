@@ -235,8 +235,8 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 		src->Link(ep, sink, src_cookie, sink_cookie);
 		ep->Init(this->GetSpace());
 		ep->Set(src, sink, src_cookie, sink_cookie);
-		src_atom->GetLink()->SetPrimarySink(dst_atom->GetLink()->AsRefT());
-		dst_atom->GetLink()->SetPrimarySource(src_atom->GetLink()->AsRefT());
+		src_atom->GetLink()->SetPrimarySink(dst_atom->GetLink());
+		dst_atom->GetLink()->SetPrimarySource(src_atom->GetLink());
 		#endif
 		return true;
 	}

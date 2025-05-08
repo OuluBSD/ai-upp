@@ -22,11 +22,7 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size psz, P
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_source.h>
 
-#if IS_TS_CORE
-#define STD_CURSOR(name) const Image& Image::name() { return FBImg::name(); }
-#else
 #define STD_CURSOR(name) Image Image::name() { return FBImg::name(); }
-#endif
 
 STD_CURSOR(Arrow)
 STD_CURSOR(Wait)
@@ -46,37 +42,7 @@ STD_CURSOR(SizeBottomRight)
 STD_CURSOR(Hand)
 #undef STD_CURSOR
 
-#if IS_TS_CORE
-#define FBIMG(x) const Image& FBImg::x() {\
-	static Image img;\
-	if (img.IsEmpty())\
-		img = StreamRaster::LoadFileAny(Upp::ShareDirFile("imgs" DIR_SEPS "icons" DIR_SEPS #x ".png")); \
-	return img;\
-}
-FBIMG(close)
-FBIMG(maximize)
-FBIMG(overlap)
-FBIMG(border)
-FBIMG(title)
-FBIMG(bgtitle)
-FBIMG(Arrow)
-FBIMG(Wait)
-FBIMG(IBeam)
-FBIMG(No)
-FBIMG(SizeAll)
-FBIMG(SizeHorz)
-FBIMG(SizeVert)
-FBIMG(SizeTopLeft)
-FBIMG(SizeTop)
-FBIMG(SizeTopRight)
-FBIMG(SizeLeft)
-FBIMG(SizeRight)
-FBIMG(SizeBottomLeft)
-FBIMG(SizeBottom)
-FBIMG(SizeBottomRight)
-FBIMG(Hand)
-#undef FBIMG
-#endif
+
 
 END_UPP_NAMESPACE
 

@@ -4,7 +4,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-void ToolSelectorKey::Serialize(Stream& e) {
+void ToolSelectorKey::Visit(Vis& v) {
 	
 	TODO //e % type; // TypeCls to string
 	

@@ -36,7 +36,7 @@ END_UPP_NAMESPACE
 
 
 CONSOLE_APP_MAIN {
-	using namespace TS;
+	using namespace Upp;
 	Serial::Machine::WhenInitialize << callback(DefaultSerialInitializer);
 	Serial::Machine::WhenPreFirstUpdate << callback(DefaultStartup);
 	Serial::Machine::WhenUserProgram << callback(DesktopMain);

@@ -2,7 +2,7 @@
 #define _Geometry4_Geometry4_h_
 
 #include <Complete/Complete.h>
-using namespace TS;
+using namespace Upp;
 
 
 

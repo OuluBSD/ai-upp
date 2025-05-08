@@ -63,7 +63,7 @@ public:
 	void RemoveModel(ModelComponentPtr m);
 	void RemoveCamera(CameraBase& c);
 	
-	void CalibrationEvent(CtrlEvent& ev);
+	void CalibrationEvent(GeomEvent& ev);
 	
 	
 	#ifdef flagSDL2

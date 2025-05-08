@@ -10,7 +10,13 @@ class PaintComponent :
 	public CustomToolComponent {
 	
 public:
+	CLASSTYPE(PaintComponent)
+	PaintComponent(MetaNode& e) : CustomToolComponent(e) {}
 	
+	#undef Idle
+	#undef Painting
+	#undef ColorSelection
+	#undef State
 	typedef enum : byte  {
 		Idle,
 		Painting,
@@ -74,6 +80,7 @@ public:
 	
 protected:
 	// System
+	Ecs::SystemBase* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Start() override;
 	void Update(double dt) override;
@@ -92,9 +99,9 @@ protected:
 	void Deactivate(EntityPtr entity) override;
 	
 	// ISpatialInteractionListener
-	void OnControllerPressed(const CtrlEvent& e) override;
-	void OnControllerUpdated(const CtrlEvent& e) override;
-	void OnControllerReleased(const CtrlEvent& e) override;
+	void OnControllerPressed(const GeomEvent& e) override;
+	void OnControllerUpdated(const GeomEvent& e) override;
+	void OnControllerReleased(const GeomEvent& e) override;
 	
 private:
 	vec4 SelectColor(double x, double y);

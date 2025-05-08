@@ -377,6 +377,7 @@ public:
 	
 	Image GetResult() { Finish(); return ImageBuffer__::ib; }
 	operator Image()  { return GetResult(); }
+	ImageBuffer& GetImageBuffer() {return ImageBuffer__::ib;}
 };
 
 class DrawPainter : public ImagePainter {

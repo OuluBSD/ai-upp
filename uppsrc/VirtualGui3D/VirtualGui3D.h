@@ -3,75 +3,12 @@
 
 #include <Draw/Draw.h>
 #include <Core2/Core.h>
-#include <StaticInterface/Screen.h>
 
-#if IS_TS_CORE
-
-NAMESPACE_UPP
-
-
-struct VirtualGui3D;
-
-
-class SystemDraw : public DrawProxy {
-public:
-	//RTTI_DECL1(SystemDraw, DrawProxy)
-	
-	bool    CanSetSurface()                         { return false; }
-	static void Flush()                             {}
-};
-
-enum KM {
-	KM_NONE  = 0x00,
-
-	KM_LSHIFT= 0x01,
-	KM_RSHIFT= 0x02,
-	KM_LCTRL = 0x04,
-	KM_RCTRL = 0x08,
-	KM_LALT  = 0x10,
-	KM_RALT  = 0x20,
-
-	KM_CAPS  = 0x40,
-	KM_NUM   = 0x80,
-	
-	KM_CTRL = KM_LCTRL | KM_RCTRL,
-	KM_SHIFT = KM_LSHIFT | KM_RSHIFT,
-	KM_ALT = KM_LALT | KM_RALT,
-};
-
-enum {
-	K_DELTA        = 0x010000,
-
-	K_ALT          = 0x080000,
-	K_SHIFT        = 0x040000,
-	K_CTRL         = 0x020000,
-
-	K_KEYUP        = 0x100000,
-
-	K_MOUSEMIDDLE  = 0x200000,
-	K_MOUSERIGHT   = 0x400000,
-	K_MOUSELEFT    = 0x800000,
-	K_MOUSEDOUBLE  = 0x1000000,
-	K_MOUSETRIPLE  = 0x2000000,
-
-	K_SHIFT_CTRL = K_SHIFT|K_CTRL,
-
-#ifdef PLATFORM_COCOA
-	K_OPTION       = 0x4000000,
-#endif
-
-	IK_DBL_CLICK   = 0x40000001, // this is just to get the info that the entry is equal to dbl-click to the menu
-	
-	K_MOUSE_FORWARD = 0x80000001,
-	K_MOUSE_BACKWARD = 0x80000002,
-};
-
-END_UPP_NAMESPACE
-
-#endif
 
 
 NAMESPACE_UPP
+
+class CtrlEvent;
 
 struct VirtualGui3D {
 	//RTTI_DECL0(VirtualGui3D)
@@ -92,7 +29,7 @@ extern VirtualGui3D* VirtualGui3DPtr;
 
 END_UPP_NAMESPACE
 
-#if IS_TS_CORE
+#if 0
 
 NAMESPACE_UPP
 

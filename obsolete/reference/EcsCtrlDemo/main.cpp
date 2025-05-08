@@ -1,7 +1,7 @@
 #include "EcsCtrlDemo.h"
 
 
-using namespace TS;
+using namespace Upp;
 using namespace UPP;
 
 

@@ -56,7 +56,7 @@ public:
 	
 };
 
-using RenderingSystemRef = Ref<RenderingSystem>;
+using RenderingSystemRef = Ptr<RenderingSystem>;
 
 END_UPP_NAMESPACE
 

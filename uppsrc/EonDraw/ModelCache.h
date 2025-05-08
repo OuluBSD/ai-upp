@@ -26,7 +26,7 @@ public:
 	ModelPtr Attach(Model* mdl);
 	ModelPtr GetAddModelFile(String path);
 	
-	//void CalibrationEvent(CtrlEvent& ev);
+	//void CalibrationEvent(GeomEvent& ev);
 	
 };
 

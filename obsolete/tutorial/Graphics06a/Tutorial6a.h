@@ -3,7 +3,7 @@
 
 #include <Complete/Complete.h>
 #include <AccelCore/AccelCore.h>
-using namespace TS;
+using namespace Upp;
 
 NAMESPACE_UPP
 

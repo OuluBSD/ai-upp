@@ -7,7 +7,7 @@ void TrustNetTest();
 
 CONSOLE_APP_MAIN {
 	using namespace UPP;
-	using namespace TS;
+	using namespace Upp;
 	
 	SetCoutLog();
 	

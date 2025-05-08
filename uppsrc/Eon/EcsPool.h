@@ -68,7 +68,7 @@ public:
 	
 	template<typename PrefabT>
 	EntityPtr Create() {
-		static_assert(TupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
+		static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
 		Entity& e = node.Add<Ecs::Entity>();
 		//e.SetParent(this);
@@ -230,7 +230,7 @@ void ComponentBase::EtherizeRef(Stream& e, Ptr<T>& ref) {
 			Pool& root = ent->GetRoot();
 			ComponentBasePtr comp = root.RealizeComponentPath(path);
 			ASSERT_(comp, "Component path couldn't be realized");
-			ref = comp->AsRef<T>();
+			ref = comp;
 			ASSERT_(ref, "Couldn't get etherized component from path");
 		}
 		else {

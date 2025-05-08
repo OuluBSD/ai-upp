@@ -4,7 +4,7 @@
 
 void GraphTest() {
 	using namespace UPP;
-	using namespace TS;
+	using namespace Upp;
 	
 	enum {ALICE, BOB, CAROLE, DANIEL, MARJORY, BEA, PERSON_COUNT};
 	

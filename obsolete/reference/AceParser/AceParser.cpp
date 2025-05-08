@@ -1,7 +1,6 @@
 #include <Language/Language.h>
 
-using namespace UPP;
-using namespace TS;
+using namespace Upp;
 using namespace Upp::Language;
 
 /*

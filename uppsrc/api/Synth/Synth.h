@@ -117,8 +117,8 @@ template <class Syn> struct SynthInstrumentT : SynInstrument {
 	using CLASSNAME = SynthInstrumentT<Syn>;
 	//RTTI_DECL1(CLASSNAME, SynInstrument)
 	void Visit(Vis& v) override {
-		if (dev) Syn::Instrument_Visit(*dev, *this, vis);
-		vis.VisitThis<SynInstrument>(this);
+		if (dev) Syn::Instrument_Visit(*dev, *this, v);
+		VIS_THIS(SynInstrument);
 	}
 	typename Syn::NativeInstrument* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

@@ -49,7 +49,7 @@ struct PaintComponent : Component<PaintComponent>
     
 };
 
-using PaintComponentRef = Ref<PaintComponent>;
+using PaintComponentPtr = Ptr<PaintComponent>;
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -53,7 +53,7 @@ protected:
 private:
     //Ecs::EntityStoreRef m_entityStore;
     
-    Ref<HolographicScene> m_holoScene;
+    Ptr<HolographicScene> m_holoScene;
 
     std::unique_ptr<SkyboxRenderer> m_skyboxRenderer{ nullptr };
 

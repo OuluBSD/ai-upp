@@ -46,7 +46,7 @@ void FakeSpatialInteractionManager::Update(double dt) {
 		Machine& m = GetActiveMachine();
 		TODO
 		#if 0
-		Ref<LoopStore> ls = m.Find<LoopStore>();
+		Ptr<LoopStore> ls = m.Find<LoopStore>();
 		LoopPtr l = ls->GetRoot();
 		state = l->GetSpace()->FindStateDeep(env_name);
 		if (!state) {

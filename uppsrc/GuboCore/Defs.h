@@ -8,11 +8,11 @@
 #define GUBO					Gu
 #define NAMESPACE_GUBO_BEGIN	\
 	static_assert(!is_in_parallel, "already in gubo"); \
-	namespace TS { namespace NAMESPACE_GUBO_NAME {
+	namespace Upp { namespace NAMESPACE_GUBO_NAME {
 #define NAMESPACE_GUBO_END		}}
 
 
-#if IS_TS_CORE
+#if 0
 #define HAVE_VIRTUALGUI 1
 
 #if HAVE_VIRTUALGUI
@@ -25,7 +25,7 @@
 #endif
 
 
-#if IS_TS_CORE
+#if 0
 #ifndef GUIPLATFORM_INCLUDE
 	#error Build flags prevents GuboCore usage. Probably GUI flag is not set and GuboCore.h is included indirectly.
 #else

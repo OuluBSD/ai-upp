@@ -78,9 +78,9 @@ void ExchangeSourceProvider::Link(ExchangePoint* expt, SinkProv sink, Cookie& sr
 		LOG(s);
 	}
 	base.SetLink(expt, sink);
-	sink->base.SetLink(expt, AsRefT());
+	sink->base.SetLink(expt, this);
 	OnLink(sink, src_c, sink_c);
-	sink->OnLink(AsRefT(), src_c, sink_c);
+	sink->OnLink(this, src_c, sink_c);
 	#endif
 }
 

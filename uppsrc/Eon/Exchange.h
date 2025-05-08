@@ -503,7 +503,7 @@ public:
 		T* o = new T();
 		pts.Add(o);
 		o->SetParent(this);
-		return o->AsRefT();
+		return o;
 	}
 
 	template <class T>
@@ -511,7 +511,7 @@ public:
 		if (o) {
 			pts.Add(o);
 			o->SetParent(this);
-			return o->AsRefT();
+			return o;
 		}
 		else return Ptr<T>();
 	}

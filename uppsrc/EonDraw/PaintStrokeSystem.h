@@ -9,6 +9,7 @@ class PaintStrokeComponent :
 	public Component<PaintStrokeComponent> {
 	
 public:
+	ECS_COMPONENT_CTOR(PaintStrokeComponent)
 	Vector<Square> squares;
 	bool stroke_changed = false;
 	

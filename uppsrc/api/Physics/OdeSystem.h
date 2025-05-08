@@ -259,7 +259,7 @@ public:
 	
 };
 
-using OdeSystemPtr = Ref<OdeSystem>;
+using OdeSystemPtr = Ptr<OdeSystem>;
 
 
 

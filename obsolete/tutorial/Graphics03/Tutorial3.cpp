@@ -7,7 +7,7 @@ Tutorial 3:
 	Source: https://github.com/ssloy/tinyrenderer/wiki/Lesson-3-Hidden-faces-removal-(z-buffer)
 */
 
-using namespace TS;
+using namespace Upp;
 using namespace Upp::Ecs;
 
 

@@ -54,16 +54,8 @@ enum GUI_OPTIONS {
 	GUI_SETCARET       = 0x02,
 };
 
-#if IS_TS_CORE
-struct VirtualGui : RTTIBase
-#else
 struct VirtualGui
-#endif
 {
-	#if IS_TS_CORE
-	RTTI_DECL0(VirtualGui)
-	#endif
-	
 	virtual dword       GetOptions();
 	virtual Size        GetSize() = 0;
 	virtual dword       GetMouseButtons() = 0;
@@ -115,9 +107,6 @@ class ImageDraw : public SImageDraw { // using software renderer
 public:
 	ImageDraw(Size sz) : SImageDraw(sz) {}
 	ImageDraw(int cx, int cy) : SImageDraw(cx, cy) {}
-	#if IS_TS_CORE
-	ImageDraw(Size sz, int channels) : SImageDraw(sz, channels) {}
-	#endif
 };
 
 void DrawDragRect(SystemDraw& w, const Rect& rect1, const Rect& rect2, const Rect& clip, int n,

@@ -19,7 +19,9 @@ bool HitTest(vec3 positionA, vec3 positionB, float diameter) {
 
 
 
-void ToolComponent::Serialize(Stream& e) {
+void ToolComponent::Visit(Vis& v) {
+	TODO
+	#if 0
 	e % title
 	  % description;
 	
@@ -28,23 +30,26 @@ void ToolComponent::Serialize(Stream& e) {
 	EtherizeRef(e, active_hand);
 	
 	TODO // tool_type TypeCId
+	#endif
 }
 
 void ToolComponent::Initialize() {
 	ToolboxSystemBasePtr sys = GetEngine().TryGet<ToolboxSystemBase>();
 	if (sys)
-		sys->Attach(AsRefT());
+		sys->Attach(this);
 }
 
 void ToolComponent::Uninitialize() {
 	ToolboxSystemBasePtr sys = GetEngine().TryGet<ToolboxSystemBase>();
 	if (sys)
-		sys->Detach(AsRefT());
+		sys->Detach(this);
 }
 
 bool ToolComponent::Arg(String key, Value value) {
 	if (key == "hand") {
 		String path = value;
+		TODO
+		#if 0
 		EntityStorePtr es = GetEngine().Get<EntityStore>();
 		EntityPtr hand_ent = es->FindEntity(path);
 		if (!hand_ent) {
@@ -56,6 +61,7 @@ bool ToolComponent::Arg(String key, Value value) {
 			LOG("ToolComponent::Arg: error: entity does not have PlayerHandComponent: " << path);
 			return false;
 		}
+		#endif
 	}
 	return true;
 }
@@ -63,7 +69,7 @@ bool ToolComponent::Arg(String key, Value value) {
 void ToolComponent::SwitchOff() {
 	if (active_tool) {
 		active_tool->SetEnabled(false);
-		active_tool.Clear();
+		active_tool = 0;
 		RefreshModel();
 	}
 }
@@ -76,7 +82,7 @@ void ToolComponent::SwitchNext() {
 		return;
 	
 	int idx = -1;
-	if (active_tool.IsEmpty())
+	if (!active_tool)
 		idx = 0;
 	else {
 		int i = 0;
@@ -141,14 +147,14 @@ void ToolComponent::RefreshModel() {
 
 
 bool ToolboxSystemBase::Initialize() {
-	if (!InteractionListener::Initialize(GetEngine(), AsRefT<InteractionListener>()))
+	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
 	return true;
 }
 
 void ToolboxSystemBase::Uninitialize() {
-	InteractionListener::Uninitialize(GetEngine(), AsRefT<InteractionListener>());
+	InteractionListener::Uninitialize(GetEngine(), this);
 	
 }
 
@@ -182,9 +188,10 @@ void ToolboxSystemBase::RemoveToolSystem(ToolSystemBasePtr system) {
 }
 
 void ToolboxSystemBase::Start() {
+	TODO
+	#if 0
 	auto es = GetEngine().Get<EntityStore>();
 	
-	#if 0
 	for (size_t i = 0; i < ctrls.GetCount(); ++i) {
 		const ControllerHand hand = static_cast<ControllerHand>(i);
 		ctrls[i].hand = hand;
@@ -217,7 +224,7 @@ void ToolboxSystemBase::Stop() {
 	
 }
 
-void ToolboxSystemBase::OnControllerPressed(const CtrlEvent& e) {
+void ToolboxSystemBase::OnControllerPressed(const GeomEvent& e) {
 	
 #if 0
 	if (args.State().Source().Kind() != SpatialInteractionSourceKind::Controller)
@@ -318,7 +325,7 @@ void ToolboxSystemBase::Update(double dt) {
 			
 			for (auto& selector : selector_objects) {
 				const float offset = (i - floorf(selector_objects.GetCount() / 2.f)) / selector_objects.GetCount();
-				selector->Get<Easing>()->target_position = vec3{ offset, 1.25f, -5.f };
+				selector->Get<Easing>().target_position = vec3{ offset, 1.25f, -5.f };
 				++i;
 			}
 		}
@@ -350,7 +357,7 @@ void ToolboxSystemBase::Update(double dt) {
 }
 
 void ToolboxSystemBase::SwitchToolType(EntityPtr entity, const TypeId& new_type) {
-	ToolComponentPtr tool = entity->Get<ToolComponent>();
+	ToolComponentPtr tool = entity->Find<ToolComponent>();
 	
 	TODO
 	#if 0

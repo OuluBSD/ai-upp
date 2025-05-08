@@ -3,7 +3,7 @@
 
 // This file is generated. Do not modify this file.
 
-namespace TS {
+namespace Upp {
 
 namespace Parallel {
 

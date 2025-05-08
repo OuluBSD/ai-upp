@@ -8,7 +8,7 @@ class ComponentBase;
 class SystemBase;
 
 template <typename Base, typename... Ts>
-using AllRefBaseOf = IsAllTrue<std::is_base_of<Base, typename Ts::Type>::value...>;
+using AllPtrBaseOf = IsAllTrue<std::is_base_of<Base, typename Ts::Type>::value...>;
 
 template<typename T>
 using IsComponent = std::is_base_of<Ecs::ComponentBase, T>;
@@ -26,7 +26,13 @@ template <typename Tuple>
 struct TupleAllComponents : std::false_type {};
 
 template <typename... Ts>
-struct TupleAllComponents<Tuple<Ts...>> : AllRefBaseOf<Ecs::ComponentBase, Ts...> {};
+struct TupleAllComponents<Tuple<Ts...>> : AllPtrBaseOf<Ecs::ComponentBase, Ts...> {};
+
+template <typename Tuple>
+struct RTupleAllComponents : std::false_type {};
+
+template <typename... Ts>
+struct RTupleAllComponents<RTuple<Ts...>> : AllPtrBaseOf<Ecs::ComponentBase, Ts...> {};
 
 }
 

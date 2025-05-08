@@ -4,10 +4,6 @@
 NAMESPACE_UPP
 	
 struct AtomVirtualGui3D : VirtualGui3D {
-	#if IS_TS_CORE
-	//RTTI_DECL1(AtomVirtualGui3D, VirtualGui3D)
-	#endif
-	
 	virtual dword       GetOptions();
 	virtual dword       GetMouseButtons();
 	virtual dword       GetModKeys();

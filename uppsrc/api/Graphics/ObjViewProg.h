@@ -26,7 +26,7 @@ struct ObjViewProg :
 	
 	ObjViewProg();
 	void operator=(const ObjViewProg& t) {Panic("Can't copy ObjViewProgT");}
-	void Visit(Vis& v) override {v % loader;}
+	void Visit(Vis& v) override {v VISN(loader);}
 	void Initialize() override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;

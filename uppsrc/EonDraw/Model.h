@@ -7,7 +7,7 @@ namespace Ecs {
 class Renderable : public Component<Renderable> {
 	
 public:
-	CLASSTYPE(Renderable);
+	ECS_COMPONENT_CTOR(Renderable);
 	RGBA color;
 	mat4 offset;
 	float alpha_multiplier;
@@ -47,6 +47,7 @@ class ModelComponent :
 {
 	
 public:
+	ECS_COMPONENT_CTOR(ModelComponent)
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;

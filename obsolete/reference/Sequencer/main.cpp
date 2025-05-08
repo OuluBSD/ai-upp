@@ -3,7 +3,7 @@
 
 GUI_APP_MAIN {
 	using namespace UPP;
-	using namespace TS;
+	using namespace Upp;
 	
 	GetMidi();
 	

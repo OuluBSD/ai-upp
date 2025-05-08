@@ -2,7 +2,7 @@
 
 
 CONSOLE_APP_MAIN {
-	using namespace TS;
+	using namespace Upp;
 	CompilationUnit	cu;
 	Namespace&		ns = cu.GetAddNamespace("TS");
 	Class&			atom_base = ns.GetAddClass("AtomBase");

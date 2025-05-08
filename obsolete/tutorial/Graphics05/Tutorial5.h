@@ -2,7 +2,7 @@
 #define _Tutorial5_Tutorial5_h_
 
 #include <Complete/Complete.h>
-using namespace TS;
+using namespace Upp;
 
 
 

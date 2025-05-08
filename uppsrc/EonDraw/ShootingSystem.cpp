@@ -4,14 +4,14 @@ NAMESPACE_UPP namespace Ecs {
 
 
 bool ShootingInteractionSystemBase::Initialize() {
-	if (!InteractionListener::Initialize(GetEngine(), AsRefT<InteractionListener>()))
+	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
 	return true;
 }
 
 void ShootingInteractionSystemBase::Uninitialize() {
-	InteractionListener::Uninitialize(GetEngine(), AsRefT<InteractionListener>());
+	InteractionListener::Uninitialize(GetEngine(), this);
 }
 
 void ShootingInteractionSystemBase::Attach(ShootingComponentPtr c) {
@@ -20,8 +20,8 @@ void ShootingInteractionSystemBase::Attach(ShootingComponentPtr c) {
 	// The "barrel_to_ctrl" is to transform from the tip of the barrel to the location of the controller
 	const mat4 barrel_to_ctrl = Translate(vec3(0.0f, 0.0675f, 0.0f)) * XRotation(ConvertToRadians(-10));
 	
-	Ref<Entity> entity = c->GetEntity();
-	entity->Get<ShootingComponent>()->barrel_to_ctrl = barrel_to_ctrl;
+	Ptr<Entity> entity = c->GetEntity();
+	entity->Get<ShootingComponent>().barrel_to_ctrl = barrel_to_ctrl;
 }
 
 void ShootingInteractionSystemBase::Detach(ShootingComponentPtr c) {
@@ -39,8 +39,8 @@ String ShootingInteractionSystemBase::GetDisplayName() const {
 
 EntityPtr ShootingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = GetPool()->Create<ToolSelectorPrefab>();
-	selector->Get<ModelComponent>()->SetPrefabModel("Gun");
-	selector->Get<ToolSelectorKey>()->type = GetType();
+	selector->Get<ModelComponent>().SetPrefabModel("Gun");
+	selector->Get<ToolSelectorKey>().type = GetType();
 	return selector;
 }
 
@@ -53,18 +53,18 @@ void ShootingInteractionSystemBase::Unregister() {
 }
 
 void ShootingInteractionSystemBase::Activate(EntityPtr entity) {
-	entity->Get<ModelComponent>()->SetEnabled(false);
+	entity->Get<ModelComponent>().SetEnabled(false);
 }
 
 void ShootingInteractionSystemBase::Deactivate(EntityPtr entity) {
-	entity->Get<ModelComponent>()->SetEnabled(true);
+	entity->Get<ModelComponent>().SetEnabled(true);
 }
 
-void ShootingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
+void ShootingInteractionSystemBase::OnControllerReleased(const GeomEvent& e) {
 	// pass
 }
 
-void ShootingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
+void ShootingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 	
 	if (e.type == EVENT_HOLO_PRESSED && e.value == ControllerMatrix::TRIGGER) {
 		for (ShootingComponentPtr& shooting : comps) {
@@ -96,9 +96,9 @@ void ShootingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
 			
 			// Create bullet and send it on it's merry way
 			EntityPtr bullet = GetPool()->Create<Bullet>();
-			TransformPtr bullet_trans = bullet->Get<Transform>();
-			RigidBodyPtr bullet_rbody = bullet->Get<RigidBody>();
-			PhysicsBodyPtr bullet_pbody = bullet->Get<PhysicsBody>();
+			TransformPtr bullet_trans = bullet->Find<Transform>();
+			RigidBodyPtr bullet_rbody = bullet->Find<RigidBody>();
+			PhysicsBodyPtr bullet_pbody = bullet->Find<PhysicsBody>();
 			bullet_trans->data.position = position;
 			bullet_trans->data.orientation = orientation;
 			bullet_rbody->velocity = bullet_velocity;
@@ -109,7 +109,7 @@ void ShootingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
 	}
 }
 
-void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
+void ShootingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 	for (ShootingComponentPtr& shooting : comps) {
 		if (!shooting->IsEnabled()) continue;
 		
@@ -121,6 +121,10 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 		bool should_render_controller = e.ctrl->ctrl[1].IsGrasped();
 		model->color[3] = should_render_controller ? 0.25f : 1.0f;
 	}
+}
+
+PoolPtr ShootingInteractionSystemBase::GetPool() const {
+	return node.FindOwner<Pool>();
 }
 
 
@@ -138,36 +142,34 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
 
 
 void ShootingComponent::Visit(Vis& v) {
+	TODO
+	#if 0
 	CustomToolComponent::Etherize(e);
 	
 	e % bullet_speed
 	  % barrel_to_ctrl;
-	
-	v VIS_THIS(CustomToolComponent);
+	#endif
+	VIS_THIS(CustomToolComponent);
 }
 
 void ShootingComponent::Initialize() {
 	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
 	if (tool)
-		tool->AddTool(AsRefT<ComponentBase>());
+		tool->AddTool(this);
 	
-	Ref<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
+	Ptr<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
 	if (sys)
-		sys-> Attach(AsRefT());
+		sys-> Attach(this);
 }
 
 void ShootingComponent::Uninitialize() {
 	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
 	if (tool)
-		tool->RemoveTool(AsRefT<ComponentBase>());
+		tool->RemoveTool(this);
 	
-	Ref<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
+	Ptr<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
 	if (sys)
-		sys->Detach(AsRefT());
-}
-
-PoolPtr ShootingComponent::GetPool() const {
-	return node.FindOwner<Pool>();
+		sys->Detach(this);
 }
 
 bool ShootingComponent::LoadModel(ModelComponent& mdl) {
@@ -181,7 +183,7 @@ bool ShootingComponent::LoadModel(ModelComponent& mdl) {
 	mdl.SetModel(m);
 	
 	if (0) {
-		Ref<ModelComponent> m = GetEntity()->Find<ModelComponent>();
+		Ptr<ModelComponent> m = GetEntity()->Find<ModelComponent>();
 		ASSERT(m);
 		if (m) {
 			m->SetRotation(ConvertToRadians(180), ConvertToRadians(70), 0.0f);

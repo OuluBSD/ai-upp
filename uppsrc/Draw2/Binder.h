@@ -19,7 +19,7 @@ typedef void			Void;
 typedef float			TimeSpan;
 
 class EnvState;
-class CtrlEvent;
+struct GeomEvent;
 struct DrawCommand;
 
 
@@ -28,7 +28,7 @@ class BinderIfaceEvents {
 public:
 	virtual ~BinderIfaceEvents() {}
 	
-	virtual void Dispatch(const CtrlEvent& state) = 0;
+	virtual void Dispatch(const GeomEvent& state) = 0;
 	
 };
 

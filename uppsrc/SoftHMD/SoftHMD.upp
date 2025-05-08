@@ -14,8 +14,8 @@ library(FREEBSD) hidapi;
 file
 	README.md,
 	Copying,
-	LocalHMD.h,
-	LocalHMD.cpp,
+	SoftHMD.h,
+	SoftHMD.cpp,
 	Daemon.h,
 	Daemon.cpp,
 	System.h,

@@ -1,6 +1,6 @@
 #include <Local/Local.h>
 
-using namespace TS;
+using namespace Upp;
 using namespace UPP;
 
 struct IdParser0 {

@@ -9,50 +9,50 @@ void Renderable::Initialize() {
 	Engine& e = GetEngine();
 	RenderingSystemPtr rend = e.TryGet<RenderingSystem>();
 	if (rend)
-		rend->AddRenderable(AsRef<ComponentBase>());
+		rend->AddRenderable(this);
 }
 
 void Renderable::Uninitialize() {
 	Engine& e = GetEngine();
 	RenderingSystemPtr rend = e.TryGet<RenderingSystem>();
 	if (rend)
-		rend->RemoveRenderable(AsRef<ComponentBase>());
+		rend->RemoveRenderable(this);
 }
 
-void Renderable::Serialize(Stream& e) {
-	e % color % offset % alpha_multiplier;
+void Renderable::Visit(Vis& v) {
+	TODO//e % color % offset % alpha_multiplier;
 }
 
 
 
 void RenderingSystem::AddViewable(ViewablePtr v) {
 	ASSERT(v);
-	ArrayFindAdd(views, v);
+	VectorFindAdd(views, v);
 }
 
 void RenderingSystem::RemoveViewable(ViewablePtr v) {
 	ASSERT(v);
-	ArrayRemoveKey(views, v);
+	VectorRemoveKey(views, v);
 }
 
 void RenderingSystem::AddRenderable(RenderablePtr b) {
 	ASSERT(b);
-	ArrayFindAdd(rends, b);
+	VectorFindAdd(rends, b);
 }
 
 void RenderingSystem::RemoveRenderable(RenderablePtr b) {
 	ASSERT(b);
-	ArrayRemoveKey(rends, b);
+	VectorRemoveKey(rends, b);
 }
 
 void RenderingSystem::AddModel(ModelComponentPtr m) {
 	ASSERT(m);
-	ArrayFindAdd(models, m);
+	VectorFindAdd(models, m);
 }
 
 void RenderingSystem::RemoveModel(ModelComponentPtr m) {
 	ASSERT(m);
-	ArrayRemoveKey(models, m);
+	VectorRemoveKey(models, m);
 }
 
 void RenderingSystem::AddCamera(CameraBase& c) {
@@ -110,7 +110,7 @@ bool RenderingSystem::Arg(String key, Value value) {
 	return true;
 }
 
-void RenderingSystem::CalibrationEvent(CtrlEvent& ev) {
+void RenderingSystem::CalibrationEvent(GeomEvent& ev) {
 	
 	if (ev.type == EVENT_HOLO_CALIB) {
 		calib.is_enabled = true;

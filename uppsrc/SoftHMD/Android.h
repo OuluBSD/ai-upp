@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_ANDROID_H
-#define _LocalHMD_ANDROID_H
+#ifndef _SoftHMD_ANDROID_H
+#define _SoftHMD_ANDROID_H
 
 
 NAMESPACE_HMD_BEGIN

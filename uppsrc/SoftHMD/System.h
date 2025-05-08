@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_System_h_
-#define _LocalHMD_System_h_
+#ifndef _SoftHMD_System_h_
+#define _SoftHMD_System_h_
 
 NAMESPACE_HMD_BEGIN
 
@@ -15,7 +15,7 @@ struct System {
 	const char* fragment;
 	const char* vertex;
 	Size screen_sz;
-	CtrlEvent ev;
+	GeomEvent ev;
 	ControllerMatrix ev3d;
 	TransformMatrix trans;
 	bool has_initial_orient;
@@ -48,7 +48,7 @@ struct System {
 	void BackgroundProcess();
 	void UpdateData();
 	
-	Callback1<CtrlEvent&> WhenSensorEvent;
+	Callback1<GeomEvent&> WhenSensorEvent;
 	
 };
 

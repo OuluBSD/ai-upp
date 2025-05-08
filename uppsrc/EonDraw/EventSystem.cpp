@@ -27,7 +27,9 @@ void EventSystem::Stop() {
 }
 
 void EventSystem::Uninitialize() {
+	#ifdef flagSCREEN
 	EventStateBase::RemoveBinder(this);
+	#endif
 }
 
 

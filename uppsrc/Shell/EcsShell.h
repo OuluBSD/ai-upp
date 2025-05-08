@@ -7,7 +7,6 @@
 #include <Eon/Eon.h>
 #include <EonDraw/EonDraw.h>
 #include <EonLib/EonLib.h>
-#include <Physics/Physics.h>
 
 
 #ifdef flagGUI

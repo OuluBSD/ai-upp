@@ -1,10 +1,13 @@
 #include "EonDraw.h"
+#include <api/Graphics/Graphics.h>
 
 
 NAMESPACE_UPP namespace Ecs {
 
 
 void ModelComponent::Visit(Vis& v) {
+	TODO
+	#if 0
 	e % color
 	  % prefab_name
 	  % skybox_diffuse
@@ -37,6 +40,7 @@ void ModelComponent::Visit(Vis& v) {
 	}
 	
 	v & model
+	#endif
 }
 
 void ModelComponent::Initialize() {
@@ -52,7 +56,7 @@ void ModelComponent::Initialize() {
 	model_changed = false;
 	
 	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->AddModel(AsRefT());
+	rend->AddModel(this);
 	
 }
 
@@ -60,7 +64,7 @@ void ModelComponent::Uninitialize() {
 	Clear();
 	
 	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->RemoveModel(AsRefT());
+	rend->RemoveModel(this);
 	
 }
 
@@ -117,7 +121,7 @@ bool ModelComponent::Arg(String key, Value value) {
 		skybox_irradiance = value;
 	}
 	else if (key == "texture") {
-		Ref<Model> mdl = loader.GetModel();
+		Ptr<Model> mdl = loader.GetModel();
 		if (mdl && mdl->GetMeshCount()) {
 			String path = RealizeShareFile(value);
 			Image img = StreamRaster::LoadFileAny(path);
@@ -137,15 +141,15 @@ bool ModelComponent::Arg(String key, Value value) {
 		model = loader.GetModel();
 		return true;
 	}
-	else if (key == "x") {offset[0] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "y") {offset[1] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "z") {offset[2] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "cx") {scale[0] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "cy") {scale[1] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "cz") {scale[2] = value.ToFloat(); RefreshExtModel();}
-	else if (key == "pitch") {pitch = DEG2RADf(value.ToFloat()); RefreshExtModel();}
-	else if (key == "yaw") {yaw = DEG2RADf(value.ToFloat()); RefreshExtModel();}
-	else if (key == "roll") {roll = DEG2RADf(value.ToFloat()); RefreshExtModel();}
+	else if (key == "x") {offset[0] = value; RefreshExtModel();}
+	else if (key == "y") {offset[1] = value; RefreshExtModel();}
+	else if (key == "z") {offset[2] = value; RefreshExtModel();}
+	else if (key == "cx") {scale[0] = value; RefreshExtModel();}
+	else if (key == "cy") {scale[1] = value; RefreshExtModel();}
+	else if (key == "cz") {scale[2] = value; RefreshExtModel();}
+	else if (key == "pitch") {pitch = DEG2RADf((float)value); RefreshExtModel();}
+	else if (key == "yaw") {yaw = DEG2RADf((float)value); RefreshExtModel();}
+	else if (key == "roll") {roll = DEG2RADf((float)value); RefreshExtModel();}
 	else if (key == "always.enabled") {always_enabled = value.ToString() == "true";}
 	else {
 		LOG("ModelComponent::Arg: error: invalid key '" << key << "'");
@@ -226,7 +230,7 @@ void ModelComponent::Clear() {
 	if (gfx_state && gfx_hash > 0) {
 		gfx_state->GetModel(gfx_hash).Clear();
 	}
-	model.Clear();
+	model = 0;
 	loader.Clear();
 	model_changed = true;
 	gfx_state = 0;

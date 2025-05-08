@@ -10,7 +10,7 @@ ProgImage::ProgImage() {
 	
 }
 
-void ProgImage::Paint(const DrawCommand* begin, const DrawCommand* end, ImageDraw& id) {
+void ProgImage::Paint(const DrawCommand* begin, const DrawCommand* end, ImagePainter& id) {
 	draw.SetTarget(&id);
 	draw.Process(begin, end);
 }

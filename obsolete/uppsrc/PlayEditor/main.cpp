@@ -1,7 +1,7 @@
 #include "PlayEditor.h"
 
 #ifdef flagMAIN
-using namespace TS;
+using namespace Upp;
 
 GUI_APP_MAIN {
 	

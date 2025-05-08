@@ -44,7 +44,7 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 		EntityPtr e = es->FindEntity(value);
 		if (e) {
 			PlayerBodyComponentPtr bc = e->Find<PlayerBodyComponent>();
-			if (bc && bc->SetHand((PlayerHandedness)req_hand, AsRefT())) {
+			if (bc && bc->SetHand((PlayerHandedness)req_hand, this)) {
 				body = bc;
 			}
 		}
@@ -89,7 +89,7 @@ bool PlayerHeadComponent::Arg(String key, Value value) {
 		EntityPtr e = es->FindEntity(value);
 		if (e) {
 			PlayerBodyComponentPtr bc = e->Find<PlayerBodyComponent>();
-			if (bc && bc->SetHead(AsRefT())) {
+			if (bc && bc->SetHead(this)) {
 				body = bc;
 			}
 		}

@@ -4,7 +4,7 @@
 #include <Local/Local.h>
 #include <High/High.h>
 #include <Backend/Backend.h>
-using namespace TS;
+using namespace Upp;
 
 
 struct Tester : Compiler {

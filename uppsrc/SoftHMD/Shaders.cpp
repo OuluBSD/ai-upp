@@ -1,4 +1,4 @@
-#include "LocalHMD.h"
+#include "SoftHMD.h"
 
 
 NAMESPACE_HMD_BEGIN

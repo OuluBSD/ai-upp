@@ -75,8 +75,8 @@ public:
 
 using GuboSystem = HandleSystemT<Ctx3D>;
 using SurfaceSystem = HandleSystemT<Ctx2D>;
-using GuboSystemRef = Ref<GuboSystem>;
-using SurfaceSystemRef = Ref<SurfaceSystem>;
+using GuboSystemPtr = Ptr<GuboSystem>;
+using SurfaceSystemPtr = Ptr<SurfaceSystem>;
 
 NAMESPACE_GUBO_END
 

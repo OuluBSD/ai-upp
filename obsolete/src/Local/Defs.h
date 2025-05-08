@@ -14,7 +14,7 @@
 #define PARALLEL					Parallel
 #define NAMESPACE_PARALLEL_BEGIN	\
 	static_assert(!is_in_parallel, "already in parallel"); \
-	namespace TS { namespace NAMESPACE_PARALLEL_NAME {
+	namespace Upp { namespace NAMESPACE_PARALLEL_NAME {
 #define NAMESPACE_PARALLEL_END		}}
 
 

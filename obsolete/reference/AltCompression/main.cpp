@@ -1,7 +1,6 @@
 #include <Local/Local.h>
 
-using namespace UPP;
-using namespace TS;
+using namespace Upp;
 
 void Print(int lvl, String s) {
 	String e, l;

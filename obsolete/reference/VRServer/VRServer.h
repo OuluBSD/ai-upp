@@ -2,7 +2,7 @@
 #define _VRServer_VRServer_h_
 
 #include <LocalVR/LocalVR.h>
-using namespace TS;
+using namespace Upp;
 
 
 #endif

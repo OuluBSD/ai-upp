@@ -64,6 +64,7 @@
 #include <Geometry/Geometry.h>
 #include <Eon/Eon.h>
 #include <SoftRend/SoftRend.h>
+#include <Painter/Painter.h>
 
 
 typedef float			Gxf;

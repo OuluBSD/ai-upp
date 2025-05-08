@@ -75,14 +75,14 @@ class ProgImage {
 	
 public:
 	ProgImage();
-	void Paint(const DrawCommand* begin, const DrawCommand* end, ImageDraw& id);
+	void Paint(const DrawCommand* begin, const DrawCommand* end, ImagePainter& id);
 	
 	void SkipWindowCommands(bool b=true);
 };
 
 class DrawCommandImageRenderer {
 	ProgImage pi;
-	One<ImageDraw> id;
+	One<ImagePainter> id;
 	Image img;
 	Size sz;
 	

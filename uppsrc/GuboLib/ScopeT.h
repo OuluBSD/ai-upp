@@ -162,8 +162,8 @@ public:
 
 using GuboManager = ScopeT<Ctx3D>;
 using SurfaceManager = ScopeT<Ctx2D>;
-using GuboManagerRef = Ref<GuboManager>;
-using SurfaceManagerRef = Ref<SurfaceManager>;
+using GuboManagerPtr = Ptr<GuboManager>;
+using SurfaceManagerPtr = Ptr<SurfaceManager>;
 
 
 NAMESPACE_GUBO_END

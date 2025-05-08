@@ -46,7 +46,7 @@ template <class AFO> struct AudioFileOutSinkT : AFOSink {
 	//RTTI_DECL1(CLASSNAME, AFOSink)
 	void Visit(Vis& v) override {
 		if (dev) AFO::Sink_Visit(*dev, *this, v);
-		v.VisitThis<AFOSink>(this);
+		VIS_THIS(AFOSink);
 	}
 	typename AFO::NativeSink* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

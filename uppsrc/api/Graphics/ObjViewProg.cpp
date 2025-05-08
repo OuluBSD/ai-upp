@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 
 ObjViewProg::ObjViewProg() {
-	sz = Size(Upp::default_width, Upp::default_height);
+	sz = Size(VideoFormat::default_width, VideoFormat::default_height);
 	
 	if (0) {
 		obj = "cube.obj";

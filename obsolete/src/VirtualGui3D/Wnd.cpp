@@ -84,7 +84,7 @@ void Ctrl::PaintScene(SystemDraw& draw) {
 void Ctrl::Invalidate() {
 	TODO
 	#if 0
-	using namespace TS;
+	using namespace Upp;
 	static Ref<Ecs::WindowSystem> win;
 	if (!win) {
 		TODO

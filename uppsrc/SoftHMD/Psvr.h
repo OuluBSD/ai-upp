@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_PSVR_H
-#define _LocalHMD_PSVR_H
+#ifndef _SoftHMD_PSVR_H
+#define _SoftHMD_PSVR_H
 
 
 NAMESPACE_HMD_BEGIN

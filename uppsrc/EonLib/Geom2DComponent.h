@@ -179,7 +179,7 @@ public:
 	virtual void ChildMouseEvent(Ctrl *child, int event, Point p, int zdelta, dword keyflags);
 };
 
-using Geom2DComponentRef = Ref<Geom2DComponent>;
+using Geom2DComponentRef = Ptr<Geom2DComponent>;
 
 
 struct Geom2DComponentLink : public Component<Geom2DComponentLink> {
@@ -202,7 +202,7 @@ struct Geom2DComponentLink : public Component<Geom2DComponentLink> {
 	
 };
 
-using Geom2DComponentLinkRef = Ref<Geom2DComponentLink>;
+using Geom2DComponentLinkRef = Ptr<Geom2DComponentLink>;
 
 
 struct Window2D :

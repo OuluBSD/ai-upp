@@ -1,4 +1,4 @@
-description "Libtopside main package\377";
+description "Topside main application\377";
 
 uses
 	api/MidiFile,

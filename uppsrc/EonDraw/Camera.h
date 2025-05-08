@@ -11,7 +11,7 @@ class Viewable :
 {
 	
 public:
-	CLASSTYPE(Viewable)
+	ECS_COMPONENT_CTOR(Viewable)
 	void Visit(Vis& v) override {}
 	void Initialize() override;
 	void Uninitialize() override;
@@ -28,7 +28,7 @@ using ViewablePtr = Ptr<Viewable>;
 
 class Viewport : public Component<Viewport> {
 public:
-	CLASSTYPE(Viewport)
+	ECS_COMPONENT_CTOR(Viewport)
 	vec3 target = zero<vec3>();
 	double fov = M_PI/2;
 	double angle = 0;
@@ -46,7 +46,7 @@ public:
 	
 };
 
-using ViewportPtr = Ptr<Viewable>;
+using ViewportPtr = Ptr<Viewport>;
 
 struct CameraBase : Pte<CameraBase>
 {
@@ -91,7 +91,7 @@ class ChaseCam :
 	float GetUsedFov();
 	
 public:
-	CLASSTYPE(ChaseCam)
+	ECS_COMPONENT_CTOR(ChaseCam)
 	
 	void Visit(Vis& v) override {VIS_THIS(ComponentT); v & target & viewable & vport;}
 	void Initialize() override;

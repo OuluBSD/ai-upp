@@ -355,7 +355,7 @@ END_UPP_NAMESPACE
 
 
 GUI_APP_MAIN {
-	using namespace TS;
+	using namespace Upp;
 	
 	SetCoutLog();
 	

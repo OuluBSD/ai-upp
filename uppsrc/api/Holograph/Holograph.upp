@@ -5,7 +5,7 @@ uses
 
 uses(LINUX) plugin/hcidump;
 
-uses(LOCALHMD) SoftHMD;
+uses(SOFTHMD) SoftHMD;
 
 library(LINUX & OPENHMD) "openhmd hidapi-libusb";
 

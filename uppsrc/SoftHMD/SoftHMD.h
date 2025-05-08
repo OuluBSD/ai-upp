@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_LocalHMD_h_
-#define _LocalHMD_LocalHMD_h_
+#ifndef _SoftHMD_SoftHMD_h_
+#define _SoftHMD_SoftHMD_h_
 
 // openhmd commit: dfac0203376552c5274976c42f0757b31310c483
 
@@ -43,9 +43,10 @@
 
 
 #include <Geometry/Geometry.h>
+#include <Eon/Eon.h>
 
 
-#define NAMESPACE_HMD_BEGIN		namespace TS { namespace HMD {
+#define NAMESPACE_HMD_BEGIN		namespace Upp { namespace HMD {
 #define NAMESPACE_HMD_END		}}
 
 

@@ -1,13 +1,13 @@
-#include "LocalHMD.h"
+#include "SoftHMD.h"
 
 NAMESPACE_HMD_BEGIN
 
 
-LocalHMDService::LocalHMDService() {
+SoftHMDService::SoftHMDService() {
 	
 }
 
-bool LocalHMDService::Init(String name) {
+bool SoftHMDService::Init(String name) {
 	if (!sys.Initialise())
 		return false;
 	
@@ -15,19 +15,19 @@ bool LocalHMDService::Init(String name) {
 	return true;
 }
 
-void LocalHMDService::Update() {
+void SoftHMDService::Update() {
 	
 }
 
-void LocalHMDService::Stop() {
+void SoftHMDService::Stop() {
 	sys.Stop();
 }
 
-void LocalHMDService::Deinit() {
+void SoftHMDService::Deinit() {
 	sys.Uninitialise();
 }
 
-void LocalHMDService::SetSensorCallback(Callback1<CtrlEvent&> cb) {
+void SoftHMDService::SetSensorCallback(Callback1<GeomEvent&> cb) {
 	sys.WhenSensorEvent << cb;
 }
 

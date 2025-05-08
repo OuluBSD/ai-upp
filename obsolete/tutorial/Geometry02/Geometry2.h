@@ -2,7 +2,7 @@
 #define _Geometry2_Geometry2_h_
 
 #include <EcsComplete/EcsComplete.h>
-using namespace TS;
+using namespace Upp;
 using namespace Upp::Ecs;
 
 

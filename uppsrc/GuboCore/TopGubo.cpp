@@ -38,7 +38,7 @@ void TopGubo::UpdateFromTransform3D() {
 	if (!cw) return;
 	
 	EntityRef e = this->cw->GetEntity();
-	Ref<Transform2D> tr = e->Find<Transform2D>();
+	Ptr<Transform2D> tr = e->Find<Transform2D>();
 	ASSERT(tr);
 	if (!tr) return;
 	

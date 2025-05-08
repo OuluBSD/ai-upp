@@ -147,7 +147,7 @@ struct VrSpatialInteractionManager : InteractionManager {
 
 
 
-struct InteractionListener : Pte<InteractionListener>
+struct InteractionListener
 {
 	virtual Ecs::SystemBase* GetSystem() = 0;
     virtual void OnControllerDetected(const GeomEvent& e) {};
@@ -158,11 +158,10 @@ struct InteractionListener : Pte<InteractionListener>
     
     virtual bool IsEnabled() const;
     
-    static bool Initialize(Engine& e, Ptr<InteractionListener> l);
-    static void Uninitialize(Engine& e, Ptr<InteractionListener> l);
+    static bool Initialize(Engine& e, InteractionListener* l);
+    static void Uninitialize(Engine& e, InteractionListener* l);
 };
 
-using InteractionListenerPtr = Ptr<InteractionListener>;
 
 
 
@@ -172,12 +171,12 @@ class InteractionSystem :
 public:
 	ECS_SYS_CTOR(InteractionSystem)
 	
-    void AddListener(InteractionListenerPtr listener) {
-        ArrayFindAdd(interaction_listeners, listener);
+    void AddListener(InteractionListener* listener) {
+        VectorFindAdd(interaction_listeners, listener);
     }
 
-    void RemoveListener(InteractionListenerPtr listener) {
-        ArrayRemoveKey(interaction_listeners, listener);
+    void RemoveListener(InteractionListener* listener) {
+        VectorRemoveKey(interaction_listeners, listener);
     }
 
     
@@ -196,7 +195,7 @@ protected:
 	bool is_calibration = false;
 	
 private:
-    Array<InteractionListenerPtr> interaction_listeners;
+    Vector<InteractionListener*> interaction_listeners;
     One<FakeSpatialInteractionManager> fake_spatial_interaction_manager;
     One<VrSpatialInteractionManager> vr_spatial_interaction_manager;
     InteractionManager* spatial_interaction_manager = 0;

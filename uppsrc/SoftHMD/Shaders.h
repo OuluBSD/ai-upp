@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_SHADERS_H
-#define _LocalHMD_SHADERS_H
+#ifndef _SoftHMD_SHADERS_H
+#define _SoftHMD_SHADERS_H
 
 
 NAMESPACE_HMD_BEGIN

@@ -8,6 +8,8 @@ class ThrowingComponent :
 	public CustomToolComponent {
 	
 public:
+	CLASSTYPE(ThrowingComponent)
+	ThrowingComponent(MetaNode& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
@@ -48,12 +50,13 @@ public:
 	
 protected:
 	// System
+	Ecs::SystemBase* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
-	void OnControllerPressed(const CtrlEvent& e) override;
-	void OnControllerUpdated(const CtrlEvent& e) override;
-	void OnControllerReleased(const CtrlEvent& e) override;
+	void OnControllerPressed(const GeomEvent& e) override;
+	void OnControllerUpdated(const GeomEvent& e) override;
+	void OnControllerReleased(const GeomEvent& e) override;
 	
 	// IInteractionModeSystem
 	String GetInstructions() const override;

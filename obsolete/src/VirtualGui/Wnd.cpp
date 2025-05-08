@@ -499,7 +499,7 @@ void Ctrl::InitFB()
 	SetStdFont(ScreenSans(12));
 	ChStdSkin();
 	
-	using namespace TS;
+	using namespace Upp;
 	using namespace Upp::Parallel;
 	
 	Machine& mach = GetActiveMachine();

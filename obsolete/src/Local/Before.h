@@ -34,7 +34,7 @@
 static constexpr bool is_in_topside = false;
 static constexpr bool is_in_parallel = false;
 
-namespace TS {
+namespace Upp {
 static constexpr bool is_in_topside = true;
 namespace Parallel {
 static constexpr bool is_in_parallel = true;

@@ -249,9 +249,9 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 					
 					#ifdef flagGUI
 				    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
+				    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
 				    #endif
 				    
-				    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
 				    
 				    mach.FindAdd<PacketTracker>();
 				}

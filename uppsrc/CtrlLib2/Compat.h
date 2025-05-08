@@ -39,10 +39,6 @@ public:
 	
 	virtual void Paint(Draw& d);
 	
-	#if IS_TS_CORE
-	bool DeepMouseMove(const Point& pt, dword keyflags) override;
-	#endif
-	
 	bool Key(dword key, int count) override;
 	void MouseMove(Point pt, dword keyflags) override;
 	void MouseWheel(Point pt, int zdelta, dword keyflags) override;

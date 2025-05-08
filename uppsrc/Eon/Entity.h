@@ -63,7 +63,7 @@ public:
 		auto comps = node.FindAll<T>();
 		ASSERT(comps.GetCount());
 		if (comps.IsEmpty()) throw Exc("Can't find component " + AsTypeName<T>());
-		return comps[0];
+		return *comps[0];
 	}
 	
 	template<typename T>
@@ -207,7 +207,7 @@ struct EntityPrefab {
 	using Components = RTuple<Ptr<ComponentTs>...>;
 	
 	static String GetComponentNames() {
-		return RTuple<Ptr<ComponentTs>...>::AsTypeNames();
+		return RTuple<Ptr<ComponentTs>...>::GetTypeNames();
 	}
 	
 	static Components Make(Ecs::Entity& e) {

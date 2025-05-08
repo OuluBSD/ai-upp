@@ -41,7 +41,7 @@ END_UPP_NAMESPACE
 #if 0
 CONSOLE_APP_MAIN {
 	using namespace UPP;
-	using namespace TS;
+	using namespace Upp;
 	
 	LOG("---- SoftPhysTests Begin ----");
 	if (CommandLine().GetCount() != 1)

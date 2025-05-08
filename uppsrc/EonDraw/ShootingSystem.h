@@ -8,6 +8,8 @@ class ShootingComponent :
 	public CustomToolComponent {
 	
 public:
+	CLASSTYPE(ShootingComponent)
+	ShootingComponent(MetaNode& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
@@ -44,14 +46,15 @@ public:
 	
 protected:
 	// ToolSystemBase
+	Ecs::SystemBase* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Uninitialize() override;
 	String GetInstructions() const override;
 	String GetDisplayName() const override;
 	EntityPtr CreateToolSelector() const override;
-	void OnControllerPressed(const CtrlEvent& e) override;
-	void OnControllerUpdated(const CtrlEvent& e) override;
-	void OnControllerReleased(const CtrlEvent& e) override;
+	void OnControllerPressed(const GeomEvent& e) override;
+	void OnControllerUpdated(const GeomEvent& e) override;
+	void OnControllerReleased(const GeomEvent& e) override;
 	
 	void Register() override;
 	void Unregister() override;

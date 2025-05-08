@@ -42,7 +42,7 @@ class CompilationUnit {
 END_UPP_NAMESPACE
 
 using namespace UPP;
-using namespace TS;
+using namespace Upp;
 
 
 GUI_APP_MAIN {

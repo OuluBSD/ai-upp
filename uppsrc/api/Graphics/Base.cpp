@@ -275,7 +275,7 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 }
 
 template <class Gfx>
-void TextureBaseT<Gfx>::Visit(Vis& v) {vis.VisitThis<BufferBase>(this);}
+void TextureBaseT<Gfx>::Visit(Vis& v) {VIS_THIS(BufferBase);}
 
 template <class Gfx>
 bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
@@ -407,7 +407,7 @@ bool FboReaderBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const
 
 template <class Gfx>
 void FboReaderBaseT<Gfx>::Visit(Vis& v) {
-	vis.VisitThis<BufferBase>(this);
+	VIS_THIS(BufferBase);
 }
 
 

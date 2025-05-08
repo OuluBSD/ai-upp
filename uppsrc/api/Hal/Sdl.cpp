@@ -99,9 +99,9 @@ struct HalSdl::NativeEventsBase {
     bool is_rctrl;
     Point prev_mouse_pt;
     Vector<int> invalids;
-    Ref<WindowSystem> wins;
-    Ref<Gu::SurfaceSystem> surfs;
-    Ref<Gu::GuboSystem> gubos;
+    Ptr<WindowSystem> wins;
+    Ptr<Gu::SurfaceSystem> surfs;
+    Ptr<Gu::GuboSystem> gubos;
     
     void Clear() {
         time = 0;
@@ -124,9 +124,9 @@ struct HalSdl::NativeContextBase {
 };
 
 struct HalSdl::NativeUppEventsBase {
-	Ref<WindowSystem> wins;
-    Ref<Gu::SurfaceSystem> surfs;
-    Ref<Gu::GuboSystem> gubos;
+	Ptr<WindowSystem> wins;
+    Ptr<Gu::SurfaceSystem> surfs;
+    Ptr<Gu::GuboSystem> gubos;
     double time;
     dword seq;
     
@@ -1077,9 +1077,7 @@ Image HalSdl__GetMouseCursor(void* ptr) {
 	if (!cursor)
 		return Image();
 	Image img;
-	#if IS_TS_CORE
-	img.Set(cursor, Image::SDL_CURSOR, 0);
-	#endif
+	TODO //img.Set(cursor, Image::SDL_CURSOR, 0);
 	return img;
 }
 

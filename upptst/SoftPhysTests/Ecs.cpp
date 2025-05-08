@@ -4,7 +4,7 @@ NAMESPACE_ECS_BEGIN
 
 
 INITBLOCK_(EcsShaders) {
-	using namespace TS;
+	using namespace Upp;
 	SoftShaderLibrary::AddShaderClass<LocalVertexShader>(GVar::VERTEX_SHADER, "softphystest_vertex");
 	SoftShaderLibrary::AddShaderClass<LocalFragmentShader>(GVar::FRAGMENT_SHADER, "softphystest_fragment");
 	

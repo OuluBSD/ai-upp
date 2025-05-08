@@ -3,8 +3,6 @@
 
 // This file is generated. Do not modify this file.
 
-namespace TS {
-
 namespace Parallel {
 #define ATOM_TYPE_LIST \
 	ATOM_TYPE(CENTER_CUSTOMER) \
@@ -214,6 +212,6 @@ namespace Parallel {
 	ATOM_CLASS(PortmidiSend) \
 	ATOM_CLASS(CoreAudioFileOut) \
 
-}}
+}
 
 #endif

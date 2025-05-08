@@ -76,7 +76,6 @@ public:
 	
 	static bool EventLoopIteration(void* p);
 	
-	#if !IS_TS_CORE
 	static bool DispatchKeyPub(dword key, int count) {return DispatchKey(key, count);}
 	void DispatchMousePub(int e, const Point& pt, int zd) {DispatchMouse(e, pt, zd);}
 	
@@ -89,7 +88,6 @@ public:
 	void PubPaintCaret(Draw& w);
 	#endif
 	byte GetOverpaint() const {return overpaint;}
-	#endif
 	
 	static void InitWin32(HINSTANCE inst) {}
 	static void ExitWin32() {}

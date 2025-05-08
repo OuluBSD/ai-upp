@@ -1,4 +1,4 @@
-#include "LocalHMD.h"
+#include "SoftHMD.h"
 
 NAMESPACE_HMD_BEGIN
 
@@ -18,10 +18,10 @@ bool System::Initialise() {
 	// Get & check openhmd version
 	int major, minor, patch;
 	HMD::GetVersion(&major, &minor, &patch);
-	LOG("LocalHMD version: " << major << "." << minor << "." << patch);
+	LOG("SoftHMD version: " << major << "." << minor << "." << patch);
 	int code = major * 100 + minor;
 	if (code < 3) {
-		LOG("HoloLocalHMD::SinkDevice_Initialize: error: too old openhmd version (" << major << "." << minor << ")");
+		LOG("HoloSoftHMD::SinkDevice_Initialize: error: too old openhmd version (" << major << "." << minor << ")");
 		return false;
 	}
 	
@@ -31,11 +31,11 @@ bool System::Initialise() {
 	// Probe for devices
 	int num_devices = HMD::ProbeContext(ctx);
 	if (num_devices < 0){
-		LOG("HoloLocalHMD::SinkDevice_Initialize: error: failed to probe devices: " << HMD::GetContextError(ctx));
+		LOG("HoloSoftHMD::SinkDevice_Initialize: error: failed to probe devices: " << HMD::GetContextError(ctx));
 		return false;
 	}
 	if (num_devices == 0){
-		LOG("HoloLocalHMD::SinkDevice_Initialize: error: no connected devices");
+		LOG("HoloSoftHMD::SinkDevice_Initialize: error: no connected devices");
 		return false;
 	}
 	
@@ -66,13 +66,13 @@ bool System::Initialise() {
 		
 	}
 	if (hmd_idx < 0) {
-		LOG("HoloLocalHMD::SinkDevice_Initialize: error: could not find any hmd device");
+		LOG("HoloSoftHMD::SinkDevice_Initialize: error: could not find any hmd device");
 		return false;
 	}
 	
 	// Dump device info
 	if (verbose) {
-		LOG("HoloLocalHMD::SinkDevice_Initialize: dumping openhmd device info");
+		LOG("HoloSoftHMD::SinkDevice_Initialize: dumping openhmd device info");
 		for(int i = 0; i < num_devices; i++){
 			int device_class = 0, device_flags = 0;
 			const char* device_class_s[] = {"HMD", "Controller", "Generic Tracker", "Unknown"};
@@ -110,13 +110,13 @@ bool System::Initialise() {
 	if(	(hmd_idx >= 0 && !hmd) ||
 		(ctrl_idx[0] >= 0 && !this->ctrl[0]) ||
 		(ctrl_idx[1] >= 0 && !this->ctrl[1])){
-		LOG("HoloLocalHMD::SinkDevice_Initialize: error: failed to open device: " << HMD::GetContextError(ctx));
+		LOG("HoloSoftHMD::SinkDevice_Initialize: error: failed to open device: " << HMD::GetContextError(ctx));
 		return false;
 	}
 	HMD::GetDeviceInt(hmd, HMD::HMD_SCREEN_HORIZONTAL_RESOLUTION, &screen_sz.cx);
 	HMD::GetDeviceInt(hmd, HMD::HMD_SCREEN_VERTICAL_RESOLUTION, &screen_sz.cy);
 	if (verbose) {
-		LOG("HoloLocalHMD: info: resolution:               " << screen_sz.ToString());
+		LOG("HoloSoftHMD: info: resolution:               " << screen_sz.ToString());
 		PrintHMD("hsize",            1, HMD::HMD_SCREEN_HORIZONTAL_SIZE);
 		PrintHMD("vsize",            1, HMD::HMD_SCREEN_VERTICAL_SIZE);
 		PrintHMD("lens separation",  1, HMD::HMD_LENS_HORIZONTAL_SEPARATION);
@@ -192,7 +192,7 @@ bool System::Initialise() {
 		
 		int c = control_count[i];
 		if (c > 0) {
-			LOG("HoloLocalHMD: control " << i << ":");
+			LOG("HoloSoftHMD: control " << i << ":");
 			for(int j = 0; j < c; j++){
 				LOG(controls_fn_str[controls_fn[i][j]] << " (" <<
 					controls_type_str[controls_types[i][j]] << ")" <<
@@ -206,8 +206,8 @@ bool System::Initialise() {
 	HMD::GetString(HMD::HMD_GLSL_DISTORTION_VERT_SRC, &vertex);
 	HMD::GetString(HMD::HMD_GLSL_DISTORTION_FRAG_SRC, &fragment);
 	
-	LOG("LocalHMD vertex shader:\n" << GetLineNumStr(vertex) << "\n");
-	LOG("LocalHMD fragment shader:\n" << GetLineNumStr(fragment) << "\n");
+	LOG("SoftHMD vertex shader:\n" << GetLineNumStr(vertex) << "\n");
+	LOG("SoftHMD fragment shader:\n" << GetLineNumStr(fragment) << "\n");
 	
 	
 	return true;
@@ -399,7 +399,7 @@ void System::PrintHMD(String name, int len, HMD::FloatValue val)
 		if (i) s << ", ";
 		s << DblStr(f[i]);
 	}
-	LOG("HoloLocalHMD: info: " << s);
+	LOG("HoloSoftHMD: info: " << s);
 }
 
 void System::PrintHMD(String name, int len, HMD::IntValue val)
@@ -415,7 +415,7 @@ void System::PrintHMD(String name, int len, HMD::IntValue val)
 		if (i) s << ", ";
 		s << IntStr(v[i]);
 	}
-	LOG("HoloLocalHMD: info: " << s);
+	LOG("HoloSoftHMD: info: " << s);
 }
 
 

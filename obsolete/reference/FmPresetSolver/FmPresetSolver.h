@@ -3,7 +3,7 @@
 
 #include <Local/Local.h>
 #include <SoftSynth/SoftSynth.h>
-using namespace TS;
+using namespace Upp;
 
 
 struct FmPresetSolver {

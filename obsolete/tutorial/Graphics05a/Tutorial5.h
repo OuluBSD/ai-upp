@@ -2,7 +2,7 @@
 #define _Tutorial5_Tutorial5_h_
 
 #include <EcsComplete/EcsComplete.h>
-using namespace TS;
+using namespace Upp;
 using namespace Upp::Ecs;
 
 

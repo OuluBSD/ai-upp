@@ -9,7 +9,7 @@ class GfxAtomBase : public Atom {
 	
 public:
 	//RTTI_DECL1(GfxAtomBase, Atom)
-	GfxAtomBase() {}
+	GfxAtomBase(MetaNode& n) : Atom(n) {}
 	
 };
 
@@ -30,7 +30,7 @@ struct FboAtomT :
 	EnvStatePtr				state;
 	int						prev_iter = -1;
 	ValDevCls				src_type;
-	One<ImageDraw>			id;
+	One<ImagePainter>		id;
 	StateDraw				accel_sd;
 	Framebuffer				cpu_fb;
 	bool					draw_mem = false;

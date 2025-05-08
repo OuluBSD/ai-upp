@@ -61,8 +61,8 @@ template <class Fx> struct EffectEffectT : FxEffect {
 	using CLASSNAME = EffectEffectT<Fx>;
 	//RTTI_DECL1(CLASSNAME, FxEffect)
 	void Visit(Vis& v) override {
-		if (dev) Fx::Effect_Visit(*dev, *this, vis);
-		vis.VisitThis<FxEffect>(this);
+		if (dev) Fx::Effect_Visit(*dev, *this, v);
+		VIS_THIS(FxEffect);
 	}
 	typename Fx::NativeEffect* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

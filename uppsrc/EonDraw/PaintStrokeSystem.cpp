@@ -7,20 +7,23 @@ NAMESPACE_UPP namespace Ecs {
 
 
 
-void PaintStrokeComponent::Serialize(Stream& e) {
+void PaintStrokeComponent::Visit(Vis& v) {
+	TODO
+	#if 0
 	e % squares
 	  % stroke_changed;
+	#endif
 }
 
 void PaintStrokeComponent::Initialize(){
 	Engine& e = GetEngine();
-	Ref<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
+	Ptr<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
 	sys->Attach(this);
 }
 
 void PaintStrokeComponent::Uninitialize() {
 	Engine& e = GetEngine();
-	Ref<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
+	Ptr<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
 	sys->Detach(this);
 }
 
@@ -43,8 +46,8 @@ bool PaintStrokeSystemBase::Initialize() {
 void PaintStrokeSystemBase::Update(double) {
 	for (PaintStrokeComponent* paint_stroke : comps) {
 		if (paint_stroke->stroke_changed) {
-			ModelComponentPtr c = paint_stroke->GetEntity()->Get<ModelComponent>();
-			Ref<Model> m = c->GetModel();
+			ModelComponentPtr c = paint_stroke->GetEntity()->Find<ModelComponent>();
+			Ptr<Model> m = c->GetModel();
 			
 			if (m) {
 				auto& squares = paint_stroke->squares;

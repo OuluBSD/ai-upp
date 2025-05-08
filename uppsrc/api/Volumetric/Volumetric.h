@@ -46,7 +46,7 @@ template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 	//RTTI_DECL1(CLASSNAME, VolStaticSource)
 	void Visit(Vis& v) override {
 		if (dev) Vol::StaticSource_Visit(*dev, *this, vis);
-		vis.VisitThis<VolStaticSource>(this);
+		VIS_THIS(VolStaticSource);
 	}
 	typename Vol::NativeStaticSource* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

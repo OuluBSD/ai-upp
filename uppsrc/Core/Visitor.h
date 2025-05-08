@@ -521,7 +521,7 @@ struct Visitor {
 	
 	template <class T>
 	Visitor& operator&&(T& o) {
-		if (o) {
+		if (o.GetCount()) {
 			TODO // runtime-visit a vector of pointers
 		}
 		return *this;

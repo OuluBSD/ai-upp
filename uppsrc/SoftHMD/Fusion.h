@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_FUSION_H
-#define _LocalHMD_FUSION_H
+#ifndef _SoftHMD_FUSION_H
+#define _SoftHMD_FUSION_H
 
 
 NAMESPACE_HMD_BEGIN

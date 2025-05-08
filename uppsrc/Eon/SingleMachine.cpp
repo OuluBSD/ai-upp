@@ -26,9 +26,6 @@ bool SingleMachine::Open(void(*arg_fn)()) {
     
 	#ifdef flagGUI
     mach.Add<Gu::GuboSystem>();
-    #endif
-    
-    #if IS_TS_CORE && defined flagGUI
     mach.Add<Gu::SurfaceSystem>();
     #endif
     

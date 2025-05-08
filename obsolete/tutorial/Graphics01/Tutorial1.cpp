@@ -8,7 +8,7 @@ Tutorial 1:
 	Source: https://github.com/ssloy/tinyrenderer/wiki/Lesson-1-Bresenham%E2%80%99s-Line-Drawing-Algorithm
 */
 
-using namespace TS;
+using namespace Upp;
 using namespace Upp::Ecs;
 
 

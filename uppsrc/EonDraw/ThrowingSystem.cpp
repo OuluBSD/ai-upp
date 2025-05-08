@@ -8,20 +8,20 @@ PoolPtr ThrowingInteractionSystemBase::GetPool() const {
 }
 
 void ThrowingInteractionSystemBase::Visit(Vis& v) {
-	v VIS_THIS(ToolSys);
+	VIS_THIS(ToolSys);
 }
 
 bool ThrowingInteractionSystemBase::Initialize() {
 	ball_holding_distance = 0.5f;
 	
-	if (!InteractionListener::Initialize(GetEngine(), AsRefT<InteractionListener>()))
+	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
 	return true;
 }
 
 void ThrowingInteractionSystemBase::Uninitialize() {
-	InteractionListener::Uninitialize(GetEngine(), AsRefT<InteractionListener>());
+	InteractionListener::Uninitialize(GetEngine(), this);
 }
 
 void ThrowingInteractionSystemBase::Attach(ThrowingComponentPtr c) {
@@ -43,8 +43,8 @@ String ThrowingInteractionSystemBase::GetDisplayName() const {
 
 EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = GetPool()->Create<ToolSelectorPrefab>();
-	selector->Get<ModelComponent>()->SetPrefabModel("Baseball");
-	selector->Get<ToolSelectorKey>()->type = GetType();
+	selector->Get<ModelComponent>().SetPrefabModel("Baseball");
+	selector->Get<ToolSelectorKey>().type = GetType();
 	return selector;
 }
 
@@ -61,7 +61,7 @@ void ThrowingInteractionSystemBase::Update(double dt) {
 			}
 			else {
 				vec3 fwd_dir = trans->GetForwardDirection();
-				TransformPtr ball_transform = throwing->ball_object->Get<Transform>();
+				TransformPtr ball_transform = throwing->ball_object->Find<Transform>();
 				ball_transform->data.position = trans->data.position + fwd_dir * ball_holding_distance;
 				ball_transform->data.orientation = trans->data.orientation;
 				
@@ -73,24 +73,24 @@ void ThrowingInteractionSystemBase::Update(double dt) {
 	}
 }
 
-void ThrowingInteractionSystemBase::OnControllerUpdated(const CtrlEvent& e) {
+void ThrowingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 	// pass
 }
 
-void ThrowingInteractionSystemBase::OnControllerPressed(const CtrlEvent& e) {
+void ThrowingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 	if (e.type == EVENT_HOLO_PRESSED && e.value == ControllerMatrix::TRIGGER) {
 		for (ThrowingComponentPtr& throwing : comps) {
 			if (!throwing->IsEnabled()) continue;
 			
 			throwing->ball_object = GetPool()->Create<Baseball>();
-			throwing->ball_object->Get<Transform>()->size = vec3{ throwing->scale };
-			throwing->ball_object->Get<RigidBody>()->SetEnabled(false);
-			throwing->ball_object->Get<PhysicsBody>()->BindDefault();
+			throwing->ball_object->Get<Transform>().size = vec3{ throwing->scale };
+			throwing->ball_object->Get<RigidBody>().SetEnabled(false);
+			throwing->ball_object->Get<PhysicsBody>().BindDefault();
 		}
 	}
 }
 
-void ThrowingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
+void ThrowingInteractionSystemBase::OnControllerReleased(const GeomEvent& e) {
 	if (e.type == EVENT_HOLO_RELEASED && e.value == ControllerMatrix::TRIGGER) {
 		ASSERT(e.ctrl);
 		const ControllerState& source_state = e.GetState();
@@ -106,15 +106,15 @@ void ThrowingInteractionSystemBase::OnControllerReleased(const CtrlEvent& e) {
 			if (throwing->ball_object) {
 				// We no longer need to keep a reference to the thrown ball.
 				EntityPtr ball = throwing->ball_object;
-				throwing->ball_object.Clear();
+				throwing->ball_object = 0;
 				
 				// If the controller has no motion, release the ball with no initial velocity.
-				RigidBodyPtr rb = ball->Get<RigidBody>();
+				RigidBodyPtr rb = ball->Find<RigidBody>();
 				rb->SetEnabled(true);
 				rb->velocity = {};
 				rb->angular_velocity = {};
 				
-				TransformPtr ball_trans = ball->Get<Transform>();
+				TransformPtr ball_trans = ball->Find<Transform>();
 				
 				vec3 position = trans->data.position;
 				vec3 fwd_dir = trans->GetForwardDirection();
@@ -178,35 +178,32 @@ void ThrowingInteractionSystemBase::Deactivate(EntityPtr entity) {
 
 
 void ThrowingComponent::Visit(Vis& v) {
-	CustomToolComponent::Etherize(e);
+	VIS_THIS(CustomToolComponent);
 	
-	e % distance_from_pointer
-	  % scale;
+	_VIS_(distance_from_pointer)
+	 VIS_(scale);
 	
-	EtherizeRef(e, ball_object);
-	
-	v VIS_THIS(CustomToolComponent);
 	v & ball_object;
 }
 
 void ThrowingComponent::Initialize() {
 	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
 	if (tool)
-		tool->AddTool(AsRefT<ComponentBase>());
+		tool->AddTool(this);
 	
-	Ref<ThrowingInteractionSystemBase> sys = GetEngine().TryGet<ThrowingInteractionSystemBase>();
+	Ptr<ThrowingInteractionSystemBase> sys = GetEngine().TryGet<ThrowingInteractionSystemBase>();
 	if (sys)
-		sys-> Attach(AsRefT());
+		sys-> Attach(this);
 }
 
 void ThrowingComponent::Uninitialize() {
 	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
 	if (tool)
-		tool->RemoveTool(AsRefT<ComponentBase>());
+		tool->RemoveTool(this);
 	
-	Ref<ThrowingInteractionSystemBase> sys = GetEngine().TryGet<ThrowingInteractionSystemBase>();
+	Ptr<ThrowingInteractionSystemBase> sys = GetEngine().TryGet<ThrowingInteractionSystemBase>();
 	if (sys)
-		sys->Detach(AsRefT());
+		sys->Detach(this);
 }
 
 void ThrowingComponent::SetEnabled(bool enable) {

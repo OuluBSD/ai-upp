@@ -47,6 +47,7 @@ public:
 	void ForwardAtom(FwdScope& fwd) override;
 	void ForwardExchange(FwdScope& fwd) override;
 	bool IsPacketStuck() override;
+	TypeCls GetType() const override {return typeid(*this);}
 	
 	void Destroy() {loop = 0;}
 	

@@ -2,7 +2,7 @@
 #define _SimpleDummy_SimpleDummy_h_
 
 #include <CompleteDummy/CompleteDummy.h>
-using namespace TS;
+using namespace Upp;
 
 NAMESPACE_UPP
 

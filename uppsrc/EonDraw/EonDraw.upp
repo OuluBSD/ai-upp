@@ -12,8 +12,6 @@ file
 	Graphics.cpp,
 	ModelCache.h,
 	ModelCache.cpp,
-	DrawCommand.h,
-	DrawCommand.cpp,
 	ProgDraw.h,
 	ProgDraw.cpp,
 	ProgPainter.h,

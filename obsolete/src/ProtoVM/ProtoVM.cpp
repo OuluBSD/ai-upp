@@ -19,7 +19,7 @@ END_UPP_NAMESPACE
 #ifdef flagMAIN
 
 CONSOLE_APP_MAIN {
-	using namespace TS;
+	using namespace Upp;
 	
 	Machine		mach;
 	int			max_ticks = 100;

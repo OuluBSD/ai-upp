@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_Hid_h_
-#define _LocalHMD_Hid_h_
+#ifndef _SoftHMD_Hid_h_
+#define _SoftHMD_Hid_h_
 
 
 NAMESPACE_HMD_BEGIN

@@ -20,6 +20,8 @@ file
 	DrawBackend.h,
 	DrawBackend.cpp,
 	Draw2D.h,
+	DrawCommand.h,
+	DrawCommand.cpp,
 	Backends readonly separator,
 	Sdl2.h,
 	Sdl2.cpp,

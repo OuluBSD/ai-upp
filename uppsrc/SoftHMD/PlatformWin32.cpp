@@ -1,4 +1,4 @@
-#include "LocalHMD.h"
+#include "SoftHMD.h"
 
 #ifdef flagWIN32
 

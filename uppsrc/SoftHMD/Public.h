@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_Public_h_
-#define _LocalHMD_Public_h_
+#ifndef _SoftHMD_Public_h_
+#define _SoftHMD_Public_h_
 
 
 NAMESPACE_HMD_BEGIN

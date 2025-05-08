@@ -101,7 +101,7 @@ static void SetViewport(Size sz);
 //static void ActivateNextFrame();
 static void SetDebugOutput(bool b=true);
 
-static void ClearFramebufferRef(NativeFrameBufferPtr& fb);
-static void ClearColorBufferRef(NativeColorBufferPtr& b);
-static void ClearDepthBufferRef(NativeDepthBufferPtr& b);
+static void ClearFramebufferPtr(NativeFrameBufferPtr& fb);
+static void ClearColorBufferPtr(NativeColorBufferPtr& b);
+static void ClearDepthBufferPtr(NativeDepthBufferPtr& b);
 

@@ -554,7 +554,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			<< "\n"
 			<< "// This file is generated. Do not modify this file.\n"
 			<< "\n"
-			<< "namespace TS {\n"
+			<< "namespace Upp {\n"
 			<< "\n"
 			<< "namespace Parallel {\n";
 		for(int i = 0; i < flag_headers.GetCount(); i++) {
@@ -652,7 +652,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					<< "\n"
 					<< "// This file is generated. Do not modify this file.\n"
 					<< "\n"
-					<< "namespace TS {\n"
+					<< "namespace Upp {\n"
 					<< "\n"
 					<< "namespace Parallel {\n\n";
 				
@@ -697,7 +697,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					<< "\n"
 					<< "// This file is generated. Do not modify this file.\n"
 					<< "\n"
-					<< "namespace TS {\n"
+					<< "namespace Upp {\n"
 					<< "\n"
 					<< "namespace Parallel {\n"
 					<< "\n";

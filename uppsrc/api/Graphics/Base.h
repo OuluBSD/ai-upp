@@ -49,7 +49,7 @@ public:
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	bool Recv(int sink_ch, const Packet& in) override;
 	void Finalize(RealtimeSourceConfig& cfg) override;
-	void Visit(Vis& v) override {vis.VisitThis<BufferBase>(this);}
+	void Visit(Vis& v) override {VIS_THIS(BufferBase);}
 	
 	
 };

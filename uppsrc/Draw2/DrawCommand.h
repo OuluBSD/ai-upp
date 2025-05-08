@@ -1,5 +1,5 @@
-#ifndef _EonDraw_DrawCommand_h_
-#define _EonDraw_DrawCommand_h_
+#ifndef _Draw2_DrawCommand_h_
+#define _Draw2_DrawCommand_h_
 
 
 #define DRAWCMD_LIST \

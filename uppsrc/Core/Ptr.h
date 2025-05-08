@@ -39,6 +39,8 @@ class Ptr : public PtrBase, Moveable< Ptr<T> > {
 	T   *Get() const                          { return prec ? static_cast<T *>(prec->ptr) : NULL; }
 
 public:
+	using Type = T;
+	
 	T       *operator->() const               { return Get(); }
 	T       *operator~() const                { return Get(); }
 	operator T*() const                       { return Get(); }

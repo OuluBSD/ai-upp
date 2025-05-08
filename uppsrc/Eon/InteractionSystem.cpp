@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-bool InteractionListener::Initialize(Engine& e, Ptr<InteractionListener> l) {
+bool InteractionListener::Initialize(Engine& e, InteractionListener* l) {
 	Ptr<InteractionSystem> iasys = e.TryGet<InteractionSystem>();
 	if (!iasys) {
 		LOG("InteractionListener::Initialize: error: InteractionSystem is required in engine");
@@ -15,7 +15,7 @@ bool InteractionListener::Initialize(Engine& e, Ptr<InteractionListener> l) {
 	return true;
 }
 
-void InteractionListener::Uninitialize(Engine& e, Ptr<InteractionListener> l) {
+void InteractionListener::Uninitialize(Engine& e, InteractionListener* l) {
 	Ptr<InteractionSystem> iasys = e.TryGet<InteractionSystem>();
 	if (!iasys) {
 		LOG("InteractionListener::Uninitialize: error: InteractionSystem is required in engine");

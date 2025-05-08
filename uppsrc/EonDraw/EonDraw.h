@@ -2,6 +2,7 @@
 #define _EonDraw_EonDraw_h_
 
 #include <Draw/Draw.h>
+#include <Draw2/Draw.h>
 #include <Eon/Eon.h>
 
 #ifdef flagMSC
@@ -11,7 +12,6 @@
 NAMESPACE_UPP
 
 #include "GEnums.h"
-#include "DrawCommand.h"
 #include "ProgPainter.h"
 #include "ProgDraw.h"
 #include "Rendering.h"

@@ -63,7 +63,7 @@ struct PbrRenderable : Component<PbrRenderable>
     std::optional<float> AlphaMultiplier;
 };
 
-typedef Ref<PbrRenderable> PbrRenderableRef;
+typedef Ptr<PbrRenderable> PbrRenderablePtr;
 
 
 /*struct TextRenderable : Component<TextRenderable>

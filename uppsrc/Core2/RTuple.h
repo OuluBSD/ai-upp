@@ -46,7 +46,7 @@ struct RTuple : Moveable<RTuple<First, Rest...>> {
 	
 	static String GetTypeNames() {
 		String s;
-		s << First::GetTypeName() << ", ";
+		s << AsTypeCls<First>().GetName() << ", ";
 		s << RTuple<Rest...>::GetTypeNames();
 		return s;
 	}
@@ -80,7 +80,7 @@ struct RTuple<First> : Moveable<RTuple<First>> {
 	
 	static String GetTypeNames() {
 		String s;
-		s << First::GetTypeName() << ", ";
+		s << AsTypeCls<First>().GetName() << ", ";
 		return s;
 	}
 	

@@ -13,6 +13,7 @@ class CustomToolComponent :
 	public Component<CustomToolComponent> {
 	
 public:
+	ECS_COMPONENT_CTOR(CustomToolComponent)
 	virtual bool LoadModel(ModelComponent&) = 0;
 	
 	void Visit(Vis& v) override {}
@@ -26,6 +27,7 @@ using CustomToolComponentPtr = Ptr<CustomToolComponent>;
 class ToolComponent : public Component<ToolComponent> {
 	
 public:
+	ECS_COMPONENT_CTOR(ToolComponent)
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
@@ -56,8 +58,7 @@ class ToolboxSystemBase :
 {
 	
 public:
-	ECS_SYS_DEF_VISIT_()
-	
+	ECS_SYS_DEF_VISIT
 	ECS_SYS_CTOR(ToolboxSystemBase);
 	
 	using Parent = Engine;
@@ -73,6 +74,8 @@ public:
 	
 protected:
 	// System
+	
+	Ecs::SystemBase* GetSystem() override {return this;}
 	void Start() override;
 	void Update(double dt) override;
 	void Stop() override;
@@ -92,7 +95,7 @@ private:
 	
 protected:
 	void SwitchToolType(EntityPtr entity, const TypeId& new_type);
-	void OnControllerPressed(const CtrlEvent& e) override;
+	void OnControllerPressed(const GeomEvent& e) override;
 	
 };
 

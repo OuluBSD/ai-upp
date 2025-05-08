@@ -1,4 +1,5 @@
 #include "EonDraw.h"
+#include <api/Graphics/Graphics.h>
 
 NAMESPACE_UPP namespace Ecs {
 
@@ -52,7 +53,7 @@ void Viewable::Uninitialize()  {
 	// try remove this from rendering system, in case it was added manually
 	RenderingSystemPtr rend = GetEngine().Get<RenderingSystem>();
 	if (rend)
-		rend->RemoveViewable(AsRefT());
+		rend->RemoveViewable(this);
 }
 
 
@@ -63,7 +64,7 @@ void Viewable::Uninitialize()  {
 
 bool Viewport::Arg(String key, Value value) {
 	if (key == "fov") {
-		fov = DEG2RAD(value.ToDouble());
+		fov = DEG2RAD((double)value);
 		return true;
 	}
 	return false;
@@ -78,7 +79,9 @@ bool Viewport::Arg(String key, Value value) {
 
 
 
-void CameraBase::Serialize(Stream& e) {
+void CameraBase::Visit(Vis& v) {
+	TODO
+	#if 0
 	e % use_stereo
 	  % calib;
 	
@@ -87,8 +90,10 @@ void CameraBase::Serialize(Stream& e) {
 		  % proj_stereo[i]
 		  % mvp_stereo[i];
 	}
+	#endif
 }
 
+#if 0
 void ChaseCam::Serialize(Stream& e) {
 	CameraBase::Etherize(e);
 	
@@ -109,11 +114,12 @@ void ChaseCam::Serialize(Stream& e) {
 	EtherizeRef(e, viewable);
 	EtherizeRef(e, vport);
 }
+#endif
 
 void ChaseCam::Initialize() {
-	trans		= GetEntity()->Get<Transform>();
-	viewable	= GetEntity()->Get<Viewable>();
-	vport		= GetEntity()->Get<Viewport>();
+	trans		= GetEntity()->Find<Transform>();
+	viewable	= GetEntity()->Find<Viewable>();
+	vport		= GetEntity()->Find<Viewport>();
 	
 	SetViewportSize(Size(1280, 720));
 	
@@ -140,12 +146,14 @@ void ChaseCam::Update(double dt) {
 bool ChaseCam::Arg(String key, Value value) {
 	
 	if (key == "fov") {
-		fov = (float)max(0.10, min(180.0, value.ToDouble()));
+		fov = (float)max(0.10, min<double>(180.0, value));
 		return true;
 	}
 	if (key == "target") {
 		String path = value;
 		
+		TODO
+		#if 0
 		EntityStorePtr ents = GetEngine().Get<EntityStore>();
 		ASSERT(ents);
 		
@@ -160,7 +168,7 @@ bool ChaseCam::Arg(String key, Value value) {
 			LOG("ChaseCam::Arg: error: target entity doesn't have Transform component");
 			return false;
 		}
-		
+		#endif
 	}
 	else if (key == "log") {
 		test_log = value.ToString() == "test";

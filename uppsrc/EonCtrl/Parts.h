@@ -111,7 +111,7 @@ class InterfaceListCtrl : public ParentCtrl {
 	
 	
 	template <class T>
-	void AddInterface(int comp_i, Ref<T> o) {
+	void AddInterface(int comp_i, Ptr<T> o) {
 		int iface_i = ifaces.GetCount();
 		ifaces.Add(o);
 		list.Set(write_cursor, 0, comp_i);

@@ -1,5 +1,5 @@
-#ifndef _LocalHMD_LOG_H
-#define _LocalHMD_LOG_H
+#ifndef _SoftHMD_LOG_H
+#define _SoftHMD_LOG_H
 
 
 NAMESPACE_HMD_BEGIN

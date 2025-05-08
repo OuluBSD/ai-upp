@@ -181,9 +181,8 @@ void ModelPainter::DrawText(float x, float y, float z, String txt, Font fnt, RGB
 	if (txt.GetCount() == 0 || fnt.IsNullInstance())
 		return;
 	
-	#if IS_UPP_CORE
 	TODO
-	#else
+	#if 0
 	SysColor c;
 	c.r = (byte)(clr.r * 255.0);
 	c.g = (byte)(clr.g * 255.0);

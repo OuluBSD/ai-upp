@@ -139,7 +139,7 @@ public:
 	bool Recv(int sink_ch, const Packet& in) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
-	void Event(const CtrlEvent& e);
+	void Event(const GeomEvent& e);
 	void LeftDown(Point pt, dword keyflags);
 	void LeftUp(Point pt, dword keyflags);
 	void MouseMove(Point pt, dword keyflags);

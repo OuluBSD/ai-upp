@@ -273,11 +273,7 @@ bool ScrX11::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, co
 		Size sz(ctx.fb->width, ctx.fb->height);
 		ASSERT(!sz.IsEmpty());
 		if (dev.id.IsEmpty()) {
-			#if IS_UPP_CORE
 			dev.id = new ImageDraw(sz);
-			#else
-			dev.id.Create(sz, 4);
-			#endif
 		}
 		
 		InternalPacketData& data = in->GetData<InternalPacketData>();
@@ -313,9 +309,8 @@ bool ScrX11::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, co
 		dev.id->DrawRect(sz, Black());
 		dev.pi.Paint(begin, end, *dev.id);
 		
-		#if IS_UPP_CORE
 		TODO
-		#else
+		#if 0
 		dev.id->SwapRG();
 		
 		ASSERT(ctx.fb);

@@ -149,11 +149,11 @@ protected:
     void Uninitialize() override;
     Ecs::SystemBase* GetSystem() override {return this;}
 	
-	void OnControllerDetected(const CtrlEvent& e) override;
-	void OnControllerLost(const CtrlEvent& e) override;
-	void OnControllerPressed(const CtrlEvent& e) override;
-	void OnControllerUpdated(const CtrlEvent& e) override;
-	void OnControllerReleased(const CtrlEvent& e) override;
+	void OnControllerDetected(const GeomEvent& e) override;
+	void OnControllerLost(const GeomEvent& e) override;
+	void OnControllerPressed(const GeomEvent& e) override;
+	void OnControllerUpdated(const GeomEvent& e) override;
+	void OnControllerReleased(const GeomEvent& e) override;
     
 private:
     void RefreshComponentsForSource(const HandLocationSource& source);

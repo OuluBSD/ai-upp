@@ -48,8 +48,8 @@ template <class Cam> struct CameraCameraT : CamCamera {
 	using CLASSNAME = CameraCameraT<Cam>;
 	//RTTI_DECL1(CLASSNAME, CamCamera)
 	void Visit(Vis& v) override {
-		if (dev) Cam::Camera_Visit(*dev, *this, vis);
-		vis.VisitThis<CamCamera>(this);
+		if (dev) Cam::Camera_Visit(*dev, *this, v);
+		v.VisitT<CamCamera>("CamCamera",*this);
 	}
 	typename Cam::NativeCamera* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

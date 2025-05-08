@@ -1,4 +1,6 @@
-#if 0
+#ifndef _EonDraw_DrawBackend_h_
+#define _EonDraw_DrawBackend_h_
+
 #undef STB_IMAGE_IMPLEMENTATION
 #include <plugin/stb/stb_image.h>
 
@@ -26,8 +28,6 @@
 #undef main*/
 
 
-NAMESPACE_UPP
-
 
 struct RawSysFont {
 	void* native;
@@ -44,6 +44,7 @@ struct RawSysImage {
 	void* native = 0;
 	TypeCls backend;
 	int w, h, ch, pitch;
+	operator Image() const;
 };
 
 typedef RawSysImage		RawSysTexture;
@@ -74,7 +75,7 @@ struct SysImage {
 	int GetStride() const;
 	int GetPitch() const;
 	const unsigned char* GetData() const;
-	
+	Image GetImage() const;
 };
 
 
@@ -83,5 +84,4 @@ struct SysAccelImage {
 	
 };
 
-END_UPP_NAMESPACE
 #endif

@@ -8,11 +8,11 @@ class PacketTracker : public System<PacketTracker>
 	
 	
 protected:
-    bool Initialize();
-    void Start();
-    void Update(double dt);
-    void Stop();
-    void Uninitialize();
+    bool Initialize() override;
+    void Start() override;
+    void Update(double dt) override;
+    void Stop() override;
+    void Uninitialize() override;
     
     #if HAVE_PACKETTRACKER
 	void Track0(TrackerInfo info, PacketValue& p);

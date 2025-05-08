@@ -140,7 +140,7 @@ void InteractionSystem::ReleaseEventHandlers() {
 #endif
 }
 
-void InteractionSystem::HandleSourceDetected(const InteractionManager&, const CtrlEvent& e) {
+void InteractionSystem::HandleSourceDetected(const InteractionManager&, const GeomEvent& e) {
     for (auto& listener : interaction_listeners) {
         if (listener->IsEnabled())
 			listener->OnControllerDetected(e);
@@ -148,7 +148,7 @@ void InteractionSystem::HandleSourceDetected(const InteractionManager&, const Ct
 }
 
 
-void InteractionSystem::HandleSourceLost(const InteractionManager&, const CtrlEvent& e) {
+void InteractionSystem::HandleSourceLost(const InteractionManager&, const GeomEvent& e) {
     for (auto& listener : interaction_listeners) {
         if (listener->IsEnabled())
 			listener->OnControllerLost(e);
@@ -156,7 +156,7 @@ void InteractionSystem::HandleSourceLost(const InteractionManager&, const CtrlEv
 }
 
 
-void InteractionSystem::HandleSourcePressed(const InteractionManager&, const CtrlEvent& e) {
+void InteractionSystem::HandleSourcePressed(const InteractionManager&, const GeomEvent& e) {
     for (auto& listener : interaction_listeners) {
         if (listener->IsEnabled())
 			listener->OnControllerPressed(e);
@@ -164,7 +164,7 @@ void InteractionSystem::HandleSourcePressed(const InteractionManager&, const Ctr
 }
 
 
-void InteractionSystem::HandleSourceUpdated(const InteractionManager&, const CtrlEvent& e)
+void InteractionSystem::HandleSourceUpdated(const InteractionManager&, const GeomEvent& e)
 {
     for (auto& listener : interaction_listeners) {
         if (listener->IsEnabled())
@@ -173,7 +173,7 @@ void InteractionSystem::HandleSourceUpdated(const InteractionManager&, const Ctr
 }
 
 
-void InteractionSystem::HandleSourceReleased(const InteractionManager&, const CtrlEvent& e)
+void InteractionSystem::HandleSourceReleased(const InteractionManager&, const GeomEvent& e)
 {
     for (auto& listener : interaction_listeners) {
         if (listener->IsEnabled())

@@ -5,25 +5,18 @@
 #define UPPCTRL2D_EXCPLICIT_INITIALIZE_CLASS(x) \
 	template class x <CtxUpp2D>;
 
-#if IS_UPP_CORE
 #define PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(x) \
 	 \
 	UPPCTRL2D_EXCPLICIT_INITIALIZE_CLASS(x)
-#endif
-
-#if IS_TS_CORE
-#define PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(x)
-#endif
 
 
 
 
-#if IS_UPP_CORE
 struct CtxUpp2D {
 	using Container = Ctrl;
 	using ContainerFrame = CtrlFrame;
-	using Event = CtrlEvent;
-	using EventCollection = CtrlEventCollection;
+	using Event = GeomEvent;
+	using EventCollection = GeomEventCollection;
 	using TopContainer = TopWindow;
 	using Sz = Size;
 	using Pt = Point;
@@ -40,7 +33,6 @@ struct CtxUpp2D {
 	inline static Pt UnitPoint() {return Pt(1,1);}
 
 };
-#endif
 
 
 #endif

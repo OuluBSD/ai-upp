@@ -514,7 +514,7 @@ bool FileChannelT<Backend>::ReadFrame(AVPacket& pkt) {
 
 template <class Backend>
 void AudioFrameQueueT<Backend>::FillAudioBuffer(double time_pos, AVFrame* frame) {
-	Format& fmt = this->fmt;
+	ValueFormat& fmt = this->fmt;
 	auto& buf = this->buf;
 	
 	// Sometimes you get the sample rate at this point
@@ -561,7 +561,7 @@ template <class Backend>
 void VideoFrameQueueT<Backend>::Init(AVCodecContextPtr& ctx) {
 	Clear();
 	
-	Format& fmt = this->fmt;
+	ValueFormat& fmt = this->fmt;
 	ASSERT(fmt.IsValid());
 	
 	VideoFormat& vfmt = fmt;
@@ -583,7 +583,7 @@ void VideoFrameQueueT<Backend>::DropFrames(int i) {
 
 template <class Backend>
 void VideoFrameQueueT<Backend>::Process(double time_pos, AVFrame* frame, bool vflip) {
-	Format& fmt = this->fmt;
+	ValueFormat& fmt = this->fmt;
 	auto& buf = this->buf;
 	
 	ASSERT(fmt.IsValid());

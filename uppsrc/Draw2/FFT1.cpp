@@ -1,8 +1,6 @@
-#include "Core.h"
+#include "Draw.h"
 
 NAMESPACE_UPP
-using namespace UPP;
-
 
 
 FFT1::FFT1()

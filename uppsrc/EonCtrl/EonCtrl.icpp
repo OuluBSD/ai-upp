@@ -1,0 +1,11 @@
+#include "EonCtrl.h"
+
+NAMESPACE_UPP
+
+INITBLOCK {
+	
+	Ecs::Engine::Register<Ecs::DesktopSuiteSystem>("desktop");
+	
+}
+
+END_UPP_NAMESPACE

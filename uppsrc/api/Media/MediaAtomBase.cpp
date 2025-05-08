@@ -119,12 +119,12 @@ bool MediaAtomBaseT<Backend>::LoadFileAny(String path) {
 		mode = AUDIO_ONLY;
 		vi.SetCap(
 			file_in.GetAudio().AsRefT(),
-			VideoInputFrameRef());
+			VideoInputFramePtr());
 	}
 	else {
 		mode = VIDEO_ONLY;
 		vi.SetCap(
-			AudioInputFrameRef(),
+			VideoInputFramePtr(),
 			file_in.GetVideo().AsRefT());
 	}
 
@@ -145,7 +145,7 @@ bool MediaAtomBaseT<Backend>::RealizeAudioFormat() {
 	if (audio_ch >= 0) {
 		ValueFormat fmt = file_in.GetAudio().GetFormat();
 		if (fmt.IsValid()) {
-			Value& audio_src = GetSource()->GetSourceValue(audio_ch);
+			ValueBase& audio_src = GetSource()->GetSourceValue(audio_ch);
 			if (fmt != audio_src.GetFormat() && !GetLink()->NegotiateSourceFormat(audio_ch, fmt))
 				return false;
 		}
@@ -158,7 +158,7 @@ bool MediaAtomBaseT<Backend>::RealizeVideoFormat() {
 	if (video_ch >= 0) {
 		ValueFormat fmt = file_in.GetVideo().GetFormat();
 		ASSERT(fmt.IsValid());
-		Value& video_src = GetSource()->GetSourceValue(video_ch);
+		ValueBase& video_src = GetSource()->GetSourceValue(video_ch);
 		if (fmt != video_src.GetFormat() && !GetLink()->NegotiateSourceFormat(video_ch, fmt))
 			return false;
 	}

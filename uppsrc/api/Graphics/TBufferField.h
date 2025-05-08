@@ -10,8 +10,8 @@ struct GfxBufferFieldT {
 public:
 	using Buffer = BufferT<Gfx>;
 	using DataState = DataStateT<Gfx>;
-	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferPtr;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
 	
 	Buffer buf;
 	DataState data;
@@ -23,9 +23,9 @@ public:
 	using GfxBufferField = GfxBufferFieldT<Gfx>;
 	//RTTI_DECL0(GfxBufferFieldT);
 	
-	void Visit(Vis& v) {vis % buf;}
+	void Visit(Vis& v) {v % buf;}
 	
-	void ClearRef() {buf.ClearRef();}
+	void ClearPtr() {buf.ClearPtr();}
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool PostInitialize();
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz);

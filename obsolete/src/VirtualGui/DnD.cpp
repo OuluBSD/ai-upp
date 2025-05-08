@@ -1,6 +1,5 @@
 #include "Local.h"
 
-#if IS_UPP_CORE
 
 #ifdef VIRTUALGUI
 
@@ -149,5 +148,4 @@ void Ctrl::SetSelectionSource(const char *fmts) {}
 
 END_UPP_NAMESPACE
 
-#endif
 #endif

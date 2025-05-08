@@ -4,7 +4,7 @@
 #if 0
 
 NAMESPACE_UPP
-using namespace Serial;
+
 
 class RenderingSystem :
 	public Parallel::System<RenderingSystem>

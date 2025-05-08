@@ -502,7 +502,6 @@ void Ctrl::InitFB()
 	using namespace TS;
 	using namespace Upp::Parallel;
 	
-	#if IS_UPP_CORE
 	Machine& mach = GetActiveMachine();
 	WindowSystemRef wins = mach.Get<WindowSystem>();
 	ASSERT(wins);
@@ -512,7 +511,6 @@ void Ctrl::InitFB()
 		x.Background(Cyan());
 		SetDesktop(x);
 	}
-	#endif
 }
 
 void Ctrl::EndSession()

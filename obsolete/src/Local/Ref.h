@@ -104,12 +104,8 @@ public:
 	
     static const char* GetTypeName() {static auto s = "Ref<" + String(T::GetTypeName()) + ">" ; return s;}
     
-    #if IS_UPP_CORE
     static TypeCls TypeIdClass() {return typeid(Ref);}
-    #else
-    static TypeCls TypeIdClass() {static int d = 0; return (size_t) &d;}
-	#endif
-	
+    
 	Ref() {Dump("empty-ctor"); DBG_REF_CTOR}
 	Ref(Nuller) {Dump("null-ctor"); DBG_REF_CTOR}
 	Ref(Parent p, T* o) : p(p), o(o), c(o) {Dump("ptr-ctor"); if (c) c->IncRef(); DBG_REF_CTOR}

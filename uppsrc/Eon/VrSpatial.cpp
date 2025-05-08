@@ -63,7 +63,7 @@ void VrSpatialInteractionManager::Update(double dt) {
 }
 
 void VrSpatialInteractionManager::DetectController() {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_CONTROLLER_DETECTED;
@@ -103,7 +103,7 @@ void VrSpatialInteractionManager::UpdateCalibrationStateKeyboard() {
 	else if (data['3']) calib_mode = CALIB_CTRL_RIGHT;
 	
 	
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_CALIB;
@@ -229,7 +229,7 @@ void VrSpatialInteractionManager::UpdateCalibrationStateKeyboard() {
 }
 
 void VrSpatialInteractionManager::Pressed(ControllerMatrix::Value b, float f) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_PRESSED;
@@ -239,7 +239,7 @@ void VrSpatialInteractionManager::Pressed(ControllerMatrix::Value b, float f) {
 }
 
 void VrSpatialInteractionManager::Released(ControllerMatrix::Value b, float f) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_RELEASED;
@@ -249,7 +249,7 @@ void VrSpatialInteractionManager::Released(ControllerMatrix::Value b, float f) {
 }
 
 void VrSpatialInteractionManager::Updated(ControllerMatrix::Value b, float f) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_UPDATED;
@@ -268,7 +268,7 @@ void VrSpatialInteractionManager::Updated(ControllerMatrix::Value b, float f) {
 void VrSpatialInteractionManager::Look(const TransformMatrix& tm) {
 	this->trans = tm;
 	
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_LOOK;
@@ -290,7 +290,7 @@ void VrSpatialInteractionManager::Look(const TransformMatrix& tm) {
 void VrSpatialInteractionManager::Control(const ControllerMatrix& ctrl) {
 	
 	if (0) {
-		CtrlEvent ev;
+		GeomEvent ev;
 		ev.ctrl = &ctrl_state.props;
 		ev.state = &ctrl_state;
 		ev.type = EVENT_HOLO_LOOK;
@@ -340,7 +340,7 @@ void VrSpatialInteractionManager::Control(const ControllerMatrix& ctrl) {
 	this->ctrl_state.props = ctrl;
 	
 	
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_MOVE_CONTROLLER;
@@ -349,7 +349,7 @@ void VrSpatialInteractionManager::Control(const ControllerMatrix& ctrl) {
 
 
 void VrSpatialInteractionManager::Move(vec3 rel_dir, float step) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_MOVE_FAR_RELATIVE;

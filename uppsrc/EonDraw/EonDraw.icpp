@@ -3,6 +3,7 @@
 NAMESPACE_UPP
 
 INITBLOCK {
+	using namespace Ecs;
 	
 	#define ECS_CTX(dev, val, prefix) \
 		Factory::RegisterInterfaceLink<DefaultExchangePoint>(DevCls::dev, ValCls::val);
@@ -13,19 +14,17 @@ INITBLOCK {
 	#undef IFACE_CTX_CLS
 	#undef ECS_CTX
 	
-	GfxProgramLibrary::template AddProgramClass<RendererBase>("the_renderer_program");
+	//GfxProgramLibrary::template AddProgramClass<RendererBase>("the_renderer_program");
 	
 	
 	// System
-	Engine::Register<Ecs::EventSystem>("events");
-	Engine::Register<Ecs::RenderingSystem>("rendering");
+	Engine::Register<EventSystem>("events");
+	Engine::Register<RenderingSystem>("rendering");
 	Engine::Register<PaintStrokeSystemBase>("paintstroke");
 	Engine::Register<ToolboxSystemBase>("toolbox");
 	Engine::Register<PaintingInteractionSystemBase>("painting");
 	Engine::Register<ShootingInteractionSystemBase>("shooting");
 	Engine::Register<ThrowingInteractionSystemBase>("throwing");
-	Engine::Register<Ecs::DesktopSuiteSystem>("desktop");
-	
 	
 	// Component
 	ComponentFactory::Register<Viewable>("viewable");

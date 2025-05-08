@@ -16,11 +16,7 @@ struct Point3_ : Moveable<Point3_<T>> {
 	Point3_(const Nuller&) {}
 
 
-	#ifdef flagSTDRTTI
 	static TypeCls TypeIdClass() {return typeid(Point3_<T>);}
-	#else
-	static TypeCls TypeIdClass() {static int d = 0; return (size_t) &d;}
-	#endif
 	
 	static const char* GetTypeName() {return "Point3_<T>";}
 	
@@ -120,11 +116,7 @@ struct Tri_ : Moveable<Tri_<T>> {
 
 	Pt a, b, c;
 	
-	#ifdef flagSTDRTTI
 	static TypeCls TypeIdClass() {return typeid(Point3_<T>);}
-	#else
-	static TypeCls TypeIdClass() {static int d = 0; return (size_t) &d;}
-	#endif
 	
 	static const char* GetTypeName() {return "Tri_<T>";}
 	
@@ -170,11 +162,7 @@ struct Cub_ : Moveable<Cub_<T>> {
 	typedef Tri_<T>    Tri;
 	typedef Vol_<T>    Vol;
 	
-	#ifdef flagSTDRTTI
 	static TypeCls TypeIdClass() {return typeid(Point3_<T>);}
-	#else
-	static TypeCls TypeIdClass() {static int d = 0; return (size_t) &d;}
-	#endif
 	
 	static const char* GetTypeName() {return "Cub_<T>";}
 	

@@ -1,4 +1,5 @@
 #include "SoftRend.h"
+#include <Eon/Eon.h>
 
 NAMESPACE_UPP
 
@@ -6,7 +7,7 @@ NAMESPACE_UPP
 
 
 SoftRend::SoftRend() {
-	viewport_size = Size(Upp::default_width, Upp::default_height);
+	viewport_size = Size(VideoFormat::default_width, VideoFormat::default_height);
 	//SET_ZERO(input_texture);
 }
 

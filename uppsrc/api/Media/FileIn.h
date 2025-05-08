@@ -170,7 +170,7 @@ public:
 	~FileInputT() {Clear();}
 	
 	bool						IsEof() const;
-	void						Visit(Vis& v) {vis % aframe % vframe;}
+	void						Visit(Vis& v) {v % aframe % vframe;}
 	void						Clear();
 	double						GetSeconds() const;
 	bool						IsAudioOpen() const;

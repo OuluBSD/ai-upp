@@ -36,7 +36,6 @@ void CtrlGeomProxy::Paint(Draw& d) {
 	if (!p) return;
 	TODO // deprecated after upp virtual gui integration?
 	#if 0
-	#if IS_UPP_CORE
 	
 	#if 1
 	Size sz = p->GetRect().GetSize();
@@ -68,13 +67,9 @@ void CtrlGeomProxy::Paint(Draw& d) {
 	d.DrawImage(0,0,img);
 	#endif
 	
-	#else
-	c.Paint(d);
-	#endif
 	#endif
 }
 
-#if IS_UPP_CORE
 
 bool CtrlGeomProxy::DeepMouseMove(const Point& pt, dword keyflags) {
 	Rect r = GetContentRect();
@@ -127,7 +122,6 @@ void CtrlGeomProxy::RightUp(Point pt, dword keyflags) {
 	if (p) p->DispatchMousePub(UPP::Ctrl::RIGHTUP, pt, 0);
 }
 
-#endif
 
 Ctrl* CtrlGeomProxy::operator->() {return p;}
 Ctrl& CtrlGeomProxy::operator*() {ASSERT(p); return *p;}

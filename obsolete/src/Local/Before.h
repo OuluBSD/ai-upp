@@ -48,16 +48,14 @@ static constexpr bool is_in_parallel = true;
 #endif
 
 // Using original Ultimate++ Core
-#if IS_UPP_CORE
-	#define flagSTDRTTI
-	#ifndef flagSTDEXC
-		#define flagSTDEXC
-	#endif
-	#include <algorithm>
-	#include <plugin/bz2/bz2.h>
-	#define IML_HEADER <Draw/iml_header.h>
-	#define IML_SOURCE <Draw/iml_source.h>
+#define flagSTDRTTI
+#ifndef flagSTDEXC
+	#define flagSTDEXC
 #endif
+#include <algorithm>
+#include <plugin/bz2/bz2.h>
+#define IML_HEADER <Draw/iml_header.h>
+#define IML_SOURCE <Draw/iml_source.h>
 #undef Complex
 
 

@@ -7,6 +7,7 @@ namespace Ecs {
 class Renderable : public Component<Renderable> {
 	
 public:
+	CLASSTYPE(Renderable);
 	RGBA color;
 	mat4 offset;
 	float alpha_multiplier;

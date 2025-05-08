@@ -451,16 +451,16 @@ bool EventStateBase::Recv(int sink_ch, const Packet& p) {
 	
 	ValueFormat fmt = in.GetFormat();
 	if (fmt.vd.val == ValCls::EVENT) {
-		if (in.IsData<CtrlEvent>()) {
-			const CtrlEvent& ev = in.GetData<CtrlEvent>();
+		if (in.IsData<GeomEvent>()) {
+			const GeomEvent& ev = in.GetData<GeomEvent>();
 			Event(ev);
 			
 			for (BinderIfaceEvents* e : binders)
 				e->Dispatch(ev);
 		}
-		else if (in.IsData<CtrlEventCollection>()) {
-			const CtrlEventCollection& evec = in.GetData<CtrlEventCollection>();
-			for (const CtrlEvent& ev : evec) {
+		else if (in.IsData<GeomEventCollection>()) {
+			const GeomEventCollection& evec = in.GetData<GeomEventCollection>();
+			for (const GeomEvent& ev : evec) {
 				Event(ev);
 				
 				for (BinderIfaceEvents* e : binders)
@@ -479,7 +479,7 @@ bool EventStateBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_c
 	return true;
 }
 
-void EventStateBase::Event(const CtrlEvent& e) {
+void EventStateBase::Event(const GeomEvent& e) {
 	if (dbg_print) {
 		LOG(e.ToString());
 		if (dbg_limit > 0 && ++dbg_iter > dbg_limit)
@@ -730,7 +730,7 @@ bool TestEventSrcBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 	
 	ASSERT(out_fmt.vd.val == ValCls::EVENT);
 	if (out_fmt.vd.val == ValCls::EVENT) {
-		CtrlEvent& ev = out.SetData<CtrlEvent>();
+		GeomEvent& ev = out.SetData<GeomEvent>();
 		RandomizeEvent(ev);
 		ev.trans = &trans;
 		ev.ctrl = &ctrl;

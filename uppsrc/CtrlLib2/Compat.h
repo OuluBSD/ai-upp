@@ -161,7 +161,7 @@ END_UPP_NAMESPACE
 
 
 // U++ VirtualGui bug
-#if IS_UPP_CORE && defined flagWIN32 && !defined GUI_APP_MAIN
+#if defined flagWIN32 && !defined GUI_APP_MAIN
 
 #define GUI_APP_MAIN \
 void GuiMainFn_();\

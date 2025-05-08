@@ -15,6 +15,7 @@ NAMESPACE_UPP
 #include "InterfaceConnectionCtrl.h"
 #include "InterfaceCtrl.h"
 #include "InterfaceSystemCtrl.h"
+#include "DesktopSystem.h"
 
 END_UPP_NAMESPACE
 

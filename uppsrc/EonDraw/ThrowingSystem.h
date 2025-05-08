@@ -33,7 +33,8 @@ class ThrowingInteractionSystemBase :
 	
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;
-	ECS_SYS_CTOR(ThrowingInteractionSystemBase);
+	CLASSTYPE(ThrowingInteractionSystemBase);
+	ThrowingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
 	void Visit(Vis& vis) override;
 	
 	using Parent = Engine;

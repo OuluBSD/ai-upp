@@ -39,5 +39,6 @@ file
 	CKMeans.cpp,
 	Random.h,
 	Random.cpp,
+	RTuple.h,
 	_ readonly separator;
 

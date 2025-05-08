@@ -37,9 +37,9 @@ public:
 	using Cmd = typename Dim::Cmd;
 	using Unit = typename Dim::Unit;
 	
-	/*#if IS_UPP_CORE
+	/*
 	using UppTopSurface = SurfaceInterfaceGeom<UPP::TopWindow>;
-	#endif*/
+	*/
 	
 private:
 	struct Op : Moveable<Op> {

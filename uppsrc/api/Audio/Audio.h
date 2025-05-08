@@ -57,8 +57,8 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
 	//RTTI_DECL1(CLASSNAME, AudSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Aud::SinkDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<AudSinkDevice>(this);
+		if (dev) Aud::SinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(AudSinkDevice);
 	}
 	typename Aud::NativeSinkDevice* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {
@@ -97,8 +97,8 @@ template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	using CLASSNAME = AudioSourceDeviceT<Aud>;
 	//RTTI_DECL1(CLASSNAME, AudSourceDevice)
 	void Visit(Vis& v) override {
-		if (dev) Aud::SourceDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<AudSourceDevice>(this);
+		if (dev) Aud::SourceDevice_Visit(*dev, *this, v);
+		VIS_THIS(AudSourceDevice);
 	}
 	typename Aud::NativeSourceDevice* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

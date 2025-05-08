@@ -2,7 +2,7 @@
 
 
 NAMESPACE_UPP
-using namespace Serial;
+
 
 
 AtomVirtualGui3D::AtomVirtualGui3D() {

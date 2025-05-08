@@ -144,10 +144,8 @@ public:
 	Callback WhenActiveHandleChanges, WhenHandleClose;
 };
 
-#if IS_UPP_CORE
 using WindowManager = ScopeT<CtxUpp2D>;
 using WindowManagerPtr = Ptr<WindowManager>;
-#endif
 
 
 #endif

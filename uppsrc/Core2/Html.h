@@ -215,7 +215,6 @@ public:
 	}
 	void Serialize(Stream& s) {s % sub % attr % type % text % int_value;}
 	
-	#if IS_UPP_CORE
 	void Jsonize(JsonIO& json) {
 		json
 			("type", type)
@@ -224,7 +223,6 @@ public:
 			("sub", sub)
 			("attr", attr);
 	}
-	#endif
 	
 	HtmlNode& Add(int type) {HtmlNode& n = sub.Add(); n.type = type; return n;}
 	HtmlNode& Add(HtmlNode* n) {ASSERT(this != n); HtmlNode& nn = sub.Add(n); return nn;}

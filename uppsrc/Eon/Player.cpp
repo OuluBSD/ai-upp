@@ -257,23 +257,23 @@ void PlayerBodySystem::Detach(PlayerBodyComponentPtr h) {
 	VectorRemoveKey(bodies, h);
 }
 
-void PlayerBodySystem::OnControllerDetected(const CtrlEvent& e) {
+void PlayerBodySystem::OnControllerDetected(const GeomEvent& e) {
 	// pass
 }
 
-void PlayerBodySystem::OnControllerLost(const CtrlEvent& e) {
+void PlayerBodySystem::OnControllerLost(const GeomEvent& e) {
 	// pass
 }
 
-void PlayerBodySystem::OnControllerPressed(const CtrlEvent& e) {
+void PlayerBodySystem::OnControllerPressed(const GeomEvent& e) {
 	// pass
 }
 
-void PlayerBodySystem::OnControllerReleased(const CtrlEvent& e) {
+void PlayerBodySystem::OnControllerReleased(const GeomEvent& e) {
 	// pass
 }
 
-void PlayerBodySystem::OnControllerUpdated(const CtrlEvent& e) {
+void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 	if (e.type == EVENT_HOLO_LOOK) {
 		for (PlayerBodyComponentPtr& b : bodies) {
 			if (b->head && e.trans) {

@@ -50,7 +50,7 @@ template <class Gfx> struct FramebufferT;
 template <class Gfx>
 struct MaterialT : GfxMaterial {
 	//RTTI_DECL1(MaterialT, GfxMaterial)
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
 	
 	int id = -1;
 	int tex_id[TEXTYPE_COUNT];
@@ -64,9 +64,9 @@ template <class Gfx>
 struct ModelStateT : GfxModelState {
 	//RTTI_DECL1(ModelStateT, GfxModelState)
 	using Base = ModelStateT<Gfx>;
-	using NativeColorBufferPtr = typename Gfx::NativeColorBufferRef;
-	using NativeDepthBufferPtr = typename Gfx::NativeDepthBufferRef;
-	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferRef;
+	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
+	using NativeDepthBufferPtr = typename Gfx::NativeDepthBufferPtr;
+	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferPtr;
 	using DataObject  = typename Gfx::DataObject;
 	using Material = MaterialT<Gfx>;
 	using DataState = DataStateT<Gfx>;
@@ -74,7 +74,7 @@ struct ModelStateT : GfxModelState {
 	DataState* owner = 0;
 	Array<DataObject> objects;
 	ArrayMap<int, Material> materials;
-	ArrayMap<int, NativeColorBufferRef> textures, cube_textures;
+	ArrayMap<int, NativeColorBufferPtr> textures, cube_textures;
 	int prog = -1;
 	
 	ModelStateT();
@@ -114,7 +114,7 @@ struct DataStateT : GfxDataState {
 	using Base = DataStateT<Gfx>;
 	using NativeProgram  = typename Gfx::NativeProgram;
 	using NativePipeline = typename Gfx::NativePipeline;
-	using NativeShaderPtr   = typename Gfx::NativeShaderRef;
+	using NativeShaderPtr   = typename Gfx::NativeShaderPtr;
 	using ShaderState = ShaderStateT<Gfx>;
 	using InputState  = InputStateT<Gfx>;
 	using Framebuffer = FramebufferT<Gfx>;

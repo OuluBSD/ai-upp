@@ -9,7 +9,6 @@
 #include <Geometry/Geometry.h>
 #include <Eon/Eon.h>
 
-#if IS_UPP_CORE
 NAMESPACE_UPP
 
 struct VirtualGui3D {
@@ -28,7 +27,6 @@ struct VirtualGui3D {
 };
 
 END_UPP_NAMESPACE
-#endif
 
 #include "CoordinateSystem.h"
 

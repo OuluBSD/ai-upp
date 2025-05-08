@@ -65,7 +65,7 @@ void FakeSpatialInteractionManager::Update(double dt) {
 }
 
 void FakeSpatialInteractionManager::DetectController() {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_CONTROLLER_DETECTED;
@@ -176,7 +176,7 @@ void FakeSpatialInteractionManager::Pressed(ControllerMatrix::Value b) {
 	ctrl_state.props.ctrl[1].value[(int)b] = 1.0f;
 	ctrl_state.props.ctrl[1].is_value[(int)b] = true;
 	
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_PRESSED;
@@ -189,7 +189,7 @@ void FakeSpatialInteractionManager::Released(ControllerMatrix::Value b) {
 	ctrl_state.props.ctrl[1].value[(int)b] = 0.0f;
 	ctrl_state.props.ctrl[1].is_value[(int)b] = true;
 	
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_RELEASED;
@@ -206,7 +206,7 @@ void FakeSpatialInteractionManager::Released(ControllerMatrix::Value b) {
 
 
 void FakeSpatialInteractionManager::Look(Point mouse_diff) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_LOOK;
@@ -252,7 +252,7 @@ void FakeSpatialInteractionManager::Look(Point mouse_diff) {
 }
 
 void FakeSpatialInteractionManager::Move(vec3 rel_dir, float step) {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ev.ctrl = &ctrl_state.props;
 	ev.state = &ctrl_state;
 	ev.type = EVENT_HOLO_MOVE_FAR_RELATIVE;

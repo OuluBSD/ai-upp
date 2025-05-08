@@ -241,7 +241,7 @@ bool BufferT<Gfx>::LoadInputLink(int in_id, const InternalPacketData& v) {
 }
 
 template <class Gfx>
-typename BufferT<Gfx>::NativeColorBufferConstRef
+typename BufferT<Gfx>::NativeColorBufferConstPtr
 BufferT<Gfx>::GetOutputTexture(bool reading_self) const {
 	return stages.Top().GetOutputTexture(reading_self);
 }

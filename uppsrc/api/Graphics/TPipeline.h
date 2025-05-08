@@ -17,7 +17,7 @@ template <class Gfx>
 struct CompilerT : GfxCompiler {
 	//RTTI_DECL1(CompilerT, GfxCompiler)
 	using Base = CompilerT<Gfx>;
-	using NativeShaderPtr = typename Gfx::NativeShaderRef;
+	using NativeShaderPtr = typename Gfx::NativeShaderPtr;
 	using PipelineState = PipelineStateT<Gfx>;
 	using ProgramState = ProgramStateT<Gfx>;
 	using Framebuffer = FramebufferT<Gfx>;
@@ -57,7 +57,7 @@ template <class Gfx>
 struct ShaderStateT : GfxShaderState {
 	//RTTI_DECL1(ShaderStateT, GfxShaderState)
 	using Base = ShaderStateT<Gfx>;
-	using NativeShaderPtr = typename Gfx::NativeShaderRef;
+	using NativeShaderPtr = typename Gfx::NativeShaderPtr;
 	
 	
 	NativeShaderPtr native;
@@ -112,7 +112,7 @@ struct ProgramStateT : GfxProgramState {
 	using BufferStage = BufferStageT<Gfx>;
 	using Compiler = CompilerT<Gfx>;
 	using Linker = LinkerT<Gfx>;
-	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstRef;
+	using NativeColorBufferConstPtr = typename Gfx::NativeColorBufferConstPtr;
 	
 	PipelineState*		owner = 0;
 	String				name;

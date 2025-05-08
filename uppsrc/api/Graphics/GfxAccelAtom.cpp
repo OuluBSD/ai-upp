@@ -194,8 +194,8 @@ bool GfxAccelAtom<Gfx>::PostInitialize() {
 template <class Gfx>
 void GfxAccelAtom<Gfx>::Uninitialize() {
 	ab->RemoveAtomFromUpdateList();
-	bf.ClearRef();
-	Gfx::ClearFramebufferRef(fb);
+	bf.ClearPtr();
+	Gfx::ClearFramebufferPtr(fb);
 	fb_packet.Clear();
 	raw_packet.Clear();
 }
@@ -254,7 +254,7 @@ void GfxAccelAtom<Gfx>::Close() {
 	}
 	if (nat_rend) {
 		Gfx::DestroyRenderer(nat_rend);
-		Gfx::ClearRendererRef(nat_rend);
+		Gfx::ClearRendererPtr(nat_rend);
 	}
 	if (win) {
 		Gfx::DestroyWindow(win);

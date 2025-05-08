@@ -122,19 +122,19 @@ template<class Gfx> void D11GfxT<Gfx>::SetDebugOutput(bool b) {
 	// unfortunately not supported
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
+template<class Gfx> void D11GfxT<Gfx>::ClearFramebufferPtr(NativeFrameBufferPtr& fb) {
 	fb.Reset();
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
+template<class Gfx> void D11GfxT<Gfx>::ClearColorBufferPtr(NativeColorBufferPtr& b) {
 	b.Reset();
 }
 
-template<class Gfx> void D11GfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
+template<class Gfx> void D11GfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr& b) {
 	b.Reset();
 }
 
-template<class Gfx> Serial::FboFormat& D11GfxT<Gfx>::GetFormat(Parallel::Format& fmt) {TODO}
+template<class Gfx> Serial::FboFormat& D11GfxT<Gfx>::GetFormat(ValueFormat& fmt) {TODO}
 
 #if defined flagWIN32 && defined flagDX11
 template struct D11GfxT<WinD11Gfx>;
@@ -157,7 +157,7 @@ void DxGfx::SetTitle(NativeDisplay& display, NativeWindow& win, String title) {
 void DxGfx::SetWindowFullscreen(NativeWindow& win, bool b) {TODO}
 void DxGfx::DestroyRenderer(NativeRenderer& rend) {TODO}
 
-void DxGfx::ClearRendererRef(NativeRenderer& rend) {
+void DxGfx::ClearRendererPtr(NativeRenderer& rend) {
 	rend.Reset();
 }
 

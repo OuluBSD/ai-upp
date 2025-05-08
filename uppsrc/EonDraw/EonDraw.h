@@ -14,10 +14,10 @@ NAMESPACE_UPP
 #include "DrawCommand.h"
 #include "ProgPainter.h"
 #include "ProgDraw.h"
-#include "Binder.h"
 #include "Rendering.h"
 #include "Camera.h"
 #include "Model.h"
+#include "ModelCache.h"
 #include "RenderingSystem.h"
 #include "EventSystem.h"
 #include "Prefab.h"
@@ -28,7 +28,6 @@ NAMESPACE_UPP
 #include "ShootingSystem.h"
 #include "ThrowingSystem.h"
 #include "Prefabs.h"
-#include "DesktopSystem.h"
 
 END_UPP_NAMESPACE
 

@@ -309,7 +309,7 @@ template <class Gfx>
 void SwGfxT<Gfx>::BindFramebufferRO(NativeFrameBufferConstPtr fb) {
 	auto& l = Local();
 	ASSERT_(!l.fb || (l.ctx_default_fb && l.fb == l.ctx_default_fb), "previous frambuffer have not been unbound");
-	l.fb = (NativeFrameBufferRef)fb;
+	l.fb = (NativeFrameBufferPtr)fb;
 }
 
 template <class Gfx>
@@ -625,15 +625,15 @@ void SwGfxT<Gfx>::ReadPixels(int x, int y, int w, int h, GVar::Sample sample, in
 	TODO
 }
 
-template <class Gfx> void SwGfxT<Gfx>::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
+template <class Gfx> void SwGfxT<Gfx>::ClearFramebufferPtr(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 
-template<class Gfx> void SwGfxT<Gfx>::ClearColorBufferRef(NativeColorBufferPtr& b) {
+template<class Gfx> void SwGfxT<Gfx>::ClearColorBufferPtr(NativeColorBufferPtr& b) {
 	b = 0;
 }
 
-template<class Gfx> void SwGfxT<Gfx>::ClearDepthBufferRef(NativeDepthBufferPtr& b) {
+template<class Gfx> void SwGfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr& b) {
 	b = 0;
 }
 

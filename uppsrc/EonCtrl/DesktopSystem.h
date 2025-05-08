@@ -1,5 +1,5 @@
-#ifndef _EonDraw_DesktopSystem_h_
-#define _EonDraw_DesktopSystem_h_
+#ifndef _EonCtrl_DesktopSystem_h_
+#define _EonCtrl_DesktopSystem_h_
 
 namespace Ecs {
 

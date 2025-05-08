@@ -18,7 +18,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(BufferBaseT, Atom);
 	
-	void Visit(Vis& v) override {vis % bf; VIS_THIS(Atom);}
+	void Visit(Vis& v) override {v % bf; VIS_THIS(Atom);}
 	void Update(double dt) override {bf.Update(dt);}
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
 	
@@ -98,7 +98,7 @@ struct FboReaderBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstRef;
+	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstPtr;
 	//RTTI_DECL1(FboReaderBaseT, BufferBase);
 	
 	FboReaderBaseT() {}

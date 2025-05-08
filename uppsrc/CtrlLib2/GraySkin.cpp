@@ -1,6 +1,5 @@
 #include "CtrlLib.h"
 
-#if IS_UPP_CORE
 
 NAMESPACE_UPP
 
@@ -59,4 +58,3 @@ void InstallGrayBar()
 
 END_UPP_NAMESPACE
 
-#endif

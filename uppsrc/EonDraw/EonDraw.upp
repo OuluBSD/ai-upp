@@ -12,8 +12,6 @@ file
 	Graphics.cpp,
 	ModelCache.h,
 	ModelCache.cpp,
-	Binder.h,
-	Binder.cpp,
 	DrawCommand.h,
 	DrawCommand.cpp,
 	ProgDraw.h,
@@ -32,8 +30,6 @@ file
 	EventSystem.cpp,
 	Prefab.h,
 	Prefab.cpp,
-	DesktopSystem.h,
-	DesktopSystem.cpp,
 	PaintingSystem.h,
 	PaintingSystem.cpp,
 	PaintStrokeSystem.h,
@@ -43,10 +39,10 @@ file
 	ShootingSystem.cpp,
 	ThrowingSystem.h,
 	ThrowingSystem.cpp,
-	ToolboxSystem.h,
-	ToolboxSystem.cpp,
 	ToolSystem.h,
 	ToolSystem.cpp,
+	ToolboxSystem.h,
+	ToolboxSystem.cpp,
 	_ readonly separator;
 
 mainconfig

@@ -1,8 +1,5 @@
 #include "GuboCore.h"
 
-#if IS_UPP_CORE
-#include <GuboCore/GuboCore.h>
-#endif
 
 NAMESPACE_UPP
 

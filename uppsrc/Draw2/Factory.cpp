@@ -51,17 +51,15 @@ StaticIfaceBackend* StaticIfaceFactory::GetWriter(String ext) {
 
 
 Image RenderTextBlended(Font fnt, const char* s, SysColor c) {
-#if IS_UPP_CORE
 	TODO
-#else
-	SysFont* raw = fnt.GetSysFont();
+	/*SysFont* raw = fnt.GetSysFont();
 	if (!raw)
 		return Image();
 	auto r = Upp::StaticIfaceFactory::GetReader(raw->raw->backend);
 	if (r)
 		return r->RenderTextBlended(*raw, s, c);
+	return Image();*/
 	return Image();
-#endif
 }
 
 

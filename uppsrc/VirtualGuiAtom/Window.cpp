@@ -19,17 +19,14 @@ dword AtomVirtualGui::GetOptions()
 
 Size AtomVirtualGui::GetSize()
 {
-	#if IS_UPP_CORE
 	ASSERT(mgr);
 	if (mgr)
 		return mgr->GetSize();
-	#endif
 	return Size(0,0);
 }
 
 bool AtomVirtualGui::Create(const Rect& rect, const char *title)
 {
-	#if IS_UPP_CORE
 	Machine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<WindowSystem>();
 	if (!wins)
@@ -41,7 +38,6 @@ bool AtomVirtualGui::Create(const Rect& rect, const char *title)
 	
 	Size mgr_rect = rect.GetSize();
 	mgr->SetFrameBox(mgr_rect);
-	#endif
 	
 	return true;
 }
@@ -50,10 +46,8 @@ bool AtomVirtualGui::Create(const Rect& rect, const char *title)
 
 void AtomVirtualGui::Destroy()
 {
-	#if IS_UPP_CORE
 	mgr.Clear();
 	wins.Clear();
-	#endif
 }
 
 /*void AtomVirtualGui::Attach(SDL_Window *win_, SDL_GLContext glcontext_)

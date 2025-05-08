@@ -73,7 +73,7 @@ void FramebufferT<Gfx>::Init(NativeColorBufferPtr clr, int w, int h, int stride)
 	ASSERT(!color_buf[0]);
 	ASSERT(!frame_buf[0]);
 	ASSERT(clr);
-	Gfx::ClearFramebufferRef(frame_buf[0]);
+	Gfx::ClearFramebufferPtr(frame_buf[0]);
 	color_buf[0] = clr;
 	this->size.cx = w;
 	this->size.cy = h;

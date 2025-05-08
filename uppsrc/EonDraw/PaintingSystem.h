@@ -58,14 +58,9 @@ class PaintingInteractionSystemBase :
 {
 public:
 	using ToolSys = ToolSystemBaseT<PaintingInteractionSystemBase, PaintComponent>;
-	ECS_SYS_CTOR(PaintingInteractionSystemBase);
-	
-	void Visit(Vis& v) override {
-		v VIS_THIS(ToolSys)
-		v ^ persistent_strokes;
-	}
-	
-	
+	CLASSTYPE(PaintingInteractionSystemBase);
+	PaintingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
+	void Visit(Vis& v) override {VIS_THIS(ToolSys) ^ persistent_strokes;}
 	
 	using Parent = Engine;
 	

@@ -99,6 +99,18 @@ protected:
 using ToolboxSystemBasePtr = Ptr<ToolboxSystemBase>;
 
 
+template<typename T, typename ToolComponent>
+inline void ToolSystemBaseT<T,ToolComponent>::Start() {
+	Engine& m = GetEngine();
+	m.Get<ToolboxSystemBase>()->AddToolSystem(this);
+}
+
+template<typename T, typename ToolComponent>
+inline void ToolSystemBaseT<T,ToolComponent>::Stop() {
+	Engine& m = GetEngine();
+	m.Get<ToolboxSystemBase>()->RemoveToolSystem(this);
+}
+
 }
 
 #endif

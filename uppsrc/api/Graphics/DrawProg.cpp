@@ -260,21 +260,13 @@ void DrawProg::TextOp(const DrawCommand& cmd) {
 }
 
 void DrawProg::DrawingOp(const DrawCommand& cmd) {
-	#if IS_UPP_CORE
 	((Draw*)this)->DrawDrawingOp(
 		cmd.r, cmd.value);
-	#else
-	TODO
-	#endif
 }
 
 void DrawProg::PaintingOp(const DrawCommand& cmd) {
-	#if IS_UPP_CORE
 	((Draw*)this)->DrawPaintingOp(
 		cmd.r, cmd.value);
-	#else
-	TODO
-	#endif
 }
 
 void DrawProg::BeginNative(const DrawCommand& cmd) {
@@ -335,7 +327,6 @@ void DrawProg::DrawImage(const DrawCommand& cmd) {
 }
 
 void DrawProg::DrawImageOp(const DrawCommand& cmd) {
-	#if IS_UPP_CORE
 	int x = cmd.i[0];
 	int y = cmd.i[1];
 	int cx = cmd.i[2];
@@ -357,10 +348,6 @@ void DrawProg::DrawImageOp(const DrawCommand& cmd) {
 		png.SaveFile(out, cmd.img);
 		LOG("Saved file: " << out);
 	}
-	#endif
-	
-	#else
-	TODO
 	#endif
 }
 
@@ -405,11 +392,7 @@ void DrawProg::DrawPolygon(const DrawCommand& cmd) {
 
 void DrawProg::Clipoff(const DrawCommand& cmd) {
 	Rect r {cmd.i[0], cmd.i[1], cmd.i[2], cmd.i[3]};
-	#if IS_UPP_CORE
 	((Draw*)this)->Clipoff(r);
-	#else
-	((Draw*)this)->ClipoffOp(r); // this is probably wrong
-	#endif
 }
 
 void DrawProg::DrawOffset(const DrawCommand& cmd) {
@@ -425,11 +408,7 @@ void DrawProg::DrawOffsetPoint(const DrawCommand& cmd) {
 void DrawProg::DrawWindowOffset(const DrawCommand& cmd) {
 	if (skip_window_commands)
 		return;
-	#if IS_UPP_CORE
 	Clipoff(cmd);
-	#else
-	DrawOffset(cmd);
-	#endif
 }
 
 void DrawProg::DrawEnd(const DrawCommand& cmd) {

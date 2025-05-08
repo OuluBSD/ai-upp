@@ -46,7 +46,7 @@ struct ToolSelectorPrefab :
 	> {
 	
 	static Components Make(Entity& e) {
-		auto components = EntityPrefab::Make(e);
+		Components components = EntityPrefab::Make(e);
 		RigidBodyPtr rb = components.Get<RigidBodyPtr>();
 		EasingPtr ea = components.Get<EasingPtr>();
 		rb->angular_velocity = { 0.0f, -3.0f, 0.0f }; // Spin in place
@@ -64,24 +64,14 @@ class ToolSystemBaseT :
 	
 public:
 	typedef ToolSystemBaseT<T, ToolComponent> CLASSNAME;
+	ToolSystemBaseT(MetaNode& n) : ToolSystemBase(n) {}
 	void Visit(Vis& vis) override {vis.VisitT<ToolSystemBase>(this); /*vis && m_entities;*/}
 	TypeCls GetType() const override {return AsTypeCls<T>();}
 	
-	
-	
-	
 protected:
 	// System
-	void Start() override {
-		Engine& m = GetEngine();
-		m.Get<ToolboxSystemBase>()->AddToolSystem(AsRef<ToolSystemBase>());
-	}
-	
-	void Stop() override {
-		Engine& m = GetEngine();
-		m.Get<ToolboxSystemBase>()->RemoveToolSystem(AsRef<ToolSystemBase>());
-	}
-	
+	void Start() override;
+	void Stop() override;
 };
 
 }

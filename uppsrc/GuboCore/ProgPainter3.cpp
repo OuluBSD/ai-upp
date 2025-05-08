@@ -168,9 +168,7 @@ void ProgPainter3::AppendPick(DrawCommand3* begin, DrawCommand3* end) {
 }
 
 void ProgPainter3::SetSize(Volf sz) {
-	#if IS_UPP_CORE
 	this->sz = sz;
-	#endif
 	
 	Init(sz);
 	DrawCommand3& cmd = CreateCommand();
@@ -414,22 +412,14 @@ void ProgPainter3::DrawDrawingOp(const Cubf& target, const Drawing& w) {
 	DrawCommand3& cmd = CreateCommand();
 	cmd.type = DRAW3_DRAWING_OP;
 	cmd.r = target;
-	#if IS_UPP_CORE
 	cmd.value = w;
-	#else
-	TODO
-	#endif
 }
 
 void ProgPainter3::DrawPaintingOp(const Cubf& target, const Painting& w) {
 	DrawCommand3& cmd = CreateCommand();
 	cmd.type = DRAW3_PAINTING_OP;
 	cmd.r = target;
-	#if IS_UPP_CORE
 	cmd.value = w;
-	#else
-	TODO
-	#endif
 }
 
 Volf ProgPainter3::GetNativeDpi() const {

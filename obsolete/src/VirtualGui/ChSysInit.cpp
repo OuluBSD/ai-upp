@@ -1,6 +1,5 @@
 #include "Local.h"
 
-#if IS_UPP_CORE
 
 #ifdef VIRTUALGUI
 
@@ -23,5 +22,4 @@ bool IsSystemThemeDark()
 
 END_UPP_NAMESPACE
 
-#endif
 #endif

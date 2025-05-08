@@ -9,7 +9,7 @@ END_UPP_NAMESPACE
 #endif
 
 NAMESPACE_UPP
-using namespace Serial;
+
 
 
 #ifdef flagSDL2

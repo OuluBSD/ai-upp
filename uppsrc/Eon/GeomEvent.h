@@ -1,5 +1,5 @@
-#ifndef _Eon_CtrlEvent_h_
-#define _Eon_CtrlEvent_h_
+#ifndef _Eon_GeomEvent_h_
+#define _Eon_GeomEvent_h_
 
 
 enum {
@@ -218,10 +218,11 @@ public:
 };
 
 
-typedef GeomEventType CtrlEventType;
-typedef GeomEvent CtrlEvent;
-typedef GeomEventCollection CtrlEventCollection;
-
+#if 0
+typedef GeomEventType GeomEventType;
+typedef GeomEvent GeomEvent;
+typedef GeomEventCollection GeomEventCollection;
+#endif
 
 
 inline double ResetSeconds(TimeStop& ts) {double s = ts.Seconds(); ts.Reset(); return s;}

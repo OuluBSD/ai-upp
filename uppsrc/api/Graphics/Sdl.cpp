@@ -116,11 +116,11 @@ void SdlGfx::SetWindowSize(NativeWindow& win, Size sz) {
 	SDL_SetWindowSize(win, sz.cx, sz.cy);
 }
 
-void SdlSwGfx::ClearFramebufferRef(NativeTexture& fb) {
+void SdlSwGfx::ClearFramebufferPtr(NativeTexture& fb) {
 	fb = 0;
 }
 
-void SdlSwGfx::ClearFramebufferRef(NativeFrameBufferPtr& fb) {
+void SdlSwGfx::ClearFramebufferPtr(NativeFrameBufferPtr& fb) {
 	fb = 0;
 }
 

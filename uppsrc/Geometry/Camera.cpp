@@ -448,9 +448,9 @@ vec2 LensPoly::Project(int lens_i, axes2 axes) {
 	if (!IsClose(a, axes, 1)) {
 		DUMP(Unproject(px));
 	}
-	ASSERT(IsClose(a, axes, 1));
+	ASSERT(IsCloseAxes(a, axes, 1));
 	#else
-	ASSERT(IsClose(Unproject(lens_i, px), axes, 0.01f));
+	ASSERT(IsCloseAxes(Unproject(lens_i, px), axes, 0.01f));
 	#endif
 	
 	return px;

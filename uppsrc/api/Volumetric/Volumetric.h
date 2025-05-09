@@ -45,7 +45,7 @@ template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
 	//RTTI_DECL1(CLASSNAME, VolStaticSource)
 	void Visit(Vis& v) override {
-		if (dev) Vol::StaticSource_Visit(*dev, *this, vis);
+		if (dev) Vol::StaticSource_Visit(*dev, *this, v);
 		VIS_THIS(VolStaticSource);
 	}
 	typename Vol::NativeStaticSource* dev = 0;

@@ -76,7 +76,7 @@ public:
 protected:
 	friend class ScriptLoader;
 	friend class ScriptConnectionSolver;
-	friend class MachineVerifier;
+	friend class ::Upp::MachineVerifier;
 	
 	struct SideLink : Moveable<SideLink> {
 		ScriptLoopLoader*	link = 0;

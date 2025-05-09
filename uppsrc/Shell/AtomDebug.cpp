@@ -1,4 +1,4 @@
-#include "EcsShell.h"
+#include "Shell.h"
 
 
 NAMESPACE_UPP
@@ -15,7 +15,7 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Value
 	if (dbg_ref)
 		BreakRefAdd(dbg_ref);
 	
-	double time_limit = args.Get("MACHINE_TIME_LIMIT", 0).ToDouble();
+	double time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
 		Machine& mach = GetActiveMachine();
@@ -26,7 +26,7 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Value
 		
 		if (dbg_ref_visits)
 			SetDebugRefVisits();
-		RuntimeDiagnostics::Static().SetRoot(mach);
+		RuntimeDiagnostics::Static().SetRoot(mach); // TODO not global -> MetaNode under Machine
 		
 	    #ifdef flagSTDEXC
 	    try {
@@ -34,28 +34,28 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Value
 			bool fail = false;
 			{
 				if (mach.IsStarted()) {
-					RegistrySystemRef reg	= mach.FindAdd<RegistrySystem>();
-					LoopStoreRef ls			= mach.FindAdd<LoopStore>();
-					AtomStoreRef as			= mach.FindAdd<AtomStore>();
-				    AtomSystemRef asys		= mach.FindAdd<AtomSystem>();
-				    ScriptLoaderRef script	= mach.FindAdd<ScriptLoader>();
+					RegistrySystemPtr reg	= mach.FindAdd<RegistrySystem>();
+					LoopStorePtr ls			= mach.FindAdd<LoopStore>();
+					AtomStorePtr as			= mach.FindAdd<AtomStore>();
+				    AtomSystemPtr asys		= mach.FindAdd<AtomSystem>();
+				    ScriptLoaderPtr script	= mach.FindAdd<ScriptLoader>();
 				    
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				LoopStoreRef ls			= mach.Find<LoopStore>();
+				LoopStorePtr ls			= mach.Find<LoopStore>();
 				if (!ls) {
 					LOG("No LoopStore added to machine and the machine is already started");
 					return;
 				}
 				
-				ScriptLoaderRef script	= mach.Find<ScriptLoader>();
+				ScriptLoaderPtr script	= mach.Find<ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
 				
-				LoopRef root = ls->GetRoot();
+				LoopPtr root = ls->GetRoot();
 				
 				String path = RealizeEonFile(script_file);
 				

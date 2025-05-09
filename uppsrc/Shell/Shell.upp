@@ -30,19 +30,15 @@ uses(GUI | SCREEN) api/Hal;
 uses((GUI | SCREEN) & !EMSCRIPTEN) api/Screen;
 
 file
-	EcsShell.h,
-	EcsShell.cpp,
+	Shell.h,
+	Shell.cpp,
+	AtomShell.h,
+	AtomShell.cpp,
 	Prefabs.h,
-	PrefabsMinimal.h,
 	AtomDebug.cpp,
-	EcsComplete.cpp,
-	EcsLocal.cpp,
+	_ readonly separator,
 	Defs.h,
-	Defs2.h,
-	DesktopShell.cpp,
-	GuboShell.cpp,
-	SurfaceShell.cpp,
-	_ readonly separator;
+	EcsComplete.cpp;
 
 mainconfig
 	"" = "AI",

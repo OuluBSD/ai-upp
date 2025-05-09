@@ -1,6 +1,6 @@
-#include "EcsShell.h"
+#include "Shell.h"
 
-
+#if 0
 
 NAMESPACE_UPP
 
@@ -10,7 +10,7 @@ void EngineEcsInit();
 
 void MachineEcsInit() {
 	Machine& mach = GetActiveMachine();
-	mach.Add<EntitySystem>();
+	//mach.Add<EntitySystem>();
 	
 	#ifdef flagPHYSICS
 	#ifdef flagODE
@@ -30,9 +30,9 @@ void EngineEcsInit() {
 	eng.GetAdd<Ecs::InteractionSystem>();
 	
 	eng.GetAdd<Ecs::RenderingSystem>();
-	eng.GetAdd<Ecs::EntityStore>();
+	//ng.GetAdd<Ecs::EntityStore>();
 	eng.GetAdd<Ecs::ComponentStore>();
-	//eng.GetAdd<Ecs::EventSystem>();
+	eng.GetAdd<Ecs::EventSystem>();
 	
 	#if 0
 	#if HAVE_WINDOWSYSTEM
@@ -46,3 +46,5 @@ void EngineEcsInit() {
 
 
 END_UPP_NAMESPACE
+
+#endif

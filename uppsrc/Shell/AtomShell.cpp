@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "Shell.h"
 //#include <EcsMach/EcsMach.h>
 
 NAMESPACE_UPP
@@ -138,10 +138,6 @@ void DefaultRunner(bool main_loop, String app_name, String override_eon_file, Ve
 	
 	if (!override_eon_file.IsEmpty())
 		eon_file = override_eon_file;
-	
-	if (IsShellMode(SHELLMODE_INTERPRETER)) {
-		LOG("Eon-file path: " << eon_file);
-	}
 	
 	if (extra_args) {
 		for(int i = 0; i < extra_args->GetCount(); i++)

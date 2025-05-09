@@ -60,7 +60,6 @@ NAMESPACE_UPP
 #include "LinkSystem.h"
 #include "LoopStore.h"
 #include "EntitySystem.h"
-#include "AtomShell.h"
 #include "ShadertoyLoader.h"
 
 #include "EcsComponent.h"

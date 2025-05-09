@@ -111,8 +111,6 @@ file
 	LinkSystem.cpp,
 	LoopStore.h,
 	LoopStore.cpp,
-	AtomShell.h,
-	AtomShell.cpp,
 	EntitySystem.h,
 	EntitySystem.cpp,
 	SingleMachine.cpp,

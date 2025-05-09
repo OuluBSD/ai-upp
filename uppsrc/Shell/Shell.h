@@ -33,15 +33,17 @@
 	#include <GuboSuite/GuboSuite.h>
 #endif
 
+
+#include "AtomShell.h"
+
 NAMESPACE_UPP
 
 void BindEcsToSerial();
 void DebugMain(String script_content, String eon_file, VectorMap<String,Value>& args, MachineVerifier* ver=0, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 void DebugMain(bool main_loop, String script_content, String eon_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 
-template <class T> void DefaultCreate() {Ecs::GetActiveEngine().Get<EntityStore>()->GetRoot()->Create<T>();}
-template <class T> void DefaultCreateOnStart() {Ecs::Engine::WhenPreFirstUpdate << callback(DefaultCreate<T>);}
-
+template <class T> void DefaultCreate() {TODO /*Ecs::GetActiveEngine().Get<EntityStore>()->GetRoot()->Create<T>();*/}
+template <class T> void DefaultCreateOnStart() {TODO /*Ecs::Engine::WhenPreFirstUpdate << callback(DefaultCreate<T>);*/}
 
 END_UPP_NAMESPACE
 

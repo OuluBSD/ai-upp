@@ -31,25 +31,6 @@
 	#warning TODO
 #endif
 
-/*#define GUI_APP_MAIN \
-void UserGuiMainFn_(); \
-\
-APP_INITIALIZE_STARTUP_(Upp::DefaultSerialInitializer, Upp::DefaultStartup) \
-RENDER_APP_MAIN { \
-	Upp::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
-	Upp::DefaultRunner(0, "Gui App", GUI_EON);} \
-\
-void UserGuiMainFn_()*/
-
-#define GUBO_APP_MAIN \
-void UserGuiMainFn_(); \
-\
-APP_INITIALIZE_STARTUP_(Upp::DefaultSerialInitializer, Upp::DefaultStartup) \
-RENDER_APP_MAIN { \
-	Upp::Serial::Machine::WhenUserProgram << Callback(UserGuiMainFn_); \
-	Upp::DefaultRunner(0, "Gui App", GUBO_EON);} \
-\
-void UserGuiMainFn_()
 
 #endif
 

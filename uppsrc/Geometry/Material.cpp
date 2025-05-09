@@ -67,9 +67,9 @@ void Material::Clear() {
 Material& Material::SetDiffuse(const Color& clr) {
 	RGBA r = clr;
 	params->diffuse = vec3(
-		r.r / 255.0,
-		r.g / 255.0,
-		r.b / 255.0);
+		r.r / 255.0f,
+		r.g / 255.0f,
+		r.b / 255.0f);
 	return *this;
 }
 

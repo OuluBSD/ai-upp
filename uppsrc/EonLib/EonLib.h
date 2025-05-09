@@ -9,6 +9,7 @@
 #include <api/Effect/Effect.h>
 #include <api/Audio/Audio.h>
 #include <api/Hal/Hal.h>
+#include <api/Physics/Physics.h>
 
 #ifdef flagSCREEN
 	#include <api/Graphics/Graphics.h>
@@ -25,14 +26,26 @@
 #include <api/AudioFileOut/AudioFileOut.h>
 #include <api/Holograph/Holograph.h>
 
+#include <Eon/Eon.h>
+
+
 #define BIG_NUMBER 100000000
 
-/*
-TODO
- - move normal calculation after culling from MinimalVertexLoaderShader
-*/
+NAMESPACE_UPP
 
 #include "GeneratedAudio.h"
+#include "GeneratedHandle.h"
+#include "GeneratedMinimal.h"
+#include "GeneratedVR.h"
+#include "Handle.h"
+#include "RenderingSystem.h"
+#include "Absolute2D.h"
+#include "Geom2DComponent.h"
+#include "Gui.h"
+#include "EcsPhysics.h"
+#include "OdePrefab.h"
+#include "TPrefab.h"
 
+END_UPP_NAMESPACE
 
 #endif

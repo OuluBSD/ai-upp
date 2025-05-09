@@ -40,7 +40,7 @@ String ShootingInteractionSystemBase::GetDisplayName() const {
 EntityPtr ShootingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = GetPool()->Create<ToolSelectorPrefab>();
 	selector->Get<ModelComponent>().SetPrefabModel("Gun");
-	selector->Get<ToolSelectorKey>().type = GetType();
+	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
 }
 
@@ -173,7 +173,7 @@ void ShootingComponent::Uninitialize() {
 }
 
 bool ShootingComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().Get<ModelCache>();
+	ModelCachePtr sys = GetEngine().GetMachine().node.Find<ModelCache>();
 	if (!sys)
 		return false;
 	

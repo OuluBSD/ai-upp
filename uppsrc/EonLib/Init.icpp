@@ -2,6 +2,7 @@
 
 // This file is generated. Do not modify this file.
 
+
 INITBLOCK {
 	using namespace Upp;
 	Factory::RegisterAtom<MidiFileReaderPipe>();

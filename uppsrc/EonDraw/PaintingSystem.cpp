@@ -557,7 +557,7 @@ void PaintComponent::Destroy() {
 }
 
 bool PaintComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().Get<ModelCache>();
+	ModelCachePtr sys = GetEngine().GetMachine().node.Find<ModelCache>();
 	if (!sys)
 		return false;
 	

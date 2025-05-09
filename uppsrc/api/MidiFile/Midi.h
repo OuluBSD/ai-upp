@@ -20,7 +20,7 @@ class MidiFileReaderAtom : public Atom
 	MidiIO::MidiFrame tmp;
 	
 public:
-	//RTTI_DECL1(MidiFileReaderAtom, Atom)
+	using Atom::Atom;
 	COPY_PANIC(MidiFileReaderAtom);
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
@@ -52,8 +52,7 @@ class MidiNullAtom : public Atom
 	bool verbose = false;
 	
 public:
-	//RTTI_DECL1(MidiNullAtom, Atom)
-	COPY_PANIC(MidiNullAtom);
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	MidiNullAtom(MetaNode& n);

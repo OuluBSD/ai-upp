@@ -97,7 +97,7 @@ bool Engine::Start() {
 	auto systems = node.FindAll<Ecs::SystemBase>();
 	for (auto it : systems) {
 		if (!it->Initialize()) {
-			LOG("Could not initialize system " << it->GetType().GetName());
+			LOG("Could not initialize system " << it->GetTypeCls().GetName());
 			return false;
 		}
 	}

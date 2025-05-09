@@ -27,6 +27,13 @@ public:
 };
 
 
+struct SerialLoaderBase {
+	
+	virtual ~SerialLoaderBase() {}
+	virtual String LoadFile(String file_path) = 0;
+	
+};
+
 struct SerialShadertoyLoader : SerialLoaderBase {
 	
 	virtual String LoadFile(String file_path) override;

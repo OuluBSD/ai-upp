@@ -18,7 +18,7 @@ public:
     SystemBase(MetaNode& m);
     virtual ~SystemBase();
 
-    virtual TypeCls GetType() const = 0;
+    virtual TypeCls GetTypeCls() const = 0;
 	virtual void Visit(Vis& vis) {}
     virtual bool Arg(String key, Value value) {return true;}
 	
@@ -45,7 +45,7 @@ public:
     using SystemBase::SystemBase;
 	
 	System(MetaNode& m) : SystemBase(m) {};
-    TypeCls GetType() const override {return AsTypeCls<T>();}
+    TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
     void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
 };

@@ -1,11 +1,13 @@
 #ifndef _EonLib_TPrefab_h_
 #define _EonLib_TPrefab_h_
 
-NAMESPACE_UPP
-
+namespace Ecs {
 
 template <class Fys>
-struct StaticGroundPlane : public Component<StaticGroundPlane<Fys>>, public Fys::Object {
+struct StaticGroundPlane :
+	public Component<StaticGroundPlane<Fys>>,
+	public Fys::Object
+{
 	using Object = typename Fys::Object;
 	using ComponentT = Component<StaticGroundPlane<Fys>>;
 	//RTTI_DECL2(StaticGroundPlane, Object, Component<StaticGroundPlane>)
@@ -67,7 +69,7 @@ struct StaticBox : public Fys::Object {
 	using Object = typename Fys::Object;
 	double width = 1.0, height = 1.0, length = 1.0;
 	
-	//RTTI_DECL1(StaticBox, Object)
+	ATOM_CTOR_(StaticBox, Object)
 	StaticBox& Set(double w, double h, double l) {width=w; height=h; length=l; return *this;}
 	
 	void OnAttach() override;
@@ -75,7 +77,6 @@ struct StaticBox : public Fys::Object {
 	String ToString() override {return "StaticBox";}
 };
 
-
-END_UPP_NAMESPACE
+}
 
 #endif

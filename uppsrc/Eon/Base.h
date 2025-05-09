@@ -18,6 +18,7 @@ protected:
 	
 	
 public:
+	using Atom::Atom;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
@@ -43,6 +44,7 @@ class RollingValueBase :
 	ValueFormat			internal_fmt;
 	
 public:
+	using Atom::Atom;
 	bool Initialize(const WorldState& ws) override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	void Uninitialize() override {}
@@ -63,6 +65,7 @@ class VoidSinkBase :
 	ValueFormat			fmt;
 	
 public:
+	using Atom::Atom;
 	typedef VoidSinkBase CLASSNAME;
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
@@ -92,6 +95,7 @@ class VoidPollerSinkBase :
 	int					dbg_limit = 0;
 	
 public:
+	using Atom::Atom;
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void Update(double dt) override;
@@ -108,6 +112,7 @@ class VoidBase :
 {
 	
 public:
+	using Atom::Atom;
 	bool Initialize(const WorldState& ws) override {return true;}
 	void Uninitialize() override {}
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
@@ -129,6 +134,7 @@ class EventStateBase :
 	static EventStateBase* latest;
 	
 public:
+	using Atom::Atom;
 	EventStateBase();
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
@@ -169,6 +175,7 @@ class TestEventSrcBase :
 	ControllerMatrix ctrl;
 	
 public:
+	using Atom::Atom;
 	TestEventSrcBase(MetaNode& n);
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;

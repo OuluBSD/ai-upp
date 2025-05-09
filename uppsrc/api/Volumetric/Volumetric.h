@@ -35,6 +35,7 @@ struct VolRawByte {
 
 struct VolStaticSource : public Atom {
 	//RTTI_DECL1(VolStaticSource, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~VolStaticSource() {}
@@ -42,6 +43,7 @@ struct VolStaticSource : public Atom {
 
 
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
+	VolumetricStaticSourceT(MetaNode& n) : VolStaticSource(n) {}
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
 	//RTTI_DECL1(CLASSNAME, VolStaticSource)
 	void Visit(Vis& v) override {

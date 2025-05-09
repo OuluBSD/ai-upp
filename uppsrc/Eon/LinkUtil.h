@@ -22,7 +22,7 @@ class AsyncMemForwarderBase :
 	void	Consume(int data_begin, Packet p); // "const Packet&"" is invalid here
 	
 public:
-	AsyncMemForwarderBase();
+	LINK_CTORH(AsyncMemForwarderBase);
 	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
 	
 	bool	IsReady(PacketIO& io) final;
@@ -43,6 +43,7 @@ class FramePollerBase :
 	
 	
 public:
+	LINK_CTOR(FramePollerBase)
 	void	Update(double dt) override;
 	bool	IsReady(PacketIO& io) override;
 	
@@ -64,6 +65,7 @@ protected:
 	
 	
 public:
+	LINK_CTOR(CenterDriver)
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}

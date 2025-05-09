@@ -1,8 +1,6 @@
 #ifndef _EonLib_Gui_h_
 #define _EonLib_Gui_h_
 
-NAMESPACE_UPP
-
 
 #ifdef flagGUI
 struct DefaultGuiAppComponent :
@@ -26,7 +24,7 @@ struct DefaultGuiAppComponent :
 	void Serialize(Stream& e) override;
 	void Initialize() override;
 	void Uninitialize() override;
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	void Update(double dt) override;
 	bool Render(Draw& d) override;
 	bool RenderProg(DrawCommand*& begin, DrawCommand*& end) override;
@@ -40,7 +38,5 @@ struct DefaultGuiAppComponent :
 };
 #endif
 
-
-END_UPP_NAMESPACE
 
 #endif

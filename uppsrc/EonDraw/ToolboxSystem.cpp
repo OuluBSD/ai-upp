@@ -19,20 +19,6 @@ bool HitTest(vec3 positionA, vec3 positionB, float diameter) {
 
 
 
-void ToolComponent::Visit(Vis& v) {
-	TODO
-	#if 0
-	e % title
-	  % description;
-	
-	EtherizeRef(e, active_tool);
-	EtherizeRefContainer(e, tools);
-	EtherizeRef(e, active_hand);
-	
-	TODO // tool_type TypeCId
-	#endif
-}
-
 void ToolComponent::Initialize() {
 	ToolboxSystemBasePtr sys = GetEngine().TryGet<ToolboxSystemBase>();
 	if (sys)
@@ -174,16 +160,16 @@ void ToolboxSystemBase::Detach(ToolComponentPtr tool) {
 
 void ToolboxSystemBase::AddToolSystem(ToolSystemBasePtr system) {
 	#if 0
-	selector_objects.GetAdd(system->GetType()) = system->CreateToolSelector();
+	selector_objects.GetAdd(system->GetTypeCls()) = system->CreateToolSelector();
 	#endif
-	selectors.GetAdd(system->GetType()) = system;
+	selectors.GetAdd(system->GetTypeCls()) = system;
 	
 }
 
 void ToolboxSystemBase::RemoveToolSystem(ToolSystemBasePtr system) {
-	selectors.RemoveKey(system->GetType());
+	selectors.RemoveKey(system->GetTypeCls());
 	#if 0
-	selector_objects.RemoveKey(system->GetType());
+	selector_objects.RemoveKey(system->GetTypeCls());
 	#endif
 }
 

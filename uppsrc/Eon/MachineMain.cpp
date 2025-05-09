@@ -1,10 +1,10 @@
-#include "Shell.h"
+#include "Eon.h"
 
 
 NAMESPACE_UPP
 
 
-void DebugMain(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
+void Machine::Main(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
 	if (script_content.IsEmpty() && script_file.IsEmpty()) {
@@ -12,6 +12,8 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Value
 		return;
 	}
 	
+	TODO
+	#if 0
 	if (dbg_ref)
 		BreakRefAdd(dbg_ref);
 	
@@ -114,7 +116,7 @@ void DebugMain(String script_content, String script_file, VectorMap<String,Value
 	    mach.Stop();
 	    mach.Clear();
 	}
-    
+    #endif
 }
 
 

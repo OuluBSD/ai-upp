@@ -58,7 +58,7 @@ bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const
 	
 	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
-	Value& v = src->GetSourceValue(c-1);
+	ValueBase& v = src->GetSourceValue(c-1);
 	ValueFormat fmt = v.GetFormat();
 	if (!fmt.IsAudio())
 		return false;

@@ -1,9 +1,9 @@
 #include "EonLib.h"
 
-NAMESPACE_UPP
 
 
 INITBLOCK {
+	using namespace Upp;
 	
 	// Audio
 	
@@ -274,18 +274,17 @@ INITBLOCK {
 	
 	// SerialMach
 	
-	Serial::Factory::RegisterLink<CustomerLink>();
-	Serial::Factory::RegisterLink<PipeLink>();
-	Serial::Factory::RegisterLink<PipeOptSideLink>();
-	Serial::Factory::RegisterLink<IntervalPipeLink>();
-	Serial::Factory::RegisterLink<ExternalPipeLink>();
-	Serial::Factory::RegisterLink<DriverLink>();
-	Serial::Factory::RegisterLink<MergerLink>();
-	Serial::Factory::RegisterLink<JoinerLink>();
-	Serial::Factory::RegisterLink<SplitterLink>();
-	Serial::Factory::RegisterLink<PollerLink>();
+	Factory::RegisterLink<CustomerLink>();
+	Factory::RegisterLink<PipeLink>();
+	Factory::RegisterLink<PipeOptSideLink>();
+	Factory::RegisterLink<IntervalPipeLink>();
+	Factory::RegisterLink<ExternalPipeLink>();
+	Factory::RegisterLink<DriverLink>();
+	Factory::RegisterLink<MergerLink>();
+	Factory::RegisterLink<JoinerLink>();
+	Factory::RegisterLink<SplitterLink>();
+	Factory::RegisterLink<PollerLink>();
 	
 }
 
 
-END_UPP_NAMESPACE

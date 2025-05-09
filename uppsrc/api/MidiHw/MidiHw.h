@@ -38,6 +38,7 @@ struct MidPortmidi {
 
 struct MidSource : public Atom {
 	//RTTI_DECL1(MidSource, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~MidSource() {}
@@ -45,6 +46,7 @@ struct MidSource : public Atom {
 
 
 template <class Mid> struct MidiHwSourceT : MidSource {
+	MidiHwSourceT(MetaNode& n) : MidSource(n) {}
 	using CLASSNAME = MidiHwSourceT<Mid>;
 	//RTTI_DECL1(CLASSNAME, MidSource)
 	void Visit(Vis& v) override {

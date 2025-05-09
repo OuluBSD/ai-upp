@@ -51,6 +51,7 @@ struct FxLV2 {
 
 struct FxEffect : public Atom {
 	//RTTI_DECL1(FxEffect, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~FxEffect() {}
@@ -58,6 +59,7 @@ struct FxEffect : public Atom {
 
 
 template <class Fx> struct EffectEffectT : FxEffect {
+	EffectEffectT(MetaNode& n) : FxEffect(n) {}
 	using CLASSNAME = EffectEffectT<Fx>;
 	//RTTI_DECL1(CLASSNAME, FxEffect)
 	void Visit(Vis& v) override {

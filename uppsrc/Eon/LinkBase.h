@@ -11,8 +11,7 @@ class CustomerLink : public LinkBase {
 	
 	
 public:
-	typedef CustomerLink CLASSNAME;
-	CustomerLink();
+	LINK_CTOR(CustomerLink)
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
@@ -31,8 +30,7 @@ class PipeLink : public LinkBase {
 	
 	
 public:
-	typedef PipeLink CLASSNAME;
-	PipeLink();
+	LINK_CTOR(PipeLink)
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
@@ -49,8 +47,7 @@ class PipeOptSideLink : public LinkBase {
 	
 	
 public:
-	typedef PipeOptSideLink CLASSNAME;
-	PipeOptSideLink();
+	LINK_CTOR(PipeOptSideLink)
 	
 	bool			Initialize(const WorldState& ws) override;
 	void			Uninitialize() override;
@@ -68,8 +65,7 @@ class IntervalPipeLink : public AsyncMemForwarderBase {
 	
 	
 public:
-	typedef IntervalPipeLink CLASSNAME;
-	IntervalPipeLink();
+	LINK_CTOR_(IntervalPipeLink, AsyncMemForwarderBase)
 	~IntervalPipeLink();
 	
 	bool			Initialize(const WorldState& ws) override;
@@ -87,8 +83,7 @@ class PollerLink : public FramePollerBase {
 	bool finalize_on_side = false;
 	
 public:
-	typedef PollerLink CLASSNAME;
-	PollerLink();
+	LINK_CTOR_(PollerLink, FramePollerBase)
 	~PollerLink();
 	
 	bool			Initialize(const WorldState& ws) override;
@@ -107,8 +102,7 @@ public:
 class ExternalPipeLink : public AsyncMemForwarderBase {
 	
 public:
-	typedef ExternalPipeLink CLASSNAME;
-	ExternalPipeLink();
+	LINK_CTOR_(ExternalPipeLink, AsyncMemForwarderBase)
 	~ExternalPipeLink();
 	
 	bool			Initialize(const WorldState& ws) override;
@@ -123,8 +117,7 @@ public:
 class DriverLink : public LinkBase {
 	
 public:
-	typedef DriverLink CLASSNAME;
-	DriverLink();
+	LINK_CTOR(DriverLink)
 	~DriverLink();
 	
 	bool			Initialize(const WorldState& ws) override;
@@ -142,7 +135,7 @@ class MergerLink : public LinkBase
 	byte scheduler_iter = 1;
 	
 public:
-	MergerLink();
+	LINK_CTOR(MergerLink)
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -160,7 +153,7 @@ class JoinerLink : public LinkBase
 	byte scheduler_iter = 1;
 	
 public:
-	JoinerLink();
+	LINK_CTOR(JoinerLink)
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -177,7 +170,7 @@ class SplitterLink : public LinkBase
 {
 	
 public:
-	SplitterLink();
+	LINK_CTOR(SplitterLink)
 	bool Initialize(const WorldState& ws) final;
 	void Uninitialize() final;
 	void Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}

@@ -1,5 +1,4 @@
 #include "EonLib.h"
-#include <EcsLocal/EcsLocal.h>
 
 
 NAMESPACE_UPP
@@ -12,8 +11,8 @@ DefaultGuiAppComponent::DefaultGuiAppComponent() {
 	
 }
 
-void DefaultGuiAppComponent::Visit(Vis& vis) {
-	vis.VisitThis<ComponentT>(this);
+void DefaultGuiAppComponent::Visit(Vis& v) {
+	VIS_THIS(ComponentT);
 	/*if (test) vis % *test;*/
 	
 	//vis & wins;
@@ -33,8 +32,8 @@ void DefaultGuiAppComponent::Serialize(Stream& e) {
 
 void DefaultGuiAppComponent::Initialize() {
 	AddToUpdateList();
-	Serial::HandleVideoBase::AddBinder(this);
-	Serial::EventStateBase::AddBinder(this);
+	HandleVideoBase::AddBinder(this);
+	EventStateBase::AddBinder(this);
 	
 	cw = GetEntity()->Find<Geom2DComponent>();
 	trans2 = GetEntity()->Find<Transform2D>();
@@ -47,8 +46,8 @@ void DefaultGuiAppComponent::Uninitialize() {
 	trans2.Clear();
 	
 	RemoveFromUpdateList();
-	Serial::HandleVideoBase::RemoveBinder(this);
-	Serial::EventStateBase::RemoveBinder(this);
+	HandleVideoBase::RemoveBinder(this);
+	EventStateBase::RemoveBinder(this);
 }
 
 void DefaultGuiAppComponent::Update(double dt) {

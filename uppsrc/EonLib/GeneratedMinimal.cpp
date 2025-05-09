@@ -2,9 +2,9 @@
 
 // This file is generated. Do not modify this file.
 
-namespace Upp {
+NAMESPACE_UPP
 
-namespace Parallel {
+
 
 String CenterCustomer::GetAction() {
 	return "center.customer";
@@ -23,8 +23,8 @@ LinkTypeCls CenterCustomer::GetLinkType() {
 	return LINKTYPE(CUSTOMER, CUSTOMER);
 }
 
-void CenterCustomer::Visit(Vis& vis) {
-	vis.VisitThis<CustomerBase>(this);
+void CenterCustomer::Visit(Vis& v) {
+	VIS_THIS(CustomerBase);
 }
 
 AtomTypeCls CenterCustomer::GetType() const {
@@ -49,8 +49,8 @@ LinkTypeCls TestRealtimeSrc::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void TestRealtimeSrc::Visit(Vis& vis) {
-	vis.VisitThis<RollingValueBase>(this);
+void TestRealtimeSrc::Visit(Vis& v) {
+	VIS_THIS(RollingValueBase);
 }
 
 AtomTypeCls TestRealtimeSrc::GetType() const {
@@ -75,8 +75,8 @@ LinkTypeCls TestRealtimeSink::GetLinkType() {
 	return LINKTYPE(INTERVAL_PIPE, PROCESS);
 }
 
-void TestRealtimeSink::Visit(Vis& vis) {
-	vis.VisitThis<VoidSinkBase>(this);
+void TestRealtimeSink::Visit(Vis& v) {
+	VIS_THIS(VoidSinkBase);
 }
 
 AtomTypeCls TestRealtimeSink::GetType() const {
@@ -101,8 +101,8 @@ LinkTypeCls TestPollerSink::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void TestPollerSink::Visit(Vis& vis) {
-	vis.VisitThis<VoidPollerSinkBase>(this);
+void TestPollerSink::Visit(Vis& v) {
+	VIS_THIS(VoidPollerSinkBase);
 }
 
 AtomTypeCls TestPollerSink::GetType() const {
@@ -128,8 +128,8 @@ LinkTypeCls PortaudioSink::GetLinkType() {
 	return LINKTYPE(EXTERNAL_PIPE, PROCESS);
 }
 
-void PortaudioSink::Visit(Vis& vis) {
-	vis.VisitThis<PortaudioSinkDevice>(this);
+void PortaudioSink::Visit(Vis& v) {
+	VIS_THIS(PortaudioSinkDevice);
 }
 
 AtomTypeCls PortaudioSink::GetType() const {
@@ -156,8 +156,8 @@ LinkTypeCls AudioDecoderSrc::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void AudioDecoderSrc::Visit(Vis& vis) {
-	vis.VisitThis<FfmpegSourceDevice>(this);
+void AudioDecoderSrc::Visit(Vis& v) {
+	VIS_THIS(FfmpegSourceDevice);
 }
 
 AtomTypeCls AudioDecoderSrc::GetType() const {
@@ -183,8 +183,8 @@ LinkTypeCls AudioDbgSrc::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void AudioDbgSrc::Visit(Vis& vis) {
-	vis.VisitThis<AudioGenBase>(this);
+void AudioDbgSrc::Visit(Vis& v) {
+	VIS_THIS(AudioGenBase);
 }
 
 AtomTypeCls AudioDbgSrc::GetType() const {
@@ -210,8 +210,8 @@ LinkTypeCls AudioSplitter::GetLinkType() {
 	return LINKTYPE(SPLITTER, PROCESS);
 }
 
-void AudioSplitter::Visit(Vis& vis) {
-	vis.VisitThis<VoidBase>(this);
+void AudioSplitter::Visit(Vis& v) {
+	VIS_THIS(VoidBase);
 }
 
 AtomTypeCls AudioSplitter::GetType() const {
@@ -244,8 +244,8 @@ LinkTypeCls AudioSplitterUser::GetLinkType() {
 	return LINKTYPE(SPLITTER, PROCESS);
 }
 
-void AudioSplitterUser::Visit(Vis& vis) {
-	vis.VisitThis<VoidBase>(this);
+void AudioSplitterUser::Visit(Vis& v) {
+	VIS_THIS(VoidBase);
 }
 
 AtomTypeCls AudioSplitterUser::GetType() const {
@@ -271,8 +271,8 @@ LinkTypeCls AudioJoiner::GetLinkType() {
 	return LINKTYPE(JOINER, PROCESS);
 }
 
-void AudioJoiner::Visit(Vis& vis) {
-	vis.VisitThis<VoidBase>(this);
+void AudioJoiner::Visit(Vis& v) {
+	VIS_THIS(VoidBase);
 }
 
 AtomTypeCls AudioJoiner::GetType() const {
@@ -298,8 +298,8 @@ LinkTypeCls AudioJoinerUser::GetLinkType() {
 	return LINKTYPE(JOINER, PROCESS);
 }
 
-void AudioJoinerUser::Visit(Vis& vis) {
-	vis.VisitThis<VoidBase>(this);
+void AudioJoinerUser::Visit(Vis& v) {
+	VIS_THIS(VoidBase);
 }
 
 AtomTypeCls AudioJoinerUser::GetType() const {
@@ -326,8 +326,8 @@ LinkTypeCls AudioJoiner2User::GetLinkType() {
 	return LINKTYPE(JOINER, PROCESS);
 }
 
-void AudioJoiner2User::Visit(Vis& vis) {
-	vis.VisitThis<VoidBase>(this);
+void AudioJoiner2User::Visit(Vis& v) {
+	VIS_THIS(VoidBase);
 }
 
 AtomTypeCls AudioJoiner2User::GetType() const {
@@ -368,8 +368,8 @@ LinkTypeCls AudioMixer16::GetLinkType() {
 	return LINKTYPE(MERGER, PROCESS);
 }
 
-void AudioMixer16::Visit(Vis& vis) {
-	vis.VisitThis<AudioMixerBase>(this);
+void AudioMixer16::Visit(Vis& v) {
+	VIS_THIS(AudioMixerBase);
 }
 
 AtomTypeCls AudioMixer16::GetType() const {
@@ -395,8 +395,8 @@ LinkTypeCls VideoDbgSrc::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void VideoDbgSrc::Visit(Vis& vis) {
-	vis.VisitThis<VideoGenBase>(this);
+void VideoDbgSrc::Visit(Vis& v) {
+	VIS_THIS(VideoGenBase);
 }
 
 AtomTypeCls VideoDbgSrc::GetType() const {
@@ -423,8 +423,8 @@ LinkTypeCls WebcamPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void WebcamPipe::Visit(Vis& vis) {
-	vis.VisitThis<V4L2OpenCVCamera>(this);
+void WebcamPipe::Visit(Vis& v) {
+	VIS_THIS(V4L2OpenCVCamera);
 }
 
 AtomTypeCls WebcamPipe::GetType() const {
@@ -452,8 +452,8 @@ LinkTypeCls WebcamAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void WebcamAtom::Visit(Vis& vis) {
-	vis.VisitThis<V4L2OpenCVCamera>(this);
+void WebcamAtom::Visit(Vis& v) {
+	VIS_THIS(V4L2OpenCVCamera);
 }
 
 AtomTypeCls WebcamAtom::GetType() const {
@@ -481,8 +481,8 @@ LinkTypeCls AudioLoaderAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void AudioLoaderAtom::Visit(Vis& vis) {
-	vis.VisitThis<FfmpegSourceDevice>(this);
+void AudioLoaderAtom::Visit(Vis& v) {
+	VIS_THIS(FfmpegSourceDevice);
 }
 
 AtomTypeCls AudioLoaderAtom::GetType() const {
@@ -511,8 +511,8 @@ LinkTypeCls VideoLoaderAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void VideoLoaderAtom::Visit(Vis& vis) {
-	vis.VisitThis<FfmpegSourceDevice>(this);
+void VideoLoaderAtom::Visit(Vis& v) {
+	VIS_THIS(FfmpegSourceDevice);
 }
 
 AtomTypeCls VideoLoaderAtom::GetType() const {
@@ -539,8 +539,8 @@ LinkTypeCls EventStatePipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void EventStatePipe::Visit(Vis& vis) {
-	vis.VisitThis<EventStateBase>(this);
+void EventStatePipe::Visit(Vis& v) {
+	VIS_THIS(EventStateBase);
 }
 
 AtomTypeCls EventStatePipe::GetType() const {
@@ -568,8 +568,8 @@ LinkTypeCls X11SwFboProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void X11SwFboProg::Visit(Vis& vis) {
-	vis.VisitThis<X11SwFboBase>(this);
+void X11SwFboProg::Visit(Vis& v) {
+	VIS_THIS(X11SwFboBase);
 }
 
 AtomTypeCls X11SwFboProg::GetType() const {
@@ -597,8 +597,8 @@ LinkTypeCls X11OglFboProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void X11OglFboProg::Visit(Vis& vis) {
-	vis.VisitThis<X11OglFboBase>(this);
+void X11OglFboProg::Visit(Vis& v) {
+	VIS_THIS(X11OglFboBase);
 }
 
 AtomTypeCls X11OglFboProg::GetType() const {
@@ -626,8 +626,8 @@ LinkTypeCls SdlSwFboProg::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlSwFboProg::Visit(Vis& vis) {
-	vis.VisitThis<SdlCenterFboSinkDevice>(this);
+void SdlSwFboProg::Visit(Vis& v) {
+	VIS_THIS(SdlCenterFboSinkDevice);
 }
 
 AtomTypeCls SdlSwFboProg::GetType() const {
@@ -655,8 +655,8 @@ LinkTypeCls SdlOglFboProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglFboProg::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglFboBase>(this);
+void SdlOglFboProg::Visit(Vis& v) {
+	VIS_THIS(SdlOglFboBase);
 }
 
 AtomTypeCls SdlOglFboProg::GetType() const {
@@ -683,8 +683,8 @@ LinkTypeCls X11SwShaderPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void X11SwShaderPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SwShaderBase>(this);
+void X11SwShaderPipe::Visit(Vis& v) {
+	VIS_THIS(X11SwShaderBase);
 }
 
 AtomTypeCls X11SwShaderPipe::GetType() const {
@@ -711,8 +711,8 @@ LinkTypeCls X11OglShaderPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void X11OglShaderPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11OglShaderBase>(this);
+void X11OglShaderPipe::Visit(Vis& v) {
+	VIS_THIS(X11OglShaderBase);
 }
 
 AtomTypeCls X11OglShaderPipe::GetType() const {
@@ -739,8 +739,8 @@ LinkTypeCls SdlOglShaderPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void SdlOglShaderPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglShaderBase>(this);
+void SdlOglShaderPipe::Visit(Vis& v) {
+	VIS_THIS(SdlOglShaderBase);
 }
 
 AtomTypeCls SdlOglShaderPipe::GetType() const {
@@ -767,8 +767,8 @@ LinkTypeCls X11SwFboAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11SwFboAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SwSinkDevice>(this);
+void X11SwFboAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11SwSinkDevice);
 }
 
 AtomTypeCls X11SwFboAtomPipe::GetType() const {
@@ -795,8 +795,8 @@ LinkTypeCls X11OglFboAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11OglFboAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11OglSinkDevice>(this);
+void X11OglFboAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11OglSinkDevice);
 }
 
 AtomTypeCls X11OglFboAtomPipe::GetType() const {
@@ -823,8 +823,8 @@ LinkTypeCls SdlSwFboAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlSwFboAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlCenterFboSinkDevice>(this);
+void SdlSwFboAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlCenterFboSinkDevice);
 }
 
 AtomTypeCls SdlSwFboAtomPipe::GetType() const {
@@ -851,8 +851,8 @@ LinkTypeCls SdlOglFboAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlOglFboAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglVideoSinkDevice>(this);
+void SdlOglFboAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlOglVideoSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtomPipe::GetType() const {
@@ -879,8 +879,8 @@ LinkTypeCls SdlOglProgAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlOglProgAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglVideoSinkDevice>(this);
+void SdlOglProgAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlOglVideoSinkDevice);
 }
 
 AtomTypeCls SdlOglProgAtomPipe::GetType() const {
@@ -907,8 +907,8 @@ LinkTypeCls X11ContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void X11ContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<X11Context>(this);
+void X11ContextAtom::Visit(Vis& v) {
+	VIS_THIS(X11Context);
 }
 
 AtomTypeCls X11ContextAtom::GetType() const {
@@ -935,8 +935,8 @@ LinkTypeCls X11SwContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void X11SwContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<X11SwContext>(this);
+void X11SwContextAtom::Visit(Vis& v) {
+	VIS_THIS(X11SwContext);
 }
 
 AtomTypeCls X11SwContextAtom::GetType() const {
@@ -963,8 +963,8 @@ LinkTypeCls X11OglContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void X11OglContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<X11OglContext>(this);
+void X11OglContextAtom::Visit(Vis& v) {
+	VIS_THIS(X11OglContext);
 }
 
 AtomTypeCls X11OglContextAtom::GetType() const {
@@ -991,8 +991,8 @@ LinkTypeCls X11EventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11EventAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11EventsBase>(this);
+void X11EventAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11EventsBase);
 }
 
 AtomTypeCls X11EventAtomPipe::GetType() const {
@@ -1019,8 +1019,8 @@ LinkTypeCls X11SwEventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11SwEventAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SwEventsBase>(this);
+void X11SwEventAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11SwEventsBase);
 }
 
 AtomTypeCls X11SwEventAtomPipe::GetType() const {
@@ -1047,8 +1047,8 @@ LinkTypeCls X11OglEventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11OglEventAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11OglEventsBase>(this);
+void X11OglEventAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11OglEventsBase);
 }
 
 AtomTypeCls X11OglEventAtomPipe::GetType() const {
@@ -1075,8 +1075,8 @@ LinkTypeCls WinContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void WinContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<WinContext>(this);
+void WinContextAtom::Visit(Vis& v) {
+	VIS_THIS(WinContext);
 }
 
 AtomTypeCls WinContextAtom::GetType() const {
@@ -1103,8 +1103,8 @@ LinkTypeCls WinVideoAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void WinVideoAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<WinSinkDevice>(this);
+void WinVideoAtomPipe::Visit(Vis& v) {
+	VIS_THIS(WinSinkDevice);
 }
 
 AtomTypeCls WinVideoAtomPipe::GetType() const {
@@ -1130,8 +1130,8 @@ LinkTypeCls DxCustomer::GetLinkType() {
 	return LINKTYPE(CUSTOMER, CUSTOMER);
 }
 
-void DxCustomer::Visit(Vis& vis) {
-	vis.VisitThis<CustomerBase>(this);
+void DxCustomer::Visit(Vis& v) {
+	VIS_THIS(CustomerBase);
 }
 
 AtomTypeCls DxCustomer::GetType() const {
@@ -1157,8 +1157,8 @@ LinkTypeCls WinD11ContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void WinD11ContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<WinD11Context>(this);
+void WinD11ContextAtom::Visit(Vis& v) {
+	VIS_THIS(WinD11Context);
 }
 
 AtomTypeCls WinD11ContextAtom::GetType() const {
@@ -1186,8 +1186,8 @@ LinkTypeCls WinD11FboProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void WinD11FboProg::Visit(Vis& vis) {
-	vis.VisitThis<WinD11FboBase>(this);
+void WinD11FboProg::Visit(Vis& v) {
+	VIS_THIS(WinD11FboBase);
 }
 
 AtomTypeCls WinD11FboProg::GetType() const {
@@ -1214,8 +1214,8 @@ LinkTypeCls WinD11FboAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void WinD11FboAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<WinD11SinkDevice>(this);
+void WinD11FboAtomPipe::Visit(Vis& v) {
+	VIS_THIS(WinD11SinkDevice);
 }
 
 AtomTypeCls WinD11FboAtomPipe::GetType() const {
@@ -1242,8 +1242,8 @@ LinkTypeCls WinD11FboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void WinD11FboAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<WinD11SinkDevice>(this);
+void WinD11FboAtomSA::Visit(Vis& v) {
+	VIS_THIS(WinD11SinkDevice);
 }
 
 AtomTypeCls WinD11FboAtomSA::GetType() const {
@@ -1269,8 +1269,8 @@ LinkTypeCls OglCustomer::GetLinkType() {
 	return LINKTYPE(CUSTOMER, CUSTOMER);
 }
 
-void OglCustomer::Visit(Vis& vis) {
-	vis.VisitThis<CustomerBase>(this);
+void OglCustomer::Visit(Vis& v) {
+	VIS_THIS(CustomerBase);
 }
 
 AtomTypeCls OglCustomer::GetType() const {
@@ -1296,8 +1296,8 @@ LinkTypeCls SdlContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void SdlContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<SdlContextBase>(this);
+void SdlContextAtom::Visit(Vis& v) {
+	VIS_THIS(SdlContextBase);
 }
 
 AtomTypeCls SdlContextAtom::GetType() const {
@@ -1324,8 +1324,8 @@ LinkTypeCls SdlEventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlEventAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlEventsBase>(this);
+void SdlEventAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlEventsBase);
 }
 
 AtomTypeCls SdlEventAtomPipe::GetType() const {
@@ -1351,8 +1351,8 @@ LinkTypeCls TestEventSrcPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void TestEventSrcPipe::Visit(Vis& vis) {
-	vis.VisitThis<TestEventSrcBase>(this);
+void TestEventSrcPipe::Visit(Vis& v) {
+	VIS_THIS(TestEventSrcBase);
 }
 
 AtomTypeCls TestEventSrcPipe::GetType() const {
@@ -1379,8 +1379,8 @@ LinkTypeCls SdlOglImageLoader::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglImageLoader::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglImageBase>(this);
+void SdlOglImageLoader::Visit(Vis& v) {
+	VIS_THIS(SdlOglImageBase);
 }
 
 AtomTypeCls SdlOglImageLoader::GetType() const {
@@ -1407,8 +1407,8 @@ LinkTypeCls VolumeLoaderAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void VolumeLoaderAtom::Visit(Vis& vis) {
-	vis.VisitThis<RawByteStaticSource>(this);
+void VolumeLoaderAtom::Visit(Vis& v) {
+	VIS_THIS(RawByteStaticSource);
 }
 
 AtomTypeCls VolumeLoaderAtom::GetType() const {
@@ -1434,8 +1434,8 @@ LinkTypeCls X11VideoAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11VideoAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SinkDevice>(this);
+void X11VideoAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11SinkDevice);
 }
 
 AtomTypeCls X11VideoAtomPipe::GetType() const {
@@ -1462,8 +1462,8 @@ LinkTypeCls X11OglVideoAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11OglVideoAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11OglSinkDevice>(this);
+void X11OglVideoAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11OglSinkDevice);
 }
 
 AtomTypeCls X11OglVideoAtomPipe::GetType() const {
@@ -1490,8 +1490,8 @@ LinkTypeCls X11OglFboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11OglFboAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<X11OglSinkDevice>(this);
+void X11OglFboAtomSA::Visit(Vis& v) {
+	VIS_THIS(X11OglSinkDevice);
 }
 
 AtomTypeCls X11OglFboAtomSA::GetType() const {
@@ -1518,8 +1518,8 @@ LinkTypeCls X11SwVideoAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11SwVideoAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SwSinkDevice>(this);
+void X11SwVideoAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11SwSinkDevice);
 }
 
 AtomTypeCls X11SwVideoAtomPipe::GetType() const {
@@ -1546,8 +1546,8 @@ LinkTypeCls X11SwFboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11SwFboAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<X11SwSinkDevice>(this);
+void X11SwFboAtomSA::Visit(Vis& v) {
+	VIS_THIS(X11SwSinkDevice);
 }
 
 AtomTypeCls X11SwFboAtomSA::GetType() const {
@@ -1574,8 +1574,8 @@ LinkTypeCls SdlOglFboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlOglFboAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglVideoSinkDevice>(this);
+void SdlOglFboAtomSA::Visit(Vis& v) {
+	VIS_THIS(SdlOglVideoSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtomSA::GetType() const {
@@ -1602,8 +1602,8 @@ LinkTypeCls SdlUppOglDeviceSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlUppOglDeviceSA::Visit(Vis& vis) {
-	vis.VisitThis<SdlUppOglDevice>(this);
+void SdlUppOglDeviceSA::Visit(Vis& v) {
+	VIS_THIS(SdlUppOglDevice);
 }
 
 AtomTypeCls SdlUppOglDeviceSA::GetType() const {
@@ -1630,8 +1630,8 @@ LinkTypeCls SdlOglFboPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlOglFboPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglVideoSinkDevice>(this);
+void SdlOglFboPipe::Visit(Vis& v) {
+	VIS_THIS(SdlOglVideoSinkDevice);
 }
 
 AtomTypeCls SdlOglFboPipe::GetType() const {
@@ -1666,8 +1666,8 @@ LinkTypeCls SdlOglFboAtom::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlOglFboAtom::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglVideoSinkDevice>(this);
+void SdlOglFboAtom::Visit(Vis& v) {
+	VIS_THIS(SdlOglVideoSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtom::GetType() const {
@@ -1694,8 +1694,8 @@ LinkTypeCls SdlUppEventsBasePipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlUppEventsBasePipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlUppEventsBase>(this);
+void SdlUppEventsBasePipe::Visit(Vis& v) {
+	VIS_THIS(SdlUppEventsBase);
 }
 
 AtomTypeCls SdlUppEventsBasePipe::GetType() const {
@@ -1722,8 +1722,8 @@ LinkTypeCls SdlVideoAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlVideoAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlCenterVideoSinkDevice>(this);
+void SdlVideoAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlCenterVideoSinkDevice);
 }
 
 AtomTypeCls SdlVideoAtomPipe::GetType() const {
@@ -1750,8 +1750,8 @@ LinkTypeCls SdlProgAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlProgAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<SdlCenterVideoSinkDevice>(this);
+void SdlProgAtomPipe::Visit(Vis& v) {
+	VIS_THIS(SdlCenterVideoSinkDevice);
 }
 
 AtomTypeCls SdlProgAtomPipe::GetType() const {
@@ -1778,8 +1778,8 @@ LinkTypeCls X11ProgAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void X11ProgAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<X11SinkDevice>(this);
+void X11ProgAtomPipe::Visit(Vis& v) {
+	VIS_THIS(X11SinkDevice);
 }
 
 AtomTypeCls X11ProgAtomPipe::GetType() const {
@@ -1807,8 +1807,8 @@ LinkTypeCls X11SwFboGuiProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void X11SwFboGuiProg::Visit(Vis& vis) {
-	vis.VisitThis<X11SwFboProgBase>(this);
+void X11SwFboGuiProg::Visit(Vis& v) {
+	VIS_THIS(X11SwFboProgBase);
 }
 
 AtomTypeCls X11SwFboGuiProg::GetType() const {
@@ -1836,8 +1836,8 @@ LinkTypeCls X11OglFboGuiProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void X11OglFboGuiProg::Visit(Vis& vis) {
-	vis.VisitThis<X11OglFboProgBase>(this);
+void X11OglFboGuiProg::Visit(Vis& v) {
+	VIS_THIS(X11OglFboProgBase);
 }
 
 AtomTypeCls X11OglFboGuiProg::GetType() const {
@@ -1865,8 +1865,8 @@ LinkTypeCls SdlOglFboGuiProg::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglFboGuiProg::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglFboProgBase>(this);
+void SdlOglFboGuiProg::Visit(Vis& v) {
+	VIS_THIS(SdlOglFboProgBase);
 }
 
 AtomTypeCls SdlOglFboGuiProg::GetType() const {
@@ -1901,8 +1901,8 @@ LinkTypeCls SdlVideoAtom::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void SdlVideoAtom::Visit(Vis& vis) {
-	vis.VisitThis<SdlCenterVideoSinkDevice>(this);
+void SdlVideoAtom::Visit(Vis& v) {
+	VIS_THIS(SdlCenterVideoSinkDevice);
 }
 
 AtomTypeCls SdlVideoAtom::GetType() const {
@@ -1929,8 +1929,8 @@ LinkTypeCls SdlAudioAtom::GetLinkType() {
 	return LINKTYPE(EXTERNAL_PIPE, PROCESS);
 }
 
-void SdlAudioAtom::Visit(Vis& vis) {
-	vis.VisitThis<SdlAudioSinkDevice>(this);
+void SdlAudioAtom::Visit(Vis& v) {
+	VIS_THIS(SdlAudioSinkDevice);
 }
 
 AtomTypeCls SdlAudioAtom::GetType() const {
@@ -1965,8 +1965,8 @@ LinkTypeCls SdlOglShaderAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglShaderAtom::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglShaderBase>(this);
+void SdlOglShaderAtom::Visit(Vis& v) {
+	VIS_THIS(SdlOglShaderBase);
 }
 
 AtomTypeCls SdlOglShaderAtom::GetType() const {
@@ -1993,8 +1993,8 @@ LinkTypeCls SdlOglShaderAtomSA::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void SdlOglShaderAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglShaderBase>(this);
+void SdlOglShaderAtomSA::Visit(Vis& v) {
+	VIS_THIS(SdlOglShaderBase);
 }
 
 AtomTypeCls SdlOglShaderAtomSA::GetType() const {
@@ -2023,8 +2023,8 @@ LinkTypeCls SdlOglTextureSource::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglTextureSource::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglTextureBase>(this);
+void SdlOglTextureSource::Visit(Vis& v) {
+	VIS_THIS(SdlOglTextureBase);
 }
 
 AtomTypeCls SdlOglTextureSource::GetType() const {
@@ -2053,8 +2053,8 @@ LinkTypeCls SdlOglVolumeSource::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglVolumeSource::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglTextureBase>(this);
+void SdlOglVolumeSource::Visit(Vis& v) {
+	VIS_THIS(SdlOglTextureBase);
 }
 
 AtomTypeCls SdlOglVolumeSource::GetType() const {
@@ -2083,8 +2083,8 @@ LinkTypeCls SdlOglAudioSink::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglAudioSink::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglFboReaderBase>(this);
+void SdlOglAudioSink::Visit(Vis& v) {
+	VIS_THIS(SdlOglFboReaderBase);
 }
 
 AtomTypeCls SdlOglAudioSink::GetType() const {
@@ -2119,8 +2119,8 @@ LinkTypeCls SdlOglKeyboardSource::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglKeyboardSource::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglKeyboardBase>(this);
+void SdlOglKeyboardSource::Visit(Vis& v) {
+	VIS_THIS(SdlOglKeyboardBase);
 }
 
 AtomTypeCls SdlOglKeyboardSource::GetType() const {
@@ -2149,8 +2149,8 @@ LinkTypeCls SdlOglAudioSource::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SdlOglAudioSource::Visit(Vis& vis) {
-	vis.VisitThis<SdlOglAudioBase>(this);
+void SdlOglAudioSource::Visit(Vis& v) {
+	VIS_THIS(SdlOglAudioBase);
 }
 
 AtomTypeCls SdlOglAudioSource::GetType() const {
@@ -2159,7 +2159,5 @@ AtomTypeCls SdlOglAudioSource::GetType() const {
 #endif
 
 
-}
-
-}
+END_UPP_NAMESPACE
 

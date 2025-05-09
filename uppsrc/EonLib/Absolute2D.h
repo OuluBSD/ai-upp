@@ -3,22 +3,16 @@
 
 #if 0
 
-NAMESPACE_UPP
 namespace Ecs {
 	class Geom2DComponent;
 }
-END_UPP_NAMESPACE
-
-
-NAMESPACE_UPP
-
 
 class Absolute2D :
 	public Absolute2DInterface
 {
 	
 public:
-	//RTTI_DECL1(Absolute2D, Absolute2DInterface)
+	ATOM_CTOR_(Absolute2D, Absolute2DInterface)
 	Absolute2D();
 	virtual ~Absolute2D() {}
 	
@@ -46,9 +40,6 @@ public:
 	Upp::Ecs::WindowManager* GetWindowManager() const;
 	
 };
-
-
-END_UPP_NAMESPACE
 
 
 #endif

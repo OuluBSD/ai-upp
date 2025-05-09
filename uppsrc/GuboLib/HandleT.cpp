@@ -3,7 +3,7 @@
 
 NAMESPACE_GUBO_BEGIN
 
-void DebugMainLoop() {
+void MainLoop() {
 	TODO
 }
 
@@ -250,7 +250,7 @@ HandleT<Dim>& HandleT<Dim>::MinimizeBox(bool b) {
 
 template <class Dim>
 int HandleT<Dim>::Run(bool appmodal) {
-	DebugMainLoop();
+	MainLoop();
 	return 0;
 }
 

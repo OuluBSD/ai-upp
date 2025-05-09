@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-void DebugMainLoop();
+void MainLoop();
 
 
 
@@ -621,7 +621,7 @@ void Surface::PaintDebug(ProgPainter& pp) {
 }*/
 
 void Surface::EventLoop() {
-	DebugMainLoop();
+	MainLoop();
 }
 
 void Surface::EventLoopIteration(void*) {

@@ -1,11 +1,8 @@
-#ifndef _EonLib_PhysicsPrefab_h_
-#define _EonLib_PhysicsPrefab_h_
+#ifndef _EonLib_OdePrefab_h_
+#define _EonLib_OdePrefab_h_
 
 #if 0
 #ifdef flagODE
-
-NAMESPACE_UPP
-
 
 
 struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane> {
@@ -58,8 +55,6 @@ struct StaticGroundPlanePrefab :
     }
 };
 
-
-END_UPP_NAMESPACE
 
 #endif
 #endif

@@ -1583,7 +1583,7 @@ bool IsClose(const quat& a, const quat& b) {
 	return sum < 0.001;
 }
 
-bool IsClose(const axes2& a, const axes2& b, float dist_limit) {
+bool IsCloseAxes(const axes2& a, const axes2& b, float dist_limit) {
 	double sum = 0;
 	for(int i = 0; i < 2; i++) {
 		sum += fabsf(a[i] - b[i]);
@@ -1591,7 +1591,7 @@ bool IsClose(const axes2& a, const axes2& b, float dist_limit) {
 	return fabs(sum) < dist_limit;
 }
 
-bool IsClose(const axes3s& a, const axes3s& b, float dist_limit) {
+bool IsCloseAxes(const axes3s& a, const axes3s& b, float dist_limit) {
 	double sum = 0;
 	for(int i = 0; i < 4; i++) {
 		sum += fabsf(a[i] - b[i]);

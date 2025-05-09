@@ -411,19 +411,20 @@ public:
 	
 };
 
-class PacketForwarder : public Pte<PacketForwarder>
+class PacketForwarder : public MetaNodeExt
 {
 public:
+	using MetaNodeExt::MetaNodeExt;
 	virtual void ForwardSetup(FwdScope& fwd) {}
 	virtual void ForwardAtom(FwdScope& fwd) {Panic("not implemented");}
 	virtual void ForwardExchange(FwdScope& fwd) {Panic("not implemented");}
 	virtual bool IsPacketStuck() {Panic("not implemented"); return true;}
 	virtual bool IsLoopComplete(FwdScope& fwd) {Panic("not implemented"); return true;}
-	virtual TypeCls GetType() const = 0;
+	//virtual TypeCls GetTypeCls() const = 0;
 	virtual String GetSecondaryName() {return "";}
 	virtual void* GetSecondaryPtr() {return 0;}
 	PacketForwarder& GetPacketForwarder() {return *this;}
-	String GetDynamicName() const {return GetType().GetName();}
+	String GetDynamicName() const {return GetTypeCls().GetName();}
 	
 };
 
@@ -447,7 +448,7 @@ protected:
 	
 public:
 	typedef ExchangePoint CLASSNAME;
-	ExchangePoint();
+	ExchangePoint(MetaNode& n);
 	virtual ~ExchangePoint();
 	
 	virtual void Init(MetaSpaceBase* mdir) = 0;
@@ -496,7 +497,7 @@ public:
 	virtual ~MetaSpaceBase();
 	
 	virtual void UnlinkAll();
-	virtual TypeCls GetType() const = 0;
+	virtual TypeCls GetTypeCls() const = 0;
 	
 	template <class T>
 	Ptr<T> Add() {
@@ -530,13 +531,13 @@ public:
 	
 public:
 	
-	typedef ExchangePoint* (*NewExpt)();
+	typedef ExchangePoint* (*NewExpt)(MetaNode&);
 	struct ExptData : Moveable<ExptData> {
 		NewExpt new_fn;
 	};
 	typedef ArrayMap<TypeCls,ExptData> ExptMap;
 	static ArrayMap<TypeCls,ExptData>& ExptDataMap() {MAKE_STATIC(ExptMap, m); return m;}
-	template <class T> static ExchangePoint* New() {return new T();}
+	template <class T> static ExchangePoint* New(MetaNode& n) {return new T(n);}
 	template <class T> static void RegisterExchangePoint() {
 		ExptData& d = ExptDataMap().GetAdd(AsTypeCls<T>());
 		d.new_fn = &New<T>;
@@ -553,7 +554,7 @@ public:
 	virtual ~MetaDirectoryBase();
 	
 	String ToString() const;
-	virtual TypeCls GetType() const = 0;
+	virtual TypeCls GetTypeCls() const = 0;
 	
 	void Visit(Vis& vis) {}
 	

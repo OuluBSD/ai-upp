@@ -13,7 +13,7 @@ public:
     SystemBase(MetaNode&);
     virtual ~SystemBase();
 
-    virtual TypeCls GetType() const = 0;
+    virtual TypeCls GetTypeCls() const = 0;
 	virtual void Visit(Vis& vis) {}
 	Machine& GetMachine() const;
 	
@@ -39,7 +39,7 @@ class System : public SystemBase
 	using SystemT = System<T>;
 public:
 	System(MetaNode& n) : SystemBase(n) {}
-	TypeCls GetType() const override {return AsTypeCls<T>();}
+	TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
     void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
 };
@@ -67,12 +67,12 @@ public:
 	int64 GetTicks() const {return ticks;}
 	
 	
-    template<typename SystemT>
+    /*template<typename SystemT>
     Ptr<SystemT> Get() {
         auto system = Find<SystemT>();
         ASSERT_(system, "System " << AsTypeName<SystemT>() << " was not found in the Machine");
         return system;
-    }
+    }*/
 
     /*template<typename SystemT>
     SystemT* GetPtr() {
@@ -80,7 +80,7 @@ public:
         return CastPtr<SystemT>(&*it);
     }*/
 
-    template<typename SystemT>
+    /*template<typename SystemT>
     Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
@@ -118,7 +118,9 @@ public:
 
         ASSERT(is_initialized && is_started);
         Remove(AsTypeCls<SystemT>());
-    }
+    }*/
+    
+    
 
 	CLASSTYPE(Machine)
     Machine(MetaNode& n);
@@ -141,20 +143,27 @@ public:
 	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
 	void Visit(Vis& vis) override;
 	void WarnDeveloper(String msg);
+	void Run(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
+	void Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
+	void Main(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits=false, uint64 dbg_ref=0);
+	void StopRunner();
+	void MainLoop(bool (*fn)(void*)=0, void* arg=0);
 	
 	MachineVerifier*	GetMachineVerifier() const {return mver;}
 	Ecs::Engine&		GetEngine();
 	
-	Callback WhenEnterUpdate;
-	Callback1<SystemBase&> WhenEnterSystemUpdate;
+	using ObjMap = VectorMap<String,Value>;
 	
-	Callback WhenLeaveUpdate;
-	Callback WhenLeaveSystemUpdate;
+	Event<> WhenEnterUpdate;
+	Event<SystemBase&> WhenEnterSystemUpdate;
 	
-	static Callback WhenInitialize;
-	static Callback WhenUserProgram;
-	static Callback WhenPostInitialize;
-	static Callback WhenPreFirstUpdate;
+	Event<> WhenLeaveUpdate;
+	Event<> WhenLeaveSystemUpdate;
+	
+	static Event<> WhenInitialize;
+	static Event<> WhenUserProgram;
+	static Event<> WhenPostInitialize;
+	static Event<> WhenPreFirstUpdate;
 	
 private:
     bool is_started = false;
@@ -163,6 +172,10 @@ private:
     bool is_running = false;
     bool is_failed = false;
     String fail_msg;
+	ObjMap __def_args;
+	String eon_script;
+	String eon_file;
+	uint64 break_addr = 0;
     
     SystemBase* FindSystem(TypeCls type_id);
     //SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}

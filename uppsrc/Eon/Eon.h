@@ -90,6 +90,8 @@ NAMESPACE_UPP
 #include "EonLoader.h"
 #include "Service.h"
 
+#include "AtomShell.h"
+
 END_UPP_NAMESPACE
 
 #endif

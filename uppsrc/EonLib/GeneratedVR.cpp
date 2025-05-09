@@ -2,9 +2,9 @@
 
 // This file is generated. Do not modify this file.
 
-namespace Upp {
+NAMESPACE_UPP
 
-namespace Parallel {
+
 
 #if (defined flagFREEBSD && defined flagOPENHMD) || (defined flagLINUX && defined flagOPENHMD)
 String OpenHMDPipe::GetAction() {
@@ -24,8 +24,8 @@ LinkTypeCls OpenHMDPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void OpenHMDPipe::Visit(Vis& vis) {
-	vis.VisitThis<OpenHMDSinkDevice>(this);
+void OpenHMDPipe::Visit(Vis& v) {
+	VIS_THIS(OpenHMDSinkDevice);
 }
 
 AtomTypeCls OpenHMDPipe::GetType() const {
@@ -52,8 +52,8 @@ LinkTypeCls LocalHMDPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void LocalHMDPipe::Visit(Vis& vis) {
-	vis.VisitThis<LocalHMDSinkDevice>(this);
+void LocalHMDPipe::Visit(Vis& v) {
+	VIS_THIS(LocalHMDSinkDevice);
 }
 
 AtomTypeCls LocalHMDPipe::GetType() const {
@@ -80,8 +80,8 @@ LinkTypeCls RemoteVRServerPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void RemoteVRServerPipe::Visit(Vis& vis) {
-	vis.VisitThis<RemoteVRServerSinkDevice>(this);
+void RemoteVRServerPipe::Visit(Vis& v) {
+	VIS_THIS(RemoteVRServerSinkDevice);
 }
 
 AtomTypeCls RemoteVRServerPipe::GetType() const {
@@ -108,8 +108,8 @@ LinkTypeCls BluetoothHoloPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void BluetoothHoloPipe::Visit(Vis& vis) {
-	vis.VisitThis<DevBluetoothSinkDevice>(this);
+void BluetoothHoloPipe::Visit(Vis& v) {
+	VIS_THIS(DevBluetoothSinkDevice);
 }
 
 AtomTypeCls BluetoothHoloPipe::GetType() const {
@@ -136,8 +136,8 @@ LinkTypeCls HoloContextAtom::GetLinkType() {
 	return LINKTYPE(DRIVER, DRIVER);
 }
 
-void HoloContextAtom::Visit(Vis& vis) {
-	vis.VisitThis<HoloContextBase>(this);
+void HoloContextAtom::Visit(Vis& v) {
+	VIS_THIS(HoloContextBase);
 }
 
 AtomTypeCls HoloContextAtom::GetType() const {
@@ -164,8 +164,8 @@ LinkTypeCls HoloEventAtomPipe::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void HoloEventAtomPipe::Visit(Vis& vis) {
-	vis.VisitThis<HoloEventsBase>(this);
+void HoloEventAtomPipe::Visit(Vis& v) {
+	VIS_THIS(HoloEventsBase);
 }
 
 AtomTypeCls HoloEventAtomPipe::GetType() const {
@@ -192,8 +192,8 @@ LinkTypeCls HoloD12FboAtomSA::GetLinkType() {
 	return LINKTYPE(POLLER_PIPE, PROCESS);
 }
 
-void HoloD12FboAtomSA::Visit(Vis& vis) {
-	vis.VisitThis<HoloD12VideoSinkDevice>(this);
+void HoloD12FboAtomSA::Visit(Vis& v) {
+	VIS_THIS(HoloD12VideoSinkDevice);
 }
 
 AtomTypeCls HoloD12FboAtomSA::GetType() const {
@@ -201,8 +201,5 @@ AtomTypeCls HoloD12FboAtomSA::GetType() const {
 }
 #endif
 
-
-}
-
-}
+END_UPP_NAMESPACE
 

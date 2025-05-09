@@ -53,7 +53,7 @@ void Absolute2D::Title(const String& title) {
 }
 
 int Absolute2D::Run(bool appmodal) {
-	DebugMainLoop();
+	MainLoop();
 	return 0;
 }
 

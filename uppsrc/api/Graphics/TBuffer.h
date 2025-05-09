@@ -174,7 +174,7 @@ struct BufferT : GfxBuffer {
 	
 	
 public:
-	void ClearPtr() {env.Clear();}
+	void ClearPtr() {env = 0;}
 	void Update(double dt);
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_data_states);

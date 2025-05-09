@@ -134,7 +134,7 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Scr::SinkDevice_Visit(*dev, *this, vis);
+		if (dev) Scr::SinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(ScrSinkDevice);
 	}
 	typename Scr::NativeSinkDevice* dev = 0;
@@ -183,7 +183,7 @@ template <class Scr> struct ScreenContextT : ScrContext {
 	using CLASSNAME = ScreenContextT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrContext)
 	void Visit(Vis& v) override {
-		if (dev) Scr::Context_Visit(*dev, *this, vis);
+		if (dev) Scr::Context_Visit(*dev, *this, v);
 		VIS_THIS(ScrContext);
 	}
 	typename Scr::NativeContext* dev = 0;
@@ -232,7 +232,7 @@ template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrEventsBase)
 	void Visit(Vis& v) override {
-		if (dev) Scr::EventsBase_Visit(*dev, *this, vis);
+		if (dev) Scr::EventsBase_Visit(*dev, *this, v);
 		VIS_THIS(ScrEventsBase);
 	}
 	typename Scr::NativeEventsBase* dev = 0;

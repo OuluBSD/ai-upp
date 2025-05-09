@@ -167,7 +167,7 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	using CLASSNAME = HalAudioSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::AudioSinkDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::AudioSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalAudioSinkDevice);
 	}
 	typename Hal::NativeAudioSinkDevice* dev = 0;
@@ -222,7 +222,7 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalCenterVideoSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalCenterVideoSinkDevice);
 	}
 	typename Hal::NativeCenterVideoSinkDevice* dev = 0;
@@ -277,7 +277,7 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalCenterFboSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::CenterFboSinkDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::CenterFboSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalCenterFboSinkDevice);
 	}
 	typename Hal::NativeCenterFboSinkDevice* dev = 0;
@@ -333,7 +333,7 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalOglVideoSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalOglVideoSinkDevice);
 	}
 	typename Hal::NativeOglVideoSinkDevice* dev = 0;
@@ -390,7 +390,7 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalD12VideoSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalD12VideoSinkDevice);
 	}
 	typename Hal::NativeD12VideoSinkDevice* dev = 0;
@@ -446,7 +446,7 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 	using CLASSNAME = HalContextBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalContextBase)
 	void Visit(Vis& v) override {
-		if (dev) Hal::ContextBase_Visit(*dev, *this, vis);
+		if (dev) Hal::ContextBase_Visit(*dev, *this, v);
 		VIS_THIS(HalContextBase);
 	}
 	typename Hal::NativeContextBase* dev = 0;
@@ -501,7 +501,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 	using CLASSNAME = HalEventsBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalEventsBase)
 	void Visit(Vis& v) override {
-		if (dev) Hal::EventsBase_Visit(*dev, *this, vis);
+		if (dev) Hal::EventsBase_Visit(*dev, *this, v);
 		VIS_THIS(HalEventsBase);
 	}
 	typename Hal::NativeEventsBase* dev = 0;
@@ -557,7 +557,7 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalUppEventsBase)
 	void Visit(Vis& v) override {
-		if (dev) Hal::UppEventsBase_Visit(*dev, *this, vis);
+		if (dev) Hal::UppEventsBase_Visit(*dev, *this, v);
 		VIS_THIS(HalUppEventsBase);
 	}
 	typename Hal::NativeUppEventsBase* dev = 0;
@@ -614,7 +614,7 @@ template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
 	//RTTI_DECL1(CLASSNAME, HalUppOglDevice)
 	void Visit(Vis& v) override {
-		if (dev) Hal::UppOglDevice_Visit(*dev, *this, vis);
+		if (dev) Hal::UppOglDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalUppOglDevice);
 	}
 	typename Hal::NativeUppOglDevice* dev = 0;

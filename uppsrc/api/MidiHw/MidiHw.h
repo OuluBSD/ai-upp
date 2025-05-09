@@ -49,7 +49,7 @@ template <class Mid> struct MidiHwSourceT : MidSource {
 	//RTTI_DECL1(CLASSNAME, MidSource)
 	void Visit(Vis& v) override {
 		if (dev) Mid::Source_Visit(*dev, *this, v);
-		v.VisitThis<MidSource>(this);
+		VIS_THIS(MidSource);
 	}
 	typename Mid::NativeSource* dev = 0;
 	bool Initialize(const Eon::WorldState& ws) override {

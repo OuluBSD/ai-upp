@@ -124,7 +124,7 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
 	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
 	void Visit(Vis& v) override {
-		if (dev) Holo::SinkDevice_Visit(*dev, *this, vis);
+		if (dev) Holo::SinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HoloSinkDevice);
 	}
 	typename Holo::NativeSinkDevice* dev = 0;

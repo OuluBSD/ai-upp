@@ -1,32 +1,14 @@
-#include "Shell.h"
-//#include <EcsMach/EcsMach.h>
+#include "Eon.h"
+
 
 NAMESPACE_UPP
 
 
-using ObjMap = VectorMap<String,Value>;
-MAKE_STATIC(ObjMap, __def_args)
-MAKE_STATIC(String, eon_script)
-MAKE_STATIC(String, eon_file)
 
-
-dword active_shell_mode;
-
-void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
-
-bool IsShellMode(ShellMode m) {
-	return active_shell_mode & (dword)m;
-}
-
-void SetShellMode(ShellMode m) {
-	active_shell_mode |= (dword)m;
-}
-
-bool IsEmptyShellMode() {
-	return active_shell_mode == 0;
-}
 
 bool DefaultInitializer(bool skip_eon_file) {
+	TODO
+	#if 0
 	SetCoutLog();
 	CommandLineArguments cmd;
 	DaemonBase& daemon = DaemonBase::Single();
@@ -105,7 +87,7 @@ bool DefaultInitializer(bool skip_eon_file) {
 		LOG("DefaultInitializer: error: no enough program arguments to do anything");
 		return false;
 	}
-	
+	#endif
 	
 	return true;
 }
@@ -114,57 +96,22 @@ bool DefaultInitializer(bool skip_eon_file) {
 size_t break_addr = 0;
 
 
-void DefaultSerialInitializer() {DefaultSerialInitializer0(false);}
 
 void DefaultSerialInitializer0(bool skip_eon_file) {
-	
-	
 	SetCoutLog();
 	
 	if (0)
 		break_addr = 0x1;
-	
 	
 	if (!DefaultInitializer(skip_eon_file))
 		GetActiveMachine().SetFailed("Default serial initializer failed");
 	
 }
 
+void DefaultSerialInitializer() {DefaultSerialInitializer0(false);}
+
 void DefaultSerialInitializerInternalEon() {
 	DefaultSerialInitializer0(true);
-}
-
-void DefaultRunner(bool main_loop, String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
-	
-	if (!override_eon_file.IsEmpty())
-		eon_file = override_eon_file;
-	
-	if (extra_args) {
-		for(int i = 0; i < extra_args->GetCount(); i++)
-			__def_args.GetAdd(
-				extra_args->GetKey(i),
-				(*extra_args)[i]
-			);
-	}
-	
-	if (extra_str) {
-		Vector<String> args = Split(extra_str, ";");
-		for (String& arg : args) {
-			int i = arg.Find("=");
-			if (i >= 0) {
-				String a = arg.Left(i);
-				String b = arg.Mid(i+1);
-				__def_args.Add(a, b);
-			}
-		}
-	}
-	
-	//break_addr = 1;
-	
-	if (!break_addr)
-		DebugMain(main_loop, eon_script, eon_file, __def_args);
-	else
-		DebugMain(main_loop, eon_script, eon_file, __def_args, 1, break_addr);
 }
 
 void DefaultStartup() {
@@ -179,21 +126,16 @@ int __dbg_time_limit;
 
 
 
-void DebugMainLoop() {
-	DebugMainLoop(GetActiveMachine());
-}
 
-void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
-	
-	
+void Machine::MainLoop(bool (*fn)(void*), void* arg) {
 	int iter = 0;
     TimeStop t, total;
     double sleep_dt_limit = 0.001;
     int fast_iter = 0;
-    while (mach.IsRunning() && !Thread::IsShutdownThreads()) {
+    while (this->IsRunning() && !Thread::IsShutdownThreads()) {
         double dt = ResetSeconds(t);
         
-        mach.Update(dt);
+        this->Update(dt);
         
         if (fn)
             fn(arg);
@@ -206,28 +148,19 @@ void DebugMainLoop(Machine& mach, bool (*fn)(void*), void* arg) {
         
         double total_seconds = total.Seconds();
         if (__dbg_time_limit > 0 && total_seconds >= __dbg_time_limit)
-            mach.SetNotRunning();
+            this->SetNotRunning();
     }
     
     //RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
-void DebugMain(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
-	
-	
+void Machine::Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
-	
-	if (IsShellMode(SHELLMODE_INTERPRETER)) {
-		if (script_content.IsEmpty() && script_file.IsEmpty()) {
-			LOG("No script file given");
-			return;
-		}
-	}
 	
 	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
-		Machine& mach = GetActiveMachine();
+		Machine& mach = *this;
 		
 		//RuntimeDiagnostics::Static().SetRoot(mach);
 		
@@ -237,6 +170,8 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
+					TODO
+					#if 0
 					RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
 					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
 					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
@@ -250,6 +185,7 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 				    
 				    
 				    mach.FindAdd<PacketTracker>();
+				    #endif
 				}
 				
 				/*Ptr<LoopStore> ls			= mach.Find<LoopStore>();
@@ -259,13 +195,14 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 				}*/
 				
 				
+				TODO
+				#if 0
 				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
 				
-				TODO
 				LoopPtr root; // = ls->GetRoot();
 				
 				if (IsShellMode(SHELLMODE_INTERPRETER)) {
@@ -296,6 +233,7 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 				
 					script->PostLoadString(script_str);
 				}
+				#endif
 		    }
 		    
 		    if (!fail) {
@@ -305,7 +243,7 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 		    
 		    if (!fail) {
 		        if (main_loop)
-					DebugMainLoop();
+					MainLoop();
 		        else
 		            Machine::WhenUserProgram();
 		    }
@@ -323,14 +261,6 @@ void DebugMain(bool main_loop, String script_content, String script_file, Vector
 	    }
 	}
     
-}
-
-void DefaultRunnerStop() {
-	
-	Machine& mach = GetActiveMachine();
-	mach.SetNotRunning();
-	mach.Stop();
-	mach.Clear();
 }
 
 

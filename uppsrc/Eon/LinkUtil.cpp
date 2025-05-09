@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-AsyncMemForwarderBase::AsyncMemForwarderBase() : dbg_offset(dbg_off_gen) {
+AsyncMemForwarderBase::AsyncMemForwarderBase(MetaNode& n) : dbg_offset(dbg_off_gen), LinkBase(n) {
 	
 }
 

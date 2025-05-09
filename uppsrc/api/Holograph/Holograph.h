@@ -114,6 +114,7 @@ struct HoloOpenVR {
 
 struct HoloSinkDevice : public Atom {
 	//RTTI_DECL1(HoloSinkDevice, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HoloSinkDevice() {}
@@ -121,6 +122,7 @@ struct HoloSinkDevice : public Atom {
 
 
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
+	HolographSinkDeviceT(MetaNode& n) : HoloSinkDevice(n) {}
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
 	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
 	void Visit(Vis& v) override {

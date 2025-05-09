@@ -44,7 +44,7 @@ String ThrowingInteractionSystemBase::GetDisplayName() const {
 EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = GetPool()->Create<ToolSelectorPrefab>();
 	selector->Get<ModelComponent>().SetPrefabModel("Baseball");
-	selector->Get<ToolSelectorKey>().type = GetType();
+	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
 }
 

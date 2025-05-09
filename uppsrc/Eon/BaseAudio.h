@@ -113,6 +113,7 @@ class AudioGenBase :
 	void GenerateStereoSine(const AudioFormat& fmt);
 	
 public:
+	using Atom::Atom;
 	AudioGenBase(MetaNode& n);
 	
 	bool Initialize(const WorldState& ws) final;
@@ -148,6 +149,7 @@ class AudioMixerBase :
 	int channels = 2;
 	
 public:
+	using Atom::Atom;
 	AudioMixerBase(MetaNode& n);
 	
 	bool Initialize(const WorldState& ws) final;

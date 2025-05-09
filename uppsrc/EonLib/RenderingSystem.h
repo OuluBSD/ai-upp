@@ -3,9 +3,6 @@
 
 #if 0
 
-NAMESPACE_UPP
-
-
 class RenderingSystem :
 	public Parallel::System<RenderingSystem>
 {
@@ -37,7 +34,7 @@ protected:
     
 public:
 	using Base = System<RenderingSystem>;
-	//RTTI_DECL1(RenderingSystem, Base)
+	ATOM_CTOR_(RenderingSystem, Base)
     SYS_CTOR(RenderingSystem)
 	SYS_DEF_VISIT
 	
@@ -58,7 +55,6 @@ public:
 
 using RenderingSystemRef = Ptr<RenderingSystem>;
 
-END_UPP_NAMESPACE
 
 #endif
 #endif

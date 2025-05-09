@@ -11,7 +11,9 @@ uses
 	api/Volumetric,
 	SoftPhys,
 	SoftAudio,
-	api/Physics;
+	api/Physics,
+	EonDraw,
+	EonLib;
 
 uses(LINUX & VR) SoftVR;
 
@@ -32,10 +34,7 @@ uses((GUI | SCREEN) & !EMSCRIPTEN) api/Screen;
 file
 	Shell.h,
 	Shell.cpp,
-	AtomShell.h,
-	AtomShell.cpp,
 	Prefabs.h,
-	AtomDebug.cpp,
 	_ readonly separator,
 	Defs.h,
 	EcsComplete.cpp;

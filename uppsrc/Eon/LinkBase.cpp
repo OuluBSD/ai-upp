@@ -4,10 +4,6 @@ NAMESPACE_UPP
 
 
 
-CustomerLink::CustomerLink() {
-	
-}
-
 bool CustomerLink::Initialize(const WorldState& ws) {
 	LinkBasePtr r = this;
 	ASSERT(r);
@@ -98,10 +94,6 @@ bool CustomerLink::IsLoopComplete(FwdScope& fwd) {
 
 
 
-PipeLink::PipeLink() {
-	
-}
-
 bool PipeLink::Initialize(const WorldState& ws) {
 	
 	return true;
@@ -150,10 +142,6 @@ LinkTypeCls PipeLink::GetLinkTypeStatic() {
 
 
 
-
-PipeOptSideLink::PipeOptSideLink() {
-	
-}
 
 bool PipeOptSideLink::Initialize(const WorldState& ws) {
 	
@@ -232,10 +220,6 @@ LinkTypeCls PipeOptSideLink::GetLinkTypeStatic() {
 
 
 
-
-IntervalPipeLink::IntervalPipeLink() {
-	
-}
 
 IntervalPipeLink::~IntervalPipeLink() {
 	ASSERT(!flag.IsRunning());
@@ -318,10 +302,6 @@ void IntervalPipeLink::IntervalSinkProcess() {
 
 
 
-PollerLink::PollerLink() {
-	
-}
-
 PollerLink::~PollerLink() {
 	
 }
@@ -390,10 +370,6 @@ bool PollerLink::ProcessPackets(PacketIO& io) {
 
 
 
-ExternalPipeLink::ExternalPipeLink() {
-	
-}
-
 ExternalPipeLink::~ExternalPipeLink() {
 	
 }
@@ -417,10 +393,6 @@ LinkTypeCls ExternalPipeLink::GetLinkTypeStatic() {
 
 
 
-
-DriverLink::DriverLink() {
-	
-}
 
 DriverLink::~DriverLink() {
 	
@@ -448,10 +420,6 @@ LinkTypeCls DriverLink::GetLinkTypeStatic() {
 
 
 
-
-MergerLink::MergerLink() {
-	
-}
 
 bool MergerLink::Initialize(const WorldState& ws) {
 	ValueFormat fmt = GetSink()->GetValue(1).GetFormat();
@@ -546,10 +514,6 @@ LinkTypeCls MergerLink::GetLinkTypeStatic() {
 
 
 
-JoinerLink::JoinerLink() {
-	
-}
-
 bool JoinerLink::Initialize(const WorldState& ws) {
 	ValueFormat fmt = GetSink()->GetValue(1).GetFormat();
 	/*if (fmt.IsAudio()) {
@@ -637,10 +601,6 @@ LinkTypeCls JoinerLink::GetLinkTypeStatic() {
 
 
 
-
-SplitterLink::SplitterLink() {
-	
-}
 
 bool SplitterLink::Initialize(const WorldState& ws) {
 	

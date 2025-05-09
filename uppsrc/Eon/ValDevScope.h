@@ -37,8 +37,8 @@ class DefaultExchangePoint :
 	Loop* loop = 0;
 	
 public:
-	typedef DefaultExchangePoint CLASSNAME;
-	DefaultExchangePoint() {}
+	CLASSTYPE(DefaultExchangePoint);
+	DefaultExchangePoint(MetaNode& n) : ExchangePoint(n) {}
 	~DefaultExchangePoint() {Deinit();}
 	
 	void Init(MetaSpaceBase* conn) override;
@@ -47,7 +47,6 @@ public:
 	void ForwardAtom(FwdScope& fwd) override;
 	void ForwardExchange(FwdScope& fwd) override;
 	bool IsPacketStuck() override;
-	TypeCls GetType() const override {return typeid(*this);}
 	
 	void Destroy() {loop = 0;}
 	

@@ -1,22 +1,18 @@
-#ifndef _EonLib_Generated_h_
-#define _EonLib_Generated_h_
+#ifndef _EonLib_GeneratedVR_h_
+#define _EonLib_GeneratedVR_h_
 
 // This file is generated. Do not modify this file.
-
-namespace Upp {
-
-namespace Parallel {
 
 #if (defined flagFREEBSD && defined flagOPENHMD) || (defined flagLINUX && defined flagOPENHMD)
 class OpenHMDPipe : public OpenHMDSinkDevice {
 
 public:
-	//RTTI_DECL1(OpenHMDPipe, OpenHMDSinkDevice)
-	COPY_PANIC(OpenHMDPipe)
+	ATOM_CTOR_(OpenHMDPipe, OpenHMDSinkDevice)
+	//ATOMTYPE(OpenHMDPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -26,12 +22,12 @@ public:
 class LocalHMDPipe : public LocalHMDSinkDevice {
 
 public:
-	//RTTI_DECL1(LocalHMDPipe, LocalHMDSinkDevice)
-	COPY_PANIC(LocalHMDPipe)
+	ATOM_CTOR_(LocalHMDPipe, LocalHMDSinkDevice)
+	//ATOMTYPE(LocalHMDPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -41,12 +37,12 @@ public:
 class RemoteVRServerPipe : public RemoteVRServerSinkDevice {
 
 public:
-	//RTTI_DECL1(RemoteVRServerPipe, RemoteVRServerSinkDevice)
-	COPY_PANIC(RemoteVRServerPipe)
+	ATOM_CTOR_(RemoteVRServerPipe, RemoteVRServerSinkDevice)
+	//ATOMTYPE(RemoteVRServerPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -56,12 +52,12 @@ public:
 class BluetoothHoloPipe : public DevBluetoothSinkDevice {
 
 public:
-	//RTTI_DECL1(BluetoothHoloPipe, DevBluetoothSinkDevice)
-	COPY_PANIC(BluetoothHoloPipe)
+	ATOM_CTOR_(BluetoothHoloPipe, DevBluetoothSinkDevice)
+	//ATOMTYPE(BluetoothHoloPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -71,12 +67,12 @@ public:
 class HoloContextAtom : public HoloContextBase {
 
 public:
-	//RTTI_DECL1(HoloContextAtom, HoloContextBase)
-	COPY_PANIC(HoloContextAtom)
+	ATOM_CTOR_(HoloContextAtom, HoloContextBase)
+	//ATOMTYPE(HoloContextAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -86,12 +82,12 @@ public:
 class HoloEventAtomPipe : public HoloEventsBase {
 
 public:
-	//RTTI_DECL1(HoloEventAtomPipe, HoloEventsBase)
-	COPY_PANIC(HoloEventAtomPipe)
+	ATOM_CTOR_(HoloEventAtomPipe, HoloEventsBase)
+	//ATOMTYPE(HoloEventAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
@@ -101,18 +97,15 @@ public:
 class HoloD12FboAtomSA : public HoloD12VideoSinkDevice {
 
 public:
-	//RTTI_DECL1(HoloD12FboAtomSA, HoloD12VideoSinkDevice)
-	COPY_PANIC(HoloD12FboAtomSA)
+	ATOM_CTOR_(HoloD12FboAtomSA, HoloD12VideoSinkDevice)
+	//ATOMTYPE(HoloD12FboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
-	void Visit(Vis& vis) override;
+	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
 	
 };
 #endif
 
-}
-
-}
 #endif

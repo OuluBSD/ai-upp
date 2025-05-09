@@ -35,6 +35,7 @@ struct AFOCoreAudio {
 
 struct AFOSink : public Atom {
 	//RTTI_DECL1(AFOSink, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AFOSink() {}
@@ -42,6 +43,7 @@ struct AFOSink : public Atom {
 
 
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
+	AudioFileOutSinkT(MetaNode& n) : AFOSink(n) {}
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
 	//RTTI_DECL1(CLASSNAME, AFOSink)
 	void Visit(Vis& v) override {

@@ -2,9 +2,7 @@
 
 // This file is generated. Do not modify this file.
 
-namespace Upp {
-
-namespace Parallel {
+NAMESPACE_UPP
 
 String MidiFileReaderPipe::GetAction() {
 	return "midi.file.reader.pipe";
@@ -23,8 +21,8 @@ LinkTypeCls MidiFileReaderPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void MidiFileReaderPipe::Visit(Vis& vis) {
-	vis.VisitThis<MidiFileReaderAtom>(this);
+void MidiFileReaderPipe::Visit(Vis& v) {
+	VIS_THIS(MidiFileReaderAtom);
 }
 
 AtomTypeCls MidiFileReaderPipe::GetType() const {
@@ -50,8 +48,8 @@ LinkTypeCls MidiFileReader::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void MidiFileReader::Visit(Vis& vis) {
-	vis.VisitThis<MidiFileReaderAtom>(this);
+void MidiFileReader::Visit(Vis& v) {
+	VIS_THIS(MidiFileReaderAtom);
 }
 
 AtomTypeCls MidiFileReader::GetType() const {
@@ -92,8 +90,8 @@ LinkTypeCls MidiFileReader16::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void MidiFileReader16::Visit(Vis& vis) {
-	vis.VisitThis<MidiFileReaderAtom>(this);
+void MidiFileReader16::Visit(Vis& v) {
+	VIS_THIS(MidiFileReaderAtom);
 }
 
 AtomTypeCls MidiFileReader16::GetType() const {
@@ -118,8 +116,8 @@ LinkTypeCls MidiNullSink::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void MidiNullSink::Visit(Vis& vis) {
-	vis.VisitThis<MidiNullAtom>(this);
+void MidiNullSink::Visit(Vis& v) {
+	VIS_THIS(MidiNullAtom);
 }
 
 AtomTypeCls MidiNullSink::GetType() const {
@@ -146,8 +144,8 @@ LinkTypeCls FluidsynthPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void FluidsynthPipe::Visit(Vis& vis) {
-	vis.VisitThis<FluidsynthInstrument>(this);
+void FluidsynthPipe::Visit(Vis& v) {
+	VIS_THIS(FluidsynthInstrument);
 }
 
 AtomTypeCls FluidsynthPipe::GetType() const {
@@ -174,8 +172,8 @@ LinkTypeCls SoftInstrumentPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void SoftInstrumentPipe::Visit(Vis& vis) {
-	vis.VisitThis<SoftInstrument>(this);
+void SoftInstrumentPipe::Visit(Vis& v) {
+	VIS_THIS(SoftInstrument);
 }
 
 AtomTypeCls SoftInstrumentPipe::GetType() const {
@@ -201,8 +199,8 @@ LinkTypeCls FmSynthPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void FmSynthPipe::Visit(Vis& vis) {
-	vis.VisitThis<FmSynthInstrument>(this);
+void FmSynthPipe::Visit(Vis& v) {
+	VIS_THIS(FmSynthInstrument);
 }
 
 AtomTypeCls FmSynthPipe::GetType() const {
@@ -229,8 +227,8 @@ LinkTypeCls LV2InstrumentPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void LV2InstrumentPipe::Visit(Vis& vis) {
-	vis.VisitThis<LV2Instrument>(this);
+void LV2InstrumentPipe::Visit(Vis& v) {
+	VIS_THIS(LV2Instrument);
 }
 
 AtomTypeCls LV2InstrumentPipe::GetType() const {
@@ -257,8 +255,8 @@ LinkTypeCls CoreSynthPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void CoreSynthPipe::Visit(Vis& vis) {
-	vis.VisitThis<CoreSynthInstrument>(this);
+void CoreSynthPipe::Visit(Vis& v) {
+	VIS_THIS(CoreSynthInstrument);
 }
 
 AtomTypeCls CoreSynthPipe::GetType() const {
@@ -288,8 +286,8 @@ LinkTypeCls CoreDrummerPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void CoreDrummerPipe::Visit(Vis& vis) {
-	vis.VisitThis<CoreDrummerInstrument>(this);
+void CoreDrummerPipe::Visit(Vis& v) {
+	VIS_THIS(CoreDrummerInstrument);
 }
 
 AtomTypeCls CoreDrummerPipe::GetType() const {
@@ -322,8 +320,8 @@ LinkTypeCls CoreEffectPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void CoreEffectPipe::Visit(Vis& vis) {
-	vis.VisitThis<AudioCoreEffect>(this);
+void CoreEffectPipe::Visit(Vis& v) {
+	VIS_THIS(AudioCoreEffect);
 }
 
 AtomTypeCls CoreEffectPipe::GetType() const {
@@ -356,8 +354,8 @@ LinkTypeCls CoreEffectAtom::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void CoreEffectAtom::Visit(Vis& vis) {
-	vis.VisitThis<AudioCoreEffect>(this);
+void CoreEffectAtom::Visit(Vis& v) {
+	VIS_THIS(AudioCoreEffect);
 }
 
 AtomTypeCls CoreEffectAtom::GetType() const {
@@ -383,8 +381,8 @@ LinkTypeCls LV2EffectPipe::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void LV2EffectPipe::Visit(Vis& vis) {
-	vis.VisitThis<LV2Effect>(this);
+void LV2EffectPipe::Visit(Vis& v) {
+	VIS_THIS(LV2Effect);
 }
 
 AtomTypeCls LV2EffectPipe::GetType() const {
@@ -411,8 +409,8 @@ LinkTypeCls PortmidiPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void PortmidiPipe::Visit(Vis& vis) {
-	vis.VisitThis<PortmidiSource>(this);
+void PortmidiPipe::Visit(Vis& v) {
+	VIS_THIS(PortmidiSource);
 }
 
 AtomTypeCls PortmidiPipe::GetType() const {
@@ -443,8 +441,8 @@ LinkTypeCls PortmidiSend::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void PortmidiSend::Visit(Vis& vis) {
-	vis.VisitThis<PortmidiSource>(this);
+void PortmidiSend::Visit(Vis& v) {
+	VIS_THIS(PortmidiSource);
 }
 
 AtomTypeCls PortmidiSend::GetType() const {
@@ -470,16 +468,13 @@ LinkTypeCls CoreAudioFileOut::GetLinkType() {
 	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
 }
 
-void CoreAudioFileOut::Visit(Vis& vis) {
-	vis.VisitThis<CoreAudioSink>(this);
+void CoreAudioFileOut::Visit(Vis& v) {
+	VIS_THIS(CoreAudioSink);
 }
 
 AtomTypeCls CoreAudioFileOut::GetType() const {
 	return GetAtomType();
 }
 
-
-}
-
-}
+END_UPP_NAMESPACE
 

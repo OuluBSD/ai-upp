@@ -131,6 +131,7 @@ struct ScrEventsBase : public Atom {
 
 
 template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
+	ScreenSinkDeviceT(MetaNode& n) : ScrSinkDevice(n) {}
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrSinkDevice)
 	void Visit(Vis& v) override {
@@ -180,6 +181,7 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	}
 };
 template <class Scr> struct ScreenContextT : ScrContext {
+	ScreenContextT(MetaNode& n) : ScrContext(n) {}
 	using CLASSNAME = ScreenContextT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrContext)
 	void Visit(Vis& v) override {
@@ -229,6 +231,7 @@ template <class Scr> struct ScreenContextT : ScrContext {
 	}
 };
 template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
+	ScreenEventsBaseT(MetaNode& n) : ScrEventsBase(n) {}
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
 	//RTTI_DECL1(CLASSNAME, ScrEventsBase)
 	void Visit(Vis& v) override {

@@ -32,7 +32,6 @@ public:
 	void SetName(String s)			{name = s;}
 	void SetPrefab(String s)		{prefab = s;}
 	
-	TypeCls				GetType() const override {return typeid(Loop);}
 	void				Clear();
 	void				ClearInterfacesDeep();
 	void				UnrefDeep();

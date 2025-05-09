@@ -1,11 +1,8 @@
 #include "Shell.h"
 
-#if 0
-
 NAMESPACE_UPP
 
 
-void EngineEcsInit();
 
 
 void MachineEcsInit() {
@@ -30,8 +27,7 @@ void EngineEcsInit() {
 	eng.GetAdd<Ecs::InteractionSystem>();
 	
 	eng.GetAdd<Ecs::RenderingSystem>();
-	//ng.GetAdd<Ecs::EntityStore>();
-	eng.GetAdd<Ecs::ComponentStore>();
+	//eng.GetAdd<Ecs::ComponentStore>();
 	eng.GetAdd<Ecs::EventSystem>();
 	
 	#if 0
@@ -46,5 +42,3 @@ void EngineEcsInit() {
 
 
 END_UPP_NAMESPACE
-
-#endif

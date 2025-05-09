@@ -47,8 +47,8 @@ GUI_APP_MAIN
 
 
 
-
-void BindEcsEventsBase(Serial::EcsEventsBase* b) {
+#if 0
+void BindEcsEventsBase(EcsEventsBase* b) {
 	Ecs::GetActiveEngine().Get<Ecs::EventSystem>()->Attach(b);
 }
 
@@ -56,10 +56,10 @@ template <class Gfx>
 void BindGfxBuffer(String id, Parallel::BufferT<Gfx>* b) {
 	TODO
 }
+#endif
 
 void BindEcsToSerial() {
-	
-	Serial::EcsEventsBase::WhenInitialize << callback(BindEcsEventsBase);
+	//Serial::EcsEventsBase::WhenInitialize << callback(BindEcsEventsBase);
 	
 	#ifdef flagSDL2
 	BufferT<SdlSwGfx>::WhenLinkInit << callback(BindGfxBuffer<SdlSwGfx>);
@@ -71,6 +71,8 @@ void BindEcsToSerial() {
 
 
 void VguiMain(bool _3d) {
+	TODO
+	#if 0
 	SetLanguage(LNG_ENGLISH);
 	SetDefaultCharset(CHARSET_UTF8);
 	ChClassicSkin();
@@ -88,11 +90,14 @@ void VguiMain(bool _3d) {
 		//app.SetRect(RectC(10,10,640,480));
 		Ctrl::EventLoop();
 	}
+	#endif
 }
 
 
 
 void DesktopMain(bool _3d) {
+	TODO
+	#if 0
 	Surface::SetDebugDraw(0);
 	Gubo::SetDebugDraw(1);
 	
@@ -106,6 +111,7 @@ void DesktopMain(bool _3d) {
 		gui.Create(RectC(100, 100, 1024, 768), "Libtopside Virtual Gui Test");
 		RunVirtualGui(gui, callback1(VguiMain, false));
 	}
+	#endif
 }
 
 
@@ -121,12 +127,7 @@ END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
 	Machine& mach = MetaEnv().root.Add<Machine>();
-	mach.Run(
-	//SingleMachine().Run(
-		//[]{DefaultRunner(true, "Shell");},
-		true,
-		"Shell",
-		::Upp::Serial::MachineEcsInit);
+	mach.Run(true, "Shell");
 }
 
 #else
@@ -139,15 +140,16 @@ INITBLOCK {
 	
 	bool gubo = false;
 	if (gubo) {
-		Serial::Machine::WhenUserProgram << callback(DesktopMain);
+		Machine::WhenUserProgram << callback1(DesktopMain, true);
 	}
 }
 END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN {
-	SingleMachine().Run([]{
-		DefaultRunner(true, "Shell");
-	});
+	using namespace Upp;
+	Machine& mach = MetaEnv().root.Add<Machine>();
+	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
+	mach.Run(true, "Shell");
 }
 
 #endif

@@ -1,10 +1,14 @@
-#if 0
 #include "Draw.h"
 
-#if IS_TS_CORE
 
 NAMESPACE_UPP
 
+RawSysImage::operator Image() const {
+	TODO
+	return Image();
+}
+
+#if 0
 
 int SysImage::GetWidth() const {return raw ? raw->w : 0;}
 int SysImage::GetHeight() const {return raw ? raw->h : 0;}
@@ -78,8 +82,7 @@ Image ImageBuffer::GetImage() {
 	return img;
 }
 
+#endif
 
 END_UPP_NAMESPACE
 
-#endif
-#endif

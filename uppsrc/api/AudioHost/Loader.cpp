@@ -269,7 +269,7 @@ machine midi.app:
 
 String SerialMidiEonLoader::LoadFile(String file_path) {
 	MidiEonContextLoader mid_loader;
-	Object o;
+	Value o;
 	if (!mid_loader.Load(file_path, o)) {
 		LOG("SerialMidiEonLoader::LoadFile: error: toy file loading failed: " << file_path);
 		return String();

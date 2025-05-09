@@ -5,7 +5,8 @@ noblitz;
 uses
 	Geometry,
 	plugin/MingwDx,
-	SoftRend;
+	SoftRend,
+	Painter;
 
 uses(WIN32 & GCC) plugin/glew_;
 

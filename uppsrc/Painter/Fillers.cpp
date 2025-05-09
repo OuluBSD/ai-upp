@@ -9,15 +9,7 @@ void SolidFiller::Start(int minx, int maxx)
 	t += minx;
 }
 
-inline RGBA InvertRGBA(const RGBA& c)
-{
-	RGBA a;
-	a.r = ~c.r;
-	a.g = ~c.g;
-	a.b = ~c.b;
-	a.a = 255;
-	return a;
-}
+RGBA InvertRGBA(const RGBA& c);
 
 void SolidFiller::Render(int val)
 {

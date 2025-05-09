@@ -2,9 +2,8 @@
 
 // This file is generated. Do not modify this file.
 
-namespace Upp {
+NAMESPACE_UPP
 
-namespace Parallel {
 
 #if defined flagSCREEN
 String HandleProgEvents::GetAction() {
@@ -24,8 +23,8 @@ LinkTypeCls HandleProgEvents::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void HandleProgEvents::Visit(Vis& vis) {
-	vis.VisitThis<HandleEventsBase>(this);
+void HandleProgEvents::Visit(Vis& v) {
+	VIS_THIS(HandleEventsBase);
 }
 
 AtomTypeCls HandleProgEvents::GetType() const {
@@ -52,8 +51,8 @@ LinkTypeCls CenterProgPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void CenterProgPipe::Visit(Vis& vis) {
-	vis.VisitThis<HandleVideoBase>(this);
+void CenterProgPipe::Visit(Vis& v) {
+	VIS_THIS(HandleVideoBase);
 }
 
 AtomTypeCls CenterProgPipe::GetType() const {
@@ -80,8 +79,8 @@ LinkTypeCls OglProgPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void OglProgPipe::Visit(Vis& vis) {
-	vis.VisitThis<HandleVideoBase>(this);
+void OglProgPipe::Visit(Vis& v) {
+	VIS_THIS(HandleVideoBase);
 }
 
 AtomTypeCls OglProgPipe::GetType() const {
@@ -108,8 +107,8 @@ LinkTypeCls HandleProgVideo::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void HandleProgVideo::Visit(Vis& vis) {
-	vis.VisitThis<HandleVideoBase>(this);
+void HandleProgVideo::Visit(Vis& v) {
+	VIS_THIS(HandleVideoBase);
 }
 
 AtomTypeCls HandleProgVideo::GetType() const {
@@ -117,8 +116,5 @@ AtomTypeCls HandleProgVideo::GetType() const {
 }
 #endif
 
-
-}
-
-}
+END_UPP_NAMESPACE
 

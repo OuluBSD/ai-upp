@@ -67,7 +67,7 @@ public:
 	typedef ToolSystemBaseT<T, ToolComponent> CLASSNAME;
 	ToolSystemBaseT(MetaNode& n) : ToolSystemBase(n) {}
 	void Visit(Vis& v) override {VIS_THIS(ToolSystemBase); /*vis && m_entities;*/}
-	TypeCls GetType() const override {return AsTypeCls<T>();}
+	TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
 	
 protected:
 	// System

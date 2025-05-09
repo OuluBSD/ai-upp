@@ -94,7 +94,7 @@ bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, c
 	int c = src->GetSourceCount();
 	float freq = 44100.f;
 	for(int i = 1; i < c; i++) {
-		Value& v = src->GetSourceValue(i);
+		ValueBase& v = src->GetSourceValue(i);
 		ValueFormat fmt = v.GetFormat();
 		if (fmt.IsAudio()) {
 			AudioFormat& afmt = fmt;

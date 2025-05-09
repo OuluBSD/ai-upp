@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-LinkBase::LinkBase() {
+LinkBase::LinkBase(MetaNode& n) : PacketForwarder(n) {
 	DBG_CONSTRUCT
 }
 

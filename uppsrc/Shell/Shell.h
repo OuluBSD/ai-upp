@@ -4,6 +4,7 @@
 
 #include <AICore2/AICore.h>
 #include <Geometry/Geometry.h>
+#include <Meta/Meta.h>
 #include <Eon/Eon.h>
 #include <EonDraw/EonDraw.h>
 #include <EonLib/EonLib.h>
@@ -34,13 +35,13 @@
 #endif
 
 
-#include "AtomShell.h"
 
 NAMESPACE_UPP
 
+void MachineEcsInit();
+void EngineEcsInit();
 void BindEcsToSerial();
 void DebugMain(String script_content, String eon_file, VectorMap<String,Value>& args, MachineVerifier* ver=0, bool dbg_ref_visits=false, uint64 dbg_ref=0);
-void DebugMain(bool main_loop, String script_content, String eon_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 
 template <class T> void DefaultCreate() {TODO /*Ecs::GetActiveEngine().Get<EntityStore>()->GetRoot()->Create<T>();*/}
 template <class T> void DefaultCreateOnStart() {TODO /*Ecs::Engine::WhenPreFirstUpdate << callback(DefaultCreate<T>);*/}

@@ -246,7 +246,7 @@ void FwdScope::ActivateNext() {
 
 
 
-ExchangePoint::ExchangePoint() {
+ExchangePoint::ExchangePoint(MetaNode& n) : PacketForwarder(n) {
 	DBG_CONSTRUCT
 }
 
@@ -302,7 +302,7 @@ MetaSpaceBase::~MetaSpaceBase() {
 }
 
 String MetaSpaceBase::ToString() const {
-	String s = GetType().GetName();
+	String s = GetTypeCls().GetName();
 	s << " [expts: " << pts.GetCount() << "]";
 	return s;
 }
@@ -325,7 +325,9 @@ void MetaSpaceBase::UnlinkAll() {
 ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	const auto& m = MetaSpaceBase::ExptDataMap();
 	const auto& d = m.Get(expt);
-	ExchangePoint* o = d.new_fn();
+	MetaNode* n;
+	TODO
+	ExchangePoint* o = d.new_fn(*n);
 	pts.Add(o);
 	//o->SetParent(this);
 	return o;
@@ -344,7 +346,7 @@ MetaDirectoryBase::~MetaDirectoryBase() {
 }
 
 String MetaDirectoryBase::ToString() const {
-	String s = GetType().GetName();
+	String s = GetTypeCls().GetName();
 	return s;
 }
 

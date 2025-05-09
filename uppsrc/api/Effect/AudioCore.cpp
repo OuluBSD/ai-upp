@@ -83,7 +83,7 @@ bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Eon::W
 		dev.prim_audio_sink_ch = -1;
 		float freq = 0;
 		for(int i = 0; i < c; i++) {
-			Value& v = sink->GetValue(i);
+			ValueBase& v = sink->GetValue(i);
 			ValueFormat fmt = v.GetFormat();
 			if (fmt.IsAudio()) {
 				AudioFormat& afmt = fmt;
@@ -109,7 +109,7 @@ bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Eon::W
 	{
 		ISourcePtr src = a.GetSource();
 		int c = src->GetSourceCount();
-		Value& v = src->GetSourceValue(c-1);
+		ValueBase& v = src->GetSourceValue(c-1);
 		ValueFormat fmt = v.GetFormat();
 		if (!fmt.IsAudio())
 			return false;
@@ -197,7 +197,7 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			ASSERT(ch == dev.channel_count);
 			ASSERT(afmt.IsSampleFloat());
 			
-			Format in_fmt = dev.last_audio_in->GetFormat();
+			ValueFormat in_fmt = dev.last_audio_in->GetFormat();
 			AudioFormat& in_afmt = in_fmt;
 			int in_sr = in_afmt.GetSampleRate();
 			const Vector<byte>& in = dev.last_audio_in->Data();
@@ -234,7 +234,7 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			ASSERT(ch == dev.channel_count);
 			ASSERT(afmt.IsSampleFloat());
 			
-			Format in_fmt = dev.last_audio_in->GetFormat();
+			ValueFormat in_fmt = dev.last_audio_in->GetFormat();
 			AudioFormat& in_afmt = in_fmt;
 			int in_sr = in_afmt.GetSampleRate();
 			const Vector<byte>& in = dev.last_audio_in->Data();

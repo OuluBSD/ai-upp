@@ -1,9 +1,9 @@
 #include "EonLib.h"
 
-#include <VirtualGui/Local.h>
-#include <VirtualGui/Atom/Atom.h>
 
 #ifdef flagGUI
+#include <VirtualGui/Local.h>
+#include <VirtualGui/Atom/Atom.h>
 #include <GuboCore/GuboCore.h>
 #endif
 
@@ -15,7 +15,7 @@ Callback1<HandleEventsBase*> HandleEventsBase::WhenInitialize;
 
 HandleEventsBase* HandleEventsBase::active;
 
-HandleEventsBase::HandleEventsBase() {
+HandleEventsBase::HandleEventsBase(MetaNode& n) : Atom(n) {
 	if (!active)
 		active = this;
 }
@@ -98,7 +98,7 @@ struct HandleVideoBase::Binder {
 	double resize_multiplier = 0.01;
 	ModelBuilder mb;
 	
-	void Visit(Vis& vis) {
+	void Visit(Vis& v) {
 		//vis & win3d;
 	}
 };
@@ -107,7 +107,7 @@ struct HandleVideoBase::Binder {
 Array<HandleVideoBase::Binder> HandleVideoBase::binders;
 HandleVideoBase* HandleVideoBase::active;
 
-HandleVideoBase::HandleVideoBase() {
+HandleVideoBase::HandleVideoBase(MetaNode& n) : Atom(n) {
 	if (!active) {
 		active = this;
 	}
@@ -177,7 +177,7 @@ void HandleVideoBase::Uninitialize() {
 	}
 }
 
-void HandleVideoBase::Visit(Vis& vis) {
+void HandleVideoBase::Visit(Vis& v) {
 	VIS_THIS(Atom);
 	if (IsActive())
 		vis | binders;

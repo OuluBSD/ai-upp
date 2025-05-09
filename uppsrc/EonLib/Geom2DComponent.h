@@ -3,8 +3,6 @@
 
 #ifdef flagGUI
 
-NAMESPACE_UPP
-
 
 #if 0
 
@@ -17,7 +15,7 @@ class WindowDecoration : public GeomInteraction2D {
 	Point left_down_pt;
 	
 public:
-	//RTTI_DECL1(WindowDecoration, GeomInteraction2D)
+	ATOM_CTOR_(WindowDecoration, GeomInteraction2D)
 	typedef WindowDecoration CLASSNAME;
 	WindowDecoration(Geom2DComponent*);
 	
@@ -51,7 +49,7 @@ class Geom2DComponent :
 	
 	#if 0
 	struct ResizeFrame : public CtrlFrame {
-		//RTTI_DECL1(ResizeFrame, CtrlFrame)
+		ATOM_CTOR_(ResizeFrame, CtrlFrame)
 	
 		Geom2DComponent* win = NULL;
 		Size sz;
@@ -184,7 +182,7 @@ using Geom2DComponentRef = Ptr<Geom2DComponent>;
 
 struct Geom2DComponentLink : public Component<Geom2DComponentLink> {
 	RTTI_COMP1(Geom2DComponentLink, ComponentT)
-	COPY_PANIC(Geom2DComponentLink)
+	//ATOMTYPE(Geom2DComponentLink)
 	COMP_DEF_VISIT
 	
 	
@@ -250,8 +248,6 @@ struct Window3D :
     }
 };
 
-
-END_UPP_NAMESPACE
 
 #endif
 #endif

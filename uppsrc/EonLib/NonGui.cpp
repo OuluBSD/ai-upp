@@ -5,7 +5,9 @@ NAMESPACE_UPP
 
 bool Open_NonGUI_ECS() {
 	using namespace Upp;
-	using namespace Upp::ECS;
+	
+	TODO
+	#if 0
 	Engine mach;
 	
 	Ecs::RegistrySystem& reg = *mach.Add<Ecs::RegistrySystem>();
@@ -16,16 +18,19 @@ bool Open_NonGUI_ECS() {
     
     if (!mach.Start())
 		return false;
+    #endif
     
 	return true;
 }
 
 void Close_NonGUI_ECS() {
+	TODO
+	#if 0
 	using namespace Upp;
-	using namespace Upp::ECS;
 	Engine mach;
 	
 	mach.Stop();
+	#endif
 }
 
 

@@ -16,10 +16,10 @@ Machine& SystemBase::GetMachine() const {
 }
 
 
-Callback Machine::WhenUserProgram;
-Callback Machine::WhenInitialize;
-Callback Machine::WhenPostInitialize;
-Callback Machine::WhenPreFirstUpdate;
+Event<> Machine::WhenUserProgram;
+Event<> Machine::WhenInitialize;
+Event<> Machine::WhenPostInitialize;
+Event<> Machine::WhenPreFirstUpdate;
 
 
 
@@ -62,7 +62,7 @@ bool Machine::Start() {
 	auto systems = node.FindAll<SystemBase>();
 	for (auto system : systems) {
 		if (!system->Initialize()) {
-			LOG("Could not initialize system " << system->GetType().GetName());
+			LOG("Could not initialize system " << system->GetTypeCls().GetName());
 			return false;
 		}
 	}
@@ -208,7 +208,7 @@ void Machine::Visit(Vis& v) {
 	 VIS_(is_failed)
 	 VIS_(fail_msg);
 	v & mver;
-	v.VisitT<MetaMachineBase>("Base", *this);
+	VIS_THIS(MetaMachineBase);
 }
 
 void Machine::WarnDeveloper(String msg) {
@@ -219,6 +219,45 @@ void Machine::WarnDeveloper(String msg) {
 		LOG("Machine: developer warning: " << msg);
 		#endif
 	}
+}
+
+void Machine::Run(bool main_loop, String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
+	
+	if (!override_eon_file.IsEmpty())
+		eon_file = override_eon_file;
+	
+	if (extra_args) {
+		for(int i = 0; i < extra_args->GetCount(); i++)
+			__def_args.GetAdd(
+				extra_args->GetKey(i),
+				(*extra_args)[i]
+			);
+	}
+	
+	if (extra_str) {
+		Vector<String> args = Split(extra_str, ";");
+		for (String& arg : args) {
+			int i = arg.Find("=");
+			if (i >= 0) {
+				String a = arg.Left(i);
+				String b = arg.Mid(i+1);
+				__def_args.Add(a, b);
+			}
+		}
+	}
+	
+	//break_addr = 1;
+	
+	if (!break_addr)
+		Main(main_loop, eon_script, eon_file, __def_args);
+	else
+		Main(main_loop, eon_script, eon_file, __def_args, 1, break_addr);
+}
+
+void Machine::StopRunner() {
+	SetNotRunning();
+	Stop();
+	Clear();
 }
 
 

@@ -38,8 +38,8 @@
 
 NAMESPACE_UPP
 
-void MachineEcsInit();
-void EngineEcsInit();
+void MachineEcsInit(Machine& mach);
+void EngineEcsInit(Ecs::Engine& eng);
 void BindEcsToSerial();
 void DebugMain(String script_content, String eon_file, VectorMap<String,Value>& args, MachineVerifier* ver=0, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 

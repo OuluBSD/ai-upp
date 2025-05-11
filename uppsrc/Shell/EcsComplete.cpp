@@ -5,9 +5,7 @@ NAMESPACE_UPP
 
 
 
-void MachineEcsInit() {
-	Machine& mach = GetActiveMachine();
-	//mach.Add<EntitySystem>();
+void MachineEcsInit(Machine& mach) {
 	
 	#ifdef flagPHYSICS
 	#ifdef flagODE
@@ -20,8 +18,7 @@ void MachineEcsInit() {
 	Ecs::Engine::WhenInitialize << callback(EngineEcsInit);
 }
 
-void EngineEcsInit() {
-    Ecs::Engine& eng = Ecs::GetActiveEngine();
+void EngineEcsInit(Ecs::Engine& eng) {
     
 	eng.GetAdd<Ecs::RegistrySystem>();
 	eng.GetAdd<Ecs::InteractionSystem>();

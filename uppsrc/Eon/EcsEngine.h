@@ -135,15 +135,15 @@ public:
 	Ptr<SystemBase> Add(TypeCls type, bool startup=true);
 	Ptr<SystemBase> GetAdd(String id, bool startup=true);
     
-	Callback WhenEnterUpdate;
-	Callback1<SystemBase&> WhenEnterSystemUpdate;
+	Event<> WhenEnterUpdate;
+	Event<SystemBase&> WhenEnterSystemUpdate;
 	
-	Callback WhenLeaveUpdate;
-	Callback WhenLeaveSystemUpdate;
+	Event<> WhenLeaveUpdate;
+	Event<> WhenLeaveSystemUpdate;
 	
-	static Callback WhenGuiProgram;
-	static Callback WhenInitialize;
-	static Callback WhenPreFirstUpdate;
+	static Event<Engine&> WhenGuiProgram;
+	static Event<Engine&> WhenInitialize;
+	static Event<Engine&> WhenPreFirstUpdate;
 	
 	//EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}
 	Machine& GetMachine();
@@ -249,7 +249,7 @@ Ptr<T> Entity::Add0(bool initialize) {
 
 
 
-void MachineEcsInit();
+void MachineEcsInit(Machine& mach);
 
 
 

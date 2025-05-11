@@ -12,14 +12,17 @@ SystemBase::~SystemBase() {
 }
 
 Machine& SystemBase::GetMachine() const {
-	TODO; throw Exc("no machine"); //return *GetParent();
+	Machine* mach = node.FindOwner<Machine>();
+	ASSERT(mach);
+	if (!mach) throw Exc("no machine");
+	return *mach;
 }
 
 
-Event<> Machine::WhenUserProgram;
-Event<> Machine::WhenInitialize;
-Event<> Machine::WhenPostInitialize;
-Event<> Machine::WhenPreFirstUpdate;
+Event<Machine&> Machine::WhenUserProgram;
+Event<Machine&> Machine::WhenInitialize;
+Event<Machine&> Machine::WhenPostInitialize;
+Event<Machine&> Machine::WhenPreFirstUpdate;
 
 
 
@@ -52,7 +55,7 @@ bool Machine::Start() {
 		return false;
 	
 	Cout() << "Machine::Start " << ((bool)WhenInitialize ? "with" : "without") << " initializer callback\n";
-	WhenInitialize();
+	WhenInitialize(*this);
 	
 	if (is_failed)
 		return false;
@@ -67,7 +70,7 @@ bool Machine::Start() {
 		}
 	}
 	
-	WhenPostInitialize();
+	WhenPostInitialize(*this);
 	
 	is_initialized = true;
 	
@@ -91,7 +94,7 @@ void Machine::Update(double dt) {
 	}
 	
 	if (!ticks)
-		WhenPreFirstUpdate();
+		WhenPreFirstUpdate(*this);
 	
 	WhenEnterUpdate();
 	
@@ -263,30 +266,6 @@ void Machine::StopRunner() {
 
 
 
-
-
-
-Machine* __active_machine;
-
-Machine& GetActiveMachine() {
-	ASSERT(__active_machine);
-	return *__active_machine;
-}
-
-void SetActiveMachine(Machine& m) {
-	__active_machine = &m;
-}
-
-void ClearActiveMachine() {
-	__active_machine = 0;
-}
-
-
-END_UPP_NAMESPACE
-
-
-
-NAMESPACE_UPP
 
 #if 0
 void SingleMachine::Run(void(*fn)(), void(*arg_fn)()) {

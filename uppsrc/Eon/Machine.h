@@ -80,14 +80,14 @@ public:
         return CastPtr<SystemT>(&*it);
     }*/
 
-    /*template<typename SystemT>
+    template<typename SystemT>
     Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
         auto v = this->node.template FindAll<SystemT>();
         return v.IsEmpty() ? 0 : v[0];
     }
-
+	
     template<typename SystemT, typename... Args>
     Ptr<SystemT> Add(Args&&... args)
     {
@@ -100,7 +100,6 @@ public:
         return syst;
     }
     
-
     template<typename SystemT, typename... Args>
     Ptr<SystemT> FindAdd(Args&&... args)
     {
@@ -111,6 +110,7 @@ public:
 		return Add<SystemT>(args...);
     }
     
+    /*
     template<typename SystemT>
     void Remove()
     {
@@ -160,10 +160,10 @@ public:
 	Event<> WhenLeaveUpdate;
 	Event<> WhenLeaveSystemUpdate;
 	
-	static Event<> WhenInitialize;
-	static Event<> WhenUserProgram;
-	static Event<> WhenPostInitialize;
-	static Event<> WhenPreFirstUpdate;
+	static Event<Machine&> WhenInitialize;
+	static Event<Machine&> WhenUserProgram;
+	static Event<Machine&> WhenPostInitialize;
+	static Event<Machine&> WhenPreFirstUpdate;
 	
 private:
     bool is_started = false;
@@ -193,9 +193,6 @@ protected:
 };
 
 
-Machine& GetActiveMachine();
-void SetActiveMachine(Machine& m);
-void ClearActiveMachine();
 
 #if 0
 class SingleMachine {

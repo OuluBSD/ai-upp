@@ -95,7 +95,7 @@ void VguiMain(bool _3d) {
 
 
 
-void DesktopMain(bool _3d) {
+void DesktopMain(Upp::Machine& mach, bool _3d) {
 	TODO
 	#if 0
 	Surface::SetDebugDraw(0);
@@ -121,7 +121,7 @@ NAMESPACE_UPP
 INITBLOCK {
 	Machine::WhenInitialize << callback(DefaultSerialInitializer);
 	Machine::WhenPreFirstUpdate << callback(DefaultStartup);
-	Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
+	//Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
 }
 END_UPP_NAMESPACE
 
@@ -136,7 +136,7 @@ NAMESPACE_UPP
 INITBLOCK {
 	Machine::WhenInitialize << callback(DefaultSerialInitializer);
 	Machine::WhenPreFirstUpdate << callback(DefaultStartup);
-	TODO // Upp::BindEcsToParallel
+	//Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
 	
 	bool gubo = false;
 	if (gubo) {

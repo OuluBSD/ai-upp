@@ -19,12 +19,6 @@ Machine& SystemBase::GetMachine() const {
 }
 
 
-Event<Machine&> Machine::WhenUserProgram;
-Event<Machine&> Machine::WhenInitialize;
-Event<Machine&> Machine::WhenPostInitialize;
-Event<Machine&> Machine::WhenPreFirstUpdate;
-
-
 
 
 Machine::Machine(MetaNode& n) : MetaMachineBase(n) {
@@ -46,6 +40,20 @@ Ecs::Engine& Machine::GetEngine() {
 	ASSERT(e);
 	if (!e) throw Exc("cannot find engine");
 	return *e;
+}
+
+Loop& Machine::GetRootLoop() {
+	LoopPtr loop = node.Find<Loop>();
+	if (loop) return *loop;
+	loop = &node.Add<Loop>();
+	return *loop;
+}
+
+Space& Machine::GetRootSpace() {
+	SpacePtr space = node.Find<Space>();
+	if (space) return *space;
+	space = &node.Add<Space>();
+	return *space;
 }
 
 bool Machine::Start() {
@@ -231,7 +239,7 @@ void Machine::Run(bool main_loop, String app_name, String override_eon_file, Vec
 	
 	if (extra_args) {
 		for(int i = 0; i < extra_args->GetCount(); i++)
-			__def_args.GetAdd(
+			eon_params.GetAdd(
 				extra_args->GetKey(i),
 				(*extra_args)[i]
 			);
@@ -244,17 +252,18 @@ void Machine::Run(bool main_loop, String app_name, String override_eon_file, Vec
 			if (i >= 0) {
 				String a = arg.Left(i);
 				String b = arg.Mid(i+1);
-				__def_args.Add(a, b);
+				eon_params.Add(a, b);
 			}
 		}
 	}
 	
+	WhenBoot(*this);
 	//break_addr = 1;
-	
+	if (is_failed) return;
 	if (!break_addr)
-		Main(main_loop, eon_script, eon_file, __def_args);
+		Main(main_loop, eon_script, eon_file, eon_params);
 	else
-		Main(main_loop, eon_script, eon_file, __def_args, 1, break_addr);
+		Main(main_loop, eon_script, eon_file, eon_params, 1, break_addr);
 }
 
 void Machine::StopRunner() {

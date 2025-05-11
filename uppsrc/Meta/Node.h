@@ -341,6 +341,37 @@ struct MetaNode : Pte<MetaNode> {
 		return root;
 	}
 	
+	template <class T> T* FindOwnerWith() const {
+		MetaNode* n = owner;
+		while (n) {
+			for (auto& s : n->sub) {
+				if (s.ext) {
+					T* o = CastPtr<T>(&*s.ext);
+					if (o)
+						return o;
+				}
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
+	template <class T> T* FindOwnerRootWith() const {
+		MetaNode* n = owner;
+		T* root = 0;
+		while (n) {
+			for (auto& s : n->sub) {
+				if (s.ext) {
+					T* o = CastPtr<T>(&*s.ext);
+					if (o)
+						root = o;
+				}
+			}
+			n = n->owner;
+		}
+		return root;
+	}
+	
 	template <class T> Vector<Ptr<T>> FindAllDeep() {
 		Vector<Ptr<T>> v;
 		FindAllDeep0<T>(v);

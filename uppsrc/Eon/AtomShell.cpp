@@ -6,9 +6,11 @@ NAMESPACE_UPP
 
 
 
-bool DefaultInitializer(bool skip_eon_file) {
-	TODO
-	#if 0
+bool DefaultInitializer(Machine& mach, bool skip_eon_file) {
+	return mach.CommandLineInitializer(skip_eon_file);
+}
+
+bool Machine::CommandLineInitializer(bool skip_eon_file) {
 	SetCoutLog();
 	CommandLineArguments cmd;
 	DaemonBase& daemon = DaemonBase::Single();
@@ -28,10 +30,9 @@ bool DefaultInitializer(bool skip_eon_file) {
 	}
 	
 	// Get rest of the command line arguments
-	__def_args <<= cmd.GetVariables();
+	eon_params <<= cmd.GetVariables();
 	
 	// Arguments for remote connection
-	TODO // include enet or virtualize ?
 	#if 0
 	if (cmd.IsArg('l')) {
 		daemon.Add("EnetServer");
@@ -83,13 +84,6 @@ bool DefaultInitializer(bool skip_eon_file) {
 		}
 	}
 	
-	// Error handling
-	if (IsEmptyShellMode()) {
-		LOG("DefaultInitializer: error: no enough program arguments to do anything");
-		return false;
-	}
-	#endif
-	
 	return true;
 }
 
@@ -104,7 +98,7 @@ void DefaultSerialInitializer0(Machine& mach, bool skip_eon_file) {
 	if (0)
 		break_addr = 0x1;
 	
-	if (!DefaultInitializer(skip_eon_file))
+	if (!mach.CommandLineInitializer(skip_eon_file))
 		mach.SetFailed("Default serial initializer failed");
 	
 }
@@ -175,6 +169,7 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
 					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
 				    Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
+				    Ptr<LinkSystem> lsys			= mach.FindAdd<LinkSystem>();
 				    Ptr<Eon::ScriptLoader> script	= mach.FindAdd<Eon::ScriptLoader>();
 					
 					#ifdef flagGUI

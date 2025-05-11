@@ -72,21 +72,8 @@ public:
 	
 	//LoopVec& GetLoops() {return loops;}
 	
-	LoopPtr AddLoop(String name=""); /*{
-		Loop& p = loops.Add();
-		//p.SetParent(DirExBaseParent(0, this));
-		p.SetName(name);
-		//p.SetId(GetNextId());
-		return &p;
-	}*/
-	
-	LoopPtr GetAddLoop(String name); /*{
-		for (Loop& pool : loops)
-			if (pool.GetName() == name)
-				return &pool;
-		return AddLoop(name);
-	}*/
-	
+	LoopPtr AddLoop(String name="");
+	LoopPtr GetAddLoop(String name);
 	EnvStatePtr GetAddEnv(String name) {return space->GetAddEnv(name);}
 	
 	void Visit(Vis& vis) override;

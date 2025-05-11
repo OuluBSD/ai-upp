@@ -25,7 +25,7 @@ protected:
 	void SetId(SpaceId i) {id = i;}
 	
 public:
-	typedef Space CLASSNAME;
+	CLASSTYPE(Space);
 	using SpacePtr = Ptr<Space>;
 	//using SpaceVec = Array<Space>;
 	static SpaceId GetNextId();
@@ -113,22 +113,8 @@ public:
 	Vector<AtomBasePtr> GetAtoms() const;// {return atoms;}
 	Vector<SpacePtr> GetSpaces() const;// {return spaces;}
 	
-	SpacePtr AddSpace(String name="") {
-		/*Space& p = spaces.Add();
-		//p.SetParent(HierExBaseParent(0, this));
-		p.SetName(name);
-		p.SetId(GetNextId());
-		return &p;*/
-		TODO; return 0;
-	}
-	
-	SpacePtr GetAddSpace(String name); /*{
-		for (Space& pool : spaces)
-			if (pool.GetName() == name)
-				return &pool;
-		return AddSpace(name);
-	}*/
-	
+	SpacePtr AddSpace(String name="");
+	SpacePtr GetAddSpace(String name);
 	EnvStatePtr AddState(String name="");
 	EnvStatePtr GetAddEnv(String name);
 	EnvStatePtr FindState(String name);

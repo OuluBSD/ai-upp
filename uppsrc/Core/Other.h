@@ -328,8 +328,8 @@ struct ManagedStatic {
 	ManagedStatic(const char* f, int l);
 	template <class Arg> ManagedStatic(const char* f, int l, const Arg& value);
 	~ManagedStatic() {
-		ASSERT(destructed);
-		Destruct();
+		if (!destructed)
+			Destruct();
 	}
 	void Destruct() {if (!destructed) {Clear(); destructed = true;}}
 	void Clear() {o.Clear();}

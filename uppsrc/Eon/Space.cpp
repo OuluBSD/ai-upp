@@ -52,12 +52,29 @@ AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
-	TODO return 0;//return AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
+	MetaNode& sub = node.Add();
+	
+	int i = Factory::AtomDataMap().Find(cls);
+	ASSERT_(i >= 0, "Invalid to create non-existant atom");
+	if (i < 0) return 0;
+	AtomBase* obj = Factory::AtomDataMap()[i].new_fn(sub);
+	
+	sub.ext = obj;
+	sub.type_hash = obj->GetTypeHash();
+	InitializeAtom(*obj);
+	return AtomBasePtr(obj);
 }
 
 AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
-	AtomBasePtr cb = FindTypeCls(cls);
-	TODO return 0;//return cb ? cb : AddPtr(GetMachine().Get<AtomStore>()->CreateAtomTypeCls(cls));
+	for (auto& n : node.sub) {
+		if (n.ext) {
+			AtomBase* atom = CastPtr<AtomBase>(&*n.ext);
+			if (atom && atom->GetType() == cls) {
+				return atom;
+			}
+		}
+	}
+	return AddTypeCls(cls);
 }
 
 AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
@@ -97,12 +114,20 @@ void Space::InitializeAtoms() {
 }
 
 void Space::InitializeAtom(AtomBase& comp) {
-	TODO //comp.SetParent(this);
+	ASSERT(comp.node.FindOwner<Space>() == this);
 }
 
 
 void Space::ClearAtoms() {
-	TODO
+	Vector<int> rmlist;
+	int i = 0;
+	for (auto& n : node.sub) {
+		if (n.ext && CastPtr<AtomBase>(&*n.ext))
+			rmlist << i;
+		i++;
+	}
+	if (!rmlist.IsEmpty())
+		node.sub.Remove(rmlist);
 	/*AtomStorePtr sys = GetMachine().Get<AtomStore>();
 	for (auto iter = atoms.rbegin(); iter; --iter)
 		sys->ReturnAtom(atoms.Detach(iter));
@@ -164,22 +189,18 @@ bool Space::HasSpaceParent(SpacePtr pool) const {
 }
 
 void Space::Initialize(Space& l, String prefab) {
-	TODO/*uint64 ticks = GetMachine().GetTicks();
+	uint64 ticks = GetMachine().GetTicks();
 	l.SetPrefab(prefab);
 	l.SetCreated(ticks);
-	l.SetChanged(ticks);*/
+	l.SetChanged(ticks);
 }
 
 SpacePtr Space::CreateEmpty() {
-	TODO
-	#if 0
-	Space& l = spaces.Add();
+	Space& l = node.Add<Space>();
 	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
 	return &l;
-	#endif
-	return 0;
 }
 
 void Space::Clear() {
@@ -365,6 +386,21 @@ void Space::UnlinkExchangePoints() {
 		pt->Clear();
 	}
 	pts.Clear();
+}
+
+SpacePtr Space::AddSpace(String name) {
+	Space& p = node.Add<Space>();
+	p.SetName(name);
+	p.SetId(GetNextId());
+	return &p;
+}
+
+SpacePtr Space::GetAddSpace(String name) {
+	auto spaces = node.FindAll<Space>();
+	for (auto& pool : spaces)
+		if (pool->GetName() == name)
+			return pool;
+	return AddSpace(name);
 }
 
 EnvStatePtr Space::AddState(String name) {

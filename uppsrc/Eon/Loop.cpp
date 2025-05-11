@@ -37,13 +37,13 @@ int Loop::GetLoopDepth() const {
 }
 
 bool Loop::HasLoopParent(LoopPtr pool) const {
-	const Loop* p = this;
-	TODO
-	/*while (p) {
-		if (p == &*pool)
+	const MetaNode* n = &node;
+	while (n) {
+		const Loop* p = n->ext ? CastConstPtr<Loop>(&*n->ext) : 0;
+		if (p && p == &*pool)
 			return true;
-		p = p->GetParent();
-	}*/
+		n = n->owner;
+	}
 	return false;
 }
 
@@ -108,12 +108,29 @@ void Loop::Visit(Vis& vis) {
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
-	TODO return 0;//return AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
+	MetaNode& sub = node.Add();
+	
+	int i = Factory::LinkDataMap().Find(cls);
+	ASSERT_(i >= 0, "Invalid to create non-existant atom");
+	if (i < 0) return 0;
+	LinkBase* obj = Factory::LinkDataMap()[i].new_fn(sub);
+	
+	sub.ext = obj;
+	sub.type_hash = obj->GetTypeHash();
+	InitializeLink(*obj);
+	return LinkBasePtr(obj);
 }
 
 LinkBasePtr Loop::GetAddTypeCls(LinkTypeCls cls) {
-	LinkBasePtr cb = FindTypeCls(cls);
-	TODO return 0;//return cb ? cb : AddPtr(space->GetMachine().Get<LinkStore>()->CreateLinkTypeCls(cls));
+	for (auto& n : node.sub) {
+		if (n.ext) {
+			LinkBase* link = CastPtr<LinkBase>(&*n.ext);
+			if (link && link->GetLinkType() == cls) {
+				return link;
+			}
+		}
+	}
+	return AddTypeCls(cls);
 }
 
 LinkBasePtr Loop::AddPtr(LinkBase* comp) {
@@ -156,7 +173,7 @@ void Loop::InitializeLinks() {
 }
 
 void Loop::InitializeLink(LinkBase& comp) {
-	TODO //comp.SetParent(this);
+	ASSERT(comp.node.FindOwner<Loop>() == this);
 }
 
 String Loop::GetTreeString(int indent) {
@@ -181,6 +198,12 @@ String Loop::GetTreeString(int indent) {
 bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	// This is for primary link (src_ch==0 to sink_ch== 0) only...
 	InterfaceSourcePtr src = src_atom->GetSource();
+	ExchangeSourceProviderPtr src_ep = CastPtr<ExchangeSourceProvider>(&*src);
+	if (!src_ep) {
+		LOG("Loop::MakeLink: error: internal error (no src_ep)");
+		return false;
+	}
+	
 	auto sink = dst_atom->GetSink();
 	Ptr<ExchangeSinkProvider> sinkT = dst_atom->GetSinkT<ExchangeSinkProvider>();
 	ASSERT(src && sink && sinkT);
@@ -207,8 +230,6 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	if (src->Accept(sinkT, src_cookie, sink_cookie)) {
 		
 		// Create exchange-point object
-		TODO
-		#if 0
 		auto& sdmap = Factory::IfaceLinkDataMap();
 		int i = sdmap.Find(src_fmt.vd);
 		if (i < 0) {
@@ -224,7 +245,7 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 		}
 		
 		TypeCls expt_type = src_d.cls;
-		ASSERT(expt_type != GetTypeIdClass<void>());
+		ASSERT(expt_type != AsVoidTypeCls());
 		
 		ExchangePointPtr ep = space->MetaSpaceBase::Add(expt_type);
 		RTLOG("Loop::Link(...): created " << ep->GetDynamicName() << " at " << HexStr(&ep->GetRTTI()));
@@ -232,12 +253,12 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 		RTLOG("                 src-link: " << HexStr(&src_atom->GetLink()->GetRTTI()));
 		RTLOG("                 dst-atom: " << HexStr(&dst_atom->GetRTTI()));
 		RTLOG("                 dst-link: " << HexStr(&dst_atom->GetLink()->GetRTTI()));
-		src->Link(ep, sink, src_cookie, sink_cookie);
+		src->Link(ep, sinkT, src_cookie, sink_cookie);
 		ep->Init(this->GetSpace());
-		ep->Set(src, sink, src_cookie, sink_cookie);
+		ep->Set(src_ep, sinkT, src_cookie, sink_cookie);
 		src_atom->GetLink()->SetPrimarySink(dst_atom->GetLink());
 		dst_atom->GetLink()->SetPrimarySource(src_atom->GetLink());
-		#endif
+		
 		return true;
 	}
 	return false;
@@ -258,6 +279,21 @@ LoopId Loop::GetNextId() {
 	return ++next_id;
 }
 
+LoopPtr Loop::AddLoop(String name) {
+	Loop& p = node.Add<Loop>();
+	//p.SetParent(DirExBaseParent(0, this));
+	p.SetName(name);
+	//p.SetId(GetNextId());
+	return &p;
+}
+
+LoopPtr Loop::GetAddLoop(String name) {
+	auto loops = node.FindAll<Loop>();
+	for (auto& loop : loops)
+		if (loop->GetName() == name)
+			return loop;
+	return AddLoop(name);
+}
 
 
 #if 0

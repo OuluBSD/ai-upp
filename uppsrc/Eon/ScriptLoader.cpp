@@ -6,7 +6,7 @@ namespace Eon {
 
 String Id::ToString() const {
 	String s;
-	for(String& part : parts) {
+	for(const String& part : parts) {
 		if (!s.IsEmpty())
 			s << ".";
 		s << part;
@@ -955,13 +955,14 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 }
 
 LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
-	TODO
-	#if 0
-	ASSERT(es);
+	Machine* mach = node.FindOwner<Machine>();
+	ASSERT(mach);
+	if (!mach) throw Exc("no machine");
+	
 	LoopPtr l0;
-	LoopPtr l1 = es->GetRoot();
+	LoopPtr l1 = &mach->GetRootLoop();
 	SpacePtr s0;
-	SpacePtr s1 = ss->GetRoot();
+	SpacePtr s1 = &mach->GetRootSpace();
 	int i = 0, count = id.parts.GetCount();
 	
 	for (const String& part : id.parts) {
@@ -981,8 +982,6 @@ LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
 	
 	ASSERT(l0->GetSpace());
 	return l0;
-	#endif
-	return 0;
 }
 
 bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1) {

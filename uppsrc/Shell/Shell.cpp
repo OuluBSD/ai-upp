@@ -132,23 +132,19 @@ GUI_APP_MAIN {
 
 #else
 
-NAMESPACE_UPP
-INITBLOCK {
-	Machine::WhenInitialize << callback(DefaultSerialInitializer);
-	Machine::WhenPreFirstUpdate << callback(DefaultStartup);
-	//Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
-	
-	bool gubo = false;
-	if (gubo) {
-		Machine::WhenUserProgram << callback1(DesktopMain, true);
-	}
-}
-END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
 	Machine& mach = MetaEnv().root.Add<Machine>();
+	mach.WhenBoot << callback(DefaultSerialInitializer);
 	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
+	mach.WhenPreFirstUpdate << callback(DefaultStartup);
+	
+	bool gubo = false;
+	if (gubo) {
+		mach.WhenUserProgram << callback1(DesktopMain, true);
+	}
+	
 	mach.Run(true, "Shell");
 }
 

@@ -56,5 +56,6 @@ public:
     
 };
 
+using LinkSystemPtr = Ptr<LinkSystem>;
 
 #endif

@@ -6,7 +6,7 @@ namespace Eon {
 
 
 struct Id {
-	LinkedList<String> parts;
+	Vector<String> parts;
 	
 	
 	Id() {}

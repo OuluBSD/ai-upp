@@ -5,18 +5,19 @@ NAMESPACE_UPP
 
 
 bool CustomerLink::Initialize(const WorldState& ws) {
-	LinkBasePtr r = this;
-	ASSERT(r);
-	TODO/*LinkSystemPtr as = GetMachine().template Get<LinkSystem>();
-	as->AddCustomer(r);*/
+	LinkSystemPtr ls = node.FindOwnerWith<LinkSystem>();
+	if (!ls) {
+		LOG("CustomerLink::Initialize: error: LinkSystem is required");
+		return false;
+	}
+	ls->AddCustomer(this);
 	
 	return true;
 }
 
 void CustomerLink::Uninitialize() {
-	LinkBasePtr r = this;
-	ASSERT(r);
-	TODO//GetMachine().template Get<LinkSystem>()->RemoveCustomer(r);
+	LinkSystemPtr ls = node.FindOwnerWith<LinkSystem>();
+	ls->RemoveCustomer(this);
 }
 
 bool CustomerLink::ProcessPackets(PacketIO& io) {

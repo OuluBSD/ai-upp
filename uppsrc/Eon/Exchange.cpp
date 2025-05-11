@@ -325,9 +325,10 @@ void MetaSpaceBase::UnlinkAll() {
 ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	const auto& m = MetaSpaceBase::ExptDataMap();
 	const auto& d = m.Get(expt);
-	MetaNode* n;
-	TODO
-	ExchangePoint* o = d.new_fn(*n);
+	MetaNode& n = node.Add();
+	ExchangePoint* o = d.new_fn(n);
+	n.ext = o;
+	n.type_hash = o->GetTypeHash();
 	pts.Add(o);
 	//o->SetParent(this);
 	return o;

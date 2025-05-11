@@ -6,6 +6,8 @@ class Engine;
 }
 
 class MachineVerifier;
+class Space;
+class Loop;
 
 
 class SystemBase : public MetaSystemBase {
@@ -129,6 +131,7 @@ public:
     bool HasStarted() const;
     bool HasFailed() const {return is_failed;}
 
+	bool CommandLineInitializer(bool skip_eon_file);
     bool Start();
     void Update(double dt);
     void Stop();
@@ -151,6 +154,8 @@ public:
 	
 	MachineVerifier*	GetMachineVerifier() const {return mver;}
 	Ecs::Engine&		GetEngine();
+	Loop&				GetRootLoop();
+	Space&				GetRootSpace();
 	
 	using ObjMap = VectorMap<String,Value>;
 	
@@ -160,10 +165,11 @@ public:
 	Event<> WhenLeaveUpdate;
 	Event<> WhenLeaveSystemUpdate;
 	
-	static Event<Machine&> WhenInitialize;
-	static Event<Machine&> WhenUserProgram;
-	static Event<Machine&> WhenPostInitialize;
-	static Event<Machine&> WhenPreFirstUpdate;
+	Event<Machine&> WhenBoot;
+	Event<Machine&> WhenInitialize;
+	Event<Machine&> WhenUserProgram;
+	Event<Machine&> WhenPostInitialize;
+	Event<Machine&> WhenPreFirstUpdate;
 	
 private:
     bool is_started = false;
@@ -172,7 +178,7 @@ private:
     bool is_running = false;
     bool is_failed = false;
     String fail_msg;
-	ObjMap __def_args;
+	ObjMap eon_params;
 	String eon_script;
 	String eon_file;
 	uint64 break_addr = 0;

@@ -42,7 +42,8 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Machine& m = GetActiveMachine();
+		Machine* m = GetMetaNode().FindOwner<Machine>();
+		ASSERT(m);
 		TODO
 		#if 0
 		Ptr<LoopStore> ls = m.Find<LoopStore>();
@@ -376,6 +377,12 @@ void VrSpatialInteractionManager::Move(vec3 rel_dir, float step) {
 	
 	WhenSourceUpdated(*this, ev);
 	#endif
+}
+
+MetaNode& VrSpatialInteractionManager::GetMetaNode() {
+	ASSERT(sys);
+	if (!sys) throw Exc("No sys ptr");
+	return sys->node;
 }
 
 

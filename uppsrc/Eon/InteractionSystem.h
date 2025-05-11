@@ -27,6 +27,7 @@ struct InteractionManager {
 	
 	
 	virtual void Update(double dt) {}
+	virtual MetaNode& GetMetaNode() = 0;
 	
 };
 
@@ -62,6 +63,7 @@ struct FakeSpatialInteractionManager : InteractionManager {
 	
 	FakeSpatialInteractionManager();
 	
+	MetaNode& GetMetaNode() override;
 	bool Initialize(InteractionSystem& sys);
 	void Update(double dt) override;
 	
@@ -125,6 +127,7 @@ struct VrSpatialInteractionManager : InteractionManager {
 	
 	bool Initialize(InteractionSystem& sys);
 	void Update(double dt) override;
+	MetaNode& GetMetaNode() override;
 	
     void DetectController();
     void UpdateState();

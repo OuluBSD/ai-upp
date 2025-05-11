@@ -35,10 +35,11 @@ void EcsService::Deinit() {
 }
 
 void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
-	Machine& mach = GetActiveMachine();
-	Ecs::Engine& eng = mach.GetEngine();
 	TODO
 	#if 0
+	Machine* m = node.FindOwner<Machine>();
+	ASSERT(m);
+	Ecs::Engine& eng = m->GetEngine();
 	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
 	
 	in % *root;
@@ -85,10 +86,11 @@ void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
 }
 
 void EcsService::SendEngine(Stream& in, Stream& out) {
-	
-	Machine& mach = GetActiveMachine();
 	TODO
 	#if 0
+	Machine* m = node.FindOwner<Machine>();
+	ASSERT(m);
+	Ecs::Engine& eng = m->GetEngine();
 	Ecs::Engine& eng = mach.GetEngine();
 	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
 	

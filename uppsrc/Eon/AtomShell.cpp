@@ -50,11 +50,11 @@ bool DefaultInitializer(bool skip_eon_file) {
 	for(const auto& in : inputs) {
 		if (in.key == 'e') {
 			eon_file = in.value;
-			SetShellMode(SHELLMODE_INTERPRETER);
 		}
 	}
 	
 	// Remote connection startup
+	#if 0
 	if (IsShellMode(SHELLMODE_REMOTE)) {
 		// Start daemon in a separate thread
 		if (!daemon.Init()) {
@@ -63,9 +63,10 @@ bool DefaultInitializer(bool skip_eon_file) {
 		}
 		daemon.RunInThread();
 	}
+	#endif
 	
 	// Script interpreter platform startup
-	if (IsShellMode(SHELLMODE_INTERPRETER)) {
+	{
 		if (!skip_eon_file && eon_file.IsEmpty()) {
 			cmd.PrintHelp();
 			LOG("");
@@ -97,24 +98,24 @@ size_t break_addr = 0;
 
 
 
-void DefaultSerialInitializer0(bool skip_eon_file) {
+void DefaultSerialInitializer0(Machine& mach, bool skip_eon_file) {
 	SetCoutLog();
 	
 	if (0)
 		break_addr = 0x1;
 	
 	if (!DefaultInitializer(skip_eon_file))
-		GetActiveMachine().SetFailed("Default serial initializer failed");
+		mach.SetFailed("Default serial initializer failed");
 	
 }
 
-void DefaultSerialInitializer() {DefaultSerialInitializer0(false);}
+void DefaultSerialInitializer(Machine& mach) {DefaultSerialInitializer0(mach, false);}
 
-void DefaultSerialInitializerInternalEon() {
-	DefaultSerialInitializer0(true);
+void DefaultSerialInitializerInternalEon(Machine& mach) {
+	DefaultSerialInitializer0(mach, true);
 }
 
-void DefaultStartup() {
+void DefaultStartup(Machine& mach) {
 	LOG("<-- Startup -->");
 }
 
@@ -170,8 +171,6 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
-					TODO
-					#if 0
 					RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
 					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
 					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
@@ -183,20 +182,15 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 				    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
 				    #endif
 				    
-				    
 				    mach.FindAdd<PacketTracker>();
-				    #endif
 				}
 				
-				/*Ptr<LoopStore> ls			= mach.Find<LoopStore>();
+				/*Ptr<LoopStore> ls = mach.Find<LoopStore>();
 				if (!ls) {
 					LOG("No LoopStore added to machine and the machine is already started");
 					return;
 				}*/
 				
-				
-				TODO
-				#if 0
 				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
@@ -205,7 +199,7 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 				
 				LoopPtr root; // = ls->GetRoot();
 				
-				if (IsShellMode(SHELLMODE_INTERPRETER)) {
+				if (!script_file.IsEmpty()) {
 					String path = RealizeEonFile(script_file);
 					
 					String script_str;
@@ -233,7 +227,6 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 				
 					script->PostLoadString(script_str);
 				}
-				#endif
 		    }
 		    
 		    if (!fail) {
@@ -245,7 +238,7 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 		        if (main_loop)
 					MainLoop();
 		        else
-		            Machine::WhenUserProgram();
+		            Machine::WhenUserProgram(*this);
 		    }
 		#ifdef flagSTDEXC
 	    }

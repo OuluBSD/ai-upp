@@ -33,7 +33,7 @@ public:
 };
 
 class VideoGenBase :
-	public virtual Atom
+	public Atom
 {
 	DebugVideoGenerator		gen;
 	ValueFormat				fmt;

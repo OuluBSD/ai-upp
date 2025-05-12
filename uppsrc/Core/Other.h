@@ -482,12 +482,12 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 	TypeCls(const TypeCls& t) : std::type_index(t) {}
 	TypeCls(const std::type_info& t) : std::type_index(t) {}
 	operator bool() const {return *this != std::type_index(typeid(void));}
-	String GetName() const {return this->name();}
+	String GetName() const {return CppDemangle(this->name());}
 	hash_t GetHashValue() const {return this->hash_code();}
 };
 
 template <class T> TypeCls AsTypeCls() {return typeid(T);}
-template <class T> String AsTypeName() {return typeid(T).name();}
+template <class T> String AsTypeName() {return CppDemangle(typeid(T).name());}
 // Note: AsTypeHash is considered to be persistent and cross-platform (& cross-compiler),
 //       which currently requires the user to set the type string.
 //       If std had demangler or mangled name was standard, this would be unnecessary.

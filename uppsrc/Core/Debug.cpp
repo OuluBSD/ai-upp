@@ -340,6 +340,28 @@ String CppDemangle(const char* name) {
 
 }
 
+#elif PLATFORM_WIN32 && COMPILER_MSC && defined flagDEBUG
+
+#include <windows.h>
+#include "dbghelp.h"
+#include <stdio.h>
+
+#pragma comment(lib, "dbghelp.lib")
+
+extern char *__unDName(char*, const char*, int, void*, void*, int);
+
+namespace Upp {
+
+String CppDemangle(const char* name) {
+	const char *decorated_name = 0;
+    char undecorated_name[1024];
+    __unDName(undecorated_name, decorated_name+1, 1024, malloc, free, 0x2800);
+    String str(undecorated_name);
+    return str;
+}
+
+}
+
 #else
 
 namespace Upp {

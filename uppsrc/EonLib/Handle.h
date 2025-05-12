@@ -8,7 +8,6 @@ class HandleEventsBase :
 	String						target;
 	EnvStatePtr					state;
 	int							prev_iter = -1;
-	static HandleEventsBase*	active;
 	
 public:
 	CLASSTYPE(HandleEventsBase)
@@ -24,8 +23,7 @@ public:
 	void			Visit(Vis& v) override {VIS_THIS(Atom); v & state;}
 	
 	
-	static Callback1<HandleEventsBase*>	WhenInitialize;
-	static HandleEventsBase* Active() {return active;}
+	Callback1<HandleEventsBase*>	WhenInitialize;
 	
 	EnvStatePtr& State() {return state;}
 	
@@ -38,8 +36,8 @@ class HandleVideoBase :
 {
 	struct Binder;
 	
-	static Array<Binder> binders;
-	static HandleVideoBase* active;
+	Array<Binder> binders;
+	HandleVideoBase* active = 0;
 	
 	String					target;
 	EnvStatePtr				state;
@@ -86,8 +84,8 @@ public:
 	void AddBinders();
 	void AddBinderActive(Binder& b);
 	
-	static void AddBinder(BinderIfaceVideo* iface);
-	static void RemoveBinder(BinderIfaceVideo* iface);
+	void AddBinder(BinderIfaceVideo* iface);
+	void RemoveBinder(BinderIfaceVideo* iface);
 	
 	static Callback1<HandleVideoBase*>	WhenInitialize;
 	

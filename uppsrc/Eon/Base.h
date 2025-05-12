@@ -134,8 +134,7 @@ class EventStateBase :
 	static EventStateBase* latest;
 	
 public:
-	using Atom::Atom;
-	EventStateBase();
+	EventStateBase(MetaNode& n);
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;

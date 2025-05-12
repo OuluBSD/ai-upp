@@ -95,11 +95,10 @@ Event& Event::operator=(const Event & mfevent) {
 	seconds = mfevent.seconds;
 	seq     = mfevent.seq;
 	eventlink = NULL;
-	this->SetCount(mfevent.GetCount());
 	
-	for (int i = 0; i < MsgVec::GetCount(); i++) {
-		(*this)[i] = mfevent[i];
-	}
+	const Vector<uint8>& src = mfevent;
+	Vector<uint8>& dst = *this;
+	dst <<= src;
 	
 	return *this;
 }

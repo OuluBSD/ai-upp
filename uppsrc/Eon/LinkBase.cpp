@@ -400,7 +400,7 @@ DriverLink::~DriverLink() {
 }
 
 bool DriverLink::Initialize(const WorldState& ws) {
-	DLOG("DriverLink::Initialize");
+	LOG("DriverLink::Initialize");
 	return true;
 }
 

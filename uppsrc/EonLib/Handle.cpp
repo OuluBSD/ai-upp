@@ -11,13 +11,8 @@ NAMESPACE_UPP
 
 
 
-Callback1<HandleEventsBase*> HandleEventsBase::WhenInitialize;
-
-HandleEventsBase* HandleEventsBase::active;
-
 HandleEventsBase::HandleEventsBase(MetaNode& n) : Atom(n) {
-	if (!active)
-		active = this;
+	
 }
 
 bool HandleEventsBase::Initialize(const Eon::WorldState& ws) {
@@ -104,8 +99,6 @@ struct HandleVideoBase::Binder {
 };
 
 
-Array<HandleVideoBase::Binder> HandleVideoBase::binders;
-HandleVideoBase* HandleVideoBase::active;
 
 HandleVideoBase::HandleVideoBase(MetaNode& n) : Atom(n) {
 	if (!active) {
@@ -120,7 +113,7 @@ bool HandleVideoBase::IsActive() const {
 bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
 	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
-	Value& val = src->GetSourceValue(src_count-1);
+	ValueBase& val = src->GetSourceValue(src_count-1);
 	src_type = val.GetFormat().vd;
 	
 	screen_id = ws.GetInt(".screen.id", -1);
@@ -132,8 +125,8 @@ bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
 	
 	#if defined flagGUI
 	wins = GetMachine().Get<WindowSystem>();
-	#else
 	surfs = GetMachine().Get<Gu::SurfaceSystem>();
+	#else
 	#endif
 	
 	return true;
@@ -147,8 +140,8 @@ bool HandleVideoBase::PostInitialize() {
 		int src_count = src->GetSourceCount();
 		LinkBase* link = GetLink();
 		int src_ch = link->SideSinks().GetCount() == 1 ? link->SideSources().First().local_ch_i : src_count-1;
-		Value& val = src->GetSourceValue(src_ch);
-		Format fmt = val.GetFormat();
+		ValueBase& val = src->GetSourceValue(src_ch);
+		ValueFormat fmt = val.GetFormat();
 		fmt.vid.SetType(LightSampleFD::RGB_U8_LE);
 		if (!link->NegotiateSourceFormat(src_ch, fmt))
 			return false;
@@ -161,11 +154,11 @@ bool HandleVideoBase::PostInitialize() {
 }
 
 void HandleVideoBase::Stop() {
-	state.Clear();
+	state = 0;
 	#if defined flagGUI
 	wins.Clear();
-	#endif
 	surfs.Clear();
+	#endif
 	if (IsActive())
 		binders.Clear();
 }
@@ -180,13 +173,13 @@ void HandleVideoBase::Uninitialize() {
 void HandleVideoBase::Visit(Vis& v) {
 	VIS_THIS(Atom);
 	if (IsActive())
-		vis | binders;
-	vis & state;
+		v | binders;
+	v & state;
 	
 	#if defined flagGUI
-	vis & wins;
+	v & wins;
+	v & surfs;
 	#endif
-	vis & surfs;
 }
 
 bool HandleVideoBase::IsReady(PacketIO& io) {
@@ -198,12 +191,11 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	if (wins && screen_id < wins->GetScreenCount()) {
 		render_win = true;
 	}
-	#else
-	if (0) {}
-	#endif
 	else if (surfs && screen_id < surfs->GetScreenCount()) {
 		render_win = true;
 	}
+	#else
+	#endif
 	
 	bool b =	io.active_sink_mask == iface_sink_mask &&
 				io.full_src_mask == 0 &&
@@ -267,7 +259,7 @@ void HandleVideoBase::RedrawScreen() {
 
 bool HandleVideoBase::Recv(int sink_ch, const Packet& in) {
 	
-	Format fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsOrder()) {
 		return true;
 	}
@@ -299,8 +291,6 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 					//Ctrl::PaintAll(); // -> public Ctrl::DoPaint();
 				}
 			}
-			#endif
-			
 			if (surfs) {
 				int scope_count = surfs->GetScopeCount();
 				ASSERT(scope_count);
@@ -309,6 +299,8 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 					Surface::EventLoopIteration(NULL);
 				}
 			}
+			#endif
+			
 			
 			#if 0
 			Absolute2DInterface* abs2d_iface = CastPtr<Absolute2DInterface>(b.abs_iface);
@@ -376,7 +368,7 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 }
 
 bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Format fmt = out.GetFormat();
+	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsProg()) {
 		if (IsScreenMode()) {
 			#if defined flagGUI
@@ -415,9 +407,6 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				ASSERT(0);
 				#endif
 			}
-			#else
-			if (0) {}
-			#endif
 			if (surfs && screen_id >= 0 && screen_id < surfs->GetScreenCount()) {
 				Gu::SurfaceManager& w = surfs->GetScope(screen_id);
 				auto& pd = w.GetDraw();
@@ -461,6 +450,8 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				ASSERT_(0, "no screen");
 				return false;
 			}
+			#else
+			#endif
 		}
 		else {
 			if (binders.GetCount() == 1) {

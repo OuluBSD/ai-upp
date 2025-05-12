@@ -33,11 +33,11 @@
 
 NAMESPACE_UPP
 
+#include "Handle.h"
 #include "GeneratedAudio.h"
 #include "GeneratedHandle.h"
 #include "GeneratedMinimal.h"
 #include "GeneratedVR.h"
-#include "Handle.h"
 #include "RenderingSystem.h"
 #include "Absolute2D.h"
 #include "Geom2DComponent.h"

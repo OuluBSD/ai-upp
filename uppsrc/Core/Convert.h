@@ -46,9 +46,6 @@ inline String  DblStr(double d)        { return IsNull(d) ? String() : FormatDou
 inline double  IntDbl(int i)           { return IsNull(i) ? double(Null) : double(i); }
 inline int     DblInt(double d)        { return IsNull(d) ? int(Null) : fround(d); }
 
-inline String  HexStr(int i)           { return Format("%X",i); }
-inline String  HexStr64(int64 i)       { return Format("%X",i); }
-
 template<class T>
 String BinStr(const T& o, const char* chrs=".|") {
 	String s;

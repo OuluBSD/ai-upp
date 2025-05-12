@@ -317,8 +317,8 @@ struct MetaNode : Pte<MetaNode> {
 	template <class T> T* FindOwner() const {
 		MetaNode* n = owner;
 		while (n) {
-			if (owner->ext) {
-				T* o = CastPtr<T>(&*owner->ext);
+			if (n->ext) {
+				T* o = CastPtr<T>(&*n->ext);
 				if (o)
 					return o;
 			}
@@ -331,8 +331,8 @@ struct MetaNode : Pte<MetaNode> {
 		MetaNode* n = owner;
 		T* root = 0;
 		while (n) {
-			if (owner->ext) {
-				T* o = CastPtr<T>(&*owner->ext);
+			if (n->ext) {
+				T* o = CastPtr<T>(&*n->ext);
 				if (o)
 					root = o;
 			}

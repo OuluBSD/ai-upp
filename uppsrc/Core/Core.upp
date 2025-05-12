@@ -5,21 +5,21 @@ acceptflags
 
 uses(WIN32 | NOSO) plugin\z;
 
-library(LINUX !ANDROID) "pthread dl rt";
+library(!ST LINUX !ANDROID) "pthread dl rt";
 
-library(BSD !OSX !OPENBSD) "pthread rt execinfo";
+library(!ST BSD !OSX !OPENBSD) "pthread rt execinfo";
 
-library(SOLARIS) "posix4 dl socket nsl";
+library(!ST SOLARIS) "posix4 dl socket nsl";
 
 library(!WIN32 & !NOSO) z;
 
-library(OSX) pthread;
+library(!ST OSX) pthread;
 
-library(ANDROID) atomic;
+library(!ST ANDROID) atomic;
 
 library(WIN32) "kernel32 user32 ole32 oleaut32 uuid ws2_32 advapi32 shell32 winmm mpr";
 
-library(OPENBSD) "pthread execinfo";
+library(!ST OPENBSD) "pthread execinfo";
 
 static_library(ANDROID) cpufeatures;
 
@@ -40,6 +40,8 @@ file
 	Atomic.h,
 	Mt.h,
 	Mt.cpp,
+	St.h,
+	St.cpp,
 	Heap.h,
 	HeapImp.h,
 	heaputil.cpp,

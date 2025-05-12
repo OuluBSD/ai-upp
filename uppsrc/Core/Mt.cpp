@@ -1,5 +1,7 @@
 #include "Core.h"
 
+#if MULTITHREADED
+
 #ifdef PLATFORM_OSX
 #include <sys/time.h>
 #endif
@@ -838,3 +840,5 @@ bool StartAuxThread(auxthread_t (auxthread__ *fn)(void *ptr), void *ptr)
 }
 
 }
+
+#endif

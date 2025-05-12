@@ -7,5 +7,6 @@ file
 	Hello.cpp;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI ST";
 

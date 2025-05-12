@@ -9,5 +9,6 @@ file
 	bombs.iml;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI ST";
 

@@ -118,7 +118,7 @@ bool HandleVideoBase::IsActive() const {
 }
 
 bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
-	ISourceRef src = this->GetSource();
+	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	Value& val = src->GetSourceValue(src_count-1);
 	src_type = val.GetFormat().vd;
@@ -143,7 +143,7 @@ bool HandleVideoBase::PostInitialize() {
 	
 	// Remove alpha channel
 	if (src_type == VD(CENTER, VIDEO)) {
-		ISourceRef src = this->GetSource();
+		ISourcePtr src = this->GetSource();
 		int src_count = src->GetSourceCount();
 		LinkBase* link = GetLink();
 		int src_ch = link->SideSinks().GetCount() == 1 ? link->SideSources().First().local_ch_i : src_count-1;

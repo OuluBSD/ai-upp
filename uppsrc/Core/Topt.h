@@ -174,7 +174,7 @@ inline constexpr bool is_upp_guest = false;
 template <class T>
 inline typename std::enable_if_t<is_trivially_relocatable<T>> Relocate(T *dst, T *src)
 {
-	memcpy(dst, src, sizeof(T));
+	memcpy((void*)dst, src, sizeof(T));
 }
 
 template <class T>

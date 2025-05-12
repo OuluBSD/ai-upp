@@ -1,6 +1,6 @@
 #ifdef flagWIN32
 	#define GLEW_STATIC 1
-	#include <ports/glew/glew.h>
+	#include <plugin/glew/glew.h>
 #else
 	#include <GL/glew.h>
 #endif

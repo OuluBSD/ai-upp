@@ -185,12 +185,27 @@ inline typename std::enable_if_t<!is_trivially_relocatable<T>> Relocate(T *dst, 
 	Destruct(src);
 }
 
+template <class T, bool trivial>
+struct RelocateTrivial {};
+
 template <class T>
-inline void InsertRelocate(T *dst, T *src, int n)
+struct RelocateTrivial<T,true>
 {
-	if constexpr(is_trivially_relocatable<T>)
-		memmove(dst, src, n * sizeof(T));
-	else {
+	static void Insert(T *dst, T *src, int n) {
+		memmove((void*)dst, src, n * sizeof(T));
+	}
+	static void Remove(T *dst, T *src, int n) {
+		memmove((void*)dst, src, n * sizeof(T));
+	}
+	static void Relocate(T *dst, T *src, int n) {
+		memcpy_t((void*)dst, src, n);
+	}
+};
+
+template <class T>
+struct RelocateTrivial<T,false>
+{
+	static void Insert(T *dst, T *src, int n) {
 		static_assert(is_upp_guest<T>);
 		if(n <= 0)
 			return;
@@ -203,32 +218,36 @@ inline void InsertRelocate(T *dst, T *src, int n)
 			s--;
 		}
 	}
+	static void Remove(T *dst, T *src, int n) {
+		static_assert(is_upp_guest<T>);
+		T *lim = src + n;
+		while(src != lim)
+			Relocate(dst++, src++);
+	}
+	static void Relocate(T *dst, T *src, int n) {
+		static_assert(is_upp_guest<T>);
+		T *lim = src + n;
+		while(src != lim)
+			Relocate(dst++, src++);
+	}
+};
+
+template <class T>
+inline void InsertRelocate(T *dst, T *src, int n)
+{
+	RelocateTrivial<T,is_trivially_relocatable<T>>::Insert(dst, src, n);
 }
 
 template <class T>
 inline void RemoveRelocate(T *dst, T *src, int n)
 {
-	if constexpr(is_trivially_relocatable<T>)
-		memmove(dst, src, n * sizeof(T));
-	else {
-		static_assert(is_upp_guest<T>);
-		T *lim = src + n;
-		while(src != lim)
-			Relocate(dst++, src++);
-	}
+	RelocateTrivial<T,is_trivially_relocatable<T>>::Remove(dst, src, n);
 }
 
 template <class T>
 inline void Relocate(T *dst, T *src, int n)
 {
-	if constexpr(is_trivially_relocatable<T>)
-		memcpy_t(dst, src, n);
-	else {
-		static_assert(is_upp_guest<T>);
-		T *lim = src + n;
-		while(src != lim)
-			Relocate(dst++, src++);
-	}
+	RelocateTrivial<T,is_trivially_relocatable<T>>::Relocate(dst, src, n);
 }
 
 template <class T, class S>

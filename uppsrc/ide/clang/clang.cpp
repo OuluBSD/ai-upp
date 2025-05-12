@@ -3,6 +3,17 @@
 #define LLOG(x)
 #define LTIMESTOP(x) TIMESTOP(x)
 
+
+NAMESPACE_UPP
+
+extern String (*GetCursorKindNamePtr)(CXCursorKind);
+
+END_UPP_NAMESPACE
+
+INITBLOCK {
+	::Upp::GetCursorKindNamePtr = &GetCursorKindName;
+}
+
 String FetchString(CXString cs)
 {
 	if(!HasLibClang())

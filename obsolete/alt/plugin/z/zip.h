@@ -51,7 +51,7 @@ extern "C" {
 #endif
 
 #ifndef _ZLIBIOAPI_H
-#include <ports/unzip/ioapi.h>
+#include <plugin/unzip/ioapi.h>
 #endif
 
 #ifdef HAVE_BZIP2

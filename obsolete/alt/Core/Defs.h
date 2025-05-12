@@ -80,8 +80,8 @@
 #endif
 
 #if defined flagWIN32 && defined flagGCC
-	#include <ports/MingwThreads/mingw.thread.h>
-	#include <ports/MingwThreads/mingw.mutex.h>
+	#include <plugin/MingwThreads/mingw.thread.h>
+	#include <plugin/MingwThreads/mingw.mutex.h>
 	#define MINGWTHREAD 1
 	using std_thread = mingw_stdthread::thread;
 	using std_mutex = mingw_stdthread::mutex;

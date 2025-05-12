@@ -4,7 +4,7 @@
 #include <Local/Local.h>
 using namespace UPP;
 
-#include <ports/chips/chips.h>
+#include <plugin/chips/chips.h>
 
 
 #include "Common.h"

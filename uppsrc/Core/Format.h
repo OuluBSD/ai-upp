@@ -137,4 +137,9 @@ inline String         FormatDoubleExp(double x, int digits) { return FormatE(x, 
 
 inline String         HexStr(int i) {return Format("0x%X", i);}
 inline String         HexStr64(int64 i) {return Format("0x%X", i);}
-inline String         HexStr64(void* i) {return Format("0x%X", (int64)i);}
+#if CPU_64
+inline String         HexStrPtr(void* i) {return Format("0x%X", (int64)i);}
+#else
+inline String         HexStrPtr(void* i) {return Format("0x%X", (int)i);}
+#endif
+

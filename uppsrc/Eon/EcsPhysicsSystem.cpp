@@ -93,7 +93,7 @@ void PhysicsSystem::RunTestFn(PhysicsBody& b) {
 			
 			t.data.position = vec3((float)x, 2, (float)z);
 			if (debug_log) {
-				LOG("PhysicsSystem::RunTestFn: " << time << ": " << HexStr(&b) << ": " << x << ":" << z);
+				LOG("PhysicsSystem::RunTestFn: " << time << ": " << HexStrPtr(&b) << ": " << x << ":" << z);
 			}
 		}
 		

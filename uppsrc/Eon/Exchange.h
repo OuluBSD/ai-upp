@@ -163,7 +163,7 @@ class ExchangeProviderT {
 	
 private:
 	ExchangePoint* expt = 0;
-	R dst;
+	R dst = 0;
 	
 protected:
 	friend class ExchangeSinkProvider;
@@ -195,6 +195,7 @@ class ExchangeProviderBase : public Pte<ExchangeProviderBase>
 {
 public:
 	virtual String GetConfigString() {return String();}
+	virtual TypeCls GetTypeCls() const = 0;
 	
 };
 

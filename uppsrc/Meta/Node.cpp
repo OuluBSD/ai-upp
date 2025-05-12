@@ -659,6 +659,7 @@ String MetaNode::GetTreeString(int depth) const
 	s << GetKindString();
 	if(!id.IsEmpty())
 		s << ": " << id;
+	s << "(" << HexStrPtr(this) << ")";
 	s << "\n";
 	if (ext) {
 		s.Cat('\t', depth+1);
@@ -669,6 +670,10 @@ String MetaNode::GetTreeString(int depth) const
 			s << " " << fac.name;
 			if (!fac.ctrl_name.IsEmpty())
 				s << " (" << fac.ctrl_name << ")";
+		}
+		else {
+			TypeCls type = ext->GetTypeCls();
+			s << " " << type.GetName();
 		}
 		s << "\n";
 	}

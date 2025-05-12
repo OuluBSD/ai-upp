@@ -392,7 +392,7 @@ void VoiceEnvelope::NextSegment(short active_segment, float out_sample_rate)
 					// get to zero, not to the sustain level.  The SFZ spec is not that
 					// specific about what "decay" means, so perhaps it's really supposed
 					// to specify the time to reach the sustain level.
-					samples_until_next_segment = (int)(LOG_(parameters.sustain) / mysterySlope);
+					samples_until_next_segment = (int)(LOGM(parameters.sustain) / mysterySlope);
 				}
 			}
 			else

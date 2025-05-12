@@ -290,7 +290,7 @@ void EnetServiceServer::ReceiveHandler(ENetEvent& e) {
 	
 	
 	if (verbose) {
-		LOG("EnetServiceServer::ClientHandler: info: magic " << magic << ", h " << HexStr(&c));
+		LOG("EnetServiceServer::ClientHandler: info: magic " << magic << ", h " << HexStrPtr(&c));
 	}
 	
 	c.peer = e.peer;

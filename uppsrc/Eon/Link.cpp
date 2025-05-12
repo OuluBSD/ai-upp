@@ -196,13 +196,13 @@ String LinkBase::GetInlineConnectionsString() const {
 	int i = 0;
 	for (Exchange& ex : side_sink_conn) {
 		if (i++ > 0) s << ", ";
-		s << HexStr(&*ex.other);
+		s << HexStrPtr(&*ex.other);
 	}
 	s << "), src(";
 	i = 0;
 	for (Exchange& ex : side_src_conn) {
 		if (i++ > 0) s << ", ";
-		s << HexStr(&*ex.other);
+		s << HexStrPtr(&*ex.other);
 	}
 	s << ")";
 	return s;

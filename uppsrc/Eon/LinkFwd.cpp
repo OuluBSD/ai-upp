@@ -188,9 +188,13 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 }
 
 void LinkBase::PostContinueForward() {
-	TODO
-	//if (last_cfg)
-	//	GetMachine().Get<LinkSystem>()->AddOnce(*this, *last_cfg);
+	if (last_cfg) {
+		LinkSystem* lsys = node.FindOwnerWith<LinkSystem>();
+		if (!lsys) {LOG(node.GetTreeString());}
+		ASSERT(lsys);
+		if (lsys)
+			lsys->AddOnce(*this, *last_cfg);
+	}
 }
 
 void LinkBase::ForwardExchange(FwdScope& fwd) {

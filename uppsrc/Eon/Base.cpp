@@ -51,14 +51,11 @@ bool CustomerBase::IsForwardReady() {
 }
 
 void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
-	TODO
-	#if 0
 	InternalPacketData& data = out.template SetData<InternalPacketData>();
 	data.pos = 0;
 	data.count = 1;
 	
 	packet_count++;
-	#endif
 }
 
 
@@ -204,11 +201,15 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 		dbg_iter++;
 		
 		if (fail || (dbg_limit > 0 && dbg_iter >= dbg_limit)) {
-			TODO//GetMachine().SetNotRunning();
+			Machine* mach = node.FindOwner<Machine>();
+			//if (!mach) {LOG(MetaEnv().root.GetTreeString());}
+			ASSERT(mach);
+			if (!mach) return false;
+			mach->SetNotRunning();
 			LOG("VoidSinkBase::Consume: stops. total-samples=" << dbg_total_samples << ", total-bytes=" << dbg_total_bytes);
 			if (!fail) {LOG("VoidSinkBase::Consume: success!");}
 			else       {LOG("VoidSinkBase::Consume: fail :(");}
-			TODO//if (fail) GetMachine().SetFailed("VoidSinkBase error");
+			if (fail) mach->SetFailed("VoidSinkBase error");
 		}
 		
 		RTLOG("VoidSinkBase::Consume: successfully verified frame");
@@ -249,7 +250,7 @@ bool VoidPollerSinkBase::Initialize(const WorldState& ws) {
 }
 
 void VoidPollerSinkBase::Uninitialize() {
-	LOG("VoidPollerSinkBase::Uninitialize: " << HexStr(this));
+	LOG("VoidPollerSinkBase::Uninitialize: " << HexStrPtr(this));
 	LOG("VoidPollerSinkBase::Uninitialize: total-samples=" << dbg_total_samples << ", total-bytes=" << dbg_total_bytes);
 	if (dbg_limit > 0 && dbg_total_samples < dbg_limit)
 		fail = true;

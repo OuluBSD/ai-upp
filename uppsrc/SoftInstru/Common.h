@@ -61,7 +61,7 @@ enum OutputMode
 #  define POW     pow
 #  define POWF    powf
 #  define EXPF    expf
-#  define LOG_    log
+#  define LOGM    log
 #  define TAN     tan
 #  define LOG10   log10
 #  define SQRTF   sqrtf

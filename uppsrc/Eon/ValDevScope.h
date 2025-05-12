@@ -111,7 +111,7 @@ class SimpleValue :
 	bool			lock_format = false;
 	
 public:
-	~SimpleValue() {/*LOG("dtor SimpleValue " << HexStr((void*)this));*/ ASSERT(buf.IsEmpty());}
+	~SimpleValue() {/*LOG("dtor SimpleValue " << HexStr((void*)this)); ASSERT(buf.IsEmpty());*/}
 	void			Visit(Vis& vis) {}
 	void			Clear() override {/*LOG("clear SimpleValue " << HexStr((void*)this));*/ fmt.Clear(); time = 0; buf.Clear(); min_packets = 1; max_packets = 2;}
 	void			Exchange(Ex& e) override;

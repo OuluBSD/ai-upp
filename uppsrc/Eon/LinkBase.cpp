@@ -261,7 +261,7 @@ void IntervalPipeLink::IntervalSinkProcess() {
 	
 	bool fail = false;
 	
-	while (flag.IsRunning()) {
+	while (flag.IsRunning() && !Thread::IsShutdownThreads()) {
 		double t = ts.Seconds();
 		
 		if (t < step_s) {

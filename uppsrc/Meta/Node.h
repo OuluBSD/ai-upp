@@ -315,12 +315,13 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T> T* FindOwner() const {
+		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		while (n) {
-			if (n->ext) {
+			if (n->ext && n->ext->GetTypeCls() == type) {
 				T* o = CastPtr<T>(&*n->ext);
-				if (o)
-					return o;
+				ASSERT(o);
+				return o;
 			}
 			n = n->owner;
 		}
@@ -328,13 +329,14 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T> T* FindOwnerRoot() const {
+		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		T* root = 0;
 		while (n) {
-			if (n->ext) {
+			if (n->ext && n->ext->GetTypeCls() == type) {
 				T* o = CastPtr<T>(&*n->ext);
-				if (o)
-					root = o;
+				ASSERT(o);
+				root = o;
 			}
 			n = n->owner;
 		}
@@ -342,13 +344,14 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T> T* FindOwnerWith() const {
+		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		while (n) {
 			for (auto& s : n->sub) {
-				if (s.ext) {
+				if (s.ext && s.ext->GetTypeCls() == type) {
 					T* o = CastPtr<T>(&*s.ext);
-					if (o)
-						return o;
+					ASSERT(o);
+					return o;
 				}
 			}
 			n = n->owner;
@@ -357,14 +360,15 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T> T* FindOwnerRootWith() const {
+		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		T* root = 0;
 		while (n) {
 			for (auto& s : n->sub) {
-				if (s.ext) {
+				if (s.ext && s.ext->GetTypeCls() == type) {
 					T* o = CastPtr<T>(&*s.ext);
-					if (o)
-						root = o;
+					ASSERT(o);
+					root = o;
 				}
 			}
 			n = n->owner;

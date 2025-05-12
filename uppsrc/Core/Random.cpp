@@ -139,6 +139,32 @@ double Randomf()
 	return (sNext(sState()) >> 11) * (1. / (UINT64_C(1) << 53));
 }
 
+void WriteRandomMemory(void* m, int bytes)
+{
+	if (bytes <= 0)
+		return;
+	
+	int blocks = bytes / 8;
+	int mod = bytes % 8;
+	
+	byte* dst = (byte*)m;
+	byte* block_end = dst + blocks * 8;
+	while (dst != block_end) {
+		*(uint64*)dst = sNext(sState());
+		dst += 8;
+	}
+	
+	union {
+		byte b[8];
+		uint64 u64;
+	};
+	u64 = sNext(sState());
+	for(int i = 0; i < mod; i++)
+		*dst++ = b[i];
+	
+	ASSERT(dst == (byte*)m + bytes);
+}
+
 void SeedRandom()
 {
 	sSeed(sState());

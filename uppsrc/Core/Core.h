@@ -3,8 +3,16 @@
 
 #define UPP_VERSION 0x20250200
 
-#define _MULTITHREADED
-#define MULTITHREADED
+#ifndef flagST
+	#define _MULTITHREADED 1
+	#define MULTITHREADED 1
+	#define MT 1
+#else
+	#define SINGLETHREADED 1
+	#define ST 1
+	#define thread DISABLED_FEATURE_USE
+#endif
+
 #ifdef flagDLL // Build .dll
 	#define flagUSEMALLOC
 	#define STD_NEWDELETE
@@ -88,8 +96,10 @@
 	#include <time.h>
 	#include <fcntl.h>
 	#include <unistd.h>
-	#include <pthread.h>
-	#include <semaphore.h>
+	#if MULTITHREADING
+		#include <pthread.h>
+		#include <semaphore.h>
+	#endif
 	#include <memory.h>
 	#include <dirent.h>
 	#include <signal.h>
@@ -320,6 +330,7 @@ class JsonIO;
 #include "Atomic.h"
 #include "Topt.h"
 #include "Mt.h"
+#include "St.h"
 #include "String.h"
 
 #include "TimeDate.h"

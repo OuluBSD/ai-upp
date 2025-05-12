@@ -1,3 +1,9 @@
+#if MULTITHREADED
+
+#ifdef flagST
+#error Internal error
+#endif
+
 #ifdef DEPRECATED
 #define thread__ thread_local
 #endif
@@ -435,3 +441,5 @@ typedef StaticMutex StaticCriticalSection;
 #endif
 
 bool StartAuxThread(auxthread_t (auxthread__ *fn)(void *ptr), void *ptr);
+
+#endif

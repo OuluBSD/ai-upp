@@ -51,8 +51,7 @@ LinkBase* AtomBase::GetLink() {
 }
 
 String AtomBase::ToString() const {
-	TODO //return GetDynamicName();
-	return String();
+	return GetTypeCls().GetName();
 }
 
 void AtomBase::SetInterface(const IfaceConnTuple& iface) {
@@ -68,11 +67,17 @@ void AtomBase::SetPrimarySinkQueueSize(int i) {
 }
 
 void AtomBase::AddAtomToUpdateList() {
-	TODO //AtomBase::GetMachine().template Get<AtomSystem>()->AddUpdated(this);
+	AtomSystem* sys = node.FindOwnerWith<AtomSystem>();
+	ASSERT(sys);
+	if (!sys) throw Exc("AtomSystem not found");
+	sys->AddUpdated(this);
 }
 
 void AtomBase::RemoveAtomFromUpdateList() {
-	TODO //AtomBase::GetMachine().template Get<AtomSystem>()->RemoveUpdated(this);
+	AtomSystem* sys = node.FindOwnerWith<AtomSystem>();
+	ASSERT(sys);
+	if (!sys) throw Exc("AtomSystem not found");
+	sys->RemoveUpdated(this);
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {
@@ -115,8 +120,9 @@ void AtomBase::UpdateSinkFormat(ValCls vc, ValueFormat fmt) {
 
 void AtomBase::PostContinueForward() {
 	RTLOG("AtomBase::PostContinueForward");
-	
-	TODO //Serial_Link_PostContinueForward(link);
+	ASSERT(link);
+	if (link)
+		link->PostContinueForward();
 }
 
 bool AtomBase::Recv(int sink_ch, const Packet& in) {

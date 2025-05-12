@@ -354,11 +354,11 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 		else {
 			LOG("VoidPollerSinkBase::Recv: error: thrd #" << i << " invalid audio format");
 			fail = true;
-			TODO//GetMachine().SetFailed("VoidPollerSinkBase error");
+			node.FindOwner<Machine>()->SetFailed("VoidPollerSinkBase error");
 		}
 		
 		if (dbg_limit > 0 && t.rolling_value >= dbg_limit) {
-			TODO//GetMachine().SetNotRunning();
+			node.FindOwner<Machine>()->SetNotRunning();
 			LOG("VoidPollerSinkBase::Recv: stops");
 		}
 	}

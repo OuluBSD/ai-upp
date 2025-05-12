@@ -66,7 +66,7 @@ void DepthImage::Set(Size sz, int channels) {
 }
 
 void DepthImage::Zero(float zero_depth) {
-	memset((Info*)info.Begin(), 0, size * sizeof(Info));
+	memset((void*)info.Begin(), 0, size * sizeof(Info));
 	for (float& f : data)
 		f = zero_depth;
 }

@@ -8,7 +8,7 @@ class GfxAtomBase : public Atom {
 	
 	
 public:
-	//RTTI_DECL1(GfxAtomBase, Atom)
+	using Atom::Atom;
 	GfxAtomBase(MetaNode& n) : Atom(n) {}
 	
 };

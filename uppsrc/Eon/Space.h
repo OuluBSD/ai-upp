@@ -56,7 +56,7 @@ public:
 	Loop*				GetLoop() const;
 	Space*				GetParent() const;
 	Machine&			GetMachine() const;
-	String				GetName() const {return name;}
+	String				GetName() const override {return name;}
 	String				GetDeepName() const;
 	//bool				HasAtoms() const {return !atoms.IsEmpty();}
 	bool				HasSpaces() const;// {return !spaces.IsEmpty();}
@@ -123,7 +123,7 @@ public:
 	//AtomMap::Iterator			end()			{return atoms.end();}
 	//SpaceVec::Iterator			BeginSpace()	{return spaces.begin();}
 	
-	void Visit(Vis& vis);
+	void Visit(Vis& vis) override;
 	void VisitSinks(Vis& vis);
 	void VisitSources(Vis& vis);
 	

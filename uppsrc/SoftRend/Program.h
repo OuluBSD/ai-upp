@@ -24,7 +24,7 @@ protected:
 		GenericVertexShaderArgs vargs;
 		GenericFragmentShaderArgs fargs;
 		
-		void Zero() {memset(this, 0, sizeof(Object));}
+		void Zero() {memset((void*)this, 0, sizeof(Object));}
 	};
 	Array<Object> objs;
 	int obj_i = -1;

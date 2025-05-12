@@ -22,6 +22,7 @@
 #endif
 
 #include <Draw/Draw.h>
+#include <Draw2/Draw.h>
 
 
 #undef rad2
@@ -63,6 +64,7 @@ NAMESPACE_UPP
 #include "Geom2D.h"
 #include "GeomTypes.h"
 #include "Geom3D.h"
+#include "GeomEvent.h"
 #include "Quadtree.h"
 #include "Octree.h"
 #include "Material.h"

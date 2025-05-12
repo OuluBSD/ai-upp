@@ -558,7 +558,7 @@ public:
     // -------------------------------------------------------------------
     /** Get meta data for the importer corresponding to a specific index..
     *
-    *  For the declaration of #aiImporterDesc, include <ports/assimp/importerdesc.h>.
+    *  For the declaration of #aiImporterDesc, include <plugin/assimp/importerdesc.h>.
     *  @param index Index to query, must be within [0,GetImporterCount())
     *  @return Importer meta data structure, NULL if the index does not
     *     exist or if the importer doesn't offer meta information (

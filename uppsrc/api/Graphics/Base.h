@@ -15,6 +15,7 @@ protected:
 	RealtimeSourceConfig* last_cfg = 0;
 	
 public:
+	using Atom::Atom;
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(BufferBaseT, Atom);
 	

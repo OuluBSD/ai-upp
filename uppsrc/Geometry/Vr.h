@@ -2,7 +2,6 @@
 #define _Geometry_Vr_h_
 
 
-#if 0
 
 class VrSystemTestGenerator {
 	
@@ -23,7 +22,7 @@ class WmrFusionSystem {
 	
 	ControllerMatrix in_ctrl;
 	TransformMatrix in_trans;
-	CtrlEvent in_ev;
+	GeomEvent in_ev;
 	bool new_ev = false;
 	
 public:
@@ -33,16 +32,16 @@ public:
 	
 	void Process();
 	void Attach(SerialServiceServer& srv);
-	void SendFusionData(Ether& in, Ether& out);
+	void SendFusionData(Stream& in, Stream& out);
 	void PutBrightFrame(bool& lock, Size sz, const Vector<byte>& data);
 	void PutDarkFrame(bool& lock, Size sz, const Vector<byte>& data);
-	void PutSensorData(CtrlEvent& ev);
+	void PutSensorData(GeomEvent& ev);
 	
 };
 
 
 struct WmrFusionSystemReceiver {
-	CtrlEvent ev;
+	GeomEvent ev;
 	ControllerMatrix ctrl;
 	TransformMatrix trans;
 	bool ev_sendable = false;
@@ -52,11 +51,10 @@ struct WmrFusionSystemReceiver {
 	typedef WmrFusionSystemReceiver CLASSNAME;
 	WmrFusionSystemReceiver();
 	bool UpdateFrom(SerialServiceClient& c);
-	void GetEvent(Ether& in, Ether& out);
+	void GetEvent(Stream& in, Stream& out);
 	
 };
 
-#endif
 
 
 #endif

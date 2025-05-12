@@ -49,13 +49,15 @@ struct StaticGroundPlanePrefab :
 	
     static Components Make(Entity& e)
     {
+		Machine* mach = e.node.FindOwner<Machine>();
+		if (!mach) return Components();
         auto components = Prefab::Make(e);
 		auto ground = components.template Get<Ptr<GroundPlane>>();
 		
 		components.template Get<TransformPtr>()->position[1] = -5.0;
 		components.template Get<RenderablePtr>()->cb.Add(ground->GetRefreshCallback());
 		
-		Ptr<System> w = GetActiveMachine().Get<System>();
+		Ptr<System> w = mach->Find<System>();
 		Ptr<GroundPlane> plane = components.template Get<Ptr<GroundPlane>>();
 		ASSERT(plane);
 		w->Attach(*plane);

@@ -17,8 +17,6 @@ file
 	Container.cpp,
 	Network.h,
 	Network.cpp,
-	GeomEvent.h,
-	GeomEvent.cpp,
 	Debugging.h,
 	Debugging.cpp,
 	WorldState.h,

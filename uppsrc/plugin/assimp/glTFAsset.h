@@ -65,7 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ASSIMP_API
 #   include <memory>
-#   include <ports/assimp/DefaultIOSystem.h>
+#   include <plugin/assimp/DefaultIOSystem.h>
 #   include "ByteSwapper.h"
 #else
 #   include <memory>

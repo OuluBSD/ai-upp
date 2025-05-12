@@ -117,7 +117,7 @@ struct Triangle : Moveable<Triangle<T,I> > {
 	Triangle() {}
 	Triangle(const vec& a, const vec& b, const vec& c) {Set(a,b,c);}
 	Triangle(const Triangle& t) { *this = t; }
-	void operator=(const Triangle& t) {memcpy(this, &t, sizeof(Triangle));}
+	void operator=(const Triangle& t) {memcpy(values, t.values, sizeof(values));}
 	void Set(const vec& a, const vec& b, const vec& c) {
 		this->a = a;
 		this->b = b;

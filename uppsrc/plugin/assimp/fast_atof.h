@@ -30,7 +30,7 @@
 #ifdef _MSC_VER
 #  include <stdint.h>
 #else
-#  include <ports/assimp/Compiler/pstdint.h>
+#  include <plugin/assimp/Compiler/pstdint.h>
 #endif
 
 namespace Assimp

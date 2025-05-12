@@ -142,4 +142,4 @@ inline String         HexStrPtr(void* i) {return Format("0x%X", (int64)i);}
 #else
 inline String         HexStrPtr(void* i) {return Format("0x%X", (int)i);}
 #endif
-
+template <class T> String HexStrPtr(const T* o) {return HexStrPtr((void*)o);}

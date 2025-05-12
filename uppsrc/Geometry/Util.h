@@ -2,7 +2,7 @@
 #define _Geometry_Util_h_
 
 
-template <class T> T zero() {T o; memset(&o, 0, sizeof(T));return o;}
+template <class T> T zero() {T o; memset(o.data, 0, sizeof(T::data));return o;}
 template <class T> T one() {T o; o.SetConst(1.0); return o;}
 template <class T> T Identity() {T o; o.SetIdentity(); return o;}
 

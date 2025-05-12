@@ -1,5 +1,5 @@
-#ifndef _Eon_GeomEvent_h_
-#define _Eon_GeomEvent_h_
+#ifndef _Geometry_GeomEvent_h_
+#define _Geometry_GeomEvent_h_
 
 
 enum {

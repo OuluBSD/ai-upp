@@ -9,7 +9,7 @@ using Seconds		= std::chrono::seconds;
 using Minutes		= std::chrono::minutes;
 using Hours			= std::chrono::hours;
 
-inline MilliSeconds operator "" _ms(unsigned long long u) {return MilliSeconds {u};}
+inline MilliSeconds operator ""_ms(unsigned long long u) {return MilliSeconds {u};}
 
 
 #endif

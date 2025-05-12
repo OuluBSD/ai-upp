@@ -72,8 +72,8 @@ struct Vec : Moveable<Vec<T, I> > {
 	
 	
 	Vec() {for(int i = 0; i < I; i++) data[i] = 0;}
-	Vec(Vec&& v) {memcpy(this, &v, sizeof(Vec));}
-	Vec(const Vec& v) {memcpy(this, &v, sizeof(Vec));}
+	Vec(Vec&& v) {memcpy(data, v.data, sizeof(data));}
+	Vec(const Vec& v) {memcpy(data, v.data, sizeof(data));}
 	Vec(T value) {SetConst(value);}
 	Vec(T x, T y) {Set(x,y); ClearFrom(2);}
 	Vec(T x, T y, T z) {Set(x,y,z); ClearFrom(3);}
@@ -98,7 +98,7 @@ struct Vec : Moveable<Vec<T, I> > {
 	bool IsNull() const {for(int i = 0; i < I; i++) if (data[i] != std::numeric_limits<T>::max()) return false; return true;}
 	//operator bool() const {return !IsNull();}
 	
-	void Clear() {memset(this, 0, sizeof(Vec));}
+	void Clear() {memset(data, 0, sizeof(data));}
 	void ClearFrom(int i) {for(; i < I; i++) data[i] = 0;}
 	
 	hash_t GetHashValue() const {

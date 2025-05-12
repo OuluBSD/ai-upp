@@ -110,6 +110,7 @@ struct ScrWinD11 {
 
 struct ScrSinkDevice : public Atom {
 	//RTTI_DECL1(ScrSinkDevice, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrSinkDevice() {}
@@ -117,6 +118,7 @@ struct ScrSinkDevice : public Atom {
 
 struct ScrContext : public Atom {
 	//RTTI_DECL1(ScrContext, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrContext() {}
@@ -124,6 +126,7 @@ struct ScrContext : public Atom {
 
 struct ScrEventsBase : public Atom {
 	//RTTI_DECL1(ScrEventsBase, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrEventsBase() {}

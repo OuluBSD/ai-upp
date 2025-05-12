@@ -2,7 +2,8 @@ description "Classes for 2D/3D/etc operations.\377B128,0,54";
 
 uses
 	plugin/mikktspace,
-	Draw;
+	Draw,
+	Draw2;
 
 uses(!UWP) plugin/tiny_gltf;
 
@@ -25,6 +26,8 @@ file
 	Geom2D.cpp,
 	Geom3D.h,
 	Geom3D.cpp,
+	GeomEvent.h,
+	GeomEvent.cpp,
 	Quadtree.h,
 	Quadtree.cpp,
 	Octree.h,

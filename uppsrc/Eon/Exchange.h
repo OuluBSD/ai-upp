@@ -456,7 +456,7 @@ public:
 	void Clear();
 	void Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr sink);
 	void Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr sink, CookiePtr sink_cookie, CookiePtr src_cookie);
-	void Visit(Vis& vis) {vis & src & sink & src_cookie & sink_cookie;}
+	void Visit(Vis& vis) override {vis & src & sink & src_cookie & sink_cookie;}
 	bool IsLoopComplete(FwdScope& fwd) override {return false;}
 	
 	ExchangeSourceProviderPtr Source() {return src;}
@@ -497,7 +497,7 @@ public:
 	virtual ~MetaSpaceBase();
 	
 	virtual void UnlinkAll();
-	virtual TypeCls GetTypeCls() const = 0;
+	virtual TypeCls GetTypeCls() const override = 0;
 	
 	template <class T>
 	Ptr<T> Add() {

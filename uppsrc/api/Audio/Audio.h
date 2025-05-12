@@ -39,14 +39,14 @@ struct AudPortaudio {
 #endif
 
 struct AudSinkDevice : public Atom {
-	//RTTI_DECL1(AudSinkDevice, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSinkDevice() {}
 };
 
 struct AudSourceDevice : public Atom {
-	//RTTI_DECL1(AudSourceDevice, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSourceDevice() {}

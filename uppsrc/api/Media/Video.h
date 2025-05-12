@@ -99,7 +99,7 @@ class VideoLoaderBaseT :
 	bool	vflip = false;
 	
 public:
-	VideoLoaderBaseT();
+	VideoLoaderBaseT(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;

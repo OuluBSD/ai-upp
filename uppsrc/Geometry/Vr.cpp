@@ -1,6 +1,5 @@
 #include "Geometry.h"
 
-#if 0
 
 NAMESPACE_UPP
 
@@ -36,7 +35,7 @@ void WmrFusionSystem::Process() {
 	}
 }
 
-void WmrFusionSystem::PutSensorData(CtrlEvent& ev) {
+void WmrFusionSystem::PutSensorData(GeomEvent& ev) {
 	new_ev = true;
 	if (ev.ctrl)
 		in_ctrl = *ev.ctrl;
@@ -48,10 +47,13 @@ void WmrFusionSystem::PutSensorData(CtrlEvent& ev) {
 }
 
 void WmrFusionSystem::Attach(SerialServiceServer& server) {
+	TODO
+	#if 0
 	server.AddStream(NET_SEND_FUSION_DATA, THISBACK(SendFusionData));
+	#endif
 }
 
-void WmrFusionSystem::SendFusionData(Ether& in, Ether& out) {
+void WmrFusionSystem::SendFusionData(Stream& in, Stream& out) {
 	
 	TODO
 	
@@ -87,15 +89,16 @@ WmrFusionSystemReceiver::WmrFusionSystemReceiver() {
 
 bool WmrFusionSystemReceiver::UpdateFrom(SerialServiceClient& client) {
 	
+	TODO
+	#if 0
 	if (!client.CallStream(NET_LATEST_BRIGHT_FRAME, THISBACK(GetEvent)))
 		return false;
-	
-	TODO
+	#endif
 	
 	return ev_sendable;
 }
 
-void WmrFusionSystemReceiver::GetEvent(Ether& in, Ether& out) {
+void WmrFusionSystemReceiver::GetEvent(Stream& in, Stream& out) {
 	
 	TODO
 	
@@ -106,4 +109,3 @@ void WmrFusionSystemReceiver::GetEvent(Ether& in, Ether& out) {
 
 END_UPP_NAMESPACE
 
-#endif

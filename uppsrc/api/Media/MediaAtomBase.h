@@ -40,10 +40,8 @@ class MediaAtomBaseT :
 	bool RealizeVideoFormat();
 	
 public:
-	//RTTI_DECL1(MediaAtomBaseT, Atom);
-	
 	typedef MediaAtomBaseT CLASSNAME;
-	MediaAtomBaseT();
+	MediaAtomBaseT(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;

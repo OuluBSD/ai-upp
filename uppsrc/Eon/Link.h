@@ -83,7 +83,7 @@ public:
 	
 	virtual bool			Start() {return true;}
 	virtual void			Stop() {}
-	virtual void			Visit(Vis& vis) {
+	virtual void			Visit(Vis& vis) override {
 		vis || side_sink_conn || side_src_conn;
 		vis & prim_link_sink & prim_link_src;
 	}

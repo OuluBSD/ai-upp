@@ -63,7 +63,7 @@ bool HoloRemoteVRServer::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, Rea
 	RTLOG("HoloRemoteVRServer::SinkDevice_Send: " << fmt.ToString());
 	
 	if (fmt.IsEvent()) {
-		UPP::CtrlEvent& dst = out.SetData<UPP::CtrlEvent>();
+		UPP::GeomEvent& dst = out.SetData<UPP::GeomEvent>();
 		dst = dev.recv.ev;
 		out.seq = dev.recv.seq++;
 	}

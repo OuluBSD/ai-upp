@@ -343,8 +343,8 @@ void ProgPainter::DrawPolyPolylineOp(const Point *vertices, int vertex_count,
 	cmd.type = DRAW_POLY_POLYLINE_OP;
 	cmd.points.SetCount(vertex_count);
 	cmd.ints.SetCount(count_count);
-	memcpy(cmd.points.Begin(), vertices, sizeof(Point) * vertex_count);
-	memcpy(cmd.ints.Begin(), counts, sizeof(int) * count_count);
+	memcpy((void*)cmd.points.Begin(), vertices, sizeof(Point) * vertex_count);
+	memcpy((void*)cmd.ints.Begin(), counts, sizeof(int) * count_count);
 	cmd.width = width;
 	cmd.color = color;
 	cmd.doxor = doxor;
@@ -360,9 +360,9 @@ void ProgPainter::DrawPolyPolyPolygonOp(const Point *vertices, int vertex_count,
 	cmd.points.SetCount(vertex_count);
 	cmd.subpolygon_counts.SetCount(scc);
 	cmd.disjunct_polygon_counts.SetCount(dpcc);
-	memcpy(cmd.points.Begin(), vertices, sizeof(Point) * vertex_count);
-	memcpy(cmd.subpolygon_counts.Begin(), subpolygon_counts, sizeof(int) * scc);
-	memcpy(cmd.disjunct_polygon_counts.Begin(), disjunct_polygon_counts, sizeof(int) * dpcc);
+	memcpy((void*)cmd.points.Begin(), vertices, sizeof(Point) * vertex_count);
+	memcpy((void*)cmd.subpolygon_counts.Begin(), subpolygon_counts, sizeof(int) * scc);
+	memcpy((void*)cmd.disjunct_polygon_counts.Begin(), disjunct_polygon_counts, sizeof(int) * dpcc);
 	cmd.color = color;
 	cmd.width = width;
 	cmd.outline = outline;

@@ -92,7 +92,6 @@ struct HalHolo {
 #endif
 
 struct HalAudioSinkDevice : public Atom {
-	//RTTI_DECL1(HalAudioSinkDevice, Atom)
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
@@ -100,14 +99,13 @@ struct HalAudioSinkDevice : public Atom {
 };
 
 struct HalCenterVideoSinkDevice : public Atom {
-	//RTTI_DECL1(HalCenterVideoSinkDevice, Atom)
+	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalCenterVideoSinkDevice() {}
 };
 
 struct HalCenterFboSinkDevice : public Atom {
-	//RTTI_DECL1(HalCenterFboSinkDevice, Atom)
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
@@ -116,7 +114,7 @@ struct HalCenterFboSinkDevice : public Atom {
 
 #if defined flagOGL
 struct HalOglVideoSinkDevice : public Atom {
-	//RTTI_DECL1(HalOglVideoSinkDevice, Atom)
+	using Atom::Atom;
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
@@ -126,7 +124,6 @@ struct HalOglVideoSinkDevice : public Atom {
 
 #if defined flagDX12
 struct HalD12VideoSinkDevice : public Atom {
-	//RTTI_DECL1(HalD12VideoSinkDevice, Atom)
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	

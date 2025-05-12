@@ -41,8 +41,8 @@ struct PortaudioFormat {
 	SampleFormat	fmt = SND_UNKNOWN;
 };
 
-Format ConvertPortaudioFormat(PortaudioFormat pa_fmt) {
-	Format fmt;
+ValueFormat ConvertPortaudioFormat(PortaudioFormat pa_fmt) {
+	ValueFormat fmt;
 	fmt.vd = VD(CENTER,AUDIO);
 	AudioFormat& r = fmt;
 	r.res[0] = pa_fmt.channels;
@@ -113,9 +113,9 @@ struct PortaudioCallbackData {
 	bool								dbg_async_race;
 	PaStream*							dev;
 	AtomBase*							atom;
-	Serial::Format						fmt;
+	ValueFormat							fmt;
 	
-	void Set(PaStream* d, AtomBase* atom, Format fmt,
+	void Set(PaStream* d, AtomBase* atom, ValueFormat fmt,
 	         Callback1<void*> whenfinish, void* userdata) {
 	    this->atom = atom;
 	    this->fmt = fmt;

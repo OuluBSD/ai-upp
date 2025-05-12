@@ -97,11 +97,8 @@ public:
 	template<typename T>
 	T* FindCast() {
 		auto atoms = node.FindAll<T>();
-		for (auto& it : atoms) {
-			T* o = CastPtr<T>(&*it.atom);
-			if (o)
-				return o;
-		}
+		if (!atoms.IsEmpty())
+			return atoms[0];
 		return 0;
 	}
 	

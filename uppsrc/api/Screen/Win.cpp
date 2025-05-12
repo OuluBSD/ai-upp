@@ -60,7 +60,7 @@ struct ScrWin::NativeEventsBase {
     NativeContext* ctx;
     int time;
     dword seq;
-    Vector<UPP::CtrlEvent> ev;
+    Vector<UPP::GeomEvent> ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;
@@ -93,7 +93,7 @@ void ScrWin::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 }
 
 bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<WinContext>(1);
+	auto ctx_ = a.node.FindOwnerWith<WinContext>();
 	if (!ctx_) {RTLOG("error: could not find Win context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
@@ -112,7 +112,7 @@ bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon
 	LOG("ScrWin::SinkDevice_Initialize: error: can't access window instance with VIRTUALGUI");
 	return false;
 	#else
-	HINSTANCE instance = (HINSTANCE)GetWin32Instance();
+	HINSTANCE instance = AppGetHandle();
 	if (!instance) {
 		LOG("ScrWin::SinkDevice_Initialize: error: no gui instance");
 		return false;
@@ -489,9 +489,9 @@ LRESULT CALLBACK Win_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_SIZE:
 		word width = lParam & 0xFFFF;
 		word height = (lParam >> 16) & 0xFFFF;
-		if (!Upp::default_width) {
-			Upp::default_width = width;
-			Upp::default_height = height;
+		if (!VideoFormat::default_width) {
+			VideoFormat::default_width = width;
+			VideoFormat::default_height = height;
 		}
 		dev.sz.cx = width;
 		dev.sz.cy = height;
@@ -507,7 +507,7 @@ LRESULT CALLBACK Win_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 #define ABBR
 #define WINIMPL 1
-#include "mpl.inl"
+#include "Impl.inl"
 #undef ABBR
 
 

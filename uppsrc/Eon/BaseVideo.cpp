@@ -54,10 +54,9 @@ void DebugVideoGenerator::GenerateNoise(const VideoFormat& fmt) {
 	frame.SetCount(size);
 	T* f = frame.Begin();
 	bool fast_int = !fmt.IsSampleFloat();
-	auto& rng = RNG::Local();
 	int dbg_wrote = 0;
 	if (fast_int) {
-		rng.WriteMemory(frame.Begin(), size);
+		WriteRandomMemory(frame.Begin(), size);
 	}
 	else {
 		// Never, but anyway...
@@ -75,7 +74,7 @@ void DebugVideoGenerator::GenerateNoise(const VideoFormat& fmt) {
 				if (fast_dw) {
 					int mod = i % 2;
 					if (mod == 0)
-						u64 = rng.Get64();
+						u64 = Random64();
 					*(dword*)f = dw[mod];
 					f += pack_size;
 					i += pack_size - 1;
@@ -84,12 +83,12 @@ void DebugVideoGenerator::GenerateNoise(const VideoFormat& fmt) {
 				else if (fast_byte) {
 					int mod = i % 8;
 					if (mod == 0)
-						u64 = rng.Get64();
+						u64 = Random64();
 					*f++ = b[mod];
 					dbg_wrote++;
 				}
 				else {
-					*f++ = ConvertAudioSample<double, T>(rng.Randomf());
+					*f++ = ConvertAudioSample<double, T>(Randomf());
 					dbg_wrote++;
 				}
 			}

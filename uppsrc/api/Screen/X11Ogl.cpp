@@ -556,7 +556,7 @@ bool ScrX11Ogl::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 #define ABBR Ogl
 #define X11IMPL 1
-#include "mpl.inl"
+#include "Impl.inl"
 #undef ABBR
 
 END_UPP_NAMESPACE

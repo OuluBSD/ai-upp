@@ -384,12 +384,12 @@ bool VoidPollerSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 EventStateBase* EventStateBase::latest;
 Vector<BinderIfaceEvents*> EventStateBase::binders;
 
-EventStateBase::EventStateBase() {
+EventStateBase::EventStateBase(MetaNode& n) : Atom(n) {
 	latest = this;
 }
 
 EnvState& EventStateBase::GetState() const {
-	EnvState* s = state.Get();
+	EnvState* s = state;
 	ASSERT(s);
 	return *s;
 }
@@ -484,7 +484,7 @@ void EventStateBase::Event(const GeomEvent& e) {
 	if (dbg_print) {
 		LOG(e.ToString());
 		if (dbg_limit > 0 && ++dbg_iter > dbg_limit)
-			TODO; //GetMachine().SetNotRunning();
+			node.FindOwner<Machine>()->SetNotRunning();
 	}
 	
 	if (e.type == EVENT_INVALID) {
@@ -653,6 +653,8 @@ bool EventStateBase::Key(dword key, int count) {
 	bool is_lalt = false;
 	bool is_lshift = false;
 	bool is_lctrl = false;
+	
+	#ifdef flagGUI
 	if (key & K_KEYUP) {
 		key &= ~K_KEYUP;
 		is_key_down = false;
@@ -669,6 +671,7 @@ bool EventStateBase::Key(dword key, int count) {
 		key &= ~K_CTRL;
 		is_lctrl = true;
 	}
+	#endif
 	
 	key = ToLower(key);
 	

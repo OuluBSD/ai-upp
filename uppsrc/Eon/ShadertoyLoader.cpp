@@ -152,10 +152,10 @@ void ShadertoyContextLoader::MakeUniqueIds(Value& v) {
 	}
 	
 	if (0) {
-		DLOG("ShadertoyContextLoader::MakeUniqueIds: result");
+		LOG("ShadertoyContextLoader::MakeUniqueIds: result");
 		//DLOG(GetValueTreeString(v));
 		for(int i = 0; i < stage_ids.GetCount(); i++) {
-			DLOG("\t" << stage_ids.GetKey(i) << ": <source>");
+			LOG("\t" << stage_ids.GetKey(i) << ": <source>");
 		}
 	}
 	

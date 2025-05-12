@@ -1,3 +1,4 @@
+#pragma once
 /* This file is based on libclang.h from LLVM project
    Following copyright info and license applies to this file:
 

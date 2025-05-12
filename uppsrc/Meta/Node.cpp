@@ -5,6 +5,8 @@
 
 NAMESPACE_UPP
 
+String (*GetCursorKindNamePtr)(CXCursorKind);
+
 #if 0
 String FetchString(CXString cs)
 {
@@ -850,8 +852,12 @@ String MetaNode::GetKindString() const { return GetKindString(kind); }
 
 String MetaNode::GetKindString(int kind)
 {
-	if(kind >= 0 && kind <= CXCursor_OverloadCandidate)
-		TODO; //return GetCursorKindName((CXCursorKind)kind);
+	if(kind >= 0 && kind <= CXCursor_OverloadCandidate) {
+		if (GetCursorKindNamePtr)
+			return GetCursorKindNamePtr((CXCursorKind)kind);
+		else
+			return "Kind(" + IntStr(kind) + ")";
+	}
 	switch (kind) {
 		#define DATASET_ITEM(type, name, kind, group, desc) case kind: return desc;
 		DATASET_LIST

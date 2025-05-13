@@ -126,7 +126,10 @@ bool ScriptLoopLoader::Load() {
 	bool has_link = !def.is_driver;
 	
 	// Target entity for atoms
-	Eon::Id deep_id = GetDeepId();
+	Eon::Id deep_id =
+		has_link ?
+			GetDeepId() :
+			parent.GetDeepId();
 	LoopPtr l = loader.ResolveLoop(deep_id);
 	if (!l) {
 		AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());

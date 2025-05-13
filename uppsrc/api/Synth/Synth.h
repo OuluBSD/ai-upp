@@ -117,7 +117,7 @@ struct SynInstrument : public Atom {
 template <class Syn> struct SynthInstrumentT : SynInstrument {
 	SynthInstrumentT(MetaNode& n) : SynInstrument(n) {}
 	using CLASSNAME = SynthInstrumentT<Syn>;
-	//RTTI_DECL1(CLASSNAME, SynInstrument)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Syn::Instrument_Visit(*dev, *this, v);
 		VIS_THIS(SynInstrument);

@@ -99,6 +99,8 @@ class VideoLoaderBaseT :
 	bool	vflip = false;
 	
 public:
+	using CLASSNAME = VideoLoaderBaseT<Backend>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	VideoLoaderBaseT(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;

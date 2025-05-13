@@ -359,6 +359,22 @@ struct MetaNode : Pte<MetaNode> {
 		return 0;
 	}
 	
+	template <class T> T* FindOwnerWithCast() const {
+		TypeCls type = AsTypeCls<T>();
+		MetaNode* n = owner;
+		while (n) {
+			for (auto& s : n->sub) {
+				if (s.ext) {
+					T* o = CastPtr<T>(&*s.ext);
+					if (o)
+						return o;
+				}
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
 	template <class T> T* FindOwnerRootWith() const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;

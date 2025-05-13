@@ -45,7 +45,7 @@ struct VolStaticSource : public Atom {
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 	VolumetricStaticSourceT(MetaNode& n) : VolStaticSource(n) {}
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
-	//RTTI_DECL1(CLASSNAME, VolStaticSource)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Vol::StaticSource_Visit(*dev, *this, v);
 		VIS_THIS(VolStaticSource);

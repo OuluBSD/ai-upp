@@ -295,6 +295,7 @@ SpacePtr Space::GetAddEmpty(String name) {
 	if (l)
 		return l;
 	l = CreateEmpty();
+	l->node.id = name;
 	l->SetName(name);
 	return l;
 }
@@ -390,6 +391,7 @@ void Space::UnlinkExchangePoints() {
 
 SpacePtr Space::AddSpace(String name) {
 	Space& p = node.Add<Space>();
+	p.node.id = name;
 	p.SetName(name);
 	p.SetId(GetNextId());
 	return &p;
@@ -398,7 +400,7 @@ SpacePtr Space::AddSpace(String name) {
 SpacePtr Space::GetAddSpace(String name) {
 	auto spaces = node.FindAll<Space>();
 	for (auto& pool : spaces)
-		if (pool->GetName() == name)
+		if (pool->node.id == name)
 			return pool;
 	return AddSpace(name);
 }

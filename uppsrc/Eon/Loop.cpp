@@ -82,6 +82,7 @@ LoopPtr Loop::GetAddEmpty(String name) {
 	if (l)
 		return l;
 	l = CreateEmpty();
+	l->node.id = name;
 	l->SetName(name);
 	return l;
 }
@@ -282,6 +283,7 @@ LoopId Loop::GetNextId() {
 LoopPtr Loop::AddLoop(String name) {
 	Loop& p = node.Add<Loop>();
 	//p.SetParent(DirExBaseParent(0, this));
+	p.node.id = name;
 	p.SetName(name);
 	//p.SetId(GetNextId());
 	return &p;
@@ -290,7 +292,7 @@ LoopPtr Loop::AddLoop(String name) {
 LoopPtr Loop::GetAddLoop(String name) {
 	auto loops = node.FindAll<Loop>();
 	for (auto& loop : loops)
-		if (loop->GetName() == name)
+		if (loop->node.id == name)
 			return loop;
 	return AddLoop(name);
 }

@@ -34,7 +34,8 @@ struct FboProgAtomT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	//RTTI_DECL1(FboProgAtomT, BufferBase);
+	using CLASSNAME = FboProgAtomT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	FboProgAtomT(MetaNode& n) : BufferBase(n) {}
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;

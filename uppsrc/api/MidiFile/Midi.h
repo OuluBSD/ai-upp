@@ -22,6 +22,7 @@ class MidiFileReaderAtom : public Atom
 public:
 	using Atom::Atom;
 	COPY_PANIC(MidiFileReaderAtom);
+	CLASSTYPE(MidiFileReaderAtom);
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	MidiFileReaderAtom(MetaNode& n);
@@ -54,6 +55,7 @@ class MidiNullAtom : public Atom
 public:
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	CLASSTYPE(MidiNullAtom);
 	
 	MidiNullAtom(MetaNode& n);
 	

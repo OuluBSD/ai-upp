@@ -171,6 +171,7 @@ struct HalUppOglDevice : public Atom {
 template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	HalAudioSinkDeviceT(MetaNode& n) : HalAudioSinkDevice(n) {}
 	using CLASSNAME = HalAudioSinkDeviceT<Hal>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	//RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
 	void Visit(Vis& v) override {
 		if (dev) Hal::AudioSinkDevice_Visit(*dev, *this, v);
@@ -227,7 +228,7 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice {
 	HalCenterVideoSinkDeviceT(MetaNode& n) : HalCenterVideoSinkDevice(n) {}
 	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalCenterVideoSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalCenterVideoSinkDevice);
@@ -283,7 +284,7 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	HalCenterFboSinkDeviceT(MetaNode& n) : HalCenterFboSinkDevice(n) {}
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalCenterFboSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::CenterFboSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalCenterFboSinkDevice);
@@ -340,7 +341,7 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 	HalOglVideoSinkDeviceT(MetaNode& n) : HalOglVideoSinkDevice(n) {}
 	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalOglVideoSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalOglVideoSinkDevice);
@@ -398,7 +399,7 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 	HalD12VideoSinkDeviceT(MetaNode& n) : HalD12VideoSinkDevice(n) {}
 	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalD12VideoSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalD12VideoSinkDevice);
@@ -455,7 +456,7 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 template <class Hal> struct HalContextBaseT : HalContextBase {
 	HalContextBaseT(MetaNode& n) : HalContextBase(n) {}
 	using CLASSNAME = HalContextBaseT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalContextBase)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::ContextBase_Visit(*dev, *this, v);
 		VIS_THIS(HalContextBase);
@@ -511,7 +512,7 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 template <class Hal> struct HalEventsBaseT : HalEventsBase {
 	HalEventsBaseT(MetaNode& n) : HalEventsBase(n) {}
 	using CLASSNAME = HalEventsBaseT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalEventsBase)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::EventsBase_Visit(*dev, *this, v);
 		VIS_THIS(HalEventsBase);
@@ -568,7 +569,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 	HalUppEventsBaseT(MetaNode& n) : HalUppEventsBase(n) {}
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalUppEventsBase)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::UppEventsBase_Visit(*dev, *this, v);
 		VIS_THIS(HalUppEventsBase);
@@ -626,7 +627,7 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	HalUppOglDeviceT(MetaNode& n) : HalUppOglDevice(n) {}
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
-	//RTTI_DECL1(CLASSNAME, HalUppOglDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Hal::UppOglDevice_Visit(*dev, *this, v);
 		VIS_THIS(HalUppOglDevice);

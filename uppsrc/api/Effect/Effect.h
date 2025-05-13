@@ -61,7 +61,7 @@ struct FxEffect : public Atom {
 template <class Fx> struct EffectEffectT : FxEffect {
 	EffectEffectT(MetaNode& n) : FxEffect(n) {}
 	using CLASSNAME = EffectEffectT<Fx>;
-	//RTTI_DECL1(CLASSNAME, FxEffect)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Fx::Effect_Visit(*dev, *this, v);
 		VIS_THIS(FxEffect);

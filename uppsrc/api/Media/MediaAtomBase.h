@@ -41,6 +41,7 @@ class MediaAtomBaseT :
 	
 public:
 	typedef MediaAtomBaseT CLASSNAME;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	MediaAtomBaseT(MetaNode& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;

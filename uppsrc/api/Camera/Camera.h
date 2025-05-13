@@ -48,7 +48,7 @@ struct CamCamera : public Atom {
 template <class Cam> struct CameraCameraT : CamCamera {
 	CameraCameraT(MetaNode& n) : CamCamera(n) {}
 	using CLASSNAME = CameraCameraT<Cam>;
-	//RTTI_DECL1(CLASSNAME, CamCamera)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Cam::Camera_Visit(*dev, *this, v);
 		v.VisitT<CamCamera>("CamCamera",*this);

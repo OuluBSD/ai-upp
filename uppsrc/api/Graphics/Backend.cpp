@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-#ifdef flagPOSIXDESKTOP
+#ifdef flagX11
 bool X11SwGfx::LockTextureToSurface(NativeTexture& tex, Rect r, NativeSurface& surf) {
 	surf = tex->Get(0);
 	ASSERT(surf);

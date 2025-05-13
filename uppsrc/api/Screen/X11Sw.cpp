@@ -1,7 +1,7 @@
 #include "Screen.h"
 
 		
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 NAMESPACE_UPP
 
 
@@ -31,7 +31,7 @@ struct ScrX11Sw::NativeEventsBase {
     NativeContext* ctx;
     int time;
     dword seq;
-    Vector<UPP::CtrlEvent> ev;
+    Vector<UPP::GeomEvent> ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;
@@ -321,7 +321,7 @@ bool ScrX11Sw::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && new_fmt.IsVideo()) {
 		ISinkPtr sink = a.GetSink();
-		Value& val = sink->GetValue(sink_ch);
+		ValueBase& val = sink->GetValue(sink_ch);
 		val.SetFormat(new_fmt);
 		return true;
 	}

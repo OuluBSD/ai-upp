@@ -19,7 +19,7 @@ public:
 	//RTTI_DECL1(ImageBaseAtomT, Atom)
 	COPY_PANIC(ImageBaseAtomT)
 	
-	ImageBaseAtomT();
+	ImageBaseAtomT(MetaNode& n);
 	
 	void			Visit(Vis& v) override {VIS_THIS(Atom);}
 	bool			Initialize(const Eon::WorldState& ws) override;

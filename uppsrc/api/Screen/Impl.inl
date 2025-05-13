@@ -60,7 +60,7 @@ bool CLASSNAME::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSour
 	
 	if (fmt.IsEvent()) {
 		out.seq = dev.seq++;
-		CtrlEventCollection& dst = out.SetData<CtrlEventCollection>();
+		GeomEventCollection& dst = out.SetData<GeomEventCollection>();
 		dst <<= dev.ev;
 		dev.ev_sendable = false;
 	}
@@ -76,18 +76,18 @@ bool CLASSNAME::EventsBase_Recv(NativeEventsBase& ev, AtomBase& a, int sink_ch, 
 int ConvertX11Keycode(CLASSNAME::NativeEventsBase&, int key);
 
 void X11Events__PutKeyFlags(CLASSNAME::NativeEventsBase& dev, dword& key) {
-	if (dev.is_lalt   || dev.is_ralt)		key |= K_ALT;
-	if (dev.is_lshift || dev.is_rshift)		key |= K_SHIFT;
-	if (dev.is_lctrl  || dev.is_rctrl)		key |= K_CTRL;
+	if (dev.is_lalt   || dev.is_ralt)		key |= I_ALT;
+	if (dev.is_lshift || dev.is_rshift)		key |= I_SHIFT;
+	if (dev.is_lctrl  || dev.is_rctrl)		key |= I_CTRL;
 }
 
 bool X11Events__Poll(CLASSNAME::NativeEventsBase& dev, AtomBase& a) {
-	Vector<UPP::CtrlEvent>& evec = dev.ev;
+	Vector<UPP::GeomEvent>& evec = dev.ev;
 	evec.SetCount(0);
 	evec.Reserve(100);
 	
 	while (XPending(dev.ctx->display)) {
-		UPP::CtrlEvent& e = evec.Add();
+		UPP::GeomEvent& e = evec.Add();
 		
 		XNextEvent(dev.ctx->display, &dev.xev);
 		::KeySym xkey;
@@ -136,7 +136,7 @@ bool X11Events__Poll(CLASSNAME::NativeEventsBase& dev, AtomBase& a) {
 			key = ConvertX11Keycode(dev, xkey);
 			X11Events__PutKeyFlags(dev, key);
 			
-			key = key | K_KEYUP;
+			key = key | I_KEYUP;
 			
 			e.type = EVENT_KEYUP;
 			e.value = key;
@@ -199,8 +199,8 @@ bool X11Events__Poll(CLASSNAME::NativeEventsBase& dev, AtomBase& a) {
         case ClientMessage:
             if (dev.xev.xclient.data.l[0] == dev.ctx->wmDeleteMessage) {
                 dev.ctx->running = false;
-                a.GetMachine().SetNotRunning();
-                GetActiveMachine().SetNotRunning();
+                Machine& m = a.GetMachine();
+                m.SetNotRunning();
                 XDestroyWindow(dev.ctx->display, dev.ctx->win);
             }
 			return true;

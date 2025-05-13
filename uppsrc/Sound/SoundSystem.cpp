@@ -119,15 +119,17 @@ String SoundSystem::ToString()const{
 	return s;
 }
 
+#ifdef flagBUILTIN_PORTAUDIO
 extern "C"{const char* PortAudioCompileFlags();}
+#endif
 
 END_UPP_NAMESPACE;
 
 #ifdef _DEBUG
-#include <plugin/portaudio/pa_types.h>
+#include <plugin/portaudio/common/pa_types.h>
 #endif
 INITBLOCK{
-	#if defined LOG_SOUND_ERRORS && !defined flagSYS_PORTAUDIO
+	#if defined LOG_SOUND_ERRORS && defined flagBUILTIN_PORTAUDIO
 	LOG("PortAudio was compiled with support for: "<<Upp::PortAudioCompileFlags());
 	#endif
 	// Check if the sizes of types match current platform

@@ -1028,7 +1028,7 @@ template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr&
 
 
 #if defined flagOGL && defined flagSCREEN
-#ifdef flagPOSIXDESKTOP
+#ifdef flagX11
 template struct OglGfxT<X11OglGfx>;
 #endif
 #ifdef flagSDL2

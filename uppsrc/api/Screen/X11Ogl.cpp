@@ -2,7 +2,7 @@
 
 
 		
-#if defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL
+#if defined flagX11 && defined flagSCREEN && defined flagOGL
 NAMESPACE_UPP
 
 struct ScrX11Ogl::NativeContext {
@@ -28,7 +28,7 @@ struct ScrX11Ogl::NativeEventsBase {
     NativeContext* ctx;
     int time;
     dword seq;
-    Vector<UPP::CtrlEvent> ev;
+    Vector<UPP::GeomEvent> ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;

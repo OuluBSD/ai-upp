@@ -178,7 +178,7 @@ struct OglGfxT {
 
 
 
-#if PLATFORM_POSIX_DESKTOP
+#if defined flagX11
 struct X11Gfx {
 	using NativeDisplay			= ::Display*;
 	using NativeWindow			= ::Window;
@@ -242,7 +242,7 @@ struct X11OglGfx : OglGfxT<X11OglGfx>, X11Gfx {
 #endif
 #endif
 
-#if PLATFORM_POSIX_DESKTOP
+#if defined flagX11
 	#define X11SW_GFXTYPE GFXTYPE(X11Sw)
 	#define X11SW_EXCPLICIT_INITIALIZE_CLASS(x) template struct x <X11SwGfx>;
 #else
@@ -250,7 +250,7 @@ struct X11OglGfx : OglGfxT<X11OglGfx>, X11Gfx {
 	#define X11SW_EXCPLICIT_INITIALIZE_CLASS(x)
 #endif
 
-#if PLATFORM_POSIX_DESKTOP && defined flagOGL
+#if defined flagX11 && defined flagOGL
 	#define X11OGL_GFXTYPE GFXTYPE(X11Ogl)
 	#define X11OGL_EXCPLICIT_INITIALIZE_CLASS(x) template struct x <X11OglGfx>;
 #else

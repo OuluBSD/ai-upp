@@ -266,7 +266,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwFboProg : public X11SwFboBase {
 
 public:
@@ -281,7 +281,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglFboProg : public X11OglFboBase {
 
 public:
@@ -326,7 +326,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwShaderPipe : public X11SwShaderBase {
 
 public:
@@ -341,7 +341,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglShaderPipe : public X11OglShaderBase {
 
 public:
@@ -371,7 +371,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwFboAtomPipe : public X11SwSinkDevice {
 
 public:
@@ -386,7 +386,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglFboAtomPipe : public X11OglSinkDevice {
 
 public:
@@ -446,7 +446,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11ContextAtom : public X11Context {
 
 public:
@@ -461,7 +461,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwContextAtom : public X11SwContext {
 
 public:
@@ -476,7 +476,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglContextAtom : public X11OglContext {
 
 public:
@@ -491,7 +491,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11EventAtomPipe : public X11EventsBase {
 
 public:
@@ -506,7 +506,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwEventAtomPipe : public X11SwEventsBase {
 
 public:
@@ -521,7 +521,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglEventAtomPipe : public X11OglEventsBase {
 
 public:
@@ -723,7 +723,7 @@ public:
 	
 };
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11VideoAtomPipe : public X11SinkDevice {
 
 public:
@@ -738,7 +738,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglVideoAtomPipe : public X11OglSinkDevice {
 
 public:
@@ -753,7 +753,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglFboAtomSA : public X11OglSinkDevice {
 
 public:
@@ -768,7 +768,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwVideoAtomPipe : public X11SwSinkDevice {
 
 public:
@@ -783,7 +783,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwFboAtomSA : public X11SwSinkDevice {
 
 public:
@@ -903,7 +903,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11ProgAtomPipe : public X11SinkDevice {
 
 public:
@@ -918,7 +918,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
 class X11SwFboGuiProg : public X11SwFboProgBase {
 
 public:
@@ -933,7 +933,7 @@ public:
 };
 #endif
 
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 class X11OglFboGuiProg : public X11OglFboProgBase {
 
 public:

@@ -16,7 +16,7 @@ class Mesh : public BoundingBox, Moveable<Mesh> {
 public:
 	Model* owner = 0;
     Vector<Vertex> vertices;
-    Vector<int> indices;
+    Vector<uint32> indices;
     VectorMap<String, NodeIndex> named_vertices;
 	int material = -1;
 	bool disable_textures = false;

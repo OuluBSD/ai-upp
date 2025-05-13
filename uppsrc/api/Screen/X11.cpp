@@ -1,7 +1,7 @@
 #include "Screen.h"
 
-
-#if (defined flagPOSIXDESKTOP && defined flagSCREEN)
+#if (defined flagX11 && defined flagSCREEN)
+#include <Painter/Painter.h>
 NAMESPACE_UPP
 
 struct ScrX11::NativeContext {
@@ -20,14 +20,14 @@ struct ScrX11::NativeContext {
 struct ScrX11::NativeSinkDevice {
     NativeContext* ctx;
     ProgImage pi;
-    One<ImageDraw> id;
+    One<ImagePainter> id;
 };
 
 struct ScrX11::NativeEventsBase {
     NativeContext* ctx;
     int time;
     dword seq;
-    Vector<UPP::CtrlEvent> ev;
+    Vector<UPP::GeomEvent> ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;
@@ -273,7 +273,7 @@ bool ScrX11::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, co
 		Size sz(ctx.fb->width, ctx.fb->height);
 		ASSERT(!sz.IsEmpty());
 		if (dev.id.IsEmpty()) {
-			dev.id = new ImageDraw(sz);
+			dev.id = new ImagePainter(sz);
 		}
 		
 		InternalPacketData& data = in->GetData<InternalPacketData>();

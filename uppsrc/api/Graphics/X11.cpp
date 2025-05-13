@@ -1,6 +1,6 @@
 #include "Graphics.h"
 
-#if defined flagSCREEN && defined flagPOSIXDESKTOP
+#if defined flagSCREEN && defined flagX11
 
 NAMESPACE_UPP
 

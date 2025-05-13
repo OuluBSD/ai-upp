@@ -1,10 +1,8 @@
-flags(!(WIN32 & !MSC)) BUILTIN_PORTAUDIO;
-
 uses(BUILTIN_PORTAUDIO) plugin/portaudio;
 
-library(WIN32 & !MSC) portaudio;
+library(!BUILTIN_PORTAUDIO) portaudio;
 
-library(WIN32 & !MSC) libportaudio.dll.a;
+library(!BUILTIN_PORTAUDIO WIN32 !MSC) libportaudio.dll.a;
 
 file
 	Sound.h,

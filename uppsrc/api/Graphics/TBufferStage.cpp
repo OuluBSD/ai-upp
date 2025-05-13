@@ -357,7 +357,7 @@ void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	auto& pipeline = *this->pipeline;
 	
 	ASSERT(pipeline.native);
-	if (pipeline.native == 0)
+	if (!pipeline.native)
 		return;
 	
 	Gfx::SetViewport(fb.size);

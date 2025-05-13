@@ -43,14 +43,14 @@ struct FboAtomT :
 	
 public:
 	//RTTI_DECL1(FboAtomT, GfxAtomBase);
-	FboAtomT();
+	FboAtomT(MetaNode& n);
 	
 	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	void			Visit(Vis& v) override {v & state; v % data; VIS_THIS(Atom);}
+	void			Visit(Vis& v) override {v & state; v VISN(data); VIS_THIS(Atom);}
 	bool			Recv(int sink_ch, const Packet& in) override;
 	void			Finalize(RealtimeSourceConfig& cfg) override;
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
@@ -64,7 +64,7 @@ public:
 };
 
 
-#if defined flagPOSIXDESKTOP
+#if defined flagX11
 using X11SwFboBase = FboAtomT<X11SwGfx>;
 
 #ifdef flagOGL

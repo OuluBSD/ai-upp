@@ -1,5 +1,0 @@
-#ifndef _ports_portaudio_pa_mac_core_blocking_h_
-#define _ports_portaudio_pa_mac_core_blocking_h_
-
-
-#endif

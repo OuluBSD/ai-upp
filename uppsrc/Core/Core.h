@@ -96,7 +96,7 @@
 	#include <time.h>
 	#include <fcntl.h>
 	#include <unistd.h>
-	#if MULTITHREADING
+	#if MULTITHREADED
 		#include <pthread.h>
 		#include <semaphore.h>
 	#endif

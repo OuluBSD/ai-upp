@@ -345,16 +345,16 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 	
 	// SDL
 	uint32 sdl_flags = 0;
-	HiValue deps = a.UserData()("dependencies");
+	EscValue deps = a.UserData()("dependencies");
 	if (!deps.IsMap())
 		deps.SetEmptyMap();
 	const auto& map = deps.GetMap();
 	for(int i = 0; i < map.GetCount(); i++) {
-		HiValue hi_atom = map.GetKey(i);
+		EscValue hi_atom = map.GetKey(i);
 		ASSERT(hi_atom.IsAtom());
 		AtomBase& other = hi_atom.GetAtom();
-		HiValue hi_data = map[i];
-		HiValue hi_flag = hi_data("sdl_flag");
+		EscValue hi_data = map[i];
+		EscValue hi_flag = hi_data("sdl_flag");
 		ASSERT(hi_flag.IsInt64());
 		uint32 flag = (uint32)hi_flag.GetInt64();
 		sdl_flags |= flag;
@@ -453,7 +453,7 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	bool sizeable = ws.GetBool(".sizeable", false);
 	bool maximized = ws.GetBool(".maximized", false);
 
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	data.Set("cx", dev.sz.cx);
 	data.Set("cy", dev.sz.cy);
 	data.Set("fullscreen", fullscreen);
@@ -475,7 +475,7 @@ bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& d
 	dev.win = 0;
 	dev.rend = 0;
 
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	Size screen_sz(data["cx"], data["cy"]);
 	bool is_fullscreen = data("fullscreen").GetInt();
 	bool is_sizeable = data("sizeable").GetInt();
@@ -743,7 +743,7 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	bool sizeable = ws.GetBool(".sizeable", false);
 	bool maximized = ws.GetBool(".maximized", false);
 	
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	data.Set("cx", sz.cx);
 	data.Set("cy", sz.cy);
 	data.Set("fullscreen", fullscreen);
@@ -764,7 +764,7 @@ bool HalSdl::CenterFboSinkDevice_PostInitialize(NativeCenterFboSinkDevice& dev, 
 	dev.win = 0;
 	dev.rend = 0;
 	
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	Size screen_sz(data["cx"], data["cy"]);
 	bool is_fullscreen = data("fullscreen").GetInt();
 	bool is_sizeable = data("sizeable").GetInt();
@@ -901,7 +901,7 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	bool sizeable = ws.GetBool(".sizeable", false);
 	bool maximized = ws.GetBool(".maximized", false);
 	
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	data.Set("cx", sz.cx);
 	data.Set("cy", sz.cy);
 	data.Set("fullscreen", fullscreen);
@@ -925,7 +925,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	dev.win = 0;
 	dev.rend = 0;
 	
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	dev.screen_sz = Size(data["cx"], data["cy"]);
 	dev.is_fullscreen = (int)data["fullscreen"];
 	dev.is_sizeable = (int)data["sizeable"];
@@ -1676,7 +1676,7 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	bool sizeable = ws.GetBool(".sizeable", false);
 	bool maximized = ws.GetBool(".maximized", false);
 	
-	HiValue& data = a.UserData();
+	EscValue& data = a.UserData();
 	data.Set("cx", dev.sz.cx);
 	data.Set("cy", dev.sz.cy);
 	data.Set("fullscreen", fullscreen);

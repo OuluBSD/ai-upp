@@ -18,12 +18,12 @@ ObjViewProg::ObjViewProg() {
 
 
 void ObjViewProg::Initialize() {
-	//Serial::FboAtom::Latest().AddBinder(this);
+	//FboAtom::Latest().AddBinder(this);
 }
 
 
 void ObjViewProg::Uninitialize() {
-	//Serial::FboAtom::Latest().RemoveBinder(this);
+	//FboAtom::Latest().RemoveBinder(this);
 	loader.Clear();
 }
 

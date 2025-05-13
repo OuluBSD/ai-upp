@@ -93,7 +93,7 @@ public:
 	
 	void Visit(Vis& v) {v % bf;}
 	
-	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,Upp::default_width,Upp::default_height);}
+	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,VideoFormat::default_width,VideoFormat::default_height);}
 	
 	void SetAtom(AtomBase* ab) {this->ab = ab;}
 	void SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferPtr fb);

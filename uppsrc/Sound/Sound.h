@@ -3,11 +3,12 @@
 
 #include <Core/Core.h>
 
-#if defined flagSYS_PORTAUDIO || (defined flagWIN32 && !defined flagMSC)
-	#include <portaudio.h>
-#else
+#if defined flagBUILTIN_PORTAUDIO
 	#include <plugin/portaudio/portaudio.h>
+#else
+	#include <portaudio.h>
 #endif
+
 
 #include "Types.h"
 #include "SoundClip.h"

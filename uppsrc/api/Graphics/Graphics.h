@@ -96,6 +96,9 @@ typedef unsigned int	Gxbf;
 
 
 
+#define CHKLOGRET0(x, y) if (!(x)) {LOG(y); return false;}
+#define CHKLOGRET1(x, y) if (!(x)) {LOG(y); return true;}
+
 #include "Types.h"
 #include "State.h"
 #include "GfxClasses.h"

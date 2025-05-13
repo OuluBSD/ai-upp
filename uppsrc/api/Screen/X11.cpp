@@ -165,8 +165,8 @@ bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon
 		XSetFillStyle(display, gc, FillSolid);
 	}
 	
-	Upp::default_width = width;
-	Upp::default_height = height;
+	VideoFormat::default_width = width;
+	VideoFormat::default_height = height;
 	
 	::XImage*& fb = ctx.fb;
 	fb = XCreateImage(

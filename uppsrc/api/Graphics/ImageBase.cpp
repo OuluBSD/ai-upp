@@ -82,7 +82,7 @@ bool ImageBaseAtomT<Gfx>::PostInitialize() {
 	ISourcePtr src = GetSource();
 	int src_count = src->GetSourceCount();
 	for(int i = 0; i < src_count; i++) {
-		Value& val = src->GetSourceValue(i);
+		ValueBase& val = src->GetSourceValue(i);
 		ValueFormat fmt = val.GetFormat();
 		if (fmt.vd == VD(Center, Video)) {
 			VideoFormat& vfmt = fmt;

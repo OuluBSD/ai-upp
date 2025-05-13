@@ -73,7 +73,7 @@ bool ShaderBaseT<Gfx>::Recv(int sink_ch, const Packet& in) {
 	RTLOG("ShaderBaseT::Recv: " << sink_ch << ": " << in->ToString());
 	bool succ = true;
 	
-	Format in_fmt = in->GetFormat();
+	ValueFormat in_fmt = in->GetFormat();
 	if (in_fmt.vd == VD(OGL,FBO)) {
 		int channels = in_fmt.fbo.GetChannels();
 		
@@ -151,7 +151,7 @@ bool TextureBaseT<Gfx>::Recv(int sink_ch, const Packet& p) {
 	PacketValue& in = *p;
 	const Vector<byte>& in_data = in.GetData();
 	
-	Format in_fmt = in.GetFormat();
+	ValueFormat in_fmt = in.GetFormat();
 	if (in_fmt.IsOrder())
 		return true;
 	
@@ -282,7 +282,7 @@ bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const V
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && (new_fmt.IsVideo() || new_fmt.IsVolume())) {
 		ISinkPtr sink = this->GetSink();
-		Value& val = sink->GetValue(sink_ch);
+		ValueBase& val = sink->GetValue(sink_ch);
 		val.SetFormat(new_fmt);
 		return true;
 	}
@@ -303,7 +303,7 @@ bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const V
 template <class Gfx>
 bool FboReaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	ISourcePtr src = this->GetSource();
-	Format out_fmt = src->GetSourceValue(src->GetSourceCount()-1).GetFormat();
+	ValueFormat out_fmt = src->GetSourceValue(src->GetSourceCount()-1).GetFormat();
 	if (out_fmt.IsAudio()) {
 		this->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}
@@ -313,7 +313,7 @@ bool FboReaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 		
 		ISourcePtr src = this->GetSource();
 		int c = src->GetSourceCount();
-		Value& v = src->GetSourceValue(c-1);
+		ValueBase& v = src->GetSourceValue(c-1);
 		ValueFormat fmt = v.GetFormat();
 		if (!fmt.IsAudio())
 			return false;
@@ -542,7 +542,7 @@ bool AudioBaseT<Gfx>::PostInitialize() {
 	// e.g. opengl doesn't support 2-channel float input always, so request 16-bit uint
 	ISinkPtr sink = this->GetSink();
 	for(int i = 0; i < sink->GetSinkCount(); i++) {
-		Value& v = sink->GetValue(i);
+		ValueBase& v = sink->GetValue(i);
 		ValueFormat fmt = v.GetFormat();
 		if (fmt.IsAudio()) {
 			AudioFormat& afmt = fmt;
@@ -579,7 +579,7 @@ bool AudioBaseT<Gfx>::Recv(int sink_ch, const Packet& p) {
 		auto& stage = buf.InitSingle();
 		AudioFormat& afmt = fmt;
 		
-		Format sink_fmt = this->GetSink()->GetValue(sink_ch).GetFormat();
+		ValueFormat sink_fmt = this->GetSink()->GetValue(sink_ch).GetFormat();
 		AudioFormat& sink_afmt = sink_fmt;
 		ASSERT_(sink_afmt.type == afmt.type, "packet conversion did not happen");
 		
@@ -642,7 +642,7 @@ bool AudioBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const Val
 	// accept all valid video formats for now
 	if (new_fmt.IsValid() && new_fmt.IsAudio()) {
 		ISinkPtr sink = this->GetSink();
-		Value& val = sink->GetValue(sink_ch);
+		ValueBase& val = sink->GetValue(sink_ch);
 		val.SetFormat(new_fmt);
 		return true;
 	}

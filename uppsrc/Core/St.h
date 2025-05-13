@@ -100,9 +100,7 @@ class Semaphore : NoCopy {
 public:
 	bool       Wait(int timeout_ms = -1);
 	void       Release();
-#ifdef PLATFORM_WIN32
 	void       Release(int n);
-#endif
 
 	Semaphore();
 	~Semaphore();
@@ -113,7 +111,6 @@ struct MtInspector;
 
 class Mutex : NoCopy {
 protected:
-	CRITICAL_SECTION section;
 	MtInspector        *mti;
 
 	Mutex(int)         {}

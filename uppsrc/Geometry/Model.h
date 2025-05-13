@@ -107,7 +107,7 @@ public:
 	ArrayMap<int, CubeTexture> cube_textures;
     String path;
     String directory;
-    
+    Ptr<ModelLoader> owner;
     
 public:
 	Model() {}
@@ -188,7 +188,7 @@ using ModelPtr = Ptr<Model>;
 class ModelBuilder;
 
 
-class ModelLoader
+class ModelLoader : public Pte<ModelLoader>
 {
 	
 public:

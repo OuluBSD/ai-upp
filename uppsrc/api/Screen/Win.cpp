@@ -195,8 +195,8 @@ bool ScrWin::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 		int height = lp_rect->bottom - lp_rect->top;
 		ASSERT(width > 0 && height > 0);
 		
-		Upp::default_width = width;
-		Upp::default_height = height;
+		VideoFormat::default_width = width;
+		VideoFormat::default_height = height;
 	}*/
 	
 	return true;

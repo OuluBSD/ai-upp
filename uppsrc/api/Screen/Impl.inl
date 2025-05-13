@@ -792,9 +792,9 @@ LRESULT CALLBACK WinD11_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 	case WM_SIZE:
 		word width = lParam & 0xFFFF;
 		word height = (lParam >> 16) & 0xFFFF;
-		if (!Upp::default_width) {
-			Upp::default_width = width;
-			Upp::default_height = height;
+		if (!VideoFormat::default_width) {
+			VideoFormat::default_width = width;
+			VideoFormat::default_height = height;
 		}
 		dev.sz.cx = width;
 		dev.sz.cy = height;

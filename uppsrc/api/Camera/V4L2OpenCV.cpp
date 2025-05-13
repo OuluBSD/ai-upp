@@ -101,7 +101,7 @@ bool CamV4L2OpenCV::Camera_PostInitialize(NativeCamera& dev, AtomBase& a) {
 	ISourcePtr src = a.GetSource();
 	int src_count = src->GetSourceCount();
 	for(int i = 0; i < src_count; i++) {
-		Value& val = src->GetSourceValue(i);
+		ValueBase val = src->GetSourceValue(i);
 		Format val_fmt = val.GetFormat();
 		if (val_fmt.vd == VD(Center, Video)) {
 			if (val_fmt != dev.fmt && !a.GetLink()->NegotiateSourceFormat(i, dev.fmt))

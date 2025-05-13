@@ -146,8 +146,8 @@ bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	this->ab = &a;
 	
 	LinkBase* link = a.GetLink();
-	Serial::FramePollerBase* base = CastPtr<Serial::FramePollerBase>(link);
-	Serial::PollerLink* poller = CastPtr<Serial::PollerLink>(link);
+	FramePollerBase* base = CastPtr<FramePollerBase>(link);
+	PollerLink* poller = CastPtr<PollerLink>(link);
 	if (base) {
 		base->SetFPS(60);
 	}

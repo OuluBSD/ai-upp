@@ -1,8 +1,8 @@
-flags(WIN32 & !MSC) SYS_PORTAUDIO;
+flags(!(WIN32 & !MSC)) BUILTIN_PORTAUDIO;
 
-uses(!SYS_PORTAUDIO & !(WIN32 & !MSC)) plugin/portaudio;
+uses(BUILTIN_PORTAUDIO) plugin/portaudio;
 
-library(SYS_PORTAUDIO | (WIN32 & !MSC)) portaudio;
+library(WIN32 & !MSC) portaudio;
 
 library(WIN32 & !MSC) libportaudio.dll.a;
 

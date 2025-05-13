@@ -1,38 +1,17 @@
 #include "Audio.h"
-
-#if defined flagBUILTIN_PORTAUDIO
-	#include <plugin/portaudio/portaudio.h>
-#elif defined flagPORTAUDIO
-	#include <portaudio.h>
-#endif
+#include <Sound/Sound.h>
 
 #if defined flagBUILTIN_PORTAUDIO || defined flagPORTAUDIO
 NAMESPACE_UPP
 
+#undef CHECK_ERR
 
 #ifdef LOG_SOUND_ERRORS
   #define CHECK_ERROR(STREAM) if((STREAM).IsError()) LOG(__FILE__<<" (line "<<__LINE__<<"): "<<(STREAM).GetError());
 #else
   #define CHECK_ERROR(STREAM)
 #endif
-#define CHECK_ERR CHECK_ERROR(*this)
-
-
-enum SampleFormat {
-	SND_FLOAT32				= paFloat32,
-	SND_INT32				= paInt32,
-	SND_INT24				= paInt24,
-	SND_INT16				= paInt16,
-	SND_INT8				= paInt8,
-	SND_UINT8				= paUInt8,
-	SND_UNKNOWN				= -1
-};
-
-enum PortaudioCallbackResult {
-	SND_CONTINUE			= paContinue,
-	SND_COMPLETE			= paComplete,
-	SND_ABORT				= paAbort
-};
+#define CHECK_ERR CHECK_ERROR(PortaudioStatic::Single())
 
 struct PortaudioFormat {
 	int				channels = 0;
@@ -134,7 +113,7 @@ struct PortaudioCallbackData {
 		#endif
 		
 		
-		Serial::AudioFormat& afmt = fmt;
+		AudioFormat& afmt = fmt;
 		int size = fmt.GetFrameSize();
 		if (!Serial_Link_ForwardAsyncMem(atom->GetLink(), (byte*)args.output, size)) {
 			RTLOG("PortaudioCallbackData::SinkCallback: reading memory failed");
@@ -153,7 +132,7 @@ struct PortaudioCallbackData {
 
 extern "C"{
 	//this is a C callable function, to wrap U++ Callback into PaStreamCallback
-	int StreamCallback(const void *input, void *output, unsigned long frames,
+	int ApiAudioStreamCallback(const void *input, void *output, unsigned long frames,
 	          const PaStreamCallbackTimeInfo *timeinfo, unsigned long flags, void *data)
 	{
 		PortaudioCallbackData *d = static_cast<PortaudioCallbackData*>(data);
@@ -163,7 +142,7 @@ extern "C"{
 	}
 
 	//this is a C callable function, to wrap WhenFinish into PaStreamFinishedCallback
-	void StreamFinishedCallback(void *data){
+	void ApiAudioStreamFinishedCallback(void *data){
 		PortaudioCallbackData *d = static_cast<PortaudioCallbackData*>(data);
 		d->finish(d->data);
 	}
@@ -176,7 +155,7 @@ extern "C"{
 // PortaudioStatic is used for wrapping static portaudio state for clean destructing
 
 class PortaudioStatic {
-	mutable int		err;
+	mutable PaError err;
 	static bool		exists;
 	
 	Array<PortaudioCallbackData> cb_data;
@@ -214,11 +193,14 @@ public:
 	
 	static bool Exists() {return exists;}
 	
+	bool IsError() const {return err != paNoError;}
+	PaError GetError() const {return err;}
+	
+	static PortaudioStatic& Single() {static PortaudioStatic s; return s;}
 };
 
 bool PortaudioStatic::exists = false;
 
-GLOBAL_VAR(PortaudioStatic, PaStatic);
 
 
 
@@ -265,24 +247,24 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 	
 	// Adjust sink format
 	const int sink_ch_i = 0;
-	Value& sink_val = a.GetSink()->GetValue(sink_ch_i);
+	ValueBase& sink_val = a.GetSink()->GetValue(sink_ch_i);
 	ValueFormat fmt = ConvertPortaudioFormat(pa_fmt);
 	ASSERT(fmt.IsValid());
 	sink_val.SetFormat(fmt);
 	sink_val.LockFormat();
 	
 	// Initalize static portaudio instance (if not initialized)
-	PaStatic();
+	PortaudioStatic::Single();
 	
 	// Callbacks (currently unused)
 	Callback1<void*> WhenFinished;
 	
 	// Add static callback data (could be elsewhere than in "PaStatic()". Improve.)
-	PortaudioCallbackData& scallback = PaStatic().Add();
+	PortaudioCallbackData& scallback = PortaudioStatic::Single().Add();
 	scallback.Set(dev, &a, fmt, WhenFinished, NULL);
 	
 	// Make our's callback data for native audio sink callback
-	PaStreamCallback* cb = &StreamCallback;
+	PaStreamCallback* cb = &ApiAudioStreamCallback;
 	void* data = static_cast<void *>(&scallback);
 	
 	// Call native stream opener
@@ -293,7 +275,7 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 		return false;
 	
 	// Configure native audio stream to have call our finish function on end of stream
-	err = Pa_SetStreamFinishedCallback(dev, &StreamFinishedCallback);
+	err = Pa_SetStreamFinishedCallback(dev, &ApiAudioStreamFinishedCallback);
 	CHECK_ERR;
 	if (err != paNoError) // Bail out on errors
 		return false;
@@ -331,12 +313,13 @@ void AudPortaudio::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase&) {
 	err = Pa_CloseStream(dev.p);
 	CHECK_ERR;
 	
-	PaStatic().Remove(dev.p);
+	PortaudioStatic::Single().Remove(dev.p);
 }
 
 bool AudPortaudio::SinkDevice_Send(NativeSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	Panic("won't implement");
 	NEVER();
+	return false;
 }
 
 bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {

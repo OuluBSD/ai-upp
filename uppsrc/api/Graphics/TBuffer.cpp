@@ -133,7 +133,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 				screen_sz = *video_size;
 		}
 		if (screen_sz.cx == 0 && screen_sz.cy == 0)
-			screen_sz = Size(Upp::default_width,Upp::default_height);
+			screen_sz = Size(VideoFormat::default_width,VideoFormat::default_height);
 	}
 	
 	if (!stages.IsEmpty()) {

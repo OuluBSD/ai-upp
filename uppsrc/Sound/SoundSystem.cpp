@@ -124,7 +124,7 @@ extern "C"{const char* PortAudioCompileFlags();}
 END_UPP_NAMESPACE;
 
 #ifdef _DEBUG
-#include <plugin/portaudio/common/pa_types.h>
+#include <plugin/portaudio/pa_types.h>
 #endif
 INITBLOCK{
 	#if defined LOG_SOUND_ERRORS && !defined flagSYS_PORTAUDIO

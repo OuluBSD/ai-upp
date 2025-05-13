@@ -204,7 +204,7 @@ bool BufferStageT<Gfx>::PostInitialize() {
 			
 		}
 		else {
-			fb.size = Size(Upp::default_width,Upp::default_height);
+			fb.size = Size(VideoFormat::default_width,VideoFormat::default_height);
 			fb.channels = 4;
 			fb.fps = 60;
 			fb.sample = GVar::SAMPLE_FLOAT;

@@ -7,7 +7,8 @@ uses
 	api/MidiHw,
 	api/Synth,
 	api/Holograph,
-	Painter;
+	Painter,
+	api/Audio;
 
 uses(!EMSCRIPTEN) api/Holograph;
 

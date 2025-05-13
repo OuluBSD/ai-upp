@@ -51,7 +51,7 @@ bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon
 	
 	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
-	Value& v = src->GetSourceValue(c-1);
+	ValueBase& v = src->GetSourceValue(c-1);
 	ValueFormat fmt = v.GetFormat();
 	if (!fmt.IsAudio()) {
 		LOG("SynLV2::Instrument_Initialize: error: internal error");

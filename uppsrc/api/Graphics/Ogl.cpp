@@ -942,7 +942,7 @@ template <class Gfx> void OglGfxT<Gfx>::DeleteFramebuffer(NativeFrameBufferPtr& 
 }
 
 template <class Gfx>
-Serial::FboFormat& OglGfxT<Gfx>::GetFormat(ValueFormat& fmt) {
+FboFormat& OglGfxT<Gfx>::GetFormat(ValueFormat& fmt) {
 	return fmt;
 }
 

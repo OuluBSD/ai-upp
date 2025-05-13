@@ -5,7 +5,13 @@
 #define _IAudio_IAudio_h_
 
 #include <Eon/Eon.h>
+
+#if (defined flagBUILTIN_PORTAUDIO)
 #include <plugin/portaudio/portaudio.h>
+#else
+#include <portaudio.h>
+#endif
+
 
 NAMESPACE_UPP
 

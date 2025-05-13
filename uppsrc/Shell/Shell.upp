@@ -4,7 +4,6 @@ uses
 	api/MidiFile,
 	api/MidiHw,
 	AICore2,
-	api/Audio,
 	api/AudioFileOut,
 	api/Camera,
 	api/Media,

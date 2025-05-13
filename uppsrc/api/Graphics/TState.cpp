@@ -224,7 +224,7 @@ bool ModelStateT<Gfx>::LoadModel(ModelLoader& l) {
 	ASSERT(l.model);
 	if (!l.model) return false;
 	
-	l.model->SetParent(&l);
+	l.model->owner = &l;
     l.model->path = "";
     l.model->directory = "";
 	

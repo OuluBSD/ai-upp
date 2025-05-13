@@ -15,7 +15,8 @@ template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const
 
 class AtomBase :
 	public MetaNodeExt,
-	public PacketForwarderData
+	public PacketForwarderData,
+	public Destroyable
 {
 	
 	

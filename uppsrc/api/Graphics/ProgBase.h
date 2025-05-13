@@ -35,7 +35,7 @@ struct FboProgAtomT :
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(FboProgAtomT, BufferBase);
-	FboProgAtomT() {}
+	FboProgAtomT(MetaNode& n) : BufferBase(n) {}
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -48,7 +48,7 @@ public:
 };
 
 
-#if defined flagPOSIXDESKTOP
+#if defined flagX11
 using X11SwFboProgBase = FboProgAtomT<X11SwGfx>;
 
 #ifdef flagOGL

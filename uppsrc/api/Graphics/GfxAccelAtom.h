@@ -14,11 +14,11 @@ template <> inline bool IsDefaultGfxVal<SdlOglGfx>(const ValCls& val) {return va
 #endif
 #endif
 
-#if defined flagSCREEN && defined flagPOSIXDESKTOP && defined flagOGL
+#if defined flagSCREEN && defined flagX11 && defined flagOGL
 template <> inline bool IsDefaultGfxVal<X11OglGfx>(const ValCls& val) {return val == ValCls::FBO;}
 #endif
 
-#if defined flagSCREEN && defined flagPOSIXDESKTOP
+#if defined flagSCREEN && defined flagX11
 template <> inline bool IsDefaultGfxVal<X11SwGfx>(const ValCls& val) {return val == ValCls::FBO;}
 #endif
 
@@ -91,7 +91,7 @@ public:
 	typedef GfxAccelAtom<Gfx> GfxAccelAtomT;
 	//RTTI_DECL0(GfxAccelAtomT);
 	
-	void Visit(Vis& v) {v % bf;}
+	void Visit(Vis& v) {v VISN(bf);}
 	
 	GfxAccelAtom() : ab(0) {desired_rect = RectC(0,0,VideoFormat::default_width,VideoFormat::default_height);}
 	

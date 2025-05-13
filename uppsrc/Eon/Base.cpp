@@ -654,24 +654,22 @@ bool EventStateBase::Key(dword key, int count) {
 	bool is_lshift = false;
 	bool is_lctrl = false;
 	
-	#ifdef flagGUI
-	if (key & K_KEYUP) {
-		key &= ~K_KEYUP;
+	if (key & I_KEYUP) {
+		key &= ~I_KEYUP;
 		is_key_down = false;
 	}
-	if (key & K_ALT) {
-		key &= ~K_ALT;
+	if (key & I_ALT) {
+		key &= ~I_ALT;
 		is_lalt = true;
 	}
-	if (key & K_SHIFT) {
-		key &= ~K_SHIFT;
+	if (key & I_SHIFT) {
+		key &= ~I_SHIFT;
 		is_lshift = true;
 	}
-	if (key & K_CTRL) {
-		key &= ~K_CTRL;
+	if (key & I_CTRL) {
+		key &= ~I_CTRL;
 		is_lctrl = true;
 	}
-	#endif
 	
 	key = ToLower(key);
 	

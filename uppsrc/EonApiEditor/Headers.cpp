@@ -15,10 +15,10 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("EventStateBase", "SCREEN");
 	AddCustomBase("HandleEventsBase", "SCREEN");
 	AddCustomBase("HandleVideoBase", "SCREEN");
-	AddCustomBase("X11SwFboBase", "POSIXDESKTOP&SCREEN");
-	AddCustomBase("X11SwShaderBase", "POSIXDESKTOP&SCREEN");
-	AddCustomBase("X11OglFboBase", "POSIXDESKTOP&SCREEN&OGL");
-	AddCustomBase("X11OglShaderBase", "POSIXDESKTOP&SCREEN&OGL");
+	AddCustomBase("X11SwFboBase", "X11&SCREEN");
+	AddCustomBase("X11SwShaderBase", "X11&SCREEN");
+	AddCustomBase("X11OglFboBase", "X11&SCREEN&OGL");
+	AddCustomBase("X11OglShaderBase", "X11&SCREEN&OGL");
 	AddCustomBase("TestEventSrcBase");
 	AddCustomBase("SdlOglFboBase", "SCREEN&SDL2&OGL");
 	AddCustomBase("SdlOglShaderBase", "SCREEN&SDL2&OGL");
@@ -27,8 +27,8 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("SdlOglFboReaderBase", "SCREEN&SDL2&OGL");
 	AddCustomBase("SdlOglKeyboardBase", "SCREEN&SDL2&OGL");
 	AddCustomBase("SdlOglAudioBase", "SCREEN&SDL2&OGL");
-	AddCustomBase("X11SwFboProgBase", "POSIXDESKTOP&SCREEN");
-	AddCustomBase("X11OglFboProgBase", "POSIXDESKTOP&SCREEN&OGL");
+	AddCustomBase("X11SwFboProgBase", "X11&SCREEN");
+	AddCustomBase("X11OglFboProgBase", "X11&SCREEN&OGL");
 	AddCustomBase("SdlOglFboProgBase", "SCREEN&SDL2&OGL");
 	AddCustomBase("WinD11FboBase", "SCREEN&WIN32&DX11");
 	AddCustomBase("MidiFileReaderAtom");

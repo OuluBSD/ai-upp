@@ -485,7 +485,7 @@ bool ProgramStateT<SdlSwGfx>::LoadBuiltinShader(GVar::ShaderType shader_type, St
 }
 #endif
 
-#ifdef flagPOSIXDESKTOP
+#ifdef flagX11
 template <>
 int ProgramStateT<X11SwGfx>::BuiltinShader() {
 	return BuiltinShaderT<0>();

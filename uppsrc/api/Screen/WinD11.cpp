@@ -133,7 +133,7 @@ struct ScrWinD11::NativeEventsBase {
     NativeContext* ctx;
     int time;
     dword seq;
-    Vector<UPP::CtrlEvent> ev;
+    Vector<UPP::GeomEvent> ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;

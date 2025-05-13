@@ -23,7 +23,7 @@ public:
 	using GfxBufferField = GfxBufferFieldT<Gfx>;
 	//RTTI_DECL0(GfxBufferFieldT);
 	
-	void Visit(Vis& v) {v % buf;}
+	void Visit(Vis& v) {v VISN(buf);}
 	
 	void ClearPtr() {buf.ClearPtr();}
 	bool Initialize(AtomBase& a, const Eon::WorldState& ws);

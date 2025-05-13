@@ -114,18 +114,18 @@ bool ScopeT<Dim>::ProcessCloseQueue()
 template <class Dim>
 bool ScopeT<Dim>::Key(dword key, int count)
 {
-	if(key == (K_CTRL | K_F4)) {
+	if(key == (I_CTRL | I_F4)) {
 		QueueCloseHandle(active_id);
 		return true;
 	}
-	if(key == (K_CTRL | K_TAB)) {
+	if(key == (I_CTRL | I_TAB)) {
 		active_pos++;
 		if(active_pos >= handles.GetCount())
 			active_pos = 0;
 		FocusHandlePos(active_pos);
 		return true;
 	}
-	if(key == (K_CTRL | K_SHIFT | K_TAB)) {
+	if(key == (I_CTRL | I_SHIFT | I_TAB)) {
 		active_pos--;
 		if(active_pos < 0)
 			active_pos = handles.GetCount() - 1;

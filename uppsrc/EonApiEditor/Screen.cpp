@@ -19,9 +19,9 @@ void InterfaceBuilder::AddScreen() {
 	Interface("Context");
 	Interface("EventsBase");
 	
-	Vendor("X11",		"POSIXDESKTOP&SCREEN");
-	Vendor("X11Sw",		"POSIXDESKTOP&SCREEN");
-	Vendor("X11Ogl",	"POSIXDESKTOP&SCREEN&OGL");
+	Vendor("X11",		"X11&SCREEN");
+	Vendor("X11Sw",		"X11&SCREEN");
+	Vendor("X11Ogl",	"X11&SCREEN&OGL");
 	Vendor("Win",		"WIN32&SCREEN&!UWP");
 	//Vendor("WinSw",	"WIN32&SCREEN");
 	Vendor("WinD11",	"WIN32&SCREEN&DX11");

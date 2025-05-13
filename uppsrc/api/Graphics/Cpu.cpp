@@ -642,7 +642,7 @@ template<class Gfx> void SwGfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr& 
 template struct SwGfxT<SdlSwGfx>;
 #endif
 
-#if defined flagPOSIXDESKTOP && defined flagSCREEN
+#if defined flagX11 && defined flagSCREEN
 template struct SwGfxT<X11SwGfx>;
 #endif
 

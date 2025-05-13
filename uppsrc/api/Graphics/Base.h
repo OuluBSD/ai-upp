@@ -19,7 +19,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(BufferBaseT, Atom);
 	
-	void Visit(Vis& v) override {v % bf; VIS_THIS(Atom);}
+	void Visit(Vis& v) override {v VISN(bf); VIS_THIS(Atom);}
 	void Update(double dt) override {bf.Update(dt);}
 	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
 	
@@ -40,7 +40,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(ShaderBase, BufferBase);
 	
-	ShaderBaseT() {}
+	ShaderBaseT(MetaNode& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -72,7 +72,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(TextureBaseT, BufferBase);
 	
-	TextureBaseT() {}
+	TextureBaseT(MetaNode& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -102,7 +102,7 @@ public:
 	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstPtr;
 	//RTTI_DECL1(FboReaderBaseT, BufferBase);
 	
-	FboReaderBaseT() {}
+	FboReaderBaseT(MetaNode& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -129,7 +129,7 @@ struct KeyboardBaseT :
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(KeyboardBaseT, BufferBase);
-	KeyboardBaseT() {}
+	KeyboardBaseT(MetaNode& n) : BufferBase(n) {}
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -148,7 +148,7 @@ struct AudioBaseT :
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	//RTTI_DECL1(AudioBaseT, BufferBase);
-	AudioBaseT() {}
+	AudioBaseT(MetaNode& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;

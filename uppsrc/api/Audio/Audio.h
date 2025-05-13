@@ -62,7 +62,7 @@ struct AudSourceDevice : public Atom {
 template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	AudioSinkDeviceT(MetaNode& n) : AudSinkDevice(n) {}
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
-	//RTTI_DECL1(CLASSNAME, AudSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Aud::SinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(AudSinkDevice);

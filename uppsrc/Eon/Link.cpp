@@ -41,11 +41,17 @@ ISinkPtr LinkBase::GetSink() {
 }
 
 void LinkBase::AddLinkToUpdateList() {
-	TODO//LinkBase::GetMachine().template Get<LinkSystem>()->AddUpdated(LinkBase::AsRefT());
+	LinkSystem* l = node.FindOwnerWith<LinkSystem>();
+	ASSERT(l);
+	if (!l) throw Exc("LinkSystem not found");
+	l->AddUpdated(this);
 }
 
 void LinkBase::RemoveLinkFromUpdateList() {
-	TODO//LinkBase::GetMachine().template Get<LinkSystem>()->RemoveUpdated(LinkBase::AsRefT());
+	LinkSystem* l = node.FindOwnerWith<LinkSystem>();
+	ASSERT(l);
+	if (!l) throw Exc("LinkSystem not found");
+	l->RemoveUpdated(this);
 }
 
 int LinkBase::GetId() const {

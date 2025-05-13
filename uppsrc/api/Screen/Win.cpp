@@ -93,8 +93,11 @@ void ScrWin::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 }
 
 bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ctx_ = a.node.FindOwnerWith<WinContext>();
-	if (!ctx_) {RTLOG("error: could not find Win context"); return false;}
+	auto ctx_ = a.node.FindOwnerWithCast<WinContext>();
+	if (!ctx_) {
+		RTLOG("error: could not find Win context");
+		return false;
+	}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
 	dev.atom = &a;

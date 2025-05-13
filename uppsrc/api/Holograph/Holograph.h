@@ -124,7 +124,7 @@ struct HoloSinkDevice : public Atom {
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	HolographSinkDeviceT(MetaNode& n) : HoloSinkDevice(n) {}
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
-	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
 		if (dev) Holo::SinkDevice_Visit(*dev, *this, v);
 		VIS_THIS(HoloSinkDevice);

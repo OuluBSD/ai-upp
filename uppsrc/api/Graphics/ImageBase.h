@@ -16,7 +16,8 @@ struct ImageBaseAtomT :
 	bool						swap_top_bottom = false;
 	
 public:
-	//RTTI_DECL1(ImageBaseAtomT, Atom)
+	using CLASSNAME = ImageBaseAtomT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	COPY_PANIC(ImageBaseAtomT)
 	
 	ImageBaseAtomT(MetaNode& n);

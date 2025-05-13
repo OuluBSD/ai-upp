@@ -38,7 +38,8 @@ struct ShaderBaseT :
 public:
 	using ShaderBase = ShaderBaseT<Gfx>;
 	using BufferBase = BufferBaseT<Gfx>;
-	//RTTI_DECL1(ShaderBase, BufferBase);
+	using CLASSNAME = ShaderBaseT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
 	ShaderBaseT(MetaNode& n) : BufferBase(n) {}
 	
@@ -70,7 +71,8 @@ struct TextureBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	//RTTI_DECL1(TextureBaseT, BufferBase);
+	using CLASSNAME = TextureBaseT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
 	TextureBaseT(MetaNode& n) : BufferBase(n) {}
 	
@@ -100,7 +102,8 @@ struct FboReaderBaseT :
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	using NativeFrameBufferConstPtr = typename Gfx::NativeFrameBufferConstPtr;
-	//RTTI_DECL1(FboReaderBaseT, BufferBase);
+	using CLASSNAME = FboReaderBaseT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
 	FboReaderBaseT(MetaNode& n) : BufferBase(n) {}
 	
@@ -128,7 +131,8 @@ struct KeyboardBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	//RTTI_DECL1(KeyboardBaseT, BufferBase);
+	using CLASSNAME = KeyboardBaseT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	KeyboardBaseT(MetaNode& n) : BufferBase(n) {}
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -147,7 +151,8 @@ struct AudioBaseT :
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
-	//RTTI_DECL1(AudioBaseT, BufferBase);
+	using CLASSNAME = AudioBaseT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	AudioBaseT(MetaNode& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;

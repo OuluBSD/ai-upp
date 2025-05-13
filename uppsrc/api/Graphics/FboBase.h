@@ -42,7 +42,8 @@ struct FboAtomT :
 	static FboAtomT*	latest;
 	
 public:
-	//RTTI_DECL1(FboAtomT, GfxAtomBase);
+	using CLASSNAME = FboAtomT<Gfx>;
+	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	FboAtomT(MetaNode& n);
 	
 	bool			Initialize(const Eon::WorldState& ws) override;

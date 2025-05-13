@@ -311,6 +311,7 @@ bool LoadFromJsonFile(T& var, const char *file = NULL)
 }
 
 template<> void Jsonize(JsonIO& io, int& var);
+template<> void Jsonize(JsonIO& io, uint32& var);
 template<> void Jsonize(JsonIO& io, byte& var);
 template<> void Jsonize(JsonIO& io, int16& var);
 template<> void Jsonize(JsonIO& io, int64& var);

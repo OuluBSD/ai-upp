@@ -64,6 +64,7 @@ NAMESPACE_UPP
 #include "Geom2D.h"
 #include "GeomTypes.h"
 #include "Geom3D.h"
+#include "Keys.h"
 #include "GeomEvent.h"
 #include "Quadtree.h"
 #include "Octree.h"

@@ -172,7 +172,7 @@ public:
 	};
 	
 protected:
-	ArrayMap<uint32, HandlerBase> handlers;
+	ArrayMap<int, HandlerBase> handlers;
 	
 	
 	template <class Handler, class In, class Out, class Cb=Callback2<const In&, Out&>>

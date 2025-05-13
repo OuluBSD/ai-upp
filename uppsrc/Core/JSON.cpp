@@ -246,6 +246,21 @@ template<> void Jsonize(JsonIO& io, int& var)
 	}
 }
 
+template<> void Jsonize(JsonIO& io, uint32& var)
+{
+	double v = IntDbl(var);
+	Jsonize(io, v);
+	if(io.IsLoading()) {
+		if(IsNull(v))
+			var = 0;
+		else
+		if(v >= 0 && v <= UINT32_MAX && (int)v == v)
+			var = (int)v;
+		else
+			throw JsonizeError("number is not integer");
+	}
+}
+
 template<> void Jsonize(JsonIO& io, byte& var)
 {
 	double v = var;

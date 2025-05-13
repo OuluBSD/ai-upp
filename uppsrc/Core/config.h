@@ -202,7 +202,6 @@
 
 #if PLATFORM_POSIX && defined flagGUI
 	#define PLATFORM_POSIX_DESKTOP 1
-	#define flagPOSIXDESKTOP 1
 #endif
 
 #endif

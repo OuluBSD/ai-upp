@@ -7,7 +7,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "../../portmidi.h"
+#include "../../pmutil.h"
+#include "../../pminternal.h"
 
 #define STRING_MAX 256
 

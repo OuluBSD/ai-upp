@@ -26,7 +26,7 @@ Image Sdl2FileBackend::ImageFromSDLSurface(void* surf_) {
 	int len = surf->h * surf->pitch;
 	img->data.SetCount(len);
 	memcpy(img->data.Begin(), src, len);
-	img->backend = GetTypeIdClass<CLASSNAME>();
+	img->backend = AsTypeCls<CLASSNAME>();
 	img->w = surf->w;
 	img->h = surf->h;
 	img->ch = surf->format->BytesPerPixel;
@@ -96,10 +96,12 @@ Font Sdl2FileBackend::LoadFont(String dir, String name, int ptsize, int weight, 
 	if (ptsize < 0)
 		ptsize = 12; // default font size in points (TODO high dpi desktop)
 	
+	TODO
+	#if 0
 	RawSysFont* fnt = new RawSysFont();
 	
 	DLOG("Opening font " << path);
-	fnt->backend = GetTypeIdClass<CLASSNAME>();
+	fnt->backend = AsTypeCls<CLASSNAME>();
 	fnt->native = TTF_OpenFont(path.Begin(), ptsize);
 	fnt->dir = dir;
 	fnt->name = name;
@@ -120,6 +122,8 @@ Font Sdl2FileBackend::LoadFont(String dir, String name, int ptsize, int weight, 
 	}
 	
 	return fnt;
+	#endif
+	return SansSerif(15);
 }
 
 Size Sdl2FileBackend::GetTextSize(const SysFont& fnt, const String& s) {

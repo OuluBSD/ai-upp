@@ -16,9 +16,9 @@ protected:
 	friend class Ecs::VirtualGui;
 	
 	#ifdef flagSDL2
-	Parallel::BufferT<SdlSwGfx>* sdl_sw_buf = 0;
+	BufferT<SdlSwGfx>* sdl_sw_buf = 0;
 	#ifdef flagOGL
-	Parallel::BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
+	BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
 	#endif
 	#endif
 	Vector<RenderablePtr>		rends;
@@ -67,9 +67,9 @@ public:
 	
 	
 	#ifdef flagSDL2
-	void Attach(String key, Parallel::BufferT<SdlSwGfx>* b);
+	void Attach(String key, BufferT<SdlSwGfx>* b);
 	#ifdef flagOGL
-	void Attach(String key, Parallel::BufferT<SdlOglGfx>* b);
+	void Attach(String key, BufferT<SdlOglGfx>* b);
 	#endif
 	#endif
 	

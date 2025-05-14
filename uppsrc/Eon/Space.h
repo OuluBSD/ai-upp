@@ -102,7 +102,6 @@ public:
 		return 0;
 	}
 	
-	template<typename T> T* FindNearestAtomCast(int nearest_loop_depth);
 	EnvStatePtr FindNearestState(String name);
 	EnvStatePtr FindStateDeep(String name);
 	
@@ -146,23 +145,6 @@ public:
 };
 #endif
 
-template<typename T>
-T* Space::FindNearestAtomCast(int nearest_space_depth) {
-	if (auto r = FindCast<T>())
-		return r;
-	
-	if (nearest_space_depth > 0) {
-		auto spaces = node.FindAll<Space>();
-		for (auto& space : spaces)
-			if (auto ret = space->FindNearestAtomCast<T>(nearest_space_depth-1))
-				return ret;
-	}
-	
-	if (Space* p = GetParent())
-		return p->FindNearestAtomCast<T>(nearest_space_depth);
-	
-	return 0;
-}
 
 
 

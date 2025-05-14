@@ -82,6 +82,7 @@ public:
 
 	bool                                 IsMap() const         { return type == ESC_MAP; }
 	const VectorMap<EscValue, EscValue>& GetMap() const;
+	VectorMap<EscValue, EscValue>&       AsMap();
 	EscValue                             MapGet(EscValue key) const;
 	void                                 MapSet(EscValue key, EscValue value);
 	void                                 SetEmptyMap();
@@ -156,6 +157,14 @@ inline
 const VectorMap<EscValue, EscValue>& EscValue::GetMap() const
 {
 	ASSERT(IsMap());
+	return map->map;
+}
+
+inline
+VectorMap<EscValue, EscValue>& EscValue::AsMap()
+{
+	if (!IsMap())
+		SetEmptyMap();
 	return map->map;
 }
 

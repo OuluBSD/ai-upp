@@ -91,6 +91,13 @@ NAMESPACE_UPP
 
 #include "AtomShell.h"
 
+#ifdef flagGUI
+#include "FrameT.h"
+#include "HandleSystemT.h"
+#include "HandleTypes.h"
+#include "ScopeT.h"
+#endif
+
 END_UPP_NAMESPACE
 
 #endif

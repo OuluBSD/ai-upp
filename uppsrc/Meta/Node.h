@@ -314,10 +314,11 @@ struct MetaNode : Pte<MetaNode> {
 		return owner ? owner->ext ? CastPtr<T>(&*owner->ext) : 0 : 0;
 	}
 	
-	template <class T> T* FindOwner() const {
+	template <class T> T* FindOwner(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
-		while (n) {
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			if (n->ext && n->ext->GetTypeCls() == type) {
 				T* o = CastPtr<T>(&*n->ext);
 				ASSERT(o);
@@ -328,11 +329,12 @@ struct MetaNode : Pte<MetaNode> {
 		return 0;
 	}
 	
-	template <class T> T* FindOwnerRoot() const {
+	template <class T> T* FindOwnerRoot(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		T* root = 0;
-		while (n) {
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			if (n->ext && n->ext->GetTypeCls() == type) {
 				T* o = CastPtr<T>(&*n->ext);
 				ASSERT(o);
@@ -343,10 +345,11 @@ struct MetaNode : Pte<MetaNode> {
 		return root;
 	}
 	
-	template <class T> T* FindOwnerWith() const {
+	template <class T> T* FindOwnerWith(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
-		while (n) {
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
 				if (s.ext && s.ext->GetTypeCls() == type) {
 					T* o = CastPtr<T>(&*s.ext);
@@ -359,10 +362,11 @@ struct MetaNode : Pte<MetaNode> {
 		return 0;
 	}
 	
-	template <class T> T* FindOwnerWithCast() const {
+	template <class T> T* FindOwnerWithCast(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
-		while (n) {
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
 				if (s.ext) {
 					T* o = CastPtr<T>(&*s.ext);
@@ -375,11 +379,12 @@ struct MetaNode : Pte<MetaNode> {
 		return 0;
 	}
 	
-	template <class T> T* FindOwnerRootWith() const {
+	template <class T> T* FindOwnerRootWith(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
 		T* root = 0;
-		while (n) {
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
 				if (s.ext && s.ext->GetTypeCls() == type) {
 					T* o = CastPtr<T>(&*s.ext);

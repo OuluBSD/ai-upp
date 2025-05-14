@@ -43,7 +43,7 @@ struct HalSdl {
 	#endif
 	struct NativeContextBase;
 	struct NativeEventsBase;
-	#if defined flagUPPCORE
+	#ifdef flagGUI
 	struct NativeUppEventsBase;
 	#endif
 	#if (defined flagOGL && defined flagUPPCORE)

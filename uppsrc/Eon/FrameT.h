@@ -31,7 +31,9 @@ public:
 	using Button = typename Dim::Button;
 	
 protected:
+	#ifdef flagGUI
 	friend class ::UPP::TopWindow;
+	#endif
 	friend class TopWindow;
 	
 	Scope*  scope = NULL;

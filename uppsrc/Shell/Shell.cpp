@@ -46,26 +46,33 @@ GUI_APP_MAIN
 
 
 
-
 #if 0
 void BindEcsEventsBase(EcsEventsBase* b) {
-	Ecs::GetActiveEngine().Get<Ecs::EventSystem>()->Attach(b);
-}
-
-template <class Gfx>
-void BindGfxBuffer(String id, Parallel::BufferT<Gfx>* b) {
-	TODO
+	auto esys = b->node.FindOwner<Ecs::EventSystem>();
+	ASSERT(esys);
+	esys->Attach(b);
 }
 #endif
 
+using namespace Upp;
+
+template <class Gfx>
+void BindGfxBuffer(String id, BufferT<Gfx>* b) {
+	TODO
+}
+
 void BindEcsToSerial() {
 	//Serial::EcsEventsBase::WhenInitialize << callback(BindEcsEventsBase);
+	
+	#if 0
 	
 	#ifdef flagSDL2
 	BufferT<SdlSwGfx>::WhenLinkInit << callback(BindGfxBuffer<SdlSwGfx>);
 	#ifdef flagOGL
 	BufferT<SdlOglGfx>::WhenLinkInit << callback(BindGfxBuffer<SdlOglGfx>);
 	#endif
+	#endif
+	
 	#endif
 }
 

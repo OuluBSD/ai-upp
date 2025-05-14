@@ -2,12 +2,14 @@
 
 #if defined flagSDL2
 
+#ifdef flagGUI
 #include <CtrlCore/CtrlCore.h>
+#endif
+
 #include <GLDraw/GLDraw.h>
 
 NAMESPACE_UPP
 
-extern VirtualGui *VirtualGuiPtr;
 extern dword lastbdowntime[8];
 extern dword isdblclick[8];
 extern dword mouseb;
@@ -16,6 +18,12 @@ extern bool sdlMouseIsIn;
 bool GetCtrl();
 bool GetAlt();
 bool GetShift();
+
+#ifndef flagGUI
+bool GetCtrl() {TODO; return false;}
+bool GetAlt() {TODO; return false;}
+bool GetShift() {TODO; return false;}
+#endif
 
 END_UPP_NAMESPACE
 
@@ -40,7 +48,7 @@ SDL_TimerID waketimer_id;
     SDL_Window* win;
     SDL_Renderer* rend;
     FramebufferT<SdlCpuGfx> fb;
-    One<ImageDraw> id;
+    One<ImagePainter> id;
     Size sz;
     ProgImage pi;
 };
@@ -82,13 +90,14 @@ HalSdl::NativeUppOglDevice* HalSdl::NativeUppOglDevice::last;
 #endif
 
 
+#ifdef flagGUI
 void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event);
-
+#endif
 
 struct HalSdl::NativeEventsBase {
     double time;
     dword seq;
-    CtrlEventCollection ev;
+    GeomEventCollection ev;
     Size sz;
     bool ev_sendable;
     bool is_lalt;
@@ -99,9 +108,11 @@ struct HalSdl::NativeEventsBase {
     bool is_rctrl;
     Point prev_mouse_pt;
     Vector<int> invalids;
+    #ifdef flagGUI
     Ptr<WindowSystem> wins;
     Ptr<Gu::SurfaceSystem> surfs;
     Ptr<Gu::GuboSystem> gubos;
+    #endif
     
     void Clear() {
         time = 0;
@@ -109,9 +120,11 @@ struct HalSdl::NativeEventsBase {
         ev_sendable = 0;
         prev_mouse_pt = Point(0,0);
         sz.Clear();
-        wins.Clear();
-        surfs.Clear();
-        gubos.Clear();
+        #ifdef flagGUI
+        wins = 0;
+        surfs = 0;
+        gubos = 0;
+        #endif
     }
 };
 
@@ -123,6 +136,7 @@ struct HalSdl::NativeContextBase {
 	void* p;
 };
 
+#ifdef flagGUI
 struct HalSdl::NativeUppEventsBase {
 	Ptr<WindowSystem> wins;
     Ptr<Gu::SurfaceSystem> surfs;
@@ -148,7 +162,7 @@ struct HalSdl::NativeUppEventsBase {
         gubos.Clear();
     }
 };
-
+#endif
 
 void StaticAudioOutputSinkCallback(void* userdata, Uint8* stream, int len) {
 	if (!userdata) {
@@ -183,7 +197,7 @@ void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visito
 }
 
 bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -192,7 +206,10 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_AUDIO;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	EscValue& data = ev_ctx->UserData();
+	data.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.GetTypeCls().GetName())
+			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	
@@ -253,7 +270,7 @@ bool HalSdl::AudioSinkDevice_PostInitialize(NativeAudioSinkDevice& dev, AtomBase
     #error TODO
     #endif
     
-    Format f;
+    ValueFormat f;
     f.SetAudio(DevCls::CENTER, st, audio_fmt.channels, audio_fmt.freq, audio_fmt.samples);
     AudioFormat& fmt = f;
     
@@ -351,6 +368,8 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 	const auto& map = deps.GetMap();
 	for(int i = 0; i < map.GetCount(); i++) {
 		EscValue hi_atom = map.GetKey(i);
+		TODO
+		#if 0
 		ASSERT(hi_atom.IsAtom());
 		AtomBase& other = hi_atom.GetAtom();
 		EscValue hi_data = map[i];
@@ -358,6 +377,7 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 		ASSERT(hi_flag.IsInt64());
 		uint32 flag = (uint32)hi_flag.GetInt64();
 		sdl_flags |= flag;
+		#endif
 	}
 	
 	if (SDL_Init(sdl_flags) < 0) {
@@ -440,7 +460,7 @@ void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomB
 }
 
 bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 
@@ -454,19 +474,22 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	bool maximized = ws.GetBool(".maximized", false);
 
 	EscValue& data = a.UserData();
-	data.Set("cx", dev.sz.cx);
-	data.Set("cy", dev.sz.cy);
-	data.Set("fullscreen", fullscreen);
-	data.Set("sizeable", sizeable);
-	data.Set("maximized", maximized);
-	data.Set("title", title);
+	data.MapSet("cx", dev.sz.cx);
+	data.MapSet("cy", dev.sz.cy);
+	data.MapSet("fullscreen", fullscreen);
+	data.MapSet("sizeable", sizeable);
+	data.MapSet("maximized", maximized);
+	data.MapSet("title", title);
 
 	//dev.render_src = RENDSRC_BUF;
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
-
+	ev_ctx->UserData()
+		.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.GetTypeCls().GetName())
+			.MapSet("sdl_flag", (int64)sdl_flag);
+	
 	return true;
 }
 
@@ -476,7 +499,7 @@ bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& d
 	dev.rend = 0;
 
 	EscValue& data = a.UserData();
-	Size screen_sz(data["cx"], data["cy"]);
+	Size screen_sz(data("cx"), data("cy"));
 	bool is_fullscreen = data("fullscreen").GetInt();
 	bool is_sizeable = data("sizeable").GetInt();
 	bool is_maximized = data("maximized").GetInt();
@@ -559,7 +582,7 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 	}
 	else if (fmt.IsProg()) {
 		if (dev.id.IsEmpty()) {
-			dev.id = new ImageDraw(dev.sz);
+			dev.id = new ImagePainter(dev.sz);
 		}
 		
 		InternalPacketData& data = p->GetData<InternalPacketData>();
@@ -721,8 +744,8 @@ void HalSdl::CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&, Visitor& vis) {
-	vis % dev.accel;
+void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&, Visitor& v) {
+	v VISN(dev.accel);
 }
 
 bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
@@ -730,7 +753,7 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	if (!dev.accel.Initialize(a, ws))
 		return false;
 	
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -744,17 +767,20 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	bool maximized = ws.GetBool(".maximized", false);
 	
 	EscValue& data = a.UserData();
-	data.Set("cx", sz.cx);
-	data.Set("cy", sz.cy);
-	data.Set("fullscreen", fullscreen);
-	data.Set("sizeable", sizeable);
-	data.Set("maximized", maximized);
-	data.Set("title", title);
+	data.MapSet("cx", sz.cx);
+	data.MapSet("cy", sz.cy);
+	data.MapSet("fullscreen", fullscreen);
+	data.MapSet("sizeable", sizeable);
+	data.MapSet("maximized", maximized);
+	data.MapSet("title", title);
 	
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	ev_ctx->UserData()
+		.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.GetTypeCls().GetName())
+		.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	return true;
 }
@@ -765,11 +791,11 @@ bool HalSdl::CenterFboSinkDevice_PostInitialize(NativeCenterFboSinkDevice& dev, 
 	dev.rend = 0;
 	
 	EscValue& data = a.UserData();
-	Size screen_sz(data["cx"], data["cy"]);
+	Size screen_sz(data("cx"), data("cy"));
 	bool is_fullscreen = data("fullscreen").GetInt();
 	bool is_sizeable = data("sizeable").GetInt();
 	bool is_maximized = data("maximized").GetInt();
-	String title = data["title"];
+	String title = data("title");
 	
 	// Window
 	uint32 flags = 0;
@@ -888,7 +914,7 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	if (!dev.accel.Initialize(a, ws))
 		return false;
 	
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -912,7 +938,9 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	ev_ctx->UserData()
+		.MapGetAdd("dependencies")
+		.MapGetAdd(a.GetTypeCls().GetName()).MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
@@ -1083,7 +1111,7 @@ Image HalSdl__GetMouseCursor(void* ptr) {
 
 void HalSdl__SetMouseCursor(void* ptr, const Image& image)
 {
-	GuiLock __;
+	//GuiLock __;
 	static Image fbCursorImage;
 	static Point fbCursorPos;
 	static SDL_Cursor  *sdl_default_cursor;
@@ -1142,7 +1170,7 @@ void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Visitor& vis) {
 }
 
 bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -1151,7 +1179,10 @@ bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_EVENTS;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	ev_ctx->UserData()
+		.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.GetTypeCls().GetName())
+			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
 	return true;
@@ -1173,10 +1204,11 @@ bool HalSdl::EventsBase_PostInitialize(NativeEventsBase& dev, AtomBase& a) {
 	a.AddAtomToUpdateList();
 	
 	
+	#ifdef flagGUI
 	{
 		Machine& m = a.GetMachine();
-		dev.surfs = m.Get<Gu::SurfaceSystem>();
-		dev.gubos = m.Get<Gu::GuboSystem>();
+		dev.surfs = a.node.FindOwnerWithCast<Gu::SurfaceSystem>();
+		dev.gubos = a.node.FindOwnerWithCast<Gu::GuboSystem>();
 		
 		if (dev.surfs) {
 			dev.surfs->Set_SetMouseCursor(&HalSdl__SetMouseCursor, &dev);
@@ -1189,6 +1221,7 @@ bool HalSdl::EventsBase_PostInitialize(NativeEventsBase& dev, AtomBase& a) {
 			dev.wins->Set_GetMouseCursor(&HalSdl__GetMouseCursor, &dev);
 		}
 	}
+	#endif
 	
 	return true;
 }
@@ -1203,9 +1236,12 @@ void HalSdl::EventsBase_Stop(NativeEventsBase& dev, AtomBase& a) {
 }
 
 void HalSdl::EventsBase_Uninitialize(NativeEventsBase& dev, AtomBase& a) {
+	
+	#ifdef flagGUI
 	dev.wins.Clear();
 	dev.surfs.Clear();
 	dev.gubos.Clear();
+	#endif
 	
 	a.RemoveAtomFromUpdateList();
 }
@@ -1221,7 +1257,7 @@ bool HalSdl::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSourceC
 	
 	if (fmt.IsEvent()) {
 		out.seq = dev.seq++;
-		CtrlEventCollection& dst = out.SetData<CtrlEventCollection>();
+		GeomEventCollection& dst = out.SetData<GeomEventCollection>();
 		dst <<= dev.ev;
 		dev.ev_sendable = false;
 	}
@@ -1243,9 +1279,9 @@ void HalSdl::EventsBase_Update(NativeEventsBase& dev, AtomBase&, double dt) {
 
 #ifdef flagSCREEN
 void Events__PutKeyFlags(HalSdl::NativeEventsBase& dev, dword& key) {
-	if (dev.is_lalt   || dev.is_ralt)		key |= K_ALT;
-	if (dev.is_lshift || dev.is_rshift)		key |= K_SHIFT;
-	if (dev.is_lctrl  || dev.is_rctrl)		key |= K_CTRL;
+	if (dev.is_lalt   || dev.is_ralt)		key |= I_ALT;
+	if (dev.is_lshift || dev.is_rshift)		key |= I_SHIFT;
+	if (dev.is_lctrl  || dev.is_rctrl)		key |= I_CTRL;
 }
 #endif
 
@@ -1257,13 +1293,13 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	Point mouse_pt;
 #ifdef flagSCREEN
 	auto s = a.GetSpace();
-	auto v_sink   = s->template FindNearestAtomCast<SdlCenterVideoSinkDevice>(2);
-	auto sw_sink  = s->template FindNearestAtomCast<SdlCenterFboSinkDevice>(2);
+	auto v_sink   = s->node.FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
+	auto sw_sink  = s->node.FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 	::SDL_Renderer* rend = 0;
 	if (v_sink)   rend = v_sink->dev->rend;
 	if (sw_sink)  rend = sw_sink->dev->rend;
 #ifdef flagOGL
-	auto ogl_sink = s->template FindNearestAtomCast<SdlOglVideoSinkDevice>(2);
+	auto ogl_sink = s->node.FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
 	if (ogl_sink) rend = ogl_sink->dev->rend;
 #endif
 #endif
@@ -1274,7 +1310,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	
 	// Process the events
 	while (SDL_PollEvent(&event)) {
-		UPP::CtrlEvent& e = dev.ev.Add();
+		UPP::GeomEvent& e = dev.ev.Add();
 		e.Clear();
 		
 		switch (event.type) {
@@ -1344,7 +1380,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 				case SDLK_RCTRL:	dev.is_rctrl = false; break;
 			}
 			
-			key = event.key.keysym.sym | K_KEYUP;
+			key = event.key.keysym.sym | I_KEYUP;
 			if (key & SDLK_SCANCODE_MASK) {
 				key &= ~SDLK_SCANCODE_MASK;
 				
@@ -1460,6 +1496,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	if (dev.ev.IsEmpty())
 		return false;
 	
+	#ifdef flagGUI
 	if (dev.wins) {
 		dev.wins->DoEvents(dev.ev);
 	}
@@ -1469,6 +1506,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	if (dev.gubos) {
 		// copy dev.wins
 	}
+	#endif
 	
 	return true;
 }
@@ -1477,14 +1515,14 @@ bool HalSdl::EventsBase_IsReady(NativeEventsBase& dev, AtomBase& a, PacketIO& io
 	bool b = io.full_src_mask == 0;
 	if (b) {
 		if (dev.seq == 0) {
-			UPP::CtrlEvent& e = dev.ev.Add();
+			UPP::GeomEvent& e = dev.ev.Add();
 			
 			auto s = a.GetSpace();
 			e.type = EVENT_WINDOW_RESIZE;
-			auto v_sink   = s->template FindNearestAtomCast<SdlCenterVideoSinkDevice>(2);
-			auto sw_sink  = s->template FindNearestAtomCast<SdlCenterFboSinkDevice>(2);
+			auto v_sink   = s->node.FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
+			auto sw_sink  = s->node.FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 			#ifdef flagOGL
-			auto ogl_sink = s->template FindNearestAtomCast<SdlOglVideoSinkDevice>(2);
+			auto ogl_sink = s->node.FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
 			#endif
 			
 			int x = 0, y = 0;
@@ -1535,6 +1573,7 @@ void HalSdl::EventsBase_DetachContext(NativeEventsBase&, AtomBase& a, AtomBase& 
 
 extern SDL_TimerID waketimer_id;
 
+#ifdef flagGUI
 bool HalSdl::UppEventsBase_Create(NativeUppEventsBase*& dev) {
 	dev = new NativeUppEventsBase;
 	return true;
@@ -1545,7 +1584,7 @@ void HalSdl::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {
 }
 
 bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -1554,7 +1593,10 @@ bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, con
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_EVENTS;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	ev_ctx->UserData()
+		.MapGetAdd("dependencies")
+		.MapGetAdd(a.GetTypeCls().GetName())
+			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
 	return true;
@@ -1648,6 +1690,7 @@ bool HalSdl::UppEventsBase_AttachContext(NativeUppEventsBase&, AtomBase& a, Atom
 void HalSdl::UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, AtomBase& other) {
 	
 }
+#endif
 
 
 #if defined flagOGL
@@ -1663,7 +1706,7 @@ void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 
 bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
 	
-	auto ev_ctx = a.GetSpace()->template FindNearestAtomCast<SdlContextBase>(1);
+	auto ev_ctx = a.GetSpace()->node.FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -1687,7 +1730,10 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
-	ev_ctx->UserData().MapGetAdd("dependencies").MapGetAdd(a).MapSet("sdl_flag", (int64)sdl_flag);
+	ev_ctx->UserData()
+		.MapGetAdd("dependencies")
+		.MapGetAdd(a.GetTypeCls().GetName())
+			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
@@ -1776,123 +1822,123 @@ void HalSdl::UppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, At
 #define LLOG(x)
 
 const static VectorMap<dword, dword> SDL_key_map = {
-//	{ SDLK_BACKSPACE, K_BACK        },
-	{ SDLK_BACKSPACE, K_BACKSPACE   },
-	{ SDLK_TAB,       K_TAB         },
-	{ SDLK_SPACE,     K_SPACE       },
-	{ SDLK_RETURN,    K_RETURN      },
+//	{ SDLK_BACKSPACE, I_BACK        },
+	{ SDLK_BACKSPACE, I_BACKSPACE   },
+	{ SDLK_TAB,       I_TAB         },
+	{ SDLK_SPACE,     I_SPACE       },
+	{ SDLK_RETURN,    I_RETURN      },
 
-	{ SDLK_LSHIFT,   K_SHIFT_KEY    },
-	{ SDLK_LCTRL,    K_CTRL_KEY     },
-	{ SDLK_LALT,     K_ALT_KEY      },
-	{ SDLK_CAPSLOCK, K_CAPSLOCK     },
-	{ SDLK_ESCAPE,   K_ESCAPE       },
-	{ SDLK_PAGEUP,   K_PAGEUP       },
-	{ SDLK_PAGEDOWN, K_PAGEDOWN     },
-	{ SDLK_END,      K_END          },
-	{ SDLK_HOME,     K_HOME         },
-	{ SDLK_LEFT,     K_LEFT         },
-	{ SDLK_UP,       K_UP           },
-	{ SDLK_RIGHT,    K_RIGHT        },
-	{ SDLK_DOWN,     K_DOWN         },
-	{ SDLK_INSERT,   K_INSERT       },
-	{ SDLK_DELETE,   K_DELETE       },
+	{ SDLK_LSHIFT,   I_SHIFT_KEY    },
+	{ SDLK_LCTRL,    I_CTRL_KEY     },
+	{ SDLK_LALT,     I_ALT_KEY      },
+	{ SDLK_CAPSLOCK, I_CAPSLOCK     },
+	{ SDLK_ESCAPE,   I_ESCAPE       },
+	{ SDLK_PAGEUP,   I_PAGEUP       },
+	{ SDLK_PAGEDOWN, I_PAGEDOWN     },
+	{ SDLK_END,      I_END          },
+	{ SDLK_HOME,     I_HOME         },
+	{ SDLK_LEFT,     I_LEFT         },
+	{ SDLK_UP,       I_UP           },
+	{ SDLK_RIGHT,    I_RIGHT        },
+	{ SDLK_DOWN,     I_DOWN         },
+	{ SDLK_INSERT,   I_INSERT       },
+	{ SDLK_DELETE,   I_DELETE       },
 
-	{ SDLK_KP_0, K_NUMPAD0 },
-	{ SDLK_KP_1, K_NUMPAD1 },
-	{ SDLK_KP_2, K_NUMPAD2 },
-	{ SDLK_KP_3, K_NUMPAD3 },
-	{ SDLK_KP_4, K_NUMPAD4 },
-	{ SDLK_KP_5, K_NUMPAD5 },
-	{ SDLK_KP_6, K_NUMPAD6 },
-	{ SDLK_KP_7, K_NUMPAD7 },
-	{ SDLK_KP_8, K_NUMPAD8 },
-	{ SDLK_KP_9, K_NUMPAD9 },
-	{ SDLK_KP_MULTIPLY, K_MULTIPLY  },
-	{ SDLK_KP_PLUS,     K_ADD       },
-	{ SDLK_KP_PERIOD,   K_SEPARATOR },
-	{ SDLK_KP_MINUS,    K_SUBTRACT  },
-	{ SDLK_KP_PERIOD,   K_DECIMAL   },
-	{ SDLK_KP_DIVIDE,   K_DIVIDE    },
-	{ SDLK_SCROLLLOCK,  K_SCROLL    },
-	{ SDLK_KP_ENTER,    K_ENTER     },
+	{ SDLK_KP_0, I_NUMPAD0 },
+	{ SDLK_KP_1, I_NUMPAD1 },
+	{ SDLK_KP_2, I_NUMPAD2 },
+	{ SDLK_KP_3, I_NUMPAD3 },
+	{ SDLK_KP_4, I_NUMPAD4 },
+	{ SDLK_KP_5, I_NUMPAD5 },
+	{ SDLK_KP_6, I_NUMPAD6 },
+	{ SDLK_KP_7, I_NUMPAD7 },
+	{ SDLK_KP_8, I_NUMPAD8 },
+	{ SDLK_KP_9, I_NUMPAD9 },
+	{ SDLK_KP_MULTIPLY, I_MULTIPLY  },
+	{ SDLK_KP_PLUS,     I_ADD       },
+	{ SDLK_KP_PERIOD,   I_SEPARATOR },
+	{ SDLK_KP_MINUS,    I_SUBTRACT  },
+	{ SDLK_KP_PERIOD,   I_DECIMAL   },
+	{ SDLK_KP_DIVIDE,   I_DIVIDE    },
+	{ SDLK_SCROLLLOCK,  I_SCROLL    },
+	{ SDLK_KP_ENTER,    I_ENTER     },
 	
-	{ SDLK_F1,  K_F1  },
-	{ SDLK_F2,  K_F2  },
-	{ SDLK_F3,  K_F3  },
-	{ SDLK_F4,  K_F4  },
-	{ SDLK_F5,  K_F5  },
-	{ SDLK_F6,  K_F6  },
-	{ SDLK_F7,  K_F7  },
-	{ SDLK_F8,  K_F8  },
-	{ SDLK_F9,  K_F9  },
-	{ SDLK_F10, K_F10 },
-	{ SDLK_F11, K_F11 },
-	{ SDLK_F12, K_F12 },
+	{ SDLK_F1,  I_F1  },
+	{ SDLK_F2,  I_F2  },
+	{ SDLK_F3,  I_F3  },
+	{ SDLK_F4,  I_F4  },
+	{ SDLK_F5,  I_F5  },
+	{ SDLK_F6,  I_F6  },
+	{ SDLK_F7,  I_F7  },
+	{ SDLK_F8,  I_F8  },
+	{ SDLK_F9,  I_F9  },
+	{ SDLK_F10, I_F10 },
+	{ SDLK_F11, I_F11 },
+	{ SDLK_F12, I_F12 },
 
-	{ SDLK_a, K_A },
-	{ SDLK_b, K_B },
-	{ SDLK_c, K_C },
-	{ SDLK_d, K_D },
-	{ SDLK_e, K_E },
-	{ SDLK_f, K_F },
-	{ SDLK_g, K_G },
-	{ SDLK_h, K_H },
-	{ SDLK_i, K_I },
-	{ SDLK_j, K_J },
-	{ SDLK_k, K_K },
-	{ SDLK_l, K_L },
-	{ SDLK_m, K_M },
-	{ SDLK_n, K_N },
-	{ SDLK_o, K_O },
-	{ SDLK_p, K_P },
-	{ SDLK_q, K_Q },
-	{ SDLK_r, K_R },
-	{ SDLK_s, K_S },
-	{ SDLK_t, K_T },
-	{ SDLK_u, K_U },
-	{ SDLK_v, K_V },
-	{ SDLK_w, K_W },
-	{ SDLK_x, K_X },
-	{ SDLK_y, K_Y },
-	{ SDLK_z, K_Z },
-	{ SDLK_0, K_0 },
-	{ SDLK_1, K_1 },
-	{ SDLK_2, K_2 },
-	{ SDLK_3, K_3 },
-	{ SDLK_4, K_4 },
-	{ SDLK_5, K_5 },
-	{ SDLK_6, K_6 },
-	{ SDLK_7, K_7 },
-	{ SDLK_8, K_8 },
-	{ SDLK_9, K_9 },
+	{ SDLK_a, I_A },
+	{ SDLK_b, I_B },
+	{ SDLK_c, I_C },
+	{ SDLK_d, I_D },
+	{ SDLK_e, I_E },
+	{ SDLK_f, I_F },
+	{ SDLK_g, I_G },
+	{ SDLK_h, I_H },
+	{ SDLK_i, I_I },
+	{ SDLK_j, I_J },
+	{ SDLK_k, I_K },
+	{ SDLK_l, I_L },
+	{ SDLK_m, I_M },
+	{ SDLK_n, I_N },
+	{ SDLK_o, I_O },
+	{ SDLK_p, I_P },
+	{ SDLK_q, I_Q },
+	{ SDLK_r, I_R },
+	{ SDLK_s, I_S },
+	{ SDLK_t, I_T },
+	{ SDLK_u, I_U },
+	{ SDLK_v, I_V },
+	{ SDLK_w, I_W },
+	{ SDLK_x, I_X },
+	{ SDLK_y, I_Y },
+	{ SDLK_z, I_Z },
+	{ SDLK_0, I_0 },
+	{ SDLK_1, I_1 },
+	{ SDLK_2, I_2 },
+	{ SDLK_3, I_3 },
+	{ SDLK_4, I_4 },
+	{ SDLK_5, I_5 },
+	{ SDLK_6, I_6 },
+	{ SDLK_7, I_7 },
+	{ SDLK_8, I_8 },
+	{ SDLK_9, I_9 },
 
-	{ K_CTRL|219,  K_CTRL_LBRACKET   },
-	{ K_CTRL|221,  K_CTRL_RBRACKET   },
-	{ K_CTRL|0xbd, K_CTRL_MINUS      },
-	{ K_CTRL|0xc0, K_CTRL_GRAVE      },
-	{ K_CTRL|0xbf, K_CTRL_SLASH      },
-	{ K_CTRL|0xdc, K_CTRL_BACKSLASH  },
-	{ K_CTRL|0xbc, K_CTRL_COMMA      },
-	{ K_CTRL|0xbe, K_CTRL_PERIOD     },
-	{ K_CTRL|0xbe, K_CTRL_SEMICOLON  },
-	{ K_CTRL|0xbb, K_CTRL_EQUAL      },
-	{ K_CTRL|0xde, K_CTRL_APOSTROPHE },
+	{ I_CTRL|219,  I_CTRL_LBRACKET   },
+	{ I_CTRL|221,  I_CTRL_RBRACKET   },
+	{ I_CTRL|0xbd, I_CTRL_MINUS      },
+	{ I_CTRL|0xc0, I_CTRL_GRAVE      },
+	{ I_CTRL|0xbf, I_CTRL_SLASH      },
+	{ I_CTRL|0xdc, I_CTRL_BACKSLASH  },
+	{ I_CTRL|0xbc, I_CTRL_COMMA      },
+	{ I_CTRL|0xbe, I_CTRL_PERIOD     },
+	{ I_CTRL|0xbe, I_CTRL_SEMICOLON  },
+	{ I_CTRL|0xbb, I_CTRL_EQUAL      },
+	{ I_CTRL|0xde, I_CTRL_APOSTROPHE },
 
-	{ SDLK_PAUSE, K_BREAK }, // Is it really?
+	{ SDLK_PAUSE, I_BREAK }, // Is it really?
 
-	{ SDLK_PLUS,      K_PLUS      },
-	{ SDLK_MINUS,     K_MINUS     },
-	{ SDLK_COMMA,     K_COMMA     },
-	{ SDLK_PERIOD,    K_PERIOD    },
-	{ SDLK_SEMICOLON, K_SEMICOLON },
+	{ SDLK_PLUS,      I_PLUS      },
+	{ SDLK_MINUS,     I_MINUS     },
+	{ SDLK_COMMA,     I_COMMA     },
+	{ SDLK_PERIOD,    I_PERIOD    },
+	{ SDLK_SEMICOLON, I_SEMICOLON },
 
-	{ SDLK_SLASH,        K_SLASH     },
-	{ SDLK_CARET,        K_GRAVE     },
-	{ SDLK_LEFTBRACKET,  K_LBRACKET  },
-	{ SDLK_BACKSLASH,    K_BACKSLASH },
-	{ SDLK_RIGHTBRACKET, K_RBRACKET  },
-	{ SDLK_QUOTEDBL,     K_QUOTEDBL  }
+	{ SDLK_SLASH,        I_SLASH     },
+	{ SDLK_CARET,        I_GRAVE     },
+	{ SDLK_LEFTBRACKET,  I_LBRACKET  },
+	{ SDLK_BACKSLASH,    I_BACKSLASH },
+	{ SDLK_RIGHTBRACKET, I_RBRACKET  },
+	{ SDLK_QUOTEDBL,     I_QUOTEDBL  }
 };
 
 dword fbKEYtoK(dword chr)
@@ -1901,20 +1947,21 @@ dword fbKEYtoK(dword chr)
 
 	if(i >= 0) {
 		chr = SDL_key_map[i];
-		if(findarg(chr, K_ALT_KEY, K_CTRL_KEY, K_SHIFT_KEY) >= 0)
+		if(findarg(chr, I_ALT_KEY, I_CTRL_KEY, I_SHIFT_KEY) >= 0)
 			return chr;
 	}
 	else
-		chr |= K_DELTA;
+		chr |= I_DELTA;
 
-	if(UPP::GetCtrl())  chr |= K_CTRL;
-	if(UPP::GetAlt())   chr |= K_ALT;
-	if(UPP::GetShift()) chr |= K_SHIFT;
+	if(UPP::GetCtrl())  chr |= I_CTRL;
+	if(UPP::GetAlt())   chr |= I_ALT;
+	if(UPP::GetShift()) chr |= I_SHIFT;
 
 	return chr;
 }
 
 
+#ifdef flagGUI
 void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 {
 	#if 1
@@ -1959,7 +2006,7 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 		
 		keycode = fbKEYtoK((dword)event->key.keysym.sym);
 		
-		if(keycode != K_SPACE) { //dont send space on keydown
+		if(keycode != I_SPACE) { //dont send space on keydown
 			static int repeat_count;
 			SDL_PumpEvents();
 			if(SDL_PeepEvents(&next_event, 1, SDL_PEEKEVENT, SDL_KEYDOWN, SDL_KEYDOWN) &&
@@ -1981,7 +2028,7 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 			case SDLK_RALT: modkeys &= ~KM_RALT; break;
 		}
 
-		Ctrl::DoKeyFB(fbKEYtoK((dword)event->key.keysym.sym) | K_KEYUP, 1);
+		Ctrl::DoKeyFB(fbKEYtoK((dword)event->key.keysym.sym) | I_KEYUP, 1);
 		break;
 	case SDL_MOUSEMOTION:
 		SDL_PumpEvents();
@@ -2091,7 +2138,7 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 	
 	
 }
-
+#endif
 
 END_UPP_NAMESPACE
 #endif

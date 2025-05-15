@@ -46,6 +46,9 @@ String RealizeEonFile(String rel_path) {
 }
 
 String RealizeFilepathArgument(String arg_filepath) {
+	#ifdef flagWIN32
+	arg_filepath.Replace("/", "\\");
+	#endif
 	String filepath = RealizeShareFile(arg_filepath);
 	
 	if (!FileExists(filepath)) {

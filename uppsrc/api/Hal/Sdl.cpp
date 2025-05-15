@@ -976,6 +976,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	uint32 flags = 0;
 	
 	flags |= SDL_WINDOW_OPENGL;
+    SDL_SetHintWithPriority( SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_OVERRIDE );
 	
 	if (dev.is_fullscreen)	flags |= SDL_WINDOW_FULLSCREEN;
 	if (dev.is_sizeable)	flags |= SDL_WINDOW_RESIZABLE;

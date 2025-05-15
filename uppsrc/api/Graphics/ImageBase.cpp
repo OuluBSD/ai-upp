@@ -44,7 +44,27 @@ bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 			else
 				side_path = AppendFileName(dir, title + "_" + IntStr(i) + ext);
 			
-			Image img = StreamRaster::LoadFileAny(side_path);
+			String ext = GetFileExt(side_path);
+			Image img;
+			#if 1
+			if (ext == ".jpg" || ext == ".jpeg") {
+				img = JPGRaster().LoadFile(side_path);
+			}
+			/*else if (ext == ".bmp") {
+				img = BMPRaster().LoadFile(side_path);
+			}*/
+			else {
+				img = StreamRaster::LoadFileAny(side_path);
+			}
+			#else
+			StaticIfaceBackend* iface = StaticIfaceFactory::GetReader(ext);
+			if (!iface) {
+				LOG("ImageBaseAtomT: error: no decoder for: " << side_path);
+				return false;
+			}
+			img = iface->LoadFileAny(side_path);
+			#endif
+			
 			if (img.IsEmpty()) {
 				LOG("ImageBaseAtomT: error: empty image: " << side_path);
 				return false;

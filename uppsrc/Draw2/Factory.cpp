@@ -15,7 +15,8 @@ StaticIfaceBackend& StaticIfaceFactory::GetAdd(const Backend& b) {
 }
 
 StaticIfaceBackend* StaticIfaceFactory::GetReader(String ext) {
-	ASSERT(ext.Left(1) != ".");
+	if (ext.Left(1) == ".")
+		ext = ext.Mid(1);
 	int i = NewFns().Find(ext);
 	if (i < 0)
 		return 0;

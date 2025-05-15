@@ -36,7 +36,7 @@ static void png_flush_stream(png_structp png_ptr)
 static void png_user_error_fn(png_structp png_ptr, png_const_charp error_msg)
 {
 	LLOG("PNG error: " << error_msg);
-	longjmp(png_jmpbuf(png_ptr), 1);
+	//longjmp(png_jmpbuf(png_ptr), 1);
 }
 
 static void png_user_warning_fn(png_structp png_ptr, png_const_charp warning_msg)
@@ -113,8 +113,8 @@ bool PNGRaster::Init()
 	if(!(data->png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
 	     NULL, png_user_error_fn, png_user_warning_fn)))
 		return false;
-	if (setjmp(png_jmpbuf(data->png_ptr)))
-		return false;
+	//if (setjmp(png_jmpbuf(data->png_ptr)))
+	//	return false;
 	if(!(data->info_ptr = png_create_info_struct(data->png_ptr)))
 		return false;
 	png_set_read_fn(data->png_ptr, &GetStream(), png_read_stream);
@@ -133,10 +133,10 @@ bool PNGRaster::Create()
 		data.Clear();
 		return false;
 	}
-	if (setjmp(png_jmpbuf(data->png_ptr))) {
+	/*if (setjmp(png_jmpbuf(data->png_ptr))) {
 		data.Clear();
 		return false;
-	}
+	}*/
 	png_uint_32 width, height;
 	int bit_depth, color_type, interlace_type;
 	png_get_IHDR(data->png_ptr, data->info_ptr, &width, &height, &bit_depth, &color_type,
@@ -264,8 +264,8 @@ Raster::Line PNGRaster::GetLine(int line)
 {
 	ASSERT(data && line >= 0 && line < data->size.cy);
 	byte *scanline = new byte[data->row_bytes];
-	if(setjmp(png_jmpbuf(data->png_ptr)))
-		return Raster::Line(scanline, this, true);
+	//if(setjmp(png_jmpbuf(data->png_ptr)))
+	//	return Raster::Line(scanline, this, true);
 	if(data->preload) {
 		delete[] scanline;
 		if(!data->loaded) {

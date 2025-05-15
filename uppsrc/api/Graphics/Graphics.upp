@@ -16,6 +16,8 @@ library(MSC) glew32;
 
 library(MSC) "OpenGL32 Gdi32";
 
+library(WIN32 (GCC | CLANG)) "aom gsm jxl libjxl.dll.a jxl_threads lc3 mp3lame opencore-amrnb opencore-amrwb openjp2 opus speex rav1e dav1d theoraenc theoradec vorbisenc vorbis vorbisfile vpx x264 webp x264 webpmux webpdemux webpdecoder SvtAv1Enc xvidcore  libx264.dll.a libx265.dll.a avcodec strmiids va va_win32 vpl librsvg-2.dll.a cairo zvbi avif cairo-gobject pthread ogg intl libcairo.dll.a soxr xml2 gme bcrypt NtosKrnl modplug libgnutls.dll.a bluray librtmp.dll.a libsrt.dll.a libssh.dll.a yuv libavif.dll.a libavifil32.a libgnutls-openssl.dll.a librsvg-2.dll.a libtasn1.dll.a libnettle.dll.a libgmp.dll.a libgnutlsxx.dll.a libssl.dll.a libgnutls-openssl.dll.a libglib-2.0.dll.a libgobject-2.0.dll.a";
+
 file
 	Graphics.h,
 	Graphics.icpp,

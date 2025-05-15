@@ -9,7 +9,7 @@ template <class Backend>
 class MediaAtomBaseT :
 	public Atom
 {
-	using FileInput = class FileInputT<Backend>;
+	using FileInput = FileInputT<Backend>;
 	using MediaStreamThread = typename Backend::MediaStreamThread;
 	using VideoInputFramePtr = typename Backend::VideoInputFramePtr;
 	using AudioInputFramePtr = typename Backend::AudioInputFramePtr;

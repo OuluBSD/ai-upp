@@ -939,6 +939,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(completion.SizePos(), "Completion");
 	tabs.Add(chat.SizePos(), "Chat");
 	tabs.Add(stage.SizePos(), "Stage");
+	tabs.Add(placeholder.SizePos(), "Agent Loop"); // https://sketch.dev/blog/agent-loop (https://news.ycombinator.com/item?id=43998472)
 	tabs.Add(placeholder.SizePos(), "Action Planner");
 	tabs.Add(placeholder.SizePos(), "DM");
 	tabs.Add(placeholder.SizePos(), "Team DM");

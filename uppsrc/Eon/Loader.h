@@ -234,6 +234,7 @@ public:
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
 	bool		Load() override;
 	bool		LoadEcs();
+	Eon::Id		GetDeepId() const override {return Eon::Id();}
 	
 	void		Dump() {LOG(GetTreeString(0));}
 	

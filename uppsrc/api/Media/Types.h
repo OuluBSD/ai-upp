@@ -71,17 +71,17 @@ struct FfmpegT {
 	#undef MEDIA_CLS
 	#undef MEDIA_RSYS
 	
-	using AudioInputFrameRef	= Ref<AudioInputFrame, RefParent1<PacketBufferParent>>;
-	using VideoInputFrameRef	= Ref<VideoInputFrame, RefParent1<PacketBufferParent>>;
-	using AudioFrameQueueRef	= Ref<AudioFrameQueue, RefParent1<PacketBufferParent>>;
-	using VideoFrameQueueRef	= Ref<VideoFrameQueue, RefParent1<PacketBufferParent>>;
+	using AudioInputFramePtr	= Ptr<AudioInputFrame>;
+	using VideoInputFramePtr	= Ptr<VideoInputFrame>;
+	using AudioFrameQueuePtr	= Ptr<AudioFrameQueue>;
+	using VideoFrameQueuePtr	= Ptr<VideoFrameQueue>;
 	
 	using AVFrame = ::AVFrame;
 	using AVCodecContextPtr = ::AVCodecContext*;
 	using AVFormatContext = ::AVFormatContext;
 	using AVCodecParserContextPtr = ::AVCodecParserContext*;
 	using AVCodecParameters = ::AVCodecParameters;
-	using AVCodec = ::AVCodec*;
+	using AVCodec = const ::AVCodec*;
 	using AVPacket = ::AVPacket;
 	using AVStream = ::AVStream;
 	using AVDictionary = ::AVDictionary;

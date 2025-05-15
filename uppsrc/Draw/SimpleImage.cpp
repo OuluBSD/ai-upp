@@ -375,123 +375,32 @@ const byte* ByteImage::GetIter(int x, int y) const {
 
 
 void DataFromImage(const Image& img, Vector<byte>& out) {
-	#if 1
+	Size sz = img.GetSize();
+	int bytes = sz.cx * sz.cy * sizeof(RGBA);
+	out.SetCount(bytes);
+	if (!bytes) return;
 	
-	TODO
-	
-	#else
-	Image::ImageDataRef* data = img.GetData();
-	if (!data)
-		return;
-	
-	SysImage& simg = data->img;
-	
-	const byte* it = simg.GetData();
-	int pitch = simg.GetPitch();
-	int stride = simg.GetStride();
-	int width = simg.GetWidth();
-	int height = simg.GetHeight();
-	
-	int line = stride * width;
-	int sz = line * height;
-	ASSERT(pitch >= line);
-	
-	if (stride == 4) {
-		out.SetCount(sz);
-		
-		if (line == pitch)
-			memcpy(out.Begin(), it, sz);
-		else {
-			TODO
-		}
-	}
-	else {
-		ASSERT(stride < 4);
-		int dst_stride = 4;
-		int dst_size = dst_stride * width * height;
-		out.SetCount(dst_size);
-		
-		byte* out_it = out.Begin();
-		int line_pad = pitch - line;
-		ASSERT(line_pad >= 0);
-		
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				for (int i = 0; i < dst_stride; i++) {
-					byte val = i < stride ? *it++ : 0;
-					*out_it++ = val;
-				}
-			}
-			it += line_pad;
-		}
-		
-		ASSERT(out_it == out.End());
-	}
-	#endif
+	const RGBA* src = img.Begin();
+	memcpy(out.Begin(), src, bytes);
 }
 
 Image MirrorVertical(const Image& img) {
-	#if 1
-	
-	TODO
-	return Image();
-	
-	#else
-	Image::ImageDataRef* data = img.GetData();
-	if (img.GetSize().IsNull() || !data)
+	if (img.IsEmpty())
 		return img;
+	const RGBA* src = img.Begin();
+	Size sz = img.GetSize();
 	
-	SysImage& simg = data->img;
+	ImageBuffer ib(sz);
+	int line_sz = sz.cx * sizeof(RGBA);
+	RGBA* dst = ib.Begin() + (int)((sz.cy-1) * sz.cx);
 	
-	const byte* it = simg.GetData();
-	int pitch = simg.GetPitch();
-	int stride = simg.GetStride();
-	int width = simg.GetWidth();
-	int height = simg.GetHeight();
-	
-	ImageBuffer ib(width, height);
-	RGBA* dst = ib.End();
-	
-	int line = stride * width;
-	//int sz = line * height;
-	ASSERT(pitch >= line);
-	
-	if (stride == 4) {
-		
-		if (line == pitch) {
-			for (int y = height-1; y >= 0; y--) {
-				dst -= width;
-				memcpy(dst, it, line);
-				it += line;
-			}
-		}
-		else {
-			TODO
-		}
-	}
-	else {
-		ASSERT(stride < 4);
-		const int dst_stride = 4;
-		//int dst_size = dst_stride * width * height;
-		
-		int line_pad = pitch - line;
-		ASSERT(line_pad >= 0);
-		
-		for (int y = height-1; y >= 0; y--) {
-			dst -= width;
-			byte* out_it = (byte*)dst;
-			for (int x = 0; x < width; x++) {
-				for (int i = 0; i < dst_stride; i++) {
-					byte val = i < stride ? *it++ : 0;
-					*out_it++ = val;
-				}
-			}
-			it += line_pad;
-		}
+	for(int i = 0; i < sz.cy; i++) {
+		memcpy(dst, src, line_sz);
+		dst -= sz.cx;
+		src += sz.cx;
 	}
 	
 	return ib;
-	#endif
 }
 
 

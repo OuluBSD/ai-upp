@@ -19,6 +19,15 @@ extern "C" {
 #endif
 
 
+#if defined flagOPENCV && defined flagLINUX
+	#define HAVE_V4L2_DEVMGR	1
+	//#define HAVE_V4L2_CAP		1
+	//#define V4L2_SLOW		1
+#elif defined flagOPENCV && (defined flagWIN32 && defined flagMSC)
+	#define HAVE_WIN32_DEVMGR	1
+#endif
+
+
 #include "Types.h"
 #include "Audio.h"
 #include "Video.h"

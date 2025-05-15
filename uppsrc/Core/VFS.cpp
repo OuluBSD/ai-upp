@@ -233,6 +233,14 @@ bool VfsPath::Normalize() {
 	return true;
 }
 
+bool VfsPath::IsValid() const {
+	if (parts.IsEmpty()) return false;
+	for (const auto& p : parts)
+		if (p.ToString().IsEmpty())
+			return false;
+	return true;
+}
+
 bool VfsPath::IsValidFullPath() const {
 	return IsFullInternalDirectory(str);
 }

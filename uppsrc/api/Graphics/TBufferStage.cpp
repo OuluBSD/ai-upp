@@ -8,6 +8,8 @@ extern const char* stereo_frag_shader;
 
 template <class Gfx>
 void BufferStageT<Gfx>::SetStereo(int stereo_id) {
+	auto& fb = this->fb[0];
+	TODO // this is just messed up code -> fb:s are already for left & right
 	if (stereo_id == 0)
 		fb.is_stereo_left = true;
 	else if (stereo_id == 1)
@@ -16,6 +18,8 @@ void BufferStageT<Gfx>::SetStereo(int stereo_id) {
 
 template <class Gfx>
 void BufferStageT<Gfx>::SetStereoLens() {
+	auto& fb = this->fb[0];
+	// TODO proably incomplete stereo buffer setup
 	fb.is_affine = true;
 	fb.is_stereo_lenses = true;
 	quad_count = 2;
@@ -86,6 +90,7 @@ void BufferStageT<Gfx>::CompileJIT() {
 
 template <class Gfx>
 void BufferStageT<Gfx>::SetAudio(bool b) {
+	auto& fb = this->fb[0];
 	bool was_audio = fb.is_audio;
 	fb.is_audio = b;
 	if (fb.is_audio && !was_audio) {
@@ -100,6 +105,7 @@ void BufferStageT<Gfx>::SetAudio(bool b) {
 
 template <class Gfx>
 GfxCompilerArgs BufferStageT<Gfx>::GetCompilerArgs() const {
+	auto& fb = this->fb[0];
 	GfxCompilerArgs args;
 	args.is_affine = fb.is_affine;
 	args.is_audio = fb.is_audio;
@@ -108,6 +114,7 @@ GfxCompilerArgs BufferStageT<Gfx>::GetCompilerArgs() const {
 
 template <class Gfx>
 bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const Eon::WorldState& ws) {
+	auto& fb = this->fb[0];
 	ShaderConf& lib_conf = shdr_confs[GVar::SHADERTYPE_COUNT];
 	lib_conf.str = ws.Get(".library");
 	lib_conf.is_path = true;
@@ -199,6 +206,7 @@ bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const Eon::WorldState& w
 
 template <class Gfx>
 bool BufferStageT<Gfx>::PostInitialize() {
+	auto& fb = this->fb[0];
 	if (!fb.is_win_fbo && fb.size.IsEmpty()) {
 		if (!fb.is_audio) {
 			
@@ -217,6 +225,8 @@ template <class Gfx>
 bool BufferStageT<Gfx>::ImageInitialize() {
 	ASSERT(!initialized);
 	ShaderConf& lib_conf = shdr_confs[GVar::SHADERTYPE_COUNT];
+	auto& fb = this->fb[0];
+	// TODO framebuffers have been splitted: following code is probably wrong
 	
 	if (fb.is_stereo_lenses) {
 		float horz_sep = 0.063f;
@@ -248,6 +258,7 @@ bool BufferStageT<Gfx>::RealizeData() {
 	if (!data)
 		return false;
 	
+	auto& fb = this->fb[0];
 	ASSERT(pipeline_str.GetCount());
 	ASSERT(program_str.GetCount());
 	pipeline = data->FindPipeline(pipeline_str);
@@ -359,6 +370,8 @@ void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	ASSERT(pipeline.native);
 	if (!pipeline.native)
 		return;
+	
+	auto& fb = this->fb[0];
 	
 	Gfx::SetViewport(fb.size);
 	Gfx::BindProgramPipeline(pipeline.native);
@@ -493,6 +506,8 @@ void BufferStageT<Gfx>::UseRenderedFramebuffer() {
 
 template <class Gfx>
 bool BufferStageT<Gfx>::SetLoopback(String loopback_str) {
+	auto& fb = this->fb[0];
+	
 	if (loopback_str.IsEmpty()) {
 		loopback = -1;
 		return false;
@@ -520,7 +535,7 @@ bool BufferStageT<Gfx>::InitializeTexture(Size sz, int channels, Sample sample, 
 	
 	UpdateTexBuffers();
 	
-	ReadTexture(sz, channels, sample, data, len);
+	ReadTexture(sz, channels, sample, data, len);		
 	
 	initialized = true;
 	return true;
@@ -529,6 +544,7 @@ bool BufferStageT<Gfx>::InitializeTexture(Size sz, int channels, Sample sample, 
 template <class Gfx>
 bool BufferStageT<Gfx>::InitializeCubemap(Size sz, int channels, Sample sample, const Vector<byte>& d0, const Vector<byte>& d1, const Vector<byte>& d2, const Vector<byte>& d3, const Vector<byte>& d4, const Vector<byte>& d5) {
 	RTLOG("InitializeCubemap: " << sz.ToString());
+	auto& fb = this->fb[0];
 	fb.is_cubemap = true;
 	
 	UpdateTexBuffers();
@@ -542,6 +558,7 @@ bool BufferStageT<Gfx>::InitializeCubemap(Size sz, int channels, Sample sample, 
 template <class Gfx>
 bool BufferStageT<Gfx>::InitializeVolume(Size3 sz, int channels, Sample sample, const Vector<byte>& data) {
 	RTLOG("InitializeVolume: " << sz.ToString() << ", " << data.GetCount());
+	auto& fb = this->fb[0];
 	fb.size = Size(sz.cx, sz.cy);
 	fb.depth = sz.cz;
 	fb.sample = sample;
@@ -565,6 +582,7 @@ void BufferStageT<Gfx>::ReadTexture(Size sz, int channels, Sample sample, const 
 	if (len != exp_len)
 		return;
 	
+	auto& fb = this->fb[0];
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
 	//ASSERT(sz == fb_size);
@@ -581,6 +599,7 @@ template <class Gfx>
 void BufferStageT<Gfx>::ReadTexture(Size3 sz, int channels, Sample sample, const Vector<byte>& data) {
 	GVar::TextureMode type = GVar::TEXMODE_3D;
 	
+	auto& fb = this->fb[0];
 	ASSERT(fb.size.cx == sz.cx && fb.size.cy == sz.cy);
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
@@ -597,6 +616,7 @@ void BufferStageT<Gfx>::ReadTexture(Size3 sz, int channels, Sample sample, const
 template <class Gfx>
 void BufferStageT<Gfx>::ReadCubemap(Size sz, int channels, const Vector<byte>& d0, const Vector<byte>& d1, const Vector<byte>& d2, const Vector<byte>& d3, const Vector<byte>& d4, const Vector<byte>& d5) {
 	GVar::TextureMode type = GVar::TEXMODE_CUBE_MAP;
+	auto& fb = this->fb[0];
 	auto& tex			= fb.color_buf[0];
 	//int ch_code		= GetGfxChannelFormat(channels);
 	
@@ -647,6 +667,7 @@ bool BufferStageT<Gfx>::Compile(ProgramState& prog) {
 
 template <class Gfx>
 void BufferStageT<Gfx>::UpdateTexBuffers() {
+	auto& fb = this->fb[0];
 	if (!fb.is_win_fbo) {
 		ASSERT(fb.channels > 0);
 		ASSERT(fb.size.cx > 0 && fb.size.cy > 0);
@@ -662,6 +683,7 @@ void BufferStageT<Gfx>::UpdateTexBuffers() {
 
 template <class Gfx>
 void BufferStageT<Gfx>::ClearTex() {
+	auto& fb = this->fb[0];
 	for(int bi = 0; bi < 2; bi++) {
 		auto& color_buf = fb.color_buf[bi];
 		auto& depth_buf = fb.depth_buf[bi];
@@ -686,6 +708,7 @@ template <class Gfx>
 void BufferStageT<Gfx>::CreateTex(bool create_depth, bool create_fbo) {
 	EnableGfxAccelDebugMessages(1);
 	
+	auto& fb = this->fb[0];
 	int buf_count = 1;
 	if (fb.is_doublebuf)
 		buf_count++;
@@ -749,6 +772,7 @@ void BufferStageT<Gfx>::CreateTex(bool create_depth, bool create_fbo) {
 
 template <class Gfx>
 int BufferStageT<Gfx>::NewWriteBuffer() {
+	auto& fb = this->fb[0];
 	if (fb.is_doublebuf)
 		fb.buf_i = (fb.buf_i + 1) % 2;
 	return fb.buf_i;
@@ -756,6 +780,7 @@ int BufferStageT<Gfx>::NewWriteBuffer() {
 
 template <class Gfx>
 TNG NativeColorBufferConstPtr BufferStageT<Gfx>::GetOutputTexture(bool reading_self) const {
+	auto& fb = this->fb[0];
 	ASSERT(!reading_self || fb.is_doublebuf);
 	int buf_i = fb.buf_i;
 	
@@ -774,6 +799,7 @@ void BufferStageT<Gfx>::TexFlags(GVar::TextureMode type, GVar::Filter filter, GV
 
 template <class Gfx>
 bool BufferStageT<Gfx>::LoadInputLink(int in_id, const PacketValue& v) {
+	auto& fb = this->fb[0];
 	if (in_id == 0) {
 		const Vector<byte>& data = v.GetData();
 		ValueFormat fmt = v.GetFormat();
@@ -820,13 +846,15 @@ void BufferStageT<Gfx>::SetVar(ProgramState& prog, int var, const RealtimeSource
 	if (uindex < 0)
 		return;
 	
+	auto& fb = this->fb[0];
 	if (var >= VAR_BUFFERSTAGE0_COLOR && var <= VAR_BUFFERSTAGE4_COLOR) {
 		int ch = var - VAR_BUFFERSTAGE0_COLOR;
 		int tex_ch = BUFFERSTAGE_OFFSET + ch;
 		
 		if (ch < buf->stages.GetCount()) {
 			auto& stage = buf->stages[ch];
-			NativeColorBufferConstPtr tex = stage.fb.color_buf[stage.fb.buf_i];
+			auto& fb = stage.fb[0];
+			NativeColorBufferConstPtr tex = fb.color_buf[fb.buf_i];
 			// may fail in early program: ASSERT(tex);
 			if (tex) {
 				//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);

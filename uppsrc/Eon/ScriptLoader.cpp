@@ -1020,7 +1020,7 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 							return false;
 						}
 						
-						LOG(src->ToString() + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + sink->ToString() + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");
+						LOG(ClassPathTop(src->ToString()) + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + ClassPathTop(sink->ToString()) + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");
 						
 						
 						loop0.UpdateLoopLimits();

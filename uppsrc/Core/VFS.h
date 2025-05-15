@@ -58,6 +58,7 @@ struct VfsPath : Moveable<VfsPath> {
 	VfsPath GetCanonical() const;
 	VfsPath Left(int i) const;
 	bool	Normalize();
+	bool	IsValid() const;
 	bool	IsValidFullPath() const;
 	void	Append(const VfsPath& p);
 	const String& Get() const;

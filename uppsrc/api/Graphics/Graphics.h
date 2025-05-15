@@ -75,8 +75,8 @@ typedef unsigned int	Gxu;
 typedef unsigned int	Gxbf;
 
 
-#define NAMESPACE_GRAPHICS_BEGIN namespace  TS { namespace  Parallel { namespace  GL {
-#define NAMESPACE_GRAPHICS_END }}}
+#define NAMESPACE_GRAPHICS_BEGIN namespace  Upp { namespace  GL {
+#define NAMESPACE_GRAPHICS_END }}
 
 #define TNG typename Gfx::
 

@@ -4,6 +4,11 @@ NAMESPACE_UPP
 
 
 template <class Gfx>
+GfxBufferFieldT<Gfx>::GfxBufferFieldT() {
+	buf.owner = this;
+}
+
+template <class Gfx>
 bool GfxBufferFieldT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	if (!buf.Initialize(a, ws))
 		return false;

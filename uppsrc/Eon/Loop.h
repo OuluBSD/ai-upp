@@ -6,7 +6,6 @@
 class Loop :
 	public MetaDirectoryBase
 {
-	String				name;
 	String				prefab;
 	LoopId				id;
 	
@@ -29,7 +28,6 @@ public:
 	
 	LoopId GetId() const {return id;}
 	
-	void SetName(String s)			{name = s;}
 	void SetPrefab(String s)		{prefab = s;}
 	
 	void				Clear();
@@ -42,7 +40,6 @@ public:
 	
 	Loop*				GetParent() const;
 	Space*				GetSpace() const;
-	String				GetName() const override {return name;}
 	String				GetDeepName() const;
 	bool				HasAtoms() const;//{return !links.IsEmpty();}
 	bool				HasLoops() const;// {return !loops.IsEmpty();}

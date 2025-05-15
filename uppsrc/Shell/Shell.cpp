@@ -133,7 +133,7 @@ INITBLOCK {
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
-	Machine& mach = MetaEnv().root.Add<Machine>();
+	Machine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.Run(true, "Shell");
 }
 
@@ -142,7 +142,7 @@ GUI_APP_MAIN {
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
-	Machine& mach = MetaEnv().root.Add<Machine>();
+	Machine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.WhenBoot << callback(DefaultSerialInitializer);
 	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
 	mach.WhenPreFirstUpdate << callback(DefaultStartup);

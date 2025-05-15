@@ -116,8 +116,7 @@ static void EventsBase_Update(NativeEventsBase&, AtomBase&, double dt);
 static bool EventsBase_IsReady(NativeEventsBase&, AtomBase&, PacketIO& io);
 static bool EventsBase_AttachContext(NativeEventsBase&, AtomBase& a, AtomBase& other);
 static void EventsBase_DetachContext(NativeEventsBase&, AtomBase& a, AtomBase& other);
-
-#if defined flagUPPCORE
+#ifdef flagGUI
 static bool UppEventsBase_Create(NativeUppEventsBase*& dev);
 static void UppEventsBase_Destroy(NativeUppEventsBase*& dev);
 static bool UppEventsBase_Initialize(NativeUppEventsBase&, AtomBase&, const Eon::WorldState&);
@@ -134,8 +133,7 @@ static bool UppEventsBase_IsReady(NativeUppEventsBase&, AtomBase&, PacketIO& io)
 static bool UppEventsBase_AttachContext(NativeUppEventsBase&, AtomBase& a, AtomBase& other);
 static void UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, AtomBase& other);
 #endif
-
-#if (defined flagOGL && defined flagUPPCORE)
+#if defined flagOGL
 static bool UppOglDevice_Create(NativeUppOglDevice*& dev);
 static void UppOglDevice_Destroy(NativeUppOglDevice*& dev);
 static bool UppOglDevice_Initialize(NativeUppOglDevice&, AtomBase&, const Eon::WorldState&);

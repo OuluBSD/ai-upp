@@ -1584,7 +1584,7 @@ AtomTypeCls SdlOglFboAtomSA::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagOGL && defined flagUPPCORE)
+#if defined flagSDL2 && defined flagOGL && defined flagGUI
 String SdlUppOglDeviceSA::GetAction() {
 	return "uppsdl.ogl.standalone";
 }
@@ -1676,7 +1676,7 @@ AtomTypeCls SdlOglFboAtom::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagUPPCORE)
+#if defined flagSDL2 && defined flagGUI
 String SdlUppEventsBasePipe::GetAction() {
 	return "uppsdl.event.pipe";
 }

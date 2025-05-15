@@ -57,8 +57,10 @@ AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
 	int i = Factory::AtomDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
 	if (i < 0) return 0;
-	AtomBase* obj = Factory::AtomDataMap()[i].new_fn(sub);
+	const auto& f = Factory::AtomDataMap()[i];
+	AtomBase* obj = f.new_fn(sub);
 	
+	sub.id = ToVarName(ClassPathTop(f.name));
 	sub.ext = obj;
 	sub.type_hash = obj->GetTypeHash();
 	InitializeAtom(*obj);
@@ -143,8 +145,7 @@ void Space::AppendCopy(const Space& l) {
 }
 
 void Space::Visit(Vis& v) {
-	_VIS_(name)
-	 VIS_(prefab)
+	_VIS_(prefab)
 	 VIS_((int&)id)
 	 VIS_(created)
 	 VIS_(changed)
@@ -195,9 +196,9 @@ void Space::Initialize(Space& l, String prefab) {
 	l.SetChanged(ticks);
 }
 
-SpacePtr Space::CreateEmpty() {
+SpacePtr Space::CreateEmpty(String id) {
 	Space& l = node.Add<Space>();
-	//l.SetParent(this);
+	l.node.id = id;
 	l.SetId(GetNextId());
 	Initialize(l);
 	return &l;
@@ -294,16 +295,14 @@ SpacePtr Space::GetAddEmpty(String name) {
 	SpacePtr l = FindSpaceByName(name);
 	if (l)
 		return l;
-	l = CreateEmpty();
-	l->node.id = name;
-	l->SetName(name);
+	l = CreateEmpty(name);
 	return l;
 }
 
 SpacePtr Space::FindSpaceByName(String name) {
 	auto spaces = node.FindAll<Space>();
 	for (Space* object : spaces)
-		if (object->GetName() == name)
+		if (object->node.id == name)
 			return object;
 	return SpacePtr();
 }
@@ -331,7 +330,7 @@ String Space::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
+	s << ".." << (node.id.IsEmpty() ? (String)"unnamed" : "\"" + node.id + "\"") << "[" << (int)id << "]\n";
 	
 	auto atoms = node.FindAll<AtomBase>();
 	for (auto& it : atoms)
@@ -371,10 +370,10 @@ EnvStatePtr Space::FindStateDeep(String name) {
 }
 
 String Space::GetDeepName() const {
-	String s = name;
+	String s = node.id;
 	Space* l = GetParent();
 	while (l) {
-		s = l->name + "." + s;
+		s = l->node.id + "." + s;
 		l = l->GetParent();
 	}
 	return s;
@@ -390,14 +389,15 @@ void Space::UnlinkExchangePoints() {
 }
 
 SpacePtr Space::AddSpace(String name) {
+	ASSERT(name.GetCount());
 	Space& p = node.Add<Space>();
 	p.node.id = name;
-	p.SetName(name);
 	p.SetId(GetNextId());
 	return &p;
 }
 
 SpacePtr Space::GetAddSpace(String name) {
+	ASSERT(name.GetCount());
 	auto spaces = node.FindAll<Space>();
 	for (auto& pool : spaces)
 		if (pool->node.id == name)

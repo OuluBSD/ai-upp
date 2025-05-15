@@ -667,7 +667,7 @@ String MetaNode::GetTreeString(int depth) const
 		s << "EXT:";
 		if (fac_i >= 0) {
 			const auto& fac = MetaExtFactory::List()[fac_i];
-			s << " " << fac.name;
+			s << " " << ClassPathTop(fac.name);
 			if (!fac.ctrl_name.IsEmpty())
 				s << " (" << fac.ctrl_name << ")";
 		}
@@ -1223,13 +1223,15 @@ VfsPath MetaNode::GetPath() const {
 		}
 		else break;
 	}
+	if (i == 1) return VfsPath();
 	ptrs[i] = 0;
-	const MetaNode** iter = ptrs;
+	const MetaNode** iter = ptrs+i-2;
+	const MetaNode** end = ptrs-1;
 	Vector<Value> path;
 	path.Reserve(i);
-	while (*iter) {
+	while (iter != end) {
 		path.Add((*iter)->id);
-		iter++;
+		iter--;
 	}
 	return path;
 }

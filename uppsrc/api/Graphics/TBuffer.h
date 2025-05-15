@@ -37,7 +37,7 @@ struct BufferStageT : GfxBufferStage {
 	ShaderConf					shdr_confs[GVar::SHADERTYPE_COUNT + 1];
 	
 	Buffer*						buf = 0;
-	Framebuffer					fb;
+	Framebuffer					fb[2];
 	
 	DataState*					data = 0;
 	PipelineState*				pipeline = 0;
@@ -96,16 +96,20 @@ struct BufferStageT : GfxBufferStage {
 	DataState& GetState() {ASSERT(data); return *data;}
 	NativeColorBufferConstPtr GetOutputTexture(bool reading_self) const;
 	bool IsInitialized() const {return initialized;}
-	const Framebuffer& GetFramebuffer() const {return fb;}
-	Framebuffer& GetFramebuffer() {return fb;}
+	const Framebuffer& GetFramebuffer() const {return fb[0];}
+	Framebuffer& GetFramebuffer() {return fb[0];}
 	
 	void SetStereo(int stereo_id);
 	void SetStereoLens();
 	void SetDataState(DataState* s, bool data_writable);
 	bool SetLoopback(String loopback_str);
+	void SetFramebufferSize(Size sz);
 	
 	
 };
+
+template <class Gfx>
+struct GfxBufferFieldT;
 
 template <class Gfx>
 struct BufferT : GfxBuffer {
@@ -121,6 +125,7 @@ struct BufferT : GfxBuffer {
 	using ShaderPipeline = ShaderPipelineT<Gfx>;
 	using DataObject = DataObjectT<Gfx>;
 	using BufferStage = BufferStageT<Gfx>;
+	using BufferField = GfxBufferFieldT<Gfx>;
 	using NativeFrameBufferPtr = typename Gfx::NativeFrameBufferPtr;
 	using Sample = GVar::Sample;
 	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
@@ -144,6 +149,7 @@ struct BufferT : GfxBuffer {
 		MODE_COUNT
 	};
 	
+	BufferField*				owner = 0;
 	int							mode = 0;
 	Vector<String>				link_ids;
 	

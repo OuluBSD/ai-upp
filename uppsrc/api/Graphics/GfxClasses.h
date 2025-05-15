@@ -138,14 +138,14 @@ struct GfxFramebuffer : ErrorReporter {
 	bool	is_audio = 0;
 	bool	is_cubemap = 0;
 	bool	is_affine = 0;
-	Filter	filter;
-	Wrap	wrap;
+	Filter	filter = GVar::DEFAULT_FILTER;
+	Wrap	wrap = GVar::DEFAULT_WRAP;
 	
 	// framebuffer
 	int8	channels = 0;
 	Size	size;
 	int		depth = 0;
-	Sample	sample = GVar::SAMPLE_FLOAT;
+	Sample	sample = GVar::DEFAULT_SAMPLE;
 	Point	offset;
 	bool	is_doublebuf = 0;
 	bool	is_stereo_lenses = 0;

@@ -46,7 +46,7 @@ struct HalSdl {
 	#ifdef flagGUI
 	struct NativeUppEventsBase;
 	#endif
-	#if (defined flagOGL && defined flagUPPCORE)
+	#if defined flagOGL
 	struct NativeUppOglDevice;
 	#endif
 	
@@ -73,10 +73,10 @@ struct HalHolo {
 	#endif
 	struct NativeContextBase;
 	struct NativeEventsBase;
-	#if defined flagUPPCORE
+	#if defined flagGUI
 	struct NativeUppEventsBase;
 	#endif
-	#if (defined flagOGL && defined flagUPPCORE)
+	#if defined flagOGL
 	struct NativeUppOglDevice;
 	#endif
 	
@@ -115,7 +115,6 @@ struct HalCenterFboSinkDevice : public Atom {
 #if defined flagOGL
 struct HalOglVideoSinkDevice : public Atom {
 	using Atom::Atom;
-	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalOglVideoSinkDevice() {}
@@ -147,7 +146,7 @@ struct HalEventsBase : public Atom {
 	virtual ~HalEventsBase() {}
 };
 
-#if defined flagUPPCORE
+#if defined flagGUI
 struct HalUppEventsBase : public Atom {
 	//RTTI_DECL1(HalUppEventsBase, Atom)
 	using Atom::Atom;
@@ -157,7 +156,7 @@ struct HalUppEventsBase : public Atom {
 };
 #endif
 
-#if (defined flagOGL && defined flagUPPCORE)
+#if defined flagOGL
 struct HalUppOglDevice : public Atom {
 	//RTTI_DECL1(HalUppOglDevice, Atom)
 	using Atom::Atom;
@@ -565,7 +564,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 		Hal::EventsBase_DetachContext(*dev, *this, a);
 	}
 };
-#if defined flagUPPCORE
+#if defined flagGUI
 template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 	HalUppEventsBaseT(MetaNode& n) : HalUppEventsBase(n) {}
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
@@ -622,8 +621,8 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 		Hal::UppEventsBase_DetachContext(*dev, *this, a);
 	}
 };
-#endif
-#if (defined flagOGL && defined flagUPPCORE)
+
+#if defined flagOGL
 template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	HalUppOglDeviceT(MetaNode& n) : HalUppOglDevice(n) {}
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
@@ -681,7 +680,7 @@ template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 	}
 };
 #endif
-
+#endif
 #if defined flagSDL2
 using SdlAudioSinkDevice = HalAudioSinkDeviceT<HalSdl>;
 using SdlCenterVideoSinkDevice = HalCenterVideoSinkDeviceT<HalSdl>;
@@ -694,11 +693,11 @@ using SdlD12VideoSinkDevice = HalD12VideoSinkDeviceT<HalSdl>;
 #endif
 using SdlContextBase = HalContextBaseT<HalSdl>;
 using SdlEventsBase = HalEventsBaseT<HalSdl>;
-#if defined flagUPPCORE
+#if defined flagGUI
 using SdlUppEventsBase = HalUppEventsBaseT<HalSdl>;
-#endif
-#if (defined flagOGL && defined flagUPPCORE)
+#if defined flagOGL
 using SdlUppOglDevice = HalUppOglDeviceT<HalSdl>;
+#endif
 #endif
 #endif
 #if (defined flagUWP && defined flagDX12)
@@ -713,10 +712,8 @@ using HoloD12VideoSinkDevice = HalD12VideoSinkDeviceT<HalHolo>;
 #endif
 using HoloContextBase = HalContextBaseT<HalHolo>;
 using HoloEventsBase = HalEventsBaseT<HalHolo>;
-#if defined flagUPPCORE
 using HoloUppEventsBase = HalUppEventsBaseT<HalHolo>;
-#endif
-#if (defined flagOGL && defined flagUPPCORE)
+#if defined flagOGL
 using HoloUppOglDevice = HalUppOglDeviceT<HalHolo>;
 #endif
 #endif

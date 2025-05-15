@@ -158,6 +158,11 @@ String CamelToName(String s) {
 	return o;
 }
 
+String ClassPathTop(String s) {
+	Vector<String> parts = Split(s, "::");
+	return parts.Top();
+}
+
 String ToVarName(String s) {
 	String o;
 	

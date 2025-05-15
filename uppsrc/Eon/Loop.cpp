@@ -83,7 +83,6 @@ LoopPtr Loop::GetAddEmpty(String name) {
 		return l;
 	l = CreateEmpty();
 	l->node.id = name;
-	l->SetName(name);
 	return l;
 }
 
@@ -101,8 +100,7 @@ void Loop::Initialize(Loop& l, String prefab) {
 }
 
 void Loop::Visit(Vis& vis) {
-	vis	("name", name)
-		("prefab", prefab)
+	vis	("prefab", prefab)
 		("id", id);
 	vis & space;
 	vis.VisitT<MetaDirectoryBase>("Base", *this);
@@ -114,8 +112,10 @@ LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
 	int i = Factory::LinkDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
 	if (i < 0) return 0;
-	LinkBase* obj = Factory::LinkDataMap()[i].new_fn(sub);
+	const auto& f = Factory::LinkDataMap()[i];
+	LinkBase* obj = f.new_fn(sub);
 	
+	sub.id = ToVarName(ClassPathTop(f.name));
 	sub.ext = obj;
 	sub.type_hash = obj->GetTypeHash();
 	InitializeLink(*obj);
@@ -183,7 +183,7 @@ String Loop::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << "[" << (int)id << "]\n";
+	s << ".." << (node.id.IsEmpty() ? (String)"unnamed" : "\"" + node.id + "\"") << "[" << (int)id << "]\n";
 	
 	auto links = node.FindAllDeep<LinkBase>();
 	for (LinkBase* l : links)
@@ -266,10 +266,10 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 }
 
 String Loop::GetDeepName() const {
-	String s = name;
+	String s = node.id;
 	Loop* l = GetParent();
 	while (l) {
-		s = l->name + "." + s;
+		s = l->node.id + "." + s;
 		l = l->GetParent();
 	}
 	return s;
@@ -281,15 +281,15 @@ LoopId Loop::GetNextId() {
 }
 
 LoopPtr Loop::AddLoop(String name) {
+	ASSERT(name.GetCount());
 	Loop& p = node.Add<Loop>();
-	//p.SetParent(DirExBaseParent(0, this));
 	p.node.id = name;
-	p.SetName(name);
 	//p.SetId(GetNextId());
 	return &p;
 }
 
 LoopPtr Loop::GetAddLoop(String name) {
+	ASSERT(name.GetCount());
 	auto loops = node.FindAll<Loop>();
 	for (auto& loop : loops)
 		if (loop->node.id == name)

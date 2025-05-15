@@ -156,7 +156,7 @@ struct OglGfxT {
 	using NativeElementBuffer = GLuint;
 	using NativeProgram = GLuint;
 	using NativePipeline = GLuint;
-	using ValFormat = Serial::FboFormat;
+	using ValFormat = FboFormat;
 	using Impl = EmptyClass;
 	
 	using FramebufferBase = OglFramebufferBase;
@@ -166,7 +166,7 @@ struct OglGfxT {
 	
 	#include "TypeFuncList.inl"
 	
-	static Serial::FboFormat& GetFormat(ValueFormat& fmt);
+	static FboFormat& GetFormat(ValueFormat& fmt);
 	
 };
 #endif

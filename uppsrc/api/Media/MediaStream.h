@@ -8,8 +8,8 @@ template <class Backend>
 class MediaStreamThreadT : Moveable<MediaStreamThreadT<Backend>> {
 	using AudioInputFrame = typename Backend::AudioInputFrame;
 	using VideoInputFrame = typename Backend::VideoInputFrame;
-	using AudioInputFramePtr = typename Backend::AudioInputFrameRef;
-	using VideoInputFramePtr = typename Backend::VideoInputFrameRef;
+	using AudioInputFramePtr = typename Backend::AudioInputFramePtr;
+	using VideoInputFramePtr = typename Backend::VideoInputFramePtr;
 	
 	AudioInputFramePtr acap;
 	VideoInputFramePtr vcap;

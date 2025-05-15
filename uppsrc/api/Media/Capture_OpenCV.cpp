@@ -43,7 +43,7 @@ class OpenCVCaptureDevice::Data {
 	
 	Size prev_sz;
 	double prev_fps;
-	Format prev_fmt;
+	ValueFormat prev_fmt;
 	bool prev_vflip;
 	
 public:

@@ -551,8 +551,8 @@ void main() {
 
 )SH4D3R";
 	switch (t) {
-		case GVar::VERTEX_SHADER: return String(uniform_tmpl) + vtx_tmpl;
-		case GVar::FRAGMENT_SHADER: return String(uniform_tmpl) + frag_tmpl;
+		case GVar::VERTEX_SHADER: return String(uniform_tmpl) + String(vtx_tmpl);
+		case GVar::FRAGMENT_SHADER: return String(uniform_tmpl) + String(frag_tmpl);
 		default: Panic("shader is not supported yet");
 	}
 	return "";

@@ -65,11 +65,11 @@ template <class Backend>
 void MediaStreamThreadT<Backend>::Clear() {
 	if (acap) {
 		acap->Close();
-		acap.Clear();
+		acap = 0;
 	}
 	if (vcap) {
 		vcap->Close();
-		vcap.Clear();
+		vcap = 0;
 	}
 }
 

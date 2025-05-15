@@ -9,10 +9,10 @@ template <class Backend>
 class MediaAtomBaseT :
 	public Atom
 {
-	using FileInput = typename Backend::FileInput;
+	using FileInput = class FileInputT<Backend>;
 	using MediaStreamThread = typename Backend::MediaStreamThread;
-	using VideoInputFramePtr = typename Backend::VideoInputFrameRef;
-	using AudioInputFramePtr = typename Backend::AudioInputFrameRef;
+	using VideoInputFramePtr = typename Backend::VideoInputFramePtr;
+	using AudioInputFramePtr = typename Backend::AudioInputFramePtr;
 	
 	typedef enum {
 		INVALID_MODE,
@@ -52,7 +52,7 @@ public:
 	bool PostInitialize() override;
 	void Update(double dt) override;
 	
-	void Visit(Vis& v) override {v % file_in; VIS_THIS(Atom);}
+	void Visit(Vis& v) override {v VISN(file_in); VIS_THIS(Atom);}
 	bool LoadFileAny(String path);
 	void OnError();
 	void OnStop();

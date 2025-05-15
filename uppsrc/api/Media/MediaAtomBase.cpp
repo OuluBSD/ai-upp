@@ -8,7 +8,6 @@ MediaAtomBaseT<Backend>::MediaAtomBaseT(MetaNode& n) : Atom(n) {
 	def_cap_sz = Size(1280,720);
 	def_cap_fps = 30;
 	
-	file_in.SetParent(this);
 	file_in.WhenStopped << THISBACK(OnStop);
 }
 
@@ -105,27 +104,27 @@ bool MediaAtomBaseT<Backend>::LoadFileAny(String path) {
 	time = 0;
 	
 	if (!file_in.OpenFile(path) || !file_in.Open()) {
-		SetError("couldn't open file " + path + ": " + file_in.GetLastError());
+		SetError(String("couldn't open file ") + path + ": " + file_in.GetLastError());
 		return false;
 	}
 	
 	if (file_in.IsOpenAudio() && file_in.IsOpenVideo()) {
 		mode = AUDIOVIDEO;
 		vi.SetCap(
-			file_in.GetAudio().AsRefT(),
-			file_in.GetVideo().AsRefT());
+			&file_in.GetAudio(),
+			&file_in.GetVideo());
 	}
 	else if (file_in.IsOpenAudio()) {
 		mode = AUDIO_ONLY;
 		vi.SetCap(
-			file_in.GetAudio().AsRefT(),
-			VideoInputFramePtr());
+			&file_in.GetAudio(),
+			0);
 	}
 	else {
 		mode = VIDEO_ONLY;
 		vi.SetCap(
-			VideoInputFramePtr(),
-			file_in.GetVideo().AsRefT());
+			0,
+			&file_in.GetVideo());
 	}
 
 	vi.Start(false);

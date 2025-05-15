@@ -15,8 +15,12 @@ class AudioFrameQueueT :
 {
 	off32_gen	gen;
 	
+protected:
+	using FileInput = FileInputT<Backend>;
+	friend class FileInputT<Backend>;
+	FileInput* owner = 0;
+	
 public:
-	using FileInput = typename Backend::FileInput;
 	using Base = AudioInputFrameT<Backend>;
 	using AVFrame = typename Backend::AVFrame;
 	using AVSampleFormat = typename Backend::AVSampleFormat;
@@ -42,8 +46,8 @@ class VideoFrameQueueT :
 	public VideoInputFrameT<Backend>
 {
 	using AVFrame = typename Backend::AVFrame;
-	using AVCodecContextPtr = typename Backend::AVCodecContextRef;
-	using ImgConvContextPtr = typename Backend::ImgConvContextRef;
+	using AVCodecContextPtr = typename Backend::AVCodecContextPtr;
+	using ImgConvContextPtr = typename Backend::ImgConvContextPtr;
 	using Frame = typename Backend::Frame;
 	using Recycler = Upp::Recycler<Frame,true>;
 	using Pool = RecyclerPool<Frame,true>;
@@ -54,9 +58,12 @@ class VideoFrameQueueT :
 	int						min_buf_samples = MIN_AUDIO_BUFFER_SAMPLES;
 	off32_gen				gen;
 	
+protected:
+	using FileInput = FileInputT<Backend>;
+	friend class FileInputT<Backend>;
+	FileInput* owner = 0;
 	
 public:
-	using FileInput = typename Backend::FileInput;
 	using Base = VideoInputFrameT<Backend>;
 	//RTTI_DECL1(VideoFrameQueueT, Base)
 	~VideoFrameQueueT() {Clear();}
@@ -86,9 +93,9 @@ protected:
 	using FileInput = class FileInputT<Backend>;
 	#endif
 	using AVFrame = typename Backend::AVFrame;
-	using AVCodecContextPtr = typename Backend::AVCodecContextRef;
+	using AVCodecContextPtr = typename Backend::AVCodecContextPtr;
 	using AVFormatContext = typename Backend::AVFormatContext;
-	using AVCodecParserContextPtr = typename Backend::AVCodecParserContextRef;
+	using AVCodecParserContextPtr = typename Backend::AVCodecParserContextPtr;
 	using AVCodec = typename Backend::AVCodec;
 	using AVPacket = typename Backend::AVPacket;
 	using AVStream = typename Backend::AVStream;
@@ -170,7 +177,7 @@ public:
 	~FileInputT() {Clear();}
 	
 	bool						IsEof() const;
-	void						Visit(Vis& v) {v % aframe % vframe;}
+	void						Visit(Vis& v) {v VISN(aframe) VISN(vframe);}
 	void						Clear();
 	double						GetSeconds() const;
 	bool						IsAudioOpen() const;

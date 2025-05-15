@@ -9,6 +9,8 @@ bool    HasFileExt(const char *path);
 bool    HasWildcards(const char *path);
 bool    IsFullPath(const char *path);
 
+#undef GetFileTitle
+
 String  GetFileDirectory(const char *path); // with DIR_SEP at the end
 String  GetFileFolder(const char *path); // without DIR_SEP at the end, if not Win32 root
 String  GetFileTitle(const char *path);

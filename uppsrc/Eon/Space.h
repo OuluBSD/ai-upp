@@ -10,7 +10,6 @@ class Space :
 {
 	mutable Machine*	machine = 0;
 	//BitField<dword>		freeze_bits;
-	String				name;
 	String				prefab;
 	SpaceId				id;
 	int64				created = 0;
@@ -36,7 +35,6 @@ public:
 	
 	SpaceId GetId() const {return id;}
 	
-	void SetName(String s)			{name = s;}
 	void SetPrefab(String s)		{prefab = s;}
 	void SetCreated(int64 i)		{created = i;}
 	void SetChanged(int64 i)		{changed = i;}
@@ -56,14 +54,13 @@ public:
 	Loop*				GetLoop() const;
 	Space*				GetParent() const;
 	Machine&			GetMachine() const;
-	String				GetName() const override {return name;}
 	String				GetDeepName() const;
 	//bool				HasAtoms() const {return !atoms.IsEmpty();}
 	bool				HasSpaces() const;// {return !spaces.IsEmpty();}
 	
 	void				Initialize(Space& l, String prefab="Custom");
 	
-	SpacePtr			CreateEmpty();
+	SpacePtr			CreateEmpty(String id);
 	SpacePtr			GetAddEmpty(String name);
 	void				CopyTo(Space& l) const;
 	

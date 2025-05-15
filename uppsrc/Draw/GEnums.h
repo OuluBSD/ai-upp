@@ -54,7 +54,7 @@ typedef enum : int {
 	FILTER_LINEAR,
 	FILTER_MIPMAP,
 	
-	DEFAULT_FILTER = FILTER_MIPMAP
+	DEFAULT_FILTER = FILTER_LINEAR
 } Filter;
 
 #define FILTER_LIST \
@@ -193,6 +193,8 @@ typedef enum {
 	SAMPLE_U16,
 	SAMPLE_U32,
 	SAMPLE_S32,
+	
+	DEFAULT_SAMPLE = SAMPLE_FLOAT,
 } Sample;
 
 

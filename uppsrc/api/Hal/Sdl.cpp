@@ -204,11 +204,18 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 	if (!ev_ctx->AttachContext(a))
 		return false;
 	
+	if (!a.node.GetPath().IsValid()) {
+		RLOG(MetaEnv().root.GetTreeString());
+		RLOG(a.node.GetPath().ToString());
+		Panic("internal error");
+		return false;
+	}
+	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_AUDIO;
 	EscValue& data = ev_ctx->UserData();
 	data.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.GetTypeCls().GetName())
+		.AsMap().GetAdd(a.node.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
@@ -367,17 +374,21 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 		deps.SetEmptyMap();
 	const auto& map = deps.GetMap();
 	for(int i = 0; i < map.GetCount(); i++) {
-		EscValue hi_atom = map.GetKey(i);
-		TODO
-		#if 0
-		ASSERT(hi_atom.IsAtom());
-		AtomBase& other = hi_atom.GetAtom();
+		EscValue atom_path_val = map.GetKey(i);
+		VfsPath atom_path;
+		atom_path.Set(atom_path_val);
+		AtomBase* atom = MetaEnv().root.FindPath<AtomBase>(atom_path);
+		ASSERT(atom);
+		if (!atom) {
+			LOG("HalSdl::ContextBase_PostInitialize: error: AtomBase not found in the path: " + atom_path);
+			return false;
+		}
+		AtomBase& other = *atom;
 		EscValue hi_data = map[i];
 		EscValue hi_flag = hi_data("sdl_flag");
 		ASSERT(hi_flag.IsInt64());
 		uint32 flag = (uint32)hi_flag.GetInt64();
 		sdl_flags |= flag;
-		#endif
 	}
 	
 	if (SDL_Init(sdl_flags) < 0) {
@@ -487,7 +498,7 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	dword sdl_flag = SDL_INIT_VIDEO;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.GetTypeCls().GetName())
+		.AsMap().GetAdd(a.node.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	return true;
@@ -779,7 +790,7 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	dword sdl_flag = SDL_INIT_VIDEO;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.GetTypeCls().GetName())
+		.AsMap().GetAdd(a.node.GetPath().ToString())
 		.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	return true;
@@ -905,8 +916,8 @@ void HalSdl::OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, Visitor& vis) {
-	vis % dev.accel;
+void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, Visitor& v) {
+	v VISN(dev.accel);
 }
 
 bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
@@ -928,19 +939,20 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	bool maximized = ws.GetBool(".maximized", false);
 	
 	EscValue& data = a.UserData();
-	data.Set("cx", sz.cx);
-	data.Set("cy", sz.cy);
-	data.Set("fullscreen", fullscreen);
-	data.Set("sizeable", sizeable);
-	data.Set("maximized", maximized);
-	data.Set("title", title);
+	data.MapSet("cx", sz.cx);
+	data.MapSet("cy", sz.cy);
+	data.MapSet("fullscreen", fullscreen);
+	data.MapSet("sizeable", sizeable);
+	data.MapSet("maximized", maximized);
+	data.MapSet("title", title);
 	
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
 	ev_ctx->UserData()
-		.MapGetAdd("dependencies")
-		.MapGetAdd(a.GetTypeCls().GetName()).MapSet("sdl_flag", (int64)sdl_flag);
+		.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.node.GetPath().ToString())
+			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
@@ -954,11 +966,11 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	dev.rend = 0;
 	
 	EscValue& data = a.UserData();
-	dev.screen_sz = Size(data["cx"], data["cy"]);
-	dev.is_fullscreen = (int)data["fullscreen"];
-	dev.is_sizeable = (int)data["sizeable"];
-	dev.is_maximized = (int)data["maximized"];
-	String title = data["title"];
+	dev.screen_sz = Size(data("cx"), data("cy"));
+	dev.is_fullscreen = (int)data("fullscreen");
+	dev.is_sizeable = (int)data("sizeable");
+	dev.is_maximized = (int)data("maximized");
+	String title = data("title");
 	
 	// Window
 	uint32 flags = 0;
@@ -1181,7 +1193,7 @@ bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon
 	dword sdl_flag = SDL_INIT_EVENTS;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.GetTypeCls().GetName())
+		.AsMap().GetAdd(a.node.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
@@ -1329,7 +1341,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 				dev.sz = screen_sz;
 				e.type = EVENT_WINDOW_RESIZE;
 				e.sz = screen_sz;
-				#if defined flagOGL && defined flagUPPCORE
+				#if defined flagOGL
 				if (HalSdl::NativeUppOglDevice::last)
 					HalSdl::NativeUppOglDevice::last->sz = screen_sz;
 				#endif
@@ -1595,7 +1607,7 @@ bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, con
 	dword sdl_flag = SDL_INIT_EVENTS;
 	ev_ctx->UserData()
 		.MapGetAdd("dependencies")
-		.MapGetAdd(a.GetTypeCls().GetName())
+		.MapGetAdd(a.node.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
@@ -1693,7 +1705,7 @@ void HalSdl::UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, Atom
 #endif
 
 
-#if defined flagOGL
+#if defined flagOGL && defined flagGUI
 bool HalSdl::UppOglDevice_Create(NativeUppOglDevice*& dev) {
 	dev = new NativeUppOglDevice;
 	NativeUppOglDevice::last = &*dev;
@@ -1720,19 +1732,19 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	bool maximized = ws.GetBool(".maximized", false);
 	
 	EscValue& data = a.UserData();
-	data.Set("cx", dev.sz.cx);
-	data.Set("cy", dev.sz.cy);
-	data.Set("fullscreen", fullscreen);
-	data.Set("sizeable", sizeable);
-	data.Set("maximized", maximized);
-	data.Set("title", title);
+	data.MapSet("cx", dev.sz.cx);
+	data.MapSet("cy", dev.sz.cy);
+	data.MapSet("fullscreen", fullscreen);
+	data.MapSet("sizeable", sizeable);
+	data.MapSet("maximized", maximized);
+	data.MapSet("title", title);
 	
 	
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
 	ev_ctx->UserData()
-		.MapGetAdd("dependencies")
-		.MapGetAdd(a.GetTypeCls().GetName())
+		.AsMap().GetAdd("dependencies")
+		.AsMap().GetAdd(a.node.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);

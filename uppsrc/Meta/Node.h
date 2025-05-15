@@ -269,8 +269,9 @@ struct MetaNode : Pte<MetaNode> {
 	bool IsOwnerDeep(MetaNodeExt& n) const;
 	
 	template <class T>
-	T& Add() {
+	T& Add(String id="") {
 		MetaNode& s = Add();
+		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
 		s.owner = this;
@@ -278,6 +279,22 @@ struct MetaNode : Pte<MetaNode> {
 		s.file = file;
 		s.type_hash = o->GetTypeHash();
 		return *o;
+	}
+	
+	template <class T>
+	Ptr<T> FindPath(const VfsPath& vfs) {
+		MetaNode* n = this;
+		for(const Value& key : vfs.Parts()) {
+			String key_str = key.ToString();
+			int i = n->Find(key_str);
+			if (i >= 0)
+				n = &n->sub[i];
+			else
+				break;
+		}
+		if (n && n->ext)
+			return &*CastPtr<T>(&*n->ext);
+		return 0;
 	}
 	
 	template <class T>

@@ -138,7 +138,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 	
 	if (!stages.IsEmpty()) {
 		ASSERT(!screen_sz.IsEmpty());
-		auto& fb = stages.Top().fb;
+		auto& fb = stages.Top().fb[0];
 		if (fb.is_audio) {
 			
 		}
@@ -149,7 +149,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 			fb.channels = 3;
 			if (mode == MULTI_STEREO) {
 				for(int i = 0; i < 2; i++) {
-					auto& eye_fb = stages[i].fb;
+					auto& eye_fb = stages[i].fb[0];
 					eye_fb.is_win_fbo = false;
 					eye_fb.size = Size(fb.size.cx / 2, fb.size.cy);
 					eye_fb.fps = fb.fps;
@@ -159,7 +159,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 			}
 			else if (mode == MULTI_CUSTOM) {
 				for(int i = 0; i < stages.GetCount()-1; i++) {
-					auto& stage_fb = stages[i].fb;
+					auto& stage_fb = stages[i].fb[0];
 					stage_fb.is_win_fbo = false;
 					stage_fb.size = screen_sz;
 					stage_fb.fps = 60;
@@ -194,7 +194,7 @@ template <class Gfx>
 bool BufferT<Gfx>::InitializeRenderer() {
 	DLOG("BufferT::Initialize: load new program");
 	
-	auto& fb = stages.Top().fb;
+	auto& fb = stages.Top().fb[0];
 	
 	ASSERT(!is_initialized);
 	ASSERT(fb.fps > 0);
@@ -291,19 +291,28 @@ void BufferT<Gfx>::SetDataStateOverride(DataState* s, bool data_writable) {
 
 template <class Gfx>
 void BufferT<Gfx>::SetFramebufferSize(Size sz) {
+	for (auto& stage : stages)
+		stage.SetFramebufferSize(sz);
+}
+
+template <class Gfx>
+void BufferStageT<Gfx>::SetFramebufferSize(Size sz) {
 	ASSERT(sz.cx > 0 && sz.cy > 0);
 	
-	TODO
-	/*fb.size = sz;
-	if (is_stereo) {
-		for(int i = 0; i < 2; i++) {
-			auto& sfb = stereo_fb[i];
-			sfb.size = Size(fb.size.cx / 2, fb.size.cy);
-		}
+	bool is_stereo = buf->owner->data.is_stereo;
+	
+	//if (is_stereo) {
+	for(int i = 0; i < 2; i++) {
+		auto& sfb = fb[i];
+		sfb.size = sz;// Size(fb.size.cx / 2, fb.size.cy);
+	}
+	/*}
+	else {
+		fb[0].size = sz;
 	}*/
 	
-	TODO /*if (initialized)
-		UpdateTexBuffers();*/
+	if (initialized)
+		UpdateTexBuffers();
 }
 
 
@@ -322,7 +331,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	
 	if (stages.GetCount() == 1) {
 		auto& stage = stages[0];
-		auto& fb = stage.fb;
+		auto& fb = stage.fb[0];
 		
 		if (env) {
 			if (fb.is_audio) {
@@ -356,7 +365,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 			
 			if (env) {
 				auto& top_stage = stages.Top();
-				auto& top_fb = stages.Top().fb;
+				auto& top_fb = stages.Top().fb[0];
 				Size& video_size = env->Set<Size>(SCREEN0_SIZE);
 				if (video_size.cx == 0 || video_size.cy == 0)
 					video_size = top_fb.size;
@@ -367,7 +376,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 					Size eye_sz(video_size.cx / 2, video_size.cy);
 					for(int i = 0; i < 2; i++) {
 						auto& eye_stage = stages[i];
-						auto& eye_fb = eye_stage.fb;
+						auto& eye_fb = eye_stage.fb[0];
 						eye_fb.size = eye_sz;
 						eye_stage.UpdateTexBuffers();
 					}
@@ -400,7 +409,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 				o.material = material.id;
 				material.tex_id[TEXTYPE_DIFFUSE] = i;
 				material.tex_filter[TEXTYPE_DIFFUSE] = GVar::FILTER_LINEAR;
-				m.textures.GetAdd(i) = stage.fb.color_buf[stage.fb.buf_i];
+				m.textures.GetAdd(i) = stage.fb[0].color_buf[stage.fb[0].buf_i];
 			}
 			
 			for (BufferStage& s : stages)
@@ -413,9 +422,9 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 			if (env) {
 				Size& video_size = env->Set<Size>(SCREEN0_SIZE);
 				if (video_size.cx == 0 || video_size.cy == 0)
-					video_size = stages.Top().fb.size;
+					video_size = stages.Top().fb[0].size;
 				for (BufferStage& s : stages) {
-					s.fb.size = video_size;
+					s.fb[0].size = video_size;
 					s.UpdateTexBuffers();
 				}
 			}

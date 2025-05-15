@@ -813,7 +813,7 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagOGL && defined flagUPPCORE)
+#if (defined flagSDL2 && defined flagOGL && defined flagGUI)
 class SdlUppOglDeviceSA : public SdlUppOglDevice {
 
 public:
@@ -858,7 +858,7 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagUPPCORE)
+#if (defined flagSDL2 && defined flagGUI)
 class SdlUppEventsBasePipe : public SdlUppEventsBase {
 
 public:

@@ -23,6 +23,7 @@ public:
 	using GfxBufferField = GfxBufferFieldT<Gfx>;
 	//RTTI_DECL0(GfxBufferFieldT);
 	
+	GfxBufferFieldT();
 	void Visit(Vis& v) {v VISN(buf);}
 	
 	void ClearPtr() {buf.ClearPtr();}

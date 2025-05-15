@@ -372,7 +372,7 @@ void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStatePtr& env, int var, co
 			const BufferStage* in_stage = in.stage;
 			if (in_stage){
 				int off = j * 3;
-				auto& in_fb = in_stage->fb;
+				auto& in_fb = in_stage->fb[0];
 				values[off + 0] = (float)in_fb.size.cx;
 				values[off + 1] = (float)in_fb.size.cy;
 				values[off + 2] = (float)in_fb.depth;
@@ -552,7 +552,7 @@ bool ProgramStateT<Gfx>::LoadInputLink(int in_id, const InternalPacketData& v) {
 		in.id = in_id;
 		in.stage = stage;
 		
-		auto& fb = stage->fb;
+		auto& fb = stage->fb[0];
 		ASSERT(fb.size.cx > 0 && fb.size.cy > 0);
 		
 		if (fb.is_cubemap)

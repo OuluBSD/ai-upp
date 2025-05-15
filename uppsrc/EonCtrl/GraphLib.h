@@ -5,7 +5,7 @@
 
 
 #define GRAPHLIB						GraphLib
-#define NAMESPACE_GRAPHLIB_BEGIN		namespace  TS { namespace  GRAPHLIB {
+#define NAMESPACE_GRAPHLIB_BEGIN		namespace  Upp { namespace  GRAPHLIB {
 #define NAMESPACE_GRAPHLIB_END			}}
 
 

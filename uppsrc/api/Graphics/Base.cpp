@@ -191,7 +191,7 @@ bool TextureBaseT<Gfx>::Recv(int sink_ch, const Packet& p) {
 	auto& stage = buf.InitSingle();
 	if (!stage.IsInitialized()) {
 		ASSERT(sz.cx > 0 && sz.cy > 0);
-		auto& fb = stage.fb;
+		auto& fb = stage.fb[0];
 		fb.is_win_fbo = false;
 		fb.size = sz.GetSize2();
 		fb.depth = sz.cz;
@@ -485,7 +485,7 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 		
 		if (!stage.IsInitialized()) {
 			ASSERT(sz.cx > 0 && sz.cy > 0);
-			auto& fb = stage.fb;
+			auto& fb = stage.fb[0];
 			fb.is_win_fbo = false;
 			fb.size = sz;
 			fb.channels = channels;
@@ -592,7 +592,7 @@ bool AudioBaseT<Gfx>::Recv(int sink_ch, const Packet& p) {
 		
 		if (!stage.IsInitialized()) {
 			ASSERT(sz.cx > 0 && sz.cy > 0);
-			auto& fb = stage.fb;
+			auto& fb = stage.fb[0];
 			fb.is_win_fbo = false;
 			fb.is_audio = true;
 			fb.size = sz;

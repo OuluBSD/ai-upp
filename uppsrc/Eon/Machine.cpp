@@ -46,6 +46,7 @@ Loop& Machine::GetRootLoop() {
 	LoopPtr loop = node.Find<Loop>();
 	if (loop) return *loop;
 	loop = &node.Add<Loop>();
+	loop->node.id = "loop";
 	return *loop;
 }
 
@@ -53,6 +54,7 @@ Space& Machine::GetRootSpace() {
 	SpacePtr space = node.Find<Space>();
 	if (space) return *space;
 	space = &node.Add<Space>();
+	space->node.id = "space";
 	return *space;
 }
 

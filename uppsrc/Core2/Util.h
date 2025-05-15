@@ -178,6 +178,7 @@ inline String ChrStr(char c) {String s; s.Cat(c); return s;}
 inline String CharStr(char c) {String s; s.Cat(c); return s;}
 bool IsAllSpace(const String& a);
 bool IsAllDigit(const String& a);
+String ClassPathTop(String s);
 String CamelToName(String s);
 String ToVarName(String s);
 String ToCaps(String s);

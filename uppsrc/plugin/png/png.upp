@@ -6,6 +6,8 @@ uses
 	Core,
 	Draw;
 
+library(WIN32 !STATIC_PNG) libpng16;
+
 options
 	-DPNG_NO_READ_EXPAND,
 	-DPNG_NO_READ_SHIFT,

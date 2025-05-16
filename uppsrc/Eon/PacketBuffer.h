@@ -81,6 +81,7 @@ class PacketValue :
 	#if HAVE_PACKETTIMINGCHECK
 	float				limit_time = 0;
 	#endif
+	void (*ClearFn)(PacketValue&) = 0;
 	
 public:
 	union {
@@ -100,6 +101,7 @@ public:
 	void					Set(ValueFormat fmt, double time) {this->fmt = fmt; this->time = time;}
 	void					SetFormat(ValueFormat fmt) {this->fmt = fmt;}
 	void					SetTime(double seconds) {time = seconds;}
+	void					SetDataClearFunction(void (*Fn)(PacketValue&)) {ClearFn = Fn;}
 	void					Clear();
 	void					SetOffset(off32 o) {offset = o;}
 	

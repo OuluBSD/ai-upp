@@ -108,7 +108,8 @@ void Pool::ClearComponentsDeep() {
 void Pool::ClearDeep() {
 	auto pools = node.FindAll<Pool>();
 	for (PoolPtr& p : pools)
-		p->ClearDeep();
+		if (p)
+			p->ClearDeep();
 	
 	node.RemoveAllDeep<Pool>();
 	node.RemoveAllDeep<Ecs::Entity>();
@@ -121,7 +122,7 @@ void Pool::ReverseEntities() {
 #endif
 
 void Pool::Clear() {
-	UnrefDeep();
+	//UnrefDeep();
 	UnlinkDeep();
 	UninitializeComponentsDeep();
 	ClearComponentsDeep();

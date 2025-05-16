@@ -49,9 +49,8 @@ void LinkBase::AddLinkToUpdateList() {
 
 void LinkBase::RemoveLinkFromUpdateList() {
 	LinkSystem* l = node.FindOwnerWith<LinkSystem>();
-	ASSERT(l);
-	if (!l) throw Exc("LinkSystem not found");
-	l->RemoveUpdated(this);
+	if (l)
+		l->RemoveUpdated(this);
 }
 
 int LinkBase::GetId() const {

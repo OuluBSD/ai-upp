@@ -158,11 +158,26 @@ bool MidiFileReaderAtom::Recv(int sink_ch, const Packet& in) {
 	return true;
 }
 
+void PacketValue_ClearMidiEventData(PacketValue& p) {
+	Vector<byte>& data = p.Data();
+	if (data.IsEmpty()) return;
+	ASSERT((data.GetCount() % sizeof(MidiIO::Event)) == 0);
+	MidiIO::Event* dst = (MidiIO::Event*)(byte*)data.Begin();
+	int items = data.GetCount() / sizeof(MidiIO::Event);
+	MidiIO::Event* end = dst + items;
+	while (dst != end) {
+		dst->~Event();
+		dst++;
+	}
+	data.Clear();
+}
+
 bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	ValueFormat fmt = out.GetFormat();
 	
 	if (fmt.IsMidi()) {
 		Vector<byte>& data = out.Data();
+		out.SetDataClearFunction(&PacketValue_ClearMidiEventData);
 		
 		if (!split_channels) {
 			int sz = tmp.midi.GetCount() * sizeof(MidiIO::Event);
@@ -171,7 +186,7 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 			MidiIO::Event* dst = (MidiIO::Event*)(byte*)data.Begin();
 			for(const MidiIO::Event* ev : tmp.midi) {
 				//LOG("track " << ev->track << ": " << ev->ToString());
-				*dst++ = *ev;
+				new(dst++) MidiIO::Event(*ev);
 			}
 			
 			tmp.Reset();
@@ -202,20 +217,20 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 					if (is_drum_ch) {
 						// Midi channel 10 is drum channel (here 10-1==9)
 						if (ev->GetChannel() == 9) {
-							*dst++ = *ev;
+							new(dst++) MidiIO::Event(*ev);
 							count++;
 						}
 					}
 					else {
 						// midi tracks starts from 1 practically, like side-channels
 						if (ev->track == src_ch) {
-							*dst++ = *ev;
+							new(dst++) MidiIO::Event(*ev);
 							count++;
 						}
 					}
 				}
 				else {
-					*dst++ = *ev;
+					new(dst++) MidiIO::Event(*ev);
 					count++;
 				}
 			}

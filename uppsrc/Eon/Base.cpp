@@ -719,7 +719,7 @@ void TestEventSrcBase::Uninitialize() {
 	bool succ = sent_count >= 2;
 	if (succ) {LOG("TestEventSrcBase::Uninitialize: success! " << sent_count << " packets sent");}
 	else       {LOG("TestEventSrcBase::Uninitialize: fail :(");}
-	TODO//if (!succ) GetMachine().SetFailed("TestEventSrcBase error");
+	if (!succ) node.FindOwner<Machine>()->SetFailed("TestEventSrcBase error");
 }
 
 bool TestEventSrcBase::IsReady(PacketIO& io) {

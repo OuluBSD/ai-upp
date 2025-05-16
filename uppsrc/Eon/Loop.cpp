@@ -48,7 +48,7 @@ bool Loop::HasLoopParent(LoopPtr pool) const {
 }
 
 void Loop::Clear() {
-	UnrefDeep();
+	//UnrefDeep();
 	UninitializeLinksDeep();
 	ClearDeep();
 }
@@ -72,7 +72,8 @@ void Loop::UninitializeLinksDeep() {
 void Loop::ClearDeep() {
 	auto loops = node.FindAllDeep<Loop>();
 	for (Loop* p : loops)
-		p->ClearDeep();
+		if (p)
+			p->ClearDeep();
 	node.RemoveAllDeep<Loop>();
 	node.RemoveAllDeep<LinkBase>();
 }

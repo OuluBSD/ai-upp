@@ -145,6 +145,8 @@ bool PacketBufferBase::StorePacket(PacketValue& p, double min_time) {
 
 
 PacketValue::~PacketValue() {
+	if (ClearFn && data.GetCount())
+		ClearFn(*this);
 	data.Clear();
 	#if HAVE_PACKETTRACKER
 	StopTracking(this);
@@ -152,6 +154,8 @@ PacketValue::~PacketValue() {
 }
 
 void PacketValue::Clear() {
+	if (ClearFn && data.GetCount())
+		ClearFn(*this);
 	data.SetCount(0);
 	fmt.Clear();
 	offset.Clear();

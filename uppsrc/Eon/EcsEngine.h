@@ -186,6 +186,7 @@ public:
 	static void Register(String id) {
 		//String id = T::GetEonId();
 		ASSERT(id.GetCount() > 0);
+		TypedStringHasher<T>(id);
 		TypeCls type = AsTypeCls<T>();
 		ASSERT(EonToType().Find(id) < 0);
 		EonToType().Add(id, type);
@@ -197,10 +198,6 @@ public:
     
 };
 
-
-Engine& GetActiveEngine();
-void SetActiveEngine(Engine& e);
-void ClearActiveEngine();
 
 template <class S, class R>
 inline void ComponentBase::AddToSystem(R ref) {

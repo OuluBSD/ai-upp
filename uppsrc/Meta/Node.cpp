@@ -488,6 +488,13 @@ MetaNode::~MetaNode()
 #endif
 }
 
+void MetaNode::ClearExtDeep() {
+	for (auto& s : sub)
+		s.ClearExtDeep();
+	if (ext)
+		ext.Clear();
+}
+
 void MetaNode::PointPkgTo(MetaNodeSubset& other, int pkg_id)
 {
 	other.n = this;

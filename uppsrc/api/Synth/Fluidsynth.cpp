@@ -87,7 +87,7 @@ bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, co
 	
 	ISourcePtr src = a.GetSource();
 	int c = src->GetSourceCount();
-	Value& v = src->GetSourceValue(c-1);
+	ValueBase& v = src->GetSourceValue(c-1);
 	ValueFormat fmt = v.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;

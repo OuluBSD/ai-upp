@@ -37,7 +37,7 @@ String ToyLoader::GetStagePath(int i, Value& o) {
 	String stage_str = "stage" + IntStr(i);
 	#define TOY_ASSERT(x) if (!(x)) {return String();}
 	TOY_ASSERT(o.Is<ValueMap>());
-	ValueMap map = o.Get<ValueMap>();
+	ValueMap map = o;
 	TOY_ASSERT(map.Find(stage_str + "_path") >= 0);
 	return map(stage_str + "_path");
 	#undef TOY_ASSERT
@@ -47,11 +47,11 @@ bool ToyLoader::Load(Value& o) {
 	//LOG(GetValueTreeString(o));
 	#define TOY_ASSERT(x) if (!(x)) {LOG("ToyLoader::Load: error: assertion failed (" #x ")"); return false;}
 	TOY_ASSERT(o.Is<ValueMap>());
-	ValueMap map = o.Get<ValueMap>();
+	ValueMap map = o;
 	TOY_ASSERT(map.Find("stages") >= 0);
 	Value stages_o = map("stages");
 	TOY_ASSERT(stages_o.Is<ValueArray>());
-	ValueArray stages = stages_o.Get<ValueArray>();
+	ValueArray stages = stages_o;
 	//LOG(GetValueTreeString(stages_o));
 	int stage_count = stages.GetCount();
 	
@@ -63,18 +63,18 @@ bool ToyLoader::Load(Value& o) {
 		Value stage = stages[i];
 		TOY_ASSERT(stage.Is<ValueMap>());
 		
-		ValueMap stage_map = stage.Get<ValueMap>();
+		ValueMap stage_map = stage;
 		TOY_ASSERT(stage_map.Find("type") >= 0);
 		Value type_o = stage_map("type");
 		
 		Value outputs = stage_map("outputs");
 		TOY_ASSERT(outputs.Is<ValueArray>());
-		ValueArray output_arr = outputs.Get<ValueArray>();
+		ValueArray output_arr = outputs;
 		TOY_ASSERT(!output_arr.IsEmpty());
 		
 		Value inputs = stage_map("inputs");
 		TOY_ASSERT(inputs.Is<ValueArray>());
-		ValueArray input_arr = inputs.Get<ValueArray>();
+		ValueArray input_arr = inputs;
 		
 		String type_str = type_o.ToString();
 		String stage_str = "stage" + IntStr(i);
@@ -85,7 +85,7 @@ bool ToyLoader::Load(Value& o) {
 		
 		Value output = output_arr[0];
 		ASSERT(output.Is<ValueMap>());
-		ValueMap output_map = output.Get<ValueMap>();
+		ValueMap output_map = output;
 		TOY_ASSERT(output_map.Find("id") >= 0);
 		String output_id_str = output_map("id").ToString();
 		
@@ -100,7 +100,7 @@ bool ToyLoader::Load(Value& o) {
 			ToyInput& to_in = to.inputs[j];
 			Value in = input_arr[j];
 			TOY_ASSERT(in.Is<ValueMap>());
-			ValueMap in_map = in.Get<ValueMap>();
+			ValueMap in_map = in;
 			
 			if (in_map.Find("id") < 0)
 				continue;

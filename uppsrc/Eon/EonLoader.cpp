@@ -7,7 +7,12 @@ using namespace Ecs;
 
 
 bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
-	Ecs::Engine& eng = Ecs::GetActiveEngine();
+	Ecs::Engine* engp = l.parent.parent.node.FindOwnerWith<Ecs::Engine>();
+	if (!engp) {
+		RLOG("ExtScriptEcsLoader::Load: error: no Engine");
+		return false;
+	}
+	Ecs::Engine& eng = *engp;
 	
 	for (ScriptEcsSystemLoader& loader : l.systems) {
 		String id = loader.def.id.ToString();
@@ -26,6 +31,8 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 	}
 	
 	TODO
+	
+	
 	#if 0
 	Ptr<EntityStore> ents = eng.Get<EntityStore>();
 	PoolPtr pool = ents->GetRoot();
@@ -54,9 +61,12 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
 		}
 	}
 	
-	Ecs::Engine& eng = Ecs::GetActiveEngine();
+	Ecs::Engine* eng = sys.node.FindOwnerWith<Ecs::Engine>();
+	ASSERT(eng);
+	if (!eng) return false;
+	
 	TypeCls type = sys.GetTypeCls();
-	eng.SystemStartup(type, &sys);
+	eng->SystemStartup(type, &sys);
 	
 	return true;
 }

@@ -75,9 +75,8 @@ void AtomBase::AddAtomToUpdateList() {
 
 void AtomBase::RemoveAtomFromUpdateList() {
 	AtomSystem* sys = node.FindOwnerWith<AtomSystem>();
-	ASSERT(sys);
-	if (!sys) throw Exc("AtomSystem not found");
-	sys->RemoveUpdated(this);
+	if (sys)
+		sys->RemoveUpdated(this);
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {

@@ -250,7 +250,7 @@ void ScrWinD11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis)
 }
 
 bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<WinD11Context>(1);
+	auto ctx_ = a.node.FindOwnerWithCast<WinD11Context>();
 	if (!ctx_) {RTLOG("error: could not find WinD11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;

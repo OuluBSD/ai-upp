@@ -54,12 +54,12 @@ void ScrX11Sw::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-void ScrX11Sw::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
-	vis % dev.accel;
+void ScrX11Sw::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& v) {
+	v VISN(dev.accel);
 }
 
 bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
-	auto ctx_ = a.GetSpace()->template FindNearestAtomCast<X11SwContext>(1);
+	auto ctx_ = a.node.FindOwnerWithCast<X11SwContext>();
 	if (!ctx_) {LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;

@@ -36,16 +36,23 @@ public:
 	template <typename... Args>
 	T* New(const Args&... args) {
 		T* o;
-		if (pool.IsEmpty()) {
-			o = (T*)MemoryAlloc(sizeof(T));
-			new (o) T(args...);
-		}
-		else {
-			lock.Enter();
-			o = pool.Pop();
-			lock.Leave();
-			if (!keep_as_constructed)
+		while (1) {
+			if (pool.IsEmpty()) {
+				o = (T*)MemoryAlloc(sizeof(T));
 				new (o) T(args...);
+			}
+			else {
+				lock.Enter();
+				if (pool.IsEmpty()) {
+					lock.Leave();
+					continue;
+				}
+				o = pool.Pop();
+				lock.Leave();
+				if (!keep_as_constructed)
+					new (o) T(args...);
+			}
+			break;
 		}
 		return o;
 	}

@@ -31,9 +31,21 @@ Value ParseJSON(CParser& p, bool strict)
 		while(!p.Char('}')) {
 			if (!strict && p.Char(']')) // trailing char problems are very possible in AI outputs
 				break;
-			String key = p.ReadString();
+			String key;
+			if (strict)
+				key = p.ReadString();
+			else {
+				if (p.IsId())
+					key = p.ReadId();
+				else if (p.IsInt())
+					key = IntStr(p.ReadInt());
+				else if (p.IsDouble())
+					key = DblStr(p.ReadDouble());
+				else
+					p.ReadString();
+			}
 			p.PassChar(':');
-			m.Add(key, ParseJSON(p));
+			m.Add(key, ParseJSON(p, strict));
 			if (!strict && p.Char(']'))
 				break;
 			if(p.Char('}')) // Stray ',' at the end of list is allowed...
@@ -47,7 +59,7 @@ Value ParseJSON(CParser& p, bool strict)
 		while(!p.Char(']')) {
 			if (!strict && p.Char('}'))
 				break;
-			va.Add(ParseJSON(p));
+			va.Add(ParseJSON(p, strict));
 			if (!strict && p.Char('}'))
 				break;
 			if(p.Char(']')) // Stray ',' at the end of list is allowed...
@@ -55,6 +67,14 @@ Value ParseJSON(CParser& p, bool strict)
 			p.PassChar(',');
 		}
 		return va;
+	}
+	if (!strict) {
+		if (p.IsId())
+			return p.ReadId();
+		if (p.IsInt())
+			return p.ReadInt();
+		if (p.IsDouble())
+			return p.ReadDouble();
 	}
 	p.ThrowError("Unrecognized JSON element");
 	return Null;

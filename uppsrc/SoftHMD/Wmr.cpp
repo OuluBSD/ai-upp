@@ -506,7 +506,7 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 		#ifdef flagDEBUG
 		WString ps(cur_dev->product_string);
 		String pss = ps.ToString();
-		LOG(i << ": " << HexStr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
+		LOG(i << ": " << HexStrPtr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
 		#endif
 		
 		if (cur_dev->vendor_id != MICROSOFT_VID) {

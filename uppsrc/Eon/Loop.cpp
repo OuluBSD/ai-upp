@@ -249,11 +249,11 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 		ASSERT(expt_type != AsVoidTypeCls());
 		
 		ExchangePointPtr ep = space->MetaSpaceBase::Add(expt_type);
-		RTLOG("Loop::Link(...): created " << ep->GetDynamicName() << " at " << HexStr(&ep->GetRTTI()));
-		RTLOG("                 src-atom: " << HexStr(&src_atom->GetRTTI()));
-		RTLOG("                 src-link: " << HexStr(&src_atom->GetLink()->GetRTTI()));
-		RTLOG("                 dst-atom: " << HexStr(&dst_atom->GetRTTI()));
-		RTLOG("                 dst-link: " << HexStr(&dst_atom->GetLink()->GetRTTI()));
+		RTLOG("Loop::Link(...): created " << ep->GetDynamicName() << " at " << HexStr(ep->GetHashValue()));
+		RTLOG("                 src-atom: " << HexStr(src_atom->GetTypeCls().GetHashValue()));
+		RTLOG("                 src-link: " << HexStr(src_atom->GetLink()->GetTypeCls().GetHashValue()));
+		RTLOG("                 dst-atom: " << HexStr(dst_atom->GetTypeCls().GetHashValue()));
+		RTLOG("                 dst-link: " << HexStr(dst_atom->GetLink()->GetTypeCls().GetHashValue()));
 		src->Link(ep, sinkT, src_cookie, sink_cookie);
 		ep->Init(this->GetSpace());
 		ep->Set(src_ep, sinkT, src_cookie, sink_cookie);

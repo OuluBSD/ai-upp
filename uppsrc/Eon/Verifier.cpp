@@ -152,7 +152,7 @@ void MachineVerifier::OnEnterUpdate() {
 void MachineVerifier::OnEnterSystemUpdate(SystemBase& base) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterSystemUpdate " << HexStr((void*)&base));
+	MVER_LOG("MachineVerifier::OnEnterSystemUpdate " << HexStrPtr((void*)&base));
 	Enter(SYSTEM_UPDATE);
 	
 	Scope& cur = stack.Top();
@@ -236,7 +236,7 @@ void MachineVerifier::OnEnterScriptLoopLoaderForwardSides(size_t call_id) {
 void MachineVerifier::OnEnterOnceForward(PacketForwarder* fwd) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterOnceForward " << HexStr((void*)fwd));
+	MVER_LOG("MachineVerifier::OnEnterOnceForward " << HexStrPtr((void*)fwd));
 	Enter(ONCE_FORWARD);
 	
 	Scope& cur = stack.Top();
@@ -247,7 +247,7 @@ void MachineVerifier::OnEnterOnceForward(PacketForwarder* fwd) {
 void MachineVerifier::OnEnterAtomForward(AtomBase* c) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterAtomForward " << HexStr((void*)c));
+	MVER_LOG("MachineVerifier::OnEnterAtomForward " << HexStrPtr((void*)c));
 	Enter(EXTCOMP_FORWARD);
 	
 	Scope& cur = stack.Top();
@@ -258,7 +258,7 @@ void MachineVerifier::OnEnterAtomForward(AtomBase* c) {
 void MachineVerifier::OnEnterFwdScopeForward(FwdScope& f) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterFwdScopeForward " << HexStr((void*)&f));
+	MVER_LOG("MachineVerifier::OnEnterFwdScopeForward " << HexStrPtr((void*)&f));
 	Enter(FWDSCOPE_FORWARD);
 	
 	Scope& cur = stack.Top();
@@ -290,7 +290,7 @@ void MachineVerifier::OnEnterFwdScopeForward(FwdScope& f) {
 void MachineVerifier::OnEnterProcessPackets(AtomBase& b, PacketIO& p) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterProcessPackets " << HexStr((void*)&b) << ", " << HexStr((void*)&*p.sink[0].p));
+	MVER_LOG("MachineVerifier::OnEnterProcessPackets " << HexStrPtr((void*)&b) << ", " << HexStrPtr((void*)&*p.sink[0].p));
 	Enter(PROCESS_PACKETS);
 	
 	// don't add this you dumb fuck: MayLeaveTop();
@@ -299,7 +299,7 @@ void MachineVerifier::OnEnterProcessPackets(AtomBase& b, PacketIO& p) {
 void MachineVerifier::OnEnterCreatedEmptyPacket(Packet& p) {
 	if (!Thread::IsMain()) return;
 	
-	MVER_LOG("MachineVerifier::OnEnterCreatedEmptyPacket " << HexStr((void*)&*p));
+	MVER_LOG("MachineVerifier::OnEnterCreatedEmptyPacket " << HexStrPtr((void*)&*p));
 	Enter(CREATE_EMPTY_PACKET);
 	
 	MayLeaveTop();
@@ -480,7 +480,7 @@ void MachineVerifier::OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
 	TODO
 	#if 0
 	auto new_status = ll->GetStatus();
-	MVER_LOG("MachineVerifier::OnLoopLoader_Status: set loop " << ll->def.id.ToString() << " " << HexStr(ll) << " status to " << GetScriptStatusString(new_status) << " (from " << GetScriptStatusString(data.status0) << ")");
+	MVER_LOG("MachineVerifier::OnLoopLoader_Status: set loop " << ll->def.id.ToString() << " " << HexStrPtr(ll) << " status to " << GetScriptStatusString(new_status) << " (from " << GetScriptStatusString(data.status0) << ")");
 	
 	data.status1 = data.status0;
 	data.status0 = new_status;
@@ -549,7 +549,7 @@ void MachineVerifier::OnLoopLoader_AtomLinked(Eon::ScriptLoopLoader* ll) {
 	
 	UpdateLoopData(ll);
 	
-	MVER_LOG("MachineVerifier::OnLoopLoader_AtomLinked: linked interface in loop " << HexStr(ll));
+	MVER_LOG("MachineVerifier::OnLoopLoader_AtomLinked: linked interface in loop " << HexStrPtr(ll));
 }
 
 void MachineVerifier::OnLoopLoader_SearchNewSegment(Eon::ScriptLoopLoader* ll) {

@@ -197,7 +197,7 @@ bool Engine::HasStarted() const {
 void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 	ASSERT(is_started);
 	if (system->Initialize()) {
-		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetType().GetName());
+		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetTypeCls().GetName());
 		
 		bool has_already = false;
 		auto systems = node.FindAll<SystemBase>();
@@ -210,7 +210,7 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 		system->Start();
 	}
 	else {
-		RTLOG("Engine::SystemStartup: error: could not initialize system in already running engine: " << system->GetType().GetName());
+		RTLOG("Engine::SystemStartup: error: could not initialize system in already running engine: " << system->GetTypeCls().GetName());
 		delete system;
 	}
 }

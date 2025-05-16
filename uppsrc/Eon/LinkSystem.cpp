@@ -9,7 +9,7 @@ SYS_DEF_VISIT_I(LinkSystem, vis && updated && customers && drivers && pollers)
 void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>& atoms) {
 	int dbg_i = 0;
 	for (LinkBasePtr& c : atoms) {
-		RTLOG("LinkSystem::ForwardLinks: begin " << (String)id << " #" << dbg_i << " (" << c->ToString() << " " << HexStr(&*c) << ")");
+		RTLOG("LinkSystem::ForwardLinks: begin " << (String)id << " #" << dbg_i << " (" << c->ToString() << " " << HexStrPtr(&*c) << ")");
 		
 		RealtimeSourceConfig* cfg = c->GetConfig();
 		if (!cfg) {
@@ -26,7 +26,7 @@ void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>
 		
 		int dbg_j = 0;
 		for (FwdScope scope(*c, *cfg); scope; scope++) {
-			RTLOG("LinkSystem::ForwardLinks: loop id=" << c->GetId() << " " << HexStr(&*c) << " packets: " << GetDebugPacketString(c, cfg));
+			RTLOG("LinkSystem::ForwardLinks: loop id=" << c->GetId() << " " << HexStrPtr(&*c) << " packets: " << GetDebugPacketString(c, cfg));
 			
 			if (!scope.IsBreak()) {
 				RTLOG("LinkSystem::ForwardLinks: " << (String)id << " #" << dbg_i << " fwd #" << dbg_j++);

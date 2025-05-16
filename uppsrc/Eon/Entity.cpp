@@ -8,7 +8,7 @@ Entity::Entity(MetaNode& n) : MetaNodeExt(n) {
 }
 
 Entity::~Entity() {
-	UnrefDeep();
+	//UnrefDeep();
 	UninitializeComponents();
 	ClearComponents();
 	DBG_DESTRUCT

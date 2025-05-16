@@ -207,6 +207,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
 	~MetaNode();
+	void ClearExtDeep();
 	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
 	void CopyFrom(const MetaNode& n);
@@ -420,11 +421,14 @@ struct MetaNode : Pte<MetaNode> {
 		return v;
 	}
 	template <class T> void FindAllDeep0(Vector<Ptr<T>>& v) {
-		T* o = ext ? CastPtr<T>(&*ext) : 0;
-		if (o)
-			v.Add(o);
-		for (auto& s : sub)
+		for (auto& s : sub) {
+			T* o = s.ext ? CastPtr<T>(&*s.ext) : 0;
+			if (o)
+				v.Add(o);
+		}
+		for (auto& s : sub) {
 			s.FindAllDeep0<T>(v);
+		}
 	}
 	template <class T> void RemoveAllDeep() {
 		Vector<int> rmlist;

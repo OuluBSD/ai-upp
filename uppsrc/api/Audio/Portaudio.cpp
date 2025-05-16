@@ -88,10 +88,10 @@ struct PortaudioCallbackArgs {
 
 struct PortaudioCallbackData {
 	Callback1<void*>					finish;
-	void*								data;
-	bool								dbg_async_race;
-	PaStream*							dev;
-	AtomBase*							atom;
+	void*								data = 0;
+	bool								dbg_async_race = false;
+	PaStream*							dev = 0;
+	AtomBase*							atom = 0;
 	ValueFormat							fmt;
 	
 	void Set(PaStream* d, AtomBase* atom, ValueFormat fmt,
@@ -165,8 +165,7 @@ public:
 	PortaudioStatic() {
 		ASSERT_(!exists, "PortaudioStatic already instantiated!");
 		err = Pa_Initialize();
-		CHECK_ERR;
-		exists = true;
+		exists = err == paNoError;
 	}
 	
 	~PortaudioStatic() {
@@ -196,7 +195,12 @@ public:
 	bool IsError() const {return err != paNoError;}
 	PaError GetError() const {return err;}
 	
-	static PortaudioStatic& Single() {static PortaudioStatic s; return s;}
+	static PortaudioStatic& Single() {
+		static One<PortaudioStatic> s;
+		if (s.IsEmpty())
+			s.Create();
+		return *s;
+	}
 };
 
 bool PortaudioStatic::exists = false;

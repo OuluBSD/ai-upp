@@ -49,7 +49,11 @@ bool ShadertoyContextLoader::LoadFileToy(String path, Value& dst) {
 	
 	String file_dir = GetFileDirectory(path);
 	bool fail = false;
-	dst = ParseJSON(LoadFile(path));
+	dst = ParseJSON(LoadFile(path), false);
+	if (dst.IsError()) {
+		RLOG("ShadertoyContextLoader::LoadFileToy: error: " + GetErrorText(dst));
+		return false;
+	}
 	
 	ASSERT(dst.Is<ValueMap>());
 	ValueMap map = dst;
@@ -75,6 +79,7 @@ bool ShadertoyContextLoader::LoadFileToy(String path, Value& dst) {
 		return false;
 	}
 	
+	LOG(AsJSON(dst, true));
 	MakeUniqueIds(dst);
 	
 	return true;
@@ -84,7 +89,7 @@ void ShadertoyContextLoader::MakeUniqueIds(Value& v) {
 	if (!v.Is<ValueMap>())
 		return;
 	//DLOG(GetValueTreeString(v));
-	ValueMap map = v.Get<ValueMap>();
+	ValueMap map = v;
 	Value stages = map.GetAdd("stages");
 	if (!stages.Is<ValueArray>())
 		return;
@@ -103,7 +108,7 @@ void ShadertoyContextLoader::MakeUniqueIds(Value& v) {
 					Value in_el = in_arr.Get(i);
 					if (!in_el.Is<ValueMap>())
 						continue;
-					ValueMap in_map = in_el.Get<ValueMap>();
+					ValueMap in_map = in_el;
 					int j = in_map.Find("id");
 					if (j >= 0)
 						in_map.SetAt(j, MakeUniqueId(ids, (int)in_map.GetValue(j)));

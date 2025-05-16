@@ -288,20 +288,6 @@ Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
 
 
 
-Engine* __active_engine;
-
-Engine& GetActiveEngine() {
-	ASSERT(__active_engine);
-	return *__active_engine;
-}
-
-void SetActiveEngine(Engine& e) {
-	__active_engine = &e;
-}
-
-void ClearActiveEngine() {
-	__active_engine = 0;
-}
 
 
 } END_UPP_NAMESPACE

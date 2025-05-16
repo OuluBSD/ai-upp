@@ -17,7 +17,7 @@ bool CustomerLink::Initialize(const WorldState& ws) {
 
 void CustomerLink::Uninitialize() {
 	LinkSystemPtr ls = node.FindOwnerWith<LinkSystem>();
-	ls->RemoveCustomer(this);
+	if (ls) ls->RemoveCustomer(this);
 }
 
 bool CustomerLink::ProcessPackets(PacketIO& io) {

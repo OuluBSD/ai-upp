@@ -206,7 +206,7 @@ SpacePtr Space::CreateEmpty(String id) {
 
 void Space::Clear() {
 	// useless ClearInterfacesDeep();
-	UnrefDeep();
+	//UnrefDeep();
 	UninitializeAtomsDeep();
 	UnlinkDeep();
 	ClearAtomsDeep();
@@ -273,7 +273,6 @@ void Space::ClearAtomsDeep() {
 	for (auto& p : spaces)
 		p->ClearAtomsDeep();
 	
-	TODO
 	/*AtomStore* sys = GetMachine().GetPtr<AtomStore>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
 		auto& it = atoms[i];
@@ -284,7 +283,8 @@ void Space::ClearAtomsDeep() {
 void Space::ClearDeep() {
 	auto spaces = node.FindAll<Space>();
 	for (auto& p : spaces)
-		p->ClearDeep();
+		if (p)
+			p->ClearDeep();
 	spaces.Clear();
 	
 	node.RemoveAllShallow<AtomBase>();

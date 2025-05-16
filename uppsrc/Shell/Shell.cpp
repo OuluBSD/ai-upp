@@ -141,11 +141,15 @@ GUI_APP_MAIN {
 
 
 CONSOLE_APP_MAIN {
+	Sleep(3000);
 	using namespace Upp;
 	Machine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.WhenBoot << callback(DefaultSerialInitializer);
 	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
 	mach.WhenPreFirstUpdate << callback(DefaultStartup);
+	
+	Ecs::Engine& eng = MetaEnv().root.Add<Ecs::Engine>("eng");
+	eng.Start();
 	
 	bool gubo = false;
 	if (gubo) {
@@ -153,6 +157,15 @@ CONSOLE_APP_MAIN {
 	}
 	
 	mach.Run(true, "Shell");
+	
+	eng.Stop();
+	mach.Stop();
+	
+	mach.GetRootSpace().Clear();
+	mach.GetRootLoop().Clear();
+	mach.Clear();
+	MetaEnv().root.ClearExtDeep();
+	MetaEnv().root.sub.Clear();
 }
 
 #endif

@@ -33,10 +33,10 @@ bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	
 	seq = 0;
 	imgs.Clear();
+	String dir = GetFileDirectory(filepath);
+	String ext = GetFileExt(filepath);
+	String title = GetFileTitle(filepath);
 	if (cubemap) {
-		String dir = GetFileDirectory(filepath);
-		String ext = GetFileExt(filepath);
-		String title = GetFileTitle(filepath);
 		for(int i = 0; i < 6; i++) {
 			String side_path;
 			if (i == 0)
@@ -47,15 +47,9 @@ bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 			String ext = GetFileExt(side_path);
 			Image img;
 			#if 1
-			if (ext == ".jpg" || ext == ".jpeg") {
-				img = JPGRaster().LoadFile(side_path);
-			}
-			/*else if (ext == ".bmp") {
-				img = BMPRaster().LoadFile(side_path);
-			}*/
-			else {
-				img = StreamRaster::LoadFileAny(side_path);
-			}
+			if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(side_path);
+			else if (ext == ".png") img = PNGRaster().LoadFile(side_path);
+			else img = StreamRaster::LoadFileAny(side_path);
 			#else
 			StaticIfaceBackend* iface = StaticIfaceFactory::GetReader(ext);
 			if (!iface) {
@@ -81,7 +75,10 @@ bool ImageBaseAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 			Swap(imgs[2], imgs[3]);
 	}
 	else {
-		Image img = StreamRaster::LoadFileAny(filepath);
+		Image img;
+		if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(filepath);
+		else if (ext == ".png") img = PNGRaster().LoadFile(filepath);
+		else img = StreamRaster::LoadFileAny(filepath		);
 		if (img.IsEmpty()) {
 			LOG("ImageBaseAtomT: error: empty image: " << filepath);
 			return false;

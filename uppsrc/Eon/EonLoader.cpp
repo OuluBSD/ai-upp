@@ -30,12 +30,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		}
 	}
 	
-	TODO
-	
-	
-	#if 0
-	Ptr<EntityStore> ents = eng.Get<EntityStore>();
-	PoolPtr pool = ents->GetRoot();
+	PoolPtr pool = &eng.GetRootPool();
 	
 	for (ScriptPoolLoader& loader : l.pools) {
 		String name = loader.def.id.ToString();
@@ -46,7 +41,6 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 			return false;
 		}
 	}
-	#endif
 	
 	return true;
 }

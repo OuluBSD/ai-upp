@@ -134,6 +134,7 @@ public:
 	
 	Ptr<SystemBase> Add(TypeCls type, bool startup=true);
 	Ptr<SystemBase> GetAdd(String id, bool startup=true);
+    Pool& GetRootPool();
     
 	Event<> WhenEnterUpdate;
 	Event<SystemBase&> WhenEnterSystemUpdate;

@@ -47,6 +47,7 @@ struct VfsPath : Moveable<VfsPath> {
 	void	Set(Value s, const VfsPath& vfs);
 	void	Set(const Vector<Value>& parts);
 	void	Set(const VfsPath& path, int begin, int end);
+	void	SetDotPath(String path);
 	bool	IsLeft(const VfsPath& path) const;
 	bool	IsSame(const VfsPath& path, int this_begin, int other_begin, int len) const;
 	String	AsSysPath() const;

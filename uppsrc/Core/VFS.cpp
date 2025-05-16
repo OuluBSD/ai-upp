@@ -298,6 +298,14 @@ void VfsPath::Set(Value s, const VfsPath& vfs) {
 	StrFromParts();
 }
 
+void VfsPath::SetDotPath(String s) {
+	Vector<String> v = Split(s, ".");
+	parts.SetCount(v.GetCount());
+	for(int i = 0; i < v.GetCount(); i++)
+		parts[i] = v[i];
+	StrFromParts();
+}
+
 VfsPath operator+(Value s, const VfsPath& vfs) {
 	VfsPath p;
 	p.Set(s, vfs);

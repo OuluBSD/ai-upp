@@ -20,7 +20,6 @@ Pool::~Pool() {
 
 void Pool::Visit(Vis& v) {
 	_VIS_(freeze_bits)
-	 VIS_(name)
 	 VIS_(id);
 }
 
@@ -48,8 +47,9 @@ void Pool::Initialize(Entity& e, String prefab) {
 	
 }
 
-EntityPtr Pool::CreateEmpty() {
+EntityPtr Pool::CreateEmpty(String id) {
 	Entity& e = node.Add<Ecs::Entity>();
+	e.node.id = id;
 	e.SetId(GetNextId());
 	Initialize(e);
 	return &e;
@@ -59,8 +59,7 @@ EntityPtr Pool::GetAddEmpty(String name) {
 	EntityPtr e = FindEntityByName(name);
 	if (e)
 		return e;
-	e = CreateEmpty();
-	e->SetName(name);
+	e = CreateEmpty(name);
 	return e;
 }
 
@@ -154,7 +153,7 @@ String Pool::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << name << "[" << id << "]\n";
+	s << ".." << node.id << "[" << id << "]\n";
 	
 	auto objects = node.FindAll<Ecs::Entity>();
 	for (EntityPtr& e : objects)
@@ -186,7 +185,7 @@ EntityPtr Pool::FindEntityByName(String name) {
 
 PoolPtr Pool::AddPool(String name) {
 	Pool& p = node.Add<Pool>();
-	p.SetName(name);
+	p.node.id = name;
 	p.SetId(GetNextId());
 	return &p;
 }

@@ -150,25 +150,25 @@ bool ChaseCam::Arg(String key, Value value) {
 		return true;
 	}
 	if (key == "target") {
+		LOG(MetaEnv().root.GetTreeString());
+		PoolPtr root = &node.FindOwner<Ecs::Engine>()->GetRootPool();
+		ASSERT(root);
+		if (!root) return false;
+		
 		String path = value;
-		
-		TODO
-		#if 0
-		EntityStorePtr ents = GetEngine().Get<EntityStore>();
-		ASSERT(ents);
-		
-		EntityPtr tgt_ent = ents->FindEntity(path);
+		VfsPath vfs_path;
+		vfs_path.SetDotPath(path);
+		EntityPtr tgt_ent = root->node.FindPath<Ecs::Entity>(vfs_path);
 		if (!tgt_ent) {
 			LOG("ChaseCam::Arg: error: could not find entity with path '" + path + "'");
 			return false;
 		}
 		
-		target = tgt_ent->Get<Transform>();
+		target = tgt_ent->Find<Transform>();
 		if (!tgt_ent) {
 			LOG("ChaseCam::Arg: error: target entity doesn't have Transform component");
 			return false;
 		}
-		#endif
 	}
 	else if (key == "log") {
 		test_log = value.ToString() == "test";

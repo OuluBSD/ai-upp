@@ -6,10 +6,8 @@
 #ifndef flagST
 	#define _MULTITHREADED 1
 	#define MULTITHREADED 1
-	#define MT 1
 #else
 	#define SINGLETHREADED 1
-	#define ST 1
 	#define thread DISABLED_FEATURE_USE
 #endif
 

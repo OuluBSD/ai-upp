@@ -177,12 +177,12 @@ void FwdScope::ForwardWeak() {
 	if (cur) {
 		int pos = read_i-1;
 		if (!cur->IsPacketStuck()) {
-			RTLOG("FwdScope::ForwardWeak: fwd " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
+			RTLOG("FwdScope::ForwardWeak: fwd " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStrPtr(cur->GetSecondaryPtr()) << ")");
 			cur->ForwardSetup(*this);
 			cur->ForwardAtom(*this);
 		}
 		else {
-			RTLOG("FwdScope::ForwardWeak: skip " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
+			RTLOG("FwdScope::ForwardWeak: skip " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStrPtr(cur->GetSecondaryPtr()) << ")");
 		}
 		cur->ForwardExchange(*this);
 		
@@ -194,7 +194,7 @@ void FwdScope::ForwardWeak() {
 void FwdScope::Forward() {
 	if (cur) {
 		int pos = read_i-1;
-		RTLOG("FwdScope::Forward: " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStr(cur->GetSecondaryPtr()) << ")");
+		RTLOG("FwdScope::Forward: " << pos << " (at " << cur->GetDynamicName() << ", " << cur->GetSecondaryName() << "; " << HexStrPtr(cur->GetSecondaryPtr()) << ")");
 		cur->ForwardSetup(*this);
 		cur->ForwardAtom(*this);
 		cur->ForwardExchange(*this);

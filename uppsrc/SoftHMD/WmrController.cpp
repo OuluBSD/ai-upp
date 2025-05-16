@@ -181,7 +181,7 @@ static hid_device* OpenDeviceIdx(int manufacturer, int product, int iface, int i
 		#if 0
 		WString ps(cur_dev->product_string);
 		String pss = ps.ToString();
-		LOG(i << ": " << HexStr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
+		LOG(i << ": " << HexStrPtr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
 		#endif
 		
 		LOGI("%04x:%04x %s\n", manufacturer, product, cur_dev->path);

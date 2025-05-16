@@ -531,7 +531,7 @@ bool BufferStageT<Gfx>::SetLoopback(String loopback_str) {
 
 template <class Gfx>
 bool BufferStageT<Gfx>::InitializeTexture(Size sz, int channels, Sample sample, const byte* data, int len) {
-	RTLOG("InitializeTexture: " << sz.ToString() << ", " << HexStr((void*)data) << ", " << len);
+	RTLOG("InitializeTexture: " << sz.ToString() << ", " << HexStrPtr((void*)data) << ", " << len);
 	
 	UpdateTexBuffers();
 	

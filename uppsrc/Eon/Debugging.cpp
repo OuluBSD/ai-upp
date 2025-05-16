@@ -100,7 +100,7 @@ void RuntimeDiagnostics::CaptureSnapshot() {
 void RuntimeDiagnostics::OnRefError(LockedScopeRefCounter* r) {
 	ASSERT(r);
 	String s;
-	s << "error: non-zero references (" << r->GetRefCount() << ") at &[" << HexStr(r) << "]";
+	s << "error: non-zero references (" << r->GetRefCount() << ") at &[" << HexStrPtr(r) << "]";
 	LOG(s);
 	
 	if (vis.IsEmpty())
@@ -226,7 +226,7 @@ void RuntimeDiagnosticVisitor::DumpVisit(const Scope& scope, int depth, bool onl
 		s1 = "";
 		s1 << indent << "\t-->" << v.derived_name << "[" << HexStr(v.mem) << "]";
 		if (v.ref)
-			s1 << " &[" << HexStr(v.ref) << "]";
+			s1 << " &[" << HexStrPtr(v.ref) << "]";
 		LOG(s1);
 	}
 	
@@ -275,19 +275,19 @@ void RuntimeDiagnosticVisitor::RecursiveUnfocus(Scope& s) {
 
 String RefDebugVisitor::Item::ToString() const {
 	String s;
-	s << "[" << HexStr(mem) << "]";
+	s << "[" << HexStrPtr(mem) << "]";
 	return s;
 }
 
 void RefDebugVisitor::Add(void* mem) {
-	LOG("RefDebugVisitor::Add    " << HexStr(mem));
+	LOG("RefDebugVisitor::Add    " << HexStrPtr(mem));
 	if (break_ref_add == (size_t)mem) {__BREAK__;}
 	Item& it = items.Add();
 	it.mem = mem;
 }
 
 void RefDebugVisitor::Remove(void* mem) {
-	LOG("RefDebugVisitor::Remove " << HexStr(mem));
+	LOG("RefDebugVisitor::Remove " << HexStrPtr(mem));
 	if (break_ref_rem == (size_t)mem) {__BREAK__;}
 	Item cmp;
 	cmp.mem = mem;
@@ -296,7 +296,7 @@ void RefDebugVisitor::Remove(void* mem) {
 		items.Remove(i);
 	}
 	else {
-		LOG("\twarning: trying to remove unfollowed Ptr at " << HexStr(mem) << " (it's ok if SetDebugRefVisits() was called later than ctor)");
+		LOG("\twarning: trying to remove unfollowed Ptr at " << HexStrPtr(mem) << " (it's ok if SetDebugRefVisits() was called later than ctor)");
 	}
 }
 

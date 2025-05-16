@@ -21,7 +21,7 @@ AtomBase::~AtomBase() {
 Machine& AtomBase::GetMachine() {
 	Machine* m = node.FindOwner<Machine>();
 	ASSERT(m);
-	if (m) throw Exc("Machine not found");
+	if (!m) throw Exc("Machine not found");
 	return *m;
 }
 

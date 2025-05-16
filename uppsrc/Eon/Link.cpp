@@ -21,7 +21,7 @@ Atom* LinkBase::GetAtom() {
 }*/
 
 String LinkBase::ToString() const {
-	TODO return "";//return GetDynamicName();
+	return ClassPathTop(GetTypeCls().GetName());
 }
 
 AtomTypeCls LinkBase::GetAtomType() const {
@@ -59,7 +59,7 @@ int LinkBase::GetId() const {
 }
 
 void LinkBase::ForwardAsync() {
-	RTLOG("LinkBase::ForwardAsync " << HexStr(last_cfg));
+	RTLOG("LinkBase::ForwardAsync " << HexStrPtr(last_cfg));
 	
 	if (!last_cfg)
 		return;

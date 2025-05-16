@@ -318,7 +318,7 @@ void BufferStageT<Gfx>::SetFramebufferSize(Size sz) {
 
 template <class Gfx>
 void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
-	RTLOG("Process " << HexStr(this) << " time: " << ctx.time_total);
+	RTLOG("Process " << HexStrPtr(this) << " time: " << ctx.time_total);
 	
 	if (is_local_time) {
 		ASSERT(ctx.frame_time != 0.0);

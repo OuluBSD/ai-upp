@@ -48,7 +48,7 @@ void ScriptLoopLoader::SetSideSourceConnected(const AtomTypeCls& type, int ch_i,
 	
 	AtomSideLinks& atom = atom_links.Top();
 	
-	RTLOG("ScriptLoopLoader::SetSideSourceConnected: loop " << HexStr(this) << " src ch #" << ch_i << " set " << HexStr(&sink));
+	RTLOG("ScriptLoopLoader::SetSideSourceConnected: loop " << HexStrPtr(this) << " src ch #" << ch_i << " set " << HexStrPtr(&sink));
 	ASSERT(side_ch_i >= 0 && side_ch_i < atom.src_side_conns.GetCount());
 	SideLink& l = atom.src_side_conns[side_ch_i];
 	if (l.link == &sink)
@@ -68,7 +68,7 @@ void ScriptLoopLoader::SetSideSinkConnected(const AtomTypeCls& type, int ch_i, S
 	
 	AtomSideLinks& atom = atom_links.Top();
 	
-	RTLOG("ScriptLoopLoader::SetSideSourceConnected: loop " << HexStr(this) << " sink ch #" << ch_i << " set " << HexStr(&src));
+	RTLOG("ScriptLoopLoader::SetSideSourceConnected: loop " << HexStrPtr(this) << " sink ch #" << ch_i << " set " << HexStrPtr(&src));
 	ASSERT(side_ch_i >= 0 && side_ch_i < atom.sink_side_conns.GetCount());
 	SideLink& l = atom.sink_side_conns[side_ch_i];
 	if (l.link == &src)

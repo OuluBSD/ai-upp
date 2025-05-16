@@ -9,7 +9,7 @@ AsyncMemForwarderBase::AsyncMemForwarderBase(MetaNode& n) : dbg_offset(dbg_off_g
 
 bool AsyncMemForwarderBase::ForwardAsyncMem(byte* mem, int size)  {
 	
-	RTLOG("AsyncMemForwarderBase::ForwardAsyncMem: size " << size << " at " << HexStr(mem));
+	RTLOG("AsyncMemForwarderBase::ForwardAsyncMem: size " << size << " at " << HexStrPtr(mem));
 	ASSERT(size > 0);
 	write_mem = mem;
 	write_size = size;

@@ -26,7 +26,8 @@ int WorldState::GetValueCount() const {
 
 void WorldState::FindKeys(String key_left, Index<String>& keys) const {
 	for(int i = 0; i < values.GetCount(); i++) {
-		if (!values[i])
+		auto& v = values[i];
+		if (v.IsNull())
 			continue;
 		String key = values.GetKey(i);
 		if (key.Left(key_left.GetCount()) == key_left)

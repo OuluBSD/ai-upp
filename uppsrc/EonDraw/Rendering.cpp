@@ -107,11 +107,11 @@ bool RendererBase::Render(Draw& fb) {
 			String obj_path = AppendFileName(data_dir, obj);
 			
 			if (!loader.LoadModel(obj_path)) {
-				RTLOG("ObjViewProg::Render: error: could not load model file: '" << obj_path << "'");
+				RLOG("ObjViewProg::Render: error: could not load model file: '" << obj_path << "'");
 				return false;
 			}
 			if (!mdl.LoadModel(loader)) {
-				RTLOG("ObjViewProg::Render: error: could not load model state");
+				RLOG("ObjViewProg::Render: error: could not load model state");
 				return false;
 			}
 			

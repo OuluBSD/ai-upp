@@ -92,7 +92,7 @@ String DrawCommand::ToString() const {
 		case DRAW_UNBIND_WINDOW:	s << "unbind-window()"; break;
 		case DRAW_LINE:				s << "line([" << i[0] << "," << i[1] << "], [" << i[2] << "," << i[3] << "])"; break;
 		case DRAW_IMAGE_SIZED:		s << "image-sized([" << i[0] << "," << i[1] << "], [" << i[2] << "," << i[3] << "], " << img.ToString() << ")"; break;
-		case DRAW_IMAGEBUFFER:		s << "image-buffer([" << i[0] << "," << i[1] << ", " << i[2] << "," << i[3] << "], " << HexStr(ptr) << ")"; break;
+		case DRAW_IMAGEBUFFER:		s << "image-buffer([" << i[0] << "," << i[1] << ", " << i[2] << "," << i[3] << "], " << HexStrPtr(ptr) << ")"; break;
 		case DRAW_TRIANGLES:		s << "triangles(" << (int)clr.r << ", " << (int)clr.g << ", " << (int)clr.b << ", " << (int)clr.a << ")"; break;
 		case DRAW_POLYLINE:			s << "polyline(width=" << i[0] << ", pts-count=" << pts.GetCount() << ")"; break;
 		case DRAW_CLIPOFF:			s << "clipoff(" << i[0] << "," << i[1] << ", " << i[2] << "," << i[3] << ")"; break;

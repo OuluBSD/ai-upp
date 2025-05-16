@@ -101,7 +101,7 @@ bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst
 bool AudioConvert(int src_ch_samples, const AudioFormat& src_fmt, const byte* src, const AudioFormat& dst_fmt, byte* dst);
 
 bool Convert(const Packet& src, Packet& dst, bool keep_tracking) {
-	RTLOG("Convert(src " << HexStr(&*src) << ", dst " << HexStr(&*dst) << ")");
+	RTLOG("Convert(src " << HexStrPtr(&*src) << ", dst " << HexStrPtr(&*dst) << ")");
 	
 	#if HAVE_PACKETTRACKER
 	bool track = keep_tracking && src->GetTrackingId() != 0;

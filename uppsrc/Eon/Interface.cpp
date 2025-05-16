@@ -45,7 +45,7 @@ void DefaultExchangePoint::ForwardAtom(FwdScope& fwd) {
 	
 	WhenEnterValExPtForward(*this);
 	
-	RTLOG("DefaultExchangePoint::Forward: (" << HexStr(this) << ") begin");
+	RTLOG("DefaultExchangePoint::Forward: (" << HexStrPtr(this) << ") begin");
 	DefaultInterfaceSourcePtr src = dynamic_cast<DefaultInterfaceSource*>(&*this->src);
 	DefaultInterfaceSinkPtr sink = dynamic_cast<DefaultInterfaceSink*>(&*this->sink);
 	ASSERT(src);

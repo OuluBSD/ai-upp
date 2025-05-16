@@ -133,7 +133,7 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 				iface.buf->LeaveWrite();
 			}
 			else if (iface.filled) {
-				RTLOG("LinkBase::ForwardPipe: warning: NOT removing first in sink #" << sink_ch << " " << HexStr(iface.buf));
+				RTLOG("LinkBase::ForwardPipe: warning: NOT removing first in sink #" << sink_ch << " " << HexStrPtr(iface.buf));
 				ASSERT_(sink_ch > 0, "LinkBase::ForwardPipe: NOT removing first in primary sink");
 			}
 		}
@@ -150,7 +150,7 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 				
 				ASSERT(iface.from_sink_ch >= 0);
 				ValueBase& src_val = src_iface->GetSourceValue(src_ch);
-				RTLOG("LinkBase::ForwardPipe: packet from sink #" << iface.from_sink_ch << " to #" << src_ch << " src_val=" << HexStr(&src_val) << " sink_val=" << HexStr(iface.val));
+				RTLOG("LinkBase::ForwardPipe: packet from sink #" << iface.from_sink_ch << " to #" << src_ch << " src_val=" << HexStrPtr(&src_val) << " sink_val=" << HexStrPtr(iface.val));
 				ASSERT(!src_val.IsQueueFull());
 				
 				PacketBuffer& src_buf = src_val.GetBuffer();
@@ -211,8 +211,7 @@ String LinkBase::GetSecondaryName() {
 }
 
 void* LinkBase::GetSecondaryPtr() {
-	TODO //&std::type_info -> return atom ? &atom->GetRTTI() : 0;
-	return 0;
+	return (void*)GetTypeCls().GetHashValue();
 }
 
 bool LinkBase::IsPacketStuck() {
@@ -329,7 +328,7 @@ void LinkBase::ForwardSideConnections() {
 		if (src_buf.GetCount()) {
 			InterfaceSinkPtr sink_iface = ex.other->GetSink();
 			ValueBase& sink_val = sink_iface->GetValue(ex.other_ch_i);
-			RTLOG("LinkBase::ForwardSideConnections: #" << ex.local_ch_i << " src_val=" << HexStr(&src_val) << " sink_val=" << HexStr(&sink_val));
+			RTLOG("LinkBase::ForwardSideConnections: #" << ex.local_ch_i << " src_val=" << HexStrPtr(&src_val) << " sink_val=" << HexStrPtr(&sink_val));
 			if (sink_val.IsQueueFull())
 				Panic("internal error: Atom sent packet to already full source interface. Improve custom atom IsReady function to prevent this.");
 			PacketBuffer& sink_buf = sink_val.GetBuffer();

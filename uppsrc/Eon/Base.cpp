@@ -519,7 +519,7 @@ void EventStateBase::Event(const GeomEvent& e) {
 		}
 	}
 	else if (e.type == EVENT_WINDOW_RESIZE) {
-		Size& video_size = GetState().Set<Size>(SCREEN0_SIZE);
+		Size& video_size = GetState().Set<Size>(SCREEN0_SIZE, Size(0,0));
 		video_size = e.sz;
 	}
 	else if (e.type == EVENT_SHUTDOWN) {
@@ -586,9 +586,9 @@ void EventStateBase::MouseWheel(Point pt, int zdelta, dword keyflags) {
 	int& mouse_iter = s.GetInt(MOUSE_STATE_ITER);
 	mouse_iter++;
 	
-	Point& pos = s.Set<Point>(MOUSE_POSITION);
-	const Size& video_size = s.Set<Size>(SCREEN0_SIZE);
-	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET);
+	Point& pos = s.Set<Point>(MOUSE_POSITION, Point(0,0));
+	const Size& video_size = s.Set<Size>(SCREEN0_SIZE, Size(0,0));
+	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET, Point(0,0));
 	pos.x =                 video_offset.x + pt.x;
 	pos.y = video_size.cy - video_offset.y - pt.y;
 }
@@ -598,10 +598,10 @@ void EventStateBase::LeftDown(Point pt, dword keyflags) {
 	
 	SetBool(MOUSE_LEFTDOWN, true);
 	
-	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG);
-	Point& click = s.Set<Point>(MOUSE_TOYCOMPAT_CLICK);
-	const Size& video_size = s.Set<Size>(SCREEN0_SIZE);
-	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET);
+	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
+	Point& click = s.Set<Point>(MOUSE_TOYCOMPAT_CLICK, Point(0,0));
+	const Size& video_size = s.Set<Size>(SCREEN0_SIZE, Size(0,0));
+	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET, Point(0,0));
 	if (video_size.cx > 0 && video_size.cy > 0) {
 		drag.x =                 video_offset.x + pt.x;
 		drag.y = video_size.cy - video_offset.y - pt.y;
@@ -620,17 +620,17 @@ void EventStateBase::LeftUp(Point pt, dword keyflags) {
 	
 	SetBool(MOUSE_LEFTDOWN, false);
 	
-	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG);
+	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
 	drag.y = -drag.y; // observed behaviour
 }
 
 void EventStateBase::MouseMove(Point pt, dword keyflags) {
 	EnvState& s = GetState();
 	
-	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG);
-	Point& click = s.Set<Point>(MOUSE_TOYCOMPAT_CLICK);
-	const Size& video_size = s.Set<Size>(SCREEN0_SIZE);
-	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET);
+	Point& drag = s.Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
+	Point& click = s.Set<Point>(MOUSE_TOYCOMPAT_CLICK, Point(0,0));
+	const Size& video_size = s.Set<Size>(SCREEN0_SIZE, Size(0,0));
+	const Point& video_offset = s.Set<Point>(SCREEN0_OFFSET, Point(0,0));
 	if (s.GetBool(MOUSE_LEFTDOWN)) {
 		if (video_size.cx > 0 && video_size.cy > 0) {
 			drag.x =                 video_offset.x + pt.x;

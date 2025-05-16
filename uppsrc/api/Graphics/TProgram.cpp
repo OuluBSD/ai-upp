@@ -305,8 +305,8 @@ void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStatePtr& env, int var, co
 	else if (var == VAR_COMPAT_MOUSE) {
 		if (env) {
 			#ifdef flagSCREEN
-			Point& mouse_drag = env->Set<Point>(MOUSE_TOYCOMPAT_DRAG);
-			Point& mouse_click = env->Set<Point>(MOUSE_TOYCOMPAT_CLICK);
+			Point& mouse_drag = env->Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
+			Point& mouse_click = env->Set<Point>(MOUSE_TOYCOMPAT_CLICK, Point(0,0));
 			Gfx::Uniform4f(uindex,
 				(float)mouse_drag.x,
 				(float)mouse_drag.y,

@@ -64,26 +64,26 @@ struct HalSdl::NativeCenterFboSinkDevice {
 
 #if defined flagOGL
 struct HalSdl_CommonOgl {
-    ::SDL_Window* win;
-    ::SDL_Renderer* rend;
+    ::SDL_Window* win = 0;
+    ::SDL_Renderer* rend = 0;
     ::SDL_RendererInfo rend_info;
     ::SDL_GLContext gl_ctx;
-    Size screen_sz;
-    bool is_fullscreen;
-    bool is_sizeable;
-    bool is_maximized;
+    Size screen_sz = Size(0,0);
+    bool is_fullscreen = 0;
+    bool is_sizeable = 0;
+    bool is_maximized = 0;
 	
 };
 
 struct HalSdl::NativeOglVideoSinkDevice : HalSdl_CommonOgl {
-    void* display;
-    uint32 fb;
+    void* display = 0;
+    uint32 fb = 0;
     GfxAccelAtom<SdlOglGfx> accel;
 };
 
 struct HalSdl::NativeUppOglDevice : HalSdl_CommonOgl {
 	GLDraw gldraw;
-	Size sz;
+	Size sz = Size(0,0);
 	static NativeUppOglDevice* last;
 };
 HalSdl::NativeUppOglDevice* HalSdl::NativeUppOglDevice::last;

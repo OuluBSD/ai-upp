@@ -27,8 +27,6 @@ machine sdl.app:
 
 world ecs.dummy:
 	system rendering
-	system entity.store
-	system component.store
 	system events
 	system interaction:
 		env = event.register

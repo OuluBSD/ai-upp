@@ -4,8 +4,6 @@ machine ecs.app:
 world ecs.dummy:
     system rendering:
         dummy = true
-    system entity.store
-    system component.store
     system events
     system physics:
         //log: debug

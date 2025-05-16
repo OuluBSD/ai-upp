@@ -68,9 +68,14 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 	ComponentBasePtr cb = FindTypeCls(cls);
 	if (cb)
 		return cb;
-	TODO
-	//return AddPtr(GetEngine().Get<ComponentStore>()->CreateComponentTypeCls(cls));
-	return 0;
+	int i = Ecs::ComponentFactory::CompDataMap().Find(cls);
+	if (i < 0)
+		return 0;
+	MetaNode& n = node.Add();
+	n.id = ToVarName(ClassPathTop(cls.GetName()));
+	auto* p = Ecs::ComponentFactory::CompDataMap()[i].new_fn(n);
+	n.ext = p;
+	return p;
 }
 
 ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {

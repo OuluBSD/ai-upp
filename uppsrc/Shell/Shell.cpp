@@ -141,7 +141,6 @@ GUI_APP_MAIN {
 
 
 CONSOLE_APP_MAIN {
-	Sleep(3000);
 	using namespace Upp;
 	Machine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.WhenBoot << callback(DefaultSerialInitializer);
@@ -161,6 +160,7 @@ CONSOLE_APP_MAIN {
 	eng.Stop();
 	mach.Stop();
 	
+	eng.GetRootPool().Clear();
 	mach.GetRootSpace().Clear();
 	mach.GetRootLoop().Clear();
 	mach.Clear();

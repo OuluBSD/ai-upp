@@ -11,7 +11,6 @@ class Pool : public MetaNodeExt
 	
 	//Engine*				machine = 0;
 	BitField<int>		freeze_bits;
-	String				name;
 	PoolId				id;
 	//PoolVec				pools;
 	
@@ -37,7 +36,6 @@ public:
 	
 	PoolId GetId() const {return id;}
 	
-	void SetName(String s)			{name = s;}
 	void FreezeTransform()			{freeze_bits.Set(BIT_TRANSFORM, true);}
 	void FreezeOverlap()			{freeze_bits.Set(BIT_OVERLAP, true);}
 	bool IsFrozenTransform() const	{return freeze_bits.Is(BIT_TRANSFORM);}
@@ -56,12 +54,11 @@ public:
 	
 	Pool*				GetParent() const;
 	Engine&				GetEngine();
-	String				GetName() const override {return name;}
 	bool				HasEntities() const;// {return !objects.IsEmpty();}
 	//bool				HasPools() const {return !pools.IsEmpty();}
 	
 	void				Initialize(Entity& e, String prefab="Custom");
-	EntityPtr			CreateEmpty();
+	EntityPtr			CreateEmpty(String id);
 	EntityPtr			GetAddEmpty(String name);
 	EntityPtr			Clone(const Entity& e);
 	EntityPtr			RealizeEntityPath(const Vector<String>& path);
@@ -148,7 +145,7 @@ public:
 	//PoolVec& GetPools() {return pools;}
 	
 	PoolPtr FindPool(String name);
-	PoolPtr AddPool(String name="");
+	PoolPtr AddPool(String name);
 	PoolPtr GetAddPool(String name);
 	//EntityVec::Iterator			begin()			{return objects.begin();}
 	//EntityVec::Iterator			end()			{return objects.end();}

@@ -258,6 +258,14 @@ void Engine::RemoveFromUpdateList(ComponentBasePtr c) {
 	VectorRemoveKey(update_list, c);
 }
 
+Pool& Engine::GetRootPool() {
+	PoolPtr pool = node.Find<Pool>();
+	if (pool) return *pool;
+	pool = &node.Add<Pool>();
+	pool->node.id = "pool";
+	return *pool;
+}
+
 Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
 {
     NewSystemFn fn = TypeNewFn().Get(type, 0);

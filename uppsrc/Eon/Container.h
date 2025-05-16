@@ -24,8 +24,23 @@ public:
 		Value& o = data.GetAdd(key);
 		if (o.Is<T>())
 			return const_cast<T&>(o.Get<T>());
-		else
-			return CreateRawValue<T>(o);
+		else {
+			T& obj = CreateRawValue<T>(o);
+			obj = Null;
+			return obj;
+		}
+	}
+	
+	template <class T>
+	T& Set(int key, const T& def) {
+		Value& o = data.GetAdd(key);
+		if (o.Is<T>())
+			return const_cast<T&>(o.Get<T>());
+		else {
+			T& obj = CreateRawValue<T>(o);
+			obj = def;
+			return obj;
+		}
 	}
 	
 	template <class T>

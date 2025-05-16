@@ -86,7 +86,7 @@ void FakeSpatialInteractionManager::UpdateStateKeyboard() {
 	FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	
 	if (state->GetBool(MOUSE_LEFTDOWN)) {
-		Point& drag = state->Set<Point>(MOUSE_TOYCOMPAT_DRAG);
+		Point& drag = state->Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
 		
 		Point diff = drag - prev_mouse;
 		

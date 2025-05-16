@@ -338,7 +338,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 				
 			}
 			else {
-				Size& video_size = env->Set<Size>(SCREEN0_SIZE);
+				Size& video_size = env->Set<Size>(SCREEN0_SIZE, Size(0,0));
 				if (video_size.cx == 0 || video_size.cy == 0)
 					video_size = fb.size;
 				else if (video_size != fb.size) {
@@ -366,7 +366,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 			if (env) {
 				auto& top_stage = stages.Top();
 				auto& top_fb = stages.Top().fb[0];
-				Size& video_size = env->Set<Size>(SCREEN0_SIZE);
+				Size& video_size = env->Set<Size>(SCREEN0_SIZE, Size(0,0));
 				if (video_size.cx == 0 || video_size.cy == 0)
 					video_size = top_fb.size;
 				else if (video_size != top_fb.size) {
@@ -420,7 +420,7 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 		}
 		else if (mode == MULTI_CUSTOM) {
 			if (env) {
-				Size& video_size = env->Set<Size>(SCREEN0_SIZE);
+				Size& video_size = env->Set<Size>(SCREEN0_SIZE, Size(0,0));
 				if (video_size.cx == 0 || video_size.cy == 0)
 					video_size = stages.Top().fb[0].size;
 				for (BufferStage& s : stages) {

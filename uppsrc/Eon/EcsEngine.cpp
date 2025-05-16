@@ -273,10 +273,9 @@ Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
     if (!fn)
         return Ptr<SystemBase>();
     MetaNode& sub = node.Add();
-	SystemBase* syst = fn(*this);
-	sub.ext = syst;
-	sub.type_hash = syst->GetTypeHash();
-    
+	SystemBase* syst = fn(sub);
+	ASSERT(sub.type_hash);
+	
 	if (startup && is_started)
 		SystemStartup(type, syst);
 	

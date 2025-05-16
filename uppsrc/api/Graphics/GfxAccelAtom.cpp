@@ -274,7 +274,7 @@ void GfxAccelAtom<Gfx>::Update(double dt) {
 	auto& fb = buf.Single().GetFramebuffer();
 	
 	if (env) {
-		Size& video_size = env->template Set<Size>(SCREEN0_SIZE);
+		Size& video_size = env->template Set<Size>(SCREEN0_SIZE, Size(0,0));
 		const bool& close_window = env->template Set<bool>(SCREEN0_CLOSE);
 		Buffer& buf = GetBuffer();
 		

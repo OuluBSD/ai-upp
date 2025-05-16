@@ -168,13 +168,12 @@ private:
     
     
 private:
-	typedef SystemBase* (*NewSystemFn)(Ecs::Engine&);
+	typedef SystemBase* (*NewSystemFn)(MetaNode&);
     static VectorMap<String, TypeCls>& EonToType() {static VectorMap<String, TypeCls> m; return m;}
     static VectorMap<TypeCls, NewSystemFn>& TypeNewFn() {static VectorMap<TypeCls, NewSystemFn> m; return m;}
 	
 	template <class T>
-	static SystemBase* NewSystem(Ecs::Engine& e) {
-		MetaNode& n = e.node.Add();
+	static SystemBase* NewSystem(MetaNode& n) {
 		T* o = new T(n);
 		n.ext = o;
 		n.type_hash = AsTypeHash<T>();

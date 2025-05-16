@@ -10,7 +10,7 @@ struct TextureT {
 	
 	NativeColorBufferPtr tex;
 	
-	TextureT() {}
+	TextureT() {tex = 0;}
 	~TextureT() {Clear();}
 	void Clear();
 	void Load(const ByteImage& img);

@@ -1,15 +1,14 @@
 #include "SoftRend.h"
 
 
-NAMESPACE_UPP
-
-
 void InitObjViewSoft() {
+	using namespace Upp;
 	SoftShaderLibrary::AddShaderClass<ObjViewVertex>(GVar::VERTEX_SHADER, "obj_view_vertex");
 	SoftShaderLibrary::AddShaderClass<ObjViewFragment>(GVar::FRAGMENT_SHADER, "obj_view_fragment");
 }
 
 void InitUtils() {
+	using namespace Upp;
 	SoftShaderLibrary::AddShaderClass<PassVertex>(GVar::VERTEX_SHADER, "pass_vertex");
 	SoftShaderLibrary::AddShaderClass<StereoShader>(GVar::VERTEX_SHADER, "stereo_vertex");
 	SoftShaderLibrary::AddShaderClass<PassFragment>(GVar::FRAGMENT_SHADER, "pass_fragment");
@@ -21,13 +20,9 @@ void InitUtils() {
 
 
 
-INITBLOCK_(SoftRendShaders) {
-	using namespace Upp;
+INITBLOCK {
 	
 	InitObjViewSoft();
 	InitUtils();
 	
 }
-
-
-END_UPP_NAMESPACE

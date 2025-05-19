@@ -2,7 +2,7 @@
 #define _AI_Core_Male_h_
 
 
-NAMESPACE_UPP
+
 
 #define DATASET_ITEM(a,b,c,d,e) COMPONENT_STUB_HEADER(a, c)
 	DATASET_ITEM(Provider,			provider,		METAKIND_ECS_COMPONENT_PROVIDER,			CATEGORY_MALE, "Provider")
@@ -14,6 +14,6 @@ NAMESPACE_UPP
 	DATASET_ITEM(Justice,			justice,		METAKIND_ECS_COMPONENT_JUSTICE,				CATEGORY_MALE, "Justice")
 #undef DATASET_ITEM
 
-END_UPP_NAMESPACE
+
 
 #endif

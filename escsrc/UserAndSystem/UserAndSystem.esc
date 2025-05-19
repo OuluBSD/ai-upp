@@ -1,0 +1,16 @@
+getnumber()
+{
+	for(;;) {
+		h = InputNumber();
+		if(h > 0)
+			return h;
+		Print("Please enter a positive number!\n");
+	}
+}
+
+main() {
+	Print("Hello\n");
+	name = Input();
+	Print("You said: " + name + "!\n");
+	num = getnumber();
+}

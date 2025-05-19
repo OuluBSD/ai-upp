@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_SourceText_h_
 #define _AI_TextCore_SourceText_h_
 
-NAMESPACE_UPP
+
 
 class MergeProcess : public SolverBase {
 	
@@ -79,6 +79,6 @@ public:
 	
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

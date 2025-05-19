@@ -1,7 +1,7 @@
 #ifndef _AICore_AspectFixer_h_
 #define _AICore_AspectFixer_h_
 
-NAMESPACE_UPP
+
 
 // ImageDraw class requires CtrlCore
 #ifdef flagGUI
@@ -67,6 +67,6 @@ struct AspectFixerLayer : TempImageLayer {
 
 INITIALIZE(AspectFixerLayer);
 
-END_UPP_NAMESPACE
+
 
 #endif

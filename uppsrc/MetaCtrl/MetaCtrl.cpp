@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 
 MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
-MetaNode& MetaExtCtrl::GetNode() {return ext->node;}
+MetaNode& MetaExtCtrl::GetNode() {ASSERT(ext); return ext->node;}
 const MetaNode& MetaExtCtrl::GetNode() const {return ext->node;}
 String MetaExtCtrl::GetFilePath() const {
 	if (owner)

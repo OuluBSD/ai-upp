@@ -24,6 +24,7 @@ AiChainCtrl::AiChainCtrl() {
 }
 
 void AiChainCtrl::Data() {
+	if (!ext) return;
 	auto& list = this->session;
 	ChainThread& t = GetChainThread();
 	MetaNode& n = GetNode();

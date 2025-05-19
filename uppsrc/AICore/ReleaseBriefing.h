@@ -2,7 +2,7 @@
 #define _AI_Core_ReleaseBriefing_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct ReleaseBriefing : Component
@@ -20,6 +20,6 @@ struct ReleaseBriefing : Component
 INITIALIZE(ReleaseBriefing)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

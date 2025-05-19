@@ -2,7 +2,7 @@
 #define _AI_Core_VideoStoryboard_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct VideoStoryboard : Component
@@ -21,6 +21,6 @@ struct VideoStoryboard : Component
 INITIALIZE(VideoStoryboard)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -2,7 +2,7 @@
 #define _AI_Core_BiographyPlatform_h_
 
 
-NAMESPACE_UPP
+
 
 
 const VectorMap<String, Vector<String>>& GetMarketplaceSections();
@@ -337,7 +337,7 @@ public:
 };
 
 
-END_UPP_NAMESPACE
+
 
 
 #endif

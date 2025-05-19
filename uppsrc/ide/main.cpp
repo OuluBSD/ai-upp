@@ -450,6 +450,7 @@ void AppMain___()
 				ide.MakeTitle();
 				#ifdef flagAI
 				TaskMgr::Setup(&ide);
+				AgentInteractionSystem::Setup();
 				if (FindIndex(CommandLine(), "--playground") >= 0 ||
 					ToLower(GetExeTitle()) == "playground")
 					RunAiPlayground();
@@ -499,6 +500,9 @@ void AppMain___()
 		ErrorOK("Unknown exception !");
 		LOG("!!!!! Unknown exception");
 	}
+#endif
+#ifdef flagAI
+	AgentInteractionSystem::Uninstall();
 #endif
 	Ctrl::ShutdownThreads();
 

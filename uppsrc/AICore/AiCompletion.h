@@ -2,7 +2,7 @@
 #define _AI_Core_AiCompletion_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct AiCompletionComponent : Component {
@@ -22,7 +22,7 @@ struct AiCompletionComponent : Component {
 INITIALIZE(AiCompletionComponent);
 
 
-END_UPP_NAMESPACE
+
 
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_Core_ProjectWizard_h_
 #define _AI_Core_ProjectWizard_h_
 
-NAMESPACE_UPP
+
 
 
 struct ConfigurationNode;
@@ -132,6 +132,6 @@ public:
 INITIALIZE(ProjectWizardView)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Platform_h_
 #define _AI_Core_Platform_h_
 
-NAMESPACE_UPP
+
 
 struct Platform : Moveable<Platform> {
 	const char* group = 0;
@@ -217,6 +217,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

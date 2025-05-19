@@ -2,7 +2,7 @@
 #define _AI_Core_Perspective_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct PerspectiveComponent : Component
@@ -32,6 +32,6 @@ struct PerspectiveComponent : Component
 INITIALIZE(PerspectiveComponent);
 
 
-END_UPP_NAMESPACE
+
 
 #endif

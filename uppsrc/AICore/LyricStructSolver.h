@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_LyricStructSolver_h_
 #define _AI_TextCore_LyricStructSolver_h_
 
-NAMESPACE_UPP
+
 
 class TextComparison {
 	WString a, b;
@@ -195,6 +195,6 @@ public:
 	void MakeRepeatingSectionLines() override;
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

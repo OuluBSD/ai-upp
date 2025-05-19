@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Fn_h_
 #define _AI_TextCore_Fn_h_
 
-NAMESPACE_UPP
+
 
 template <class T, class PTR>
 int VectorFindPtr(PTR* p, T& arr) {
@@ -126,6 +126,6 @@ template <class T> bool LoadFromJsonFile_VisitorNode(T& o, String path) {
 
 Value FindValueRecursively(Value val, String key);
 
-END_UPP_NAMESPACE
+
 
 #endif

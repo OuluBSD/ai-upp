@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Owner_h_
 #define _AI_Core_Owner_h_
 
-NAMESPACE_UPP
+
 
 
 struct LeadOpportunity;
@@ -115,6 +115,6 @@ struct Owner : Component
 INITIALIZE(Owner);
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,4 +1,5 @@
 #include "MetaCtrl.h"
+#include <ide/Meta/Meta.h>
 
 NAMESPACE_UPP
 
@@ -597,8 +598,6 @@ void EntityInfoCtrl::Data() {
 	ent.Data("description");
 	ent.Data("gender");
 	
-	TODO
-	#if 0
 	Vector<MetaNode*> envs = IdeMetaEnv().FindAllEnvs();
 	
 	// Get all contexts
@@ -610,7 +609,6 @@ void EntityInfoCtrl::Data() {
 			all_ctxs.Add(key, ctx);
 		}
 	}
-	#endif
 	
 	// Entity's context
 	String ent_ctx = ent.Data("ctx");

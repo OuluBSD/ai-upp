@@ -2,7 +2,7 @@
 #define _AI_Core_Reasoning_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct ScriptReasoning : Component
@@ -21,6 +21,6 @@ struct ScriptReasoning : Component
 INITIALIZE(ScriptReasoning)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_LyricsSolver_h_
 #define _AI_TextCore_LyricsSolver_h_
 
-NAMESPACE_UPP
+
 
 
 class PartLineCtrl;
@@ -94,6 +94,6 @@ public:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

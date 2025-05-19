@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Container_h_
 #define _AI_TextCore_Container_h_
 
-NAMESPACE_UPP
+
 
 struct ActionHeader : Moveable<ActionHeader> {
 	String action, arg;
@@ -101,6 +101,6 @@ struct AttrHeader : Moveable<AttrHeader> {
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -8,10 +8,18 @@
 #include <plugin/jpg/jpg.h>
 #include <plugin/openai/openai.h>
 #include <ide/AiProvider.h>
+#include <Esc/Esc.h>
 
 #ifndef flagAI
 #error AI flag is not set
 #endif
+
+
+struct Ide;
+struct CurrentFileClang;
+struct CurrentFileContext;
+
+NAMESPACE_UPP
 
 #include "Defs.h"
 #include "Enums.h"
@@ -30,6 +38,9 @@
 #include "Fn.h"
 #include "Phoneme.h"
 #include "NatLang.h"
+
+#include "ProcessFramework.h"
+
 
 // Asset
 #include "ProjectWizard.h"
@@ -102,11 +113,6 @@
 #include "VideoSourceFile.h"
 #include "VideoPrompt.h"
 #include "VideoStoryboard.h"
-
-
-NAMESPACE_UPP
-
-
 
 END_UPP_NAMESPACE
 

@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Audience_h_
 #define _AI_Core_Audience_h_
 
-NAMESPACE_UPP
+
 
 
 class AudienceProcess : public SolverBase {
@@ -33,6 +33,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

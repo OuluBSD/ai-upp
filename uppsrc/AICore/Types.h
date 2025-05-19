@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Types_h_
 #define _AI_TextCore_Types_h_
 
-NAMESPACE_UPP
+
 
 #define DATASET_ITEM(type, name, kind, group, desc) struct type;
 DATASET_LIST
@@ -10,6 +10,6 @@ DATASET_LIST
 typedef String NoPointerExc;
 
 
-END_UPP_NAMESPACE
+
 
 #endif

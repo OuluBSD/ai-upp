@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Profile_h_
 #define _AI_Core_Profile_h_
 
-NAMESPACE_UPP
+
 
 struct Profile : Component
 {
@@ -33,6 +33,6 @@ struct Profile : Component
 
 INITIALIZE(Profile)
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_Prompt_h_
 #define _AI_Prompt_h_
 
-NAMESPACE_UPP
+
 
 struct TaskTitledList {
 	String title_format_str;
@@ -242,6 +242,6 @@ struct JsonPrompt {
 	String AsJSON(bool pretty) const;
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

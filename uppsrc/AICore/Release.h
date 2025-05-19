@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Release_h_
 #define _AI_Core_Release_h_
 
-NAMESPACE_UPP
+
 
 // TODO REMOVE
 struct ComponentIdea {
@@ -126,6 +126,6 @@ public:
 	
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

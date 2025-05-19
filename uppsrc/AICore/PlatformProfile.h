@@ -2,7 +2,7 @@
 #define _AI_Core_PlatformProfile_h_
 
 
-NAMESPACE_UPP
+
 
 
 
@@ -55,6 +55,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

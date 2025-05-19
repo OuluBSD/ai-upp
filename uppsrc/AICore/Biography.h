@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Biography_h_
 #define _AI_Core_Biography_h_
 
-NAMESPACE_UPP
+
 
 struct BioImage {
 	String keywords, text, native_text;
@@ -286,6 +286,6 @@ struct BiographyPerspectives : Component {
 
 INITIALIZE(BiographyPerspectives)
 
-END_UPP_NAMESPACE
+
 
 #endif

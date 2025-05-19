@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Browser_h_
 #define _AI_TextCore_Browser_h_
 
-NAMESPACE_UPP
+
 
 class ToolAppCtrl;
 struct ComponentCtrl;
@@ -158,6 +158,6 @@ public:
 	static DatabaseBrowser& Single(); // TODO rename to Lyric
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_RemoteTask_h_
 #define _AI_RemoteTask_h_
 
-NAMESPACE_UPP
+
 
 struct TaskMgr;
 
@@ -372,6 +372,6 @@ public:
 	static void RemoveParenthesis(String& s);
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

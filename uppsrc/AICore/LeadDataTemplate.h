@@ -1,7 +1,7 @@
 #ifndef _AI_Core_LeadDataTemplate_h_
 #define _AI_Core_LeadDataTemplate_h_
 
-NAMESPACE_UPP
+
 
 struct LeadTemplate {
 	hash_t hash = 0;
@@ -71,6 +71,6 @@ struct LeadDataTemplate : Component {
 
 INITIALIZE(LeadDataTemplate)
 
-END_UPP_NAMESPACE
+
 
 #endif

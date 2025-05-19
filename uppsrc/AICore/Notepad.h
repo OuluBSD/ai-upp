@@ -2,7 +2,7 @@
 #define _AI_Core_Notepad_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct Notepad : Component
@@ -40,6 +40,6 @@ struct Notepad : Component
 INITIALIZE(Notepad)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

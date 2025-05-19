@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Song_h_
 #define _AI_Core_Song_h_
 
-NAMESPACE_UPP
+
 
 
 struct Song : Component
@@ -72,6 +72,6 @@ struct Song : Component
 
 INITIALIZE(Song);
 
-END_UPP_NAMESPACE
+
 
 #endif

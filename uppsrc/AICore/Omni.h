@@ -2,7 +2,7 @@
 #define _AICore_Omni_h_
 
 
-NAMESPACE_UPP
+
 
 struct AiThread : Pte<AiThread> {
 	virtual ~AiThread() {}
@@ -226,7 +226,7 @@ public:
 	static OmniThread& Single() {static OmniThread m; return m;}
 };
 
-END_UPP_NAMESPACE
+
 
 
 #endif

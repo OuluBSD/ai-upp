@@ -2,7 +2,7 @@
 #define _AI_Core_AiChat_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct AiChatComponent : Component {
@@ -26,7 +26,7 @@ INITIALIZE(AiChatComponent);
 INITIALIZE_VALUECOMPONENT(AiStageExample, METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE);
 
 
-END_UPP_NAMESPACE
+
 
 
 #endif

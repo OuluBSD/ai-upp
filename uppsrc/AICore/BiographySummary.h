@@ -1,7 +1,7 @@
 #ifndef _AI_Core_BiographySummary_h_
 #define _AI_Core_BiographySummary_h_
 
-NAMESPACE_UPP
+
 
 
 class BiographySummaryProcess : public SolverBase {
@@ -45,6 +45,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

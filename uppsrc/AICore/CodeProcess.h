@@ -1,7 +1,7 @@
 #ifndef _AI_CodeProcess_h_
 #define _AI_CodeProcess_h_
 
-NAMESPACE_UPP
+
 
 class CodeProcess : public AiProcessBase {
 	
@@ -23,6 +23,6 @@ public:
 	static CodeProcess& Get(String id);
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

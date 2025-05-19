@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Lyrical_h_
 #define _AI_TextCore_Lyrical_h_
 
-NAMESPACE_UPP
+
 
 
 String GetTextTypeString(int i);
@@ -360,6 +360,6 @@ INITIALIZE(Lyrics);
 
 INITIALIZE(Song);*/
 
-END_UPP_NAMESPACE
+
 
 #endif

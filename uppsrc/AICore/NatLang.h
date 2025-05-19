@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_NatLang_h_
 #define _AI_TextCore_NatLang_h_
 
-NAMESPACE_UPP
+
 
 class NaturalTokenizer {
 	WString ws;
@@ -22,6 +22,6 @@ public:
 	
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

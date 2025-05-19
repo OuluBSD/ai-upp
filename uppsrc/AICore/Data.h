@@ -1,7 +1,7 @@
 #ifndef _AICore_Data_h_
 #define _AICore_Data_h_
 
-NAMESPACE_UPP
+
 
 typedef int ContentIdx;
 inline int GetContentMain(ContentIdx i) {return i / 3;}
@@ -708,6 +708,6 @@ struct SrcTxtHeader : Component {
 
 INITIALIZE(SrcTxtHeader);
 
-END_UPP_NAMESPACE
+
 
 #endif

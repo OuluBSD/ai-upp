@@ -1,7 +1,7 @@
 #ifndef _AI_ProcessBase_h_
 #define _AI_ProcessBase_h_
 
-NAMESPACE_UPP
+
 
 class AiProcessBase {
 
@@ -76,6 +76,6 @@ public:
 	Event<> WhenReady;
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

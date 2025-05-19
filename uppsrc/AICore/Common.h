@@ -3,10 +3,8 @@
 
 // TODO convert *Args classes to use Value based args file only (too many classes, when 1 is enough)
 
-struct CurrentFileClang;
-struct CurrentFileContext;
 
-NAMESPACE_UPP
+
 
 
 struct ModelArgs : Moveable<ModelArgs> {
@@ -747,6 +745,6 @@ String GetDurationString(double seconds);
 String GetSizeString(uint64 bytes);
 Size GetAspectRatio(Size sz);
 
-END_UPP_NAMESPACE
+
 
 #endif

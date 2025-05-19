@@ -1,9 +1,8 @@
 #ifndef _AI_TaskManager_h_
 #define _AI_TaskManager_h_
 
-struct Ide;
 
-NAMESPACE_UPP
+
 
 struct TaskMgr {
 	Array<AiTask> tasks;
@@ -84,6 +83,6 @@ struct TaskMgr {
 
 TaskMgr& AiTaskManager();
 
-END_UPP_NAMESPACE
+
 
 #endif

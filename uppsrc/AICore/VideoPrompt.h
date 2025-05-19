@@ -2,7 +2,7 @@
 #define _AI_Core_VideoPrompt_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct VideoPromptMaker : Component
@@ -21,6 +21,6 @@ struct VideoPromptMaker : Component
 INITIALIZE(VideoPromptMaker)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -2,7 +2,7 @@
 #define _AI_Core_ImageBiographySummary_h_
 
 
-NAMESPACE_UPP
+
 
 
 class ImageBiographySummaryProcess : public SolverBase {
@@ -52,6 +52,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

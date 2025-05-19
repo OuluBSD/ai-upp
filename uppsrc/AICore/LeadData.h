@@ -1,7 +1,7 @@
 #ifndef _AI_Core_LeadData_h_
 #define _AI_Core_LeadData_h_
 
-NAMESPACE_UPP
+
 
 struct LeadOpportunity : Moveable<LeadOpportunity> {
 	struct Genre : Moveable<Genre> {
@@ -105,6 +105,6 @@ struct LeadData : Component {
 
 INITIALIZE(LeadData)
 
-END_UPP_NAMESPACE
+
 
 #endif

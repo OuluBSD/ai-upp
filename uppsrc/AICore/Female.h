@@ -2,7 +2,7 @@
 #define _AI_Core_Female_h_
 
 
-NAMESPACE_UPP
+
 
 
 #define DATASET_ITEM(a,b,c,d,e) COMPONENT_STUB_HEADER(a, c)
@@ -16,6 +16,6 @@ NAMESPACE_UPP
 #undef DATASET_ITEM
 
 
-END_UPP_NAMESPACE
+
 
 #endif

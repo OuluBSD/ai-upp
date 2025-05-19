@@ -2,7 +2,7 @@
 #define _AI_Core_CoverImage_h_
 
 
-NAMESPACE_UPP
+
 
 
 struct ReleaseCoverImage : Component
@@ -20,6 +20,6 @@ struct ReleaseCoverImage : Component
 INITIALIZE(ReleaseCoverImage)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -149,6 +149,8 @@ CONSOLE_APP_MAIN {
 	
 	Ecs::Engine& eng = MetaEnv().root.Add<Ecs::Engine>("eng");
 	eng.Start();
+
+	AgentInteractionSystem::Setup();
 	
 	bool gubo = false;
 	if (gubo) {
@@ -156,6 +158,8 @@ CONSOLE_APP_MAIN {
 	}
 	
 	mach.Run(true, "Shell");
+	
+	AgentInteractionSystem::Uninstall();
 	
 	eng.Stop();
 	mach.Stop();

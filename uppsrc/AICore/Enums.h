@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Enums_h_
 #define _AI_TextCore_Enums_h_
 
-NAMESPACE_UPP
+
 
 // TODO move to a file
 enum {
@@ -764,6 +764,6 @@ int GetContentCount(int appmode);
 const Index<String>& GetTypeclasses(int appmode);
 int GetTypeclassCount(int appmode);
 
-END_UPP_NAMESPACE
+
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _AI_TextCore_Phoneme_h_
 #define _AI_TextCore_Phoneme_h_
 
-NAMESPACE_UPP
+
 
 
 #define PHONOME_VOWELS \
@@ -206,6 +206,6 @@ extern const double vowel_distance[PHONOME_VOWEL_COUNT][PHONOME_VOWEL_COUNT];
 extern const double consonant_distance[PHONOME_CONSONANT_COUNT][PHONOME_CONSONANT_COUNT];
 
 
-END_UPP_NAMESPACE
+
 
 #endif

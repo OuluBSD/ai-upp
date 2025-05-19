@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Artist_h_
 #define _AI_Core_Artist_h_
 
-NAMESPACE_UPP
+
 
 
 struct Artist : Component
@@ -21,6 +21,6 @@ struct Artist : Component
 INITIALIZE(Artist)
 
 
-END_UPP_NAMESPACE
+
 
 #endif

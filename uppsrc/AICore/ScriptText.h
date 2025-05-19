@@ -1,7 +1,7 @@
 #ifndef _AI_Core_ScriptText_h_
 #define _AI_Core_ScriptText_h_
 
-NAMESPACE_UPP
+
 
 class ScriptTextProcess : public SolverBase {
 	
@@ -166,7 +166,7 @@ public:
 
 INITIALIZE_VALUECOMPONENT(ScriptText, METAKIND_ECS_COMPONENT_SCRIPT_TEXT);
 
-END_UPP_NAMESPACE
+
 
 
 #endif

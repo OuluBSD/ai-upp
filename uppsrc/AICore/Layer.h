@@ -1,7 +1,7 @@
 #ifndef _AICore_Layer_h_
 #define _AICore_Layer_h_
 
-NAMESPACE_UPP
+
 
 struct ImageLayer : Component {
 	Image img;
@@ -35,6 +35,6 @@ struct ImageGenLayer : TempImageLayer {
 
 INITIALIZE(ImageGenLayer);
 
-END_UPP_NAMESPACE
+
 
 #endif

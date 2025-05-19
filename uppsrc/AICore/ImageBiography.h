@@ -2,7 +2,7 @@
 #define _AI_Core_ImageBiography_h_
 
 
-NAMESPACE_UPP
+
 
 
 class ImageBiographyProcess : public SolverBase {
@@ -47,6 +47,6 @@ private:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

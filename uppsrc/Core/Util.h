@@ -545,7 +545,7 @@ public:
 	void SetStopped() {stopped = true;}
 	void SetNotRunning() {running = false;}
 	void Start() {running = true; stopped = false;}
-	void Stop();
+	void Stop(int wait_ms=100);
 	
 };
 

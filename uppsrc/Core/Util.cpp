@@ -1011,7 +1011,7 @@ bool IsClose(double a, double b) {
 	}
 }
 
-void RunningFlagSingle::Stop() {running = false; while (!stopped) Sleep(100);}
+void RunningFlagSingle::Stop(int wait_ms) {running = false; while (!stopped) Sleep(wait_ms);}
 void RunningFlag::Stop() {running = false; while (workers_running > 0) Sleep(sleep_time);}
 void RunningFlag::Wait() {while ((int)workers_running != 0) Sleep(100);}
 

@@ -194,6 +194,7 @@ struct MetaNode : Pte<MetaNode> {
 	hash_t serial = 0;
 	bool is_disabled = false;
 	One<MetaNodeExt> ext;
+	Value value;
 	
 	// Temp
 	int pkg = -1;

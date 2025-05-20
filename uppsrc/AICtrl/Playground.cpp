@@ -291,6 +291,25 @@ void AiStageCtrl::DataBottom() {
 	
 }
 
+bool AiStageCtrl::CompileStages() {
+	bool succ = false;
+	
+	log.Clear();
+	
+	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	ASSERT(agent);
+	
+	for(int i = 0; i < stages.GetCount(); i++) {
+		MetaNode& n = *stages[i];
+		
+		String esc = n.value;
+		if (esc.IsEmpty()) continue;
+		
+		succ = agent->CompileStage(n, THISBACK(PrintLog));
+	}
+	return true;
+}
+
 bool AiStageCtrl::Compile() {
 	if (!proglist.IsCursor()) return false;
 	int idx = proglist.Get("IDX");
@@ -353,7 +372,8 @@ void AiStageCtrl::PrintLog(Vector<ProcMsg>& msgs) {
 }
 
 void AiStageCtrl::ToolMenu(Bar& b) {
-	b.Add("Compile", [this]{Compile();}).Key(K_F7);
+	b.Add("Compile Stages", [this]{CompileStages();}).Key(K_F8);
+	b.Add("Compile Program", [this]{Compile();}).Key(K_F7);
 	b.Add("Run", [this]{Run();}).Key(K_F5);
 }
 

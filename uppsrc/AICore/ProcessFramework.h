@@ -17,19 +17,34 @@ class AgentInteractionSystem;
 // Note: the Agent has additional Ecs::Component features,
 //       but it's standalone without Ecs::Engine too.
 class Agent : public Component {
-	One<Esc> vm;
 	Vector<AgentInteractionSession*> sessions;
+	ArrayMap<String, EscValue> global;
+	int oplimit = 50000;
+	hash_t compiled_hash = 0;
+	
+	bool Catch(Event<> cb, Vector<ProcMsg>& msgs);
 	
 public:
 	CLASSTYPE(Agent)
 	Agent(MetaNode& n);
 	~Agent();
 	
+	using MsgCb = Event<Vector<ProcMsg>&>;
+	
 	void Visit(Vis& v) override {}
+	bool RealizeLibrary(MsgCb WhenMessage);
+	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
+	bool Run(MsgCb WhenMessage=MsgCb());
+	
+	void SetOpLimit(int i) {oplimit = i;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_AGENT;}
+	
+	Event<EscEscape&> WhenPrint;
+	Event<EscEscape&> WhenInput;
 	
 };
 
-//INITIALIZE(Agent)
+INITIALIZE(Agent)
 using AgentPtr = Ptr<Agent>;
 
 class AgentInteractionSession : public MetaNodeExt {

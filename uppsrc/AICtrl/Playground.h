@@ -74,10 +74,15 @@ class AiStageCtrl : public AiThreadExt {
 	ArrayCtrl proglist, stagelist;
 	CodeEditor prog, stage;
 	TabCtrl btabs;
+	DocEdit log;
 	
 	Vector<MetaNode*> programs, stages;
 	/*VectorMap<int,MetaNode*> structure_nodes;
 	VectorMap<int,String> structure_values;*/
+	
+	void PrintLog(Vector<ProcMsg>& msgs);
+	void Print(EscEscape& e);
+	void Input(EscEscape& e);
 	
 public:
 	typedef AiStageCtrl CLASSNAME;
@@ -91,6 +96,8 @@ public:
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
 	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind);
+	bool Compile();
+	bool Run();
 	
 	MetaNode* GetProgram();
 	MetaNode* GetStage();

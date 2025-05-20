@@ -17,7 +17,81 @@ Agent::~Agent() {
 	}
 }
 
-//INITIALIZER_COMPONENT(Agent);
+bool Agent::RealizeLibrary(MsgCb WhenMessage) {
+	if (global.IsEmpty()) {
+		Escape(global, "Print(x)", Proxy(WhenPrint));
+		Escape(global, "Input()", Proxy(WhenInput));
+		StdLib(global);
+	}
+	return true;
+}
+
+bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
+	bool succ = true;
+	try {
+		cb();
+	}
+	catch(CParser::Error e) {
+		ProcMsg& m = msgs.Add();
+		m.msg = e;
+		m.severity = PROCMSG_ERROR;
+		succ = false;
+	}
+	catch(Exc e) {
+		ProcMsg& m = msgs.Add();
+		m.msg = "Exception: " + e;
+		m.severity = PROCMSG_ERROR;
+		succ = false;
+	}
+	catch(...) {
+		ProcMsg& m = msgs.Add();
+		m.msg = "Unknown error";
+		m.severity = PROCMSG_ERROR;
+		succ = false;
+	}
+	return succ;
+}
+
+bool Agent::Compile(String esc, MsgCb WhenMessage) {
+	hash_t h = esc.GetHashValue();
+	if (compiled_hash && compiled_hash == h)
+		return true;
+	
+	compiled_hash = 0;
+	bool succ = true;
+	
+	if (!RealizeLibrary(WhenMessage))
+		return false;
+	
+	Vector<ProcMsg> msgs;
+	succ = Catch([this,&esc]{
+		Scan(global, esc);
+	}, msgs);
+	
+	if (msgs.GetCount())
+		WhenMessage(msgs);
+	
+	if (succ)
+		compiled_hash = h;
+	
+	return succ;
+}
+
+bool Agent::Run(MsgCb WhenMessage) {
+	bool succ = true;
+	
+	Vector<ProcMsg> msgs;
+	succ = Catch([this]{
+		Execute(global, "main", oplimit);
+	}, msgs);
+	
+	if (msgs.GetCount())
+		WhenMessage(msgs);
+	
+	return succ;
+}
+
+INITIALIZER_COMPONENT(Agent);
 
 
 

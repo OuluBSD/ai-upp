@@ -207,8 +207,9 @@ AiStageCtrl::AiStageCtrl() {
 	Add(vsplit.SizePos());
 	
 	vsplit.Vert() << hsplit << btabs;
-	vsplit.SetPos(8500);
+	vsplit.SetPos(8000);
 	
+	btabs.Add(log.SizePos(), "Log");
 	
 	hsplit.Horz() << proglist << prog << stagelist << stage;
 	hsplit.SetPos(1000,0).SetPos(5000,1).SetPos(6000,2);
@@ -290,8 +291,70 @@ void AiStageCtrl::DataBottom() {
 	
 }
 
-void AiStageCtrl::ToolMenu(Bar& b) {
+bool AiStageCtrl::Compile() {
+	if (!proglist.IsCursor()) return false;
+	int idx = proglist.Get("IDX");
+	MetaNode& n = *programs[idx];
+	bool succ = false;
 	
+	String esc = n.value;
+	if (esc.IsEmpty()) return false;
+	
+	log.Clear();
+	
+	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	ASSERT(agent);
+	succ = agent->Compile(esc, THISBACK(PrintLog));
+	
+	return true;
+}
+
+bool AiStageCtrl::Run() {
+	if (!Compile())
+		return false;
+	
+	bool succ = false;
+	
+	log.Clear();
+	
+	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	ASSERT(agent);
+	
+	agent->WhenPrint = THISBACK(Print);
+	agent->WhenInput = THISBACK(Input);
+	
+	succ = agent->Run(THISBACK(PrintLog));
+	
+	return succ;
+}
+
+void AiStageCtrl::Print(EscEscape& e) {
+	String s = e[0];
+	
+	GuiLock __;
+	log.Append(s + "\n");
+	log.SetCursor(log.GetLength());
+}
+
+void AiStageCtrl::Input(EscEscape& e) {
+	String s;
+	EditText(s, "Input", "Text");
+	e = s;
+}
+
+void AiStageCtrl::PrintLog(Vector<ProcMsg>& msgs) {
+	String s;
+	for (ProcMsg& m : msgs) {
+		s << m.ToString() << "\n";
+	}
+	GuiLock __;
+	log.Append(s);
+	log.SetCursor(log.GetLength());
+}
+
+void AiStageCtrl::ToolMenu(Bar& b) {
+	b.Add("Compile", [this]{Compile();}).Key(K_F7);
+	b.Add("Run", [this]{Run();}).Key(K_F5);
 }
 
 void AiStageCtrl::ProgramMenu(Bar& b) {
@@ -830,6 +893,8 @@ void PlaygroundCtrl::LoadThis() {
 		auto& chain_n = node->GetAdd("chain", "", METAKIND_ECS_COMPONENT_AI_CHAIN);
 		ASSERT(chain_n.ext);
 		chain.ext = &*chain_n.ext;
+		
+		auto& agent = node->GetAdd("agent", "", METAKIND_ECS_COMPONENT_AI_AGENT);
 	}
 }
 

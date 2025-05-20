@@ -941,6 +941,7 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	is_ref = n.is_ref;
 	is_definition = n.is_definition;
 	is_disabled = n.is_disabled;
+	value = n.value;
 	if (n.ext) {
 		ASSERT(kind >= 0);
 		ext = MetaExtFactory::CloneKind(kind, *n.ext, *this);
@@ -965,6 +966,7 @@ hash_t MetaNode::GetTotalHash() const
 		.Do(is_ref)
 		.Do(is_definition)
 		.Do(is_disabled)
+		.Do(value)
 		.Do(serial);
 	if (ext)
 		ch.Put(ext->GetHashValue());
@@ -975,21 +977,25 @@ hash_t MetaNode::GetTotalHash() const
 
 void MetaNode::Visit(Vis& v) {
 	#define Do(x) (#x,x)
-	v.Ver(1)
-	(1)	Do(kind)
-		Do(id)
-		Do(type)
-		Do((int64&)type_hash)
-		Do(begin)
-		Do(end)
-		Do((int64&)filepos_hash)
-		Do(file)
-		//Do(pkg)
-		Do(is_ref)
-		Do(is_definition)
-		Do(is_disabled)
-		Do((int64&)serial)
-		;
+	v.Ver(2);
+	if (v.file_ver <= 2) {
+		v
+		(1)	Do(kind)
+			Do(id)
+			Do(type)
+			Do((int64&)type_hash)
+			Do(begin)
+			Do(end)
+			Do((int64&)filepos_hash)
+			Do(file)
+			//Do(pkg)
+			Do(is_ref)
+			Do(is_definition)
+			Do(is_disabled)
+			Do((int64&)serial)
+		(2)	Do(value)
+			;
+	}
 	
 	bool has_ext = ext;
 	v("has_ext", has_ext);
@@ -997,6 +1003,9 @@ void MetaNode::Visit(Vis& v) {
 		if (v.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
 		if (ext)
 			v("ext",*ext, VISIT_NODE);
+		else {
+			RLOG("MetaNode::Visit: error: could not load kind " + IntStr(kind));
+		}
 	}
 	v
 		("sub", sub, VISIT_VECTOR)

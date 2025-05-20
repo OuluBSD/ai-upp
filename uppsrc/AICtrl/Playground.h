@@ -70,49 +70,42 @@ public:
 };
 
 class AiStageCtrl : public AiThreadExt {
-	Splitter hsplit, msplit, rsplit;
-	ArrayCtrl session, examples;
-	TreeCtrl structure;
-	Vector<MetaNode*> sessions, example_nodes;
-	VectorMap<int,MetaNode*> structure_nodes;
-	VectorMap<int,String> structure_values;
+	Splitter vsplit, hsplit;
+	ArrayCtrl proglist, stagelist;
+	CodeEditor prog, stage;
+	TabCtrl btabs;
+	
+	Vector<MetaNode*> programs, stages;
+	/*VectorMap<int,MetaNode*> structure_nodes;
+	VectorMap<int,String> structure_values;*/
 	
 public:
 	typedef AiStageCtrl CLASSNAME;
 	AiStageCtrl();
 	
 	void Data() override;
-	void DataSession();
-	void DataExample();
-	void DataItem();
+	void DataProgramList();
+	void DataProgram();
+	void DataStageList();
+	void DataStage();
+	void DataBottom();
 	void ToolMenu(Bar& bar) override;
-	void SaveTemplate();
-	void LoadTemplate(MetaNode* n);
-	void RemoveTemplate(MetaNode* n);
-	void VisitNode(int tree_i, MetaNode& n, String path);
-	MetaNode* GetSession();
-	MetaNode* GetExample();
-	void SetExampleValue(Value key, Value val);
-	Value GetExampleValue(Value key);
+	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind);
 	
-	void ExampleMenu(Bar& b);
-	void AddExample();
-	void RemoveExample();
-	void RenameExample();
-	void DuplicateExample();
-	void EditExampleValue(bool string);
+	MetaNode* GetProgram();
+	MetaNode* GetStage();
 	
-	void SessionMenu(Bar& b);
-	void AddSession();
-	void RemoveSession();
-	void RenameSession();
-	void SetSessionVersion();
-	void DuplicateSession();
+	void ProgramMenu(Bar& b);
+	void AddProgram();
+	void RemoveProgram();
+	void RenameProgram();
+	void DuplicateProgram();
 	
 	void StageMenu(Bar& b);
-	void AddStageNode(int kind);
-	void RenameStageNode();
-	void RemoveStageNode();
+	void AddStage();
+	void RemoveStage();
+	void RenameStage();
+	void DuplicateStage();
 	
 };
 
@@ -228,6 +221,7 @@ class PlaygroundCtrl : public Ctrl {
 	Ctrl placeholder;
 	
 	One<OmniThread> omni;
+	Ptr<MetaNode> node;
 	
 public:
 	typedef PlaygroundCtrl CLASSNAME;

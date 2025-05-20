@@ -145,7 +145,7 @@ public:
 		;
 	}
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_STAGE;}
+	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_STAGE_SESSION;}
 	
 };
 

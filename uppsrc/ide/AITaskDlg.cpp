@@ -24,6 +24,7 @@ struct AITaskDlg : TopWindow {
 	Ide* theide = 0;
 	
 	AITaskDlg();
+	~AITaskDlg();
 	
 	void Update();
 };
@@ -41,6 +42,12 @@ AITaskDlg::AITaskDlg() {
 	tabs.Add(menv.SizePos(), "Meta Env. Tree");
 	tabs.WhenSet = THISBACK(Update);
 	
+	playground.SetNode(MetaEnv().root.GetAdd("playground","",0));
+	playground.CreateThread();
+}
+
+AITaskDlg::~AITaskDlg() {
+	playground.StoreThis();
 }
 
 bool AITaskDlg::Key(dword key, int count) {
@@ -57,7 +64,7 @@ void AITaskDlg::Update() {
 	switch (tab) {
 		case 0: daemon.Data(); break;
 		case 1: tasks.Data(); break;
-		//case 2: playground.Data(); break;
+		case 2: playground.Data(); break;
 		case 3: menv.Data(); break;
 		default: break;
 	}

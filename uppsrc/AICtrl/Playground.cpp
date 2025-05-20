@@ -204,448 +204,214 @@ void CompletionCtrl::Submit() {
 INITIALIZER_COMPONENT_CTRL(StageThread, AiStageCtrl)
 
 AiStageCtrl::AiStageCtrl() {
-	Add(hsplit.SizePos());
+	Add(vsplit.SizePos());
 	
-	hsplit.Horz() << msplit << structure << rsplit;
-	hsplit.SetPos(1500,0).SetPos(5750,1);
+	vsplit.Vert() << hsplit << btabs;
+	vsplit.SetPos(8500);
 	
-	msplit.Vert() << session << examples;
 	
-	session.AddColumn("Session");
-	session.AddColumn("Version");
-	session.AddIndex("IDX");
-	session.WhenBar = THISBACK(SessionMenu);
-	session.WhenCursor = THISBACK(DataSession);
+	hsplit.Horz() << proglist << prog << stagelist << stage;
+	hsplit.SetPos(1000,0).SetPos(5000,1).SetPos(6000,2);
 	
-	examples.AddColumn("Example");
-	examples.AddIndex("IDX");
-	examples.WhenBar = THISBACK(ExampleMenu);
-	examples.WhenCursor = THISBACK(DataExample);
+	proglist.AddColumn("Program");
+	proglist.AddIndex("IDX");
+	proglist.WhenBar = THISBACK(ProgramMenu);
+	proglist.WhenCursor = THISBACK(DataProgram);
 	
-	structure.WhenBar = THISBACK(StageMenu);
-	structure.WhenCursor = THISBACK(DataItem);
+	stagelist.AddColumn("Stage");
+	stagelist.AddIndex("IDX");
+	stagelist.WhenBar = THISBACK(StageMenu);
+	stagelist.WhenCursor = THISBACK(DataStage);
 	
+	prog.Highlight("cpp");
+	prog.LineNumbers(true);
+	prog.WhenAction = [this] {
+		if (!proglist.IsCursor()) return;
+		int idx = proglist.Get("IDX");
+		MetaNode& n = *programs[idx];
+		n.value = prog.GetData();
+	};
+	stage.Highlight("cpp");
+	stage.LineNumbers(true);
+	stage.WhenAction = [this] {
+		if (!stagelist.IsCursor()) return;
+		int idx = stagelist.Get("IDX");
+		MetaNode& n = *stages[idx];
+		n.value = stage.GetData();
+	};
 }
 
 void AiStageCtrl::Data() {
 	if (!ext) return;
-	auto& list = this->session;
-	StageThread& t = GetStageThread();
+	DataProgramList();
+	DataStageList();
+	DataBottom();
+}
+
+void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind) {
 	MetaNode& n = GetNode();
-	sessions = n.FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION);
-	for(int i = 0; i < sessions.GetCount(); i++) {
-		const auto& it = *sessions[i];
+	nodes = n.FindAllShallow(kind);
+	for(int i = 0; i < nodes.GetCount(); i++) {
+		const auto& it = *nodes[i];
 		list.Set(i, 0, it.id);
 		list.Set(i, 1, it.type);
 		list.Set(i,"IDX", i);
 	}
-	list.SetCount(sessions.GetCount());
+	list.SetCount(nodes.GetCount());
 	if (!list.IsCursor() && list.GetCount())
 		list.SetCursor(0);
 	else
-		DataSession();
+		DataProgram();
 }
 
-MetaNode* AiStageCtrl::GetSession() {
-	if (!session.IsCursor())
-		return 0;
-	int ses_i = session.Get("IDX");
-	return sessions[ses_i];
+void AiStageCtrl::DataProgramList() {
+	DataList(proglist, programs, METAKIND_ECS_COMPONENT_AI_PROGRAM);
 }
 
-MetaNode* AiStageCtrl::GetExample() {
-	if (!examples.IsCursor())
-		return 0;
-	int ex_i = examples.Get("IDX");
-	return example_nodes[ex_i];
+void AiStageCtrl::DataProgram() {
+	if (!proglist.IsCursor()) return;
+	int idx = proglist.Get("IDX");
+	MetaNode& n = *programs[idx];
+	prog.SetData(n.value);
 }
 
-void AiStageCtrl::SetExampleValue(Value key, Value val) {
-	MetaNode* ex = GetExample();
-	ASSERT(ex);
-	if (!ex->ext)
-		ex->ext = new AiStageExample(*ex);
-	ASSERT(ex->ext);
-	ValueComponentBase& comp = ex->GetExt<ValueComponentBase>();
-	if (!comp.value.Is<ValueMap>())
-		comp.value = ValueMap();
-	ValueMap map = comp.value;
-	map.Set(key, val);
-	comp.value = map;
+void AiStageCtrl::DataStageList() {
+	DataList(stagelist, stages, METAKIND_ECS_COMPONENT_AI_STAGE);
 }
 
-Value AiStageCtrl::GetExampleValue(Value key) {
-	MetaNode* ex = GetExample();
-	if (!ex)
-		return Value();
-	ASSERT(ex);
-	if (!ex->ext)
-		ex->ext = new AiStageExample(*ex);
-	ASSERT(ex->ext);
-	ValueComponentBase& comp = ex->GetExt<ValueComponentBase>();
-	if (!comp.value.Is<ValueMap>())
-		comp.value = ValueMap();
-	ValueMap map = comp.value;
-	int i = map.Find(key);
-	if (i < 0)
-		return Value();
-	return map.GetValue(i);
+void AiStageCtrl::DataStage() {
+	if (!stagelist.IsCursor()) return;
+	int idx = stagelist.Get("IDX");
+	MetaNode& n = *stages[idx];
+	stage.SetData(n.value);
 }
 
-void AiStageCtrl::DataSession() {
-	if (!session.IsCursor()) {
-		examples.Clear();
-		return;
-	}
-	StageThread& t = GetStageThread();
-	int ses_i = session.Get("IDX");
-	MetaNode& ses = *sessions[ses_i];
-	
-	example_nodes = ses.FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE);
-	
-	for(int i = 0; i < example_nodes.GetCount(); i++) {
-		MetaNode& n = *example_nodes[i];
-		examples.Set(i, 0, n.id);
-		examples.Set(i, "IDX", i);
-	}
-	examples.SetCount(example_nodes.GetCount());
-	if (!examples.IsCursor() && examples.GetCount())
-		examples.SetCursor(0);
-	
-	DataExample();
-}
-
-void AiStageCtrl::DataExample() {
-	MetaNode* ses = GetSession();
-	if (!ses) {
-		return;
-	}
-	
-	structure_nodes.Clear();
-	structure_nodes.Add(0, ses);
-	structure.Clear();
-	structure.SetRoot(MetaImgs::StageRoot(), "Session");
-	structure_values.Clear();
-	VisitNode(0, *ses, "");
-	structure.OpenDeep(0);
-	
-	MetaNode* ex = GetExample();
-	if (!ex)
-		return;
+void AiStageCtrl::DataBottom() {
 	
 }
 
-void AiStageCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
-	for(int i = 0; i < n.sub.GetCount(); i++) {
-		auto& s = n.sub[i];
-		if (s.kind == METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE)
-			continue;
-		Image img;
-		bool is_value_node = false;
-		switch (s.kind) {
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE: img = MetaImgs::StageNode(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY: img = MetaImgs::StageQuery(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE: img = MetaImgs::StageResponse(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT: img = MetaImgs::StageComment(); break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE: img = MetaImgs::StageExample(); is_value_node = true; break;
-			case METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE:   img = MetaImgs::StageValue();   is_value_node = true; break;
-		}
-		int cur = structure.Add(tree_i, img, s.id);
-		structure_nodes.Add(cur, &s);
-		String s_path = path + "." + s.id;
-		if (is_value_node) {
-			Value val = GetExampleValue(s_path);
-			String str = val.ToString();
-			int val_cur = structure.Add(cur, MetaImgs::StageDynamic(), str);
-			structure_values.Add(val_cur, s_path);
-		}
-		VisitNode(cur, s, s_path);
-	}
-}
-
-void AiStageCtrl::DataItem() {
+void AiStageCtrl::ToolMenu(Bar& b) {
 	
 }
 
-void AiStageCtrl::ToolMenu(Bar& bar) {
-	
+void AiStageCtrl::ProgramMenu(Bar& b) {
+	b.Add("Add program", THISBACK(AddProgram));
+	b.Add("Remove program", THISBACK(RemoveProgram));
+	b.Add("Rename program", THISBACK(RenameProgram));
+	b.Add("Duplicate program", THISBACK(DuplicateProgram));
 }
 
-void AiStageCtrl::SessionMenu(Bar& b) {
-	b.Add("Add session", THISBACK(AddSession));
-	b.Add("Remove session", THISBACK(RemoveSession));
-	b.Add("Rename session", THISBACK(RenameSession));
-	b.Add("Duplicate session", THISBACK(DuplicateSession));
-	b.Add("Set session's version", THISBACK(SetSessionVersion));
-}
-
-void AiStageCtrl::AddSession() {
+void AiStageCtrl::AddProgram() {
 	String name;
-	if (!EditText(name, "Session's name", "Name"))
+	if (!EditText(name, "Program's name", "Name"))
 		return;
-	StageThread& t = GetStageThread();
-	for(int i = 0; i < sessions.GetCount(); i++) {
-		if (sessions[i]->id == name) {
-			PromptOK("Session with that name exists already");
+	
+	for(int i = 0; i < programs.GetCount(); i++) {
+		if (programs[i]->id == name) {
+			PromptOK("Program with that name exists already");
 			return;
 		}
 	}
-	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, name);
-	ses.type = "1";
-	PostCallback(THISBACK(Data));
+	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_PROGRAM, name);
+	PostCallback(THISBACK(DataProgramList));
 }
 
-void AiStageCtrl::RemoveSession() {
-	if (!session.IsCursor())
+void AiStageCtrl::RemoveProgram() {
+	if (!proglist.IsCursor())
 		return;
-	int ses_id = session.Get("IDX");
-	MetaNode* ses = sessions[ses_id];
-	StageThread& t = GetStageThread();
-	GetNode().Remove(ses);
-	PostCallback(THISBACK(Data));
+	int id = proglist.Get("IDX");
+	MetaNode* n = programs[id];
+	GetNode().Remove(n);
+	PostCallback(THISBACK(DataProgramList));
 }
 
-void AiStageCtrl::RenameSession() {
-	if (!session.IsCursor())
+void AiStageCtrl::RenameProgram() {
+	if (!proglist.IsCursor())
 		return;
-	int ses_id = session.Get("IDX");
-	StageThread& t = GetStageThread();
-	auto& ses = *sessions[ses_id];
-	String name = ses.id;
-	if (!EditText(name, "Session's name", "Name"))
+	int id = proglist.Get("IDX");
+	auto& n = *programs[id];
+	String name = n.id;
+	if (!EditText(name, "Program's name", "Name"))
 		return;
-	ses.id = name;
-	PostCallback(THISBACK(Data));
+	n.id = name;
+	PostCallback(THISBACK(DataProgramList));
 }
 
-void AiStageCtrl::DuplicateSession() {
-	if (!session.IsCursor())
+void AiStageCtrl::DuplicateProgram() {
+	if (!proglist.IsCursor())
 		return;
-	int ses_id = session.Get("IDX");
-	StageThread& t = GetStageThread();
-	const auto& ses0 = *sessions[ses_id];
-	auto& ses1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION, "");
-	VisitCopy(ses0, ses1);
-	PostCallback(THISBACK(Data));
-}
-
-void AiStageCtrl::SetSessionVersion() {
-	if (!session.IsCursor())
-		return;
-	int ses_id = session.Get("IDX");
-	StageThread& t = GetStageThread();
-	auto& ses = *sessions[ses_id];
-	String s = ses.type;
-	if (!EditText(s, "Session's version", "Version"))
-		return;
-	ses.type = s;
-	PostCallback(THISBACK(Data));
-}
-
-void AiStageCtrl::ExampleMenu(Bar& b) {
-	b.Add("Add session", THISBACK(AddExample));
-	b.Add("Remove session", THISBACK(RemoveExample));
-	b.Add("Rename session", THISBACK(RenameExample));
-	b.Add("Duplicate session", THISBACK(DuplicateExample));
-}
-
-void AiStageCtrl::AddExample() {
-	MetaNode* ses = GetSession();
-	if (!ses)
-		return;
-	String name;
-	if (!EditText(name, "Example's name", "Name"))
-		return;
-	StageThread& t = GetStageThread();
-	for(int i = 0; i < example_nodes.GetCount(); i++) {
-		if (example_nodes[i]->id == name) {
-			PromptOK("An example with that name exists already");
-			return;
-		}
-	}
-	auto& ex = ses->Add(METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE, name);
-	PostCallback(THISBACK(DataSession));
-}
-
-void AiStageCtrl::RemoveExample() {
-	MetaNode* ses = GetSession();
-	if (!ses)
-		return;
-	int ex_id = examples.Get("IDX");
-	MetaNode* ex = example_nodes[ex_id];
-	ses->Remove(ex);
-	PostCallback(THISBACK(DataSession));
-}
-
-void AiStageCtrl::RenameExample() {
-	MetaNode* ses = GetSession();
-	if (!ses)
-		return;
-	int ex_id = examples.Get("IDX");
-	MetaNode& ex = *example_nodes[ex_id];
-	String name = ex.id;
-	if (!EditText(name, "Example's name", "Name"))
-		return;
-	ex.id = name;
-	PostCallback(THISBACK(DataSession));
-}
-
-void AiStageCtrl::DuplicateExample() {
-	MetaNode* ses = GetSession();
-	if (!ses)
-		return;
-	int ex_id = examples.Get("IDX");
-	MetaNode& ex0 = *example_nodes[ex_id];
-	auto& ex1 = ses->Add(METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE, "");
-	VisitCopy(ex0, ex1);
-	PostCallback(THISBACK(DataSession));
-}
-
-void AiStageCtrl::EditExampleValue(bool string) {
-	MetaNode* ses = GetSession();
-	MetaNode* ex = GetExample();
-	if (!ses || !ex || !structure.IsCursor())
-		return;
-	int cur = structure.GetCursor();
-	String path = structure_values.Get(cur, "");
-	if (path.IsEmpty())
-		return;
-	Value val = GetExampleValue(path);
-	if (string) {
-		String str = val.ToString();
-		if (!EditText(str, "Value JSON", "Value JSON"))
-			return;
-		SetExampleValue(path, str);
-	}
-	else {
-		String json = AsJSON(val);
-		while (1) {
-			try {
-				if (!EditText(json, "Value JSON", "Value JSON"))
-					return;
-				SetExampleValue(path, ParseJSON(json));
-				break;
-			}
-			catch (Exc e) {
-				if (!PromptYesNo("JSON parse failed: " + e + ".\nWant to keep editing?"))
-					return;
-			}
-		}
-	}
-	PostCallback(THISBACK(DataSession));
+	int id = proglist.Get("IDX");
+	const auto& n0 = *programs[id];
+	auto& m1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_PROGRAM, "");
+	VisitCopy(n0, m1);
+	PostCallback(THISBACK(DataProgramList));
 }
 
 void AiStageCtrl::StageMenu(Bar& b) {
-	if (structure.IsCursor()) {
-		int cur = structure.GetCursor();
-		int val_i = structure_values.Find(cur);
-		if (val_i >= 0) {
-			b.Add("Set String", THISBACK1(EditExampleValue, true));
-			b.Add("Set JSON", THISBACK1(EditExampleValue, false));
+	b.Add("Add stage", THISBACK(AddStage));
+	b.Add("Remove stage", THISBACK(RemoveStage));
+	b.Add("Rename stage", THISBACK(RenameStage));
+	b.Add("Duplicate stage", THISBACK(DuplicateStage));
+}
+
+void AiStageCtrl::AddStage() {
+	String name;
+	if (!EditText(name, "Stage's name", "Name"))
+		return;
+	
+	for(int i = 0; i < stages.GetCount(); i++) {
+		if (stages[i]->id == name) {
+			PromptOK("Stage with that name exists already");
 			return;
 		}
-		b.Add("Add comment", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_COMMENT));
-		if (!cur) {
-			b.Add("Add query", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_QUERY));
-			b.Add("Add response", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_RESPONSE));
-		}
-		else {
-			b.Add("Add", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_NODE));
-			b.Add("Add example value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_EXAMPLE_VALUE));
-			b.Add("Add input value", THISBACK1(AddStageNode, METAKIND_ECS_COMPONENT_AI_STAGE_PROMPT_INPUT_VALUE));
-		}
-		b.Add("Remove", THISBACK(RemoveStageNode));
-		b.Add("Rename", THISBACK(RenameStageNode));
-		if (!cur) {
-			b.Separator();
-			b.Add("Make variation", Callback());
-			b.Sub("Templates", [this](Bar& b) {
-				if (structure_nodes.GetCount() > 1) {
-					b.Add("Save template", THISBACK(SaveTemplate));
-					b.Separator();
-				}
-				b.Sub("Remove", [this](Bar& b) {
-					auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE);
-					for(int i = 0; i < tmpls.GetCount(); i++) {
-						MetaNode& n = *tmpls[i];
-						b.Add(n.id, THISBACK1(RemoveTemplate, &n));
-					}
-				});
-				auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE);
-				for(int i = 0; i < tmpls.GetCount(); i++) {
-					MetaNode& n = *tmpls[i];
-					b.Add(n.id, THISBACK1(LoadTemplate, &n));
-				}
-			});
-		}
 	}
+	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE, name);
+	PostCallback(THISBACK(DataStageList));
 }
 
-void AiStageCtrl::SaveTemplate() {
-	if (!session.IsCursor())
+void AiStageCtrl::RemoveStage() {
+	if (!stagelist.IsCursor())
 		return;
-	int ses_id = session.Get("IDX");
-	StageThread& t = GetStageThread();
-	auto& ses = *sessions[ses_id];
-	auto& dest = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE, ses.id);
-	VisitCopy(ses, dest);
-	dest.kind = METAKIND_ECS_COMPONENT_AI_STAGE_SESSION_TEMPLATE;
-}
-
-void AiStageCtrl::RemoveTemplate(MetaNode* n) {
+	int id = stagelist.Get("IDX");
+	MetaNode* n = stages[id];
 	GetNode().Remove(n);
+	PostCallback(THISBACK(DataStageList));
 }
 
-void AiStageCtrl::LoadTemplate(MetaNode* n) {
-	if (!session.IsCursor())
+void AiStageCtrl::RenameStage() {
+	if (!stagelist.IsCursor())
 		return;
-	int ses_id = session.Get("IDX");
-	StageThread& t = GetStageThread();
-	auto& ses = *sessions[ses_id];
-	VisitCopy(*n, ses);
-	ses.kind = METAKIND_ECS_COMPONENT_AI_STAGE_SESSION;
-	PostCallback(THISBACK(Data));
-}
-
-void AiStageCtrl::AddStageNode(int kind) {
-	if (!structure.IsCursor()) return;
-	int cur = structure.GetCursor();
-	int i = structure_nodes.Find(cur);
-	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
-	String id;
-	if (!EditText(id, "Node's id", "id"))
+	int id = stagelist.Get("IDX");
+	auto& n = *stages[id];
+	String name = n.id;
+	if (!EditText(name, "Stage's name", "Name"))
 		return;
-	MetaNode& s = n.Add(kind, id);
-	PostCallback(THISBACK(Data));
+	n.id = name;
+	PostCallback(THISBACK(DataStageList));
 }
 
-void AiStageCtrl::RenameStageNode() {
-	if (!structure.IsCursor()) return;
-	int cur = structure.GetCursor();
-	int i = structure_nodes.Find(cur);
-	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
-	String id = n.id;
-	if (!EditText(id, "Node's id", "id"))
+void AiStageCtrl::DuplicateStage() {
+	if (!stagelist.IsCursor())
 		return;
-	n.id = id;
-	structure.Set(cur, id);
+	int id = stagelist.Get("IDX");
+	const auto& n0 = *stages[id];
+	auto& m1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE, "");
+	VisitCopy(n0, m1);
+	PostCallback(THISBACK(DataStageList));
 }
 
-void AiStageCtrl::RemoveStageNode() {
-	if (!structure.IsCursor()) return;
-	int cur = structure.GetCursor();
-	if (!cur) return; // can't remove root
-	int i = structure_nodes.Find(cur);
-	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
-	int owner = structure.GetParent(cur);
-	i = structure_nodes.Find(owner);
-	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& o = *structure_nodes[i];
-	o.Remove(&n);
-	PostCallback(THISBACK(Data));
+MetaNode* AiStageCtrl::GetProgram() {
+	if (!proglist.IsCursor())
+		return 0;
+	int ses_i = proglist.Get("IDX");
+	return programs[ses_i];
+}
+
+MetaNode* AiStageCtrl::GetStage() {
+	if (!stagelist.IsCursor())
+		return 0;
+	int ex_i = stagelist.Get("IDX");
+	return stages[ex_i];
 }
 
 
@@ -1023,9 +789,9 @@ void PlaygroundCtrl::Visit(Vis& s) {
 	
 	s.Ver(1)
 	(1)	("tab",tab)
-		("completion", (AiThreadCtrlBase&)completion)
-		("chat", (AiThreadCtrlBase&)chat)
-		//("stage", (AiThreadCtrlBase&)stage)
+		("completion", (AiThreadCtrlBase&)completion, VISIT_NODE)
+		("chat", (AiThreadCtrlBase&)chat, VISIT_NODE)
+		("stage", (AiThreadCtrlBase&)stage, VISIT_NODE)
 		;
 	//s % tts;
 	//s % ass;
@@ -1046,22 +812,29 @@ void PlaygroundCtrl::StoreThis() {
 	if (omni)
 		VisitToJsonFile(*omni, ConfigFile("playground.json"));
 	VisitToJsonFile(*this, ConfigFile("playground-gui.json"));
+	if (node)
+		VisitToJsonFile(*node, ConfigFile("playground-node.json"));
 }
 
 void PlaygroundCtrl::LoadThis() {
 	if (omni)
 		VisitFromJsonFile(*omni, ConfigFile("playground.json"));
 	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
+	if (node) {
+		VisitFromJsonFile(*node, ConfigFile("playground-node.json"));
+		
+		auto& stage_n = node->GetAdd("stage-session", "", METAKIND_ECS_COMPONENT_AI_STAGE_SESSION);
+		ASSERT(stage_n.ext);
+		stage.ext = &*stage_n.ext;
+		
+		auto& chain_n = node->GetAdd("chain", "", METAKIND_ECS_COMPONENT_AI_CHAIN);
+		ASSERT(chain_n.ext);
+		chain.ext = &*chain_n.ext;
+	}
 }
 
 void PlaygroundCtrl::SetNode(MetaNode& n) {
-	auto& stage_n = n.GetAdd("stage", "", METAKIND_ECS_COMPONENT_AI_STAGE);
-	ASSERT(stage_n.ext);
-	stage.ext = &*stage_n.ext;
-	
-	auto& chain_n = n.GetAdd("chain", "", METAKIND_ECS_COMPONENT_AI_CHAIN);
-	ASSERT(chain_n.ext);
-	chain.ext = &*chain_n.ext;
+	this->node = &n;
 }
 
 

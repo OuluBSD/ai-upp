@@ -52,7 +52,25 @@ bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
 	return succ;
 }
 
+bool Agent::CompileStage(MetaNode& stage, MsgCb WhenMessage) {
+	ASSERT(stage.kind == METAKIND_ECS_COMPONENT_AI_STAGE);
+	if (stage.kind != METAKIND_ECS_COMPONENT_AI_STAGE)
+		return false;
+	
+	bool succ = true;
+	FarStageCompiler comp;
+	
+	Vector<ProcMsg> msgs;
+	succ = Catch([this,&comp,&stage]{
+		comp.Compile(stage);
+	}, msgs);
+	
+	return succ;
+}
+
 bool Agent::Compile(String esc, MsgCb WhenMessage) {
+	TimeStop ts;
+	
 	hash_t h = esc.GetHashValue();
 	if (compiled_hash && compiled_hash == h)
 		return true;
@@ -68,12 +86,42 @@ bool Agent::Compile(String esc, MsgCb WhenMessage) {
 		Scan(global, esc);
 	}, msgs);
 	
+	if (succ)
+		succ = CompileLambdas(msgs, WhenMessage);
+	
+	if (succ) {
+		ProcMsg& m = msgs.Add();
+		m.msg = "Compile succeeded in " + ts.ToString();
+		m.severity = PROCMSG_INFO;
+	}
+	
 	if (msgs.GetCount())
 		WhenMessage(msgs);
 	
 	if (succ)
 		compiled_hash = h;
 	
+	return succ;
+}
+
+bool Agent::CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage) {
+	bool succ = true;
+	#if USE_ESC_BYTECODE
+	for(int i = 0; i < global.GetCount(); i++) {
+		String key = global.GetKey(i);
+		EscValue& ev = global[i];
+		if (!ev.IsLambda())
+			continue;
+		EscLambda& l = ev.GetLambdaRW();
+		if (l.compiled || l.escape)
+			continue;
+		
+		if (!Catch([this,&ev]{
+			::Upp::Compile(global, 0, ev);
+		}, msgs))
+			succ = false;
+	}
+	#endif
 	return succ;
 }
 

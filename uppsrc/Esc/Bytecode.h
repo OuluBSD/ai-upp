@@ -264,6 +264,8 @@ public:
 	    c.l = &l;
 	}
 	
+	void		Compile();
+	void		CompileCall(Call& c);
 	void		Run();
 	bool		RunExpand(String& out);
 	void		Stop();
@@ -297,5 +299,7 @@ public:
 	EscValue return_value;
 	
 };
+
+void Compile(ArrayMap<String, EscValue>& global, EscValue *self, EscValue& lambda);
 
 #endif

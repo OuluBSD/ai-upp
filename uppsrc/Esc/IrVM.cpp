@@ -100,6 +100,80 @@ bool Esc::RunExpand(String& out) {
 	return false;
 }
 
+void Compile(ArrayMap<String, EscValue>& global, EscValue *self, EscValue& lambda)
+{
+	EscLambda& l = lambda.GetLambdaRW();
+	{
+		int64 op_limit = 0;
+		Esc sub(global, op_limit, lambda.GetLambdaRW());
+		EscValue& sub_self = sub.Self();
+		if(self)
+			sub_self = *self;
+		sub.Compile();
+		if(self)
+			*self = sub_self;
+	}
+}
+
+void Esc::Compile() {
+	while(!calls.IsEmpty() && !fail) {
+		int i = calls.GetCount()-1;
+		Call& c = calls.Top();
+		CompileCall(c);
+		calls.Remove(i);
+	}
+}
+
+void Esc::CompileCall(Call& c) {
+	if (c.type == FN_NAME) {
+		int i = global.Find(c.fn);
+		if (i < 0) {
+			OnError("could not find global function '" + c.fn + "'");
+			return;
+		}
+		
+		c.lambda = global[i];
+		if (!c.lambda.IsLambda()) {
+			OnError("trying to run non-lambda");
+			return;
+		}
+	}
+	
+	if (c.l ? !c.l->compiled && !c.l->escape : true) {
+		String code;
+		String filename = c.l ? c.l->filename : (String)"expression";
+		int line = c.l ? c.l->line : 0;
+		
+		if (c.type == EVALX)	code = c.scope_l->def[c.parent_arg_i];
+		else if (c.l)			code = c.l->code;
+		else					code = c.code;
+		ASSERT((c.l != 0 || c.scope_l) == c.code.IsEmpty());
+		
+		EscCompiler comp(code, filename, line);
+		
+		if (c.type == FN_EXPAND)
+			c.out_var = comp.GetExpand(); // untested
+		else if (c.get_exp)
+			c.out_var = comp.GetExp();
+		else
+			comp.Run();
+		
+		if (comp.fail) {
+			LOG("Esc::Run: error: compiling failed");
+			return;
+		}
+		
+		if (c.l)
+			comp.WriteLambda(*c.l);
+		else
+			comp.SwapIR(c.tmp_ir);
+		
+		comp.Spaces();
+		code_len = comp.GetPtr() - code.Begin();
+		ASSERT(code_len >= 0);
+	}
+}
+
 void Esc::Run() {
 	return_value = EscValue();
 	
@@ -109,53 +183,7 @@ void Esc::Run() {
 		if (c.vm.IsEmpty()) {
 			int src = -1;
 			
-			if (c.type == FN_NAME) {
-				int i = global.Find(c.fn);
-				if (i < 0) {
-					OnError("could not find global function '" + c.fn + "'");
-					return;
-				}
-				
-				c.lambda = global[i];
-				if (!c.lambda.IsLambda()) {
-					OnError("trying to run non-lambda");
-					return;
-				}
-			}
-			
-			if (c.l ? !c.l->compiled && !c.l->escape : true) {
-				String code;
-				String filename = c.l ? c.l->filename : (String)"expression";
-				int line = c.l ? c.l->line : 0;
-				
-				if (c.type == EVALX)	code = c.scope_l->def[c.parent_arg_i];
-				else if (c.l)			code = c.l->code;
-				else					code = c.code;
-				ASSERT((c.l != 0 || c.scope_l) == c.code.IsEmpty());
-				
-				EscCompiler comp(code, filename, line);
-				
-				if (c.type == FN_EXPAND)
-					c.out_var = comp.GetExpand(); // untested
-				else if (c.get_exp)
-					c.out_var = comp.GetExp();
-				else
-					comp.Run();
-				
-				if (comp.fail) {
-					LOG("Esc::Run: error: compiling failed");
-					return;
-				}
-				
-				if (c.l)
-					comp.WriteLambda(*c.l);
-				else
-					comp.SwapIR(c.tmp_ir);
-				
-				comp.Spaces();
-				code_len = comp.GetPtr() - code.Begin();
-				ASSERT(code_len >= 0);
-			}
+			CompileCall(c);
 			
 			c.vm = new IrVM(this, global, c.var, oplimit, c.l ? c.l->ir : c.tmp_ir);
 			IrVM& vm = *c.vm;

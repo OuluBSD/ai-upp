@@ -96,6 +96,7 @@ public:
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
 	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind);
+	bool CompileStages();
 	bool Compile();
 	bool Run();
 	

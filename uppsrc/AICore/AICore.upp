@@ -25,6 +25,7 @@ file
 	"AI Process Framework" readonly separator,
 	ProcessFramework.h,
 	ProcessFramework.cpp,
+	StageCompiler.cpp,
 	"Task Manager" readonly separator,
 	CodeProcess.h,
 	CodeProcess.cpp,

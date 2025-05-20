@@ -13,6 +13,21 @@ class AgentInteractionSession;
 class AgentInteractionSystem;
 
 
+// Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
+//       what that was:    complicated initializer for AI calls with json templates
+//       what was kept:    json-based RPC for LLMs
+//       what was changed: essentially, moved "AI code" from hardcoded C++ to scripting language Esc
+//       define FarStage:  a remote call to the place 'far away', with unknown implementation, possibly processed in 'LLM'. Nothing to do with artifical intelligence.
+//                         ~ the scripting language lets the process to escape far away ~
+class FarStageCompiler {
+	
+public:
+	typedef FarStageCompiler CLASSNAME;
+	FarStageCompiler();
+	
+	bool Compile(Nod& stage);
+	
+};
 
 // Note: the Agent has additional Ecs::Component features,
 //       but it's standalone without Ecs::Engine too.
@@ -22,17 +37,19 @@ class Agent : public Component {
 	int oplimit = 50000;
 	hash_t compiled_hash = 0;
 	
+	using MsgCb = Event<Vector<ProcMsg>&>;
+	
 	bool Catch(Event<> cb, Vector<ProcMsg>& msgs);
+	bool CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage=MsgCb());
 	
 public:
 	CLASSTYPE(Agent)
 	Agent(MetaNode& n);
 	~Agent();
 	
-	using MsgCb = Event<Vector<ProcMsg>&>;
-	
 	void Visit(Vis& v) override {}
 	bool RealizeLibrary(MsgCb WhenMessage);
+	bool CompileStage(MetaNode& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());
 	

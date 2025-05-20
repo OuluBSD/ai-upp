@@ -791,8 +791,12 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(stage.SizePos(), "Stage");
 	tabs.Add(placeholder.SizePos(), "User/System"); // https://sketch.dev/blog/agent-loop (https://news.ycombinator.com/item?id=43998472)
 	tabs.Add(placeholder.SizePos(), "Action Planner");
+	tabs.Add(placeholder.SizePos(), "Group of three");
+	tabs.Add(placeholder.SizePos(), "Tournament");
 	tabs.Add(placeholder.SizePos(), "DM");
 	tabs.Add(placeholder.SizePos(), "Team DM");
+	tabs.Add(placeholder.SizePos(), "Multi-team cooperative parallel");
+	tabs.Add(placeholder.SizePos(), "Multi-team cooperative hierarchical");
 	tabs.Add(chain.SizePos(), "Filesystem-chat");
 	tabs.Add(placeholder.SizePos(), "Animation");
 	tabs.Add(placeholder.SizePos(), "Adventure");

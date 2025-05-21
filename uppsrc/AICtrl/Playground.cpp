@@ -797,6 +797,8 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(placeholder.SizePos(), "Team DM");
 	tabs.Add(placeholder.SizePos(), "Game of toxic adoration");
 	tabs.Add(placeholder.SizePos(), "Courtroom");
+	tabs.Add(placeholder.SizePos(), "Multi-team cooperative parallel");
+	tabs.Add(placeholder.SizePos(), "Multi-team cooperative hierarchical");
 	tabs.Add(chain.SizePos(), "Filesystem-chat");
 	tabs.Add(placeholder.SizePos(), "Animation");
 	tabs.Add(placeholder.SizePos(), "Adventure");

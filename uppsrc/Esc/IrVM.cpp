@@ -215,7 +215,7 @@ void Esc::Run() {
 		}
 		
 		IrVM& vm = *c.vm;
-		
+		vm.WhenMsg = Proxy(this->WhenMsg);
 		
 		bool cont = vm.Execute();
 		
@@ -603,8 +603,17 @@ String IR::ToString() const {
 
 
 void IrVM::OnError(String msg) {
-	LOG("IrVM: error: " << msg);
-	LOG("	   at " << s->pc);
+	if (WhenMsg) {
+		ProcMsg m;
+		m.severity = PROCMSG_ERROR;
+		m.msg = msg;
+		m.line = s->pc;
+		WhenMsg(m);
+	}
+	else {
+		RLOG("IrVM: error: " << msg);
+		RLOG("	   at " << s->pc);
+	}
 	SetNotRunning();
 	fail = true;
 	esc.fail = true;

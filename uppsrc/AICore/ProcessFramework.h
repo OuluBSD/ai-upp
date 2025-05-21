@@ -12,6 +12,25 @@ class AgentInteractionPolicy;
 class AgentInteractionSession;
 class AgentInteractionSystem;
 
+struct FarStage : Pte<FarStage> {
+	struct Function : Moveable<Function> {
+		String name;
+		Vector<String> params;
+		String ret;
+		String body;
+		Value value;
+		String esc_declaration;
+		hash_t hash = 0;
+		void Visit(Vis& v) {v.Ver(1)(1) VIS_(name) VIS_(params) VIS_(ret) VIS_(body) VIS_(value) VIS_(esc_declaration) VIS_(hash);}
+	};
+	
+	String body;
+	Value value;
+	Vector<Function> funcs;
+	hash_t hash = 0;
+	
+	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(hash);}
+};
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
 //       what that was:    complicated initializer for AI calls with json templates
@@ -20,20 +39,27 @@ class AgentInteractionSystem;
 //       define FarStage:  a remote call to the place 'far away', with unknown implementation, possibly processed in 'LLM'. Nothing to do with artifical intelligence.
 //                         ~ the scripting language lets the process to escape far away ~
 class FarStageCompiler {
+	One<FarStage> stage;
+	Vector<ProcMsg> msgs;
 	
 public:
 	typedef FarStageCompiler CLASSNAME;
 	FarStageCompiler();
 	
 	bool Compile(Nod& stage);
+	const FarStage& GetResult() const {ASSERT(stage); return *stage;}
+	FarStage* PopResult() {return stage.Detach();}
+	const Vector<ProcMsg>& GetMessages() const {return msgs;}
 	
 };
 
 // Note: the Agent has additional Ecs::Component features,
 //       but it's standalone without Ecs::Engine too.
-class Agent : public Component {
+struct Agent : Component {
+private:
 	Vector<AgentInteractionSession*> sessions;
 	ArrayMap<String, EscValue> global;
+	Array<FarStage> stages;
 	int oplimit = 50000;
 	hash_t compiled_hash = 0;
 	
@@ -41,6 +67,7 @@ class Agent : public Component {
 	
 	bool Catch(Event<> cb, Vector<ProcMsg>& msgs);
 	bool CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage=MsgCb());
+	void RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash);
 	
 public:
 	CLASSTYPE(Agent)
@@ -48,7 +75,7 @@ public:
 	~Agent();
 	
 	void Visit(Vis& v) override {}
-	bool RealizeLibrary(MsgCb WhenMessage);
+	bool RealizeLibrary(Vector<ProcMsg>& msgs);
 	bool CompileStage(MetaNode& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());

@@ -17,13 +17,43 @@ Agent::~Agent() {
 	}
 }
 
-bool Agent::RealizeLibrary(MsgCb WhenMessage) {
+bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {
 	if (global.IsEmpty()) {
 		Escape(global, "Print(x)", Proxy(WhenPrint));
 		Escape(global, "Input()", Proxy(WhenInput));
 		StdLib(global);
 	}
+	for(const FarStage& fs : stages) {
+		for (const auto& fn : fs.funcs) {
+			if (fn.esc_declaration.GetCount()) {
+				Escape(global, fn.esc_declaration, THISBACK2(RunStage, fs.hash, fn.hash));
+			}
+		}
+	}
 	return true;
+}
+
+void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
+	const FarStage* stagep = 0;
+	const FarStage::Function* fnp = 0;
+	int fn_i = 0;
+	for (const FarStage& s : stages) {
+		if (s.hash != stage_hash) continue;
+		stagep = &s;
+		for (const auto& fn : s.funcs) {
+			if (fn.hash != fn_hash) {fn_i++; continue;}
+			fnp = &fn;
+			break;
+		}
+		break;
+	}
+	if (!stagep || !fnp)
+		e.esc.ThrowError("Stage not found");
+	TODO // check params
+	/*ValueMap params;
+	TaskMgr& m = AiTaskManager();
+	m.GetFarStage(stagep, fn_i, params);
+	TODO*/
 }
 
 bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
@@ -53,6 +83,8 @@ bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
 }
 
 bool Agent::CompileStage(MetaNode& stage, MsgCb WhenMessage) {
+	TimeStop ts;
+	
 	ASSERT(stage.kind == METAKIND_ECS_COMPONENT_AI_STAGE);
 	if (stage.kind != METAKIND_ECS_COMPONENT_AI_STAGE)
 		return false;
@@ -64,6 +96,19 @@ bool Agent::CompileStage(MetaNode& stage, MsgCb WhenMessage) {
 	succ = Catch([this,&comp,&stage]{
 		comp.Compile(stage);
 	}, msgs);
+	
+	msgs.Append(comp.GetMessages());
+	
+	if (succ) {
+		ProcMsg& m = msgs.Add();
+		m.msg = "Stage compilation succeeded in " + ts.ToString();
+		m.severity = PROCMSG_INFO;
+		
+		stages.Add(comp.PopResult());
+	}
+	
+	if (msgs.GetCount())
+		WhenMessage(msgs);
 	
 	return succ;
 }
@@ -78,10 +123,15 @@ bool Agent::Compile(String esc, MsgCb WhenMessage) {
 	compiled_hash = 0;
 	bool succ = true;
 	
-	if (!RealizeLibrary(WhenMessage))
-		return false;
-	
 	Vector<ProcMsg> msgs;
+	
+	global.Clear(); // clear global for now, because of stage functions
+	
+	if (!RealizeLibrary(msgs)) {
+		WhenMessage(msgs);
+		return false;
+	}
+	
 	succ = Catch([this,&esc]{
 		Scan(global, esc);
 	}, msgs);
@@ -129,8 +179,8 @@ bool Agent::Run(MsgCb WhenMessage) {
 	bool succ = true;
 	
 	Vector<ProcMsg> msgs;
-	succ = Catch([this]{
-		Execute(global, "main", oplimit);
+	succ = Catch([this, &msgs]{
+		Execute(global, "main", oplimit, [&msgs](ProcMsg& m) {msgs.Add(m);});
 	}, msgs);
 	
 	if (msgs.GetCount())

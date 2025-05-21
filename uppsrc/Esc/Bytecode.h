@@ -202,6 +202,8 @@ struct IrVM {
 	
 	EscValue&	Self();
 	
+	Event<ProcMsg&> WhenMsg;
+	
 };
 
 struct Esc {
@@ -297,6 +299,8 @@ public:
 	void		ThrowError()                       { ThrowError(""); }
 
 	EscValue return_value;
+	
+	Event<ProcMsg&> WhenMsg;
 	
 };
 

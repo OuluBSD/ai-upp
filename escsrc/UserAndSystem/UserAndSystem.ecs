@@ -1,7 +1,7 @@
 {
 	"id": 1,
 	"hash": "-1793033956050569595",
-	"highest_seen_serial": 285096,
+	"highest_seen_serial": 285116,
 	"seen_types": [
 
 	],
@@ -23,7 +23,8 @@
 		"is_ref": false,
 		"is_definition": false,
 		"is_disabled": false,
-		"(int64&)serial": 285096,
+		"(int64&)serial": 285116,
+		"value": null,
 		"has_ext": false,
 		"sub": [
 			{
@@ -44,7 +45,8 @@
 				"is_ref": false,
 				"is_definition": false,
 				"is_disabled": false,
-				"(int64&)serial": 285062,
+				"(int64&)serial": 285097,
+				"value": null,
 				"has_ext": false,
 				"sub": [
 

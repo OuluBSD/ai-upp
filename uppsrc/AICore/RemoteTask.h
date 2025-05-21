@@ -274,6 +274,10 @@ public:
 	One<VisionArgs> vision;
 	One<TranscriptionArgs> transcription;
 	One<ImageArgs> image;
+	
+	Ptr<FarStage> stage;
+	int fn_i;
+	Value vargs;
 
 	// Temp
 	Array<AiTask> result_tasks;
@@ -337,6 +341,7 @@ public:
 	void CreateInput_Transcription(BasicPrompt& input);
 	void CreateInput_DefaultBasic(BasicPrompt& input);
 	void CreateInput_DefaultJson(JsonPrompt& json_input);
+	void CreateInput_FarStage(JsonPrompt& json_input);
 	
 	
 	// TODO convert these to use different (cleaner) interface

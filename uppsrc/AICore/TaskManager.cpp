@@ -638,6 +638,29 @@ void TaskMgr::GetMarketplace(const MarketplaceArgs& args, Event<String> WhenResu
 	TaskMgrConfig().Single().Realize();
 }
 
+void TaskMgr::GetFarStage(Ptr<FarStage> stage, int fn_i, Value args, Event<String> WhenResult, Event<> WhenDone) {
+	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
+	TaskMgr& p = *this;
+	
+	task_lock.Enter();
+	AiTask& t = tasks.Add();
+	t.type = AiTask::TYPE_CHAT;
+	t.chat.Create();
+	t.SetRule("far stage")
+		.Input(&AiTask::CreateInput_FarStage)
+		.Process(&AiTask::Process_Default);
+	
+	t.stage = stage;
+	t.fn_i = fn_i;
+	t.vargs = args;
+	t.WhenResult << WhenResult;
+	t.WhenDone << WhenDone;
+	
+	task_lock.Leave();
+	
+	TaskMgrConfig().Single().Realize();
+}
+
 TaskRule& TaskRule::SetRule(const String& name)
 {
 	this->name = name;

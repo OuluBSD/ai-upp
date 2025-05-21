@@ -29,6 +29,7 @@ NAMESPACE_UPP
 #include "ProcessBase.h"
 #include "CodeProcess.h"
 #include "Prompt.h"
+#include "ProcessFramework.h"
 #include "RemoteTask.h"
 #include "TaskManager.h"
 
@@ -39,7 +40,6 @@ NAMESPACE_UPP
 #include "Phoneme.h"
 #include "NatLang.h"
 
-#include "ProcessFramework.h"
 
 
 // Asset

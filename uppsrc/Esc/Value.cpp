@@ -50,6 +50,15 @@ Value StdValueFromEsc(const EscValue& v)
 			v.GetFieldInt("hour"), v.GetFieldInt("minute"), v.GetFieldInt("second"));
 	if(IsDate(v))
 		return Date(v.GetFieldInt("year"), v.GetFieldInt("month"), v.GetFieldInt("day"));
+	if(v.IsMap()) {
+		ValueMap to;
+		const auto& from = v.GetMap();
+		for (auto it : ~from)
+			to.Add(
+				StdValueFromEsc(it.key),
+				StdValueFromEsc(it.value));
+		return to;
+	}
 	return Value();
 }
 

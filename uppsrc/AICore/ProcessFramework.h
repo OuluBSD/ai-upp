@@ -27,9 +27,11 @@ struct FarStage : Pte<FarStage> {
 	String body;
 	Value value;
 	Vector<Function> funcs;
+	String system;
+	int max_tokens = 0;
 	hash_t hash = 0;
 	
-	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(hash);}
+	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(system) VIS_(max_tokens) VIS_(hash);}
 };
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor

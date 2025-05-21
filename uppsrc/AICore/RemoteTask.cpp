@@ -141,6 +141,8 @@ String AiTask::MakeInputString(bool pretty) const {
 		return transcription->prompt;
 	if (image)
 		return image->prompt;
+	//if (stage)
+	//	return stage->body + "\n" + stage->funcs[fn_i].body + "\n" + AsJSON(vargs, true);
 	TODO
 	return String();
 	/*else if (!input_json.IsEmpty())
@@ -190,6 +192,9 @@ bool AiTask::ProcessInput()
 	else if (TaskRule::input_json) {
 		input_json.Clear();
 		input_json.Create();
+		if (!chat)
+			chat.Create();
+		
 		(this->*TaskRule::input_json)(*input_json);
 		if(fast_exit)
 			return true;
@@ -197,7 +202,18 @@ bool AiTask::ProcessInput()
 		if(failed)
 			return false;
 		
-		TODO // set prompt?
+		if (chat->model_name.IsEmpty())
+			chat->model_name = "gpt-4.1-nano";
+		for (const auto& from : input_json->messages) {
+			auto& to = chat->messages.Add();
+			switch (from.type) {
+				case JsonPrompt::ASSIST: to.type = AiMsgType::MSG_DEVELOPER; break;
+				case JsonPrompt::SYSTEM: to.type = AiMsgType::MSG_SYSTEM; break;
+				case JsonPrompt::USER:   to.type = AiMsgType::MSG_USER; break;
+				default: to.type = AiMsgType::MSG_USER; break;
+			}
+			to.content = from.GetContentString();
+		}
 		
 		Load();
 	}

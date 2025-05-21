@@ -938,15 +938,16 @@ PlaygroundApp::PlaygroundApp() {
 	AddFrame(menu);
 	PostCallback(THISBACK(UpdateMenu));
 	
-	pg.WhenTab << THISBACK(UpdateMenu);
-	pg.CreateThread();
-	
 	omni_node.Create();
 	VisitFromJsonFile(*omni_node, ConfigFile("playground-root.json"));
 	pg.SetNode(*omni_node);
+	
+	pg.WhenTab << THISBACK(UpdateMenu);
+	pg.CreateThread();
 }
 
 PlaygroundApp::~PlaygroundApp() {
+	pg.StoreThis();
 	VisitToJsonFile(*omni_node, ConfigFile("playground-root.json"));
 }
 

@@ -176,7 +176,7 @@ void Scan(ArrayMap<String, EscValue>& global, const char *file, const char *file
 
 #if USE_ESC_BYTECODE
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit)
+                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
 	const EscLambda& l = lambda.GetLambda();
 	if(arg.GetCount() != l.arg.GetCount()) {
@@ -189,6 +189,7 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	{
 		Esc sub(global, op_limit, lambda.GetLambdaRW());
 		EscValue& sub_self = sub.Self();
+		sub.WhenMsg = WhenMsg;
 		if(self)
 			sub_self = *self;
 		for(int i = 0; i < l.arg.GetCount(); i++)
@@ -208,7 +209,7 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 }
 #else
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit)
+                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
 	const EscLambda& l = lambda.GetLambda();
 	if(arg.GetCount() != l.arg.GetCount()) {
@@ -245,12 +246,12 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	return EscValue();
 }
 
-EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_limit)
+EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
 	int ii = global.Find(String(name));
 	Vector<EscValue> arg;
 	if(ii >= 0 && global[ii].IsLambda())
-		return Execute(global, NULL, global[ii], arg, op_limit);
+		return Execute(global, NULL, global[ii], arg, op_limit, WhenMsg);
 	return EscValue();
 }
 

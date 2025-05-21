@@ -16,7 +16,7 @@ struct GetNthType<0, T, types...>
 };
 
 template<std::size_t N, typename... Args>
-using GetType = typename GetNthType<N, Args...>::type;
+using GetTypeNth = typename GetNthType<N, Args...>::type;
 
 
 

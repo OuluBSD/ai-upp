@@ -1,7 +1,7 @@
 #ifndef _ESC_ESC_H_
 #define _ESC_ESC_H_
 
-#include <Core/Core.h>
+#include <Core2/Core.h>
 
 #ifdef flagOLDESC
 	#define USE_ESC_BYTECODE 0
@@ -401,10 +401,10 @@ void StdLib(ArrayMap<String, EscValue>& global);
 void     LambdaArgs(CParser& p, EscLambda& l);
 
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int64 oplimit = 50000);
+                 const EscValue& lambda, Vector<EscValue>& arg, int64 oplimit = 50000, Event<ProcMsg&> WhenMsg=Event<ProcMsg&>());
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
                  const char *name, Vector<EscValue>& arg, int64 oplimit = 50000);
-EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 oplimit = 50000);
+EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 oplimit = 50000, Event<ProcMsg&> WhenMsg=Event<ProcMsg&>());
 
 EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit);
 EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit = 50000);

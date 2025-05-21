@@ -4,3 +4,6 @@ file
 	UserAndSystem.ecs,
 	UserAndSystem.esc;
 
+mainconfig
+	"" = "";
+

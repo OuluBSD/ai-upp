@@ -15,61 +15,50 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 	String txt = stage_node.value;
 	txt.Replace("\r", "");
 	
+	
+	struct Range : Moveable<Range> {
+		enum {
+			BODY,
+			DEFINE,
+			SYSTEM
+		};
+		int type = -1;
+		Point pt;
+		String header;
+	};
 	// Split ranges with separator '#define'
 	Vector<String> lines = Split(txt, "\n");
 	int line_i = -1;
-	VectorMap<String, Point> ranges;
-	Point cur;
-	String cur_header;
-	cur.x = 0;
+	Vector<Range> ranges;
+	Range* r = &ranges.Add();
+	r->type = Range::BODY;
+	r->pt.x = 0;
 	for (String& line : lines) {
 		line_i++;
-		CParser p(line);
-		if (p.Char('#')) {
-			if (p.Id("define")) {
-				cur.y = line_i;
-				ranges.Add(cur_header, cur);
-				cur_header = TrimBoth(p.GetPtr());
-				cur.x = line_i+1;
-			}
-		}
-	}
-	cur.y = lines.GetCount()-1;
-	ranges.Add(cur_header, cur);
-	//DUMPM(ranges);
-	
-	{
-		Point& p = ranges[0];
-		String s;
-		for(int i = p.x, j = 0; i < p.y; i++, j++) {
-			if (j)
-				s += "\n";
-			s += lines[i];
-		}
-		this->stage->body = s;
-		this->stage->value = ParseJSON(s, false);
-		if (stage->value.IsError()) {
-			ProcMsg& m = msgs.Add();
-			m.severity = PROCMSG_ERROR;
-			m.msg = GetErrorText(stage->value);
-			succ = false;
-		}
-	}
-	
-	for(int i = 1; i < ranges.GetCount(); i++) {
-		String header = ranges.GetKey(i);
-		auto& fn = this->stage->funcs.Add();
-		CParser p(header);
 		try {
-			fn.name = p.ReadId();
-			p.PassChar('(');
-			while (!p.Char(')')) {
-				if (!fn.params.IsEmpty())
-					p.PassChar(',');
-				fn.params.Add(p.ReadString());
+			CParser p(line);
+			if (p.Char('#')) {
+				if (p.Id("define")) {
+					r->pt.y = line_i;
+					r = &ranges.Add();
+					r->type = Range::DEFINE;
+					r->pt.x = line_i+1;
+					r->header = TrimBoth(p.GetPtr());
+				}
+				else if (p.Id("pragma")) {
+					int type;
+					if (p.Id("system"))
+						type = Range::SYSTEM;
+					else
+						p.ThrowError("unexpected pragma");
+					r->pt.y = line_i;
+					r = &ranges.Add();
+					r->type = type;
+					r->pt.x = line_i+1;
+					r->header = TrimBoth(p.GetPtr());
+				}
+				else p.ThrowError("unexpected section");
 			}
-			p.PassChar2('-','>');
-			fn.ret = p.ReadString();
 		}
 		catch (Exc e) {
 			ProcMsg& m = msgs.Add();
@@ -77,46 +66,102 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 			m.msg = e;
 			succ = false;
 		}
-		Point& pt = ranges[i];
-		String s;
-		for(int i = pt.x, j = 0; i < pt.y; i++, j++) {
+	}
+	r->pt.y = lines.GetCount();
+	
+	//DUMPM(ranges);
+	
+	for(int i = 0; i < ranges.GetCount(); i++) {
+		auto& range = ranges[i];
+		String body;
+		for(int i = range.pt.x, j = 0; i < range.pt.y; i++, j++) {
 			if (j)
-				s += "\n";
-			s += lines[i];
+				body += "\n";
+			body += lines[i];
 		}
-		fn.body = s;
-		fn.value = ParseJSON(s, false);
-		if (fn.value.IsError()) {
-			ProcMsg& m = msgs.Add();
-			m.severity = PROCMSG_ERROR;
-			m.msg = GetErrorText(fn.value);
-			succ = false;
-		}
-		
-		// Create declaration for Esc script
-		fn.esc_declaration = fn.name + "(";
-		int param_i = 0;
-		for (const auto& param : fn.params) {
-			VfsPath p;
-			p.Set(param);
-			if (p.IsEmpty()) {
+		Value value;
+		if (range.type == Range::BODY ||
+			range.type == Range::DEFINE) {
+			value = ParseJSON(body, false);
+			if (value.IsError()) {
+				LOG(body);
 				ProcMsg& m = msgs.Add();
 				m.severity = PROCMSG_ERROR;
-				m.msg = "invalid param in function " + fn.name;
-				return false;
+				m.msg = "(line offset " + IntStr(range.pt.x) + "): " + GetErrorText(value);
+				succ = false;
+				continue;
 			}
-			if (param_i)
-				fn.esc_declaration.Cat(',');
-			fn.esc_declaration += p.TopPart().ToString();
-			param_i++;
 		}
-		fn.esc_declaration += ")";
 		
-		// Create hash by Visitor (TODO cleanup ugliness)
-		fn.hash = 0;
-		Visitor v((hash_t)0);
-		v VISN(fn);
-		fn.hash = v.hash;
+		if (range.type == Range::BODY) {
+			stage->body = body;
+			stage->value = value;
+		}
+		else if (range.type == Range::SYSTEM) {
+			if (stage->system.GetCount()) {
+				ProcMsg& m = msgs.Add();
+				m.severity = PROCMSG_ERROR;
+				m.msg = "Multiple system definitions";
+				succ = false;
+				continue;
+			}
+			stage->system = body;
+		}
+		else if (range.type == Range::DEFINE) {
+			auto& fn = this->stage->funcs.Add();
+			fn.body = body;
+			fn.value = value;
+			CParser p(range.header);
+			try {
+				fn.name = p.ReadId();
+				p.PassChar('(');
+				while (!p.Char(')')) {
+					if (!fn.params.IsEmpty())
+						p.PassChar(',');
+					fn.params.Add(p.ReadString());
+				}
+				p.PassChar2('-','>');
+				fn.ret = p.ReadString();
+			}
+			catch (Exc e) {
+				ProcMsg& m = msgs.Add();
+				m.severity = PROCMSG_ERROR;
+				m.msg = e;
+				succ = false;
+			}
+			
+			// Create declaration for Esc script
+			fn.esc_declaration = fn.name + "(";
+			int param_i = 0;
+			for (const auto& param : fn.params) {
+				VfsPath p;
+				p.Set(param);
+				if (p.IsEmpty()) {
+					ProcMsg& m = msgs.Add();
+					m.severity = PROCMSG_ERROR;
+					m.msg = "invalid param in function " + fn.name;
+					return false;
+				}
+				if (param_i)
+					fn.esc_declaration.Cat(',');
+				fn.esc_declaration += p.TopPart().ToString();
+				param_i++;
+			}
+			fn.esc_declaration += ")";
+			
+			// Create hash by Visitor (TODO cleanup ugliness)
+			fn.hash = 0;
+			Visitor v((hash_t)0);
+			v VISN(fn);
+			fn.hash = v.hash;
+		}
+		else {
+			ProcMsg& m = msgs.Add();
+			m.severity = PROCMSG_ERROR;
+			m.msg = "Internal error";
+			succ = false;
+			break;
+		}
 	}
 	
 	// Create hash by Visitor (TODO cleanup ugliness)

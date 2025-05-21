@@ -51,6 +51,7 @@ struct TaskMgr {
 	void GetBasic(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
 	void GetJson(const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
 	void Get(bool json, const TaskArgs& args, Event<String> WhenResult, String title=String(), bool keep_going=false);
+	void GetFarStage(Ptr<FarStage> stage, int fn_i, Value args, Event<String> WhenResult, Event<> WhenDone);
 
 
 

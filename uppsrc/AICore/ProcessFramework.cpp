@@ -34,13 +34,13 @@ bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {
 }
 
 void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
-	const FarStage* stagep = 0;
-	const FarStage::Function* fnp = 0;
+	FarStage* stagep = 0;
+	FarStage::Function* fnp = 0;
 	int fn_i = 0;
-	for (const FarStage& s : stages) {
+	for (FarStage& s : stages) {
 		if (s.hash != stage_hash) continue;
 		stagep = &s;
-		for (const auto& fn : s.funcs) {
+		for (auto& fn : s.funcs) {
 			if (fn.hash != fn_hash) {fn_i++; continue;}
 			fnp = &fn;
 			break;
@@ -49,11 +49,53 @@ void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
 	}
 	if (!stagep || !fnp)
 		e.esc.ThrowError("Stage not found");
-	TODO // check params
-	/*ValueMap params;
+	
+	if (e.GetCount() != fnp->params.GetCount())
+		e.esc.ThrowError("Unexpected number of params (" + IntStr(e.GetCount()) + ", expected " + IntStr(fnp->params.GetCount()) + ")");
+	ValueMap params;
+	for(int i = 0; i < fnp->params.GetCount(); i++) {
+		Value arg = StdValueFromEsc(e[i]);
+		if (arg.IsError())
+			e.esc.ThrowError("argument conversion failed: " + GetErrorText(arg));
+		if (arg.IsNull())
+			e.esc.ThrowError("null argument");
+		params.Add(
+			fnp->params[i],
+			arg);
+	}
+	
 	TaskMgr& m = AiTaskManager();
-	m.GetFarStage(stagep, fn_i, params);
-	TODO*/
+	
+	// Prevent write to freed memory on late result: use Ptr<>
+	struct Result : Pte<Result> {String s;};
+	Result result;
+	Ptr<Result> result_ptr = &result;
+	
+	bool done = false;
+	m.GetFarStage(stagep, fn_i, params,
+	[this,result_ptr](String res) {
+		if (result_ptr) // valid if timeout haven't been triggered
+			result_ptr->s = res;
+	},
+	[this,&done]{
+		done = true;
+	});
+	int max_wait = 200; // *0.1 seconds = 20 seconds
+	int wait = 0;
+	while (!done) {
+		Sleep(100);
+		if (++wait >= max_wait) {
+			e.esc.ThrowError("Stage timeout");
+		}
+	}
+	if (result.s.IsEmpty())
+		e.esc.ThrowError("Empty result string");
+	
+	// try parse the result
+	LOG(result.s);
+	Value v = ParseJSON(result.s, false);
+	LOG(StoreAsJson(v, true));
+	TODO
 }
 
 bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {

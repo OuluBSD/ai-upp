@@ -291,6 +291,43 @@ void AiTask::CreateInput_DefaultBasic(BasicPrompt& input)
 	else TODO
 }
 
+void AiTask::CreateInput_FarStage(JsonPrompt& json_input) {
+	if (vargs.IsNull()) {
+		SetFatalError("no args");
+		return;
+	}
+	if (!stage) {
+		SetFatalError("stage ptr is null");
+		return;
+	}
+	if (fn_i < 0 || fn_i >= stage->funcs.GetCount()) {
+		SetFatalError("function index is invalid");
+		return;
+	}
+	
+	const FarStage& stage = *this->stage;
+	const FarStage::Function& func = stage.funcs[fn_i];
+	
+	if (stage.system.GetCount())
+		json_input.AddSystem(stage.system);
+	else
+		json_input.AddDefaultSystem();
+	
+	json_input.AddAssist(stage.body);
+	
+	auto& user = json_input.AddUser(func.body);
+	ValueMap args = vargs;
+	for(int i = 0; i < args.GetCount(); i++) {
+		String key = args.GetKey(i);
+		Value val = args.GetValue(i);
+		user.Set(key, val);
+	}
+	if (stage.max_tokens)
+		SetMaxLength(stage.max_tokens);
+	else
+		SetMaxLength(2048);
+}
+
 void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 {
 	if(args.IsEmpty()) {

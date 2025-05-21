@@ -81,19 +81,7 @@ struct ProcMsg : Moveable<ProcMsg>, public FileLocation {
 		return *this;
 	}
 	
-	String ToString() const {
-		String s;
-		if (file >= 0 || line >= 0 || col >= 0) {
-			if (src.GetCount())
-				s << ToUpper(src) << ": ";
-			s	<< GetFileName(file)
-				<< ":" << line
-				<< ":" << col << ": ";
-		}
-		s	<< GetSeverityString()
-			<< ": " << msg;
-		return s;
-	}
+	String ToString() const;
 	
 	String GetSeverityString() const {
 		switch (severity) {

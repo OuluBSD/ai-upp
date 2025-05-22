@@ -28,10 +28,11 @@ struct FarStage : Pte<FarStage> {
 	Value value;
 	Vector<Function> funcs;
 	String system;
+	String model_name;
 	int max_tokens = 0;
 	hash_t hash = 0;
 	
-	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(system) VIS_(max_tokens) VIS_(hash);}
+	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(system) VIS_(model_name) VIS_(max_tokens) VIS_(hash);}
 };
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
@@ -71,6 +72,8 @@ private:
 	bool CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage=MsgCb());
 	void RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash);
 	
+	EscSession esc;
+	
 public:
 	CLASSTYPE(Agent)
 	Agent(MetaNode& n);
@@ -81,6 +84,8 @@ public:
 	bool CompileStage(MetaNode& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());
+	void Start(MsgCb WhenMessage=MsgCb(), Event<bool> WhenStop=Event<bool>());
+	void Stop();
 	
 	void SetOpLimit(int i) {oplimit = i;}
 	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_AGENT;}

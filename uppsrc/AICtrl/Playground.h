@@ -75,6 +75,7 @@ class AiStageCtrl : public AiThreadExt {
 	CodeEditor prog, stage;
 	TabCtrl btabs;
 	DocEdit log;
+	Ptr<Agent> agent;
 	
 	Vector<MetaNode*> programs, stages;
 	/*VectorMap<int,MetaNode*> structure_nodes;

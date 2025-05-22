@@ -20,7 +20,8 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 		enum {
 			BODY,
 			DEFINE,
-			SYSTEM
+			SYSTEM,
+			MODEL,
 		};
 		int type = -1;
 		Point pt;
@@ -30,16 +31,20 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 	Vector<String> lines = Split(txt, "\n");
 	int line_i = -1;
 	Vector<Range> ranges;
-	Range* r = &ranges.Add();
-	r->type = Range::BODY;
-	r->pt.x = 0;
+	Range* r = 0;
+	if (TrimLeft(txt).Left(1) != "#") {
+		r = &ranges.Add();
+		r->type = Range::BODY;
+		r->pt.x = 0;
+	}
 	for (String& line : lines) {
 		line_i++;
 		try {
 			CParser p(line);
 			if (p.Char('#')) {
 				if (p.Id("define")) {
-					r->pt.y = line_i;
+					if (r)
+						r->pt.y = line_i;
 					r = &ranges.Add();
 					r->type = Range::DEFINE;
 					r->pt.x = line_i+1;
@@ -47,11 +52,13 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 				}
 				else if (p.Id("pragma")) {
 					int type;
-					if (p.Id("system"))
-						type = Range::SYSTEM;
+					if (p.Id("system"))      type = Range::SYSTEM;
+					else if (p.Id("model"))  type = Range::MODEL;
+					else if (p.Id("body"))   type = Range::BODY;
 					else
 						p.ThrowError("unexpected pragma");
-					r->pt.y = line_i;
+					if (r)
+						r->pt.y = line_i;
 					r = &ranges.Add();
 					r->type = type;
 					r->pt.x = line_i+1;
@@ -94,8 +101,17 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 		}
 		
 		if (range.type == Range::BODY) {
+			if (stage->body.GetCount()) {
+				ProcMsg& m = msgs.Add();
+				m.severity = PROCMSG_ERROR;
+				m.msg = "(" + IntStr(range.pt.x) + "): duplicate body";
+				succ = false;
+			}
 			stage->body = body;
 			stage->value = value;
+		}
+		else if (range.type == Range::MODEL) {
+			stage->model_name = range.header;
 		}
 		else if (range.type == Range::SYSTEM) {
 			if (stage->system.GetCount()) {
@@ -135,7 +151,7 @@ bool FarStageCompiler::Compile(Nod& stage_node) {
 			int param_i = 0;
 			for (const auto& param : fn.params) {
 				VfsPath p;
-				p.Set(param);
+				p.SetPosixPath(param);
 				if (p.IsEmpty()) {
 					ProcMsg& m = msgs.Add();
 					m.severity = PROCMSG_ERROR;

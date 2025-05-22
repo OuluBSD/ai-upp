@@ -203,14 +203,14 @@ bool AiTask::ProcessInput()
 			return false;
 		
 		if (chat->model_name.IsEmpty())
-			chat->model_name = "gpt-4.1-nano";
+			chat->model_name = "o3-mini";
 		for (const auto& from : input_json->messages) {
 			auto& to = chat->messages.Add();
 			switch (from.type) {
 				case JsonPrompt::ASSIST: to.type = AiMsgType::MSG_DEVELOPER; break;
 				case JsonPrompt::SYSTEM: to.type = AiMsgType::MSG_SYSTEM; break;
 				case JsonPrompt::USER:   to.type = AiMsgType::MSG_USER; break;
-				default: to.type = AiMsgType::MSG_USER; break;
+				default: to.type = AiMsgType::MSG_NULL; break;
 			}
 			to.content = from.GetContentString();
 		}
@@ -690,16 +690,16 @@ bool AiTask::RunOpenAI_Chat()
 		}
 		messages_txt << "]";
 		
-		if (args.modalities.IsEmpty())
-			args.modalities << "text";
+		// Modalities breaks at least o4-mini
+		//if (args.modalities.IsEmpty())
+		//	args.modalities << "text";
 		
 		String txt = R"_({
 		    "messages": )_" + messages_txt + R"_(,
 		    "model": )_" + AsJSON(args.model_name) + R"_(,
 		    "frequency_penalty": )_" + DblStr(args.frequency_penalty) + R"_(,
-		    "max_completion_tokens": )_" + IntStr(args.max_completion_tokens) + R"_(,
-		    "modalities": )_" + StoreAsJson(args.modalities) + R"_(,
-		    "top_p": )_" + AsJSON(args.top_prob) + R"_(,
+		    "max_completion_tokens": )_" + IntStr(args.max_completion_tokens) +
+			R"_(,"top_p": )_" + AsJSON(args.top_prob) + R"_(,
 		    "n": )_" + IntStr(args.count) + R"_(,
 			"presence_penalty": )_" + DblStr(args.presence_penalty) + R"_(,
 		    "temperature": )_" + DblStr(args.temperature);
@@ -710,6 +710,8 @@ bool AiTask::RunOpenAI_Chat()
 			else
 				txt += AsJSON(args.prediction.content_parts);
 		}
+		if (args.modalities.GetCount())
+			txt += R"_(,"modalities": )_" + StoreAsJson(args.modalities);
 		if (args.reasoning_effort)
 			txt += ",\"reasoning_effort\":" + AsJSON(GetReasoningEffortString(args.reasoning_effort));
 		if (!args.tool_choice.IsEmpty())
@@ -722,7 +724,7 @@ bool AiTask::RunOpenAI_Chat()
 			txt += ",\"web_search_options\":" + StoreAsJson(args.web_search_options);
 		txt += "\n}";
 		
-		LOG(txt);
+		LOG("AiTask::RunOpenAI_Chat:\n" << txt);
 		
 		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());

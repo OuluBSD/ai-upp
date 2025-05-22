@@ -209,6 +209,7 @@ struct IrVM {
 struct Esc {
 	ArrayMap<String, EscValue>& global;
 	int64& oplimit;
+	RunningFlagSingle flag;
 	
 	typedef enum {
 		EVALX,

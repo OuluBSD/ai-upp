@@ -175,8 +175,8 @@ void Scan(ArrayMap<String, EscValue>& global, const char *file, const char *file
 }
 
 #if USE_ESC_BYTECODE
-EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
+EscValue EscSession::Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+                             const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
 	const EscLambda& l = lambda.GetLambda();
 	if(arg.GetCount() != l.arg.GetCount()) {
@@ -187,7 +187,8 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	}
 	EscValue ret;
 	{
-		Esc sub(global, op_limit, lambda.GetLambdaRW());
+		this->esc = new Esc(global, op_limit, lambda.GetLambdaRW());
+		auto& sub = *this->esc;
 		EscValue& sub_self = sub.Self();
 		sub.WhenMsg = WhenMsg;
 		if(self)
@@ -201,15 +202,14 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 			while (!sub.CheckSleepFinished())
 				Sleep(1);
 		}
-		if(self)
-			*self = sub_self;
+		if(self)			*self = sub_self;
 		ret = sub.return_value;
 	}
 	return ret;
 }
 #else
-EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
-                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
+EscValue EscSession::Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+                             const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
 	const EscLambda& l = lambda.GetLambda();
 	if(arg.GetCount() != l.arg.GetCount()) {
@@ -220,7 +220,8 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	}
 	EscValue ret;
 	{
-		Esc sub(global, l.code, op_limit, l.filename, l.line);
+		this->esc = new Esc(global, l.code, op_limit, l.filename, l.line);
+		auto& sub = *this->esc;
 		if(self)
 			sub.self = *self;
 		for(int i = 0; i < l.arg.GetCount(); i++)
@@ -235,6 +236,12 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 #endif
 
 EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+                 const EscValue& lambda, Vector<EscValue>& arg, int64 op_limit, Event<ProcMsg&> WhenMsg) {
+	EscSession s;
+	return s.Execute(global, self, lambda, arg, op_limit, WhenMsg);
+}
+
+EscValue EscSession::Execute(ArrayMap<String, EscValue>& global, EscValue *self,
                  const char *name, Vector<EscValue>& arg, int64 op_limit)
 {
 	if(!self->IsMap())
@@ -242,22 +249,36 @@ EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
 	const VectorMap<EscValue, EscValue>& m = self->GetMap();
 	int ii = m.Find(String(name));
 	if(ii >= 0 && m[ii].IsLambda())
-		return Execute(global, self, m[ii], arg, op_limit);
+		return this->Execute(global, self, m[ii], arg, op_limit);
+	return EscValue();
+}
+
+EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+                 const char *name, Vector<EscValue>& arg, int64 op_limit)
+{
+	EscSession s;
+	return s.Execute(global, self, name, arg, op_limit);
+}
+
+EscValue EscSession::Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_limit, Event<ProcMsg&> WhenMsg)
+{
+	int ii = global.Find(String(name));
+	Vector<EscValue> arg;
+	if(ii >= 0 && global[ii].IsLambda())
+		return this->Execute(global, NULL, global[ii], arg, op_limit, WhenMsg);
 	return EscValue();
 }
 
 EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 op_limit, Event<ProcMsg&> WhenMsg)
 {
-	int ii = global.Find(String(name));
-	Vector<EscValue> arg;
-	if(ii >= 0 && global[ii].IsLambda())
-		return Execute(global, NULL, global[ii], arg, op_limit, WhenMsg);
-	return EscValue();
+	EscSession s;
+	return s.Execute(global, name, op_limit, WhenMsg);
 }
 
-EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
+EscValue EscSession::Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit)
 {
-	Esc sub(global, expression, oplimit, "", 0);
+	this->esc = new Esc(global, expression, oplimit, "", 0);
+	auto& sub = *this->esc;
 	auto& var = sub.Var();
 	for(int i = 0; i < global.GetCount(); i++)
 		var.Add(global.GetKey(i), global[i]);
@@ -268,18 +289,35 @@ EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, 
 	return v;
 }
 
+EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit) {
+	EscSession s;
+	return s.Evaluatexl(expression, global, oplimit);
+}
+
+EscValue EscSession::Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
+{
+	return this->Evaluatexl(expression, global, oplimit);
+}
+
 EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
 {
-	return Evaluatexl(expression, global, oplimit);
+	EscSession s;
+	return s.Evaluatexl(expression, global, oplimit);
+}
+
+EscValue EscSession::Evaluate(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
+{
+	try {
+		return this->Evaluatex(expression, global, oplimit);
+	}
+	catch(CParser::Error&) {}
+	return EscValue();
 }
 
 EscValue Evaluate(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit)
 {
-	try {
-		return Evaluatex(expression, global, oplimit);
-	}
-	catch(CParser::Error&) {}
-	return EscValue();
+	EscSession s;
+	return s.Evaluate(expression, global, oplimit);
 }
 
 String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
@@ -348,6 +386,11 @@ String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
 		}
 	}
 	return out;
+}
+
+void EscSession::Stop() {
+	if (!esc) return;
+	esc->Stop();
 }
 
 }

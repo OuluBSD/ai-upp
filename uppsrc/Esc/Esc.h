@@ -420,6 +420,19 @@ bool     IsTime(const EscValue& v);
 String   Expand(const String& doc, ArrayMap<String, EscValue>& global,
                 int64 oplimit64 = 50000, String (*format)(const Value& v) = StdFormat);
 
+struct EscSession {
+	One<Esc> esc;
+	void Stop();
+	EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+	                 const EscValue& lambda, Vector<EscValue>& arg, int64 oplimit = 50000, Event<ProcMsg&> WhenMsg=Event<ProcMsg&>());
+	EscValue Execute(ArrayMap<String, EscValue>& global, EscValue *self,
+	                 const char *name, Vector<EscValue>& arg, int64 oplimit = 50000);
+	EscValue Execute(ArrayMap<String, EscValue>& global, const char *name, int64 oplimit = 50000, Event<ProcMsg&> WhenMsg=Event<ProcMsg&>());
+	EscValue Evaluatexl(const char *expression, ArrayMap<String, EscValue>& global, int64& oplimit);
+	EscValue Evaluatex(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit = 50000);
+	EscValue Evaluate(const char *expression, ArrayMap<String, EscValue>& global, int64 oplimit = 50000);
+};
+
 }
 
 #endif

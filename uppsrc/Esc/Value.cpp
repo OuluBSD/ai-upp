@@ -30,11 +30,22 @@ EscValue EscFromStdValue(const Value& v)
 			r.MapSet("month", t.month);
 			r.MapSet("day", t.day);
 			break;
-		case VALUEARRAY_V:
+		case VALUEARRAY_V: {
 			ValueArray va = v;
 			r.SetEmptyArray();
 			for(int i = 0; i < va.GetCount(); i++)
 				r.ArrayAdd(EscFromStdValue(va[i]));
+			break;
+		}
+		case VALUEMAP_V:{
+			ValueMap vm = v;
+			r.SetEmptyMap();
+			for(int i = 0; i < vm.GetCount(); i++)
+				r.MapSet(
+					EscFromStdValue(vm.GetKey(i)),
+					EscFromStdValue(vm.GetValue(i)));
+			break;
+		}
 		}
 	return r;
 }

@@ -329,22 +329,29 @@ bool AiStageCtrl::Compile() {
 }
 
 bool AiStageCtrl::Run() {
+	if (agent) {
+		agent->Stop();
+	}
 	if (!Compile())
 		return false;
 	
-	bool succ = false;
-	
 	log.Clear();
 	
-	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	agent = ext->node.FindOwnerWith<Agent>();
 	ASSERT(agent);
 	
 	agent->WhenPrint = THISBACK(Print);
 	agent->WhenInput = THISBACK(Input);
 	
-	succ = agent->Run(THISBACK(PrintLog));
+	agent->Start(THISBACK(PrintLog), [this](bool succ) {
+		if (!succ) {
+			GuiLock __;
+			log.Append("Running failed\n");
+			log.SetCursor(log.GetLength());
+		}
+	});
 	
-	return succ;
+	return true;
 }
 
 void AiStageCtrl::Print(EscEscape& e) {
@@ -789,6 +796,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(completion.SizePos(), "Completion");
 	tabs.Add(chat.SizePos(), "Chat");
 	tabs.Add(stage.SizePos(), "Stage");
+	#if 0
 	tabs.Add(placeholder.SizePos(), "User/System"); // https://sketch.dev/blog/agent-loop (https://news.ycombinator.com/item?id=43998472)
 	tabs.Add(placeholder.SizePos(), "Action Planner");
 	tabs.Add(placeholder.SizePos(), "Group of 3");
@@ -799,9 +807,10 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	tabs.Add(placeholder.SizePos(), "Courtroom");
 	tabs.Add(placeholder.SizePos(), "Multi-team cooperative parallel");
 	tabs.Add(placeholder.SizePos(), "Multi-team cooperative hierarchical");
-	tabs.Add(chain.SizePos(), "Filesystem-chat");
 	tabs.Add(placeholder.SizePos(), "Animation");
 	tabs.Add(placeholder.SizePos(), "Adventure");
+	#endif
+	tabs.Add(chain.SizePos(), "Filesystem-chat");
 	tabs.Add(edit_img.SizePos(), "Image");
 	tabs.Add(img_aspect.SizePos(), "Image Aspect Fixer");
 	tabs.Add(placeholder.SizePos(), "Transcribe");

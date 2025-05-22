@@ -639,6 +639,8 @@ void TaskMgr::GetMarketplace(const MarketplaceArgs& args, Event<String> WhenResu
 }
 
 void TaskMgr::GetFarStage(Ptr<FarStage> stage, int fn_i, Value args, Event<String> WhenResult, Event<> WhenDone) {
+	if (!stage)
+		return;
 	const TaskMgrConfig& mgr = TaskMgrConfig::Single();
 	TaskMgr& p = *this;
 	
@@ -655,6 +657,9 @@ void TaskMgr::GetFarStage(Ptr<FarStage> stage, int fn_i, Value args, Event<Strin
 	t.vargs = args;
 	t.WhenResult << WhenResult;
 	t.WhenDone << WhenDone;
+	
+	if (stage->model_name.GetCount())
+		t.chat->model_name = stage->model_name;
 	
 	task_lock.Leave();
 	

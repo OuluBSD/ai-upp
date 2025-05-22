@@ -50,6 +50,11 @@ void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
 	if (!stagep || !fnp)
 		e.esc.ThrowError("Stage not found");
 	
+	VfsPath ret_path;
+	ret_path.SetPosixPath(fnp->ret);
+	if (ret_path.IsEmpty())
+		e.esc.ThrowError("Invalid return path in stage");
+	
 	if (e.GetCount() != fnp->params.GetCount())
 		e.esc.ThrowError("Unexpected number of params (" + IntStr(e.GetCount()) + ", expected " + IntStr(fnp->params.GetCount()) + ")");
 	ValueMap params;
@@ -92,10 +97,13 @@ void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
 		e.esc.ThrowError("Empty result string");
 	
 	// try parse the result
-	LOG(result.s);
-	Value v = ParseJSON(result.s, false);
-	LOG(StoreAsJson(v, true));
-	TODO
+	Value v = ParseJSON(result.s, true);
+	Value res = FindValuePath(v, ret_path);
+	if (res.IsNull() && ret_path.Parts()[0] == "response") {
+		ret_path.Remove(0);
+		res = FindValuePath(v, ret_path);
+	}
+	e = EscFromStdValue(v);
 }
 
 bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
@@ -222,13 +230,25 @@ bool Agent::Run(MsgCb WhenMessage) {
 	
 	Vector<ProcMsg> msgs;
 	succ = Catch([this, &msgs]{
-		Execute(global, "main", oplimit, [&msgs](ProcMsg& m) {msgs.Add(m);});
+		esc.Execute(global, "main", oplimit, [&msgs](ProcMsg& m) {msgs.Add(m);});
 	}, msgs);
 	
 	if (msgs.GetCount())
 		WhenMessage(msgs);
 	
 	return succ;
+}
+
+void Agent::Start(MsgCb WhenMessage, Event<bool> WhenStop) {
+	esc.Stop();
+	Thread::Start([this,WhenMessage,WhenStop]{
+		bool succ = Run(WhenMessage);
+		WhenStop(succ);
+	});
+}
+
+void Agent::Stop() {
+	esc.Stop();
 }
 
 INITIALIZER_COMPONENT(Agent);

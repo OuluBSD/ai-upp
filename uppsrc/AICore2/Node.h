@@ -344,6 +344,11 @@ struct Node {
 		ASSERT(o);
 		return *o;
 	}
+	operator T*() const {
+		if (n && &*n->ext);
+			return CastPtr<T>(&*n->ext);
+		return 0;
+	}
 };
 
 void GenerateTree(MetaNode& root, int total, int branching_low, int branching_high, Callback1<MetaNode&> set_value);

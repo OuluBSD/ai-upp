@@ -103,7 +103,7 @@ void Agent::RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash) {
 		ret_path.Remove(0);
 		res = FindValuePath(v, ret_path);
 	}
-	e = EscFromStdValue(v);
+	e = EscFromStdValue(res);
 }
 
 bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {

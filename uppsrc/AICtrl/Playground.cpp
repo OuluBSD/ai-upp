@@ -795,7 +795,8 @@ PlaygroundCtrl::PlaygroundCtrl() {
 	
 	tabs.Add(completion.SizePos(), "Completion");
 	tabs.Add(chat.SizePos(), "Chat");
-	tabs.Add(stage.SizePos(), "Stage");
+	tabs.Add(stage.SizePos(), "Function");
+	tabs.Add(placeholder.SizePos(), "Action Planner");
 	#if 0
 	tabs.Add(placeholder.SizePos(), "User/System"); // https://sketch.dev/blog/agent-loop (https://news.ycombinator.com/item?id=43998472)
 	tabs.Add(placeholder.SizePos(), "Action Planner");

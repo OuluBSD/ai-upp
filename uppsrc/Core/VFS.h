@@ -48,6 +48,8 @@ struct VfsPath : Moveable<VfsPath> {
 	void	Set(const Vector<Value>& parts);
 	void	Set(const VfsPath& path, int begin, int end);
 	void	SetDotPath(String path);
+	void	SetPosixPath(String path);
+	void    Remove(int i);
 	bool	IsLeft(const VfsPath& path) const;
 	bool	IsSame(const VfsPath& path, int this_begin, int other_begin, int len) const;
 	String	AsSysPath() const;
@@ -89,6 +91,7 @@ VfsPath operator/(const VfsPath& a, const VfsPath& b);
 bool IsFullInternalDirectory(const String& path);
 String AppendInternalFileName(const String& a, const String& b);
 String NormalizeInternalPath(const String& path);
+Value FindValuePath(Value v, const VfsPath& p);
 
 typedef enum : byte {
 	VFS_NULL,

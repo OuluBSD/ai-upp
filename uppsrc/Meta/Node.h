@@ -99,6 +99,7 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual double GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
 	virtual double GetDistance(MetaNode& dest) {ASSERT_(0, "Not implemented"); return 0;}
 	virtual bool TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
+	virtual String ToString() const {return String();}
 	hash_t GetHashValue() const;
 	int GetKind() const;
 	

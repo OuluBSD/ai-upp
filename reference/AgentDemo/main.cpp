@@ -2,9 +2,34 @@
 
 NAMESPACE_UPP
 
+struct SimpleValueNode : MetaNodeExt {
+	
+	DEFAULT_EXT(SimpleValueNode)
+	void Visit(Vis& v) override {}
+	String ToString() const override {return AsString(node.value);}
+	double GetUtility() override;
+	bool TerminalTest(NodeRoute& prev) override;
+};
+
+
+double SimpleValueNode::GetUtility() {
+	Value& o = node.value;
+	ValueArray arr = o;
+	ASSERT(arr.GetCount());
+	Value ov = arr[1];
+	double value = ov;
+	return value;
+}
+
+bool SimpleValueNode::TerminalTest(NodeRoute& prev) {
+	return node.sub.GetCount() == 0;
+}
+
 // Function which sets Node<Value> value in GenerateTree function
 void SetValue(Nod& i) {
 	static int counter;
+	if (!i.ext)
+		i.ext = new SimpleValueNode(i);
 	Value& v = i.value;
 	ValueArray arr;
 	
@@ -17,11 +42,11 @@ void SetValue(Nod& i) {
 
 // Class which only only tells the utility value
 struct SimpleGeneratorNode : MetaNodeExt {
-	int value;
+	int value = 0;
 	
 	DEFAULT_EXT(SimpleGeneratorNode)
 	void Visit(Vis& v) override {}
-	String ToString() const {return IntStr(value);}
+	String ToString() const override {return IntStr(value);}
 	double GetUtility() override {return value;}
 	bool TerminalTest(NodeRoute& prev) override;
 };
@@ -47,7 +72,7 @@ struct RouteGeneratorNode : MetaNodeExt {
 	
 	DEFAULT_EXT(RouteGeneratorNode)
 	void Visit(Vis& v) override {}
-	String ToString() const {return DblStr(length) + ", " + DblStr(length_to_node) + ", " + DblStr(estimate_to_goal);}
+	String ToString() const override {return DblStr(length) + ", " + DblStr(length_to_node) + ", " + DblStr(estimate_to_goal);}
 	double GetUtility() override {return length_to_node;}
 	double GetEstimate() override {return estimate_to_goal;}
 	double GetDistance(MetaNode& n) override {
@@ -84,7 +109,9 @@ String PtrVecStr(Vector<Nod*>& vec) {
 	String out;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";
-		out << i << ": " << AsString(vec[i]->value);
+		out << i << ": ";
+		if (vec[i]->ext)
+			out << vec[i]->ext->ToString();
 	}
 	return out;
 }
@@ -275,6 +302,7 @@ CONSOLE_APP_MAIN {
 		MetaNode& n = app_root.Add(0, "simplegame_rt");
 		ASSERT(n.GetCount() == 0);
 		
+		n.ext = new SimpleGeneratorNode(n);
 		MiniMax mm;
 		AlphaBeta ab;
 		

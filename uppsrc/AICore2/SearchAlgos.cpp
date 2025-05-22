@@ -2,55 +2,19 @@
 
 NAMESPACE_UPP
 
-double GetSearcherUtility(Nod& n) {
-	Value& o = n.value;
-	ValueArray arr = o;
-	ASSERT(arr.GetCount());
-	Value ov = arr[1];
-	double value = ov;
-	return value;
-}
-
-#if 0
-double GetSearcherEstimate(Nod& n) {
-	ASSERT(n.ext);
-	return n.ext->GetEstimate();
-}
-
-double GetSearcherDistance(Nod& n, Nod& dest) {
-	ASSERT(n.ext);
-	if (n.ext)
-		return n.ext->GetDistance(dest);
-	else
-		return DBL_MAX;
-}
-
-bool TerminalTest(Nod& n, Nod** prev) {
-	return n.GetCount() == 0;
-}
-#endif
-
-
-
-
-
 
 Searcher::Searcher() {
 	
 }
 
 bool Searcher::TerminalTest(Nod& n, NodeRoute& prev) {
-	if (n.ext)
-		return n.ext->TerminalTest(prev);
-	else
-		return n.sub.GetCount() == 0;
+	ASSERT(n.ext);
+	return n.ext->TerminalTest(prev);
 }
 
 double Searcher::Utility(Nod& n) {
-	if (n.ext)
-		return n.ext->GetUtility();
-	else
-		return GetSearcherUtility(n);
+	ASSERT(n.ext);
+	return n.ext->GetUtility();
 }
 
 double Searcher::Estimate(Nod& n) {

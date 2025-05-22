@@ -45,7 +45,8 @@ public:
 	MiniMax() {}
 	
 	double MaxValue(NodeT& n, int* decision_pos=0) {
-		if (TerminalTest(n))
+		NodeT* p = 0;
+		if (TerminalTest(n,&p))
 			return this->Utility(n);
 		double v = -DBL_MAX;
 		int pos = -1;
@@ -63,7 +64,8 @@ public:
 	}
 	
 	double MinValue(NodeT& n, int* decision_pos=0) {
-		if (TerminalTest(n))
+		Node<T>* p = 0;
+		if (TerminalTest(n,&p))
 			return Searcher<T>::Utility(n);
 		double v = DBL_MAX;
 		int pos = -1;
@@ -81,9 +83,10 @@ public:
 	virtual Vector<T*> Search(NodeT& src) {
 		Vector<T*> out;
 		NodeT* ptr = &src;
+		NodeT* prev = 0;
 		while (1) {
 			T& t = *out.Add((T*)ptr);
-			if (TerminalTest(*ptr)) break;
+			if (TerminalTest(*ptr,&prev)) break;
 			int type = out.GetCount() % 2;
 			int pos = -1;
 			double v;
@@ -109,7 +112,8 @@ public:
 	
 	
 	double MaxValue(NodeT& n, double alpha, double beta, int* decision_pos=0) {
-		if (TerminalTest(n))
+		NodeT* prev = 0;
+		if (TerminalTest(n,&prev))
 			return this->Utility(n);
 		int pos = -1;
 		double v = -DBL_MAX;
@@ -131,7 +135,8 @@ public:
 	}
 	
 	double MinValue(NodeT& n, double alpha, double beta, int* decision_pos=0) {
-		if (TerminalTest(n))
+		NodeT* prev = 0;
+		if (TerminalTest(n,&prev))
 			return this->Utility(n);
 		int pos = -1;
 		double v = DBL_MAX;
@@ -153,9 +158,10 @@ public:
 	virtual Vector<T*> Search(NodeT& src) {
 		Vector<T*> out;
 		NodeT* ptr = &src;
+		NodeT* prev = 0;
 		while (1) {
 			T& t = *out.Add((T*)ptr);
-			if (TerminalTest(*ptr)) break;
+			if (TerminalTest(*ptr,&prev)) break;
 			int type = out.GetCount() % 2;
 			int pos = -1;
 			double v;
@@ -188,6 +194,7 @@ public:
 		next_queue.Add(&src);
 		double v = DBL_MAX;
 		NodeT* ptr = 0;
+		NodeT* prev = 0;
 		while (1) {
 			queue <<= next_queue;
 			next_queue.Clear();
@@ -196,7 +203,7 @@ public:
 			for(int i = 0; i < queue.GetCount(); i++) {
 				NodeT& t = *queue[i];
 				
-				if (TerminalTest(t)) {
+				if (TerminalTest(t,&prev)) {
 					ptr = &t;
 					all_terminals = true;
 					break;
@@ -232,12 +239,12 @@ public:
 		frontier.Add(&src);
 		double v = DBL_MAX;
 		NodeT* ptr = 0;
-		
+		NodeT* prev = 0;
 		
 		for(; frontier.GetCount();) {
 			bool all_terminals = true;
 			NodeT& t = *frontier[0];
-			if (TerminalTest(t)) {
+			if (TerminalTest(t,&prev)) {
 				ptr = &t;
 				all_terminals = true;
 				break;
@@ -287,10 +294,11 @@ public:
 		
 		typename NodeT::IteratorDeep it = src.BeginDeep();
 		NodeT* ptr = 0;
+		NodeT* prev = 0;
 		double v = DBL_MAX;
 		
 		while (!it.IsEnd()) {
-			if (TerminalTest(*it)) {
+			if (TerminalTest(*it,&prev)) {
 				ptr = it;
 				break;
 			}
@@ -320,10 +328,11 @@ public:
 		
 		typename NodeT::IteratorDeep it = src.BeginDeep();
 		NodeT* ptr = 0;
+		NodeT* prev = 0;
 		double v = DBL_MAX;
 		
 		while (!it.IsEnd()) {
-			if (TerminalTest(*it)) {
+			if (TerminalTest(*it,&prev)) {
 				ptr = it;
 				break;
 			}
@@ -359,10 +368,11 @@ public:
 	virtual Vector<T*> Search(NodeT& src) {
 		Vector<T*> out;
 		NodeT* ptr = &src;
+		NodeT* prev = &src;
 		while (1) {
 			out.Add((T*)ptr);
 			NodeT& t = *ptr;
-			if (TerminalTest(*ptr))
+			if (TerminalTest(*ptr,&prev))
 				break;
 			int pos = -1;
 			double v = DBL_MAX;

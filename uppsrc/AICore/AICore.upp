@@ -5,7 +5,8 @@ uses
 	plugin/openai,
 	Sound,
 	plugin/jpg,
-	plugin/bz2;
+	plugin/bz2,
+	Esc;
 
 library(!MSC) curl;
 

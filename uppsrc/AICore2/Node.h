@@ -1,7 +1,7 @@
 #ifndef _AICore2_Node_h_
 #define _AICore2_Node_h_
 
-
+#if 0
 template <class T>
 class Node :
 	public T
@@ -314,40 +314,39 @@ public:
 		
 };
 
-
-
 typedef Node<Value> NodeValue;
+#endif
 
 template <class T>
-void GenerateTree(T& root, int total, int branching_low, int branching_high, Callback1<T*> set_value) {
-	root.Clear();
-	Vector<T*> next_level;
+struct Node {
+	MetaNode* n = 0;
 	
-	next_level.Add(&root);
-	
-	int branching_range = branching_high - branching_low + 1;
-	
-	int count = 0;
-	while (count < total) {
-		Vector<T*> this_level;
-		this_level <<= next_level;
-		next_level.Clear();
-		for(int i = 0; i < this_level.GetCount(); i++) {
-			T& n = *this_level[i];
-			int remaining = total-count;
-			if (remaining <= 0) break;
-			int sub_node_count = branching_low + Random(branching_range);
-			if (sub_node_count > remaining) sub_node_count = remaining;
-			n.SetCount(sub_node_count);
-			count += sub_node_count;
-			for(int j = 0; j < sub_node_count; j++) {
-				T* ptr = &n[j];
-				next_level.Add(ptr);
-				set_value(ptr);
-			}
-		}
+	Node() {}
+	Node(MetaNode& n) : n(&n) {}
+	Node(T& n) : n(&n.node) {}
+	T* operator->() const {
+		if (!n || !n->ext) return 0;
+		T* o = CastPtr<T>(&*n->ext);
+		ASSERT(o);
+		return o;
 	}
-}
+	MetaNode& operator()() const {
+		ASSERT(n);
+		return *n;
+	}
+	operator MetaNode&() const {
+		ASSERT(n);
+		return *n;
+	}
+	operator T&() const {
+		ASSERT(n && &*n->ext);
+		T* o = CastPtr<T>(&*n->ext);
+		ASSERT(o);
+		return *o;
+	}
+};
+
+void GenerateTree(MetaNode& root, int total, int branching_low, int branching_high, Callback1<MetaNode&> set_value);
 
 
 #endif

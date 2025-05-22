@@ -2,7 +2,6 @@
 
 
 NAMESPACE_UPP
-namespace Agent {
 
 WorldState::WorldState() {
 	
@@ -300,5 +299,4 @@ double ActionNode::GetEstimate() {
 	return GetDistance(*goal);
 }
 
-}
 END_UPP_NAMESPACE

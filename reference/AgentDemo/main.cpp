@@ -1,13 +1,11 @@
 #include <AICore2/AICore.h>
 
-int TestDeepNN();
-
 NAMESPACE_UPP
 
 // Function which sets Node<Value> value in GenerateTree function
-void SetValue(NodeValue* i) {
+void SetValue(Nod& i) {
 	static int counter;
-	Value& v = *i;
+	Value& v = i.value;
 	ValueArray arr;
 	
 	String str;
@@ -26,12 +24,13 @@ struct SimpleGeneratorNode {
 };
 
 // Use TerminalTest to generate sub nodes
-template <>	inline bool TerminalTest<SimpleGeneratorNode>(Node<SimpleGeneratorNode>& n, Node<SimpleGeneratorNode>** prev) {
+template <>	inline bool TerminalTest<SimpleGeneratorNode>(Node<SimpleGeneratorNode>& nt, Node<SimpleGeneratorNode>** prev) {
+	MetaNode& n = nt;
 	int depth = n.GetDepth();
 	if (depth >= 3 || n.GetCount()) return !n.GetCount();
 	int sub_node_count = 1 + Random(2);
 	for(int i = 0; i < sub_node_count; i++) {
-		Node<SimpleGeneratorNode>& sub = n.Add();
+		SimpleGeneratorNode& sub = n.Add<SimpleGeneratorNode>();
 		sub.value = -2 + Random(10);
 	}
 	return !n.GetCount();
@@ -40,7 +39,7 @@ template <>	inline bool TerminalTest<SimpleGeneratorNode>(Node<SimpleGeneratorNo
 
 
 // Class which tells length of route from the root to the node
-struct RouteGeneratorNode {
+struct RouteGeneratorNode : MetaNodeExt {
 	double length;
 	double length_to_node;
 	double estimate_to_goal;
@@ -48,23 +47,25 @@ struct RouteGeneratorNode {
 	String ToString() const {return DblStr(length) + ", " + DblStr(length_to_node) + ", " + DblStr(estimate_to_goal);}
 	double GetUtility() const {return length_to_node;}
 	double GetEstimate() const {return estimate_to_goal;}
-	double GetDistance(Node<RouteGeneratorNode>& n) {return n.length;} // no links, so this is always the parent
+	double GetDistance(Node<RouteGeneratorNode>& n) {return n->length;} // no links, so this is always the parent
 };
 
 // Use TerminalTest to generate sub nodes
-template <>	inline bool TerminalTest<RouteGeneratorNode>(Node<RouteGeneratorNode>& n, Node<RouteGeneratorNode>** prev) {
+template <>	inline bool TerminalTest<RouteGeneratorNode>(Node<RouteGeneratorNode>& nt, Node<RouteGeneratorNode>** prev) {
+	MetaNode& n = nt;
+	RouteGeneratorNode& rgn = nt;
 	if (n.GetCount()) return !n.GetCount();
 	int goal = 0;
-	if (n.estimate_to_goal <= goal) return true;
+	if (rgn.estimate_to_goal <= goal) return true;
 	int sub_node_count = 2 + Random(1);
 	for(int i = 0; i < sub_node_count; i++) {
-		Node<RouteGeneratorNode>& sub = n.Add();
+		RouteGeneratorNode& sub = n.Add<RouteGeneratorNode>();
 		double length = 5 + Random(10);
 		// Accumulate total route length
-		if (sub.GetParent()) {
+		if (sub.node.owner) {
 			sub.length				 = length;
-			sub.length_to_node		 = n.length_to_node + length;
-			sub.estimate_to_goal	 = n.estimate_to_goal - length;
+			sub.length_to_node		 = rgn.length_to_node + length;
+			sub.estimate_to_goal	 = rgn.estimate_to_goal - length;
 			if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
 		}
 	}
@@ -102,7 +103,6 @@ void SendMoreMoneyEasy();
 
 
 void ActionPlannerExample() {
-	using namespace ::Upp::Agent;
 	
 	// Macros are poor man's meta-programming. Don't underestimate it! (I did it too earlier...)
 	
@@ -205,13 +205,14 @@ void ActionPlannerExample() {
 	goal.Set(MOUSE_ALIVE, false );
 	goal.Set(ALIVE, true ); // add this to avoid hurting by fall actions in plan.
 	
-	APlanNode goal_node;
-	goal_node.SetWorldState(goal);
+	MetaNode& example_root = MetaEnv().root.Add(0, "example");
+	APlanNode goal_node(example_root.Add<ActionNode>("goal"));
+	goal_node->SetWorldState(goal);
 	
-	APlanNode root;
-	root.SetActionPlanner(planner);
-	root.SetGoal(goal_node);
-	root.SetWorldState(src);
+	APlanNode root = example_root.Add<ActionNode>("root");
+	root->SetActionPlanner(planner);
+	root->SetGoal(goal_node);
+	root->SetWorldState(src);
 	AStar<ActionNode> as;
 	Vector<ActionNode*> plan = as.Search(root);
 	
@@ -246,16 +247,16 @@ END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN {
 	using namespace UPP;
-	
+	MetaNode& app_root = MetaEnv().root;
 	
 	// Simple game algorithms
 	if (true) {
-		NodeValue n;
-		GenerateTree<NodeValue>(n, 25, 2, 3, callback(SetValue));
-		LOG(n.AsString());
+		MetaNode& n = app_root.Add(0, "simplegame");
+		GenerateTree(n, 25, 2, 3, callback(SetValue));
+		LOG(n.GetTreeString());
 		
-		MiniMax<Value> mm;
-		AlphaBeta<Value> ab;
+		MiniMax mm;
+		AlphaBeta ab;
 		
 		Vector<Value*> ans = mm.Search(n);
 		LOG(PtrVecStr(ans));
@@ -264,6 +265,7 @@ CONSOLE_APP_MAIN {
 		LOG(PtrVecStr(ans));
 	}
 	
+	#if 0
 	// Simple game algorithms, with runtime node generation.
 	if (true) {
 		Node<SimpleGeneratorNode> n;
@@ -392,6 +394,6 @@ CONSOLE_APP_MAIN {
 	if (true) {
 		ActionPlannerExample();
 	}
-	
+	#endif
 }
 

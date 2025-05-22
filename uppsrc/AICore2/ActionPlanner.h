@@ -2,8 +2,6 @@
 #define _AICore2_ActionPlanner_h_
 
 
-namespace Agent {
-
 class ActionPlanner;
 class ActionNode;
 
@@ -142,9 +140,10 @@ public:
 
 typedef Node<ActionNode> APlanNode;
 
-}
 
-template <>	inline bool TerminalTest<Agent::ActionNode>(Node<Agent::ActionNode>& n, Node<Agent::ActionNode>** prev) {
+#if 0
+// for ActionNode
+inline bool TerminalTest(Node& n, Node** prev) {
 	using namespace Agent;
 	if (n.GetEstimate() <= 0)
 		return true;
@@ -170,6 +169,7 @@ template <>	inline bool TerminalTest<Agent::ActionNode>(Node<Agent::ActionNode>&
 	}
 	return !n.GetTotalCount();
 }
+#endif
 
 
 #endif

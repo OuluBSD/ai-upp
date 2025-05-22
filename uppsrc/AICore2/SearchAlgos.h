@@ -2,124 +2,54 @@
 #define _AICore2_SearchAlgos_h_
 
 
-
-template <class T>	inline double GetSearcherUtility(Node<T>& n) {return n.T::GetUtility();}
-template <>			inline double GetSearcherUtility<Value>(NodeValue& n) {
-	Value& o = n.GetData();
-	ValueArray arr = o;
-	ASSERT(arr.GetCount());
-	Value ov = arr[1];
-	double value = ov;
-	return value;
-}
-template <class T>	inline double GetSearcherEstimate(Node<T>& n) {return n.T::GetEstimate();}
-template <class T>	inline double GetSearcherDistance(Node<T>& n, Node<T>& dest) {return n.T::GetDistance(dest);}
-template <class T>	inline bool TerminalTest(Node<T>& n, Node<T>** prev) {return n.GetTotalCount() == 0;}
+double GetSearcherUtility(Nod& n);
+double GetSearcherEstimate(Nod& n);
+double GetSearcherDistance(Nod& n, Nod& dest);
+bool TerminalTest(Nod& n, Nod** prev);
 
 
 
-template <class T>
 class Searcher {
 	
 public:
-	typedef Node<T> NodeT;
 	
 	Searcher() {}
 	
-	inline bool TerminalTest(NodeT& n, NodeT** prev=NULL) {return Upp::TerminalTest(n, prev);}
-	inline double Utility(NodeT& n) {return Upp::GetSearcherUtility(n);}
-	inline double Estimate(NodeT& n) {return Upp::GetSearcherEstimate(n);}
-	inline double Distance(NodeT& n, NodeT& dest) {return Upp::GetSearcherDistance(n, dest);}
+	bool TerminalTest(Nod& n, Nod** prev=NULL) {return Upp::TerminalTest(n, prev);}
+	double Utility(Nod& n) {return Upp::GetSearcherUtility(n);}
+	double Estimate(Nod& n) {return Upp::GetSearcherEstimate(n);}
+	double Distance(Nod& n, Nod& dest) {return Upp::GetSearcherDistance(n, dest);}
 	
-	virtual Vector<T*> Search(NodeT& src) = 0;
+	virtual Vector<Nod*> Search(Nod& src) = 0;
 	
 	
 };
 
 
-template <class T>
-class MiniMax : public Searcher<T> {
-	typedef Node<T> NodeT;
+class MiniMax : public Searcher {
 	
 public:
-	MiniMax() {}
-	
-	double MaxValue(NodeT& n, int* decision_pos=0) {
-		NodeT* p = 0;
-		if (TerminalTest(n,&p))
-			return this->Utility(n);
-		double v = -DBL_MAX;
-		int pos = -1;
-		for(int i = 0; i < n.GetTotalCount(); i++) {
-			// Find minimum...
-			double d = MinValue(n.AtTotal(i));
-			// ..but use maximum
-			if (d > v) {
-				v = d;
-				pos = i;
-			}
-		}
-		if (decision_pos) *decision_pos = pos;
-		return v;
-	}
-	
-	double MinValue(NodeT& n, int* decision_pos=0) {
-		Node<T>* p = 0;
-		if (TerminalTest(n,&p))
-			return Searcher<T>::Utility(n);
-		double v = DBL_MAX;
-		int pos = -1;
-		for(int i = 0; i < n.GetTotalCount(); i++) {
-			double d = MaxValue(n.AtTotal(i));
-			if (d < v) {
-				v = d;
-				pos = i;
-			}
-		}
-		if (decision_pos) *decision_pos = pos;
-		return v;
-	}
-	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
-		NodeT* ptr = &src;
-		NodeT* prev = 0;
-		while (1) {
-			T& t = *out.Add((T*)ptr);
-			if (TerminalTest(*ptr,&prev)) break;
-			int type = out.GetCount() % 2;
-			int pos = -1;
-			double v;
-			if (type == 1)
-				v = MinValue(*ptr, &pos);
-			else
-				v = MaxValue(*ptr, &pos);
-			if (pos == -1) break;
-			ptr = &(*ptr).AtTotal(pos);
-			//LOG(pos << " " << v);
-		}
-		return out;
-	}
+	MiniMax();
+	double MaxValue(Nod& n, int* decision_pos=0);
+	double MinValue(Nod& n, int* decision_pos=0);
+	Vector<Nod*> Search(Nod& src) override;
 };
 
 
-template <class T>
-class AlphaBeta : public Searcher<T> {
-	typedef Node<T> NodeT;
+class AlphaBeta : public Searcher {
 	
 public:
 	AlphaBeta() {}
 	
-	
-	double MaxValue(NodeT& n, double alpha, double beta, int* decision_pos=0) {
-		NodeT* prev = 0;
+	double MaxValue(Nod& n, double alpha, double beta, int* decision_pos=0) {
+		Nod* prev = 0;
 		if (TerminalTest(n,&prev))
 			return this->Utility(n);
 		int pos = -1;
 		double v = -DBL_MAX;
-		for(int i = 0; i < n.GetTotalCount(); i++) {
+		for(int i = 0; i < n.GetCount(); i++) {
 			// Find minimum...
-			double d = MinValue(n.AtTotal(i), alpha, beta);
+			double d = MinValue(n.sub[i], alpha, beta);
 			// ..but use maximum
 			if (d > v) {
 				v = d;
@@ -134,14 +64,14 @@ public:
 		return v;
 	}
 	
-	double MinValue(NodeT& n, double alpha, double beta, int* decision_pos=0) {
-		NodeT* prev = 0;
+	double MinValue(Nod& n, double alpha, double beta, int* decision_pos=0) {
+		Nod* prev = 0;
 		if (TerminalTest(n,&prev))
 			return this->Utility(n);
 		int pos = -1;
 		double v = DBL_MAX;
-		for(int i = 0; i < n.GetTotalCount(); i++) {
-			double d = MaxValue(n.AtTotal(i), alpha, beta);
+		for(int i = 0; i < n.GetCount(); i++) {
+			double d = MaxValue(n.sub[i], alpha, beta);
 			if (d < v) {
 				v = d;
 				pos = i;
@@ -155,12 +85,12 @@ public:
 		return v;
 	}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
-		NodeT* ptr = &src;
-		NodeT* prev = 0;
+	Vector<Nod*> Search(Nod& src) override {
+		Vector<Nod*> out;
+		Nod* ptr = &src;
+		Nod* prev = 0;
 		while (1) {
-			T& t = *out.Add((T*)ptr);
+			Nod& t = *out.Add((Nod*)ptr);
 			if (TerminalTest(*ptr,&prev)) break;
 			int type = out.GetCount() % 2;
 			int pos = -1;
@@ -172,7 +102,7 @@ public:
 			else
 				v = MaxValue(*ptr, alpha, beta, &pos);
 			if (pos == -1) break;
-			ptr = &(*ptr).AtTotal(pos);
+			ptr = &(*ptr).sub[pos];
 		}
 		return out;
 	}
@@ -181,27 +111,25 @@ public:
 
 // UNINFORMED SEARCH STRATEGIES
 
-template <class T>
-class BreadthFirst : public Searcher<T> {
-	typedef Node<T> NodeT;
+class BreadthFirst : public Searcher {
 	
 public:
 	BreadthFirst() {}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
-		Vector<NodeT*> queue, next_queue;
+	virtual Vector<Nod*> Search(Nod& src) {
+		Vector<Nod*> out;
+		Vector<Nod*> queue, next_queue;
 		next_queue.Add(&src);
 		double v = DBL_MAX;
-		NodeT* ptr = 0;
-		NodeT* prev = 0;
+		Nod* ptr = 0;
+		Nod* prev = 0;
 		while (1) {
 			queue <<= next_queue;
 			next_queue.Clear();
 			
 			bool all_terminals = true;
 			for(int i = 0; i < queue.GetCount(); i++) {
-				NodeT& t = *queue[i];
+				Nod& t = *queue[i];
 				
 				if (TerminalTest(t,&prev)) {
 					ptr = &t;
@@ -211,7 +139,7 @@ public:
 				else all_terminals = false;
 				
 				for(int j = 0; j < t.GetCount(); j++) {
-					next_queue.Add(&t.AtTotal(j));
+					next_queue.Add(&t.sub[j]);
 				}
 			}
 			if (all_terminals) break;
@@ -219,31 +147,29 @@ public:
 		
 		while (ptr) {
 			out.Insert(0, ptr);
-			ptr = ptr->GetParent();
+			ptr = ptr->owner;
 		}
 		return out;
 	}
 };
 
 
-template <class T>
-class UniformCost : public Searcher<T> {
-	typedef Node<T> NodeT;
+class UniformCost : public Searcher {
 	
 public:
 	UniformCost() {}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
-		Vector<NodeT*> frontier;
+	virtual Vector<Nod*> Search(Nod& src) {
+		Vector<Nod*> out;
+		Vector<Nod*> frontier;
 		frontier.Add(&src);
 		double v = DBL_MAX;
-		NodeT* ptr = 0;
-		NodeT* prev = 0;
+		Nod* ptr = 0;
+		Nod* prev = 0;
 		
 		for(; frontier.GetCount();) {
 			bool all_terminals = true;
-			NodeT& t = *frontier[0];
+			Nod& t = *frontier[0];
 			if (TerminalTest(t,&prev)) {
 				ptr = &t;
 				all_terminals = true;
@@ -254,8 +180,8 @@ public:
 			frontier.Remove(0);
 			
 			//TODO: change this to search like in AStar, because it is faster than insert, which moves huge block of memory always. Or do something completely different and better.
-			for(int j = 0; j < t.GetTotalCount(); j++) {
-				NodeT& sub = t.AtTotal(j);
+			for(int j = 0; j < t.GetCount(); j++) {
+				Nod& sub = t.sub[j];
 				double utility = this->Utility(sub);
 				bool inserted = false;
 				for(int k = 0; k < frontier.GetCount(); k++) {
@@ -276,25 +202,23 @@ public:
 		
 		while (ptr) {
 			out.Insert(0, ptr);
-			ptr = ptr->GetParent();
+			ptr = ptr->owner;
 		}
 		return out;
 	}
 };
 
-template <class T>
-class DepthFirst : public Searcher<T> {
-	typedef Node<T> NodeT;
+class DepthFirst : public Searcher {
 	
 public:
 	DepthFirst() {}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
+	virtual Vector<Nod*> Search(Nod& src) {
+		Vector<Nod*> out;
 		
-		typename NodeT::IteratorDeep it = src.BeginDeep();
-		NodeT* ptr = 0;
-		NodeT* prev = 0;
+		typename Nod::IteratorDeep it = src.BeginDeep();
+		Nod* ptr = 0;
+		Nod* prev = 0;
 		double v = DBL_MAX;
 		
 		while (!it.IsEnd()) {
@@ -307,28 +231,27 @@ public:
 		
 		while (ptr) {
 			out.Insert(0, ptr);
-			ptr = ptr->GetParent();
+			ptr = ptr->owner;
 		}
 		
 		return out;
 	}
 };
 
-template <class T>
-class DepthLimited : public Searcher<T> {
-	typedef Node<T> NodeT;
+class DepthLimited : public Searcher {
 	int limit;
+	
 public:
 	DepthLimited() : limit(-1) {}
 	
 	void SetLimit(int lim) {limit = lim;}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
+	virtual Vector<Nod*> Search(Nod& src) {
+		Vector<Nod*> out;
 		
-		typename NodeT::IteratorDeep it = src.BeginDeep();
-		NodeT* ptr = 0;
-		NodeT* prev = 0;
+		typename Nod::IteratorDeep it = src.BeginDeep();
+		Nod* ptr = 0;
+		Nod* prev = 0;
 		double v = DBL_MAX;
 		
 		while (!it.IsEnd()) {
@@ -345,7 +268,7 @@ public:
 		
 		while (ptr) {
 			out.Insert(0, ptr);
-			ptr = ptr->GetParent();
+			ptr = ptr->owner;
 		}
 		
 		return out;
@@ -358,26 +281,24 @@ public:
 // INFORMED (HEURISTIC) SEARCH STRATEGIES
 
 
-template <class T>
-class BestFirst : public Searcher<T> {
-	typedef Node<T> NodeT;
+class BestFirst : public Searcher {
 	
 public:
 	BestFirst() {}
 	
-	virtual Vector<T*> Search(NodeT& src) {
-		Vector<T*> out;
-		NodeT* ptr = &src;
-		NodeT* prev = &src;
+	virtual Vector<Nod*> Search(Nod& src) {
+		Vector<Nod*> out;
+		Nod* ptr = &src;
+		Nod* prev = &src;
 		while (1) {
-			out.Add((T*)ptr);
-			NodeT& t = *ptr;
+			out.Add((Nod*)ptr);
+			Nod& t = *ptr;
 			if (TerminalTest(*ptr,&prev))
 				break;
 			int pos = -1;
 			double v = DBL_MAX;
-			for(int i = 0; i < t.GetTotalCount(); i++) {
-				NodeT& sub = t.AtTotal(i);
+			for(int i = 0; i < t.GetCount(); i++) {
+				Nod& sub = t.sub[i];
 				double estimate = this->Estimate(sub);
 				if (estimate < v) {
 					v = estimate;
@@ -388,7 +309,7 @@ public:
 			}
 			if (pos == -1)
 				break;
-			ptr = &(*ptr).AtTotal(pos);
+			ptr = &(*ptr).sub[pos];
 		}
 		return out;
 	}
@@ -396,12 +317,10 @@ public:
 
 
     
-template <class T>
-class AStar : public Searcher<T> {
-	typedef Node<T> NodeT;
+class AStar : public Searcher {
 	
 	struct NodePtr {
-		NodeT* ptr;
+		Nod* ptr;
 		NodePtr() : ptr(0), g_score(0), f_score(0), came_from(0) {g_score = DBL_MAX; f_score = DBL_MAX;}
 		
 		hash_t GetHashValue() const {return UPP::GetHashValue((size_t)ptr);}
@@ -432,7 +351,7 @@ class AStar : public Searcher<T> {
 	Vector<NodePtr*> open_set;
 	
 	
-	static int FindNode(const Vector<NodePtr*>& vec, const NodeT* ptr) {
+	static int FindNode(const Vector<NodePtr*>& vec, const Nod* ptr) {
 		int i = 0;
 		for (const NodePtr* p : vec) {
 			if (p->ptr == ptr)
@@ -457,18 +376,18 @@ public:
 	
 	void TrimWorst(int limit, int count) {rm_limit = limit; max_worst = count; ASSERT(count >= 0);}
 	
-	Vector<T*> GetBestKnownPath() {
+	Vector<Nod*> GetBestKnownPath() {
 		if (smallest_id < 0)
-			return Vector<T*>();
+			return Vector<Nod*>();
 		
 		NodePtr* t_ptr = open_set[smallest_id];
-		NodeT& t = *t_ptr->ptr;
+		Nod& t = *t_ptr->ptr;
 		return ReconstructPath(t, closed_set, open_set);
 	}
 	
-	Vector<T*> ReconstructPath(NodeT& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
-		Vector<T*> path;
-		NodeT* ptr = &current;
+	Vector<Nod*> ReconstructPath(Nod& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
+		Vector<Nod*> path;
+		Nod* ptr = &current;
 		while (1) {
 			path.Add(ptr);
 			int i = FindNode(open_set, ptr);
@@ -483,7 +402,7 @@ public:
 			else ptr = open_set[i]->came_from->ptr;
 			if (!ptr) break;
 		}
-		Vector<T*> out;
+		Vector<Nod*> out;
 		out.SetCount(path.GetCount());
 		for(int i = 0; i < path.GetCount(); i++) {
 			out[path.GetCount()-1-i] = path[i];
@@ -491,11 +410,11 @@ public:
 		return out;
 	}
 	
-	Vector<T*> ReconstructPath(NodeT& current) {
+	Vector<Nod*> ReconstructPath(Nod& current) {
 		return ReconstructPath(current, closed_set, open_set);
 	}
 	
-	Vector<T*> GetBest() {
+	Vector<Nod*> GetBest() {
 		NodePtr* n = 0;
 		double best_score = DBL_MAX;
 		for (const NodePtr* p : closed_set) {
@@ -508,10 +427,10 @@ public:
 		if (n)
 			return ReconstructPath(*n->ptr, closed_set, open_set);
 		
-		return Vector<T*>();
+		return Vector<Nod*>();
 	}
 	
-	virtual Vector<T*> Search(NodeT& src) {
+	virtual Vector<Nod*> Search(Nod& src) {
 		do_search = true;
 		
 		closed_set.Clear();
@@ -527,7 +446,7 @@ public:
 		return SearchMain();
 	}
 	
-	Vector<T*> ContinueSearch(NodeT& src) {
+	Vector<Nod*> ContinueSearch(Nod& src) {
 		do_search = true;
 		
 		NodePtr* copy = 0;
@@ -541,7 +460,7 @@ public:
 			++i;
 		}
 		if (!copy || !copy->ptr)
-			return Vector<T*>();
+			return Vector<Nod*>();
 		
 		closed_set.Append(open_set);
 		open_set.Clear();
@@ -551,7 +470,7 @@ public:
 		return SearchMain();
 	}
 	
-	Vector<T*> SearchMain() {
+	Vector<Nod*> SearchMain() {
 		Vector<double> worst_f_score;
 		Vector<int> worst_id;
 		worst_f_score.SetCount(max_worst);
@@ -621,9 +540,9 @@ public:
 			}
 			
 			
-			NodeT* prevs[5];
+			Nod* prevs[5];
 			NodePtr* t_ptr = open_set[smallest_id];
-			NodeT& t = *t_ptr->ptr;
+			Nod& t = *t_ptr->ptr;
 			const NodePtr* prev = t_ptr->came_from;
 			for(int i = 0; i < 4; i++) {
 				if (prev) {
@@ -646,8 +565,8 @@ public:
 			closed_set.Add(t_ptr);
 			
 			
-			for(int j = 0; j < t.GetTotalCount(); j++) {
-				NodeT& sub = t.AtTotal(j);
+			for(int j = 0; j < t.GetCount(); j++) {
+				Nod& sub = t.sub[j];
 				if (FindNode(closed_set, &sub) != -1)
 					continue; // Ignore the neighbor which is already evaluated.
 				// The distance from start to a neighbor
@@ -678,7 +597,7 @@ public:
 				}
 			}
 		}
-		return Vector<T*>();
+		return Vector<Nod*>();
 	}
 };
 

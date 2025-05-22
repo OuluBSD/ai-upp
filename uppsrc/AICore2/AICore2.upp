@@ -1,5 +1,8 @@
 description "\377B128,0,0";
 
+uses
+	AICore;
+
 file
 	AICore.h,
 	Structural.h,
@@ -10,7 +13,9 @@ file
 	Neural.h,
 	Neural.cpp,
 	Node.h,
+	Node.cpp,
 	SearchAlgos.h,
+	SearchAlgos.cpp,
 	ActionPlanner.h,
 	ActionPlanner.cpp,
 	QueryTable.h;

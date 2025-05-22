@@ -1050,6 +1050,20 @@ bool MetaNode::IsOwnerDeep(MetaNodeExt& n) const {
 	return false;
 }
 
+int MetaNode::GetCount() const {
+	return sub.GetCount();
+}
+
+int MetaNode::GetDepth() const {
+	int depth = 0;
+	MetaNode* n = owner;
+	while (n) {
+		depth++;
+		n = n->owner;
+	}
+	return depth;
+}
+
 hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
 {
 	if(kind < 0 || kind >= METAKIND_BEGIN)

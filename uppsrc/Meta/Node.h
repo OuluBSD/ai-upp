@@ -269,6 +269,8 @@ struct MetaNode : Pte<MetaNode> {
 	void DeepChk();
 	void Chk();
 	bool IsOwnerDeep(MetaNodeExt& n) const;
+	int GetCount() const;
+	int GetDepth() const;
 	
 	template <class T>
 	T& Add(String id="") {
@@ -457,6 +459,137 @@ struct MetaNode : Pte<MetaNode> {
 		if (!rmlist.IsEmpty())
 			sub.Remove(rmlist);
 	}
+	
+	
+public:
+	using Nod = MetaNode;
+	
+	typedef typename Array<MetaNode>::Iterator Iterator;
+	typedef typename Array<MetaNode>::ConstIterator ConstIterator;
+	
+	class IteratorDeep {
+		Iterator begin;
+		Vector<Nod*> cur;
+		Vector<int> pos;
+	protected:
+		friend class MetaNode;
+		IteratorDeep(Nod* cur) {
+			this->cur.Add(cur);
+			pos.Add(0);
+		}
+		
+		IteratorDeep(const Nod* cur) {
+			this->cur.Add((Nod*)cur);
+			pos.Add(0);
+		}
+		
+	public:
+		IteratorDeep(const IteratorDeep& it) {
+			*this = it;
+		}
+		IteratorDeep& operator = (const IteratorDeep& it) {
+			begin = it.begin;
+			cur <<= it.cur;
+			pos <<= it.pos;
+			return *this;
+		}
+		int GetDepth() {return pos.GetCount();}
+		int GetPos() {return pos[pos.GetCount()-1];}
+		int64 GetCurrentAddr() {return (int64)cur[cur.GetCount() - 1];}
+		
+		bool IsEnd() const {return pos.GetCount() == 1 && pos[0] == 1;}
+		bool operator == (IteratorDeep& it) {return GetCurrentAddr() == it.GetCurrentAddr();}
+		bool operator != (IteratorDeep& it) {return !(*this == it);}
+		void operator ++(int i) {
+			#define LASTPOS pos[pos.GetCount()-1]
+			#define LASTCUR cur[cur.GetCount()-1]
+			#define SECLASTCUR cur[cur.GetCount()-2]
+			#define ADDPOS pos[pos.GetCount()-1]++
+			#define ADDCUR LASTCUR = &SECLASTCUR->sub[LASTPOS]
+			#define REMLASTPOS pos.Remove(pos.GetCount()-1)
+			#define REMLASTCUR cur.Remove(cur.GetCount()-1)
+			//String s; for(int i = 0; i < pos.GetCount(); i++) s << " " << pos[i]; LOG("+++ " << s);
+			
+			if (pos.GetCount() == 1 && pos[0] < 0) {pos[0]++; return;}
+			if (pos.GetCount() == 1 && pos[0] == 1) return; // at end
+			
+			if (LASTCUR->GetCount()) {
+				pos.Add(0);
+				cur.Add(&LASTCUR->sub[0]);
+			}
+			else if (pos.GetCount() == 1) {
+				pos[0] = 1; // at end
+			}
+			else {
+				while (1) {
+					if (LASTPOS + 1 < SECLASTCUR->GetCount()) {
+						ADDPOS;
+						ADDCUR;
+						break;
+					} else {
+						REMLASTPOS;
+						REMLASTCUR;
+						if (pos.GetCount() <= 1) {
+							pos.SetCount(1);
+							pos[0] = 1;
+							break;
+						}
+					}
+				}
+			}
+		}
+		void IncNotDeep() {
+			if (LASTCUR->GetCount()) {
+				while (1) {
+					if (cur.GetCount() >= 2 && LASTPOS + 1 < SECLASTCUR->GetCount()) {
+						ADDPOS;
+						ADDCUR;
+						break;
+					} else {
+						REMLASTPOS;
+						REMLASTCUR;
+						if (pos.GetCount() <= 1) {
+							pos.SetCount(1);
+							pos[0] = 1;
+							break;
+						}
+					}
+				}
+			}
+			else operator++(1);
+		}
+		void DecToParent() {
+			pos.Remove(pos.GetCount()-1);
+			cur.Remove(cur.GetCount()-1);
+		}
+		
+		operator Nod*() {
+			if (pos.GetCount() && pos[0] == 1) return 0;
+			return LASTCUR;
+		}
+		
+		Nod* operator->() {
+			if (pos.GetCount() && pos[0] == 1) return 0;
+			return LASTCUR;
+		}
+		
+		Nod& operator*() {
+			return *LASTCUR;
+		}
+		
+		const Nod& operator*() const {return *LASTCUR;}
+		
+		Nod* Higher() {
+			if (cur.GetCount() <= 1) return 0;
+			return cur[cur.GetCount()-2];
+		}
+	};
+	
+	
+	IteratorDeep		BeginDeep() { return IteratorDeep(this);}
+	const IteratorDeep	BeginDeep() const { return IteratorDeep(this);}
+	Iterator			Begin() { return sub.Begin(); }
+	Iterator			End() { return sub.End(); }
 	
 };
 

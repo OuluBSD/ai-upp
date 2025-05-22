@@ -306,6 +306,25 @@ void VfsPath::SetDotPath(String s) {
 	StrFromParts();
 }
 
+void VfsPath::SetPosixPath(String s) {
+	for(int i = 0; i < s.GetCount(); i++) {
+		char c = s[i];
+		if (IsSpace(c)) continue;
+		if (c == '/') {s = s.Mid(i+1); break;}
+		else break;
+	}
+	Vector<String> v = Split(s, "/", false);
+	parts.SetCount(v.GetCount());
+	for(int i = 0; i < v.GetCount(); i++)
+		parts[i] = v[i];
+	StrFromParts();
+}
+
+void VfsPath::Remove(int i) {
+	parts.Remove(i);
+	StrFromParts();
+}
+
 VfsPath operator+(Value s, const VfsPath& vfs) {
 	VfsPath p;
 	p.Set(s, vfs);
@@ -354,6 +373,21 @@ String NormalizeInternalPath(const String& path) {
 	vfs.Set(path);
 	vfs.Normalize();
 	return vfs;
+}
+
+Value FindValuePath(Value v, const VfsPath& p) {
+	if (p.IsEmpty())
+		return v;
+	for(auto& part : p.Parts()) {
+		if (!v.Is<ValueMap>())
+			return Value();
+		ValueMap m = v;
+		int i = m.Find(part);
+		if (i < 0)
+			return Value();
+		v = m.GetValue(i);
+	}
+	return v;
 }
 
 

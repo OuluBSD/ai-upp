@@ -263,16 +263,47 @@ bool ActionPlannerWrapper::SetCost(String action_name, int cost )
 
 
 
-ActionPlanner* ActionNode::ap;
-ActionNode* ActionNode::goal;
-ArrayMap<hash_t, Node<ActionNode> > ActionNode::tmp_sub;
-
-ActionNode::ActionNode() {
+ActionNode::ActionNode(MetaNode& n) : MetaNodeExt(n) {
 	cost = 0;
 	act_id = -1;
 }
 
-double ActionNode::GetDistance(const ActionNode& to) {
+bool ActionNode::TerminalTest(NodeRoute& route) {
+	if (this->GetEstimate() <= 0)
+		return true;
+	ASSERT(goal);
+	WorldState& ws = this->GetWorldState();
+	ActionNode* root = node.FindRoot<ActionNode>();
+	ASSERT(root);
+	if (!root) return true;
+	ActionPlanner& ap = root->GetActionPlanner();
+	Array<WorldState*> to;
+	Vector<int> act_ids;
+	Vector<double> action_costs;
+	ap.GetPossibleStateTransition(ws, to, act_ids, action_costs);
+	for(int i = 0; i < to.GetCount(); i++) {
+		WorldState& ws_to = *to[i];
+		hash_t hash = ws_to.GetHashValue();
+		int j = root->tmp_sub.Find(hash);
+		if (j == -1) {
+			APlanNode sub = root->node.Add<ActionNode>();
+			sub->SetWorldState(ws_to);
+			sub->SetCost(action_costs[i]);
+			sub->SetActionId(act_ids[i]);
+			sub->SetGoal(*goal);
+			auto& link = node.sub.Add();
+			link.symbolic_link = sub.n;
+			root->tmp_sub.Add(hash, sub);
+		} else {
+			auto& link = node.sub.Add();
+			link.symbolic_link = &root->tmp_sub[j]->node;
+		}
+	}
+	return !node.GetCount();
+}
+
+double ActionNode::GetDistance(MetaNode& n) {
+	ActionNode& to = *CastPtr<ActionNode>(&*n.ext);
 	double dist = 0;
 	
 	Vector<bool>& values = ws->values;
@@ -296,7 +327,8 @@ double ActionNode::GetDistance(const ActionNode& to) {
 }
 
 double ActionNode::GetEstimate() {
-	return GetDistance(*goal);
+	ASSERT(goal);
+	return GetDistance(goal->node);
 }
 
 END_UPP_NAMESPACE

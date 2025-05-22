@@ -67,6 +67,24 @@ public:
 	
 };
 
+#if 0
+struct NodeDistance {
+	virtual ~NodeDistance() {}
+	virtual void Assign(const NodeDistance& d) {value = d.value;}
+	double value = 0;
+	NodeDistance() {}
+	NodeDistance(double v) : value(v) {}
+	NodeDistance(const NodeDistance& d) {Assign(d);}
+	NodeDistance(NodeDistance&& d) {Assign(d);}
+	void operator=(const NodeDistance& d) {Assign(d);}
+};
+#endif
+
+struct NodeRoute {
+	Vector<MetaNode*> route;
+	bool from_owner_only = false;
+};
+
 struct MetaNodeExt : Pte<MetaNodeExt> {
 	MetaNode& node;
 	
@@ -77,6 +95,10 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual String GetTypeName() const = 0;
 	virtual hash_t GetTypeHash() const = 0;
 	virtual String GetName() const {return String();}
+	virtual double GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
+	virtual double GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
+	virtual double GetDistance(MetaNode& dest) {ASSERT_(0, "Not implemented"); return 0;}
+	virtual bool TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
 	hash_t GetHashValue() const;
 	int GetKind() const;
 	
@@ -91,7 +113,9 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	TypeCls GetTypeCls() const override {return typeid(x);} \
 	String GetTypeName() const override {return #x;} \
 	hash_t GetTypeHash() const override {return TypedStringHasher<x>(#x);} \
-	
+
+#define DEFAULT_EXT(x) CLASSTYPE(x) x(MetaNode& n) : MetaNodeExt(n) {}
+
 template <bool b, class T>
 struct EntityDataCreator {static EntityData* CreateEntityDataFn();};
 template <class T> struct EntityDataCreator<false,T> {static EntityData* New() {return 0;}};
@@ -201,6 +225,7 @@ struct MetaNode : Pte<MetaNode> {
 	bool only_temporary = false;
 	Ptr<MetaNode> owner;
 	Ptr<MetaNode> type_ptr;
+	Ptr<MetaNode> symbolic_link;
 	#if DEBUG_METANODE_DTOR
 	bool trace_kill = false;
 	#endif
@@ -208,6 +233,7 @@ struct MetaNode : Pte<MetaNode> {
 	MetaNode() {}
 	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
 	~MetaNode();
+	MetaNode& operator[](int i);
 	void ClearExtDeep();
 	void Destroy();
 	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
@@ -350,6 +376,22 @@ struct MetaNode : Pte<MetaNode> {
 		return 0;
 	}
 	
+	template <class T> T* FindRoot(int max_depth=-1) {
+		TypeCls type = AsTypeCls<T>();
+		MetaNode* n = this;
+		T* root = 0;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			if (n->ext && n->ext->GetTypeCls() == type) {
+				T* o = CastPtr<T>(&*n->ext);
+				ASSERT(o);
+				root = o;
+			}
+			n = n->owner;
+		}
+		return root;
+	}
+	
 	template <class T> T* FindOwnerRoot(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		MetaNode* n = owner;
@@ -472,7 +514,7 @@ public:
 		Vector<Nod*> cur;
 		Vector<int> pos;
 	protected:
-		friend class MetaNode;
+		friend struct MetaNode;
 		IteratorDeep(Nod* cur) {
 			this->cur.Add(cur);
 			pos.Add(0);

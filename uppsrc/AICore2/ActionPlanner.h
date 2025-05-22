@@ -106,34 +106,36 @@ public:
 	
 };
 
-class ActionNode {
+class ActionNode : public MetaNodeExt {
 	WorldState* ws;
 	double cost;
 	int act_id;
+	hash_t hash = 0;
 	
-	static ActionPlanner* ap;
-	static ActionNode* goal;
+	ActionPlanner* ap = 0;
+	ActionNode* goal = 0;
+	ArrayMap<hash_t, ActionNode*> tmp_sub;
 	
 public:
-	//RTTI_DECL0(ActionNode)
+	CLASSTYPE(ActionNode)
+	void Visit(Vis& v) override {}
 	
-	static ArrayMap<hash_t, Node<ActionNode> > tmp_sub;
 	
+	ActionNode(MetaNode& n);
 	
-	ActionNode();
-	
-	static ActionPlanner& GetActionPlanner() {return *ap;}
+	ActionPlanner& GetActionPlanner() {return *ap;}
 	WorldState& GetWorldState() {return *ws;}
 	
 	void SetActionPlanner(ActionPlanner& ap_) {ap = &ap_;}
 	void SetGoal(ActionNode& ws) {goal = &ws;}
 	
-	void SetWorldState(WorldState& ws) {this->ws = &ws;}
+	void SetWorldState(WorldState& ws) {this->ws = &ws; hash = ws.GetHashValue();}
 	inline void SetCost(double d) {cost = d;}
 	inline void SetActionId(int i) {act_id = i;}
 	
-	double GetDistance(const ActionNode& to);
-	double GetEstimate();
+	double GetDistance(MetaNode& to) override;
+	double GetEstimate() override;
+	bool TerminalTest(NodeRoute& route) override;
 	inline double GetCost() const {return cost;}
 	inline int GetActionId() const {return act_id;}
 };
@@ -141,35 +143,6 @@ public:
 typedef Node<ActionNode> APlanNode;
 
 
-#if 0
-// for ActionNode
-inline bool TerminalTest(Node& n, Node** prev) {
-	using namespace Agent;
-	if (n.GetEstimate() <= 0)
-		return true;
-	WorldState& ws = n.GetWorldState();
-	ActionPlanner& ap = APlanNode::GetActionPlanner();
-	Array<WorldState*> to;
-	Vector<int> act_ids;
-	Vector<double> action_costs;
-	ap.GetPossibleStateTransition(ws, to, act_ids, action_costs);
-	for(int i = 0; i < to.GetCount(); i++) {
-		WorldState& ws_to = *to[i];
-		hash_t hash = ws_to.GetHashValue();
-		int j = ActionNode::tmp_sub.Find(hash);
-		if (j == -1) {
-			APlanNode& sub = ActionNode::tmp_sub.Add(hash);// n.Add();
-			sub.SetWorldState(ws_to);
-			sub.SetCost(action_costs[i]);
-			sub.SetActionId(act_ids[i]);
-			n.AddLink(sub);
-		} else {
-			n.AddLink(ActionNode::tmp_sub[j]);
-		}
-	}
-	return !n.GetTotalCount();
-}
-#endif
 
 
 #endif

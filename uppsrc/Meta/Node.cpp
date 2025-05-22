@@ -1266,6 +1266,28 @@ VfsPath MetaNode::GetPath() const {
 	return path;
 }
 
+MetaNode& MetaNode::operator[](int i) {
+	MetaNode& n = sub[i];
+	if (n.symbolic_link) {
+		Vector<hash_t> visited;
+		visited << (hash_t)this;
+		MetaNode* l = n.symbolic_link;
+		while (l) {
+			int i = VectorFind(visited, (hash_t)l);
+			if (i >= 0) {
+				l = n.symbolic_link; // reset
+				break;
+			}
+			visited << (hash_t)l;
+			if (!l->symbolic_link)
+				break;
+			l = l->symbolic_link;
+		}
+		return *l;
+	}
+	return n;
+}
+
 
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)

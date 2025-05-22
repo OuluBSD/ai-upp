@@ -85,8 +85,13 @@ void Esc::OnError(String s) {
 }
 
 void Esc::Stop() {
+	flag.SetNotRunning();
+	for (Call& c : calls)
+		if (c.vm)
+			c.vm->SetNotRunning();
 	calls.Clear();
 	fail = false;
+	flag.Stop();
 }
 
 bool Esc::RunExpand(String& out) {
@@ -176,8 +181,9 @@ void Esc::CompileCall(Call& c) {
 
 void Esc::Run() {
 	return_value = EscValue();
+	flag.Start();
 	
-	while(!calls.IsEmpty() && !fail) {
+	while(!calls.IsEmpty() && !fail && flag.IsRunning()) {
 		Call& c = calls.Top();
 		
 		if (c.vm.IsEmpty()) {
@@ -228,6 +234,7 @@ void Esc::Run() {
 				e.l = vm.call_fn;
 			}
 			else if (sleep && !spinning_sleep) {
+				flag.SetStopped(); // TODO is is more specialized "stopped". Is this even ok?
 				return;
 			}
 			else {
@@ -246,6 +253,7 @@ void Esc::Run() {
 		}
 	}
 	
+	flag.SetStopped();
 }
 
 double Esc::Number(const EscValue& a, const char *oper) {

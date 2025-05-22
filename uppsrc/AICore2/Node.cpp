@@ -6,6 +6,7 @@ void GenerateTree(MetaNode& root, int total, int branching_low, int branching_hi
 	root.sub.Clear();
 	Vector<MetaNode*> next_level;
 	
+	set_value(root);
 	next_level.Add(&root);
 	
 	int branching_range = branching_high - branching_low + 1;

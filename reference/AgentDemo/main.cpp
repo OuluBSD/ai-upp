@@ -1,4 +1,4 @@
-#include <AICore/AICore.h>
+#include <AICore2/AICore.h>
 
 int TestDeepNN();
 

@@ -1,6 +1,7 @@
 #ifndef _Meta_ExtList_h_
 #define _Meta_ExtList_h_
 
+#if 0
 #define NODE_LIST \
 	DATASET_ITEM(MetaNode,			env,			METAKIND_PKG_ENV,							CATEGORY_ECS,"Environment") \
 	DATASET_ITEM(MetaNode,			ctx,			METAKIND_CONTEXT,							CATEGORY_ECS,"Context") \
@@ -102,5 +103,43 @@
 #define DATASET_LIST \
 	NODE_LIST \
 	EXT_LIST \
+
+#else
+
+#define NODE_LIST \
+	DATASET_ITEM(MetaNode,				env,			"Environment") \
+	DATASET_ITEM(MetaNode,				ctx,			"Context") \
+	DATASET_ITEM(MetaNode,				dbref,			"Database Reference") \
+	DATASET_ITEM(MetaNode,				comment,		"Comment") \
+	DATASET_ITEM(MetaNode,				space,			"Space") \
+
+#define BASE_EXT_LIST \
+	DATASET_ITEM(Entity,				entity,			"Entity") \
+	DATASET_ITEM(Component,				component,		"Undefined Component") \
+
+#define COMPONENT_LIST \
+	DATASET_ITEM(SrcTxtHeader,			src,			"Source Database") \
+	DATASET_ITEM(Profile,				profile,		"Profile") \
+	DATASET_ITEM(Script,				script,			"Lyrics Draft") \
+	DATASET_ITEM(LyricalStructure,		lyric_struct,	"Song Idea") \
+	DATASET_ITEM(Lyrics,				lyrics,	        "Lyrics") \
+	DATASET_ITEM(BiographyPlatform,		analysis,		"Biography Platform") \
+	DATASET_ITEM(PlatformManager,		platmgr,		"Platform Manager") \
+	DATASET_ITEM(Owner,					owner,			"Owner") /* TODO rename to human? */ \
+	DATASET_ITEM(BiographyPerspectives,	snap,			"Biography Perspectives") \
+	
+#define VIRTUALNODE_DATASET_LIST \
+	DATASET_ITEM(SrcTextData,			srctxt,			"Source Text") \
+
+#define EXT_LIST \
+	BASE_EXT_LIST \
+	COMPONENT_LIST \
+	VIRTUALNODE_DATASET_LIST \
+
+#define DATASET_LIST \
+	NODE_LIST \
+	EXT_LIST \
+
+#endif
 
 #endif

@@ -860,6 +860,7 @@ void MetaNode::CopySubFrom(const MetaNode& n)
 		sub[i].Assign(this, n.sub[i]);
 }
 
+#if 0
 String MetaNode::GetKindString() const { return GetKindString(kind); }
 
 String MetaNode::GetKindString(int kind)
@@ -871,13 +872,14 @@ String MetaNode::GetKindString(int kind)
 			return "Kind(" + IntStr(kind) + ")";
 	}
 	switch (kind) {
-		#define DATASET_ITEM(type, name, kind, group, desc) case kind: return desc;
+		#define DATASET_ITEM(type, name, desc) case kind: return desc;
 		DATASET_LIST
 		#undef DATASET_ITEM
 	default:
 		return IntStr(kind);
 	}
 }
+#endif
 
 void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const
 {
@@ -1453,7 +1455,7 @@ int MetaExtFactory::FindKindFactory(int kind) {
 }
 
 int MetaExtFactory::FindKindCategory(int k) {
-	#define DATASET_ITEM(type, name, kind, group, desc) if (k == kind) return group;
+	#define DATASET_ITEM(type, name, desc) if (k == kind) return group;
 	DATASET_LIST
 	#undef DATASET_ITEM
 	return -1;

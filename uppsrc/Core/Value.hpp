@@ -385,6 +385,17 @@ inline T& CreateRawValue(Value& v) {
 }
 
 template <class T>
+inline T& RealizeRawValue(Value& v) {
+	dword type = GetValueTypeNo<T>();
+	if (v.GetType() == type)
+		return dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
+	typedef RawValueRep<T> R;
+	R *r = new R;
+	v = Value(r, type);
+	return r->Get();
+}
+
+template <class T>
 inline Value RichToValue(const T& data)
 {
 	return Value(new RichValueRep<T>(data), GetValueTypeNo<T>());

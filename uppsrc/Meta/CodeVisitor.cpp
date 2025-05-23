@@ -64,9 +64,16 @@ String CodeVisitor::Item::ToString() const
 {
 	String s;
 	if(node) {
-		if (node->id.GetCount() && node->type.GetCount()) s << node->id << ": " << node->type;
-		else if (node->id.GetCount()) s << node->id;
-		else if (node->type.GetCount()) s << node->type;
+		AstValue* ast = FindRawValue<AstValue>(node->value);
+		if (ast) {
+			if (node->id.GetCount() && ast->type.GetCount()) s << node->id << ": " << ast->type;
+			else if (node->id.GetCount()) s << node->id;
+			else if (ast->type.GetCount()) s << ast->type;
+		}
+		else {
+			if (node->id.GetCount()) s << node->id;
+			else if (node->id.GetCount()) s << node->id;
+		}
 	}
 	return s;
 }
@@ -96,27 +103,28 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 		return;
 	visited.Add(&n);
 	
+	AstValue& ast = RealizeRawValue<AstValue>(n.value);
 	/*if (n.kind == CXCursor_UnexposedExpr) {
 		LOG(n.GetTreeString());
 	}*/
 	
 	bool add_item = false;
-	if ((!n.id.IsEmpty() || !n.type.IsEmpty()) /*&& FindItem(&n) < 0*/ &&
-		n.kind != CXCursor_CXXBaseSpecifier)
+	if ((!n.id.IsEmpty() || !ast.type.IsEmpty()) /*&& FindItem(&n) < 0*/ &&
+		ast.kind != CXCursor_CXXBaseSpecifier)
 		add_item = true;
-	else if (n.kind == CXCursor_ReturnStmt ||
-			 n.kind == CXCursor_MacroDefinition ||
-			 n.kind == CXCursor_MacroExpansion)
+	else if (ast.kind == CXCursor_ReturnStmt ||
+			 ast.kind == CXCursor_MacroDefinition ||
+			 ast.kind == CXCursor_MacroExpansion)
 		add_item = true;
 	
 	if (add_item) {
 		Item& it = export_items.Add();
-		it.pos = n.begin;
+		it.pos = ast.begin;
 		it.file = filepath;
 		it.node = &n;
 		
 		// Visit macro definition in "brute-forced" way
-		if (n.kind == CXCursor_MacroExpansion) {
+		if (ast.kind == CXCursor_MacroExpansion) {
 			String id = n.id;
 			for (MetaNode* md : macro_defs) {
 				if (md->id == id) {
@@ -130,12 +138,13 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 	VisitSub(filepath, n);
 	
 	// Macro expansions are not in the node-structure already, and they must be "brute-force" visited
-	if (IsStruct(n.kind) || IsFunction(n.kind)) {
+	if (IsStruct(ast.kind) || IsFunction(ast.kind)) {
 		int pkg = n.pkg;
 		int file = n.file;
 		for (MetaNode* me : macro_exps) {
 			if (me->pkg == pkg && me->file == file) {
-				if (RangeContains(me->begin, n.begin, n.end)) {
+				AstValue* ast1 = FindRawValue<AstValue>(me->value);
+				if (ast1 && RangeContains(ast1->begin, ast.begin, ast.end)) {
 					Visit(filepath, *me);
 				}
 			}
@@ -146,8 +155,9 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 void CodeVisitor::VisitSub(const String& filepath, MetaNode& n) {
 	for(int i = 0; i < n.sub.GetCount(); i++) {
 		MetaNode& s = n.sub[i];
+		AstValue* s_ast = FindRawValue<AstValue>(s.value);
 		
-		if (!s.is_ref) {
+		if (s_ast && !s_ast->is_ref) {
 			Visit(filepath, s);
 		}
 		else {
@@ -160,15 +170,17 @@ void CodeVisitor::VisitSub(const String& filepath, MetaNode& n) {
 
 void CodeVisitor::VisitRef(const String& filepath, MetaNode& n)
 {
-	ASSERT(n.is_ref);
-	/*if (!n.id.IsEmpty() || !n.type.IsEmpty()) {
-	}*/
-	/*if (FindItem(&n) < 0)*/ {
+	AstValue* ast = FindRawValue<AstValue>(n.value);
+	if (ast) {
+		ASSERT(ast->is_ref);
 		Item& it = export_items.Add();
-		it.pos = n.begin;
+		it.pos = ast->begin;
 		it.file = filepath;
 		it.node = &n;
 		VisitId(filepath, n, it);
+	}
+	else {
+		TODO
 	}
 }
 
@@ -176,7 +188,8 @@ void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
 {
 	VisitSub(filepath, n);
 	
-	ASSERT(n.is_ref);
+	AstValue& ast = RealizeRawValue<AstValue>(n.value);
+	ASSERT(ast.is_ref);
 	auto& env = MetaEnv();
 	MetaNode* decl = env.FindDeclaration(n);
 	if (decl) {

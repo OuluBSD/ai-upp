@@ -134,7 +134,7 @@ struct MetaExtFactory {
 	typedef EntityData* (*CreateEntityData)();
 	
 	struct Factory {
-		int kind;
+		//int kind;
 		int category;
 		String name;
 		String ctrl_name;
@@ -174,12 +174,12 @@ struct MetaExtFactory {
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
 		#endif
 		Factory& f = List().Add();
-		f.kind = T::GetKind();
-		f.category = FindKindCategory(f.kind);
+		//f.kind = T::GetKind();
+		TODO //f.category = FindKindCategory(f.kind);
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
-		f.set_data_ed_fn = &DatasetEntityData<T>;
+		//f.set_data_ed_fn = &DatasetEntityData<T>;
 		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
 		f.type = &typeid(T);
 	}
@@ -199,40 +199,52 @@ struct MetaExtFactory {
 		}
 		Panic("No component found");
 	}
-	static MetaNodeExt* CreateKind(int kind, MetaNode& owner);
-	static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
+	//static MetaNodeExt* CreateKind(int kind, MetaNode& owner);
+	//static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
 	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
-	static int FindKindFactory(int kind);
-	static int FindKindCategory(int kind);
+	//static int FindKindFactory(int kind);
+	//static int FindKindCategory(int kind);
 };
 
 #define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}
 #define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {MetaExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
-struct MetaNode : Pte<MetaNode> {
-	Array<MetaNode> sub;
+struct AstValue {
 	int kind = -1;
-	String id, type;
-	hash_t type_hash = 0;
+	String type;
 	Point begin = Null;
 	Point end = Null;
 	hash_t filepos_hash = 0;
-	int file = -1;
 	bool is_ref = false;
 	bool is_definition = false;
-	hash_t serial = 0;
 	bool is_disabled = false;
-	One<MetaNodeExt> ext;
-	Value value;
 	
 	// Temp
-	int pkg = -1;
-	bool only_temporary = false;
-	Ptr<MetaNode> owner;
 	Ptr<MetaNode> type_ptr;
-	Ptr<MetaNode> symbolic_link;
+	
+	bool IsNullInstance() const;
+};
+
+struct MetaNode : Pte<MetaNode> {
+	String             id;
+	Value              value;
+	hash_t             serial = 0;
+	One<MetaNodeExt>   ext;
+	Array<MetaNode>    sub;
+	int                file = -1;
+	hash_t             type_hash = 0;
+	
+	// Temp
+	int                pkg = -1;
+	Ptr<MetaNode>      owner;
+	Ptr<MetaNode>      symbolic_link;
+	
+	#ifdef flagDEBUG
+	bool               only_temporary = false;
+	#endif
+	
 	#if DEBUG_METANODE_DTOR
-	bool trace_kill = false;
+	bool               trace_kill = false;
 	#endif
 	
 	MetaNode() {}
@@ -344,6 +356,7 @@ struct MetaNode : Pte<MetaNode> {
 		return v;
 	}
 	
+	#if 0
 	template <class T>
 	T* Find(int kind=-1) {
 		bool chk_kind = kind >= 0;
@@ -357,6 +370,7 @@ struct MetaNode : Pte<MetaNode> {
 		}
 		return 0;
 	}
+	#endif
 	
 	template <class T> T& GetExt() {
 		return dynamic_cast<T&>(*ext);

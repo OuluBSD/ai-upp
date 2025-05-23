@@ -110,7 +110,7 @@ public:
 	void					PostContinueForward();
 	void					SetPrimarySinkQueueSize(int i);
 	String					GetInlineConnectionsString() const;
-	String					ToString() const;
+	String					ToString() const override;
 	AtomTypeCls				GetAtomType() const;
 	ISourcePtr				GetSource();
 	ISinkPtr				GetSink();

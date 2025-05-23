@@ -56,7 +56,8 @@ struct VirtualNode : Moveable<VirtualNode> {
 	template <class T>
 	T& GetAddExt(String name) {
 		ASSERT(data && data->mode == VFS_VALUE);
-		int kind = 0;
+		TODO
+		/*int kind = 0;
 		const std::type_info& type = typeid(T);
 		for (const auto it : MetaExtFactory::List()) {
 			if (*it.type == type) {
@@ -65,28 +66,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 			}
 		}
 		ASSERT(kind > 0);
-		/*VirtualNode n = Find(name);
-		if (n.data) {
-			if (n.data->mode == VFS_ENTITY) {
-				auto& ent = *n.data->node;
-				if (ent.ext) {
-					T* o = dynamic_cast<T*>(&*ent.ext);
-					if (o)
-						return *o;
-				}
-				TODO; void* p = 0; return *(T*)p;
-			}
-			else if (n.data->mode == VFS_VALUE) {
-				Value val = *n.data->value;
-				if (val.Is<T>())
-					return val.Get<T>();
-				TODO; void* p = 0; return *(T*)p;
-			}
-		}
-		else {
-			
-		}*/
-		TODO; void* p = 0; return *(T*)p;
+		TODO; void* p = 0; return *(T*)p;*/
 	}
 };
 

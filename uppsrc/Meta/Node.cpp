@@ -663,7 +663,18 @@ String MetaNode::GetTreeString(int depth) const
 	s.Cat('\t', depth);
 	if(1)
 		s << IntStr(pkg) << ":" << IntStr(file) << ": ";
-	s << GetKindString();
+	if (!value.IsNull()) {
+		s << value.GetTypeName();
+		dword type = value.GetType();
+		if (type == INT_V || type == INT64_V || type == DOUBLE_V)
+			s << "(" << value.ToString() << ")";
+		if (type == STRING_V) {
+			String vs = value.ToString();
+			if (vs.GetCount() > 13)
+				vs = vs.Left(10) + "...";
+			s << "(" << vs << ")";
+		}
+	}
 	if(!id.IsEmpty())
 		s << ": " << id;
 	s << "(" << HexStrPtr(this) << ")";

@@ -127,6 +127,7 @@
 	DATASET_ITEM(PlatformManager,		platmgr,		"Platform Manager") \
 	DATASET_ITEM(Owner,					owner,			"Owner") /* TODO rename to human? */ \
 	DATASET_ITEM(BiographyPerspectives,	snap,			"Biography Perspectives") \
+	DATASET_ITEM(Biography,				biography,		"Biography") \
 	
 #define VIRTUALNODE_DATASET_LIST \
 	DATASET_ITEM(SrcTextData,			srctxt,			"Source Text") \

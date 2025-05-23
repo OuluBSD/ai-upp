@@ -396,6 +396,22 @@ inline T& RealizeRawValue(Value& v) {
 }
 
 template <class T>
+inline T* FindRawValue(Value& v) {
+	dword type = GetValueTypeNo<T>();
+	if (v.GetType() == type)
+		return dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
+	return 0;
+}
+
+template <class T>
+inline const T* FindRawValue(const Value& v) {
+	dword type = GetValueTypeNo<T>();
+	if (v.GetType() == type)
+		return dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
+	return 0;
+}
+
+template <class T>
 inline Value RichToValue(const T& data)
 {
 	return Value(new RichValueRep<T>(data), GetValueTypeNo<T>());

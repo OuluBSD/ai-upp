@@ -2,6 +2,8 @@
 #define _AI_Core_Release_h_
 
 
+struct Song;
+
 
 // TODO REMOVE
 struct ComponentIdea {

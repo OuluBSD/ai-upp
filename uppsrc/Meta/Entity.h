@@ -17,9 +17,7 @@ struct Component : MetaNodeExt, DatasetProvider {
 struct type : Component \
 { \
 	COMPONENT_CONSTRUCTOR(type) \
-	void Visit(Vis& v) override { \
-		v.Ver(1)(1);} \
-	static int GetKind() {return kind;} \
+	void Visit(Vis& v) override {v.Ver(1)(1);} \
 }; \
 INITIALIZE(type)
 

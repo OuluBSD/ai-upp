@@ -4,6 +4,7 @@
 
 
 
+struct ProjectWizardView;
 struct ConfigurationNode;
 struct FileNode;
 

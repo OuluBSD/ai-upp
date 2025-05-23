@@ -11,7 +11,7 @@ struct IdeShell;
 class ClangTypeResolver;
 class ToolAppCtrl;
 
-#define DATASET_ITEM(type, name, kind, group, desc) struct type;
+#define DATASET_ITEM(type, name, desc) struct type;
 EXT_LIST
 #undef DATASET_ITEM
 struct SrcTextData;
@@ -22,8 +22,11 @@ struct EntityData : Pte<EntityData> {
 	virtual void Visit(Vis& s) = 0;
 };
 
+// Deprecated
+// DatasetPtrs is used only classes with "public SolverBase"
+// The SolverBase is also being shifted out.
 struct DatasetPtrs {
-	#define DATASET_ITEM(type, name, kind, group, desc) Ptr<type> name;
+	#define DATASET_ITEM(type, name, desc) Ptr<type> name;
 	DATASET_LIST
 	#undef DATASET_ITEM
 	
@@ -47,14 +50,14 @@ struct DatasetAssigner {
 	static void Set(DatasetPtrs& p, T* o);
 };
 
-#define DATASET_ITEM(type, name, kind, group, desc) \
+#define DATASET_ITEM(type, name, desc) \
 template <int I> struct DatasetAssigner<type,I> {\
 	static void Set(DatasetPtrs& p, type* o) {p.name = o;}\
 };
 EXT_LIST
 #undef DATASET_ITEM
 
-#define DATASET_ITEM(type, name, kind, group, desc) \
+#define DATASET_ITEM(type, name, desc) \
 template <class _> struct DatasetPtrs::Getter<type,_> {static type& Get(DatasetPtrs& p) {return *p.name;}};
 EXT_LIST
 #undef DATASET_ITEM
@@ -66,6 +69,7 @@ public:
 	virtual DatasetPtrs GetDataset() const = 0;
 	
 };
+
 
 #if 0
 struct NodeDistance {
@@ -126,7 +130,7 @@ struct MetaExtFactory {
 	typedef MetaNodeExt* (*NewFn)(MetaNode&);
 	typedef MetaExtCtrl* (*NewCtrl)();
 	typedef bool (*IsFn)(const MetaNodeExt& e);
-	typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
+	//typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
 	typedef EntityData* (*CreateEntityData)();
 	
 	struct Factory {
@@ -136,7 +140,7 @@ struct MetaExtFactory {
 		String ctrl_name;
 		NewFn new_fn = 0;
 		NewCtrl new_ctrl_fn = 0;
-		SetDatasetEntityData set_data_ed_fn = 0;
+		//SetDatasetEntityData set_data_ed_fn = 0;
 		CreateEntityData create_ed_fn = 0;
 		IsFn is_fn = 0;
 		const std::type_info* type = 0;
@@ -150,13 +154,13 @@ struct MetaExtFactory {
 	template<class T> struct CtrlFunctions {
 		static MetaExtCtrl* CreateCtrl() {return new T;}
 	};
-	template <class T> static void DatasetEntityData(DatasetPtrs& p, EntityData& ed) {
+	/*template <class T> static void DatasetEntityData(DatasetPtrs& p, EntityData& ed) {
 		T* o = dynamic_cast<T*>(&ed);
 		ASSERT(o);
 		DatasetAssigner<T,0>::Set(p,o);
-	}
+	}*/
 	static Array<Factory>& List() {static Array<Factory> f; return f;}
-	static void Set(DatasetPtrs& p, int o_kind, EntityData& data) {
+	/*static void Set(DatasetPtrs& p, int o_kind, EntityData& data) {
 		for (const auto& f : List()) {
 			if (o_kind == f.kind) {
 				f.set_data_ed_fn(p, data);
@@ -164,7 +168,7 @@ struct MetaExtFactory {
 			}
 		}
 		ASSERT_(0, "Kind not registered");
-	}
+	}*/
 	template <class T> inline static void Register(String name) {
 		#ifdef flagGUI
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
@@ -242,8 +246,8 @@ struct MetaNode : Pte<MetaNode> {
 	void CopyFieldsFrom(const MetaNode& n, bool forced_downgrade=false);
 	void CopySubFrom(const MetaNode& n);
 	void FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
-	String GetKindString() const;
-	static String GetKindString(int i);
+	//String GetKindString() const;
+	//static String GetKindString(int i);
 	MetaNode& GetAdd(String id, String type, int kind);
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);

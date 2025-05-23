@@ -7,7 +7,7 @@
 NAMESPACE_UPP
 
 void DatasetPtrs::operator=(const DatasetPtrs& p) {
-	#define DATASET_ITEM(type, name, kind, group, desc) name = p.name;
+	#define DATASET_ITEM(type, name, desc) name = p.name;
 	DATASET_LIST
 	#undef DATASET_ITEM
 	
@@ -15,7 +15,7 @@ void DatasetPtrs::operator=(const DatasetPtrs& p) {
 }
 
 void DatasetPtrs::Clear() {
-	#define DATASET_ITEM(type, name, kind, group, desc) name = 0;
+	#define DATASET_ITEM(type, name, desc) name = 0;
 	DATASET_LIST
 	#undef DATASET_ITEM
 	editable_biography = 0;
@@ -39,22 +39,28 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 		for (auto& sub : n.owner->sub) {
 			if (!sub.ext) continue;
 			MetaNodeExt* ext = &*sub.ext;
+			TODO
+			#if 0
 			switch (ext->node.kind) {
-				#define DATASET_ITEM(type, name, kind, group, desc) \
+				#define DATASET_ITEM(type, name, desc) \
 					case kind: {p.name = dynamic_cast<type*>(ext); ASSERT(p.name);} break;
 				COMPONENT_LIST
 				#undef DATASET_ITEM
 				default: break;
 			}
+			#endif
 		}
 		if (this_comp) {
+			TODO
+			#if 0
 			switch (n.kind) {
-				#define DATASET_ITEM(type, name, kind, group, desc) \
+				#define DATASET_ITEM(type, name, desc) \
 				case kind: {p.name = dynamic_cast<type*>(this_comp); ASSERT(p.name);} break;
 				COMPONENT_LIST
 				#undef DATASET_ITEM
 				default: break;
 			}
+			#endif
 		}
 	}
 	
@@ -138,7 +144,9 @@ void Entity::Visit(Vis& v) {
 			v(2)(".header", header, VISIT_VECTOR);
 			this->objs.Clear();
 			for(auto& it : header) {
-				#define DATASET_ITEM(a,b,c,d,e) \
+				TODO
+				#if 0
+				#define DATASET_ITEM(a,b,e) \
 				if (it.kind == c) {\
 					a* o = new a(); \
 					this->objs.Add(it.path, o); \
@@ -147,6 +155,7 @@ void Entity::Visit(Vis& v) {
 				}
 				VIRTUALNODE_DATASET_LIST
 				#undef DATASET_ITEM
+				#endif
 				ASSERT_(0,"Invalid kind");
 				v.SetError("Invalid kind");
 				break;

@@ -175,6 +175,7 @@ protected:
 	Value(const T& value, VSMALL);
 
 	template <class T> friend Value SvoToValue(const T& x);
+	template <class T> friend T& RealizeRawValue(Value& v);
 
 	String  GetName() const;
 
@@ -324,6 +325,7 @@ template <class T> Value RawToValue(const T& data);
 template <class T> Value RawPickToValue(T&& data);
 template <class T> Value RawDeepToValue(const T& data);
 template <class T> T&    CreateRawValue(Value& v);
+template <class T> T&    RealizeRawValue(Value& v);
 
 Value        ErrorValue(const char *s);
 Value        ErrorValue(const String& s);

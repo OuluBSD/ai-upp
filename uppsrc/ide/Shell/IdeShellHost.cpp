@@ -200,6 +200,8 @@ void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value) {
 			if (!n)
 				return;
 			
+			TODO
+			#if 0
 			if (n->kind == METAKIND_ECS_SPACE) {
 				String ent_name = "Blog";
 				n = &n->GetAdd(ent_name, "", METAKIND_ECS_ENTITY);
@@ -211,8 +213,8 @@ void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value) {
 			
 			if (n->kind == METAKIND_ECS_ENTITY) {
 				EntityEditorCtrl& c = con->EcsExt<EntityEditorCtrl>(shell, value);
-				
 			}
+			#endif
 		}
 	}
 }

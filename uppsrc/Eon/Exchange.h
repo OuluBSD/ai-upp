@@ -524,7 +524,7 @@ public:
 	
 	void Remove(ExchangePoint* expt);
 	
-	String ToString() const;
+	String ToString() const override;
 	
 	void Visit(Vis& vis) override {vis || pts;}
 	

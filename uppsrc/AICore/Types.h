@@ -3,7 +3,7 @@
 
 
 
-#define DATASET_ITEM(type, name, kind, group, desc) struct type;
+#define DATASET_ITEM(type, name, desc) struct type;
 DATASET_LIST
 #undef DATASET_ITEM
 

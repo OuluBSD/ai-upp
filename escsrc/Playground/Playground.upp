@@ -29,6 +29,7 @@ file
 	"3 agents" readonly separator,
 	SongwriterRing.ecs,
 	"In-order multi-agent" readonly separator,
+	Bank.ecs,
 	Courtroom.ecs,
 	Adventure.ecs,
 	"1 team multi-agent" readonly separator,

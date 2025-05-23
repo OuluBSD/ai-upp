@@ -6,6 +6,7 @@ uses
 
 file
 	Meta.h,
+	Meta.icpp,
 	Defs.h,
 	Enum.h,
 	Common.h,

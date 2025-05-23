@@ -255,7 +255,8 @@ void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind) 
 	for(int i = 0; i < nodes.GetCount(); i++) {
 		const auto& it = *nodes[i];
 		list.Set(i, 0, it.id);
-		list.Set(i, 1, it.type);
+		const AstValue* ast = FindRawValue<AstValue>(it.value);
+		list.Set(i, 1, ast ? ast->type : "");
 		list.Set(i,"IDX", i);
 	}
 	list.SetCount(nodes.GetCount());

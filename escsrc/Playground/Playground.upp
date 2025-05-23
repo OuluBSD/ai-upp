@@ -1,0 +1,45 @@
+description "Examples of simple and easy use cases\377";
+
+file
+	Notes.txt,
+	"AI tools" readonly separator,
+	Completion.ecs,
+	Chat.ecs,
+	Stage.ecs,
+	Image.ecs,
+	Vision.ecs,
+	ImgAspectRescale.ecs,
+	Transcribe.ecs,
+	TTS.ecs,
+	Realtime.ecs,
+	Assistant.ecs,
+	CustomBiases.ecs,
+	"1 agent" readonly separator,
+	Blocks.ecs,
+	ProgramAndStage.txt,
+	Filesystem.ecs,
+	Animation.ecs,
+	MusicComposer.ecs,
+	"2 agents" readonly separator,
+	Tournament.ecs,
+	UserAndSystem.ecs,
+	GameOfAdoration.ecs,
+	"3 agents" readonly separator,
+	SongwriterRing.ecs,
+	"In-order multi-agent" readonly separator,
+	Courtroom.ecs,
+	Adventure.ecs,
+	"1 team multi-agent" readonly separator,
+	Deathmatch.ecs,
+	Coop.ecs,
+	"2 team multi-agent" readonly separator,
+	TeamDeathmatch.ecs,
+	TeamCoop.ecs,
+	"Virtual N-team" readonly separator,
+	CouplesTherapy.ecs,
+	HierCoop.ecs,
+	_ readonly separator;
+
+mainconfig
+	"" = "";
+

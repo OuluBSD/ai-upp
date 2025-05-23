@@ -1,7 +1,7 @@
 {
-	"id": 1,
+	"id": 12,
 	"hash": "-1793033956050569595",
-	"highest_seen_serial": 285116,
+	"highest_seen_serial": 285273,
 	"seen_types": [
 
 	],
@@ -19,17 +19,17 @@
 			"y": null
 		},
 		"(int64&)filepos_hash": 0,
-		"file": 1,
+		"file": 12,
 		"is_ref": false,
 		"is_definition": false,
 		"is_disabled": false,
-		"(int64&)serial": 285116,
+		"(int64&)serial": 285273,
 		"value": null,
 		"has_ext": false,
 		"sub": [
 			{
 				"kind": 1006,
-				"id": "UserAndSystem",
+				"id": "TeamCoopCompetition",
 				"type": "",
 				"(int64&)type_hash": 0,
 				"begin": {
@@ -41,11 +41,11 @@
 					"y": null
 				},
 				"(int64&)filepos_hash": 0,
-				"file": 1,
+				"file": 12,
 				"is_ref": false,
 				"is_definition": false,
 				"is_disabled": false,
-				"(int64&)serial": 285097,
+				"(int64&)serial": 285265,
 				"value": null,
 				"has_ext": false,
 				"sub": [

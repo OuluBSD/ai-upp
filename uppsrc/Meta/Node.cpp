@@ -102,7 +102,8 @@ MetaSrcFile& MetaEnvironment::ResolveFileInfo(const String& includes, String pat
 MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 
 MetaEnvironment::MetaEnvironment() {
-	root.kind = CXCursor_Namespace;
+	AstValue& ast = root;
+	ast.kind = CXCursor_Namespace;
 	root.serial = NewSerial();
 	
 	MountManager& mm = MountManager::System();
@@ -119,9 +120,13 @@ hash_t MetaEnvironment::NewSerial() {
 bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode)
 {
 	MetaNode& n0 = *scope.Top();
-	ASSERT(n0.kind == n1.kind && n0.id == n1.id);
-	if(IsMergeable((CXCursorKind)n0.kind)) {
+	AstValue* a0 = n0;
+	const AstValue* a1 = n1;
+	ASSERT(a0 && a1 && a0->kind == a1->kind && n0.id == n1.id);
+	if(a0 && a1 && IsMergeable((CXCursorKind)a0->kind)) {
 		for(const MetaNode& sub1 : n1.sub) {
+			TODO
+			#if 0
 			int i = n0.Find(sub1.kind, sub1.id);
 			if(i < 0) {
 				auto& n = n0.Add(sub1);
@@ -135,6 +140,7 @@ bool MetaEnvironment::MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, M
 				if(!succ)
 					return false;
 			}
+			#endif
 		}
 		n0.Chk();
 	}
@@ -162,6 +168,13 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 			source_kind = is_source_kind;
 		}
 	};
+	AstValue* p0 = n0;
+	const AstValue* p1 = n1;
+	ASSERT(p0 && p1); // unverified (part of cleanup)
+	if (!p0 || !p1)
+		return false;
+	AstValue& a0 = *p0;
+	const AstValue& a1 = *p1;
 
 	if(n0.serial == n1.serial) {
 		n0.Chk();
@@ -190,14 +203,14 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 	pri_subs.Reserve(pri.sub.GetCount());
 	sec_subs.Reserve(sec.sub.GetCount());
 	for(const MetaNode& pri : pri.sub) {
-		if(pri.IsSourceKind())
-			pri_subs.Add().Set(&pri, true, pri.GetSourceHash());
+		if(pri.IsAstValue())
+			pri_subs.Add().Set(&pri, true, pri.AstGetSourceHash());
 		else
 			pri_subs.Add().Set(&pri, false, pri.GetTotalHash());
 	}
 	for(const MetaNode& sec : sec.sub) {
-		if(sec.IsSourceKind())
-			sec_subs.Add().Set(&sec, true, sec.GetSourceHash());
+		if(sec.IsAstValue())
+			sec_subs.Add().Set(&sec, true, sec.AstGetSourceHash());
 		else
 			sec_subs.Add().Set(&sec, false, sec.GetTotalHash());
 	}
@@ -450,11 +463,13 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<MetaNode*>& scope, const Met
 		for(auto& sec : sec_subs) {
 			if(sec.ready && sec.match) {
 				MetaNode& s0 = const_cast<MetaNode&>(*sec.n);
+				AstValue* sa0 = s0;
+				ASSERT(sa0);
 				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *sec.match, mode);
 				scope.Remove(scope.GetCount() - 1);
-				if(old_sub_serial != s0.serial && n0.serial == old_serial)
+				if(old_sub_serial != n0.serial && n0.serial == old_serial)
 					n0.serial = NewSerial();
 				if(!succ)
 					return false;
@@ -608,9 +623,15 @@ void MetaEnvironment::RefreshNodePtrs(MetaNode& n)
 	/*if (n.kind == CXCursor_ClassTemplate) {
 	    //LOG(n.GetTreeString());
 	}*/
+	AstValue* p = n;
+	ASSERT(p); // unverified (part of cleanup)
+	if (!p)
+		return;
+	AstValue& a = *p;
+	
 	ASSERT(!n.only_temporary);
-	if(n.filepos_hash != 0) {
-		auto& vec = this->filepos.GetAdd(n.filepos_hash).hash_nodes;
+	if(a.filepos_hash != 0) {
+		auto& vec = this->filepos.GetAdd(a.filepos_hash).hash_nodes;
 		bool found = false;
 		bool found_zero = false;
 		for(auto& p : vec) {
@@ -632,7 +653,7 @@ void MetaEnvironment::RefreshNodePtrs(MetaNode& n)
 		}
 	}
 	if(n.type_hash) {
-		auto& vec = this->filepos.GetAdd(n.filepos_hash).hash_nodes;
+		auto& vec = this->filepos.GetAdd(a.filepos_hash).hash_nodes;
 		bool found = false;
 		bool found_zero = false;
 		for(auto& p : vec) {
@@ -680,8 +701,9 @@ String MetaNode::GetTreeString(int depth) const
 	s << "(" << HexStrPtr(this) << ")";
 	s << "\n";
 	if (ext) {
+		ASSERT(type_hash != 0);
 		s.Cat('\t', depth+1);
-		int fac_i = MetaExtFactory::FindKindFactory(kind);
+		int fac_i = MetaExtFactory::FindTypeHashFactory(type_hash);
 		s << "EXT:";
 		if (fac_i >= 0) {
 			const auto& fac = MetaExtFactory::List()[fac_i];
@@ -700,11 +722,11 @@ String MetaNode::GetTreeString(int depth) const
 	return s;
 }
 
-int MetaNode::Find(int kind, const String& id) const
+int MetaNode::AstFind(int kind, const String& id) const
 {
 	int i = 0;
 	for(const MetaNode& n : sub) {
-		if(n.kind == kind && n.id == id)
+		if(n.type_hash == type_hash && n.id == id)
 			return i;
 		i++;
 	}
@@ -736,19 +758,28 @@ void MetaNode::Destroy()
 	}
 }
 
-MetaNode& MetaNode::GetAdd(String id, String type, int kind)
+MetaNode& MetaNode::AstGetAdd(String id, String type, int kind)
 {
-	for(MetaNode& s : sub)
-		if(s.kind == kind && s.id == id && s.type == type)
+	for(MetaNode& s : sub) {
+		if (s.id != id)
+			continue;
+		AstValue* a = s;
+		if(a && a->kind == kind && a->type == type)
 			return s;
+	}
 	MetaNode& s = sub.Add();
 	s.owner = this;
 	s.id = id;
-	s.type = type;
-	s.kind = kind;
 	s.serial = MetaEnv().NewSerial();
 	s.file = this->file;
 	s.pkg = this->pkg;
+	
+	AstValue& a = s;
+	a.type = type;
+	a.kind = kind;
+	ASSERT(kind > 0 && kind < 1000); // CXCursor range
+	
+	#if 0
 	this->serial = MetaEnv().NewSerial();
 	if (kind >= METAKIND_EXTENSION_BEGIN && kind <= METAKIND_EXTENSION_END) {
 		int i = MetaExtFactory::FindKindFactory(kind);
@@ -756,6 +787,8 @@ MetaNode& MetaNode::GetAdd(String id, String type, int kind)
 			s.ext = MetaExtFactory::List()[i].new_fn(s);
 		}
 	}
+	#endif
+	
 	return s;
 }
 
@@ -801,17 +834,15 @@ MetaNode& MetaNode::Add()
 	return s;
 }
 
-MetaNode& MetaNode::Add(int kind, String id)
+MetaNode& MetaNode::AstAdd(int kind, String id)
 {
 	MetaNode& s = Add();
-	s.kind = kind;
 	s.id = id;
-	if (kind >= METAKIND_EXTENSION_BEGIN && kind <= METAKIND_EXTENSION_END) {
-		int i = MetaExtFactory::FindKindFactory(kind);
-		if (i >= 0) {
-			s.ext = MetaExtFactory::List()[i].new_fn(s);
-		}
-	}
+	
+	AstValue& a = s;
+	a.kind = kind;
+	ASSERT(kind > 0 && kind < 1000);
+	
 	s.Chk();
 	return s;
 }
@@ -871,10 +902,14 @@ void MetaNode::CopySubFrom(const MetaNode& n)
 		sub[i].Assign(this, n.sub[i]);
 }
 
-#if 0
-String MetaNode::GetKindString() const { return GetKindString(kind); }
+String MetaNode::AstGetKindString() const {
+	const AstValue* ast = *this;
+	ASSERT(ast);
+	if (!ast) return "not a AstValue";
+	return AstGetKindString(ast->kind);
+}
 
-String MetaNode::GetKindString(int kind)
+String MetaNode::AstGetKindString(int kind)
 {
 	if(kind >= 0 && kind <= CXCursor_OverloadCandidate) {
 		if (GetCursorKindNamePtr)
@@ -882,83 +917,121 @@ String MetaNode::GetKindString(int kind)
 		else
 			return "Kind(" + IntStr(kind) + ")";
 	}
-	switch (kind) {
-		#define DATASET_ITEM(type, name, desc) case kind: return desc;
-		DATASET_LIST
-		#undef DATASET_ITEM
-	default:
-		return IntStr(kind);
-	}
+	return "unknown kind: " + IntStr(kind);
 }
-#endif
 
-void MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const
+bool MetaNode::FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs) const
 {
 	bool had_diff = false;
-#define CHK_FIELD(x)                                                                           \
+	#define CHK_FIELD(x)                                                                           \
 	if(x != n.x) {                                                                             \
 		had_diff = true;                                                                       \
 		diffs.Add("Different " #x ": " + AsString(x) + " vs " + AsString(n.x) + " at " +       \
-		          GetKindString() + ", " + id + " (" + type + ")");                            \
+		          ", " + id + " (" + HexStr(n.type_hash) + ")");                               \
 	}
-	CHK_FIELD(kind);
 	CHK_FIELD(id);
-	CHK_FIELD(type);
 	CHK_FIELD(type_hash);
-	CHK_FIELD(begin);
-	CHK_FIELD(end);
-	CHK_FIELD(filepos_hash);
-	CHK_FIELD(file);
-	CHK_FIELD(pkg);
-	CHK_FIELD(is_ref);
-	CHK_FIELD(is_definition);
-	CHK_FIELD(sub.GetCount());
-	CHK_FIELD(is_disabled);
 	CHK_FIELD(serial);
-	if(!had_diff)
+	CHK_FIELD(file);
+	CHK_FIELD(sub.GetCount());
+	CHK_FIELD(pkg);
+	const AstValue* a0 = *this;
+	const AstValue* a1 = n;
+	if (a0 && a1) {
+	#define CHK_AST_FIELD(x)                                                                           \
+		if(a0->x != a1->x) {                                                                             \
+			had_diff = true;                                                                       \
+			diffs.Add("Different " #x ": " + AsString(a0->x) + " vs " + AsString(a1->x) + " at " +       \
+			          AstGetKindString(a0->kind) + ", " + id + " (" + a0->type + ")");                            \
+		}
+		CHK_AST_FIELD(kind);
+		CHK_AST_FIELD(type);
+		CHK_AST_FIELD(begin);
+		CHK_AST_FIELD(end);
+		CHK_AST_FIELD(filepos_hash);
+		CHK_AST_FIELD(is_ref);
+		CHK_AST_FIELD(is_definition);
+		CHK_AST_FIELD(is_disabled);
+	}
+	else if (!a0 && !a1) {
+		CHK_FIELD(value);
+	}
+	else {
+		had_diff = true;
+		diffs.Add("Different value type: " + value.GetTypeName() + " vs " + n.value.GetTypeName());
+	}
+	
+	if(!had_diff) {
 		for(int i = 0; i < sub.GetCount(); i++) {
-			CHK_FIELD(sub[i].kind);
 			CHK_FIELD(sub[i].id);
 			if(had_diff)
 				break;
-			sub[i].FindDifferences(n.sub[i], diffs, max_diffs);
-			if(diffs.GetCount() >= max_diffs)
+			had_diff = sub[i].FindDifferences(n.sub[i], diffs, max_diffs);
+			if(had_diff || diffs.GetCount() >= max_diffs)
 				break;
 		}
+	}
+	#undef CHK_FIELD
+	#undef CHK_AST_FIELD
+	return had_diff;
 }
 
 bool MetaNode::IsFieldsSame(const MetaNode& n) const
 {
-	if ((bool)ext != (bool)n.ext) return false;
-	bool eq =
-	       kind == n.kind && id == n.id && type == n.type && type_hash == n.type_hash &&
-	       begin == n.begin && end == n.end && filepos_hash == n.filepos_hash &&
-	       file == n.file && pkg == n.pkg && is_ref == n.is_ref &&
-	       is_definition == n.is_definition && is_disabled == n.is_disabled &&
-	       serial == n.serial;
-	if (eq) eq = *ext == *n.ext; // kind is already checked to be the same, and both has ext
-	return eq;
+	if ((bool)ext != (bool)n.ext)
+		return false;
+	
+	if (!( id == n.id && type_hash == n.type_hash &&
+	       file == n.file && pkg == n.pkg &&
+	       serial == n.serial && value.GetType() == n.value.GetType()))
+		return false;
+	
+	const AstValue* a0 = *this;
+	const AstValue* a1 = n;
+	if (a0 && a1) {
+		auto& a = *a0;
+		auto& b = *a1;
+	    if(!(	a.kind == b.kind && a.type == b.type &&
+				a.begin == b.begin && a.end == b.end && a.filepos_hash == b.filepos_hash &&
+				a.is_ref == b.is_ref &&
+				a.is_definition == b.is_definition && a.is_disabled == b.is_disabled))
+			return false;
+	}
+	
+	if (ext && n.ext && !(*ext == *n.ext)) // kind is already checked to be the same, and both has ext
+		return false;
+	
+	return true;
 }
 
 void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 {
-	kind = n.kind;
 	id = n.id;
-	type = n.type;
 	type_hash = n.type_hash;
-	begin = n.begin;
-	end = n.end;
-	filepos_hash = n.filepos_hash;
 	file = n.file;
 	pkg = n.pkg;
-	is_ref = n.is_ref;
-	is_definition = n.is_definition;
-	is_disabled = n.is_disabled;
-	value = n.value;
-	if (n.ext) {
-		ASSERT(kind >= 0);
-		ext = MetaExtFactory::CloneKind(kind, *n.ext, *this);
-	} else ext.Clear();
+	
+	const AstValue* a1 = n;
+	if (a1) {
+		AstValue& a = *this;
+		const AstValue& b = *a1;
+		a.kind = b.kind;
+		a.type = b.type;
+		a.begin = b.begin;
+		a.end = b.end;
+		a.filepos_hash = b.filepos_hash;
+		a.is_ref = b.is_ref;
+		a.is_definition = b.is_definition;
+		a.is_disabled = b.is_disabled;
+	}
+	else
+		value = n.value;
+	
+	if (n.ext)
+		ext = MetaExtFactory::Clone(*n.ext, *this);
+	else
+		ext.Clear();
+	
 	ASSERT(serial <= n.serial || forced_downgrade);
 	serial = n.serial;
 	Chk();
@@ -967,57 +1040,111 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 hash_t MetaNode::GetTotalHash() const
 {
 	CombineHash ch;
-	ch	.Do(kind)
-		.Do(id)
-		.Do(type)
+	ch	.Do(id)
 		.Do(type_hash)
-		.Do(begin)
-		.Do(end)
-		.Do(filepos_hash)
+		.Do(serial)
 		.Do(file)
-		.Do(pkg)
-		.Do(is_ref)
-		.Do(is_definition)
-		.Do(is_disabled)
-		.Do(value)
-		.Do(serial);
+		.Do(pkg) // TODO ensure that the hash is not used across sessions. This is not persistent hash because of this field.
+	;
+	const AstValue* a0 = *this;
+	if (a0) {
+		const AstValue& a = *a0;
+		ch
+			.Do(a.kind)
+			.Do(a.type)
+			.Do(a.begin)
+			.Do(a.end)
+			.Do(a.filepos_hash)
+			.Do(a.is_ref)
+			.Do(a.is_definition)
+			.Do(a.is_disabled);
+	}
+	else
+		ch.Do(value);
+	
 	if (ext)
 		ch.Put(ext->GetHashValue());
+	
 	for(const auto& s : sub)
 		ch.Put(s.GetTotalHash());
+	
 	return ch;
 }
 
 void MetaNode::Visit(Vis& v) {
 	#define Do(x) (#x,x)
-	v.Ver(2);
+	v.Ver(3);
 	if (v.file_ver <= 2) {
+		AstValue& a = *this;
 		v
-		(1)	Do(kind)
+		(1)	Do(a.kind)
 			Do(id)
-			Do(type)
+			Do(a.type)
 			Do((int64&)type_hash)
-			Do(begin)
-			Do(end)
-			Do((int64&)filepos_hash)
+			Do(a.begin)
+			Do(a.end)
+			Do((int64&)a.filepos_hash)
 			Do(file)
 			//Do(pkg)
-			Do(is_ref)
-			Do(is_definition)
-			Do(is_disabled)
+			Do(a.is_ref)
+			Do(a.is_definition)
+			Do(a.is_disabled)
 			Do((int64&)serial)
 		(2)	Do(value)
 			;
 	}
+	else {
+		v
+		(3)	Do(id)
+			Do((int64&)type_hash)
+			Do(file)
+			//Do(pkg)
+			Do((int64&)serial)
+			;
+		
+		bool is_ast = (const AstValue*)*this;
+		v	Do(is_ast);
+		if (v.IsLoading()) {
+			if (is_ast) {
+				AstValue& a = *this;
+				v
+					Do(a.kind)
+					Do(a.type)
+					Do(a.begin)
+					Do(a.end)
+					Do((int64&)a.filepos_hash)
+					Do(a.is_ref)
+					Do(a.is_definition)
+					Do(a.is_disabled);
+			}
+			else
+				v	Do(value);
+		}
+	}
 	
-	bool has_ext = ext;
-	v("has_ext", has_ext);
-	if (has_ext) {
-		if (v.IsLoading()) ext = MetaExtFactory::CreateKind(kind, *this);
-		if (ext)
-			v("ext",*ext, VISIT_NODE);
+	if (type_hash) {
+		if (v.IsLoading()) {
+			ext = MetaExtFactory::Create(type_hash, *this);
+			if (ext)
+				v("ext",*ext, VISIT_NODE);
+			else {
+				RLOG("MetaNode::Visit: error: could not load type_hash " + HexStr64(type_hash));
+			}
+		}
 		else {
-			RLOG("MetaNode::Visit: error: could not load kind " + IntStr(kind));
+			if (type_hash) {
+				v("ext",*ext, VISIT_NODE);
+			}
+			else {
+				ASSERT(!ext);
+			}
+		}
+	}
+	else {
+		if (v.IsLoading())
+			ext.Clear();
+		else {
+			ASSERT(!ext);
 		}
 	}
 	v
@@ -1043,13 +1170,14 @@ void MetaNode::DeepChk() {
 
 void MetaNode::Chk() {
 	#ifdef flagDEBUG
-	#if 1
-	if (kind == METAKIND_ECS_ENTITY && owner) {
+	if (owner && type_hash && type_hash == AsTypeHash<Entity>()) {
 		//ASSERT(owner->kind != METAKIND_ECS_SPACE);
-		ASSERT(owner->kind != METAKIND_CONTEXT);
+		TODO // add context && pkg-env component
+		/*
+		ASSERT(owner->type_hash != METAKIND_CONTEXT);
 		ASSERT(owner->kind != METAKIND_PKG_ENV);
+		*/
 	}
-	#endif
 	#endif
 }
 
@@ -1077,19 +1205,22 @@ int MetaNode::GetDepth() const {
 	return depth;
 }
 
-hash_t MetaNode::GetSourceHash(bool* total_hash_diffs) const
+hash_t MetaNode::AstGetSourceHash(bool* total_hash_diffs) const
 {
-	if(kind < 0 || kind >= METAKIND_BEGIN)
+	const AstValue* a = *this;
+	if (a->kind < 0 || a->kind >= METAKIND_BEGIN) {
+		if(total_hash_diffs)
+			*total_hash_diffs = true;
 		return 0;
+	}
 	CombineHash ch;
-	ch.Do(kind).Do(id).Do(type);
+	ch.Do(a->kind).Do(id).Do(a->type);
 	for(const auto& s : sub) {
-		if(s.kind < 0 || s.kind >= METAKIND_BEGIN) {
-			if(total_hash_diffs)
-				*total_hash_diffs = true;
+		bool b = false;
+		hash_t h = s.AstGetSourceHash(&b);
+		if (b)
 			continue;
-		}
-		ch.Put(s.GetSourceHash());
+		ch.Put(h);
 	}
 	return ch;
 }
@@ -1103,12 +1234,14 @@ Vector<MetaNode*> MetaNode::FindAll(TypeCls type)
 	return vec;
 }
 
-Vector<MetaNode*> MetaNode::FindAllShallow(int kind)
+Vector<MetaNode*> MetaNode::AstFindAllShallow(int kind)
 {
 	Vector<MetaNode*> vec;
-	for(auto& s : sub)
-		if(s.kind == kind)
+	for(auto& s : sub) {
+		const AstValue* a = s;
+		if (a && a->kind == kind)
 			vec << &s;
+	}
 	return vec;
 }
 
@@ -1122,57 +1255,73 @@ MetaNode* MetaNode::FindDeep(TypeCls type)
 	return 0;
 }
 
-void MetaNode::FindAllDeep(int kind, Vector<MetaNode*>& out)
+void MetaNode::AstFindAllDeep(int kind, Vector<MetaNode*>& out)
 {
-	if(this->kind == kind)
+	const AstValue* a = *this;
+	if(a && a->kind == kind)
 		out << this;
 	for(auto& s : sub)
-		s.FindAllDeep(kind, out);
+		s.AstFindAllDeep(kind, out);
 }
 
-void MetaNode::FindAllDeep(int kind, Vector<const MetaNode*>& out) const
+void MetaNode::AstFindAllDeep(int kind, Vector<const MetaNode*>& out) const
 {
-	if(this->kind == kind)
+	const AstValue* a = *this;
+	if(a && a->kind == kind)
 		out << this;
 	for(const auto& s : sub)
-		s.FindAllDeep(kind, out);
+		s.AstFindAllDeep(kind, out);
 }
 
-Vector<const MetaNode*> MetaNode::FindAllShallow(int kind) const
+Vector<const MetaNode*> MetaNode::AstFindAllShallow(int kind) const
 {
 	Vector<const MetaNode*> vec;
-	for(const auto& s : sub)
-		if(s.kind == kind)
+	for(const auto& s : sub) {
+		const AstValue* a = s;
+		if(a && a->kind == kind)
 			vec << &s;
+	}
 	return vec;
 }
 
-bool MetaNode::IsSourceKind() const { return kind >= 0 && kind < METAKIND_BEGIN; }
+bool MetaNode::IsAstValue() const {
+	const AstValue* v = *this;
+	return v;
+}
 
 bool MetaNode::IsStructKind() const
 {
-	return kind == CXCursor_StructDecl && kind == CXCursor_ClassDecl &&
-	       kind == CXCursor_ClassTemplate &&
-	       kind == CXCursor_ClassTemplatePartialSpecialization;
+	const AstValue* a = *this;
+	if (!a)
+		return false;
+	return	a->kind == CXCursor_StructDecl &&
+			a->kind == CXCursor_ClassDecl &&
+			a->kind == CXCursor_ClassTemplate &&
+			a->kind == CXCursor_ClassTemplatePartialSpecialization;
 }
 
-int MetaNode::GetRegularCount() const
+int MetaNode::GetAstValueCount() const
 {
 	int c = 0;
-	for(const auto& s : sub)
-		if(s.kind >= 0 && s.kind < METAKIND_BEGIN)
+	for(const auto& s : sub) {
+		const AstValue* a = s;
+		if (a && a->kind >= 0 && a->kind < METAKIND_BEGIN)
 			c++;
+	}
 	return c;
 }
 
 String MetaNode::GetBasesString() const
 {
 	String s;
-	Vector<const MetaNode*> bases = FindAllShallow(CXCursor_CXXBaseSpecifier);
+	Vector<const MetaNode*> bases = AstFindAllShallow(CXCursor_CXXBaseSpecifier);
 	for(const MetaNode* n : bases) {
 		if(!s.IsEmpty())
 			s.Cat(", ");
-		s << n->id << " (" << n->type << ")";
+		s << n->id;
+		const AstValue* a = *n;
+		if (a)
+			s << " (" << a->type << ")";
 	}
 	return s;
 }
@@ -1209,12 +1358,13 @@ bool MetaNode::ContainsDeep(const MetaNode& n) const
 #endif
 }
 
-void MetaNode::RemoveAllShallow(int kind)
+void MetaNode::AstRemoveAllShallow(int kind)
 {
 	Vector<int> rmlist;
 	int i = 0;
 	for(auto& s : sub) {
-		if(s.kind == kind)
+		const AstValue* a = s;
+		if(a && a->kind == kind)
 			rmlist << i;
 		i++;
 	}
@@ -1222,11 +1372,11 @@ void MetaNode::RemoveAllShallow(int kind)
 		sub.Remove(rmlist);
 }
 
-void MetaNode::RemoveAllDeep(int kind)
+void MetaNode::AstRemoveAllDeep(int kind)
 {
-	RemoveAllShallow(kind);
+	AstRemoveAllShallow(kind);
 	for(auto& s : sub)
-		s.RemoveAllDeep(kind);
+		s.AstRemoveAllDeep(kind);
 }
 
 void MetaNode::GetTypeHashes(Index<hash_t>& type_hashes) const
@@ -1301,6 +1451,18 @@ MetaNode& MetaNode::operator[](int i) {
 	return n;
 }
 
+MetaNode::operator AstValue& () {
+	return RealizeRawValue<AstValue>(value);
+}
+
+MetaNode::operator AstValue* () {
+	return FindRawValue<AstValue>(value);
+}
+
+MetaNode::operator const AstValue* () const {
+	return FindRawValue<AstValue>(value);
+}
+
 
 
 /*void MetaEnvironment::Store(const String& includes, const String& path, FileAnnotation& fa)
@@ -1326,9 +1488,12 @@ MetaNode& MetaNode::operator[](int i) {
 
 MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n)
 {
-	if(!n.filepos_hash)
+	const AstValue* a = n;
+	if (!a)
 		return 0;
-	int i = filepos.Find(n.filepos_hash);
+	if(!a->filepos_hash)
+		return 0;
+	int i = filepos.Find(a->filepos_hash);
 	if(i < 0)
 		return 0;
 	const auto& vec = filepos[i].hash_nodes;
@@ -1336,7 +1501,8 @@ MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n)
 		if(!ptr)
 			continue;
 		MetaNode& p = *ptr;
-		if(p.is_definition /* || p.IsClassTemplateDefinition()*/)
+		const AstValue* a1 = p;
+		if(a1 && a1->is_definition /* || p.IsClassTemplateDefinition()*/)
 			return &p;
 	}
 	return 0;
@@ -1344,8 +1510,9 @@ MetaNode* MetaEnvironment::FindDeclaration(const MetaNode& n)
 
 Vector<MetaNode*> MetaEnvironment::FindDeclarationsDeep(const MetaNode& n)
 {
+	const AstValue* a = n;
 	Vector<MetaNode*> v;
-	if(n.kind == CXCursor_CXXBaseSpecifier) {
+	if(a && a->kind == CXCursor_CXXBaseSpecifier) {
 		for(const auto& s : n.sub) {
 			MetaNode* d = FindDeclaration(s);
 			if(d)
@@ -1370,7 +1537,8 @@ MetaNode* MetaEnvironment::FindTypeDeclaration(hash_t type_hash)
 		if(!ptr)
 			continue;
 		MetaNode& p = *ptr;
-		if(p.is_definition /* || p.IsClassTemplateDefinition()*/)
+		const AstValue* a1 = p;
+		if(a1 && a1->is_definition /* || p.IsClassTemplateDefinition()*/)
 			return &p;
 	}
 	return 0;
@@ -1399,8 +1567,9 @@ bool MetaEnvironment::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) 
 		VfsItem& it = items.Add();
 		it.name = n0.id;
 		it.type = VFS_DIRECTORY;
-		if (!n0.type.IsEmpty())
-			it.type_str = n0.type;
+		const AstValue* a0 = n0;
+		if (a0 && !a0->type.IsEmpty())
+			it.type_str = a0->type;
 		else if (n0.ext)
 			it.type_str = n0.ext->GetName();
 	}
@@ -1434,20 +1603,24 @@ VfsItemType MetaEnvironment::CheckItem(const VfsPath& rel_path) {
 
 
 
-MetaNodeExt* MetaExtFactory::CreateKind(int kind, MetaNode& owner) {
-	int i = FindKindFactory(kind);
+MetaNodeExt* MetaExtFactory::Create(hash_t type_hash, MetaNode& owner) {
+	int i = FindTypeHashFactory(type_hash);
 	if (i < 0) return 0;
 	return List()[i].new_fn(owner);
 }
 
-MetaNodeExt* MetaExtFactory::CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner) {
-	int i = FindKindFactory(kind);
-	if (i < 0) return 0;
+#if 1
+MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e, MetaNode& owner) {
+	hash_t type_hash = e.GetTypeHash();
+	int i = FindTypeHashFactory(type_hash);
+	if (i < 0)
+		return 0;
 	MetaNodeExt* n = List()[i].new_fn(owner);
-	n->CopyFrom(e);
+	if (n)
+		n->CopyFrom(e);
 	return n;
 }
-
+#else
 MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e, MetaNode& owner) {
 	for (Factory& f : List()) {
 		if (f.is_fn(e)) {
@@ -1458,17 +1631,27 @@ MetaNodeExt* MetaExtFactory::Clone(const MetaNodeExt& e, MetaNode& owner) {
 	}
 	return 0;
 }
+#endif
 
-int MetaExtFactory::FindKindFactory(int kind) {
+int MetaExtFactory::FindTypeHashFactory(hash_t type_hash) {
 	int i = 0;
-	for (Factory& f : List()) {if (f.kind == kind) return i; i++;}
+	for (Factory& f : List()) {
+		if (f.type_hash == type_hash)
+			return i;
+		i++;
+	}
 	return -1;
 }
 
-int MetaExtFactory::FindKindCategory(int k) {
-	#define DATASET_ITEM(type, name, desc) if (k == kind) return group;
+int MetaExtFactory::AstFindKindCategory(int k) {
+	TODO
+	#if 0
+	#define DATASET_ITEM(type, name, desc) \
+		if (k == kind) \
+			return group;
 	DATASET_LIST
 	#undef DATASET_ITEM
+	#endif
 	return -1;
 }
 
@@ -1493,8 +1676,9 @@ hash_t MetaNodeExt::GetHashValue() const {
 	return vis.hash;
 }
 
-int MetaNodeExt::GetKind() const {
-	return node.kind;
+int MetaNodeExt::AstGetKind() const {
+	const AstValue* a = node;
+	return a ? a->kind : 0;
 }
 
 void MetaNodeExt::Serialize(Stream& s){

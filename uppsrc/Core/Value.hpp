@@ -399,7 +399,7 @@ template <class T>
 inline T* FindRawValue(Value& v) {
 	dword type = GetValueTypeNo<T>();
 	if (v.GetType() == type)
-		return dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
+		return &dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
 	return 0;
 }
 

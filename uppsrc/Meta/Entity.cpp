@@ -34,7 +34,7 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 	p.component = this_comp;
 	//if (n.kind >= METAKIND_ECS_COMPONENT_BEGIN && n.kind <= METAKIND_ECS_COMPONENT_END) {
 	if (n.owner) {
-		if (n.owner->kind == METAKIND_ECS_ENTITY && n.owner->ext)
+		if (n.owner->IsTypeHash<Entity>() && n.owner->ext)
 			p.entity = dynamic_cast<Entity*>(&*n.owner->ext);
 		for (auto& sub : n.owner->sub) {
 			if (!sub.ext) continue;
@@ -67,7 +67,7 @@ void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp) {
 	
 // see SRC_TXT_HEADER_ENABLE
 	MetaNode* db_src = 0;
-	if (n.kind == METAKIND_DATABASE_SOURCE) {
+	if (n.IsTypeHash<SrcTxtHeader>()) {
 		db_src = &n;
 	}
 	

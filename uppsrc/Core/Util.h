@@ -689,7 +689,13 @@ template <class T> hash_t TypedStringHasher(const char* s) {
 			}
 			h = String(s).GetHashValue();
 		}
+		void Chk(String s) {
+			if (s.GetHashValue() != h)
+				Panic("TypedStringHasher: fatal error: hash differs");
+		}
 	};
 	static Hasher h(s);
+	if (s)
+		h.Chk(s);
 	return h.h;
 }

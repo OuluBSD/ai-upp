@@ -105,8 +105,9 @@ void MetaProcess::MakeBaseAnalysis() {
 		// Skip these kinds
 		if (it.node) {
 			MetaNode& n = *it.node;
-			if (n.kind == CXCursor_CXXBaseSpecifier ||
-				n.kind == CXCursor_ReturnStmt) {
+			AstValue* a = n;
+			if (a && (a->kind == CXCursor_CXXBaseSpecifier ||
+					  a->kind == CXCursor_ReturnStmt)) {
 				// pass
 			}
 			else /*if (visited.Find(&n) < 0)*/ {
@@ -143,11 +144,12 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 		return false;
 	
 	const MetaNode& n = *vis.node;
-	bool is_any_type	= IsTypeKind(n.kind);
-	bool is_any_var		= IsVarKind(n.kind);
-	bool is_definition	= n.is_definition;
-	bool is_any_fn		= IsFunctionAny(n.kind);
-	bool is_macrodef	= n.kind == CXCursor_MacroDefinition;
+	const AstValue* a = n;
+	bool is_any_type	= a && IsTypeKind(a->kind);
+	bool is_any_var		= a && IsVarKind(a->kind);
+	bool is_definition	= a && a->is_definition;
+	bool is_any_fn		= a && IsFunctionAny(a->kind);
+	bool is_macrodef	= a && a->kind == CXCursor_MacroDefinition;
 	
 	const MetaNode& rel_link = *rel.link_node;
 	const MetaNode& rel_n = *rel.node;
@@ -699,7 +701,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				
 				// Return statements
 				Vector<MetaNode*> val = ret.FindAllShallow(CXCursor_UnexposedExpr);
-				if (val.IsEmpty() && ret.GetRegularCount() == 1) // add any value (TODO is this dangerous?)
+				if (val.IsEmpty() && ret.GetAstValueCount() == 1) // add any value (TODO is this dangerous?)
 					val << &ret.sub[0];
 				if (val.GetCount()) {
 					MetaNode& n1 = *val[0];

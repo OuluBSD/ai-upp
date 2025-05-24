@@ -83,8 +83,8 @@ void CodeVisitor::Begin()
 	export_items.Clear();
 	visited.Clear();
 	// TODO optimize: cache this
-	macro_exps = MetaEnv().root.FindAllShallow(CXCursor_MacroExpansion);
-	macro_defs = MetaEnv().root.FindAllShallow(CXCursor_MacroDefinition);
+	macro_exps = MetaEnv().root.AstFindAllShallow(CXCursor_MacroExpansion);
+	macro_defs = MetaEnv().root.AstFindAllShallow(CXCursor_MacroDefinition);
 }
 
 int CodeVisitor::FindItem(MetaNode* n) const {

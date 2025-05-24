@@ -105,7 +105,7 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual bool TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
 	virtual String ToString() const {return String();}
 	hash_t GetHashValue() const;
-	int GetKind() const;
+	int AstGetKind() const;
 	
 	void CopyFrom(const MetaNodeExt& e);
 	bool operator==(const MetaNodeExt& e) const;
@@ -134,7 +134,7 @@ struct MetaExtFactory {
 	typedef EntityData* (*CreateEntityData)();
 	
 	struct Factory {
-		//int kind;
+		hash_t type_hash;
 		int category;
 		String name;
 		String ctrl_name;
@@ -159,6 +159,7 @@ struct MetaExtFactory {
 		ASSERT(o);
 		DatasetAssigner<T,0>::Set(p,o);
 	}*/
+	static int FindTypeHashFactory(hash_t h);
 	static Array<Factory>& List() {static Array<Factory> f; return f;}
 	/*static void Set(DatasetPtrs& p, int o_kind, EntityData& data) {
 		for (const auto& f : List()) {
@@ -174,7 +175,7 @@ struct MetaExtFactory {
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
 		#endif
 		Factory& f = List().Add();
-		//f.kind = T::GetKind();
+		f.type_hash = TypedStringHasher<T>(name);
 		TODO //f.category = FindKindCategory(f.kind);
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
@@ -199,40 +200,40 @@ struct MetaExtFactory {
 		}
 		Panic("No component found");
 	}
-	//static MetaNodeExt* CreateKind(int kind, MetaNode& owner);
+	static MetaNodeExt* Create(hash_t type_hash, MetaNode& owner);
 	//static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
 	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
 	//static int FindKindFactory(int kind);
-	//static int FindKindCategory(int kind);
+	static int AstFindKindCategory(int kind);
 };
 
 #define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}
 #define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {MetaExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
 struct AstValue {
-	int kind = -1;
-	String type;
-	Point begin = Null;
-	Point end = Null;
-	hash_t filepos_hash = 0;
-	bool is_ref = false;
-	bool is_definition = false;
-	bool is_disabled = false;
+	int             kind = -1;
+	String          type;
+	Point           begin = Null;
+	Point           end = Null;
+	hash_t          filepos_hash = 0;
+	bool            is_ref = false;
+	bool            is_definition = false;
+	bool            is_disabled = false;
 	
 	// Temp
-	Ptr<MetaNode> type_ptr;
+	Ptr<MetaNode>   type_ptr;
 	
 	bool IsNullInstance() const;
 };
 
 struct MetaNode : Pte<MetaNode> {
 	String             id;
-	Value              value;
-	hash_t             serial = 0;
-	One<MetaNodeExt>   ext;
-	Array<MetaNode>    sub;
-	int                file = -1;
 	hash_t             type_hash = 0;
+	hash_t             serial = 0;
+	int                file = -1;
+	Array<MetaNode>    sub;
+	Value              value;
+	One<MetaNodeExt>   ext;
 	
 	// Temp
 	int                pkg = -1;
@@ -257,24 +258,37 @@ struct MetaNode : Pte<MetaNode> {
 	void CopyFrom(const MetaNode& n);
 	void CopyFieldsFrom(const MetaNode& n, bool forced_downgrade=false);
 	void CopySubFrom(const MetaNode& n);
-	void FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
-	//String GetKindString() const;
-	//static String GetKindString(int i);
-	MetaNode& GetAdd(String id, String type, int kind);
+	bool FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
+	
+	
+	// Functions to use when value is AstValue type.
+	bool IsAstValue() const;
+	int GetAstValueCount() const;
+	String AstGetKindString() const;
+	static String AstGetKindString(int i);
+	MetaNode& AstGetAdd(String id, String type, int kind);
+	MetaNode& AstAdd(int kind, String id=String());
+	int AstFind(int kind, const String& id) const;
+	Vector<MetaNode*> AstFindAllShallow(int kind);
+	Vector<const MetaNode*> AstFindAllShallow(int kind) const;
+	void AstFindAllDeep(int kind, Vector<MetaNode*>& out);
+	void AstFindAllDeep(int kind, Vector<const MetaNode*>& out) const;
+	void AstRemoveAllShallow(int kind);
+	void AstRemoveAllDeep(int kind);
+	hash_t AstGetSourceHash(bool* total_hash_diffs=0) const;
+	
+	
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
 	MetaNode& Add();
-	MetaNode& Add(int kind, String id=String());
 	MetaNode* Detach(MetaNode* n);
 	MetaNode* Detach(int i);
 	void Remove(MetaNode* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;
-	int Find(int kind, const String& id) const;
 	int Find(const String& id) const;
 	MetaNode* FindPath(const VfsPath& path);
 	hash_t GetTotalHash() const;
-	hash_t GetSourceHash(bool* total_hash_diffs=0) const;
 	void Visit(Vis& v);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
 	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
@@ -288,22 +302,14 @@ struct MetaNode : Pte<MetaNode> {
 	void SetPkgFileDeep(int pkg_id, int file_id);
 	void SetTempDeep();
 	Vector<MetaNode*> FindAll(TypeCls type);
-	Vector<MetaNode*> FindAllShallow(int kind);
-	Vector<const MetaNode*> FindAllShallow(int kind) const;
 	MetaNode* FindDeep(TypeCls type);
-	void FindAllDeep(int kind, Vector<MetaNode*>& out);
-	void FindAllDeep(int kind, Vector<const MetaNode*>& out) const;
 	bool IsFieldsSame(const MetaNode& n) const;
-	bool IsSourceKind() const;
 	bool IsStructKind() const;
-	int GetRegularCount() const;
 	//bool IsClassTemplateDefinition() const;
 	String GetBasesString() const;
 	String GetNestString() const;
 	bool OwnerRecursive(const MetaNode& n) const;
 	bool ContainsDeep(const MetaNode& n) const;
-	void RemoveAllShallow(int kind);
-	void RemoveAllDeep(int kind);
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 	void RealizeSerial();
 	void FixSerialDeep();
@@ -314,6 +320,15 @@ struct MetaNode : Pte<MetaNode> {
 	bool IsOwnerDeep(MetaNodeExt& n) const;
 	int GetCount() const;
 	int GetDepth() const;
+	
+	operator AstValue&();
+	operator AstValue*();
+	operator const AstValue*() const;
+	
+	template <class T>
+	bool IsTypeHash() const {
+		return type_hash == AsTypeHash<T>();
+	}
 	
 	template <class T>
 	T& Add(String id="") {
@@ -355,22 +370,6 @@ struct MetaNode : Pte<MetaNode> {
 		}
 		return v;
 	}
-	
-	#if 0
-	template <class T>
-	T* Find(int kind=-1) {
-		bool chk_kind = kind >= 0;
-		for (auto& s : sub) {
-			if (chk_kind && s.kind != kind) continue;
-			if (s.ext) {
-				T* o = dynamic_cast<T*>(&*s.ext);
-				ASSERT(!chk_kind || o);
-				if (o) return o;
-			}
-		}
-		return 0;
-	}
-	#endif
 	
 	template <class T> T& GetExt() {
 		return dynamic_cast<T&>(*ext);

@@ -99,6 +99,7 @@ public:
 		SystemT* syst = new SystemT(n, args...);
         n.ext = syst;
         n.type_hash = syst->GetTypeHash();
+        ASSERT(n.type_hash);
         return syst;
     }
     

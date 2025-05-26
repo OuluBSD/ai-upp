@@ -81,6 +81,89 @@ Vector<String> FindParentUppDirectories(const String& sub_dir)
 
 
 
+bool AstValue::IsNullInstance() const {
+	return	kind < 0 &&
+			type.IsEmpty() &&
+			begin == Null &&
+			end == Null &&
+			filepos_hash == 0 &&
+			is_ref == false &&
+			is_definition == false &&
+			is_disabled == false;
+}
+
+void AstValue::Serialize(Stream& s) {
+	s / kind / type % begin % end / filepos_hash;
+	s % is_ref % is_definition % is_disabled;
+}
+
+void AstValue::Xmlize(XmlIO& xml) {
+	xml ("kind", kind)
+		("type", type)
+		("begin", begin)
+		("end", end)
+		("filepos_hash", (int64&)filepos_hash)
+		("is_ref", is_ref)
+		("is_definition", is_definition)
+		("is_disabled", is_disabled)
+		;
+}
+
+void AstValue::Jsonize(JsonIO& io) {
+	io  ("kind", kind)
+		("type", type)
+		("begin", begin)
+		("end", end)
+		("filepos_hash", (int64&)filepos_hash)
+		("is_ref", is_ref)
+		("is_definition", is_definition)
+		("is_disabled", is_disabled)
+		;
+}
+
+hash_t AstValue::GetHashValue() const {
+	CombineHash c;
+	c	.Do(kind)
+		.Do(type)
+		.Do(begin)
+		.Do(end)
+		.Do(filepos_hash)
+		.Do(is_ref)
+		.Do(is_definition)
+		.Do(is_disabled)
+		;
+	return c;
+}
+
+String AstValue::ToString() const {
+	return StoreAsJson(*this);
+}
+
+bool AstValue::operator==(const AstValue& v) const {
+	return	kind == v.kind &&
+			type == v.type &&
+			begin == v.begin &&
+			end == v.end &&
+			filepos_hash == v.filepos_hash &&
+			is_ref == v.is_ref &&
+			is_definition == v.is_definition &&
+			is_disabled == v.is_disabled;
+}
+
+int AstValue::Compare(const AstValue& v) const {
+	return	kind - v.kind;
+}
+
+int AstValue::PolyCompare(const Value& v) const {
+	return	kind - (int)v;
+}
+
+
+
+
+
+
+
 
 
 
@@ -802,6 +885,7 @@ MetaNode& MetaNode::AstGetAdd(String id, String type, int kind)
 		int i = MetaExtFactory::FindKindFactory(kind);
 		if (i >= 0) {
 			s.ext = MetaExtFactory::List()[i].new_fn(s);
+			s.type_hash = s.ext->GetTypeHash();
 		}
 	}
 	#endif
@@ -839,9 +923,10 @@ MetaNode& MetaNode::Add(MetaNode* n)
 	return s;
 }
 
-MetaNode& MetaNode::Add()
+MetaNode& MetaNode::Add(String id)
 {
 	MetaNode& s = sub.Add();
+	s.id = id;
 	s.owner = this;
 	s.file = this->file;
 	s.pkg = this->pkg;
@@ -1044,8 +1129,10 @@ void MetaNode::CopyFieldsFrom(const MetaNode& n, bool forced_downgrade)
 	else
 		value = n.value;
 	
-	if (n.ext)
+	if (n.ext) {
 		ext = MetaExtFactory::Clone(*n.ext, *this);
+		type_hash = ext->GetTypeHash();
+	}
 	else
 		ext.Clear();
 	
@@ -1142,6 +1229,7 @@ void MetaNode::Visit(Vis& v) {
 	if (type_hash) {
 		if (v.IsLoading()) {
 			ext = MetaExtFactory::Create(type_hash, *this);
+			type_hash = ext->GetTypeHash();
 			if (ext)
 				v("ext",*ext, VISIT_NODE);
 			else {

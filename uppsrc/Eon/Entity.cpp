@@ -75,6 +75,8 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 	n.id = ToVarName(ClassPathTop(cls.GetName()));
 	auto* p = Ecs::ComponentFactory::CompDataMap()[i].new_fn(n);
 	n.ext = p;
+	n.type_hash = p->GetTypeHash();
+	ASSERT(n.type_hash);
 	return p;
 }
 

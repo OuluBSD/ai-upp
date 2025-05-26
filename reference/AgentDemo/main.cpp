@@ -29,7 +29,7 @@ bool SimpleValueNode::TerminalTest(NodeRoute& prev) {
 void SetValue(Nod& i) {
 	static int counter;
 	if (!i.ext)
-		i.ext = new SimpleValueNode(i);
+		i.CreateExt<SimpleValueNode>();
 	Value& v = i.value;
 	ValueArray arr;
 	
@@ -227,18 +227,18 @@ void ActionPlannerExample() {
 
 	LOG(ap.GetDescription());
 	
-	WorldState src;
+	BinaryWorldState src;
 	#define ATOM(x,y) src.Set(x, y);
 	ATOM_LIST
 	#undef ATOM
 	
 	planner.SetCost(VERY_HIGH_JUMP_ATTACK, 5 );	// make hurting by fall more expensive than attacking at the same level.
 
-	WorldState goal;
+	BinaryWorldState goal;
 	goal.Set(MOUSE_ALIVE, false );
 	goal.Set(ALIVE, true ); // add this to avoid hurting by fall actions in plan.
 	
-	MetaNode& example_root = MetaEnv().root.Add(0, "example");
+	MetaNode& example_root = MetaEnv().root.Add("example");
 	APlanNode goal_node(example_root.Add<ActionNode>("goal"));
 	goal_node->SetWorldState(goal);
 	
@@ -281,9 +281,14 @@ CONSOLE_APP_MAIN {
 	using namespace UPP;
 	MetaNode& app_root = MetaEnv().root;
 	
+	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
+	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
+	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
+	TypedStringHasher<ActionNode>("ActionNode");
+	
 	// Simple game algorithms
 	if (true) {
-		MetaNode& n = app_root.Add(0, "simplegame");
+		MetaNode& n = app_root.Add("simplegame");
 		GenerateTree(n, 25, 2, 3, callback(SetValue));
 		LOG(n.GetTreeString());
 		
@@ -299,10 +304,10 @@ CONSOLE_APP_MAIN {
 	
 	// Simple game algorithms, with runtime node generation.
 	if (true) {
-		MetaNode& n = app_root.Add(0, "simplegame_rt");
+		MetaNode& n = app_root.Add("simplegame_rt");
 		ASSERT(n.GetCount() == 0);
 		
-		n.ext = new SimpleGeneratorNode(n);
+		n.CreateExt<SimpleGeneratorNode>();
 		MiniMax mm;
 		AlphaBeta ab;
 		
@@ -316,12 +321,11 @@ CONSOLE_APP_MAIN {
 	
 	// Uninformed search strategies, with runtime node generation
 	if (true) {
-		MetaNode& n = app_root.Add(0, "uninformed_rt");
-		RouteGeneratorNode* rgn = new RouteGeneratorNode(n);
-		n.ext = rgn;
-		rgn->estimate_to_goal = 20;
-		rgn->length_to_node = 0;
-		rgn->length = 0;
+		MetaNode& n = app_root.Add("uninformed_rt");
+		RouteGeneratorNode& rgn = n.CreateExt<RouteGeneratorNode>();
+		rgn.estimate_to_goal = 20;
+		rgn.length_to_node = 0;
+		rgn.length = 0;
 		
 		BreadthFirst bf;
 		UniformCost uc;
@@ -345,12 +349,11 @@ CONSOLE_APP_MAIN {
 	
 	// Informed (heuristic) search strategies, with runtime node generation
 	if (true) {
-		MetaNode& n = app_root.Add(0, "informed_rt");
-		RouteGeneratorNode* rgn = new RouteGeneratorNode(n);
-		n.ext = rgn;
-		rgn->estimate_to_goal = 100;
-		rgn->length_to_node = 0;
-		rgn->length = 0;
+		MetaNode& n = app_root.Add("informed_rt");
+		auto& rgn = n.CreateExt<RouteGeneratorNode>();
+		rgn.estimate_to_goal = 100;
+		rgn.length_to_node = 0;
+		rgn.length = 0;
 		
 		BestFirst bf;
 		AStar as;

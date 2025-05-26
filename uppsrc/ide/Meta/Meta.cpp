@@ -759,6 +759,7 @@ MetaNode* IdeMetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String 
 		DatasetIndex().GetAdd(path) = &*ext;
 		filenode.serial = env.NewSerial();
 		filenode.ext = ext.Detach();
+		filenode.type_hash = filenode.ext->GetTypeHash();
 		ASSERT(&filenode.ext->node == &filenode);
 	}
 	if (filenode.id.IsEmpty())

@@ -5,29 +5,6 @@
 class ActionPlanner;
 class ActionNode;
 
-#if 0
-class WorldState : public Moveable<WorldState> {
-
-protected:
-	friend class ActionPlanner;
-	friend class ActionPlannerWrapper;
-	friend class ActionNode;
-	
-	Vector<bool> values, using_act;
-	
-public:
-	
-	WorldState();
-	void Clear();
-	
-	bool Set(int index, bool value);
-	
-	WorldState& operator = (const WorldState& src);
-	
-	hash_t GetHashValue();
-	
-};
-#endif
 
 class Action : public Moveable<Action> {
 	
@@ -36,7 +13,7 @@ protected:
 	friend class ActionNode;
 	friend class ActionPlannerWrapper;
 	
-	WorldState precond, postcond;
+	BinaryWorldState precond, postcond;
 	double cost;
 	
 public:
@@ -57,7 +34,7 @@ protected:
 	Vector<Action> acts;
 	ActionPlannerWrapper* wrapper = 0;
 	
-	Array<WorldState> search_cache;
+	Array<BinaryWorldState> search_cache;
 	
 public:
 	ActionPlanner();
@@ -75,8 +52,8 @@ public:
 	bool SetCost(int action_id, int cost );
 	
 	
-	void DoAction( int action_id, const WorldState& src, WorldState& dest);
-	void GetPossibleStateTransition(const WorldState& src, Array<WorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs);
+	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest);
+	void GetPossibleStateTransition(const BinaryWorldState& src, Array<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs);
 	
 };
 
@@ -96,7 +73,7 @@ public:
 	int GetActionIndex(String action_name);
 	String GetAtomName(int i) {return atoms[i];}
 	String GetActionName(int i) {return acts[i];}
-	String GetWorldstateDescription( const WorldState& ws );
+	String GetWorldstateDescription( const BinaryWorldState& ws );
 	String GetDescription();
 	
 	void SetAction(int act_i, String s) {acts[act_i] = s;}
@@ -108,7 +85,7 @@ public:
 };
 
 class ActionNode : public MetaNodeExt {
-	WorldState* ws;
+	BinaryWorldState* ws;
 	double cost;
 	int act_id;
 	hash_t hash = 0;
@@ -125,12 +102,12 @@ public:
 	ActionNode(MetaNode& n);
 	
 	ActionPlanner& GetActionPlanner() {return *ap;}
-	WorldState& GetWorldState() {return *ws;}
+	BinaryWorldState& GetWorldState() {return *ws;}
 	
 	void SetActionPlanner(ActionPlanner& ap_) {ap = &ap_;}
 	void SetGoal(ActionNode& ws) {goal = &ws;}
 	
-	void SetWorldState(WorldState& ws) {this->ws = &ws; hash = ws.GetHashValue();}
+	void SetWorldState(BinaryWorldState& ws) {this->ws = &ws; hash = ws.GetHashValue();}
 	inline void SetCost(double d) {cost = d;}
 	inline void SetActionId(int i) {act_id = i;}
 	

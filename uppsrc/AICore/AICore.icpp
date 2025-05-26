@@ -1,0 +1,14 @@
+#include "AICore.h"
+
+INITBLOCK {
+	using namespace Upp;
+	
+	TYPED_STRING_HASHER(StageThread)
+	TYPED_STRING_HASHER(ChainThread)
+	TYPED_STRING_HASHER(VfsFarStage)
+	TYPED_STRING_HASHER(AgentInteractionSession)
+	TYPED_STRING_HASHER(AgentInteractionPolicy)
+	TYPED_STRING_HASHER(AgentInteractionSystem)
+	TYPED_STRING_HASHER(Agent)
+	
+}

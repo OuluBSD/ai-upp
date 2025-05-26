@@ -23,6 +23,7 @@ ComponentBase* ComponentFactory::CreateComponent(MetaNode& n, TypeCls type) {
 	ComponentBase* c = d.new_fn(sub);
 	sub.ext = c;
 	sub.type_hash = c->GetTypeHash();
+	ASSERT(sub.type_hash);
 	return c;
 }
 

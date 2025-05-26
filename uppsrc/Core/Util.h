@@ -699,3 +699,5 @@ template <class T> hash_t TypedStringHasher(const char* s) {
 		h.Chk(s);
 	return h.h;
 }
+
+#define TYPED_STRING_HASHER(x) TypedStringHasher<x>(#x);

@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 
 #if 0
-bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path)
+bool UpdateVfsSrcFile(VfsSrcFile& f, const String& path)
 {
 	int i = CodeIndex().Find(path);
 	if (i < 0)

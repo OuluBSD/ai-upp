@@ -245,7 +245,7 @@ void FwdScope::ActivateNext() {
 
 
 
-ExchangePoint::ExchangePoint(MetaNode& n) : PacketForwarder(n) {
+ExchangePoint::ExchangePoint(VfsValue& n) : PacketForwarder(n) {
 	DBG_CONSTRUCT
 }
 
@@ -292,7 +292,7 @@ void ExchangePoint::Set(ExchangeSourceProviderPtr src, ExchangeSinkProviderPtr s
 
 
 
-MetaSpaceBase::MetaSpaceBase(MetaNode& n) : MetaNodeExt(n) {
+MetaSpaceBase::MetaSpaceBase(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -324,7 +324,7 @@ void MetaSpaceBase::UnlinkAll() {
 ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	const auto& m = MetaSpaceBase::ExptDataMap();
 	const auto& d = m.Get(expt);
-	MetaNode& n = node.Add();
+	VfsValue& n = val.Add();
 	ExchangePoint* o = d.new_fn(n);
 	n.ext = o;
 	n.type_hash = o->GetTypeHash();
@@ -338,7 +338,7 @@ ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 
 
 
-MetaDirectoryBase::MetaDirectoryBase(MetaNode& n) : MetaNodeExt(n) {
+MetaDirectoryBase::MetaDirectoryBase(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 

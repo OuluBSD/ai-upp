@@ -168,7 +168,7 @@ struct HalUppOglDevice : public Atom {
 
 
 template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
-	HalAudioSinkDeviceT(MetaNode& n) : HalAudioSinkDevice(n) {}
+	HalAudioSinkDeviceT(VfsValue& n) : HalAudioSinkDevice(n) {}
 	using CLASSNAME = HalAudioSinkDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	//RTTI_DECL1(CLASSNAME, HalAudioSinkDevice)
@@ -225,7 +225,7 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	}
 };
 template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice {
-	HalCenterVideoSinkDeviceT(MetaNode& n) : HalCenterVideoSinkDevice(n) {}
+	HalCenterVideoSinkDeviceT(VfsValue& n) : HalCenterVideoSinkDevice(n) {}
 	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -281,7 +281,7 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 	}
 };
 template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
-	HalCenterFboSinkDeviceT(MetaNode& n) : HalCenterFboSinkDevice(n) {}
+	HalCenterFboSinkDeviceT(VfsValue& n) : HalCenterFboSinkDevice(n) {}
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -338,7 +338,7 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 };
 #if defined flagOGL
 template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
-	HalOglVideoSinkDeviceT(MetaNode& n) : HalOglVideoSinkDevice(n) {}
+	HalOglVideoSinkDeviceT(VfsValue& n) : HalOglVideoSinkDevice(n) {}
 	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -396,7 +396,7 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 #endif
 #if defined flagDX12
 template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
-	HalD12VideoSinkDeviceT(MetaNode& n) : HalD12VideoSinkDevice(n) {}
+	HalD12VideoSinkDeviceT(VfsValue& n) : HalD12VideoSinkDevice(n) {}
 	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -453,7 +453,7 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 };
 #endif
 template <class Hal> struct HalContextBaseT : HalContextBase {
-	HalContextBaseT(MetaNode& n) : HalContextBase(n) {}
+	HalContextBaseT(VfsValue& n) : HalContextBase(n) {}
 	using CLASSNAME = HalContextBaseT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -509,7 +509,7 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 	}
 };
 template <class Hal> struct HalEventsBaseT : HalEventsBase {
-	HalEventsBaseT(MetaNode& n) : HalEventsBase(n) {}
+	HalEventsBaseT(VfsValue& n) : HalEventsBase(n) {}
 	using CLASSNAME = HalEventsBaseT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -566,7 +566,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 };
 #if defined flagGUI
 template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
-	HalUppEventsBaseT(MetaNode& n) : HalUppEventsBase(n) {}
+	HalUppEventsBaseT(VfsValue& n) : HalUppEventsBase(n) {}
 	using CLASSNAME = HalUppEventsBaseT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -624,7 +624,7 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 
 #if defined flagOGL
 template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
-	HalUppOglDeviceT(MetaNode& n) : HalUppOglDevice(n) {}
+	HalUppOglDeviceT(VfsValue& n) : HalUppOglDevice(n) {}
 	using CLASSNAME = HalUppOglDeviceT<Hal>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

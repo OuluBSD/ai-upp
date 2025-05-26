@@ -241,7 +241,7 @@ struct LyricalStructure : Component {
 	Array<DynPart>			parts;
 	
 	CLASSTYPE(LyricalStructure)
-	LyricalStructure(MetaNode& owner) : Component(owner) {}
+	LyricalStructure(VfsValue& owner) : Component(owner) {}
 	~LyricalStructure() {}
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -266,7 +266,7 @@ struct Script : Component {
 	Vector<int>				phrase_parts[PART_COUNT];
 	
 	CLASSTYPE(Script)
-	Script(MetaNode& owner) : Component(owner) {}
+	Script(VfsValue& owner) : Component(owner) {}
 	~Script();
 	void Store(Entity& a);
 	void LoadTitle(Entity& a, String title);
@@ -312,7 +312,7 @@ struct Lyrics : Component {
 	
 	
 	CLASSTYPE(Lyrics)
-	Lyrics(MetaNode& owner) : Component(owner) {}
+	Lyrics(VfsValue& owner) : Component(owner) {}
 	~Lyrics() {}
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -340,7 +340,7 @@ INITIALIZE(Lyrics);
 /*struct Song : Component {
 	VectorMap<String,String> data;
 	
-	Song(MetaNode& owner) : Component(owner) {}
+	Song(VfsValue& owner) : Component(owner) {}
 	~Song(){}
 	void Serialize(Stream& s) override {
 		int v = 1; s % v;

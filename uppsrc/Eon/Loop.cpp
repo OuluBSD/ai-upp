@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Loop::Loop(MetaNode& n) : MetaDirectoryBase(n) {
+Loop::Loop(VfsValue& n) : MetaDirectoryBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -37,7 +37,7 @@ int Loop::GetLoopDepth() const {
 }
 
 bool Loop::HasLoopParent(LoopPtr pool) const {
-	const MetaNode* n = &node;
+	const VfsValue* n = &node;
 	while (n) {
 		const Loop* p = n->ext ? CastConstPtr<Loop>(&*n->ext) : 0;
 		if (p && p == &*pool)
@@ -88,7 +88,7 @@ LoopPtr Loop::GetAddEmpty(String name) {
 }
 
 LoopPtr Loop::CreateEmpty() {
-	Loop& l = node.Add<Loop>();
+	Loop& l = val.add<Loop>();
 	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
@@ -108,7 +108,7 @@ void Loop::Visit(Vis& vis) {
 }
 
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
-	MetaNode& sub = node.Add();
+	VfsValue& sub = val.Add();
 	
 	int i = Factory::LinkDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
@@ -124,7 +124,7 @@ LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
 }
 
 LinkBasePtr Loop::GetAddTypeCls(LinkTypeCls cls) {
-	for (auto& n : node.sub) {
+	for (auto& n : val.sub) {
 		if (n.ext) {
 			LinkBase* link = CastPtr<LinkBase>(&*n.ext);
 			if (link && link->GetLinkType() == cls) {
@@ -175,7 +175,7 @@ void Loop::InitializeLinks() {
 }
 
 void Loop::InitializeLink(LinkBase& comp) {
-	ASSERT(comp.node.FindOwner<Loop>() == this);
+	ASSERT(comp.val.FindOwner<Loop>() == this);
 }
 
 String Loop::GetTreeString(int indent) {
@@ -283,7 +283,7 @@ LoopId Loop::GetNextId() {
 
 LoopPtr Loop::AddLoop(String name) {
 	ASSERT(name.GetCount());
-	Loop& p = node.Add<Loop>();
+	Loop& p = val.add<Loop>();
 	p.node.id = name;
 	//p.SetId(GetNextId());
 	return &p;

@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-VideoLoaderBaseT<Backend>::VideoLoaderBaseT(MetaNode& n) : AtomBase(n) {
+VideoLoaderBaseT<Backend>::VideoLoaderBaseT(VfsValue& n) : AtomBase(n) {
 	
 }
 

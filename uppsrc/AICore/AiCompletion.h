@@ -12,7 +12,7 @@ struct AiCompletionComponent : Component {
 	String GetName() const override {return "AI: Completion";}
 	
 	CLASSTYPE(AiCompletionComponent)
-	AiCompletionComponent(MetaNode& owner);
+	AiCompletionComponent(VfsValue& owner);
 	~AiCompletionComponent();
 	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_COMPLETION;}

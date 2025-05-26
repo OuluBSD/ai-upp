@@ -122,7 +122,7 @@ struct HoloSinkDevice : public Atom {
 
 
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
-	HolographSinkDeviceT(MetaNode& n) : HoloSinkDevice(n) {}
+	HolographSinkDeviceT(VfsValue& n) : HoloSinkDevice(n) {}
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

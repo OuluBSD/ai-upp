@@ -24,8 +24,8 @@ struct CodeVisitorProfile
 struct CodeVisitor
 {
 	struct Item {
-		Ptr<MetaNode> node;
-		Ptr<MetaNode> link_node;
+		Ptr<VfsValue> node;
+		Ptr<VfsValue> link_node;
 		String error;
 		Point pos;
 		String file;
@@ -41,20 +41,20 @@ struct CodeVisitor
 	CodeVisitorProfile prof;
 	Array<Item> export_items;
 	VectorMap<String,String> files;
-	Index<MetaNode*> visited;
-	Vector<MetaNode*> macro_exps, macro_defs;
+	Index<VfsValue*> visited;
+	Vector<VfsValue*> macro_exps, macro_defs;
 	
 	CodeVisitor() {}
 	void SetLimit(int i) {limit = i;}
 	void SetNoLimit() {limit = 0;}
 	void SetProfile(CodeVisitorProfile& p) {prof = p;}
 	void Begin();
-	void Visit(const String& filepath, MetaNode& n);
-	void VisitSub(const String& filepath, MetaNode& n);
-	void VisitRef(const String& filepath, MetaNode& it);
-	void VisitId(const String& filepath, MetaNode& n, Item& it);
+	void Visit(const String& filepath, VfsValue& n);
+	void VisitSub(const String& filepath, VfsValue& n);
+	void VisitRef(const String& filepath, VfsValue& it);
+	void VisitId(const String& filepath, VfsValue& n, Item& it);
 	const String& LoadPath(String path);
-	int FindItem(MetaNode* n) const;
+	int FindItem(VfsValue* n) const;
 };
 
 

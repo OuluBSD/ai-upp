@@ -12,7 +12,7 @@ class Loop;
 
 class SystemBase : public MetaSystemBase {
 public:
-    SystemBase(MetaNode&);
+    SystemBase(VfsValue&);
     virtual ~SystemBase();
 
     virtual TypeCls GetTypeCls() const = 0;
@@ -40,7 +40,7 @@ class System : public SystemBase
 {
 	using SystemT = System<T>;
 public:
-	System(MetaNode& n) : SystemBase(n) {}
+	System(VfsValue& n) : SystemBase(n) {}
 	TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
     void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
@@ -49,10 +49,10 @@ public:
 
 #define SYS_CTOR(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& m) : System<x>(m) {}
+	x(VfsValue& m) : System<x>(m) {}
 #define SYS_CTOR_(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& m) : System<x>(m)
+	x(VfsValue& m) : System<x>(m)
 #define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>("Base",*this);}
 #define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>("Base",*this);}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
@@ -95,7 +95,7 @@ public:
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 		
-		MetaNode& n = node.Add();
+		VfsValue& n = val.Add();
 		SystemT* syst = new SystemT(n, args...);
         n.ext = syst;
         n.type_hash = syst->GetTypeHash();
@@ -126,7 +126,7 @@ public:
     
 
 	CLASSTYPE(Machine)
-    Machine(MetaNode& n);
+    Machine(VfsValue& n);
     virtual ~Machine();
 
     bool HasStarted() const;

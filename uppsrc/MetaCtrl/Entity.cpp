@@ -75,7 +75,7 @@ void VirtualFSComponentCtrl::OnTreeCursor(TreeCtrl* tree) {
 }
 
 VfsPath VirtualFSComponentCtrl::GetCursorPath() const {
-	VfsPath full_path(GetNode().GetPath());
+	VfsPath full_path(GetValue().GetPath());
 	full_path.Append(vnode_path);
 	return full_path;
 }
@@ -153,18 +153,18 @@ VirtualNode ValueVFSComponentCtrl::Root() {
 		ValueComponentBase* base = &this->GetExt<ValueComponentBase>();
 		ASSERT(base);
 		auto& data = root.Create(root_path, &base->value, "Root");
-		data.node = &this->GetNode();
+		data.vfs_value = &this->GetValue();
 	}
 	return root;
 }
 
-Value* ValueVFSComponentCtrl::GetValue() {
+Value* ValueVFSComponentCtrl::GetPolyValue() {
 	ValueComponentBase& base = GetExt<ValueComponentBase>();
 	return &base.value;
 }
 
 void ValueVFSComponentCtrl::Set(Value key, Value value) {
-	Value* db = this->GetValue();
+	Value* db = this->GetPolyValue();
 	ASSERT(db);
 	if (db) {
 		ValueMap map = *db;
@@ -174,7 +174,7 @@ void ValueVFSComponentCtrl::Set(Value key, Value value) {
 }
 
 Value ValueVFSComponentCtrl::Get(Value key) {
-	Value* db = this->GetValue();
+	Value* db = this->GetPolyValue();
 	ASSERT(db);
 	if (db) {
 		ValueMap map = *db;
@@ -214,22 +214,22 @@ VirtualNode& VirtualNode::operator=(const VirtualNode& vn) {
 VirtualNode VirtualNode::Find(Value name) {
 	VirtualNode n;
 	if (data) {
-		if (data->value) {
-			if (data->value->IsNull())
-				*data->value = ValueMap();
-			if (data->value->Is<ValueMap>()) {
-				ValueMap map = *data->value;
+		if (data->poly_value) {
+			if (data->poly_value->IsNull())
+				*data->poly_value = ValueMap();
+			if (data->poly_value->Is<ValueMap>()) {
+				ValueMap map = *data->poly_value;
 				int i = map.Find(name);
 				if (i >= 0)
 					n.Create(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
 			}
 			else TODO;
 		}
-		else if (data->node) {
-			MetaNode& mn = *data->node;
+		else if (data->vfs_value) {
+			VfsValue& mn = *data->vfs_value;
 			int i = mn.Find(name);
 			if (i >= 0) {
-				MetaNode& sub = mn.sub[i];
+				VfsValue& sub = mn.sub[i];
 				n.Create(data->path + name, &sub);
 			}
 		}
@@ -241,14 +241,14 @@ VirtualNode VirtualNode::Find(Value name) {
 void VirtualNode::RemoveSubNodes() {
 	ASSERT(data);
 	if (!data) return;
-	if (data->value) {
-		if (data->value->Is<ValueMap>()) {
-			*data->value = ValueMap();
+	if (data->poly_value) {
+		if (data->poly_value->Is<ValueMap>()) {
+			*data->poly_value = ValueMap();
 		}
 		else TODO;
 	}
-	else if (data->node) {
-		MetaNode& mn = *data->node;
+	else if (data->vfs_value) {
+		VfsValue& mn = *data->vfs_value;
 		mn.sub.Clear();
 	}
 	else TODO;
@@ -257,16 +257,16 @@ void VirtualNode::RemoveSubNodes() {
 void VirtualNode::Remove(const Value& name) {
 	ASSERT(data);
 	if (!data) return;
-	if (data->value) {
-		if (data->value->Is<ValueMap>()) {
-			ValueMap map = *data->value;
+	if (data->poly_value) {
+		if (data->poly_value->Is<ValueMap>()) {
+			ValueMap map = *data->poly_value;
 			map.RemoveKey(name);
-			*data->value = map;
+			*data->poly_value = map;
 		}
 		else TODO;
 	}
-	else if (data->node) {
-		MetaNode& mn = *data->node;
+	else if (data->vfs_value) {
+		VfsValue& mn = *data->vfs_value;
 		int i = mn.Find(name);
 		ASSERT(i >= 0);
 		if (i >= 0)
@@ -281,23 +281,23 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 	if (data) {
 		int mode = data->mode;
 		if (mode == VirtualNode::VFS_VALUE) {
-			if (data->value) {
-				if (data->value->IsNull())
-					*data->value = ValueMap();
-				if (data->value->Is<ValueMap>()) {
-					ValueMap map = *data->value;
+			if (data->poly_value) {
+				if (data->poly_value->IsNull())
+					*data->poly_value = ValueMap();
+				if (data->poly_value->Is<ValueMap>()) {
+					ValueMap map = *data->poly_value;
 					v.Reserve(map.GetCount());
 					for(int i = 0; i < map.GetCount(); i++) {
 						Value& val = const_cast<Value&>(map.GetValue(i));
 						if (val.Is<ValueMap>()) {
 							Value key = map.GetKey(i);
 							auto& o = v.Add().Create(data->path + key, &val, key);
-							ASSERT(o.value->Is<ValueMap>());
+							ASSERT(o.poly_value->Is<ValueMap>());
 						}
 					}
 				}
-				else if (data->value->Is<ValueArray>()) {
-					ValueArray arr = *data->value;
+				else if (data->poly_value->Is<ValueArray>()) {
+					ValueArray arr = *data->poly_value;
 					v.Reserve(arr.GetCount());
 					for(int i = 0; i < arr.GetCount(); i++) {
 						Value& val = arr.At(i);
@@ -307,19 +307,19 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					}
 				}
 				else {
-					LOG(data->value->GetTypeName());
-					LOG(data->value->ToString());
+					LOG(data->poly_value->GetTypeName());
+					LOG(data->poly_value->ToString());
 					TODO;
 				}
 			}
-			else if (data->node) {
+			else if (data->vfs_value) {
 				ASSERT_(0, "only entity pointer in value based vfs");
 			}
 			else TODO;
 		}
 		else if (mode == VirtualNode::VFS_ENTITY) {
-			if (data->node) {
-				MetaNode& n = *data->node;
+			if (data->vfs_value) {
+				VfsValue& n = *data->vfs_value;
 				v.Reserve(n.sub.GetCount());
 				for(int i = 0; i < n.sub.GetCount(); i++) {
 					auto& sub = n.sub[i];
@@ -329,7 +329,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 						v.Add().Create(data->path + (Value)sub.id, &n);
 				}
 			}
-			else if (data->value) {
+			else if (data->poly_value) {
 				ASSERT_(0, "only value pointer in entity based vfs");
 			}
 			else TODO;
@@ -355,17 +355,17 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 	VirtualNode n;
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->value) {
-				if (!data->value->Is<ValueMap>())
-					*data->value = ValueMap();
+			if (data->poly_value) {
+				if (!data->poly_value->Is<ValueMap>())
+					*data->poly_value = ValueMap();
 				{
-					ValueMap map = *data->value;
+					ValueMap map = *data->poly_value;
 					{
 						ValueMap sub_map;
 						sub_map.Set(".kind", kind);
 						map.Set(name, sub_map);
 					}
-					*data->value = map;
+					*data->poly_value = map;
 				}
 				auto& val = data->value->GetAdd(name);
 				ASSERT(val.Is<ValueMap>());
@@ -373,8 +373,8 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->node) {
-				MetaNode& sub = data->node->Add(kind, name);
+			if (data->vfs_value) {
+				VfsValue& sub = data->vfs_value->Add(kind, name);
 				n.Create(data->path + name, &sub);
 			}
 		}
@@ -386,12 +386,12 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 Value VirtualNode::GetName() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->value)
+			if (data->poly_value)
 				return data->key;
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->node)
-				return data->node->id;
+			if (data->vfs_value)
+				return data->vfs_value->id;
 		}
 		else TODO;
 	}
@@ -401,22 +401,22 @@ Value VirtualNode::GetName() const {
 String VirtualNode::GetKindString() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->value) {
-				if (data->value->Is<ValueMap>()) {
-					ValueMap map = *data->value;
+			if (data->poly_value) {
+				if (data->poly_value->Is<ValueMap>()) {
+					ValueMap map = *data->poly_value;
 					int i = map.Find(".kind");
 					if (i >= 0) {
 						Value kind_value = map.GetValue(i);
 						ASSERT(kind_value.Is<int>());
 						int kind = kind_value;
-						return MetaNode::GetKindString(kind);
+						return VfsValue::AstGetKindString(kind);
 					}
 				}
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->node)
-				return data->node->GetKindString();
+			if (data->vfs_value)
+				return data->vfs_value->AstGetKindString();
 		}
 		else TODO;
 	}
@@ -426,9 +426,9 @@ String VirtualNode::GetKindString() const {
 int VirtualNode::GetKind() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->value) {
-				if (data->value->Is<ValueMap>()) {
-					ValueMap map = *data->value;
+			if (data->poly_value) {
+				if (data->poly_value->Is<ValueMap>()) {
+					ValueMap map = *data->poly_value;
 					int i = map.Find(".kind");
 					if (i >= 0)
 						return (int)map.GetValue(i);
@@ -437,8 +437,13 @@ int VirtualNode::GetKind() const {
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->node)
-				return data->node->kind;
+			if (data->vfs_value) {
+				const AstValue* v = *data->vfs_value;
+				if (v)
+					return v->kind;
+				TODO // check if type_hash was asked?
+				return 0;
+			}
 		}
 		else TODO;
 	}
@@ -450,42 +455,45 @@ void VirtualNode::SetKind(int k) {
 	ASSERT(data);
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->value->IsNull())
-				*data->value = ValueMap();
-			if (data->value->Is<ValueMap>()) {
-				ValueMap map = *data->value;
+			if (data->poly_value->IsNull())
+				*data->poly_value = ValueMap();
+			if (data->poly_value->Is<ValueMap>()) {
+				ValueMap map = *data->poly_value;
 				map.Set(".kind", k);
-				*data->value = map;
+				*data->poly_value = map;
 			}
 			else TODO;
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->node)
-				data->node->kind = k;
+			if (data->vfs_value) {
+				TODO // check if this should be "set type_hash"
+				AstValue a = *data->vfs_value;
+				a->kind = k;
+			}
 			else TODO;
 		}
 		else TODO;
 	}
 }
 
-bool VirtualNode::IsValue() const {return data && data->mode == VFS_VALUE && data->value;}
-bool VirtualNode::IsEntity() const {return data && data->mode == VFS_ENTITY && data->node;}
-Value VirtualNode::GetValue() const {return data && data->mode == VFS_VALUE && data->value ? *data->value : Value();}
+bool VirtualNode::IsValue() const {return data && data->mode == VFS_VALUE && data->poly_value;}
+bool VirtualNode::IsEntity() const {return data && data->mode == VFS_ENTITY && data->vfs_value;}
+Value VirtualNode::GetValue() const {return data && data->mode == VFS_VALUE && data->poly_value ? *data->poly_value : Value();}
 void VirtualNode::WriteValue(Value val) {
 	ASSERT(IsValue());
-	if (data && data->value)
-		*data->value = val;
+	if (data && data->poly_value)
+		*data->poly_value = val;
 }
 
 VirtualNode::operator bool() const {return data;}
 void VirtualNode::Clear() {if (data) {data->Dec(); data = 0;}}
 //VirtualNode::Data& VirtualNode::Create() {Clear(); data = new Data(); data->Inc(); return *data;}
-VirtualNode::Data& VirtualNode::Create(const VfsPath& p, MetaNode* n)
+VirtualNode::Data& VirtualNode::Create(const VfsPath& p, VfsValue* n)
 {
 	Clear();
 	data = new Data();
 	data->path = p;
-	data->node = n;
+	data->vfs_value = n;
 	data->mode = VFS_ENTITY;
 	data->Inc();
 	return *data;
@@ -497,7 +505,7 @@ VirtualNode::Data& VirtualNode::Create(const VfsPath& p, Value* v, Value key)
 	data = new Data();
 	data->path = p;
 	data->key = key;
-	data->value = v;
+	data->poly_value = v;
 	data->mode = VFS_VALUE;
 	data->Inc();
 	return *data;
@@ -514,25 +522,29 @@ DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode,
 	
 	//DUMP(vnode.data->path);
 	
-	for (const auto& it : MetaExtFactory::List()) {
-		if (it.kind == kind) {
+	for (const auto& it : VfsValueExtFactory::List()) {
+		TODO // seems to be type_hash logic instead of AstValue::kind logic
+		#if 0
+		const AstValue* a = it;
+		if (a && a->kind == kind) {
 			VfsPath path = vnode.data->path;
 			path.Add(it.name);
 			int i = p.entity->objs.Find(path);
 			if (i >= 0) {
 				EntityData& data = p.entity->objs[i];
-				MetaExtFactory::Set(p, it.kind, data);
+				VfsValueExtFactory::Set(p, it.kind, data);
 			}
 			else {
 				EntityData* data = it.create_ed_fn();
 				ASSERT(data); // ???
 				if (data) {
-					MetaExtFactory::Set(p, it.kind, *data);
+					VfsValueExtFactory::Set(p, it.kind, *data);
 					p.entity->objs.Add(path, data);
 				}
 			}
 			break;
 		}
+		#endif
 	}
 	
 	return p;
@@ -543,14 +555,17 @@ DatasetPtrs VNodeComponentCtrl::GetDataset() const {
 	
 	// Get entity-vfs-objects
 	if (vnode.IsValue() && p.entity) {
+		TODO // seems to be type_hash logic instead of AstValue::kind logic
+		#if 0
 		const VfsPath& path = vnode.data->path;
 		for(auto ed : ~p.entity->objs) {
 			if (ed.key.IsLeft(path) && ed.key.GetPartCount() == path.GetPartCount()+1) {
 				EntityData& data = ed.value;
 				int data_kind = data.GetKind();
-				MetaExtFactory::Set(p, data_kind, data);
+				VfsValueExtFactory::Set(p, data_kind, data);
 			}
 		}
+		#endif
 	}
 	
 	return p;
@@ -590,7 +605,7 @@ EntityInfoCtrl::EntityInfoCtrl() {
 
 void EntityInfoCtrl::Data() {
 	Entity& ent = GetExt<Entity>();
-	MetaNode& enode = ent.node;
+	VfsValue& enode = ent.val;
 	
 	info.name = enode.id;
 	
@@ -598,13 +613,13 @@ void EntityInfoCtrl::Data() {
 	ent.Data("description");
 	ent.Data("gender");
 	
-	Vector<MetaNode*> envs = IdeMetaEnv().FindAllEnvs();
+	Vector<VfsValue*> envs = IdeMetaEnv().FindAllEnvs();
 	
 	// Get all contexts
 	all_ctxs.Clear();
-	for (MetaNode* env : envs) {
-		Vector<MetaNode*> ctxs = env->FindAllShallow(METAKIND_CONTEXT);
-		for (MetaNode* ctx : ctxs) {
+	for (VfsValue* env : envs) {
+		Vector<VfsValue*> ctxs = env->FindAllShallow(METAKIND_CONTEXT);
+		for (VfsValue* ctx : ctxs) {
 			String key = /*env->id + ": " +*/ ctx->id;
 			all_ctxs.Add(key, ctx);
 		}
@@ -655,7 +670,7 @@ void EntityInfoCtrl::Data() {
 			dl->WhenAction = [this,&ent,dl]{
 				int ctx_i = dl->GetIndex()-1;
 				if (ctx_i >= 0 && ctx_i < dl->GetCount()) {
-					MetaNode& ctx = *all_ctxs[ctx_i];
+					VfsValue& ctx = *all_ctxs[ctx_i];
 					ent.Data("ctx") = ctx.id;
 				}
 				else {
@@ -691,7 +706,7 @@ void EntityInfoCtrl::DataCursor() {
 
 void EntityInfoCtrl::OnEdit() {
 	Entity& e = GetExt<Entity>();
-	auto& enode = e.node;
+	auto& enode = e.val;
 	enode.id = ~info.name;
 		
 	WhenValueChange();
@@ -714,7 +729,7 @@ void EntityInfoCtrl::ToolMenu(Bar& bar) {
 DatasetPtrs EntityInfoCtrl::GetDataset() const {
 	EntityInfoCtrl* e = const_cast<EntityInfoCtrl*>(this);
 	DatasetPtrs p;
-	MetaNode& n = e->GetNode();
+	VfsValue& n = e->GetValue();
 	p.entity = &e->GetExt<Entity>();
 	FillDataset(p, n, 0);
 	return p;

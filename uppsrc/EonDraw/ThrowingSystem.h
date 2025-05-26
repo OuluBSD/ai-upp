@@ -9,7 +9,7 @@ class ThrowingComponent :
 	
 public:
 	CLASSTYPE(ThrowingComponent)
-	ThrowingComponent(MetaNode& e) : CustomToolComponent(e) {}
+	ThrowingComponent(VfsValue& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
@@ -36,7 +36,7 @@ class ThrowingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;
 	CLASSTYPE(ThrowingInteractionSystemBase);
-	ThrowingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
+	ThrowingInteractionSystemBase(VfsValue& m) : ToolSys(m) {}
 	void Visit(Vis& vis) override;
 	
 	using Parent = Engine;

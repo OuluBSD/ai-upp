@@ -134,7 +134,7 @@ struct ScrEventsBase : public Atom {
 
 
 template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
-	ScreenSinkDeviceT(MetaNode& n) : ScrSinkDevice(n) {}
+	ScreenSinkDeviceT(VfsValue& n) : ScrSinkDevice(n) {}
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -184,7 +184,7 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	}
 };
 template <class Scr> struct ScreenContextT : ScrContext {
-	ScreenContextT(MetaNode& n) : ScrContext(n) {}
+	ScreenContextT(VfsValue& n) : ScrContext(n) {}
 	using CLASSNAME = ScreenContextT<Scr>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {
@@ -234,7 +234,7 @@ template <class Scr> struct ScreenContextT : ScrContext {
 	}
 };
 template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
-	ScreenEventsBaseT(MetaNode& n) : ScrEventsBase(n) {}
+	ScreenEventsBaseT(VfsValue& n) : ScrEventsBase(n) {}
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

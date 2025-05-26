@@ -1,16 +1,16 @@
 #ifndef _Meta_Entity_h_
 #define _Meta_Entity_h_
 
-struct Component : MetaNodeExt, DatasetProvider {
-	Component(MetaNode& owner) : MetaNodeExt(owner) {}
+struct Component : VfsValueExt, DatasetProvider {
+	Component(VfsValue& owner) : VfsValueExt(owner) {}
 	DatasetPtrs GetDataset() const override;
 	
 };
 
-#define COMPONENT_CONSTRUCTOR_(x) CLASSTYPE(x) x(MetaNode& n) : Component(n)
+#define COMPONENT_CONSTRUCTOR_(x) CLASSTYPE(x) x(VfsValue& n) : Component(n)
 #define COMPONENT_CONSTRUCTOR(x) COMPONENT_CONSTRUCTOR_(x) {}
 #define COMPONENT_OVERRIDE_TODO void Visit(Vis& s) override {TODO}
-#define METANODE_EXT_CONSTRUCTOR_(x) CLASSTYPE(x) x(MetaNode& n) : MetaNodeExt(n)
+#define METANODE_EXT_CONSTRUCTOR_(x) CLASSTYPE(x) x(VfsValue& n) : VfsValueExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
 
 #define COMPONENT_STUB_HEADER(type) \
@@ -24,7 +24,7 @@ INITIALIZE(type)
 #define COMPONENT_STUB_IMPL(type) \
 	INITIALIZER_COMPONENT(type);
 
-struct Entity : MetaNodeExt {
+struct Entity : VfsValueExt {
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
 	void Visit(Vis& v) override;
@@ -54,7 +54,7 @@ INITIALIZE(Entity);
 struct ValueComponentBase : Component
 {
 	Value value;
-	ValueComponentBase(MetaNode& n) : Component(n) {}
+	ValueComponentBase(VfsValue& n) : Component(n) {}
 	void Visit(Vis& v) override {
 		v.Ver(1)
 		(1)	("value",value);
@@ -65,14 +65,14 @@ template <int kind>
 struct ValueComponent : ValueComponentBase
 {
 	using Type = ValueComponent<kind>;
-	ValueComponent(MetaNode& n) : ValueComponentBase(n) {}
+	ValueComponent(VfsValue& n) : ValueComponentBase(n) {}
 	static int GetKind() {return kind;}
 };
 
 #define INITIALIZE_VALUECOMPONENT(x, kind) \
 struct x : ValueComponent<kind> { \
 	CLASSTYPE(x) \
-	x(MetaNode& n) : ValueComponent(n) {} \
+	x(VfsValue& n) : ValueComponent(n) {} \
 }; \
 INITIALIZE(x)
 

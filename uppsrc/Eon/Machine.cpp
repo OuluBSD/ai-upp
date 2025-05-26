@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
+SystemBase::SystemBase(VfsValue& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -12,7 +12,7 @@ SystemBase::~SystemBase() {
 }
 
 Machine& SystemBase::GetMachine() const {
-	Machine* mach = node.FindOwner<Machine>();
+	Machine* mach = val.FindOwner<Machine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	return *mach;
@@ -21,7 +21,7 @@ Machine& SystemBase::GetMachine() const {
 
 
 
-Machine::Machine(MetaNode& n) : MetaMachineBase(n) {
+Machine::Machine(VfsValue& n) : MetaMachineBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -36,7 +36,7 @@ Ecs::Engine& Machine::GetEngine() {
 		if (engs.GetCount())
 			return *engs[0];
 	}
-	Ecs::Engine* e = node.FindOwner<Ecs::Engine>();
+	Ecs::Engine* e = val.FindOwner<Ecs::Engine>();
 	ASSERT(e);
 	if (!e) throw Exc("cannot find engine");
 	return *e;
@@ -45,7 +45,7 @@ Ecs::Engine& Machine::GetEngine() {
 Loop& Machine::GetRootLoop() {
 	LoopPtr loop = node.Find<Loop>();
 	if (loop) return *loop;
-	loop = &node.Add<Loop>();
+	loop = &val.add<Loop>();
 	loop->node.id = "loop";
 	return *loop;
 }
@@ -53,7 +53,7 @@ Loop& Machine::GetRootLoop() {
 Space& Machine::GetRootSpace() {
 	SpacePtr space = node.Find<Space>();
 	if (space) return *space;
-	space = &node.Add<Space>();
+	space = &val.add<Space>();
 	space->node.id = "space";
 	return *space;
 }
@@ -185,7 +185,7 @@ bool Machine::HasStarted() const {
 }
 
 SystemBase* Machine::FindSystem(TypeCls type_id) {
-	MetaNode* n = node.FindDeep(type_id);
+	VfsValue* n = node.FindDeep(type_id);
 	return n && n->ext ? CastPtr<SystemBase>(&*n->ext) : 0;
 }
 

@@ -16,12 +16,12 @@ public:
 
 class ToolAppCtrl : public Ctrl, public DatasetProvider {
 	String data, data_includes, data_filepath;
-	MetaNode* file_node = 0;
+	VfsValue* file_node = 0;
 	
 protected:
 	String data_sha1;
 	
-	void SetFileNode(MetaNode* n) {file_node = n;}
+	void SetFileNode(VfsValue* n) {file_node = n;}
 public:
 	SolverBaseIndicator prog;
 	Label remaining;
@@ -50,7 +50,7 @@ public:
 	String GetFilePath() const {ASSERT(data_filepath.GetCount()); return data_filepath;}
 	String GetFileIncludes() const {return data_includes;}
 	String GetFileData() const {return data;}
-	MetaNode* GetFileNode() const {return file_node;}
+	VfsValue* GetFileNode() const {return file_node;}
 	
 	void MakeComponentParts(ArrayCtrl& parts);
 	void GetAttrs(const VectorMap<String, String>& data, VectorMap<String, String>& v);

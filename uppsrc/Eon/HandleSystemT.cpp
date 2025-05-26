@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 template <class Dim>
 HandleSystemT<Dim>::HandleSystemT(Machine& m) :
-	MetaNodeExt(m) {
+	VfsValueExt(m) {
 	
 }
 

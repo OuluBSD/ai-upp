@@ -32,7 +32,7 @@ public:
 	static vec3 EarthGravity() {return vec3(0,-9.81f,0);}
 	
 	CLASSTYPE(SystemT<Fys>);
-	SystemT(MetaNode& n) : SP(n) {
+	SystemT(VfsValue& n) : SP(n) {
 		Fys::InitializeLibrary();
 		Fys::CreateWorld(world);
 		

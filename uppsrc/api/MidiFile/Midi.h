@@ -25,7 +25,7 @@ public:
 	CLASSTYPE(MidiFileReaderAtom);
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	MidiFileReaderAtom(MetaNode& n);
+	MidiFileReaderAtom(VfsValue& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -57,7 +57,7 @@ public:
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	CLASSTYPE(MidiNullAtom);
 	
-	MidiNullAtom(MetaNode& n);
+	MidiNullAtom(VfsValue& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;

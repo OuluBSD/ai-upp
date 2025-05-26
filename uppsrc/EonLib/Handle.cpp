@@ -11,7 +11,7 @@ NAMESPACE_UPP
 
 
 
-HandleEventsBase::HandleEventsBase(MetaNode& n) : Atom(n) {
+HandleEventsBase::HandleEventsBase(VfsValue& n) : Atom(n) {
 	
 }
 
@@ -100,7 +100,7 @@ struct HandleVideoBase::Binder {
 
 
 
-HandleVideoBase::HandleVideoBase(MetaNode& n) : Atom(n) {
+HandleVideoBase::HandleVideoBase(VfsValue& n) : Atom(n) {
 	if (!active) {
 		active = this;
 	}

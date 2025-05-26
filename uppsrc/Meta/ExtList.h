@@ -3,11 +3,11 @@
 
 #if 0
 #define NODE_LIST \
-	DATASET_ITEM(MetaNode,			env,			METAKIND_PKG_ENV,							CATEGORY_ECS,"Environment") \
-	DATASET_ITEM(MetaNode,			ctx,			METAKIND_CONTEXT,							CATEGORY_ECS,"Context") \
-	DATASET_ITEM(MetaNode,			dbref,			METAKIND_DB_REF,							CATEGORY_ECS,"Database Reference") \
-	DATASET_ITEM(MetaNode,			comment,		METAKIND_COMMENT,							CATEGORY_ECS,"Comment") \
-	DATASET_ITEM(MetaNode,			space,			METAKIND_ECS_SPACE,							CATEGORY_ECS,"Space") \
+	DATASET_ITEM(VfsValue,			env,			METAKIND_PKG_ENV,							CATEGORY_ECS,"Environment") \
+	DATASET_ITEM(VfsValue,			ctx,			METAKIND_CONTEXT,							CATEGORY_ECS,"Context") \
+	DATASET_ITEM(VfsValue,			dbref,			METAKIND_DB_REF,							CATEGORY_ECS,"Database Reference") \
+	DATASET_ITEM(VfsValue,			comment,		METAKIND_COMMENT,							CATEGORY_ECS,"Comment") \
+	DATASET_ITEM(VfsValue,			space,			METAKIND_ECS_SPACE,							CATEGORY_ECS,"Space") \
 
 #define BASE_EXT_LIST \
 	DATASET_ITEM(Entity,			entity,			METAKIND_ECS_ENTITY,						CATEGORY_ECS, "Entity") \
@@ -107,11 +107,11 @@
 #else
 
 #define NODE_LIST \
-	DATASET_ITEM(MetaNode,				env,			"Environment") \
-	DATASET_ITEM(MetaNode,				ctx,			"Context") \
-	DATASET_ITEM(MetaNode,				dbref,			"Database Reference") \
-	DATASET_ITEM(MetaNode,				comment,		"Comment") \
-	DATASET_ITEM(MetaNode,				space,			"Space") \
+	DATASET_ITEM(VfsValue,				env,			"Environment") \
+	DATASET_ITEM(VfsValue,				ctx,			"Context") \
+	DATASET_ITEM(VfsValue,				dbref,			"Database Reference") \
+	DATASET_ITEM(VfsValue,				comment,		"Comment") \
+	DATASET_ITEM(VfsValue,				space,			"Space") \
 
 #define BASE_EXT_LIST \
 	DATASET_ITEM(Entity,				entity,			"Entity") \

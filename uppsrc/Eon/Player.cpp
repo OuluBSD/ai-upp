@@ -115,13 +115,13 @@ void PlayerBodyComponent::Visit(Vis& v) {
 }
 
 void PlayerBodyComponent::Initialize() {
-	PlayerBodySystem* sys = node.FindOwnerWith<PlayerBodySystem>();
+	PlayerBodySystem* sys = val.FindOwnerWith<PlayerBodySystem>();
 	ASSERT(sys);
 	if (sys) sys->Attach(this);
 }
 
 void PlayerBodyComponent::Uninitialize() {
-	PlayerBodySystem* sys = node.FindOwnerWith<PlayerBodySystem>();
+	PlayerBodySystem* sys = val.FindOwnerWith<PlayerBodySystem>();
 	ASSERT(sys);
 	if (sys) sys->Detach(this);
 }

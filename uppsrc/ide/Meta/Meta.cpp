@@ -47,7 +47,7 @@ bool MakeRelativePath(const String& includes_, const String& dir, String& best_a
 	return found;
 }
 
-void Assign(MetaNode& mn, MetaNode* owner, const ClangNode& n)
+void Assign(VfsValue& mn, VfsValue* owner, const ClangNode& n)
 {
 	mn.owner = owner;
 	int c = n.sub.GetCount();
@@ -83,14 +83,14 @@ void Store(IdeMetaEnvironment& ienv, String& includes, const String& path, Clang
 	cn.TranslateTypeHash(ctr.GetTypeTranslation());
 
 	// LOG(n.GetTreeString());
-	MetaSrcFile& file = ienv.ResolveFile(includes, path);
-	MetaSrcPkg& pkg = *file.pkg;
-	MetaNode n;
+	VfsSrcFile& file = ienv.ResolveFile(includes, path);
+	VfsSrcPkg& pkg = *file.pkg;
+	VfsValue n;
 	UPP::Assign(n, 0, cn);
 	n.SetPkgDeep(pkg.id);
 	n.SetFileDeep(file.id);
 	n.RealizeSerial();
-	if(!env.MergeNode(env.root, n, MERGEMODE_OVERWRITE_OLD))
+	if(!env.MergeValue(env.root, n, MERGEMODE_OVERWRITE_OLD))
 		return;
 
 	pkg.Store(false);
@@ -101,7 +101,7 @@ void UpdateWorkspace(IdeMetaEnvironment& ienv, Workspace& wspc) {
 		String pkg_name = wspc.package.GetKey(i);
 		auto& pkg = wspc.package[i];
 		String dir = GetFileDirectory(pkg.path);
-		MetaSrcPkg& mpkg = ienv.GetAddPkg(dir);
+		VfsSrcPkg& mpkg = ienv.GetAddPkg(dir);
 		for (auto& file : pkg.file) {
 			if (file.separator) continue;
 			String filename = file;
@@ -120,23 +120,23 @@ void UpdateWorkspace(IdeMetaEnvironment& ienv, Workspace& wspc) {
 void ClearTempCheck(int id);
 int CreateTempCheck(int src);
 
-MetaNode& MetaSrcFile::GetTemp() {
+VfsValue& VfsSrcFile::GetTemp() {
 	return *temp;
 }
 
-MetaNode& MetaSrcFile::CreateTemp(int dbg_src) {
+VfsValue& VfsSrcFile::CreateTemp(int dbg_src) {
 	ASSERT(temp.IsEmpty());
 	temp_id = CreateTempCheck(dbg_src);
 	return temp.Create();
 }
 
-void MetaSrcFile::ClearTemp() {
+void VfsSrcFile::ClearTemp() {
 	ClearTempCheck(temp_id);
 	temp.Clear();
 	temp_id = -1;
 }
 
-void MetaSrcFile::Visit(Vis& v)
+void VfsSrcFile::Visit(Vis& v)
 {
 	if (v.IsLoading()) {
 		if (!temp.IsEmpty())
@@ -157,11 +157,11 @@ void MetaSrcFile::Visit(Vis& v)
 	}
 }
 
-String MetaSrcFile::UpdateStoring()
+String VfsSrcFile::UpdateStoring()
 {
 	ASSERT_(managed_file, "Trying to jsonize non-managed file");
 	if (temp.IsEmpty()) return String();
-	MetaNode& file_nodes = *temp;
+	VfsValue& file_nodes = *temp;
 	
 	ASSERT(id >= 0 && pkg->id >= 0);
 	if (keep_file_ids)
@@ -182,7 +182,7 @@ String MetaSrcFile::UpdateStoring()
 }
 
 #if 0
-String MetaSrcFile::StoreJson()
+String VfsSrcFile::StoreJson()
 {
 	String old_hash = UpdateStoring();
 	String json = VisitToJson(*this);
@@ -194,11 +194,11 @@ String MetaSrcFile::StoreJson()
 }
 #endif
 
-bool MetaSrcFile::Store(bool forced)
+bool VfsSrcFile::Store(bool forced)
 {
 	ASSERT_(managed_file, "Trying to overwrite non-managed file");
 	ASSERT(temp);
-	MetaNode& file_nodes = *temp;
+	VfsValue& file_nodes = *temp;
 	
 	ASSERT(id >= 0 && pkg->id >= 0);
 	if (keep_file_ids)
@@ -251,7 +251,7 @@ bool MetaSrcFile::Store(bool forced)
 	return succ;
 }
 
-bool MetaSrcFile::Load()
+bool VfsSrcFile::Load()
 {
 	if (!temp.IsEmpty()) {
 		// Wait few seconds
@@ -270,7 +270,7 @@ bool MetaSrcFile::Load()
 	if (!temp_is_empty) {
 		auto* ptr = &*temp;
 		LOG("Temp was not cleared: id=" << temp_id);
-		Panic("Temporary MetaNode was not cleared previously");
+		Panic("Temporary VfsValue was not cleared previously");
 		ASSERT(0);
 	}
 	#endif
@@ -299,7 +299,7 @@ bool MetaSrcFile::Load()
 	return !saved_hash.IsEmpty();
 }
 
-void MetaSrcFile::UpdateLoading() {
+void VfsSrcFile::UpdateLoading() {
 	ASSERT(id >= 0 && pkg->id >= 0);
 	temp->SetPkgFileDeep(pkg->id, id);
 
@@ -318,11 +318,11 @@ void MetaSrcFile::UpdateLoading() {
 	#endif
 }
 
-bool MetaSrcFile::LoadJson(String json) {
+bool VfsSrcFile::LoadJson(String json) {
 	lock.Enter();
 	saved_hash.Clear();
 	
-	ASSERT_(!temp, "Temporary MetaNode was not cleared previously");
+	ASSERT_(!temp, "Temporary VfsValue was not cleared previously");
 	CreateTemp(3);
 	VisitFromJson(*this, json);
 	
@@ -330,7 +330,7 @@ bool MetaSrcFile::LoadJson(String json) {
 	return !saved_hash.IsEmpty();
 }
 
-void MetaSrcFile::OnSerialCounter()
+void VfsSrcFile::OnSerialCounter()
 {
 	MetaEnvironment& env = MetaEnv();
 	env.serial_counter =
@@ -338,17 +338,17 @@ void MetaSrcFile::OnSerialCounter()
 		this->highest_seen_serial);
 }
 
-void MetaSrcFile::OnSeenTypes()
+void VfsSrcFile::OnSeenTypes()
 {
 	MetaEnvironment& env = MetaEnv();
 	for(auto it : ~seen_types)
 		env.types.GetAdd(it.key).seen_type = it.value;
 }
 
-void MetaSrcFile::RefreshSeenTypes()
+void VfsSrcFile::RefreshSeenTypes()
 {
 	ASSERT(temp);
-	MetaNode& file_nodes = *temp;
+	VfsValue& file_nodes = *temp;
 	MetaEnvironment& env = MetaEnv();
 	Index<hash_t> type_hashes;
 	file_nodes.GetTypeHashes(type_hashes);
@@ -361,7 +361,7 @@ void MetaSrcFile::RefreshSeenTypes()
 	highest_seen_serial = env.CurrentSerial();
 }
 
-void MetaSrcFile::MakeTempFromEnv(bool all_files) {
+void VfsSrcFile::MakeTempFromEnv(bool all_files) {
 	IdeMetaEnvironment& ienv = IdeMetaEnv();
 	MetaEnvironment& env = ienv.env;
 	CreateTemp(4);
@@ -370,9 +370,9 @@ void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 	env.root.DeepChk();
 	#endif
 	if (all_files)
-		ienv.SplitNode(env.root, *temp, pkg->id);
+		ienv.SplitValue(env.root, *temp, pkg->id);
 	else
-		ienv.SplitNode(env.root, *temp, pkg->id, id);
+		ienv.SplitValue(env.root, *temp, pkg->id, id);
 }
 
 
@@ -389,33 +389,33 @@ void MetaSrcFile::MakeTempFromEnv(bool all_files) {
 
 
 
-void MetaSrcPkg::Init()
+void VfsSrcPkg::Init()
 {
 	ASSERT(dir.GetCount());
 	String path = AppendFileName(dir, META_FILENAME);
-	MetaSrcFile& file = GetAddFile(path);
+	VfsSrcFile& file = GetAddFile(path);
 	file.KeepFileIndices();
 	file.ManageFile();
 	ASSERT(file.id == 0 && file.rel_path.GetCount());
 }
 
-bool MetaSrcPkg::Store(bool forced)
+bool VfsSrcPkg::Store(bool forced)
 {
 	ASSERT(dir.GetCount());
 	String path = AppendFileName(dir, META_FILENAME);
 	IdeMetaEnvironment& env = IdeMetaEnv();
-	MetaSrcFile& file = GetAddFile(path);
-	MetaSrcPkg& pkg = *file.pkg;
-	MetaNode& file_nodes = file.CreateTemp(5);
+	VfsSrcFile& file = GetAddFile(path);
+	VfsSrcPkg& pkg = *file.pkg;
+	VfsValue& file_nodes = file.CreateTemp(5);
 	ASSERT(file.id >= 0 && pkg.id >= 0);
-	env.SplitNode(env.env.root, file_nodes, pkg.id);
+	env.SplitValue(env.env.root, file_nodes, pkg.id);
 	return file.Store(forced);
 }
 
 
 #if 0
 
-void MetaSrcPkg::PostSave()
+void VfsSrcPkg::PostSave()
 {
 	if(!post_saving) {
 		post_saving = true;
@@ -423,16 +423,16 @@ void MetaSrcPkg::PostSave()
 	}
 }
 
-void MetaSrcPkg::Clear() { files.Clear(); }
+void VfsSrcPkg::Clear() { files.Clear(); }
 
-void MetaSrcPkg::SetPath(String bin_path, String upp_dir)
+void VfsSrcPkg::SetPath(String bin_path, String upp_dir)
 {
 	this->bin_path = bin_path;
 	// dir = GetFileDirectory(path);
 	this->upp_dir = upp_dir;
 }
 
-void MetaSrcPkg::Load()
+void VfsSrcPkg::Load()
 {
 	Clear();
 	if(FileExists(path)) {
@@ -444,7 +444,7 @@ void MetaSrcPkg::Load()
 	}
 }
 
-void MetaSrcPkg::Save(bool forced)
+void VfsSrcPkg::Save(bool forced)
 {
 	post_saving = false;
 	if(!path.IsEmpty()) {
@@ -464,7 +464,7 @@ void MetaSrcPkg::Save(bool forced)
 
 thread_local static bool aionfile_getting_sha1;
 
-String MetaSrcPkg::GetHashSha1() {
+String VfsSrcPkg::GetHashSha1() {
 	Sha1Stream s;
 	aionfile_getting_sha1 = true;
 	s % *this;
@@ -472,7 +472,7 @@ String MetaSrcPkg::GetHashSha1() {
 	return s.FinishString();
 }
 
-void MetaSrcPkg::Serialize(Stream& s)
+void VfsSrcPkg::Serialize(Stream& s)
 {
 	{
 		Mutex::Lock ml(lock);
@@ -491,7 +491,7 @@ void MetaSrcPkg::Serialize(Stream& s)
 		saved_hash = GetHashSha1();
 }
 
-void MetaSrcPkg::Jsonize(JsonIO& json)
+void VfsSrcPkg::Jsonize(JsonIO& json)
 {
 	Mutex::Lock ml(lock);
 	json
@@ -500,7 +500,7 @@ void MetaSrcPkg::Jsonize(JsonIO& json)
 		;
 }
 
-void MetaSrcPkg::operator=(const MetaSrcPkg& f) {
+void VfsSrcPkg::operator=(const VfsSrcPkg& f) {
 	Mutex::Lock ml(lock);
 	files <<= f.files;
 	saved_hash = f.saved_hash;
@@ -509,7 +509,7 @@ void MetaSrcPkg::operator=(const MetaSrcPkg& f) {
 }
 #endif
 
-String MetaSrcPkg::GetTitle() const {
+String VfsSrcPkg::GetTitle() const {
 	if (title.IsEmpty()) {
 		if (dir.Right(1) == DIR_SEPS)
 			title = GetFileTitle(dir.Left(dir.GetCount()-1));
@@ -519,7 +519,7 @@ String MetaSrcPkg::GetTitle() const {
 	return title;
 }
 
-String MetaSrcPkg::GetRelativePath(const String& path) const
+String VfsSrcPkg::GetRelativePath(const String& path) const
 {
 	String dir = GetDirectory();
 	int i = path.Find(dir);
@@ -534,24 +534,24 @@ String MetaSrcPkg::GetRelativePath(const String& path) const
 	return String();
 }
 
-String MetaSrcPkg::GetFullPath(const String& rel_path) const
+String VfsSrcPkg::GetFullPath(const String& rel_path) const
 {
 	String dir = GetDirectory();
 	return AppendFileName(dir, rel_path);
 }
 
-String MetaSrcPkg::GetFullPath(int file_i) const
+String VfsSrcPkg::GetFullPath(int file_i) const
 {
 	return files[file_i].full_path;
 }
 
-void MetaSrcPkg::Visit(Vis& v) {
+void VfsSrcPkg::Visit(Vis& v) {
 	v.Ver(1)
 	(1)	("files", files, VISIT_VECTOR);
 }
 
 #if 0
-MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
+VfsSrcFile& VfsSrcPkg::RealizePath(const String& includes, const String& path)
 {
 	String rel_file = NormalizePath(path, dir);
 	int a = rel_file.Find(dir);
@@ -582,33 +582,33 @@ MetaSrcFile& MetaSrcPkg::RealizePath(const String& includes, const String& path)
 	Mutex::Lock ml(lock);
 	int i = files.Find(rel_file);
 	if(i >= 0) {
-		MetaSrcFile& o = files[i];
+		VfsSrcFile& o = files[i];
 		return o;
 	}
-	MetaSrcFile& o = files.Add(rel_file);
+	VfsSrcFile& o = files.Add(rel_file);
 	return o;
 }
 #endif
 
-MetaSrcFile& MetaSrcPkg::GetMetaFile() {
+VfsSrcFile& VfsSrcPkg::GetMetaFile() {
 	ASSERT(dir.GetCount());
 	String path = AppendFileName(dir, META_FILENAME);
 	return GetAddFile(path);
 }
 
-MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
+VfsSrcFile& VfsSrcPkg::GetAddFile(const String& full_path)
 {
 	String dir = GetDirectory();
 	if (full_path.Find(dir) == 0) {
 		String rel_path = GetRelativePath(full_path);
-		for (MetaSrcFile& f : files) {
+		for (VfsSrcFile& f : files) {
 			if (f.rel_path == rel_path) {
 				ASSERT(f.id >= 0);
 				return f;
 			}
 		}
 		int id = files.GetCount();
-		MetaSrcFile& f = files.Add();
+		VfsSrcFile& f = files.Add();
 		f.id = id;
 		f.pkg = this;
 		f.rel_path = rel_path;
@@ -618,14 +618,14 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 		return f;
 	}
 	else {
-		for (MetaSrcFile& f : files) {
+		for (VfsSrcFile& f : files) {
 			if (f.full_path == full_path) {
 				ASSERT(f.id >= 0);
 				return f;
 			}
 		}
 		int id = files.GetCount();
-		MetaSrcFile& f = files.Add();
+		VfsSrcFile& f = files.Add();
 		f.id = id;
 		f.pkg = this;
 		f.rel_path = "";
@@ -636,7 +636,7 @@ MetaSrcFile& MetaSrcPkg::GetAddFile(const String& full_path)
 	}
 }
 
-int MetaSrcPkg::FindFile(String path) const {
+int VfsSrcPkg::FindFile(String path) const {
 	int i = 0;
 	for (const auto& file : files) {
 		if (file.full_path == path)
@@ -655,7 +655,7 @@ int MetaSrcPkg::FindFile(String path) const {
 	return i;
 }
 
-String IdeMetaEnvironment::ResolveMetaSrcPkgPath(const String& includes, String path,
+String IdeMetaEnvironment::ResolveVfsSrcPkgPath(const String& includes, String path,
                                               String& ret_upp_dir)
 {
 	String def_dir = GetFileDirectory(path);
@@ -668,15 +668,15 @@ String IdeMetaEnvironment::ResolveMetaSrcPkgPath(const String& includes, String 
 	return GetAiPathCandidate(includes, def_dir);
 }
 
-MetaSrcFile& IdeMetaEnvironment::ResolveFile(const String& includes, const String& path)
+VfsSrcFile& IdeMetaEnvironment::ResolveFile(const String& includes, const String& path)
 {
 	String upp_dir;
-	String pkg_path = ResolveMetaSrcPkgPath(includes, path, upp_dir);
+	String pkg_path = ResolveVfsSrcPkgPath(includes, path, upp_dir);
 	env.lock.EnterWrite();
-	MetaSrcPkg& pkg = GetAddPkg(upp_dir);
+	VfsSrcPkg& pkg = GetAddPkg(upp_dir);
 	ASSERT(pkg.id >= 0);
 	//String rel_path = pkg.GetRelativePath(path);
-	MetaSrcFile& file = pkg.GetAddFile(path);
+	VfsSrcFile& file = pkg.GetAddFile(path);
 	ASSERT(file.id >= 0);
 	env.lock.LeaveWrite();
 	return file;
@@ -696,7 +696,7 @@ int IdeMetaEnvironment::FindPkg(String dir) const {
 	return -1;
 }
 
-MetaSrcPkg& IdeMetaEnvironment::GetAddPkg(String dir) {
+VfsSrcPkg& IdeMetaEnvironment::GetAddPkg(String dir) {
 	ASSERT(dir.Find(".bin") < 0); // NOT HERE
 	if (!DirectoryExists(dir)) {
 		RealizeDirectory(dir);
@@ -715,12 +715,12 @@ MetaSrcPkg& IdeMetaEnvironment::GetAddPkg(String dir) {
 	return pkg;
 }
 
-Vector<MetaNode*> IdeMetaEnvironment::FindAllEnvs() {
-	Vector<MetaNode*> v;
-	for (const MetaSrcPkg& pkg : pkgs) {
-		for (const MetaSrcFile& file : pkg.files) {
+Vector<VfsValue*> IdeMetaEnvironment::FindAllEnvs() {
+	Vector<VfsValue*> v;
+	for (const VfsSrcPkg& pkg : pkgs) {
+		for (const VfsSrcFile& file : pkg.files) {
 			if (file.env_file) {
-				MetaNode& n = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				VfsValue& n = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
 				v << &n;
 			}
 		}
@@ -728,16 +728,16 @@ Vector<MetaNode*> IdeMetaEnvironment::FindAllEnvs() {
 	return v;
 }
 
-MetaNode* IdeMetaEnvironment::FindNodeEnv(Entity& n)
+VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 {
 	String ctx = n.Data("ctx");
 	if (ctx.IsEmpty())
 		return 0;
-	for (const MetaSrcPkg& pkg : pkgs) {
-		for (const MetaSrcFile& file : pkg.files) {
+	for (const VfsSrcPkg& pkg : pkgs) {
+		for (const VfsSrcFile& file : pkg.files) {
 			if (file.env_file) {
-				MetaNode& fn = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
-				for (MetaNode& s : fn.sub)
+				VfsValue& fn = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				for (VfsValue& s : fn.sub)
 					if (s.kind == METAKIND_CONTEXT && s.id == ctx)
 						return &s;
 			}
@@ -747,10 +747,10 @@ MetaNode* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 }
 
 // see SRC_TXT_HEADER_ENABLE
-MetaNode* IdeMetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String path, Vis& v) {
+VfsValue* IdeMetaEnvironment::LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v) {
 	if (!file.pkg)
 		return 0;
-	MetaNode& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+	VfsValue& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
 	if (!filenode.ext) {
 		One<SrcTxtHeader> ext;
 		ext.Create(filenode);
@@ -760,7 +760,7 @@ MetaNode* IdeMetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String 
 		filenode.serial = env.NewSerial();
 		filenode.ext = ext.Detach();
 		filenode.type_hash = filenode.ext->GetTypeHash();
-		ASSERT(&filenode.ext->node == &filenode);
+		ASSERT(&filenode.ext->val == &filenode);
 	}
 	if (filenode.id.IsEmpty())
 		filenode.id = GetFileTitle(path);
@@ -769,7 +769,7 @@ MetaNode* IdeMetaEnvironment::LoadDatabaseSourceVisit(MetaSrcFile& file, String 
 
 bool IdeMetaEnvironment::LoadFileRoot(const String& includes, const String& path, bool manage_file)
 {
-	MetaSrcFile& file = ResolveFile(includes, path);
+	VfsSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	
 // see SRC_TXT_HEADER_ENABLE
@@ -797,29 +797,29 @@ bool IdeMetaEnvironment::LoadFileRoot(const String& includes, const String& path
 	return false;
 }
 
-bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, MetaNode*& file_node) {
+bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, VfsValue*& file_node) {
 	file_node = 0;
 	
-	MetaSrcFile& file = ResolveFile(includes, path);
+	VfsSrcFile& file = ResolveFile(includes, path);
 	file.ManageFile(manage_file);
 	
 	// Hotfix for old .db-src file
 	String ext = GetFileExt(path);
 	if (ext == ".db-src") {
-		MetaNode* fn = LoadDatabaseSourceVisit(file, path, v);
+		VfsValue* fn = LoadDatabaseSourceVisit(file, path, v);
 		if (fn) {
 			file_node = fn;
 			return true;
 		}
 	}
 	else if (ext == ".ecs") {
-		MetaNode& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_ECS_SPACE);
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_ECS_SPACE);
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
 	}
 	else if (ext == ".env") {
-		MetaNode& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_PKG_ENV);
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_PKG_ENV);
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
@@ -839,9 +839,9 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 	return false;
 }
 
-MetaSrcFile& IdeMetaEnvironment::Load(const String& includes, const String& path)
+VfsSrcFile& IdeMetaEnvironment::Load(const String& includes, const String& path)
 {
-	MetaSrcFile& file = ResolveFile(includes, path);
+	VfsSrcFile& file = ResolveFile(includes, path);
 	if(file.Load()) {
 		OnLoadFile(file);
 	}
@@ -849,25 +849,25 @@ MetaSrcFile& IdeMetaEnvironment::Load(const String& includes, const String& path
 	return file;
 }
 
-void IdeMetaEnvironment::OnLoadFile(MetaSrcFile& file)
+void IdeMetaEnvironment::OnLoadFile(VfsSrcFile& file)
 {
-	MetaNode& file_nodes = file.GetTemp();
+	VfsValue& file_nodes = file.GetTemp();
 	file_nodes.SetTempDeep();
 	ASSERT(file.saved_hash == IntStr64(file_nodes.AstGetSourceHash()));
 	//file_nodes.SetPkgDeep(pkg.id);
 	//LOG(file_nodes.GetTreeString());
-	env.MergeNode(env.root, file_nodes, MERGEMODE_OVERWRITE_OLD);
+	env.MergeValue(env.root, file_nodes, MERGEMODE_OVERWRITE_OLD);
 	// LOG(root.GetTreeString());
 
 #if DEBUG_METANODE_DTOR
-	Vector<MetaNode*> comments;
+	Vector<VfsValue*> comments;
 	root.FindAllDeep(METAKIND_COMMENT, comments);
 	for(auto* c : comments)
 		c->trace_kill = true;
 #endif
 }
 
-MetaNode& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
+VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	for (auto& s : env.root.sub) {
 		if (s.pkg == pkg && s.file == file && s.kind == kind) {
 			if (!s.serial)
@@ -875,7 +875,7 @@ MetaNode& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 			return s;
 		}
 	}
-	MetaNode& n = env.root.sub.Add();
+	VfsValue& n = env.root.sub.Add();
 	n.pkg = pkg;
 	n.file = file;
 	n.kind = kind;
@@ -884,22 +884,22 @@ MetaNode& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	return n;
 }
 
-void IdeMetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id)
+void IdeMetaEnvironment::SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id)
 {
 	root.PointPkgTo(other, pkg_id);
 }
 
-void IdeMetaEnvironment::SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id)
+void IdeMetaEnvironment::SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id, int file_id)
 {
 	root.PointPkgTo(other, pkg_id, file_id);
 }
 
-void IdeMetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id)
+void IdeMetaEnvironment::SplitValue(const VfsValue& root, VfsValue& other, int pkg_id)
 {
 	root.CopyPkgTo(other, pkg_id);
 }
 
-void IdeMetaEnvironment::SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id)
+void IdeMetaEnvironment::SplitValue(const VfsValue& root, VfsValue& other, int pkg_id, int file_id)
 {
 	root.CopyPkgTo(other, pkg_id, file_id);
 }

@@ -147,7 +147,7 @@ void DebugVideoGenerator::GenerateSine(const VideoFormat& fmt) {
 
 
 
-VideoGenBase::VideoGenBase(MetaNode& n) : Atom(n) {
+VideoGenBase::VideoGenBase(VfsValue& n) : Atom(n) {
 	fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 60, 1);
 	
 }

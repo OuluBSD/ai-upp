@@ -4,9 +4,9 @@
 
 struct Script;
 class ToolAppCtrl;
-struct MetaSrcFile;
+struct VfsSrcFile;
 
-struct ComponentCtrl : MetaExtCtrl, DatasetProvider {
+struct ComponentCtrl : VfsValueExtCtrl, DatasetProvider {
 	DatasetPtrs GetDataset() const override;
 };
 
@@ -18,9 +18,9 @@ struct VirtualNode : Moveable<VirtualNode> {
 	};
 	struct Data {
 		Atomic refs = 0;
-		MetaNode* node = 0;
+		VfsValue* vfs_value = 0;
 		EntityData* edata = 0;
-		Value* value = 0;
+		Value* poly_value = 0;
 		Value key;
 		VfsPath path;
 		int mode = -1;
@@ -50,7 +50,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 	void RemoveSubNodes();
 	void Remove(const Value& name);
 	//Data& Create();
-	Data& Create(const VfsPath& p, MetaNode* n);
+	Data& Create(const VfsPath& p, VfsValue* n);
 	Data& Create(const VfsPath& p, Value* v, Value key);
 	
 	template <class T>
@@ -59,7 +59,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 		TODO
 		/*int kind = 0;
 		const std::type_info& type = typeid(T);
-		for (const auto it : MetaExtFactory::List()) {
+		for (const auto it : VfsValueExtFactory::List()) {
 			if (*it.type == type) {
 				kind = it.kind;
 				break;
@@ -106,7 +106,7 @@ public:
 	typedef ValueVFSComponentCtrl CLASSNAME;
 	ValueVFSComponentCtrl();
 	VirtualNode Root() override;
-	Value* GetValue() override;
+	Value* GetPolyValue() override;
 	void Set(Value key, Value value);
 	Value Get(Value key);
 };
@@ -145,9 +145,9 @@ public:
 	*/
 };
 
-class EntityInfoCtrl : public MetaExtCtrl, public DatasetProvider {
+class EntityInfoCtrl : public VfsValueExtCtrl, public DatasetProvider {
 	WithEntityInfo<Ctrl> info;
-	VectorMap<String,MetaNode*> all_ctxs;
+	VectorMap<String,VfsValue*> all_ctxs;
 	ArrayCtrl data;
 	DocEdit value;
 	

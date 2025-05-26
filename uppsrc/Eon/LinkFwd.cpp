@@ -189,7 +189,7 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 
 void LinkBase::PostContinueForward() {
 	if (last_cfg) {
-		LinkSystem* lsys = node.FindOwnerWith<LinkSystem>();
+		LinkSystem* lsys = val.FindOwnerWith<LinkSystem>();
 		if (!lsys) {LOG(node.GetTreeString());}
 		ASSERT(lsys);
 		if (lsys)

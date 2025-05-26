@@ -11,14 +11,14 @@ struct MetaCodeCtrl : ParentCtrl {
 
 	String				filepath;
 	String				includes;
-	MetaSrcPkg*			pkg = 0;
+	VfsSrcPkg*			pkg = 0;
 	int					lineh = 24;
 	Font				fnt;
 	String				content;
 	//int					sel_line = -1;
 	//SourceRange*		sel_ann_f = 0;
 	//AiAnnotationItem*	sel_ann = 0;
-	//MetaSrcFile*		sel_f = 0;
+	//VfsSrcFile*		sel_f = 0;
 	Color				clr_sel;
 	Color				clr_ann;
 	byte				charset = 0;
@@ -27,9 +27,9 @@ struct MetaCodeCtrl : ParentCtrl {
 	TimeCallback		tc;
 	MetaCodeGenerator	gen;
 	const MetaCodeGenerator::File* gen_file = 0;
-	Ptr<MetaNode>		sel_node = 0;
+	Ptr<VfsValue>		sel_node = 0;
 	Vector<int>			editor_to_line;
-	Vector<MetaNode*>	comment_to_node;
+	Vector<VfsValue*>	comment_to_node;
 	
 	typedef MetaCodeCtrl CLASSNAME;
 	MetaCodeCtrl();
@@ -53,7 +53,7 @@ struct MetaCodeCtrl : ParentCtrl {
 	void CheckEditorCursor();
 	void OnEditorCursor();
 	void AnnotationData();
-	void VisitCursorInfo(MetaNode& n, int& row);
+	void VisitCursorInfo(VfsValue& n, int& row);
 };
 
 #endif

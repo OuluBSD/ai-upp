@@ -406,7 +406,7 @@ struct ExportSimpleAttr : Moveable<ExportSimpleAttr> {
 	}
 };
 
-ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex();
+ArrayMap<String, Ptr<VfsValueExt>>& DatasetIndex();
 
 struct ScriptDataset : Moveable<ScriptDataset> {
 	String title;
@@ -695,7 +695,7 @@ struct SrcTxtHeader : Component {
 	One<SrcTextData> data;
 	
 	CLASSTYPE(SrcTxtHeader)
-	SrcTxtHeader(MetaNode& owner) : Component(owner) {}
+	SrcTxtHeader(VfsValue& owner) : Component(owner) {}
 	~SrcTxtHeader();
 	SrcTextData& Data() {if (data.IsEmpty()) data.Create(); return *data;}
 	void RealizeData();

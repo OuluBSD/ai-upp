@@ -1,10 +1,10 @@
 #ifndef _Meta_Node_h_
 #define _Meta_Node_h_
 
-struct MetaNode;
-struct MetaExtCtrl;
-struct MetaSrcPkg;
-struct MetaNodeExt;
+struct VfsValue;
+struct VfsValueExtCtrl;
+struct VfsSrcPkg;
+struct VfsValueExt;
 struct Entity;
 struct IdeShellHost;
 struct IdeShell;
@@ -44,7 +44,7 @@ struct DatasetPtrs {
 };
 
 // "int I" is required because the operation "p.name = o;" must be delayed after full
-// declaration, which has been done when MetaExtFactory::Register is being called.
+// declaration, which has been done when VfsValueExtFactory::Register is being called.
 template <class T, int I>
 struct DatasetAssigner {
 	static void Set(DatasetPtrs& p, T* o);
@@ -62,7 +62,7 @@ template <class _> struct DatasetPtrs::Getter<type,_> {static type& Get(DatasetP
 EXT_LIST
 #undef DATASET_ITEM
 
-void FillDataset(DatasetPtrs& p, MetaNode& n, Component* this_comp);
+void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp);
 
 class DatasetProvider {
 public:
@@ -85,15 +85,15 @@ struct NodeDistance {
 #endif
 
 struct NodeRoute {
-	Vector<MetaNode*> route;
+	Vector<VfsValue*> route;
 	bool from_owner_only = false;
 };
 
-struct MetaNodeExt : Pte<MetaNodeExt> {
-	MetaNode& node;
+struct VfsValueExt : Pte<VfsValueExt> {
+	VfsValue& val;
 	
-	MetaNodeExt(MetaNode& n) : node(n) {}
-	virtual ~MetaNodeExt() {}
+	VfsValueExt(VfsValue& n) : val(n) {}
+	virtual ~VfsValueExt() {}
 	virtual void Visit(Vis& s) = 0;
 	virtual TypeCls GetTypeCls() const = 0;
 	virtual String GetTypeName() const = 0;
@@ -101,7 +101,7 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	virtual String GetName() const {return String();}
 	virtual double GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
 	virtual double GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
-	virtual double GetDistance(MetaNode& dest) {ASSERT_(0, "Not implemented"); return 0;}
+	virtual double GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
 	virtual bool TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
 	virtual String ToString() const {return String();}
 	hash_t GetHashValue() const;
@@ -109,8 +109,8 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	
 	static String GetCategory() {return String();}
 	
-	void CopyFrom(const MetaNodeExt& e);
-	bool operator==(const MetaNodeExt& e) const;
+	void CopyFrom(const VfsValueExt& e);
+	bool operator==(const VfsValueExt& e) const;
 	void Serialize(Stream& s);
 	void Jsonize(JsonIO& json);
 };
@@ -121,17 +121,17 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	String GetTypeName() const override {return #x;} \
 	hash_t GetTypeHash() const override {return TypedStringHasher<x>(#x);} \
 
-#define DEFAULT_EXT(x) CLASSTYPE(x) x(MetaNode& n) : MetaNodeExt(n) {}
+#define DEFAULT_EXT(x) CLASSTYPE(x) x(VfsValue& n) : VfsValueExt(n) {}
 
 template <bool b, class T>
 struct EntityDataCreator {static EntityData* CreateEntityDataFn();};
 template <class T> struct EntityDataCreator<false,T> {static EntityData* New() {return 0;}};
 template <class T> struct EntityDataCreator<true, T> {static EntityData* New() {return new T;}};
 
-struct MetaExtFactory {
-	typedef MetaNodeExt* (*NewFn)(MetaNode&);
-	typedef MetaExtCtrl* (*NewCtrl)();
-	typedef bool (*IsFn)(const MetaNodeExt& e);
+struct VfsValueExtFactory {
+	typedef VfsValueExt* (*NewFn)(VfsValue&);
+	typedef VfsValueExtCtrl* (*NewCtrl)();
+	typedef bool (*IsFn)(const VfsValueExt& e);
 	//typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
 	typedef EntityData* (*CreateEntityData)();
 	
@@ -150,11 +150,11 @@ struct MetaExtFactory {
 	
 	
 	template<class T> struct Functions {
-		static MetaNodeExt* Create(MetaNode& owner) {MetaNodeExt* c = new T(owner); return c;}
-		static bool IsNodeExt(const MetaNodeExt& e) {return dynamic_cast<const T*>(&e);}
+		static VfsValueExt* Create(VfsValue& owner) {VfsValueExt* c = new T(owner); return c;}
+		static bool IsNodeExt(const VfsValueExt& e) {return dynamic_cast<const T*>(&e);}
 	};
 	template<class T> struct CtrlFunctions {
-		static MetaExtCtrl* CreateCtrl() {return new T;}
+		static VfsValueExtCtrl* CreateCtrl() {return new T;}
 	};
 	/*template <class T> static void DatasetEntityData(DatasetPtrs& p, EntityData& ed) {
 		T* o = dynamic_cast<T*>(&ed);
@@ -204,9 +204,9 @@ struct MetaExtFactory {
 		}
 		Panic("No component found");
 	}
-	static MetaNodeExt* Create(hash_t type_hash, MetaNode& owner);
-	//static MetaNodeExt* CloneKind(int kind, const MetaNodeExt& e, MetaNode& owner);
-	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
+	static VfsValueExt* Create(hash_t type_hash, VfsValue& owner);
+	//static VfsValueExt* CloneKind(int kind, const VfsValueExt& e, VfsValue& owner);
+	static VfsValueExt* Clone(const VfsValueExt& e, VfsValue& owner);
 	//static int FindKindFactory(int kind);
 	static int AstFindKindCategory(int kind);
 	
@@ -217,8 +217,8 @@ struct MetaExtFactory {
 	}
 };
 
-#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}
-#define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {MetaExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
+#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x);}
+#define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {VfsValueExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
 struct AstValue {
 	int             kind = -1;
@@ -231,7 +231,7 @@ struct AstValue {
 	bool            is_disabled = false;
 	
 	// Temp
-	Ptr<MetaNode>   type_ptr;
+	Ptr<VfsValue>   type_ptr;
 	
 	bool IsNullInstance() const;
 	void Serialize(Stream& s);
@@ -247,19 +247,19 @@ struct AstValue {
 const dword ASTVALUE_V   = 0x10001;
 template<> inline dword ValueTypeNo(const AstValue*)     { return ASTVALUE_V; }
 
-struct MetaNode : Pte<MetaNode> {
+struct VfsValue : Pte<VfsValue> {
 	String             id;
 	hash_t             type_hash = 0;
 	hash_t             serial = 0;
 	int                file = -1;
-	Array<MetaNode>    sub;
+	Array<VfsValue>    sub;
 	Value              value;
-	One<MetaNodeExt>   ext;
+	One<VfsValueExt>   ext;
 	
 	// Temp
 	int                pkg = -1;
-	Ptr<MetaNode>      owner;
-	Ptr<MetaNode>      symbolic_link;
+	Ptr<VfsValue>      owner;
+	Ptr<VfsValue>      symbolic_link;
 	
 	#ifdef flagDEBUG
 	bool               only_temporary = false;
@@ -269,17 +269,17 @@ struct MetaNode : Pte<MetaNode> {
 	bool               trace_kill = false;
 	#endif
 	
-	MetaNode() {}
-	MetaNode(MetaNode* owner, const MetaNode& n) {Assign(owner, n);}
-	~MetaNode();
-	MetaNode& operator[](int i);
+	VfsValue() {}
+	VfsValue(VfsValue* owner, const VfsValue& n) {Assign(owner, n);}
+	~VfsValue();
+	VfsValue& operator[](int i);
 	void ClearExtDeep();
 	void Destroy();
-	void Assign(MetaNode* owner, const MetaNode& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
-	void CopyFrom(const MetaNode& n);
-	void CopyFieldsFrom(const MetaNode& n, bool forced_downgrade=false);
-	void CopySubFrom(const MetaNode& n);
-	bool FindDifferences(const MetaNode& n, Vector<String>& diffs, int max_diffs=30) const;
+	void Assign(VfsValue* owner, const VfsValue& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
+	void CopyFrom(const VfsValue& n);
+	void CopyFieldsFrom(const VfsValue& n, bool forced_downgrade=false);
+	void CopySubFrom(const VfsValue& n);
+	bool FindDifferences(const VfsValue& n, Vector<String>& diffs, int max_diffs=30) const;
 	
 	
 	// Functions to use when value is AstValue type.
@@ -287,60 +287,60 @@ struct MetaNode : Pte<MetaNode> {
 	int GetAstValueCount() const;
 	String AstGetKindString() const;
 	static String AstGetKindString(int i);
-	MetaNode& AstGetAdd(String id, String type, int kind);
-	MetaNode& AstAdd(int kind, String id=String());
+	VfsValue& AstGetAdd(String id, String type, int kind);
+	VfsValue& AstAdd(int kind, String id=String());
 	int AstFind(int kind, const String& id) const;
-	Vector<MetaNode*> AstFindAllShallow(int kind);
-	Vector<const MetaNode*> AstFindAllShallow(int kind) const;
-	void AstFindAllDeep(int kind, Vector<MetaNode*>& out);
-	void AstFindAllDeep(int kind, Vector<const MetaNode*>& out) const;
+	Vector<VfsValue*> AstFindAllShallow(int kind);
+	Vector<const VfsValue*> AstFindAllShallow(int kind) const;
+	void AstFindAllDeep(int kind, Vector<VfsValue*>& out);
+	void AstFindAllDeep(int kind, Vector<const VfsValue*>& out) const;
 	void AstRemoveAllShallow(int kind);
 	void AstRemoveAllDeep(int kind);
 	hash_t AstGetSourceHash(bool* total_hash_diffs=0) const;
 	
 	
-	MetaNode& Add(const MetaNode& n);
-	MetaNode& Add(MetaNode* n);
-	MetaNode& Add(String id=String());
-	MetaNode* Detach(MetaNode* n);
-	MetaNode* Detach(int i);
-	void Remove(MetaNode* n);
+	VfsValue& Add(const VfsValue& n);
+	VfsValue& Add(VfsValue* n);
+	VfsValue& Add(String id=String());
+	VfsValue* Detach(VfsValue* n);
+	VfsValue* Detach(int i);
+	void Remove(VfsValue* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;
 	String GetTypeString() const;
 	int Find(const String& id) const;
-	MetaNode* FindPath(const VfsPath& path);
+	VfsValue* FindPath(const VfsPath& path);
 	hash_t GetTotalHash() const;
 	void Visit(Vis& v);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
-	void PointPkgTo(MetaNodeSubset& other, int pkg_id);
-	void PointPkgTo(MetaNodeSubset& other, int pkg_id, int file_id);
-	void CopyPkgTo(MetaNode& other, int pkg_id) const;
-	void CopyPkgTo(MetaNode& other, int pkg_id, int file_id) const;
+	void PointPkgTo(VfsValueSubset& other, int pkg_id);
+	void PointPkgTo(VfsValueSubset& other, int pkg_id, int file_id);
+	void CopyPkgTo(VfsValue& other, int pkg_id) const;
+	void CopyPkgTo(VfsValue& other, int pkg_id, int file_id) const;
 	bool HasPkgDeep(int pkg_id) const;
 	bool HasPkgFileDeep(int pkg_id, int file_id) const;
 	void SetPkgDeep(int pkg_id);
 	void SetFileDeep(int file_id);
 	void SetPkgFileDeep(int pkg_id, int file_id);
 	void SetTempDeep();
-	Vector<MetaNode*> FindAll(TypeCls type);
-	Vector<MetaNode*> FindTypeAllShallow(hash_t type_hash);
-	MetaNode* FindDeep(TypeCls type);
-	bool IsFieldsSame(const MetaNode& n) const;
+	Vector<VfsValue*> FindAll(TypeCls type);
+	Vector<VfsValue*> FindTypeAllShallow(hash_t type_hash);
+	VfsValue* FindDeep(TypeCls type);
+	bool IsFieldsSame(const VfsValue& n) const;
 	bool IsStructKind() const;
 	//bool IsClassTemplateDefinition() const;
 	String GetBasesString() const;
 	String GetNestString() const;
-	bool OwnerRecursive(const MetaNode& n) const;
-	bool ContainsDeep(const MetaNode& n) const;
+	bool OwnerRecursive(const VfsValue& n) const;
+	bool ContainsDeep(const VfsValue& n) const;
 	void GetTypeHashes(Index<hash_t>& type_hashes) const;
 	void RealizeSerial();
 	void FixSerialDeep();
-	Vector<Ptr<MetaNodeExt>> GetAllExtensions();
+	Vector<Ptr<VfsValueExt>> GetAllExtensions();
 	VfsPath GetPath() const;
 	void DeepChk();
 	void Chk();
-	bool IsOwnerDeep(MetaNodeExt& n) const;
+	bool IsOwnerDeep(VfsValueExt& n) const;
 	int GetCount() const;
 	int GetDepth() const;
 	
@@ -376,7 +376,7 @@ struct MetaNode : Pte<MetaNode> {
 				return *o;
 			}
 		}
-		MetaNode& s = Add();
+		VfsValue& s = Add();
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
@@ -389,7 +389,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T>
 	T& Add(String id="") {
-		MetaNode& s = Add();
+		VfsValue& s = Add();
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
@@ -403,7 +403,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T>
 	Ptr<T> FindPath(const VfsPath& vfs) {
-		MetaNode* n = this;
+		VfsValue* n = this;
 		for(const Value& key : vfs.Parts()) {
 			String key_str = key.ToString();
 			int i = n->Find(key_str);
@@ -450,7 +450,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindOwner(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = owner;
+		VfsValue* n = owner;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			if (n->ext && n->ext->GetTypeCls() == type) {
@@ -465,7 +465,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindRoot(int max_depth=-1) {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = this;
+		VfsValue* n = this;
 		T* root = 0;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
@@ -481,7 +481,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindOwnerRoot(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = owner;
+		VfsValue* n = owner;
 		T* root = 0;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
@@ -497,7 +497,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindOwnerWith(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = owner;
+		VfsValue* n = owner;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
@@ -514,7 +514,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindOwnerWithCast(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = owner;
+		VfsValue* n = owner;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
@@ -531,7 +531,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	template <class T> T* FindOwnerRootWith(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
-		MetaNode* n = owner;
+		VfsValue* n = owner;
 		T* root = 0;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
@@ -591,24 +591,24 @@ struct MetaNode : Pte<MetaNode> {
 	
 	
 public:
-	using Nod = MetaNode;
+	using Val = VfsValue;
 	
-	typedef typename Array<MetaNode>::Iterator Iterator;
-	typedef typename Array<MetaNode>::ConstIterator ConstIterator;
+	typedef typename Array<VfsValue>::Iterator Iterator;
+	typedef typename Array<VfsValue>::ConstIterator ConstIterator;
 	
 	class IteratorDeep {
 		Iterator begin;
-		Vector<Nod*> cur;
+		Vector<Val*> cur;
 		Vector<int> pos;
 	protected:
-		friend struct MetaNode;
-		IteratorDeep(Nod* cur) {
+		friend struct VfsValue;
+		IteratorDeep(Val* cur) {
 			this->cur.Add(cur);
 			pos.Add(0);
 		}
 		
-		IteratorDeep(const Nod* cur) {
-			this->cur.Add((Nod*)cur);
+		IteratorDeep(const Val* cur) {
+			this->cur.Add((Val*)cur);
 			pos.Add(0);
 		}
 		
@@ -692,23 +692,23 @@ public:
 			cur.Remove(cur.GetCount()-1);
 		}
 		
-		operator Nod*() {
+		operator Val*() {
 			if (pos.GetCount() && pos[0] == 1) return 0;
 			return LASTCUR;
 		}
 		
-		Nod* operator->() {
+		Val* operator->() {
 			if (pos.GetCount() && pos[0] == 1) return 0;
 			return LASTCUR;
 		}
 		
-		Nod& operator*() {
+		Val& operator*() {
 			return *LASTCUR;
 		}
 		
-		const Nod& operator*() const {return *LASTCUR;}
+		const Val& operator*() const {return *LASTCUR;}
 		
-		Nod* Higher() {
+		Val* Higher() {
 			if (cur.GetCount() <= 1) return 0;
 			return cur[cur.GetCount()-2];
 		}
@@ -722,14 +722,14 @@ public:
 	
 };
 
-using Nod = MetaNode;
+using Val = VfsValue;
 
-struct MetaNodeSubset {
-	Array<MetaNodeSubset> sub;
-	Ptr<MetaNode> n;
+struct VfsValueSubset {
+	Array<VfsValueSubset> sub;
+	Ptr<VfsValue> n;
 	
-	MetaNodeSubset() {}
-	//MetaNodeSubset(MetaNode& n) : n(&n) {}
+	VfsValueSubset() {}
+	//VfsValueSubset(VfsValue& n) : n(&n) {}
 	void Clear() {sub.Clear(); n = 0;}
 };
 
@@ -742,10 +742,10 @@ typedef enum : byte {
 
 struct MetaEnvironment : VFS {
 	struct FilePos : Moveable<FilePos> {
-		Vector<Ptr<MetaNode>> hash_nodes;
+		Vector<Ptr<VfsValue>> hash_nodes;
 	};
 	struct Type : Moveable<Type> {
-		Vector<Ptr<MetaNode>> hash_nodes;
+		Vector<Ptr<VfsValue>> hash_nodes;
 		String seen_type;
 	};
 	VectorMap<hash_t,FilePos> filepos;
@@ -753,7 +753,7 @@ struct MetaEnvironment : VFS {
 	hash_t serial_counter = 0;
 	SpinLock serial_lock;
 	
-	MetaNode root;
+	VfsValue root;
 	RWMutex lock;
 	
 	typedef MetaEnvironment CLASSNAME;
@@ -763,14 +763,14 @@ struct MetaEnvironment : VFS {
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	static bool IsMergeable(CXCursorKind kind);
 	static bool IsMergeable(int kind);
-	bool MergeNode(MetaNode& root, const MetaNode& other, MergeMode mode);
-	bool MergeVisit(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode);
-	bool MergeVisitPartMatching(Vector<MetaNode*>& scope, const MetaNode& n1, MergeMode mode);
-	void RefreshNodePtrs(MetaNode& n);
-	void MergeVisitPost(MetaNode& n);
-	MetaNode* FindDeclaration(const MetaNode& n);
-	MetaNode* FindTypeDeclaration(hash_t type_hash);
-	Vector<MetaNode*> FindDeclarationsDeep(const MetaNode& n);
+	bool MergeNode(VfsValue& root, const VfsValue& other, MergeMode mode);
+	bool MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
+	bool MergeVisitPartMatching(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
+	void RefreshNodePtrs(VfsValue& n);
+	void MergeVisitPost(VfsValue& n);
+	VfsValue* FindDeclaration(const VfsValue& n);
+	VfsValue* FindTypeDeclaration(hash_t type_hash);
+	Vector<VfsValue*> FindDeclarationsDeep(const VfsValue& n);
 	bool MergeResolver(ClangTypeResolver& ctr);
 	hash_t RealizeTypePath(const String& path);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;

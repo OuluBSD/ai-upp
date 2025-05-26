@@ -167,7 +167,7 @@ struct Visitor {
 	
 	
 	// VisitMap functions are for those VectorMaps & ArrayMaps,
-	// which has standard Jsonize function for Key class (no Visit(MetaNode&))
+	// which has standard Jsonize function for Key class (no Visit(VfsValue&))
 	
 	template<class T>
 	void VisitMapSerialize(T& o) {
@@ -360,7 +360,7 @@ struct Visitor {
 	
 	
 	// VisitMapKV functions are for those VectorMaps & ArrayMaps,
-	// which has custom Key class with Visit(MetaNode&) instead of Jsonzie(JsonIO&)
+	// which has custom Key class with Visit(VfsValue&) instead of Jsonzie(JsonIO&)
 	
 	template<class T>
 	void VisitMapKVSerialize(T& o) {

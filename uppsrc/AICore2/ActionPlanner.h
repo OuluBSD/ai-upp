@@ -84,7 +84,7 @@ public:
 	
 };
 
-class ActionNode : public MetaNodeExt {
+class ActionNode : public VfsValueExt {
 	BinaryWorldState* ws;
 	double cost;
 	int act_id;
@@ -99,7 +99,7 @@ public:
 	void Visit(Vis& v) override {}
 	
 	
-	ActionNode(MetaNode& n);
+	ActionNode(VfsValue& n);
 	
 	ActionPlanner& GetActionPlanner() {return *ap;}
 	BinaryWorldState& GetWorldState() {return *ws;}
@@ -111,7 +111,7 @@ public:
 	inline void SetCost(double d) {cost = d;}
 	inline void SetActionId(int i) {act_id = i;}
 	
-	double GetDistance(MetaNode& to) override;
+	double GetDistance(VfsValue& to) override;
 	double GetEstimate() override;
 	bool TerminalTest(NodeRoute& route) override;
 	inline double GetCost() const {return cost;}

@@ -136,17 +136,17 @@ void AiThreadCtrlBase::SetThread(AiThread& t) {
 	ai_thrd = &t;
 }
 
-void AiThreadCtrlBase::SetNode(MetaNode& n) {
+void AiThreadCtrlBase::SetNode(VfsValue& n) {
 	node = &n;
 }
 
 StageThread& AiThreadExt::GetStageThread() {
-	auto& o = GetNode();
+	auto& o = GetValue();
 	return o.GetExt<StageThread>();
 }
 
 ChainThread& AiThreadExt::GetChainThread() {
-	auto& o = GetNode();
+	auto& o = GetValue();
 	return o.GetExt<ChainThread>();
 }
 
@@ -229,7 +229,7 @@ AiStageCtrl::AiStageCtrl() {
 	prog.WhenAction = [this] {
 		if (!proglist.IsCursor()) return;
 		int idx = proglist.Get("IDX");
-		MetaNode& n = *programs[idx];
+		VfsValue& n = *programs[idx];
 		n.value = prog.GetData();
 	};
 	stage.Highlight("cpp");
@@ -237,7 +237,7 @@ AiStageCtrl::AiStageCtrl() {
 	stage.WhenAction = [this] {
 		if (!stagelist.IsCursor()) return;
 		int idx = stagelist.Get("IDX");
-		MetaNode& n = *stages[idx];
+		VfsValue& n = *stages[idx];
 		n.value = stage.GetData();
 	};
 }
@@ -249,8 +249,8 @@ void AiStageCtrl::Data() {
 	DataBottom();
 }
 
-void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, hash_t type_hash) {
-	MetaNode& n = GetNode();
+void AiStageCtrl::DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash) {
+	VfsValue& n = GetValue();
 	nodes = n.FindTypeAllShallow(type_hash);
 	for(int i = 0; i < nodes.GetCount(); i++) {
 		const auto& it = *nodes[i];
@@ -273,7 +273,7 @@ void AiStageCtrl::DataProgramList() {
 void AiStageCtrl::DataProgram() {
 	if (!proglist.IsCursor()) return;
 	int idx = proglist.Get("IDX");
-	MetaNode& n = *programs[idx];
+	VfsValue& n = *programs[idx];
 	prog.SetData(n.value);
 }
 
@@ -284,7 +284,7 @@ void AiStageCtrl::DataStageList() {
 void AiStageCtrl::DataStage() {
 	if (!stagelist.IsCursor()) return;
 	int idx = stagelist.Get("IDX");
-	MetaNode& n = *stages[idx];
+	VfsValue& n = *stages[idx];
 	stage.SetData(n.value);
 }
 
@@ -297,11 +297,11 @@ bool AiStageCtrl::CompileStages() {
 	
 	log.Clear();
 	
-	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	Agent* agent = ext->val.FindOwnerWith<Agent>();
 	ASSERT(agent);
 	
 	for(int i = 0; i < stages.GetCount(); i++) {
-		MetaNode& n = *stages[i];
+		VfsValue& n = *stages[i];
 		
 		String esc = n.value;
 		if (esc.IsEmpty()) continue;
@@ -314,7 +314,7 @@ bool AiStageCtrl::CompileStages() {
 bool AiStageCtrl::Compile() {
 	if (!proglist.IsCursor()) return false;
 	int idx = proglist.Get("IDX");
-	MetaNode& n = *programs[idx];
+	VfsValue& n = *programs[idx];
 	bool succ = false;
 	
 	String esc = n.value;
@@ -322,7 +322,7 @@ bool AiStageCtrl::Compile() {
 	
 	log.Clear();
 	
-	Agent* agent = ext->node.FindOwnerWith<Agent>();
+	Agent* agent = ext->val.FindOwnerWith<Agent>();
 	ASSERT(agent);
 	succ = agent->Compile(esc, THISBACK(PrintLog));
 	
@@ -338,7 +338,7 @@ bool AiStageCtrl::Run() {
 	
 	log.Clear();
 	
-	agent = ext->node.FindOwnerWith<Agent>();
+	agent = ext->val.FindOwnerWith<Agent>();
 	ASSERT(agent);
 	
 	agent->WhenPrint = THISBACK(Print);
@@ -403,7 +403,7 @@ void AiStageCtrl::AddProgram() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add<VfsProgram>(name);
+	auto& ses = GetValue().Add<VfsProgram>(name);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -411,8 +411,8 @@ void AiStageCtrl::RemoveProgram() {
 	if (!proglist.IsCursor())
 		return;
 	int id = proglist.Get("IDX");
-	MetaNode* n = programs[id];
-	GetNode().Remove(n);
+	VfsValue* n = programs[id];
+	GetValue().Remove(n);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -433,7 +433,7 @@ void AiStageCtrl::DuplicateProgram() {
 		return;
 	int id = proglist.Get("IDX");
 	const auto& n0 = *programs[id];
-	auto& m1 = GetNode().Add<VfsProgram>("Duplicate of " + n0.id);
+	auto& m1 = GetValue().Add<VfsProgram>("Duplicate of " + n0.id);
 	VisitCopy(n0, m1.node);
 	PostCallback(THISBACK(DataProgramList));
 }
@@ -456,7 +456,7 @@ void AiStageCtrl::AddStage() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add<VfsFarStage>(name);
+	auto& ses = GetValue().Add<VfsFarStage>(name);
 	PostCallback(THISBACK(DataStageList));
 }
 
@@ -464,8 +464,8 @@ void AiStageCtrl::RemoveStage() {
 	if (!stagelist.IsCursor())
 		return;
 	int id = stagelist.Get("IDX");
-	MetaNode* n = stages[id];
-	GetNode().Remove(n);
+	VfsValue* n = stages[id];
+	GetValue().Remove(n);
 	PostCallback(THISBACK(DataStageList));
 }
 
@@ -486,19 +486,19 @@ void AiStageCtrl::DuplicateStage() {
 		return;
 	int id = stagelist.Get("IDX");
 	const auto& n0 = *stages[id];
-	auto& m1 = GetNode().Add<VfsFarStage>("");
+	auto& m1 = GetValue().Add<VfsFarStage>("");
 	VisitCopy(n0, m1.node);
 	PostCallback(THISBACK(DataStageList));
 }
 
-MetaNode* AiStageCtrl::GetProgram() {
+VfsValue* AiStageCtrl::GetProgram() {
 	if (!proglist.IsCursor())
 		return 0;
 	int ses_i = proglist.Get("IDX");
 	return programs[ses_i];
 }
 
-MetaNode* AiStageCtrl::GetStage() {
+VfsValue* AiStageCtrl::GetStage() {
 	if (!stagelist.IsCursor())
 		return 0;
 	int ex_i = stagelist.Get("IDX");
@@ -937,7 +937,7 @@ void PlaygroundCtrl::LoadThis() {
 	}
 }
 
-void PlaygroundCtrl::SetNode(MetaNode& n) {
+void PlaygroundCtrl::SetNode(VfsValue& n) {
 	this->node = &n;
 }
 

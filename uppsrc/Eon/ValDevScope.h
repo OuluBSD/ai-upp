@@ -38,7 +38,7 @@ class DefaultExchangePoint :
 	
 public:
 	CLASSTYPE(DefaultExchangePoint);
-	DefaultExchangePoint(MetaNode& n) : ExchangePoint(n) {}
+	DefaultExchangePoint(VfsValue& n) : ExchangePoint(n) {}
 	~DefaultExchangePoint() {Deinit();}
 	
 	void Init(MetaSpaceBase* conn) override;

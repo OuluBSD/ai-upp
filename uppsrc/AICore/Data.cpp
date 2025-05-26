@@ -319,8 +319,8 @@ VectorMap<int,int> SrcTextData::GetSortedElementsOfPhraseParts() {
 	return vmap;
 }
 
-ArrayMap<String, Ptr<MetaNodeExt>>& DatasetIndex() {
-	static ArrayMap<String, Ptr<MetaNodeExt>> map;
+ArrayMap<String, Ptr<VfsValueExt>>& DatasetIndex() {
+	static ArrayMap<String, Ptr<VfsValueExt>> map;
 	return map;
 }
 

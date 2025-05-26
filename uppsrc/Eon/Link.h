@@ -4,15 +4,15 @@
 
 #define LINK_CTORH(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& n);
+	x(VfsValue& n);
 
 #define LINK_CTOR(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& n) : LinkBase(n) {}
+	x(VfsValue& n) : LinkBase(n) {}
 
 #define LINK_CTOR_(x, base) \
 	CLASSTYPE(x) \
-	x(MetaNode& n) : base(n) {}
+	x(VfsValue& n) : base(n) {}
 
 class LinkBase :
 	public PacketForwarder
@@ -133,7 +133,7 @@ public:
 	LinkedList<Exchange>&	SideSources() {return side_src_conn;}
 	
 public:
-	LinkBase(MetaNode& n);
+	LinkBase(VfsValue& n);
 	virtual ~LinkBase();
 	
 	Callback2<LinkBase&, PacketIO&>			WhenEnterProcessPackets;

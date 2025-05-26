@@ -11,7 +11,7 @@ class PaintComponent :
 	
 public:
 	CLASSTYPE(PaintComponent)
-	PaintComponent(MetaNode& e) : CustomToolComponent(e) {}
+	PaintComponent(VfsValue& e) : CustomToolComponent(e) {}
 	
 	#undef Idle
 	#undef Painting
@@ -65,7 +65,7 @@ class PaintingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<PaintingInteractionSystemBase, PaintComponent>;
 	CLASSTYPE(PaintingInteractionSystemBase);
-	PaintingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
+	PaintingInteractionSystemBase(VfsValue& m) : ToolSys(m) {}
 	void Visit(Vis& v) override {VIS_THIS(ToolSys) ^ persistent_strokes;}
 	
 	using Parent = Engine;

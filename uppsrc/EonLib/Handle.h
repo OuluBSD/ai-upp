@@ -11,7 +11,7 @@ class HandleEventsBase :
 	
 public:
 	CLASSTYPE(HandleEventsBase)
-	HandleEventsBase(MetaNode& n);
+	HandleEventsBase(VfsValue& n);
 	
 	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;
@@ -63,7 +63,7 @@ class HandleVideoBase :
 	
 public:
 	CLASSTYPE(HandleVideoBase)
-	HandleVideoBase(MetaNode& n);
+	HandleVideoBase(VfsValue& n);
 	
 	bool			IsScreenMode() const {return screen_id >= 0;}
 	
@@ -102,7 +102,7 @@ class HandleOglBase :
 	
 public:
 	CLASSTYPE(HandleVideoBase)
-	HandleOglBase(MetaNode& n);
+	HandleOglBase(VfsValue& n);
 	
 	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;

@@ -36,7 +36,7 @@ void MetaEnvTree::Data() {
 	pkgs.Set(row, 0, "<global>");
 	pkgs.Set(row, "IDX", -1);
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
-		MetaSrcPkg& pkg = env.pkgs[i];
+		VfsSrcPkg& pkg = env.pkgs[i];
 		pkgs.Set(row, 0, pkg.GetTitle());
 		pkgs.Set(row, "IDX", i);
 		row++;
@@ -66,7 +66,7 @@ void MetaEnvTree::DataPkg() {
 		files.Set(0,"IDX",-1);
 	}
 	else {
-		MetaSrcPkg& pkg = env.pkgs[pkg_i];
+		VfsSrcPkg& pkg = env.pkgs[pkg_i];
 		for(int i = 0; i < pkg.files.GetCount(); i++) {
 			files.Set(i,0,pkg.files[i].GetTitle());
 			files.Set(i,"IDX",i);
@@ -103,13 +103,13 @@ void MetaEnvTree::DataFile() {
 	else if (pkg_i >= 0 && file_i < 0) {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitNode(env.env.root, subset, pkg_i);
+		env.SplitValue(env.env.root, subset, pkg_i);
 		AddStmtNodes(0, *subset.n, &subset);
 	}
 	else {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitNode(env.env.root, subset, pkg_i, file_i);
+		env.SplitValue(env.env.root, subset, pkg_i, file_i);
 		AddStmtNodes(0, *subset.n, &subset);
 	}
 	stmts.OpenDeep(0);
@@ -130,7 +130,7 @@ void MetaEnvTree::DataTreeSelection() {
 		return;
 	focus_ptrs.SetCount(0);
 	int sel = stmts.GetCursor();
-	MetaNode& n = *stmt_ptrs[sel];
+	VfsValue& n = *stmt_ptrs[sel];
 	AddFocusNodes(0, n, 0);
 	focus.OpenDeep(0);
 	focus.SetCursor(0);
@@ -142,11 +142,11 @@ void MetaEnvTree::DataFocusSelection() {
 	if (!focus.IsCursor())
 		return;
 	int sel = focus.GetCursor();
-	const MetaNode& n = *focus_ptrs[sel];
+	const VfsValue& n = *focus_ptrs[sel];
 	const AstValue* a = n;
 	if (n.pkg < 0 || n.file < 0 || !a)
 		return;
-	MetaSrcPkg& pkg = env.pkgs[n.pkg];
+	VfsSrcPkg& pkg = env.pkgs[n.pkg];
 	String full_path = pkg.GetFullPath(n.file);
 	String content = LoadFile(full_path);
 	String node_content = GetStringRange(content, a->begin, a->end);
@@ -161,7 +161,7 @@ bool MetaEnvTree::Key(dword key, int count) {
 	return false;
 }
 
-void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
+void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 	if (tree_idx <= stmt_ptrs.GetCount())
 		stmt_ptrs.SetCount(tree_idx+1,0);
 	stmt_ptrs[tree_idx] = &n;
@@ -170,7 +170,7 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	bool skip_default = false;
 	const AstValue* a = n;
 	if (a) {
-		String kind_str = MetaNode::AstGetKindString(a->kind);
+		String kind_str = VfsValue::AstGetKindString(a->kind);
 		s = kind_str + ": " + n.id;
 		if (a->type.GetCount()) s += " (" + a->type + ")";
 		switch (a->kind) {
@@ -197,13 +197,13 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	
 	if (!skip_default) {
 		if (ns) {
-			for (MetaNodeSubset& s : ns->sub) {
+			for (VfsValueSubset& s : ns->sub) {
 				int idx = stmts.Add(tree_idx);
 				AddStmtNodes(idx, *s.n, &s);
 			}
 		}
 		else {
-			for (MetaNode& s : n.sub) {
+			for (VfsValue& s : n.sub) {
 				int idx = stmts.Add(tree_idx);
 				AddStmtNodes(idx, s, 0);
 			}
@@ -211,7 +211,7 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	}
 }
 
-void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
+void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 	if (tree_idx <= focus_ptrs.GetCount())
 		focus_ptrs.SetCount(tree_idx+1,0);
 	focus_ptrs[tree_idx] = &n;
@@ -231,13 +231,13 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 	focus.Set(tree_idx, s);
 	
 	if (ns) {
-		for (MetaNodeSubset& s : ns->sub) {
+		for (VfsValueSubset& s : ns->sub) {
 			int idx = focus.Add(tree_idx);
 			AddFocusNodes(idx, *s.n, &s);
 		}
 	}
 	else {
-		for (MetaNode& s : n.sub) {
+		for (VfsValue& s : n.sub) {
 			int idx = focus.Add(tree_idx);
 			AddFocusNodes(idx, s, 0);
 		}

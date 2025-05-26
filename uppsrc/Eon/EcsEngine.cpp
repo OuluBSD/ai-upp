@@ -6,7 +6,7 @@ NAMESPACE_UPP
 #if 0
 bool EntitySystem::Initialize() {
 	#if 1
-	ASSERT(node.FindOwner<Ecs::Engine>());
+	ASSERT(val.FindOwner<Ecs::Engine>());
 	TODO // should this really start engine etc?
 	#else
 	engine = new Ecs::Engine;
@@ -54,7 +54,7 @@ void EntitySystem::Visit(Vis& vis) {
 
 namespace Ecs {
 
-SystemBase::SystemBase(MetaNode& n) : MetaSystemBase(n) {
+SystemBase::SystemBase(VfsValue& n) : MetaSystemBase(n) {
 	DBG_CONSTRUCT
 }
 
@@ -77,7 +77,7 @@ Event<Engine&> Engine::WhenPreFirstUpdate;
 
 
 
-Engine::Engine(MetaNode& n) : MetaNodeExt(n) {
+Engine::Engine(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -244,7 +244,7 @@ void Engine::Visit(Vis& vis) {
 }
 
 Machine& Engine::GetMachine() {
-	Machine* m = node.FindOwnerRoot<Machine>();
+	Machine* m = val.FindOwnerRoot<Machine>();
 	ASSERT(m);
 	if (!m) throw Exc("cannot find Machine");
 	return *m;
@@ -261,7 +261,7 @@ void Engine::RemoveFromUpdateList(ComponentBasePtr c) {
 Pool& Engine::GetRootPool() {
 	PoolPtr pool = node.Find<Pool>();
 	if (pool) return *pool;
-	pool = &node.Add<Pool>();
+	pool = &val.add<Pool>();
 	pool->node.id = "pool";
 	return *pool;
 }
@@ -272,7 +272,7 @@ Ptr<SystemBase> Engine::Add(TypeCls type, bool startup)
     ASSERT(fn);
     if (!fn)
         return Ptr<SystemBase>();
-    MetaNode& sub = node.Add();
+    VfsValue& sub = val.Add();
 	SystemBase* syst = fn(sub);
 	ASSERT(sub.type_hash);
 	

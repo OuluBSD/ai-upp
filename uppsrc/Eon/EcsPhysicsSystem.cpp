@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-PhysicsSystem::PhysicsSystem(MetaNode& n) : System<CLASSNAME>(n) {
+PhysicsSystem::PhysicsSystem(VfsValue& n) : System<CLASSNAME>(n) {
 	gravity = vec3{ 0, -9.8f, 0 };
 	
 }
@@ -142,7 +142,7 @@ void PhysicsBody::Initialize() {
 	test_fn = 0;
 	is_bound = 0;
 	
-	Ecs::Entity* e = node.FindOwner<Ecs::Entity>();
+	Ecs::Entity* e = val.FindOwner<Ecs::Entity>();
 	if (!e) {
 		LOG("PhysicsBody:Initialize: error: entity not found");
 		return;

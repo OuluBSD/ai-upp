@@ -1,10 +1,10 @@
 #ifndef _Meta_Enum_h_
 #define _Meta_Enum_h_
 
-struct MetaNodeSubset;
+struct VfsValueSubset;
 
 
-// Don't change the order! It breaks MetaNode serialization and all user files
+// Don't change the order! It breaks VfsValue serialization and all user files
 enum {
 	METAKIND_BEGIN = 1000,
 	

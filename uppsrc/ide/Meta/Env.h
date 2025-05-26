@@ -9,10 +9,10 @@ class EnvEditorCtrl : public ToolAppCtrl {
 	WithEnvEditor<Ctrl> edit;
 	
 protected:
-	Ptr<MetaNode> file_root;
-	Vector<Vector<MetaNode*>> ctx_dbs;
-	Vector<MetaNode*> ctxs;
-	Vector<Ptr<MetaNode>> dbs
+	Ptr<VfsValue> file_root;
+	Vector<Vector<VfsValue*>> ctx_dbs;
+	Vector<VfsValue*> ctxs;
+	Vector<Ptr<VfsValue>> dbs
 	;
 	
 	
@@ -25,16 +25,16 @@ public:
 	void RefreshDatabases();
 	void ToolMenu(Bar& bar) override;
 	void SetFont(Font fnt);
-	MetaSrcFile& RealizeFileRoot();
+	VfsSrcFile& RealizeFileRoot();
 	void AddContext();
 	void RemoveContext();
 	void Visit(Vis& v) override;
 	void OnValueChange();
-	void OnOption(Option* opt, MetaNode* db);
+	void OnOption(Option* opt, VfsValue* db);
 	
 	static bool AcceptsExt(String e) { return e == ".env"; }
 	static String GetID() { return "Environment Editor"; }
-	static String MakeIdString(const Vector<MetaNode*>& v);
+	static String MakeIdString(const Vector<VfsValue*>& v);
 };
 
 

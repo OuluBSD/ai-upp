@@ -5,7 +5,7 @@
 namespace Ecs {
 
 
-class Pool : public MetaNodeExt
+class Pool : public VfsValueExt
 {
 	//using PoolVec = Array<Pool>;
 	
@@ -24,7 +24,7 @@ public:
 	//using RScope		= RefScopeEnabler<Pool, EntityStore, PoolParent>;
 	static PoolId GetNextId();
 	CLASSTYPE(Pool)
-	Pool(MetaNode& n);
+	Pool(VfsValue& n);
 	~Pool();
 	
 	typedef enum {
@@ -67,7 +67,7 @@ public:
 	EntityPtr Create() {
 		static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
-		Entity& e = node.Add<Ecs::Entity>();
+		Entity& e = val.add<Ecs::Entity>();
 		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);

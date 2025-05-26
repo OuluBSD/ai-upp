@@ -7,19 +7,19 @@
 NAMESPACE_UPP
 
 
-MetaNodeExt& MetaExtCtrl::GetExt() {return *ext;}
-MetaNode& MetaExtCtrl::GetNode() {ASSERT(ext); return ext->node;}
-const MetaNode& MetaExtCtrl::GetNode() const {return ext->node;}
-String MetaExtCtrl::GetFilePath() const {
+VfsValueExt& VfsValueExtCtrl::GetExt() {return *ext;}
+VfsValue& VfsValueExtCtrl::GetValue() {ASSERT(ext); return ext->val;}
+const VfsValue& VfsValueExtCtrl::GetValue() const {return ext->val;}
+String VfsValueExtCtrl::GetFilePath() const {
 	if (owner)
 		return owner->GetFilePath();
 	else
 		return String();
 }
 
-VfsPath MetaExtCtrl::GetCursorPath() const {
+VfsPath VfsValueExtCtrl::GetCursorPath() const {
 	if (ext)
-		return ext->node.GetPath();
+		return ext->val.GetPath();
 	if (owner)
 		return StrVfs(owner->GetFilePath());
 	ASSERT_(0, "invalid cursor path");

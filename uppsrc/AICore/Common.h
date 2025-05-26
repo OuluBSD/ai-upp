@@ -425,10 +425,10 @@ private:
 
 #endif
 
-struct MetaSrcFile;
+struct VfsSrcFile;
 
 String GetStringRange(String content, Point begin, Point end);
-bool UpdateMetaSrcFile(MetaSrcFile& f, const String& path);
+bool UpdateVfsSrcFile(VfsSrcFile& f, const String& path);
 
 
 // TextTool classes

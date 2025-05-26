@@ -35,7 +35,7 @@ struct FarStage : Pte<FarStage> {
 	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(system) VIS_(model_name) VIS_(max_tokens) VIS_(hash);}
 };
 
-struct VfsFarStage : MetaNodeExt {
+struct VfsFarStage : VfsValueExt {
 	
 	
 	METANODE_EXT_CONSTRUCTOR(VfsFarStage)
@@ -59,7 +59,7 @@ public:
 	typedef FarStageCompiler CLASSNAME;
 	FarStageCompiler();
 	
-	bool Compile(Nod& stage);
+	bool Compile(Val& stage);
 	const FarStage& GetResult() const {ASSERT(stage); return *stage;}
 	FarStage* PopResult() {return stage.Detach();}
 	const Vector<ProcMsg>& GetMessages() const {return msgs;}
@@ -86,12 +86,12 @@ private:
 	
 public:
 	CLASSTYPE(Agent)
-	Agent(MetaNode& n);
+	Agent(VfsValue& n);
 	~Agent();
 	
 	void Visit(Vis& v) override {}
 	bool RealizeLibrary(Vector<ProcMsg>& msgs);
-	bool CompileStage(MetaNode& stage, MsgCb WhenMessage=MsgCb());
+	bool CompileStage(VfsValue& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());
 	void Start(MsgCb WhenMessage=MsgCb(), Event<bool> WhenStop=Event<bool>());
@@ -108,18 +108,18 @@ public:
 INITIALIZE(Agent)
 using AgentPtr = Ptr<Agent>;
 
-class AgentInteractionSession : public MetaNodeExt {
+class AgentInteractionSession : public VfsValueExt {
 	AgentPtr agent;
 	
 public:
 	CLASSTYPE(AgentInteractionSession)
-	AgentInteractionSession(MetaNode& n) : MetaNodeExt(n) {}
+	AgentInteractionSession(VfsValue& n) : VfsValueExt(n) {}
 	
 	void Visit(Vis& v) override {}
 	
 };
 
-class AgentInteractionPolicy : public MetaNodeExt {
+class AgentInteractionPolicy : public VfsValueExt {
 	enum {
 		MODE_AGENT,    // Esc-script based essentially
 		MODE_INTERNAL, // for high performance (without Esc script)
@@ -128,13 +128,13 @@ class AgentInteractionPolicy : public MetaNodeExt {
 	
 public:
 	CLASSTYPE(AgentInteractionPolicy)
-	AgentInteractionPolicy(MetaNode& n) : MetaNodeExt(n) {}
+	AgentInteractionPolicy(VfsValue& n) : VfsValueExt(n) {}
 	
 	void Visit(Vis& v) override {}
 	
 };
 
-class AgentInteractionSystem : public MetaNodeExt {
+class AgentInteractionSystem : public VfsValueExt {
 	Vector<AgentPtr> agents;
 	
 	void Runner();
@@ -142,7 +142,7 @@ class AgentInteractionSystem : public MetaNodeExt {
 	
 public:
 	CLASSTYPE(AgentInteractionSystem)
-	AgentInteractionSystem(MetaNode& n) : MetaNodeExt(n) {}
+	AgentInteractionSystem(VfsValue& n) : VfsValueExt(n) {}
 	
 	void Visit(Vis& v) override {}
 	void Start();

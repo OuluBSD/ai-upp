@@ -151,7 +151,7 @@ bool ChaseCam::Arg(String key, Value value) {
 	}
 	if (key == "target") {
 		LOG(MetaEnv().root.GetTreeString());
-		PoolPtr root = &node.FindOwner<Ecs::Engine>()->GetRootPool();
+		PoolPtr root = &val.FindOwner<Ecs::Engine>()->GetRootPool();
 		ASSERT(root);
 		if (!root) return false;
 		

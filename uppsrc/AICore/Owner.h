@@ -90,7 +90,7 @@ struct Owner : Component
 	Array<Role> roles;
 	
 	CLASSTYPE(Owner)
-	Owner(MetaNode& owner) : Component(owner) {}
+	Owner(VfsValue& owner) : Component(owner) {}
 	int FindRole(const String& name) const;
 	void Store();
 	void Load(String name);

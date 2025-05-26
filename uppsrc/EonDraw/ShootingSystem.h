@@ -9,7 +9,7 @@ class ShootingComponent :
 	
 public:
 	CLASSTYPE(ShootingComponent)
-	ShootingComponent(MetaNode& e) : CustomToolComponent(e) {}
+	ShootingComponent(VfsValue& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
 	void Initialize() override;
 	void Uninitialize() override;
@@ -33,7 +33,7 @@ class ShootingInteractionSystemBase :
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;
 	CLASSTYPE(ShootingInteractionSystemBase);
-	ShootingInteractionSystemBase(MetaNode& m) : ToolSys(m) {}
+	ShootingInteractionSystemBase(VfsValue& m) : ToolSys(m) {}
 	void Visit(Vis& v) override {VIS_THIS(ToolSys);}
 	
 	using Parent = Engine;

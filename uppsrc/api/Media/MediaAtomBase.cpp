@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-MediaAtomBaseT<Backend>::MediaAtomBaseT(MetaNode& n) : Atom(n) {
+MediaAtomBaseT<Backend>::MediaAtomBaseT(VfsValue& n) : Atom(n) {
 	def_cap_sz = Size(1280,720);
 	def_cap_fps = 30;
 	

@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-class Word : public MetaExtCtrl {
+class Word : public VfsValueExtCtrl {
 public:
 	void DragAndDrop(Point, PasteClip& d) override;
 	void FrameDragAndDrop(Point, PasteClip& d) override;

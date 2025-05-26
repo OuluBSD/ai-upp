@@ -8,8 +8,8 @@ class MetaEnvTree : public ParentCtrl {
 	TreeCtrl focus;
 	CodeEditor code;
 	MenuBar menu;
-	Vector<MetaNode*> stmt_ptrs, focus_ptrs;
-	MetaNodeSubset subset;
+	Vector<VfsValue*> stmt_ptrs, focus_ptrs;
+	VfsValueSubset subset;
 	
 public:
 	typedef MetaEnvTree CLASSNAME;
@@ -21,8 +21,8 @@ public:
 	void DataTreeSelection();
 	void DataFocusSelection();
 	bool Key(dword key, int count) override;
-	void AddStmtNodes(int parent, MetaNode& n, MetaNodeSubset* ns);
-	void AddFocusNodes(int parent, MetaNode& n, MetaNodeSubset* ns);
+	void AddStmtNodes(int parent, VfsValue& n, VfsValueSubset* ns);
+	void AddFocusNodes(int parent, VfsValue& n, VfsValueSubset* ns);
 	
 };
 

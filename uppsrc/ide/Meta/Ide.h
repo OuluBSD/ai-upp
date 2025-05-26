@@ -1,22 +1,22 @@
 #ifndef _ide_Meta_Ide_h_
 #define _ide_Meta_Ide_h_
 
-struct MetaSrcFile : Moveable<MetaSrcFile> {
+struct VfsSrcFile : Moveable<VfsSrcFile> {
 	int id = -1;
 	String saved_hash;
 	hash_t highest_seen_serial = 0;
 	VectorMap<hash_t,String> seen_types;
-	One<MetaNode> temp;
+	One<VfsValue> temp;
 	int temp_id = -1;
 	
-	MetaSrcPkg* pkg = 0;
+	VfsSrcPkg* pkg = 0;
 	String full_path, rel_path;
 	mutable Mutex lock;
-	bool managed_file = false; // if file only exists as MetaNode json
+	bool managed_file = false; // if file only exists as VfsValue json
 	bool keep_file_ids = false;
 	bool env_file = false;
 	
-	MetaSrcFile() {}
+	VfsSrcFile() {}
 	void Visit(Vis& v);
 	bool IsDirTree() const {return GetFileExt(full_path) == ".d";}
 	bool IsBinary() const {return GetFileExt(full_path) == ".bin";}
@@ -28,8 +28,8 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	bool Load();
 	bool LoadJson(String json);
 	void RefreshSeenTypes();
-	MetaNode& GetTemp();
-	MetaNode& CreateTemp(int dbg_src);
+	VfsValue& GetTemp();
+	VfsValue& CreateTemp(int dbg_src);
 	void ClearTemp();
 	void OnSeenTypes();
 	void OnSerialCounter();
@@ -41,30 +41,30 @@ struct MetaSrcFile : Moveable<MetaSrcFile> {
 	void UpdateLoading();
 	
 	#if 0
-	MetaSrcFile(const MetaSrcFile& f) {*this = f;}
-	MetaSrcFile(MetaSrcFile&& f) /*: ai_items(pick(f.ai_items))*/ {}
-	void operator=(const MetaSrcFile& s);
+	VfsSrcFile(const VfsSrcFile& f) {*this = f;}
+	VfsSrcFile(VfsSrcFile&& f) /*: ai_items(pick(f.ai_items))*/ {}
+	void operator=(const VfsSrcFile& s);
 	void UpdateLinks(FileAnnotation& ann);
 	#endif
 };
 
-struct MetaSrcPkg {
-	typedef MetaSrcPkg CLASSNAME;
+struct VfsSrcPkg {
+	typedef VfsSrcPkg CLASSNAME;
 	
-	Array<MetaSrcFile> files;
+	Array<VfsSrcFile> files;
 	
 	String dir;
 	int id = -1;
 	
-	MetaSrcPkg() {}
-	MetaSrcPkg(MetaSrcPkg&& f) {*this = f;}
-	MetaSrcPkg(const MetaSrcPkg& f) {*this = f;}
-	void operator=(const MetaSrcPkg& f);
+	VfsSrcPkg() {}
+	VfsSrcPkg(VfsSrcPkg&& f) {*this = f;}
+	VfsSrcPkg(const VfsSrcPkg& f) {*this = f;}
+	void operator=(const VfsSrcPkg& f);
 	void Init();
 	bool Load();
 	bool Store(bool forced);
-	MetaSrcFile& GetAddFile(const String& full_path);
-	MetaSrcFile& GetMetaFile();
+	VfsSrcFile& GetAddFile(const String& full_path);
+	VfsSrcFile& GetMetaFile();
 	//void SetPath(String full_path, String upp_dir);
 	String GetTitle() const;
 	String GetRelativePath(const String& path) const;
@@ -81,31 +81,31 @@ private:
 
 struct IdeMetaEnvironment {
 	MetaEnvironment& env;
-	Array<MetaSrcPkg> pkgs;
+	Array<VfsSrcPkg> pkgs;
 	
 	IdeMetaEnvironment();
-	MetaSrcPkg& GetAddPkg(String path);
-	String ResolveMetaSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
-	MetaSrcFile& ResolveFile(const String& includes, const String& path);
-	//MetaSrcFile& ResolveFileInfo(const String& includes, String path);
-	MetaSrcFile& Load(const String& includes, const String& path);
-	void OnLoadFile(MetaSrcFile& file);
-	MetaNode* LoadDatabaseSourceVisit(MetaSrcFile& file, String path, Vis& v);
-	MetaNode& RealizeFileNode(int pkg, int file, int kind);
-	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id);
-	void SplitNode(MetaNode& root, MetaNodeSubset& other, int pkg_id, int file_id);
-	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id);
-	void SplitNode(const MetaNode& root, MetaNode& other, int pkg_id, int file_id);
+	VfsSrcPkg& GetAddPkg(String path);
+	String ResolveVfsSrcPkgPath(const String& includes, String path, String& ret_upp_dir);
+	VfsSrcFile& ResolveFile(const String& includes, const String& path);
+	//VfsSrcFile& ResolveFileInfo(const String& includes, String path);
+	VfsSrcFile& Load(const String& includes, const String& path);
+	void OnLoadFile(VfsSrcFile& file);
+	VfsValue* LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v);
+	VfsValue& RealizeFileNode(int pkg, int file, int kind);
+	void SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id);
+	void SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id, int file_id);
+	void SplitValue(const VfsValue& root, VfsValue& other, int pkg_id);
+	void SplitValue(const VfsValue& root, VfsValue& other, int pkg_id, int file_id);
 	int FindPkg(String dir) const;
-	Vector<MetaNode*> FindAllEnvs();
-	MetaNode* FindNodeEnv(Entity& n);
+	Vector<VfsValue*> FindAllEnvs();
+	VfsValue* FindNodeEnv(Entity& n);
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
-	bool LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, MetaNode*& file_node);
+	bool LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, VfsValue*& file_node);
 	String GetFilepath(int pkg_id, int file_id) const;
 	
 };
 
-void Assign(MetaNode& mn, MetaNode* owner, const ClangNode& n);
+void Assign(VfsValue& mn, VfsValue* owner, const ClangNode& n);
 void Store(IdeMetaEnvironment& env, String& includes, const String& path, ClangNode& n);
 void UpdateWorkspace(IdeMetaEnvironment& env, Workspace& wspc);
 IdeMetaEnvironment& IdeMetaEnv();

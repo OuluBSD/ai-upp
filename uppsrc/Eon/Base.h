@@ -134,7 +134,7 @@ class EventStateBase :
 	static EventStateBase* latest;
 	
 public:
-	EventStateBase(MetaNode& n);
+	EventStateBase(VfsValue& n);
 	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -175,7 +175,7 @@ class TestEventSrcBase :
 	
 public:
 	using Atom::Atom;
-	TestEventSrcBase(MetaNode& n);
+	TestEventSrcBase(VfsValue& n);
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}

@@ -8,7 +8,7 @@ bool PaintingInteractionSystemBase::Initialize() {
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
-	tb = GetEngine().node.Find<ToolboxSystemBase>();
+	tb = GetEngine().val.Find<ToolboxSystemBase>();
 	if (!tb) {
 		LOG("PaintingInteractionSystemBase: error: ToolboxSystemBase required");
 		return false;
@@ -36,7 +36,7 @@ bool PaintingInteractionSystemBase::Arg(String key, Value value) {
 }
 
 PoolPtr PaintingInteractionSystemBase::GetPool() const {
-	return node.FindOwner<Pool>();
+	return val.FindOwner<Pool>();
 }
 
 String PaintingInteractionSystemBase::GetInstructions() const {
@@ -557,7 +557,7 @@ void PaintComponent::Destroy() {
 }
 
 bool PaintComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().node.Find<ModelCache>();
+	ModelCachePtr sys = GetEngine().GetMachine().val.Find<ModelCache>();
 	if (!sys)
 		return false;
 	

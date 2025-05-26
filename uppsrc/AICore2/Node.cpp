@@ -2,9 +2,9 @@
 
 NAMESPACE_UPP
 
-void GenerateTree(MetaNode& root, int total, int branching_low, int branching_high, Callback1<MetaNode&> set_value) {
+void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Callback1<VfsValue&> set_value) {
 	root.sub.Clear();
-	Vector<MetaNode*> next_level;
+	Vector<VfsValue*> next_level;
 	
 	set_value(root);
 	next_level.Add(&root);
@@ -13,11 +13,11 @@ void GenerateTree(MetaNode& root, int total, int branching_low, int branching_hi
 	
 	int count = 0;
 	while (count < total) {
-		Vector<MetaNode*> this_level;
+		Vector<VfsValue*> this_level;
 		this_level <<= next_level;
 		next_level.Clear();
 		for(int i = 0; i < this_level.GetCount(); i++) {
-			MetaNode& n = *this_level[i];
+			VfsValue& n = *this_level[i];
 			int remaining = total-count;
 			if (remaining <= 0) break;
 			int sub_node_count = branching_low + Random(branching_range);
@@ -25,7 +25,7 @@ void GenerateTree(MetaNode& root, int total, int branching_low, int branching_hi
 			n.sub.SetCount(sub_node_count);
 			count += sub_node_count;
 			for(int j = 0; j < sub_node_count; j++) {
-				MetaNode& ptr = n.sub[j];
+				VfsValue& ptr = n.sub[j];
 				ptr.id = IntStr(j);
 				next_level.Add(&ptr);
 				set_value(ptr);

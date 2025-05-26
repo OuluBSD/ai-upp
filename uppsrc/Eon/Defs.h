@@ -30,14 +30,14 @@
 
 #define ECS_SYS_CTOR_(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& e) : System<x>(e)
+	x(VfsValue& e) : System<x>(e)
 
 #define ECS_SYS_CTOR(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& m) : System<x>(m) {}
+	x(VfsValue& m) : System<x>(m) {}
 #define ECS_SYS_CTOR_DERIVED(x, derived_from) \
 	CLASSTYPE(x) \
-	x(MetaNode& m) : derived_from(m) {}
+	x(VfsValue& m) : derived_from(m) {}
 #define ECS_SYS_DEF_VISIT void Visit(Vis& vis) override {}
 #define ECS_SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x;}
 #define PREFAB_BEGIN(x) \

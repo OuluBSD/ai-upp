@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Agent::Agent(MetaNode& n) : Component(n) {
+Agent::Agent(VfsValue& n) : Component(n) {
 	ASSERT(AgentInteractionSystem::sys);
 	if (AgentInteractionSystem::sys) {
 		AgentInteractionSystem::sys->Attach(this);
@@ -132,7 +132,7 @@ bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
 	return succ;
 }
 
-bool Agent::CompileStage(MetaNode& stage, MsgCb WhenMessage) {
+bool Agent::CompileStage(VfsValue& stage, MsgCb WhenMessage) {
 	TimeStop ts;
 	
 	ASSERT(stage.type_hash == AsTypeHash<VfsFarStage>());

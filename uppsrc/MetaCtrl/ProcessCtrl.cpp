@@ -35,7 +35,7 @@ MetaProcess::~MetaProcess() {
 	Stop();
 }
 
-void MetaProcess::SetSource(String filepath, MetaNode& n, Vector<String> code)
+void MetaProcess::SetSource(String filepath, VfsValue& n, Vector<String> code)
 {
 	this->filepath = filepath;
 	this->node = &n;
@@ -100,11 +100,11 @@ void MetaProcess::MakeBaseAnalysis() {
 	tasks.Clear();
 	tasks.Reserve(vis.export_items.GetCount());
 	int i = 0;
-	Index<MetaNode*> visited;
+	Index<VfsValue*> visited;
 	for(const auto& it : vis.export_items) {
 		// Skip these kinds
 		if (it.node) {
-			MetaNode& n = *it.node;
+			VfsValue& n = *it.node;
 			AstValue* a = n;
 			if (a && (a->kind == CXCursor_CXXBaseSpecifier ||
 					  a->kind == CXCursor_ReturnStmt)) {
@@ -143,7 +143,7 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 	if (!vis.node)
 		return false;
 	
-	const MetaNode& n = *vis.node;
+	const VfsValue& n = *vis.node;
 	const AstValue* a = n;
 	bool is_any_type	= a && IsTypeKind(a->kind);
 	bool is_any_var		= a && IsVarKind(a->kind);
@@ -151,8 +151,8 @@ bool AITask::IsLinked(const AITask& t, const Relation& rel) const {
 	bool is_any_fn		= a && IsFunctionAny(a->kind);
 	bool is_macrodef	= a && a->kind == CXCursor_MacroDefinition;
 	
-	const MetaNode& rel_link = *rel.link_node;
-	const MetaNode& rel_n = *rel.node;
+	const VfsValue& rel_link = *rel.link_node;
+	const VfsValue& rel_n = *rel.node;
 	
 	switch (rel.reason) {
 		case NO_REASON:
@@ -349,7 +349,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 		return false;
 	}
 	MetaEnvironment& env = MetaEnv();
-	MetaNode& n = *t.vis.node;
+	VfsValue& n = *t.vis.node;
 	const String id = n.id;
 	hash_t type_hash = n.type_hash;
 	const AstValue* ap = n;
@@ -408,8 +408,8 @@ bool MetaProcess::MakeTask(AITask& t) {
 		else {
 			//	- it needs the value of every Field and inherited class "function".
 			
-			Vector<MetaNode*> bases = n.AstFindAllShallow(CXCursor_CXXBaseSpecifier);
-			for (MetaNode* s : bases) {
+			Vector<VfsValue*> bases = n.AstFindAllShallow(CXCursor_CXXBaseSpecifier);
+			for (VfsValue* s : bases) {
 				auto& rel = t.relations.Add();
 				rel.reason = AITask::TYPE_INHERITANCE_DEPENDENCY;
 				rel.node = s;
@@ -423,11 +423,11 @@ bool MetaProcess::MakeTask(AITask& t) {
 			//	for (const AnnotationItem& ai : it.value.items) {
 			for(const auto& it : vis.export_items) {
 				if (!it.node || it.node == &n) continue;
-				MetaNode& n1 = *it.node;
+				VfsValue& n1 = *it.node;
 				const AstValue* a1 = n1;
 				if  (a1 && a1->is_definition && IsTypeKind(a1->kind)) {
-					Vector<MetaNode*> bases1 = n1.AstFindAllShallow(CXCursor_CXXBaseSpecifier);
-					for (MetaNode* base1 : bases1) {
+					Vector<VfsValue*> bases1 = n1.AstFindAllShallow(CXCursor_CXXBaseSpecifier);
+					for (VfsValue* base1 : bases1) {
 						if (base1->type_hash == type_hash) {
 							auto& rel = t.relations.Add();
 							rel.reason = AITask::TYPE_INHERITANCE_DEPENDING,
@@ -438,8 +438,8 @@ bool MetaProcess::MakeTask(AITask& t) {
 							rel.type_hash = n1.type_hash;
 							continue;
 						}
-						Vector<MetaNode*> decls = env.FindDeclarationsDeep(*base1);
-						for (MetaNode* decl : decls) {
+						Vector<VfsValue*> decls = env.FindDeclarationsDeep(*base1);
+						for (VfsValue* decl : decls) {
 							/*LOG("###");
 							LOG("Focus: " << id);
 							LOG("Focus: " << n.id);
@@ -470,7 +470,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			//	for (const AnnotationItem& ai : it.value.items) {
 			for(const auto& it : vis.export_items) {
 				if (!it.node || it.node == &n) continue;
-				MetaNode& n1 = *it.node;
+				VfsValue& n1 = *it.node;
 				const AstValue* a1 = n1;
 				if (a1 && IsVarKind(a1->kind)) {
 					if (IsTypeKindBuiltIn(a1->type))
@@ -491,7 +491,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			// Methods & Fields
 			for(const auto& it : vis.export_items) {
 				if (!it.node) continue;
-				MetaNode& n1 = *it.node;
+				VfsValue& n1 = *it.node;
 				const AstValue* a1 = n1;
 				if (!n.ContainsDeep(n1))
 					continue;
@@ -529,7 +529,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 		//	for (const ReferenceItem& ref : it.value.refs) {
 		for(const auto& it : vis.export_items) {
 			if (!it.link_node) continue;
-			MetaNode& ref = *it.link_node;
+			VfsValue& ref = *it.link_node;
 			if (&ref == &n) {
 				auto& rel = t.relations.Add();
 				rel.reason = AITask::USAGE_REF;
@@ -544,7 +544,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 		bool skip_type = true;
 		if (type_hash) {
 			if (!IsTypeKindBuiltIn(a.type)) {
-				MetaNode* decl = env.FindTypeDeclaration(n.type_hash);
+				VfsValue* decl = env.FindTypeDeclaration(n.type_hash);
 				const AstValue* a = decl ? *decl : 0;
 				if (a && a->begin == Point(0,0) && a->kind == CXCursor_Namespace)
 					;
@@ -556,7 +556,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			bool found = false;
 			for(const auto& it : vis.export_items) {
 				if (!it.node) continue;
-				MetaNode& n1 = *it.node;
+				VfsValue& n1 = *it.node;
 				AstValue* a1 = n1;
 				//for (auto it : ~idx) {
 				//	for (const AnnotationItem& ai : it.value.items) {
@@ -592,9 +592,9 @@ bool MetaProcess::MakeTask(AITask& t) {
 	//3. Methods and functions
 	if (is_any_fn) {
 		if (IsMethodAny(a.kind)) {
-			Vector<MetaNode*> type_ref = n.AstFindAllShallow(CXCursor_TypeRef);
-			MetaNode* loc = 0;
-			MetaNode* nest;
+			Vector<VfsValue*> type_ref = n.AstFindAllShallow(CXCursor_TypeRef);
+			VfsValue* loc = 0;
+			VfsValue* nest;
 			if (type_ref.GetCount()) {
 				loc = type_ref[0];
 				nest = env.FindDeclaration(*loc);
@@ -603,7 +603,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				nest = n.owner;
 			AstValue* a = nest ? *nest : 0;
 			if (a && IsStruct(a->kind)) {
-				MetaNode& type = *nest;
+				VfsValue& type = *nest;
 				auto& rel = t.relations.Add();
 				rel.is_dependency = true;
 				rel.reason = AITask::TYPE_PARENT;
@@ -659,8 +659,8 @@ bool MetaProcess::MakeTask(AITask& t) {
 			//const auto& it = idx[t_file_idx];
 			for(const auto& it : vis.export_items) {
 				if (!it.node || !it.link_node) continue;
-				MetaNode& n1 = *it.node;
-				MetaNode& call_tgt = *it.link_node;
+				VfsValue& n1 = *it.node;
+				VfsValue& call_tgt = *it.link_node;
 				if (&call_tgt == &n) {
 					const AstValue* a1 = n1;
 					const AstValue* owner1 = a1 && n1.owner ? *n1.owner : 0;
@@ -678,7 +678,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			}
 			for(const auto& it : vis.export_items) {
 				if (it.node) {
-					MetaNode& n1 = *it.node;
+					VfsValue& n1 = *it.node;
 					if (!n.ContainsDeep(n1) || &n == &n1)
 						continue;
 					if (n1.type_hash == 0)
@@ -686,7 +686,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 					const AstValue* a1 = n1;
 					if (a1 && IsTypeKindBuiltIn(a1->type))
 						continue;
-					MetaNode* type = env.FindTypeDeclaration(n1.type_hash);
+					VfsValue* type = env.FindTypeDeclaration(n1.type_hash);
 					const AstValue* type_ast = type ? *type : 0;
 					if (type_ast && type_ast->begin == Point(0,0) && type_ast->kind == CXCursor_Namespace)
 						continue; // built-in type
@@ -711,17 +711,17 @@ bool MetaProcess::MakeTask(AITask& t) {
 			}
 			for(const auto& it : vis.export_items) {
 				if (!it.node) continue;
-				MetaNode& ret = *it.node;
+				VfsValue& ret = *it.node;
 				const AstValue* ret_ast = ret;
 				if (ret_ast && ret_ast->kind != CXCursor_ReturnStmt) continue;
 				if (!n.ContainsDeep(ret)) continue;
 				
 				// Return statements
-				Vector<MetaNode*> val = ret.AstFindAllShallow(CXCursor_UnexposedExpr);
+				Vector<VfsValue*> val = ret.AstFindAllShallow(CXCursor_UnexposedExpr);
 				if (val.IsEmpty() && ret.GetAstValueCount() == 1) // add any value (TODO is this dangerous?)
 					val << &ret.sub[0];
 				if (val.GetCount()) {
-					MetaNode& n1 = *val[0];
+					VfsValue& n1 = *val[0];
 					const AstValue* a1 = n1;
 					
 					if (t.HasReason(AITask::RETURN_VALUE, a1->begin))
@@ -756,7 +756,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 		//		- a bit like FOG's various "auto statements".
 		for(const auto& it : vis.export_items) {
 			if (!it.node) continue;
-			MetaNode& n1 = *it.node;
+			VfsValue& n1 = *it.node;
 			const AstValue* a1 = n1;
 			if (a1 && a1->kind == CXCursor_MacroExpansion) {
 				if (!(n1.file == n.file && n1.pkg == n.pkg && RangeContains(a1->begin, begin, end)))
@@ -832,7 +832,7 @@ bool MetaProcess::ProcessTask(AITask& t) {
 		if (!rel.node)
 			continue;
 		
-		MetaNode& n = *rel.node;
+		VfsValue& n = *rel.node;
 		const AstValue* a = n;
 		k = AITask::GetReasonString(rel.reason) + ": ";
 		if (a && a->kind > 0)
@@ -931,7 +931,7 @@ void MetaProcessCtrl::Data() {
 	int row = 0;
 	for(int i = 0; i < process.tasks.GetCount(); i++) {
 		const AITask& t = process.tasks[i];
-		const MetaNode& n = *t.vis.node;
+		const VfsValue& n = *t.vis.node;
 		tasks.Set(row, "IDX", i);
 		tasks.Set(row, "TYPE", 0);
 		const AstValue* a = n;
@@ -995,7 +995,7 @@ void MetaProcessCtrl::DataTask() {
 		info.Set(i, 1, AITask::GetReasonString(rel.reason));
 		info.Set(i, 2, rel.file);
 		if (rel.node) {
-			const MetaNode& n1 = *rel.node;
+			const VfsValue& n1 = *rel.node;
 			const AstValue* a1 = n1;
 			info.Set(i, 3, a1 ? a1->begin.ToString() : "<error>");
 		}
@@ -1003,7 +1003,7 @@ void MetaProcessCtrl::DataTask() {
 			info.Set(i, 3, Value());
 		}
 		if (rel.node || rel.link_node) {
-			const MetaNode& n1 = rel.node ? *rel.node : *rel.link_node;
+			const VfsValue& n1 = rel.node ? *rel.node : *rel.link_node;
 			const AstValue* a1 = n1;
 			info.Set(i, 4, a1 ? GetCursorKindName((CXCursorKind)a1->kind) : "<error>");
 			info.Set(i, 5, n1.id);
@@ -1026,7 +1026,7 @@ void MetaProcessCtrl::DataTask() {
 	
 }
 
-void MetaProcessCtrl::RunTask(String filepath, MetaNode& n, Vector<String> code, MetaProcess::FnType fn) {
+void MetaProcessCtrl::RunTask(String filepath, VfsValue& n, Vector<String> code, MetaProcess::FnType fn) {
 	process.SetSource(filepath, n, pick(code));
 	process.Start(fn);
 }
@@ -1034,7 +1034,7 @@ void MetaProcessCtrl::RunTask(String filepath, MetaNode& n, Vector<String> code,
 
 
 
-bool AITask::HasInput(const MetaNode& n) const {
+bool AITask::HasInput(const VfsValue& n) const {
 	for (const auto& in : relations) {
 		if (in.node == &n || in.link_node == &n)
 			return true;
@@ -1042,7 +1042,7 @@ bool AITask::HasInput(const MetaNode& n) const {
 	return false;
 }
 
-bool AITask::HasInputLink(const MetaNode& n, bool is_dep) const {
+bool AITask::HasInputLink(const VfsValue& n, bool is_dep) const {
 	for (const auto& in : relations) {
 		if (in.link_node == &n && in.is_dependency == is_dep)
 			return true;

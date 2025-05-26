@@ -101,7 +101,7 @@ class VideoLoaderBaseT :
 public:
 	using CLASSNAME = VideoLoaderBaseT<Backend>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	VideoLoaderBaseT(MetaNode& n);
+	VideoLoaderBaseT(VfsValue& n);
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	void Uninitialize() override;

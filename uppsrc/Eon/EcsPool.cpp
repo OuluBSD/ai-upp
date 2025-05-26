@@ -10,7 +10,7 @@ Engine& GetPoolEngine(PoolPtr pool) {return pool->GetEngine();}
 
 
 
-Pool::Pool(MetaNode& n) : MetaNodeExt(n) {
+Pool::Pool(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -33,7 +33,7 @@ Pool* Pool::GetParent() const {
 }
 
 Engine& Pool::GetEngine() {
-	Engine* e = node.FindOwner<Engine>();
+	Engine* e = val.FindOwner<Engine>();
 	ASSERT(e);
 	if (!e) throw Exc("No engine found");
 	return *e;
@@ -48,7 +48,7 @@ void Pool::Initialize(Entity& e, String prefab) {
 }
 
 EntityPtr Pool::CreateEmpty(String id) {
-	Entity& e = node.Add<Ecs::Entity>();
+	Entity& e = val.add<Ecs::Entity>();
 	e.node.id = id;
 	e.SetId(GetNextId());
 	Initialize(e);
@@ -64,7 +64,7 @@ EntityPtr Pool::GetAddEmpty(String name) {
 }
 
 EntityPtr Pool::Clone(const Entity& c) {
-	Ecs::Entity& e = node.Add<Ecs::Entity>();
+	Ecs::Entity& e = val.add<Ecs::Entity>();
 	VisitCopy(c, e);
 	return &e;
 }
@@ -134,13 +134,13 @@ void Pool::PruneFromContainer() {
 		pool->PruneFromContainer();
 	
 	Vector<int> rmlist;
-	for(int i = 0; i < node.sub.GetCount(); i++) {
-		auto& s = node.sub[i];
+	for(int i = 0; i < val.sub.GetCount(); i++) {
+		auto& s = val.sub[i];
 		Entity* e = s.ext ? CastPtr<Ecs::Entity>(&*s.ext) : 0;
 		if (e && e->destroyed)
 			rmlist << i;
 	}
-	node.sub.Remove(rmlist);
+	val.sub.Remove(rmlist);
 }
 
 void Pool::Dump() {
@@ -184,7 +184,7 @@ EntityPtr Pool::FindEntityByName(String name) {
 }
 
 PoolPtr Pool::AddPool(String name) {
-	Pool& p = node.Add<Pool>();
+	Pool& p = val.add<Pool>();
 	p.node.id = name;
 	p.SetId(GetNextId());
 	return &p;

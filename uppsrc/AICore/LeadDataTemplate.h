@@ -60,7 +60,7 @@ struct LeadDataTemplate : Component {
 	Index<String> organizational_reasons;
 	
 	CLASSTYPE(LeadDataTemplate)
-	LeadDataTemplate(MetaNode& n) : Component(n) {}
+	LeadDataTemplate(VfsValue& n) : Component(n) {}
 	void Load();
 	void Store();
 	void Visit(Vis& json) override;

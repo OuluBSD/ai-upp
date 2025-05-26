@@ -59,7 +59,7 @@ struct FxEffect : public Atom {
 
 
 template <class Fx> struct EffectEffectT : FxEffect {
-	EffectEffectT(MetaNode& n) : FxEffect(n) {}
+	EffectEffectT(VfsValue& n) : FxEffect(n) {}
 	using CLASSNAME = EffectEffectT<Fx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

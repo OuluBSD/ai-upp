@@ -87,7 +87,7 @@ void CodeVisitor::Begin()
 	macro_defs = MetaEnv().root.AstFindAllShallow(CXCursor_MacroDefinition);
 }
 
-int CodeVisitor::FindItem(MetaNode* n) const {
+int CodeVisitor::FindItem(VfsValue* n) const {
 	int i = 0;
 	for (const auto& it : export_items) {
 		if (&*it.node == n)
@@ -97,7 +97,7 @@ int CodeVisitor::FindItem(MetaNode* n) const {
 	return -1;
 }
 
-void CodeVisitor::Visit(const String& filepath, MetaNode& n)
+void CodeVisitor::Visit(const String& filepath, VfsValue& n)
 {
 	if (visited.Find(&n) >= 0)
 		return;
@@ -126,7 +126,7 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 		// Visit macro definition in "brute-forced" way
 		if (ast.kind == CXCursor_MacroExpansion) {
 			String id = n.id;
-			for (MetaNode* md : macro_defs) {
+			for (VfsValue* md : macro_defs) {
 				if (md->id == id) {
 					it.link_node = md;
 					Visit(filepath, *md);
@@ -141,7 +141,7 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 	if (IsStruct(ast.kind) || IsFunction(ast.kind)) {
 		int pkg = n.pkg;
 		int file = n.file;
-		for (MetaNode* me : macro_exps) {
+		for (VfsValue* me : macro_exps) {
 			if (me->pkg == pkg && me->file == file) {
 				AstValue* ast1 = FindRawValue<AstValue>(me->value);
 				if (ast1 && RangeContains(ast1->begin, ast.begin, ast.end)) {
@@ -152,9 +152,9 @@ void CodeVisitor::Visit(const String& filepath, MetaNode& n)
 	}
 }
 
-void CodeVisitor::VisitSub(const String& filepath, MetaNode& n) {
+void CodeVisitor::VisitSub(const String& filepath, VfsValue& n) {
 	for(int i = 0; i < n.sub.GetCount(); i++) {
-		MetaNode& s = n.sub[i];
+		VfsValue& s = n.sub[i];
 		AstValue* s_ast = FindRawValue<AstValue>(s.value);
 		
 		if (s_ast && !s_ast->is_ref) {
@@ -168,7 +168,7 @@ void CodeVisitor::VisitSub(const String& filepath, MetaNode& n) {
 	}
 }
 
-void CodeVisitor::VisitRef(const String& filepath, MetaNode& n)
+void CodeVisitor::VisitRef(const String& filepath, VfsValue& n)
 {
 	AstValue* ast = FindRawValue<AstValue>(n.value);
 	if (ast) {
@@ -184,14 +184,14 @@ void CodeVisitor::VisitRef(const String& filepath, MetaNode& n)
 	}
 }
 
-void CodeVisitor::VisitId(const String& filepath, MetaNode& n, Item& link_it)
+void CodeVisitor::VisitId(const String& filepath, VfsValue& n, Item& link_it)
 {
 	VisitSub(filepath, n);
 	
 	AstValue& ast = RealizeRawValue<AstValue>(n.value);
 	ASSERT(ast.is_ref);
 	auto& env = MetaEnv();
-	MetaNode* decl = env.FindDeclaration(n);
+	VfsValue* decl = env.FindDeclaration(n);
 	if (decl) {
 		link_it.link_node = decl;
 		TODO // String filepath = env.GetFilepath(decl->pkg, decl->file);

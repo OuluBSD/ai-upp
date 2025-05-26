@@ -6,7 +6,7 @@ FarStageCompiler::FarStageCompiler() {
 	
 }
 
-bool FarStageCompiler::Compile(Nod& stage_node) {
+bool FarStageCompiler::Compile(Val& stage_node) {
 	bool succ = true;
 	msgs.Clear();
 	this->stage.Clear();

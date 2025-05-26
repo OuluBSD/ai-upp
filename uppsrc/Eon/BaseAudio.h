@@ -114,7 +114,7 @@ class AudioGenBase :
 	
 public:
 	using Atom::Atom;
-	AudioGenBase(MetaNode& n);
+	AudioGenBase(VfsValue& n);
 	
 	bool Initialize(const WorldState& ws) final;
 	void Uninitialize() final;
@@ -150,7 +150,7 @@ class AudioMixerBase :
 	
 public:
 	using Atom::Atom;
-	AudioMixerBase(MetaNode& n);
+	AudioMixerBase(VfsValue& n);
 	
 	bool Initialize(const WorldState& ws) final;
 	bool PostInitialize() override;

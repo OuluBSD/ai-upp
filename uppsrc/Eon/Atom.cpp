@@ -9,7 +9,7 @@ AtomBase::CustomerData::CustomerData() : cfg(gen) {}
 AtomBase::CustomerData::~CustomerData() {}
 
 
-AtomBase::AtomBase(MetaNode& n) : MetaNodeExt(n) {
+AtomBase::AtomBase(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -19,7 +19,7 @@ AtomBase::~AtomBase() {
 }
 
 Machine& AtomBase::GetMachine() {
-	Machine* m = node.FindOwner<Machine>();
+	Machine* m = val.FindOwner<Machine>();
 	ASSERT(m);
 	if (!m) throw Exc("Machine not found");
 	return *m;
@@ -36,7 +36,7 @@ void AtomBase::UninitializeDeep() {
 }
 
 Space* AtomBase::GetSpace() {
-	return node.FindOwner<Space>();
+	return val.FindOwner<Space>();
 }
 
 Space& AtomBase::GetParent() {
@@ -67,14 +67,14 @@ void AtomBase::SetPrimarySinkQueueSize(int i) {
 }
 
 void AtomBase::AddAtomToUpdateList() {
-	AtomSystem* sys = node.FindOwnerWith<AtomSystem>();
+	AtomSystem* sys = val.FindOwnerWith<AtomSystem>();
 	ASSERT(sys);
 	if (!sys) throw Exc("AtomSystem not found");
 	sys->AddUpdated(this);
 }
 
 void AtomBase::RemoveAtomFromUpdateList() {
-	AtomSystem* sys = node.FindOwnerWith<AtomSystem>();
+	AtomSystem* sys = val.FindOwnerWith<AtomSystem>();
 	if (sys)
 		sys->RemoveUpdated(this);
 }

@@ -12,7 +12,7 @@ FboAtomT<Gfx>& FboAtomT<Gfx>::Latest() {ASSERT(latest); return *latest;}
 
 
 template <class Gfx>
-FboAtomT<Gfx>::FboAtomT(MetaNode& n) : GfxAtomBase(n) {
+FboAtomT<Gfx>::FboAtomT(VfsValue& n) : GfxAtomBase(n) {
 	latest = this;
 }
 

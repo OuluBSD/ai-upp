@@ -313,7 +313,7 @@ bool ModelComponent::Load(GfxDataState& state) {
 			String path = KnownModelNames::GetPath(prefab_name);
 			auto& mdl = state.AddModel();
 			gfx_hash = mdl.id;
-			ModelCachePtr cache = GetEngine().GetMachine().node.Find<ModelCache>();
+			ModelCachePtr cache = GetEngine().GetMachine().val.Find<ModelCache>();
 			if (cache) {
 				model = cache->GetAddModelFile(path);
 			}

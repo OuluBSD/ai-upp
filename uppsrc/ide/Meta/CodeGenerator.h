@@ -7,10 +7,10 @@ class MetaCodeGenerator {
 public:
 	struct File {
 		String code;
-		VectorMap<TextRange,Ptr<MetaNode>> range_nodes;
-		VectorMap<TextRange,Ptr<MetaNode>> code_nodes;
+		VectorMap<TextRange,Ptr<VfsValue>> range_nodes;
+		VectorMap<TextRange,Ptr<VfsValue>> code_nodes;
 		Vector<int> editor_to_line;
-		Vector<MetaNode*> comment_to_node;
+		Vector<VfsValue*> comment_to_node;
 	};
 	
 private:
@@ -18,14 +18,14 @@ private:
 	
 	
 	
-	void FindFiles(const MetaNodeSubset& n, Vector<Vector<int>>& pkgfiles);
-	void FindNodes(const MetaNodeSubset& n, const PkgFile& key, Vector<MetaNode*>& nodes);
+	void FindFiles(const VfsValueSubset& n, Vector<Vector<int>>& pkgfiles);
+	void FindValues(const VfsValueSubset& n, const PkgFile& key, Vector<VfsValue*>& nodes);
 	
 public:
 	typedef MetaCodeGenerator CLASSNAME;
 	MetaCodeGenerator();
 	
-	bool Process(const MetaNodeSubset& n);
+	bool Process(const VfsValueSubset& n);
 	String GetResult(int pkg, int file) const;
 	const File* GetResultFile(int pkg, int file) const;
 	

@@ -60,7 +60,7 @@ struct AudSourceDevice : public Atom {
 
 
 template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
-	AudioSinkDeviceT(MetaNode& n) : AudSinkDevice(n) {}
+	AudioSinkDeviceT(VfsValue& n) : AudSinkDevice(n) {}
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

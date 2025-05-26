@@ -7,7 +7,7 @@ using namespace Ecs;
 
 
 bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
-	Ecs::Engine* engp = l.parent.parent.node.FindOwnerWith<Ecs::Engine>();
+	Ecs::Engine* engp = l.parent.parent.val.FindOwnerWith<Ecs::Engine>();
 	if (!engp) {
 		RLOG("ExtScriptEcsLoader::Load: error: no Engine");
 		return false;
@@ -55,7 +55,7 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
 		}
 	}
 	
-	Ecs::Engine* eng = sys.node.FindOwnerWith<Ecs::Engine>();
+	Ecs::Engine* eng = sys.val.FindOwnerWith<Ecs::Engine>();
 	ASSERT(eng);
 	if (!eng) return false;
 	
@@ -66,8 +66,8 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
 }
 
 bool ExtScriptEcsLoader::Load(ScriptPoolLoader& l, Ecs::Pool& pool) {
-	auto ents = pool.node.FindAll<Ecs::Entity>();
-	auto pools = pool.node.FindAll<Pool>();
+	auto ents = pool.val.FindAll<Ecs::Entity>();
+	auto pools = pool.val.FindAll<Pool>();
 	
 	for (ScriptEntityLoader& e : l.entities) {
 		String name = e.def.id.ToString();

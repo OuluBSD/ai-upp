@@ -22,7 +22,7 @@ String Id::ToString() const {
 int ScriptLoader::loop_counter = 0;
 
 
-ScriptLoader::ScriptLoader(MetaNode& n) :
+ScriptLoader::ScriptLoader(VfsValue& n) :
 	System<CLASSNAME>(n),
 	ErrorSource("ScriptLoader") {
 	
@@ -955,7 +955,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 }
 
 LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
-	Machine* mach = node.FindOwner<Machine>();
+	Machine* mach = val.FindOwner<Machine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	

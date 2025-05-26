@@ -32,10 +32,10 @@ void EnvEditorCtrl::RefreshDatabases() {
 	IdeMetaEnvironment& env = IdeMetaEnv();
 	
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
-		MetaSrcPkg& pkg = env.pkgs[i];
+		VfsSrcPkg& pkg = env.pkgs[i];
 		
 		for(int j = 0; j < pkg.files.GetCount(); j++) {
-			MetaSrcFile& file = pkg.files[j];
+			VfsSrcFile& file = pkg.files[j];
 			
 			if (file.IsExt(".db-src")) {
 				dbs << &env.RealizeFileNode(pkg.id, file.id, METAKIND_DATABASE_SOURCE);
@@ -44,7 +44,7 @@ void EnvEditorCtrl::RefreshDatabases() {
 	}
 }
 
-String EnvEditorCtrl::MakeIdString(const Vector<MetaNode*>& v) {
+String EnvEditorCtrl::MakeIdString(const Vector<VfsValue*>& v) {
 	String s;
 	for (auto& np : v) {
 		if (!s.IsEmpty()) s.Cat(", ");
@@ -82,7 +82,7 @@ void EnvEditorCtrl::Data() {
 	ctxlist.SetCount(row);
 	
 	for(int i = edit.items.GetCount(); i < dbs.GetCount(); i++) {
-		MetaNode& db = *dbs[i];
+		VfsValue& db = *dbs[i];
 		ASSERT(!db.id.IsEmpty());
 		Option* o = new Option;
 		o->WhenAction << THISBACK2(OnOption, o, &db);
@@ -115,7 +115,7 @@ void EnvEditorCtrl::DataItem() {
 	
 	int row = 0;
 	for(int i = 0; i < dbs.GetCount(); i++) {
-		MetaNode& db = *dbs[i];
+		VfsValue& db = *dbs[i];
 		ASSERT(!db.id.IsEmpty());
 		bool db_enabled = enabled.Find(db.id) >= 0;
 		Option* o = dynamic_cast<Option*>(edit.items.GetCtrl(row, 0));
@@ -126,7 +126,7 @@ void EnvEditorCtrl::DataItem() {
 	
 }
 
-void EnvEditorCtrl::OnOption(Option* opt, MetaNode* db) {
+void EnvEditorCtrl::OnOption(Option* opt, VfsValue* db) {
 	String db_id = db->id;
 	if (!ctxlist.IsCursor()) {
 		edit.items.Clear();
@@ -140,7 +140,7 @@ void EnvEditorCtrl::OnOption(Option* opt, MetaNode* db) {
 	if (enabled) {
 		if (sub_i >= 0)
 			return;
-		MetaNode& s = ctx.AstAdd(METAKIND_DB_REF, db_id);
+		VfsValue& s = ctx.AstAdd(METAKIND_DB_REF, db_id);
 	}
 	else {
 		if (sub_i < 0)
@@ -160,26 +160,26 @@ void EnvEditorCtrl::ToolMenu(Bar& bar) {
 
 void EnvEditorCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
-		MetaNode* n = 0;
+		VfsValue* n = 0;
 		IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}
 	else {
-		MetaSrcFile& file = RealizeFileRoot();
+		VfsSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
 		file.Visit(v);
 		file.ClearTemp();
 	}
 }
 
-MetaSrcFile& EnvEditorCtrl::RealizeFileRoot() {
+VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	IdeMetaEnvironment& env = IdeMetaEnv();
 	String path = this->GetFilePath();
-	MetaSrcFile& file = env.ResolveFile("", path);
-	MetaSrcPkg& pkg = *file.pkg;
+	VfsSrcFile& file = env.ResolveFile("", path);
+	VfsSrcPkg& pkg = *file.pkg;
 	ASSERT(file.id >= 0);
-	MetaNode& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
 	this->file_root = &n;
 	ASSERT(this->file_root->kind == METAKIND_PKG_ENV);
 	return file;
@@ -202,15 +202,15 @@ void EnvEditorCtrl::OnValueChange() {
 
 void EnvEditorCtrl::AddContext() {
 	RealizeFileRoot();
-	MetaNode& n = *file_root;
-	MetaNode& e = n.Add(METAKIND_CONTEXT);
+	VfsValue& n = *file_root;
+	VfsValue& e = n.Add(METAKIND_CONTEXT);
 	e.id = "Unnamed";
 	PostCallback(THISBACK(Data));
 }
 
 void EnvEditorCtrl::RemoveContext() {
 	if (!ctxlist.IsCursor()) return;
-	MetaNode& n = *file_root;
+	VfsValue& n = *file_root;
 	int ent_i = ctxlist.GetCursor();
 	if (ent_i >= 0 && ent_i < n.sub.GetCount())
 		n.sub.Remove(ent_i);

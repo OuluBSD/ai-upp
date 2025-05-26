@@ -49,7 +49,7 @@ struct StaticGroundPlanePrefab :
 	
     static Components Make(Entity& e)
     {
-		Machine* mach = e.node.FindOwner<Machine>();
+		Machine* mach = e.val.FindOwner<Machine>();
 		if (!mach) return Components();
         auto components = Prefab::Make(e);
 		auto ground = components.template Get<Ptr<GroundPlane>>();

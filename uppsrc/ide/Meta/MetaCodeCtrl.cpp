@@ -59,11 +59,11 @@ void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, by
 void MetaCodeCtrl::UpdateEditor()
 {
 	auto& ienv = IdeMetaEnv();
-	MetaSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
-	MetaSrcPkg& pkg = *file.pkg;
+	VfsSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
+	VfsSrcPkg& pkg = *file.pkg;
 	ASSERT(pkg.id >= 0 && file.id >= 0);
-	MetaNodeSubset sub;
-	ienv.SplitNode(ienv.env.root, sub, pkg.id, file.id);
+	VfsValueSubset sub;
+	ienv.SplitValue(ienv.env.root, sub, pkg.id, file.id);
 	
 	gen.Process(sub);
 	gen_file = gen.GetResultFile(pkg.id, file.id);
@@ -87,7 +87,7 @@ void MetaCodeCtrl::UpdateEditor()
 void MetaCodeCtrl::Save(Stream& str, byte charset)
 {
 	str.Put(this->content);
-	// MetaSrcPkg& aion = MetaSrcPkgs().GetAdd(aion_path);
+	// VfsSrcPkg& aion = VfsSrcPkgs().GetAdd(aion_path);
 	// aion.Save();
 }
 
@@ -129,7 +129,7 @@ void MetaCodeCtrl::AddComment()
 	String txt;
 	if(!EditText(txt, "Add comment", ""))
 		return;
-	MetaNode& cn = sel_node->Add();
+	VfsValue& cn = sel_node->Add();
 	AstValue& ca = cn;
 	ca.kind = METAKIND_COMMENT;
 	ca.end = Point(0,origl);
@@ -146,7 +146,7 @@ void MetaCodeCtrl::RemoveComment()
 {
 	SetSelectedLineFromEditor();
 	int sel_line = editor.GetCursorLine();
-	MetaNode* c = sel_line < comment_to_node.GetCount() ? comment_to_node[sel_line] : 0;
+	VfsValue* c = sel_line < comment_to_node.GetCount() ? comment_to_node[sel_line] : 0;
 	if (c) {
 		c->Destroy();
 		StoreMetaFile();
@@ -202,8 +202,8 @@ void MetaCodeCtrl::MakeAiComments()
 		for(auto c : ~comments) {
 			Point pt = cur_sel_node->begin;
 			pt.y += c.key;
-			//MetaNode* closest = cur_sel_node->FindClosest(pt);
-			MetaNode& cn = cur_sel_node->Add();
+			//VfsValue* closest = cur_sel_node->FindClosest(pt);
+			VfsValue& cn = cur_sel_node->Add();
 			cn.kind = METAKIND_COMMENT;
 			cn.id = c.value;
 			cn.begin = cn.end = pt;
@@ -263,12 +263,12 @@ void MetaCodeCtrl::OnTab() {
 void MetaCodeCtrl::StoreMetaFile()
 {
 	auto& ienv = IdeMetaEnv();
-	MetaSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
+	VfsSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	if (file.managed_file) {
 		file.MakeTempFromEnv(false);
 		file.Store(true);
 	}
-	MetaSrcFile& mfile = file.pkg->GetMetaFile();
+	VfsSrcFile& mfile = file.pkg->GetMetaFile();
 	ASSERT(mfile.managed_file);
 	mfile.MakeTempFromEnv(true);
 	mfile.Store(true);
@@ -284,7 +284,7 @@ void MetaCodeCtrl::SetSelectedLineFromEditor()
 	pt.x = (int)(pos - editor.GetPos(sel_line));
 	for (auto n : ~gen_file->code_nodes) {
 		if (n.key.Contains(pt)) {
-			MetaNode& sel = *n.value;
+			VfsValue& sel = *n.value;
 			ASSERT(!sel.only_temporary);
 			this->sel_node = &sel;
 			return;
@@ -308,12 +308,12 @@ void MetaCodeCtrl::OnEditorCursor() {
 	AnnotationData();
 }
 
-void MetaCodeCtrl::VisitCursorInfo(MetaNode& n, int& row) {
+void MetaCodeCtrl::VisitCursorInfo(VfsValue& n, int& row) {
 	cursorinfo.Set(row, 0, n.GetKindString());
 	cursorinfo.Set(row, 1, n.id);
 	cursorinfo.Set(row, 2, n.type);
 	cursorinfo.Set(row, 3, n.begin);
-	MetaNode* decl = n.is_ref ? MetaEnv().FindDeclaration(n) : 0;
+	VfsValue* decl = n.is_ref ? MetaEnv().FindDeclaration(n) : 0;
 	if (decl)
 		cursorinfo.Set(row, 4, decl->begin);
 	else if (n.is_ref)
@@ -349,7 +349,7 @@ void MetaCodeCtrl::AnnotationData() {
 		depthfirst.Set(row, 0, it.file);
 		depthfirst.Set(row, 1, it.pos);
 		if (it.node) {
-			MetaNode& n = *it.node;
+			VfsValue& n = *it.node;
 			depthfirst.Set(row, 2, n.GetKindString());
 			depthfirst.Set(row, 3, n.id);
 			depthfirst.Set(row, 4, n.type);

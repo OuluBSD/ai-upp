@@ -20,8 +20,8 @@ const MetaCodeGenerator::File* MetaCodeGenerator::GetResultFile(int pkg, int fil
 	return 0;
 }
 
-bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
-	MetaNode& n = *np.n;
+bool MetaCodeGenerator::Process(const VfsValueSubset& np) {
+	VfsValue& n = *np.n;
 	ASSERT(!n.only_temporary);
 	
 	IdeMetaEnvironment& ienv = IdeMetaEnv();
@@ -56,27 +56,27 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		File& f = files[i];
 		
 		// Find all parent nodes of the file
-		Vector<MetaNode*> nodes;
-		FindNodes(np, key, nodes);
+		Vector<VfsValue*> nodes;
+		FindValues(np, key, nodes);
 		
 		// Sort nodes based on code position
-		struct MetaNodePtrSorter {
-			bool operator()(const MetaNode* a, const MetaNode* b) const {
+		struct VfsValuePtrSorter {
+			bool operator()(const VfsValue* a, const VfsValue* b) const {
 				const AstValue* av = a ? *a : 0;
 				const AstValue* bv = b ? *b : 0;
 				return IsFilePosLess(av->begin, bv->begin);
 			}
 		};
-		Sort(nodes, MetaNodePtrSorter());
+		Sort(nodes, VfsValuePtrSorter());
 		
 		// Remove overlapping nodes
 		for(int j = 0; j < nodes.GetCount(); j++) {
-			const MetaNode& n0 = *nodes[j];
+			const VfsValue& n0 = *nodes[j];
 			const AstValue* a0 = n0;
 			if (!a0)
 				continue;
 			for(int k = j+1; k < nodes.GetCount(); k++) {
-				const MetaNode& n1 = *nodes[k];
+				const VfsValue& n1 = *nodes[k];
 				const AstValue* a1 = n1;
 				if (a1 && IsRangesOverlapping(a0->begin, a0->end, a1->begin, a1->end)) {
 					if (IsSubset(a0->begin, a0->end, a1->begin, a1->end))
@@ -96,9 +96,9 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		
 		// Write code
 		VectorMap<int,String> lines;
-		Vector<MetaNode*> comments;
-		Vector<MetaNode*> comment_to_node;
-		for (MetaNode* n : nodes) {
+		Vector<VfsValue*> comments;
+		Vector<VfsValue*> comment_to_node;
+		for (VfsValue* n : nodes) {
 			AstValue* a = *n;
 			ASSERT(a);
 			if (!a) continue;
@@ -120,11 +120,11 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 			
 			n->AstFindAllDeep(METAKIND_COMMENT, comments);
 			
-			f.code_nodes.Add(range, const_cast<MetaNode*>(n));
+			f.code_nodes.Add(range, const_cast<VfsValue*>(n));
 		}
 		
 		// Add comments
-		for (MetaNode* comment : comments) {
+		for (VfsValue* comment : comments) {
 			AstValue* a = *comment;
 			ASSERT(a);
 			if (!a) continue;
@@ -147,12 +147,12 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		
 		// Write
 		f.code = Join(lines.GetValues(), "\n");
-		for (const MetaNode* n : nodes) {
+		for (const VfsValue* n : nodes) {
 			const AstValue* a = *n;
 			ASSERT(a);
 			if (!a) continue;
 			
-			f.range_nodes.Add(TextRange(a->begin,a->end), const_cast<MetaNode*>(n));
+			f.range_nodes.Add(TextRange(a->begin,a->end), const_cast<VfsValue*>(n));
 		}
 		f.editor_to_line <<= lines.GetKeys();
 		f.comment_to_node <<= comment_to_node;
@@ -161,8 +161,8 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 	return true;
 }
 
-void MetaCodeGenerator::FindFiles(const MetaNodeSubset& np, Vector<Vector<int>>& pkgfiles) {
-	const MetaNode& n = *np.n;
+void MetaCodeGenerator::FindFiles(const VfsValueSubset& np, Vector<Vector<int>>& pkgfiles) {
+	const VfsValue& n = *np.n;
 	if (n.pkg >= 0 && n.file >= 0) {
 		if (n.pkg >= pkgfiles.GetCount())
 			pkgfiles.SetCount(n.pkg+1);
@@ -171,16 +171,16 @@ void MetaCodeGenerator::FindFiles(const MetaNodeSubset& np, Vector<Vector<int>>&
 			file.SetCount(n.file+1, 0);
 		file[n.file]++;
 	}
-	for (const MetaNodeSubset& s : np.sub)
+	for (const VfsValueSubset& s : np.sub)
 		FindFiles(s, pkgfiles);
 }
 
-void MetaCodeGenerator::FindNodes(const MetaNodeSubset& np, const PkgFile& key, Vector<MetaNode*>& nodes) {
-	MetaNode& n = *np.n;
+void MetaCodeGenerator::FindValues(const VfsValueSubset& np, const PkgFile& key, Vector<VfsValue*>& nodes) {
+	VfsValue& n = *np.n;
 	const AstValue* a = n;
 	if (a && MetaEnvironment::IsMergeable(a->kind)) {
-		for (const MetaNodeSubset& s : np.sub) {
-			FindNodes(s, key, nodes);
+		for (const VfsValueSubset& s : np.sub) {
+			FindValues(s, key, nodes);
 		}
 	}
 	else {

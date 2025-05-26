@@ -268,7 +268,7 @@ protected:
 	
 public:
 	CLASSTYPE(ScriptLoader);
-	ScriptLoader(MetaNode& m);
+	ScriptLoader(VfsValue& m);
 	void Visit(Vis& v) override;
 
 	void PostLoadFile(const String& path) {post_load_file << path;}

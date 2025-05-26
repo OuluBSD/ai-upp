@@ -115,7 +115,7 @@ struct SynInstrument : public Atom {
 
 
 template <class Syn> struct SynthInstrumentT : SynInstrument {
-	SynthInstrumentT(MetaNode& n) : SynInstrument(n) {}
+	SynthInstrumentT(VfsValue& n) : SynInstrument(n) {}
 	using CLASSNAME = SynthInstrumentT<Syn>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

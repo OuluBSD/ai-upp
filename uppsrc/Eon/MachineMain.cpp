@@ -28,7 +28,7 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 		
 		if (dbg_ref_visits)
 			SetDebugRefVisits();
-		RuntimeDiagnostics::Static().SetRoot(mach); // TODO not global -> MetaNode under Machine
+		RuntimeDiagnostics::Static().SetRoot(mach); // TODO not global -> VfsValue under Machine
 		
 	    #ifdef flagSTDEXC
 	    try {

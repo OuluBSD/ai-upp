@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 
 template <class Gfx>
-ImageBaseAtomT<Gfx>::ImageBaseAtomT(MetaNode& n) : Atom(n)
+ImageBaseAtomT<Gfx>::ImageBaseAtomT(VfsValue& n) : Atom(n)
 {
 	
 }

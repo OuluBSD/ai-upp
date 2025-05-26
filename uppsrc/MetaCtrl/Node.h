@@ -13,20 +13,20 @@ public:
 	virtual void ToolMenu(Bar& bar) = 0;
 	virtual void EditPos(JsonIO& json) {};
 	virtual String GetTitle() const {return String();}
-	virtual Value* GetValue() {return 0;}
+	virtual Value* GetPolyValue() {return 0;}
 	virtual VfsPath GetCursorPath() const = 0;
 	Event<> WhenTitle;
 };
 
-struct MetaExtCtrl : WidgetCtrl {
-	Ptr<MetaNodeExt> ext;
+struct VfsValueExtCtrl : WidgetCtrl {
+	Ptr<VfsValueExt> ext;
 	Event<> WhenEditorChange;
 	Event<> WhenTitle;
 	Ptr<ToolAppCtrl> owner;
 	
-	MetaNode& GetNode();
-	const MetaNode& GetNode() const;
-	MetaNodeExt& GetExt();
+	VfsValue& GetValue();
+	const VfsValue& GetValue() const;
+	VfsValueExt& GetExt();
 	String GetFilePath() const;
 	VfsPath GetCursorPath() const override;
 	

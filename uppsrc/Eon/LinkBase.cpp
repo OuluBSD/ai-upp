@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 
 bool CustomerLink::Initialize(const WorldState& ws) {
-	LinkSystemPtr ls = node.FindOwnerWith<LinkSystem>();
+	LinkSystemPtr ls = val.FindOwnerWith<LinkSystem>();
 	if (!ls) {
 		LOG("CustomerLink::Initialize: error: LinkSystem is required");
 		return false;
@@ -16,7 +16,7 @@ bool CustomerLink::Initialize(const WorldState& ws) {
 }
 
 void CustomerLink::Uninitialize() {
-	LinkSystemPtr ls = node.FindOwnerWith<LinkSystem>();
+	LinkSystemPtr ls = val.FindOwnerWith<LinkSystem>();
 	if (ls) ls->RemoveCustomer(this);
 }
 

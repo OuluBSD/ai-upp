@@ -4,7 +4,7 @@ NAMESPACE_UPP namespace Ecs {
 
 
 PoolPtr ThrowingInteractionSystemBase::GetPool() const {
-	return node.FindOwner<Pool>();
+	return val.FindOwner<Pool>();
 }
 
 void ThrowingInteractionSystemBase::Visit(Vis& v) {

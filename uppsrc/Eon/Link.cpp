@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-LinkBase::LinkBase(MetaNode& n) : PacketForwarder(n) {
+LinkBase::LinkBase(VfsValue& n) : PacketForwarder(n) {
 	DBG_CONSTRUCT
 }
 
@@ -41,14 +41,14 @@ ISinkPtr LinkBase::GetSink() {
 }
 
 void LinkBase::AddLinkToUpdateList() {
-	LinkSystem* l = node.FindOwnerWith<LinkSystem>();
+	LinkSystem* l = val.FindOwnerWith<LinkSystem>();
 	ASSERT(l);
 	if (!l) throw Exc("LinkSystem not found");
 	l->AddUpdated(this);
 }
 
 void LinkBase::RemoveLinkFromUpdateList() {
-	LinkSystem* l = node.FindOwnerWith<LinkSystem>();
+	LinkSystem* l = val.FindOwnerWith<LinkSystem>();
 	if (l)
 		l->RemoveUpdated(this);
 }

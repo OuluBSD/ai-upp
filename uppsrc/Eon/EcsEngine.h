@@ -15,7 +15,7 @@ class SystemBase :
 {
 public:
     SystemBase();
-    SystemBase(MetaNode& m);
+    SystemBase(VfsValue& m);
     virtual ~SystemBase();
 
     virtual TypeCls GetTypeCls() const = 0;
@@ -44,14 +44,14 @@ public:
 	using SystemT = System<T>;
     using SystemBase::SystemBase;
 	
-	System(MetaNode& m) : SystemBase(m) {};
+	System(VfsValue& m) : SystemBase(m) {};
     TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
     void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
     
 };
 
 
-class Engine : public MetaNodeExt
+class Engine : public VfsValueExt
 {
 	int64 ticks = 0;
 	
@@ -77,7 +77,7 @@ public:
     Ptr<SystemT> Add(Args&&... args)
     {
         CXX2A_STATIC_ASSERT(Ecs::IsSystem<SystemT>::value, "T should derive from System");
-        MetaNode& sub = node.Add();
+        VfsValue& sub = val.Add();
         SystemT* syst = new SystemT(sub, args...);
 		sub.ext = syst;
 		sub.type_hash = syst->GetTypeHash();
@@ -100,19 +100,19 @@ public:
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
 
         ASSERT(is_initialized && is_started);
-        for(int i = 0; i < node.sub.GetCount(); i++) {
-			auto& n = node.sub[i];
+        for(int i = 0; i < val.sub.GetCount(); i++) {
+			auto& n = val.sub[i];
 			if (n.ext) {
 				SystemT* t = CastPtr<SystemT>(&*n.ext);
 				if (t) {
-					node.sub.Remove(i--);
+					val.sub.Remove(i--);
 				}
 			}
         }
     }
 
 	CLASSTYPE(Engine)
-    Engine(MetaNode& n);
+    Engine(VfsValue& n);
     virtual ~Engine();
 
     bool HasStarted() const;
@@ -168,12 +168,12 @@ private:
     
     
 private:
-	typedef SystemBase* (*NewSystemFn)(MetaNode&);
+	typedef SystemBase* (*NewSystemFn)(VfsValue&);
     static VectorMap<String, TypeCls>& EonToType() {static VectorMap<String, TypeCls> m; return m;}
     static VectorMap<TypeCls, NewSystemFn>& TypeNewFn() {static VectorMap<TypeCls, NewSystemFn> m; return m;}
 	
 	template <class T>
-	static SystemBase* NewSystem(MetaNode& n) {
+	static SystemBase* NewSystem(VfsValue& n) {
 		T* o = new T(n);
 		n.ext = o;
 		n.type_hash = AsTypeHash<T>();
@@ -216,12 +216,12 @@ inline void ComponentBase::RemoveFromSystem(R ref) {
 
 template<typename T>
 void Entity::Remove0() {
-	for(int i = 0; i < node.sub.GetCount(); i++) {
-		auto& n = node.sub[i];
+	for(int i = 0; i < val.sub.GetCount(); i++) {
+		auto& n = val.sub[i];
 		if (n.ext) {
 			T* t = CastPtr<T>(&*n.ext);
 			if (t) {
-				node.sub.Remove(i--);
+				val.sub.Remove(i--);
 			}
 		}
     }
@@ -229,7 +229,7 @@ void Entity::Remove0() {
 
 template<typename T>
 Ptr<T> Entity::Add0(bool initialize) {
-	MetaNode& sub = node.Add();
+	VfsValue& sub = val.Add();
     T* comp = new T(sub);
 	sub.ext = comp;
 	sub.type_hash = comp->GetTypeHash();

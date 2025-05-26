@@ -271,7 +271,7 @@ struct BiographyPerspectives : Component {
 	Array<Concept> concepts;
 	
 	CLASSTYPE(BiographyPerspectives)
-	BiographyPerspectives(MetaNode& o) : Component(o) {}
+	BiographyPerspectives(VfsValue& o) : Component(o) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)

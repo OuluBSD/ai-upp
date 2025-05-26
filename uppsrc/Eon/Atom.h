@@ -11,10 +11,10 @@ template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const
 
 #define ATOM_CTOR_(x, base) \
 	CLASSTYPE(x) \
-	x(MetaNode& n) : base(n) {}
+	x(VfsValue& n) : base(n) {}
 
 class AtomBase :
-	public MetaNodeExt,
+	public VfsValueExt,
 	public PacketForwarderData,
 	public Destroyable
 {
@@ -113,7 +113,7 @@ public:
 	void					SetPrimarySinkQueueSize(int i);
 	
 public:
-	AtomBase(MetaNode& n);
+	AtomBase(VfsValue& n);
 	virtual ~AtomBase();
 	
 	template <class T> T* GetSourceT() {return dynamic_cast<T*>(&*this->GetSource());}
@@ -159,7 +159,7 @@ public:
 	using SourceT = DefaultInterfaceSource;
 	
 	
-	Atom(MetaNode& n) : AtomBase(n) {}
+	Atom(VfsValue& n) : AtomBase(n) {}
 	
 	bool InitializeAtom(const WorldState& ws) override {
 		return SinkT::Initialize() && SourceT::Initialize();

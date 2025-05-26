@@ -43,7 +43,7 @@ struct AFOSink : public Atom {
 
 
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
-	AudioFileOutSinkT(MetaNode& n) : AFOSink(n) {}
+	AudioFileOutSinkT(VfsValue& n) : AFOSink(n) {}
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

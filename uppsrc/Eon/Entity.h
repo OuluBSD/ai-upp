@@ -7,7 +7,7 @@ namespace Ecs {
 class Pool;
 
 class Entity :
-	public MetaNodeExt,
+	public VfsValueExt,
 	public Destroyable,
 	public Enableable
 {
@@ -35,7 +35,7 @@ protected:
 	
 public:
 	CLASSTYPE(Entity)
-	Entity(MetaNode& n);
+	Entity(VfsValue& n);
 	virtual ~Entity();
 	
 	static EntityId GetNextId();

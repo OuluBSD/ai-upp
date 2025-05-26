@@ -12,7 +12,7 @@ struct AiThreadCtrlBase : Ctrl {
 	
 	Ptr<AiThread> ai_thrd;
 	Vector<Model> models;
-	Ptr<MetaNode> node;
+	Ptr<VfsValue> node;
 	
 	// Persistent
 	int model_i = -1;
@@ -47,11 +47,11 @@ struct AiThreadCtrlBase : Ctrl {
 	ChatThread& GetChatThread() {return CastThread<ChatThread>();}
 	
 	void SetThread(AiThread& t);
-	void SetNode(MetaNode& n);
+	void SetNode(VfsValue& n);
 	
 };
 
-struct AiThreadExt : MetaExtCtrl {
+struct AiThreadExt : VfsValueExtCtrl {
 	StageThread& GetStageThread();
 	ChainThread& GetChainThread();
 	
@@ -77,8 +77,8 @@ class AiStageCtrl : public AiThreadExt {
 	DocEdit log;
 	Ptr<Agent> agent;
 	
-	Vector<MetaNode*> programs, stages;
-	/*VectorMap<int,MetaNode*> structure_nodes;
+	Vector<VfsValue*> programs, stages;
+	/*VectorMap<int,VfsValue*> structure_nodes;
 	VectorMap<int,String> structure_values;*/
 	
 	void PrintLog(Vector<ProcMsg>& msgs);
@@ -96,13 +96,13 @@ public:
 	void DataStage();
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
-	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, hash_t type_hash);
+	void DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash);
 	bool CompileStages();
 	bool Compile();
 	bool Run();
 	
-	MetaNode* GetProgram();
-	MetaNode* GetStage();
+	VfsValue* GetProgram();
+	VfsValue* GetStage();
 	
 	void ProgramMenu(Bar& b);
 	void AddProgram();
@@ -124,8 +124,8 @@ class AiChainCtrl : public AiThreadExt {
 	Splitter hsplit, msplit, rsplit;
 	ArrayCtrl session;
 	TreeCtrl structure;
-	Vector<MetaNode*> sessions;
-	VectorMap<int,MetaNode*> structure_nodes;
+	Vector<VfsValue*> sessions;
+	VectorMap<int,VfsValue*> structure_nodes;
 	VectorMap<int,String> structure_values;
 	
 public:
@@ -136,8 +136,8 @@ public:
 	void DataSession();
 	void DataItem();
 	void ToolMenu(Bar& bar) override;
-	void VisitNode(int tree_i, MetaNode& n, String path);
-	MetaNode* GetSession();
+	void VisitNode(int tree_i, VfsValue& n, String path);
+	VfsValue* GetSession();
 	
 	void SessionMenu(Bar& b);
 	void AddSession();
@@ -147,7 +147,7 @@ public:
 	void DuplicateSession();
 	
 	void StageMenu(Bar& b);
-	void AddStageNode(int kind);
+	void AddStageNode(hash_t type_hash);
 	void RenameStageNode();
 	void RemoveStageNode();
 	
@@ -230,7 +230,7 @@ class PlaygroundCtrl : public Ctrl {
 	Ctrl placeholder;
 	
 	One<OmniThread> omni;
-	Ptr<MetaNode> node;
+	Ptr<VfsValue> node;
 	
 public:
 	typedef PlaygroundCtrl CLASSNAME;
@@ -243,7 +243,7 @@ public:
 	void LoadThis();
 	void CreateThread();
 	void SetThread(OmniThread& t);
-	void SetNode(MetaNode& n);
+	void SetNode(VfsValue& n);
 	void TabMenu(Bar& bar);
 	
 	Event<> WhenTab;
@@ -254,7 +254,7 @@ public:
 class PlaygroundApp : public TopWindow {
 	PlaygroundCtrl pg;
 	MenuBar menu;
-	One<MetaNode> omni_node;
+	One<VfsValue> omni_node;
 	
 public:
 	typedef PlaygroundApp CLASSNAME;

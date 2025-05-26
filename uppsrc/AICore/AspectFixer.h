@@ -56,7 +56,7 @@ public:
 
 struct AspectFixerLayer : TempImageLayer {
 	CLASSTYPE(AspectFixerLayer)
-	AspectFixerLayer(MetaNode& owner) : TempImageLayer(owner) {}
+	AspectFixerLayer(VfsValue& owner) : TempImageLayer(owner) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)

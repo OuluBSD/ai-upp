@@ -37,7 +37,7 @@ public:
 	EntityVisitor(Engine& m, int mode=POOL_CURRENT_AND_CHILDREN);
 	EntityVisitor(Entity& e, int mode=POOL_CURRENT_AND_CHILDREN);
 	#endif
-	EntityVisitor(MetaNode& n, int mode=POOL_CURRENT_AND_CHILDREN);
+	EntityVisitor(VfsValue& n, int mode=POOL_CURRENT_AND_CHILDREN);
 	
 	void Reset();
 	void Skip(Pool::Bit entpool_bit);

@@ -33,7 +33,7 @@ public:
 	CLASSTYPE(PhysicsSystem);
     vec3	gravity;
     
-    PhysicsSystem(MetaNode& n);
+    PhysicsSystem(VfsValue& n);
 
     
     void Attach(PhysicsBody& b);

@@ -94,7 +94,7 @@ String ToolAppCtrl::GetComponentTitle() const {
 
 DatasetPtrs ToolAppCtrl::GetDataset() const {
 	DatasetPtrs p;
-	MetaNode* n = GetFileNode();
+	VfsValue* n = GetFileNode();
 	if (n)
 		FillDataset(p, *n, dynamic_cast<Component*>(const_cast<ToolAppCtrl*>(this)));
 	return p;

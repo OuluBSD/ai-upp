@@ -7,22 +7,22 @@ Searcher::Searcher() {
 	
 }
 
-bool Searcher::TerminalTest(Nod& n, NodeRoute& prev) {
+bool Searcher::TerminalTest(Val& n, NodeRoute& prev) {
 	ASSERT(n.ext);
 	return n.ext->TerminalTest(prev);
 }
 
-double Searcher::Utility(Nod& n) {
+double Searcher::Utility(Val& n) {
 	ASSERT(n.ext);
 	return n.ext->GetUtility();
 }
 
-double Searcher::Estimate(Nod& n) {
+double Searcher::Estimate(Val& n) {
 	ASSERT(n.ext);
 	return n.ext->GetEstimate();
 }
 
-double Searcher::Distance(Nod& n, Nod& dest) {
+double Searcher::Distance(Val& n, Val& dest) {
 	ASSERT(n.ext);
 	return n.ext->GetDistance(dest);
 }
@@ -33,8 +33,8 @@ double Searcher::Distance(Nod& n, Nod& dest) {
 
 MiniMax::MiniMax() {route.from_owner_only = true;}
 	
-double MiniMax::MaxValue(Nod& n, int* decision_pos) {
-	Nod* p = 0;
+double MiniMax::MaxValue(Val& n, int* decision_pos) {
+	Val* p = 0;
 	if (TerminalTest(n,route))
 		return this->Utility(n);
 	double v = -DBL_MAX;
@@ -52,8 +52,8 @@ double MiniMax::MaxValue(Nod& n, int* decision_pos) {
 	return v;
 }
 
-double MiniMax::MinValue(Nod& n, int* decision_pos) {
-	Nod* p = 0;
+double MiniMax::MinValue(Val& n, int* decision_pos) {
+	Val* p = 0;
 	if (TerminalTest(n,route))
 		return Searcher::Utility(n);
 	double v = DBL_MAX;
@@ -69,12 +69,12 @@ double MiniMax::MinValue(Nod& n, int* decision_pos) {
 	return v;
 }
 
-Vector<Nod*> MiniMax::Search(Nod& src) {
-	Vector<Nod*> out;
-	Nod* ptr = &src;
-	Nod* prev = 0;
+Vector<Val*> MiniMax::Search(Val& src) {
+	Vector<Val*> out;
+	Val* ptr = &src;
+	Val* prev = 0;
 	while (1) {
-		Nod& t = *out.Add(ptr);
+		Val& t = *out.Add(ptr);
 		if (TerminalTest(*ptr,route)) break;
 		int type = out.GetCount() % 2;
 		int pos = -1;
@@ -108,7 +108,7 @@ Vector<Nod*> MiniMax::Search(Nod& src) {
 
 AlphaBeta::AlphaBeta() {route.from_owner_only = true;}
 
-double AlphaBeta::MaxValue(Nod& n, double alpha, double beta, int* decision_pos) {
+double AlphaBeta::MaxValue(Val& n, double alpha, double beta, int* decision_pos) {
 	if (TerminalTest(n,route))
 		return this->Utility(n);
 	int pos = -1;
@@ -130,7 +130,7 @@ double AlphaBeta::MaxValue(Nod& n, double alpha, double beta, int* decision_pos)
 	return v;
 }
 
-double AlphaBeta::MinValue(Nod& n, double alpha, double beta, int* decision_pos) {
+double AlphaBeta::MinValue(Val& n, double alpha, double beta, int* decision_pos) {
 	if (TerminalTest(n,route))
 		return this->Utility(n);
 	int pos = -1;
@@ -150,11 +150,11 @@ double AlphaBeta::MinValue(Nod& n, double alpha, double beta, int* decision_pos)
 	return v;
 }
 
-Vector<Nod*> AlphaBeta::Search(Nod& src) {
-	Vector<Nod*> out;
-	Nod* ptr = &src;
+Vector<Val*> AlphaBeta::Search(Val& src) {
+	Vector<Val*> out;
+	Val* ptr = &src;
 	while (1) {
-		Nod& t = *out.Add((Nod*)ptr);
+		Val& t = *out.Add((Val*)ptr);
 		if (TerminalTest(*ptr,route)) break;
 		int type = out.GetCount() % 2;
 		int pos = -1;
@@ -187,19 +187,19 @@ Vector<Nod*> AlphaBeta::Search(Nod& src) {
 
 BreadthFirst::BreadthFirst() {route.from_owner_only = true;}
 
-Vector<Nod*> BreadthFirst::Search(Nod& src) {
-	Vector<Nod*> out;
-	Vector<Nod*> queue, next_queue;
+Vector<Val*> BreadthFirst::Search(Val& src) {
+	Vector<Val*> out;
+	Vector<Val*> queue, next_queue;
 	next_queue.Add(&src);
 	double v = DBL_MAX;
-	Nod* ptr = 0;
+	Val* ptr = 0;
 	while (1) {
 		queue <<= next_queue;
 		next_queue.Clear();
 		
 		bool all_terminals = true;
 		for(int i = 0; i < queue.GetCount(); i++) {
-			Nod& t = *queue[i];
+			Val& t = *queue[i];
 			
 			if (TerminalTest(t,route)) {
 				ptr = &t;
@@ -231,16 +231,16 @@ Vector<Nod*> BreadthFirst::Search(Nod& src) {
 
 UniformCost::UniformCost() {route.from_owner_only = true;}
 
-Vector<Nod*> UniformCost::Search(Nod& src) {
-	Vector<Nod*> out;
-	Vector<Nod*> frontier;
+Vector<Val*> UniformCost::Search(Val& src) {
+	Vector<Val*> out;
+	Vector<Val*> frontier;
 	frontier.Add(&src);
 	double v = DBL_MAX;
-	Nod* ptr = 0;
+	Val* ptr = 0;
 	
 	for(; frontier.GetCount();) {
 		bool all_terminals = true;
-		Nod& t = *frontier[0];
+		Val& t = *frontier[0];
 		if (TerminalTest(t,route)) {
 			ptr = &t;
 			all_terminals = true;
@@ -252,7 +252,7 @@ Vector<Nod*> UniformCost::Search(Nod& src) {
 		
 		//TODO: change this to search like in AStar, because it is faster than insert, which moves huge block of memory always. Or do something completely different and better.
 		for(int j = 0; j < t.GetCount(); j++) {
-			Nod& sub = t[j];
+			Val& sub = t[j];
 			double utility = this->Utility(sub);
 			bool inserted = false;
 			for(int k = 0; k < frontier.GetCount(); k++) {
@@ -290,12 +290,12 @@ Vector<Nod*> UniformCost::Search(Nod& src) {
 
 DepthFirst::DepthFirst() {route.from_owner_only = true;}
 
-Vector<Nod*> DepthFirst::Search(Nod& src) {
-	Vector<Nod*> out;
+Vector<Val*> DepthFirst::Search(Val& src) {
+	Vector<Val*> out;
 	
 	typename Nod::IteratorDeep it = src.BeginDeep();
-	Nod* ptr = 0;
-	Nod* prev = 0;
+	Val* ptr = 0;
+	Val* prev = 0;
 	double v = DBL_MAX;
 	
 	while (!it.IsEnd()) {
@@ -332,12 +332,12 @@ DepthLimited::DepthLimited() : limit(-1) {route.from_owner_only = true;}
 
 void DepthLimited::SetLimit(int lim) {limit = lim;}
 
-Vector<Nod*> DepthLimited::Search(Nod& src) {
-	Vector<Nod*> out;
+Vector<Val*> DepthLimited::Search(Val& src) {
+	Vector<Val*> out;
 	
 	typename Nod::IteratorDeep it = src.BeginDeep();
-	Nod* ptr = 0;
-	Nod* prev = 0;
+	Val* ptr = 0;
+	Val* prev = 0;
 	double v = DBL_MAX;
 	
 	while (!it.IsEnd()) {
@@ -377,19 +377,19 @@ Vector<Nod*> DepthLimited::Search(Nod& src) {
 
 BestFirst::BestFirst() {route.from_owner_only = true;}
 
-Vector<Nod*> BestFirst::Search(Nod& src) {
-	Vector<Nod*> out;
-	Nod* ptr = &src;
-	Nod* prev = &src;
+Vector<Val*> BestFirst::Search(Val& src) {
+	Vector<Val*> out;
+	Val* ptr = &src;
+	Val* prev = &src;
 	while (1) {
-		out.Add((Nod*)ptr);
-		Nod& t = *ptr;
+		out.Add((Val*)ptr);
+		Val& t = *ptr;
 		if (TerminalTest(*ptr,route))
 			break;
 		int pos = -1;
 		double v = DBL_MAX;
 		for(int i = 0; i < t.GetCount(); i++) {
-			Nod& sub = t[i];
+			Val& sub = t[i];
 			double estimate = this->Estimate(sub);
 			if (estimate < v) {
 				v = estimate;
@@ -418,7 +418,7 @@ Vector<Nod*> BestFirst::Search(Nod& src) {
 
 
 
-int AStar::FindNode(const Vector<NodePtr*>& vec, const Nod* ptr) {
+int AStar::FindNode(const Vector<NodePtr*>& vec, const Val* ptr) {
 	int i = 0;
 	for (const NodePtr* p : vec) {
 		if (p->ptr == ptr)
@@ -442,18 +442,18 @@ void AStar::Stop() {do_search = false;}
 
 void AStar::TrimWorst(int limit, int count) {rm_limit = limit; max_worst = count; ASSERT(count >= 0);}
 
-Vector<Nod*> AStar::GetBestKnownPath() {
+Vector<Val*> AStar::GetBestKnownPath() {
 	if (smallest_id < 0)
-		return Vector<Nod*>();
+		return Vector<Val*>();
 	
 	NodePtr* t_ptr = open_set[smallest_id];
-	Nod& t = *t_ptr->ptr;
+	Val& t = *t_ptr->ptr;
 	return ReconstructPath(t, closed_set, open_set);
 }
 
-Vector<Nod*> AStar::ReconstructPath(Nod& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
-	Vector<Nod*> path;
-	Nod* ptr = &current;
+Vector<Val*> AStar::ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
+	Vector<Val*> path;
+	Val* ptr = &current;
 	while (1) {
 		path.Add(ptr);
 		int i = FindNode(open_set, ptr);
@@ -468,7 +468,7 @@ Vector<Nod*> AStar::ReconstructPath(Nod& current, Vector<NodePtr*>& closed_set, 
 		else ptr = open_set[i]->came_from->ptr;
 		if (!ptr) break;
 	}
-	Vector<Nod*> out;
+	Vector<Val*> out;
 	out.SetCount(path.GetCount());
 	for(int i = 0; i < path.GetCount(); i++) {
 		out[path.GetCount()-1-i] = path[i];
@@ -476,11 +476,11 @@ Vector<Nod*> AStar::ReconstructPath(Nod& current, Vector<NodePtr*>& closed_set, 
 	return out;
 }
 
-Vector<Nod*> AStar::ReconstructPath(Nod& current) {
+Vector<Val*> AStar::ReconstructPath(Val& current) {
 	return ReconstructPath(current, closed_set, open_set);
 }
 
-Vector<Nod*> AStar::GetBest() {
+Vector<Val*> AStar::GetBest() {
 	NodePtr* n = 0;
 	double best_score = DBL_MAX;
 	for (const NodePtr* p : closed_set) {
@@ -493,10 +493,10 @@ Vector<Nod*> AStar::GetBest() {
 	if (n)
 		return ReconstructPath(*n->ptr, closed_set, open_set);
 	
-	return Vector<Nod*>();
+	return Vector<Val*>();
 }
 
-Vector<Nod*> AStar::Search(Nod& src) {
+Vector<Val*> AStar::Search(Val& src) {
 	do_search = true;
 	
 	closed_set.Clear();
@@ -512,7 +512,7 @@ Vector<Nod*> AStar::Search(Nod& src) {
 	return SearchMain();
 }
 
-Vector<Nod*> AStar::ContinueSearch(Nod& src) {
+Vector<Val*> AStar::ContinueSearch(Val& src) {
 	do_search = true;
 	
 	NodePtr* copy = 0;
@@ -526,7 +526,7 @@ Vector<Nod*> AStar::ContinueSearch(Nod& src) {
 		++i;
 	}
 	if (!copy || !copy->ptr)
-		return Vector<Nod*>();
+		return Vector<Val*>();
 	
 	closed_set.Append(open_set);
 	open_set.Clear();
@@ -536,7 +536,7 @@ Vector<Nod*> AStar::ContinueSearch(Nod& src) {
 	return SearchMain();
 }
 
-Vector<Nod*> AStar::SearchMain() {
+Vector<Val*> AStar::SearchMain() {
 	Vector<double> worst_f_score;
 	Vector<int> worst_id;
 	worst_f_score.SetCount(max_worst);
@@ -609,7 +609,7 @@ Vector<Nod*> AStar::SearchMain() {
 		
 		route.route.SetCount(0);
 		NodePtr* t_ptr = open_set[smallest_id];
-		Nod& t = *t_ptr->ptr;
+		Val& t = *t_ptr->ptr;
 		const NodePtr* prev = t_ptr->came_from;
 		for(int i = 0; i < 50; i++) {
 			if (prev) {
@@ -632,7 +632,7 @@ Vector<Nod*> AStar::SearchMain() {
 		
 		
 		for(int j = 0; j < t.GetCount(); j++) {
-			Nod& sub = t[j];
+			Val& sub = t[j];
 			if (FindNode(closed_set, &sub) != -1)
 				continue; // Ignore the neighbor which is already evaluated.
 			// The distance from start to a neighbor
@@ -663,7 +663,7 @@ Vector<Nod*> AStar::SearchMain() {
 			}
 		}
 	}
-	return Vector<Nod*>();
+	return Vector<Val*>();
 }
 
 END_UPP_NAMESPACE

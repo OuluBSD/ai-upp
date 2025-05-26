@@ -64,7 +64,7 @@ public:
 		return *this;
 	}
 	
-	virtual NodeT* GetNode() {return this;}
+	virtual NodeT* GetValue() {return this;}
 	
 	template <class R> R* FindNode() {
 		for(int i = 0; i < sub.GetCount(); i++) {
@@ -160,9 +160,9 @@ public:
 	void Clear() {sub.Clear();}
 	void MoveTo(NodeT& node) {
 		if (parent)
-			node.Add(parent->DetachChild(this));
+			val.Add(parent->DetachChild(this));
 		else
-			node.Add(*this);
+			val.Add(*this);
 	}
 	
 	void AddLink(NodeT& n) {
@@ -319,10 +319,10 @@ typedef Node<Value> NodeValue;
 
 template <class T>
 struct Node {
-	MetaNode* n = 0;
+	VfsValue* n = 0;
 	
 	Node() {}
-	Node(MetaNode& n) : n(&n) {}
+	Node(VfsValue& n) : n(&n) {}
 	Node(T& n) : n(&n.node) {}
 	T* operator->() const {
 		if (!n || !n->ext) return 0;
@@ -330,11 +330,11 @@ struct Node {
 		ASSERT(o);
 		return o;
 	}
-	MetaNode& operator()() const {
+	VfsValue& operator()() const {
 		ASSERT(n);
 		return *n;
 	}
-	operator MetaNode&() const {
+	operator VfsValue&() const {
 		ASSERT(n);
 		return *n;
 	}
@@ -351,7 +351,7 @@ struct Node {
 	}
 };
 
-void GenerateTree(MetaNode& root, int total, int branching_low, int branching_high, Callback1<MetaNode&> set_value);
+void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Callback1<VfsValue&> set_value);
 
 
 #endif

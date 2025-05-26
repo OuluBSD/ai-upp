@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 
 
-MidiFileReaderAtom::MidiFileReaderAtom(MetaNode& n) : Atom(n) {
+MidiFileReaderAtom::MidiFileReaderAtom(VfsValue& n) : Atom(n) {
 	
 }
 
@@ -269,7 +269,7 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 
 
-MidiNullAtom::MidiNullAtom(MetaNode& n) : Atom(n) {
+MidiNullAtom::MidiNullAtom(VfsValue& n) : Atom(n) {
 	
 }
 

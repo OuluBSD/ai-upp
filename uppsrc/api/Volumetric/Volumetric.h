@@ -43,7 +43,7 @@ struct VolStaticSource : public Atom {
 
 
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
-	VolumetricStaticSourceT(MetaNode& n) : VolStaticSource(n) {}
+	VolumetricStaticSourceT(VfsValue& n) : VolStaticSource(n) {}
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

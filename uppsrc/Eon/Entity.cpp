@@ -3,7 +3,7 @@
 NAMESPACE_UPP namespace Ecs {
 
 
-Entity::Entity(MetaNode& n) : MetaNodeExt(n) {
+Entity::Entity(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -71,7 +71,7 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 	int i = Ecs::ComponentFactory::CompDataMap().Find(cls);
 	if (i < 0)
 		return 0;
-	MetaNode& n = node.Add();
+	VfsValue& n = val.Add();
 	n.id = ToVarName(ClassPathTop(cls.GetName()));
 	auto* p = Ecs::ComponentFactory::CompDataMap()[i].new_fn(n);
 	n.ext = p;
@@ -169,16 +169,16 @@ Pool& Entity::GetPool() const {
 }
 
 Pool& Entity::GetRoot() {
-	Pool* p = node.FindOwnerRoot<Pool>();
+	Pool* p = val.FindOwnerRoot<Pool>();
 	ASSERT(p);
 	if (!p) throw Exc("no pool");
 	return *p;
 }
 
 void Entity::GetEntityPath(Vector<String>& path) {
-	Pool* p = node.FindOwner<Pool>();
+	Pool* p = val.FindOwner<Pool>();
 	while (p) {
-		Pool* par = p->node.FindOwner<Pool>();
+		Pool* par = p->val.FindOwner<Pool>();
 		if (!par)
 			break;
 		path.Add(p->GetName());

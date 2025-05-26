@@ -114,7 +114,7 @@ public:
 	bool MakeArgs(GenericPromptArgs& args, const FileNode& n);
 	bool MakeArgsOptions(GenericPromptArgs& args, const FileNode& n, const ConfigurationOption& o);
 	bool MakeArgsOptionsNode(GenericPromptArgs& args, bool skip_dynamic_values, const String& path, const FileNode& n0);
-	MetaNode& RealizeNode(const String& path, int kind = METAKIND_ECS_ENTITY, int dir_kind = METAKIND_ECS_SPACE);
+	VfsValue& RealizeNode(const String& path, int kind = METAKIND_ECS_ENTITY, int dir_kind = METAKIND_ECS_SPACE);
 	
 	ValueMap& GetFile(const String& path);
 	Value& GetFileValue(const String& path);

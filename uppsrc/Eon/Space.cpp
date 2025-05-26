@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Space::Space(MetaNode& n) : MetaSpaceBase(n) {
+Space::Space(VfsValue& n) : MetaSpaceBase(n) {
 	
 }
 
@@ -28,7 +28,7 @@ Space* Space::GetParent() const {
 Machine& Space::GetMachine() const {
 	if (machine)
 		return *machine;
-	MetaNode* n = &node;
+	VfsValue* n = &node;
 	int levels = 0;
 	while (n && levels++ < 1000) {
 		machine = n->Find<Machine>();
@@ -52,7 +52,7 @@ AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
-	MetaNode& sub = node.Add();
+	VfsValue& sub = val.Add();
 	
 	int i = Factory::AtomDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
@@ -68,7 +68,7 @@ AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
 }
 
 AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
-	for (auto& n : node.sub) {
+	for (auto& n : val.sub) {
 		if (n.ext) {
 			AtomBase* atom = CastPtr<AtomBase>(&*n.ext);
 			if (atom && atom->GetType() == cls) {
@@ -102,7 +102,7 @@ AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::AddPtr(AtomBase* comp) {
-	MetaNode& sub = node.Add();
+	VfsValue& sub = val.Add();
 	sub.ext = comp;
 	sub.type_hash = comp->GetTypeHash();
 	InitializeAtom(*comp);
@@ -116,20 +116,20 @@ void Space::InitializeAtoms() {
 }
 
 void Space::InitializeAtom(AtomBase& comp) {
-	ASSERT(comp.node.FindOwner<Space>() == this);
+	ASSERT(comp.val.FindOwner<Space>() == this);
 }
 
 
 void Space::ClearAtoms() {
 	Vector<int> rmlist;
 	int i = 0;
-	for (auto& n : node.sub) {
+	for (auto& n : val.sub) {
 		if (n.ext && CastPtr<AtomBase>(&*n.ext))
 			rmlist << i;
 		i++;
 	}
 	if (!rmlist.IsEmpty())
-		node.sub.Remove(rmlist);
+		val.sub.Remove(rmlist);
 	/*AtomStorePtr sys = GetMachine().Get<AtomStore>();
 	for (auto iter = atoms.rbegin(); iter; --iter)
 		sys->ReturnAtom(atoms.Detach(iter));
@@ -197,7 +197,7 @@ void Space::Initialize(Space& l, String prefab) {
 }
 
 SpacePtr Space::CreateEmpty(String id) {
-	Space& l = node.Add<Space>();
+	Space& l = val.add<Space>();
 	l.node.id = id;
 	l.SetId(GetNextId());
 	Initialize(l);
@@ -349,7 +349,7 @@ EnvStatePtr Space::FindNearestState(String name) {
 		EnvStatePtr e = l->FindState(name);
 		if (e)
 			return e;
-		l = l->node.FindOwner<Space>();
+		l = l->val.FindOwner<Space>();
 	}
 	return EnvStatePtr();
 }
@@ -390,7 +390,7 @@ void Space::UnlinkExchangePoints() {
 
 SpacePtr Space::AddSpace(String name) {
 	ASSERT(name.GetCount());
-	Space& p = node.Add<Space>();
+	Space& p = val.add<Space>();
 	p.node.id = name;
 	p.SetId(GetNextId());
 	return &p;

@@ -29,7 +29,7 @@ public:
 	//using SpaceVec = Array<Space>;
 	static SpaceId GetNextId();
 	
-	Space(MetaNode& n);
+	Space(VfsValue& n);
 	~Space();
 	
 	

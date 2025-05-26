@@ -27,13 +27,12 @@ void AiChainCtrl::Data() {
 	if (!ext) return;
 	auto& list = this->session;
 	ChainThread& t = GetChainThread();
-	MetaNode& n = GetNode();
+	VfsValue& n = GetValue();
 	sessions = n.FindTypeAllShallow(AsTypeHash<ChainThread>());
 	for(int i = 0; i < sessions.GetCount(); i++) {
 		const auto& it = *sessions[i];
-		const AstValue& a = it;
 		list.Set(i, 0, it.id);
-		list.Set(i, 1, a.type);
+		list.Set(i, 1, it.GetTypeString());
 		list.Set(i,"IDX", i);
 	}
 	list.SetCount(sessions.GetCount());
@@ -44,7 +43,7 @@ void AiChainCtrl::Data() {
 }
 
 void AiChainCtrl::DataSession() {
-	MetaNode* ses = GetSession();
+	VfsValue* ses = GetSession();
 	if (!ses) {
 		return;
 	}
@@ -69,7 +68,7 @@ void AiChainCtrl::ToolMenu(Bar& bar) {
 	
 }
 
-void AiChainCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
+void AiChainCtrl::VisitNode(int tree_i, VfsValue& n, String path) {
 	for(int i = 0; i < n.sub.GetCount(); i++) {
 		auto& s = n.sub[i];
 		/*if (s.kind == METAKIND_ECS_COMPONENT_AI_CHAIN_EXAMPLE)
@@ -99,7 +98,7 @@ void AiChainCtrl::VisitNode(int tree_i, MetaNode& n, String path) {
 	}
 }
 
-MetaNode* AiChainCtrl::GetSession() {
+VfsValue* AiChainCtrl::GetSession() {
 	if (!session.IsCursor())
 		return 0;
 	int ses_i = session.Get("IDX");
@@ -125,8 +124,8 @@ void AiChainCtrl::AddSession() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION, name);
-	ses.type = "1";
+	auto& ses = GetValue().Add<ChainThread>(name);
+	ses.val.value = "1";
 	PostCallback(THISBACK(Data));
 }
 
@@ -134,9 +133,9 @@ void AiChainCtrl::RemoveSession() {
 	if (!session.IsCursor())
 		return;
 	int ses_id = session.Get("IDX");
-	MetaNode* ses = sessions[ses_id];
+	VfsValue* ses = sessions[ses_id];
 	ChainThread& t = GetChainThread();
-	GetNode().Remove(ses);
+	GetValue().Remove(ses);
 	PostCallback(THISBACK(Data));
 }
 
@@ -173,7 +172,7 @@ void AiChainCtrl::DuplicateSession() {
 	int ses_id = session.Get("IDX");
 	ChainThread& t = GetChainThread();
 	const auto& ses0 = *sessions[ses_id];
-	auto& ses1 = GetNode().Add<ChainThread>("");
+	auto& ses1 = GetValue().Add<ChainThread>("");
 	VisitCopy(ses0, ses1);
 	PostCallback(THISBACK(Data));
 }
@@ -208,15 +207,15 @@ void AiChainCtrl::StageMenu(Bar& b) {
 					b.Separator();
 				}
 				b.Sub("Remove", [this](Bar& b) {
-					auto tmpls = GetNode().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
+					auto tmpls = GetValue().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 					for(int i = 0; i < tmpls.GetCount(); i++) {
-						MetaNode& n = *tmpls[i];
+						VfsValue& n = *tmpls[i];
 						b.Add(n.id, THISBACK1(RemoveTemplate, &n));
 					}
 				});
-				auto tmpls = GetNode().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
+				auto tmpls = GetValue().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 				for(int i = 0; i < tmpls.GetCount(); i++) {
-					MetaNode& n = *tmpls[i];
+					VfsValue& n = *tmpls[i];
 					b.Add(n.id, THISBACK1(LoadTemplate, &n));
 				}
 			});
@@ -224,25 +223,27 @@ void AiChainCtrl::StageMenu(Bar& b) {
 	}
 }
 
-void AiChainCtrl::AddStageNode(int kind) {
+#if 0
+void AiChainCtrl::AddStageNode(hash_t type_hash) {
 	if (!structure.IsCursor()) return;
 	int cur = structure.GetCursor();
 	int i = structure_nodes.Find(cur);
 	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
+	VfsValue& n = *structure_nodes[i];
 	String id;
 	if (!EditText(id, "Node's id", "id"))
 		return;
-	MetaNode& s = n.Add(kind, id);
+	VfsValue& s = n.AddType(type_hash, id);
 	PostCallback(THISBACK(Data));
 }
+#endif
 
 void AiChainCtrl::RenameStageNode() {
 	if (!structure.IsCursor()) return;
 	int cur = structure.GetCursor();
 	int i = structure_nodes.Find(cur);
 	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
+	VfsValue& n = *structure_nodes[i];
 	String id = n.id;
 	if (!EditText(id, "Node's id", "id"))
 		return;
@@ -256,11 +257,11 @@ void AiChainCtrl::RemoveStageNode() {
 	if (!cur) return; // can't remove root
 	int i = structure_nodes.Find(cur);
 	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& n = *structure_nodes[i];
+	VfsValue& n = *structure_nodes[i];
 	int owner = structure.GetParent(cur);
 	i = structure_nodes.Find(owner);
 	if (i < 0) {PromptOK("Internal error"); return;}
-	MetaNode& o = *structure_nodes[i];
+	VfsValue& o = *structure_nodes[i];
 	o.Remove(&n);
 	PostCallback(THISBACK(Data));
 }

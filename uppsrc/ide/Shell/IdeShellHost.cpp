@@ -196,7 +196,7 @@ void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value) {
 	if (mp && mp->vfs) {
 		MetaEnvironment* env = dynamic_cast<MetaEnvironment*>(&*mp->vfs);
 		if (env) {
-			MetaNode* n = env->root.FindPath(rel_path);
+			VfsValue* n = env->root.FindPath(rel_path);
 			if (!n)
 				return;
 			

@@ -42,7 +42,7 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Machine* m = GetMetaNode().FindOwner<Machine>();
+		Machine* m = GetVfsValue().FindOwner<Machine>();
 		ASSERT(m);
 		TODO
 		#if 0
@@ -379,7 +379,7 @@ void VrSpatialInteractionManager::Move(vec3 rel_dir, float step) {
 	#endif
 }
 
-MetaNode& VrSpatialInteractionManager::GetMetaNode() {
+VfsValue& VrSpatialInteractionManager::GetVfsValue() {
 	ASSERT(sys);
 	if (!sys) throw Exc("No sys ptr");
 	return sys->node;

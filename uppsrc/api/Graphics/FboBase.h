@@ -9,7 +9,7 @@ class GfxAtomBase : public Atom {
 	
 public:
 	using Atom::Atom;
-	GfxAtomBase(MetaNode& n) : Atom(n) {}
+	GfxAtomBase(VfsValue& n) : Atom(n) {}
 	
 };
 
@@ -44,7 +44,7 @@ struct FboAtomT :
 public:
 	using CLASSNAME = FboAtomT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	FboAtomT(MetaNode& n);
+	FboAtomT(VfsValue& n);
 	
 	bool			Initialize(const Eon::WorldState& ws) override;
 	bool			PostInitialize() override;

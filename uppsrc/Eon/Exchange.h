@@ -412,10 +412,10 @@ public:
 	
 };
 
-class PacketForwarder : public MetaNodeExt
+class PacketForwarder : public VfsValueExt
 {
 public:
-	using MetaNodeExt::MetaNodeExt;
+	using VfsValueExt::VfsValueExt;
 	virtual void ForwardSetup(FwdScope& fwd) {}
 	virtual void ForwardAtom(FwdScope& fwd) {Panic("not implemented");}
 	virtual void ForwardExchange(FwdScope& fwd) {Panic("not implemented");}
@@ -449,7 +449,7 @@ protected:
 	
 public:
 	typedef ExchangePoint CLASSNAME;
-	ExchangePoint(MetaNode& n);
+	ExchangePoint(VfsValue& n);
 	virtual ~ExchangePoint();
 	
 	virtual void Init(MetaSpaceBase* mdir) = 0;
@@ -470,23 +470,23 @@ public:
 typedef Ptr<ExchangePoint> ExchangePointPtr;
 
 
-class MetaMachineBase : public MetaNodeExt
+class MetaMachineBase : public VfsValueExt
 {
 	
 public:
-	using MetaNodeExt::MetaNodeExt;
+	using VfsValueExt::VfsValueExt;
 	void Visit(Vis&) override {}
 };
 
-class MetaSystemBase : public MetaNodeExt
+class MetaSystemBase : public VfsValueExt
 {
 public:
-	using MetaNodeExt::MetaNodeExt;
+	using VfsValueExt::VfsValueExt;
 	virtual ~MetaSystemBase() {}
 	void Visit(Vis&) override {}
 };
 
-class MetaSpaceBase : public MetaNodeExt
+class MetaSpaceBase : public VfsValueExt
 {
 	
 protected:
@@ -494,7 +494,7 @@ protected:
 	
 public:
 	typedef MetaSpaceBase CLASSNAME;
-	MetaSpaceBase(MetaNode& n);
+	MetaSpaceBase(VfsValue& n);
 	virtual ~MetaSpaceBase();
 	
 	virtual void UnlinkAll();
@@ -532,13 +532,13 @@ public:
 	
 public:
 	
-	typedef ExchangePoint* (*NewExpt)(MetaNode&);
+	typedef ExchangePoint* (*NewExpt)(VfsValue&);
 	struct ExptData : Moveable<ExptData> {
 		NewExpt new_fn;
 	};
 	typedef ArrayMap<TypeCls,ExptData> ExptMap;
 	static ArrayMap<TypeCls,ExptData>& ExptDataMap() {MAKE_STATIC(ExptMap, m); return m;}
-	template <class T> static ExchangePoint* New(MetaNode& n) {return new T(n);}
+	template <class T> static ExchangePoint* New(VfsValue& n) {return new T(n);}
 	template <class T> static void RegisterExchangePoint() {
 		ExptData& d = ExptDataMap().GetAdd(AsTypeCls<T>());
 		d.new_fn = &New<T>;
@@ -546,12 +546,12 @@ public:
 	
 };
 
-class MetaDirectoryBase : public MetaNodeExt
+class MetaDirectoryBase : public VfsValueExt
 {
 	
 public:
 	typedef MetaDirectoryBase CLASSNAME;
-	MetaDirectoryBase(MetaNode& n);
+	MetaDirectoryBase(VfsValue& n);
 	virtual ~MetaDirectoryBase();
 	
 	String ToString() const;

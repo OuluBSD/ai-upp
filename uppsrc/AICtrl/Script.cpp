@@ -187,7 +187,7 @@ void ScriptTextCtrl::StartProcess(bool user_started) {
 	if (p.srctxt) {
 		active_process = &ScriptTextProcess::Get(
 			p,
-			this->GetNode().GetPath(),
+			this->GetValue().GetPath(),
 			params,
 			*p.srctxt,
 			THISBACK(PostOnStop));
@@ -221,7 +221,7 @@ void ScriptTextCtrl::AddPart() {
 		PromptOK("Unexpected context");
 		return;
 	}
-	MetaNode* n = ee->SelectTreeNode("Select node to be used as part");
+	VfsValue* n = ee->SelectTreeNode("Select node to be used as part");
 	if (n) {
 		TranscriptProofread* proofread = 0;
 		if (n->kind == METAKIND_ECS_ENTITY) {
@@ -252,7 +252,7 @@ void ScriptTextCtrl::ImportProofread(VirtualNode new_node, TranscriptProofread& 
 	TranscriptResponse r;
 	LoadFromJson(r,text);
 	new_node.RemoveSubNodes();
-	VirtualNode section = new_node.Add("0", METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB);
+	VirtualNode section = new_val.Add("0", METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB);
 	for(int i = 0; i < selected_indices.GetCount(); i++) {
 		int seg_i = selected_indices[i];
 		if (seg_i >= 0 && seg_i < r.segments.GetCount()) {

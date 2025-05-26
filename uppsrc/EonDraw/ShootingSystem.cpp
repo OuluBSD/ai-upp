@@ -124,7 +124,7 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 }
 
 PoolPtr ShootingInteractionSystemBase::GetPool() const {
-	return node.FindOwner<Pool>();
+	return val.FindOwner<Pool>();
 }
 
 
@@ -173,7 +173,7 @@ void ShootingComponent::Uninitialize() {
 }
 
 bool ShootingComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().node.Find<ModelCache>();
+	ModelCachePtr sys = GetEngine().GetMachine().val.Find<ModelCache>();
 	if (!sys)
 		return false;
 	

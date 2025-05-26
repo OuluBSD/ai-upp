@@ -14,7 +14,7 @@
 
 #define FYS_CLS(x, f) \
 struct f##x : x##T<f##Fys> {\
-	f##x(MetaNode& n) : Base(n) {} \
+	f##x(VfsValue& n) : Base(n) {} \
 	void Visit(Vis& v) override {VIS_THIS(Base);} \
 };
 	#define FYS_SYS(x) FYS_ECS_CLS_LIST(x)

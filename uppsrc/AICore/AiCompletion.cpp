@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-AiCompletionComponent::AiCompletionComponent(MetaNode& owner) : Component(owner) {
+AiCompletionComponent::AiCompletionComponent(VfsValue& owner) : Component(owner) {
 	
 }
 

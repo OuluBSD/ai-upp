@@ -11,7 +11,7 @@ class ComponentStore;
 //template <class T> inline T* ComponentBase_Static_As(ComponentBase*) {return 0;}
 
 class ComponentBase :
-	public MetaNodeExt,
+	public VfsValueExt,
 	public Destroyable,
 	public Enableable
 {
@@ -34,7 +34,7 @@ public:
 	void RemoveFromUpdateList();
 	
 public:
-	ComponentBase(MetaNode& n);
+	ComponentBase(VfsValue& n);
 	virtual ~ComponentBase();
 	
 	Entity* GetEntity();
@@ -81,7 +81,7 @@ public:
 
 #define ECS_COMPONENT_CTOR_(x) \
 	CLASSTYPE(x) \
-	x(MetaNode& e) : Component<x>(e)
+	x(VfsValue& e) : Component<x>(e)
 #define ECS_COMPONENT_CTOR(x) ECS_COMPONENT_CTOR_(x) {}
 
 #define VISIT_COMPONENT v.VisitT<Component<CLASSNAME>>("Base", *this);

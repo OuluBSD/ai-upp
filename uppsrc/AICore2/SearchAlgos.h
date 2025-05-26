@@ -2,10 +2,10 @@
 #define _AICore2_SearchAlgos_h_
 
 
-/*double GetSearcherUtility(Nod& n);
-double GetSearcherEstimate(Nod& n);
-double GetSearcherDistance(Nod& n, Nod& dest);
-bool TerminalTest(Nod& n, Nod** prev);
+/*double GetSearcherUtility(Val& n);
+double GetSearcherEstimate(Val& n);
+double GetSearcherDistance(Val& n, Val& dest);
+bool TerminalTest(Val& n, Val** prev);
 */
 
 
@@ -15,12 +15,12 @@ public:
 	
 	Searcher();
 	
-	bool TerminalTest(Nod& n, NodeRoute& prev);
-	double Utility(Nod& n);
-	double Estimate(Nod& n);
-	double Distance(Nod& n, Nod& dest);
+	bool TerminalTest(Val& n, NodeRoute& prev);
+	double Utility(Val& n);
+	double Estimate(Val& n);
+	double Distance(Val& n, Val& dest);
 	
-	virtual Vector<Nod*> Search(Nod& src) = 0;
+	virtual Vector<Val*> Search(Val& src) = 0;
 	
 	
 };
@@ -30,9 +30,9 @@ class MiniMax : public Searcher {
 	NodeRoute route;
 public:
 	MiniMax();
-	double MaxValue(Nod& n, int* decision_pos=0);
-	double MinValue(Nod& n, int* decision_pos=0);
-	Vector<Nod*> Search(Nod& src) override;
+	double MaxValue(Val& n, int* decision_pos=0);
+	double MinValue(Val& n, int* decision_pos=0);
+	Vector<Val*> Search(Val& src) override;
 };
 
 
@@ -40,9 +40,9 @@ class AlphaBeta : public Searcher {
 	NodeRoute route;
 public:
 	AlphaBeta();
-	double MaxValue(Nod& n, double alpha, double beta, int* decision_pos=0);
-	double MinValue(Nod& n, double alpha, double beta, int* decision_pos=0);
-	Vector<Nod*> Search(Nod& src) override;
+	double MaxValue(Val& n, double alpha, double beta, int* decision_pos=0);
+	double MinValue(Val& n, double alpha, double beta, int* decision_pos=0);
+	Vector<Val*> Search(Val& src) override;
 };
 
 
@@ -52,7 +52,7 @@ class BreadthFirst : public Searcher {
 	NodeRoute route;
 public:
 	BreadthFirst();
-	virtual Vector<Nod*> Search(Nod& src);
+	virtual Vector<Val*> Search(Val& src);
 };
 
 
@@ -60,14 +60,14 @@ class UniformCost : public Searcher {
 	NodeRoute route;
 public:
 	UniformCost();
-	virtual Vector<Nod*> Search(Nod& src);
+	virtual Vector<Val*> Search(Val& src);
 };
 
 class DepthFirst : public Searcher {
 	NodeRoute route;
 public:
 	DepthFirst();
-	virtual Vector<Nod*> Search(Nod& src);
+	virtual Vector<Val*> Search(Val& src);
 };
 
 class DepthLimited : public Searcher {
@@ -77,7 +77,7 @@ class DepthLimited : public Searcher {
 public:
 	DepthLimited();
 	void SetLimit(int lim);
-	virtual Vector<Nod*> Search(Nod& src);
+	virtual Vector<Val*> Search(Val& src);
 };
 
 
@@ -90,7 +90,7 @@ class BestFirst : public Searcher {
 	NodeRoute route;
 public:
 	BestFirst();
-	virtual Vector<Nod*> Search(Nod& src);
+	virtual Vector<Val*> Search(Val& src);
 };
 
 
@@ -98,7 +98,7 @@ public:
 class AStar : public Searcher {
 	
 	struct NodePtr {
-		Nod* ptr;
+		Val* ptr;
 		NodePtr() : ptr(0), g_score(0), f_score(0), came_from(0) {g_score = DBL_MAX; f_score = DBL_MAX;}
 		
 		hash_t GetHashValue() const {return UPP::GetHashValue((size_t)ptr);}
@@ -129,7 +129,7 @@ class AStar : public Searcher {
 	Vector<NodePtr*> open_set;
 	
 	
-	static int FindNode(const Vector<NodePtr*>& vec, const Nod* ptr);
+	static int FindNode(const Vector<NodePtr*>& vec, const Val* ptr);
 	
 public:
 	AStar();
@@ -137,13 +137,13 @@ public:
 	void SetLimit(int i);
 	void Stop();
 	void TrimWorst(int limit, int count);
-	Vector<Nod*> GetBestKnownPath();
-	Vector<Nod*> ReconstructPath(Nod& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set);
-	Vector<Nod*> ReconstructPath(Nod& current);
-	Vector<Nod*> GetBest();
-	Vector<Nod*> Search(Nod& src) override;
-	Vector<Nod*> ContinueSearch(Nod& src);
-	Vector<Nod*> SearchMain();
+	Vector<Val*> GetBestKnownPath();
+	Vector<Val*> ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set);
+	Vector<Val*> ReconstructPath(Val& current);
+	Vector<Val*> GetBest();
+	Vector<Val*> Search(Val& src) override;
+	Vector<Val*> ContinueSearch(Val& src);
+	Vector<Val*> SearchMain();
 };
 
 

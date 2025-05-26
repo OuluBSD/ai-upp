@@ -18,31 +18,31 @@ EntityEditorCtrl::EntityEditorCtrl() {
 		if (ecs_tree.IsCursor()) {
 			int cur = ecs_tree.GetCursor();
 			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
-			MetaNode& n = *ecs_tree_nodes[cur];
+			VfsValue& n = *ecs_tree_nodes[cur];
 			const AstValue* a = n;
 			if (a && a->kind == METAKIND_ECS_SPACE) {
-				b.Add("Add entity", THISBACK3(AddNode, &n, METAKIND_ECS_ENTITY, ""));
-				b.Add("Add space", THISBACK3(AddNode, &n, METAKIND_ECS_SPACE, ""));
+				b.Add("Add entity", THISBACK3(AddValue, &n, METAKIND_ECS_ENTITY, ""));
+				b.Add("Add space", THISBACK3(AddValue, &n, METAKIND_ECS_SPACE, ""));
 				b.Separator();
 				if (cur != 0)
-					b.Add("Remove space", THISBACK1(RemoveNode, &n));
+					b.Add("Remove space", THISBACK1(RemoveValue, &n));
 			}
 			else if (a && a->kind == METAKIND_ECS_ENTITY) {
 				b.Add("Add Component", THISBACK(AddComponent));
 				b.Separator();
-				b.Add("Remove entity", THISBACK1(RemoveNode, &n));
+				b.Add("Remove entity", THISBACK1(RemoveValue, &n));
 			}
 			else if (a && a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
 					      a->kind <  METAKIND_ECS_COMPONENT_END) {
-				b.Add("Remove Component", THISBACK1(RemoveNode, &n));
+				b.Add("Remove Component", THISBACK1(RemoveValue, &n));
 			}
-			b.Add("Move", THISBACK1(MoveNode, &n));
+			b.Add("Move", THISBACK1(Move, &n));
 		}
 	};
 	
 }
 
-void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, MetaExtCtrl* c) {
+void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, VfsValueExtCtrl* c) {
 	if (ext_ctrl) {
 		ext_place.RemoveChild(&*ext_ctrl);
 		ext_ctrl.Clear();
@@ -61,7 +61,7 @@ void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, MetaExtCtrl* c) {
 
 void EntityEditorCtrl::DataEcsTree_RefreshNames() {
 	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
-		MetaNode* n = ecs_tree_nodes[i];
+		VfsValue* n = ecs_tree_nodes[i];
 		String type_str = n->GetTypeString();
 		Value key = ecs_tree.Get(i);
 		String val = n->id + " (" + type_str + ")";
@@ -99,29 +99,29 @@ void EntityEditorCtrl::Data() {
 		DataEcsTree();
 }
 
-void EntityEditorCtrl::DataEcsTreeVisit(int treeid, MetaNode& n) {
+void EntityEditorCtrl::DataEcsTreeVisit(int treeid, VfsValue& n) {
 	ecs_tree_nodes.Reserve(ecs_tree_nodes.GetCount() + n.sub.GetCount());
 	
-	for(MetaNode& s : n.sub) {
+	for(VfsValue& s : n.sub) {
 		const AstValue* a = s;
 		if (!a)
 			continue;
 		
 		if (a->kind == METAKIND_ECS_SPACE) {
-			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
+			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::RedRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
 		else if (a->kind == METAKIND_ECS_ENTITY) {
-			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
+			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::VioletRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
 		else if (a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
 				 a->kind <= METAKIND_ECS_COMPONENT_END) {
-			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
+			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::BlueRing(), key);
 			ecs_tree_nodes.Add(&s);
 			// Don't visit component: DataEcsTreeVisit(id, s);
@@ -146,19 +146,19 @@ void EntityEditorCtrl::DataEcsTree() {
 		return;
 	}
 	
-	MetaNodeExt& ext = *enode.ext;
+	VfsValueExt& ext = *enode.ext;
 	hash_t type_hash = ext.node.type_hash;
 	
 	if (ext_ctrl_type_hash != type_hash) {
-		int fac_i = MetaExtFactory::FindTypeHashFactory(type_hash);
+		int fac_i = VfsValueExtFactory::FindTypeHashFactory(type_hash);
 		
 		if (fac_i < 0) {
 			ClearExtensionCtrl();
 			return;
 		}
-		const auto& fac = MetaExtFactory::List()[fac_i];
+		const auto& fac = VfsValueExtFactory::List()[fac_i];
 		if (fac.new_ctrl_fn) {
-			MetaExtCtrl* ctrl = fac.new_ctrl_fn();
+			VfsValueExtCtrl* ctrl = fac.new_ctrl_fn();
 			ctrl->ext = &ext;
 			SetExtensionCtrl(type_hash, ctrl);
 			
@@ -206,13 +206,13 @@ void EntityEditorCtrl::ToolMenu(Bar& bar) {
 
 void EntityEditorCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
-		MetaNode* n = 0;
+		VfsValue* n = 0;
 		IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		if (n)
 			SetFileNode(n);
 	}
 	else {
-		MetaSrcFile& file = RealizeFileRoot();
+		VfsSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
 		file.Visit(v);
 		file.ClearTemp();
@@ -225,7 +225,7 @@ void EntityEditorCtrl::OnLoadDirectory(VersionControlSystem& vcs) {
 }
 
 void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
-	MetaSrcFile& file = RealizeFileRoot();
+	VfsSrcFile& file = RealizeFileRoot();
 	file.MakeTempFromEnv(false);
 	#if 0
 	LOG("### ROOT ###");
@@ -236,19 +236,19 @@ void EntityEditorCtrl::OnSave(String& data, const String& filepath) {
 	data = file.StoreJson();
 }*/
 
-MetaSrcFile& EntityEditorCtrl::RealizeFileRoot() {
+VfsSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	IdeMetaEnvironment& env = IdeMetaEnv();
 	String path = this->GetFilePath();
 	ASSERT(path.GetCount());
-	MetaSrcFile& file = env.ResolveFile("", path);
-	MetaSrcPkg& pkg = *file.pkg;
+	VfsSrcFile& file = env.ResolveFile("", path);
+	VfsSrcPkg& pkg = *file.pkg;
 	ASSERT(file.id >= 0);
-	MetaNode& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
+	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
 	this->file_root = &n;
 	return file;
 }
 
-void EntityEditorCtrl::SelectEcsTree(MetaNode* n) {
+void EntityEditorCtrl::SelectEcsTree(VfsValue* n) {
 	// the 'most high performace algorithm' (for real)
 	int i = 0;
 	for (auto* n0 : ecs_tree_nodes) {
@@ -260,7 +260,7 @@ void EntityEditorCtrl::SelectEcsTree(MetaNode* n) {
 	}
 }
 
-MetaNode* EntityEditorCtrl::SelectTreeNode(String title) {
+VfsValue* EntityEditorCtrl::SelectTreeValue(String title) {
 	WithTreeDialog<TopWindow> dlg;
 	CtrlLayoutOKCancel(dlg, title);
 	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
@@ -280,14 +280,14 @@ MetaNode* EntityEditorCtrl::SelectTreeNode(String title) {
 	if(dlg.Execute() != IDOK || !dlg.tree.IsCursor())
 		return 0;
 	int cur = dlg.tree.GetCursor();
-	MetaNode* tgt = this->ecs_tree_nodes[cur];
+	VfsValue* tgt = this->ecs_tree_nodes[cur];
 	return tgt;
 }
 
-void EntityEditorCtrl::MoveNode(MetaNode* n) {
+void EntityEditorCtrl::Move(VfsValue* n) {
 	if (!n || !n->owner) return;
 	
-	MetaNode* tgt = SelectTreeNode("Select where to move");
+	VfsValue* tgt = SelectTreeValue("Select where to move");
 	if (!tgt || tgt == n->owner)
 		return;
 	
@@ -296,7 +296,7 @@ void EntityEditorCtrl::MoveNode(MetaNode* n) {
 	hash_t tgt_type_hash = tgt->type_hash;
 	if ((src_type_hash == AsTypeHash<Space>() && tgt_type_hash != AsTypeHash<Space>()) ||
 		(src_type_hash == AsTypeHash<Entity>() && tgt_type_hash != AsTypeHash<Space>()) ||
-		(MetaExtFactory::FindComponent(src_type_hash) >= 0 && tgt_type_hash != AsTypeHash<Entity>()))
+		(VfsValueExtFactory::FindComponent(src_type_hash) >= 0 && tgt_type_hash != AsTypeHash<Entity>()))
 	{
 		String src_kind_str = n->GetTypeString();
 		String tgt_kind_str = tgt->GetTypeString();
@@ -305,7 +305,7 @@ void EntityEditorCtrl::MoveNode(MetaNode* n) {
 		return;
 	}
 	
-	MetaNode& o = *n->owner;
+	VfsValue& o = *n->owner;
 	n = o.Detach(n);
 	if (!n) return;
 	tgt->Add(n);
@@ -314,15 +314,15 @@ void EntityEditorCtrl::MoveNode(MetaNode* n) {
 	PostCallback(THISBACK1(SelectEcsTree, n));
 }
 
-void EntityEditorCtrl::RemoveNode(MetaNode* n) {
+void EntityEditorCtrl::RemoveValue(VfsValue* n) {
 	if (!n || !n->owner) return;
-	MetaNode& o = *n->owner;
+	VfsValue& o = *n->owner;
 	o.Remove(n);
 	PostCallback(THISBACK(Data));
 	PostCallback(THISBACK1(SelectEcsTree, &o));
 }
 
-void EntityEditorCtrl::AddNode(MetaNode* n, int kind, String id) {
+void EntityEditorCtrl::AddValue(VfsValue* n, int kind, String id) {
 	if (!n || !n->owner) return;
 	if (id.IsEmpty()) {
 		WString ws;
@@ -330,14 +330,14 @@ void EntityEditorCtrl::AddNode(MetaNode* n, int kind, String id) {
 			return;
 		id = ws.ToString();
 	}
-	MetaNode& s = n->Add(kind, id);
+	VfsValue& s = n->Add(kind, id);
 	PostCallback(THISBACK(Data));
 	PostCallback(THISBACK1(SelectEcsTree, &s));
 }
 
 void EntityEditorCtrl::AddEntity() {
 	RealizeFileRoot();
-	MetaNode& n = *file_root;
+	VfsValue& n = *file_root;
 	Entity& e = n.Add<Entity>();
 	ASSERT(e.node.kind == METAKIND_ECS_ENTITY);
 	auto& enode = e.node;
@@ -348,16 +348,16 @@ void EntityEditorCtrl::AddEntity() {
 
 void EntityEditorCtrl::RemoveEntity() {
 	if (!ecs_tree.IsCursor()) return;
-	MetaNode& n = *file_root;
+	VfsValue& n = *file_root;
 	int ecs_i = ecs_tree.GetCursor();
 	if (ecs_i >= 0 && ecs_i < n.sub.GetCount())
 		n.sub.Remove(ecs_i);
 	PostCallback(THISBACK(Data));
 }
 
-MetaNodeExt* EntityEditorCtrl::GetSelected() {
+VfsValueExt* EntityEditorCtrl::GetSelected() {
 	if (!ecs_tree.IsCursor()) return 0;
-	MetaNode& n = *file_root;
+	VfsValue& n = *file_root;
 	int ecs_i = ecs_tree.GetCursor();
 	if (ecs_i >= 0 && ecs_i < ecs_tree_nodes.GetCount()) {
 		return &*ecs_tree_nodes[ecs_i]->ext;
@@ -366,7 +366,7 @@ MetaNodeExt* EntityEditorCtrl::GetSelected() {
 }
 
 void EntityEditorCtrl::AddComponent() {
-	MetaNodeExt* ext = GetSelected();
+	VfsValueExt* ext = GetSelected();
 	if (!ext) return;
 	Entity* e = dynamic_cast<Entity*>(ext);
 	if (!e) return;
@@ -387,7 +387,7 @@ void EntityEditorCtrl::AddComponent() {
 		for(int i = 0; i < CATEGORY_GROUP_COUNT; i++) {
 			if (filter_group) {
 				int count = 0;
-				for(const auto& factory : MetaExtFactory::List()) {
+				for(const auto& factory : VfsValueExtFactory::List()) {
 					int group = (int)factory.category % 2;
 					if (g == group)
 						count++;
@@ -481,9 +481,9 @@ void EntityEditorCtrl::AddComponent() {
 	dlg.complist.SetFocus();
 	if(dlg.Execute() == IDOK) {
 		int kind = dlg.complist.Get("KIND");
-		for(const auto& factory : MetaExtFactory::List()) {
+		for(const auto& factory : VfsValueExtFactory::List()) {
 			if (factory.kind != kind) continue;
-			auto& ext = e->node.Add(factory.kind);
+			auto& ext = e->val.Add(factory.kind);
 			ASSERT(ext.kind == factory.kind);
 			PostCallback(THISBACK(Data));
 			PostCallback(THISBACK1(SelectEcsTree, &e->node));
@@ -493,7 +493,7 @@ void EntityEditorCtrl::AddComponent() {
 }
 
 void EntityEditorCtrl::RemoveComponent() {
-	MetaNodeExt* ext = GetSelected();
+	VfsValueExt* ext = GetSelected();
 	if (!ext) return;
 	Entity* e = dynamic_cast<Entity*>(ext);
 	if (!e) return;
@@ -501,8 +501,8 @@ void EntityEditorCtrl::RemoveComponent() {
 	if (!ecs_i) return;
 	int parent_i = ecs_tree.GetParent(ecs_i);
 	int idx = ecs_tree.GetChildIndex(parent_i, ecs_i);
-	if (idx >= 0 && idx < e->node.sub.GetCount())
-		e->node.sub.Remove(idx);
+	if (idx >= 0 && idx < e->val.sub.GetCount())
+		e->val.sub.Remove(idx);
 	PostCallback(THISBACK(Data));
 }
 

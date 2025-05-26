@@ -48,7 +48,7 @@ GUI_APP_MAIN
 
 #if 0
 void BindEcsEventsBase(EcsEventsBase* b) {
-	auto esys = b->node.FindOwner<Ecs::EventSystem>();
+	auto esys = b->val.FindOwner<Ecs::EventSystem>();
 	ASSERT(esys);
 	esys->Attach(b);
 }

@@ -53,7 +53,7 @@ void LeadPublisherCtrl::ImportJson() {
 	Entity& ent = *p.entity;
 	if (!ent.node.owner)
 		return;
-	MetaNode& ent_owner = *ent.node.owner;
+	VfsValue& ent_owner = *ent.node.owner;
 	
 	FileSelNative filesel;
 	filesel.ActiveDir(GetHomeDirFile("export"));
@@ -64,8 +64,8 @@ void LeadPublisherCtrl::ImportJson() {
 		if (ff.Search(AppendFileName(dir, "*.json"))) do {
 			String path = ff.GetPath();
 			String title = GetFileTitle(path);
-			MetaNode& publisher = ent_owner.GetAdd(title, "", METAKIND_ECS_ENTITY);
-			MetaNode& pub_comp = publisher.GetAdd("","",METAKIND_ECS_COMPONENT_LEAD_PUBLISHER);
+			VfsValue& publisher = ent_owner.GetAdd(title, "", METAKIND_ECS_ENTITY);
+			VfsValue& pub_comp = publisher.GetAdd("","",METAKIND_ECS_COMPONENT_LEAD_PUBLISHER);
 			LeadDataPublisher& pub = pub_comp.GetExt<LeadDataPublisher>();
 			LoadFromJsonFile_VisitorNode(pub, path);
 		}

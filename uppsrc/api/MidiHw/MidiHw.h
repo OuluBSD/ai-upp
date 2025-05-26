@@ -46,7 +46,7 @@ struct MidSource : public Atom {
 
 
 template <class Mid> struct MidiHwSourceT : MidSource {
-	MidiHwSourceT(MetaNode& n) : MidSource(n) {}
+	MidiHwSourceT(VfsValue& n) : MidSource(n) {}
 	using CLASSNAME = MidiHwSourceT<Mid>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	void Visit(Vis& v) override {

@@ -2905,7 +2905,7 @@ void SourceTextCtrl::Data() {
 
 void SourceTextCtrl::Visit(Vis& v) {
 	if (v.IsLoading()) {
-		MetaNode* n = 0;
+		VfsValue* n = 0;
 		TODO // IdeMetaEnv().LoadFileRootVisit(GetFileIncludes(), GetFilePath(), v, true, n);
 		//TODO register IdeMetaEnv().LoadFileRootVisit to a function pointer
 		if (n)
@@ -2914,7 +2914,7 @@ void SourceTextCtrl::Visit(Vis& v) {
 	else {
 		LOG("SourceTextCtrl::Visit(Vis& v): error: storing SourceTextCtrl is not yet implemented");
 		v.SetError("not implemented");
-		/*MetaSrcFile& file = RealizeFileRoot();
+		/*VfsSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
 		file.Visit(vis);
 		file.ClearTemp();*/

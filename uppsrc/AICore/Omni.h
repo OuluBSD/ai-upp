@@ -106,7 +106,7 @@ public:
 	}
 };
 
-struct StageThread : MetaNodeExt {
+struct StageThread : VfsValueExt {
 	
 	/*
 	struct Stage {
@@ -136,7 +136,7 @@ struct StageThread : MetaNodeExt {
 	
 public:
 	CLASSTYPE(StageThread)
-	StageThread(MetaNode& n) : MetaNodeExt(n) {}
+	StageThread(VfsValue& n) : VfsValueExt(n) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -151,9 +151,9 @@ public:
 
 INITIALIZE(StageThread)
 
-struct ChainThread : MetaNodeExt {
+struct ChainThread : VfsValueExt {
 	CLASSTYPE(ChainThread)
-	ChainThread(MetaNode& n) : MetaNodeExt(n) {}
+	ChainThread(VfsValue& n) : VfsValueExt(n) {}
 	void Visit(Vis& v) override {
 		v.Ver(0)
 			;

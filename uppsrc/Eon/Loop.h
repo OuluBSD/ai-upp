@@ -23,7 +23,7 @@ public:
 	//using LoopVec = Array<Loop>;
 	static LoopId GetNextId();
 	
-	Loop(MetaNode& n);
+	Loop(VfsValue& n);
 	~Loop();
 	
 	LoopId GetId() const {return id;}

@@ -268,7 +268,7 @@ bool ActionPlannerWrapper::SetCost(String action_name, int cost )
 
 
 
-ActionNode::ActionNode(MetaNode& n) : MetaNodeExt(n) {
+ActionNode::ActionNode(VfsValue& n) : VfsValueExt(n) {
 	cost = 0;
 	act_id = -1;
 }
@@ -291,23 +291,23 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 		hash_t hash = ws_to.GetHashValue();
 		int j = root->tmp_sub.Find(hash);
 		if (j == -1) {
-			APlanNode sub = root->node.Add<ActionNode>();
+			APlanNode sub = root->val.add<ActionNode>();
 			sub->SetWorldState(ws_to);
 			sub->SetCost(action_costs[i]);
 			sub->SetActionId(act_ids[i]);
 			sub->SetGoal(*goal);
-			auto& link = node.sub.Add();
+			auto& link = val.sub.Add();
 			link.symbolic_link = sub.n;
 			root->tmp_sub.Add(hash, sub);
 		} else {
-			auto& link = node.sub.Add();
+			auto& link = val.sub.Add();
 			link.symbolic_link = &root->tmp_sub[j]->node;
 		}
 	}
 	return !node.GetCount();
 }
 
-double ActionNode::GetDistance(MetaNode& n) {
+double ActionNode::GetDistance(VfsValue& n) {
 	ActionNode& to = *CastPtr<ActionNode>(&*n.ext);
 	double dist = 0;
 	

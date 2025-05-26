@@ -12,7 +12,7 @@ struct AiChatComponent : Component {
 	String GetName() const override {return "AI: Chat";}
 	
 	CLASSTYPE(AiChatComponent)
-	AiChatComponent(MetaNode& owner);
+	AiChatComponent(VfsValue& owner);
 	~AiChatComponent();
 	
 	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_CHAT;}

@@ -41,7 +41,7 @@ public:
 	using CLASSNAME = ShaderBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
-	ShaderBaseT(MetaNode& n) : BufferBase(n) {}
+	ShaderBaseT(VfsValue& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -74,7 +74,7 @@ public:
 	using CLASSNAME = TextureBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
-	TextureBaseT(MetaNode& n) : BufferBase(n) {}
+	TextureBaseT(VfsValue& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -105,7 +105,7 @@ public:
 	using CLASSNAME = FboReaderBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	
-	FboReaderBaseT(MetaNode& n) : BufferBase(n) {}
+	FboReaderBaseT(VfsValue& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
@@ -133,7 +133,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	using CLASSNAME = KeyboardBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	KeyboardBaseT(MetaNode& n) : BufferBase(n) {}
+	KeyboardBaseT(VfsValue& n) : BufferBase(n) {}
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
@@ -153,7 +153,7 @@ public:
 	using BufferBase = BufferBaseT<Gfx>;
 	using CLASSNAME = AudioBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	AudioBaseT(MetaNode& n) : BufferBase(n) {}
+	AudioBaseT(VfsValue& n) : BufferBase(n) {}
 	
 	bool Initialize(const Eon::WorldState& ws) override;
 	bool PostInitialize() override;

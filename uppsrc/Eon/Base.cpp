@@ -201,7 +201,7 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 		dbg_iter++;
 		
 		if (fail || (dbg_limit > 0 && dbg_iter >= dbg_limit)) {
-			Machine* mach = node.FindOwner<Machine>();
+			Machine* mach = val.FindOwner<Machine>();
 			//if (!mach) {LOG(MetaEnv().root.GetTreeString());}
 			ASSERT(mach);
 			if (!mach) return false;
@@ -354,11 +354,11 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 		else {
 			LOG("VoidPollerSinkBase::Recv: error: thrd #" << i << " invalid audio format");
 			fail = true;
-			node.FindOwner<Machine>()->SetFailed("VoidPollerSinkBase error");
+			val.FindOwner<Machine>()->SetFailed("VoidPollerSinkBase error");
 		}
 		
 		if (dbg_limit > 0 && t.rolling_value >= dbg_limit) {
-			node.FindOwner<Machine>()->SetNotRunning();
+			val.FindOwner<Machine>()->SetNotRunning();
 			LOG("VoidPollerSinkBase::Recv: stops");
 		}
 	}
@@ -384,7 +384,7 @@ bool VoidPollerSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 EventStateBase* EventStateBase::latest;
 Vector<BinderIfaceEvents*> EventStateBase::binders;
 
-EventStateBase::EventStateBase(MetaNode& n) : Atom(n) {
+EventStateBase::EventStateBase(VfsValue& n) : Atom(n) {
 	latest = this;
 }
 
@@ -484,7 +484,7 @@ void EventStateBase::Event(const GeomEvent& e) {
 	if (dbg_print) {
 		LOG(e.ToString());
 		if (dbg_limit > 0 && ++dbg_iter > dbg_limit)
-			node.FindOwner<Machine>()->SetNotRunning();
+			val.FindOwner<Machine>()->SetNotRunning();
 	}
 	
 	if (e.type == EVENT_INVALID) {
@@ -704,7 +704,7 @@ void EventStateBase::RemoveBinder(BinderIfaceEvents* iface) {
 
 
 
-TestEventSrcBase::TestEventSrcBase(MetaNode& n) : Atom(n) {
+TestEventSrcBase::TestEventSrcBase(VfsValue& n) : Atom(n) {
 	
 }
 
@@ -719,7 +719,7 @@ void TestEventSrcBase::Uninitialize() {
 	bool succ = sent_count >= 2;
 	if (succ) {LOG("TestEventSrcBase::Uninitialize: success! " << sent_count << " packets sent");}
 	else       {LOG("TestEventSrcBase::Uninitialize: fail :(");}
-	if (!succ) node.FindOwner<Machine>()->SetFailed("TestEventSrcBase error");
+	if (!succ) val.FindOwner<Machine>()->SetFailed("TestEventSrcBase error");
 }
 
 bool TestEventSrcBase::IsReady(PacketIO& io) {

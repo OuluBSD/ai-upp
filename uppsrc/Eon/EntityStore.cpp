@@ -5,7 +5,7 @@ NAMESPACE_UPP namespace Ecs {
 
 void EntityStore::InitRoot() {
 	node.RemoveAllShallow<Pool>();
-	MetaNode& n = node.Add();
+	VfsValue& n = val.Add();
 	Pool* p = new Pool(n);
 	n.ext = p;
 	n.type_hash = p->GetTypeHash();

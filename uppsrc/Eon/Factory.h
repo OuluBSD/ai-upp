@@ -37,7 +37,7 @@ public:
 	
 	// Atoms
 	
-	typedef AtomBase* (*NewFn)(MetaNode&);
+	typedef AtomBase* (*NewFn)(VfsValue&);
 	typedef LinkTypeCls (*GetLinkTypeFn)();
 	struct AtomData : Moveable<AtomData> {
 		NewFn			new_fn;
@@ -53,7 +53,7 @@ public:
 	typedef VectorMap<AtomTypeCls,AtomData> AtomMap;
 	static AtomMap& AtomDataMap() {MAKE_STATIC(AtomMap, m); return m;}
 	
-	template <class T> static AtomBase* CreateAtom(MetaNode& n) {return new T(n);}
+	template <class T> static AtomBase* CreateAtom(VfsValue& n) {return new T(n);}
 	
 	template <class T> static void RegisterAtom() {
 		AtomTypeCls cls = T::GetAtomType();
@@ -77,7 +77,7 @@ public:
 	
 	// Links
 	
-	typedef LinkBase* (*NewLinkFn)(MetaNode&);
+	typedef LinkBase* (*NewLinkFn)(VfsValue&);
 	struct LinkData : Moveable<LinkData> {
 		NewLinkFn		new_fn;
 		String			name;
@@ -87,7 +87,7 @@ public:
 	typedef VectorMap<LinkTypeCls,LinkData> LinkMap;
 	static LinkMap& LinkDataMap() {MAKE_STATIC(LinkMap, m); return m;}
 	
-	template <class T> static LinkBase* CreateLink(MetaNode& n) {return new T(n);}
+	template <class T> static LinkBase* CreateLink(VfsValue& n) {return new T(n);}
 	
 	template <class T> static void RegisterLink() {
 		LinkTypeCls cls = T::GetLinkTypeStatic();

@@ -44,7 +44,7 @@ struct AITask : Moveable<AITask>
 		Reason reason = NO_REASON;
 		bool is_dependency = false;
 		String file;
-		Ptr<MetaNode> node, link_node;
+		Ptr<VfsValue> node, link_node;
 		hash_t type_hash = 0;
 	};
 	
@@ -55,8 +55,8 @@ struct AITask : Moveable<AITask>
 	
 	AITask() {}
 	bool IsLinked(const AITask& t, const Relation& rel) const;
-	bool HasInput(const MetaNode& n) const;
-	bool HasInputLink(const MetaNode& n, bool is_dep) const;
+	bool HasInput(const VfsValue& n) const;
+	bool HasInputLink(const VfsValue& n, bool is_dep) const;
 	bool HasDepType(hash_t type_hash) const;
 	bool HasReason(Reason r, Point begin) const;
 	int GetDependencyCount() const;
@@ -89,7 +89,7 @@ struct MetaProcess
 	FnType cur_fn;
 	bool running = false, stopped = true;
 	bool waiting = false;
-	Ptr<MetaNode> node;
+	Ptr<VfsValue> node;
 	Vector<String> code;
 	Vector<Error> errors;
 	String filepath;
@@ -100,7 +100,7 @@ struct MetaProcess
 	typedef MetaProcess CLASSNAME;
 	MetaProcess();
 	~MetaProcess();
-	void SetSource(String filepath, MetaNode& n, Vector<String> code);
+	void SetSource(String filepath, VfsValue& n, Vector<String> code);
 	void Start(FnType fn);
 	void Stop();
 	void Run();
@@ -125,7 +125,7 @@ struct MetaProcessCtrl : ParentCtrl
 	MetaProcessCtrl();
 	void Data();
 	void DataTask();
-	void RunTask(String filepath, MetaNode& n, Vector<String> code, MetaProcess::FnType fn);
+	void RunTask(String filepath, VfsValue& n, Vector<String> code, MetaProcess::FnType fn);
 };
 
 

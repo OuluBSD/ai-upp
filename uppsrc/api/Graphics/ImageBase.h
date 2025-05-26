@@ -20,7 +20,7 @@ public:
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	COPY_PANIC(ImageBaseAtomT)
 	
-	ImageBaseAtomT(MetaNode& n);
+	ImageBaseAtomT(VfsValue& n);
 	
 	void			Visit(Vis& v) override {VIS_THIS(Atom);}
 	bool			Initialize(const Eon::WorldState& ws) override;

@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-AiChatComponent::AiChatComponent(MetaNode& owner) : Component(owner) {
+AiChatComponent::AiChatComponent(VfsValue& owner) : Component(owner) {
 	
 }
 

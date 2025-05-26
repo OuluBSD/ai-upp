@@ -62,7 +62,9 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		// Sort nodes based on code position
 		struct MetaNodePtrSorter {
 			bool operator()(const MetaNode* a, const MetaNode* b) const {
-				return IsFilePosLess(a->begin, b->begin);
+				const AstValue* av = a ? *a : 0;
+				const AstValue* bv = b ? *b : 0;
+				return IsFilePosLess(av->begin, bv->begin);
 			}
 		};
 		Sort(nodes, MetaNodePtrSorter());
@@ -70,10 +72,14 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		// Remove overlapping nodes
 		for(int j = 0; j < nodes.GetCount(); j++) {
 			const MetaNode& n0 = *nodes[j];
+			const AstValue* a0 = n0;
+			if (!a0)
+				continue;
 			for(int k = j+1; k < nodes.GetCount(); k++) {
 				const MetaNode& n1 = *nodes[k];
-				if (IsRangesOverlapping(n0.begin, n0.end, n1.begin, n1.end)) {
-					if (IsSubset(n0.begin, n0.end, n1.begin, n1.end))
+				const AstValue* a1 = n1;
+				if (a1 && IsRangesOverlapping(a0->begin, a0->end, a1->begin, a1->end)) {
+					if (IsSubset(a0->begin, a0->end, a1->begin, a1->end))
 						nodes.Remove(k--);
 					else {
 						nodes.Remove(j--);
@@ -93,29 +99,37 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		Vector<MetaNode*> comments;
 		Vector<MetaNode*> comment_to_node;
 		for (MetaNode* n : nodes) {
+			AstValue* a = *n;
+			ASSERT(a);
+			if (!a) continue;
+			
 			// TODO namespaces
 			
 			TextRange range;
-			range.begin = n->begin;
-			range.end = n->end;
+			range.begin = a->begin;
+			range.end = a->end;
 			//range.begin = Point(0,lines.GetCount());
-			Vector<String> area_lines = GetStringArea(content, n->begin, n->end);
+			Vector<String> area_lines = GetStringArea(content, a->begin, a->end);
 			for(int i = 0; i < area_lines.GetCount(); i++)
-				lines.Add(n->begin.y + i, area_lines[i]);
+				lines.Add(a->begin.y + i, area_lines[i]);
 			//range.end = Point(0,lines.GetCount());
 			
 			// Add empty line
 			if (lines.GetCount())
 				lines.Add(lines.TopKey());
 			
-			n->FindAllDeep(METAKIND_COMMENT, comments);
+			n->AstFindAllDeep(METAKIND_COMMENT, comments);
 			
 			f.code_nodes.Add(range, const_cast<MetaNode*>(n));
 		}
 		
 		// Add comments
 		for (MetaNode* comment : comments) {
-			int line0 = comment->begin.y;
+			AstValue* a = *comment;
+			ASSERT(a);
+			if (!a) continue;
+			
+			int line0 = a->begin.y;
 			int best_pos = 0, best_line = 0;
 			for(int i = 0; i < lines.GetCount(); i++) {
 				int line1 = lines.GetKey(i);
@@ -133,9 +147,13 @@ bool MetaCodeGenerator::Process(const MetaNodeSubset& np) {
 		
 		// Write
 		f.code = Join(lines.GetValues(), "\n");
-		for (const MetaNode* n : nodes)
-			f.range_nodes.Add(TextRange(n->begin,n->end), const_cast<MetaNode*>(n));
-		
+		for (const MetaNode* n : nodes) {
+			const AstValue* a = *n;
+			ASSERT(a);
+			if (!a) continue;
+			
+			f.range_nodes.Add(TextRange(a->begin,a->end), const_cast<MetaNode*>(n));
+		}
 		f.editor_to_line <<= lines.GetKeys();
 		f.comment_to_node <<= comment_to_node;
 	}
@@ -159,7 +177,8 @@ void MetaCodeGenerator::FindFiles(const MetaNodeSubset& np, Vector<Vector<int>>&
 
 void MetaCodeGenerator::FindNodes(const MetaNodeSubset& np, const PkgFile& key, Vector<MetaNode*>& nodes) {
 	MetaNode& n = *np.n;
-	if (MetaEnvironment::IsMergeable(n.kind)) {
+	const AstValue* a = n;
+	if (a && MetaEnvironment::IsMergeable(a->kind)) {
 		for (const MetaNodeSubset& s : np.sub) {
 			FindNodes(s, key, nodes);
 		}

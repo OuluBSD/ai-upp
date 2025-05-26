@@ -19,20 +19,21 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			int cur = ecs_tree.GetCursor();
 			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
 			MetaNode& n = *ecs_tree_nodes[cur];
-			if (n.kind == METAKIND_ECS_SPACE) {
+			const AstValue* a = n;
+			if (a && a->kind == METAKIND_ECS_SPACE) {
 				b.Add("Add entity", THISBACK3(AddNode, &n, METAKIND_ECS_ENTITY, ""));
 				b.Add("Add space", THISBACK3(AddNode, &n, METAKIND_ECS_SPACE, ""));
 				b.Separator();
 				if (cur != 0)
 					b.Add("Remove space", THISBACK1(RemoveNode, &n));
 			}
-			else if (n.kind == METAKIND_ECS_ENTITY) {
+			else if (a && a->kind == METAKIND_ECS_ENTITY) {
 				b.Add("Add Component", THISBACK(AddComponent));
 				b.Separator();
 				b.Add("Remove entity", THISBACK1(RemoveNode, &n));
 			}
-			else if (n.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
-					 n.kind < METAKIND_ECS_COMPONENT_END) {
+			else if (a && a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+					      a->kind <  METAKIND_ECS_COMPONENT_END) {
 				b.Add("Remove Component", THISBACK1(RemoveNode, &n));
 			}
 			b.Add("Move", THISBACK1(MoveNode, &n));
@@ -41,14 +42,14 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	
 }
 
-void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
+void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, MetaExtCtrl* c) {
 	if (ext_ctrl) {
 		ext_place.RemoveChild(&*ext_ctrl);
 		ext_ctrl.Clear();
-		ext_ctrl_kind = -1;
+		ext_ctrl_type_hash = 0;
 	}
 	if (c) {
-		ext_ctrl_kind = kind;
+		ext_ctrl_type_hash = type_hash;
 		c->owner = this;
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
@@ -61,9 +62,9 @@ void EntityEditorCtrl::SetExtensionCtrl(int kind, MetaExtCtrl* c) {
 void EntityEditorCtrl::DataEcsTree_RefreshNames() {
 	for(int i = 0; i < ecs_tree.GetLineCount(); i++) {
 		MetaNode* n = ecs_tree_nodes[i];
-		String kind_str = n->GetKindString();
+		String type_str = n->GetTypeString();
 		Value key = ecs_tree.Get(i);
-		String val = n->id + " (" + kind_str + ")";
+		String val = n->id + " (" + type_str + ")";
 		ecs_tree.Set(i, key, val);
 	}
 }
@@ -79,7 +80,12 @@ void EntityEditorCtrl::Data() {
 		return;
 	}
 	
-	String key = file_root->id + " (" + file_root->GetKindString() + ")";
+	String key = file_root->id;
+	
+	const AstValue* a = *file_root;
+	if (a)
+		key += " (" + file_root->GetTypeString() + ")";
+	
 	ecs_tree.SetRoot(MetaImgs::RedRing(), key);
 	ecs_tree_nodes.SetCount(1);
 	ecs_tree_nodes[0] = file_root;
@@ -97,21 +103,25 @@ void EntityEditorCtrl::DataEcsTreeVisit(int treeid, MetaNode& n) {
 	ecs_tree_nodes.Reserve(ecs_tree_nodes.GetCount() + n.sub.GetCount());
 	
 	for(MetaNode& s : n.sub) {
-		if (s.kind == METAKIND_ECS_SPACE) {
-			String key = s.id + " (" + s.GetKindString() + ")";
+		const AstValue* a = s;
+		if (!a)
+			continue;
+		
+		if (a->kind == METAKIND_ECS_SPACE) {
+			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::RedRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
-		else if (s.kind == METAKIND_ECS_ENTITY) {
-			String key = s.id + " (" + s.GetKindString() + ")";
+		else if (a->kind == METAKIND_ECS_ENTITY) {
+			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::VioletRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
-		else if (s.kind >= METAKIND_ECS_COMPONENT_BEGIN &&
-				 s.kind <= METAKIND_ECS_COMPONENT_END) {
-			String key = s.id + " (" + s.GetKindString() + ")";
+		else if (a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
+				 a->kind <= METAKIND_ECS_COMPONENT_END) {
+			String key = s.id + " (" + MetaNode::AstGetKindString(a->kind) + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::BlueRing(), key);
 			ecs_tree_nodes.Add(&s);
 			// Don't visit component: DataEcsTreeVisit(id, s);
@@ -137,9 +147,10 @@ void EntityEditorCtrl::DataEcsTree() {
 	}
 	
 	MetaNodeExt& ext = *enode.ext;
+	hash_t type_hash = ext.node.type_hash;
 	
-	if (ext_ctrl_kind != ext.node.kind) {
-		int fac_i = MetaExtFactory::FindKindFactory(ext.node.kind);
+	if (ext_ctrl_type_hash != type_hash) {
+		int fac_i = MetaExtFactory::FindTypeHashFactory(type_hash);
 		
 		if (fac_i < 0) {
 			ClearExtensionCtrl();
@@ -149,9 +160,9 @@ void EntityEditorCtrl::DataEcsTree() {
 		if (fac.new_ctrl_fn) {
 			MetaExtCtrl* ctrl = fac.new_ctrl_fn();
 			ctrl->ext = &ext;
-			SetExtensionCtrl(ext.node.kind, ctrl);
+			SetExtensionCtrl(type_hash, ctrl);
 			
-			if (fac.kind == METAKIND_ECS_ENTITY) {
+			if (fac.type_hash == AsTypeHash<Entity>()) {
 				EntityInfoCtrl& e = dynamic_cast<EntityInfoCtrl&>(*ctrl);
 				e.WhenValueChange = THISBACK(DataEcsTree_RefreshNames);
 			}
@@ -280,18 +291,15 @@ void EntityEditorCtrl::MoveNode(MetaNode* n) {
 	if (!tgt || tgt == n->owner)
 		return;
 	
-	int src_kind = n->kind;
-	int tgt_kind = tgt->kind;
-	if ((src_kind == METAKIND_ECS_SPACE && tgt_kind != METAKIND_ECS_SPACE) ||
-		(src_kind == METAKIND_ECS_ENTITY && tgt_kind != METAKIND_ECS_SPACE) ||
-		(src_kind >= METAKIND_ECS_COMPONENT_BEGIN && src_kind <= METAKIND_ECS_COMPONENT_END && tgt_kind != METAKIND_ECS_ENTITY))
+	
+	hash_t src_type_hash = n->type_hash;
+	hash_t tgt_type_hash = tgt->type_hash;
+	if ((src_type_hash == AsTypeHash<Space>() && tgt_type_hash != AsTypeHash<Space>()) ||
+		(src_type_hash == AsTypeHash<Entity>() && tgt_type_hash != AsTypeHash<Space>()) ||
+		(MetaExtFactory::FindComponent(src_type_hash) >= 0 && tgt_type_hash != AsTypeHash<Entity>()))
 	{
-		String src_kind_str = n->GetKindString();
-		String tgt_kind_str = tgt->GetKindString();
-		if (src_kind >= METAKIND_ECS_COMPONENT_BEGIN && src_kind <= METAKIND_ECS_COMPONENT_END)
-			src_kind_str = "Component(" + src_kind_str + ")";
-		if (tgt_kind >= METAKIND_ECS_COMPONENT_BEGIN && tgt_kind <= METAKIND_ECS_COMPONENT_END)
-			tgt_kind_str = "Component(" + tgt_kind_str + ")";
+		String src_kind_str = n->GetTypeString();
+		String tgt_kind_str = tgt->GetTypeString();
 		String err = "The parent type is not acceptable. '" + src_kind_str + "' can't have parent '" + tgt_kind_str + "'";
 		PromptOK(err);
 		return;
@@ -429,10 +437,15 @@ void EntityEditorCtrl::AddComponent() {
 				(cg < 0 || div == cg) &&
 				(c  < 0 || cat == c)) {
 				const char* grp = mod == 0 ? "A":"B";
-				dlg.complist.Add(desc, GetCategoryString(cat), GetCategoryGroupString(div), grp, kind);
+				dlg.complist.Add(
+					desc,
+					GetCategoryString(cat),
+					GetCategoryGroupString(div),
+					grp,
+					kind);
 			}
 		};
-		#define DATASET_ITEM(type, name, kind, cat, desc) on_row(kind,cat,desc);
+		#define DATASET_ITEM(type, name, desc) on_row(kind,cat,desc);
 		COMPONENT_LIST
 		#undef DATASET_ITEM
 		dlg.complist.SetSortColumn(0);

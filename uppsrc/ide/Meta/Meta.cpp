@@ -54,15 +54,16 @@ void Assign(MetaNode& mn, MetaNode* owner, const ClangNode& n)
 	mn.sub.SetCount(c);
 	for(int i = 0; i < c; i++)
 		UPP::Assign(mn.sub[i], &mn, n.sub[i]);
-	mn.kind = n.kind;
 	mn.id = n.id;
-	mn.type = n.type;
 	mn.type_hash = n.type_hash;
-	mn.begin = n.begin;
-	mn.end = n.end;
-	mn.filepos_hash = n.filepos_hash;
-	mn.is_ref = n.is_ref;
-	mn.is_definition = n.is_definition;
+	AstValue& to = mn;
+	to.kind = n.kind;
+	to.type = n.type;
+	to.begin = n.begin;
+	to.end = n.end;
+	to.filepos_hash = n.filepos_hash;
+	to.is_ref = n.is_ref;
+	to.is_definition = n.is_definition;
 }
 
 
@@ -171,7 +172,7 @@ String MetaSrcFile::UpdateStoring()
 	
 	String old_hash = saved_hash;
 	bool total_hash_diffs = false;
-	saved_hash = IntStr64(file_nodes.GetSourceHash(&total_hash_diffs));
+	saved_hash = IntStr64(file_nodes.AstGetSourceHash(&total_hash_diffs));
 	
 	ASSERT(!saved_hash.IsEmpty());
 	ASSERT(!full_path.IsEmpty());
@@ -207,7 +208,7 @@ bool MetaSrcFile::Store(bool forced)
 	// LOG(file_nodes.GetTreeString());
 	
 	bool total_hash_diffs = false;
-	String hash = IntStr64(file_nodes.GetSourceHash(&total_hash_diffs));
+	String hash = IntStr64(file_nodes.AstGetSourceHash(&total_hash_diffs));
 	if(!forced) {
 		if(saved_hash == hash && !total_hash_diffs)
 			return true;
@@ -851,7 +852,7 @@ void IdeMetaEnvironment::OnLoadFile(MetaSrcFile& file)
 {
 	MetaNode& file_nodes = file.GetTemp();
 	file_nodes.SetTempDeep();
-	ASSERT(file.saved_hash == IntStr64(file_nodes.GetSourceHash()));
+	ASSERT(file.saved_hash == IntStr64(file_nodes.AstGetSourceHash()));
 	//file_nodes.SetPkgDeep(pkg.id);
 	//LOG(file_nodes.GetTreeString());
 	env.MergeNode(env.root, file_nodes, MERGEMODE_OVERWRITE_OLD);

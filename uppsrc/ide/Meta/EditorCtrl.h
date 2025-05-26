@@ -9,7 +9,7 @@ class EntityEditorCtrl : public ToolAppCtrl {
 	TreeCtrl content_tree;
 	Ctrl ext_place;
 	One<MetaExtCtrl> ext_ctrl;
-	int ext_ctrl_kind = -1;
+	hash_t ext_ctrl_type_hash = 0;
 	int post_content_cursor = -1;
 	
 	void DataEcsTreeVisit(int treeid, MetaNode& n);
@@ -38,8 +38,8 @@ public:
 	void RemoveEntity();
 	void AddComponent();
 	void RemoveComponent();
-	void SetExtensionCtrl(int kind, MetaExtCtrl* ctrl);
-	void ClearExtensionCtrl() {SetExtensionCtrl(-1,0);}
+	void SetExtensionCtrl(hash_t type_hash, MetaExtCtrl* ctrl);
+	void ClearExtensionCtrl() {SetExtensionCtrl(0,0);}
 	MetaNodeExt* GetSelected();
 	void EditPos(JsonIO& jio) override;
 	void SelectEcsTree(MetaNode* n);

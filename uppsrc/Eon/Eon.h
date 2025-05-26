@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <AICore/AICore.h>
+#include <AICore2/AICore.h>
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
 #include <Core2/Core.h>
@@ -21,7 +22,6 @@ NAMESPACE_UPP
 #include "Container.h"
 #include "Network.h"
 #include "Debugging.h"
-#include "WorldState.h"
 #include "SampleBase.h"
 #include "Samples.h"
 #include "Generated.h"

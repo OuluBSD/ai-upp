@@ -249,9 +249,9 @@ void AiStageCtrl::Data() {
 	DataBottom();
 }
 
-void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind) {
+void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, hash_t type_hash) {
 	MetaNode& n = GetNode();
-	nodes = n.FindAllShallow(kind);
+	nodes = n.FindTypeAllShallow(type_hash);
 	for(int i = 0; i < nodes.GetCount(); i++) {
 		const auto& it = *nodes[i];
 		list.Set(i, 0, it.id);
@@ -267,7 +267,7 @@ void AiStageCtrl::DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind) 
 }
 
 void AiStageCtrl::DataProgramList() {
-	DataList(proglist, programs, METAKIND_ECS_COMPONENT_AI_PROGRAM);
+	DataList(proglist, programs, AsTypeHash<VfsProgram>());
 }
 
 void AiStageCtrl::DataProgram() {
@@ -278,7 +278,7 @@ void AiStageCtrl::DataProgram() {
 }
 
 void AiStageCtrl::DataStageList() {
-	DataList(stagelist, stages, METAKIND_ECS_COMPONENT_AI_STAGE);
+	DataList(stagelist, stages, AsTypeHash<VfsFarStage>());
 }
 
 void AiStageCtrl::DataStage() {
@@ -403,7 +403,7 @@ void AiStageCtrl::AddProgram() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_PROGRAM, name);
+	auto& ses = GetNode().Add<VfsProgram>(name);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -433,8 +433,8 @@ void AiStageCtrl::DuplicateProgram() {
 		return;
 	int id = proglist.Get("IDX");
 	const auto& n0 = *programs[id];
-	auto& m1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_PROGRAM, "");
-	VisitCopy(n0, m1);
+	auto& m1 = GetNode().Add<VfsProgram>("Duplicate of " + n0.id);
+	VisitCopy(n0, m1.node);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -456,7 +456,7 @@ void AiStageCtrl::AddStage() {
 			return;
 		}
 	}
-	auto& ses = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE, name);
+	auto& ses = GetNode().Add<VfsFarStage>(name);
 	PostCallback(THISBACK(DataStageList));
 }
 
@@ -486,8 +486,8 @@ void AiStageCtrl::DuplicateStage() {
 		return;
 	int id = stagelist.Get("IDX");
 	const auto& n0 = *stages[id];
-	auto& m1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_STAGE, "");
-	VisitCopy(n0, m1);
+	auto& m1 = GetNode().Add<VfsFarStage>("");
+	VisitCopy(n0, m1.node);
 	PostCallback(THISBACK(DataStageList));
 }
 
@@ -923,15 +923,13 @@ void PlaygroundCtrl::LoadThis() {
 	if (node) {
 		VisitFromJsonFile(*node, ConfigFile("playground-node.json"));
 		
-		auto& stage_n = node->GetAdd("stage-session", "", METAKIND_ECS_COMPONENT_AI_STAGE_SESSION);
-		ASSERT(stage_n.ext);
-		stage.ext = &*stage_n.ext;
+		auto& stage_n = node->GetAdd<VfsFarStage>("stage-session");
+		stage.ext = &stage_n;
 		
-		auto& chain_n = node->GetAdd("chain", "", METAKIND_ECS_COMPONENT_AI_CHAIN);
-		ASSERT(chain_n.ext);
-		chain.ext = &*chain_n.ext;
+		auto& chain_n = node->GetAdd<ChainThread>("chain");
+		chain.ext = &chain_n;
 		
-		auto& agent = node->GetAdd("agent", "", METAKIND_ECS_COMPONENT_AI_AGENT);
+		auto& agent = node->GetAdd<Agent>("agent");
 	}
 }
 

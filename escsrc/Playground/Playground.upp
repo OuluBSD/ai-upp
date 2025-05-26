@@ -28,6 +28,7 @@ file
 	GameOfAdoration.ecs,
 	"3 agents" readonly separator,
 	SongwriterRing.ecs,
+	GameOfAntiAdoration.ecs,
 	"In-order multi-agent" readonly separator,
 	Bank.ecs,
 	Courtroom.ecs,

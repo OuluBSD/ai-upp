@@ -135,8 +135,8 @@ bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
 bool Agent::CompileStage(MetaNode& stage, MsgCb WhenMessage) {
 	TimeStop ts;
 	
-	ASSERT(stage.kind == METAKIND_ECS_COMPONENT_AI_STAGE);
-	if (stage.kind != METAKIND_ECS_COMPONENT_AI_STAGE)
+	ASSERT(stage.type_hash == AsTypeHash<VfsFarStage>());
+	if (stage.type_hash != AsTypeHash<VfsFarStage>())
 		return false;
 	
 	bool succ = true;
@@ -307,5 +307,8 @@ void AgentInteractionSystem::Uninstall() {
 
 AgentInteractionSystem* AgentInteractionSystem::sys;
 
+
+
+COMPONENT_STUB_IMPL(VfsProgram)
 
 END_UPP_NAMESPACE

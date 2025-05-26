@@ -28,11 +28,12 @@ void AiChainCtrl::Data() {
 	auto& list = this->session;
 	ChainThread& t = GetChainThread();
 	MetaNode& n = GetNode();
-	sessions = n.FindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION);
+	sessions = n.FindTypeAllShallow(AsTypeHash<ChainThread>());
 	for(int i = 0; i < sessions.GetCount(); i++) {
 		const auto& it = *sessions[i];
+		const AstValue& a = it;
 		list.Set(i, 0, it.id);
-		list.Set(i, 1, it.type);
+		list.Set(i, 1, a.type);
 		list.Set(i,"IDX", i);
 	}
 	list.SetCount(sessions.GetCount());
@@ -158,10 +159,11 @@ void AiChainCtrl::SetSessionVersion() {
 	int ses_id = session.Get("IDX");
 	ChainThread& t = GetChainThread();
 	auto& ses = *sessions[ses_id];
-	String s = ses.type;
+	AstValue& a = ses;
+	String s = a.type;
 	if (!EditText(s, "Session's version", "Version"))
 		return;
-	ses.type = s;
+	a.type = s;
 	PostCallback(THISBACK(Data));
 }
 
@@ -171,7 +173,7 @@ void AiChainCtrl::DuplicateSession() {
 	int ses_id = session.Get("IDX");
 	ChainThread& t = GetChainThread();
 	const auto& ses0 = *sessions[ses_id];
-	auto& ses1 = GetNode().Add(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION, "");
+	auto& ses1 = GetNode().Add<ChainThread>("");
 	VisitCopy(ses0, ses1);
 	PostCallback(THISBACK(Data));
 }
@@ -206,13 +208,13 @@ void AiChainCtrl::StageMenu(Bar& b) {
 					b.Separator();
 				}
 				b.Sub("Remove", [this](Bar& b) {
-					auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
+					auto tmpls = GetNode().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 					for(int i = 0; i < tmpls.GetCount(); i++) {
 						MetaNode& n = *tmpls[i];
 						b.Add(n.id, THISBACK1(RemoveTemplate, &n));
 					}
 				});
-				auto tmpls = GetNode().FindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
+				auto tmpls = GetNode().AstFindAllShallow(METAKIND_ECS_COMPONENT_AI_CHAIN_SESSION_TEMPLATE);
 				for(int i = 0; i < tmpls.GetCount(); i++) {
 					MetaNode& n = *tmpls[i];
 					b.Add(n.id, THISBACK1(LoadTemplate, &n));

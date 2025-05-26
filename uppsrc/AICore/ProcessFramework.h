@@ -35,6 +35,16 @@ struct FarStage : Pte<FarStage> {
 	void Visit(Vis& v) {v.Ver(1)(1) VIS_(body) VIS_(value) VISV(funcs) VIS_(system) VIS_(model_name) VIS_(max_tokens) VIS_(hash);}
 };
 
+struct VfsFarStage : MetaNodeExt {
+	
+	
+	METANODE_EXT_CONSTRUCTOR(VfsFarStage)
+	void Visit(Vis& v) override {}
+};
+
+COMPONENT_STUB_HEADER(VfsProgram)
+
+
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
 //       what that was:    complicated initializer for AI calls with json templates
 //       what was kept:    json-based RPC for LLMs

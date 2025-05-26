@@ -13,7 +13,7 @@ struct Component : MetaNodeExt, DatasetProvider {
 #define METANODE_EXT_CONSTRUCTOR_(x) CLASSTYPE(x) x(MetaNode& n) : MetaNodeExt(n)
 #define METANODE_EXT_CONSTRUCTOR(x) METANODE_EXT_CONSTRUCTOR_(x) {}
 
-#define COMPONENT_STUB_HEADER(type, kind) \
+#define COMPONENT_STUB_HEADER(type) \
 struct type : Component \
 { \
 	COMPONENT_CONSTRUCTOR(type) \
@@ -21,7 +21,7 @@ struct type : Component \
 }; \
 INITIALIZE(type)
 
-#define COMPONENT_STUB_IMPL(type, kind) \
+#define COMPONENT_STUB_IMPL(type) \
 	INITIALIZER_COMPONENT(type);
 
 struct Entity : MetaNodeExt {

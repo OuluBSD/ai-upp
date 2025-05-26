@@ -407,7 +407,7 @@ template <class T>
 inline const T* FindRawValue(const Value& v) {
 	dword type = GetValueTypeNo<T>();
 	if (v.GetType() == type)
-		return dynamic_cast<RawValueRep<T>*>(v.ptr())->Get();
+		return &dynamic_cast<const RawValueRep<T>*>(v.ptr())->Get();
 	return 0;
 }
 

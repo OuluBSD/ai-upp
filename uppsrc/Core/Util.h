@@ -680,6 +680,11 @@ template <class T> int ArrayRemoveKey(Array<T>& v, const T& o) {
 	return rem_count;
 }
 
+struct TypeStringHasherIndex {
+	static VectorMap<hash_t, String>& Map();
+	static String ToString(hash_t h);
+};
+
 template <class T> hash_t TypedStringHasher(const char* s) {
 	struct Hasher {
 		hash_t h = 0;
@@ -688,6 +693,7 @@ template <class T> hash_t TypedStringHasher(const char* s) {
 				Panic("Type has not been set yet");
 			}
 			h = String(s).GetHashValue();
+			TypeStringHasherIndex::Map().Add(h, s);
 		}
 		void Chk(String s) {
 			if (s.GetHashValue() != h)

@@ -145,8 +145,6 @@ public:
 		;
 	}
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_STAGE_SESSION;}
-	
 };
 
 INITIALIZE(StageThread)
@@ -158,7 +156,7 @@ struct ChainThread : VfsValueExt {
 		v.Ver(0)
 			;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_CHAIN;}
+	
 };
 
 INITIALIZE(ChainThread)

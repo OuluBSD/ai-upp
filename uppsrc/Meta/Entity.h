@@ -35,8 +35,6 @@ struct Entity : VfsValueExt {
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());
 	}
 	
-	static int GetKind() {return METAKIND_ECS_ENTITY;}
-	
 protected:
 	friend class EntityInfoCtrl;
 	friend class VNodeComponentCtrl;
@@ -51,28 +49,11 @@ protected:
 INITIALIZE(Entity);
 
 
-struct ValueComponentBase : Component
-{
-	Value value;
-	ValueComponentBase(VfsValue& n) : Component(n) {}
-	void Visit(Vis& v) override {
-		v.Ver(1)
-		(1)	("value",value);
-	}
-};
-
-template <int kind>
-struct ValueComponent : ValueComponentBase
-{
-	using Type = ValueComponent<kind>;
-	ValueComponent(VfsValue& n) : ValueComponentBase(n) {}
-	static int GetKind() {return kind;}
-};
-
-#define INITIALIZE_VALUECOMPONENT(x, kind) \
-struct x : ValueComponent<kind> { \
+#define INITIALIZE_VALUECOMPONENT(x) \
+struct x : VfsValueExt { \
 	CLASSTYPE(x) \
-	x(VfsValue& n) : ValueComponent(n) {} \
+	x(VfsValue& n) : VfsValueExt(n) {} \
+	void Visit(Vis& v) override {} \
 }; \
 INITIALIZE(x)
 
@@ -83,6 +64,7 @@ INITIALIZE(x)
 
 COMPONENT_STUB_HEADER(Context)
 COMPONENT_STUB_HEADER(PkgEnv)
+COMPONENT_STUB_HEADER(DbRef)
 COMPONENT_STUB_HEADER(VirtualIOScript)
 COMPONENT_STUB_HEADER(VirtualIOScriptProofread)
 COMPONENT_STUB_HEADER(VirtualIOScriptLine)

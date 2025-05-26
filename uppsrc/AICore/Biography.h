@@ -132,7 +132,6 @@ public:
 			Sort();
 		}
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY;}
 	
 	BiographyCategory& GetAdd(Owner& o, int enum_);
 	BiographyCategory* Find(Owner& o, int enum_);
@@ -280,7 +279,6 @@ struct BiographyPerspectives : Component {
 			.VisitVector("concepts", concepts)
 		;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_PERSPECTIVES;}
 	
 };
 

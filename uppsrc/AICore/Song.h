@@ -66,7 +66,6 @@ struct Song : Component
 		#endif
 			;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}
 	
 };
 

@@ -12,7 +12,7 @@ struct ImageLayer : Component {
 	String StoreString();
 	void LoadString(const String& bz_enc);
 	void Visit(Vis& v) override;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_LAYER;}
+	
 };
 
 INITIALIZE(ImageLayer);
@@ -30,7 +30,6 @@ struct ImageGenLayer : TempImageLayer {
 	CLASSTYPE(ImageGenLayer)
 	ImageGenLayer(VfsValue& owner) : TempImageLayer(owner) {}
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_GEN_LAYER;}
 };
 
 INITIALIZE(ImageGenLayer);

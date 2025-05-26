@@ -98,7 +98,6 @@ public:
 	void Stop();
 	
 	void SetOpLimit(int i) {oplimit = i;}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_AGENT;}
 	
 	Event<EscEscape&> WhenPrint;
 	Event<EscEscape&> WhenInput;

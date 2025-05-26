@@ -14,7 +14,6 @@ struct VideoPromptMaker : Component
 		v.Ver(1)
 		(1);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_VIDEO_PROMPT_MAKER;}
 	
 };
 

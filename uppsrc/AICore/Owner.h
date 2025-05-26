@@ -105,7 +105,6 @@ struct Owner : Component
 			.VisitVector("roles", roles)
 			;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_OWNER;}
 	
 	int GetOpportunityScore(const LeadOpportunity& opp) const;
 	

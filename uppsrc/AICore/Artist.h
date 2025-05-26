@@ -13,7 +13,6 @@ struct Artist : Component
 		v.Ver(1)
 		(1)	("data", data);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_ARTIST;}
 	
 	Value& Data(String key) {return data.GetAdd(key);}
 };

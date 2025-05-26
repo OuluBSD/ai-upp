@@ -14,7 +14,6 @@ struct ScriptReasoning : Component
 		v.Ver(1)
 		(1);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT_REASONING;}
 	
 };
 

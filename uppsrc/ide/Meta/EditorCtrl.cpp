@@ -101,25 +101,21 @@ void EntityEditorCtrl::DataEcsTreeVisit(int treeid, VfsValue& n) {
 	ecs_tree_nodes.Reserve(ecs_tree_nodes.GetCount() + n.sub.GetCount());
 	
 	for(VfsValue& s : n.sub) {
-		const AstValue* a = s;
-		if (!a)
-			continue;
-		
-		if (a->kind == METAKIND_ECS_SPACE) {
-			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
+		if (s.type_hash == 0) {
+			String key = s.id;
 			int id = ecs_tree.Add(treeid, MetaImgs::RedRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
-		else if (a->kind == METAKIND_ECS_ENTITY) {
-			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
+		else if (s.type_hash == AsTypeHash<Entity>()) {
+			String key = s.id + " (Entity)";
 			int id = ecs_tree.Add(treeid, MetaImgs::VioletRing(), key);
 			ecs_tree_nodes.Add(&s);
 			DataEcsTreeVisit(id, s);
 		}
-		else if (a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
-				 a->kind <= METAKIND_ECS_COMPONENT_END) {
-			String key = s.id + " (" + VfsValue::AstGetKindString(a->kind) + ")";
+		else {
+			String typestr = TypeStringHasherIndex::ToString(s.type_hash);
+			String key = s.id + " (" + typestr + ")";
 			int id = ecs_tree.Add(treeid, MetaImgs::BlueRing(), key);
 			ecs_tree_nodes.Add(&s);
 			// Don't visit component: DataEcsTreeVisit(id, s);

@@ -47,7 +47,7 @@ struct LeadDataPublisher : Component {
 				("artists", artists)
 				;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_PUBLISHER;}
+	
 };
 
 INITIALIZE(LeadDataPublisher)
@@ -64,7 +64,6 @@ struct LeadDataTemplate : Component {
 	void Load();
 	void Store();
 	void Visit(Vis& json) override;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_TEMPLATE;}
 	
 	
 };

@@ -62,7 +62,6 @@ struct AspectFixerLayer : TempImageLayer {
 		v.Ver(1)
 		(1);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_IMG_ASPECT_FIXER_LAYER;}
 };
 
 INITIALIZE(AspectFixerLayer);

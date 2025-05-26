@@ -19,8 +19,6 @@ public:
 	
 	LeadsCtrl* editor = 0;
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_OWNER;}
-	
 };
 
 INITIALIZE(OwnerInfoCtrl)

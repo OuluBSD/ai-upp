@@ -26,7 +26,7 @@ struct PerspectiveComponent : Component
 			("attrs", attrs, VISIT_VECTOR)
 			("user", user);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PERSPECTIVE;}
+	
 };
 
 INITIALIZE(PerspectiveComponent);

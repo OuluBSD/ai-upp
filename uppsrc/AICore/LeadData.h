@@ -99,7 +99,6 @@ struct LeadData : Component {
 	LeadOpportunity& GetAddOpportunity(int leadsite, String id);
 	void Visit(Vis& v) override;
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LEAD_DATA;}
 	
 };
 

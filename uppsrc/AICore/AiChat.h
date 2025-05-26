@@ -15,7 +15,6 @@ struct AiChatComponent : Component {
 	AiChatComponent(VfsValue& owner);
 	~AiChatComponent();
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_CHAT;}
 	
 };
 
@@ -23,7 +22,7 @@ INITIALIZE(AiChatComponent);
 
 
 
-INITIALIZE_VALUECOMPONENT(AiStageExample, METAKIND_ECS_COMPONENT_AI_STAGE_EXAMPLE);
+INITIALIZE_VALUECOMPONENT(AiStageExample);
 
 
 

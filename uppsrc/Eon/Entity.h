@@ -60,7 +60,7 @@ public:
 	
 	template<typename T>
 	T& Get() {
-		auto comps = node.FindAll<T>();
+		auto comps = val.FindAll<T>();
 		ASSERT(comps.GetCount());
 		if (comps.IsEmpty()) throw Exc("Can't find component " + AsTypeName<T>());
 		return *comps[0];
@@ -68,7 +68,7 @@ public:
 	
 	template<typename T>
 	T* Find() {
-		auto comps = node.FindAll<T>();
+		auto comps = val.FindAll<T>();
 		return comps.IsEmpty() ? 0 : comps[0];
 	}
 	
@@ -80,7 +80,7 @@ public:
 	
 	template<typename T>
 	T* FindCast() {
-		auto comps = node.FindAll<T>();
+		auto comps = val.FindAll<T>();
 		T* o = 0;
 		for(auto& comp : comps) {
 			o = CastPtr<T>(&*comp);
@@ -92,7 +92,7 @@ public:
 	
 	template<typename T>
 	Entity* FindInterface() {
-		auto comps = node.FindAll<T>();
+		auto comps = val.FindAll<T>();
 		Entity* o = 0;
 		for(auto& comp : comps)
 			if ((o = CastPtr<T>(&*comp)))
@@ -102,7 +102,7 @@ public:
 	
 	template<typename T>
 	Vector<Ptr<T>> FindInterfaces() {
-		auto comps = node.FindAll<T>();
+		auto comps = val.FindAll<T>();
 		Vector<Ptr<T>> v;
 		Entity* o = 0;
 		for(auto& comp : comps)
@@ -138,7 +138,7 @@ public:
 	
 	template<typename... ComponentTs>
 	RTuple<ComponentTs*...> TryGetComponents() {
-		return MakeRTuple(node.Find<ComponentTs>()...);
+		return MakeRTuple(val.Find<ComponentTs>()...);
 	}
 	
 	

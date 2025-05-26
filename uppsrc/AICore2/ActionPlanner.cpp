@@ -278,7 +278,7 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 		return true;
 	ASSERT(goal);
 	BinaryWorldState& ws = this->GetWorldState();
-	ActionNode* root = node.FindRoot<ActionNode>();
+	ActionNode* root = val.FindRoot<ActionNode>();
 	ASSERT(root);
 	if (!root) return true;
 	ActionPlanner& ap = root->GetActionPlanner();
@@ -291,7 +291,7 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 		hash_t hash = ws_to.GetHashValue();
 		int j = root->tmp_sub.Find(hash);
 		if (j == -1) {
-			APlanNode sub = root->val.add<ActionNode>();
+			APlanNode sub = root->val.Add<ActionNode>();
 			sub->SetWorldState(ws_to);
 			sub->SetCost(action_costs[i]);
 			sub->SetActionId(act_ids[i]);
@@ -301,10 +301,10 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 			root->tmp_sub.Add(hash, sub);
 		} else {
 			auto& link = val.sub.Add();
-			link.symbolic_link = &root->tmp_sub[j]->node;
+			link.symbolic_link = &root->tmp_sub[j]->val;
 		}
 	}
-	return !node.GetCount();
+	return !val.GetCount();
 }
 
 double ActionNode::GetDistance(VfsValue& n) {
@@ -333,7 +333,7 @@ double ActionNode::GetDistance(VfsValue& n) {
 
 double ActionNode::GetEstimate() {
 	ASSERT(goal);
-	return GetDistance(goal->node);
+	return GetDistance(goal->val);
 }
 
 END_UPP_NAMESPACE

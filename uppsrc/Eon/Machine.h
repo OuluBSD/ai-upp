@@ -86,7 +86,7 @@ public:
     Ptr<SystemT> Find()
     {
         CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
-        auto v = this->node.template FindAll<SystemT>();
+        auto v = this->val.template FindAll<SystemT>();
         return v.IsEmpty() ? 0 : v[0];
     }
 	

@@ -38,7 +38,7 @@ void EnvEditorCtrl::RefreshDatabases() {
 			VfsSrcFile& file = pkg.files[j];
 			
 			if (file.IsExt(".db-src")) {
-				dbs << &env.RealizeFileNode(pkg.id, file.id, METAKIND_DATABASE_SOURCE);
+				dbs << &env.RealizeFileNode(pkg.id, file.id, AsTypeHash<SrcTxtHeader>());
 			}
 		}
 	}
@@ -179,9 +179,9 @@ VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
 	ASSERT(file.id >= 0);
-	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
 	this->file_root = &n;
-	ASSERT(this->file_root->kind == METAKIND_PKG_ENV);
+	ASSERT(this->file_root->type_hash == AsTypeHash<PkgEnv>());
 	return file;
 }
 
@@ -203,7 +203,7 @@ void EnvEditorCtrl::OnValueChange() {
 void EnvEditorCtrl::AddContext() {
 	RealizeFileRoot();
 	VfsValue& n = *file_root;
-	VfsValue& e = n.Add(METAKIND_CONTEXT);
+	VfsValue& e = n.Add<Context>().val;
 	e.id = "Unnamed";
 	PostCallback(THISBACK(Data));
 }

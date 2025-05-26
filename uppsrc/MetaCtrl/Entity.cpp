@@ -32,10 +32,10 @@ void VirtualFSComponentCtrl::Data() {
 		PromptOK("vnode error");
 		return;
 	}
-	int vnode_kind = vnode.GetKind();
+	int vnode_type_hash = vnode.GetTypeHash();
 	
 	// Check if vnode_ctrl is correct
-	bool create_new = !vnode_ctrl || vnode_ctrl->kind != vnode_kind;
+	bool create_new = !vnode_ctrl || vnode_ctrl->type_hash != vnode_type_hash;
 	if (create_new) {
 		if (vnode_ctrl) {
 			RemoveChild(&*vnode_ctrl);
@@ -44,7 +44,7 @@ void VirtualFSComponentCtrl::Data() {
 		// Make new ctrl if needed
 		vnode_ctrl = CreateCtrl(vnode);
 		if (vnode_ctrl) {
-			vnode_ctrl->kind = vnode_kind;
+			vnode_ctrl->type_hash = vnode_type_hash;
 			Add(vnode_ctrl->SizePos());
 		}
 	}
@@ -111,10 +111,10 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 	for (VirtualNode& s : sub) {
 		Value name = s.GetName();
 		//DLOG("Visit " << name.GetTypeName() << ": " << name.ToString());
-		int kind = s.GetKind();
+		hash_t type_hash = s.GetTypeHash();
 		String qtf;
 		if (!TreeItemString(s, name, qtf))
-			qtf = DeQtf(name.ToString() + " (" + s.GetKindString() + ")");
+			qtf = DeQtf(name.ToString() + " (" + TypeStringHasherIndex::ToString(type_hash) + ")");
 		int sub_id = tree.Add(id, MetaImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))
 			return false;
@@ -134,12 +134,13 @@ VirtualNode VirtualFSComponentCtrl::Find(const VfsPath& rel_path) {
 	return p;
 }
 
-VirtualNode VirtualFSComponentCtrl::GetAdd(const VfsPath& rel_path, int kind) {
+#if 0
+VirtualNode VirtualFSComponentCtrl::GetAdd(const VfsPath& rel_path, hash_t type_hash) {
 	VirtualNode n = Root();
 	TODO;
 	return n;
 }
-
+#endif
 
 
 
@@ -339,19 +340,19 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 	return v;
 }
 
-Vector<VirtualNode> VirtualNode::FindAll(int kind) {
+Vector<VirtualNode> VirtualNode::FindAll(hash_t type_hash) {
 	// TODO optimized solution (this is lazy)
 	Vector<VirtualNode> n = GetAll();
 	Vector<int> rmlist;
 	for(int i = 0; i < n.GetCount(); i++) {
-		if (n[i].GetKind() != kind)
+		if (n[i].GetTypeHash() != type_hash)
 			rmlist << i;
 	}
 	if (!rmlist.IsEmpty()) n.Remove(rmlist);
 	return n;
 }
 
-VirtualNode VirtualNode::Add(Value name, int kind) {
+VirtualNode VirtualNode::Add(Value name, hash_t type_hash) {
 	VirtualNode n;
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
@@ -362,19 +363,19 @@ VirtualNode VirtualNode::Add(Value name, int kind) {
 					ValueMap map = *data->poly_value;
 					{
 						ValueMap sub_map;
-						sub_map.Set(".kind", kind);
+						sub_map.Set(".type_hash", (int64)type_hash);
 						map.Set(name, sub_map);
 					}
 					*data->poly_value = map;
 				}
-				auto& val = data->value->GetAdd(name);
+				auto& val = data->poly_value->GetAdd(name);
 				ASSERT(val.Is<ValueMap>());
 				n.Create(data->path + name, &val, name);
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
 			if (data->vfs_value) {
-				VfsValue& sub = data->vfs_value->Add(kind, name);
+				VfsValue& sub = data->vfs_value->Add(name, type_hash);
 				n.Create(data->path + name, &sub);
 			}
 		}
@@ -398,18 +399,18 @@ Value VirtualNode::GetName() const {
 	return Value();
 }
 
-String VirtualNode::GetKindString() const {
+String VirtualNode::GetTypeString() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
 			if (data->poly_value) {
 				if (data->poly_value->Is<ValueMap>()) {
 					ValueMap map = *data->poly_value;
-					int i = map.Find(".kind");
+					int i = map.Find(".type_hash");
 					if (i >= 0) {
-						Value kind_value = map.GetValue(i);
-						ASSERT(kind_value.Is<int>());
-						int kind = kind_value;
-						return VfsValue::AstGetKindString(kind);
+						Value type_hash_value = map.GetValue(i);
+						ASSERT(type_hash_value.Is<int64>());
+						hash_t type_hash = (hash_t)(int64)type_hash_value;
+						return TypeStringHasherIndex::ToString(type_hash);
 					}
 				}
 			}
@@ -423,27 +424,22 @@ String VirtualNode::GetKindString() const {
 	return String();
 }
 
-int VirtualNode::GetKind() const {
+hash_t VirtualNode::GetTypeHash() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
 			if (data->poly_value) {
 				if (data->poly_value->Is<ValueMap>()) {
 					ValueMap map = *data->poly_value;
-					int i = map.Find(".kind");
+					int i = map.Find(".type_hash");
 					if (i >= 0)
-						return (int)map.GetValue(i);
+						return (hash_t)(int64)map.GetValue(i);
 				}
 				return 0;
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
-			if (data->vfs_value) {
-				const AstValue* v = *data->vfs_value;
-				if (v)
-					return v->kind;
-				TODO // check if type_hash was asked?
-				return 0;
-			}
+			if (data->vfs_value)
+				return data->vfs_value->type_hash;
 		}
 		else TODO;
 	}
@@ -451,7 +447,7 @@ int VirtualNode::GetKind() const {
 	return 0;
 }
 
-void VirtualNode::SetKind(int k) {
+void VirtualNode::SetType(hash_t type_hash) {
 	ASSERT(data);
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
@@ -459,16 +455,15 @@ void VirtualNode::SetKind(int k) {
 				*data->poly_value = ValueMap();
 			if (data->poly_value->Is<ValueMap>()) {
 				ValueMap map = *data->poly_value;
-				map.Set(".kind", k);
+				map.Set(".type_hash", (int64)type_hash);
 				*data->poly_value = map;
 			}
 			else TODO;
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
 			if (data->vfs_value) {
-				TODO // check if this should be "set type_hash"
-				AstValue a = *data->vfs_value;
-				a->kind = k;
+				if (data->vfs_value->type_hash != type_hash)
+					data->vfs_value->CreateExt(type_hash);
 			}
 			else TODO;
 		}
@@ -515,38 +510,38 @@ VNodeComponentCtrl::VNodeComponentCtrl(ValueVFSComponentCtrl& o, const VirtualNo
 	ASSERT(vnode);
 }
 
-DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode, int kind) {
+DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode, hash_t type_hash) {
 	DatasetPtrs p = owner.GetDataset();
+	TODO
+	#if 0
 	if (!p.entity)
 		return p;
 	
 	//DUMP(vnode.data->path);
 	
-	for (const auto& it : VfsValueExtFactory::List()) {
-		TODO // seems to be type_hash logic instead of AstValue::kind logic
-		#if 0
-		const AstValue* a = it;
-		if (a && a->kind == kind) {
-			VfsPath path = vnode.data->path;
-			path.Add(it.name);
-			int i = p.entity->objs.Find(path);
-			if (i >= 0) {
-				EntityData& data = p.entity->objs[i];
-				VfsValueExtFactory::Set(p, it.kind, data);
-			}
-			else {
-				EntityData* data = it.create_ed_fn();
-				ASSERT(data); // ???
-				if (data) {
-					VfsValueExtFactory::Set(p, it.kind, *data);
-					p.entity->objs.Add(path, data);
-				}
-			}
-			break;
+	VfsPath path = vnode.data->path;
+	ASSERT(vnode.data->vfs_value);
+	if (!vnode.data->vfs_value)
+		Panic("internal error: todo?");
+	
+	// needed? vnode.data->vfs_value->CreateExt(type_hash);
+	
+	path.Add(vnode.data->vfs_value->ext->GetTypeName());
+	int i = p.entity->objs.Find(path);
+	if (i >= 0) {
+		EntityData& data = p.entity->objs[i];
+		VfsValueExtFactory::SetEntityData(p, type_hash, data);
+	}
+	else {
+		EntityData* data = it.create_ed_fn();
+		ASSERT(data); // ???
+		if (data) {
+			VfsValueExtFactory::SetEntityData(p, type_hash, *data);
+			p.entity->objs.Add(path, data);
 		}
-		#endif
 	}
 	
+	#endif
 	return p;
 }
 
@@ -618,7 +613,7 @@ void EntityInfoCtrl::Data() {
 	// Get all contexts
 	all_ctxs.Clear();
 	for (VfsValue* env : envs) {
-		Vector<VfsValue*> ctxs = env->FindAllShallow(METAKIND_CONTEXT);
+		Vector<VfsValue*> ctxs = env->FindAllShallow(AsTypeHash<Context>());
 		for (VfsValue* ctx : ctxs) {
 			String key = /*env->id + ": " +*/ ctx->id;
 			all_ctxs.Add(key, ctx);

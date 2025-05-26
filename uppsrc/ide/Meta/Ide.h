@@ -91,7 +91,7 @@ struct IdeMetaEnvironment {
 	VfsSrcFile& Load(const String& includes, const String& path);
 	void OnLoadFile(VfsSrcFile& file);
 	VfsValue* LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v);
-	VfsValue& RealizeFileNode(int pkg, int file, int kind);
+	VfsValue& RealizeFileNode(int pkg, int file, hash_t type_hash);
 	void SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id);
 	void SplitValue(VfsValue& root, VfsValueSubset& other, int pkg_id, int file_id);
 	void SplitValue(const VfsValue& root, VfsValue& other, int pkg_id);

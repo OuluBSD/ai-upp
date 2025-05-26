@@ -36,7 +36,7 @@ SocialHeaderProcess& SocialHeaderProcess::Get(DatasetPtrs p) {
 	ASSERT(p.owner && p.profile && p.snap && p.biography && p.analysis);
 	static ArrayMap<String, SocialHeaderProcess> arr;
 	
-	String key = (String)p.profile->node.GetPath() + ";" + (String)p.snap->node.GetPath();
+	String key = (String)p.profile->val.GetPath() + ";" + (String)p.snap->val.GetPath();
 	SocialHeaderProcess& ts = arr.GetAdd(key);
 	ts.p = p;
 	return ts;

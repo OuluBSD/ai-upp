@@ -171,7 +171,7 @@ void ScriptTextSolverCtrl::Do(int fn) {
 void ScriptTextSolverCtrl::DoSuggestions(int fn) {
 	DatasetPtrs p = GetDataset();
 	if (!p.entity) return;
-	String ecs_path = p.entity->node.GetPath();
+	String ecs_path = p.entity->val.GetPath();
 	ScriptSolver& sdi = ScriptSolver::Get(GetDataset(), ecs_path);
 	sugg_prog.Attach(sdi);
 	sdi.WhenRemaining << [this](String s) {
@@ -387,7 +387,7 @@ void ScriptTextSolverCtrl::DataSub() {
 void ScriptTextSolverCtrl::DoPart(int fn) {
 	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity);
-	String ecs_path = p.entity->node.GetPath();
+	String ecs_path = p.entity->val.GetPath();
 	
 	const DynPart* part = 0;
 	int part_i = -1;
@@ -414,7 +414,7 @@ void ScriptTextSolverCtrl::DoPart(int fn) {
 void ScriptTextSolverCtrl::DoSub(int fn) {
 	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity);
-	String ecs_path = p.entity->node.GetPath();
+	String ecs_path = p.entity->val.GetPath();
 	const DynPart* part = 0;
 	const DynSub* sub = 0;
 	int part_i = -1, sub_i = -1;
@@ -441,7 +441,7 @@ void ScriptTextSolverCtrl::DoSub(int fn) {
 void ScriptTextSolverCtrl::DoLine(int fn) {
 	const DatasetPtrs p = GetDataset();
 	ASSERT(p.entity && p.script);
-	String ecs_path = p.entity->node.GetPath();
+	String ecs_path = p.entity->val.GetPath();
 	const DynPart* part = 0;
 	const DynSub* sub = 0;
 	const DynLine* line = 0;

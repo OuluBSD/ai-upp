@@ -34,7 +34,7 @@ void MarketplaceProcess::DoPhase() {
 }
 
 MarketplaceProcess& MarketplaceProcess::Get(DatasetPtrs p) {
-	String t = p.owner->node.GetPath();
+	String t = p.owner->val.GetPath();
 	hash_t h = t.GetHashValue();
 	static ArrayMap<hash_t, MarketplaceProcess> map;
 	int i = map.Find(h);

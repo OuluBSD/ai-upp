@@ -434,7 +434,7 @@ void AiStageCtrl::DuplicateProgram() {
 	int id = proglist.Get("IDX");
 	const auto& n0 = *programs[id];
 	auto& m1 = GetValue().Add<VfsProgram>("Duplicate of " + n0.id);
-	VisitCopy(n0, m1.node);
+	VisitCopy(n0, m1.val);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -487,7 +487,7 @@ void AiStageCtrl::DuplicateStage() {
 	int id = stagelist.Get("IDX");
 	const auto& n0 = *stages[id];
 	auto& m1 = GetValue().Add<VfsFarStage>("");
-	VisitCopy(n0, m1.node);
+	VisitCopy(n0, m1.val);
 	PostCallback(THISBACK(DataStageList));
 }
 
@@ -839,9 +839,7 @@ PlaygroundCtrl::PlaygroundCtrl() {
 
 PlaygroundCtrl::~PlaygroundCtrl() {
 	stage.ext = 0;
-	stage.type_hash = 0;
 	chain.ext = 0;
-	chain.type_hash = 0;
 	StoreThis();
 	omni.Clear();
 }
@@ -927,11 +925,9 @@ void PlaygroundCtrl::LoadThis() {
 		
 		auto& stage_n = node->GetAdd<VfsFarStage>("stage-session");
 		stage.ext = &stage_n;
-		stage.type_hash = stage_n.GetTypeHash();
 		
 		auto& chain_n = node->GetAdd<ChainThread>("chain");
 		chain.ext = &chain_n;
-		chain.type_hash = chain_n.GetTypeHash();
 		
 		auto& agent = node->GetAdd<Agent>("agent");
 	}

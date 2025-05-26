@@ -1,4 +1,6 @@
 #include "AICtrl.h"
+#include <ide/Meta/Meta.h>
+
 
 NAMESPACE_UPP
 
@@ -221,13 +223,13 @@ void ScriptTextCtrl::AddPart() {
 		PromptOK("Unexpected context");
 		return;
 	}
-	VfsValue* n = ee->SelectTreeNode("Select node to be used as part");
+	VfsValue* n = ee->SelectTreeValue("Select node to be used as part");
 	if (n) {
 		TranscriptProofread* proofread = 0;
-		if (n->kind == METAKIND_ECS_ENTITY) {
+		if (n->type_hash == AsTypeHash<Entity>()) {
 			proofread = n->Find<TranscriptProofread>();
 		}
-		else if (n->kind == METAKIND_ECS_COMPONENT_TRANSCRIPT_PROOFREAD) {
+		else if (n->type_hash == AsTypeHash<TranscriptProofread>()) {
 			proofread = &n->GetExt<TranscriptProofread>();
 			n = n->owner;
 		}
@@ -252,12 +254,12 @@ void ScriptTextCtrl::ImportProofread(VirtualNode new_node, TranscriptProofread& 
 	TranscriptResponse r;
 	LoadFromJson(r,text);
 	new_node.RemoveSubNodes();
-	VirtualNode section = new_val.Add("0", METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB);
+	VirtualNode section = new_node.Add("0", AsTypeHash<VirtualIOScriptSub>());
 	for(int i = 0; i < selected_indices.GetCount(); i++) {
 		int seg_i = selected_indices[i];
 		if (seg_i >= 0 && seg_i < r.segments.GetCount()) {
 			const auto& seg = r.segments[seg_i];
-			VirtualNode line = section.Add(i, METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE);
+			VirtualNode line = section.Add(i, AsTypeHash<VirtualIOScriptLine>());
 			ASSERT(line.IsValue());
 			ValueMap lineval = line.GetValue();
 			lineval("text", seg.text);
@@ -306,11 +308,11 @@ void ScriptTextCtrl::RefreshParams() {
 
 void ScriptTextCtrl::RealizeData() {
 	VirtualNode root = this->Root();
-	int kind = root.GetKind();
-	if (!root.GetKind()) {
-		root.SetKind(METAKIND_ECS_VIRTUAL_IO_SCRIPT);
+	hash_t type_hash = root.GetTypeHash();
+	if (!root.GetTypeHash()) {
+		root.SetType(AsTypeHash<VirtualIOScript>());
 	}
-	ASSERT(root.GetKind() == METAKIND_ECS_VIRTUAL_IO_SCRIPT);
+	ASSERT(root.GetTypeHash() == AsTypeHash<VirtualIOScript>());
 }
 
 void ScriptTextCtrl::Init() {
@@ -322,20 +324,20 @@ String ScriptTextCtrl::GetTitle() const {
 }
 
 VNodeComponentCtrl* ScriptTextCtrl::CreateCtrl(const VirtualNode& vnode) {
-	int kind = vnode.GetKind();
-	if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT) {
+	hash_t type_hash = vnode.GetTypeHash();
+	if (type_hash == AsTypeHash<VirtualIOScript>()) {
 		SubTab* o = new SubTab(*this, vnode);
 		o->AddRootTabs();
 		o->AddLineOwnerTabs();
 		return o;
 	}
-	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_SUB) {
+	else if (type_hash == AsTypeHash<VirtualIOScriptSub>()) {
 		SubTab* o = new SubTab(*this, vnode);
 		o->AddLineOwnerTabs();
 		return o;
 	}
-	else if (kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_PROOFREAD ||
-			 kind == METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE)
+	else if (type_hash == AsTypeHash<VirtualIOScriptProofread>() ||
+			 type_hash == AsTypeHash<VirtualIOScriptLine>())
 		return new LineTab(*this, vnode);
 	//else if (kind == METAKIND_ECS_VIRTUAL_IO_TRANSCRIPTION_VOICEOVER_GENERATE)
 	//	return new GenerateTab(*this);

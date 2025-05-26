@@ -93,7 +93,7 @@ public:
 	
 	template<typename T>
 	T* FindCast() {
-		auto atoms = node.FindAll<T>();
+		auto atoms = val.FindAll<T>();
 		if (!atoms.IsEmpty())
 			return atoms[0];
 		return 0;

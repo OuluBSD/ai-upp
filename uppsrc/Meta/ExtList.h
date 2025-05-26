@@ -128,6 +128,11 @@
 	DATASET_ITEM(Owner,					owner,			"Owner") /* TODO rename to human? */ \
 	DATASET_ITEM(BiographyPerspectives,	snap,			"Biography Perspectives") \
 	DATASET_ITEM(Biography,				biography,		"Biography") \
+	DATASET_ITEM(Release,				release,		"Release") \
+	DATASET_ITEM(Song,					song,			"Song") \
+	DATASET_ITEM(LeadData,				lead_data,		"Lead Data") \
+	DATASET_ITEM(PerspectiveComponent,	perspective,	"Perspective") \
+	DATASET_ITEM(LeadDataTemplate,		lead_tmpl,		"Lead Template") \
 	
 #define VIRTUALNODE_DATASET_LIST \
 	DATASET_ITEM(SrcTextData,			srctxt,			"Source Text") \

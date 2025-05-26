@@ -25,7 +25,7 @@ void Entity::Visit(Vis& v) {
 
 void Entity::UnrefDeep() {
 	RefClearVisitor vis;
-	node.Visit(vis);
+	val.Visit(vis);
 }
 
 EntityId Entity::GetNextId() {
@@ -40,7 +40,7 @@ String Entity::GetTreeString(int indent) {
 	
 	s << (name.IsEmpty() ? (String)"unnamed" : "\"" + name + "\"") << ": " << prefab << "\n";
 	
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	for (auto& c : comps) {
 		s.Cat('\t', indent+1);
 		s << c->ToString();
@@ -55,7 +55,7 @@ void Entity::OnChange() {
 }
 
 ComponentBasePtr Entity::GetTypeCls(TypeCls comp_type) {
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	for (auto& c : comps) {
 		TypeCls type = c->GetTypeCls();
 		if (type == comp_type)
@@ -81,7 +81,7 @@ ComponentBasePtr Entity::GetAddTypeCls(TypeCls cls) {
 }
 
 ComponentBasePtr Entity::FindTypeCls(TypeCls comp_type) {
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	for (auto& c : comps) {
 		TypeCls type = c->GetTypeCls();
 		if (type == comp_type)
@@ -101,7 +101,7 @@ ComponentBasePtr Entity::AddPtr(ComponentBase* comp) {
 }
 
 void Entity::InitializeComponents() {
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	for(auto& comp : comps)
 		InitializeComponent(*comp);
 }
@@ -111,7 +111,7 @@ void Entity::InitializeComponent(ComponentBase& comp) {
 }
 
 void Entity::UninitializeComponents() {
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	int dbg_i = 0;
 	for (auto it = comps.End()-1; it != comps.Begin()-1; --it) {
 		(*it)->Uninitialize();
@@ -120,7 +120,7 @@ void Entity::UninitializeComponents() {
 }
 
 void Entity::ClearComponents() {
-	node.RemoveAllDeep<ComponentBase>();
+	val.RemoveAllDeep<ComponentBase>();
 }
 
 Entity* Entity::Clone() const {
@@ -139,13 +139,13 @@ ComponentBasePtr Entity::CreateEon(String id) {
 }
 
 ComponentBasePtr Entity::CreateComponent(TypeCls type) {
-	return ComponentFactory::CreateComponent(node, type);
+	return ComponentFactory::CreateComponent(val, type);
 }
 
 void Entity::Destroy() {
 	Destroyable::Destroy();
 	
-	auto comps = node.FindAll<ComponentBase>();
+	auto comps = val.FindAll<ComponentBase>();
 	for (auto& component : comps)
 		component->Destroy();
 	
@@ -163,7 +163,7 @@ const Engine& Entity::GetEngine() const {
 }
 
 Pool& Entity::GetPool() const {
-	Pool* p = node.GetOwnerExt<Pool>();
+	Pool* p = val.GetOwnerExt<Pool>();
 	ASSERT(p);
 	return *p;
 }
@@ -199,7 +199,7 @@ int Entity::GetPoolDepth() const {
 }
 
 bool Entity::HasPoolParent(Pool* pool) const {
-	return node.IsOwnerDeep(*pool);
+	return val.IsOwnerDeep(*pool);
 }
 
 ComponentBasePtr Entity::GetAdd(String comp_name) {

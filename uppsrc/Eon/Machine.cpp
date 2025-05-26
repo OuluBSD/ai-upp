@@ -31,8 +31,8 @@ Machine::~Machine() {
 }
 
 Ecs::Engine& Machine::GetEngine() {
-	if (node.owner) {
-		auto engs = node.owner->FindAll<Ecs::Engine>();
+	if (val.owner) {
+		auto engs = val.owner->FindAll<Ecs::Engine>();
 		if (engs.GetCount())
 			return *engs[0];
 	}
@@ -43,18 +43,18 @@ Ecs::Engine& Machine::GetEngine() {
 }
 
 Loop& Machine::GetRootLoop() {
-	LoopPtr loop = node.Find<Loop>();
+	LoopPtr loop = val.Find<Loop>();
 	if (loop) return *loop;
-	loop = &val.add<Loop>();
-	loop->node.id = "loop";
+	loop = &val.Add<Loop>();
+	loop->val.id = "loop";
 	return *loop;
 }
 
 Space& Machine::GetRootSpace() {
-	SpacePtr space = node.Find<Space>();
+	SpacePtr space = val.Find<Space>();
 	if (space) return *space;
-	space = &val.add<Space>();
-	space->node.id = "space";
+	space = &val.Add<Space>();
+	space->val.id = "space";
 	return *space;
 }
 
@@ -72,7 +72,7 @@ bool Machine::Start() {
 	
 	is_started = true;
 	
-	auto systems = node.FindAll<SystemBase>();
+	auto systems = val.FindAll<SystemBase>();
 	for (auto system : systems) {
 		if (!system->Initialize()) {
 			LOG("Could not initialize system " << system->GetTypeCls().GetName());
@@ -120,7 +120,7 @@ void Machine::Update(double dt) {
 		return;
 	}
 	
-	auto systems = node.FindAll<SystemBase>();
+	auto systems = val.FindAll<SystemBase>();
 	for (auto& system : systems) {
 		SystemBase* b = &*system;
 		WhenEnterSystemUpdate(*b);
@@ -140,7 +140,7 @@ void Machine::Update(double dt) {
 
 void Machine::Stop() {
 	bool was_started = is_started;
-	auto systems = node.FindAll<SystemBase>();
+	auto systems = val.FindAll<SystemBase>();
 	
 	is_running = false;
 	is_started = false;
@@ -177,7 +177,7 @@ void Machine::DieFast() {Start(); Update(0); Stop();}
 
 void Machine::Clear() {
 	ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0;
-	node.RemoveAllDeep<SystemBase>();
+	val.RemoveAllDeep<SystemBase>();
 }
 
 bool Machine::HasStarted() const {
@@ -185,7 +185,7 @@ bool Machine::HasStarted() const {
 }
 
 SystemBase* Machine::FindSystem(TypeCls type_id) {
-	VfsValue* n = node.FindDeep(type_id);
+	VfsValue* n = val.FindDeep(type_id);
 	return n && n->ext ? CastPtr<SystemBase>(&*n->ext) : 0;
 }
 
@@ -196,7 +196,7 @@ void Machine::Add(TypeCls type_id, SystemBase* system) {
 	int i = FindSystem(type_id);
 	ASSERT(i >= 0);
 	
-	ASSERT(system->node.owner);
+	ASSERT(system->val.owner);
 	systems.Add(type_id, system);
 }
 

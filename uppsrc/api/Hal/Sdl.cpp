@@ -204,9 +204,9 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 	if (!ev_ctx->AttachContext(a))
 		return false;
 	
-	if (!a.node.GetPath().IsValid()) {
+	if (!a.val.GetPath().IsValid()) {
 		RLOG(MetaEnv().root.GetTreeString());
-		RLOG(a.node.GetPath().ToString());
+		RLOG(a.val.GetPath().ToString());
 		Panic("internal error");
 		return false;
 	}
@@ -215,7 +215,7 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 	dword sdl_flag = SDL_INIT_AUDIO;
 	EscValue& data = ev_ctx->UserData();
 	data.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
@@ -498,7 +498,7 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	dword sdl_flag = SDL_INIT_VIDEO;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	return true;
@@ -790,7 +790,7 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	dword sdl_flag = SDL_INIT_VIDEO;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 		.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	return true;
@@ -951,7 +951,7 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -1194,7 +1194,7 @@ bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon
 	dword sdl_flag = SDL_INIT_EVENTS;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
@@ -1608,7 +1608,7 @@ bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, con
 	dword sdl_flag = SDL_INIT_EVENTS;
 	ev_ctx->UserData()
 		.MapGetAdd("dependencies")
-		.MapGetAdd(a.node.GetPath().ToString())
+		.MapGetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	
@@ -1745,7 +1745,7 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
 	ev_ctx->UserData()
 		.AsMap().GetAdd("dependencies")
-		.AsMap().GetAdd(a.node.GetPath().ToString())
+		.AsMap().GetAdd(a.val.GetPath().ToString())
 			.MapSet("sdl_flag", (int64)sdl_flag);
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);

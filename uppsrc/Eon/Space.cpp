@@ -28,7 +28,7 @@ Space* Space::GetParent() const {
 Machine& Space::GetMachine() const {
 	if (machine)
 		return *machine;
-	VfsValue* n = &node;
+	VfsValue* n = &val;
 	int levels = 0;
 	while (n && levels++ < 1000) {
 		machine = n->Find<Machine>();
@@ -40,7 +40,7 @@ Machine& Space::GetMachine() const {
 }
 
 AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (auto& it : atoms) {
 		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
@@ -80,7 +80,7 @@ AtomBasePtr Space::GetAddTypeCls(AtomTypeCls cls) {
 }
 
 AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (auto& it : atoms) {
 		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
@@ -91,7 +91,7 @@ AtomBasePtr Space::FindTypeCls(AtomTypeCls atom_type) {
 }
 
 AtomBasePtr Space::FindAtom(AtomTypeCls atom_type) {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (auto& it : atoms) {
 		auto& comp = *it;
 		AtomTypeCls type = comp.GetType();
@@ -110,7 +110,7 @@ AtomBasePtr Space::AddPtr(AtomBase* comp) {
 }
 
 void Space::InitializeAtoms() {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for(auto& it : atoms)
 		InitializeAtom(*it);
 }
@@ -155,13 +155,13 @@ void Space::Visit(Vis& v) {
 }
 
 void Space::VisitSinks(Vis& vis) {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for(auto& it : atoms)
 		it->VisitSink(vis);
 }
 
 void Space::VisitSources(Vis& vis){
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for(auto& it : atoms)
 		it->VisitSource(vis);
 }
@@ -197,8 +197,8 @@ void Space::Initialize(Space& l, String prefab) {
 }
 
 SpacePtr Space::CreateEmpty(String id) {
-	Space& l = val.add<Space>();
-	l.node.id = id;
+	Space& l = val.Add<Space>();
+	l.val.id = id;
 	l.SetId(GetNextId());
 	Initialize(l);
 	return &l;
@@ -220,18 +220,18 @@ void Space::UnrefDeep() {
 }
 
 void Space::UninitializeAtomsDeep() {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (int i = spaces.GetCount()-1; i >= 0; i--)
 		spaces[i]->UninitializeAtomsDeep();
 	
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--)
 		atoms[i]->UninitializeDeep();
 	
 }
 
 void Space::StopDeep() {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (int i = spaces.GetCount()-1; i >= 0; i--)
 		spaces[i]->StopDeep();
 	
@@ -239,7 +239,7 @@ void Space::StopDeep() {
 }
 
 void Space::Stop() {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
 		auto& it = *atoms[i];
 		if (it.IsRunning()) {
@@ -250,7 +250,7 @@ void Space::Stop() {
 }
 
 void Space::UnlinkDeep() {
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
 		auto& it = *atoms[i];
 		TODO //it.UnlinkDeep();
@@ -261,7 +261,7 @@ void Space::UnlinkDeep() {
 }
 
 void Space::ClearStatesDeep() {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (auto& p : spaces)
 		p->ClearStatesDeep();
 	
@@ -269,7 +269,7 @@ void Space::ClearStatesDeep() {
 }
 
 void Space::ClearAtomsDeep() {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (auto& p : spaces)
 		p->ClearAtomsDeep();
 	
@@ -281,13 +281,13 @@ void Space::ClearAtomsDeep() {
 }
 
 void Space::ClearDeep() {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (auto& p : spaces)
 		if (p)
 			p->ClearDeep();
 	spaces.Clear();
 	
-	node.RemoveAllShallow<AtomBase>();
+	val.RemoveAllShallow<AtomBase>();
 	states.Clear();
 }
 
@@ -300,9 +300,9 @@ SpacePtr Space::GetAddEmpty(String name) {
 }
 
 SpacePtr Space::FindSpaceByName(String name) {
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (Space* object : spaces)
-		if (object->node.id == name)
+		if (object->val.id == name)
 			return object;
 	return SpacePtr();
 }
@@ -311,7 +311,7 @@ AtomBasePtr Space::FindDeepCls(AtomTypeCls type) {
 	AtomBasePtr b = FindAtom(type);
 	if (b)
 		return b;
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (Space* object : spaces) {
 		b = object->FindDeepCls(type);
 		if (b)
@@ -330,13 +330,13 @@ String Space::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << (node.id.IsEmpty() ? (String)"unnamed" : "\"" + node.id + "\"") << "[" << (int)id << "]\n";
+	s << ".." << (val.id.IsEmpty() ? (String)"unnamed" : "\"" + val.id + "\"") << "[" << (int)id << "]\n";
 	
-	auto atoms = node.FindAll<AtomBase>();
+	auto atoms = val.FindAll<AtomBase>();
 	for (auto& it : atoms)
 		s << it->ToString();
 	
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (Space* l : spaces)
 		s << l->GetTreeString(indent+1);
 	
@@ -359,7 +359,7 @@ EnvStatePtr Space::FindStateDeep(String name) {
 	if (e)
 		return e;
 	
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (Space* p : spaces) {
 		EnvStatePtr e = p->FindStateDeep(name);
 		if (e)
@@ -370,10 +370,10 @@ EnvStatePtr Space::FindStateDeep(String name) {
 }
 
 String Space::GetDeepName() const {
-	String s = node.id;
+	String s = val.id;
 	Space* l = GetParent();
 	while (l) {
-		s = l->node.id + "." + s;
+		s = l->val.id + "." + s;
 		l = l->GetParent();
 	}
 	return s;
@@ -390,17 +390,17 @@ void Space::UnlinkExchangePoints() {
 
 SpacePtr Space::AddSpace(String name) {
 	ASSERT(name.GetCount());
-	Space& p = val.add<Space>();
-	p.node.id = name;
+	Space& p = val.Add<Space>();
+	p.val.id = name;
 	p.SetId(GetNextId());
 	return &p;
 }
 
 SpacePtr Space::GetAddSpace(String name) {
 	ASSERT(name.GetCount());
-	auto spaces = node.FindAll<Space>();
+	auto spaces = val.FindAll<Space>();
 	for (auto& pool : spaces)
-		if (pool->node.id == name)
+		if (pool->val.id == name)
 			return pool;
 	return AddSpace(name);
 }

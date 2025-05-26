@@ -19,21 +19,19 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			int cur = ecs_tree.GetCursor();
 			if (cur < 0 || cur >= ecs_tree_nodes.GetCount()) return;
 			VfsValue& n = *ecs_tree_nodes[cur];
-			const AstValue* a = n;
-			if (a && a->kind == METAKIND_ECS_SPACE) {
-				b.Add("Add entity", THISBACK3(AddValue, &n, METAKIND_ECS_ENTITY, ""));
-				b.Add("Add space", THISBACK3(AddValue, &n, METAKIND_ECS_SPACE, ""));
+			if (n.type_hash == 0) {
+				b.Add("Add entity", THISBACK3(AddValue, &n, "", AsTypeHash<Entity>()));
+				b.Add("Add empty", THISBACK3(AddValue, &n, "", 0));
 				b.Separator();
 				if (cur != 0)
-					b.Add("Remove space", THISBACK1(RemoveValue, &n));
+					b.Add("Remove empty", THISBACK1(RemoveValue, &n));
 			}
-			else if (a && a->kind == METAKIND_ECS_ENTITY) {
+			else if (n.type_hash == AsTypeHash<Entity>()) {
 				b.Add("Add Component", THISBACK(AddComponent));
 				b.Separator();
 				b.Add("Remove entity", THISBACK1(RemoveValue, &n));
 			}
-			else if (a && a->kind >= METAKIND_ECS_COMPONENT_BEGIN &&
-					      a->kind <  METAKIND_ECS_COMPONENT_END) {
+			else if (VfsValueExtFactory::FindComponent(n.type_hash) >= 0) {
 				b.Add("Remove Component", THISBACK1(RemoveValue, &n));
 			}
 			b.Add("Move", THISBACK1(Move, &n));
@@ -147,7 +145,7 @@ void EntityEditorCtrl::DataEcsTree() {
 	}
 	
 	VfsValueExt& ext = *enode.ext;
-	hash_t type_hash = ext.node.type_hash;
+	hash_t type_hash = ext.val.type_hash;
 	
 	if (ext_ctrl_type_hash != type_hash) {
 		int fac_i = VfsValueExtFactory::FindTypeHashFactory(type_hash);
@@ -243,7 +241,7 @@ VfsSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
 	ASSERT(file.id >= 0);
-	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, METAKIND_ECS_SPACE);
+	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, 0);
 	this->file_root = &n;
 	return file;
 }
@@ -294,8 +292,8 @@ void EntityEditorCtrl::Move(VfsValue* n) {
 	
 	hash_t src_type_hash = n->type_hash;
 	hash_t tgt_type_hash = tgt->type_hash;
-	if ((src_type_hash == AsTypeHash<Space>() && tgt_type_hash != AsTypeHash<Space>()) ||
-		(src_type_hash == AsTypeHash<Entity>() && tgt_type_hash != AsTypeHash<Space>()) ||
+	if ((src_type_hash == 0 && tgt_type_hash != 0) ||
+		(src_type_hash == AsTypeHash<Entity>() && tgt_type_hash != 0) ||
 		(VfsValueExtFactory::FindComponent(src_type_hash) >= 0 && tgt_type_hash != AsTypeHash<Entity>()))
 	{
 		String src_kind_str = n->GetTypeString();
@@ -322,7 +320,7 @@ void EntityEditorCtrl::RemoveValue(VfsValue* n) {
 	PostCallback(THISBACK1(SelectEcsTree, &o));
 }
 
-void EntityEditorCtrl::AddValue(VfsValue* n, int kind, String id) {
+void EntityEditorCtrl::AddValue(VfsValue* n, String id, hash_t type_hash) {
 	if (!n || !n->owner) return;
 	if (id.IsEmpty()) {
 		WString ws;
@@ -330,7 +328,7 @@ void EntityEditorCtrl::AddValue(VfsValue* n, int kind, String id) {
 			return;
 		id = ws.ToString();
 	}
-	VfsValue& s = n->Add(kind, id);
+	VfsValue& s = n->Add(id, type_hash);
 	PostCallback(THISBACK(Data));
 	PostCallback(THISBACK1(SelectEcsTree, &s));
 }
@@ -339,8 +337,8 @@ void EntityEditorCtrl::AddEntity() {
 	RealizeFileRoot();
 	VfsValue& n = *file_root;
 	Entity& e = n.Add<Entity>();
-	ASSERT(e.node.kind == METAKIND_ECS_ENTITY);
-	auto& enode = e.node;
+	ASSERT(e.val.type_hash == AsTypeHash<Entity>());
+	auto& enode = e.val;
 	enode.id = "Unnamed";
 	PostCallback(THISBACK(Data));
 	PostCallback(THISBACK1(SelectEcsTree, &enode));
@@ -428,30 +426,30 @@ void EntityEditorCtrl::AddComponent() {
 		int g = dlg.group.GetIndex() - 1;
 		int cg = dlg.catgroup.GetKey(dlg.catgroup.GetIndex());
 		int c = dlg.category.GetKey(dlg.category.GetIndex());
-		int cursor_kind = dlg.complist.IsCursor() ? (int)dlg.complist.Get("KIND") : -1;
+		hash_t cursor_type_hash = dlg.complist.IsCursor() ? (hash_t)(int64)dlg.complist.Get("KIND") : -1;
 		dlg.complist.SetCount(0);
-		auto on_row = [&](int kind, int cat, String desc) {
-			int mod = (int)cat % 2;
-			int div = (int)cat / 2;
-			if ((g  < 0 || mod == g) &&
+		auto on_row = [&](hash_t type_hash, int cat, String desc) {
+			//int mod = (int)cat % 2;
+			//int div = (int)cat / 2;
+			/*if ((g  < 0 || mod == g) &&
 				(cg < 0 || div == cg) &&
-				(c  < 0 || cat == c)) {
-				const char* grp = mod == 0 ? "A":"B";
+				(c  < 0 || cat == c))*/ {
+				const char* grp = "TODO"; //mod == 0 ? "A":"B";
 				dlg.complist.Add(
 					desc,
-					GetCategoryString(cat),
-					GetCategoryGroupString(div),
+					"TODO", //GetCategoryString(cat),
+					"TODO", //GetCategoryGroupString(div),
 					grp,
-					kind);
+					TypeStringHasherIndex::ToString(type_hash));
 			}
 		};
-		#define DATASET_ITEM(type, name, desc) on_row(kind,cat,desc);
+		#define DATASET_ITEM(type, name, desc) on_row(AsTypeHash<type>(),0,desc);
 		COMPONENT_LIST
 		#undef DATASET_ITEM
 		dlg.complist.SetSortColumn(0);
-		if (cursor_kind >= 0) {
+		if (cursor_type_hash >= 0) {
 			for(int i = 0; i < dlg.complist.GetCount(); i++) {
-				if (dlg.complist.Get(i, "KIND") == cursor_kind) {
+				if ((hash_t)(int64)dlg.complist.Get(i, "TYPEHASH") == cursor_type_hash) {
 					dlg.complist.SetCursor(i);
 					break;
 				}
@@ -464,7 +462,7 @@ void EntityEditorCtrl::AddComponent() {
 	dlg.complist.AddColumn("Category");
 	dlg.complist.AddColumn("Cat. Group");
 	dlg.complist.AddColumn("Sub-Group");
-	dlg.complist.AddIndex("KIND");
+	dlg.complist.AddIndex("TYPEHASH");
 	dlg.group.Add("Any");
 	dlg.group.Add("A");
 	dlg.group.Add("B");
@@ -480,13 +478,15 @@ void EntityEditorCtrl::AddComponent() {
 	dlg.complist.SetCursor(0);
 	dlg.complist.SetFocus();
 	if(dlg.Execute() == IDOK) {
-		int kind = dlg.complist.Get("KIND");
+		hash_t type_hash = (int64)dlg.complist.Get("TYPEHASH");
 		for(const auto& factory : VfsValueExtFactory::List()) {
-			if (factory.kind != kind) continue;
-			auto& ext = e->val.Add(factory.kind);
-			ASSERT(ext.kind == factory.kind);
+			if (factory.type_hash != type_hash)
+				continue;
+			String id = factory.name;
+			auto& ext = e->val.Add(id, factory.type_hash);
+			ASSERT(ext.type_hash == factory.type_hash);
 			PostCallback(THISBACK(Data));
-			PostCallback(THISBACK1(SelectEcsTree, &e->node));
+			PostCallback(THISBACK1(SelectEcsTree, &e->val));
 			break;
 		}
 	}

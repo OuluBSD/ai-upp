@@ -77,4 +77,16 @@ struct x : ValueComponent<kind> { \
 INITIALIZE(x)
 
 
+
+
+
+
+COMPONENT_STUB_HEADER(Context)
+COMPONENT_STUB_HEADER(PkgEnv)
+COMPONENT_STUB_HEADER(VirtualIOScript)
+COMPONENT_STUB_HEADER(VirtualIOScriptProofread)
+COMPONENT_STUB_HEADER(VirtualIOScriptLine)
+COMPONENT_STUB_HEADER(VirtualIOScriptSub)
+
+
 #endif

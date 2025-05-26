@@ -720,7 +720,7 @@ Vector<VfsValue*> IdeMetaEnvironment::FindAllEnvs() {
 	for (const VfsSrcPkg& pkg : pkgs) {
 		for (const VfsSrcFile& file : pkg.files) {
 			if (file.env_file) {
-				VfsValue& n = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				VfsValue& n = RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
 				v << &n;
 			}
 		}
@@ -736,9 +736,9 @@ VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 	for (const VfsSrcPkg& pkg : pkgs) {
 		for (const VfsSrcFile& file : pkg.files) {
 			if (file.env_file) {
-				VfsValue& fn = RealizeFileNode(pkg.id, file.id, METAKIND_PKG_ENV);
+				VfsValue& fn = RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
 				for (VfsValue& s : fn.sub)
-					if (s.kind == METAKIND_CONTEXT && s.id == ctx)
+					if (s.type_hash == AsTypeHash<Context>() && s.id == ctx)
 						return &s;
 			}
 		}
@@ -750,7 +750,7 @@ VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 VfsValue* IdeMetaEnvironment::LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v) {
 	if (!file.pkg)
 		return 0;
-	VfsValue& filenode = RealizeFileNode(file.pkg->id, file.id, METAKIND_DATABASE_SOURCE);
+	VfsValue& filenode = RealizeFileNode(file.pkg->id, file.id, AsTypeHash<SrcTxtHeader>());
 	if (!filenode.ext) {
 		One<SrcTxtHeader> ext;
 		ext.Create(filenode);
@@ -813,13 +813,13 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 		}
 	}
 	else if (ext == ".ecs") {
-		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_ECS_SPACE);
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, 0);
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
 	}
 	else if (ext == ".env") {
-		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, METAKIND_PKG_ENV);
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, AsTypeHash<PkgEnv>());
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
@@ -867,9 +867,9 @@ void IdeMetaEnvironment::OnLoadFile(VfsSrcFile& file)
 #endif
 }
 
-VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
+VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, hash_t type_hash) {
 	for (auto& s : env.root.sub) {
-		if (s.pkg == pkg && s.file == file && s.kind == kind) {
+		if (s.pkg == pkg && s.file == file && s.type_hash == type_hash) {
 			if (!s.serial)
 				s.serial = env.NewSerial();
 			return s;
@@ -878,9 +878,9 @@ VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, int kind) {
 	VfsValue& n = env.root.sub.Add();
 	n.pkg = pkg;
 	n.file = file;
-	n.kind = kind;
 	n.serial = env.NewSerial();
 	n.id = pkgs[pkg].files[file].GetTitle();
+	n.CreateExt(type_hash);
 	return n;
 }
 

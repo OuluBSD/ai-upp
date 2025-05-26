@@ -33,7 +33,7 @@ public:
 	void Visit(Vis& v) override;
 	void Move(VfsValue* n);
 	void RemoveValue(VfsValue* n);
-	void AddValue(VfsValue* n, int kind, String id);
+	void AddValue(VfsValue* n, String id, hash_t type_hash);
 	void AddEntity();
 	void RemoveEntity();
 	void AddComponent();

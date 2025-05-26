@@ -169,7 +169,7 @@ ArrayMap<hash_t, SnapSolver>& __SnapSolvers() {
 }
 
 SnapSolver& SnapSolver::Get(Release& e) {
-	String t = e.node.GetPath();
+	String t = e.val.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, SnapSolver>& map = __SnapSolvers();
 	int i = map.Find(h);

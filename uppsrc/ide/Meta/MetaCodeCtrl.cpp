@@ -155,7 +155,10 @@ void MetaCodeCtrl::RemoveComment()
 }
 
 Vector<String> MetaCodeCtrl::GetAnnotationAreaCode() {
-	return GetStringArea(this->content, sel_node->begin, sel_node->end);
+	const AstValue* a = *sel_node;
+	ASSERT(a);
+	if (!a) return Vector<String>();
+	return GetStringArea(this->content, a->begin, a->end);
 }
 
 #ifdef flagAI
@@ -174,8 +177,9 @@ void MetaCodeCtrl::MakeAiComments()
 	args.code = GetAnnotationAreaCode();
 
 	auto cur_sel_node = sel_node;
+	const AstValue* ast = *cur_sel_node;
 
-	m.GetCode(args, [&, cur_sel_node](String result) {
+	m.GetCode(args, [&, cur_sel_node, ast](String result) {
 		Vector<String> lines = Split(result, "\n");
 		VectorMap<int, String> comments;
 		for(String& l : lines) {
@@ -198,17 +202,18 @@ void MetaCodeCtrl::MakeAiComments()
 			comments.GetAdd(line) = l;
 		}
 		// DUMPM(comments);
-		cur_sel_node->RemoveAllDeep(METAKIND_COMMENT);
+		cur_sel_node->AstRemoveAllDeep(METAKIND_COMMENT);
 		for(auto c : ~comments) {
-			Point pt = cur_sel_node->begin;
+			Point pt = ast->begin;
 			pt.y += c.key;
 			//VfsValue* closest = cur_sel_node->FindClosest(pt);
 			VfsValue& cn = cur_sel_node->Add();
-			cn.kind = METAKIND_COMMENT;
 			cn.id = c.value;
-			cn.begin = cn.end = pt;
 			cn.file = cur_sel_node->file;
 			cn.pkg = cur_sel_node->pkg;
+			AstValue& ast = cn;
+			ast.kind = METAKIND_COMMENT;
+			ast.begin = ast.end = pt;
 		}
 		//cur_sel_node->Sort();
 		
@@ -309,14 +314,17 @@ void MetaCodeCtrl::OnEditorCursor() {
 }
 
 void MetaCodeCtrl::VisitCursorInfo(VfsValue& n, int& row) {
-	cursorinfo.Set(row, 0, n.GetKindString());
+	const AstValue* a = n;
+	cursorinfo.Set(row, 0, a ? VfsValue::AstGetKindString(a->kind) : String());
 	cursorinfo.Set(row, 1, n.id);
-	cursorinfo.Set(row, 2, n.type);
-	cursorinfo.Set(row, 3, n.begin);
-	VfsValue* decl = n.is_ref ? MetaEnv().FindDeclaration(n) : 0;
-	if (decl)
-		cursorinfo.Set(row, 4, decl->begin);
-	else if (n.is_ref)
+	cursorinfo.Set(row, 2, n.GetTypeString());
+	cursorinfo.Set(row, 3, a ? a->begin : Null);
+	VfsValue* decl = a->is_ref ? MetaEnv().FindDeclaration(n) : 0;
+	if (decl) {
+		const AstValue* decl_a = *decl;
+		cursorinfo.Set(row, 4, decl_a->begin);
+	}
+	else if (a && a->is_ref)
 		cursorinfo.Set(row, 4, "<decl not found>");
 	else
 		cursorinfo.Set(row, 4, Value());
@@ -350,11 +358,13 @@ void MetaCodeCtrl::AnnotationData() {
 		depthfirst.Set(row, 1, it.pos);
 		if (it.node) {
 			VfsValue& n = *it.node;
-			depthfirst.Set(row, 2, n.GetKindString());
+			depthfirst.Set(row, 2, n.AstGetKindString());
 			depthfirst.Set(row, 3, n.id);
-			depthfirst.Set(row, 4, n.type);
-			if (it.link_node)
-				depthfirst.Set(row, 5, it.link_node->begin);
+			depthfirst.Set(row, 4, n.GetTypeString());
+			if (it.link_node) {
+				const AstValue* a1 = *it.link_node;
+				depthfirst.Set(row, 5, a1 ? a1->begin.ToString() : String());
+			}
 			else
 				depthfirst.Set(row, 5, Value());
 			depthfirst.Set(row, 6, it.error);

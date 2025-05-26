@@ -35,12 +35,12 @@ struct VirtualNode : Moveable<VirtualNode> {
 	~VirtualNode();
 	VirtualNode Find(Value name);
 	Vector<VirtualNode> GetAll();
-	Vector<VirtualNode> FindAll(int kind);
-	VirtualNode Add(Value name, int kind);
+	Vector<VirtualNode> FindAll(hash_t type_hash);
+	VirtualNode Add(Value name, hash_t type_hash);
 	Value GetName() const;
-	String GetKindString() const;
-	int GetKind() const;
-	void SetKind(int k);
+	String GetTypeString() const;
+	hash_t GetTypeHash() const;
+	void SetType(hash_t type_hash);
 	bool IsValue() const;
 	bool IsEntity() const;
 	Value GetValue() const;
@@ -56,17 +56,8 @@ struct VirtualNode : Moveable<VirtualNode> {
 	template <class T>
 	T& GetAddExt(String name) {
 		ASSERT(data && data->mode == VFS_VALUE);
-		TODO
-		/*int kind = 0;
-		const std::type_info& type = typeid(T);
-		for (const auto it : VfsValueExtFactory::List()) {
-			if (*it.type == type) {
-				kind = it.kind;
-				break;
-			}
-		}
-		ASSERT(kind > 0);
-		TODO; void* p = 0; return *(T*)p;*/
+		ASSERT(data->vfs_value);
+		return data->vfs_value->CreateExt<T>();
 	}
 };
 
@@ -115,7 +106,7 @@ class VNodeComponentCtrl : public ParentCtrl, public DatasetProvider  {
 	
 protected:
 	friend class VirtualFSComponentCtrl;
-	int kind = 0;
+	hash_t type_hash = 0;
 	VirtualNode vnode;
 	ValueVFSComponentCtrl& owner;
 public:
@@ -123,8 +114,8 @@ public:
 	VNodeComponentCtrl(ValueVFSComponentCtrl&, const VirtualNode& vnode);
 	
 	DatasetPtrs GetDataset() const override;
-	DatasetPtrs RealizeEntityVfsObject(const VirtualNode& vnode, int kind);
-	int GetKind() const {return kind;}
+	DatasetPtrs RealizeEntityVfsObject(const VirtualNode& vnode, hash_t type_hash);
+	hash_t GetTypeHash() const {return type_hash;}
 	virtual void Data() {}
 	virtual void EditPos(JsonIO& json) {}
 	

@@ -376,12 +376,12 @@ bool VideoSourceFileRangeCtrl::UpdateSources() {
 	files.Clear();
 	file_paths.Clear();
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
-	if (!comp.node.owner)
+	if (!comp.val.owner)
 		return false;
 	String sel_path = comp.value("path");
 	header.files.Clear();
 	header.files.WhenAction.Clear();
-	files = comp.node.owner->FindAll<VideoSourceFile>();
+	files = comp.val.owner->FindAll<VideoSourceFile>();
 	int cursor = 0;
 	for(int i = 0; i < files.GetCount(); i++) {
 		auto& comp = *files[i];

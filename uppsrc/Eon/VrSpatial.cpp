@@ -382,7 +382,7 @@ void VrSpatialInteractionManager::Move(vec3 rel_dir, float step) {
 VfsValue& VrSpatialInteractionManager::GetVfsValue() {
 	ASSERT(sys);
 	if (!sys) throw Exc("No sys ptr");
-	return sys->node;
+	return sys->val;
 }
 
 

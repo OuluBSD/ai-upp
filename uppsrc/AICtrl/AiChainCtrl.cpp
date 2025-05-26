@@ -173,7 +173,7 @@ void AiChainCtrl::DuplicateSession() {
 	ChainThread& t = GetChainThread();
 	const auto& ses0 = *sessions[ses_id];
 	auto& ses1 = GetValue().Add<ChainThread>("");
-	VisitCopy(ses0, ses1);
+	VisitCopy(ses0, ses1.val);
 	PostCallback(THISBACK(Data));
 }
 

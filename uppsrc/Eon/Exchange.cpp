@@ -328,6 +328,7 @@ ExchangePointPtr MetaSpaceBase::Add(TypeCls expt) {
 	ExchangePoint* o = d.new_fn(n);
 	n.ext = o;
 	n.type_hash = o->GetTypeHash();
+	ASSERT(n.type_hash);
 	pts.Add(o);
 	//o->SetParent(this);
 	return o;

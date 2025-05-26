@@ -11,6 +11,31 @@ class ScriptDriverLoader;
 class ActionPlanner;
 class ActionNode;
 
+
+struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
+	struct Item : Moveable<Item> {
+		Value positive, negative;
+	};
+	VectorMap<String, Item> index;
+	
+};
+
+struct BinaryWorldState {
+	friend class ActionPlanner;
+	friend class ActionPlannerWrapper;
+	friend class ActionNode;
+	
+	Ptr<BinaryWorldStateSession> session;
+	Vector<bool> values;
+	Vector<bool> using_act;
+	
+	BinaryWorldState();
+	void Clear();
+	bool Set(int index, bool value);
+	BinaryWorldState& operator=(const BinaryWorldState& src);
+	hash_t GetHashValue() const;
+};
+
 class WorldState : public Moveable<WorldState> {
 
 public:

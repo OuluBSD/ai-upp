@@ -107,6 +107,8 @@ struct MetaNodeExt : Pte<MetaNodeExt> {
 	hash_t GetHashValue() const;
 	int AstGetKind() const;
 	
+	static String GetCategory() {return String();}
+	
 	void CopyFrom(const MetaNodeExt& e);
 	bool operator==(const MetaNodeExt& e) const;
 	void Serialize(Stream& s);
@@ -170,13 +172,15 @@ struct MetaExtFactory {
 		}
 		ASSERT_(0, "Kind not registered");
 	}*/
+	static Index<String>& Categories() {static Index<String> v; return v;}
+	
 	template <class T> inline static void Register(String name) {
 		#ifdef flagGUI
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
 		#endif
 		Factory& f = List().Add();
 		f.type_hash = TypedStringHasher<T>(name);
-		TODO //f.category = FindKindCategory(f.kind);
+		f.category = Categories().FindAdd(T::GetCategory());
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
@@ -240,6 +244,9 @@ struct AstValue {
 	int PolyCompare(const Value& v) const;
 };
 
+const dword ASTVALUE_V   = 0x10001;
+template<> inline dword ValueTypeNo(const AstValue*)     { return ASTVALUE_V; }
+
 struct MetaNode : Pte<MetaNode> {
 	String             id;
 	hash_t             type_hash = 0;
@@ -294,7 +301,7 @@ struct MetaNode : Pte<MetaNode> {
 	
 	MetaNode& Add(const MetaNode& n);
 	MetaNode& Add(MetaNode* n);
-	MetaNode& Add();
+	MetaNode& Add(String id=String());
 	MetaNode* Detach(MetaNode* n);
 	MetaNode* Detach(int i);
 	void Remove(MetaNode* n);
@@ -347,8 +354,18 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T>
+	T& CreateExt() {
+		ext.Clear();
+		T* o = new T(*this);
+		ext = o;
+		type_hash = AsTypeHash<T>();
+		return *o;
+	}
+	
+	template <class T>
 	T& GetAdd(String id="") {
 		hash_t type_hash = AsTypeHash<T>();
+		ASSERT(type_hash);
 		for (auto& s : sub) {
 			if (s.type_hash == type_hash && s.id == id) {
 				ASSERT(s.ext);
@@ -380,6 +397,7 @@ struct MetaNode : Pte<MetaNode> {
 		s.pkg = pkg;
 		s.file = file;
 		s.type_hash = AsTypeHash<T>();
+		ASSERT(s.type_hash);
 		return *o;
 	}
 	

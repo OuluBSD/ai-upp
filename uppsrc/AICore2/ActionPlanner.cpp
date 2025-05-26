@@ -3,17 +3,17 @@
 
 NAMESPACE_UPP
 
-WorldState::WorldState() {
+BinaryWorldState::BinaryWorldState() {
 	
 	Clear();
 }
 
-void WorldState::Clear() {
+void BinaryWorldState::Clear() {
 	values.Clear();
 	using_act.Clear();
 }
 
-bool WorldState::Set(int index, bool value) {
+bool BinaryWorldState::Set(int index, bool value) {
 	if (index < 0) return false;
 	if (using_act.GetCount() <= index) {
 		using_act.SetCount(index+1, false);
@@ -24,14 +24,14 @@ bool WorldState::Set(int index, bool value) {
 	return true;
 }
 
-WorldState& WorldState::operator = (const WorldState& src) {
+BinaryWorldState& BinaryWorldState::operator = (const BinaryWorldState& src) {
 	values <<= src.values;
 	using_act <<= src.using_act;
 	return *this;
 }
 
 
-hash_t WorldState::GetHashValue() {
+hash_t BinaryWorldState::GetHashValue() const {
 	CombineHash c;
 	for(int i = 0; i < values.GetCount(); i++) {
 		c.Put(using_act[i]);
@@ -39,6 +39,11 @@ hash_t WorldState::GetHashValue() {
 	}
 	return c;
 }
+
+
+
+
+
 
 Action::Action() : cost(1.0) {
 	
@@ -76,8 +81,8 @@ void ActionPlanner::SetSize(int action_count, int atom_count) {
 		wrapper->OnResize();
 }
 
-void ActionPlanner::DoAction( int action_id, const WorldState& src, WorldState& dest) {
-	const WorldState& post = acts[action_id].postcond;
+void ActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) {
+	const BinaryWorldState& post = acts[action_id].postcond;
 	
 	dest = src;
 	
@@ -89,13 +94,13 @@ void ActionPlanner::DoAction( int action_id, const WorldState& src, WorldState& 
 }
 
 
-void ActionPlanner::GetPossibleStateTransition(const WorldState& src, Array<WorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs)
+void ActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Array<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs)
 {
 	for ( int i=0; i < acts.GetCount(); ++i )
 	{
 		// Check precondition
 		Action& act = acts[i];
-		const WorldState& pre = act.precond;
+		const BinaryWorldState& pre = act.precond;
 		
 		// Check that precondition is not using something outside of src values
 		int count = UPP::min(pre.using_act.GetCount(), src.using_act.GetCount());
@@ -118,7 +123,7 @@ void ActionPlanner::GetPossibleStateTransition(const WorldState& src, Array<Worl
 		if (met) {
 			act_ids.Add(i);
 			action_costs.Add(act.cost);
-			WorldState& tmp = search_cache.Add();
+			BinaryWorldState& tmp = search_cache.Add();
 			DoAction( i, src, tmp );
 			dest.Add(&tmp);
 		}
@@ -165,7 +170,7 @@ void ActionPlannerWrapper::OnResize() {
 	atoms.SetCount(ap.GetAtomCount());
 }
 
-String ActionPlannerWrapper::GetWorldstateDescription( const WorldState& ws )
+String ActionPlannerWrapper::GetWorldstateDescription( const BinaryWorldState& ws )
 {
 	String str;
 	for(int i = 0; i < atoms.GetCount(); i++) {
@@ -189,8 +194,8 @@ String ActionPlannerWrapper::GetDescription()
 		Action& act = ap.acts[j];
 		str += acts[j] + ":\n";
 		
-		WorldState& pre  = act.precond;
-		WorldState& post = act.postcond;
+		BinaryWorldState& pre  = act.precond;
+		BinaryWorldState& post = act.postcond;
 		
 		int count = UPP::min(atoms.GetCount(), pre.values.GetCount());
 		for(int i = 0; i < count; i++) {
@@ -272,17 +277,17 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 	if (this->GetEstimate() <= 0)
 		return true;
 	ASSERT(goal);
-	WorldState& ws = this->GetWorldState();
+	BinaryWorldState& ws = this->GetWorldState();
 	ActionNode* root = node.FindRoot<ActionNode>();
 	ASSERT(root);
 	if (!root) return true;
 	ActionPlanner& ap = root->GetActionPlanner();
-	Array<WorldState*> to;
+	Array<BinaryWorldState*> to;
 	Vector<int> act_ids;
 	Vector<double> action_costs;
 	ap.GetPossibleStateTransition(ws, to, act_ids, action_costs);
 	for(int i = 0; i < to.GetCount(); i++) {
-		WorldState& ws_to = *to[i];
+		BinaryWorldState& ws_to = *to[i];
 		hash_t hash = ws_to.GetHashValue();
 		int j = root->tmp_sub.Find(hash);
 		if (j == -1) {

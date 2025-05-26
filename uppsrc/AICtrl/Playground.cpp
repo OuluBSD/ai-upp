@@ -839,7 +839,9 @@ PlaygroundCtrl::PlaygroundCtrl() {
 
 PlaygroundCtrl::~PlaygroundCtrl() {
 	stage.ext = 0;
+	stage.type_hash = 0;
 	chain.ext = 0;
+	chain.type_hash = 0;
 	StoreThis();
 	omni.Clear();
 }
@@ -925,9 +927,11 @@ void PlaygroundCtrl::LoadThis() {
 		
 		auto& stage_n = node->GetAdd<VfsFarStage>("stage-session");
 		stage.ext = &stage_n;
+		stage.type_hash = stage_n.GetTypeHash();
 		
 		auto& chain_n = node->GetAdd<ChainThread>("chain");
 		chain.ext = &chain_n;
+		chain.type_hash = chain_n.GetTypeHash();
 		
 		auto& agent = node->GetAdd<Agent>("agent");
 	}

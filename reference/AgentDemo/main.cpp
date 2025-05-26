@@ -2,18 +2,18 @@
 
 NAMESPACE_UPP
 
-struct SimpleValueNode : MetaNodeExt {
+struct SimpleValueNode : VfsValueExt {
 	
 	DEFAULT_EXT(SimpleValueNode)
 	void Visit(Vis& v) override {}
-	String ToString() const override {return AsString(node.value);}
+	String ToString() const override {return AsString(val.value);}
 	double GetUtility() override;
 	bool TerminalTest(NodeRoute& prev) override;
 };
 
 
 double SimpleValueNode::GetUtility() {
-	Value& o = node.value;
+	Value& o = val.value;
 	ValueArray arr = o;
 	ASSERT(arr.GetCount());
 	Value ov = arr[1];
@@ -22,11 +22,11 @@ double SimpleValueNode::GetUtility() {
 }
 
 bool SimpleValueNode::TerminalTest(NodeRoute& prev) {
-	return node.sub.GetCount() == 0;
+	return val.sub.GetCount() == 0;
 }
 
 // Function which sets Node<Value> value in GenerateTree function
-void SetValue(Nod& i) {
+void SetValue(Val& i) {
 	static int counter;
 	if (!i.ext)
 		i.CreateExt<SimpleValueNode>();
@@ -41,7 +41,7 @@ void SetValue(Nod& i) {
 }
 
 // Class which only only tells the utility value
-struct SimpleGeneratorNode : MetaNodeExt {
+struct SimpleGeneratorNode : VfsValueExt {
 	int value = 0;
 	
 	DEFAULT_EXT(SimpleGeneratorNode)
@@ -53,19 +53,19 @@ struct SimpleGeneratorNode : MetaNodeExt {
 
 // Use TerminalTest to generate sub nodes
 bool SimpleGeneratorNode::TerminalTest(NodeRoute& prev) {
-	int depth = node.GetDepth();
-	if (depth >= 3 || node.GetCount()) return !node.GetCount();
+	int depth = val.GetDepth();
+	if (depth >= 3 || val.GetCount()) return !val.GetCount();
 	int sub_node_count = 1 + Random(2);
 	for(int i = 0; i < sub_node_count; i++) {
-		SimpleGeneratorNode& sub = node.Add<SimpleGeneratorNode>();
+		SimpleGeneratorNode& sub = val.Add<SimpleGeneratorNode>();
 		sub.value = -2 + Random(10);
 	}
-	return !node.GetCount();
+	return !val.GetCount();
 }
 
 
 // Class which tells length of route from the root to the node
-struct RouteGeneratorNode : MetaNodeExt {
+struct RouteGeneratorNode : VfsValueExt {
 	double length;
 	double length_to_node;
 	double estimate_to_goal;
@@ -75,7 +75,7 @@ struct RouteGeneratorNode : MetaNodeExt {
 	String ToString() const override {return DblStr(length) + ", " + DblStr(length_to_node) + ", " + DblStr(estimate_to_goal);}
 	double GetUtility() override {return length_to_node;}
 	double GetEstimate() override {return estimate_to_goal;}
-	double GetDistance(MetaNode& n) override {
+	double GetDistance(VfsValue& n) override {
 		RouteGeneratorNode* rgn = CastPtr<RouteGeneratorNode>(&*n.ext);
 		ASSERT(rgn);
 		return rgn->length; // no links, so this is always the parent
@@ -85,27 +85,27 @@ struct RouteGeneratorNode : MetaNodeExt {
 
 // Use TerminalTest to generate sub nodes
 bool RouteGeneratorNode::TerminalTest(NodeRoute& prev) {
-	if (node.GetCount()) return !node.GetCount();
+	if (val.GetCount()) return !val.GetCount();
 	int goal = 0;
 	if (estimate_to_goal <= goal) return true;
 	int sub_node_count = 2 + Random(1);
 	for(int i = 0; i < sub_node_count; i++) {
-		RouteGeneratorNode& sub = node.Add<RouteGeneratorNode>();
+		RouteGeneratorNode& sub = val.Add<RouteGeneratorNode>();
 		double length = 5 + Random(10);
 		// Accumulate total route length
-		if (sub.node.owner) {
+		if (sub.val.owner) {
 			sub.length				 = length;
 			sub.length_to_node		 = length_to_node + length;
 			sub.estimate_to_goal	 = estimate_to_goal - length;
 			if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
 		}
 	}
-	return !node.sub.GetCount();
+	return !val.sub.GetCount();
 }
 
 
 // Pretty print vector of pointers
-String PtrVecStr(Vector<Nod*>& vec) {
+String PtrVecStr(Vector<Val*>& vec) {
 	String out;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";
@@ -116,7 +116,7 @@ String PtrVecStr(Vector<Nod*>& vec) {
 	return out;
 }
 
-void PrintTotal(Vector<MetaNode*>& vec) {
+void PrintTotal(Vector<VfsValue*>& vec) {
 	double total = 0;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		RouteGeneratorNode* rgn = CastPtr<RouteGeneratorNode>(&*vec[i]->ext);
@@ -238,7 +238,7 @@ void ActionPlannerExample() {
 	goal.Set(MOUSE_ALIVE, false );
 	goal.Set(ALIVE, true ); // add this to avoid hurting by fall actions in plan.
 	
-	MetaNode& example_root = MetaEnv().root.Add("example");
+	VfsValue& example_root = MetaEnv().root.Add("example");
 	APlanNode goal_node(example_root.Add<ActionNode>("goal"));
 	goal_node->SetWorldState(goal);
 	
@@ -247,7 +247,7 @@ void ActionPlannerExample() {
 	root->SetGoal(goal_node);
 	root->SetWorldState(src);
 	AStar as;
-	Vector<MetaNode*> plan = as.Search(root);
+	Vector<VfsValue*> plan = as.Search(root);
 	
 	if (plan.IsEmpty()) {
 		LOG("error: did not found path");
@@ -279,7 +279,7 @@ END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN {
 	using namespace UPP;
-	MetaNode& app_root = MetaEnv().root;
+	VfsValue& app_root = MetaEnv().root;
 	
 	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
 	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
@@ -288,14 +288,14 @@ CONSOLE_APP_MAIN {
 	
 	// Simple game algorithms
 	if (true) {
-		MetaNode& n = app_root.Add("simplegame");
+		VfsValue& n = app_root.Add("simplegame");
 		GenerateTree(n, 25, 2, 3, callback(SetValue));
 		LOG(n.GetTreeString());
 		
 		MiniMax mm;
 		AlphaBeta ab;
 		
-		Vector<Nod*> ans = mm.Search(n);
+		Vector<Val*> ans = mm.Search(n);
 		LOG(PtrVecStr(ans));
 		
 		ans = ab.Search(n);
@@ -304,14 +304,14 @@ CONSOLE_APP_MAIN {
 	
 	// Simple game algorithms, with runtime node generation.
 	if (true) {
-		MetaNode& n = app_root.Add("simplegame_rt");
+		VfsValue& n = app_root.Add("simplegame_rt");
 		ASSERT(n.GetCount() == 0);
 		
 		n.CreateExt<SimpleGeneratorNode>();
 		MiniMax mm;
 		AlphaBeta ab;
 		
-		Vector<Nod*> ans = mm.Search(n);
+		Vector<Val*> ans = mm.Search(n);
 		LOG(n.GetTreeString());
 		LOG(PtrVecStr(ans));
 		
@@ -321,7 +321,7 @@ CONSOLE_APP_MAIN {
 	
 	// Uninformed search strategies, with runtime node generation
 	if (true) {
-		MetaNode& n = app_root.Add("uninformed_rt");
+		VfsValue& n = app_root.Add("uninformed_rt");
 		RouteGeneratorNode& rgn = n.CreateExt<RouteGeneratorNode>();
 		rgn.estimate_to_goal = 20;
 		rgn.length_to_node = 0;
@@ -332,7 +332,7 @@ CONSOLE_APP_MAIN {
 		DepthFirst df;
 		DepthLimited dl;
 		
-		Vector<Nod*> ans = bf.Search(n);
+		Vector<Val*> ans = bf.Search(n);
 		LOG(n.GetTreeString());
 		LOG(PtrVecStr(ans));
 		
@@ -349,7 +349,7 @@ CONSOLE_APP_MAIN {
 	
 	// Informed (heuristic) search strategies, with runtime node generation
 	if (true) {
-		MetaNode& n = app_root.Add("informed_rt");
+		VfsValue& n = app_root.Add("informed_rt");
 		auto& rgn = n.CreateExt<RouteGeneratorNode>();
 		rgn.estimate_to_goal = 100;
 		rgn.length_to_node = 0;
@@ -359,7 +359,7 @@ CONSOLE_APP_MAIN {
 		AStar as;
 		as.TrimWorst(0,0);
 		
-		Vector<MetaNode*> ans;
+		Vector<VfsValue*> ans;
 		
 		ans = bf.Search(n);
 		//LOG(n.AsString());

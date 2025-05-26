@@ -7,7 +7,7 @@ VideoSourceFileCtrl::VideoSourceFileCtrl() {
 	
 	this->browse.WhenAction = [this]{
 		VideoSourceFile& comp = this->GetExt<VideoSourceFile>();
-		ValueMap map = comp.value;
+		ValueMap map = comp.val.value;
 		String path = map("path");
 		String dir = path.Is() ? GetFileDirectory(path) : GetHomeDirectory();
 		FileSelNative sel;
@@ -15,9 +15,9 @@ VideoSourceFileCtrl::VideoSourceFileCtrl() {
 		if (path.Is())
 			sel.Set(GetFileName(path));
 		if (sel.ExecuteOpen("Select video file")) {
-			map = comp.value;
+			map = comp.val.value;
 			map.Set("path", sel.Get());
-			comp.value = map;
+			comp.val.value = map;
 			PostCallback(THISBACK(UpdateData));
 		}
 	};
@@ -28,7 +28,7 @@ VideoSourceFileCtrl::VideoSourceFileCtrl() {
 
 void VideoSourceFileCtrl::UpdateData() {
 	VideoSourceFile& comp = this->GetExt<VideoSourceFile>();
-	ValueMap map = comp.value;
+	ValueMap map = comp.val.value;
 	String path = map("path");
 	if (!FileExists(path)) {
 		PromptOK("File doesn't exist: " + path);
@@ -116,14 +116,14 @@ void VideoSourceFileCtrl::UpdateData() {
 		}
 	}
 	
-	comp.value = map;
+	comp.val.value = map;
 	
 	PostCallback(THISBACK(Data));
 }
 
 void VideoSourceFileCtrl::Data() {
 	VideoSourceFile& comp = this->GetExt<VideoSourceFile>();
-	ValueMap map = comp.value;
+	ValueMap map = comp.val.value;
 	String path = map("path");
 	if (!path.IsEmpty() && this->path.GetData().IsNull())
 		UpdateData();
@@ -310,11 +310,11 @@ void VideoSourceFileRangeCtrl::Set(double t, int src) {
 		GetImage(seconds,THISBACK(SetViewer));
 	}
 	else if (src == 1) {
-		comp.value("range_begin") = duration * t;
+		comp.val.value("range_begin") = duration * t;
 		range.SetCursor(t);
 	}
 	else if (src == 2) {
-		comp.value("range_end") = duration * t;
+		comp.val.value("range_end") = duration * t;
 		range.SetCursor(t);
 	}
 }
@@ -345,8 +345,8 @@ void VideoSourceFileRangeCtrl::Play(bool range) {
 	String cmd = "cmd /c start mpv";
 	if (range) {
 		VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
-		double range_begin = comp.value("range_begin");
-		double range_end = comp.value("range_end");
+		double range_begin = comp.val.value("range_begin");
+		double range_end = comp.val.value("range_end");
 		if (range_begin < range_end) {
 			cmd << " --start=" + DblStr(range_begin) + " --end=" + DblStr(range_end);
 		}
@@ -378,14 +378,14 @@ bool VideoSourceFileRangeCtrl::UpdateSources() {
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
 	if (!comp.val.owner)
 		return false;
-	String sel_path = comp.value("path");
+	String sel_path = comp.val.value("path");
 	header.files.Clear();
 	header.files.WhenAction.Clear();
 	files = comp.val.owner->FindAll<VideoSourceFile>();
 	int cursor = 0;
 	for(int i = 0; i < files.GetCount(); i++) {
 		auto& comp = *files[i];
-		ValueMap map = comp.value;
+		ValueMap map = comp.val.value;
 		String path = map("path");
 		file_paths.Add(path);
 		String name = GetFileName(path);
@@ -413,25 +413,25 @@ void VideoSourceFileRangeCtrl::DataFile() {
 		return;
 	auto& vidfile = *files[idx];
 	String vidpath = file_paths[idx];
-	this->duration = vidfile.value("duration");
-	this->frame_rate = FractionDbl((String)vidfile.value("frame_rate"));
+	this->duration = vidfile.val.value("duration");
+	this->frame_rate = FractionDbl((String)vidfile.val.value("frame_rate"));
 	header.duration.SetData(GetDurationString(duration));
 	
 	VideoSourceFileRange& comp = GetExt<VideoSourceFileRange>();
-	String path = comp.value("path");
+	String path = comp.val.value("path");
 	double range_begin = 0, range_end = 0;
 	if (path == vidpath) {
-		range_begin = comp.value("range_begin");
+		range_begin = comp.val.value("range_begin");
 		range_begin = min(duration, max(0.0, range_begin));
-		range_end = comp.value("range_end");
+		range_end = comp.val.value("range_end");
 		range_end = min(duration, max(0.0, range_end));
 	}
 	else {
-		comp.value("path") = vidpath;
-		comp.value("range_begin") = 0;
-		comp.value("range_end") = this->duration;
-		comp.value("duration") = vidfile.value("duration");
-		comp.value("frame_rate") = vidfile.value("frame_rate");
+		comp.val.value("path") = vidpath;
+		comp.val.value("range_begin") = 0;
+		comp.val.value("range_end") = this->duration;
+		comp.val.value("duration") = vidfile.val.value("duration");
+		comp.val.value("frame_rate") = vidfile.val.value("frame_rate");
 	}
 	if (!range_end) range_end = duration;
 	

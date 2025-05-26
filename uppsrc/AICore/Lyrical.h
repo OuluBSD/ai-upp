@@ -252,7 +252,7 @@ struct LyricalStructure : Component {
 	void LoadStructuredTextExt(const String& s, bool user_text);
 	void SetText(const String& s, bool user_text);
 	String GetStructText(bool user_text) const;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG_IDEA;}
+	
 	
 };
 
@@ -279,7 +279,7 @@ struct Script : Component {
 		for(int i = 0; i < PART_COUNT; i++)
 			v("phrase_parts["+IntStr(i)+"]", phrase_parts[i]);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SCRIPT;}
+	
 	
 };
 
@@ -330,9 +330,6 @@ struct Lyrics : Component {
 	}
 	String GetText() const;
 	
-	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_LYRICS;}
-	
 };
 
 INITIALIZE(Lyrics);
@@ -354,7 +351,6 @@ INITIALIZE(Lyrics);
 		c.Do(data) ;
 		return c;
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_SONG;}
 	
 };
 

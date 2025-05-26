@@ -10,11 +10,11 @@ AudioTranscriptCtrl::AudioTranscriptCtrl() {
 	ai.WhenAction = [this] {
 		int ai_idx = this->ai.GetIndex();
 		AudioTranscript& comp = GetExt<AudioTranscript>();
-		comp.value("ai-idx") = ai_idx;
+		comp.val.value("ai-idx") = ai_idx;
 	};
 	language.WhenAction = [this] {
 		AudioTranscript& comp = GetExt<AudioTranscript>();
-		comp.value("language") = this->language.GetData();
+		comp.val.value("language") = this->language.GetData();
 	};
 	lines.AddColumn("Begin");
 	lines.AddColumn("End");
@@ -67,11 +67,11 @@ void AudioTranscriptCtrl::Start() {
 		int idx = ai.GetIndex();
 		args.file = mp3path;
 		args.ai_provider_idx = this->ai.GetKey(idx);
-		args.language = comp.value("language");
+		args.language = comp.val.value("language");
 		PostCallback([this]{this->status.SetLabel("Making transcript of audio file: " + this->mp3path);});
 		m.GetTranscription(args, [this](String s) {
 			AudioTranscript& comp = GetExt<AudioTranscript>();
-			comp.value("text") = s;
+			comp.val.value("text") = s;
 			//DLOG(s);
 			PostCallback([this,s]{
 				this->status.SetLabel("Transcription was completed in " + ts.ToString());
@@ -104,7 +104,7 @@ void SetAiProviders(DropList& ai, int ai_idx) {
 
 void AudioTranscriptCtrl::Data() {
 	AudioTranscript& comp = GetExt<AudioTranscript>();
-	SetAiProviders(this->ai, comp.value("ai-idx"));
+	SetAiProviders(this->ai, comp.val.value("ai-idx"));
 	
 	finder.UpdateSources(*this, files, THISBACK(DataFile));
 	DataFile();
@@ -117,22 +117,22 @@ void AudioTranscriptCtrl::DataFile() {
 		return;
 	auto& vidfile = *finder.file_ptrs[idx];
 	
-	this->duration    = vidfile.value("duration");
-	this->frame_rate  = FractionDbl((String)vidfile.value("frame_rate"));
-	this->vidpath     = vidfile.value("path");
-	this->range_begin = vidfile.value("range_begin");
-	this->range_end   = vidfile.value("range_end");
+	this->duration    = vidfile.val.value("duration");
+	this->frame_rate  = FractionDbl((String)vidfile.val.value("frame_rate"));
+	this->vidpath     = vidfile.val.value("path");
+	this->range_begin = vidfile.val.value("range_begin");
+	this->range_end   = vidfile.val.value("range_end");
 	
-	comp.value("path")        = vidfile.value("path");
-	comp.value("duration")    = vidfile.value("duration");
-	comp.value("frame_rate")  = vidfile.value("frame_rate");
-	comp.value("vidpath")     = vidfile.value("path");
-	comp.value("range_begin") = vidfile.value("range_begin");
-	comp.value("range_end")   = vidfile.value("range_end");
+	comp.val.value("path")        = vidfile.val.value("path");
+	comp.val.value("duration")    = vidfile.val.value("duration");
+	comp.val.value("frame_rate")  = vidfile.val.value("frame_rate");
+	comp.val.value("vidpath")     = vidfile.val.value("path");
+	comp.val.value("range_begin") = vidfile.val.value("range_begin");
+	comp.val.value("range_end")   = vidfile.val.value("range_end");
 	
-	this->language.SetData(comp.value("language"));
+	this->language.SetData(comp.val.value("language"));
 	
-	String text = comp.value("text");
+	String text = comp.val.value("text");
 	if (text.IsEmpty()) {
 		this->lines.Clear();
 	}
@@ -160,7 +160,7 @@ void AudioTranscriptCtrl::SaveTextChanges() {
 	AudioTranscript& comp = GetExt<AudioTranscript>();
 	String text = StoreAsJson(r, false);
 	//LOG(text);
-	comp.value("text") = text;
+	comp.val.value("text") = text;
 }
 
 void AudioTranscriptCtrl::ToolMenu(Bar& bar) {

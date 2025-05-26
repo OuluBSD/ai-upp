@@ -16,17 +16,17 @@ struct RangeFinder {
 		K& comp = c.GetExt<K>();
 		if (!comp.val.owner)
 			return false;
-		String sel_path = comp.value("path");
+		String sel_path = comp.val.value("path");
 		files.Clear();
 		files.WhenAction.Clear();
 		file_ptrs = comp.val.owner->template FindAll<T>();
 		int cursor = 0;
 		for(int i = 0; i < file_ptrs.GetCount(); i++) {
 			auto& file = *file_ptrs[i];
-			ValueMap map = file.value;
+			ValueMap map = file.val.value;
 			String path = map("path");
-			double range_begin = file.value("range_begin");
-			double range_end = file.value("range_end");
+			double range_begin = file.val.value("range_begin");
+			double range_end = file.val.value("range_end");
 			double total = range_end - range_begin;
 			String total_str = GetDurationString(total);
 			file_paths.Add(path);

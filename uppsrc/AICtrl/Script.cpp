@@ -57,7 +57,7 @@ void ScriptTextCtrl::SubTab::AddRootTabs() {
 
 
 void ScriptTextCtrl::SubTab::AddLineOwnerTabs() {
-	RealizeEntityVfsObject(vnode, METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT);
+	RealizeEntityVfsObject(vnode, AsTypeHash<SrcTextData>());
 	
 	tabs.Add(dbproc.SizePos(), "Line process");
 	#define CREATE(x, txt, height) \
@@ -237,7 +237,7 @@ void ScriptTextCtrl::AddPart() {
 			VirtualNode root = this->Root();
 			String id = n->id;
 			if (id.IsEmpty()) id = "part";
-			VirtualNode new_node = root.Add(id, METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_PROOFREAD);
+			VirtualNode new_node = root.Add(id, AsTypeHash<VirtualIOScriptProofread>());
 			ImportProofread(new_node, *proofread);
 			WhenEditorChange();
 		}
@@ -245,12 +245,12 @@ void ScriptTextCtrl::AddPart() {
 }
 
 void ScriptTextCtrl::ImportProofread(VirtualNode new_node, TranscriptProofread& proofread) {
-	ValueMap selected = proofread.value("selected");
+	ValueMap selected = proofread.val.value("selected");
 	Index<int> selected_indices;
 	for(int i = 0; i < selected.GetCount(); i++)
 		selected_indices.FindAdd(selected.GetKey(i));
 	SortIndex(selected_indices, StdLess<int>());
-	String text = proofread.value("proofread");
+	String text = proofread.val.value("proofread");
 	TranscriptResponse r;
 	LoadFromJson(r,text);
 	new_node.RemoveSubNodes();
@@ -294,7 +294,7 @@ void ScriptTextCtrl::RefreshParams() {
 	
 	ValueArray input_text;
 	ASSERT(vnode.IsValue());
-	auto sub = vnode.FindAll(METAKIND_ECS_VIRTUAL_IO_SCRIPT_PART_LINE);
+	auto sub = vnode.FindAll(AsTypeHash<VirtualIOScriptLine>());
 	for(int i = 0; i < sub.GetCount(); i++) {
 		VirtualNode s = sub[i];
 		ASSERT(s.IsValue());

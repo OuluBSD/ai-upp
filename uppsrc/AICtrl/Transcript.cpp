@@ -14,12 +14,12 @@ TranscriptProofreadCtrl::TranscriptProofreadCtrl() {
 	ai.WhenAction = [this] {
 		int ai_idx = this->ai.GetIndex();
 		auto& comp = GetExt<COMPNAME>();
-		comp.value("ai-idx") = ai_idx;
+		comp.val.value("ai-idx") = ai_idx;
 	};
 	
 	misspelled.WhenAction = [this] {
 		auto& comp = GetExt<COMPNAME>();
-		comp.value("misspelled") = this->misspelled.GetData();
+		comp.val.value("misspelled") = this->misspelled.GetData();
 	};
 	
 	lines.AddColumn("Begin");
@@ -35,7 +35,7 @@ TranscriptProofreadCtrl::TranscriptProofreadCtrl() {
 
 void TranscriptProofreadCtrl::Data() {
 	auto& comp = GetExt<TranscriptProofread>();
-	SetAiProviders(this->ai, comp.value("ai-idx"));
+	SetAiProviders(this->ai, comp.val.value("ai-idx"));
 	
 	finder.UpdateSources(*this, transcripts, THISBACK(DataFile));
 	DataFile();
@@ -47,23 +47,23 @@ void TranscriptProofreadCtrl::DataFile() {
 		return;
 	COMPNAME& comp = GetExt<COMPNAME>();
 	auto& vidfile = *finder.file_ptrs[idx];
-	comp.value("text")        = vidfile.value("text");
-	comp.value("path")        = vidfile.value("path");
-	comp.value("duration")    = vidfile.value("duration");
-	comp.value("frame_rate")  = vidfile.value("frame_rate");
-	comp.value("vidpath")     = vidfile.value("path");
-	comp.value("range_begin") = vidfile.value("range_begin");
-	comp.value("range_end")   = vidfile.value("range_end");
+	comp.val.value("text")        = vidfile.val.value("text");
+	comp.val.value("path")        = vidfile.val.value("path");
+	comp.val.value("duration")    = vidfile.val.value("duration");
+	comp.val.value("frame_rate")  = vidfile.val.value("frame_rate");
+	comp.val.value("vidpath")     = vidfile.val.value("path");
+	comp.val.value("range_begin") = vidfile.val.value("range_begin");
+	comp.val.value("range_end")   = vidfile.val.value("range_end");
 	
-	this->misspelled.SetData(comp.value("misspelled"));
+	this->misspelled.SetData(comp.val.value("misspelled"));
 	
-	String text = comp.value("proofread");
+	String text = comp.val.value("proofread");
 	if (text.IsEmpty()) {
 		this->lines.Clear();
 	}
 	else {
-		ValueMap selected = comp.value("selected");
-		comp.value("selected") = selected; // realize ValueArray
+		ValueMap selected = comp.val.value("selected");
+		comp.val.value("selected") = selected; // realize ValueArray
 		
 		TranscriptResponse r;
 		LoadFromJson(r,text);
@@ -80,12 +80,12 @@ void TranscriptProofreadCtrl::DataFile() {
 			o.Set(b);
 			o.WhenAction = [this,i,&o]{
 				COMPNAME& comp = GetExt<COMPNAME>();
-				ValueMap selected = comp.value("selected");
+				ValueMap selected = comp.val.value("selected");
 				if (o.Get())
 					selected.GetAdd((Value)i) = true;
 				else
 					selected.RemoveKey((Value)i);
-				comp.value("selected") = selected;
+				comp.val.value("selected") = selected;
 			};
 			lines.Set(i, "IDX", i);
 		}
@@ -102,15 +102,15 @@ void TranscriptProofreadCtrl::Start() {
 		args.fn = FN_TRANSCRIPT_PROOFREAD_1;
 		int idx = ai.GetIndex();
 		args.params("ai_provider_idx") = this->ai.GetKey(idx);
-		args.params("misspelled") = comp.value("misspelled");
-		args.params("text") = comp.value("text");
-		PostCallback([this,&comp]{this->status.SetLabel("Making proofread of transcript of: " + (String)comp.value("path"));});
+		args.params("misspelled") = comp.val.value("misspelled");
+		args.params("text") = comp.val.value("text");
+		PostCallback([this,&comp]{this->status.SetLabel("Making proofread of transcript of: " + (String)comp.val.value("path"));});
 		m.GetJson(args, [this](String s) {
 			COMPNAME& comp = GetExt<COMPNAME>();
 			s = "- #" + s;
 			//DLOG(s);
 			
-			String text = comp.value("text");
+			String text = comp.val.value("text");
 			TranscriptResponse r;
 			LoadFromJson(r, text);
 			
@@ -160,7 +160,7 @@ void TranscriptProofreadCtrl::Start() {
 				r.text << r.segments[i].text;
 			}
 			
-			comp.value("proofread") = StoreAsJson(r);
+			comp.val.value("proofread") = StoreAsJson(r);
 			
 			PostCallback([this,s]{
 				this->status.SetLabel("Proofread was completed in " + ts.ToString());
@@ -177,7 +177,7 @@ void TranscriptProofreadCtrl::PlaySelected() {
 		PostCallback([this]{this->play.SetLabel("Stop");});
 		Thread::Start([this]{
 			COMPNAME& comp = GetExt<COMPNAME>();
-			ValueMap selected = comp.value("selected");
+			ValueMap selected = comp.val.value("selected");
 			Vector<int> segs;
 			for(int i = 0; i < selected.GetCount(); i++) {
 				int idx = selected.GetKey(i);
@@ -185,8 +185,8 @@ void TranscriptProofreadCtrl::PlaySelected() {
 			}
 			Sort(segs, StdLess<int>());
 			
-			String path = comp.value("path");
-			String text = comp.value("proofread");
+			String path = comp.val.value("path");
+			String text = comp.val.value("proofread");
 			TranscriptResponse r;
 			LoadFromJson(r, text);
 			for(int i = 0; i < segs.GetCount() && playing; i++) {
@@ -214,8 +214,8 @@ void TranscriptProofreadCtrl::PlaySelected() {
 
 void TranscriptProofreadCtrl::PlaySingle(int seg_i) {
 	COMPNAME& comp = GetExt<COMPNAME>();
-	String path = comp.value("path");
-	String text = comp.value("proofread");
+	String path = comp.val.value("path");
+	String text = comp.val.value("proofread");
 	TranscriptResponse r;
 	LoadFromJson(r, text);
 	if (seg_i >= 0 && seg_i < r.segments.GetCount()) {

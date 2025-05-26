@@ -86,7 +86,6 @@ struct Release : Component
 		return a.title < b.title;
 	}
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_RELEASE;}
 	
 	
 	

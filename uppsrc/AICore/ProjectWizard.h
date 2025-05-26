@@ -86,7 +86,6 @@ public:
 		v.Ver(1)
 		(1)	("data", data);
 	}
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PROJECT_WIZARD;}
 	static VectorMap<String,String>& GetCategories() {static VectorMap<String,String> m; return m;}
 	static void RegisterCategory(String key, String desc) {GetCategories().GetAdd(key) = desc;}
 	static ArrayMap<String, ConfigurationNode>& GetConfs() {static ArrayMap<String, ConfigurationNode> m; return m;}
@@ -114,7 +113,7 @@ public:
 	bool MakeArgs(GenericPromptArgs& args, const FileNode& n);
 	bool MakeArgsOptions(GenericPromptArgs& args, const FileNode& n, const ConfigurationOption& o);
 	bool MakeArgsOptionsNode(GenericPromptArgs& args, bool skip_dynamic_values, const String& path, const FileNode& n0);
-	VfsValue& RealizeNode(const String& path, int kind = METAKIND_ECS_ENTITY, int dir_kind = METAKIND_ECS_SPACE);
+	VfsValue& RealizeNodeType(const String& path, hash_t type_hash=0, hash_t dir_type_hash = 0);
 	
 	ValueMap& GetFile(const String& path);
 	Value& GetFileValue(const String& path);

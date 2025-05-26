@@ -152,7 +152,7 @@ struct PlatformManager : Component {
 	PlatformAnalysis& GetPlatform(int plat_i);
 	SocietyRoleAnalysis& GetAddRole(int role_i);
 	const SocietyRoleAnalysis* FindRole(int role_i) const;
-	static int GetKind() {return METAKIND_ECS_COMPONENT_PLATFORM_MANAGER;}
+	
 };
 
 INITIALIZE(PlatformManager)

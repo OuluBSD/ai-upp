@@ -33,8 +33,6 @@ struct Notepad : Component
 			;
 	}
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_NOTEPAD;}
-	
 };
 
 INITIALIZE(Notepad)

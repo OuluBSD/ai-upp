@@ -765,7 +765,9 @@ void ProjectWizardView::GetAllComponents(const FileNode* n) {
 }
 
 #if 0
-Node& ProjectWizardView::RealizeNode(const String& path, NodeType type, NodeType sub_type) {
+Node& ProjectWizardView::RealizeNodeType(const String& path, hash_t type_hash, hash_t dir_type_hash) {
+	if (!type_hash)
+		type_hash = AsTypeHash<Engine>();
 	Node* n = this->node;
 	ASSERT(n);
 	while (n->owner)

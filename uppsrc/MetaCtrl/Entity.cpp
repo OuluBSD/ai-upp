@@ -151,17 +151,16 @@ ValueVFSComponentCtrl::ValueVFSComponentCtrl() {
 VirtualNode ValueVFSComponentCtrl::Root() {
 	if (!root) {
 		VfsPath root_path; // empty
-		ValueComponentBase* base = &this->GetExt<ValueComponentBase>();
-		ASSERT(base);
-		auto& data = root.Create(root_path, &base->value, "Root");
-		data.vfs_value = &this->GetValue();
+		VfsValue& val = this->ext->val;
+		auto& data = root.CreateValue(root_path, &val.value, "Root");
+		data.vfs_value = &val;
 	}
 	return root;
 }
 
 Value* ValueVFSComponentCtrl::GetPolyValue() {
-	ValueComponentBase& base = GetExt<ValueComponentBase>();
-	return &base.value;
+	VfsValue& val = this->ext->val;
+	return &val.value;
 }
 
 void ValueVFSComponentCtrl::Set(Value key, Value value) {
@@ -222,7 +221,7 @@ VirtualNode VirtualNode::Find(Value name) {
 				ValueMap map = *data->poly_value;
 				int i = map.Find(name);
 				if (i >= 0)
-					n.Create(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
+					n.CreateValue(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
 			}
 			else TODO;
 		}
@@ -292,7 +291,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 						Value& val = const_cast<Value&>(map.GetValue(i));
 						if (val.Is<ValueMap>()) {
 							Value key = map.GetKey(i);
-							auto& o = v.Add().Create(data->path + key, &val, key);
+							auto& o = v.Add().CreateValue(data->path + key, &val, key);
 							ASSERT(o.poly_value->Is<ValueMap>());
 						}
 					}
@@ -303,7 +302,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					for(int i = 0; i < arr.GetCount(); i++) {
 						Value& val = arr.At(i);
 						if (val.Is<ValueMap>()) {
-							v.Add().Create(data->path + i, &val, i);
+							v.Add().CreateValue(data->path + i, &val, i);
 						}
 					}
 				}
@@ -370,7 +369,7 @@ VirtualNode VirtualNode::Add(Value name, hash_t type_hash) {
 				}
 				auto& val = data->poly_value->GetAdd(name);
 				ASSERT(val.Is<ValueMap>());
-				n.Create(data->path + name, &val, name);
+				n.CreateValue(data->path + name, &val, name);
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
@@ -494,7 +493,7 @@ VirtualNode::Data& VirtualNode::Create(const VfsPath& p, VfsValue* n)
 	return *data;
 }
 
-VirtualNode::Data& VirtualNode::Create(const VfsPath& p, Value* v, Value key)
+VirtualNode::Data& VirtualNode::CreateValue(const VfsPath& p, Value* v, Value key)
 {
 	Clear();
 	data = new Data();

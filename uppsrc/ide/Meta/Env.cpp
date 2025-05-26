@@ -64,7 +64,7 @@ void EnvEditorCtrl::Data() {
 		return;
 	}
 	
-	ctxs = this->file_root->AstFindAllShallow(METAKIND_CONTEXT);
+	ctxs = this->file_root->AstFindAllShallow(AsTypeHash<Context>());
 	ctx_dbs.SetCount(ctxs.GetCount());
 	int row = 0;
 	for(int i = 0; i < ctxs.GetCount(); i++) {
@@ -75,7 +75,7 @@ void EnvEditorCtrl::Data() {
 		
 		// Make string of items
 		auto& db_refs = ctx_dbs[i];
-		db_refs = e.AstFindAllShallow(METAKIND_DB_REF);
+		db_refs = e.AstFindAllShallow(AsTypeHash<DbRef>());
 		ctxlist.Set(row, 1, MakeIdString(db_refs));
 		row++;
 	}
@@ -136,11 +136,11 @@ void EnvEditorCtrl::OnOption(Option* opt, VfsValue* db) {
 	auto& ctx = *ctxs[ctx_i];
 	auto& db_refs = ctx_dbs[ctx_i];
 	bool enabled = opt->Get();
-	int sub_i = ctx.AstFind(METAKIND_DB_REF, db_id);
+	int sub_i = ctx.FindPos<DbRef>(db_id);
 	if (enabled) {
 		if (sub_i >= 0)
 			return;
-		VfsValue& s = ctx.AstAdd(METAKIND_DB_REF, db_id);
+		ctx.Add<DbRef>(db_id);
 	}
 	else {
 		if (sub_i < 0)
@@ -148,7 +148,7 @@ void EnvEditorCtrl::OnOption(Option* opt, VfsValue* db) {
 		ctx.sub.Remove(sub_i);
 	}
 	
-	db_refs = ctx.AstFindAllShallow(METAKIND_DB_REF);
+	db_refs = ctx.FindAllShallow(AsTypeHash<DbRef>());
 	ctxlist.Set(1, MakeIdString(db_refs));
 	
 	PostCallback(THISBACK(DataItem));

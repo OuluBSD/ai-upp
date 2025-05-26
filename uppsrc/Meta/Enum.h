@@ -8,11 +8,16 @@ struct VfsValueSubset;
 enum {
 	METAKIND_BEGIN = 1000,
 	
+	#if 0
 	METAKIND_DATABASE_SOURCE,
 	METAKIND_PKG_ENV,
 	METAKIND_CONTEXT,
 	METAKIND_DB_REF,
-	METAKIND_COMMENT,
+	#endif
+	
+	METAKIND_COMMENT = 1005,
+	
+	#if 0
 	METAKIND_ECS_SPACE,
 	
 	METAKIND_EXTENSION_BEGIN = 2000,
@@ -121,13 +126,13 @@ enum {
 	
 	METAKIND_EXTENSION_END = 5000,
 	
-	
+	#endif
 	
 };
 
-inline bool IsEcsComponentKind(int kind) {
+/*inline bool IsEcsComponentKind(int kind) {
 	return kind > METAKIND_ECS_COMPONENT_BEGIN && kind < METAKIND_ECS_COMPONENT_END;
-}
+}*/
 
 
 // Categories (with opposites... see pairs)

@@ -18,7 +18,11 @@ struct SrcTextData;
 
 struct EntityData : Pte<EntityData> {
 	virtual ~EntityData() {}
-	virtual int GetKind() const = 0;
+	
+	// Use CLASSTYPE(x) macro to override these
+	virtual hash_t GetTypeHash() const = 0;
+	virtual TypeCls GetTypeCls() const = 0;
+	virtual String GetTypeName() const = 0;
 	virtual void Visit(Vis& s) = 0;
 };
 
@@ -429,7 +433,43 @@ struct VfsValue : Pte<VfsValue> {
 	}
 	
 	template <class T>
+	T* Find(String id) {
+		hash_t type_hash = AsTypeHash<T>();
+		for (auto& s : sub) {
+			if (s.type_hash == type_hash && s.id == id) {
+				T* o = dynamic_cast<T*>(&*s.ext);
+				if (o) return o;
+			}
+		}
+		return 0;
+	}
+	
+	template <class T>
+	int FindPos(String id) {
+		hash_t type_hash = AsTypeHash<T>();
+		int i = 0;
+		for (auto& s : sub) {
+			if (s.type_hash == type_hash && s.id == id)
+				return i;
+			i++;
+		}
+		return -1;
+	}
+	
+	template <class T>
 	T* Find() {
+		hash_t type_hash = AsTypeHash<T>();
+		for (auto& s : sub) {
+			if (s.type_hash == type_hash) {
+				T* o = dynamic_cast<T*>(&*s.ext);
+				if (o) return o;
+			}
+		}
+		return 0;
+	}
+	
+	template <class T>
+	T* FindCast() {
 		for (auto& s : sub) {
 			if (s.ext) {
 				T* o = dynamic_cast<T*>(&*s.ext);

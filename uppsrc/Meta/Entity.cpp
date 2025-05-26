@@ -136,8 +136,8 @@ void Entity::Visit(Vis& v) {
 	if (v.file_ver >= 2) {
 		struct Item : Moveable<Item> {
 			VfsPath path;
-			int kind;
-			void Visit(Vis& v) {v("path",path,VISIT_NODE)("kind",kind);}
+			hash_t type_hash;
+			void Visit(Vis& v) {v("path",path,VISIT_NODE)("type_hash",(int64&)type_hash);}
 		};
 		if (v.IsLoading()) {
 			Vector<Item> header;
@@ -167,7 +167,7 @@ void Entity::Visit(Vis& v) {
 			for (auto it : ~objs) {
 				Item& i = header.Add();
 				i.path = it.key;
-				i.kind = it.value.GetKind();
+				i.type_hash = it.value.GetTypeHash();
 			}
 			v(2)(".header", header, VISIT_VECTOR);
 			for (auto it : ~objs) {
@@ -184,6 +184,7 @@ INITIALIZER_COMPONENT(Entity);
 
 COMPONENT_STUB_IMPL(Context)
 COMPONENT_STUB_IMPL(PkgEnv)
+COMPONENT_STUB_IMPL(DbRef)
 COMPONENT_STUB_IMPL(VirtualIOScript)
 COMPONENT_STUB_IMPL(VirtualIOScriptProofread)
 COMPONENT_STUB_IMPL(VirtualIOScriptLine)

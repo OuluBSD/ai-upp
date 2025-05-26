@@ -167,8 +167,6 @@ struct BiographyPlatform : Component {
 	Index<int> GetRequiredCategories() const;
 	Vector<PhotoPromptLink> GetImageTypePrompts(String image_type);
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_BIOGRAPHY_ANALYSIS;}
-	
 };
 
 INITIALIZE(BiographyPlatform)

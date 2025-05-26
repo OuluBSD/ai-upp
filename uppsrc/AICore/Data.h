@@ -657,6 +657,7 @@ struct SrcTextData : EntityData {
 	int GetLanguage() const {return lang;}
 	#endif
 	
+	CLASSTYPE(SrcTextData)
 	SrcTextData();
 	int FindAnyWord(const String& s) const; // deprecated: avoid using
 	int FindAnyWord(const String& s, byte lang) const;
@@ -675,7 +676,6 @@ struct SrcTextData : EntityData {
 	
 	String GetTokenTextString(const TokenText& txt) const;
 	String GetTokenTextString(const Vector<int>& tokens) const;
-	int GetKind() const override {return METAKIND_ECS_VIRTUAL_VALUE_SRCTEXT;}
 	void Visit(Vis& s) override;
 };
 
@@ -702,7 +702,6 @@ struct SrcTxtHeader : Component {
 	bool LoadData();
 	String SaveData();
 	
-	static int GetKind() {return METAKIND_DATABASE_SOURCE;}
 	
 };
 

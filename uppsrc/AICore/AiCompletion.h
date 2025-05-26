@@ -15,7 +15,6 @@ struct AiCompletionComponent : Component {
 	AiCompletionComponent(VfsValue& owner);
 	~AiCompletionComponent();
 	
-	static int GetKind() {return METAKIND_ECS_COMPONENT_AI_COMPLETION;}
 	
 };
 

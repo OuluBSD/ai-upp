@@ -1,5 +1,5 @@
-#ifndef _Eon_WorldState_h_
-#define _Eon_WorldState_h_
+#ifndef _AICore2_WorldState_h_
+#define _AICore2_WorldState_h_
 
 
 

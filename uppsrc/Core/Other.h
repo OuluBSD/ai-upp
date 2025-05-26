@@ -484,6 +484,7 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 	operator bool() const {return *this != std::type_index(typeid(void));}
 	String GetName() const {return CppDemangle(this->name());}
 	hash_t GetHashValue() const {return this->hash_code();}
+	String ToString() const {return this->name();}
 };
 
 template <class T> TypeCls AsTypeCls() {return typeid(T);}

@@ -118,16 +118,22 @@ void MetaCodeCtrl::AddComment()
 	SetSelectedLineFromEditor();
 	if(!sel_node)
 		return;
+	const AstValue* a = *sel_node;
+	if (!a) {
+		PromptOK("Error: not an AstValue");
+		return;
+	}
 	int sel_line = editor.GetCursorLine();
 	int origl = editor_to_line[sel_line];
-	int l = origl - sel_node->begin.y;
+	int l = origl - a->begin.y;
 	String txt;
 	if(!EditText(txt, "Add comment", ""))
 		return;
 	MetaNode& cn = sel_node->Add();
-	cn.kind = METAKIND_COMMENT;
-	cn.end = Point(0,origl);
-	cn.begin = Point(0,origl);
+	AstValue& ca = cn;
+	ca.kind = METAKIND_COMMENT;
+	ca.end = Point(0,origl);
+	ca.begin = Point(0,origl);
 	cn.id = txt;
 	cn.file = sel_node->file;
 	cn.pkg = sel_node->pkg;

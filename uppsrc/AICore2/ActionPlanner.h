@@ -5,6 +5,7 @@
 class ActionPlanner;
 class ActionNode;
 
+#if 0
 class WorldState : public Moveable<WorldState> {
 
 protected:
@@ -26,7 +27,7 @@ public:
 	hash_t GetHashValue();
 	
 };
-
+#endif
 
 class Action : public Moveable<Action> {
 	

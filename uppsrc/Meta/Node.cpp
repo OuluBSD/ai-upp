@@ -678,6 +678,23 @@ void MetaEnvironment::RefreshNodePtrs(MetaNode& n)
 		n.serial = NewSerial();
 }
 
+String MetaNode::GetTypeString() const
+{
+	if (ext)
+		return ext->GetTypeCls().GetName();
+	const AstValue* a = *this;
+	if (a && a->type.GetCount())
+		return a->type;
+	else if (a && a->kind > 0)
+		return AstGetKindString(a->kind);
+	if (type_hash) {
+		int i = MetaExtFactory::FindTypeHashFactory(type_hash);
+		if (i >= 0)
+			return MetaExtFactory::List()[i].name;
+	}
+	return String();
+}
+
 String MetaNode::GetTreeString(int depth) const
 {
 	String s;
@@ -1231,6 +1248,16 @@ Vector<MetaNode*> MetaNode::FindAll(TypeCls type)
 	for(auto& s : sub)
 		if(s.ext && s.ext->GetTypeCls() == type)
 			vec << &s;
+	return vec;
+}
+
+Vector<MetaNode*> MetaNode::FindTypeAllShallow(hash_t type_hash)
+{
+	Vector<MetaNode*> vec;
+	for(auto& s : sub) {
+		if (s.type_hash == type_hash)
+			vec << &s;
+	}
 	return vec;
 }
 

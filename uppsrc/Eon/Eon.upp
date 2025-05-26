@@ -19,8 +19,6 @@ file
 	Network.cpp,
 	Debugging.h,
 	Debugging.cpp,
-	WorldState.h,
-	WorldState.cpp,
 	SampleBase.h,
 	SampleBase.cpp,
 	Samples.h,

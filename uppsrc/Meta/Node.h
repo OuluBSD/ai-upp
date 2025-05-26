@@ -205,6 +205,12 @@ struct MetaExtFactory {
 	static MetaNodeExt* Clone(const MetaNodeExt& e, MetaNode& owner);
 	//static int FindKindFactory(int kind);
 	static int AstFindKindCategory(int kind);
+	
+	int FindComponent(hash_t type_hash) {
+		// note: must be added under entity
+		TODO
+		return -1;
+	}
 };
 
 #define INITIALIZER_COMPONENT(x) INITIALIZER(x) {MetaExtFactory::Register<x>(#x);}
@@ -224,6 +230,14 @@ struct AstValue {
 	Ptr<MetaNode>   type_ptr;
 	
 	bool IsNullInstance() const;
+	void Serialize(Stream& s);
+	void Xmlize(XmlIO& xml);
+	void Jsonize(JsonIO& io);
+	hash_t GetHashValue() const;
+	String ToString() const;
+	bool operator==(const AstValue& v) const;
+	int Compare(const AstValue& v) const;
+	int PolyCompare(const Value& v) const;
 };
 
 struct MetaNode : Pte<MetaNode> {
@@ -286,6 +300,7 @@ struct MetaNode : Pte<MetaNode> {
 	void Remove(MetaNode* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;
+	String GetTypeString() const;
 	int Find(const String& id) const;
 	MetaNode* FindPath(const VfsPath& path);
 	hash_t GetTotalHash() const;
@@ -302,6 +317,7 @@ struct MetaNode : Pte<MetaNode> {
 	void SetPkgFileDeep(int pkg_id, int file_id);
 	void SetTempDeep();
 	Vector<MetaNode*> FindAll(TypeCls type);
+	Vector<MetaNode*> FindTypeAllShallow(hash_t type_hash);
 	MetaNode* FindDeep(TypeCls type);
 	bool IsFieldsSame(const MetaNode& n) const;
 	bool IsStructKind() const;
@@ -331,6 +347,30 @@ struct MetaNode : Pte<MetaNode> {
 	}
 	
 	template <class T>
+	T& GetAdd(String id="") {
+		hash_t type_hash = AsTypeHash<T>();
+		for (auto& s : sub) {
+			if (s.type_hash == type_hash && s.id == id) {
+				ASSERT(s.ext);
+				throw Exc("internal error: no ext");
+				T* o = CastPtr<T>(&*s.ext);
+				ASSERT(o);
+				throw Exc("internal error: empty pointer");
+				return *o;
+			}
+		}
+		MetaNode& s = Add();
+		s.id = id;
+		T* o = new T(s);
+		s.ext = o;
+		s.owner = this;
+		s.pkg = pkg;
+		s.file = file;
+		s.type_hash = type_hash;
+		return *o;
+	}
+	
+	template <class T>
 	T& Add(String id="") {
 		MetaNode& s = Add();
 		s.id = id;
@@ -339,7 +379,7 @@ struct MetaNode : Pte<MetaNode> {
 		s.owner = this;
 		s.pkg = pkg;
 		s.file = file;
-		s.type_hash = o->GetTypeHash();
+		s.type_hash = AsTypeHash<T>();
 		return *o;
 	}
 	
@@ -356,6 +396,17 @@ struct MetaNode : Pte<MetaNode> {
 		}
 		if (n && n->ext)
 			return &*CastPtr<T>(&*n->ext);
+		return 0;
+	}
+	
+	template <class T>
+	T* Find() {
+		for (auto& s : sub) {
+			if (s.ext) {
+				T* o = dynamic_cast<T*>(&*s.ext);
+				if (o) return o;
+			}
+		}
 		return 0;
 	}
 	

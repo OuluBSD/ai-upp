@@ -142,13 +142,14 @@ void MetaEnvTree::DataFocusSelection() {
 	if (!focus.IsCursor())
 		return;
 	int sel = focus.GetCursor();
-	MetaNode& n = *focus_ptrs[sel];
-	if (n.pkg < 0 ||n.file < 0)
+	const MetaNode& n = *focus_ptrs[sel];
+	const AstValue* a = n;
+	if (n.pkg < 0 || n.file < 0 || !a)
 		return;
 	MetaSrcPkg& pkg = env.pkgs[n.pkg];
 	String full_path = pkg.GetFullPath(n.file);
 	String content = LoadFile(full_path);
-	String node_content = GetStringRange(content, n.begin, n.end);
+	String node_content = GetStringRange(content, a->begin, a->end);
 	code.SetData(node_content);
 }
 
@@ -165,21 +166,36 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 		stmt_ptrs.SetCount(tree_idx+1,0);
 	stmt_ptrs[tree_idx] = &n;
 	
-	String kind_str = n.GetKindString();
-	String s = kind_str + ": " + n.id;
-	if (n.type.GetCount()) s += " (" + n.type + ")";
+	String s;
+	bool skip_default = false;
+	const AstValue* a = n;
+	if (a) {
+		String kind_str = MetaNode::AstGetKindString(a->kind);
+		s = kind_str + ": " + n.id;
+		if (a->type.GetCount()) s += " (" + a->type + ")";
+		switch (a->kind) {
+		case CXCursor_CXXMethod:
+		case CXCursor_Constructor:
+		case CXCursor_Destructor:
+		case CXCursor_CompoundStmt:
+		case CXCursor_FunctionDecl:
+		case CXCursor_FieldDecl:
+		case CXCursor_CXXBaseSpecifier:
+			skip_default = true;
+			break;
+		default:
+			break;
+		}
+	}
+	else {
+		s = n.id;
+		if (n.ext)
+			s += " (" + n.ext->GetTypeCls().GetName() + ")";
+	}
+	
 	stmts.Set(tree_idx, s);
 	
-	switch (n.kind) {
-	case CXCursor_CXXMethod:
-	case CXCursor_Constructor:
-	case CXCursor_Destructor:
-	case CXCursor_CompoundStmt:
-	case CXCursor_FunctionDecl:
-	case CXCursor_FieldDecl:
-	case CXCursor_CXXBaseSpecifier:
-		break;
-	default:
+	if (!skip_default) {
 		if (ns) {
 			for (MetaNodeSubset& s : ns->sub) {
 				int idx = stmts.Add(tree_idx);
@@ -200,10 +216,20 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, MetaNode& n, MetaNodeSubset* ns) {
 		focus_ptrs.SetCount(tree_idx+1,0);
 	focus_ptrs[tree_idx] = &n;
 	
-	String kind_str = n.GetKindString();
-	String s = kind_str + ": " + n.id;
-	if (n.type.GetCount()) s += " (" + n.type + ")";
+	String s;
+	const AstValue* a = n;
+	if (a) {
+		String kind_str = n.AstGetKindString();
+		s = kind_str + ": " + n.id;
+		if (a->type.GetCount()) s += " (" + a->type + ")";
+	}
+	else {
+		s = n.id;
+		if (n.ext)
+			s += " (" + n.ext->GetTypeCls().GetName() + ")";
+	}
 	focus.Set(tree_idx, s);
+	
 	if (ns) {
 		for (MetaNodeSubset& s : ns->sub) {
 			int idx = focus.Add(tree_idx);

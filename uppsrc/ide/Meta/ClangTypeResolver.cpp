@@ -33,7 +33,7 @@ void ClangTypeResolver::DumpFoundTypes() {
 		LOG(Format("[%d]: Type-nodes for hash %X: count %d", i, (int64)type_nodes.GetKey(i), v.GetCount()));
 		for(int j = 0; j < v.GetCount(); j++) {
 			ClangNode& n = *v[j];
-			LOG(Format("\t[%d][%d]: %s: %s(%s)", i, j, MetaNode::GetKindString(n.kind), n.id, n.type));
+			LOG(Format("\t[%d][%d]: %s: %s(%s)", i, j, MetaNode::AstGetKindString(n.kind), n.id, n.type));
 		}
 	}
 }
@@ -60,7 +60,7 @@ void ClangTypeResolver::DumpUnresolvedHashes() {
 			LOG(Format("[%d]: error: unknown type: hash %X: count %d", i, (int64)type_nodes.GetKey(i), v.GetCount()));
 			for(int j = 0; j < v.GetCount(); j++) {
 				ClangNode& n = *v[j];
-				LOG(Format("\t[%d][%d]: %s: %s(%s)", i, j, MetaNode::GetKindString(n.kind), n.id, n.type));
+				LOG(Format("\t[%d][%d]: %s: %s(%s)", i, j, MetaNode::AstGetKindString(n.kind), n.id, n.type));
 			}
 		}
 	}

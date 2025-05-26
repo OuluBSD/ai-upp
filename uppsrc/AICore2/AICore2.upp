@@ -16,6 +16,8 @@ file
 	Node.cpp,
 	SearchAlgos.h,
 	SearchAlgos.cpp,
+	WorldState.h,
+	WorldState.cpp,
 	ActionPlanner.h,
 	ActionPlanner.cpp,
 	QueryTable.h;

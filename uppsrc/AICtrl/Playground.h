@@ -96,7 +96,7 @@ public:
 	void DataStage();
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
-	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, int kind);
+	void DataList(ArrayCtrl& list, Vector<MetaNode*>& nodes, hash_t type_hash);
 	bool CompileStages();
 	bool Compile();
 	bool Run();

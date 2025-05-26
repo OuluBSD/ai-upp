@@ -5,7 +5,7 @@
 
 
 
-COMPONENT_STUB_HEADER(CompositionComponent, METAKIND_ECS_COMPONENT_COMPOSITION)
+COMPONENT_STUB_HEADER(CompositionComponent)
 
 
 

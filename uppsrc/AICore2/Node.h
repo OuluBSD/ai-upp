@@ -345,7 +345,7 @@ struct Node {
 		return *o;
 	}
 	operator T*() const {
-		if (n && &*n->ext);
+		if (n && !n->ext.IsEmpty())
 			return CastPtr<T>(&*n->ext);
 		return 0;
 	}

@@ -323,7 +323,7 @@ struct Node {
 	
 	Node() {}
 	Node(VfsValue& n) : n(&n) {}
-	Node(T& n) : n(&n.node) {}
+	Node(T& n) : n(&n.val) {}
 	T* operator->() const {
 		if (!n || !n->ext) return 0;
 		T* o = CastPtr<T>(&*n->ext);

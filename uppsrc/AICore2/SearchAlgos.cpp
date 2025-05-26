@@ -293,7 +293,7 @@ DepthFirst::DepthFirst() {route.from_owner_only = true;}
 Vector<Val*> DepthFirst::Search(Val& src) {
 	Vector<Val*> out;
 	
-	typename Nod::IteratorDeep it = src.BeginDeep();
+	typename Val::IteratorDeep it = src.BeginDeep();
 	Val* ptr = 0;
 	Val* prev = 0;
 	double v = DBL_MAX;
@@ -335,7 +335,7 @@ void DepthLimited::SetLimit(int lim) {limit = lim;}
 Vector<Val*> DepthLimited::Search(Val& src) {
 	Vector<Val*> out;
 	
-	typename Nod::IteratorDeep it = src.BeginDeep();
+	typename Val::IteratorDeep it = src.BeginDeep();
 	Val* ptr = 0;
 	Val* prev = 0;
 	double v = DBL_MAX;

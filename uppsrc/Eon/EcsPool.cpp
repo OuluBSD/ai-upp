@@ -29,7 +29,7 @@ PoolId Pool::GetNextId() {
 }
 
 Pool* Pool::GetParent() const {
-	return node.GetOwnerExt<Pool>();
+	return val.GetOwnerExt<Pool>();
 }
 
 Engine& Pool::GetEngine() {
@@ -48,8 +48,8 @@ void Pool::Initialize(Entity& e, String prefab) {
 }
 
 EntityPtr Pool::CreateEmpty(String id) {
-	Entity& e = val.add<Ecs::Entity>();
-	e.node.id = id;
+	Entity& e = val.Add<Ecs::Entity>();
+	e.val.id = id;
 	e.SetId(GetNextId());
 	Initialize(e);
 	return &e;
@@ -64,13 +64,13 @@ EntityPtr Pool::GetAddEmpty(String name) {
 }
 
 EntityPtr Pool::Clone(const Entity& c) {
-	Ecs::Entity& e = val.add<Ecs::Entity>();
+	Ecs::Entity& e = val.Add<Ecs::Entity>();
 	VisitCopy(c, e);
 	return &e;
 }
 
 void Pool::UnlinkDeep() {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (int i = pools.GetCount()-1; i >= 0; i--) {
 		pools[i]->UnlinkDeep();
 	}
@@ -83,35 +83,35 @@ void Pool::UnrefDeep() {
 }
 
 void Pool::UninitializeComponentsDeep() {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		p->UninitializeComponentsDeep();
 	
-	auto ents = node.FindAll<Ecs::Entity>();
+	auto ents = val.FindAll<Ecs::Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->UninitializeComponents();
 	
 }
 
 void Pool::ClearComponentsDeep() {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		p->ClearComponentsDeep();
 	
-	auto ents = node.FindAll<Ecs::Entity>();
+	auto ents = val.FindAll<Ecs::Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->ClearComponents();
 	
 }
 
 void Pool::ClearDeep() {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		if (p)
 			p->ClearDeep();
 	
-	node.RemoveAllDeep<Pool>();
-	node.RemoveAllDeep<Ecs::Entity>();
+	val.RemoveAllDeep<Pool>();
+	val.RemoveAllDeep<Ecs::Entity>();
 }
 
 #if 0
@@ -129,7 +129,7 @@ void Pool::Clear() {
 }
 
 void Pool::PruneFromContainer() {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (auto& pool : pools)
 		pool->PruneFromContainer();
 	
@@ -153,13 +153,13 @@ String Pool::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << node.id << "[" << id << "]\n";
+	s << ".." << val.id << "[" << id << "]\n";
 	
-	auto objects = node.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Ecs::Entity>();
 	for (EntityPtr& e : objects)
 		s << e->GetTreeString(indent+1);
 	
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& p : pools)
 		s << p->GetTreeString(indent+1);
 	
@@ -167,7 +167,7 @@ String Pool::GetTreeString(int indent) {
 }
 
 PoolPtr Pool::FindPool(String name) {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& p : pools) {
 		if (p->GetName() == name)
 			return p;
@@ -176,7 +176,7 @@ PoolPtr Pool::FindPool(String name) {
 }
 
 EntityPtr Pool::FindEntityByName(String name) {
-	auto objects = node.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Ecs::Entity>();
 	for (EntityPtr object : objects)
 		if (object->GetName() == name)
 			return object;
@@ -184,14 +184,14 @@ EntityPtr Pool::FindEntityByName(String name) {
 }
 
 PoolPtr Pool::AddPool(String name) {
-	Pool& p = val.add<Pool>();
-	p.node.id = name;
+	Pool& p = val.Add<Pool>();
+	p.val.id = name;
 	p.SetId(GetNextId());
 	return &p;
 }
 
 PoolPtr Pool::GetAddPool(String name) {
-	auto pools = node.FindAll<Pool>();
+	auto pools = val.FindAll<Pool>();
 	for (PoolPtr& pool : pools)
 		if (pool->GetName() == name)
 			return pool;
@@ -199,7 +199,7 @@ PoolPtr Pool::GetAddPool(String name) {
 }
 
 void Pool::RemoveEntity(Entity* e) {
-	auto objects = node.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Ecs::Entity>();
 	int i = 0;
 	auto it = objects.begin();
 	auto end = objects.end();

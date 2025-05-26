@@ -158,7 +158,7 @@ bool ChaseCam::Arg(String key, Value value) {
 		String path = value;
 		VfsPath vfs_path;
 		vfs_path.SetDotPath(path);
-		EntityPtr tgt_ent = root->node.FindPath<Ecs::Entity>(vfs_path);
+		EntityPtr tgt_ent = root->val.FindPath<Ecs::Entity>(vfs_path);
 		if (!tgt_ent) {
 			LOG("ChaseCam::Arg: error: could not find entity with path '" + path + "'");
 			return false;

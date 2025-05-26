@@ -37,7 +37,7 @@ int Loop::GetLoopDepth() const {
 }
 
 bool Loop::HasLoopParent(LoopPtr pool) const {
-	const VfsValue* n = &node;
+	const VfsValue* n = &val;
 	while (n) {
 		const Loop* p = n->ext ? CastConstPtr<Loop>(&*n->ext) : 0;
 		if (p && p == &*pool)
@@ -59,23 +59,23 @@ void Loop::UnrefDeep() {
 }
 
 void Loop::UninitializeLinksDeep() {
-	auto loops = node.FindAllDeep<Loop>();
+	auto loops = val.FindAllDeep<Loop>();
 	for (Loop* l : loops)
 		l->UninitializeLinksDeep();
 	
-	auto links = node.FindAllDeep<LinkBase>();
+	auto links = val.FindAllDeep<LinkBase>();
 	for (int i = links.GetCount()-1; i >= 0; i--)
 		links[i]->Uninitialize();
 	
 }
 
 void Loop::ClearDeep() {
-	auto loops = node.FindAllDeep<Loop>();
+	auto loops = val.FindAllDeep<Loop>();
 	for (Loop* p : loops)
 		if (p)
 			p->ClearDeep();
-	node.RemoveAllDeep<Loop>();
-	node.RemoveAllDeep<LinkBase>();
+	val.RemoveAllDeep<Loop>();
+	val.RemoveAllDeep<LinkBase>();
 }
 
 LoopPtr Loop::GetAddEmpty(String name) {
@@ -83,12 +83,12 @@ LoopPtr Loop::GetAddEmpty(String name) {
 	if (l)
 		return l;
 	l = CreateEmpty();
-	l->node.id = name;
+	l->val.id = name;
 	return l;
 }
 
 LoopPtr Loop::CreateEmpty() {
-	Loop& l = val.add<Loop>();
+	Loop& l = val.Add<Loop>();
 	//l.SetParent(this);
 	l.SetId(GetNextId());
 	Initialize(l);
@@ -146,7 +146,7 @@ LinkBasePtr Loop::AddPtr(LinkBase* comp) {
 }
 
 LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
-	auto links = node.FindAllDeep<LinkBase>();
+	auto links = val.FindAllDeep<LinkBase>();
 	for (auto& l : links) {
 		LinkTypeCls type = l->GetLinkType();
 		if (type == atom_type)
@@ -157,7 +157,7 @@ LinkBasePtr Loop::FindTypeCls(LinkTypeCls atom_type) {
 }
 
 LoopPtr Loop::FindLoopByName(String name) {
-	auto loops = node.FindAllDeep<Loop>();
+	auto loops = val.FindAllDeep<Loop>();
 	for (Loop* o : loops)
 		if (o->GetName() == name)
 			return o;
@@ -169,7 +169,7 @@ void Loop::Dump() {
 }
 
 void Loop::InitializeLinks() {
-	auto links = node.FindAllDeep<LinkBase>();
+	auto links = val.FindAllDeep<LinkBase>();
 	for(auto& it : links)
 		InitializeLink(*it);
 }
@@ -184,13 +184,13 @@ String Loop::GetTreeString(int indent) {
 	String pre;
 	pre.Cat('\t', indent);
 	
-	s << ".." << (node.id.IsEmpty() ? (String)"unnamed" : "\"" + node.id + "\"") << "[" << (int)id << "]\n";
+	s << ".." << (val.id.IsEmpty() ? (String)"unnamed" : "\"" + val.id + "\"") << "[" << (int)id << "]\n";
 	
-	auto links = node.FindAllDeep<LinkBase>();
+	auto links = val.FindAllDeep<LinkBase>();
 	for (LinkBase* l : links)
 		s << l->ToString();
 	
-	auto loops = node.FindAllDeep<Loop>();
+	auto loops = val.FindAllDeep<Loop>();
 	for (Loop* l : loops)
 		s << l->GetTreeString(indent+1);
 	
@@ -267,10 +267,10 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 }
 
 String Loop::GetDeepName() const {
-	String s = node.id;
+	String s = val.id;
 	Loop* l = GetParent();
 	while (l) {
-		s = l->node.id + "." + s;
+		s = l->val.id + "." + s;
 		l = l->GetParent();
 	}
 	return s;
@@ -283,17 +283,17 @@ LoopId Loop::GetNextId() {
 
 LoopPtr Loop::AddLoop(String name) {
 	ASSERT(name.GetCount());
-	Loop& p = val.add<Loop>();
-	p.node.id = name;
+	Loop& p = val.Add<Loop>();
+	p.val.id = name;
 	//p.SetId(GetNextId());
 	return &p;
 }
 
 LoopPtr Loop::GetAddLoop(String name) {
 	ASSERT(name.GetCount());
-	auto loops = node.FindAll<Loop>();
+	auto loops = val.FindAll<Loop>();
 	for (auto& loop : loops)
-		if (loop->node.id == name)
+		if (loop->val.id == name)
 			return loop;
 	return AddLoop(name);
 }

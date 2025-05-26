@@ -1192,7 +1192,7 @@ Array<ProfileData>& ProfileData::GetAll() {
 ProfileData& ProfileData::Get(Profile& p) {
 	Array<ProfileData>& a = GetAll();
 	CombineHash ch;
-	ch.Do(p.node.id);
+	ch.Do(p.val.id);
 	ch.Do(p.name);
 	hash_t h = ch;
 	for (ProfileData& pd : a) {
@@ -1305,7 +1305,7 @@ void PlatformProcess::DoPhase() {
 PlatformProcess& PlatformProcess::Get(DatasetPtrs p) {
 	static ArrayMap<String, PlatformProcess> arr;
 	
-	String key = p.platmgr->node.GetPath();
+	String key = p.platmgr->val.GetPath();
 	PlatformProcess& ts = arr.GetAdd(key);
 	ts.p = p;
 	return ts;

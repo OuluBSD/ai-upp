@@ -23,7 +23,7 @@ void DatasetPtrs::Clear() {
 
 DatasetPtrs Component::GetDataset() const {
 	DatasetPtrs p;
-	VfsValue& n = node;
+	VfsValue& n = val;
 	
 	FillDataset(p, n, const_cast<Component*>(this));
 	return p;
@@ -81,7 +81,7 @@ void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp) {
 				if (s.kind == METAKIND_DB_REF) {
 					for (auto db : ~DatasetIndex()) {
 						VfsValueExt& ext = *db.value;
-						if (ext.node.kind == METAKIND_DATABASE_SOURCE) {
+						if (ext.val.kind == AsTypeHash<SrcTxtHeader>()) {
 							db_src = &ext.node;
 							found_db_src = true;
 							break;
@@ -178,5 +178,15 @@ void Entity::Visit(Vis& v) {
 }
 
 INITIALIZER_COMPONENT(Entity);
+
+
+
+
+COMPONENT_STUB_IMPL(Context)
+COMPONENT_STUB_IMPL(PkgEnv)
+COMPONENT_STUB_IMPL(VirtualIOScript)
+COMPONENT_STUB_IMPL(VirtualIOScriptProofread)
+COMPONENT_STUB_IMPL(VirtualIOScriptLine)
+COMPONENT_STUB_IMPL(VirtualIOScriptSub)
 
 END_UPP_NAMESPACE

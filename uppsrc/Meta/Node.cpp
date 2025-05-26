@@ -571,7 +571,7 @@ void MetaEnvironment::MergeVisitPost(VfsValue& n)
 		MergeVisitPost(s);
 }
 
-bool MetaEnvironment::MergeNode(VfsValue& root, const VfsValue& other, MergeMode mode)
+bool MetaEnvironment::MergeValue(VfsValue& root, const VfsValue& other, MergeMode mode)
 {
 	Vector<VfsValue*> scope;
 	scope << &root;
@@ -893,6 +893,13 @@ VfsValue& VfsValue::AstGetAdd(String id, String type, int kind)
 	return s;
 }
 
+VfsValue& VfsValue::GetAdd(String id, hash_t type_hash) {
+	for (auto& s : sub)
+		if (s.id == id && s.type_hash == type_hash)
+			return s;
+	return Add(id, 0);
+}
+
 VfsValue& VfsValue::Add(const VfsValue& n)
 {
 	VfsValue& s = sub.Add();
@@ -923,7 +930,7 @@ VfsValue& VfsValue::Add(VfsValue* n)
 	return s;
 }
 
-VfsValue& VfsValue::Add(String id)
+VfsValue& VfsValue::Add(String id, hash_t h)
 {
 	VfsValue& s = sub.Add();
 	s.id = id;
@@ -933,6 +940,11 @@ VfsValue& VfsValue::Add(String id)
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();
+	if (h) {
+		s.ext = VfsValueExtFactory::Create(h, s);
+		if (s.ext)
+			s.type_hash = h;
+	}
 	return s;
 }
 
@@ -1340,6 +1352,16 @@ Vector<VfsValue*> VfsValue::FindAll(TypeCls type)
 }
 
 Vector<VfsValue*> VfsValue::FindTypeAllShallow(hash_t type_hash)
+{
+	Vector<VfsValue*> vec;
+	for(auto& s : sub) {
+		if (s.type_hash == type_hash)
+			vec << &s;
+	}
+	return vec;
+}
+
+Vector<VfsValue*> VfsValue::FindAllShallow(hash_t type_hash)
 {
 	Vector<VfsValue*> vec;
 	for(auto& s : sub) {
@@ -1792,7 +1814,7 @@ hash_t VfsValueExt::GetHashValue() const {
 }
 
 int VfsValueExt::AstGetKind() const {
-	const AstValue* a = node;
+	const AstValue* a = val;
 	return a ? a->kind : 0;
 }
 

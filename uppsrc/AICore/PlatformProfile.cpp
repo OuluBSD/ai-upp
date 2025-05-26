@@ -36,7 +36,7 @@ void PlatformProfileProcess::DoPhase() {
 PlatformProfileProcess& PlatformProfileProcess::Get(const DatasetPtrs& p, String file_dir) {
 	static ArrayMap<String, PlatformProfileProcess> arr;
 	
-	String key = p.analysis->node.GetPath();
+	String key = p.analysis->val.GetPath();
 	PlatformProfileProcess& ts = arr.GetAdd(key);
 	ts.p = p;
 	ts.file_dir = file_dir;

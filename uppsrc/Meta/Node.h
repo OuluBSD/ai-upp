@@ -163,14 +163,14 @@ struct VfsValueExtFactory {
 	}*/
 	static int FindTypeHashFactory(hash_t h);
 	static Array<Factory>& List() {static Array<Factory> f; return f;}
-	/*static void Set(DatasetPtrs& p, int o_kind, EntityData& data) {
+	/*static void SetEntityData(DatasetPtrs& p, hash_t type_hash, EntityData& data) {
 		for (const auto& f : List()) {
-			if (o_kind == f.kind) {
+			if (type_hash == f.type_hash) {
 				f.set_data_ed_fn(p, data);
 				return;
 			}
 		}
-		ASSERT_(0, "Kind not registered");
+		ASSERT_(0, "Type not registered with given hash_type");
 	}*/
 	static Index<String>& Categories() {static Index<String> v; return v;}
 	
@@ -210,7 +210,7 @@ struct VfsValueExtFactory {
 	//static int FindKindFactory(int kind);
 	static int AstFindKindCategory(int kind);
 	
-	int FindComponent(hash_t type_hash) {
+	static int FindComponent(hash_t type_hash) {
 		// note: must be added under entity
 		TODO
 		return -1;
@@ -301,7 +301,7 @@ struct VfsValue : Pte<VfsValue> {
 	
 	VfsValue& Add(const VfsValue& n);
 	VfsValue& Add(VfsValue* n);
-	VfsValue& Add(String id=String());
+	VfsValue& Add(String id=String(), hash_t h=0);
 	VfsValue* Detach(VfsValue* n);
 	VfsValue* Detach(int i);
 	void Remove(VfsValue* n);
@@ -343,6 +343,8 @@ struct VfsValue : Pte<VfsValue> {
 	bool IsOwnerDeep(VfsValueExt& n) const;
 	int GetCount() const;
 	int GetDepth() const;
+	Vector<VfsValue*> FindAllShallow(hash_t type_hash);
+	VfsValue& GetAdd(String id, hash_t type_hash);
 	
 	operator AstValue&();
 	operator AstValue*();
@@ -359,6 +361,15 @@ struct VfsValue : Pte<VfsValue> {
 		T* o = new T(*this);
 		ext = o;
 		type_hash = AsTypeHash<T>();
+		return *o;
+	}
+	
+	VfsValueExt& CreateExt(hash_t type_hash) {
+		ext.Clear();
+		VfsValueExt* o = VfsValueExtFactory::Create(type_hash, *this);
+		ASSERT(o);
+		ext = o;
+		type_hash = o ? type_hash : 0;
 		return *o;
 	}
 	
@@ -763,7 +774,7 @@ struct MetaEnvironment : VFS {
 	//void Store(const String& includes, const String& path, FileAnnotation& fa);
 	static bool IsMergeable(CXCursorKind kind);
 	static bool IsMergeable(int kind);
-	bool MergeNode(VfsValue& root, const VfsValue& other, MergeMode mode);
+	bool MergeValue(VfsValue& root, const VfsValue& other, MergeMode mode);
 	bool MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
 	bool MergeVisitPartMatching(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
 	void RefreshNodePtrs(VfsValue& n);

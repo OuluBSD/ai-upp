@@ -67,7 +67,7 @@ public:
 	EntityPtr Create() {
 		static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
-		Entity& e = val.add<Ecs::Entity>();
+		Entity& e = val.Add<Ecs::Entity>();
 		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);
@@ -82,7 +82,7 @@ public:
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
 		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
-		auto ents = node.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -102,7 +102,7 @@ public:
 		
 		Vector<Tuple<ComponentTs*...>> components;
 		
-		auto ents = node.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -121,7 +121,7 @@ public:
 	EntityPtr FindEntity(T* component) {
 		if (!component)
 			return EntityPtr();
-		auto ents = node.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Ecs::Entity>();
 		for (auto& ent : ents) {
 			T* t = ent->Find<T>();
 			if (t == component)
@@ -180,7 +180,7 @@ T* Entity::FindNearestEntityWith() {
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			auto ents = p->node.FindAll<Ecs::Entity>();
+			auto ents = p->val.FindAll<Ecs::Entity>();
 			for (Entity* e : ents) {
 				c = e->Find<T>();
 				if (c) break;

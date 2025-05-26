@@ -584,7 +584,7 @@ LeadSolver::LeadSolver() {
 
 LeadSolver& LeadSolver::Get(DatasetPtrs p) {
 	ASSERT(p.entity && p.owner);
-	String t = p.entity->node.GetPath();
+	String t = p.entity->val.GetPath();
 	hash_t h = t.GetHashValue();
 	ArrayMap<hash_t, LeadSolver>& map = __LeadSolvers();
 	int i = map.Find(h);
@@ -657,8 +657,7 @@ String LeadSolver::GetLeadCacheDir() {
 }
 
 void LeadSolver::ProcessDownloadWebsites(bool parse) {
-	String id = ToLower(p.entity->node.id);
-	
+	String id = ToLower(p.entity->val.id);
 	if (id.Find("taxi") == 0) {
 		String url = "https://www.taxi.com/industry";
 		String content = ProcessDownloadWebsiteUrl(url);
@@ -688,7 +687,7 @@ void LeadSolver::ParseWebsite(int batch, String content) {
 	LeadData& ld = *p.lead_data;
 	content.Replace("\r", "");
 	
-	String id = ToLower(p.entity->node.id);
+	String id = ToLower(p.entity->val.id);
 	
 	if (id.Find("taxi") == 0) {
 		Vector<String> categories = Split(content, "<div class='genre-title'>");

@@ -14,12 +14,12 @@ struct RangeFinder {
 		file_ptrs.Clear();
 		file_paths.Clear();
 		K& comp = c.GetExt<K>();
-		if (!comp.node.owner)
+		if (!comp.val.owner)
 			return false;
 		String sel_path = comp.value("path");
 		files.Clear();
 		files.WhenAction.Clear();
-		file_ptrs = comp.node.owner->template FindAll<T>();
+		file_ptrs = comp.val.owner->template FindAll<T>();
 		int cursor = 0;
 		for(int i = 0; i < file_ptrs.GetCount(); i++) {
 			auto& file = *file_ptrs[i];

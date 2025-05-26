@@ -70,7 +70,7 @@ public:
     Ptr<SystemT> TryGet()
     {
         CXX2A_STATIC_ASSERT(Ecs::IsSystem<SystemT>::value, "T should derive from System");
-        return node.Find<SystemT>();
+        return val.Find<SystemT>();
     }
 
     template<typename SystemT, typename... Args>
@@ -86,7 +86,7 @@ public:
 
     template<typename SystemT, typename... Args>
     Ptr<SystemT> GetAdd(Args&&... args) {
-        auto sys = node.Find<SystemT>();
+        auto sys = val.Find<SystemT>();
         if (sys)
             return sys;
         return Add<SystemT>(args...);

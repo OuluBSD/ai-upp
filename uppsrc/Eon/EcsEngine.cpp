@@ -63,7 +63,7 @@ SystemBase::~SystemBase() {
 }
 
 Engine& SystemBase::GetEngine() const {
-	Engine* e = node.GetOwnerExt<Engine>();
+	Engine* e = val.GetOwnerExt<Engine>();
 	ASSERT(e);
 	if (!e) throw Exc("no engine");
 	return *e;
@@ -94,7 +94,7 @@ bool Engine::Start() {
 	
 	is_looping_systems = true;
 	
-	auto systems = node.FindAll<Ecs::SystemBase>();
+	auto systems = val.FindAll<Ecs::SystemBase>();
 	for (auto it : systems) {
 		if (!it->Initialize()) {
 			LOG("Could not initialize system " << it->GetTypeCls().GetName());
@@ -141,7 +141,7 @@ void Engine::Update(double dt) {
 	
 	is_looping_systems = true;
 	
-	auto systems = node.FindAll<SystemBase>();
+	auto systems = val.FindAll<SystemBase>();
 	for (SystemBase* b : systems) {
 		WhenEnterSystemUpdate(*b);
 		
@@ -168,7 +168,7 @@ void Engine::Stop() {
 	
 	is_looping_systems = true;
 	
-	auto systems = node.FindAll<SystemBase>();
+	auto systems = val.FindAll<SystemBase>();
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
 		(*it)->Stop();
 	}
@@ -200,7 +200,7 @@ void Engine::SystemStartup(TypeCls type_id, SystemBase* system) {
 		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetTypeCls().GetName());
 		
 		bool has_already = false;
-		auto systems = node.FindAll<SystemBase>();
+		auto systems = val.FindAll<SystemBase>();
 		for (auto r : systems)
 			if (&*r == system)
 				has_already = true;
@@ -259,10 +259,10 @@ void Engine::RemoveFromUpdateList(ComponentBasePtr c) {
 }
 
 Pool& Engine::GetRootPool() {
-	PoolPtr pool = node.Find<Pool>();
+	PoolPtr pool = val.Find<Pool>();
 	if (pool) return *pool;
-	pool = &val.add<Pool>();
-	pool->node.id = "pool";
+	pool = &val.Add<Pool>();
+	pool->val.id = "pool";
 	return *pool;
 }
 
@@ -287,7 +287,7 @@ Ptr<SystemBase> Engine::GetAdd(String id, bool startup) {
     if (i < 0)
         return Ptr<SystemBase>();
     TypeCls type = EonToType()[i];
-    auto v = node.FindAll(type);
+    auto v = val.FindAll(type);
     if (v.GetCount())
         return v[0]->ext ? CastPtr<SystemBase>(&*v[0]->ext) : 0;
     return Add(type, startup);

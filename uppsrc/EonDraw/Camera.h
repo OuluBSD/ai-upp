@@ -1,13 +1,11 @@
 #ifndef _EonDraw_Camera_h_
 #define _EonDraw_Camera_h_
 
-namespace Ecs {
-
 
 struct GfxShader;
 
 class Viewable :
-	public Component<Viewable>
+	public Component
 {
 	
 public:
@@ -26,7 +24,7 @@ public:
 using ViewablePtr = Ptr<Viewable>;
 
 
-class Viewport : public Component<Viewport> {
+class Viewport : public Component {
 public:
 	ECS_COMPONENT_CTOR(Viewport)
 	vec3 target = zero<vec3>();
@@ -67,7 +65,7 @@ struct CameraBase : Pte<CameraBase>
 using CameraBasePtr = Ptr<CameraBase>;
 
 class ChaseCam :
-	public Component<ChaseCam>,
+	public Component,
 	public CameraBase
 {
 	TransformPtr trans;
@@ -131,7 +129,5 @@ struct CameraPrefab : EntityPrefab<Transform, Viewport, Viewable>
     }
 };
 
-
-}
 
 #endif

@@ -149,7 +149,7 @@ void MachineVerifier::OnEnterUpdate() {
 	
 }
 
-void MachineVerifier::OnEnterSystemUpdate(SystemBase& base) {
+void MachineVerifier::OnEnterSystemUpdate(System& base) {
 	if (!Thread::IsMain()) return;
 	
 	MVER_LOG("MachineVerifier::OnEnterSystemUpdate " << HexStrPtr((void*)&base));
@@ -175,7 +175,7 @@ void MachineVerifier::OnEnterSystemUpdate(SystemBase& base) {
 	#endif
 }
 
-void MachineVerifier::OnEnterScriptLoad(SystemBase& base) {
+void MachineVerifier::OnEnterScriptLoad(System& base) {
 	if (!Thread::IsMain()) return;
 	
 	MVER_LOG("MachineVerifier::OnEnterScriptLoad");

@@ -8,7 +8,7 @@ NAMESPACE_UPP
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsSystem
 // Simple physics system to move objects around with basic integration (acceleration, velocity)
-class PhysicsSystem : public ::Upp::Ecs::System<PhysicsSystem>
+class PhysicsSystem : public System
 {
 public:
     using System::System;

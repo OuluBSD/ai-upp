@@ -3,9 +3,6 @@
 #if 1
 
 
-namespace Ecs {
-
-
 class PaintComponent :
 	public CustomToolComponent {
 	
@@ -128,7 +125,5 @@ private:
 	
 };
 
-
-}
 
 #endif

@@ -1,5 +1,5 @@
 uses
-	Backend;
+	Vfs;
 
 file
 	BackendTests.h,

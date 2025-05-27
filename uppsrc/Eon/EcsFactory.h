@@ -1,8 +1,6 @@
 #ifndef _Eon_EcsFactory_h_
 #define _Eon_EcsFactory_h_
 
-namespace Ecs {
-
 
 struct ComponentFactory {
 	typedef ComponentBase* (*NewFn)(VfsValue&);
@@ -77,7 +75,5 @@ struct ComponentFactory {
 	Ecs::ComponentFactory::Register<type>(c, side_vd); \
 }
 
-
-}
 
 #endif

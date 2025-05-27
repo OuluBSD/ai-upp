@@ -1,8 +1,6 @@
 #ifndef _EonDraw_Prefabs_h_
 #define _EonDraw_Prefabs_h_
 
-namespace Ecs {
-
 
 struct Gun : EntityPrefab<Transform, ModelComponent, ToolComponent>
 {
@@ -80,7 +78,5 @@ struct Baseball : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody
     }
 };
 
-
-}
 
 #endif

@@ -1,6 +1,7 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 const vec3 EarthGravity = { 0, -9.8f, 0 };
@@ -95,8 +96,4 @@ void Transform2D::operator=(const Transform2D& t) {
 }
 
 
-
-
-
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

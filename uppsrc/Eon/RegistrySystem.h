@@ -2,7 +2,7 @@
 #define _Eon_RegistrySystem_h_
 
 
-class RegistrySystem : public System<RegistrySystem> {
+class RegistrySystem : public System {
 	ValueMap reg;
 	
 	

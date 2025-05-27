@@ -1,10 +1,8 @@
 #ifndef _Eon_EcsRegistrySystem_h_
 #define _Eon_EcsRegistrySystem_h_
 
-namespace Ecs {
 
-
-class RegistrySystem : public Ecs::System<RegistrySystem> {
+class RegistrySystem : System {
 	ValueMap reg;
 	
 	
@@ -30,7 +28,5 @@ public:
 	
 };
 
-
-}
 
 #endif

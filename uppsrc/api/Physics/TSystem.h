@@ -7,7 +7,7 @@ NAMESPACE_UPP
 template <class Fys>
 struct SystemT :
 	SpaceT<Fys>,
-	Ecs::System<SystemT<Fys>>
+	Ecs::System
 {
 	using Base = SystemT<Fys>;
 	using SP = Ecs::System<SystemT<Fys>>;

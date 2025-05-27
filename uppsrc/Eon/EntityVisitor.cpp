@@ -2,7 +2,7 @@
 
 #if 0
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 EntityVisitor::EntityVisitor(PoolVec& pool, int mode) : base(pool), mode(mode) {
@@ -225,6 +225,6 @@ bool EntityParentVisitor::FindNextChildFirst() {
 	return false;
 }
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE
 
 #endif

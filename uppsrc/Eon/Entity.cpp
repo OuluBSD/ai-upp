@@ -1,6 +1,7 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 Entity::Entity(VfsValue& n) : VfsValueExt(n) {
@@ -237,4 +238,5 @@ bool EntityHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* d
 }
 #endif
 
-} END_UPP_NAMESPACE
+
+END_UPP_NAMESPACE

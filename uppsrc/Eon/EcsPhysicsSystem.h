@@ -2,13 +2,10 @@
 #define _Eon_EcsPhysicsSystem_h_
 
 
-namespace Ecs {
-
-
 class PhysicsBody;
 
 
-class PhysicsSystem : public Ecs::System<PhysicsSystem>
+class PhysicsSystem : public System
 {
 	Vector<PhysicsBody*> bodies;
 	double time = 0;
@@ -43,7 +40,7 @@ public:
 };
 
 
-class PhysicsBody : public Component<PhysicsBody> {
+class PhysicsBody : public Component {
 	
 public:
 	friend class PhysicsSystem;
@@ -73,10 +70,6 @@ public:
 };
 
 using PhysicsBodyPtr = Ptr<PhysicsBody>;
-
-
-
-}
 
 
 #endif

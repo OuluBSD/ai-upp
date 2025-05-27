@@ -1,0 +1,21 @@
+description "\377B128,0,0";
+
+uses
+	Draw,
+	Draw2,
+	Vfs;
+
+file
+	Vfs.h,
+	Meta.icpp,
+	Defs.h,
+	ExtList.h,
+	Types.h,
+	Enum.h,
+	Common.h,
+	CodeVisitor.h,
+	CodeVisitor.cpp,
+	SolverBase.h,
+	SolverBase.cpp,
+	src.tpp;
+

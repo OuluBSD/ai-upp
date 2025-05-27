@@ -32,7 +32,7 @@ protected:
 
 
 class LinkStore :
-	public System<LinkStore>,
+	public System,
 	public LinkFactory<LinkBase*, std::function<LinkBase*()>, std::function<void(LinkBase*)>>
 {
 	

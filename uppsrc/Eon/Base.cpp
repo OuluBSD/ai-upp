@@ -82,7 +82,7 @@ bool RollingValueBase::Initialize(const WorldState& ws) {
 		this->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 	}
 	else if (main_vd.val == ValCls::VIDEO)
-		internal_fmt.SetVideo(DevCls::CENTER, LightSampleFD::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 60, 1);
+		internal_fmt.SetVideo(DevCls::CENTER, ColorSampleFD::U8_LE_ABC, VideoFormat::default_width, VideoFormat::default_height, 60, 1);
 	else
 		TODO;
 	

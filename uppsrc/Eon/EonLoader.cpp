@@ -45,7 +45,7 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 	return true;
 }
 
-bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::SystemBase& sys) {
+bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, Ecs::System& sys) {
 	for(int i = 0; i < l.def.args.GetCount(); i++) {
 		String key = l.def.args.GetKey(i);
 		const Value& value = l.def.args[i];

@@ -1,7 +1,7 @@
 #include "Eon.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 //PoolPtr GetConnectorBasePool(ConnectorBase* conn) {return conn->GetPool();}
@@ -272,7 +272,4 @@ bool PoolHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 #endif
 
 
-
-
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

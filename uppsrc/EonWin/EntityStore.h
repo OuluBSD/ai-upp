@@ -8,7 +8,7 @@ namespace Neso {
 // EntityStore
 // Manages all the instances of Entities in the engine. See Entity.h
 // Also allows creation of Entities through the EntityPrefab class
-class EntityStore : public System<EntityStore>
+class EntityStore : public System
 {
 public:
     using System::System;

@@ -1,9 +1,8 @@
 #include "EonDraw.h"
 #include <api/Graphics/Graphics.h>
 
-NAMESPACE_UPP namespace Ecs {
 
-
+NAMESPACE_UPP
 
 
 void CalculateCameraView(mat4& view, mat4* stereo_view, float eye_dist, const vec3& eye, const vec3& target, const vec3& up, const mat4& port, const mat4& eye_port, const mat4& proj) {
@@ -356,4 +355,4 @@ bool ChaseCam::Load(GfxDataState& s) {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

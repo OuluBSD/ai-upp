@@ -25,11 +25,11 @@ public:
 // HolographicScene
 // Maintains a list of our current state of Windows::Perception objects, ensuring the rest of the systems
 // use the same coordinate system, timestamp, etc.
-class HolographicScene : public Parallel::System<HolographicScene>
+class HolographicScene : public System
 {
 public:
     using System::System;
-    using Base = Parallel::System<HolographicScene>;
+    using Base = System;
 	//RTTI_DECL1(HolographicScene, Base)
 
     HolographicScene(Machine& core, winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace);

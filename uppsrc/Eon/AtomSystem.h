@@ -1,10 +1,10 @@
 #ifndef _Eon_AtomSystem_h_
 #define _Eon_AtomSystem_h_
 
-
+#if 0
 
 class AtomSystem :
-	public System<AtomSystem>
+	public System
 {
 	LinkedList<AtomBasePtr> updated;
 	Mutex lock;
@@ -39,6 +39,6 @@ public:
 	
 };
 
-
+#endif
 
 #endif

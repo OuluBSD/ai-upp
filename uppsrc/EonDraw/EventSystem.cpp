@@ -1,7 +1,7 @@
 #include "EonDraw.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 bool EventSystem::Initialize() {
@@ -33,5 +33,5 @@ void EventSystem::Uninitialize() {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE
 

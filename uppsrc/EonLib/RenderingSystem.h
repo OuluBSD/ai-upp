@@ -4,7 +4,7 @@
 #if 0
 
 class RenderingSystem :
-	public Parallel::System<RenderingSystem>
+	public Parallel::System
 {
 	
 protected:
@@ -33,7 +33,7 @@ protected:
     
     
 public:
-	using Base = System<RenderingSystem>;
+	using Base = System;
 	ATOM_CTOR_(RenderingSystem, Base)
     SYS_CTOR(RenderingSystem)
 	SYS_DEF_VISIT

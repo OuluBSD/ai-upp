@@ -10,6 +10,8 @@ library(POSIX) png;
 file
 	Draw.h,
 	Draw.cpp,
+	SimpleImage.h,
+	SimpleImage.cpp,
 	Factory.h,
 	Factory.cpp,
 	FFT.h,

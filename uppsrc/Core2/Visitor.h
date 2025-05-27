@@ -1,5 +1,5 @@
-#ifndef _Core_Visitor_h_
-#define _Core_Visitor_h_
+#ifndef _Core2_Visitor_h_
+#define _Core2_Visitor_h_
 
 struct Visitor {
 	JsonIO* json = 0;

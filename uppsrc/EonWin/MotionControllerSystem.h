@@ -32,12 +32,12 @@ using MotionControllerComponentPtr = Ptr<MotionControllerComponent>;
 // You can also use the MotionControllerComponent::attachControllerModel to automatically attach the correct 3D model to the object
 // so that the virtual controller will be rendered in the same position as the physical controller
 class MotionControllerSystem :
-    public System<MotionControllerSystem>,
+    public System,
     public IPredictionUpdateListener,
     public ISpatialInteractionListener
 {
 public:
-	using Base = System<MotionControllerSystem>;
+	using Base = System;
     using System::System;
 	//RTTI_DECL3(MotionControllerSystem, Base, IPredictionUpdateListener, ISpatialInteractionListener)
 

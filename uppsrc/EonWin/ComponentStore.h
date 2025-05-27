@@ -9,7 +9,7 @@ namespace Neso
 ////////////////////////////////////////////////////////////////////////////////
 // ComponentStore
 // Manages all the instances of components in the engine. See Component.h
-class ComponentStore : public System<ComponentStore>, public Factory<SharedComponent, std::function<SharedComponent()>>
+class ComponentStore : public System, public Factory<SharedComponent, std::function<SharedComponent()>>
 {
 public:
     using System::System;

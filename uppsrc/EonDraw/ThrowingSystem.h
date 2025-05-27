@@ -1,8 +1,6 @@
 #ifndef _EonDraw_ThrowingSystem_h_
 #define _EonDraw_ThrowingSystem_h_
 
-namespace Ecs {
-
 
 class ThrowingComponent :
 	public CustomToolComponent {
@@ -69,7 +67,5 @@ protected:
 	
 };
 
-
-}
 
 #endif

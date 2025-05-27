@@ -3,7 +3,7 @@
 
 
 class ModelCache :
-	public System<ModelCache>
+	public System
 {
 	
 protected:
@@ -19,7 +19,6 @@ protected:
     void Uninitialize() override;
     
 public:
-	using Base = System<ModelCache>;
     SYS_CTOR(ModelCache)
 	SYS_DEF_VISIT
 	

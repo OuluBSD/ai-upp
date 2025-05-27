@@ -1,7 +1,7 @@
 #ifndef _Eon_Space_h_
 #define _Eon_Space_h_
 
-
+#if 0
 class Loop;
 class AtomBase;
 
@@ -129,7 +129,7 @@ private:
 //using SpaceVec = Array<Space>;
 using SpacePtr = Ptr<Space>;
 
-#if 0
+
 class SpaceHashVisitor : public Vis {
 	CombineHash ch;
 	

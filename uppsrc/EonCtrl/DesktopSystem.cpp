@@ -1,7 +1,7 @@
 #include "EonCtrl.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 void DesktopSuiteSystem::Visit(Vis& vis) {
@@ -50,4 +50,4 @@ void DesktopSuiteSystem::Uninitialize() {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

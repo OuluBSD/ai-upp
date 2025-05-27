@@ -3,6 +3,8 @@
 
 // This file is generated. Do not modify this file.
 
+#if 0
+
 namespace Parallel {
 #define ATOM_TYPE_LIST \
 	ATOM_TYPE(CENTER_CUSTOMER) \
@@ -214,4 +216,5 @@ namespace Parallel {
 
 }
 
+#endif
 #endif

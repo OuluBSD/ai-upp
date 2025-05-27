@@ -1,7 +1,7 @@
 #include "EonDraw.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 void ToolSelectorKey::Visit(Vis& v) {
@@ -27,5 +27,6 @@ void ToolComponent::Visit(Vis& v) {
 	#endif
 }
 
-} END_UPP_NAMESPACE
+
+END_UPP_NAMESPACE
 

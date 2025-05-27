@@ -1,6 +1,7 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 bool InteractionListener::Initialize(Engine& e, InteractionListener* l) {
@@ -182,12 +183,4 @@ void InteractionSystem::HandleSourceReleased(const InteractionManager&, const Ge
 }
 
 
-
-
-
-
-
-
-
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

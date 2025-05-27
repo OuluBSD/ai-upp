@@ -424,13 +424,6 @@ class JsonIO;
 
 #include "ValueCache.h"
 
-#include "VFS.h"
-#include "Mount.h"
-#include "VCS.h"
-#include "Visitor.h"
-
-#include "Math.h"
-
 #ifdef CPU_SIMD
 String AsString(const f32x4& x);
 String AsString(const i32x4& x);

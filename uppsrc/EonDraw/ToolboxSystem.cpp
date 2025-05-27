@@ -1,6 +1,7 @@
 #include "EonDraw.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 struct ToolComponentPrefab : EntityPrefab<Transform, ModelComponent, PlayerHandComponent, ToolComponent> {};
@@ -371,4 +372,4 @@ void ToolboxSystemBase::SwitchToolType(EntityPtr entity, const TypeId& new_type)
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

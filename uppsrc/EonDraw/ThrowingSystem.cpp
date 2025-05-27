@@ -1,6 +1,7 @@
 #include "EonDraw.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 PoolPtr ThrowingInteractionSystemBase::GetPool() const {
@@ -228,5 +229,4 @@ bool ThrowingComponent::LoadModel(ModelComponent& mdl) {
 }
 
 
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

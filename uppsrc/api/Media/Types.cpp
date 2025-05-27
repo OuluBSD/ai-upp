@@ -104,16 +104,16 @@ Size FfmpegMedia::GetFrameSize(const AVCodecParameters& c) {
 	return Size(c.width, c.height);
 }
 
-LightSampleFD::Type FfmpegMedia::GetVideoSampleType(const AVCodecParameters& c) {
+ColorSampleFD::Type FfmpegMedia::GetVideoSampleType(const AVCodecParameters& c) {
 	#if FFMPEG_VIDEOFRAME_RGBA_CONVERSION
-	return LightSampleFD::RGBA_U8_LE;
+	return ColorSampleFD::RGBA_U8_LE;
 	#else
 	switch (vcodec->format) {
 	case AV_PIX_FMT_RGB24:
-		return LightSampleFD::RGB_U8_LE;
+		return ColorSampleFD::RGB_U8_LE;
 		break;
 	case AV_PIX_FMT_RGBA:
-		return LightSampleFD::RGBA_U8_LE;
+		return ColorSampleFD::RGBA_U8_LE;
 		break;
 	default:
 		return BinarySample::INVALID;

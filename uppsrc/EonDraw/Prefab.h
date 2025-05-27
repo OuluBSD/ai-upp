@@ -1,8 +1,6 @@
 #ifndef _EonDraw_Prefab_h_
 #define _EonDraw_Prefab_h_
 
-namespace Ecs {
-
 
 namespace KnownModelNames {
 
@@ -62,7 +60,5 @@ struct StaticCube : EntityPrefab<Transform, ModelComponent>
     }
 };
 
-
-}
 
 #endif

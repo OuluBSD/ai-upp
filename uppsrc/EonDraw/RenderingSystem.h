@@ -1,15 +1,12 @@
 #ifndef _EonDraw_RenderingSystem_h_
 #define _EonDraw_RenderingSystem_h_
 
-namespace Ecs {
-
-
 
 class VirtualGui;
 
 
 class RenderingSystem :
-	public System<RenderingSystem>
+	public System
 {
 	
 protected:
@@ -45,7 +42,7 @@ protected:
     
     
 public:
-	using Base = System<RenderingSystem>;
+	using Base = System;
     ECS_SYS_CTOR(RenderingSystem)
 	ECS_SYS_DEF_VISIT
 	
@@ -77,8 +74,5 @@ public:
 
 using RenderingSystemPtr = Ptr<RenderingSystem>;
 
-
-
-}
 
 #endif

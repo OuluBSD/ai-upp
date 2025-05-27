@@ -33,7 +33,7 @@ using ISpatialInteractionListenerRef = Ref<ISpatialInteractionListener, Engine>;
 
 // SpatialInteractionSystem
 // Responsible for managing the events from SpatialInteractionManager with additional filtering
-class SpatialInteractionSystem final : public System<SpatialInteractionSystem>
+class SpatialInteractionSystem final : public SpatialInteractionSystem
 {
 public:
     using System::System;

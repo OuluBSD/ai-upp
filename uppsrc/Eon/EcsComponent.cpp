@@ -1,12 +1,7 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
 
-
-
-
-
-
+NAMESPACE_UPP
 
 
 ComponentBase::ComponentBase(VfsValue& n) : VfsValueExt(n) {
@@ -76,21 +71,4 @@ void ComponentMap::ReturnComponent(ComponentStore& s, ComponentBase* c) {
 #endif
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

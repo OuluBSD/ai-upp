@@ -74,7 +74,7 @@ void V4L2_DeviceManager::Refresh() {
 						if (frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
 							VideoSourceFormatResolution& res = capfmt.res.Add();
 							res.fmt.Set(
-								LightSampleFD::U8_LE_ABC,
+								ColorSampleFD::U8_LE_ABC,
 								frmsize.discrete.width, frmsize.discrete.height,
 								fps, 1);
 							//LOG("\t" << res.fmt.ToString());
@@ -82,7 +82,7 @@ void V4L2_DeviceManager::Refresh() {
 						else if (frmsize.type == V4L2_FRMSIZE_TYPE_STEPWISE) {
 							VideoSourceFormatResolution& res = capfmt.res.Add();
 							res.fmt.Set(
-								LightSampleFD::U8_LE_ABC,
+								ColorSampleFD::U8_LE_ABC,
 								frmsize.stepwise.max_width, frmsize.stepwise.max_height,
 								fps, 1);
 							//LOG("\t" << res.fmt.ToString());

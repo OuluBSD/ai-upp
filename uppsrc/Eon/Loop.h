@@ -4,29 +4,26 @@
 
 
 class Loop :
-	public MetaDirectoryBase
+	public VfsValueExt
 {
 	String				prefab;
-	LoopId				id;
+	int64				idx = -1;
 	
 protected:
 	friend class LoopStore;
 	friend class Eon::ScriptLoader;
 	
-	Space*		space = 0;
-	
-	void SetId(LoopId i) {id = i;}
+	void SetIdx(int64 i) {id = i;}
 	
 public:
 	CLASSTYPE(Loop)
 	using LoopPtr = Ptr<Loop>;
-	//using LoopVec = Array<Loop>;
 	static LoopId GetNextId();
 	
 	Loop(VfsValue& n);
 	~Loop();
 	
-	LoopId GetId() const {return id;}
+	int64 GetIdx() const {return idx;}
 	
 	void SetPrefab(String s)		{prefab = s;}
 	

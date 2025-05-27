@@ -1,10 +1,7 @@
 #include "Eon.h"
 
 
-NAMESPACE_UPP namespace Ecs {
-
-
-
+NAMESPACE_UPP
 
 
 void Easing::Visit(Vis& v) {
@@ -54,6 +51,4 @@ void EasingSystem::Detach(Easing* e) {
 }
 
  
-
-} END_UPP_NAMESPACE
-
+END_UPP_NAMESPACE

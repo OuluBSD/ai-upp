@@ -174,7 +174,7 @@ END_UPP_NAMESPACE
 NAMESPACE_UPP
 
 
-class OdeSystem : public OdeSpace, public System<OdeSystem> {
+class OdeSystem : public OdeSpace, public System {
 	
 protected:
 	dWorldID world = NULL;

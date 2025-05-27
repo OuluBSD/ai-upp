@@ -405,7 +405,7 @@ bool FileChannelT<Backend>::OpenVideo(AVFormatContext* file_fmt_ctx, ValueFormat
 	
 	double fps = Backend::GetVideoFPS(vstream);
 	Size frame_sz = Backend::GetFrameSize(vcodec);
-	LightSampleFD::Type sample = Backend::GetVideoSampleType(vcodec);
+	ColorSampleFD::Type sample = Backend::GetVideoSampleType(vcodec);
 	
 	vfmt.SetSize(frame_sz);
 	vfmt.SetFPS(fps);

@@ -2,7 +2,6 @@
 
 #if 1
 
-namespace Ecs {
 
 // ToolSystemBase
 // Base abstract class for all ToolSystems
@@ -26,7 +25,7 @@ public:
 using ToolSystemBasePtr = Ptr<ToolSystemBase>;
 
 class ToolSelectorKey :
-	public Component<ToolSelectorKey> {
+	public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(ToolSelectorKey)
@@ -75,6 +74,5 @@ protected:
 	void Stop() override;
 };
 
-}
 
 #endif

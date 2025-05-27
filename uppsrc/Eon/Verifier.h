@@ -2,6 +2,7 @@
 #define _Eon_Verifier_h_
 
 
+struct ParallelTypeCls;
 class AtomBase;
 class DefaultExchangePoint;
 
@@ -23,7 +24,7 @@ typedef enum {
 
 struct VerifierAtom {
 	VerifierAtom* src = 0;
-	ParallelTypeCls type;
+	TypeCls type;
 	ValueFormat sink_fmt;
 	ValueFormat src_fmt;
 	
@@ -44,7 +45,7 @@ struct VerifierEntity {
 	Array<VerifierAtom> ext;
 	
 	
-	VerifierAtom& AddAtomWith(ParallelTypeCls t);
+	VerifierAtom& AddAtomWith(TypeCls t);
 	template <class T> VerifierAtom& AddAtomWith(ValDevCls vd) {return AddAtomWith(AsParallelTypeCls<T>(vd));}
 	
 };
@@ -62,7 +63,7 @@ struct VerifierLoop {
 
 struct VerifierSystem {
 	TypeCls			type;
-	ParallelTypeCls	ecs_type;
+	//ParallelTypeCls	ecs_type;
 	
 };
 
@@ -159,14 +160,14 @@ public:
 	void Clear();
 	
 	void OnEnterUpdate();
-	void OnEnterSystemUpdate(SystemBase& base);
+	void OnEnterSystemUpdate(System& base);
 	void OnEnterOnceForward(PacketForwarder*);
 	void OnEnterAtomForward(AtomBase* c);
 	void OnEnterFwdScopeForward(FwdScope& c);
 	void OnEnterProcessPackets(AtomBase&, PacketIO& p);
 	void OnEnterCreatedEmptyPacket(Packet& p);
 	void OnEnterValExPtForward(DefaultExchangePoint& p);
-	void OnEnterScriptLoad(SystemBase& base);
+	void OnEnterScriptLoad(System& base);
 	void OnEnterTerminalTest(size_t call_id);
 	void OnEnterSearchNewSegment(size_t call_id);
 	void OnEnterScriptLoopLoaderForwardBeginning(size_t call_id);
@@ -197,8 +198,8 @@ public:
 	
 	VerifierLoop& GetRoot() {return root;}
 	
-	VerifierSystem& AddSystem(TypeCls t, ParallelTypeCls et);
-	template<class T> VerifierSystem& AddSystem() {return AddSystem(AsTypeCls<T>(), AsParallelTypeCls<T>(VD(CENTER,ORDER)));}
+	VerifierSystem& AddSystem(TypeCls t, const ParallelTypeCls& et);
+	//template<class T> VerifierSystem& AddSystem() {return AddSystem(AsTypeCls<T>(), AsParallelTypeCls<T>(VD(CENTER,ORDER)));}
 	
 };
 

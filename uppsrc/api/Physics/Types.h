@@ -28,11 +28,11 @@ NAMESPACE_UPP
 #define FYS_SYS(x) FYS_CLS_LIST(x)
 FYS_FYSSYS_LIST
 #undef FYS_SYS
-namespace Ecs {
+
 #define FYS_SYS(x) FYS_ECS_CLS_LIST(x)
 FYS_FYSSYS_LIST
 #undef FYS_SYS
-}
+
 #undef FYS_CLS
 
 

@@ -129,7 +129,7 @@ struct FfmpegMedia : FfmpegT<FfmpegMedia> {
 	static AVCodecParameters& GetParams(AVStream& s);
 	static double GetVideoFPS(const AVStream& s);
 	static Size GetFrameSize(const AVCodecParameters& c);
-	static LightSampleFD::Type GetVideoSampleType(const AVCodecParameters& c);
+	static ColorSampleFD::Type GetVideoSampleType(const AVCodecParameters& c);
 	static int GetChannels(const AVCodecParameters& c);
 	static int GetSampleRate(const AVCodecParameters& c);
 	static int GetFrequency(const AVCodecParameters& c);

@@ -1,5 +1,5 @@
-#ifndef _Core_VCS_h_
-#define _Core_VCS_h_
+#ifndef _Core2_VCS_h_
+#define _Core2_VCS_h_
 
 struct NodeVisitor;
 

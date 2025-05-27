@@ -1,7 +1,7 @@
 #ifndef _AICore_AICore_h_
 #define _AICore_AICore_h_
 
-#include <Meta/Meta.h>
+#include <Vfs2/Vfs.h>
 #include <Sound/Sound.h>
 #include <plugin/bz2/bz2.h>
 #include <plugin/png/png.h>

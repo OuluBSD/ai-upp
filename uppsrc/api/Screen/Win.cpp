@@ -176,7 +176,7 @@ bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon
 		return false;
     ValueFormat fmt = a.GetSink()->GetValue(src_ch).GetFormat();
     VideoFormat& vfmt = fmt;
-    vfmt.SetType(LightSampleFD::RGB_U8_LE);
+    vfmt.SetType(ColorSampleFD::RGB_U8_LE);
     a.GetSink()->GetValue(src_ch).SetFormat(fmt);
     dev.bits_per_pixel = bmi.bmiHeader.biBitCount;
     

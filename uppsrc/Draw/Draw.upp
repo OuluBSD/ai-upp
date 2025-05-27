@@ -7,7 +7,8 @@ acceptflags
 
 uses
 	Core,
-	plugin/png;
+	plugin/png,
+	Core2;
 
 library(WIN32) "usp10 user32 gdi32";
 
@@ -75,10 +76,6 @@ file
 	Cham.h,
 	Cham.cpp,
 	SColors.cpp,
-	Shader readonly separator,
-	SimpleImage.h,
-	SimpleImage.cpp,
-	GEnums.h,
 	GTK-dli readonly separator,
 	gobj.dli,
 	gdk.dli,

@@ -1,9 +1,10 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
-PhysicsSystem::PhysicsSystem(VfsValue& n) : System<CLASSNAME>(n) {
+PhysicsSystem::PhysicsSystem(VfsValue& n) : System(n) {
 	gravity = vec3{ 0, -9.8f, 0 };
 	
 }
@@ -211,4 +212,5 @@ void PhysicsBody::UnbindDefault() {
 	is_bound = false;
 }
 
-} END_UPP_NAMESPACE
+
+END_UPP_NAMESPACE

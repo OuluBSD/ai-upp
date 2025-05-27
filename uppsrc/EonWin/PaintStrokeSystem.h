@@ -6,7 +6,7 @@ NAMESPACE_UPP
 using namespace Upp;
 
 	
-struct PaintStrokeComponent : Component<PaintStrokeComponent>
+struct PaintStrokeComponent : Component
 {
     struct Square
     {
@@ -26,7 +26,7 @@ struct PaintStrokeComponent : Component<PaintStrokeComponent>
 
 // PaintStrokeSystem
 // This System manages the PaintStrokeComponents and automatically generates the 3D mesh for each stroke
-class PaintStrokeSystem : public System<PaintStrokeSystem>
+class PaintStrokeSystem : public System
 {
 public:
     PaintStrokeSystem(Engine& core, std::shared_ptr<Pbr::Resources> pbrResources);

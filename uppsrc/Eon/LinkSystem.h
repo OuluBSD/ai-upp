@@ -3,7 +3,7 @@
 
 
 class LinkSystem :
-	public System<LinkSystem>
+	public System
 {
 	struct Once {
 		PacketForwarder*		fwd;

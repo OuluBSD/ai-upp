@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-Loop::Loop(VfsValue& n) : MetaDirectoryBase(n) {
+Loop::Loop(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 

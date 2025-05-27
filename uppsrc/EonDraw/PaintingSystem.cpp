@@ -1,7 +1,7 @@
 #include "EonDraw.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 bool PaintingInteractionSystemBase::Initialize() {
@@ -569,5 +569,5 @@ bool PaintComponent::LoadModel(ModelComponent& mdl) {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE
 

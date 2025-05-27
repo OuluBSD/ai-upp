@@ -2,10 +2,7 @@
 #define _Eon_EcsCommonComponents_h_
 
 
-namespace Ecs {
-
-
-class RigidBody : public Component<RigidBody> {
+class RigidBody : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(RigidBody)
@@ -40,7 +37,7 @@ using RigidBodyPtr = Ptr<RigidBody>;
 
 
 class TextRenderable :
-	public Component<TextRenderable>
+	public Component
 {
 	
 public:
@@ -58,8 +55,5 @@ public:
 };
 
 
-
-
-}
 
 #endif

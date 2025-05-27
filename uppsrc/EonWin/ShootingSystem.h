@@ -5,7 +5,7 @@
 NAMESPACE_UPP
 
 
-struct ShootingComponent : Component<ShootingComponent>
+struct ShootingComponent : Component
 {
     void SetEnabled(bool enable) override;
     void Destroy() override;

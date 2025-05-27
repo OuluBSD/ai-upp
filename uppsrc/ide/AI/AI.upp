@@ -3,7 +3,7 @@ description "\377B";
 uses
 	ide/Designers,
 	AICtrl,
-	ide/Meta;
+	ide/Vfs;
 
 file
 	AI.h,

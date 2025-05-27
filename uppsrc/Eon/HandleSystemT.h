@@ -4,7 +4,7 @@
 
 template <class Dim>
 class HandleSystemT :
-	public System<HandleSystemT<Dim>> {
+	public System {
 	
 public:
 	using Base = HandleSystemT<Dim>;

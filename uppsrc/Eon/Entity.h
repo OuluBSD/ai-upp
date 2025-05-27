@@ -1,15 +1,12 @@
 #ifndef _Eon_Entity_h_
 #define _Eon_Entity_h_
 
-
-namespace Ecs {
+#if 0
 
 class Pool;
 
 class Entity :
 	public VfsValueExt,
-	public Destroyable,
-	public Enableable
 {
 	EntityId id = -1;
 	int64 created = 0;
@@ -42,14 +39,10 @@ public:
 	
 	void Visit(Vis& v) override;
 	
-	void SetPrefab(String s) {prefab = s;}
-	String GetPrefab() const {return prefab;}
-	String GetName() const override {return name;}
 	EntityId GetId() const {return id;}
 	int64 GetCreatedTick() const {return created;}
 	int64 GetChangedTick() const {return changed;}
 	
-	String ToString() const override {return IntStr64(id) + " " + prefab + (name.GetCount() ? ": " + name : String());}
 	String GetTreeString(int indent=0);
 	void SetName(String s) {name = s;}
 	void OnChange();
@@ -228,7 +221,7 @@ public:
 };
 
 
-}
 
+#endif
 
 #endif

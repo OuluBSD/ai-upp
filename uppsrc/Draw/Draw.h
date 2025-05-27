@@ -3,7 +3,7 @@
 
 #define SYSTEMDRAW 1
 
-#include <Core/Core.h>
+#include <Core2/Core.h>
 
 #ifdef flagCFONTS // Activates custom font system in Draw (font routines in another package)
 #define CUSTOM_FONTSYS
@@ -983,8 +983,6 @@ IsJPGFnType GetIsJPGFn();
 #include "Cham.h"
 #include "DDARasterizer.h"
 #include "SDraw.h"
-#include "SimpleImage.h"
-#include "GEnums.h"
 
 enum {
 	CMAP_GLYPHS = 1,

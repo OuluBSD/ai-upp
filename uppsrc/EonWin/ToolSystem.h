@@ -26,7 +26,7 @@ public:
     virtual void Deactivate(Entity& entity) = 0;
 };
 
-struct ToolSelectorKey : Component<ToolSelectorKey>
+struct ToolSelectorKey : Component
 {
 	COPY_PANIC(ToolSelectorKey)
 	

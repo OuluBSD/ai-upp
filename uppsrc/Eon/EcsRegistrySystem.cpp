@@ -1,7 +1,7 @@
 #include "Eon.h"
 
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 bool RegistrySystem::Initialize() {
@@ -25,5 +25,4 @@ void RegistrySystem::Uninitialize() {
 }
 
 
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

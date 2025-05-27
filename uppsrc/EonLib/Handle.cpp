@@ -142,7 +142,7 @@ bool HandleVideoBase::PostInitialize() {
 		int src_ch = link->SideSinks().GetCount() == 1 ? link->SideSources().First().local_ch_i : src_count-1;
 		ValueBase& val = src->GetSourceValue(src_ch);
 		ValueFormat fmt = val.GetFormat();
-		fmt.vid.SetType(LightSampleFD::RGB_U8_LE);
+		fmt.vid.SetType(ColorSampleFD::RGB_U8_LE);
 		if (!link->NegotiateSourceFormat(src_ch, fmt))
 			return false;
 	}

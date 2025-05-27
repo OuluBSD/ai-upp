@@ -30,7 +30,7 @@ NAMESPACE_UPP
 #include "Enum.h"
 #include "Common.h"
 #include "ExtList.h"
-#include "Node.h"
+#include "VfsValue.h"
 #include "Entity.h"
 #include "CodeVisitor.h"
 #include "SolverBase.h"

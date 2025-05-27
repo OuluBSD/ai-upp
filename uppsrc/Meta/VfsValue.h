@@ -1,5 +1,5 @@
-#ifndef _Meta_Node_h_
-#define _Meta_Node_h_
+#ifndef _Meta_VfsValue_h_
+#define _Meta_VfsValue_h_
 
 struct VfsValue;
 struct VfsValueExtCtrl;

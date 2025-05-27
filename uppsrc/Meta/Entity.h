@@ -24,7 +24,9 @@ INITIALIZE(type)
 #define COMPONENT_STUB_IMPL(type) \
 	INITIALIZER_COMPONENT(type);
 
-struct Entity : VfsValueExt {
+struct Entity :
+	VfsValueExt
+{
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
 	void Visit(Vis& v) override;

@@ -2,7 +2,7 @@
 #define _Eon_PacketTracker_h_
 
 
-class PacketTracker : public System<PacketTracker>
+class PacketTracker : public System
 {
 	PacketId id_counter = 1;
 	

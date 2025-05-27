@@ -1,8 +1,6 @@
 #ifndef _Eon_InteractionSystem_h_
 #define _Eon_InteractionSystem_h_
 
-namespace Ecs {
-
 
 //TODO common base with these and IHolograph classes
 // - SpatialSourceEventArgs
@@ -169,7 +167,7 @@ struct InteractionListener
 
 
 class InteractionSystem :
-	public Ecs::System<InteractionSystem>
+	public System
 {
 public:
 	ECS_SYS_CTOR(InteractionSystem)
@@ -218,7 +216,5 @@ private:
     
 };
 
-
-}
 
 #endif

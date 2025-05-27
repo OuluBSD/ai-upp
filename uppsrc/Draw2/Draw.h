@@ -15,6 +15,7 @@ NAMESPACE_UPP
 #include "Binder.h"
 #include "Draw2D.h"
 #include "DrawCommand.h"
+#include "SimpleImage.h"
 
 END_UPP_NAMESPACE
 

@@ -1,8 +1,6 @@
 #ifndef _EonDraw_ShootingSystem_h_
 #define _EonDraw_ShootingSystem_h_
 
-namespace Ecs {
-
 
 class ShootingComponent :
 	public CustomToolComponent {
@@ -63,7 +61,5 @@ protected:
 	
 };
 
-
-}
 
 #endif

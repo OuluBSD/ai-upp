@@ -1,6 +1,7 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 void PlayerHandComponent::Visit(Vis& v) {
@@ -363,6 +364,4 @@ void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 }
 
 
-
-
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

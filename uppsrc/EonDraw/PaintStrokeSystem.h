@@ -2,11 +2,9 @@
 
 #if 1
 
-namespace Ecs {
-
 
 class PaintStrokeComponent :
-	public Component<PaintStrokeComponent> {
+	public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(PaintStrokeComponent)
@@ -23,7 +21,7 @@ public:
 
 
 class PaintStrokeSystemBase :
-	public System<PaintStrokeSystemBase>
+	public System
 {
 public:
 	ECS_SYS_CTOR(PaintStrokeSystemBase);
@@ -43,7 +41,5 @@ private:
 	
 };
 
-
-}
 
 #endif

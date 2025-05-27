@@ -13,10 +13,10 @@ struct PbrRenderable;
 // it allows for lazy-assignment of Model files to PbrRenderable components
 // This allows you to set the ModelName on a PbrRenderable component, and the 
 // PbrModelCache will automatically assign the Model field of the PbrRenderable once the model has been loaded
-class PbrModelCache : public System<PbrModelCache>
+class PbrModelCache : public System
 {
 public:
-	using Base = System<PbrModelCache>;
+	using Base = System;
 	//RTTI_DECL1(PbrModelCache, Base);
 	
     PbrModelCache(Engine& core, std::shared_ptr<Pbr::Resources> pbrResources);

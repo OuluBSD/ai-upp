@@ -5,7 +5,7 @@
 NAMESPACE_UPP
 
 
-struct ThrowingComponent : Component<ThrowingComponent>
+struct ThrowingComponent : Component
 {
     void SetEnabled(bool enable) override;
     void Destroy() override;

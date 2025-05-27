@@ -1,16 +1,14 @@
 #ifndef _EonLib_TPrefab_h_
 #define _EonLib_TPrefab_h_
 
-namespace Ecs {
 
 template <class Fys>
 struct StaticGroundPlane :
-	public Component<StaticGroundPlane<Fys>>,
+	public Component,
 	public Fys::Object
 {
 	using Object = typename Fys::Object;
-	using ComponentT = Component<StaticGroundPlane<Fys>>;
-	//RTTI_DECL2(StaticGroundPlane, Object, Component<StaticGroundPlane>)
+	//RTTI_DECL2(StaticGroundPlane, Object, Component)
 	
 	typedef StaticGroundPlane CLASSNAME;
 	
@@ -79,6 +77,5 @@ struct StaticBox : public Fys::Object {
 	String ToString() override {return "StaticBox";}
 };
 
-}
 
 #endif

@@ -1,17 +1,16 @@
 #ifndef _Eon_Atom_h_
 #define _Eon_Atom_h_
 
-class WorldState;
-class Plan;
-class LinkBase;
-class Space;
 
 template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}
 //template <class T> inline RefT_Atom<T> AtomBase_Static_As(AtomBase*) {return RefT_Atom<T>();}
 
+#if 0
+
 #define ATOM_CTOR_(x, base) \
 	CLASSTYPE(x) \
 	x(VfsValue& n) : base(n) {}
+
 
 class AtomBase :
 	public VfsValueExt,
@@ -145,7 +144,7 @@ public:
 	
 };
 
-
+#endif
 
 
 

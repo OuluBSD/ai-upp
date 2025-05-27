@@ -1,5 +1,5 @@
-#ifndef _Core_Math_h_
-#define _Core_Math_h_
+#ifndef _Core2_Math_h_
+#define _Core2_Math_h_
 
 
 #ifndef M_PI

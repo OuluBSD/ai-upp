@@ -11,7 +11,7 @@ struct Model;
 
 #if 0
 // These are a few commonly used components
-struct Transform : Component<Transform>
+struct Transform : Component
 {
 	COPY_PANIC(Transform)
 	
@@ -32,7 +32,7 @@ struct Transform : Component<Transform>
     }
 };
 
-struct RigidBody : Component<RigidBody>
+struct RigidBody : Component
 {
 	COPY_PANIC(RigidBody)
 	
@@ -45,7 +45,7 @@ struct RigidBody : Component<RigidBody>
 };
 #endif
 
-struct PbrRenderable : Component<PbrRenderable>
+struct PbrRenderable : Component
 {
 	COPY_PANIC(PbrRenderable)
 	
@@ -66,7 +66,7 @@ struct PbrRenderable : Component<PbrRenderable>
 typedef Ptr<PbrRenderable> PbrRenderablePtr;
 
 
-/*struct TextRenderable : Component<TextRenderable>
+/*struct TextRenderable : Component
 {
 	COPY_PANIC(TextRenderable)
 	

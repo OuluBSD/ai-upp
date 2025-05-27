@@ -2,15 +2,12 @@
 #define _EonDraw_ToolboxSystem_h_
 
 
-namespace Ecs {
-
-
 class ToolSystemBase;
 class PlayerHandComponent;
 
 
 class CustomToolComponent :
-	public Component<CustomToolComponent> {
+	public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(CustomToolComponent)
@@ -24,7 +21,7 @@ using CustomToolComponentPtr = Ptr<CustomToolComponent>;
 
 
 
-class ToolComponent : public Component<ToolComponent> {
+class ToolComponent : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(ToolComponent)
@@ -53,7 +50,7 @@ using ToolComponentPtr = Ptr<ToolComponent>;
 
 
 class ToolboxSystemBase :
-	public System<ToolboxSystemBase>,
+	public System,
 	public InteractionListener
 {
 	
@@ -114,6 +111,5 @@ inline void ToolSystemBaseT<T,ToolComponent>::Stop() {
 	m.Get<ToolboxSystemBase>()->RemoveToolSystem(this);
 }
 
-}
 
 #endif

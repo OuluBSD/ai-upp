@@ -243,7 +243,7 @@ public:
 
 
 class ScriptLoader :
-	public System<ScriptLoader>,
+	public System,
 	public ErrorSource
 {
 protected:
@@ -323,7 +323,7 @@ protected:
 public:
 	
 	
-	Callback1<SystemBase&>	WhenEnterScriptLoad;
+	Callback1<System&>	WhenEnterScriptLoad;
 	Callback				WhenLeaveScriptLoad;
 	
 	Eon::Id	GetDeepId() const {return Eon::Id();}

@@ -1,8 +1,6 @@
 #ifndef _Eon_Player_h_
 #define _Eon_Player_h_
 
-namespace Ecs {
-
 
 class PlayerBodyComponent;
 using PlayerBodyComponentPtr = Ptr<PlayerBodyComponent>;
@@ -53,7 +51,7 @@ struct HandActionSourceLocation : HandSourceLocation {
 };
 
 
-class PlayerHandComponent : public Component<PlayerHandComponent> {
+class PlayerHandComponent : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(PlayerHandComponent)
@@ -79,7 +77,7 @@ using PlayerHandComponentPtr = Ptr<PlayerHandComponent>;
 
 
 
-class PlayerHeadComponent : public Component<PlayerHeadComponent> {
+class PlayerHeadComponent : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(PlayerHeadComponent)
@@ -97,7 +95,7 @@ using PlayerHeadComponentPtr = Ptr<PlayerHeadComponent>;
 
 
 
-class PlayerBodyComponent : public Component<PlayerBodyComponent> {
+class PlayerBodyComponent : public Component {
 	
 protected:
 	friend class PlayerBodySystem;
@@ -128,7 +126,7 @@ public:
 
 
 class PlayerBodySystem :
-    public Ecs::System<PlayerBodySystem>,
+    public System,
     public InteractionListener
 {
 	
@@ -163,8 +161,5 @@ private:
     
 };
 
-
-
-}
 
 #endif

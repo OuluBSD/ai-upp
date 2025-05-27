@@ -1,19 +1,18 @@
 #ifndef _Eon_Machine_h_
 #define _Eon_Machine_h_
 
-namespace Ecs {
-class Engine;
-}
+#if 0
 
+class Engine;
 class MachineVerifier;
 class Space;
 class Loop;
 
 
-class SystemBase : public MetaSystemBase {
+class System : public MetaSystemBase {
 public:
-    SystemBase(VfsValue&);
-    virtual ~SystemBase();
+    System(VfsValue&);
+    virtual ~System();
 
     virtual TypeCls GetTypeCls() const = 0;
 	virtual void Visit(Vis& vis) {}
@@ -32,31 +31,20 @@ protected:
 };
 
 template<typename T>
-using IsSystem = std::is_base_of<SystemBase, T>;
+using IsSystem = std::is_base_of<System, T>;
 
-
-template<typename T>
-class System : public SystemBase
-{
-	using SystemT = System<T>;
-public:
-	System(VfsValue& n) : SystemBase(n) {}
-	TypeCls GetTypeCls() const override {return AsTypeCls<T>();}
-    void Visit(Vis& vis) override {vis.VisitT<SystemBase>("SystemBase",*this);}
-    
-};
 
 
 #define SYS_CTOR(x) \
 	CLASSTYPE(x) \
-	x(VfsValue& m) : System<x>(m) {}
+	x(VfsValue& m) : System(m) {}
 #define SYS_CTOR_(x) \
 	CLASSTYPE(x) \
-	x(VfsValue& m) : System<x>(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System<CLASSNAME>>("Base",*this);}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System<CLASSNAME>>("Base",*this);}
+	x(VfsValue& m) : System(m)
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System>("System",*this);}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System>("System",*this);}
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System<CLASSNAME>>("Base",*this);}
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System>("System",*this);}
 
 class Machine :
 	public MetaMachineBase
@@ -161,7 +149,7 @@ public:
 	using ObjMap = VectorMap<String,Value>;
 	
 	Event<> WhenEnterUpdate;
-	Event<SystemBase&> WhenEnterSystemUpdate;
+	Event<System&> WhenEnterSystemUpdate;
 	
 	Event<> WhenLeaveUpdate;
 	Event<> WhenLeaveSystemUpdate;
@@ -219,6 +207,7 @@ public:
 	bool Start() {return Open(0);}
 	void Stop() {Close();}
 };
+#endif
 #endif
 
 #endif

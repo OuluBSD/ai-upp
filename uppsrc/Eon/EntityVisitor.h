@@ -2,8 +2,6 @@
 #define _Eon_EntityVisitor_h_
 
 
-namespace Ecs {
-
 #if 0
 class EntityVisitor : public Pte<EntityVisitor>
 {
@@ -143,7 +141,6 @@ public:
 
 #endif
 
-}
 
 
 #endif

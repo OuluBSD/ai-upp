@@ -1,11 +1,9 @@
 #ifndef _Eon_EasingSystem_h_
 #define _Eon_EasingSystem_h_
 
-namespace Ecs {
-
 	
 class Easing :
-	public Component<Easing>
+	public Component
 {
 	
 public:
@@ -32,7 +30,7 @@ using EasingPtr = Ptr<Easing>;
 
 
 
-class EasingSystem : public Ecs::System<EasingSystem>
+class EasingSystem : public System
 {
 	Vector<Easing*> comps;
 public:
@@ -46,7 +44,5 @@ protected:
     void Update(double) override;
 };
 
-
-}
 
 #endif

@@ -7,7 +7,7 @@
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
 #include <Core2/Core.h>
-#include <Backend/Backend.h>
+#include <Vfs/Vfs.h>
 
 #include <plugin/enet/EnetService.h>
 
@@ -17,29 +17,17 @@
 
 NAMESPACE_UPP
 
-#include "Defs.h"
 #include "Fn.h"
 #include "Container.h"
 #include "Network.h"
-#include "Debugging.h"
-#include "SampleBase.h"
-#include "Samples.h"
 #include "Generated.h"
 #include "Types.h"
-#include "Formats.h"
-#include "Exchange.h"
-#include "PacketBuffer.h"
 #include "Util.h"
 #include "Machine.h"
 #include "Verifier.h"
-#include "DefaultFormat.h"
-#include "Realtime.h"
-#include "ValDevScope.h"
-#include "Interface.h"
 #include "AtomStore.h"
 #include "Atom.h"
 #include "Space.h"
-#include "SpaceStore.h"
 #include "FwdTypes.h"
 #include "Factory.h"
 #include "AtomSystem.h"
@@ -74,7 +62,7 @@ NAMESPACE_UPP
 #include "CommonComponents.h"
 
 #include "EcsCommonComponents.h"
-#include "EcsEngine.h"
+//#include "EcsEngine.h"
 #include "WorldLogic.h"
 #include "EcsRegistrySystem.h"
 #include "EasingSystem.h"

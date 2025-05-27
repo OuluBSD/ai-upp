@@ -7,18 +7,6 @@
 	PARALLEL_BASE(DUMMY_PARALLEL_BASE) \
 
 
-#define IFACE_LIST \
-	IFACE(AUDIO) \
-	IFACE(VIDEO) \
-	IFACE(VOLUME) \
-	IFACE(MIDI) \
-	IFACE(EVENT) \
-	IFACE(DATA) \
-	IFACE(ORDER) \
-	IFACE(RECEIPT) \
-	IFACE(FBO) \
-	IFACE(PROG) \
-
 
 #define DEV_IFACE(val) \
 	IFACE_CTX_CLS(CENTER, val, ) \
@@ -42,9 +30,6 @@
 
 
 
-typedef dword PacketId;
-typedef dword SpaceId;
-typedef dword AtomId;
 
 
 struct Atom;
@@ -59,7 +44,7 @@ typedef enum {
 	SIDE_ACCEPTED,
 } SideStatus;
 
-
+#if 0
 struct ValCls : Moveable<ValCls> {
 	typedef enum : byte {
 		INVALID,
@@ -164,9 +149,7 @@ struct ValDevCls : Moveable<ValDevCls> {
 struct AtomCls : Moveable<AtomCls> {
 	ValDevCls sink, side, src;
 	
-	
 	bool IsValid() const {return sink.IsValid() && src.IsValid() && side.IsValid();}
-	
 };
 
 
@@ -259,6 +242,7 @@ DevCls GetCenterDevCls();
 
 
 
+
 #undef INVALID_ATOM
 
 typedef enum : byte {
@@ -279,23 +263,6 @@ typedef enum : byte {
 	SUBATOM_COUNT
 } SubAtomCls;
 
-
-#define ATOM_ROLE_LIST \
-	ATOM_ROLE(DRIVER) \
-	ATOM_ROLE(CUSTOMER) \
-	ATOM_ROLE(PIPE) \
-	ATOM_ROLE(DRIVER_PIPE) \
-
-
-typedef enum : int8 {
-	INVALID_ATOMROLE=-1,
-	
-	#define ATOM_ROLE(x) x,
-	ATOM_ROLE_LIST
-	#undef ATOM_ROLE
-	
-	ATOMROLE_COUNT
-} AtomRole;
 
 
 
@@ -381,35 +348,6 @@ struct AtomTypeCls : Moveable<AtomTypeCls> {
 
 
 
-struct IfaceConnLink : Moveable<IfaceConnLink> {
-	int conn = -1;
-	int local = -1;
-	int other = -1;
-	
-	void Set(int conn, int local, int other) {this->conn = conn; this->local = local; this->other = other;}
-	String ToString() const {String s; s << "conn:" << conn << ", local:" << local << ", other:" << other; return s;}
-};
-
-struct IfaceConnTuple {
-	Vector<IfaceConnLink>		sink;
-	Vector<IfaceConnLink>		src;
-	AtomTypeCls					type;
-	
-	void Realize(const AtomTypeCls& type);
-	void SetSource(int conn, int src_ch, int sink_ch);
-	void SetSink(int conn, int sink_ch, int src_ch);
-	bool IsComplete() const;
-	dword GetSinkMask() const;
-	void operator=(const IfaceConnTuple& s) {
-		sink <<= s.sink;
-		src <<= s.src;
-		type = s.type;
-	}
-	
-	bool HasCommonConnection(const IfaceConnTuple& src) const;
-	
-};
-
 
 
 struct ParallelTypeCls : Moveable<ParallelTypeCls> {
@@ -483,5 +421,6 @@ struct RendererContent {
 
 typedef int LoopId;
 
+#endif
 
 #endif

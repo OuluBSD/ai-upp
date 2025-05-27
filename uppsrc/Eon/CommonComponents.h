@@ -1,13 +1,11 @@
 #ifndef _Eon_CommonComponents_h_
 #define _Eon_CommonComponents_h_
 
-namespace Ecs {
-
 
 extern const vec3 EarthGravity;
 
 
-class Transform : public Component<Transform> {
+class Transform : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(Transform)
@@ -35,7 +33,7 @@ typedef Ptr<Ecs::Transform> TransformPtr;
 
 void CopyTransformPos(EntityPtr from, EntityPtr to);
 
-class Transform2D : public Component<Transform2D> {
+class Transform2D : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(Transform2D)
@@ -48,7 +46,5 @@ public:
 	
 };
 
-
-}
 
 #endif

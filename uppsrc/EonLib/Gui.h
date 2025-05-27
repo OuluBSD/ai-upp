@@ -4,7 +4,7 @@
 
 #ifdef flagGUI
 struct DefaultGuiAppComponent :
-	public Component<DefaultGuiAppComponent>,
+	public Component,
 	public BinderIfaceVideo,
 	public BinderIfaceEvents
 {

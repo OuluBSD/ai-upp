@@ -1,6 +1,6 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 void WorldLogicSystem::Attach(Transform* t) {
 	list.Add(t);
@@ -44,4 +44,4 @@ void WorldLogicSystem::UpdateTransform(Transform& t, double dt) {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

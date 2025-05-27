@@ -1,10 +1,8 @@
 #ifndef _EonDraw_Model_h_
 #define _EonDraw_Model_h_
 
-namespace Ecs {
 
-
-class Renderable : public Component<Renderable> {
+class Renderable : public Component {
 	
 public:
 	ECS_COMPONENT_CTOR(Renderable);
@@ -43,7 +41,7 @@ typedef Vector<RendModel> VectorRendModel;
 
 
 class ModelComponent :
-	public Component<ModelComponent>
+	public Component
 {
 	
 public:
@@ -108,8 +106,5 @@ protected:
 
 using ModelComponentPtr = Ptr<ModelComponent>;
 
-
-
-}
 
 #endif

@@ -2,7 +2,7 @@ uses
 	Local,
 	High,
 	High,
-	Backend;
+	Vfs;
 
 file
 	EonTests.h,

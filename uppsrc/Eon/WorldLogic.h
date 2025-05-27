@@ -1,9 +1,8 @@
 #ifndef _Eon_WorldLogic_h_
 #define _Eon_WorldLogic_h_
 
-namespace Ecs {
 	
-class WorldLogicSystem : public Ecs::System<WorldLogicSystem>
+class WorldLogicSystem : public System
 {
 	
 	
@@ -24,6 +23,5 @@ protected:
 	
 };
 
-}
 
 #endif

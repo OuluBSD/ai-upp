@@ -3,9 +3,8 @@
 
 #if 0
 
-namespace Ecs {
-	class Geom2DComponent;
-}
+class Geom2DComponent;
+
 
 class Absolute2D :
 	public Absolute2DInterface

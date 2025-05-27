@@ -1,10 +1,7 @@
 #include "EonDraw.h"
 
 
-NAMESPACE_UPP namespace Ecs {
-
-
-
+NAMESPACE_UPP
 
 
 void PaintStrokeComponent::Visit(Vis& v) {
@@ -269,5 +266,5 @@ Pbr::PrimitiveBuilder PaintStrokeComponent::GetPrimitiveData() {
 
 #endif
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE
 

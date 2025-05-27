@@ -32,7 +32,7 @@ protected:
 
 
 // CRTP implementation helper 
-// Usage: class MySystem : System<MySystem> { /* functions + data members */ };
+// Usage: class MySystem : System { /* functions + data members */ };
 template<typename T>
 class System : public SystemBase, public std::enable_shared_from_this<T>
 {

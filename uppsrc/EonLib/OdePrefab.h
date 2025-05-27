@@ -5,8 +5,8 @@
 #ifdef flagODE
 
 
-struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane> {
-	//RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
+struct StaticGroundPlane : public OdeObject, public Component {
+	//RTTI_DECL2(StaticGroundPlane, OdeObject, Component)
 	
 	typedef StaticGroundPlane CLASSNAME;
 	

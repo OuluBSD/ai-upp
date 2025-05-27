@@ -1,5 +1,5 @@
-#ifndef _Core_Mount_h_
-#define _Core_Mount_h_
+#ifndef _Core2_Mount_h_
+#define _Core2_Mount_h_
 
 struct MountManager {
 	struct MountPoint {

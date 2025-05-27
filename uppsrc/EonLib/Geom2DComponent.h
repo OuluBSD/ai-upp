@@ -43,7 +43,7 @@ struct Geom2DComponentLink;
 class Geom2DComponent :
 	public GeomInteraction2D,
 	/*public Absolute2D,*/
-	public Component<Geom2DComponent>
+	public Component
 {
 	RTTI_COMP1(Geom2DComponent, GeomInteraction2D)
 	
@@ -180,7 +180,7 @@ public:
 using Geom2DComponentRef = Ptr<Geom2DComponent>;
 
 
-struct Geom2DComponentLink : public Component<Geom2DComponentLink> {
+struct Geom2DComponentLink : public Component {
 	RTTI_COMP1(Geom2DComponentLink, ComponentT)
 	//ATOMTYPE(Geom2DComponentLink)
 	COMP_DEF_VISIT

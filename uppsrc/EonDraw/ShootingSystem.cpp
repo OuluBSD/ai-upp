@@ -1,6 +1,7 @@
 #include "EonDraw.h"
 
-NAMESPACE_UPP namespace Ecs {
+
+NAMESPACE_UPP
 
 
 bool ShootingInteractionSystemBase::Initialize() {
@@ -195,4 +196,4 @@ bool ShootingComponent::LoadModel(ModelComponent& mdl) {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

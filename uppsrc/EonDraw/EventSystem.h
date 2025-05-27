@@ -2,12 +2,8 @@
 #define _EonDraw_EventSystem_h_
 
 
-namespace Ecs {
-
-
-
 class EventSystem :
-	public System<EventSystem>,
+	public System,
 	public BinderIfaceEvents
 {
 	//Serial::EcsEventsBase* serial = 0;
@@ -21,7 +17,7 @@ protected:
     void Dispatch(const GeomEvent& state) override {TODO}
     
 public:
-	using Base = System<EventSystem>;
+	using Base = System;
     ECS_SYS_CTOR(EventSystem)
 	ECS_SYS_DEF_VISIT
 	
@@ -31,7 +27,5 @@ public:
 
 using EventSystemPtr = Ptr<EventSystem>;
 
-
-}
 
 #endif

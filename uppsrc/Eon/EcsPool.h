@@ -1,9 +1,7 @@
 #ifndef _Eon_Pool_h_
 #define _Eon_Pool_h_
 
-
-namespace Ecs {
-
+#if 0
 
 class Pool : public VfsValueExt
 {
@@ -191,7 +189,6 @@ T* Entity::FindNearestEntityWith() {
 	return c;
 }
 
-#if 0
 template <>
 inline void ComponentBase::EtherizeRef(Stream& e, EntityPtr& ref) {
 	thread_local static Vector<String> path;
@@ -252,6 +249,5 @@ void ComponentBase::EtherizeRefContainer(Stream& e, T& cont) {
 }
 #endif
 
-}
 
 #endif

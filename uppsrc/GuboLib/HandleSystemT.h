@@ -7,10 +7,9 @@ NAMESPACE_GUBO_BEGIN
 
 template <class Dim>
 class HandleSystemT :
-	public Parallel::System<HandleSystemT<Dim>> {
+	public System {
 	
 public:
-	template <class T> using System = Parallel::System<T>;
 	using Base = HandleSystemT<Dim>;
 	using Scope = ScopeT<Dim>;
 	using Handle = HandleT<Dim>;

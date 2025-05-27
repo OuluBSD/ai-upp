@@ -1,7 +1,7 @@
 description "\377B0,0,128";
 
 uses
-	Meta,
+	Vfs2,
 	CtrlLib,
 	CodeEditor;
 

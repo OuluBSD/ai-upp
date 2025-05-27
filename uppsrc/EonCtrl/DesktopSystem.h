@@ -1,10 +1,8 @@
 #ifndef _EonCtrl_DesktopSystem_h_
 #define _EonCtrl_DesktopSystem_h_
 
-namespace Ecs {
 
-
-class DesktopSuiteSystem : public System<DesktopSuiteSystem> {
+class DesktopSuiteSystem : public System {
 	Array<TopWindow> apps;
 	
 	
@@ -25,7 +23,5 @@ public:
 	
 };
 
-
-}
 
 #endif

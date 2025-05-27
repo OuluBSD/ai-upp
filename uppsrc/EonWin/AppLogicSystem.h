@@ -8,7 +8,7 @@ namespace DemoRoom
 ////////////////////////////////////////////////////////////////////////////////
 // AppLogicSystem
 // Simple system to destroy objects that get too far away from the user
-class AppLogicSystem : public System<AppLogicSystem>
+class AppLogicSystem : public System
 {
 public:
     using System::System;

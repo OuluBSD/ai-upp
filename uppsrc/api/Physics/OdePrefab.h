@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 
 
-struct StaticGroundPlane : public OdeObject, public Component<StaticGroundPlane> {
+struct StaticGroundPlane : public OdeObject, public Component {
 	//RTTI_DECL2(StaticGroundPlane, OdeObject, Component<StaticGroundPlane>)
 	
 	typedef StaticGroundPlane CLASSNAME;

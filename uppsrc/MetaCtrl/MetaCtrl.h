@@ -1,7 +1,7 @@
 #ifndef _MetaCtrl_MetaCtrl_h_
 #define _MetaCtrl_MetaCtrl_h_
 
-#include <Meta/Meta.h>
+#include <Vfs2/Vfs.h>
 #include <CtrlLib/CtrlLib.h>
 #include <Sound/Sound.h>
 #include <SoundCtrl/SoundCtrl.h>

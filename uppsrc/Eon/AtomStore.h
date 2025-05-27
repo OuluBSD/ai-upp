@@ -34,7 +34,7 @@ protected:
 
 
 class AtomStore :
-	public System<AtomStore>,
+	public System,
 	public AtomFactory<AtomBase*, std::function<AtomBase*()>, std::function<void(AtomBase*)>>
 {
 	

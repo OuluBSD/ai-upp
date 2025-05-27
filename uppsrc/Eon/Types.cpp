@@ -1,5 +1,6 @@
 #include "Eon.h"
 
+#if 0
 NAMESPACE_UPP
 
 DevCls GetCenterDevCls() {
@@ -319,3 +320,4 @@ dword IfaceConnTuple::GetSinkMask() const {
 
 
 END_UPP_NAMESPACE
+#endif

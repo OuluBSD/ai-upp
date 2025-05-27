@@ -1,6 +1,6 @@
 #include "EonDraw.h"
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 namespace KnownModelNames {
 
@@ -43,4 +43,4 @@ String GetPath(String name) {
 
 }
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

@@ -4,7 +4,7 @@
 
 namespace Neso {
 
-struct Easing : Component<Easing>
+struct Easing : Component
 {
     winrt::Windows::Foundation::Numerics::float3 TargetPosition{ 0,0,0 };
     winrt::Windows::Foundation::Numerics::quaternion TargetOrientation = winrt::Windows::Foundation::Numerics::quaternion::identity();
@@ -16,7 +16,7 @@ struct Easing : Component<Easing>
 // EasingSystem
 // Manages the Easing component, which allows objects with a Transform component to be
 // interpolated to new position/orientations.
-class EasingSystem : public System<EasingSystem>
+class EasingSystem : public System
 {
 public:
     using System::System;

@@ -1,6 +1,6 @@
 #include "Eon.h"
 
-NAMESPACE_UPP namespace Ecs {
+NAMESPACE_UPP
 
 
 void VrControllerSource::GetVelocity(float* v3) const {
@@ -386,4 +386,4 @@ VfsValue& VrSpatialInteractionManager::GetVfsValue() {
 }
 
 
-} END_UPP_NAMESPACE
+END_UPP_NAMESPACE

@@ -8,9 +8,9 @@ NAMESPACE_UPP
 static constexpr float PaintTipThickness = 0.008f;
 
 
-struct PaintComponent : Component<PaintComponent>
+struct PaintComponent : Component
 {
-	//RTTI_DECL1(PaintComponent, Component<PaintComponent>)
+	//RTTI_DECL1(PaintComponent, Component)
 	COPY_PANIC(PaintComponent)
 	
     enum class State

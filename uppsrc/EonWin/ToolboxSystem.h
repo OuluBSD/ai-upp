@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 class ToolSystemBase;
 
-struct ToolComponent : Component<ToolComponent>
+struct ToolComponent : Component
 {
     std::wstring title;
     std::wstring description;
@@ -21,11 +21,11 @@ struct ToolComponent : Component<ToolComponent>
 // ToolboxSystem
 // This system manages the ToolSystems and manages the two Entities that represent the left and right Motion Controllers
 class ToolboxSystem : 
-    public System<ToolboxSystem>,
+    public ToolboxSystem,
     public ISpatialInteractionListener
 {
 public:
-	using Base = System<ToolboxSystem>;
+	using Base = System;
     using System::System;
     //RTTI_DECL2(ToolboxSystem, Base, ISpatialInteractionListener)
 

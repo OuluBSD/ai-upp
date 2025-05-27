@@ -1,5 +1,5 @@
-#ifndef _Core_VFS_h_
-#define _Core_VFS_h_
+#ifndef _Core2_VFS_h_
+#define _Core2_VFS_h_
 
 /*
 	Internal path notation (default is INTERNAL_COMB):

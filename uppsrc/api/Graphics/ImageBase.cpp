@@ -104,7 +104,7 @@ bool ImageBaseAtomT<Gfx>::PostInitialize() {
 		if (fmt.vd == VD(Center, Video)) {
 			VideoFormat& vfmt = fmt;
 			if (vfmt.GetPackedCount() != 4) {
-				vfmt.type = LightSampleFD::RGBA_U8_LE;
+				vfmt.type = ColorSampleFD::RGBA_U8_LE;
 				if (!this->GetLink()->NegotiateSourceFormat(i, fmt))
 					return false;
 			}

@@ -30,7 +30,7 @@ EntityCtrl::EntityCtrl() {
 }
 
 void EntityCtrl::OnEntityCursorChanged() {
-	EntityRef ent = ent_browser.GetSelected();
+	EntityPtr ent = ent_browser.GetSelected();
 	if (ent != sel_ent) {
 		sel_ent = ent;
 		ent_content.SetEntity(sel_ent);
@@ -40,7 +40,7 @@ void EntityCtrl::OnEntityCursorChanged() {
 
 void EntityCtrl::OnContentCursorChanged() {
 	if (sel_ent) {
-		ComponentBaseRef c;
+		ComponentPtr c;
 		
 		ent_content.GetCursor(c);
 		
@@ -73,7 +73,7 @@ void EntityCtrl::SetEntityDataCtrl() {
 	UpdateEntityData();
 }
 
-void EntityCtrl::SetComponentCtrl(ComponentBase& c) {
+void EntityCtrl::SetComponentCtrl(Component& c) {
 	ClearActiveCtrl();
 	
 	TODO

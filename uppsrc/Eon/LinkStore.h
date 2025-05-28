@@ -38,7 +38,7 @@ class LinkStore :
 	
 	
 public:
-	using Main = Space;
+	//using Main = Space;
 	using Base = LinkBase;
 	SYS_CTOR(LinkStore)
 	SYS_DEF_VISIT
@@ -70,9 +70,6 @@ public:
 	}
 	
 	void ReturnLink(Base* c);
-	
-	
-	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::ATOM_STORE;}
 	
 	
 private:

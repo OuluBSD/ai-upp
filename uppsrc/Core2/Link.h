@@ -1,6 +1,10 @@
-#ifndef _Eon_Link_h_
-#define _Eon_Link_h_
+#ifndef _Core2_Link_h_
+#define _Core2_Link_h_
 
+namespace Eon {
+class ScriptLoopLoader;
+class ScriptDriverLoader;
+}
 
 #define LINK_CTORH(x) \
 	CLASSTYPE(x) \
@@ -22,7 +26,7 @@ protected:
 	friend class LoopSystem;
 	friend class LinkSystem;
 	
-	Atom* atom = 0;
+	AtomBase* atom = 0;
 	
 	
 public:
@@ -30,7 +34,7 @@ public:
 	bool dbg_async_race = false;
 	#endif
 	
-	using CustomerData = Atom::CustomerData;
+	using CustomerData = AtomBase::CustomerData;
 	using LinkBasePtr = Ptr<LinkBase>;
 	
 protected:
@@ -90,8 +94,8 @@ public:
 	virtual RTSrcConfig*	GetConfig() {return last_cfg;}
 	virtual void			Update(double dt) {Panic("Unimplemented");}
 	
-	Atom*					GetAtom();
-	//Machine&				GetMachine();
+	AtomBase*				GetAtom();
+	//Engine&				GetEngine();
 	int						GetId() const;
 	void					ForwardAsync();
 	Packet					InitialPacket(int src_ch, off32 off);

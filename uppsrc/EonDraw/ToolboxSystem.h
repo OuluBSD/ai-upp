@@ -72,7 +72,7 @@ public:
 protected:
 	// System
 	
-	Ecs::SystemBase* GetSystem() override {return this;}
+	System* GetSystem() override {return this;}
 	void Start() override;
 	void Update(double dt) override;
 	void Stop() override;

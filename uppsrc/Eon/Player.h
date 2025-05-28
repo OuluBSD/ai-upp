@@ -8,13 +8,13 @@ using PlayerBodyComponentPtr = Ptr<PlayerBodyComponent>;
 
 typedef enum : byte {
 	Unspecified,
-	Left,
-	Right
+	LeftHand,
+	RightHand
 } PlayerHandedness;
 
 typedef enum : byte {
-	High,
-	Approximate,
+	HighHandPosition,
+	ApproximateHandPosition,
 } HandPositionAccuracy;
 
 struct HandActionSourcePose {
@@ -145,7 +145,7 @@ protected:
     void Update(double dt) override;
     void Stop() override;
     void Uninitialize() override;
-    Ecs::SystemBase* GetSystem() override {return this;}
+    System* GetSystem() override {return this;}
 	
 	void OnControllerDetected(const GeomEvent& e) override;
 	void OnControllerLost(const GeomEvent& e) override;

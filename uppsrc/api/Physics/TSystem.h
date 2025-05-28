@@ -7,13 +7,13 @@ NAMESPACE_UPP
 template <class Fys>
 struct SystemT :
 	SpaceT<Fys>,
-	Ecs::System
+	System
 {
 	using Base = SystemT<Fys>;
-	using SP = Ecs::System<SystemT<Fys>>;
+	using SP = System;
 	using Node = NodeT<Fys>;
 	using Space = SpaceT<Fys>;
-	using EcsSystem = Ecs::System<SystemT<Fys>>;
+	using EcsSystem = SystemT<Fys>;
 	using NativeWorld = typename Fys::NativeWorld;
 	using NativeSpace = typename Fys::NativeSpace;
 	using NativeJointGroup = typename Fys::NativeJointGroup;

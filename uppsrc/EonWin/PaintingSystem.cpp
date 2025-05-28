@@ -38,7 +38,7 @@ std::wstring_view PaintingInteractionSystem::GetDisplayName() const
     return L"Painting";
 }
 
-EntityRef PaintingInteractionSystem::CreateToolSelector() const
+EntityPtr PaintingInteractionSystem::CreateToolSelector() const
 {
 	Engine& m_engine = GetEngine();
     auto selector = m_engine.Get<EntityStore>()->GetRoot()->Create<ToolSelectorPrefab>();
@@ -50,12 +50,12 @@ EntityRef PaintingInteractionSystem::CreateToolSelector() const
     return selector;
 }
 
-void PaintingInteractionSystem::Register(Array<EntityRef>& entities)
+void PaintingInteractionSystem::Register(Array<EntityPtr>& entities)
 {
 	Engine& m_engine = GetEngine();
     ToolSystem::Register(entities);
 
-    EntityStoreRef entityStore = m_engine.Get<EntityStore>();
+    EntityStorePtr entityStore = m_engine.Get<EntityStore>();
 
     for (auto& entity : m_entities)
     {
@@ -71,10 +71,10 @@ void PaintingInteractionSystem::Register(Array<EntityRef>& entities)
         touchpadIndicator->Get<Transform>()->size = { 0.005f, 0.005f, 0.005f };
         touchpadIndicator->Get<PbrRenderable>()->Color = DirectX::Colors::Gray;
 
-        Array<EntityRef> colorPickersObjects;
+        Array<EntityPtr> colorPickersObjects;
         for (auto color : m_colors)
         {
-            EntityRef colorPicker = pool->Create<StaticSphere>();
+            EntityPtr colorPicker = pool->Create<StaticSphere>();
             colorPicker->Get<Transform>()->size = { 0.01f, 0.01f, 0.01f };
             colorPicker->Get<PbrRenderable>()->Color = color;
             colorPickersObjects.Add(colorPicker);
@@ -84,7 +84,7 @@ void PaintingInteractionSystem::Register(Array<EntityRef>& entities)
         beam->Get<Transform>()->size = { 0.005f, 0.005f, 10.0f };
         beam->Get<PbrRenderable>()->Color = DirectX::Colors::Aquamarine;
 
-        PaintComponentRef paint = entity->Get<PaintComponent>();
+        PaintComponentPtr paint = entity->Get<PaintComponent>();
 
         paint->selectedColor = selectedColor;
         paint->paintBrush = std::move(paintBrush);
@@ -110,7 +110,7 @@ void PaintingInteractionSystem::Deactivate(Entity& entity)
 {
     entity.Get<PbrRenderable>()->SetEnabled(true);
 
-    PaintComponentRef paint = entity.Get<PaintComponent>();
+    PaintComponentPtr paint = entity.Get<PaintComponent>();
 
     // Copy out the strokes from the component so they can persist in the world.
     if (paint->strokeInProgress)
@@ -307,7 +307,7 @@ void PaintingInteractionSystem::Update(double dt)
         auto entity = std::get<Entity*>(enabledEntity);
         auto paint = std::get<PaintComponent*>(enabledEntity);
 
-        MotionControllerComponentRef controller = entity->Get<MotionControllerComponent>();
+        MotionControllerComponentPtr controller = entity->Get<MotionControllerComponent>();
 
         paint->beam->Get<PbrRenderable>()->SetEnabled(paint->currentState == PaintComponent::State::Manipulating);
 

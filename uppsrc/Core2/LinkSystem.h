@@ -1,5 +1,5 @@
-#ifndef _Eon_LinkSystem_h_
-#define _Eon_LinkSystem_h_
+#ifndef _Core2_LinkSystem_h_
+#define _Core2_LinkSystem_h_
 
 
 class LinkSystem :
@@ -29,7 +29,6 @@ public:
 	
 	
 	static inline Callback& WhenUninit() {static Callback cb; return cb;}
-	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::LOOP_SYSTEM;}
 	
 protected:
 	

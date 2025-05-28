@@ -10,7 +10,7 @@ class RenderingSystem :
 {
 	
 protected:
-	friend class Ecs::VirtualGui;
+	friend class VirtualGui;
 	
 	#ifdef flagSDL2
 	BufferT<SdlSwGfx>* sdl_sw_buf = 0;

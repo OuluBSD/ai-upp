@@ -111,7 +111,7 @@ class Observer :
 	ExType type = INVALID;
 	Ex ex;
 	
-	Vector<EntityRef> route;
+	Vector<EntityPtr> route;
 	String last_error;
 	ActionGroup ag;
 	int route_i = 0;

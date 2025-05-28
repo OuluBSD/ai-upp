@@ -1,18 +1,20 @@
 #include "Eon.h"
 
+#if 0
+
 NAMESPACE_UPP
 
 
-SystemBase::SystemBase(VfsValue& n) : MetaSystemBase(n) {
+System::System(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
-SystemBase::~SystemBase() {
+System::~System() {
 	DBG_DESTRUCT
 }
 
-Machine& SystemBase::GetMachine() const {
-	Machine* mach = val.FindOwner<Machine>();
+Engine& System::GetEngine() const {
+	Engine* mach = val.FindOwner<Engine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	return *mach;
@@ -30,13 +32,13 @@ Machine::~Machine() {
 	DBG_DESTRUCT
 }
 
-Ecs::Engine& Machine::GetEngine() {
+Engine& Machine::GetEngine() {
 	if (val.owner) {
-		auto engs = val.owner->FindAll<Ecs::Engine>();
+		auto engs = val.owner->FindAll<Engine>();
 		if (engs.GetCount())
 			return *engs[0];
 	}
-	Ecs::Engine* e = val.FindOwner<Ecs::Engine>();
+	Engine* e = val.FindOwner<Engine>();
 	ASSERT(e);
 	if (!e) throw Exc("cannot find engine");
 	return *e;
@@ -72,7 +74,7 @@ bool Machine::Start() {
 	
 	is_started = true;
 	
-	auto systems = val.FindAll<SystemBase>();
+	auto systems = val.FindAll<System>();
 	for (auto system : systems) {
 		if (!system->Initialize()) {
 			LOG("Could not initialize system " << system->GetTypeCls().GetName());
@@ -120,9 +122,9 @@ void Machine::Update(double dt) {
 		return;
 	}
 	
-	auto systems = val.FindAll<SystemBase>();
+	auto systems = val.FindAll<System>();
 	for (auto& system : systems) {
-		SystemBase* b = &*system;
+		System* b = &*system;
 		WhenEnterSystemUpdate(*b);
 		
 		system->Update(dt);
@@ -140,7 +142,7 @@ void Machine::Update(double dt) {
 
 void Machine::Stop() {
 	bool was_started = is_started;
-	auto systems = val.FindAll<SystemBase>();
+	auto systems = val.FindAll<System>();
 	
 	is_running = false;
 	is_started = false;
@@ -177,20 +179,20 @@ void Machine::DieFast() {Start(); Update(0); Stop();}
 
 void Machine::Clear() {
 	ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0;
-	val.RemoveAllDeep<SystemBase>();
+	val.RemoveAllDeep<System>();
 }
 
 bool Machine::HasStarted() const {
 	return is_started;
 }
 
-SystemBase* Machine::FindSystem(TypeCls type_id) {
+System* Machine::FindSystem(TypeCls type_id) {
 	VfsValue* n = val.FindDeep(type_id);
-	return n && n->ext ? CastPtr<SystemBase>(&*n->ext) : 0;
+	return n && n->ext ? CastPtr<System>(&*n->ext) : 0;
 }
 
 #if 0
-void Machine::Add(TypeCls type_id, SystemBase* system) {
+void Machine::Add(TypeCls type_id, System* system) {
 	ASSERT_(!is_started, "Invalid to add systems after the machine has started");
 	
 	int i = FindSystem(type_id);
@@ -288,3 +290,5 @@ void SingleMachine::Run(void(*fn)(), void(*arg_fn)()) {
 #endif
 
 END_UPP_NAMESPACE
+
+#endif

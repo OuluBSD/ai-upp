@@ -1071,11 +1071,11 @@ bool CommandLineArguments::Parse() {
 				String value = arg.Mid(2+key_size);
 				CParser p(value);
 				if (p.IsDouble())
-					vars.Add(key, p.ReadDouble());
+					vars(key) = p.ReadDouble();
 				else if (p.IsInt())
-					vars.Add(key, p.ReadInt64());
+					vars(key) = p.ReadInt64();
 				else
-					vars.Add(key, value);
+					vars(key) = value;
 				found = true;
 			}
 			else {

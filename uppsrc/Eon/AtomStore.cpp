@@ -1,5 +1,7 @@
 #include "Eon.h"
 
+#if 0
+
 NAMESPACE_UPP
 
 
@@ -23,11 +25,11 @@ AtomBase* AtomStore::CreateAtom(AtomTypeCls cls) {
 }
 
 AtomBase* AtomStore::CreateAtomTypeCls(AtomTypeCls cls) {
-	auto it = Factory::producers.Find(cls);
+	auto it = VfsValueExtFactory::producers.Find(cls);
 	if (!it) {
 		TODO
 		#if 0
-		auto new_fn = Factory::AtomDataMap().Get(cls).new_fn;
+		auto new_fn = VfsValueExtFactory::AtomDataMap().Get(cls).new_fn;
 		std::function<AtomBase*()> p([new_fn] { return new_fn();});
 		std::function<void(AtomBase*)> r([] (Base* b){ delete b;});
 		Factory::producers.Add(cls) = p;
@@ -40,3 +42,5 @@ AtomBase* AtomStore::CreateAtomTypeCls(AtomTypeCls cls) {
 
 
 END_UPP_NAMESPACE
+
+#endif

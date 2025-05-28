@@ -27,7 +27,7 @@ Size AtomVirtualGui::GetSize()
 
 bool AtomVirtualGui::Create(const Rect& rect, const char *title)
 {
-	Machine& mach = Upp::Serial::GetActiveMachine();
+	Engine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<WindowSystem>();
 	if (!wins)
 		return false;

@@ -1,5 +1,6 @@
 #include "Eon.h"
 
+#if 0
 
 NAMESPACE_UPP
 
@@ -25,7 +26,7 @@ Space* Space::GetParent() const {
 	TODO return 0 ;//return static_cast<Space*>(RefScopeParent<SpaceParent>::GetParentUnsafe().b);
 }
 
-Machine& Space::GetMachine() const {
+Engine& Space::GetEngine() const {
 	if (machine)
 		return *machine;
 	VfsValue* n = &val;
@@ -54,10 +55,10 @@ AtomBasePtr Space::AsTypeCls(AtomTypeCls atom_type) {
 AtomBasePtr Space::AddTypeCls(AtomTypeCls cls) {
 	VfsValue& sub = val.Add();
 	
-	int i = Factory::AtomDataMap().Find(cls);
+	int i = VfsValueExtFactory::AtomDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
 	if (i < 0) return 0;
-	const auto& f = Factory::AtomDataMap()[i];
+	const auto& f = VfsValueExtFactory::AtomDataMap()[i];
 	AtomBase* obj = f.new_fn(sub);
 	
 	sub.id = ToVarName(ClassPathTop(f.name));
@@ -130,7 +131,7 @@ void Space::ClearAtoms() {
 	}
 	if (!rmlist.IsEmpty())
 		val.sub.Remove(rmlist);
-	/*AtomStorePtr sys = GetMachine().Get<AtomStore>();
+	/*AtomStorePtr sys = GetEngine().Get<AtomStore>();
 	for (auto iter = atoms.rbegin(); iter; --iter)
 		sys->ReturnAtom(atoms.Detach(iter));
 	ASSERT(atoms.IsEmpty());*/
@@ -190,7 +191,7 @@ bool Space::HasSpaceParent(SpacePtr pool) const {
 }
 
 void Space::Initialize(Space& l, String prefab) {
-	uint64 ticks = GetMachine().GetTicks();
+	uint64 ticks = GetEngine().GetTicks();
 	l.SetPrefab(prefab);
 	l.SetCreated(ticks);
 	l.SetChanged(ticks);
@@ -273,7 +274,7 @@ void Space::ClearAtomsDeep() {
 	for (auto& p : spaces)
 		p->ClearAtomsDeep();
 	
-	/*AtomStore* sys = GetMachine().GetPtr<AtomStore>();
+	/*AtomStore* sys = GetEngine().GetPtr<AtomStore>();
 	for (int i = atoms.GetCount()-1; i >= 0; i--) {
 		auto& it = atoms[i];
 		sys->ReturnAtom(atoms.Detach(it));
@@ -446,3 +447,5 @@ bool SpaceHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* de
 
 
 END_UPP_NAMESPACE
+
+#endif

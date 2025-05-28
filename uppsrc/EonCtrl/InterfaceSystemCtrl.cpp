@@ -30,7 +30,7 @@ InterfaceSystemCtrl::InterfaceSystemCtrl() {
 }
 
 void InterfaceSystemCtrl::OnEntityCursorChanged() {
-	EntityRef ent = ent_browser.GetSelected();
+	EntityPtr ent = ent_browser.GetSelected();
 	if (ent != sel_ent) {
 		sel_ent = ent;
 		iface_list.SetEntity(sel_ent);
@@ -40,8 +40,8 @@ void InterfaceSystemCtrl::OnEntityCursorChanged() {
 
 void InterfaceSystemCtrl::OnInterfaceCursorChanged() {
 	if (sel_ent) {
-		ComponentBaseRef c;
-		ExchangeProviderBaseRef b;
+		ComponentPtr c;
+		ExchangeProviderBasePtr b;
 		iface_list.GetCursor(c, b);
 		
 		if (c && b)
@@ -65,7 +65,7 @@ void InterfaceSystemCtrl::ClearActiveCtrl() {
 	}
 }
 
-void InterfaceSystemCtrl::SetInterfaceCtrl(ComponentBaseRef c, ExchangeProviderBaseRef b) {
+void InterfaceSystemCtrl::SetInterfaceCtrl(ComponentPtr c, ExchangeProviderBasePtr b) {
 	ClearActiveCtrl();
 	
 	TODO

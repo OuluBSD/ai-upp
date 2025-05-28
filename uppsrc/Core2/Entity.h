@@ -26,6 +26,7 @@ class Entity :
 	public Enableable
 {
 	
+public:
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
 	void Visit(Vis& v) override;
@@ -36,10 +37,13 @@ class Entity :
 		return a.data.Get("order", Value()) < b.data.Get("order", Value());
 	}
 	
-	void SetPrefab(String s) {prefab = s;}
-	String GetPrefab() const {return prefab;}
-	String GetName() const override {return val.id;}
+	void SetPrefab(String s)        {prefab = s;}
+	void SetCreated(int64 i)		{created = i;}
+	void SetChanged(int64 i)		{changed = i;}
+	String GetPrefab() const		{return prefab;}
+	String GetName() const override	{return val.id;}
 	String ToString() const override {return IntStr64(idx) + " " + prefab + (val.id.GetCount() ? ": " + val.id : String());}
+	ComponentPtr CreateEon(String id);
 	
 	template<typename... ComponentTs>
 	RTuple<Ptr<ComponentTs>...> CreateComponents() {
@@ -54,6 +58,24 @@ class Entity :
 		return tuple;
 	}
 	
+	template <class T> T* Find() {return val.Find<T>();}
+	template <class T> T& Get() {
+		T* o = val.Find<T>();
+		ASSERT(o);
+		if (!o) throw Exc("no T in owner");
+		return *o;
+	}
+	
+public:
+	void                Initialize(String prefab);
+	void				InitializeComponents();
+	void				InitializeComponent(Component& comp);
+	void				InitializeComponentPtr(ComponentPtr comp) {return InitializeComponent(*comp);}
+	void				UninitializeComponents();
+	void				ClearComponents();
+	void                SetIdx(EntityId i) {idx = i;}
+	static EntityId     GetNextIdx();
+	
 protected:
 	friend class EntityInfoCtrl;
 	friend class VNodeComponentCtrl;
@@ -61,13 +83,22 @@ protected:
 	friend struct VirtualNode;
 	friend struct IdeMetaEnvironment;
 	
-	VectorMap<String, Value> data;
-	ArrayMap<VfsPath, EntityData> objs;
-	EntityId idx = -1;
-	String prefab;
+	VectorMap<String, Value>		data;
+	ArrayMap<VfsPath, EntityData>	objs;
+	String							prefab;
+	EntityId						idx = -1;
+	int64							created = 0;
+	int64							changed = 0;
 	
 	Value& Data(const String& key) {return data.GetAdd(key);}
+	
+private:
+	template<typename T> void Remove0();
+	template<typename T> Ptr<T> Add0(bool initialize);
+	
 };
+
+using EntityPtr = Ptr<Entity>;
 
 INITIALIZE(Entity);
 
@@ -78,6 +109,7 @@ struct x : VfsValueExt { \
 	x(VfsValue& n) : VfsValueExt(n) {} \
 	void Visit(Vis& v) override {} \
 }; \
+using x##Ptr = Ptr<x>; \
 INITIALIZE(x)
 
 
@@ -100,6 +132,17 @@ struct EntityPrefab {
 	}
 };
 
+template<typename PrefabT>
+EntityPtr CreatePrefab(VfsValue& val) {
+	static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
+	
+	Entity& e = val.Add<Entity>();
+	e.SetIdx(Entity::GetNextIdx());
+	PrefabT::Make(e);
+	e.Initialize(PrefabT::GetComponentNames());
+	
+	return &e;
+}
 
 
 

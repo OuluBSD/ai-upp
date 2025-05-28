@@ -1,30 +1,31 @@
 #include "Eon.h"
 
+#if 0
 
 NAMESPACE_UPP
 
 
-ComponentBase::ComponentBase(VfsValue& n) : VfsValueExt(n) {
+Component::Component(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
-ComponentBase::~ComponentBase() {
+Component::~Component() {
 	DBG_DESTRUCT
 }
 
-Engine& ComponentBase::GetEngine() {
+Engine& Component::GetEngine() {
 	return *val.FindOwnerRoot<Engine>();
 }
 
-Entity* ComponentBase::GetEntity() {
-	return val.FindOwnerRoot<Ecs::Entity>();
+Entity* Component::GetEntity() {
+	return val.FindOwnerRoot<Entity>();
 }
 
-String ComponentBase::ToString() const {
+String Component::ToString() const {
 	return GetTypeCls().GetName();
 }
 
-void ComponentBase::GetComponentPath(Vector<String>& path) {
+void Component::GetComponentPath(Vector<String>& path) {
 	path.Clear();
 	
 	String name = ComponentFactory::GetComponentName(GetTypeCls());
@@ -46,10 +47,10 @@ void ComponentBase::GetComponentPath(Vector<String>& path) {
 	Reverse(path);
 }
 
-void ComponentBase::AddToUpdateList() {GetEngine().AddToUpdateList(this);}
-void ComponentBase::RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
+void Component::AddToUpdateList() {GetEngine().AddToUpdateList(this);}
+void Component::RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
 
-String ComponentBase::GetDynamicName() const {
+String Component::GetDynamicName() const {
 	return GetTypeCls().GetName();
 }
 
@@ -65,10 +66,12 @@ void ComponentMap::Dump() {
 	}
 }
 
-void ComponentMap::ReturnComponent(ComponentStore& s, ComponentBase* c) {
+void ComponentMap::ReturnComponent(ComponentStore& s, Component* c) {
 	s.ReturnComponent(c);
 }
 #endif
 
 
 END_UPP_NAMESPACE
+
+#endif

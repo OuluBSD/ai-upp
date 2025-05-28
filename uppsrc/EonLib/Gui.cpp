@@ -12,7 +12,7 @@ DefaultGuiAppComponent::DefaultGuiAppComponent() {
 }
 
 void DefaultGuiAppComponent::Visit(Vis& v) {
-	VIS_THIS(ComponentT);
+	VIS_THIS(Component);
 	/*if (test) vis % *test;*/
 	
 	//vis & wins;
@@ -35,8 +35,8 @@ void DefaultGuiAppComponent::Initialize() {
 	HandleVideoBase::AddBinder(this);
 	EventStateBase::AddBinder(this);
 	
-	cw = GetEntity()->Find<Geom2DComponent>();
-	trans2 = GetEntity()->Find<Transform2D>();
+	cw = GetEntity()->val.Find<Geom2DComponent>();
+	trans2 = GetEntity()->val.Find<Transform2D>();
 }
 
 void DefaultGuiAppComponent::Uninitialize() {
@@ -56,7 +56,7 @@ void DefaultGuiAppComponent::Update(double dt) {
 
 void DefaultGuiAppComponent::StateStartup(GfxDataState& state) {
 	Engine& eng = GetActiveEngine();
-	EntityStoreRef ents = eng.Get<EntityStore>();
+	EntityStorePtr ents = eng.Get<EntityStore>();
 	RenderingSystemRef rend = eng.Get<RenderingSystem>();
 	PoolRef models = ents->GetRoot()->GetAddPool("models");
 	

@@ -101,7 +101,7 @@ bool ImageBaseAtomT<Gfx>::PostInitialize() {
 	for(int i = 0; i < src_count; i++) {
 		ValueBase& val = src->GetSourceValue(i);
 		ValueFormat fmt = val.GetFormat();
-		if (fmt.vd == VD(Center, Video)) {
+		if (fmt.vd == VD(CENTER,VIDEO)) {
 			VideoFormat& vfmt = fmt;
 			if (vfmt.GetPackedCount() != 4) {
 				vfmt.type = ColorSampleFD::RGBA_U8_LE;

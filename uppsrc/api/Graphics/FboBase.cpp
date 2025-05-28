@@ -116,7 +116,7 @@ bool FboAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	if (type == "stereo")
 		data.is_stereo = true;
 	
-	data.mach = &GetMachine();
+	data.eng = &GetEngine();
 	accel_sd.SetTarget(data);
 	
 	

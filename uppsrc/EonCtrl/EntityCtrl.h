@@ -8,10 +8,10 @@ struct EntityDataCtrl : public ComponentCtrl {
 	
 	EntityDataCtrl();
 	
-	void UpdateEntityData(Ecs::Entity& e);
+	void UpdateEntityData(Entity& e);
 	void AddEntityDataRow(UPP::Value key, UPP::Value value);
 	
-	void SetComponent(Ecs::ComponentBase&) override {}
+	void SetComponent(Component&) override {}
 	
 };
 
@@ -23,20 +23,20 @@ class EntityCtrl : public ParentCtrl {
 	EntityDataCtrl						ent_data;
 	ParentCtrl							ent_cont;
 	
-	Ecs::EntityRef						sel_ent;
+	EntityPtr						sel_ent;
 	ComponentCtrl*						active_ctrl = 0;
-	Ecs::Engine*						mach = 0;
+	Engine*						mach = 0;
 	
 	void ClearActiveCtrl();
 	void UpdateEntityData();
 	void SetEntityDataCtrl();
-	void SetComponentCtrl(Ecs::ComponentBase& c);
+	void SetComponentCtrl(Component& c);
 	
 public:
 	typedef EntityCtrl CLASSNAME;
 	EntityCtrl();
 	
-	void SetEngine(Ecs::Engine& m) {mach = &m; ent_browser.SetEngine(m);}
+	void SetEngine(Engine& m) {mach = &m; ent_browser.SetEngine(m);}
 	void Updated() override;
 	void OnEntityCursorChanged();
 	void OnContentCursorChanged();

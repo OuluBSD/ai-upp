@@ -261,7 +261,7 @@ void ToolboxSystem::SwitchToolType(Entity& entity, const detail::type_id& newTyp
     }
 }
 
-EntityRef ToolboxSystem::FindController(const SpatialInteractionSource& source)
+EntityPtr ToolboxSystem::FindController(const SpatialInteractionSource& source)
 {
     for (auto& context : m_controllers)
     {

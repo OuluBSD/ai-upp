@@ -8,11 +8,11 @@ Links:
 
 NAMESPACE_UPP
 
-void SetupTest1_Memory(Machine& mach);
-void SetupTest2_6502(Machine& mach);
-void SetupUK101(Machine& mach);
-void SetupInterak(Machine& mach);
-void SetupMiniMax8085(Machine& mach);
+void SetupTest1_Memory(Engine& mach);
+void SetupTest2_6502(Engine& mach);
+void SetupUK101(Engine& mach);
+void SetupInterak(Engine& mach);
+void SetupMiniMax8085(Engine& mach);
 
 END_UPP_NAMESPACE
 

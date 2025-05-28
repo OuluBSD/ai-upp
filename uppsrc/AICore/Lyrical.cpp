@@ -190,7 +190,8 @@ Script::~Script() {
 String Lyrics::GetText() const {
 	if (__text.GetCount())
 		return __text;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	if (!p.lyric_struct)
 		return String();
 	return p.lyric_struct->GetStructText(0);

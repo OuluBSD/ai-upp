@@ -45,12 +45,12 @@ struct x##_ { \
 \
 struct x : \
 	x##_, \
-	Upp::ECS::EntityPrefab<
+	::Upp::EntityPrefab<
 
 #define PREFAB_END \
 > { \
 	 \
-    static Components Make(Upp::ECS::Entity& e) \
+    static Components Make(::Upp::Entity& e) \
     { \
         auto components = EntityPrefab::Make(e); \
 		return components; \

@@ -42,7 +42,7 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Machine* m = GetVfsValue().FindOwner<Machine>();
+		Engine* m = GetVfsValue().FindOwner<Engine>();
 		ASSERT(m);
 		TODO
 		#if 0
@@ -81,7 +81,7 @@ void VrSpatialInteractionManager::UpdateState() {
 	
 	if (sys->is_calibration) {
 		//if (!rend)
-		//	rend = sys->GetEngine().TryGet<Ecs::RenderingSystem>();
+		//	rend = sys->GetEngine().TryGet<RenderingSystem>();
 		UpdateCalibrationStateKeyboard();
 	}
 	

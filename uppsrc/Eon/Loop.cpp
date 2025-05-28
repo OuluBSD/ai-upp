@@ -3,6 +3,7 @@
 
 NAMESPACE_UPP
 
+#if 0 // NOT WHOLE FILE
 
 Loop::Loop(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
@@ -110,10 +111,10 @@ void Loop::Visit(Vis& vis) {
 LinkBasePtr Loop::AddTypeCls(LinkTypeCls cls) {
 	VfsValue& sub = val.Add();
 	
-	int i = Factory::LinkDataMap().Find(cls);
+	int i = VfsValueExtFactory::LinkDataMap().Find(cls);
 	ASSERT_(i >= 0, "Invalid to create non-existant atom");
 	if (i < 0) return 0;
-	const auto& f = Factory::LinkDataMap()[i];
+	const auto& f = VfsValueExtFactory::LinkDataMap()[i];
 	LinkBase* obj = f.new_fn(sub);
 	
 	sub.id = ToVarName(ClassPathTop(f.name));
@@ -197,12 +198,15 @@ String Loop::GetTreeString(int indent) {
 	return s;
 }
 
-bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
+#endif
+
+namespace Eon {
+bool ScriptLoopLoader::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	// This is for primary link (src_ch==0 to sink_ch== 0) only...
 	InterfaceSourcePtr src = src_atom->GetSource();
 	ExchangeSourceProviderPtr src_ep = CastPtr<ExchangeSourceProvider>(&*src);
 	if (!src_ep) {
-		LOG("Loop::MakeLink: error: internal error (no src_ep)");
+		LOG("ScriptLoopLoader::MakeLink: error: internal error (no src_ep)");
 		return false;
 	}
 	
@@ -232,7 +236,7 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	if (src->Accept(sinkT, src_cookie, sink_cookie)) {
 		
 		// Create exchange-point object
-		auto& sdmap = Factory::IfaceLinkDataMap();
+		auto& sdmap = VfsValueExtFactory::IfaceLinkDataMap();
 		int i = sdmap.Find(src_fmt.vd);
 		if (i < 0) {
 			LOG("error: no exchange-point class set for type " + src_fmt.vd.ToString());
@@ -265,6 +269,9 @@ bool Loop::MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom) {
 	}
 	return false;
 }
+}
+
+#if 0
 
 String Loop::GetDeepName() const {
 	String s = val.id;
@@ -315,4 +322,8 @@ bool LoopHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 }
 #endif
 
+#endif
+
+
 END_UPP_NAMESPACE
+

@@ -221,7 +221,7 @@ void Esc::Run() {
 		}
 		
 		IrVM& vm = *c.vm;
-		vm.WhenMsg = Proxy(this->WhenMsg);
+		vm.WhenMsg = [this](ProcMsg& m) {this->WhenMsg(m);};
 		
 		bool cont = vm.Execute();
 		

@@ -65,7 +65,7 @@ public:
 	EntityPtr Create() {
 		static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 		
-		Entity& e = val.Add<Ecs::Entity>();
+		Entity& e = val.Add<Entity>();
 		//e.SetParent(this);
 		e.SetId(GetNextId());
 		PrefabT::Make(e);
@@ -80,7 +80,7 @@ public:
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all derive from Component");
 		
 		Vector<Tuple<EntityPtr,ComponentTs*...>> components;
-		auto ents = val.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -100,7 +100,7 @@ public:
 		
 		Vector<Tuple<ComponentTs*...>> components;
 		
-		auto ents = val.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Entity>();
 		for (auto& ent : ents) {
 			auto requested_components = ent->TryGetComponents<ComponentTs...>();
 			
@@ -119,7 +119,7 @@ public:
 	EntityPtr FindEntity(T* component) {
 		if (!component)
 			return EntityPtr();
-		auto ents = val.FindAll<Ecs::Entity>();
+		auto ents = val.FindAll<Entity>();
 		for (auto& ent : ents) {
 			T* t = ent->Find<T>();
 			if (t == component)
@@ -149,7 +149,7 @@ public:
 	//EntityVec::Iterator			end()			{return objects.end();}
 	//PoolVec::Iterator			BeginPool()		{return pools.begin();}
 	
-	ComponentBasePtr RealizeComponentPath(const Vector<String>& path);
+	ComponentPtr RealizeComponentPath(const Vector<String>& path);
 	
 	/*void Visit(Vis& vis) {
 		vis || objects || pools;
@@ -178,7 +178,7 @@ T* Entity::FindNearestEntityWith() {
 	if (!c) {
 		Pool* p = &GetPool();
 		while (p && !c) {
-			auto ents = p->val.FindAll<Ecs::Entity>();
+			auto ents = p->val.FindAll<Entity>();
 			for (Entity* e : ents) {
 				c = e->Find<T>();
 				if (c) break;
@@ -190,7 +190,7 @@ T* Entity::FindNearestEntityWith() {
 }
 
 template <>
-inline void ComponentBase::EtherizeRef(Stream& e, EntityPtr& ref) {
+inline void Component::EtherizeRef(Stream& e, EntityPtr& ref) {
 	thread_local static Vector<String> path;
 	bool has_ref = !ref.IsEmpty();
 	e % has_ref;
@@ -211,7 +211,7 @@ inline void ComponentBase::EtherizeRef(Stream& e, EntityPtr& ref) {
 }
 
 template <class T>
-void ComponentBase::EtherizeRef(Stream& e, Ptr<T>& ref) {
+void Component::EtherizeRef(Stream& e, Ptr<T>& ref) {
 	thread_local static Vector<String> path;
 	EntityPtr ent = GetEntity();
 	bool has_ref = !ref.IsEmpty();
@@ -222,7 +222,7 @@ void ComponentBase::EtherizeRef(Stream& e, Ptr<T>& ref) {
 			ASSERT_(path.GetCount() >= 2, "Entity and Component paths is required");
 			if (path.GetCount() < 2) return;
 			Pool& root = ent->GetRoot();
-			ComponentBasePtr comp = root.RealizeComponentPath(path);
+			ComponentPtr comp = root.RealizeComponentPath(path);
 			ASSERT_(comp, "Component path couldn't be realized");
 			ref = comp;
 			ASSERT_(ref, "Couldn't get etherized component from path");
@@ -239,7 +239,7 @@ void ComponentBase::EtherizeRef(Stream& e, Ptr<T>& ref) {
 }
 
 template <class T>
-void ComponentBase::EtherizeRefContainer(Stream& e, T& cont) {
+void Component::EtherizeRefContainer(Stream& e, T& cont) {
 	int d = cont.GetCount();
 	e % d;
 	cont.SetCount(d);

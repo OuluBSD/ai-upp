@@ -28,7 +28,7 @@ public:
 	
 };
 
-typedef Ptr<Ecs::Transform> TransformPtr;
+typedef Ptr<Transform> TransformPtr;
 
 
 void CopyTransformPos(EntityPtr from, EntityPtr to);

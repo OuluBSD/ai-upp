@@ -46,7 +46,7 @@ struct VerifierEntity {
 	
 	
 	VerifierAtom& AddAtomWith(TypeCls t);
-	template <class T> VerifierAtom& AddAtomWith(ValDevCls vd) {return AddAtomWith(AsParallelTypeCls<T>(vd));}
+	//template <class T> VerifierAtom& AddAtomWith(ValDevCls vd) {return AddAtomWith(AsParallelTypeCls<T>(vd));}
 	
 };
 
@@ -68,7 +68,7 @@ struct VerifierSystem {
 };
 
 class MachineVerifier {
-	Machine* mach = 0;
+	Engine* mach = 0;
 	AtomSystem* ext_sys = 0;
 	VerifierLoop root;
 	Array<VerifierSystem> sys;
@@ -155,7 +155,7 @@ public:
 	MachineVerifier();
 	
 	
-	void Attach(Machine& mach);
+	void Attach(Engine& mach);
 	void Attach(Eon::ScriptLoader& sl);
 	void Clear();
 	

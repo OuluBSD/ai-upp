@@ -26,10 +26,9 @@ bool ScriptStateLoader::Load() {
 	
 	ScriptLoader& loader = GetLoader();
 	
-	LoopPtr l = loader.ResolveLoop(parent_id);
+	VfsValue* l = loader.ResolveLoop(parent_id);
 	
-	EnvStatePtr env = l->GetAddEnv(id.ToString());
-	ASSERT(env);
+	EnvState& env = l->Add<EnvState>(id.ToString());
 	
 	// ready
 	

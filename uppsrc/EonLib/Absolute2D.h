@@ -23,20 +23,20 @@ public:
 	String						GetTitle() const override;
 	
 	
-	Upp::Ecs::Geom2DComponent* GetWindow();
-	Upp::Ecs::Windows* GetWindows();
+	Upp::Geom2DComponent* GetWindow();
+	Upp::Windows* GetWindows();
 	
 	
 protected:
-	Upp::Ecs::Geom2DComponent* cw = NULL;
+	Upp::Geom2DComponent* cw = NULL;
 	int id;
 	
 	
 public:
-	void Init(Upp::Ecs::Geom2DComponent* cw, int id);
+	void Init(Upp::Geom2DComponent* cw, int id);
 	
-	Upp::Ecs::Geom2DComponent* GetWindow() const {return cw;}
-	Upp::Ecs::WindowManager* GetWindowManager() const;
+	Upp::Geom2DComponent* GetWindow() const {return cw;}
+	Upp::WindowManager* GetWindowManager() const;
 	
 };
 

@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-void SetupTest1_Memory(Machine& mach) {
+void SetupTest1_Memory(Engine& mach) {
 	struct MemTester : Chip {
 		Vector<byte> data;
 		int addr;

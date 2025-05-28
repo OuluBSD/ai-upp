@@ -23,11 +23,11 @@ GUI_APP_MAIN {
 	    
 	    if (mach->Start()) {
 	        
-			EntityRef pipe = ents.Create<OctreeEditPipeline>();
+			EntityPtr pipe = ents.Create<OctreeEditPipeline>();
 		    pipe->Find<Connector>()->ConnectAll();
 			
 		    #if HAVE_SDL2
-			EntityRef app = ents.Create<StandaloneSDL2>();
+			EntityPtr app = ents.Create<StandaloneSDL2>();
 			#else
 			#error Use at least one system
 			#endif
@@ -37,7 +37,7 @@ GUI_APP_MAIN {
 			
 			float l = oct.GetHumanLength();
 			float ll = 1.0f / 8.0f;
-			EntityRef ground = ents.Create<OctreeGround>();
+			EntityPtr ground = ents.Create<OctreeGround>();
 			
 			vec3 a{-l,        0,        l};
 			vec3 b{ 0, 2.0f * l, 0.5f * l};

@@ -14,7 +14,7 @@ AudioSourceCtrl::AudioSourceCtrl() {
 	s.Background(Color(176, 237, 255));
 }
 
-void AudioSourceCtrl::SetInterface(ComponentBaseRef c, ExchangeProviderBaseRef b) {
+void AudioSourceCtrl::SetInterface(ComponentPtr c, ExchangeProviderBasePtr b) {
 	
 }
 

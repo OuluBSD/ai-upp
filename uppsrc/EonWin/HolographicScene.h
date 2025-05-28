@@ -32,7 +32,7 @@ public:
     using Base = System;
 	//RTTI_DECL1(HolographicScene, Base)
 
-    HolographicScene(Machine& core, winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace);
+    HolographicScene(Engine& core, winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace);
 
     winrt::Windows::Graphics::Holographic::HolographicFrame CurrentFrame() const;
     winrt::Windows::Graphics::Holographic::HolographicSpace HolographicSpace() const;

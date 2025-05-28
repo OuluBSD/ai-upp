@@ -120,6 +120,9 @@ public:
 	void		UpdateLoopLimits();
 	void		UndoLoad();
 	int			GetAtomLinkCount() const {return atom_links.GetCount();}
+	static AtomBasePtr AddAtomTypeCls(VfsValue& val, AtomTypeCls cls);
+	static LinkBasePtr AddLinkTypeCls(VfsValue& val, LinkTypeCls cls);
+	static bool MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom);
 	
 	bool		Load() override;
 	void		Visit(Vis& vis) override {vis || atoms;}
@@ -315,9 +318,9 @@ protected:
 	
 	
 protected:
-	friend class ScriptStateLoader;
+	friend class Eon::ScriptStateLoader;
 	
-	LoopPtr		ResolveLoop(Eon::Id& id);
+	VfsValue*	ResolveLoop(Eon::Id& id);
 	
 	
 public:

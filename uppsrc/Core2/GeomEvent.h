@@ -1,5 +1,5 @@
-#ifndef _Geometry_GeomEvent_h_
-#define _Geometry_GeomEvent_h_
+#ifndef _Core2_GeomEvent_h_
+#define _Core2_GeomEvent_h_
 
 
 enum {
@@ -62,8 +62,8 @@ inline String GetEventTypeString(int event) {
 		case EVENT_HOLO_CONTROLLER_LOST:		return "Holographic controller lost";
 		case EVENT_HOLO_MOVE_FAR_RELATIVE:		return "Holographic Move Far (relative)";
 		case EVENT_HOLO_MOVE_NEAR:				return "Holographic Move Near";
-		case EVENT_HOLO_PRESSED:				return "Holographi controller button pressed";
-		case EVENT_HOLO_RELEASED:				return "Holographi controller button released";
+		case EVENT_HOLO_PRESSED:				return "Holographic controller button pressed";
+		case EVENT_HOLO_RELEASED:				return "Holographic controller button released";
 		
 		case EVENT_INVALID:
 		case EVENT_TYPE_COUNT:
@@ -78,15 +78,6 @@ struct ControllerSource {
 	//virtual bool GetLocation(float* matrix4x4) const {return false;}
 	virtual void GetVelocity(float* v3) const = 0;
 	virtual void GetAngularVelocity(float* v3) const = 0;
-	
-};
-
-struct ControllerState {
-	ControllerSource* source = 0;
-	ControllerMatrix props;
-	
-	const ControllerSource& GetSource() const {ASSERT(source); return *source;}
-	const ControllerMatrix& GetControllerProperties() const {return props;}
 	
 };
 
@@ -138,17 +129,9 @@ struct ControllerProperties {
 	
 };
 
-struct ControllerState;
 class TransformMatrix;
+struct ControllerState;
 struct ControllerMatrix;
-
-#define COPY2(dst, from) for(int i = 0; i < 2; i++) dst[i] = from[i]
-#define COPY3(dst, from) for(int i = 0; i < 3; i++) dst[i] = from[i]
-#define COPY4(dst, from) for(int i = 0; i < 4; i++) dst[i] = from[i]
-#define COPY3x3(dst, from) for(int i = 0; i < 3; i++) for(int j = 0; j < 3; j++) (dst)[i][j] = (from)[i][j]
-#define COPY4x4(dst, from) for(int i = 0; i < 4; i++) for(int j = 0; j < 4; j++) (dst)[i][j] = (from)[i][j]
-	
-
 
 struct GeomEvent : Moveable<GeomEvent> {
 	GeomEventType type = EVENT_INVALID;

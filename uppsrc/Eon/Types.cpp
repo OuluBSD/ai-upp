@@ -70,36 +70,13 @@ DevCls::Type DevCls::Get(String s) {
 
 
 
-hash_t AtomIfaceTypeCls::GetHashValue() const {
-	CombineHash c;
-	c.Put(sink.GetHashValue());
-	c.Put(src.GetHashValue());
-	return c;
-}
 
-hash_t AtomTypeCls::GetHashValue() const {
-	CombineHash c;
-	c.Put(iface.GetHashValue());
-	c.Put(sub);
-	c.Put(role);
-	return c;
-}
 
-bool AtomTypeCls::IsSinkChannelOptional(int ch_i) const {
-	return iface.sink[ch_i].is_opt;
-}
 
-bool AtomTypeCls::IsSourceChannelOptional(int ch_i) const {
-	return iface.src[ch_i].is_opt;
-}
 
-void AtomTypeCls::AddIn(ValDevCls vd, bool is_opt) {
-	iface.sink.channels.Add().Set(vd, is_opt);
-}
 
-void AtomTypeCls::AddOut(ValDevCls vd, bool is_opt) {
-	iface.src.channels.Add().Set(vd, is_opt);
-}
+
+
 
 /*
 AtomTypeCls::AtomTypeCls(SubAtomCls cls, AtomRole role, const ValDevCls& si0, const ValDevCls& content, const ValDevCls& sr0, int side_sinks, int side_srcs, int user_sinks, int user_srcs, const ValDevCls& si1, const ValDevCls& sr1) : iface(si0,content,sr0), sub(cls), role(role) {
@@ -225,16 +202,6 @@ String GetSubAtomString(SubAtomCls t) {
 		
 		#undef ATOM_ROLE
 		default: TODO return "invalid";
-	}
-}
-
-String GetAtomRoleString(AtomRole t) {
-	switch (t) {
-		#define ATOM_ROLE(x) case x: return #x;
-		ATOM_ROLE_LIST
-		
-		#undef ATOM_ROLE
-		default:			return "invalid";
 	}
 }
 

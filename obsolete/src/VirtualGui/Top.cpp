@@ -163,7 +163,7 @@ void TopWindow::FocusEvent() {
 void TopWindow::CreateGeom2DComponent() {
 	using namespace Ecs;
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	WindowSystemRef wins = mach.Get<Upp::Parallel::WindowSystem>();
 	WindowManager& mgr = wins->GetActiveScope();
 	mgr.AddInterface(*this);

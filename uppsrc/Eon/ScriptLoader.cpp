@@ -23,7 +23,7 @@ int ScriptLoader::loop_counter = 0;
 
 
 ScriptLoader::ScriptLoader(VfsValue& n) :
-	System<CLASSNAME>(n),
+	System(n),
 	ErrorSource("ScriptLoader") {
 	
 }
@@ -48,7 +48,7 @@ void ScriptLoader::LogMessage(ProcMsg msg) {
 }
 
 bool ScriptLoader::Initialize() {
-	Machine& mach = GetMachine();
+	Engine& mach = GetEngine();
 	
 	if (!WhenMessage)
 		WhenMessage << THISBACK(LogMessage);
@@ -103,7 +103,7 @@ void ScriptLoader::Start() {
 void ScriptLoader::Update(double dt) {
 	
 	if (!DoPostLoad()) {
-		GetMachine().SetNotRunning();
+		GetEngine().SetNotRunning();
 	}
 	
 }
@@ -471,7 +471,7 @@ bool ScriptLoader::LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
-	const auto& map = Factory::AtomDataMap();
+	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> items;
 	
 	n->FindAll(items, SEMT_ENTITY);
@@ -520,7 +520,7 @@ bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
 bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
 	LOG(n->GetTreeString(0));
 	
-	const auto& map = Factory::AtomDataMap();
+	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> items;
 	
 	n->FindAll(items, SEMT_COMPONENT);
@@ -553,7 +553,7 @@ bool ScriptLoader::LoadComponent(Eon::ComponentDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
-	const auto& map = Factory::AtomDataMap();
+	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
 	
 	n->FindAll(loops, SEMT_DRIVER); // subset of loops
@@ -604,8 +604,8 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 				return false;
 			
 			String loop_action = atom_def.id.ToString();
-			const Factory::AtomData* found_atom = 0;
-			for (const Factory::AtomData& atom_data : map.GetValues()) {
+			const VfsValueExtFactory::AtomData* found_atom = 0;
+			for (const VfsValueExtFactory::AtomData& atom_data : map.GetValues()) {
 				bool match = false;
 				for (const String& action : atom_data.actions) {
 					if (action == loop_action) {
@@ -954,33 +954,29 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	return true;
 }
 
-LoopPtr ScriptLoader::ResolveLoop(Eon::Id& id) {
-	Machine* mach = val.FindOwner<Machine>();
+VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id) {
+	Engine* mach = val.FindOwner<Engine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	
-	LoopPtr l0;
-	LoopPtr l1 = &mach->GetRootLoop();
-	SpacePtr s0;
-	SpacePtr s1 = &mach->GetRootSpace();
+	VfsValue* l0;
+	VfsValue* l1 = &mach->GetRootLoop();
+	VfsValue* s0 = 0;
+	VfsValue* s1 = &mach->GetRootSpace();
 	int i = 0, count = id.parts.GetCount();
 	
 	for (const String& part : id.parts) {
 		if (i++ == count - 1) {
-			l0 = l1->GetAddEmpty(part);
-			s0 = s1->GetAddEmpty(part);
-			l0->space = &*s0;
-			s0->loop = &*l0;
+			l0 = &l1->GetAdd(part, 0);
+			s0 = &s1->GetAdd(part, 0);
 		}
 		else {
-			l1 = l1->GetAddLoop(part);
-			s1 = s1->GetAddSpace(part);
-			l1->space = &*s1;
-			s1->loop = &*l1;
+			l1 = &l1->GetAdd(part, 0);
+			s1 = &s1->GetAdd(part, 0);
 		}
 	}
 	
-	ASSERT(l0->GetSpace());
+	ASSERT(l0);
 	return l0;
 }
 

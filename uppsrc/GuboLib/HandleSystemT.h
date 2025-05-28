@@ -44,7 +44,7 @@ protected:
     
 public:
     typedef HandleSystemT<Dim> CLASSNAME;
-	HandleSystemT(Parallel::Machine& m);
+	HandleSystemT(Parallel::Engine& m);
 	
 	SYS_RTTI(HandleSystemT)
 	SYS_DEF_VISIT

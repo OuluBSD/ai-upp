@@ -1,5 +1,6 @@
 #include "Eon.h"
 
+#if 0
 
 NAMESPACE_UPP
 
@@ -48,7 +49,7 @@ void Pool::Initialize(Entity& e, String prefab) {
 }
 
 EntityPtr Pool::CreateEmpty(String id) {
-	Entity& e = val.Add<Ecs::Entity>();
+	Entity& e = val.Add<Entity>();
 	e.val.id = id;
 	e.SetId(GetNextId());
 	Initialize(e);
@@ -64,7 +65,7 @@ EntityPtr Pool::GetAddEmpty(String name) {
 }
 
 EntityPtr Pool::Clone(const Entity& c) {
-	Ecs::Entity& e = val.Add<Ecs::Entity>();
+	Entity& e = val.Add<Entity>();
 	VisitCopy(c, e);
 	return &e;
 }
@@ -87,7 +88,7 @@ void Pool::UninitializeComponentsDeep() {
 	for (PoolPtr& p : pools)
 		p->UninitializeComponentsDeep();
 	
-	auto ents = val.FindAll<Ecs::Entity>();
+	auto ents = val.FindAll<Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->UninitializeComponents();
 	
@@ -98,7 +99,7 @@ void Pool::ClearComponentsDeep() {
 	for (PoolPtr& p : pools)
 		p->ClearComponentsDeep();
 	
-	auto ents = val.FindAll<Ecs::Entity>();
+	auto ents = val.FindAll<Entity>();
 	for (int i = ents.GetCount()-1; i >= 0; i--)
 		ents[i]->ClearComponents();
 	
@@ -111,7 +112,7 @@ void Pool::ClearDeep() {
 			p->ClearDeep();
 	
 	val.RemoveAllDeep<Pool>();
-	val.RemoveAllDeep<Ecs::Entity>();
+	val.RemoveAllDeep<Entity>();
 }
 
 #if 0
@@ -136,7 +137,7 @@ void Pool::PruneFromContainer() {
 	Vector<int> rmlist;
 	for(int i = 0; i < val.sub.GetCount(); i++) {
 		auto& s = val.sub[i];
-		Entity* e = s.ext ? CastPtr<Ecs::Entity>(&*s.ext) : 0;
+		Entity* e = s.ext ? CastPtr<Entity>(&*s.ext) : 0;
 		if (e && e->destroyed)
 			rmlist << i;
 	}
@@ -155,7 +156,7 @@ String Pool::GetTreeString(int indent) {
 	
 	s << ".." << val.id << "[" << id << "]\n";
 	
-	auto objects = val.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Entity>();
 	for (EntityPtr& e : objects)
 		s << e->GetTreeString(indent+1);
 	
@@ -176,7 +177,7 @@ PoolPtr Pool::FindPool(String name) {
 }
 
 EntityPtr Pool::FindEntityByName(String name) {
-	auto objects = val.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Entity>();
 	for (EntityPtr object : objects)
 		if (object->GetName() == name)
 			return object;
@@ -199,7 +200,7 @@ PoolPtr Pool::GetAddPool(String name) {
 }
 
 void Pool::RemoveEntity(Entity* e) {
-	auto objects = val.FindAll<Ecs::Entity>();
+	auto objects = val.FindAll<Entity>();
 	int i = 0;
 	auto it = objects.begin();
 	auto end = objects.end();
@@ -213,10 +214,10 @@ void Pool::RemoveEntity(Entity* e) {
 	}
 }
 
-ComponentBasePtr Pool::RealizeComponentPath(const Vector<String>& path) {
+ComponentPtr Pool::RealizeComponentPath(const Vector<String>& path) {
 	int c = path.GetCount();
 	ASSERT(c >= 2);
-	if (c < 2) return ComponentBasePtr();
+	if (c < 2) return ComponentPtr();
 	
 	String ent_name = path[c-2];
 	String comp_name = path[c-1];
@@ -232,7 +233,7 @@ ComponentBasePtr Pool::RealizeComponentPath(const Vector<String>& path) {
 	}
 	
 	EntityPtr ent = pool->GetAddEmpty(ent_name);
-	ComponentBasePtr comp = ent->GetAdd(comp_name);
+	ComponentPtr comp = ent->GetAdd(comp_name);
 	ASSERT(comp);
 	
 	return comp;
@@ -273,3 +274,5 @@ bool PoolHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* der
 
 
 END_UPP_NAMESPACE
+
+#endif

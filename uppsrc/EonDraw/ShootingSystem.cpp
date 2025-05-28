@@ -39,7 +39,7 @@ String ShootingInteractionSystemBase::GetDisplayName() const {
 }
 
 EntityPtr ShootingInteractionSystemBase::CreateToolSelector() const {
-	auto selector = GetPool()->Create<ToolSelectorPrefab>();
+	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool());
 	selector->Get<ModelComponent>().SetPrefabModel("Gun");
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
@@ -96,7 +96,7 @@ void ShootingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 			#endif
 			
 			// Create bullet and send it on it's merry way
-			EntityPtr bullet = GetPool()->Create<Bullet>();
+			EntityPtr bullet = CreatePrefab<Bullet>(*GetPool());
 			TransformPtr bullet_trans = bullet->Find<Transform>();
 			RigidBodyPtr bullet_rbody = bullet->Find<RigidBody>();
 			PhysicsBodyPtr bullet_pbody = bullet->Find<PhysicsBody>();
@@ -124,8 +124,11 @@ void ShootingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 	}
 }
 
-PoolPtr ShootingInteractionSystemBase::GetPool() const {
-	return val.FindOwner<Pool>();
+VfsValue* ShootingInteractionSystemBase::GetPool() const {
+	VfsValue* o = val.owner;
+	while (o && o->type_hash)
+		o = o->owner;
+	return o;
 }
 
 
@@ -154,7 +157,7 @@ void ShootingComponent::Visit(Vis& v) {
 }
 
 void ShootingComponent::Initialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
 	
@@ -164,7 +167,7 @@ void ShootingComponent::Initialize() {
 }
 
 void ShootingComponent::Uninitialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->RemoveTool(this);
 	
@@ -174,7 +177,7 @@ void ShootingComponent::Uninitialize() {
 }
 
 bool ShootingComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().val.Find<ModelCache>();
+	ModelCachePtr sys = GetEngine().val.Find<ModelCache>();
 	if (!sys)
 		return false;
 	
@@ -184,7 +187,7 @@ bool ShootingComponent::LoadModel(ModelComponent& mdl) {
 	mdl.SetModel(m);
 	
 	if (0) {
-		Ptr<ModelComponent> m = GetEntity()->Find<ModelComponent>();
+		Ptr<ModelComponent> m = GetEntity()->val.Find<ModelComponent>();
 		ASSERT(m);
 		if (m) {
 			m->SetRotation(ConvertToRadians(180), ConvertToRadians(70), 0.0f);

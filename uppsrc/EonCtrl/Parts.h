@@ -3,26 +3,26 @@
 
 
 class PoolTreeCtrl : public ParentCtrl {
-	Ecs::Engine*		mach = 0;
-	Ecs::EntityStoreRef	es;
-	Ecs::PoolRef		selected;
+	Engine*		mach = 0;
+	EntityStorePtr	es;
+	PoolRef		selected;
 	TreeCtrl			tree;
 	uint64				last_hash = 0;
 
 	void OnCursor();
 	hash_t GetPoolTreeHash() const;
 	
-	void AddPool(int parent, Ecs::PoolRef pool);
+	void AddPool(int parent, PoolRef pool);
 	
 public:
 	typedef PoolTreeCtrl CLASSNAME;
 	PoolTreeCtrl();
 	
-	void SetEngine(Ecs::Engine& m);
+	void SetEngine(Engine& m);
 	void Updated() override;
 	void Data();
 	
-	Ecs::PoolRef GetSelected() {return selected;}
+	PoolRef GetSelected() {return selected;}
 	
 	Callback WhenPoolChanged;
 	
@@ -30,9 +30,9 @@ public:
 
 
 class EntityListCtrl : public ParentCtrl {
-	Ecs::EntityStoreRef	es;
-	Ecs::PoolRef		pool;
-	Ecs::EntityRef		selected;
+	EntityStorePtr	es;
+	PoolRef		pool;
+	EntityPtr		selected;
 	ArrayCtrl			list;
 	uint64				last_hash = 0;
 
@@ -43,11 +43,11 @@ public:
 	typedef EntityListCtrl CLASSNAME;
 	EntityListCtrl();
 	
-	void SetPool(Ecs::PoolRef pool);
+	void SetPool(PoolRef pool);
 	void Updated() override;
 	void Data();
 	
-	Ecs::EntityRef GetSelected() {return selected;}
+	EntityPtr GetSelected() {return selected;}
 	
 	Callback WhenEntityChanged;
 	
@@ -58,7 +58,7 @@ class EntityBrowserCtrl : public ParentCtrl {
 	Splitter			vsplit;
 	PoolTreeCtrl		pool_tree;
 	EntityListCtrl		ent_list;
-	Ecs::PoolRef				sel_pool;
+	PoolRef				sel_pool;
 	
 	void OnPoolCursorChanged();
 	
@@ -66,10 +66,10 @@ public:
 	typedef EntityBrowserCtrl CLASSNAME;
 	EntityBrowserCtrl();
 	
-	void SetEngine(Ecs::Engine& m) {pool_tree.SetEngine(m);}
+	void SetEngine(Engine& m) {pool_tree.SetEngine(m);}
 	void Updated() override;
 	void Data();
-	Ecs::EntityRef GetSelected() {return ent_list.GetSelected();}
+	EntityPtr GetSelected() {return ent_list.GetSelected();}
 	
 	Callback WhenEntityChanged;
 	
@@ -78,12 +78,12 @@ public:
 class EntityContentCtrl : public ParentCtrl {
 	TreeCtrl tree;
 	Image ent_icon, comp_icon, iface_icon;
-	Ecs::EntityRef ent;
+	EntityPtr ent;
 	int64 ent_changed_time = -1;
 	VectorMap<int, int> node_comps;
 	
 	void OnCursor();
-	void AddTreeEntity(int tree_i, const Ecs::Entity& e);
+	void AddTreeEntity(int tree_i, const Entity& e);
 	
 public:
 	typedef EntityContentCtrl CLASSNAME;
@@ -91,8 +91,8 @@ public:
 	
 	void Updated() override;
 	
-	void SetEntity(Ecs::EntityRef e) {ent = e;}
-	void GetCursor(Ecs::ComponentBaseRef& c);
+	void SetEntity(EntityPtr e) {ent = e;}
+	void GetCursor(ComponentPtr& c);
 	
 	Callback WhenContentCursor;
 	
@@ -100,9 +100,9 @@ public:
 
 
 class InterfaceListCtrl : public ParentCtrl {
-	LinkedList<ExchangeProviderBaseRef> ifaces;
+	LinkedList<ExchangeProviderBasePtr> ifaces;
 	ArrayCtrl list;
-	Ecs::EntityRef ent;
+	EntityPtr ent;
 	int64 ent_changed_time = -1;
 	int write_cursor;
 	
@@ -127,8 +127,8 @@ public:
 	
 	void Updated() override;
 	
-	void SetEntity(Ecs::EntityRef e) {ent = e;}
-	void GetCursor(Ecs::ComponentBaseRef& c, ExchangeProviderBaseRef& i);
+	void SetEntity(EntityPtr e) {ent = e;}
+	void GetCursor(ComponentPtr& c, ExchangeProviderBasePtr& i);
 	
 	Callback WhenInterfaceCursor;
 	

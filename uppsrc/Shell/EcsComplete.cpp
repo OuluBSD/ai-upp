@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 
 
-void MachineEcsInit(Machine& mach) {
+void MachineEcsInit(Engine& mach) {
 	
 	#ifdef flagPHYSICS
 	#ifdef flagODE
@@ -15,22 +15,22 @@ void MachineEcsInit(Machine& mach) {
 	#endif
 	#endif
 	
-	Ecs::Engine::WhenInitialize << callback(EngineEcsInit);
+	Engine::WhenInitialize << callback(EngineEcsInit);
 }
 
-void EngineEcsInit(Ecs::Engine& eng) {
+void EngineEcsInit(Engine& eng) {
     
-	eng.GetAdd<Ecs::RegistrySystem>();
-	eng.GetAdd<Ecs::InteractionSystem>();
+	eng.GetAdd<RegistrySystem>();
+	eng.GetAdd<InteractionSystem>();
 	
-	eng.GetAdd<Ecs::RenderingSystem>();
-	//eng.GetAdd<Ecs::ComponentStore>();
-	eng.GetAdd<Ecs::EventSystem>();
+	eng.GetAdd<RenderingSystem>();
+	//eng.GetAdd<ComponentStore>();
+	eng.GetAdd<EventSystem>();
 	
 	#if 0
 	#if HAVE_WINDOWSYSTEM
-	eng.GetAdd<Ecs::VirtualGuiSystem>();
-	eng.GetAdd<Ecs::WindowSystem>();
+	eng.GetAdd<VirtualGuiSystem>();
+	eng.GetAdd<WindowSystem>();
 	#endif
 	#endif
 	

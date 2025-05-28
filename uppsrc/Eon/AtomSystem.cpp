@@ -1,9 +1,9 @@
 #include "Eon.h"
 
-  
+#if 0
+
+
 NAMESPACE_UPP
-
-
 
 
 bool AtomSystem::Initialize() {
@@ -43,6 +43,7 @@ void AtomSystem::RemoveUpdated(AtomBasePtr p) {
 	updated.RemoveKey(p);
 }
 
-
-
 END_UPP_NAMESPACE
+
+#endif
+

@@ -94,7 +94,7 @@ struct VrControllerSource : ControllerSource {
 
 struct VrSpatialInteractionManager : InteractionManager {
 	EnvStatePtr state;
-	//Ecs::RenderingSystemPtr rend;
+	//RenderingSystemPtr rend;
 	VrControllerSource ctrl;
 	InteractionSystem* sys = 0;
 	Point prev_mouse = Point(0,0);
@@ -150,7 +150,7 @@ struct VrSpatialInteractionManager : InteractionManager {
 
 struct InteractionListener
 {
-	virtual Ecs::SystemBase* GetSystem() = 0;
+	virtual System* GetSystem() = 0;
     virtual void OnControllerDetected(const GeomEvent& e) {};
     virtual void OnControllerLost(const GeomEvent& e) {};
     virtual void OnControllerPressed(const GeomEvent& e) {};

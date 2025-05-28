@@ -12,7 +12,7 @@ String CenterCustomer::GetAction() {
 
 AtomTypeCls CenterCustomer::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CENTER_CUSTOMER;
+	t.sub = SUB_ATOM_CLS; //CENTER_CUSTOMER;
 	t.role = AtomRole::CUSTOMER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,ORDER),0);
@@ -38,7 +38,7 @@ String TestRealtimeSrc::GetAction() {
 
 AtomTypeCls TestRealtimeSrc::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::TEST_REALTIME_SRC;
+	t.sub = SUB_ATOM_CLS; //TEST_REALTIME_SRC;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,AUDIO),0);
@@ -64,7 +64,7 @@ String TestRealtimeSink::GetAction() {
 
 AtomTypeCls TestRealtimeSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::TEST_REALTIME_SINK;
+	t.sub = SUB_ATOM_CLS; //TEST_REALTIME_SINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -90,7 +90,7 @@ String TestPollerSink::GetAction() {
 
 AtomTypeCls TestPollerSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::TEST_POLLER_SINK;
+	t.sub = SUB_ATOM_CLS; //TEST_POLLER_SINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -117,7 +117,7 @@ String PortaudioSink::GetAction() {
 
 AtomTypeCls PortaudioSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::PORTAUDIO_SINK;
+	t.sub = SUB_ATOM_CLS; //PORTAUDIO_SINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -145,7 +145,7 @@ String AudioDecoderSrc::GetAction() {
 
 AtomTypeCls AudioDecoderSrc::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_DECODER_SRC;
+	t.sub = SUB_ATOM_CLS; //AUDIO_DECODER_SRC;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,AUDIO),0);
@@ -172,7 +172,7 @@ String AudioDbgSrc::GetAction() {
 
 AtomTypeCls AudioDbgSrc::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_DBG_SRC;
+	t.sub = SUB_ATOM_CLS; //AUDIO_DBG_SRC;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,AUDIO),0);
@@ -198,7 +198,7 @@ String AudioSplitter::GetAction() {
 
 AtomTypeCls AudioSplitter::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_SPLITTER;
+	t.sub = SUB_ATOM_CLS; //AUDIO_SPLITTER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -225,7 +225,7 @@ String AudioSplitterUser::GetAction() {
 
 AtomTypeCls AudioSplitterUser::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_SPLITTER_USER;
+	t.sub = SUB_ATOM_CLS; //AUDIO_SPLITTER_USER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -259,7 +259,7 @@ String AudioJoiner::GetAction() {
 
 AtomTypeCls AudioJoiner::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_JOINER;
+	t.sub = SUB_ATOM_CLS; //AUDIO_JOINER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),0);
@@ -286,7 +286,7 @@ String AudioJoinerUser::GetAction() {
 
 AtomTypeCls AudioJoinerUser::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_JOINER_USER;
+	t.sub = SUB_ATOM_CLS; //AUDIO_JOINER_USER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -313,7 +313,7 @@ String AudioJoiner2User::GetAction() {
 
 AtomTypeCls AudioJoiner2User::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_JOINER2_USER;
+	t.sub = SUB_ATOM_CLS; //AUDIO_JOINER2_USER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -341,7 +341,7 @@ String AudioMixer16::GetAction() {
 
 AtomTypeCls AudioMixer16::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_MIXER16;
+	t.sub = SUB_ATOM_CLS; //AUDIO_MIXER16;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -384,7 +384,7 @@ String VideoDbgSrc::GetAction() {
 
 AtomTypeCls VideoDbgSrc::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::VIDEO_DBG_SRC;
+	t.sub = SUB_ATOM_CLS; //VIDEO_DBG_SRC;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,VIDEO),0);
@@ -412,7 +412,7 @@ String WebcamPipe::GetAction() {
 
 AtomTypeCls WebcamPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WEBCAM_PIPE;
+	t.sub = SUB_ATOM_CLS; //WEBCAM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,VIDEO),0);
@@ -440,7 +440,7 @@ String WebcamAtom::GetAction() {
 
 AtomTypeCls WebcamAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WEBCAM_ATOM;
+	t.sub = SUB_ATOM_CLS; //WEBCAM_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -469,7 +469,7 @@ String AudioLoaderAtom::GetAction() {
 
 AtomTypeCls AudioLoaderAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::AUDIO_LOADER_ATOM;
+	t.sub = SUB_ATOM_CLS; //AUDIO_LOADER_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -498,7 +498,7 @@ String VideoLoaderAtom::GetAction() {
 
 AtomTypeCls VideoLoaderAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::VIDEO_LOADER_ATOM;
+	t.sub = SUB_ATOM_CLS; //VIDEO_LOADER_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -528,7 +528,7 @@ String EventStatePipe::GetAction() {
 
 AtomTypeCls EventStatePipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::EVENT_STATE_PIPE;
+	t.sub = SUB_ATOM_CLS; //EVENT_STATE_PIPE;
 	t.role = AtomRole::DRIVER_PIPE;
 	t.AddIn(VD(CENTER,EVENT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -556,7 +556,7 @@ String X11SwFboProg::GetAction() {
 
 AtomTypeCls X11SwFboProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_FBO_PROG;
+	t.sub = SUB_ATOM_CLS; //X11_SW_FBO_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,FBO),1);
@@ -585,7 +585,7 @@ String X11OglFboProg::GetAction() {
 
 AtomTypeCls X11OglFboProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_FBO_PROG;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_FBO_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -614,7 +614,7 @@ String SdlSwFboProg::GetAction() {
 
 AtomTypeCls SdlSwFboProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_SW_FBO_PROG;
+	t.sub = SUB_ATOM_CLS; //SDL_SW_FBO_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,FBO),1);
@@ -643,7 +643,7 @@ String SdlOglFboProg::GetAction() {
 
 AtomTypeCls SdlOglFboProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_PROG;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -672,7 +672,7 @@ String X11SwShaderPipe::GetAction() {
 
 AtomTypeCls X11SwShaderPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_SHADER_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_SW_SHADER_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,FBO),0);
@@ -700,7 +700,7 @@ String X11OglShaderPipe::GetAction() {
 
 AtomTypeCls X11OglShaderPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_SHADER_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_SHADER_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,FBO),0);
@@ -728,7 +728,7 @@ String SdlOglShaderPipe::GetAction() {
 
 AtomTypeCls SdlOglShaderPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_SHADER_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_SHADER_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,FBO),0);
@@ -756,7 +756,7 @@ String X11SwFboAtomPipe::GetAction() {
 
 AtomTypeCls X11SwFboAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_FBO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_SW_FBO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,FBO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -784,7 +784,7 @@ String X11OglFboAtomPipe::GetAction() {
 
 AtomTypeCls X11OglFboAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_FBO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_FBO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,FBO),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -812,7 +812,7 @@ String SdlSwFboAtomPipe::GetAction() {
 
 AtomTypeCls SdlSwFboAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_SW_FBO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_SW_FBO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,FBO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -840,7 +840,7 @@ String SdlOglFboAtomPipe::GetAction() {
 
 AtomTypeCls SdlOglFboAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,FBO),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -868,7 +868,7 @@ String SdlOglProgAtomPipe::GetAction() {
 
 AtomTypeCls SdlOglProgAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_PROG_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_PROG_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,PROG),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -896,7 +896,7 @@ String X11ContextAtom::GetAction() {
 
 AtomTypeCls X11ContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //X11_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -924,7 +924,7 @@ String X11SwContextAtom::GetAction() {
 
 AtomTypeCls X11SwContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //X11_SW_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -952,7 +952,7 @@ String X11OglContextAtom::GetAction() {
 
 AtomTypeCls X11OglContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -980,7 +980,7 @@ String X11EventAtomPipe::GetAction() {
 
 AtomTypeCls X11EventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_EVENT_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -1008,7 +1008,7 @@ String X11SwEventAtomPipe::GetAction() {
 
 AtomTypeCls X11SwEventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_SW_EVENT_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -1036,7 +1036,7 @@ String X11OglEventAtomPipe::GetAction() {
 
 AtomTypeCls X11OglEventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_EVENT_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -1064,7 +1064,7 @@ String WinContextAtom::GetAction() {
 
 AtomTypeCls WinContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //WIN_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1092,7 +1092,7 @@ String WinVideoAtomPipe::GetAction() {
 
 AtomTypeCls WinVideoAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_VIDEO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //WIN_VIDEO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,VIDEO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1119,7 +1119,7 @@ String DxCustomer::GetAction() {
 
 AtomTypeCls DxCustomer::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::DX_CUSTOMER;
+	t.sub = SUB_ATOM_CLS; //DX_CUSTOMER;
 	t.role = AtomRole::CUSTOMER;
 	t.AddIn(VD(DX,RECEIPT),0);
 	t.AddOut(VD(DX,ORDER),0);
@@ -1146,7 +1146,7 @@ String WinD11ContextAtom::GetAction() {
 
 AtomTypeCls WinD11ContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_D11_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //WIN_D11_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1174,7 +1174,7 @@ String WinD11FboProg::GetAction() {
 
 AtomTypeCls WinD11FboProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_D11_FBO_PROG;
+	t.sub = SUB_ATOM_CLS; //WIN_D11_FBO_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(DX,ORDER),0);
 	t.AddIn(VD(DX,FBO),1);
@@ -1203,7 +1203,7 @@ String WinD11FboAtomPipe::GetAction() {
 
 AtomTypeCls WinD11FboAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_D11_FBO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //WIN_D11_FBO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(DX,FBO),0);
 	t.AddOut(VD(DX,RECEIPT),0);
@@ -1231,7 +1231,7 @@ String WinD11FboAtomSA::GetAction() {
 
 AtomTypeCls WinD11FboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::WIN_D11_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //WIN_D11_FBO_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(DX,ORDER),0);
 	t.AddOut(VD(DX,RECEIPT),0);
@@ -1258,7 +1258,7 @@ String OglCustomer::GetAction() {
 
 AtomTypeCls OglCustomer::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::OGL_CUSTOMER;
+	t.sub = SUB_ATOM_CLS; //OGL_CUSTOMER;
 	t.role = AtomRole::CUSTOMER;
 	t.AddIn(VD(OGL,RECEIPT),0);
 	t.AddOut(VD(OGL,ORDER),0);
@@ -1285,7 +1285,7 @@ String SdlContextAtom::GetAction() {
 
 AtomTypeCls SdlContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //SDL_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1313,7 +1313,7 @@ String SdlEventAtomPipe::GetAction() {
 
 AtomTypeCls SdlEventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_EVENT_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -1340,7 +1340,7 @@ String TestEventSrcPipe::GetAction() {
 
 AtomTypeCls TestEventSrcPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::TEST_EVENT_SRC_PIPE;
+	t.sub = SUB_ATOM_CLS; //TEST_EVENT_SRC_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -1367,7 +1367,7 @@ String SdlOglImageLoader::GetAction() {
 
 AtomTypeCls SdlOglImageLoader::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_IMAGE_LOADER;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_IMAGE_LOADER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1395,7 +1395,7 @@ String VolumeLoaderAtom::GetAction() {
 
 AtomTypeCls VolumeLoaderAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::VOLUME_LOADER_ATOM;
+	t.sub = SUB_ATOM_CLS; //VOLUME_LOADER_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1423,7 +1423,7 @@ String X11VideoAtomPipe::GetAction() {
 
 AtomTypeCls X11VideoAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_VIDEO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_VIDEO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,VIDEO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1451,7 +1451,7 @@ String X11OglVideoAtomPipe::GetAction() {
 
 AtomTypeCls X11OglVideoAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_VIDEO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_VIDEO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,VIDEO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1479,7 +1479,7 @@ String X11OglFboAtomSA::GetAction() {
 
 AtomTypeCls X11OglFboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_FBO_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -1507,7 +1507,7 @@ String X11SwVideoAtomPipe::GetAction() {
 
 AtomTypeCls X11SwVideoAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_VIDEO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_SW_VIDEO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,FBO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1535,7 +1535,7 @@ String X11SwFboAtomSA::GetAction() {
 
 AtomTypeCls X11SwFboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //X11_SW_FBO_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1563,7 +1563,7 @@ String SdlOglFboAtomSA::GetAction() {
 
 AtomTypeCls SdlOglFboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -1591,7 +1591,7 @@ String SdlUppOglDeviceSA::GetAction() {
 
 AtomTypeCls SdlUppOglDeviceSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_UPP_OGL_DEVICE_SA;
+	t.sub = SUB_ATOM_CLS; //SDL_UPP_OGL_DEVICE_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -1619,7 +1619,7 @@ String SdlOglFboPipe::GetAction() {
 
 AtomTypeCls SdlOglFboPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,FBO),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -1647,7 +1647,7 @@ String SdlOglFboAtom::GetAction() {
 
 AtomTypeCls SdlOglFboAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_ATOM;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -1683,7 +1683,7 @@ String SdlUppEventsBasePipe::GetAction() {
 
 AtomTypeCls SdlUppEventsBasePipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_UPP_EVENTS_BASE_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_UPP_EVENTS_BASE_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1711,7 +1711,7 @@ String SdlVideoAtomPipe::GetAction() {
 
 AtomTypeCls SdlVideoAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_VIDEO_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_VIDEO_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,VIDEO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1739,7 +1739,7 @@ String SdlProgAtomPipe::GetAction() {
 
 AtomTypeCls SdlProgAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_PROG_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //SDL_PROG_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,PROG),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1767,7 +1767,7 @@ String X11ProgAtomPipe::GetAction() {
 
 AtomTypeCls X11ProgAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_PROG_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //X11_PROG_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,PROG),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1795,7 +1795,7 @@ String X11SwFboGuiProg::GetAction() {
 
 AtomTypeCls X11SwFboGuiProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_SW_FBO_GUI_PROG;
+	t.sub = SUB_ATOM_CLS; //X11_SW_FBO_GUI_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,PROG),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1824,7 +1824,7 @@ String X11OglFboGuiProg::GetAction() {
 
 AtomTypeCls X11OglFboGuiProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::X11_OGL_FBO_GUI_PROG;
+	t.sub = SUB_ATOM_CLS; //X11_OGL_FBO_GUI_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,PROG),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1853,7 +1853,7 @@ String SdlOglFboGuiProg::GetAction() {
 
 AtomTypeCls SdlOglFboGuiProg::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_FBO_GUI_PROG;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_FBO_GUI_PROG;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,PROG),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1882,7 +1882,7 @@ String SdlVideoAtom::GetAction() {
 
 AtomTypeCls SdlVideoAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_VIDEO_ATOM;
+	t.sub = SUB_ATOM_CLS; //SDL_VIDEO_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,VIDEO),1);
@@ -1918,7 +1918,7 @@ String SdlAudioAtom::GetAction() {
 
 AtomTypeCls SdlAudioAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_AUDIO_ATOM;
+	t.sub = SUB_ATOM_CLS; //SDL_AUDIO_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -1946,7 +1946,7 @@ String SdlOglShaderAtom::GetAction() {
 
 AtomTypeCls SdlOglShaderAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_SHADER_ATOM;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_SHADER_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -1982,7 +1982,7 @@ String SdlOglShaderAtomSA::GetAction() {
 
 AtomTypeCls SdlOglShaderAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_SHADER_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_SHADER_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,RECEIPT),0);
@@ -2010,7 +2010,7 @@ String SdlOglTextureSource::GetAction() {
 
 AtomTypeCls SdlOglTextureSource::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_TEXTURE_SOURCE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_TEXTURE_SOURCE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(CENTER,VIDEO),1);
@@ -2040,7 +2040,7 @@ String SdlOglVolumeSource::GetAction() {
 
 AtomTypeCls SdlOglVolumeSource::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_VOLUME_SOURCE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_VOLUME_SOURCE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(CENTER,VOLUME),1);
@@ -2070,7 +2070,7 @@ String SdlOglAudioSink::GetAction() {
 
 AtomTypeCls SdlOglAudioSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_AUDIO_SINK;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_AUDIO_SINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -2100,7 +2100,7 @@ String SdlOglKeyboardSource::GetAction() {
 
 AtomTypeCls SdlOglKeyboardSource::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_KEYBOARD_SOURCE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_KEYBOARD_SOURCE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(OGL,FBO),1);
@@ -2136,7 +2136,7 @@ String SdlOglAudioSource::GetAction() {
 
 AtomTypeCls SdlOglAudioSource::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SDL_OGL_AUDIO_SOURCE;
+	t.sub = SUB_ATOM_CLS; //SDL_OGL_AUDIO_SOURCE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);

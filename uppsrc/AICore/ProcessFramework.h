@@ -66,8 +66,8 @@ public:
 	
 };
 
-// Note: the Agent has additional Ecs::Component features,
-//       but it's standalone without Ecs::Engine too.
+// Note: the Agent has additional Component features,
+//       but it's standalone without Engine too.
 struct Agent : Component {
 private:
 	Vector<AgentInteractionSession*> sessions;

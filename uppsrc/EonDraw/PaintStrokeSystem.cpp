@@ -43,7 +43,7 @@ bool PaintStrokeSystemBase::Initialize() {
 void PaintStrokeSystemBase::Update(double) {
 	for (PaintStrokeComponent* paint_stroke : comps) {
 		if (paint_stroke->stroke_changed) {
-			ModelComponentPtr c = paint_stroke->GetEntity()->Find<ModelComponent>();
+			ModelComponentPtr c = paint_stroke->GetEntity()->val.Find<ModelComponent>();
 			Ptr<Model> m = c->GetModel();
 			
 			if (m) {

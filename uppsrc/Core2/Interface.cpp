@@ -92,7 +92,7 @@ void DefaultExchangePoint::ForwardAtom(FwdScope& fwd) {
 	WhenLeaveValExPtForward();
 }
 
-void DefaultExchangePoint::Init(MetaSpaceBase* mexpt) {
+void DefaultExchangePoint::Init(VfsValue* mexpt) {
 	ASSERT(mexpt);
 	
 	#if HAVE_VALSYSTEM
@@ -100,7 +100,7 @@ void DefaultExchangePoint::Init(MetaSpaceBase* mexpt) {
 	this->conn = conn;
 	if (conn) {
 		SpacePtr loop = GetConnectorBaseSpace(conn);
-		Machine& mach = GetSpaceMachine(loop);
+		Engine& mach = GetSpaceMachine(loop);
 		Ptr<ValSystem> sys = mach.Get<ValSystem>();
 		ASSERT(sys);
 		if (sys)
@@ -114,7 +114,7 @@ void DefaultExchangePoint::Deinit() {
 	USING_VALDEVCORE(ValSystem)
 	if (conn) {
 		SpacePtr loop = GetConnectorBaseSpace(conn);
-		Machine& mach = GetSpaceMachine(loop);
+		Engine& mach = GetSpaceMachine(loop);
 		Ptr<ValSystem> sys = mach.Get<ValSystem>();
 		ASSERT(sys);
 		if (sys)

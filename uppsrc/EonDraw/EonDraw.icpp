@@ -3,10 +3,8 @@
 NAMESPACE_UPP
 
 INITBLOCK {
-	using namespace Ecs;
-	
 	#define ECS_CTX(dev, val, prefix) \
-		Factory::RegisterInterfaceLink<DefaultExchangePoint>(DevCls::dev, ValCls::val);
+		VfsValueExtFactory::RegisterExchange<DefaultExchangePoint>(DevCls::dev, ValCls::val);
 	#define IFACE_CTX_CLS(dev, value, prefix) ECS_CTX(dev, value, prefix)
 	#define IFACE(x) DEV_IFACE(x)
 	IFACE_LIST
@@ -18,35 +16,35 @@ INITBLOCK {
 	
 	
 	// System
-	Engine::Register<EventSystem>("events");
-	Engine::Register<RenderingSystem>("rendering");
-	Engine::Register<PaintStrokeSystemBase>("paintstroke");
-	Engine::Register<ToolboxSystemBase>("toolbox");
-	Engine::Register<PaintingInteractionSystemBase>("painting");
-	Engine::Register<ShootingInteractionSystemBase>("shooting");
-	Engine::Register<ThrowingInteractionSystemBase>("throwing");
+	VfsValueExtFactory::Register<EventSystem>("events", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<RenderingSystem>("rendering", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<PaintStrokeSystemBase>("paintstroke", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<ToolboxSystemBase>("toolbox", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<PaintingInteractionSystemBase>("painting", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<ShootingInteractionSystemBase>("shooting", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<ThrowingInteractionSystemBase>("throwing", VFSEXT_SYSTEM_ECS);
 	
 	// Component
-	ComponentFactory::Register<Viewable>("viewable");
-	ComponentFactory::Register<Viewport>("viewport");
-	ComponentFactory::Register<ChaseCam>("camera.chase");
-	ComponentFactory::Register<Renderable>("renderable");
-	ComponentFactory::Register<ModelComponent>("model");
-	ComponentFactory::Register<ToolComponent>("tool");
-	ComponentFactory::Register<ToolSelectorKey>("tool.selector");
-	ComponentFactory::Register<PlayerHandComponent>("player.hand");
-	ComponentFactory::Register<PlayerHeadComponent>("player.head");
-	ComponentFactory::Register<PlayerBodyComponent>("player.body");
-	ComponentFactory::Register<PaintStrokeComponent>("paint.stroke");
+	VfsValueExtFactory::Register<Viewable>("viewable", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Viewport>("viewport", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ChaseCam>("camera.chase", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Renderable>("renderable", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ModelComponent>("model", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ToolComponent>("tool", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ToolSelectorKey>("tool.selector", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PlayerHandComponent>("player.hand", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PlayerHeadComponent>("player.head", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PlayerBodyComponent>("player.body", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PaintStrokeComponent>("paint.stroke", VFSEXT_COMPONENT);
 	
 	// CustomToolComponent
-	ComponentFactory::Register<PaintComponent>("paint");
-	ComponentFactory::Register<ShootingComponent>("shoot");
-	ComponentFactory::Register<ThrowingComponent>("throw");
+	VfsValueExtFactory::Register<PaintComponent>("paint", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ShootingComponent>("shoot", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<ThrowingComponent>("throw", VFSEXT_COMPONENT);
 	
 	#ifdef flagGUI
-	DesktopFactory::Register<GuiTesterApp>("guitester");
-	ComponentFactory::Register<DefaultGuiAppComponent>("gui.app");
+	VfsValueExtFactory::Register<GuiTesterApp>("guitester", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<DefaultGuiAppComponent>("gui.app", VFSEXT_COMPONENT);
 	#endif
 	
 	

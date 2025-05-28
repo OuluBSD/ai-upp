@@ -13,7 +13,7 @@ String OpenHMDPipe::GetAction() {
 
 AtomTypeCls OpenHMDPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::OPEN_HMDPIPE;
+	t.sub = SUB_ATOM_CLS; //OPEN_HMDPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -41,7 +41,7 @@ String LocalHMDPipe::GetAction() {
 
 AtomTypeCls LocalHMDPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::LOCAL_HMDPIPE;
+	t.sub = SUB_ATOM_CLS; //LOCAL_HMDPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -69,7 +69,7 @@ String RemoteVRServerPipe::GetAction() {
 
 AtomTypeCls RemoteVRServerPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::REMOTE_VRSERVER_PIPE;
+	t.sub = SUB_ATOM_CLS; //REMOTE_VRSERVER_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -97,7 +97,7 @@ String BluetoothHoloPipe::GetAction() {
 
 AtomTypeCls BluetoothHoloPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::BLUETOOTH_HOLO_PIPE;
+	t.sub = SUB_ATOM_CLS; //BLUETOOTH_HOLO_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -125,7 +125,7 @@ String HoloContextAtom::GetAction() {
 
 AtomTypeCls HoloContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::HOLO_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //HOLO_CONTEXT_ATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -153,7 +153,7 @@ String HoloEventAtomPipe::GetAction() {
 
 AtomTypeCls HoloEventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::HOLO_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //HOLO_EVENT_ATOM_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -181,7 +181,7 @@ String HoloD12FboAtomSA::GetAction() {
 
 AtomTypeCls HoloD12FboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::HOLO_D12_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //HOLO_D12_FBO_ATOM_SA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(DX,ORDER),0);
 	t.AddOut(VD(DX,RECEIPT),0);

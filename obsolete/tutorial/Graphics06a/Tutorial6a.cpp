@@ -42,10 +42,10 @@ void Graphics6a::Render(SystemDraw& draw) {
 
 
 void Graphics6aInitializer() {
-	/*Machine& mach = GetMachine();
+	/*Engine& mach = GetEngine();
 	
 	EntityStore& ents = *mach.Get<EntityStore>();
-	EntityRef obj = ents.Create<StaticModel>();
+	EntityPtr obj = ents.Create<StaticModel>();
 	obj->Find<Connector>()->ConnectAll();
 	Ref<ModelComponent> mdl = obj->GetRef<ModelComponent>();
 	

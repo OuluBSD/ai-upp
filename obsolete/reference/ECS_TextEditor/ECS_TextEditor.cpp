@@ -9,7 +9,7 @@ void Main() {
 	
 	Machine mach;
 	RegistrySystemRef reg = mach.Add<RegistrySystem>();
-	EntityStoreRef es = mach.Add<EntityStore>();
+	EntityStorePtr es = mach.Add<EntityStore>();
 	PoolRef root = es->GetRoot();
 	//PoolRef actors = root->AddPool("actors");
 	//PoolRef externals = root->AddPool("externals");

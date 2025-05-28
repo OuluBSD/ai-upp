@@ -98,7 +98,7 @@ void MidiFileReaderAtom::DumpMidiFile() {
 
 void MidiFileReaderAtom::Update(double dt) {
 	if (close_machine && IsEnd())
-		GetMachine().SetNotRunning();
+		GetEngine().SetNotRunning();
 	
 	// The first update is often laggy, so wait until the second one
 	if (song_dt < 0) {

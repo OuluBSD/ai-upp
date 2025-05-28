@@ -219,7 +219,6 @@ struct ValStreamState {
 	void Step();
 };
 
-struct Atom;
 
 struct PacketIO {
 	

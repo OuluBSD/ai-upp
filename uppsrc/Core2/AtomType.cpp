@@ -3,16 +3,42 @@
 NAMESPACE_UPP
 
 
+String GetAtomRoleString(AtomRole t) {
+	switch (t) {
+		#define ATOM_ROLE(x) case x: return #x;
+		ATOM_ROLE_LIST
+		
+		#undef ATOM_ROLE
+		default:			return "invalid";
+	}
+}
+
+String GetValClsName(ValCls t) {
+	switch (t) {
+		#define IFACE(x) case x: return ToLower(String(#x));
+		IFACE_LIST
+		#undef IFACE
+		default: return "invalid";
+	}
+}
+
+String GetDevClsName(DevCls t) {
+	switch (t) {
+		case CENTER:	return "center";
+		case NET:		return "net";
+		case OGL:		return "ogl";
+		case DX:		return "dx";
+		case INVALID_DEV:
+		default: return "invalid";
+	}
+}
+
 ValDevCls::ValDevCls() {}
 ValDevCls::ValDevCls(DevCls d, ValCls v)
 	: val(v), dev(d)
 {
 }
 ValDevCls::ValDevCls(ValCls v, DevCls d)
-	: val(v), dev(d)
-{
-}
-ValDevCls::ValDevCls(const DevCls& d, const ValCls& v)
 	: val(v), dev(d)
 {
 }
@@ -26,7 +52,7 @@ void ValDevCls::Clear()
 	dev = INVALID_DEV;
 }
 bool ValDevCls::IsValid() const { return val != INVALID_VAL && dev != INVALID_DEV; }
-String ValDevCls::GetName() const { return dev.GetName() + "." + val.GetName(); }
+String ValDevCls::GetName() const { return GetDevClsName(dev) + "." + GetValClsName(val); }
 void ValDevCls::operator=(const Nuller& n)
 {
 	val = INVALID_VAL;
@@ -43,12 +69,12 @@ hash_t ValDevCls::GetHashValue() const
 {
 	return (int)dev * (int)ValCls::TYPE_COUNT + (int)val;
 }
-String ValDevCls::ToString() const { return dev.GetName() + "-" + val.GetName(); }
+String ValDevCls::ToString() const { return GetDevClsName(dev) + "-" + GetValClsName(val); }
 String ValDevCls::GetActionName() const
 {
-	return ToLower(dev.GetName()) + "." + ToLower(val.GetName());
+	return ToLower(GetDevClsName(dev)) + "." + ToLower(GetValClsName(val));
 }
-void ValDevCls::Visit(Vis& v) { _VIS_(val) VIS_(dev); }
+void ValDevCls::Visit(Vis& v) { v("val",(int&)val)("dev",(int&)dev); }
 
 void AtomCls::Visit(Vis& v) { v VISN(sink) VISN(src) VISN(side); }
 bool AtomCls::IsValid() const { return sink.IsValid() && src.IsValid() && side.IsValid(); }
@@ -145,7 +171,12 @@ void AtomIfaceTypeCls::operator=(const AtomIfaceTypeCls& o) {
 	sink = o.sink;
 	src = o.src;
 }
-hash_t AtomIfaceTypeCls::GetHashValue() const;
+hash_t AtomIfaceTypeCls::GetHashValue() const {
+	CombineHash c;
+	c.Put(sink.GetHashValue());
+	c.Put(src.GetHashValue());
+	return c;
+}
 bool AtomIfaceTypeCls::operator==(const AtomIfaceTypeCls& c) const {
 	return	sink		== c.sink &&
 			src			== c.src
@@ -161,16 +192,30 @@ AtomTypeCls::AtomTypeCls() {}
 AtomTypeCls::AtomTypeCls(const AtomTypeCls& c) {*this = c;}
 AtomTypeCls::AtomTypeCls(TypeCls cls, AtomRole role, const ValDevCls& sink, const ValDevCls& src) : iface(sink,src), sub(cls), role(role) {}
 AtomTypeCls::AtomTypeCls(TypeCls cls, AtomRole role, const ValDevTuple& sink, const ValDevTuple& src) : iface(sink,src), sub(cls), role(role) {}
-void AtomTypeCls::AddIn(ValDevCls vd, bool is_opt);
-void AtomTypeCls::AddOut(ValDevCls vd, bool is_opt);
-bool AtomTypeCls::IsRoleDriver()		const {return role == AtomRole::DRIVER;}
-bool AtomTypeCls::IsRoleCustomer()	const {return role == AtomRole::CUSTOMER;}
-bool AtomTypeCls::IsRolePipe()		const {return role == AtomRole::PIPE;}
-bool AtomTypeCls::IsSourceChannelOptional(int ch_i) const;
-bool AtomTypeCls::IsSinkChannelOptional(int ch_i) const;
-bool AtomTypeCls::IsValid() const {return iface.IsValid() && sub != TypeCls::INVALID_ATOM && role != AtomRole::INVALID_ATOMROLE;}
-hash_t AtomTypeCls::GetHashValue() const;
-void AtomTypeCls::operator=(const Nuller& n) {iface = n; sub = TypeCls::INVALID_ATOM; role = AtomRole::INVALID_ATOMROLE;}
+void AtomTypeCls::AddIn(ValDevCls vd, bool is_opt) {
+	iface.sink.channels.Add().Set(vd, is_opt);
+}
+void AtomTypeCls::AddOut(ValDevCls vd, bool is_opt) {
+	iface.src.channels.Add().Set(vd, is_opt);
+}
+bool AtomTypeCls::IsRoleDriver() const {return role == AtomRole::DRIVER;}
+bool AtomTypeCls::IsRoleCustomer() const {return role == AtomRole::CUSTOMER;}
+bool AtomTypeCls::IsRolePipe() const {return role == AtomRole::PIPE;}
+bool AtomTypeCls::IsSourceChannelOptional(int ch_i) const {
+	return iface.src[ch_i].is_opt;
+}
+bool AtomTypeCls::IsSinkChannelOptional(int ch_i) const {
+	return iface.sink[ch_i].is_opt;
+}
+bool AtomTypeCls::IsValid() const {return iface.IsValid() && !sub && role != AtomRole::INVALID_ATOMROLE;}
+hash_t AtomTypeCls::GetHashValue() const {
+	CombineHash c;
+	c.Put(iface.GetHashValue());
+	c.Put(sub);
+	c.Put(role);
+	return c;
+}
+void AtomTypeCls::operator=(const Nuller& n) {iface = n; sub = AsVoidTypeCls(); role = AtomRole::INVALID_ATOMROLE;}
 void AtomTypeCls::operator=(const AtomTypeCls& o) {
 	iface = o.iface;
 	sub = o.sub;
@@ -183,7 +228,7 @@ bool AtomTypeCls::operator==(const AtomTypeCls& c) const {
 			;
 }
 bool AtomTypeCls::operator!=(const AtomTypeCls& c) const {return !(*this == c);}
-String AtomTypeCls::ToString() const {return GetSubAtomString(sub) + "-" + GetAtomRoleString(role) + "-" + iface.ToString();}
+String AtomTypeCls::ToString() const {return sub.ToString() + "-" + GetAtomRoleString(role) + "-" + iface.ToString();}
 
 
 

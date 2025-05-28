@@ -16,7 +16,7 @@ using namespace DirectX;
 // Holographic Renderer 
 ////////////////////////////////////////////////////////////////////////////////
 HolographicRenderer::HolographicRenderer(
-    Machine& core,
+    Engine& core,
     std::shared_ptr<DeviceResources> deviceResources,
     std::shared_ptr<Pbr::Resources> pbrResources,
     ID3D11ShaderResourceView* skyboxTexture) :
@@ -78,8 +78,8 @@ void HolographicRenderer::Uninitialize()
 
 void HolographicRenderer::Start()
 {
-	Machine& m_engine = this->GetMachine();
-    //m_entityStore = m_engine.Get<Ecs::EntityStore>();
+	Engine& m_engine = this->GetEngine();
+    //m_entityStore = m_engine.Get<EntityStore>();
     m_holoScene = m_engine.Get<HolographicScene>();
 
     BindEventHandlers(m_holoScene->HolographicSpace());

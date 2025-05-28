@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-void SetupUK101(Machine& mach) {
+void SetupUK101(Engine& mach) {
 
 	// http://searle.x10host.com/uk101/uk101.html
 	// Next: http://searle.x10host.com/zx80/zx80.html

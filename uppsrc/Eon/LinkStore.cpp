@@ -23,9 +23,9 @@ LinkBase* LinkStore::CreateLink(LinkTypeCls cls) {
 LinkBase* LinkStore::CreateLinkTypeCls(LinkTypeCls cls) {
 	TODO
 	#if 0
-	auto it = Factory::producers.Find(cls);
+	auto it = VfsValueExtFactory::producers.Find(cls);
 	if (!it) {
-		auto new_fn = Factory::LinkDataMap().Get(cls).new_fn;
+		auto new_fn = VfsValueExtFactory::LinkDataMap().Get(cls).new_fn;
 		std::function<LinkBase*()> p([new_fn] { return new_fn();});
 		std::function<void(LinkBase*)> r([] (Base* b){ delete b;});
 		Factory::producers.Add(cls) = p;

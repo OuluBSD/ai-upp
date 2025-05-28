@@ -726,7 +726,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						<< "}\n\n"
 						<< "AtomTypeCls " << h.name << "::GetAtomType() {\n"
 						<< "\tAtomTypeCls t;\n"
-						<< "\tt.sub = SubAtomCls::" << GetMacroName(h.name) << ";\n"
+						<< "\tt.sub = AsTypeCls<" << h.name << ">();\n"
 						<< "\tt.role = AtomRole::" << ToUpper(h.role) << ";\n";
 						
 					for(int i = 0; i < h.ins.GetCount(); i++) {

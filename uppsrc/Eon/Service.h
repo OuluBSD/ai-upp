@@ -4,8 +4,8 @@
 
 class EcsService : public DaemonService {
 	EnetServiceServer* server = 0;
-	Ecs::EntityPtr bound_entity;
-	Ecs::EntityPtr ResolveEntity(Ecs::PoolPtr& root, String path);
+	EntityPtr bound_entity;
+	EntityPtr ResolveEntity(VfsValue& root, String path);
 	
 public:
 	// Remote connection

@@ -433,14 +433,13 @@ bool KeyboardBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
 		return false;
 	}
 	
-	Space& space = this->GetParent();
-	state = space.FindNearestState(target);
+	auto* state = this->val.template FindOwnerWith<EnvState>(target);
 	if (!state) {
-		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << space.GetDeepName());
+		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
 		return false;
 	}
 	
-	FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
+	FboKbd::KeyVec& data = state->template Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	data.SetAll(false);
 	
 	return true;

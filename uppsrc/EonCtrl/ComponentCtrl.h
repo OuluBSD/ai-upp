@@ -9,7 +9,7 @@ public:
 	typedef ComponentCtrl CLASSNAME;
 	ComponentCtrl() {}
 	
-	virtual void SetComponent(Ecs::ComponentBase& c) = 0;
+	virtual void SetComponent(Component& c) = 0;
 	
 };
 

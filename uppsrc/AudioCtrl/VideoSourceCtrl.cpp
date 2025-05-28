@@ -15,7 +15,7 @@ VideoSourceCtrl::VideoSourceCtrl() {
 	
 }
 
-void VideoSourceCtrl::SetInterface(ComponentBaseRef c, ExchangeProviderBaseRef b) {
+void VideoSourceCtrl::SetInterface(ComponentPtr c, ExchangeProviderBasePtr b) {
 	
 }
 

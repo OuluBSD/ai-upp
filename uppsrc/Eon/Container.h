@@ -2,15 +2,19 @@
 #define _Eon_Container_h_
 
 
-class EnvState : public Pte<EnvState>
+class EnvState : public VfsValueExt
 {
 	VectorMap<int, Value> data;
 	String name;
 	
 public:
-	void Visit(Vis& v) {_VIS_(data) VIS_(name);}
+	CLASSTYPE(EnvState)
+	EnvState(VfsValue& v) : VfsValueExt(v) {}
+	
+	String GetName() const override {return name;}
+	void Visit(Vis& v) override{_VIS_(data) VIS_(name);}
+	
 	void SetName(String s) {name = s;}
-	const String& GetName() const {return name;}
 	
 	
 	bool&	SetBool(int key, bool b);
@@ -55,10 +59,7 @@ public:
 	}
 };
 
-//using ExchangeBaseParent	= RefParent1<MetaSpaceBase>;
-//using EnvStateParent		= ExchangeBaseParent;
 using EnvStatePtr			= Ptr<EnvState>;
-using StateVec				= Array<EnvState>;
 
 
 inline String Demangle(const char* name) {

@@ -5,7 +5,7 @@ NAMESPACE_UPP
 void DumpTransforms(String s, PoolRef pool) {
 	LOG(s);
 	int i = 0;
-	for (EntityRef& e : pool->GetEntities()) {
+	for (EntityPtr& e : pool->GetEntities()) {
 		Ref<Transform> t = e->Find<Transform>();
 		if (t) {
 			LOG("\t" << i << ": " << e->ToString() << ": " << t->ToString());
@@ -20,9 +20,9 @@ void DumpTransforms(String s, PoolRef pool) {
 void RunTest() {
 	SetCoutLog();
 	
-	Machine& mach = GetMachine();
+	Engine& mach = GetEngine();
 	RegistrySystemRef reg = mach.Add<RegistrySystem>();
-	EntityStoreRef es = mach.Add<EntityStore>();
+	EntityStorePtr es = mach.Add<EntityStore>();
 	PoolRef root = es->GetRoot();
 	PoolRef actors = root->AddPool("actors");
 	PoolRef externals = root->AddPool("externals");
@@ -412,10 +412,10 @@ void ConnectRoute(RouteSource& src, RouteSink& sink) {
 
 void MergeRoute(PoolRef route, PoolRef waypoints) {
 	struct Item : Moveable<Item> {
-		EntityRef e;
+		EntityPtr e;
 		Ref<RouteSource> src;
 		Ref<RouteSink> sink;
-		void Set(EntityRef e, Ref<RouteSource> src, Ref<RouteSink> sink) {
+		void Set(EntityPtr e, Ref<RouteSource> src, Ref<RouteSink> sink) {
 			this->e = e;
 			this->src = src;
 			this->sink = sink;
@@ -423,17 +423,17 @@ void MergeRoute(PoolRef route, PoolRef waypoints) {
 	};
 	ArrayMap<vec3, Item> ents;
 	
-	for (EntityRef& e : waypoints->GetEntities())
+	for (EntityPtr& e : waypoints->GetEntities())
 		ents.Add(e->Get<Transform>()->position).Set(&*e, e->FindRouteSource(), e->FindRouteSink());
 	
 	int dbg_i = 0;
 	Item* prev = 0;
-	for (EntityRef& e : route->GetEntities()) {
+	for (EntityPtr& e : route->GetEntities()) {
 		vec3 position = e->Get<Transform>()->position;
 		int i = ents.Find(position);
 		Item* it;
 		if (i < 0) {
-			EntityRef new_e = waypoints->Clone(*e);
+			EntityPtr new_e = waypoints->Clone(*e);
 			it = &ents.Add(position);
 			it->e		= &*new_e;
 			it->src		= new_e->FindRouteSource();
@@ -605,7 +605,7 @@ bool Observer::UpdateAct() {
 
 
 void DummyActor::Initialize() {
-	Ref<ActionSystem> as = GetMachine().Get<ActionSystem>();
+	Ref<ActionSystem> as = GetEngine().Get<ActionSystem>();
 	if (as)
 		as->Add(this);
 	
@@ -614,7 +614,7 @@ void DummyActor::Initialize() {
 }
 
 void DummyActor::Uninitialize() {
-	Ref<ActionSystem> as = GetMachine().Get<ActionSystem>();
+	Ref<ActionSystem> as = GetEngine().Get<ActionSystem>();
 	if (as)
 		as->Remove(this);
 }
@@ -688,7 +688,7 @@ void DummyActor::RefreshActionPlan() {
 
 
 void DummyActor::FindRoute() {
-	PoolRef root = GetMachine().Get<EntityStore>()->GetRoot();
+	PoolRef root = GetEngine().Get<EntityStore>()->GetRoot();
 	PoolRef externals = root->GetAddPool("externals");
 	PoolRef found_route = root->GetAddPool("found_route");
 	PoolRef waypoints = GetEntity().GetPool().GetAddPool("waypoints");

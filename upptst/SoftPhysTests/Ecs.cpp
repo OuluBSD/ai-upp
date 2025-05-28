@@ -44,15 +44,15 @@ void LocalApp::Update(double dt) {
 
 void LocalApp::StateStartup(GfxDataState& state) {
 	Engine& eng = GetActiveEngine();
-	EntityStoreRef ents = eng.Get<EntityStore>();
+	EntityStorePtr ents = eng.Get<EntityStore>();
 	RenderingSystemRef rend = eng.Get<RenderingSystem>();
 	PoolRef models = ents->GetRoot()->GetAddPool("models");
 	
 	//test->Refresh(state);
 	
-	/*EntityRef sky = models->Create<StaticSkybox>();
-	EntityRef gnd = models->Create<DefStaticGroundPlanePrefab>();
-	EntityRef car = models->Create<BuggyCarPrefab>();
+	/*EntityPtr sky = models->Create<StaticSkybox>();
+	EntityPtr gnd = models->Create<DefStaticGroundPlanePrefab>();
+	EntityPtr car = models->Create<BuggyCarPrefab>();
 	
 	this->sky = sky->Get<ModelComponent>();
 	this->gnd = gnd->Get<DefStaticGroundPlane>();
@@ -63,7 +63,7 @@ void LocalApp::StateStartup(GfxDataState& state) {
 	this->car->LoadModel(state);
 	
 	PoolRef cameras = ents->GetRoot()->GetAddPool("cameras");
-	EntityRef cam = cameras->Create<CameraPrefab>();
+	EntityPtr cam = cameras->Create<CameraPrefab>();
 	chaser = cam->Add<ChaseCam>();
 	chaser->SetTarget(car->Get<Transform>());
 	rend->AddViewable(cam->Get<Viewable>());*/

@@ -4,7 +4,7 @@
 
 
 
-EntityRef EntityStore::CreateFromComponentMap(ComponentMap components)
+EntityPtr EntityStore::CreateFromComponentMap(ComponentMap components)
 {
     return AddEntity(std::make_shared<Entity>(std::move(components), GetNextId(), m_engine));
 }
@@ -14,7 +14,7 @@ void EntityStore::Update(double)
     Destroyable::PruneFromContainer(&m_objects);
 }
 
-EntityRef EntityStore::AddEntity(EntityRef obj)
+EntityPtr EntityStore::AddEntity(EntityPtr obj)
 {
     m_objects.push_back(obj);
     return obj;

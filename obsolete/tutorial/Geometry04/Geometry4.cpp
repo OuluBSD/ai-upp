@@ -130,14 +130,14 @@ void Geometry4::ResetShape(Shape2DWrapper& s, ShapeId shape_type, bool is_right)
 
 void Geometry4::Initialize() {
 	Entity& e = GetEntity();
-	Machine& m = e.GetMachine();
+	Engine& m = e.GetEngine();
 	
 	quad = e.Add<QuadtreeComponent>();
 	ASSERT(quad);
 	
 	Ref<EntityStore> es = m.Get<EntityStore>();
 	for(int i = 0; i < 5; i++) {
-		EntityRef c = es->CreateEmpty();
+		EntityPtr c = es->CreateEmpty();
 		c->Add<Connector>();
 		Transform& t = *c->Add<Transform>();
 		RigidBody& b = *c->Add<RigidBody>();
@@ -165,7 +165,7 @@ void Geometry4::Initialize() {
 	
 	{
 		// Add frustum
-		EntityRef f = es->CreateEmpty();
+		EntityPtr f = es->CreateEmpty();
 		Frustum2& fru = *f->Add<Frustum2>();
 		Tutorial4Dummy& d = *f->Add<Tutorial4Dummy>();
 		

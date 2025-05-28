@@ -48,7 +48,7 @@ GUI_APP_MAIN
 
 #if 0
 void BindEcsEventsBase(EcsEventsBase* b) {
-	auto esys = b->val.FindOwner<Ecs::EventSystem>();
+	auto esys = b->val.FindOwner<EventSystem>();
 	ASSERT(esys);
 	esys->Attach(b);
 }
@@ -102,7 +102,7 @@ void VguiMain(bool _3d) {
 
 
 
-void DesktopMain(Upp::Machine& mach, bool _3d) {
+void DesktopMain(Upp::Engine& mach, bool _3d) {
 	TODO
 	#if 0
 	Surface::SetDebugDraw(0);
@@ -133,7 +133,7 @@ INITBLOCK {
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
-	Machine& mach = MetaEnv().root.Add<Machine>("mach");
+	Engine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.Run(true, "Shell");
 }
 
@@ -142,12 +142,12 @@ GUI_APP_MAIN {
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
-	Machine& mach = MetaEnv().root.Add<Machine>("mach");
+	Engine& mach = MetaEnv().root.Add<Machine>("mach");
 	mach.WhenBoot << callback(DefaultSerialInitializer);
 	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
 	mach.WhenPreFirstUpdate << callback(DefaultStartup);
 	
-	Ecs::Engine& eng = MetaEnv().root.Add<Ecs::Engine>("eng");
+	Engine& eng = MetaEnv().root.Add<Engine>("eng");
 	eng.Start();
 
 	AgentInteractionSystem::Setup();

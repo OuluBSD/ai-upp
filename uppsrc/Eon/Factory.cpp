@@ -1,12 +1,12 @@
 #include "Eon.h"
 
 
+#if 0
 NAMESPACE_UPP
 
 
 
-
-void Factory::Dump() {
+void VfsValueExtFactory::Dump() {
 	const auto& fns = AtomDataMap();
 	
 	LOG("Factory::Dump:");
@@ -24,5 +24,5 @@ void Factory::Dump() {
 
 
 
-
 END_UPP_NAMESPACE
+#endif

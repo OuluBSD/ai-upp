@@ -130,13 +130,13 @@ bool ScriptLoopLoader::Load() {
 		has_link ?
 			GetDeepId() :
 			parent.GetDeepId();
-	LoopPtr l = loader.ResolveLoop(deep_id);
+	VfsValue* l = loader.ResolveLoop(deep_id);
 	if (!l) {
 		AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
 		return false;
 	}
 	
-	const auto& map = Factory::AtomDataMap();
+	const auto& map = VfsValueExtFactory::AtomDataMap();
 	LinkBasePtr first_lb;
 	AtomBasePtr first_ab;
 	
@@ -157,9 +157,9 @@ bool ScriptLoopLoader::Load() {
 			lb = first_lb;
 		}
 		else {
-			ab = l->GetSpace()->AddTypeCls(atom);
+			ab = AddAtomTypeCls(*l, atom);
 			if (has_link)
-				lb = l->AddTypeCls(link);
+				lb = AddLinkTypeCls(*l, link);
 		}
 		
 		if (is_first) {
@@ -169,7 +169,7 @@ bool ScriptLoopLoader::Load() {
 		}
 		
 		if (!ab) {
-			String atom_name = Factory::AtomDataMap().Get(atom).name;
+			String atom_name = VfsValueExtFactory::AtomDataMap().Get(atom).name;
 			AddError(def.loc, "Could not create atom '" + atom_name + "' at '" + def.id.ToString() + "'");
 			DUMP(atom);
 			ASSERT(0);
@@ -177,14 +177,15 @@ bool ScriptLoopLoader::Load() {
 		}
 		
 		if (!lb && has_link) {
-			String atom_name = Factory::AtomDataMap().Get(atom).name;
+			String atom_name = VfsValueExtFactory::AtomDataMap().Get(atom).name;
 			AddError(def.loc, "Could not create link for atom '" + atom_name + "' at '" + def.id.ToString() + "'");
 			DUMP(atom);
 			ASSERT(0);
 			return false;
 		}
 		
-		ab->SetId(id);
+		ab->SetIdx(id);
+		
 		if (has_link) {
 			lb->SetId(id);
 		
@@ -213,13 +214,13 @@ bool ScriptLoopLoader::Load() {
 		}
 		
 		if (!ab->InitializeAtom(ws) || !ab->Initialize(ws)) {
-			const auto& a = Factory::AtomDataMap().Get(atom);
+			const auto& a = VfsValueExtFactory::AtomDataMap().Get(atom);
 			AddError(def.loc, "Could not " + String(!ab ? "create" : "initialize") + " atom '" + a.name + "' at '" + def.id.ToString() + "'");
 			return false;
 		}
 		
 		if (has_link && !lb->Initialize(ws)) {
-			const auto& a = Factory::AtomDataMap().Get(atom);
+			const auto& a = VfsValueExtFactory::AtomDataMap().Get(atom);
 			AddError(def.loc, "Could not " + String(!ab ? "create" : "initialize") + " atom '" + a.name + "' at '" + def.id.ToString() + "'");
 			return false;
 		}
@@ -261,6 +262,38 @@ bool ScriptLoopLoader::Load() {
 	AddedAtom& last  = added_atoms.Top();
 	
 	return true;
+}
+
+AtomBasePtr ScriptLoopLoader::AddAtomTypeCls(VfsValue& val, AtomTypeCls cls) {
+	VfsValue& sub = val.Add();
+	
+	int i = VfsValueExtFactory::AtomDataMap().Find(cls);
+	ASSERT_(i >= 0, "Invalid to create non-existant atom");
+	if (i < 0) return 0;
+	const auto& f = VfsValueExtFactory::AtomDataMap()[i];
+	AtomBase* obj = f.new_fn(sub);
+	
+	sub.id = ToVarName(ClassPathTop(f.name));
+	sub.ext = obj;
+	sub.type_hash = obj->GetTypeHash();
+	InitializeAtom(*obj);
+	return AtomBasePtr(obj);
+}
+
+LinkBasePtr ScriptLoopLoader::AddLinkTypeCls(VfsValue& val, LinkTypeCls cls) {
+	VfsValue& sub = val.Add();
+	
+	int i = VfsValueExtFactory::LinkDataMap().Find(cls);
+	ASSERT_(i >= 0, "Invalid to create non-existant atom");
+	if (i < 0) return 0;
+	const auto& f = VfsValueExtFactory::LinkDataMap()[i];
+	LinkBase* obj = f.new_fn(sub);
+	
+	sub.id = ToVarName(ClassPathTop(f.name));
+	sub.ext = obj;
+	sub.type_hash = obj->GetTypeHash();
+	InitializeLink(*obj);
+	return LinkBasePtr(obj);
 }
 
 void ScriptLoopLoader::UpdateLoopLimits() {

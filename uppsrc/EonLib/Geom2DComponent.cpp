@@ -597,7 +597,7 @@ void Geom2DComponentLink::Unlink(Geom2DComponent* cw) {
 		linked = 0;
 		cw->linked = 0;
 		
-		EntityRef e = ComponentBase::GetEntity();
+		EntityPtr e = Component::GetEntity();
 		e->Destroy();
 	}
 }

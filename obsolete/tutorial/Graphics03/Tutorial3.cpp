@@ -152,7 +152,7 @@ struct Tutorial3 :
 		float angle = (use_texture ? -1 : +1) * ts.Seconds() / phase_time * (2.0 * M_PI);
 		vec3 light_dir {sin(angle), 0.0, cos(angle)};
 		PoolRef p = store->GetRoot();
-		for(EntityRef& e : p->GetEntities()) {
+		for(EntityPtr& e : p->GetEntities()) {
 			auto model = loader.GetModel();
 			if (model) for(const Mesh& mesh : model->GetMeshes()) {
 				int tri_count = mesh.GetTriangleCount();

@@ -87,13 +87,13 @@ void MediaAtomBaseT<Backend>::Uninitialize() {
 template <class Backend>
 void MediaAtomBaseT<Backend>::OnError() {
 	if (stops_machine)
-		GetParent().GetMachine().SetNotRunning();
+		val.FindOwner<Engine>()->SetNotRunning();
 }
 
 template <class Backend>
 void MediaAtomBaseT<Backend>::OnStop() {
 	if (stops_machine)
-		GetParent().GetMachine().SetNotRunning();
+		val.FindOwner<Engine>()->SetNotRunning();
 	WhenStopped();
 }
 

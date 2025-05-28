@@ -26,8 +26,8 @@ struct SerialLoaderFactory {
 	static String LoadFile(String file_path);
 };
 
-void DefaultStartup(Machine& mach);
-void DefaultSerialInitializer(Machine& mach);
-void DefaultSerialInitializerInternalEon(Machine& mach);
+void DefaultStartup(Engine& mach);
+void DefaultSerialInitializer(Engine& mach);
+void DefaultSerialInitializerInternalEon(Engine& mach);
 
 #endif

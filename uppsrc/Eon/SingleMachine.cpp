@@ -8,7 +8,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 	
 	
 	const AppFlags& flags = GetAppFlags();
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	
 	RegistrySystemPtr reg = mach.Add<RegistrySystem>();
 	
@@ -48,7 +48,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 void SingleMachine::Close() {
 	
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	mach.Stop();
 }
 

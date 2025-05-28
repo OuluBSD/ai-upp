@@ -4,6 +4,7 @@
 
 class Engine;
 class Component;
+class MachineVerifier;
 
 
 class System :
@@ -33,6 +34,17 @@ protected:
 	
 };
 
+#define SYS_CTOR(x) \
+	CLASSTYPE(x) \
+	x(VfsValue& m) : System(m) {}
+#define SYS_CTOR_(x) \
+	CLASSTYPE(x) \
+	x(VfsValue& m) : System(m)
+#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System>("System",*this);}
+#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System>("System",*this);}
+#define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
+#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System>("System",*this);}
+
 
 class Engine : public VfsValueExt
 {
@@ -56,6 +68,14 @@ public:
         return val.Find<SystemT>();
     }
 
+    template<typename SystemT>
+    Ptr<SystemT> Find()
+    {
+        CXX2A_STATIC_ASSERT(IsSystem<SystemT>::value, "T should derive from System");
+        auto v = this->val.template FindAll<SystemT>();
+        return v.IsEmpty() ? 0 : v[0];
+    }
+	
     template<typename SystemT, typename... Args>
     Ptr<SystemT> Add(Args&&... args)
     {
@@ -75,6 +95,8 @@ public:
         return Add<SystemT>(args...);
     }
     
+    template<typename SystemT, typename... Args>
+    Ptr<SystemT> FindAdd(Args&&... args) {return FindAdd<SystemT, Args...>(args...);}
     
     
     template<typename SystemT>
@@ -98,7 +120,7 @@ public:
     Engine(VfsValue& n);
     virtual ~Engine();
 
-    bool HasStarted() const;
+    bool IsStarted() const;
 
     bool Start();
     void Update(double dt);
@@ -110,7 +132,14 @@ public:
 	
     bool IsRunning() const {return is_running;}
 	void SetNotRunning() {is_running = false;}
+	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
 	void Visit(Vis& vis) override;
+	void WarnDeveloper(String msg);
+	void Run(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
+	void Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
+	void Main(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits=false, uint64 dbg_ref=0);
+	void StopRunner();
+	void MainLoop(bool (*fn)(void*)=0, void* arg=0);
 	
 	void AddToUpdateList(ComponentPtr c);
 	void RemoveFromUpdateList(ComponentPtr c);
@@ -119,8 +148,10 @@ public:
 	Ptr<System> GetAdd(String id, bool startup=true);
     
     Val& GetRootPool();
-	Val& GetMachine();
+    Val& GetRootSpace();
+    Val& GetRootLoop();
     
+	bool CommandLineInitializer(bool skip_eon_file);
     
 public:
 	Event<> WhenEnterUpdate;
@@ -148,6 +179,12 @@ private:
     bool is_suspended = false;
     bool is_running = false;
     bool is_looping_systems = false;
+    bool is_failed = false;
+    String fail_msg;
+	Value eon_params;
+	String eon_script;
+	String eon_file;
+	uint64 break_addr = 0;
     
     int FindSystem(TypeCls type_id);// {return systems.Find(type_id);}
     void Add(TypeCls type_id, System* system, bool startup=true);
@@ -157,6 +194,7 @@ private:
     
     
 public:
+    MachineVerifier* mver = 0;
 	
 	// Moved AtomSystem here
     void AddUpdated(AtomBase& p);
@@ -168,7 +206,6 @@ private:
     #if 0
 private:
 	typedef System* (*NewSystemFn)(VfsValue&);
-    static VectorMap<String, TypeCls>& EonToType() {static VectorMap<String, TypeCls> m; return m;}
     static VectorMap<TypeCls, NewSystemFn>& TypeNewFn() {static VectorMap<TypeCls, NewSystemFn> m; return m;}
 	
 	template <class T>
@@ -195,7 +232,12 @@ public:
 	#endif
 	
 	
+    
+protected:
+	friend class Eon::ExtScriptEcsLoader;
+	
     void SystemStartup(TypeCls type_id, System* system);
+    
     
 };
 
@@ -215,8 +257,6 @@ inline void Component::RemoveFromSystem() {
 	if (sys)
 		sys->Remove(*this);
 }
-
-#if 0
 
 template<typename T>
 void Entity::Remove0() {
@@ -244,7 +284,6 @@ Ptr<T> Entity::Add0(bool initialize) {
 	return comp;
 }
 
-#endif
 
 void MachineEcsInit(Engine&); // todo rename
 

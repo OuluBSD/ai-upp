@@ -35,8 +35,12 @@ bool PaintingInteractionSystemBase::Arg(String key, Value value) {
 	return true;
 }
 
-PoolPtr PaintingInteractionSystemBase::GetPool() const {
-	return val.FindOwner<Pool>();
+VfsValue* PaintingInteractionSystemBase::GetPool() const {
+	VfsValue* v = &*val.owner;
+	while (v && v->type_hash != 0)
+		v = v->owner;
+	ASSERT(v);
+	return v;
 }
 
 String PaintingInteractionSystemBase::GetInstructions() const {
@@ -153,12 +157,18 @@ void PaintingInteractionSystemBase::Unregister() {
 void PaintingInteractionSystemBase::Activate(EntityPtr entity) {
 	
 	// Stop rendering the controller
-	entity->Get<ModelComponent>().SetEnabled(false);
+	auto* a = entity->val.Find<ModelComponent>();
+	if (a)
+		a->SetEnabled(false);
 }
 
 void PaintingInteractionSystemBase::Deactivate(EntityPtr entity) {
-	entity->Get<ModelComponent>().SetEnabled(true);
-	PaintComponentPtr paint = entity->Find<PaintComponent>();
+	auto* a = entity->val.Find<ModelComponent>();
+	if (!a) return;
+	a->SetEnabled(true);
+	
+	PaintComponentPtr paint = entity->val.Find<PaintComponent>();
+	if (!paint) return;
 	
 	// Copy out the strokes from the component so they can persist in the world.
 	if (paint->stroke_in_progress) {
@@ -312,7 +322,7 @@ void PaintingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 			if (paint->cur_state == PaintComponent::State::Painting) {
 				// Start new stroke
 				if (new_stroke_started) {
-					paint->stroke_in_progress = GetPool()->Create<PaintStroke>();
+					paint->stroke_in_progress = CreatePrefab<PaintStroke>(*GetPool());
 					ModelComponentPtr m = paint->stroke_in_progress->Find<ModelComponent>();
 					m->color = paint->selected_color;
 					paint->strokes.Add(paint->stroke_in_progress);
@@ -357,7 +367,7 @@ void PaintingInteractionSystemBase::Update(double dt) {
 		
 		EntityPtr entity = paint->GetEntity();
 		
-		ToolComponentPtr tool = paint->GetEntity()->Find<ToolComponent>();
+		ToolComponentPtr tool = paint->GetEntity()->val.Find<ToolComponent>();
 		if (!tool)
 			continue;
 		
@@ -497,7 +507,7 @@ void PaintComponent::Visit(Vis& v) {
 }
 
 void PaintComponent::Initialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
 	
@@ -507,7 +517,7 @@ void PaintComponent::Initialize() {
 }
 
 void PaintComponent::Uninitialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->RemoveTool(this);
 	
@@ -557,7 +567,7 @@ void PaintComponent::Destroy() {
 }
 
 bool PaintComponent::LoadModel(ModelComponent& mdl) {
-	ModelCachePtr sys = GetEngine().GetMachine().val.Find<ModelCache>();
+	ModelCachePtr sys = GetEngine().val.Find<ModelCache>();
 	if (!sys)
 		return false;
 	

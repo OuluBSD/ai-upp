@@ -24,7 +24,7 @@ public:
 	//RTTI_DECL2(HolographicRenderer, Base, IDeviceNotify)
 	
     HolographicRenderer(
-        Machine& core,
+        Engine& core,
         std::shared_ptr<DeviceResources> deviceResources,
         std::shared_ptr<Pbr::Resources> pbrResources,
         ID3D11ShaderResourceView* skyboxTexture);
@@ -51,7 +51,7 @@ protected:
         const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace);
 
 private:
-    //Ecs::EntityStoreRef m_entityStore;
+    //EntityStorePtr m_entityStore;
     
     Ptr<HolographicScene> m_holoScene;
 

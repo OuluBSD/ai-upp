@@ -8,7 +8,7 @@ class AtomBase;
 class Space :
 	public MetaSpaceBase
 {
-	mutable Machine*	machine = 0;
+	mutable Engine*	machine = 0;
 	//BitField<dword>		freeze_bits;
 	String				prefab;
 	SpaceId				id;
@@ -53,7 +53,7 @@ public:
 	
 	Loop*				GetLoop() const;
 	Space*				GetParent() const;
-	Machine&			GetMachine() const;
+	Engine&			GetEngine() const;
 	String				GetDeepName() const;
 	//bool				HasAtoms() const {return !atoms.IsEmpty();}
 	bool				HasSpaces() const;// {return !spaces.IsEmpty();}

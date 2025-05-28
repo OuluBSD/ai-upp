@@ -1,5 +1,5 @@
-#ifndef _Eon_FwdTypes_h_
-#define _Eon_FwdTypes_h_
+#ifndef _Core2_LinkType_h_
+#define _Core2_LinkType_h_
 
 
 
@@ -14,8 +14,6 @@
 	LINK_TYPE(MERGER) \
 	LINK_TYPE(JOINER) \
 	LINK_TYPE(POLLER_PIPE) \
-
-
 
 #undef INVALID_LINK
 

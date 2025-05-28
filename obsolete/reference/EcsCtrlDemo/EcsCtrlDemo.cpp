@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-EcsCtrlDemo::EcsCtrlDemo(Machine& mach) : mach(mach) {
+EcsCtrlDemo::EcsCtrlDemo(Engine& mach) : mach(mach) {
 	MaximizeBox().Sizeable();
 	Title("EcsCtrlDemo");
 	
@@ -25,12 +25,12 @@ bool EcsCtrlDemo::InitializeDefault() {
 	PoolRef p = GetPool();
 	p->Add<ConnectAllInterfaces<AudioSpec>>();
 	
-	EntityRef reader = p->CreateEmpty();
+	EntityPtr reader = p->CreateEmpty();
 	reader->SetPrefab("Manual debug sound input");
 	DummySoundGeneratorComponentRef sg = reader->Add<DummySoundGeneratorComponent>();
 	sg->SetPreset(0);
 	
-	EntityRef output = p->CreateEmpty();
+	EntityPtr output = p->CreateEmpty();
 	output->SetPrefab("Manual Sound output");
 	PortaudioSinkComponentRef audio_out = output->Add<PortaudioSinkComponent>();
 	

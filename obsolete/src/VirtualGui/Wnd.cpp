@@ -502,7 +502,7 @@ void Ctrl::InitFB()
 	using namespace Upp;
 	using namespace Upp::Parallel;
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	WindowSystemRef wins = mach.Get<WindowSystem>();
 	ASSERT(wins);
 	if (wins) {

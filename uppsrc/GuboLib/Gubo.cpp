@@ -8,7 +8,7 @@ void TopGubo::CreateGeom3DComponent() {
 	
 	
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
 	Gu::GuboManager& mgr = wins->GetActiveScope();
 	mgr.AddInterface(*this);

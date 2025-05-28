@@ -1,6 +1,7 @@
 #ifndef _Eon_AtomStore_h_
 #define _Eon_AtomStore_h_
 
+#if 0
 
 class Space;
 template<class T> using ParallelTypeMap	= LinkedMap<ParallelTypeCls, T>;
@@ -74,8 +75,6 @@ public:
 	void ReturnAtom(Base* c);
 	
 	
-	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::ATOM_STORE;}
-	
 	
 private:
 	
@@ -84,5 +83,6 @@ private:
 };
 
 
+#endif
 
 #endif

@@ -92,7 +92,7 @@ struct GfxDataState : ErrorReporter {
 	vec2				offset;
 	
 	// generic
-	Machine* mach = 0;
+	Engine* eng = 0;
 	
 	GfxDataState();
 	virtual GfxModelState& AddModel() = 0;

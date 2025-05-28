@@ -8,7 +8,7 @@ class Engine;
 
 class EntityStore;
 class Entity;
-using EntityRef = std::shared_ptr<Entity>;
+using EntityPtr = std::shared_ptr<Entity>;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Entity
@@ -42,7 +42,7 @@ public:
     Entity(ComponentMap components, EntityId id, Engine& core);
     virtual ~Entity();
 
-    EntityRef Clone() const;
+    EntityPtr Clone() const;
 
     EntityId Id() const { return m_id; }
 
@@ -87,7 +87,7 @@ struct EntityPrefab
         return store->template CreateComponentMap<ComponentTs...>();
         #else
         Pool& p = e.GetPool();
-        EntityRef e = p->template Create<EntityPrefab<ComponentTs...>>();
+        EntityPtr e = p->template Create<EntityPrefab<ComponentTs...>>();
         return e->template TryGetComponents<ComponentTs...>();
         #endif
     }

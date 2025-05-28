@@ -40,11 +40,11 @@ public:
 	
 	void Attach(ShootingComponentPtr c);
 	void Detach(ShootingComponentPtr c);
-	PoolPtr GetPool() const;
+	VfsValue* GetPool() const;
 	
 protected:
 	// ToolSystemBase
-	Ecs::SystemBase* GetSystem() override {return this;}
+	System* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Uninitialize() override;
 	String GetInstructions() const override;

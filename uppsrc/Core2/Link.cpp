@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "Core.h"
 
 
 NAMESPACE_UPP
@@ -12,12 +12,12 @@ LinkBase::~LinkBase() {
 	DBG_DESTRUCT
 }
 
-Atom* LinkBase::GetAtom() {
+AtomBase* LinkBase::GetAtom() {
 	return atom;
 }
 
-/*Machine& LinkBase::GetMachine() {
-	return atom->GetMachine();
+/*Engine& LinkBase::GetEngine() {
+	return atom->GetEngine();
 }*/
 
 String LinkBase::ToString() const {

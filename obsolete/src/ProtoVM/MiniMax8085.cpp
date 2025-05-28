@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-void SetupMiniMax8085(Machine& mach) {
+void SetupMiniMax8085(Engine& mach) {
 	
 	// http://www.malinov.com/Home/sergeys-projects/minimax8085
 	

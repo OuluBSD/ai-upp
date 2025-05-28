@@ -88,14 +88,14 @@ public:
 };
 
 
-class Proxy :
+class ProxyValue :
 	public ValueBase
 {
 	ValueBase* o = 0;
 	
 public:
-	Proxy() = default;
-	Proxy(ValueBase* o) : o(o) {}
+	ProxyValue() = default;
+	ProxyValue(ValueBase* o) : o(o) {}
 	
 	void Set(ValueBase* o) {this->o = o;}
 	

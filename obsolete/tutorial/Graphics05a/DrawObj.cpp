@@ -124,7 +124,7 @@ void Tutorial5::DrawObj(Draw& fb, bool use_texture) {
 	vec3 light_dir {sin(angle), 0.0, cos(angle)};
 	PoolRef p = store->GetRoot();
 	//TimeStop ts;
-	for(EntityRef& e : p->GetEntities()) {
+	for(EntityPtr& e : p->GetEntities()) {
 		auto model = loader.GetModel();
 		if (model) for(const Mesh& mesh : model->GetMeshes()) {
 			const uint32* idx = (const uint32*)mesh.indices.Begin();

@@ -41,7 +41,7 @@ protected:
     
 public:
     typedef HandleSystemT<Dim> CLASSNAME;
-	HandleSystemT(Machine& m);
+	HandleSystemT(Engine& m);
 	
 	SYS_DEF_VISIT
 	

@@ -4,7 +4,7 @@ NAMESPACE_GUBO_BEGIN
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(Parallel::Machine& m) :
+HandleSystemT<Dim>::HandleSystemT(Parallel::Engine& m) :
 	RefScopeEnabler<MetaSystemBase, MetaMachineBase>::SP(m) {
 	
 }
@@ -40,8 +40,7 @@ void HandleSystemT<Dim>::Update(double dt) {
 			
 			if (e.type == EVENT_SHUTDOWN) {
 				if (close_machine_when_empty)
-					this->GetMachine().SetNotRunning();
-			}
+					this->GetEngine
 			
 		}
 		closed = s.ProcessCloseQueue() || closed;
@@ -104,7 +103,7 @@ void HandleSystemT<Dim>::DoEvents(const EventCollection& ev) {
 	
 	for (const Event& e : ev) {
 		if (e.type == EVENT_SHUTDOWN)
-			this->GetMachine().SetNotRunning();
+			this->GetEngine().SetNotRunning();
 		else
 			scope.Dispatch(e);
 	}

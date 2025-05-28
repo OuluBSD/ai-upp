@@ -7,10 +7,6 @@ template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const
 
 #if 0
 
-#define ATOM_CTOR_(x, base) \
-	CLASSTYPE(x) \
-	x(VfsValue& n) : base(n) {}
-
 
 class AtomBase :
 	public VfsValueExt,
@@ -103,7 +99,7 @@ public:
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);
 	
-	Machine&				GetMachine();
+	Engine&					GetEngine();
 	void					UninitializeDeep();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
@@ -118,8 +114,8 @@ public:
 	template <class T> T* GetSourceT() {return dynamic_cast<T*>(&*this->GetSource());}
 	template <class T> T* GetSinkT()   {return dynamic_cast<T*>(&*this->GetSink());}
 	
-	Space*			GetSpace();
-	Space&			GetParent();
+	VfsValue*		GetSpace();
+	//VfsValue&		GetParent();
 	LinkBase*		GetLink();
 	int				GetId() const {return id;}
 	
@@ -127,14 +123,14 @@ public:
 	
 	template <class S, class R>
 	void AddToSystem(R ref) {
-		TODO/*Ptr<S> sys = GetMachine().Get<S>();
+		TODO/*Ptr<S> sys = GetEngine().Get<S>();
 		if (sys)
 			sys->Add(ref);*/
 	}
 	
 	template <class S, class R>
 	void RemoveFromSystem(R ref) {
-		TODO/*Ptr<S> sys = GetMachine().Get<S>();
+		TODO/*Ptr<S> sys = GetEngine().Get<S>();
 		if (sys)
 			sys->Remove(ref);*/
 	}
@@ -212,8 +208,6 @@ public:
 	void ClearSource() override {TODO}
 	
 	
-	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::CUSTOM_ATOM;}
-	
 	
 };
 
@@ -221,6 +215,8 @@ public:
 
 //using AtomRefMap	= ArrayMap<AtomTypeCls,Ptr<AtomBase>>;
 using AtomBasePtr = Ptr<AtomBase>;
+
+#if 0
 
 class AtomMap {
 	struct Item : Moveable<Item> {
@@ -313,5 +309,7 @@ public:
 	#undef IS_EMPTY_SHAREDPTR
 	
 };
+
+#endif
 
 #endif

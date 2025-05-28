@@ -6,34 +6,34 @@ NAMESPACE_UPP
 
 
 class ComponentStore;
-struct ComponentBase;
+struct Component;
 class ComponentMap;
-using SharedComponent = std::shared_ptr<ComponentBase>;
+using SharedComponent = std::shared_ptr<Component>;
 
 ////////////////////////////////////////////////////////////////////////////////
-// ComponentBase
+// Component
 // Base abstract class for all Components
 // A component is a piece of data/state that can be attached to any Entity
 // Components do not contain any significant logic, but helpers/convenience functions are okay
 //   e.g. Transform::GetMatrix
-struct ComponentBase abstract : Destroyable, Enableable
+struct Component abstract : Destroyable, Enableable
 {
-    virtual ~ComponentBase() = default;
+    virtual ~Component() = default;
 
     virtual detail::type_id type() const = 0;
-    virtual void CopyTo(ComponentBase* component) const = 0;
+    virtual void CopyTo(Component* component) const = 0;
 };
 
 // CRTP implementation helper 
 // Usage: struct MyComponent : Component<MyComponent> { /* data members */ };
 template<typename T>
-struct Component : ComponentBase
+struct Component : Component
 {
     detail::type_id type() const override {
         return typeid(T);
     }
 
-    void CopyTo(ComponentBase* target) const override {
+    void CopyTo(Component* target) const override {
         fail_fast_if(target->type() != type());
 
         *static_cast<T*>(target) = *static_cast<const T*>(this);

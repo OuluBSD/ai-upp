@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(Machine& m) :
+HandleSystemT<Dim>::HandleSystemT(Engine& m) :
 	VfsValueExt(m) {
 	
 }
@@ -35,7 +35,7 @@ void HandleSystemT<Dim>::Update(double dt) {
 			
 			if (e.type == EVENT_SHUTDOWN) {
 				if (close_machine_when_empty)
-					this->GetMachine().SetNotRunning();
+					this->GetEngine().SetNotRunning();
 			}
 			
 		}
@@ -110,7 +110,7 @@ void HandleSystemT<Dim>::DoEvents(const EventCollection& ev) {
 	for (const Event& e : ev) {
 		switch (e.type) {
 		case EVENT_SHUTDOWN:
-			this->GetMachine().SetNotRunning();
+			this->GetEngine().SetNotRunning();
 			break;
 		
 		case EVENT_KEYDOWN:

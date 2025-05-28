@@ -23,10 +23,11 @@ bool HandleEventsBase::Initialize(const Eon::WorldState& ws) {
 		return false;
 	}
 	
-	Space& space = GetParent();
-	state = space.FindNearestState(target);
+	if(!val.owner) return false;
+	VfsValue& space = *val.owner;
+	state = space.FindOwnerWith<EnvState>(target);
 	if (!state) {
-		LOG("HandleEventsBase::Initialize: error: state '" << target << "' not found in parent space: " << space.GetDeepName());
+		LOG("HandleEventsBase::Initialize: error: state '" << target << "' not found in parent space: " << space.GetPath());
 		return false;
 	}
 	
@@ -124,8 +125,8 @@ bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
 		add_ecs = true;
 	
 	#if defined flagGUI
-	wins = GetMachine().Get<WindowSystem>();
-	surfs = GetMachine().Get<Gu::SurfaceSystem>();
+	wins = GetEngine().Get<WindowSystem>();
+	surfs = GetEngine().Get<Gu::SurfaceSystem>();
 	#else
 	#endif
 	
@@ -496,7 +497,7 @@ void HandleVideoBase::AddBinderActive(Binder& b) {
 	#if 0
 	Handle::DefaultGuiAppComponent* gui = CastPtr<Handle::DefaultGuiAppComponent>(b.iface);
 	if (gui) {
-		Handle::Geom2DComponentRef cw = gui->GetEntity()->Find<Handle::Geom2DComponent>();
+		Handle::Geom2DComponentPtr cw = gui->GetEntity()->val.Find<Handle::Geom2DComponent>();
 		if (cw)
 			AddWindow3D(b, *cw);
 	}
@@ -530,7 +531,7 @@ void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 	if (active) {
 		Handle::DefaultGuiAppComponent* gui = CastPtr<Handle::DefaultGuiAppComponent>(iface);
 		if (gui) {
-			Handle::Geom2DComponentRef cw = gui->GetEntity()->Find<Handle::Geom2DComponent>();
+			Handle::Geom2DComponentPtr cw = gui->GetEntity()->val.Find<Handle::Geom2DComponent>();
 			if (cw)
 				active->RemoveWindow3D(b, *cw);
 		}
@@ -604,7 +605,7 @@ void HandleVideoBase::ProcessWindowCommands(Binder& b, DrawCommand* begin, DrawC
 	TODO
 	#if 0
 	if (!b.win_inited) {
-		Handle::ModelComponentRef mdl = b.win_entity->Find<Handle::ModelComponent>();
+		Handle::ModelComponentPtr mdl = b.win_entity->Find<Handle::ModelComponent>();
 		ASSERT(mdl);
 		if (!mdl) return;
 		

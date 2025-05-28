@@ -206,10 +206,10 @@ bool MetaEnvironment::MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, M
 	AstValue* a0 = n0;
 	const AstValue* a1 = n1;
 	ASSERT(a0 && a1 && a0->kind == a1->kind && n0.id == n1.id);
+	TODO
+	#if 0
 	if(a0 && a1 && IsMergeable((CXCursorKind)a0->kind)) {
 		for(const VfsValue& sub1 : n1.sub) {
-			TODO
-			#if 0
 			int i = n0.Find(sub1.kind, sub1.id);
 			if(i < 0) {
 				auto& n = n0.Add(sub1);
@@ -223,13 +223,13 @@ bool MetaEnvironment::MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, M
 				if(!succ)
 					return false;
 			}
-			#endif
 		}
 		n0.Chk();
 	}
 	else {
 		return MergeVisitPartMatching(scope, n1, mode);
 	}
+	#endif
 	return true;
 }
 
@@ -686,6 +686,7 @@ void VfsValue::SetTempDeep()
 		n.SetTempDeep();
 }
 
+#if 0
 bool MetaEnvironment::IsMergeable(int kind) { return IsMergeable((CXCursorKind)kind); }
 
 bool MetaEnvironment::IsMergeable(CXCursorKind kind)
@@ -700,6 +701,7 @@ bool MetaEnvironment::IsMergeable(CXCursorKind kind)
 		return false;
 	}
 }
+#endif
 
 void MetaEnvironment::RefreshNodePtrs(VfsValue& n)
 {
@@ -1774,6 +1776,16 @@ int VfsValueExtFactory::FindTypeHashFactory(hash_t type_hash) {
 	int i = 0;
 	for (Factory& f : List()) {
 		if (f.type_hash == type_hash)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
+int VfsValueExtFactory::FindTypeClsFactory(TypeCls t) {
+	int i = 0;
+	for (Factory& f : List()) {
+		if (f.type_cls == t)
 			return i;
 		i++;
 	}

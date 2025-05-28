@@ -166,7 +166,7 @@ bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
 	
 	a.AddAtomToUpdateList();
 	
-	//AtomBase::GetMachine().template Get<AtomSystem>()->AddPolling(AtomBase::AsRefT());
+	//AtomBase::GetEngine().template Get<AtomSystem>()->AddPolling(AtomBase::AsRefT());
 	ISinkPtr sink = a.GetSink();
 	sink->GetValue(0).SetMaxQueueSize(1);
 	
@@ -280,7 +280,7 @@ void GfxAccelAtom<Gfx>::Update(double dt) {
 		
 		if (close_window) {
 			if (close_machine)
-				ab->GetMachine().SetNotRunning();
+				ab->GetEngine().SetNotRunning();
 			else
 				ab->Destroy();
 		}
@@ -413,7 +413,7 @@ bool GfxAccelAtom<Gfx>::Recv(int ch_i, const Packet& p) {
 	else if (fmt.IsOrder() && AcceptsOrder()) {
 		// pass
 	}
-	else if (fmt.vd == VD(Ogl, Prog)) {
+	else if (fmt.vd == VD(OGL,PROG)) {
 		TODO
 		/*
 		Don't use GLDraw here!

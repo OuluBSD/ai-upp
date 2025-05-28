@@ -268,7 +268,6 @@ typedef enum : byte {
 
 
 String GetSubAtomString(SubAtomCls t);
-String GetAtomRoleString(AtomRole t);
 
 
 
@@ -395,6 +394,7 @@ template <class T> AtomTypeCls AsAtomTypeCls() {return T::GetAtomType();}
 typedef void (*DataCallbackFn)(void*, char* data, int size);
 
 
+#endif
 
 namespace FboKbd {
 
@@ -419,8 +419,7 @@ struct RendererContent {
 
 
 
-typedef int LoopId;
+//typedef int64 LoopIdx;
 
-#endif
 
 #endif

@@ -18,7 +18,7 @@ DirectWindow::DirectWindow() {
 void DirectWindow::Initialize() {
 	TODO
 	/*ASSERT(!scr);
-	EntityRef e = GetEntity();
+	EntityPtr e = GetEntity();
 	scr = e->FindDisplaySink();*/
 }
 

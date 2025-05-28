@@ -116,22 +116,28 @@ void ChaseCam::Serialize(Stream& e) {
 #endif
 
 void ChaseCam::Initialize() {
-	trans		= GetEntity()->Find<Transform>();
-	viewable	= GetEntity()->Find<Viewable>();
-	vport		= GetEntity()->Find<Viewport>();
-	
+	Entity* e = val.owner->FindExt<Entity>();
+	ASSERT(e);
+	if (!e) return;
+	trans		= e->val.Find<Transform>();
+	viewable	= e->val.Find<Viewable>();
+	vport		= e->val.Find<Viewport>();
 	SetViewportSize(Size(1280, 720));
 	
-	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->AddCamera(*this);
+	RenderingSystemPtr rend = e->val.Find<RenderingSystem>();
+	if (rend)
+		rend->AddCamera(*this);
 	
 	AddToUpdateList();
 }
 
 void ChaseCam::Uninitialize() {
-	
-	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->RemoveCamera(*this);
+	Entity* e = val.owner->FindExt<Entity>();
+	if (e) {
+		RenderingSystemPtr rend = e->val.Find<RenderingSystem>();
+		if (rend)
+			rend->RemoveCamera(*this);
+	}
 	
 	RemoveFromUpdateList();
 }
@@ -150,14 +156,14 @@ bool ChaseCam::Arg(String key, Value value) {
 	}
 	if (key == "target") {
 		LOG(MetaEnv().root.GetTreeString());
-		PoolPtr root = &val.FindOwner<Ecs::Engine>()->GetRootPool();
+		Val* root = &val.FindOwner<Engine>()->GetRootPool();
 		ASSERT(root);
 		if (!root) return false;
 		
 		String path = value;
 		VfsPath vfs_path;
 		vfs_path.SetDotPath(path);
-		EntityPtr tgt_ent = root->val.FindPath<Ecs::Entity>(vfs_path);
+		EntityPtr tgt_ent = root->FindPath<Entity>(vfs_path);
 		if (!tgt_ent) {
 			LOG("ChaseCam::Arg: error: could not find entity with path '" + path + "'");
 			return false;

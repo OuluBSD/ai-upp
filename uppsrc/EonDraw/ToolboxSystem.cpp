@@ -115,7 +115,7 @@ void ToolComponent::RemoveTool(CustomToolComponentPtr cb) {
 }
 
 void ToolComponent::RefreshModel() {
-	ModelComponentPtr mdl = GetEntity()->Find<ModelComponent>();
+	ModelComponentPtr mdl = GetEntity()->val.Find<ModelComponent>();
 	if (mdl) {
 		if (active_tool) {
 			active_tool->LoadModel(*mdl);
@@ -285,8 +285,8 @@ void ToolboxSystemBase::Update(double dt) {
 	
 	for (ToolComponentPtr& tool : tools) {
 		if (tool->active_hand) {
-			TransformPtr trans = tool->GetEntity()->Find<Transform>();
-			TransformPtr hand_trans = tool->active_hand->GetEntity()->Find<Transform>();
+			TransformPtr trans = tool->GetEntity()->val.Find<Transform>();
+			TransformPtr hand_trans = tool->active_hand->GetEntity()->val.Find<Transform>();
 			if (trans && hand_trans) {
 				// Very simple offset
 				*trans = *hand_trans;

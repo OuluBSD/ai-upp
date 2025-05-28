@@ -9,7 +9,7 @@ NAMESPACE_UPP
 // ToolSystemBase
 // Base abstract class for all ToolSystems
 class ToolSystemBase abstract :
-	public SystemBase
+	public System
 {
 public:
 	//RTTI_DECL1(ToolSystemBase, SystemBase)
@@ -18,9 +18,9 @@ public:
     virtual std::wstring_view GetInstructions() const = 0;
     virtual std::wstring_view GetDisplayName() const = 0;
     
-    virtual EntityRef CreateToolSelector() const = 0;
+    virtual EntityPtr CreateToolSelector() const = 0;
 
-    virtual void Register(Array<EntityRef>& entities) = 0;
+    virtual void Register(Array<EntityPtr>& entities) = 0;
     virtual void Unregister() = 0;
     virtual void Activate(Entity& entity) = 0;
     virtual void Deactivate(Entity& entity) = 0;
@@ -73,7 +73,7 @@ protected:
     }
 
     // ToolSystemBase
-    void Register(Array<EntityRef>& entities) override
+    void Register(Array<EntityPtr>& entities) override
     {
         m_entities <<= entities;
 
@@ -140,7 +140,7 @@ protected:
         return std::nullopt;
     }
 
-    Array<EntityRef> m_entities;
+    Array<EntityPtr> m_entities;
 };
 
 

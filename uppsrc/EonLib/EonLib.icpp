@@ -6,284 +6,286 @@ INITBLOCK {
 	using namespace Upp;
 	
 	// Audio
-	
-	Factory::RegisterAtom<MidiFileReader>();
-	Factory::RegisterAtom<MidiFileReader16>();
-	Factory::RegisterAtom<MidiFileReaderPipe>();
-	Factory::RegisterAtom<MidiNullSink>();
+	#define REGISTER_ATOM(x) VfsValueExtFactory::RegisterAtom<x>(#x);
+	REGISTER_ATOM(MidiFileReader);
+	REGISTER_ATOM(MidiFileReader16);
+	REGISTER_ATOM(MidiFileReaderPipe);
+	REGISTER_ATOM(MidiNullSink);
 	#if defined flagFLUIDSYNTH || defined flagFLUIDLITE
-	Factory::RegisterAtom<FluidsynthPipe>();
+	REGISTER_ATOM(FluidsynthPipe);
 	#endif
-	Factory::RegisterAtom<SoftInstrumentPipe>();
-	Factory::RegisterAtom<FmSynthPipe>();
-	Factory::RegisterAtom<CoreSynthPipe>();
-	Factory::RegisterAtom<CoreDrummerPipe>();
-	Factory::RegisterAtom<CoreEffectPipe>();
-	Factory::RegisterAtom<CoreEffectAtom>();
+	REGISTER_ATOM(SoftInstrumentPipe);
+	REGISTER_ATOM(FmSynthPipe);
+	REGISTER_ATOM(CoreSynthPipe);
+	REGISTER_ATOM(CoreDrummerPipe);
+	REGISTER_ATOM(CoreEffectPipe);
+	REGISTER_ATOM(CoreEffectAtom);
 	#ifdef flagLV2
-	Factory::RegisterAtom<LV2InstrumentPipe>();
-	Factory::RegisterAtom<LV2EffectPipe>();
+	REGISTER_ATOM(LV2InstrumentPipe);
+	REGISTER_ATOM(LV2EffectPipe);
 	#endif
 	#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
-	Factory::RegisterAtom<PortmidiPipe>();
-	Factory::RegisterAtom<PortmidiSend>();
+	REGISTER_ATOM(PortmidiPipe);
+	REGISTER_ATOM(PortmidiSend);
 	#endif
-	Factory::RegisterAtom<CoreAudioFileOut>();
+	REGISTER_ATOM(CoreAudioFileOut);
 	
 	// Handle
 	
 	#ifdef flagSCREEN
-	Factory::RegisterAtom<HandleProgVideo>();
+	REGISTER_ATOM(HandleProgVideo);
 	#endif
 	
 	#if defined flagSCREEN
-	Factory::RegisterAtom<HandleProgEvents>();
+	REGISTER_ATOM(HandleProgEvents);
 	#endif
 	#if defined flagSCREEN
-	Factory::RegisterAtom<CenterProgPipe>();
+	REGISTER_ATOM(CenterProgPipe);
 	#endif
 	#if defined flagSCREEN
-	Factory::RegisterAtom<OglProgPipe>();
+	REGISTER_ATOM(OglProgPipe);
 	#endif
 	#if defined flagSCREEN
-	Factory::RegisterAtom<HandleProgVideo>();
+	REGISTER_ATOM(HandleProgVideo);
 	#endif
 	
 	// Minimal
 	
-	Factory::RegisterAtom<CenterCustomer>();
-	Factory::RegisterAtom<TestRealtimeSrc>();
-	Factory::RegisterAtom<TestRealtimeSink>();
-	Factory::RegisterAtom<TestPollerSink>();
+	REGISTER_ATOM(CenterCustomer);
+	REGISTER_ATOM(TestRealtimeSrc);
+	REGISTER_ATOM(TestRealtimeSink);
+	REGISTER_ATOM(TestPollerSink);
 	#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
-	Factory::RegisterAtom<PortaudioSink>();
+	REGISTER_ATOM(PortaudioSink);
 	#endif
 	#if defined flagFFMPEG
-	Factory::RegisterAtom<AudioDecoderSrc>();
+	REGISTER_ATOM(AudioDecoderSrc);
 	#endif
-	Factory::RegisterAtom<AudioDbgSrc>();
-	Factory::RegisterAtom<AudioSplitter>();
-	Factory::RegisterAtom<AudioSplitterUser>();
-	Factory::RegisterAtom<AudioJoiner>();
-	Factory::RegisterAtom<AudioJoinerUser>();
-	Factory::RegisterAtom<AudioJoiner2User>();
-	Factory::RegisterAtom<AudioMixer16>();
+	REGISTER_ATOM(AudioDbgSrc);
+	REGISTER_ATOM(AudioSplitter);
+	REGISTER_ATOM(AudioSplitterUser);
+	REGISTER_ATOM(AudioJoiner);
+	REGISTER_ATOM(AudioJoinerUser);
+	REGISTER_ATOM(AudioJoiner2User);
+	REGISTER_ATOM(AudioMixer16);
 	#if defined flagSCREEN
-	Factory::RegisterAtom<VideoDbgSrc>();
+	REGISTER_ATOM(VideoDbgSrc);
 	#endif
 	#if (defined flagOPENCV && defined flagLINUX)
-	Factory::RegisterAtom<WebcamPipe>();
+	REGISTER_ATOM(WebcamPipe);
 	#endif
 	#if (defined flagOPENCV && defined flagLINUX)
-	Factory::RegisterAtom<WebcamAtom>();
+	REGISTER_ATOM(WebcamAtom);
 	#endif
 	#if defined flagFFMPEG
-	Factory::RegisterAtom<AudioLoaderAtom>();
+	REGISTER_ATOM(AudioLoaderAtom);
 	#endif
 	#if defined flagFFMPEG
-	Factory::RegisterAtom<VideoLoaderAtom>();
+	REGISTER_ATOM(VideoLoaderAtom);
 	#endif
 	#if defined flagSCREEN
-	Factory::RegisterAtom<EventStatePipe>();
+	REGISTER_ATOM(EventStatePipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwFboProg>();
+	REGISTER_ATOM(X11SwFboProg);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglFboProg>();
+	REGISTER_ATOM(X11OglFboProg);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlSwFboProg>();
+	REGISTER_ATOM(SdlSwFboProg);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboProg>();
+	REGISTER_ATOM(SdlOglFboProg);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwShaderPipe>();
+	REGISTER_ATOM(X11SwShaderPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglShaderPipe>();
+	REGISTER_ATOM(X11OglShaderPipe);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglShaderPipe>();
+	REGISTER_ATOM(SdlOglShaderPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwFboAtomPipe>();
+	REGISTER_ATOM(X11SwFboAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglFboAtomPipe>();
+	REGISTER_ATOM(X11OglFboAtomPipe);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlSwFboAtomPipe>();
+	REGISTER_ATOM(SdlSwFboAtomPipe);
 	#endif
 	#if (defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboAtomPipe>();
+	REGISTER_ATOM(SdlOglFboAtomPipe);
 	#endif
 	#if (defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglProgAtomPipe>();
+	REGISTER_ATOM(SdlOglProgAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11ContextAtom>();
+	REGISTER_ATOM(X11ContextAtom);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwContextAtom>();
+	REGISTER_ATOM(X11SwContextAtom);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglContextAtom>();
+	REGISTER_ATOM(X11OglContextAtom);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11EventAtomPipe>();
+	REGISTER_ATOM(X11EventAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwEventAtomPipe>();
+	REGISTER_ATOM(X11SwEventAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglEventAtomPipe>();
+	REGISTER_ATOM(X11OglEventAtomPipe);
 	#endif
 	#if (defined flagWIN32 && defined flagSCREEN && !defined flagUWP)
-	Factory::RegisterAtom<WinContextAtom>();
+	REGISTER_ATOM(WinContextAtom);
 	#endif
 	#if (defined flagWIN32 && defined flagSCREEN && !defined flagUWP)
-	Factory::RegisterAtom<WinVideoAtomPipe>();
+	REGISTER_ATOM(WinVideoAtomPipe);
 	#endif
-	Factory::RegisterAtom<DxCustomer>();
+	REGISTER_ATOM(DxCustomer);
 	#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
-	Factory::RegisterAtom<WinD11ContextAtom>();
+	REGISTER_ATOM(WinD11ContextAtom);
 	#endif
 	#if (defined flagSCREEN && defined flagWIN32 && defined flagDX11)
-	Factory::RegisterAtom<WinD11FboProg>();
+	REGISTER_ATOM(WinD11FboProg);
 	#endif
 	#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
-	Factory::RegisterAtom<WinD11FboAtomPipe>();
+	REGISTER_ATOM(WinD11FboAtomPipe);
 	#endif
 	#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
-	Factory::RegisterAtom<WinD11FboAtomSA>();
+	REGISTER_ATOM(WinD11FboAtomSA);
 	#endif
-	Factory::RegisterAtom<OglCustomer>();
+	REGISTER_ATOM(OglCustomer);
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlContextAtom>();
+	REGISTER_ATOM(SdlContextAtom);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlEventAtomPipe>();
+	REGISTER_ATOM(SdlEventAtomPipe);
 	#endif
-	Factory::RegisterAtom<TestEventSrcPipe>();
+	REGISTER_ATOM(TestEventSrcPipe);
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglImageLoader>();
+	REGISTER_ATOM(SdlOglImageLoader);
 	#endif
-	Factory::RegisterAtom<VolumeLoaderAtom>();
+	REGISTER_ATOM(VolumeLoaderAtom);
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11VideoAtomPipe>();
+	REGISTER_ATOM(X11VideoAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglVideoAtomPipe>();
+	REGISTER_ATOM(X11OglVideoAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglFboAtomSA>();
+	REGISTER_ATOM(X11OglFboAtomSA);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwVideoAtomPipe>();
+	REGISTER_ATOM(X11SwVideoAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwFboAtomSA>();
+	REGISTER_ATOM(X11SwFboAtomSA);
 	#endif
 	#if (defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboAtomSA>();
+	REGISTER_ATOM(SdlOglFboAtomSA);
 	#endif
 	#if defined flagSDL2 && defined flagOGL && defined flagGUI
-	Factory::RegisterAtom<SdlUppOglDeviceSA>();
+	REGISTER_ATOM(SdlUppOglDeviceSA);
 	#endif
 	#if (defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboPipe>();
+	REGISTER_ATOM(SdlOglFboPipe);
 	#endif
 	#if (defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboAtom>();
+	REGISTER_ATOM(SdlOglFboAtom);
 	#endif
 	#if defined flagSDL2 && defined flagGUI
-	Factory::RegisterAtom<SdlUppEventsBasePipe>();
+	REGISTER_ATOM(SdlUppEventsBasePipe);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlVideoAtomPipe>();
+	REGISTER_ATOM(SdlVideoAtomPipe);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlProgAtomPipe>();
+	REGISTER_ATOM(SdlProgAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11ProgAtomPipe>();
+	REGISTER_ATOM(X11ProgAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
-	Factory::RegisterAtom<X11SwFboGuiProg>();
+	REGISTER_ATOM(X11SwFboGuiProg);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
-	Factory::RegisterAtom<X11OglFboGuiProg>();
+	REGISTER_ATOM(X11OglFboGuiProg);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglFboGuiProg>();
+	REGISTER_ATOM(SdlOglFboGuiProg);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlVideoAtom>();
+	REGISTER_ATOM(SdlVideoAtom);
 	#endif
 	#if defined flagSDL2
-	Factory::RegisterAtom<SdlAudioAtom>();
+	REGISTER_ATOM(SdlAudioAtom);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglShaderAtom>();
+	REGISTER_ATOM(SdlOglShaderAtom);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglShaderAtomSA>();
+	REGISTER_ATOM(SdlOglShaderAtomSA);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglTextureSource>();
+	REGISTER_ATOM(SdlOglTextureSource);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglVolumeSource>();
+	REGISTER_ATOM(SdlOglVolumeSource);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglAudioSink>();
+	REGISTER_ATOM(SdlOglAudioSink);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglKeyboardSource>();
+	REGISTER_ATOM(SdlOglKeyboardSource);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
-	Factory::RegisterAtom<SdlOglAudioSource>();
+	REGISTER_ATOM(SdlOglAudioSource);
 	#endif
 	
 	// VR
 	
 	#if (defined flagFREEBSD && defined flagOPENHMD) || (defined flagLINUX && defined flagOPENHMD)
-	Factory::RegisterAtom<OpenHMDPipe>();
+	REGISTER_ATOM(OpenHMDPipe);
 	#endif
 	#if defined flagLOCALHMD
-	Factory::RegisterAtom<LocalHMDPipe>();
+	REGISTER_ATOM(LocalHMDPipe);
 	#endif
 	#if (defined flagFREEBSD) || (defined flagLINUX)
-	Factory::RegisterAtom<RemoteVRServerPipe>();
+	REGISTER_ATOM(RemoteVRServerPipe);
 	#endif
 	#if (defined flagFREEBSD && defined flagHACK) || (defined flagLINUX && defined flagHACK)
-	Factory::RegisterAtom<BluetoothHoloPipe>();
+	REGISTER_ATOM(BluetoothHoloPipe);
 	#endif
 	#if (defined flagUWP && defined flagDX12)
-	Factory::RegisterAtom<HoloContextAtom>();
+	REGISTER_ATOM(HoloContextAtom);
 	#endif
 	#if (defined flagUWP && defined flagDX12)
-	Factory::RegisterAtom<HoloEventAtomPipe>();
+	REGISTER_ATOM(HoloEventAtomPipe);
 	#endif
 	#if (defined flagUWP && defined flagDX12 && defined flagDX12)
-	Factory::RegisterAtom<HoloD12FboAtomSA>();
+	REGISTER_ATOM(HoloD12FboAtomSA);
 	#endif
+	#undef REGISTER_ATOM
 	
 	
 	// SerialMach
-	
-	Factory::RegisterLink<CustomerLink>();
-	Factory::RegisterLink<PipeLink>();
-	Factory::RegisterLink<PipeOptSideLink>();
-	Factory::RegisterLink<IntervalPipeLink>();
-	Factory::RegisterLink<ExternalPipeLink>();
-	Factory::RegisterLink<DriverLink>();
-	Factory::RegisterLink<MergerLink>();
-	Factory::RegisterLink<JoinerLink>();
-	Factory::RegisterLink<SplitterLink>();
-	Factory::RegisterLink<PollerLink>();
+	#define REGISTER_LINK(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_LINK);
+	REGISTER_LINK(CustomerLink);
+	REGISTER_LINK(PipeLink);
+	REGISTER_LINK(PipeOptSideLink);
+	REGISTER_LINK(IntervalPipeLink);
+	REGISTER_LINK(ExternalPipeLink);
+	REGISTER_LINK(DriverLink);
+	REGISTER_LINK(MergerLink);
+	REGISTER_LINK(JoinerLink);
+	REGISTER_LINK(SplitterLink);
+	REGISTER_LINK(PollerLink);
+	#undef REGISTER_LINK
 	
 }
 

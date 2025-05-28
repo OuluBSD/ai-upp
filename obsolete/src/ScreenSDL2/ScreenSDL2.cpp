@@ -10,7 +10,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 	using namespace Serial;
 	
 	const AppFlags& flags = GetAppFlags();
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	
 	
 	RegistrySystemRef reg	= mach.Add<RegistrySystem>();
@@ -35,7 +35,7 @@ bool SingleMachine::Open(void(*arg_fn)()) {
 
 void SingleMachine::Close() {
 	using namespace Serial;
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	mach.Stop();
 }
 

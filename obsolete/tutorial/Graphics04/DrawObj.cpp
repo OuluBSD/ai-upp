@@ -103,7 +103,7 @@ void Tutorial4::DrawObj(float f2, Draw& fb, bool use_texture) {
 	Ref<EntityStore> store = GetEntity()->GetEngine().Get<EntityStore>();
 	vec3 light_dir {sin(angle), 0.0, cos(angle)};
 	PoolRef p = store->GetRoot();
-	for(EntityRef& e : p->GetEntities()) {
+	for(EntityPtr& e : p->GetEntities()) {
 		if (loader.model) {
 			for(const Mesh& mesh : loader.model->GetMeshes()) {
 				const uint32* idx = (const uint32*)mesh.indices.Begin();

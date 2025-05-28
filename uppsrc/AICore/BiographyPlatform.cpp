@@ -32,7 +32,8 @@ void BiographyPlatform::RealizePromptImageTypes() {
 
 Index<int> BiographyPlatform::GetRequiredRoles() const {
 	Index<int> ret;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	if (!p.platmgr)
 		return ret;
 	for(int role_i0 = 0; role_i0 < SOCIETYROLE_COUNT; role_i0++) {

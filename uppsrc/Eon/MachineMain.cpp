@@ -1,5 +1,6 @@
 #include "Eon.h"
 
+#if 0
 
 NAMESPACE_UPP
 
@@ -20,7 +21,7 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 	double time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
-		Machine& mach = GetActiveMachine();
+		Engine& mach = GetActiveMachine();
 		
 		if (ver)
 			ver->Attach(mach);
@@ -121,3 +122,5 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 
 
 END_UPP_NAMESPACE
+
+#endif

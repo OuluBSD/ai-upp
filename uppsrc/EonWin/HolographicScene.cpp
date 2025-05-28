@@ -9,7 +9,7 @@ using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
 HolographicScene::HolographicScene(
-    Machine& core,
+    Engine& core,
     winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace) :
     SP(core),
     m_holographicSpace(std::move(holographicSpace))

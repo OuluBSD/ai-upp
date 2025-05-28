@@ -1,5 +1,5 @@
-#ifndef _Geometry_Keys_h_
-#define _Geometry_Keys_h_
+#ifndef _Core2_Keys_h_
+#define _Core2_Keys_h_
 
 enum {
 	I_DELTA        = 0x010000,

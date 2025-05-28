@@ -31,12 +31,11 @@ bool EcsViewProg::Render(Draw& fb) {
 	ASSERT(sd);
 	
 	GfxDataState& state = sd->GetState();
-	ASSERT(state.mach);
+	ASSERT(state.eng);
 	
-	Machine& mach = *state.mach;
-	Ecs::Engine& eng = mach.GetEngine();
+	Engine& eng = *state.eng;
 	
-	Ecs::RenderingSystemPtr rend = eng.Get<Ecs::RenderingSystem>();
+	RenderingSystemPtr rend = eng.Get<RenderingSystem>();
 	ASSERT(rend);
 	
 	

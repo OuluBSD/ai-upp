@@ -1,12 +1,18 @@
 #ifndef _Core2_Atom_h_
 #define _Core2_Atom_h_
 
+namespace Eon {
+class ScriptLoopLoader;
+class ScriptDriverLoader;
+class ExtScriptEcsLoader;
+}
+
+#define ATOM_CTOR_(x, base) \
+	CLASSTYPE(x) \
+	x(VfsValue& n) : base(n) {}
 
 class LinkBase;
 class WorldState;
-
-
-
 
 
 class PacketForwarderData {};
@@ -29,8 +35,8 @@ struct AtomBase :
 	
 	
 protected:
-	friend class ScriptLoopLoader;
-	friend class ScriptDriverLoader;
+	friend class Eon::ScriptLoopLoader;
+	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
 	
 	int64					idx = -1;
@@ -98,7 +104,7 @@ public:
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);
 	
-	Engine&					GetMachine();
+	Engine&					GetEngine();
 	void					UninitializeDeep();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
@@ -113,8 +119,8 @@ public:
 	template <class T> T* GetSourceT() {return dynamic_cast<T*>(&*this->GetSource());}
 	template <class T> T* GetSinkT()   {return dynamic_cast<T*>(&*this->GetSink());}
 	
-	//Space*			GetSpace();
-	//Space&			GetParent();
+	VfsValue*		GetSpace();
+	//VfsValue&		GetParent();
 	LinkBase*		GetLink();
 	int64			GetIdx() const {return idx;}
 	

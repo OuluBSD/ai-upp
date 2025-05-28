@@ -46,7 +46,7 @@ void Ctrl::SetDesktopSize(Size sz) {
 void Ctrl::EventLoop(Ctrl *ctrl) {
 	/*bool quit = false;
 	TimeStop t;
-	Upp::Machine& mach = Upp::GetMachine();
+	Upp::Engine& mach = Upp::GetEngine();
 	ProcessEvents(&quit);
 	while (!quit && !Thread::IsShutdownThreads() && mach.IsRunning()) {
 		double dt = t.ResetSeconds();
@@ -85,10 +85,10 @@ void Ctrl::Invalidate() {
 	TODO
 	#if 0
 	using namespace Upp;
-	static Ref<Ecs::WindowSystem> win;
+	static Ref<WindowSystem> win;
 	if (!win) {
 		TODO
-		/*win = GetActiveMachine().Get<Ecs::WindowSystem>();
+		/*win = GetActiveMachine().Get<WindowSystem>();
 		if (win)
 			win->Invalidate();*/
 	}

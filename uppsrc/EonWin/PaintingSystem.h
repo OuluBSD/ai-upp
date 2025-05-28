@@ -25,13 +25,13 @@ struct PaintComponent : Component
     void Destroy() override;
 
     DirectX::XMVECTORF32 selectedColor{ DirectX::Colors::White };
-    Array<EntityRef> colorPickerObjects;
-    Array<EntityRef> strokes;
+    Array<EntityPtr> colorPickerObjects;
+    Array<EntityPtr> strokes;
 
-    EntityRef touchpadIndicator;
-    EntityRef strokeInProgress;
-    EntityRef paintBrush;
-    EntityRef beam;
+    EntityPtr touchpadIndicator;
+    EntityPtr strokeInProgress;
+    EntityPtr paintBrush;
+    EntityPtr beam;
 
     State currentState{ State::Idle };
 
@@ -74,9 +74,9 @@ protected:
     // ToolSystemBase
     std::wstring_view GetInstructions() const override;
     std::wstring_view GetDisplayName() const override;
-    EntityRef CreateToolSelector() const override;
+    EntityPtr CreateToolSelector() const override;
 
-    void Register(Array<EntityRef>& entities) override;
+    void Register(Array<EntityPtr>& entities) override;
     void Activate(Entity& entity) override;
     void Deactivate(Entity& entity) override;
 
@@ -107,7 +107,7 @@ private:
         DirectX::Colors::Black
     };
 
-    Array<Array<EntityRef>> m_persistentStrokes;
+    Array<Array<EntityPtr>> m_persistentStrokes;
 };
 
 

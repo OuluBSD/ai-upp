@@ -4,8 +4,8 @@
 NAMESPACE_UPP
 
 
-PoolPtr ThrowingInteractionSystemBase::GetPool() const {
-	return val.FindOwner<Pool>();
+VfsValue* ThrowingInteractionSystemBase::GetPool() const {
+	return val.FindOwnerNull();
 }
 
 void ThrowingInteractionSystemBase::Visit(Vis& v) {
@@ -43,7 +43,7 @@ String ThrowingInteractionSystemBase::GetDisplayName() const {
 }
 
 EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
-	auto selector = GetPool()->Create<ToolSelectorPrefab>();
+	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool());
 	selector->Get<ModelComponent>().SetPrefabModel("Baseball");
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
@@ -83,7 +83,7 @@ void ThrowingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 		for (ThrowingComponentPtr& throwing : comps) {
 			if (!throwing->IsEnabled()) continue;
 			
-			throwing->ball_object = GetPool()->Create<Baseball>();
+			throwing->ball_object = CreatePrefab<Baseball>(*GetPool());
 			throwing->ball_object->Get<Transform>().size = vec3{ throwing->scale };
 			throwing->ball_object->Get<RigidBody>().SetEnabled(false);
 			throwing->ball_object->Get<PhysicsBody>().BindDefault();
@@ -188,7 +188,7 @@ void ThrowingComponent::Visit(Vis& v) {
 }
 
 void ThrowingComponent::Initialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
 	
@@ -198,7 +198,7 @@ void ThrowingComponent::Initialize() {
 }
 
 void ThrowingComponent::Uninitialize() {
-	ToolComponentPtr tool = GetEntity()->Find<ToolComponent>();
+	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->RemoveTool(this);
 	

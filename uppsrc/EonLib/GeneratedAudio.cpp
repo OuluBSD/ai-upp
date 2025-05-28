@@ -10,7 +10,7 @@ String MidiFileReaderPipe::GetAction() {
 
 AtomTypeCls MidiFileReaderPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::MIDI_FILE_READER_PIPE;
+	t.sub = SUB_ATOM_CLS;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,MIDI),0);
@@ -36,7 +36,7 @@ String MidiFileReader::GetAction() {
 
 AtomTypeCls MidiFileReader::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::MIDI_FILE_READER;
+	t.sub = SUB_ATOM_CLS; //MIDI_FILE_READER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -63,7 +63,7 @@ String MidiFileReader16::GetAction() {
 
 AtomTypeCls MidiFileReader16::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::MIDI_FILE_READER16;
+	t.sub = SUB_ATOM_CLS; //MIDI_FILE_READER16;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -105,7 +105,7 @@ String MidiNullSink::GetAction() {
 
 AtomTypeCls MidiNullSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::MIDI_NULL_SINK;
+	t.sub = SUB_ATOM_CLS; //MIDI_NULL_SINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,MIDI),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -132,7 +132,7 @@ String FluidsynthPipe::GetAction() {
 
 AtomTypeCls FluidsynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::FLUIDSYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //FLUIDSYNTH_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -160,7 +160,7 @@ String SoftInstrumentPipe::GetAction() {
 
 AtomTypeCls SoftInstrumentPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::SOFT_INSTRUMENT_PIPE;
+	t.sub = SUB_ATOM_CLS; //SOFT_INSTRUMENT_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -187,7 +187,7 @@ String FmSynthPipe::GetAction() {
 
 AtomTypeCls FmSynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::FM_SYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //FM_SYNTH_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -215,7 +215,7 @@ String LV2InstrumentPipe::GetAction() {
 
 AtomTypeCls LV2InstrumentPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::LV2_INSTRUMENT_PIPE;
+	t.sub = SUB_ATOM_CLS; //LV2_INSTRUMENT_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -243,7 +243,7 @@ String CoreSynthPipe::GetAction() {
 
 AtomTypeCls CoreSynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CORE_SYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //CORE_SYNTH_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -270,7 +270,7 @@ String CoreDrummerPipe::GetAction() {
 
 AtomTypeCls CoreDrummerPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CORE_DRUMMER_PIPE;
+	t.sub = SUB_ATOM_CLS; //CORE_DRUMMER_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -301,7 +301,7 @@ String CoreEffectPipe::GetAction() {
 
 AtomTypeCls CoreEffectPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CORE_EFFECT_PIPE;
+	t.sub = SUB_ATOM_CLS; //CORE_EFFECT_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -335,7 +335,7 @@ String CoreEffectAtom::GetAction() {
 
 AtomTypeCls CoreEffectAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CORE_EFFECT_ATOM;
+	t.sub = SUB_ATOM_CLS; //CORE_EFFECT_ATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -370,7 +370,7 @@ String LV2EffectPipe::GetAction() {
 
 AtomTypeCls LV2EffectPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::LV2_EFFECT_PIPE;
+	t.sub = SUB_ATOM_CLS; //LV2_EFFECT_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,AUDIO),0);
@@ -398,7 +398,7 @@ String PortmidiPipe::GetAction() {
 
 AtomTypeCls PortmidiPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::PORTMIDI_PIPE;
+	t.sub = SUB_ATOM_CLS; //PORTMIDI_PIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,MIDI),0);
@@ -426,7 +426,7 @@ String PortmidiSend::GetAction() {
 
 AtomTypeCls PortmidiSend::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::PORTMIDI_SEND;
+	t.sub = SUB_ATOM_CLS; //PORTMIDI_SEND;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -457,7 +457,7 @@ String CoreAudioFileOut::GetAction() {
 
 AtomTypeCls CoreAudioFileOut::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SubAtomCls::CORE_AUDIO_FILE_OUT;
+	t.sub = SUB_ATOM_CLS; //CORE_AUDIO_FILE_OUT;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);

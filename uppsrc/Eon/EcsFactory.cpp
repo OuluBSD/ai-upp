@@ -13,12 +13,12 @@ void ComponentFactory::Dump() {
 	}
 }
 
-ComponentBase* ComponentFactory::CreateComponent(VfsValue& n, TypeCls type) {
+Component* ComponentFactory::CreateComponent(VfsValue& n, TypeCls type) {
 	int i = CompDataMap().Find(type);
 	if (i < 0) return 0;
 	CompData& d = CompDataMap()[i];
 	VfsValue& sub = n.sub.Add();
-	ComponentBase* c = d.new_fn(sub);
+	Component* c = d.new_fn(sub);
 	sub.ext = c;
 	sub.type_hash = c->GetTypeHash();
 	ASSERT(sub.type_hash);

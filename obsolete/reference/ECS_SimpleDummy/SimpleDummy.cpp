@@ -6,11 +6,11 @@ String file_path;
 
 
 void DummyGenerator::OnError() {
-	GetEntity()->GetMachine().SetNotRunning();
+	GetEntity()->GetEngine().SetNotRunning();
 }
 
 void DummyGenerator::Initialize() {
-	EntityRef e = GetEntity();
+	EntityPtr e = GetEntity();
 	gen     = e->Find<DummySoundGeneratorComponent>();
 	audio   = e->Find<DummyAudioSinkComponent>();
 	
@@ -83,7 +83,7 @@ void Main() {
 			bool fail = false;
 			{
 				RegistrySystemRef reg		= mach.Add<RegistrySystem>();
-				EntityStoreRef es			= mach.Add<EntityStore>();
+				EntityStorePtr es			= mach.Add<EntityStore>();
 				ComponentStoreRef compstore	= mach.Add<ComponentStore>();
 			    ConnectorStoreRef connstore	= mach.Add<ConnectorStore>();
 			    CustomerSystemRef cust		= mach.Add<CustomerSystem>();

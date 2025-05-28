@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 INITBLOCK {
 	
-	Ecs::Engine::Register<Ecs::DesktopSuiteSystem>("desktop");
+	Engine::Register<DesktopSuiteSystem>("desktop");
 	
 }
 

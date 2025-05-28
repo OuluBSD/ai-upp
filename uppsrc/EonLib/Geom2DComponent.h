@@ -177,7 +177,7 @@ public:
 	virtual void ChildMouseEvent(Ctrl *child, int event, Point p, int zdelta, dword keyflags);
 };
 
-using Geom2DComponentRef = Ptr<Geom2DComponent>;
+using Geom2DComponentPtr = Ptr<Geom2DComponent>;
 
 
 struct Geom2DComponentLink : public Component {
@@ -213,7 +213,7 @@ struct Window2D :
     {
         auto components = EntityPrefab::Make(e);
 		
-		components.Get<Geom2DComponentRef>()->transform2d = components.Get<Transform2DRef>();
+		components.Get<Geom2DComponentPtr>()->transform2d = components.Get<Transform2DRef>();
 		
 		components.Get<Transform2DRef>()->position = vec2(0, 1);
 		components.Get<Transform2DRef>()->size = vec2(320, 240);
@@ -237,7 +237,7 @@ struct Window3D :
 		Geom2DComponentLinkRef win = components.Get<Geom2DComponentLinkRef>();
 		
 		#if 0
-		ModelComponentRef mdl = components.Get<ModelComponentRef>();
+		ModelComponentPtr mdl = components.Get<ModelComponentPtr>();
 		mdl->Arg("builtin", "box");
 		#endif
 		

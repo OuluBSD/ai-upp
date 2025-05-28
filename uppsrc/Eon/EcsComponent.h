@@ -3,14 +3,14 @@
 
 
 #if 0
-class ComponentBase;
+class Component;
 class Entity;
 class ComponentStore;
 
 
-//template <class T> inline T* ComponentBase_Static_As(ComponentBase*) {return 0;}
+//template <class T> inline T* Component_Static_As(Component*) {return 0;}
 
-class ComponentBase :
+class Component :
 	public VfsValueExt,
 	public Destroyable,
 	public Enableable
@@ -19,7 +19,7 @@ protected:
 	friend class Entity;
 	
 public:
-	virtual void CopyTo(ComponentBase* component) const = 0;
+	virtual void CopyTo(Component* component) const = 0;
 	virtual void Visit(Vis& vis) = 0; // linking errors here means invalid derived visit
 	virtual TypeCls GetTypeCls() const = 0;
 	virtual void Initialize() {};
@@ -34,8 +34,8 @@ public:
 	void RemoveFromUpdateList();
 	
 public:
-	ComponentBase(VfsValue& n);
-	virtual ~ComponentBase();
+	Component(VfsValue& n);
+	virtual ~Component();
 	
 	Entity* GetEntity();
 	
@@ -44,7 +44,7 @@ public:
 	
 	virtual bool Arg(String key, Value value) {return true;}
 	
-	//template <class T> RefT_Entity<T> As() {return ComponentBase_Static_As<T>(this);}
+	//template <class T> RefT_Entity<T> As() {return Component_Static_As<T>(this);}
 	
 	template <class ValDevSpec, class T> bool LinkManually(T& o, String* err_msg=0);
 	
@@ -55,23 +55,23 @@ public:
 	
 };
 
-using ComponentBasePtr = Ptr<ComponentBase>;
+using ComponentPtr = Ptr<Component>;
 
 
 template<typename T>
 struct Component :
-	public ComponentBase
+	public Component
 {
 public:
 	using ComponentT = Component<T>;
-	using ComponentBase::ComponentBase;
+	using Component::Component;
 
 	void Visit(Vis& v) override {}
 	
-	void CopyTo(ComponentBase* target) const override {
+	void CopyTo(Component* target) const override {
 		ASSERT(target->GetTypeCls() == GetTypeCls());
 	    if (target->GetTypeCls() == GetTypeCls())
-	        VisitCopy<ComponentBase>(*this, *target);
+	        VisitCopy<Component>(*this, *target);
 	}
 	
 };

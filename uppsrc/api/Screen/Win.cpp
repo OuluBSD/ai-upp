@@ -455,7 +455,7 @@ LRESULT CALLBACK Win_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     case WM_DESTROY:
         PostQuitMessage(0);
         
-        dev.atom->GetMachine().SetNotRunning();
+        dev.atom->GetEngine().SetNotRunning();
         
         return 0;
 

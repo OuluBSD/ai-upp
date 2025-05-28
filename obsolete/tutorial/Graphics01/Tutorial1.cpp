@@ -68,7 +68,7 @@ struct Tutorial1 :
 		int width = height;
 		Ref<EntityStore> store = GetEntity()->GetEngine().Get<EntityStore>();
 		PoolRef p = store->GetRoot();
-		for(EntityRef& e : p->GetEntities()) {
+		for(EntityPtr& e : p->GetEntities()) {
 			auto model = loader.GetModel();
 			if (model) for(const Mesh& mesh : model->GetMeshes()) {
 				int tri_count = mesh.GetTriangleCount();

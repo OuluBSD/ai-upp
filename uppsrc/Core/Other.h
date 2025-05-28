@@ -487,15 +487,15 @@ struct TypeCls : Moveable<TypeCls>, std::type_index {
 	String ToString() const {return this->name();}
 };
 
-template <class T> TypeCls AsTypeCls() {return typeid(T);}
-template <class T> String AsTypeName() {return CppDemangle(typeid(T).name());}
+template <class T> TypeCls AsTypeCls(T* o=0) {return typeid(T);}
+template <class T> String AsTypeName(T* o=0) {return CppDemangle(typeid(T).name());}
 // Note: AsTypeHash is considered to be persistent and cross-platform (& cross-compiler),
 //       which currently requires the user to set the type string.
 //       If std had demangler or mangled name was standard, this would be unnecessary.
 //       Usage: call TypedStringHasher<T>("name of T") early in constructor or main.
 //       Use AsTypeCls().GetHashValue() if you need easy & non-persistent hash.
 template <class T> hash_t TypedStringHasher(const char* s);
-template <class T> hash_t AsTypeHash() {return TypedStringHasher<T>(0);}
+template <class T> hash_t AsTypeHash(T* o=0) {return TypedStringHasher<T>(0);}
 inline TypeCls AsVoidTypeCls() {return TypeCls();} // for explicit naming
 
 template <class T> using TypeMap = ArrayMap<TypeCls, T>;

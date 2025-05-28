@@ -56,7 +56,7 @@ struct Bullet : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody>
     {
         auto components = EntityPrefab::Make(e);
 
-        components.Get<RigidBodyPtr>()->acceleration = e.GetEngine().Get<PhysicsSystem>()->gravity;
+        components.Get<RigidBodyPtr>()->acceleration = e.val.FindOwner<Engine>()->Get<PhysicsSystem>()->gravity;
         components.Get<ModelComponentPtr>()->MakeBall(vec3(0,0,0), 0.2f);
         components.Get<ModelComponentPtr>()->color = vec4(0, 0, 1, 1);
         components.Get<TransformPtr>()->size = vec3(0.025f);
@@ -71,7 +71,7 @@ struct Baseball : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody
     {
         auto components = EntityPrefab::Make(e);
 
-        components.Get<RigidBodyPtr>()->acceleration = e.GetEngine().Get<PhysicsSystem>()->gravity;
+        components.Get<RigidBodyPtr>()->acceleration = e.val.FindOwner<Engine>()->Get<PhysicsSystem>()->gravity;
         components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::Baseball);
 
         return components;

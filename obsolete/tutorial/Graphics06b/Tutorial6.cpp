@@ -11,11 +11,11 @@ NAMESPACE_UPP
 
 
 void Graphics6Initializer() {
-	Machine& mach = GetMachine();
+	Engine& mach = GetEngine();
 	mach.Add<PhysicsSystem>();
 	
 	EntityStore& ents = *mach.Get<EntityStore>();
-	EntityRef obj = ents.Create<StaticModel>();
+	EntityPtr obj = ents.Create<StaticModel>();
 	obj->Find<Connector>()->ConnectAll();
 	Ref<ModelComponent> mdl = obj->GetRef<ModelComponent>();
 	

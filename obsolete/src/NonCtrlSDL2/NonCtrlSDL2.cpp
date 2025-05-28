@@ -8,10 +8,10 @@ NAMESPACE_UPP
 
 bool SingleMachine::Open(bool gui) {
 	const AppFlags& flags = GetAppFlags();
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	
 	RegistrySystemRef reg = mach.Add<RegistrySystem>();
-	EntityStoreRef ents = mach.Add<EntityStore>();
+	EntityStorePtr ents = mach.Add<EntityStore>();
     mach.Add<ComponentStore>();
     mach.Add<ConnectorStore>();
     mach.Add<SDL2System>();
@@ -37,14 +37,14 @@ bool SingleMachine::Open(bool gui) {
     
     PoolRef pool = ents->GetRoot()->GetAddPool("system");
     pool->AddConnectEverything();
-    EntityRef app = pool->Create<SDL2StandaloneWindow>();
+    EntityPtr app = pool->Create<SDL2StandaloneWindow>();
     pool->ConnectEverything();
     
 	return true;
 }
 
 void SingleMachine::Close() {
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	mach.Stop();
 }
 

@@ -38,12 +38,12 @@ protected:
 	void Refresh0() {Refresh();}
 	
 public:
-	//friend class Upp::Ecs::DefaultGuboAppComponent;
+	//friend class Upp::DefaultGuboAppComponent;
 	
 	
 protected:
-	//friend class Upp::Ecs::VirtualGubo;
-	//friend class Upp::Ecs::WindowSystem;
+	//friend class Upp::VirtualGubo;
+	//friend class Upp::WindowSystem;
 	friend class TopSurface;
 	
 	

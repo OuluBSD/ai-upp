@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-using ::Upp::Ecs::Transform;
+using ::Upp::Transform;
 
 	
 struct FloorPrefab : EntityPrefab<Transform, PbrRenderable>

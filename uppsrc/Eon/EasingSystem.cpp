@@ -34,7 +34,7 @@ void Easing::Uninitialize() {
 void EasingSystem::Update(double dt)
 {
 	for (Easing* easing : comps) {
-		Ptr<Transform> transform = easing->GetEntity()->Find<Transform>();
+		Ptr<Transform> transform = easing->GetEntity()->val.Find<Transform>();
 		if (!transform)
 			continue;
         

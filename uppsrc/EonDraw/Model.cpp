@@ -313,7 +313,7 @@ bool ModelComponent::Load(GfxDataState& state) {
 			String path = KnownModelNames::GetPath(prefab_name);
 			auto& mdl = state.AddModel();
 			gfx_hash = mdl.id;
-			ModelCachePtr cache = GetEngine().GetMachine().val.Find<ModelCache>();
+			ModelCachePtr cache = val.FindOwnerWith<ModelCache>();
 			if (cache) {
 				model = cache->GetAddModelFile(path);
 			}
@@ -352,7 +352,7 @@ bool ModelComponent::Load(GfxDataState& state) {
 	
 	
 	mat4 model_mat;
-	TransformPtr trans = GetEntity()->Find<Transform>();
+	TransformPtr trans = GetEntity()->val.Find<Transform>();
 	if (trans) {
 		mat4 pos = Translate(trans->data.position);
 		mat4 rot = QuatMat(trans->data.orientation);

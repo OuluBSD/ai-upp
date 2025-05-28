@@ -43,12 +43,12 @@ public:
 	
 	void Attach(ThrowingComponentPtr c);
 	void Detach(ThrowingComponentPtr c);
-	PoolPtr GetPool() const;
+	VfsValue* GetPool() const;
 	
 	
 protected:
 	// System
-	Ecs::SystemBase* GetSystem() override {return this;}
+	System* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;

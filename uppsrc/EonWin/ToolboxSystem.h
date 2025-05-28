@@ -44,7 +44,7 @@ protected:
 
 private:
     detail::type_map<std::shared_ptr<ToolSystemBase>> m_selectors;
-    detail::type_map<EntityRef> m_selectorObjects;
+    detail::type_map<EntityPtr> m_selectorObjects;
 
     bool m_showToolbox{ false };
 
@@ -56,18 +56,18 @@ private:
     static winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceHandedness ControllerHandToHandedness(ControllerHand hand);
 
     struct ControllerContext {
-        EntityRef Controller;
-        EntityRef DebugText;
+        EntityPtr Controller;
+        EntityPtr DebugText;
         ControllerHand Hand;
     };
 
     void SwitchToolType(Entity& entity, const detail::type_id& newType);
 
-    EntityRef FindController(const winrt::Windows::UI::Input::Spatial::SpatialInteractionSource& source);
+    EntityPtr FindController(const winrt::Windows::UI::Input::Spatial::SpatialInteractionSource& source);
 
     std::array<ControllerContext, ControllerHand::Count> m_controllers;
 
-    EntityRef m_instructionalText;
+    EntityPtr m_instructionalText;
     
     
 };

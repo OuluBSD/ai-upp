@@ -14,7 +14,7 @@ AtomVirtualGui3D::~AtomVirtualGui3D() {
 }
 
 bool AtomVirtualGui3D::Create(const Rect& rect, const char *title) {
-	Machine& mach = Upp::Serial::GetActiveMachine();
+	Engine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<Gu::SurfaceSystem>();
 	if (!wins)
 		return false;

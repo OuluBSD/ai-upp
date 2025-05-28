@@ -201,7 +201,7 @@ bool VoidSinkBase::Consume(const void* data, int len) {
 		dbg_iter++;
 		
 		if (fail || (dbg_limit > 0 && dbg_iter >= dbg_limit)) {
-			Machine* mach = val.FindOwner<Machine>();
+			Engine* mach = val.FindOwner<Engine>();
 			//if (!mach) {LOG(MetaEnv().root.GetTreeString());}
 			ASSERT(mach);
 			if (!mach) return false;
@@ -256,7 +256,7 @@ void VoidPollerSinkBase::Uninitialize() {
 		fail = true;
 	if (!fail) {LOG("VoidPollerSinkBase::Uninitialize: success!");}
 	else       {LOG("VoidPollerSinkBase::Uninitialize: fail :(");}
-	TODO//if (fail) GetMachine().SetFailed("VoidPollerSinkBase error");
+	TODO//if (fail) GetEngine().SetFailed("VoidPollerSinkBase error");
 	RemoveAtomFromUpdateList();
 }
 
@@ -354,11 +354,11 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 		else {
 			LOG("VoidPollerSinkBase::Recv: error: thrd #" << i << " invalid audio format");
 			fail = true;
-			val.FindOwner<Machine>()->SetFailed("VoidPollerSinkBase error");
+			val.FindOwner<Engine>()->SetFailed("VoidPollerSinkBase error");
 		}
 		
 		if (dbg_limit > 0 && t.rolling_value >= dbg_limit) {
-			val.FindOwner<Machine>()->SetNotRunning();
+			val.FindOwner<Engine>()->SetNotRunning();
 			LOG("VoidPollerSinkBase::Recv: stops");
 		}
 	}
@@ -406,11 +406,12 @@ bool EventStateBase::Initialize(const WorldState& ws) {
 		LOG("EventStateBase::Initialize: error: target state argument is required");
 		return false;
 	}
-	
-	Space& s = GetParent();
-	state = s.FindNearestState(target);
+	ASSERT(val.owner);
+	if (!val.owner) return false;
+	VfsValue& s = *val.owner;
+	state = s.FindOwnerWith<EnvState>(target);
 	if (!state) {
-		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << s.GetDeepName());
+		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << s.GetPath());
 		return false;
 	}
 	
@@ -484,7 +485,7 @@ void EventStateBase::Event(const GeomEvent& e) {
 	if (dbg_print) {
 		LOG(e.ToString());
 		if (dbg_limit > 0 && ++dbg_iter > dbg_limit)
-			val.FindOwner<Machine>()->SetNotRunning();
+			val.FindOwner<Engine>()->SetNotRunning();
 	}
 	
 	if (e.type == EVENT_INVALID) {
@@ -719,7 +720,7 @@ void TestEventSrcBase::Uninitialize() {
 	bool succ = sent_count >= 2;
 	if (succ) {LOG("TestEventSrcBase::Uninitialize: success! " << sent_count << " packets sent");}
 	else       {LOG("TestEventSrcBase::Uninitialize: fail :(");}
-	if (!succ) val.FindOwner<Machine>()->SetFailed("TestEventSrcBase error");
+	if (!succ) val.FindOwner<Engine>()->SetFailed("TestEventSrcBase error");
 }
 
 bool TestEventSrcBase::IsReady(PacketIO& io) {

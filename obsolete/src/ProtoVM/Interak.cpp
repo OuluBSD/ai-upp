@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-void SetupInterak(Machine& mach) {
+void SetupInterak(Engine& mach) {
 	
 	// CPU-CF Issue 4
 	{

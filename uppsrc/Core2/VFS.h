@@ -104,6 +104,16 @@ struct VfsItem : Moveable<VfsItem> {
 	String name;
 	String type_str;
 	VfsItemType type = VFS_NULL;
+	void operator=(Value v) {Set(v);}
+	virtual Value Get();
+	virtual Value Get(Value key);
+	virtual Value GetKey(int i);
+	virtual void Set(Value v) {Panic("Not implemented");}
+	virtual void MapSet(Value v) {Panic("Not implemented");}
+	virtual Shared<VfsItem> GetMap();
+	virtual Shared<VfsItem> RealizeMap();
+	virtual Shared<VfsItem> At(int i);
+	virtual int GetCount() const;
 };
 
 struct VFS : Pte<VFS> {
@@ -119,6 +129,18 @@ struct SystemFS : VFS {
 	SystemFS() {}
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
 	VfsItemType CheckItem(const VfsPath& rel_path) override;
+};
+
+struct ValueFS : VFS {
+	ValueFS() {}
+	ValueFS(Value& v) : v(&v) {}
+	
+	Shared<VfsItem> At(const VfsPath& p);
+	Shared<VfsItem> operator()(String);
+	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
+	VfsItemType CheckItem(const VfsPath& rel_path) override;
+private:
+	Value* v = 0;
 };
 
 #endif

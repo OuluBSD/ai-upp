@@ -41,7 +41,7 @@ public:
 	virtual void OnDetach() {}
 	virtual String ToString() {return "OdeNode";}
 	
-	Ecs::OdeSystem* GetWorld();
+	OdeSystem* GetWorld();
 	OdeSpace* GetSpace();
 	dWorldID GetWorldId();
 	dSpaceID GetWorldSpaceId();

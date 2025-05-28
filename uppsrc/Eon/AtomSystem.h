@@ -17,7 +17,6 @@ public:
 	
 	
 	static inline Callback& WhenUninit() {static Callback cb; return cb;}
-	static ParallelTypeCls::Type GetSerialType() {return ParallelTypeCls::ATOM_SYSTEM;}
 	
 protected:
 	

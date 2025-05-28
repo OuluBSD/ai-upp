@@ -91,7 +91,7 @@ class ChaseCam :
 public:
 	ECS_COMPONENT_CTOR(ChaseCam)
 	
-	void Visit(Vis& v) override {VIS_THIS(ComponentT); v & target & viewable & vport;}
+	void Visit(Vis& v) override {VIS_THIS(Component); v & target & viewable & vport;}
 	void Initialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;

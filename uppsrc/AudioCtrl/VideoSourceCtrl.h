@@ -10,7 +10,7 @@ public:
 	typedef VideoSourceCtrl CLASSNAME;
 	VideoSourceCtrl();
 	
-	void SetInterface(ComponentBaseRef c, ExchangeProviderBaseRef b) override;
+	void SetInterface(ComponentPtr c, ExchangeProviderBasePtr b) override;
 	
 };
 

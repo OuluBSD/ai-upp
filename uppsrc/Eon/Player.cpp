@@ -30,9 +30,9 @@ bool PlayerHandComponent::IsSource(const ControllerSource& rhs) const {
 bool PlayerHandComponent::Arg(String key, Value value) {
 	if (key == "hand") {
 		if (value.ToString() == "left")
-			req_hand = PlayerHandedness::Left;
+			req_hand = PlayerHandedness::LeftHand;
 		else if (value.ToString() == "right")
-			req_hand = PlayerHandedness::Right;
+			req_hand = PlayerHandedness::RightHand;
 		else
 			return false;
 	}
@@ -135,12 +135,12 @@ bool PlayerBodyComponent::Arg(String key, Value value) {
 }
 
 bool PlayerBodyComponent::SetHand(PlayerHandedness hand, PlayerHandComponentPtr comp) {
-	if (hand == PlayerHandedness::Left) {
+	if (hand == PlayerHandedness::LeftHand) {
 		if (hands[0])
 			return false;
 		hands[0] = comp;
 	}
-	else if (hand == PlayerHandedness::Right) {
+	else if (hand == PlayerHandedness::RightHand) {
 		if (hands[1])
 			return false;
 		hands[1] = comp;
@@ -200,7 +200,7 @@ void PlayerBodySystem::Update(double dt) {
 			vec3 head_pos = body_feet_pos + head_rel_pos;
 			ASSERT(head_pos[1] > 0.0f);
 			
-			TransformPtr head_trans = b->head->GetEntity()->Find<Transform>();
+			TransformPtr head_trans = b->head->GetEntity()->val.Find<Transform>();
 			if (head_trans) {
 				TransformMatrix& t = head_trans->data;
 				head_trans->anchor_position = head_pos;
@@ -217,7 +217,7 @@ void PlayerBodySystem::Update(double dt) {
 		
 		for(int i = 0; i < 2; i++) {
 			if (b->hands[i]) {
-				TransformPtr hand_trans = b->hands[i]->GetEntity()->Find<Transform>();
+				TransformPtr hand_trans = b->hands[i]->GetEntity()->val.Find<Transform>();
 				if (hand_trans) {
 					if (b->hands[i]->is_simulated) {
 						hand_trans->data = tm;
@@ -278,13 +278,13 @@ void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 	if (e.type == EVENT_HOLO_LOOK) {
 		for (PlayerBodyComponentPtr& b : bodies) {
 			if (b->head && e.trans) {
-				TransformPtr trans = b->head->GetEntity()->Find<Transform>();
+				TransformPtr trans = b->head->GetEntity()->val.Find<Transform>();
 				if (trans) {
 					trans->data = *e.trans;
 					trans->relative_position = e.trans->position;
 					trans->data.position = trans->anchor_position + trans->relative_position;
 				}
-				/*auto cam = b->head->GetEntity()->Find<CameraBase>();
+				/*auto cam = b->head->GetEntity()->val.Find<CameraBase>();
 				if (e.cam->mode == TransformMatrix::MODE_LOOKAT) {
 					
 				}
@@ -302,7 +302,7 @@ void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 				else TODO*/
 					
 				#if 0
-				TransformPtr trans = b->head->GetEntity()->Find<Transform>();
+				TransformPtr trans = b->head->GetEntity()->val.Find<Transform>();
 				if (trans) {
 					if (!e.spatial->use_lookat) {
 						trans->use_lookat = false;
@@ -320,7 +320,7 @@ void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 	}
 	else if (e.type == EVENT_HOLO_MOVE_FAR_RELATIVE) {
 		for (PlayerBodyComponentPtr& b : bodies) {
-			TransformPtr trans = b->GetEntity()->Find<Transform>();
+			TransformPtr trans = b->GetEntity()->val.Find<Transform>();
 			if (trans) {
 				trans->data.position += e.trans->position;
 			}
@@ -338,7 +338,7 @@ void PlayerBodySystem::OnControllerUpdated(const GeomEvent& e) {
 					PlayerHandComponent& hand = *vr_body->hands[i];
 					const ControllerMatrix::Ctrl& ctrl = cm.ctrl[i];
 					
-					TransformPtr trans = hand.GetEntity()->Find<Transform>();
+					TransformPtr trans = hand.GetEntity()->val.Find<Transform>();
 					if (trans) {
 						trans->data = ctrl.trans;
 						

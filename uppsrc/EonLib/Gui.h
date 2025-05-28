@@ -13,7 +13,7 @@ struct DefaultGuiAppComponent :
 	Point prev_mouse;
 	
 	//WindowSystemRef wins;
-	Geom2DComponentRef cw;
+	Geom2DComponentPtr cw;
 	TransformRef trans;
 	Transform2DRef trans2;
 	

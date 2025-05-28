@@ -4,13 +4,13 @@
 NAMESPACE_UPP
 
 
-class Machine;
+class Engine;
 
 class Pcb {
 	
 protected:
-	friend class Machine;
-	Machine* mach = 0;
+	friend class Engine;
+	Engine* mach = 0;
 	Array<ElectricNodeBase> nodes;
 	Array<ElectricNodeBase> refs;
 	String name;

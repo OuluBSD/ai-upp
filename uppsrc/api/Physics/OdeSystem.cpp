@@ -9,11 +9,11 @@ NAMESPACE_UPP
 
 
 
-Ecs::OdeSystem* OdeNode::GetWorld() {
+OdeSystem* OdeNode::GetWorld() {
 	OdeNode* n = this;
 	while (n->owner)
 		n = n->owner;
-	return CastPtr<Ecs::OdeSystem>(n);
+	return CastPtr<OdeSystem>(n);
 }
 
 OdeSpace* OdeNode::GetSpace() {

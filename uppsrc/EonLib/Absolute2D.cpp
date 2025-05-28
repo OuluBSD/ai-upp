@@ -9,14 +9,14 @@ Absolute2D::Absolute2D() : id(-1) {
 	
 }
 
-void Absolute2D::Init(Upp::Ecs::Geom2DComponent* cw, int id) {
+void Absolute2D::Init(Upp::Geom2DComponent* cw, int id) {
 	this->cw = cw;
 	this->id = id;
 	
 	TODO
 	#if 0
-	Upp::Ecs::Windows* wins = GetWindows();
-	Upp::Ecs::WindowManager* wm = GetWindowManager();
+	Upp::Windows* wins = GetWindows();
+	Upp::WindowManager* wm = GetWindowManager();
 	String title = GetTitle();
 	if (title.IsEmpty())
 		title = wins->GetTitle(id);
@@ -25,7 +25,7 @@ void Absolute2D::Init(Upp::Ecs::Geom2DComponent* cw, int id) {
 	#endif
 }
 
-Upp::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
+Upp::WindowManager* Absolute2D::GetWindowManager() const {
 	auto* win = GetWindow();
 	ASSERT(win);
 	if (!win) return 0;
@@ -36,7 +36,7 @@ Upp::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
 	ASSERT(wins);
 	if (!wins) return 0;
 	
-	Upp::Ecs::WindowManager* wm = wins->GetWindowManager();
+	Upp::WindowManager* wm = wins->GetWindowManager();
 	ASSERT(wm);
 	return wm;
 	#endif
@@ -45,7 +45,7 @@ Upp::Ecs::WindowManager* Absolute2D::GetWindowManager() const {
 void Absolute2D::Title(const String& title) {
 	TODO
 	#if 0
-	Upp::Ecs::Windows* wins = GetWindows();
+	Upp::Windows* wins = GetWindows();
 	ASSERT(wins);
 	if (wins)
 		wins->SetTitle(id, title);
@@ -73,7 +73,7 @@ String Absolute2D::GetTitle() const {
 	TODO
 }
 
-Upp::Ecs::Windows* Absolute2D::GetWindows() {
+Upp::Windows* Absolute2D::GetWindows() {
 	return cw ? cw->GetWindows() : 0;
 }
 
@@ -87,7 +87,7 @@ Image Absolute2D::OverrideCursor(const Image& m) {
 	return Image();
 }
 
-Ecs::Geom2DComponent* Absolute2D::GetWindow() {
+Geom2DComponent* Absolute2D::GetWindow() {
 	return cw;
 }
 

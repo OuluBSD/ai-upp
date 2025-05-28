@@ -18,10 +18,10 @@ AtomBase::~AtomBase() {
 	DBG_DESTRUCT
 }
 
-Machine& AtomBase::GetMachine() {
-	Machine* m = val.FindOwner<Machine>();
+Engine& AtomBase::GetEngine() {
+	Engine* m = val.FindOwner<Engine>();
 	ASSERT(m);
-	if (!m) throw Exc("Machine not found");
+	if (!m) throw Exc("Engine not found");
 	return *m;
 }
 
@@ -35,16 +35,16 @@ void AtomBase::UninitializeDeep() {
 	UninitializeAtom();
 }
 
-Space* AtomBase::GetSpace() {
-	return val.FindOwner<Space>();
+VfsValue* AtomBase::GetSpace() {
+	return val.FindOwnerNull();
 }
 
-Space& AtomBase::GetParent() {
+/*Space& AtomBase::GetParent() {
 	Space* s = GetSpace();
 	ASSERT(s);
 	if (!s) throw Exc("space not found");
 	return *s;
-}
+}*/
 
 LinkBase* AtomBase::GetLink() {
 	return link;
@@ -67,16 +67,16 @@ void AtomBase::SetPrimarySinkQueueSize(int i) {
 }
 
 void AtomBase::AddAtomToUpdateList() {
-	AtomSystem* sys = val.FindOwnerWith<AtomSystem>();
+	Engine* sys = val.FindOwner<Engine>();
 	ASSERT(sys);
 	if (!sys) throw Exc("AtomSystem not found");
-	sys->AddUpdated(this);
+	sys->AddUpdated(*this);
 }
 
 void AtomBase::RemoveAtomFromUpdateList() {
-	AtomSystem* sys = val.FindOwnerWith<AtomSystem>();
+	Engine* sys = val.FindOwner<Engine>();
 	if (sys)
-		sys->RemoveUpdated(this);
+		sys->RemoveUpdated(*this);
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {

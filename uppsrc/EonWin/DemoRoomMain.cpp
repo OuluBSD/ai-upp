@@ -25,7 +25,7 @@ DemoRoomMain::DemoRoomMain() :
 void DemoRoomMain::SetHolographicSpace(HolographicSpace const& holographicSpace)
 {
 	TODO
-	Ecs::Engine& m_engine = Ecs::GetActiveEngine();
+	Engine& m_engine = GetActiveEngine();
 	
     /*if (m_engine.HasStarted())
     {

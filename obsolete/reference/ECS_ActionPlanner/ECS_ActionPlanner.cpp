@@ -39,7 +39,7 @@ enum {
 CONSOLE_APP_MAIN {
 	SetCoutLog();
 	
-	Machine& mach = GetMachine();
+	Engine& mach = GetEngine();
 	RegistrySystem& reg = *mach.Add<RegistrySystem>();
 	EntityStore& es = *mach.Add<EntityStore>();
 	Pool& root = es.GetRoot();

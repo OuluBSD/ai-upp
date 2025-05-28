@@ -639,7 +639,7 @@ void Surface::InitFB() {
 	
 	using namespace Upp;
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
 	ASSERT(wins);
 	if (wins) {

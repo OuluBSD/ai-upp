@@ -13,10 +13,10 @@ class EntityStore : public System
 public:
     using System::System;
 
-    EntityRef CreateFromComponentMap(ComponentMap components);
+    EntityPtr CreateFromComponentMap(ComponentMap components);
 
     template<typename PrefabT>
-    EntityRef Create()
+    EntityPtr Create()
     {
         static_assert(detail::tuple_all_components<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 
@@ -80,9 +80,9 @@ protected:
 
 private:
     Entity::EntityId m_nextId = 0;
-    Array<EntityRef> m_objects;
+    Array<EntityPtr> m_objects;
 
-    EntityRef AddEntity(EntityRef obj);
+    EntityPtr AddEntity(EntityPtr obj);
     Entity::EntityId GetNextId();
 };
 

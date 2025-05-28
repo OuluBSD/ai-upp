@@ -104,7 +104,7 @@ void PipeLink::Uninitialize() {
 	
 }
 
-bool DefaultProcessPackets(LinkBase& link, Atom& atom, PacketIO& io) {
+bool DefaultProcessPackets(LinkBase& link, AtomBase& atom, PacketIO& io) {
 	const int sink_ch = 0;
 	const int src_ch = 0;
 	

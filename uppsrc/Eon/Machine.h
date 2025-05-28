@@ -9,17 +9,17 @@ class Space;
 class Loop;
 
 
-class System : public MetaSystemBase {
+class System : public MetaSystem {
 public:
     System(VfsValue&);
     virtual ~System();
 
     virtual TypeCls GetTypeCls() const = 0;
 	virtual void Visit(Vis& vis) {}
-	Machine& GetMachine() const;
+	Engine& GetEngine() const;
 	
 protected:
-    friend Machine;
+    friend Engine;
 
     virtual bool Initialize() {return true;}
     virtual void Start() {}
@@ -34,17 +34,6 @@ template<typename T>
 using IsSystem = std::is_base_of<System, T>;
 
 
-
-#define SYS_CTOR(x) \
-	CLASSTYPE(x) \
-	x(VfsValue& m) : System(m) {}
-#define SYS_CTOR_(x) \
-	CLASSTYPE(x) \
-	x(VfsValue& m) : System(m)
-#define SYS_DEF_VISIT void Visit(Vis& vis) override {vis.VisitT<System>("System",*this);}
-#define SYS_DEF_VISIT_(x) void Visit(Vis& vis) override {x; vis.VisitT<System>("System",*this);}
-#define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
-#define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System>("System",*this);}
 
 class Machine :
 	public MetaMachineBase
@@ -141,8 +130,8 @@ public:
 	void StopRunner();
 	void MainLoop(bool (*fn)(void*)=0, void* arg=0);
 	
-	MachineVerifier*	GetMachineVerifier() const {return mver;}
-	Ecs::Engine&		GetEngine();
+	MachineVerifier*	GetEngineVerifier() const {return mver;}
+	Engine&				GetEngine();
 	Loop&				GetRootLoop();
 	Space&				GetRootSpace();
 	
@@ -154,11 +143,11 @@ public:
 	Event<> WhenLeaveUpdate;
 	Event<> WhenLeaveSystemUpdate;
 	
-	Event<Machine&> WhenBoot;
-	Event<Machine&> WhenInitialize;
-	Event<Machine&> WhenUserProgram;
-	Event<Machine&> WhenPostInitialize;
-	Event<Machine&> WhenPreFirstUpdate;
+	Event<Engine&> WhenBoot;
+	Event<Engine&> WhenInitialize;
+	Event<Engine&> WhenUserProgram;
+	Event<Engine&> WhenPostInitialize;
+	Event<Engine&> WhenPreFirstUpdate;
 	
 private:
     bool is_started = false;
@@ -172,10 +161,10 @@ private:
 	String eon_file;
 	uint64 break_addr = 0;
     
-    SystemBase* FindSystem(TypeCls type_id);
+    System* FindSystem(TypeCls type_id);
     //SystemCollection::Iterator FindSystem(TypeCls type_id) {return systems.Find(type_id);}
     //SystemCollection::PtrIterator FindSystemPtr(TypeCls type_id) {return systems.FindPtr(type_id);}
-    void Add(TypeCls type_id, SystemBase* system);
+    void Add(TypeCls type_id, System* system);
     void Remove(TypeCls typeId);
     
     

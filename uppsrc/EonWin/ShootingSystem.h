@@ -10,7 +10,7 @@ struct ShootingComponent : Component
     void SetEnabled(bool enable) override;
     void Destroy() override;
 
-    EntityRef gun;
+    EntityPtr gun;
 
     float bulletSpeed = 20.0f;
     winrt::Windows::Foundation::Numerics::float4x4 barrelToController;
@@ -32,9 +32,9 @@ protected:
     // ToolSystemBase
     std::wstring_view GetInstructions() const override;
     std::wstring_view GetDisplayName() const override;
-    EntityRef CreateToolSelector() const override;
+    EntityPtr CreateToolSelector() const override;
 
-    void Register(Array<EntityRef>& entities) override;
+    void Register(Array<EntityPtr>& entities) override;
     void Activate(Entity& entity) override;
     void Deactivate(Entity& entity) override;
 

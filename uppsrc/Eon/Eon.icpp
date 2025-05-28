@@ -3,15 +3,14 @@
 NAMESPACE_UPP
 
 INITBLOCK {
-	using namespace Ecs;
 	Eon::__ecs_script_loader = &Single<Eon::ExtScriptEcsLoader>();
 	
 	TYPED_STRING_HASHER(Machine);
-	TYPED_STRING_HASHER(Ecs::Engine);
-	TYPED_STRING_HASHER(Ecs::Entity);
-	TYPED_STRING_HASHER(Space);
+	TYPED_STRING_HASHER(Engine);
+	TYPED_STRING_HASHER(Entity);
+	//TYPED_STRING_HASHER(Space);
 	TYPED_STRING_HASHER(Loop);
-	TYPED_STRING_HASHER(Pool);
+	//TYPED_STRING_HASHER(Pool);
 	TYPED_STRING_HASHER(CustomerLink);
 	TYPED_STRING_HASHER(PipeLink);
 	TYPED_STRING_HASHER(PipeOptSideLink);
@@ -26,22 +25,22 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 	
 	// System
-	Engine::Register<EasingSystem>("easing");
-	Engine::Register<WorldLogicSystem>("world.logic");
-	Engine::Register<PhysicsSystem>("physics");
-	Engine::Register<PlayerBodySystem>("player");
-	Engine::Register<InteractionSystem>("interaction");
-	Engine::Register<Ecs::RegistrySystem>("registry");
-	//Engine::Register<EntityStore>("entity.store");
-	//Engine::Register<ComponentStore>("component.store");
+	//VfsValueExtFactory::Register<EasingSystem>("easing");
+	VfsValueExtFactory::Register<WorldLogicSystem>("world.logic", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<PhysicsSystem>("physics", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<PlayerBodySystem>("player", VFSEXT_SYSTEM_ECS);
+	VfsValueExtFactory::Register<InteractionSystem>("interaction", VFSEXT_SYSTEM_ECS);
+	//VfsValueExtFactory::Register<RegistrySystem>("registry");
+	//VfsValueExtFactory::Register<EntityStore>("entity.store");
+	//VfsValueExtFactory::Register<ComponentStore>("component.store");
 	
 	// Component
-	Ecs::ComponentFactory::Register<RigidBody>("body");
-	Ecs::ComponentFactory::Register<TextRenderable>("text");
-	Ecs::ComponentFactory::Register<Easing>("easing");
-	Ecs::ComponentFactory::Register<PhysicsBody>("physics");
-	Ecs::ComponentFactory::Register<Transform>("transform3");
-	Ecs::ComponentFactory::Register<Transform2D>("transform2");
+	VfsValueExtFactory::Register<RigidBody>("body", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<TextRenderable>("text", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Easing>("easing", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PhysicsBody>("physics", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Transform>("transform3", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Transform2D>("transform2", VFSEXT_COMPONENT);
 	
 	
 	//DaemonBase::Register<EcsService>("Ecs");

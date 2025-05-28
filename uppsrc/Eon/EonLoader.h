@@ -8,10 +8,10 @@ struct ExtScriptEcsLoader : Eon::ExtScriptEcsLoaderBase {
 	
 	
 	bool Load(ScriptWorldLoader& l) override;
-	bool Load(ScriptEcsSystemLoader& l, Ecs::System& sys);
-	bool Load(ScriptPoolLoader& l, Ecs::Pool& pool);
-	bool Load(ScriptEntityLoader& l, Ecs::Entity& ent);
-	bool Load(ScriptComponentLoader& l, Ecs::ComponentBase& ent);
+	bool Load(ScriptEcsSystemLoader& l, System& sys);
+	bool Load(ScriptPoolLoader& l, VfsValue& pool);
+	bool Load(ScriptEntityLoader& l, Entity& ent);
+	bool Load(ScriptComponentLoader& l, Component& ent);
 	
 };
 

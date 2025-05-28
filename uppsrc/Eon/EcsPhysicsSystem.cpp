@@ -143,7 +143,7 @@ void PhysicsBody::Initialize() {
 	test_fn = 0;
 	is_bound = 0;
 	
-	Ecs::Entity* e = val.FindOwner<Ecs::Entity>();
+	Entity* e = val.FindOwner<Entity>();
 	if (!e) {
 		LOG("PhysicsBody:Initialize: error: entity not found");
 		return;

@@ -24,7 +24,7 @@ public:
     void RegisterModel(std::string_view name, std::shared_ptr<Pbr::Model> model);
     bool ModelExists(std::string_view name);
     PbrRenderableRef SetModel(std::string_view name, PbrRenderableRef pbrRenderableComponent);
-    PbrRenderableRef SetModel(std::string_view name, Ecs::ComponentMap& componentMap);
+    PbrRenderableRef SetModel(std::string_view name, ComponentMap& componentMap);
 
 protected:
     void Update(double) override;

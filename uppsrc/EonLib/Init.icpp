@@ -5,31 +5,33 @@
 
 INITBLOCK {
 	using namespace Upp;
-	Factory::RegisterAtom<MidiFileReaderPipe>();
-	Factory::RegisterAtom<MidiFileReader>();
-	Factory::RegisterAtom<MidiFileReader16>();
-	Factory::RegisterAtom<MidiNullSink>();
+	#define REGISTER_ATOM(x) VfsValueExtFactory::RegisterAtom<x>(#x);
+	REGISTER_ATOM(MidiFileReaderPipe);
+	REGISTER_ATOM(MidiFileReader);
+	REGISTER_ATOM(MidiFileReader16);
+	REGISTER_ATOM(MidiNullSink);
 	#if (defined flagFLUIDLITE) || (defined flagFLUIDSYNTH)
-	Factory::RegisterAtom<FluidsynthPipe>();
+	REGISTER_ATOM(FluidsynthPipe);
 	#endif
-	Factory::RegisterAtom<SoftInstrumentPipe>();
-	Factory::RegisterAtom<FmSynthPipe>();
+	REGISTER_ATOM(SoftInstrumentPipe);
+	REGISTER_ATOM(FmSynthPipe);
 	#if defined flagLV2
-	Factory::RegisterAtom<LV2InstrumentPipe>();
+	REGISTER_ATOM(LV2InstrumentPipe);
 	#endif
-	Factory::RegisterAtom<CoreSynthPipe>();
-	Factory::RegisterAtom<CoreDrummerPipe>();
-	Factory::RegisterAtom<CoreEffectPipe>();
-	Factory::RegisterAtom<CoreEffectAtom>();
+	REGISTER_ATOM(CoreSynthPipe);
+	REGISTER_ATOM(CoreDrummerPipe);
+	REGISTER_ATOM(CoreEffectPipe);
+	REGISTER_ATOM(CoreEffectAtom);
 	#if defined flagLV2
-	Factory::RegisterAtom<LV2EffectPipe>();
+	REGISTER_ATOM(LV2EffectPipe);
 	#endif
 	#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
-	Factory::RegisterAtom<PortmidiPipe>();
+	REGISTER_ATOM(PortmidiPipe);
 	#endif
 	#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
-	Factory::RegisterAtom<PortmidiSend>();
+	REGISTER_ATOM(PortmidiSend);
 	#endif
-	Factory::RegisterAtom<CoreAudioFileOut>();
+	REGISTER_ATOM(CoreAudioFileOut);
+	#undef REGISTER_ATOM
 }
 

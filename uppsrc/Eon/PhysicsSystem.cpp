@@ -9,7 +9,7 @@ NAMESPACE_UPP
 #if 0
 void PhysicsSystem::Update(double dt)
 {
-	PoolPtr p = GetMachine().Get<EntityStore>()->GetRoot();
+	PoolPtr p = GetEngine().Get<EntityStore>()->GetRoot();
 	auto comps = p->GetComponents<Transform, RigidBody>();
     for (auto& tuple : comps) {
         Transform& transform = tuple.Get<Transform>();

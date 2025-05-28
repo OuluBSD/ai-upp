@@ -52,7 +52,7 @@ void RenderingSystem::Update(double dt) {
 		return;
 	
 	if (!state) {
-		Machine& mach = GetActiveMachine();
+		Engine& mach = GetEngine();
 		SpaceStoreRef ents = mach.Get<SpaceStore>();
 		
 		#if (defined flagPOSIX && defined flagSCREEN)

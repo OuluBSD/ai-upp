@@ -1,7 +1,7 @@
 #ifndef _Eon_Loop_h_
 #define _Eon_Loop_h_
 
-
+#if 0
 
 class Loop :
 	public VfsValueExt
@@ -18,7 +18,7 @@ protected:
 public:
 	CLASSTYPE(Loop)
 	using LoopPtr = Ptr<Loop>;
-	static LoopId GetNextId();
+	static LoopIdx GetNextId();
 	
 	Loop(VfsValue& n);
 	~Loop();
@@ -92,4 +92,5 @@ public:
 };
 
 
+#endif
 #endif

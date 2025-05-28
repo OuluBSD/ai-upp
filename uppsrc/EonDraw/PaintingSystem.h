@@ -70,14 +70,14 @@ public:
 	static constexpr float paint_tip_thickness = 0.008f;
 	static constexpr const char* POOL_NAME = "painting";
 	
-	PoolPtr GetPool() const;
+	VfsValue* GetPool() const;
 	
 	void Attach(PaintComponentPtr c);
 	void Detach(PaintComponentPtr c);
 	
 protected:
 	// System
-	Ecs::SystemBase* GetSystem() override {return this;}
+	System* GetSystem() override {return this;}
 	bool Initialize() override;
 	void Start() override;
 	void Update(double dt) override;

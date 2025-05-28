@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-void Factory::Dump() {
+void VfsValueExtFactory::Dump() {
 	const auto& fns = LinkDataMap();
 	
 	LOG("Factory::Dump:");

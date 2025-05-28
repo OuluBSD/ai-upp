@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 
 
-System::System(VfsValue& n) : MetaSystem(n) {
+System::System(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
 }
 
@@ -23,10 +23,6 @@ Engine& System::GetEngine() const {
 	return *e;
 }
 
-
-Event<Engine&> Engine::WhenGuiProgram;
-Event<Engine&> Engine::WhenInitialize;
-Event<Engine&> Engine::WhenPreFirstUpdate;
 
 
 
@@ -144,7 +140,7 @@ void Engine::Resume() {
 	is_suspended = false;
 }
 
-bool Engine::HasStarted() const {
+bool Engine::IsStarted() const {
 	return is_started;
 }
 
@@ -197,13 +193,6 @@ void Engine::Visit(Vis& vis) {
 	vis && update_list;
 }
 
-VfsValue& Engine::GetMachine() {
-	Machine* m = val.FindOwnerRoot<Machine>();
-	ASSERT(m);
-	if (!m) throw Exc("cannot find Machine");
-	return *m;
-}
-
 void Engine::AddToUpdateList(ComponentPtr c) {
 	VectorFindAdd(update_list, c);
 }
@@ -219,27 +208,35 @@ Val& Engine::GetRootPool() {
 	return val.Add("pool");
 }
 
+Val& Engine::GetRootSpace() {
+	int i = val.Find("space");
+	if (i >= 0)
+		return val.sub[i];
+	return val.Add("space");
+}
+
 Ptr<System> Engine::Add(TypeCls type, bool startup)
 {
-    NewSystemFn fn = TypeNewFn().Get(type, 0);
-    ASSERT(fn);
-    if (!fn)
-        return Ptr<System>();
-    VfsValue& sub = val.Add();
-	System* syst = fn(sub);
-	ASSERT(sub.type_hash);
+	int i = VfsValueExtFactory::FindTypeClsFactory(type);
+	ASSERT(i >= 0);
+	if (i < 0)
+		return 0;
+	hash_t type_hash = VfsValueExtFactory::List()[i].type_hash;
+	VfsValue& new_val = val.Add(type.GetName(), type_hash);
+	System* syst = new_val.FindExt<System>();
+	ASSERT(syst);
 	
-	if (startup && is_started)
+	if (syst && startup && is_started)
 		SystemStartup(type, syst);
 	
     return syst;
 }
 
 Ptr<System> Engine::GetAdd(String id, bool startup) {
-    int i = EonToType().Find(id);
+    int i = VfsValueExtFactory::EonToType().Find(id);
     if (i < 0)
         return Ptr<System>();
-    TypeCls type = EonToType()[i];
+    TypeCls type = VfsValueExtFactory::EonToType()[i];
     auto v = val.FindAll(type);
     if (v.GetCount())
         return v[0]->ext ? CastPtr<System>(&*v[0]->ext) : 0;

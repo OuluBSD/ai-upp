@@ -37,10 +37,10 @@ void EcsService::Deinit() {
 void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
 	TODO
 	#if 0
-	Machine* m = val.FindOwner<Machine>();
+	Engine* m = val.FindOwner<Engine>();
 	ASSERT(m);
-	Ecs::Engine& eng = m->GetEngine();
-	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
+	Engine& eng = m->GetEngine();
+	PoolPtr root = eng.Get<EntityStore>()->GetRoot();
 	
 	in % *root;
 	#endif
@@ -55,14 +55,14 @@ void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
 			break;
 		case GEOMVAR_ORIENTATION: {
 				if (!bound_entity) {LOG("EcsService::ReceiveGeoms: error: no entity"); return;}
-				Ecs::TransformPtr trans = bound_entity->GetAdd<Ecs::Transform>();
+				TransformPtr trans = bound_entity->GetAdd<Transform>();
 				for(int i = 0; i < 4; i++)
 					trans->data.orientation.data.data[i] = item.f[i];
 			}
 			break;
 		case GEOMVAR_POSITION: {
 				if (!bound_entity) {LOG("EcsService::ReceiveGeoms: error: no entity"); return;}
-				Ecs::TransformPtr trans = bound_entity->GetAdd<Ecs::Transform>();
+				TransformPtr trans = bound_entity->GetAdd<Transform>();
 				for(int i = 0; i < 3; i++)
 					trans->data.position.data[i] = item.f[i];
 			}
@@ -72,7 +72,7 @@ void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
 				ModelCachePtr mc = mach.Find<ModelCache>();
 				if (!mc) {LOG("EcsService::ReceiveGeoms: error: no ModelCache"); return;}
 				ModelPtr mdl = mc->Attach(read.DetachModel(item.mdl));
-				Ecs::ModelComponentPtr comp = bound_entity->GetAdd<Ecs::ModelComponent>();
+				ModelComponentPtr comp = bound_entity->GetAdd<ModelComponent>();
 				comp->SetModel(mdl);
 			}
 			break;
@@ -88,30 +88,34 @@ void EcsService::ReceiveGeoms(Stream& in, Stream& out) {
 void EcsService::SendEngine(Stream& in, Stream& out) {
 	TODO
 	#if 0
-	Machine* m = val.FindOwner<Machine>();
+	Engine* m = val.FindOwner<Engine>();
 	ASSERT(m);
-	Ecs::Engine& eng = m->GetEngine();
-	Ecs::Engine& eng = mach.GetEngine();
-	Ecs::PoolPtr root = eng.Get<Ecs::EntityStore>()->GetRoot();
+	Engine& eng = m->GetEngine();
+	Engine& eng = mach.GetEngine();
+	PoolPtr root = eng.Get<EntityStore>()->GetRoot();
 	
 	out % *root;
 	#endif
 }
 
-Ecs::EntityPtr EcsService::ResolveEntity(Ecs::PoolPtr& root, String path) {
+EntityPtr EcsService::ResolveEntity(VfsValue& root, String path) {
 	Vector<String> names = Split(path, "/");
 	if (names.IsEmpty())
-		return Ecs::EntityPtr();
+		return EntityPtr();
 	
-	Ecs::PoolPtr pool = root;
+	TODO
+	#if 0
+	VfsValue* pool = &root;
 	for(int i = 0; i < names.GetCount()-1; i++) {
 		String n = names[i];
 		pool = pool->GetAddPool(n);
 	}
 	
-	Ecs::EntityPtr ent = pool->GetAddEmpty(names.Top());
+	EntityPtr ent = pool->GetAddEmpty(names.Top());
 	
 	return ent;
+	#endif
+	return 0;
 }
 
 

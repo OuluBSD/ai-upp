@@ -13,7 +13,7 @@ public:
 	
 	void Reset();
 	void Updated() override;
-	void SetComponent(ComponentBase& base) override;
+	void SetComponent(Component& base) override;
 	
 	
 };

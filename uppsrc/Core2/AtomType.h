@@ -1,5 +1,5 @@
-#ifndef _Core2_AtomTypes_h_
-#define _Core2_AtomTypes_h_
+#ifndef _Core2_AtomType_h_
+#define _Core2_AtomType_h_
 
 
 #define IFACE_LIST \
@@ -20,6 +20,8 @@
 	ATOM_ROLE(PIPE) \
 	ATOM_ROLE(DRIVER_PIPE) \
 
+#define SUB_ATOM_CLS AsTypeCls()
+
 typedef enum : int {
 	INVALID_VAL,
 	#define IFACE(x) x,
@@ -27,6 +29,17 @@ typedef enum : int {
 	#undef IFACE
 	
 	TYPE_COUNT,
+		
+	ValAudio = AUDIO,
+	ValVideo = VIDEO,
+	ValVolume = VOLUME,
+	ValMidi = MIDI,
+	ValEvent = EVENT,
+	ValData = DATA,
+	ValOrder = ORDER,
+	ValReceipt = RECEIPT,
+	ValFbo = FBO,
+	ValProg = PROG,
 } ValCls;
 
 typedef enum : int {
@@ -36,7 +49,7 @@ typedef enum : int {
 	ATOM_ROLE_LIST
 	#undef ATOM_ROLE
 	
-	ATOMROLE_COUNT
+	ATOMROLE_COUNT,
 } AtomRole;
 
 typedef enum : int {
@@ -47,7 +60,16 @@ typedef enum : int {
 	DX,
 	
 	DEVCLS_COUNT,
+		
+	DevCenter = CENTER,
+	DevNet = NET,
+	DevOgl = OGL,
+	DevDx = DX,
 } DevCls;
+
+String GetAtomRoleString(AtomRole t);
+String GetValClsName(ValCls t);
+String GetDevClsName(DevCls t);
 
 struct ValDevCls : Moveable<ValDevCls> {
 	ValCls	val;
@@ -56,7 +78,6 @@ struct ValDevCls : Moveable<ValDevCls> {
 	ValDevCls();
 	ValDevCls(DevCls d, ValCls v);
 	ValDevCls(ValCls v, DevCls d);
-	ValDevCls(const DevCls& d, const ValCls& v);
 	ValDevCls(const ValDevCls& v);
 	void Visit(Vis& v);
 	void Clear();
@@ -133,10 +154,10 @@ struct AtomIfaceTypeCls : Moveable<AtomIfaceTypeCls> {
 	bool IsValid() const;
 	void operator=(const Nuller& n);
 	void operator=(const AtomIfaceTypeCls& o);
-	hash_t GetHashValue() const;
 	bool operator==(const AtomIfaceTypeCls& c) const;
 	bool operator!=(const AtomIfaceTypeCls& c) const;
 	String ToString() const;
+	hash_t GetHashValue() const;
 };
 
 struct AtomTypeCls : Moveable<AtomTypeCls> {

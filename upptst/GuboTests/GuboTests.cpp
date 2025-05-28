@@ -53,10 +53,10 @@ CONSOLE_APP_MAIN {
 GUBO_APP_MAIN {
 	#if 0
 	using namespace Ecs;
-	Ecs::Engine& eng = GetActiveEngine();
+	Engine& eng = GetActiveEngine();
 	Workspace3DSystemRef wins = eng.Get<Workspace3DSystem>();
-	EntityStoreRef ents = eng.Get<EntityStore>();
-	EntityRef e = ents->GetRoot()->Create<Window2D>();
+	EntityStorePtr ents = eng.Get<EntityStore>();
+	EntityPtr e = ents->GetRoot()->Create<Window2D>();
 	Ref<Geom2DComponent> cw = e->Get<Geom2DComponent>();
 	
 	GuiSystemWorkspace3D* active_workspace = wins->GetActiveWorkspace();

@@ -48,7 +48,7 @@ struct TosFys {
 	using Joint		= TosJoint;
 	using Space		= TosSpace;
 	using World		= TosWorld;
-	using System	= Ecs::TosSystem;
+	using System	= TosSystem;
 	using NativeWorld		= SoftPhys::World*;
 	using NativeSpace		= SoftPhys::Space*;
 	using NativeGeom		= SoftPhys::Geometry*;
@@ -76,7 +76,7 @@ struct OdeFys {
 	using Object	= OdeObject;
 	using Joint		= OdeJoint;
 	using Space		= OdeSpace;
-	using System	= Ecs::OdeSystem;
+	using System	= OdeSystem;
 	
 	using NativeGeom		= dGeomID;
 	using NativeBody		= dBodyID;

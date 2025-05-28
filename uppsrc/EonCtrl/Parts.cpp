@@ -7,7 +7,7 @@ PoolTreeCtrl::PoolTreeCtrl() {
 	tree.WhenCursor << THISBACK(OnCursor);
 }
 
-void PoolTreeCtrl::SetEngine(Ecs::Engine& m) {
+void PoolTreeCtrl::SetEngine(Engine& m) {
 	mach = &m;
 	es = m.TryGet<EntityStore>();
 }
@@ -142,7 +142,7 @@ void EntityListCtrl::OnCursor() {
 	int cursor = list.GetCursor();
 	int ent_i = list.Get(cursor, 0);
 	
-	EntityRef new_sel;
+	EntityPtr new_sel;
 	
 	EntityVec& v = pool->GetEntities();
 	if (ent_i >= 0 && ent_i < v.GetCount())
@@ -162,7 +162,7 @@ void EntityListCtrl::Data() {
 	
 	int cursor = -1;
 	int i = 0;
-	for (EntityRef& e : v) {
+	for (EntityPtr& e : v) {
 		if (selected == e)
 			cursor = i;
 		list.Set(i, 0, i);
@@ -255,7 +255,7 @@ void EntityContentCtrl::AddTreeEntity(int tree_i, const Entity& e) {
 	}
 }
 
-void EntityContentCtrl::GetCursor(ComponentBaseRef& c) {
+void EntityContentCtrl::GetCursor(ComponentPtr& c) {
 	c.Clear();
 	
 	int i = tree.GetCursor();
@@ -366,7 +366,7 @@ void InterfaceListCtrl::Data() {
 	ComponentMap& comps = ent->GetComponents();
 	int i = 0;
 	for (auto& comp : comps) {
-		ComponentBase& b = *comp;
+		Component& b = *comp;
 		#define IFACE(x) {\
 			auto src = b.As##x##Source(); \
 			if (src) AddInterface(i, src); \
@@ -382,7 +382,7 @@ void InterfaceListCtrl::Data() {
 	WhenInterfaceCursor();
 }
 
-void InterfaceListCtrl::GetCursor(ComponentBaseRef& c,  ExchangeProviderBaseRef& i) {
+void InterfaceListCtrl::GetCursor(ComponentPtr& c,  ExchangeProviderBasePtr& i) {
 	c.Clear();
 	i.Clear();
 	
@@ -394,8 +394,8 @@ void InterfaceListCtrl::GetCursor(ComponentBaseRef& c,  ExchangeProviderBaseRef&
 	int iface_i = list.Get(cursor, 1);
 	
 	ComponentMap& comps = ent->GetComponents();
-	ComponentBaseRef comp = comps.At(comp_i);
-	ExchangeProviderBaseRef iface = ifaces.At(iface_i);
+	ComponentPtr comp = comps.At(comp_i);
+	ExchangeProviderBasePtr iface = ifaces.At(iface_i);
 	
 	c = comp;
 	i = iface;

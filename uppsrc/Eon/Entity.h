@@ -8,7 +8,7 @@ class Pool;
 class Entity :
 	public VfsValueExt,
 {
-	EntityId id = -1;
+	EntityId idx = -1;
 	int64 created = 0;
 	int64 changed = 0;
 
@@ -16,12 +16,12 @@ class Entity :
 	String name;
 	
 	//ComponentMap comps;
-	EntityId m_id;
+	//EntityId m_id;
 	
 protected:
 	friend class Pool;
 	
-	void SetId(EntityId i) {id = i;}
+	void SetId(EntityId i) {idx = i;}
 	void SetCreated(int64 i) {created = i;}
 	void SetChanged(int64 i) {changed = i;}
 	
@@ -47,9 +47,9 @@ public:
 	void SetName(String s) {name = s;}
 	void OnChange();
 	void UnrefDeep();
-	ComponentBasePtr GetTypeCls(TypeCls comp_type);
-	ComponentBasePtr GetAddTypeCls(TypeCls cls);
-	ComponentBasePtr FindTypeCls(TypeCls comp_type);
+	ComponentPtr GetTypeCls(TypeCls comp_type);
+	ComponentPtr GetAddTypeCls(TypeCls cls);
+	ComponentPtr FindTypeCls(TypeCls comp_type);
 	
 	template<typename T>
 	T& Get() {
@@ -127,7 +127,7 @@ public:
 		return comp;
 	}
 	
-	ComponentBasePtr	GetAdd(String comp_name);
+	ComponentPtr	GetAdd(String comp_name);
 	
 	template<typename... ComponentTs>
 	RTuple<ComponentTs*...> TryGetComponents() {
@@ -137,8 +137,8 @@ public:
 	
 	Entity*				Clone() const;
 	void				InitializeComponents();
-	void				InitializeComponent(ComponentBase& comp);
-	void				InitializeComponentPtr(ComponentBasePtr comp) {return InitializeComponent(*comp);}
+	void				InitializeComponent(Component& comp);
+	void				InitializeComponentPtr(ComponentPtr comp) {return InitializeComponent(*comp);}
 	void				UninitializeComponents();
 	void				ClearComponents();
 	
@@ -168,25 +168,20 @@ public:
 		return tuple;
 	}
 	
-	ComponentBasePtr CreateEon(String id);
-	ComponentBasePtr CreateComponent(TypeCls type);
+	ComponentPtr CreateEon(String id);
+	ComponentPtr CreateComponent(TypeCls type);
 	
 	
 	//void Visit(Vis& vis) {vis || comps;}
 	
 private:
-	
-	template<typename T> void Remove0();
-	template<typename T> Ptr<T> Add0(bool initialize);
-	
-	
-	ComponentBasePtr AddPtr(ComponentBase* comp);
+	ComponentPtr AddPtr(Component* comp);
 	
 	
 };
 
-using EntityPtr = Ptr<Ecs::Entity>;
-//using EntityVec = Array<Ecs::Entity>;
+using EntityPtr = Ptr<Entity>;
+//using EntityVec = Array<Entity>;
 
 
 
@@ -203,7 +198,7 @@ struct EntityPrefab {
 		return RTuple<Ptr<ComponentTs>...>::GetTypeNames();
 	}
 	
-	static Components Make(Ecs::Entity& e) {
+	static Components Make(Entity& e) {
 		return e.CreateComponents<ComponentTs...>();
 	}
 };

@@ -581,10 +581,10 @@ class CommandLineArguments {
 	
 	Array<CmdArg>				args;
 	Array<CmdInput>				inputs;
-	VectorMap<String,Value>		vars;
+	Value						vars;
 	
 public:
-	CommandLineArguments() {}
+	CommandLineArguments() {vars = ValueMap();}
 	
 	void AddArg(char key, const char* desc, bool has_value, String value_desc="value");
 	bool Parse();
@@ -595,7 +595,7 @@ public:
 	String GetArg(char c) const;
 	
 	const Array<CmdInput>& GetInputs() const {return inputs;}
-	const VectorMap<String,Value>& GetVariables() const {return vars;}
+	Value GetVariables() const {return vars;}
 	
 };
 

@@ -21,12 +21,9 @@ void DatasetPtrs::Clear() {
 	editable_biography = 0;
 }
 
-DatasetPtrs Component::GetDataset() const {
-	DatasetPtrs p;
+void Component::GetDataset(DatasetPtrs& p) const {
 	VfsValue& n = val;
-	
 	FillDataset(p, n, const_cast<Component*>(this));
-	return p;
 }
 
 void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp) {
@@ -177,7 +174,37 @@ void Entity::Visit(Vis& v) {
 	}
 }
 
-INITIALIZER_COMPONENT(Entity);
+int64 Entity::GetNextIdx() {
+	static int64 i;
+	return ++i;
+}
+
+
+void Entity::Initialize(String prefab) {
+	SetPrefab(prefab);
+	
+	Engine* e = val.FindOwner<Engine>();
+	ASSERT(e);
+	if (!e) throw Exc("No Engine found");
+	uint64 ticks = e->GetTicks();
+	SetCreated(ticks);
+	SetChanged(ticks);
+}
+
+ComponentPtr Entity::CreateEon(String id) {
+	TODO
+	#if 0
+	int i = VfsValueExtFactory::CompEonIds().Find(id);
+	if (i < 0)
+		return ComponentPtr();
+	
+	const auto& d = VfsValueExtFactory::CompDataMap()[i];
+	return GetAddTypeCls(d.rtti_cls);
+	#endif
+	return 0;
+}
+
+INITIALIZER_VFSEXT(Entity);
 
 
 

@@ -10,7 +10,7 @@ struct ThrowingComponent : Component
     void SetEnabled(bool enable) override;
     void Destroy() override;
 
-    EntityRef ballObject;
+    EntityPtr ballObject;
 
     float distanceFromPointer = 0.05f;
     float scale = 0.25f;
@@ -34,7 +34,7 @@ protected:
     // IInteractionModeSystem
     std::wstring_view GetInstructions() const override;
     std::wstring_view GetDisplayName() const override;
-    EntityRef CreateToolSelector() const override;
+    EntityPtr CreateToolSelector() const override;
 
     // ISpatialInteractionListener
     void OnSourcePressed(

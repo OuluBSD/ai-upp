@@ -9,7 +9,7 @@ void TopSurface::CreateGeom2DComponent() {
 	
 	
 	
-	Machine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
 	Gu::SurfaceManager& mgr = wins->GetActiveScope();
 	mgr.AddInterface(*this);

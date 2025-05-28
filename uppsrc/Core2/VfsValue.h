@@ -56,6 +56,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 
 #define CLASSTYPE(x) \
 	typedef x CLASSNAME; \
+	static TypeCls AsTypeCls() {return typeid(x);} \
 	TypeCls GetTypeCls() const override {return typeid(x);} \
 	String GetTypeName() const override {return #x;} \
 	hash_t GetTypeHash() const override {return TypedStringHasher<x>(#x);} \
@@ -67,27 +68,50 @@ struct EntityDataCreator {static EntityData* CreateEntityDataFn();};
 template <class T> struct EntityDataCreator<false,T> {static EntityData* New() {return 0;}};
 template <class T> struct EntityDataCreator<true, T> {static EntityData* New() {return new T;}};
 
+typedef enum {
+	VFSEXT_DEFAULT,
+	VFSEXT_SYSTEM_ECS,
+	VFSEXT_SYSTEM_ATOM,
+	VFSEXT_COMPONENT,
+	VFSEXT_ATOM,
+	VFSEXT_LINK,
+} VfsExtType;
+
 struct VfsValueExtFactory {
 	typedef VfsValueExt* (*NewFn)(VfsValue&);
 	typedef VfsValueExtCtrl* (*NewCtrl)();
 	typedef bool (*IsFn)(const VfsValueExt& e);
 	//typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
 	typedef EntityData* (*CreateEntityData)();
+	typedef LinkTypeCls (*GetLinkTypeFn)();
 	
 	struct Factory {
-		hash_t type_hash;
+		VfsExtType type;
+		hash_t type_hash = 0; // NOT same as TypeCls::GetHashValue()
+		TypeCls type_cls;
 		int category;
 		String name;
 		String ctrl_name;
 		NewFn new_fn = 0;
 		NewCtrl new_ctrl_fn = 0;
-		//SetDatasetEntityData set_data_ed_fn = 0;
 		CreateEntityData create_ed_fn = 0;
 		IsFn is_fn = 0;
-		const std::type_info* type = 0;
 	};
 	
+	struct AtomData : Moveable<AtomData> {
+		NewFn				new_fn;
+		String				name;
+		AtomTypeCls			cls;
+		TypeCls				rtti_cls;
+		LinkTypeCls			link_type;
+		Vector<String>		actions;
+	};
 	
+	static VectorMap<String, TypeCls>& EonToType() {
+		static VectorMap<String, TypeCls> m;
+		return m;
+	}
+    
 	template<class T> struct Functions {
 		static VfsValueExt* Create(VfsValue& owner) {VfsValueExt* c = new T(owner); return c;}
 		static bool IsNodeExt(const VfsValueExt& e) {return dynamic_cast<const T*>(&e);}
@@ -101,6 +125,7 @@ struct VfsValueExtFactory {
 		DatasetAssigner<T,0>::Set(p,o);
 	}*/
 	static int FindTypeHashFactory(hash_t h);
+	static int FindTypeClsFactory(TypeCls t);
 	static Array<Factory>& List() {static Array<Factory> f; return f;}
 	/*static void SetEntityData(DatasetPtrs& p, hash_t type_hash, EntityData& data) {
 		for (const auto& f : List()) {
@@ -112,20 +137,40 @@ struct VfsValueExtFactory {
 		ASSERT_(0, "Type not registered with given hash_type");
 	}*/
 	static Index<String>& Categories() {static Index<String> v; return v;}
+	static VectorMap<AtomTypeCls,AtomData>& AtomDataMap() {static VectorMap<AtomTypeCls,AtomData> m; return m;}
 	
-	template <class T> inline static void Register(String name) {
+	template <class T> inline static void RegisterExchange(DevCls dev, ValCls val) {
+		TODO
+	}
+	
+	template <class T> inline static void RegisterAtom(String name) {
+		Register<T>(name, VFSEXT_ATOM);
+		AtomTypeCls cls = T::GetAtomType();
+		AtomData& d = AtomDataMap().GetAdd(cls);
+		d.rtti_cls = AsTypeCls<T>();
+		d.cls = cls;
+		d.name = AsTypeName<T>();
+		d.new_fn = &Functions<T>::Create;
+		d.link_type = T::GetLinkType();
+		d.actions.Add(T::GetAction());
+	}
+	
+	template <class T> inline static void Register(String name, VfsExtType type=VFSEXT_DEFAULT) {
 		#ifdef flagGUI
 		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
 		#endif
 		Factory& f = List().Add();
 		f.type_hash = TypedStringHasher<T>(name);
+		f.type_cls = AsTypeCls<T>();
+		f.type = type;
 		f.category = Categories().FindAdd(T::GetCategory());
 		f.name = name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
 		//f.set_data_ed_fn = &DatasetEntityData<T>;
 		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
-		f.type = &typeid(T);
+		if (type == VFSEXT_SYSTEM_ECS)
+			EonToType().Add(name, f.type_cls);
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
@@ -156,7 +201,8 @@ struct VfsValueExtFactory {
 	}
 };
 
-#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x);}
+#define INITIALIZER_VFSEXT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x);}
+#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT);}
 #define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {VfsValueExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
 struct AstValue {
@@ -426,12 +472,26 @@ struct VfsValue : Pte<VfsValue> {
 		return v;
 	}
 	
+	template <class T> T* FindExt() {
+		if (!ext)
+			return 0;
+		return dynamic_cast<T*>(&*ext);
+	}
+	
 	template <class T> T& GetExt() {
 		return dynamic_cast<T&>(*ext);
 	}
 	
 	template <class T> T* GetOwnerExt() const {
 		return owner ? owner->ext ? CastPtr<T>(&*owner->ext) : 0 : 0;
+	}
+	
+	VfsValue* FindOwnerNull(int max_depth=-1) const {
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && n->type_hash && (max_depth < 0 || d++ <= max_depth))
+			n = n->owner;
+		return n;
 	}
 	
 	template <class T> T* FindOwner(int max_depth=-1) const {
@@ -481,13 +541,30 @@ struct VfsValue : Pte<VfsValue> {
 		return root;
 	}
 	
-	template <class T> T* FindOwnerWith(int max_depth=-1) const {
-		TypeCls type = AsTypeCls<T>();
+	template <class T> T* FindOwnerWith(String id, int max_depth=-1) const {
+		hash_t type_hash = AsTypeHash<T>();
 		VfsValue* n = owner;
 		int d = 1;
 		while (n && (max_depth < 0 || d++ <= max_depth)) {
 			for (auto& s : n->sub) {
-				if (s.ext && s.ext->GetTypeCls() == type) {
+				if (s.id == id && s.type_hash == type_hash) {
+					T* o = CastPtr<T>(&*s.ext);
+					ASSERT(o);
+					return o;
+				}
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
+	template <class T> T* FindOwnerWith(int max_depth=-1) const {
+		hash_t type_hash = AsTypeHash<T>();
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			for (auto& s : n->sub) {
+				if (s.type_hash == type_hash) {
 					T* o = CastPtr<T>(&*s.ext);
 					ASSERT(o);
 					return o;

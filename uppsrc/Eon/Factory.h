@@ -1,8 +1,23 @@
 #ifndef _Eon_Factory_h_
 #define _Eon_Factory_h_
 
+#if 0
 
 class Factory {
+	
+public:
+	
+	typedef ExchangePoint* (*NewExpt)(VfsValue&);
+	struct ExptData : Moveable<ExptData> {
+		NewExpt new_fn;
+	};
+	typedef ArrayMap<TypeCls,ExptData> ExptMap;
+	static ArrayMap<TypeCls,ExptData>& ExptDataMap() {MAKE_STATIC(ExptMap, m); return m;}
+	template <class T> static ExchangePoint* New(VfsValue& n) {return new T(n);}
+	template <class T> static void RegisterExchangePoint() {
+		ExptData& d = ExptDataMap().GetAdd(AsTypeCls<T>());
+		d.new_fn = &New<T>;
+	}
 	
 public:
 	
@@ -28,7 +43,7 @@ public:
 		d.name = AsTypeName<T>();
 		d.vd.dev = dev;
 		d.vd.val = val;
-		MetaSpaceBase::RegisterExchangePoint<T>();
+		RegisterExchangePoint<T>();
 	}
 	
 	
@@ -109,4 +124,5 @@ public:
 };
 
 
+#endif
 #endif

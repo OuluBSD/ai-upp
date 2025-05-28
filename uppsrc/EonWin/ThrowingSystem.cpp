@@ -24,7 +24,7 @@ std::wstring_view ThrowingInteractionSystem::GetDisplayName() const
     return L"Throwing";
 }
 
-EntityRef ThrowingInteractionSystem::CreateToolSelector() const
+EntityPtr ThrowingInteractionSystem::CreateToolSelector() const
 {
     auto selector = m_engine.Get<EntityStore>()->Create<ToolSelectorPrefab>();
 

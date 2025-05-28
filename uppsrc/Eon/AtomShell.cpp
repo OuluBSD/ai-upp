@@ -6,11 +6,11 @@ NAMESPACE_UPP
 
 
 
-bool DefaultInitializer(Machine& mach, bool skip_eon_file) {
+bool DefaultInitializer(Engine& mach, bool skip_eon_file) {
 	return mach.CommandLineInitializer(skip_eon_file);
 }
 
-bool Machine::CommandLineInitializer(bool skip_eon_file) {
+bool Engine::CommandLineInitializer(bool skip_eon_file) {
 	SetCoutLog();
 	CommandLineArguments cmd;
 	DaemonBase& daemon = DaemonBase::Single();
@@ -30,7 +30,7 @@ bool Machine::CommandLineInitializer(bool skip_eon_file) {
 	}
 	
 	// Get rest of the command line arguments
-	eon_params <<= cmd.GetVariables();
+	eon_params = cmd.GetVariables();
 	
 	// Arguments for remote connection
 	#if 0
@@ -92,7 +92,7 @@ size_t break_addr = 0;
 
 
 
-void DefaultSerialInitializer0(Machine& mach, bool skip_eon_file) {
+void DefaultSerialInitializer0(Engine& mach, bool skip_eon_file) {
 	SetCoutLog();
 	
 	if (0)
@@ -103,13 +103,13 @@ void DefaultSerialInitializer0(Machine& mach, bool skip_eon_file) {
 	
 }
 
-void DefaultSerialInitializer(Machine& mach) {DefaultSerialInitializer0(mach, false);}
+void DefaultSerialInitializer(Engine& mach) {DefaultSerialInitializer0(mach, false);}
 
-void DefaultSerialInitializerInternalEon(Machine& mach) {
+void DefaultSerialInitializerInternalEon(Engine& mach) {
 	DefaultSerialInitializer0(mach, true);
 }
 
-void DefaultStartup(Machine& mach) {
+void DefaultStartup(Engine& mach) {
 	LOG("<-- Startup -->");
 }
 
@@ -122,7 +122,7 @@ int __dbg_time_limit;
 
 
 
-void Machine::MainLoop(bool (*fn)(void*), void* arg) {
+void Engine::MainLoop(bool (*fn)(void*), void* arg) {
 	int iter = 0;
     TimeStop t, total;
     double sleep_dt_limit = 0.001;
@@ -149,13 +149,13 @@ void Machine::MainLoop(bool (*fn)(void*), void* arg) {
     //RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
-void Machine::Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
+void Engine::Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
 	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
-		Machine& mach = *this;
+		Engine& mach = *this;
 		
 		//RuntimeDiagnostics::Static().SetRoot(mach);
 		
@@ -165,7 +165,7 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
-					RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
+					//RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
 					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
 					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
 				    Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
@@ -191,8 +191,6 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
-				
-				LoopPtr root; // = ls->GetRoot();
 				
 				if (!script_file.IsEmpty()) {
 					String path = RealizeEonFile(script_file);
@@ -232,8 +230,9 @@ void Machine::Main(bool main_loop, String script_content, String script_file, Ve
 		    if (!fail) {
 		        if (main_loop)
 					MainLoop();
-		        else
-		            Machine::WhenUserProgram(*this);
+		        else {
+		            TODO //Machine::WhenUserProgram(*this);
+		        }
 		    }
 		#ifdef flagSTDEXC
 	    }

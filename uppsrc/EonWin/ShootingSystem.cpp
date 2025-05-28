@@ -21,7 +21,7 @@ std::wstring_view ShootingInteractionSystem::GetDisplayName() const
     return L"Shooting";
 }
 
-EntityRef ShootingInteractionSystem::CreateToolSelector() const
+EntityPtr ShootingInteractionSystem::CreateToolSelector() const
 {
     auto selector = m_engine.Get<EntityStore>()->Create<ToolSelectorPrefab>();
 
@@ -31,7 +31,7 @@ EntityRef ShootingInteractionSystem::CreateToolSelector() const
     return selector;
 }
 
-void ShootingInteractionSystem::Register(Array<EntityRef>& entities)
+void ShootingInteractionSystem::Register(Array<EntityPtr>& entities)
 {
     ToolSystem::Register(std::move(entities));
 

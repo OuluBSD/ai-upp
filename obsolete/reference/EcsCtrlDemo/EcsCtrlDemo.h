@@ -23,7 +23,7 @@ class EcsCtrlDemo :
 	
 public:
 	typedef EcsCtrlDemo CLASSNAME;
-	EcsCtrlDemo(Machine& mach);
+	EcsCtrlDemo(Engine& mach);
 	
 	bool InitializeDefault();
 	
@@ -31,7 +31,7 @@ public:
 	void OnError();
 	
 	
-	Machine& mach;
+	Engine& mach;
 	static constexpr const char* POOL_NAME = "shaders";
 	
 	PoolRef GetPool() {return mach.Get<EntityStore>()->GetRoot()->GetAddPool(POOL_NAME);}

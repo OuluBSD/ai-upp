@@ -62,7 +62,7 @@ CONSOLE_APP_MAIN {
 	int women = 17;
 	int bar_servers = 2;
 	
-	Machine& mach = GetMachine();
+	Engine& mach = GetEngine();
 	RegistrySystem& reg = *mach.Add<RegistrySystem>();
 	EntityStore& es = *mach.Add<EntityStore>();
 	Pool& root = es.GetRoot();
@@ -99,16 +99,16 @@ CONSOLE_APP_MAIN {
 			s - dj's stage
         */
         
-        ArrayMap<int, EntityRef> loc_ctxs;
-        EntityRef& entrance		= loc_ctxs.Add('e', rooms.Create<AnyRoom>());
-        EntityRef& wall			= loc_ctxs.Add('x', rooms.Create<AnyRoom>());
-        EntityRef& wtoilet		= loc_ctxs.Add('f', rooms.Create<AnyRoom>());
-        EntityRef& mtoilet		= loc_ctxs.Add('m', rooms.Create<AnyRoom>());
-        EntityRef& personel		= loc_ctxs.Add('p', rooms.Create<AnyRoom>());
-        EntityRef& barstall		= loc_ctxs.Add('s', rooms.Create<AnyRoom>());
-        EntityRef& bar			= loc_ctxs.Add('b', rooms.Create<AnyRoom>());
-        EntityRef& dancefloor	= loc_ctxs.Add('d', rooms.Create<AnyRoom>());
-        EntityRef& stage			= loc_ctxs.Add('s', rooms.Create<AnyRoom>());
+        ArrayMap<int, EntityPtr> loc_ctxs;
+        EntityPtr& entrance		= loc_ctxs.Add('e', rooms.Create<AnyRoom>());
+        EntityPtr& wall			= loc_ctxs.Add('x', rooms.Create<AnyRoom>());
+        EntityPtr& wtoilet		= loc_ctxs.Add('f', rooms.Create<AnyRoom>());
+        EntityPtr& mtoilet		= loc_ctxs.Add('m', rooms.Create<AnyRoom>());
+        EntityPtr& personel		= loc_ctxs.Add('p', rooms.Create<AnyRoom>());
+        EntityPtr& barstall		= loc_ctxs.Add('s', rooms.Create<AnyRoom>());
+        EntityPtr& bar			= loc_ctxs.Add('b', rooms.Create<AnyRoom>());
+        EntityPtr& dancefloor	= loc_ctxs.Add('d', rooms.Create<AnyRoom>());
+        EntityPtr& stage			= loc_ctxs.Add('s', rooms.Create<AnyRoom>());
         
         const char* map =
 			"pppxmmmxffff\n"
@@ -136,7 +136,7 @@ CONSOLE_APP_MAIN {
         OverlapSink& bar3d			= *bar->FindOverlapSink();
         
         for(int i = 0; i < men; i++) {
-			EntityRef e = people.Create<ClientMan>();
+			EntityPtr e = people.Create<ClientMan>();
 			DemoHuman& h = *e->Get<DemoHuman>();
 			Transform& t = *e->Get<Transform>();
 			h.Init(DemoHuman::CLIENT_MALE);
@@ -144,7 +144,7 @@ CONSOLE_APP_MAIN {
         }
         
         for(int i = 0; i < women; i++) {
-			EntityRef e = people.Create<ClientWoman>();
+			EntityPtr e = people.Create<ClientWoman>();
 			DemoHuman& h = *e->Get<DemoHuman>();
 			Transform& t = *e->Get<Transform>();
 			h.Init(DemoHuman::CLIENT_FEMALE);
@@ -152,7 +152,7 @@ CONSOLE_APP_MAIN {
         }
         
         for(int i = 0; i < bar_servers; i++) {
-			EntityRef e = people.Create<BarServer>();
+			EntityPtr e = people.Create<BarServer>();
 			DemoHuman& h = *e->Get<DemoHuman>();
 			Transform& t = *e->Get<Transform>();
 			h.Init(DemoHuman::PERSONEL_BAR);
@@ -160,7 +160,7 @@ CONSOLE_APP_MAIN {
         }
         
         {
-            EntityRef e = people.Create<DeeJay>();
+            EntityPtr e = people.Create<DeeJay>();
 			DemoHuman& h = *e->Get<DemoHuman>();
 			Transform& t = *e->Get<Transform>();
 			h.Init(DemoHuman::PERSONEL_DJ);

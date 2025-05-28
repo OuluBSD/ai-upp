@@ -199,7 +199,7 @@ bool X11Events__Poll(CLASSNAME::NativeEventsBase& dev, AtomBase& a) {
         case ClientMessage:
             if (dev.xev.xclient.data.l[0] == dev.ctx->wmDeleteMessage) {
                 dev.ctx->running = false;
-                Machine& m = a.GetMachine();
+                Engine& m = a.GetEngine();
                 m.SetNotRunning();
                 XDestroyWindow(dev.ctx->display, dev.ctx->win);
             }
@@ -786,7 +786,7 @@ LRESULT CALLBACK WinD11_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
     case WM_DESTROY:
         PostQuitMessage(0);
         
-        dev.atom->GetMachine().SetNotRunning();
+        dev.atom->GetEngine().SetNotRunning();
         
         return 0;
 

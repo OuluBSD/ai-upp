@@ -30,7 +30,7 @@ protected:
     Engine& m_engine;
 };
 
-
+#if 0
 // CRTP implementation helper 
 // Usage: class MySystem : System { /* functions + data members */ };
 template<typename T>
@@ -113,6 +113,8 @@ private:
     void Add(detail::type_id const& typeId, std::shared_ptr<SystemBase> system);
     void Remove(detail::type_id const& typeId);
 };
+
+#endif
 
 } // Neso
 

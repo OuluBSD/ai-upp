@@ -10,7 +10,7 @@ bool Open_NonGUI_ECS() {
 	#if 0
 	Engine mach;
 	
-	Ecs::RegistrySystem& reg = *mach.Add<Ecs::RegistrySystem>();
+	RegistrySystem& reg = *mach.Add<RegistrySystem>();
 	EntityStore& ents = *mach.Add<EntityStore>();
     mach.Add<ComponentStore>();
     

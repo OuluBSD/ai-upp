@@ -5,9 +5,9 @@
 
 // ToolSystemBase
 // Base abstract class for all ToolSystems
-class ToolSystemBase : public SystemBase {
+class ToolSystemBase : public System {
 public:
-	using SystemBase::SystemBase;
+	using System::System;
 	
 	void Visit(Vis& vis) override {}
 	

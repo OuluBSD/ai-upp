@@ -58,7 +58,7 @@ MachineVerifier::MachineVerifier() {
 	Clear();
 }
 
-void MachineVerifier::Attach(Machine& mach) {
+void MachineVerifier::Attach(Engine& mach) {
 	this->mach = &mach;
 	mach.mver = this;
 	
@@ -93,10 +93,10 @@ void MachineVerifier::SetDefaultExpected() {
 	scope.AddEnter(UPDATE);
 }
 
-VerifierSystem& MachineVerifier::AddSystem(TypeCls t, ParallelTypeCls et) {
+VerifierSystem& MachineVerifier::AddSystem(TypeCls t, const ParallelTypeCls& et) {
 	VerifierSystem& sys = this->sys.Add();
 	sys.type = t;
-	sys.ecs_type = et;
+	TODO //sys.ecs_type = et;
 	return sys;
 }
 
@@ -608,7 +608,7 @@ void VerifierAtom::LinkTo(VerifierAtom& comp) {
 
 
 
-VerifierAtom& VerifierEntity::AddAtomWith(ParallelTypeCls t) {
+VerifierAtom& VerifierEntity::AddAtomWith(TypeCls t) {
 	VerifierAtom& e = ext.Add();
 	e.type = t;
 	return e;

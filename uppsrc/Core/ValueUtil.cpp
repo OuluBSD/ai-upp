@@ -336,6 +336,13 @@ hash_t ValueMap::Data::GetHashValue() const {
 	return w;
 }
 
+Value ValueMap::Get(const Value& key, Value def) {
+	int i = Find(key);
+	if (i < 0)
+		return def;
+	return At(i);
+}
+
 static bool sIsEqual(const Index<Value>& a, const Index<Value>& b)
 {
 	if(&a == &b) return true;

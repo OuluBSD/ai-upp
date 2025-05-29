@@ -148,7 +148,6 @@ bool MidPortmidi::Source_Send(NativeSource& dev, AtomBase& a, RealtimeSourceConf
 			if (!result)
 				break;
 			
-			int status;
 			int length = Pm_Read(dev.midi_in, buffer, BUFSIZE);
 			int track_i = 0;
 			

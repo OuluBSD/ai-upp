@@ -22,7 +22,7 @@ template <class Sample>
 struct SoundClip : Moveable<SoundClip<Sample>>, SoundClipBase {
 	struct Data {
 		Vector<Sample> data;
-		int samplerate = 0;
+		double samplerate = 0;
 		int channels = 0;
 		bool updating = false;
 		Atomic refs;

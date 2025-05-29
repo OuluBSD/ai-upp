@@ -10,7 +10,6 @@ struct SystemT :
 	System
 {
 	using Base = SystemT<Fys>;
-	using SP = System;
 	using Node = NodeT<Fys>;
 	using Space = SpaceT<Fys>;
 	using EcsSystem = SystemT<Fys>;
@@ -32,7 +31,7 @@ public:
 	static vec3 EarthGravity() {return vec3(0,-9.81f,0);}
 	
 	CLASSTYPE(SystemT<Fys>);
-	SystemT(VfsValue& n) : SP(n) {
+	SystemT(VfsValue& n) : System(n) {
 		Fys::InitializeLibrary();
 		Fys::CreateWorld(world);
 		

@@ -4,7 +4,7 @@
 namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
-class ExtScriptEcsLoader;
+struct ExtScriptEcsLoader;
 }
 
 #define ATOM_CTOR_(x, base) \

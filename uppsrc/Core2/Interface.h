@@ -2,7 +2,7 @@
 #define _Core2_Interface_h_
 
 
-class AtomBase;
+struct AtomBase;
 
 template <class T>
 class InterfaceContainer {

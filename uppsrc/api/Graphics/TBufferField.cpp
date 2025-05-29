@@ -9,7 +9,7 @@ GfxBufferFieldT<Gfx>::GfxBufferFieldT() {
 }
 
 template <class Gfx>
-bool GfxBufferFieldT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
+bool GfxBufferFieldT<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	if (!buf.Initialize(a, ws))
 		return false;
 	

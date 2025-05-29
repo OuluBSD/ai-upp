@@ -17,8 +17,9 @@ ObjViewProg::ObjViewProg() {
 }
 
 
-void ObjViewProg::Initialize() {
+bool ObjViewProg::Initialize(const WorldState& ws) {
 	//FboAtom::Latest().AddBinder(this);
+	return true;
 }
 
 

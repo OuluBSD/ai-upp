@@ -130,7 +130,7 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 		VIS_THIS(HoloSinkDevice);
 	}
 	typename Holo::NativeSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Holo::SinkDevice_Create(dev))
 			return false;
 		if (!Holo::SinkDevice_Initialize(*dev, *this, ws))

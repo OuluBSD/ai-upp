@@ -126,14 +126,14 @@ void DesktopMain(Upp::Engine& mach, bool _3d) {
 
 NAMESPACE_UPP
 INITBLOCK {
-	Machine::WhenInitialize << callback(DefaultSerialInitializer);
-	Machine::WhenPreFirstUpdate << callback(DefaultStartup);
+	Engine::WhenInitialize << callback(DefaultSerialInitializer);
+	Engine::WhenPreFirstUpdate << callback(DefaultStartup);
 	//Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
 }
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
-	Engine& mach = MetaEnv().root.Add<Machine>("mach");
+	Engine& mach = MetaEnv().root.Add<Engine>("mach");
 	mach.Run(true, "Shell");
 }
 
@@ -142,32 +142,28 @@ GUI_APP_MAIN {
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
-	Engine& mach = MetaEnv().root.Add<Machine>("mach");
-	mach.WhenBoot << callback(DefaultSerialInitializer);
-	mach.WhenInitialize << callback(::Upp::MachineEcsInit);
-	mach.WhenPreFirstUpdate << callback(DefaultStartup);
 	
 	Engine& eng = MetaEnv().root.Add<Engine>("eng");
-	eng.Start();
+	eng.WhenBoot << callback(DefaultSerialInitializer);
+	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
+	eng.WhenPreFirstUpdate << callback(DefaultStartup);
+	eng.Start("Shell");
 
 	AgentInteractionSystem::Setup();
 	
 	bool gubo = false;
 	if (gubo) {
-		mach.WhenUserProgram << callback1(DesktopMain, true);
+		eng.WhenUserProgram << callback1(DesktopMain, true);
 	}
 	
-	mach.Run(true, "Shell");
+	eng.MainLoop();
 	
 	AgentInteractionSystem::Uninstall();
 	
 	eng.Stop();
-	mach.Stop();
+	eng.Clear();
 	
-	eng.GetRootPool().Clear();
-	mach.GetRootSpace().Clear();
-	mach.GetRootLoop().Clear();
-	mach.Clear();
+	MetaEnv().root.UninitializeDeep();
 	MetaEnv().root.ClearExtDeep();
 	MetaEnv().root.sub.Clear();
 }

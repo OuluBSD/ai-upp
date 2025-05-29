@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-bool EventSystem::Initialize() {
+bool EventSystem::Initialize(const WorldState& ws) {
 	return true;
 }
 
@@ -14,8 +14,8 @@ bool EventSystem::Initialize() {
 	serial = b;
 }*/
 
-void EventSystem::Start() {
-	
+bool EventSystem::Start() {
+	return true;
 }
 
 void EventSystem::Update(double dt) {

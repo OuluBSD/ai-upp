@@ -3,7 +3,7 @@
 
 static bool Source_Create(NativeSource*& dev);
 static void Source_Destroy(NativeSource*& dev);
-static bool Source_Initialize(NativeSource&, AtomBase&, const Eon::WorldState&);
+static bool Source_Initialize(NativeSource&, AtomBase&, const WorldState&);
 static bool Source_PostInitialize(NativeSource&, AtomBase&);
 static bool Source_Start(NativeSource&, AtomBase&);
 static void Source_Stop(NativeSource&, AtomBase&);

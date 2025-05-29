@@ -182,7 +182,7 @@ public:
 
     
 protected:
-    bool Initialize() override;
+    bool Initialize(const WorldState&) override;
     void Uninitialize() override;
     void Update(double dt) override;
 	bool Arg(String key, Value value) override;

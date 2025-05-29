@@ -43,7 +43,7 @@ void HoloDevBluetooth::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& v
 	
 }
 
-bool HoloDevBluetooth::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloDevBluetooth::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	dev.ctrl_idx[0] = ws.GetInt(".controller.left.idx", -1);
 	dev.ctrl_idx[1] = ws.GetInt(".controller.right.idx", -1);
 	

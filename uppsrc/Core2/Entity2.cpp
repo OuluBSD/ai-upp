@@ -1,8 +1,8 @@
-#include "Eon.h"
+#include "Core.h"
 
-#if 0
 NAMESPACE_UPP
 
+#if 0
 
 Entity::Entity(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
@@ -100,21 +100,28 @@ ComponentPtr Entity::AddPtr(Component* comp) {
 	return 0;
 }
 
-void Entity::InitializeComponents() {
-	auto comps = val.FindAll<Component>();
-	for(auto& comp : comps)
-		InitializeComponent(*comp);
-}
+#endif
 
-void Entity::InitializeComponent(Component& comp) {
-	comp.Initialize();
+bool Entity::InitializeComponents(const WorldState& ws) {
+	bool b = false;
+	auto comps = val.FindAll<Component>();
+	for(auto& comp : comps) {
+		if (!comp->IsInitialized()) {
+			b = comp->Initialize(ws) && b;
+			comp->SetInitialized();
+		}
+	}
+	return b;
 }
 
 void Entity::UninitializeComponents() {
 	auto comps = val.FindAll<Component>();
 	int dbg_i = 0;
 	for (auto it = comps.End()-1; it != comps.Begin()-1; --it) {
-		(*it)->Uninitialize();
+		if ((*it)->IsInitialized()) {
+			(*it)->Uninitialize();
+			(*it)->SetInitialized(false);
+		}
 		dbg_i++;
 	}
 }
@@ -123,6 +130,7 @@ void Entity::ClearComponents() {
 	val.RemoveAllDeep<Component>();
 }
 
+#if 0
 Entity* Entity::Clone() const {
 	EntityPtr ent = GetPool().Clone(*this);
 	ent->InitializeComponents();
@@ -238,5 +246,5 @@ bool EntityHashVisitor::OnEntry(const RTTI& type, TypeCls derived, const char* d
 #endif
 
 
-END_UPP_NAMESPACE
 #endif
+END_UPP_NAMESPACE

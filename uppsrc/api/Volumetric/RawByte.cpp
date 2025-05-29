@@ -104,7 +104,7 @@ bool VolRawByte__LoadFile(VolRawByte::NativeStaticSource& dev, AtomBase& a) {
 	return true;
 }
 
-bool VolRawByte::StaticSource_Initialize(NativeStaticSource& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool VolRawByte::StaticSource_Initialize(NativeStaticSource& dev, AtomBase& a, const WorldState& ws) {
 	dev.vflip = false;
 	
 	String arg_filepath = ws.Get(".filepath");

@@ -177,7 +177,7 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 		VIS_THIS(HalAudioSinkDevice);
 	}
 	typename Hal::NativeAudioSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::AudioSinkDevice_Create(dev))
 			return false;
 		if (!Hal::AudioSinkDevice_Initialize(*dev, *this, ws))
@@ -233,7 +233,7 @@ template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice
 		VIS_THIS(HalCenterVideoSinkDevice);
 	}
 	typename Hal::NativeCenterVideoSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::CenterVideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::CenterVideoSinkDevice_Initialize(*dev, *this, ws))
@@ -289,7 +289,7 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 		VIS_THIS(HalCenterFboSinkDevice);
 	}
 	typename Hal::NativeCenterFboSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::CenterFboSinkDevice_Create(dev))
 			return false;
 		if (!Hal::CenterFboSinkDevice_Initialize(*dev, *this, ws))
@@ -346,7 +346,7 @@ template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
 		VIS_THIS(HalOglVideoSinkDevice);
 	}
 	typename Hal::NativeOglVideoSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::OglVideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::OglVideoSinkDevice_Initialize(*dev, *this, ws))
@@ -404,7 +404,7 @@ template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
 		VIS_THIS(HalD12VideoSinkDevice);
 	}
 	typename Hal::NativeD12VideoSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::D12VideoSinkDevice_Create(dev))
 			return false;
 		if (!Hal::D12VideoSinkDevice_Initialize(*dev, *this, ws))
@@ -461,7 +461,7 @@ template <class Hal> struct HalContextBaseT : HalContextBase {
 		VIS_THIS(HalContextBase);
 	}
 	typename Hal::NativeContextBase* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::ContextBase_Create(dev))
 			return false;
 		if (!Hal::ContextBase_Initialize(*dev, *this, ws))
@@ -517,7 +517,7 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 		VIS_THIS(HalEventsBase);
 	}
 	typename Hal::NativeEventsBase* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::EventsBase_Create(dev))
 			return false;
 		if (!Hal::EventsBase_Initialize(*dev, *this, ws))
@@ -574,7 +574,7 @@ template <class Hal> struct HalUppEventsBaseT : HalUppEventsBase {
 		VIS_THIS(HalUppEventsBase);
 	}
 	typename Hal::NativeUppEventsBase* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::UppEventsBase_Create(dev))
 			return false;
 		if (!Hal::UppEventsBase_Initialize(*dev, *this, ws))
@@ -632,7 +632,7 @@ template <class Hal> struct HalUppOglDeviceT : HalUppOglDevice {
 		VIS_THIS(HalUppOglDevice);
 	}
 	typename Hal::NativeUppOglDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Hal::UppOglDevice_Create(dev))
 			return false;
 		if (!Hal::UppOglDevice_Initialize(*dev, *this, ws))

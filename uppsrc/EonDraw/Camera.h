@@ -11,7 +11,7 @@ class Viewable :
 public:
 	ECS_COMPONENT_CTOR(Viewable)
 	void Visit(Vis& v) override {}
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	
 	void operator=(const Viewable& c) {}
@@ -92,7 +92,7 @@ public:
 	ECS_COMPONENT_CTOR(ChaseCam)
 	
 	void Visit(Vis& v) override {VIS_THIS(Component); v & target & viewable & vport;}
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void Update(double dt) override;
 	bool Arg(String key, Value value) override;
@@ -115,9 +115,9 @@ using ChaseCamPtr = Ptr<ChaseCam>;
 
 struct CameraPrefab : EntityPrefab<Transform, Viewport, Viewable>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 		
 		TransformPtr t = components.Get<TransformPtr>();
 		t->data.mode = TransformMatrix::MODE_POSITION;

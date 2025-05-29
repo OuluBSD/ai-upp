@@ -21,7 +21,7 @@ public:
 	vec3 GetForwardDirection() const;
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	String ToString() const override;

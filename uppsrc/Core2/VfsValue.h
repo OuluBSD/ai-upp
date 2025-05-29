@@ -29,29 +29,38 @@ struct NodeRoute {
 };
 
 struct VfsValueExt : Pte<VfsValueExt> {
-	VfsValue& val;
+	VfsValue&				val;
+	bool					is_initialized = false;
 	
-	VfsValueExt(VfsValue& n) : val(n) {}
-	virtual ~VfsValueExt() {}
-	virtual void Visit(Vis& s) = 0;
-	virtual TypeCls GetTypeCls() const = 0;
-	virtual String GetTypeName() const = 0;
-	virtual hash_t GetTypeHash() const = 0;
-	virtual String GetName() const {return String();}
-	virtual double GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
-	virtual double GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
-	virtual double GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
-	virtual bool TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
-	virtual String ToString() const {return String();}
-	hash_t GetHashValue() const;
-	int AstGetKind() const;
+	VfsValueExt(VfsValue& n);
+	virtual ~VfsValueExt();
+	virtual void			Visit(Vis& s) = 0;
+	virtual TypeCls			GetTypeCls() const = 0;
+	virtual String			GetTypeName() const = 0;
+	virtual hash_t			GetTypeHash() const = 0;
+	virtual String			GetName() const;
+	virtual double			GetUtility();
+	virtual double			GetEstimate();
+	virtual double			GetDistance(VfsValue& dest);
+	virtual bool			TerminalTest(NodeRoute& prev);
+	virtual String			ToString() const;
+	virtual bool			Start();
+	virtual void			Stop();
+	virtual bool			Initialize(const WorldState& ws);
+	virtual void			Uninitialize();
+	virtual void			UninitializeDeep();
+	virtual void			Update(double dt);
+	virtual bool			Arg(String key, Value value);
+	hash_t					GetHashValue() const;
+	int						AstGetKind() const;
+	bool					IsInitialized() const;
+	void					SetInitialized(bool b=true);
+	void					CopyFrom(const VfsValueExt& e);
+	bool					operator==(const VfsValueExt& e) const;
+	void					Serialize(Stream& s);
+	void					Jsonize(JsonIO& json);
 	
-	static String GetCategory() {return String();}
-	
-	void CopyFrom(const VfsValueExt& e);
-	bool operator==(const VfsValueExt& e) const;
-	void Serialize(Stream& s);
-	void Jsonize(JsonIO& json);
+	static String			GetCategory();
 };
 
 #define CLASSTYPE(x) \
@@ -75,6 +84,7 @@ typedef enum {
 	VFSEXT_COMPONENT,
 	VFSEXT_ATOM,
 	VFSEXT_LINK,
+	VFSEXT_EXCHANGE,
 } VfsExtType;
 
 struct VfsValueExtFactory {
@@ -107,6 +117,24 @@ struct VfsValueExtFactory {
 		Vector<String>		actions;
 	};
 	
+	struct LinkData : Moveable<LinkData> {
+		NewFn			new_fn;
+		String			name;
+		LinkTypeCls		cls;
+		TypeCls			rtti_cls;
+	};
+	
+	struct IfaceData : Moveable<IfaceData> {
+		hash_t			type_hash = 0;
+		TypeCls			cls;
+		ValDevCls		vd;
+		String			name;
+	};
+	
+	/*struct ExptData : Moveable<ExptData> {
+		NewExpt new_fn;
+	};*/
+	
 	static VectorMap<String, TypeCls>& EonToType() {
 		static VectorMap<String, TypeCls> m;
 		return m;
@@ -138,9 +166,21 @@ struct VfsValueExtFactory {
 	}*/
 	static Index<String>& Categories() {static Index<String> v; return v;}
 	static VectorMap<AtomTypeCls,AtomData>& AtomDataMap() {static VectorMap<AtomTypeCls,AtomData> m; return m;}
+	static VectorMap<LinkTypeCls,LinkData>& LinkDataMap() {static VectorMap<LinkTypeCls,LinkData> m; return m;}
+	static VectorMap<ValDevTuple,IfaceData>& IfaceLinkDataMap() {static VectorMap<ValDevTuple,IfaceData> m; return m;}
+	//static VectorMap<TypeCls,ExptData>& ExptDataMap() {static VectorMap<TypeCls,ExptData> m; return m;}
 	
-	template <class T> inline static void RegisterExchange(DevCls dev, ValCls val) {
-		TODO
+	template <class T> inline static void RegisterExchange(String name, DevCls dev, ValCls val) {
+		Register<T>(name, VFSEXT_EXCHANGE);
+		ValDevCls vd(dev,val);
+		IfaceData& d = IfaceLinkDataMap().GetAdd(vd);
+		d.type_hash  = AsTypeHash<T>();
+		d.cls        = AsTypeCls<T>();
+		d.name       = AsTypeName<T>();
+		d.vd.dev     = dev;
+		d.vd.val     = val;
+		//ExptData& d = ExptDataMap().GetAdd(AsTypeCls<T>()); // todo remove?
+		//d.new_fn = &New<T>;
 	}
 	
 	template <class T> inline static void RegisterAtom(String name) {
@@ -153,6 +193,17 @@ struct VfsValueExtFactory {
 		d.new_fn = &Functions<T>::Create;
 		d.link_type = T::GetLinkType();
 		d.actions.Add(T::GetAction());
+	}
+	
+	template <class T> static void RegisterLink(String name) {
+		Register<T>(name, VFSEXT_LINK);
+		LinkTypeCls cls = T::GetLinkTypeStatic();
+		ASSERT(cls.IsValid());
+		LinkData& d = LinkDataMap().GetAdd(cls);
+		d.rtti_cls = AsTypeCls<T>();
+		d.cls = cls;
+		d.name = AsTypeName<T>();
+		d.new_fn = &Functions<T>::Create;
 	}
 	
 	template <class T> inline static void Register(String name, VfsExtType type=VFSEXT_DEFAULT) {
@@ -330,6 +381,7 @@ struct VfsValue : Pte<VfsValue> {
 	int GetDepth() const;
 	Vector<VfsValue*> FindAllShallow(hash_t type_hash);
 	VfsValue& GetAdd(String id, hash_t type_hash);
+	void UninitializeDeep();
 	
 	operator AstValue&();
 	operator AstValue*();
@@ -492,6 +544,17 @@ struct VfsValue : Pte<VfsValue> {
 		while (n && n->type_hash && (max_depth < 0 || d++ <= max_depth))
 			n = n->owner;
 		return n;
+	}
+	
+	bool HasOwnerDeep(VfsValue& val, int max_depth=-1) const {
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			if (n == &val)
+				return true;
+			n = n->owner;
+		}
+		return n == &val;
 	}
 	
 	template <class T> T* FindOwner(int max_depth=-1) const {

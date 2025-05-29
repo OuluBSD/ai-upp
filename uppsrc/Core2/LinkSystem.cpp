@@ -59,13 +59,13 @@ void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>
 }
 
 
-bool LinkSystem::Initialize() {
+bool LinkSystem::Initialize(const WorldState& ws) {
 	once_cbs.Create();
 	return true;
 }
 
-void LinkSystem::Start() {
-	
+bool LinkSystem::Start() {
+	return true;
 }
 
 void LinkSystem::Update(double dt) {

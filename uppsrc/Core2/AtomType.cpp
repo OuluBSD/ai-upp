@@ -207,7 +207,7 @@ bool AtomTypeCls::IsSourceChannelOptional(int ch_i) const {
 bool AtomTypeCls::IsSinkChannelOptional(int ch_i) const {
 	return iface.sink[ch_i].is_opt;
 }
-bool AtomTypeCls::IsValid() const {return iface.IsValid() && !sub && role != AtomRole::INVALID_ATOMROLE;}
+bool AtomTypeCls::IsValid() const {return iface.IsValid() && sub && role != AtomRole::INVALID_ATOMROLE;}
 hash_t AtomTypeCls::GetHashValue() const {
 	CombineHash c;
 	c.Put(iface.GetHashValue());

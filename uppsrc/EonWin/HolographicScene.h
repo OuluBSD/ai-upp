@@ -46,7 +46,7 @@ public:
     void RemovePredictionUpdateListener(IPredictionUpdateListener& listener);
 
 protected:
-    bool Initialize() override;
+    bool Initialize(const WorldState&) override;
     void Update(double) override;
     void Uninitialize() override;
 

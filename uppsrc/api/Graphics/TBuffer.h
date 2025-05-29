@@ -64,7 +64,7 @@ struct BufferStageT : GfxBufferStage {
 	vec3						aberr;
 
 	
-	bool Initialize(int id, AtomBase& a, const Eon::WorldState& ws);
+	bool Initialize(int id, AtomBase& a, const WorldState& ws);
 	bool PostInitialize();
 	bool ImageInitialize();
 	void Process(const RealtimeSourceConfig& cfg);
@@ -182,7 +182,7 @@ struct BufferT : GfxBuffer {
 public:
 	void ClearPtr() {env = 0;}
 	void Update(double dt);
-	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
+	bool Initialize(AtomBase& a, const WorldState& ws);
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_data_states);
 	bool PostInitialize();
 	bool InitializeRenderer();

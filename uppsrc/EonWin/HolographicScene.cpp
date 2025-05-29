@@ -15,7 +15,7 @@ HolographicScene::HolographicScene(
     m_holographicSpace(std::move(holographicSpace))
 {}
 
-bool HolographicScene::Initialize()
+bool HolographicScene::Initialize(const WorldState& ws)
 {
     m_stageFrameOfReference = SpatialStageFrameOfReference::Current();
 

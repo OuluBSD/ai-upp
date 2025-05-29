@@ -1,5 +1,5 @@
-#ifndef _Eon_Verifier_h_
-#define _Eon_Verifier_h_
+#ifndef _Core2_Verifier_h_
+#define _Core2_Verifier_h_
 
 
 struct ParallelTypeCls;
@@ -69,7 +69,6 @@ struct VerifierSystem {
 
 class MachineVerifier {
 	Engine* mach = 0;
-	AtomSystem* ext_sys = 0;
 	VerifierLoop root;
 	Array<VerifierSystem> sys;
 	

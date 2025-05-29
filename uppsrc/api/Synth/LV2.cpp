@@ -27,7 +27,7 @@ void SynLV2::Instrument_Destroy(NativeInstrument*& dev){
 	delete dev;
 }
 
-bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws){
+bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws){
 	String preset = ws.GetString("preset", "piano");
 	
 	LoadAllLV2Plugins(dev.lv2_list);

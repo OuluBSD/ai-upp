@@ -51,7 +51,7 @@ template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 		VIS_THIS(VolStaticSource);
 	}
 	typename Vol::NativeStaticSource* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Vol::StaticSource_Create(dev))
 			return false;
 		if (!Vol::StaticSource_Initialize(*dev, *this, ws))

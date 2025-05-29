@@ -10,8 +10,8 @@ EcsViewProg::EcsViewProg() {
 }
 
 
-void EcsViewProg::Initialize() {
-	
+bool EcsViewProg::Initialize(const WorldState& ws) {
+	return true;
 }
 
 

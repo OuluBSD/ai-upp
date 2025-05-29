@@ -34,12 +34,12 @@ ModelPtr ModelCache::Attach(Model* mdl) {
 }
 
 
-bool ModelCache::Initialize() {
+bool ModelCache::Initialize(const WorldState& ws) {
 	return true;
 }
 
-void ModelCache::Start() {
-	
+bool ModelCache::Start() {
+	return true;
 }
 
 void ModelCache::Update(double dt) {

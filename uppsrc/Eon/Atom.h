@@ -56,9 +56,7 @@ protected:
 public:
 	virtual AtomTypeCls		GetType() const = 0;
 	virtual void			CopyTo(AtomBase* atom) const = 0;
-	virtual bool			Initialize(const WorldState& ws) = 0;
 	virtual bool			InitializeAtom(const WorldState& ws) = 0;
-	virtual void			Uninitialize() = 0;
 	virtual void			UninitializeAtom() = 0;
 	virtual void			VisitSource(Vis& vis) = 0;
 	virtual void			VisitSink(Vis& vis) = 0;
@@ -66,13 +64,7 @@ public:
 	virtual ISourcePtr		GetSource() = 0;
 	virtual ISinkPtr		GetSink() = 0;
 	virtual bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) = 0;
-	
-	virtual bool			Start() {return true;}
-	virtual void			Stop() {}
-	virtual void			Visit(Vis& vis) {}
 	virtual bool			PostInitialize() {return true;}
-	virtual void			Update(double dt) {}
-	virtual String			ToString() const;
 	virtual bool			IsReady(PacketIO& io) {return true;}
 	virtual void			UpdateConfig(double dt) {Panic("Unimplemented"); NEVER();}
 	virtual bool			Recv(int sink_ch, const Packet& in);
@@ -85,6 +77,10 @@ public:
 	virtual void			DetachContext(AtomBase& a) {Panic("Unimplemented"); NEVER();}
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
+	
+	void					Visit(Vis& vis) override {}
+	void					Update(double dt) override {}
+	String					ToString() const override;
 	
 	EscValue&				UserData() {return user_data;}
 	bool					IsRunning() const {return is_running;}
@@ -157,7 +153,7 @@ public:
 	Atom(VfsValue& n) : AtomBase(n) {}
 	
 	bool InitializeAtom(const WorldState& ws) override {
-		return SinkT::Initialize() && SourceT::Initialize();
+		return SinkT::Initialize(ws) && SourceT::Initialize(ws);
 	}
 	
 	void UninitializeAtom() override {

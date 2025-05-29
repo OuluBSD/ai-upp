@@ -10,13 +10,13 @@ HandleSystemT<Dim>::HandleSystemT(Parallel::Engine& m) :
 }
 
 template <class Dim>
-bool HandleSystemT<Dim>::Initialize() {
+bool HandleSystemT<Dim>::Initialize(const WorldState& ws) {
 	time = 0;
 	return true;
 }
 
 template <>
-bool HandleSystemT<Ctx2D>::Initialize() {
+bool HandleSystemT<Ctx2D>::Initialize(const WorldState& ws) {
 	//RealizeScope();
 	return true;
 }

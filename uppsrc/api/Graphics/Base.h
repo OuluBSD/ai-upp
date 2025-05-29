@@ -43,7 +43,7 @@ public:
 	
 	ShaderBaseT(VfsValue& n) : BufferBase(n) {}
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	bool Start() override;
 	void Uninitialize() override;
@@ -76,7 +76,7 @@ public:
 	
 	TextureBaseT(VfsValue& n) : BufferBase(n) {}
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
@@ -107,7 +107,7 @@ public:
 	
 	FboReaderBaseT(VfsValue& n) : BufferBase(n) {}
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
@@ -134,7 +134,7 @@ public:
 	using CLASSNAME = KeyboardBaseT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	KeyboardBaseT(VfsValue& n) : BufferBase(n) {}
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
@@ -155,7 +155,7 @@ public:
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	AudioBaseT(VfsValue& n) : BufferBase(n) {}
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;

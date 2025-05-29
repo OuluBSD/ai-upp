@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 
 template <class Gfx>
-bool FboProgAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool FboProgAtomT<Gfx>::Initialize(const WorldState& ws) {
 	dbg_info = 0;
 	
 	resize_multiplier = ws.GetDouble(".resize.multiplier", 0.004);

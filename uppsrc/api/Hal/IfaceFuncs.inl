@@ -3,7 +3,7 @@
 
 static bool AudioSinkDevice_Create(NativeAudioSinkDevice*& dev);
 static void AudioSinkDevice_Destroy(NativeAudioSinkDevice*& dev);
-static bool AudioSinkDevice_Initialize(NativeAudioSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool AudioSinkDevice_Initialize(NativeAudioSinkDevice&, AtomBase&, const WorldState&);
 static bool AudioSinkDevice_PostInitialize(NativeAudioSinkDevice&, AtomBase&);
 static bool AudioSinkDevice_Start(NativeAudioSinkDevice&, AtomBase&);
 static void AudioSinkDevice_Stop(NativeAudioSinkDevice&, AtomBase&);
@@ -19,7 +19,7 @@ static void AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase& a, A
 
 static bool CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev);
 static void CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev);
-static bool CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const WorldState&);
 static bool CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice&, AtomBase&);
 static bool CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice&, AtomBase&);
 static void CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice&, AtomBase&);
@@ -35,7 +35,7 @@ static void CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, At
 
 static bool CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev);
 static void CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev);
-static bool CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice&, AtomBase&, const WorldState&);
 static bool CenterFboSinkDevice_PostInitialize(NativeCenterFboSinkDevice&, AtomBase&);
 static bool CenterFboSinkDevice_Start(NativeCenterFboSinkDevice&, AtomBase&);
 static void CenterFboSinkDevice_Stop(NativeCenterFboSinkDevice&, AtomBase&);
@@ -52,7 +52,7 @@ static void CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice&, AtomBa
 #if defined flagOGL
 static bool OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev);
 static void OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev);
-static bool OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const WorldState&);
 static bool OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice&, AtomBase&);
 static bool OglVideoSinkDevice_Start(NativeOglVideoSinkDevice&, AtomBase&);
 static void OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice&, AtomBase&);
@@ -70,7 +70,7 @@ static void OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase
 #if defined flagDX12
 static bool D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev);
 static void D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev);
-static bool D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const WorldState&);
 static bool D12VideoSinkDevice_PostInitialize(NativeD12VideoSinkDevice&, AtomBase&);
 static bool D12VideoSinkDevice_Start(NativeD12VideoSinkDevice&, AtomBase&);
 static void D12VideoSinkDevice_Stop(NativeD12VideoSinkDevice&, AtomBase&);
@@ -87,7 +87,7 @@ static void D12VideoSinkDevice_DetachContext(NativeD12VideoSinkDevice&, AtomBase
 
 static bool ContextBase_Create(NativeContextBase*& dev);
 static void ContextBase_Destroy(NativeContextBase*& dev);
-static bool ContextBase_Initialize(NativeContextBase&, AtomBase&, const Eon::WorldState&);
+static bool ContextBase_Initialize(NativeContextBase&, AtomBase&, const WorldState&);
 static bool ContextBase_PostInitialize(NativeContextBase&, AtomBase&);
 static bool ContextBase_Start(NativeContextBase&, AtomBase&);
 static void ContextBase_Stop(NativeContextBase&, AtomBase&);
@@ -103,7 +103,7 @@ static void ContextBase_DetachContext(NativeContextBase&, AtomBase& a, AtomBase&
 
 static bool EventsBase_Create(NativeEventsBase*& dev);
 static void EventsBase_Destroy(NativeEventsBase*& dev);
-static bool EventsBase_Initialize(NativeEventsBase&, AtomBase&, const Eon::WorldState&);
+static bool EventsBase_Initialize(NativeEventsBase&, AtomBase&, const WorldState&);
 static bool EventsBase_PostInitialize(NativeEventsBase&, AtomBase&);
 static bool EventsBase_Start(NativeEventsBase&, AtomBase&);
 static void EventsBase_Stop(NativeEventsBase&, AtomBase&);
@@ -119,7 +119,7 @@ static void EventsBase_DetachContext(NativeEventsBase&, AtomBase& a, AtomBase& o
 #ifdef flagGUI
 static bool UppEventsBase_Create(NativeUppEventsBase*& dev);
 static void UppEventsBase_Destroy(NativeUppEventsBase*& dev);
-static bool UppEventsBase_Initialize(NativeUppEventsBase&, AtomBase&, const Eon::WorldState&);
+static bool UppEventsBase_Initialize(NativeUppEventsBase&, AtomBase&, const WorldState&);
 static bool UppEventsBase_PostInitialize(NativeUppEventsBase&, AtomBase&);
 static bool UppEventsBase_Start(NativeUppEventsBase&, AtomBase&);
 static void UppEventsBase_Stop(NativeUppEventsBase&, AtomBase&);
@@ -136,7 +136,7 @@ static void UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, AtomB
 #if defined flagOGL
 static bool UppOglDevice_Create(NativeUppOglDevice*& dev);
 static void UppOglDevice_Destroy(NativeUppOglDevice*& dev);
-static bool UppOglDevice_Initialize(NativeUppOglDevice&, AtomBase&, const Eon::WorldState&);
+static bool UppOglDevice_Initialize(NativeUppOglDevice&, AtomBase&, const WorldState&);
 static bool UppOglDevice_PostInitialize(NativeUppOglDevice&, AtomBase&);
 static bool UppOglDevice_Start(NativeUppOglDevice&, AtomBase&);
 static void UppOglDevice_Stop(NativeUppOglDevice&, AtomBase&);

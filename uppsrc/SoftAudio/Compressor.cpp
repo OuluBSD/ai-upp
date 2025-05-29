@@ -221,7 +221,7 @@ float Compressor::Tick2( float input1, float input2, int channel ) {
 	return output;
 }
 
-void Compressor::LoadState(const ArrayMap<String, Value>& state) {
+void Compressor::LoadState(const ValueMap& state) {
 	int i;
 	
 	i = state.Find(".gain");

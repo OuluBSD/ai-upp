@@ -13,7 +13,7 @@ public:
 	
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void AddPoint(const mat4& trans_mtx, float width);
 	
@@ -34,10 +34,11 @@ public:
 	
 protected:
 	void Update(double) override;
-	bool Initialize() override;
+	bool Initialize(const WorldState&) override;
 	
 private:
 	Vector<PaintStrokeComponent*> comps;
+	WorldState ws_at_init;
 	
 };
 

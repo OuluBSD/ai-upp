@@ -249,7 +249,7 @@ void ScrWinD11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis)
 	vis % dev.accel;
 }
 
-bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ctx_ = a.val.FindOwnerWithCast<WinD11Context>();
 	if (!ctx_) {RTLOG("error: could not find WinD11 context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -432,7 +432,7 @@ void ScrWinD11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWinD11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrWinD11::Context_Initialize(NativeContext& ctx, AtomBase& a, const WorldState& ws) {
 	return true;
 }
 

@@ -30,13 +30,15 @@ void DefaultGuiAppComponent::Serialize(Stream& e) {
 	EtherizeRef(e, trans2);
 }
 
-void DefaultGuiAppComponent::Initialize() {
+bool DefaultGuiAppComponent::Initialize(const WorldState& ws) {
 	AddToUpdateList();
 	HandleVideoBase::AddBinder(this);
 	EventStateBase::AddBinder(this);
 	
 	cw = GetEntity()->val.Find<Geom2DComponent>();
 	trans2 = GetEntity()->val.Find<Transform2D>();
+	
+	return true;
 }
 
 void DefaultGuiAppComponent::Uninitialize() {

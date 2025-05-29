@@ -52,6 +52,12 @@ typedef enum : int {
 	ATOMROLE_COUNT,
 } AtomRole;
 
+#define DEV_IFACE(val) \
+	IFACE_CTX_CLS(CENTER, val, ) \
+	IFACE_CTX_CLS(NET, val, Net) \
+	IFACE_CTX_CLS(OGL, val, Ogl) \
+	IFACE_CTX_CLS(DX, val, Dx) \
+
 typedef enum : int {
 	INVALID_DEV,
 	CENTER,

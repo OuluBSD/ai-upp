@@ -25,7 +25,7 @@ public:
 	
 	virtual float Tick( float input, int channel ) = 0;
 	virtual float Tick2( float input1, float input2, int channel ) {Panic("not implemented"); return 0;}
-	virtual void LoadState(const ArrayMap<String, Value>& state) {}
+	virtual void LoadState(const ValueMap& state) {}
 	
 protected:
 

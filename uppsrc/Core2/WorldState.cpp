@@ -1,11 +1,10 @@
-#include "AICore.h"
+#include "Core.h"
 
 
 NAMESPACE_UPP
 
 
 WorldState::WorldState() {
-	
 	Clear();
 }
 
@@ -35,9 +34,14 @@ void WorldState::FindKeys(String key_left, Index<String>& keys) const {
 	}
 }
 
+void WorldState::SetTrue(const String& key) {Set(key, true);}
+
+void WorldState::SetFalse(const String& key) {Set(key, false);}
+
+bool WorldState::IsEmpty() const {return values.GetCount() == 0;}
 
 WorldState& WorldState::operator=(const WorldState& src) {
-	values		<<= src.values;
+	values = src.values;
 	return *this;
 }
 
@@ -141,6 +145,7 @@ String WorldState::GetString(const String& key, String def) const {
 	int i = values.Find(key);
 	if (i >= 0) {
 		const Value& o = values[i];
+		if (!o.Is<String>()) {LOG(AsJSON(o));}
 		ASSERT(o.Is<String>());
 		return o
 		;

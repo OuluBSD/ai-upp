@@ -44,7 +44,7 @@ const int SynCoreDrummer::NativeInstrument::toms_notes[] = {41,43,45,47,48,50,60
 
 
 template <class T>
-void CreateSynCoreInstrument(SynCoreDrummer::NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
+void CreateSynCoreInstrument(SynCoreDrummer::NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	String preset_file = ws.Get(".preset");
 	String preset;
 	
@@ -74,7 +74,7 @@ void SynCoreDrummer::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor&
 	
 }
 
-bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	dev.polyphone = min(128, max(0, ws.GetInt(".polyphone", 12)));
 	
 	String instrument = ToLower(ws.GetString(".instrument", "plucked"));

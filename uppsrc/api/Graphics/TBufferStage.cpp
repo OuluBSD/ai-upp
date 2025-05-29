@@ -113,7 +113,7 @@ GfxCompilerArgs BufferStageT<Gfx>::GetCompilerArgs() const {
 }
 
 template <class Gfx>
-bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const Eon::WorldState& ws) {
+bool BufferStageT<Gfx>::Initialize(int id, AtomBase& a, const WorldState& ws) {
 	auto& fb = this->fb[0];
 	ShaderConf& lib_conf = shdr_confs[GVar::SHADERTYPE_COUNT];
 	lib_conf.str = ws.Get(".library");

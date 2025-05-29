@@ -31,7 +31,7 @@ void HoloOpenVR::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloOpenVR::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloOpenVR::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	dev.sys.verbose = ws.IsTrue(".verbose", false);
 	
 	if (!dev.sys.Initialise())

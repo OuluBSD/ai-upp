@@ -25,7 +25,7 @@ void HoloDevUsb::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HoloDevUsb::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloDevUsb::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	TODO
 }
 

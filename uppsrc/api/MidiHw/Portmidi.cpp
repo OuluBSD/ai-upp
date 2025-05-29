@@ -50,7 +50,7 @@ void MidPortmidi::Source_Visit(NativeSource& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool MidPortmidi::Source_Initialize(NativeSource& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool MidPortmidi::Source_Initialize(NativeSource& dev, AtomBase& a, const WorldState& ws) {
 	dev.msg_count = 0;
 	
 	// Search for usb device by default

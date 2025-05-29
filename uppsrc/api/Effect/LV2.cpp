@@ -14,7 +14,7 @@ void FxLV2::Effect_Destroy(NativeEffect*& dev){
 	
 }
 
-bool FxLV2::Effect_Initialize(NativeEffect&, AtomBase&, const Eon::WorldState&){
+bool FxLV2::Effect_Initialize(NativeEffect&, AtomBase&, const WorldState&){
 	
 }
 

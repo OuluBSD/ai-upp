@@ -47,7 +47,7 @@ void ScriptLoader::LogMessage(ProcMsg msg) {
 	LOG(msg.ToString());
 }
 
-bool ScriptLoader::Initialize() {
+bool ScriptLoader::Initialize(const WorldState& ws) {
 	Engine& mach = GetEngine();
 	
 	if (!WhenMessage)
@@ -96,19 +96,11 @@ bool ScriptLoader::DoPostLoad() {
 	return success;
 }
 
-void ScriptLoader::Start() {
-	
-}
-
 void ScriptLoader::Update(double dt) {
 	
 	if (!DoPostLoad()) {
 		GetEngine().SetNotRunning();
 	}
-	
-}
-
-void ScriptLoader::Stop() {
 	
 }
 

@@ -54,7 +54,7 @@ void ScrX11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ctx_ = a.val.FindOwnerWithCast<X11Context>();
 	if (!ctx_) {RTLOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
@@ -395,7 +395,7 @@ void ScrX11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrX11::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrX11::Context_Initialize(NativeContext& ctx, AtomBase& a, const WorldState& ws) {
 	return true;
 }
 

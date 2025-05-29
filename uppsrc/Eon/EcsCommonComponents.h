@@ -15,7 +15,7 @@ public:
 	
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	
     void operator=(const RigidBody& r) {
         velocity = r.velocity;

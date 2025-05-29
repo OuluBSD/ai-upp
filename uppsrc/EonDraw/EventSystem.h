@@ -9,8 +9,8 @@ class EventSystem :
 	//Serial::EcsEventsBase* serial = 0;
 	
 protected:
-    bool Initialize() override;
-    void Start() override;
+    bool Initialize(const WorldState&) override;
+    bool Start() override;
     void Update(double dt) override;
     void Stop() override;
     void Uninitialize() override;

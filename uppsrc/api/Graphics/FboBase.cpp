@@ -17,7 +17,9 @@ FboAtomT<Gfx>::FboAtomT(VfsValue& n) : GfxAtomBase(n) {
 }
 
 template <class Gfx>
-bool FboAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool FboAtomT<Gfx>::Initialize(const WorldState& ws) {
+	ws_at_init = ws;
+	
 	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	ValueBase& val = src->GetSourceValue(src_count-1);
@@ -95,7 +97,7 @@ bool FboAtomT<Gfx>::Initialize(const Eon::WorldState& ws) {
 	own_binder = bin_map[bin_i]();
 	if (!own_binder)
 		return false;
-	own_binder->Initialize();
+	own_binder->Initialize(ws_at_init);
 	binders.Add(&*own_binder);
 	
 	

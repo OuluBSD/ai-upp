@@ -21,7 +21,7 @@ void AFOCoreAudio::Sink_Destroy(NativeSink*& dev) {
 	delete dev;
 }
 
-bool AFOCoreAudio::Sink_Initialize(NativeSink& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool AFOCoreAudio::Sink_Initialize(NativeSink& dev, AtomBase& a, const WorldState& ws) {
 	String filepath = ws.GetString(".filepath", "");
 	
 	if (filepath.IsEmpty()) {

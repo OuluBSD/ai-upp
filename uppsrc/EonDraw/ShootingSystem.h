@@ -9,7 +9,7 @@ public:
 	CLASSTYPE(ShootingComponent)
 	ShootingComponent(VfsValue& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool LoadModel(ModelComponent&) override;
 	
@@ -27,6 +27,7 @@ class ShootingInteractionSystemBase :
 	public ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>
 {
 	Array<ShootingComponentPtr> comps;
+	WorldState ws_at_init;
 	
 public:
 	using ToolSys = ToolSystemBaseT<ShootingInteractionSystemBase, ShootingComponent>;
@@ -45,7 +46,7 @@ public:
 protected:
 	// ToolSystemBase
 	System* GetSystem() override {return this;}
-	bool Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	String GetInstructions() const override;
 	String GetDisplayName() const override;

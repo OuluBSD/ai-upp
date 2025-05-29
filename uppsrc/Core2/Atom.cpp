@@ -1,8 +1,7 @@
-#include "Eon.h"
+#include "Core.h"
 
 
 NAMESPACE_UPP
-
 
 // incomplete Plan dtor in header
 AtomBase::CustomerData::CustomerData() : cfg(gen) {}
@@ -26,17 +25,10 @@ Engine& AtomBase::GetEngine() {
 }
 
 void AtomBase::UninitializeDeep() {
-	if (IsInitialized()) {
-		Uninitialize();
-		SetInitialized(false);
-	}
+	VfsValueExt::UninitializeDeep();
 	ClearSinkSource();
 	ClearDependency();
 	UninitializeAtom();
-}
-
-VfsValue* AtomBase::GetSpace() {
-	return val.FindOwnerNull();
 }
 
 /*Space& AtomBase::GetParent() {
@@ -152,5 +144,12 @@ void AtomBase::SetQueueSize(int queue_size) {
 	}
 }
 
+VfsValue* AtomBase::GetSpace() {
+	VfsValue* o = val.owner;
+	ASSERT(o && !o->type_hash);
+	return o;
+}
+
 
 END_UPP_NAMESPACE
+

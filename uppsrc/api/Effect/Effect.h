@@ -67,7 +67,7 @@ template <class Fx> struct EffectEffectT : FxEffect {
 		VIS_THIS(FxEffect);
 	}
 	typename Fx::NativeEffect* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Fx::Effect_Create(dev))
 			return false;
 		if (!Fx::Effect_Initialize(*dev, *this, ws))

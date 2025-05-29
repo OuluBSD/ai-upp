@@ -22,7 +22,7 @@ public:
 	} State;
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
 	void Destroy() override;
@@ -78,8 +78,8 @@ public:
 protected:
 	// System
 	System* GetSystem() override {return this;}
-	bool Initialize() override;
-	void Start() override;
+	bool Initialize(const WorldState&) override;
+	bool Start() override;
 	void Update(double dt) override;
 	void Stop() override;
 	void Uninitialize() override;
@@ -121,7 +121,7 @@ private:
 	Vector<PaintComponentPtr> comps;
 	LinkedList<LinkedList<EntityPtr>> persistent_strokes;
 	bool dbg_model = false;
-	
+	WorldState ws_at_init;
 	
 };
 

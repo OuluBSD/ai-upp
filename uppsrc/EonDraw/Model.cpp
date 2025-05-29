@@ -43,7 +43,7 @@ void ModelComponent::Visit(Vis& v) {
 	#endif
 }
 
-void ModelComponent::Initialize() {
+bool ModelComponent::Initialize(const WorldState& ws) {
 	color = one<vec4>();
 	prefab_name.Clear();
 	offset = zero<vec3>();
@@ -58,6 +58,7 @@ void ModelComponent::Initialize() {
 	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
 	rend->AddModel(this);
 	
+	return true;
 }
 
 void ModelComponent::Uninitialize() {

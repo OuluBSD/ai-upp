@@ -64,11 +64,11 @@ public:
 		Fys::UninitializeLibrary();
 	}
 	
-    bool Initialize() override {
+    bool Initialize(const WorldState& ws) override {
 		SetGravity(-0.5);
 		return true;
 	}
-    void Start() override {}
+    bool Start() override {return true;}
     void Update(double dt) override {
 		Collide();
 		StepWorld(dt);

@@ -3,7 +3,7 @@
 
 static bool SinkDevice_Create(NativeSinkDevice*& dev);
 static void SinkDevice_Destroy(NativeSinkDevice*& dev);
-static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const WorldState&);
 static bool SinkDevice_PostInitialize(NativeSinkDevice&, AtomBase&);
 static bool SinkDevice_Start(NativeSinkDevice&, AtomBase&);
 static void SinkDevice_Stop(NativeSinkDevice&, AtomBase&);
@@ -17,7 +17,7 @@ static bool SinkDevice_IsReady(NativeSinkDevice&, AtomBase&, PacketIO& io);
 
 static bool Context_Create(NativeContext*& dev);
 static void Context_Destroy(NativeContext*& dev);
-static bool Context_Initialize(NativeContext&, AtomBase&, const Eon::WorldState&);
+static bool Context_Initialize(NativeContext&, AtomBase&, const WorldState&);
 static bool Context_PostInitialize(NativeContext&, AtomBase&);
 static bool Context_Start(NativeContext&, AtomBase&);
 static void Context_Stop(NativeContext&, AtomBase&);
@@ -31,7 +31,7 @@ static bool Context_IsReady(NativeContext&, AtomBase&, PacketIO& io);
 
 static bool EventsBase_Create(NativeEventsBase*& dev);
 static void EventsBase_Destroy(NativeEventsBase*& dev);
-static bool EventsBase_Initialize(NativeEventsBase&, AtomBase&, const Eon::WorldState&);
+static bool EventsBase_Initialize(NativeEventsBase&, AtomBase&, const WorldState&);
 static bool EventsBase_PostInitialize(NativeEventsBase&, AtomBase&);
 static bool EventsBase_Start(NativeEventsBase&, AtomBase&);
 static void EventsBase_Stop(NativeEventsBase&, AtomBase&);

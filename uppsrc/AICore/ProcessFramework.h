@@ -83,6 +83,8 @@ private:
 	void RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash);
 	
 	EscSession esc;
+	MsgCb WhenMessage;
+	Event<bool> WhenStop;
 	
 public:
 	CLASSTYPE(Agent)
@@ -94,8 +96,10 @@ public:
 	bool CompileStage(VfsValue& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());
-	void Start(MsgCb WhenMessage=MsgCb(), Event<bool> WhenStop=Event<bool>());
-	void Stop();
+	bool Start() override;
+	bool Start(MsgCb WhenMessage, Event<bool> WhenStop=Event<bool>());
+	void Set(MsgCb WhenMessage, Event<bool> WhenStop);
+	void Stop() override;
 	
 	void SetOpLimit(int i) {oplimit = i;}
 	
@@ -144,8 +148,8 @@ public:
 	AgentInteractionSystem(VfsValue& n) : VfsValueExt(n) {}
 	
 	void Visit(Vis& v) override {}
-	void Start();
-	void Stop();
+	bool Start() override;
+	void Stop() override;
 	void Attach(Agent* a);
 	void Detach(Agent* a);
 	

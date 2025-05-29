@@ -60,7 +60,7 @@ public:
 public:
 	ECS_COMPONENT_CTOR(PhysicsBody)
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	

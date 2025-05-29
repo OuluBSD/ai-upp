@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-bool ShootingInteractionSystemBase::Initialize() {
+bool ShootingInteractionSystemBase::Initialize(const WorldState& ws) {
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
@@ -39,7 +39,7 @@ String ShootingInteractionSystemBase::GetDisplayName() const {
 }
 
 EntityPtr ShootingInteractionSystemBase::CreateToolSelector() const {
-	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool());
+	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool(), ws_at_init);
 	selector->Get<ModelComponent>().SetPrefabModel("Gun");
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
@@ -96,7 +96,7 @@ void ShootingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 			#endif
 			
 			// Create bullet and send it on it's merry way
-			EntityPtr bullet = CreatePrefab<Bullet>(*GetPool());
+			EntityPtr bullet = CreatePrefab<Bullet>(*GetPool(), ws_at_init);
 			TransformPtr bullet_trans = bullet->Find<Transform>();
 			RigidBodyPtr bullet_rbody = bullet->Find<RigidBody>();
 			PhysicsBodyPtr bullet_pbody = bullet->Find<PhysicsBody>();
@@ -156,7 +156,7 @@ void ShootingComponent::Visit(Vis& v) {
 	VIS_THIS(CustomToolComponent);
 }
 
-void ShootingComponent::Initialize() {
+bool ShootingComponent::Initialize(const WorldState& ws) {
 	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
@@ -164,6 +164,8 @@ void ShootingComponent::Initialize() {
 	Ptr<ShootingInteractionSystemBase> sys = GetEngine().TryGet<ShootingInteractionSystemBase>();
 	if (sys)
 		sys-> Attach(this);
+	
+	return true;
 }
 
 void ShootingComponent::Uninitialize() {

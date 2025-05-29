@@ -27,7 +27,7 @@ void HoloLocalHMD::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) 
 	
 }
 
-bool HoloLocalHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloLocalHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	dev.sys.require_hmd = !ws.IsTrue(".device.optional.hmd", false);
 	dev.sys.require_left = !ws.IsTrue(".device.optional.left", true);
 	dev.sys.require_right = !ws.IsTrue(".device.optional.right", true);

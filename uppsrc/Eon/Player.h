@@ -56,7 +56,7 @@ class PlayerHandComponent : public Component {
 public:
 	ECS_COMPONENT_CTOR(PlayerHandComponent)
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
@@ -82,7 +82,7 @@ class PlayerHeadComponent : public Component {
 public:
 	ECS_COMPONENT_CTOR(PlayerHeadComponent)
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
@@ -110,7 +110,7 @@ public:
 	COPY_PANIC(PlayerBodyComponent)
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
@@ -140,10 +140,8 @@ public:
 	void Detach(PlayerBodyComponentPtr h);
 protected:
     // System
-    bool Initialize() override;
-    void Start() override;
+    bool Initialize(const WorldState&) override;
     void Update(double dt) override;
-    void Stop() override;
     void Uninitialize() override;
     System* GetSystem() override {return this;}
 	

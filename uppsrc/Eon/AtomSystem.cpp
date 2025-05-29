@@ -6,7 +6,7 @@
 NAMESPACE_UPP
 
 
-bool AtomSystem::Initialize() {
+bool AtomSystem::Initialize(const WorldState& ws) {
 	return true;
 }
 

@@ -27,7 +27,7 @@ bool DesktopSuiteSystem::Arg(String key, Value value) {
 	return true;
 }
 
-bool DesktopSuiteSystem::Initialize() {
+bool DesktopSuiteSystem::Initialize(const WorldState& ws) {
 	
 	
 	return true;

@@ -13,7 +13,7 @@ VideoLoaderBaseT<Backend>::VideoLoaderBaseT(VfsValue& n) : AtomBase(n) {
 }
 
 template <class Backend>
-bool VideoLoaderBaseT<Backend>::Initialize(const Eon::WorldState& ws) {
+bool VideoLoaderBaseT<Backend>::Initialize(const WorldState& ws) {
 	//LOG(ws.ToString());
 	
 	String arg_filepath = ws.Get(".filepath");

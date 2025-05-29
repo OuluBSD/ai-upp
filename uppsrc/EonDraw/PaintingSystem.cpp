@@ -4,7 +4,9 @@
 NAMESPACE_UPP
 
 
-bool PaintingInteractionSystemBase::Initialize() {
+bool PaintingInteractionSystemBase::Initialize(const WorldState& ws) {
+	ws_at_init = ws;
+	
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
@@ -21,8 +23,9 @@ void PaintingInteractionSystemBase::Uninitialize() {
 	tb = 0;
 }
 
-void PaintingInteractionSystemBase::Start() {
+bool PaintingInteractionSystemBase::Start() {
 	GetEngine().Get<ToolboxSystemBase>()->AddToolSystem(this);
+	return true;
 }
 
 void PaintingInteractionSystemBase::Stop() {
@@ -322,7 +325,7 @@ void PaintingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 			if (paint->cur_state == PaintComponent::State::Painting) {
 				// Start new stroke
 				if (new_stroke_started) {
-					paint->stroke_in_progress = CreatePrefab<PaintStroke>(*GetPool());
+					paint->stroke_in_progress = CreatePrefab<PaintStroke>(*GetPool(), ws_at_init);
 					ModelComponentPtr m = paint->stroke_in_progress->Find<ModelComponent>();
 					m->color = paint->selected_color;
 					paint->strokes.Add(paint->stroke_in_progress);
@@ -506,7 +509,7 @@ void PaintComponent::Visit(Vis& v) {
 	#endif
 }
 
-void PaintComponent::Initialize() {
+bool PaintComponent::Initialize(const WorldState& ws) {
 	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
@@ -514,6 +517,8 @@ void PaintComponent::Initialize() {
 	Ptr<PaintingInteractionSystemBase> sys = GetEngine().TryGet<PaintingInteractionSystemBase>();
 	if (sys)
 		sys-> Attach(this);
+	
+	return true;
 }
 
 void PaintComponent::Uninitialize() {

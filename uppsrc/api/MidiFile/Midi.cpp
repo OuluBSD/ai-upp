@@ -8,7 +8,7 @@ MidiFileReaderAtom::MidiFileReaderAtom(VfsValue& n) : Atom(n) {
 	
 }
 
-bool MidiFileReaderAtom::Initialize(const Eon::WorldState& ws) {
+bool MidiFileReaderAtom::Initialize(const WorldState& ws) {
 	close_machine = ws.GetBool(".close_machine", false);
 	drum_side_ch = ws.GetInt(".drum.ch", -1);
 	use_global_time = ws.GetBool(".use.global.time", false);
@@ -273,7 +273,7 @@ MidiNullAtom::MidiNullAtom(VfsValue& n) : Atom(n) {
 	
 }
 
-bool MidiNullAtom::Initialize(const Eon::WorldState& ws) {
+bool MidiNullAtom::Initialize(const WorldState& ws) {
 	verbose = ws.GetBool(".verbose", false);
 	
 	return true;

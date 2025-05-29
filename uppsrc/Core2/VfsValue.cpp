@@ -3,6 +3,8 @@
 #include <AICore/AICore.h>
 #endif
 
+#include <Eon/Eon.h>
+
 NAMESPACE_UPP
 
 String (*GetCursorKindNamePtr)(CXCursorKind);
@@ -900,6 +902,18 @@ VfsValue& VfsValue::GetAdd(String id, hash_t type_hash) {
 		if (s.id == id && s.type_hash == type_hash)
 			return s;
 	return Add(id, 0);
+}
+
+void VfsValue::UninitializeDeep()
+{
+	for (auto& s : sub)
+		s.UninitializeDeep();
+	if (ext) {
+		ext->UninitializeDeep();
+		/*ext->Uninitialize();
+		ext->SetInitialized(false);*/
+		ASSERT(!ext->IsInitialized());
+	}
 }
 
 VfsValue& VfsValue::Add(const VfsValue& n)
@@ -1802,6 +1816,38 @@ int VfsValueExtFactory::AstFindKindCategory(int k) {
 	#undef DATASET_ITEM
 	#endif
 	return -1;
+}
+
+
+
+VfsValueExt::VfsValueExt(VfsValue& n) : val(n) {
+	
+}
+
+VfsValueExt::~VfsValueExt() {
+	UninitializeDeep();
+}
+
+String VfsValueExt::GetName() const {return String();}
+double VfsValueExt::GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
+double VfsValueExt::GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
+double VfsValueExt::GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
+bool VfsValueExt::TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
+String VfsValueExt::ToString() const {return String();}
+bool VfsValueExt::Initialize(const WorldState& ws) {SetInitialized(true); return true;}
+void VfsValueExt::Uninitialize() {}
+bool VfsValueExt::IsInitialized() const {return is_initialized;}
+void VfsValueExt::SetInitialized(bool b) {is_initialized = b;}
+String VfsValueExt::GetCategory() {return String();}
+void VfsValueExt::Update(double dt) {ASSERT_(0,"unimplemented");}
+bool VfsValueExt::Arg(String key, Value value) {ASSERT_(0,"unimplemented"); return false;}
+bool VfsValueExt::Start() {return true;}
+void VfsValueExt::Stop() {}
+void VfsValueExt::UninitializeDeep() {
+	if (IsInitialized()) {
+		Uninitialize();
+		SetInitialized(false);
+	}
 }
 
 void VfsValueExt::CopyFrom(const VfsValueExt& e) {

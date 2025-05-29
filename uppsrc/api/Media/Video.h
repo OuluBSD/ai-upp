@@ -103,7 +103,7 @@ public:
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	VideoLoaderBaseT(VfsValue& n);
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	void Visit(Vis& v) override {}

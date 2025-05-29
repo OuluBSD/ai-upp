@@ -24,7 +24,7 @@ struct RendererBase :
 	RendererBase();
 	void operator=(const RendererBase& t) {Panic("Can't copy RendererBase");}
 	void Visit(Vis& v) override {v VISN(loader);}
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Render(Draw& draw) override;
 	bool Arg(const String& key, const String& value) override;

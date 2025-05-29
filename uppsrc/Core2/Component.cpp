@@ -21,5 +21,11 @@ Entity* Component::GetEntity() {
 	return e;
 }
 
+String Component::ToString() const {
+	return "Component(" + GetTypeCls().GetName() + ")";
+}
+
+void Component::Visit(Vis& vis) {Panic("Unimplemented (remove caller)");}
+
 
 END_UPP_NAMESPACE

@@ -20,10 +20,11 @@ bool HitTest(vec3 positionA, vec3 positionB, float diameter) {
 
 
 
-void ToolComponent::Initialize() {
+bool ToolComponent::Initialize(const WorldState& ws) {
 	ToolboxSystemBasePtr sys = GetEngine().TryGet<ToolboxSystemBase>();
 	if (sys)
 		sys->Attach(this);
+	return true;
 }
 
 void ToolComponent::Uninitialize() {
@@ -133,7 +134,7 @@ void ToolComponent::RefreshModel() {
 
 
 
-bool ToolboxSystemBase::Initialize() {
+bool ToolboxSystemBase::Initialize(const WorldState& ws) {
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
@@ -174,7 +175,7 @@ void ToolboxSystemBase::RemoveToolSystem(ToolSystemBasePtr system) {
 	#endif
 }
 
-void ToolboxSystemBase::Start() {
+bool ToolboxSystemBase::Start() {
 	TODO
 	#if 0
 	auto es = GetEngine().Get<EntityStore>();
@@ -205,6 +206,7 @@ void ToolboxSystemBase::Start() {
 	ctrls[Right].dbg_txt->Get<Transform>()->size = vec3{ 2.0f };
 	ctrls[Right].dbg_txt->Get<TextRenderable>()->font_size = 52.0f;
 	#endif
+	return true;
 }
 
 void ToolboxSystemBase::Stop() {

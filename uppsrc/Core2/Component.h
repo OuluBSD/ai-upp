@@ -23,11 +23,7 @@ struct Component :
 	
 	Engine& GetEngine();
 	Entity* GetEntity();
-	virtual void Initialize() {};
-	virtual void Uninitialize() {};
-	virtual void Update(double dt) {ASSERT_(0,"unimplemented");}
-	virtual bool Arg(String key, Value value);
-	
+	virtual void Visit(Vis& vis) override;
 	
 	void AddToUpdateList();
 	void RemoveFromUpdateList();

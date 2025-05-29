@@ -149,9 +149,10 @@ void Engine::MainLoop(bool (*fn)(void*), void* arg) {
     //RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
-void Engine::Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits, uint64 dbg_ref) {
+bool Engine::Start(String script_content, String script_file, Value args_, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
+	ValueMap args = args_;
 	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
@@ -159,16 +160,14 @@ void Engine::Main(bool main_loop, String script_content, String script_file, Vec
 		
 		//RuntimeDiagnostics::Static().SetRoot(mach);
 		
-	    #ifdef flagSTDEXC
 	    try {
-	    #endif
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
 					//RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
 					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
 					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
-				    Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
+				    //Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
 				    Ptr<LinkSystem> lsys			= mach.FindAdd<LinkSystem>();
 				    Ptr<Eon::ScriptLoader> script	= mach.FindAdd<Eon::ScriptLoader>();
 					
@@ -189,7 +188,7 @@ void Engine::Main(bool main_loop, String script_content, String script_file, Vec
 				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
-					return;
+					return false;
 				}
 				
 				if (!script_file.IsEmpty()) {
@@ -200,7 +199,7 @@ void Engine::Main(bool main_loop, String script_content, String script_file, Vec
 						script_str = LoadFile(path);
 						if (script_str.IsEmpty()) {
 							LOG("Empty file in " << path);
-							return;
+							return false;
 						}
 					}
 					else
@@ -208,10 +207,10 @@ void Engine::Main(bool main_loop, String script_content, String script_file, Vec
 					
 					if (script_str.IsEmpty()) {
 						LOG("No script");
-						return;
+						return false;
 					}
 					for(int i = 0; i < args.GetCount(); i++) {
-						String key = "${" + args.GetKey(i) + "}";
+						String key = "${" + args.GetKey(i).ToString() + "}";
 						String value = args[i].ToString();
 						value = EscapeString(value);
 						script_str.Replace(key, value);
@@ -226,28 +225,43 @@ void Engine::Main(bool main_loop, String script_content, String script_file, Vec
 		        if (!mach.IsStarted())
 					fail = !mach.Start();
 		    }
-		    
-		    if (!fail) {
-		        if (main_loop)
-					MainLoop();
+	    }
+	    catch (Exc e) {
+	        SetFailed(e);
+	    }
+	    catch (std::exception e) {
+	        SetFailed(e.what());
+	    }
+	    catch (...) {
+	        SetFailed("unknown");
+	    }
+	}
+	return !is_failed;
+}
+
+void Engine::MainLoop() {
+	if (is_started &&
+		is_initialized &&
+		!is_failed) {
+		try {
+		    {
+		        if (!WhenUserProgram)
+					MainLoop(0,0);
 		        else {
-		            TODO //Machine::WhenUserProgram(*this);
+		            WhenUserProgram(*this);
 		        }
 		    }
-		#ifdef flagSTDEXC
 	    }
 	    catch (Exc e) {
 	        LOG("error: " << e);
-	        Exit(1);
 	    }
-	    #endif
-	    
-	    if (main_loop) {
-		    mach.Stop();
-		    mach.Clear();
+	    catch (std::exception e) {
+	        LOG("error: " << e.what());
+	    }
+	    catch (...) {
+	        LOG("unknown error");
 	    }
 	}
-    
 }
 
 

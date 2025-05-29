@@ -8,12 +8,6 @@
 
 
 
-#define DEV_IFACE(val) \
-	IFACE_CTX_CLS(CENTER, val, ) \
-	IFACE_CTX_CLS(NET, val, Net) \
-	IFACE_CTX_CLS(OGL, val, Ogl) \
-	IFACE_CTX_CLS(DX, val, Dx) \
-
 #define SERIAL_TYPE_LIST \
 	SERIAL_TYPE(LOOP_STORE) \
 	SERIAL_TYPE(LOOP_SYSTEM) \

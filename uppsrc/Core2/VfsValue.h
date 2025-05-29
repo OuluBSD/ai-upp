@@ -5,7 +5,7 @@ struct VfsValue;
 struct VfsValueExtCtrl;
 struct VfsSrcPkg;
 struct VfsValueExt;
-class Entity;
+struct Entity;
 struct IdeShellHost;
 struct IdeShell;
 class ClangTypeResolver;

@@ -3,7 +3,6 @@
 
 
 class Engine;
-class Component;
 class MachineVerifier;
 
 
@@ -233,7 +232,7 @@ public:
 	
     
 protected:
-	friend class Eon::ExtScriptEcsLoader;
+	friend struct Eon::ExtScriptEcsLoader;
 	
     void SystemStartup(TypeCls type_id, System* system);
     

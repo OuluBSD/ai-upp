@@ -3,7 +3,6 @@
 
 
 struct ParallelTypeCls;
-class AtomBase;
 class DefaultExchangePoint;
 
 typedef enum {

@@ -184,10 +184,10 @@ void SoftProgram::SetVar(int i, float f) {
 	int idx = uniforms.GetKey(i);
 	int tex;
 	switch (idx) {
-		case GVar::VAR_COMPAT_CHANNEL0:		args.iChannel0 = f; return;
-		case GVar::VAR_COMPAT_CHANNEL1:		args.iChannel1 = f; return;
-		case GVar::VAR_COMPAT_CHANNEL2:		args.iChannel2 = f; return;
-		case GVar::VAR_COMPAT_CHANNEL3:		args.iChannel3 = f; return;
+		case GVar::VAR_COMPAT_CHANNEL0:		args.iChannel0 = (int)f; return;
+		case GVar::VAR_COMPAT_CHANNEL1:		args.iChannel1 = (int)f; return;
+		case GVar::VAR_COMPAT_CHANNEL2:		args.iChannel2 = (int)f; return;
+		case GVar::VAR_COMPAT_CHANNEL3:		args.iChannel3 = (int)f; return;
 		case GVar::VAR_COMPAT_TIME:			args.iTime = f; return;
 		case GVar::VAR_DIFFUSE:
 		case GVar::VAR_NONE:

@@ -20,13 +20,11 @@ INITIALIZE(type)
 
 using EntityId				= int64;
 
-class Entity :
-	public VfsValueExt,
-	public Destroyable,
-	public Enableable
+struct Entity :
+	VfsValueExt,
+	Destroyable,
+	Enableable
 {
-	
-public:
 	METANODE_EXT_CONSTRUCTOR(Entity)
 	void Clear() {data.Clear();}
 	void Visit(Vis& v) override;

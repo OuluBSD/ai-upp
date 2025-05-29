@@ -3,7 +3,7 @@
 
 
 struct Component;
-class Entity;
+struct Entity;
 class System;
 
 

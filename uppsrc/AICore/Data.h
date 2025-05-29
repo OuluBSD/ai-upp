@@ -89,34 +89,6 @@ struct ContextData : Moveable<ContextData> {
 	}
 };
 
-#if 0
-// TODO remove EditorPtrs & use DatasetPtrs
-struct Script;
-struct DynPart;
-struct EditorPtrs {
-	Entity*		entity = 0;
-	Component*	component = 0;
-	Script*		script = 0;
-	DynPart*	part = 0;
-	int			pkg_cursor = 0;
-	int			node_cursor = 0;
-	
-	void Zero() {memset(this, 0, sizeof(EditorPtrs));}
-	
-	bool HasComponent() const {return component;}
-	
-	//int GetActiveTypeclassIndex() const;
-	//int GetActiveContentIndex() const;
-	int GetActiveScriptIndex() const;
-	
-	//int GetActiveEntityIndex() const;
-	//int GetActiveSnapshotIndex() const;
-	//int GetActiveComponentIndex() const;
-	
-	static EditorPtrs& Single() {static EditorPtrs p; return p;}
-};
-#endif
-
 struct TokenIdx : Moveable<TokenIdx> {
 	byte pad;
 

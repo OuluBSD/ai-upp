@@ -63,32 +63,6 @@ protected:
     bool m_enabled{ true };
 };
 
-#if 0
-template<typename T, typename ProducerT, typename RefurbisherT>
-class FactoryT
-{
-public:
-    using Type = T;
-    using Producer = ProducerT;
-    using Refurbisher = RefurbisherT;
-
-    void RegisterProducer(const TypeCls& typeId, Producer producer, Refurbisher refurbisher)
-    {
-        auto p = producers.find(typeId);
-        AssertFalse(p != producers.end(), "multiple registrations for the same type is not allowed");
-        producers.insert(p, { typeId, pick<Producer>(producer) });
-        
-        auto r = refurbishers.find(typeId);
-        AssertFalse(r != refurbishers.end(), "multiple registrations for the same type is not allowed");
-        refurbishers.insert(r, { typeId, pick<Refurbisher>(refurbisher) });
-    }
-
-protected:
-    TypeMap<ProducerT> producers;
-    TypeMap<RefurbisherT> refurbishers;
-    
-};
-#endif
 
 template<bool...>
 struct bool_pack;

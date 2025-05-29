@@ -4,8 +4,6 @@
 NAMESPACE_UPP
 
 
-
-
 bool DefaultInitializer(Engine& mach, bool skip_eon_file) {
 	return mach.CommandLineInitializer(skip_eon_file);
 }

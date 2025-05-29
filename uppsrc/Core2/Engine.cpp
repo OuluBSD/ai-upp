@@ -153,30 +153,6 @@ void Engine::SystemStartup(TypeCls type_id, System* system) {
 	}
 }
 
-#if 0
-void Engine::Add(TypeCls type_id, System* system, bool startup) {
-	ASSERT_(!is_looping_systems, "adding systems while systems are being iterated is error-prone");
-	
-	int i = FindSystem(type_id);
-	ASSERT(i >= 0);
-	
-	ASSERT(system->GetParent());
-	if (startup && is_started)
-		SystemStartup(type_id, system);
-	else
-		systems.Add(type_id, system);
-}
-
-void Engine::Remove(TypeCls type_id) {
-	ASSERT_(!is_started, "removing systems after the machine has started is error-prone");
-	
-	int i = FindSystem(type_id);
-	ASSERT(i >= 0);
-	
-	systems.Remove(i);
-}
-#endif
-
 void Engine::Visit(Vis& vis) {
 	vis && update_list;
 }

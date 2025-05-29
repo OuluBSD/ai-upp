@@ -45,4 +45,12 @@ struct Component :
 using ComponentPtr = Ptr<Component>;
 
 
+#define ECS_COMPONENT_CTOR_(x) \
+	CLASSTYPE(x) \
+	x(VfsValue& e) : Component(e)
+#define ECS_COMPONENT_CTOR(x) ECS_COMPONENT_CTOR_(x) {}
+
+#define VISIT_COMPONENT
+
+
 #endif

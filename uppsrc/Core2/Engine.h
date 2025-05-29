@@ -201,36 +201,6 @@ public:
 private:
 	Vector<AtomBasePtr> updated;
 	
-    #if 0
-private:
-	typedef System* (*NewSystemFn)(VfsValue&);
-    static VectorMap<TypeCls, NewSystemFn>& TypeNewFn() {static VectorMap<TypeCls, NewSystemFn> m; return m;}
-	
-	template <class T>
-	static System* NewSystem(VfsValue& n) {
-		T* o = new T(n);
-		n.ext = o;
-		n.type_hash = AsTypeHash<T>();
-		return o;
-	}
-	
-public:
-	
-	template <class T>
-	static void Register(String id) {
-		//String id = T::GetEonId();
-		ASSERT(id.GetCount() > 0);
-		TypedStringHasher<T>(id);
-		TypeCls type = AsTypeCls<T>();
-		ASSERT(EonToType().Find(id) < 0);
-		EonToType().Add(id, type);
-		ASSERT(TypeNewFn().Find(type) < 0);
-		TypeNewFn().Add(type, &NewSystem<T>);
-	}
-	#endif
-	
-	
-    
 protected:
 	friend struct Eon::ExtScriptEcsLoader;
 	

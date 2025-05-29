@@ -20,11 +20,6 @@ void LinkBase::Forward(FwdScope& fwd) {
 }
 
 void LinkBase::ForwardPipe(FwdScope& fwd) {
-	#if 0
-	POPO(Pol::Atom::ConsumerFirst);
-	POPO(Pol::Atom::SkipDulicateExtFwd);
-	#endif
-	
 	this->skipped_fwd_count = 0;
 	
 	AtomTypeCls type = atom->GetType();

@@ -1,7 +1,8 @@
 #include "Eon.h"
 
-NAMESPACE_UPP
+#if 0
 
+NAMESPACE_UPP
 
 void LinkStore::ReturnLink(Base* c) {
 	ASSERT(c);
@@ -37,5 +38,6 @@ LinkBase* LinkStore::CreateLinkTypeCls(LinkTypeCls cls) {
 	return 0;
 }
 
-
 END_UPP_NAMESPACE
+
+#endif

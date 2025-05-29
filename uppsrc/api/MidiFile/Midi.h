@@ -27,7 +27,7 @@ public:
 	
 	MidiFileReaderAtom(VfsValue& n);
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	void Update(double dt) override;
@@ -59,7 +59,7 @@ public:
 	
 	MidiNullAtom(VfsValue& n);
 	
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;
 	bool Recv(int sink_ch, const Packet& in) override;

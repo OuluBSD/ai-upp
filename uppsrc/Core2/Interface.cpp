@@ -126,7 +126,7 @@ void DefaultExchangePoint::Deinit() {
 
 
 
-bool DefaultInterfaceSink::Initialize() {
+bool DefaultInterfaceSink::Initialize(const WorldState& ws) {
 	AtomBase* ab = AsAtomBase();
 	AtomTypeCls type = ab->GetType();
 	ASSERT(type.IsValid());
@@ -138,7 +138,7 @@ bool DefaultInterfaceSink::Initialize() {
 	return true;
 }
 
-bool DefaultInterfaceSource::Initialize() {
+bool DefaultInterfaceSource::Initialize(const WorldState& ws) {
 	AtomBase* ab = AsAtomBase();
 	AtomTypeCls type = ab->GetType();
 	ASSERT(type.IsValid());

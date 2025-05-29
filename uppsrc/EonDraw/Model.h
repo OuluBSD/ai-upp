@@ -12,7 +12,7 @@ public:
 	
 	
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	
 	void ResetModel(mat4 offset = zero<mat4>()) {
@@ -47,7 +47,7 @@ class ModelComponent :
 public:
 	ECS_COMPONENT_CTOR(ModelComponent)
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	void SetEnabled(bool enable) override;

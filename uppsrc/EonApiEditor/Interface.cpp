@@ -370,7 +370,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					
 					<< "\ttypename "<<a<<"::Native"<<k<<"* dev = 0;\n"
 					
-					<< "\tbool Initialize(const Eon::WorldState& ws) override {\n"
+					<< "\tbool Initialize(const WorldState& ws) override {\n"
 				    << "\t\tif (!"<<a<<"::"<<k<<"_Create(dev))\n"
 				    << "\t\t\treturn false;\n"
 				    << "\t\tif (!"<<a<<"::"<<k<<"_Initialize(*dev, *this, ws))\n"
@@ -501,7 +501,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				
 				s	<< "static bool " << k << "_Create(Native" + k + "*& dev);\n"
 					<< "static void " << k << "_Destroy(Native" + k + "*& dev);\n"
-					<< "static bool " << k << "_Initialize(" << nat_this_ << "AtomBase&, const Eon::WorldState&);\n"
+					<< "static bool " << k << "_Initialize(" << nat_this_ << "AtomBase&, const WorldState&);\n"
 					<< "static bool " << k << "_PostInitialize(" << nat_this_ << "AtomBase&);\n"
 					<< "static bool " << k << "_Start(" << nat_this_ << "AtomBase&);\n"
 					<< "static void " << k << "_Stop(" << nat_this_ << "AtomBase&);\n"

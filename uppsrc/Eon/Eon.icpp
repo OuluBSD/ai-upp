@@ -3,6 +3,8 @@
 NAMESPACE_UPP
 
 INITBLOCK {
+	using namespace Eon;
+	
 	Eon::__ecs_script_loader = &Single<Eon::ExtScriptEcsLoader>();
 	
 	TYPED_STRING_HASHER(Machine);
@@ -25,26 +27,25 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 	
 	// System
-	//VfsValueExtFactory::Register<EasingSystem>("easing");
-	VfsValueExtFactory::Register<WorldLogicSystem>("world.logic", VFSEXT_SYSTEM_ECS);
-	VfsValueExtFactory::Register<PhysicsSystem>("physics", VFSEXT_SYSTEM_ECS);
-	VfsValueExtFactory::Register<PlayerBodySystem>("player", VFSEXT_SYSTEM_ECS);
-	VfsValueExtFactory::Register<InteractionSystem>("interaction", VFSEXT_SYSTEM_ECS);
-	//VfsValueExtFactory::Register<RegistrySystem>("registry");
-	//VfsValueExtFactory::Register<EntityStore>("entity.store");
-	//VfsValueExtFactory::Register<ComponentStore>("component.store");
+	REGISTER_SYSTEM_ECS(EasingSystem);
+	REGISTER_SYSTEM_ECS(WorldLogicSystem);
+	REGISTER_SYSTEM_ECS(PhysicsSystem);
+	REGISTER_SYSTEM_ECS(PlayerBodySystem);
+	REGISTER_SYSTEM_ECS(InteractionSystem);
+	REGISTER_SYSTEM_ECS(ScriptLoader);
+	#ifdef flagGUI
+	REGISTER_SYSTEM_ECS(WindowSystem);
+	#endif
 	
 	// Component
-	VfsValueExtFactory::Register<RigidBody>("body", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<TextRenderable>("text", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<Easing>("easing", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<PhysicsBody>("physics", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<Transform>("transform3", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<Transform2D>("transform2", VFSEXT_COMPONENT);
+	REGISTER_COMPONENT(RigidBody, "body");
+	REGISTER_COMPONENT(TextRenderable, "text");
+	REGISTER_COMPONENT(Easing, "easing");
+	REGISTER_COMPONENT(PhysicsBody, "physics");
+	REGISTER_COMPONENT(Transform, "transform3");
+	REGISTER_COMPONENT(Transform2D, "transform2");
 	
-	
-	//DaemonBase::Register<EcsService>("Ecs");
-	
+	VfsValueExtFactory::Register<EnvState>("EnvState");
 	
 }
 

@@ -60,8 +60,8 @@ void Geom2DComponent::Serialize(Stream& e) {
 	}
 }
 
-void Geom2DComponent::Initialize() {
-	
+bool Geom2DComponent::Initialize(const WorldState& ws) {
+	return true;
 }
 
 void Geom2DComponent::Uninitialize() {
@@ -570,8 +570,8 @@ void Geom2DComponentLink::Serialize(Stream& e) {
 	TODO // ptr
 }
 
-void Geom2DComponentLink::Initialize() {
-	
+bool Geom2DComponentLink::Initialize(const WorldState& ws) {
+	return true;
 }
 
 void Geom2DComponentLink::Uninitialize() {

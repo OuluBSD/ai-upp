@@ -38,6 +38,7 @@ struct FboAtomT :
 	String					program;
 	DataState				data;
 	One<BinderIfaceVideo>	prog;
+	WorldState				ws_at_init;
 	
 	static FboAtomT*	latest;
 	
@@ -46,7 +47,7 @@ public:
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	FboAtomT(VfsValue& n);
 	
-	bool			Initialize(const Eon::WorldState& ws) override;
+	bool			Initialize(const WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;

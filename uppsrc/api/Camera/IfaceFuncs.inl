@@ -3,7 +3,7 @@
 
 static bool Camera_Create(NativeCamera*& dev);
 static void Camera_Destroy(NativeCamera*& dev);
-static bool Camera_Initialize(NativeCamera&, AtomBase&, const Eon::WorldState&);
+static bool Camera_Initialize(NativeCamera&, AtomBase&, const WorldState&);
 static bool Camera_PostInitialize(NativeCamera&, AtomBase&);
 static bool Camera_Start(NativeCamera&, AtomBase&);
 static void Camera_Stop(NativeCamera&, AtomBase&);

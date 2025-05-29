@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "Core.h"
 
 
 #if 0
@@ -25,7 +25,7 @@ MachineVerifier* __latest_mver;
 			__latest_mver->OnLeave##x(call_id); \
 	} \
 
-MACHVER_FWDFN_LIST
+//MACHVER_FWDFN_LIST
 #undef MACHVER_FWD_FN
 
 void MachineVerifier_OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
@@ -71,13 +71,16 @@ void MachineVerifier::Attach(Engine& mach) {
 }
 
 void MachineVerifier::Attach(Eon::ScriptLoader& sl) {
+	TODO // todo move to eon and to a static function
+	#if 0
 	sl.WhenEnterScriptLoad << THISBACK(OnEnterScriptLoad);
 	sl.WhenLeaveScriptLoad << THISBACK(OnLeaveScriptLoad);
+	#endif
 }
 
 void MachineVerifier::Clear() {
 	mach = 0;
-	ext_sys = 0;
+	//ext_sys = 0;
 	SetDefaultExpected();
 }
 
@@ -492,6 +495,8 @@ void MachineVerifier::OnLoopLoader_Status(Eon::ScriptLoopLoader* ll) {
 }
 
 void MachineVerifier::UpdateLoopData(Eon::ScriptLoopLoader* ll) {
+	TODO // todo move to Eon package and to a static function
+	#if 0
 	int atom_count = ll->atom_links.GetCount();
 	
 	LoopLoaderData& data = loop_loaders.GetAdd((size_t)ll);
@@ -534,6 +539,7 @@ void MachineVerifier::UpdateLoopData(Eon::ScriptLoopLoader* ll) {
 			side.vd = ll_side.vd;
 		}
 	}
+	#endif
 }
 
 void MachineVerifier::OnLoopLoader_RealizeAtoms(Eon::ScriptLoopLoader* ll) {

@@ -44,8 +44,8 @@ void CalculateCameraView(mat4& view, mat4* stereo_view, float eye_dist, const ve
 
 
 
-void Viewable::Initialize() {
-	
+bool Viewable::Initialize(const WorldState& ws) {
+	return true;
 }
 
 void Viewable::Uninitialize()  {
@@ -115,10 +115,10 @@ void ChaseCam::Serialize(Stream& e) {
 }
 #endif
 
-void ChaseCam::Initialize() {
+bool ChaseCam::Initialize(const WorldState& ws) {
 	Entity* e = val.owner->FindExt<Entity>();
 	ASSERT(e);
-	if (!e) return;
+	if (!e) return false;
 	trans		= e->val.Find<Transform>();
 	viewable	= e->val.Find<Viewable>();
 	vport		= e->val.Find<Viewport>();
@@ -129,6 +129,7 @@ void ChaseCam::Initialize() {
 		rend->AddCamera(*this);
 	
 	AddToUpdateList();
+	return true;
 }
 
 void ChaseCam::Uninitialize() {

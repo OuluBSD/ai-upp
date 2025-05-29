@@ -8,7 +8,7 @@ NAMESPACE_UPP
 using namespace winrt::Windows::UI::Input::Spatial;
 using namespace std::placeholders;
 
-bool SpatialInteractionSystem::Initialize()
+bool SpatialInteractionSystem::Initialize(const WorldState& ws)
 {
     m_spatialInteractionManager = SpatialInteractionManager::GetForCurrentView();
     BindEventHandlers();

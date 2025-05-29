@@ -1,5 +1,5 @@
-#ifndef _Eon_SampleBase_h_
-#define _Eon_SampleBase_h_
+#ifndef _Core2_SampleBase_h_
+#define _Core2_SampleBase_h_
 
 
 

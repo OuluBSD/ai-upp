@@ -8,7 +8,6 @@ NAMESPACE_UPP
 
 #include "Node.h"
 #include "SearchAlgos.h"
-#include "WorldState.h"
 #include "ActionPlanner.h"
 #include "QueryTable.h"
 #include "Structural.h"

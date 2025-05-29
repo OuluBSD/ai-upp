@@ -43,7 +43,7 @@ public:
 	virtual bool Arg(const String& key, const String& value) = 0;
 	
 	virtual bool RenderProg(DrawCommand*& begin, DrawCommand*& end) {return false;}
-	virtual void Initialize() {}
+	virtual bool Initialize(const WorldState& ws) {return true;}
 	virtual void Uninitialize() {}
 	virtual void Visit(Vis& vis) {}
 	

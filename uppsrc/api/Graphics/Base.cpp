@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 template <class Gfx>
-bool ShaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool ShaderBaseT<Gfx>::Initialize(const WorldState& ws) {
 	
 	if (!this->bf.Initialize(*this, ws))
 		return false;
@@ -97,7 +97,7 @@ void ShaderBaseT<Gfx>::Finalize(RealtimeSourceConfig& cfg) {
 
 
 template <class Gfx>
-bool TextureBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool TextureBaseT<Gfx>::Initialize(const WorldState& ws) {
 	
 	String f = ws.Get(".filter");
 	if (!f.IsEmpty()) {
@@ -301,7 +301,7 @@ bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const V
 
 
 template <class Gfx>
-bool FboReaderBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool FboReaderBaseT<Gfx>::Initialize(const WorldState& ws) {
 	ISourcePtr src = this->GetSource();
 	ValueFormat out_fmt = src->GetSourceValue(src->GetSourceCount()-1).GetFormat();
 	if (out_fmt.IsAudio()) {
@@ -425,7 +425,7 @@ void FboReaderBaseT<Gfx>::Visit(Vis& v) {
 
 
 template <class Gfx>
-bool KeyboardBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 	
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
@@ -530,7 +530,7 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 
 template <class Gfx>
-bool AudioBaseT<Gfx>::Initialize(const Eon::WorldState& ws) {
+bool AudioBaseT<Gfx>::Initialize(const WorldState& ws) {
 	
 	return true;
 }

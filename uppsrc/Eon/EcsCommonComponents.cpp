@@ -15,7 +15,7 @@ void RigidBody::Visit(Vis& v) {
 	VISIT_COMPONENT
 }
 
-void RigidBody::Initialize() {
+bool RigidBody::Initialize(const WorldState& ws) {
 	velocity = zero<vec3>();
 	acceleration = zero<vec3>();
 	angular_velocity = zero<vec3>();
@@ -23,6 +23,7 @@ void RigidBody::Initialize() {
 	
 	damping_factor = 0.999f;
 	
+	return true;
 }
 
 

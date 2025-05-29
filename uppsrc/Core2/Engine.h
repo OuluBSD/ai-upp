@@ -22,16 +22,6 @@ public:
     virtual bool Arg(String key, Value value) {return true;}
 	
 	Engine& GetEngine() const;
-protected:
-    friend Engine;
-
-    virtual bool Initialize() {return true;}
-    virtual void Start() {}
-    virtual void Update(double /*dt*/) {}
-    virtual void Stop() {}
-    virtual void Uninitialize() {}
-
-	
 };
 
 #define SYS_CTOR(x) \
@@ -45,6 +35,10 @@ protected:
 #define SYS_DEF_VISIT_H void Visit(Vis& vis) override;
 #define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System>("System",*this);}
 
+#define REGISTER_SYSTEM_ATOM(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ATOM);
+#define REGISTER_SYSTEM_ECS(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ECS);
+#define REGISTER_COMPONENT(x, str) VfsValueExtFactory::Register<x>(str, VFSEXT_COMPONENT);
+#define REGISTER_EXCHANGE(x, dev, val) VfsValueExtFactory::RegisterExchange<x>(#x, dev, val);
 
 class Engine : public VfsValueExt
 {
@@ -96,7 +90,7 @@ public:
     }
     
     template<typename SystemT, typename... Args>
-    Ptr<SystemT> FindAdd(Args&&... args) {return FindAdd<SystemT, Args...>(args...);}
+    Ptr<SystemT> FindAdd(Args&&... args) {return GetAdd<SystemT, Args...>(args...);}
     
     
     template<typename SystemT>
@@ -122,24 +116,26 @@ public:
 
     bool IsStarted() const;
 
-    bool Start();
-    void Update(double dt);
-    void Stop();
+    bool Start() override;
+    void Update(double dt) override;
+    void Stop() override;
+	void Visit(Vis& vis) override;
+    
+	bool Start(String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
+	bool Start(String script_content, String script_file, Value args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
     void Suspend();
     void Resume();
+    void MainLoop();
     void DieFast() {Start(); Update(0); Stop();}
 	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0; /*systems.Clear();*/}
 	
     bool IsRunning() const {return is_running;}
 	void SetNotRunning() {is_running = false;}
 	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
-	void Visit(Vis& vis) override;
 	void WarnDeveloper(String msg);
-	void Run(bool main_loop, String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
-	void Main(bool main_loop, String script_content, String script_file, VectorMap<String,Value>& args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
-	void Main(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 	void StopRunner();
-	void MainLoop(bool (*fn)(void*)=0, void* arg=0);
+	void MainLoop(bool (*fn)(void*), void* arg);
+	//void Main(String script_content, String script_file, Value args, MachineVerifier* ver, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 	
 	void AddToUpdateList(ComponentPtr c);
 	void RemoveFromUpdateList(ComponentPtr c);
@@ -185,6 +181,9 @@ private:
 	String eon_script;
 	String eon_file;
 	uint64 break_addr = 0;
+	Index<String> last_warnings;
+	double warning_age = 0;
+	WorldState ws;
     
     int FindSystem(TypeCls type_id);// {return systems.Find(type_id);}
     void Add(TypeCls type_id, System* system, bool startup=true);
@@ -272,14 +271,14 @@ void Entity::Remove0() {
 }
 
 template<typename T>
-Ptr<T> Entity::Add0(bool initialize) {
+Ptr<T> Entity::Add0(const WorldState& ws) {
 	VfsValue& sub = val.Add();
     T* comp = new T(sub);
 	sub.ext = comp;
 	sub.type_hash = comp->GetTypeHash();
-    if (initialize) {
-		InitializeComponent(*comp);
-	}
+    if (!comp->Initialize(ws))
+        return 0;
+	comp->SetInitialized();
 	ASSERT(comp->GetEntity());
 	return comp;
 }

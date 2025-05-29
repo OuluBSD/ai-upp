@@ -92,7 +92,7 @@ void ScrWin::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ctx_ = a.val.FindOwnerWithCast<WinContext>();
 	if (!ctx_) {
 		RTLOG("error: could not find Win context");
@@ -390,7 +390,7 @@ void ScrWin::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool ScrWin::Context_Initialize(NativeContext& ctx, AtomBase& a, const Eon::WorldState& ws) {
+bool ScrWin::Context_Initialize(NativeContext& ctx, AtomBase& a, const WorldState& ws) {
 	return true;
 }
 

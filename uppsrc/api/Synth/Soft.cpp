@@ -25,7 +25,7 @@ void SynSoft::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	dev.sample_rate = 1024;
 	
 	//String sf2 = ws.GetString(".filepath", "FluidR3_GM.sf2");

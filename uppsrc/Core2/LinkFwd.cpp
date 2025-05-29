@@ -198,7 +198,7 @@ void LinkBase::PostContinueForward() {
 }
 
 void LinkBase::ForwardExchange(FwdScope& fwd) {
-	ExchangeSourceProvider* src = CastPtr<ExchangeSourceProvider>(atom);
+	ExchangeSourceProvider* src = CastPtr<ExchangeSourceProvider>(&*atom);
 	ASSERT(src);
 	ExchangePointPtr expt = src->GetExPt();
 	if (expt) {

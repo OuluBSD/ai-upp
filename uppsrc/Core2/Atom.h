@@ -41,11 +41,9 @@ protected:
 	
 	int64					idx = -1;
 	bool					is_running = false;
-	bool					is_initialized = false;
 	
 	void					SetIdx(int64 i) {idx = i;}
 	void					SetRunning(bool b=true) {is_running = b;}
-	void					SetInitialized(bool b=true) {is_initialized = b;}
 	
 protected:
 	friend class LinkBase;
@@ -61,9 +59,7 @@ protected:
 public:
 	virtual AtomTypeCls		GetType() const = 0;
 	virtual void			CopyTo(AtomBase* atom) const = 0;
-	virtual bool			Initialize(const WorldState& ws) = 0;
 	virtual bool			InitializeAtom(const WorldState& ws) = 0;
-	virtual void			Uninitialize() = 0;
 	virtual void			UninitializeAtom() = 0;
 	virtual void			VisitSource(Vis& vis) = 0;
 	virtual void			VisitSink(Vis& vis) = 0;
@@ -71,13 +67,7 @@ public:
 	virtual ISourcePtr		GetSource() = 0;
 	virtual ISinkPtr		GetSink() = 0;
 	virtual bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) = 0;
-	
-	virtual bool			Start() {return true;}
-	virtual void			Stop() {}
-	virtual void			Visit(Vis& vis) {}
 	virtual bool			PostInitialize() {return true;}
-	virtual void			Update(double dt) {}
-	virtual String			ToString() const;
 	virtual bool			IsReady(PacketIO& io) {return true;}
 	virtual void			UpdateConfig(double dt) {Panic("Unimplemented"); NEVER();}
 	virtual bool			Recv(int sink_ch, const Packet& in);
@@ -91,9 +81,12 @@ public:
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
 	
+	String					ToString() const override;
+	void					UninitializeDeep() override;
+	void					Visit(Vis& vis) override {}
+	
 	Value&					UserData() {return val.value;}
 	bool					IsRunning() const {return is_running;}
-	bool					IsInitialized() const {return is_initialized;}
 	void					AddAtomToUpdateList();
 	void					RemoveAtomFromUpdateList();
 	void					SetDependency(AtomBase* a) {if (atom_dependency) atom_dependency->dep_count--; atom_dependency = a; if (a) a->dep_count++;}
@@ -105,7 +98,6 @@ public:
 	void					SetQueueSize(int queue_size);
 	
 	Engine&					GetEngine();
-	void					UninitializeDeep();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
 	int						FindSourceWithValDev(ValDevCls vd);

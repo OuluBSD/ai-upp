@@ -17,17 +17,6 @@ public:
     virtual TypeCls GetTypeCls() const = 0;
 	virtual void Visit(Vis& vis) {}
 	Engine& GetEngine() const;
-	
-protected:
-    friend Engine;
-
-    virtual bool Initialize() {return true;}
-    virtual void Start() {}
-    virtual void Update(double /*dt*/) {}
-    virtual void Stop() {}
-    virtual void Uninitialize() {}
-
-	
 };
 
 template<typename T>

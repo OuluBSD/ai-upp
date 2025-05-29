@@ -12,10 +12,11 @@ void PaintStrokeComponent::Visit(Vis& v) {
 	#endif
 }
 
-void PaintStrokeComponent::Initialize(){
+bool PaintStrokeComponent::Initialize(const WorldState& ws){
 	Engine& e = GetEngine();
 	Ptr<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
 	sys->Attach(this);
+	return true;
 }
 
 void PaintStrokeComponent::Uninitialize() {
@@ -35,7 +36,7 @@ void PaintStrokeSystemBase::Detach(PaintStrokeComponent* comp) {
 	VectorRemoveKey(comps, comp);
 }
 
-bool PaintStrokeSystemBase::Initialize() {
+bool PaintStrokeSystemBase::Initialize(const WorldState& ws) {
 	
 	return true;
 }

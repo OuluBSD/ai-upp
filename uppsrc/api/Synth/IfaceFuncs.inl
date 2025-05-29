@@ -3,7 +3,7 @@
 
 static bool Instrument_Create(NativeInstrument*& dev);
 static void Instrument_Destroy(NativeInstrument*& dev);
-static bool Instrument_Initialize(NativeInstrument&, AtomBase&, const Eon::WorldState&);
+static bool Instrument_Initialize(NativeInstrument&, AtomBase&, const WorldState&);
 static bool Instrument_PostInitialize(NativeInstrument&, AtomBase&);
 static bool Instrument_Start(NativeInstrument&, AtomBase&);
 static void Instrument_Stop(NativeInstrument&, AtomBase&);

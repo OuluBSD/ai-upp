@@ -26,7 +26,7 @@ void HoloRemoteVRServer::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor&
 	
 }
 
-bool HoloRemoteVRServer::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloRemoteVRServer::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	String addr = ws.GetString(".addr", "127.0.0.1");
 	int port = ws.GetInt(".port", 7776);
 	

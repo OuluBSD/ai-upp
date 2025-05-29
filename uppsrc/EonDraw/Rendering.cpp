@@ -15,8 +15,9 @@ RendererBase::RendererBase() {
 	}
 }
 
-void RendererBase::Initialize() {
+bool RendererBase::Initialize(const WorldState& ws) {
 	//DON'T do something like: FboAtomT<Gfx>::Latest().AddBinder(this);
+	return true;
 }
 
 void RendererBase::Uninitialize() {

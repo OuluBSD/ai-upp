@@ -139,19 +139,20 @@ void PhysicsBody::Visit(Vis& v) {
 	VISIT_COMPONENT
 }
 
-void PhysicsBody::Initialize() {
+bool PhysicsBody::Initialize(const WorldState& ws) {
 	test_fn = 0;
 	is_bound = 0;
 	
 	Entity* e = val.FindOwner<Entity>();
 	if (!e) {
 		LOG("PhysicsBody:Initialize: error: entity not found");
-		return;
+		return false;
 	}
 	trans = e->Find<Transform>();
 	if (!trans) {
 		LOG("PhysicsBody:Initialize: error: transform component was not found");
 	}
+	return true;
 }
 
 void PhysicsBody::Uninitialize() {

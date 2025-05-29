@@ -64,7 +64,7 @@ void HolographicRenderer::OnDeviceRestored()
     m_skyboxRenderer->CreateDeviceDependentResources();
 }
 
-bool HolographicRenderer::Initialize()
+bool HolographicRenderer::Initialize(const WorldState& ws)
 {
     m_deviceResources->RegisterDeviceNotify(this);
     m_pbrResources->SetLight(XMVECTORF32{ 0.0f, 0.7071067811865475f, -0.7071067811865475f }, ToDxVec(Colors::White));

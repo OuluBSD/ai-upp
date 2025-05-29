@@ -1,6 +1,7 @@
 #ifndef _Eon_LinkStore_h_
 #define _Eon_LinkStore_h_
 
+#if 0
 
 template<class T> using LinkTypeMap		= LinkedMap<LinkTypeCls, T>;
 
@@ -79,4 +80,5 @@ private:
 };
 
 
+#endif
 #endif

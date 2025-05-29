@@ -7,9 +7,9 @@ class DesktopSuiteSystem : public System {
 	
 	
 protected:
-    bool Initialize() override;
+    bool Initialize(const WorldState&) override;
     bool Arg(String key, Value value) override;
-    void Start() override;
+    bool Start() override;
     void Update(double dt) override;
     void Stop() override;
     void Uninitialize() override;

@@ -9,7 +9,7 @@ public:
 	CLASSTYPE(ThrowingComponent)
 	ThrowingComponent(VfsValue& e) : CustomToolComponent(e) {}
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void SetEnabled(bool enable) override;
 	void Destroy() override;
@@ -30,6 +30,7 @@ class ThrowingInteractionSystemBase :
 	public ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>
 {
 	Array<ThrowingComponentPtr> comps;
+	WorldState ws_at_init;
 	
 public:
 	using ToolSys = ToolSystemBaseT<ThrowingInteractionSystemBase, ThrowingComponent>;
@@ -49,7 +50,7 @@ public:
 protected:
 	// System
 	System* GetSystem() override {return this;}
-	bool Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void Update(double dt) override;
 	void OnControllerPressed(const GeomEvent& e) override;

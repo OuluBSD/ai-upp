@@ -115,7 +115,7 @@ public:
 		vis.VisitT<ExchangeSinkProvider>("ExchangeSinkProvider",*this);
 	}
 	
-	virtual ValueBase&				GetValue(int i) = 0;
+	virtual ValueBase&			GetValue(int i) = 0;
 	virtual void				ClearSink() = 0;
 	virtual int					GetSinkCount() const = 0;
 	
@@ -174,7 +174,7 @@ public:
 	
 	DefaultInterfaceSink() {}
 	
-	bool Initialize();
+	bool Initialize(const WorldState& ws);
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
 	void Visit(Vis& vis) {
@@ -208,7 +208,7 @@ public:
 	
 	DefaultInterfaceSource() {}
 	
-	bool Initialize();
+	bool Initialize(const WorldState& ws);
 	void Uninitialize() {ClearLink(); UninitializeContainers();}
 	
 	void Visit(Vis& vis) {

@@ -26,7 +26,7 @@ class ToolComponent : public Component {
 public:
 	ECS_COMPONENT_CTOR(ToolComponent)
 	void Visit(Vis& v) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
@@ -73,10 +73,10 @@ protected:
 	// System
 	
 	System* GetSystem() override {return this;}
-	void Start() override;
+	bool Start() override;
 	void Update(double dt) override;
 	void Stop() override;
-	bool Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
 	
@@ -100,9 +100,10 @@ using ToolboxSystemBasePtr = Ptr<ToolboxSystemBase>;
 
 
 template<typename T, typename ToolComponent>
-inline void ToolSystemBaseT<T,ToolComponent>::Start() {
+inline bool ToolSystemBaseT<T,ToolComponent>::Start() {
 	Engine& m = GetEngine();
 	m.Get<ToolboxSystemBase>()->AddToolSystem(this);
+	return true;
 }
 
 template<typename T, typename ToolComponent>

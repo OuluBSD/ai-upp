@@ -274,7 +274,7 @@ INITBLOCK {
 	
 	
 	// SerialMach
-	#define REGISTER_LINK(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_LINK);
+	#define REGISTER_LINK(x) VfsValueExtFactory::RegisterLink<x>(#x);
 	REGISTER_LINK(CustomerLink);
 	REGISTER_LINK(PipeLink);
 	REGISTER_LINK(PipeOptSideLink);

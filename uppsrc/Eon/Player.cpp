@@ -14,8 +14,8 @@ void PlayerHandComponent::Visit(Vis& v) {
 	VISIT_COMPONENT;
 }
 
-void PlayerHandComponent::Initialize() {
-	
+bool PlayerHandComponent::Initialize(const WorldState& ws) {
+	return true;
 }
 
 void PlayerHandComponent::Uninitialize() {
@@ -75,8 +75,8 @@ void PlayerHeadComponent::Visit(Vis& v) {
 	VISIT_COMPONENT
 }
 
-void PlayerHeadComponent::Initialize() {
-	
+bool PlayerHeadComponent::Initialize(const WorldState& ws) {
+	return true;
 }
 
 void PlayerHeadComponent::Uninitialize() {
@@ -115,10 +115,11 @@ void PlayerBodyComponent::Visit(Vis& v) {
 	VISIT_COMPONENT
 }
 
-void PlayerBodyComponent::Initialize() {
+bool PlayerBodyComponent::Initialize(const WorldState& ws) {
 	PlayerBodySystem* sys = val.FindOwnerWith<PlayerBodySystem>();
 	ASSERT(sys);
 	if (sys) sys->Attach(this);
+	return true;
 }
 
 void PlayerBodyComponent::Uninitialize() {
@@ -163,7 +164,7 @@ bool PlayerBodyComponent::SetHead(PlayerHeadComponentPtr head) {
 
 
 
-bool PlayerBodySystem::Initialize() {
+bool PlayerBodySystem::Initialize(const WorldState& ws) {
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	
@@ -172,10 +173,6 @@ bool PlayerBodySystem::Initialize() {
 
 void PlayerBodySystem::Uninitialize() {
 	InteractionListener::Uninitialize(GetEngine(), this);
-	
-}
-
-void PlayerBodySystem::Start() {
 	
 }
 
@@ -238,10 +235,6 @@ void PlayerBodySystem::Update(double dt) {
 		}
 		
 	}
-}
-
-void PlayerBodySystem::Stop() {
-	
 }
 
 void PlayerBodySystem::RefreshComponentsForSource(const HandLocationSource& source) {

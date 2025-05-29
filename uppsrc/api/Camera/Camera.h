@@ -54,7 +54,7 @@ template <class Cam> struct CameraCameraT : CamCamera {
 		v.VisitT<CamCamera>("CamCamera",*this);
 	}
 	typename Cam::NativeCamera* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Cam::Camera_Create(dev))
 			return false;
 		if (!Cam::Camera_Initialize(*dev, *this, ws))

@@ -142,7 +142,7 @@ void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, 
 }
 
 template <class Gfx>
-bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
+bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	this->ab = &a;
 	
 	LinkBase* link = a.GetLink();

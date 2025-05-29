@@ -1,31 +1,8 @@
 #include "Core.h"
 
+// Keeping 3 separate Engine files for historical git-log reasons
 
 NAMESPACE_UPP
-
-
-
-
-
-
-System::System(VfsValue& n) : VfsValueExt(n) {
-	DBG_CONSTRUCT
-}
-
-System::~System() {
-	DBG_DESTRUCT
-}
-
-Engine& System::GetEngine() const {
-	Engine* e = val.GetOwnerExt<Engine>();
-	ASSERT(e);
-	if (!e) throw Exc("no engine");
-	return *e;
-}
-
-
-
-
 
 Engine::Engine(VfsValue& n) : VfsValueExt(n) {
 	DBG_CONSTRUCT
@@ -46,16 +23,22 @@ bool Engine::Start() {
 	
 	auto systems = val.FindAll<System>();
 	for (auto it : systems) {
-		if (!it->Initialize()) {
+		if (it->IsInitialized())
+			continue;
+		if (!it->Initialize(ws)) {
 			LOG("Could not initialize system " << it->GetTypeCls().GetName());
 			return false;
 		}
+		it->SetInitialized();
 	}
 	
 	is_initialized = true;
 	
 	for (auto it : systems) {
-		it->Start();
+		if (!it->Start()) {
+			SetFailed("System could not start: " + it->GetTypeName());
+			return false;
+		}
 	}
 	
 	is_looping_systems = false;
@@ -126,7 +109,10 @@ void Engine::Stop() {
 	is_initialized = false;
 	
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
-		(*it)->Uninitialize();
+		if ((*it)->IsInitialized()) {
+			(*it)->Uninitialize();
+			(*it)->SetInitialized(false);
+		}
 	}
 	
 	is_looping_systems = false;
@@ -146,7 +132,9 @@ bool Engine::IsStarted() const {
 
 void Engine::SystemStartup(TypeCls type_id, System* system) {
 	ASSERT(is_started);
-	if (system->Initialize()) {
+	if (system->IsInitialized() || system->Initialize(ws)) {
+		system->SetInitialized();
+		
 		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetTypeCls().GetName());
 		
 		bool has_already = false;
@@ -201,20 +189,6 @@ void Engine::RemoveFromUpdateList(ComponentPtr c) {
 	VectorRemoveKey(update_list, c);
 }
 
-Val& Engine::GetRootPool() {
-	int i = val.Find("pool");
-	if (i >= 0)
-		return val.sub[i];
-	return val.Add("pool");
-}
-
-Val& Engine::GetRootSpace() {
-	int i = val.Find("space");
-	if (i >= 0)
-		return val.sub[i];
-	return val.Add("space");
-}
-
 Ptr<System> Engine::Add(TypeCls type, bool startup)
 {
 	int i = VfsValueExtFactory::FindTypeClsFactory(type);
@@ -241,6 +215,14 @@ Ptr<System> Engine::GetAdd(String id, bool startup) {
     if (v.GetCount())
         return v[0]->ext ? CastPtr<System>(&*v[0]->ext) : 0;
     return Add(type, startup);
+}
+
+void Engine::AddUpdated(AtomBase& p) {
+	VectorFindAdd(updated, AtomBasePtr(&p));
+}
+
+void Engine::RemoveUpdated(AtomBase& p) {
+	VectorRemoveKey(updated, AtomBasePtr(&p));
 }
 
 

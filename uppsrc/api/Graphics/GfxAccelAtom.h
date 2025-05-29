@@ -98,7 +98,7 @@ public:
 	void SetAtom(AtomBase* ab) {this->ab = ab;}
 	void SetNative(NativeDisplay& display, NativeWindow& window, NativeRenderer* rend, SystemFrameBufferPtr fb);
 	
-	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
+	bool Initialize(AtomBase& a, const WorldState& ws);
 	bool PostInitialize();
 	//bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
 	void Uninitialize();

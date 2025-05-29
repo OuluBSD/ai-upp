@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "Core.h"
 
 NAMESPACE_UPP
 
@@ -65,14 +65,14 @@ END_UPP_NAMESPACE
 NAMESPACE_UPP
 
 
-bool PacketTracker::Initialize() {
+bool PacketTracker::Initialize(const WorldState& ws) {
 	if (!active_tracker())
 		active_tracker() = this;
 	return true;
 }
 
-void PacketTracker::Start() {
-	
+bool PacketTracker::Start() {
+	return true;
 }
 
 void PacketTracker::Update(double dt) {

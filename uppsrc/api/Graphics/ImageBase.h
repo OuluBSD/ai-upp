@@ -23,7 +23,7 @@ public:
 	ImageBaseAtomT(VfsValue& n);
 	
 	void			Visit(Vis& v) override {VIS_THIS(Atom);}
-	bool			Initialize(const Eon::WorldState& ws) override;
+	bool			Initialize(const WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;

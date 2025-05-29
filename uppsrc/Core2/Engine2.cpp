@@ -1,6 +1,6 @@
-#include "Eon.h"
+#include "Core.h"
 
-#if 0
+// Keeping 3 separate Engine files for historical git-log reasons
 
 NAMESPACE_UPP
 
@@ -20,6 +20,7 @@ Engine& System::GetEngine() const {
 	return *mach;
 }
 
+#if 0
 
 
 
@@ -44,22 +45,21 @@ Engine& Machine::GetEngine() {
 	return *e;
 }
 
-Loop& Machine::GetRootLoop() {
-	LoopPtr loop = val.Find<Loop>();
-	if (loop) return *loop;
-	loop = &val.Add<Loop>();
-	loop->val.id = "loop";
-	return *loop;
+#endif
+
+Val& Engine::GetRootPool() {
+	return val.GetAdd("pool", 0);
 }
 
-Space& Machine::GetRootSpace() {
-	SpacePtr space = val.Find<Space>();
-	if (space) return *space;
-	space = &val.Add<Space>();
-	space->val.id = "space";
-	return *space;
+Val& Engine::GetRootLoop() {
+	return val.GetAdd("loop", 0);
 }
 
+Val& Engine::GetRootSpace() {
+	return val.GetAdd("space", 0);
+}
+
+#if 0
 bool Machine::Start() {
 	ASSERT_(!is_initialized && !is_started, "Shouldn't call Start if we already started");
 	ASSERT_(!is_failed, "Machine have already failed");
@@ -80,6 +80,7 @@ bool Machine::Start() {
 			LOG("Could not initialize system " << system->GetTypeCls().GetName());
 			return false;
 		}
+		system->SetInitialized();
 	}
 	
 	WhenPostInitialize(*this);
@@ -158,7 +159,10 @@ void Machine::Stop() {
 	is_initialized = false;
 	
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
-		(*it)->Uninitialize();
+		if ((*it)->IsInitialized()) {
+			(*it)->Uninitialize();
+			(*it)->SetInitialized(false);
+		}
 	}
 	
 	if (is_failed) {
@@ -191,7 +195,6 @@ System* Machine::FindSystem(TypeCls type_id) {
 	return n && n->ext ? CastPtr<System>(&*n->ext) : 0;
 }
 
-#if 0
 void Machine::Add(TypeCls type_id, System* system) {
 	ASSERT_(!is_started, "Invalid to add systems after the machine has started");
 	
@@ -210,7 +213,6 @@ void Machine::Remove(TypeCls type_id) {
 	
 	systems.Remove(i);
 }
-#endif
 
 void Machine::Visit(Vis& v) {
 	_VIS_(ticks)
@@ -226,7 +228,9 @@ void Machine::Visit(Vis& v) {
 	VIS_THIS(MetaMachineBase);
 }
 
-void Machine::WarnDeveloper(String msg) {
+#endif
+
+void Engine::WarnDeveloper(String msg) {
 	if (last_warnings.Find(msg) < 0) {
 		last_warnings.Add(msg);
 		
@@ -236,17 +240,17 @@ void Machine::WarnDeveloper(String msg) {
 	}
 }
 
-void Machine::Run(bool main_loop, String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
+bool Engine::Start(String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
 	
 	if (!override_eon_file.IsEmpty())
 		eon_file = override_eon_file;
 	
 	if (extra_args) {
+		if (eon_params.Is<ValueMap>())
+			eon_params = ValueMap();
+		
 		for(int i = 0; i < extra_args->GetCount(); i++)
-			eon_params.GetAdd(
-				extra_args->GetKey(i),
-				(*extra_args)[i]
-			);
+			eon_params(extra_args->GetKey(i)) = (*extra_args)[i];
 	}
 	
 	if (extra_str) {
@@ -256,20 +260,26 @@ void Machine::Run(bool main_loop, String app_name, String override_eon_file, Vec
 			if (i >= 0) {
 				String a = arg.Left(i);
 				String b = arg.Mid(i+1);
-				eon_params.Add(a, b);
+				eon_params(a) = b;
 			}
 		}
 	}
 	
 	WhenBoot(*this);
+	
 	//break_addr = 1;
-	if (is_failed) return;
+	if (is_failed)
+		return false;
+	
 	if (!break_addr)
-		Main(main_loop, eon_script, eon_file, eon_params);
+		Start(eon_script, eon_file, eon_params);
 	else
-		Main(main_loop, eon_script, eon_file, eon_params, 1, break_addr);
+		Start(eon_script, eon_file, eon_params, 1, break_addr);
+	
+	return !is_failed;
 }
 
+#if 0
 void Machine::StopRunner() {
 	SetNotRunning();
 	Stop();
@@ -280,7 +290,6 @@ void Machine::StopRunner() {
 
 
 
-#if 0
 void SingleMachine::Run(void(*fn)(), void(*arg_fn)()) {
 	if (Open(arg_fn)) {
 		fn();
@@ -291,4 +300,3 @@ void SingleMachine::Run(void(*fn)(), void(*arg_fn)()) {
 
 END_UPP_NAMESPACE
 
-#endif

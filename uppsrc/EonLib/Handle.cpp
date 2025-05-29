@@ -15,7 +15,7 @@ HandleEventsBase::HandleEventsBase(VfsValue& n) : Atom(n) {
 	
 }
 
-bool HandleEventsBase::Initialize(const Eon::WorldState& ws) {
+bool HandleEventsBase::Initialize(const WorldState& ws) {
 	
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
@@ -111,7 +111,7 @@ bool HandleVideoBase::IsActive() const {
 	return active == this;
 }
 
-bool HandleVideoBase::Initialize(const Eon::WorldState& ws) {
+bool HandleVideoBase::Initialize(const WorldState& ws) {
 	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	ValueBase& val = src->GetSourceValue(src_count-1);
@@ -662,7 +662,7 @@ HandleOglBase::HandleOglBase() {
 	
 }
 
-bool HandleOglBase::Initialize(const Eon::WorldState& ws) {
+bool HandleOglBase::Initialize(const WorldState& ws) {
 	
 	if (!WhenInitialize) {
 		LOG("HandleOglBase::Initialize: internal error: expected ecs system to prepare this");

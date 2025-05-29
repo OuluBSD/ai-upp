@@ -37,7 +37,7 @@ void RenderingSystem::Attach(String key, Parallel::BufferT<SdlOglGfx>* b) {
 
 
 
-bool RenderingSystem::Initialize() {
+bool RenderingSystem::Initialize(const WorldState& ws) {
 	return true;
 }
 

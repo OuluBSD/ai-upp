@@ -46,15 +46,15 @@ public:
 	ComponentPtr CreateEon(String id);
 	
 	template<typename... ComponentTs>
-	RTuple<Ptr<ComponentTs>...> CreateComponents() {
+	RTuple<Ptr<ComponentTs>...> CreateComponents(const WorldState& ws) {
 		static_assert(AllComponents<ComponentTs...>::value, "Ts should all be a component");
 		
 		auto tuple = RTuple<Ptr<ComponentTs>...> {{
-				Add0<ComponentTs>(false)
+				Add0<ComponentTs>(ws)
 			}
 			...
 		};
-		tuple.ForEach([this](auto& comp) {InitializeComponent(*comp);});
+		tuple.ForEach([this,&ws](auto& comp) {comp->Initialize(ws);});
 		return tuple;
 	}
 	
@@ -68,9 +68,7 @@ public:
 	
 public:
 	void                Initialize(String prefab);
-	void				InitializeComponents();
-	void				InitializeComponent(Component& comp);
-	void				InitializeComponentPtr(ComponentPtr comp) {return InitializeComponent(*comp);}
+	bool				InitializeComponents(const WorldState& ws);
 	void				UninitializeComponents();
 	void				ClearComponents();
 	void                SetIdx(EntityId i) {idx = i;}
@@ -94,7 +92,7 @@ protected:
 	
 private:
 	template<typename T> void Remove0();
-	template<typename T> Ptr<T> Add0(bool initialize);
+	template<typename T> Ptr<T> Add0(const WorldState& ws);
 	
 };
 
@@ -127,18 +125,18 @@ struct EntityPrefab {
 		return RTuple<Ptr<ComponentTs>...>::GetTypeNames();
 	}
 	
-	static Components Make(Entity& e) {
-		return e.CreateComponents<ComponentTs...>();
+	static Components Make(Entity& e, const WorldState& ws) {
+		return e.CreateComponents<ComponentTs...>(ws);
 	}
 };
 
 template<typename PrefabT>
-EntityPtr CreatePrefab(VfsValue& val) {
+EntityPtr CreatePrefab(VfsValue& val, const WorldState& ws) {
 	static_assert(RTupleAllComponents<typename PrefabT::Components>::value, "Prefab should have a list of Components");
 	
 	Entity& e = val.Add<Entity>();
 	e.SetIdx(Entity::GetNextIdx());
-	PrefabT::Make(e);
+	PrefabT::Make(e, ws);
 	e.Initialize(PrefabT::GetComponentNames());
 	
 	return &e;

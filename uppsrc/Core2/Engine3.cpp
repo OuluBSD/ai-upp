@@ -1,11 +1,12 @@
-#include "Eon.h"
+#include "Core.h"
 
-#if 0
+// Keeping 3 separate Engine files for historical git-log reasons
 
 NAMESPACE_UPP
 
+#if 0
 
-void Machine::Main(String script_content, String script_file, VectorMap<String,Value>& args, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
+void Engine::Main(String script_content, String script_file, Value args_, MachineVerifier* ver, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
 	if (script_content.IsEmpty() && script_file.IsEmpty()) {
@@ -13,52 +14,42 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 		return;
 	}
 	
-	TODO
-	#if 0
-	if (dbg_ref)
-		BreakRefAdd(dbg_ref);
+	//if (dbg_ref)
+	//	BreakRefAdd(dbg_ref);
 	
+	ValueMap args = args_;
 	double time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
 	
 	{
-		Engine& mach = GetActiveMachine();
+		Engine& mach = *this;
 		
 		if (ver)
 			ver->Attach(mach);
 		
+		//if (dbg_ref_visits)
+		//	SetDebugRefVisits();
 		
-		if (dbg_ref_visits)
-			SetDebugRefVisits();
-		RuntimeDiagnostics::Static().SetRoot(mach); // TODO not global -> VfsValue under Machine
+		//RuntimeDiagnostics::Static().SetRoot(mach); // TODO not global -> VfsValue under Machine
 		
 	    #ifdef flagSTDEXC
 	    try {
 	    #endif
 			bool fail = false;
 			{
+				TODO
+				#if 0
 				if (mach.IsStarted()) {
-					RegistrySystemPtr reg	= mach.FindAdd<RegistrySystem>();
-					LoopStorePtr ls			= mach.FindAdd<LoopStore>();
-					AtomStorePtr as			= mach.FindAdd<AtomStore>();
-				    AtomSystemPtr asys		= mach.FindAdd<AtomSystem>();
-				    ScriptLoaderPtr script	= mach.FindAdd<ScriptLoader>();
+					Ptr<Eon::ScriptLoader> script	= mach.FindAdd<Eon::ScriptLoader>();
 				    
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				LoopStorePtr ls			= mach.Find<LoopStore>();
-				if (!ls) {
-					LOG("No LoopStore added to machine and the machine is already started");
-					return;
-				}
-				
-				ScriptLoaderPtr script	= mach.Find<ScriptLoader>();
+				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
 				if (!script) {
 					LOG("No ScriptLoader added to machine and the machine is already started");
 					return;
 				}
-				
-				LoopPtr root = ls->GetRoot();
+				#endif
 				
 				String path = RealizeEonFile(script_file);
 				
@@ -73,14 +64,17 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 					return;
 				}
 				for(int i = 0; i < args.GetCount(); i++) {
-					String key = "${" + args.GetKey(i) + "}";
+					String key = "${" + args.GetKey(i).ToString() + "}";
 					String value = args[i].ToString();
 					value = EscapeString(value);
 					script_str.Replace(key, value);
 				}
 				LOG(script_str);
 				
+				TODO
+				#if 0
 		        script->PostLoadString(script_str);
+		        #endif
 		    }
 		        
 		    if (!fail) {
@@ -104,7 +98,7 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 			            mach.SetNotRunning();
 			    }
 			    
-			    RuntimeDiagnostics::Static().CaptureSnapshot();
+			    //RuntimeDiagnostics::Static().CaptureSnapshot();
 		    }
 		#ifdef flagSTDEXC
 	    }
@@ -117,10 +111,8 @@ void Machine::Main(String script_content, String script_file, VectorMap<String,V
 	    mach.Stop();
 	    mach.Clear();
 	}
-    #endif
 }
 
+#endif
 
 END_UPP_NAMESPACE
-
-#endif

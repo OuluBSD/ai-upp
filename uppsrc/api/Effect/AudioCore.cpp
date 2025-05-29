@@ -35,13 +35,13 @@ void FxAudioCore::Effect_Visit(NativeEffect& dev, AtomBase&, Visitor& vis) {
 }
 
 template <class T>
-void CreateSynCoreEffect(FxAudioCore::NativeEffect& dev, AtomBase& a, const Eon::WorldState& ws) {
+void CreateSynCoreEffect(FxAudioCore::NativeEffect& dev, AtomBase& a, const WorldState& ws) {
 	T* t = new T();
 	t->LoadState(ws.GetValues());
 	dev.effect = t;
 }
 
-bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool FxAudioCore::Effect_Initialize(NativeEffect& dev, AtomBase& a, const WorldState& ws) {
 	dev.channel_count = min(16, max(0, ws.GetInt(".channels", 2)));
 	
 	String instrument = ToLower(ws.GetString(".filter", "chorus"));

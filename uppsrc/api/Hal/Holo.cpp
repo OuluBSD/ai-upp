@@ -163,7 +163,7 @@ void HalHolo::ContextBase_Destroy(NativeContextBase*& dev) {
 	delete dev;
 }
 
-bool HalHolo::ContextBase_Initialize(NativeContextBase& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalHolo::ContextBase_Initialize(NativeContextBase& dev, AtomBase& a, const WorldState& ws) {
 	// Initialize Direct2D resources.
     D2D1_FACTORY_OPTIONS options{};
 
@@ -280,7 +280,7 @@ void HalHolo::D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev) {
 	delete dev;
 }
 
-bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	if (!NativeContextBase::latest) {
 		LOG("D12VideoSinkDevice_Initialize: error: no context");
 		return false;
@@ -505,7 +505,7 @@ void HalHolo::EventsBase_Destroy(NativeEventsBase*& dev) {
 	delete dev;
 }
 
-bool HalHolo::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalHolo::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const WorldState& ws) {
 	LOG("HalHolo::EventsBase_Initialize: TODO");
 	return true;
 }

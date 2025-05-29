@@ -4,6 +4,7 @@
 namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
+class ScriptLoader;
 }
 
 #define LINK_CTORH(x) \
@@ -26,7 +27,7 @@ protected:
 	friend class LoopSystem;
 	friend class LinkSystem;
 	
-	AtomBase* atom = 0;
+	AtomBasePtr atom;
 	
 	
 public:
@@ -73,8 +74,6 @@ protected:
 	void					UpdateLinkedExchangeFormats(int src_ch, const ValueFormat& fmt);
 	
 public:
-	virtual bool			Initialize(const WorldState& ws) = 0;
-	virtual void			Uninitialize() = 0;
 	virtual bool			ProcessPackets(PacketIO& io) = 0;
 	virtual bool			ForwardAsyncMem(byte* mem, int size) {Panic("ForwardAsyncMem unimplemented"); return false;}
 	virtual bool			IsConsumedPartialPacket() {return 0;}
@@ -85,14 +84,11 @@ public:
 	virtual bool			PassLinkSideSource(LinkBasePtr src) {return true;}
 	virtual LinkTypeCls		GetLinkType() const = 0;
 	
-	virtual bool			Start() {return true;}
-	virtual void			Stop() {}
 	virtual void			Visit(Vis& vis) override {
 		vis || side_sink_conn || side_src_conn;
 		vis & prim_link_sink & prim_link_src;
 	}
 	virtual RTSrcConfig*	GetConfig() {return last_cfg;}
-	virtual void			Update(double dt) {Panic("Unimplemented");}
 	
 	AtomBase*				GetAtom();
 	//Engine&				GetEngine();

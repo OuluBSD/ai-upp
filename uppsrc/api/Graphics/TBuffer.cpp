@@ -30,7 +30,7 @@ BufferStageT<Gfx>& BufferT<Gfx>::InitSingle() {
 }
 
 template <class Gfx>
-bool BufferT<Gfx>::Initialize(AtomBase& a, const Eon::WorldState& ws) {
+bool BufferT<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	String type = ws.Get(".type");
 	
 	ASSERT(stages.IsEmpty());

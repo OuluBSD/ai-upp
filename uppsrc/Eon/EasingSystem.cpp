@@ -14,10 +14,11 @@ void Easing::Visit(Vis& v) {
 	VISIT_COMPONENT
 }
 
-void Easing::Initialize() {
+bool Easing::Initialize(const WorldState& ws) {
 	Ptr<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
 	if (sys)
 		sys->Attach(this);
+	return true;
 }
 
 void Easing::Uninitialize() {

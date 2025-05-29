@@ -68,7 +68,7 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 		VIS_THIS(AudSinkDevice);
 	}
 	typename Aud::NativeSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Aud::SinkDevice_Create(dev))
 			return false;
 		if (!Aud::SinkDevice_Initialize(*dev, *this, ws))
@@ -108,7 +108,7 @@ template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 		VIS_THIS(AudSourceDevice);
 	}
 	typename Aud::NativeSourceDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Aud::SourceDevice_Create(dev))
 			return false;
 		if (!Aud::SourceDevice_Initialize(*dev, *this, ws))

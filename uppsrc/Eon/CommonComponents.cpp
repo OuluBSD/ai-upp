@@ -7,7 +7,7 @@ NAMESPACE_UPP
 const vec3 EarthGravity = { 0, -9.8f, 0 };
 
 
-void Transform::Initialize() {
+bool Transform::Initialize(const WorldState& ws) {
 	data.position = zero<vec3>();
 	size = one<vec3>();
 	data.mode = TransformMatrix::MODE_LOOKAT; // use direction & up instead of orientation
@@ -18,6 +18,7 @@ void Transform::Initialize() {
 	Ptr<WorldLogicSystem> sys = GetEngine().TryGet<WorldLogicSystem>();
 	if (sys)
 		sys->Attach(this);
+	return true;
 }
 
 void Transform::Uninitialize() {

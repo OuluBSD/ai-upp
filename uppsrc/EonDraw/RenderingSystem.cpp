@@ -4,11 +4,13 @@
 NAMESPACE_UPP
 
 
-void Renderable::Initialize() {
+bool Renderable::Initialize(const WorldState& ws) {
 	Engine& e = GetEngine();
 	RenderingSystemPtr rend = e.TryGet<RenderingSystem>();
 	if (rend)
 		rend->AddRenderable(this);
+	
+	return true;
 }
 
 void Renderable::Uninitialize() {
@@ -84,12 +86,12 @@ void RenderingSystem::Render(GfxDataState& state) {
 	}
 }
 
-bool RenderingSystem::Initialize() {
+bool RenderingSystem::Initialize(const WorldState& ws) {
 	return true;
 }
 
-void RenderingSystem::Start() {
-	
+bool RenderingSystem::Start() {
+	return true;
 }
 
 void RenderingSystem::Stop() {

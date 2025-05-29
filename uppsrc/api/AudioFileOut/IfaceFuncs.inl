@@ -3,7 +3,7 @@
 
 static bool Sink_Create(NativeSink*& dev);
 static void Sink_Destroy(NativeSink*& dev);
-static bool Sink_Initialize(NativeSink&, AtomBase&, const Eon::WorldState&);
+static bool Sink_Initialize(NativeSink&, AtomBase&, const WorldState&);
 static bool Sink_PostInitialize(NativeSink&, AtomBase&);
 static bool Sink_Start(NativeSink&, AtomBase&);
 static void Sink_Stop(NativeSink&, AtomBase&);

@@ -232,7 +232,7 @@ void AudPortaudio::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, const Eon::WorldState& ws) {
+bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, const WorldState& ws) {
 	PaStream*& dev = dev_.p;
 	
 	bool realtime = ws.GetBool(".realtime", false);
@@ -342,7 +342,7 @@ bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBas
 
 
 
-bool AudPortaudio::SourceDevice_Initialize(NativeSourceDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool AudPortaudio::SourceDevice_Initialize(NativeSourceDevice& dev, AtomBase& a, const WorldState& ws) {
 	TODO
 }
 

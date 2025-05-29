@@ -45,8 +45,8 @@ struct ToolSelectorPrefab :
 	Easing
 	> {
 	
-	static Components Make(Entity& e) {
-		Components components = EntityPrefab::Make(e);
+	static Components Make(Entity& e, const WorldState& ws) {
+		Components components = EntityPrefab::Make(e, ws);
 		RigidBodyPtr rb = components.Get<RigidBodyPtr>();
 		EasingPtr ea = components.Get<EasingPtr>();
 		rb->angular_velocity = { 0.0f, -3.0f, 0.0f }; // Spin in place
@@ -70,7 +70,7 @@ public:
 	
 protected:
 	// System
-	void Start() override;
+	bool Start() override;
 	void Stop() override;
 };
 

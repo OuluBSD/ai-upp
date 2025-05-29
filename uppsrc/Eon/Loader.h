@@ -122,7 +122,7 @@ public:
 	int			GetAtomLinkCount() const {return atom_links.GetCount();}
 	static AtomBasePtr AddAtomTypeCls(VfsValue& val, AtomTypeCls cls);
 	static LinkBasePtr AddLinkTypeCls(VfsValue& val, LinkTypeCls cls);
-	static bool MakeLink(AtomBasePtr src_atom, AtomBasePtr dst_atom);
+	static bool MakeLink(VfsValue& val, AtomBasePtr src_atom, AtomBasePtr dst_atom);
 	
 	bool		Load() override;
 	void		Visit(Vis& vis) override {vis || atoms;}
@@ -286,10 +286,8 @@ public:
 protected:
 	
 	~ScriptLoader();
-    bool		Initialize() override;
-    void		Start() override;
+    bool		Initialize(const WorldState& ws) override;
     void		Update(double dt) override;
-    void		Stop() override;
     void		Uninitialize() override;
     
     void		LogMessage(ProcMsg msg);

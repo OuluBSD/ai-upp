@@ -37,7 +37,7 @@ public:
 	using CLASSNAME = FboProgAtomT<Gfx>;
 	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
 	FboProgAtomT(VfsValue& n) : BufferBase(n) {}
-	bool Initialize(const Eon::WorldState& ws) override;
+	bool Initialize(const WorldState& ws) override;
 	bool PostInitialize() override;
 	void Uninitialize() override;
 	bool IsReady(PacketIO& io) override;

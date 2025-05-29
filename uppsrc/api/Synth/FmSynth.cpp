@@ -25,7 +25,7 @@ void SynFmSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis
 	
 }
 
-bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	dev.sample_rate = ws.GetInt(".samplerate", 1024);
 	
 	#if 1

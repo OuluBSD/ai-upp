@@ -12,13 +12,13 @@ HandleSystemT<Dim>::HandleSystemT(Engine& m) :
 }
 
 template <class Dim>
-bool HandleSystemT<Dim>::Initialize() {
+bool HandleSystemT<Dim>::Initialize(const WorldState& ws) {
 	return true;
 }
 
 template <class Dim>
-void HandleSystemT<Dim>::Start() {
-	
+bool HandleSystemT<Dim>::Start() {
+	return true;
 }
 
 template <class Dim>
@@ -205,7 +205,7 @@ Image HandleSystemT<Dim>::DefaultCursor() {
 
 
 template <>
-bool HandleSystemT<CtxUpp2D>::Initialize() {
+bool HandleSystemT<CtxUpp2D>::Initialize(const WorldState& ws) {
 	RealizeScope();
 	return true;
 }

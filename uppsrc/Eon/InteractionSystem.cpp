@@ -38,7 +38,7 @@ bool InteractionListener::IsEnabled() const {
 
 
 
-bool InteractionSystem::Initialize() {
+bool InteractionSystem::Initialize(const WorldState& ws) {
 	
 	if (use_state_hmd) {
 		vr_spatial_interaction_manager.Create();

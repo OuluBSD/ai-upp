@@ -223,13 +223,14 @@ LinkTypeCls PipeOptSideLink::GetLinkTypeStatic() {
 
 
 IntervalPipeLink::~IntervalPipeLink() {
-	ASSERT(!flag.IsRunning());
+	ASSERT(flag.IsStopped());
 }
 
 bool IntervalPipeLink::Initialize(const WorldState& ws) {
+	ASSERT(!IsInitialized());
 	flag.Start(1);
 	//GetSink()->GetValue(0).SetMinQueueSize(5);
-	Thread::Start(THISBACK(IntervalSinkProcess));
+	Thread::Start([this]{this->IntervalSinkProcess();});
 	
 	return true;
 }
@@ -276,6 +277,8 @@ void IntervalPipeLink::IntervalSinkProcess() {
 			byte* mem = data.Begin();
 			int len = data.GetCount();
 			if (ForwardAsyncMem(mem, len)) {
+				if (!atom)
+					break;
 				if (atom->Consume(mem, len)) {
 					RTLOG("IntervalPipeLink::IntervalSinkProcess: consumed succesfully");
 				}

@@ -22,7 +22,7 @@ struct DefaultGuiAppComponent :
 	void operator=(const DefaultGuiAppComponent& t) {Panic("Can't copy DefaultGuiAppComponent");}
 	
 	void Serialize(Stream& e) override;
-	void Initialize() override;
+	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void Visit(Vis& v) override;
 	void Update(double dt) override;

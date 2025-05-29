@@ -104,12 +104,12 @@ struct VfsItem : Moveable<VfsItem> {
 	String name;
 	String type_str;
 	VfsItemType type = VFS_NULL;
-	void operator=(Value v) {Set(v);}
+	void operator=(Value v);
 	virtual Value Get();
 	virtual Value Get(Value key);
 	virtual Value GetKey(int i);
-	virtual void Set(Value v) {Panic("Not implemented");}
-	virtual void MapSet(Value v) {Panic("Not implemented");}
+	virtual void Set(Value v);
+	virtual void MapSet(Value v);
 	virtual Shared<VfsItem> GetMap();
 	virtual Shared<VfsItem> RealizeMap();
 	virtual Shared<VfsItem> At(int i);
@@ -132,8 +132,8 @@ struct SystemFS : VFS {
 };
 
 struct ValueFS : VFS {
-	ValueFS() {}
-	ValueFS(Value& v) : v(&v) {}
+	ValueFS();
+	ValueFS(Value& v);
 	
 	Shared<VfsItem> At(const VfsPath& p);
 	Shared<VfsItem> operator()(String);

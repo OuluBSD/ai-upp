@@ -196,7 +196,7 @@ void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visito
 	
 }
 
-bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -357,7 +357,7 @@ void HalSdl::ContextBase_Visit(NativeContextBase& dev, AtomBase&, Visitor& vis) 
 	
 }
 
-bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const WorldState& ws) {
 	RTLOG("HalSdl::ContextBase_Initialize");
 	return true;
 }
@@ -464,7 +464,7 @@ void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomB
 	
 }
 
-bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -752,7 +752,7 @@ void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&
 	v VISN(dev.accel);
 }
 
-bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	
 	if (!dev.accel.Initialize(a, ws))
 		return false;
@@ -911,7 +911,7 @@ void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, 
 	v VISN(dev.accel);
 }
 
-bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	
 	if (!dev.accel.Initialize(a, ws))
 		return false;
@@ -1171,7 +1171,7 @@ void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
+bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const WorldState&) {
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -1582,7 +1582,7 @@ void HalSdl::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {
 	delete dev;
 }
 
-bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const Eon::WorldState&) {
+bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const WorldState&) {
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
@@ -1700,7 +1700,7 @@ void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 	delete dev;
 }
 
-bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
 	
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
 	ASSERT(ev_ctx);

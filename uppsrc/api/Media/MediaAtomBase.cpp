@@ -19,7 +19,7 @@ void MediaAtomBaseT<Backend>::SetError(String s) {
 }
 
 template <class Backend>
-bool MediaAtomBaseT<Backend>::Initialize(const Eon::WorldState& ws) {
+bool MediaAtomBaseT<Backend>::Initialize(const WorldState& ws) {
 	//TODO // DevComponent::Initialize
 	AtomTypeCls type = GetType();
 	

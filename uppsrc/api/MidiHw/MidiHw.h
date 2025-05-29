@@ -54,7 +54,7 @@ template <class Mid> struct MidiHwSourceT : MidSource {
 		VIS_THIS(MidSource);
 	}
 	typename Mid::NativeSource* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Mid::Source_Create(dev))
 			return false;
 		if (!Mid::Source_Initialize(*dev, *this, ws))

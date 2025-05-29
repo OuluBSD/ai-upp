@@ -28,7 +28,7 @@ public:
 	float GetLastOut( int channel = 0 );
 	virtual float Tick( int channel = 0 ) = 0;
 	virtual AudioFrames& Tick( AudioFrames& frames, int channel = 0 ) = 0;
-	virtual void LoadState(const ArrayMap<String, Value>& state) {}
+	virtual void LoadState(const ValueMap& state) {}
 
 protected:
 

@@ -256,7 +256,7 @@ void VoidPollerSinkBase::Uninitialize() {
 		fail = true;
 	if (!fail) {LOG("VoidPollerSinkBase::Uninitialize: success!");}
 	else       {LOG("VoidPollerSinkBase::Uninitialize: fail :(");}
-	TODO//if (fail) GetEngine().SetFailed("VoidPollerSinkBase error");
+	if (fail) GetEngine().SetFailed("VoidPollerSinkBase error");
 	RemoveAtomFromUpdateList();
 }
 

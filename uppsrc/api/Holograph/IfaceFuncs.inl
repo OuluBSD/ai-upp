@@ -3,7 +3,7 @@
 
 static bool SinkDevice_Create(NativeSinkDevice*& dev);
 static void SinkDevice_Destroy(NativeSinkDevice*& dev);
-static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const Eon::WorldState&);
+static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const WorldState&);
 static bool SinkDevice_PostInitialize(NativeSinkDevice&, AtomBase&);
 static bool SinkDevice_Start(NativeSinkDevice&, AtomBase&);
 static void SinkDevice_Stop(NativeSinkDevice&, AtomBase&);

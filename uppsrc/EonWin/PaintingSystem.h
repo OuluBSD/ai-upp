@@ -67,7 +67,7 @@ public:
 
 protected:
     // System
-    void Start() override;
+    bool Start() override;
     void Update(double dt) override;
     void Stop() override;
 

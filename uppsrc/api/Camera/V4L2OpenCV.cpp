@@ -42,7 +42,7 @@ void CamV4L2OpenCV::Camera_Visit(NativeCamera& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool CamV4L2OpenCV::Camera_Initialize(NativeCamera& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool CamV4L2OpenCV::Camera_Initialize(NativeCamera& dev, AtomBase& a, const WorldState& ws) {
 	dev.cap = 0;
 	dev.time_step = 0;
 	dev.prev_frame_i = 0;

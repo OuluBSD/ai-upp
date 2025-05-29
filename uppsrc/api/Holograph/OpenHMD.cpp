@@ -68,7 +68,7 @@ void HoloOpenHMD::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 	delete dev;
 }
 
-bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	bool require_hmd = !ws.IsTrue(".device.optional.hmd", false);
 	bool require_left = !ws.IsTrue(".device.optional.left", true);
 	bool require_right = !ws.IsTrue(".device.optional.right", true);

@@ -43,7 +43,7 @@ public:
 
 protected:
     // System
-    void Start() override;
+    bool Start() override;
     void Stop() override;
 
     // IPredictionUpdateListener

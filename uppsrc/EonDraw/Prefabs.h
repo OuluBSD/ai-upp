@@ -4,9 +4,9 @@
 
 struct Gun : EntityPrefab<Transform, ModelComponent, ToolComponent>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::Gun);
 
@@ -16,9 +16,9 @@ struct Gun : EntityPrefab<Transform, ModelComponent, ToolComponent>
 
 struct PaintBrush : EntityPrefab<Transform, ModelComponent, ToolComponent>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::PaintBrush);
 
@@ -28,9 +28,9 @@ struct PaintBrush : EntityPrefab<Transform, ModelComponent, ToolComponent>
 
 struct DummyToolModel : EntityPrefab<Transform, ModelComponent, ToolComponent>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<ModelComponentPtr>()->MakeCylinder(vec3(0,0,0), 0.2f, 1.0f);
 
@@ -40,9 +40,9 @@ struct DummyToolModel : EntityPrefab<Transform, ModelComponent, ToolComponent>
 
 struct PaintStroke : EntityPrefab<Transform, ModelComponent, PaintStrokeComponent>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<ModelComponentPtr>()->Create();
 
@@ -52,9 +52,9 @@ struct PaintStroke : EntityPrefab<Transform, ModelComponent, PaintStrokeComponen
 
 struct Bullet : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<RigidBodyPtr>()->acceleration = e.val.FindOwner<Engine>()->Get<PhysicsSystem>()->gravity;
         components.Get<ModelComponentPtr>()->MakeBall(vec3(0,0,0), 0.2f);
@@ -67,9 +67,9 @@ struct Bullet : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody>
 
 struct Baseball : EntityPrefab<Transform, ModelComponent, RigidBody, PhysicsBody>
 {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
+        auto components = EntityPrefab::Make(e, ws);
 
         components.Get<RigidBodyPtr>()->acceleration = e.val.FindOwner<Engine>()->Get<PhysicsSystem>()->gravity;
         components.Get<ModelComponentPtr>()->SetPrefabModel(KnownModelNames::Baseball);

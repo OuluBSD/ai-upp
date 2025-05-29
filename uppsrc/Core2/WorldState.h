@@ -1,5 +1,5 @@
-#ifndef _AICore2_WorldState_h_
-#define _AICore2_WorldState_h_
+#ifndef _Core2_WorldState_h_
+#define _Core2_WorldState_h_
 
 
 
@@ -52,8 +52,7 @@ protected:
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
 	
-	
-	ArrayMap<String, Value> values;
+	ValueMap values;
 	
 public:
 	
@@ -64,14 +63,14 @@ public:
 	bool Set(int index, String value);
 	bool Set(const String& key, bool value);
 	bool Set(const String& key, String value);
-	void SetTrue(const String& key) {Set(key, true);}
-	void SetFalse(const String& key) {Set(key, false);}
+	void SetTrue(const String& key);
+	void SetFalse(const String& key);
 	bool IsTrue(const String& key, bool def=false) const;
 	bool IsFalse(const String& key, bool def=true) const;
 	bool IsFalse(int idx) const;
 	bool IsUndefined(const String& key) const;
 	bool IsUndefined(int idx) const;
-	bool IsEmpty() const {return values.IsEmpty();}
+	bool IsEmpty() const;
 	int GetValueCount() const;
 	void FindKeys(String key_left, Index<String>& keys) const;
 	String Get(const String& key, String def="") const;
@@ -90,7 +89,7 @@ public:
 	
 	WorldState& operator=(const WorldState& src);
 	
-	const ArrayMap<String, Value>& GetValues() const {return values;}
+	Value GetValues() const {return values;}
 	
 	bool operator==(const WorldState& ws) const {return GetHashValue() == ws.GetHashValue();}
 	bool operator!=(const WorldState& ws) const {return GetHashValue() != ws.GetHashValue();}

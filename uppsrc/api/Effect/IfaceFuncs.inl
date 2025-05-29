@@ -3,7 +3,7 @@
 
 static bool Effect_Create(NativeEffect*& dev);
 static void Effect_Destroy(NativeEffect*& dev);
-static bool Effect_Initialize(NativeEffect&, AtomBase&, const Eon::WorldState&);
+static bool Effect_Initialize(NativeEffect&, AtomBase&, const WorldState&);
 static bool Effect_PostInitialize(NativeEffect&, AtomBase&);
 static bool Effect_Start(NativeEffect&, AtomBase&);
 static void Effect_Stop(NativeEffect&, AtomBase&);

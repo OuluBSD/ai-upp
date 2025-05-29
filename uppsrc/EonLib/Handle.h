@@ -13,7 +13,7 @@ public:
 	CLASSTYPE(HandleEventsBase)
 	HandleEventsBase(VfsValue& n);
 	
-	bool			Initialize(const Eon::WorldState& ws) override;
+	bool			Initialize(const WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;
@@ -67,7 +67,7 @@ public:
 	
 	bool			IsScreenMode() const {return screen_id >= 0;}
 	
-	bool			Initialize(const Eon::WorldState& ws) override;
+	bool			Initialize(const WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Stop() override;
 	void			Uninitialize() override;
@@ -104,7 +104,7 @@ public:
 	CLASSTYPE(HandleVideoBase)
 	HandleOglBase(VfsValue& n);
 	
-	bool			Initialize(const Eon::WorldState& ws) override;
+	bool			Initialize(const WorldState& ws) override;
 	bool			PostInitialize() override;
 	void			Uninitialize() override;
 	bool			IsReady(PacketIO& io) override;

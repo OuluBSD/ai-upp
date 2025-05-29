@@ -12,7 +12,7 @@ void ThrowingInteractionSystemBase::Visit(Vis& v) {
 	VIS_THIS(ToolSys);
 }
 
-bool ThrowingInteractionSystemBase::Initialize() {
+bool ThrowingInteractionSystemBase::Initialize(const WorldState& ws) {
 	ball_holding_distance = 0.5f;
 	
 	if (!InteractionListener::Initialize(GetEngine(), this))
@@ -43,7 +43,7 @@ String ThrowingInteractionSystemBase::GetDisplayName() const {
 }
 
 EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
-	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool());
+	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool(), ws_at_init);
 	selector->Get<ModelComponent>().SetPrefabModel("Baseball");
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
@@ -83,7 +83,7 @@ void ThrowingInteractionSystemBase::OnControllerPressed(const GeomEvent& e) {
 		for (ThrowingComponentPtr& throwing : comps) {
 			if (!throwing->IsEnabled()) continue;
 			
-			throwing->ball_object = CreatePrefab<Baseball>(*GetPool());
+			throwing->ball_object = CreatePrefab<Baseball>(*GetPool(), ws_at_init);
 			throwing->ball_object->Get<Transform>().size = vec3{ throwing->scale };
 			throwing->ball_object->Get<RigidBody>().SetEnabled(false);
 			throwing->ball_object->Get<PhysicsBody>().BindDefault();
@@ -187,7 +187,7 @@ void ThrowingComponent::Visit(Vis& v) {
 	v & ball_object;
 }
 
-void ThrowingComponent::Initialize() {
+bool ThrowingComponent::Initialize(const WorldState& ws) {
 	ToolComponentPtr tool = GetEntity()->val.Find<ToolComponent>();
 	if (tool)
 		tool->AddTool(this);
@@ -195,6 +195,8 @@ void ThrowingComponent::Initialize() {
 	Ptr<ThrowingInteractionSystemBase> sys = GetEngine().TryGet<ThrowingInteractionSystemBase>();
 	if (sys)
 		sys-> Attach(this);
+	
+	return true;
 }
 
 void ThrowingComponent::Uninitialize() {

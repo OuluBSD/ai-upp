@@ -123,7 +123,7 @@ template <class Syn> struct SynthInstrumentT : SynInstrument {
 		VIS_THIS(SynInstrument);
 	}
 	typename Syn::NativeInstrument* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Syn::Instrument_Create(dev))
 			return false;
 		if (!Syn::Instrument_Initialize(*dev, *this, ws))

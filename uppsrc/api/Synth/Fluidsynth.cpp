@@ -62,7 +62,7 @@ void SynFluidsynth_HandleEvent(SynFluidsynth::NativeInstrument& dev, const MidiI
 void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase* a);
 
 
-bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Eon::WorldState& ws) {
+bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	int cache = 6;
 	dev.packet_count = 0;
 	dev.sample_rate = 128;

@@ -6,7 +6,6 @@ NAMESPACE_UPP
 
 
 void MachineEcsInit(Engine& mach) {
-	
 	#ifdef flagPHYSICS
 	#ifdef flagODE
 	mach.FindAdd<SystemT<OdeFys>>();
@@ -14,13 +13,12 @@ void MachineEcsInit(Engine& mach) {
 	mach.FindAdd<SystemT<TosFys>>();
 	#endif
 	#endif
-	
-	Engine::WhenInitialize << callback(EngineEcsInit);
 }
 
 void EngineEcsInit(Engine& eng) {
+    eng.WhenInitialize << callback(EngineEcsInit);
     
-	eng.GetAdd<RegistrySystem>();
+	//eng.GetAdd<RegistrySystem>();
 	eng.GetAdd<InteractionSystem>();
 	
 	eng.GetAdd<RenderingSystem>();

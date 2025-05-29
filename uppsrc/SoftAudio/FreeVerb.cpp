@@ -51,7 +51,7 @@ FreeVerb::FreeVerb() {
 FreeVerb::~FreeVerb() {
 }
 
-void FreeVerb::LoadState(const ArrayMap<String, Value>& state) {
+void FreeVerb::LoadState(const ValueMap& state) {
 	int i;
 	
 	i = state.Find(".mix");

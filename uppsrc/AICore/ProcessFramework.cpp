@@ -239,12 +239,23 @@ bool Agent::Run(MsgCb WhenMessage) {
 	return succ;
 }
 
-void Agent::Start(MsgCb WhenMessage, Event<bool> WhenStop) {
+void Agent::Set(MsgCb WhenMessage, Event<bool> WhenStop) {
+	this->WhenMessage = WhenMessage;
+	this->WhenStop = WhenStop;
+}
+
+bool Agent::Start(MsgCb WhenMessage, Event<bool> WhenStop) {
+	Set(WhenMessage, WhenStop);
+	return Start();
+}
+
+bool Agent::Start() {
 	esc.Stop();
-	Thread::Start([this,WhenMessage,WhenStop]{
+	Thread::Start([this]{
 		bool succ = Run(WhenMessage);
 		WhenStop(succ);
 	});
+	return true;
 }
 
 void Agent::Stop() {
@@ -255,10 +266,11 @@ INITIALIZER_COMPONENT(Agent);
 
 
 
-void AgentInteractionSystem::Start() {
-	if (flag.IsRunning()) return;
+bool AgentInteractionSystem::Start() {
+	if (flag.IsRunning()) return true;
 	flag.Start();
 	Thread::Start(THISBACK(Runner));
+	return true;
 }
 
 void AgentInteractionSystem::Stop() {

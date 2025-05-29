@@ -142,7 +142,7 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 		VIS_THIS(ScrSinkDevice);
 	}
 	typename Scr::NativeSinkDevice* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Scr::SinkDevice_Create(dev))
 			return false;
 		if (!Scr::SinkDevice_Initialize(*dev, *this, ws))
@@ -192,7 +192,7 @@ template <class Scr> struct ScreenContextT : ScrContext {
 		VIS_THIS(ScrContext);
 	}
 	typename Scr::NativeContext* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Scr::Context_Create(dev))
 			return false;
 		if (!Scr::Context_Initialize(*dev, *this, ws))
@@ -242,7 +242,7 @@ template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 		VIS_THIS(ScrEventsBase);
 	}
 	typename Scr::NativeEventsBase* dev = 0;
-	bool Initialize(const Eon::WorldState& ws) override {
+	bool Initialize(const WorldState& ws) override {
 		if (!Scr::EventsBase_Create(dev))
 			return false;
 		if (!Scr::EventsBase_Initialize(*dev, *this, ws))

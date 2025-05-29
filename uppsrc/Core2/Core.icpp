@@ -1,0 +1,18 @@
+#include "Core.h"
+
+INITBLOCK {
+	using namespace Upp;
+	
+	REGISTER_SYSTEM_ATOM(LinkSystem)
+	REGISTER_SYSTEM_ATOM(PacketTracker)
+	
+	#define ECS_CTX(dev, val, prefix) \
+		VfsValueExtFactory::RegisterExchange<DefaultExchangePoint>("DefaultExchangePoint", DevCls::dev, ValCls::val);
+	#define IFACE_CTX_CLS(dev, value, prefix) ECS_CTX(dev, value, prefix)
+	#define IFACE(x) DEV_IFACE(x)
+	IFACE_LIST
+	#undef IFACE
+	#undef IFACE_CTX_CLS
+	#undef ECS_CTX
+	
+}

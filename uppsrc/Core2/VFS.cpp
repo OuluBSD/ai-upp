@@ -432,4 +432,30 @@ VfsItemType SystemFS::CheckItem(const VfsPath& rel_path) {
 		return VFS_NULL;
 }
 
+
+
+
+
+
+
+void VfsItem::operator=(Value v) {Set(v);}
+Value VfsItem::Get() {Panic("Not implemented"); return Value();}
+Value VfsItem::Get(Value key) {Panic("Not implemented"); return Value();}
+Value VfsItem::GetKey(int i) {Panic("Not implemented"); return Value();}
+void VfsItem::Set(Value v) {Panic("Not implemented");}
+void VfsItem::MapSet(Value v) {Panic("Not implemented");}
+Shared<VfsItem> VfsItem::GetMap() {Panic("Not implemented"); return MakeShared<VfsItem>();}
+Shared<VfsItem> VfsItem::RealizeMap() {Panic("Not implemented"); return MakeShared<VfsItem>();}
+Shared<VfsItem> VfsItem::At(int i) {Panic("Not implemented"); return MakeShared<VfsItem>();}
+int VfsItem::GetCount() const {Panic("Not implemented"); return 0;}
+
+
+ValueFS::ValueFS() {}
+ValueFS::ValueFS(Value& v) : v(&v) {}
+Shared<VfsItem> ValueFS::At(const VfsPath& p) {Panic("Not implemented"); return MakeShared<VfsItem>();}
+Shared<VfsItem> ValueFS::operator()(String) {Panic("Not implemented"); return MakeShared<VfsItem>();}
+bool ValueFS::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items)  {Panic("Not implemented"); return false;}
+VfsItemType ValueFS::CheckItem(const VfsPath& rel_path)  {Panic("Not implemented"); return VFS_NULL;}
+
+
 END_UPP_NAMESPACE

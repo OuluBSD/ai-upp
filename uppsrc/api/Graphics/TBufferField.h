@@ -27,7 +27,7 @@ public:
 	void Visit(Vis& v) {v VISN(buf);}
 	
 	void ClearPtr() {buf.ClearPtr();}
-	bool Initialize(AtomBase& a, const Eon::WorldState& ws);
+	bool Initialize(AtomBase& a, const WorldState& ws);
 	bool PostInitialize();
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz);
 	

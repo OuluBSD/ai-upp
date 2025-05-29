@@ -24,8 +24,8 @@ protected:
 	Vector<Gu::GuboManager*> gubo_scopes;
 	
 protected:
-    bool Initialize() override;
-    void Start() override;
+    bool Initialize(const WorldState&) override;
+    bool Start() override;
     void Update(double dt) override;
     void Stop() override;
     void Uninitialize() override;

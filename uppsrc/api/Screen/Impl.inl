@@ -17,7 +17,7 @@ void CLASSNAME::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Vis& vis) {
 	
 }
 
-bool CLASSNAME::EventsBase_Initialize(NativeEventsBase& ev, AtomBase& a, const Eon::WorldState& ws) {
+bool CLASSNAME::EventsBase_Initialize(NativeEventsBase& ev, AtomBase& a, const WorldState& ws) {
 	auto ctx_ = a.val.FindOwnerWithCast<CONTEXT>();
 	ASSERT(ctx_);
 	if (!ctx_) {RTLOG("error: could not find X11 context"); return false;}

@@ -1011,9 +1011,52 @@ bool IsClose(double a, double b) {
 	}
 }
 
-void RunningFlagSingle::Stop(int wait_ms) {running = false; while (!stopped) Sleep(wait_ms);}
-void RunningFlag::Stop() {running = false; while (workers_running > 0) Sleep(sleep_time);}
-void RunningFlag::Wait() {while ((int)workers_running != 0) Sleep(100);}
+RunningFlagSingle::RunningFlagSingle() {}
+bool RunningFlagSingle::IsStopped() const {return stopped;}
+bool RunningFlagSingle::IsRunning() const { return running; }
+void RunningFlagSingle::SetStopped() { stopped = true; }
+void RunningFlagSingle::SetNotRunning() { running = false; }
+void RunningFlagSingle::Start()
+{
+	running = true;
+	stopped = false;
+}
+void RunningFlagSingle::Stop(int wait_ms)
+{
+	running = false;
+	while(!stopped)
+		Sleep(wait_ms);
+}
+
+RunningFlag::RunningFlag() { workers_running = 0; }
+bool RunningFlag::IsStopped() const {return workers_running == 0;}
+void RunningFlag::Stop()
+{
+	running = false;
+	while(workers_running > 0)
+		Sleep(sleep_time);
+}
+void RunningFlag::Wait()
+{
+	while((int)workers_running != 0)
+		Sleep(100);
+}
+void RunningFlag::Start(int count)
+{
+	Stop();
+	running = true;
+	workers_running = count;
+}
+void RunningFlag::SetNotRunning() { running = false; }
+void RunningFlag::IncreaseRunning() { workers_running++; }
+int RunningFlag::DecreaseRunning()
+{
+	int r = workers_running--;
+	if(workers_running <= 1)
+		running = false;
+	return r - 1;
+}
+bool RunningFlag::IsRunning() const { return running; }
 
 bool CommandLineArguments::IsArg(char c) const {
 	for (const CmdInput& in : inputs) {

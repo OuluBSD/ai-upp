@@ -425,6 +425,7 @@ public:
 	const Value& operator[](const int key) const     { return operator[](Value(key)); }
 	const Value& operator[](const Id& key) const     { return operator[](Value(key.ToString())); }
 
+	Value Get(const Value& key, Value def);
 	Value& GetAdd(const Value& key)                  { return UnShare().GetAdd(key); }
 	Value& operator()(const Value& key)              { return GetAdd(key); }
 	Value& operator()(const String& key)             { return operator()(Value(key)); }

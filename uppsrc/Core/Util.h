@@ -540,11 +540,12 @@ class RunningFlagSingle {
 	bool running = false, stopped = true;
 	
 public:
-	RunningFlagSingle() {}
-	bool IsRunning() const {return running;}
-	void SetStopped() {stopped = true;}
-	void SetNotRunning() {running = false;}
-	void Start() {running = true; stopped = false;}
+	RunningFlagSingle();
+	bool IsRunning() const;
+	bool IsStopped() const;
+	void SetStopped();
+	void SetNotRunning();
+	void Start();
 	void Stop(int wait_ms=100);
 	
 };
@@ -554,13 +555,14 @@ struct RunningFlag {
 	bool running = false;
 	Atomic workers_running;
 	
-	RunningFlag() {workers_running = 0;}
-	void Start(int count) {Stop(); running = true; workers_running = count;}
+	RunningFlag();
+	void Start(int count);
 	void Stop();
-	void SetNotRunning() {running = false;}
-	void IncreaseRunning() {workers_running++;}
-	int DecreaseRunning() {int r = workers_running--; if (workers_running == 0) running = false; return r-1;}
-	bool IsRunning() const {return running;}
+	void SetNotRunning();
+	void IncreaseRunning();
+	int DecreaseRunning();
+	bool IsRunning() const;
+	bool IsStopped() const;
 	void Wait();
 };
 
@@ -698,6 +700,7 @@ template <class T> hash_t TypedStringHasher(const char* s) {
 		void Chk(String s) {
 			if (s.GetHashValue() != h)
 				Panic("TypedStringHasher: fatal error: hash differs");
+				// note: use only specific c++ classpath to avoid this
 		}
 	};
 	static Hasher h(s);

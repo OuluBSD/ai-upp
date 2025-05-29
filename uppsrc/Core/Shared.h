@@ -36,7 +36,7 @@ struct RefTemplate : public RefBase {
 
 
 
-template <class T, class Base=RefBase>
+template <class T, class Base=RefTemplate<T>>
 class Shared : Moveable<Shared<T>> {
 	
 protected:
@@ -53,7 +53,11 @@ public:
 	Shared(Shared&& s) {r = s.r; s.r = NULL; o = s.o; s.o = NULL;}
 	Shared(const Shared& o) {*this = o;}
 	Shared(T* o, Base* r) : o(o), r(r) {
-		// if (r) r->Inc(); // NO! assume already referenced:
+		ASSERT(r->GetRefCount() > 0);
+	}
+	Shared(T* o) : o(o) {
+		Base* r = new Base;
+		r->obj = o;
 		ASSERT(r->GetRefCount() > 0);
 	}
 	Shared(const Nuller&) {}

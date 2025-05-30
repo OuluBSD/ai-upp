@@ -92,7 +92,7 @@ void ConceptualFrameworkNavigator::Data() {
 }
 
 void ConceptualFrameworkNavigator::DataAll(bool forced) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.release)
 		return;
@@ -134,7 +134,7 @@ void ConceptualFrameworkNavigator::DataAll(bool forced) {
 }
 
 void ConceptualFrameworkNavigator::DataFramework() {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	TODO
 	#if 0
@@ -236,7 +236,7 @@ void ConceptualFrameworkNavigator::DataFramework() {
 }
 
 void ConceptualFrameworkNavigator::DataStory() {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor()) {
 		story.colors.SetCount(0);
@@ -284,7 +284,7 @@ void ConceptualFrameworkNavigator::DataStory() {
 }
 
 void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor())
 		return;
@@ -305,7 +305,8 @@ void ConceptualFrameworkNavigator::GetElements(ConceptualFrameworkArgs& args) {
 }
 
 int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
-	DatasetPtrs mp = const_cast<ConceptualFrameworkNavigator&>(*this).GetDataset();
+	DatasetPtrs mp;
+	const_cast<ConceptualFrameworkNavigator&>(*this).GetDataset(mp);
 	
 	if (!mp.release || !cfs.IsCursor() || !stories.IsCursor())
 		return 0;
@@ -321,7 +322,7 @@ int64 ConceptualFrameworkNavigator::GetBeliefUniq() const {
 }
 
 void ConceptualFrameworkNavigator::OnValueChange() {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!cfs.IsCursor())
 		return;
@@ -376,7 +377,7 @@ void ConceptualFrameworkNavigator::MoveSortColumn(int i) {
 }
 
 void ConceptualFrameworkNavigator::Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	TODO
 	#if 0

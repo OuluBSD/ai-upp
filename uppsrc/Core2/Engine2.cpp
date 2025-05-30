@@ -73,10 +73,7 @@ bool Engine::Start(String app_name, String override_eon_file, VectorMap<String,V
 	if (is_failed)
 		return false;
 	
-	if (!break_addr)
-		Start(eon_script, eon_file, eon_params);
-	else
-		Start(eon_script, eon_file, eon_params, 1, break_addr);
+	Start(eon_script, eon_file, eon_params, 1, break_addr);
 	
 	return !is_failed;
 }

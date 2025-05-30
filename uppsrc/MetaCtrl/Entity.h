@@ -7,7 +7,7 @@ class ToolAppCtrl;
 struct VfsSrcFile;
 
 struct ComponentCtrl : VfsValueExtCtrl, DatasetProvider {
-	DatasetPtrs GetDataset() const override;
+	void GetDataset(DatasetPtrs&) const override;
 };
 
 struct VirtualNode : Moveable<VirtualNode> {
@@ -113,7 +113,7 @@ public:
 	typedef VNodeComponentCtrl CLASSNAME;
 	VNodeComponentCtrl(ValueVFSComponentCtrl&, const VirtualNode& vnode);
 	
-	DatasetPtrs GetDataset() const override;
+	void GetDataset(DatasetPtrs&) const override;
 	DatasetPtrs RealizeEntityVfsObject(const VirtualNode& vnode, hash_t type_hash);
 	hash_t GetTypeHash() const {return type_hash;}
 	virtual void Data() {}
@@ -150,7 +150,7 @@ public:
 	void OnEdit();
 	void OnEditValue();
 	void DataCursor();
-	DatasetPtrs GetDataset() const override;
+	void GetDataset(DatasetPtrs&) const override;
 	
 	Event<> WhenValueChange;
 };

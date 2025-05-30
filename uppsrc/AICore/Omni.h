@@ -1,15 +1,7 @@
 #ifndef _AICore_Omni_h_
 #define _AICore_Omni_h_
 
-
-
-
-struct AiThread : Pte<AiThread> {
-	virtual ~AiThread() {}
-	virtual void Visit(Vis& v) = 0;
-};
-
-class CompletionThread : public virtual AiThread {
+struct CompletionThread : Component {
 	
 public:
 	struct Session {
@@ -32,7 +24,8 @@ public:
 	Array<Session> sessions;
 	
 public:
-	typedef CompletionThread CLASSNAME;
+	CLASSTYPE(CompletionThread);
+	CompletionThread(VfsValue& n) : Component(n) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -40,14 +33,8 @@ public:
 	}
 };
 
-/*
-ChatAgent
-	- inter-agent-communication
-ChatDirectorAgent
-*/
-class ChatThread : public virtual AiThread {
+struct ChatThread : Component {
 	
-public:
 	struct Attachment : Moveable<Attachment> {
 		String mime;
 		String filepath; // if any
@@ -97,7 +84,8 @@ public:
 	Array<Session> sessions;
 	
 public:
-	typedef ChatThread CLASSNAME;
+	CLASSTYPE(ChatThread);
+	ChatThread(VfsValue& n) : Component(n) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -106,7 +94,7 @@ public:
 	}
 };
 
-struct StageThread : VfsValueExt {
+struct StageThread : Component {
 	
 	/*
 	struct Stage {
@@ -136,7 +124,7 @@ struct StageThread : VfsValueExt {
 	
 public:
 	CLASSTYPE(StageThread)
-	StageThread(VfsValue& n) : VfsValueExt(n) {}
+	StageThread(VfsValue& n) : Component(n) {}
 	
 	void Visit(Vis& v) override {
 		v.Ver(1)
@@ -144,63 +132,49 @@ public:
 			("stage_name_presets", stage_name_presets)
 		;
 	}
-	
 };
 
-INITIALIZE(StageThread)
 
-struct ChainThread : VfsValueExt {
+struct ChainThread : Component {
 	CLASSTYPE(ChainThread)
-	ChainThread(VfsValue& n) : VfsValueExt(n) {}
+	ChainThread(VfsValue& n) : Component(n) {}
 	void Visit(Vis& v) override {
 		v.Ver(0)
 			;
 	}
-	
 };
 
-INITIALIZE(ChainThread)
-
-class SpeechTranscriptionThread : public virtual AiThread {
-	
-public:
-	typedef SpeechTranscriptionThread CLASSNAME;
-	
+struct SpeechTranscriptionThread : Component {
+	CLASSTYPE(SpeechTranscriptionThread)
+	SpeechTranscriptionThread(VfsValue& v) : Component(v) {}
 	void Visit(Vis& v) override {v.Ver(0);}
 };
 
-class SpeechGenerationThread : public virtual AiThread {
-	
-public:
-	typedef SpeechGenerationThread CLASSNAME;
-	
+struct SpeechGenerationThread : Component {
+	CLASSTYPE(SpeechGenerationThread)
+	SpeechGenerationThread(VfsValue& v) : Component(v) {}
 	void Visit(Vis& v) override {v.Ver(0);}
 };
 
-class ImageGenerationThread : public virtual AiThread {
-	
-public:
-	typedef ImageGenerationThread CLASSNAME;
-	
+struct ImageGenerationThread : Component {
+	CLASSTYPE(ImageGenerationThread)
+	ImageGenerationThread(VfsValue& v) : Component(v) {}
 	void Visit(Vis& v) override {v.Ver(0);}
 };
 
-class ImageVisionThread : public virtual AiThread {
-	
-public:
-	typedef ChatThread CLASSNAME;
-	
+struct ImageVisionThread : Component {
+	CLASSTYPE(ChatThread)
+	ImageVisionThread(VfsValue& v) : Component(v) {}
 	void Visit(Vis& v) override {v.Ver(0);}
 };
 
-class MetaEnvThread : public virtual AiThread {
-	
-public:
-	typedef MetaEnvThread CLASSNAME;
-	
+struct MetaEnvThread : Component {
+	CLASSTYPE(MetaEnvThread)
+	MetaEnvThread(VfsValue& v) : Component(v) {}
 	void Visit(Vis& v) override {v.Ver(0);}
 };
 
+#if 0
 class OmniThread :
 	public CompletionThread,
 	public ChatThread,
@@ -223,7 +197,7 @@ public:
 	
 	static OmniThread& Single() {static OmniThread m; return m;}
 };
-
+#endif
 
 
 

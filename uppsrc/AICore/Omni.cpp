@@ -1,5 +1,6 @@
 #include "AICore.h"
 
+#if 0
 
 NAMESPACE_UPP
 
@@ -34,9 +35,8 @@ void OmniThread::OnDiscussionEnd(SoundDiscussion&) {
 	TODO
 }
 
-INITIALIZER_COMPONENT(StageThread)
 
-
-INITIALIZER_COMPONENT(ChainThread)
 
 END_UPP_NAMESPACE
+
+#endif

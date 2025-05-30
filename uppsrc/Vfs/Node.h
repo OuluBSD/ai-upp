@@ -18,8 +18,8 @@ class Field;
 class Class;
 class Namespace;
 class CompilationUnit;
-struct PackageFile;
-struct Package;
+struct PkgStubFile;
+struct PkgStub;
 
 
 struct CodeArgs2 {
@@ -27,8 +27,8 @@ struct CodeArgs2 {
 	bool have_impl = false;
 	bool have_inline = false;
 	int indent = 0;
-	Package* pkg = 0;
-	PackageFile* file = 0;
+	PkgStub* pkg = 0;
+	PkgStubFile* file = 0;
 };
 
 typedef enum {

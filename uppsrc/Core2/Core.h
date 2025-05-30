@@ -22,6 +22,7 @@ NAMESPACE_UPP
 #include "RTuple.h"
 #include "TypeTraits.h"
 #include "TypeTraits2.h"
+#include "Audio.h"
 
 #include "GEnums.h"
 
@@ -42,6 +43,7 @@ NAMESPACE_UPP
 #include "Atom.h"
 #include "Link.h"
 #include "Engine.h"
+#include "Engine2.h"
 #include "Verifier.h"
 #include "PacketTracker.h"
 #include "LinkSystem.h"

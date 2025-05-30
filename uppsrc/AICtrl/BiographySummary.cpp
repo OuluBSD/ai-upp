@@ -44,7 +44,7 @@ void BiographyCtrl::Summary_DataCategory() {
 	REF(summary, blocks);
 	REF(summary, block);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
 		blocks.Clear();
 		return;
@@ -90,7 +90,7 @@ void BiographyCtrl::Summary_DataCategory() {
 void BiographyCtrl::Summary_DataYear() {
 	REF(summary, blocks);
 	REF(summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
@@ -114,7 +114,7 @@ void BiographyCtrl::Summary_DataYear() {
 void BiographyCtrl::Summary_UpdateElements() {
 	REF(summary, blocks);
 	REF(summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !blocks.IsCursor())
 		return;
@@ -139,7 +139,7 @@ void BiographyCtrl::Summary_UpdateElements() {
 void BiographyCtrl::Summary_OnValueChange() {
 	REF(summary, blocks);
 	REF(summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.owner || !mp.biography ||!categories.IsCursor() || !blocks.IsCursor())
 		return;
@@ -203,7 +203,7 @@ void BiographyCtrl::Summary_ToolMenu(Bar& bar) {
 }
 
 void BiographyCtrl::Summary_Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	if (mp.editable_biography) {

@@ -18,7 +18,7 @@ void ReleaseInfoCtrl::Clear() {
 }
 
 void ReleaseInfoCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	Clear();
 	
@@ -33,7 +33,7 @@ void ReleaseInfoCtrl::Data() {
 }
 
 void ReleaseInfoCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	if (p.release) {
 		Release& r = *p.release;

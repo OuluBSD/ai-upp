@@ -1,5 +1,5 @@
-#ifndef _ide_Meta_EcsLang_h_
-#define _ide_Meta_EcsLang_h_
+#ifndef _ide_Vfs_EcsLang_h_
+#define _ide_Vfs_EcsLang_h_
 
 
 class EcsIndexer : public IndexerExtension {

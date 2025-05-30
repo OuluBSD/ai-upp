@@ -655,7 +655,7 @@ bool SplitterLink::ProcessPackets(PacketIO& io) {
 			#if HAVE_PACKETTIMING
 			src.p->CopyTiming(*sink.p);
 			#endif
-			if (Convert(sink.p, src.p)) {
+			if (ConvertPacket(sink.p, src.p)) {
 				RTLOG("SplitterLink::ProcessPackets: converted packet: " << src.p->ToString());
 			}
 			else {

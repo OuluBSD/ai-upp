@@ -1,7 +1,38 @@
 #include "Eon.h"
 
 NAMESPACE_UPP
+
+extern void (*Eon_PostLoadString)(Engine& eng, String script_str);
+extern bool (*Eon_AddScriptLoader)(Engine& eng);
+
 namespace Eon {
+
+void PostLoadString(Engine& eng, String script_str) {
+	Ptr<Eon::ScriptLoader> script = eng.FindAdd<Eon::ScriptLoader>();
+	if (script)
+		script->PostLoadString(script_str);
+}
+
+bool AddScriptLoader(Engine& eng) {
+	Ptr<Eon::ScriptLoader> script = eng.FindAdd<Eon::ScriptLoader>();
+	if (!script) {
+		LOG("No ScriptLoader added to machine and the machine is already started");
+		return false;
+	}
+	
+	#if 0
+	#ifdef flagGUI
+    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
+    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
+    #endif
+    #endif
+    return true;
+}
+
+INITBLOCK {
+	Eon_PostLoadString = &PostLoadString;
+	Eon_AddScriptLoader = &AddScriptLoader;
+}
 
 
 String Id::ToString() const {
@@ -48,29 +79,18 @@ void ScriptLoader::LogMessage(ProcMsg msg) {
 }
 
 bool ScriptLoader::Initialize(const WorldState& ws) {
-	Engine& mach = GetEngine();
 	
 	if (!WhenMessage)
 		WhenMessage << THISBACK(LogMessage);
 	
-	#if 0
-	es = mach.Find<LoopStore>();
-	if (!es) {
-		LOG("ScriptLoader requires LoopStore present in machine");
-		return false;
-	}
-	
-	ss = mach.Find<SpaceStore>();
-	if (!ss) {
-		LOG("ScriptLoader requires SpaceStore present in machine");
-		return false;
-	}
-	#endif
-	
+	RTLOG("ScriptLoader::Initialize success!");
+	return true;
+}
+
+bool ScriptLoader::PostInitialize() {
 	if (!DoPostLoad())
 		return false;
 	
-	RTLOG("ScriptLoader::Initialize success!");
 	return true;
 }
 

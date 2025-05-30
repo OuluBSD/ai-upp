@@ -50,7 +50,7 @@ void BiographyPlatformCtrl::Audience::Ctor() {
 }
 
 void BiographyPlatformCtrl::Audience::Data() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.biography) return;
 	INHIBIT_CURSOR(roles);
 	if (!roles.IsCursor()) roles.SetCursor(0);
@@ -87,7 +87,7 @@ void BiographyPlatformCtrl::Audience::DataRole() {
 }
 
 void BiographyPlatformCtrl::Audience::DataProfile() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	
 	if (!roles.IsCursor() || !profiles.IsCursor())
 		return;
@@ -126,7 +126,7 @@ void BiographyPlatformCtrl::Audience::DataProfile() {
 }
 
 void BiographyPlatformCtrl::Audience::DataResponse() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	
 	if (!roles.IsCursor() || !profiles.IsCursor() || !responses.IsCursor())
 		return;
@@ -170,7 +170,7 @@ void BiographyPlatformCtrl::Audience::EntryListMenu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Audience::Do(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	AudienceProcess& ss = AudienceProcess::Get(*mp.profile, *mp.snap);

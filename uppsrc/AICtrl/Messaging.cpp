@@ -54,7 +54,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::Ctor() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::DataPlatform() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor()) {
 		entries.Clear();
 		threads.Clear();
@@ -86,7 +86,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::DataPlatform() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::DataEntry() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !entries.IsCursor()) {
 		threads.Clear();
 		comments.Clear();
@@ -121,7 +121,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::DataEntry() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::DataThread() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !entries.IsCursor() || !threads.IsCursor()) {
 		comments.Clear();
 		ClearEntry();
@@ -162,7 +162,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::DataThread() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::DataComment() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor() || !comments.IsCursor()) {
 		ClearEntry();
 		return;
@@ -208,7 +208,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::Clear() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::OnValueChange() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -258,7 +258,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::OnValueChange() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::AddEntry() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -272,7 +272,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::AddEntry() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::RemoveEntry() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -287,7 +287,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::RemoveEntry() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::AddThread() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -302,7 +302,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::AddThread() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::RemoveThread() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -319,7 +319,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::RemoveThread() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::AddComment() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !threads.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -337,7 +337,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::AddComment() {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::RemoveComment() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!o.p.platforms.IsCursor() || !threads.IsCursor() || !entries.IsCursor())
 		return;
 	Profile& prof = *p.profile;
@@ -386,7 +386,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::ToolMenu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::PasteResponse(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile) return;
 	if (!o.p.platforms.IsCursor() || !threads.IsCursor()) return;
 	
@@ -430,7 +430,7 @@ void BiographyPlatformCtrl::Platforms::Messaging::PasteResponse(int fn) {
 }
 
 void BiographyPlatformCtrl::Platforms::Messaging::Do(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	SocialContentProcess& ss = SocialContentProcess::Get(mp);

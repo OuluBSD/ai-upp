@@ -8,9 +8,9 @@ AssemblyExporter::AssemblyExporter(AstNode& root) : root(root) {
 }
 
 void AssemblyExporter::Dump() {
-	for (const Package& pkg : pkgs.GetValues()) {
+	for (const PkgStub& pkg : pkgs.GetValues()) {
 		LOG("Package: " << pkg.name);
-		for (const PackageFile& file : pkg.files.GetValues()) {
+		for (const PkgStubFile& file : pkg.files.GetValues()) {
 			LOG("\tFile: " << file.name);
 			for (NodeBase* n : file.refs) {
 				LOG("\t\tRef: " << n->ToString());
@@ -35,7 +35,7 @@ bool AssemblyExporter::Export(String dir) {
 	
 	Dump();
 	
-	for(Package& pkg: pkgs.GetValues()) {
+	for(PkgStub& pkg: pkgs.GetValues()) {
 		LOG("Exporting project: " << pkg.name);
 		if (!ExportPackage(pkg))
 			return false;
@@ -47,7 +47,7 @@ bool AssemblyExporter::Export(String dir) {
 	return true;
 }
 
-bool AssemblyExporter::ExportPackage(Package& pkg) {
+bool AssemblyExporter::ExportPackage(PkgStub& pkg) {
 	String pkg_dir = AppendFileName(export_dir, pkg.name);
 	RealizeDirectory(pkg_dir);
 	if (!DirectoryExists(pkg_dir)) {
@@ -67,7 +67,7 @@ bool AssemblyExporter::ExportPackage(Package& pkg) {
 			return false;
 		}
 		
-		Vector<Package*> deps;
+		Vector<PkgStub*> deps;
 		for (String dep : pkg.deps) {
 			int i = pkgs.Find(dep);
 			if (i < 0) {
@@ -84,7 +84,7 @@ bool AssemblyExporter::ExportPackage(Package& pkg) {
 			fout << "uses\n";
 			fout << "\tSerialCore" << (deps.IsEmpty() ? ";\n\n" : ",\n");
 			
-			for (Package* dep : deps) {
+			for (PkgStub* dep : deps) {
 				fout << "\t" << dep->name;
 				
 				fout << (dep == deps.Top() ? ";\n\n" : ",\n");
@@ -94,7 +94,7 @@ bool AssemblyExporter::ExportPackage(Package& pkg) {
 		if (!pkg.files.IsEmpty()) {
 			fout << "file\n";
 			int i = 0, c = pkg.files.GetCount();
-			for (PackageFile& f : pkg.files.GetValues()) {
+			for (PkgStubFile& f : pkg.files.GetValues()) {
 				fout << "\t" << f.name << ".h,\n";
 				fout << "\t" << f.name << ".cpp";
 				fout <<  (++i == c ? ";\n\n" : ",\n");
@@ -104,7 +104,7 @@ bool AssemblyExporter::ExportPackage(Package& pkg) {
 	}
 	
 	if (!pkg.files.IsEmpty()) {
-		for (PackageFile& f : pkg.files.GetValues()) {
+		for (PkgStubFile& f : pkg.files.GetValues()) {
 			String h_path = AppendFileName(pkg_dir, f.name + ".h");
 			String cpp_path = AppendFileName(pkg_dir, f.name + ".cpp");
 			TouchFile(h_path);
@@ -154,7 +154,7 @@ bool AssemblyExporter::ExportComplete(String dir) {
 	return true;
 }
 
-bool AssemblyExporter::ExportHeader(Package& pkg, PackageFile& file, String path) {
+bool AssemblyExporter::ExportHeader(PkgStub& pkg, PkgStubFile& file, String path) {
 	FileOut fout(path);
 	if (!fout.IsOpen()) {
 		LOG("error: could not open file for writing: " << path);
@@ -174,7 +174,7 @@ bool AssemblyExporter::ExportHeader(Package& pkg, PackageFile& file, String path
 		}
 		if (pkg.deps.GetCount())
 			fout << "\n";
-		for (const PackageFile& f0 : pkg.files.GetValues()) {
+		for (const PkgStubFile& f0 : pkg.files.GetValues()) {
 			if (&file != &f0)
 				fout << "#include \"" << file.name << ".h\"\n";
 		}
@@ -192,7 +192,7 @@ bool AssemblyExporter::ExportHeader(Package& pkg, PackageFile& file, String path
 	return true;
 }
 
-bool AssemblyExporter::ExportImplementation(Package& pkg, PackageFile& file, String path) {
+bool AssemblyExporter::ExportImplementation(PkgStub& pkg, PkgStubFile& file, String path) {
 	FileOut fout(path);
 	if (!fout.IsOpen()) {
 		LOG("error: could not open file for writing: " << path);
@@ -223,11 +223,11 @@ void AssemblyExporter::Push(NodeBase& n) {
 		}
 		
 		if (!pkg.IsEmpty()) {
-			Package& p = pkgs.GetAdd(pkg);
+			PkgStub& p = pkgs.GetAdd(pkg);
 			if (p.name.IsEmpty()) p.name = pkg;
 			
 			if (!file.IsEmpty()) {
-				PackageFile& f = p.files.GetAdd(file);
+				PkgStubFile& f = p.files.GetAdd(file);
 				if (f.name.IsEmpty()) f.name = file;
 				VectorFindAdd(f.refs, &n);
 			}

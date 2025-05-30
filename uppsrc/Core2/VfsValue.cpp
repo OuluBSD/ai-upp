@@ -1,27 +1,17 @@
 #include "Core.h"
+
+#if 0
 #ifdef flagAI
 #include <AICore/AICore.h>
 #endif
-
 #include <Eon/Eon.h>
+#endif
 
 NAMESPACE_UPP
 
-String (*GetCursorKindNamePtr)(CXCursorKind);
+String (*GetCursorKindNamePtr)(int);
+String (*VfsValue_GetBasesString)(const VfsValue& v);
 
-#if 0
-String FetchString(CXString cs)
-{
-	String result = clang_getCString(cs);
-	clang_disposeString(cs);
-	return result;
-}
-
-String GetCursorKindName(CXCursorKind cursorKind)
-{
-	return FetchString(clang_getCursorKindSpelling(cursorKind));
-}
-#endif
 
 #define DO_TEMP_CHECK 0
 
@@ -188,7 +178,7 @@ MetaEnvironment& MetaEnv() { return Single<MetaEnvironment>(); }
 
 MetaEnvironment::MetaEnvironment() {
 	AstValue& ast = root;
-	ast.kind = CXCursor_Namespace;
+	ast.kind = 22; //CXCursor_Namespace;
 	root.serial = NewSerial();
 	
 	MountManager& mm = MountManager::System();
@@ -688,23 +678,6 @@ void VfsValue::SetTempDeep()
 		n.SetTempDeep();
 }
 
-#if 0
-bool MetaEnvironment::IsMergeable(int kind) { return IsMergeable((CXCursorKind)kind); }
-
-bool MetaEnvironment::IsMergeable(CXCursorKind kind)
-{
-	switch(kind) {
-	// case CXCursor_StructDecl:
-	// case CXCursor_ClassDecl:
-	case CXCursor_Namespace:
-	case CXCursor_LinkageSpec:
-		return true;
-	default:
-		return false;
-	}
-}
-#endif
-
 void MetaEnvironment::RefreshNodePtrs(VfsValue& n)
 {
 	/*if (n.kind == CXCursor_ClassTemplate) {
@@ -1052,18 +1025,18 @@ String VfsValue::AstGetKindString() const {
 	const AstValue* ast = *this;
 	ASSERT(ast);
 	if (!ast) return "not a AstValue";
-	return AstGetKindString(ast->kind);
+	if (GetCursorKindNamePtr)
+		return GetCursorKindNamePtr(ast->kind);
+	else
+		return IntStr(ast->kind);
 }
 
 String VfsValue::AstGetKindString(int kind)
 {
-	if(kind >= 0 && kind <= CXCursor_OverloadCandidate) {
-		if (GetCursorKindNamePtr)
-			return GetCursorKindNamePtr((CXCursorKind)kind);
-		else
-			return "Kind(" + IntStr(kind) + ")";
-	}
-	return "unknown kind: " + IntStr(kind);
+	if (GetCursorKindNamePtr)
+		return GetCursorKindNamePtr(kind);
+	else
+		return IntStr(kind);
 }
 
 bool VfsValue::FindDifferences(const VfsValue& n, Vector<String>& diffs, int max_diffs) const
@@ -1357,7 +1330,7 @@ int VfsValue::GetDepth() const {
 hash_t VfsValue::AstGetSourceHash(bool* total_hash_diffs) const
 {
 	const AstValue* a = *this;
-	if (a->kind < 0 || a->kind >= METAKIND_BEGIN) {
+	if (a->kind < 0 || a->kind >= 1000) {
 		if(total_hash_diffs)
 			*total_hash_diffs = true;
 		return 0;
@@ -1458,23 +1431,12 @@ bool VfsValue::IsAstValue() const {
 	return v;
 }
 
-bool VfsValue::IsStructKind() const
-{
-	const AstValue* a = *this;
-	if (!a)
-		return false;
-	return	a->kind == CXCursor_StructDecl &&
-			a->kind == CXCursor_ClassDecl &&
-			a->kind == CXCursor_ClassTemplate &&
-			a->kind == CXCursor_ClassTemplatePartialSpecialization;
-}
-
 int VfsValue::GetAstValueCount() const
 {
 	int c = 0;
 	for(const auto& s : sub) {
 		const AstValue* a = s;
-		if (a && a->kind >= 0 && a->kind < METAKIND_BEGIN)
+		if (a)
 			c++;
 	}
 	return c;
@@ -1482,17 +1444,10 @@ int VfsValue::GetAstValueCount() const
 
 String VfsValue::GetBasesString() const
 {
-	String s;
-	Vector<const VfsValue*> bases = AstFindAllShallow(CXCursor_CXXBaseSpecifier);
-	for(const VfsValue* n : bases) {
-		if(!s.IsEmpty())
-			s.Cat(", ");
-		s << n->id;
-		const AstValue* a = *n;
-		if (a)
-			s << " (" << a->type << ")";
-	}
-	return s;
+	if (VfsValue_GetBasesString)
+		return VfsValue_GetBasesString(*this);
+	else
+		return String();
 }
 
 String VfsValue::GetNestString() const
@@ -1655,45 +1610,6 @@ VfsValue::operator const AstValue* () const {
     return false;
 }*/
 
-VfsValue* MetaEnvironment::FindDeclaration(const VfsValue& n)
-{
-	const AstValue* a = n;
-	if (!a)
-		return 0;
-	if(!a->filepos_hash)
-		return 0;
-	int i = filepos.Find(a->filepos_hash);
-	if(i < 0)
-		return 0;
-	const auto& vec = filepos[i].hash_nodes;
-	for(const auto& ptr : vec) {
-		if(!ptr)
-			continue;
-		VfsValue& p = *ptr;
-		const AstValue* a1 = p;
-		if(a1 && a1->is_definition /* || p.IsClassTemplateDefinition()*/)
-			return &p;
-	}
-	return 0;
-}
-
-Vector<VfsValue*> MetaEnvironment::FindDeclarationsDeep(const VfsValue& n)
-{
-	const AstValue* a = n;
-	Vector<VfsValue*> v;
-	if(a && a->kind == CXCursor_CXXBaseSpecifier) {
-		for(const auto& s : n.sub) {
-			VfsValue* d = FindDeclaration(s);
-			if(d)
-				v.Add(d);
-		}
-		return v;
-	}
-	else
-		TODO;
-	return v;
-}
-
 VfsValue* MetaEnvironment::FindTypeDeclaration(hash_t type_hash)
 {
 	if(!type_hash)
@@ -1851,6 +1767,7 @@ double VfsValueExt::GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); 
 bool VfsValueExt::TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
 String VfsValueExt::ToString() const {return String();}
 bool VfsValueExt::Initialize(const WorldState& ws) {SetInitialized(true); return true;}
+bool VfsValueExt::PostInitialize() {return true;}
 void VfsValueExt::Uninitialize() {}
 bool VfsValueExt::IsInitialized() const {return is_initialized;}
 void VfsValueExt::SetInitialized(bool b) {is_initialized = b;}

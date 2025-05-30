@@ -3,14 +3,14 @@
 
 
 
-struct PackageFile {
+struct PkgStubFile {
 	Vector<NodeBase*>				refs;
 	String							name;
 	
 };
 
-struct Package {
-	ArrayMap<String,PackageFile>	files;
+struct PkgStub {
+	ArrayMap<String,PkgStubFile>	files;
 	Index<String>					deps;
 	String							name;
 	
@@ -20,9 +20,6 @@ struct Package {
 
 
 class AssemblyExporter {
-public:
-	
-	
 	
 private:
 	struct ScopeHolder {
@@ -31,11 +28,11 @@ private:
 		~ScopeHolder() {e.Pop();}
 	};
 	
-	ArrayMap<String,Package>	pkgs;
-	Vector<NodeBase*>			scopes;
-	AstNode&					root;
-	String						export_dir;
-	bool						protect_pkg = false;
+	ArrayMap<String,PkgStub>	pkgs;
+	Vector<NodeBase*>				scopes;
+	AstNode&						root;
+	String							export_dir;
+	bool							protect_pkg = false;
 	
 	
 	bool Visit(AstNode& n);
@@ -44,9 +41,9 @@ private:
 	
 	
 	bool ExportComplete(String dir);
-	bool ExportPackage(Package& pkg);
-	bool ExportHeader(Package& pkg, PackageFile& file, String path);
-	bool ExportImplementation(Package& pkg, PackageFile& file, String path);
+	bool ExportPackage(PkgStub& pkg);
+	bool ExportHeader(PkgStub& pkg, PkgStubFile& file, String path);
+	bool ExportImplementation(PkgStub& pkg, PkgStubFile& file, String path);
 	
 public:
 	typedef AssemblyExporter CLASSNAME;
@@ -54,7 +51,7 @@ public:
 	
 	bool Export(String dir);
 	void Dump();
-	void ProtectPackageFile(bool b=true) {protect_pkg = b;}
+	void ProtectPkgStubFile(bool b=true) {protect_pkg = b;}
 	
 };
 	

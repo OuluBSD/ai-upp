@@ -52,7 +52,7 @@ void PerspectiveCtrl::ToolMenu(Bar& bar) {
 }
 
 void PerspectiveCtrl::Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	PerspectiveProcess& ss = PerspectiveProcess::Get(mp);

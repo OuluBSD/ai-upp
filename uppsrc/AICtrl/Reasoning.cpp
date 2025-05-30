@@ -36,7 +36,7 @@ void ScriptReasoningCtrl::Data() {
 
 void ScriptReasoningCtrl::MakeItems() {
 	items.Clear();
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script)
 		return;
 	Script& s = *p.script;
@@ -85,7 +85,9 @@ void ScriptReasoningCtrl::MakeItems() {
 
 bool ScriptReasoningCtrl::MakeElementChange(const Cursor& cursor, const LineElement& cur, const LineElement& el) {
 	int mode = max(0, DatabaseBrowser::FindMode(el.sorter));
-	db.SetMode(GetDataset(), mode);
+	DatasetPtrs p;
+	GetDataset(p);
+	db.SetMode(p, mode);
 	
 	int prev_items_count = items.GetCount();
 	

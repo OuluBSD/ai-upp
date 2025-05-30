@@ -29,6 +29,7 @@ struct VfsValueExtCtrl : WidgetCtrl {
 	VfsValueExt& GetExt();
 	String GetFilePath() const;
 	VfsPath GetCursorPath() const override;
+	void ToolMenu(Bar& bar) override;
 	
 	template <class T> T& GetExt() {return dynamic_cast<T&>(*ext);}
 };

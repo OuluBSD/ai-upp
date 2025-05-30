@@ -38,7 +38,7 @@ public:
 	Entity& GetEntity();
 	Component& GetComponent();
 	//EditorPtrs& GetPointers() const; // TODO rename EditorPtrs
-	DatasetPtrs GetDataset() const override;
+	void GetDataset(DatasetPtrs&) const override;
 	Script& GetScript();
 	//const Index<String>& GetTypeclasses() const;
 	//const Vector<ContentType>& GetContents() const;
@@ -68,7 +68,8 @@ public:
 	template <class T>
 	void DoT(int fn)
 	{
-		DatasetPtrs p = GetDataset();
+		DatasetPtrs p;
+		GetDataset(p);
 		T& sdi = T::Get(p);
 		prog.Attach(sdi);
 		sdi.WhenRemaining <<

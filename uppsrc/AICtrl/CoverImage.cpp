@@ -36,7 +36,7 @@ ReleaseCoverImageCtrl::ReleaseCoverImageCtrl() {
 }
 
 void ReleaseCoverImageCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	for(int i = 0; i < p.release->cover_suggestions.GetCount(); i++) {
@@ -52,7 +52,7 @@ void ReleaseCoverImageCtrl::Data() {
 }
 
 void ReleaseCoverImageCtrl::DataAttribute() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (!attr_list.IsCursor())
@@ -66,7 +66,7 @@ void ReleaseCoverImageCtrl::DataAttribute() {
 }
 
 void ReleaseCoverImageCtrl::DataSuggestion() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -82,7 +82,7 @@ void ReleaseCoverImageCtrl::DataSuggestion() {
 }
 
 void ReleaseCoverImageCtrl::DataSuggestionImage() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -114,7 +114,7 @@ void ReleaseCoverImageCtrl::DataSuggestionImage() {
 }
 
 void ReleaseCoverImageCtrl::OnAttributeChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (!attr_list.IsCursor())
@@ -128,7 +128,7 @@ void ReleaseCoverImageCtrl::OnAttributeChange() {
 }
 
 void ReleaseCoverImageCtrl::OnSuggestionChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (!sugg_list.IsCursor())
@@ -151,7 +151,7 @@ void ReleaseCoverImageCtrl::ToolMenu(Bar& bar) {
 }
 
 void ReleaseCoverImageCtrl::Do(int fn) {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	
 	if (fn == 0) {
@@ -161,7 +161,7 @@ void ReleaseCoverImageCtrl::Do(int fn) {
 }
 
 void ReleaseCoverImageCtrl::CreateSuggestionsForPrompts() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if(!p.song || !p.entity || !p.release)
 		return;
 	
@@ -172,7 +172,7 @@ void ReleaseCoverImageCtrl::CreateSuggestionsForPrompts() {
 
 void ReleaseCoverImageCtrl::SuggestionMenu(Bar& bar) {
 	bar.Add(t_("Add suggestion"), MetaImgs::RedRing(), [this]() {
-		DatasetPtrs p = GetDataset();
+		DatasetPtrs p; GetDataset(p);
 		p.release->cover_suggestions.Add();
 		PostCallback(THISBACK(Data));
 	});

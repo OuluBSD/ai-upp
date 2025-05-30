@@ -53,7 +53,7 @@ void BiographyCtrl::Image_Ctor() {
 
 void BiographyCtrl::Image_Data() {
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !mp.analysis) {
 		for(int i = 0; i < categories.GetCount(); i++) {
 			categories.Set(i, 0, 0);
@@ -84,7 +84,7 @@ void BiographyCtrl::Image_DataCategory() {
 	REF(image, entries);
 	
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
 		years.Clear();
 		return;
@@ -129,7 +129,7 @@ void BiographyCtrl::Image_DataYear() {
 	REF(image, years);
 	REF(image, year);
 	REF(image, entries);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor())
 		return;
 	
@@ -165,7 +165,7 @@ void BiographyCtrl::Image_DataEntry() {
 	REF(image, year);
 	REF(image, entries);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	
@@ -224,7 +224,7 @@ void BiographyCtrl::Image_OnValueChange() {
 	REF(image, entries);
 	
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	TODO
@@ -315,7 +315,7 @@ void BiographyCtrl::Image_EntryListMenu(Bar& bar) {
 }
 
 void BiographyCtrl::Image_Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	if (mp.editable_biography) {
@@ -342,7 +342,7 @@ void BiographyCtrl::Image_AddEntry() {
 	REF(image, year);
 	REF(image, entries);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
@@ -366,7 +366,7 @@ void BiographyCtrl::Image_RemoveEntry() {
 	REF(image, year);
 	REF(image, entries);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
@@ -407,7 +407,7 @@ void BiographyCtrl::Image_SetCurrentImage(Image img) {
 	
 	this->image.img.SetImage(img);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
@@ -457,7 +457,7 @@ void BiographyCtrl::Image_AnalyseImage() {
 	REF(image, years);
 	REF(image, year);
 	REF(image, entries);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor() || !years.IsCursor() || !entries.IsCursor())
 		return;
 	

@@ -287,6 +287,7 @@ protected:
 	
 	~ScriptLoader();
     bool		Initialize(const WorldState& ws) override;
+    bool		PostInitialize() override;
     void		Update(double dt) override;
     void		Uninitialize() override;
     

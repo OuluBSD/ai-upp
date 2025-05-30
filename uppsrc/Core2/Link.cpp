@@ -182,7 +182,7 @@ Packet LinkBase::ReplyPacket(int src_ch, const Packet& in, Packet content) {
 	else {
 		Packet to = CreatePacket(off);
 		to->SetFormat(src_fmt);
-		Convert(content, to);
+		ConvertPacket(content, to);
 	}
 	#if HAVE_PACKETTRACKER
 	to->CopyRouteData(*in);

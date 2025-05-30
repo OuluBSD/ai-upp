@@ -3,12 +3,20 @@
 INITBLOCK {
 	using namespace Upp;
 	
-	TYPED_STRING_HASHER(StageThread)
-	TYPED_STRING_HASHER(ChainThread)
-	TYPED_STRING_HASHER(VfsFarStage)
-	TYPED_STRING_HASHER(AgentInteractionSession)
-	TYPED_STRING_HASHER(AgentInteractionPolicy)
-	TYPED_STRING_HASHER(AgentInteractionSystem)
-	TYPED_STRING_HASHER(Agent)
+	REGISTER_COMPONENT(CompletionThread, "completion")
+	REGISTER_COMPONENT(ChatThread, "chat")
+	REGISTER_COMPONENT(StageThread, "stage")
+	REGISTER_COMPONENT(ChainThread, "chain")
+	REGISTER_COMPONENT(SpeechTranscriptionThread, "transcribe")
+	REGISTER_COMPONENT(SpeechGenerationThread, "speech")
+	REGISTER_COMPONENT(ImageGenerationThread, "image")
+	REGISTER_COMPONENT(ImageVisionThread, "vision")
+	REGISTER_COMPONENT(MetaEnvThread, "env")
+	REGISTER_COMPONENT(Agent, "agent")
+	
+	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT);
+	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT);
+	VfsValueExtFactory::Register<AgentInteractionPolicy>("AgentInteractionPolicy", VFSEXT_DEFAULT);
+	VfsValueExtFactory::Register<AgentInteractionSystem>("AgentInteractionSystem", VFSEXT_DEFAULT);
 	
 }

@@ -26,4 +26,8 @@ VfsPath VfsValueExtCtrl::GetCursorPath() const {
 	return VfsPath();
 }
 
+void VfsValueExtCtrl::ToolMenu(Bar& bar) {
+	
+}
+
 END_UPP_NAMESPACE

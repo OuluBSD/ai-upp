@@ -1,8 +1,8 @@
 description "\377B";
 
 file
-	Meta.h,
-	Meta.cpp,
+	Vfs.h,
+	Vfs.cpp,
 	Ide.h,
 	ClangTypeResolver.h,
 	ClangTypeResolver.cpp,

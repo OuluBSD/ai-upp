@@ -50,7 +50,7 @@ void BiographyCtrl::Main_ToolMenu(Bar& bar) {
 
 void BiographyCtrl::Main_DataCategory() {
 	Biography& biography = GetExt<Biography>();
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	REF(main, vsplit)
 	REF(main, years)
 	REF(main, year)
@@ -94,12 +94,12 @@ void BiographyCtrl::Main_DataCategory() {
 
 void BiographyCtrl::Main_DataYear() {
 	Biography& biography = GetExt<Biography>();
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	REF(main, vsplit)
 	REF(main, years)
 	REF(main, year)
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.owner || !categories.IsCursor() || !years.IsCursor())
 		return;
@@ -124,7 +124,7 @@ void BiographyCtrl::Main_UpdateElements() {
 	REF(main, years)
 	REF(main, year)
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
@@ -170,7 +170,7 @@ void BiographyCtrl::Main_UpdateElementHints() {
 void BiographyCtrl::Main_OnValueChange() {
 	REF(main, year)
 	REF(main, years)
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
@@ -213,7 +213,7 @@ void BiographyCtrl::Main_OnKeywords(String s) {
 void BiographyCtrl::Main_Do(int fn) {
 	TODO
 	#if 0
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	if (!mp.editable_biography) {
@@ -231,7 +231,7 @@ void BiographyCtrl::Main_Do(int fn) {
 }
 
 void BiographyCtrl::Main_ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	Biography& o = GetExt<Biography>();
 	if (LoadFromJsonFile_VisitorNodePrompt(o)) {
 		PostCallback(THISBACK(Data));

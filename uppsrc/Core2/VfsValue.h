@@ -48,6 +48,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual bool			Start();
 	virtual void			Stop();
 	virtual bool			Initialize(const WorldState& ws);
+	virtual bool			PostInitialize();
 	virtual void			Uninitialize();
 	virtual void			UninitializeDeep();
 	virtual void			Update(double dt);
@@ -218,16 +219,21 @@ struct VfsValueExtFactory {
 		d.new_fn = &Functions<T>::Create;
 	}
 	
-	template <class T> inline static void Register(String name, VfsExtType type=VFSEXT_DEFAULT) {
-		#ifdef flagGUI
-		static_assert(!std::is_base_of<::UPP::Ctrl, T>::value);
-		#endif
-		Factory& f = List().Add();
+	template <class T> inline static Factory& GetFactory() {
+		TypeCls type_cls = AsTypeCls<T>();
+		for (auto& f : List())
+			if (f.type_cls == type_cls)
+				return f;
+		auto& f = List().Add();
+		f.type_cls = type_cls;
+		return f;
+	}
+	template <class T> inline static void Register(String name, VfsExtType type=VFSEXT_DEFAULT, String eon_name="") {
+		Factory& f = GetFactory<T>();
 		f.type_hash = TypedStringHasher<T>(name);
-		f.type_cls = AsTypeCls<T>();
 		f.type = type;
 		f.category = Categories().FindAdd(T::GetCategory());
-		f.name = name;
+		f.name = eon_name.GetCount() ? eon_name : name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
 		//f.set_data_ed_fn = &DatasetEntityData<T>;
@@ -237,19 +243,10 @@ struct VfsValueExtFactory {
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
-		#ifdef flagGUI
-		static_assert(std::is_base_of<::UPP::Ctrl, Ctrl>::value);
-		static_assert(!std::is_base_of<::UPP::Ctrl, Comp>::value);
-		#endif
-		for (Factory& f : List()) {
-			if (f.is_fn == &Functions<Comp>::IsNodeExt) {
-				ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
-				f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
-				f.ctrl_name = ctrl_name;
-				return;
-			}
-		}
-		Panic("No component found");
+		Factory& f = GetFactory<Comp>();
+		ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
+		f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
+		f.ctrl_name = ctrl_name;
 	}
 	static VfsValueExt* Create(hash_t type_hash, VfsValue& owner);
 	//static VfsValueExt* CloneKind(int kind, const VfsValueExt& e, VfsValue& owner);
@@ -375,8 +372,6 @@ struct VfsValue : Pte<VfsValue> {
 	Vector<VfsValue*> FindTypeAllShallow(hash_t type_hash);
 	VfsValue* FindDeep(TypeCls type);
 	bool IsFieldsSame(const VfsValue& n) const;
-	bool IsStructKind() const;
-	//bool IsClassTemplateDefinition() const;
 	String GetBasesString() const;
 	String GetNestString() const;
 	bool OwnerRecursive(const VfsValue& n) const;
@@ -910,9 +905,7 @@ struct MetaEnvironment : VFS {
 	bool MergeVisitPartMatching(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
 	void RefreshNodePtrs(VfsValue& n);
 	void MergeVisitPost(VfsValue& n);
-	VfsValue* FindDeclaration(const VfsValue& n);
 	VfsValue* FindTypeDeclaration(hash_t type_hash);
-	Vector<VfsValue*> FindDeclarationsDeep(const VfsValue& n);
 	bool MergeResolver(ClangTypeResolver& ctr);
 	hash_t RealizeTypePath(const String& path);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;

@@ -4,13 +4,12 @@
 NAMESPACE_UPP
 
 
-struct AiThreadCtrlBase : Ctrl {
+struct AiThreadCtrlBase : VfsValueExtCtrl {
 	struct Model : Moveable<Model> {
 		String name;
 		bool use_chat = false;
 	};
 	
-	Ptr<AiThread> ai_thrd;
 	Vector<Model> models;
 	Ptr<VfsValue> node;
 	
@@ -25,35 +24,13 @@ struct AiThreadCtrlBase : Ctrl {
 	void UpdateModels(bool completion);
 	void AddModel(String name, bool use_chat=false);
 	hash_t GetHashValue() const {return GetVisitJsonHash(*this);}
+	void SetNode(VfsValue& n);
 	
 	virtual ~AiThreadCtrlBase(){}
 	virtual Ctrl* GetCtrl() = 0;
 	virtual void Data() = 0;
 	virtual void Submit() {};
 	virtual void MainMenu(Bar& bar);
-	
-	bool HasThread() const {return ai_thrd;}
-	template <class T>
-	T& CastThread() {
-		// this function is required, bc OmniThread inherits virtual AiThread with Pte<AiThread>
-		ASSERT(ai_thrd);
-		if (!ai_thrd) throw Exc("No thread");
-		T* t = dynamic_cast<T*>(&*ai_thrd);
-		ASSERT(t);
-		if (!t) throw Exc("Can't cast AiThread");
-		return *t;
-	}
-	CompletionThread& GetCompletionThread() {return CastThread<CompletionThread>();}
-	ChatThread& GetChatThread() {return CastThread<ChatThread>();}
-	
-	void SetThread(AiThread& t);
-	void SetNode(VfsValue& n);
-	
-};
-
-struct AiThreadExt : VfsValueExtCtrl {
-	StageThread& GetStageThread();
-	ChainThread& GetChainThread();
 	
 };
 
@@ -69,7 +46,7 @@ public:
 	CompletionThread& Thread();
 };
 
-class AiStageCtrl : public AiThreadExt {
+struct AiStageCtrl : VfsValueExtCtrl {
 	Splitter vsplit, hsplit;
 	ArrayCtrl proglist, stagelist;
 	CodeEditor prog, stage;
@@ -120,7 +97,9 @@ public:
 
 INITIALIZE(AiStageCtrl)
 
-class AiChainCtrl : public AiThreadExt {
+struct AiChainCtrl : VfsValueExtCtrl {
+	
+private:
 	Splitter hsplit, msplit, rsplit;
 	ArrayCtrl session;
 	TreeCtrl structure;
@@ -229,7 +208,6 @@ class PlaygroundCtrl : public Ctrl {
 	TaskCtrl tasks;
 	Ctrl placeholder;
 	
-	One<OmniThread> omni;
 	Ptr<VfsValue> node;
 	
 public:
@@ -242,7 +220,6 @@ public:
 	void StoreThis();
 	void LoadThis();
 	void CreateThread();
-	void SetThread(OmniThread& t);
 	void SetNode(VfsValue& n);
 	void TabMenu(Bar& bar);
 	

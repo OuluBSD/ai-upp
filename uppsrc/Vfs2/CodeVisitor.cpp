@@ -2,17 +2,11 @@
 
 NAMESPACE_UPP
 
-bool IsStruct(int kind)
-{
-	return findarg(kind, CXCursor_StructDecl, CXCursor_UnionDecl, CXCursor_ClassDecl,
-	                     CXCursor_ClassTemplate) >= 0;
-}
-
-bool IsFunction(int kind)
-{
-	return findarg(kind, CXCursor_FunctionTemplate, CXCursor_FunctionDecl, CXCursor_Constructor,
-	                     CXCursor_Destructor, CXCursor_ConversionFunction, CXCursor_CXXMethod) >= 0;
-}
+VfsValue*         (*IdeMetaEnvironment_FindDeclaration)(const VfsValue& n);
+Vector<VfsValue*> (*IdeMetaEnvironment_FindDeclarationsDeep)(const VfsValue& n);
+bool (*IsStructPtr)(int kind);
+bool (*IsFunctionPtr)(int kind);
+bool (*IsStructKindPtr)(const VfsValue& n);
 
 
 
@@ -138,7 +132,8 @@ void CodeVisitor::Visit(const String& filepath, VfsValue& n)
 	VisitSub(filepath, n);
 	
 	// Macro expansions are not in the node-structure already, and they must be "brute-force" visited
-	if (IsStruct(ast.kind) || IsFunction(ast.kind)) {
+	if (IsStructPtr && IsFunctionPtr &&
+	   (IsStructPtr(ast.kind) || IsFunctionPtr(ast.kind))) {
 		int pkg = n.pkg;
 		int file = n.file;
 		for (VfsValue* me : macro_exps) {
@@ -191,7 +186,7 @@ void CodeVisitor::VisitId(const String& filepath, VfsValue& n, Item& link_it)
 	AstValue& ast = RealizeRawValue<AstValue>(n.value);
 	ASSERT(ast.is_ref);
 	auto& env = MetaEnv();
-	VfsValue* decl = env.FindDeclaration(n);
+	VfsValue* decl = IdeMetaEnvironment_FindDeclaration ? IdeMetaEnvironment_FindDeclaration(n) : 0;
 	if (decl) {
 		link_it.link_node = decl;
 		TODO // String filepath = env.GetFilepath(decl->pkg, decl->file);

@@ -29,7 +29,8 @@ ToolAppCtrl::~ToolAppCtrl() {
 }
 
 bool ToolAppCtrl::IsScript() const {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	return p.script;
 }
 
@@ -39,14 +40,16 @@ bool ToolAppCtrl::HasPointers() const {
 }
 
 Script& ToolAppCtrl::GetScript() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	if(!p.script)
 		throw NoPointerExc("no scripts");
 	return *p.script;
 }
 
 Component& ToolAppCtrl::GetComponent() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	if(!p.song || !p.entity)
 		throw NoPointerExc("no song");
 	return *p.song;
@@ -72,7 +75,8 @@ void ToolAppCtrl::UpdateMenu() {
 }
 
 Entity& ToolAppCtrl::GetEntity() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p;
+	GetDataset(p);
 	if(!p.entity)
 		throw NoPointerExc("no artist");
 	return *p.entity;
@@ -92,12 +96,10 @@ String ToolAppCtrl::GetComponentTitle() const {
 	return "";
 }
 
-DatasetPtrs ToolAppCtrl::GetDataset() const {
-	DatasetPtrs p;
+void ToolAppCtrl::GetDataset(DatasetPtrs& p) const {
 	VfsValue* n = GetFileNode();
 	if (n)
 		FillDataset(p, *n, dynamic_cast<Component*>(const_cast<ToolAppCtrl*>(this)));
-	return p;
 }
 
 /*const Index<String>& ToolAppCtrl::GetTypeclasses() const {

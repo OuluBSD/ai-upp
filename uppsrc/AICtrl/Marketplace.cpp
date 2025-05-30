@@ -73,7 +73,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Ctor() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::DataPlatform() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	
 	if (!p.owner) {
 		items.Clear();
@@ -160,7 +160,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataItem() {
 		return;
 	}
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	int item_i = items.Get("IDX");
 	TODO
 	#if 0
@@ -219,7 +219,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataItem() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::DataCategory() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !items.IsCursor())
 		return;
 	
@@ -238,7 +238,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataCategory() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::DataSubCategory() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.analysis || !items.IsCursor())
 		return;
 	
@@ -261,7 +261,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataImage() {
 		img.Clear();
 		return;
 	}
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	int item_i = items.Get("IDX");
 	
 	if (item_i < 0 || item_i >= p.analysis->market_items.GetCount()) {
@@ -284,7 +284,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataImage() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	
 	if (fn == 0) {
 		if (!p.owner) return;
@@ -490,7 +490,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::OnDimensionChange() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	int item_i = items.Get("IDX");
 	
 	MarketplaceItem& mi = p.analysis->market_items[item_i];
@@ -504,7 +504,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::OnValueChange() {
 	if (!items.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	int item_i = items.Get("IDX");
 	
 	if (item_i < 0 || item_i >= p.analysis->market_items.GetCount()) {
@@ -564,7 +564,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::LoadImagePath(String path) {
 void BiographyPlatformCtrl::Platforms::Marketplace::SetCurrentImage(Image img) {
 	this->img.SetImage(img);
 	
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.owner || !items.IsCursor() || !images.IsCursor())
 		return;
 	
@@ -602,7 +602,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::MakeTempImages() {
 	#endif
 	RealizeDirectory(dir);
 	
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.owner || !items.IsCursor())
 		return;
 	
@@ -626,7 +626,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::MakeTempImages() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::OnCategory() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.owner || !items.IsCursor())
 		return;
 	
@@ -640,7 +640,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::OnCategory() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::OnSubCategory() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.owner || !items.IsCursor())
 		return;
 	
@@ -651,7 +651,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::OnSubCategory() {
 }
 
 void BiographyPlatformCtrl::Platforms::Marketplace::SetCategoryShorcut(int i) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.owner || !items.IsCursor())
 		return;
 	

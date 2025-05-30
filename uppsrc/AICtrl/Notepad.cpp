@@ -62,7 +62,7 @@ void NotepadCtrl::Data() {
 }
 
 void NotepadCtrl::DataNote() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!list.IsCursor()) {
 		Clear();
 		return;

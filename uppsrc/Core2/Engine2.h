@@ -1,6 +1,13 @@
-#ifndef _Eon_AtomShell_h_
-#define _Eon_AtomShell_h_
+#ifndef _Core2_Engine2_h_
+#define _Core2_Engine2_h_
 
+
+struct SerialLoaderBase {
+	
+	virtual ~SerialLoaderBase() {}
+	virtual String LoadFile(String file_path) = 0;
+	
+};
 
 struct SerialLoaderFactory {
 	typedef SerialLoaderBase*(*NewFn)();

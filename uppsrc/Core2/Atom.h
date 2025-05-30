@@ -67,7 +67,6 @@ public:
 	virtual ISourcePtr		GetSource() = 0;
 	virtual ISinkPtr		GetSink() = 0;
 	virtual bool			Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) = 0;
-	virtual bool			PostInitialize() {return true;}
 	virtual bool			IsReady(PacketIO& io) {return true;}
 	virtual void			UpdateConfig(double dt) {Panic("Unimplemented"); NEVER();}
 	virtual bool			Recv(int sink_ch, const Packet& in);

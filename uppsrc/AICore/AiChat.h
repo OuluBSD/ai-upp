@@ -6,7 +6,7 @@
 
 
 struct AiChatComponent : Component {
-	OmniThread omni;
+	//OmniThread omni;
 	
 	void Visit(Vis& v) override;
 	String GetName() const override {return "AI: Chat";}

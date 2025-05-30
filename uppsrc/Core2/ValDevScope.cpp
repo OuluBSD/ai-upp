@@ -26,7 +26,7 @@ void SimpleValue::Exchange(Ex& e) {
 			if (!pk_fmt.IsCopyCompatible(sink_fmt)) {
 				Packet dst = CreatePacket(p->GetOffset());
 				dst->SetFormat(sink_fmt);
-				if (Convert(p, dst)) {
+				if (ConvertPacket(p, dst)) {
 					RTLOG("SimpleValue::Exchange: converted packet");
 					RTLOG("                       from: " << p->ToString());
 					RTLOG("                       to:   " << dst->ToString());
@@ -91,7 +91,7 @@ Packet SimpleValue::Pick() {
 
 
 
-bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst) {
+bool ConvertPacket(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst) {
 	TODO
 	return false;
 }
@@ -100,8 +100,8 @@ bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst
 
 bool AudioConvert(int src_ch_samples, const AudioFormat& src_fmt, const byte* src, const AudioFormat& dst_fmt, byte* dst);
 
-bool Convert(const Packet& src, Packet& dst, bool keep_tracking) {
-	RTLOG("Convert(src " << HexStrPtr(&*src) << ", dst " << HexStrPtr(&*dst) << ")");
+bool ConvertPacket(const Packet& src, Packet& dst, bool keep_tracking) {
+	RTLOG("ConvertPacket(src " << HexStrPtr(&*src) << ", dst " << HexStrPtr(&*dst) << ")");
 	
 	#if HAVE_PACKETTRACKER
 	bool track = keep_tracking && src->GetTrackingId() != 0;

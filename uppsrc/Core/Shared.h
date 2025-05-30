@@ -64,7 +64,7 @@ public:
 	~Shared() { Clear(); }
 	
 	template <class C> C& Create() {
-		static_assert(IsBaseOf<T,C>(), "Class is not the base of T");
+		static_assert(std::is_base_of<T,C>::value, "Class is not the base of T");
 		Clear(); r = new RefTemplate<C>();
 		C* c = new C();
 		o = c; r->obj = o;

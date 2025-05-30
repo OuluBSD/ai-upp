@@ -437,23 +437,266 @@ VfsItemType SystemFS::CheckItem(const VfsPath& rel_path) {
 
 
 
-
+VfsItem::~VfsItem() {}
 void VfsItem::operator=(Value v) {Set(v);}
+Shared<VfsItem> VfsItem::operator()(Value key) {return Open(key);}
 Value VfsItem::Get() {Panic("Not implemented"); return Value();}
 Value VfsItem::Get(Value key) {Panic("Not implemented"); return Value();}
 Value VfsItem::GetKey(int i) {Panic("Not implemented"); return Value();}
 void VfsItem::Set(Value v) {Panic("Not implemented");}
-void VfsItem::MapSet(Value v) {Panic("Not implemented");}
-Shared<VfsItem> VfsItem::GetMap() {Panic("Not implemented"); return MakeShared<VfsItem>();}
-Shared<VfsItem> VfsItem::RealizeMap() {Panic("Not implemented"); return MakeShared<VfsItem>();}
-Shared<VfsItem> VfsItem::At(int i) {Panic("Not implemented"); return MakeShared<VfsItem>();}
+void VfsItem::MapSet(Value k, Value v) {Panic("Not implemented");}
+void VfsItem::RealizeMap() {Panic("Not implemented");}
+Value VfsItem::At(int i) {Panic("Not implemented"); return Value();}
 int VfsItem::GetCount() const {Panic("Not implemented"); return 0;}
+Shared<VfsItem> VfsItem::Open(Value key) {Panic("Not implemented"); return Shared<VfsItem>();}
+
+
+void ValueVfsItem::RealizeValue() const {
+	// Try reading again
+	if (!valid_read) {
+		ASSERT(fs_smart_ptr);
+		if (fs_smart_ptr) {
+			valid_read = fs->Get(*fs->v, 0, path, value);
+		}
+	}
+}
+
+Value ValueVfsItem::Get() {
+	RealizeValue();
+	return value;
+}
+
+Value ValueVfsItem::Get(Value key) {
+	RealizeValue();
+	ASSERT(type == VFS_DIRECTORY);
+	ValueMap map = value;
+	return map(key);
+}
+
+Value ValueVfsItem::GetKey(int i) {
+	RealizeValue();
+	ASSERT(type == VFS_DIRECTORY);
+	ValueMap map = value;
+	return map.GetKey(i);
+}
+
+void ValueVfsItem::Set(Value v) {
+	ASSERT(fs_smart_ptr);
+	if (fs_smart_ptr)
+		fs->Set(path, v);
+}
+
+void ValueVfsItem::MapSet(Value key, Value v) {
+	if (type != VFS_DIRECTORY) {
+		ASSERT(fs_smart_ptr);
+		if (fs_smart_ptr) {
+			fs->RealizeMap(*fs->v, 0, path);
+			type = VFS_DIRECTORY;
+		}
+		else return;
+	}
+	ASSERT(fs_smart_ptr);
+	if (fs_smart_ptr) {
+		VfsPath p(path);
+		p.Add(key);
+		fs->Set(p, v);
+		valid_read = false; // invalidate after modification
+	}
+}
+
+void ValueVfsItem::RealizeMap() {
+	ASSERT(fs_smart_ptr);
+	if (fs_smart_ptr)
+		fs->RealizeMap(*fs->v, 0, path);
+}
+
+Shared<VfsItem> ValueVfsItem::Open(Value key) {
+	ASSERT(fs_smart_ptr);
+	if (fs_smart_ptr) {
+		VfsPath p(path);
+		p.Add(key);
+		return fs->Get(p);
+	}
+	return Shared<VfsItem>();
+}
+
+Value ValueVfsItem::At(int i) {
+	RealizeValue();
+	if (value.Is<ValueArray>()) {
+		ValueArray arr = value;
+		return arr.At(i);
+	}
+	else if (value.Is<ValueMap>()) {
+		ValueMap map = value;
+		return map.GetValue(i);
+	}
+	else return Value();
+}
+
+int ValueVfsItem::GetCount() const {
+	RealizeValue();
+	Value v;
+	ASSERT(fs_smart_ptr);
+	if (fs_smart_ptr)
+		v = fs->GetValue(path);
+	return v.GetCount();
+}
 
 
 ValueFS::ValueFS() {}
 ValueFS::ValueFS(Value& v) : v(&v) {}
-Shared<VfsItem> ValueFS::At(const VfsPath& p) {Panic("Not implemented"); return MakeShared<VfsItem>();}
-Shared<VfsItem> ValueFS::operator()(String) {Panic("Not implemented"); return MakeShared<VfsItem>();}
+Value ValueFS::GetValue(const VfsPath& p) {
+	Value out;
+	Get(*v, 0, p, out);
+	return out;
+}
+bool ValueFS::Set(const VfsPath& p, const Value& val) {
+	return Set(*v, 0, p, val);
+}
+bool ValueFS::Set(Value& dir, int i, const VfsPath& p, const Value& val) {
+	if (i < 0 || i > p.GetPartCount())
+		return false;
+	if (i == p.GetPartCount()) {
+		dir = val;
+	}
+	else {
+		const String& part = p.Parts()[i];
+		if (!dir.Is<ValueMap>() && !dir.Is<ValueArray>()) {
+			if (dir.IsVoid())
+				dir = ValueMap();
+			else
+				return false;
+		}
+		if (dir.Is<ValueMap>()) {
+			ValueMap map = dir;
+			Value& subdir = map.GetAdd(part);
+			if (!Set(subdir, i+1, p, val))
+				return false;
+			dir = map;
+		}
+		else {
+			ASSERT(dir.Is<ValueArray>());
+			ValueArray arr = dir;
+			if (!IsAllDigit(part))
+				return false;
+			int i = ScanInt(part);
+			if (i == arr.GetCount())
+				arr.Add(Value());
+			if (i < 0 || i >= arr.GetCount())
+				return false;
+			Value& subdir = arr.At(i);
+			if (!Set(subdir, i+1, p, val))
+				return false;
+			dir = arr;
+		}
+	}
+	return true;
+}
+bool ValueFS::Get(const Value& dir, int i, const VfsPath& p, Value& val) {
+	if (i < 0 || i > p.GetPartCount())
+		return false;
+	if (i == p.GetPartCount()) {
+		val = dir;
+	}
+	else {
+		const String& part = p.Parts()[i];
+		if (!dir.Is<ValueMap>() && !dir.Is<ValueArray>())
+			return false;
+		if (dir.Is<ValueMap>()) {
+			ValueMap map;
+			int i = map.Find(part);
+			if (i < 0)
+				return false;
+			const Value& subdir = map.GetValue(i);
+			if (!Get(subdir, i+1, p, val))
+				return false;
+		}
+		else {
+			ASSERT(dir.Is<ValueArray>());
+			ValueArray arr;
+			if (!IsAllDigit(part))
+				return false;
+			int i = ScanInt(part);
+			if (i < 0 || i >= arr.GetCount())
+				return false;
+			const Value& subdir = arr.Get(i);
+			if (!Get(subdir, i+1, p, val))
+				return false;
+		}
+	}
+	return true;
+}
+void ValueFS::RealizeMap(Value& dir, int i, const VfsPath& p) {
+	if (i < 0 || i > p.GetPartCount())
+		return;
+	if (i == p.GetPartCount()) {
+		if (!dir.Is<ValueMap>())
+			dir = ValueMap();
+	}
+	else {
+		const String& part = p.Parts()[i];
+		if (!dir.Is<ValueMap>() && !dir.Is<ValueArray>())
+			dir = ValueMap();
+		if (dir.Is<ValueArray>() && !IsAllDigit(part))
+			dir = ValueMap(dir);
+		if (dir.Is<ValueMap>()) {
+			ValueMap map = dir;
+			Value& subdir = map.GetAdd(part);
+			RealizeMap(subdir, i+1, p);
+			dir = map;
+		}
+		else {
+			ASSERT(dir.Is<ValueArray>());
+			ValueArray arr = dir;
+			int i = ScanInt(part);
+			if (i == arr.GetCount())
+				arr.Add(Value());
+			if (i < 0 || i >= arr.GetCount()) {
+				ValueMap map = dir;
+				Value& subdir = map.GetAdd(part);
+				RealizeMap(subdir, i+1, p);
+				dir = map;
+			}
+			else {
+				Value& subdir = arr.At(i);
+				RealizeMap(subdir, i+1, p);
+				dir = arr;
+			}
+		}
+	}
+}
+Shared<VfsItem> ValueFS::Get(const VfsPath& p) {
+	Shared<VfsItem> o;
+	ValueVfsItem& it = o.Create<ValueVfsItem>();
+	it.fs = this;
+	it.fs_smart_ptr = this;
+	it.type = v->Is<ValueMap>() || v->Is<ValueArray>() ? VFS_DIRECTORY : VFS_FILE;
+	it.path = p;
+	it.valid_read = Get(*v, 0, it.path, it.value);
+	ASSERT(it.valid_read || it.value.IsNull());
+	return o;
+}
+Shared<VfsItem> ValueFS::operator()(String s) {
+	Shared<VfsItem> o;
+	ValueVfsItem& it = o.Create<ValueVfsItem>();
+	it.fs = this;
+	it.fs_smart_ptr = this;
+	it.type = v->Is<ValueMap>() || v->Is<ValueArray>() ? VFS_DIRECTORY : VFS_FILE;
+	it.path.Set(s);
+	it.valid_read = Get(*v, 0, it.path, it.value);
+	ASSERT(it.valid_read || it.value.IsNull());
+	return o;
+}
+Shared<VfsItem> ValueFS::RealizeMap(const VfsPath& p) {
+	Shared<VfsItem> o;
+	ValueVfsItem& it = o.Create<ValueVfsItem>();
+	it.fs = this;
+	it.fs_smart_ptr = this;
+	it.type = VFS_DIRECTORY;
+	it.path = p;
+	RealizeMap(*v, 0, it.path);
+	return o;
+}
 bool ValueFS::GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items)  {Panic("Not implemented"); return false;}
 VfsItemType ValueFS::CheckItem(const VfsPath& rel_path)  {Panic("Not implemented"); return VFS_NULL;}
 

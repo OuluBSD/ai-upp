@@ -222,7 +222,7 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 }
 
 bool HalSdl::AudioSinkDevice_PostInitialize(NativeAudioSinkDevice& dev, AtomBase& a) {
-	AtomBase* dep = a.GetDependency();
+	AtomBase* dep = CastPtr<AtomBase>(&*a.GetDependency(0));
 	if (dep == 0) {
 		LOG("HalSdl::AudioSinkDevice_PostInitialize: expected dependency atom but got null");
 		return false;
@@ -301,7 +301,7 @@ void HalSdl::AudioSinkDevice_Stop(NativeAudioSinkDevice& dev, AtomBase& a) {
 		Sleep(200);
 	}
 	
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::AudioSinkDevice_Uninitialize(NativeAudioSinkDevice& dev, AtomBase& a) {
@@ -381,7 +381,7 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 			return false;
 		}
 		AtomBase& other = *atom;
-		uint32 flag = (uint32)(int64)map->At(i)->Get("sdl_flag");
+		uint32 flag = (uint32)(int64)map->Open(i)->Get("sdl_flag");
 		sdl_flags |= flag;
 	}
 	
@@ -419,17 +419,16 @@ bool HalSdl::ContextBase_Send(NativeContextBase& ctx, AtomBase& a, RealtimeSourc
 }
 
 bool HalSdl::ContextBase_AttachContext(NativeContextBase& ctx, AtomBase& a, AtomBase& other) {
-	if (other.GetDependency()) {
+	if (CastPtr<AtomBase>(&*other.GetDependency(0))) {
 		LOG("HalSdl::ContextBase_AttachContext: atom already has dependency");
 		return false;
 	}
-	other.SetDependency(&a);
+	other.AddDependency(a);
 	return true;
 }
 
 void HalSdl::ContextBase_DetachContext(NativeContextBase& ctx, AtomBase& a, AtomBase& other) {
-	if (other.GetDependency() == &a)
-		other.SetDependency(0);
+	other.RemoveDependency(&a);
 }
 
 bool HalSdl::ContextBase_Recv(NativeContextBase& ctx, AtomBase&, int, const Packet&) {
@@ -549,7 +548,7 @@ bool HalSdl::CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice& dev, AtomB
 }
 
 void HalSdl::CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
@@ -842,7 +841,7 @@ bool HalSdl::CenterFboSinkDevice_Start(NativeCenterFboSinkDevice& dev, AtomBase&
 }
 
 void HalSdl::CenterFboSinkDevice_Stop(NativeCenterFboSinkDevice& dev, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::CenterFboSinkDevice_Uninitialize(NativeCenterFboSinkDevice& dev, AtomBase& a) {
@@ -1042,7 +1041,7 @@ bool HalSdl::OglVideoSinkDevice_Start(NativeOglVideoSinkDevice& dev, AtomBase&) 
 }
 
 void HalSdl::OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice& dev, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice& dev, AtomBase& a) {
@@ -1188,7 +1187,7 @@ bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const Wor
 }
 
 bool HalSdl::EventsBase_PostInitialize(NativeEventsBase& dev, AtomBase& a) {
-	AtomBase* dep = a.GetDependency();
+	AtomBase* dep = CastPtr<AtomBase>(&*a.GetDependency(0));
 	if (!dep) {
 		LOG("HalSdl::EventsBase_PostInitialize: expected dependency atom but got null");
 		return false;
@@ -1231,7 +1230,7 @@ bool HalSdl::EventsBase_Start(NativeEventsBase& dev, AtomBase& a) {
 }
 
 void HalSdl::EventsBase_Stop(NativeEventsBase& dev, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::EventsBase_Uninitialize(NativeEventsBase& dev, AtomBase& a) {
@@ -1599,7 +1598,7 @@ bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, con
 }
 
 bool HalSdl::UppEventsBase_PostInitialize(NativeUppEventsBase& dev, AtomBase& a) {
-	AtomBase* dep = a.GetDependency();
+	AtomBase* dep = CastPtr<AtomBase>(&*a.GetDependency(0));
 	if (!dep) {
 		LOG("HalSdl::EventsBase_PostInitialize: expected dependency atom but got null");
 		return false;
@@ -1635,7 +1634,7 @@ bool HalSdl::UppEventsBase_Start(NativeUppEventsBase&, AtomBase&) {
 }
 
 void HalSdl::UppEventsBase_Stop(NativeUppEventsBase&, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::UppEventsBase_Uninitialize(NativeUppEventsBase& dev, AtomBase& a) {
@@ -1748,7 +1747,7 @@ bool HalSdl::UppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
 }
 
 void HalSdl::UppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
-	a.ClearDependency();
+	a.ClearDependencies();
 }
 
 void HalSdl::UppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {

@@ -14,8 +14,6 @@ ImageBaseAtomT<Gfx>::ImageBaseAtomT(VfsValue& n) : Atom(n)
 
 template <class Gfx>
 bool ImageBaseAtomT<Gfx>::Initialize(const WorldState& ws) {
-	LOG(ws.ToString());
-	
 	String arg_filepath = ws.Get(".filepath");
 	if (arg_filepath.IsEmpty()) {
 		LOG("ImageBaseAtomT: error: no 'filepath' given");

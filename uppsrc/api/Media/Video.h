@@ -5,7 +5,7 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-class VideoCodecFormatT {
+struct VideoCodecFormatT {
 	
 public:
 	uint32			pix_fmt = 0;
@@ -13,7 +13,7 @@ public:
 };
 
 template <class Backend>
-class VideoSourceFormatResolutionT {
+struct VideoSourceFormatResolutionT {
 	
 protected:
 	friend class V4L2_DeviceManager;
@@ -29,7 +29,7 @@ public:
 };
 
 template <class Backend>
-class VideoSourceFormatT {
+struct VideoSourceFormatT {
 	
 protected:
 	friend class V4L2_DeviceManager;
@@ -64,7 +64,7 @@ public:
 
 
 template <class Backend>
-class VideoInputFrameT : public PacketBufferBase {
+struct VideoInputFrameT : PacketBufferBase {
 	
 public:
 	//RTTI_DECL1(VideoInputFrameT, PacketBufferBase)
@@ -77,7 +77,7 @@ public:
 };
 
 template <class Backend>
-class VideoOutputFrameT : public PacketBufferBase {
+struct VideoOutputFrameT : PacketBufferBase {
 	
 public:
 	//RTTI_DECL1(VideoOutputFrameT, PacketBufferBase)
@@ -92,9 +92,10 @@ public:
 
 
 template <class Backend>
-class VideoLoaderBaseT :
-	public AtomBase
+struct VideoLoaderBaseT :
+	AtomBase
 {
+private:
 	String	filepath;
 	bool	vflip = false;
 	

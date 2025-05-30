@@ -25,7 +25,7 @@ int WorldState::GetValueCount() const {
 
 void WorldState::FindKeys(String key_left, Index<String>& keys) const {
 	for(int i = 0; i < values.GetCount(); i++) {
-		auto& v = values[i];
+		auto& v = values.GetValue(i);
 		if (v.IsNull())
 			continue;
 		String key = values.GetKey(i);
@@ -49,7 +49,7 @@ WorldState& WorldState::operator=(const WorldState& src) {
 hash_t WorldState::GetHashValue() const {
 	CombineHash c;
 	for(int i = values.GetCount()-1; i >= 0; i--) {
-		const Value& o = values[i];
+		const Value& o = values.GetValue(i);
 		c.Put(o.GetHashValue());
 	}
 	return c;
@@ -68,19 +68,19 @@ bool WorldState::Set(const String& key, String value) {
 bool WorldState::IsTrue(const String& key, bool def) const {
 	int i = values.Find(key);
 	if (i >= 0)
-		return values[i];
+		return values.GetValue(i);
 	return def;
 }
 
 bool WorldState::IsFalse(const String& key, bool def) const {
 	int i = values.Find(key);
 	if (i >= 0)
-		return !values[i];
+		return !values.GetValue(i);
 	return def;
 }
 
 bool WorldState::IsFalse(int idx) const {
-	return !values[idx];
+	return !values.GetValue(idx);
 }
 
 bool WorldState::IsUndefined(const String& key) const {
@@ -97,12 +97,12 @@ String WorldState::Get(const String& key, String def) const {
 	int i = values.Find(key);
 	if (i < 0)
 		return def;
-	const Value& o = values[i];
+	const Value& o = values.GetValue(i);
 	return o.ToString();
 }
 
 String WorldState::Get(int idx) const {
-	const Value& o = values[idx];
+	const Value& o = values.GetValue(idx);
 	return o.ToString();
 }
 
@@ -117,7 +117,7 @@ Size WorldState::GetSize(const String& cx, const String& cy, Size def) const {
 int WorldState::GetInt(const String& key, int def) const {
 	int i = values.Find(key);
 	if (i >= 0) {
-		const Value& o = values[i];
+		const Value& o = values.GetValue(i);
 		return o;
 	}
 	return def;
@@ -126,7 +126,7 @@ int WorldState::GetInt(const String& key, int def) const {
 double WorldState::GetDouble(const String& key, double def) const {
 	int i = values.Find(key);
 	if (i >= 0) {
-		const Value& o = values[i];
+		const Value& o = values.GetValue(i);
 		return o;
 	}
 	return def;
@@ -135,7 +135,7 @@ double WorldState::GetDouble(const String& key, double def) const {
 bool WorldState::GetBool(const String& key, bool def) const {
 	int i = values.Find(key);
 	if (i >= 0) {
-		const Value& o = values[i];
+		const Value& o = values.GetValue(i);
 		return o;
 	}
 	return def;
@@ -144,7 +144,7 @@ bool WorldState::GetBool(const String& key, bool def) const {
 String WorldState::GetString(const String& key, String def) const {
 	int i = values.Find(key);
 	if (i >= 0) {
-		const Value& o = values[i];
+		const Value& o = values.GetValue(i);
 		if (!o.Is<String>()) {LOG(AsJSON(o));}
 		ASSERT(o.Is<String>());
 		return o
@@ -156,7 +156,7 @@ String WorldState::GetString(const String& key, String def) const {
 String WorldState::ToString() const {
 	String s;
 	for(int i = 0; i < values.GetCount(); i++) {
-		const Value& vo = values[i];
+		const Value& vo = values.GetValue(i);
 		String v = vo.ToString();
 		if (v.IsEmpty()) v = "false";
 		String k = values.GetKey(i).ToString();

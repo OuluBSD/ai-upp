@@ -916,6 +916,22 @@ void VfsValue::UninitializeDeep()
 	}
 }
 
+void VfsValue::StopDeep()
+{
+	for (auto& s : sub)
+		s.StopDeep();
+	if (ext)
+		ext->Stop();
+}
+
+void VfsValue::ClearDependenciesDeep()
+{
+	for (auto& s : sub)
+		s.ClearDependenciesDeep();
+	if (ext)
+		ext->ClearDependencies();
+}
+
 VfsValue& VfsValue::Add(const VfsValue& n)
 {
 	VfsValue& s = sub.Add();
@@ -1057,7 +1073,7 @@ bool VfsValue::FindDifferences(const VfsValue& n, Vector<String>& diffs, int max
 	if(x != n.x) {                                                                             \
 		had_diff = true;                                                                       \
 		diffs.Add("Different " #x ": " + AsString(x) + " vs " + AsString(n.x) + " at " +       \
-		          ", " + id + " (" + HexStr(n.type_hash) + ")");                               \
+		          ", " + id + " (" + HexStr64(n.type_hash) + ")");                               \
 	}
 	CHK_FIELD(id);
 	CHK_FIELD(type_hash);
@@ -1847,9 +1863,34 @@ void VfsValueExt::UninitializeDeep() {
 	if (IsInitialized()) {
 		Uninitialize();
 		SetInitialized(false);
+		ClearDependencies();
 	}
 }
-
+bool VfsValueExt::AddDependency(VfsValueExt& val) {
+	for (auto& d : deps)
+		if (d == &val)
+			return true;
+	deps.Add(&val);
+	return true;
+}
+VfsValueExtPtr VfsValueExt::GetDependency(int i) const {
+	return i >= 0 && i < deps.GetCount() ? deps[i] : VfsValueExtPtr();
+}
+int VfsValueExt::GetDependencyCount() const {
+	return deps.GetCount();
+}
+void VfsValueExt::RemoveDependency(int i) {
+	if (i >= 0 && i < deps.GetCount())
+		deps.Remove(i);
+}
+void VfsValueExt::ClearDependencies() {
+	deps.Clear();
+}
+void VfsValueExt::RemoveDependency(const VfsValueExt* e) {
+	for(int i = 0; i < deps.GetCount(); i++)
+		if (deps[i] == e)
+			deps.Remove(i--);
+}
 void VfsValueExt::CopyFrom(const VfsValueExt& e) {
 	StringStream s;
 	s.SetStoring();

@@ -14,8 +14,6 @@ VideoLoaderBaseT<Backend>::VideoLoaderBaseT(VfsValue& n) : AtomBase(n) {
 
 template <class Backend>
 bool VideoLoaderBaseT<Backend>::Initialize(const WorldState& ws) {
-	//LOG(ws.ToString());
-	
 	String arg_filepath = ws.Get(".filepath");
 	if (arg_filepath.IsEmpty()) {
 		LOG("VolumeLoaderBase: error: no 'filepath' given");

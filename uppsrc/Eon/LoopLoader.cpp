@@ -221,13 +221,14 @@ bool ScriptLoopLoader::Load() {
 		
 		ab->SetInitialized();
 		
-		if (has_link && !lb->Initialize(ws)) {
+		if (has_link && lb && !lb->Initialize(ws)) {
 			const auto& a = VfsValueExtFactory::AtomDataMap().Get(atom);
 			AddError(def.loc, "Could not " + String(!ab ? "create" : "initialize") + " atom '" + a.name + "' at '" + def.id.ToString() + "'");
 			return false;
 		}
 		
-		lb->SetInitialized();
+		if (lb)
+			lb->SetInitialized();
 	}
 	
 	if (has_link) {

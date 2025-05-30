@@ -101,6 +101,22 @@ void Engine::Stop() {
 	
 	is_looping_systems = true;
 	
+	
+	// Stop components
+	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
+		Component* comp = v->ext ? CastPtr<Component>(&*v->ext) : 0;
+		if (comp)
+			comp->Stop();
+	}
+	
+	// Stop atoms
+	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
+		AtomBase* atom = v->ext ? CastPtr<AtomBase>(&*v->ext) : 0;
+		if (atom)
+			atom->Stop();
+	}
+	
+	// Stop systems
 	auto systems = val.FindAll<System>();
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
 		(*it)->Stop();

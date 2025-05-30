@@ -6,9 +6,10 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-class MediaAtomBaseT :
-	public Atom
+struct MediaAtomBaseT :
+	Atom
 {
+private:
 	using FileInput = FileInputT<Backend>;
 	using MediaStreamThread = typename Backend::MediaStreamThread;
 	using VideoInputFramePtr = typename Backend::VideoInputFramePtr;

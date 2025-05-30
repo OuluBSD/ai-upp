@@ -253,17 +253,16 @@ bool HalHolo::ContextBase_IsReady(NativeContextBase& dev, AtomBase& a, PacketIO&
 }
 
 bool HalHolo::ContextBase_AttachContext(NativeContextBase& dev, AtomBase& a, AtomBase& other) {
-	if (other.GetDependency()) {
+	if (CastPtr<AtomBase>(&*other.GetDependency(0))) {
 		LOG("HalHolo::ContextBase_AttachContext: atom already has dependency");
 		return false;
 	}
-	other.SetDependency(&a);
+	other.AddDependency(a);
 	return true;
 }
 
 void HalHolo::ContextBase_DetachContext(NativeContextBase& dev, AtomBase& a, AtomBase& other) {
-	if (other.GetDependency() == &a)
-		other.SetDependency(0);
+	other.RemoveDependency(&a);
 }
 
 

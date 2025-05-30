@@ -101,7 +101,7 @@ public:
 
 
 template <class T>
-class RecyclerRefBase {
+class RecyclerRefBase : public RefBase {
 	T* obj = NULL;
 	Vector<WeakBase*> weaks;
 	Atomic refs;

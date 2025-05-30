@@ -39,7 +39,7 @@ void BiographyPlatformCtrl::Platforms::Header::Ctor() {
 }
 
 void BiographyPlatformCtrl::Platforms::Header::DataPlatform() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	Biography& biography = *mp.biography;
 	BiographyPlatform& analysis = *mp.analysis;
 	
@@ -76,7 +76,7 @@ void BiographyPlatformCtrl::Platforms::Header::DataPlatform() {
 }
 
 void BiographyPlatformCtrl::Platforms::Header::OnValueChange() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	Biography& biography = *mp.biography;
 	BiographyPlatform& analysis = *mp.analysis;
 	
@@ -108,7 +108,7 @@ void BiographyPlatformCtrl::Platforms::Header::EntryListMenu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Platforms::Header::Do(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	SocialHeaderProcess& ss = SocialHeaderProcess::Get(mp);

@@ -39,7 +39,7 @@ void ArtistInfoCtrl::Clear() {
 }
 
 void ArtistInfoCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	if (language.GetCount() == 0 && GetLanguageCount()) {
 		for(int i = 0; i < GetLanguageCount(); i++)
@@ -74,7 +74,7 @@ void ArtistInfoCtrl::Data() {
 }
 
 void ArtistInfoCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	if (p.entity) {
 		Artist& o = GetExt<Artist>();

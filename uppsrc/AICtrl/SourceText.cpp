@@ -26,7 +26,8 @@ void AuthorDataCtrl::SetFont(Font fnt) {
 }
 
 void AuthorDataCtrl::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		entities.Clear();
 		components.Clear();
@@ -62,7 +63,8 @@ void AuthorDataCtrl::Data() {
 }
 
 void AuthorDataCtrl::DataEntity() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		components.Clear();
 		analysis.Clear();
@@ -91,7 +93,8 @@ void AuthorDataCtrl::DataEntity() {
 }
 
 void AuthorDataCtrl::DataExtension() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		analysis.Clear();
 		return;
@@ -196,7 +199,8 @@ TokensPage::TokensPage(DatasetProvider& o) : o(o) {
 }
 
 void TokensPage::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		tokens.Clear();
 		return;
@@ -330,7 +334,8 @@ void ScriptTextDebuggerPage::Data() {
 	#undef ITEM
 	};
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		#define ITEM(x) x.Clear();
 		LIST
@@ -674,7 +679,8 @@ TextElements::TextElements(DatasetProvider& o) : o(o) {
 }
 
 void TextElements::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p;
+	o.GetDataset(p);
 	if (!p.srctxt) {
 		list.Clear();
 		return;
@@ -786,7 +792,7 @@ String GetTypePhraseString(const Vector<int>& word_classes, const SrcTextData& s
 }
 
 void VirtualPhrases::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		texts.Clear();
 		return;
@@ -881,7 +887,7 @@ VirtualPhraseParts::VirtualPhraseParts(DatasetProvider& o) : o(o) {
 }
 
 void VirtualPhraseParts::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		texts.Clear();
 		return;
@@ -945,7 +951,7 @@ VirtualPhraseStructs::VirtualPhraseStructs(DatasetProvider& o) : o(o) {
 }
 
 void VirtualPhraseStructs::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		texts.Clear();
 		return;
@@ -1066,7 +1072,7 @@ PhrasePartAnalysis::PhrasePartAnalysis(DatasetProvider& o) : o(o) {
 }
 
 void PhrasePartAnalysis::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		attrs.Clear();
 		return;
@@ -1106,7 +1112,7 @@ void PhrasePartAnalysis::DataAttribute() {
 }
 
 void PhrasePartAnalysis::DataColor() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		actions.Clear();
 		return;
@@ -1143,7 +1149,7 @@ void PhrasePartAnalysis::DataAction() {
 	if (!actions.IsCursor())
 		return;
 
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		action_args.Clear();
 		return;
@@ -1176,7 +1182,7 @@ void PhrasePartAnalysis::DataAction() {
 }
 
 void PhrasePartAnalysis::DataActionHeader() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		parts.Clear();
 		return;
@@ -1360,7 +1366,7 @@ void PhrasePartAnalysis2::ClearAll() {
 	if (!PromptYesNo(DeQtf("Do you really want to remove all typecasts and contrasts?")))
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt)
 		return;
 	auto& src = *p.srctxt;
@@ -1381,7 +1387,7 @@ void PhrasePartAnalysis2::Data() {
 void PhrasePartAnalysis2::DataMain() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		elements.Clear();
 		return;
@@ -1411,7 +1417,7 @@ void PhrasePartAnalysis2::DataElement() {
 	if (!elements.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		typecasts.Clear();
 		return;
@@ -1441,7 +1447,7 @@ void PhrasePartAnalysis2::DataTypeclass() {
 	if (!typecasts.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		contrasts.Clear();
 		return;
@@ -1488,7 +1494,7 @@ void PhrasePartAnalysis2::DataColor() {
 	if (!typecasts.IsCursor() || !colors.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		parts.Clear();
 		return;
@@ -1585,7 +1591,7 @@ void PhrasePartAnalysis2::DataColor() {
 }
 
 void PhrasePartAnalysis2::UpdateCounts() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		return;
 	}
@@ -1707,7 +1713,7 @@ void ActionAttrsPage::DataColor() {
 	if (!colors.IsCursor() || !attrs.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		actions.Clear();
 		return;
@@ -1805,7 +1811,7 @@ Attributes::Attributes(DatasetProvider& o) : o(o) {
 }
 
 void Attributes::RealizeTemp() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt)
 		return;
 	auto& src = *p.srctxt;
@@ -1828,7 +1834,7 @@ void Attributes::RealizeTemp() {
 }
 
 void Attributes::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		groups.Clear();
 		return;
@@ -1873,7 +1879,7 @@ void Attributes::Data() {
 }
 
 void Attributes::DataGroup() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		values.Clear();
 		return;
@@ -1959,7 +1965,7 @@ TextDataDiagnostics::TextDataDiagnostics(DatasetProvider& o) : o(o) {
 }
 
 void TextDataDiagnostics::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) {
 		values.Clear();
 		return;
@@ -2040,7 +2046,7 @@ void TextDataWordnet::Data() {
 }
 
 void TextDataWordnet::DataMain() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2100,7 +2106,7 @@ void TextDataWordnet::DataColor() {
 	if (!colors.IsCursor() || !attrs.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2270,7 +2276,7 @@ PhraseParts::PhraseParts(DatasetProvider& o) : o(o) {
 }
 
 void PhraseParts::Data() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2406,7 +2412,7 @@ void ActionParallelsPage::ToolMenu(Bar& bar) {
 }
 
 void ActionParallelsPage::DataMain() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2440,7 +2446,7 @@ void ActionParallelsPage::DataAction() {
 	if (!actions.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2471,7 +2477,7 @@ void ActionParallelsPage::DataActionHeader() {
 	if (!actions.IsCursor() || !action_args.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	
@@ -2589,7 +2595,7 @@ void ActionTransitionsPage::ToolMenu(Bar& bar) {
 }
 
 void ActionTransitionsPage::DataMain() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	#if 0
@@ -2628,7 +2634,7 @@ void ActionTransitionsPage::DataAction() {
 	if (!actions.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	#if 0
@@ -2665,7 +2671,7 @@ void ActionTransitionsPage::DataActionHeader() {
 	if (!actions.IsCursor() || !action_args.IsCursor())
 		return;
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.srctxt) return;
 	auto& src = *p.srctxt;
 	#if 0
@@ -2766,7 +2772,7 @@ void SourceTextMergerCtrl::Data() {
 
 void SourceTextMergerCtrl::Do(int fn) {
 	ToolAppCtrl& app = dynamic_cast<ToolAppCtrl&>(o);
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	String path = conf.path.GetData();
 	String ctx = conf.context.GetData();
 	String lang = conf.language.GetData();

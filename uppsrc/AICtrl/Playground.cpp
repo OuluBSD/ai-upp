@@ -132,14 +132,11 @@ void CompletionCtrl::Data() {
 	}
 }
 
-void AiThreadCtrlBase::SetThread(AiThread& t) {
-	ai_thrd = &t;
-}
-
 void AiThreadCtrlBase::SetNode(VfsValue& n) {
 	node = &n;
 }
 
+#if 0
 StageThread& AiThreadExt::GetStageThread() {
 	auto& o = GetValue();
 	return o.GetExt<StageThread>();
@@ -149,9 +146,11 @@ ChainThread& AiThreadExt::GetChainThread() {
 	auto& o = GetValue();
 	return o.GetExt<ChainThread>();
 }
-
+#endif
 
 void CompletionCtrl::Submit() {
+	TODO
+	#if 0
 	if (!HasThread()) return;
 	if (this->model_name.GetCount() == 0) return;
 	CompletionThread& t = GetCompletionThread();
@@ -194,6 +193,7 @@ void CompletionCtrl::Submit() {
 			this->prompt.SetCursor(this->prompt.GetLength());
 		});
 	}
+	#endif
 }
 
 
@@ -609,8 +609,10 @@ void ChatAiCtrl::Data() {
 	}
 	
 	// Update sessions
+	TODO
+	#if 0
 	if (!HasThread()) return;
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	if (t.sessions.IsEmpty())
 		AddSession();
 	if (sessions.GetCount() != t.sessions.GetCount()) {
@@ -625,6 +627,7 @@ void ChatAiCtrl::Data() {
 		if (!sessions.IsCursor())
 			sessions.SetCursor(0);
 	}
+	#endif
 	
 	DataSession();
 }
@@ -635,7 +638,7 @@ void ChatAiCtrl::ClearSessionCtrl() {
 }
 
 void ChatAiCtrl::AddSession() {
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	auto& session = t.sessions.Add();
 	session.created = GetSysTime();
 	session.name = "Unnamed";
@@ -645,7 +648,7 @@ void ChatAiCtrl::RemoveSession() {
 	if (!sessions.IsCursor())
 		return;
 	int idx = sessions.Get("IDX");
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	t.sessions.Remove(idx);
 	PostCallback(THISBACK(Data));
 }
@@ -654,7 +657,7 @@ void ChatAiCtrl::ClearSession() {
 	if (!sessions.IsCursor())
 		return;
 	int idx = sessions.Get("IDX");
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	auto& session = t.sessions[idx];
 	session.items.Clear();
 	session.changed = GetSysTime();
@@ -681,7 +684,7 @@ void ChatAiCtrl::DataSession() {
 	
 	int prev_session_i = session_i;
 	session_i = sessions.Get("IDX");
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	const auto& session = t.sessions[session_i];
 	
 	if (session_i != prev_session_i ||
@@ -700,11 +703,12 @@ void ChatAiCtrl::DataSession() {
 }
 
 void ChatAiCtrl::Submit() {
-	if (!HasThread()) return;
+	TODO
+	#if 0
 	if (this->model_name.GetCount() == 0) return;
 	if (session_i < 0) return;
 	
-	ChatThread& t = GetChatThread();
+	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 	TaskMgr& m = AiTaskManager();
 	
 	String txt = this->prompt.GetData();
@@ -769,7 +773,7 @@ void ChatAiCtrl::Submit() {
 	
 	m.GetChat(args, [this](String res) {
 		PostCallback([this,res]{
-			ChatThread& t = GetChatThread();
+			ChatThread& t = dynamic_cast<ChatThread&>(*ext);
 			if (session_i < 0 || session_i >= t.sessions.GetCount())
 				return;
 			auto& session = t.sessions[session_i];
@@ -780,6 +784,7 @@ void ChatAiCtrl::Submit() {
 			DataSession();
 		});
 	});
+	#endif
 }
 
 CustomBiasesCtrl::CustomBiasesCtrl() {
@@ -841,22 +846,14 @@ PlaygroundCtrl::~PlaygroundCtrl() {
 	stage.ext = 0;
 	chain.ext = 0;
 	StoreThis();
-	omni.Clear();
 }
 
 void PlaygroundCtrl::CreateThread() {
-	omni.Create();
+	TODO
+	#if 0
 	LoadThis();
 	SetThread(*omni);
-}
-
-void PlaygroundCtrl::SetThread(OmniThread& t) {
-	completion.SetThread(t);
-	chat.SetThread(t);
-	tts.SetThread(t);
-	ass.SetThread(t);
-	rt.SetThread(t);
-	bias.SetThread(t);
+	#endif
 }
 
 void PlaygroundCtrl::TabMenu(Bar& b) {
@@ -909,14 +906,19 @@ void PlaygroundCtrl::Visit(Vis& s) {
 }
 
 void PlaygroundCtrl::StoreThis() {
+	TODO
+	#if 0
 	if (omni)
 		VisitToJsonFile(*omni, ConfigFile("playground.json"));
+	#endif
 	VisitToJsonFile(*this, ConfigFile("playground-gui.json"));
 	if (node)
 		VisitToJsonFile(*node, ConfigFile("playground-node.json"));
 }
 
 void PlaygroundCtrl::LoadThis() {
+	TODO
+	#if 0
 	if (omni)
 		VisitFromJsonFile(*omni, ConfigFile("playground.json"));
 	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
@@ -931,6 +933,7 @@ void PlaygroundCtrl::LoadThis() {
 		
 		auto& agent = node->GetAdd<Agent>("agent");
 	}
+	#endif
 }
 
 void PlaygroundCtrl::SetNode(VfsValue& n) {

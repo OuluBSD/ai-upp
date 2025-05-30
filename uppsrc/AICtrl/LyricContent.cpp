@@ -139,7 +139,7 @@ void PartContentCtrl::InitDefault(PartLineCtrl& l) {
 void PartContentCtrl::DataLine(PartLineCtrl& pl) {
 	if (!o) return;
 	auto& o = *this->o;
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	DatabaseBrowser& b = DatabaseBrowser::Single();
@@ -197,7 +197,7 @@ void PartContentCtrl::OnLineValueChange(PartLineCtrl* l_) {
 	PartLineCtrl& pl = *l_;
 	DatabaseBrowser& b = DatabaseBrowser::Single();
 	
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	
@@ -268,7 +268,7 @@ void PartContentCtrl::DataSelAction(PartLineCtrl* l_) {
 void PartContentCtrl::Data() {
 	if (!o) return;
 	auto& o = *this->o;
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	
@@ -335,7 +335,7 @@ void PartContentCtrl::Data() {
 void PartContentCtrl::AddElements(DropList& dl) {
 	if (!o) return;
 	auto& o = *this->o;
-	auto p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	ASSERT(p.src);
 	auto& src = p.src->Data();
 	if (element_keys.IsEmpty()) {
@@ -363,7 +363,7 @@ int PartContentCtrl::FindElement(const String& s) {
 void PartContentCtrl::OnElementChange(int sub_i, int line_i, DropList* dl) {
 	if (!o) return;
 	auto& o = *this->o;
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.script || !o.parts.IsCursor())
 		return;
 	LyricalStructure& l = *p.lyric_struct;
@@ -465,7 +465,7 @@ bool PartLineCtrl::IsSelected() const {
 LineElement* PartLineCtrl::GetLineEl() const {
 	if (!o.o) return 0;
 	auto& o = *this->o.o;
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	int part_i = o.parts.GetCursor();
 	DynPart& dp = l.parts[part_i];
@@ -489,7 +489,7 @@ LineElement* PartLineCtrl::GetLineEl() const {
 DynLine* PartLineCtrl::GetDynLine() const {
 	if (!o.o) return 0;
 	auto& o = *this->o.o;
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	int part_i = o.parts.GetCursor();
 	DynPart& dp = l.parts[part_i];

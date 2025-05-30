@@ -130,11 +130,14 @@ void OmniDetailedCtrl::SetSoundThread(Ptr<SoundThreadBase> t) {
 		thrd->Detach();
 	thrd = t;
 	
+	TODO
+	#if 0
 	OmniThread& aidm = OmniThread::Single();
 	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};
 	aidm.WhenMessageBegin = [this](SoundMessage& m) {PostCallback(THISBACK(DataDiscussion));};
 	aidm.WhenPhraseBegin = [this](SoundPhrase& p) {PostCallback(THISBACK(DataMessage));};
 	thrd->Attach(aidm);
+	#endif
 }
 
 void OmniDetailedCtrl::Data() {
@@ -143,6 +146,8 @@ void OmniDetailedCtrl::Data() {
 }
 
 void OmniDetailedCtrl::DataManager() {
+	TODO
+	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
 	for(int i = 0; i < dm.discussions.GetCount(); i++) {
@@ -153,10 +158,12 @@ void OmniDetailedCtrl::DataManager() {
 	discussions.SetCount(dm.discussions.GetCount());
 	if (!discussions.IsCursor() && discussions.GetCount())
 		discussions.SetCursor(0);
-	
+	#endif
 }
 
 void OmniDetailedCtrl::DataDiscussion() {
+	TODO
+	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
 	if (!discussions.IsCursor()) {
@@ -176,10 +183,12 @@ void OmniDetailedCtrl::DataDiscussion() {
 	messages.SetCount(sd.messages.GetCount());
 	if (!messages.IsCursor() && messages.GetCount())
 		messages.SetCursor(0);
-	
+	#endif
 }
 
 void OmniDetailedCtrl::DataMessage() {
+	TODO
+	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
 	if (!discussions.IsCursor() || !messages.IsCursor()) {
@@ -205,10 +214,12 @@ void OmniDetailedCtrl::DataMessage() {
 		phrases.SetCursor(c-1);
 	else if (!phrases.IsCursor() && phrases.GetCount())
 		phrases.SetCursor(0);
-	
+	#endif
 }
 
 void OmniDetailedCtrl::DataPhrase() {
+	TODO
+	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
 	if (!phrases.IsCursor()) {
@@ -235,6 +246,7 @@ void OmniDetailedCtrl::DataPhrase() {
 	waveform.sampleformat.SetData(GetSampleFormatString(clip.GetFormat()));
 	wavectrl.SetClip(clip);
 	wavectrl.Refresh();
+	#endif
 }
 
 void OmniDetailedCtrl::ClearWaveform() {

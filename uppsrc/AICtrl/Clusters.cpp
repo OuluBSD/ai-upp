@@ -27,7 +27,7 @@ void BiographyPlatformCtrl::Clusters::Ctor() {
 }
 
 void BiographyPlatformCtrl::Clusters::Data() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.analysis) {
 		PromptOK("No PlatformManager component found");
 		return;
@@ -63,7 +63,7 @@ void BiographyPlatformCtrl::Clusters::Do(int fn) {
 }
 
 void BiographyPlatformCtrl::Clusters::DataImageType() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.analysis) {
 		PromptOK("No PlatformManager component found");
 		return;

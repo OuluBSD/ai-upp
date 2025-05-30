@@ -2,7 +2,7 @@
 
 #ifdef flagAI
 #include <AICore/AICore.h>
-#include <ide/Meta/Meta.h>
+#include <ide/Vfs/Vfs.h>
 #endif
 
 #define LLOG(x) // LOG(x)

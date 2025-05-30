@@ -6,12 +6,22 @@
 
 NAMESPACE_UPP
 
-extern String (*GetCursorKindNamePtr)(CXCursorKind);
+extern String (*GetCursorKindNamePtr)(int);
 
 END_UPP_NAMESPACE
 
+String GetCursorKindNameInt(int cursorKind)
+{
+	if(cursorKind >= 0 && cursorKind <= CXCursor_OverloadCandidate) {
+		if(!HasLibClang())
+			return Null;
+		return FetchString(clang_getCursorKindSpelling((CXCursorKind)cursorKind));
+	}
+	else return "Kind(" + IntStr(cursorKind) + ")";
+}
+
 INITBLOCK {
-	::Upp::GetCursorKindNamePtr = &GetCursorKindName;
+	::Upp::GetCursorKindNamePtr = &GetCursorKindNameInt;
 }
 
 String FetchString(CXString cs)

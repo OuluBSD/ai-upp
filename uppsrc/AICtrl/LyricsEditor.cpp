@@ -25,7 +25,7 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	sugg_split.SetPos(2500);
 	sugg_list.AddColumn("#");
 	sugg_list.WhenCursor << [this]() {
-		DatasetPtrs p = GetDataset();
+		DatasetPtrs p; GetDataset(p);
 		if (!sugg_list.IsCursor()) return;
 		int i = sugg_list.GetCursor();
 		Vector<String> lines = Split(p.lyrics->__suggestions[i], "\n");
@@ -36,7 +36,7 @@ ScriptTextSolverCtrl::ScriptTextSolverCtrl() {
 	};
 	sugg_list.WhenBar << [this](Bar& b) {
 		b.Add("Set source text", [this]() {
-			DatasetPtrs p = GetDataset();
+			DatasetPtrs p; GetDataset(p);
 			if (!p.lyric_struct) return;
 			LyricalStructure& l = *p.lyric_struct;
 			Lyrics& ly = *p.lyrics;
@@ -169,10 +169,10 @@ void ScriptTextSolverCtrl::Do(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoSuggestions(int fn) {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.entity) return;
 	String ecs_path = p.entity->val.GetPath();
-	ScriptSolver& sdi = ScriptSolver::Get(GetDataset(), ecs_path);
+	ScriptSolver& sdi = ScriptSolver::Get(p, ecs_path);
 	sugg_prog.Attach(sdi);
 	sdi.WhenRemaining << [this](String s) {
 		PostCallback([this,s](){sugg_remaining.SetLabel(s); Refresh();});
@@ -186,7 +186,7 @@ void ScriptTextSolverCtrl::DoSuggestions(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoWhole(int fn) {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (fn >= 0 && fn <= 1) {
 		/*ScriptGenerator& sdi = ScriptGenerator::Get(GetDataset());
 		whole_prog.Attach(sdi);
@@ -229,7 +229,7 @@ void ScriptTextSolverCtrl::OnEditorCursor() {
 }
 
 void ScriptTextSolverCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script) return;
 	editor.CheckClearSelected();
 	
@@ -248,7 +248,7 @@ void ScriptTextSolverCtrl::Data() {
 }
 
 void ScriptTextSolverCtrl::DataSuggestions() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	Lyrics& l = *p.lyrics;
 	
 	for(int i = 0; i < l.__suggestions.GetCount(); i++) {
@@ -259,7 +259,7 @@ void ScriptTextSolverCtrl::DataSuggestions() {
 }
 
 void ScriptTextSolverCtrl::DataWhole() {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.src) return;
 	auto& src = p.src->Data();
 	Script& s = *p.script;
@@ -331,7 +331,7 @@ void ScriptTextSolverCtrl::DataWhole() {
 }
 
 void ScriptTextSolverCtrl::DataPart() {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
@@ -362,7 +362,7 @@ void ScriptTextSolverCtrl::DataPart() {
 }
 
 void ScriptTextSolverCtrl::DataSub() {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	auto& src = p.src->Data();
 	Script& s = *p.script;
 	Lyrics& lyr = *p.lyrics;
@@ -385,7 +385,7 @@ void ScriptTextSolverCtrl::DataSub() {
 }
 
 void ScriptTextSolverCtrl::DoPart(int fn) {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	ASSERT(p.entity);
 	String ecs_path = p.entity->val.GetPath();
 	
@@ -412,7 +412,7 @@ void ScriptTextSolverCtrl::DoPart(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoSub(int fn) {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	ASSERT(p.entity);
 	String ecs_path = p.entity->val.GetPath();
 	const DynPart* part = 0;
@@ -439,7 +439,7 @@ void ScriptTextSolverCtrl::DoSub(int fn) {
 }
 
 void ScriptTextSolverCtrl::DoLine(int fn) {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	ASSERT(p.entity && p.script);
 	String ecs_path = p.entity->val.GetPath();
 	const DynPart* part = 0;
@@ -540,7 +540,7 @@ void ScriptTextSolverCtrl::DoLine(int fn) {
 }
 
 void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender) {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	ASSERT(p.srctxt);
 	auto& src = *p.srctxt;
 	
@@ -571,7 +571,7 @@ void ScriptTextSolverCtrl::UpdateEntities(DynLine& dl, bool unsafe, bool gender)
 }
 
 void ScriptTextSolverCtrl::DataLine() {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	Script& s = *p.script;
 	
 	if (editor.selected_line) {
@@ -630,7 +630,7 @@ void ScriptTextSolverCtrl::DataLine() {
 }
 
 void ScriptTextSolverCtrl::OnValueChange() {
-	const DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	Script& s = *p.script;
 	auto& src = p.src->Data();
 	ASSERT(p.src);
@@ -676,7 +676,7 @@ void ScriptTextSolverCtrl::OnValueChange() {
 void ScriptTextSolverCtrl::GetPart(const DynPart** part, int* part_iptr) {
 	auto selected_part = editor.selected_part;
 	if (!selected_part) return;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	for(int i = 0; i < l.parts.GetCount(); i++) {
 		const DynPart& dp = l.parts[i];
@@ -690,7 +690,7 @@ void ScriptTextSolverCtrl::GetPart(const DynPart** part, int* part_iptr) {
 void ScriptTextSolverCtrl::GetSub(const DynPart** part, const DynSub** sub, int* part_iptr, int* sub_iptr) {
 	auto selected_sub = editor.selected_sub;
 	if (!selected_sub) return;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	for(int i = 0; i < l.parts.GetCount(); i++) {
 		const DynPart& dp = l.parts[i];
@@ -709,7 +709,7 @@ Vector<const DynLine*> ScriptTextSolverCtrl::GetLineGroup(const DynPart** part, 
 	Vector<const DynLine*> ret;
 	auto selected_line = editor.selected_line;
 	if (!selected_line) return ret;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	for(int i = 0; i < l.parts.GetCount(); i++) {
 		const DynPart& dp = l.parts[i];
@@ -804,7 +804,8 @@ void StructuredScriptEditor::Update() {
 	if (!owner) {Refresh(); return;}
 	
 	int total_h = 0;
-	DatasetPtrs p = owner->GetDataset();
+	DatasetPtrs p;
+	owner->GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	for(int i = 0; i < l.parts.GetCount(); i++) {
 		const DynPart& dp = l.parts[i];
@@ -826,7 +827,8 @@ void StructuredScriptEditor::CheckClearSelected() {
 	bool line_found = false;
 	bool part_found = false;
 	bool sub_found = false;
-	DatasetPtrs p = owner->GetDataset();
+	DatasetPtrs p;
+	owner->GetDataset(p);
 	if (!p.script) return;
 	if (!p.lyric_struct) return;
 	LyricalStructure& l = *p.lyric_struct;
@@ -983,7 +985,8 @@ void StructuredScriptEditor::Paint(Draw& d) {
 		d.DrawText(2,2,"Error: no pointer",fnt,Black());
 		return;
 	}
-	DatasetPtrs p = owner->GetDataset();
+	DatasetPtrs p;
+	owner->GetDataset(p);
 	if (!p.lyric_struct) return;
 	LyricalStructure& l = *p.lyric_struct;
 	int y = -scroll_v;

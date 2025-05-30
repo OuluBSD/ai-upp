@@ -36,7 +36,7 @@ public:
 
 #define REGISTER_SYSTEM_ATOM(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ATOM);
 #define REGISTER_SYSTEM_ECS(x) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ECS);
-#define REGISTER_COMPONENT(x, str) VfsValueExtFactory::Register<x>(str, VFSEXT_COMPONENT);
+#define REGISTER_COMPONENT(x, str) VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT, str);
 #define REGISTER_EXCHANGE(x, dev, val) VfsValueExtFactory::RegisterExchange<x>(#x, dev, val);
 
 class Engine : public VfsValueExt

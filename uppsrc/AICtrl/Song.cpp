@@ -34,7 +34,7 @@ void SongInfoCtrl::Clear() {
 }
 
 void SongInfoCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	Clear();
 	
@@ -82,7 +82,7 @@ void SongInfoCtrl::Data() {
 
 	DataTypeclass();*/
 	/*
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.entity || !typeclasses.IsCursor()) {
 		contents.Clear();
 		scripts.Clear();
@@ -110,7 +110,7 @@ void SongInfoCtrl::Data() {
 	
 
 	
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.entity || !typeclasses.IsCursor() || !contents.IsCursor()) {
 		scripts.Clear();
 		return;
@@ -142,7 +142,7 @@ void SongInfoCtrl::Data() {
 }
 
 void SongInfoCtrl::DataScript() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.entity || !scripts.IsCursor()) {
 		scripts_text.Clear();
 		return;
@@ -162,7 +162,7 @@ void SongInfoCtrl::DataScript() {
 }
 
 void SongInfoCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	TODO
 	#if 0
@@ -183,7 +183,7 @@ void SongInfoCtrl::OnValueChange() {
 }
 
 void SongInfoCtrl::SetScript() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	Component& s = *p.song;
 	
 	if (!p.entity || !p.song || !scripts.IsCursor()) {

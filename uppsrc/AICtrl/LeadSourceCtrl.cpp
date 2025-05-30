@@ -126,7 +126,7 @@ LeadSourceCtrl::LeadSourceCtrl() {
 }
 
 void LeadSourceCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.lead_data)
 		return;
 	LeadData& ld = *p.lead_data;
@@ -179,7 +179,7 @@ void LeadSourceCtrl::Data() {
 }
 
 void LeadSourceCtrl::DataPayout() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = *p.lead_data;
 	
 	
@@ -243,7 +243,7 @@ void LeadSourceCtrl::DataPayout() {
 }
 
 void LeadSourceCtrl::DataPrice() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = *p.lead_data;
 	
 	
@@ -308,7 +308,7 @@ void LeadSourceCtrl::DataPrice() {
 }
 
 void LeadSourceCtrl::DataOpportunity() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = *p.lead_data;
 	
 	
@@ -413,7 +413,7 @@ void LeadSourceCtrl::DataOpportunity() {
 }
 
 void LeadSourceCtrl::DataAnalyzedList() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = *p.lead_data;
 	
 	
@@ -451,11 +451,12 @@ void LeadSourceCtrl::ToolMenu(Bar& bar) {
 
 void LeadSourceCtrl::Do(int fn) {
 	if (fn == 0) {
-		LeadSolver& tm = LeadSolver::Get(GetDataset());
+		DatasetPtrs p; GetDataset(p);
+		LeadSolver& tm = LeadSolver::Get(p);
 		tm.Start();
 	}
 	else if (fn == 1) {
-		DatasetPtrs p = GetDataset();
+		DatasetPtrs p; GetDataset(p);
 		if (p.owner) {
 			LeadSolver& tm = LeadSolver::Get(p);
 			tm.Start();
@@ -464,7 +465,7 @@ void LeadSourceCtrl::Do(int fn) {
 }
 
 void LeadSourceCtrl::CreateScript() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = *p.lead_data;
 	
 	int appmode = DB_SONG; // TODO remove
@@ -521,7 +522,7 @@ void LeadSourceCtrl::CreateScript() {
 }
 
 void LeadSourceCtrl::CopyHeaderClipboard() {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	LeadData& ld = *mp.lead_data;
 	
 	if (!list.IsCursor())
@@ -549,7 +550,7 @@ void LeadSourceCtrl::CopyHeaderClipboard() {
 }
 
 void LeadSourceCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData& ld = GetExt<LeadData>();
 	if (LoadFromJsonFile_VisitorNodePrompt(ld)) {
 		PostCallback(THISBACK(Data));

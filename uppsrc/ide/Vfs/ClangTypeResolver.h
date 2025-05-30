@@ -1,5 +1,5 @@
-#ifndef _ide_Meta_ClangTypeResolver_h_
-#define _ide_Meta_ClangTypeResolver_h_
+#ifndef _ide_Vfs_ClangTypeResolver_h_
+#define _ide_Vfs_ClangTypeResolver_h_
 
 
 class ClangTypeResolver {

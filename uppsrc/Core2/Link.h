@@ -78,7 +78,6 @@ public:
 	virtual bool			ForwardAsyncMem(byte* mem, int size) {Panic("ForwardAsyncMem unimplemented"); return false;}
 	virtual bool			IsConsumedPartialPacket() {return 0;}
 	virtual void			Forward(FwdScope& fwd);
-	virtual bool			PostInitialize() {return true;}
 	virtual bool			IsReady(PacketIO& io);
 	virtual bool			PassLinkSideSink(LinkBasePtr sink) {return true;}
 	virtual bool			PassLinkSideSource(LinkBasePtr src) {return true;}

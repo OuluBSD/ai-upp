@@ -1,4 +1,4 @@
-#include "Meta.h"
+#include "Vfs.h"
 
 NAMESPACE_UPP
 
@@ -64,7 +64,7 @@ void EnvEditorCtrl::Data() {
 		return;
 	}
 	
-	ctxs = this->file_root->AstFindAllShallow(AsTypeHash<Context>());
+	ctxs = this->file_root->FindAllShallow(AsTypeHash<Context>());
 	ctx_dbs.SetCount(ctxs.GetCount());
 	int row = 0;
 	for(int i = 0; i < ctxs.GetCount(); i++) {
@@ -75,7 +75,7 @@ void EnvEditorCtrl::Data() {
 		
 		// Make string of items
 		auto& db_refs = ctx_dbs[i];
-		db_refs = e.AstFindAllShallow(AsTypeHash<DbRef>());
+		db_refs = e.FindAllShallow(AsTypeHash<DbRef>());
 		ctxlist.Set(row, 1, MakeIdString(db_refs));
 		row++;
 	}

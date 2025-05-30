@@ -26,7 +26,7 @@ AiChainCtrl::AiChainCtrl() {
 void AiChainCtrl::Data() {
 	if (!ext) return;
 	auto& list = this->session;
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	VfsValue& n = GetValue();
 	sessions = n.FindTypeAllShallow(AsTypeHash<ChainThread>());
 	for(int i = 0; i < sessions.GetCount(); i++) {
@@ -117,7 +117,7 @@ void AiChainCtrl::AddSession() {
 	String name;
 	if (!EditText(name, "Session's name", "Name"))
 		return;
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	for(int i = 0; i < sessions.GetCount(); i++) {
 		if (sessions[i]->id == name) {
 			PromptOK("Session with that name exists already");
@@ -134,7 +134,7 @@ void AiChainCtrl::RemoveSession() {
 		return;
 	int ses_id = session.Get("IDX");
 	VfsValue* ses = sessions[ses_id];
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	GetValue().Remove(ses);
 	PostCallback(THISBACK(Data));
 }
@@ -143,7 +143,7 @@ void AiChainCtrl::RenameSession() {
 	if (!session.IsCursor())
 		return;
 	int ses_id = session.Get("IDX");
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	auto& ses = *sessions[ses_id];
 	String name = ses.id;
 	if (!EditText(name, "Session's name", "Name"))
@@ -156,7 +156,7 @@ void AiChainCtrl::SetSessionVersion() {
 	if (!session.IsCursor())
 		return;
 	int ses_id = session.Get("IDX");
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	auto& ses = *sessions[ses_id];
 	AstValue& a = ses;
 	String s = a.type;
@@ -170,7 +170,7 @@ void AiChainCtrl::DuplicateSession() {
 	if (!session.IsCursor())
 		return;
 	int ses_id = session.Get("IDX");
-	ChainThread& t = GetChainThread();
+	ChainThread& t = dynamic_cast<ChainThread&>(*ext);
 	const auto& ses0 = *sessions[ses_id];
 	auto& ses1 = GetValue().Add<ChainThread>("");
 	VisitCopy(ses0, ses1.val);

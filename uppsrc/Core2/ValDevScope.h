@@ -138,8 +138,8 @@ public:
 };
 
 
-bool Convert(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst);
-bool Convert(const Packet& src, Packet& dst, bool keep_tracking=true);
+bool ConvertPacket(const ValueFormat& src_fmt, const byte* src, const ValueFormat& dst_fmt, byte* dst);
+bool ConvertPacket(const Packet& src, Packet& dst, bool keep_tracking=true);
 
 
 #endif

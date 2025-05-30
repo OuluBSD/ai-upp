@@ -179,7 +179,7 @@ void PlatformManagerCtrl::ToolMenu(Bar& bar) {
 }
 
 void PlatformManagerCtrl::Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	
@@ -214,7 +214,7 @@ void PlatformManagerCtrl::OnPhotoPrompt() {
 }
 
 void PlatformManagerCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	PlatformManager& data = GetExt<PlatformManager>();
 	if (LoadFromJsonFile_VisitorNodePrompt(data)) {
 		PostCallback(THISBACK(Data));

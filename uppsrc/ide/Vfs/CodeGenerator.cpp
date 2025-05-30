@@ -1,4 +1,4 @@
-#include "Meta.h"
+#include "Vfs.h"
 
 NAMESPACE_UPP
 
@@ -62,9 +62,12 @@ bool MetaCodeGenerator::Process(const VfsValueSubset& np) {
 		// Sort nodes based on code position
 		struct VfsValuePtrSorter {
 			bool operator()(const VfsValue* a, const VfsValue* b) const {
-				const AstValue* av = a ? *a : 0;
-				const AstValue* bv = b ? *b : 0;
-				return IsFilePosLess(av->begin, bv->begin);
+				const AstValue* av = *a;
+				const AstValue* bv = *b;
+				ASSERT(av && bv);
+				if (av && bv)
+					return IsFilePosLess(av->begin, bv->begin);
+				return false;
 			}
 		};
 		Sort(nodes, VfsValuePtrSorter());
@@ -178,7 +181,7 @@ void MetaCodeGenerator::FindFiles(const VfsValueSubset& np, Vector<Vector<int>>&
 void MetaCodeGenerator::FindValues(const VfsValueSubset& np, const PkgFile& key, Vector<VfsValue*>& nodes) {
 	VfsValue& n = *np.n;
 	const AstValue* a = n;
-	if (a && MetaEnvironment::IsMergeable(a->kind)) {
+	if (a && IdeMetaEnvironment::IsMergeable(a->kind)) {
 		for (const VfsValueSubset& s : np.sub) {
 			FindValues(s, key, nodes);
 		}

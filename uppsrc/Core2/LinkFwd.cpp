@@ -345,7 +345,7 @@ void LinkBase::ForwardSideConnections() {
 					#if HAVE_PACKETTRACKER
 					to_p->CopyRouteData(*p);
 					#endif
-					if (Convert(p, to_p)) {
+					if (ConvertPacket(p, to_p)) {
 						RTLOG("LinkBase::ForwardSideConnections: converted packet: " << to_p->ToString());
 					}
 					else {

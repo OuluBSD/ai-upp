@@ -47,7 +47,7 @@ void LeadPublisherCtrl::Do(int fn) {
 }
 
 void LeadPublisherCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.entity)
 		return;
 	Entity& ent = *p.entity;
@@ -73,7 +73,7 @@ void LeadPublisherCtrl::ImportJson() {
 }
 
 void LeadPublisherCtrl::ValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadDataPublisher& ldp = GetExt<LeadDataPublisher>();
 	
 	ldp.name = info.name.GetData();

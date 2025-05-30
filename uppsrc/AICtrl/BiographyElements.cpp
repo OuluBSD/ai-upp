@@ -47,7 +47,7 @@ void BiographyCtrl::El_DataCategory() {
 	REF(el, block);
 	REF(el, sort_column);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !categories.IsCursor()) {
 		elements.Clear();
 		return;
@@ -124,7 +124,7 @@ void BiographyCtrl::El_DataElement() {
 	REF(el, block);
 	REF(el, sort_column);
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !mp.biography || !elements.IsCursor())
 		return;
 	int cat_i = elements.Get("CAT");

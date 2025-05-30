@@ -1,5 +1,5 @@
-#ifndef _ide_Meta_EditorCtrl_h_
-#define _ide_Meta_EditorCtrl_h_
+#ifndef _ide_Vfs_EditorCtrl_h_
+#define _ide_Vfs_EditorCtrl_h_
 
 
 class EntityEditorCtrl : public ToolAppCtrl {

@@ -24,7 +24,7 @@ VideoStoryboardCtrl::VideoStoryboardCtrl() {
 }
 
 void VideoStoryboardCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.song)
 		return;
 	String dir = GetFileDirectory(GetFilePath());
@@ -66,7 +66,7 @@ void VideoStoryboardCtrl::Data() {
 }
 
 void VideoStoryboardCtrl::DataLine() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.song || !list.IsCursor())
 		return;
 	
@@ -113,7 +113,7 @@ void VideoStoryboardCtrl::ToolMenu(Bar& bar) {
 }
 
 void VideoStoryboardCtrl::Do(int fn) {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.song) return;
 	
 	if (fn == 0) {

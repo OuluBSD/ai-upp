@@ -15,7 +15,6 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override {}
 	
-	OmniThread& GetThread();
 };
 
 INITIALIZE(AiCompletionComponentCtrl)
@@ -31,7 +30,6 @@ public:
 	void Data() override;
 	void ToolMenu(Bar& bar) override {}
 	
-	OmniThread& GetThread();
 };
 
 INITIALIZE(AiChatComponentCtrl)

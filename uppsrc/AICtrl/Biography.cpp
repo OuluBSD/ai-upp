@@ -34,7 +34,7 @@ BiographyCtrl::BiographyCtrl() {
 
 void BiographyCtrl::Data() {
 	Biography& biography = GetExt<Biography>();
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.owner) {PromptOK("No owner was found"); return;}
 	if (!p.owner->born.IsValid() || p.owner->born.year < -2000 || p.owner->born.year >= 3000) {
 		PromptOK("Error: Owner has no valid birth date");
@@ -176,7 +176,7 @@ void BiographyCtrl::GetElements() {
 	TODO
 	#if 0
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	if (!mp.editable_biography)
@@ -240,7 +240,7 @@ void BiographyCtrl::GetElementHints() {
 	TODO
 	#if 0
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	Owner& owner = *mp.owner;
@@ -290,7 +290,7 @@ void BiographyCtrl::GetElementScores() {
 	TODO
 	#if 0
 	
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !categories.IsCursor() || !years.IsCursor())
 		return;
 	Owner& owner = *mp.owner;

@@ -16,7 +16,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 	roles.WhenCursor << THISBACK(DataRole);
 	roles.WhenBar << [this](Bar& b) {
 		b.Add("Add role", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!p.owner) return;
 			String role;
 			bool b = EditTextNotNull(
@@ -34,7 +34,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 			o.PostCallback(THISBACK(DataPlatform));
 		});
 		b.Add("Remove role", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!roles.IsCursor()) return;
 			int cur = roles.Get("IDX");
 			if (cur >= 0 && cur < p.owner->roles.GetCount())
@@ -59,7 +59,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 	actions.WhenCursor << THISBACK(DataAction);
 	actions.WhenBar << [this](Bar& b) {
 		b.Add("Add action", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!p.owner || !roles.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			String action;
@@ -78,7 +78,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 			o.PostCallback(THISBACK(DataRole));
 		});
 		b.Add("Remove action", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -97,7 +97,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 	events.AddIndex("IDX");
 	events.WhenBar << [this](Bar& b) {
 		b.Add("Add event", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -105,7 +105,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 			o.PostCallback(THISBACK(DataRole));
 		});
 		b.Add("Remove event", [this]() {
-			DatasetPtrs p = o.GetDataset();
+			DatasetPtrs p; o.GetDataset(p);
 			if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor()) return;
 			int role_i = roles.Get("IDX");
 			int action_i = actions.Get("IDX");
@@ -123,7 +123,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 	entries.WhenCursor << THISBACK(DataEntry);
 	
 	event.WhenAction << [this]() {
-		DatasetPtrs p = o.GetDataset();
+		DatasetPtrs p; o.GetDataset(p);
 		if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor()) return;
 		int role_i = roles.Get("IDX");
 		int need_i = needs.Get("IDX");
@@ -139,7 +139,7 @@ void BiographyPlatformCtrl::Platforms::Needs::Ctor() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataPlatform() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner) return;
 	
 	for(int i = 0; i < p.owner->roles.GetCount(); i++) {
@@ -157,7 +157,7 @@ void BiographyPlatformCtrl::Platforms::Needs::DataPlatform() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataRole() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !roles.IsCursor())
 		return;
 	
@@ -192,7 +192,7 @@ void BiographyPlatformCtrl::Platforms::Needs::DataRole() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataNeed() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !roles.IsCursor() || !needs.IsCursor())
 		return;
 	
@@ -226,7 +226,7 @@ void BiographyPlatformCtrl::Platforms::Needs::DataNeed() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataAction() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !roles.IsCursor() || !actions.IsCursor()) {
 		action_causes.Clear();
 		events.Clear();
@@ -275,7 +275,7 @@ void BiographyPlatformCtrl::Platforms::Needs::DataAction() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataEvent() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !roles.IsCursor() || !events.IsCursor() || !actions.IsCursor()) {
 		entries.Clear();
 		event.SetData("");
@@ -309,7 +309,7 @@ void BiographyPlatformCtrl::Platforms::Needs::DataEvent() {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::DataEntry() {
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.owner || !roles.IsCursor() || !actions.IsCursor() || !events.IsCursor() || !entries.IsCursor()) return;
 	int role_i = roles.Get("IDX");
 	int need_i = needs.Get("IDX");
@@ -328,7 +328,7 @@ void BiographyPlatformCtrl::Platforms::Needs::ToolMenu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Platforms::Needs::Do(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	SocialNeedsProcess& ss = SocialNeedsProcess::Get(*mp.profile, *mp.snap);

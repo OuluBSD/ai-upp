@@ -39,7 +39,8 @@ void BiographyPlatformCtrl::Platforms::Menu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Platforms::Data() {
-	DatasetPtrs ptrs = o.GetDataset();
+	DatasetPtrs ptrs;
+	o.GetDataset(ptrs);
 	if (!ptrs.platmgr) {
 		PromptOK("No PlatformManager component found");
 		return;

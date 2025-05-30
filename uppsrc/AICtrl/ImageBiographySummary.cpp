@@ -38,7 +38,7 @@ void BiographyCtrl::ImageSummary_DataCategory() {
 	REF(image_summary, vsplit);
 	REF(image_summary, blocks);
 	REF(image_summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !categories.IsCursor()) {
 		blocks.Clear();
 		return;
@@ -86,7 +86,7 @@ void BiographyCtrl::ImageSummary_DataYear() {
 	REF(image_summary, vsplit);
 	REF(image_summary, blocks);
 	REF(image_summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.owner || !categories.IsCursor() || !blocks.IsCursor())
 		return;
 	
@@ -108,7 +108,7 @@ void BiographyCtrl::ImageSummary_OnValueChange() {
 	REF(image_summary, vsplit);
 	REF(image_summary, blocks);
 	REF(image_summary, block);
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	
 	if (!mp.owner || !categories.IsCursor() || !blocks.IsCursor())
 		return;
@@ -173,7 +173,7 @@ void BiographyCtrl::ImageSummary_ToolMenu(Bar& bar) {
 }
 
 void BiographyCtrl::ImageSummary_Do(int fn) {
-	DatasetPtrs mp = GetDataset();
+	DatasetPtrs mp; GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	if (mp.editable_biography) {

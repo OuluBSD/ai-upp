@@ -1,8 +1,10 @@
-#include "Eon.h"
+#include "Core.h"
 
 
 NAMESPACE_UPP
 
+void (*Eon_PostLoadString)(Engine& eng, String script_str);
+bool (*Eon_AddScriptLoader)(Engine& eng);
 
 bool DefaultInitializer(Engine& mach, bool skip_eon_file) {
 	return mach.CommandLineInitializer(skip_eon_file);
@@ -162,32 +164,15 @@ bool Engine::Start(String script_content, String script_file, Value args_, bool 
 			bool fail = false;
 			{
 				if (!mach.IsStarted()) {
-					//RegistrySystemPtr reg			= mach.FindAdd<RegistrySystem>();
-					//LoopStorePtr ls				= mach.FindAdd<LoopStore>();
-					//AtomStorePtr as				= mach.FindAdd<AtomStore>();
-				    //Ptr<AtomSystem> asys			= mach.FindAdd<AtomSystem>();
 				    Ptr<LinkSystem> lsys			= mach.FindAdd<LinkSystem>();
-				    Ptr<Eon::ScriptLoader> script	= mach.FindAdd<Eon::ScriptLoader>();
-					
-					#ifdef flagGUI
-				    Gu::GuboSystemPtr gubo	= mach.FindAdd<Gu::GuboSystem>();
-				    WindowSystemPtr win		= mach.FindAdd<WindowSystem>();
-				    #endif
 				    
 				    mach.FindAdd<PacketTracker>();
 				}
 				
-				/*Ptr<LoopStore> ls = mach.Find<LoopStore>();
-				if (!ls) {
-					LOG("No LoopStore added to machine and the machine is already started");
-					return;
-				}*/
-				
-				Ptr<Eon::ScriptLoader> script	= mach.Find<Eon::ScriptLoader>();
-				if (!script) {
-					LOG("No ScriptLoader added to machine and the machine is already started");
-					return false;
-				}
+			    if (Eon_AddScriptLoader) {
+			        if (!Eon_AddScriptLoader(mach))
+			            return false;
+			    }
 				
 				if (!script_file.IsEmpty()) {
 					String path = RealizeEonFile(script_file);
@@ -215,7 +200,12 @@ bool Engine::Start(String script_content, String script_file, Value args_, bool 
 					}
 					LOG(script_str);
 				
-					script->PostLoadString(script_str);
+					if (Eon_PostLoadString)
+						Eon_PostLoadString(mach, script_str);
+					else {
+						SetFailed("No Eon loader included in this executable");
+						return false;
+					}
 				}
 		    }
 		    

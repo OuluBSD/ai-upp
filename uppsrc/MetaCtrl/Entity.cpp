@@ -1,14 +1,14 @@
 #include "MetaCtrl.h"
-#include <ide/Meta/Meta.h>
+#include <ide/Vfs/Vfs.h>
 
 NAMESPACE_UPP
 
 
-DatasetPtrs ComponentCtrl::GetDataset() const {
+void ComponentCtrl::GetDataset(DatasetPtrs& p) const {
 	if (!ext)
-		return DatasetPtrs();
+		return;
 	Component& comp = dynamic_cast<Component&>(*ext);
-	return comp.GetDataset();
+	comp.GetDataset(p);
 }
 
 
@@ -510,7 +510,8 @@ VNodeComponentCtrl::VNodeComponentCtrl(ValueVFSComponentCtrl& o, const VirtualNo
 }
 
 DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode, hash_t type_hash) {
-	DatasetPtrs p = owner.GetDataset();
+	DatasetPtrs p;
+	owner.GetDataset(p);
 	TODO
 	#if 0
 	if (!p.entity)
@@ -544,8 +545,7 @@ DatasetPtrs VNodeComponentCtrl::RealizeEntityVfsObject(const VirtualNode& vnode,
 	return p;
 }
 
-DatasetPtrs VNodeComponentCtrl::GetDataset() const {
-	DatasetPtrs p = owner.GetDataset();
+void VNodeComponentCtrl::GetDataset(DatasetPtrs& p) const {
 	
 	// Get entity-vfs-objects
 	if (vnode.IsValue() && p.entity) {
@@ -561,8 +561,6 @@ DatasetPtrs VNodeComponentCtrl::GetDataset() const {
 		}
 		#endif
 	}
-	
-	return p;
 }
 
 
@@ -720,13 +718,11 @@ void EntityInfoCtrl::ToolMenu(Bar& bar) {
 	
 }
 
-DatasetPtrs EntityInfoCtrl::GetDataset() const {
+void EntityInfoCtrl::GetDataset(DatasetPtrs& p) const {
 	EntityInfoCtrl* e = const_cast<EntityInfoCtrl*>(this);
-	DatasetPtrs p;
 	VfsValue& n = e->GetValue();
 	p.entity = &e->GetExt<Entity>();
 	FillDataset(p, n, 0);
-	return p;
 }
 
 INITIALIZER_COMPONENT_CTRL(Entity, EntityInfoCtrl)

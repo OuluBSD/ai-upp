@@ -25,7 +25,7 @@ LeadTemplateCtrl::LeadTemplateCtrl() {
 }
 
 void LeadTemplateCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadData* ld = p.lead_data;
 	LeadDataTemplate& ldt = *p.lead_tmpl;
 	int lng = LNG_ENGLISH; //mdb.GetLanguageIndex();
@@ -93,7 +93,7 @@ void LeadTemplateCtrl::Do(int fn) {
 }
 
 void LeadTemplateCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LeadDataTemplate& ldt = GetExt<LeadDataTemplate>();
 	
 	if (LoadFromJsonFile_VisitorNodePrompt(ldt)) {

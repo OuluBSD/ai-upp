@@ -42,7 +42,7 @@ void BiographyPlatformCtrl::SetSorting(int col) {
 }
 
 void BiographyPlatformCtrl::ImportJson() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	BiographyPlatform& data = GetExt<BiographyPlatform>();
 	if (LoadFromJsonFile_VisitorNodePrompt(data)) {
 		PostCallback(THISBACK(Data));

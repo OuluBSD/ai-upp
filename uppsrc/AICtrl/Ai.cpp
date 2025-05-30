@@ -8,12 +8,8 @@ AiCompletionComponentCtrl::AiCompletionComponentCtrl() {
 	
 }
 
-OmniThread& AiCompletionComponentCtrl::GetThread() {
-	return GetExt<AiCompletionComponent>().omni;
-}
-
 void AiCompletionComponentCtrl::Data() {
-	ctrl.SetThread(GetThread());
+	TODO //ctrl.SetThread(GetThread());
 }
 
 
@@ -27,12 +23,8 @@ AiChatComponentCtrl::AiChatComponentCtrl() {
 	
 }
 
-OmniThread& AiChatComponentCtrl::GetThread() {
-	return GetExt<AiChatComponent>().omni;
-}
-
 void AiChatComponentCtrl::Data() {
-	ctrl.SetThread(GetThread());
+	TODO //ctrl.SetThread(GetThread());
 }
 
 

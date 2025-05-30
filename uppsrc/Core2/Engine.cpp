@@ -21,6 +21,7 @@ bool Engine::Start() {
 	
 	is_looping_systems = true;
 	
+	Vector<VfsValueExt*> post_init_exts;
 	auto systems = val.FindAll<System>();
 	for (auto it : systems) {
 		if (it->IsInitialized())
@@ -30,6 +31,15 @@ bool Engine::Start() {
 			return false;
 		}
 		it->SetInitialized();
+		post_init_exts << it;
+	}
+	
+	// Post-initialization is like 2nd round of init (when there's need for a two-phase init)
+	for (auto it : post_init_exts) {
+		if (!it->PostInitialize()) {
+			LOG("Could not post-initialize system " << it->GetTypeCls().GetName());
+			return false;
+		}
 	}
 	
 	is_initialized = true;
@@ -147,8 +157,8 @@ bool Engine::IsStarted() const {
 }
 
 void Engine::SystemStartup(TypeCls type_id, System* system) {
-	ASSERT(is_started);
-	if (system->IsInitialized() || system->Initialize(ws)) {
+	if (system->IsInitialized() || (system->Initialize(ws) && system->PostInitialize())) {
+		
 		system->SetInitialized();
 		
 		RTLOG("Engine::SystemStartup: added system to already running engine: " << system->GetTypeCls().GetName());

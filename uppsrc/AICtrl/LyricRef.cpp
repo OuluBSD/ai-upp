@@ -50,7 +50,7 @@ ScriptPhrasePartsGroups::ScriptPhrasePartsGroups(ComponentCtrl& o) : o(o) {
 	
 	PostCallback([this]{
 		DatabaseBrowser& b = DatabaseBrowser::Single();
-		DatasetPtrs p = this->o.GetDataset();
+		DatasetPtrs p; this->o.GetDataset(p);
 		if (!p.src)
 			return;
 		b.SetCtrl(this->o);
@@ -200,7 +200,7 @@ void ScriptPhrasePartsGroups::FillArrayCtrl(DatabaseBrowser::ColumnType t, Array
 
 void ScriptPhrasePartsGroups::DataList() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	if (!p.src) return;
 	auto& src = p.src->Data();
 
@@ -359,7 +359,7 @@ ScriptReferenceMakerCtrl::ScriptReferenceMakerCtrl() : db0(*this), content(*this
 }
 
 void ScriptReferenceMakerCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script || !p.lyric_struct) return;
 	Script& s = *p.script;
 	LyricalStructure& l = *p.lyric_struct;
@@ -379,7 +379,7 @@ void ScriptReferenceMakerCtrl::Data() {
 }
 
 void ScriptReferenceMakerCtrl::DataPart() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
@@ -467,7 +467,7 @@ void ReadNavigatorState(LyricalStructure& s, int part_i, int sub_i, int line_i, 
 void ScriptReferenceMakerCtrl::ReadNavigatorState(NavigatorState& state, int depth_limit) {
 	state.Clear();
 	
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
@@ -496,13 +496,14 @@ void ScriptReferenceMakerCtrl::DataLine() {
 	db0.SetModeCursor(mode_cursor);
 	
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	b.SetAll(GetDataset(), s.sorter, s.element, s.attr, s.clr_i, s.act, s.typeclass_i, s.con_i);
+	DatasetPtrs p; GetDataset(p);
+	b.SetAll(p, s.sorter, s.element, s.attr, s.clr_i, s.act, s.typeclass_i, s.con_i);
 		
 	db0.Data();
 }
 
 void ScriptReferenceMakerCtrl::MakeLines() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
@@ -575,7 +576,7 @@ void ScriptReferenceMakerCtrl::OnBrowserCursor() {
 }
 
 void ScriptReferenceMakerCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.script || !p.lyric_struct || !parts.IsCursor())
 		return;
 	
@@ -628,7 +629,7 @@ void ScriptReferenceMakerCtrl::SetLineText() {
 }
 
 void ScriptReferenceMakerCtrl::Do(int fn) {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	
 	// Add part
 	if (fn == 0) {
@@ -652,7 +653,7 @@ void ScriptReferenceMakerCtrl::Do(int fn) {
 
 void ScriptReferenceMakerCtrl::UpdateMode() {
 	DatabaseBrowser& b = DatabaseBrowser::Single();
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.src)
 		return;
 	b.SetMode(p, GetActiveMode());
@@ -674,7 +675,7 @@ int ScriptReferenceMakerCtrl::GetInheritedMode() {
 	if (!plc_)
 		return -1;
 	PartLineCtrl& plc = *plc_;
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	int part_i = parts.GetCursor();
 	DynPart& dp = l.parts[part_i];
@@ -763,7 +764,7 @@ void PartLineCtrl::Paint(Draw& d) {
 	if (line_i >= 0) d.DrawRect(line_bg_r, line_bg_clr);
 	
 	// Line texts
-	DatasetPtrs p = o.GetDataset();
+	DatasetPtrs p; o.GetDataset(p);
 	LyricalStructure& l = *p.lyric_struct;
 	int part_i = o.parts.GetCursor();
 	if (part_i < 0)

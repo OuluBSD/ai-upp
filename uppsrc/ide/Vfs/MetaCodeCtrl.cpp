@@ -1,4 +1,4 @@
-#include "Meta.h"
+#include "Vfs.h"
 #include <ide/ide.h>
 
 #ifdef flagAI
@@ -319,7 +319,7 @@ void MetaCodeCtrl::VisitCursorInfo(VfsValue& n, int& row) {
 	cursorinfo.Set(row, 1, n.id);
 	cursorinfo.Set(row, 2, n.GetTypeString());
 	cursorinfo.Set(row, 3, a ? a->begin : Null);
-	VfsValue* decl = a->is_ref ? MetaEnv().FindDeclaration(n) : 0;
+	VfsValue* decl = a->is_ref ? IdeMetaEnv().FindDeclaration(n) : 0;
 	if (decl) {
 		const AstValue* decl_a = *decl;
 		cursorinfo.Set(row, 4, decl_a->begin);

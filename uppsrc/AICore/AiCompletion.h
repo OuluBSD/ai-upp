@@ -6,7 +6,7 @@
 
 
 struct AiCompletionComponent : Component {
-	OmniThread omni;
+	//OmniThread omni;
 	
 	void Visit(Vis& v) override;
 	String GetName() const override {return "AI: Completion";}

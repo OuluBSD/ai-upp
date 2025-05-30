@@ -1,6 +1,12 @@
-#include "Eon.h"
+#include "Core.h"
 
 NAMESPACE_UPP
+
+MAKE_STATIC(GlobalAudioTime, audtime);
+
+GlobalAudioTime& GlobalAudioTime::Local() {
+	return audtime;
+}
 
 template <typename SRC, typename DST, bool SRC_NATIVE_ENDIAN, bool DST_NATIVE_ENDIAN>
 static void AudioTypeConvert(int src_ch_samples, const AudioFormat& src_fmt, const byte* src, const AudioFormat& dst_fmt, byte* dst) {
@@ -20,7 +26,6 @@ static void AudioTypeConvert(int src_ch_samples, const AudioFormat& src_fmt, con
 	ASSERT(src_it == src_end);
 	ASSERT(dst_it == dst_end);
 }
-
 
 bool AudioConvert(int src_ch_samples, const AudioFormat& src_fmt, const byte* src, const AudioFormat& dst_fmt, byte* dst) {
 	#define LIST_A(nat_is_be) \

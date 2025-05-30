@@ -21,7 +21,7 @@ ReleaseBriefingCtrl::ReleaseBriefingCtrl() {
 }
 
 void ReleaseBriefingCtrl::Data() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	Release& release = *p.release;
 	for(int i = 0; i < ITEM_COUNT; i++) {
@@ -46,7 +46,7 @@ void ReleaseBriefingCtrl::OnListCursor() {
 	values.description.Clear();
 	values.value.Clear();
 	
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	Release& release = *p.release;
 	
@@ -63,7 +63,7 @@ void ReleaseBriefingCtrl::OnListCursor() {
 }
 
 void ReleaseBriefingCtrl::OnValueChange() {
-	DatasetPtrs p = GetDataset();
+	DatasetPtrs p; GetDataset(p);
 	if (!p.release) return;
 	Release& release = *p.release;
 	

@@ -1,5 +1,5 @@
 #include "AICtrl.h"
-#include <ide/Meta/Meta.h>
+#include <ide/Vfs/Vfs.h>
 
 
 NAMESPACE_UPP
@@ -178,7 +178,8 @@ void ScriptTextCtrl::StartProcess(bool user_started) {
 	auto* c = GetVNodeComponentCtrl();
 	if (!c) return;
 	RefreshParams();
-	DatasetPtrs p = c->GetDataset();
+	DatasetPtrs p;
+	c->GetDataset(p);
 	if (!p.src) {
 		if (user_started) {
 			PromptOK("Database context is needed. Set one in entity");

@@ -1,5 +1,5 @@
-#ifndef _ide_Meta_Ide_h_
-#define _ide_Meta_Ide_h_
+#ifndef _ide_Vfs_Ide_h_
+#define _ide_Vfs_Ide_h_
 
 struct VfsSrcFile : Moveable<VfsSrcFile> {
 	int id = -1;
@@ -102,12 +102,18 @@ struct IdeMetaEnvironment {
 	bool LoadFileRoot(const String& includes, const String& path, bool manage_file);
 	bool LoadFileRootVisit(const String& includes, const String& path, Vis& v, bool manage_file, VfsValue*& file_node);
 	String GetFilepath(int pkg_id, int file_id) const;
-	
+	VfsValue* FindDeclaration(const VfsValue& n);
+	Vector<VfsValue*> FindDeclarationsDeep(const VfsValue& n);
+	static VfsValue* FindDeclarationStatic(const VfsValue& n);
+	static Vector<VfsValue*> FindDeclarationsDeepStatic(const VfsValue& n);
+	static bool IsMergeable(int kind);
+	static bool IsMergeable(CXCursorKind kind);
 };
 
 void Assign(VfsValue& mn, VfsValue* owner, const ClangNode& n);
 void Store(IdeMetaEnvironment& env, String& includes, const String& path, ClangNode& n);
 void UpdateWorkspace(IdeMetaEnvironment& env, Workspace& wspc);
 IdeMetaEnvironment& IdeMetaEnv();
+bool IsStructKind(const VfsValue& n);
 
 #endif

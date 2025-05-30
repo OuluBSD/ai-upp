@@ -28,7 +28,7 @@ void BiographyPlatformCtrl::Platforms::EpkPhoto::ToolMenu(Bar& bar) {
 }
 
 void BiographyPlatformCtrl::Platforms::EpkPhoto::DataPlatform() {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	BiographyPlatform& analysis = o.GetExt<BiographyPlatform>();
 	int plat_i = p.platforms.Get("IDX");
 	const Platform& pl = GetPlatforms()[plat_i];
@@ -63,7 +63,7 @@ void BiographyPlatformCtrl::Platforms::EpkPhoto::PhotoPromptMenu(Bar& bar) {
 		if (!p.platforms.IsCursor() || !epk_photo_prompts.IsCursor())
 		return;
 	
-		DatasetPtrs mp = o.GetDataset();
+		DatasetPtrs mp; o.GetDataset(mp);
 		BiographyPlatform& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
@@ -85,7 +85,7 @@ void BiographyPlatformCtrl::Platforms::EpkPhoto::PhotoPromptMenu(Bar& bar) {
 		if (!p.platforms.IsCursor() || !epk_photo_prompts.IsCursor())
 		return;
 	
-		DatasetPtrs mp = o.GetDataset();
+		DatasetPtrs mp; o.GetDataset(mp);
 		BiographyPlatform& analysis = *mp.analysis;
 		int plat_i = p.platforms.Get("IDX");
 		const Platform& pl = GetPlatforms()[plat_i];
@@ -112,7 +112,7 @@ void BiographyPlatformCtrl::Platforms::EpkPhoto::OnPhotoPrompt() {
 	if (!o.p.platforms.IsCursor() || !epk_photo_prompts.IsCursor())
 		return;
 	
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	String dir = GetFileDirectory(o.GetFilePath());
 	
 	BiographyPlatform& analysis = *mp.analysis;
@@ -140,7 +140,7 @@ void BiographyPlatformCtrl::Platforms::EpkPhoto::OnPhotoPrompt() {
 }
 
 void BiographyPlatformCtrl::Platforms::Do(int fn) {
-	DatasetPtrs mp = o.GetDataset();
+	DatasetPtrs mp; o.GetDataset(mp);
 	if (!mp.profile || !mp.release)
 		return;
 	String dir = GetFileDirectory(o.GetFilePath());

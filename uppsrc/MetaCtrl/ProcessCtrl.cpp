@@ -10,6 +10,9 @@ String GetCursorKindName(CXCursorKind cursorKind);
 
 NAMESPACE_UPP
 
+extern Vector<VfsValue*> (*IdeMetaEnvironment_FindDeclarationsDeep)(const VfsValue& n);
+extern VfsValue* (*IdeMetaEnvironment_FindDeclaration)(const VfsValue& n);
+extern bool (*IsStructKindPtr)(const VfsValue& n);
 
 CodeVisitorProfile& BaseAnalysisProfile() {
 	static CodeVisitorProfile p;
@@ -413,7 +416,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				auto& rel = t.relations.Add();
 				rel.reason = AITask::TYPE_INHERITANCE_DEPENDENCY;
 				rel.node = s;
-				rel.link_node = env.FindDeclaration(*s);
+				rel.link_node = IdeMetaEnvironment_FindDeclaration ? IdeMetaEnvironment_FindDeclaration(*s) : 0;
 				rel.is_dependency = true;
 			}
 			
@@ -438,7 +441,9 @@ bool MetaProcess::MakeTask(AITask& t) {
 							rel.type_hash = n1.type_hash;
 							continue;
 						}
-						Vector<VfsValue*> decls = env.FindDeclarationsDeep(*base1);
+						Vector<VfsValue*> decls;
+						if (IdeMetaEnvironment_FindDeclarationsDeep)
+							decls = IdeMetaEnvironment_FindDeclarationsDeep(*base1);
 						for (VfsValue* decl : decls) {
 							/*LOG("###");
 							LOG("Focus: " << id);
@@ -597,7 +602,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			VfsValue* nest;
 			if (type_ref.GetCount()) {
 				loc = type_ref[0];
-				nest = env.FindDeclaration(*loc);
+				nest = IdeMetaEnvironment_FindDeclaration ? IdeMetaEnvironment_FindDeclaration(*loc) : 0;
 			}
 			else
 				nest = n.owner;
@@ -937,7 +942,7 @@ void MetaProcessCtrl::Data() {
 		const AstValue* a = n;
 		tasks.Set(row, 1, n.id);
 		tasks.Set(row, 3, Value());
-		if (n.IsStructKind())
+		if (IsStructKindPtr && IsStructKindPtr(n))
 			tasks.Set(row, 4, n.GetBasesString());
 		else
 			tasks.Set(row, 4, Value());

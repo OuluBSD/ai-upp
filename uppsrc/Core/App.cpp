@@ -897,15 +897,21 @@ bool IsUserAdmin()
 #endif
 }
 
-Vector<Event<>>& __ExitEvents() {
-	static Vector<Event<>> v;
-	return v;
+Vector<Event<>>& __ExitEvents(bool rm=false) {
+	static Vector<Event<>>* v;
+	if (!v)
+		v = new Vector<Event<>>();
+	if (rm && v) {
+		delete v;
+		v = 0;
+	}
+	return *v;
 }
 
 EXITBLOCK {
 	for (Event<>& cb : __ExitEvents())
 		cb();
-	__ExitEvents().Clear();
+	__ExitEvents(true);
 }
 
 void CallInExitBlock(Event<> cb) {

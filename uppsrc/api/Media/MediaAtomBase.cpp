@@ -129,8 +129,10 @@ bool MediaAtomBaseT<Backend>::LoadFileAny(String path) {
 
 	vi.Start(false);
 	
+	/* this can be done with relatively fast data conversion
 	if (!RealizeAudioFormat())
-		;// this can be done with relatively fast data conversion //return false;
+		return false;*/
+	RealizeAudioFormat();
 	
 	if (!RealizeVideoFormat())
 		return false;

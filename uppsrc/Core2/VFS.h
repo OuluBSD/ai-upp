@@ -104,16 +104,18 @@ struct VfsItem : Moveable<VfsItem> {
 	String name;
 	String type_str;
 	VfsItemType type = VFS_NULL;
+	virtual ~VfsItem();
 	void operator=(Value v);
+	Shared<VfsItem> operator()(Value key);
 	virtual Value Get();
 	virtual Value Get(Value key);
 	virtual Value GetKey(int i);
 	virtual void Set(Value v);
-	virtual void MapSet(Value v);
-	virtual Shared<VfsItem> GetMap();
-	virtual Shared<VfsItem> RealizeMap();
-	virtual Shared<VfsItem> At(int i);
+	virtual void MapSet(Value key, Value v);
+	virtual void RealizeMap();
+	virtual Value At(int i);
 	virtual int GetCount() const;
+	virtual Shared<VfsItem> Open(Value key);
 };
 
 struct VFS : Pte<VFS> {
@@ -131,16 +133,46 @@ struct SystemFS : VFS {
 	VfsItemType CheckItem(const VfsPath& rel_path) override;
 };
 
+struct ValueFS;
+
+struct ValueVfsItem : VfsItem {
+	VfsPath path;
+	mutable Value value;
+	mutable bool valid_read = false;
+	ValueFS* fs = 0;
+	Ptr<VFS> fs_smart_ptr = 0; // for checking if 'fs' is usable
+	
+	Value Get() override;
+	Value Get(Value key) override;
+	Value GetKey(int i) override;
+	void Set(Value v) override;
+	void MapSet(Value key, Value v) override;
+	void RealizeMap() override;
+	Value At(int i) override;
+	int GetCount() const override;
+	void RealizeValue() const;
+	Shared<VfsItem> Open(Value key) override;
+};
+
 struct ValueFS : VFS {
 	ValueFS();
 	ValueFS(Value& v);
 	
-	Shared<VfsItem> At(const VfsPath& p);
+	Value GetValue(const VfsPath& p);
+	bool Set(const VfsPath& p, const Value& val);
+	Shared<VfsItem> Get(const VfsPath& p);
 	Shared<VfsItem> operator()(String);
+	Shared<VfsItem> RealizeMap(const VfsPath& p);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
 	VfsItemType CheckItem(const VfsPath& rel_path) override;
-private:
+	
+protected:
+	friend struct ValueVfsItem;
 	Value* v = 0;
+	
+	bool Set(Value& dir, int i, const VfsPath& p, const Value& val);
+	bool Get(const Value& dir, int i, const VfsPath& p, Value& val);
+	void RealizeMap(Value& dir, int i, const VfsPath& p);
 };
 
 #endif

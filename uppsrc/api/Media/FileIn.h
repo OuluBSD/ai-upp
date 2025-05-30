@@ -5,19 +5,19 @@ NAMESPACE_UPP
 
 
 
-template <class Backend> class FileInputT;
+template <class Backend> struct FileInputT;
 
 
 
 template <class Backend>
-class AudioFrameQueueT :
-	public AudioInputFrameT<Backend>
+struct AudioFrameQueueT :
+	AudioInputFrameT<Backend>
 {
 	off32_gen	gen;
 	
 protected:
 	using FileInput = FileInputT<Backend>;
-	friend class FileInputT<Backend>;
+	friend struct FileInputT<Backend>;
 	FileInput* owner = 0;
 	
 public:
@@ -42,8 +42,8 @@ public:
 
 
 template <class Backend>
-class VideoFrameQueueT :
-	public VideoInputFrameT<Backend>
+struct VideoFrameQueueT :
+	VideoInputFrameT<Backend>
 {
 	using AVFrame = typename Backend::AVFrame;
 	using AVCodecContextPtr = typename Backend::AVCodecContextPtr;
@@ -60,7 +60,7 @@ class VideoFrameQueueT :
 	
 protected:
 	using FileInput = FileInputT<Backend>;
-	friend class FileInputT<Backend>;
+	friend struct FileInputT<Backend>;
 	FileInput* owner = 0;
 	
 public:
@@ -83,14 +83,14 @@ public:
 
 
 template <class Backend>
-class FileChannelT
+struct FileChannelT
 {
 	
 protected:
 	#ifdef flagMSC
 	using FileInput = typename FileInputT<Backend>;
 	#else
-	using FileInput = class FileInputT<Backend>;
+	using FileInput = struct FileInputT<Backend>;
 	#endif
 	using AVFrame = typename Backend::AVFrame;
 	using AVCodecContextPtr = typename Backend::AVCodecContextPtr;
@@ -135,9 +135,10 @@ public:
 
 
 template <class Backend>
-class FileInputT :
-	public PacketBufferParent
+struct FileInputT :
+	PacketBufferParent
 {
+private:
 	using AudioFrameQueue = typename Backend::AudioFrameQueue;
 	using VideoFrameQueue = typename Backend::VideoFrameQueue;
 	using FileChannel = typename Backend::FileChannel;

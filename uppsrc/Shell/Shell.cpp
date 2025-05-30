@@ -142,8 +142,9 @@ GUI_APP_MAIN {
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
+	auto& root = MetaEnv().root;
 	
-	Engine& eng = MetaEnv().root.Add<Engine>("eng");
+	Engine& eng = root.Add<Engine>("eng");
 	eng.WhenBoot << callback(DefaultSerialInitializer);
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
@@ -163,9 +164,11 @@ CONSOLE_APP_MAIN {
 	eng.Stop();
 	eng.Clear();
 	
-	MetaEnv().root.UninitializeDeep();
-	MetaEnv().root.ClearExtDeep();
-	MetaEnv().root.sub.Clear();
+	root.StopDeep();
+	root.ClearDependenciesDeep();
+	root.UninitializeDeep();
+	root.ClearExtDeep();
+	root.sub.Clear();
 }
 
 #endif

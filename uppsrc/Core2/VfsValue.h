@@ -29,6 +29,7 @@ struct NodeRoute {
 };
 
 struct VfsValueExt : Pte<VfsValueExt> {
+	using VfsValueExtPtr = Ptr<VfsValueExt>;
 	VfsValue&				val;
 	bool					is_initialized = false;
 	
@@ -51,6 +52,12 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual void			UninitializeDeep();
 	virtual void			Update(double dt);
 	virtual bool			Arg(String key, Value value);
+	virtual bool			AddDependency(VfsValueExt& val);
+	virtual VfsValueExtPtr	GetDependency(int i) const;
+	virtual int				GetDependencyCount() const;
+	virtual void			RemoveDependency(int i);
+	virtual void			ClearDependencies();
+	virtual void			RemoveDependency(const VfsValueExt* e);
 	hash_t					GetHashValue() const;
 	int						AstGetKind() const;
 	bool					IsInitialized() const;
@@ -61,7 +68,12 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	void					Jsonize(JsonIO& json);
 	
 	static String			GetCategory();
+	
+protected:
+	Vector<VfsValueExtPtr>	deps;
 };
+
+using VfsValueExtPtr = Ptr<VfsValueExt>;
 
 #define CLASSTYPE(x) \
 	typedef x CLASSNAME; \
@@ -381,6 +393,8 @@ struct VfsValue : Pte<VfsValue> {
 	int GetDepth() const;
 	Vector<VfsValue*> FindAllShallow(hash_t type_hash);
 	VfsValue& GetAdd(String id, hash_t type_hash);
+	void StopDeep();
+	void ClearDependenciesDeep();
 	void UninitializeDeep();
 	
 	operator AstValue&();

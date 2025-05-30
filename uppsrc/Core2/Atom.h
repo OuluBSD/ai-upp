@@ -89,10 +89,6 @@ public:
 	bool					IsRunning() const {return is_running;}
 	void					AddAtomToUpdateList();
 	void					RemoveAtomFromUpdateList();
-	void					SetDependency(AtomBase* a) {if (atom_dependency) atom_dependency->dep_count--; atom_dependency = a; if (a) a->dep_count++;}
-	AtomBase*				GetDependency() const {return atom_dependency;}
-	int						GetDependencyCount() const {return dep_count;}
-	void					ClearDependency() {SetDependency(0);}
 	void					UpdateSinkFormat(ValCls val, ValueFormat fmt);
 	void					PostContinueForward();
 	void					SetQueueSize(int queue_size);

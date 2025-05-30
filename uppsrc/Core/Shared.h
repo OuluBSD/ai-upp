@@ -41,7 +41,7 @@ class Shared : Moveable<Shared<T>> {
 	
 protected:
 	friend class Weak<T>;
-	Base* r = NULL;
+	RefBase* r = NULL;
 	T* o = NULL;
 
 public:
@@ -52,7 +52,7 @@ public:
 	Shared() {}
 	Shared(Shared&& s) {r = s.r; s.r = NULL; o = s.o; s.o = NULL;}
 	Shared(const Shared& o) {*this = o;}
-	Shared(T* o, Base* r) : o(o), r(r) {
+	Shared(T* o, RefBase* r) : o(o), r(r) {
 		ASSERT(r->GetRefCount() > 0);
 	}
 	Shared(T* o) : o(o) {
@@ -63,6 +63,13 @@ public:
 	Shared(const Nuller&) {}
 	~Shared() { Clear(); }
 	
+	template <class C> C& Create() {
+		static_assert(IsBaseOf<T,C>(), "Class is not the base of T");
+		Clear(); r = new RefTemplate<C>();
+		C* c = new C();
+		o = c; r->obj = o;
+		return *c;
+	}
 	void Create() { Clear(); r = new RefTemplate<T>(); o = new T(); r->obj = o;}
 	template<class K> void CreateAbstract() { Clear(); r = new RefTemplate<T>(); o = new K(); r->obj = o;}
 	void Clear() { if (r) { r->Dec(); r = NULL; o = NULL;} }
@@ -91,7 +98,7 @@ public:
 		}
 		return SharedT<K>();
 	}
-	void SetPtr(T* o, Base* r) {
+	void SetPtr(T* o, RefBase* r) {
 		S tmp; Swap(*this, tmp); // don't unref until new ref!!!111!1
 		this->o = o;
 		this->r = r;

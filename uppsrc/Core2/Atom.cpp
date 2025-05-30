@@ -27,7 +27,7 @@ Engine& AtomBase::GetEngine() {
 void AtomBase::UninitializeDeep() {
 	VfsValueExt::UninitializeDeep();
 	ClearSinkSource();
-	ClearDependency();
+	ClearDependencies();
 	UninitializeAtom();
 }
 

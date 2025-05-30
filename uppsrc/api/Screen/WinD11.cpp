@@ -313,7 +313,7 @@ bool ScrWinD11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
         return false;
     }*/
     
-	a.SetDependency(&*ctx_);
+	a.AddDependency(*ctx_);
 	
 	return true;
 }
@@ -371,7 +371,7 @@ void ScrWinD11::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	
 	dev.accel.Uninitialize();
 	
-	a.SetDependency(0);
+	a.ClearDependencies();
 	
 	auto& ctx = *dev.ctx;
 	

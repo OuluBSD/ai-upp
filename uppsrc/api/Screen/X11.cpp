@@ -60,7 +60,7 @@ bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Wor
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
 	
-	a.SetDependency(&*ctx_);
+	a.AddDependency(*ctx_);
 	
 	::Display*& display = ctx.display;	// pointer to X Display structure.
 	display = 0;
@@ -207,7 +207,7 @@ void ScrX11::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 }
 
 void ScrX11::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
-	a.SetDependency(0);
+	a.ClearDependencies();
 	
 	auto& ctx = *dev.ctx;
 	

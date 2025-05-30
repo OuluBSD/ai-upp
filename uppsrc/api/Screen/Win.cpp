@@ -108,7 +108,7 @@ bool ScrWin::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const Wor
 	}
 	active_ScrWin_NativeSinkDevice = &dev;
 	
-	a.SetDependency(&*ctx_);
+	a.AddDependency(*ctx_);
 	
 	#if VIRTUALGUI
 	HINSTANCE instance = 0;
@@ -214,7 +214,7 @@ void ScrWin::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 }
 
 void ScrWin::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
-	a.SetDependency(0);
+	a.ClearDependencies();
 	
 	auto& ctx = *dev.ctx;
 	

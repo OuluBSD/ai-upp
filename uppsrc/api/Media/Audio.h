@@ -5,10 +5,8 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-class AudioFrameT : public PacketBufferBase {
+struct AudioFrameT : PacketBufferBase {
 	
-	
-public:
 	//RTTI_DECL1(AudioFrameT, PacketBufferBase)
 	virtual ~AudioFrameT() {}
 	
@@ -21,9 +19,8 @@ public:
 
 
 template <class Backend>
-class AudioInputFrameT : public AudioFrameT<Backend> {
+struct AudioInputFrameT : AudioFrameT<Backend> {
 	
-public:
 	using Base = AudioFrameT<Backend>;
 	//RTTI_DECL1(AudioInputFrameT, Base)
 	

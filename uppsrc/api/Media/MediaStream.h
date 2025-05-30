@@ -5,7 +5,8 @@ NAMESPACE_UPP
 
 
 template <class Backend>
-class MediaStreamThreadT : Moveable<MediaStreamThreadT<Backend>> {
+struct MediaStreamThreadT : Moveable<MediaStreamThreadT<Backend>> {
+private:
 	using AudioInputFrame = typename Backend::AudioInputFrame;
 	using VideoInputFrame = typename Backend::VideoInputFrame;
 	using AudioInputFramePtr = typename Backend::AudioInputFramePtr;

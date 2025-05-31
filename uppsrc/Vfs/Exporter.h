@@ -4,7 +4,7 @@
 
 
 struct PkgStubFile {
-	Vector<NodeBase*>				refs;
+	Vector<VfsValue*>				refs;
 	String							name;
 	
 };
@@ -24,19 +24,19 @@ class AssemblyExporter {
 private:
 	struct ScopeHolder {
 		AssemblyExporter& e;
-		ScopeHolder(AssemblyExporter* ae, NodeBase& n) : e(*ae) {e.Push(n);}
+		ScopeHolder(AssemblyExporter* ae, VfsValue& n) : e(*ae) {e.Push(n);}
 		~ScopeHolder() {e.Pop();}
 	};
 	
-	ArrayMap<String,PkgStub>	pkgs;
-	Vector<NodeBase*>				scopes;
+	ArrayMap<String,PkgStub>		pkgs;
+	Vector<VfsValue*>				scopes;
 	AstNode&						root;
 	String							export_dir;
 	bool							protect_pkg = false;
 	
 	
 	bool Visit(AstNode& n);
-	void Push(NodeBase& n);
+	void Push(VfsValue& n);
 	void Pop();
 	
 	

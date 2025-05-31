@@ -11,6 +11,7 @@ file
 	Defs.h,
 	ExtList.h,
 	Types.h,
+	Types.cpp,
 	Enum.h,
 	Common.h,
 	CodeVisitor.h,

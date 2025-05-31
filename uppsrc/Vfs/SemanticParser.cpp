@@ -6,19 +6,26 @@
 NAMESPACE_UPP
 
 
-SemanticParser::SemanticParser() :
+SemanticParser::SemanticParser(VfsValue& v) :
+	VfsValueExt(v),
 	ErrorSource("SemanticParser")
 {
 	
 }
 
+AstNode& SemanticParser::GetRoot() {
+	return val.GetAdd<AstNode>("root");
+}
+
 bool SemanticParser::ProcessEon(const TokenStructure& t) {
-	root.Clear();
+	auto& root = GetRoot();
+	root.val.sub.Clear();
+	
 	path.Clear();
 	
 	InitDefault();
 	
-	path.Add(&t.root);
+	path.Add(&t.GetRoot());
 	
 	bool succ = ParseNamespaceBlock();
 	
@@ -34,7 +41,7 @@ bool SemanticParser::ParseNamespaceBlock() {
 	const TokenNode& owner = *path.Top();
 	const TokenNode*& cur = path.Add();
 	
-	for (const TokenNode& tns : owner.sub) {
+	for (const TokenNode& tns : owner.Sub<TokenNode>()) {
 		CHECK_SPATH_BEGIN
 		
 		cur = &tns;
@@ -374,11 +381,11 @@ bool SemanticParser::ParseStatement() {
 	}
 	else if (IsId("else")) {
 		AstNode& t = GetTopNode();
-		if (t.sub.IsEmpty()) {
+		if (t.val.Sub<AstNode>().IsEmpty()) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
 		}
-		AstNode& prev = t.sub.Top();
+		AstNode& prev = t.val.Sub<AstNode>().rbegin();
 		if (prev.src != SEMT_STATEMENT || prev.stmt != STMT_IF) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
@@ -595,11 +602,11 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 	}
 	else if (prev_cookie & COOKIE_IF && Id("else")) {
 		AstNode& t = GetTopNode();
-		if (t.sub.IsEmpty()) {
+		if (t.val.Sub<AstNode>().IsEmpty()) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
 		}
-		AstNode& prev = t.sub.Top();
+		AstNode& prev = t.val.Sub<AstNode>().rbegin();
 		if (prev.src != SEMT_STATEMENT || prev.stmt != STMT_META_IF) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
@@ -1717,14 +1724,17 @@ AstNode* SemanticParser::ParseAndFindMetaDeclaration() {
 }
 
 String SemanticParser::GetTreeString(int indent) const {
+	auto& root = const_cast<SemanticParser*>(this)->GetRoot();
 	return root.GetTreeString(indent);
 }
 
 String SemanticParser::GetCodeString(const CodeArgs2& args) const {
+	auto& root = const_cast<SemanticParser*>(this)->GetRoot();
 	return root.GetCodeString(args);
 }
 
 String SemanticParser::ToString() const {
+	auto& root = const_cast<SemanticParser*>(this)->GetRoot();
 	return root.ToString();
 }
 
@@ -1736,7 +1746,7 @@ String SemanticParser::GetPath(const AstNode& n) const {
 	const AstNode* iter = &n;
 	while (iter && iter != cur) {
 		tmp.Add(iter);
-		iter = iter->GetSubOwner();
+		iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 	}
 	
 	String s;

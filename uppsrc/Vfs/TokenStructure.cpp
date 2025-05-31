@@ -2,13 +2,18 @@
 
 NAMESPACE_UPP
 
-TokenNode::TokenNode() {
+TokenNode::TokenNode(VfsValue& v) :
+	VfsValueExt(v)
+{
 	
 }
 
+void TokenNode::Clear() {
+	val.sub.Clear();
+}
+
 TokenNode& TokenNode::Add() {
-	TokenNode& s = sub.Add();
-	s.SetOwner(this);
+	TokenNode& s = val.Add<TokenNode>();
 	return s;
 }
 
@@ -16,7 +21,7 @@ String TokenNode::GetTreeString(int indent) const {
 	String s;
 	s.Cat('\t', indent);
 	s << ToString() << "\n";
-	for (const TokenNode& n : sub) {
+	for (const TokenNode& n : val.Sub<TokenNode>()) {
 		s << n.GetTreeString(indent+1);
 	}
 	return s;
@@ -51,14 +56,20 @@ String TokenNode::ToString() const {
 
 
 
-TokenStructure::TokenStructure() :
+TokenStructure::TokenStructure(VfsValue& v) :
+	VfsValueExt(v),
 	ErrorSource("TokenStructure")
 {
-	root.SetOwner(this);
+	
+}
+
+TokenNode& TokenStructure::GetRoot() const {
+	return const_cast<VfsValue&>(val).GetAdd<TokenNode>("root");
 }
 
 bool TokenStructure::ProcessEon(const Tokenizer& t) {
-	root.Clear();
+	auto& root = GetRoot();
+	root.val.sub.Clear();
 	
 	const Vector<Token>& tokens = t.GetTokens();
 	
@@ -162,14 +173,17 @@ bool TokenStructure::PassType(int tk) {
 }
 
 String TokenStructure::GetTreeString(int indent) const {
+	auto& root = GetRoot();
 	return root.GetTreeString();
 }
 
 String TokenStructure::GetCodeString(const CodeArgs2& args) const {
+	auto& root = GetRoot();
 	return root.GetCodeString(args);
 }
 
 String TokenStructure::ToString() const {
+	auto& root = GetRoot();
 	return root.ToString();
 }
 

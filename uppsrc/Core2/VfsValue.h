@@ -59,6 +59,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual void			RemoveDependency(int i);
 	virtual void			ClearDependencies();
 	virtual void			RemoveDependency(const VfsValueExt* e);
+	virtual String			GetTreeString(int indent=0) const;
 	hash_t					GetHashValue() const;
 	int						AstGetKind() const;
 	bool					IsInitialized() const;
@@ -325,7 +326,7 @@ struct VfsValue : Pte<VfsValue> {
 	void CopyFieldsFrom(const VfsValue& n, bool forced_downgrade=false);
 	void CopySubFrom(const VfsValue& n);
 	bool FindDifferences(const VfsValue& n, Vector<String>& diffs, int max_diffs=30) const;
-	
+	String ToString() const;
 	
 	// Functions to use when value is AstValue type.
 	bool IsAstValue() const;
@@ -426,10 +427,12 @@ struct VfsValue : Pte<VfsValue> {
 		for (auto& s : sub) {
 			if (s.type_hash == type_hash && s.id == id) {
 				ASSERT(s.ext);
-				throw Exc("internal error: no ext");
+				if (!s.ext)
+					throw Exc("internal error: no ext");
 				T* o = CastPtr<T>(&*s.ext);
 				ASSERT(o);
-				throw Exc("internal error: empty pointer");
+				if (!o)
+					throw Exc("internal error: empty pointer");
 				return *o;
 			}
 		}
@@ -855,6 +858,58 @@ public:
 	Iterator			Begin() { return sub.Begin(); }
 	Iterator			End() { return sub.End(); }
 	
+public:
+	template <class T>
+	struct SubIterT {
+		VfsValue& val;
+		
+		SubIterT(VfsValue& v) : val(v) {}
+		SubIterT(SubIterT&& v) : val(v.val) {}
+		int GetCount() const {
+			hash_t type_hash = AsTypeHash<T>();
+			int count = 0, i = 0;
+			while (++i < val.sub.GetCount())
+				if (val.sub[i].type_hash == type_hash)
+					count++;
+			return count;
+		}
+		bool IsEmpty() const {return GetCount() == 0;}
+		
+		struct Iterator {
+			VfsValue& val;
+			int pos = 0;
+			Iterator(VfsValue& v, int i) : val(v), pos(i) {
+				if (i < 0) {Inc();}
+				else if (i == INT_MAX) {pos = val.sub.GetCount(); Dec();}
+			}
+			Iterator(Iterator&& v) : val(v.val), pos(v.pos) {}
+			operator bool() const {return pos >= 0 && pos < val.sub.GetCount();}
+			bool IsEnd() const {return pos < 0 && pos >= val.sub.GetCount();}
+			void operator++() {Inc();}
+			void operator++(int) {Inc();}
+			void operator--() {Dec();}
+			void operator--(int) {Dec();}
+			void Inc() {
+				hash_t type_hash = AsTypeHash<T>();
+				while (++pos < val.sub.GetCount())
+					if (val.sub[pos].type_hash == type_hash)
+						break;
+			}
+			void Dec() {
+				hash_t type_hash = AsTypeHash<T>();
+				while (--pos >= 0)
+					if (val.sub[pos].type_hash == type_hash)
+						break;
+			}
+			operator T&() {return val.sub[pos].GetExt<T>();}
+			T& operator*() {return val.sub[pos].GetExt <T>();}
+		};
+		Iterator begin() {return Iterator(val, -1);}
+		Iterator end() {return Iterator(val, val.sub.GetCount());}
+		Iterator rbegin() {return Iterator(val, INT_MAX);}
+	};
+	
+	template <class T> SubIterT<T> Sub() {return SubIterT<T>(*this);}
 };
 
 using Val = VfsValue;

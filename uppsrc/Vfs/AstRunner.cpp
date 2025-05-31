@@ -3,7 +3,8 @@
 NAMESPACE_UPP
 
 
-AstRunner::AstRunner() :
+AstRunner::AstRunner(VfsValue& v) :
+	VfsValueExt(v),
 	ErrorSource("AstRunner")
 {
 	
@@ -15,7 +16,7 @@ bool AstRunner::Execute(const AstNode& n) {
 	
 	AstNode& root = GetRoot();
 	
-	for (const AstNode& s : n.sub) {
+	for (const AstNode& s : n.val.Sub<AstNode>()) {
 		if (s.src == SEMT_BUILTIN || s.src == SEMT_META_BUILTIN) {
 			AstNode* local = root.Find(s.name, s.src);
 			if (local)
@@ -30,19 +31,26 @@ bool AstRunner::Execute(const AstNode& n) {
 }
 
 String AstRunner::GetTreeString(int indent) const {
+	AstNode& root = GetRoot();
 	return root.GetTreeString(indent);
 }
 
 String AstRunner::GetCodeString(const CodeArgs2& args) const {
+	AstNode& root = GetRoot();
 	return root.GetCodeString(args);
 }
 
 String AstRunner::ToString() const {
+	AstNode& root = GetRoot();
 	return root.ToString();
 }
 
+AstNode& AstRunner::GetRoot() const {
+	return const_cast<VfsValue&>(val).GetAdd<AstNode>("root");
+}
+
 AstNode& AstRunner::GetRoot() {
-	return root;
+	return val.GetAdd<AstNode>("root");
 }
 
 AstNode* AstRunner::Merge(const AstNode& n) {
@@ -90,7 +98,7 @@ AstNode* AstRunner::VisitMetaFor(const AstNode& n) {
 	
 	PushScope(*d, true);
 	
-	for (const AstNode& s : n.sub) {
+	for (const AstNode& s : n.val.Sub<AstNode>()) {
 		if (s.src == SEMT_STATEMENT && s.stmt == STMT_META_FOR_COND) {
 			for_cond = &s;
 		}
@@ -146,7 +154,7 @@ AstNode* AstRunner::VisitMetaFor(const AstNode& n) {
 			PushScope(*dup_block);
 			dup_block->i64 = 1; // skip indent
 			
-			for (const AstNode& s : block->sub) {
+			for (const AstNode& s : block->val.Sub<AstNode>()) {
 				if (!Visit(s))
 					return 0;
 				if (IsRvalReturn(s.src))
@@ -273,8 +281,8 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 	case STMT_EXPR:
 		d = AddDuplicate(n);
 		PushScope(*d, true);
-		ASSERT(n.sub.GetCount());
-		ASSERT(n.rval || n.sub.GetCount() == 1);
+		ASSERT(n.val.Sub<AstNode>().GetCount());
+		ASSERT(n.rval || n.val.Sub<AstNode>().GetCount() == 1);
 		if (n.rval) {
 			const AstNode& s = *n.rval;
 			sd = Visit(s);
@@ -285,7 +293,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 				PopScope(); // expr rval
 		}
 		else {
-			const AstNode& s = n.sub[0];
+			const AstNode& s = n.val.Sub<AstNode>().begin();
 			sd = Visit(s);
 			if (!sd)
 				return 0;
@@ -305,9 +313,9 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 	case STMT_IF:
 		d = AddDuplicate(n);
 		d->CopyFrom(this, n);
-		if (n.sub.GetCount()) {
+		if (n.val.Sub<AstNode>().GetCount()) {
 			PushScope(*d);
-			for (const AstNode& s : n.sub) {
+			for (const AstNode& s : n.val.Sub<AstNode>()) {
 				if (!Visit(s))
 					return 0;
 				if (IsRvalReturn(s.src))
@@ -324,7 +332,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		if (!d)
 			return 0;
 		PushScope(*d);
-		ASSERT(n.sub.GetCount());
+		ASSERT(n.val.Sub<AstNode>().GetCount());
 		ASSERT(n.rval);
 		if (n.rval) {
 			AstNode& s = *n.rval;
@@ -382,7 +390,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d = &GetRoot();
 		d->src = SEMT_ROOT;
 		PushScope(*d);
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (s.src == SEMT_RVAL)
 				continue;
 			sd = Visit(s);
@@ -406,7 +414,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	case SEMT_STATE:
 		d = Merge(n);
 		PushScope(*d);
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			sd = Visit(s);
 			if (!sd)
 				return 0;
@@ -421,7 +429,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	case SEMT_COMPONENT:
 		d = AddDuplicate(n);
 		PushScope(*d);
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			sd = Visit(s);
 			if (!sd)
 				return 0;
@@ -458,9 +466,9 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d = AddDuplicate(n);
 		if (!d)
 			return 0;
-		if (!n.sub.IsEmpty()) {
+		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
-			for (const AstNode& s : n.sub) {
+			for (const AstNode& s : n.val.Sub<AstNode>()) {
 				if (s.src == SEMT_RVAL)
 					continue;
 				sd = Visit(s);
@@ -479,9 +487,9 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d = Merge(n);
 		if (!d)
 			return 0;
-		if (!n.sub.IsEmpty()) {
+		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
-			for (const AstNode& s : n.sub) {
+			for (const AstNode& s : n.val.Sub<AstNode>()) {
 				if (s.src == SEMT_RVAL)
 					continue;
 				sd = Visit(s);
@@ -498,7 +506,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d = Merge(n);
 		if (!d)
 			return 0;
-		if (!n.sub.IsEmpty()) {
+		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
 			if (!VisitStatementBlock(n, false))
 				return 0;
@@ -515,7 +523,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		if (!d)
 			d = AddDuplicate(n);
 		PushScope(*d);
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (!Visit(s))
 				return 0;
 		}
@@ -557,12 +565,12 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d = Merge(n);
 		if (!d)
 			return 0;
-		if (!n.sub.IsEmpty()) {
+		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
 			
 			CHECK_SPATH_BEGIN
 			
-			for (const AstNode& s : n.sub) {
+			for (const AstNode& s : n.val.Sub<AstNode>()) {
 				if (s.src == SEMT_ARGUMENT || s.IsPartially(SEMT_META_ANY)) {
 					sd = Visit(s);
 					if (!sd)
@@ -776,7 +784,7 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 	
 	int arg_count = 0;
 	const AstNode* arg = 0;
-	for (const AstNode& s : args->sub) {
+	for (const AstNode& s : args->val.Sub<AstNode>()) {
 		if (s.src == SEMT_ARGUMENT) {
 			arg = &s;
 			arg_count++;
@@ -846,13 +854,13 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 	ASSERT(&n != &block);
 	int dbg_count = 0;
 	
-	if (!n.sub.IsEmpty()) {
+	if (!n.val.Sub<AstNode>().IsEmpty()) {
 		int dbg_i = 0;
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (s.src == SEMT_STATEMENT && (s.stmt == STMT_ELSE || s.stmt == STMT_META_ELSE))
 				continue;
 			
-			int prev_count = block.sub.GetCount();
+			int prev_count = block.val.Sub<AstNode>().GetCount();
 			CHECK_SPATH_BEGIN
 			
 			AstNode* sd = Visit(s);
@@ -873,7 +881,7 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 				PopScope();
 			}
 			
-			bool added = block.sub.GetCount() > prev_count;
+			bool added = block.val.Sub<AstNode>().GetCount() > prev_count;
 			if (added) dbg_count++;
 			
 			if (s.src == SEMT_STATEMENT && s.stmt == STMT_RETURN) {ASSERT(added);}
@@ -895,10 +903,10 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 AstNode* AstRunner::VisitReturn(const AstNode& n) {
 	AstNode& block = GetBlock();
 	ASSERT(spath.Top().n == &block);
-	int c = block.sub.GetCount();
+	int c = block.val.Sub<AstNode>().GetCount();
 	
 	AstNode* d = AddDuplicate(n);
-	if (n.sub.GetCount()) {
+	if (n.val.Sub<AstNode>().GetCount()) {
 		CHECK_SPATH_BEGIN
 		
 		PushScope(*d);
@@ -914,7 +922,7 @@ AstNode* AstRunner::VisitReturn(const AstNode& n) {
 		CHECK_SPATH_END
 	}
 	
-	ASSERT(block.sub.GetCount() > c);
+	ASSERT(block.val.Sub<AstNode>().GetCount() > c);
 	block.rval = d->rval;
 	ASSERT(block.rval != &block);
 	return d;
@@ -996,11 +1004,11 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 		Vector<AstNode*> arg_ptrs;
 		Vector<const AstNode*> param_ptrs;
 		
-		for (AstNode& arg : args.sub) {
+		for (AstNode& arg : args.val.Sub<AstNode>()) {
 			if (arg.src != SEMT_ARGUMENT) continue;
 			arg_ptrs.Add(&arg);
 		}
-		for (const AstNode& param : fn.sub) {
+		for (const AstNode& param : fn.val.Sub<AstNode>()) {
 			if (param.src != SEMT_META_PARAMETER) continue;
 			param_ptrs.Add(&param);
 		}
@@ -1105,8 +1113,8 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 		if (n.stmt == STMT_EXPR ||
 			n.stmt == STMT_META_FOR_COND ||
 			n.stmt == STMT_META_FOR_POST) {
-			for (int i = n.sub.GetCount()-1; i >= 0; i--) {
-				const AstNode& e = n.sub[i];
+			for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
+				const AstNode& e = it;
 				if (e.src == SEMT_EXPR) {
 					return Evaluate(e);
 				}

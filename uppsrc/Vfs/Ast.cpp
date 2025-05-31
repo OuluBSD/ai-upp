@@ -23,7 +23,9 @@ void Endpoint::operator=(const Endpoint& ep) {
 String Endpoint::ToString() const {
 	String s;
 	if (n)
-		s << GetSemanticTypeString(n->src) << ", " << n->GetPath() << ", " << rel_loc.ToString();
+		s << GetSemanticTypeString(n->src) << ", "
+		  << n->val.GetPath() << ", "
+		  << rel_loc.ToString();
 	return s;
 }
 
@@ -31,12 +33,12 @@ String Endpoint::ToString() const {
 
 
 
-AstNode::AstNode() {
+AstNode::AstNode(VfsValue& v) : VfsValueExt(v) {
 	
 }
 
 void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
-	sub.Clear();
+	val.sub.Clear();
 	
 	name = n.name;
 	src = n.src;
@@ -67,7 +69,7 @@ void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 }
 
 void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
-	sub.Clear();
+	val.sub.Clear();
 	name.Clear();
 	src = SEMT_CONSTANT;
 	stmt = STMT_NULL;
@@ -119,9 +121,8 @@ void AstNode::CopyToValue(Value& n) const {
 
 AstNode& AstNode::Add(const FileLocation& loc, String name, int idx) {
 	ASSERT(!locked);
-	AstNode& s =
-		idx >= 0 ? sub.Insert(idx) : sub.Add();
-	s.SetOwner(this);
+	VfsValue& n = idx >= 0 ? val.sub.Insert(idx) : val.sub.Add();
+	AstNode& s = n.CreateExt<AstNode>();
 	s.name = name;
 	s.loc = loc;
 	return s;
@@ -138,7 +139,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, String name) {
 
 AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 	ASSERT(name.GetCount());
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.IsPartially(accepts))
 			return s;
 	}
@@ -154,7 +155,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 
 AstNode* AstNode::Find(String name, SemanticType accepts) {
 	ASSERT(name.GetCount());
-	for (auto& s : sub)
+	for (auto& s : val.Sub<AstNode>())
 		if (s.name == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
@@ -162,28 +163,28 @@ AstNode* AstNode::Find(String name, SemanticType accepts) {
 
 const AstNode* AstNode::Find(String name, SemanticType accepts) const {
 	ASSERT(name.GetCount());
-	for (auto& s : sub)
+	for (auto& s : val.Sub<AstNode>())
 		if (s.name == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
 
 AstNode* AstNode::Find(SemanticType t) {
-	for (auto& s : sub)
+	for (auto& s : val.Sub<AstNode>())
 		if (s.src == t)
 			return &s;
 	return 0;
 }
 
 AstNode* AstNode::FindPartial(SemanticType t) {
-	for (auto& s : sub)
+	for (auto& s : val.Sub<AstNode>())
 		if ((int64)s.src & (int64)t)
 			return &s;
 	return 0;
 }
 
 const AstNode* AstNode::Find(SemanticType t) const {
-	for (auto& s : sub)
+	for (auto& s : val.Sub<AstNode>())
 		if (s.src == t)
 			return &s;
 	return 0;
@@ -192,11 +193,11 @@ const AstNode* AstNode::Find(SemanticType t) const {
 AstNode* AstNode::FindWithPrevDeep(const AstNode* prev) {
 	if (this->prev == prev)
 		return this;
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.prev == prev)
 			return &s;
 	}
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		AstNode* r = s.FindWithPrevDeep(prev);
 		if (r)
 			return r;
@@ -213,7 +214,7 @@ void AstNode::FindAll(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLo
 		else
 			p.rel_loc = loc;
 	}
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 			s.FindAll(ptrs, accepts, &loc);
 		else
@@ -230,7 +231,7 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 		else
 			p.rel_loc = loc;
 	}
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 			s.FindAllStmt(ptrs, accepts, &loc);
 		else
@@ -239,13 +240,13 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 }
 
 void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
-	for (AstNode& s : sub) {
+	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 			s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
 		else
 			s.FindAllNonIdEndpoints0(ptrs, accepts, rel_loc);
 	}
-	if (sub.IsEmpty() && src != SEMT_IDPART) {
+	if (val.Sub<AstNode>().IsEmpty() && src != SEMT_IDPART) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -257,7 +258,7 @@ void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts
 
 void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
 	if (src == SEMT_IDPART) {
-		for (AstNode& s : sub) {
+		for (AstNode& s : val.Sub<AstNode>()) {
 			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 				s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
 			else
@@ -312,7 +313,7 @@ String AstNode::GetTreeString(int indent) const {
 	else
 		s << "\n";
 	
-	for (const AstNode& n : sub) {
+	for (const AstNode& n : val.Sub<AstNode>()) {
 		s << n.GetTreeString(indent+1);
 	}
 	return s;
@@ -350,6 +351,7 @@ String AstNode::ToString() const {
 	return name;
 }
 
+#if 0
 String AstNode::GetPath() const {
 	static const int MAX_PATH_LEN = 32;
 	const AstNode* path[MAX_PATH_LEN];
@@ -368,6 +370,7 @@ String AstNode::GetPath() const {
 	}
 	return s;
 }
+#endif
 
 String AstNode::GetPartStringArray() const {
 	static const int MAX_PATH_LEN = 32;
@@ -378,7 +381,7 @@ String AstNode::GetPartStringArray() const {
 		if (cur->IsPartially((SemanticType)(
 				SEMT_PATH | SEMT_TYPE | SEMT_FIELD | SEMT_META_TYPE | SEMT_META_FIELD)))
 			path[count++] = cur;
-		cur = cur->GetSubOwner();
+		cur = cur->val.owner ? cur->val.owner->FindExt<AstNode>() : 0;
 	}
 	
 	String s;

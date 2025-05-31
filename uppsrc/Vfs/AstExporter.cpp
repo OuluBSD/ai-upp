@@ -86,7 +86,7 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		
 	case SEMT_ROOT:
 	case SEMT_IDPART:
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (s.src == SEMT_RVAL)
 				continue;
 			
@@ -101,7 +101,7 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		return;
 		
 	case SEMT_STATEMENT_BLOCK:
-		for (const AstNode& s : n.sub) {
+		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (s.src != SEMT_STATEMENT &&
 				s.src != SEMT_STATEMENT_BLOCK &&
 				!s.IsPartially(SEMT_META_ANY))
@@ -195,7 +195,7 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 }
 
 void AstExporter::Visit(const AstNode& n, SemanticType t) {
-	for(const AstNode& sub : n.sub) {
+	for(const AstNode& sub : n.val.Sub<AstNode>()) {
 		if (sub.IsPartially(t)) {
 			PushScope(sub);
 			Visit(sub);
@@ -205,7 +205,7 @@ void AstExporter::Visit(const AstNode& n, SemanticType t) {
 }
 
 void AstExporter::VisitStmt(const AstNode& n, StmtType t) {
-	for(const AstNode& sub : n.sub) {
+	for(const AstNode& sub : n.val.Sub<AstNode>()) {
 		if (sub.src == SEMT_STATEMENT && sub.stmt == t) {
 			PushScope(sub);
 			Visit(sub);
@@ -215,7 +215,7 @@ void AstExporter::VisitStmt(const AstNode& n, StmtType t) {
 }
 
 void AstExporter::VisitCtorExpr(const AstNode& n) {
-	for(const AstNode& sub : n.sub) {
+	for(const AstNode& sub : n.val.Sub<AstNode>()) {
 		if (sub.src == SEMT_CTOR || (sub.src == SEMT_STATEMENT && sub.stmt == STMT_EXPR)) {
 			PushScope(sub);
 			Visit(sub);
@@ -321,8 +321,8 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		
 	case STMT_EXPR:
 		output << GetIndentString() << "";
-		for (int i = n.sub.GetCount()-1; i >= 0; i--) {
-			const AstNode& s = n.sub[i];
+		for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
+			const AstNode& s = it;
 			if (s.IsPartially((SemanticType)(SEMT_EXPR | SEMT_CTOR))) {
 				Visit(s);
 				break;
@@ -671,7 +671,7 @@ String AstExporter::GetCPath(const AstNode& n) const {
 				break;
 			}
 			parts[part_count++] = iter;
-			iter = iter->GetSubOwner();
+			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 		}
 	}
 	if (common_i < 0) {

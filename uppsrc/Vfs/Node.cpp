@@ -11,7 +11,7 @@ String GetAccessString(CodeAccess acc) {
 	}
 }
 
-
+#if 0
 bool NodeBase::IsContained(const CodeArgs2& args) const {
 	String pkg = GetHint(HINT_PKG);
 	String file = GetHint(HINT_FILE);
@@ -29,6 +29,6 @@ bool NodeBase::IsFwdContained(const CodeArgs2& args) const {
 	
 	return args.pkg->name == pkg && args.file->name == file;
 }
-
+#endif
 
 END_UPP_NAMESPACE

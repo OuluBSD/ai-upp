@@ -3,44 +3,44 @@
 
 
 
-class TokenStructure;
+struct TokenStructure;
 
-class TokenNode : public CompilerNode<TokenNode,TokenStructure> {
-	
-public:
-	Array<TokenNode> sub;
+struct TokenNode :
+	VfsValueExt
+{
 	const Token* begin = 0;
 	const Token* end = 0;
 	
 public:
-	typedef TokenNode CLASSNAME;
-	TokenNode();
+	CLASSTYPE(TokenNode);
+	TokenNode(VfsValue& v);
+	void Visit(Vis& v) override {}
 	
-	void		Clear() {sub.Clear();}
+	void		Clear();
 	
 	TokenNode&	Add();
 	
 	String		GetTreeString(int indent=0) const override;
-	String		GetCodeString(const CodeArgs2& args) const override;
+	String		GetCodeString(const CodeArgs2& args) const;
 	String		ToString() const override;
 	
 };
 
-class TokenStructure :
-	public CompilerNode<TokenNode,NodeBase>,
-	public ErrorSource {
+struct TokenStructure :
+	VfsValueExt,
+	ErrorSource {
 	
-	
-public:
-	TokenNode root;
-	
+private:
 	// Temp
 	const Token *iter, *end;
 	bool IsEnd() const {ASSERT(iter <= end); return iter == end;}
 	
 public:
-	typedef TokenStructure CLASSNAME;
-	TokenStructure();
+	CLASSTYPE(TokenStructure);
+	TokenStructure(VfsValue& v);
+	void Visit(Vis& v) override {}
+	
+	TokenNode& GetRoot() const;
 	
 	bool ProcessEon(const Tokenizer& t);
 	bool ParseBlock(TokenNode& n);
@@ -51,7 +51,7 @@ public:
 	bool Next() {return ++iter != end;}
 	
 	String		GetTreeString(int indent=0) const override;
-	String		GetCodeString(const CodeArgs2& args) const override;
+	String		GetCodeString(const CodeArgs2& args) const;
 	String		ToString() const override;
 	
 };

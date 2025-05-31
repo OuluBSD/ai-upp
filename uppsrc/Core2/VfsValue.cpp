@@ -578,6 +578,11 @@ VfsValue::~VfsValue()
 #endif
 }
 
+String VfsValue::ToString() const {
+	if (ext) return ext->ToString();
+	return id;
+}
+
 void VfsValue::ClearExtDeep() {
 	for (auto& s : sub)
 		s.ClearExtDeep();
@@ -1807,6 +1812,14 @@ void VfsValueExt::RemoveDependency(const VfsValueExt* e) {
 	for(int i = 0; i < deps.GetCount(); i++)
 		if (deps[i] == e)
 			deps.Remove(i--);
+}
+String VfsValueExt::GetTreeString(int indent) const {
+	String s;
+	if (indent)
+		s.Cat('\t', indent);
+	s += val.id;
+	s += ": " + ToString();
+	return s;
 }
 void VfsValueExt::CopyFrom(const VfsValueExt& e) {
 	StringStream s;

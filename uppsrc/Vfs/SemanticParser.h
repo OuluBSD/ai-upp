@@ -5,11 +5,13 @@
 
 
 
-class SemanticParser :
-	public CompilerNode<SemanticParser,NodeBase>,
-	public EonStd,
-	public ErrorSource
+struct SemanticParser :
+	VfsValueExt,
+	EonStd,
+	ErrorSource
 {
+	
+private:
 	bool allow_expr_unresolved = false;
 	
 	struct Iterator {
@@ -30,12 +32,9 @@ class SemanticParser :
 	};
 	Array<Iterator> iters;
 	
-	
-	
 	String GetPath(const AstNode& n) const;
 	
 public:
-	AstNode root;
 	Array<const TokenNode*> path;
 	
 	const TokenNode& CurrentNode() {return *path.Top();}
@@ -58,11 +57,11 @@ public:
 	bool IsLineEnd() const {return TopIterator().IsEnd();}
 	
 public:
-	typedef SemanticParser CLASSNAME;
-	SemanticParser();
+	CLASSTYPE(SemanticParser);
+	SemanticParser(VfsValue& v);
+	void Visit(Vis& v) override {}
 	
-	AstNode& GetRoot() override {return root;}
-	
+	AstNode& GetRoot() override;
 	bool ProcessEon(const TokenStructure& t);
 	bool ParseNamespaceBlock();
 	bool ParseDeclaration();
@@ -134,7 +133,7 @@ public:
 	bool Or(bool m);
 	
 	String		GetTreeString(int indent=0) const override;
-	String		GetCodeString(const CodeArgs2& args) const override;
+	String		GetCodeString(const CodeArgs2& args) const;
 	String		ToString() const override;
 	
 	

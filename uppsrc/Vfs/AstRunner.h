@@ -4,18 +4,14 @@
 
 
 
-class AstRunner :
-	public CompilerNode<AstRunner,NodeBase>,
-	public EonStd,
-	public ErrorSource
+struct AstRunner :
+	VfsValueExt,
+	EonStd,
+	ErrorSource
 {
-	AstNode root;
-	
-public:
-	
-public:
-	typedef AstRunner CLASSNAME;
-	AstRunner();
+	CLASSTYPE(AstRunner);
+	AstRunner(VfsValue& v);
+	void Visit(Vis& v) override {}
 	
 	
 	bool		Execute(const AstNode& n);
@@ -39,9 +35,11 @@ public:
 	AstNode*	Evaluate(const AstNode& n);
 	
 	String		GetTreeString(int indent=0) const override;
-	String		GetCodeString(const CodeArgs2& args) const override;
+	String		GetCodeString(const CodeArgs2& args) const;
+	
 	String		ToString() const override;
 	AstNode&	GetRoot() override;
+	AstNode&	GetRoot() const;
 	
 };
 

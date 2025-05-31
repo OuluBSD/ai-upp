@@ -3,10 +3,12 @@
 NAMESPACE_UPP
 
 
-Compiler::Compiler() {
+Compiler::Compiler(VfsValue& v) :
+	VfsValueExt(v)
+{
 	t.WhenMessage << THISBACK(OnProcMsg);
-	ts.WhenMessage << THISBACK(OnProcMsg);
-	sp.WhenMessage << THISBACK(OnProcMsg);
+	GetTokenStructure().WhenMessage << THISBACK(OnProcMsg);
+	GetSemanticParser().WhenMessage << THISBACK(OnProcMsg);
 	ex.WhenMessage << THISBACK(OnProcMsg);
 	
 }
@@ -46,13 +48,13 @@ AstNode* Compiler::CompileAst(String content, String path, bool verbose) {
 	
 	// Semantically parse
 	TEST(Parse())
-	if (verbose) {LOG(sp.GetRoot().GetTreeString(0));}
+	if (verbose) {LOG(GetSemanticParser().GetRoot().GetTreeString(0));}
 	
 	// Run meta
 	TEST(RunMeta())
-	if (verbose) {LOG(ar.GetRoot().GetTreeString(0));}
+	if (verbose) {LOG(GetAstRunner().GetRoot().GetTreeString(0));}
 	
-	return &ar.GetRoot();
+	return &GetAstRunner().GetRoot();
 }
 
 bool Compiler::CompileEon(String content, String path, ProgLang lang, String& output, bool verbose) {
@@ -95,25 +97,30 @@ bool Compiler::Tokenize(String filepath, String content, bool pythonic) {
 }
 
 bool Compiler::ParseStructure() {
+	auto& ts = GetTokenStructure();
 	ts.WhenMessage = THISBACK(OnProcMsg);
 	if (!ts.ProcessEon(t)) {
 		return false;
 	}
-	LOG(ts.GetTreeString());
+	//LOG(val.GetTreeString());
 	return true;
 }
 
 bool Compiler::Parse() {
+	auto& ts = GetTokenStructure();
+	auto& sp = GetSemanticParser();
 	sp.WhenMessage = THISBACK(OnProcMsg);
 	if (!sp.ProcessEon(ts)) {
 		return false;
 	}
-	LOG(sp.GetTreeString());
+	//LOG(sp.GetTreeString());
 	
 	return true;
 }
 
 bool Compiler::RunMeta() {
+	auto& ar = GetAstRunner();
+	auto& sp = GetSemanticParser();
 	ar.WhenMessage = THISBACK(OnProcMsg);
 	if (!ar.Execute(sp.GetRoot()))
 		return false;
@@ -122,6 +129,7 @@ bool Compiler::RunMeta() {
 }
 
 bool Compiler::ExportHigh() {
+	auto& ar = GetAstRunner();
 	InitHighExporter(ex.lang);
 	
 	ex.WhenMessage = THISBACK(OnProcMsg);
@@ -132,6 +140,7 @@ bool Compiler::ExportHigh() {
 }
 
 bool Compiler::ExportCpp() {
+	auto& ar = GetAstRunner();
 	InitCppExporter(ex.lang);
 	
 	ex.WhenMessage = THISBACK(OnProcMsg);

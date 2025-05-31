@@ -144,8 +144,10 @@ bool ScriptLoader::Load(const String& content, const String& filepath) {
 	
 	WhenEnterScriptLoad(*this);
 	
-	Compiler c;
-	AstNode* root = c.CompileAst(content, filepath);
+	Compiler& c = val.GetAdd<Compiler>("cu");
+	AstNode* root = c.CompileAst(content, filepath, true);
+	LOG(root->GetTreeString());
+	
 	if (!root) {
 		RTLOG(GetLineNumStr(content, 1));
 		WhenLeaveScriptLoad();
@@ -256,7 +258,7 @@ bool ScriptLoader::GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to) {
 			if (iter->name.GetCount() || iter == to) {
 				path.Add(iter);
 			}
-			iter = iter->GetSubOwner();
+			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 		}
 	}
 	if (path.IsEmpty()) {
@@ -354,6 +356,7 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
+	LOG(n->GetTreeString());
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints(items, (SemanticType)(SEMT_ECS_ANY | SEMT_MACH_ANY));
 	Sort(items, AstNodeLess());
@@ -659,7 +662,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 						else
 							sink_conn_i++;
 						
-						if (conn->sub.IsEmpty()) {
+						if (conn->val.Sub<AstNode>().IsEmpty()) {
 							// Empty connector is allowed
 							continue;
 						}
@@ -868,7 +871,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	AstNode* block = n;
 	Vector<Endpoint> stmts;
 	
-	for (AstNode& stmt : block->sub) {
+	for (AstNode& stmt : block->val.Sub<AstNode>()) {
 		if (stmt.src != SEMT_STATEMENT || stmt.stmt == STMT_ATOM_CONNECTOR) continue;
 		
 		static int dbg_i;

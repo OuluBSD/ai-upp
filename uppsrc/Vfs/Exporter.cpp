@@ -12,7 +12,7 @@ void AssemblyExporter::Dump() {
 		LOG("Package: " << pkg.name);
 		for (const PkgStubFile& file : pkg.files.GetValues()) {
 			LOG("\tFile: " << file.name);
-			for (NodeBase* n : file.refs) {
+			for (VfsValue* n : file.refs) {
 				LOG("\t\tRef: " << n->ToString());
 			}
 		}
@@ -210,9 +210,11 @@ bool AssemblyExporter::ExportImplementation(PkgStub& pkg, PkgStubFile& file, Str
 	return true;
 }
 
-void AssemblyExporter::Push(NodeBase& n) {
+void AssemblyExporter::Push(VfsValue& n) {
 	for(int i = 0; i < 2; i++) {
 		String pkg, file;
+		TODO
+		#if 0
 		if (i == 0) {
 			pkg = n.GetHint(HINT_PKG);
 			file = n.GetHint(HINT_FILE);
@@ -221,6 +223,7 @@ void AssemblyExporter::Push(NodeBase& n) {
 			pkg = n.GetHint(HINT_FWD_DECL_PKG);
 			file = n.GetHint(HINT_FWD_DECL_FILE);
 		}
+		#endif
 		
 		if (!pkg.IsEmpty()) {
 			PkgStub& p = pkgs.GetAdd(pkg);

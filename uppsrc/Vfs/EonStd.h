@@ -13,9 +13,8 @@
 #define CHECK_SCOPES_BEGIN int exp_count = scopes.GetCount();
 #define CHECK_SCOPES_END ASSERT(scopes.GetCount() == exp_count);
 
-class EonStd {
+struct EonStd {
 	
-public:
 	struct Scope : Moveable<Scope> {
 		AstNode* n;
 		bool pop_this;

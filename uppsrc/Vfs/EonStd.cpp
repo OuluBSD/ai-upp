@@ -49,7 +49,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		
 		if (iter->IsPartially(SEMT_PATH) || iter->IsPartially(SEMT_META_PATH))
 			nodes[node_count++] = iter;
-		iter = iter->GetSubOwner();
+		iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 	}
 	
 	String s = "[";
@@ -321,7 +321,7 @@ AstNode& EonStd::Declare(AstNode& owner, const PathIdentifier& id, bool insert_b
 				if (next)
 					cur = next;
 				else
-					cur = &cur->Add(t->loc, id, max(0, cur->sub.GetCount()-2));
+					cur = &cur->Add(t->loc, id, max(0, cur->val.sub.GetCount()-2));
 			}
 			else cur = &cur->GetAdd(t->loc, id);
 			if (cur->src == SEMT_NULL)
@@ -390,7 +390,7 @@ void EonStd::PushScope(AstNode& n, bool non_continuous) {
 		int dbg_i = 0;
 		while (iter && iter != cur) {
 			tmp.Add(iter);
-			iter = iter->GetSubOwner();
+			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 			dbg_i++;
 		}
 		ASSERT(iter == cur);
@@ -443,7 +443,7 @@ String EonStd::GetTypeInitValueString(AstNode& n) const {
 AstNode* EonStd::FindStackName(String name, SemanticType accepts) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
-		for (AstNode& ss : s.n->sub) {
+		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
 			if (ss.name == name && (accepts == SEMT_NULL || ss.IsPartially(accepts)))
 				return &ss;
 		}
@@ -456,7 +456,7 @@ AstNode* EonStd::FindStackName(String name, SemanticType accepts) {
 AstNode* EonStd::FindStackValue(String name) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
-		for (AstNode& ss : s.n->sub) {
+		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
 			if (ss.name == name)
 				return &ss;
 		}
@@ -469,7 +469,7 @@ AstNode* EonStd::FindStackValue(String name) {
 AstNode* EonStd::FindStackWithPrev(const AstNode* prev) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
-		for (AstNode& ss : s.n->sub) {
+		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
 			if (ss.prev == prev)
 				return &ss;
 		}
@@ -487,7 +487,7 @@ AstNode* EonStd::FindStackWithPrevDeep(const AstNode* prev) {
 			if (s.n->prev == iter) {
 				return s.n->FindWithPrevDeep(prev);
 			}
-			iter = iter->GetSubOwner();
+			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 		}
 	}
 	if (!spath.IsEmpty())

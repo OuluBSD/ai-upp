@@ -4,18 +4,18 @@
 
 
 
-struct Compiler {
+struct Compiler :
+	VfsValueExt
+{
 	String filepath, content;
 	
 	Tokenizer t;
-	TokenStructure ts;
-	SemanticParser sp;
-	AstRunner ar;
 	AstExporter ex;
 	
 public:
-	typedef Compiler CLASSNAME;
-	Compiler();
+	CLASSTYPE(Compiler);
+	Compiler(VfsValue& v);
+	void Visit(Vis& v) override {}
 	
 	bool CompileEonFile(String filepath, ProgLang lang, String& output);
 	bool CompileEon(String content, String path, ProgLang lang, String& output, bool verbose=false);
@@ -31,6 +31,10 @@ public:
 	
 	void OnProcMsg(ProcMsg msg);
 	
+	template <class T> T& Get(String s) {return val.GetAdd<T>(s);}
+	TokenStructure& GetTokenStructure() {return Get<TokenStructure>("TokenStructure");}
+	SemanticParser& GetSemanticParser() {return Get<SemanticParser>("SemanticParser");}
+	AstRunner& GetAstRunner() {return Get<AstRunner>("AstRunner");}
 	
 };
 

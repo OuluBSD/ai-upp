@@ -4,9 +4,9 @@
 
 
 
-class SemanticParser;
-class EonStd;
-class AstNode;
+struct SemanticParser;
+struct EonStd;
+struct AstNode;
 
 
 struct Endpoint : Moveable<Endpoint> {
@@ -20,9 +20,9 @@ struct Endpoint : Moveable<Endpoint> {
 	String ToString() const;
 };
 
-class AstNode : public CompilerNode<AstNode,NodeBase> {
-	
-public:
+struct AstNode :
+	VfsValueExt
+{
 	static const int ARG_COUNT = 4;
 	
 	const AstNode* prev = 0;
@@ -33,7 +33,6 @@ public:
 	mutable bool locked = false;
 	Value obj;
 	
-	Array<AstNode> sub;
 	String name;
 	SemanticType src = SEMT_NULL;
 	StmtType stmt = STMT_NULL;
@@ -50,10 +49,11 @@ public:
 	String str;
 	
 public:
-	typedef AstNode CLASSNAME;
-	AstNode();
+	CLASSTYPE(AstNode);
+	AstNode(VfsValue& v);
+	void Visit(Vis& v) override {}
 	
-	void			Clear() {sub.Clear();}
+	//void			Clear() {sub.Clear();}
 	void			CopyFrom(EonStd* e, const AstNode& n);
 	void			CopyFromValue(const FileLocation& loc, const Value& n);
 	void			CopyToValue(Value& n) const;
@@ -75,10 +75,9 @@ public:
 	
 	String			GetTreeString(int indent, bool links) const;
 	String			GetTreeString(int indent=0) const override;
-	String			GetCodeString(const CodeArgs2& args) const override;
+	String			GetCodeString(const CodeArgs2& args) const;
 	String			ToString() const override;
 	String			GetName() const override {return name;}
-	String			GetPath() const override;
 	String			GetPartStringArray() const;
 	SemanticType	GetSemanticType() const {return src;}
 	bool			IsPartially(SemanticType t) const {return (SemanticTypePrimitive)src & (SemanticTypePrimitive)t;}

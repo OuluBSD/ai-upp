@@ -39,7 +39,7 @@ typedef enum {
 
 String GetAccessString(CodeAccess acc);
 
-
+#if 0
 class NodeBase {
 	
 public:
@@ -115,7 +115,7 @@ public:
 	
 };
 
-
+#endif
 
 
 #endif

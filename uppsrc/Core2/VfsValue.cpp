@@ -940,9 +940,21 @@ VfsValue& VfsValue::Add(VfsValue* n)
 	return s;
 }
 
+VfsValue& VfsValue::Insert(int idx, String id, hash_t h)
+{
+	ASSERT(idx >= 0 && idx <= sub.GetCount());
+	if (idx < 0 || idx > sub.GetCount())
+		throw Exc("VfsValue::Insert: error: invalid index");
+	return Init(sub.Insert(idx), id, h);
+}
+
 VfsValue& VfsValue::Add(String id, hash_t h)
 {
-	VfsValue& s = sub.Add();
+	return Init(sub.Add(), id, h);
+}
+
+VfsValue& VfsValue::Init(VfsValue& s, const String& id, hash_t h)
+{
 	s.id = id;
 	s.owner = this;
 	s.file = this->file;

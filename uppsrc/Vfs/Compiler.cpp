@@ -109,11 +109,11 @@ bool Compiler::ParseStructure() {
 bool Compiler::Parse() {
 	auto& ts = GetTokenStructure();
 	auto& sp = GetSemanticParser();
+	
 	sp.WhenMessage = THISBACK(OnProcMsg);
 	if (!sp.ProcessEon(ts)) {
 		return false;
 	}
-	//LOG(sp.GetTreeString());
 	
 	return true;
 }

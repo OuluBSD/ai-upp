@@ -12,15 +12,16 @@ struct RefBase {
 	void* obj = NULL;
 	Vector<WeakBase*> weaks;
 	Atomic refs;
-	virtual ~RefBase() {ASSERT(!obj);} // deleting obj requires known type, use RefTemplate
+	virtual ~RefBase() {Clear(); ASSERT(!obj);} // deleting obj requires known type, use RefTemplate
+	virtual void Clear() = 0;
 	virtual void Delete() = 0;
 	void Inc() {refs++;}
 	void Dec() {
 		refs--;
 		if (refs <= 0) {
 			for(int i = 0; i < weaks.GetCount(); i++)weaks[i]->SetDeleted();
+			Clear();
 			Delete();
-			delete this;
 		}
 	}
 	void IncWeak(WeakBase* w) {weaks.Add(w);}
@@ -31,9 +32,15 @@ protected:
 };
 
 template <class T>
-struct RefTemplate : public RefBase {
-	~RefTemplate() {Delete();}
-	void Delete() override {if (obj) delete ((T*)obj); obj = NULL;}
+struct RefTemplate : RefBase {
+	void Clear() override {
+		if (!obj) return;
+		delete ((T*)obj);
+		obj = NULL;
+	}
+	void Delete() override {
+		delete this;
+	}
 };
 
 

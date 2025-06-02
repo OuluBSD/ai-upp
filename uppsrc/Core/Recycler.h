@@ -101,30 +101,20 @@ public:
 
 
 template <class T>
-class RecyclerRefBase : public RefBase {
-	T* obj = NULL;
-	Vector<WeakBase*> weaks;
-	Atomic refs;
-	
-public:
+struct RecyclerRefBase : RefTemplate<T> {
 	using Pool = RecyclerPool<RecyclerRefBase<T>>;
 	
-	RecyclerRefBase() {refs = 1;}
-	virtual ~RecyclerRefBase() {ASSERT(!obj);}
-	void SetObj(T* o) {obj = o;}
-	void Clear() {T::Pool::StaticPool().Return(obj); obj = 0;}
-	void Inc() {refs++;}
-	void Dec() {
-		int r = --refs;
-		if (r == 0) {
-			for(int i = 0; i < weaks.GetCount(); i++) weaks[i]->SetDeleted();
-			Clear();
-			Pool::StaticPool().Return(this);
-		}
+	void Clear() override {
+		if (!RefBase::obj) return;
+		T::Pool::StaticPool().Return((T*)RefBase::obj);
+		RefBase::obj = 0;
 	}
-	void IncWeak(WeakBase* w) {weaks.Add(w);}
-	void DecWeak(WeakBase* w) {for(int i = 0; i < weaks.GetCount(); i++) if (weaks[i] == w) {weaks.Remove(i--);}}
-	int GetRefCount() const {return refs;}
+	void Delete() override {
+		Pool::StaticPool().Return(this);
+	}
+	void SetObj(T* o) {
+		(T*&)RefBase::obj = o;
+	}
 };
 
 

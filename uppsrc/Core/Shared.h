@@ -12,24 +12,28 @@ struct RefBase {
 	void* obj = NULL;
 	Vector<WeakBase*> weaks;
 	Atomic refs;
-	RefBase() {refs = 1;}
 	virtual ~RefBase() {ASSERT(!obj);} // deleting obj requires known type, use RefTemplate
+	virtual void Delete() = 0;
 	void Inc() {refs++;}
 	void Dec() {
 		refs--;
 		if (refs <= 0) {
 			for(int i = 0; i < weaks.GetCount(); i++)weaks[i]->SetDeleted();
+			Delete();
 			delete this;
 		}
 	}
 	void IncWeak(WeakBase* w) {weaks.Add(w);}
 	void DecWeak(WeakBase* w) {for(int i = 0; i < weaks.GetCount(); i++) if (weaks[i] == w) {weaks.Remove(i--);}}
 	int GetRefCount() const {return refs;}
+protected:
+	RefBase() {refs = 1;}
 };
 
 template <class T>
 struct RefTemplate : public RefBase {
-	~RefTemplate() {if (obj) delete ((T*)obj); obj = NULL;}
+	~RefTemplate() {Delete();}
+	void Delete() override {if (obj) delete ((T*)obj); obj = NULL;}
 };
 
 

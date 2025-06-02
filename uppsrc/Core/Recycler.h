@@ -101,9 +101,10 @@ public:
 
 
 template <class T>
-struct RecyclerRefBase : RefTemplate<T> {
+struct RecyclerRefBase : RefBase {
 	using Pool = RecyclerPool<RecyclerRefBase<T>>;
 	
+	~RecyclerRefBase() {Clear();}
 	void Clear() override {
 		if (!RefBase::obj) return;
 		T::Pool::StaticPool().Return((T*)RefBase::obj);

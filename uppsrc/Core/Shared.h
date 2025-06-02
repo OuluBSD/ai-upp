@@ -12,7 +12,7 @@ struct RefBase {
 	void* obj = NULL;
 	Vector<WeakBase*> weaks;
 	Atomic refs;
-	virtual ~RefBase() {Clear(); ASSERT(!obj);} // deleting obj requires known type, use RefTemplate
+	virtual ~RefBase() {ASSERT(!obj);} // deleting obj requires known type, use RefTemplate
 	virtual void Clear() = 0;
 	virtual void Delete() = 0;
 	void Inc() {refs++;}
@@ -33,6 +33,7 @@ protected:
 
 template <class T>
 struct RefTemplate : RefBase {
+	~RefTemplate() {Clear();}
 	void Clear() override {
 		if (!obj) return;
 		delete ((T*)obj);

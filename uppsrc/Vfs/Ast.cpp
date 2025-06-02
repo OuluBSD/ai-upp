@@ -40,7 +40,7 @@ AstNode::AstNode(VfsValue& v) : VfsValueExt(v) {
 void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 	val.sub.Clear();
 	
-	name = n.name;
+	val.id = n.val.id;
 	src = n.src;
 	stmt = n.stmt;
 	op = n.op;
@@ -70,7 +70,7 @@ void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 
 void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 	val.sub.Clear();
-	name.Clear();
+	val.id.Clear();
 	src = SEMT_CONSTANT;
 	stmt = STMT_NULL;
 	op = OP_NULL;
@@ -121,9 +121,8 @@ void AstNode::CopyToValue(Value& n) const {
 
 AstNode& AstNode::Add(const FileLocation& loc, String name, int idx) {
 	ASSERT(!locked);
-	VfsValue& n = idx >= 0 ? val.sub.Insert(idx) : val.sub.Add();
+	VfsValue& n = idx >= 0 ? val.Insert(idx, name) : val.Add(name);
 	AstNode& s = n.CreateExt<AstNode>();
-	s.name = name;
 	s.loc = loc;
 	return s;
 }
@@ -138,7 +137,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, String name) {
 }
 
 AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
-	ASSERT(name.GetCount());
+	ASSERT(val.id.GetCount());
 	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.IsPartially(accepts))
 			return s;
@@ -146,9 +145,9 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 	AstNode& s = Add(loc);
 	s.src = accepts;
 	if (accepts == SEMT_TYPE_POINTER)
-		s.name = "#";
+		s.val.id = "#";
 	else if (accepts == SEMT_TYPE_LREF)
-		s.name = "&";
+		s.val.id = "&";
 	
 	return s;
 }
@@ -156,7 +155,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 AstNode* AstNode::Find(String name, SemanticType accepts) {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.name == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
+		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
@@ -164,7 +163,7 @@ AstNode* AstNode::Find(String name, SemanticType accepts) {
 const AstNode* AstNode::Find(String name, SemanticType accepts) const {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.name == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
+		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
@@ -294,8 +293,8 @@ String AstNode::GetTreeString(int indent) const {
 	
 	s << GetSemanticTypeString(src) << ": ";
 	
-	if (name.GetCount())
-		s << name << "\n";
+	if (val.id.GetCount())
+		s << val.id << "\n";
 	else if (src == SEMT_OBJECT)
 		s << "object(" << obj.ToString() << ")\n";
 	else if (src == SEMT_UNRESOLVED)
@@ -348,7 +347,7 @@ String AstNode::GetCodeString(const CodeArgs2& args) const {
 }
 
 String AstNode::ToString() const {
-	return name;
+	return val.id;
 }
 
 #if 0

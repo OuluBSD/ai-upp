@@ -650,7 +650,7 @@ String AstExporter::GetCPath() const {
 	for(int i = begin, j = 0; i < c; i++, j++) {
 		const Scope& scope = scopes[i];
 		if (j) s.Cat('_');
-		s.Cat(scope.n->name);
+		s.Cat(scope.n->val.id);
 	}
 	return s;
 }
@@ -680,7 +680,7 @@ String AstExporter::GetCPath(const AstNode& n) const {
 	else {
 		String s;
 		if (!part_count) {
-			String name = n.name;
+			String name = n.val.id;
 			ASSERT(name.GetCount());
 			s.Cat(name);
 		}
@@ -693,7 +693,7 @@ String AstExporter::GetCPath(const AstNode& n) const {
 					s.Cat('&');
 				else {
 					if (i) s.Cat('_');
-					s.Cat(part->name);
+					s.Cat(part->val.id);
 				}
 			}
 		}

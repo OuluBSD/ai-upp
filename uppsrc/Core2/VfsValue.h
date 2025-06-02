@@ -348,6 +348,8 @@ struct VfsValue : Pte<VfsValue> {
 	VfsValue& Add(const VfsValue& n);
 	VfsValue& Add(VfsValue* n);
 	VfsValue& Add(String id=String(), hash_t h=0);
+	VfsValue& Insert(int idx, String id=String(), hash_t h=0);
+	VfsValue& Init(VfsValue& s, const String& id, hash_t h);
 	VfsValue* Detach(VfsValue* n);
 	VfsValue* Detach(int i);
 	void Remove(VfsValue* n);
@@ -433,6 +435,7 @@ struct VfsValue : Pte<VfsValue> {
 				ASSERT(o);
 				if (!o)
 					throw Exc("internal error: empty pointer");
+				ASSERT(s.owner == this); // additional check
 				return *o;
 			}
 		}
@@ -867,7 +870,7 @@ public:
 		SubIterT(SubIterT&& v) : val(v.val) {}
 		int GetCount() const {
 			hash_t type_hash = AsTypeHash<T>();
-			int count = 0, i = 0;
+			int count = 0, i = -1;
 			while (++i < val.sub.GetCount())
 				if (val.sub[i].type_hash == type_hash)
 					count++;

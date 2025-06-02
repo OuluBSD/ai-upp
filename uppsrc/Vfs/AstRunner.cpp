@@ -18,7 +18,7 @@ bool AstRunner::Execute(const AstNode& n) {
 	
 	for (const AstNode& s : n.val.Sub<AstNode>()) {
 		if (s.src == SEMT_BUILTIN || s.src == SEMT_META_BUILTIN) {
-			AstNode* local = root.Find(s.name, s.src);
+			AstNode* local = root.Find(s.val.id, s.src);
 			if (local)
 				local->prev = &s;
 		}
@@ -56,8 +56,8 @@ AstNode& AstRunner::GetRoot() {
 AstNode* AstRunner::Merge(const AstNode& n) {
 	AstNode& owner = GetNonLockedOwner();
 	
-	if (n.name.GetCount()) {
-		AstNode* prev = owner.Find(n.name);
+	if (n.val.id.GetCount()) {
+		AstNode* prev = owner.Find(n.val.id);
 		if (prev) {
 			if (!IsMergeable(*prev, n)) {
 				AddError(n.loc, "cannot merge " + GetSemanticTypeString(n.src) + " to " + GetSemanticTypeString(prev->src));
@@ -515,11 +515,11 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		break;
 		
 	case SEMT_IDPART:
-		if (n.name.IsEmpty()) {
+		if (n.val.id.IsEmpty()) {
 			AddError(n.loc, "internal error: no name");
 			return 0;
 		}
-		d = GetTopNode().Find(n.name);
+		d = GetTopNode().Find(n.val.id);
 		if (!d)
 			d = AddDuplicate(n);
 		PushScope(*d);
@@ -687,7 +687,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		break;
 	
 	case SEMT_PARAMETER:
-		d = &GetTopNode().Add(n.loc, n.name);
+		d = &GetTopNode().Add(n.loc, n.val.id);
 		d->CopyFrom(this, n);
 		d->src = SEMT_OBJECT;
 		break;
@@ -724,7 +724,7 @@ AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
 	const AstNode& ref = *n.rval;
 	
 	if (ref.src == SEMT_META_VARIABLE || ref.src == SEMT_META_PARAMETER) {
-		ASSERT(ref.name.GetCount());
+		ASSERT(ref.val.id.GetCount());
 		AstNode* o = FindStackWithPrev(&ref);
 		ASSERT(o);
 		while (o && o->src == SEMT_RVAL)
@@ -769,16 +769,16 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 		TODO
 	}
 	
-	ASSERT(var.name.GetCount());
+	ASSERT(var.val.id.GetCount());
 	
-	AstNode* o = FindStackValue(var.name);
+	AstNode* o = FindStackValue(var.val.id);
 	
 	{
 		// Kinda hack: to allow finding node with ".prev == &n"
 		AstNode* d = Merge(n);
 		d->src = SEMT_RVAL;
 		d->rval = o;
-		d->name = var.name;
+		d->val.id = var.val.id;
 		ASSERT(o);
 	}
 	
@@ -1021,8 +1021,8 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			AstNode& arg = *arg_ptrs[i];
 			const AstNode& param = *param_ptrs[i];
 			
-			ASSERT(param.name.GetCount());
-			AstNode& ao = call->Add(param.loc, param.name);
+			ASSERT(param.val.id.GetCount());
+			AstNode& ao = call->Add(param.loc, param.val.id);
 			ao.CopyFrom(this, param);
 			ao.src = SEMT_RVAL;
 			
@@ -1091,14 +1091,14 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 
 AstNode* AstRunner::DeclareMetaVariable(const AstNode& n) {
 	if (n.src == SEMT_META_VARIABLE) {
-		ASSERT(n.name.GetCount());
+		ASSERT(n.val.id.GetCount());
 		AstNode& block = GetBlock();
-		if (block.Find(n.name, SEMT_OBJECT)) {
-			AddError(n.loc, "meta-variable '" + n.name + "' have already been declared");
+		if (block.Find(n.val.id, SEMT_OBJECT)) {
+			AddError(n.loc, "meta-variable '" + n.val.id + "' have already been declared");
 			return 0;
 		}
 		
-		AstNode& d = block.Add(n.loc, n.name);
+		AstNode& d = block.Add(n.loc, n.val.id);
 		d.CopyFrom(this, n);
 		d.src = SEMT_OBJECT;
 		return &d;

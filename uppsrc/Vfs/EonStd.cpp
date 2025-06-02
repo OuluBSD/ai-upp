@@ -59,7 +59,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		const AstNode& node = *nodes[node_count-1-i];
 		if (node.IsPartially(SEMT_META_ANY))
 			s.Cat('$');
-		const String& n = node.name;
+		const String& n = node.val.id;
 		ASSERT(n.GetCount());
 		s.Cat(n);
 		s.Cat('\"');
@@ -321,7 +321,7 @@ AstNode& EonStd::Declare(AstNode& owner, const PathIdentifier& id, bool insert_b
 				if (next)
 					cur = next;
 				else
-					cur = &cur->Add(t->loc, id, max(0, cur->val.sub.GetCount()-2));
+					cur = &cur->Add(t->loc, id, max(0, cur->val.Sub<TokenNode>().GetCount()-2));
 			}
 			else cur = &cur->GetAdd(t->loc, id);
 			if (cur->src == SEMT_NULL)
@@ -383,14 +383,16 @@ void EonStd::PushScope(AstNode& n, bool non_continuous) {
 	}
 	else {
 		thread_local static Vector<AstNode*> tmp;
-		AstNode* cur = spath.Top().n;
+		VfsValue* cur = &spath.Top().n->val;
 		
 		tmp.SetCount(0);
-		AstNode* iter = &n;
+		VfsValue* iter = &n.val;
 		int dbg_i = 0;
 		while (iter && iter != cur) {
-			tmp.Add(iter);
-			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
+			AstNode* an = iter->FindExt<AstNode>();
+			if (an)
+				tmp.Add(an);
+			iter = iter->owner;
 			dbg_i++;
 		}
 		ASSERT(iter == cur);
@@ -430,7 +432,7 @@ AstNode* EonStd::PopScope() {
 
 String EonStd::GetTypeInitValueString(AstNode& n) const {
 	if (n.src == SEMT_META_BUILTIN) {
-		if (n.name == "int")
+		if (n.val.id == "int")
 			return "0";
 		TODO
 	}
@@ -444,10 +446,10 @@ AstNode* EonStd::FindStackName(String name, SemanticType accepts) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
 		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
-			if (ss.name == name && (accepts == SEMT_NULL || ss.IsPartially(accepts)))
+			if (ss.val.id == name && (accepts == SEMT_NULL || ss.IsPartially(accepts)))
 				return &ss;
 		}
-		if (s.n->name == name && (accepts == SEMT_NULL || s.n->IsPartially(accepts)))
+		if (s.n->val.id == name && (accepts == SEMT_NULL || s.n->IsPartially(accepts)))
 			return s.n;
 	}
 	return 0;
@@ -457,10 +459,10 @@ AstNode* EonStd::FindStackValue(String name) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
 		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
-			if (ss.name == name)
+			if (ss.val.id == name)
 				return &ss;
 		}
-		if (s.n->name == name)
+		if (s.n->val.id == name)
 			return s.n;
 	}
 	return 0;

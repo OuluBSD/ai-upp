@@ -146,7 +146,6 @@ bool ScriptLoader::Load(const String& content, const String& filepath) {
 	
 	Compiler& c = val.GetAdd<Compiler>("cu");
 	AstNode* root = c.CompileAst(content, filepath, true);
-	LOG(root->GetTreeString());
 	
 	if (!root) {
 		RTLOG(GetLineNumStr(content, 1));
@@ -249,13 +248,13 @@ bool ScriptLoader::GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to) {
 	Vector<Endpoint> path;
 	
 	if (from == to) {
-		if (to->name.GetCount())
+		if (to->val.id.GetCount())
 			path.Add(to);
 	}
 	else {
 		AstNode* iter = to;
 		while (iter && iter != from) {
-			if (iter->name.GetCount() || iter == to) {
+			if (iter->val.id.GetCount() || iter == to) {
 				path.Add(iter);
 			}
 			iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
@@ -267,8 +266,8 @@ bool ScriptLoader::GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to) {
 	}
 	for (int i = path.GetCount()-1; i >= 0; i--) {
 		AstNode* id = path[i].n;
-		ASSERT(id->name.GetCount());
-		script_id.parts.Add(id->name);
+		ASSERT(id->val.id.GetCount());
+		script_id.parts.Add(id->val.id);
 	}
 	
 	return true;
@@ -686,7 +685,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							while (a1->src == SEMT_RVAL && a1->rval) a1 = a1->rval;
 							String key;
 							if (a0->src == SEMT_VARIABLE) {
-								key = a0->name;
+								key = a0->val.id;
 							}
 							else if (a0->src == SEMT_UNRESOLVED) {
 								key = a0->str;
@@ -915,7 +914,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							}
 						}
 						else if (key->src == SEMT_VARIABLE) {
-							String key_str = key->name;
+							String key_str = key->val.id;
 							if (value->src == SEMT_CONSTANT) {
 								Value val_obj;
 								value->CopyToValue(val_obj);

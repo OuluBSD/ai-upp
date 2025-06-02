@@ -33,7 +33,6 @@ struct AstNode :
 	mutable bool locked = false;
 	Value obj;
 	
-	String name;
 	SemanticType src = SEMT_NULL;
 	StmtType stmt = STMT_NULL;
 	OpType op = OP_NULL;
@@ -77,7 +76,7 @@ public:
 	String			GetTreeString(int indent=0) const override;
 	String			GetCodeString(const CodeArgs2& args) const;
 	String			ToString() const override;
-	String			GetName() const override {return name;}
+	String			GetName() const override {return val.id;}
 	String			GetPartStringArray() const;
 	SemanticType	GetSemanticType() const {return src;}
 	bool			IsPartially(SemanticType t) const {return (SemanticTypePrimitive)src & (SemanticTypePrimitive)t;}

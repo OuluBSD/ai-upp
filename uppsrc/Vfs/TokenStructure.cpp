@@ -14,6 +14,7 @@ void TokenNode::Clear() {
 
 TokenNode& TokenNode::Add() {
 	TokenNode& s = val.Add<TokenNode>();
+	ASSERT(s.val.owner);
 	return s;
 }
 

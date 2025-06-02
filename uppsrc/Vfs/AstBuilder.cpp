@@ -171,7 +171,7 @@ AstNode* SemanticParser::DeclareVariable(const FileLocation& loc, AstNode& type,
 	bool meta = type.IsPartially(SEMT_META_TYPE);
 	var.src = meta ? SEMT_META_VARIABLE : SEMT_VARIABLE;
 	var.type = &type;
-	ASSERT(!var.name.IsEmpty());
+	ASSERT(!var.val.id.IsEmpty());
 	
 	return &var;
 }
@@ -181,7 +181,7 @@ void SemanticParser::DeclareMetaVariable(const FileLocation& loc, AstNode& type,
 	AstNode& var = Declare(block, name);
 	var.src = SEMT_META_VARIABLE;
 	var.type = &type;
-	ASSERT(!var.name.IsEmpty());
+	ASSERT(!var.val.id.IsEmpty());
 	
 }
 

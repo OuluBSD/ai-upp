@@ -28,7 +28,7 @@ String AstExporter::GetIndentString(int offset) const {
 
 void AstExporter::PushScope(const AstNode& n, bool skip_indent) {
 	Scope& scope = scopes.Add();
-	scope.pop_this = !n.IsPartially(SEMT_UNDEFINED);
+	scope.pop_this = !IsUndefinedAny(n);
 	scope.n = &n;
 	scope.skip_indent = skip_indent;
 	if (n.src == SEMT_STATEMENT_BLOCK && !skip_indent)
@@ -104,7 +104,7 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
 			if (s.src != SEMT_STATEMENT &&
 				s.src != SEMT_STATEMENT_BLOCK &&
-				!s.IsPartially(SEMT_META_ANY))
+				!IsMetaAny(s))
 				continue;
 			
 			// merge statement blocks which meta created with current block
@@ -194,9 +194,9 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 	
 }
 
-void AstExporter::Visit(const AstNode& n, SemanticType t) {
+void AstExporter::Visit(const AstNode& n, Gate<const AstNode&> accepts) {
 	for(const AstNode& sub : n.val.Sub<AstNode>()) {
-		if (sub.IsPartially(t)) {
+		if (!accepts || accepts(sub)) {
 			PushScope(sub);
 			Visit(sub);
 			PopScope();
@@ -242,7 +242,7 @@ void AstExporter::VisitFunction(const AstNode& n) {
 	
 	PushInlineScope();
 	output << "(";
-	Visit(n, SEMT_PARAMETER_PATH);
+	Visit(n, &IsParameterPath);
 	output << ")";
 	PopInlineScope();
 	
@@ -323,7 +323,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << GetIndentString() << "";
 		for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 			const AstNode& s = it;
-			if (s.IsPartially((SemanticType)(SEMT_EXPR | SEMT_CTOR))) {
+			if (IsExprAny(s) || IsCtorAny(s)) {
 				Visit(s);
 				break;
 			}
@@ -387,7 +387,7 @@ void AstExporter::VisitExpression(const AstNode& n, int depth) {
 		VisitArgumentList(n);
 		return;
 	}
-	else if (n.IsPartially(SEMT_FUNCTION)) {
+	else if (IsFunctionAny(n)) {
 		VisitFunctionRval(n);
 		return;
 	}
@@ -527,7 +527,7 @@ void AstExporter::VisitArgument(const AstNode& n) {
 	if (arg.src == SEMT_CONSTANT) {
 		VisitConstant(arg);
 	}
-	else if (arg.IsPartially(SEMT_FIELD)) {
+	else if (IsFieldAny(arg)) {
 		output << GetCPath(arg);
 	}
 	else if (arg.src == SEMT_RVAL) {
@@ -569,11 +569,11 @@ void AstExporter::VisitResolve(const AstNode& n, bool rval) {
 	ASSERT(n.rval);
 	if (n.rval) {
 		const AstNode& l = *n.rval;
-		if (l.IsPartially(SEMT_META_FUNCTION)) {
+		if (IsMetaFunctionAny(l)) {
 			output << "<error>";
 		}
 		else {
-			if (l.IsPartially(SEMT_FUNCTION)) {
+			if (IsFunctionAny(l)) {
 				DUMP(GetSemanticTypeString(l.src));
 			}
 			output << GetCPath(l);
@@ -588,7 +588,7 @@ void AstExporter::VisitRval(const AstNode& n) {
 		AstNode& s = *n.rval;
 		if (s.src == SEMT_CONSTANT || s.src == SEMT_OBJECT)
 			VisitConstant(s);
-		else if (s.IsPartially(SEMT_FIELD))
+		else if (IsFieldAny(s))
 			output << GetCPath(*n.rval);
 		else if (s.src == SEMT_META_PARAMETER || s.src == SEMT_META_VARIABLE) {
 			TODO // this s.src shouldn't appear in this phase anymore

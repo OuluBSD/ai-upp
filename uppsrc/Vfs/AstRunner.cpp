@@ -259,7 +259,7 @@ void AstRunner::SetMetaBlockType(AstNode& d, AstNode* dup_block, AstNode* closes
 	}
 	else if (closest_type == this->meta_builtin_expr)
 		d.rval = dup_block->rval;
-	else if (closest_type->IsPartially(SEMT_META_BUILTIN))
+	else if (IsMetaBuiltinAny(*closest_type))
 		; // pass
 	else
 		TODO
@@ -326,7 +326,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		return d;
 	
 	case STMT_CTOR:
-		if (n.rval && n.rval->IsPartially(SEMT_META_ANY))
+		if (n.rval && IsMetaAny(*n.rval))
 			return VisitMetaCtor(*n.rval);
 		d = AddDuplicate(n);
 		if (!d)
@@ -343,7 +343,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 				PopScope(); // expr rval
 		}
 		PopScope();
-		ASSERT(d->rval || n.rval->type->IsPartially(SEMT_META_ANY));
+		ASSERT(d->rval || IsMetaAny(*n.rval->type));
 		return d;
 		
 	case STMT_NULL:
@@ -571,7 +571,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 			CHECK_SPATH_BEGIN
 			
 			for (const AstNode& s : n.val.Sub<AstNode>()) {
-				if (s.src == SEMT_ARGUMENT || s.IsPartially(SEMT_META_ANY)) {
+				if (s.src == SEMT_ARGUMENT || IsMetaAny(s)) {
 					sd = Visit(s);
 					if (!sd)
 						return 0;
@@ -606,7 +606,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		break;
 		
 	case SEMT_CTOR:
-		if (n.type && n.type->IsPartially(SEMT_META_TYPE))
+		if (n.type && IsMetaTypeAny(*n.type))
 			return VisitMetaCtor(n);
 		d = AddDuplicate(n);
 		if (!d)
@@ -642,7 +642,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	
 	case SEMT_RVAL:
 		ASSERT(n.rval);
-		if (n.rval->IsPartially(SEMT_META_FIELD)) {
+		if (IsMetaFieldAny(*n.rval)) {
 			return VisitMetaRVal(n);
 		}
 		else {
@@ -670,7 +670,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 					return 0;
 				}
 				
-				if (d->rval->src != SEMT_IDPART && d->rval->IsPartially(SEMT_META_ANY))
+				if (d->rval->src != SEMT_IDPART && IsMetaAny(*d->rval))
 					d->src = SEMT_META_RVAL;
 			}
 			else TODO
@@ -719,7 +719,7 @@ AstNode* AstRunner::AddDuplicate(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
-	if (!n.rval || !n.rval->IsPartially(SEMT_META_FIELD)) {ASSERT(0); return 0;}
+	if (!n.rval || !IsMetaFieldAny(*n.rval)) {ASSERT(0); return 0;}
 	
 	const AstNode& ref = *n.rval;
 	
@@ -760,7 +760,7 @@ AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
 
 AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 	ASSERT(n.src == SEMT_META_CTOR);
-	ASSERT(n.type && n.type->IsPartially(SEMT_META_TYPE));
+	ASSERT(n.type && IsMetaTypeAny(*n.type));
 	ASSERT(n.rval);
 	
 	AstNode& var = *n.rval;
@@ -966,8 +966,7 @@ AstNode* AstRunner::VisitMetaResolve(const AstNode& n) {
 		}
 	}
 	
-	
-	AstNode* rval = FindDeclaration(parts);
+	AstNode* rval = FindDeclaration(parts, Gate<const AstNode&>());
 	
 	AstNode* d = AddDuplicate(n);
 	d->src = SEMT_RVAL;

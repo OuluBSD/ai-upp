@@ -6,64 +6,68 @@
 
 
 typedef enum : uint64 {
-	SEMT_NULL					= 1 << 0,
-	SEMT_NAMESPACE				= 1 << 1,
-	SEMT_BUILTIN				= 1 << 2,
-	SEMT_TYPEDEF				= 1 << 3,
-	SEMT_CLASS_DECL				= 1 << 4,
-	SEMT_CLASS					= 1 << 5,
-	SEMT_CLASS_TEMPLATE			= 1 << 6,
-	SEMT_META_STATEMENT			= 1 << 7,
+	SEMT_NULL					= 0,
+	SEMT_NAMESPACE				= CXCursor_Namespace,
+	SEMT_TYPEDEF				= CXCursor_TypedefDecl,
+	SEMT_CLASS_DECL				= CXCursor_ClassDecl,
+	SEMT_CLASS_TEMPLATE			= CXCursor_ClassTemplate,
+	SEMT_FUNCTION_METHOD		= CXCursor_CXXMethod,
+	SEMT_VARIABLE				= CXCursor_VarDecl,
+	SEMT_PARAMETER				= CXCursor_ParmDecl,
+	SEMT_STATEMENT_BLOCK		= CXCursor_CompoundStmt,
+	SEMT_ROOT					= CXCursor_TranslationUnit,
+	
+	SEMT_VFS_KIND = 2000,
+	SEMT_BUILTIN,
+	SEMT_CLASS,
+	SEMT_META_STATEMENT,
+	
 	//
-	SEMT_FUNCTION_STATIC		= 1 << 9,
-	SEMT_FUNCTION_METHOD		= 1 << 10,
-	SEMT_VARIABLE				= 1 << 11,
-	SEMT_PARAMETER				= 1 << 12,
-	SEMT_STATEMENT				= 1 << 13,
-	SEMT_STATEMENT_BLOCK		= 1 << 14,
-	SEMT_EXPR					= 1 << 15,
-	SEMT_CONSTANT				= 1 << 16,
-	SEMT_IDPART					= 1 << 17,
-	SEMT_ROOT					= 1 << 18,
-	SEMT_RESOLVE				= 1 << 19,
-	SEMT_ARGUMENT				= 1 << 20,
-	SEMT_ARGUMENT_LIST			= 1 << 21,
-	SEMT_FUNCTION_BUILTIN		= 1 << 22,
-	SEMT_MACHINE_DECL			= 1 << 23,
-	SEMT_MACHINE				= 1 << 24,
-	SEMT_CHAIN_DECL				= 1 << 25,
-	SEMT_CHAIN					= 1 << 26,
-	SEMT_LOOP_DECL				= 1 << 27,
-	SEMT_LOOP					= 1 << 28,
-	SEMT_META_VARIABLE			= 1 << 29,
-	SEMT_META_PARAMETER			= 1 << 30,
-	SEMT_META_BUILTIN			= 1ULL << 31,
-	SEMT_META_FUNCTION_STATIC	= 1ULL << 32,
-	SEMT_WORLD					= 1ULL << 33,
-	SEMT_ENTITY					= 1ULL << 34,
-	SEMT_COMPONENT				= 1ULL << 35,
-	SEMT_SYSTEM					= 1ULL << 36,
-	SEMT_POOL					= 1ULL << 37,
-	SEMT_ATOM					= 1ULL << 38,
-	SEMT_CALL_ARG				= 1ULL << 39,
-	SEMT_UNRESOLVED				= 1ULL << 40,
-	SEMT_META_CLASS				= 1ULL << 41,
-	SEMT_RVAL					= 1ULL << 42,
-	SEMT_CTOR					= 1ULL << 43,
-	SEMT_ARRAYSIZE				= 1ULL << 44,
-	SEMT_TYPE_POINTER			= 1ULL << 45,
-	SEMT_TYPE_LREF				= 1ULL << 46,
-	SEMT_META_RVAL				= 1ULL << 47,
-	SEMT_META_CTOR				= 1ULL << 48,
-	SEMT_OBJECT					= 1ULL << 49,
-	SEMT_META_RESOLVE			= 1ULL << 50,
-	SEMT_STATE					= 1ULL << 51,
-	SEMT_DRIVER					= 1ULL << 52,
-	SEMT_ENGINE					= 1ULL << 53,
-	SEMT_SYMBOLIC_LINK			= 1ULL << 54,
+	SEMT_FUNCTION_STATIC,
+	SEMT_STATEMENT,
+	SEMT_EXPR,
+	SEMT_CONSTANT, // Literal
+	SEMT_IDPART,
+	SEMT_RESOLVE,
+	SEMT_ARGUMENT,
+	SEMT_ARGUMENT_LIST,
+	SEMT_FUNCTION_BUILTIN,
+	SEMT_MACHINE_DECL,
+	SEMT_MACHINE,
+	SEMT_CHAIN_DECL,
+	SEMT_CHAIN,
+	SEMT_LOOP_DECL,
+	SEMT_LOOP,
+	SEMT_META_VARIABLE,
+	SEMT_META_PARAMETER,
+	SEMT_META_BUILTIN,
+	SEMT_META_FUNCTION_STATIC,
+	SEMT_WORLD,
+	SEMT_ENTITY,
+	SEMT_COMPONENT,
+	SEMT_SYSTEM,
+	SEMT_POOL,
+	SEMT_ATOM,
+	SEMT_CALL_ARG,
+	SEMT_UNRESOLVED,
+	SEMT_META_CLASS,
+	SEMT_RVAL,
+	SEMT_CTOR,
+	SEMT_ARRAYSIZE,
+	SEMT_TYPE_POINTER,
+	SEMT_TYPE_LREF,
+	SEMT_META_RVAL,
+	SEMT_META_CTOR,
+	SEMT_OBJECT,
+	SEMT_META_RESOLVE,
+	SEMT_STATE,
+	SEMT_DRIVER,
+	SEMT_ENGINE,
+	SEMT_SYMBOLIC_LINK,
 	
-	// Current limit: 1 << 63
+	SEMT_META, // ==SEMT_META_ANY
 	
+	#if 0
 	SEMT_FIELD =			SEMT_VARIABLE | SEMT_PARAMETER | SEMT_CONSTANT,
 	SEMT_TYPE =				SEMT_BUILTIN | SEMT_TYPEDEF | SEMT_CLASS_DECL | SEMT_CLASS |
 							SEMT_CLASS_TEMPLATE | SEMT_TYPE_POINTER | SEMT_TYPE_LREF,
@@ -86,15 +90,100 @@ typedef enum : uint64 {
 	
 	SEMT_META_ANY =			SEMT_IDPART | SEMT_META_FIELD | SEMT_META_TYPE | SEMT_META_FUNCTION | SEMT_META_RVAL | SEMT_META_CTOR | SEMT_META_RESOLVE,
 	SEMT_META_PATH =		SEMT_META_PARAMETER_PATH | SEMT_META_VARIABLE_PATH | SEMT_META_FUNCTION | SEMT_META_CLASS,
+	#endif
 	
 } SemanticType;
 
 typedef uint64 SemanticTypePrimitive;
 
+struct AstNode;
+
+inline bool IsPath(const AstNode& a) {
+	TODO // SEMT_PATH
+	return false;
+}
+
+inline bool IsMetaPath(const AstNode& a) {
+	TODO // SEMT_META_PATH
+	return false;
+}
+
+inline bool IsFunctionAny(const AstNode& a) {
+	TODO // SEMT_FUNCTION
+	return false;
+}
+
+inline bool IsStatementAny(const AstNode& a) {
+	TODO // SEMT_STATEMENT
+	return false;
+}
+
+inline bool IsMetaAny(const AstNode& a) {
+	TODO // SEMT_META_ANY or SEMT_META
+	return false;
+}
+
+inline bool IsTypeAny(const AstNode& a) {
+	TODO // SEMT_TYPE
+	return false;
+}
+
+inline bool IsBlockAny(const AstNode& a) {
+	TODO // SEMT_BLOCK
+	return false;
+}
+
+inline bool IsUndefinedAny(const AstNode& a) {
+	TODO // SEMT_UNDEFINED
+	return false;
+}
+
+inline bool IsMetaFieldAny(const AstNode& a) {
+	TODO // SEMT_META_FIELD
+	return false;
+}
+
+inline bool IsFieldAny(const AstNode& a) {
+	TODO // SEMT_FIELD
+	return false;
+}
+
+inline bool IsMetaTypeAny(const AstNode& a) {
+	TODO // SEMT_META_TYPE
+	return false;
+}
+
+inline bool IsExprAny(const AstNode& a) {
+	TODO // SEMT_EXPR
+	return false;
+}
+
+inline bool IsCtorAny(const AstNode& a) {
+	TODO // SEMT_CTOR
+	return false;
+}
+
+inline bool IsMetaBuiltinAny(const AstNode& a) {
+	TODO // SEMT_META_BUILTIN
+	return false;
+}
+
+inline bool IsParameterPath(const AstNode& a) {
+	TODO // SEMT_PARAMETER_PATH
+	return false;
+}
+
+inline bool IsMetaFunctionAny(const AstNode& a) {
+	TODO // SEMT_META_FUNCTION
+	return false;
+}
+
 inline String GetSemanticTypeString(SemanticType t) {
+	TODO
+#if 0
 	switch (t) {
 		case SEMT_NULL:					return "null";
-		case SEMT_NAMESPACE:			return "namespace";
+		case SEMT_NAMESPACE:			return "namespace";<
 		case SEMT_BUILTIN:				return "builtin";
 		case SEMT_TYPEDEF:				return "typedef";
 		case SEMT_CLASS_DECL:			return "class-declaration";
@@ -154,37 +243,44 @@ inline String GetSemanticTypeString(SemanticType t) {
 		case SEMT_SYMBOLIC_LINK:		return "symlink";
 		default: return "invalid";
 	}
+#endif
 }
 
 inline bool IsTypedNode(SemanticType src) {
-	return src & SEMT_TYPE;
+	TODO return false;  //return src & SEMT_TYPE;
 }
 
 inline bool IsMetaTypedNode(SemanticType src) {
-	return src & SEMT_META_TYPE;
+	TODO return false;  //return src & SEMT_META_TYPE;
 }
 
 inline bool IsRvalReturn(SemanticType src) {
-	return (int64)src & (int64)SEMT_WITH_RVAL_RET;
+	TODO return false; //return (int64)src & (int64)SEMT_WITH_RVAL_RET;
 }
+
+
 
 typedef enum {
 	STMT_NULL,
-	STMT_IF,
+	STMT_IF			= CXCursor_IfStmt,
+	STMT_DOWHILE	= CXCursor_DoStmt,
+	STMT_WHILE		= CXCursor_WhileStmt,
+	STMT_FOR		= CXCursor_ForStmt,
+	STMT_BREAK		= CXCursor_BreakStmt,
+	STMT_CONTINUE	= CXCursor_ContinueStmt,
+	STMT_CASE		= CXCursor_CaseStmt,
+	STMT_DEFAULT	= CXCursor_DefaultStmt,
+	STMT_RETURN		= CXCursor_ReturnStmt,
+	STMT_SWITCH		= CXCursor_SwitchStmt,
+	
+	STMT_VFS		= 3000,
+	
 	STMT_ELSE,
-	STMT_DOWHILE,
-	STMT_WHILE,
-	STMT_FOR,
 	STMT_FOR_COND,
 	STMT_FOR_POST,
 	STMT_FOR_RANGE,
-	STMT_BREAK,
-	STMT_CONTINUE,
-	STMT_CASE,
-	STMT_DEFAULT,
-	STMT_RETURN,
-	STMT_SWITCH,
-	STMT_BLOCK,
+	
+	STMT_BLOCK, // ??? CXCursor_BlockExpr
 	STMT_EXPR,
 	STMT_ATOM_CONNECTOR,
 	STMT_CTOR,
@@ -206,6 +302,7 @@ typedef enum {
 	STMT_META_BLOCK,
 	STMT_META_EXPR,
 	
+	#if 0
 	STMT_META_ANY = STMT_META_IF |
 					STMT_META_ELSE |
 					STMT_META_DOWHILE |
@@ -222,9 +319,12 @@ typedef enum {
 					STMT_META_SWITCH |
 					STMT_META_BLOCK |
 					STMT_META_EXPR,
+	#endif
 } StmtType;
 
 inline String GetStmtTypeString(StmtType t) {
+	TODO
+	#if 0
 	switch (t) {
 		case STMT_NULL: return "null";
 		case STMT_IF: return "if";
@@ -265,15 +365,19 @@ inline String GetStmtTypeString(StmtType t) {
 		
 		default: return "invalid-type";
 	}
+	#endif
 }
 
 typedef enum {
+#if 0
 	STMTP_FOR_DECL,
 	STMTP_WHILE_COND,
 	STMTP_FOR_POST,
 	STMTP_FOR_COLLECTION,
+#endif
 } StmtParamType;
 
+#if 0
 inline String GetStmtParamTypeString(StmtParamType t) {
 	switch (t) {
 		case STMTP_FOR_DECL: return "for-decl";
@@ -284,6 +388,7 @@ inline String GetStmtParamTypeString(StmtParamType t) {
 	return String();
 }
 
+#endif
 
 typedef enum {
 	OP_NULL,

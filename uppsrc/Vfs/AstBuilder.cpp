@@ -49,7 +49,7 @@ AstNode* SemanticParser::PushMetaFunction(const FileLocation& loc, AstNode& ret_
 
 void SemanticParser::Parameter(const FileLocation& loc, const PathIdentifier& type, const PathIdentifier& name) {
 	
-	AstNode* tn = FindDeclaration(type, SEMT_TYPE);
+	AstNode* tn = FindDeclaration(type, &IsType);
 	if (!tn) {
 		DUMP(type);
 		AddError(loc, "internal error");
@@ -64,7 +64,7 @@ void SemanticParser::Parameter(const FileLocation& loc, const PathIdentifier& ty
 }
 
 void SemanticParser::MetaParameter(const FileLocation& loc, const PathIdentifier& type, const PathIdentifier& name) {
-	AstNode* tn = FindDeclaration(type, SEMT_META_TYPE);
+	AstNode* tn = FindDeclaration(type, &IsMetaType);
 	if (!tn) {
 		AddError(loc, "internal error");
 		return;
@@ -164,11 +164,11 @@ void SemanticParser::PopStatementParameter(const FileLocation& loc) {
 AstNode* SemanticParser::DeclareVariable(const FileLocation& loc, AstNode& type, const PathIdentifier& name) {
 	AstNode& block = GetBlock();
 	AstNode& var = Declare(block, name, true);
-	if (!var.IsPartially(SEMT_UNDEFINED)) {
+	if (!IsUndefinedAny(var)) {
 		AddError(loc, "'" + name.ToString() + "' is already declared");
 		return 0;
 	}
-	bool meta = type.IsPartially(SEMT_META_TYPE);
+	bool meta = IsMetaTypeAny(type);
 	var.src = meta ? SEMT_META_VARIABLE : SEMT_VARIABLE;
 	var.type = &type;
 	ASSERT(!var.val.id.IsEmpty());
@@ -207,11 +207,11 @@ void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifi
 	PushScopeRVal(r);
 }
 
-void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, SemanticType t) {
+void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, Gate<const AstNode&> accepts) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
 	r.src = SEMT_UNRESOLVED;
-	r.filter = t;
+	r.filter = accepts;
 	r.str = id.ToString();
 	
 	PushScopeRVal(r);

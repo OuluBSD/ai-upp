@@ -64,7 +64,7 @@ public:
 	
 	
 	void Visit(const AstNode& n, bool force=false, bool declare=false);
-	void Visit(const AstNode& n, SemanticType t);
+	void Visit(const AstNode& n, Gate<const AstNode&> accepts);
 	void VisitStmt(const AstNode& n, StmtType t);
 	void VisitBuiltin(const AstNode& n);
 	void VisitCtorExpr(const AstNode& n);

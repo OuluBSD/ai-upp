@@ -143,7 +143,7 @@ GUI_APP_MAIN {
 CONSOLE_APP_MAIN {
 	using namespace Upp;
 	
-	Engine& eng = root.GetAdd<Engine>("eng");
+	Engine& eng = MetaEnv().root.GetAdd<Engine>("eng");
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
 	bool gubo = false;
 	if (gubo) {

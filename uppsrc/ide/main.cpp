@@ -450,7 +450,7 @@ void AppMain___()
 				ide.MakeTitle();
 				#ifdef flagAI
 				TaskMgr::Setup(&ide);
-				AgentInteractionSystem::Setup();
+				Engine::Setup("ide");
 				if (FindIndex(CommandLine(), "--playground") >= 0 ||
 					ToLower(GetExeTitle()) == "playground")
 					RunAiPlayground();
@@ -502,7 +502,7 @@ void AppMain___()
 	}
 #endif
 #ifdef flagAI
-	AgentInteractionSystem::Uninstall();
+	Engine::Uninstall();
 #endif
 	Ctrl::ShutdownThreads();
 

@@ -200,6 +200,8 @@ public:
     void RemoveUpdated(String name, VfsValueExt* c);
 	
 	static void AddNameUpdater(String name, Event<VfsValueExt&> update_fn);
+	static Engine& Setup(String name, Engine* e=0);
+	static void Uninstall(bool clear_root=true, Engine* e=0);
 	
 private:
 	Vector<AtomBasePtr> updated;

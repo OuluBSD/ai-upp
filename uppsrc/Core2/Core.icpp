@@ -3,6 +3,8 @@
 INITBLOCK {
 	using namespace Upp;
 	
+	TypedStringHasher<Engine>("Engine");
+	
 	REGISTER_SYSTEM_ATOM(LinkSystem)
 	REGISTER_SYSTEM_ATOM(PacketTracker)
 	

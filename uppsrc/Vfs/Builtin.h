@@ -97,7 +97,7 @@
 	\
 	CURSOR(MetaValueDecl,,)			/* MetaVariable | MetaParameter,,) */ \
 	CURSOR(MetaTypeDecl,,)			/* MetaBuiltin,,) */ \
-	CURSOR(MetaFunction,,)			/* MetaStaticFunction /*| MetaFunction_METHOD | MetaFunction_BUILTIN,,) */ \
+	CURSOR(MetaFunction,,)			/* MetaStaticFunction | MetaFunction_METHOD | MetaFunction_BUILTIN,,) */ \
 	CURSOR(ClassPath_MetaParam,,)	/* MetaParameter | NamePart,,) */ \
 	CURSOR(ClassPath_MetaVar,,)		/* MetaVariable | NamePart,,) */ \
 	\

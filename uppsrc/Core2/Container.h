@@ -482,11 +482,11 @@ Vector<T> Args(T i) {
 template <class T, typename... A>
 Vector<T> Args(T i, A... a) {
 	Vector<T> r0;
-	Vector<T> r1 = Kinds<T>(a...);
+	Vector<T> r1 = Args<T>(a...);
 	r0.Reserve(r1.GetCount()+1);
 	r0.Add(i);
 	r0.Append(r1);
-	return r;
+	return r0;
 }
 
 

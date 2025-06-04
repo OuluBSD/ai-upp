@@ -747,7 +747,7 @@ bool SemanticParser::ParseType(PathIdentifier& type, AstNode*& tn) {
 		return false;
 	}
 	
-	tn = FindDeclaration(type, Gate<const AstNode&>());
+	tn = FindDeclaration(type);
 	if (!tn || !IsTypedNode(tn->src)) {
 		AddError(iter->loc, "could not find type '" + type.ToString() + "'");
 		return false;
@@ -812,7 +812,7 @@ bool SemanticParser::ParseParameter() {
 	}
 	
 	AstNode& pn = DeclareRelative(name);
-	if (!IsUndefinedAny(pn)) {
+	if (!pn.IsPartially(SEMT_UNDEFINED)) {
 		AddError(iter->loc, "variable '" + name.ToString() + "' already declared");
 		return false;
 	}
@@ -838,7 +838,7 @@ bool SemanticParser::ParseMetaParameter() {
 		return false;
 	}
 	
-	AstNode* tn = FindDeclaration(type, &IsMetaAny);
+	AstNode* tn = FindDeclaration(type, SEMT_META_ANY);
 	if (!tn || !IsMetaTypedNode(tn->src)) {
 		AddError(iter->loc, "could not find meta-type '" + type.ToString() + "'");
 		return false;
@@ -851,7 +851,7 @@ bool SemanticParser::ParseMetaParameter() {
 	}
 	
 	AstNode& pn = DeclareRelative(name);
-	if (!IsUndefinedAny(pn)) {
+	if (!pn.IsPartially(SEMT_UNDEFINED)) {
 		AddError(iter->loc, "variable '" + name.ToString() + "' already declared");
 		return false;
 	}
@@ -1303,7 +1303,7 @@ bool SemanticParser::Term(bool meta) {
 		bool partial_meta = id.HasPartialMeta();
 		// e.g. "a.$i"
 		if (partial_meta) {
-			nn = EMIT PartialMetaResolve(id.begin->loc, id, typename_ ? &IsMetaTypeAny : &IsMetaFieldAny);
+			nn = EMIT PartialMetaResolve(id.begin->loc, id, typename_ ? SEMT_META_TYPE : SEMT_META_FIELD);
 			ASSERT(nn);
 		}
 		else {
@@ -1311,26 +1311,17 @@ bool SemanticParser::Term(bool meta) {
 				meta = true;
 			
 			if (typename_) {
-				nn = FindDeclaration(id,
-					meta ?
-						&IsMetaTypeAny :
-						&IsTypeAny);
+				nn = FindDeclaration(id, meta ? SEMT_META_TYPE : SEMT_TYPE);
 				if (!nn) {
 					AddError(iter->loc, "could not find type '" + id.ToString() + "'");
 					return false;
 				}
 			}
 			else {
-				nn = FindDeclaration(id,
-					meta ?
-						&IsMetaAny :
-						Gate<const AstNode&>());
+				nn = FindDeclaration(id, meta ? SEMT_META_ANY : SEMT_NULL);
 				if (!nn) {
 					if (allow_expr_unresolved) {
-						EMIT PushRvalUnresolved(id.begin->loc, id,
-							meta ?
-								&IsMetaAny :
-								Gate<const AstNode&>());
+						EMIT PushRvalUnresolved(id.begin->loc, id, meta ? SEMT_META_ANY : SEMT_NULL);
 						return Subscript(meta);
 					}
 					else {
@@ -1358,19 +1349,17 @@ bool SemanticParser::Term(bool meta) {
 			EMIT Expr2(iter->loc, OP_CALL);
 		}
 		else {
-			if (IsMetaFieldAny(*nn) || IsFieldAny(*nn) || (partial_meta && !typename_)) {
+			if (nn->IsPartially((SemanticType)(SEMT_META_FIELD | SEMT_FIELD)) ||
+				(partial_meta && !typename_)) {
 				EMIT PushRval(id.begin->loc, *nn);
 			}
-			else if (IsMetaTypeAny(*nn) || IsTypeAny(*nn) || (partial_meta && typename_)) {
+			else if (nn->IsPartially((SemanticType)(SEMT_META_TYPE | SEMT_TYPE)) ||
+				(partial_meta && typename_)) {
 				if (!ParseDeclExpr(meta, id, *nn))
 					return false;
 			}
 			else if (allow_expr_unresolved) {
-				EMIT PushRvalUnresolved(
-					id.begin->loc, id,
-						meta ?
-							&IsMetaAny :
-							Gate<const AstNode&>());
+				EMIT PushRvalUnresolved(id.begin->loc, id, meta ? SEMT_META_ANY : SEMT_NULL);
 			}
 			else {
 				TODO
@@ -1719,7 +1708,7 @@ AstNode* SemanticParser::ParseAndFindDeclaration() {
 	if (!ParsePathIdentifier(id, false, true))
 		return 0;
 	
-	AstNode* n = FindDeclaration(id, Gate<const AstNode&>());
+	AstNode* n = FindDeclaration(id);
 	if (!n)
 		AddError(TopIterator()->loc, "could not resolve '" + id.ToString() + "'");
 	return n;
@@ -1730,7 +1719,7 @@ AstNode* SemanticParser::ParseAndFindMetaDeclaration() {
 	if (!ParsePathIdentifier(id, false, true))
 		return 0;
 	
-	AstNode* n = FindDeclaration(id, &IsMetaAny);
+	AstNode* n = FindDeclaration(id, SEMT_META_ANY);
 	if (!n)
 		AddError(TopIterator()->loc, "could not resolve '" + id.ToString() + "'");
 	return n;

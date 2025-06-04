@@ -47,7 +47,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		if (found)
 			break;
 		
-		if (IsPath(*iter) || IsMetaPath(*iter))
+		if (iter->IsPartially(SEMT_PATH) || iter->IsPartially(SEMT_META_PATH))
 			nodes[node_count++] = iter;
 		iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 	}
@@ -57,7 +57,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		if (i) s.Cat(',');
 		s.Cat('\"');
 		const AstNode& node = *nodes[node_count-1-i];
-		if (IsMetaAny(node))
+		if (node.IsPartially(SEMT_META_ANY))
 			s.Cat('$');
 		const String& n = node.val.id;
 		ASSERT(n.GetCount());
@@ -116,11 +116,11 @@ void EonStd::InitDefault(bool add_root) {
 bool EonStd::ForwardUserspace(AstNode*& n) {
 	if (!n) return false;
 	
-	if (IsFunctionAny(*n)) {
+	if (n->IsPartially(SEMT_FUNCTION)) {
 		n = n->Find(SEMT_STATEMENT_BLOCK);
 		return n != NULL;
 	}
-	if (IsStatementAny(*n)) {
+	if (n->IsPartially(SEMT_STATEMENT)) {
 		switch (n->stmt) {
 			case STMT_FOR:
 			case STMT_IF:
@@ -152,7 +152,7 @@ bool EonStd::ForwardUserspace(AstNode*& n) {
 	return false;
 }
 
-AstNode* EonStd::FindDeclaration(const PathIdentifier& id, Gate<const AstNode&> accepts) {
+AstNode* EonStd::FindDeclaration(const PathIdentifier& id, SemanticType accepts) {
 	if (id.part_count == 0)
 		return 0;
 	
@@ -166,7 +166,7 @@ AstNode* EonStd::FindDeclaration(const PathIdentifier& id, Gate<const AstNode&> 
 	return 0;
 }
 
-AstNode* EonStd::FindDeclaration(const Vector<String>& id, Gate<const AstNode&> accepts) {
+AstNode* EonStd::FindDeclaration(const Vector<String>& id, SemanticType accepts) {
 	if (id.IsEmpty())
 		return 0;
 	
@@ -180,7 +180,7 @@ AstNode* EonStd::FindDeclaration(const Vector<String>& id, Gate<const AstNode&> 
 	return 0;
 }
 
-AstNode* EonStd::GetDeclaration(const PathIdentifier& id, Gate<const AstNode&> accepts) {
+AstNode* EonStd::GetDeclaration(const PathIdentifier& id, SemanticType accepts) {
 	if (id.part_count == 0 || spath.IsEmpty())
 		return 0;
 	
@@ -188,7 +188,7 @@ AstNode* EonStd::GetDeclaration(const PathIdentifier& id, Gate<const AstNode&> a
 	return GetDeclaration(s.n, id, accepts);
 }
 
-AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Gate<const AstNode&> accepts) {
+AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, SemanticType accepts) {
 	AstNode* cur = owner;
 	AstNode* next = 0;
 	AstNode* prev = 0;
@@ -198,17 +198,14 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Gate<c
 		for (int tries = 0; tries < 100; tries++) {
 			const Token* t = id.parts[i];
 			if ((t->IsType(TK_ID) || t->IsType(TK_INTEGER)) && !t->str_value.IsEmpty()) {
-				TODO
-				#if 0
 				if (id.is_meta[i]) {
-					SemanticType a = last ? (IsMetaAny(accepts) ? accepts : SEMT_META) : SEMT_META;
+					SemanticType a = last ? (accepts & SEMT_META_ANY ? accepts : SEMT_META_ANY) : SEMT_META_ANY;
 					next = cur->Find(t->str_value, a);
 				}
 				else {
 					SemanticType a = last ? accepts : SEMT_NULL;
 					next = cur->Find(t->str_value, a);
 				}
-				#endif
 			}
 			else if (t->IsType('#')) {
 				next = cur;
@@ -246,7 +243,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Gate<c
 		TODO
 	}
 	else if (cur && id.tail_count > 0) {
-		if (IsTypeAny(*cur)) {
+		if (cur->IsPartially(SEMT_TYPE)) {
 			for(int i = 0; i < id.tail_count; i++) {
 				switch (id.tail[i]) {
 				case PathIdentifier::PTR:
@@ -267,14 +264,9 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Gate<c
 		}
 	}
 	
-	if (cur && !accepts)
-		return cur;
+	SemanticType a = id.is_meta[id.part_count-1] ? SEMT_META_ANY : accepts;
 	
-	bool is_meta = id.is_meta[id.part_count-1];
-	if (is_meta && IsMetaAny(*cur))
-		return cur;
-	
-	if (!is_meta && accepts(*cur))
+	if (cur && accepts == SEMT_NULL || cur->IsPartially(a))
 		return cur;
 	
 	return 0;
@@ -353,7 +345,7 @@ AstNode* EonStd::GetClosestType(bool skip_locked) {
 		Scope& scope = spath[i];
 		if (skip_locked && scope.n->locked)
 			continue;
-		if (IsFunctionAny(*scope.n))
+		if (scope.n->IsPartially(SEMT_FUNCTION))
 			return 0;
 		if (scope.n->type)
 			return scope.n->type;
@@ -365,7 +357,7 @@ AstNode& EonStd::GetBlock() {
 		Scope& scope = spath[i];
 		if (scope.n->locked)
 			continue;
-		if (IsBlockAny(*scope.n))
+		if (scope.n->IsPartially(SEMT_BLOCK))
 			return *scope.n;
 	}
 	return GetRoot();

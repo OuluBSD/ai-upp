@@ -136,51 +136,34 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, String name) {
 		return Add(loc, name);
 }
 
-AstNode& AstNode::GetAdd(const FileLocation& loc, Gate<const AstNode&> accepts) {
+AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 	ASSERT(val.id.GetCount());
 	for (AstNode& s : val.Sub<AstNode>()) {
-		if (accepts(s))
+		if (s.IsPartially(accepts))
 			return s;
 	}
 	AstNode& s = Add(loc);
-	TODO
-	/*s.src = accepts;
+	s.src = accepts;
 	if (accepts == SEMT_TYPE_POINTER)
 		s.val.id = "#";
 	else if (accepts == SEMT_TYPE_LREF)
 		s.val.id = "&";
-	*/
+	
 	return s;
 }
 
-AstNode* AstNode::Find(String name) {
+AstNode* AstNode::Find(String name, SemanticType accepts) {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name)
+		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
 
-AstNode* AstNode::Find(String name, Gate<const AstNode&> accepts) {
+const AstNode* AstNode::Find(String name, SemanticType accepts) const {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name && accepts(s))
-			return &s;
-	return 0;
-}
-
-const AstNode* AstNode::Find(String name) const {
-	ASSERT(name.GetCount());
-	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name)
-			return &s;
-	return 0;
-}
-
-const AstNode* AstNode::Find(String name, Gate<const AstNode&> accepts) const {
-	ASSERT(name.GetCount());
-	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name && accepts(s))
+		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
@@ -221,8 +204,8 @@ AstNode* AstNode::FindWithPrevDeep(const AstNode* prev) {
 	return 0;
 }
 
-void AstNode::FindAll(Vector<Endpoint>& ptrs, Gate<const AstNode&> accepts, const FileLocation* rel_loc) {
-	if (accepts(*this)) {
+void AstNode::FindAll(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
+	if (IsPartially(accepts)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -255,7 +238,7 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 	}
 }
 
-void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, Gate<const AstNode&> accepts, const FileLocation* rel_loc) {
+void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
 	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 			s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
@@ -272,7 +255,7 @@ void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, Gate<const AstNode&>
 	}
 }
 
-void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, Gate<const AstNode&> accepts, const FileLocation* rel_loc) {
+void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
 	if (src == SEMT_IDPART) {
 		for (AstNode& s : val.Sub<AstNode>()) {
 			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
@@ -281,7 +264,7 @@ void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, Gate<const AstNode&
 				s.FindAllNonIdEndpoints0(ptrs, accepts, rel_loc);
 		}
 	}
-	else if (!accepts || accepts(*this)) {
+	else if (accepts == SEMT_NULL || IsPartially(accepts)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -391,15 +374,16 @@ String AstNode::GetPath() const {
 String AstNode::GetPartStringArray() const {
 	static const int MAX_PATH_LEN = 32;
 	const AstNode* path[MAX_PATH_LEN];
-	VfsValue* cur = &val;
+	const AstNode* cur = this;
 	int count = 0;
 	while (cur) {
-		const AstNode* an = cur->FindExt<AstNode>();
-		if (an)
-			path[count++] = an;
-		else
-			break;
-		cur = cur->owner;
+		if (cur->IsPartially(SEMT_PATH) ||
+			cur->IsPartially(SEMT_TYPE) ||
+			cur->IsPartially(SEMT_FIELD) ||
+			cur->IsPartially(SEMT_META_TYPE) ||
+			cur->IsPartially(SEMT_META_FIELD))
+			path[count++] = cur;
+		cur = cur->val.owner ? cur->val.owner->FindExt<AstNode>() : 0;
 	}
 	
 	String s;
@@ -414,6 +398,194 @@ String AstNode::GetPartStringArray() const {
 	return s;
 }
 
+bool AstNode::IsPartially(SemanticType t) const {
+	switch (t) {
+		case SEMT_FIELD:
+		switch (src) {
+			case SEMT_VARIABLE:
+			case SEMT_PARAMETER:
+			case SEMT_CONSTANT:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_TYPE:
+		switch (src) {
+			case SEMT_BUILTIN:
+			case SEMT_TYPEDEF:
+			case SEMT_CLASS_DECL:
+			case SEMT_CLASS:
+			case SEMT_CLASS_TEMPLATE:
+			case SEMT_TYPE_POINTER:
+			case SEMT_TYPE_LREF:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_FUNCTION:
+		switch (src) {
+			case SEMT_FUNCTION_STATIC:
+			case SEMT_FUNCTION_METHOD:
+			case SEMT_FUNCTION_BUILTIN:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_UNDEFINED:
+		switch (src) {
+			case SEMT_NULL:
+			case SEMT_IDPART:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_PARAMETER_PATH:
+		switch (src) {
+			case SEMT_PARAMETER:
+			case SEMT_IDPART:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_VARIABLE_PATH:
+		switch (src) {
+			case SEMT_VARIABLE:
+			case SEMT_IDPART:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_PATH:
+		switch (src) {
+			case SEMT_PARAMETER_PATH:
+			case SEMT_VARIABLE_PATH:
+			case SEMT_NAMESPACE:
+			case SEMT_FUNCTION:
+			case SEMT_CLASS:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_BLOCK:
+		switch (src) {
+			case SEMT_ROOT:
+			case SEMT_NAMESPACE:
+			case SEMT_STATEMENT_BLOCK:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_WITH_RVAL_RET:
+		switch (src) {
+			case SEMT_RVAL:
+			case SEMT_EXPR:
+			case SEMT_CONSTANT:
+			case SEMT_RESOLVE:
+			case SEMT_ARGUMENT_LIST:
+			case SEMT_CTOR:
+			case SEMT_OBJECT:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_ECS_ANY:
+		switch (src) {
+			case SEMT_ENGINE:
+			case SEMT_WORLD:
+			case SEMT_ENTITY:
+			case SEMT_COMPONENT:
+			case SEMT_SYSTEM:
+			case SEMT_POOL:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_MACH_ANY:
+		switch (src) {
+			case SEMT_MACHINE_DECL:
+			case SEMT_MACHINE:
+			case SEMT_CHAIN_DECL:
+			case SEMT_CHAIN:
+			case SEMT_LOOP_DECL:
+			case SEMT_DRIVER:
+			case SEMT_LOOP:
+			case SEMT_STATE:
+			case SEMT_ATOM:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_FIELD:
+		switch (src) {
+			case SEMT_META_VARIABLE:
+			case SEMT_META_PARAMETER:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_TYPE:
+		switch (src) {
+			case SEMT_META_BUILTIN:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_FUNCTION:
+		switch (src) {
+			case SEMT_META_FUNCTION_STATIC:
+			//case SEMT_META_FUNCTION_METHOD:
+			//case SEMT_META_FUNCTION_BUILTIN:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_PARAMETER_PATH:
+		switch (src) {
+			case SEMT_META_PARAMETER:
+			case SEMT_IDPART:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_VARIABLE_PATH:
+		switch (src) {
+			case SEMT_META_VARIABLE:
+			case SEMT_IDPART:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_ANY:
+		switch (src) {
+			case SEMT_IDPART:
+			case SEMT_META_FIELD:
+			case SEMT_META_TYPE:
+			case SEMT_META_FUNCTION:
+			case SEMT_META_RVAL:
+			case SEMT_META_CTOR:
+			case SEMT_META_RESOLVE:
+			return true;
+			default: return false;
+		}
+		
+		case SEMT_META_PATH:
+		switch (src) {
+			case SEMT_META_PARAMETER_PATH:
+			case SEMT_META_VARIABLE_PATH:
+			case SEMT_META_FUNCTION:
+			case SEMT_META_CLASS:
+			return true;
+			default: return false;
+		}
+		
+		default: return false;
+	}
+}
+
+bool AstNode::IsStmtPartially(StmtType t) const {
+	TODO
+	return 0;
+}
 
 
 Value EvaluateAstNodeValue(AstNode& n) {

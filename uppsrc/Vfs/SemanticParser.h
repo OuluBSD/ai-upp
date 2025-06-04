@@ -167,8 +167,8 @@ public:
 	AstNode* DeclareVariable(const FileLocation& loc, AstNode& type, const PathIdentifier& name);
 	void DeclareMetaVariable(const FileLocation& loc, AstNode& type, const PathIdentifier& name);
 	void Variable(const FileLocation& loc, const AstNode& n, const PathIdentifier& id);
-	void PushRvalResolve(const FileLocation& loc, const PathIdentifier& id, SemanticType t);
-	void PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, SemanticType t);
+	void PushRvalResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t);
+	void PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, CodeCursor t);
 	AstNode* PushRvalArgumentList(const FileLocation& loc);
 	void Argument(const FileLocation& loc);
 	AstNode* ArraySize(const FileLocation& loc);
@@ -204,7 +204,7 @@ public:
 	void PopCall(const FileLocation& loc);
 	void PopExprCallArgument(const FileLocation& loc, int arg_i);
 	void PopRvalLink(const FileLocation& loc);
-	AstNode* PartialMetaResolve(const FileLocation& loc, const PathIdentifier& id, SemanticType t);
+	AstNode* PartialMetaResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t);
 	
 };
 

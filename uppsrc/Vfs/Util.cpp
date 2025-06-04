@@ -50,4 +50,20 @@ bool PathIdentifier::HasPartialMeta() const {
 	return false;
 }
 
+
+
+
+bool IsTypedNode(CodeCursor src) {
+	return IsPartially(src, SEMT_TYPE);
+}
+
+bool IsMetaTypedNode(CodeCursor src) {
+	return IsPartially(src, SEMT_META_TYPE);
+}
+
+bool IsRvalReturn(CodeCursor src) {
+	return IsPartially(src, SEMT_WITH_RVAL_RET);
+}
+
+
 END_UPP_NAMESPACE

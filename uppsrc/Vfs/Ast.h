@@ -8,6 +8,7 @@ struct SemanticParser;
 struct EonStd;
 struct AstNode;
 
+bool IsPartially(CodeCursor src, CodeCursor t);
 
 struct Endpoint : Moveable<Endpoint> {
 	AstNode* n;
@@ -33,11 +34,11 @@ struct AstNode :
 	mutable bool locked = false;
 	Value obj;
 	
-	SemanticType src = SEMT_NULL;
+	CodeCursor src = SEMT_NULL;
 	StmtType stmt = STMT_NULL;
 	OpType op = OP_NULL;
 	ConstType con = CONST_NULL;
-	SemanticType filter = SEMT_NULL;
+	CodeCursor filter = SEMT_NULL;
 	FileLocation loc;
 	PathIdentifier id;
 	
@@ -59,18 +60,20 @@ public:
 	
 	AstNode&		Add(const FileLocation& loc, String name="", int idx=-1);
 	AstNode&		GetAdd(const FileLocation& loc, String name="");
-	AstNode&		GetAdd(const FileLocation& loc, SemanticType accepts);
-	AstNode*		Find(String name, SemanticType accepts=SEMT_NULL);
-	const AstNode*	Find(String name, SemanticType accepts=SEMT_NULL) const;
-	AstNode*		FindPartial(SemanticType t);
-	AstNode*		Find(SemanticType t);
-	const AstNode*	Find(SemanticType t) const;
+	AstNode&		GetAdd(const FileLocation& loc, CodeCursor accepts);
+	AstNode*		Find(String name, CodeCursor accepts=SEMT_NULL);
+	const AstNode*	Find(String name, CodeCursor accepts=SEMT_NULL) const;
+	AstNode*		FindPartial(CodeCursor t);
+	AstNode*		Find(CodeCursor t);
+	const AstNode*	Find(CodeCursor t) const;
 	String			GetConstantString() const;
 	AstNode*		FindWithPrevDeep(const AstNode* prev);
-	void			FindAll(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc=0);
+	void			FindAll(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc=0);
 	void			FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLocation* rel_loc=0);
-	void			FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts=SEMT_NULL, const FileLocation* rel_loc=0);
-	void			FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, SemanticType accepts=SEMT_NULL, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts=SEMT_NULL, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts=SEMT_NULL, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
 	
 	String			GetTreeString(int indent, bool links) const;
 	String			GetTreeString(int indent=0) const override;
@@ -78,9 +81,9 @@ public:
 	String			ToString() const override;
 	String			GetName() const override {return val.id;}
 	String			GetPartStringArray() const;
-	SemanticType	GetSemanticType() const {return src;}
-	bool			IsPartially(SemanticType t) const;// {return (SemanticTypePrimitive)src & (SemanticTypePrimitive)t;}
-	bool			IsStmtPartially(StmtType t) const;// {return src == SEMT_STATEMENT && ((SemanticTypePrimitive)stmt & (SemanticTypePrimitive)t);}
+	CodeCursor	GetCodeCursor() const {return src;}
+	bool			IsPartially(CodeCursor t) const;// {return (CodeCursorPrimitive)src & (CodeCursorPrimitive)t;}
+	bool			IsStmtPartially(StmtType t) const;// {return src == SEMT_STATEMENT && ((CodeCursorPrimitive)stmt & (CodeCursorPrimitive)t);}
 	
 };
 

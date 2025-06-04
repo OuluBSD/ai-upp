@@ -23,7 +23,7 @@ void Endpoint::operator=(const Endpoint& ep) {
 String Endpoint::ToString() const {
 	String s;
 	if (n)
-		s << GetSemanticTypeString(n->src) << ", "
+		s << GetCodeCursorString(n->src) << ", "
 		  << n->val.GetPath() << ", "
 		  << rel_loc.ToString();
 	return s;
@@ -136,7 +136,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, String name) {
 		return Add(loc, name);
 }
 
-AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
+AstNode& AstNode::GetAdd(const FileLocation& loc, CodeCursor accepts) {
 	ASSERT(val.id.GetCount());
 	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.IsPartially(accepts))
@@ -152,7 +152,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, SemanticType accepts) {
 	return s;
 }
 
-AstNode* AstNode::Find(String name, SemanticType accepts) {
+AstNode* AstNode::Find(String name, CodeCursor accepts) {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
 		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
@@ -160,7 +160,7 @@ AstNode* AstNode::Find(String name, SemanticType accepts) {
 	return 0;
 }
 
-const AstNode* AstNode::Find(String name, SemanticType accepts) const {
+const AstNode* AstNode::Find(String name, CodeCursor accepts) const {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
 		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
@@ -168,21 +168,21 @@ const AstNode* AstNode::Find(String name, SemanticType accepts) const {
 	return 0;
 }
 
-AstNode* AstNode::Find(SemanticType t) {
+AstNode* AstNode::Find(CodeCursor t) {
 	for (auto& s : val.Sub<AstNode>())
 		if (s.src == t)
 			return &s;
 	return 0;
 }
 
-AstNode* AstNode::FindPartial(SemanticType t) {
+AstNode* AstNode::FindPartial(CodeCursor t) {
 	for (auto& s : val.Sub<AstNode>())
 		if ((int64)s.src & (int64)t)
 			return &s;
 	return 0;
 }
 
-const AstNode* AstNode::Find(SemanticType t) const {
+const AstNode* AstNode::Find(CodeCursor t) const {
 	for (auto& s : val.Sub<AstNode>())
 		if (s.src == t)
 			return &s;
@@ -204,7 +204,7 @@ AstNode* AstNode::FindWithPrevDeep(const AstNode* prev) {
 	return 0;
 }
 
-void AstNode::FindAll(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
+void AstNode::FindAll(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
 	if (IsPartially(accepts)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
@@ -238,7 +238,7 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 	}
 }
 
-void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
+void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
 	for (AstNode& s : val.Sub<AstNode>()) {
 		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
 			s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
@@ -255,7 +255,7 @@ void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, SemanticType accepts
 	}
 }
 
-void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, SemanticType accepts, const FileLocation* rel_loc) {
+void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
 	if (src == SEMT_IDPART) {
 		for (AstNode& s : val.Sub<AstNode>()) {
 			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
@@ -265,6 +265,46 @@ void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, SemanticType accept
 		}
 	}
 	else if (accepts == SEMT_NULL || IsPartially(accepts)) {
+		Endpoint& p = ptrs.Add();
+		p.n = this;
+		if (rel_loc)
+			p.rel_loc = *rel_loc;
+		else
+			p.rel_loc = loc;
+	}
+}
+
+void AstNode::FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc) {
+	ASSERT(accepts1 != SEMT_NULL);
+	ASSERT(accepts2 != SEMT_NULL);
+	for (AstNode& s : val.Sub<AstNode>()) {
+		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+			s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, &loc);
+		else
+			s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, rel_loc);
+	}
+	if (val.Sub<AstNode>().IsEmpty() && src != SEMT_IDPART) {
+		Endpoint& p = ptrs.Add();
+		p.n = this;
+		if (rel_loc)
+			p.rel_loc = *rel_loc;
+		else
+			p.rel_loc = loc;
+	}
+}
+
+void AstNode::FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc) {
+	ASSERT(accepts1 != SEMT_NULL);
+	ASSERT(accepts2 != SEMT_NULL);
+	if (src == SEMT_IDPART) {
+		for (AstNode& s : val.Sub<AstNode>()) {
+			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+				s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, &loc);
+			else
+				s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, rel_loc);
+		}
+	}
+	else if (IsPartially(accepts1) || IsPartially(accepts2)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -291,7 +331,7 @@ String AstNode::GetTreeString(int indent) const {
 	String s;
 	s.Cat('\t', indent);
 	
-	s << GetSemanticTypeString(src) << ": ";
+	s << GetCodeCursorString(src) << ": ";
 	
 	if (val.id.GetCount())
 		s << val.id << "\n";
@@ -306,7 +346,7 @@ String AstNode::GetTreeString(int indent) const {
 	else if (op != OP_NULL)
 		s << "op(" << GetOpString(op) << ")\n";
 	else if (filter != SEMT_NULL)
-		s << "filter(" << GetSemanticTypeString(filter) << ")\n";
+		s << "filter(" << GetCodeCursorString(filter) << ")\n";
 	else if (src == SEMT_RVAL && rval)
 		s << rval->GetName() << "\n";
 	else
@@ -398,7 +438,11 @@ String AstNode::GetPartStringArray() const {
 	return s;
 }
 
-bool AstNode::IsPartially(SemanticType t) const {
+bool AstNode::IsPartially(CodeCursor t) const {
+	return ::Upp::IsPartially(src, t);
+}
+
+bool IsPartially(CodeCursor src, CodeCursor t) {
 	switch (t) {
 		case SEMT_FIELD:
 		switch (src) {

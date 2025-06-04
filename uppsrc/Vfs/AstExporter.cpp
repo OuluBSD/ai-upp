@@ -194,7 +194,7 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 	
 }
 
-void AstExporter::Visit(const AstNode& n, SemanticType t) {
+void AstExporter::Visit(const AstNode& n, CodeCursor t) {
 	for(const AstNode& sub : n.val.Sub<AstNode>()) {
 		if (sub.IsPartially(t)) {
 			PushScope(sub);
@@ -323,7 +323,8 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << GetIndentString() << "";
 		for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 			const AstNode& s = it;
-			if (s.IsPartially((SemanticType)(SEMT_EXPR | SEMT_CTOR))) {
+			if (s.IsPartially(SEMT_EXPR) ||
+				s.IsPartially(SEMT_CTOR)) {
 				Visit(s);
 				break;
 			}
@@ -574,7 +575,7 @@ void AstExporter::VisitResolve(const AstNode& n, bool rval) {
 		}
 		else {
 			if (l.IsPartially(SEMT_FUNCTION)) {
-				DUMP(GetSemanticTypeString(l.src));
+				DUMP(GetCodeCursorString(l.src));
 			}
 			output << GetCPath(l);
 		}

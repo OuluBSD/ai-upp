@@ -152,7 +152,7 @@ bool EonStd::ForwardUserspace(AstNode*& n) {
 	return false;
 }
 
-AstNode* EonStd::FindDeclaration(const PathIdentifier& id, SemanticType accepts) {
+AstNode* EonStd::FindDeclaration(const PathIdentifier& id, CodeCursor accepts) {
 	if (id.part_count == 0)
 		return 0;
 	
@@ -166,7 +166,7 @@ AstNode* EonStd::FindDeclaration(const PathIdentifier& id, SemanticType accepts)
 	return 0;
 }
 
-AstNode* EonStd::FindDeclaration(const Vector<String>& id, SemanticType accepts) {
+AstNode* EonStd::FindDeclaration(const Vector<String>& id, CodeCursor accepts) {
 	if (id.IsEmpty())
 		return 0;
 	
@@ -180,7 +180,7 @@ AstNode* EonStd::FindDeclaration(const Vector<String>& id, SemanticType accepts)
 	return 0;
 }
 
-AstNode* EonStd::GetDeclaration(const PathIdentifier& id, SemanticType accepts) {
+AstNode* EonStd::GetDeclaration(const PathIdentifier& id, CodeCursor accepts) {
 	if (id.part_count == 0 || spath.IsEmpty())
 		return 0;
 	
@@ -188,7 +188,7 @@ AstNode* EonStd::GetDeclaration(const PathIdentifier& id, SemanticType accepts) 
 	return GetDeclaration(s.n, id, accepts);
 }
 
-AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, SemanticType accepts) {
+AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, CodeCursor accepts) {
 	AstNode* cur = owner;
 	AstNode* next = 0;
 	AstNode* prev = 0;
@@ -199,11 +199,11 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Semant
 			const Token* t = id.parts[i];
 			if ((t->IsType(TK_ID) || t->IsType(TK_INTEGER)) && !t->str_value.IsEmpty()) {
 				if (id.is_meta[i]) {
-					SemanticType a = last ? (accepts & SEMT_META_ANY ? accepts : SEMT_META_ANY) : SEMT_META_ANY;
+					CodeCursor a = last ? (accepts & SEMT_META_ANY ? accepts : SEMT_META_ANY) : SEMT_META_ANY;
 					next = cur->Find(t->str_value, a);
 				}
 				else {
-					SemanticType a = last ? accepts : SEMT_NULL;
+					CodeCursor a = last ? accepts : SEMT_NULL;
 					next = cur->Find(t->str_value, a);
 				}
 			}
@@ -264,7 +264,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Semant
 		}
 	}
 	
-	SemanticType a = id.is_meta[id.part_count-1] ? SEMT_META_ANY : accepts;
+	CodeCursor a = id.is_meta[id.part_count-1] ? SEMT_META_ANY : accepts;
 	
 	if (cur && accepts == SEMT_NULL || cur->IsPartially(a))
 		return cur;
@@ -272,7 +272,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, Semant
 	return 0;
 }
 
-AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, SemanticType accepts) {
+AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, CodeCursor accepts) {
 	AstNode* cur = owner;
 	AstNode* next = 0;
 	AstNode* prev = 0;
@@ -282,7 +282,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, Semant
 		next = 0;
 		String name = id[i];
 		for (int tries = 0; tries < 100; tries++) {
-			SemanticType a = last ? accepts : SEMT_NULL;
+			CodeCursor a = last ? accepts : SEMT_NULL;
 			next = cur->Find(name, a);
 			
 			if (!next) {
@@ -301,7 +301,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, Semant
 		cur = next;
 	}
 	
-	SemanticType a = accepts;
+	CodeCursor a = accepts;
 	
 	if (cur && accepts == SEMT_NULL || cur->IsPartially(a))
 		return cur;
@@ -442,7 +442,7 @@ String EonStd::GetTypeInitValueString(AstNode& n) const {
 	return String();
 }
 
-AstNode* EonStd::FindStackName(String name, SemanticType accepts) {
+AstNode* EonStd::FindStackName(String name, CodeCursor accepts) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
 		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
@@ -450,6 +450,21 @@ AstNode* EonStd::FindStackName(String name, SemanticType accepts) {
 				return &ss;
 		}
 		if (s.n->val.id == name && (accepts == SEMT_NULL || s.n->IsPartially(accepts)))
+			return s.n;
+	}
+	return 0;
+}
+
+AstNode* EonStd::FindStackName2(String name, CodeCursor accepts1, CodeCursor accepts2) {
+	ASSERT(accepts1 != SEMT_NULL);
+	ASSERT(accepts2 != SEMT_NULL);
+	for (int i = spath.GetCount()-1; i >= 0; i--) {
+		Scope& s = spath[i];
+		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
+			if (ss.val.id == name && (ss.IsPartially(accepts1) || ss.IsPartially(accepts2)))
+				return &ss;
+		}
+		if (s.n->val.id == name && (s.n->IsPartially(accepts1) || s.n->IsPartially(accepts2)))
 			return s.n;
 	}
 	return 0;

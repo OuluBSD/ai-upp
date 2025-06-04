@@ -189,7 +189,7 @@ void SemanticParser::Variable(const FileLocation& loc, const AstNode& n, const P
 	TODO
 }
 
-void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifier& id, SemanticType t) {
+void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
 	r.src = SEMT_RESOLVE;
@@ -207,7 +207,7 @@ void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifi
 	PushScopeRVal(r);
 }
 
-void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, SemanticType t) {
+void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
 	r.src = SEMT_UNRESOLVED;
@@ -557,7 +557,7 @@ void SemanticParser::PopExprCallArgument(const FileLocation& loc, int arg_i) {
 	spath.SetCount(c-1);
 }
 
-AstNode* SemanticParser::PartialMetaResolve(const FileLocation& loc, const PathIdentifier& id, SemanticType t) {
+AstNode* SemanticParser::PartialMetaResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode().Add(loc);
 	n.src = SEMT_META_RESOLVE;
 	n.id = id;

@@ -4,17 +4,17 @@
 NAMESPACE_UPP
 
 
+INITBLOCK {
+	
+}
+
+
 Agent::Agent(VfsValue& n) : Component(n) {
-	ASSERT(AgentInteractionSystem::sys);
-	if (AgentInteractionSystem::sys) {
-		AgentInteractionSystem::sys->Attach(this);
-	}
+	GetEngine().AddUpdated(this);
 }
 
 Agent::~Agent() {
-	if (AgentInteractionSystem::sys) {
-		AgentInteractionSystem::sys->Detach(this);
-	}
+	GetEngine().RemoveUpdated(this);
 }
 
 bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {
@@ -250,22 +250,36 @@ bool Agent::Start(MsgCb WhenMessage, Event<bool> WhenStop) {
 }
 
 bool Agent::Start() {
-	esc.Stop();
-	Thread::Start([this]{
-		bool succ = Run(WhenMessage);
-		WhenStop(succ);
-	});
+	if (separate_thread) {
+		esc.Stop();
+		Thread::Start([this]{
+			bool succ = Run(WhenMessage);
+			WhenStop(succ);
+		});
+	}
+	else {
+		GetEngine().AddUpdated(this);
+	}
 	return true;
 }
 
 void Agent::Stop() {
-	esc.Stop();
+	if (separate_thread) {
+		esc.Stop();
+	}
+	else {
+		GetEngine().RemoveUpdated(this);
+	}
+}
+
+void Agent::Update(double dt) {
+	TODO
 }
 
 INITIALIZER_COMPONENT(Agent);
 
 
-
+#if 0
 bool AgentInteractionSystem::Start() {
 	if (flag.IsRunning()) return true;
 	flag.Start();
@@ -319,6 +333,7 @@ void AgentInteractionSystem::Uninstall() {
 
 AgentInteractionSystem* AgentInteractionSystem::sys;
 
+#endif
 
 
 COMPONENT_STUB_IMPL(VfsProgram)

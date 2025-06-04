@@ -17,6 +17,5 @@ INITBLOCK {
 	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT);
 	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT);
 	VfsValueExtFactory::Register<AgentInteractionPolicy>("AgentInteractionPolicy", VFSEXT_DEFAULT);
-	VfsValueExtFactory::Register<AgentInteractionSystem>("AgentInteractionSystem", VFSEXT_DEFAULT);
 	
 }

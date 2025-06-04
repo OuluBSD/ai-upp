@@ -15,41 +15,25 @@ void Easing::Visit(Vis& v) {
 }
 
 bool Easing::Initialize(const WorldState& ws) {
-	Ptr<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
-	if (sys)
-		sys->Attach(this);
+	GetEngine().AddUpdated("default_easing", this);
 	return true;
 }
 
 void Easing::Uninitialize() {
-	Ptr<EasingSystem> sys = GetEngine().TryGet<EasingSystem>();
-	if (sys)
-		sys->Detach(this);
+	GetEngine().RemoveUpdated("default_easing", this);
 }
 
-
-
-
-
-
-void EasingSystem::Update(double dt)
-{
-	for (Easing* easing : comps) {
+INITBLOCK {
+	Engine::AddNameUpdater("default_easing", [](VfsValueExt& c) {
+		Easing* easing = CastPtr<Easing>(&c);
+		if (!easing)
+			return;
 		Ptr<Transform> transform = easing->GetEntity()->val.Find<Transform>();
 		if (!transform)
-			continue;
-        
-        TODO
-    }
+			return;
+		TODO
+	});
 }
 
-void EasingSystem::Attach(Easing* e) {
-	VectorFindAdd(comps, e);
-}
 
-void EasingSystem::Detach(Easing* e) {
-	VectorRemoveKey(comps, e);
-}
-
- 
 END_UPP_NAMESPACE

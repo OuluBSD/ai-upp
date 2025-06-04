@@ -150,16 +150,12 @@ CONSOLE_APP_MAIN {
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
 	eng.Start("Shell");
 
-	AgentInteractionSystem::Setup();
-	
 	bool gubo = false;
 	if (gubo) {
 		eng.WhenUserProgram << callback1(DesktopMain, true);
 	}
 	
 	eng.MainLoop();
-	
-	AgentInteractionSystem::Uninstall();
 	
 	eng.Stop();
 	eng.Clear();

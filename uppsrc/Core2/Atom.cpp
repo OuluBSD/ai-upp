@@ -62,13 +62,13 @@ void AtomBase::AddAtomToUpdateList() {
 	Engine* sys = val.FindOwner<Engine>();
 	ASSERT(sys);
 	if (!sys) throw Exc("AtomSystem not found");
-	sys->AddUpdated(*this);
+	sys->AddUpdated(this);
 }
 
 void AtomBase::RemoveAtomFromUpdateList() {
 	Engine* sys = val.FindOwner<Engine>();
 	if (sys)
-		sys->RemoveUpdated(*this);
+		sys->RemoveUpdated(this);
 }
 
 int AtomBase::FindSourceWithValDev(ValDevCls vd) {

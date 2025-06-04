@@ -136,9 +136,6 @@ public:
 	void MainLoop(bool (*fn)(void*), void* arg);
 	//void Main(String script_content, String script_file, Value args, MachineVerifier* ver, bool dbg_ref_visits=false, uint64 dbg_ref=0);
 	
-	void AddToUpdateList(ComponentPtr c);
-	void RemoveFromUpdateList(ComponentPtr c);
-	
 	Ptr<System> Add(TypeCls type, bool startup=true);
 	Ptr<System> GetAdd(String id, bool startup=true);
     
@@ -188,15 +185,21 @@ private:
     void Add(TypeCls type_id, System* system, bool startup=true);
     void Remove(TypeCls typeId);
     
-    Vector<ComponentPtr> update_list;
+    Vector<VfsValueExtPtr> update_list;
+    ArrayMap<String,Vector<VfsValueExtPtr>> named_update_lists;
     
+    static VectorMap<String,Event<VfsValueExt&>>& NameUpdaters();
     
 public:
     MachineVerifier* mver = 0;
 	
 	// Moved AtomSystem here
-    void AddUpdated(AtomBase& p);
-    void RemoveUpdated(AtomBase& p);
+    void AddUpdated(VfsValueExt* c);
+    void RemoveUpdated(VfsValueExt* c);
+    void AddUpdated(String name, VfsValueExt* c);
+    void RemoveUpdated(String name, VfsValueExt* c);
+	
+	static void AddNameUpdater(String name, Event<VfsValueExt&> update_fn);
 	
 private:
 	Vector<AtomBasePtr> updated;

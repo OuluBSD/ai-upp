@@ -34,8 +34,13 @@
 	CURSOR(MetaStmt,,) \
 	CURSOR(StaticFunction,,) \
 	CURSOR(Stmt,,) \
-	CURSOR(Expr,,) \
+	/*CURSOR(Expr,,)*/ \
 	CURSOR(Literal,,) \
+	CURSOR(Literal_BOOL,,) \
+	CURSOR(Literal_INT32,,) \
+	CURSOR(Literal_INT64,,) \
+	CURSOR(Literal_DOUBLE,,) \
+	CURSOR(Literal_STRING,,) \
 	CURSOR(NamePart,,) \
 	CURSOR(Resolve,,) \
 	CURSOR(Argument,,) \
@@ -98,6 +103,8 @@
 	\
 	CURSOR(MetaDecl,,)				/* NamePart | MetaValueDecl | MetaTypeDecl | MetaFunction | MetaRval | MetaCtor | MetaResolve,,) */ \
 	CURSOR(ClassPath_MetaDecl,,)	/* ClassPath_MetaParam | ClassPath_MetaVar | MetaFunction | MetaClass,,) */ \
+	CURSOR(ExprCastable,,)			/* Cursor_VarDecl | Cursor_ParmDecl | Cursor_Literal | Cursor_Object | */ \
+	CURSOR(ExprOp,,)				/* Cursor_ExprCastable | Cursor_Op */ \
 	\
 	CURSOR(Vfs_OpBegin			, =,3000) \
 	\
@@ -127,6 +134,46 @@
 	CURSOR(MetaSwitchStmt,,) \
 	CURSOR(MetaBlockStmt,,) \
 	CURSOR(MetaExprStmt,,) \
+	\
+	CURSOR(Vfs_ExprBegin		, =,4000) \
+	\
+	CURSOR(Op,,) \
+	CURSOR(Op_NULL,,) \
+	CURSOR(Op_INC,,) \
+	CURSOR(Op_DEC,,) \
+	CURSOR(Op_POSTINC,,) \
+	CURSOR(Op_POSTDEC,,) \
+	CURSOR(Op_NEGATIVE,,) \
+	CURSOR(Op_POSITIVE,,) \
+	CURSOR(Op_NOT,,) \
+	CURSOR(Op_NEGATE,,) \
+	CURSOR(Op_ADD,,) \
+	CURSOR(Op_SUB,,) \
+	CURSOR(Op_MUL,,) \
+	CURSOR(Op_DIV,,) \
+	CURSOR(Op_MOD,,) \
+	CURSOR(Op_LSH,,) \
+	CURSOR(Op_RSH,,) \
+	CURSOR(Op_GREQ,,) \
+	CURSOR(Op_LSEQ,,) \
+	CURSOR(Op_GREATER,,) \
+	CURSOR(Op_LESS,,) \
+	CURSOR(Op_EQ,,) \
+	CURSOR(Op_INEQ,,) \
+	CURSOR(Op_BWAND,,) \
+	CURSOR(Op_BWXOR,,) \
+	CURSOR(Op_BWOR,,) \
+	CURSOR(Op_AND,,) \
+	CURSOR(Op_OR,,) \
+	CURSOR(Op_COND,,) \
+	CURSOR(Op_ASSIGN,,) \
+	CURSOR(Op_ADDASS,,) \
+	CURSOR(Op_SUBASS,,) \
+	CURSOR(Op_MULASS,,) \
+	CURSOR(Op_DIVASS,,) \
+	CURSOR(Op_MODASS,,) \
+	CURSOR(Op_CALL,,) \
+	CURSOR(Op_SUBSCRIPT,,) \
 
 typedef enum {
 	#define CURSOR(a,b,c) Cursor_##a b c,
@@ -139,6 +186,7 @@ typedef uint64 CodeCursorPrimitive;
 struct AstNode;
 
 String GetCodeCursorString(CodeCursor t);
+String GetOpCodeString(CodeCursor t);
 bool IsTypedNode(CodeCursor src);
 bool IsMetaTypedNode(CodeCursor src);
 bool IsRvalReturn(CodeCursor src);
@@ -162,149 +210,7 @@ inline String GetStmtParamTypeString(StmtParamType t) {
 }
 
 
-typedef enum {
-	OP_NULL,
-	OP_INC,
-	OP_DEC,
-	OP_POSTINC,
-	OP_POSTDEC,
-	OP_NEGATIVE,
-	OP_POSITIVE,
-	OP_NOT,
-	OP_NEGATE,
-	OP_ADD,
-	OP_SUB,
-	OP_MUL,
-	OP_DIV,
-	OP_MOD,
-	OP_LSH,
-	OP_RSH,
-	OP_GREQ,
-	OP_LSEQ,
-	OP_GREATER,
-	OP_LESS,
-	OP_EQ,
-	OP_INEQ,
-	OP_BWAND,
-	OP_BWXOR,
-	OP_BWOR,
-	OP_AND,
-	OP_OR,
-	OP_COND,
-	OP_ASSIGN,
-	OP_ADDASS,
-	OP_SUBASS,
-	OP_MULASS,
-	OP_DIVASS,
-	OP_MODASS,
-	OP_CALL,
-	OP_SUBSCRIPT,
-	
-} OpType;
-
-
-inline String GetOpString(OpType t) {
-	switch (t) {
-		case OP_INC: return "increase";
-		case OP_DEC: return "decrease";
-		case OP_POSTINC: return "post-increase";
-		case OP_POSTDEC: return "post-decrease";
-		case OP_NEGATIVE: return "negative";
-		case OP_POSITIVE: return "positive";
-		case OP_NOT: return "not";
-		case OP_NEGATE: return "negate";
-		case OP_ADD: return "add";
-		case OP_SUB: return "subtract";
-		case OP_MUL: return "multiply";
-		case OP_DIV: return "divide";
-		case OP_MOD: return "modulus";
-		case OP_LSH: return "left-shift";
-		case OP_RSH: return "right-shift";
-		case OP_GREQ: return "greater-or-equal";
-		case OP_LSEQ: return "less-or-equal";
-		case OP_GREATER: return "greater";
-		case OP_LESS: return "less";
-		case OP_EQ: return "equal";
-		case OP_INEQ: return "inequal";
-		case OP_BWAND: return "bitwise-and";
-		case OP_BWXOR: return "bitwise-xor";
-		case OP_BWOR: return "bitwise-or";
-		case OP_AND: return "and";
-		case OP_OR: return "op";
-		case OP_COND: return "conditional";
-		case OP_ASSIGN: return "assign";
-		case OP_ADDASS: return "add-and-assign";
-		case OP_SUBASS: return "subtract-and-assign";
-		case OP_MULASS: return "multiply-and-assign";
-		case OP_DIVASS: return "divide-and-assign";
-		case OP_MODASS: return "modulus-and-assign";
-		case OP_CALL: return "call";
-		case OP_SUBSCRIPT: return "subscript";
-		default: return "<invalid>";
-	}
-}
-
-inline String GetOpCodeString(OpType t) {
-	switch (t) {
-		case OP_INC: return "++";
-		case OP_DEC: return "--";
-		case OP_POSTINC: return "++";
-		case OP_POSTDEC: return "--";
-		case OP_NEGATIVE: return "-";
-		case OP_POSITIVE: return "+";
-		case OP_NOT: return "!";
-		case OP_NEGATE: return "~";
-		case OP_ADD: return "+";
-		case OP_SUB: return "-";
-		case OP_MUL: return "*";
-		case OP_DIV: return "/";
-		case OP_MOD: return "%";
-		case OP_LSH: return "<<";
-		case OP_RSH: return ">>";
-		case OP_GREQ: return ">=";
-		case OP_LSEQ: return "<=";
-		case OP_GREATER: return ">";
-		case OP_LESS: return "<";
-		case OP_EQ: return "==";
-		case OP_INEQ: return "!=";
-		case OP_BWAND: return "&";
-		case OP_BWXOR: return "^";
-		case OP_BWOR: return "|";
-		case OP_AND: return "&&";
-		case OP_OR: return "||";
-		case OP_COND: return "?:";
-		case OP_ASSIGN: return "=";
-		case OP_ADDASS: return "+=";
-		case OP_SUBASS: return "-=";
-		case OP_MULASS: return "*=";
-		case OP_DIVASS: return "/=";
-		case OP_MODASS: return "%=";
-		default: return "<invalid>";
-	}
-}
-
-
-typedef enum {
-	CONST_NULL,
-	CONST_BOOL,
-	CONST_INT32,
-	CONST_INT64,
-	CONST_DOUBLE,
-	CONST_STRING,
-} ConstType;
-
-inline String GetConstString(ConstType t) {
-	switch (t) {
-		case CONST_NULL:	return "null";
-		case CONST_BOOL:	return "bool";
-		case CONST_INT32:	return "int32";
-		case CONST_INT64:	return "int64";
-		case CONST_DOUBLE:	return "double";
-		case CONST_STRING:	return "string";
-		default: return "invalid";
-	}
-}
-
+String GetOpCodeString(CodeCursor t);
 
 enum {
 	COOKIE_NULL,

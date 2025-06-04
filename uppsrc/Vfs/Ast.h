@@ -35,9 +35,9 @@ struct AstNode :
 	Value obj;
 	
 	CodeCursor src = Cursor_Null;
-	//StmtType stmt = Cursor_Null;
-	OpType op = OP_NULL;
-	ConstType con = CONST_NULL;
+	//StmtType stmt = STMT_Null;
+	//OpType op = OP_NULL;
+	//ConstType con = CONST_NULL;
 	CodeCursor filter = Cursor_Null;
 	FileLocation loc;
 	PathIdentifier id;
@@ -75,13 +75,14 @@ public:
 	void			FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
 	void			FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
 	
+	String			GetTreeItemString() const;
 	String			GetTreeString(int indent, bool links) const;
 	String			GetTreeString(int indent=0) const override;
 	String			GetCodeString(const CodeArgs2& args) const;
 	String			ToString() const override;
 	String			GetName() const override {return val.id;}
 	String			GetPartStringArray() const;
-	CodeCursor	GetCodeCursor() const {return src;}
+	CodeCursor		GetCodeCursor() const {return src;}
 	bool			IsPartially(CodeCursor t) const;// {return (CodeCursorPrimitive)src & (CodeCursorPrimitive)t;}
 	bool			IsPartially(CodeCursor src, CodeCursor t) const;
 	bool			IsStmtPartially(CodeCursor t) const;// {return src == Cursor_Stmt && ((CodeCursorPrimitive)stmt & (CodeCursorPrimitive)t);}

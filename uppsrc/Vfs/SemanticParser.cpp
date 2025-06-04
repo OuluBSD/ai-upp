@@ -529,7 +529,7 @@ bool SemanticParser::ParseStatement() {
 			EMIT Argument(iter->loc);
 		}
 		
-		EMIT Expr2(iter->loc, OP_CALL);
+		EMIT Expr2(iter->loc, Cursor_Op_CALL);
 		AstNode* ret = EMIT PopExpr(iter->loc);
 		EMIT PopStatement(iter->loc, ret);
 	}
@@ -1171,7 +1171,7 @@ bool SemanticParser::Subscript(bool m) {
 					return false;
 			}
 			
-			EMIT Expr2(iter->loc, OP_SUBSCRIPT);
+			EMIT Expr2(iter->loc, Cursor_Op_SUBSCRIPT);
 			return true;
 		}
 		else
@@ -1192,7 +1192,7 @@ bool SemanticParser::Subscript(bool m) {
 					return false;
 			} while (1);
 			
-			EMIT Expr2(iter->loc, OP_CALL);
+			EMIT Expr2(iter->loc, Cursor_Op_CALL);
 			
 			if(Char('!')) {
 				Term(m);
@@ -1346,7 +1346,7 @@ bool SemanticParser::Term(bool meta) {
 					return false;
 			} while (1);
 			
-			EMIT Expr2(iter->loc, OP_CALL);
+			EMIT Expr2(iter->loc, Cursor_Op_CALL);
 		}
 		else {
 			if (nn->IsPartially(Cursor_MetaValueDecl) ||
@@ -1384,41 +1384,41 @@ bool SemanticParser::Unary(bool m) {
 	
 	if(TryToken(TK_INC)) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_INC);
+		EMIT Expr1(tk.loc, Cursor_Op_INC);
 	}
 	else
 	if(TryToken(TK_DEC)) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_DEC);
+		EMIT Expr1(tk.loc, Cursor_Op_DEC);
 	}
 	else
 	if(Char('-')) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_NEGATIVE);
+		EMIT Expr1(tk.loc, Cursor_Op_NEGATIVE);
 	}
 	else
 	if(Char('+')) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_POSITIVE);
+		EMIT Expr1(tk.loc, Cursor_Op_POSITIVE);
 	}
 	else
 	if(Char('!')) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_NOT);
+		EMIT Expr1(tk.loc, Cursor_Op_NOT);
 	}
 	else
 	if(Char('~')) {
 		if (!Unary(m)) return false;
-		EMIT Expr1(tk.loc, OP_NEGATE);
+		EMIT Expr1(tk.loc, Cursor_Op_NEGATE);
 	}
 	else
 		if (!Term(m)) return false;
 
 	if(TryToken(TK_INC)) {
-		EMIT Expr1(tk.loc, OP_POSTINC);
+		EMIT Expr1(tk.loc, Cursor_Op_POSTINC);
 	}
 	if(TryToken(TK_DEC)) {
-		EMIT Expr1(tk.loc, OP_POSTDEC);
+		EMIT Expr1(tk.loc, Cursor_Op_POSTDEC);
 	}
 	
 	return true;
@@ -1431,17 +1431,17 @@ bool SemanticParser::Mul(bool m) {
 		
 		if(Char('*')) {
 			if (!Unary(m)) return false;
-			EMIT Expr2(tk.loc, OP_MUL);
+			EMIT Expr2(tk.loc, Cursor_Op_MUL);
 		}
 		else
 		if(Char('/')) {
 			if (!Unary(m)) return false;
-			EMIT Expr2(tk.loc, OP_DIV);
+			EMIT Expr2(tk.loc, Cursor_Op_DIV);
 		}
 		else
 		if(Char('%')) {
 			if (!Unary(m)) return false;
-			EMIT Expr2(tk.loc, OP_MOD);
+			EMIT Expr2(tk.loc, Cursor_Op_MOD);
 		}
 		else
 			break;
@@ -1458,12 +1458,12 @@ bool SemanticParser::Add(bool m) {
 		
 		if(Char('+')) {
 			if (!Mul(m)) return false;
-			EMIT Expr2(tk.loc, OP_ADD);
+			EMIT Expr2(tk.loc, Cursor_Op_ADD);
 		}
 		else
 		if(Char('-')) {
 			if (!Mul(m)) return false;
-			EMIT Expr2(tk.loc, OP_SUB);
+			EMIT Expr2(tk.loc, Cursor_Op_SUB);
 		}
 		else
 			break;
@@ -1478,12 +1478,12 @@ bool SemanticParser::Shift(bool m) {
 		
 		if(TryToken(TK_LSHIFT)) {
 			if (!Add(m)) return false;
-			EMIT Expr2(tk.loc, OP_LSH);
+			EMIT Expr2(tk.loc, Cursor_Op_LSH);
 		}
 		else
 		if(TryToken(TK_RSHIFT)) {
 			if (!Add(m)) return false;
-			EMIT Expr2(tk.loc, OP_RSH);
+			EMIT Expr2(tk.loc, Cursor_Op_RSH);
 		}
 		else
 			break;
@@ -1491,7 +1491,8 @@ bool SemanticParser::Shift(bool m) {
 	return true;
 }
 
-bool SemanticParser::DoCompare(bool m, const FileLocation& loc, OpType op) {
+bool SemanticParser::DoCompare(bool m, const FileLocation& loc, CodeCursor op) {
+	ASSERT(IsPartially(op, Cursor_Op));
 	if (!Shift(m)) return false;
 	EMIT Expr2(loc, op);
 	return true;
@@ -1503,16 +1504,16 @@ bool SemanticParser::Compare(bool m) {
 		const Token& tk = TopIterator();
 		
 		if (TryToken(TK_GREQ)) {
-			if (!DoCompare(m, tk.loc, OP_GREQ)) return false;
+			if (!DoCompare(m, tk.loc, Cursor_Op_GREQ)) return false;
 		}
 		else if (TryToken(TK_LSEQ)) {
-			if (!DoCompare(m, tk.loc, OP_LSEQ)) return false;
+			if (!DoCompare(m, tk.loc, Cursor_Op_LSEQ)) return false;
 		}
 		else if (Char('>')) {
-			if (!DoCompare(m, tk.loc, OP_GREATER)) return false;
+			if (!DoCompare(m, tk.loc, Cursor_Op_GREATER)) return false;
 		}
 		else if (Char('<')) {
-			if (!DoCompare(m, tk.loc, OP_LESS)) return false;
+			if (!DoCompare(m, tk.loc, Cursor_Op_LESS)) return false;
 		}
 		else
 			break;
@@ -1527,12 +1528,12 @@ bool SemanticParser::Equal(bool m) {
 		
 		if(TryToken(TK_EQ)) {
 			if (!Compare(m)) return false;
-			EMIT Expr2(tk.loc, OP_EQ);
+			EMIT Expr2(tk.loc, Cursor_Op_EQ);
 		}
 		else
 		if(TryToken(TK_INEQ)) {
 			if (!Compare(m)) return false;
-			EMIT Expr2(tk.loc, OP_INEQ);
+			EMIT Expr2(tk.loc, Cursor_Op_INEQ);
 		}
 		else
 			break;
@@ -1546,7 +1547,7 @@ bool SemanticParser::BinAnd(bool m) {
 		const Token& tk = TopIterator().iter[-1];
 		
 		if (!Equal(m)) return false;
-		EMIT Expr2(tk.loc, OP_BWAND);
+		EMIT Expr2(tk.loc, Cursor_Op_BWAND);
 	}
 	return true;
 }
@@ -1557,7 +1558,7 @@ bool SemanticParser::BinXor(bool m) {
 		const Token& tk = TopIterator().iter[-1];
 		
 		if (!BinAnd(m)) return false;
-		EMIT Expr2(tk.loc, OP_BWXOR);
+		EMIT Expr2(tk.loc, Cursor_Op_BWXOR);
 	}
 	return true;
 }
@@ -1568,7 +1569,7 @@ bool SemanticParser::BinOr(bool m) {
 		const Token& tk = TopIterator().iter[-1];
 		
 		if (!BinXor(m)) return false;
-		EMIT Expr2(tk.loc, OP_BWOR);
+		EMIT Expr2(tk.loc, Cursor_Op_BWOR);
 	}
 	return true;
 }
@@ -1580,7 +1581,7 @@ bool SemanticParser::And(bool m) {
 			const Token& tk = TopIterator().iter[-1];
 			
 			if (!BinOr(m)) return false;
-			EMIT Expr2(tk.loc, OP_AND);
+			EMIT Expr2(tk.loc, Cursor_Op_AND);
 		}
 	}
 	return true;
@@ -1593,7 +1594,7 @@ bool SemanticParser::Or(bool m) {
 			const Token& tk = TopIterator().iter[-1];
 			
 			if (!And(m)) return false;
-			EMIT Expr2(tk.loc, OP_OR);
+			EMIT Expr2(tk.loc, Cursor_Op_OR);
 		}
 	}
 	return true;
@@ -1607,7 +1608,7 @@ bool SemanticParser::Cond(bool m) {
 		if (!Cond(m)) return false;
 		PassChar(':');
 		if (!Cond(m)) return false;
-		EMIT Expr3(tk.loc, OP_COND);
+		EMIT Expr3(tk.loc, Cursor_Op_COND);
 	}
 	return true;
 }
@@ -1621,32 +1622,32 @@ bool SemanticParser::AssignPost(bool m) {
 	const Token& tk = TopIterator();
 	if(Char('=')) {
 		if (!Assign(m)) return false;
-		EMIT Expr2(tk.loc, OP_ASSIGN);
+		EMIT Expr2(tk.loc, Cursor_Op_ASSIGN);
 	}
 	else
 	if(TryToken(TK_ADDASS)) {
 		if (!Cond(m)) return false;
-		EMIT Expr2(tk.loc, OP_ADDASS);
+		EMIT Expr2(tk.loc, Cursor_Op_ADDASS);
 	}
 	else
 	if(TryToken(TK_SUBASS)) {
 		if (!Cond(m)) return false;
-		EMIT Expr2(tk.loc, OP_SUBASS);
+		EMIT Expr2(tk.loc, Cursor_Op_SUBASS);
 	}
 	else
 	if(TryToken(TK_MULASS)) {
 		if (!Cond(m)) return false;
-		EMIT Expr2(tk.loc, OP_MULASS);
+		EMIT Expr2(tk.loc, Cursor_Op_MULASS);
 	}
 	else
 	if(TryToken(TK_DIVASS)) {
 		if (!Cond(m)) return false;
-		EMIT Expr2(tk.loc, OP_DIVASS);
+		EMIT Expr2(tk.loc, Cursor_Op_DIVASS);
 	}
 	else
 	if(TryToken(TK_MODASS)) {
 		if (!Cond(m)) return false;
-		EMIT Expr2(tk.loc, OP_MODASS);
+		EMIT Expr2(tk.loc, Cursor_Op_MODASS);
 	}
 	return true;
 }

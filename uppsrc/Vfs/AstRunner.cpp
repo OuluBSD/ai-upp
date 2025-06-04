@@ -187,7 +187,7 @@ AstNode* AstRunner::VisitMetaIf(const AstNode& n) {
 	if (!d)
 		return 0;
 	
-	const AstNode* cond = n.Find(Cursor_Expr);
+	const AstNode* cond = n.Find(Cursor_ExprOp);
 	if (!cond) {
 		AddError(n.loc, "internal error: expression not found");
 		return 0;
@@ -540,36 +540,6 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d->rval = builtin_void;
 		break;
 		
-	case Cursor_Expr:
-		d = AddDuplicate(n);
-		if (!d)
-			return 0;
-		CHECK_SPATH_BEGIN_1
-		pop_count = 0;
-		for(int i = 0; i < n.i64; i++) {
-			ASSERT(n.arg[i]);
-			AstNode& a = *n.arg[i];
-			AstNode* ad = Visit(a);
-			if (!ad)
-				return 0;
-			if (IsRvalReturn(a.src))
-				pop_count++;
-			d->arg[i] = ad;
-		}
-		for(int i = 0; i < pop_count; i++) {
-			PopScope();
-		}
-		PushScope(*d);
-		CHECK_SPATH_END
-		
-		if (d->op == OP_CALL && d->arg[0] && d->arg[0]->src == Cursor_MetaRval && d->arg[1]) {
-			if (!VisitMetaCall(*d, *d->arg[0], *d->arg[1]))
-				return 0;
-		}
-		else if (d->arg[0] && d->arg[0]->src == Cursor_MetaRval)
-			TODO
-		break;
-		
 	case Cursor_ArgumentList:
 		d = Merge(n);
 		if (!d)
@@ -675,13 +645,6 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 			
 		}
 		break;
-		
-	case Cursor_Literal:
-		d = AddDuplicate(n);
-		if (!d)
-			return 0;
-		PushScopeRVal(*d);
-		break;
 	
 	case Cursor_ParmDecl:
 		d = &GetTopNode().Add(n.loc, n.val.id);
@@ -714,6 +677,44 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		if (IsPartially(n.src, Cursor_Stmt))
 			return MergeStatement(n);
 		
+		if (IsPartially(n.src, Cursor_Literal)) {
+			d = AddDuplicate(n);
+			if (!d)
+				return 0;
+			PushScopeRVal(*d);
+			break;
+		}
+		
+		if (IsPartially(n.src, Cursor_ExprOp)) {
+			d = AddDuplicate(n);
+			if (!d)
+				return 0;
+			CHECK_SPATH_BEGIN_1
+			pop_count = 0;
+			for(int i = 0; i < n.i64; i++) {
+				ASSERT(n.arg[i]);
+				AstNode& a = *n.arg[i];
+				AstNode* ad = Visit(a);
+				if (!ad)
+					return 0;
+				if (IsRvalReturn(a.src))
+					pop_count++;
+				d->arg[i] = ad;
+			}
+			for(int i = 0; i < pop_count; i++) {
+				PopScope();
+			}
+			PushScope(*d);
+			CHECK_SPATH_END
+			
+			if (d->src == Cursor_Op_CALL && d->arg[0] && d->arg[0]->src == Cursor_MetaRval && d->arg[1]) {
+				if (!VisitMetaCall(*d, *d->arg[0], *d->arg[1]))
+					return 0;
+			}
+			else if (d->arg[0] && d->arg[0]->src == Cursor_MetaRval)
+				TODO
+			break;
+		}
 		TODO
 	}
 	
@@ -746,7 +747,7 @@ AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
 		AstNode& owner = GetNonLockedOwner();
 		AstNode& d = owner.Add(n.loc);
 		
-		if (o->src == Cursor_Literal) {
+		if (IsPartially(o->src, Cursor_Literal)) {
 			d.CopyFrom(this, *o);
 		}
 		else if (o->src == Cursor_Object) {
@@ -805,10 +806,10 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 		ASSERT(arg->rval);
 		AstNode& argvar = *arg->rval;
 		
-		if (argvar.src == Cursor_Literal) {
+		if (IsPartially(argvar.src, Cursor_Literal)) {
 			argvar.CopyToValue(o->obj);
 		}
-		else if (argvar.src == Cursor_Expr) {
+		else if (IsPartially(argvar.src, Cursor_ExprOp)) {
 			AstNode* argval = Evaluate(argvar);
 			if (!argval)
 				return 0;
@@ -1125,7 +1126,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 			n.src == Cursor_MetaForStmt_Post) {
 			for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 				const AstNode& e = it;
-				if (e.src == Cursor_Expr) {
+				if (IsPartially(e.src, Cursor_ExprOp)) {
 					return Evaluate(e);
 				}
 				else TODO
@@ -1135,8 +1136,8 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 			TODO
 		}
 	}
-	else if (n.src == Cursor_Expr) {
-		if (n.op == OP_POSTINC || n.op == OP_POSTDEC) {
+	else if (IsPartially(n.src, Cursor_Op)) {
+		if (n.src == Cursor_Op_POSTINC || n.src == Cursor_Op_POSTDEC) {
 			AstNode* a = n.arg[0];
 			while (a && a->src == Cursor_Rval) {
 				a = a->rval;
@@ -1149,7 +1150,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 					r->src = Cursor_Literal;
 					r->CopyFromValue(n.loc, o->obj);
 					
-					o->obj = (int64)o->obj + (int64)(n.op == OP_POSTINC ? 1 : -1);
+					o->obj = (int64)o->obj + (int64)(n.src == Cursor_Op_POSTINC ? 1 : -1);
 					
 					return r;
 				}
@@ -1174,7 +1175,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 				return 0;
 			d->arg[i] = r;
 			
-			if (r->src == Cursor_Literal)
+			if (IsPartially(r->src, Cursor_Literal))
 				r->CopyToValue(a[i]);
 			else if (r->src == Cursor_Object)
 				a[i] = r->obj;
@@ -1182,51 +1183,51 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 				TODO
 		}
 		
-		switch (n.op) {
-			case OP_POSTINC:
-			case OP_POSTDEC:
-			case OP_POSITIVE:	o = a[0]; break;
-			case OP_NOT:		o = !a[0]; break;
-			case OP_NEGATIVE:	o = -(double)a[0]; break;
-			case OP_GREATER:	o = a[0] > a[1]; break;
-			case OP_LESS:		o = a[0] < a[1]; break;
-			case OP_ADD:		o = (double)a[0] + (double)a[1]; break;
-			case OP_SUB:		o = (double)a[0] - (double)a[1]; break;
-			case OP_MUL:		o = (double)a[0] * (double)a[1]; break;
-			case OP_DIV:		o = (double)a[0] / (double)a[1]; break;
-			case OP_LSH:		o = (int64)a[0] << (int64)a[1]; break;
-			case OP_RSH:		o = (int64)a[0] >> (int64)a[1]; break;
-			case OP_EQ:			o = a[0] == a[1]; break;
-			case OP_INEQ:		o = a[0] != a[1]; break;
-			case OP_AND:		o = a[0] && a[1]; break;
-			case OP_OR:			o = a[0] || a[1]; break;
-			case OP_GREQ:		o = a[0] >= a[1]; break;
-			case OP_LSEQ:		o = a[0] <= a[1]; break;
+		switch (n.src) {
+			case Cursor_Op_POSTINC:
+			case Cursor_Op_POSTDEC:
+			case Cursor_Op_POSITIVE:	o = a[0]; break;
+			case Cursor_Op_NOT:		o = !a[0]; break;
+			case Cursor_Op_NEGATIVE:	o = -(double)a[0]; break;
+			case Cursor_Op_GREATER:	o = a[0] > a[1]; break;
+			case Cursor_Op_LESS:		o = a[0] < a[1]; break;
+			case Cursor_Op_ADD:		o = (double)a[0] + (double)a[1]; break;
+			case Cursor_Op_SUB:		o = (double)a[0] - (double)a[1]; break;
+			case Cursor_Op_MUL:		o = (double)a[0] * (double)a[1]; break;
+			case Cursor_Op_DIV:		o = (double)a[0] / (double)a[1]; break;
+			case Cursor_Op_LSH:		o = (int64)a[0] << (int64)a[1]; break;
+			case Cursor_Op_RSH:		o = (int64)a[0] >> (int64)a[1]; break;
+			case Cursor_Op_EQ:		o = a[0] == a[1]; break;
+			case Cursor_Op_INEQ:		o = a[0] != a[1]; break;
+			case Cursor_Op_AND:		o = a[0] && a[1]; break;
+			case Cursor_Op_OR:		o = a[0] || a[1]; break;
+			case Cursor_Op_GREQ:		o = a[0] >= a[1]; break;
+			case Cursor_Op_LSEQ:		o = a[0] <= a[1]; break;
 			
-			case OP_MOD:
-			case OP_NULL:
-			case OP_INC:
-			case OP_DEC:
-			case OP_NEGATE:
-			case OP_BWAND:
-			case OP_BWXOR:
-			case OP_BWOR:
-			case OP_ASSIGN:
-			case OP_ADDASS:
-			case OP_SUBASS:
-			case OP_MULASS:
-			case OP_DIVASS:
-			case OP_MODASS:
-			case OP_COND:
-			case OP_CALL:
-			case OP_SUBSCRIPT:
+			case Cursor_Op_MOD:
+			case Cursor_Op_NULL:
+			case Cursor_Op_INC:
+			case Cursor_Op_DEC:
+			case Cursor_Op_NEGATE:
+			case Cursor_Op_BWAND:
+			case Cursor_Op_BWXOR:
+			case Cursor_Op_BWOR:
+			case Cursor_Op_ASSIGN:
+			case Cursor_Op_ADDASS:
+			case Cursor_Op_SUBASS:
+			case Cursor_Op_MULASS:
+			case Cursor_Op_DIVASS:
+			case Cursor_Op_MODASS:
+			case Cursor_Op_COND:
+			case Cursor_Op_CALL:
+			case Cursor_Op_SUBSCRIPT:
 			default:
 				TODO
 		}
 		
 		return d;
 	}
-	else if (n.src == Cursor_Literal) {
+	else if (IsPartially(n.src, Cursor_Literal)) {
 		AstNode* d = FindStackWithPrev(&n);
 		if (d)
 			return d;
@@ -1246,7 +1247,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 		else if (rval->src == Cursor_Object) {
 			return rval;
 		}
-		else if (rval->src == Cursor_Literal) {
+		else if (IsPartially(rval->src, Cursor_Literal)) {
 			return rval;
 		}
 		else TODO

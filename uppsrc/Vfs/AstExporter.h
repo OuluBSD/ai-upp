@@ -38,7 +38,7 @@ class AstExporter :
 	void VisitExpression(const AstNode& n, int depth);
 	void VisitVariable(const AstNode& n, bool declare=false);
 	void VisitArgument(const AstNode& n);
-	void VisitConstant(const AstNode& n);
+	void VisitLiteral(const AstNode& n);
 	void VisitResolve(const AstNode& n, bool rval=false);
 	void VisitRval(const AstNode& n);
 	void VisitArgumentList(const AstNode& n);

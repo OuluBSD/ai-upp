@@ -327,7 +327,7 @@ String AstNode::GetTreeItemString() const {
 	else if (src == Cursor_Object)
 		s << "object(" << obj.ToString() << ")";
 	else if (src == Cursor_Unresolved)
-		s << "unresolved(" << str << ")";
+		s << str;
 	else if (IsPartially(src, Cursor_Literal))
 		s << "const(" << GetConstantString() << ")";
 	else if (IsPartially(src, Cursor_Op))

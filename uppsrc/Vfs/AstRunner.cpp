@@ -60,7 +60,7 @@ AstNode* AstRunner::Merge(const AstNode& n) {
 		AstNode* prev = owner.Find(n.val.id);
 		if (prev) {
 			if (!IsMergeable(*prev, n)) {
-				AddError(n.loc, "cannot merge " + GetSemanticTypeString(n.src) + " to " + GetSemanticTypeString(prev->src));
+				AddError(n.loc, "cannot merge " + GetCodeCursorString(n.src) + " to " + GetCodeCursorString(prev->src));
 				return 0;
 			}
 			return prev;
@@ -70,7 +70,7 @@ AstNode* AstRunner::Merge(const AstNode& n) {
 		AstNode* prev = owner.Find(n.src);
 		if (prev) {
 			if (!IsMergeable(*prev, n)) {
-				AddError(n.loc, "cannot merge " + GetSemanticTypeString(n.src) + " to " + GetSemanticTypeString(prev->src));
+				AddError(n.loc, "cannot merge " + GetCodeCursorString(n.src) + " to " + GetCodeCursorString(prev->src));
 				return 0;
 			}
 			return prev;
@@ -941,7 +941,7 @@ AstNode* AstRunner::VisitMetaResolve(const AstNode& n) {
 	for (const Token* tk = n.id.begin ; tk != n.id.end; tk++) {
 		if (tk->type == TK_ID) {
 			if (n.id.is_meta[part_i]) {
-				AstNode* a = FindStackName(tk->str_value, (SemanticType)(n.filter | SEMT_RVAL));
+				AstNode* a = FindStackName2(tk->str_value, n.filter, SEMT_RVAL);
 				while (a && a->src == SEMT_RVAL)
 					a = a->rval;
 				if (!a) {
@@ -1065,7 +1065,7 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			return false;
 		}
 		
-		SemanticType filter = SEMT_NULL;
+		CodeCursor filter = SEMT_NULL;
 		if (d.type) {
 			if (d.type == meta_builtin_expr) {
 				d.src = SEMT_RVAL;

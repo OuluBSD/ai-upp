@@ -88,9 +88,9 @@ typedef enum {
 	SEMT_META_ANY,				// SEMT_IDPART | SEMT_META_FIELD | SEMT_META_TYPE | SEMT_META_FUNCTION | SEMT_META_RVAL | SEMT_META_CTOR | SEMT_META_RESOLVE,
 	SEMT_META_PATH,				// SEMT_META_PARAMETER_PATH | SEMT_META_VARIABLE_PATH | SEMT_META_FUNCTION | SEMT_META_CLASS,
 	
-} SemanticType;
+} CodeCursor;
 
-typedef uint64 SemanticTypePrimitive;
+typedef uint64 CodeCursorPrimitive;
 
 struct AstNode;
 
@@ -178,12 +178,10 @@ inline bool IsMetaFunctionAny(const AstNode& a) {
 }
 #endif
 
-inline String GetSemanticTypeString(SemanticType t) {
-	TODO
-#if 0
+inline String GetCodeCursorString(CodeCursor t) {
 	switch (t) {
 		case SEMT_NULL:					return "null";
-		case SEMT_NAMESPACE:			return "namespace";<
+		case SEMT_NAMESPACE:			return "namespace";
 		case SEMT_BUILTIN:				return "builtin";
 		case SEMT_TYPEDEF:				return "typedef";
 		case SEMT_CLASS_DECL:			return "class-declaration";
@@ -243,21 +241,11 @@ inline String GetSemanticTypeString(SemanticType t) {
 		case SEMT_SYMBOLIC_LINK:		return "symlink";
 		default: return "invalid";
 	}
-#endif
 }
 
-inline bool IsTypedNode(SemanticType src) {
-	TODO return false;  //return src & SEMT_TYPE;
-}
-
-inline bool IsMetaTypedNode(SemanticType src) {
-	TODO return false;  //return src & SEMT_META_TYPE;
-}
-
-inline bool IsRvalReturn(SemanticType src) {
-	TODO return false; //return (int64)src & (int64)SEMT_WITH_RVAL_RET;
-}
-
+bool IsTypedNode(CodeCursor src);
+bool IsMetaTypedNode(CodeCursor src);
+bool IsRvalReturn(CodeCursor src);
 
 
 typedef enum {
@@ -323,8 +311,6 @@ typedef enum {
 } StmtType;
 
 inline String GetStmtTypeString(StmtType t) {
-	TODO
-	#if 0
 	switch (t) {
 		case STMT_NULL: return "null";
 		case STMT_IF: return "if";
@@ -365,7 +351,6 @@ inline String GetStmtTypeString(StmtType t) {
 		
 		default: return "invalid-type";
 	}
-	#endif
 }
 
 typedef enum {

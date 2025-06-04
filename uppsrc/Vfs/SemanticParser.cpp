@@ -748,7 +748,7 @@ bool SemanticParser::ParseType(PathIdentifier& type, AstNode*& tn) {
 	}
 	
 	tn = FindDeclaration(type);
-	if (!tn || !IsTypedNode(tn->src)) {
+	if (!tn || !IsPartially(tn->src, SEMT_TYPE)) {
 		AddError(iter->loc, "could not find type '" + type.ToString() + "'");
 		return false;
 	}
@@ -1349,11 +1349,14 @@ bool SemanticParser::Term(bool meta) {
 			EMIT Expr2(iter->loc, OP_CALL);
 		}
 		else {
-			if (nn->IsPartially((SemanticType)(SEMT_META_FIELD | SEMT_FIELD)) ||
+			if (nn->IsPartially(SEMT_META_FIELD) ||
+				nn->IsPartially(SEMT_FIELD) ||
 				(partial_meta && !typename_)) {
 				EMIT PushRval(id.begin->loc, *nn);
 			}
-			else if (nn->IsPartially((SemanticType)(SEMT_META_TYPE | SEMT_TYPE)) ||
+			else if (
+				nn->IsPartially(SEMT_META_TYPE) ||
+				nn->IsPartially(SEMT_TYPE) ||
 				(partial_meta && typename_)) {
 				if (!ParseDeclExpr(meta, id, *nn))
 					return false;

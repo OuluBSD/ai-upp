@@ -47,7 +47,7 @@ mainconfig
 	"Have Microsoft (Windows)" = "AI GUI SCREEN DX11 VR FLUIDLITE BUILTIN_PORTAUDIO BUILTIN_ASSIMP",
 	"Have Microsoft fenced (Windows UWP)" = "AI GUI SCREEN DX12 UWP VR",
 	"" = "",
-	"Tests 00" = "AI",
+	"Tests 00" = "AI DEBUG_VFS",
 	"Tests 00 DEBUG" = "AI DEBUG_RT",
 	"Tests 01" = "AI SCREEN",
 	"Tests 01 DEBUG" = "AI SCREEN DEBUG_RT",

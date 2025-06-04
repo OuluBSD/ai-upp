@@ -301,7 +301,7 @@ bool SemanticParser::ParseAtomExpressionStatement() {
 	const TokenNode& cur = CurrentNode();
 	Iterator& iter = TopIterator();
 	
-	EMIT PushStatement(iter->loc, STMT_EXPR);
+	EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 	
 	bool succ = Assign(false);
 	
@@ -388,7 +388,7 @@ bool SemanticParser::ParseStatement() {
 			return false;
 		}
 		AstNode& prev = t.val.Sub<AstNode>().rbegin();
-		if (prev.src != SEMT_STATEMENT || prev.stmt != Cursor_IfStmt) {
+		if (prev.src != Cursor_IfStmt) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
 		}
@@ -517,8 +517,8 @@ bool SemanticParser::ParseStatement() {
 		id.part_count = 1;
 		id.parts[0] = &tk;
 		
-		EMIT PushStatement(iter->loc, STMT_EXPR);
-		EMIT PushRvalResolve(iter->loc, id, SEMT_FUNCTION_BUILTIN);
+		EMIT PushStatement(iter->loc, Cursor_ExprStmt);
+		EMIT PushRvalResolve(iter->loc, id, Cursor_FunctionBuiltin);
 		EMIT PushRvalArgumentList(iter->loc);
 		
 		if (!Assign(false)) return false;
@@ -556,12 +556,12 @@ bool SemanticParser::ParseExpressionStatement() {
 	
 	CHECK_SPATH_BEGIN
 	
-	EMIT PushStatement(iter->loc, STMT_EXPR);
+	EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 	
 	AstNode* link;
 	if (!(link = ParseExpression(false))) return false;
 	
-	if (link->rval && link->rval->src == SEMT_CTOR)
+	if (link->rval && link->rval->src == Cursor_Ctor)
 		link = 0;
 	
 	EMIT PopStatement(iter->loc, link);
@@ -593,7 +593,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 	cookie = 0;
 	
 	if (Id("if")) {
-		EMIT PushStatement(iter->loc, STMT_META_IF);
+		EMIT PushStatement(iter->loc, Cursor_MetaIfStmt);
 		
 		if (!(link = ParseExpression(true))) return false;
 		if (!ParseStatementBlock()) return false;
@@ -609,12 +609,12 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 			return false;
 		}
 		AstNode& prev = t.val.Sub<AstNode>().rbegin();
-		if (prev.src != SEMT_STATEMENT || prev.stmt != STMT_META_IF) {
+		if (prev.src != Cursor_MetaIfStmt) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
 		}
 		
-		AstNode* e = EMIT PushStatement(iter->loc, STMT_META_ELSE);
+		AstNode* e = EMIT PushStatement(iter->loc, Cursor_MetaElseStmt);
 		if (!e) return false;
 		
 		ASSERT(!prev.ctx_next && !e->ctx_next);
@@ -626,7 +626,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("do")) {
-		EMIT PushStatement(iter->loc, STMT_META_DOWHILE);
+		EMIT PushStatement(iter->loc, Cursor_MetaDoStmt);
 		
 		if (!ParseStatementBlock()) return false;
 		if (!PassId("while")) return false;
@@ -636,7 +636,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("while")) {
-		EMIT PushStatement(iter->loc, STMT_META_WHILE);
+		EMIT PushStatement(iter->loc, Cursor_MetaWhileStmt);
 		
 		if (!(link = ParseExpression(true))) return false;
 		if (!ParseStatementBlock()) return false;
@@ -644,16 +644,16 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("for")) {
-		EMIT PushStatement(iter->loc, STMT_META_FOR);
+		EMIT PushStatement(iter->loc, Cursor_MetaForStmt);
 		
 		if (!IsToken(',')) {
-			EMIT PushStatement(iter->loc, STMT_EXPR);
+			EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 			AstNode* rval = EMIT ParseExpression(true);
 			if (!rval) return false;
 			EMIT PopStatement(iter->loc, 0);
 		}
 		if (Id("in") || Char(':')) {
-			EMIT PushStatement(iter->loc, STMT_META_FOR_RANGE);
+			EMIT PushStatement(iter->loc, Cursor_MetaForStmt_Range);
 			AstNode* rval = EMIT ParseExpression(true);
 			if (!rval) return false;
 			EMIT PopStatement(iter->loc, 0);
@@ -661,13 +661,13 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		else {
 			if (!PassToken(',')) return false;
 			if (!IsToken(',')) {
-				EMIT PushStatement(iter->loc, STMT_META_FOR_COND);
+				EMIT PushStatement(iter->loc, Cursor_MetaForStmt_Conditional);
 				if (!ParseExpression(true)) return false;
 				EMIT PopStatement(iter->loc, 0);
 			}
 			if (!PassToken(',')) return false;
 			if (iter) {
-				EMIT PushStatement(iter->loc, STMT_META_FOR_POST);
+				EMIT PushStatement(iter->loc, Cursor_MetaForStmt_Post);
 				if (!ParseExpression(true)) return false;
 				EMIT PopStatement(iter->loc, 0);
 			}
@@ -678,11 +678,11 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("break")) {
-		EMIT PushStatement(iter->loc, STMT_META_BREAK);
+		EMIT PushStatement(iter->loc, Cursor_MetaBreakStmt);
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("continue")) {
-		EMIT PushStatement(iter->loc, STMT_META_CONTINUE);
+		EMIT PushStatement(iter->loc, Cursor_MetaContinueStmt);
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("case")) {
@@ -698,7 +698,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		return false;
 	}
 	else if (Id("return")) {
-		EMIT PushStatement(iter->loc, STMT_META_RETURN);
+		EMIT PushStatement(iter->loc, Cursor_MetaReturnStmt);
 		
 		if (iter) {
 			if (!(link = ParseExpression(true))) return false;
@@ -707,7 +707,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("switch")) {
-		EMIT PushStatement(iter->loc, STMT_META_SWITCH);
+		EMIT PushStatement(iter->loc, Cursor_MetaSwitchStmt);
 		
 		if (!(link = ParseExpression(true))) return false;
 		
@@ -716,7 +716,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (cur.begin == cur.end && cur.val.Sub<TokenNode>().GetCount()) {
-		EMIT PushStatement(iter->loc, Cursor_BlockExpr);
+		EMIT PushStatement(iter->loc, Cursor_MetaBlockExpr);
 		
 		if (!ParseStatementBlock()) return false;
 		
@@ -726,7 +726,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		// empty statement
 	}
 	else {
-		EMIT PushStatement(iter->loc, STMT_META_EXPR);
+		EMIT PushStatement(iter->loc, Cursor_MetaExprStmt);
 		
 		if (!(link = ParseExpression(true))) return false;
 		
@@ -748,7 +748,7 @@ bool SemanticParser::ParseType(PathIdentifier& type, AstNode*& tn) {
 	}
 	
 	tn = FindDeclaration(type);
-	if (!tn || !IsPartially(tn->src, SEMT_TYPE)) {
+	if (!tn || !IsPartially(tn->src, Cursor_TypeDecl)) {
 		AddError(iter->loc, "could not find type '" + type.ToString() + "'");
 		return false;
 	}
@@ -761,7 +761,7 @@ bool SemanticParser::ParseType(PathIdentifier& type, AstNode*& tn) {
 		else if (IsToken(TK_INTEGER)) {
 			int i = StrInt(iter->str_value);
 			AstNode& arr = tn->Add(iter->loc, IntStr(i));
-			arr.src = SEMT_ARRAYSIZE;
+			arr.src = Cursor_ArraySize;
 			arr.i64 = i;
 			tn = &arr;
 			iter++;
@@ -781,11 +781,11 @@ bool SemanticParser::ParseType(PathIdentifier& type, AstNode*& tn) {
 	
 	while (iter) {
 		if (iter->type == '#') {
-			tn = &tn->GetAdd(iter->loc, SEMT_TYPE_POINTER);
+			tn = &tn->GetAdd(iter->loc, Cursor_TypePointer);
 			type.tail[type.tail_count++] = PathIdentifier::PTR;
 		}
 		else if (iter->type == '&') {
-			tn = &tn->GetAdd(iter->loc, SEMT_TYPE_LREF);
+			tn = &tn->GetAdd(iter->loc, Cursor_TypeLref);
 			type.tail[type.tail_count++] = PathIdentifier::LREF;
 		}
 		else break;
@@ -812,11 +812,11 @@ bool SemanticParser::ParseParameter() {
 	}
 	
 	AstNode& pn = DeclareRelative(name);
-	if (!pn.IsPartially(SEMT_UNDEFINED)) {
+	if (!pn.IsPartially(Cursor_Undefined)) {
 		AddError(iter->loc, "variable '" + name.ToString() + "' already declared");
 		return false;
 	}
-	pn.src = SEMT_PARAMETER;
+	pn.src = Cursor_ParmDecl;
 	pn.type = tn;
 	
 	EMIT Parameter(type.begin->loc, type, name);
@@ -838,7 +838,7 @@ bool SemanticParser::ParseMetaParameter() {
 		return false;
 	}
 	
-	AstNode* tn = FindDeclaration(type, SEMT_META_ANY);
+	AstNode* tn = FindDeclaration(type, Cursor_MetaDecl);
 	if (!tn || !IsMetaTypedNode(tn->src)) {
 		AddError(iter->loc, "could not find meta-type '" + type.ToString() + "'");
 		return false;
@@ -851,11 +851,11 @@ bool SemanticParser::ParseMetaParameter() {
 	}
 	
 	AstNode& pn = DeclareRelative(name);
-	if (!pn.IsPartially(SEMT_UNDEFINED)) {
+	if (!pn.IsPartially(Cursor_Undefined)) {
 		AddError(iter->loc, "variable '" + name.ToString() + "' already declared");
 		return false;
 	}
-	pn.src = SEMT_META_PARAMETER;
+	pn.src = Cursor_MetaParameter;
 	pn.type = tn;
 	
 	EMIT MetaParameter(type.begin->loc, type, name);
@@ -1303,7 +1303,7 @@ bool SemanticParser::Term(bool meta) {
 		bool partial_meta = id.HasPartialMeta();
 		// e.g. "a.$i"
 		if (partial_meta) {
-			nn = EMIT PartialMetaResolve(id.begin->loc, id, typename_ ? SEMT_META_TYPE : SEMT_META_FIELD);
+			nn = EMIT PartialMetaResolve(id.begin->loc, id, typename_ ? Cursor_MetaTypeDecl : Cursor_MetaValueDecl);
 			ASSERT(nn);
 		}
 		else {
@@ -1311,17 +1311,17 @@ bool SemanticParser::Term(bool meta) {
 				meta = true;
 			
 			if (typename_) {
-				nn = FindDeclaration(id, meta ? SEMT_META_TYPE : SEMT_TYPE);
+				nn = FindDeclaration(id, meta ? Cursor_MetaTypeDecl : Cursor_TypeDecl);
 				if (!nn) {
 					AddError(iter->loc, "could not find type '" + id.ToString() + "'");
 					return false;
 				}
 			}
 			else {
-				nn = FindDeclaration(id, meta ? SEMT_META_ANY : SEMT_NULL);
+				nn = FindDeclaration(id, meta ? Cursor_MetaDecl : Cursor_Null);
 				if (!nn) {
 					if (allow_expr_unresolved) {
-						EMIT PushRvalUnresolved(id.begin->loc, id, meta ? SEMT_META_ANY : SEMT_NULL);
+						EMIT PushRvalUnresolved(id.begin->loc, id, meta ? Cursor_MetaDecl : Cursor_Null);
 						return Subscript(meta);
 					}
 					else {
@@ -1349,20 +1349,20 @@ bool SemanticParser::Term(bool meta) {
 			EMIT Expr2(iter->loc, OP_CALL);
 		}
 		else {
-			if (nn->IsPartially(SEMT_META_FIELD) ||
-				nn->IsPartially(SEMT_FIELD) ||
+			if (nn->IsPartially(Cursor_MetaValueDecl) ||
+				nn->IsPartially(Cursor_ValueDecl) ||
 				(partial_meta && !typename_)) {
 				EMIT PushRval(id.begin->loc, *nn);
 			}
 			else if (
-				nn->IsPartially(SEMT_META_TYPE) ||
-				nn->IsPartially(SEMT_TYPE) ||
+				nn->IsPartially(Cursor_MetaTypeDecl) ||
+				nn->IsPartially(Cursor_TypeDecl) ||
 				(partial_meta && typename_)) {
 				if (!ParseDeclExpr(meta, id, *nn))
 					return false;
 			}
 			else if (allow_expr_unresolved) {
-				EMIT PushRvalUnresolved(id.begin->loc, id, meta ? SEMT_META_ANY : SEMT_NULL);
+				EMIT PushRvalUnresolved(id.begin->loc, id, meta ? Cursor_MetaDecl : Cursor_Null);
 			}
 			else {
 				TODO
@@ -1722,7 +1722,7 @@ AstNode* SemanticParser::ParseAndFindMetaDeclaration() {
 	if (!ParsePathIdentifier(id, false, true))
 		return 0;
 	
-	AstNode* n = FindDeclaration(id, SEMT_META_ANY);
+	AstNode* n = FindDeclaration(id, Cursor_MetaDecl);
 	if (!n)
 		AddError(TopIterator()->loc, "could not resolve '" + id.ToString() + "'");
 	return n;
@@ -1963,7 +1963,7 @@ bool SemanticParser::ParseLoop() {
 	CHECK_SPATH_BEGIN
 	AstNode* loop = EMIT PushLoop(iter.begin->loc, id);
 	if (is_driver)
-		loop->src = SEMT_DRIVER;
+		loop->src = Cursor_DriverStmt;
 	
 	Iterator& owner_iter = TopIterator();
 	if (owner_iter.node->val.Sub<TokenNode>().GetCount()) {
@@ -1971,7 +1971,7 @@ bool SemanticParser::ParseLoop() {
 			return false;
 	}
 	else {
-		loop->src = SEMT_LOOP_DECL;
+		loop->src = Cursor_LoopDecl;
 	}
 	
 	EMIT PopLoop(iter.begin->loc);
@@ -2274,7 +2274,7 @@ bool SemanticParser::ParseLoopStatement(int& cookie) {
 				AstNode* var = EMIT DeclareVariable(iter->loc, *builtin_void, id);
 				if (!var) return false;
 				
-				EMIT PushStatement(iter->loc, STMT_EXPR);
+				EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 				
 				EMIT PushRval(id.begin->loc, *var);
 				
@@ -2435,7 +2435,7 @@ bool SemanticParser::ParseSystemStatement(int& cookie) {
 				return false;
 		}
 		else if (iter->IsType(TK_ID)) {
-			EMIT PushStatement(iter->loc, STMT_EXPR);
+			EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 			
 			allow_expr_unresolved = true;
 			bool succ = Assign(false);
@@ -2599,7 +2599,7 @@ bool SemanticParser::ParseComponentStatement(int& cookie) {
 				return false;
 		}
 		else if (IsToken(TK_ID)) {
-			EMIT PushStatement(iter->loc, STMT_EXPR);
+			EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 			
 			allow_expr_unresolved = true;
 			bool succ = Assign(false);
@@ -2653,7 +2653,7 @@ bool SemanticParser::ParseExpressionList() {
 				succ = false;
 			}
 			
-			AstNode* stmt = EMIT PushStatement(iter->loc, STMT_EXPR);
+			AstNode* stmt = EMIT PushStatement(iter->loc, Cursor_ExprStmt);
 			AstNode* expr = ParseExpression(false);
 			if (!expr) {
 				succ = false;

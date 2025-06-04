@@ -53,16 +53,25 @@ bool PathIdentifier::HasPartialMeta() const {
 
 
 
+String GetCodeCursorString(CodeCursor t) {
+	switch (t) {
+		#define CURSOR(a,b,c) case Cursor_##a: return #a;
+		CURSOR_LIST
+		#undef CURSOR
+		default: return "<error>";
+	}
+}
+
 bool IsTypedNode(CodeCursor src) {
-	return IsPartially(src, SEMT_TYPE);
+	return IsPartially(src, Cursor_TypeDecl);
 }
 
 bool IsMetaTypedNode(CodeCursor src) {
-	return IsPartially(src, SEMT_META_TYPE);
+	return IsPartially(src, Cursor_MetaTypeDecl);
 }
 
 bool IsRvalReturn(CodeCursor src) {
-	return IsPartially(src, SEMT_WITH_RVAL_RET);
+	return IsPartially(src, Cursor_WithRvalReturn);
 }
 
 

@@ -34,11 +34,11 @@ struct AstNode :
 	mutable bool locked = false;
 	Value obj;
 	
-	CodeCursor src = SEMT_NULL;
-	StmtType stmt = Cursor_Null;
+	CodeCursor src = Cursor_Null;
+	//StmtType stmt = Cursor_Null;
 	OpType op = OP_NULL;
 	ConstType con = CONST_NULL;
-	CodeCursor filter = SEMT_NULL;
+	CodeCursor filter = Cursor_Null;
 	FileLocation loc;
 	PathIdentifier id;
 	
@@ -61,17 +61,17 @@ public:
 	AstNode&		Add(const FileLocation& loc, String name="", int idx=-1);
 	AstNode&		GetAdd(const FileLocation& loc, String name="");
 	AstNode&		GetAdd(const FileLocation& loc, CodeCursor accepts);
-	AstNode*		Find(String name, CodeCursor accepts=SEMT_NULL);
-	const AstNode*	Find(String name, CodeCursor accepts=SEMT_NULL) const;
+	AstNode*		Find(String name, CodeCursor accepts=Cursor_Null);
+	const AstNode*	Find(String name, CodeCursor accepts=Cursor_Null) const;
 	AstNode*		FindPartial(CodeCursor t);
 	AstNode*		Find(CodeCursor t);
 	const AstNode*	Find(CodeCursor t) const;
 	String			GetConstantString() const;
 	AstNode*		FindWithPrevDeep(const AstNode* prev);
 	void			FindAll(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc=0);
-	void			FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLocation* rel_loc=0);
-	void			FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts=SEMT_NULL, const FileLocation* rel_loc=0);
-	void			FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts=SEMT_NULL, const FileLocation* rel_loc=0);
+	void			FindAllStmt(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts=Cursor_Null, const FileLocation* rel_loc=0);
+	void			FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts=Cursor_Null, const FileLocation* rel_loc=0);
 	void			FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
 	void			FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc=0);
 	
@@ -83,7 +83,8 @@ public:
 	String			GetPartStringArray() const;
 	CodeCursor	GetCodeCursor() const {return src;}
 	bool			IsPartially(CodeCursor t) const;// {return (CodeCursorPrimitive)src & (CodeCursorPrimitive)t;}
-	bool			IsStmtPartially(StmtType t) const;// {return src == SEMT_STATEMENT && ((CodeCursorPrimitive)stmt & (CodeCursorPrimitive)t);}
+	bool			IsPartially(CodeCursor src, CodeCursor t) const;
+	bool			IsStmtPartially(CodeCursor t) const;// {return src == Cursor_Stmt && ((CodeCursorPrimitive)stmt & (CodeCursorPrimitive)t);}
 	
 };
 

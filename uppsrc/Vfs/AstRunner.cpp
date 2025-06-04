@@ -17,7 +17,7 @@ bool AstRunner::Execute(const AstNode& n) {
 	AstNode& root = GetRoot();
 	
 	for (const AstNode& s : n.val.Sub<AstNode>()) {
-		if (s.src == SEMT_BUILTIN || s.src == SEMT_META_BUILTIN) {
+		if (s.src == Cursor_Builtin || s.src == Cursor_MetaBuiltin) {
 			AstNode* local = root.Find(s.val.id, s.src);
 			if (local)
 				local->prev = &s;
@@ -84,7 +84,7 @@ AstNode* AstRunner::Merge(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaFor(const AstNode& n) {
-	ASSERT(n.src == SEMT_STATEMENT && n.stmt == STMT_META_FOR);
+	ASSERT(n.src == Cursor_MetaForStmt);
 	
 	const AstNode* block = 0;
 	const AstNode* for_cond = 0;
@@ -99,22 +99,22 @@ AstNode* AstRunner::VisitMetaFor(const AstNode& n) {
 	PushScope(*d, true);
 	
 	for (const AstNode& s : n.val.Sub<AstNode>()) {
-		if (s.src == SEMT_STATEMENT && s.stmt == STMT_META_FOR_COND) {
+		if (s.src == Cursor_MetaForStmt_Conditional) {
 			for_cond = &s;
 		}
-		else if (s.src == SEMT_STATEMENT && s.stmt == STMT_META_FOR_POST) {
+		else if (s.src == Cursor_MetaForStmt_Post) {
 			for_post = &s;
 		}
-		else if (s.src == SEMT_STATEMENT &&  s.stmt == STMT_META_FOR_RANGE) {
+		else if (s.src == Cursor_MetaForStmt_Range) {
 			for_range = &s;
 		}
-		else if (s.src == SEMT_RVAL) {
+		else if (s.src == Cursor_Rval) {
 			// pass
 		}
-		else if (s.src == SEMT_STATEMENT_BLOCK) {
+		else if (s.src == Cursor_CompoundStmt) {
 			block = &s;
 		}
-		else if (s.src == SEMT_STATEMENT) {
+		else if (s.src == Cursor_Stmt) {
 			if (!Visit(s))
 				return 0;
 		}
@@ -180,14 +180,14 @@ AstNode* AstRunner::VisitMetaFor(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaIf(const AstNode& n) {
-	ASSERT(n.src == SEMT_STATEMENT && n.stmt == STMT_META_IF);
+	ASSERT(n.src == Cursor_MetaIfStmt);
 	
 	AstNode* d = AddDuplicate(n); // these can't be merge becaues of re-use
-	d->src = SEMT_RVAL;
+	d->src = Cursor_Rval;
 	if (!d)
 		return 0;
 	
-	const AstNode* cond = n.Find(SEMT_EXPR);
+	const AstNode* cond = n.Find(Cursor_Expr);
 	if (!cond) {
 		AddError(n.loc, "internal error: expression not found");
 		return 0;
@@ -195,14 +195,14 @@ AstNode* AstRunner::VisitMetaIf(const AstNode& n) {
 	
 	AstNode* closest_type = GetClosestType();
 	AstNode& owner_block = GetBlock();
-	const AstNode* block = n.Find(SEMT_STATEMENT_BLOCK);
+	const AstNode* block = n.Find(Cursor_CompoundStmt);
 	if (!block) {
 		AddError(n.loc, "internal error: block not found");
 		return 0;
 	}
 	
 	AstNode* else_ = n.ctx_next;
-	ASSERT(!else_ || (else_->src == SEMT_STATEMENT && else_->stmt == STMT_META_ELSE));
+	ASSERT(!else_ || (else_->src == Cursor_MetaElseStmt));
 	
 	AstNode* cond_val = Evaluate(*cond);
 	if (!cond_val)
@@ -225,7 +225,7 @@ AstNode* AstRunner::VisitMetaIf(const AstNode& n) {
 		PopScope();
 	}
 	else if (else_) {
-		block = else_->Find(SEMT_STATEMENT_BLOCK);
+		block = else_->Find(Cursor_CompoundStmt);
 		if (!block) {
 			AddError(else_->loc, "internal error: block not found");
 			return 0;
@@ -254,12 +254,12 @@ void AstRunner::SetMetaBlockType(AstNode& d, AstNode* dup_block, AstNode* closes
 		dup_block->i64 = 1; // skip indent
 	
 	if (!closest_type) {
-		d.src = SEMT_STATEMENT_BLOCK;
+		d.src = Cursor_CompoundStmt;
 		d.i64 = 1; // skip indent
 	}
 	else if (closest_type == this->meta_builtin_expr)
 		d.rval = dup_block->rval;
-	else if (closest_type->IsPartially(SEMT_META_BUILTIN))
+	else if (closest_type->IsPartially(Cursor_MetaBuiltin))
 		; // pass
 	else
 		TODO
@@ -271,14 +271,15 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 	AstNode* sd = 0;
 	AstNode* block = 0;
 	
-	ASSERT(n.src == SEMT_STATEMENT);
-	if (n.src != SEMT_STATEMENT) return 0;
+	ASSERT(IsPartially(n.src, Cursor_Stmt));
+	if (!IsPartially(n.src, Cursor_Stmt))
+		return 0;
 	
-	switch (n.stmt) {
+	switch (n.src) {
 	case Cursor_ReturnStmt:
 		return VisitReturn(n);
 		
-	case STMT_EXPR:
+	case Cursor_ExprStmt:
 		d = AddDuplicate(n);
 		PushScope(*d, true);
 		ASSERT(n.val.Sub<AstNode>().GetCount());
@@ -304,12 +305,12 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		PopScope();
 		return d;
 		
-	case STMT_META_FOR:
-	case STMT_META_IF:
-	case STMT_META_ELSE:
+	case Cursor_MetaForStmt:
+	case Cursor_MetaIfStmt:
+	case Cursor_MetaElseStmt:
 		break;
 	
-	case STMT_ATOM_CONNECTOR:
+	case Cursor_AtomConnectorStmt:
 	case Cursor_IfStmt:
 		d = AddDuplicate(n);
 		d->CopyFrom(this, n);
@@ -325,8 +326,8 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		}
 		return d;
 	
-	case STMT_CTOR:
-		if (n.rval && n.rval->IsPartially(SEMT_META_ANY))
+	case Cursor_CtorStmt:
+		if (n.rval && n.rval->IsPartially(Cursor_MetaDecl))
 			return VisitMetaCtor(*n.rval);
 		d = AddDuplicate(n);
 		if (!d)
@@ -343,7 +344,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 				PopScope(); // expr rval
 		}
 		PopScope();
-		ASSERT(d->rval || n.rval->type->IsPartially(SEMT_META_ANY));
+		ASSERT(d->rval || n.rval->type->IsPartially(Cursor_MetaDecl));
 		return d;
 		
 	case Cursor_Null:
@@ -360,6 +361,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 	case Cursor_DefaultStmt:
 	case Cursor_SwitchStmt:
 	case Cursor_BlockExpr:
+	case Cursor_MetaBlockExpr:
 	default:
 		TODO
 		break;
@@ -384,14 +386,21 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	int pop_count;
 	CHECK_SPATH_INIT
 	
+	#ifdef flagDEBUG_VFS
+	LOG("AstRunner::Visit: " + GetCodeCursorString(n.src) + " (" + HexStrPtr(&n) + ")");
+	if (0 && n.src == Cursor_ExprStmt) {
+		DebugBreak();
+	}
+	#endif
+	
 	switch (n.src) {
-	case SEMT_ROOT:
+	case Cursor_TranslationUnit:
 		ASSERT(spath.IsEmpty());
 		d = &GetRoot();
-		d->src = SEMT_ROOT;
+		d->src = Cursor_TranslationUnit;
 		PushScope(*d);
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
-			if (s.src == SEMT_RVAL)
+			if (s.src == Cursor_Rval)
 				continue;
 			sd = Visit(s);
 			if (!sd)
@@ -402,16 +411,16 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		PopScope();
 		break;
 		
-	case SEMT_LOOP:
-	case SEMT_CHAIN:
-	case SEMT_ATOM:
-	case SEMT_MACHINE:
-	case SEMT_LOOP_DECL:
-	case SEMT_WORLD:
-	case SEMT_SYSTEM:
-	case SEMT_POOL:
-	case SEMT_DRIVER:
-	case SEMT_STATE:
+	case Cursor_LoopStmt:
+	case Cursor_ChainStmt:
+	case Cursor_AtomStmt:
+	case Cursor_MachineStmt:
+	case Cursor_LoopDecl:
+	case Cursor_WorldStmt:
+	case Cursor_SystemStmt:
+	case Cursor_PoolStmt:
+	case Cursor_DriverStmt:
+	case Cursor_StateStmt:
 		d = Merge(n);
 		PushScope(*d);
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
@@ -425,8 +434,8 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d->rval = builtin_void;
 		break;
 		
-	case SEMT_ENTITY:
-	case SEMT_COMPONENT:
+	case Cursor_EntityStmt:
+	case Cursor_ComponentStmt:
 		d = AddDuplicate(n);
 		PushScope(*d);
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
@@ -440,36 +449,36 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d->rval = builtin_void;
 		break;
 		
-	case SEMT_BUILTIN:
-	case SEMT_FUNCTION_BUILTIN:
+	case Cursor_Builtin:
+	case Cursor_FunctionBuiltin:
 		d = Merge(n);
 		break;
 	
-	case SEMT_META_BUILTIN:
+	case Cursor_MetaBuiltin:
 		d = builtin_void;
 		break;
 	
-	case SEMT_META_VARIABLE:
+	case Cursor_MetaVariable:
 		d = DeclareMetaVariable(n);
 		break;
 		
-	case SEMT_META_CTOR:
+	case Cursor_MetaCtor:
 		d = VisitMetaCtor(n);
 		break;
 		
-	case SEMT_META_FUNCTION_STATIC:
+	case Cursor_MetaStaticFunction:
 		d = VisitMetaStaticFunction(n);
 		break;
 		
-	case SEMT_UNRESOLVED:
-	case SEMT_META_PARAMETER:
+	case Cursor_Unresolved:
+	case Cursor_MetaParameter:
 		d = AddDuplicate(n);
 		if (!d)
 			return 0;
 		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
 			for (const AstNode& s : n.val.Sub<AstNode>()) {
-				if (s.src == SEMT_RVAL)
+				if (s.src == Cursor_Rval)
 					continue;
 				sd = Visit(s);
 				if (!sd)
@@ -482,15 +491,15 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		break;
 		
 	
-	case SEMT_FUNCTION_STATIC:
-	case SEMT_VARIABLE:
+	case Cursor_StaticFunction:
+	case Cursor_VarDecl:
 		d = Merge(n);
 		if (!d)
 			return 0;
 		if (!n.val.Sub<AstNode>().IsEmpty()) {
 			PushScope(*d);
 			for (const AstNode& s : n.val.Sub<AstNode>()) {
-				if (s.src == SEMT_RVAL)
+				if (s.src == Cursor_Rval)
 					continue;
 				sd = Visit(s);
 				if (!sd)
@@ -502,7 +511,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		}
 		break;
 		
-	case SEMT_STATEMENT_BLOCK:
+	case Cursor_CompoundStmt:
 		d = Merge(n);
 		if (!d)
 			return 0;
@@ -514,7 +523,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		}
 		break;
 		
-	case SEMT_IDPART:
+	case Cursor_NamePart:
 		if (n.val.id.IsEmpty()) {
 			AddError(n.loc, "internal error: no name");
 			return 0;
@@ -531,7 +540,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		d->rval = builtin_void;
 		break;
 		
-	case SEMT_EXPR:
+	case Cursor_Expr:
 		d = AddDuplicate(n);
 		if (!d)
 			return 0;
@@ -553,15 +562,15 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		PushScope(*d);
 		CHECK_SPATH_END
 		
-		if (d->op == OP_CALL && d->arg[0] && d->arg[0]->src == SEMT_META_RVAL && d->arg[1]) {
+		if (d->op == OP_CALL && d->arg[0] && d->arg[0]->src == Cursor_MetaRval && d->arg[1]) {
 			if (!VisitMetaCall(*d, *d->arg[0], *d->arg[1]))
 				return 0;
 		}
-		else if (d->arg[0] && d->arg[0]->src == SEMT_META_RVAL)
+		else if (d->arg[0] && d->arg[0]->src == Cursor_MetaRval)
 			TODO
 		break;
 		
-	case SEMT_ARGUMENT_LIST:
+	case Cursor_ArgumentList:
 		d = Merge(n);
 		if (!d)
 			return 0;
@@ -571,7 +580,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 			CHECK_SPATH_BEGIN
 			
 			for (const AstNode& s : n.val.Sub<AstNode>()) {
-				if (s.src == SEMT_ARGUMENT || s.IsPartially(SEMT_META_ANY)) {
+				if (s.src == Cursor_Argument || s.IsPartially(Cursor_MetaDecl)) {
 					sd = Visit(s);
 					if (!sd)
 						return 0;
@@ -589,7 +598,7 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		PushScopeRVal(*d);
 		break;
 		
-	case SEMT_ARGUMENT:
+	case Cursor_Argument:
 		d = AddDuplicate(n);
 		if (!d)
 			return 0;
@@ -605,8 +614,8 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		}
 		break;
 		
-	case SEMT_CTOR:
-		if (n.type && n.type->IsPartially(SEMT_META_TYPE))
+	case Cursor_Ctor:
+		if (n.type && n.type->IsPartially(Cursor_MetaTypeDecl))
 			return VisitMetaCtor(n);
 		d = AddDuplicate(n);
 		if (!d)
@@ -628,21 +637,9 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		ASSERT(d->rval);
 		break;
 		
-	case SEMT_STATEMENT:
-		switch (n.stmt) {
-			case STMT_META_FOR: return VisitMetaFor(n);
-			case STMT_META_IF: return VisitMetaIf(n);
-			case STMT_META_ELSE: ASSERT_(0, "never call"); break;
-			default: break;
-		}
-		d = MergeStatement(n);
-		if (!d)
-			return 0;
-		break;
-	
-	case SEMT_RVAL:
+	case Cursor_Rval:
 		ASSERT(n.rval);
-		if (n.rval->IsPartially(SEMT_META_FIELD)) {
+		if (n.rval->IsPartially(Cursor_MetaValueDecl)) {
 			return VisitMetaRVal(n);
 		}
 		else {
@@ -651,14 +648,14 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 				return 0;
 			if (n.rval) {
 				AstNode* rval = n.rval;
-				while (rval && (rval->src == SEMT_RVAL || rval->src == SEMT_META_CTOR))
+				while (rval && (rval->src == Cursor_Rval || rval->src == Cursor_MetaCtor))
 					rval = rval->rval;
 				if (!rval) {
 					AddError(n.loc, "internal error: invalid rval");
 					return 0;
 				}
 				
-				if (rval->src == SEMT_META_RESOLVE) {
+				if (rval->src == Cursor_MetaResolve) {
 					d->rval = VisitMetaResolve(*rval);
 				}
 				else {
@@ -670,8 +667,8 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 					return 0;
 				}
 				
-				if (d->rval->src != SEMT_IDPART && d->rval->IsPartially(SEMT_META_ANY))
-					d->src = SEMT_META_RVAL;
+				if (d->rval->src != Cursor_NamePart && d->rval->IsPartially(Cursor_MetaDecl))
+					d->src = Cursor_MetaRval;
 			}
 			else TODO
 			PushScopeRVal(*d);
@@ -679,31 +676,44 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 		}
 		break;
 		
-	case SEMT_CONSTANT:
+	case Cursor_Literal:
 		d = AddDuplicate(n);
 		if (!d)
 			return 0;
 		PushScopeRVal(*d);
 		break;
 	
-	case SEMT_PARAMETER:
+	case Cursor_ParmDecl:
 		d = &GetTopNode().Add(n.loc, n.val.id);
 		d->CopyFrom(this, n);
-		d->src = SEMT_OBJECT;
+		d->src = Cursor_Object;
 		break;
 	
-	case SEMT_RESOLVE:
+	case Cursor_Resolve:
 		return VisitResolve(n);
 	
-	case SEMT_NULL:
-	case SEMT_NAMESPACE:
-	case SEMT_TYPEDEF:
-	case SEMT_CLASS_DECL:
-	case SEMT_CLASS:
-	case SEMT_CLASS_TEMPLATE:
-	case SEMT_FUNCTION_METHOD:
-	case SEMT_ARRAYSIZE:
+	case Cursor_Null:
+	case Cursor_Namespace:
+	case Cursor_TypedefDecl:
+	case Cursor_ClassDecl:
+	case Cursor_ClassTemplate:
+	case Cursor_CXXMethod:
+	case Cursor_ArraySize:
+		TODO
+		break;
+		
+	case Cursor_MetaForStmt:
+		return VisitMetaFor(n);
+		
+	case Cursor_MetaIfStmt:
+		return VisitMetaIf(n);
+		
+	case Cursor_MetaElseStmt: ASSERT_(0, "never call"); break;
+	
 	default:
+		if (IsPartially(n.src, Cursor_Stmt))
+			return MergeStatement(n);
+		
 		TODO
 	}
 	
@@ -719,15 +729,15 @@ AstNode* AstRunner::AddDuplicate(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
-	if (!n.rval || !n.rval->IsPartially(SEMT_META_FIELD)) {ASSERT(0); return 0;}
+	if (!n.rval || !n.rval->IsPartially(Cursor_MetaValueDecl)) {ASSERT(0); return 0;}
 	
 	const AstNode& ref = *n.rval;
 	
-	if (ref.src == SEMT_META_VARIABLE || ref.src == SEMT_META_PARAMETER) {
+	if (ref.src == Cursor_MetaVariable || ref.src == Cursor_MetaParameter) {
 		ASSERT(ref.val.id.GetCount());
 		AstNode* o = FindStackWithPrev(&ref);
 		ASSERT(o);
-		while (o && o->src == SEMT_RVAL)
+		while (o && o->src == Cursor_Rval)
 			o = o->rval;
 		if (!o) {
 			AddError(n.loc, "internal error: no object");
@@ -736,10 +746,10 @@ AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
 		AstNode& owner = GetNonLockedOwner();
 		AstNode& d = owner.Add(n.loc);
 		
-		if (o->src == SEMT_CONSTANT) {
+		if (o->src == Cursor_Literal) {
 			d.CopyFrom(this, *o);
 		}
-		else if (o->src == SEMT_OBJECT) {
+		else if (o->src == Cursor_Object) {
 			if (o->obj.IsVoid()) {
 				AddError(o->loc, "meta-object is not initalized yet");
 				return 0;
@@ -759,12 +769,12 @@ AstNode* AstRunner::VisitMetaRVal(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
-	ASSERT(n.src == SEMT_META_CTOR);
-	ASSERT(n.type && n.type->IsPartially(SEMT_META_TYPE));
+	ASSERT(n.src == Cursor_MetaCtor);
+	ASSERT(n.type && n.type->IsPartially(Cursor_MetaTypeDecl));
 	ASSERT(n.rval);
 	
 	AstNode& var = *n.rval;
-	const AstNode* args = n.Find(SEMT_ARGUMENT_LIST);
+	const AstNode* args = n.Find(Cursor_ArgumentList);
 	if (!args) {
 		TODO
 	}
@@ -776,7 +786,7 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 	{
 		// Kinda hack: to allow finding node with ".prev == &n"
 		AstNode* d = Merge(n);
-		d->src = SEMT_RVAL;
+		d->src = Cursor_Rval;
 		d->rval = o;
 		d->val.id = var.val.id;
 		ASSERT(o);
@@ -785,7 +795,7 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 	int arg_count = 0;
 	const AstNode* arg = 0;
 	for (const AstNode& s : args->val.Sub<AstNode>()) {
-		if (s.src == SEMT_ARGUMENT) {
+		if (s.src == Cursor_Argument) {
 			arg = &s;
 			arg_count++;
 		}
@@ -795,10 +805,10 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 		ASSERT(arg->rval);
 		AstNode& argvar = *arg->rval;
 		
-		if (argvar.src == SEMT_CONSTANT) {
+		if (argvar.src == Cursor_Literal) {
 			argvar.CopyToValue(o->obj);
 		}
-		else if (argvar.src == SEMT_EXPR) {
+		else if (argvar.src == Cursor_Expr) {
 			AstNode* argval = Evaluate(argvar);
 			if (!argval)
 				return 0;
@@ -815,7 +825,7 @@ AstNode* AstRunner::VisitMetaCtor(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaStaticFunction(const AstNode& n) {
-	ASSERT(n.src == SEMT_META_FUNCTION_STATIC);
+	ASSERT(n.src == Cursor_MetaStaticFunction);
 	
 	AstNode* d = Merge(n);
 	if (!d)
@@ -825,8 +835,8 @@ AstNode* AstRunner::VisitMetaStaticFunction(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitResolve(const AstNode& n) {
-	ASSERT(n.src == SEMT_RESOLVE);
-	ASSERT(n.filter != SEMT_NULL);
+	ASSERT(n.src == Cursor_Resolve);
+	ASSERT(n.filter != Cursor_Null);
 	ASSERT(!n.id.IsEmpty());
 	
 	AstNode* decl = FindDeclaration(n.id, n.filter);
@@ -835,10 +845,10 @@ AstNode* AstRunner::VisitResolve(const AstNode& n) {
 		return 0;
 	}
 	
-	if (decl->src == SEMT_META_FUNCTION_STATIC) {
+	if (decl->src == Cursor_MetaStaticFunction) {
 		AstNode& rval = GetTopNode().Add(n.loc);
 		rval.CopyFrom(this, n);
-		rval.src = SEMT_META_RVAL;
+		rval.src = Cursor_MetaRval;
 		rval.rval = decl;
 		PushScopeRVal(rval);
 		return &rval;
@@ -850,14 +860,14 @@ AstNode* AstRunner::VisitResolve(const AstNode& n) {
 bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 	AstNode& block = GetBlock();
 	AstNode& owner = GetNonLockedOwner();
-	ASSERT(block.src == SEMT_STATEMENT_BLOCK);
+	ASSERT(block.src == Cursor_CompoundStmt);
 	ASSERT(&n != &block);
 	int dbg_count = 0;
 	
 	if (!n.val.Sub<AstNode>().IsEmpty()) {
 		int dbg_i = 0;
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
-			if (s.src == SEMT_STATEMENT && (s.stmt == Cursor_ElseStmt || s.stmt == STMT_META_ELSE))
+			if (s.src == Cursor_ElseStmt || s.src == Cursor_MetaElseStmt)
 				continue;
 			
 			int prev_count = block.val.Sub<AstNode>().GetCount();
@@ -884,7 +894,7 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 			bool added = block.val.Sub<AstNode>().GetCount() > prev_count;
 			if (added) dbg_count++;
 			
-			if (s.src == SEMT_STATEMENT && s.stmt == Cursor_ReturnStmt) {ASSERT(added);}
+			if (s.src == Cursor_ReturnStmt) {ASSERT(added);}
 			
 			ASSERT(&GetBlock() == &block);
 			CHECK_SPATH_END
@@ -929,7 +939,7 @@ AstNode* AstRunner::VisitReturn(const AstNode& n) {
 }
 
 AstNode* AstRunner::VisitMetaResolve(const AstNode& n) {
-	ASSERT(n.src == SEMT_META_RESOLVE);
+	ASSERT(n.src == Cursor_MetaResolve);
 	
 	if (n.id.part_count == 0) {
 		AddError(n.loc, "internal error: empty id");
@@ -941,14 +951,14 @@ AstNode* AstRunner::VisitMetaResolve(const AstNode& n) {
 	for (const Token* tk = n.id.begin ; tk != n.id.end; tk++) {
 		if (tk->type == TK_ID) {
 			if (n.id.is_meta[part_i]) {
-				AstNode* a = FindStackName2(tk->str_value, n.filter, SEMT_RVAL);
-				while (a && a->src == SEMT_RVAL)
+				AstNode* a = FindStackName2(tk->str_value, n.filter, Cursor_Rval);
+				while (a && a->src == Cursor_Rval)
 					a = a->rval;
 				if (!a) {
 					AddError(n.loc, "meta-field '" + tk->str_value + "' not found");
 					return 0;
 				}
-				if (a->src == SEMT_OBJECT) {
+				if (a->src == Cursor_Object) {
 					String s = a->obj.ToString();
 					if (s.IsEmpty()) {
 						AddError(n.loc, "meta-object '" + tk->str_value + "' gave empty string");
@@ -970,17 +980,17 @@ AstNode* AstRunner::VisitMetaResolve(const AstNode& n) {
 	AstNode* rval = FindDeclaration(parts);
 	
 	AstNode* d = AddDuplicate(n);
-	d->src = SEMT_RVAL;
+	d->src = Cursor_Rval;
 	d->rval = rval;
 	
 	return d;
 }
 
 bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
-	if (rval.src == SEMT_META_RVAL && args.src == SEMT_ARGUMENT_LIST) {
+	if (rval.src == Cursor_MetaRval && args.src == Cursor_ArgumentList) {
 		const AstNode& fn = *rval.rval->prev;
 		AstNode& ret_type = *fn.type;
-		ASSERT(fn.src == SEMT_META_FUNCTION_STATIC);
+		ASSERT(fn.src == Cursor_MetaStaticFunction);
 		fn.locked = true;
 		
 		bool req_rval = false;
@@ -988,7 +998,7 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			req_rval = true;
 		
 		AstNode* call = AddDuplicate(fn);
-		call->src = SEMT_STATEMENT_BLOCK;
+		call->src = Cursor_CompoundStmt;
 		call->i64 = 1; // skip indent
 		call->prev = 0; // to prevent wrong match
 		PushScope(*call, true);
@@ -1005,11 +1015,11 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 		Vector<const AstNode*> param_ptrs;
 		
 		for (AstNode& arg : args.val.Sub<AstNode>()) {
-			if (arg.src != SEMT_ARGUMENT) continue;
+			if (arg.src != Cursor_Argument) continue;
 			arg_ptrs.Add(&arg);
 		}
 		for (const AstNode& param : fn.val.Sub<AstNode>()) {
-			if (param.src != SEMT_META_PARAMETER) continue;
+			if (param.src != Cursor_MetaParameter) continue;
 			param_ptrs.Add(&param);
 		}
 		if (arg_ptrs.GetCount() != param_ptrs.GetCount()) {
@@ -1024,7 +1034,7 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			ASSERT(param.val.id.GetCount());
 			AstNode& ao = call->Add(param.loc, param.val.id);
 			ao.CopyFrom(this, param);
-			ao.src = SEMT_RVAL;
+			ao.src = Cursor_Rval;
 			
 			if (!arg.rval) {
 				AddError(arg.loc, "internal error: expected argument expression");
@@ -1040,7 +1050,7 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			ASSERT(ao.rval);
 		}
 		
-		const AstNode* block = fn.Find(SEMT_STATEMENT_BLOCK);
+		const AstNode* block = fn.Find(Cursor_CompoundStmt);
 		if (!block) {
 			AddError(fn.loc, "internal error: function has no statement block");
 			return false;
@@ -1065,16 +1075,16 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 			return false;
 		}
 		
-		CodeCursor filter = SEMT_NULL;
+		CodeCursor filter = Cursor_Null;
 		if (d.type) {
 			if (d.type == meta_builtin_expr) {
-				d.src = SEMT_RVAL;
+				d.src = Cursor_Rval;
 				d.rval = dup_block->rval;
 				ASSERT(d.rval);
 				
 			}
 			else if (d.type == meta_builtin_loopstmt) {
-				d.src = SEMT_SYMBOLIC_LINK;
+				d.src = Cursor_SymlinkStmt;
 				d.rval = dup_block;
 			}
 			else if (!req_rval) {
@@ -1090,17 +1100,17 @@ bool AstRunner::VisitMetaCall(AstNode& d, AstNode& rval, AstNode& args) {
 }
 
 AstNode* AstRunner::DeclareMetaVariable(const AstNode& n) {
-	if (n.src == SEMT_META_VARIABLE) {
+	if (n.src == Cursor_MetaVariable) {
 		ASSERT(n.val.id.GetCount());
 		AstNode& block = GetBlock();
-		if (block.Find(n.val.id, SEMT_OBJECT)) {
+		if (block.Find(n.val.id, Cursor_Object)) {
 			AddError(n.loc, "meta-variable '" + n.val.id + "' have already been declared");
 			return 0;
 		}
 		
 		AstNode& d = block.Add(n.loc, n.val.id);
 		d.CopyFrom(this, n);
-		d.src = SEMT_OBJECT;
+		d.src = Cursor_Object;
 		return &d;
 	}
 	else TODO;
@@ -1109,13 +1119,13 @@ AstNode* AstRunner::DeclareMetaVariable(const AstNode& n) {
 
 AstNode* AstRunner::Evaluate(const AstNode& n) {
 	
-	if (n.src == SEMT_STATEMENT) {
-		if (n.stmt == STMT_EXPR ||
-			n.stmt == STMT_META_FOR_COND ||
-			n.stmt == STMT_META_FOR_POST) {
+	if (IsPartially(n.src, Cursor_Stmt)) {
+		if (n.src == Cursor_ExprStmt ||
+			n.src == Cursor_MetaForStmt_Conditional ||
+			n.src == Cursor_MetaForStmt_Post) {
 			for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 				const AstNode& e = it;
-				if (e.src == SEMT_EXPR) {
+				if (e.src == Cursor_Expr) {
 					return Evaluate(e);
 				}
 				else TODO
@@ -1125,18 +1135,18 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 			TODO
 		}
 	}
-	else if (n.src == SEMT_EXPR) {
+	else if (n.src == Cursor_Expr) {
 		if (n.op == OP_POSTINC || n.op == OP_POSTDEC) {
 			AstNode* a = n.arg[0];
-			while (a && a->src == SEMT_RVAL) {
+			while (a && a->src == Cursor_Rval) {
 				a = a->rval;
 			}
 			if (a) {
 				AstNode* o = FindStackWithPrev(a); // from previous phase to AstRunner phase
-				if (o && o->src == SEMT_OBJECT) {
+				if (o && o->src == Cursor_Object) {
 					AstNode* r = &GetTopNode().Add(n.loc);
 					r->CopyFrom(this, n);
-					r->src = SEMT_CONSTANT;
+					r->src = Cursor_Literal;
 					r->CopyFromValue(n.loc, o->obj);
 					
 					o->obj = (int64)o->obj + (int64)(n.op == OP_POSTINC ? 1 : -1);
@@ -1148,7 +1158,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 		
 		AstNode* d = AddDuplicate(n);
 		if (!d) return 0;
-		d->src = SEMT_OBJECT;
+		d->src = Cursor_Object;
 		Value& o = d->obj;
 		
 		Value a[AstNode::ARG_COUNT];
@@ -1164,9 +1174,9 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 				return 0;
 			d->arg[i] = r;
 			
-			if (r->src == SEMT_CONSTANT)
+			if (r->src == Cursor_Literal)
 				r->CopyToValue(a[i]);
-			else if (r->src == SEMT_OBJECT)
+			else if (r->src == Cursor_Object)
 				a[i] = r->obj;
 			else
 				TODO
@@ -1216,7 +1226,7 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 		
 		return d;
 	}
-	else if (n.src == SEMT_CONSTANT) {
+	else if (n.src == Cursor_Literal) {
 		AstNode* d = FindStackWithPrev(&n);
 		if (d)
 			return d;
@@ -1224,19 +1234,19 @@ AstNode* AstRunner::Evaluate(const AstNode& n) {
 		d->CopyFrom(this, n);
 		return d;
 	}
-	else if (n.src == SEMT_RVAL) {
+	else if (n.src == Cursor_Rval) {
 		ASSERT(n.rval);
 		AstNode* rval = FindStackWithPrev(n.rval);
-		while (rval && rval->src == SEMT_RVAL)
+		while (rval && rval->src == Cursor_Rval)
 			rval = rval->rval;
 		if (!rval) {
 			AddError(n.loc, "internal error: incomplete rval");
 			return 0;
 		}
-		else if (rval->src == SEMT_OBJECT) {
+		else if (rval->src == Cursor_Object) {
 			return rval;
 		}
-		else if (rval->src == SEMT_CONSTANT) {
+		else if (rval->src == Cursor_Literal) {
 			return rval;
 		}
 		else TODO

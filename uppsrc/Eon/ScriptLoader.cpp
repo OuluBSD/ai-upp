@@ -291,14 +291,14 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 	
 	// Serial machine part
 	Vector<Endpoint> items;
-	n->FindAllNonIdEndpoints(items, SEMT_MACH_ANY);
+	n->FindAllNonIdEndpoints(items, Cursor_MetaDecl);
 	Sort(items, AstNodeLess());
 	
 	bool has_machine = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == SEMT_MACHINE) {
-			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
+		if (item->src == Cursor_MachineDecl) {
+			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
 			Eon::MachineDefinition& mach_def = def.machs.Add();
@@ -311,7 +311,7 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 				return false;
 			has_machine = true;
 		}
-		else if (item->src == SEMT_ENGINE) {
+		else if (item->src == Cursor_EngineStmt) {
 			TODO
 		}
 	}
@@ -324,15 +324,15 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 	
 	// Entity machine / ecs-engine part
 	items.SetCount(0);
-	n->FindAllNonIdEndpoints(items, SEMT_ECS_ANY);
+	n->FindAllNonIdEndpoints(items, Cursor_EcsStmt);
 	Sort(items, AstNodeLess());
 	
 	bool has_world = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
 		LOG(item->GetTreeString(0));
-		if (item->src == SEMT_WORLD) {
-			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
+		if (item->src == Cursor_WorldStmt) {
+			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
 			Eon::WorldDefinition& world_def = def.worlds.Add();
@@ -345,7 +345,7 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 				return false;
 			has_world = true;
 		}
-		else if (item->src == SEMT_SYSTEM) {
+		else if (item->src == Cursor_SystemStmt) {
 			TODO
 		}
 	}
@@ -357,7 +357,7 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	LOG(n->GetTreeString());
 	Vector<Endpoint> items;
-	n->FindAllNonIdEndpoints2(items, SEMT_ECS_ANY, SEMT_MACH_ANY);
+	n->FindAllNonIdEndpoints2(items, Cursor_EcsStmt, Cursor_OldEcsStmt);
 	Sort(items, AstNodeLess());
 	
 	if (items.IsEmpty()) {
@@ -370,7 +370,7 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == SEMT_CHAIN) {
+		if (item->src == Cursor_ChainStmt) {
 			Eon::ChainDefinition& chain_def = def.chains.Add();
 			
 			if (!GetPathId(chain_def.id, n, item))
@@ -378,11 +378,11 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			
 			ASSERT(!chain_def.id.IsEmpty());
 			
-			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
+			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
 			Vector<Endpoint> items;
-			block->FindAllNonIdEndpoints(items, SEMT_CHAIN);
+			block->FindAllNonIdEndpoints(items, Cursor_ChainStmt);
 			if (items.IsEmpty()) {
 				if (!LoadChain(chain_def, block))
 					return false;
@@ -392,7 +392,7 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			}
 			has_chain = true;
 		}
-		else if (item->src == SEMT_DRIVER || item->src == SEMT_LOOP) {
+		else if (item->src == Cursor_DriverStmt || item->src == Cursor_LoopStmt) {
 			if (!anon_chain)
 				anon_chain = &def.chains.Add();
 			
@@ -412,7 +412,7 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 
 bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 	Vector<Endpoint> items;
-	n->FindAllNonIdEndpoints(items, SEMT_ECS_ANY);
+	n->FindAllNonIdEndpoints(items, Cursor_EcsStmt);
 	Sort(items, AstNodeLess());
 	
 	if (items.IsEmpty()) {
@@ -425,7 +425,7 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == SEMT_POOL) {
+		if (item->src == Cursor_PoolStmt) {
 			Eon::PoolDefinition& pool_def = def.pools.Add();
 			
 			if (!GetPathId(pool_def.id, n, item))
@@ -433,11 +433,11 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 			
 			ASSERT(!pool_def.id.IsEmpty());
 			
-			AstNode* block = item->Find(SEMT_STATEMENT_BLOCK);
+			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
 			
 			Vector<Endpoint> items;
-			block->FindAllNonIdEndpoints(items, SEMT_POOL);
+			block->FindAllNonIdEndpoints(items, Cursor_PoolStmt);
 			if (items.IsEmpty()) {
 				if (!LoadPool(pool_def, block))
 					return false;
@@ -447,7 +447,7 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 			}
 			has_chain = true;
 		}
-		else if (item->src == SEMT_SYSTEM) {
+		else if (item->src == Cursor_SystemStmt) {
 			Eon::EcsSysDefinition& sys_def = def.systems.Add();
 			
 			if (!GetPathId(sys_def.id, n, item))
@@ -488,13 +488,13 @@ bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> items;
 	
-	n->FindAll(items, SEMT_ENTITY);
-	n->FindAll(items, SEMT_POOL);
+	n->FindAll(items, Cursor_EntityStmt);
+	n->FindAll(items, Cursor_PoolStmt);
 	Sort(items, AstNodeLess());
 	
 	for (Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == SEMT_POOL) {
+		if (item->src == Cursor_PoolStmt) {
 			Eon::PoolDefinition& pool_def = def.pools.Add();
 			pool_def.loc = item->loc;
 			
@@ -504,7 +504,7 @@ bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 			if (!LoadPool(pool_def, item))
 				return false;
 		}
-		else if (item->src == SEMT_ENTITY) {
+		else if (item->src == Cursor_EntityStmt) {
 			Eon::EntityDefinition& ent_def = def.ents.Add();
 			ent_def.loc = item->loc;
 			
@@ -537,7 +537,7 @@ bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> items;
 	
-	n->FindAll(items, SEMT_COMPONENT);
+	n->FindAll(items, Cursor_ComponentStmt);
 	Sort(items, AstNodeLess());
 	
 	for (Endpoint& ep : items) {
@@ -570,13 +570,13 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
 	
-	n->FindAll(loops, SEMT_DRIVER); // subset of loops
-	n->FindAll(loops, SEMT_LOOP);
+	n->FindAll(loops, Cursor_DriverStmt); // subset of loops
+	n->FindAll(loops, Cursor_LoopStmt);
 	Sort(loops, AstNodeLess());
 	
 	for (Endpoint& ep : loops) {
 		AstNode* loop = ep.n;
-		bool is_driver = loop->src == SEMT_DRIVER;
+		bool is_driver = loop->src == Cursor_DriverStmt;
 		
 		Eon::LoopDefinition& loop_def = chain.loops.Add();
 		loop_def.loc = loop->loc;
@@ -585,14 +585,14 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		if (!GetPathId(loop_def.id, n, loop))
 			return false;
 		
-		AstNode* stmt_block = loop->Find(SEMT_STATEMENT_BLOCK);
+		AstNode* stmt_block = loop->Find(Cursor_CompoundStmt);
 		if (!stmt_block) {
 			AddError(loop->loc, "loop has no statement-block");
 			return false;
 		}
 		
 		atoms.SetCount(0);
-		stmt_block->FindAll(atoms, SEMT_ATOM);
+		stmt_block->FindAll(atoms, Cursor_AtomStmt);
 		Sort(atoms, AstNodeLess());
 		
 		if (atoms.IsEmpty()) {
@@ -649,7 +649,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 				atom_def.link = link;
 				
 				conns.SetCount(0);
-				atom->FindAllStmt(conns, STMT_ATOM_CONNECTOR);
+				atom->FindAllStmt(conns, Cursor_AtomConnectorStmt);
 				Sort(conns, AstNodeLess());
 				if (!conns.IsEmpty()) {
 					int sink_conn_i = 0, src_conn_i = 0; // side ids start from 1, so this shouldn't be -1
@@ -666,7 +666,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							continue;
 						}
 							
-						AstNode* expr = conn->Find(SEMT_EXPR);
+						AstNode* expr = conn->Find(Cursor_Expr);
 						if (!expr) {
 							AddError(conn->loc, "internal error: no expression");
 							return false;
@@ -681,21 +681,21 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							
 							AstNode* a0 = expr->arg[0];
 							AstNode* a1 = expr->arg[1];
-							while (a0->src == SEMT_RVAL && a0->rval) a0 = a0->rval;
-							while (a1->src == SEMT_RVAL && a1->rval) a1 = a1->rval;
+							while (a0->src == Cursor_Rval && a0->rval) a0 = a0->rval;
+							while (a1->src == Cursor_Rval && a1->rval) a1 = a1->rval;
 							String key;
-							if (a0->src == SEMT_VARIABLE) {
+							if (a0->src == Cursor_VarDecl) {
 								key = a0->val.id;
 							}
-							else if (a0->src == SEMT_UNRESOLVED) {
+							else if (a0->src == Cursor_Unresolved) {
 								key = a0->str;
 							}
 							if (key.GetCount()) {
-								if (a1->src == SEMT_CONSTANT) {
+								if (a1->src == Cursor_Literal) {
 									a1->CopyToValue(cand.req_args.GetAdd(key));
 									succ = true;
 								}
-								else if (a1->src == SEMT_UNRESOLVED) {
+								else if (a1->src == Cursor_Unresolved) {
 									cand.req_args.GetAdd(key) = a1->str;
 									succ = true;
 								}
@@ -843,7 +843,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	}
 	
 	
-	n->FindAll(states, SEMT_STATE);
+	n->FindAll(states, Cursor_StateStmt);
 	Sort(states, AstNodeLess());
 	for (Endpoint& ep : states) {
 		AstNode* state = ep.n;
@@ -862,8 +862,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	if (!n)
 		return true; // only failed statements returns false
 	
-	if (n->src != SEMT_STATEMENT_BLOCK) {
-		AstNode* block = n->Find(SEMT_STATEMENT_BLOCK);
+	if (n->src != Cursor_CompoundStmt) {
+		AstNode* block = n->Find(Cursor_CompoundStmt);
 		return LoadArguments(args, block);
 	}
 	
@@ -871,39 +871,37 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	Vector<Endpoint> stmts;
 	
 	for (AstNode& stmt : block->val.Sub<AstNode>()) {
-		if (stmt.src != SEMT_STATEMENT || stmt.stmt == STMT_ATOM_CONNECTOR) continue;
+		if (!IsPartially(stmt.src, Cursor_Stmt) || stmt.src == Cursor_AtomConnectorStmt)
+			continue;
 		
 		static int dbg_i;
 		bool succ = false;
-		if (stmt.stmt == STMT_EXPR) {
+		if (stmt.src == Cursor_ExprStmt) {
 			if (stmt.rval) {
 				AstNode* r = stmt.rval;
-				while (r->src == SEMT_RVAL && r->rval) r = r->rval;
+				while (r->src == Cursor_Rval && r->rval) r = r->rval;
 				AstNode& rval = *r;
 				
-				if (rval.src == SEMT_EXPR) {
+				if (rval.src == Cursor_Expr) {
 					if (rval.op == OP_ASSIGN) {
 						dbg_i++;
-						if (dbg_i == 15) {
-							LOG("");
-						}
 						AstNode* key = rval.arg[0];
 						AstNode* value = rval.arg[1];
-						while (key->src == SEMT_RVAL && key->rval) key = key->rval;
-						while (value->src == SEMT_RVAL && value->rval) value = key->rval;
-						if (key->src == SEMT_UNRESOLVED && key->str.GetCount()) {
+						while (key->src == Cursor_Rval && key->rval) key = key->rval;
+						while (value->src == Cursor_Rval && value->rval) value = key->rval;
+						if (key->src == Cursor_Unresolved && key->str.GetCount()) {
 							String key_str = key->str;
-							if (value->src == SEMT_CONSTANT) {
+							if (value->src == Cursor_Literal) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
-							else if (value->src == SEMT_UNRESOLVED && value->str.GetCount()) {
+							else if (value->src == Cursor_Unresolved && value->str.GetCount()) {
 								args.GetAdd(key_str) = value->str;
 								succ = true;
 							}
-							else if (value->src == SEMT_EXPR) {
+							else if (value->src == Cursor_Expr) {
 								Value val_obj = EvaluateAstNodeValue(*value);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
@@ -913,9 +911,9 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 								TODO
 							}
 						}
-						else if (key->src == SEMT_VARIABLE) {
+						else if (key->src == Cursor_VarDecl) {
 							String key_str = key->val.id;
-							if (value->src == SEMT_CONSTANT) {
+							if (value->src == Cursor_Literal) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
@@ -936,8 +934,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						TODO
 					}
 				}
-				else if (rval.src == SEMT_STATEMENT_BLOCK ||
-						 rval.src == SEMT_SYMBOLIC_LINK) {
+				else if (rval.src == Cursor_CompoundStmt ||
+						 rval.src == Cursor_SymlinkStmt) {
 					if (!LoadArguments(args, &rval))
 						return false;
 					succ = true;

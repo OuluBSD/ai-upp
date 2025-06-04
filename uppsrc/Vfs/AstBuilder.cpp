@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 void SemanticParser::PushWorld(const FileLocation& loc, const PathIdentifier& name) {
 	AstNode& mach = DeclareRelative(name);
-	mach.src = SEMT_WORLD;
+	mach.src = Cursor_WorldStmt;
 	PushScope(mach);
 }
 
@@ -16,7 +16,7 @@ void SemanticParser::PopWorld(const FileLocation& loc) {
 
 AstNode* SemanticParser::PushClass(const FileLocation& loc, const PathIdentifier& name) {
 	AstNode& var = DeclareRelative(name);
-	var.src = SEMT_CLASS;
+	var.src = Cursor_ClassDecl;
 	
 	PushScope(var);
 	
@@ -29,7 +29,7 @@ void SemanticParser::PopClass(const FileLocation& loc) {
 
 AstNode* SemanticParser::PushFunction(const FileLocation& loc, AstNode& ret_type, const PathIdentifier& name) {
 	AstNode& var = DeclareRelative(name);
-	var.src = SEMT_FUNCTION_STATIC;
+	var.src = Cursor_StaticFunction;
 	var.type = &ret_type;
 	
 	PushScope(var);
@@ -39,7 +39,7 @@ AstNode* SemanticParser::PushFunction(const FileLocation& loc, AstNode& ret_type
 
 AstNode* SemanticParser::PushMetaFunction(const FileLocation& loc, AstNode& ret_type, const PathIdentifier& name) {
 	AstNode& var = DeclareRelative(name);
-	var.src = SEMT_META_FUNCTION_STATIC;
+	var.src = Cursor_MetaStaticFunction;
 	var.type = &ret_type;
 	
 	PushScope(var);
@@ -49,7 +49,7 @@ AstNode* SemanticParser::PushMetaFunction(const FileLocation& loc, AstNode& ret_
 
 void SemanticParser::Parameter(const FileLocation& loc, const PathIdentifier& type, const PathIdentifier& name) {
 	
-	AstNode* tn = FindDeclaration(type, SEMT_TYPE);
+	AstNode* tn = FindDeclaration(type, Cursor_TypeDecl);
 	if (!tn) {
 		DUMP(type);
 		AddError(loc, "internal error");
@@ -58,20 +58,20 @@ void SemanticParser::Parameter(const FileLocation& loc, const PathIdentifier& ty
 	
 	DUMP(name);
 	AstNode& var = DeclareRelative(name);
-	var.src = SEMT_PARAMETER;
+	var.src = Cursor_ParmDecl;
 	var.type = tn;
 	var.locked = true;
 }
 
 void SemanticParser::MetaParameter(const FileLocation& loc, const PathIdentifier& type, const PathIdentifier& name) {
-	AstNode* tn = FindDeclaration(type, SEMT_META_TYPE);
+	AstNode* tn = FindDeclaration(type, Cursor_MetaTypeDecl);
 	if (!tn) {
 		AddError(loc, "internal error");
 		return;
 	}
 	
 	AstNode& var = DeclareRelative(name);
-	var.src = SEMT_META_PARAMETER;
+	var.src = Cursor_MetaParameter;
 	var.type = tn;
 	var.locked = true;
 }
@@ -91,7 +91,7 @@ void SemanticParser::PopMetaFunction(const FileLocation& loc) {
 void SemanticParser::PushStatementList(const FileLocation& loc) {
 	AstNode& n = GetTopNode();
 	AstNode& stmt = n.Add(loc);
-	stmt.src = SEMT_STATEMENT_BLOCK;
+	stmt.src = Cursor_CompoundStmt;
 	
 	PushScope(stmt);
 }
@@ -100,11 +100,11 @@ void SemanticParser::PopStatementList(const FileLocation& loc) {
 	PopScope();
 }
 
-AstNode* SemanticParser::PushStatement(const FileLocation& loc, StmtType type) {
+AstNode* SemanticParser::PushStatement(const FileLocation& loc, CodeCursor type) {
+	ASSERT(IsPartially(type, Cursor_Stmt));
 	AstNode& n = GetTopNode();
 	AstNode& stmt = n.Add(loc);
-	stmt.src = SEMT_STATEMENT;
-	stmt.stmt = type;
+	stmt.src = type;
 	
 	PushScope(stmt);
 	
@@ -126,7 +126,7 @@ void SemanticParser::PopStatement(const FileLocation& loc, AstNode* rval) {
 AstNode* SemanticParser::PushConstructor(const FileLocation& loc, bool meta, AstNode& type, AstNode* var) {
 	AstNode& n = GetTopNode();
 	AstNode& stmt = n.Add(loc);
-	stmt.src = meta ? SEMT_META_CTOR : SEMT_CTOR;
+	stmt.src = meta ? Cursor_MetaCtor : Cursor_Ctor;
 	stmt.type = &type;
 	stmt.rval = var;
 	
@@ -142,9 +142,9 @@ void SemanticParser::PopConstructor(const FileLocation& loc) {
 	AstNode& ctor = GetTopNode();
 	PopScope();
 	AstNode& owner = GetTopNode();
-	if (owner.src == SEMT_STATEMENT) {
+	if (IsPartially(owner.src, Cursor_Stmt)) {
 		ASSERT(!owner.locked);
-		owner.stmt = STMT_CTOR;
+		owner.src = Cursor_CtorStmt;
 		owner.rval = &ctor;
 	}
 }
@@ -164,12 +164,12 @@ void SemanticParser::PopStatementParameter(const FileLocation& loc) {
 AstNode* SemanticParser::DeclareVariable(const FileLocation& loc, AstNode& type, const PathIdentifier& name) {
 	AstNode& block = GetBlock();
 	AstNode& var = Declare(block, name, true);
-	if (!var.IsPartially(SEMT_UNDEFINED)) {
+	if (!var.IsPartially(Cursor_Undefined)) {
 		AddError(loc, "'" + name.ToString() + "' is already declared");
 		return 0;
 	}
-	bool meta = type.IsPartially(SEMT_META_TYPE);
-	var.src = meta ? SEMT_META_VARIABLE : SEMT_VARIABLE;
+	bool meta = type.IsPartially(Cursor_MetaTypeDecl);
+	var.src = meta ? Cursor_MetaVariable : Cursor_VarDecl;
 	var.type = &type;
 	ASSERT(!var.val.id.IsEmpty());
 	
@@ -179,7 +179,7 @@ AstNode* SemanticParser::DeclareVariable(const FileLocation& loc, AstNode& type,
 void SemanticParser::DeclareMetaVariable(const FileLocation& loc, AstNode& type, const PathIdentifier& name) {
 	AstNode& block = GetBlock();
 	AstNode& var = Declare(block, name);
-	var.src = SEMT_META_VARIABLE;
+	var.src = Cursor_MetaVariable;
 	var.type = &type;
 	ASSERT(!var.val.id.IsEmpty());
 	
@@ -192,7 +192,7 @@ void SemanticParser::Variable(const FileLocation& loc, const AstNode& n, const P
 void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
-	r.src = SEMT_RESOLVE;
+	r.src = Cursor_Resolve;
 	r.filter = t;
 	
 	AstNode* d = FindDeclaration(id, t);
@@ -210,7 +210,7 @@ void SemanticParser::PushRvalResolve(const FileLocation& loc, const PathIdentifi
 void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
-	r.src = SEMT_UNRESOLVED;
+	r.src = Cursor_Unresolved;
 	r.filter = t;
 	r.str = id.ToString();
 	
@@ -220,7 +220,7 @@ void SemanticParser::PushRvalUnresolved(const FileLocation& loc, const PathIdent
 AstNode* SemanticParser::PushRvalArgumentList(const FileLocation& loc) {
 	AstNode& n = GetTopNode();
 	AstNode& r = n.Add(loc);
-	r.src = SEMT_ARGUMENT_LIST;
+	r.src = Cursor_ArgumentList;
 	
 	PushScopeRVal(r);
 	
@@ -232,9 +232,9 @@ void SemanticParser::Argument(const FileLocation& loc) {
 	ASSERT(c > 2);
 	AstNode& owner = *spath[c-2].n;
 	AstNode& a = *spath[c-1].n;
-	ASSERT(owner.src == SEMT_ARGUMENT_LIST);
+	ASSERT(owner.src == Cursor_ArgumentList);
 	AstNode& arg = owner.Add(loc);
-	arg.src = SEMT_ARGUMENT;
+	arg.src = Cursor_Argument;
 	arg.rval = &a;
 	ASSERT(arg.rval);
 	PopScope();
@@ -245,9 +245,9 @@ AstNode* SemanticParser::ArraySize(const FileLocation& loc) {
 	ASSERT(c > 2);
 	AstNode& owner = *spath[c-2].n;
 	AstNode& a = *spath[c-1].n;
-	ASSERT(owner.src == SEMT_CTOR);
+	ASSERT(owner.src == Cursor_Ctor);
 	AstNode& arg = owner.Add(loc);
-	arg.src = SEMT_ARRAYSIZE;
+	arg.src = Cursor_ArraySize;
 	arg.rval = &a;
 	PopScope();
 	return &arg;
@@ -260,7 +260,7 @@ AstNode* SemanticParser::PopExpr(const FileLocation& loc) {
 void SemanticParser::PushRval(const FileLocation& loc, AstNode& n) {
 	AstNode& t = GetTopNode();
 	AstNode& r = t.Add(loc);
-	r.src = SEMT_RVAL;
+	r.src = Cursor_Rval;
 	r.rval = &n;
 	
 	PushScopeRVal(r);
@@ -276,7 +276,7 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, const Token& t) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, bool v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_CONSTANT;
+	n.src = Cursor_Literal;
 	n.con = CONST_BOOL;
 	n.i64 = v;
 	PushScopeRVal(n);
@@ -284,7 +284,7 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, bool v) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, int32 v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_CONSTANT;
+	n.src = Cursor_Literal;
 	n.con = CONST_INT32;
 	n.i64 = v;
 	PushScopeRVal(n);
@@ -292,7 +292,7 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, int32 v) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, int64 v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_CONSTANT;
+	n.src = Cursor_Literal;
 	n.con = CONST_INT64;
 	n.i64 = v;
 	PushScopeRVal(n);
@@ -300,7 +300,7 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, int64 v) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, double v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_CONSTANT;
+	n.src = Cursor_Literal;
 	n.con = CONST_DOUBLE;
 	n.dbl = v;
 	PushScopeRVal(n);
@@ -308,7 +308,7 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, double v) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, String v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_CONSTANT;
+	n.src = Cursor_Literal;
 	n.con = CONST_STRING;
 	n.str = v;
 	PushScopeRVal(n);
@@ -321,7 +321,7 @@ void SemanticParser::Expr1(const FileLocation& loc, OpType op) {
 	
 	AstNode& owner = *spath[c-2].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = SEMT_EXPR;
+	expr.src = Cursor_Expr;
 	expr.op = op;
 	expr.arg[0] = arg0;
 	expr.i64 = 1;
@@ -337,7 +337,7 @@ void SemanticParser::Expr2(const FileLocation& loc, OpType op) {
 	
 	AstNode& owner = *spath[c-3].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = SEMT_EXPR;
+	expr.src = Cursor_Expr;
 	expr.op = op;
 	expr.arg[0] = arg0;
 	expr.arg[1] = arg1;
@@ -356,7 +356,7 @@ void SemanticParser::Expr3(const FileLocation& loc, OpType op) {
 	
 	AstNode& owner = *spath[c-4].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = SEMT_EXPR;
+	expr.src = Cursor_Expr;
 	expr.op = op;
 	expr.arg[0] = arg0;
 	expr.arg[1] = arg1;
@@ -369,7 +369,7 @@ void SemanticParser::Expr3(const FileLocation& loc, OpType op) {
 
 void SemanticParser::PushSystem(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_SYSTEM;
+	var.src = Cursor_SystemStmt;
 	
 	PushScope(var);
 	
@@ -381,7 +381,7 @@ void SemanticParser::PopSystem(const FileLocation& loc) {
 
 void SemanticParser::PushPool(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_POOL;
+	var.src = Cursor_PoolStmt;
 	
 	PushScope(var);
 	
@@ -393,7 +393,7 @@ void SemanticParser::PopPool(const FileLocation& loc) {
 
 void SemanticParser::PushEntity(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_ENTITY;
+	var.src = Cursor_EntityStmt;
 	
 	PushScope(var);
 	
@@ -405,7 +405,7 @@ void SemanticParser::PopEntity(const FileLocation& loc) {
 
 void SemanticParser::PushComponent(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_COMPONENT;
+	var.src = Cursor_ComponentStmt;
 	
 	PushScope(var);
 	
@@ -417,7 +417,7 @@ void SemanticParser::PopComponent(const FileLocation& loc) {
 
 void SemanticParser::PushMachine(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_MACHINE;
+	var.src = Cursor_MachineStmt;
 	
 	PushScope(var);
 	
@@ -429,7 +429,7 @@ void SemanticParser::PopMachine(const FileLocation& loc) {
 
 void SemanticParser::PushChain(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_CHAIN;
+	var.src = Cursor_ChainStmt;
 	
 	PushScope(var);
 	
@@ -441,7 +441,7 @@ void SemanticParser::PopChain(const FileLocation& loc) {
 
 AstNode* SemanticParser::PushLoop(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_LOOP;
+	var.src = Cursor_LoopStmt;
 	
 	PushScope(var);
 	
@@ -454,7 +454,7 @@ void SemanticParser::PopLoop(const FileLocation& loc) {
 
 AstNode* SemanticParser::PushAtom(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_ATOM;
+	var.src = Cursor_AtomStmt;
 	
 	PushScope(var);
 	
@@ -475,8 +475,7 @@ AstNode* SemanticParser::AddEmptyAtomConnector(const FileLocation& loc, int part
 	}
 	AstNode& owner = *spath[c-1].n;
 	AstNode& var = owner.Add(loc, str);
-	var.src = SEMT_STATEMENT;
-	var.stmt = STMT_ATOM_CONNECTOR;
+	var.src = Cursor_AtomConnectorStmt;
 	var.i64 = part;
 	
 	return &var;
@@ -492,8 +491,7 @@ AstNode* SemanticParser::PushAtomConnector(const FileLocation& loc, int part) {
 	}
 	AstNode& owner = *spath[c-1].n;
 	AstNode& var = owner.Add(loc, str);
-	var.src = SEMT_STATEMENT;
-	var.stmt = STMT_ATOM_CONNECTOR;
+	var.src = Cursor_AtomConnectorStmt;
 	var.i64 = part;
 	
 	PushScope(var);
@@ -507,7 +505,7 @@ void SemanticParser::PopAtomConnector(const FileLocation& loc) {
 
 void SemanticParser::PushState(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
-	var.src = SEMT_STATE;
+	var.src = Cursor_StateStmt;
 	
 	PushScope(var);
 	
@@ -521,7 +519,7 @@ void SemanticParser::PushCall(const FileLocation& loc) {
 	int c = spath.GetCount();
 	AstNode& owner = *spath[c-1].n;
 	AstNode& var = owner.Add(loc);
-	var.src = SEMT_EXPR;
+	var.src = Cursor_Expr;
 	var.op = OP_CALL;
 	var.i64 = 2;
 	
@@ -551,7 +549,7 @@ void SemanticParser::PopExprCallArgument(const FileLocation& loc, int arg_i) {
 	
 	AstNode& owner = *spath[c-2].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = SEMT_CALL_ARG;
+	expr.src = Cursor_CallArg;
 	expr.arg[0] = arg0;
 	
 	spath.SetCount(c-1);
@@ -559,7 +557,7 @@ void SemanticParser::PopExprCallArgument(const FileLocation& loc, int arg_i) {
 
 AstNode* SemanticParser::PartialMetaResolve(const FileLocation& loc, const PathIdentifier& id, CodeCursor t) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = SEMT_META_RESOLVE;
+	n.src = Cursor_MetaResolve;
 	n.id = id;
 	n.filter = t;
 	return &n;

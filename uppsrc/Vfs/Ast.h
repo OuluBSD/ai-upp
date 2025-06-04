@@ -35,7 +35,7 @@ struct AstNode :
 	Value obj;
 	
 	CodeCursor src = SEMT_NULL;
-	StmtType stmt = STMT_NULL;
+	StmtType stmt = Cursor_Null;
 	OpType op = OP_NULL;
 	ConstType con = CONST_NULL;
 	CodeCursor filter = SEMT_NULL;

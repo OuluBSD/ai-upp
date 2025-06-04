@@ -94,90 +94,6 @@ typedef uint64 CodeCursorPrimitive;
 
 struct AstNode;
 
-#if 1
-
-#else
-inline bool IsPath(const AstNode& a) {
-	TODO // SEMT_PATH
-	return false;
-}
-
-inline bool IsMetaPath(const AstNode& a) {
-	TODO // SEMT_META_PATH
-	return false;
-}
-
-inline bool IsFunctionAny(const AstNode& a) {
-	TODO // SEMT_FUNCTION
-	return false;
-}
-
-inline bool IsStatementAny(const AstNode& a) {
-	TODO // SEMT_STATEMENT
-	return false;
-}
-
-inline bool IsMetaAny(const AstNode& a) {
-	TODO // SEMT_META_ANY or SEMT_META
-	return false;
-}
-
-inline bool IsTypeAny(const AstNode& a) {
-	TODO // SEMT_TYPE
-	return false;
-}
-
-inline bool IsBlockAny(const AstNode& a) {
-	TODO // SEMT_BLOCK
-	return false;
-}
-
-inline bool IsUndefinedAny(const AstNode& a) {
-	TODO // SEMT_UNDEFINED
-	return false;
-}
-
-inline bool IsMetaFieldAny(const AstNode& a) {
-	TODO // SEMT_META_FIELD
-	return false;
-}
-
-inline bool IsFieldAny(const AstNode& a) {
-	TODO // SEMT_FIELD
-	return false;
-}
-
-inline bool IsMetaTypeAny(const AstNode& a) {
-	TODO // SEMT_META_TYPE
-	return false;
-}
-
-inline bool IsExprAny(const AstNode& a) {
-	TODO // SEMT_EXPR
-	return false;
-}
-
-inline bool IsCtorAny(const AstNode& a) {
-	TODO // SEMT_CTOR
-	return false;
-}
-
-inline bool IsMetaBuiltinAny(const AstNode& a) {
-	TODO // SEMT_META_BUILTIN
-	return false;
-}
-
-inline bool IsParameterPath(const AstNode& a) {
-	TODO // SEMT_PARAMETER_PATH
-	return false;
-}
-
-inline bool IsMetaFunctionAny(const AstNode& a) {
-	TODO // SEMT_META_FUNCTION
-	return false;
-}
-#endif
-
 inline String GetCodeCursorString(CodeCursor t) {
 	switch (t) {
 		case SEMT_NULL:					return "null";
@@ -249,26 +165,27 @@ bool IsRvalReturn(CodeCursor src);
 
 
 typedef enum {
-	STMT_NULL,
-	STMT_IF			= CXCursor_IfStmt,
-	STMT_DOWHILE	= CXCursor_DoStmt,
-	STMT_WHILE		= CXCursor_WhileStmt,
-	STMT_FOR		= CXCursor_ForStmt,
-	STMT_BREAK		= CXCursor_BreakStmt,
-	STMT_CONTINUE	= CXCursor_ContinueStmt,
-	STMT_CASE		= CXCursor_CaseStmt,
-	STMT_DEFAULT	= CXCursor_DefaultStmt,
-	STMT_RETURN		= CXCursor_ReturnStmt,
-	STMT_SWITCH		= CXCursor_SwitchStmt,
+	Cursor_Null,
+	Cursor_IfStmt			= CXCursor_IfStmt,
+	Cursor_DoStmt			= CXCursor_DoStmt,
+	Cursor_WhileStmt		= CXCursor_WhileStmt,
+	Cursor_ForStmt			= CXCursor_ForStmt,
+	Cursor_BreakStmt		= CXCursor_BreakStmt,
+	Cursor_ContinueStmt		= CXCursor_ContinueStmt,
+	Cursor_CaseStmt			= CXCursor_CaseStmt,
+	Cursor_DefaultStmt		= CXCursor_DefaultStmt,
+	Cursor_ReturnStmt		= CXCursor_ReturnStmt,
+	Cursor_SwitchStmt		= CXCursor_SwitchStmt,
+	Cursor_BlockExpr		= CXCursor_BlockExpr,
 	
 	STMT_VFS		= 3000,
 	
-	STMT_ELSE,
-	STMT_FOR_COND,
-	STMT_FOR_POST,
-	STMT_FOR_RANGE,
+	Cursor_ElseStmt,
+	Cursor_ForStmt_Conditional,
+	Cursor_ForStmt_PostOp,
+	Cursor_ForStmt_Range,
 	
-	STMT_BLOCK, // ??? CXCursor_BlockExpr
+	Cursor_BlockExpr,
 	STMT_EXPR,
 	STMT_ATOM_CONNECTOR,
 	STMT_CTOR,
@@ -312,22 +229,22 @@ typedef enum {
 
 inline String GetStmtTypeString(StmtType t) {
 	switch (t) {
-		case STMT_NULL: return "null";
-		case STMT_IF: return "if";
-		case STMT_ELSE: return "else";
-		case STMT_DOWHILE: return "do-while";
-		case STMT_WHILE: return "while";
-		case STMT_FOR: return "for";
-		case STMT_FOR_COND: return "for-conditional";
-		case STMT_FOR_POST: return "for-post";
-		case STMT_FOR_RANGE: return "for-range";
-		case STMT_BREAK: return "break";
-		case STMT_CONTINUE: return "continue";
-		case STMT_CASE: return "case";
-		case STMT_DEFAULT: return "default";
-		case STMT_RETURN: return "return";
-		case STMT_SWITCH: return "switch";
-		case STMT_BLOCK: return "block";
+		case Cursor_Null: return "null";
+		case Cursor_IfStmt: return "if";
+		case Cursor_ElseStmt: return "else";
+		case Cursor_DoStmt: return "do-while";
+		case Cursor_WhileStmt: return "while";
+		case Cursor_ForStmt: return "for";
+		case Cursor_ForStmt_Conditional: return "for-conditional";
+		case Cursor_ForStmt_PostOp: return "for-post";
+		case Cursor_ForStmt_Range: return "for-range";
+		case Cursor_BreakStmt: return "break";
+		case Cursor_ContinueStmt: return "continue";
+		case Cursor_CaseStmt: return "case";
+		case Cursor_DefaultStmt: return "default";
+		case Cursor_ReturnStmt: return "return";
+		case Cursor_SwitchStmt: return "switch";
+		case Cursor_BlockExpr: return "block";
 		case STMT_ATOM_CONNECTOR: return "atom-connector";
 		case STMT_CTOR: return "ctor";
 		case STMT_EXPR: return "expr";

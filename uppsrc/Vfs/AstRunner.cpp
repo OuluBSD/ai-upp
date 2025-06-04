@@ -275,7 +275,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 	if (n.src != SEMT_STATEMENT) return 0;
 	
 	switch (n.stmt) {
-	case STMT_RETURN:
+	case Cursor_ReturnStmt:
 		return VisitReturn(n);
 		
 	case STMT_EXPR:
@@ -310,7 +310,7 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		break;
 	
 	case STMT_ATOM_CONNECTOR:
-	case STMT_IF:
+	case Cursor_IfStmt:
 		d = AddDuplicate(n);
 		d->CopyFrom(this, n);
 		if (n.val.Sub<AstNode>().GetCount()) {
@@ -346,20 +346,20 @@ AstNode* AstRunner::MergeStatement(const AstNode& n) {
 		ASSERT(d->rval || n.rval->type->IsPartially(SEMT_META_ANY));
 		return d;
 		
-	case STMT_NULL:
-	case STMT_ELSE:
-	case STMT_DOWHILE:
-	case STMT_WHILE:
-	case STMT_FOR:
-	case STMT_FOR_COND:
-	case STMT_FOR_POST:
-	case STMT_FOR_RANGE:
-	case STMT_BREAK:
-	case STMT_CONTINUE:
-	case STMT_CASE:
-	case STMT_DEFAULT:
-	case STMT_SWITCH:
-	case STMT_BLOCK:
+	case Cursor_Null:
+	case Cursor_ElseStmt:
+	case Cursor_DoStmt:
+	case Cursor_WhileStmt:
+	case Cursor_ForStmt:
+	case Cursor_ForStmt_Conditional:
+	case Cursor_ForStmt_PostOp:
+	case Cursor_ForStmt_Range:
+	case Cursor_BreakStmt:
+	case Cursor_ContinueStmt:
+	case Cursor_CaseStmt:
+	case Cursor_DefaultStmt:
+	case Cursor_SwitchStmt:
+	case Cursor_BlockExpr:
 	default:
 		TODO
 		break;
@@ -857,7 +857,7 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 	if (!n.val.Sub<AstNode>().IsEmpty()) {
 		int dbg_i = 0;
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
-			if (s.src == SEMT_STATEMENT && (s.stmt == STMT_ELSE || s.stmt == STMT_META_ELSE))
+			if (s.src == SEMT_STATEMENT && (s.stmt == Cursor_ElseStmt || s.stmt == STMT_META_ELSE))
 				continue;
 			
 			int prev_count = block.val.Sub<AstNode>().GetCount();
@@ -884,7 +884,7 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 			bool added = block.val.Sub<AstNode>().GetCount() > prev_count;
 			if (added) dbg_count++;
 			
-			if (s.src == SEMT_STATEMENT && s.stmt == STMT_RETURN) {ASSERT(added);}
+			if (s.src == SEMT_STATEMENT && s.stmt == Cursor_ReturnStmt) {ASSERT(added);}
 			
 			ASSERT(&GetBlock() == &block);
 			CHECK_SPATH_END

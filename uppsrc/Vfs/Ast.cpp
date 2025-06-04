@@ -72,7 +72,7 @@ void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 	val.sub.Clear();
 	val.id.Clear();
 	src = SEMT_CONSTANT;
-	stmt = STMT_NULL;
+	stmt = Cursor_Null;
 	op = OP_NULL;
 	filter = SEMT_NULL;
 	i64 = 0;

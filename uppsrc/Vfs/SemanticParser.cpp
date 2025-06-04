@@ -374,7 +374,7 @@ bool SemanticParser::ParseStatement() {
 		return ParseMetaStatement(cookie);
 	}
 	else if (Id("if")) {
-		EMIT PushStatement(iter->loc, STMT_IF);
+		EMIT PushStatement(iter->loc, Cursor_IfStmt);
 		
 		if (!(link = ParseExpression(false))) return false;
 		if (!ParseStatementBlock()) return false;
@@ -388,14 +388,14 @@ bool SemanticParser::ParseStatement() {
 			return false;
 		}
 		AstNode& prev = t.val.Sub<AstNode>().rbegin();
-		if (prev.src != SEMT_STATEMENT || prev.stmt != STMT_IF) {
+		if (prev.src != SEMT_STATEMENT || prev.stmt != Cursor_IfStmt) {
 			AddError(iter->loc, "'else' without 'if'");
 			return false;
 		}
 		
 		PassId("else");
 		
-		AstNode* e = EMIT PushStatement(iter->loc, STMT_ELSE);
+		AstNode* e = EMIT PushStatement(iter->loc, Cursor_ElseStmt);
 		if (!e) return false;
 		
 		ASSERT(!prev.ctx_next && !e->ctx_next);
@@ -407,7 +407,7 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("do")) {
-		EMIT PushStatement(iter->loc, STMT_DOWHILE);
+		EMIT PushStatement(iter->loc, Cursor_DoStmt);
 		
 		if (!ParseStatementBlock()) return false;
 		if (!PassId("while")) return false;
@@ -417,7 +417,7 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("while")) {
-		EMIT PushStatement(iter->loc, STMT_WHILE);
+		EMIT PushStatement(iter->loc, Cursor_WhileStmt);
 		
 		if (!(link = ParseExpression(false))) return false;
 		if (!ParseStatementBlock()) return false;
@@ -425,26 +425,26 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("for")) {
-		EMIT PushStatement(iter->loc, STMT_FOR);
+		EMIT PushStatement(iter->loc, Cursor_ForStmt);
 		
 		if (!IsToken(',')) {
 			if (!ParseExpression(false)) return false;
 		}
 		if (Id("in") || Char(':')) {
-			EMIT PushStatement(iter->loc, STMT_FOR_RANGE);
+			EMIT PushStatement(iter->loc, Cursor_ForStmt_Range);
 			if (!ParseExpression(false)) return false;
 			EMIT PopStatement(iter->loc, 0);
 		}
 		else {
 			if (!PassToken(',')) return false;
 			if (!IsToken(',')) {
-				EMIT PushStatement(iter->loc, STMT_FOR_COND);
+				EMIT PushStatement(iter->loc, Cursor_ForStmt_Conditional);
 				if (!ParseExpression(false)) return false;
 				EMIT PopStatement(iter->loc, 0);
 			}
 			if (!PassToken(',')) return false;
 			if (iter) {
-				EMIT PushStatement(iter->loc, STMT_FOR_POST);
+				EMIT PushStatement(iter->loc, Cursor_ForStmt_PostOp);
 				if (!ParseExpression(false)) return false;
 				EMIT PopStatement(iter->loc, 0);
 			}
@@ -455,11 +455,11 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("break")) {
-		EMIT PushStatement(iter->loc, STMT_BREAK);
+		EMIT PushStatement(iter->loc, Cursor_BreakStmt);
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("continue")) {
-		EMIT PushStatement(iter->loc, STMT_CONTINUE);
+		EMIT PushStatement(iter->loc, Cursor_ContinueStmt);
 		EMIT PopStatement(iter->loc, 0);
 	}
 	else if (Id("case")) {
@@ -475,7 +475,7 @@ bool SemanticParser::ParseStatement() {
 		return false;
 	}
 	else if (Id("return")) {
-		EMIT PushStatement(iter->loc, STMT_RETURN);
+		EMIT PushStatement(iter->loc, Cursor_ReturnStmt);
 		
 		bool b;
 		{
@@ -498,7 +498,7 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (Id("switch")) {
-		EMIT PushStatement(iter->loc, STMT_SWITCH);
+		EMIT PushStatement(iter->loc, Cursor_SwitchStmt);
 		
 		if (!(link = ParseExpression(false))) return false;
 		
@@ -534,7 +534,7 @@ bool SemanticParser::ParseStatement() {
 		EMIT PopStatement(iter->loc, ret);
 	}
 	else if (cur.begin == cur.end && cur.val.Sub<TokenNode>().GetCount()) {
-		EMIT PushStatement(iter->loc, STMT_BLOCK);
+		EMIT PushStatement(iter->loc, Cursor_BlockExpr);
 		
 		if (!ParseStatementBlock()) return false;
 		
@@ -716,7 +716,7 @@ bool SemanticParser::ParseMetaStatement(int& cookie, bool skip_meta_keywords) {
 		EMIT PopStatement(iter->loc, link);
 	}
 	else if (cur.begin == cur.end && cur.val.Sub<TokenNode>().GetCount()) {
-		EMIT PushStatement(iter->loc, STMT_BLOCK);
+		EMIT PushStatement(iter->loc, Cursor_BlockExpr);
 		
 		if (!ParseStatementBlock()) return false;
 		

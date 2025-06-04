@@ -64,9 +64,9 @@ public:
 	String GetRelativePartStringArray(const AstNode& n) const;
 	
 	String GetPathString() const;
-	AstNode* FindDeclaration(const PathIdentifier& id, CodeCursor accepts=SEMT_NULL);
-	AstNode* FindDeclaration(const Vector<String>& id, CodeCursor accepts=SEMT_NULL);
-	AstNode* GetDeclaration(const PathIdentifier& id, CodeCursor accepts=SEMT_NULL);
+	AstNode* FindDeclaration(const PathIdentifier& id, CodeCursor accepts=Cursor_Null);
+	AstNode* FindDeclaration(const Vector<String>& id, CodeCursor accepts=Cursor_Null);
+	AstNode* GetDeclaration(const PathIdentifier& id, CodeCursor accepts=Cursor_Null);
 	AstNode* GetDeclaration(AstNode* owner, const Vector<String>& id, CodeCursor accepts);
 	AstNode* GetDeclaration(AstNode* owner, const PathIdentifier& id, CodeCursor accepts);
 	AstNode& Declare(AstNode& owner, const PathIdentifier& id, bool insert_before=false);
@@ -78,7 +78,7 @@ public:
 	void PushScopeRVal(AstNode& n);
 	AstNode* PopScope();
 	AstNode& GetTopNode() {return *spath.Top().n;}
-	AstNode* FindStackName(String name, CodeCursor accepts=SEMT_NULL);
+	AstNode* FindStackName(String name, CodeCursor accepts=Cursor_Null);
 	AstNode* FindStackName2(String name, CodeCursor accepts1, CodeCursor accepts2);
 	AstNode* FindStackValue(String name);
 	AstNode* FindStackWithPrev(const AstNode* prev);

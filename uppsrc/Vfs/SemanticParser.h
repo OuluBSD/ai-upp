@@ -158,7 +158,7 @@ public:
 	void PopMetaFunction(const FileLocation& loc);
 	void PushStatementList(const FileLocation& loc);
 	void PopStatementList(const FileLocation& loc);
-	AstNode* PushStatement(const FileLocation& loc, StmtType type);
+	AstNode* PushStatement(const FileLocation& loc, CodeCursor type);
 	void PopStatement(const FileLocation& loc, AstNode* rval);
 	AstNode* PushConstructor(const FileLocation& loc, bool meta, AstNode& type, AstNode* var);
 	void PopConstructor(const FileLocation& loc);

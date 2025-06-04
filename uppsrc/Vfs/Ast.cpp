@@ -42,7 +42,6 @@ void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 	
 	val.id = n.val.id;
 	src = n.src;
-	stmt = n.stmt;
 	op = n.op;
 	con = n.con;
 	filter = n.filter;
@@ -71,10 +70,9 @@ void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 	val.sub.Clear();
 	val.id.Clear();
-	src = SEMT_CONSTANT;
-	stmt = Cursor_Null;
+	src = Cursor_Literal;
 	op = OP_NULL;
-	filter = SEMT_NULL;
+	filter = Cursor_Null;
 	i64 = 0;
 	str.Clear();
 	this->loc = loc;
@@ -106,7 +104,7 @@ void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 }
 
 void AstNode::CopyToValue(Value& n) const {
-	if (src == SEMT_CONSTANT) {
+	if (src == Cursor_Literal) {
 		switch (con) {
 			case CONST_BOOL: n = (bool)i64; break;
 			case CONST_INT32: n = (int)i64; break;
@@ -144,9 +142,9 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, CodeCursor accepts) {
 	}
 	AstNode& s = Add(loc);
 	s.src = accepts;
-	if (accepts == SEMT_TYPE_POINTER)
+	if (accepts == Cursor_TypePointer)
 		s.val.id = "#";
-	else if (accepts == SEMT_TYPE_LREF)
+	else if (accepts == Cursor_TypeLref)
 		s.val.id = "&";
 	
 	return s;
@@ -155,7 +153,7 @@ AstNode& AstNode::GetAdd(const FileLocation& loc, CodeCursor accepts) {
 AstNode* AstNode::Find(String name, CodeCursor accepts) {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
+		if (s.val.id == name && (accepts == Cursor_Null || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
@@ -163,7 +161,7 @@ AstNode* AstNode::Find(String name, CodeCursor accepts) {
 const AstNode* AstNode::Find(String name, CodeCursor accepts) const {
 	ASSERT(name.GetCount());
 	for (auto& s : val.Sub<AstNode>())
-		if (s.val.id == name && (accepts == SEMT_NULL || s.IsPartially(accepts)))
+		if (s.val.id == name && (accepts == Cursor_Null || s.IsPartially(accepts)))
 			return &s;
 	return 0;
 }
@@ -214,15 +212,15 @@ void AstNode::FindAll(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLoca
 			p.rel_loc = loc;
 	}
 	for (AstNode& s : val.Sub<AstNode>()) {
-		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+		if (s.src == Cursor_SymlinkStmt && !rel_loc)
 			s.FindAll(ptrs, accepts, &loc);
 		else
 			s.FindAll(ptrs, accepts, rel_loc);
 	}
 }
 
-void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLocation* rel_loc) {
-	if (src == SEMT_STATEMENT && stmt == accepts) {
+void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
+	if (IsPartially(src, Cursor_Stmt) && IsPartially(src, accepts)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -231,7 +229,7 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 			p.rel_loc = loc;
 	}
 	for (AstNode& s : val.Sub<AstNode>()) {
-		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+		if (s.src == Cursor_SymlinkStmt && !rel_loc)
 			s.FindAllStmt(ptrs, accepts, &loc);
 		else
 			s.FindAllStmt(ptrs, accepts, rel_loc);
@@ -240,12 +238,12 @@ void AstNode::FindAllStmt(Vector<Endpoint>& ptrs, StmtType accepts, const FileLo
 
 void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
 	for (AstNode& s : val.Sub<AstNode>()) {
-		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+		if (s.src == Cursor_SymlinkStmt && !rel_loc)
 			s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
 		else
 			s.FindAllNonIdEndpoints0(ptrs, accepts, rel_loc);
 	}
-	if (val.Sub<AstNode>().IsEmpty() && src != SEMT_IDPART) {
+	if (val.Sub<AstNode>().IsEmpty() && src != Cursor_NamePart) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -256,15 +254,15 @@ void AstNode::FindAllNonIdEndpoints(Vector<Endpoint>& ptrs, CodeCursor accepts, 
 }
 
 void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts, const FileLocation* rel_loc) {
-	if (src == SEMT_IDPART) {
+	if (src == Cursor_NamePart) {
 		for (AstNode& s : val.Sub<AstNode>()) {
-			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+			if (s.src == Cursor_SymlinkStmt && !rel_loc)
 				s.FindAllNonIdEndpoints0(ptrs, accepts, &loc);
 			else
 				s.FindAllNonIdEndpoints0(ptrs, accepts, rel_loc);
 		}
 	}
-	else if (accepts == SEMT_NULL || IsPartially(accepts)) {
+	else if (accepts == Cursor_Null || IsPartially(accepts)) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -275,15 +273,15 @@ void AstNode::FindAllNonIdEndpoints0(Vector<Endpoint>& ptrs, CodeCursor accepts,
 }
 
 void AstNode::FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc) {
-	ASSERT(accepts1 != SEMT_NULL);
-	ASSERT(accepts2 != SEMT_NULL);
+	ASSERT(accepts1 != Cursor_Null);
+	ASSERT(accepts2 != Cursor_Null);
 	for (AstNode& s : val.Sub<AstNode>()) {
-		if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+		if (s.src == Cursor_SymlinkStmt && !rel_loc)
 			s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, &loc);
 		else
 			s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, rel_loc);
 	}
-	if (val.Sub<AstNode>().IsEmpty() && src != SEMT_IDPART) {
+	if (val.Sub<AstNode>().IsEmpty() && src != Cursor_NamePart) {
 		Endpoint& p = ptrs.Add();
 		p.n = this;
 		if (rel_loc)
@@ -294,11 +292,11 @@ void AstNode::FindAllNonIdEndpoints2(Vector<Endpoint>& ptrs, CodeCursor accepts1
 }
 
 void AstNode::FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts1, CodeCursor accepts2, const FileLocation* rel_loc) {
-	ASSERT(accepts1 != SEMT_NULL);
-	ASSERT(accepts2 != SEMT_NULL);
-	if (src == SEMT_IDPART) {
+	ASSERT(accepts1 != Cursor_Null);
+	ASSERT(accepts2 != Cursor_Null);
+	if (src == Cursor_NamePart) {
 		for (AstNode& s : val.Sub<AstNode>()) {
-			if (s.src == SEMT_SYMBOLIC_LINK && !rel_loc)
+			if (s.src == Cursor_SymlinkStmt && !rel_loc)
 				s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, &loc);
 			else
 				s.FindAllNonIdEndpoints20(ptrs, accepts1, accepts2, rel_loc);
@@ -335,19 +333,17 @@ String AstNode::GetTreeString(int indent) const {
 	
 	if (val.id.GetCount())
 		s << val.id << "\n";
-	else if (src == SEMT_OBJECT)
+	else if (src == Cursor_Object)
 		s << "object(" << obj.ToString() << ")\n";
-	else if (src == SEMT_UNRESOLVED)
+	else if (src == Cursor_Unresolved)
 		s << "unresolved(" << str << ")\n";
-	else if (src == SEMT_CONSTANT)
+	else if (src == Cursor_Literal)
 		s << "const(" << GetConstantString() << ")\n";
-	else if (src == SEMT_STATEMENT)
-		s << "stmt(" << GetStmtTypeString(stmt) << ")\n";
 	else if (op != OP_NULL)
 		s << "op(" << GetOpString(op) << ")\n";
-	else if (filter != SEMT_NULL)
+	else if (filter != Cursor_Null)
 		s << "filter(" << GetCodeCursorString(filter) << ")\n";
-	else if (src == SEMT_RVAL && rval)
+	else if (src == Cursor_Rval && rval)
 		s << rval->GetName() << "\n";
 	else
 		s << "\n";
@@ -417,11 +413,11 @@ String AstNode::GetPartStringArray() const {
 	const AstNode* cur = this;
 	int count = 0;
 	while (cur) {
-		if (cur->IsPartially(SEMT_PATH) ||
-			cur->IsPartially(SEMT_TYPE) ||
-			cur->IsPartially(SEMT_FIELD) ||
-			cur->IsPartially(SEMT_META_TYPE) ||
-			cur->IsPartially(SEMT_META_FIELD))
+		if (cur->IsPartially(Cursor_ClassPath) ||
+			cur->IsPartially(Cursor_TypeDecl) ||
+			cur->IsPartially(Cursor_ValueDecl) ||
+			cur->IsPartially(Cursor_MetaTypeDecl) ||
+			cur->IsPartially(Cursor_MetaValueDecl))
 			path[count++] = cur;
 		cur = cur->val.owner ? cur->val.owner->FindExt<AstNode>() : 0;
 	}
@@ -442,199 +438,263 @@ bool AstNode::IsPartially(CodeCursor t) const {
 	return ::Upp::IsPartially(src, t);
 }
 
-bool IsPartially(CodeCursor src, CodeCursor t) {
-	switch (t) {
-		case SEMT_FIELD:
-		switch (src) {
-			case SEMT_VARIABLE:
-			case SEMT_PARAMETER:
-			case SEMT_CONSTANT:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_TYPE:
-		switch (src) {
-			case SEMT_BUILTIN:
-			case SEMT_TYPEDEF:
-			case SEMT_CLASS_DECL:
-			case SEMT_CLASS:
-			case SEMT_CLASS_TEMPLATE:
-			case SEMT_TYPE_POINTER:
-			case SEMT_TYPE_LREF:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_FUNCTION:
-		switch (src) {
-			case SEMT_FUNCTION_STATIC:
-			case SEMT_FUNCTION_METHOD:
-			case SEMT_FUNCTION_BUILTIN:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_UNDEFINED:
-		switch (src) {
-			case SEMT_NULL:
-			case SEMT_IDPART:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_PARAMETER_PATH:
-		switch (src) {
-			case SEMT_PARAMETER:
-			case SEMT_IDPART:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_VARIABLE_PATH:
-		switch (src) {
-			case SEMT_VARIABLE:
-			case SEMT_IDPART:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_PATH:
-		switch (src) {
-			case SEMT_PARAMETER_PATH:
-			case SEMT_VARIABLE_PATH:
-			case SEMT_NAMESPACE:
-			case SEMT_FUNCTION:
-			case SEMT_CLASS:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_BLOCK:
-		switch (src) {
-			case SEMT_ROOT:
-			case SEMT_NAMESPACE:
-			case SEMT_STATEMENT_BLOCK:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_WITH_RVAL_RET:
-		switch (src) {
-			case SEMT_RVAL:
-			case SEMT_EXPR:
-			case SEMT_CONSTANT:
-			case SEMT_RESOLVE:
-			case SEMT_ARGUMENT_LIST:
-			case SEMT_CTOR:
-			case SEMT_OBJECT:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_ECS_ANY:
-		switch (src) {
-			case SEMT_ENGINE:
-			case SEMT_WORLD:
-			case SEMT_ENTITY:
-			case SEMT_COMPONENT:
-			case SEMT_SYSTEM:
-			case SEMT_POOL:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_MACH_ANY:
-		switch (src) {
-			case SEMT_MACHINE_DECL:
-			case SEMT_MACHINE:
-			case SEMT_CHAIN_DECL:
-			case SEMT_CHAIN:
-			case SEMT_LOOP_DECL:
-			case SEMT_DRIVER:
-			case SEMT_LOOP:
-			case SEMT_STATE:
-			case SEMT_ATOM:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_FIELD:
-		switch (src) {
-			case SEMT_META_VARIABLE:
-			case SEMT_META_PARAMETER:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_TYPE:
-		switch (src) {
-			case SEMT_META_BUILTIN:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_FUNCTION:
-		switch (src) {
-			case SEMT_META_FUNCTION_STATIC:
-			//case SEMT_META_FUNCTION_METHOD:
-			//case SEMT_META_FUNCTION_BUILTIN:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_PARAMETER_PATH:
-		switch (src) {
-			case SEMT_META_PARAMETER:
-			case SEMT_IDPART:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_VARIABLE_PATH:
-		switch (src) {
-			case SEMT_META_VARIABLE:
-			case SEMT_IDPART:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_ANY:
-		switch (src) {
-			case SEMT_IDPART:
-			case SEMT_META_FIELD:
-			case SEMT_META_TYPE:
-			case SEMT_META_FUNCTION:
-			case SEMT_META_RVAL:
-			case SEMT_META_CTOR:
-			case SEMT_META_RESOLVE:
-			return true;
-			default: return false;
-		}
-		
-		case SEMT_META_PATH:
-		switch (src) {
-			case SEMT_META_PARAMETER_PATH:
-			case SEMT_META_VARIABLE_PATH:
-			case SEMT_META_FUNCTION:
-			case SEMT_META_CLASS:
-			return true;
-			default: return false;
-		}
-		
-		default: return false;
-	}
+bool AstNode::IsPartially(CodeCursor src, CodeCursor t) const {
+	return ::Upp::IsPartially(src, t);
 }
 
-bool AstNode::IsStmtPartially(StmtType t) const {
-	TODO
-	return 0;
+bool IsPartially(CodeCursor src, CodeCursor t) {
+	if (src == t)
+		return true;
+	switch (t) {
+		case Cursor_ValueDecl:
+		switch (src) {
+			case Cursor_VarDecl:
+			case Cursor_ParmDecl:
+			case Cursor_Literal:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_TypeDecl:
+		switch (src) {
+			case Cursor_Builtin:
+			case Cursor_TypedefDecl:
+			case Cursor_ClassDecl:
+			case Cursor_ClassTemplate:
+			case Cursor_TypePointer:
+			case Cursor_TypeLref:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_Function:
+		switch (src) {
+			case Cursor_StaticFunction:
+			case Cursor_CXXMethod:
+			case Cursor_FunctionBuiltin:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_Undefined:
+		switch (src) {
+			case Cursor_Null:
+			case Cursor_NamePart:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath_ParmDecl:
+		switch (src) {
+			case Cursor_ParmDecl:
+			case Cursor_NamePart:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath_VarDecl:
+		switch (src) {
+			case Cursor_VarDecl:
+			case Cursor_NamePart:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath:
+		switch (src) {
+			case Cursor_ClassPath_ParmDecl:
+			case Cursor_ClassPath_VarDecl:
+			case Cursor_Namespace:
+			case Cursor_Function:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_Compounding:
+		switch (src) {
+			case Cursor_TranslationUnit:
+			case Cursor_Namespace:
+			case Cursor_CompoundStmt:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_WithRvalReturn:
+		switch (src) {
+			case Cursor_Rval:
+			case Cursor_Expr:
+			case Cursor_Literal:
+			case Cursor_Resolve:
+			case Cursor_ArgumentList:
+			case Cursor_Ctor:
+			case Cursor_Object:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_EcsStmt:
+		switch (src) {
+			case Cursor_EngineStmt:
+			case Cursor_WorldStmt:
+			case Cursor_EntityStmt:
+			case Cursor_ComponentStmt:
+			case Cursor_SystemStmt:
+			case Cursor_PoolStmt:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_OldEcsStmt:
+		switch (src) {
+			case Cursor_MachineDecl:
+			case Cursor_MachineStmt:
+			case Cursor_ChainDecl:
+			case Cursor_ChainStmt:
+			case Cursor_LoopDecl:
+			case Cursor_DriverStmt:
+			case Cursor_LoopStmt:
+			case Cursor_StateStmt:
+			case Cursor_AtomStmt:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_MetaValueDecl:
+		switch (src) {
+			case Cursor_MetaVariable:
+			case Cursor_MetaParameter:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_MetaTypeDecl:
+		switch (src) {
+			case Cursor_MetaBuiltin:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_MetaFunction:
+		switch (src) {
+			case Cursor_MetaStaticFunction:
+			//case Cursor_MetaFunction_METHOD:
+			//case Cursor_MetaFunction_BUILTIN:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath_MetaParam:
+		switch (src) {
+			case Cursor_MetaParameter:
+			case Cursor_NamePart:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath_MetaVar:
+		switch (src) {
+			case Cursor_MetaVariable:
+			case Cursor_NamePart:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_MetaDecl:
+		switch (src) {
+			case Cursor_NamePart:
+			case Cursor_MetaValueDecl:
+			case Cursor_MetaTypeDecl:
+			case Cursor_MetaFunction:
+			case Cursor_MetaRval:
+			case Cursor_MetaCtor:
+			case Cursor_MetaResolve:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ClassPath_MetaDecl:
+		switch (src) {
+			case Cursor_ClassPath_MetaParam:
+			case Cursor_ClassPath_MetaVar:
+			case Cursor_MetaFunction:
+			case Cursor_MetaClass:
+			return true;
+			default: return false;
+		}
+		
+		
+		case Cursor_MetaStmt:
+		switch (src) {
+			case Cursor_MetaIfStmt:
+			case Cursor_MetaElseStmt:
+			case Cursor_MetaDoStmt:
+			case Cursor_MetaWhileStmt:
+			case Cursor_MetaForStmt:
+			case Cursor_MetaForStmt_Conditional:
+			case Cursor_MetaForStmt_Post:
+			case Cursor_MetaForStmt_Range:
+			case Cursor_MetaBreakStmt:
+			case Cursor_MetaContinueStmt:
+			case Cursor_MetaCaseStmt:
+			case Cursor_MetaDefaultStmt:
+			case Cursor_MetaReturnStmt:
+			case Cursor_MetaSwitchStmt:
+			case Cursor_MetaBlockStmt:
+			case Cursor_MetaExprStmt:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_Stmt:
+		switch (src) {
+			case Cursor_Null:
+			case Cursor_IfStmt:
+			case Cursor_ElseStmt:
+			case Cursor_DoStmt:
+			case Cursor_WhileStmt:
+			case Cursor_ForStmt:
+			case Cursor_ForStmt_Conditional:
+			case Cursor_ForStmt_PostOp:
+			case Cursor_ForStmt_Range:
+			case Cursor_BreakStmt:
+			case Cursor_ContinueStmt:
+			case Cursor_CaseStmt:
+			case Cursor_DefaultStmt:
+			case Cursor_ReturnStmt:
+			case Cursor_SwitchStmt:
+			case Cursor_BlockExpr:
+			case Cursor_AtomConnectorStmt:
+			case Cursor_CtorStmt:
+			case Cursor_ExprStmt:
+			case Cursor_MetaIfStmt:
+			case Cursor_MetaElseStmt:
+			case Cursor_MetaDoStmt:
+			case Cursor_MetaWhileStmt:
+			case Cursor_MetaForStmt:
+			case Cursor_MetaForStmt_Conditional:
+			case Cursor_MetaForStmt_Post:
+			case Cursor_MetaForStmt_Range:
+			case Cursor_MetaBreakStmt:
+			case Cursor_MetaContinueStmt:
+			case Cursor_MetaCaseStmt:
+			case Cursor_MetaDefaultStmt:
+			case Cursor_MetaReturnStmt:
+			case Cursor_MetaSwitchStmt:
+			case Cursor_MetaBlockStmt:
+			case Cursor_MetaExprStmt:
+			return true;
+			default: return false;
+		}
+		
+		default:
+		return false;
+	}
 }
 
 
 Value EvaluateAstNodeValue(AstNode& n) {
 	Value o;
-	if (n.src == SEMT_EXPR) {
+	if (n.src == Cursor_Expr) {
 		switch (n.op) {
 			
 		case OP_POSITIVE:
@@ -650,7 +710,7 @@ Value EvaluateAstNodeValue(AstNode& n) {
 			TODO
 		}
 	}
-	else if (n.src == SEMT_CONSTANT) {
+	else if (n.src == Cursor_Literal) {
 		n.CopyToValue(o);
 	}
 	else TODO

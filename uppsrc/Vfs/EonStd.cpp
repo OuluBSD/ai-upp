@@ -16,14 +16,14 @@ String EonStd::GetPathString() const {
 AstNode* EonStd::AddBuiltinType(String name) {
 	AstNode& root = GetRoot();
 	AstNode& sn = root.Add(FileLocation(), name);
-	sn.src = SEMT_BUILTIN;
+	sn.src = Cursor_Builtin;
 	return &sn;
 }
 
 AstNode* EonStd::AddMetaBuiltinType(String name) {
 	AstNode& root = GetRoot();
 	AstNode& sn = root.Add(FileLocation(), name);
-	sn.src = SEMT_META_BUILTIN;
+	sn.src = Cursor_MetaBuiltin;
 	return &sn;
 }
 
@@ -47,7 +47,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		if (found)
 			break;
 		
-		if (iter->IsPartially(SEMT_PATH) || iter->IsPartially(SEMT_META_PATH))
+		if (iter->IsPartially(Cursor_ClassPath) || iter->IsPartially(Cursor_ClassPath_MetaDecl))
 			nodes[node_count++] = iter;
 		iter = iter->val.owner ? iter->val.owner->FindExt<AstNode>() : 0;
 	}
@@ -57,7 +57,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 		if (i) s.Cat(',');
 		s.Cat('\"');
 		const AstNode& node = *nodes[node_count-1-i];
-		if (node.IsPartially(SEMT_META_ANY))
+		if (node.IsPartially(Cursor_MetaDecl))
 			s.Cat('$');
 		const String& n = node.val.id;
 		ASSERT(n.GetCount());
@@ -104,10 +104,10 @@ void EonStd::InitDefault(bool add_root) {
 	
 	{
 		AstNode& logger = GetRoot().Add(FileLocation(), "LOG");
-		logger.src = SEMT_FUNCTION_BUILTIN;
+		logger.src = Cursor_FunctionBuiltin;
 	}
 	
-	GetRoot().src = SEMT_ROOT;
+	GetRoot().src = Cursor_TranslationUnit;
 	
 	if (add_root)
 		spath.Add().Set(&GetRoot(),true);
@@ -116,22 +116,23 @@ void EonStd::InitDefault(bool add_root) {
 bool EonStd::ForwardUserspace(AstNode*& n) {
 	if (!n) return false;
 	
-	if (n->IsPartially(SEMT_FUNCTION)) {
-		n = n->Find(SEMT_STATEMENT_BLOCK);
+	if (n->IsPartially(Cursor_Function)) {
+		n = n->Find(Cursor_CompoundStmt);
 		return n != NULL;
 	}
-	if (n->IsPartially(SEMT_STATEMENT)) {
-		switch (n->stmt) {
+	if (n->IsPartially(Cursor_Stmt)) {
+		switch (n->src) {
 			case Cursor_ForStmt:
 			case Cursor_IfStmt:
 			case Cursor_ElseStmt:
-				n = n->Find(SEMT_STATEMENT_BLOCK);
+				n = n->Find(Cursor_CompoundStmt);
 				break;
 			
 			case Cursor_ForStmt_Conditional:
 			case Cursor_ForStmt_PostOp:
 			case Cursor_ForStmt_Range:
 			case Cursor_BlockExpr:
+			case Cursor_MetaBlockExpr:
 			case Cursor_ReturnStmt:
 				return false;
 				
@@ -199,21 +200,21 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, CodeCu
 			const Token* t = id.parts[i];
 			if ((t->IsType(TK_ID) || t->IsType(TK_INTEGER)) && !t->str_value.IsEmpty()) {
 				if (id.is_meta[i]) {
-					CodeCursor a = last ? (accepts & SEMT_META_ANY ? accepts : SEMT_META_ANY) : SEMT_META_ANY;
+					CodeCursor a = last ? (accepts & Cursor_MetaDecl ? accepts : Cursor_MetaDecl) : Cursor_MetaDecl;
 					next = cur->Find(t->str_value, a);
 				}
 				else {
-					CodeCursor a = last ? accepts : SEMT_NULL;
+					CodeCursor a = last ? accepts : Cursor_Null;
 					next = cur->Find(t->str_value, a);
 				}
 			}
 			else if (t->IsType('#')) {
 				next = cur;
-				// pass, next = &cur->GetAdd(SEMT_TYPE_POINTER);
+				// pass, next = &cur->GetAdd(Cursor_TypePointer);
 			}
 			else if (t->IsType('&')) {
 				next = cur;
-				// pass, next = &cur->GetAdd(SEMT_TYPE_LREF);
+				// pass, next = &cur->GetAdd(Cursor_TypeLref);
 			}
 			else {
 				TODO
@@ -243,15 +244,15 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, CodeCu
 		TODO
 	}
 	else if (cur && id.tail_count > 0) {
-		if (cur->IsPartially(SEMT_TYPE)) {
+		if (cur->IsPartially(Cursor_TypeDecl)) {
 			for(int i = 0; i < id.tail_count; i++) {
 				switch (id.tail[i]) {
 				case PathIdentifier::PTR:
-					cur = &cur->GetAdd(id.end->loc, SEMT_TYPE_POINTER);
+					cur = &cur->GetAdd(id.end->loc, Cursor_TypePointer);
 					break;
 				
 				case PathIdentifier::LREF:
-					cur = &cur->GetAdd(id.end->loc, SEMT_TYPE_LREF);
+					cur = &cur->GetAdd(id.end->loc, Cursor_TypeLref);
 					break;
 				
 				default:
@@ -264,9 +265,9 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const PathIdentifier& id, CodeCu
 		}
 	}
 	
-	CodeCursor a = id.is_meta[id.part_count-1] ? SEMT_META_ANY : accepts;
+	CodeCursor a = id.is_meta[id.part_count-1] ? Cursor_MetaDecl : accepts;
 	
-	if (cur && accepts == SEMT_NULL || cur->IsPartially(a))
+	if (cur && accepts == Cursor_Null || cur->IsPartially(a))
 		return cur;
 	
 	return 0;
@@ -282,7 +283,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, CodeCu
 		next = 0;
 		String name = id[i];
 		for (int tries = 0; tries < 100; tries++) {
-			CodeCursor a = last ? accepts : SEMT_NULL;
+			CodeCursor a = last ? accepts : Cursor_Null;
 			next = cur->Find(name, a);
 			
 			if (!next) {
@@ -303,7 +304,7 @@ AstNode* EonStd::GetDeclaration(AstNode* owner, const Vector<String>& id, CodeCu
 	
 	CodeCursor a = accepts;
 	
-	if (cur && accepts == SEMT_NULL || cur->IsPartially(a))
+	if (cur && accepts == Cursor_Null || cur->IsPartially(a))
 		return cur;
 	
 	return 0;
@@ -324,8 +325,8 @@ AstNode& EonStd::Declare(AstNode& owner, const PathIdentifier& id, bool insert_b
 					cur = &cur->Add(t->loc, id, max(0, cur->val.Sub<TokenNode>().GetCount()-2));
 			}
 			else cur = &cur->GetAdd(t->loc, id);
-			if (cur->src == SEMT_NULL)
-				cur->src = SEMT_IDPART;
+			if (cur->src == Cursor_Null)
+				cur->src = Cursor_NamePart;
 		}
 		else {
 			TODO
@@ -345,7 +346,7 @@ AstNode* EonStd::GetClosestType(bool skip_locked) {
 		Scope& scope = spath[i];
 		if (skip_locked && scope.n->locked)
 			continue;
-		if (scope.n->IsPartially(SEMT_FUNCTION))
+		if (scope.n->IsPartially(Cursor_Function))
 			return 0;
 		if (scope.n->type)
 			return scope.n->type;
@@ -357,7 +358,7 @@ AstNode& EonStd::GetBlock() {
 		Scope& scope = spath[i];
 		if (scope.n->locked)
 			continue;
-		if (scope.n->IsPartially(SEMT_BLOCK))
+		if (scope.n->IsPartially(Cursor_Compounding))
 			return *scope.n;
 	}
 	return GetRoot();
@@ -431,7 +432,7 @@ AstNode* EonStd::PopScope() {
 }
 
 String EonStd::GetTypeInitValueString(AstNode& n) const {
-	if (n.src == SEMT_META_BUILTIN) {
+	if (n.src == Cursor_MetaBuiltin) {
 		if (n.val.id == "int")
 			return "0";
 		TODO
@@ -446,18 +447,18 @@ AstNode* EonStd::FindStackName(String name, CodeCursor accepts) {
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
 		for (AstNode& ss : s.n->val.Sub<AstNode>()) {
-			if (ss.val.id == name && (accepts == SEMT_NULL || ss.IsPartially(accepts)))
+			if (ss.val.id == name && (accepts == Cursor_Null || ss.IsPartially(accepts)))
 				return &ss;
 		}
-		if (s.n->val.id == name && (accepts == SEMT_NULL || s.n->IsPartially(accepts)))
+		if (s.n->val.id == name && (accepts == Cursor_Null || s.n->IsPartially(accepts)))
 			return s.n;
 	}
 	return 0;
 }
 
 AstNode* EonStd::FindStackName2(String name, CodeCursor accepts1, CodeCursor accepts2) {
-	ASSERT(accepts1 != SEMT_NULL);
-	ASSERT(accepts2 != SEMT_NULL);
+	ASSERT(accepts1 != Cursor_Null);
+	ASSERT(accepts2 != Cursor_Null);
 	for (int i = spath.GetCount()-1; i >= 0; i--) {
 		Scope& s = spath[i];
 		for (AstNode& ss : s.n->val.Sub<AstNode>()) {

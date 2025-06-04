@@ -65,7 +65,7 @@ public:
 	
 	void Visit(const AstNode& n, bool force=false, bool declare=false);
 	void Visit(const AstNode& n, CodeCursor t);
-	void VisitStmt(const AstNode& n, StmtType t);
+	void VisitStmt(const AstNode& n, CodeCursor t);
 	void VisitBuiltin(const AstNode& n);
 	void VisitCtorExpr(const AstNode& n);
 	

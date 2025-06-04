@@ -28,16 +28,16 @@ String AstExporter::GetIndentString(int offset) const {
 
 void AstExporter::PushScope(const AstNode& n, bool skip_indent) {
 	Scope& scope = scopes.Add();
-	scope.pop_this = !n.IsPartially(SEMT_UNDEFINED);
+	scope.pop_this = !n.IsPartially(Cursor_Undefined);
 	scope.n = &n;
 	scope.skip_indent = skip_indent;
-	if (n.src == SEMT_STATEMENT_BLOCK && !skip_indent)
+	if (n.src == Cursor_CompoundStmt && !skip_indent)
 		++indent;
 }
 
 void AstExporter::PopScope() {
 	Scope& scope = scopes.Top();
-	if (scope.n->src == SEMT_STATEMENT_BLOCK && !scope.skip_indent) {
+	if (scope.n->src == Cursor_CompoundStmt && !scope.skip_indent) {
 		ASSERT(indent > 0);
 		--indent;
 	}
@@ -57,37 +57,37 @@ void AstExporter::PopInlineScope() {
 void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 	
 	switch (n.src) {
-	case SEMT_BUILTIN:
+	case Cursor_Builtin:
 		if (force) {
 			VisitBuiltin(n);
 			return;
 		}
-	case SEMT_FUNCTION_BUILTIN:
-	case SEMT_META_BUILTIN:
-	case SEMT_META_FUNCTION_STATIC:
-	case SEMT_META_RVAL:
-	case SEMT_META_PARAMETER:
-	case SEMT_LOOP:
-	case SEMT_CHAIN:
-	case SEMT_ATOM:
-	case SEMT_MACHINE:
-	case SEMT_WORLD:
-	case SEMT_SYSTEM:
-	case SEMT_POOL:
-	case SEMT_ENTITY:
-	case SEMT_COMPONENT:
+	case Cursor_FunctionBuiltin:
+	case Cursor_MetaBuiltin:
+	case Cursor_MetaStaticFunction:
+	case Cursor_MetaRval:
+	case Cursor_MetaParameter:
+	case Cursor_LoopStmt:
+	case Cursor_ChainStmt:
+	case Cursor_AtomStmt:
+	case Cursor_MachineStmt:
+	case Cursor_WorldStmt:
+	case Cursor_SystemStmt:
+	case Cursor_PoolStmt:
+	case Cursor_EntityStmt:
+	case Cursor_ComponentStmt:
 		return;
 	
-	case SEMT_META_RESOLVE:
+	case Cursor_MetaResolve:
 		ASSERT(n.rval);
 		if (n.rval)
 			Visit(*n.rval);
 		return;
 		
-	case SEMT_ROOT:
-	case SEMT_IDPART:
+	case Cursor_TranslationUnit:
+	case Cursor_NamePart:
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
-			if (s.src == SEMT_RVAL)
+			if (s.src == Cursor_Rval)
 				continue;
 			
 			CHECK_SCOPES_BEGIN
@@ -100,15 +100,14 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		}
 		return;
 		
-	case SEMT_STATEMENT_BLOCK:
+	case Cursor_CompoundStmt:
 		for (const AstNode& s : n.val.Sub<AstNode>()) {
-			if (s.src != SEMT_STATEMENT &&
-				s.src != SEMT_STATEMENT_BLOCK &&
-				!s.IsPartially(SEMT_META_ANY))
+			if (s.src != Cursor_CompoundStmt &&
+				!s.IsPartially(Cursor_MetaDecl))
 				continue;
 			
 			// merge statement blocks which meta created with current block
-			if (s.src == SEMT_STATEMENT_BLOCK && s.i64 == 1) {
+			if (s.src == Cursor_CompoundStmt && s.i64 == 1) {
 				Visit(s, false, true);
 				continue;
 			}
@@ -123,69 +122,68 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		}
 		return;
 	
-	case SEMT_FUNCTION_STATIC:
+	case Cursor_StaticFunction:
 		VisitFunction(n);
 		break;
 	
-	case SEMT_PARAMETER:
+	case Cursor_ParmDecl:
 		VisitParameter(n);
 		break;
 	
-	case SEMT_STATEMENT:
+	case Cursor_Stmt:
 		VisitStatement(n);
 		break;
 		
-	case SEMT_EXPR:
+	case Cursor_Expr:
 		VisitExpression(n, 0);
 		break;
 		
-	case SEMT_CONSTANT:
+	case Cursor_Literal:
 		VisitConstant(n);
 		break;
 	
-	case SEMT_VARIABLE:
+	case Cursor_VarDecl:
 		VisitVariable(n, declare);
 		break;
 	
-	case SEMT_META_VARIABLE:
+	case Cursor_MetaVariable:
 		ASSERT_(0, "meta code should be executed before this, and non-existent here");
 		break;
 	
-	case SEMT_ARGUMENT:
+	case Cursor_Argument:
 		VisitArgument(n);
 		break;
 		
-	case SEMT_RESOLVE:
+	case Cursor_Resolve:
 		VisitResolve(n, true);
 		break;
 	
-	case SEMT_RVAL:
+	case Cursor_Rval:
 		VisitRval(n);
 		break;
 	
-	case SEMT_NULL:
-	case SEMT_NAMESPACE:
-	case SEMT_TYPEDEF:
-	case SEMT_CLASS_DECL:
-	case SEMT_CLASS:
-	case SEMT_CLASS_TEMPLATE:
-	case SEMT_FUNCTION_METHOD:
+	case Cursor_Null:
+	case Cursor_Namespace:
+	case Cursor_TypedefDecl:
+	case Cursor_ClassDecl:
+	case Cursor_ClassTemplate:
+	case Cursor_CXXMethod:
 		TODO
 		break;
 		
-	case SEMT_ARGUMENT_LIST:
+	case Cursor_ArgumentList:
 		VisitArgumentList(n);
 		break;
 		
-	case SEMT_CTOR:
+	case Cursor_Ctor:
 		VisitConstructor(n);
 		break;
 		
-	case SEMT_ARRAYSIZE:
+	case Cursor_ArraySize:
 		VisitArraySize(n);
 		break;
 		
-	case SEMT_OBJECT:
+	case Cursor_Object:
 		break;
 		
 	default:
@@ -204,9 +202,10 @@ void AstExporter::Visit(const AstNode& n, CodeCursor t) {
 	}
 }
 
-void AstExporter::VisitStmt(const AstNode& n, StmtType t) {
+void AstExporter::VisitStmt(const AstNode& n, CodeCursor t) {
+	ASSERT(IsPartially(t, Cursor_Stmt));
 	for(const AstNode& sub : n.val.Sub<AstNode>()) {
-		if (sub.src == SEMT_STATEMENT && sub.stmt == t) {
+		if (sub.src == t) {
 			PushScope(sub);
 			Visit(sub);
 			PopScope();
@@ -216,7 +215,8 @@ void AstExporter::VisitStmt(const AstNode& n, StmtType t) {
 
 void AstExporter::VisitCtorExpr(const AstNode& n) {
 	for(const AstNode& sub : n.val.Sub<AstNode>()) {
-		if (sub.src == SEMT_CTOR || (sub.src == SEMT_STATEMENT && sub.stmt == STMT_EXPR)) {
+		if (IsPartially(sub.src, Cursor_Ctor) ||
+			sub.src == Cursor_ExprStmt) {
 			PushScope(sub);
 			Visit(sub);
 			PopScope();
@@ -229,7 +229,7 @@ void AstExporter::VisitBuiltin(const AstNode& n) {
 }
 
 void AstExporter::VisitFunction(const AstNode& n) {
-	ASSERT(n.src == SEMT_FUNCTION_STATIC);
+	ASSERT(n.src == Cursor_StaticFunction);
 	
 	output << GetIndentString();
 	
@@ -242,17 +242,17 @@ void AstExporter::VisitFunction(const AstNode& n) {
 	
 	PushInlineScope();
 	output << "(";
-	Visit(n, SEMT_PARAMETER_PATH);
+	Visit(n, Cursor_ClassPath_ParmDecl);
 	output << ")";
 	PopInlineScope();
 	
-	const AstNode* block = n.Find(SEMT_STATEMENT_BLOCK);
+	const AstNode* block = n.Find(Cursor_CompoundStmt);
 	if (!block) {
 		output << ";\n";
 	}
 	else {
 		output << " {\n";
-		Visit(n, SEMT_STATEMENT_BLOCK);
+		Visit(n, Cursor_CompoundStmt);
 		output << GetIndentString() << "}\n";
 	}
 }
@@ -275,7 +275,7 @@ void AstExporter::VisitParameter(const AstNode& n) {
 void AstExporter::VisitStatement(const AstNode& n) {
 	AstNode* p = 0;
 	
-	switch (n.stmt) {
+	switch (n.src) {
 	case Cursor_Null:
 		break;
 		
@@ -290,7 +290,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		VisitStmt(n, Cursor_ForStmt_PostOp);
 		output << ") {\n";
 		PopInlineScope();
-		Visit(n, SEMT_STATEMENT_BLOCK);
+		Visit(n, Cursor_CompoundStmt);
 		output << GetIndentString() << "}\n";
 		break;
 		
@@ -298,10 +298,10 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		ASSERT(inline_scopes.IsEmpty());
 		PushInlineScope();
 		output << GetIndentString() << "if (";
-		Visit(n, SEMT_EXPR);
+		Visit(n, Cursor_Expr);
 		output << ") {\n";
 		PopInlineScope();
-		Visit(n, SEMT_STATEMENT_BLOCK);
+		Visit(n, Cursor_CompoundStmt);
 		output << GetIndentString() << "}\n";
 		break;
 		
@@ -310,21 +310,21 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		PushInlineScope();
 		output << GetIndentString() << "else {\n";
 		PopInlineScope();
-		Visit(n, SEMT_STATEMENT_BLOCK);
+		Visit(n, Cursor_CompoundStmt);
 		output << GetIndentString() << "}\n";
 		break;
 		
 	case Cursor_ForStmt_Conditional:
 	case Cursor_ForStmt_PostOp:
-		Visit(n, SEMT_EXPR);
+		Visit(n, Cursor_Expr);
 		break;
 		
-	case STMT_EXPR:
+	case Cursor_ExprStmt:
 		output << GetIndentString() << "";
 		for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 			const AstNode& s = it;
-			if (s.IsPartially(SEMT_EXPR) ||
-				s.IsPartially(SEMT_CTOR)) {
+			if (s.IsPartially(Cursor_Expr) ||
+				s.IsPartially(Cursor_Ctor)) {
 				Visit(s);
 				break;
 			}
@@ -344,7 +344,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << ";\n";
 		break;
 	
-	case STMT_CTOR:
+	case Cursor_CtorStmt:
 		if (!n.rval)
 			break;
 		output << GetIndentString();
@@ -361,6 +361,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 	case Cursor_DefaultStmt:
 	case Cursor_SwitchStmt:
 	case Cursor_BlockExpr:
+	case Cursor_MetaBlockExpr:
 	default:
 		TODO
 		break;
@@ -368,36 +369,36 @@ void AstExporter::VisitStatement(const AstNode& n) {
 }
 
 void AstExporter::VisitExpression(const AstNode& n, int depth) {
-	if (n.src == SEMT_VARIABLE || n.src == SEMT_PARAMETER) {
+	if (n.src == Cursor_VarDecl || n.src == Cursor_ParmDecl) {
 		VisitVariable(n);
 		return;
 	}
-	else if (n.src == SEMT_CONSTANT || n.src == SEMT_OBJECT) {
+	else if (n.src == Cursor_Literal || n.src == Cursor_Object) {
 		VisitConstant(n);
 		return;
 	}
-	else if (n.src == SEMT_RESOLVE) {
+	else if (n.src == Cursor_Resolve) {
 		VisitResolve(n);
 		return;
 	}
-	else if (n.src == SEMT_RVAL) {
+	else if (n.src == Cursor_Rval) {
 		VisitRval(n);
 		return;
 	}
-	else if (n.src == SEMT_ARGUMENT_LIST) {
+	else if (n.src == Cursor_ArgumentList) {
 		VisitArgumentList(n);
 		return;
 	}
-	else if (n.IsPartially(SEMT_FUNCTION)) {
+	else if (n.IsPartially(Cursor_Function)) {
 		VisitFunctionRval(n);
 		return;
 	}
-	else if (n.src == SEMT_META_RVAL) {
+	else if (n.src == Cursor_MetaRval) {
 		LOG(n.GetTreeString(0));
 		TODO
 	}
 	
-	ASSERT(n.src == SEMT_EXPR && n.op != OP_NULL);
+	ASSERT(n.src == Cursor_Expr && n.op != OP_NULL);
 	
 	if (depth > 0)
 		output << "(";
@@ -501,7 +502,7 @@ void AstExporter::VisitExpression(const AstNode& n, int depth) {
 }
 
 void AstExporter::VisitVariable(const AstNode& n, bool declare) {
-	ASSERT(n.src == SEMT_VARIABLE || n.src == SEMT_PARAMETER);
+	ASSERT(n.src == Cursor_VarDecl || n.src == Cursor_ParmDecl);
 	
 	if (declare) {
 		if (n.type) {
@@ -516,7 +517,7 @@ void AstExporter::VisitVariable(const AstNode& n, bool declare) {
 }
 
 void AstExporter::VisitArgument(const AstNode& n) {
-	ASSERT(n.src == SEMT_ARGUMENT);
+	ASSERT(n.src == Cursor_Argument);
 	
 	ASSERT(n.rval);
 	const AstNode& arg = *n.rval;
@@ -525,16 +526,16 @@ void AstExporter::VisitArgument(const AstNode& n) {
 	if (is.count)
 		output << ", ";
 	
-	if (arg.src == SEMT_CONSTANT) {
+	if (arg.src == Cursor_Literal) {
 		VisitConstant(arg);
 	}
-	else if (arg.IsPartially(SEMT_FIELD)) {
+	else if (arg.IsPartially(Cursor_ValueDecl)) {
 		output << GetCPath(arg);
 	}
-	else if (arg.src == SEMT_RVAL) {
+	else if (arg.src == Cursor_Rval) {
 		VisitRval(arg);
 	}
-	else if (arg.src == SEMT_EXPR) {
+	else if (arg.src == Cursor_Expr) {
 		VisitExpression(arg, 0);
 	}
 	else {
@@ -545,9 +546,9 @@ void AstExporter::VisitArgument(const AstNode& n) {
 }
 
 void AstExporter::VisitConstant(const AstNode& n) {
-	ASSERT(n.src == SEMT_CONSTANT || n.src == SEMT_OBJECT);
+	ASSERT(n.src == Cursor_Literal || n.src == Cursor_Object);
 	
-	if (n.src == SEMT_CONSTANT) {
+	if (n.src == Cursor_Literal) {
 		switch (n.con) {
 		case CONST_NULL:	output << "void"; break;
 		case CONST_BOOL:	output << (n.i64 ? "true" : "false"); break;
@@ -561,7 +562,7 @@ void AstExporter::VisitConstant(const AstNode& n) {
 			break;
 		}
 	}
-	else if (n.src == SEMT_OBJECT) {
+	else if (n.src == Cursor_Object) {
 		output << n.obj.ToString();
 	}
 }
@@ -570,11 +571,11 @@ void AstExporter::VisitResolve(const AstNode& n, bool rval) {
 	ASSERT(n.rval);
 	if (n.rval) {
 		const AstNode& l = *n.rval;
-		if (l.IsPartially(SEMT_META_FUNCTION)) {
+		if (l.IsPartially(Cursor_MetaFunction)) {
 			output << "<error>";
 		}
 		else {
-			if (l.IsPartially(SEMT_FUNCTION)) {
+			if (l.IsPartially(Cursor_Function)) {
 				DUMP(GetCodeCursorString(l.src));
 			}
 			output << GetCPath(l);
@@ -587,11 +588,11 @@ void AstExporter::VisitRval(const AstNode& n) {
 	ASSERT(n.rval != &n);
 	if (n.rval) {
 		AstNode& s = *n.rval;
-		if (s.src == SEMT_CONSTANT || s.src == SEMT_OBJECT)
+		if (s.src == Cursor_Literal || s.src == Cursor_Object)
 			VisitConstant(s);
-		else if (s.IsPartially(SEMT_FIELD))
+		else if (s.IsPartially(Cursor_ValueDecl))
 			output << GetCPath(*n.rval);
-		else if (s.src == SEMT_META_PARAMETER || s.src == SEMT_META_VARIABLE) {
+		else if (s.src == Cursor_MetaParameter || s.src == Cursor_MetaVariable) {
 			TODO // this s.src shouldn't appear in this phase anymore
 		}
 		else
@@ -605,7 +606,7 @@ void AstExporter::VisitRval(const AstNode& n) {
 void AstExporter::VisitArgumentList(const AstNode& n) {
 	PushInlineScope();
 	output << "(";
-	Visit(n, SEMT_ARGUMENT);
+	Visit(n, Cursor_Argument);
 	output << ")";
 	PopInlineScope();
 }
@@ -615,7 +616,7 @@ void AstExporter::VisitFunctionRval(const AstNode& n) {
 }
 
 void AstExporter::VisitConstructor(const AstNode& n) {
-	ASSERT(n.src == SEMT_CTOR);
+	ASSERT(n.src == Cursor_Ctor);
 	
 	if (n.type) {
 		output << GetCPath(*n.type) << " ";
@@ -688,9 +689,9 @@ String AstExporter::GetCPath(const AstNode& n) const {
 		else {
 			for (int i = 0; i < part_count; i++) {
 				const AstNode* part = parts[part_count - 1 -i];
-				if (part->src == SEMT_TYPE_POINTER)
+				if (part->src == Cursor_TypePointer)
 					s.Cat('*');
-				else if (part->src == SEMT_TYPE_LREF)
+				else if (part->src == Cursor_TypeLref)
 					s.Cat('&');
 				else {
 					if (i) s.Cat('_');

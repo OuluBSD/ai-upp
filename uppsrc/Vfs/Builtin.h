@@ -3,272 +3,146 @@
 
 
 
-
+#define CURSOR_LIST \
+	CURSOR(Null					, =, 0) \
+	CURSOR(Namespace			, =,CXCursor_Namespace) \
+	CURSOR(TypedefDecl			, =,CXCursor_TypedefDecl) \
+	CURSOR(ClassDecl			, =,CXCursor_ClassDecl) \
+	CURSOR(ClassTemplate		, =,CXCursor_ClassTemplate) \
+	CURSOR(CXXMethod			, =,CXCursor_CXXMethod) \
+	CURSOR(VarDecl				, =,CXCursor_VarDecl) \
+	CURSOR(ParmDecl				, =,CXCursor_ParmDecl) \
+	CURSOR(CompoundStmt			, =,CXCursor_CompoundStmt) \
+	CURSOR(TranslationUnit		, =,CXCursor_TranslationUnit) \
+	\
+	CURSOR(IfStmt				, =,CXCursor_IfStmt) \
+	CURSOR(DoStmt				, =,CXCursor_DoStmt) \
+	CURSOR(WhileStmt			, =,CXCursor_WhileStmt) \
+	CURSOR(ForStmt				, =,CXCursor_ForStmt) \
+	CURSOR(BreakStmt			, =,CXCursor_BreakStmt) \
+	CURSOR(ContinueStmt			, =,CXCursor_ContinueStmt) \
+	CURSOR(CaseStmt				, =,CXCursor_CaseStmt) \
+	CURSOR(DefaultStmt			, =,CXCursor_DefaultStmt) \
+	CURSOR(ReturnStmt			, =,CXCursor_ReturnStmt) \
+	CURSOR(SwitchStmt			, =,CXCursor_SwitchStmt) \
+	CURSOR(BlockExpr			, =,CXCursor_BlockExpr) \
+	\
+	CURSOR(Vfs					, =,2000) \
+	\
+	/* todo Following names could be improved and converted to CXCursor values (easy or hard way) */ \
+	CURSOR(Builtin,,) \
+	CURSOR(MetaStmt,,) \
+	CURSOR(StaticFunction,,) \
+	CURSOR(Stmt,,) \
+	CURSOR(Expr,,) \
+	CURSOR(Literal,,) \
+	CURSOR(NamePart,,) \
+	CURSOR(Resolve,,) \
+	CURSOR(Argument,,) \
+	CURSOR(ArgumentList,,) \
+	CURSOR(FunctionBuiltin,,) \
+	CURSOR(MachineDecl,,) \
+	CURSOR(MachineStmt,,) \
+	CURSOR(ChainDecl,,) \
+	CURSOR(ChainStmt,,) \
+	CURSOR(LoopDecl,,) \
+	CURSOR(LoopStmt,,) \
+	CURSOR(MetaVariable,,) \
+	CURSOR(MetaParameter,,) \
+	CURSOR(MetaBuiltin,,) \
+	CURSOR(MetaStaticFunction,,) \
+	CURSOR(WorldStmt,,) \
+	CURSOR(EntityStmt,,) \
+	CURSOR(ComponentStmt,,) \
+	CURSOR(SystemStmt,,) \
+	CURSOR(PoolStmt,,) \
+	CURSOR(AtomStmt,,) \
+	CURSOR(CallArg,,) \
+	CURSOR(Unresolved,,) \
+	CURSOR(MetaClass,,) \
+	CURSOR(Rval,,) \
+	CURSOR(Ctor,,) \
+	CURSOR(ArraySize,,) \
+	CURSOR(TypePointer,,) \
+	CURSOR(TypeLref,,) \
+	CURSOR(MetaRval,,) \
+	CURSOR(MetaCtor,,) \
+	CURSOR(Object,,) \
+	CURSOR(MetaResolve,,) \
+	CURSOR(StateStmt,,) \
+	CURSOR(DriverStmt,,) \
+	CURSOR(EngineStmt,,) \
+	CURSOR(SymlinkStmt,,) \
+	\
+	CURSOR(ValueDecl,,)				/* VarDecl | ParmDecl | Literal,,)  */ \
+	CURSOR(TypeDecl,,)				/* Builtin | TypedefDecl | ClassDecl | SEMT_CLASS |  */ \
+									/* ClassTemplate | TypePointer | TypeLref,,)  */ \
+	CURSOR(Function,,)				/* StaticFunction | CXXMethod | FunctionBuiltin,,)  */ \
+	CURSOR(Undefined,,)				/* Null | NamePart,,)  */ \
+	CURSOR(ClassPath_ParmDecl,,)	/* ParmDecl | NamePart,,)  */ \
+	CURSOR(ClassPath_VarDecl,,)		/* VarDecl | NamePart,,)  */ \
+	CURSOR(ClassPath,,)				/* ClassPath_ParmDecl | ClassPath_VarDecl | Namespace | Function | SEMT_CLASS,,) */ \
+	CURSOR(Compounding,,)			/* TranslationUnit | Namespace | CompoundStmt,,)  */ \
+	CURSOR(WithRvalReturn,,)		/* Rval | Expr | Literal | Resolve | ArgumentList | Ctor | Object,,) */ \
+	\
+	CURSOR(EcsStmt,,)				/* EngineStmt | WorldStmt | EntityStmt | ComponentStmt | SystemStmt | PoolStmt,,) */ \
+	\
+	/* todo merge CURSOR(OldEcsStmt to CURSOR(EcsStmt */ \
+	CURSOR(OldEcsStmt,,)			/* MachineDecl | MachineStmt | ChainDecl | ChainStmt | LoopDecl | DriverStmt | LoopStmt | StateStmt | AtomStmt,,) */ \
+	\
+	CURSOR(MetaValueDecl,,)			/* MetaVariable | MetaParameter,,) */ \
+	CURSOR(MetaTypeDecl,,)			/* MetaBuiltin,,) */ \
+	CURSOR(MetaFunction,,)			/* MetaStaticFunction /*| MetaFunction_METHOD | MetaFunction_BUILTIN,,) */ \
+	CURSOR(ClassPath_MetaParam,,)	/* MetaParameter | NamePart,,) */ \
+	CURSOR(ClassPath_MetaVar,,)		/* MetaVariable | NamePart,,) */ \
+	\
+	CURSOR(MetaDecl,,)				/* NamePart | MetaValueDecl | MetaTypeDecl | MetaFunction | MetaRval | MetaCtor | MetaResolve,,) */ \
+	CURSOR(ClassPath_MetaDecl,,)	/* ClassPath_MetaParam | ClassPath_MetaVar | MetaFunction | MetaClass,,) */ \
+	\
+	CURSOR(Vfs_OpBegin			, =,3000) \
+	\
+	CURSOR(ElseStmt,,) \
+	CURSOR(ForStmt_Conditional,,) \
+	CURSOR(ForStmt_PostOp,,) \
+	CURSOR(ForStmt_Range,,) \
+	\
+	CURSOR(MetaBlockExpr,,) \
+	CURSOR(ExprStmt,,) \
+	CURSOR(AtomConnectorStmt,,) \
+	CURSOR(CtorStmt,,) \
+	\
+	CURSOR(MetaIfStmt,,) \
+	CURSOR(MetaElseStmt,,) \
+	CURSOR(MetaDoStmt,,) \
+	CURSOR(MetaWhileStmt,,) \
+	CURSOR(MetaForStmt,,) \
+	CURSOR(MetaForStmt_Conditional,,) \
+	CURSOR(MetaForStmt_Post,,) \
+	CURSOR(MetaForStmt_Range,,) \
+	CURSOR(MetaBreakStmt,,) \
+	CURSOR(MetaContinueStmt,,) \
+	CURSOR(MetaCaseStmt,,) \
+	CURSOR(MetaDefaultStmt,,) \
+	CURSOR(MetaReturnStmt,,) \
+	CURSOR(MetaSwitchStmt,,) \
+	CURSOR(MetaBlockStmt,,) \
+	CURSOR(MetaExprStmt,,) \
 
 typedef enum {
-	SEMT_NULL					= 0,
-	SEMT_NAMESPACE				= CXCursor_Namespace,
-	SEMT_TYPEDEF				= CXCursor_TypedefDecl,
-	SEMT_CLASS_DECL				= CXCursor_ClassDecl,
-	SEMT_CLASS_TEMPLATE			= CXCursor_ClassTemplate,
-	SEMT_FUNCTION_METHOD		= CXCursor_CXXMethod,
-	SEMT_VARIABLE				= CXCursor_VarDecl,
-	SEMT_PARAMETER				= CXCursor_ParmDecl,
-	SEMT_STATEMENT_BLOCK		= CXCursor_CompoundStmt,
-	SEMT_ROOT					= CXCursor_TranslationUnit,
-	
-	SEMT_VFS_KIND = 2000,
-	SEMT_BUILTIN,
-	SEMT_CLASS,
-	SEMT_META_STATEMENT,
-	
-	//
-	SEMT_FUNCTION_STATIC,
-	SEMT_STATEMENT,
-	SEMT_EXPR,
-	SEMT_CONSTANT, // Literal
-	SEMT_IDPART,
-	SEMT_RESOLVE,
-	SEMT_ARGUMENT,
-	SEMT_ARGUMENT_LIST,
-	SEMT_FUNCTION_BUILTIN,
-	SEMT_MACHINE_DECL,
-	SEMT_MACHINE,
-	SEMT_CHAIN_DECL,
-	SEMT_CHAIN,
-	SEMT_LOOP_DECL,
-	SEMT_LOOP,
-	SEMT_META_VARIABLE,
-	SEMT_META_PARAMETER,
-	SEMT_META_BUILTIN,
-	SEMT_META_FUNCTION_STATIC,
-	SEMT_WORLD,
-	SEMT_ENTITY,
-	SEMT_COMPONENT,
-	SEMT_SYSTEM,
-	SEMT_POOL,
-	SEMT_ATOM,
-	SEMT_CALL_ARG,
-	SEMT_UNRESOLVED,
-	SEMT_META_CLASS,
-	SEMT_RVAL,
-	SEMT_CTOR,
-	SEMT_ARRAYSIZE,
-	SEMT_TYPE_POINTER,
-	SEMT_TYPE_LREF,
-	SEMT_META_RVAL,
-	SEMT_META_CTOR,
-	SEMT_OBJECT,
-	SEMT_META_RESOLVE,
-	SEMT_STATE,
-	SEMT_DRIVER,
-	SEMT_ENGINE,
-	SEMT_SYMBOLIC_LINK,
-	
-	SEMT_FIELD,					// SEMT_VARIABLE | SEMT_PARAMETER | SEMT_CONSTANT,
-	SEMT_TYPE,					// SEMT_BUILTIN | SEMT_TYPEDEF | SEMT_CLASS_DECL | SEMT_CLASS |
-								// SEMT_CLASS_TEMPLATE | SEMT_TYPE_POINTER | SEMT_TYPE_LREF,
-	SEMT_FUNCTION,				// SEMT_FUNCTION_STATIC | SEMT_FUNCTION_METHOD | SEMT_FUNCTION_BUILTIN,
-	SEMT_UNDEFINED,				// SEMT_NULL | SEMT_IDPART,
-	SEMT_PARAMETER_PATH,		// SEMT_PARAMETER | SEMT_IDPART,
-	SEMT_VARIABLE_PATH,			// SEMT_VARIABLE | SEMT_IDPART,
-	SEMT_PATH,					// SEMT_PARAMETER_PATH | SEMT_VARIABLE_PATH | SEMT_NAMESPACE | SEMT_FUNCTION | SEMT_CLASS,
-	SEMT_BLOCK,					// SEMT_ROOT | SEMT_NAMESPACE | SEMT_STATEMENT_BLOCK,
-	SEMT_WITH_RVAL_RET,			// SEMT_RVAL | SEMT_EXPR | SEMT_CONSTANT | SEMT_RESOLVE | SEMT_ARGUMENT_LIST | SEMT_CTOR | SEMT_OBJECT,
-	
-	SEMT_ECS_ANY,				// SEMT_ENGINE | SEMT_WORLD | SEMT_ENTITY | SEMT_COMPONENT | SEMT_SYSTEM | SEMT_POOL,
-	SEMT_MACH_ANY,				// SEMT_MACHINE_DECL | SEMT_MACHINE | SEMT_CHAIN_DECL | SEMT_CHAIN | SEMT_LOOP_DECL | SEMT_DRIVER | SEMT_LOOP | SEMT_STATE | SEMT_ATOM,
-	
-	SEMT_META_FIELD,			// SEMT_META_VARIABLE | SEMT_META_PARAMETER,
-	SEMT_META_TYPE,				// SEMT_META_BUILTIN,
-	SEMT_META_FUNCTION,			// SEMT_META_FUNCTION_STATIC /*| SEMT_META_FUNCTION_METHOD | SEMT_META_FUNCTION_BUILTIN*/,
-	SEMT_META_PARAMETER_PATH,	// SEMT_META_PARAMETER | SEMT_IDPART,
-	SEMT_META_VARIABLE_PATH,	// SEMT_META_VARIABLE | SEMT_IDPART,
-	
-	SEMT_META_ANY,				// SEMT_IDPART | SEMT_META_FIELD | SEMT_META_TYPE | SEMT_META_FUNCTION | SEMT_META_RVAL | SEMT_META_CTOR | SEMT_META_RESOLVE,
-	SEMT_META_PATH,				// SEMT_META_PARAMETER_PATH | SEMT_META_VARIABLE_PATH | SEMT_META_FUNCTION | SEMT_META_CLASS,
-	
+	#define CURSOR(a,b,c) Cursor_##a b c,
+	CURSOR_LIST
+	#undef CURSOR
 } CodeCursor;
 
 typedef uint64 CodeCursorPrimitive;
 
 struct AstNode;
 
-inline String GetCodeCursorString(CodeCursor t) {
-	switch (t) {
-		case SEMT_NULL:					return "null";
-		case SEMT_NAMESPACE:			return "namespace";
-		case SEMT_BUILTIN:				return "builtin";
-		case SEMT_TYPEDEF:				return "typedef";
-		case SEMT_CLASS_DECL:			return "class-declaration";
-		case SEMT_CLASS:				return "class";
-		case SEMT_CLASS_TEMPLATE:		return "class-template";
-		case SEMT_FUNCTION_STATIC:		return "static function";
-		case SEMT_FUNCTION_METHOD:		return "method function";
-		case SEMT_VARIABLE:				return "variable";
-		case SEMT_PARAMETER:			return "parameter";
-		case SEMT_STATEMENT:			return "statement";
-		case SEMT_STATEMENT_BLOCK:		return "statement-block";
-		case SEMT_EXPR:					return "expression";
-		case SEMT_CONSTANT:				return "constant";
-		case SEMT_IDPART:				return "id-part";
-		case SEMT_ROOT:					return "root";
-		case SEMT_RESOLVE:				return "resolve";
-		case SEMT_ARGUMENT:				return "argument";
-		case SEMT_ARGUMENT_LIST:		return "argument-list";
-		case SEMT_FUNCTION_BUILTIN:		return "builtin-function";
-		case SEMT_MACHINE_DECL:			return "machine-declaration";
-		case SEMT_MACHINE:				return "machine";
-		case SEMT_CHAIN_DECL:			return "chain-decl";
-		case SEMT_CHAIN:				return "chain";
-		case SEMT_LOOP_DECL:			return "loop-decl";
-		case SEMT_LOOP:					return "loop";
-		case SEMT_FIELD:				return "field";
-		case SEMT_TYPE:					return "type";
-		case SEMT_FUNCTION:				return "function";
-		case SEMT_UNDEFINED:			return "undefined";
-		case SEMT_META_VARIABLE:		return "meta-variable";
-		case SEMT_META_PARAMETER:		return "meta-parameter";
-		case SEMT_META_BUILTIN:			return "meta-builtin";
-		case SEMT_META_FUNCTION_STATIC:	return "meta static function";
-		case SEMT_META_FIELD:			return "meta-field";
-		case SEMT_WORLD:				return "world";
-		case SEMT_ENTITY:				return "entity";
-		case SEMT_COMPONENT:			return "component";
-		case SEMT_SYSTEM:				return "system";
-		case SEMT_POOL:					return "pool";
-		case SEMT_ATOM:					return "atom";
-		case SEMT_CALL_ARG:				return "call-arg";
-		case SEMT_UNRESOLVED:			return "unresolved";
-		case SEMT_META_CLASS:			return "meta-class";
-		case SEMT_RVAL:					return "rval";
-		case SEMT_CTOR:					return "ctor";
-		case SEMT_ARRAYSIZE:			return "array-size";
-		case SEMT_TYPE_POINTER:			return "type-pointer";
-		case SEMT_TYPE_LREF:			return "type-lref";
-		case SEMT_META_RVAL:			return "meta-rval";
-		case SEMT_META_CTOR:			return "meta-ctor";
-		case SEMT_OBJECT:				return "object";
-		case SEMT_BLOCK:				return "block";
-		case SEMT_META_RESOLVE:			return "meta-resolve";
-		case SEMT_STATE:				return "state";
-		case SEMT_DRIVER:				return "driver";
-		case SEMT_ENGINE:				return "engine";
-		case SEMT_SYMBOLIC_LINK:		return "symlink";
-		default: return "invalid";
-	}
-}
-
+String GetCodeCursorString(CodeCursor t);
 bool IsTypedNode(CodeCursor src);
 bool IsMetaTypedNode(CodeCursor src);
 bool IsRvalReturn(CodeCursor src);
 
-
-typedef enum {
-	Cursor_Null,
-	Cursor_IfStmt			= CXCursor_IfStmt,
-	Cursor_DoStmt			= CXCursor_DoStmt,
-	Cursor_WhileStmt		= CXCursor_WhileStmt,
-	Cursor_ForStmt			= CXCursor_ForStmt,
-	Cursor_BreakStmt		= CXCursor_BreakStmt,
-	Cursor_ContinueStmt		= CXCursor_ContinueStmt,
-	Cursor_CaseStmt			= CXCursor_CaseStmt,
-	Cursor_DefaultStmt		= CXCursor_DefaultStmt,
-	Cursor_ReturnStmt		= CXCursor_ReturnStmt,
-	Cursor_SwitchStmt		= CXCursor_SwitchStmt,
-	Cursor_BlockExpr		= CXCursor_BlockExpr,
-	
-	STMT_VFS		= 3000,
-	
-	Cursor_ElseStmt,
-	Cursor_ForStmt_Conditional,
-	Cursor_ForStmt_PostOp,
-	Cursor_ForStmt_Range,
-	
-	Cursor_BlockExpr,
-	STMT_EXPR,
-	STMT_ATOM_CONNECTOR,
-	STMT_CTOR,
-	
-	STMT_META_IF,
-	STMT_META_ELSE,
-	STMT_META_DOWHILE,
-	STMT_META_WHILE,
-	STMT_META_FOR,
-	STMT_META_FOR_COND,
-	STMT_META_FOR_POST,
-	STMT_META_FOR_RANGE,
-	STMT_META_BREAK,
-	STMT_META_CONTINUE,
-	STMT_META_CASE,
-	STMT_META_DEFAULT,
-	STMT_META_RETURN,
-	STMT_META_SWITCH,
-	STMT_META_BLOCK,
-	STMT_META_EXPR,
-	
-	#if 0
-	STMT_META_ANY = STMT_META_IF |
-					STMT_META_ELSE |
-					STMT_META_DOWHILE |
-					STMT_META_WHILE |
-					STMT_META_FOR |
-					STMT_META_FOR_COND |
-					STMT_META_FOR_POST |
-					STMT_META_FOR_RANGE |
-					STMT_META_BREAK |
-					STMT_META_CONTINUE |
-					STMT_META_CASE |
-					STMT_META_DEFAULT |
-					STMT_META_RETURN |
-					STMT_META_SWITCH |
-					STMT_META_BLOCK |
-					STMT_META_EXPR,
-	#endif
-} StmtType;
-
-inline String GetStmtTypeString(StmtType t) {
-	switch (t) {
-		case Cursor_Null: return "null";
-		case Cursor_IfStmt: return "if";
-		case Cursor_ElseStmt: return "else";
-		case Cursor_DoStmt: return "do-while";
-		case Cursor_WhileStmt: return "while";
-		case Cursor_ForStmt: return "for";
-		case Cursor_ForStmt_Conditional: return "for-conditional";
-		case Cursor_ForStmt_PostOp: return "for-post";
-		case Cursor_ForStmt_Range: return "for-range";
-		case Cursor_BreakStmt: return "break";
-		case Cursor_ContinueStmt: return "continue";
-		case Cursor_CaseStmt: return "case";
-		case Cursor_DefaultStmt: return "default";
-		case Cursor_ReturnStmt: return "return";
-		case Cursor_SwitchStmt: return "switch";
-		case Cursor_BlockExpr: return "block";
-		case STMT_ATOM_CONNECTOR: return "atom-connector";
-		case STMT_CTOR: return "ctor";
-		case STMT_EXPR: return "expr";
-		
-		case STMT_META_IF: return "meta-if";
-		case STMT_META_ELSE: return "meta-else";
-		case STMT_META_DOWHILE: return "meta-do-while";
-		case STMT_META_WHILE: return "meta-while";
-		case STMT_META_FOR: return "meta-for";
-		case STMT_META_FOR_COND: return "meta-for-conditional";
-		case STMT_META_FOR_POST: return "meta-for-post";
-		case STMT_META_FOR_RANGE: return "meta-for-range";
-		case STMT_META_BREAK: return "meta-break";
-		case STMT_META_CONTINUE: return "meta-continue";
-		case STMT_META_CASE: return "meta-case";
-		case STMT_META_DEFAULT: return "meta-default";
-		case STMT_META_RETURN: return "meta-return";
-		case STMT_META_SWITCH: return "meta-switch";
-		case STMT_META_BLOCK: return "meta-block";
-		case STMT_META_EXPR: return "meta-expr";
-		
-		default: return "invalid-type";
-	}
-}
 
 typedef enum {
 	STMTP_FOR_DECL,

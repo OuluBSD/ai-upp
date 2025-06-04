@@ -357,7 +357,7 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	LOG(n->GetTreeString());
 	Vector<Endpoint> items;
-	n->FindAllNonIdEndpoints(items, (SemanticType)(SEMT_ECS_ANY | SEMT_MACH_ANY));
+	n->FindAllNonIdEndpoints2(items, SEMT_ECS_ANY, SEMT_MACH_ANY);
 	Sort(items, AstNodeLess());
 	
 	if (items.IsEmpty()) {

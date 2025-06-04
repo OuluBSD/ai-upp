@@ -472,4 +472,22 @@ public:
 
 
 
+template <class T>
+Vector<T> Args(T i) {
+	Vector<T> r;
+	r.Add(i);
+	return r;
+}
+
+template <class T, typename... A>
+Vector<T> Args(T i, A... a) {
+	Vector<T> r0;
+	Vector<T> r1 = Kinds<T>(a...);
+	r0.Reserve(r1.GetCount()+1);
+	r0.Add(i);
+	r0.Append(r1);
+	return r;
+}
+
+
 #endif

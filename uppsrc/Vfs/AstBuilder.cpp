@@ -276,60 +276,56 @@ void SemanticParser::PushRvalConstant(const FileLocation& loc, const Token& t) {
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, bool v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = Cursor_Literal;
-	n.con = CONST_BOOL;
+	n.src = Cursor_Literal_BOOL;
 	n.i64 = v;
 	PushScopeRVal(n);
 }
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, int32 v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = Cursor_Literal;
-	n.con = CONST_INT32;
+	n.src = Cursor_Literal_INT32;
 	n.i64 = v;
 	PushScopeRVal(n);
 }
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, int64 v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = Cursor_Literal;
-	n.con = CONST_INT64;
+	n.src = Cursor_Literal_INT64;
 	n.i64 = v;
 	PushScopeRVal(n);
 }
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, double v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = Cursor_Literal;
-	n.con = CONST_DOUBLE;
+	n.src = Cursor_Literal_DOUBLE;
 	n.dbl = v;
 	PushScopeRVal(n);
 }
 
 void SemanticParser::PushRvalConstant(const FileLocation& loc, String v) {
 	AstNode& n = GetTopNode().Add(loc);
-	n.src = Cursor_Literal;
-	n.con = CONST_STRING;
+	n.src = Cursor_Literal_STRING;
 	n.str = v;
 	PushScopeRVal(n);
 }
 
-void SemanticParser::Expr1(const FileLocation& loc, OpType op) {
+void SemanticParser::Expr1(const FileLocation& loc, CodeCursor op) {
+	ASSERT(IsPartially(op, Cursor_ExprOp));
 	int c = spath.GetCount();
 	ASSERT(c >= 2);
 	AstNode* arg0 = spath[c-1].n;
 	
 	AstNode& owner = *spath[c-2].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = Cursor_Expr;
-	expr.op = op;
+	expr.src = op;
 	expr.arg[0] = arg0;
 	expr.i64 = 1;
 	
 	spath[c-1].n = &expr;
 }
 
-void SemanticParser::Expr2(const FileLocation& loc, OpType op) {
+void SemanticParser::Expr2(const FileLocation& loc, CodeCursor op) {
+	ASSERT(IsPartially(op, Cursor_ExprOp));
 	int c = spath.GetCount();
 	ASSERT(c >= 3);
 	AstNode* arg0 = spath[c-2].n;
@@ -337,8 +333,7 @@ void SemanticParser::Expr2(const FileLocation& loc, OpType op) {
 	
 	AstNode& owner = *spath[c-3].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = Cursor_Expr;
-	expr.op = op;
+	expr.src = op;
 	expr.arg[0] = arg0;
 	expr.arg[1] = arg1;
 	expr.i64 = 2;
@@ -347,7 +342,8 @@ void SemanticParser::Expr2(const FileLocation& loc, OpType op) {
 	spath[c-2].n = &expr;
 }
 
-void SemanticParser::Expr3(const FileLocation& loc, OpType op) {
+void SemanticParser::Expr3(const FileLocation& loc, CodeCursor op) {
+	ASSERT(IsPartially(op, Cursor_ExprOp));
 	int c = spath.GetCount();
 	ASSERT(c >= 4);
 	AstNode* arg0 = spath[c-3].n;
@@ -356,8 +352,7 @@ void SemanticParser::Expr3(const FileLocation& loc, OpType op) {
 	
 	AstNode& owner = *spath[c-4].n;
 	AstNode& expr = owner.Add(loc);
-	expr.src = Cursor_Expr;
-	expr.op = op;
+	expr.src = op;
 	expr.arg[0] = arg0;
 	expr.arg[1] = arg1;
 	expr.arg[2] = arg2;
@@ -519,8 +514,7 @@ void SemanticParser::PushCall(const FileLocation& loc) {
 	int c = spath.GetCount();
 	AstNode& owner = *spath[c-1].n;
 	AstNode& var = owner.Add(loc);
-	var.src = Cursor_Expr;
-	var.op = OP_CALL;
+	var.src = Cursor_Op_CALL;
 	var.i64 = 2;
 	
 	PushScope(var);

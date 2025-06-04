@@ -134,14 +134,6 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		VisitStatement(n);
 		break;
 		
-	case Cursor_Expr:
-		VisitExpression(n, 0);
-		break;
-		
-	case Cursor_Literal:
-		VisitConstant(n);
-		break;
-	
 	case Cursor_VarDecl:
 		VisitVariable(n, declare);
 		break;
@@ -187,6 +179,14 @@ void AstExporter::Visit(const AstNode& n, bool force, bool declare) {
 		break;
 		
 	default:
+		if (IsPartially(n.src, Cursor_ExprOp)) {
+			VisitExpression(n, 0);
+			break;
+		}
+		if (IsPartially(n.src, Cursor_Literal)) {
+			VisitLiteral(n);
+			break;
+		}
 		TODO
 	}
 	
@@ -205,7 +205,7 @@ void AstExporter::Visit(const AstNode& n, CodeCursor t) {
 void AstExporter::VisitStmt(const AstNode& n, CodeCursor t) {
 	ASSERT(IsPartially(t, Cursor_Stmt));
 	for(const AstNode& sub : n.val.Sub<AstNode>()) {
-		if (sub.src == t) {
+		if (IsPartially(sub.src, t)) {
 			PushScope(sub);
 			Visit(sub);
 			PopScope();
@@ -298,7 +298,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		ASSERT(inline_scopes.IsEmpty());
 		PushInlineScope();
 		output << GetIndentString() << "if (";
-		Visit(n, Cursor_Expr);
+		Visit(n, Cursor_ExprOp);
 		output << ") {\n";
 		PopInlineScope();
 		Visit(n, Cursor_CompoundStmt);
@@ -316,14 +316,14 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		
 	case Cursor_ForStmt_Conditional:
 	case Cursor_ForStmt_PostOp:
-		Visit(n, Cursor_Expr);
+		Visit(n, Cursor_ExprOp);
 		break;
 		
 	case Cursor_ExprStmt:
 		output << GetIndentString() << "";
 		for (auto it = n.val.Sub<AstNode>().rbegin(); it; it--) {
 			const AstNode& s = it;
-			if (s.IsPartially(Cursor_Expr) ||
+			if (s.IsPartially(Cursor_ExprOp) ||
 				s.IsPartially(Cursor_Ctor)) {
 				Visit(s);
 				break;
@@ -369,12 +369,14 @@ void AstExporter::VisitStatement(const AstNode& n) {
 }
 
 void AstExporter::VisitExpression(const AstNode& n, int depth) {
+	ASSERT(IsPartially(n.src, Cursor_ExprOp));
+	
 	if (n.src == Cursor_VarDecl || n.src == Cursor_ParmDecl) {
 		VisitVariable(n);
 		return;
 	}
-	else if (n.src == Cursor_Literal || n.src == Cursor_Object) {
-		VisitConstant(n);
+	else if (IsPartially(n.src, Cursor_Literal) || n.src == Cursor_Object) {
+		VisitLiteral(n);
 		return;
 	}
 	else if (n.src == Cursor_Resolve) {
@@ -398,72 +400,72 @@ void AstExporter::VisitExpression(const AstNode& n, int depth) {
 		TODO
 	}
 	
-	ASSERT(n.src == Cursor_Expr && n.op != OP_NULL);
+	ASSERT(IsPartially(n.src, Cursor_Op));
 	
 	if (depth > 0)
 		output << "(";
 	
-	switch (n.op) {
-	case OP_NULL:
+	switch (n.src) {
+	case Cursor_Op_NULL:
 		break;
 		
-	case OP_INC:
-	case OP_DEC:
-	case OP_NEGATIVE:
-	case OP_POSITIVE:
-	case OP_NOT:
-	case OP_NEGATE:
+	case Cursor_Op_INC:
+	case Cursor_Op_DEC:
+	case Cursor_Op_NEGATIVE:
+	case Cursor_Op_POSITIVE:
+	case Cursor_Op_NOT:
+	case Cursor_Op_NEGATE:
 		ASSERT(n.arg[0]);
-		output << GetOpCodeString(n.op);
+		output << GetOpCodeString(n.src);
 		VisitExpression(*n.arg[0], depth+1);
 		break;
 		
-	case OP_POSTINC:
-	case OP_POSTDEC:
+	case Cursor_Op_POSTINC:
+	case Cursor_Op_POSTDEC:
 		ASSERT(n.arg[0]);
 		VisitExpression(*n.arg[0], depth+1);
-		output << GetOpCodeString(n.op);
+		output << GetOpCodeString(n.src);
 		break;
 	
-	case OP_ADD:
-	case OP_SUB:
-	case OP_MUL:
-	case OP_DIV:
-	case OP_MOD:
-	case OP_LSH:
-	case OP_RSH:
-	case OP_GREQ:
-	case OP_LSEQ:
-	case OP_GREATER:
-	case OP_LESS:
-	case OP_EQ:
-	case OP_INEQ:
-	case OP_BWAND:
-	case OP_BWXOR:
-	case OP_BWOR:
-	case OP_AND:
-	case OP_OR:
+	case Cursor_Op_ADD:
+	case Cursor_Op_SUB:
+	case Cursor_Op_MUL:
+	case Cursor_Op_DIV:
+	case Cursor_Op_MOD:
+	case Cursor_Op_LSH:
+	case Cursor_Op_RSH:
+	case Cursor_Op_GREQ:
+	case Cursor_Op_LSEQ:
+	case Cursor_Op_GREATER:
+	case Cursor_Op_LESS:
+	case Cursor_Op_EQ:
+	case Cursor_Op_INEQ:
+	case Cursor_Op_BWAND:
+	case Cursor_Op_BWXOR:
+	case Cursor_Op_BWOR:
+	case Cursor_Op_AND:
+	case Cursor_Op_OR:
 		ASSERT(n.arg[0]);
 		ASSERT(n.arg[1]);
 		VisitExpression(*n.arg[0], depth+1);
-		output << " " << GetOpCodeString(n.op) << " ";
+		output << " " << GetOpCodeString(n.src) << " ";
 		VisitExpression(*n.arg[1], depth+1);
 		break;
 		
-	case OP_ASSIGN:
-	case OP_ADDASS:
-	case OP_SUBASS:
-	case OP_MULASS:
-	case OP_DIVASS:
-	case OP_MODASS:
+	case Cursor_Op_ASSIGN:
+	case Cursor_Op_ADDASS:
+	case Cursor_Op_SUBASS:
+	case Cursor_Op_MULASS:
+	case Cursor_Op_DIVASS:
+	case Cursor_Op_MODASS:
 		ASSERT(n.arg[0]);
 		ASSERT(n.arg[1]);
 		VisitExpression(*n.arg[0], depth);
-		output << " " << GetOpCodeString(n.op) << " ";
+		output << " " << GetOpCodeString(n.src) << " ";
 		VisitExpression(*n.arg[1], depth);
 		break;
 		
-	case OP_COND:
+	case Cursor_Op_COND:
 		ASSERT(n.arg[0]);
 		ASSERT(n.arg[1]);
 		ASSERT(n.arg[2]);
@@ -476,14 +478,14 @@ void AstExporter::VisitExpression(const AstNode& n, int depth) {
 		output << ")";
 		break;
 		
-	case OP_CALL:
+	case Cursor_Op_CALL:
 		ASSERT(n.arg[0]);
 		ASSERT(n.arg[1]);
 		VisitExpression(*n.arg[0], depth+1);
 		VisitExpression(*n.arg[1], depth+1);
 		break;
 		
-	case OP_SUBSCRIPT:
+	case Cursor_Op_SUBSCRIPT:
 		ASSERT(n.arg[0]);
 		ASSERT(n.arg[1]);
 		VisitExpression(*n.arg[0], depth+1);
@@ -526,8 +528,8 @@ void AstExporter::VisitArgument(const AstNode& n) {
 	if (is.count)
 		output << ", ";
 	
-	if (arg.src == Cursor_Literal) {
-		VisitConstant(arg);
+	if (IsPartially(arg.src, Cursor_Literal)) {
+		VisitLiteral(arg);
 	}
 	else if (arg.IsPartially(Cursor_ValueDecl)) {
 		output << GetCPath(arg);
@@ -535,7 +537,7 @@ void AstExporter::VisitArgument(const AstNode& n) {
 	else if (arg.src == Cursor_Rval) {
 		VisitRval(arg);
 	}
-	else if (arg.src == Cursor_Expr) {
+	else if (IsPartially(arg.src, Cursor_ExprOp)) {
 		VisitExpression(arg, 0);
 	}
 	else {
@@ -545,17 +547,16 @@ void AstExporter::VisitArgument(const AstNode& n) {
 	is.count++;
 }
 
-void AstExporter::VisitConstant(const AstNode& n) {
-	ASSERT(n.src == Cursor_Literal || n.src == Cursor_Object);
+void AstExporter::VisitLiteral(const AstNode& n) {
+	ASSERT(IsPartially(n.src, Cursor_Literal) || n.src == Cursor_Object);
 	
-	if (n.src == Cursor_Literal) {
-		switch (n.con) {
-		case CONST_NULL:	output << "void"; break;
-		case CONST_BOOL:	output << (n.i64 ? "true" : "false"); break;
-		case CONST_INT32:	output << IntStr((int)n.i64); break;
-		case CONST_INT64:	output << IntStr64(n.i64); break;
-		case CONST_DOUBLE:	output << DblStr(n.dbl); break;
-		case CONST_STRING:	output << "\"" << n.str << "\""; break;
+	if (IsPartially(n.src, Cursor_Literal)) {
+		switch (n.src) {
+		case Cursor_Literal_BOOL:	output << (n.i64 ? "true" : "false"); break;
+		case Cursor_Literal_INT32:	output << IntStr((int)n.i64); break;
+		case Cursor_Literal_INT64:	output << IntStr64(n.i64); break;
+		case Cursor_Literal_DOUBLE:	output << DblStr(n.dbl); break;
+		case Cursor_Literal_STRING:	output << "\"" << n.str << "\""; break;
 		default:
 			TODO
 			output << "<internal error>";
@@ -588,8 +589,8 @@ void AstExporter::VisitRval(const AstNode& n) {
 	ASSERT(n.rval != &n);
 	if (n.rval) {
 		AstNode& s = *n.rval;
-		if (s.src == Cursor_Literal || s.src == Cursor_Object)
-			VisitConstant(s);
+		if (IsPartially(s.src, Cursor_Literal) || s.src == Cursor_Object)
+			VisitLiteral(s);
 		else if (s.IsPartially(Cursor_ValueDecl))
 			output << GetCPath(*n.rval);
 		else if (s.src == Cursor_MetaParameter || s.src == Cursor_MetaVariable) {

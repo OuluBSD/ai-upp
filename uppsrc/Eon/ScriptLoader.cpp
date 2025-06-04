@@ -666,14 +666,14 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							continue;
 						}
 							
-						AstNode* expr = conn->Find(Cursor_Expr);
+						AstNode* expr = conn->Find(Cursor_ExprOp);
 						if (!expr) {
 							AddError(conn->loc, "internal error: no expression");
 							return false;
 						}
 						
 						bool succ = false;
-						if (expr->op == OP_EQ) {
+						if (expr->src == Cursor_Op_EQ) {
 							Eon::AtomDefinition::LinkCandidate& cand =
 								is_src ?
 									atom_def.src_link_cands.Add(src_conn_i) :
@@ -691,7 +691,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 								key = a0->str;
 							}
 							if (key.GetCount()) {
-								if (a1->src == Cursor_Literal) {
+								if (IsPartially(a1->src, Cursor_Literal)) {
 									a1->CopyToValue(cand.req_args.GetAdd(key));
 									succ = true;
 								}
@@ -882,8 +882,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 				while (r->src == Cursor_Rval && r->rval) r = r->rval;
 				AstNode& rval = *r;
 				
-				if (rval.src == Cursor_Expr) {
-					if (rval.op == OP_ASSIGN) {
+				if (IsPartially(rval.src, Cursor_Op)) {
+					if (rval.src == Cursor_Op_ASSIGN) {
 						dbg_i++;
 						AstNode* key = rval.arg[0];
 						AstNode* value = rval.arg[1];
@@ -891,7 +891,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						while (value->src == Cursor_Rval && value->rval) value = key->rval;
 						if (key->src == Cursor_Unresolved && key->str.GetCount()) {
 							String key_str = key->str;
-							if (value->src == Cursor_Literal) {
+							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
@@ -901,7 +901,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 								args.GetAdd(key_str) = value->str;
 								succ = true;
 							}
-							else if (value->src == Cursor_Expr) {
+							else if (IsPartially(value->src, Cursor_Op)) {
 								Value val_obj = EvaluateAstNodeValue(*value);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
@@ -913,7 +913,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						}
 						else if (key->src == Cursor_VarDecl) {
 							String key_str = key->val.id;
-							if (value->src == Cursor_Literal) {
+							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
 								args.GetAdd(key_str) = val_obj;

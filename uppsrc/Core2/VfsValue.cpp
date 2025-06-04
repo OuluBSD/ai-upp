@@ -786,16 +786,19 @@ String VfsValue::GetTreeString(int depth) const
 		ASSERT(type_hash != 0);
 		s.Cat('\t', depth+1);
 		int fac_i = VfsValueExtFactory::FindTypeHashFactory(type_hash);
-		s << "EXT:";
-		if (fac_i >= 0) {
+		s << "EXT: ";
+		String e = ext->ToString();
+		if (!e.IsEmpty())
+			s << e;
+		else if (fac_i >= 0) {
 			const auto& fac = VfsValueExtFactory::List()[fac_i];
-			s << " " << ClassPathTop(fac.name);
+			s << ClassPathTop(fac.name);
 			if (!fac.ctrl_name.IsEmpty())
 				s << " (" << fac.ctrl_name << ")";
 		}
 		else {
 			TypeCls type = ext->GetTypeCls();
-			s << " " << type.GetName();
+			s << type.GetName();
 		}
 		s << "\n";
 	}

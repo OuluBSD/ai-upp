@@ -42,8 +42,6 @@ void AstNode::CopyFrom(EonStd* e, const AstNode& n) {
 	
 	val.id = n.val.id;
 	src = n.src;
-	op = n.op;
-	con = n.con;
 	filter = n.filter;
 	i64 = n.i64;
 	str = n.str;
@@ -71,7 +69,6 @@ void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 	val.sub.Clear();
 	val.id.Clear();
 	src = Cursor_Literal;
-	op = OP_NULL;
 	filter = Cursor_Null;
 	i64 = 0;
 	str.Clear();
@@ -82,39 +79,36 @@ void AstNode::CopyFromValue(const FileLocation& loc, const Value& o) {
 	
 	if (type == BOOL_V) {
 		i64 = o.Get<bool>();
-		con = CONST_BOOL;
+		src = Cursor_Literal_BOOL;
 	}
 	else if (type == INT_V) {
 		i64 = o.Get<int>();
-		con = CONST_INT32;
+		src = Cursor_Literal_INT32;
 	}
 	else if (type == INT64_V) {
 		i64 = o.Get<int64>();
-		con = CONST_INT64;
+		src = Cursor_Literal_INT64;
 	}
 	else if (type == STRING_V) {
 		str = o.Get<String>();
-		con = CONST_STRING;
+		src = Cursor_Literal_STRING;
 	}
 	else if (type == DOUBLE_V) {
 		dbl = o.Get<double>();
-		con = CONST_DOUBLE;
+		src = Cursor_Literal_DOUBLE;
 	}
 	else TODO
 }
 
 void AstNode::CopyToValue(Value& n) const {
-	if (src == Cursor_Literal) {
-		switch (con) {
-			case CONST_BOOL: n = (bool)i64; break;
-			case CONST_INT32: n = (int)i64; break;
-			case CONST_INT64: n = (int64)i64; break;
-			case CONST_STRING: n = str; break;
-			case CONST_DOUBLE: n = dbl; break;
-			default: TODO break;
-		}
+	switch (src) {
+		case Cursor_Literal_BOOL: n = (bool)i64; break;
+		case Cursor_Literal_INT32: n = (int)i64; break;
+		case Cursor_Literal_INT64: n = (int64)i64; break;
+		case Cursor_Literal_STRING: n = str; break;
+		case Cursor_Literal_DOUBLE: n = dbl; break;
+		default: TODO break;
 	}
-	else TODO
 }
 
 AstNode& AstNode::Add(const FileLocation& loc, String name, int idx) {
@@ -168,7 +162,7 @@ const AstNode* AstNode::Find(String name, CodeCursor accepts) const {
 
 AstNode* AstNode::Find(CodeCursor t) {
 	for (auto& s : val.Sub<AstNode>())
-		if (s.src == t)
+		if (IsPartially(s.src, t))
 			return &s;
 	return 0;
 }
@@ -182,7 +176,7 @@ AstNode* AstNode::FindPartial(CodeCursor t) {
 
 const AstNode* AstNode::Find(CodeCursor t) const {
 	for (auto& s : val.Sub<AstNode>())
-		if (s.src == t)
+		if (IsPartially(s.src, t))
 			return &s;
 	return 0;
 }
@@ -313,41 +307,44 @@ void AstNode::FindAllNonIdEndpoints20(Vector<Endpoint>& ptrs, CodeCursor accepts
 }
 
 String AstNode::GetConstantString() const {
-	String s = GetConstString(con) + ": ";
-	switch (con) {
-		case CONST_NULL:	s += "null"; break;
-		case CONST_INT32:	s += IntStr((int)i64); break;
-		case CONST_INT64:	s += IntStr64(i64); break;
-		case CONST_DOUBLE:	s += DblStr(dbl); break;
-		case CONST_STRING:	s += "\"" + str + "\""; break;
+	String s = GetCodeCursorString(src) + ": ";
+	switch (src) {
+		case Cursor_Literal_INT32:	s += IntStr((int)i64);	break;
+		case Cursor_Literal_INT64:	s += IntStr64(i64);		break;
+		case Cursor_Literal_DOUBLE:	s += DblStr(dbl);		break;
+		case Cursor_Literal_STRING:	s += "\"" + str + "\"";	break;
 		default: break;
 	}
+	return s;
+}
+
+String AstNode::GetTreeItemString() const {
+	String s;
+	s << GetCodeCursorString(src) << ": ";
+	
+	if (val.id.GetCount())
+		s << val.id;
+	else if (src == Cursor_Object)
+		s << "object(" << obj.ToString() << ")";
+	else if (src == Cursor_Unresolved)
+		s << "unresolved(" << str << ")";
+	else if (IsPartially(src, Cursor_Literal))
+		s << "const(" << GetConstantString() << ")";
+	else if (IsPartially(src, Cursor_Op))
+		s << "op(" << GetOpCodeString(src) << ")";
+	else if (filter != Cursor_Null)
+		s << "filter(" << GetCodeCursorString(filter) << ")";
+	else if (src == Cursor_Rval && rval)
+		s << rval->GetName();
+	
 	return s;
 }
 
 String AstNode::GetTreeString(int indent) const {
 	String s;
 	s.Cat('\t', indent);
-	
-	s << GetCodeCursorString(src) << ": ";
-	
-	if (val.id.GetCount())
-		s << val.id << "\n";
-	else if (src == Cursor_Object)
-		s << "object(" << obj.ToString() << ")\n";
-	else if (src == Cursor_Unresolved)
-		s << "unresolved(" << str << ")\n";
-	else if (src == Cursor_Literal)
-		s << "const(" << GetConstantString() << ")\n";
-	else if (op != OP_NULL)
-		s << "op(" << GetOpString(op) << ")\n";
-	else if (filter != Cursor_Null)
-		s << "filter(" << GetCodeCursorString(filter) << ")\n";
-	else if (src == Cursor_Rval && rval)
-		s << rval->GetName() << "\n";
-	else
-		s << "\n";
-	
+	s.Cat(GetTreeItemString());
+	s.Cat('\n');
 	for (const AstNode& n : val.Sub<AstNode>()) {
 		s << n.GetTreeString(indent+1);
 	}
@@ -383,7 +380,7 @@ String AstNode::GetCodeString(const CodeArgs2& args) const {
 }
 
 String AstNode::ToString() const {
-	return val.id;
+	return GetTreeItemString();
 }
 
 #if 0
@@ -520,10 +517,11 @@ bool IsPartially(CodeCursor src, CodeCursor t) {
 		}
 		
 		case Cursor_WithRvalReturn:
+		if (IsPartially(src, Cursor_ExprOp) ||
+			IsPartially(src, Cursor_Literal))
+			return true;
 		switch (src) {
 			case Cursor_Rval:
-			case Cursor_Expr:
-			case Cursor_Literal:
 			case Cursor_Resolve:
 			case Cursor_ArgumentList:
 			case Cursor_Ctor:
@@ -686,6 +684,78 @@ bool IsPartially(CodeCursor src, CodeCursor t) {
 			default: return false;
 		}
 		
+		case Cursor_Op:
+		switch (src) {
+			case Cursor_Op_NULL:
+			case Cursor_Op_INC:
+			case Cursor_Op_DEC:
+			case Cursor_Op_POSTINC:
+			case Cursor_Op_POSTDEC:
+			case Cursor_Op_NEGATIVE:
+			case Cursor_Op_POSITIVE:
+			case Cursor_Op_NOT:
+			case Cursor_Op_NEGATE:
+			case Cursor_Op_ADD:
+			case Cursor_Op_SUB:
+			case Cursor_Op_MUL:
+			case Cursor_Op_DIV:
+			case Cursor_Op_MOD:
+			case Cursor_Op_LSH:
+			case Cursor_Op_RSH:
+			case Cursor_Op_GREQ:
+			case Cursor_Op_LSEQ:
+			case Cursor_Op_GREATER:
+			case Cursor_Op_LESS:
+			case Cursor_Op_EQ:
+			case Cursor_Op_INEQ:
+			case Cursor_Op_BWAND:
+			case Cursor_Op_BWXOR:
+			case Cursor_Op_BWOR:
+			case Cursor_Op_AND:
+			case Cursor_Op_OR:
+			case Cursor_Op_COND:
+			case Cursor_Op_ASSIGN:
+			case Cursor_Op_ADDASS:
+			case Cursor_Op_SUBASS:
+			case Cursor_Op_MULASS:
+			case Cursor_Op_DIVASS:
+			case Cursor_Op_MODASS:
+			case Cursor_Op_CALL:
+			case Cursor_Op_SUBSCRIPT:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_Literal:
+		switch (src) {
+			case Cursor_Literal_BOOL:
+			case Cursor_Literal_INT32:
+			case Cursor_Literal_INT64:
+			case Cursor_Literal_DOUBLE:
+			case Cursor_Literal_STRING:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ExprCastable:
+		switch (src) {
+			case Cursor_VarDecl:
+			case Cursor_ParmDecl:
+			case Cursor_Literal:
+			case Cursor_Object:
+			case Cursor_Resolve:
+			case Cursor_Rval:
+			case Cursor_ArgumentList:
+			case Cursor_Function:
+			//case Cursor_Op:
+			return true;
+			default: return false;
+		}
+		
+		case Cursor_ExprOp:
+		return	IsPartially(src, Cursor_ExprCastable) ||
+				IsPartially(src, Cursor_Op);
+		
 		default:
 		return false;
 	}
@@ -694,14 +764,14 @@ bool IsPartially(CodeCursor src, CodeCursor t) {
 
 Value EvaluateAstNodeValue(AstNode& n) {
 	Value o;
-	if (n.src == Cursor_Expr) {
-		switch (n.op) {
+	if (IsPartially(n.src, Cursor_Op)) {
+		switch (n.src) {
 			
-		case OP_POSITIVE:
+		case Cursor_Op_POSITIVE:
 			o = EvaluateAstNodeValue(*n.arg[0]);
 			break;
 			
-		case OP_NEGATIVE:
+		case Cursor_Op_NEGATIVE:
 			o = EvaluateAstNodeValue(*n.arg[0]);
 			o = -1 * (double)o;
 			break;
@@ -710,7 +780,7 @@ Value EvaluateAstNodeValue(AstNode& n) {
 			TODO
 		}
 	}
-	else if (n.src == Cursor_Literal) {
+	else if (IsPartially(n.src, Cursor_Literal)) {
 		n.CopyToValue(o);
 	}
 	else TODO

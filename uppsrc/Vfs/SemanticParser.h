@@ -123,7 +123,7 @@ public:
 	bool Mul(bool m);
 	bool Add(bool m);
 	bool Shift(bool m);
-	bool DoCompare(bool m, const FileLocation& loc, OpType t);
+	bool DoCompare(bool m, const FileLocation& loc, CodeCursor t);
 	bool Compare(bool m);
 	bool Equal(bool m);
 	bool BinAnd(bool m);
@@ -176,9 +176,9 @@ public:
 	void PushRval(const FileLocation& loc, AstNode& n);
 	void PushRvalConstruct(const FileLocation& loc, AstNode& n);
 	void PushRvalConstant(const FileLocation& loc, const Token& t);
-	void Expr1(const FileLocation& loc, OpType op);
-	void Expr2(const FileLocation& loc, OpType op);
-	void Expr3(const FileLocation& loc, OpType op);
+	void Expr1(const FileLocation& loc, CodeCursor op);
+	void Expr2(const FileLocation& loc, CodeCursor op);
+	void Expr3(const FileLocation& loc, CodeCursor op);
 	void PushSystem(const FileLocation& loc, const PathIdentifier& id);
 	void PopSystem(const FileLocation& loc);
 	void PushPool(const FileLocation& loc, const PathIdentifier& id);

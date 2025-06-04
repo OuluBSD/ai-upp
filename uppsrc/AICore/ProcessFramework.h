@@ -10,7 +10,6 @@ TODO Read Notes:
 
 class AgentInteractionPolicy;
 class AgentInteractionSession;
-class AgentInteractionSystem;
 
 struct FarStage : Pte<FarStage> {
 	struct Function : Moveable<Function> {
@@ -85,6 +84,7 @@ private:
 	EscSession esc;
 	MsgCb WhenMessage;
 	Event<bool> WhenStop;
+	bool separate_thread = false;
 	
 public:
 	CLASSTYPE(Agent)
@@ -92,6 +92,7 @@ public:
 	~Agent();
 	
 	void Visit(Vis& v) override {}
+	void Update(double dt) override;
 	bool RealizeLibrary(Vector<ProcMsg>& msgs);
 	bool CompileStage(VfsValue& stage, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
@@ -137,6 +138,8 @@ public:
 	
 };
 
+
+#if 0
 class AgentInteractionSystem : public VfsValueExt {
 	Vector<AgentPtr> agents;
 	
@@ -157,6 +160,6 @@ public:
 	static void Uninstall();
 	static AgentInteractionSystem* sys;
 };
-
+#endif
 
 #endif

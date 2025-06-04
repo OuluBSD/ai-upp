@@ -27,7 +27,6 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 	
 	// System
-	REGISTER_SYSTEM_ECS(EasingSystem);
 	REGISTER_SYSTEM_ECS(WorldLogicSystem);
 	REGISTER_SYSTEM_ECS(PhysicsSystem);
 	REGISTER_SYSTEM_ECS(PlayerBodySystem);

@@ -78,8 +78,20 @@ void Engine::Update(double dt) {
 		return;
 	}
 	
-	for (Component* cb : update_list) {
-		cb->Update(dt);
+	for (auto& c : update_list) {
+		if (c)
+			c->Update(dt);
+	}
+	
+	for (auto it : ~NameUpdaters()) {
+		int i = named_update_lists.Find(it.key);
+		if (i < 0)
+			continue;
+		auto& list = named_update_lists[i];
+		for (auto& e : list) {
+			if (e)
+				it.value(*e);
+		}
 	}
 	
 	is_looping_systems = true;
@@ -181,14 +193,7 @@ void Engine::SystemStartup(TypeCls type_id, System* system) {
 
 void Engine::Visit(Vis& vis) {
 	vis && update_list;
-}
-
-void Engine::AddToUpdateList(ComponentPtr c) {
-	VectorFindAdd(update_list, c);
-}
-
-void Engine::RemoveFromUpdateList(ComponentPtr c) {
-	VectorRemoveKey(update_list, c);
+	vis && named_update_lists;
 }
 
 Ptr<System> Engine::Add(TypeCls type, bool startup)
@@ -219,17 +224,41 @@ Ptr<System> Engine::GetAdd(String id, bool startup) {
     return Add(type, startup);
 }
 
-void Engine::AddUpdated(AtomBase& p) {
-	VectorFindAdd(updated, AtomBasePtr(&p));
+
+
+
+
+
+VectorMap<String,Event<VfsValueExt&>>& Engine::NameUpdaters() {
+	static VectorMap<String,Event<VfsValueExt&>> m;
+	return m;
 }
 
-void Engine::RemoveUpdated(AtomBase& p) {
-	VectorRemoveKey(updated, AtomBasePtr(&p));
+
+void Engine::AddUpdated(VfsValueExt* c) {
+	VfsValueExtPtr p = c;
+	VectorFindAdd(update_list, p);
 }
 
+void Engine::RemoveUpdated( VfsValueExt* c) {
+	VfsValueExtPtr p = c;
+	VectorRemoveKey(update_list, p);
+}
 
+void Engine::AddUpdated(String name, VfsValueExt* c) {
+	VfsValueExtPtr p = c;
+	VectorFindAdd(named_update_lists.GetAdd(name), p);
+}
 
+void Engine::RemoveUpdated(String name, VfsValueExt* c) {
+	VfsValueExtPtr p = c;
+	VectorRemoveKey(named_update_lists.GetAdd(name), p);
+}
 
+void Engine::AddNameUpdater(String name, Event<VfsValueExt&> update_fn) {
+	ASSERT(NameUpdaters().Find(name) < 0);
+	NameUpdaters().GetAdd(name) = update_fn;
+}
 
 END_UPP_NAMESPACE
 

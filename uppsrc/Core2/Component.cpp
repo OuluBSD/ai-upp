@@ -2,8 +2,8 @@
 
 NAMESPACE_UPP
 
-void Component::AddToUpdateList() {GetEngine().AddToUpdateList(this);}
-void Component::RemoveFromUpdateList() {GetEngine().RemoveFromUpdateList(this);}
+void Component::AddToUpdateList() {GetEngine().AddUpdated(this);}
+void Component::RemoveFromUpdateList() {GetEngine().RemoveUpdated(this);}
 
 Engine& Component::GetEngine() {
 	Engine* e = val.FindOwner<Engine>();

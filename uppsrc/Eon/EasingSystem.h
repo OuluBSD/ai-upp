@@ -30,19 +30,5 @@ using EasingPtr = Ptr<Easing>;
 
 
 
-class EasingSystem : public System
-{
-	Vector<Easing*> comps;
-public:
-	ECS_SYS_CTOR(EasingSystem)
-	ECS_SYS_DEF_VISIT
-	
-	void Attach(Easing* e);
-	void Detach(Easing* e);
-	
-protected:
-    void Update(double) override;
-};
-
 
 #endif

@@ -122,30 +122,30 @@ bool EonStd::ForwardUserspace(AstNode*& n) {
 	}
 	if (n->IsPartially(SEMT_STATEMENT)) {
 		switch (n->stmt) {
-			case STMT_FOR:
-			case STMT_IF:
-			case STMT_ELSE:
+			case Cursor_ForStmt:
+			case Cursor_IfStmt:
+			case Cursor_ElseStmt:
 				n = n->Find(SEMT_STATEMENT_BLOCK);
 				break;
 			
-			case STMT_FOR_COND:
-			case STMT_FOR_POST:
-			case STMT_FOR_RANGE:
-			case STMT_BLOCK:
-			case STMT_RETURN:
+			case Cursor_ForStmt_Conditional:
+			case Cursor_ForStmt_PostOp:
+			case Cursor_ForStmt_Range:
+			case Cursor_BlockExpr:
+			case Cursor_ReturnStmt:
 				return false;
 				
-			case STMT_DOWHILE:
-			case STMT_WHILE:
-			case STMT_BREAK:
-			case STMT_CONTINUE:
-			case STMT_CASE:
-			case STMT_DEFAULT:
-			case STMT_SWITCH:
+			case Cursor_DoStmt:
+			case Cursor_WhileStmt:
+			case Cursor_BreakStmt:
+			case Cursor_ContinueStmt:
+			case Cursor_CaseStmt:
+			case Cursor_DefaultStmt:
+			case Cursor_SwitchStmt:
 				TODO
 				
 			default:
-			case STMT_NULL:
+			case Cursor_Null:
 				break;
 		}
 	}

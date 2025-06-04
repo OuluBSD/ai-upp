@@ -276,25 +276,25 @@ void AstExporter::VisitStatement(const AstNode& n) {
 	AstNode* p = 0;
 	
 	switch (n.stmt) {
-	case STMT_NULL:
+	case Cursor_Null:
 		break;
 		
-	case STMT_FOR:
+	case Cursor_ForStmt:
 		ASSERT(inline_scopes.IsEmpty());
 		PushInlineScope();
 		output << GetIndentString() << "for (";
 		VisitCtorExpr(n);
 		output << "; ";
-		VisitStmt(n, STMT_FOR_COND);
+		VisitStmt(n, Cursor_ForStmt_Conditional);
 		output << "; ";
-		VisitStmt(n, STMT_FOR_POST);
+		VisitStmt(n, Cursor_ForStmt_PostOp);
 		output << ") {\n";
 		PopInlineScope();
 		Visit(n, SEMT_STATEMENT_BLOCK);
 		output << GetIndentString() << "}\n";
 		break;
 		
-	case STMT_IF:
+	case Cursor_IfStmt:
 		ASSERT(inline_scopes.IsEmpty());
 		PushInlineScope();
 		output << GetIndentString() << "if (";
@@ -305,7 +305,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << GetIndentString() << "}\n";
 		break;
 		
-	case STMT_ELSE:
+	case Cursor_ElseStmt:
 		ASSERT(inline_scopes.IsEmpty());
 		PushInlineScope();
 		output << GetIndentString() << "else {\n";
@@ -314,8 +314,8 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << GetIndentString() << "}\n";
 		break;
 		
-	case STMT_FOR_COND:
-	case STMT_FOR_POST:
+	case Cursor_ForStmt_Conditional:
+	case Cursor_ForStmt_PostOp:
 		Visit(n, SEMT_EXPR);
 		break;
 		
@@ -332,7 +332,7 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << ";\n";
 		break;
 	
-	case STMT_RETURN:
+	case Cursor_ReturnStmt:
 		output << GetIndentString() << "return";
 		if (n.rval) {
 			const AstNode& s = *n.rval;
@@ -352,15 +352,15 @@ void AstExporter::VisitStatement(const AstNode& n) {
 		output << ";\n";
 		break;
 		
-	case STMT_DOWHILE:
-	case STMT_WHILE:
-	case STMT_FOR_RANGE:
-	case STMT_BREAK:
-	case STMT_CONTINUE:
-	case STMT_CASE:
-	case STMT_DEFAULT:
-	case STMT_SWITCH:
-	case STMT_BLOCK:
+	case Cursor_DoStmt:
+	case Cursor_WhileStmt:
+	case Cursor_ForStmt_Range:
+	case Cursor_BreakStmt:
+	case Cursor_ContinueStmt:
+	case Cursor_CaseStmt:
+	case Cursor_DefaultStmt:
+	case Cursor_SwitchStmt:
+	case Cursor_BlockExpr:
 	default:
 		TODO
 		break;

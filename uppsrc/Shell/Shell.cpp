@@ -142,29 +142,19 @@ GUI_APP_MAIN {
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
-	auto& root = MetaEnv().root;
 	
-	Engine& eng = root.Add<Engine>("eng");
-	eng.WhenBoot << callback(DefaultSerialInitializer);
+	Engine& eng = root.GetAdd<Engine>("eng");
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
-	eng.WhenPreFirstUpdate << callback(DefaultStartup);
-	eng.Start("Shell");
-
 	bool gubo = false;
 	if (gubo) {
 		eng.WhenUserProgram << callback1(DesktopMain, true);
 	}
 	
+	Engine::Setup("Shell", &eng);
+	
 	eng.MainLoop();
 	
-	eng.Stop();
-	eng.Clear();
-	
-	root.StopDeep();
-	root.ClearDependenciesDeep();
-	root.UninitializeDeep();
-	root.ClearExtDeep();
-	root.sub.Clear();
+	Engine::Uninstall(&eng);
 }
 
 #endif

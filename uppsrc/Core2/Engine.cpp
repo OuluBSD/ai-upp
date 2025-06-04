@@ -260,5 +260,30 @@ void Engine::AddNameUpdater(String name, Event<VfsValueExt&> update_fn) {
 	NameUpdaters().GetAdd(name) = update_fn;
 }
 
+Engine& Engine::Setup(String name, Engine* e) {
+	auto& root = MetaEnv().root;
+	Engine& eng = e ? *e : root.GetAdd<Engine>("eng");
+	
+	eng.WhenBoot << callback(DefaultSerialInitializer);
+	eng.WhenPreFirstUpdate << callback(DefaultStartup);
+	eng.Start(name);
+	return eng;
+}
+
+void Engine::Uninstall(bool clear_root, Engine* e) {
+	auto& root = MetaEnv().root;
+	Engine& eng = e ? *e : root.GetAdd<Engine>("eng");
+	
+	eng.Stop();
+	eng.Clear();
+	
+	auto& rm = clear_root ? root : eng.val;
+	rm.StopDeep();
+	rm.ClearDependenciesDeep();
+	rm.UninitializeDeep();
+	rm.ClearExtDeep();
+	rm.sub.Clear();
+}
+
 END_UPP_NAMESPACE
 

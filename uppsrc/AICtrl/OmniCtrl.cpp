@@ -130,7 +130,6 @@ void OmniDetailedCtrl::SetSoundThread(Ptr<SoundThreadBase> t) {
 		thrd->Detach();
 	thrd = t;
 	
-	TODO
 	#if 0
 	OmniThread& aidm = OmniThread::Single();
 	aidm.WhenDiscussionBegin = [this](SoundDiscussion& d) {PostCallback(THISBACK(DataManager));};
@@ -146,7 +145,6 @@ void OmniDetailedCtrl::Data() {
 }
 
 void OmniDetailedCtrl::DataManager() {
-	TODO
 	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
@@ -162,7 +160,6 @@ void OmniDetailedCtrl::DataManager() {
 }
 
 void OmniDetailedCtrl::DataDiscussion() {
-	TODO
 	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
@@ -187,7 +184,6 @@ void OmniDetailedCtrl::DataDiscussion() {
 }
 
 void OmniDetailedCtrl::DataMessage() {
-	TODO
 	#if 0
 	OmniThread& dm = OmniThread::Single();
 	
@@ -218,7 +214,6 @@ void OmniDetailedCtrl::DataMessage() {
 }
 
 void OmniDetailedCtrl::DataPhrase() {
-	TODO
 	#if 0
 	OmniThread& dm = OmniThread::Single();
 	

@@ -149,11 +149,9 @@ ChainThread& AiThreadExt::GetChainThread() {
 #endif
 
 void CompletionCtrl::Submit() {
-	TODO
-	#if 0
-	if (!HasThread()) return;
+	if (!ext) return;
 	if (this->model_name.GetCount() == 0) return;
-	CompletionThread& t = GetCompletionThread();
+	CompletionThread& t = dynamic_cast<CompletionThread&>(*ext);
 	TaskMgr& m = AiTaskManager();
 	
 	String txt = this->prompt.GetData();
@@ -193,7 +191,6 @@ void CompletionCtrl::Submit() {
 			this->prompt.SetCursor(this->prompt.GetLength());
 		});
 	}
-	#endif
 }
 
 
@@ -609,10 +606,10 @@ void ChatAiCtrl::Data() {
 	}
 	
 	// Update sessions
-	TODO
-	#if 0
-	if (!HasThread()) return;
+	if (!ext)
+		return;
 	ChatThread& t = dynamic_cast<ChatThread&>(*ext);
+	
 	if (t.sessions.IsEmpty())
 		AddSession();
 	if (sessions.GetCount() != t.sessions.GetCount()) {
@@ -627,7 +624,6 @@ void ChatAiCtrl::Data() {
 		if (!sessions.IsCursor())
 			sessions.SetCursor(0);
 	}
-	#endif
 	
 	DataSession();
 }
@@ -849,11 +845,8 @@ PlaygroundCtrl::~PlaygroundCtrl() {
 }
 
 void PlaygroundCtrl::CreateThread() {
-	TODO
-	#if 0
 	LoadThis();
-	SetThread(*omni);
-	#endif
+	//SetThread(*omni);
 }
 
 void PlaygroundCtrl::TabMenu(Bar& b) {
@@ -906,34 +899,35 @@ void PlaygroundCtrl::Visit(Vis& s) {
 }
 
 void PlaygroundCtrl::StoreThis() {
-	TODO
-	#if 0
-	if (omni)
-		VisitToJsonFile(*omni, ConfigFile("playground.json"));
-	#endif
+	//if (omni)
+	//	VisitToJsonFile(*omni, ConfigFile("playground.json"));
 	VisitToJsonFile(*this, ConfigFile("playground-gui.json"));
 	if (node)
 		VisitToJsonFile(*node, ConfigFile("playground-node.json"));
 }
 
 void PlaygroundCtrl::LoadThis() {
-	TODO
-	#if 0
-	if (omni)
-		VisitFromJsonFile(*omni, ConfigFile("playground.json"));
+	//if (omni)
+	//	VisitFromJsonFile(*omni, ConfigFile("playground.json"));
 	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
 	if (node) {
 		VisitFromJsonFile(*node, ConfigFile("playground-node.json"));
 		
-		auto& stage_n = node->GetAdd<VfsFarStage>("stage-session");
-		stage.ext = &stage_n;
+		auto& compl_n	= node->GetAdd<CompletionThread>("completion");
+		completion.ext	= &compl_n;
 		
-		auto& chain_n = node->GetAdd<ChainThread>("chain");
-		chain.ext = &chain_n;
+		auto& chat_n	= node->GetAdd<ChatThread>("chat");
+		chat.ext		= &chat_n;
 		
-		auto& agent = node->GetAdd<Agent>("agent");
+		auto& stage_n   = node->GetAdd<VfsFarStage>("stage-session");
+		stage.ext		= &stage_n;
+		
+		auto& chain_n   = node->GetAdd<ChainThread>("chain");
+		chain.ext		= &chain_n;
+		
+		auto& agent		= node->GetAdd<Agent>("agent");
+		
 	}
-	#endif
 }
 
 void PlaygroundCtrl::SetNode(VfsValue& n) {

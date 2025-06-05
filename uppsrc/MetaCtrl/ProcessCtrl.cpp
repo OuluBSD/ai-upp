@@ -550,7 +550,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 		if (type_hash) {
 			if (!IsTypeKindBuiltIn(a.type)) {
 				VfsValue* decl = env.FindTypeDeclaration(n.type_hash);
-				const AstValue* a = decl ? *decl : 0;
+				const AstValue* a = decl ? *decl : (const AstValue*)0;
 				if (a && a->begin == Point(0,0) && a->kind == CXCursor_Namespace)
 					;
 				else
@@ -606,7 +606,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			}
 			else
 				nest = n.owner;
-			AstValue* a = nest ? *nest : 0;
+			AstValue* a = nest ? *nest : (AstValue*)0;
 			if (a && IsStruct(a->kind)) {
 				VfsValue& type = *nest;
 				auto& rel = t.relations.Add();
@@ -668,7 +668,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				VfsValue& call_tgt = *it.link_node;
 				if (&call_tgt == &n) {
 					const AstValue* a1 = n1;
-					const AstValue* owner1 = a1 && n1.owner ? *n1.owner : 0;
+					const AstValue* owner1 = a1 && n1.owner ? *n1.owner : (const AstValue*)0;
 					// Avoid duplicates: merge CallExpr & MemberRefExpr to one (by avoiding MemberRefExpr)
 					if (a1 && owner1 && a1->kind == CXCursor_MemberRefExpr && owner1->kind == CXCursor_CallExpr)
 						continue;
@@ -692,7 +692,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 					if (a1 && IsTypeKindBuiltIn(a1->type))
 						continue;
 					VfsValue* type = env.FindTypeDeclaration(n1.type_hash);
-					const AstValue* type_ast = type ? *type : 0;
+					const AstValue* type_ast = type ? *type : (const AstValue*)0;
 					if (type_ast && type_ast->begin == Point(0,0) && type_ast->kind == CXCursor_Namespace)
 						continue; // built-in type
 					if (type && !t.HasInputLink(*type, true)) {
@@ -771,7 +771,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				rel.node = &n1;
 				rel.link_node = it.link_node;
 				rel.file = it.file;
-				const AstValue* link_ast = it.link_node ? *it.link_node : 0;
+				const AstValue* link_ast = it.link_node ? *it.link_node : (const AstValue*)0;
 				if (link_ast && link_ast->kind == CXCursor_MacroDefinition) {
 					auto& rel = t.relations.Add();
 					rel.reason = AITask::MACRO_DEFINITION;
@@ -822,7 +822,7 @@ bool MetaProcess::ProcessTask(AITask& t) {
 		return false;
 	}
 	String content = LoadFile(t.filepath);
-	const AstValue* ap = t.vis.node ? *t.vis.node : 0;
+	const AstValue* ap = t.vis.node ? *t.vis.node : (const AstValue*)0;
 	if (!ap) {
 		AddError("Node doesn't have AstValue");
 		return false;
@@ -947,7 +947,7 @@ void MetaProcessCtrl::Data() {
 		else
 			tasks.Set(row, 4, Value());
 		if (n.owner) {
-			const AstValue* owner_a = n.owner ? *n.owner : 0;
+			const AstValue* owner_a = n.owner ? *n.owner : (const AstValue*)0;
 			tasks.Set(row, 6, owner_a ? owner_a->type : "<error>");
 		}
 		else
@@ -995,7 +995,7 @@ void MetaProcessCtrl::DataTask() {
 	
 	for(int i = 0; i < t.relations.GetCount(); i++) {
 		const auto& rel = t.relations[i];
-		const AstValue* a = rel.link_node ? *rel.link_node : 0;
+		const AstValue* a = rel.link_node ? *rel.link_node : (const AstValue*)0;
 		info.Set(i, 0, rel.is_dependency ? "X" : "");
 		info.Set(i, 1, AITask::GetReasonString(rel.reason));
 		info.Set(i, 2, rel.file);

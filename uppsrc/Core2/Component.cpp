@@ -7,6 +7,8 @@ void Component::RemoveFromUpdateList() {GetEngine().RemoveUpdated(this);}
 
 Engine& Component::GetEngine() {
 	Engine* e = val.FindOwner<Engine>();
+	if (!e)
+		e = val.FindOwnerWith<Engine>();
 	ASSERT(e);
 	if (!e) throw Exc("Can't find Engine");
 	return *e;

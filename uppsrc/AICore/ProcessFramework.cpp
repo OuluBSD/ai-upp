@@ -10,11 +10,15 @@ INITBLOCK {
 
 
 Agent::Agent(VfsValue& n) : Component(n) {
-	GetEngine().AddUpdated(this);
+	Engine::PostCallback([this]{
+		eng = &GetEngine();
+		eng->AddUpdated(this);
+	});
 }
 
 Agent::~Agent() {
-	GetEngine().RemoveUpdated(this);
+	if (eng)
+		eng->RemoveUpdated(this);
 }
 
 bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {

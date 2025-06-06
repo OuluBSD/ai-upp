@@ -1000,6 +1000,13 @@ VfsValue* VfsValue::Detach(int i) {
 	return 0;
 }
 
+VfsValue& VfsValue::GetRoot() {
+	VfsValue* v = this;
+	while (v->owner)
+		v = v->owner;
+	return *v;
+}
+
 void VfsValue::Remove(VfsValue* n) {
 	int i = 0;
 	for (auto& s : sub) {

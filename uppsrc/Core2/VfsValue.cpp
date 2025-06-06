@@ -198,19 +198,25 @@ bool MetaEnvironment::MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, M
 	AstValue* a0 = n0;
 	const AstValue* a1 = n1;
 	ASSERT(a0 && a1 && a0->kind == a1->kind && n0.id == n1.id);
-	TODO
-	#if 0
-	if(a0 && a1 && IsMergeable((CXCursorKind)a0->kind)) {
-		for(const VfsValue& sub1 : n1.sub) {
-			int i = n0.Find(sub1.kind, sub1.id);
+	
+	bool mergeable = false;
+	if(a0 && a1 && n0.type_hash == 0 && n1.type_hash == 0 && IsMergeable(a0->kind)) {
+		for(const VfsValue& s1 : n1.sub) {
+			const AstValue* a1 = s1;
+			int i = -1;
+			if (a1)
+				i = n0.AstFind(a1->kind, s1.id);
+			else
+				i = n0.Find(s1.id, s1.type_hash);
+			
 			if(i < 0) {
-				auto& n = n0.Add(sub1);
+				auto& n = n0.Add(s1);
 				MergeVisitPost(n);
 			}
 			else {
 				VfsValue& sub0 = n0.sub[i];
 				scope << &sub0;
-				bool succ = MergeVisit(scope, sub1, mode);
+				bool succ = MergeVisit(scope, s1, mode);
 				scope.Pop();
 				if(!succ)
 					return false;
@@ -221,7 +227,7 @@ bool MetaEnvironment::MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, M
 	else {
 		return MergeVisitPartMatching(scope, n1, mode);
 	}
-	#endif
+	
 	return true;
 }
 
@@ -683,11 +689,26 @@ void VfsValue::SetTempDeep()
 		n.SetTempDeep();
 }
 
+void VfsValue::AstFix()
+{
+	AstValue* p = *this;
+	if (!p && id.GetCount() && (
+			 value.IsVoid() ||
+			(value.Is<int>() && (int)value == INT_MIN)
+		)
+	) {
+		AstValue& v = *this;
+		v.kind = Cursor_Namespace;
+	}
+}
+
 void MetaEnvironment::RefreshNodePtrs(VfsValue& n)
 {
 	/*if (n.kind == CXCursor_ClassTemplate) {
 	    //LOG(n.GetTreeString());
 	}*/
+	n.AstFix();
+	
 	AstValue* p = n;
 	ASSERT(p); // unverified (part of cleanup)
 	if (!p)
@@ -811,7 +832,8 @@ int VfsValue::AstFind(int kind, const String& id) const
 {
 	int i = 0;
 	for(const VfsValue& n : sub) {
-		if(n.type_hash == type_hash && n.id == id)
+		const AstValue* a = n;
+		if(a && a->kind == kind && n.id == id)
 			return i;
 		i++;
 	}
@@ -823,6 +845,17 @@ int VfsValue::Find(const String& id) const
 	int i = 0;
 	for(const VfsValue& n : sub) {
 		if (n.id == id)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
+int VfsValue::Find(const String& id, hash_t type_hash) const
+{
+	int i = 0;
+	for(const VfsValue& n : sub) {
+		if (n.id == id && n.type_hash == type_hash)
 			return i;
 		i++;
 	}
@@ -1222,58 +1255,61 @@ hash_t VfsValue::GetTotalHash() const
 void VfsValue::Visit(Vis& v) {
 	v.SetScope(this);
 	#define Do(x) (#x,x)
-	v.Ver(3);
-	if (v.file_ver <= 2) {
+	#define Do64(x) (#x,(int64&)x)
+	v.Ver(3,true);
+	if (v.file_ver >= 0 && v.file_ver <= 2) {
 		AstValue& a = *this;
 		v
 		(1)	Do(a.kind)
 			Do(id)
 			Do(a.type)
-			Do((int64&)type_hash)
+			Do64(type_hash)
 			Do(a.begin)
 			Do(a.end)
-			Do((int64&)a.filepos_hash)
+			Do64(a.filepos_hash)
 			Do(file)
 			//Do(pkg)
 			Do(a.is_ref)
 			Do(a.is_definition)
 			Do(a.is_disabled)
-			Do((int64&)serial)
+			Do64(serial)
 		(2)	Do(value)
 			;
 	}
 	else {
 		v
 		(3)	Do(id)
-			Do((int64&)type_hash)
+			Do64(type_hash)
+			Do64(serial)
 			Do(file)
 			//Do(pkg)
-			Do((int64&)serial)
 			;
 		
 		bool is_ast = (const AstValue*)*this;
 		v	Do(is_ast);
-		if (v.IsLoading()) {
-			if (is_ast) {
-				AstValue& a = *this;
-				v
-					Do(a.kind)
-					Do(a.type)
-					Do(a.begin)
-					Do(a.end)
-					Do((int64&)a.filepos_hash)
-					Do(a.is_ref)
-					Do(a.is_definition)
-					Do(a.is_disabled);
-			}
-			else
-				v	Do(value);
+		if (is_ast) {
+			AstValue& a = *this;
+			v
+				Do(a.kind)
+				Do(a.type)
+				Do(a.begin)
+				Do(a.end)
+				Do64(a.filepos_hash)
+				Do(a.is_ref)
+				Do(a.is_definition)
+				Do(a.is_disabled);
+		}
+		else {
+			v	Do(value);
 		}
 	}
 	
 	if (type_hash) {
 		if (v.IsLoading()) {
-			ext = VfsValueExtFactory::Create(type_hash, *this);
+			if (ext && ext->GetTypeHash() != type_hash)
+				ext.Clear();
+			if (ext.IsEmpty())
+				ext = VfsValueExtFactory::Create(type_hash, *this);
 			type_hash = ext->GetTypeHash();
 			if (ext)
 				v("ext",*ext, VISIT_NODE);
@@ -1320,13 +1356,13 @@ void VfsValue::DeepChk() {
 
 void VfsValue::Chk() {
 	#ifdef flagDEBUG
-	if (owner && type_hash && type_hash == AsTypeHash<Entity>()) {
-		//ASSERT(owner->kind != METAKIND_ECS_SPACE);
-		TODO // add context && pkg-env component
-		/*
-		ASSERT(owner->type_hash != METAKIND_CONTEXT);
-		ASSERT(owner->kind != METAKIND_PKG_ENV);
-		*/
+	if (owner && type_hash) {
+		if (type_hash == AsTypeHash<Entity>()) {
+			ASSERT(owner->type_hash == 0);
+		}
+		else if (VfsValueExtFactory::IsType(type_hash, VFSEXT_COMPONENT)) {
+			ASSERT(owner->type_hash == AsTypeHash<Entity>());
+		}
 	}
 	#endif
 }
@@ -1355,10 +1391,33 @@ int VfsValue::GetDepth() const {
 	return depth;
 }
 
+String VfsValue::GetSourceHashDump(int indent, bool* total_hash_diffs) const
+{
+	String s;
+	const AstValue* a = *this;
+	// Tree of AstValue is required
+	if (!a || (a->kind < 0 || a->kind >= 1000)) {
+		if(total_hash_diffs)
+			*total_hash_diffs = true;
+		return s;
+	}
+	s.Cat('\t', indent);
+	s << id << ":" << a->kind << ", " << a->type << "\n";
+	for(const auto& n : sub) {
+		bool b = false;
+		String o = n.GetSourceHashDump(indent+1, &b);
+		if (b)
+			continue;
+		s << o;
+	}
+	return s;
+}
+
 hash_t VfsValue::AstGetSourceHash(bool* total_hash_diffs) const
 {
 	const AstValue* a = *this;
-	if (a->kind < 0 || a->kind >= 1000) {
+	// Tree of AstValue is required
+	if (!a || (a->kind < 0 || a->kind >= 1000)) {
 		if(total_hash_diffs)
 			*total_hash_diffs = true;
 		return 0;
@@ -1715,6 +1774,12 @@ VfsItemType MetaEnvironment::CheckItem(const VfsPath& rel_path) {
 
 
 
+bool VfsValueExtFactory::IsType(hash_t type_hash, VfsExtType t) {
+	for (auto& l : List())
+		if (l.type_hash == type_hash && l.type == t)
+			return true;
+	return false;
+}
 
 VfsValueExt* VfsValueExtFactory::Create(hash_t type_hash, VfsValue& owner) {
 	int i = FindTypeHashFactory(type_hash);

@@ -25,7 +25,8 @@ struct Entity :
 	Destroyable,
 	Enableable
 {
-	METANODE_EXT_CONSTRUCTOR(Entity)
+	CLASSTYPE(Entity);
+	Entity(VfsValue& v);
 	void Clear() {data.Clear();}
 	void Visit(Vis& v) override;
 	int GetGender() const;

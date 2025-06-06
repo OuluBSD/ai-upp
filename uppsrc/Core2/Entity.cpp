@@ -15,6 +15,12 @@ void Component::GetDataset(DatasetPtrs& p) const {
 		FillDatasetPtr(p, n, const_cast<Component*>(this));
 }
 
+Entity::Entity(VfsValue& v) : VfsValueExt(v) {
+	LOG("Entity::Entity");
+	
+	
+}
+
 int Entity::GetGender() const {
 	int i = data.Find("gender");
 	if (i < 0)

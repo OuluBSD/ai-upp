@@ -187,7 +187,7 @@ struct VfsValueExtFactory {
 	static VectorMap<LinkTypeCls,LinkData>& LinkDataMap() {static VectorMap<LinkTypeCls,LinkData> m; return m;}
 	static VectorMap<ValDevTuple,IfaceData>& IfaceLinkDataMap() {static VectorMap<ValDevTuple,IfaceData> m; return m;}
 	//static VectorMap<TypeCls,ExptData>& ExptDataMap() {static VectorMap<TypeCls,ExptData> m; return m;}
-	
+	static bool IsType(hash_t type_hash, VfsExtType t);
 	template <class T> inline static void RegisterExchange(String name, DevCls dev, ValCls val) {
 		Register<T>(name, VFSEXT_EXCHANGE);
 		ValDevCls vd(dev,val);
@@ -347,6 +347,8 @@ struct VfsValue : Pte<VfsValue> {
 	void AstRemoveAllShallow(int kind);
 	void AstRemoveAllDeep(int kind);
 	hash_t AstGetSourceHash(bool* total_hash_diffs=0) const;
+	String GetSourceHashDump(int indent=0, bool* total_hash_diffs=0) const;
+	void AstFix();
 	
 	
 	VfsValue& Add(const VfsValue& n);
@@ -362,6 +364,7 @@ struct VfsValue : Pte<VfsValue> {
 	String GetTreeString(int depth=0) const;
 	String GetTypeString() const;
 	int Find(const String& id) const;
+	int Find(const String& id, hash_t type_hash) const;
 	VfsValue* FindPath(const VfsPath& path);
 	hash_t GetTotalHash() const;
 	void Visit(Vis& v);
@@ -419,6 +422,7 @@ struct VfsValue : Pte<VfsValue> {
 	}
 	
 	VfsValueExt& CreateExt(hash_t type_hash) {
+		ASSERT(type_hash != 0);
 		ext.Clear();
 		VfsValueExt* o = VfsValueExtFactory::Create(type_hash, *this);
 		ASSERT(o);

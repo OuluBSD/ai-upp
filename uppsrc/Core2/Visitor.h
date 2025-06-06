@@ -458,11 +458,27 @@ struct Visitor {
 		return *this;
 	}
 		
-	Visitor& Ver(int version) {
-		if (mode != MODE_STREAM) return *this;
-		*stream % version;
-		file_ver = version;
-		skip = false;
+	Visitor& Ver(int version, bool forced=false) {
+		if (mode == MODE_STREAM) {
+			*stream % version;
+			file_ver = version;
+			skip = false;
+		}
+		else if (forced && mode == MODE_JSON) {
+			file_ver = version;
+			(*json)(".version", file_ver);
+			skip = false;
+		}
+		else if (forced && mode == MODE_HASH) {
+			file_ver = version;
+			hash.Do(file_ver);
+			skip = false;
+		}
+		else if (forced && mode == MODE_VCS) {
+			file_ver = version;
+			vcs->Do(".version", file_ver);
+			skip = false;
+		}
 		return *this;
 	}
 	Visitor& operator()(int version) {
@@ -631,17 +647,24 @@ template <class T>
 bool VisitFromJson(T& var, const char *json)
 {
 	try {
-		Value jv = ParseJSON(json);
-		if(jv.IsError())
-			return false;
+		Value jv;
+		if (TrimLeft(String(json)).GetCount()) {
+			jv = ParseJSON(json);
+			if(jv.IsError()) {
+				LOG("VisitFromJson: " << GetErrorText(jv));
+				return false;
+			}
+		}
 		JsonIO io(jv);
 		Vis vis(io);
 		var.Visit(vis);
 	}
-	catch(ValueTypeError) {
+	catch(ValueTypeError e) {
+		LOG("VisitFromJson: " << e);
 		return false;
 	}
-	catch(JsonizeError) {
+	catch(JsonizeError e) {
+		LOG("VisitFromJson: " << e);
 		return false;
 	}
 	return true;

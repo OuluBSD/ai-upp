@@ -202,10 +202,17 @@ public:
 	static void AddNameUpdater(String name, Event<VfsValueExt&> update_fn);
 	static Engine& Setup(String name, Engine* e=0);
 	static void Uninstall(bool clear_root=true, Engine* e=0);
+	static void PostCallback(Event<> cb);
 	
 private:
 	Vector<AtomBasePtr> updated;
 	
+	struct StaticEngine {
+		Vector<Event<>> callbacks;
+		Mutex lock;
+	};
+	static StaticEngine& GetStatic();
+	static void RunCallbacks();
 protected:
 	friend struct Eon::ExtScriptEcsLoader;
 	
@@ -214,6 +221,7 @@ protected:
     
 };
 
+using EnginePtr = Ptr<Engine>;
 
 template <class S>
 inline void Component::AddToSystem() {

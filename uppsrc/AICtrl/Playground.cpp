@@ -699,8 +699,6 @@ void ChatAiCtrl::DataSession() {
 }
 
 void ChatAiCtrl::Submit() {
-	TODO
-	#if 0
 	if (this->model_name.GetCount() == 0) return;
 	if (session_i < 0) return;
 	
@@ -780,7 +778,6 @@ void ChatAiCtrl::Submit() {
 			DataSession();
 		});
 	});
-	#endif
 }
 
 CustomBiasesCtrl::CustomBiasesCtrl() {

@@ -21,6 +21,8 @@ bool Engine::Start() {
 	
 	is_looping_systems = true;
 	
+	RunCallbacks();
+	
 	Vector<VfsValueExt*> post_init_exts;
 	auto systems = val.FindAll<System>();
 	for (auto it : systems) {
@@ -34,6 +36,8 @@ bool Engine::Start() {
 		post_init_exts << it;
 	}
 	
+	RunCallbacks();
+	
 	// Post-initialization is like 2nd round of init (when there's need for a two-phase init)
 	for (auto it : post_init_exts) {
 		if (!it->PostInitialize()) {
@@ -41,6 +45,8 @@ bool Engine::Start() {
 			return false;
 		}
 	}
+	
+	RunCallbacks();
 	
 	is_initialized = true;
 	
@@ -50,6 +56,8 @@ bool Engine::Start() {
 			return false;
 		}
 	}
+	
+	RunCallbacks();
 	
 	is_looping_systems = false;
 	
@@ -78,6 +86,8 @@ void Engine::Update(double dt) {
 		return;
 	}
 	
+	RunCallbacks();
+	
 	for (auto& c : update_list) {
 		if (c)
 			c->Update(dt);
@@ -94,6 +104,8 @@ void Engine::Update(double dt) {
 		}
 	}
 	
+	RunCallbacks();
+	
 	is_looping_systems = true;
 	
 	auto systems = val.FindAll<System>();
@@ -104,6 +116,8 @@ void Engine::Update(double dt) {
 		
 		WhenLeaveSystemUpdate();
 	}
+	
+	RunCallbacks();
 	
 	is_looping_systems = false;
 	
@@ -124,12 +138,16 @@ void Engine::Stop() {
 	is_looping_systems = true;
 	
 	
+	RunCallbacks();
+	
 	// Stop components
 	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
 		Component* comp = v->ext ? CastPtr<Component>(&*v->ext) : 0;
 		if (comp)
 			comp->Stop();
 	}
+	
+	RunCallbacks();
 	
 	// Stop atoms
 	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
@@ -138,6 +156,8 @@ void Engine::Stop() {
 			atom->Stop();
 	}
 	
+	RunCallbacks();
+	
 	// Stop systems
 	auto systems = val.FindAll<System>();
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
@@ -145,6 +165,8 @@ void Engine::Stop() {
 	}
 	
 	is_initialized = false;
+	
+	RunCallbacks();
 	
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
 		if ((*it)->IsInitialized()) {
@@ -283,6 +305,30 @@ void Engine::Uninstall(bool clear_root, Engine* e) {
 	rm.UninitializeDeep();
 	rm.ClearExtDeep();
 	rm.sub.Clear();
+}
+
+void Engine::PostCallback(Event<> cb) {
+	StaticEngine& s = GetStatic();
+	s.lock.Enter();
+	s.callbacks << cb;
+	s.lock.Leave();
+}
+
+Engine::StaticEngine& Engine::GetStatic() {
+	static StaticEngine s;
+	return s;
+}
+
+void Engine::RunCallbacks() {
+	StaticEngine& s = GetStatic();
+	if (s.callbacks.IsEmpty())
+		return;
+	Vector<Event<>> callbacks;
+	s.lock.Enter();
+	Swap(callbacks, s.callbacks);
+	s.lock.Leave();
+	for (auto& cb : callbacks)
+		cb();
 }
 
 END_UPP_NAMESPACE

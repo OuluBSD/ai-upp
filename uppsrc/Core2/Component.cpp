@@ -9,7 +9,12 @@ Engine& Component::GetEngine() {
 	Engine* e = val.FindOwner<Engine>();
 	if (!e)
 		e = val.FindOwnerWith<Engine>();
+	#ifdef flagDEBUG
+	if (!e) {
+		LOG(val.GetRoot().GetTreeString());
+	}
 	ASSERT(e);
+	#endif
 	if (!e) throw Exc("Can't find Engine");
 	return *e;
 }

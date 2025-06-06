@@ -352,6 +352,7 @@ struct VfsValue : Pte<VfsValue> {
 	VfsValue& Init(VfsValue& s, const String& id, hash_t h);
 	VfsValue* Detach(VfsValue* n);
 	VfsValue* Detach(int i);
+	VfsValue& GetRoot();
 	void Remove(VfsValue* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;

@@ -85,6 +85,7 @@ private:
 	MsgCb WhenMessage;
 	Event<bool> WhenStop;
 	bool separate_thread = false;
+	EnginePtr eng;
 	
 public:
 	CLASSTYPE(Agent)

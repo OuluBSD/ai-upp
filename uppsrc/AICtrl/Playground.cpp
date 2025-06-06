@@ -941,7 +941,7 @@ PlaygroundApp::PlaygroundApp() {
 	AddFrame(menu);
 	PostCallback(THISBACK(UpdateMenu));
 	
-	omni_node.Create();
+	omni_node = &MetaEnv().root.GetAdd<Engine>("eng").val.GetAdd("playground",0);
 	VisitFromJsonFile(*omni_node, ConfigFile("playground-root.json"));
 	pg.SetNode(*omni_node);
 	

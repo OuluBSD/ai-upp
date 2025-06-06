@@ -10,10 +10,11 @@ INITBLOCK {
 
 
 Agent::Agent(VfsValue& n) : Component(n) {
-	Engine::PostCallback([this]{
-		eng = &GetEngine();
+	eng = n.FindOwner<Engine>();
+	if (!eng) n.FindOwnerWith<Engine>();
+	ASSERT(eng);
+	if (eng)
 		eng->AddUpdated(this);
-	});
 }
 
 Agent::~Agent() {

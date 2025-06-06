@@ -120,7 +120,7 @@ public:
 	JsonIO& Var(const char *key, T& value, X item_jsonize);
 
 	template <class T, class X>
-	JsonIO& Array(const char *key, T& value, X item_jsonize, const char * = NULL);
+	JsonIO& Array(const char *key, T& value, X item_jsonize, const char * = NULL, void* arg = NULL);
 
 	JsonIO(const Value& src) : src(&src)         {}
 	JsonIO()                                     { src = NULL; }
@@ -186,7 +186,7 @@ JsonIO& JsonIO::Var(const char *key, T& value, X jsonize)
 
 
 template <class T, class X>
-void JsonizeArray(JsonIO& io, T& array, X item_jsonize)
+void JsonizeArray(JsonIO& io, T& array, X item_jsonize, void* arg=0)
 {
 	if(io.IsLoading()) {
 		const Value& va = io.Get();
@@ -208,13 +208,13 @@ void JsonizeArray(JsonIO& io, T& array, X item_jsonize)
 	}
 }
 
-template <class T, class X> JsonIO& JsonIO::Array(const char *key, T& value, X item_jsonize, const char *)
+template <class T, class X> JsonIO& JsonIO::Array(const char *key, T& value, X item_jsonize, const char *, void* arg)
 {
 	if(IsLoading()) {
 		const Value& v = (*src)[key];
 		if(!v.IsVoid()) {
 			JsonIO jio(v);
-			JsonizeArray(jio, value, item_jsonize);
+			JsonizeArray(jio, value, item_jsonize, arg);
 		}
 	}
 	else {
@@ -222,7 +222,7 @@ template <class T, class X> JsonIO& JsonIO::Array(const char *key, T& value, X i
 		if(!map)
 			map.Create();
 		JsonIO jio;
-		JsonizeArray(jio, value, item_jsonize);
+		JsonizeArray(jio, value, item_jsonize, arg);
 		if(jio.map)
 			map->Add(key, *jio.map);
 		else

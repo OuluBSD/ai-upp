@@ -12,6 +12,10 @@ class ClangTypeResolver;
 class ToolAppCtrl;
 struct VfsValueSubset;
 
+
+template <> void JsonizeArray<Array<VfsValue>,CallbackN<JsonIO&,VfsValue&>>(JsonIO& io, Array<VfsValue>& array, CallbackN<JsonIO&,VfsValue&> item_jsonize, void* arg);
+
+
 struct EntityData : Pte<EntityData> {
 	virtual ~EntityData() {}
 	
@@ -441,10 +445,10 @@ struct VfsValue : Pte<VfsValue> {
 			}
 		}
 		VfsValue& s = Add();
+		s.owner = this;
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
-		s.owner = this;
 		s.pkg = pkg;
 		s.file = file;
 		s.type_hash = type_hash;
@@ -454,10 +458,10 @@ struct VfsValue : Pte<VfsValue> {
 	template <class T>
 	T& Add(String id="") {
 		VfsValue& s = Add();
+		s.owner = this;
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
-		s.owner = this;
 		s.pkg = pkg;
 		s.file = file;
 		s.type_hash = AsTypeHash<T>();
@@ -975,6 +979,27 @@ MetaEnvironment& MetaEnv();
 
 
 
+
+template<> inline void Visitor::VisitVectorSerialize<Array<VfsValue>>(Array<VfsValue>& o) {
+	ChkSerializeMagic();
+	Ver(1)(1);
+	int count = max(0,o.GetCount());
+	(*stream) / count;
+	if (!storing) {
+		o.SetCount(count);
+		if (scope) {
+			VfsValue* owner = reinterpret_cast<VfsValue*>(scope);
+			for (auto& i : o)
+				i.owner = owner;
+		}
+	}
+	int dbg_i = 0;
+	for (auto& v : o) {
+		ChkSerializeMagic();
+		v.Visit(*this);
+		dbg_i++;
+	}
+}
 
 
 #endif

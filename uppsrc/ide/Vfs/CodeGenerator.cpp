@@ -181,7 +181,7 @@ void MetaCodeGenerator::FindFiles(const VfsValueSubset& np, Vector<Vector<int>>&
 void MetaCodeGenerator::FindValues(const VfsValueSubset& np, const PkgFile& key, Vector<VfsValue*>& nodes) {
 	VfsValue& n = *np.n;
 	const AstValue* a = n;
-	if (a && IdeMetaEnvironment::IsMergeable(a->kind)) {
+	if (a && IsMergeable(a->kind)) {
 		for (const VfsValueSubset& s : np.sub) {
 			FindValues(s, key, nodes);
 		}

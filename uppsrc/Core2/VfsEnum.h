@@ -1,31 +1,32 @@
-#ifndef _Vfs_Builtin_h_
-#define _Vfs_Builtin_h_
+#ifndef _Core2_VfsEnum_h_
+#define _Core2_VfsEnum_h_
 
 
 
 #define CURSOR_LIST \
-	CURSOR(Null					, =, 0) \
-	CURSOR(Namespace			, =,CXCursor_Namespace) \
-	CURSOR(TypedefDecl			, =,CXCursor_TypedefDecl) \
-	CURSOR(ClassDecl			, =,CXCursor_ClassDecl) \
-	CURSOR(ClassTemplate		, =,CXCursor_ClassTemplate) \
-	CURSOR(CXXMethod			, =,CXCursor_CXXMethod) \
-	CURSOR(VarDecl				, =,CXCursor_VarDecl) \
-	CURSOR(ParmDecl				, =,CXCursor_ParmDecl) \
-	CURSOR(CompoundStmt			, =,CXCursor_CompoundStmt) \
-	CURSOR(TranslationUnit		, =,CXCursor_TranslationUnit) \
+	CURSOR(Null					, =,  0) \
+	CURSOR(Namespace			, =, 22) /*CXCursor_Namespace*/ \
+	CURSOR(TypedefDecl			, =, 20) /*CXCursor_TypedefDecl*/ \
+	CURSOR(ClassDecl			, =,  4) /*CXCursor_ClassDecl*/ \
+	CURSOR(ClassTemplate		, =, 31) /*CXCursor_ClassTemplate*/ \
+	CURSOR(CXXMethod			, =, 21) /*CXCursor_CXXMethod*/ \
+	CURSOR(VarDecl				, =,  9) /*CXCursor_VarDecl*/ \
+	CURSOR(ParmDecl				, =, 10) /*CXCursor_ParmDecl*/ \
+	CURSOR(CompoundStmt			, =,202) /*CXCursor_CompoundStmt*/ \
+	CURSOR(TranslationUnit		, =,300) /*CXCursor_TranslationUnit*/ \
 	\
-	CURSOR(IfStmt				, =,CXCursor_IfStmt) \
-	CURSOR(DoStmt				, =,CXCursor_DoStmt) \
-	CURSOR(WhileStmt			, =,CXCursor_WhileStmt) \
-	CURSOR(ForStmt				, =,CXCursor_ForStmt) \
-	CURSOR(BreakStmt			, =,CXCursor_BreakStmt) \
-	CURSOR(ContinueStmt			, =,CXCursor_ContinueStmt) \
-	CURSOR(CaseStmt				, =,CXCursor_CaseStmt) \
-	CURSOR(DefaultStmt			, =,CXCursor_DefaultStmt) \
-	CURSOR(ReturnStmt			, =,CXCursor_ReturnStmt) \
-	CURSOR(SwitchStmt			, =,CXCursor_SwitchStmt) \
-	CURSOR(BlockExpr			, =,CXCursor_BlockExpr) \
+	CURSOR(IfStmt				, =,205) /*CXCursor_IfStmt*/ \
+	CURSOR(DoStmt				, =,208) /*CXCursor_DoStmt*/ \
+	CURSOR(WhileStmt			, =,207) /*CXCursor_WhileStmt*/ \
+	CURSOR(ForStmt				, =,209) /*CXCursor_ForStmt*/ \
+	CURSOR(BreakStmt			, =,213) /*CXCursor_BreakStmt*/ \
+	CURSOR(ContinueStmt			, =,212) /*CXCursor_ContinueStmt*/ \
+	CURSOR(CaseStmt				, =,203) /*CXCursor_CaseStmt*/ \
+	CURSOR(DefaultStmt			, =,204) /*CXCursor_DefaultStmt*/ \
+	CURSOR(ReturnStmt			, =,214) /*CXCursor_ReturnStmt*/ \
+	CURSOR(SwitchStmt			, =,206) /*CXCursor_SwitchStmt*/ \
+	CURSOR(BlockExpr			, =,105) /*CXCursor_BlockExpr*/ \
+	CURSOR(LinkageSpec			, =, 23) /*CXCursor_LinkageSpec*/ \
 	\
 	CURSOR(Vfs					, =,2000) \
 	\
@@ -185,6 +186,7 @@ typedef uint64 CodeCursorPrimitive;
 
 struct AstNode;
 
+bool IsMergeable(int kind);
 String GetCodeCursorString(CodeCursor t);
 String GetOpCodeString(CodeCursor t);
 bool IsTypedNode(CodeCursor src);

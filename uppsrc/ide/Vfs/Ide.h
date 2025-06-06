@@ -31,6 +31,7 @@ struct VfsSrcFile : Moveable<VfsSrcFile> {
 	VfsValue& GetTemp();
 	VfsValue& CreateTemp(int dbg_src);
 	void ClearTemp();
+	void FixAstValue();
 	void OnSeenTypes();
 	void OnSerialCounter();
 	String GetTitle() const {return GetFileTitle(full_path);}
@@ -106,8 +107,6 @@ struct IdeMetaEnvironment {
 	Vector<VfsValue*> FindDeclarationsDeep(const VfsValue& n);
 	static VfsValue* FindDeclarationStatic(const VfsValue& n);
 	static Vector<VfsValue*> FindDeclarationsDeepStatic(const VfsValue& n);
-	static bool IsMergeable(int kind);
-	static bool IsMergeable(CXCursorKind kind);
 };
 
 void Assign(VfsValue& mn, VfsValue* owner, const ClangNode& n);
@@ -115,5 +114,6 @@ void Store(IdeMetaEnvironment& env, String& includes, const String& path, ClangN
 void UpdateWorkspace(IdeMetaEnvironment& env, Workspace& wspc);
 IdeMetaEnvironment& IdeMetaEnv();
 bool IsStructKind(const VfsValue& n);
+bool IsMergeable(CXCursorKind kind);
 
 #endif

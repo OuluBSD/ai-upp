@@ -175,13 +175,27 @@ VfsValue& VfsSrcFile::GetTemp() {
 VfsValue& VfsSrcFile::CreateTemp(int dbg_src) {
 	ASSERT(temp.IsEmpty());
 	temp_id = CreateTempCheck(dbg_src);
-	return temp.Create();
+	VfsValue& n = temp.Create();
+	AstValue& a = n;
+	a.kind = Cursor_Namespace;
+	return n;
 }
 
 void VfsSrcFile::ClearTemp() {
 	ClearTempCheck(temp_id);
 	temp.Clear();
 	temp_id = -1;
+}
+
+void VfsSrcFile::FixAstValue()
+{
+	// This is a hotfix after moving clang related data to AstValue in VfsValue::value
+	// Nothing makes sense completely yet
+	if (temp) {
+		AstValue& a = *temp;
+		if (a.kind < 0)
+			a.kind = Cursor_Namespace;
+	}
 }
 
 void VfsSrcFile::Visit(Vis& v)
@@ -195,12 +209,17 @@ void VfsSrcFile::Visit(Vis& v)
 		UpdateStoring();
 	v.Ver(1)
 	(1)	("id", id)
-		("hash", saved_hash)
 		("highest_seen_serial", (int64&)highest_seen_serial)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
+	if (!v.IsHashing())
+		v("hash", saved_hash);
 	if (v.IsLoading()) {
+		/*if (saved_hash.GetCount()) {
+			LOG(saved_hash);
+		}*/
+		FixAstValue();
 		UpdateLoading();
 	}
 }
@@ -221,6 +240,10 @@ String VfsSrcFile::UpdateStoring()
 	String old_hash = saved_hash;
 	bool total_hash_diffs = false;
 	saved_hash = IntStr64(file_nodes.AstGetSourceHash(&total_hash_diffs));
+	
+	/*if (1) {
+		LOG(file_nodes.GetSourceHashDump());
+	}*/
 	
 	ASSERT(!saved_hash.IsEmpty());
 	ASSERT(!full_path.IsEmpty());
@@ -325,6 +348,7 @@ bool VfsSrcFile::Load()
 	CreateTemp(2);
 	
 	ASSERT(this->full_path.GetCount());
+	bool succ = true;
 	if (IsDirTree()) {
 		VersionControlSystem vcs;
 		vcs.Initialize(full_path, false);
@@ -340,11 +364,11 @@ bool VfsSrcFile::Load()
 		s.Close();
 	}
 	else {
-		VisitFromJsonFile(*this, full_path);
+		succ = VisitFromJsonFile(*this, full_path);
 	}
 	
 	lock.Leave();
-	return !saved_hash.IsEmpty();
+	return succ && !saved_hash.IsEmpty();
 }
 
 void VfsSrcFile::UpdateLoading() {
@@ -901,7 +925,15 @@ void IdeMetaEnvironment::OnLoadFile(VfsSrcFile& file)
 {
 	VfsValue& file_nodes = file.GetTemp();
 	file_nodes.SetTempDeep();
-	ASSERT(file.saved_hash == IntStr64(file_nodes.AstGetSourceHash()));
+	if (!file.saved_hash.IsEmpty()) {
+		if (!(file.saved_hash == IntStr64(file_nodes.AstGetSourceHash()))) {
+			DUMP(file.saved_hash.GetCount());
+			LOG(file.saved_hash);
+			LOG(IntStr64(file_nodes.AstGetSourceHash()));
+			LOG(file_nodes.GetSourceHashDump());
+		}
+		ASSERT(file.saved_hash == IntStr64(file_nodes.AstGetSourceHash()));
+	}
 	//file_nodes.SetPkgDeep(pkg.id);
 	//LOG(file_nodes.GetTreeString());
 	env.MergeValue(env.root, file_nodes, MERGEMODE_OVERWRITE_OLD);
@@ -924,11 +956,15 @@ VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, hash_t type_has
 		}
 	}
 	VfsValue& n = env.root.sub.Add();
-	n.pkg = pkg;
-	n.file = file;
-	n.serial = env.NewSerial();
+	n.owner = &env.root;
 	n.id = pkgs[pkg].files[file].GetTitle();
-	n.CreateExt(type_hash);
+	n.serial = env.NewSerial();
+	n.file = file;
+	n.pkg = pkg;
+	AstValue& a = n;
+	a.kind = CXCursor_Namespace;
+	if (type_hash)
+		n.CreateExt(type_hash);
 	return n;
 }
 
@@ -1007,19 +1043,9 @@ Vector<VfsValue*> IdeMetaEnvironment::FindDeclarationsDeep(const VfsValue& n)
 	return v;
 }
 
-bool IdeMetaEnvironment::IsMergeable(int kind) { return IsMergeable((CXCursorKind)kind); }
-
-bool IdeMetaEnvironment::IsMergeable(CXCursorKind kind)
+bool IsMergeable(CXCursorKind kind)
 {
-	switch(kind) {
-	// case CXCursor_StructDecl:
-	// case CXCursor_ClassDecl:
-	case CXCursor_Namespace:
-	case CXCursor_LinkageSpec:
-		return true;
-	default:
-		return false;
-	}
+	return IsMergeable((int)kind);
 }
 
 IdeMetaEnvironment& IdeMetaEnv()

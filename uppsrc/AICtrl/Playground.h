@@ -231,7 +231,7 @@ public:
 class PlaygroundApp : public TopWindow {
 	PlaygroundCtrl pg;
 	MenuBar menu;
-	One<VfsValue> omni_node;
+	Ptr<VfsValue> omni_node;
 	
 public:
 	typedef PlaygroundApp CLASSNAME;

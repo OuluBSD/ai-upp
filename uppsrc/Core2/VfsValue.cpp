@@ -1220,6 +1220,7 @@ hash_t VfsValue::GetTotalHash() const
 }
 
 void VfsValue::Visit(Vis& v) {
+	v.SetScope(this);
 	#define Do(x) (#x,x)
 	v.Ver(3);
 	if (v.file_ver <= 2) {
@@ -1877,6 +1878,37 @@ void VfsValueExt::Serialize(Stream& s){
 void VfsValueExt::Jsonize(JsonIO& json){
 	Vis vis(json);
 	const_cast<VfsValueExt*>(this)->Visit(vis);
+}
+
+
+
+template <>
+void JsonizeArray <Array<VfsValue>,CallbackN<JsonIO&,VfsValue&>>
+		(JsonIO& io, Array<VfsValue>& array, CallbackN<JsonIO&,VfsValue&> item_jsonize, void* arg) {
+	if(io.IsLoading()) {
+		const Value& va = io.Get();
+		array.SetCount(va.GetCount());
+		if (arg) {
+			// this is the only difference
+			VfsValue& owner = *reinterpret_cast<VfsValue*>(arg);
+			for(auto& a : array)
+				a.owner = &owner;
+		}
+		for(int i = 0; i < va.GetCount(); i++) {
+			JsonIO jio(va[i]);
+			item_jsonize(jio, array[i]);
+		}
+	}
+	else {
+		Vector<Value> va;
+		va.SetCount(array.GetCount());
+		for(int i = 0; i < array.GetCount(); i++) {
+			JsonIO jio;
+			item_jsonize(jio, array[i]);
+			jio.Put(va[i]);
+		}
+		io.Set(ValueArray(pick(va)));
+	}
 }
 
 END_UPP_NAMESPACE

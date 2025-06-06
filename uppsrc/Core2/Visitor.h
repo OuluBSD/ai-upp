@@ -1,6 +1,8 @@
 #ifndef _Core2_Visitor_h_
 #define _Core2_Visitor_h_
 
+struct VfsValue;
+
 struct Visitor {
 	JsonIO* json = 0;
 	Stream* stream = 0;
@@ -12,6 +14,7 @@ struct Visitor {
 	enum {MODE_JSON, MODE_STREAM, MODE_HASH, MODE_VCS, MODE_RUNTIMEVISIT};
 	bool storing = false;
 	String error;
+	void* scope = 0;
 	
 	typedef Visitor CLASSNAME;
 	Visitor(JsonIO& j) {json = &j; mode = MODE_JSON; storing = j.IsStoring();}
@@ -25,7 +28,7 @@ struct Visitor {
 	bool IsHashing() const {return mode == MODE_HASH;}
 	bool IsError() const {return !error.IsEmpty();}
 	void SetError(String s) {error = s;}
-	
+	void SetScope(void* s) {scope = s;}
 	
 	template<class T>
 	Visitor& Visit(const char* key, T& o) {
@@ -73,6 +76,8 @@ struct Visitor {
 			dbg_i++;
 		}
 	}
+	template<> void VisitVectorSerialize(Array<VfsValue>& o);
+	
 	template<class T>
 	void VisitJsonItem(JsonIO& j, T& o) {
 		Visitor v(j);
@@ -85,7 +90,7 @@ struct Visitor {
 	}
 	template<class T>
 	void VisitVectorJson(const char* key, T& o) {
-		json->Array(key, o, THISBACK(VisitJsonItem<typename T::value_type>));
+		json->Array(key, o, THISBACK(VisitJsonItem<typename T::value_type>), NULL, scope);
 	}
 	template<class T>
 	void VisitVectorHash(T& o) {
@@ -129,9 +134,10 @@ struct Visitor {
 		for (auto& v : o)
 			VisitVectorSerialize(v);
 	}
+	
 	template<class T>
 	void VisitVectorVectorItem(JsonIO& j, T& o) {
-		JsonizeArray(j, o, THISBACK(VisitJsonItem<typename T::value_type>));
+		JsonizeArray(j, o, THISBACK(VisitJsonItem<typename T::value_type>), scope);
 	}
 	template<class T>
 	void VisitVectorVectorJson(const char* key, T& o) {
@@ -149,7 +155,7 @@ struct Visitor {
 		int i = 0;
 		for (auto& v : o) {
 			vcs->BeginAt(i++);
-			VisitVectorHash(v);
+			VisitVectorVcs(IntStr(i++), v);
 			vcs->End();
 		}
 		vcs->End();

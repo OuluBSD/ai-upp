@@ -137,7 +137,7 @@ bool Agent::Catch(Event<> cb, Vector<ProcMsg>& msgs) {
 	return succ;
 }
 
-bool Agent::CompileStage(VfsValue& stage, MsgCb WhenMessage) {
+bool Agent::CompileStage(VfsValue& stage, bool force, MsgCb WhenMessage) {
 	TimeStop ts;
 	
 	ASSERT(stage.type_hash == AsTypeHash<VfsFarStage>());
@@ -168,11 +168,11 @@ bool Agent::CompileStage(VfsValue& stage, MsgCb WhenMessage) {
 	return succ;
 }
 
-bool Agent::Compile(String esc, MsgCb WhenMessage) {
+bool Agent::Compile(String esc, bool force, MsgCb WhenMessage) {
 	TimeStop ts;
 	
 	hash_t h = esc.GetHashValue();
-	if (compiled_hash && compiled_hash == h)
+	if (!force && compiled_hash && compiled_hash == h)
 		return true;
 	
 	compiled_hash = 0;
@@ -264,6 +264,7 @@ bool Agent::Start() {
 	}
 	else {
 		GetEngine().AddUpdated(this);
+		run = true;
 	}
 	return true;
 }
@@ -278,7 +279,11 @@ void Agent::Stop() {
 }
 
 void Agent::Update(double dt) {
-	TODO
+	if (run) {
+		run = false;
+		bool succ = Run(WhenMessage);
+		WhenStop(succ);
+	}
 }
 
 
@@ -339,6 +344,14 @@ AgentInteractionSystem* AgentInteractionSystem::sys;
 
 #endif
 
+
+
+VfsFarStage::VfsFarStage(VfsValue& n) : VfsValueExt(n) {
+	const AstValue* a = n;
+	if (a) {
+		n.value = String(); // the code text is here
+	}
+}
 
 INITIALIZER_COMPONENT(VfsProgram, "vfs.program", "Vfs|Program")
 

@@ -145,6 +145,7 @@ CONSOLE_APP_MAIN {
 	
 	Engine& eng = MetaEnv().root.GetAdd<Engine>("eng");
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
+	eng.WhenBoot << callback(DefaultSerialInitializer);
 	bool gubo = false;
 	if (gubo) {
 		eng.WhenUserProgram << callback1(DesktopMain, true);

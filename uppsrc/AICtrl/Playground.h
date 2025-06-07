@@ -74,8 +74,8 @@ public:
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
 	void DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash);
-	bool CompileStages();
-	bool Compile();
+	bool CompileStages(bool force);
+	bool Compile(bool force);
 	bool Run();
 	
 	VfsValue* GetProgram();

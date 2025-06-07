@@ -62,7 +62,7 @@ bool Engine::Start() {
 	is_looping_systems = false;
 	
 	is_started = true;
-	is_running = true;
+	
 	return true;
 }
 
@@ -130,7 +130,8 @@ void Engine::Stop() {
 	if (!is_started)
 		return;
 	
-	is_running = false;
+	main_thrd.Stop();
+	
 	is_started = false;
 	
 	DBG_BEGIN_UNREF_CHECK
@@ -282,13 +283,18 @@ void Engine::AddNameUpdater(String name, Event<VfsValueExt&> update_fn) {
 	NameUpdaters().GetAdd(name) = update_fn;
 }
 
-Engine& Engine::Setup(String name, Engine* e) {
+Engine& Engine::Setup(String name, Engine* e, bool in_thrd) {
 	auto& root = MetaEnv().root;
 	Engine& eng = e ? *e : root.GetAdd<Engine>("eng");
+	if (eng.IsRunning())
+		return eng;
 	
-	eng.WhenBoot << callback(DefaultSerialInitializer);
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
 	eng.Start(name);
+	
+	if (in_thrd)
+		eng.StartMainLoop();
+	
 	return eng;
 }
 

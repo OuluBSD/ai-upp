@@ -22,13 +22,12 @@ LAYOUT(TreeDialog, 300, 300)
 END_LAYOUT
 
 LAYOUT(ComponentSelection, 492, 380)
-	ITEM(Upp::Label, dv___0, SetLabel(t_("Group:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(4, 20))
-	ITEM(Upp::DropList, group, HSizePosZ(124, 4).TopPosZ(4, 20))
-	ITEM(Upp::Label, dv___2, SetLabel(t_("Category group:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(28, 20))
-	ITEM(Upp::DropList, catgroup, HSizePosZ(124, 4).TopPosZ(28, 20))
-	ITEM(Upp::Label, dv___4, SetLabel(t_("Category:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(52, 20))
-	ITEM(Upp::DropList, category, HSizePosZ(124, 4).TopPosZ(52, 20))
-	ITEM(Upp::ArrayCtrl, complist, HSizePosZ(4, 4).VSizePosZ(76, 28))
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Category group:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(4, 20))
+	ITEM(Upp::DropList, catgroup, HSizePosZ(124, 4).TopPosZ(4, 20))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Category:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(4, 116).TopPosZ(28, 20))
+	ITEM(Upp::DropList, category, HSizePosZ(124, 4).TopPosZ(28, 20))
+	ITEM(Upp::ArrayCtrl, complist, HSizePosZ(4, 4).VSizePosZ(52, 28))
 	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(108, 100).BottomPosZ(4, 20))
 	ITEM(Upp::Button, ok, SetLabel(t_("Ok")).RightPosZ(4, 100).BottomPosZ(4, 20))
 END_LAYOUT
+

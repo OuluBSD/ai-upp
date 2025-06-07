@@ -115,5 +115,7 @@ void UpdateWorkspace(IdeMetaEnvironment& env, Workspace& wspc);
 IdeMetaEnvironment& IdeMetaEnv();
 bool IsStructKind(const VfsValue& n);
 bool IsMergeable(CXCursorKind kind);
+VfsValue* FindNodeEnv(Entity& n);
+VfsValue* IdeVfsFillDatasetPtrs(DatasetPtrs& p, hash_t type_hash);
 
 #endif

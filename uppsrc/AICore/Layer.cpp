@@ -38,7 +38,7 @@ void ImageLayer::Visit(Vis& v) {
 	}
 }
 
-INITIALIZER_COMPONENT(ImageLayer);
-INITIALIZER_COMPONENT(ImageGenLayer);
+INITIALIZER_COMPONENT(ImageLayer, "photo.layer", "Image|Photo");
+INITIALIZER_COMPONENT(ImageGenLayer, "photo.layer.generator", "Image|Photo");
 
 END_UPP_NAMESPACE

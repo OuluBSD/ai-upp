@@ -6,8 +6,8 @@ NAMESPACE_UPP
 ArtistInfoCtrl::ArtistInfoCtrl() {
 	CtrlLayout(*this);
 	
-	for(int i = 0; i < CATEGORY_COUNT; i++)
-		visual_gender.Add(GetCategoryString(i));
+	for(int i = 0; i < Genders().GetCount(); i++)
+		visual_gender.Add(Genders()[i]);
 	
 	native_name <<= THISBACK(OnValueChange);
 	english_name <<= THISBACK(OnValueChange);
@@ -62,7 +62,7 @@ void ArtistInfoCtrl::Data() {
 		this->electronic_tools			.SetData(a.Data("electronic_tools"));
 		this->speaker_visually			.SetData(a.Data("speaker_visually"));
 		
-		int gender_i = max(0, FindCategory(a.Data("visual_gender").ToString()));
+		int gender_i = max(0, Genders().Find(a.Data("visual_gender").ToString()));
 		this->visual_gender				.SetIndex(gender_i);
 		
 		int lng_i = a.Data("language");
@@ -88,7 +88,7 @@ void ArtistInfoCtrl::OnValueChange() {
 		o.Data("natural_tools")				= this->natural_tools.GetData();
 		o.Data("electronic_tools")			= this->electronic_tools.GetData();
 		o.Data("speaker_visually")			= this->speaker_visually.GetData();
-		o.Data("visual_gender")				= GetCategoryString(this->visual_gender.GetIndex());
+		o.Data("visual_gender")				= Genders()[this->visual_gender.GetIndex()];
 		o.Data("language")					= this->language.GetIndex();
 		
 		//int c = editor->entities.GetCursor();

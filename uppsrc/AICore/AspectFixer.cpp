@@ -348,6 +348,6 @@ AspectFixer& AspectFixer::Get(const Image& src_image, int w, int h, int w_extra,
 
 #endif
 
-INITIALIZER_COMPONENT(AspectFixerLayer);
+INITIALIZER_COMPONENT(AspectFixerLayer, "photo.layer.fixer.aspect", "Image|Photo");
 
 END_UPP_NAMESPACE

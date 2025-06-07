@@ -37,6 +37,8 @@ INITBLOCK {
 	IsFunctionPtr = &::IsFunction;
 	IsStructKindPtr = &IsStructKind;
 	VfsValue_GetBasesString = &GetBasesString;
+	FindNodeEnvPtr = &FindNodeEnv;
+	IdeVfsFillDatasetPtrsPtr = &IdeVfsFillDatasetPtrs;
 }
 
 String GetAiPathCandidate(const String& includes_, String dir);
@@ -1053,5 +1055,22 @@ IdeMetaEnvironment& IdeMetaEnv()
 	static IdeMetaEnvironment env;
 	return env;
 }
+
+VfsValue* FindNodeEnv(Entity& n) {
+	return IdeMetaEnv().FindNodeEnv(n);
+}
+
+VfsValue* IdeVfsFillDatasetPtrs(DatasetPtrs& p, hash_t type_hash) {
+	if (type_hash == AsTypeHash<SrcTxtHeader>()) {
+		for (auto db : ~DatasetIndex()) {
+			VfsValueExt& ext = *db.value;
+			if (ext.val.type_hash == type_hash)
+				return &ext.val;
+		}
+	}
+	else TODO;
+	return 0;
+}
+
 
 END_UPP_NAMESPACE

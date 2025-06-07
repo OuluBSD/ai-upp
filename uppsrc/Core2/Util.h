@@ -180,7 +180,7 @@ bool IsAllSpace(const String& a);
 bool IsAllDigit(const String& a);
 String ClassPathTop(String s);
 String CamelToName(String s);
-String ToVarName(String s);
+String ToVarName(String s, char sep='_');
 String ToCaps(String s);
 String EscapeString(String s);
 String EscapeCharacter(String s);
@@ -491,7 +491,7 @@ public:
 // Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
 float ConvertDipsToPixels(float dips, float dpi);
 
-
+const Index<String>& Genders();
 
 
 #endif

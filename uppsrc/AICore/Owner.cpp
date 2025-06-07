@@ -153,7 +153,7 @@ int Owner::GetOpportunityScore(const LeadOpportunity& opp) const {
 	return score;
 }
 
-INITIALIZER_COMPONENT(Owner)
+INITIALIZER_COMPONENT(Owner, "ecs.private.owner", "Ecs|Private")
 
 
 END_UPP_NAMESPACE

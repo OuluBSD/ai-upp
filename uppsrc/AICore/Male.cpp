@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-#define DATASET_ITEM(a,b,e) COMPONENT_STUB_IMPL(a)
+#define DATASET_ITEM(a,b,e) INITIALIZER_COMPONENT(a, "ecs.male." #b, "Ecs|Male")
 	DATASET_ITEM(Provider,			provider,		/*METAKIND_ECS_COMPONENT_PROVIDER,			CATEGORY_MALE,*/ "Provider")
 	DATASET_ITEM(DecisionMaker,		decision_maker,	/*METAKIND_ECS_COMPONENT_DECISION_MAKER,		CATEGORY_MALE,*/ "Decision Maker")
 	DATASET_ITEM(Assertions,		assertions	,	/*METAKIND_ECS_COMPONENT_ASSERTIONS,			CATEGORY_MALE,*/ "Assertions")

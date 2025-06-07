@@ -370,28 +370,24 @@ void EntityEditorCtrl::AddComponent() {
 	CtrlLayoutOKCancel(dlg, title);
 	dlg.complist.WhenLeftDouble = dlg.ok.WhenAction;
 	Vector<int> list;
-	auto on_group = [&dlg] {
+	auto on_reset = [&dlg] {
 		int idx = dlg.catgroup.GetIndex();
-		int prev_value = idx >= 0 && idx < dlg.catgroup.GetCount() ? (int)dlg.catgroup.GetKey(idx) : -1;
-		int g = dlg.group.GetIndex() - 1;
-		bool filter_group = g >= 0;
+		int prev_value = idx >= 0 && idx < dlg.category.GetCount() ? (int)dlg.category.GetKey(idx) : -1;
+		int cg = idx >= 0 ? (int)dlg.catgroup.GetKey(idx) : -1;
 		dlg.catgroup.Clear();
 		dlg.catgroup.Add(-1,"Any");
 		int new_cursor = 0;
-		for(int i = 0; i < CATEGORY_GROUP_COUNT; i++) {
-			if (filter_group) {
-				int count = 0;
-				for(const auto& factory : VfsValueExtFactory::List()) {
-					int group = (int)factory.category % 2;
-					if (g == group)
-						count++;
-				}
-				if (!count)
-					continue;
-			}
+		const auto& cats = VfsValueExtFactory::GetCategories();
+		Index<String> uniq;
+		for(int i = 0; i < cats.GetCount(); i++) {
+			auto& c = cats[i];
+			uniq.FindAdd(c[0]);
+		}
+		SortIndex(uniq, StdLess<String>());
+		for(int i = 0; i < uniq.GetCount(); i++) {
+			dlg.catgroup.Add(i, uniq[i]);
 			if (prev_value == i)
 				new_cursor = dlg.catgroup.GetCount();
-			dlg.catgroup.Add(i, GetCategoryGroupString(i));
 		}
 		dlg.catgroup.SetIndex(new_cursor);
 		dlg.catgroup.WhenAction();
@@ -399,51 +395,57 @@ void EntityEditorCtrl::AddComponent() {
 	auto on_catgroup = [&dlg] {
 		int idx = dlg.catgroup.GetIndex();
 		int prev_value = idx >= 0 && idx < dlg.category.GetCount() ? (int)dlg.category.GetKey(idx) : -1;
-		int g = dlg.group.GetIndex() - 1;
-		bool filter_group = g >= 0;
-		int cg = dlg.catgroup.GetKey(idx);
-		bool filter_catgroup = cg >= 0;
+		bool filter_catgroup = idx > 0;
+		String cgs0 = dlg.catgroup.GetValue(idx);
 		dlg.category.Clear();
 		dlg.category.Add(-1,"Any");
 		int new_cursor = 0;
-		for(int i = 0; i < CATEGORY_COUNT; i++) {
-			if (filter_group && i % 2 != g)
+		const auto& cats = VfsValueExtFactory::GetCategories();
+		Index<String> uniq;
+		for(int i = 0; i < cats.GetCount(); i++) {
+			auto& c = cats[i];
+			auto& cgs1 = c[0];
+			if (filter_catgroup && cgs0 != cgs1)
 				continue;
-			if (filter_catgroup && i / 2 != cg)
-				continue;
+			uniq.FindAdd(c.GetCount() >= 2 ? c[1] : String());
+		}
+		SortIndex(uniq, StdLess<String>());
+		for(int i = 0; i < uniq.GetCount(); i++) {
+			dlg.category.Add(i, uniq[i]);
 			if (prev_value == i)
 				new_cursor = dlg.category.GetCount();
-			dlg.category.Add(i, GetCategoryString(i));
 		}
 		dlg.category.SetIndex(new_cursor);
 		dlg.category.WhenAction();
 	};
 	auto on_filter_change = [&dlg] {
-		int g = dlg.group.GetIndex() - 1;
-		int cg = dlg.catgroup.GetKey(dlg.catgroup.GetIndex());
-		int c = dlg.category.GetKey(dlg.category.GetIndex());
-		hash_t cursor_type_hash = dlg.complist.IsCursor() ? (hash_t)(int64)dlg.complist.Get("KIND") : -1;
+		int idx0 = dlg.catgroup.GetIndex();
+		int idx1 = dlg.category.GetIndex();
+		String cgs0 = dlg.catgroup.GetValue(idx0);
+		String  cs0 = dlg.category.GetValue(idx1);
+		bool filter_catgroup = idx0 > 0;
+		bool filter_category = idx1 > 0;
+		const auto& cats = VfsValueExtFactory::GetCategories();
+		hash_t cursor_type_hash = dlg.complist.IsCursor() ? (hash_t)(int64)dlg.complist.Get("TYPEHASH") : 0;
 		dlg.complist.SetCount(0);
-		auto on_row = [&](hash_t type_hash, int cat, String desc) {
-			//int mod = (int)cat % 2;
-			//int div = (int)cat / 2;
-			/*if ((g  < 0 || mod == g) &&
-				(cg < 0 || div == cg) &&
-				(c  < 0 || cat == c))*/ {
-				const char* grp = "TODO"; //mod == 0 ? "A":"B";
-				dlg.complist.Add(
-					desc,
-					"TODO", //GetCategoryString(cat),
-					"TODO", //GetCategoryGroupString(div),
-					grp,
-					TypeStringHasherIndex::ToString(type_hash));
-			}
-		};
-		#define DATASET_ITEM(type, name, desc) on_row(AsTypeHash<type>(),0,desc);
-		COMPONENT_LIST
-		#undef DATASET_ITEM
+		for (auto& it : VfsValueExtFactory::List()) {
+			const String& cat = it.category;
+			Vector<String> parts = Split(cat, "|");
+			if (parts.IsEmpty()) parts.Add();
+			if (filter_catgroup && parts[0] != cgs0)
+				continue;
+			if (filter_category && (parts.GetCount() >= 2 ? parts[1] : String()) != cs0)
+				continue;
+			ASSERT(it.name.Find("|") < 0);
+			dlg.complist.Add(
+				it.eon_name,
+				it.name,
+				parts[0],
+				parts.GetCount() >= 2 ? parts[1] : String(),
+				(int64)it.type_hash);
+		}
 		dlg.complist.SetSortColumn(0);
-		if (cursor_type_hash >= 0) {
+		if (cursor_type_hash) {
 			for(int i = 0; i < dlg.complist.GetCount(); i++) {
 				if ((hash_t)(int64)dlg.complist.Get(i, "TYPEHASH") == cursor_type_hash) {
 					dlg.complist.SetCursor(i);
@@ -454,17 +456,12 @@ void EntityEditorCtrl::AddComponent() {
 		else if (dlg.complist.GetCount())
 			dlg.complist.SetCursor(0);
 	};
+	dlg.complist.AddColumn("Eon-path");
 	dlg.complist.AddColumn("Name");
 	dlg.complist.AddColumn("Category");
 	dlg.complist.AddColumn("Cat. Group");
-	dlg.complist.AddColumn("Sub-Group");
 	dlg.complist.AddIndex("TYPEHASH");
-	dlg.group.Add("Any");
-	dlg.group.Add("A");
-	dlg.group.Add("B");
-	dlg.group.SetIndex(0);
-	dlg.group.WhenAction = on_group;
-	on_group();
+	on_reset();
 	dlg.catgroup.SetIndex(0);
 	dlg.catgroup.WhenAction = on_catgroup;
 	on_catgroup();
@@ -478,6 +475,13 @@ void EntityEditorCtrl::AddComponent() {
 		for(const auto& factory : VfsValueExtFactory::List()) {
 			if (factory.type_hash != type_hash)
 				continue;
+			EnginePtr eng = e->val.FindOwner<Engine>();
+			if (!eng) eng = e->val.FindOwnerWith<Engine>();
+			if (!eng && factory.type == VFSEXT_COMPONENT) {
+				LOG(e->val.GetRoot().GetTreeString());
+				PromptOK("Could not find Engine. A new component requires it.");
+				return;
+			}
 			String id = factory.name;
 			auto& ext = e->val.Add(id, factory.type_hash);
 			ASSERT(ext.type_hash == factory.type_hash);

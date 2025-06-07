@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 class ArtistInfoCtrl : public WithArtistInfo<ComponentCtrl> {
+	Index<String> visual_genders;
 	
 public:
 	typedef ArtistInfoCtrl CLASSNAME;

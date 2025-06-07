@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-#define DATASET_ITEM(a,b,e) COMPONENT_STUB_IMPL(a)
+#define DATASET_ITEM(a,b,e) INITIALIZER_COMPONENT(a, "ecs.female." #b, "Ecs|Female")
 	DATASET_ITEM(Sentimentality,	sentimentality,	/*METAKIND_ECS_COMPONENT_SENTIMENTALITY,		CATEGORY_FEMALE,*/ "Sentimentality")
 	DATASET_ITEM(Addiction,			addiction,		/*METAKIND_ECS_COMPONENT_ADDICTION,			CATEGORY_FEMALE,*/ "Addiction")
 	DATASET_ITEM(Caretaker,			caretaker,		/*METAKIND_ECS_COMPONENT_CARETAKER,			CATEGORY_FEMALE,*/ "Caretaker")

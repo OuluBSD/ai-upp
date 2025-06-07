@@ -438,7 +438,7 @@ String SrcTxtHeader::SaveData() {
 	return StoreAsJson(*this, true);
 }
 
-INITIALIZER_COMPONENT(SrcTxtHeader)
+INITIALIZER_COMPONENT(SrcTxtHeader, "ecs.disposable.srctxt", "Ecs|Disposable")
 
 
 

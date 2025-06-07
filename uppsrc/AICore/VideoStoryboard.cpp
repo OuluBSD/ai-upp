@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 
-INITIALIZER_COMPONENT(VideoStoryboard)
+INITIALIZER_COMPONENT(VideoStoryboard, "video.storyboard", "Video|Storyboard")
+
 
 END_UPP_NAMESPACE

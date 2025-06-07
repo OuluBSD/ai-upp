@@ -185,6 +185,6 @@ SnapSolver& SnapSolver::Get(Release& e) {
 
 
 
-INITIALIZER_COMPONENT(Release)
+INITIALIZER_COMPONENT(Release, "ecs.public.release", "Ecs|Public")
 
 END_UPP_NAMESPACE

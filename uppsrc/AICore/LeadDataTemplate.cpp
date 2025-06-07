@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 
-INITIALIZER_COMPONENT(LeadDataPublisher);
+INITIALIZER_COMPONENT(LeadDataPublisher, "ecs.marketing.lead.data.publisher", "Ecs|Marketing");
 
 void LeadDataTemplate::Visit(Vis& v) {
 	v.Ver(1)
@@ -15,6 +15,6 @@ void LeadDataTemplate::Visit(Vis& v) {
 		;
 }
 
-INITIALIZER_COMPONENT(LeadDataTemplate)
+INITIALIZER_COMPONENT(LeadDataTemplate, "ecs.marketing.lead.data.tmpl", "Ecs|Marketing")
 
 END_UPP_NAMESPACE

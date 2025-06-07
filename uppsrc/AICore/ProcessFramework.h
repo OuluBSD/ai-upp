@@ -110,7 +110,6 @@ public:
 	
 };
 
-INITIALIZE(Agent)
 using AgentPtr = Ptr<Agent>;
 
 class AgentInteractionSession : public VfsValueExt {

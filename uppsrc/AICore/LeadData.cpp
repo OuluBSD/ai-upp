@@ -183,6 +183,6 @@ String LeadOpportunity::Genre::ToString() const {
 	return s;
 }
 
-INITIALIZER_COMPONENT(LeadData)
+INITIALIZER_COMPONENT(LeadData, "ecs.marketing.lead.data", "Ecs|Marketing")
 
 END_UPP_NAMESPACE

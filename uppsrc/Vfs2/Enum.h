@@ -134,6 +134,7 @@ enum {
 	return kind > METAKIND_ECS_COMPONENT_BEGIN && kind < METAKIND_ECS_COMPONENT_END;
 }*/
 
+#if 0
 
 // Categories (with opposites... see pairs)
 // NOTE: This is kinda nonsensical placeholder at the moment.
@@ -190,5 +191,7 @@ String GetCategoryGroupString(int i);
 String GetCategoryString(int i);
 Vector<String> GetCategories();
 int FindCategory(const String& s);
+
+#endif
 
 #endif

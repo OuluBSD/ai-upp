@@ -16,8 +16,6 @@ void Component::GetDataset(DatasetPtrs& p) const {
 }
 
 Entity::Entity(VfsValue& v) : VfsValueExt(v) {
-	LOG("Entity::Entity");
-	
 	
 }
 
@@ -118,17 +116,17 @@ ComponentPtr Entity::CreateEon(String id) {
 	return 0;
 }
 
-INITIALIZER_VFSEXT(Entity);
+INITIALIZER_VFSEXT(Entity, "entity", "Ecs|Basic");
 
 
 
 
-COMPONENT_STUB_IMPL(Context)
-COMPONENT_STUB_IMPL(PkgEnv)
-COMPONENT_STUB_IMPL(DbRef)
-COMPONENT_STUB_IMPL(VirtualIOScript)
-COMPONENT_STUB_IMPL(VirtualIOScriptProofread)
-COMPONENT_STUB_IMPL(VirtualIOScriptLine)
-COMPONENT_STUB_IMPL(VirtualIOScriptSub)
+INITIALIZER_COMPONENT(Context, "vfs.context", "Vfs|Util")
+INITIALIZER_COMPONENT(PkgEnv, "vfs.pkg.env", "Vfs|Util")
+INITIALIZER_COMPONENT(DbRef, "vfs.db.ref", "Vfs|Util")
+INITIALIZER_COMPONENT(VirtualIOScript, "vfs.virtio.script", "Vfs|Util")
+INITIALIZER_COMPONENT(VirtualIOScriptProofread, "vfs.virtio.script.proofread", "Vfs|Util")
+INITIALIZER_COMPONENT(VirtualIOScriptLine, "vfs.virtio.script.line", "Vfs|Util")
+INITIALIZER_COMPONENT(VirtualIOScriptSub, "vfs.virtio.script.sub", "Vfs|Util")
 
 END_UPP_NAMESPACE

@@ -2384,6 +2384,6 @@ ScriptTextProcess& ScriptTextProcess::Get(DatasetPtrs p, VfsPath path, Value par
 	return o;
 }
 
-INITIALIZER_COMPONENT(ScriptText);
+INITIALIZER_COMPONENT(ScriptText, "text.script", "Text|Script");
 
 END_UPP_NAMESPACE

@@ -11,8 +11,8 @@ INITBLOCK {
 
 Agent::Agent(VfsValue& n) : Component(n) {
 	eng = n.FindOwner<Engine>();
-	if (!eng) n.FindOwnerWith<Engine>();
-	ASSERT(eng);
+	if (!eng)
+		eng = n.FindOwnerWith<Engine>();
 	if (eng)
 		eng->AddUpdated(this);
 }
@@ -281,7 +281,6 @@ void Agent::Update(double dt) {
 	TODO
 }
 
-INITIALIZER_COMPONENT(Agent);
 
 
 #if 0
@@ -341,6 +340,6 @@ AgentInteractionSystem* AgentInteractionSystem::sys;
 #endif
 
 
-COMPONENT_STUB_IMPL(VfsProgram)
+INITIALIZER_COMPONENT(VfsProgram, "vfs.program", "Vfs|Program")
 
 END_UPP_NAMESPACE

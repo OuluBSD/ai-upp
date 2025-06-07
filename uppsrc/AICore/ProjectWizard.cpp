@@ -1133,6 +1133,6 @@ Vector<String> ProjectWizardView::MakeItems(String file_path) {
 
 
 
-INITIALIZER_COMPONENT(ProjectWizardView)
+INITIALIZER_COMPONENT(ProjectWizardView, "ecs.project.wizard", "Ecs|Asset")
 
 END_UPP_NAMESPACE

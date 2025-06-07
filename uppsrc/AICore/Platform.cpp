@@ -1247,7 +1247,7 @@ double PlatformAnalysis::GetRoleScoreSumWeighted(const PlatformManager& plat, in
 	return (double)sum / (double)weight_sum;
 }
 
-INITIALIZER_COMPONENT(PlatformManager)
+INITIALIZER_COMPONENT(PlatformManager, "ecs.public.platform.manager", "Ecs|Public")
 
 
 

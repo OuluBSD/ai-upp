@@ -10,8 +10,18 @@ struct SrcTextData;
 // DatasetPtrs is used only classes with "public SolverBase"
 // The SolverBase is also being shifted out.
 struct DatasetPtrs {
-	#define DATASET_ITEM(type, name, desc) Ptr<type> name;
-	DATASET_LIST
+	template <class T> void Set(T& o) {}
+	
+	#define DATASET_ITEM(type, name, desc) \
+	type* name = 0; \
+	template <> void Set<type>(type& o) {name = &o;}
+	BASE_EXT_LIST
+	COMPONENT_LIST
+	VIRTUALNODE_DATASET_LIST
+	#undef DATASET_ITEM
+	
+	#define DATASET_ITEM(type, name, desc) type* name = 0;
+	NODE_LIST
 	#undef DATASET_ITEM
 	
 	bool editable_biography = false;
@@ -26,6 +36,15 @@ struct DatasetPtrs {
 	template <class T, class _> struct Getter {static T& Get(DatasetPtrs& d);};
 	template <class T> T& Get() {return Getter<T,int>::Get(*this);}
 };
+
+#define DATASET_ITEM(type, name, desc) \
+template <> inline void VfsValueExtFactory::SetDatasetData<type>(DatasetPtrs& p, VfsValueExt& ext) { \
+	p.name = reinterpret_cast<type*>(ext.GetTypePtr()); \
+}
+BASE_EXT_LIST
+COMPONENT_LIST
+VIRTUALNODE_DATASET_LIST
+#undef DATASET_ITEM
 
 // "int I" is required because the operation "p.name = o;" must be delayed after full
 // declaration, which has been done when VfsValueExtFactory::Register is being called.
@@ -47,5 +66,8 @@ EXT_LIST
 #undef DATASET_ITEM
 
 void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp);
+
+extern VfsValue* (*FindNodeEnvPtr)(Entity& n);
+extern VfsValue* (*IdeVfsFillDatasetPtrsPtr)(DatasetPtrs&, hash_t);
 
 #endif

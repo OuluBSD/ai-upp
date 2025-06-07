@@ -3,6 +3,9 @@
 
 NAMESPACE_UPP
 
+VfsValue* (*FindNodeEnvPtr)(Entity& n);
+VfsValue* (*IdeVfsFillDatasetPtrsPtr)(DatasetPtrs&, hash_t type_hash);
+
 void DatasetPtrs::operator=(const DatasetPtrs& p) {
 	#define DATASET_ITEM(type, name, desc) name = p.name;
 	DATASET_LIST
@@ -28,56 +31,32 @@ void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp) {
 		for (auto& sub : n.owner->sub) {
 			if (!sub.ext) continue;
 			VfsValueExt* ext = &*sub.ext;
-			TODO
-			#if 0
-			switch (ext->val.kind) {
-				#define DATASET_ITEM(type, name, desc) \
-					case kind: {p.name = dynamic_cast<type*>(ext); ASSERT(p.name);} break;
-				COMPONENT_LIST
-				#undef DATASET_ITEM
-				default: break;
-			}
-			#endif
+			VfsValueExtFactory::SetDatasetPtrs(p, *ext);
 		}
 		if (this_comp) {
-			TODO
-			#if 0
-			switch (n.kind) {
-				#define DATASET_ITEM(type, name, desc) \
-				case kind: {p.name = dynamic_cast<type*>(this_comp); ASSERT(p.name);} break;
-				COMPONENT_LIST
-				#undef DATASET_ITEM
-				default: break;
-			}
-			#endif
+			VfsValueExtFactory::SetDatasetPtrs(p, *this_comp);
 		}
 	}
 	
 	
 // see SRC_TXT_HEADER_ENABLE
 	VfsValue* db_src = 0;
-	TODO
-	#if 0
 	if (n.IsTypeHash<SrcTxtHeader>()) {
 		db_src = &n;
 	}
 	
-	if (p.entity) {
-		p.env = IdeMetaEnv().FindNodeEnv(*p.entity);
+	if (p.entity && FindNodeEnvPtr) {
+		p.env = FindNodeEnvPtr(*p.entity);
 		if (p.env && !db_src) {
-			bool found_db_src = false;
+			hash_t cmp = AsTypeHash<SrcTxtHeader>();
 			for (VfsValue& s : p.env->sub) {
-				if (s.kind == METAKIND_DB_REF) {
-					for (auto db : ~DatasetIndex()) {
-						VfsValueExt& ext = *db.value;
-						if (ext.val.kind == AsTypeHash<SrcTxtHeader>()) {
-							db_src = &ext.node;
-							found_db_src = true;
-							break;
-						}
-					}
+				if (s.type_hash == cmp) {
+					db_src = &s;
+					break;
 				}
-				if (found_db_src) break;
+			}
+			if (!db_src && IdeVfsFillDatasetPtrsPtr) {
+				db_src = IdeVfsFillDatasetPtrsPtr(p, AsTypeHash<SrcTxtHeader>());
 			}
 		}
 	}
@@ -96,10 +75,11 @@ void FillDataset(DatasetPtrs& p, VfsValue& n, Component* this_comp) {
 				p.srctxt = &*p.src->data;
 		}
 	}
-	#endif
 }
 
 extern void (*FillDatasetPtr)(DatasetPtrs& p, VfsValue& n, Component* this_comp);
+
+
 
 INITBLOCK {
 	FillDatasetPtr = &FillDataset;

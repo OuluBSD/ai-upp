@@ -15,9 +15,6 @@ struct type : Component \
 }; \
 INITIALIZE(type)
 
-#define COMPONENT_STUB_IMPL(type) \
-	INITIALIZER_COMPONENT(type);
-
 using EntityId				= int64;
 
 struct Entity :

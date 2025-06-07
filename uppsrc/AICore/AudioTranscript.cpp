@@ -4,8 +4,8 @@
 NAMESPACE_UPP
 
 
-COMPONENT_STUB_IMPL(AudioTranscript)
-COMPONENT_STUB_IMPL(ScriptSpeech)
+INITIALIZER_COMPONENT(AudioTranscript, "sound.transcript", "Sound|Speech")
+INITIALIZER_COMPONENT(ScriptSpeech, "sound.speech", "Sound|Speech")
 
 
 END_UPP_NAMESPACE

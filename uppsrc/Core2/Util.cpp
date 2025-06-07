@@ -163,13 +163,13 @@ String ClassPathTop(String s) {
 	return parts.Top();
 }
 
-String ToVarName(String s) {
+String ToVarName(String s, char sep) {
 	String o;
 	
 	bool all_upper = true;
 	for(int i = 0; i < s.GetCount() && all_upper; i++) {
 		int chr = s[i];
-		if (IsUpper(chr) || chr == '_')
+		if (IsUpper(chr) || chr == sep)
 			;
 		else
 			all_upper = false;
@@ -182,7 +182,7 @@ String ToVarName(String s) {
 		
 		if (IsUpper(chr)) {
 			if (i > 0)
-				o.Cat('_');
+				o.Cat(sep);
 			o.Cat(ToLower(chr));
 		}
 		else {
@@ -301,5 +301,17 @@ float ConvertDipsToPixels(float dips, float dpi) {
     return floorf(dips * dpi / dips_per_inch + 0.5f); // Round to nearest integer.
 }
 
+
+
+
+const Index<String>& Genders() {
+	static Index<String> genders;
+	ONCELOCK {
+		genders.Add("male");
+		genders.Add("female");
+		genders.Add("other");
+	}
+	return genders;
+}
 
 END_UPP_NAMESPACE

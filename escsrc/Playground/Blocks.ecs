@@ -1,1 +1,183 @@
+{
+	"id": 12,
+	"highest_seen_serial": 3482,
+	"seen_types": [
 
+	],
+	"root": {
+		".version": 3,
+		"id": "",
+		"type_hash": 0,
+		"serial": 3474,
+		"file": 12,
+		"is_ast": true,
+		"a.kind": 22,
+		"a.type": "",
+		"a.begin": {
+			"x": null,
+			"y": null
+		},
+		"a.end": {
+			"x": null,
+			"y": null
+		},
+		"a.filepos_hash": 0,
+		"a.is_ref": false,
+		"a.is_definition": false,
+		"a.is_disabled": false,
+		"sub": [
+			{
+				".version": 3,
+				"id": "Blocks",
+				"type_hash": 0,
+				"serial": 3476,
+				"file": 12,
+				"is_ast": true,
+				"a.kind": 22,
+				"a.type": "",
+				"a.begin": {
+					"x": null,
+					"y": null
+				},
+				"a.end": {
+					"x": null,
+					"y": null
+				},
+				"a.filepos_hash": 0,
+				"a.is_ref": false,
+				"a.is_definition": false,
+				"a.is_disabled": false,
+				"sub": [
+					{
+						".version": 3,
+						"id": "e",
+						"type_hash": 0,
+						"serial": 3478,
+						"file": 12,
+						"is_ast": true,
+						"a.kind": 22,
+						"a.type": "",
+						"a.begin": {
+							"x": null,
+							"y": null
+						},
+						"a.end": {
+							"x": null,
+							"y": null
+						},
+						"a.filepos_hash": 0,
+						"a.is_ref": false,
+						"a.is_definition": false,
+						"a.is_disabled": false,
+						"sub": [
+							{
+								".version": 3,
+								"id": "ent",
+								"type_hash": "-2999024324956135890",
+								"serial": 3482,
+								"file": 12,
+								"is_ast": true,
+								"a.kind": 22,
+								"a.type": "",
+								"a.begin": {
+									"x": null,
+									"y": null
+								},
+								"a.end": {
+									"x": null,
+									"y": null
+								},
+								"a.filepos_hash": 0,
+								"a.is_ref": false,
+								"a.is_definition": false,
+								"a.is_disabled": false,
+								"ext": {
+									"data": [
+										{
+											"key": "description",
+											"value": null
+										},
+										{
+											"key": "gender",
+											"value": {
+												"type": "String",
+												"value": "Code"
+											}
+										},
+										{
+											"key": "ctx",
+											"value": null
+										}
+									]
+								},
+								"sub": [
+									{
+										".version": 3,
+										"id": "Owner",
+										"type_hash": "-8441583021671613904",
+										"serial": 1389,
+										"file": 12,
+										"is_ast": true,
+										"a.kind": 22,
+										"a.type": "",
+										"a.begin": {
+											"x": null,
+											"y": null
+										},
+										"a.end": {
+											"x": null,
+											"y": null
+										},
+										"a.filepos_hash": 0,
+										"a.is_ref": false,
+										"a.is_definition": false,
+										"a.is_disabled": false,
+										"ext": {
+											"name": "",
+											"born": null,
+											"description": "",
+											"environment": "",
+											"roles": [
+
+											]
+										},
+										"sub": [
+
+										]
+									},
+									{
+										".version": 3,
+										"id": "Agent",
+										"type_hash": "-7879066186759824902",
+										"serial": 3309,
+										"file": 12,
+										"is_ast": true,
+										"a.kind": 22,
+										"a.type": "",
+										"a.begin": {
+											"x": null,
+											"y": null
+										},
+										"a.end": {
+											"x": null,
+											"y": null
+										},
+										"a.filepos_hash": 0,
+										"a.is_ref": false,
+										"a.is_definition": false,
+										"a.is_disabled": false,
+										"ext": null,
+										"sub": [
+
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	"hash": "4527920918916636450"
+}

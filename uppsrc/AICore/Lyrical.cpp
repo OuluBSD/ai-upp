@@ -607,8 +607,8 @@ void HotfixReplaceWord(String& s) {
 	}
 }
 
-INITIALIZER_COMPONENT(LyricalStructure);
-INITIALIZER_COMPONENT(Script);
-INITIALIZER_COMPONENT(Lyrics);
+INITIALIZER_COMPONENT(LyricalStructure, "text.lyrical.structure", "Text|Lyrical");
+INITIALIZER_COMPONENT(Script, "text.lyrical.script", "Text|Lyrical");
+INITIALIZER_COMPONENT(Lyrics, "text.lyrics", "Text|Lyrical");
 
 END_UPP_NAMESPACE

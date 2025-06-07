@@ -635,13 +635,14 @@ void EntityInfoCtrl::Data() {
 		data.Set(row, 0, key);
 		if (key == "gender") {
 			DropList* dl = new DropList;
-			for (auto g : GetCategories())
+			for (auto g : Genders())
 				dl->Add(g);
 			data.SetCtrl(row, 1, dl);
-			int gender_i = max(0, FindCategory(value.ToString()));
+			const auto& cats = VfsValueExtFactory::GetCategories();
+			int gender_i = max(0, Genders().Find(value.ToString()));
 			dl->SetIndex(gender_i);
 			dl->WhenAction = [&ent,dl]{
-				ent.data.GetAdd("gender") = GetCategoryString(dl->GetIndex());
+				ent.data.GetAdd("gender") = Genders()[dl->GetIndex()];
 			};
 		}
 		else if (key == "ctx") {

@@ -16,26 +16,26 @@ INITBLOCK {
 	VfsValueExtFactory::Register<ThrowingInteractionSystemBase>("throwing", VFSEXT_SYSTEM_ECS);
 	
 	// Component
-	VfsValueExtFactory::Register<Viewable>("viewable", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<Viewport>("viewport", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ChaseCam>("camera.chase", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<Renderable>("renderable", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ModelComponent>("model", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ToolComponent>("tool", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ToolSelectorKey>("tool.selector", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<PlayerHandComponent>("player.hand", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<PlayerHeadComponent>("player.head", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<PlayerBodyComponent>("player.body", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<PaintStrokeComponent>("paint.stroke", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<Viewable>("viewable", VFSEXT_COMPONENT, "Ecs|Camera");
+	VfsValueExtFactory::Register<Viewport>("viewport", VFSEXT_COMPONENT, "Ecs|Camera");
+	VfsValueExtFactory::Register<ChaseCam>("camera.chase", VFSEXT_COMPONENT, "Ecs|Camera");
+	VfsValueExtFactory::Register<Renderable>("renderable", VFSEXT_COMPONENT, "Ecs|Camera");
+	VfsValueExtFactory::Register<ModelComponent>("model", VFSEXT_COMPONENT, "Ecs|3D");
+	VfsValueExtFactory::Register<ToolComponent>("tool", VFSEXT_COMPONENT, "Ecs|Tool");
+	VfsValueExtFactory::Register<ToolSelectorKey>("tool.selector", VFSEXT_COMPONENT, "Ecs|Tool");
+	VfsValueExtFactory::Register<PlayerHandComponent>("player.hand", VFSEXT_COMPONENT, "Ecs|Player");
+	VfsValueExtFactory::Register<PlayerHeadComponent>("player.head", VFSEXT_COMPONENT, "Ecs|Player");
+	VfsValueExtFactory::Register<PlayerBodyComponent>("player.body", VFSEXT_COMPONENT, "Ecs|Player");
+	VfsValueExtFactory::Register<PaintStrokeComponent>("paint.stroke", VFSEXT_COMPONENT, "Ecs|Tool");
 	
 	// CustomToolComponent
-	VfsValueExtFactory::Register<PaintComponent>("paint", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ShootingComponent>("shoot", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<ThrowingComponent>("throw", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<PaintComponent>("paint", VFSEXT_COMPONENT, "Ecs|Tool");
+	VfsValueExtFactory::Register<ShootingComponent>("shoot", VFSEXT_COMPONENT, "Ecs|Tool");
+	VfsValueExtFactory::Register<ThrowingComponent>("throw", VFSEXT_COMPONENT, "Ecs|Tool");
 	
 	#ifdef flagGUI
-	VfsValueExtFactory::Register<GuiTesterApp>("guitester", VFSEXT_COMPONENT);
-	VfsValueExtFactory::Register<DefaultGuiAppComponent>("gui.app", VFSEXT_COMPONENT);
+	VfsValueExtFactory::Register<GuiTesterApp>("guitester", VFSEXT_COMPONENT, "Ecs|Gui");
+	VfsValueExtFactory::Register<DefaultGuiAppComponent>("gui.app", VFSEXT_COMPONENT, "Ecs|Gui");
 	#endif
 	
 	

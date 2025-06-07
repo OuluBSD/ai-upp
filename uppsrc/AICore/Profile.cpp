@@ -16,6 +16,6 @@ BiographyPerspectives* Profile::FindSnapshotRevision(int i) {
 
 
 
-INITIALIZER_COMPONENT(Profile)
+INITIALIZER_COMPONENT(Profile, "ecs.public.profile", "Ecs|Public")
 
 END_UPP_NAMESPACE

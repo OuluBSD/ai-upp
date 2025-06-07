@@ -112,7 +112,7 @@ const VectorMap<String, Vector<String>>& GetMarketplaceSections() {
 	return m;
 }
 
-INITIALIZER_COMPONENT(BiographyPlatform)
+INITIALIZER_COMPONENT(BiographyPlatform, "ecs.private.biography.platform", "Ecs|Private")
 
 
 END_UPP_NAMESPACE

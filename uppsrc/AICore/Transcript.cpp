@@ -2,12 +2,12 @@
 
 NAMESPACE_UPP
 
-COMPONENT_STUB_IMPL(TranscriptProofread)
+INITIALIZER_COMPONENT(TranscriptProofread, "text.proofread", "Text|Proofread")
 // TODO remove
-//COMPONENT_STUB_IMPL(ProofreadStoryline)
-//COMPONENT_STUB_IMPL(StorylineDialog)
-COMPONENT_STUB_IMPL(StorylineConversion)
-COMPONENT_STUB_IMPL(StorylineScript)
-COMPONENT_STUB_IMPL(ScriptConversion)
+//INITIALIZER_COMPONENT(ProofreadStoryline)
+//INITIALIZER_COMPONENT(StorylineDialog)
+INITIALIZER_COMPONENT(StorylineConversion, "text.storyline.conversion", "Text|Storyline")
+INITIALIZER_COMPONENT(StorylineScript, "text.storyline.script", "Text|Storyline")
+INITIALIZER_COMPONENT(ScriptConversion, "text.script.conversion", "Text|Conversion")
 
 END_UPP_NAMESPACE

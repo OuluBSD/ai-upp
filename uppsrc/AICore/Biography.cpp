@@ -192,7 +192,7 @@ String PhotoPrompt::GetFilePath(String dir, int i) const {
 
 
 
-INITIALIZER_COMPONENT(Biography)
-INITIALIZER_COMPONENT(BiographyPerspectives)
+INITIALIZER_COMPONENT(Biography, "ecs.private.biography", "Ecs|Private")
+INITIALIZER_COMPONENT(BiographyPerspectives, "ecs.private.biography.perspectives", "Ecs|Private")
 
 END_UPP_NAMESPACE

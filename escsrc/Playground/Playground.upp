@@ -22,15 +22,19 @@ file
 	Filesystem.ecs,
 	Animation.ecs,
 	MusicComposer.ecs,
+	FriendVisitor.txt,
 	"2 agents" readonly separator,
 	Tournament.ecs,
 	UserAndSystem.ecs,
 	GameOfAdoration.ecs,
 	"3 agents" readonly separator,
+	CommonBeliefAssertion.txt,
 	SongwriterRing.ecs,
 	GameOfAntiAdoration.ecs,
+	RadioShow.txt,
 	"In-order multi-agent" readonly separator,
 	Bank.ecs,
+	Courtroom.txt,
 	Courtroom.ecs,
 	Adventure.ecs,
 	"1 team multi-agent" readonly separator,
@@ -42,6 +46,7 @@ file
 	"Virtual N-team" readonly separator,
 	CouplesTherapy.ecs,
 	HierCoop.ecs,
+	PlatformStories.txt,
 	_ readonly separator;
 
 mainconfig

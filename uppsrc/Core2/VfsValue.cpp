@@ -544,8 +544,6 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 		for(auto& sec : sec_subs) {
 			if(sec.ready && sec.match) {
 				VfsValue& s0 = const_cast<VfsValue&>(*sec.n);
-				AstValue* sa0 = s0;
-				ASSERT(sa0);
 				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *sec.match, mode);
@@ -1067,10 +1065,17 @@ VfsValue* VfsValue::FindPath(const VfsPath& path) {
 	return n;
 }
 
+void VfsValue::Assign(VfsValue* owner, const VfsValue& n)
+{
+	this->owner = owner;
+	CopyFieldsFrom(n);
+	CopySubFrom(n);
+}
+
 void VfsValue::CopyFrom(const VfsValue& n)
 {
-	CopySubFrom(n);
 	CopyFieldsFrom(n);
+	CopySubFrom(n);
 }
 
 void VfsValue::CopySubFrom(const VfsValue& n)
@@ -1310,11 +1315,13 @@ void VfsValue::Visit(Vis& v) {
 				ext.Clear();
 			if (ext.IsEmpty())
 				ext = VfsValueExtFactory::Create(type_hash, *this);
-			type_hash = ext->GetTypeHash();
-			if (ext)
+			if (ext) {
+				type_hash = ext->GetTypeHash();
 				v("ext",*ext, VISIT_NODE);
+			}
 			else {
 				RLOG("VfsValue::Visit: error: could not load type_hash " + HexStr64(type_hash));
+				type_hash = 0;
 			}
 		}
 		else {
@@ -1361,6 +1368,10 @@ void VfsValue::Chk() {
 			ASSERT(owner->type_hash == 0);
 		}
 		else if (VfsValueExtFactory::IsType(type_hash, VFSEXT_COMPONENT)) {
+			if (owner->type_hash != AsTypeHash<Entity>()) {
+				LOG(GetRoot().GetTreeString());
+				LOG(owner->GetTreeString());
+			}
 			ASSERT(owner->type_hash == AsTypeHash<Entity>());
 		}
 	}
@@ -1843,6 +1854,41 @@ int VfsValueExtFactory::AstFindKindCategory(int k) {
 	return -1;
 }
 
+void VfsValueExtFactory::SetDatasetPtrs(DatasetPtrs& p, VfsValueExt& ext) {
+	hash_t type_hash = ext.GetTypeHash();
+	for (const auto& f : List()) {
+		if (type_hash == f.type_hash) {
+			if (f.set_ptr_fn)
+				f.set_ptr_fn(p, ext);
+			return;
+		}
+	}
+	ASSERT_(0, "Type not registered with given hash_type");
+}
+
+const Vector<Vector<String>>& VfsValueExtFactory::GetCategories() {
+	static Vector<Vector<String>> v;
+	if (v.IsEmpty()) {
+		Vector<Vector<String>> o;
+		Index<String> uniq_cats;
+		for (auto& l : List()) {
+			String& cat = l.category;
+			uniq_cats.FindAdd(cat);
+		}
+		SortIndex(uniq_cats, StdLess<String>());
+		for(int i = 0; i < uniq_cats.GetCount(); i++) {
+			String cat = uniq_cats[i];
+			auto sc = Split(cat, "|");
+			if (sc.IsEmpty())
+				continue;
+			for (auto& s : sc)
+				s = TrimBoth(s);
+			Swap(o.Add(), sc);
+		}
+		Swap(v, o);
+	}
+	return v;
+}
 
 
 VfsValueExt::VfsValueExt(VfsValue& n) : val(n) {

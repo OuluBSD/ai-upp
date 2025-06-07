@@ -54,16 +54,14 @@ void SongInfoCtrl::Data() {
 		return;
 	}
 	
-	TODO
-	#if 0
 	Entity& a = *p.entity;
 	if (p.song)
-		focus_lyr = a.FindScript(p.song->scripts_file_title);
+		focus_lyr = a.val.FindPos<Script>(p.song->scripts_file_title);
 	
 	if (focus_lyr < 0) {
-		focus_lyr = p.GetActiveScriptIndex();
+		LOG("TODO"); //focus_lyr = p.GetActiveScriptIndex();
 	}
-	#endif
+	
 	/*
 	const auto& tcs = GetTypeclasses();
 	for(int i = 0; i < a.typeclasses.GetCount(); i++) {
@@ -117,8 +115,8 @@ void SongInfoCtrl::Data() {
 	}*/
 	
 	//Entity& a = *p.entity;
+	LOG("TODO"); return;
 	
-	TODO
 	#if 0
 	int row = 0;
 	const auto& tcs = GetTypeclasses();

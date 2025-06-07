@@ -4,8 +4,8 @@
 NAMESPACE_UPP
 
 
-COMPONENT_STUB_IMPL(FactoryComponent)
-COMPONENT_STUB_IMPL(ProductComponent)
+INITIALIZER_COMPONENT(FactoryComponent, "producer.factory", "Producer|Factory")
+INITIALIZER_COMPONENT(ProductComponent, "producer.product", "Producer|Product")
 
 
 END_UPP_NAMESPACE

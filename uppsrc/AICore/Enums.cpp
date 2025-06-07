@@ -58,6 +58,7 @@ String GetScoreKey(int score) {
 	return "sc(" + IntStr(score) + ")";
 }
 
+#if 0
 String GetCategoryString(int i) {
 	switch (i) {
 		case CATEGORY_CODE:				return "Code";
@@ -123,6 +124,7 @@ int FindCategory(const String& s) {
 			return i;
 	return -1;
 }
+#endif
 
 String GetMarketPriorityKey(int i) {
 	switch (i) {

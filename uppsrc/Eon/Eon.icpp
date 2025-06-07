@@ -27,24 +27,24 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 	
 	// System
-	REGISTER_SYSTEM_ECS(WorldLogicSystem);
-	REGISTER_SYSTEM_ECS(PhysicsSystem);
-	REGISTER_SYSTEM_ECS(PlayerBodySystem);
-	REGISTER_SYSTEM_ECS(InteractionSystem);
-	REGISTER_SYSTEM_ECS(ScriptLoader);
+	REGISTER_SYSTEM_ECS(WorldLogicSystem, "Ecs|Util");
+	REGISTER_SYSTEM_ECS(PhysicsSystem, "Ecs|Util");
+	REGISTER_SYSTEM_ECS(PlayerBodySystem, "Ecs|Util");
+	REGISTER_SYSTEM_ECS(InteractionSystem, "Ecs|Util");
+	REGISTER_SYSTEM_ECS(ScriptLoader, "Ecs|Script");
 	#ifdef flagGUI
-	REGISTER_SYSTEM_ECS(WindowSystem);
+	REGISTER_SYSTEM_ECS(WindowSystem, "Ecs|Gui");
 	#endif
 	
 	// Component
-	REGISTER_COMPONENT(RigidBody, "body");
-	REGISTER_COMPONENT(TextRenderable, "text");
-	REGISTER_COMPONENT(Easing, "easing");
-	REGISTER_COMPONENT(PhysicsBody, "physics");
-	REGISTER_COMPONENT(Transform, "transform3");
-	REGISTER_COMPONENT(Transform2D, "transform2");
+	REGISTER_COMPONENT(RigidBody, "body", "Ecs|Physics");
+	REGISTER_COMPONENT(TextRenderable, "text", "Ecs|3D");
+	REGISTER_COMPONENT(Easing, "easing", "Ecs|3D");
+	REGISTER_COMPONENT(PhysicsBody, "physics", "Ecs|Physics");
+	REGISTER_COMPONENT(Transform, "transform3", "Ecs|3D");
+	REGISTER_COMPONENT(Transform2D, "transform2", "Ecs|3D");
 	
-	VfsValueExtFactory::Register<EnvState>("EnvState");
+	VfsValueExtFactory::Register<EnvState>("EnvState", "Util|Env");
 	
 }
 

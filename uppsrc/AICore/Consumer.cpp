@@ -4,7 +4,7 @@
 NAMESPACE_UPP
 
 
-COMPONENT_STUB_IMPL(ConsumerComponent)
+INITIALIZER_COMPONENT(ConsumerComponent, "marketing.consumer", "Marketing|Consumer")
 
 
 END_UPP_NAMESPACE

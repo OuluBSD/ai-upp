@@ -5,8 +5,8 @@ INITBLOCK {
 	
 	TypedStringHasher<Engine>("Engine");
 	
-	REGISTER_SYSTEM_ATOM(LinkSystem)
-	REGISTER_SYSTEM_ATOM(PacketTracker)
+	REGISTER_SYSTEM_ATOM(LinkSystem, "sys.link", "Atom|Net")
+	REGISTER_SYSTEM_ATOM(PacketTracker, "sys.packet.tracker", "Atom|Net")
 	
 	#define ECS_CTX(dev, val, prefix) \
 		VfsValueExtFactory::RegisterExchange<DefaultExchangePoint>("DefaultExchangePoint", DevCls::dev, ValCls::val);

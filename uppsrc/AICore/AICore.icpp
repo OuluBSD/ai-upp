@@ -3,19 +3,19 @@
 INITBLOCK {
 	using namespace Upp;
 	
-	REGISTER_COMPONENT(CompletionThread, "completion")
-	REGISTER_COMPONENT(ChatThread, "chat")
-	REGISTER_COMPONENT(StageThread, "stage")
-	REGISTER_COMPONENT(ChainThread, "chain")
-	REGISTER_COMPONENT(SpeechTranscriptionThread, "transcribe")
-	REGISTER_COMPONENT(SpeechGenerationThread, "speech")
-	REGISTER_COMPONENT(ImageGenerationThread, "image")
-	REGISTER_COMPONENT(ImageVisionThread, "vision")
-	REGISTER_COMPONENT(MetaEnvThread, "env")
-	REGISTER_COMPONENT(Agent, "agent")
+	REGISTER_COMPONENT(CompletionThread,           "ai.completion", "AI|Completion")
+	REGISTER_COMPONENT(ChatThread,                 "ai.chat",       "AI|Chat")
+	REGISTER_COMPONENT(StageThread,                "ai.stage",      "AI")
+	REGISTER_COMPONENT(ChainThread,                "ai.chain",      "AI")
+	REGISTER_COMPONENT(MetaEnvThread,              "ai.env",        "Util")
+	REGISTER_COMPONENT(Agent,                      "ai.agent",      "AI|Agent")
+	REGISTER_COMPONENT(SpeechTranscriptionThread,  "ai.transcribe", "AI|Speech")
+	REGISTER_COMPONENT(SpeechGenerationThread,     "ai.speech",     "AI|Speech")
+	REGISTER_COMPONENT(ImageGenerationThread,      "ai.image",      "AI|Image")
+	REGISTER_COMPONENT(ImageVisionThread,          "ai.vision",     "AI|Image")
 	
-	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT);
-	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT);
-	VfsValueExtFactory::Register<AgentInteractionPolicy>("AgentInteractionPolicy", VFSEXT_DEFAULT);
+	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT, "ai.stage", "Vfs");
+	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT, "ai.agent.interaction.session", "AI|Agent");
+	VfsValueExtFactory::Register<AgentInteractionPolicy>("AgentInteractionPolicy", VFSEXT_DEFAULT, "ai.agent.interaction.policy", "AI|Agent");
 	
 }

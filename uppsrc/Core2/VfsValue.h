@@ -11,6 +11,7 @@ struct IdeShell;
 class ClangTypeResolver;
 class ToolAppCtrl;
 struct VfsValueSubset;
+struct DatasetPtrs;
 
 
 template <> void JsonizeArray<Array<VfsValue>,CallbackN<JsonIO&,VfsValue&>>(JsonIO& io, Array<VfsValue>& array, CallbackN<JsonIO&,VfsValue&> item_jsonize, void* arg);
@@ -23,6 +24,7 @@ struct EntityData : Pte<EntityData> {
 	virtual hash_t GetTypeHash() const = 0;
 	virtual TypeCls GetTypeCls() const = 0;
 	virtual String GetTypeName() const = 0;
+	virtual void* GetTypePtr() const = 0;
 	virtual void Visit(Vis& s) = 0;
 };
 
@@ -43,6 +45,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual TypeCls			GetTypeCls() const = 0;
 	virtual String			GetTypeName() const = 0;
 	virtual hash_t			GetTypeHash() const = 0;
+	virtual void*			GetTypePtr() const = 0;
 	virtual String			GetName() const;
 	virtual double			GetUtility();
 	virtual double			GetEstimate();
@@ -87,6 +90,7 @@ using VfsValueExtPtr = Ptr<VfsValueExt>;
 	TypeCls GetTypeCls() const override {return typeid(x);} \
 	String GetTypeName() const override {return #x;} \
 	hash_t GetTypeHash() const override {return TypedStringHasher<x>(#x);} \
+	void* GetTypePtr() const override {return (void*)this;} \
 
 #define DEFAULT_EXT(x) CLASSTYPE(x) x(VfsValue& n) : VfsValueExt(n) {}
 
@@ -109,21 +113,23 @@ struct VfsValueExtFactory {
 	typedef VfsValueExt* (*NewFn)(VfsValue&);
 	typedef VfsValueExtCtrl* (*NewCtrl)();
 	typedef bool (*IsFn)(const VfsValueExt& e);
-	//typedef void (*SetDatasetEntityData)(DatasetPtrs&, EntityData&);
+	typedef void (*SetDatasetPtr)(DatasetPtrs&, VfsValueExt&);
 	typedef EntityData* (*CreateEntityData)();
 	typedef LinkTypeCls (*GetLinkTypeFn)();
 	
 	struct Factory {
-		VfsExtType type;
-		hash_t type_hash = 0; // NOT same as TypeCls::GetHashValue()
-		TypeCls type_cls;
-		int category;
-		String name;
-		String ctrl_name;
-		NewFn new_fn = 0;
-		NewCtrl new_ctrl_fn = 0;
-		CreateEntityData create_ed_fn = 0;
-		IsFn is_fn = 0;
+		VfsExtType			type;
+		hash_t				type_hash = 0; // NOT same as TypeCls::GetHashValue()
+		TypeCls				type_cls;
+		String				category;
+		String				name;
+		String				eon_name;
+		String				ctrl_name;
+		NewFn				new_fn = 0;
+		NewCtrl				new_ctrl_fn = 0;
+		CreateEntityData	create_ed_fn = 0;
+		SetDatasetPtr		set_ptr_fn = 0;
+		IsFn				is_fn = 0;
 	};
 	
 	struct AtomData : Moveable<AtomData> {
@@ -136,17 +142,17 @@ struct VfsValueExtFactory {
 	};
 	
 	struct LinkData : Moveable<LinkData> {
-		NewFn			new_fn;
-		String			name;
-		LinkTypeCls		cls;
-		TypeCls			rtti_cls;
+		NewFn				new_fn;
+		String				name;
+		LinkTypeCls			cls;
+		TypeCls				rtti_cls;
 	};
 	
 	struct IfaceData : Moveable<IfaceData> {
-		hash_t			type_hash = 0;
-		TypeCls			cls;
-		ValDevCls		vd;
-		String			name;
+		hash_t				type_hash = 0;
+		TypeCls				cls;
+		ValDevCls			vd;
+		String				name;
 	};
 	
 	/*struct ExptData : Moveable<ExptData> {
@@ -165,6 +171,9 @@ struct VfsValueExtFactory {
 	template<class T> struct CtrlFunctions {
 		static VfsValueExtCtrl* CreateCtrl() {return new T;}
 	};
+	
+	template<class T> static void SetDatasetData(DatasetPtrs& p, VfsValueExt& ext) {}
+	static void SetDatasetPtrs(DatasetPtrs& p, VfsValueExt& ext);
 	/*template <class T> static void DatasetEntityData(DatasetPtrs& p, EntityData& ed) {
 		T* o = dynamic_cast<T*>(&ed);
 		ASSERT(o);
@@ -189,7 +198,8 @@ struct VfsValueExtFactory {
 	//static VectorMap<TypeCls,ExptData>& ExptDataMap() {static VectorMap<TypeCls,ExptData> m; return m;}
 	static bool IsType(hash_t type_hash, VfsExtType t);
 	template <class T> inline static void RegisterExchange(String name, DevCls dev, ValCls val) {
-		Register<T>(name, VFSEXT_EXCHANGE);
+		if (!GetFactory<T>().type_hash)
+			Register<T>(name, VFSEXT_EXCHANGE, "exchange." + ToVarName(name,'.'), "Sys|Exchange");
 		ValDevCls vd(dev,val);
 		IfaceData& d = IfaceLinkDataMap().GetAdd(vd);
 		d.type_hash  = AsTypeHash<T>();
@@ -202,7 +212,7 @@ struct VfsValueExtFactory {
 	}
 	
 	template <class T> inline static void RegisterAtom(String name) {
-		Register<T>(name, VFSEXT_ATOM);
+		Register<T>(name, VFSEXT_ATOM, "", "Atom|Uncategorised");
 		AtomTypeCls cls = T::GetAtomType();
 		AtomData& d = AtomDataMap().GetAdd(cls);
 		d.rtti_cls = AsTypeCls<T>();
@@ -214,7 +224,7 @@ struct VfsValueExtFactory {
 	}
 	
 	template <class T> static void RegisterLink(String name) {
-		Register<T>(name, VFSEXT_LINK);
+		Register<T>(name, VFSEXT_LINK, "", "Link|Uncategorised");
 		LinkTypeCls cls = T::GetLinkTypeStatic();
 		ASSERT(cls.IsValid());
 		LinkData& d = LinkDataMap().GetAdd(cls);
@@ -231,20 +241,26 @@ struct VfsValueExtFactory {
 				return f;
 		auto& f = List().Add();
 		f.type_cls = type_cls;
+		ASSERT(f.name.Find("|") < 0);
 		return f;
 	}
-	template <class T> inline static void Register(String name, VfsExtType type=VFSEXT_DEFAULT, String eon_name="") {
+	template <class T> inline static void Register(String name, VfsExtType type, String eon_name, String category) {
 		Factory& f = GetFactory<T>();
+		ASSERT(!f.type_hash);
 		f.type_hash = TypedStringHasher<T>(name);
 		f.type = type;
-		f.category = Categories().FindAdd(T::GetCategory());
-		f.name = eon_name.GetCount() ? eon_name : name;
+		f.category = category;
+		f.name = name;
+		f.eon_name = eon_name;
 		f.new_fn = &Functions<T>::Create;
 		f.is_fn = &Functions<T>::IsNodeExt;
 		//f.set_data_ed_fn = &DatasetEntityData<T>;
 		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
 		if (type == VFSEXT_SYSTEM_ECS)
 			EonToType().Add(name, f.type_cls);
+		if (type == VFSEXT_SYSTEM_ECS)
+			f.set_ptr_fn = &SetDatasetData<T>;
+		ASSERT(f.name.Find("|") < 0);
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
@@ -252,6 +268,7 @@ struct VfsValueExtFactory {
 		ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
 		f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
 		f.ctrl_name = ctrl_name;
+		ASSERT(f.name.Find("|") < 0);
 	}
 	static VfsValueExt* Create(hash_t type_hash, VfsValue& owner);
 	//static VfsValueExt* CloneKind(int kind, const VfsValueExt& e, VfsValue& owner);
@@ -260,14 +277,20 @@ struct VfsValueExtFactory {
 	static int AstFindKindCategory(int kind);
 	
 	static int FindComponent(hash_t type_hash) {
-		// note: must be added under entity
-		TODO
+		int i = 0;
+		for (auto& l : List()) {
+			if (l.type_hash == type_hash && l.type == VFSEXT_COMPONENT)
+				return i;
+			i++;
+		}
 		return -1;
 	}
+	
+	static const Vector<Vector<String>>& GetCategories();
 };
 
-#define INITIALIZER_VFSEXT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x);}
-#define INITIALIZER_COMPONENT(x) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT);}
+#define INITIALIZER_VFSEXT(x, eon, cat) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x, VFSEXT_DEFAULT, eon, cat);}
+#define INITIALIZER_COMPONENT(x, eon, cat) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT, eon, cat);}
 #define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {VfsValueExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
 struct AstValue {
@@ -325,7 +348,7 @@ struct VfsValue : Pte<VfsValue> {
 	VfsValue& operator[](int i);
 	void ClearExtDeep();
 	void Destroy();
-	void Assign(VfsValue* owner, const VfsValue& n) {this->owner = owner; CopySubFrom(n); CopyFieldsFrom(n);}
+	void Assign(VfsValue* owner, const VfsValue& n);
 	void CopyFrom(const VfsValue& n);
 	void CopyFieldsFrom(const VfsValue& n, bool forced_downgrade=false);
 	void CopySubFrom(const VfsValue& n);

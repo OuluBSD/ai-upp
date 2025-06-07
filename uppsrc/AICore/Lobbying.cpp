@@ -3,8 +3,6 @@
 
 NAMESPACE_UPP
 
-#define DATASET_ITEM(a,b,e) COMPONENT_STUB_IMPL(a)
-	DATASET_ITEM(Lobbying,		lobbying,		/*METAKIND_ECS_COMPONENT_LOBBYING,			CATEGORY_PUBLIC,*/ "Lobbying")
-#undef DATASET_ITEM
+INITIALIZER_COMPONENT(Lobbying, "ecs.public.lobbying", "Ecs|Public")
 
 END_UPP_NAMESPACE

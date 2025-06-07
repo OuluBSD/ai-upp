@@ -227,10 +227,20 @@ bool Engine::Start(String script_content, String script_file, Value args_, bool 
 	return !is_failed;
 }
 
+void Engine::StartMainLoop() {
+	main_thrd.Stop();
+	main_thrd.Start();
+	Thread::Start([this]{
+		this->MainLoop();
+	});
+}
+
 void Engine::MainLoop() {
+	
 	if (is_started &&
 		is_initialized &&
 		!is_failed) {
+		main_thrd.Start();
 		try {
 		    {
 		        if (!WhenUserProgram)
@@ -250,6 +260,8 @@ void Engine::MainLoop() {
 	        LOG("unknown error");
 	    }
 	}
+	
+    main_thrd.SetStopped();
 }
 
 

@@ -450,7 +450,7 @@ void AppMain___()
 				ide.MakeTitle();
 				#ifdef flagAI
 				TaskMgr::Setup(&ide);
-				Engine::Setup("ide");
+				Engine::Setup("ide", 0, true);
 				if (FindIndex(CommandLine(), "--playground") >= 0 ||
 					ToLower(GetExeTitle()) == "playground")
 					RunAiPlayground();

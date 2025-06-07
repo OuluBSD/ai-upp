@@ -13,7 +13,7 @@ String (*GetCursorKindNamePtr)(int);
 String (*VfsValue_GetBasesString)(const VfsValue& v);
 
 
-#define DO_TEMP_CHECK 0
+#define DO_TEMP_CHECK 1
 
 int CreateTempCheck(int src) {
 	static int counter = 0;
@@ -249,6 +249,10 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 			source_kind = is_source_kind;
 		}
 	};
+	if(n0.serial == n1.serial) {
+		n0.Chk();
+		return true;
+	}
 	AstValue* p0 = n0;
 	const AstValue* p1 = n1;
 	ASSERT(p0 && p1); // unverified (part of cleanup)
@@ -257,10 +261,6 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 	AstValue& a0 = *p0;
 	const AstValue& a1 = *p1;
 
-	if(n0.serial == n1.serial) {
-		n0.Chk();
-		return true;
-	}
 	ASSERT(n0.serial && n1.serial);
 	const VfsValue& pri = mode == MERGEMODE_OVERWRITE_OLD ? (n0.serial > n1.serial ? n0 : n1)
 	                                                      : (n0.serial < n1.serial ? n0 : n1);
@@ -702,13 +702,9 @@ void VfsValue::AstFix()
 
 void MetaEnvironment::RefreshNodePtrs(VfsValue& n)
 {
-	/*if (n.kind == CXCursor_ClassTemplate) {
-	    //LOG(n.GetTreeString());
-	}*/
 	n.AstFix();
 	
 	AstValue* p = n;
-	ASSERT(p); // unverified (part of cleanup)
 	if (!p)
 		return;
 	AstValue& a = *p;
@@ -1365,14 +1361,16 @@ void VfsValue::Chk() {
 	#ifdef flagDEBUG
 	if (owner && type_hash) {
 		if (type_hash == AsTypeHash<Entity>()) {
-			ASSERT(owner->type_hash == 0);
+			ASSERT(owner->type_hash == AsTypeHash<Engine>() ||
+				   owner->type_hash == 0);
 		}
 		else if (VfsValueExtFactory::IsType(type_hash, VFSEXT_COMPONENT)) {
 			if (owner->type_hash != AsTypeHash<Entity>()) {
 				LOG(GetRoot().GetTreeString());
 				LOG(owner->GetTreeString());
 			}
-			ASSERT(owner->type_hash == AsTypeHash<Entity>());
+			ASSERT(owner->type_hash == AsTypeHash<Entity>() ||
+				   owner->type_hash == 0);
 		}
 	}
 	#endif

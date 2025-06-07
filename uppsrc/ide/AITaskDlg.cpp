@@ -42,7 +42,7 @@ AITaskDlg::AITaskDlg() {
 	tabs.Add(menv.SizePos(), "Meta Env. Tree");
 	tabs.WhenSet = THISBACK(Update);
 	
-	playground.SetNode(MetaEnv().root.GetAdd<Engine>("eng").val.GetAdd("playground", 0));
+	playground.SetNode(MetaEnv().root.GetAdd<Engine>("eng").val.GetAdd<Entity>("playground").val);
 	playground.CreateThread();
 }
 

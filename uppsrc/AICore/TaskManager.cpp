@@ -113,8 +113,8 @@ void TaskMgr::Process()
 void TaskMgr::ProcessSingle(int task_i)
 {
 	task_lock.Enter();
-
 	AiTask& t = tasks[task_i];
+	task_lock.Leave();
 
 	Index<AiTask*> seen;
 
@@ -127,7 +127,6 @@ void TaskMgr::ProcessSingle(int task_i)
 		status = "";
 	}
 
-	task_lock.Leave();
 	
 	TaskMgrConfig().Single().Realize();
 }

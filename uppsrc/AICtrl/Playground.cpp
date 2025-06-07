@@ -186,9 +186,10 @@ void CompletionCtrl::Submit() {
 		
 		m.GetCompletion(args, [this, txt](String res) {
 			String new_data = txt + res;
-			GuiLock __;
-			this->prompt.SetData(new_data);
-			this->prompt.SetCursor(this->prompt.GetLength());
+			PostCallback([this,new_data]{
+				this->prompt.SetData(new_data);
+				this->prompt.SetCursor(this->prompt.GetLength());
+			});
 		});
 	}
 }
@@ -247,8 +248,11 @@ void AiStageCtrl::Data() {
 }
 
 void AiStageCtrl::DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash) {
-	VfsValue& n = GetValue();
-	nodes = n.FindTypeAllShallow(type_hash);
+	Entity* eng = GetValue().FindOwner<Entity>();
+	ASSERT(eng);
+	if (!eng) return;
+	
+	nodes = eng->val.FindTypeAllShallow(type_hash);
 	for(int i = 0; i < nodes.GetCount(); i++) {
 		const auto& it = *nodes[i];
 		list.Set(i, 0, it.id);
@@ -282,6 +286,10 @@ void AiStageCtrl::DataStage() {
 	if (!stagelist.IsCursor()) return;
 	int idx = stagelist.Get("IDX");
 	VfsValue& n = *stages[idx];
+	const AstValue* a = n;
+	if (a) {
+		n.value = String();
+	}
 	stage.SetData(n.value);
 }
 
@@ -289,7 +297,7 @@ void AiStageCtrl::DataBottom() {
 	
 }
 
-bool AiStageCtrl::CompileStages() {
+bool AiStageCtrl::CompileStages(bool force) {
 	bool succ = false;
 	
 	log.Clear();
@@ -303,12 +311,12 @@ bool AiStageCtrl::CompileStages() {
 		String esc = n.value;
 		if (esc.IsEmpty()) continue;
 		
-		succ = agent->CompileStage(n, THISBACK(PrintLog));
+		succ = agent->CompileStage(n, force, THISBACK(PrintLog));
 	}
 	return true;
 }
 
-bool AiStageCtrl::Compile() {
+bool AiStageCtrl::Compile(bool force) {
 	if (!proglist.IsCursor()) return false;
 	int idx = proglist.Get("IDX");
 	VfsValue& n = *programs[idx];
@@ -321,7 +329,7 @@ bool AiStageCtrl::Compile() {
 	
 	Agent* agent = ext->val.FindOwnerWith<Agent>();
 	ASSERT(agent);
-	succ = agent->Compile(esc, THISBACK(PrintLog));
+	succ = agent->Compile(esc, force, THISBACK(PrintLog));
 	
 	return true;
 }
@@ -330,7 +338,7 @@ bool AiStageCtrl::Run() {
 	if (agent) {
 		agent->Stop();
 	}
-	if (!Compile())
+	if (!Compile(false))
 		return false;
 	
 	log.Clear();
@@ -341,11 +349,13 @@ bool AiStageCtrl::Run() {
 	agent->WhenPrint = THISBACK(Print);
 	agent->WhenInput = THISBACK(Input);
 	
+	//agent->SetSeparateThread();
 	agent->Start(THISBACK(PrintLog), [this](bool succ) {
 		if (!succ) {
-			GuiLock __;
-			log.Append("Running failed\n");
-			log.SetCursor(log.GetLength());
+			PostCallback([this]{
+				log.Append("Running failed\n");
+				log.SetCursor(log.GetLength());
+			});
 		}
 	});
 	
@@ -355,9 +365,10 @@ bool AiStageCtrl::Run() {
 void AiStageCtrl::Print(EscEscape& e) {
 	String s = e[0];
 	
-	GuiLock __;
-	log.Append(s + "\n");
-	log.SetCursor(log.GetLength());
+	PostCallback([this,s]{
+		log.Append(s + "\n");
+		log.SetCursor(log.GetLength());
+	});
 }
 
 void AiStageCtrl::Input(EscEscape& e) {
@@ -371,14 +382,15 @@ void AiStageCtrl::PrintLog(Vector<ProcMsg>& msgs) {
 	for (ProcMsg& m : msgs) {
 		s << m.ToString() << "\n";
 	}
-	GuiLock __;
-	log.Append(s);
-	log.SetCursor(log.GetLength());
+	PostCallback([this,s]{
+		log.Append(s);
+		log.SetCursor(log.GetLength());
+	});
 }
 
 void AiStageCtrl::ToolMenu(Bar& b) {
-	b.Add("Compile Stages", [this]{CompileStages();}).Key(K_F8);
-	b.Add("Compile Program", [this]{Compile();}).Key(K_F7);
+	b.Add("Compile Stages", [this]{CompileStages(true);}).Key(K_F8);
+	b.Add("Compile Program", [this]{Compile(true);}).Key(K_F7);
 	b.Add("Run", [this]{Run();}).Key(K_F5);
 }
 
@@ -400,7 +412,10 @@ void AiStageCtrl::AddProgram() {
 			return;
 		}
 	}
-	auto& ses = GetValue().Add<VfsProgram>(name);
+	Entity* eng = GetValue().FindOwner<Entity>();
+	ASSERT(eng);
+	if (!eng) return;
+	auto& ses = eng->val.Add<VfsProgram>(name);
 	PostCallback(THISBACK(DataProgramList));
 }
 
@@ -430,7 +445,10 @@ void AiStageCtrl::DuplicateProgram() {
 		return;
 	int id = proglist.Get("IDX");
 	const auto& n0 = *programs[id];
-	auto& m1 = GetValue().Add<VfsProgram>("Duplicate of " + n0.id);
+	Entity* eng = GetValue().FindOwner<Entity>();
+	ASSERT(eng);
+	if (!eng) return;
+	auto& m1 = eng->val.Add<VfsProgram>("Duplicate of " + n0.id);
 	VisitCopy(n0, m1.val);
 	PostCallback(THISBACK(DataProgramList));
 }
@@ -909,6 +927,9 @@ void PlaygroundCtrl::LoadThis() {
 	VisitFromJsonFile(*this, ConfigFile("playground-gui.json"));
 	if (node) {
 		VisitFromJsonFile(*node, ConfigFile("playground-node.json"));
+		if (!node->Is<Entity>()) {
+			node->CreateExt<Entity>();
+		}
 		
 		auto& compl_n	= node->GetAdd<CompletionThread>("completion");
 		completion.ext	= &compl_n;
@@ -941,7 +962,7 @@ PlaygroundApp::PlaygroundApp() {
 	AddFrame(menu);
 	PostCallback(THISBACK(UpdateMenu));
 	
-	omni_node = &MetaEnv().root.GetAdd<Engine>("eng").val.GetAdd("playground",0);
+	omni_node = &MetaEnv().root.GetAdd<Engine>("eng").val.GetAdd<Entity>("playground").val;
 	VisitFromJsonFile(*omni_node, ConfigFile("playground-root.json"));
 	pg.SetNode(*omni_node);
 	

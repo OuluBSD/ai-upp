@@ -36,8 +36,8 @@ struct FarStage : Pte<FarStage> {
 
 struct VfsFarStage : VfsValueExt {
 	
-	
-	METANODE_EXT_CONSTRUCTOR(VfsFarStage)
+	CLASSTYPE(VfsFarStage)
+	VfsFarStage(VfsValue& n);
 	void Visit(Vis& v) override {}
 };
 
@@ -74,6 +74,7 @@ private:
 	Array<FarStage> stages;
 	int oplimit = 50000;
 	hash_t compiled_hash = 0;
+	bool run = false;
 	
 	using MsgCb = Event<Vector<ProcMsg>&>;
 	
@@ -95,8 +96,8 @@ public:
 	void Visit(Vis& v) override {}
 	void Update(double dt) override;
 	bool RealizeLibrary(Vector<ProcMsg>& msgs);
-	bool CompileStage(VfsValue& stage, MsgCb WhenMessage=MsgCb());
-	bool Compile(String esc, MsgCb WhenMessage=MsgCb());
+	bool CompileStage(VfsValue& stage, bool force, MsgCb WhenMessage=MsgCb());
+	bool Compile(String esc, bool force, MsgCb WhenMessage=MsgCb());
 	bool Run(MsgCb WhenMessage=MsgCb());
 	bool Start() override;
 	bool Start(MsgCb WhenMessage, Event<bool> WhenStop=Event<bool>());
@@ -104,6 +105,7 @@ public:
 	void Stop() override;
 	
 	void SetOpLimit(int i) {oplimit = i;}
+	void SetSeparateThread(bool b=true) {separate_thread = b;}
 	
 	Event<EscEscape&> WhenPrint;
 	Event<EscEscape&> WhenInput;

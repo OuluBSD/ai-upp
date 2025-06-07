@@ -436,6 +436,12 @@ struct VfsValue : Pte<VfsValue> {
 	}
 	
 	template <class T>
+	bool Is() const {
+		hash_t h = AsTypeHash<T>();
+		return type_hash == h && ext && ext->GetTypeHash() == h;
+	}
+	
+	template <class T>
 	T& CreateExt() {
 		ext.Clear();
 		T* o = new T(*this);

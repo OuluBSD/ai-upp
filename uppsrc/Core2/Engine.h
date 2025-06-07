@@ -43,6 +43,7 @@ public:
 class Engine : public VfsValueExt
 {
 	int64 ticks = 0;
+	RunningFlagSingle main_thrd;
 	
 public:
 	int64 GetTicks() const {return ticks;}
@@ -125,12 +126,13 @@ public:
 	bool Start(String script_content, String script_file, Value args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
     void Suspend();
     void Resume();
+    void StartMainLoop();
     void MainLoop();
     void DieFast() {Start(); Update(0); Stop();}
-	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; is_running=0; /*systems.Clear();*/}
+	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; /*systems.Clear();*/}
 	
-    bool IsRunning() const {return is_running;}
-	void SetNotRunning() {is_running = false;}
+    bool IsRunning() const {return main_thrd.IsRunning();}
+	void SetNotRunning() {main_thrd.SetNotRunning();}
 	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
 	void WarnDeveloper(String msg);
 	void StopRunner();
@@ -170,7 +172,6 @@ private:
 	bool is_started = false;
     bool is_initialized = false;
     bool is_suspended = false;
-    bool is_running = false;
     bool is_looping_systems = false;
     bool is_failed = false;
     String fail_msg;
@@ -201,7 +202,7 @@ public:
     void RemoveUpdated(String name, VfsValueExt* c);
 	
 	static void AddNameUpdater(String name, Event<VfsValueExt&> update_fn);
-	static Engine& Setup(String name, Engine* e=0);
+	static Engine& Setup(String name, Engine* e=0, bool in_thrd=false);
 	static void Uninstall(bool clear_root=true, Engine* e=0);
 	static void PostCallback(Event<> cb);
 	

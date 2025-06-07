@@ -20,6 +20,7 @@ file
 	ProgramAndStage.txt highlight cpp,
 	Filesystem.txt,
 	Filesystem.ecs,
+	Comedian.cpp,
 	Animation.ecs,
 	MusicComposer.ecs,
 	FriendVisitor.txt,

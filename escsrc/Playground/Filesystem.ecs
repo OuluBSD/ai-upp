@@ -1,6 +1,6 @@
 {
 	"id": 13,
-	"highest_seen_serial": 3984,
+	"highest_seen_serial": 6501,
 	"seen_types": [
 
 	],
@@ -8,7 +8,7 @@
 		".version": 3,
 		"id": "",
 		"type_hash": 0,
-		"serial": 3984,
+		"serial": 6501,
 		"file": 13,
 		"is_ast": true,
 		"a.kind": 22,
@@ -30,7 +30,7 @@
 				".version": 3,
 				"id": "Filesystem",
 				"type_hash": 0,
-				"serial": 3862,
+				"serial": 6217,
 				"file": 13,
 				"is_ast": true,
 				"a.kind": 22,

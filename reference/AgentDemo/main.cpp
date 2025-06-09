@@ -1,16 +1,6 @@
-#include <AICore2/AICore.h>
+#include "AgentDemo.h"
 
 NAMESPACE_UPP
-
-struct SimpleValueNode : VfsValueExt {
-	
-	DEFAULT_EXT(SimpleValueNode)
-	void Visit(Vis& v) override {}
-	String ToString() const override {return AsString(val.value);}
-	double GetUtility() override;
-	bool TerminalTest(NodeRoute& prev) override;
-};
-
 
 double SimpleValueNode::GetUtility() {
 	Value& o = val.value;
@@ -21,7 +11,7 @@ double SimpleValueNode::GetUtility() {
 	return value;
 }
 
-bool SimpleValueNode::TerminalTest(NodeRoute& prev) {
+bool SimpleValueNode::TerminalTest() {
 	return val.sub.GetCount() == 0;
 }
 
@@ -40,54 +30,27 @@ void SetValue(Val& i) {
 	v = arr;
 }
 
-// Class which only only tells the utility value
-struct SimpleGeneratorNode : VfsValueExt {
-	int value = 0;
-	
-	DEFAULT_EXT(SimpleGeneratorNode)
-	void Visit(Vis& v) override {}
-	String ToString() const override {return IntStr(value);}
-	double GetUtility() override {return value;}
-	bool TerminalTest(NodeRoute& prev) override;
-};
-
 // Use TerminalTest to generate sub nodes
-bool SimpleGeneratorNode::TerminalTest(NodeRoute& prev) {
+void SimpleGeneratorNode::GenerateSubValues(NodeRoute& prev) {
 	int depth = val.GetDepth();
-	if (depth >= 3 || val.GetCount()) return !val.GetCount();
+	if (depth >= 3 || val.GetCount())
+		return;
 	int sub_node_count = 1 + Random(2);
 	for(int i = 0; i < sub_node_count; i++) {
 		SimpleGeneratorNode& sub = val.Add<SimpleGeneratorNode>();
 		sub.value = -2 + Random(10);
 	}
+}
+
+bool SimpleGeneratorNode::TerminalTest() {
 	return !val.GetCount();
 }
 
 
-// Class which tells length of route from the root to the node
-struct RouteGeneratorNode : VfsValueExt {
-	double length;
-	double length_to_node;
-	double estimate_to_goal;
-	
-	DEFAULT_EXT(RouteGeneratorNode)
-	void Visit(Vis& v) override {}
-	String ToString() const override {return DblStr(length) + ", " + DblStr(length_to_node) + ", " + DblStr(estimate_to_goal);}
-	double GetUtility() override {return length_to_node;}
-	double GetEstimate() override {return estimate_to_goal;}
-	double GetDistance(VfsValue& n) override {
-		RouteGeneratorNode* rgn = CastPtr<RouteGeneratorNode>(&*n.ext);
-		ASSERT(rgn);
-		return rgn->length; // no links, so this is always the parent
-	}
-	bool TerminalTest(NodeRoute& prev) override;
-};
-
 // Use TerminalTest to generate sub nodes
-bool RouteGeneratorNode::TerminalTest(NodeRoute& prev) {
-	if (val.GetCount()) return !val.GetCount();
-	int goal = 0;
-	if (estimate_to_goal <= goal) return true;
+void RouteGeneratorNode::GenerateSubValues(NodeRoute& prev) {
+	if (val.GetCount())
+		return;
 	int sub_node_count = 2 + Random(1);
 	for(int i = 0; i < sub_node_count; i++) {
 		RouteGeneratorNode& sub = val.Add<RouteGeneratorNode>();
@@ -100,9 +63,13 @@ bool RouteGeneratorNode::TerminalTest(NodeRoute& prev) {
 			if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
 		}
 	}
-	return !val.sub.GetCount();
 }
 
+bool RouteGeneratorNode::TerminalTest() {
+	if (estimate_to_goal <= goal)
+		return true;
+	return !val.sub.GetCount();
+}
 
 // Pretty print vector of pointers
 String PtrVecStr(Vector<Val*>& vec) {
@@ -126,16 +93,189 @@ void PrintTotal(Vector<VfsValue*>& vec) {
 	LOG("total=" << total << " average=" << average);
 }
 
+void FileSystemExample();
 
-
+END_UPP_NAMESPACE
 
 void ActionPlannerExample();
-void Addition();
-void SendMoreMoneyEasy();
 
+CONSOLE_APP_MAIN {
+	using namespace UPP;
+	VfsValue& app_root = MetaEnv().root;
+	
+	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
+	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
+	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
+	TypedStringHasher<ActionNode>("ActionNode");
+	
+	// Simple game algorithms
+	if (true) {
+		#if 0
+		SolverExt& modules = app_root.GetAdd<SolverExt>("solver");
+		modules.SetVerbose();
+		modules.SetSearchStrategy(SEARCHSTRATEGY_MINIMAX);
+		modules.SetGenerator(GENERATOR_RANDOM);
+		ValueMap map;
+		map.Set("total", 25);
+		map.Set("low", 2);
+		map.Set("high", 3);
+		modules.SetGeneratorParams(map, callback(SetValue));
+		bool ret = modules.RunSearch();
+		ASSERT(ret);
+		TODO
+		return;
+		#else
+		VfsValue& n = app_root.Add("simplegame");
+		GenerateTree(n, 25, 2, 3, callback(SetValue));
+		LOG(n.GetTreeString());
+		
+		MiniMax mm;
+		AlphaBeta ab;
+		
+		Vector<Val*> ans = mm.Search(n);
+		LOG(PtrVecStr(ans));
+		
+		ans = ab.Search(n);
+		LOG(PtrVecStr(ans));
+		#endif
+	}
+	
+	// Simple game algorithms, with runtime node generation.
+	if (true) {
+		VfsValue& n = app_root.Add("simplegame_rt");
+		ASSERT(n.GetCount() == 0);
+		
+		n.CreateExt<SimpleGeneratorNode>();
+		MiniMax mm;
+		AlphaBeta ab;
+		
+		Vector<Val*> ans = mm.Search(n);
+		LOG(n.GetTreeString());
+		LOG(PtrVecStr(ans));
+		
+		ans = ab.Search(n);
+		LOG(PtrVecStr(ans));
+	}
+	
+	// Uninformed search strategies, with runtime node generation
+	if (true) {
+		VfsValue& n = app_root.Add("uninformed_rt");
+		RouteGeneratorNode& rgn = n.CreateExt<RouteGeneratorNode>();
+		rgn.estimate_to_goal = 20;
+		rgn.length_to_node = 0;
+		rgn.length = 0;
+		
+		BreadthFirst bf;
+		UniformCost uc;
+		DepthFirst df;
+		DepthLimited dl;
+		
+		Vector<Val*> ans = bf.Search(n);
+		LOG(n.GetTreeString());
+		LOG(PtrVecStr(ans));
+		
+		ans = uc.Search(n);
+		LOG(PtrVecStr(ans));
+		
+		ans = df.Search(n);
+		LOG(PtrVecStr(ans));
+		
+		dl.SetLimit(3);
+		ans = dl.Search(n);
+		LOG(PtrVecStr(ans));
+	}
+	
+	// Informed (heuristic) search strategies, with runtime node generation
+	if (true) {
+		VfsValue& n = app_root.Add("informed_rt");
+		auto& rgn = n.CreateExt<RouteGeneratorNode>();
+		rgn.estimate_to_goal = 100;
+		rgn.length_to_node = 0;
+		rgn.length = 0;
+		
+		BestFirst bf;
+		AStar as;
+		as.TrimWorst(0,0);
+		
+		Vector<VfsValue*> ans;
+		
+		ans = bf.Search(n);
+		//LOG(n.AsString());
+		LOG(PtrVecStr(ans));
+		PrintTotal(ans);
+		
+		TimeStop ts;
+		
+		ts.Reset();
+		ans = as.Search(n);
+		LOG(PtrVecStr(ans));
+		PrintTotal(ans);
+		LOG(ts.ToString());
+		
+		
+	}
+	
+	// Decision tree
+	if (true) {
+		if (1) {
+			QueryTable<String> qt;
+			
+			Vector<String>& ot = qt.AddPredictor("Outlook");
+			Vector<String>& temp = qt.AddPredictor("Temp");
+			Vector<String>& hum = qt.AddPredictor("Humidity");
+			Vector<String>& w = qt.AddPredictor("Windy");
+			
+			ot.Add("Rainy");				temp.Add("Hot");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("No");
+			ot.Add("Rainy");				temp.Add("Hot");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("No");
+			ot.Add("Overcast");				temp.Add("Hot");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Sunny");				temp.Add("Cool");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Sunny");				temp.Add("Cool");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("No");
+			ot.Add("Overcast");				temp.Add("Cool");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("Yes");
+			ot.Add("Rainy");				temp.Add("Mild");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("No");
+			ot.Add("Rainy");				temp.Add("Cool");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Rainy");				temp.Add("Mild");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("Yes");
+			ot.Add("Overcast");				temp.Add("Mild");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("Yes");
+			ot.Add("Overcast");				temp.Add("Hot");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
+			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("No");
+			
+			int i = qt.GetLargestInfoGainPredictor();
+			DUMP(i);
+			DUMPC(qt.GetInfoGains());
+		}
+		
+		{
+			QueryTable<String> qt;
+			
+			Vector<String>& x = qt.AddPredictor("X");
+			Vector<String>& y = qt.AddPredictor("Y");
+			
+			x.Add("0");		y.Add("10");		qt.AddTargetValue("a");
+			x.Add("1");		y.Add("10");		qt.AddTargetValue("a");
+			x.Add("1");		y.Add("100");		qt.AddTargetValue("b");
+			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
+			x.Add("1");		y.Add("100");		qt.AddTargetValue("a");
+			x.Add("1");		y.Add("100");		qt.AddTargetValue("a");
+			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
+			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
+			
+			int i = qt.GetLargestInfoGainPredictor();
+			DUMP(i);
+			DUMPC(qt.GetInfoGains());
+		}
+	}
+	
+	// Action planner
+	if (true) {
+		ActionPlannerExample();
+		//FileSystemExample();
+	}
+}
 
 
 void ActionPlannerExample() {
+	using namespace Upp;
 	
 	// Macros are poor man's meta-programming. Don't underestimate it! (I did it too earlier...)
 	
@@ -271,166 +411,5 @@ void ActionPlannerExample() {
 	//  - tidy tmp_sub using
 	//  - clear temp memory from ActionNode and ActionPlanner
 	
-}
-
-
-END_UPP_NAMESPACE
-
-
-CONSOLE_APP_MAIN {
-	using namespace UPP;
-	VfsValue& app_root = MetaEnv().root;
-	
-	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
-	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
-	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
-	TypedStringHasher<ActionNode>("ActionNode");
-	
-	// Simple game algorithms
-	if (true) {
-		VfsValue& n = app_root.Add("simplegame");
-		GenerateTree(n, 25, 2, 3, callback(SetValue));
-		LOG(n.GetTreeString());
-		
-		MiniMax mm;
-		AlphaBeta ab;
-		
-		Vector<Val*> ans = mm.Search(n);
-		LOG(PtrVecStr(ans));
-		
-		ans = ab.Search(n);
-		LOG(PtrVecStr(ans));
-	}
-	
-	// Simple game algorithms, with runtime node generation.
-	if (true) {
-		VfsValue& n = app_root.Add("simplegame_rt");
-		ASSERT(n.GetCount() == 0);
-		
-		n.CreateExt<SimpleGeneratorNode>();
-		MiniMax mm;
-		AlphaBeta ab;
-		
-		Vector<Val*> ans = mm.Search(n);
-		LOG(n.GetTreeString());
-		LOG(PtrVecStr(ans));
-		
-		ans = ab.Search(n);
-		LOG(PtrVecStr(ans));
-	}
-	
-	// Uninformed search strategies, with runtime node generation
-	if (true) {
-		VfsValue& n = app_root.Add("uninformed_rt");
-		RouteGeneratorNode& rgn = n.CreateExt<RouteGeneratorNode>();
-		rgn.estimate_to_goal = 20;
-		rgn.length_to_node = 0;
-		rgn.length = 0;
-		
-		BreadthFirst bf;
-		UniformCost uc;
-		DepthFirst df;
-		DepthLimited dl;
-		
-		Vector<Val*> ans = bf.Search(n);
-		LOG(n.GetTreeString());
-		LOG(PtrVecStr(ans));
-		
-		ans = uc.Search(n);
-		LOG(PtrVecStr(ans));
-		
-		ans = df.Search(n);
-		LOG(PtrVecStr(ans));
-		
-		dl.SetLimit(3);
-		ans = dl.Search(n);
-		LOG(PtrVecStr(ans));
-	}
-	
-	// Informed (heuristic) search strategies, with runtime node generation
-	if (true) {
-		VfsValue& n = app_root.Add("informed_rt");
-		auto& rgn = n.CreateExt<RouteGeneratorNode>();
-		rgn.estimate_to_goal = 100;
-		rgn.length_to_node = 0;
-		rgn.length = 0;
-		
-		BestFirst bf;
-		AStar as;
-		as.TrimWorst(0,0);
-		
-		Vector<VfsValue*> ans;
-		
-		ans = bf.Search(n);
-		//LOG(n.AsString());
-		LOG(PtrVecStr(ans));
-		PrintTotal(ans);
-		
-		TimeStop ts;
-		
-		ts.Reset();
-		ans = as.Search(n);
-		LOG(PtrVecStr(ans));
-		PrintTotal(ans);
-		LOG(ts.ToString());
-		
-		
-	}
-	
-	// Decision tree
-	if (true) {
-		if (1) {
-			QueryTable<String> qt;
-			
-			Vector<String>& ot = qt.AddPredictor("Outlook");
-			Vector<String>& temp = qt.AddPredictor("Temp");
-			Vector<String>& hum = qt.AddPredictor("Humidity");
-			Vector<String>& w = qt.AddPredictor("Windy");
-			
-			ot.Add("Rainy");				temp.Add("Hot");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("No");
-			ot.Add("Rainy");				temp.Add("Hot");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("No");
-			ot.Add("Overcast");				temp.Add("Hot");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Sunny");				temp.Add("Cool");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Sunny");				temp.Add("Cool");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("No");
-			ot.Add("Overcast");				temp.Add("Cool");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("Yes");
-			ot.Add("Rainy");				temp.Add("Mild");				hum.Add("High");				w.Add("False");		qt.AddTargetValue("No");
-			ot.Add("Rainy");				temp.Add("Cool");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Rainy");				temp.Add("Mild");				hum.Add("Normal");				w.Add("True");		qt.AddTargetValue("Yes");
-			ot.Add("Overcast");				temp.Add("Mild");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("Yes");
-			ot.Add("Overcast");				temp.Add("Hot");				hum.Add("Normal");				w.Add("False");		qt.AddTargetValue("Yes");
-			ot.Add("Sunny");				temp.Add("Mild");				hum.Add("High");				w.Add("True");		qt.AddTargetValue("No");
-			
-			int i = qt.GetLargestInfoGainPredictor();
-			DUMP(i);
-			DUMPC(qt.GetInfoGains());
-		}
-		
-		{
-			QueryTable<String> qt;
-			
-			Vector<String>& x = qt.AddPredictor("X");
-			Vector<String>& y = qt.AddPredictor("Y");
-			
-			x.Add("0");		y.Add("10");		qt.AddTargetValue("a");
-			x.Add("1");		y.Add("10");		qt.AddTargetValue("a");
-			x.Add("1");		y.Add("100");		qt.AddTargetValue("b");
-			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
-			x.Add("1");		y.Add("100");		qt.AddTargetValue("a");
-			x.Add("1");		y.Add("100");		qt.AddTargetValue("a");
-			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
-			x.Add("0");		y.Add("100");		qt.AddTargetValue("b");
-			
-			int i = qt.GetLargestInfoGainPredictor();
-			DUMP(i);
-			DUMPC(qt.GetInfoGains());
-		}
-	}
-	
-	// Action planner
-	if (true) {
-		ActionPlannerExample();
-	}
 }
 

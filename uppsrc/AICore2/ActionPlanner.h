@@ -113,7 +113,8 @@ public:
 	
 	double GetDistance(VfsValue& to) override;
 	double GetEstimate() override;
-	bool TerminalTest(NodeRoute& route) override;
+	void GenerateSubValues(NodeRoute& route) override;
+	bool TerminalTest() override;
 	inline double GetCost() const {return cost;}
 	inline int GetActionId() const {return act_id;}
 };

@@ -1901,7 +1901,8 @@ String VfsValueExt::GetName() const {return String();}
 double VfsValueExt::GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
-bool VfsValueExt::TerminalTest(NodeRoute& prev) {ASSERT_(0, "Not implemented"); return true;}
+void VfsValueExt::GenerateSubValues(NodeRoute& prev) {}
+bool VfsValueExt::TerminalTest() {ASSERT_(0, "Not implemented"); return true;}
 String VfsValueExt::ToString() const {return String();}
 bool VfsValueExt::Initialize(const WorldState& ws) {SetInitialized(true); return true;}
 bool VfsValueExt::PostInitialize() {return true;}

@@ -9,10 +9,23 @@ bool TerminalTest(Val& n, Val** prev);
 */
 
 
-class Searcher {
-	
+class Generator {
 public:
+	Generator() {}
+	virtual ~Generator() {}
 	
+	virtual void GenerateSubValues(NodeRoute& prev) = 0;
+};
+
+class GeneratorRandom : public Generator {
+public:
+	GeneratorRandom();
+	
+	void GenerateSubValues(NodeRoute& prev);
+};
+
+class Searcher {
+public:
 	Searcher();
 	
 	bool TerminalTest(Val& n, NodeRoute& prev);
@@ -21,8 +34,6 @@ public:
 	double Distance(Val& n, Val& dest);
 	
 	virtual Vector<Val*> Search(Val& src) = 0;
-	
-	
 };
 
 

@@ -273,14 +273,12 @@ ActionNode::ActionNode(VfsValue& n) : VfsValueExt(n) {
 	act_id = -1;
 }
 
-bool ActionNode::TerminalTest(NodeRoute& route) {
-	if (this->GetEstimate() <= 0)
-		return true;
+void ActionNode::GenerateSubValues(NodeRoute& route) {
 	ASSERT(goal);
 	BinaryWorldState& ws = this->GetWorldState();
 	ActionNode* root = val.FindRoot<ActionNode>();
 	ASSERT(root);
-	if (!root) return true;
+	if (!root) return;
 	ActionPlanner& ap = root->GetActionPlanner();
 	Array<BinaryWorldState*> to;
 	Vector<int> act_ids;
@@ -304,6 +302,11 @@ bool ActionNode::TerminalTest(NodeRoute& route) {
 			link.symbolic_link = &root->tmp_sub[j]->val;
 		}
 	}
+}
+
+bool ActionNode::TerminalTest() {
+	if (this->GetEstimate() <= 0)
+		return true;
 	return !val.GetCount();
 }
 

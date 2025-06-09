@@ -50,7 +50,8 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual double			GetUtility();
 	virtual double			GetEstimate();
 	virtual double			GetDistance(VfsValue& dest);
-	virtual bool			TerminalTest(NodeRoute& prev);
+	virtual void			GenerateSubValues(NodeRoute& prev);
+	virtual bool			TerminalTest();
 	virtual String			ToString() const;
 	virtual bool			Start();
 	virtual void			Stop();

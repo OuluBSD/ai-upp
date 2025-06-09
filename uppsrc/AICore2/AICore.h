@@ -6,6 +6,7 @@
 
 NAMESPACE_UPP
 
+#include "Enum.h"
 #include "Node.h"
 #include "SearchAlgos.h"
 #include "ActionPlanner.h"
@@ -14,6 +15,7 @@ NAMESPACE_UPP
 #include "Graph.h"
 #include "Neural.h"
 #include "GeneticOptimizer.h"
+#include "Ext.h"
 
 END_UPP_NAMESPACE
 

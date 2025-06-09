@@ -5,7 +5,9 @@ uses
 	AICore2;
 
 file
-	main.cpp;
+	AgentDemo.h,
+	main.cpp,
+	FileSystemDemo.cpp;
 
 mainconfig
 	"" = "AI";

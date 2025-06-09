@@ -3,13 +3,16 @@
 NAMESPACE_UPP
 
 
+
+
 Searcher::Searcher() {
 	
 }
 
 bool Searcher::TerminalTest(Val& n, NodeRoute& prev) {
 	ASSERT(n.ext);
-	return n.ext->TerminalTest(prev);
+	n.ext->GenerateSubValues(prev);
+	return n.ext->TerminalTest();
 }
 
 double Searcher::Utility(Val& n) {
@@ -665,5 +668,19 @@ Vector<Val*> AStar::SearchMain() {
 	}
 	return Vector<Val*>();
 }
+
+
+
+
+
+
+GeneratorRandom::GeneratorRandom() {
+	
+}
+
+void GeneratorRandom::GenerateSubValues(NodeRoute& prev) {
+	TODO
+}
+
 
 END_UPP_NAMESPACE

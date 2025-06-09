@@ -5,6 +5,8 @@ uses
 
 file
 	AICore.h,
+	AICore.cpp,
+	Enum.h,
 	Structural.h,
 	Graph.h,
 	Graph.cpp,
@@ -18,5 +20,7 @@ file
 	SearchAlgos.cpp,
 	ActionPlanner.h,
 	ActionPlanner.cpp,
-	QueryTable.h;
+	QueryTable.h,
+	Ext.h,
+	Ext.cpp;
 

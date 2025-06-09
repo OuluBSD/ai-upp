@@ -1,6 +1,6 @@
 {
 	"id": 22,
-	"highest_seen_serial": 1860,
+	"highest_seen_serial": 6551,
 	"seen_types": [
 
 	],
@@ -8,7 +8,7 @@
 		".version": 3,
 		"id": "",
 		"type_hash": 0,
-		"serial": 1860,
+		"serial": 6551,
 		"file": 22,
 		"is_ast": true,
 		"a.kind": 22,
@@ -30,7 +30,7 @@
 				".version": 3,
 				"id": "Courtroom",
 				"type_hash": 0,
-				"serial": 1823,
+				"serial": 6228,
 				"file": 22,
 				"is_ast": true,
 				"a.kind": 22,

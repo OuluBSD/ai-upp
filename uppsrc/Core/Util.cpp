@@ -1014,7 +1014,7 @@ bool IsClose(double a, double b) {
 RunningFlagSingle::RunningFlagSingle() {}
 bool RunningFlagSingle::IsStopped() const {return stopped;}
 bool RunningFlagSingle::IsRunning() const { return running; }
-void RunningFlagSingle::SetStopped() { stopped = true; }
+void RunningFlagSingle::SetStopped() { stopped = true; running = false;}
 void RunningFlagSingle::SetNotRunning() { running = false; }
 void RunningFlagSingle::Start()
 {

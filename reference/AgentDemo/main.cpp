@@ -26,7 +26,7 @@ void SetValue(Val& i) {
 	String str;
 	str.Cat('A' + counter++);
 	arr.Add(str);
-	arr.Add((double)(-2 + Random(10)));
+	arr.Add(-2 + (int)Random(10));
 	v = arr;
 }
 
@@ -72,7 +72,7 @@ bool RouteGeneratorNode::TerminalTest() {
 }
 
 // Pretty print vector of pointers
-String PtrVecStr(Vector<Val*>& vec) {
+String PtrVecStr(const Vector<Val*>& vec) {
 	String out;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";
@@ -110,22 +110,36 @@ CONSOLE_APP_MAIN {
 	
 	// Simple game algorithms
 	if (true) {
-		#if 0
+		#if 1
 		SolverExt& modules = app_root.GetAdd<SolverExt>("solver");
 		modules.SetVerbose();
-		modules.SetSearchStrategy(SEARCHSTRATEGY_MINIMAX);
-		modules.SetGenerator(GENERATOR_RANDOM);
 		ValueMap map;
 		map.Set("total", 25);
 		map.Set("low", 2);
 		map.Set("high", 3);
 		modules.SetGeneratorParams(map, callback(SetValue));
-		bool ret = modules.RunSearch();
-		ASSERT(ret);
-		TODO
-		return;
+		modules.SetRandomSeed(0x12345);
+		for(int i = 0; i < 2; i++) {
+			modules.SetSearchStrategy(
+				i == 0 ?
+					SEARCHSTRATEGY_MINIMAX :
+					SEARCHSTRATEGY_ALPHA_BETA);
+			modules.SetGenerator(GENERATOR_RANDOM);
+			modules.ClearFS();
+			if (i == 0)
+				modules.WhenGenerated = [&]{LOG(modules.GetFS().GetTreeString());};
+			else
+				modules.WhenGenerated.Clear();
+			bool ret = modules.RunSearch();
+			ASSERT(ret);
+			const auto& ans = modules.GetResult();
+			LOG(PtrVecStr(ans));
+			ASSERT(ans.GetCount() == 4);
+		}
+		const auto& ans = modules.GetResult();
 		#else
 		VfsValue& n = app_root.Add("simplegame");
+		SeedRandom(0x12345);
 		GenerateTree(n, 25, 2, 3, callback(SetValue));
 		LOG(n.GetTreeString());
 		
@@ -138,6 +152,10 @@ CONSOLE_APP_MAIN {
 		ans = ab.Search(n);
 		LOG(PtrVecStr(ans));
 		#endif
+		ASSERT(ValueArray(ans[0]->value)[1] == -2);
+		ASSERT(ValueArray(ans[1]->value)[1] == -2);
+		ASSERT(ValueArray(ans[2]->value)[1] ==  3);
+		ASSERT(ValueArray(ans[3]->value)[1] == -1);
 	}
 	
 	// Simple game algorithms, with runtime node generation.
@@ -396,7 +414,7 @@ void ActionPlannerExample() {
 	}
 	
 	LOG("Beginning:");
-	int total_cost = 0;
+	double total_cost = 0;
 	for(int i = 0; i < plan.GetCount(); i++) {
 		auto& n = plan[i]->GetExt<ActionNode>();
 		total_cost += n.GetCost();

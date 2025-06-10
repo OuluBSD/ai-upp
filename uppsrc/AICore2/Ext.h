@@ -32,10 +32,13 @@ class SolverExt : public VfsValueExt {
 	GeneratorType		generator_type = GENERATOR_NULL;
 	One<Searcher>		searcher;
 	One<Generator>		generator;
+	RunningFlagSingle	flag;
 	bool				verbose = false;
+	dword				random_seed = 0;
 	
 	Value				args;
 	Event<Val&>			set_value;
+	Vector<Val*>		result;
 	
 	void				CreateSearcher();
 	void				CreateGenerator();
@@ -45,6 +48,9 @@ public:
 	SolverExt(VfsValue& val);
 	
 	void Visit(Vis& v) override {}
+	void Update(double ts) override;
+	
+	void				ClearFS();
 	VfsValue&			GetFS();
 	CommitTreeExt&		GetCommitTree();
 	CommitDiffListExt&	GetCommitDiffList();
@@ -53,14 +59,21 @@ public:
 	void				SetGenerator(GeneratorType t);
 	void				SetGeneratorParams(Value args, Event<Val&> set_value);
 	void				SetVerbose(bool b=true) {verbose = b;}
+	void				SetRandomSeed(dword seed);
 	bool				RunSearch();
-	
+	bool				SearchBegin();
+	bool				SearchIteration();
+	bool				SearchEnd();
+	const Vector<Val*>&	GetResult();
+	bool				RunGenerator();
+
 	template <class T>
 	void SetGenerator() {
 		generator_type = GENERATOR_CUSTOM;
 		generator = new T;
 	}
 	
+	Event<>				WhenGenerated;
 };
 
 

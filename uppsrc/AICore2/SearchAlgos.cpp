@@ -30,6 +30,15 @@ double Searcher::Distance(Val& n, Val& dest) {
 	return n.ext->GetDistance(dest);
 }
 
+Vector<Val*> Searcher::Search(Val& src) {
+	if (!SearchBegin(src))
+		return Vector<Val*>();
+	while (1) {
+		if (!SearchIteration())
+			break;
+	}
+	return SearchEnd();
+}
 
 
 
@@ -72,26 +81,35 @@ double MiniMax::MinValue(Val& n, int* decision_pos) {
 	return v;
 }
 
-Vector<Val*> MiniMax::Search(Val& src) {
-	Vector<Val*> out;
-	Val* ptr = &src;
-	Val* prev = 0;
-	while (1) {
-		Val& t = *out.Add(ptr);
-		if (TerminalTest(*ptr,route)) break;
-		int type = out.GetCount() % 2;
-		int pos = -1;
-		double v;
-		if (type == 1)
-			v = MinValue(*ptr, &pos);
-		else
-			v = MaxValue(*ptr, &pos);
-		if (pos == -1) break;
-		ptr = &(*ptr)[pos];
-		//LOG(pos << " " << v);
-	}
-	return out;
+bool MiniMax::SearchBegin(Val& src) {
+	out.Clear();
+	ptr = &src;
+	prev = 0;
+	return true;
 }
+
+bool MiniMax::SearchIteration() {
+	Val& t = *out.Add(ptr);
+	if (TerminalTest(*ptr,route))
+		return false;
+	int type = out.GetCount() % 2;
+	int pos = -1;
+	double v;
+	if (type == 1)
+		v = MinValue(*ptr, &pos);
+	else
+		v = MaxValue(*ptr, &pos);
+	if (pos == -1)
+		return false;
+	ptr = &(*ptr)[pos];
+	//LOG(pos << " " << v);
+	return true;
+}
+
+Vector<Val*> MiniMax::SearchEnd() {
+	return pick(out);
+}
+
 
 
 
@@ -153,26 +171,35 @@ double AlphaBeta::MinValue(Val& n, double alpha, double beta, int* decision_pos)
 	return v;
 }
 
-Vector<Val*> AlphaBeta::Search(Val& src) {
-	Vector<Val*> out;
-	Val* ptr = &src;
-	while (1) {
-		Val& t = *out.Add((Val*)ptr);
-		if (TerminalTest(*ptr,route)) break;
-		int type = out.GetCount() % 2;
-		int pos = -1;
-		double v;
-		double alpha = -DBL_MAX;
-		double beta = DBL_MAX;
-		if (type == 1)
-			v = MinValue(*ptr, alpha, beta, &pos);
-		else
-			v = MaxValue(*ptr, alpha, beta, &pos);
-		if (pos == -1) break;
-		ptr = &(*ptr)[pos];
-	}
-	return out;
+bool AlphaBeta::SearchBegin(Val& src) {
+	out.Clear();
+	ptr = &src;
+	return true;
 }
+
+bool AlphaBeta::SearchIteration() {
+	Val& t = *out.Add((Val*)ptr);
+	if (TerminalTest(*ptr,route))
+		return false;
+	int type = out.GetCount() % 2;
+	int pos = -1;
+	double v;
+	double alpha = -DBL_MAX;
+	double beta = DBL_MAX;
+	if (type == 1)
+		v = MinValue(*ptr, alpha, beta, &pos);
+	else
+		v = MaxValue(*ptr, alpha, beta, &pos);
+	if (pos == -1)
+		return false;
+	ptr = &(*ptr)[pos];
+	return true;
+}
+
+Vector<Val*> AlphaBeta::SearchEnd() {
+	return pick(out);
+}
+
 
 
 
@@ -190,34 +217,40 @@ Vector<Val*> AlphaBeta::Search(Val& src) {
 
 BreadthFirst::BreadthFirst() {route.from_owner_only = true;}
 
-Vector<Val*> BreadthFirst::Search(Val& src) {
-	Vector<Val*> out;
-	Vector<Val*> queue, next_queue;
-	next_queue.Add(&src);
-	double v = DBL_MAX;
-	Val* ptr = 0;
-	while (1) {
-		queue <<= next_queue;
-		next_queue.Clear();
-		
-		bool all_terminals = true;
-		for(int i = 0; i < queue.GetCount(); i++) {
-			Val& t = *queue[i];
-			
-			if (TerminalTest(t,route)) {
-				ptr = &t;
-				all_terminals = true;
-				break;
-			}
-			else all_terminals = false;
-			
-			for(int j = 0; j < t.GetCount(); j++) {
-				next_queue.Add(&t[j]);
-			}
-		}
-		if (all_terminals) break;
-	}
+bool BreadthFirst::SearchBegin(Val& src) {
+	queue.Clear();
+	next_queue.Clear();
+	v = DBL_MAX;
+	ptr = 0;
+	return true;
+}
+
+bool BreadthFirst::SearchIteration() {
+	queue <<= next_queue;
+	next_queue.Clear();
 	
+	bool all_terminals = true;
+	for(int i = 0; i < queue.GetCount(); i++) {
+		Val& t = *queue[i];
+		
+		if (TerminalTest(t,route)) {
+			ptr = &t;
+			all_terminals = true;
+			break;
+		}
+		else all_terminals = false;
+		
+		for(int j = 0; j < t.GetCount(); j++) {
+			next_queue.Add(&t[j]);
+		}
+	}
+	if (all_terminals)
+		return false;
+	return true;
+}
+
+Vector<Val*> BreadthFirst::SearchEnd() {
+	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
 		ptr = ptr->owner;
@@ -232,48 +265,58 @@ Vector<Val*> BreadthFirst::Search(Val& src) {
 
 
 
+
 UniformCost::UniformCost() {route.from_owner_only = true;}
 
-Vector<Val*> UniformCost::Search(Val& src) {
-	Vector<Val*> out;
-	Vector<Val*> frontier;
+bool UniformCost::SearchBegin(Val& src) {
+	frontier.Clear();
 	frontier.Add(&src);
-	double v = DBL_MAX;
-	Val* ptr = 0;
+	v = DBL_MAX;
+	ptr = 0;
+	return true;
+}
+
+bool UniformCost::SearchIteration() {
+	if (!frontier.GetCount())
+		return false;
 	
-	for(; frontier.GetCount();) {
-		bool all_terminals = true;
-		Val& t = *frontier[0];
-		if (TerminalTest(t,route)) {
-			ptr = &t;
-			all_terminals = true;
-			break;
-		}
-		else all_terminals = false;
-		
-		frontier.Remove(0);
-		
-		//TODO: change this to search like in AStar, because it is faster than insert, which moves huge block of memory always. Or do something completely different and better.
-		for(int j = 0; j < t.GetCount(); j++) {
-			Val& sub = t[j];
-			double utility = this->Utility(sub);
-			bool inserted = false;
-			for(int k = 0; k < frontier.GetCount(); k++) {
-				double f_utility = this->Utility(*frontier[k]);
-				if (utility <= f_utility) {
-					frontier.Insert(k, &sub);
-					inserted = true;
-					break;
-				}
-			}
-			// Worst utility
-			if (!inserted) {
-				frontier.Add(&sub);
-			}
-		}
-		if (all_terminals) break;
+	bool all_terminals = true;
+	Val& t = *frontier[0];
+	if (TerminalTest(t,route)) {
+		ptr = &t;
+		all_terminals = true;
+		return false;
 	}
+	else all_terminals = false;
 	
+	frontier.Remove(0);
+	
+	//TODO: change this to search like in AStar, because it is faster than insert, which moves huge block of memory always. Or do something completely different and better.
+	for(int j = 0; j < t.GetCount(); j++) {
+		Val& sub = t[j];
+		double utility = this->Utility(sub);
+		bool inserted = false;
+		for(int k = 0; k < frontier.GetCount(); k++) {
+			double f_utility = this->Utility(*frontier[k]);
+			if (utility <= f_utility) {
+				frontier.Insert(k, &sub);
+				inserted = true;
+				break;
+			}
+		}
+		// Worst utility
+		if (!inserted) {
+			frontier.Add(&sub);
+		}
+	}
+	if (all_terminals)
+		return false;
+	
+	return true;
+}
+
+Vector<Val*> UniformCost::SearchEnd() {
+	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
 		ptr = ptr->owner;
@@ -293,27 +336,32 @@ Vector<Val*> UniformCost::Search(Val& src) {
 
 DepthFirst::DepthFirst() {route.from_owner_only = true;}
 
-Vector<Val*> DepthFirst::Search(Val& src) {
-	Vector<Val*> out;
+bool DepthFirst::SearchBegin(Val& src) {
+	it.Create(src.BeginDeep());
+	ptr = 0;
+	prev = 0;
+	v = DBL_MAX;
+	return true;
+}
+
+bool DepthFirst::SearchIteration() {
+	if (it->IsEnd())
+		return false;
 	
-	typename Val::IteratorDeep it = src.BeginDeep();
-	Val* ptr = 0;
-	Val* prev = 0;
-	double v = DBL_MAX;
-	
-	while (!it.IsEnd()) {
-		if (TerminalTest(*it,route)) {
-			ptr = it;
-			break;
-		}
-		it++;
+	if (TerminalTest(**it,route)) {
+		ptr = *it;
+		return false;
 	}
-	
+	(*it)++;
+	return true;
+}
+
+Vector<Val*> DepthFirst::SearchEnd() {
+	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
 		ptr = ptr->owner;
 	}
-	
 	return out;
 }
 
@@ -335,31 +383,37 @@ DepthLimited::DepthLimited() : limit(-1) {route.from_owner_only = true;}
 
 void DepthLimited::SetLimit(int lim) {limit = lim;}
 
-Vector<Val*> DepthLimited::Search(Val& src) {
-	Vector<Val*> out;
+bool DepthLimited::SearchBegin(Val& src) {
+	it.Create(src.BeginDeep());
+	ptr = 0;
+	prev = 0;
+	v = DBL_MAX;
+	return true;
+}
+
+bool DepthLimited::SearchIteration() {
+	if (it->IsEnd())
+		return false;
 	
-	typename Val::IteratorDeep it = src.BeginDeep();
-	Val* ptr = 0;
-	Val* prev = 0;
-	double v = DBL_MAX;
-	
-	while (!it.IsEnd()) {
-		if (TerminalTest(*it,route)) {
-			ptr = it;
-			break;
-		}
-		int depth = it.GetDepth();
-		if (depth >= limit)
-			it.IncNotDeep();
-		else
-			it++;
+	if (TerminalTest(**it,route)) {
+		ptr = *it;
+		return false;
 	}
+	int depth = it->GetDepth();
+	if (depth >= limit)
+		it->IncNotDeep();
+	else
+		(*it)++;
 	
+	return true;
+}
+
+Vector<Val*> DepthLimited::SearchEnd() {
+	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
 		ptr = ptr->owner;
 	}
-	
 	return out;
 }
 
@@ -380,33 +434,41 @@ Vector<Val*> DepthLimited::Search(Val& src) {
 
 BestFirst::BestFirst() {route.from_owner_only = true;}
 
-Vector<Val*> BestFirst::Search(Val& src) {
-	Vector<Val*> out;
-	Val* ptr = &src;
-	Val* prev = &src;
-	while (1) {
-		out.Add((Val*)ptr);
-		Val& t = *ptr;
-		if (TerminalTest(*ptr,route))
-			break;
-		int pos = -1;
-		double v = DBL_MAX;
-		for(int i = 0; i < t.GetCount(); i++) {
-			Val& sub = t[i];
-			double estimate = this->Estimate(sub);
-			if (estimate < v) {
-				v = estimate;
-				pos = i;
-				if (v <= 0)
-					break;
-			}
-		}
-		if (pos == -1)
-			break;
-		ptr = &(*ptr)[pos];
-	}
-	return out;
+bool BestFirst::SearchBegin(Val& src) {
+	out.Clear();
+	ptr = &src;
+	prev = &src;
+	return true;
 }
+
+bool BestFirst::SearchIteration() {
+	out.Add((Val*)ptr);
+	Val& t = *ptr;
+	if (TerminalTest(*ptr,route))
+		return false;
+	int pos = -1;
+	double v = DBL_MAX;
+	for(int i = 0; i < t.GetCount(); i++) {
+		Val& sub = t[i];
+		double estimate = this->Estimate(sub);
+		if (estimate < v) {
+			v = estimate;
+			pos = i;
+			if (v <= 0)
+				break;
+		}
+	}
+	if (pos == -1)
+		return false;
+	ptr = &(*ptr)[pos];
+	
+	return true;
+}
+
+Vector<Val*> BestFirst::SearchEnd() {
+	return pick(out);
+}
+
 
 
 
@@ -499,9 +561,10 @@ Vector<Val*> AStar::GetBest() {
 	return Vector<Val*>();
 }
 
-Vector<Val*> AStar::Search(Val& src) {
+bool AStar::SearchBegin(Val& src) {
 	do_search = true;
 	
+	out.Clear();
 	closed_set.Clear();
 	open_set.Clear();
 	
@@ -512,7 +575,17 @@ Vector<Val*> AStar::Search(Val& src) {
 	np.f_score = this->Estimate(src);
 	open_set.Add(&np);
 	
-	return SearchMain();
+	worst_f_score.Clear();
+	worst_id.Clear();
+	worst_f_score.SetCount(max_worst,0);
+	worst_id.SetCount(max_worst,0);
+	return true;
+}
+
+
+
+Vector<Val*> AStar::SearchEnd() {
+	return pick(out);
 }
 
 Vector<Val*> AStar::ContinueSearch(Val& src) {
@@ -536,141 +609,156 @@ Vector<Val*> AStar::ContinueSearch(Val& src) {
 	
 	open_set.Add(copy);
 	
-	return SearchMain();
+	worst_f_score.Clear();
+	worst_id.Clear();
+	worst_f_score.SetCount(max_worst,0);
+	worst_id.SetCount(max_worst,0);
+	while(SearchIteration())
+		;
+	
+	return SearchEnd();
 }
 
-Vector<Val*> AStar::SearchMain() {
-	Vector<double> worst_f_score;
-	Vector<int> worst_id;
-	worst_f_score.SetCount(max_worst);
-	worst_id.SetCount(max_worst);
-	NodeRoute route;
+bool AStar::SearchIteration() {
+	if (!(open_set.GetCount() && do_search))
+		return Fail();
 	
 	// while open_set is not empty
-	for(; open_set.GetCount() && do_search;) {
-		
-		if (limit) {
-			limit--;
-			if (limit <= 0)
-				do_search = 0;
+	if (limit) {
+		limit--;
+		if (limit <= 0)
+			do_search = 0;
+	}
+	
+	bool rm = open_set.GetCount() > rm_limit;
+	if (rm) {
+		for(int i = 0; i < max_worst; i++) {
+			worst_f_score[i] = -DBL_MAX;
+			worst_id[i] = -1;
 		}
-		
-		bool rm = open_set.GetCount() > rm_limit;
-		if (rm) {
-			for(int i = 0; i < max_worst; i++) {
-				worst_f_score[i] = -DBL_MAX;
-				worst_id[i] = -1;
-			}
 
-			for(int i = 0; i < open_set.GetCount(); i++) {
-				const NodePtr& nptr = *open_set[i];
-				double f_score = nptr.f_score;
-				
-				for(int j = 0; j < max_worst; j++) {
-					if (f_score > worst_f_score[j]) {
-						for(int k = max_worst-1; k > j; k--) {
-							worst_f_score[k] = worst_f_score[k-1];
-							worst_id[k] = worst_id[k-1];
-						}
-						worst_f_score[j] = f_score;
-						worst_id[j] = i;
-						break;
-					}
-				}
-			}
-			
-			int count = 0;
-			Vector<int> rm_list;
-			for(int i = 0; i < max_worst; i++) {
-				int id = worst_id[i];
-				if (id == -1) break;
-				closed_set.Add(open_set[id]);
-				rm_list.Add(id);
-			}
-			
-			if (rm_list.GetCount()) {
-				if (rm_list.GetCount() > 1) {
-					Sort(rm_list, StdLess<int>());
-				}
-				open_set.Remove(rm_list);
-			}
-		}
-		
-		
-		double smallest_f_score = DBL_MAX;
-		smallest_id = -1;
-		
 		for(int i = 0; i < open_set.GetCount(); i++) {
 			const NodePtr& nptr = *open_set[i];
 			double f_score = nptr.f_score;
-			if (f_score < smallest_f_score) {
-				smallest_f_score = f_score;
-				smallest_id = i;
+			
+			for(int j = 0; j < max_worst; j++) {
+				if (f_score > worst_f_score[j]) {
+					for(int k = max_worst-1; k > j; k--) {
+						worst_f_score[k] = worst_f_score[k-1];
+						worst_id[k] = worst_id[k-1];
+					}
+					worst_f_score[j] = f_score;
+					worst_id[j] = i;
+					break;
+				}
 			}
 		}
 		
-		
-		route.route.SetCount(0);
-		NodePtr* t_ptr = open_set[smallest_id];
-		Val& t = *t_ptr->ptr;
-		const NodePtr* prev = t_ptr->came_from;
-		for(int i = 0; i < 50; i++) {
-			if (prev) {
-				route.route.Add(prev->ptr);
-				prev = prev->came_from;
-			}
-			else break;
+		int count = 0;
+		Vector<int> rm_list;
+		for(int i = 0; i < max_worst; i++) {
+			int id = worst_id[i];
+			if (id == -1) break;
+			closed_set.Add(open_set[id]);
+			rm_list.Add(id);
 		}
-		double current_g_score = t_ptr->g_score;
 		
-		if (TerminalTest(t, route))
-			return ReconstructPath(t, closed_set, open_set);
-		
-		if (!do_search)
-			break;
-		
-		open_set.Remove(smallest_id);
-		smallest_id = -1;
-		closed_set.Add(t_ptr);
-		
-		
-		for(int j = 0; j < t.GetCount(); j++) {
-			Val& sub = t[j];
-			if (FindNode(closed_set, &sub) != -1)
-				continue; // Ignore the neighbor which is already evaluated.
-			// The distance from start to a neighbor
-			double sub_g_score = current_g_score + this->Distance(t, sub);
-			double sub_f_score = sub_g_score + this->Estimate(sub);
-			int k = FindNode(open_set, &sub);
-			if (k == -1) {
-				// Discover a new node
-				k = open_set.GetCount();
-				NodePtr& subptr = nodes.Add();
-				subptr.ptr = &sub;
-				subptr.came_from = t_ptr;
-				subptr.f_score = sub_f_score;
-				subptr.g_score = sub_g_score;
-				ASSERT(subptr.ptr);
-				open_set.Add(&subptr);
+		if (rm_list.GetCount()) {
+			if (rm_list.GetCount() > 1) {
+				Sort(rm_list, StdLess<int>());
 			}
-			else if (sub_g_score >= current_g_score)
-				continue; // This is not a better path.
-			else {
-				NodePtr& subptr = *open_set[k];
-				ASSERT(subptr.ptr == &sub);
-				ASSERT(subptr.came_from == t_ptr);
-				ASSERT(subptr.ptr);
-				subptr.f_score = sub_f_score;
-				subptr.g_score = sub_g_score;
-				open_set.Remove(k);
-			}
+			open_set.Remove(rm_list);
 		}
 	}
-	return Vector<Val*>();
+	
+	
+	double smallest_f_score = DBL_MAX;
+	smallest_id = -1;
+	
+	for(int i = 0; i < open_set.GetCount(); i++) {
+		const NodePtr& nptr = *open_set[i];
+		double f_score = nptr.f_score;
+		if (f_score < smallest_f_score) {
+			smallest_f_score = f_score;
+			smallest_id = i;
+		}
+	}
+	
+	
+	route.route.SetCount(0);
+	NodePtr* t_ptr = open_set[smallest_id];
+	Val& t = *t_ptr->ptr;
+	const NodePtr* prev = t_ptr->came_from;
+	for(int i = 0; i < 50; i++) {
+		if (prev) {
+			route.route.Add(prev->ptr);
+			prev = prev->came_from;
+		}
+		else break;
+	}
+	double current_g_score = t_ptr->g_score;
+	
+	if (TerminalTest(t, route)) {
+		out = ReconstructPath(t, closed_set, open_set);
+		return false; // "don't continue + out-vector" == ready
+	}
+	
+	if (!do_search)
+		return Fail();
+	
+	open_set.Remove(smallest_id);
+	smallest_id = -1;
+	closed_set.Add(t_ptr);
+	
+	
+	for(int j = 0; j < t.GetCount(); j++) {
+		Val& sub = t[j];
+		if (FindNode(closed_set, &sub) != -1)
+			continue; // Ignore the neighbor which is already evaluated.
+		// The distance from start to a neighbor
+		double sub_g_score = current_g_score + this->Distance(t, sub);
+		double sub_f_score = sub_g_score + this->Estimate(sub);
+		int k = FindNode(open_set, &sub);
+		if (k == -1) {
+			// Discover a new node
+			k = open_set.GetCount();
+			NodePtr& subptr = nodes.Add();
+			subptr.ptr = &sub;
+			subptr.came_from = t_ptr;
+			subptr.f_score = sub_f_score;
+			subptr.g_score = sub_g_score;
+			ASSERT(subptr.ptr);
+			open_set.Add(&subptr);
+		}
+		else if (sub_g_score >= current_g_score)
+			continue; // This is not a better path.
+		else {
+			NodePtr& subptr = *open_set[k];
+			ASSERT(subptr.ptr == &sub);
+			ASSERT(subptr.came_from == t_ptr);
+			ASSERT(subptr.ptr);
+			subptr.f_score = sub_f_score;
+			subptr.g_score = sub_g_score;
+			open_set.Remove(k);
+		}
+	}
+	
+	return true;
+}
+
+bool AStar::Fail() {
+	out.Clear();
+	return false;
 }
 
 
 
+
+
+
+void Generator::SetValueFunction(Event<Val&> e) {
+	set_value = e;
+}
 
 
 
@@ -678,9 +766,18 @@ GeneratorRandom::GeneratorRandom() {
 	
 }
 
-void GeneratorRandom::GenerateSubValues(NodeRoute& prev) {
-	TODO
+void GeneratorRandom::SetParams(Value val) {
+	ValueMap map = val;
+	total = map.Get("total",0);
+	low = map.Get("low",0);
+	high = map.Get("high",0);
 }
+
+bool GeneratorRandom::Run(Val& fs) {
+	GenerateTree(fs, 25, 2, 3, set_value);
+	return true;
+}
+
 
 
 END_UPP_NAMESPACE

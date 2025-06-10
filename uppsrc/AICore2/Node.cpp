@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Callback1<VfsValue&> set_value) {
+void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Event<VfsValue&> set_value) {
 	root.sub.Clear();
 	Vector<VfsValue*> next_level;
 	

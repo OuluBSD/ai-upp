@@ -24,7 +24,7 @@ struct Node {
 		return *n;
 	}
 	operator T&() const {
-		ASSERT(n && &*n->ext);
+		ASSERT(n && n->ext);
 		T* o = CastPtr<T>(&*n->ext);
 		ASSERT(o);
 		return *o;
@@ -36,7 +36,7 @@ struct Node {
 	}
 };
 
-void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Callback1<VfsValue&> set_value);
+void GenerateTree(VfsValue& root, int total, int branching_low, int branching_high, Event<VfsValue&> set_value);
 
 
 #endif

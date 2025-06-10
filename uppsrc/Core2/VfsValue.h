@@ -422,6 +422,8 @@ struct VfsValue : Pte<VfsValue> {
 	int GetCount() const;
 	int GetDepth() const;
 	Vector<VfsValue*> FindAllShallow(hash_t type_hash);
+	int GetCount(String id) const;
+	VfsValue& GetAdd(String id);
 	VfsValue& GetAdd(String id, hash_t type_hash);
 	void StopDeep();
 	void ClearDependenciesDeep();

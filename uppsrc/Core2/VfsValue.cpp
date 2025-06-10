@@ -905,6 +905,24 @@ VfsValue& VfsValue::AstGetAdd(String id, String type, int kind)
 	return s;
 }
 
+int VfsValue::GetCount(String id) const {
+	int c = 0;
+	for (auto& s : sub)
+		if (s.id == id)
+			c++;
+	return c;
+}
+
+VfsValue& VfsValue::GetAdd(String id) {
+	for (auto& s : sub) {
+		if (s.id == id) {
+			ASSERT(GetCount(id) == 1);
+			return s;
+		}
+	}
+	return Add(id, 0);
+}
+
 VfsValue& VfsValue::GetAdd(String id, hash_t type_hash) {
 	for (auto& s : sub)
 		if (s.id == id && s.type_hash == type_hash)

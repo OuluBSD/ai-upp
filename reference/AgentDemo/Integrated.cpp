@@ -86,17 +86,19 @@ void IntegratedTests() {
 		modules.SetRandomSeed(0x12345);
 		modules.SetSearcherParams(params);
 		modules.SetGeneratorParams(params, Null);
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < 5; i++) {
 			SearchStrategyType t;
 			switch (i) {
 				case 0: t = SEARCHSTRATEGY_BREADTH_FIRST; break;
 				case 1: t = SEARCHSTRATEGY_UNIFORM_COST; break;
 				case 2: t = SEARCHSTRATEGY_DEPTH_FIRST; break;
 				case 3: t = SEARCHSTRATEGY_DEPTH_LIMITED; break;
+				case 4: t = SEARCHSTRATEGY_ASTAR; break;
 			}
 			modules.SetSearchStrategy(t);
 			modules.SetTerminalTest(TERMTEST_NULL);
 			modules.SetGenerator(GENERATOR_NULL);
+			modules.SetHeuristics(HEURISTIC_NULL);
 			modules.ClearFS();
 			modules.GetFS().CreateExt<RouteGeneratorNode>();
 			modules.WhenGenerated.Clear();

@@ -6,7 +6,8 @@ uses
 
 file
 	AgentDemo.h,
-	main.cpp,
+	Basic.cpp,
+	Integrated.cpp,
 	FileSystemDemo.cpp;
 
 mainconfig

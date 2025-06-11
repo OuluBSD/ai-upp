@@ -6,34 +6,12 @@
 NAMESPACE_UPP
 
 
-struct SimpleValueNode : VfsValueExt {
-	
-	DEFAULT_EXT(SimpleValueNode)
-	void Visit(Vis& v) override {}
-	String ToString() const override {return AsString(val.value);}
-	double GetUtility() override;
-	bool TerminalTest() override;
-};
-
-
-// Class which only only tells the utility value
-struct SimpleGeneratorNode : VfsValueExt {
-	int value = 0;
-	
-	DEFAULT_EXT(SimpleGeneratorNode)
-	void Visit(Vis& v) override {}
-	String ToString() const override {return IntStr(value);}
-	double GetUtility() override {return value;}
-	void GenerateSubValues(NodeRoute& prev) override;
-	bool TerminalTest() override;
-};
-
 
 // Class which tells length of route from the root to the node
 struct RouteGeneratorNode : VfsValueExt {
-	double length;
-	double length_to_node;
-	double estimate_to_goal;
+	double length = 0;
+	double length_to_node = 0;
+	double estimate_to_goal = 0;
 	static const int goal = 0;
 	
 	DEFAULT_EXT(RouteGeneratorNode)
@@ -46,11 +24,42 @@ struct RouteGeneratorNode : VfsValueExt {
 		ASSERT(rgn);
 		return rgn->length; // no links, so this is always the parent
 	}
-	void GenerateSubValues(NodeRoute& prev) override;
-	bool TerminalTest() override;
+	// Use TerminalTest to generate sub nodes
+	void GenerateSubValues(const Value& params, NodeRoute& prev) override {
+		if (!length && !length_to_node && !estimate_to_goal) {
+			ValueMap map = params;
+			estimate_to_goal = map.Get("estimate_to_goal", 30);
+		}
+		if (val.GetCount())
+			return;
+		int sub_node_count = 2 + Random(1);
+		for(int i = 0; i < sub_node_count; i++) {
+			RouteGeneratorNode& sub = val.Add<RouteGeneratorNode>();
+			double length = 5 + Random(10);
+			// Accumulate total route length
+			if (sub.val.owner) {
+				sub.length				 = length;
+				sub.length_to_node		 = length_to_node + length;
+				sub.estimate_to_goal	 = estimate_to_goal - length;
+				if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
+			}
+		}
+	}
+	bool TerminalTest() override {
+		if (estimate_to_goal <= goal)
+			return true;
+		return !val.sub.GetCount();
+	}
 };
 
-
+void SetValue1(Val& i);
+void SetValue2(Val& i);
+String PtrVecStr(const Vector<Val*>& vec);
+void FileSystemExample();
+void ActionPlannerExample1();
+void ActionPlannerExample2();
+void BasicTests();
+void IntegratedTests();
 
 END_UPP_NAMESPACE
 

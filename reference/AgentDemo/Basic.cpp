@@ -2,21 +2,31 @@
 
 NAMESPACE_UPP
 
-double SimpleValueNode::GetUtility() {
-	Value& o = val.value;
-	ValueArray arr = o;
-	ASSERT(arr.GetCount());
-	Value ov = arr[1];
-	double value = ov;
-	return value;
-}
 
-bool SimpleValueNode::TerminalTest() {
-	return val.sub.GetCount() == 0;
-}
+
+struct SimpleValueNode : VfsValueExt {
+	DEFAULT_EXT(SimpleValueNode)
+	void Visit(Vis& v) override {}
+	String ToString() const override {
+		return AsString(val.value);
+	}
+	double GetUtility() override {
+		Value& o = val.value;
+		ValueArray arr = o;
+		ASSERT(arr.GetCount());
+		Value ov = arr[1];
+		double value = ov;
+		return value;
+	}
+	
+	bool TerminalTest() override {
+		return val.sub.GetCount() == 0;
+	}
+};
+
 
 // Function which sets Node<Value> value in GenerateTree function
-void SetValue(Val& i) {
+void SetValue1(Val& i) {
 	static int counter;
 	if (!i.ext)
 		i.CreateExt<SimpleValueNode>();
@@ -30,46 +40,34 @@ void SetValue(Val& i) {
 	v = arr;
 }
 
-// Use TerminalTest to generate sub nodes
-void SimpleGeneratorNode::GenerateSubValues(NodeRoute& prev) {
-	int depth = val.GetDepth();
-	if (depth >= 3 || val.GetCount())
-		return;
-	int sub_node_count = 1 + Random(2);
-	for(int i = 0; i < sub_node_count; i++) {
-		SimpleGeneratorNode& sub = val.Add<SimpleGeneratorNode>();
-		sub.value = -2 + Random(10);
-	}
-}
-
-bool SimpleGeneratorNode::TerminalTest() {
-	return !val.GetCount();
-}
-
-
-// Use TerminalTest to generate sub nodes
-void RouteGeneratorNode::GenerateSubValues(NodeRoute& prev) {
-	if (val.GetCount())
-		return;
-	int sub_node_count = 2 + Random(1);
-	for(int i = 0; i < sub_node_count; i++) {
-		RouteGeneratorNode& sub = val.Add<RouteGeneratorNode>();
-		double length = 5 + Random(10);
-		// Accumulate total route length
-		if (sub.val.owner) {
-			sub.length				 = length;
-			sub.length_to_node		 = length_to_node + length;
-			sub.estimate_to_goal	 = estimate_to_goal - length;
-			if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
+// Class which only only tells the utility value
+struct SimpleGeneratorNode : VfsValueExt {
+	int value = 0;
+	
+	DEFAULT_EXT(SimpleGeneratorNode)
+	void Visit(Vis& v) override {}
+	String ToString() const override {return IntStr(value);}
+	double GetUtility() override {return value;}
+	
+	// Use TerminalTest to generate sub nodes
+	void GenerateSubValues(const Value& params, NodeRoute& prev) override {
+		int depth = val.GetDepth();
+		if (depth >= 3 || val.GetCount())
+			return;
+		int sub_node_count = 1 + Random(2);
+		for(int i = 0; i < sub_node_count; i++) {
+			SimpleGeneratorNode& sub = val.Add<SimpleGeneratorNode>();
+			sub.value = -2 + Random(10);
 		}
 	}
-}
+	
+	bool TerminalTest() override {
+		return !val.GetCount();
+	}
+};
 
-bool RouteGeneratorNode::TerminalTest() {
-	if (estimate_to_goal <= goal)
-		return true;
-	return !val.sub.GetCount();
-}
+
+
 
 // Pretty print vector of pointers
 String PtrVecStr(const Vector<Val*>& vec) {
@@ -77,8 +75,11 @@ String PtrVecStr(const Vector<Val*>& vec) {
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";
 		out << i << ": ";
-		if (vec[i]->ext)
-			out << vec[i]->ext->ToString();
+		auto& s = *vec[i];
+		if (s.ext)
+			out << s.ext->ToString();
+		else if (!s.value.IsVoid())
+			out << s.value.ToString();
 	}
 	return out;
 }
@@ -93,54 +94,17 @@ void PrintTotal(Vector<VfsValue*>& vec) {
 	LOG("total=" << total << " average=" << average);
 }
 
-void FileSystemExample();
 
-END_UPP_NAMESPACE
 
-void ActionPlannerExample();
-
-CONSOLE_APP_MAIN {
+void BasicTests() {
 	using namespace UPP;
 	VfsValue& app_root = MetaEnv().root;
 	
-	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
-	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
-	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
-	TypedStringHasher<ActionNode>("ActionNode");
-	
 	// Simple game algorithms
 	if (true) {
-		#if 1
-		SolverExt& modules = app_root.GetAdd<SolverExt>("solver");
-		modules.SetVerbose();
-		ValueMap map;
-		map.Set("total", 25);
-		map.Set("low", 2);
-		map.Set("high", 3);
-		modules.SetGeneratorParams(map, callback(SetValue));
-		modules.SetRandomSeed(0x12345);
-		for(int i = 0; i < 2; i++) {
-			modules.SetSearchStrategy(
-				i == 0 ?
-					SEARCHSTRATEGY_MINIMAX :
-					SEARCHSTRATEGY_ALPHA_BETA);
-			modules.SetGenerator(GENERATOR_RANDOM);
-			modules.ClearFS();
-			if (i == 0)
-				modules.WhenGenerated = [&]{LOG(modules.GetFS().GetTreeString());};
-			else
-				modules.WhenGenerated.Clear();
-			bool ret = modules.RunSearch();
-			ASSERT(ret);
-			const auto& ans = modules.GetResult();
-			LOG(PtrVecStr(ans));
-			ASSERT(ans.GetCount() == 4);
-		}
-		const auto& ans = modules.GetResult();
-		#else
 		VfsValue& n = app_root.Add("simplegame");
 		SeedRandom(0x12345);
-		GenerateTree(n, 25, 2, 3, callback(SetValue));
+		GenerateTree(n, 25, 2, 3, callback(SetValue1));
 		LOG(n.GetTreeString());
 		
 		MiniMax mm;
@@ -151,11 +115,12 @@ CONSOLE_APP_MAIN {
 		
 		ans = ab.Search(n);
 		LOG(PtrVecStr(ans));
-		#endif
+		
+		ASSERT(ans.GetCount() == 4);
 		ASSERT(ValueArray(ans[0]->value)[1] == -2);
-		ASSERT(ValueArray(ans[1]->value)[1] == -2);
-		ASSERT(ValueArray(ans[2]->value)[1] ==  3);
-		ASSERT(ValueArray(ans[3]->value)[1] == -1);
+		ASSERT(ValueArray(ans[1]->value)[1] ==  5);
+		ASSERT(ValueArray(ans[2]->value)[1] == -2);
+		ASSERT(ValueArray(ans[3]->value)[1] ==  1);
 	}
 	
 	// Simple game algorithms, with runtime node generation.
@@ -286,13 +251,12 @@ CONSOLE_APP_MAIN {
 	
 	// Action planner
 	if (true) {
-		ActionPlannerExample();
+		ActionPlannerExample1();
 		//FileSystemExample();
 	}
 }
 
-
-void ActionPlannerExample() {
+void ActionPlannerExample1() {
 	using namespace Upp;
 	
 	// Macros are poor man's meta-programming. Don't underestimate it! (I did it too earlier...)
@@ -431,3 +395,16 @@ void ActionPlannerExample() {
 	
 }
 
+END_UPP_NAMESPACE
+
+
+CONSOLE_APP_MAIN {
+	using namespace Upp;
+	
+	TypedStringHasher<SimpleValueNode>("SimpleValueNode");
+	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
+	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
+	
+	//BasicTests();
+	IntegratedTests();
+}

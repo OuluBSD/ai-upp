@@ -87,7 +87,7 @@ public:
 class AlphaBeta : public Searcher {
 	NodeRoute route;
 	Vector<Val*> out;
-	Val* ptr = 0;
+	ValPtr ptr, root;
 public:
 	AlphaBeta();
 	double MaxValue(Val& n, double alpha, double beta, int* decision_pos=0);
@@ -104,7 +104,7 @@ class BreadthFirst : public Searcher {
 	NodeRoute route;
 	Vector<Val*> queue, next_queue;
 	double v = 0;
-	Val* ptr = 0;
+	ValPtr ptr, root;
 public:
 	BreadthFirst();
 	bool SearchBegin(Val& src) override;
@@ -117,7 +117,7 @@ class UniformCost : public Searcher {
 	NodeRoute route;
 	Vector<Val*> frontier;
 	double v = DBL_MAX;
-	Val* ptr = 0;
+	ValPtr ptr, root;
 public:
 	UniformCost();
 	bool SearchBegin(Val& src) override;
@@ -128,7 +128,7 @@ public:
 class DepthFirst : public Searcher {
 	NodeRoute route;
 	One<typename Val::IteratorDeep> it;
-	Val* ptr = 0;
+	ValPtr ptr, root;
 	Val* prev = 0;
 	double v = 0;
 public:
@@ -142,7 +142,7 @@ class DepthLimited : public Searcher {
 	int limit = 10;
 	NodeRoute route;
 	One<typename Val::IteratorDeep> it;
-	Val* ptr = 0;
+	ValPtr ptr, root;
 	Val* prev = 0;
 	double v = DBL_MAX;
 public:

@@ -273,7 +273,7 @@ ActionNode::ActionNode(VfsValue& n) : VfsValueExt(n) {
 	act_id = -1;
 }
 
-void ActionNode::GenerateSubValues(NodeRoute& route) {
+void ActionNode::GenerateSubValues(const Value& params, NodeRoute& route) {
 	ASSERT(goal);
 	BinaryWorldState& ws = this->GetWorldState();
 	ActionNode* root = val.FindRoot<ActionNode>();

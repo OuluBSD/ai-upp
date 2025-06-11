@@ -24,11 +24,17 @@ void SolverExt::Update(double ts) {
 	}
 }
 
+void SolverExt::ClearGeneratorParams() {
+	generator_params = Value();
+	generator_set_value.Clear();
+}
+
 void SolverExt::ClearFS() {
 	auto& fs = val.GetAdd("fs");
 	fs.sub.Clear();
 	fs.type_hash = 0;
 	fs.ext.Clear();
+	fs.value = Value();
 }
 
 VfsValue& SolverExt::GetFS() {
@@ -47,26 +53,34 @@ void SolverExt::SetSearchStrategy(SearchStrategyType t) {
 	searchstrategy = t;
 }
 
-void SolverExt::SetHeuristics(HeuristicsType t) {
-	heuristics = t;
+void SolverExt::SetHeuristics(HeuristicType t) {
+	heuristic_type = t;
 }
 
 void SolverExt::SetGenerator(GeneratorType t) {
 	generator_type = t;
 }
 
+void SolverExt::SetTerminalTest(TerminalTestType t) {
+	termtest_type = t;
+}
+
 void SolverExt::SetRandomSeed(dword seed) {
 	random_seed = seed;
 }
 
-void SolverExt::SetGeneratorParams(Value args, Event<Val&> set_value) {
-	this->args = args;
-	this->set_value = set_value;
+void SolverExt::SetSearcherParams(Value params) {
+	this->searcher_params = params;
+}
+
+void SolverExt::SetGeneratorParams(Value params, Event<Val&> set_value) {
+	this->generator_params = params;
+	this->generator_set_value = set_value;
 }
 
 void SolverExt::CreateSearcher() {
-	searcher.Clear();
 	switch (searchstrategy) {
+		case SEARCHSTRATEGY_NULL:			searcher.Clear(); break;
 		case SEARCHSTRATEGY_MINIMAX:		searcher = new MiniMax; break;
 		case SEARCHSTRATEGY_ALPHA_BETA:		searcher = new AlphaBeta; break;
 		case SEARCHSTRATEGY_BREADTH_FIRST:	searcher = new BreadthFirst; break;
@@ -75,27 +89,53 @@ void SolverExt::CreateSearcher() {
 		case SEARCHSTRATEGY_DEPTH_LIMITED:	searcher = new DepthLimited; break;
 		case SEARCHSTRATEGY_BEST_FIRST:		searcher = new BestFirst; break;
 		case SEARCHSTRATEGY_ASTAR:			searcher = new AStar; break;
-		default: break;
+		case SEARCHSTRATEGY_CUSTOM:			ASSERT(searcher); break;
+		default: TODO searcher.Clear(); break;
 	}
+	
+	if (searcher)
+		searcher->SetParams(searcher_params);
 }
 
 void SolverExt::CreateGenerator() {
 	switch (generator_type) {
-		case GENERATOR_NULL: break;
-		case GENERATOR_RANDOM: generator = new GeneratorRandom(); break;
-		case GENERATOR_CUSTOM: ASSERT(generator); break;
-		default: TODO break;
+		case GENERATOR_NULL: generator.Clear(); break;
+		case GENERATOR_RANDOM:				generator = new GeneratorRandom(); break;
+		case GENERATOR_CUSTOM:				ASSERT(generator); break;
+		default: TODO generator.Clear(); break;
 	}
+	if (searcher)
+		searcher->SetGenerator(generator ? &*generator : 0);
+}
+
+void SolverExt::CreateTerminalTester() {
+	switch (termtest_type) {
+		case TERMTEST_NULL:					termtester.Clear(); break;
+		case TERMTEST_NO_SUB:				termtester = new NoSubTerminal(); break;
+		case TERMTEST_CUSTOM:				ASSERT(termtester); break;
+		default: TODO termtester.Clear(); break;
+	}
+	if (searcher)
+		searcher->SetTerminalTester(termtester ? &*termtester : 0);
+}
+
+void SolverExt::CreateHeuristic() {
+	switch (heuristic_type) {
+		case HEURISTIC_NULL:				heuristic.Clear(); break;
+		case HEURISTIC_SIMPLE:				heuristic = new SimpleHeuristic; break;
+		case HEURISTIC_HAMMING_DISTANCE_OF_PREDICATES: TODO; break;
+		case HEURISTIC_CUSTOM:				ASSERT(heuristic); break;
+		default: TODO heuristic.Clear(); break;
+	}
+	if (searcher)
+		searcher->SetHeuristic(heuristic ? &*heuristic : 0);
 }
 
 bool SolverExt::RunGenerator() {
 	ASSERT(generator);
 	
-	generator->SetParams(args);
-	generator->SetValueFunction(set_value);
-	
-	if (random_seed)
-		SeedRandom(random_seed);
+	generator->SetParams(generator_params);
+	generator->SetValueFunction(generator_set_value);
 	
 	bool succ = generator->Run(GetFS());
 	if (succ)
@@ -108,6 +148,12 @@ bool SolverExt::SearchBegin() {
 	flag.Stop();
 	result.Clear();
 	
+	if (random_seed) {
+		SeedRandom(random_seed);
+		// Get few random values to skip first non changing constants
+		for(int i = 0; i < 10; i++) Random();
+	}
+	
 	// Create sub paths
 	VfsValue& fs			= GetFS();
 	CommitTreeExt& tree		= GetCommitTree();
@@ -117,9 +163,17 @@ bool SolverExt::SearchBegin() {
 	if (!searcher)
 		return false;
 	
+	CreateTerminalTester();
+	CreateHeuristic();
 	CreateGenerator();
+	
 	if (generator && !RunGenerator())
 		return false;
+	
+	if (!generator && searcher) {
+		searcher->generator_params     = generator_params;
+		searcher->generator_set_value  = generator_set_value;
+	}
 	
 	if (!searcher->SearchBegin(GetFS()))
 		return false;

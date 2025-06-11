@@ -10,24 +10,61 @@ Searcher::Searcher() {
 }
 
 bool Searcher::TerminalTest(Val& n, NodeRoute& prev) {
-	ASSERT(n.ext);
-	n.ext->GenerateSubValues(prev);
-	return n.ext->TerminalTest();
+	if (generator) {
+		generator->GenerateSubValues(n);
+	}
+	else {
+		ASSERT(n.ext);
+		if (!n.ext)
+			return true;
+		n.ext->GenerateSubValues(generator_params, prev);
+	}
+	
+	if (termtester) {
+		return termtester->TerminalTest(n);
+	}
+	else {
+		ASSERT(n.ext);
+		if (!n.ext)
+			return true;
+		return n.ext->TerminalTest();
+	}
 }
 
 double Searcher::Utility(Val& n) {
-	ASSERT(n.ext);
-	return n.ext->GetUtility();
+	if (heuristic) {
+		return heuristic->Utility(n);
+	}
+	else {
+		ASSERT(n.ext);
+		if (!n.ext)
+			return -DBL_MAX;
+		return n.ext->GetUtility();
+	}
 }
 
 double Searcher::Estimate(Val& n) {
-	ASSERT(n.ext);
-	return n.ext->GetEstimate();
+	if (heuristic) {
+		return heuristic->Estimate(n);
+	}
+	else {
+		ASSERT(n.ext);
+		if (!n.ext)
+			return DBL_MAX;
+		return n.ext->GetEstimate();
+	}
 }
 
 double Searcher::Distance(Val& n, Val& dest) {
-	ASSERT(n.ext);
-	return n.ext->GetDistance(dest);
+	if (heuristic) {
+		return heuristic->Distance(n, dest);
+	}
+	else {
+		ASSERT(n.ext);
+		if (!n.ext)
+			return DBL_MAX;
+		return n.ext->GetDistance(dest);
+	}
 }
 
 Vector<Val*> Searcher::Search(Val& src) {
@@ -220,6 +257,7 @@ BreadthFirst::BreadthFirst() {route.from_owner_only = true;}
 bool BreadthFirst::SearchBegin(Val& src) {
 	queue.Clear();
 	next_queue.Clear();
+	next_queue.Add(&src);
 	v = DBL_MAX;
 	ptr = 0;
 	return true;
@@ -382,6 +420,12 @@ Vector<Val*> DepthFirst::SearchEnd() {
 DepthLimited::DepthLimited() : limit(-1) {route.from_owner_only = true;}
 
 void DepthLimited::SetLimit(int lim) {limit = lim;}
+
+bool DepthLimited::SetParams(Value val) {
+	ValueMap map = val;
+	limit = map.Get("depth_limit", 10);
+	return true;
+}
 
 bool DepthLimited::SearchBegin(Val& src) {
 	it.Create(src.BeginDeep());
@@ -771,13 +815,65 @@ void GeneratorRandom::SetParams(Value val) {
 	total = map.Get("total",0);
 	low = map.Get("low",0);
 	high = map.Get("high",0);
+	depth_limit = map.Get("depth_limit",0);
+	initial = map.Get("initial", 1);
+	runtime = map.Get("runtime", 0);
 }
 
 bool GeneratorRandom::Run(Val& fs) {
-	GenerateTree(fs, 25, 2, 3, set_value);
+	root = &fs;
+	if (!initial) {
+		set_value(fs);
+		return true;
+	}
+	ASSERT(set_value);
+	if (!set_value)
+		return false;
+	GenerateTree(fs, total, low, high, set_value);
+	count = total;
 	return true;
 }
 
+void GeneratorRandom::GenerateSubValues(Val& val) {
+	int d = val.GetDepth(root);
+	if ((depth_limit && d >= depth_limit) || val.GetCount())
+		return;
+	int range = high - low;
+	int max_count = max(0, total - count);
+	if (!max_count)
+		return;
+	int sub_node_count = min<int>(max_count, low + Random(range));
+	val.SetCount(sub_node_count);
+	count += sub_node_count;
+	for (auto& s : val.sub)
+		set_value(s);
+}
 
+
+
+
+bool NoSubTerminal::TerminalTest(Val& v) {
+	return v.sub.IsEmpty();
+}
+
+
+
+
+
+double SimpleHeuristic::Utility(Val& n) {
+	return n.value;
+}
+
+double SimpleHeuristic::Estimate(Val& n) {
+	double a = n.value;
+	double est = goal - a;
+	return est;
+}
+
+double SimpleHeuristic::Distance(Val& n, Val& dest) {
+	double a = n.value;
+	double b = dest.value;
+	return b - a;
+}
 
 END_UPP_NAMESPACE

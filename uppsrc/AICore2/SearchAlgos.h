@@ -9,7 +9,7 @@ bool TerminalTest(Val& n, Val** prev);
 */
 
 
-class Generator {
+class Generator : public Pte<Generator> {
 protected:
 	Event<Val&> set_value;
 public:
@@ -18,25 +18,43 @@ public:
 	
 	void SetValueFunction(Event<Val&> e);
 	virtual void SetParams(Value val) {}
-	virtual bool Run(Val& fs) {return true;}
-	//virtual void GenerateSubValues(NodeRoute& prev) {}
+	virtual bool Run(Val& fs) {set_value(fs); return true;}
+	virtual void GenerateSubValues(Val& val) {}
 };
 
-class GeneratorRandom : public Generator {
-	int total = 0;
-	int low = 0, high = 0;
+class TerminalTester : public Pte<TerminalTester> {
 public:
-	GeneratorRandom();
-	
-	void SetParams(Value val) override;
-	bool Run(Val& fs) override;
+	TerminalTester() {}
+	virtual ~TerminalTester() {}
+	virtual bool TerminalTest(Val& val) = 0;
+};
+
+class HeuristicEval : public Pte<HeuristicEval> {
+public:
+	HeuristicEval() {}
+	virtual ~HeuristicEval() {}
+	virtual double Utility(Val& val) = 0;
+	virtual double Estimate(Val& n) = 0;
+	virtual double Distance(Val& n, Val& dest) = 0;
 };
 
 class Searcher {
+	
+protected:
+	friend class SolverExt;
+	Ptr<Generator>			generator;
+	Ptr<TerminalTester>		termtester;
+	Ptr<HeuristicEval>		heuristic;
+	Value					generator_params;
+	Event<Val&>				generator_set_value;
+	
 public:
 	Searcher();
 	virtual ~Searcher() {}
 	
+	void SetGenerator(Generator* gen) {generator = gen;}
+	void SetTerminalTester(TerminalTester* t) {termtester = t;}
+	void SetHeuristic(HeuristicEval* h) {heuristic = h;}
 	bool TerminalTest(Val& n, NodeRoute& prev);
 	double Utility(Val& n);
 	double Estimate(Val& n);
@@ -44,6 +62,7 @@ public:
 	
 	Vector<Val*> Search(Val& src);
 	
+	virtual bool SetParams(Value val) {return true;}
 	virtual bool SearchBegin(Val& src) = 0;
 	virtual bool SearchIteration() = 0;
 	virtual Vector<Val*> SearchEnd() = 0;
@@ -120,7 +139,7 @@ public:
 };
 
 class DepthLimited : public Searcher {
-	int limit;
+	int limit = 10;
 	NodeRoute route;
 	One<typename Val::IteratorDeep> it;
 	Val* ptr = 0;
@@ -129,6 +148,7 @@ class DepthLimited : public Searcher {
 public:
 	DepthLimited();
 	void SetLimit(int lim);
+	bool SetParams(Value val) override;
 	bool SearchBegin(Val& src) override;
 	bool SearchIteration() override;
 	Vector<Val*> SearchEnd() override;
@@ -211,6 +231,31 @@ public:
 	Vector<Val*> SearchEnd() override;
 };
 
+
+
+class GeneratorRandom : public Generator {
+	int total = 0, low = 0, high = 0, depth_limit = 0, count = 0;
+	bool initial = 1, runtime = 0;
+	Ptr<VfsValue> root;
+public:
+	GeneratorRandom();
+	void SetParams(Value val) override;
+	bool Run(Val& fs) override;
+	void GenerateSubValues(Val& val) override;
+};
+
+struct NoSubTerminal : TerminalTester {
+	bool TerminalTest(Val& v) override;
+};
+
+class SimpleHeuristic : public HeuristicEval {
+	double goal = 0;
+public:
+	SimpleHeuristic() {}
+	double Utility(Val& val) override;
+	double Estimate(Val& n) override;
+	double Distance(Val& n, Val& dest) override;
+};
 
 
 #endif

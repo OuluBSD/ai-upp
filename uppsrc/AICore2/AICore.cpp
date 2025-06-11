@@ -2,6 +2,9 @@
 
 INITBLOCK {
 	using namespace Upp;
+	
+	TypedStringHasher<ActionNode>("ActionNode");
+	
 	VfsValueExtFactory::Register<SolverExt>(
 		"SolverExt", VFSEXT_DEFAULT,
 		"ai.vfs.module", "AI|Util");

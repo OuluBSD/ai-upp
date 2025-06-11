@@ -22,7 +22,7 @@ void GenerateTree(VfsValue& root, int total, int branching_low, int branching_hi
 			if (remaining <= 0) break;
 			int sub_node_count = branching_low + Random(branching_range);
 			if (sub_node_count > remaining) sub_node_count = remaining;
-			n.sub.SetCount(sub_node_count);
+			n.SetCount(sub_node_count);
 			count += sub_node_count;
 			for(int j = 0; j < sub_node_count; j++) {
 				VfsValue& ptr = n.sub[j];

@@ -1001,6 +1001,15 @@ VfsValue& VfsValue::Add(String id, hash_t h)
 	return Init(sub.Add(), id, h);
 }
 
+void VfsValue::SetCount(int i, hash_t type_hash)
+{
+	int c = sub.GetCount();
+	sub.SetCount(i);
+	for(int i = c; i < sub.GetCount(); i++) {
+		Init(sub[i], String(), type_hash);
+	}
+}
+
 VfsValue& VfsValue::Init(VfsValue& s, const String& id, hash_t h)
 {
 	s.id = id;
@@ -1413,6 +1422,18 @@ int VfsValue::GetDepth() const {
 	VfsValue* n = owner;
 	while (n) {
 		depth++;
+		n = n->owner;
+	}
+	return depth;
+}
+
+int VfsValue::GetDepth(const VfsValue* limit) const {
+	int depth = 0;
+	VfsValue* n = owner;
+	while (n) {
+		depth++;
+		if (n == limit)
+			break;
 		n = n->owner;
 	}
 	return depth;
@@ -1919,7 +1940,7 @@ String VfsValueExt::GetName() const {return String();}
 double VfsValueExt::GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
-void VfsValueExt::GenerateSubValues(NodeRoute& prev) {}
+void VfsValueExt::GenerateSubValues(const Value& params, NodeRoute& prev) {}
 bool VfsValueExt::TerminalTest() {ASSERT_(0, "Not implemented"); return true;}
 String VfsValueExt::ToString() const {return String();}
 bool VfsValueExt::Initialize(const WorldState& ws) {SetInitialized(true); return true;}

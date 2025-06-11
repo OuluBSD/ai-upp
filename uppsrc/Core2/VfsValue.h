@@ -50,7 +50,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual double			GetUtility();
 	virtual double			GetEstimate();
 	virtual double			GetDistance(VfsValue& dest);
-	virtual void			GenerateSubValues(NodeRoute& prev);
+	virtual void			GenerateSubValues(const Value& params, NodeRoute& prev);
 	virtual bool			TerminalTest();
 	virtual String			ToString() const;
 	virtual bool			Start();
@@ -383,6 +383,7 @@ struct VfsValue : Pte<VfsValue> {
 	VfsValue* Detach(VfsValue* n);
 	VfsValue* Detach(int i);
 	VfsValue& GetRoot();
+	void SetCount(int i, hash_t type_hash=0);
 	void Remove(VfsValue* n);
 	void Remove(int i);
 	String GetTreeString(int depth=0) const;
@@ -421,6 +422,7 @@ struct VfsValue : Pte<VfsValue> {
 	bool IsOwnerDeep(VfsValueExt& n) const;
 	int GetCount() const;
 	int GetDepth() const;
+	int GetDepth(const VfsValue* limit) const;
 	Vector<VfsValue*> FindAllShallow(hash_t type_hash);
 	int GetCount(String id) const;
 	VfsValue& GetAdd(String id);

@@ -84,7 +84,7 @@ void FileSystemExample() {
 	
 	modules.SetVerbose();
 	modules.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
-	modules.SetHeuristics(HEURISTICS_HAMMING_DISTANCE_OF_PREDICATES);
+	modules.SetHeuristics(HEURISTIC_HAMMING_DISTANCE_OF_PREDICATES);
 	
 	bool ret = modules.RunSearch();
 	ASSERT(ret);

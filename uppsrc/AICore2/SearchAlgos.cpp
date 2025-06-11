@@ -211,6 +211,7 @@ double AlphaBeta::MinValue(Val& n, double alpha, double beta, int* decision_pos)
 bool AlphaBeta::SearchBegin(Val& src) {
 	out.Clear();
 	ptr = &src;
+	root = &src;
 	return true;
 }
 
@@ -255,6 +256,7 @@ Vector<Val*> AlphaBeta::SearchEnd() {
 BreadthFirst::BreadthFirst() {route.from_owner_only = true;}
 
 bool BreadthFirst::SearchBegin(Val& src) {
+	root = &src;
 	queue.Clear();
 	next_queue.Clear();
 	next_queue.Add(&src);
@@ -291,6 +293,8 @@ Vector<Val*> BreadthFirst::SearchEnd() {
 	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
+		if (ptr == root)
+			break;
 		ptr = ptr->owner;
 	}
 	return out;
@@ -307,6 +311,7 @@ Vector<Val*> BreadthFirst::SearchEnd() {
 UniformCost::UniformCost() {route.from_owner_only = true;}
 
 bool UniformCost::SearchBegin(Val& src) {
+	root = &src;
 	frontier.Clear();
 	frontier.Add(&src);
 	v = DBL_MAX;
@@ -357,6 +362,8 @@ Vector<Val*> UniformCost::SearchEnd() {
 	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
+		if (ptr == root)
+			break;
 		ptr = ptr->owner;
 	}
 	return out;
@@ -375,6 +382,7 @@ Vector<Val*> UniformCost::SearchEnd() {
 DepthFirst::DepthFirst() {route.from_owner_only = true;}
 
 bool DepthFirst::SearchBegin(Val& src) {
+	root = &src;
 	it.Create(src.BeginDeep());
 	ptr = 0;
 	prev = 0;
@@ -398,6 +406,8 @@ Vector<Val*> DepthFirst::SearchEnd() {
 	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
+		if (ptr == root)
+			break;
 		ptr = ptr->owner;
 	}
 	return out;
@@ -428,6 +438,7 @@ bool DepthLimited::SetParams(Value val) {
 }
 
 bool DepthLimited::SearchBegin(Val& src) {
+	root = &src;
 	it.Create(src.BeginDeep());
 	ptr = 0;
 	prev = 0;
@@ -456,6 +467,8 @@ Vector<Val*> DepthLimited::SearchEnd() {
 	Vector<Val*> out;
 	while (ptr) {
 		out.Insert(0, ptr);
+		if (ptr == root)
+			break;
 		ptr = ptr->owner;
 	}
 	return out;
@@ -727,7 +740,7 @@ bool AStar::SearchIteration() {
 			smallest_id = i;
 		}
 	}
-	
+	ASSERT(smallest_id >= 0);
 	
 	route.route.SetCount(0);
 	NodePtr* t_ptr = open_set[smallest_id];

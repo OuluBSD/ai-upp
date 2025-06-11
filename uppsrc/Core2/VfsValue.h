@@ -959,6 +959,8 @@ public:
 };
 
 using Val = VfsValue;
+using ValPtr = Ptr<VfsValue>;
+using VfsValuePtr = Ptr<VfsValue>;
 
 struct VfsValueSubset {
 	Array<VfsValueSubset> sub;

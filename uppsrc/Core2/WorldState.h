@@ -15,8 +15,9 @@ class ActionNode;
 struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 	struct Item : Moveable<Item> {
 		Value positive, negative;
+		bool initial = 0, goal = 0;
 	};
-	VectorMap<String, Item> index;
+	VectorMap<String, Item> atoms;
 	
 };
 
@@ -26,14 +27,18 @@ struct BinaryWorldState {
 	friend class ActionNode;
 	
 	Ptr<BinaryWorldStateSession> session;
-	Vector<bool> values;
-	Vector<bool> using_act;
+	Vector<bool> atom_values;
+	Vector<bool> using_atom;
 	
 	BinaryWorldState();
 	void Clear();
 	bool Set(int index, bool value);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
+	bool operator==(const BinaryWorldState& src) const;
 	hash_t GetHashValue() const;
+	Value ToValue() const;
+	bool FromValue(Value v, Event<String> WhenError=Null);
+	String ToString() const;
 };
 
 class WorldState : public Moveable<WorldState> {

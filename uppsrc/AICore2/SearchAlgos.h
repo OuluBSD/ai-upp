@@ -17,9 +17,10 @@ public:
 	virtual ~Generator() {}
 	
 	void SetValueFunction(Event<Val&> e);
-	virtual void SetParams(Value val) {}
+	virtual bool SetParams(Value val) {return true;}
 	virtual bool Run(Val& fs) {set_value(fs); return true;}
-	virtual void GenerateSubValues(Val& val) {}
+	virtual bool GenerateSubValues(Val& val) {return true;}
+	virtual VfsValue& GetInitial(Val& fs) {return fs;}
 };
 
 class TerminalTester : public Pte<TerminalTester> {
@@ -44,6 +45,7 @@ struct OmniSearcher :
 	HeuristicEval
 {
 	OmniSearcher() {}
+	Event<String>		WhenError;
 };
 
 class Searcher {
@@ -63,7 +65,8 @@ public:
 	void SetGenerator(Generator* gen) {generator = gen;}
 	void SetTerminalTester(TerminalTester* t) {termtester = t;}
 	void SetHeuristic(HeuristicEval* h) {heuristic = h;}
-	bool TerminalTest(Val& n, NodeRoute& prev);
+	bool GenerateSubValues(Val& n, NodeRoute& prev);
+	bool TerminalTest(Val& n);
 	double Utility(Val& n);
 	double Estimate(Val& n);
 	double Distance(Val& n, Val& dest);
@@ -74,6 +77,8 @@ public:
 	virtual bool SearchBegin(Val& src) = 0;
 	virtual bool SearchIteration() = 0;
 	virtual Vector<Val*> SearchEnd() = 0;
+	
+	Event<String>		WhenError;
 };
 
 
@@ -247,9 +252,9 @@ class GeneratorRandom : public Generator {
 	Ptr<VfsValue> root;
 public:
 	GeneratorRandom();
-	void SetParams(Value val) override;
+	bool SetParams(Value val) override;
 	bool Run(Val& fs) override;
-	void GenerateSubValues(Val& val) override;
+	bool GenerateSubValues(Val& val) override;
 };
 
 struct NoSubTerminal : TerminalTester {
@@ -260,21 +265,6 @@ class SimpleHeuristic : public HeuristicEval {
 	double goal = 0;
 public:
 	SimpleHeuristic() {}
-	double Utility(Val& val) override;
-	double Estimate(Val& n) override;
-	double Distance(Val& n, Val& dest) override;
-};
-
-class OmniActionPlanner :
-	public OmniSearcher
-{
-	
-public:
-	OmniActionPlanner();
-	void SetParams(Value val) override;
-	bool Run(Val& fs) override;
-	void GenerateSubValues(Val& val) override;
-	bool TerminalTest(Val& v) override;
 	double Utility(Val& val) override;
 	double Estimate(Val& n) override;
 	double Distance(Val& n, Val& dest) override;

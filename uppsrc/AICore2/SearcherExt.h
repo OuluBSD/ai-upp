@@ -50,7 +50,7 @@ class SearcherExt : public VfsValueExt {
 	Vector<Val*>		result;
 	
 	void				CreateOmni();
-	void				CreateSearcher();
+	bool				CreateSearcher();
 	void				CreateGenerator();
 	void				CreateTerminalTester();
 	void				CreateHeuristic();
@@ -64,6 +64,7 @@ public:
 	
 	void				ClearFS();
 	VfsValue&			GetFS();
+	VfsValue&			GetInitial();
 	CommitTreeExt&		GetCommitTree();
 	CommitDiffListExt&	GetCommitDiffList();
 	void				SetSearchStrategy(SearchStrategyType t);
@@ -89,14 +90,17 @@ public:
 	}
 	
 	Event<>				WhenGenerated;
+	Event<String>		WhenError;
 };
 
 
 
 struct ActionEventValue {
 	ValueArray pre, post;
-	ActionEventValue& Pre(String action, String atom, bool value);
-	ActionEventValue& Post(String action, String atom, bool value);
+	double cost = 0;
+	ActionEventValue& Pre(String atom, bool value);
+	ActionEventValue& Post(String atom, bool value);
+	ActionEventValue& Cost(double cost);
 	Value ToValue() const;
 	operator Value() const;
 };

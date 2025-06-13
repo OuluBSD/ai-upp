@@ -958,6 +958,20 @@ void VfsValue::ClearDependenciesDeep()
 		ext->ClearDependencies();
 }
 
+VfsValue* VfsValue::Resolve() {
+	VfsValue* p = this;
+	const int limit = 100;
+	for(int i = 0; p->symbolic_link && i < limit; i++) {
+		ASSERT(i != limit-1);
+		p = p->symbolic_link;
+		if (p == this) {
+			ASSERT_(0,"unexpected loop");
+			return 0;
+		}
+	}
+	return p;
+}
+
 VfsValue& VfsValue::Add(const VfsValue& n)
 {
 	VfsValue& s = sub.Add();
@@ -1940,7 +1954,7 @@ String VfsValueExt::GetName() const {return String();}
 double VfsValueExt::GetUtility() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetEstimate() {ASSERT_(0, "Not implemented"); return 0;}
 double VfsValueExt::GetDistance(VfsValue& dest) {ASSERT_(0, "Not implemented"); return 0;}
-void VfsValueExt::GenerateSubValues(const Value& params, NodeRoute& prev) {}
+bool VfsValueExt::GenerateSubValues(const Value& params, NodeRoute& prev) {return true;}
 bool VfsValueExt::TerminalTest() {ASSERT_(0, "Not implemented"); return true;}
 String VfsValueExt::ToString() const {return String();}
 bool VfsValueExt::Initialize(const WorldState& ws) {SetInitialized(true); return true;}

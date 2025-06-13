@@ -50,7 +50,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual double			GetUtility();
 	virtual double			GetEstimate();
 	virtual double			GetDistance(VfsValue& dest);
-	virtual void			GenerateSubValues(const Value& params, NodeRoute& prev);
+	virtual bool			GenerateSubValues(const Value& params, NodeRoute& prev);
 	virtual bool			TerminalTest();
 	virtual String			ToString() const;
 	virtual bool			Start();
@@ -374,7 +374,7 @@ struct VfsValue : Pte<VfsValue> {
 	String GetSourceHashDump(int indent=0, bool* total_hash_diffs=0) const;
 	void AstFix();
 	
-	
+	VfsValue* Resolve();
 	VfsValue& Add(const VfsValue& n);
 	VfsValue& Add(VfsValue* n);
 	VfsValue& Add(String id=String(), hash_t h=0);

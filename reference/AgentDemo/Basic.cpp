@@ -50,15 +50,16 @@ struct SimpleGeneratorNode : VfsValueExt {
 	double GetUtility() override {return value;}
 	
 	// Use TerminalTest to generate sub nodes
-	void GenerateSubValues(const Value& params, NodeRoute& prev) override {
+	bool GenerateSubValues(const Value& params, NodeRoute& prev) override {
 		int depth = val.GetDepth();
 		if (depth >= 3 || val.GetCount())
-			return;
+			return true;
 		int sub_node_count = 1 + Random(2);
 		for(int i = 0; i < sub_node_count; i++) {
 			SimpleGeneratorNode& sub = val.Add<SimpleGeneratorNode>();
 			sub.value = -2 + Random(10);
 		}
+		return true;
 	}
 	
 	bool TerminalTest() override {

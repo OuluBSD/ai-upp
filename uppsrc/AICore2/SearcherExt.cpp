@@ -41,6 +41,12 @@ VfsValue& SearcherExt::GetFS() {
 	return val.GetAdd("fs");
 }
 
+VfsValue& SearcherExt::GetInitial() {
+	if (generator)
+		return generator->GetInitial(GetFS());
+	return GetFS();
+}
+
 CommitTreeExt& SearcherExt::GetCommitTree() {
 	return val.GetAdd<CommitTreeExt>("commits");
 }
@@ -78,7 +84,7 @@ void SearcherExt::SetGeneratorParams(Value params, Event<Val&> set_value) {
 	this->generator_set_value = set_value;
 }
 
-void SearcherExt::CreateSearcher() {
+bool SearcherExt::CreateSearcher() {
 	switch (searchstrategy) {
 		case SEARCHSTRATEGY_NULL:			searcher.Clear(); break;
 		case SEARCHSTRATEGY_MINIMAX:		searcher = new MiniMax; break;
@@ -93,8 +99,16 @@ void SearcherExt::CreateSearcher() {
 		default: TODO searcher.Clear(); break;
 	}
 	
-	if (searcher)
-		searcher->SetParams(searcher_params);
+	if (searcher.IsEmpty())
+		return false;
+	
+	searcher->WhenError = [this](String s){this->WhenError(s);};
+	
+	if (searcher) {
+		if (!searcher->SetParams(searcher_params))
+			return false;
+	}
+	return true;
 }
 
 void SearcherExt::CreateOmni() {
@@ -104,6 +118,7 @@ void SearcherExt::CreateOmni() {
 		generator_type == GENERATOR_ACTION_PLANNER &&
 		heuristic_type == HEURISTIC_ACTION_PLANNER) {
 		own_omni = new OmniActionPlanner;
+		own_omni->WhenError = [this](String s) {this->WhenError(s);};
 	}
 		
 }
@@ -163,7 +178,9 @@ void SearcherExt::CreateHeuristic() {
 bool SearcherExt::RunGenerator() {
 	ASSERT(generator);
 	
-	generator->SetParams(generator_params);
+	if (!generator->SetParams(generator_params))
+		return false;
+	
 	generator->SetValueFunction(generator_set_value);
 	
 	bool succ = generator->Run(GetFS());
@@ -188,8 +205,7 @@ bool SearcherExt::SearchBegin() {
 	CommitTreeExt& tree		= GetCommitTree();
 	CommitDiffListExt& list	= GetCommitDiffList();
 	
-	CreateSearcher();
-	if (!searcher)
+	if (!CreateSearcher())
 		return false;
 	
 	CreateOmni();
@@ -205,7 +221,7 @@ bool SearcherExt::SearchBegin() {
 		searcher->generator_set_value  = generator_set_value;
 	}
 	
-	if (!searcher->SearchBegin(GetFS()))
+	if (!searcher->SearchBegin(GetInitial()))
 		return false;
 	
 	flag.Start();
@@ -260,21 +276,24 @@ String SearcherExt::PtrVecStr(Vector<Val*>& vec) {
 	
 
 
-ActionEventValue& ActionEventValue::Pre(String action, String atom, bool value) {
+ActionEventValue& ActionEventValue::Pre(String atom, bool value) {
 	ValueArray arr;
-	arr.Add(action);
 	arr.Add(atom);
 	arr.Add(value);
 	pre.Add(arr);
 	return *this;
 }
 
-ActionEventValue& ActionEventValue::Post(String action, String atom, bool value) {
+ActionEventValue& ActionEventValue::Post(String atom, bool value) {
 	ValueArray arr;
-	arr.Add(action);
 	arr.Add(atom);
 	arr.Add(value);
 	post.Add(arr);
+	return *this;
+}
+
+ActionEventValue& ActionEventValue::Cost(double cost) {
+	this->cost = cost;
 	return *this;
 }
 
@@ -282,6 +301,8 @@ Value ActionEventValue::ToValue() const {
 	ValueMap map;
 	map.Add("pre", pre);
 	map.Add("post", post);
+	if (cost != 0.0)
+		map.Add("cost", cost);
 	return map;
 }
 

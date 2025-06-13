@@ -6,19 +6,20 @@ class ActionPlanner;
 class ActionNode;
 
 
-class Action : public Moveable<Action> {
+class PlannerEvent : public Moveable<PlannerEvent> {
 	
 protected:
 	friend class ActionPlanner;
 	friend class ActionNode;
 	friend class ActionPlannerWrapper;
+	friend class OmniActionPlanner;
 	
 	BinaryWorldState precond, postcond;
 	double cost;
 	
 public:
 
-	Action();
+	PlannerEvent();
 };
 
 
@@ -31,7 +32,7 @@ protected:
 	friend class ActionPlannerWrapper;
 	
 	int atom_count = 0;
-	Vector<Action> acts;
+	Vector<PlannerEvent> events;
 	ActionPlannerWrapper* wrapper = 0;
 	
 	Array<BinaryWorldState> search_cache;
@@ -42,7 +43,7 @@ public:
 	
 	void Clear();
 	
-	int GetActionCount() const {return acts.GetCount();}
+	int GetEventCount() const {return events.GetCount();}
 	int GetAtomCount() const {return atom_count;}
 	
 	void AddSize(int action_count, int atom_count);
@@ -70,7 +71,7 @@ public:
 	ActionPlannerWrapper(ActionPlanner& planner);
 	
 	int GetAtomIndex(String atom_name);
-	int GetActionIndex(String action_name);
+	int GetEventIndex(String event_name);
 	String GetAtomName(int i) {return atoms[i];}
 	String GetActionName(int i) {return acts[i];}
 	String GetWorldstateDescription( const BinaryWorldState& ws );
@@ -78,9 +79,9 @@ public:
 	
 	void SetAction(int act_i, String s) {acts[act_i] = s;}
 	void SetAtom(int atom_i, String s) {atoms[atom_i] = s;}
-	bool SetPreCondition(String action_name, String atom_name, bool value);
-	bool SetPostCondition(String action_name, String atom_name, bool value);
-	bool SetCost(String action_name, int cost );
+	bool SetPreCondition(String event_name, String atom_name, bool value);
+	bool SetPostCondition(String event_name, String atom_name, bool value);
+	bool SetCost(String event_name, int cost );
 	
 };
 
@@ -113,7 +114,7 @@ public:
 	
 	double GetDistance(VfsValue& to) override;
 	double GetEstimate() override;
-	void GenerateSubValues(const Value& params, NodeRoute& route) override;
+	bool GenerateSubValues(const Value& params, NodeRoute& route) override;
 	bool TerminalTest() override;
 	inline double GetCost() const {return cost;}
 	inline int GetActionId() const {return act_id;}
@@ -122,6 +123,41 @@ public:
 typedef Node<ActionNode> APlanNode;
 
 
+
+class OmniActionPlanner :
+	public OmniSearcher
+{
+protected:
+	Vector<PlannerEvent> events;
+	Index<String> atoms, actions;
+	BinaryWorldState ws_initial, ws_goal;
+	BinaryWorldStateSession ws_session;
+	ValPtr fs, initial, goal;
+	Value params;
+	
+	// Runtime temp vars
+	BinaryWorldState tmp0, tmp1;
+	Vector<BinaryWorldState*> possibilities;
+	VectorMap<hash_t, ValPtr> tmp_sub;
+	Array<BinaryWorldState> search_cache;
+	
+	bool GetPossibleStateTransition(const BinaryWorldState& src, Vector<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs);
+	bool Set(VfsValue& v, const BinaryWorldState& ws, double cost, int act_i);
+	bool Get(const VfsValue& v, BinaryWorldState& ws, double& cost, int& act_i);
+	bool GetCost(const VfsValue& v, double& cost);
+	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest);
+	
+public:
+	OmniActionPlanner();
+	VfsValue& GetInitial(Val& fs) override;
+	bool SetParams(Value val) override;
+	bool Run(Val& fs) override;
+	bool GenerateSubValues(Val& val) override;
+	bool TerminalTest(Val& v) override;
+	double Utility(Val& val) override;
+	double Estimate(Val& n) override;
+	double Distance(Val& n, Val& dest) override;
+};
 
 
 #endif

@@ -9,17 +9,19 @@ Searcher::Searcher() {
 	
 }
 
-bool Searcher::TerminalTest(Val& n, NodeRoute& prev) {
+bool Searcher::GenerateSubValues(Val& n, NodeRoute& prev) {
 	if (generator) {
-		generator->GenerateSubValues(n);
+		return generator->GenerateSubValues(n);
 	}
 	else {
 		ASSERT(n.ext);
 		if (!n.ext)
-			return true;
-		n.ext->GenerateSubValues(generator_params, prev);
+			return false;
+		return n.ext->GenerateSubValues(generator_params, prev);
 	}
-	
+}
+
+bool Searcher::TerminalTest(Val& n) {
 	if (termtester) {
 		return termtester->TerminalTest(n);
 	}
@@ -84,7 +86,9 @@ MiniMax::MiniMax() {route.from_owner_only = true;}
 	
 double MiniMax::MaxValue(Val& n, int* decision_pos) {
 	Val* p = 0;
-	if (TerminalTest(n,route))
+	if (!GenerateSubValues(n,route))
+		return -DBL_MAX;
+	if (TerminalTest(n))
 		return this->Utility(n);
 	double v = -DBL_MAX;
 	int pos = -1;
@@ -103,7 +107,9 @@ double MiniMax::MaxValue(Val& n, int* decision_pos) {
 
 double MiniMax::MinValue(Val& n, int* decision_pos) {
 	Val* p = 0;
-	if (TerminalTest(n,route))
+	if (!GenerateSubValues(n,route))
+		return DBL_MAX;
+	if (TerminalTest(n))
 		return Searcher::Utility(n);
 	double v = DBL_MAX;
 	int pos = -1;
@@ -127,7 +133,11 @@ bool MiniMax::SearchBegin(Val& src) {
 
 bool MiniMax::SearchIteration() {
 	Val& t = *out.Add(ptr);
-	if (TerminalTest(*ptr,route))
+	if (!GenerateSubValues(*ptr,route)) {
+		out.Clear();
+		return false;
+	}
+	if (TerminalTest(*ptr))
 		return false;
 	int type = out.GetCount() % 2;
 	int pos = -1;
@@ -167,7 +177,9 @@ Vector<Val*> MiniMax::SearchEnd() {
 AlphaBeta::AlphaBeta() {route.from_owner_only = true;}
 
 double AlphaBeta::MaxValue(Val& n, double alpha, double beta, int* decision_pos) {
-	if (TerminalTest(n,route))
+	if (!GenerateSubValues(n,route))
+		return -DBL_MAX;
+	if (TerminalTest(n))
 		return this->Utility(n);
 	int pos = -1;
 	double v = -DBL_MAX;
@@ -189,7 +201,9 @@ double AlphaBeta::MaxValue(Val& n, double alpha, double beta, int* decision_pos)
 }
 
 double AlphaBeta::MinValue(Val& n, double alpha, double beta, int* decision_pos) {
-	if (TerminalTest(n,route))
+	if (!GenerateSubValues(n,route))
+		return DBL_MAX;
+	if (TerminalTest(n))
 		return this->Utility(n);
 	int pos = -1;
 	double v = DBL_MAX;
@@ -217,9 +231,13 @@ bool AlphaBeta::SearchBegin(Val& src) {
 
 bool AlphaBeta::SearchIteration() {
 	Val& t = *out.Add((Val*)ptr);
-	if (TerminalTest(*ptr,route))
-		return false;
 	int type = out.GetCount() % 2;
+	if (!GenerateSubValues(*ptr,route)) {
+		out.Clear();
+		return false;
+	}
+	if (TerminalTest(*ptr))
+		return false;
 	int pos = -1;
 	double v;
 	double alpha = -DBL_MAX;
@@ -273,7 +291,9 @@ bool BreadthFirst::SearchIteration() {
 	for(int i = 0; i < queue.GetCount(); i++) {
 		Val& t = *queue[i];
 		
-		if (TerminalTest(t,route)) {
+		if (!GenerateSubValues(t,route))
+			return false;
+		if (TerminalTest(t)) {
 			ptr = &t;
 			all_terminals = true;
 			break;
@@ -325,7 +345,9 @@ bool UniformCost::SearchIteration() {
 	
 	bool all_terminals = true;
 	Val& t = *frontier[0];
-	if (TerminalTest(t,route)) {
+	if (!GenerateSubValues(t,route))
+		return false;
+	if (TerminalTest(t)) {
 		ptr = &t;
 		all_terminals = true;
 		return false;
@@ -394,7 +416,9 @@ bool DepthFirst::SearchIteration() {
 	if (it->IsEnd())
 		return false;
 	
-	if (TerminalTest(**it,route)) {
+	if (!GenerateSubValues(**it,route))
+		return false;
+	if (TerminalTest(**it)) {
 		ptr = *it;
 		return false;
 	}
@@ -450,7 +474,9 @@ bool DepthLimited::SearchIteration() {
 	if (it->IsEnd())
 		return false;
 	
-	if (TerminalTest(**it,route)) {
+	if (!GenerateSubValues(**it,route))
+		return false;
+	if (TerminalTest(**it)) {
 		ptr = *it;
 		return false;
 	}
@@ -501,7 +527,11 @@ bool BestFirst::SearchBegin(Val& src) {
 bool BestFirst::SearchIteration() {
 	out.Add((Val*)ptr);
 	Val& t = *ptr;
-	if (TerminalTest(*ptr,route))
+	if (!GenerateSubValues(*ptr,route)) {
+		out.Clear();
+		return false;
+	}
+	if (TerminalTest(*ptr))
 		return false;
 	int pos = -1;
 	double v = DBL_MAX;
@@ -740,7 +770,11 @@ bool AStar::SearchIteration() {
 			smallest_id = i;
 		}
 	}
-	ASSERT(smallest_id >= 0);
+	if (smallest_id < 0) {
+		WhenError("internal error: smallest id not found");
+		return false;
+	}
+	
 	
 	route.route.SetCount(0);
 	NodePtr* t_ptr = open_set[smallest_id];
@@ -755,7 +789,11 @@ bool AStar::SearchIteration() {
 	}
 	double current_g_score = t_ptr->g_score;
 	
-	if (TerminalTest(t, route)) {
+	if (!GenerateSubValues(t, route)) {
+		out.Clear();
+		return false;
+	}
+	if (TerminalTest(t)) {
 		out = ReconstructPath(t, closed_set, open_set);
 		return false; // "don't continue + out-vector" == ready
 	}
@@ -768,14 +806,16 @@ bool AStar::SearchIteration() {
 	closed_set.Add(t_ptr);
 	
 	
-	for(int j = 0; j < t.GetCount(); j++) {
-		Val& sub = t[j];
-		if (FindNode(closed_set, &sub) != -1)
+	for(int j = 0; j < t.sub.GetCount(); j++) {
+		Val& sub = t.sub[j];
+		Val* link = sub.Resolve();
+		ASSERT(!link->symbolic_link);
+		if (FindNode(closed_set, link) != -1)
 			continue; // Ignore the neighbor which is already evaluated.
 		// The distance from start to a neighbor
 		double sub_g_score = current_g_score + this->Distance(t, sub);
 		double sub_f_score = sub_g_score + this->Estimate(sub);
-		int k = FindNode(open_set, &sub);
+		int k = FindNode(open_set, link);
 		if (k == -1) {
 			// Discover a new node
 			k = open_set.GetCount();
@@ -823,7 +863,7 @@ GeneratorRandom::GeneratorRandom() {
 	
 }
 
-void GeneratorRandom::SetParams(Value val) {
+bool GeneratorRandom::SetParams(Value val) {
 	ValueMap map = val;
 	total = map.Get("total",0);
 	low = map.Get("low",0);
@@ -831,6 +871,7 @@ void GeneratorRandom::SetParams(Value val) {
 	depth_limit = map.Get("depth_limit",0);
 	initial = map.Get("initial", 1);
 	runtime = map.Get("runtime", 0);
+	return true;
 }
 
 bool GeneratorRandom::Run(Val& fs) {
@@ -847,19 +888,20 @@ bool GeneratorRandom::Run(Val& fs) {
 	return true;
 }
 
-void GeneratorRandom::GenerateSubValues(Val& val) {
+bool GeneratorRandom::GenerateSubValues(Val& val) {
 	int d = val.GetDepth(root);
 	if ((depth_limit && d >= depth_limit) || val.GetCount())
-		return;
+		return true;
 	int range = high - low;
 	int max_count = max(0, total - count);
 	if (!max_count)
-		return;
+		return true;
 	int sub_node_count = min<int>(max_count, low + Random(range));
 	val.SetCount(sub_node_count);
 	count += sub_node_count;
 	for (auto& s : val.sub)
 		set_value(s);
+	return true;
 }
 
 
@@ -894,43 +936,6 @@ double SimpleHeuristic::Distance(Val& n, Val& dest) {
 
 
 
-
-OmniActionPlanner::OmniActionPlanner() {
-	
-}
-
-void OmniActionPlanner::SetParams(Value val) {
-	TODO
-}
-
-bool OmniActionPlanner::Run(Val& fs) {
-	TODO
-	return false;
-}
-
-void OmniActionPlanner::GenerateSubValues(Val& val) {
-	TODO
-}
-
-bool OmniActionPlanner::TerminalTest(Val& v) {
-	TODO
-	return false;
-}
-
-double OmniActionPlanner::Utility(Val& val) {
-	TODO
-	return 0;
-}
-
-double OmniActionPlanner::Estimate(Val& n) {
-	TODO
-	return 0;
-}
-
-double OmniActionPlanner::Distance(Val& n, Val& dest) {
-	TODO
-	return 0;
-}
 
 
 END_UPP_NAMESPACE

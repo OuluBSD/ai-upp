@@ -111,18 +111,57 @@ void IntegratedTests() {
 		}
 	}
 	
-	// Action planner
+	// Action planner unit tests
 	if (1) {
-		ValueArray actions;
-		actions.Add("cat");
-		actions.Add("approach");
-		actions.Add("come down");
-		actions.Add("aim");
-		actions.Add("attack");
-		actions.Add("wait");
-		actions.Add("very high jump attack");
-		actions.Add("flee");
-		
+		for(int i = 0; i < 3; i++) {
+			ValueMap atoms, goal, actions;
+			if (i == 0) {
+				atoms	.Add("A", false);
+				goal	.Add("A", true);
+				actions	.Add("write A", ActionEventValue().Pre("A",false).Post("A",true));
+			}
+			else if (i == 1) {
+				atoms	.Add("A", false);
+				atoms	.Add("B", false);
+				goal	.Add("A", true);
+				actions	.Add("write A", ActionEventValue().Pre("A",false).Pre("B",true).Post("A",true));
+				actions	.Add("write B", ActionEventValue().Pre("B",false).Post("B",true));
+			}
+			else if (i == 2) {
+				atoms	.Add("A", false);
+				atoms	.Add("B", false);
+				atoms	.Add("C", false);
+				goal	.Add("A", true);
+				// avoid 'write A (via B)' by setting cost multiplier to 5
+				actions	.Add("write A (via B)", ActionEventValue().Cost(5).Pre("A",false).Pre("B",true).Post("A",true));
+				actions	.Add("write A (via C)", ActionEventValue().Pre("A",false).Pre("C",true).Post("A",true));
+				actions	.Add("write B", ActionEventValue().Pre("B",false).Post("B",true));
+				// ... even though writing C is slightly more costly
+				actions	.Add("write C", ActionEventValue().Cost(2).Pre("C",false).Post("C",true));
+			}
+			params("atoms") = atoms;
+			params("actions") = actions;
+			params("goal") = goal;
+			searcher.SetGeneratorParams(params, Null);
+			searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
+			searcher.SetTerminalTest(TERMTEST_ACTION_PLANNER);
+			searcher.SetGenerator(GENERATOR_ACTION_PLANNER);
+			searcher.SetHeuristics(HEURISTIC_ACTION_PLANNER);
+			searcher.ClearFS();
+			searcher.WhenGenerated.Clear();
+			searcher.WhenError = [](String s) {LOG("ActionPlanner error: " << s);};
+			bool ret = searcher.RunSearch();
+			if (!ret) {
+				LOG(searcher.GetFS().GetTreeString());
+			}
+			ASSERT(ret);
+			const auto& ans = searcher.GetResult();
+			LOG(PtrVecStr(ans));
+		}
+	}
+	
+	// Action planner
+	if (0) {
 		ValueMap atoms;
 		atoms.Add("armed with claws", true);
 		atoms.Add("mouse visible",    false);
@@ -133,37 +172,44 @@ void IntegratedTests() {
 		atoms.Add("mouse alive",      true);
 		atoms.Add("alive",            true);
 		
-		ValueArray events;
-		events.Add(ActionEventValue()
-			.Pre("cat", "armed with claws", true)
-			.Post("cat", "mouse visible", true));
-		events.Add(ActionEventValue()
-			.Pre("approach", "mouse visible", true)
-			.Post("approach", "near mouse", true));
-		events.Add(ActionEventValue()
-			.Pre("come down", "at high place", true)
-			.Post("come down", "at high place", false));
-		events.Add(ActionEventValue()
-			.Pre("aim", "mouse visible", true)
-			.Post("aim", "claws extended", true)
-			.Post("aim", "ready to attack", true));
-		events.Add(ActionEventValue()
-			.Pre("attack", "ready to attack", true)
-			.Post("attack", "at high place", false)
-			.Post("attack", "mouse alive", false));
-		events.Add(ActionEventValue()
-			.Pre("wait", "armed with claws", true)
-			.Post("wait", "claws extended", true));
-		events.Add(ActionEventValue()
-			.Pre("very high jump attack", "at high place", true)
-			.Post("very high jump attack", "near mouse", true)
-			.Post("very high jump attack", "alive", false)
-			.Post("very high jump attack", "mouse alive", false));
-		events.Add(ActionEventValue()
-			.Pre("flee", "mouse visible", true)
-			.Post("flee", "near mouse", false));
-		params("atom") = atoms;
+		ValueMap goal;
+		goal.Add("mouse alive",		  false);
+		goal.Add("alive",			  true); // add this to avoid hurting by 'fall' action in the plan.
+		
+		ValueMap actions;
+		actions.Add("cat", ActionEventValue()
+			.Pre("armed with claws", true)
+			.Post("mouse visible", true));
+		actions.Add("approach", ActionEventValue()
+			.Pre("mouse visible", true)
+			.Post("near mouse", true));
+		actions.Add("come down", ActionEventValue()
+			.Pre("at high place", true)
+			.Post("at high place", false));
+		actions.Add("aim", ActionEventValue()
+			.Pre("mouse visible", true)
+			.Post("claws extended", true)
+			.Post("ready to attack", true));
+		actions.Add("attack", ActionEventValue()
+			.Pre("ready to attack", true)
+			.Post("at high place", false)
+			.Post("mouse alive", false));
+		actions.Add("wait", ActionEventValue()
+			.Pre("armed with claws", true)
+			.Post("claws extended", true));
+		actions.Add("very high jump attack", ActionEventValue()
+			.Pre("at high place", true)
+			.Post("near mouse", true)
+			.Post("alive", false)
+			.Post("mouse alive", false)
+			.Cost(5));
+		actions.Add("flee", ActionEventValue()
+			.Pre("mouse visible", true)
+			.Post("near mouse", false));
+		
+		params("atoms") = atoms;
 		params("actions") = actions;
+		params("goal") = goal;
 		searcher.SetGeneratorParams(params, Null);
 		searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
 		searcher.SetTerminalTest(TERMTEST_ACTION_PLANNER);
@@ -171,7 +217,11 @@ void IntegratedTests() {
 		searcher.SetHeuristics(HEURISTIC_ACTION_PLANNER);
 		searcher.ClearFS();
 		searcher.WhenGenerated.Clear();
+		searcher.WhenError = [](String s) {LOG("ActionPlanner error: " << s);};
 		bool ret = searcher.RunSearch();
+		if (!ret) {
+			LOG(searcher.GetFS().GetTreeString());
+		}
 		ASSERT(ret);
 		const auto& ans = searcher.GetResult();
 		LOG(PtrVecStr(ans));

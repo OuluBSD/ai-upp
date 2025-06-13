@@ -25,13 +25,13 @@ struct RouteGeneratorNode : VfsValueExt {
 		return rgn->length; // no links, so this is always the parent
 	}
 	// Use TerminalTest to generate sub nodes
-	void GenerateSubValues(const Value& params, NodeRoute& prev) override {
+	bool GenerateSubValues(const Value& params, NodeRoute& prev) override {
 		if (!length && !length_to_node && !estimate_to_goal) {
 			ValueMap map = params;
 			estimate_to_goal = map.Get("estimate_to_goal", 30);
 		}
 		if (val.GetCount())
-			return;
+			return true;
 		int sub_node_count = 2 + Random(1);
 		for(int i = 0; i < sub_node_count; i++) {
 			RouteGeneratorNode& sub = val.Add<RouteGeneratorNode>();
@@ -44,7 +44,8 @@ struct RouteGeneratorNode : VfsValueExt {
 				if (sub.estimate_to_goal < goal) sub.estimate_to_goal = goal;
 			}
 		}
-	}
+		return true;
+		}
 	bool TerminalTest() override {
 		if (estimate_to_goal <= goal)
 			return true;

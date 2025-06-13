@@ -77,7 +77,7 @@ This mini-domain exercises directory/file creation, opening, writing, moving and
 
 void FileSystemExample() {
 	VfsValue& root			= MetaEnv().root;
-	SolverExt& modules		= root.GetAdd<SolverExt>("solver");
+	SearcherExt& modules	= root.GetAdd<SearcherExt>("searcher");
 	VfsValue& fs			= modules.GetFS();
 	CommitTreeExt& tree		= modules.GetCommitTree();
 	CommitDiffListExt& list	= modules.GetCommitDiffList();

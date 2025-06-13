@@ -38,10 +38,18 @@ public:
 	virtual double Distance(Val& n, Val& dest) = 0;
 };
 
+struct OmniSearcher :
+	Generator,
+	TerminalTester,
+	HeuristicEval
+{
+	OmniSearcher() {}
+};
+
 class Searcher {
 	
 protected:
-	friend class SolverExt;
+	friend class SearcherExt;
 	Ptr<Generator>			generator;
 	Ptr<TerminalTester>		termtester;
 	Ptr<HeuristicEval>		heuristic;
@@ -252,6 +260,21 @@ class SimpleHeuristic : public HeuristicEval {
 	double goal = 0;
 public:
 	SimpleHeuristic() {}
+	double Utility(Val& val) override;
+	double Estimate(Val& n) override;
+	double Distance(Val& n, Val& dest) override;
+};
+
+class OmniActionPlanner :
+	public OmniSearcher
+{
+	
+public:
+	OmniActionPlanner();
+	void SetParams(Value val) override;
+	bool Run(Val& fs) override;
+	void GenerateSubValues(Val& val) override;
+	bool TerminalTest(Val& v) override;
 	double Utility(Val& val) override;
 	double Estimate(Val& n) override;
 	double Distance(Val& n, Val& dest) override;

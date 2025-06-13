@@ -5,8 +5,8 @@ INITBLOCK {
 	
 	TypedStringHasher<ActionNode>("ActionNode");
 	
-	VfsValueExtFactory::Register<SolverExt>(
-		"SolverExt", VFSEXT_DEFAULT,
+	VfsValueExtFactory::Register<SearcherExt>(
+		"SearcherExt", VFSEXT_DEFAULT,
 		"ai.vfs.module", "AI|Util");
 	
 	VfsValueExtFactory::Register<CommitTreeExt>(

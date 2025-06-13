@@ -1,5 +1,5 @@
-#ifndef _AICore2_Ext_h_
-#define _AICore2_Ext_h_
+#ifndef _AICore2_SearcherExt_h_
+#define _AICore2_SearcherExt_h_
 
 
 class CommitTreeExt : public VfsValueExt {
@@ -26,15 +26,20 @@ public:
 
 
 
-class SolverExt : public VfsValueExt {
+class SearcherExt : public VfsValueExt {
 	SearchStrategyType	searchstrategy = SEARCHSTRATEGY_NULL;
 	HeuristicType		heuristic_type = HEURISTIC_NULL;
 	GeneratorType		generator_type = GENERATOR_NULL;
 	TerminalTestType	termtest_type = TERMTEST_NULL;
 	One<Searcher>		searcher;
-	One<Generator>		generator;
-	One<TerminalTester> termtester;
-	One<HeuristicEval>	heuristic;
+	Ptr<Generator>		generator;
+	Ptr<TerminalTester> termtester;
+	Ptr<HeuristicEval>	heuristic;
+	One<Generator>		own_generator;
+	One<TerminalTester> own_termtester;
+	One<HeuristicEval>	own_heuristic;
+	One<OmniSearcher>	own_omni;
+	
 	RunningFlagSingle	flag;
 	bool				verbose = false;
 	dword				random_seed = 0;
@@ -44,14 +49,15 @@ class SolverExt : public VfsValueExt {
 	Event<Val&>			generator_set_value;
 	Vector<Val*>		result;
 	
+	void				CreateOmni();
 	void				CreateSearcher();
 	void				CreateGenerator();
 	void				CreateTerminalTester();
 	void				CreateHeuristic();
 	static String		PtrVecStr(Vector<Val*>& vec);
 public:
-	CLASSTYPE(SolverExt)
-	SolverExt(VfsValue& val);
+	CLASSTYPE(SearcherExt)
+	SearcherExt(VfsValue& val);
 	
 	void Visit(Vis& v) override {}
 	void Update(double ts) override;
@@ -85,5 +91,14 @@ public:
 	Event<>				WhenGenerated;
 };
 
+
+
+struct ActionEventValue {
+	ValueArray pre, post;
+	ActionEventValue& Pre(String action, String atom, bool value);
+	ActionEventValue& Post(String action, String atom, bool value);
+	Value ToValue() const;
+	operator Value() const;
+};
 
 #endif

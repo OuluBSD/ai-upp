@@ -11,11 +11,11 @@ CommitDiffListExt::CommitDiffListExt(VfsValue& val) : VfsValueExt(val) {
 	
 }
 
-SolverExt::SolverExt(VfsValue& val) : VfsValueExt(val) {
+SearcherExt::SearcherExt(VfsValue& val) : VfsValueExt(val) {
 	
 }
 
-void SolverExt::Update(double ts) {
+void SearcherExt::Update(double ts) {
 	if (flag.IsRunning()) {
 		if (!SearchIteration()) {
 			SearchEnd();
@@ -24,12 +24,12 @@ void SolverExt::Update(double ts) {
 	}
 }
 
-void SolverExt::ClearGeneratorParams() {
+void SearcherExt::ClearGeneratorParams() {
 	generator_params = Value();
 	generator_set_value.Clear();
 }
 
-void SolverExt::ClearFS() {
+void SearcherExt::ClearFS() {
 	auto& fs = val.GetAdd("fs");
 	fs.sub.Clear();
 	fs.type_hash = 0;
@@ -37,48 +37,48 @@ void SolverExt::ClearFS() {
 	fs.value = Value();
 }
 
-VfsValue& SolverExt::GetFS() {
+VfsValue& SearcherExt::GetFS() {
 	return val.GetAdd("fs");
 }
 
-CommitTreeExt& SolverExt::GetCommitTree() {
+CommitTreeExt& SearcherExt::GetCommitTree() {
 	return val.GetAdd<CommitTreeExt>("commits");
 }
 
-CommitDiffListExt& SolverExt::GetCommitDiffList() {
+CommitDiffListExt& SearcherExt::GetCommitDiffList() {
 	return val.GetAdd<CommitDiffListExt>("diffs");
 }
 
-void SolverExt::SetSearchStrategy(SearchStrategyType t) {
+void SearcherExt::SetSearchStrategy(SearchStrategyType t) {
 	searchstrategy = t;
 }
 
-void SolverExt::SetHeuristics(HeuristicType t) {
+void SearcherExt::SetHeuristics(HeuristicType t) {
 	heuristic_type = t;
 }
 
-void SolverExt::SetGenerator(GeneratorType t) {
+void SearcherExt::SetGenerator(GeneratorType t) {
 	generator_type = t;
 }
 
-void SolverExt::SetTerminalTest(TerminalTestType t) {
+void SearcherExt::SetTerminalTest(TerminalTestType t) {
 	termtest_type = t;
 }
 
-void SolverExt::SetRandomSeed(dword seed) {
+void SearcherExt::SetRandomSeed(dword seed) {
 	random_seed = seed;
 }
 
-void SolverExt::SetSearcherParams(Value params) {
+void SearcherExt::SetSearcherParams(Value params) {
 	this->searcher_params = params;
 }
 
-void SolverExt::SetGeneratorParams(Value params, Event<Val&> set_value) {
+void SearcherExt::SetGeneratorParams(Value params, Event<Val&> set_value) {
 	this->generator_params = params;
 	this->generator_set_value = set_value;
 }
 
-void SolverExt::CreateSearcher() {
+void SearcherExt::CreateSearcher() {
 	switch (searchstrategy) {
 		case SEARCHSTRATEGY_NULL:			searcher.Clear(); break;
 		case SEARCHSTRATEGY_MINIMAX:		searcher = new MiniMax; break;
@@ -97,41 +97,70 @@ void SolverExt::CreateSearcher() {
 		searcher->SetParams(searcher_params);
 }
 
-void SolverExt::CreateGenerator() {
+void SearcherExt::CreateOmni() {
+	own_omni.Clear();
+	
+	if (termtest_type == TERMTEST_ACTION_PLANNER &&
+		generator_type == GENERATOR_ACTION_PLANNER &&
+		heuristic_type == HEURISTIC_ACTION_PLANNER) {
+		own_omni = new OmniActionPlanner;
+	}
+		
+}
+
+void SearcherExt::CreateGenerator() {
+	generator = 0;
 	switch (generator_type) {
-		case GENERATOR_NULL: generator.Clear(); break;
-		case GENERATOR_RANDOM:				generator = new GeneratorRandom(); break;
-		case GENERATOR_CUSTOM:				ASSERT(generator); break;
-		default: TODO generator.Clear(); break;
+	case GENERATOR_NULL:
+		own_generator.Clear();
+		break;
+	case GENERATOR_RANDOM:
+		own_generator = new GeneratorRandom();
+		generator = &*own_generator;
+		break;
+	case GENERATOR_CUSTOM:
+		ASSERT(own_generator);
+		generator = &*own_generator;
+		break;
+	case GENERATOR_ACTION_PLANNER:
+		ASSERT(own_omni);
+		generator = &*own_omni;
+		break;
+		
+		default: TODO break;
 	}
 	if (searcher)
 		searcher->SetGenerator(generator ? &*generator : 0);
 }
 
-void SolverExt::CreateTerminalTester() {
+void SearcherExt::CreateTerminalTester() {
+	termtester = 0;
 	switch (termtest_type) {
-		case TERMTEST_NULL:					termtester.Clear(); break;
-		case TERMTEST_NO_SUB:				termtester = new NoSubTerminal(); break;
-		case TERMTEST_CUSTOM:				ASSERT(termtester); break;
-		default: TODO termtester.Clear(); break;
+		case TERMTEST_NULL:				own_termtester.Clear(); break;
+		case TERMTEST_NO_SUB:			own_termtester = new NoSubTerminal(); termtester = &*own_termtester; break;
+		case TERMTEST_CUSTOM:			ASSERT(own_termtester); termtester = &*own_termtester; break;
+		case TERMTEST_ACTION_PLANNER:	ASSERT(own_omni); termtester = &*own_omni; break;
+		default: TODO break;
 	}
 	if (searcher)
 		searcher->SetTerminalTester(termtester ? &*termtester : 0);
 }
 
-void SolverExt::CreateHeuristic() {
+void SearcherExt::CreateHeuristic() {
+	heuristic = 0;
 	switch (heuristic_type) {
-		case HEURISTIC_NULL:				heuristic.Clear(); break;
-		case HEURISTIC_SIMPLE:				heuristic = new SimpleHeuristic; break;
+		case HEURISTIC_NULL:			own_heuristic.Clear(); break;
+		case HEURISTIC_SIMPLE:			own_heuristic = new SimpleHeuristic; heuristic = &*own_heuristic; break;
 		case HEURISTIC_HAMMING_DISTANCE_OF_PREDICATES: TODO; break;
-		case HEURISTIC_CUSTOM:				ASSERT(heuristic); break;
-		default: TODO heuristic.Clear(); break;
+		case HEURISTIC_CUSTOM:			ASSERT(own_heuristic); heuristic = &*own_heuristic; break;
+		case HEURISTIC_ACTION_PLANNER:	ASSERT(own_omni); heuristic = &*own_omni; break;
+		default: TODO break;
 	}
 	if (searcher)
 		searcher->SetHeuristic(heuristic ? &*heuristic : 0);
 }
 
-bool SolverExt::RunGenerator() {
+bool SearcherExt::RunGenerator() {
 	ASSERT(generator);
 	
 	generator->SetParams(generator_params);
@@ -144,7 +173,7 @@ bool SolverExt::RunGenerator() {
 	return succ;
 }
 
-bool SolverExt::SearchBegin() {
+bool SearcherExt::SearchBegin() {
 	flag.Stop();
 	result.Clear();
 	
@@ -163,6 +192,7 @@ bool SolverExt::SearchBegin() {
 	if (!searcher)
 		return false;
 	
+	CreateOmni();
 	CreateTerminalTester();
 	CreateHeuristic();
 	CreateGenerator();
@@ -183,19 +213,19 @@ bool SolverExt::SearchBegin() {
 	return true;
 }
 
-bool SolverExt::SearchIteration() {
+bool SearcherExt::SearchIteration() {
 	if (!flag.IsRunning())
 		return false;
 	
 	return searcher->SearchIteration();
 }
 
-bool SolverExt::SearchEnd() {
+bool SearcherExt::SearchEnd() {
 	result = searcher->SearchEnd();
 	return !result.IsEmpty();
 }
 
-bool SolverExt::RunSearch()
+bool SearcherExt::RunSearch()
 {
 	if (!SearchBegin())
 		return false;
@@ -211,11 +241,11 @@ bool SolverExt::RunSearch()
 	return ret;
 }
 
-const Vector<Val*>& SolverExt::GetResult() {
+const Vector<Val*>& SearcherExt::GetResult() {
 	return result;
 }
 
-String SolverExt::PtrVecStr(Vector<Val*>& vec) {
+String SearcherExt::PtrVecStr(Vector<Val*>& vec) {
 	String out;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";
@@ -229,5 +259,32 @@ String SolverExt::PtrVecStr(Vector<Val*>& vec) {
 
 	
 
+
+ActionEventValue& ActionEventValue::Pre(String action, String atom, bool value) {
+	ValueArray arr;
+	arr.Add(action);
+	arr.Add(atom);
+	arr.Add(value);
+	pre.Add(arr);
+	return *this;
+}
+
+ActionEventValue& ActionEventValue::Post(String action, String atom, bool value) {
+	ValueArray arr;
+	arr.Add(action);
+	arr.Add(atom);
+	arr.Add(value);
+	post.Add(arr);
+	return *this;
+}
+
+Value ActionEventValue::ToValue() const {
+	ValueMap map;
+	map.Add("pre", pre);
+	map.Add("post", post);
+	return map;
+}
+
+ActionEventValue::operator Value() const {return ToValue();}
 
 END_UPP_NAMESPACE

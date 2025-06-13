@@ -15,7 +15,7 @@ NAMESPACE_UPP
 #include "Graph.h"
 #include "Neural.h"
 #include "GeneticOptimizer.h"
-#include "Ext.h"
+#include "SearcherExt.h"
 
 END_UPP_NAMESPACE
 

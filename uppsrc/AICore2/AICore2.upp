@@ -21,6 +21,6 @@ file
 	ActionPlanner.h,
 	ActionPlanner.cpp,
 	QueryTable.h,
-	Ext.h,
-	Ext.cpp;
+	SearcherExt.h,
+	SearcherExt.cpp;
 

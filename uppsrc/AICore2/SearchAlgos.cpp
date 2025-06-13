@@ -889,4 +889,48 @@ double SimpleHeuristic::Distance(Val& n, Val& dest) {
 	return b - a;
 }
 
+
+
+
+
+
+
+OmniActionPlanner::OmniActionPlanner() {
+	
+}
+
+void OmniActionPlanner::SetParams(Value val) {
+	TODO
+}
+
+bool OmniActionPlanner::Run(Val& fs) {
+	TODO
+	return false;
+}
+
+void OmniActionPlanner::GenerateSubValues(Val& val) {
+	TODO
+}
+
+bool OmniActionPlanner::TerminalTest(Val& v) {
+	TODO
+	return false;
+}
+
+double OmniActionPlanner::Utility(Val& val) {
+	TODO
+	return 0;
+}
+
+double OmniActionPlanner::Estimate(Val& n) {
+	TODO
+	return 0;
+}
+
+double OmniActionPlanner::Distance(Val& n, Val& dest) {
+	TODO
+	return 0;
+}
+
+
 END_UPP_NAMESPACE

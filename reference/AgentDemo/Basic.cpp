@@ -119,9 +119,9 @@ void BasicTests() {
 		
 		ASSERT(ans.GetCount() == 4);
 		ASSERT(ValueArray(ans[0]->value)[1] == -2);
-		ASSERT(ValueArray(ans[1]->value)[1] ==  5);
-		ASSERT(ValueArray(ans[2]->value)[1] == -2);
-		ASSERT(ValueArray(ans[3]->value)[1] ==  1);
+		ASSERT(ValueArray(ans[1]->value)[1] == -2);
+		ASSERT(ValueArray(ans[2]->value)[1] ==  3);
+		ASSERT(ValueArray(ans[3]->value)[1] == -1);
 	}
 	
 	// Simple game algorithms, with runtime node generation.
@@ -335,6 +335,7 @@ void ActionPlannerExample1() {
 
 	planner.SetPreCondition (ATTACK, READY_TO_ATTACK, true );
 	planner.SetPreCondition (ATTACK, AT_HIGH_PLACE, false);
+	planner.SetPreCondition (ATTACK, NEAR_MOUSE, true);
 	planner.SetPostCondition(ATTACK, MOUSE_ALIVE, false );
 
 	planner.SetPreCondition (WAIT, ARMED_WITH_CLAWS, true );
@@ -360,6 +361,7 @@ void ActionPlannerExample1() {
 	BinaryWorldState goal;
 	goal.Set(MOUSE_ALIVE, false );
 	goal.Set(ALIVE, true ); // add this to avoid hurting by fall actions in plan.
+	goal.Set(NEAR_MOUSE, false );
 	
 	VfsValue& example_root = MetaEnv().root.Add("example");
 	APlanNode goal_node(example_root.Add<ActionNode>("goal"));
@@ -406,6 +408,6 @@ CONSOLE_APP_MAIN {
 	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
 	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
 	
-	//BasicTests();
+	BasicTests();
 	IntegratedTests();
 }

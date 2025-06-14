@@ -2,11 +2,6 @@
 #define _AICore2_SearchAlgos_h_
 
 
-/*double GetSearcherUtility(Val& n);
-double GetSearcherEstimate(Val& n);
-double GetSearcherDistance(Val& n, Val& dest);
-bool TerminalTest(Val& n, Val** prev);
-*/
 
 
 class Generator : public Pte<Generator> {
@@ -38,7 +33,7 @@ public:
 	virtual ~HeuristicEval() {}
 	virtual double Utility(Val& val) = 0;
 	virtual double Estimate(Val& n) = 0;
-	virtual double Distance(Val& n, Val& dest) = 0;
+	virtual double Distance(Val& a, Val& b) = 0;
 	virtual String GetResultString(const Vector<Val*>& result) const {return String();}
 };
 
@@ -72,7 +67,7 @@ public:
 	bool TerminalTest(Val& n);
 	double Utility(Val& n);
 	double Estimate(Val& n);
-	double Distance(Val& n, Val& dest);
+	double Distance(Val& a, Val& b);
 	
 	Vector<Val*> Search(Val& src);
 	
@@ -273,7 +268,7 @@ public:
 	SimpleHeuristic() {}
 	double Utility(Val& val) override;
 	double Estimate(Val& n) override;
-	double Distance(Val& n, Val& dest) override;
+	double Distance(Val& a, Val& b) override;
 };
 
 

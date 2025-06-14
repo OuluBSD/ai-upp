@@ -52,7 +52,7 @@ void IntegratedTests() {
 	params.Set("low", 2);
 	params.Set("high", 3);
 	
-	bool all = 0;
+	bool all = 1;
 	
 	// Simple game algorithms
 	if (all) {

@@ -57,8 +57,8 @@ void SetValue1(Val& i);
 void SetValue2(Val& i);
 String PtrVecStr(const Vector<Val*>& vec);
 void FileSystemExample();
-void ActionPlannerExample1();
-void ActionPlannerExample2();
+void ConstraintSolverTests();
+void ActionPlannerExample();
 void BasicTests();
 void IntegratedTests();
 

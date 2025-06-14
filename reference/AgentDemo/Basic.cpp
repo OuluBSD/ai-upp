@@ -252,12 +252,11 @@ void BasicTests() {
 	
 	// Action planner
 	if (true) {
-		ActionPlannerExample1();
-		//FileSystemExample();
+		ActionPlannerExample();
 	}
 }
 
-void ActionPlannerExample1() {
+void ActionPlannerExample() {
 	using namespace Upp;
 	
 	// Macros are poor man's meta-programming. Don't underestimate it! (I did it too earlier...)
@@ -408,6 +407,8 @@ CONSOLE_APP_MAIN {
 	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
 	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
 	
-	BasicTests();
-	IntegratedTests();
+	//BasicTests();
+	//IntegratedTests();
+	FileSystemExample();
+	//ConstraintSolverTests();
 }

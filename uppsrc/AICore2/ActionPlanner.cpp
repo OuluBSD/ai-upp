@@ -3,142 +3,7 @@
 
 NAMESPACE_UPP
 
-BinaryWorldState::BinaryWorldState() {
-	
-	Clear();
-}
 
-void BinaryWorldState::Clear() {
-	atom_values.Clear();
-	using_atom.Clear();
-}
-
-bool BinaryWorldState::Set(int index, bool value) {
-	if (index < 0) return false;
-	if (using_atom.GetCount() <= index) {
-		using_atom.SetCount(index+1, false);
-		atom_values.SetCount(index+1, false);
-	}
-	using_atom[index] = true;
-	atom_values[index] = value;
-	return true;
-}
-
-BinaryWorldState& BinaryWorldState::operator = (const BinaryWorldState& src) {
-	atom_values <<= src.atom_values;
-	using_atom <<= src.using_atom;
-	session = src.session;
-	return *this;
-}
-
-bool BinaryWorldState::operator==(const BinaryWorldState& src) const {
-	if (session != src.session)
-		return false;
-	int count = min(src.using_atom.GetCount(), using_atom.GetCount());
-	for(int i = count; i < src.using_atom.GetCount(); i++)
-		if (src.using_atom[i])
-			return false;
-	for(int i = count; i < using_atom.GetCount(); i++)
-		if (using_atom[i])
-			return false;
-	for(int i = 0; i < count; i++) {
-		if (src.using_atom[i] != using_atom[i] ||
-			src.atom_values[i] != atom_values[i])
-			return false;
-	}
-	return true;
-}
-
-hash_t BinaryWorldState::GetHashValue() const {
-	CombineHash c;
-	int last_i = atom_values.GetCount()-1;
-	while (last_i >= 0) {
-		if (using_atom[last_i])
-			break;
-		last_i--;
-	}
-	for(int i = 0; i <= last_i; i++) {
-		bool b = using_atom[last_i];
-		c.Put(b);
-		if (b)
-			c.Put(atom_values[i]);
-	}
-	return c;
-}
-
-Value BinaryWorldState::ToValue() const {
-	ValueMap map;
-	int i = 0;
-	for (bool b : this->using_atom) {
-		if (b)
-			map.Add(i, (int)this->atom_values[i]);
-		i++;
-	}
-	return map;
-}
-
-
-bool BinaryWorldState::FromValue(Value v, Event<String> WhenError) {
-	ASSERT(session);
-	if (!session) {Clear(); return false;}
-	ValueMap ws = v;
-	if (v.Is<ValueMap>()) {
-		ws = v;
-	}
-	else {
-		WhenError("unexpected value type " + v.GetTypeName());
-		return false;
-	}
-	
-	if (ws.IsEmpty()) {
-		WhenError("empty world state map");
-		return false;
-	}
-	
-	Value first_key = ws.GetKey(0);
-	if (first_key.Is<int>()) {
-		for(int i = 0; i < ws.GetCount(); i++) {
-			int j = ws.GetKey(i);
-			int v = ws.GetValue(i);
-			Set(j, v);
-		}
-	}
-	else if (first_key.Is<String>()) {
-		for(int i = 0; i < ws.GetCount(); i++) {
-			String atom_name = ws.GetKey(i);
-			Value v = ws.GetValue(i);
-			int j = session->atoms.Find(atom_name);
-			if (j < 0) {WhenError("the goal atom can't be found: " + atom_name); return false;}
-			auto& atom = session->atoms[j];
-			atom.goal = v;
-			Set(j, v);
-		}
-	}
-	else {
-		LOG(AsJSON(v, true));
-		ASSERT(0);
-		return false;
-	}
-	
-	return true;
-}
-
-String BinaryWorldState::ToString() const {
-	String s;
-	for(int i = 0; i < this->using_atom.GetCount(); i++) {
-		if (using_atom[i]) {
-			if (session)
-				s << session->atoms.GetKey(i) << ": ";
-			else
-				s << i << ": ";
-			s << (this->atom_values[i] ? "true" : "false");
-			s << "\n";
-		}
-	}
-	if (s.IsEmpty())
-		s = "<null worldstate>";
-	return s;
-}
 
 
 
@@ -464,6 +329,7 @@ OmniActionPlanner::OmniActionPlanner() {
 
 bool OmniActionPlanner::SetParams(Value val) {
 	this->params = val;
+	cost_multiplier = params.Get("cost_multiplier", 1.5);
 	
 	ValueMap in_actions  = val("actions");
 	ValueMap in_atoms    = val("atoms");
@@ -502,6 +368,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 		ws_initial.atom_values[i] = atom.initial;
 	}
 	
+	events.Clear();
 	events.SetCount(in_actions.GetCount());
 	for(int act_idx = 0; act_idx < in_actions.GetCount(); act_idx++) {
 		String action = in_actions.GetKey(act_idx);
@@ -540,7 +407,7 @@ bool OmniActionPlanner::Run(Val& fs) {
 	tmp_sub.Clear();
 	{
 		initial = &fs.GetAdd(".initial",0);
-		if (!Set(*initial, ws_initial, 0.0, -1)) return false;
+		if (!Set(*initial, ws_initial)) return false;
 		hash_t h = ws_initial.GetHashValue();
 		tmp_sub.Add(h, initial);
 	}
@@ -551,7 +418,7 @@ bool OmniActionPlanner::Run(Val& fs) {
 		ValueMap in_goal = params("goal");
 		if (in_goal.IsEmpty()) {WhenError("OmniActionPlanner requires goal atom-list");   return false;}
 		ws_goal.FromValue(in_goal, WhenError);
-		if (!Set(*goal, ws_goal, 0.0, -1)) return false;
+		if (!Set(*goal, ws_goal)) return false;
 		hash_t h = ws_goal.GetHashValue();
 		tmp_sub.Add(h, goal);
 	}
@@ -559,44 +426,42 @@ bool OmniActionPlanner::Run(Val& fs) {
 	return true;
 }
 
-bool OmniActionPlanner::Set(VfsValue& v, const BinaryWorldState& ws, double cost, int act_i) {
-	Val* p = &v;
-	if (!p) return false;
-	ValueArray arr;
-	arr.Add(ws.ToValue());
-	arr.Add(cost);
-	arr.Add(act_i);
-	p->value = arr;
+bool OmniActionPlanner::Set(VfsValue& v, const BinaryWorldState& ws) {
+	ASSERT(!v.symbolic_link);
+	if (v.symbolic_link)
+		return false; // don't write all data to symbolic links
+	v.value = ws.ToValue();
 	return true;
 }
 
-bool OmniActionPlanner::Get(const VfsValue& v, BinaryWorldState& ws, double& cost, int& act_i) {
-	const Val* p = &v;
-	if (!p) return false;
-	if (p->value.Is<ValueMap>()) {
-		ValueMap m = p->value;
-		//DUMPM(m);
-		WhenError("unexpected ValueMap");
-		return false;
-	}
-	if (!p->value.Is<ValueArray>()) {
-		//LOG(p->value.GetTypeName());
+bool OmniActionPlanner::Get(const VfsValue& v, BinaryWorldState& ws) const {
+	if (!v.value.Is<ValueMap>()) {
 		WhenError("unexpected Value type");
 		return false;
 	}
-	ValueArray arr = p->value;
-	if (arr.GetCount() != 3) {WhenError("Could not read [ws,cost,act_i]. Unexpected value"); return false;}
-	if (!ws.FromValue(arr[0], WhenError))
-		return false;
-	cost = arr[1];
-	act_i = arr[2];
-	return true;
+	return ws.FromValue(v.value, WhenError);
+}
+
+void OmniActionPlanner::SetAction(VfsValue& v, int action) {
+	v.value = action;
+}
+
+bool OmniActionPlanner::GetAction(VfsValue& v, int& action) {
+	if (v.value.Is<int>()) {
+		action = v.value;
+		return true;
+	}
+	return false;
 }
 
 bool OmniActionPlanner::GetCost(const VfsValue& v, double& cost) {
-	ValueArray arr = v.value;
-	if (arr.GetCount() != 3) {WhenError("Could not read [ws,cost,act_i]. Unexpected value"); return false;}
-	cost = arr[1];
+	ASSERT(v.value.Is<int>());
+	if (!v.value.Is<int>())
+		return false;
+	int act = v.value;
+	if (act < 0 || act >= events.GetCount())
+		return false;
+	cost = events[act].cost;
 	return true;
 }
 
@@ -610,9 +475,7 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 	ASSERT(goal);
 	
 	auto& ws = tmp0;
-	double c;
-	int a;
-	if (!Get(*p, ws, c, a)) {
+	if (!Get(*p, ws)) {
 		ASSERT(0);
 		return false;
 	}
@@ -627,7 +490,7 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 		Val* to;
 		if (j == -1) {
 			Val& sub = fs->Add();
-			if (!Set(sub, ws_to, 0.0, -1)) return false;
+			if (!Set(sub, ws_to)) return false;
 			tmp_sub.Add(hash, &sub);
 			to = &sub;
 		}
@@ -636,7 +499,9 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 		}
 		VfsValue& link = p->Add();
 		link.symbolic_link = to;
-		if (!Set(link, ws_to, action_costs[i], act_ids[i])) return false;
+		//if (!Set(link, ws_to, action_costs[i], act_ids[i])) return false;
+		SetAction(link, act_ids[i]);
+		
 		
 		/*double dist = Distance(*p, sub);
 		if (!dist) {
@@ -704,7 +569,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 	return true;
 }
 
-void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) {
+void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const {
 	const BinaryWorldState& post = events[action_id].postcond;
 	
 	dest = src;
@@ -717,9 +582,22 @@ void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, Bi
 }
 
 bool OmniActionPlanner::TerminalTest(Val& v) {
-	if (1) {
+	if (0) {
 		LOG("OmniActionPlanner::TerminalTest: " << HexStrPtr(&v) << ": " << v.value.ToString());
 	}
+	
+	if (!Get(v, tmp0)) {
+		ASSERT(0);
+		return false;
+	}
+	if (tmp0.IsPartialMatch(ws_goal)) {
+		if (0) {
+			LOG("GOAL:\n" << ws_goal.ToString());
+			LOG("TERMINAL:\n" << tmp0.ToString());
+		}
+		return true;
+	}
+	
 	if (Estimate(v) <= 0)
 		return true;
 	
@@ -739,7 +617,7 @@ double OmniActionPlanner::Estimate(Val& n) {
 }
 
 double OmniActionPlanner::Distance(Val& v, Val& dest) {
-	
+	#if 0
 	// Find the real cost (== distance)
 	double cost_multiplier = 1.0;
 	if (dest.owner && dest.owner == &v) {
@@ -763,14 +641,11 @@ double OmniActionPlanner::Distance(Val& v, Val& dest) {
 	if (!b) return DBL_MAX;
 	
 	double dist = 0;
-	double c0, c1;
-	int a0, a1;
 	
-	if (!Get(*a, tmp0, c0, a0))
+	if (!Get(*a, tmp0))
 		return DBL_MAX;
-	if (!Get(*b, tmp1, c1, a1))
+	if (!Get(*b, tmp1))
 		return DBL_MAX;
-	
 	
 	int count = UPP::min(tmp0.atom_values.GetCount(), tmp1.atom_values.GetCount());
 	
@@ -785,10 +660,164 @@ double OmniActionPlanner::Distance(Val& v, Val& dest) {
 			dist += 1;
 	
 	double total_dist = cost_multiplier * dist;
+	#else
 	
-	LOG("\nFROM (" << HexStrPtr(a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(b) << "):\n" << tmp1.ToString() << "\n" << "DISTANCE: " << total_dist);
+	Val* a = &v;
+	Val* b = &dest;
+	Val* a_link = a->Resolve();
+	Val* b_link = b->Resolve();
+	ASSERT(b);
+	if (!b) return DBL_MAX;
+	if (!Get(*a_link, tmp0))
+		return DBL_MAX;
+	if (!Get(*b_link, tmp1))
+		return DBL_MAX;
+	
+	double total_dist = 0.0;
+	bool add_hamming_dist = false;
+	if (dest.symbolic_link) {
+		int act = dest.value;
+		if (act >= 0 && act < events.GetCount()) {
+			total_dist += events[act].cost;
+		}
+		else {ASSERT(0);}
+	}
+	else /*if (v.symbolic_link) {
+		int act = v.value;
+		if (act >= 0 && act < events.GetCount()) {
+			total_dist += events[act].cost;
+		}
+		else {ASSERT(0);}
+		add_hamming_dist = true;
+	}
+	else {
+		add_hamming_dist = true;
+	}
+	
+	if (add_hamming_dist)*/
+	{
+		ASSERT(!v.symbolic_link);
+		// guesstimate distance using Hamming distance
+		
+		
+		int count = UPP::min(tmp0.atom_values.GetCount(), tmp1.atom_values.GetCount());
+		
+		// When the size is different, the tail is considered be all 'false'
+		// So if there's any 'true' values, they are different of 'false'
+		int dist = 0;
+		for(int j = count; j < tmp1.atom_values.GetCount(); j++)
+			if (tmp1.using_atom[j] && tmp1.atom_values[j])
+				dist += 1;
+		
+		for(int j = 0; j < count; j++)
+			if (tmp1.using_atom[j] && tmp0.atom_values[j] != tmp1.atom_values[j])
+				dist += 1;
+		
+		total_dist += max(0.0, cost_multiplier * dist);
+	}
+	
+	#endif
+	
+	if (0) {
+		BinaryWorldState diff;
+		diff.SetDifference(tmp0, tmp1);
+		if (diff.ToInlineString() == "at_high_place") {
+			LOG("");
+		}
+		LOG("\nFROM (" << HexStrPtr(a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(b) << "):\n" << tmp1.ToString() << "\nDIFF: \"" << diff.ToInlineString() << "\"\nDISTANCE: " << total_dist);
+	}
 	
 	return total_dist;
+}
+
+String OmniActionPlanner::GetTreeString() const {
+	BinaryWorldState ws;
+	return GetTreeString(*fs, ws, 0);
+}
+
+String OmniActionPlanner::GetTreeString(VfsValue& v, BinaryWorldState& parent, int indent) const {
+	BinaryWorldState ws, intersection;
+	ws.session = ws_initial.session;
+	String s;
+	s.Cat('\t', indent);
+	if (v.id.GetCount())
+		s << "\"" << v.id << "\" ";
+	if (v.value.Is<ValueMap>()) {
+		Get(v, ws);
+		s << ws.ToShortInlineString() << " ";
+	}
+	else if (v.value.Is<int>()) {
+		int act = v.value;
+		DoAction(act, parent, ws);
+		s << ws.ToShortInlineString() << " ";
+		if (act >= 0 && act < actions.GetCount()) {
+			s << "\"" << actions[act] << "\"";
+		}
+		double cost = events[act].cost;
+		if (cost)
+			s << " (cost: " << cost << ")";
+		intersection.SetDifference(parent, ws);
+		if (!intersection.IsEmpty())
+			s << " \"" << intersection.ToInlineString() << "\"";
+	}
+	else {
+		s << v.value.ToString();
+	}
+	s << " (" << HexStrPtr(&v) << ")";
+	if (v.symbolic_link)
+		s << " -> (" << HexStrPtr(&*v.symbolic_link) << ")";
+	
+	s << "\n";
+	
+	for(int i = 0; i < v.sub.GetCount(); i++) {
+		Val& sub = v.sub[i];
+		s << GetTreeString(sub, ws, indent+1);
+	}
+	
+	return s;
+}
+
+String OmniActionPlanner::GetResultString(const Vector<Val*>& result) const {
+	String s;
+	BinaryWorldState ws, prev;
+	prev.session = ws.session = &const_cast<OmniActionPlanner*>(this)->ws_session;
+	int i = 0;
+	for (Val* v : result) {
+		s << i << ":";
+		Val* r = v->Resolve();
+		
+		int act = -1;
+		if (v->value.Is<int>())
+			act = v->value;
+		double cost = 0;
+		if (act >= 0 && act < actions.GetCount()) {
+			s << " " << actions[act] << ":";
+			cost = events[act].cost;
+		}
+		else if (act >= 0) {
+			s << " (error act " << act << "):";
+		}
+		
+		if (r->value.Is<ValueMap>()) {
+			if (Get(*r, ws)) {
+				BinaryWorldState diff;
+				diff.SetDifference(prev, ws);
+				s << " \"" << diff.ToInlineString() << "\"";
+				Swap(prev, ws);
+			}
+			else {
+				s << "(error: no ws)";
+				prev.Clear();
+			}
+		}
+		
+		if (cost)
+			s << " (cost: " << cost << ")";
+		
+		s << "\n";
+		i++;
+	}
+	return s;
 }
 
 

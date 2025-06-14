@@ -31,14 +31,22 @@ struct BinaryWorldState {
 	Vector<bool> using_atom;
 	
 	BinaryWorldState();
+	BinaryWorldState(const BinaryWorldState& ws);
+	BinaryWorldState(BinaryWorldState&& ws);
 	void Clear();
 	bool Set(int index, bool value);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
 	bool operator==(const BinaryWorldState& src) const;
+	bool IsPartialMatch(const BinaryWorldState& src) const;
 	hash_t GetHashValue() const;
 	Value ToValue() const;
 	bool FromValue(Value v, Event<String> WhenError=Null);
 	String ToString() const;
+	String ToInlineString() const;
+	String ToShortInlineString() const;
+	void SetIntersection(BinaryWorldState& a, BinaryWorldState& b);
+	void SetDifference(BinaryWorldState& a, BinaryWorldState& b);
+	bool IsEmpty() const;
 };
 
 class WorldState : public Moveable<WorldState> {

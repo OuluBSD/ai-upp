@@ -12,15 +12,17 @@ bool TerminalTest(Val& n, Val** prev);
 class Generator : public Pte<Generator> {
 protected:
 	Event<Val&> set_value;
+	ValPtr fs;
 public:
 	Generator() {}
 	virtual ~Generator() {}
 	
 	void SetValueFunction(Event<Val&> e);
 	virtual bool SetParams(Value val) {return true;}
-	virtual bool Run(Val& fs) {set_value(fs); return true;}
+	virtual bool Run(Val& fs) {set_value(fs); this->fs = &fs; return true;}
 	virtual bool GenerateSubValues(Val& val) {return true;}
 	virtual VfsValue& GetInitial(Val& fs) {return fs;}
+	virtual String GetTreeString() const {return fs ? fs->GetTreeString() : String();}
 };
 
 class TerminalTester : public Pte<TerminalTester> {
@@ -37,6 +39,7 @@ public:
 	virtual double Utility(Val& val) = 0;
 	virtual double Estimate(Val& n) = 0;
 	virtual double Distance(Val& n, Val& dest) = 0;
+	virtual String GetResultString(const Vector<Val*>& result) const {return String();}
 };
 
 struct OmniSearcher :
@@ -190,10 +193,11 @@ public:
 class AStar : public Searcher {
 	
 	struct NodePtr {
-		Val* ptr;
-		NodePtr() : ptr(0), g_score(0), f_score(0), came_from(0) {g_score = DBL_MAX; f_score = DBL_MAX;}
+		ValPtr ptr;
+		ValPtr src;
+		NodePtr() : g_score(0), f_score(0), came_from(0) {g_score = DBL_MAX; f_score = DBL_MAX;}
 		
-		hash_t GetHashValue() const {return UPP::GetHashValue((size_t)ptr);}
+		hash_t GetHashValue() const {return UPP::GetHashValue((size_t)&*ptr);}
 		bool operator == (const NodePtr& np) const {return np.ptr == ptr;}
 		// For each node, the cost of getting from the start node to that node.
 		double g_score;
@@ -215,6 +219,7 @@ class AStar : public Searcher {
 	Vector<double> worst_f_score;
 	Vector<int> worst_id;
 	NodeRoute route;
+	bool dump_intermediate_trees = false;
 	
 	// The set of nodes already evaluated.
 	Array<NodePtr> nodes;
@@ -235,13 +240,14 @@ public:
 	void Stop();
 	void TrimWorst(int limit, int count);
 	Vector<Val*> GetBestKnownPath();
-	Vector<Val*> ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set);
-	Vector<Val*> ReconstructPath(Val& current);
+	Vector<Val*> ReconstructPath(Val& current, Val& current_src, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set);
+	Vector<Val*> ReconstructPath(Val& current, Val& current_src);
 	Vector<Val*> GetBest();
 	Vector<Val*> ContinueSearch(Val& src);
 	bool SearchBegin(Val& src) override;
 	bool SearchIteration() override;
 	Vector<Val*> SearchEnd() override;
+	bool SetParams(Value val) override;
 };
 
 

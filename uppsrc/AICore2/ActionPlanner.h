@@ -132,8 +132,9 @@ protected:
 	Index<String> atoms, actions;
 	BinaryWorldState ws_initial, ws_goal;
 	BinaryWorldStateSession ws_session;
-	ValPtr fs, initial, goal;
-	Value params;
+	ValPtr initial, goal;
+	ValueMap params;
+	double cost_multiplier = 1.5;
 	
 	// Runtime temp vars
 	BinaryWorldState tmp0, tmp1;
@@ -142,10 +143,12 @@ protected:
 	Array<BinaryWorldState> search_cache;
 	
 	bool GetPossibleStateTransition(const BinaryWorldState& src, Vector<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs);
-	bool Set(VfsValue& v, const BinaryWorldState& ws, double cost, int act_i);
-	bool Get(const VfsValue& v, BinaryWorldState& ws, double& cost, int& act_i);
+	bool Set(VfsValue& v, const BinaryWorldState& ws);
+	bool Get(const VfsValue& v, BinaryWorldState& ws) const;
+	void SetAction(VfsValue& v, int action);
+	bool GetAction(VfsValue& v, int& action);
 	bool GetCost(const VfsValue& v, double& cost);
-	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest);
+	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const;
 	
 public:
 	OmniActionPlanner();
@@ -157,6 +160,9 @@ public:
 	double Utility(Val& val) override;
 	double Estimate(Val& n) override;
 	double Distance(Val& n, Val& dest) override;
+	String GetTreeString() const override;
+	String GetTreeString(Val& v, BinaryWorldState& parent, int indent) const;
+	String GetResultString(const Vector<Val*>& result) const override;
 };
 
 

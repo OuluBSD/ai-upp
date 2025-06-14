@@ -112,7 +112,7 @@ void IntegratedTests() {
 	}
 	
 	// Action planner unit tests
-	if (1) {
+	if (all) {
 		for(int i = 0; i < 3; i++) {
 			ValueMap atoms, goal, actions;
 			if (i == 0) {
@@ -142,6 +142,8 @@ void IntegratedTests() {
 			params("atoms") = atoms;
 			params("actions") = actions;
 			params("goal") = goal;
+			params("dump_intermediate_trees") = true;
+			searcher.SetSearcherParams(params);
 			searcher.SetGeneratorParams(params, Null);
 			searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
 			searcher.SetTerminalTest(TERMTEST_ACTION_PLANNER);
@@ -152,16 +154,16 @@ void IntegratedTests() {
 			searcher.WhenError = [](String s) {LOG("ActionPlanner error: " << s);};
 			bool ret = searcher.RunSearch();
 			if (!ret) {
-				LOG(searcher.GetFS().GetTreeString());
+				LOG(searcher.GetTreeString());
 			}
 			ASSERT(ret);
-			const auto& ans = searcher.GetResult();
-			LOG(PtrVecStr(ans));
+			//LOG(PtrVecStr(searcher.GetResult()));
+			LOG(searcher.GetResultString());
 		}
 	}
 	
 	// Action planner
-	if (0) {
+	if (all) {
 		ValueMap atoms;
 		atoms.Add("armed with claws", true);
 		atoms.Add("mouse visible",    false);
@@ -175,6 +177,7 @@ void IntegratedTests() {
 		ValueMap goal;
 		goal.Add("mouse alive",		  false);
 		goal.Add("alive",			  true); // add this to avoid hurting by 'fall' action in the plan.
+		goal.Add("near mouse",		  false);
 		
 		ValueMap actions;
 		actions.Add("cat", ActionEventValue()
@@ -188,18 +191,19 @@ void IntegratedTests() {
 			.Post("at high place", false));
 		actions.Add("aim", ActionEventValue()
 			.Pre("mouse visible", true)
-			.Post("claws extended", true)
+			.Pre("claws extended", true)
 			.Post("ready to attack", true));
 		actions.Add("attack", ActionEventValue()
 			.Pre("ready to attack", true)
-			.Post("at high place", false)
+			.Pre("at high place", false)
+			.Pre("near mouse", true)
 			.Post("mouse alive", false));
-		actions.Add("wait", ActionEventValue()
+		actions.Add("prepare claws", ActionEventValue()
 			.Pre("armed with claws", true)
 			.Post("claws extended", true));
 		actions.Add("very high jump attack", ActionEventValue()
 			.Pre("at high place", true)
-			.Post("near mouse", true)
+			.Pre("near mouse", true)
 			.Post("alive", false)
 			.Post("mouse alive", false)
 			.Cost(5));
@@ -210,6 +214,8 @@ void IntegratedTests() {
 		params("atoms") = atoms;
 		params("actions") = actions;
 		params("goal") = goal;
+		params("dump_intermediate_trees") = false;
+		searcher.SetSearcherParams(params);
 		searcher.SetGeneratorParams(params, Null);
 		searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
 		searcher.SetTerminalTest(TERMTEST_ACTION_PLANNER);
@@ -223,8 +229,7 @@ void IntegratedTests() {
 			LOG(searcher.GetFS().GetTreeString());
 		}
 		ASSERT(ret);
-		const auto& ans = searcher.GetResult();
-		LOG(PtrVecStr(ans));
+		LOG(searcher.GetResultString());
 	}
 	
 	// Single-agent decider: (Classic) Decision Tree

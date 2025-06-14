@@ -600,14 +600,17 @@ Vector<Val*> AStar::GetBestKnownPath() {
 	
 	NodePtr* t_ptr = open_set[smallest_id];
 	Val& t = *t_ptr->ptr;
-	return ReconstructPath(t, closed_set, open_set);
+	Val& s = *t_ptr->src;
+	return ReconstructPath(t, s, closed_set, open_set);
 }
 
-Vector<Val*> AStar::ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
+Vector<Val*> AStar::ReconstructPath(Val& current, Val& current_src, Vector<NodePtr*>& closed_set, Vector<NodePtr*>& open_set) {
 	Vector<Val*> path;
 	Val* ptr = &current;
+	Val* src = &current_src;
 	while (1) {
-		path.Add(ptr);
+		path.Add(!src->value.IsVoid() ? src : ptr);
+		
 		int i = FindNode(open_set, ptr);
 		if (i == -1) {
 			i = FindNode(closed_set, ptr);
@@ -615,9 +618,14 @@ Vector<Val*> AStar::ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, 
 			else {
 				const NodePtr* cf = closed_set[i]->came_from;
 				ptr = cf ? cf->ptr : 0;
+				src = cf ? cf->src : 0;
 			}
 		}
-		else ptr = open_set[i]->came_from->ptr;
+		else {
+			const NodePtr* cf = open_set[i]->came_from;
+			ptr = cf->ptr;
+			src = cf->src;
+		}
 		if (!ptr) break;
 	}
 	Vector<Val*> out;
@@ -628,8 +636,8 @@ Vector<Val*> AStar::ReconstructPath(Val& current, Vector<NodePtr*>& closed_set, 
 	return out;
 }
 
-Vector<Val*> AStar::ReconstructPath(Val& current) {
-	return ReconstructPath(current, closed_set, open_set);
+Vector<Val*> AStar::ReconstructPath(Val& current, Val& current_src) {
+	return ReconstructPath(current, current_src, closed_set, open_set);
 }
 
 Vector<Val*> AStar::GetBest() {
@@ -643,7 +651,7 @@ Vector<Val*> AStar::GetBest() {
 		}
 	}
 	if (n)
-		return ReconstructPath(*n->ptr, closed_set, open_set);
+		return ReconstructPath(*n->ptr, *n->src, closed_set, open_set);
 	
 	return Vector<Val*>();
 }
@@ -658,6 +666,7 @@ bool AStar::SearchBegin(Val& src) {
 	// For the first node, that value is completely heuristic.
 	NodePtr& np = nodes.Add();
 	np.ptr = &src;
+	np.src = &src;
 	np.g_score = 0;
 	np.f_score = this->Estimate(src);
 	open_set.Add(&np);
@@ -669,7 +678,11 @@ bool AStar::SearchBegin(Val& src) {
 	return true;
 }
 
-
+bool AStar::SetParams(Value val) {
+	ValueMap params = val;
+	dump_intermediate_trees = params.Get("dump_intermediate_trees", false);
+	return true;
+}
 
 Vector<Val*> AStar::SearchEnd() {
 	return pick(out);
@@ -779,6 +792,7 @@ bool AStar::SearchIteration() {
 	route.route.SetCount(0);
 	NodePtr* t_ptr = open_set[smallest_id];
 	Val& t = *t_ptr->ptr;
+	Val& s = *t_ptr->src;
 	const NodePtr* prev = t_ptr->came_from;
 	for(int i = 0; i < 50; i++) {
 		if (prev) {
@@ -794,7 +808,7 @@ bool AStar::SearchIteration() {
 		return false;
 	}
 	if (TerminalTest(t)) {
-		out = ReconstructPath(t, closed_set, open_set);
+		out = ReconstructPath(t, s, closed_set, open_set);
 		return false; // "don't continue + out-vector" == ready
 	}
 	
@@ -805,6 +819,9 @@ bool AStar::SearchIteration() {
 	smallest_id = -1;
 	closed_set.Add(t_ptr);
 	
+	if (dump_intermediate_trees && generator) {
+		LOG(generator->GetTreeString());
+	}
 	
 	for(int j = 0; j < t.sub.GetCount(); j++) {
 		Val& sub = t.sub[j];
@@ -814,13 +831,14 @@ bool AStar::SearchIteration() {
 			continue; // Ignore the neighbor which is already evaluated.
 		// The distance from start to a neighbor
 		double sub_g_score = current_g_score + this->Distance(t, sub);
-		double sub_f_score = sub_g_score + this->Estimate(sub);
+		double sub_f_score = sub_g_score + this->Estimate(*link);
 		int k = FindNode(open_set, link);
 		if (k == -1) {
 			// Discover a new node
 			k = open_set.GetCount();
 			NodePtr& subptr = nodes.Add();
-			subptr.ptr = &sub;
+			subptr.ptr = link;
+			subptr.src = &sub;
 			subptr.came_from = t_ptr;
 			subptr.f_score = sub_f_score;
 			subptr.g_score = sub_g_score;

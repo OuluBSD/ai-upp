@@ -190,6 +190,22 @@ bool SearcherExt::RunGenerator() {
 	return succ;
 }
 
+String SearcherExt::GetResultString() const {
+	String s;
+	if (heuristic)
+		 s = heuristic->GetResultString(result);
+	if (s.IsEmpty())
+		s = PtrVecStr(result);
+	return s;
+}
+
+String SearcherExt::GetTreeString() const {
+	if (generator)
+		return generator->GetTreeString();
+	Val& fs = const_cast<SearcherExt*>(this)->GetFS();
+	return fs.GetTreeString();
+}
+
 bool SearcherExt::SearchBegin() {
 	flag.Stop();
 	result.Clear();
@@ -257,11 +273,11 @@ bool SearcherExt::RunSearch()
 	return ret;
 }
 
-const Vector<Val*>& SearcherExt::GetResult() {
+const Vector<Val*>& SearcherExt::GetResult() const {
 	return result;
 }
 
-String SearcherExt::PtrVecStr(Vector<Val*>& vec) {
+String SearcherExt::PtrVecStr(const Vector<Val*>& vec) {
 	String out;
 	for(int i = 0; i < vec.GetCount(); i++) {
 		if (i) out << "\n";

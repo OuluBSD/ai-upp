@@ -54,7 +54,7 @@ class SearcherExt : public VfsValueExt {
 	void				CreateGenerator();
 	void				CreateTerminalTester();
 	void				CreateHeuristic();
-	static String		PtrVecStr(Vector<Val*>& vec);
+	static String		PtrVecStr(const Vector<Val*>& vec);
 public:
 	CLASSTYPE(SearcherExt)
 	SearcherExt(VfsValue& val);
@@ -80,9 +80,12 @@ public:
 	bool				SearchBegin();
 	bool				SearchIteration();
 	bool				SearchEnd();
-	const Vector<Val*>&	GetResult();
+	const Vector<Val*>&	GetResult() const;
 	bool				RunGenerator();
-
+	String				GetTreeString() const;
+	String				GetTreeString(VfsValue& v, int indent) const;
+	String				GetResultString() const;
+	
 	template <class T>
 	void SetGenerator() {
 		generator_type = GENERATOR_CUSTOM;

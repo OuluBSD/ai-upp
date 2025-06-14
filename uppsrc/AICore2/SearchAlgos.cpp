@@ -57,15 +57,15 @@ double Searcher::Estimate(Val& n) {
 	}
 }
 
-double Searcher::Distance(Val& n, Val& dest) {
+double Searcher::Distance(Val& a, Val& b) {
 	if (heuristic) {
-		return heuristic->Distance(n, dest);
+		return heuristic->Distance(a, b);
 	}
 	else {
-		ASSERT(n.ext);
-		if (!n.ext)
+		ASSERT(a.ext);
+		if (!a.ext)
 			return DBL_MAX;
-		return n.ext->GetDistance(dest);
+		return a.ext->GetDistance(b);
 	}
 }
 
@@ -943,10 +943,10 @@ double SimpleHeuristic::Estimate(Val& n) {
 	return est;
 }
 
-double SimpleHeuristic::Distance(Val& n, Val& dest) {
-	double a = n.value;
-	double b = dest.value;
-	return b - a;
+double SimpleHeuristic::Distance(Val& a, Val& b) {
+	double av = a.value;
+	double bv = b.value;
+	return bv - av;
 }
 
 

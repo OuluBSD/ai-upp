@@ -159,7 +159,7 @@ public:
 	bool TerminalTest(Val& v) override;
 	double Utility(Val& val) override;
 	double Estimate(Val& n) override;
-	double Distance(Val& n, Val& dest) override;
+	double Distance(Val& a, Val& b) override;
 	String GetTreeString() const override;
 	String GetTreeString(Val& v, BinaryWorldState& parent, int indent) const;
 	String GetResultString(const Vector<Val*>& result) const override;

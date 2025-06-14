@@ -499,14 +499,7 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 		}
 		VfsValue& link = p->Add();
 		link.symbolic_link = to;
-		//if (!Set(link, ws_to, action_costs[i], act_ids[i])) return false;
 		SetAction(link, act_ids[i]);
-		
-		
-		/*double dist = Distance(*p, sub);
-		if (!dist) {
-			LOG("\nFROM (" << HexStrPtr(p) << "):\n" << ws.ToString() << "\nTO (" << HexStrPtr(&sub) << "):\n" << ws_to.ToString() << "\n" << "DISTANCE: " << dist);
-		}*/
 	}
 	return true;
 }
@@ -616,58 +609,9 @@ double OmniActionPlanner::Estimate(Val& n) {
 	return Distance(n, *goal);
 }
 
-double OmniActionPlanner::Distance(Val& v, Val& dest) {
-	#if 0
-	// Find the real cost (== distance)
-	double cost_multiplier = 1.0;
-	if (dest.owner && dest.owner == &v) {
-		for(int i = 0; i < v.sub.GetCount(); i++) {
-			Val* c = &v.sub[i];
-			if (c == &dest) {
-				double cost = 1.0;
-				if (!GetCost(*c, cost))
-					break;
-				ASSERT(cost != 0.0);
-				cost_multiplier = cost;
-				break;
-			}
-		}
-	}
-	
-	// this is equivalent of ActionNode::GetDistance
-	Val* a = &v; //v.Resolve();
-	if (!a) return DBL_MAX;
-	Val* b = &dest; //dest.Resolve();
-	if (!b) return DBL_MAX;
-	
-	double dist = 0;
-	
-	if (!Get(*a, tmp0))
-		return DBL_MAX;
-	if (!Get(*b, tmp1))
-		return DBL_MAX;
-	
-	int count = UPP::min(tmp0.atom_values.GetCount(), tmp1.atom_values.GetCount());
-	
-	// When the size is different, the tail is considered be all 'false'
-	// So if there's any 'true' values, they are different of 'false'
-	for(int j = count; j < tmp1.atom_values.GetCount(); j++)
-		if (tmp1.using_atom[j] && tmp1.atom_values[j])
-			dist += 1;
-	
-	for(int j = 0; j < count; j++)
-		if (tmp1.using_atom[j] && tmp0.atom_values[j] != tmp1.atom_values[j])
-			dist += 1;
-	
-	double total_dist = cost_multiplier * dist;
-	#else
-	
-	Val* a = &v;
-	Val* b = &dest;
-	Val* a_link = a->Resolve();
-	Val* b_link = b->Resolve();
-	ASSERT(b);
-	if (!b) return DBL_MAX;
+double OmniActionPlanner::Distance(Val& a, Val& b) {
+	Val* a_link = a.Resolve();
+	Val* b_link = b.Resolve();
 	if (!Get(*a_link, tmp0))
 		return DBL_MAX;
 	if (!Get(*b_link, tmp1))
@@ -675,28 +619,15 @@ double OmniActionPlanner::Distance(Val& v, Val& dest) {
 	
 	double total_dist = 0.0;
 	bool add_hamming_dist = false;
-	if (dest.symbolic_link) {
-		int act = dest.value;
+	if (b.symbolic_link) {
+		int act = b.value;
 		if (act >= 0 && act < events.GetCount()) {
 			total_dist += events[act].cost;
 		}
 		else {ASSERT(0);}
-	}
-	else /*if (v.symbolic_link) {
-		int act = v.value;
-		if (act >= 0 && act < events.GetCount()) {
-			total_dist += events[act].cost;
-		}
-		else {ASSERT(0);}
-		add_hamming_dist = true;
 	}
 	else {
-		add_hamming_dist = true;
-	}
-	
-	if (add_hamming_dist)*/
-	{
-		ASSERT(!v.symbolic_link);
+		ASSERT(!a.symbolic_link);
 		// guesstimate distance using Hamming distance
 		
 		
@@ -716,15 +647,13 @@ double OmniActionPlanner::Distance(Val& v, Val& dest) {
 		total_dist += max(0.0, cost_multiplier * dist);
 	}
 	
-	#endif
-	
 	if (0) {
 		BinaryWorldState diff;
 		diff.SetDifference(tmp0, tmp1);
 		if (diff.ToInlineString() == "at_high_place") {
 			LOG("");
 		}
-		LOG("\nFROM (" << HexStrPtr(a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(b) << "):\n" << tmp1.ToString() << "\nDIFF: \"" << diff.ToInlineString() << "\"\nDISTANCE: " << total_dist);
+		LOG("\nFROM (" << HexStrPtr(&a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(&b) << "):\n" << tmp1.ToString() << "\nDIFF: \"" << diff.ToInlineString() << "\"\nDISTANCE: " << total_dist);
 	}
 	
 	return total_dist;

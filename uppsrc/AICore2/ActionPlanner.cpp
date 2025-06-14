@@ -278,7 +278,8 @@ bool ActionNode::TerminalTest() {
 }
 
 double ActionNode::GetDistance(VfsValue& n) {
-	ActionNode& to = *CastPtr<ActionNode>(&*n.ext);
+	Val* p = n.Resolve();
+	ActionNode& to = *CastPtr<ActionNode>(&*p->ext);
 	double dist = 0;
 	
 	Vector<bool>& values = ws->atom_values;

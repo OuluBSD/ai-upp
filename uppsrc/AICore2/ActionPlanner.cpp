@@ -15,6 +15,35 @@ PlannerEvent::PlannerEvent() : cost(1.0) {
 	
 }
 
+String PlannerEvent::GetName() const {
+	ASSERT(precond.mask && precond.mask->session);
+	ASSERT(precond.mask == postcond.mask);
+	if (!precond.mask || !precond.mask->session) return "<error>";
+	auto& mask = *precond.mask;
+	auto& ses = *precond.mask->session;
+	String out;
+	int len = 0;
+	for(int i = 0; i < this->key.size; i++) {
+		int str_idx = this->key.vector[i];
+		if (str_idx < 0)
+			break;
+		len++;
+		String s = ses.GetKeyString(str_idx);
+		if (len == 2)
+			out.Cat('(');
+		else if (len >= 2)
+			out << ", ";
+		out.Cat(s);
+	}
+	if (len >= 2)
+		out.Cat(')');
+	/*if (out == "(, , , )") {
+		LOG("");
+		GetName();
+	}*/
+	return out;
+}
+
 
 
 
@@ -27,34 +56,34 @@ ActionPlanner::ActionPlanner() {
 
 void ActionPlanner::Clear() {
 	atom_count = 0;
-	events.Clear();
+	actions.Clear();
 	search_cache.Clear();
 }
 
 void ActionPlanner::AddSize(int action_count, int atom_count) {
 	ASSERT(action_count >= 0 && atom_count >= 0);
 	this->atom_count += atom_count;
-	int new_action_count = events.GetCount() + action_count;
-	events.SetCount(new_action_count);
+	int new_action_count = actions.GetCount() + action_count;
+	actions.SetCount(new_action_count);
 	if (wrapper)
 		wrapper->OnResize();
 }
 
 void ActionPlanner::SetSize(int action_count, int atom_count) {
 	this->atom_count = atom_count;
-	events.SetCount(action_count);
+	actions.SetCount(action_count);
 	if (wrapper)
 		wrapper->OnResize();
 }
 
 void ActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) {
-	const BinaryWorldState& post = events[action_id].postcond;
+	const BinaryWorldState& post = actions[action_id].postcond;
 	
 	dest = src;
 	
 	for(int i = 0; i < post.using_atom.GetCount(); i++) {
 		if (post.using_atom[i]) {
-			dest.Set(i, post.atom_values[i]);
+			dest.SetMasked(i, post.atom_values[i]);
 		}
 	}
 }
@@ -62,10 +91,14 @@ void ActionPlanner::DoAction( int action_id, const BinaryWorldState& src, Binary
 
 void ActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Array<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs)
 {
-	for ( int i=0; i < events.GetCount(); ++i )
+	// todo: callback for new actions
+	
+	for ( int i=0; i < actions.GetCount(); ++i )
 	{
+		// todo: callback for param resolver
+		
 		// Check precondition
-		auto& e = events[i];
+		auto& e = actions[i];
 		const BinaryWorldState& pre = e.precond;
 		
 		// Check that precondition is not using something outside of src values
@@ -96,26 +129,36 @@ void ActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Arra
 	}
 }
 
-bool ActionPlanner::SetPreCondition(int ev_idx, int atm_idx, bool value)
+bool ActionPlanner::SetPreCondition(int act_idx, int atm_idx, bool value)
 {
-	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	events[ev_idx].precond.Set(atm_idx, value);
+	if ( act_idx == -1 || atm_idx == -1 ) return false;
+	auto& ws = actions[act_idx].precond;
+	if (!ws.mask || !ws.mask->session) return false;
+	auto& ses = *ws.mask->session;
+	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
+	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
+	ws.SetKey(key, value);
 	return true;
 }
 
 
-bool ActionPlanner::SetPostCondition(int ev_idx, int atm_idx, bool value)
+bool ActionPlanner::SetPostCondition(int act_idx, int atm_idx, bool value)
 {
-	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	events[ev_idx].postcond.Set(atm_idx, value);
+	if ( act_idx == -1 || atm_idx == -1 ) return false;
+	auto& ws = actions[act_idx].postcond;
+	if (!ws.mask || !ws.mask->session) return false;
+	auto& ses = *ws.mask->session;
+	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
+	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
+	ws.SetKey(key, value);
 	return true;
 }
 
 
-bool ActionPlanner::SetCost(int ev_idx, int cost )
+bool ActionPlanner::SetCost(int act_idx, int cost )
 {
-	if ( ev_idx == -1 ) return false;
-	events[ ev_idx ].cost = cost;
+	if ( act_idx == -1 ) return false;
+	actions[ act_idx ].cost = cost;
 	return true;
 }
 
@@ -133,12 +176,13 @@ ActionPlannerWrapper::ActionPlannerWrapper(ActionPlanner& planner) : ap(planner)
 
 void ActionPlannerWrapper::OnResize() {
 	acts.SetCount(ap.GetEventCount());
-	atoms.SetCount(ap.GetAtomCount());
+	TODO //atoms.SetCount(ap.GetAtomCount());
 }
 
 String ActionPlannerWrapper::GetWorldstateDescription( const BinaryWorldState& ws )
 {
 	String str;
+	TODO /*
 	for(int i = 0; i < atoms.GetCount(); i++) {
 		if (ws.using_atom.GetCount() <= i) break;
 		if (ws.using_atom[i]) {
@@ -148,21 +192,33 @@ String ActionPlannerWrapper::GetWorldstateDescription( const BinaryWorldState& w
 			else
 				str += atoms[i] + ",";
 		}
-	}
+	}*/
 	return str;
 }
 
 
+String ActionPlannerWrapper::GetAtomName(int i) {
+	TODO
+	//return atoms[i];
+	return "";
+}
+
+void ActionPlannerWrapper::SetAtom(int atom_i, String s) {
+	TODO
+	//atoms[atom_i] = s;
+}
+
 String ActionPlannerWrapper::GetDescription()
 {
 	String str;
-	for(int j = 0; j < ap.events.GetCount(); j++) {
-		auto& e = ap.events[j];
+	for(int j = 0; j < ap.actions.GetCount(); j++) {
+		auto& e = ap.actions[j];
 		str += acts[j] + ":\n";
 		
 		BinaryWorldState& pre  = e.precond;
 		BinaryWorldState& post = e.postcond;
 		
+		TODO /*
 		int count = UPP::min(atoms.GetCount(), pre.atom_values.GetCount());
 		for(int i = 0; i < count; i++) {
 			bool v = pre.atom_values[i];
@@ -173,18 +229,21 @@ String ActionPlannerWrapper::GetDescription()
 		for(int i = 0; i < count; i++) {
 			bool v = post.atom_values[i];
 			str += " " + atoms[i] + "==" + IntStr(v) + "\n";
-		}
+		}*/
 	}
 	return str;
 }
 
 
 int ActionPlannerWrapper::GetAtomIndex(String atom_name) {
+	TODO /*
 	int i = VectorFind(atoms, atom_name);
 	if (i != -1)
 		return i;
 	atoms.Add(atom_name);
 	return atoms.GetCount()-1;
+	*/
+	return -1;
 }
 
 
@@ -202,7 +261,7 @@ bool ActionPlannerWrapper::SetPreCondition(String event_name, String atom_name, 
 	int ev_idx = GetEventIndex( event_name );
 	int atm_idx = GetAtomIndex( atom_name );
 	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	ap.events[ev_idx].precond.Set(atm_idx, value);
+	TODO //ap.actions[ev_idx].precond.Set(atm_idx, value);
 	return true;
 }
 
@@ -212,7 +271,7 @@ bool ActionPlannerWrapper::SetPostCondition(String event_name, String atom_name,
 	int ev_idx = GetEventIndex( event_name );
 	int atm_idx = GetAtomIndex( atom_name );
 	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	ap.events[ev_idx].postcond.Set(atm_idx, value);
+	TODO //ap.actions[ev_idx].postcond.Set(atm_idx, value);
 	return true;
 }
 
@@ -221,7 +280,7 @@ bool ActionPlannerWrapper::SetCost(String event_name, int cost )
 {
 	int ev_idx = GetEventIndex( event_name );
 	if ( ev_idx == -1 ) return false;
-	ap.events[ ev_idx ].cost = cost;
+	ap.actions[ ev_idx ].cost = cost;
 	return true;
 }
 
@@ -340,9 +399,13 @@ bool OmniActionPlanner::SetParams(Value val) {
 	actions.Clear();
 	for(int i = 0; i < in_actions.GetCount(); i++) {
 		String action_name = in_actions.GetKey(i);
-		int j = actions.Find(action_name);
+		Key action_key = this->RealizeKey(action_name);
+		int j = FindAction(action_key);
 		if (j >= 0) {WhenError("duplicate action: " + action_name); return false;}
-		actions.Add(action_name);
+		auto& action = actions.Add();
+		action.key = action_key;
+		action.postcond.mask = &GetMask();
+		action.precond.mask = &GetMask();
 	}
 	
 	ws_session.atoms.Clear();
@@ -366,9 +429,8 @@ bool OmniActionPlanner::SetParams(Value val) {
 		ws_initial.atom_values[i] = atom.initial;
 	}
 	
-	events.Clear();
-	events.SetCount(in_actions.GetCount());
-	for(int act_idx = 0; act_idx < in_actions.GetCount(); act_idx++) {
+	for(int act_idx = 0; act_idx < actions.GetCount(); act_idx++) {
+		PlannerEvent& a = actions[act_idx];
 		String action = in_actions.GetKey(act_idx);
 		ValueMap in_action = in_actions.GetValue(act_idx);
 		ValueArray in_pre  = in_action("pre");
@@ -376,11 +438,11 @@ bool OmniActionPlanner::SetParams(Value val) {
 		double cost = in_action.Get("cost", 1.0);
 		if (in_pre.IsEmpty())  {WhenError("empty pre-condition in action '" + action + "'");  return false;}
 		if (in_post.IsEmpty()) {WhenError("empty post-condition in action '" + action + "'"); return false;}
-		PlannerEvent& ev = events[act_idx];
-		ev.cost = cost;
+		a.cost = cost;
 		for (int m = 0; m < 2; m++) {
-			auto& in  = m == 0 ? in_pre     : in_post;
-			auto& out = m == 0 ? ev.precond : ev.postcond;
+			auto& in  = m == 0 ? in_pre    : in_post;
+			auto& out = m == 0 ? a.precond : a.postcond;
+			out.mask = &GetMask();
 			for(int j = 0; j < in.GetCount(); j++) {
 				ValueArray arr = in[j];
 				if (arr.GetCount() != 2) {WhenError("expected vector of 2 in condition");  return false;}
@@ -388,8 +450,9 @@ bool OmniActionPlanner::SetParams(Value val) {
 				Key atom_key = RealizeKey(atom_name);
 				int atom_value = arr[1];
 				int atom_idx = ws_session.atoms.Find(atom_key);
-				if (atom_idx < 0) {WhenError("atom '" + atom_name + "' not found");  return false;}
-				out.Set(atom_idx, atom_value);
+				if (atom_idx < 0) {
+				WhenError("atom '" + atom_name + "' not found");  return false;}
+				out.SetKey(atom_key, atom_value);
 			}
 		}
 	}
@@ -404,6 +467,16 @@ WorldStateKey OmniActionPlanner::RealizeKey(const String& str) {
 		WhenError("parsing key '" + str + "' failed");
 	}
 	return key;
+}
+
+int OmniActionPlanner::FindAction(const WorldStateKey& key) const {
+	int i = 0;
+	for (auto& a : actions) {
+		if (a.key == key)
+			return i;
+		i++;
+	}
+	return -1;
 }
 
 VfsValue& OmniActionPlanner::GetInitial(Val& fs) {
@@ -473,9 +546,9 @@ bool OmniActionPlanner::GetCost(const VfsValue& v, double& cost) {
 	if (!v.value.Is<int>())
 		return false;
 	int act = v.value;
-	if (act < 0 || act >= events.GetCount())
+	if (act < 0 || act >= actions.GetCount())
 		return false;
-	cost = events[act].cost;
+	cost = actions[act].cost;
 	return true;
 }
 
@@ -520,10 +593,10 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 
 bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Vector<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs) {
 	dest.SetCount(0);
-	for (int i=0; i < events.GetCount(); ++i )
+	for (int i=0; i < actions.GetCount(); ++i )
 	{
 		// Check precondition
-		auto& e = events[i];
+		auto& e = actions[i];
 		const BinaryWorldState& pre  = e.precond;
 		const BinaryWorldState& post = e.postcond;
 		
@@ -577,13 +650,15 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 }
 
 void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const {
-	const BinaryWorldState& post = events[action_id].postcond;
+	const BinaryWorldState& post = actions[action_id].postcond;
 	
 	dest = src;
+	ASSERT(post.mask == dest.mask);
+	if (post.mask != dest.mask) return;
 	
 	for(int i = 0; i < post.using_atom.GetCount(); i++) {
 		if (post.using_atom[i]) {
-			dest.Set(i, post.atom_values[i]);
+			dest.SetMasked(i, post.atom_values[i]);
 		}
 	}
 }
@@ -635,8 +710,8 @@ double OmniActionPlanner::Distance(Val& a, Val& b) {
 	bool add_hamming_dist = false;
 	if (b.symbolic_link) {
 		int act = b.value;
-		if (act >= 0 && act < events.GetCount()) {
-			total_dist += events[act].cost;
+		if (act >= 0 && act < actions.GetCount()) {
+			total_dist += actions[act].cost;
 		}
 		else {ASSERT(0);}
 	}
@@ -675,6 +750,8 @@ double OmniActionPlanner::Distance(Val& a, Val& b) {
 
 String OmniActionPlanner::GetTreeString() const {
 	BinaryWorldState ws;
+	if (!fs)
+		return String();
 	return GetTreeString(*fs, ws, 0);
 }
 
@@ -694,9 +771,9 @@ String OmniActionPlanner::GetTreeString(VfsValue& v, BinaryWorldState& parent, i
 		DoAction(act, parent, ws);
 		s << ws.ToShortInlineString() << " ";
 		if (act >= 0 && act < actions.GetCount()) {
-			s << "\"" << actions[act] << "\"";
+			s << "\"" << actions[act].GetName() << "\"";
 		}
-		double cost = events[act].cost;
+		double cost = actions[act].cost;
 		if (cost)
 			s << " (cost: " << cost << ")";
 		intersection.SetDifference(parent, ws);
@@ -734,8 +811,8 @@ String OmniActionPlanner::GetResultString(const Vector<Val*>& result) const {
 			act = v->value;
 		double cost = 0;
 		if (act >= 0 && act < actions.GetCount()) {
-			s << " " << actions[act] << ":";
-			cost = events[act].cost;
+			s << " " << actions[act].GetName() << ":";
+			cost = actions[act].cost;
 		}
 		else if (act >= 0) {
 			s << " (error act " << act << "):";

@@ -200,7 +200,7 @@ bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch
 
 template <class Gfx>
 void FboAtomT<Gfx>::AddBinder(BinderIfaceVideo* iface) {
-	VectorFindAdd(binders, iface);
+	VectorGetAdd(binders, iface);
 }
 
 template <class Gfx>
@@ -217,7 +217,7 @@ bool FboAtomT<Gfx>::Recv(int sink_ch, const Packet& in) {
 		DataState* state = CastPtr<DataState>(gfx_state);
 		ASSERT(state);
 		if (state) {
-			VectorFindAdd(this->data.linked, state);
+			VectorGetAdd(this->data.linked, state);
 		}
 	}
 	

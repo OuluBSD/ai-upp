@@ -14,12 +14,14 @@ protected:
 	friend class ActionPlannerWrapper;
 	friend class OmniActionPlanner;
 	
+	WorldStateKey key;
 	BinaryWorldState precond, postcond;
 	double cost;
 	
 public:
 
 	PlannerEvent();
+	String GetName() const;
 };
 
 
@@ -32,7 +34,7 @@ protected:
 	friend class ActionPlannerWrapper;
 	
 	int atom_count = 0;
-	Vector<PlannerEvent> events;
+	Vector<PlannerEvent> actions;
 	ActionPlannerWrapper* wrapper = 0;
 	
 	Array<BinaryWorldState> search_cache;
@@ -43,7 +45,7 @@ public:
 	
 	void Clear();
 	
-	int GetEventCount() const {return events.GetCount();}
+	int GetEventCount() const {return actions.GetCount();}
 	int GetAtomCount() const {return atom_count;}
 	
 	void AddSize(int action_count, int atom_count);
@@ -60,7 +62,8 @@ public:
 
 class ActionPlannerWrapper {
 	ActionPlanner& ap;
-	Vector<String> atoms, acts;
+	Vector<String> acts;
+	BinaryWorldStateSession ws_session;
 	
 protected:
 	friend class ActionPlanner;
@@ -72,13 +75,13 @@ public:
 	
 	int GetAtomIndex(String atom_name);
 	int GetEventIndex(String event_name);
-	String GetAtomName(int i) {return atoms[i];}
+	String GetAtomName(int i);
 	String GetActionName(int i) {return acts[i];}
 	String GetWorldstateDescription( const BinaryWorldState& ws );
 	String GetDescription();
 	
 	void SetAction(int act_i, String s) {acts[act_i] = s;}
-	void SetAtom(int atom_i, String s) {atoms[atom_i] = s;}
+	void SetAtom(int atom_i, String s);
 	bool SetPreCondition(String event_name, String atom_name, bool value);
 	bool SetPostCondition(String event_name, String atom_name, bool value);
 	bool SetCost(String event_name, int cost );
@@ -128,8 +131,8 @@ class OmniActionPlanner :
 	public OmniSearcher
 {
 protected:
-	Vector<PlannerEvent> events;
-	Index<String> atoms, actions;
+	Vector<PlannerEvent> actions;
+	Index<String> atoms;
 	BinaryWorldState ws_initial, ws_goal;
 	BinaryWorldStateSession ws_session;
 	mutable Ptr<BinaryWorldStateMask> ws_mask;
@@ -169,6 +172,7 @@ public:
 	String GetTreeString() const override;
 	String GetTreeString(Val& v, BinaryWorldState& parent, int indent) const;
 	String GetResultString(const Vector<Val*>& result) const override;
+	int FindAction(const WorldStateKey& key) const;
 };
 
 

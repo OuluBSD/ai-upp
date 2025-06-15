@@ -408,7 +408,7 @@ CONSOLE_APP_MAIN {
 	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
 	
 	//BasicTests();
-	//IntegratedTests();
-	FileSystemExample();
+	IntegratedTests();
+	//FileSystemExample();
 	//ConstraintSolverTests();
 }

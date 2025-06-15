@@ -132,9 +132,14 @@ protected:
 	Index<String> atoms, actions;
 	BinaryWorldState ws_initial, ws_goal;
 	BinaryWorldStateSession ws_session;
+	mutable Ptr<BinaryWorldStateMask> ws_mask;
 	ValPtr initial, goal;
 	ValueMap params;
 	double cost_multiplier = 1.5;
+	bool use_params = false;
+	bool use_resolver = false;
+	
+	using Key = WorldStateKey;
 	
 	// Runtime temp vars
 	BinaryWorldState tmp0, tmp1;
@@ -149,7 +154,8 @@ protected:
 	bool GetAction(VfsValue& v, int& action);
 	bool GetCost(const VfsValue& v, double& cost);
 	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const;
-	
+	Key RealizeKey(const String& str);
+	BinaryWorldStateMask& GetMask() const;
 public:
 	OmniActionPlanner();
 	VfsValue& GetInitial(Val& fs) override;

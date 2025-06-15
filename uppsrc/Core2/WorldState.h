@@ -10,15 +10,36 @@ class ScriptDriverLoader;
 }
 class ActionPlanner;
 class ActionNode;
+struct BinaryWorldStateSession;
 
+static const int WSKEY_MAX_PARAMS = 4;
+struct WorldStateKey : FixedArray<int, 1+WSKEY_MAX_PARAMS> {
+	using FA = FixedArray<int, 1+WSKEY_MAX_PARAMS>;
+	
+	using FixedArray::FixedArray;
+};
+
+struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
+	using Key = WorldStateKey;
+	BinaryWorldStateSession* session = 0;
+	Vector<Key> keys;
+	
+	
+	bool ParseKey(bool use_params, const String& atom_name, Key& atom_key);
+};
 
 struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
+	using Key = WorldStateKey;
+	
 	struct Item : Moveable<Item> {
-		Value positive, negative;
+		Key key;
 		bool initial = 0, goal = 0;
 	};
-	VectorMap<String, Item> atoms;
+	VectorMap<hash_t,Item> atoms;
+	ArrayMap<hash_t, BinaryWorldStateMask> masks;
+	Index<String> key_strings;
 	
+	int Find(const Key& k) const;
 };
 
 struct BinaryWorldState {
@@ -26,7 +47,7 @@ struct BinaryWorldState {
 	friend class ActionPlannerWrapper;
 	friend class ActionNode;
 	
-	Ptr<BinaryWorldStateSession> session;
+	Ptr<BinaryWorldStateMask> mask;
 	Vector<bool> atom_values;
 	Vector<bool> using_atom;
 	
@@ -40,7 +61,7 @@ struct BinaryWorldState {
 	bool IsPartialMatch(const BinaryWorldState& src) const;
 	hash_t GetHashValue() const;
 	Value ToValue() const;
-	bool FromValue(Value v, Event<String> WhenError=Null);
+	bool FromValue(bool use_params, Value v, Event<String> WhenError=Null);
 	String ToString() const;
 	String ToInlineString() const;
 	String ToShortInlineString() const;

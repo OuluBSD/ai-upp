@@ -111,9 +111,9 @@ void IntegratedTests() {
 		}
 	}
 	
-	// Action planner unit tests
+	// Action planner tests
 	if (1 || all) {
-		for(int i = 0; i < 3; i++) {
+		for(int i = 0; i < 4; i++) {
 			ValueMap atoms, goal, actions;
 			if (i == 0) {
 				atoms	.Add("A", false);
@@ -141,9 +141,11 @@ void IntegratedTests() {
 			}
 			else if (i == 3) {
 				// Same as previous, but B=B(0) and C=(B1)
+				// This test is for testing parameter parsing, comparison, etc.
 				params("use_params") = true;
 				atoms	.Add("A", false);
-				atoms	.Add("B(boolean)", false);
+				atoms	.Add("B(0)", false);
+				atoms	.Add("B(1)", false);
 				goal	.Add("A", true);
 				actions	.Add("write A (via B(0))", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
 				actions	.Add("write A (via B(1))", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));

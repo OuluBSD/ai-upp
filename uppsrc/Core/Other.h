@@ -432,7 +432,7 @@ template <class T> void RemoveLast(T& o) {
 }
 
 template <class T, int I>
-struct FixedArray {
+struct FixedArray : Moveable<FixedArray<T,I>> {
 	
 	static const int size = I;
 	

@@ -13,10 +13,13 @@ class ActionNode;
 struct BinaryWorldStateSession;
 
 static const int WSKEY_MAX_PARAMS = 4;
-struct WorldStateKey : FixedArray<int, 1+WSKEY_MAX_PARAMS> {
+struct WorldStateKey : FixedArray<int, 1+WSKEY_MAX_PARAMS>, Moveable<WorldStateKey> {
 	using FA = FixedArray<int, 1+WSKEY_MAX_PARAMS>;
 	
-	using FixedArray::FixedArray;
+	WorldStateKey();
+	WorldStateKey(const WorldStateKey& key);
+	bool operator==(const WorldStateKey& k) const;
+	operator hash_t() const;
 };
 
 struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
@@ -38,8 +41,10 @@ struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 	VectorMap<hash_t,Item> atoms;
 	ArrayMap<hash_t, BinaryWorldStateMask> masks;
 	Index<String> key_strings;
+	mutable RWMutex lock;
 	
 	int Find(const Key& k) const;
+	String GetKeyString(int idx) const;
 };
 
 struct BinaryWorldState {
@@ -55,7 +60,8 @@ struct BinaryWorldState {
 	BinaryWorldState(const BinaryWorldState& ws);
 	BinaryWorldState(BinaryWorldState&& ws);
 	void Clear();
-	bool Set(int index, bool value);
+	bool SetMasked(int index, bool value);
+	bool SetKey(const WorldStateKey& key, bool value);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
 	bool operator==(const BinaryWorldState& src) const;
 	bool IsPartialMatch(const BinaryWorldState& src) const;

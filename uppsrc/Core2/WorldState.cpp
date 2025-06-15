@@ -217,7 +217,7 @@ void BinaryWorldState::Clear() {
 	using_atom.Clear();
 }
 
-bool BinaryWorldState::Set(int index, bool value) {
+bool BinaryWorldState::SetMasked(int index, bool value) {
 	ASSERT(index >= 0 && index < mask->keys.GetCount());
 	if (index < 0) return false;
 	if (using_atom.GetCount() <= index) {
@@ -227,6 +227,16 @@ bool BinaryWorldState::Set(int index, bool value) {
 	using_atom[index] = true;
 	atom_values[index] = value;
 	return true;
+}
+
+bool BinaryWorldState::SetKey(const WorldStateKey& key, bool value) {
+	ASSERT(mask);
+	if (!mask)
+		return false;
+	int index = VectorFindAdd(mask->keys, key);
+	ASSERT(index >= 0);
+	if (index < 0) return false;
+	return SetMasked(index, value);
 }
 
 BinaryWorldState& BinaryWorldState::operator = (const BinaryWorldState& src) {
@@ -328,7 +338,7 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 		for(int i = 0; i < ws.GetCount(); i++) {
 			int j = ws.GetKey(i);
 			int v = ws.GetValue(i);
-			Set(j, v);
+			SetMasked(j, v);
 		}
 	}
 	else if (first_key.Is<String>()) {
@@ -343,7 +353,7 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 			if (j < 0) {WhenError("the goal atom can't be found: " + atom_name); return false;}
 			auto& atom = session.atoms[j];
 			atom.goal = v;
-			Set(j, v);
+			SetKey(atom_key, v);
 		}
 	}
 	else {
@@ -466,6 +476,16 @@ int BinaryWorldStateSession::Find(const Key& k) const {
 	return atoms.Find(h);
 }
 
+String BinaryWorldStateSession::GetKeyString(int idx) const {
+	String res;
+	if (idx < 0 || idx >= key_strings.GetCount())
+		return res;
+	lock.EnterRead();
+	res = key_strings[idx];
+	lock.LeaveRead();
+	return res;
+}
+
 
 
 
@@ -476,7 +496,7 @@ bool BinaryWorldStateMask::ParseKey(bool use_params, const String& atom_name, Ke
 		k[0] = session->key_strings.FindAdd(atom_name);
 		for(int i = 1; i <= WSKEY_MAX_PARAMS; i++)
 			k[i] = -1;
-		return k;
+		
 	}
 	else {
 		int a = atom_name.Find("(");
@@ -505,4 +525,31 @@ bool BinaryWorldStateMask::ParseKey(bool use_params, const String& atom_name, Ke
 	return true;
 }
 
+
+
+
+WorldStateKey::WorldStateKey() {
+	for(int i = 0; i < size; i++)
+		vector[i] = -1;
+}
+
+WorldStateKey::WorldStateKey(const WorldStateKey& key) {
+	*this = key;
+}
+
+bool WorldStateKey::operator==(const WorldStateKey& k) const {
+	bool same = true;
+	for(int i = 0; i < size; i++)
+		same = same && vector[i] == k.vector[i];
+	return same;
+}
+
+WorldStateKey::operator hash_t() const {
+	CombineHash ch;
+	for(int i = 0; i < size; i++)
+		ch.Do(vector[i]);
+	return ch;
+}
+
+	
 END_UPP_NAMESPACE

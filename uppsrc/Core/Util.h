@@ -603,22 +603,24 @@ public:
 
 
 template <class T> int VectorFind(const Vector<T>& v, const T& o) {
-	for(int i = 0; i < v.GetCount(); i++) {
-		auto& local = v[i];
+	int i = 0;
+	for(auto& local : v) {
 		if (local == o)
 			return i;
+		i++;
 	}
 	return -1;
 }
 
-template <class T> T& VectorFindAdd(Vector<T>& v, const T& o, int* found=0) {
+template <class T> T& VectorGetAdd(Vector<T>& v, const T& o, int* found=0) {
 	if (found) {
-		for(int i = 0; i < v.GetCount(); i++) {
-			auto& local = v[i];
+		int i = 0;
+		for(auto& local : v) {
 			if (local == o) {
 				*found = i;
 				return local;
 			}
+			i++;
 		}
 		*found = -1;
 	}
@@ -628,6 +630,30 @@ template <class T> T& VectorFindAdd(Vector<T>& v, const T& o, int* found=0) {
 				return i;
 	}
 	return v.Add(o);
+}
+
+template <class T> int VectorFindAdd(Vector<T>& v, const T& o, T** found=0) {
+	if (found) {
+		int i = 0;
+		for(auto& local : v) {
+			if (local == o) {
+				*found = &local;
+				return i;
+			}
+			i++;
+		}
+		*found = 0;
+	}
+	else {
+		int i = 0;
+		for(auto& it : v) {
+			if (it == o)
+				return i;
+			i++;
+		}
+	}
+	v.Add(o);
+	return v.GetCount()-1;
 }
 
 template <class T> int VectorRemoveKey(Vector<T>& v, const T& o) {
@@ -644,22 +670,24 @@ template <class T> int VectorRemoveKey(Vector<T>& v, const T& o) {
 
 
 template <class T> int ArrayFind(const Array<T>& v, const T& o) {
-	for(int i = 0; i < v.GetCount(); i++) {
-		auto& local = v[i];
+	int i = 0;
+	for(auto& local : v) {
 		if (local == o)
 			return i;
+		i++;
 	}
 	return -1;
 }
 
-template <class T> T& ArrayFindAdd(Array<T>& v, const T& o, int* found=0) {
+template <class T> T& ArrayGetAdd(Array<T>& v, const T& o, int* found=0) {
 	if (found) {
-		for(int i = 0; i < v.GetCount(); i++) {
-			auto& local = v[i];
+		int i = 0;
+		for(auto& local : v) {
 			if (local == o) {
 				*found = i;
 				return local;
 			}
+			i++;
 		}
 		*found = -1;
 	}
@@ -669,6 +697,30 @@ template <class T> T& ArrayFindAdd(Array<T>& v, const T& o, int* found=0) {
 				return i;
 	}
 	return v.Add(o);
+}
+
+template <class T> T& ArrayFindAdd(Array<T>& v, const T& o, int* found=0) {
+	if (found) {
+		int i = 0;
+		for(auto& local : v) {
+			if (local == o) {
+				*found = &local;
+				return i;
+			}
+			i++;
+		}
+		*found = 0;
+	}
+	else {
+		int i = 0;
+		for(auto& it : v) {
+			if (it == o)
+				return i;
+			i++;
+		}
+	}
+	v.Add(o);
+	return v.GetCount()-1;
 }
 
 template <class T> int ArrayRemoveKey(Array<T>& v, const T& o) {

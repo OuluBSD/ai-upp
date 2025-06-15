@@ -89,57 +89,69 @@ void FileSystemExample() {
 	CommitDiffListExt& list	= searcher.GetCommitDiffList();
 	
 	ValueMap atoms;
-	atoms.Add("armed with claws", true);
-	atoms.Add("mouse visible",    false);
-	atoms.Add("near mouse",       false);
-	atoms.Add("at high place",    true);
-	atoms.Add("claws extended",   false);
-	atoms.Add("ready to attack",  false);
-	atoms.Add("mouse alive",      true);
-	atoms.Add("alive",            true);
+	atoms.Add("dir_exists(D)",    false);
+	atoms.Add("file_exists(F)",    false);
+	atoms.Add("file_closed(F)",    false);
+	atoms.Add("file_open(F)",    false);
+	atoms.Add("file_mode(F,Mode)",    false);
+	atoms.Add("file_has_content(F,Content)",    false);
 	
 	ValueMap goal;
-	goal.Add("mouse alive",		  false);
-	goal.Add("alive",			  true); // add this to avoid hurting by 'fall' action in the plan.
-	goal.Add("near mouse",		  false);
+	goal.Add("file_exists(\"/home/readme.txt\")", true);
+	goal.Add("file_has_content(\"/home/readme.txt\",\"Hello\")", true);
+	goal.Add("dir_exists(\"/home/admin/docs\")", false);
 	
 	ValueMap actions;
-	actions.Add("cat", ActionEventValue()
-		.Pre("armed with claws", true)
-		.Post("mouse visible", true));
-	actions.Add("approach", ActionEventValue()
-		.Pre("mouse visible", true)
-		.Post("near mouse", true));
-	actions.Add("come down", ActionEventValue()
-		.Pre("at high place", true)
-		.Post("at high place", false));
-	actions.Add("aim", ActionEventValue()
-		.Pre("mouse visible", true)
-		.Pre("claws extended", true)
-		.Post("ready to attack", true));
-	actions.Add("attack", ActionEventValue()
-		.Pre("ready to attack", true)
-		.Pre("at high place", false)
-		.Pre("near mouse", true)
-		.Post("mouse alive", false));
-	actions.Add("prepare claws", ActionEventValue()
-		.Pre("armed with claws", true)
-		.Post("claws extended", true));
-	actions.Add("very high jump attack", ActionEventValue()
-		.Pre("at high place", true)
-		.Pre("near mouse", true)
-		.Post("alive", false)
-		.Post("mouse alive", false)
-		.Cost(5));
-	actions.Add("flee", ActionEventValue()
-		.Pre("mouse visible", true)
-		.Post("near mouse", false));
+	actions.Add("CreateDir(D,Parent)", ActionEventValue()
+		.Pre("dir_exists(Parent)", true)
+		.Pre("dir_exists(D)", false)
+		.Post("dir_exists(D)", true)
+		);
+	actions.Add("CreateFile(F,Dir)", ActionEventValue()
+		.Pre("dir_exists(Dir)", true)
+		.Pre("file_exists(F)", false)
+		.Post("file_exists(F)", true)
+		.Post("file_closed(F)", true)
+		.Post("file_has_content(F,\"\")", true)
+		);
+	actions.Add("OpenFile(F,Mode)", ActionEventValue()
+		.Pre("file_exists(F)", true)
+		.Pre("file_closed(F)", true)
+		.Post("file_open(F)", true)
+		.Post("file_mode(F,Mode)", true)
+		.Post("file_closed(F)", false)
+		);
+	actions.Add("WriteFile(F,Content)", ActionEventValue()
+		.Pre("file_open(F)", true)
+		.Pre("file_mode(F,write)", true)
+		.Post("file_has_content(F,Content)", true)
+		);
+	actions.Add("CloseFile(F)", ActionEventValue()
+		.Pre("file_open(F)", true)
+		.Post("file_closed(F)", true)
+		.Post("file_open(F)", false)
+		.Post("file_mode(F,read)", false)
+		.Post("file_mode(F,write)", false)
+		);
+	actions.Add("MoveFile(F,OldDir,NewDir)", ActionEventValue()
+		.Pre("file_exists(OldPath)", true)
+		.Pre("dir_exists(NewDir)", true)
+		.Pre("file_closed(OldPath)", true)
+		.Post("file_exists(OldPath)", false)
+		.Post("file_exists(NewPath)", true)
+		);
+	actions.Add("DeleteDir(D)", ActionEventValue()
+		.Pre("dir_exists(D)", true)
+		.Post("dir_exists(D)", false)
+		);
 	
 	ValueMap params;
 	params("atoms") = atoms;
 	params("actions") = actions;
 	params("goal") = goal;
 	params("dump_intermediate_trees") = false;
+	params("use_params") = true;
+	params("use_resolver") = true;
 	searcher.SetSearcherParams(params);
 	searcher.SetGeneratorParams(params, Null);
 	searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);

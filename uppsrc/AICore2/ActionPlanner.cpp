@@ -321,16 +321,16 @@ double ActionNode::GetEstimate() {
 
 
 OmniActionPlanner::OmniActionPlanner() {
-	ws_initial.session = &this->ws_session;
-	ws_goal.session = &this->ws_session;
-	tmp0.session = &this->ws_session;
-	tmp1.session = &this->ws_session;
 	
 }
 
 bool OmniActionPlanner::SetParams(Value val) {
 	this->params = val;
 	cost_multiplier = params.Get("cost_multiplier", 1.5);
+	use_params = params.Get("use_params", false);
+	use_resolver = params.Get("use_resolver", false);
+	
+	if (use_resolver) TODO;
 	
 	ValueMap in_actions  = val("actions");
 	ValueMap in_atoms    = val("atoms");
@@ -352,19 +352,16 @@ bool OmniActionPlanner::SetParams(Value val) {
 	for(int i = 0; i < in_atoms.GetCount(); i++) {
 		String atom_name = in_atoms.GetKey(i);
 		Value v = in_atoms.GetValue(i);
+		Key atom_key = RealizeKey(atom_name);
 		
-		int j = ws_session.atoms.Find(atom_name);
+		int j = ws_session.atoms.Find(atom_key);
 		if (j >= 0) {WhenError("duplicate atom: " + atom_name); return false;}
-		auto& atom = ws_session.atoms.Add(atom_name);
-		if (v.Is<ValueArray>()) {
-			ValueArray atom_v = v;
-			if (atom_v.GetCount() != 3) {WhenError("unexpected atom '" + atom_name + "' values: " + v.ToString()); return false;}
-			atom.positive = atom_v[0];
-			atom.negative = atom_v[1];
-			atom.initial  = atom_v[2];
+		auto& atom = ws_session.atoms.Add(atom_key);
+		if (v.Is<bool>() || v.Is<int>()) {
+			atom.initial = v;
 		}
 		else {
-			atom.initial = v;
+			WhenError("unexpected value type '" + v.GetTypeName() + "'"); return false;
 		}
 		ws_initial.atom_values[i] = atom.initial;
 	}
@@ -388,8 +385,9 @@ bool OmniActionPlanner::SetParams(Value val) {
 				ValueArray arr = in[j];
 				if (arr.GetCount() != 2) {WhenError("expected vector of 2 in condition");  return false;}
 				String atom_name = arr[0];
+				Key atom_key = RealizeKey(atom_name);
 				int atom_value = arr[1];
-				int atom_idx = ws_session.atoms.Find(atom_name);
+				int atom_idx = ws_session.atoms.Find(atom_key);
 				if (atom_idx < 0) {WhenError("atom '" + atom_name + "' not found");  return false;}
 				out.Set(atom_idx, atom_value);
 			}
@@ -399,12 +397,27 @@ bool OmniActionPlanner::SetParams(Value val) {
 	return true;
 }
 
+WorldStateKey OmniActionPlanner::RealizeKey(const String& str) {
+	WorldStateKey key;
+	auto& mask = GetMask();
+	if (!mask.ParseKey(use_params, str, key)) {
+		WhenError("parsing key '" + str + "' failed");
+	}
+	return key;
+}
+
 VfsValue& OmniActionPlanner::GetInitial(Val& fs) {
 	return fs.GetAdd(".initial",0);
 }
 
 bool OmniActionPlanner::Run(Val& fs) {
 	this->fs = &fs;
+	
+	ws_initial.mask = &GetMask();
+	ws_goal.mask = &GetMask();
+	tmp0.mask = &GetMask();
+	tmp1.mask = &GetMask();
+	
 	tmp_sub.Clear();
 	{
 		initial = &fs.GetAdd(".initial",0);
@@ -418,7 +431,7 @@ bool OmniActionPlanner::Run(Val& fs) {
 		goal = &fs.GetAdd(".goal",0);
 		ValueMap in_goal = params("goal");
 		if (in_goal.IsEmpty()) {WhenError("OmniActionPlanner requires goal atom-list");   return false;}
-		ws_goal.FromValue(in_goal, WhenError);
+		ws_goal.FromValue(use_params, in_goal, WhenError);
 		if (!Set(*goal, ws_goal)) return false;
 		hash_t h = ws_goal.GetHashValue();
 		tmp_sub.Add(h, goal);
@@ -440,7 +453,7 @@ bool OmniActionPlanner::Get(const VfsValue& v, BinaryWorldState& ws) const {
 		WhenError("unexpected Value type");
 		return false;
 	}
-	return ws.FromValue(v.value, WhenError);
+	return ws.FromValue(use_params, v.value, WhenError);
 }
 
 void OmniActionPlanner::SetAction(VfsValue& v, int action) {
@@ -667,7 +680,7 @@ String OmniActionPlanner::GetTreeString() const {
 
 String OmniActionPlanner::GetTreeString(VfsValue& v, BinaryWorldState& parent, int indent) const {
 	BinaryWorldState ws, intersection;
-	ws.session = ws_initial.session;
+	ws.mask = ws_initial.mask;
 	String s;
 	s.Cat('\t', indent);
 	if (v.id.GetCount())
@@ -710,7 +723,7 @@ String OmniActionPlanner::GetTreeString(VfsValue& v, BinaryWorldState& parent, i
 String OmniActionPlanner::GetResultString(const Vector<Val*>& result) const {
 	String s;
 	BinaryWorldState ws, prev;
-	prev.session = ws.session = &const_cast<OmniActionPlanner*>(this)->ws_session;
+	prev.mask = ws.mask = &GetMask();
 	int i = 0;
 	for (Val* v : result) {
 		s << i << ":";
@@ -750,5 +763,13 @@ String OmniActionPlanner::GetResultString(const Vector<Val*>& result) const {
 	return s;
 }
 
+BinaryWorldStateMask& OmniActionPlanner::GetMask() const {
+	if (!ws_mask) {
+		auto& ses = const_cast<OmniActionPlanner*>(this)->ws_session;
+		ws_mask = &ses.masks.GetAdd(0);
+		ws_mask->session = &ses;
+	}
+	return *ws_mask;
+}
 
 END_UPP_NAMESPACE

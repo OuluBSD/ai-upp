@@ -52,7 +52,7 @@ void IntegratedTests() {
 	params.Set("low", 2);
 	params.Set("high", 3);
 	
-	bool all = 1;
+	bool all = 0;
 	
 	// Simple game algorithms
 	if (all) {
@@ -112,7 +112,7 @@ void IntegratedTests() {
 	}
 	
 	// Action planner unit tests
-	if (all) {
+	if (1 || all) {
 		for(int i = 0; i < 3; i++) {
 			ValueMap atoms, goal, actions;
 			if (i == 0) {
@@ -133,11 +133,34 @@ void IntegratedTests() {
 				atoms	.Add("C", false);
 				goal	.Add("A", true);
 				// avoid 'write A (via B)' by setting cost multiplier to 5
-				actions	.Add("write A (via B)", ActionEventValue().Cost(5).Pre("A",false).Pre("B",true).Post("A",true));
-				actions	.Add("write A (via C)", ActionEventValue().Pre("A",false).Pre("C",true).Post("A",true));
+				actions	.Add("write A via B", ActionEventValue().Cost(5).Pre("A",false).Pre("B",true).Post("A",true));
+				actions	.Add("write A via C", ActionEventValue().Pre("A",false).Pre("C",true).Post("A",true));
 				actions	.Add("write B", ActionEventValue().Pre("B",false).Post("B",true));
 				// ... even though writing C is slightly more costly
 				actions	.Add("write C", ActionEventValue().Cost(2).Pre("C",false).Post("C",true));
+			}
+			else if (i == 3) {
+				// Same as previous, but B=B(0) and C=(B1)
+				params("use_params") = true;
+				atoms	.Add("A", false);
+				atoms	.Add("B(boolean)", false);
+				goal	.Add("A", true);
+				actions	.Add("write A (via B(0))", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
+				actions	.Add("write A (via B(1))", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));
+				actions	.Add("write B(0)", ActionEventValue().Pre("B(0)",false).Post("B(0)",true));
+				actions	.Add("write B(1)", ActionEventValue().Cost(2).Pre("B(1)",false).Post("B(1)",true));
+			}
+			else if (i == 4) {
+				// Same as previous, but the "id" param is added
+				params("use_params") = true;
+				params("use_resolver") = true;
+				atoms	.Add("A(id)", false);
+				atoms	.Add("B(id,boolean)", false);
+				goal	.Add("A(\"abc\")", true); // the 'id' should be resolved to be 'abc'
+				actions	.Add("write A via B(id,0)", ActionEventValue().Cost(5).Pre("A(id)",false).Pre("B(id,0)",true).Post("A(id)",true));
+				actions	.Add("write A via B(id,1)", ActionEventValue().Pre("A(id)",false).Pre("B(id,1)",true).Post("A(id)",true));
+				actions	.Add("write B(id,0)", ActionEventValue().Pre("B(id,0)",false).Post("B(id,0)",true));
+				actions	.Add("write B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
 			}
 			params("atoms") = atoms;
 			params("actions") = actions;

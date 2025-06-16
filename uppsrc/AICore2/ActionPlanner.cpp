@@ -78,13 +78,21 @@ void ActionPlanner::SetSize(int action_count, int atom_count) {
 
 void ActionPlanner::DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) {
 	const BinaryWorldState& post = actions[action_id].postcond;
-	
 	dest = src;
 	
-	for(int i = 0; i < post.using_atom.GetCount(); i++) {
-		if (post.using_atom[i]) {
-			dest.SetMasked(i, post.atom_values[i]);
+	int i = 0;
+	auto k = post.mask->keys.Begin();
+	for(auto& a : post.atoms) {
+		if (a.in_use) {
+			if (a.req_resolve) {
+				TODO
+			}
+			else {
+				dest.SetMasked(i, a.value, false);
+			}
 		}
+		k++;
+		i++;
 	}
 }
 
@@ -102,18 +110,18 @@ void ActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Arra
 		const BinaryWorldState& pre = e.precond;
 		
 		// Check that precondition is not using something outside of src values
-		int count = UPP::min(pre.using_atom.GetCount(), src.using_atom.GetCount());
+		int count = UPP::min(pre.atoms.GetCount(), src.atoms.GetCount());
 		bool fail = false;
-		for(int j = count; j < pre.using_atom.GetCount(); j++)
-			if (pre.using_atom[j] && pre.atom_values[j])
+		for(int j = count; j < pre.atoms.GetCount(); j++)
+			if (pre.atoms[j].in_use && pre.atoms[j].value)
 				{fail = true; break;}
 		if (fail)
 			continue;
 		
 		bool met = true;
 		for(int j = 0; j < count; j++) {
-			int a = pre.using_atom[j];
-			if (a && src.atom_values[j] != pre.atom_values[j]) {
+			int a = pre.atoms[j].in_use;
+			if (a && src.atoms[j].value != pre.atoms[j].value) {
 				met = false;
 				break;
 			}
@@ -137,7 +145,7 @@ bool ActionPlanner::SetPreCondition(int act_idx, int atm_idx, bool value)
 	auto& ses = *ws.mask->session;
 	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
 	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
-	ws.SetKey(key, value);
+	ws.SetKey(key, value, false);
 	return true;
 }
 
@@ -150,7 +158,7 @@ bool ActionPlanner::SetPostCondition(int act_idx, int atm_idx, bool value)
 	auto& ses = *ws.mask->session;
 	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
 	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
-	ws.SetKey(key, value);
+	ws.SetKey(key, value, false);
 	return true;
 }
 
@@ -341,20 +349,17 @@ double ActionNode::GetDistance(VfsValue& n) {
 	ActionNode& to = *CastPtr<ActionNode>(&*p->ext);
 	double dist = 0;
 	
-	Vector<bool>& values = ws->atom_values;
-	const Vector<bool>& to_values = to.ws->atom_values;
+	auto& src_atoms = ws->atoms;
+	const auto& to_atoms = to.ws->atoms;
 	
-	Vector<bool>& using_atom = ws->using_atom;
-	const Vector<bool>& to_using_atom = to.ws->using_atom;
+	int count = UPP::min(src_atoms.GetCount(), to_atoms.GetCount());
 	
-	int count = UPP::min(values.GetCount(), to_values.GetCount());
-	
-	for(int j = count; j < to_using_atom.GetCount(); j++)
-		if (to_using_atom[j] && to_values[j])
+	for(int j = count; j < to_atoms.GetCount(); j++)
+		if (to_atoms[j].in_use && to_atoms[j].value)
 			dist += 1;
 	
 	for(int j = 0; j < count; j++)
-		if (to_using_atom[j] && values[j] != to_values[j])
+		if (to_atoms[j].in_use && src_atoms[j].value != to_atoms[j].value)
 			dist += 1;
 	
 	return dist;
@@ -389,7 +394,8 @@ bool OmniActionPlanner::SetParams(Value val) {
 	use_params = params.Get("use_params", false);
 	use_resolver = params.Get("use_resolver", false);
 	
-	if (use_resolver) TODO;
+	ValueMap in_initial  = val("initial");
+	run_initial = in_initial.GetCount();
 	
 	ValueMap in_actions  = val("actions");
 	ValueMap in_atoms    = val("atoms");
@@ -399,7 +405,8 @@ bool OmniActionPlanner::SetParams(Value val) {
 	actions.Clear();
 	for(int i = 0; i < in_actions.GetCount(); i++) {
 		String action_name = in_actions.GetKey(i);
-		Key action_key = this->RealizeKey(action_name);
+		Key action_key;
+		if (!this->RealizeDecl(action_name, action_key)) return false;
 		int j = FindAction(action_key);
 		if (j >= 0) {WhenError("duplicate action: " + action_name); return false;}
 		auto& action = actions.Add();
@@ -410,23 +417,23 @@ bool OmniActionPlanner::SetParams(Value val) {
 	
 	ws_session.atoms.Clear();
 	ws_initial.Clear();
-	ws_initial.atom_values.SetCount(in_atoms.GetCount(), false);
-	ws_initial.using_atom.SetCount(in_atoms.GetCount(), true);
+	ws_initial.atoms.SetCount(in_atoms.GetCount());
 	for(int i = 0; i < in_atoms.GetCount(); i++) {
 		String atom_name = in_atoms.GetKey(i);
 		Value v = in_atoms.GetValue(i);
-		Key atom_key = RealizeKey(atom_name);
+		Key atom_key;
+		if (!RealizeDecl(atom_name, atom_key)) return false;
 		
 		int j = ws_session.atoms.Find(atom_key);
 		if (j >= 0) {WhenError("duplicate atom: " + atom_name); return false;}
-		auto& atom = ws_session.atoms.Add(atom_key);
+		auto& atom = ws_session.GetAddAtom(atom_key);
 		if (v.Is<bool>() || v.Is<int>()) {
 			atom.initial = v;
 		}
 		else {
 			WhenError("unexpected value type '" + v.GetTypeName() + "'"); return false;
 		}
-		ws_initial.atom_values[i] = atom.initial;
+		ws_initial.atoms[i].value = atom.initial;
 	}
 	
 	for(int act_idx = 0; act_idx < actions.GetCount(); act_idx++) {
@@ -439,6 +446,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 		if (in_pre.IsEmpty())  {WhenError("empty pre-condition in action '" + action + "'");  return false;}
 		if (in_post.IsEmpty()) {WhenError("empty post-condition in action '" + action + "'"); return false;}
 		a.cost = cost;
+		int shared_count = 0;
 		for (int m = 0; m < 2; m++) {
 			auto& in  = m == 0 ? in_pre    : in_post;
 			auto& out = m == 0 ? a.precond : a.postcond;
@@ -447,26 +455,49 @@ bool OmniActionPlanner::SetParams(Value val) {
 				ValueArray arr = in[j];
 				if (arr.GetCount() != 2) {WhenError("expected vector of 2 in condition");  return false;}
 				String atom_name = arr[0];
-				Key atom_key = RealizeKey(atom_name);
+				Key atom_key;
+				if (!RealizeDecl(atom_name, atom_key)) return false;
 				int atom_value = arr[1];
 				int atom_idx = ws_session.atoms.Find(atom_key);
-				if (atom_idx < 0) {
-				WhenError("atom '" + atom_name + "' not found");  return false;}
-				out.SetKey(atom_key, atom_value);
+				if (atom_idx < 0) {WhenError("atom '" + atom_name + "' not found");  return false;}
+				if (!use_resolver)
+					out.SetKey(atom_key, atom_value, false);
+				else {
+					if (atom_key.GetLength() == 1)
+						out.SetKey(atom_key, atom_value, false);
+					else {
+						// Find if key shares params with action params
+						bool shared = false;
+						for(int k0 = 1; k0 <= WSKEY_MAX_PARAMS && !shared; k0++) {
+							int idx0 = a.key.vector[k0];
+							if (idx0 < 0) break;
+							for(int k1 = 1; k1 <= WSKEY_MAX_PARAMS && !shared; k1++) {
+								int idx1 = atom_key.vector[k1];
+								if (idx1 < 0) break;
+								if (idx0 == idx1) {
+									shared = true;
+								}
+							}
+						}
+						out.SetKey(atom_key, atom_value, shared);
+						shared_count += (int)shared;
+					}
+				}
 			}
+		}
+		if (a.key.GetLength() > 1 && !shared_count) {
+			WhenError("the action '" + a.GetName() + "' has params, but no pre nor post condition uses it");
+			return false;
 		}
 	}
 	
 	return true;
 }
 
-WorldStateKey OmniActionPlanner::RealizeKey(const String& str) {
-	WorldStateKey key;
-	auto& mask = GetMask();
-	if (!mask.ParseKey(use_params, str, key)) {
-		WhenError("parsing key '" + str + "' failed");
-	}
-	return key;
+bool OmniActionPlanner::RealizeDecl(const String& str, WorldStateKey& key) {
+	if (!use_params && !ws_session.ParseRaw (str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	if ( use_params && !ws_session.ParseDecl(str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	return true;
 }
 
 int OmniActionPlanner::FindAction(const WorldStateKey& key) const {
@@ -486,13 +517,34 @@ VfsValue& OmniActionPlanner::GetInitial(Val& fs) {
 bool OmniActionPlanner::Run(Val& fs) {
 	this->fs = &fs;
 	
-	ws_initial.mask = &GetMask();
-	ws_goal.mask = &GetMask();
-	tmp0.mask = &GetMask();
-	tmp1.mask = &GetMask();
+	auto& mask = GetMask();
+	ws_initial.mask = &mask;
+	ws_goal.mask = &mask;
+	tmp0.mask = &mask;
+	tmp1.mask = &mask;
 	
 	tmp_sub.Clear();
 	{
+		if (run_initial) {
+			ValueMap in_initial = params("initial");
+			ASSERT(in_initial.GetCount());
+			for(int i = 0; i < in_initial.GetCount(); i++) {
+				String call = in_initial.GetKey(i);
+				bool initial_value = in_initial.GetValue(i);
+				Key call_key;
+				if (!use_params && !ws_session.ParseRaw(call, call_key))  {WhenError("parsing '" + call + "' failed"); return false;}
+				if ( use_params && !ws_session.ParseCall(call, call_key)) {WhenError("parsing '" + call + "' failed"); return false;}
+				int decl_atom_idx = -1;
+				if (!ResolveCall(call_key, decl_atom_idx)) {WhenError("could not resolve '" + call + "' atom"); return false;}
+				int call_atom_idx = ws_session.FindAddAtom(call_key);
+				auto& atom = ws_session.atoms[call_atom_idx];
+				atom.initial = initial_value;
+				atom.decl_atom_idx = decl_atom_idx;
+				ASSERT(atom.decl_atom_idx != call_atom_idx);
+				ws_initial.SetAtomIndex(call_atom_idx, initial_value, false);
+			}
+		}
+		
 		initial = &fs.GetAdd(".initial",0);
 		if (!Set(*initial, ws_initial)) return false;
 		hash_t h = ws_initial.GetHashValue();
@@ -511,6 +563,24 @@ bool OmniActionPlanner::Run(Val& fs) {
 	}
 	
 	return true;
+}
+
+bool OmniActionPlanner::ResolveCall(const Key& call_key, int& atom_idx) {
+	ASSERT(!call_key.IsEmpty());
+	
+	int key_len = call_key.GetLength();
+	int i = 0;
+	for (auto& atom : ws_session.atoms) {
+		if (atom.key_len       == key_len &&
+			atom.key.vector[0] == call_key.vector[0]) {
+			atom_idx = i;
+			return true;
+		}
+		i++;
+	}
+	
+	WhenError("could not resolve call: " + ws_session.GetKeyString(call_key));
+	return false;
 }
 
 bool OmniActionPlanner::Set(VfsValue& v, const BinaryWorldState& ws) {
@@ -601,10 +671,10 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		const BinaryWorldState& post = e.postcond;
 		
 		// Check that precondition is not using something outside of src values
-		int pre_count = UPP::min(pre.using_atom.GetCount(), src.using_atom.GetCount());
+		int pre_count = UPP::min(pre.atoms.GetCount(), src.atoms.GetCount());
 		bool fail = false;
-		for(int j = pre_count; j < pre.using_atom.GetCount(); j++)
-			if (pre.using_atom[j] && pre.atom_values[j])
+		for(int j = pre_count; j < pre.atoms.GetCount(); j++)
+			if (pre.atoms[j].in_use && pre.atoms[j].value)
 				{fail = true; break;}
 		if (fail)
 			continue;
@@ -612,31 +682,94 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		bool met = true;
 		int met_count = 0;
 		for(int j = 0; j < pre_count; j++) {
-			int a = pre.using_atom[j];
-			if (a && src.atom_values[j] != pre.atom_values[j]) {
-				met = false;
-				break;
+			auto& a = pre.atoms[j];
+			if (!a.req_resolve) {
+				if (a.in_use && src.atoms[j].value != a.value) {
+					met = false;
+					break;
+				}
+				else met_count++;
 			}
-			else met_count++;
+			else {
+				const auto& mkey0 = pre.mask->keys[j];
+				if (mkey0.decl_atom_idx >= 0) {
+					bool found = false;
+					for(int k = 0; k < pre.mask->keys.GetCount(); k++) {
+						if (k == j) continue;
+						const auto& mkey1 = pre.mask->keys[k];
+						if (mkey0.decl_atom_idx == mkey1.atom_idx) {
+							TODO
+						}
+					}
+					if (!found) TODO;
+				}
+				else {
+					LOG("SRC:\n" << src.ToString());
+					LOG("PRE:\n" << pre.ToString());
+					bool found = false;
+					for(int k = 0; k < src.mask->keys.GetCount(); k++) {
+						const auto& mkey1 = src.mask->keys[k];
+						if (mkey0.atom_idx == mkey1.decl_atom_idx) {
+							TODO
+						}
+					}
+					if (!found) TODO;
+				}
+				TODO // if req_resolve:
+				// 1. loop & match src atoms with Mask::Item::decl_atom_idx
+				// 2a. if all params shared
+				//			- call atom matches
+				// 2b. if partially shared
+				//			- resolve shared values & used them to make the full call
+				//			- search for full call(s)
+				// ??? param combinations ??? where matters?
+			}
 		}
 		if (!met)
 			continue;
+		
+		// Check dynamic pre-conditions
+		bool pre_req_resolve = false;
+		for (auto& it : pre.atoms)
+			pre_req_resolve = pre_req_resolve || it.req_resolve;
+		if (pre_req_resolve) {
+			TODO
+			
+			// resolve params
+			
+		}
+		
+		
 		ASSERT(met_count > 0);
 		
 		// Check that changes can be made
-		int post_count = UPP::min(post.using_atom.GetCount(), src.using_atom.GetCount());
+		int post_count = UPP::min(post.atoms.GetCount(), src.atoms.GetCount());
 		bool changes = false;
-		if (post_count < post.using_atom.GetCount()) {
-			for(int j = post_count; j < post.using_atom.GetCount(); j++)
-				if (post.using_atom[j] && post.atom_values[j])
+		if (post_count < post.atoms.GetCount()) {
+			for(int j = post_count; j < post.atoms.GetCount(); j++)
+				if (post.atoms[j].in_use && post.atoms[j].value)
 					{changes = true; break;}
 		}
 		for(int j = 0; j < post_count; j++)
-			if (post.using_atom[j] &&
-				post.atom_values[j] != src.atom_values[j])
+			if (post.atoms[j].in_use &&
+				post.atoms[j].value != src.atoms[j].value)
 				{changes = true; break;}
+				
+		bool post_req_resolve = false;
+		for (auto& it : post.atoms)
+			post_req_resolve = post_req_resolve || it.req_resolve;
+		
+		if (!changes && post_req_resolve) {
+			TODO
+		}
 		if (!changes)
 			continue;
+		
+		if (post_req_resolve) {
+			// resolve params from post
+			
+			TODO
+		}
 		
 		act_ids.Add(i);
 		action_costs.Add(e.cost);
@@ -656,10 +789,19 @@ void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, Bi
 	ASSERT(post.mask == dest.mask);
 	if (post.mask != dest.mask) return;
 	
-	for(int i = 0; i < post.using_atom.GetCount(); i++) {
-		if (post.using_atom[i]) {
-			dest.SetMasked(i, post.atom_values[i]);
+	int i = 0;
+	auto k = post.mask->keys.Begin();
+	for(auto& a : post.atoms) {
+		if (a.in_use) {
+			if (a.req_resolve) {
+				TODO
+			}
+			else {
+				dest.SetMasked(i, a.value, false);
+			}
 		}
+		k++;
+		i++;
 	}
 }
 
@@ -719,18 +861,17 @@ double OmniActionPlanner::Distance(Val& a, Val& b) {
 		ASSERT(!a.symbolic_link);
 		// guesstimate distance using Hamming distance
 		
-		
-		int count = UPP::min(tmp0.atom_values.GetCount(), tmp1.atom_values.GetCount());
+		int count = UPP::min(tmp0.atoms.GetCount(), tmp1.atoms.GetCount());
 		
 		// When the size is different, the tail is considered be all 'false'
 		// So if there's any 'true' values, they are different of 'false'
 		int dist = 0;
-		for(int j = count; j < tmp1.atom_values.GetCount(); j++)
-			if (tmp1.using_atom[j] && tmp1.atom_values[j])
+		for(int j = count; j < tmp1.atoms.GetCount(); j++)
+			if (tmp1.atoms[j].in_use && tmp1.atoms[j].value)
 				dist += 1;
 		
 		for(int j = 0; j < count; j++)
-			if (tmp1.using_atom[j] && tmp0.atom_values[j] != tmp1.atom_values[j])
+			if (tmp1.atoms[j].in_use && tmp0.atoms[j].value != tmp1.atoms[j].value)
 				dist += 1;
 		
 		total_dist += max(0.0, cost_multiplier * dist);

@@ -20,15 +20,24 @@ struct WorldStateKey : FixedArray<int, 1+WSKEY_MAX_PARAMS>, Moveable<WorldStateK
 	WorldStateKey(const WorldStateKey& key);
 	bool operator==(const WorldStateKey& k) const;
 	operator hash_t() const;
+	bool IsEmpty() const;
+	int GetLength() const;
 };
 
 struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
 	using Key = WorldStateKey;
+	struct Item : Moveable<Item> {
+		Key key;
+		int atom_idx = -1;
+		int decl_atom_idx = -1;
+		//bool is_decl = false;
+		//bool req_decl = false;
+	};
 	BinaryWorldStateSession* session = 0;
-	Vector<Key> keys;
+	Vector<Item> keys;
 	
-	
-	bool ParseKey(bool use_params, const String& atom_name, Key& atom_key);
+	int Find(const Key& key) const;
+	int FindAdd(const Key& key, bool req_resolve);
 };
 
 struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
@@ -36,15 +45,24 @@ struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 	
 	struct Item : Moveable<Item> {
 		Key key;
+		int key_len = 0;
 		bool initial = 0, goal = 0;
+		int decl_atom_idx = -1;
 	};
 	VectorMap<hash_t,Item> atoms;
 	ArrayMap<hash_t, BinaryWorldStateMask> masks;
-	Index<String> key_strings;
+	Index<Value> key_values;
 	mutable RWMutex lock;
 	
-	int Find(const Key& k) const;
+	int FindAtom(const Key& k) const;
+	int FindAddAtom(const Key& k);
+	Item& GetAddAtom(const Key& k);
 	String GetKeyString(int idx) const;
+	String GetKeyString(const Key& k) const;
+	WorldStateKey GetAtomKey(int atom_idx) const;
+	bool ParseRaw(const String& atom_name, Key& atom_key);
+	bool ParseDecl(const String& atom_name, Key& atom_key);
+	bool ParseCall(const String& atom_name, Key& atom_key);
 };
 
 struct BinaryWorldState {
@@ -52,16 +70,22 @@ struct BinaryWorldState {
 	friend class ActionPlannerWrapper;
 	friend class ActionNode;
 	
+	struct Item : Moveable<Item> {
+		bool value = false;
+		bool in_use = false;
+		bool req_resolve = false;
+	};
+	
 	Ptr<BinaryWorldStateMask> mask;
-	Vector<bool> atom_values;
-	Vector<bool> using_atom;
+	Vector<Item> atoms;
 	
 	BinaryWorldState();
 	BinaryWorldState(const BinaryWorldState& ws);
 	BinaryWorldState(BinaryWorldState&& ws);
 	void Clear();
-	bool SetMasked(int index, bool value);
-	bool SetKey(const WorldStateKey& key, bool value);
+	bool SetMasked(int index, bool value, bool req_resolve);
+	bool SetKey(const WorldStateKey& key, bool value, bool req_resolve);
+	bool SetAtomIndex(int atom_idx, bool value, bool req_resolve);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
 	bool operator==(const BinaryWorldState& src) const;
 	bool IsPartialMatch(const BinaryWorldState& src) const;

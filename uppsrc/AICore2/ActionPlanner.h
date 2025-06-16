@@ -141,6 +141,7 @@ protected:
 	double cost_multiplier = 1.5;
 	bool use_params = false;
 	bool use_resolver = false;
+	bool run_initial = false;
 	
 	using Key = WorldStateKey;
 	
@@ -157,8 +158,9 @@ protected:
 	bool GetAction(VfsValue& v, int& action);
 	bool GetCost(const VfsValue& v, double& cost);
 	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const;
-	Key RealizeKey(const String& str);
+	bool RealizeDecl(const String& str, Key& key);
 	BinaryWorldStateMask& GetMask() const;
+	bool ResolveCall(const Key& call_key, int& atom_idx);
 public:
 	OmniActionPlanner();
 	VfsValue& GetInitial(Val& fs) override;

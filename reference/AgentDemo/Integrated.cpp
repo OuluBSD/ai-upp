@@ -113,8 +113,8 @@ void IntegratedTests() {
 	
 	// Action planner tests
 	if (1 || all) {
-		for(int i = 0; i < 4; i++) {
-			ValueMap atoms, goal, actions;
+		for(int i = 4; i < 5; i++) {
+			ValueMap atoms, goal, actions, initial;
 			if (i == 0) {
 				atoms	.Add("A", false);
 				goal	.Add("A", true);
@@ -153,7 +153,30 @@ void IntegratedTests() {
 				actions	.Add("write B(1)", ActionEventValue().Cost(2).Pre("B(1)",false).Post("B(1)",true));
 			}
 			else if (i == 4) {
+				// Very basic resolver test
+				params("use_params") = true;
+				params("use_resolver") = true;
+				initial	.Add("A(\"abc\")", true);
+				atoms	.Add("A(id)", false);
+				atoms	.Add("B", false);
+				goal	.Add("B", true);
+				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",false).Post("B",true));
+			}
+			else if (i == 5) {
+				// Inducts from initial
+				// initial.Add("A(\"abc\")");
+				params("use_params") = true;
+				params("use_resolver") = true;
+				initial	.Add("A(\"abc\")", true);
+				atoms	.Add("A(id)", false);
+				atoms	.Add("B(id)", false);
+				atoms	.Add("B", false);
+				goal	.Add("B", true);
+				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",false).Pre("B(id)",false).Post("B(id)",true).Post("B",true));
+			}
+			else if (i == 6) {
 				// Same as previous, but the "id" param is added
+				// Inducts from goal
 				params("use_params") = true;
 				params("use_resolver") = true;
 				atoms	.Add("A(id)", false);
@@ -164,9 +187,13 @@ void IntegratedTests() {
 				actions	.Add("write B(id,0)", ActionEventValue().Pre("B(id,0)",false).Post("B(id,0)",true));
 				actions	.Add("write B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
 			}
+			else if (i == 7) {
+				// Inducts from intermediate world-state
+			}
 			params("atoms") = atoms;
 			params("actions") = actions;
 			params("goal") = goal;
+			params("initial") = initial;
 			params("dump_intermediate_trees") = true;
 			searcher.SetSearcherParams(params);
 			searcher.SetGeneratorParams(params, Null);

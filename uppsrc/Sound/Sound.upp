@@ -1,11 +1,10 @@
 uses(BUILTIN_PORTAUDIO) plugin/portaudio;
 
-library(!BUILTIN_PORTAUDIO) portaudio;
+library(!BUILTIN_PORTAUDIO !(WIN32 !MSC)) portaudio;
 
 library(!BUILTIN_PORTAUDIO WIN32 !MSC) libportaudio.dll.a;
 
 file
-	Sound.h,
 	Types.h,
 	SoundSystem.h,
 	Sound.cpp,
@@ -18,5 +17,6 @@ file
 	SoundThread.inl highlight cpp,
 	Discussion.h,
 	Discussion.cpp,
-	SoundClip.h;
+	SoundClip.h,
+	Sound.h;
 

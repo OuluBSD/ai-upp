@@ -5,7 +5,7 @@ uses
 
 file
 	AICore.h,
-	AICore.cpp,
+	AICore.icpp,
 	Enum.h,
 	Structural.h,
 	Graph.h,

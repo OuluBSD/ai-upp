@@ -3,6 +3,7 @@
 INITBLOCK {
 	using namespace Upp;
 	
+	TypedStringHasher<SearcherExt>("SearcherExt");
 	TypedStringHasher<ActionNode>("ActionNode");
 	
 	VfsValueExtFactory::Register<SearcherExt>(

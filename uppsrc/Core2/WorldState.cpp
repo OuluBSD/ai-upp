@@ -462,10 +462,10 @@ String BinaryWorldState::ToInlineString() const {
 				s.Cat(' ');
 			const auto& key = mask->keys[i].key;
 			bool put_end = false;
-			for(int j = 0; j < key.size; j++) {
-				int k = key.vector[j];
+			for(int j = 0; j < key.max_len; j++) {
+				int k = key.params[j].cls;
 				if (k < 0) break;
-				if (j == 1) {s.Cat('('); put_end = true;}
+				if (j == 0) {s.Cat('('); put_end = true;}
 				String str = mask->session->key_values[k];
 				str.Replace(" ", "_");
 				if (a.value)
@@ -534,6 +534,9 @@ bool BinaryWorldState::IsEmpty() const {
 
 
 
+BinaryWorldStateSession::BinaryWorldStateSession() {
+	key_values.Add(Value()); // add empty to first
+}
 
 int BinaryWorldStateSession::FindAtom(const Key& k) const {
 	hash_t h = k.GetHashValue();
@@ -592,16 +595,27 @@ String BinaryWorldStateSession::GetKeyString(int idx) const {
 String BinaryWorldStateSession::GetKeyString(const Key& k) const {
 	lock.EnterRead();
 	String out;
+	out = (String)key_values[k.name];
 	int len = 0;
-	for(int i = 0; i < k.size; i++) {
-		int idx = k.vector[i];
-		if (idx < 0)
+	for(int i = 0; i < k.max_len; i++) {
+		int cls_idx = k.params[i].cls;
+		if (cls_idx < 0)
 			break;
-		if (i == 1)
-			out.Cat('(');
-		else if(i > 1)
-			out << ", ";
-		out.Cat((String)key_values[idx]);
+		if (i == 0) out.Cat('(');
+		else        out << ", ";
+		int name_idx = k.params[i].name;
+		ASSERT(name_idx >= 0);
+		if (name_idx < 0) break;
+		out.Cat((String)key_values[name_idx]);
+		if (cls_idx > 0) {
+			out.Cat(": ");
+			out.Cat((String)key_values[cls_idx]);
+		}
+		if (k.params[i].val >= 0) {
+			int val = k.params[i].val;
+			out.Cat(" = ");
+			out.Cat((String)key_values[cls_idx]);
+		}
 		len++;
 	}
 	lock.LeaveRead();
@@ -620,10 +634,10 @@ WorldStateKey BinaryWorldStateSession::GetAtomKey(int atom_idx) const {
 
 bool BinaryWorldStateSession::ParseRaw(const String& atom_name, Key& atom_key) {
 	Key& k = atom_key;
-	k[0] = key_values.FindAdd(atom_name);
-	if (k[0] < 0) {return false;}
-	for(int i = 1; i <= WSKEY_MAX_PARAMS; i++)
-		k[i] = -1;
+	k.name = key_values.FindAdd(atom_name);
+	if (k.name < 0) {return false;}
+	for(int i = 0; i < WSKEY_MAX_PARAMS; i++)
+		k.params[i].Clear();
 	return true;
 }
 
@@ -632,28 +646,35 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 	int i = atom_name.Find("(");
 	if (i < 0) {
 		String id = TrimBoth(atom_name);
-		k[0] = key_values.FindAdd(id);
+		k.name = key_values.FindAdd(id);
 	}
 	else {
 		String id = TrimBoth(atom_name.Left(i));
-		k[0] = key_values.FindAdd(id);
+		k.name = key_values.FindAdd(id);
 		String params = TrimBoth(atom_name.Mid(i));
 		CParser p(params);
 		try {
-			//String id = p.ReadId();
-			//k[0] = key_values.FindAdd(id);
-			int len = 1;
+			int len = 0;
 			if (p.Char('(')) {
 				for(int i = 0; i < WSKEY_MAX_PARAMS; i++) {
 					if (p.IsChar(')')) break;
 					if (i) p.PassChar(',');
-					id = p.ReadId();
-					k[len++] = key_values.FindAdd(id);
+					String id = p.ReadId();
+					auto& param = k.params[len++];
+					param.name = key_values.FindAdd(id);
+					if (p.Char(':')) {
+						String cls = p.ReadId();
+						param.cls = key_values.FindAdd(cls);
+					}
+					if (p.Char('=')) {
+						String val = p.ReadId();
+						param.val = key_values.FindAdd(val);
+					}
 				}
 				p.PassChar(')');
 			}
 			for(int i = len; i < WSKEY_MAX_PARAMS; i++)
-				k[i] = -1;
+				k.params[i].Clear();
 		}
 		catch (Exc e) {
 			LOG("BinaryWorldStateSession::ParseDecl: error: " << e);
@@ -668,32 +689,38 @@ bool BinaryWorldStateSession::ParseCall(const String& atom_name, Key& atom_key) 
 	CParser p(atom_name);
 	try {
 		String id = p.ReadId();
-		k[0] = key_values.FindAdd(id);
-		int len = 1;
+		k.name = key_values.FindAdd(id);
+		int len = 0;
 		if (p.Char('(')) {
 			for(int i = 0; i < WSKEY_MAX_PARAMS; i++) {
 				if (p.IsChar(')')) break;
 				if (i) p.PassChar(',');
 				Value value;
+				int cls = -1;
 				if (p.IsString()) {
 					value = p.ReadString();
+					cls = key_values.FindAdd("string");
 				}
 				else if (p.IsId()) {
 					value = p.ReadId();
+					cls = 0;
 				}
 				else if (p.IsInt()) {
 					value = p.ReadInt64();
+					cls = key_values.FindAdd("int");
 				}
 				else if (p.IsDouble()) {
 					value = p.ReadDouble();
+					cls = key_values.FindAdd("double");
 				}
 				
-				k[len++] = key_values.FindAdd(value);
+				auto& param = k.params[len++];
+				param.name = key_values.FindAdd(value);
 			}
 			p.PassChar(')');
 		}
 		for(int i = len; i < WSKEY_MAX_PARAMS; i++)
-			k[i] = -1;
+			k.params[i].Clear();
 	}
 	catch (Exc e) {
 		LOG("BinaryWorldStateSession::ParseCall: error: " << e);
@@ -706,8 +733,7 @@ bool BinaryWorldStateSession::ParseCall(const String& atom_name, Key& atom_key) 
 
 
 WorldStateKey::WorldStateKey() {
-	for(int i = 0; i < size; i++)
-		vector[i] = -1;
+	
 }
 
 WorldStateKey::WorldStateKey(const WorldStateKey& key) {
@@ -715,27 +741,35 @@ WorldStateKey::WorldStateKey(const WorldStateKey& key) {
 }
 
 bool WorldStateKey::operator==(const WorldStateKey& k) const {
-	bool same = true;
-	for(int i = 0; i < size; i++)
-		same = same && vector[i] == k.vector[i];
+	bool same = name == k.name;
+	for(int i = 0; i < max_len && same; i++)
+		same =	same &&
+				params[i].cls == k.params[i].cls &&
+				params[i].name == k.params[i].name;
 	return same;
 }
 
 WorldStateKey::operator hash_t() const {
+	return GetHashValue();
+}
+
+hash_t WorldStateKey::GetHashValue() const {
 	CombineHash ch;
-	for(int i = 0; i < size; i++)
-		ch.Do(vector[i]);
+	ch.Put(name);
+	for(int i = 0; i < max_len; i++)
+		ch.Do(params[i].cls)
+		  .Do(params[i].name);
 	return ch;
 }
 
 bool WorldStateKey::IsEmpty() const {
-	return vector[0] == -1;
+	return name == -1;
 }
 
 int WorldStateKey::GetLength() const {
 	int len = 0;
-	for(int i = 0; i < size; i++) {
-		if (vector[i] < 0)
+	for(int i = 0; i < max_len; i++) {
+		if (params[i].cls < 0)
 			break;
 		len++;
 	}
@@ -776,7 +810,7 @@ int BinaryWorldStateMask::FindAdd(const Key& key, bool req_resolve) {
 		int len = key.GetLength();
 		for (auto& a : session->atoms) {
 			if (a.key_len == len &&
-				a.key.vector[0] == key.vector[0] &&
+				a.key.name == key.name &&
 				a.decl_atom_idx < 0 &&
 				j != atom_idx) {
 				decl_atom_idx = j;

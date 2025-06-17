@@ -13,13 +13,23 @@ class ActionNode;
 struct BinaryWorldStateSession;
 
 static const int WSKEY_MAX_PARAMS = 4;
-struct WorldStateKey : FixedArray<int, 1+WSKEY_MAX_PARAMS>, Moveable<WorldStateKey> {
-	using FA = FixedArray<int, 1+WSKEY_MAX_PARAMS>;
+struct WorldStateKey : Moveable<WorldStateKey> {
+	static const int max_len = WSKEY_MAX_PARAMS;
+	
+	struct Param {
+		int cls  = -1;
+		int name = -1;
+		int val  = -1;
+		void Clear() {cls = name = val = -1;}
+	};
+	int name = -1;
+	Param params[WSKEY_MAX_PARAMS];
 	
 	WorldStateKey();
 	WorldStateKey(const WorldStateKey& key);
 	bool operator==(const WorldStateKey& k) const;
 	operator hash_t() const;
+	hash_t GetHashValue() const;
 	bool IsEmpty() const;
 	int GetLength() const;
 };
@@ -54,6 +64,7 @@ struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 	Index<Value> key_values;
 	mutable RWMutex lock;
 	
+	BinaryWorldStateSession();
 	int FindAtom(const Key& k) const;
 	int FindAddAtom(const Key& k);
 	Item& GetAddAtom(const Key& k);

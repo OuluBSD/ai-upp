@@ -206,16 +206,15 @@ BinaryWorldState::BinaryWorldState(const BinaryWorldState& ws) {
 	*this = ws;
 }
 
-BinaryWorldState::BinaryWorldState(BinaryWorldState&& ws) {
-	Swap(mask, ws.mask);
-	Swap(atoms, ws.atoms);
+BinaryWorldState::BinaryWorldState(BinaryWorldState&& ws) : mask(ws.mask), atoms(pick(ws.atoms)) {
+	
 }
 
 void BinaryWorldState::Clear() {
 	atoms.Clear();
 }
 
-bool BinaryWorldState::SetMasked(int index, bool value, bool req_resolve) {
+bool BinaryWorldState::SetMasked(int index, bool value) {
 	ASSERT(index >= 0 && index < mask->keys.GetCount());
 	if (index < 0) return false;
 	if (atoms.GetCount() <= index) {
@@ -224,30 +223,29 @@ bool BinaryWorldState::SetMasked(int index, bool value, bool req_resolve) {
 	auto& atom = atoms[index];
 	atom.in_use = true;
 	atom.value = value;
-	atom.req_resolve = req_resolve;
 	return true;
 }
 
-bool BinaryWorldState::SetKey(const WorldStateKey& key, bool value, bool req_resolve) {
+bool BinaryWorldState::SetKey(const WorldStateKey& key, bool value) {
 	ASSERT(mask);
 	if (!mask)
 		return false;
 	#ifdef flagDEBUG
-	if (req_resolve && key.GetLength() > 1) {
+	if (key.GetLength() > 0) {
 		int i = mask->session->atoms.Find(key);
 		ASSERT(i >= 0);
 		//const auto& atom = mask->session->atoms[i];
 		//ASSERT(atom.decl_atom_idx >= 0);
 	}
 	#endif
-	int index = mask->FindAdd(key, req_resolve);
-	return SetMasked(index, value, req_resolve);
+	int index = mask->FindAdd(key);
+	return SetMasked(index, value);
 }
 
-bool BinaryWorldState::SetAtomIndex(int atom_idx, bool value, bool req_resolve) {
+bool BinaryWorldState::SetAtomIndex(int atom_idx, bool value) {
 	ASSERT(atom_idx >= 0 && atom_idx < mask->session->atoms.GetCount());
 	WorldStateKey key = mask->session->GetAtomKey(atom_idx);
-	return SetKey(key, value, req_resolve);
+	return SetKey(key, value);
 }
 
 BinaryWorldState& BinaryWorldState::operator = (const BinaryWorldState& src) {
@@ -319,16 +317,7 @@ Value BinaryWorldState::ToValue() const {
 	int i = 0;
 	for (auto& at : this->atoms) {
 		if (at.in_use) {
-			if (!at.req_resolve) {
-				map.Add(i, (int)at.value);
-			}
-			else {
-				ValueArray arr;
-				arr.SetCount(2);
-				arr.Set(0, (int)at.value);
-				arr.Set(1, (int)at.req_resolve);
-				map.Add(i, arr);
-			}
+			map.Add(i, (int)at.value);
 		}
 		i++;
 	}
@@ -337,11 +326,15 @@ Value BinaryWorldState::ToValue() const {
 
 
 bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenError) {
+	atoms.Clear();
 	ASSERT(mask);
-	if (!mask) {Clear(); return false;}
+	if (!mask) {return false;}
 	ValueMap ws = v;
 	if (v.Is<ValueMap>()) {
 		ws = v;
+	}
+	else if (v.IsVoid()) {
+		return true;
 	}
 	else {
 		WhenError("unexpected value type " + v.GetTypeName());
@@ -349,8 +342,7 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 	}
 	
 	if (ws.IsEmpty()) {
-		WhenError("empty world state map");
-		return false;
+		return true;
 	}
 	
 	Value first_key = ws.GetKey(0);
@@ -360,18 +352,11 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 			Value val = ws.GetValue(i);
 			if (val.Is<bool>()) {
 				bool v = val;
-				SetMasked(j, v, false);
+				SetMasked(j, v);
 			}
 			else if (val.Is<int>()) {
 				int v = val;
-				SetMasked(j, v, false);
-			}
-			else if (val.Is<ValueArray>()) {
-				ValueArray arr = val;
-				if (arr.GetCount() != 2) {WhenError("unexpected ValueArray size: " + IntStr(arr.GetCount())); return false;}
-				int v = arr[0];
-				int req_resolve = arr[1];
-				SetMasked(j, v, req_resolve);
+				SetMasked(j, v);
 			}
 			else {
 				WhenError("unexpected type: " + val.GetTypeName());
@@ -393,20 +378,12 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 			if (val.Is<bool>()) {
 				bool v = val;
 				atom.goal = v;
-				SetKey(atom_key, v, false);
+				SetKey(atom_key, v);
 			}
 			else if (val.Is<int>()) {
 				int v = val;
 				atom.goal = v;
-				SetKey(atom_key, v, false);
-			}
-			else if (val.Is<ValueArray>()) {
-				ValueArray arr = val;
-				if (arr.GetCount() != 2) {WhenError("unexpected ValueArray size: " + IntStr(arr.GetCount())); return false;}
-				int v = arr[0];
-				atom.goal = v;
-				int req_resolve = arr[1];
-				SetKey(atom_key, v, req_resolve);
+				SetKey(atom_key, v);
 			}
 			else {
 				WhenError("unexpected type: " + val.GetTypeName());
@@ -423,19 +400,28 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 	return true;
 }
 
-String BinaryWorldState::ToString() const {
+String BinaryWorldState::ToString(int indent) const {
 	String s;
 	int i = 0;
 	for(auto& a : atoms) {
 		if (a.in_use) {
+			if (!s.IsEmpty())
+				s << "\n";
+			if (indent > 0) s.Cat('\t', indent);
 			if (mask && mask->session) {
-				int atom_idx = mask->keys[i].atom_idx;
-				s << mask->session->GetKeyString(mask->session->atoms[atom_idx].key) << ": ";
+				const auto& k = mask->keys[i];
+				s << mask->session->GetKeyString(k.key);
 			}
 			else
-				s << i << ": ";
+				s << i;
+			
+			/*if (a.cls > 0)
+				s << " (class " << mask->session->GetKeyString(a.cls) << ")";
+			if (a.val > 0)
+				s << " (init " << mask->session->GetKeyString(a.val) << ")";*/
+			
+			s << ": ";
 			s << (a.value ? "true" : "false");
-			s << "\n";
 		}
 		i++;
 	}
@@ -530,6 +516,13 @@ bool BinaryWorldState::IsEmpty() const {
 	return true;
 }
 
+BinaryWorldState BinaryWorldState::GetDifference(BinaryWorldState& a, BinaryWorldState& b) {
+	BinaryWorldState ws;
+	ws.SetDifference(a, b);
+	return ws;
+}
+
+
 
 
 
@@ -603,23 +596,26 @@ String BinaryWorldStateSession::GetKeyString(const Key& k) const {
 			break;
 		if (i == 0) out.Cat('(');
 		else        out << ", ";
-		int name_idx = k.params[i].name;
-		ASSERT(name_idx >= 0);
-		if (name_idx < 0) break;
-		out.Cat((String)key_values[name_idx]);
+		ASSERT(k.params[i].name >= 0 || k.params[i].val >= 0);
+		if (k.params[i].shared)
+			out.Cat('&');
+		if (k.params[i].name >= 0) {
+			int name_idx = k.params[i].name;
+			out.Cat((String)key_values[name_idx]);
+		}
 		if (cls_idx > 0) {
 			out.Cat(": ");
 			out.Cat((String)key_values[cls_idx]);
 		}
 		if (k.params[i].val >= 0) {
-			int val = k.params[i].val;
-			out.Cat(" = ");
-			out.Cat((String)key_values[cls_idx]);
+			int val_idx = k.params[i].val;
+			out.Cat("=");
+			out.Cat(key_values[val_idx].ToString());
 		}
 		len++;
 	}
 	lock.LeaveRead();
-	if (len >= 2)
+	if (len > 0)
 		out.Cat(')');
 	return out;
 }
@@ -662,6 +658,7 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 					String id = p.ReadId();
 					auto& param = k.params[len++];
 					param.name = key_values.FindAdd(id);
+					param.cls = 0;
 					if (p.Char(':')) {
 						String cls = p.ReadId();
 						param.cls = key_values.FindAdd(cls);
@@ -669,6 +666,10 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 					if (p.Char('=')) {
 						String val = p.ReadId();
 						param.val = key_values.FindAdd(val);
+						param.shared = false;
+					}
+					else {
+						param.shared = true;
 					}
 				}
 				p.PassChar(')');
@@ -677,7 +678,7 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 				k.params[i].Clear();
 		}
 		catch (Exc e) {
-			LOG("BinaryWorldStateSession::ParseDecl: error: " << e);
+			LOG("BinaryWorldStateSession::ParseDecl: error: " << e << " (input was: " + atom_name + ")");
 			return false;
 		}
 	}
@@ -715,7 +716,78 @@ bool BinaryWorldStateSession::ParseCall(const String& atom_name, Key& atom_key) 
 				}
 				
 				auto& param = k.params[len++];
-				param.name = key_values.FindAdd(value);
+				param.val = key_values.FindAdd(value);
+				param.cls = cls;
+			}
+			p.PassChar(')');
+		}
+		for(int i = len; i < WSKEY_MAX_PARAMS; i++)
+			k.params[i].Clear();
+	}
+	catch (Exc e) {
+		LOG("BinaryWorldStateSession::ParseCall: error: " << e);
+		return false;
+	}
+	return true;
+}
+
+bool BinaryWorldStateSession::ParseCondParam(const Key& action, const String& atom_name, Key& atom_key) {
+	Key& k = atom_key;
+	CParser p(atom_name);
+	try {
+		String act_name = p.ReadId();
+		k.name = key_values.FindAdd(act_name);
+		int len = 0;
+		if (p.Char('(')) {
+			for(int i = 0; i < WSKEY_MAX_PARAMS; i++) {
+				if (p.IsChar(')')) break;
+				if (i) p.PassChar(',');
+				int val = -1;
+				int name = -1;
+				int cls = -1;
+				bool shared = false;
+				if (p.IsString()) {
+					val = key_values.FindAdd(p.ReadString());
+					cls = key_values.FindAdd("string");
+				}
+				else if (p.IsId()) {
+					String param_name = p.ReadId();
+					int param_name_idx = key_values.FindAdd(param_name);
+					int act_param_idx = -1;
+					for(int i = 0; i < Key::max_len; i++) {
+						if (action.params[i].name == param_name_idx) {
+							act_param_idx = i;
+							break;
+						}
+					}
+					if (act_param_idx >= 0) {
+						const Key::Param& act_param = action.params[act_param_idx];
+						ASSERT(act_param.cls >= 0);
+						cls = act_param.cls;
+						name = act_param.name;
+						val = act_param.val;
+						shared = true;
+						ASSERT(param_name_idx == name);
+					}
+					else {
+						cls = 0;
+						name = param_name_idx;
+					}
+				}
+				else if (p.IsInt()) {
+					val = key_values.FindAdd(p.ReadInt64());
+					cls = key_values.FindAdd("int");
+				}
+				else if (p.IsDouble()) {
+					val = key_values.FindAdd(p.ReadDouble());
+					cls = key_values.FindAdd("double");
+				}
+				
+				auto& param = k.params[len++];
+				param.cls = cls;
+				param.name = name;
+				param.val = val;
+				param.shared = shared;
 			}
 			p.PassChar(')');
 		}
@@ -745,7 +817,9 @@ bool WorldStateKey::operator==(const WorldStateKey& k) const {
 	for(int i = 0; i < max_len && same; i++)
 		same =	same &&
 				params[i].cls == k.params[i].cls &&
-				params[i].name == k.params[i].name;
+				params[i].name == k.params[i].name &&
+				params[i].val == k.params[i].val &&
+				params[i].val == k.params[i].shared;
 	return same;
 }
 
@@ -758,7 +832,9 @@ hash_t WorldStateKey::GetHashValue() const {
 	ch.Put(name);
 	for(int i = 0; i < max_len; i++)
 		ch.Do(params[i].cls)
-		  .Do(params[i].name);
+		  .Do(params[i].name)
+		  .Do(params[i].val)
+		  .Do(params[i].shared);
 	return ch;
 }
 
@@ -776,6 +852,13 @@ int WorldStateKey::GetLength() const {
 	return len;
 }
 
+int WorldStateKey::GetSharedCount() const {
+	int c = 0;
+	for(int i = 0; i < max_len; i++)
+		c = (params[i].shared ? c + 1 : c);
+	return c;
+}
+
 
 
 
@@ -791,7 +874,7 @@ int BinaryWorldStateMask::Find(const Key& key) const {
 	return -1;
 }
 
-int BinaryWorldStateMask::FindAdd(const Key& key, bool req_resolve) {
+int BinaryWorldStateMask::FindAdd(const Key& key) {
 	int i = 0;
 	for (const auto& it : keys) {
 		if (it.key == key)
@@ -804,30 +887,18 @@ int BinaryWorldStateMask::FindAdd(const Key& key, bool req_resolve) {
 	ASSERT(atom_idx >= 0);
 	if (atom_idx < 0) return -1;
 	
-	int decl_atom_idx = -1;
-	if (req_resolve) {
-		int j = 0;
-		int len = key.GetLength();
-		for (auto& a : session->atoms) {
-			if (a.key_len == len &&
-				a.key.name == key.name &&
-				a.decl_atom_idx < 0 &&
-				j != atom_idx) {
-				decl_atom_idx = j;
-				// TODO check multiple "a.decl_atom_idx < 0" atoms
-				break;
-			}
-			j++;
-		}
-	}
-	
 	i = keys.GetCount();
 	auto& it = keys.Add();
 	it.key = key;
 	it.atom_idx = atom_idx;
-	it.decl_atom_idx = decl_atom_idx;
-	ASSERT(decl_atom_idx != atom_idx);
 	return i;
+}
+
+String BinaryWorldStateMask::ToString(const WorldStateKey& key) const {
+	if (session)
+		return session->GetKeyString(key);
+	else
+		return "<error no session>";
 }
 
 

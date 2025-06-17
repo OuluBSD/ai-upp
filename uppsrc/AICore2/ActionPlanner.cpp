@@ -22,25 +22,31 @@ String PlannerEvent::GetName() const {
 	auto& mask = *precond.mask;
 	auto& ses = *precond.mask->session;
 	String out;
+	out << ses.GetKeyString(key.name);
 	int len = 0;
-	for(int i = 0; i < this->key.size; i++) {
-		int str_idx = this->key.vector[i];
-		if (str_idx < 0)
+	for(int i = 0; i < this->key.max_len; i++) {
+		if (key.params[i].cls < 0)
 			break;
-		len++;
-		String s = ses.GetKeyString(str_idx);
-		if (len == 2)
-			out.Cat('(');
-		else if (len >= 2)
+		ASSERT(key.params[i].name >= 0);
+		if (key.params[i].name < 0)
+			break;
+		if (i)
 			out << ", ";
-		out.Cat(s);
+		String name = ses.GetKeyString(key.params[i].name);
+		out.Cat(name);
+		if (key.params[i].cls > 0) {
+			String cls = ses.GetKeyString(key.params[i].cls);
+			out.Cat(": ");
+			out.Cat(cls);
+		}
+		if (key.params[i].val > 0) {
+			String val = ses.GetKeyString(key.params[i].val);
+			out.Cat(" = ");
+			out.Cat(val);
+		}
 	}
-	if (len >= 2)
+	if (len > 0)
 		out.Cat(')');
-	/*if (out == "(, , , )") {
-		LOG("");
-		GetName();
-	}*/
 	return out;
 }
 
@@ -468,13 +474,13 @@ bool OmniActionPlanner::SetParams(Value val) {
 					else {
 						// Find if key shares params with action params
 						bool shared = false;
-						for(int k0 = 1; k0 <= WSKEY_MAX_PARAMS && !shared; k0++) {
-							int idx0 = a.key.vector[k0];
-							if (idx0 < 0) break;
-							for(int k1 = 1; k1 <= WSKEY_MAX_PARAMS && !shared; k1++) {
-								int idx1 = atom_key.vector[k1];
-								if (idx1 < 0) break;
-								if (idx0 == idx1) {
+						for(int k0 = 0; k0 < WSKEY_MAX_PARAMS && !shared; k0++) {
+							int name0 = a.key.params[k0].name;
+							if (name0 < 0) break;
+							for(int k1 = 0; k1 < WSKEY_MAX_PARAMS && !shared; k1++) {
+								int name1 = a.key.params[k1].name;
+								if (name1 < 0) break;
+								if (name0 == name1) {
 									shared = true;
 								}
 							}
@@ -571,8 +577,8 @@ bool OmniActionPlanner::ResolveCall(const Key& call_key, int& atom_idx) {
 	int key_len = call_key.GetLength();
 	int i = 0;
 	for (auto& atom : ws_session.atoms) {
-		if (atom.key_len       == key_len &&
-			atom.key.vector[0] == call_key.vector[0]) {
+		if (atom.key_len  == key_len &&
+			atom.key.name == call_key.name) {
 			atom_idx = i;
 			return true;
 		}

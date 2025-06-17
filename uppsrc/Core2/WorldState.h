@@ -20,7 +20,9 @@ struct WorldStateKey : Moveable<WorldStateKey> {
 		int cls  = -1;
 		int name = -1;
 		int val  = -1;
-		void Clear() {cls = name = val = -1;}
+		bool shared = false;
+		
+		void Clear() {cls = name = val = -1; shared = false;}
 	};
 	int name = -1;
 	Param params[WSKEY_MAX_PARAMS];
@@ -32,6 +34,7 @@ struct WorldStateKey : Moveable<WorldStateKey> {
 	hash_t GetHashValue() const;
 	bool IsEmpty() const;
 	int GetLength() const;
+	int GetSharedCount() const;
 };
 
 struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
@@ -39,15 +42,13 @@ struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
 	struct Item : Moveable<Item> {
 		Key key;
 		int atom_idx = -1;
-		int decl_atom_idx = -1;
-		//bool is_decl = false;
-		//bool req_decl = false;
 	};
 	BinaryWorldStateSession* session = 0;
 	Vector<Item> keys;
 	
 	int Find(const Key& key) const;
-	int FindAdd(const Key& key, bool req_resolve);
+	int FindAdd(const Key& key);
+	String ToString(const WorldStateKey& key) const;
 };
 
 struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
@@ -57,7 +58,6 @@ struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 		Key key;
 		int key_len = 0;
 		bool initial = 0, goal = 0;
-		int decl_atom_idx = -1;
 	};
 	VectorMap<hash_t,Item> atoms;
 	ArrayMap<hash_t, BinaryWorldStateMask> masks;
@@ -74,6 +74,7 @@ struct BinaryWorldStateSession : Pte<BinaryWorldStateSession> {
 	bool ParseRaw(const String& atom_name, Key& atom_key);
 	bool ParseDecl(const String& atom_name, Key& atom_key);
 	bool ParseCall(const String& atom_name, Key& atom_key);
+	bool ParseCondParam(const Key& action, const String& atom_name, Key& atom_key);
 };
 
 struct BinaryWorldState {
@@ -84,7 +85,6 @@ struct BinaryWorldState {
 	struct Item : Moveable<Item> {
 		bool value = false;
 		bool in_use = false;
-		bool req_resolve = false;
 	};
 	
 	Ptr<BinaryWorldStateMask> mask;
@@ -94,21 +94,23 @@ struct BinaryWorldState {
 	BinaryWorldState(const BinaryWorldState& ws);
 	BinaryWorldState(BinaryWorldState&& ws);
 	void Clear();
-	bool SetMasked(int index, bool value, bool req_resolve);
-	bool SetKey(const WorldStateKey& key, bool value, bool req_resolve);
-	bool SetAtomIndex(int atom_idx, bool value, bool req_resolve);
+	bool SetMasked(int index, bool value);
+	bool SetKey(const WorldStateKey& key, bool value);
+	bool SetAtomIndex(int atom_idx, bool value);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
 	bool operator==(const BinaryWorldState& src) const;
 	bool IsPartialMatch(const BinaryWorldState& src) const;
 	hash_t GetHashValue() const;
 	Value ToValue() const;
 	bool FromValue(bool use_params, Value v, Event<String> WhenError=Null);
-	String ToString() const;
+	String ToString(int indent=0) const;
 	String ToInlineString() const;
 	String ToShortInlineString() const;
 	void SetIntersection(BinaryWorldState& a, BinaryWorldState& b);
 	void SetDifference(BinaryWorldState& a, BinaryWorldState& b);
 	bool IsEmpty() const;
+	
+	static BinaryWorldState GetDifference(BinaryWorldState& a, BinaryWorldState& b);
 };
 
 class WorldState : public Moveable<WorldState> {

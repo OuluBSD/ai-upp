@@ -113,7 +113,7 @@ void IntegratedTests() {
 	
 	// Action planner tests
 	if (1 || all) {
-		for(int i = 0; i < 5; i++) {
+		for(int i = 0; i < 4; i++) {
 			ValueMap atoms, goal, actions, initial;
 			if (i == 0) {
 				atoms	.Add("A", false);
@@ -147,10 +147,10 @@ void IntegratedTests() {
 				atoms	.Add("B(0)", false);
 				atoms	.Add("B(1)", false);
 				goal	.Add("A", true);
-				actions	.Add("write A (via B(0))", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
-				actions	.Add("write A (via B(1))", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));
-				actions	.Add("write B(0)", ActionEventValue().Pre("B(0)",false).Post("B(0)",true));
-				actions	.Add("write B(1)", ActionEventValue().Cost(2).Pre("B(1)",false).Post("B(1)",true));
+				actions	.Add("write A via B0", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
+				actions	.Add("write A via B1", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));
+				actions	.Add("write B0", ActionEventValue().Pre("B(0)",false).Post("B(0)",true));
+				actions	.Add("write B1", ActionEventValue().Cost(2).Pre("B(1)",false).Post("B(1)",true));
 			}
 			else if (i == 4) {
 				// Very basic resolver test

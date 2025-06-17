@@ -351,16 +351,16 @@ void ActionPlannerExample() {
 	LOG(ap.GetDescription());
 	
 	BinaryWorldState src;
-	#define ATOM(x,y) src.SetMasked(x, y, false);
+	#define ATOM(x,y) src.SetMasked(x, y);
 	ATOM_LIST
 	#undef ATOM
 	
 	planner.SetCost(VERY_HIGH_JUMP_ATTACK, 5 );	// make hurting by fall more expensive than attacking at the same level.
 
 	BinaryWorldState goal;
-	goal.SetMasked(MOUSE_ALIVE, false, false);
-	goal.SetMasked(ALIVE, true, false); // add this to avoid hurting by fall actions in plan.
-	goal.SetMasked(NEAR_MOUSE, false, false);
+	goal.SetMasked(MOUSE_ALIVE, false);
+	goal.SetMasked(ALIVE, true); // add this to avoid hurting by fall actions in plan.
+	goal.SetMasked(NEAR_MOUSE, false);
 	
 	VfsValue& example_root = MetaEnv().root.Add("example");
 	APlanNode goal_node(example_root.Add<ActionNode>("goal"));

@@ -3,7 +3,10 @@
 
 NAMESPACE_UPP
 
-
+#undef DLOG
+#undef DDUMP
+#define DLOG(x)  LOG(x)
+#define DDUMP(x) DUMP(x)
 
 
 
@@ -32,6 +35,10 @@ String PlannerEvent::GetName() const {
 			break;
 		if (i)
 			out << ", ";
+		else
+			out << "(";
+		if (key.params[i].shared)
+			out.Cat('&');
 		String name = ses.GetKeyString(key.params[i].name);
 		out.Cat(name);
 		if (key.params[i].cls > 0) {
@@ -44,6 +51,7 @@ String PlannerEvent::GetName() const {
 			out.Cat(" = ");
 			out.Cat(val);
 		}
+		len++;
 	}
 	if (len > 0)
 		out.Cat(')');
@@ -87,17 +95,10 @@ void ActionPlanner::DoAction( int action_id, const BinaryWorldState& src, Binary
 	dest = src;
 	
 	int i = 0;
-	auto k = post.mask->keys.Begin();
 	for(auto& a : post.atoms) {
 		if (a.in_use) {
-			if (a.req_resolve) {
-				TODO
-			}
-			else {
-				dest.SetMasked(i, a.value, false);
-			}
+			dest.SetMasked(i, a.value);
 		}
-		k++;
 		i++;
 	}
 }
@@ -151,7 +152,7 @@ bool ActionPlanner::SetPreCondition(int act_idx, int atm_idx, bool value)
 	auto& ses = *ws.mask->session;
 	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
 	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
-	ws.SetKey(key, value, false);
+	ws.SetKey(key, value);
 	return true;
 }
 
@@ -164,7 +165,7 @@ bool ActionPlanner::SetPostCondition(int act_idx, int atm_idx, bool value)
 	auto& ses = *ws.mask->session;
 	if (atm_idx < 0 || atm_idx >= ses.atoms.GetCount()) return false;
 	const WorldStateKey& key = ws.mask->session->atoms[atm_idx].key;
-	ws.SetKey(key, value, false);
+	ws.SetKey(key, value);
 	return true;
 }
 
@@ -412,7 +413,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 	for(int i = 0; i < in_actions.GetCount(); i++) {
 		String action_name = in_actions.GetKey(i);
 		Key action_key;
-		if (!this->RealizeDecl(action_name, action_key)) return false;
+		if (!this->ParseDecl(action_name, action_key)) return false;
 		int j = FindAction(action_key);
 		if (j >= 0) {WhenError("duplicate action: " + action_name); return false;}
 		auto& action = actions.Add();
@@ -428,7 +429,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 		String atom_name = in_atoms.GetKey(i);
 		Value v = in_atoms.GetValue(i);
 		Key atom_key;
-		if (!RealizeDecl(atom_name, atom_key)) return false;
+		if (!ParseCall(atom_name, atom_key)) return false;
 		
 		int j = ws_session.atoms.Find(atom_key);
 		if (j >= 0) {WhenError("duplicate atom: " + atom_name); return false;}
@@ -444,6 +445,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 	
 	for(int act_idx = 0; act_idx < actions.GetCount(); act_idx++) {
 		PlannerEvent& a = actions[act_idx];
+		DLOG("ACTION " << a.precond.mask->ToString(a.key));
 		String action = in_actions.GetKey(act_idx);
 		ValueMap in_action = in_actions.GetValue(act_idx);
 		ValueArray in_pre  = in_action("pre");
@@ -453,45 +455,32 @@ bool OmniActionPlanner::SetParams(Value val) {
 		if (in_post.IsEmpty()) {WhenError("empty post-condition in action '" + action + "'"); return false;}
 		a.cost = cost;
 		int shared_count = 0;
+		DLOG("");
 		for (int m = 0; m < 2; m++) {
 			auto& in  = m == 0 ? in_pre    : in_post;
 			auto& out = m == 0 ? a.precond : a.postcond;
 			out.mask = &GetMask();
+			DLOG((String)(m == 0 ? "PRECOND:" : "POSTCOND:"));
 			for(int j = 0; j < in.GetCount(); j++) {
 				ValueArray arr = in[j];
 				if (arr.GetCount() != 2) {WhenError("expected vector of 2 in condition");  return false;}
 				String atom_name = arr[0];
 				Key atom_key;
-				if (!RealizeDecl(atom_name, atom_key)) return false;
+				if (!ParseCondParam(a.key, atom_name, atom_key)) return false;
+				DLOG("\tPARAM " << a.precond.mask->ToString(atom_key));
 				int atom_value = arr[1];
-				int atom_idx = ws_session.atoms.Find(atom_key);
-				if (atom_idx < 0) {WhenError("atom '" + atom_name + "' not found");  return false;}
-				if (!use_resolver)
-					out.SetKey(atom_key, atom_value, false);
-				else {
-					if (atom_key.GetLength() == 1)
-						out.SetKey(atom_key, atom_value, false);
-					else {
-						// Find if key shares params with action params
-						bool shared = false;
-						for(int k0 = 0; k0 < WSKEY_MAX_PARAMS && !shared; k0++) {
-							int name0 = a.key.params[k0].name;
-							if (name0 < 0) break;
-							for(int k1 = 0; k1 < WSKEY_MAX_PARAMS && !shared; k1++) {
-								int name1 = a.key.params[k1].name;
-								if (name1 < 0) break;
-								if (name0 == name1) {
-									shared = true;
-								}
-							}
-						}
-						out.SetKey(atom_key, atom_value, shared);
-						shared_count += (int)shared;
-					}
-				}
+				int atom_idx = ws_session.atoms.FindAdd(atom_key);
+				/*if (atom_idx < 0) {
+					WhenError("atom '" + atom_name + "' not found");  return false;}*/
+				out.SetKey(atom_key, atom_value);
+				if (use_resolver)
+					for(int k = 0; k < WSKEY_MAX_PARAMS; k++)
+						if (atom_key.params[k].shared)
+							shared_count++;
 			}
+			DLOG("WS:\n" << out.ToString() << "\n");
 		}
-		if (a.key.GetLength() > 1 && !shared_count) {
+		if (a.key.GetLength() > 0 && !shared_count) {
 			WhenError("the action '" + a.GetName() + "' has params, but no pre nor post condition uses it");
 			return false;
 		}
@@ -500,9 +489,21 @@ bool OmniActionPlanner::SetParams(Value val) {
 	return true;
 }
 
-bool OmniActionPlanner::RealizeDecl(const String& str, WorldStateKey& key) {
+bool OmniActionPlanner::ParseDecl(const String& str, WorldStateKey& key) {
 	if (!use_params && !ws_session.ParseRaw (str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
 	if ( use_params && !ws_session.ParseDecl(str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	return true;
+}
+
+bool OmniActionPlanner::ParseCall(const String& str, WorldStateKey& key) {
+	if (!use_params && !ws_session.ParseRaw (str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	if ( use_params && !ws_session.ParseCall(str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	return true;
+}
+
+bool OmniActionPlanner::ParseCondParam(const Key& action, const String& str, WorldStateKey& key) {
+	if (!use_params && !ws_session.ParseRaw (str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
+	if ( use_params && !ws_session.ParseCondParam(action, str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
 	return true;
 }
 
@@ -538,16 +539,14 @@ bool OmniActionPlanner::Run(Val& fs) {
 				String call = in_initial.GetKey(i);
 				bool initial_value = in_initial.GetValue(i);
 				Key call_key;
-				if (!use_params && !ws_session.ParseRaw(call, call_key))  {WhenError("parsing '" + call + "' failed"); return false;}
-				if ( use_params && !ws_session.ParseCall(call, call_key)) {WhenError("parsing '" + call + "' failed"); return false;}
+				if (!ParseCall(call, call_key)) return false;
 				int decl_atom_idx = -1;
 				if (!ResolveCall(call_key, decl_atom_idx)) {WhenError("could not resolve '" + call + "' atom"); return false;}
 				int call_atom_idx = ws_session.FindAddAtom(call_key);
+				DLOG("INITIAL " << i << ": " << ws_session.GetKeyString(call_key));
 				auto& atom = ws_session.atoms[call_atom_idx];
 				atom.initial = initial_value;
-				atom.decl_atom_idx = decl_atom_idx;
-				ASSERT(atom.decl_atom_idx != call_atom_idx);
-				ws_initial.SetAtomIndex(call_atom_idx, initial_value, false);
+				ws_initial.SetAtomIndex(call_atom_idx, initial_value);
 			}
 		}
 		
@@ -628,7 +627,12 @@ bool OmniActionPlanner::GetCost(const VfsValue& v, double& cost) {
 	return true;
 }
 
+String chk_str;
+void* chk_ptr;
+
 bool OmniActionPlanner::GenerateSubValues(Val& v) {
+	DLOG(HexStrPtr(&v));
+	
 	// this is equivalent of ActionNode::GenerateSubValues
 	
 	Val* p = v.Resolve();
@@ -641,6 +645,11 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 	if (!Get(*p, ws)) {
 		ASSERT(0);
 		return false;
+	}
+	DLOG(HexStrPtr(p) << ": " << ws.ToShortInlineString());
+	
+	if (&v == chk_ptr) {
+		ASSERT(ws.ToShortInlineString() == chk_str);
 	}
 	
 	Vector<int> act_ids;
@@ -669,12 +678,17 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 
 bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Vector<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs) {
 	dest.SetCount(0);
+	DLOG("SRC:\n" << src.ToShortInlineString());
 	for (int i=0; i < actions.GetCount(); ++i )
 	{
 		// Check precondition
 		auto& e = actions[i];
 		const BinaryWorldState& pre  = e.precond;
 		const BinaryWorldState& post = e.postcond;
+		
+		DLOG("ACTION " << i);
+		DLOG("<<<\n" << pre.ToString());
+		DLOG(">>>\n" << post.ToString());
 		
 		// Check that precondition is not using something outside of src values
 		int pre_count = UPP::min(pre.atoms.GetCount(), src.atoms.GetCount());
@@ -689,7 +703,9 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		int met_count = 0;
 		for(int j = 0; j < pre_count; j++) {
 			auto& a = pre.atoms[j];
-			if (!a.req_resolve) {
+			const auto& akey = pre.mask->keys[j].key;
+			int shared_count = akey.GetSharedCount();
+			if (!shared_count) {
 				if (a.in_use && src.atoms[j].value != a.value) {
 					met = false;
 					break;
@@ -697,7 +713,8 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 				else met_count++;
 			}
 			else {
-				const auto& mkey0 = pre.mask->keys[j];
+				LOG(pre.mask->ToString(pre.mask->keys[j].key));
+				/*const auto& mkey0 = pre.mask->keys[j];
 				if (mkey0.decl_atom_idx >= 0) {
 					bool found = false;
 					for(int k = 0; k < pre.mask->keys.GetCount(); k++) {
@@ -710,8 +727,8 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 					if (!found) TODO;
 				}
 				else {
-					LOG("SRC:\n" << src.ToString());
-					LOG("PRE:\n" << pre.ToString());
+					DLOG("SRC:\n" << src.ToString());
+					DLOG("PRE:\n" << pre.ToString());
 					bool found = false;
 					for(int k = 0; k < src.mask->keys.GetCount(); k++) {
 						const auto& mkey1 = src.mask->keys[k];
@@ -720,7 +737,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 						}
 					}
 					if (!found) TODO;
-				}
+				}*/
 				TODO // if req_resolve:
 				// 1. loop & match src atoms with Mask::Item::decl_atom_idx
 				// 2a. if all params shared
@@ -735,7 +752,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			continue;
 		
 		// Check dynamic pre-conditions
-		bool pre_req_resolve = false;
+		/*bool pre_req_resolve = false;
 		for (auto& it : pre.atoms)
 			pre_req_resolve = pre_req_resolve || it.req_resolve;
 		if (pre_req_resolve) {
@@ -743,10 +760,10 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			
 			// resolve params
 			
-		}
+		}*/
 		
 		
-		ASSERT(met_count > 0);
+		ASSERT(met_count > 0 || !pre_count);
 		
 		// Check that changes can be made
 		int post_count = UPP::min(post.atoms.GetCount(), src.atoms.GetCount());
@@ -761,21 +778,20 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 				post.atoms[j].value != src.atoms[j].value)
 				{changes = true; break;}
 				
-		bool post_req_resolve = false;
+		/*bool post_req_resolve = false;
 		for (auto& it : post.atoms)
 			post_req_resolve = post_req_resolve || it.req_resolve;
-		
 		if (!changes && post_req_resolve) {
 			TODO
-		}
+		}*/
 		if (!changes)
 			continue;
 		
-		if (post_req_resolve) {
+		/*if (post_req_resolve) {
 			// resolve params from post
 			
 			TODO
-		}
+		}*/
 		
 		act_ids.Add(i);
 		action_costs.Add(e.cost);
@@ -784,6 +800,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		if (tmp == src) {LOG("ERROR: NO CHANGES IN:\n" << tmp.ToString());}
 		ASSERT(!(tmp == src));
 		dest.Add(&tmp);
+		DLOG("ADDED");
 	}
 	return true;
 }
@@ -795,36 +812,30 @@ void OmniActionPlanner::DoAction( int action_id, const BinaryWorldState& src, Bi
 	ASSERT(post.mask == dest.mask);
 	if (post.mask != dest.mask) return;
 	
+	DDUMP(post);
 	int i = 0;
 	auto k = post.mask->keys.Begin();
 	for(auto& a : post.atoms) {
 		if (a.in_use) {
-			if (a.req_resolve) {
-				TODO
-			}
-			else {
-				dest.SetMasked(i, a.value, false);
-			}
+			dest.SetMasked(i, a.value);
 		}
 		k++;
 		i++;
 	}
+	
+	DDUMP(dest);
 }
 
 bool OmniActionPlanner::TerminalTest(Val& v) {
-	if (0) {
-		LOG("OmniActionPlanner::TerminalTest: " << HexStrPtr(&v) << ": " << v.value.ToString());
-	}
+	DLOG("OmniActionPlanner::TerminalTest: " << HexStrPtr(&v) << ": " << v.value.ToString());
 	
 	if (!Get(v, tmp0)) {
 		ASSERT(0);
 		return false;
 	}
 	if (tmp0.IsPartialMatch(ws_goal)) {
-		if (0) {
-			LOG("GOAL:\n" << ws_goal.ToString());
-			LOG("TERMINAL:\n" << tmp0.ToString());
-		}
+		DLOG("GOAL:\n" << ws_goal.ToString());
+		DLOG("TERMINAL:\n" << tmp0.ToString());
 		return true;
 	}
 	
@@ -883,14 +894,7 @@ double OmniActionPlanner::Distance(Val& a, Val& b) {
 		total_dist += max(0.0, cost_multiplier * dist);
 	}
 	
-	if (0) {
-		BinaryWorldState diff;
-		diff.SetDifference(tmp0, tmp1);
-		if (diff.ToInlineString() == "at_high_place") {
-			LOG("");
-		}
-		LOG("\nFROM (" << HexStrPtr(&a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(&b) << "):\n" << tmp1.ToString() << "\nDIFF: \"" << diff.ToInlineString() << "\"\nDISTANCE: " << total_dist);
-	}
+	DLOG("\nFROM (" << HexStrPtr(&a) << "):\n" << tmp0.ToString() << "\nTO (" << HexStrPtr(&b) << "):\n" << tmp1.ToString() << "\nDIFF: \"" << BinaryWorldState::GetDifference(tmp0, tmp1).ToInlineString() << "\"\nDISTANCE: " << total_dist);
 	
 	return total_dist;
 }

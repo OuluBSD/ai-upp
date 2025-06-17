@@ -158,7 +158,9 @@ protected:
 	bool GetAction(VfsValue& v, int& action);
 	bool GetCost(const VfsValue& v, double& cost);
 	void DoAction( int action_id, const BinaryWorldState& src, BinaryWorldState& dest) const;
-	bool RealizeDecl(const String& str, Key& key);
+	bool ParseDecl(const String& str, Key& key);
+	bool ParseCall(const String& str, Key& key);
+	bool ParseCondParam(const Key& action, const String& str, Key& key);
 	BinaryWorldStateMask& GetMask() const;
 	bool ResolveCall(const Key& call_key, int& atom_idx);
 public:

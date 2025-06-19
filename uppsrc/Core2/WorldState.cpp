@@ -1,5 +1,6 @@
 #include "Core.h"
 
+#define DBG_PRINT 1
 
 NAMESPACE_UPP
 
@@ -432,6 +433,14 @@ String BinaryWorldState::ToString(int indent) const {
 
 String BinaryWorldState::ToShortInlineString() const {
 	String s;
+	#if DBG_PRINT
+	s << "(";
+	for(int i = 0; i < mask->keys.GetCount(); i++) {
+		if (i) s << ";";
+		s << mask->ToString(mask->keys[i].key);
+	}
+	s << ")";
+	#endif
 	for(auto& a : atoms)
 		s.Cat(a.in_use ? (a.value ? '|' : '_') : '.');
 	return s;
@@ -448,11 +457,27 @@ String BinaryWorldState::ToInlineString() const {
 				s.Cat(' ');
 			const auto& key = mask->keys[i].key;
 			bool put_end = false;
-			for(int j = 0; j < key.max_len; j++) {
-				int k = key.params[j].cls;
-				if (k < 0) break;
+			for(int j = -1; j < key.max_len; j++) {
+				int cls, name, val;
+				if (j < 0) {
+					cls = 0;
+					name = key.name;
+				}
+				else {
+					cls = key.params[j].cls;
+					name = key.params[j].name;
+					val = key.params[j].val;
+				}
+				if (cls < 0) break;
 				if (j == 0) {s.Cat('('); put_end = true;}
-				String str = mask->session->key_values[k];
+				
+				String str;
+				if (name >= 0)
+					str = mask->session->key_values[name].ToString();
+				else if (val >= 0)
+					str = mask->session->key_values[val].ToString();
+				else
+					str = "<>";
 				str.Replace(" ", "_");
 				if (a.value)
 					str = ToUpper(str);
@@ -554,6 +579,9 @@ int BinaryWorldStateSession::FindAddAtom(const Key& k) {
 	atom.goal = false;
 	atom.initial = false;
 	lock.LeaveWrite();
+	#if DBG_PRINT
+	LOG("add atom: " << GetKeyString(k));
+	#endif
 	return i;
 }
 
@@ -572,6 +600,9 @@ BinaryWorldStateSession::Item& BinaryWorldStateSession::GetAddAtom(const Key& k)
 	atom.goal = false;
 	atom.initial = false;
 	lock.LeaveWrite();
+	#if DBG_PRINT
+	LOG("add atom: " << GetKeyString(k));
+	#endif
 	return atom;
 }
 
@@ -604,7 +635,7 @@ String BinaryWorldStateSession::GetKeyString(const Key& k) const {
 			out.Cat((String)key_values[name_idx]);
 		}
 		if (cls_idx > 0) {
-			out.Cat(": ");
+			out.Cat(":");
 			out.Cat((String)key_values[cls_idx]);
 		}
 		if (k.params[i].val >= 0) {
@@ -819,7 +850,7 @@ bool WorldStateKey::operator==(const WorldStateKey& k) const {
 				params[i].cls == k.params[i].cls &&
 				params[i].name == k.params[i].name &&
 				params[i].val == k.params[i].val &&
-				params[i].val == k.params[i].shared;
+				params[i].shared == k.params[i].shared;
 	return same;
 }
 
@@ -891,6 +922,9 @@ int BinaryWorldStateMask::FindAdd(const Key& key) {
 	auto& it = keys.Add();
 	it.key = key;
 	it.atom_idx = atom_idx;
+#if DBG_PRINT 1
+	LOG("add mask: " << ToString(key));
+#endif
 	return i;
 }
 

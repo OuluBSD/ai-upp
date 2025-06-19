@@ -45,6 +45,7 @@ file
 	Courtroom.ecs,
 	Adventure.ecs,
 	"1 team multi-agent" readonly separator,
+	ArtistCommunity.txt,
 	Deathmatch.ecs,
 	Coop.ecs,
 	"2 team multi-agent" readonly separator,

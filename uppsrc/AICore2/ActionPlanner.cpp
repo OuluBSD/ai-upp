@@ -703,10 +703,12 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		int met_count = 0;
 		for(int j = 0; j < pre_count; j++) {
 			auto& a = pre.atoms[j];
+			if (!a.in_use)
+				continue;
 			const auto& akey = pre.mask->keys[j].key;
 			int shared_count = akey.GetSharedCount();
 			if (!shared_count) {
-				if (a.in_use && src.atoms[j].value != a.value) {
+				if (src.atoms[j].value != a.value) {
 					met = false;
 					break;
 				}
@@ -714,30 +716,36 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			}
 			else {
 				LOG(pre.mask->ToString(pre.mask->keys[j].key));
-				/*const auto& mkey0 = pre.mask->keys[j];
-				if (mkey0.decl_atom_idx >= 0) {
-					bool found = false;
-					for(int k = 0; k < pre.mask->keys.GetCount(); k++) {
-						if (k == j) continue;
-						const auto& mkey1 = pre.mask->keys[k];
-						if (mkey0.decl_atom_idx == mkey1.atom_idx) {
-							TODO
-						}
+				const auto& mkey0 = pre.mask->keys[j];
+				bool found = false;
+				for(int k = 0; k < src.atoms.GetCount(); k++) {
+					const auto& mkey1 = src.mask->keys[k];
+					if (mkey0.atom_idx == mkey1.atom_idx) {
+						found = true;
 					}
-					if (!found) TODO;
 				}
-				else {
+				if (!found) {
+					LOG("error: shared param not found in: " << pre.mask->ToString(pre.mask->keys[j].key));
+					return false;
+				}
+				
+				// Find actual value based on shared id
+				// - requires some kind of "action session" class
+				//		- probably should move previous code to some small new class
+				
+				
+				if (0) {
 					DLOG("SRC:\n" << src.ToString());
 					DLOG("PRE:\n" << pre.ToString());
 					bool found = false;
 					for(int k = 0; k < src.mask->keys.GetCount(); k++) {
 						const auto& mkey1 = src.mask->keys[k];
-						if (mkey0.atom_idx == mkey1.decl_atom_idx) {
+						if (mkey0.atom_idx == mkey1.atom_idx) {
 							TODO
 						}
 					}
 					if (!found) TODO;
-				}*/
+				}
 				TODO // if req_resolve:
 				// 1. loop & match src atoms with Mask::Item::decl_atom_idx
 				// 2a. if all params shared

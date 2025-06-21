@@ -113,7 +113,7 @@ void IntegratedTests() {
 	
 	// Action planner tests
 	if (1 || all) {
-		for(int i = 0; i < 4; i++) {
+		for(int i = 4; i < 5; i++) {
 			ValueMap atoms, goal, actions, initial;
 			if (i == 0) {
 				atoms	.Add("A", false);

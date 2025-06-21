@@ -13,6 +13,7 @@ protected:
 	friend class ActionNode;
 	friend class ActionPlannerWrapper;
 	friend class OmniActionPlanner;
+	friend class ActionParamResolver;
 	
 	WorldStateKey key;
 	BinaryWorldState precond, postcond;
@@ -125,7 +126,27 @@ public:
 
 typedef Node<ActionNode> APlanNode;
 
-
+class ActionParamResolver {
+	using Key = WorldStateKey;
+	
+	BinaryWorldStateSession* ses = 0;
+	BinaryWorldStateMask mask;
+	Key action;
+	ArrayMap<int,Value> shared_values;
+	String err;
+	const PlannerEvent* ev = 0;
+	const BinaryWorldState* src = 0;
+	
+	bool IsPreTailMismatch();
+	bool MakeKeys();
+public:
+	typedef ActionParamResolver CLASSNAME;
+	ActionParamResolver(BinaryWorldStateSession& ses);
+	
+	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current);
+	String GetError() const {return err;}
+	
+};
 
 class OmniActionPlanner :
 	public OmniSearcher

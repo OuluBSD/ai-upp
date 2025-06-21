@@ -126,28 +126,6 @@ public:
 
 typedef Node<ActionNode> APlanNode;
 
-class ActionParamResolver {
-	using Key = WorldStateKey;
-	
-	BinaryWorldStateSession* ses = 0;
-	BinaryWorldStateMask mask;
-	Key action;
-	ArrayMap<int,Value> shared_values;
-	String err;
-	const PlannerEvent* ev = 0;
-	const BinaryWorldState* src = 0;
-	
-	bool IsPreTailMismatch();
-	bool MakeKeys();
-public:
-	typedef ActionParamResolver CLASSNAME;
-	ActionParamResolver(BinaryWorldStateSession& ses);
-	
-	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current);
-	String GetError() const {return err;}
-	
-};
-
 class OmniActionPlanner :
 	public OmniSearcher
 {
@@ -198,6 +176,55 @@ public:
 	String GetTreeString(Val& v, BinaryWorldState& parent, int indent) const;
 	String GetResultString(const Vector<Val*>& result) const override;
 	int FindAction(const WorldStateKey& key) const;
+	
+	static bool HasDuplicateParams(const Key& key);
+};
+
+class ActionParamResolver {
+	using Key = WorldStateKey;
+	
+	typedef enum : int {
+		PRE,
+		POST,
+		ACTION
+	} Source;
+	
+	struct SharedParam : Moveable<SharedParam> {
+		struct Atom : Moveable<Atom> {
+			int mask_idx;
+			int param_idx;
+			Source src;
+		};
+		int val = -1, def_val = -1;
+		Vector<Atom> atoms;
+	};
+	
+	BinaryWorldStateSession* ses = 0;
+	ArrayMap<int,SharedParam> shared;
+	const PlannerEvent* ev = 0;
+	const BinaryWorldState* src = 0;
+	int pre_count = 0;
+	int post_count = 0;
+	String err;
+	BinaryWorldState dest;
+	
+	
+	bool IsPreTailMismatch();
+	bool MakeKeys();
+	bool FindSharedVariables(int count, const BinaryWorldState& ws, Source src);
+	bool FindSharedVariables(int mask_idx, const Key& key, Source src);
+	bool TestBasic();
+	bool SolveShared();
+	bool MakeDestination();
+	bool MakeSharedPreCondition();
+	bool TestSharedPreCondition();
+public:
+	typedef ActionParamResolver CLASSNAME;
+	ActionParamResolver(BinaryWorldStateSession& ses);
+	
+	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current);
+	String GetError() const {return err;}
+	bool IsError() const {return !err.IsEmpty();}
 };
 
 

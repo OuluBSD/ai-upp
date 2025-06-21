@@ -922,7 +922,7 @@ int BinaryWorldStateMask::FindAdd(const Key& key) {
 	auto& it = keys.Add();
 	it.key = key;
 	it.atom_idx = atom_idx;
-#if DBG_PRINT 1
+#if DBG_PRINT
 	LOG("add mask: " << ToString(key));
 #endif
 	return i;

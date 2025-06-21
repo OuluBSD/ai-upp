@@ -416,6 +416,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 		if (!this->ParseDecl(action_name, action_key)) return false;
 		int j = FindAction(action_key);
 		if (j >= 0) {WhenError("duplicate action: " + action_name); return false;}
+		if (HasDuplicateParams(action_key)) {WhenError("duplicate params in action: " + action_name); return false;}
 		auto& action = actions.Add();
 		action.key = action_key;
 		action.postcond.mask = &GetMask();
@@ -467,6 +468,7 @@ bool OmniActionPlanner::SetParams(Value val) {
 				String atom_name = arr[0];
 				Key atom_key;
 				if (!ParseCondParam(a.key, atom_name, atom_key)) return false;
+				if (HasDuplicateParams(atom_key)) {WhenError("duplicate params in atom: " + a.precond.mask->ToString(atom_key)); return false;}
 				DLOG("\tPARAM " << a.precond.mask->ToString(atom_key));
 				int atom_value = arr[1];
 				int atom_idx = ws_session.atoms.FindAdd(atom_key);
@@ -505,6 +507,20 @@ bool OmniActionPlanner::ParseCondParam(const Key& action, const String& str, Wor
 	if (!use_params && !ws_session.ParseRaw (str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
 	if ( use_params && !ws_session.ParseCondParam(action, str, key)) {WhenError("parsing key '" + str + "' failed"); return false;}
 	return true;
+}
+
+bool OmniActionPlanner::HasDuplicateParams(const Key& key) {
+	for(int i = 0; i < Key::max_len; i++) {
+		if (key.params[i].cls < 0) break;
+		int p0 = key.params[i].name;
+		for(int j = i+1; j < Key::max_len; j++) {
+			if (key.params[j].cls < 0) break;
+			int p1 = key.params[j].name;
+			if (p0 == p1)
+				return true;
+		}
+	}
+	return false;
 }
 
 int OmniActionPlanner::FindAction(const WorldStateKey& key) const {
@@ -679,63 +695,30 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, Vector<BinaryWorldState*>& dest, Vector<int>& act_ids, Vector<double>& action_costs) {
 	dest.SetCount(0);
 	DLOG("SRC:\n" << src.ToShortInlineString());
+	
+	// TODO: AI exchange point: add actions
+	//		 --> collect this to "failure points" and use if 'no route is found'
+	
 	for (int i=0; i < actions.GetCount(); ++i )
 	{
 		// Check precondition
 		auto& e = actions[i];
 		
 		ActionParamResolver rs(ws_session);
-		if (!rs.Resolve(e, src))
-			return false;
-		
-		TODO
-		
-		const BinaryWorldState& pre  = e.precond;
-		const BinaryWorldState& post = e.postcond;
-		
-		
-		DLOG("ACTION " << i);
-		DLOG("<<<\n" << pre.ToString());
-		DLOG(">>>\n" << post.ToString());
-		
-		// Check that precondition is not using something outside of src values
-		int pre_count = UPP::min(pre.atoms.GetCount(), src.atoms.GetCount());
-		bool fail = false;
-		for(int j = pre_count; j < pre.atoms.GetCount(); j++)
-			if (pre.atoms[j].in_use && pre.atoms[j].value)
-				{fail = true; break;}
-		if (fail)
-			continue;
-		
-		bool met = true;
-		int met_count = 0;
-		for(int j = 0; j < pre_count; j++) {
-			auto& a = pre.atoms[j];
-			if (!a.in_use)
-				continue;
-			const auto& akey = pre.mask->keys[j].key;
-			int shared_count = akey.GetSharedCount();
-			if (!shared_count) {
-				if (src.atoms[j].value != a.value) {
-					met = false;
-					break;
-				}
-				else met_count++;
+		if (!rs.Resolve(e, src)) {
+			if (rs.IsError()) {
+				LOG("ActionParamResolver: error: " << rs.GetError());
+				TODO
+				return false;
 			}
 			else {
-				
-				TODO // if req_resolve:
-				// 1. loop & match src atoms with Mask::Item::decl_atom_idx
-				// 2a. if all params shared
-				//			- call atom matches
-				// 2b. if partially shared
-				//			- resolve shared values & used them to make the full call
-				//			- search for full call(s)
-				// ??? param combinations ??? where matters?
+				// TODO: AI exchange point: create missing atoms
+				//		 --> collect this to "failure points" and use if 'no route is found'
+				continue;
 			}
 		}
-		if (!met)
-			continue;
+		
+		TODO
 		
 		// Check dynamic pre-conditions
 		/*bool pre_req_resolve = false;
@@ -747,7 +730,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			// resolve params
 			
 		}*/
-		
+		#if 0
 		
 		ASSERT(met_count > 0 || !pre_count);
 		
@@ -787,6 +770,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		ASSERT(!(tmp == src));
 		dest.Add(&tmp);
 		DLOG("ADDED");
+		#endif
 	}
 	return true;
 }
@@ -1006,9 +990,16 @@ ActionParamResolver::ActionParamResolver(BinaryWorldStateSession& ses) : ses(&se
 bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src) {
 	this->ev = &e;
 	this->src = &src;
+	err.Clear();
+	shared.Clear();
 	
-	if (!IsPreTailMismatch()) {
-		err = "tail mismatch";
+	pre_count  = UPP::min(ev->precond.atoms.GetCount(),  src.atoms.GetCount());
+	post_count = UPP::min(ev->postcond.atoms.GetCount(), src.atoms.GetCount());
+	
+	// todo: 3-state behaviour is not completely solved yet...
+	//       now: "used & false" in tail passes, but should it be "!used"???
+	if (IsPreTailMismatch()) {
+		// not an error, but fails
 		return false;
 	}
 	
@@ -1043,7 +1034,6 @@ bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState&
 bool ActionParamResolver::IsPreTailMismatch() {
 	// Check that precondition is not using something outside of src values
 	const BinaryWorldState& pre = ev->precond;
-	int pre_count = UPP::min(pre.atoms.GetCount(), src->atoms.GetCount());
 	bool fail = false;
 	for(int j = pre_count; j < pre.atoms.GetCount(); j++)
 		if (pre.atoms[j].in_use && pre.atoms[j].value)
@@ -1051,8 +1041,209 @@ bool ActionParamResolver::IsPreTailMismatch() {
 	return false;
 }
 
-bool ActionParamResolver::MakeKeys() {
+bool ActionParamResolver::FindSharedVariables(int mask_idx, const Key& key, Source src) {
+	int shared_count = 0;
+	for(int i = 0; i < Key::max_len; i++) {
+		if (key.params[i].cls < 0)
+			break;
+		if (key.params[i].shared) {
+			int name = key.params[i].name;
+			ASSERT(name >= 0);
+			shared_count++;
+			SharedParam& sp = shared.GetAdd(name);
+			
+			// Collect all indices of keys that use shared variables (per shared key)
+			auto& atom = sp.atoms.Add();
+			atom.mask_idx = mask_idx;
+			atom.param_idx = i;
+			atom.src = src;
+			if (key.params[i].val >= 0) {
+				if (sp.def_val >= 0) {
+					err = "multiple default values set";
+					return false;
+				}
+				sp.def_val = key.params[i].val;
+			}
+		}
+	}
+	return true;
+}
+
+bool ActionParamResolver::FindSharedVariables(int count, const BinaryWorldState& ws, Source src) {
+	for(int j = 0; j < count; j++) {
+		auto& a = ws.atoms[j];
+		if (!a.in_use)
+			continue;
+		const auto& akey = ws.mask->keys[j].key;
+		if (!FindSharedVariables(j, akey, src))
+			return false;
+	}
+	return true;
+}
+
+bool ActionParamResolver::TestBasic() {
+	const BinaryWorldState& pre = ev->precond;
+	const auto& src_atoms = src->atoms;
+	bool met = true;
+	if (shared.IsEmpty()) {
+		for(int j = 0; j < pre_count; j++) {
+			auto& a = pre.atoms[j];
+			if (!a.in_use)
+				continue;
+			if (src_atoms[j].value != a.value) {
+				met = false;
+				break;
+			}
+		}
+		if (!met)
+			return false; // Fixed-value atoms didn't match (and no errors)
+	}
+	return true;
+}
+
+bool ActionParamResolver::SolveShared() {
+	BinaryWorldStateMask* mask = ev->precond.mask;
+	auto mask_begin = mask->keys.Begin();
+	for (auto shr : ~shared) {
+		for (auto& shr_atom : shr.value.atoms) {
+			auto mask0 = mask_begin + shr_atom.mask_idx;
+			auto mask1 = mask_begin;
+			int len0 = mask0->key.GetLength();
+			ASSERT(shr_atom.mask_idx >= 0 && shr_atom.mask_idx < mask->keys.GetCount());
+			ASSERT(shr_atom.param_idx >= 0 && shr_atom.param_idx < Key::max_len);
+			int predicate_name0 = mask0->key.name;
+			ASSERT(mask->keys.GetCount() >= src->atoms.GetCount());
+			for(const auto& ws_atom : src->atoms) {
+				if (mask0 != mask1 && ws_atom.in_use) {
+					ASSERT(mask0->atom_idx != mask1->atom_idx);
+					int predicate_name1 = mask1->key.name;
+					if (predicate_name0 == predicate_name1 &&
+						len0 == mask1->key.GetLength()) {
+						const auto& param1 = mask1->key.params[shr_atom.param_idx];
+						if (param1.val >= 0) {
+							if (shr.value.val >= 0 && shr.value.val != param1.val) {
+								err = "duplicate value";
+								return false;
+							}
+							shr.value.val = param1.val;
+						}
+					}
+				}
+				mask1++;
+			}
+		}
+		
+		// If shared values wasn't found
+		if (shr.value.val < 0) {
+			
+			// Use default value if set
+			if (shr.value.def_val >= 0) {
+				shr.value.val = shr.value.def_val;
+			}
+			else {
+				String shr_name = mask->session->key_values[shr.key].ToString();
+				err = "could not resolve shared variable '" + shr_name + "'";
+				return false;
+			}
+		}
+	}
 	
+	return true;
+}
+
+bool ActionParamResolver::MakeSharedPreCondition() {
+	
+	TODO
+	
+	return true;
+}
+
+bool ActionParamResolver::TestSharedPreCondition() {
+	
+	TODO
+	
+	return true;
+}
+
+bool ActionParamResolver::MakeDestination() {
+	const BinaryWorldState& pre  = ev->precond;
+	const BinaryWorldState& post = ev->postcond;
+	const BinaryWorldState& src  = *this->src;
+	
+	dest = src;
+	
+	auto mask_begin = post.mask->keys.Begin();
+	for(int i = 0; i < post.atoms.GetCount(); i++) {
+		const auto& pa = post.atoms[i];
+		if (!pa.in_use)
+			continue;
+		
+		auto mask_it = mask_begin + i;
+		const Key& src_key = mask_it->key;
+		Key dst_key;
+		dst_key.name = dst_key;
+		for(int j = 0; j < Key::max_len; j++) {
+			if (src_key.params[j].cls < 0) break;
+			auto& dst_param = dst_key.params[j];
+			if (!src_key.params[j].shared) {
+				dst_param = src_key.params[j];
+			}
+			else {
+				TODO
+			}
+		}
+		
+		dest.SetKey(dst_key, pa.value);
+	}
+	
+	return true;
+}
+
+bool ActionParamResolver::MakeKeys() {
+	const BinaryWorldState& pre = ev->precond;
+	const BinaryWorldState& post = ev->postcond;
+	
+	ASSERT(pre.mask == post.mask && pre.mask == src->mask);
+	if (!(pre.mask == post.mask && pre.mask == src->mask)) Panic("fatal internal error");
+	
+	DLOG("ACTION: " << ev->GetName());
+	DLOG("<<<\n" << pre.ToString());
+	DLOG(">>>\n" << post.ToString());
+	
+	// Find shared variables
+	if (!FindSharedVariables(pre_count, pre, PRE))
+		return false;
+	
+	// Basic case: pre-condition with fixed-param atoms
+	if (!TestBasic())
+		return false;
+	
+	// Find more shared variables
+	if (!FindSharedVariables(post_count, post, POST))
+		return false;
+	if (!FindSharedVariables(-1, ev->key, ACTION))
+		return false;
+	
+	// Collect all partial matching keys by "classpath" (== name of atom + param-count)
+	// note: pass for performance reasons
+	
+	// Try to solve shared variables:
+	// - from partially matching keys
+	// - TODO: (possibly, but not likely) AI exchange point: create unsolved arguments
+	if (!SolveShared())
+		return false;
+	
+	// Check pre-condition with shared-param atoms
+	if (!MakeSharedPreCondition())
+		return false;
+	if (!TestSharedPreCondition())
+		return false;
+	
+	// Create new world-state with src&post world-states (with solved shared params)
+	if (!MakeDestination())
+		return false;
+	
+	// Assert that new world-state doesn't have atoms with shared params
 	TODO
 	
 	return true;

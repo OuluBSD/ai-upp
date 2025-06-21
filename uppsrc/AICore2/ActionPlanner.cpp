@@ -683,8 +683,16 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 	{
 		// Check precondition
 		auto& e = actions[i];
+		
+		ActionParamResolver rs(ws_session);
+		if (!rs.Resolve(e, src))
+			return false;
+		
+		TODO
+		
 		const BinaryWorldState& pre  = e.precond;
 		const BinaryWorldState& post = e.postcond;
+		
 		
 		DLOG("ACTION " << i);
 		DLOG("<<<\n" << pre.ToString());
@@ -715,37 +723,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 				else met_count++;
 			}
 			else {
-				LOG(pre.mask->ToString(pre.mask->keys[j].key));
-				const auto& mkey0 = pre.mask->keys[j];
-				bool found = false;
-				for(int k = 0; k < src.atoms.GetCount(); k++) {
-					const auto& mkey1 = src.mask->keys[k];
-					if (mkey0.atom_idx == mkey1.atom_idx) {
-						found = true;
-					}
-				}
-				if (!found) {
-					LOG("error: shared param not found in: " << pre.mask->ToString(pre.mask->keys[j].key));
-					return false;
-				}
 				
-				// Find actual value based on shared id
-				// - requires some kind of "action session" class
-				//		- probably should move previous code to some small new class
-				
-				
-				if (0) {
-					DLOG("SRC:\n" << src.ToString());
-					DLOG("PRE:\n" << pre.ToString());
-					bool found = false;
-					for(int k = 0; k < src.mask->keys.GetCount(); k++) {
-						const auto& mkey1 = src.mask->keys[k];
-						if (mkey0.atom_idx == mkey1.atom_idx) {
-							TODO
-						}
-					}
-					if (!found) TODO;
-				}
 				TODO // if req_resolve:
 				// 1. loop & match src atoms with Mask::Item::decl_atom_idx
 				// 2a. if all params shared
@@ -1006,6 +984,78 @@ BinaryWorldStateMask& OmniActionPlanner::GetMask() const {
 		ws_mask->session = &ses;
 	}
 	return *ws_mask;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ActionParamResolver::ActionParamResolver(BinaryWorldStateSession& ses) : ses(&ses) {
+	
+}
+
+bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src) {
+	this->ev = &e;
+	this->src = &src;
+	
+	if (!IsPreTailMismatch()) {
+		err = "tail mismatch";
+		return false;
+	}
+	
+	if (!MakeKeys()) {
+		err = "making keys failed";
+		return false;
+	}
+	
+	#if 0
+	LOG(pre.mask->ToString(pre.mask->keys[j].key));
+	
+	const BinaryWorldState& pre  = e.precond;
+	const BinaryWorldState& post = e.postcond;
+	
+	const auto& mkey0 = pre.mask->keys[j];
+	bool found = false;
+	for(int k = 0; k < src.atoms.GetCount(); k++) {
+		const auto& mkey1 = src.mask->keys[k];
+		if (mkey0.atom_idx == mkey1.atom_idx) {
+			found = true;
+		}
+	}
+	if (!found) {
+		LOG("error: shared param not found in: " << pre.mask->ToString(pre.mask->keys[j].key));
+		return false;
+	}
+	#endif
+	
+	return false;
+}
+
+bool ActionParamResolver::IsPreTailMismatch() {
+	// Check that precondition is not using something outside of src values
+	const BinaryWorldState& pre = ev->precond;
+	int pre_count = UPP::min(pre.atoms.GetCount(), src->atoms.GetCount());
+	bool fail = false;
+	for(int j = pre_count; j < pre.atoms.GetCount(); j++)
+		if (pre.atoms[j].in_use && pre.atoms[j].value)
+			return true;
+	return false;
+}
+
+bool ActionParamResolver::MakeKeys() {
+	
+	TODO
+	
+	return true;
 }
 
 END_UPP_NAMESPACE

@@ -160,7 +160,7 @@ void IntegratedTests() {
 				atoms	.Add("A(id)", false);
 				atoms	.Add("B", false);
 				goal	.Add("B", true);
-				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",false).Post("B",true));
+				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Post("B",true));
 			}
 			else if (i == 5) {
 				// Inducts from initial

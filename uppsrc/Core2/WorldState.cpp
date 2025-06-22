@@ -915,6 +915,9 @@ int BinaryWorldStateMask::FindAdd(const Key& key) {
 	ASSERT(session);
 	if (!session) return -1;
 	int atom_idx = session->atoms.Find(key);
+#if DBG_PRINT
+	if (atom_idx < 0) {LOG("failed to find atom: " << ToString(key));}
+#endif
 	ASSERT(atom_idx >= 0);
 	if (atom_idx < 0) return -1;
 	

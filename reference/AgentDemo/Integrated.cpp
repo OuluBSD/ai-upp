@@ -188,6 +188,14 @@ void IntegratedTests() {
 				actions	.Add("write B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
 			}
 			else if (i == 7) {
+				// Test with multiple initial
+				params("use_params") = true;
+				params("use_resolver") = true;
+				initial	.Add("A(\"abc\")", true);
+				initial	.Add("A(\"def\")", true);
+				TODO
+			}
+			else if (i == 8) {
 				// Inducts from intermediate world-state
 			}
 			params("atoms") = atoms;

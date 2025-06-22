@@ -670,7 +670,9 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 	
 	Vector<int> act_ids;
 	Vector<double> action_costs;
-	GetPossibleStateTransition(ws, possibilities, act_ids, action_costs);
+	if (!GetPossibleStateTransition(ws, possibilities, act_ids, action_costs))
+		return false;
+	
 	for(int i = 0; i < possibilities.GetCount(); i++) {
 		BinaryWorldState& ws_to = *possibilities[i];
 		hash_t hash = ws_to.GetHashValue();
@@ -718,74 +720,18 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			}
 		}
 		
-		for(int j = 0; j < rs.GetResultCount(); j++) {
-			const auto& result = rs.GetResult(j);
-			
-			TODO
-			
+		for(int j = 0; j < rs.results.GetCount(); j++) {
+			auto& result = rs.results[j];
 			act_ids.Add(i);
 			action_costs.Add(e.cost);
-			BinaryWorldState& tmp = search_cache.Add();
-			DoAction( i, src, tmp );
+			BinaryWorldState& tmp = search_cache.Add(result.Detach());
 			if (tmp == src) {LOG("ERROR: NO CHANGES IN:\n" << tmp.ToString());}
 			ASSERT(!(tmp == src));
 			dest.Add(&tmp);
 			DLOG("ADDED");
 		}
-		TODO
-		
-		// Check dynamic pre-conditions
-		/*bool pre_req_resolve = false;
-		for (auto& it : pre.atoms)
-			pre_req_resolve = pre_req_resolve || it.req_resolve;
-		if (pre_req_resolve) {
-			TODO
-			
-			// resolve params
-			
-		}*/
-		#if 0
-		
-		ASSERT(met_count > 0 || !pre_count);
-		
-		// Check that changes can be made
-		int post_count = UPP::min(post.atoms.GetCount(), src.atoms.GetCount());
-		bool changes = false;
-		if (post_count < post.atoms.GetCount()) {
-			for(int j = post_count; j < post.atoms.GetCount(); j++)
-				if (post.atoms[j].in_use && post.atoms[j].value)
-					{changes = true; break;}
-		}
-		for(int j = 0; j < post_count; j++)
-			if (post.atoms[j].in_use &&
-				post.atoms[j].value != src.atoms[j].value)
-				{changes = true; break;}
-				
-		/*bool post_req_resolve = false;
-		for (auto& it : post.atoms)
-			post_req_resolve = post_req_resolve || it.req_resolve;
-		if (!changes && post_req_resolve) {
-			TODO
-		}*/
-		if (!changes)
-			continue;
-		
-		/*if (post_req_resolve) {
-			// resolve params from post
-			
-			TODO
-		}*/
-		
-		act_ids.Add(i);
-		action_costs.Add(e.cost);
-		BinaryWorldState& tmp = search_cache.Add();
-		DoAction( i, src, tmp );
-		if (tmp == src) {LOG("ERROR: NO CHANGES IN:\n" << tmp.ToString());}
-		ASSERT(!(tmp == src));
-		dest.Add(&tmp);
-		DLOG("ADDED");
-		#endif
 	}
+	
 	return true;
 }
 
@@ -1001,50 +947,6 @@ ActionParamResolver::ActionParamResolver(BinaryWorldStateSession& ses) : ses(&se
 	
 }
 
-bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src) {
-	this->ev = &e;
-	this->src = &src;
-	err.Clear();
-	shared.Clear();
-	
-	pre_count  = UPP::min(ev->precond.atoms.GetCount(),  src.atoms.GetCount());
-	post_count = UPP::min(ev->postcond.atoms.GetCount(), src.atoms.GetCount());
-	
-	// todo: 3-state behaviour is not completely solved yet...
-	//       now: "used & false" in tail passes, but should it be "!used"???
-	if (IsPreTailMismatch()) {
-		// not an error, but fails
-		return false;
-	}
-	
-	if (!MakeKeys()) {
-		err = "making keys failed";
-		return false;
-	}
-	
-	#if 0
-	LOG(pre.mask->ToString(pre.mask->keys[j].key));
-	
-	const BinaryWorldState& pre  = e.precond;
-	const BinaryWorldState& post = e.postcond;
-	
-	const auto& mkey0 = pre.mask->keys[j];
-	bool found = false;
-	for(int k = 0; k < src.atoms.GetCount(); k++) {
-		const auto& mkey1 = src.mask->keys[k];
-		if (mkey0.atom_idx == mkey1.atom_idx) {
-			found = true;
-		}
-	}
-	if (!found) {
-		LOG("error: shared param not found in: " << pre.mask->ToString(pre.mask->keys[j].key));
-		return false;
-	}
-	#endif
-	
-	return false;
-}
-
 bool ActionParamResolver::IsPreTailMismatch() {
 	// Check that precondition is not using something outside of src values
 	const BinaryWorldState& pre = ev->precond;
@@ -1182,8 +1084,12 @@ bool ActionParamResolver::MakeSharedPreCondition() {
 	const BinaryWorldState& pre  = ev->precond;
 	solved_pre = pre;
 	
-	for(int i = 0; i < solved_pre.mask->keys.GetCount(); i++) {
-		Key& pre_key = solved_pre.mask->keys[i].key;
+	for(int i = 0; i < solved_pre.atoms.GetCount(); i++) {
+		auto& pre_atom0 = solved_pre.atoms[i];
+		if (!pre_atom0.in_use) continue;
+		Key pre_key = solved_pre.mask->keys[i].key;
+		
+		bool changed = false;
 		
 		for(int j = 0; j < pre_key.max_len; j++) {
 			auto& p = pre_key.params[j];
@@ -1207,9 +1113,22 @@ bool ActionParamResolver::MakeSharedPreCondition() {
 			p.val = val;
 			p.name = -1;
 			p.cls = cls;
+			changed = true;
 		}
 		
+		if (changed) {
+			int mask_idx = solved_pre.mask->FindAdd(pre_key);
+			if (mask_idx >= solved_pre.atoms.GetCount())
+				solved_pre.atoms.SetCount(mask_idx+1);
+			auto& pre_atom1 = solved_pre.atoms[mask_idx];
+			pre_atom1.in_use = true;
+			pre_atom1.value = pre_atom0.value;
+			pre_atom0.in_use = false;
+			pre_atom0.value = false;
+		}
 		ASSERT(solved_pre.mask->Find(pre_key) >= 0);
+		
+		i++;
 	}
 	
 	DLOG("ActionParamResolver::MakeSharedPreCondition:\n" << solved_pre.ToString(1));
@@ -1219,9 +1138,9 @@ bool ActionParamResolver::MakeSharedPreCondition() {
 
 bool ActionParamResolver::TestSharedPreCondition() {
 	const BinaryWorldState& src  = *this->src;
+	
 	ASSERT(src.mask == solved_pre.mask);
 	
-	int i = 0;
 	int met_count = 0;
 	auto src_atom = src.atoms.Begin();
 	for(auto& pre_atom : solved_pre.atoms) {
@@ -1232,18 +1151,21 @@ bool ActionParamResolver::TestSharedPreCondition() {
 		src_atom++;
 		met_count++;
 	}
+	
 	ASSERT(met_count > 0);
 	
 	return true;
 }
 
 bool ActionParamResolver::MakeDestination() {
-	const BinaryWorldState& pre  = ev->precond;
 	const BinaryWorldState& post = ev->postcond;
 	const BinaryWorldState& src  = *this->src;
 	
+	results.Clear();
+	auto& dest = results.Add().Create();
 	dest = src;
 	
+	int changed = 0;
 	auto mask_begin = post.mask->keys.Begin();
 	for(int i = 0; i < post.atoms.GetCount(); i++) {
 		const auto& pa = post.atoms[i];
@@ -1253,45 +1175,54 @@ bool ActionParamResolver::MakeDestination() {
 		auto mask_it = mask_begin + i;
 		const Key& src_key = mask_it->key;
 		Key dst_key;
-		dst_key.name = src_key.name;
+		dst_key = src_key;
 		for(int j = 0; j < Key::max_len; j++) {
-			if (src_key.params[j].cls < 0) break;
+			if (dst_key.params[j].cls < 0) break;
 			auto& dst_param = dst_key.params[j];
-			if (!src_key.params[j].shared) {
-				dst_param = src_key.params[j];
-			}
-			else {
+			if (dst_key.params[j].shared) {
 				TODO
 			}
 		}
 		
+		// Check that changes can be made
+		int mask_idx = dest.mask->FindAdd(dst_key);
+		bool dst_value = mask_idx < post.atoms.GetCount() ? post.atoms[mask_idx].value : false;
+		bool src_value = mask_idx < src.atoms.GetCount()  ? src.atoms[mask_idx].value  : !dst_value;
+		
+		if (!dest.atoms[mask_idx].in_use || dst_value != src_value)
+			changed++;
+		
+		//DLOG("Dest " << i << ": " << post.ToString(dst_key));
 		dest.SetKey(dst_key, pa.value);
 	}
+	
+	if (!changed)
+		return false;
 	
 	return true;
 }
 
-bool ActionParamResolver::CheckChanges() {
-	int post_count = UPP::min(post.atoms.GetCount(), src.atoms.GetCount());
-	bool changes = false;
-	if (post_count < post.atoms.GetCount()) {
-		for(int j = post_count; j < post.atoms.GetCount(); j++)
-			if (post.atoms[j].in_use && post.atoms[j].value)
-				{changes = true; break;}
+bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src) {
+	this->ev = &e;
+	this->src = &src;
+	err.Clear();
+	shared.Clear();
+	
+	pre_count  = UPP::min(ev->precond.atoms.GetCount(),  src.atoms.GetCount());
+	post_count = UPP::min(ev->postcond.atoms.GetCount(), src.atoms.GetCount());
+	
+	// todo: 3-state behaviour is not completely solved yet...
+	//       now: "used & false" in tail passes, but should it be "!used"???
+	if (IsPreTailMismatch()) {
+		// not an error, but fails
+		return false;
 	}
-	for(int j = 0; j < post_count; j++)
-		if (post.atoms[j].in_use &&
-			post.atoms[j].value != src.atoms[j].value)
-			{changes = true; break;}
-	return changes;
-}
-
-bool ActionParamResolver::MakeKeys() {
+	
 	const BinaryWorldState& pre = ev->precond;
 	const BinaryWorldState& post = ev->postcond;
 	
-	ASSERT(pre.mask == post.mask && pre.mask == src->mask);
-	if (!(pre.mask == post.mask && pre.mask == src->mask)) Panic("fatal internal error");
+	ASSERT(pre.mask == post.mask && pre.mask == src.mask);
+	if (!(pre.mask == post.mask && pre.mask == src.mask)) Panic("fatal internal error");
 	
 	DLOG("ACTION: " << ev->GetName());
 	DLOG("<<<\n" << pre.ToString());
@@ -1331,19 +1262,6 @@ bool ActionParamResolver::MakeKeys() {
 	// Create new world-state with src&post world-states (with solved shared params)
 	if (!MakeDestination())
 		return false;
-	
-	// Check that changes can be made
-	if (!CheckChanges()) {
-		ASSERT_(0, "changes can't be made");
-		err = "internal error: changes can't be made";
-		return false;
-	}
-	
-	// Assert that new world-state doesn't have atoms with shared params
-	TODO
-	
-	// Create output (combinations)
-	TODO
 	
 	return true;
 }

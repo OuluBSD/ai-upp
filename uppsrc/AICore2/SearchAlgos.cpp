@@ -623,8 +623,8 @@ Vector<Val*> AStar::ReconstructPath(Val& current, Val& current_src, Vector<NodeP
 		}
 		else {
 			const NodePtr* cf = open_set[i]->came_from;
-			ptr = cf->ptr;
-			src = cf->src;
+			ptr = cf ? cf->ptr : 0;
+			src = cf ? cf->src : 0;
 		}
 		if (!ptr) break;
 	}

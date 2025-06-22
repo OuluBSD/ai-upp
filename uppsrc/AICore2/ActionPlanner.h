@@ -208,11 +208,8 @@ class ActionParamResolver {
 	int post_count = 0;
 	String err;
 	BinaryWorldState solved_pre;
-	BinaryWorldState dest;
-	
 	
 	bool IsPreTailMismatch();
-	bool MakeKeys();
 	bool FindSharedVariables(int count, const BinaryWorldState& ws, Source src);
 	bool FindSharedVariables(int mask_idx, const Key& key, Source src);
 	bool TestBasic();
@@ -220,7 +217,6 @@ class ActionParamResolver {
 	bool MakeDestination();
 	bool MakeSharedPreCondition();
 	bool TestSharedPreCondition();
-	bool CheckChanges();
 public:
 	typedef ActionParamResolver CLASSNAME;
 	ActionParamResolver(BinaryWorldStateSession& ses);
@@ -228,6 +224,9 @@ public:
 	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current);
 	String GetError() const {return err;}
 	bool IsError() const {return !err.IsEmpty();}
+	
+	Vector<One<BinaryWorldState>> results;
+	
 };
 
 

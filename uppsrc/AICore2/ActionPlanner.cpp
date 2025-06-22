@@ -718,6 +718,20 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 			}
 		}
 		
+		for(int j = 0; j < rs.GetResultCount(); j++) {
+			const auto& result = rs.GetResult(j);
+			
+			TODO
+			
+			act_ids.Add(i);
+			action_costs.Add(e.cost);
+			BinaryWorldState& tmp = search_cache.Add();
+			DoAction( i, src, tmp );
+			if (tmp == src) {LOG("ERROR: NO CHANGES IN:\n" << tmp.ToString());}
+			ASSERT(!(tmp == src));
+			dest.Add(&tmp);
+			DLOG("ADDED");
+		}
 		TODO
 		
 		// Check dynamic pre-conditions
@@ -1063,6 +1077,7 @@ bool ActionParamResolver::FindSharedVariables(int mask_idx, const Key& key, Sour
 					return false;
 				}
 				sp.def_val = key.params[i].val;
+				sp.def_cls = key.params[i].cls;
 			}
 		}
 	}
@@ -1106,16 +1121,27 @@ bool ActionParamResolver::SolveShared() {
 	auto mask_begin = mask->keys.Begin();
 	for (auto shr : ~shared) {
 		for (auto& shr_atom : shr.value.atoms) {
-			auto mask0 = mask_begin + shr_atom.mask_idx;
+			int len0, predicate_name0, atom_idx0;
+			decltype(mask_begin) mask0 = 0;
+			if (shr_atom.mask_idx >= 0) {
+				mask0 = mask_begin + shr_atom.mask_idx;
+				len0 = mask0->key.GetLength();
+				ASSERT(shr_atom.mask_idx >= 0 && shr_atom.mask_idx < mask->keys.GetCount());
+				ASSERT(shr_atom.param_idx >= 0 && shr_atom.param_idx < Key::max_len);
+				predicate_name0 = mask0->key.name;
+				atom_idx0 = mask0->atom_idx;
+			}
+			else {
+				ASSERT(shr_atom.src == ACTION);
+				len0 = ev->key.GetLength();
+				predicate_name0 = ev->key.name;
+				atom_idx0 = -1;
+			}
 			auto mask1 = mask_begin;
-			int len0 = mask0->key.GetLength();
-			ASSERT(shr_atom.mask_idx >= 0 && shr_atom.mask_idx < mask->keys.GetCount());
-			ASSERT(shr_atom.param_idx >= 0 && shr_atom.param_idx < Key::max_len);
-			int predicate_name0 = mask0->key.name;
 			ASSERT(mask->keys.GetCount() >= src->atoms.GetCount());
 			for(const auto& ws_atom : src->atoms) {
 				if (mask0 != mask1 && ws_atom.in_use) {
-					ASSERT(mask0->atom_idx != mask1->atom_idx);
+					ASSERT(atom_idx0 != mask1->atom_idx);
 					int predicate_name1 = mask1->key.name;
 					if (predicate_name0 == predicate_name1 &&
 						len0 == mask1->key.GetLength()) {
@@ -1126,6 +1152,7 @@ bool ActionParamResolver::SolveShared() {
 								return false;
 							}
 							shr.value.val = param1.val;
+							shr.value.cls = param1.cls;
 						}
 					}
 				}
@@ -1152,15 +1179,60 @@ bool ActionParamResolver::SolveShared() {
 }
 
 bool ActionParamResolver::MakeSharedPreCondition() {
+	const BinaryWorldState& pre  = ev->precond;
+	solved_pre = pre;
 	
-	TODO
+	for(int i = 0; i < solved_pre.mask->keys.GetCount(); i++) {
+		Key& pre_key = solved_pre.mask->keys[i].key;
+		
+		for(int j = 0; j < pre_key.max_len; j++) {
+			auto& p = pre_key.params[j];
+			if (p.cls < 0) break;
+			if (!p.shared) continue;
+			
+			int k = shared.Find(p.name);
+			ASSERT(k >= 0);
+			if (k < 0) return false;
+			const auto& shr = shared[k];
+			
+			int val = shr.val >= 0 ? shr.val : shr.def_val;
+			int cls = shr.val >= 0 ? shr.cls : shr.def_cls;
+			if (val < 0) {
+				err = "could not resolve param '" +
+					solved_pre.mask->session->key_values[p.name].ToString() + "'";
+				return false;
+			}
+			
+			p.shared = false;
+			p.val = val;
+			p.name = -1;
+			p.cls = cls;
+		}
+		
+		ASSERT(solved_pre.mask->Find(pre_key) >= 0);
+	}
+	
+	DLOG("ActionParamResolver::MakeSharedPreCondition:\n" << solved_pre.ToString(1));
 	
 	return true;
 }
 
 bool ActionParamResolver::TestSharedPreCondition() {
+	const BinaryWorldState& src  = *this->src;
+	ASSERT(src.mask == solved_pre.mask);
 	
-	TODO
+	int i = 0;
+	int met_count = 0;
+	auto src_atom = src.atoms.Begin();
+	for(auto& pre_atom : solved_pre.atoms) {
+		if (!pre_atom.in_use) {src_atom++; continue;}
+		if (src_atom->in_use && src_atom->value != pre_atom.value) {
+			return false;
+		}
+		src_atom++;
+		met_count++;
+	}
+	ASSERT(met_count > 0);
 	
 	return true;
 }
@@ -1181,7 +1253,7 @@ bool ActionParamResolver::MakeDestination() {
 		auto mask_it = mask_begin + i;
 		const Key& src_key = mask_it->key;
 		Key dst_key;
-		dst_key.name = dst_key;
+		dst_key.name = src_key.name;
 		for(int j = 0; j < Key::max_len; j++) {
 			if (src_key.params[j].cls < 0) break;
 			auto& dst_param = dst_key.params[j];
@@ -1197,6 +1269,21 @@ bool ActionParamResolver::MakeDestination() {
 	}
 	
 	return true;
+}
+
+bool ActionParamResolver::CheckChanges() {
+	int post_count = UPP::min(post.atoms.GetCount(), src.atoms.GetCount());
+	bool changes = false;
+	if (post_count < post.atoms.GetCount()) {
+		for(int j = post_count; j < post.atoms.GetCount(); j++)
+			if (post.atoms[j].in_use && post.atoms[j].value)
+				{changes = true; break;}
+	}
+	for(int j = 0; j < post_count; j++)
+		if (post.atoms[j].in_use &&
+			post.atoms[j].value != src.atoms[j].value)
+			{changes = true; break;}
+	return changes;
 }
 
 bool ActionParamResolver::MakeKeys() {
@@ -1221,7 +1308,9 @@ bool ActionParamResolver::MakeKeys() {
 	// Find more shared variables
 	if (!FindSharedVariables(post_count, post, POST))
 		return false;
-	if (!FindSharedVariables(-1, ev->key, ACTION))
+	
+	int act_key_mask_idx = -1; //pre.mask->FindAdd(ev->key);
+	if (!FindSharedVariables(act_key_mask_idx, ev->key, ACTION))
 		return false;
 	
 	// Collect all partial matching keys by "classpath" (== name of atom + param-count)
@@ -1243,7 +1332,17 @@ bool ActionParamResolver::MakeKeys() {
 	if (!MakeDestination())
 		return false;
 	
+	// Check that changes can be made
+	if (!CheckChanges()) {
+		ASSERT_(0, "changes can't be made");
+		err = "internal error: changes can't be made";
+		return false;
+	}
+	
 	// Assert that new world-state doesn't have atoms with shared params
+	TODO
+	
+	// Create output (combinations)
 	TODO
 	
 	return true;

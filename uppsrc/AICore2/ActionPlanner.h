@@ -191,11 +191,12 @@ class ActionParamResolver {
 	
 	struct SharedParam : Moveable<SharedParam> {
 		struct Atom : Moveable<Atom> {
-			int mask_idx;
-			int param_idx;
+			int mask_idx = -1;
+			int param_idx = -1;
 			Source src;
 		};
 		int val = -1, def_val = -1;
+		int cls = -1, def_cls = -1;
 		Vector<Atom> atoms;
 	};
 	
@@ -206,6 +207,7 @@ class ActionParamResolver {
 	int pre_count = 0;
 	int post_count = 0;
 	String err;
+	BinaryWorldState solved_pre;
 	BinaryWorldState dest;
 	
 	
@@ -218,6 +220,7 @@ class ActionParamResolver {
 	bool MakeDestination();
 	bool MakeSharedPreCondition();
 	bool TestSharedPreCondition();
+	bool CheckChanges();
 public:
 	typedef ActionParamResolver CLASSNAME;
 	ActionParamResolver(BinaryWorldStateSession& ses);

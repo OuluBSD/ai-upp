@@ -578,13 +578,12 @@ bool OmniActionPlanner::Run(Val& fs) {
 				bool initial_value = in_initial.GetValue(i);
 				Key call_key;
 				if (!ParseCall(call, call_key)) return false;
+				
 				int decl_atom_idx = -1;
 				if (!ResolveCall(call_key, decl_atom_idx)) {WhenError("could not resolve '" + call + "' atom"); return false;}
-				int call_atom_idx = ws_session.FindAddAtom(call_key);
+				
 				DLOG("INITIAL " << i << ": " << ws_session.GetKeyString(call_key));
-				auto& atom = ws_session.atoms[call_atom_idx];
-				atom.initial = initial_value;
-				ws_initial.SetAtomIndex(call_atom_idx, initial_value);
+				ws_initial.SetKey(call_key, initial_value, true);
 			}
 		}
 		
@@ -620,6 +619,7 @@ bool OmniActionPlanner::ResolveCall(const Key& call_key, int& atom_idx) {
 	for (auto& atom : ws_session.atoms) {
 		if (atom.key_len  == key_len &&
 			atom.key.name == call_key.name) {
+			// TODO check params
 			atom_idx = i;
 			return true;
 		}

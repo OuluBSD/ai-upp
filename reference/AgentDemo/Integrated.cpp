@@ -113,7 +113,7 @@ void IntegratedTests() {
 	
 	// Action planner tests
 	if (1 || all) {
-		for(int i = 4; i < 5; i++) {
+		for(int i = 6; i < 7; i++) {
 			ValueMap atoms, goal, actions, initial;
 			if (i == 0) {
 				atoms	.Add("A", false);
@@ -172,22 +172,30 @@ void IntegratedTests() {
 				atoms	.Add("B(id)", false);
 				atoms	.Add("B", false);
 				goal	.Add("B", true);
-				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",false).Pre("B(id)",false).Post("B(id)",true).Post("B",true));
+				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Pre("B(id)",false).Post("B(id)",true).Post("B",true));
 			}
 			else if (i == 6) {
-				// Same as previous, but the "id" param is added
-				// Inducts from goal
+				// Inducts from goal (without reverse, 1 step only)
 				params("use_params") = true;
 				params("use_resolver") = true;
-				atoms	.Add("A(id)", false);
-				atoms	.Add("B(id,boolean)", false);
-				goal	.Add("A(\"abc\")", true); // the 'id' should be resolved to be 'abc'
-				actions	.Add("write A via B(id,0)", ActionEventValue().Cost(5).Pre("A(id)",false).Pre("B(id,0)",true).Post("A(id)",true));
-				actions	.Add("write A via B(id,1)", ActionEventValue().Pre("A(id)",false).Pre("B(id,1)",true).Post("A(id)",true));
-				actions	.Add("write B(id,0)", ActionEventValue().Pre("B(id,0)",false).Post("B(id,0)",true));
-				actions	.Add("write B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
+				atoms	.Add("A", true);
+				atoms	.Add("B(id)", false);
+				goal	.Add("B(\"abc\")", true);
+				actions	.Add("write B(id)", ActionEventValue()
+					.Pre	("A",		true)
+					.Pre	("B(id)",	false)
+					.Post	("B(id)",	true));
 			}
 			else if (i == 7) {
+				// Inducts from intermediate world-state
+				TODO // reverse from intermediate point to INITIAL... and normally to GOAL
+			}
+			else if (i == 8) {
+				// reverse tests
+				// - induct from initial ( as in "inducts from goal" forward mode)
+				TODO
+			}
+			else if (i == 8) {
 				// Test with multiple initial
 				params("use_params") = true;
 				params("use_resolver") = true;
@@ -195,8 +203,18 @@ void IntegratedTests() {
 				initial	.Add("A(\"def\")", true);
 				TODO
 			}
-			else if (i == 8) {
-				// Inducts from intermediate world-state
+			else if (i == 9) {
+				// Same as previous, but the "id" param is added
+				// Inducts from goal
+				params("use_params") = true;
+				params("use_resolver") = true;
+				atoms	.Add("A(id)", false);
+				atoms	.Add("B(id,boolean)", false);
+				goal	.Add("A(\"abc\")", true); // the 'id' should be resolved to be 'abc'
+				actions	.Add("write_A_via_B(id,0)", ActionEventValue().Cost(5).Pre("A(id)",false).Pre("B(id,0)",true).Post("A(id)",true));
+				actions	.Add("write_A_via_B(id,1)", ActionEventValue().Pre("A(id)",false).Pre("B(id,1)",true).Post("A(id)",true));
+				actions	.Add("write_B(id,0)", ActionEventValue().Pre("B(id,0)",false).Post("B(id,0)",true));
+				actions	.Add("write_B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
 			}
 			params("atoms") = atoms;
 			params("actions") = actions;

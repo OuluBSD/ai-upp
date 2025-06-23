@@ -424,25 +424,9 @@ bool OmniActionPlanner::SetParams(Value val) {
 	}
 	
 	ws_session.atoms.Clear();
-	ws_initial.Clear();
-	ws_initial.atoms.SetCount(in_atoms.GetCount());
-	for(int i = 0; i < in_atoms.GetCount(); i++) {
-		String atom_name = in_atoms.GetKey(i);
-		Value v = in_atoms.GetValue(i);
-		Key atom_key;
-		if (!ParseCall(atom_name, atom_key)) return false;
-		
-		int j = ws_session.atoms.Find(atom_key);
-		if (j >= 0) {WhenError("duplicate atom: " + atom_name); return false;}
-		auto& atom = ws_session.GetAddAtom(atom_key);
-		if (v.Is<bool>() || v.Is<int>()) {
-			atom.initial = v;
-		}
-		else {
-			WhenError("unexpected value type '" + v.GetTypeName() + "'"); return false;
-		}
-		ws_initial.atoms[i].value = atom.initial;
-	}
+	ws_initial.mask = &GetMask();
+	if (!ParseWorldState(ws_initial, in_atoms, true))
+		return false;
 	
 	for(int act_idx = 0; act_idx < actions.GetCount(); act_idx++) {
 		PlannerEvent& a = actions[act_idx];
@@ -488,6 +472,44 @@ bool OmniActionPlanner::SetParams(Value val) {
 		}
 	}
 	
+	return true;
+}
+
+bool OmniActionPlanner::ParseWorldState(BinaryWorldState& ws, ValueMap in, bool initial) {
+	ASSERT(ws.mask);
+	ws.Clear();
+	ws.atoms.SetCount(in.GetCount());
+	for(int i = 0; i < in.GetCount(); i++) {
+		String atom_name = in.GetKey(i);
+		Value v = in.GetValue(i);
+		Key atom_key;
+		if (initial) {
+			if (!ParseDecl(atom_name, atom_key)) return false;
+		}
+		else {
+			if (!ParseCall(atom_name, atom_key)) return false;
+		}
+		
+		bool bool_value;
+		if (v.Is<bool>() || v.Is<int>()) {
+			bool_value = v;
+		}
+		else {
+			WhenError("unexpected value type '" + v.GetTypeName() + "'"); return false;
+		}
+		
+		if (initial) {
+			// NOTE: not sure if correct
+			int j = ws_session.atoms.Find(atom_key);
+			if (j >= 0) {WhenError("duplicate atom: " + atom_name); return false;}
+			
+			// Set initial value
+			auto& atom = ws_session.GetAddAtom(atom_key);
+			atom.initial = bool_value;
+		}
+		
+		ws.SetKey(atom_key, bool_value, true);
+	}
 	return true;
 }
 
@@ -574,10 +596,14 @@ bool OmniActionPlanner::Run(Val& fs) {
 	
 	
 	{
-		goal = &fs.GetAdd(".goal",0);
+		ws_goal.mask = &GetMask();
 		ValueMap in_goal = params("goal");
 		if (in_goal.IsEmpty()) {WhenError("OmniActionPlanner requires goal atom-list");   return false;}
-		ws_goal.FromValue(use_params, in_goal, WhenError);
+		LOG("GOAL_JSON:\n" << AsJSON(in_goal, true));
+		if (!ParseWorldState(ws_goal, in_goal, false))
+			return false;
+		DLOG("GOAL: " << ws_goal.ToShortInlineString() << "\n" << ws_goal.ToString(1));
+		goal = &fs.GetAdd(".goal",0);
 		if (!Set(*goal, ws_goal)) return false;
 		hash_t h = ws_goal.GetHashValue();
 		tmp_sub.Add(h, goal);
@@ -707,7 +733,7 @@ bool OmniActionPlanner::GetPossibleStateTransition(const BinaryWorldState& src, 
 		auto& e = actions[i];
 		
 		ActionParamResolver rs(ws_session);
-		if (!rs.Resolve(e, src)) {
+		if (!rs.Resolve(e, src, ws_goal)) {
 			if (rs.IsError()) {
 				LOG("ActionParamResolver: error: " << rs.GetError());
 				TODO
@@ -960,34 +986,34 @@ bool ActionParamResolver::IsPreTailMismatch() {
 bool ActionParamResolver::FindSharedVariables(int mask_idx, const Key& key, Source src) {
 	int shared_count = 0;
 	for(int i = 0; i < Key::max_len; i++) {
-		if (key.params[i].cls < 0)
+		auto& p = key.params[i];
+		if (p.cls < 0)
 			break;
-		if (key.params[i].shared) {
-			int name = key.params[i].name;
-			ASSERT(name >= 0);
+		if (p.shared) {
+			ASSERT(p.name >= 0);
 			shared_count++;
-			SharedParam& sp = shared.GetAdd(name);
+			SharedParam& sp = shared.GetAdd(p.name);
 			
 			// Collect all indices of keys that use shared variables (per shared key)
 			auto& atom = sp.atoms.Add();
 			atom.mask_idx = mask_idx;
 			atom.param_idx = i;
 			atom.src = src;
-			if (key.params[i].val >= 0) {
+			if (p.val >= 0) {
 				if (sp.def_val >= 0) {
 					err = "multiple default values set";
 					return false;
 				}
-				sp.def_val = key.params[i].val;
-				sp.def_cls = key.params[i].cls;
+				sp.def_val = p.val;
+				sp.def_cls = p.cls;
 			}
 		}
 	}
 	return true;
 }
 
-bool ActionParamResolver::FindSharedVariables(int count, const BinaryWorldState& ws, Source src) {
-	for(int j = 0; j < count; j++) {
+bool ActionParamResolver::FindSharedVariables(const BinaryWorldState& ws, Source src) {
+	for(int j = 0; j < ws.atoms.GetCount(); j++) {
 		auto& a = ws.atoms[j];
 		if (!a.in_use)
 			continue;
@@ -1020,6 +1046,9 @@ bool ActionParamResolver::TestBasic() {
 
 bool ActionParamResolver::SolveShared() {
 	BinaryWorldStateMask* mask = ev->precond.mask;
+	ASSERT(ev->postcond.mask == mask);
+	const auto& post = ev->postcond;
+	
 	auto mask_begin = mask->keys.Begin();
 	for (auto shr : ~shared) {
 		for (auto& shr_atom : shr.value.atoms) {
@@ -1041,24 +1070,35 @@ bool ActionParamResolver::SolveShared() {
 			}
 			auto mask1 = mask_begin;
 			ASSERT(mask->keys.GetCount() >= src->atoms.GetCount());
-			for(const auto& ws_atom : src->atoms) {
-				if (mask0 != mask1 && ws_atom.in_use) {
-					ASSERT(atom_idx0 != mask1->atom_idx);
-					int predicate_name1 = mask1->key.name;
-					if (predicate_name0 == predicate_name1 &&
-						len0 == mask1->key.GetLength()) {
-						const auto& param1 = mask1->key.params[shr_atom.param_idx];
-						if (param1.val >= 0) {
-							if (shr.value.val >= 0 && shr.value.val != param1.val) {
-								err = "duplicate value";
-								return false;
+			
+			// Current & goal condition (world state): loop all atoms
+			for (int m = 0; m < 2; m++) {
+				auto ws = m == 0 ? src : goal;
+				auto mask1m = mask1;
+				
+				for(const auto& ws_atom : ws->atoms) {
+					if (mask0 != mask1m && ws_atom.in_use) {
+						ASSERT(atom_idx0 != mask1m->atom_idx);
+						int predicate_name1 = mask1m->key.name;
+						if (predicate_name0 == predicate_name1 &&
+							len0 == mask1m->key.GetLength()) {
+							const auto& param1 = mask1m->key.params[shr_atom.param_idx];
+							if (param1.val >= 0) {
+								if (shr.value.val >= 0 && shr.value.val != param1.val) {
+									String shr_name = mask->session->key_values[shr.key].ToString();
+									err = "duplicate value '" + shr_name + "'";
+									return false;
+								}
+								shr.value.val = param1.val;
+								shr.value.cls = param1.cls;
 							}
-							shr.value.val = param1.val;
-							shr.value.cls = param1.cls;
 						}
 					}
+					mask1m++;
 				}
-				mask1++;
+				
+				if (shr.value.val >= 0)
+					break;
 			}
 		}
 		
@@ -1217,14 +1257,16 @@ bool ActionParamResolver::MakeDestination() {
 	return true;
 }
 
-bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src) {
+bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState& src, const BinaryWorldState& goal) {
 	this->ev = &e;
 	this->src = &src;
+	this->goal = &goal;
 	err.Clear();
 	shared.Clear();
 	
 	pre_count  = UPP::min(ev->precond.atoms.GetCount(),  src.atoms.GetCount());
 	post_count = UPP::min(ev->postcond.atoms.GetCount(), src.atoms.GetCount());
+	goal_count = UPP::min(goal.atoms.GetCount(), src.atoms.GetCount());
 	
 	// todo: 3-state behaviour is not completely solved yet...
 	//       now: "used & false" in tail passes, but should it be "!used"???
@@ -1243,20 +1285,25 @@ bool ActionParamResolver::Resolve(const PlannerEvent& e, const BinaryWorldState&
 	DLOG("<<<\n" << pre.ToString());
 	DLOG(">>>\n" << post.ToString());
 	
-	// Find shared variables
-	if (!FindSharedVariables(pre_count, pre, PRE))
+	// Find shared variables of pre-condition
+	if (!FindSharedVariables(pre, PRE))
 		return false;
 	
 	// Basic case: pre-condition with fixed-param atoms
 	if (!TestBasic())
 		return false;
 	
-	// Find more shared variables
-	if (!FindSharedVariables(post_count, post, POST))
+	// Find shared variables of post-condition
+	if (!FindSharedVariables(post, POST))
 		return false;
 	
+	// Find shared variables of current action
 	int act_key_mask_idx = -1; //pre.mask->FindAdd(ev->key);
 	if (!FindSharedVariables(act_key_mask_idx, ev->key, ACTION))
+		return false;
+	
+	// Find shared variables of goal
+	if (!FindSharedVariables(goal, GOAL))
 		return false;
 	
 	// Collect all partial matching keys by "classpath" (== name of atom + param-count)

@@ -162,6 +162,7 @@ protected:
 	bool ParseCondParam(const Key& action, const String& str, Key& key);
 	BinaryWorldStateMask& GetMask() const;
 	bool ResolveCall(const Key& call_key, int& atom_idx);
+	bool ParseWorldState(BinaryWorldState& ws, ValueMap in, bool initial);
 public:
 	OmniActionPlanner();
 	VfsValue& GetInitial(Val& fs) override;
@@ -186,7 +187,8 @@ class ActionParamResolver {
 	typedef enum : int {
 		PRE,
 		POST,
-		ACTION
+		ACTION,
+		GOAL,
 	} Source;
 	
 	struct SharedParam : Moveable<SharedParam> {
@@ -204,13 +206,15 @@ class ActionParamResolver {
 	ArrayMap<int,SharedParam> shared;
 	const PlannerEvent* ev = 0;
 	const BinaryWorldState* src = 0;
+	const BinaryWorldState* goal = 0;
 	int pre_count = 0;
 	int post_count = 0;
+	int goal_count = 0;
 	String err;
 	BinaryWorldState solved_pre;
 	
 	bool IsPreTailMismatch();
-	bool FindSharedVariables(int count, const BinaryWorldState& ws, Source src);
+	bool FindSharedVariables(const BinaryWorldState& ws, Source src);
 	bool FindSharedVariables(int mask_idx, const Key& key, Source src);
 	bool TestBasic();
 	bool SolveShared();
@@ -222,7 +226,7 @@ public:
 	typedef ActionParamResolver CLASSNAME;
 	ActionParamResolver(BinaryWorldStateSession& ses);
 	
-	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current);
+	bool Resolve(const PlannerEvent& ev, const BinaryWorldState& current, const BinaryWorldState& goal);
 	String GetError() const {return err;}
 	bool IsError() const {return !err.IsEmpty();}
 	

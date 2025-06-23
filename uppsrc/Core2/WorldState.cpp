@@ -547,6 +547,19 @@ BinaryWorldState BinaryWorldState::GetDifference(BinaryWorldState& a, BinaryWorl
 	return ws;
 }
 
+int BinaryWorldState::GetSharedCount() const {
+	int c = 0;
+	for(int i = 0; i < atoms.GetCount(); i++) {
+		const auto& atom = atoms[i];
+		if (atom.in_use) {
+			const auto& key = mask->keys[i].key;
+			c += key.GetSharedCount();
+		}
+	}
+	return c;
+}
+
+
 
 
 
@@ -885,7 +898,7 @@ int WorldStateKey::GetLength() const {
 
 int WorldStateKey::GetSharedCount() const {
 	int c = 0;
-	for(int i = 0; i < max_len; i++)
+	for(int i = 0; i < max_len && params[i].cls >= 0; i++)
 		c = (params[i].shared ? c + 1 : c);
 	return c;
 }
@@ -905,7 +918,7 @@ int BinaryWorldStateMask::Find(const Key& key) const {
 	return -1;
 }
 
-int BinaryWorldStateMask::FindAdd(const Key& key) {
+int BinaryWorldStateMask::FindAdd(const Key& key, bool add_atom) {
 	int i = 0;
 	for (const auto& it : keys) {
 		if (it.key == key)
@@ -914,7 +927,10 @@ int BinaryWorldStateMask::FindAdd(const Key& key) {
 	}
 	ASSERT(session);
 	if (!session) return -1;
-	int atom_idx = session->atoms.Find(key);
+	int atom_idx =
+		add_atom ?
+			session->FindAddAtom(key):
+			session->atoms.Find(key);
 #if DBG_PRINT
 	if (atom_idx < 0) {LOG("failed to find atom: " << ToString(key));}
 #endif

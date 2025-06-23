@@ -47,7 +47,7 @@ struct BinaryWorldStateMask : Pte<BinaryWorldStateMask> {
 	Vector<Item> keys;
 	
 	int Find(const Key& key) const;
-	int FindAdd(const Key& key);
+	int FindAdd(const Key& key, bool add_atom=false);
 	String ToString(const WorldStateKey& key) const;
 };
 
@@ -109,6 +109,7 @@ struct BinaryWorldState {
 	void SetIntersection(BinaryWorldState& a, BinaryWorldState& b);
 	void SetDifference(BinaryWorldState& a, BinaryWorldState& b);
 	bool IsEmpty() const;
+	int GetSharedCount() const;
 	
 	static BinaryWorldState GetDifference(BinaryWorldState& a, BinaryWorldState& b);
 };

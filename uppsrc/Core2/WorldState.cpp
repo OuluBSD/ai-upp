@@ -572,6 +572,8 @@ int BinaryWorldStateSession::FindAtom(const Key& k) const {
 }
 
 int BinaryWorldStateSession::FindAddAtom(const Key& k) {
+	ASSERT(k.name >= 0);
+	if (k.name < 0) return -1;
 	hash_t h = k.GetHashValue();
 	lock.EnterRead();
 	int i = atoms.Find(h);

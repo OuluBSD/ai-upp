@@ -95,7 +95,7 @@ struct BinaryWorldState {
 	BinaryWorldState(BinaryWorldState&& ws);
 	void Clear();
 	bool SetMasked(int index, bool value);
-	bool SetKey(const WorldStateKey& key, bool value);
+	bool SetKey(const WorldStateKey& key, bool value, bool add_atom=false);
 	bool SetAtomIndex(int atom_idx, bool value);
 	BinaryWorldState& operator=(const BinaryWorldState& src);
 	bool operator==(const BinaryWorldState& src) const;

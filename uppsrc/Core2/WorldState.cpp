@@ -227,19 +227,11 @@ bool BinaryWorldState::SetMasked(int index, bool value) {
 	return true;
 }
 
-bool BinaryWorldState::SetKey(const WorldStateKey& key, bool value) {
+bool BinaryWorldState::SetKey(const WorldStateKey& key, bool value, bool add_atom) {
 	ASSERT(mask);
 	if (!mask)
 		return false;
-	#ifdef flagDEBUG
-	if (key.GetLength() > 0) {
-		int i = mask->session->atoms.Find(key);
-		ASSERT(i >= 0);
-		//const auto& atom = mask->session->atoms[i];
-		//ASSERT(atom.decl_atom_idx >= 0);
-	}
-	#endif
-	int index = mask->FindAdd(key);
+	int index = mask->FindAdd(key, add_atom);
 	return SetMasked(index, value);
 }
 
@@ -365,6 +357,7 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 			}
 		}
 	}
+	#if 0
 	else if (first_key.Is<String>()) {
 		for(int i = 0; i < ws.GetCount(); i++) {
 			String atom_name = ws.GetKey(i);
@@ -392,6 +385,7 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 			}
 		}
 	}
+	#endif
 	else {
 		LOG(AsJSON(v, true));
 		ASSERT(0);
@@ -710,11 +704,8 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 					if (p.Char('=')) {
 						String val = p.ReadId();
 						param.val = key_values.FindAdd(val);
-						param.shared = false;
 					}
-					else {
-						param.shared = true;
-					}
+					param.shared = true;
 				}
 				p.PassChar(')');
 			}
@@ -731,46 +722,60 @@ bool BinaryWorldStateSession::ParseDecl(const String& atom_name, Key& atom_key) 
 
 bool BinaryWorldStateSession::ParseCall(const String& atom_name, Key& atom_key) {
 	Key& k = atom_key;
-	CParser p(atom_name);
-	try {
-		String id = p.ReadId();
+	int i = atom_name.Find("(");
+	if (i < 0) {
+		String id = TrimBoth(atom_name);
 		k.name = key_values.FindAdd(id);
-		int len = 0;
-		if (p.Char('(')) {
-			for(int i = 0; i < WSKEY_MAX_PARAMS; i++) {
-				if (p.IsChar(')')) break;
-				if (i) p.PassChar(',');
-				Value value;
-				int cls = -1;
-				if (p.IsString()) {
-					value = p.ReadString();
-					cls = key_values.FindAdd("string");
-				}
-				else if (p.IsId()) {
-					value = p.ReadId();
-					cls = 0;
-				}
-				else if (p.IsInt()) {
-					value = p.ReadInt64();
-					cls = key_values.FindAdd("int");
-				}
-				else if (p.IsDouble()) {
-					value = p.ReadDouble();
-					cls = key_values.FindAdd("double");
-				}
-				
-				auto& param = k.params[len++];
-				param.val = key_values.FindAdd(value);
-				param.cls = cls;
-			}
-			p.PassChar(')');
-		}
-		for(int i = len; i < WSKEY_MAX_PARAMS; i++)
-			k.params[i].Clear();
 	}
-	catch (Exc e) {
-		LOG("BinaryWorldStateSession::ParseCall: error: " << e);
-		return false;
+	else {
+		String id = TrimBoth(atom_name.Left(i));
+		k.name = key_values.FindAdd(id);
+		String params = TrimBoth(atom_name.Mid(i));
+		CParser p(atom_name);
+		try {
+			String id = p.ReadId();
+			k.name = key_values.FindAdd(id);
+			int len = 0;
+			if (p.Char('(')) {
+				for(int i = 0; i < WSKEY_MAX_PARAMS; i++) {
+					if (p.IsChar(')')) break;
+					if (i) p.PassChar(',');
+					Value value;
+					int name = -1, cls = -1;
+					bool shared = false;
+					if (p.IsString()) {
+						value = p.ReadString();
+						cls = key_values.FindAdd("string");
+					}
+					else if (p.IsId()) {
+						name = key_values.FindAdd(p.ReadId());
+						cls = 0;
+						shared = true;
+					}
+					else if (p.IsInt()) {
+						value = p.ReadInt64();
+						cls = key_values.FindAdd("int");
+					}
+					else if (p.IsDouble()) {
+						value = p.ReadDouble();
+						cls = key_values.FindAdd("double");
+					}
+					
+					auto& param = k.params[len++];
+					param.name = name;
+					param.val = key_values.FindAdd(value);
+					param.cls = cls;
+					param.shared = shared;
+				}
+				p.PassChar(')');
+			}
+			for(int i = len; i < WSKEY_MAX_PARAMS; i++)
+				k.params[i].Clear();
+		}
+		catch (Exc e) {
+			LOG("BinaryWorldStateSession::ParseCall: error: " << e);
+			return false;
+		}
 	}
 	return true;
 }
@@ -795,6 +800,7 @@ bool BinaryWorldStateSession::ParseCondParam(const Key& action, const String& at
 					cls = key_values.FindAdd("string");
 				}
 				else if (p.IsId()) {
+					shared = true;
 					String param_name = p.ReadId();
 					int param_name_idx = key_values.FindAdd(param_name);
 					int act_param_idx = -1;
@@ -810,7 +816,6 @@ bool BinaryWorldStateSession::ParseCondParam(const Key& action, const String& at
 						cls = act_param.cls;
 						name = act_param.name;
 						val = act_param.val;
-						shared = true;
 						ASSERT(param_name_idx == name);
 					}
 					else {

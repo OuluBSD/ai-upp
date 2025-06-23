@@ -9,6 +9,7 @@ file
 	Basic.cpp,
 	Integrated.cpp,
 	FileSystemDemo.cpp,
+	PlanKeypointChain.cpp,
 	ConstraintSolver.cpp;
 
 mainconfig

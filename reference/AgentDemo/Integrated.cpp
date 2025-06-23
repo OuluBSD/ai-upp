@@ -113,7 +113,7 @@ void IntegratedTests() {
 	
 	// Action planner tests
 	if (1 || all) {
-		for(int i = 6; i < 7; i++) {
+		for(int i = 7; i < 8; i++) {
 			ValueMap atoms, goal, actions, initial;
 			if (i == 0) {
 				atoms	.Add("A", false);
@@ -144,8 +144,9 @@ void IntegratedTests() {
 				// This test is for testing parameter parsing, comparison, etc.
 				params("use_params") = true;
 				atoms	.Add("A", false);
-				atoms	.Add("B(0)", false);
-				atoms	.Add("B(1)", false);
+				atoms	.Add("B(id)", false);
+				initial	.Add("B(0)", false);
+				initial	.Add("B(1)", false);
 				goal	.Add("A", true);
 				actions	.Add("write A via B0", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
 				actions	.Add("write A via B1", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));
@@ -170,12 +171,12 @@ void IntegratedTests() {
 				initial	.Add("A(\"abc\")", true);
 				atoms	.Add("A(id)", false);
 				atoms	.Add("B(id)", false);
-				atoms	.Add("B", false);
-				goal	.Add("B", true);
-				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Pre("B(id)",false).Post("B(id)",true).Post("B",true));
+				atoms	.Add("C", false);
+				goal	.Add("C", true);
+				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Pre("B(id)",false).Post("B(id)",true).Post("C",true));
 			}
 			else if (i == 6) {
-				// Inducts from goal (without reverse, 1 step only)
+				// Inducts from goal (single-step, no reverse)
 				params("use_params") = true;
 				params("use_resolver") = true;
 				atoms	.Add("A", true);
@@ -187,34 +188,26 @@ void IntegratedTests() {
 					.Post	("B(id)",	true));
 			}
 			else if (i == 7) {
-				// Inducts from intermediate world-state
-				TODO // reverse from intermediate point to INITIAL... and normally to GOAL
+				// multi-param combination tests
+				atoms	.Add("A(a,b)", false);
+				atoms	.Add("B(c,b)", false);
+				atoms	.Add("C(b)", false);
+				initial	.Add("A(0,0)", true);
+				initial	.Add("B(0,0)", true);
+				goal	.Add("B(1,1)", true);
+				actions	.Add("F1(b)", ActionEventValue()
+					.Pre	("A(0,b)",	true)
+					.Pre	("C(b)",	true)
+					.Post	("B(1,b)",	true));
+				actions	.Add("F2(b)", ActionEventValue()
+					.Pre	("B(1,b)",	true)
+					.Pre	("C(b)",	true)
+					.Post	("B(1,1)",	true));
 			}
 			else if (i == 8) {
-				// reverse tests
-				// - induct from initial ( as in "inducts from goal" forward mode)
+				// 2-planner problem
+				// where the other is reversed and a common goal is searched for
 				TODO
-			}
-			else if (i == 8) {
-				// Test with multiple initial
-				params("use_params") = true;
-				params("use_resolver") = true;
-				initial	.Add("A(\"abc\")", true);
-				initial	.Add("A(\"def\")", true);
-				TODO
-			}
-			else if (i == 9) {
-				// Same as previous, but the "id" param is added
-				// Inducts from goal
-				params("use_params") = true;
-				params("use_resolver") = true;
-				atoms	.Add("A(id)", false);
-				atoms	.Add("B(id,boolean)", false);
-				goal	.Add("A(\"abc\")", true); // the 'id' should be resolved to be 'abc'
-				actions	.Add("write_A_via_B(id,0)", ActionEventValue().Cost(5).Pre("A(id)",false).Pre("B(id,0)",true).Post("A(id)",true));
-				actions	.Add("write_A_via_B(id,1)", ActionEventValue().Pre("A(id)",false).Pre("B(id,1)",true).Post("A(id)",true));
-				actions	.Add("write_B(id,0)", ActionEventValue().Pre("B(id,0)",false).Post("B(id,0)",true));
-				actions	.Add("write_B(id,1)", ActionEventValue().Cost(2).Pre("B(id,1)",false).Post("B(id,1)",true));
 			}
 			params("atoms") = atoms;
 			params("actions") = actions;

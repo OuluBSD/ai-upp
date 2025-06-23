@@ -398,6 +398,7 @@ bool AiTask::RunOpenAI_Image()
 	}
 
 	String recv;
+#if HAVE_OPENAI
 	try {
 		if(TaskRule::type == TYPE_IMAGE_EDIT) {
 			if(send_images.GetCount() != 1) {
@@ -451,6 +452,8 @@ bool AiTask::RunOpenAI_Image()
 	catch(std::exception e) {
 		return OnImageException(e.what());
 	}
+#endif
+	
 	DalleResponse response;
 	LoadFromJson(response, recv);
 
@@ -510,7 +513,8 @@ bool AiTask::RunOpenAI_Model()
 	ASSERT(model);
 	if (!model)
 		return false;
-
+	
+#if HAVE_OPENAI
 	return TryOpenAI("", "", [this]{
 		ModelArgs& args = *model;
 		
@@ -529,6 +533,9 @@ bool AiTask::RunOpenAI_Model()
 		}
 		else TODO
 	});
+#else
+	return false;
+#endif
 }
 
 bool AiTask::RunOpenAI_Completion()
@@ -583,6 +590,7 @@ bool AiTask::RunOpenAI_Completion()
 		    "top_p": )_" + DblStr(args.top_prob) + R"_(
 		})_";
 		
+#if HAVE_OPENAI
 		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
@@ -599,6 +607,9 @@ bool AiTask::RunOpenAI_Completion()
 				output.Clear();
 			}
 		});
+#else
+		return false;
+#endif
 	}
 	return false;
 }
@@ -726,6 +737,7 @@ bool AiTask::RunOpenAI_Chat()
 		
 		LOG("AiTask::RunOpenAI_Chat:\n" << txt);
 		
+#if HAVE_OPENAI
 		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
@@ -742,6 +754,9 @@ bool AiTask::RunOpenAI_Chat()
 				output.Clear();
 			}
 		});
+#else
+		return false;
+#endif
 	}
 	return false;
 }
@@ -821,7 +836,8 @@ bool AiTask::RunOpenAI_Vision()
 })_";
 		}
 		LOG(txt);
-
+		
+#if HAVE_OPENAI
 		return TryOpenAI(prompt, txt, [this,txt]{
 			nlohmann::json json = nlohmann::json::parse(txt.Begin(), txt.End());
 			OpenAiResponse response;
@@ -836,6 +852,9 @@ bool AiTask::RunOpenAI_Vision()
 				output.Clear();
 			}
 		});
+#else
+		return false;
+#endif
 	}
 }
 
@@ -863,6 +882,7 @@ bool AiTask::RunOpenAI_Transcription()
 		ASSERT(args.ai_provider_idx >= 0 && args.ai_provider_idx < ai_mgr.GetCount());
 		const auto& prov = ai_mgr[args.ai_provider_idx];
 		
+#if HAVE_OPENAI
 		if (prov.type == AiServiceProvider::OPENAI) {
 			String txt =
 			R"_({
@@ -918,11 +938,15 @@ bool AiTask::RunOpenAI_Transcription()
 			}
 			#endif
 		}
+#else
+		return false;
+#endif
 	}
 	return false;
 }
 
 bool AiTask::TryOpenAI(String prompt, String txt, Event<> cb) {
+#if HAVE_OPENAI
 	{
 		try {
 			cb();
@@ -990,7 +1014,9 @@ bool AiTask::TryOpenAI(String prompt, String txt, Event<> cb) {
 		// Fix unicode formatting
 		output = ToUnicode(output, CHARSET_UTF8).ToString();
 	}
-
+#else
+	return false;
+#endif
 	changed = true;
 	Store();
 	return output.GetCount() > 0;

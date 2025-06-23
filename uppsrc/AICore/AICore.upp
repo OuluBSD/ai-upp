@@ -2,15 +2,17 @@ description "\377B141,42,0";
 
 uses
 	Vfs2,
-	plugin/openai,
-	Sound,
 	plugin/jpg,
 	plugin/bz2,
 	Esc;
 
-library(!MSC) curl;
+uses(!NOCURL) plugin/openai;
 
-library(MSC) libcurl.lib;
+uses(!NOSOUND) Sound;
+
+library(!NOCURL !MSC) curl;
+
+library(!NOCURL MSC) libcurl.lib;
 
 file
 	AICore.h,

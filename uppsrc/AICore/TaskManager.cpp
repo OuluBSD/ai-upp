@@ -8,7 +8,9 @@ struct TaskMgrConfig {
 	::Ide* ide = 0;
 	bool running = false, stopped = true;
 	int max_tries = 3;
+#if HAVE_OPENAI
 	openai::OpenAI* instance = 0;
+#endif
 
 	typedef TaskMgrConfig CLASSNAME;
 	void Realize()
@@ -748,6 +750,7 @@ void TaskMgrConfig::SetupInstance(::Ide* ide)
 {
 	this->ide = ide;
 	
+#if HAVE_OPENAI
 	if(!instance) {
 		auto& mgr = AiManager();
 		for(int i = 0; i < mgr.GetCount(); i++) {
@@ -766,6 +769,7 @@ void TaskMgrConfig::SetupInstance(::Ide* ide)
 			}
 		}
 	}
+#endif
 }
 
 TaskMgr& AiTaskManager()

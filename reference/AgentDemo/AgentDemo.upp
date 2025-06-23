@@ -12,5 +12,7 @@ file
 	ConstraintSolver.cpp;
 
 mainconfig
-	"" = "AI";
+	"" = "AI",
+	"" = "AI BUILTIN_PORTAUDIO",
+	"" = "AI STATIC_PNG NOSOUND NOCURL";
 

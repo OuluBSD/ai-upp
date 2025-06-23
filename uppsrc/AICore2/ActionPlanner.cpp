@@ -662,7 +662,7 @@ bool OmniActionPlanner::GenerateSubValues(Val& v) {
 		ASSERT(0);
 		return false;
 	}
-	DLOG(HexStrPtr(p) << ": " << ws.ToShortInlineString());
+	DLOG("GenerateSubValues: " << HexStrPtr(p) << ": " << ws.ToShortInlineString());
 	
 	if (&v == chk_ptr) {
 		ASSERT(ws.ToShortInlineString() == chk_str);
@@ -1094,43 +1094,26 @@ bool ActionParamResolver::MakeSharedPreCondition() {
 		for(int j = 0; j < pre_key.max_len; j++) {
 			auto& p = pre_key.params[j];
 			if (p.cls < 0) break;
-			if (!p.shared) continue;
-			
-			int k = shared.Find(p.name);
-			ASSERT(k >= 0);
-			if (k < 0) return false;
-			const auto& shr = shared[k];
-			
-			int val = shr.val >= 0 ? shr.val : shr.def_val;
-			int cls = shr.val >= 0 ? shr.cls : shr.def_cls;
-			if (val < 0) {
-				err = "could not resolve param '" +
-					solved_pre.mask->session->key_values[p.name].ToString() + "'";
-				return false;
-			}
-			
-			p.shared = false;
-			p.val = val;
-			p.name = -1;
-			p.cls = cls;
-			changed = true;
+			if (!SolveSharedParam(p, changed)) return false;
 		}
 		
+		ASSERT(pre_key.GetSharedCount() == 0);
 		if (changed) {
-			int mask_idx = solved_pre.mask->FindAdd(pre_key);
+			int mask_idx = solved_pre.mask->FindAdd(pre_key, true);
 			if (mask_idx >= solved_pre.atoms.GetCount())
 				solved_pre.atoms.SetCount(mask_idx+1);
+			auto& pre_atom0 = solved_pre.atoms[i]; // re-fetch reference after previous line
 			auto& pre_atom1 = solved_pre.atoms[mask_idx];
 			pre_atom1.in_use = true;
 			pre_atom1.value = pre_atom0.value;
 			pre_atom0.in_use = false;
 			pre_atom0.value = false;
+			ASSERT(solved_pre.mask->keys[mask_idx].key.GetSharedCount() == 0);
 		}
 		ASSERT(solved_pre.mask->Find(pre_key) >= 0);
-		
-		i++;
 	}
 	
+	ASSERT(solved_pre.GetSharedCount() == 0);
 	DLOG("ActionParamResolver::MakeSharedPreCondition:\n" << solved_pre.ToString(1));
 	
 	return true;
@@ -1142,18 +1125,49 @@ bool ActionParamResolver::TestSharedPreCondition() {
 	ASSERT(src.mask == solved_pre.mask);
 	
 	int met_count = 0;
-	auto src_atom = src.atoms.Begin();
-	for(auto& pre_atom : solved_pre.atoms) {
-		if (!pre_atom.in_use) {src_atom++; continue;}
-		if (src_atom->in_use && src_atom->value != pre_atom.value) {
-			return false;
+	if (src.atoms.GetCount()) {
+		auto src_atom = src.atoms.Begin();
+		for(auto& pre_atom : solved_pre.atoms) {
+			if (!pre_atom.in_use) {src_atom++; continue;}
+			if (src_atom->in_use && src_atom->value != pre_atom.value) {
+				return false;
+			}
+			src_atom++;
+			met_count++;
 		}
-		src_atom++;
-		met_count++;
 	}
-	
+	else {
+		for(auto& pre_atom : solved_pre.atoms) {
+			if (!pre_atom.in_use) continue;
+			met_count++;
+		}
+	}
 	ASSERT(met_count > 0);
 	
+	return true;
+}
+
+bool ActionParamResolver::SolveSharedParam(WorldStateKey::Param& p, bool& changed) {
+	if (p.shared) {
+		int k = shared.Find(p.name);
+		ASSERT(k >= 0);
+		if (k < 0) return false;
+		const auto& shr = shared[k];
+		
+		int val = shr.val >= 0 ? shr.val : shr.def_val;
+		int cls = shr.val >= 0 ? shr.cls : shr.def_cls;
+		if (val < 0) {
+			err = "could not resolve param '" +
+				solved_pre.mask->session->key_values[p.name].ToString() + "'";
+			return false;
+		}
+		
+		p.shared = false;
+		p.val = val;
+		p.name = -1;
+		p.cls = cls;
+		changed = true;
+	}
 	return true;
 }
 
@@ -1176,12 +1190,11 @@ bool ActionParamResolver::MakeDestination() {
 		const Key& src_key = mask_it->key;
 		Key dst_key;
 		dst_key = src_key;
+		bool param_changed = false;
 		for(int j = 0; j < Key::max_len; j++) {
-			if (dst_key.params[j].cls < 0) break;
-			auto& dst_param = dst_key.params[j];
-			if (dst_key.params[j].shared) {
-				TODO
-			}
+			auto& p = dst_key.params[j];
+			if (p.cls < 0) break;
+			if (!SolveSharedParam(p, param_changed)) return false;
 		}
 		
 		// Check that changes can be made
@@ -1189,7 +1202,9 @@ bool ActionParamResolver::MakeDestination() {
 		bool dst_value = mask_idx < post.atoms.GetCount() ? post.atoms[mask_idx].value : false;
 		bool src_value = mask_idx < src.atoms.GetCount()  ? src.atoms[mask_idx].value  : !dst_value;
 		
-		if (!dest.atoms[mask_idx].in_use || dst_value != src_value)
+		if (mask_idx >= dest.atoms.GetCount() ||
+			!dest.atoms[mask_idx].in_use ||
+			dst_value != src_value)
 			changed++;
 		
 		//DLOG("Dest " << i << ": " << post.ToString(dst_key));

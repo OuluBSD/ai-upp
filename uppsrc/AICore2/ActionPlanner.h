@@ -217,6 +217,7 @@ class ActionParamResolver {
 	bool MakeDestination();
 	bool MakeSharedPreCondition();
 	bool TestSharedPreCondition();
+	bool SolveSharedParam(WorldStateKey::Param& p, bool& changed);
 public:
 	typedef ActionParamResolver CLASSNAME;
 	ActionParamResolver(BinaryWorldStateSession& ses);

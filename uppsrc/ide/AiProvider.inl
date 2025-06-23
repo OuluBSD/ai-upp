@@ -34,5 +34,59 @@ AiServiceProviderManager& AiManager() {
 	return s;
 }
 
+inline
+bool AiServiceProvider::IsFeatureAudioToText() const
+{
+	return false
+#if HAVE_OPENAI
+		|| type == OPENAI
+#endif
+		|| type == API_WHISPERFILE_TRANSCRIPT
+		;
+}
+
+inline
+bool AiServiceProvider::IsApiOpenAICompletion() const
+{
+	return false
+#if HAVE_OPENAI
+		|| type == OPENAI
+		|| type == API_OPENAI_COMPLETION
+#endif
+		;
+}
+
+inline
+bool AiServiceProvider::IsApiOpenAIChat() const
+{
+	return false
+#if HAVE_OPENAI
+		|| type == OPENAI
+		|| type == API_OPENAI_CHAT
+#endif
+		;
+}
+
+inline
+bool AiServiceProvider::IsApiOpenAIImage() const
+{
+	return false
+#if HAVE_OPENAI
+		|| type == OPENAI
+		|| type == API_OPENAI_IMAGE
+#endif
+		;
+}
+
+inline
+bool AiServiceProvider::IsApiOpenAIVision() const
+{
+	return false
+#if HAVE_OPENAI
+		|| type == OPENAI
+		|| type == API_OPENAI_VISION
+#endif
+		;
+}
 
 END_UPP_NAMESPACE

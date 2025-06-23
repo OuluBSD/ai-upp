@@ -6,11 +6,13 @@ NAMESPACE_UPP
 struct AiServiceProvider {
 	typedef enum : int {
 		UNDEFINED,
+#if HAVE_OPENAI
 		OPENAI,
 		API_OPENAI_COMPLETION,
 		API_OPENAI_CHAT,
 		API_OPENAI_IMAGE,
 		API_OPENAI_VISION,
+#endif
 		API_WHISPERFILE_TRANSCRIPT,
 		
 		TYPE_COUNT
@@ -19,11 +21,13 @@ struct AiServiceProvider {
 	static String GetTypeString(int i) {
 		switch(i) {
 			case UNDEFINED:						return "";
+#if HAVE_OPENAI
 			case OPENAI:						return "OpenAI";
 			case API_OPENAI_COMPLETION:			return "URL+API(OpenAI): Completion";
 			case API_OPENAI_CHAT:				return "URL+API(OpenAI): Chat";
 			case API_OPENAI_IMAGE:				return "URL+API(OpenAI): Image";
 			case API_OPENAI_VISION:				return "URL+API(OpenAI): Vision";
+#endif
 			case API_WHISPERFILE_TRANSCRIPT:	return "URL+API(Whisperfile): Transcript";
 			default: return "<error>";
 		}
@@ -39,12 +43,12 @@ struct AiServiceProvider {
 			s % (int&)type % name % proxy % url % token % priority;
 	}
 	
-	String GetTypeString() const {return GetTypeString(type);}
-	bool IsFeatureAudioToText() const {return type == OPENAI || type == API_WHISPERFILE_TRANSCRIPT;}
-	bool IsApiOpenAICompletion() const {return type == OPENAI || type == API_OPENAI_COMPLETION;}
-	bool IsApiOpenAIChat() const {return type == OPENAI || type == API_OPENAI_CHAT;}
-	bool IsApiOpenAIImage() const {return type == OPENAI || type == API_OPENAI_IMAGE;}
-	bool IsApiOpenAIVision() const {return type == OPENAI || type == API_OPENAI_VISION;}
+	String GetTypeString() const;
+	bool IsFeatureAudioToText() const;
+	bool IsApiOpenAICompletion() const;
+	bool IsApiOpenAIChat() const;
+	bool IsApiOpenAIImage() const;
+	bool IsApiOpenAIVision() const;
 };
 
 

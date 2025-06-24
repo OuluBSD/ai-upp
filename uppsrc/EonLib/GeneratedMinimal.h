@@ -55,7 +55,7 @@ public:
 	
 };
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
+#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
 class PortaudioSink : public PortaudioSinkDevice {
 
 public:

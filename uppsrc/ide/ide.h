@@ -20,7 +20,7 @@
 #include <ide/Designers/Designers.h>
 #include <ide/Android/Android.h>
 #include <plugin/md/Markdown.h>
-#ifdef flagAI
+#ifndef flagV1
 #include <ide/AI/AI.h>
 #include <ide/Shell/Shell.h>
 #endif
@@ -514,7 +514,7 @@ public:
 	Vector<String> linking_line;
 	bool        removing_notes;
 
-	#ifdef flagAI
+	#ifndef flagV1
 	ConsoleCtrl calc;
 	#else
 	IdeCalc     calc;
@@ -1048,7 +1048,7 @@ public:
 		void  RemoveDs();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
-	#ifdef flagAI
+	#ifndef flagV1
 		void  OpenAITaskDlg();
 	#endif
 

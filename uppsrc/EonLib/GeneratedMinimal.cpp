@@ -110,7 +110,7 @@ AtomTypeCls TestPollerSink::GetType() const {
 }
 
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
+#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
 String PortaudioSink::GetAction() {
 	return "center.audio.sink.hw";
 }

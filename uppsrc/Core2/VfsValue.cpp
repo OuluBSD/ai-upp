@@ -1,8 +1,8 @@
 #include "Core.h"
 
 #if 0
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #endif
 #include <Eon/Eon.h>
 #endif
@@ -13,22 +13,22 @@ String (*GetCursorKindNamePtr)(int);
 String (*VfsValue_GetBasesString)(const VfsValue& v);
 
 
-#define DO_TEMP_CHECK 1
+#define DO_TEMP_CHECK 0
 
 int CreateTempCheck(int src) {
 	static int counter = 0;
 	#if DO_TEMP_CHECK
 	LOG("CreateTemp " << src << ", id=" << counter);
-	if (counter == 25) {
+	if (counter == 777) {
 		LOG("__BREAK__");
 	}
 	#endif
 	return counter++;
 }
 
-void ClearTempCheck(int id) {
+void ClearTempCheck(int src, int id) {
 	#if DO_TEMP_CHECK
-	LOG("ClearTemp id=" << id);
+	LOG("ClearTemp " << src << " id=" << id);
 	#endif
 }
 
@@ -1363,7 +1363,8 @@ void VfsValue::Visit(Vis& v) {
 		}
 		else {
 			if (type_hash) {
-				v("ext",*ext, VISIT_NODE);
+				if (ext)
+					v("ext",*ext, VISIT_NODE);
 			}
 			else {
 				ASSERT(!ext);

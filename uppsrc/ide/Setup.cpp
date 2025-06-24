@@ -290,7 +290,7 @@ void Ide::SetupFormat() {
 	WithSetupEditorLayout<ParentCtrl> edt;
 	WithSetupIdeLayout<ParentCtrl> ide;
 	WithSetupAssistLayout<ParentCtrl> assist;
-#ifdef flagAI
+#ifndef flagV1
 	WithSetupAILayout<ParentCtrl> ai;
 #endif
 	WebSearchTab web_search;
@@ -316,7 +316,7 @@ void Ide::SetupFormat() {
 	dlg.Add(hlt, "Syntax highlighting");
 	dlg.Add(edt, "Editor");
 	dlg.Add(assist, "Assist");
-#ifdef flagAI
+#ifndef flagV1
 	dlg.Add(ai, "AI");
 #endif
 	dlg.Add(ide, "IDE");
@@ -465,12 +465,12 @@ void Ide::SetupFormat() {
 		(ide.setmain_newide, setmain_newide)
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
-#ifdef flagAI
+#ifndef flagV1
 		(ai.global_proxy, GlobalProxy())
 #endif
 	;
 	
-#ifdef flagAI
+#ifndef flagV1
 	if (ai.providers.GetColumnCount() == 0) {
 		ai.providers.AddColumn("Name");
 		ai.providers.AddColumn("Type");

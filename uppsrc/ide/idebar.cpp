@@ -877,7 +877,7 @@ void Ide::AssistMenu(Bar& menu)
 void Ide::AIMenu(Bar& menu)
 {
 	LTIMESTOP("AIMenu");
-	#ifdef flagAI
+	#ifndef flagV1
 	menu.Add(AK_GOTOAITASKS, THISBACK(OpenAITaskDlg));
 	#endif
 }
@@ -1013,7 +1013,7 @@ void Ide::MainMenu(Bar& menu)
 		.Help("Informations, code browsing and assistance");
 	menu.Add("Setup", THISBACK(Setup))
 		.Help("Paths, editor settings, connection to remote host");
-	#ifdef flagAI
+	#ifndef flagV1
 	if (calc_in_menubar && calc.IsMenuBarVisible())
 		menu.Sub("Calculator", [this](Bar& b) {calc.Menu(b);});
 	#endif

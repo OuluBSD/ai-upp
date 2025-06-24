@@ -395,6 +395,10 @@ bool BinaryWorldState::FromValue(bool use_params, Value v, Event<String> WhenErr
 	return true;
 }
 
+String BinaryWorldState::ToString(const WorldStateKey& key) const {
+	return mask->ToString(key);
+}
+
 String BinaryWorldState::ToString(int indent) const {
 	String s;
 	int i = 0;
@@ -464,6 +468,7 @@ String BinaryWorldState::ToInlineString() const {
 				}
 				if (cls < 0) break;
 				if (j == 0) {s.Cat('('); put_end = true;}
+				else if (j > 0) s.Cat(',');
 				
 				String str;
 				if (name >= 0)

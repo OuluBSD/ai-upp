@@ -30,7 +30,7 @@ struct VfsSrcFile : Moveable<VfsSrcFile> {
 	void RefreshSeenTypes();
 	VfsValue& GetTemp();
 	VfsValue& CreateTemp(int dbg_src);
-	void ClearTemp();
+	void ClearTemp(int dbg_src);
 	void FixAstValue();
 	void OnSeenTypes();
 	void OnSerialCounter();

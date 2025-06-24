@@ -23,7 +23,7 @@
 #include <cstring>
 
 #include <Core/Core.h>
-#include <AICore/AICore.h>
+#include <AICore2/AICore.h>
 #include <CodeEditor/CodeEditor.h>
 
 #include <GL/glew.h>

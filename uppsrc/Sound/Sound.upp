@@ -1,8 +1,8 @@
-uses(BUILTIN_PORTAUDIO) plugin/portaudio;
+uses(!SYS_PORTAUDIO) plugin/portaudio;
 
-library(!BUILTIN_PORTAUDIO !(WIN32 !MSC)) portaudio;
+library(SYS_PORTAUDIO !(WIN32 !MSC)) portaudio;
 
-library(!BUILTIN_PORTAUDIO WIN32 !MSC) libportaudio.dll.a;
+library(SYS_PORTAUDIO WIN32 !MSC) libportaudio.dll.a;
 
 file
 	Types.h,

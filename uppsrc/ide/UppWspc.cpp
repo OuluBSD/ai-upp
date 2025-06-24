@@ -1,7 +1,7 @@
 #include "ide.h"
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #include <ide/Vfs/Vfs.h>
 #endif
 
@@ -152,7 +152,7 @@ void WorkspaceWork::ScanWorkspace() {
 	
 	SyncErrorPackages();
 	
-	#ifdef flagAI
+	#ifndef flagV1
 	UpdateWorkspace(IdeMetaEnv(), wspc);
 	#endif
 }

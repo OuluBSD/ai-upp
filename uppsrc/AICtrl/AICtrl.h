@@ -1,9 +1,11 @@
 #ifndef _AICtrl_AICtrl_h_
 #define _AICtrl_AICtrl_h_
 
-#include <AICore/AICore.h>
+#include <AICore2/AICore.h>
 #include <CtrlLib/CtrlLib.h>
-#include <SoundCtrl/SoundCtrl.h>
+#ifdef flagAUDIO
+	#include <SoundCtrl/SoundCtrl.h>
+#endif
 #include <MetaCtrl/MetaCtrl.h>
 
 #ifndef flagGUI

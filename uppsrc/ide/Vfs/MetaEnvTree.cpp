@@ -212,6 +212,8 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 }
 
 void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
+	if (focus.GetLineCount() >= tree_limit) return;
+	
 	if (tree_idx <= focus_ptrs.GetCount())
 		focus_ptrs.SetCount(tree_idx+1,0);
 	focus_ptrs[tree_idx] = &n;
@@ -234,12 +236,14 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 		for (VfsValueSubset& s : ns->sub) {
 			int idx = focus.Add(tree_idx);
 			AddFocusNodes(idx, *s.n, &s);
+			if (focus.GetLineCount() >= tree_limit) break;
 		}
 	}
 	else {
 		for (VfsValue& s : n.sub) {
 			int idx = focus.Add(tree_idx);
 			AddFocusNodes(idx, s, 0);
+			if (focus.GetLineCount() >= tree_limit) break;
 		}
 	}
 }

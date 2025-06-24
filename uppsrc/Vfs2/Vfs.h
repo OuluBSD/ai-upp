@@ -10,8 +10,8 @@
 
 struct FileAnnotation;
 
-#ifndef flagAI
-	#error AI flag is currently still required
+#ifdef flagV1
+	#error V1 flag is incompatible with this package
 #endif
 
 NAMESPACE_UPP

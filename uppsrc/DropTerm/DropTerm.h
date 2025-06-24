@@ -16,7 +16,7 @@
 	#error GUI flag is required
 #endif
 
-#ifdef flagAI
+#ifndef flagV1
 	#include <AICtrl/AICtrl.h>
 #endif
 #include <ide/Shell/Shell.h>

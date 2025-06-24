@@ -5,14 +5,17 @@ NAMESPACE_UPP
 
 class OmniCtrl;
 
+#ifdef flagAUDIO
+
 struct OmniDetailedCtrl : Ctrl {
 	Splitter hsplit;
 	ArrayCtrl discussions, messages, phrases;
 	Splitter split[3];
+
 	WithSoundDaemonClip<Ctrl> waveform;
 	WaveformCtrl wavectrl;
 	Ptr<SoundThreadBase> thrd;
-	
+
 	typedef OmniDetailedCtrl CLASSNAME;
 	OmniDetailedCtrl();
 	void SetSoundThread(Ptr<SoundThreadBase> thrd);
@@ -56,16 +59,22 @@ struct OmniDeviceIO : PageCtrl {
 	void OnError(String s);
 };
 
+#endif
+
 class OmniCtrl : public TabCtrl {
+#ifdef flagAUDIO
 	OmniDetailedCtrl detailed;
 	OmniDeviceIO dev;
+#endif
 	
 public:
 	typedef OmniCtrl CLASSNAME;
 	OmniCtrl();
 	
 	void Data();
+#ifdef flagAUDIO
 	void SetSoundThread(Ptr<SoundThreadBase> thrd);
+#endif
 };
 
 

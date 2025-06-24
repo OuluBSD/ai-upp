@@ -6,7 +6,7 @@
 
 #include <Eon/Eon.h>
 
-#if (defined flagBUILTIN_PORTAUDIO)
+#if !defined flagSYS_PORTAUDIO
 #include <plugin/portaudio/portaudio.h>
 #else
 #include <portaudio.h>
@@ -28,7 +28,7 @@ AUD_VNDR_LIST
 #undef AUD_VNDR
 #undef AUD_CLS
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
+#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
 struct AudPortaudio {
 	struct NativeSinkDevice;
 	struct NativeSourceDevice;
@@ -141,7 +141,7 @@ template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	}
 };
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
+#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
 using PortaudioSinkDevice = AudioSinkDeviceT<AudPortaudio>;
 using PortaudioSourceDevice = AudioSourceDeviceT<AudPortaudio>;
 #endif

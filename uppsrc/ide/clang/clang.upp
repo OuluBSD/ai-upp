@@ -3,11 +3,13 @@ description "\377B";
 uses
 	ide/Core;
 
-library(WIN32 & MSC) libclang.lib;
+library(WIN32 MSC) libclang.lib;
 
-library(WIN32 & !MSC) "clang libclang.dll.a";
+library(WIN32 !MSC MSYS) "clang libclang.dll.a";
 
 library(LCLANG) clang;
+
+library(WIN32 !MSC !MSYS) libclang;
 
 file
 	clang.h,

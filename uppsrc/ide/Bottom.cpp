@@ -203,7 +203,7 @@ void Ide::SyncBottom()
 		editor_bottom.NoZoom();
 	console.Show(q == BCONSOLE);
 	error.Show(q == BERRORS);
-	#ifdef flagAI
+	#ifndef flagV1
 	if (calc_in_menubar)
 		calc.WhenViewChange << THISBACK(SetMenuBar);
 	else

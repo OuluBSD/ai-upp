@@ -2,7 +2,7 @@
 #define _Shell_Shell_h_
 
 
-#include <AICore2/AICore.h>
+#include <AICore/AICore.h>
 #include <Geometry/Geometry.h>
 #include <Vfs2/Vfs.h>
 #include <Eon/Eon.h>

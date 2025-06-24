@@ -1,7 +1,7 @@
 #ifndef _AgentDemo_AgentDemo_h_
 #define _AgentDemo_AgentDemo_h_
 
-#include <AICore2/AICore.h>
+#include <AICore/AICore.h>
 
 NAMESPACE_UPP
 

@@ -1,7 +1,7 @@
 #include "Audio.h"
 #include <Sound/Sound.h>
 
-#if defined flagBUILTIN_PORTAUDIO || defined flagPORTAUDIO
+#if !defined flagSYS_PORTAUDIO || defined flagPORTAUDIO
 NAMESPACE_UPP
 
 #undef CHECK_ERR
@@ -212,7 +212,7 @@ bool PortaudioStatic::exists = false;
 
 
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
+#if (!defined flagSYS_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
 struct AudPortaudio::NativeSinkDevice {
 	PaStream* p;
 };

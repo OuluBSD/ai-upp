@@ -31,5 +31,5 @@ file
 	Application.cpp;
 
 mainconfig
-	"" = "GUI AI LCLANG";
+	"" = "GUI LCLANG";
 

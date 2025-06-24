@@ -1,8 +1,8 @@
 #include "Vfs.h"
 #include <ide/ide.h>
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #endif
 
 NAMESPACE_UPP
@@ -106,7 +106,7 @@ void MetaCodeCtrl::ContextMenu(Bar& bar)
 	bar.Add("Remove comment", THISBACK(RemoveComment));
 	bar.Separator();
 	//bar.Sub("AI", [&](Bar& bar) {
-	#ifdef flagAI
+	#ifndef flagV1
 	bar.Add("Create AI comments for this scope", THISBACK(MakeAiComments));
 	#endif
 	bar.Add("Run base analysis for this scope", THISBACK1(RunTask, MetaProcess::FN_BASE_ANALYSIS));
@@ -161,7 +161,7 @@ Vector<String> MetaCodeCtrl::GetAnnotationAreaCode() {
 	return GetStringArea(this->content, a->begin, a->end);
 }
 
-#ifdef flagAI
+#ifndef flagV1
 void MetaCodeCtrl::MakeAiComments()
 {
 	SetSelectedLineFromEditor();

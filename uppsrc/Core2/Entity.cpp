@@ -1,8 +1,6 @@
 #include "Core.h"
 
-#ifdef flagAI
-#include <AICore/AICore.h>
-#endif
+
 
 NAMESPACE_UPP
 

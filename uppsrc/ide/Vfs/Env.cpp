@@ -169,7 +169,7 @@ void EnvEditorCtrl::Visit(Vis& v) {
 		VfsSrcFile& file = RealizeFileRoot();
 		file.MakeTempFromEnv(false);
 		file.Visit(v);
-		file.ClearTemp();
+		file.ClearTemp(1);
 	}
 }
 

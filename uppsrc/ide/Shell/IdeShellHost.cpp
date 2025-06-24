@@ -23,7 +23,7 @@ IdeShellHost::IdeShellHost() {
 	AddProgram("intra",	THISBACK(StartIntranet));
 	#endif
 	
-	#ifdef flagAI
+	#ifndef flagV1
 	ShellReg_MetaEnv(*this);
 	#endif
 }
@@ -158,7 +158,7 @@ void IdeShellHost::StartIntranet(IdeShell& shell, Value arg) {
 
 
 
-#ifdef flagAI
+#ifndef flagV1
 void InitShellHost(MetaEnvironment& env, IdeShellHost& host) {
 	host.AddProgram("blog", [&env](IdeShell& is, Value val){EcsExt(env,is,val);});
 }

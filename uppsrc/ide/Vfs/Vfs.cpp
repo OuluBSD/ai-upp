@@ -1,5 +1,5 @@
 #include "Vfs.h"
-#include <AICore/AICore.h>
+#include <AICore2/AICore.h>
 
 bool IsStruct(int kind);
 bool IsFunction(int kind);
@@ -167,7 +167,7 @@ void UpdateWorkspace(IdeMetaEnvironment& ienv, Workspace& wspc) {
 
 
 
-void ClearTempCheck(int id);
+void ClearTempCheck(int src, int id);
 int CreateTempCheck(int src);
 
 VfsValue& VfsSrcFile::GetTemp() {
@@ -183,8 +183,8 @@ VfsValue& VfsSrcFile::CreateTemp(int dbg_src) {
 	return n;
 }
 
-void VfsSrcFile::ClearTemp() {
-	ClearTempCheck(temp_id);
+void VfsSrcFile::ClearTemp(int dbg_src) {
+	ClearTempCheck(dbg_src, temp_id);
 	temp.Clear();
 	temp_id = -1;
 }
@@ -204,7 +204,7 @@ void VfsSrcFile::Visit(Vis& v)
 {
 	if (v.IsLoading()) {
 		if (!temp.IsEmpty())
-			ClearTemp(); // TODO this is very unoptimized clear
+			ClearTemp(2); // TODO this is very unoptimized clear
 		CreateTemp(1);
 	}
 	else if (v.IsStoring())
@@ -262,7 +262,7 @@ String VfsSrcFile::StoreJson()
 	
 	saved_hash = old_hash;
 	
-	ClearTemp();
+	ClearTemp(3);
 	return json;
 }
 #endif
@@ -283,8 +283,10 @@ bool VfsSrcFile::Store(bool forced)
 	bool total_hash_diffs = false;
 	String hash = IntStr64(file_nodes.AstGetSourceHash(&total_hash_diffs));
 	if(!forced) {
-		if(saved_hash == hash && !total_hash_diffs)
+		if(saved_hash == hash && !total_hash_diffs) {
+			ClearTemp(11);
 			return true;
+		}
 		if(saved_hash == hash && total_hash_diffs) {
 			TODO;
 		}
@@ -320,7 +322,7 @@ bool VfsSrcFile::Store(bool forced)
 	
 	lock.Leave();
 	
-	ClearTemp();
+	ClearTemp(4);
 	return succ;
 }
 
@@ -383,7 +385,7 @@ void VfsSrcFile::UpdateLoading() {
 	lock.Leave();
 	
 // see SRC_TXT_HEADER_ENABLE
-	#ifdef flagAI
+	#ifndef flagV1
 	if (GetFileExt(full_path) == ".db-src") {
 		SrcTxtHeader* src = dynamic_cast<SrcTxtHeader*>(&*temp->ext);
 		ASSERT(src);
@@ -854,7 +856,7 @@ bool IdeMetaEnvironment::LoadFileRoot(const String& includes, const String& path
 		JsonIO j(jv);
 		Vis vis(j);
 		if (LoadDatabaseSourceVisit(file, path, vis)) {
-			file.ClearTemp();
+			file.ClearTemp(5);
 			return true;
 		}
 	}
@@ -862,11 +864,11 @@ bool IdeMetaEnvironment::LoadFileRoot(const String& includes, const String& path
 	file.lock.Enter();
 	if(file.Load()) {
 		OnLoadFile(file);
-		file.ClearTemp();
+		file.ClearTemp(6);
 		file.lock.Leave();
 		return true;
 	}
-	file.ClearTemp();
+	file.ClearTemp(7);
 	file.lock.Leave();
 	return false;
 }
@@ -906,10 +908,10 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 	file.Visit(v);
 	if (!v.IsError()) {
 		OnLoadFile(file);
-		file.ClearTemp();
+		file.ClearTemp(8);
 		return true;
 	}
-	file.ClearTemp();
+	file.ClearTemp(9);
 	return false;
 }
 
@@ -919,7 +921,7 @@ VfsSrcFile& IdeMetaEnvironment::Load(const String& includes, const String& path)
 	if(file.Load()) {
 		OnLoadFile(file);
 	}
-	file.ClearTemp();
+	file.ClearTemp(10);
 	return file;
 }
 

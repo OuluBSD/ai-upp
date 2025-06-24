@@ -103,6 +103,7 @@ struct BinaryWorldState {
 	hash_t GetHashValue() const;
 	Value ToValue() const;
 	bool FromValue(bool use_params, Value v, Event<String> WhenError=Null);
+	String ToString(const WorldStateKey& key) const;
 	String ToString(int indent=0) const;
 	String ToInlineString() const;
 	String ToShortInlineString() const;

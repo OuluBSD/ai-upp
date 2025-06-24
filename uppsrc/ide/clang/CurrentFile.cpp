@@ -1,7 +1,7 @@
 #include "clang.h"
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #include <ide/Vfs/Vfs.h>
 #endif
 
@@ -124,7 +124,7 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.master_file = cfc.parsed_file.filename;
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			CodeIndex().GetAdd(path) = pick(fa);
-			#ifdef flagAI
+			#ifndef flagV1
 			Store(IdeMetaEnv(), fa.includes, path, v.ast);
 			#endif
 		}

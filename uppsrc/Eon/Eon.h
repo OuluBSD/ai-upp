@@ -2,7 +2,6 @@
 #define _Eon_Eon_h_
 
 #include <type_traits>
-#include <AICore/AICore.h>
 #include <AICore2/AICore.h>
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>

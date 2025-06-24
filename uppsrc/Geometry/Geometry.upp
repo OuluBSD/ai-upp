@@ -9,9 +9,9 @@ uses(!UWP) plugin/tiny_gltf;
 
 uses(!UWP & (BUILTIN_ASSIMP | LINUX)) plugin/assimp;
 
-library(!BUILTIN_ASSIMP & POSIX & !LINUX) assimp;
+library(!BUILTIN_ASSIMP POSIX !LINUX) assimp;
 
-library(!BUILTIN_ASSIMP & WIN32 & (CLANG | GCC)) libassimp.dll.a;
+library(!BUILTIN_ASSIMP WIN32 (CLANG | GCC) MSYS) libassimp.dll.a;
 
 file
 	Geometry.h,

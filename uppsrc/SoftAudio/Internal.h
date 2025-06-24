@@ -2,7 +2,7 @@
 #define _AudioCore_Internal_h_
 
 
-#if defined flagBUILTIN_PORTAUDIO || (defined flagWIN32 && defined flagMSC)
+#if !defined flagSYS_PORTAUDIO || (defined flagWIN32 && defined flagMSC)
 	#include <plugin/portaudio/portaudio.h>
 	#include <plugin/portaudio/pa_types.h>
 #else

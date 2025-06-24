@@ -6,25 +6,31 @@ NAMESPACE_UPP
 
 	
 OmniCtrl::OmniCtrl() {
+#ifdef flagAUDIO
 	dev.owner = this;
 	TabCtrl::Add(detailed.SizePos(), "Detailed");
 	TabCtrl::Add(dev.SizePos(), "Devices");
+#endif
 }
 
 void OmniCtrl::Data() {
 	int tab = Get();
 	int i = 0;
+#ifdef flagAUDIO
 	if (i++ == tab)	detailed.Data();
 	if (i++ == tab)	dev.Data();
+#endif
 }
 
+#ifdef flagAUDIO
 void OmniCtrl::SetSoundThread(Ptr<SoundThreadBase> thrd) {
 	dev.SetSoundThread(thrd);
 	detailed.SetSoundThread(thrd);
 	PostCallback(THISBACK(Data));
 }
+#endif
 
-
+#ifdef flagAUDIO
 OmniDeviceIO::OmniDeviceIO() {
 	auto& form = snd.form;
 	auto& thrd = snd.thrd;
@@ -366,6 +372,6 @@ void OmniDeviceIO::VolumeMeterCtrl::Paint(Draw& d) {
 		d.DrawRect(RectC(0,sz.cy-h,sz.cx,h), clr);
 	}
 }
-
+#endif
 
 END_UPP_NAMESPACE

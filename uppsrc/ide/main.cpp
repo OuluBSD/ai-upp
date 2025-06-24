@@ -1,7 +1,7 @@
 #include "ide.h"
 #include "CommandLineHandler.h"
 
-#ifdef flagAI
+#ifndef flagV1
 	#include <DropTerm/DropTerm.h>
 #endif
 
@@ -365,7 +365,7 @@ void AppMain___()
 		}
 
 		Ide ide;
-		#ifdef flagAI
+		#ifndef flagV1
 		IdeDropdownTerminal dropdown;
 		#endif
 		SetTheIde(&ide);
@@ -430,7 +430,7 @@ void AppMain___()
 		
 		if(!clset)
 			ide.LoadLastMain();
-		#ifdef flagAI
+		#ifndef flagV1
 		if (FindIndex(CommandLine(), "--dropdown-terminal") >= 0)
 			dropdown.Init();
 		#endif
@@ -448,7 +448,7 @@ void AppMain___()
 				ide.FileSelected();
 				ide.isscanning--;
 				ide.MakeTitle();
-				#ifdef flagAI
+				#ifndef flagV1
 				TaskMgr::Setup(&ide);
 				Engine::Setup("ide", 0, true);
 				if (FindIndex(CommandLine(), "--playground") >= 0 ||
@@ -501,7 +501,7 @@ void AppMain___()
 		LOG("!!!!! Unknown exception");
 	}
 #endif
-#ifdef flagAI
+#ifndef flagV1
 	Engine::Uninstall();
 #endif
 	Ctrl::ShutdownThreads();

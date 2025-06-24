@@ -1,7 +1,7 @@
 #include "Shell.h"
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #endif
 
 NAMESPACE_UPP

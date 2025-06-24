@@ -129,7 +129,7 @@ END_UPP_NAMESPACE;
 #include <plugin/portaudio/common/pa_types.h>
 #endif
 INITBLOCK{
-	#if defined LOG_SOUND_ERRORS && defined flagBUILTIN_PORTAUDIO
+	#if defined LOG_SOUND_ERRORS && !defined flagSYS_PORTAUDIO
 	LOG("PortAudio was compiled with support for: "<<Upp::PortAudioCompileFlags());
 	#endif
 	// Check if the sizes of types match current platform

@@ -3,8 +3,10 @@
 
 #include <Vfs2/Vfs.h>
 #include <CtrlLib/CtrlLib.h>
-#include <Sound/Sound.h>
-#include <SoundCtrl/SoundCtrl.h>
+#ifdef flagAUDIO
+	#include <Sound/Sound.h>
+	#include <SoundCtrl/SoundCtrl.h>
+#endif
 #include <CodeEditor/CodeEditor.h>
 
 #ifndef flagGUI

@@ -2,13 +2,13 @@
 #define _AICore_AICore_h_
 
 #include <Vfs2/Vfs.h>
-#ifndef flagNOSOUND
+#ifdef flagAUDIO
 	#include <Sound/Sound.h>
 #endif
 #include <plugin/bz2/bz2.h>
 #include <plugin/png/png.h>
 #include <plugin/jpg/jpg.h>
-#ifndef flagNOCURL
+#ifdef flagCURL
 	#define HAVE_OPENAI 1
 	#include <plugin/openai/openai.h>
 #else
@@ -17,8 +17,8 @@
 #include <ide/AiProvider.h>
 #include <Esc/Esc.h>
 
-#ifndef flagAI
-#error AI flag is not set
+#ifdef flagV1
+#error V1 flag is set
 #endif
 
 

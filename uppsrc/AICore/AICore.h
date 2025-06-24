@@ -2,7 +2,7 @@
 #define _AICore2_Agent_h_
 
 #include <Core2/Core.h>
-#include <AICore/AICore.h>
+#include <Vfs2/Vfs.h>
 
 NAMESPACE_UPP
 

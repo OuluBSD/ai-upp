@@ -55,7 +55,7 @@ INITBLOCK {
 	REGISTER_ATOM(TestRealtimeSrc);
 	REGISTER_ATOM(TestRealtimeSink);
 	REGISTER_ATOM(TestPollerSink);
-	#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
+	#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
 	REGISTER_ATOM(PortaudioSink);
 	#endif
 	#if defined flagFFMPEG

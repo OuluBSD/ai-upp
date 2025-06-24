@@ -169,7 +169,7 @@ END_UPP_NAMESPACE;
 
 
 
-#if defined flagBUILTIN_PORTAUDIO || defined BUILTIN_PORTAUDIO
+#if !defined flagSYS_PORTAUDIO || defined BUILTIN_PORTAUDIO
 INITBLOCK_(PortaudioSystem) {
 	// Check if the sizes of types match current platform
 	ASSERT_((sizeof(PaUint16) == 2) &&

@@ -89,4 +89,10 @@ bool AiServiceProvider::IsApiOpenAIVision() const
 		;
 }
 
+inline
+String AiServiceProvider::GetTypeString() const
+{
+	return GetTypeString(type);
+}
+
 END_UPP_NAMESPACE

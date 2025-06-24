@@ -1,7 +1,7 @@
 #include <ide/ide.h>
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #include <ide/Vfs/Vfs.h>
 #endif
 
@@ -316,7 +316,7 @@ void Indexer::IndexerThread()
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
-				#ifdef flagAI
+				#ifndef flagV1
 				if (i++ == 0)
 					Store(IdeMetaEnv(), job.includes, path, v.ast);
 				#endif
@@ -499,7 +499,7 @@ void Indexer::SchedulerThread()
 								CodeIndex().GetAdd(path) = pick(lf);
 							}
 						}
-						#ifdef flagAI
+						#ifndef flagV1
 						IdeMetaEnv().Load(includes, path);
 						#endif
 					}

@@ -10,6 +10,7 @@ class MetaEnvTree : public ParentCtrl {
 	MenuBar menu;
 	Vector<VfsValue*> stmt_ptrs, focus_ptrs;
 	VfsValueSubset subset;
+	int tree_limit = 1000;
 	
 public:
 	typedef MetaEnvTree CLASSNAME;

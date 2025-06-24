@@ -401,7 +401,8 @@ bool OmniActionPlanner::SetParams(Value val) {
 	use_params = params.Get("use_params", false);
 	use_resolver = params.Get("use_resolver", false);
 	
-	ValueMap in_initial  = val("initial");
+	Value in_initial_val = val("initial");
+	ValueMap in_initial = in_initial_val.Is<ValueMap>() ? (ValueMap)in_initial_val : ValueMap();
 	run_initial = in_initial.GetCount();
 	
 	ValueMap in_actions  = val("actions");
@@ -452,7 +453,8 @@ bool OmniActionPlanner::SetParams(Value val) {
 				String atom_name = arr[0];
 				Key atom_key;
 				if (!ParseCondParam(a.key, atom_name, atom_key)) return false;
-				if (HasDuplicateParams(atom_key)) {WhenError("duplicate params in atom: " + a.precond.mask->ToString(atom_key)); return false;}
+				if (HasDuplicateParams(atom_key)) {
+					WhenError("duplicate params in atom: " + a.precond.mask->ToString(atom_key)); return false;}
 				DLOG("\tPARAM " << a.precond.mask->ToString(atom_key));
 				int atom_value = arr[1];
 				int atom_idx = ws_session.atoms.FindAdd(atom_key);
@@ -535,6 +537,7 @@ bool OmniActionPlanner::HasDuplicateParams(const Key& key) {
 	for(int i = 0; i < Key::max_len; i++) {
 		if (key.params[i].cls < 0) break;
 		int p0 = key.params[i].name;
+		if (p0 < 0) continue;
 		for(int j = i+1; j < Key::max_len; j++) {
 			if (key.params[j].cls < 0) break;
 			int p1 = key.params[j].name;
@@ -1238,22 +1241,23 @@ bool ActionParamResolver::MakeDestination() {
 		}
 		
 		// Check that changes can be made
-		int mask_idx = dest.mask->FindAdd(dst_key);
-		bool dst_value = mask_idx < post.atoms.GetCount() ? post.atoms[mask_idx].value : false;
-		bool src_value = mask_idx < src.atoms.GetCount()  ? src.atoms[mask_idx].value  : !dst_value;
+		int mask_idx = dest.mask->FindAdd(dst_key, true);
 		
-		if (mask_idx >= dest.atoms.GetCount() ||
-			!dest.atoms[mask_idx].in_use ||
-			dst_value != src_value)
+		bool dst_value = pa.value;
+		
+		bool was_in_use = mask_idx < dest.atoms.GetCount() ? dest.atoms[mask_idx].in_use : false;
+		bool was_value  = mask_idx < dest.atoms.GetCount() ? dest.atoms[mask_idx].value : false;
+		if (!was_in_use || was_value != dst_value)
 			changed++;
 		
-		//DLOG("Dest " << i << ": " << post.ToString(dst_key));
-		dest.SetKey(dst_key, pa.value);
+		DLOG("Dest " << i << ": " << post.ToString(dst_key));
+		dest.SetMasked(mask_idx, dst_value);
 	}
 	
 	if (!changed)
 		return false;
 	
+	ASSERT(!(dest == src));
 	return true;
 }
 

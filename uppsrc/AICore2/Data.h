@@ -651,7 +651,6 @@ struct SrcTextData : EntityData {
 	void Visit(Vis& s) override;
 };
 
-
 // see SRC_TXT_HEADER_ENABLE
 
 struct SrcTxtHeader : Component {

@@ -1,8 +1,8 @@
 #include "MetaCtrl.h"
 #include <ide/clang/clang.h>
 
-#ifdef flagAI
-#include <AICore/AICore.h>
+#ifndef flagV1
+#include <AICore2/AICore.h>
 #endif
 
 String GetCursorKindName(CXCursorKind cursorKind);
@@ -812,7 +812,7 @@ void MetaProcess::AddError(String filepath, Point pos, String msg) {
 	e.msg = msg;
 }
 
-#ifdef flagAI
+#ifndef flagV1
 bool MetaProcess::ProcessTask(AITask& t) {
 	ASSERT(!waiting);
 	TaskMgr& m = AiTaskManager();

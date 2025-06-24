@@ -4,135 +4,6 @@
 #if 0
 
 
-You have an progamming goal: e.g. "c++: 3-class hello world in main"
-
-
-#include <iostream>
-#include <string>
-
-// Class 1: provides "Hello"
-class Hello {
-public:
-    std::string get() const {
-        return "Hello";
-    }
-};
-
-// Class 2: provides "World"
-class World {
-public:
-    std::string get() const {
-        return "World";
-    }
-};
-
-// Class 3: combines Hello and World and prints the greeting
-class Greeter {
-    Hello hello_;
-    World world_;
-public:
-    void greet() const {
-        std::cout << hello_.get() << " " << world_.get() << "!" << std::endl;
-    }
-};
-
-int main() {
-    Greeter greeter;
-    greeter.greet();  // prints: Hello World!
-    return 0;
-}
-
-
-
-
-Here’s a simple 4-step decomposition (“action planner”) for
-the task “print Hello World!” using our three classes.
-For each intermediate goal we list the key predicates you’d need to track.
-
-Goal 1: Construct Hello
-    Predicates:
-    • HelloCreated(hello)
-    – true once Hello hello; has run
-
-Goal 2: Construct World
-    Predicates:
-    • WorldCreated(world)
-    – true once World world; has run
-
-Goal 3: Construct Greeter
-    Predicates:
-    • GreeterCreated(greeter)
-    – true once Greeter greeter; has run
-    • GreeterHasHello(greeter, hello)
-    – true if greeter holds a reference/member to hello
-    • GreeterHasWorld(greeter, world)
-    – true if greeter holds a reference/member to world
-
-Goal 4: Invoke greet() → print
-    Predicates:
-    • GreetInvoked(greeter)
-    – true once greeter.greet(); is called
-    • OutputEmitted("Hello World!")
-    – true once standard‐output contains “Hello World!”
-
-You can collapse steps (e.g. 1+2 into “make dependencies”) if you only need 2–3 goals, or expand further for constructor return‐value checks, error states, etc.
-
-
-
-
-
----->
-You have a GOAL:::: PRINT HELLO WRODL
-AND THEN....
-YOU FIND GOALS BEFOOOOR THAT
-4...3..2.1
-YOUUU NEEEDS A BRIDGE BETWEEN 4-->3, 3-->2, 2--->1
-	DAT IS THE FORMAT OF LLM OUTPUT... DAT GIVES DAT FORMAT
-		BRIDGES ARE TEMPLATES.... TO BRIDGE GOAL/KEYPOINTS
-			PREDICATE OF GOAL 4 ---> (SPECIALIZED) TEMPLATE GOAL BEFORE GOAL 4
-
-
-<----
-- LAYERS
-	1. high-level user interaction and expectations
-		- time/parallel problem (phases + section of data in focus)
-	2. data
-	3. program procedural architecture (main + phases of program (e.g. init + usage + deinit))
-		3.1	sub procedures (includes User interactions)
-	4. data structure architecture
-	5. data interation architecture
-	6. data interaction functions
-
-- start from single multi-layer-keypoint
-	- 1. output "hello world"
-	- 2. text="hello", text="world"
-	- 3. init: 3 objects 3 different classes
-	- 4. class1 class2 class3
-	- 5. class1 -> [class2, class3]
-	- 6. class1::*(...) -> [class2::*(...), class3::*(...)]
-
-- templates
-	- 1. "usage phase: output \"hello world\""
-		--> 2. "output ordered to_string() of data vector [hello, world]"
-				(separable texts, separable data)
-		--> 3. "1 default template for program" == "init: 3 objects 3 different classes"
-	- 3. "class-relations: usage" --> "MainProgram::Main"
-		--> 4. "create a class1 which inherits MainProgram"
-	- 4. "create separate classes for separable data, which owns data"
-	- 5. "make virtual MainProgram (==class1) to own data (classes)
-	- 6. "implement to_string() of class1 fields"
-
-
-
-
----->
-
-- 4.goals is a reverse action-planner problem (starting from goal 4.)
-	- "solve in time/parallel domain"
-
-
-<----
-
 - 3D-network
 	- X-axis: TIME-DOMAIN
 	- Y-axis: KEYPOINT-LAYER
@@ -172,4 +43,102 @@ YOUUU NEEEDS A BRIDGE BETWEEN 4-->3, 3-->2, 2--->1
 				- the route network what processor visits forms the program AST
 				- you kinda enable different domains of that processor in different Y-axis points
 					- you need easy context translation thought
+					
+<----
+We have a 3D world where the X-axis is TIME.
+The Y-axis is a dependency-relationship hierarchy, where the high-level goals are at the top and the implementation details are at the bottom.
+The Z-axis is the data, and when the data is processed, its Z-axis position changes.
+
+Incomplete X-axis atoms:
+- X(program-developement)
+- X(program-main-phase)
+- X(human-viewer-phase)
+
+Incomplete Y-axis atoms:
+- Y(user-interaction)
+- Y(user-expectations)
+- Y(asset-data)
+- Y(program-procedural-architecture)
+- Y(sub-procedures)
+- Y(data-structure-architecture)
+- Y(data-interation-architecture)
+- Y(data-interaction-functions)
+	
+Incomplete Z-axis atoms:
+- Z(text:String="hello world")
+- Z(main:MainProgram)
+
+Actions inside 'X(program-main-phase)':
+- print_text(text)
+
+Actions inside 'X(human-viewer-phase)':
+- user_reads(text)
+
+Actions inside 'X(program-main-phase) & Y(data-structure-architecture)':
+- create(data_structure)
+- modify(data_structure)
+- delete(data_structure)
+
+Actions inside 'X(program-main-phase) & Y(data-structure-architecture) & Z(text "hello world")':
+- add(text) to data_structure
+- concat(data_structure, text)
+
+Actions inside 'X(human-viewer-phase) & Y(user-interaction)':
+- click(button)
+- scroll(text_field)
+- type(text, text_field)
+- select(option, select_menu)
+
+Actions inside 'X(program-developement) & Y(main-function) & Z(first-program-statement)':
+- declare(variable)
+- assign(value, variable)
+- call(function)
+- return(value)
+
+Actions inside 'X(program-developement) & Y(main-function) & Z(internal-function)':
+- create(function)
+- modify(function)
+- delete(function)
+
+List of related XYZ coordinates:
+- X(program-main-phase) & Y(asset-data) & Z(main_scene)
+- X(human-viewer-phase) & Y(user-interaction) & Z(option_menu)
+- X(program-developement) & Y(data-interaction-functions) & Z(parse)
+- X(program-developement) & Y(main-function) & Z(if_statement)
+- X(program-developement) & Y(program-procedural-architecture) & Z(function_call)
+- X(human-viewer-phase) & Y(user-expectations) & Z(consistent_interface)
+- X(program-developement) & Y(data-structure-architecture) & Z(hash_map)
+
+List of actual actions in the result plan at 'X(program-developement) & Y(main-function) & Z(first-program-statement)':
+- declare("number_of_students" variable)
+- assign(20, "number_of_students")
+- call(calculate_average_grade function)
+- return(average_grade)
+
+List of actual actions in the result plan at 'X(program-main-phase) & Y(user-interaction) & Z(option_menu_clicked)':
+- save_changes()
+- close_menu()
+- refresh_UI()
+
+----->
+1. In one XYZ point
+	- LLM generates
+		- next XYZ points
+		- actions
+			- for staying in XYZ
+			- for moving in X,y or Z
+			- for moving to completely new XYZ
+		- pre & post conditions for actions
+	- heuristics
+		- LLM is given topic or goal in mind to focus better next XYZ points
+2. Route searching phase
+	- LLM is given goal and worldstate and XYZ point and next XYZ points
+	- there is few meta-phases before the classic actionplanner action
+		- want to move XYZ? or just X or Y or Z
+		- what is missing in the worldstate?
+		- can you guess the path to goal?
+		- which actions are unrelated?
+
+
+
 #endif

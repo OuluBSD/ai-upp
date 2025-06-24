@@ -407,8 +407,16 @@ CONSOLE_APP_MAIN {
 	TypedStringHasher<SimpleGeneratorNode>("SimpleGeneratorNode");
 	TypedStringHasher<RouteGeneratorNode>("RouteGeneratorNode");
 	
-	//BasicTests();
-	IntegratedTests();
-	//FileSystemExample();
-	//ConstraintSolverTests();
+	try {
+		//BasicTests();
+		IntegratedTests();
+		//FileSystemExample();
+		//ConstraintSolverTests();
+	}
+	catch (Exc e) {
+		LOG(e);
+	}
+	catch (...) {
+		LOG("error");
+	}
 }

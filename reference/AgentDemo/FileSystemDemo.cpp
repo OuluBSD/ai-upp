@@ -75,6 +75,17 @@ NAMESPACE_UPP
 	
 	This mini-domain exercises directory/file creation, opening, writing, moving and deletion—all via clear pre- and post-conditions.
 
+
+6. Result
+
+	List of actions:
+	1. CreateDir("/home/admin/docs","/home/admin")
+	2. OpenFile("/home/readme.txt","write")
+	3. WriteFile("/home/readme.txt","Hello")
+	4. CloseFile("/home/readme.txt")
+	5. MoveFile("/home/readme.txt","/home/admin","/home")
+	6. DeleteDir("/home/admin/docs")
+
 #endif
 
 

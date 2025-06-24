@@ -2,22 +2,6 @@
 
 NAMESPACE_UPP
 
-/*
-struct RouteSearcherUtil :
-	Generator,
-	TerminalTester,
-	HeuristicEval
-{
-	RouteSearcherUtil();
-	void SetParams(Value val) override;
-	bool Run(Val& fs) override;
-	void GenerateSubValues(Val& val) override;
-	bool TerminalTest(Val& v) override;
-	double Utility(Val& val) override;
-	double Estimate(Val& n) override;
-	double Distance(Val& n, Val& dest) override;
-};
-*/
 
 void SetValue2(Val& i) {
 	i.value = -2 + (int)Random(100);
@@ -52,7 +36,7 @@ void IntegratedTests() {
 	params.Set("low", 2);
 	params.Set("high", 3);
 	
-	bool all = 0;
+	bool all = 1;
 	
 	// Simple game algorithms
 	if (all) {
@@ -111,127 +95,6 @@ void IntegratedTests() {
 		}
 	}
 	
-	// Action planner tests
-	if (1 || all) {
-		for(int i = 7; i < 8; i++) {
-			ValueMap atoms, goal, actions, initial;
-			if (i == 0) {
-				atoms	.Add("A", false);
-				goal	.Add("A", true);
-				actions	.Add("write A", ActionEventValue().Pre("A",false).Post("A",true));
-			}
-			else if (i == 1) {
-				atoms	.Add("A", false);
-				atoms	.Add("B", false);
-				goal	.Add("A", true);
-				actions	.Add("write A", ActionEventValue().Pre("A",false).Pre("B",true).Post("A",true));
-				actions	.Add("write B", ActionEventValue().Pre("B",false).Post("B",true));
-			}
-			else if (i == 2) {
-				atoms	.Add("A", false);
-				atoms	.Add("B", false);
-				atoms	.Add("C", false);
-				goal	.Add("A", true);
-				// avoid 'write A (via B)' by setting cost multiplier to 5
-				actions	.Add("write A via B", ActionEventValue().Cost(5).Pre("A",false).Pre("B",true).Post("A",true));
-				actions	.Add("write A via C", ActionEventValue().Pre("A",false).Pre("C",true).Post("A",true));
-				actions	.Add("write B", ActionEventValue().Pre("B",false).Post("B",true));
-				// ... even though writing C is slightly more costly
-				actions	.Add("write C", ActionEventValue().Cost(2).Pre("C",false).Post("C",true));
-			}
-			else if (i == 3) {
-				// Same as previous, but B=B(0) and C=(B1)
-				// This test is for testing parameter parsing, comparison, etc.
-				params("use_params") = true;
-				atoms	.Add("A", false);
-				atoms	.Add("B(id)", false);
-				initial	.Add("B(0)", false);
-				initial	.Add("B(1)", false);
-				goal	.Add("A", true);
-				actions	.Add("write A via B0", ActionEventValue().Cost(5).Pre("A",false).Pre("B(0)",true).Post("A",true));
-				actions	.Add("write A via B1", ActionEventValue().Pre("A",false).Pre("B(1)",true).Post("A",true));
-				actions	.Add("write B0", ActionEventValue().Pre("B(0)",false).Post("B(0)",true));
-				actions	.Add("write B1", ActionEventValue().Cost(2).Pre("B(1)",false).Post("B(1)",true));
-			}
-			else if (i == 4) {
-				// Very basic resolver test
-				params("use_params") = true;
-				params("use_resolver") = true;
-				initial	.Add("A(\"abc\")", true);
-				atoms	.Add("A(id)", false);
-				atoms	.Add("B", false);
-				goal	.Add("B", true);
-				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Post("B",true));
-			}
-			else if (i == 5) {
-				// Inducts from initial
-				// initial.Add("A(\"abc\")");
-				params("use_params") = true;
-				params("use_resolver") = true;
-				initial	.Add("A(\"abc\")", true);
-				atoms	.Add("A(id)", false);
-				atoms	.Add("B(id)", false);
-				atoms	.Add("C", false);
-				goal	.Add("C", true);
-				actions	.Add("write B(id)", ActionEventValue().Pre("A(id)",true).Pre("B(id)",false).Post("B(id)",true).Post("C",true));
-			}
-			else if (i == 6) {
-				// Inducts from goal (single-step, no reverse)
-				params("use_params") = true;
-				params("use_resolver") = true;
-				atoms	.Add("A", true);
-				atoms	.Add("B(id)", false);
-				goal	.Add("B(\"abc\")", true);
-				actions	.Add("write B(id)", ActionEventValue()
-					.Pre	("A",		true)
-					.Pre	("B(id)",	false)
-					.Post	("B(id)",	true));
-			}
-			else if (i == 7) {
-				// multi-param combination tests
-				atoms	.Add("A(a,b)", false);
-				atoms	.Add("B(c,b)", false);
-				atoms	.Add("C(b)", false);
-				initial	.Add("A(0,0)", true);
-				initial	.Add("B(0,0)", true);
-				goal	.Add("B(1,1)", true);
-				actions	.Add("F1(b)", ActionEventValue()
-					.Pre	("A(0,b)",	true)
-					.Pre	("C(b)",	true)
-					.Post	("B(1,b)",	true));
-				actions	.Add("F2(b)", ActionEventValue()
-					.Pre	("B(1,b)",	true)
-					.Pre	("C(b)",	true)
-					.Post	("B(1,1)",	true));
-			}
-			else if (i == 8) {
-				// 2-planner problem
-				// where the other is reversed and a common goal is searched for
-				TODO
-			}
-			params("atoms") = atoms;
-			params("actions") = actions;
-			params("goal") = goal;
-			params("initial") = initial;
-			params("dump_intermediate_trees") = true;
-			searcher.SetSearcherParams(params);
-			searcher.SetGeneratorParams(params, Null);
-			searcher.SetSearchStrategy(SEARCHSTRATEGY_ASTAR);
-			searcher.SetTerminalTest(TERMTEST_ACTION_PLANNER);
-			searcher.SetGenerator(GENERATOR_ACTION_PLANNER);
-			searcher.SetHeuristics(HEURISTIC_ACTION_PLANNER);
-			searcher.ClearFS();
-			searcher.WhenGenerated.Clear();
-			searcher.WhenError = [](String s) {LOG("ActionPlanner error: " << s);};
-			bool ret = searcher.RunSearch();
-			if (!ret) {
-				LOG(searcher.GetTreeString());
-			}
-			ASSERT(ret);
-			//LOG(PtrVecStr(searcher.GetResult()));
-			LOG(searcher.GetResultString());
-		}
-	}
 	
 	// Action planner
 	if (all) {

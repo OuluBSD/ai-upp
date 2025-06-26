@@ -186,6 +186,7 @@ typedef uint64 CodeCursorPrimitive;
 
 struct AstNode;
 
+bool IsSpaceMergeable(const VfsValue& n0, const VfsValue& n1);
 bool IsMergeable(int kind);
 String GetCodeCursorString(CodeCursor t);
 String GetOpCodeString(CodeCursor t);

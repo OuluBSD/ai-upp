@@ -137,6 +137,7 @@ file
 
 mainconfig
 	"" = "GUI",
+	"" = "GUI NET",
 	"" = "GUI NET CURL",
 	"" = "GUI NET CURL AUDIO",
 	"" = "GUI NET CURL AUDIO SYS_PORTAUDIO",

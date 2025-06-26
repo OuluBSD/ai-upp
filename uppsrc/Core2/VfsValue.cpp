@@ -195,12 +195,8 @@ hash_t MetaEnvironment::NewSerial() {
 bool MetaEnvironment::MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode)
 {
 	VfsValue& n0 = *scope.Top();
-	AstValue* a0 = n0;
-	const AstValue* a1 = n1;
-	ASSERT(a0 && a1 && a0->kind == a1->kind && n0.id == n1.id);
 	
-	bool mergeable = false;
-	if(a0 && a1 && n0.type_hash == 0 && n1.type_hash == 0 && IsMergeable(a0->kind)) {
+	if(IsSpaceMergeable(n0, n1)) {
 		for(const VfsValue& s1 : n1.sub) {
 			const AstValue* a1 = s1;
 			int i = -1;

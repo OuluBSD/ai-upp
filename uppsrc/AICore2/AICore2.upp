@@ -67,6 +67,8 @@ file
 	AiCompletion.cpp,
 	AiChat.h,
 	AiChat.cpp,
+	AiProgram.h,
+	AiProgram.cpp,
 	Private readonly separator,
 	Owner.h,
 	Owner.cpp,

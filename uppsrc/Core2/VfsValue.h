@@ -990,6 +990,7 @@ struct MetaEnvironment : VFS {
 	VectorMap<hash_t,Type> types;
 	hash_t serial_counter = 0;
 	SpinLock serial_lock;
+	WorldState env_ws;
 	
 	VfsValue root;
 	RWMutex lock;

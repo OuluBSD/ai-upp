@@ -525,6 +525,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 		for(auto& pri : pri_subs) {
 			if(pri.ready && pri.match) {
 				VfsValue& s0 = const_cast<VfsValue&>(*pri.n);
+				if (s0.ext)
+					s0.ext->Initialize(env_ws);
 				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *pri.match, mode);
@@ -540,6 +542,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 		for(auto& sec : sec_subs) {
 			if(sec.ready && sec.match) {
 				VfsValue& s0 = const_cast<VfsValue&>(*sec.n);
+				if (s0.ext)
+					s0.ext->Initialize(env_ws);
 				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
 				bool succ = MergeVisitPartMatching(scope, *sec.match, mode);
@@ -559,6 +563,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 void MetaEnvironment::MergeVisitPost(VfsValue& n)
 {
 	RefreshNodePtrs(n);
+	if (n.ext)
+		n.ext->Initialize(env_ws);
 	for(auto& s : n.sub)
 		MergeVisitPost(s);
 }

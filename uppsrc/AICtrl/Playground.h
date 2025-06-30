@@ -46,57 +46,6 @@ public:
 	CompletionThread& Thread();
 };
 
-struct AiStageCtrl : VfsValueExtCtrl {
-	Splitter vsplit, hsplit;
-	ArrayCtrl proglist, stagelist;
-	CodeEditor prog, stage;
-	TabCtrl btabs;
-	DocEdit log;
-	Ptr<Agent> agent;
-	
-	Vector<VfsValue*> programs, stages;
-	/*VectorMap<int,VfsValue*> structure_nodes;
-	VectorMap<int,String> structure_values;*/
-	
-	void PrintLog(Vector<ProcMsg>& msgs);
-	void Print(EscEscape& e);
-	void Input(EscEscape& e);
-	
-public:
-	typedef AiStageCtrl CLASSNAME;
-	AiStageCtrl();
-	
-	void Data() override;
-	void DataProgramList();
-	void DataProgram();
-	void DataStageList();
-	void DataStage();
-	void DataBottom();
-	void ToolMenu(Bar& bar) override;
-	void DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash);
-	bool CompileStages(bool force);
-	bool Compile(bool force);
-	bool Run();
-	
-	VfsValue* GetProgram();
-	VfsValue* GetStage();
-	
-	void ProgramMenu(Bar& b);
-	void AddProgram();
-	void RemoveProgram();
-	void RenameProgram();
-	void DuplicateProgram();
-	
-	void StageMenu(Bar& b);
-	void AddStage();
-	void RemoveStage();
-	void RenameStage();
-	void DuplicateStage();
-	
-};
-
-INITIALIZE(AiStageCtrl)
-
 struct AiChainCtrl : VfsValueExtCtrl {
 	
 private:
@@ -196,7 +145,7 @@ public:
 class PlaygroundCtrl : public Ctrl {
 	TabCtrl tabs;
 	CompletionCtrl completion;
-	AiStageCtrl stage;
+	AiProgramCtrl stage;
 	AiChainCtrl chain;
 	TextToSpeechCtrl tts;
 	AssistantCtrl ass;

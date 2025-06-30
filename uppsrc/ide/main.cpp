@@ -374,6 +374,11 @@ void AppMain___()
 		
 		ide.LoadConfig();
 		
+		#ifndef flagV1
+		TaskMgr::Setup(&ide);
+		Engine::Setup("ide", 0, true);
+		#endif
+		
 		if(arg.GetCount() == 1) {
 			if(arg[0].EndsWith(".upp")) {
 				Vector<String> names = Split(arg[0], DIR_SEP);
@@ -449,8 +454,6 @@ void AppMain___()
 				ide.isscanning--;
 				ide.MakeTitle();
 				#ifndef flagV1
-				TaskMgr::Setup(&ide);
-				Engine::Setup("ide", 0, true);
 				if (FindIndex(CommandLine(), "--playground") >= 0 ||
 					ToLower(GetExeTitle()) == "playground")
 					RunAiPlayground();

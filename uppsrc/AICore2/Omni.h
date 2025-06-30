@@ -94,46 +94,6 @@ public:
 	}
 };
 
-struct StageThread : Component {
-	
-	/*
-	struct Stage {
-		
-		void Visit(Vis& v) override {
-			v.Ver(1)
-			(1)	;
-		}
-	};
-	struct Session {
-		String id;
-		Value version;
-		Array<Stage> stages;
-		
-		void Visit(Vis& v) override {
-			v.Ver(1)
-			(1)	("id", id)
-				("version", version)
-				("stages", stages, VISIT_VECTOR)
-				;
-		}
-	};
-	
-	Array<Session> sessions;
-	*/
-	Vector<String> stage_name_presets;
-	
-public:
-	CLASSTYPE(StageThread)
-	StageThread(VfsValue& n) : Component(n) {}
-	
-	void Visit(Vis& v) override {
-		v.Ver(1)
-		(1)	//("sessions", sessions, VISIT_VECTOR)
-			("stage_name_presets", stage_name_presets)
-		;
-	}
-};
-
 
 struct ChainThread : Component {
 	CLASSTYPE(ChainThread)

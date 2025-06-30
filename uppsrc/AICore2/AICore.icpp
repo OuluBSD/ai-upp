@@ -5,7 +5,6 @@ INITBLOCK {
 	
 	REGISTER_COMPONENT(CompletionThread,           "ai.completion", "AI|Completion")
 	REGISTER_COMPONENT(ChatThread,                 "ai.chat",       "AI|Chat")
-	REGISTER_COMPONENT(StageThread,                "ai.stage",      "AI")
 	REGISTER_COMPONENT(ChainThread,                "ai.chain",      "AI")
 	REGISTER_COMPONENT(MetaEnvThread,              "ai.env",        "Util")
 	REGISTER_COMPONENT(Agent,                      "ai.agent",      "AI|Agent")

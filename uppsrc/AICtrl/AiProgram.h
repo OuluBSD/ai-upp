@@ -6,6 +6,8 @@ NAMESPACE_UPP
 struct AiProgramCtrl : VfsValueExtCtrl {
 	Splitter vsplit, hsplit;
 	ArrayCtrl proglist, stagelist;
+	ArrayCtrl sessionlist, iterlist, querylist;
+	Splitter progsplit, stagesplit;
 	CodeEditor prog, stage;
 	TabCtrl btabs;
 	DocEdit log;
@@ -17,6 +19,7 @@ struct AiProgramCtrl : VfsValueExtCtrl {
 	
 	void PrintLog(Vector<ProcMsg>& msgs);
 	void Print(EscEscape& e);
+	void PrintString(String s);
 	void Input(EscEscape& e);
 	
 public:
@@ -26,8 +29,11 @@ public:
 	void Data() override;
 	void DataProgramList();
 	void DataProgram();
+	void DataSession();
+	void DataIteration();
 	void DataStageList();
 	void DataStage();
+	void DataQuery();
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
 	void DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash);
@@ -43,6 +49,12 @@ public:
 	void RemoveProgram();
 	void RenameProgram();
 	void DuplicateProgram();
+	
+	void SessionMenu(Bar& b);
+	
+	void IterationMenu(Bar& b);
+	
+	void QueryMenu(Bar& b);
 	
 	void StageMenu(Bar& b);
 	void AddStage();

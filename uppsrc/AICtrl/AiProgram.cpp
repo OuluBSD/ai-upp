@@ -14,18 +14,37 @@ AiProgramCtrl::AiProgramCtrl() {
 	
 	btabs.Add(log.SizePos(), "Log");
 	
-	hsplit.Horz() << proglist << prog << stagelist << stage;
+	hsplit.Horz() << progsplit << prog << stagesplit << stage;
 	hsplit.SetPos(1000,0).SetPos(5000,1).SetPos(6000,2);
+	
+	progsplit.Vert() << proglist << sessionlist << iterlist;
 	
 	proglist.AddColumn("Program");
 	proglist.AddIndex("IDX");
 	proglist.WhenBar = THISBACK(ProgramMenu);
 	proglist.WhenCursor = THISBACK(DataProgram);
 	
+	sessionlist.AddColumn("Session");
+	sessionlist.AddIndex("IDX");
+	sessionlist.WhenBar = THISBACK(SessionMenu);
+	sessionlist.WhenCursor = THISBACK(DataSession);
+	
+	iterlist.AddColumn("Iteration");
+	iterlist.AddIndex("IDX");
+	iterlist.WhenBar = THISBACK(IterationMenu);
+	iterlist.WhenCursor = THISBACK(DataIteration);
+	
+	stagesplit.Vert() << stagelist << querylist;
+	
 	stagelist.AddColumn("Stage");
 	stagelist.AddIndex("IDX");
 	stagelist.WhenBar = THISBACK(StageMenu);
 	stagelist.WhenCursor = THISBACK(DataStage);
+	
+	querylist.AddColumn("Query");
+	querylist.AddIndex("IDX");
+	querylist.WhenBar = THISBACK(QueryMenu);
+	querylist.WhenCursor = THISBACK(DataQuery);
 	
 	prog.Highlight("cpp");
 	prog.LineNumbers(true);
@@ -83,6 +102,14 @@ void AiProgramCtrl::DataProgram() {
 	prog.SetData(n.value);
 }
 
+void AiProgramCtrl::DataSession() {
+	
+}
+
+void AiProgramCtrl::DataIteration() {
+	
+}
+
 void AiProgramCtrl::DataStageList() {
 	DataList(stagelist, stages, AsTypeHash<VfsFarStage>());
 }
@@ -98,6 +125,10 @@ void AiProgramCtrl::DataStage() {
 	stage.SetData(n.value);
 }
 
+void AiProgramCtrl::DataQuery() {
+	
+}
+
 void AiProgramCtrl::DataBottom() {
 	
 }
@@ -108,7 +139,10 @@ bool AiProgramCtrl::CompileStages(bool force) {
 	log.Clear();
 	
 	Agent* agent = ext->val.FindOwnerWith<Agent>();
-	ASSERT(agent);
+	if (!agent) {
+		PrintString("error: could not find Agent in MetaEnv");
+		return false;
+	}
 	
 	for(int i = 0; i < stages.GetCount(); i++) {
 		VfsValue& n = *stages[i];
@@ -133,7 +167,11 @@ bool AiProgramCtrl::Compile(bool force) {
 	log.Clear();
 	
 	Agent* agent = ext->val.FindOwnerWith<Agent>();
-	ASSERT(agent);
+	if (!agent) {
+		PrintString("error: could not find Agent in MetaEnv");
+		return false;
+	}
+	
 	succ = agent->Compile(esc, force, THISBACK(PrintLog));
 	
 	return true;
@@ -149,7 +187,10 @@ bool AiProgramCtrl::Run() {
 	log.Clear();
 	
 	agent = ext->val.FindOwnerWith<Agent>();
-	ASSERT(agent);
+	if (!agent) {
+		PrintString("error: could not find Agent in MetaEnv");
+		return false;
+	}
 	
 	agent->WhenPrint = THISBACK(Print);
 	agent->WhenInput = THISBACK(Input);
@@ -168,8 +209,10 @@ bool AiProgramCtrl::Run() {
 }
 
 void AiProgramCtrl::Print(EscEscape& e) {
-	String s = e[0];
-	
+	PrintString(e[0]);
+}
+
+void AiProgramCtrl::PrintString(String s) {
 	PostCallback([this,s]{
 		log.Append(s + "\n");
 		log.SetCursor(log.GetLength());
@@ -204,6 +247,18 @@ void AiProgramCtrl::ProgramMenu(Bar& b) {
 	b.Add("Remove program", THISBACK(RemoveProgram));
 	b.Add("Rename program", THISBACK(RenameProgram));
 	b.Add("Duplicate program", THISBACK(DuplicateProgram));
+}
+
+void AiProgramCtrl::SessionMenu(Bar& b) {
+	
+}
+
+void AiProgramCtrl::IterationMenu(Bar& b) {
+	
+}
+
+void AiProgramCtrl::QueryMenu(Bar& b) {
+	
 }
 
 void AiProgramCtrl::AddProgram() {

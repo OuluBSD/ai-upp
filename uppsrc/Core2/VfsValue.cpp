@@ -249,6 +249,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 		n0.Chk();
 		return true;
 	}
+	
+	#if 0
 	AstValue* p0 = n0;
 	const AstValue* p1 = n1;
 	ASSERT(p0 && p1); // unverified (part of cleanup)
@@ -256,7 +258,8 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 		return false;
 	AstValue& a0 = *p0;
 	const AstValue& a1 = *p1;
-
+	#endif
+	
 	ASSERT(n0.serial && n1.serial);
 	const VfsValue& pri = mode == MERGEMODE_OVERWRITE_OLD ? (n0.serial > n1.serial ? n0 : n1)
 	                                                      : (n0.serial < n1.serial ? n0 : n1);

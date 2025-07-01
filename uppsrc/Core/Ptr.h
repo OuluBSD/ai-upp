@@ -5,6 +5,7 @@ protected:
 	struct Prec {
 		PteBase *ptr;
 		Atomic   n;
+		bool     panic = false;
 	};
 
 	volatile Prec  *prec;
@@ -27,6 +28,7 @@ protected:
 
 public:
 	~PtrBase();
+	void PanicRelease(bool b=true);
 };
 
 template <class T>
@@ -67,6 +69,7 @@ public:
 
 	friend bool operator!=(const Ptr& a, T *b)         { return a.Get() != b; }
 	friend bool operator!=(T *a, const Ptr& b)         { return a != b.Get(); }
+	
 };
 
 template <class T>

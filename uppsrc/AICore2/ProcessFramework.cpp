@@ -353,6 +353,5 @@ VfsFarStage::VfsFarStage(VfsValue& n) : VfsValueExt(n) {
 	}
 }
 
-INITIALIZER_COMPONENT(VfsProgram, "vfs.program", "Vfs|Program")
 
 END_UPP_NAMESPACE

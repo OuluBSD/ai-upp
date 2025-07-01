@@ -76,7 +76,6 @@ struct Visitor {
 			dbg_i++;
 		}
 	}
-	template<> void VisitVectorSerialize(Array<VfsValue>& o);
 	
 	template<class T>
 	void VisitJsonItem(JsonIO& j, T& o) {
@@ -616,6 +615,8 @@ inline void VersionControlSystem::BeginMapKV(String key, T& o) {
 		}
 	}
 }
+
+template<> void Visitor::VisitVectorSerialize(Array<VfsValue>& o);
 
 using Vis = Visitor;
 

@@ -145,7 +145,7 @@ public:
 class PlaygroundCtrl : public Ctrl {
 	TabCtrl tabs;
 	CompletionCtrl completion;
-	AiProgramCtrl stage;
+	VfsProgramCtrl stage;
 	AiChainCtrl chain;
 	TextToSpeechCtrl tts;
 	AssistantCtrl ass;

@@ -137,9 +137,9 @@ void AiThreadCtrlBase::SetNode(VfsValue& n) {
 }
 
 #if 0
-AiProgram& AiThreadExt::GetAiProgram() {
+VfsProgram& AiThreadExt::GetVfsProgram() {
 	auto& o = GetValue();
-	return o.GetExt<AiProgram>();
+	return o.GetExt<VfsProgram>();
 }
 
 ChainThread& AiThreadExt::GetChainThread() {

@@ -87,7 +87,7 @@ bool IsFunction(int kind)
 
 bool IsVariable(int kind)
 {
-	return findarg(kind, CXCursor_VarDecl, CXCursor_FieldDecl) >= 0;
+	return findarg(kind, CXCursor_VarDecl, CXCursor_FieldDecl, CXCursor_ParmDecl) >= 0;
 }
 
 bool IsDecl(int kind) {

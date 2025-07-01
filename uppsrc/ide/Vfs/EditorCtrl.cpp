@@ -34,6 +34,9 @@ EntityEditorCtrl::EntityEditorCtrl() {
 			else if (VfsValueExtFactory::FindComponent(n.type_hash) >= 0) {
 				b.Add("Remove Component", THISBACK1(RemoveValue, &n));
 			}
+			else {
+				b.Add("Remove", THISBACK1(RemoveValue, &n));
+			}
 			b.Add("Move", THISBACK1(Move, &n));
 		}
 	};
@@ -154,6 +157,9 @@ void EntityEditorCtrl::DataEcsTree() {
 		if (fac.new_ctrl_fn) {
 			VfsValueExtCtrl* ctrl = fac.new_ctrl_fn();
 			ctrl->ext = &ext;
+			ASSERT(ctrl->ext);
+			//ctrl->ext.PanicRelease();
+			
 			SetExtensionCtrl(type_hash, ctrl);
 			
 			if (fac.type_hash == AsTypeHash<Entity>()) {

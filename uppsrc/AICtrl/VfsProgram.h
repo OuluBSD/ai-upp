@@ -1,19 +1,23 @@
-#ifndef _AICtrl_AiProgram_h_
-#define _AICtrl_AiProgram_h_
+#ifndef _AICtrl_VfsProgram_h_
+#define _AICtrl_VfsProgram_h_
 
 NAMESPACE_UPP
 
-struct AiProgramCtrl : VfsValueExtCtrl {
+struct VfsProgramCtrl : VfsValueExtCtrl {
 	Splitter vsplit, hsplit;
-	ArrayCtrl proglist, stagelist;
+	ArrayCtrl prjlist, stagelist;
 	ArrayCtrl sessionlist, iterlist, querylist;
-	Splitter progsplit, stagesplit;
-	CodeEditor prog, stage;
-	TabCtrl btabs;
+	Splitter prjsplit, stagesplit;
+	Splitter stagectrl, memoryctrl;
+	CodeEditor prj, stage;
+	TabCtrl btabs, rtabs;
 	DocEdit log;
 	Ptr<Agent> agent;
+	TreeCtrl memtree;
 	
-	Vector<VfsValue*> programs, stages;
+	Vector<VfsValue*> projects, sessions, iterations, stages;
+	Ptr<VfsValue> cur_project, cur_session, cur_iter;
+	
 	/*VectorMap<int,VfsValue*> structure_nodes;
 	VectorMap<int,String> structure_values;*/
 	
@@ -23,12 +27,12 @@ struct AiProgramCtrl : VfsValueExtCtrl {
 	void Input(EscEscape& e);
 	
 public:
-	typedef AiProgramCtrl CLASSNAME;
-	AiProgramCtrl();
+	typedef VfsProgramCtrl CLASSNAME;
+	VfsProgramCtrl();
 	
 	void Data() override;
-	void DataProgramList();
-	void DataProgram();
+	void DataProjectList();
+	void DataProject();
 	void DataSession();
 	void DataIteration();
 	void DataStageList();
@@ -36,7 +40,7 @@ public:
 	void DataQuery();
 	void DataBottom();
 	void ToolMenu(Bar& bar) override;
-	void DataList(ArrayCtrl& list, Vector<VfsValue*>& nodes, hash_t type_hash);
+	void DataList(ArrayCtrl& list, VfsValue& parent, Vector<VfsValue*>& nodes, hash_t type_hash, Event<> WhenData);
 	bool CompileStages(bool force);
 	bool Compile(bool force);
 	bool Run();
@@ -44,15 +48,20 @@ public:
 	VfsValue* GetProgram();
 	VfsValue* GetStage();
 	
-	void ProgramMenu(Bar& b);
-	void AddProgram();
-	void RemoveProgram();
-	void RenameProgram();
-	void DuplicateProgram();
+	void ProjectMenu(Bar& b);
+	void AddProject();
+	void RemoveProject();
+	void RenameProject();
+	void DuplicateProject();
 	
 	void SessionMenu(Bar& b);
+	void AddSession();
+	void RemoveSession();
+	void RenameSession();
+	void DuplicateSession();
 	
 	void IterationMenu(Bar& b);
+	void RenameIteration();
 	
 	void QueryMenu(Bar& b);
 	
@@ -64,7 +73,7 @@ public:
 	
 };
 
-INITIALIZE(AiProgramCtrl)
+INITIALIZE(VfsProgramCtrl)
 
 END_UPP_NAMESPACE
 

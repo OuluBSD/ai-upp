@@ -23,6 +23,8 @@ void PteBase::PtrRelease(Prec *prec)
 	if(prec && --prec->n == 0) {
 		if(prec->ptr)
 			prec->ptr->prec = NULL;
+		if (prec->panic)
+			Panic("Ptr release");
 		tiny_delete(prec);
 	}
 }
@@ -58,6 +60,11 @@ void PtrBase::Assign(PteBase *p)
 PtrBase::~PtrBase()
 {
 	Release();
+}
+
+void PtrBase::PanicRelease(bool b) {
+	if (prec)
+		prec->panic = b;
 }
 
 }

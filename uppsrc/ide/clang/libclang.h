@@ -2008,6 +2008,7 @@ CXPrintingPolicy clang_getCursorPrintingPolicy(CXCursor);
 void clang_PrintingPolicy_dispose(CXPrintingPolicy Policy);
 unsigned clang_getNumCompletionChunks(CXCompletionString completion_string);
 void clang_disposeTranslationUnit(CXTranslationUnit);
+unsigned clang_hashCursor(CXCursor);
 
 CXType clang_getTypedefDeclUnderlyingType(CXCursor C);
 CXCursor clang_getTypeDeclaration(CXType T);

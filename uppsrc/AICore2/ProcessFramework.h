@@ -41,7 +41,46 @@ struct VfsFarStage : VfsValueExt {
 	void Visit(Vis& v) override {}
 };
 
-COMPONENT_STUB_HEADER(VfsProgram)
+
+struct VfsProgramIteration : VfsValueExt {
+	String name, code, global, vfsvalue;
+	
+	DEFAULT_EXT(VfsProgramIteration)
+	void Visit(Vis& v) override;
+};
+
+INITIALIZE(VfsProgramIteration);
+
+struct VfsProgramSession : VfsValueExt {
+	String name;
+	
+	DEFAULT_EXT(VfsProgramSession)
+	void Visit(Vis& v) override;
+};
+
+INITIALIZE(VfsProgramSession);
+
+struct VfsProgramProject : VfsValueExt {
+	String name;
+	
+	DEFAULT_EXT(VfsProgramProject)
+	void Visit(Vis& v) override;
+};
+
+INITIALIZE(VfsProgramProject);
+
+struct VfsProgram : Component {
+	bool running = false;
+public:
+	CLASSTYPE(VfsProgram)
+	VfsProgram(VfsValue& n);
+	void Visit(Vis& v) override;
+	bool Initialize(const WorldState& ws) override;
+	void Uninitialize() override;
+	void Update(double dt) override;
+};
+
+INITIALIZE(VfsProgram);
 
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor

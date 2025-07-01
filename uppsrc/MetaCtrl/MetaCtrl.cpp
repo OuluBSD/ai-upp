@@ -7,6 +7,10 @@
 NAMESPACE_UPP
 
 
+VfsValueExtCtrl::VfsValueExtCtrl() {
+	
+}
+
 VfsValueExt& VfsValueExtCtrl::GetExt() {return *ext;}
 VfsValue& VfsValueExtCtrl::GetValue() {ASSERT(ext); return ext->val;}
 const VfsValue& VfsValueExtCtrl::GetValue() const {return ext->val;}

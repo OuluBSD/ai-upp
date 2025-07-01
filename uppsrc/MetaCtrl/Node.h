@@ -24,6 +24,7 @@ struct VfsValueExtCtrl : WidgetCtrl {
 	Event<> WhenTitle;
 	Ptr<ToolAppCtrl> owner;
 	
+	VfsValueExtCtrl();
 	VfsValue& GetValue();
 	const VfsValue& GetValue() const;
 	VfsValueExt& GetExt();

@@ -21,4 +21,11 @@ void DatasetPtrs::Clear() {
 	editable_biography = 0;
 }
 
+#define DATASET_ITEM(type, name, desc) \
+template <> void DatasetPtrs::Set<type>(type& o) {name = &o;}
+BASE_EXT_LIST
+COMPONENT_LIST
+VIRTUALNODE_DATASET_LIST
+#undef DATASET_ITEM
+
 END_UPP_NAMESPACE

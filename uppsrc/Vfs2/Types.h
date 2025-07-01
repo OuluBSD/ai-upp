@@ -5,6 +5,7 @@
 EXT_LIST
 #undef DATASET_ITEM
 struct SrcTextData;
+class Entity;
 
 // Deprecated
 // DatasetPtrs is used only classes with "public SolverBase"
@@ -12,15 +13,10 @@ struct SrcTextData;
 struct DatasetPtrs {
 	template <class T> void Set(T& o) {}
 	
-	#define DATASET_ITEM(type, name, desc) \
-	type* name = 0; \
-	template <> void Set<type>(type& o) {name = &o;}
+	#define DATASET_ITEM(type, name, desc) type* name = 0;
 	BASE_EXT_LIST
 	COMPONENT_LIST
 	VIRTUALNODE_DATASET_LIST
-	#undef DATASET_ITEM
-	
-	#define DATASET_ITEM(type, name, desc) type* name = 0;
 	NODE_LIST
 	#undef DATASET_ITEM
 	
@@ -36,6 +32,12 @@ struct DatasetPtrs {
 	template <class T, class _> struct Getter {static T& Get(DatasetPtrs& d);};
 	template <class T> T& Get() {return Getter<T,int>::Get(*this);}
 };
+
+#define DATASET_ITEM(type, name, desc) template <> void DatasetPtrs::Set<type>(type& o);
+BASE_EXT_LIST
+COMPONENT_LIST
+VIRTUALNODE_DATASET_LIST
+#undef DATASET_ITEM
 
 #define DATASET_ITEM(type, name, desc) \
 template <> inline void VfsValueExtFactory::SetDatasetData<type>(DatasetPtrs& p, VfsValueExt& ext) { \

@@ -35,7 +35,7 @@ END_UPP_NAMESPACE
 #include "OmniCtrl.h"
 #include "ImgGen.h"
 #include "ImgAspectFixer.h"
-#include "AiProgram.h"
+#include "VfsProgram.h"
 #include "Playground.h"
 
 

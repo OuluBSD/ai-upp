@@ -58,7 +58,6 @@ NAMESPACE_UPP
 #include "SourceText.h"
 #include "AiCompletion.h"
 #include "AiChat.h"
-#include "AiProgram.h"
 
 // Private
 #include "Owner.h"

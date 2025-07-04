@@ -24,7 +24,7 @@ struct GeomProjectCtrl : Ctrl {
 	Splitter metasplit, hsplit, vsplit;
 	TreeCtrl tree;
 	ArrayCtrl props;
-	GridCtrl grid;
+	FixedGridCtrl grid;
 	TimelineCtrl time;
 	EditRenderer rends[4];
 	

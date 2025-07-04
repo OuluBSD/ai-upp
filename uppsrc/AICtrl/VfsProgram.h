@@ -3,7 +3,6 @@
 
 NAMESPACE_UPP
 
-COMPONENT_STUB_HEADER(VfsFormCtrl)
 
 class VfsProgramCtrl : public ValueVFSComponentCtrl {
 	
@@ -65,6 +64,7 @@ class VfsProgramCtrl : public ValueVFSComponentCtrl {
 	};
 	
 	struct FormTab : VNodeComponentCtrl {
+		Label l;
 		VfsProgramCtrl& o;
 		typedef FormTab CLASSNAME;
 		FormTab(VfsProgramCtrl&, const VirtualNode& vnode);

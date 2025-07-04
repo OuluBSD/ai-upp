@@ -35,10 +35,11 @@ struct FarStage : Pte<FarStage> {
 };
 
 struct VfsFarStage : VfsValueExt {
+	String code;
 	
 	CLASSTYPE(VfsFarStage)
 	VfsFarStage(VfsValue& n);
-	void Visit(Vis& v) override {}
+	void Visit(Vis& v) override;
 };
 
 
@@ -60,6 +61,7 @@ struct VfsProgramSession : VfsValueExt {
 INITIALIZE(VfsProgramSession);
 
 struct VfsProgramProject : VfsValueExt {
+	String code;
 	
 	DEFAULT_EXT(VfsProgramProject)
 	void Visit(Vis& v) override;
@@ -77,10 +79,13 @@ public:
 	bool Initialize(const WorldState& ws) override;
 	void Uninitialize() override;
 	void Update(double dt) override;
+	
+	Event<> WhenDataTree;
 };
 
 INITIALIZE(VfsProgram);
 
+COMPONENT_STUB_HEADER(VfsFormCtrl)
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
 //       what that was:    complicated initializer for AI calls with json templates
@@ -121,11 +126,14 @@ private:
 	bool CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage=MsgCb());
 	void RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash);
 	
+	void CreateForm(EscEscape& e);
+	
 	EscSession esc;
 	MsgCb WhenMessage;
 	Event<bool> WhenStop;
 	bool separate_thread = false;
 	EnginePtr eng;
+	Ptr<VfsProgramIteration> iter;
 	
 public:
 	CLASSTYPE(Agent)
@@ -136,7 +144,7 @@ public:
 	void Update(double dt) override;
 	bool RealizeLibrary(Vector<ProcMsg>& msgs);
 	bool CompileStage(VfsValue& stage, bool force, MsgCb WhenMessage=MsgCb());
-	bool Compile(String esc, bool force, MsgCb WhenMessage=MsgCb());
+	bool Compile(String esc, bool force, MsgCb WhenMessage=MsgCb(), Ptr<VfsProgramIteration> iter=0);
 	bool Run(bool update, MsgCb WhenMessage=MsgCb());
 	bool Start() override;
 	bool Start(bool update);

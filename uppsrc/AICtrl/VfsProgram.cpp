@@ -5,7 +5,6 @@ NAMESPACE_UPP
 
 
 INITIALIZER_COMPONENT_CTRL(VfsProgram, VfsProgramCtrl)
-INITIALIZER_COMPONENT(VfsFormCtrl, "", "")
 
 
 VfsProgramCtrl::VfsProgramCtrl() {
@@ -69,7 +68,8 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 		if (!prjlist.IsCursor()) return;
 		int idx = prjlist.Get("IDX");
 		VfsValue& n = *this->o.projects[idx];
-		n.value = prj_code.GetData();
+		VfsProgramProject& prj = n.GetExt<VfsProgramProject>();
+		prj.code = prj_code.GetData();
 	};
 	
 	iter_code.Highlight("cpp");
@@ -81,12 +81,14 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 		if (!stagelist.IsCursor()) return;
 		int idx = stagelist.Get("IDX");
 		VfsValue& n = *this->o.stages[idx];
-		n.value = stage.GetData();
+		VfsFarStage& s = n.GetExt<VfsFarStage>();
+		s.code = stage.GetData();
 	};
 }
 
 void VfsProgramCtrl::MainTab::Data() {
-	if (!o.ext) return;
+	if (!o.ext)
+		return;
 	DataProjectList();
 	DataStageList();
 	DataBottom();
@@ -126,11 +128,9 @@ void VfsProgramCtrl::MainTab::DataProject() {
 	int idx = prjlist.Get("IDX");
 	VfsValue& n = *o.projects[idx];
 	o.cur_project = &n;
+	VfsProgramProject& prj = n.GetExt<VfsProgramProject>();
 	
-	if (n.value.Is<String>())
-		prj_code.SetData(n.value);
-	else
-		prj_code.SetData(n.value.ToString());
+	prj_code.SetData(prj.code);
 	
 	DataList(false, false, sessionlist, n, o.sessions, AsTypeHash<VfsProgramSession>(), THISBACK1(DataSession, false));
 }
@@ -236,11 +236,8 @@ void VfsProgramCtrl::MainTab::DataStage() {
 	int idx = stagelist.Get("IDX");
 	VfsValue& n = *o.stages[idx];
 	o.cur_stage = &n;
-	const AstValue* a = n;
-	if (a) {
-		n.value = String();
-	}
-	stage.SetData(n.value);
+	VfsFarStage& s = n.GetExt<VfsFarStage>();
+	stage.SetData(s.code);
 }
 
 void VfsProgramCtrl::MainTab::DataQuery() {
@@ -263,7 +260,8 @@ bool VfsProgramCtrl::CompileStages(bool force) {
 	for(int i = 0; i < stages.GetCount(); i++) {
 		VfsValue& n = *stages[i];
 		
-		String esc = n.value;
+		VfsFarStage& s = n.GetExt<VfsFarStage>();
+		String esc = s.code;
 		if (esc.IsEmpty()) continue;
 		
 		succ = agent->CompileStage(n, force, THISBACK(PrintLog));
@@ -282,7 +280,8 @@ bool VfsProgramCtrl::Compile(bool force) {
 	VfsValue& n = *cur_project;
 	bool succ = false;
 	
-	String esc = n.value;
+	VfsProgramProject& prj = n.GetExt<VfsProgramProject>();
+	String esc = prj.code;
 	if (esc.IsEmpty()) return false;
 	if (!ext) return false;
 	
@@ -295,7 +294,7 @@ bool VfsProgramCtrl::Compile(bool force) {
 	ASSERT(this_iter);
 	this_iter->code = esc;
 	
-	succ = agent->Compile(esc, force, THISBACK(PrintLog));
+	succ = agent->Compile(esc, force, THISBACK(PrintLog), this_iter);
 	
 	return true;
 }
@@ -310,6 +309,14 @@ bool VfsProgramCtrl::Run(bool update) {
 	if (agent) {
 		agent->Stop();
 	}
+	
+	VfsProgram& prog = GetExt<VfsProgram>();
+	prog.WhenDataTree = Proxy(WhenEditorChange); /*[this]{
+		WhenEditorChange();
+		//EntityEditorCtrl* eec = ext->val.FindOwner<EntityEditorCtrl>();
+		//if (eec)
+		//	this->DataExtCtrl();
+	};*/
 	
 	this_iter = &cur_session->Add<VfsProgramIteration>("");
 	
@@ -426,7 +433,8 @@ VirtualNode VfsProgramCtrl::Root() {
 			LOG("ValueVFSComponentCtrl::Root: warning: resetting AstValue to Value");
 			val.value = Value();
 		}
-		auto& data = root.Create(root_path, &val);
+		auto& data = root.CreateValue(root_path, &val.value, Value());
+		root.SetType(AsTypeHash<VfsProgram>());
 		data.vfs_value = &val;
 	}
 	return root;
@@ -491,6 +499,19 @@ void VfsProgramCtrl::ToolMenu(Bar& b) {
 	b.Add("Compile Program", [this]{Compile(true);}).Key(K_F7);
 	b.Add("Run", [this]{Run(false);}).Key(K_F5);
 	b.Add("Run Update Iteration", [this]{Run(true);}).Key(K_F6);
+	b.Separator();
+	b.Add("Open Form Editor", [this]{
+		FormEdit().RunAppModal();
+	}).Key(K_F9);
+	#ifdef flagDEBUG
+	#if 0
+	b.Separator();
+	b.Add("Panic ptr release", [this] {
+		if (iterations.GetCount())
+			ext.PanicRelease();
+	});
+	#endif
+	#endif
 }
 
 void VfsProgramCtrl::MainTab::ProjectMenu(Bar& b) {
@@ -727,7 +748,8 @@ void VfsProgramCtrl::MainTab::EditPos(JsonIO& json) {
 
 
 VfsProgramCtrl::FormTab::FormTab(VfsProgramCtrl& o, const VirtualNode& vnode) : o(o), VNodeComponentCtrl(o, vnode) {
-	
+	Add(l.LeftPos(10,100).TopPos(10,30));
+	l.SetLabel("LABEL !!!!!!!!!!!!!");
 }
 
 void VfsProgramCtrl::FormTab::Data() {

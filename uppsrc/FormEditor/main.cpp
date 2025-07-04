@@ -1,7 +1,8 @@
 #include "FormEdit.hpp"
 
+#ifdef flagMAIN
 GUI_APP_MAIN
 {
-//	::SetLanguage(::LNGFromText("RU-RU"));
 	FormEdit().Run();
 }
+#endif

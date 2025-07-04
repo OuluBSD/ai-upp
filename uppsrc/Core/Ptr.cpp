@@ -20,11 +20,11 @@ PteBase::Prec *PteBase::PtrAdd()
 void PteBase::PtrRelease(Prec *prec)
 {
 	Mutex::Lock __(sPteLock);
+	if (prec && prec->panic)
+		Panic("Ptr release");
 	if(prec && --prec->n == 0) {
 		if(prec->ptr)
 			prec->ptr->prec = NULL;
-		if (prec->panic)
-			Panic("Ptr release");
 		tiny_delete(prec);
 	}
 }
@@ -37,8 +37,11 @@ PteBase::PteBase()
 PteBase::~PteBase()
 {
 	Mutex::Lock __(sPteLock);
-	if(prec)
+	if(prec) {
 		prec->ptr = NULL;
+		if (prec->panic)
+			Panic("Ptr end");
+	}
 }
 
 void PtrBase::Release()

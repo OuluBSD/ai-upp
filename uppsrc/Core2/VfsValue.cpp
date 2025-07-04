@@ -1254,8 +1254,13 @@ void VfsValue::CopyFieldsFrom(const VfsValue& n, bool forced_downgrade)
 		value = n.value;
 	
 	if (n.ext) {
-		ext = VfsValueExtFactory::Clone(*n.ext, *this);
-		type_hash = ext->GetTypeHash();
+		if (ext && ext->GetTypeHash() == n.ext->GetTypeHash()) {
+			ext->CopyFrom(*n.ext);
+		}
+		else {
+			ext = VfsValueExtFactory::Clone(*n.ext, *this);
+			type_hash = ext->GetTypeHash();
+		}
 	}
 	else
 		ext.Clear();
@@ -1738,6 +1743,24 @@ VfsValue& VfsValue::operator[](int i) {
 		return *l;
 	}
 	return n;
+}
+
+VirtualNode VfsValue::RootPolyValue() {
+	VirtualNode root;
+	VfsPath root_path; // empty
+	if (value.Is<AstValue>()) {
+		LOG("VfsValue::RootPolyValue: warning: resetting AstValue to Value");
+		value = Value();
+	}
+	auto& data = root.CreateValue(root_path, &value, Value());
+	return root;
+}
+
+VirtualNode VfsValue::RootVfsValue(const VfsPath& root_path) {
+	VirtualNode root;
+	auto& data = root.Create(root_path, this);
+	data.vfs_value = this;
+	return root;
 }
 
 VfsValue::operator AstValue& () {

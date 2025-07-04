@@ -7,6 +7,7 @@
 	#include <SoundCtrl/SoundCtrl.h>
 #endif
 #include <MetaCtrl/MetaCtrl.h>
+#include <FormEditor/FormEdit.hpp>
 
 #ifndef flagGUI
 #error GUI flag is required

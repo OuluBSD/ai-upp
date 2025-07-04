@@ -26,6 +26,7 @@ bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {
 	if (global.IsEmpty()) {
 		Escape(global, "Print(x)", Proxy(WhenPrint));
 		Escape(global, "Input()", Proxy(WhenInput));
+		Escape(global, "CreateForm(path)", THISBACK(CreateForm));
 		StdLib(global);
 	}
 	for(const FarStage& fs : stages) {
@@ -168,8 +169,10 @@ bool Agent::CompileStage(VfsValue& stage, bool force, MsgCb WhenMessage) {
 	return succ;
 }
 
-bool Agent::Compile(String esc, bool force, MsgCb WhenMessage) {
+bool Agent::Compile(String esc, bool force, MsgCb WhenMessage, Ptr<VfsProgramIteration> iter) {
 	TimeStop ts;
+	
+	this->iter = iter;
 	
 	hash_t h = esc.GetHashValue();
 	if (!force && compiled_hash && compiled_hash == h)
@@ -292,6 +295,34 @@ void Agent::Update(double dt) {
 	}
 }
 
+void Agent::CreateForm(EscEscape& e) {
+	VfsPath path;
+	path.SetPosixPath(e[0]);
+	if (path.IsEmpty())
+		e.ThrowError("empty vfs path argument");
+	
+	if (!iter)
+		e.ThrowError("no VfsProgramIteration set");
+	
+	auto prog = iter->val.FindOwner<VfsProgram>();
+	if (!prog)
+		e.ThrowError("cannot find VfsProgram");
+	
+	VirtualNode root = prog->val.RootPolyValue();
+	VirtualNode cur = root;
+	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
+		const auto& part = path.Parts()[i];
+		cur = cur.GetAdd(part, 0);
+	}
+	hash_t type_hash = AsTypeHash<VfsFormCtrl>();
+	cur = cur.GetAdd(path.Parts().Top(), type_hash);
+	ASSERT(cur.IsValue());
+	
+	e.ret_val = e[0];
+	
+	PostCallback([prog]{prog->WhenDataTree();});
+}
+
 
 
 #if 0
@@ -357,6 +388,12 @@ VfsFarStage::VfsFarStage(VfsValue& n) : VfsValueExt(n) {
 	if (a) {
 		n.value = String(); // the code text is here
 	}
+}
+
+void VfsFarStage::Visit(Vis& v) {
+	v.Ver(1)
+	(1)	VIS_(code)
+		;
 }
 
 

@@ -5,20 +5,32 @@ NAMESPACE_UPP
 
 void VfsProgramIteration::Visit(Vis& v) {
 	v.Ver(1)
-	(1) VIS_(name)
-		VIS_(code)
+	(1) VIS_(code)
 		VIS_(global)
-		VIS_(vfsvalue);
+		VIS_(vfsvalue)
+		VIS_(log)
+		;
 }
 
 void VfsProgramSession::Visit(Vis& v) {
-	v.Ver(1)
-	(1) VIS_(name);
+	
 }
 
 void VfsProgramProject::Visit(Vis& v) {
-	v.Ver(1)
-	(1) VIS_(name);
+	
+}
+
+bool VfsProgramProject::GetAll(Vector<VirtualNode>& v) {
+	VfsValue& n = val;
+	v.Reserve(n.sub.GetCount());
+	for(int i = 0; i < n.sub.GetCount(); i++) {
+		auto& sub = n.sub[i];
+		if (sub.id.IsEmpty())
+			v.Add().Create(/*data->path +*/VfsPath() + (i), &sub);
+		else
+			v.Add().Create(/*data->path +*/VfsPath() + (Value)sub.id, &sub);
+	}
+	return true;
 }
 
 

@@ -61,6 +61,8 @@ file
 	Visitor.cpp,
 	WorldState.h,
 	WorldState.cpp,
+	VirtualNode.h,
+	VirtualNode.cpp,
 	VfsValue.h,
 	VfsValue.cpp,
 	VfsEnum.h,

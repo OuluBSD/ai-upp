@@ -230,12 +230,13 @@ bool Agent::CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage) {
 	return succ;
 }
 
-bool Agent::Run(MsgCb WhenMessage) {
+bool Agent::Run(bool update, MsgCb WhenMessage) {
 	bool succ = true;
 	
 	Vector<ProcMsg> msgs;
-	succ = Catch([this, &msgs]{
-		esc.Execute(global, "main", oplimit, [&msgs](ProcMsg& m) {msgs.Add(m);});
+	succ = Catch([this, update, &msgs]{
+		String fn = update ? "update" : "main";
+		esc.Execute(global, fn, oplimit, [&msgs](ProcMsg& m) {msgs.Add(m);});
 	}, msgs);
 	
 	if (msgs.GetCount())
@@ -249,22 +250,27 @@ void Agent::Set(MsgCb WhenMessage, Event<bool> WhenStop) {
 	this->WhenStop = WhenStop;
 }
 
-bool Agent::Start(MsgCb WhenMessage, Event<bool> WhenStop) {
-	Set(WhenMessage, WhenStop);
-	return Start();
+bool Agent::Start() {
+	return Start(false);
 }
 
-bool Agent::Start() {
+bool Agent::Start(bool update, MsgCb WhenMessage, Event<bool> WhenStop) {
+	Set(WhenMessage, WhenStop);
+	return Start(update);
+}
+
+bool Agent::Start(bool update) {
 	if (separate_thread) {
 		esc.Stop();
-		Thread::Start([this]{
-			bool succ = Run(WhenMessage);
+		Thread::Start([this, update]{
+			bool succ = Run(update, WhenMessage);
 			WhenStop(succ);
 		});
 	}
 	else {
 		GetEngine().AddUpdated(this);
 		run = true;
+		run_update = update;
 	}
 	return true;
 }
@@ -281,7 +287,7 @@ void Agent::Stop() {
 void Agent::Update(double dt) {
 	if (run) {
 		run = false;
-		bool succ = Run(WhenMessage);
+		bool succ = Run(run_update, WhenMessage);
 		WhenStop(succ);
 	}
 }

@@ -62,6 +62,7 @@ public:
 	EscValue(int n)                              { i64 = n; type = ESC_INT64; }
 
 	bool                    IsArray() const      { return type == ESC_ARRAY; }
+	bool                    IsStringLike() const ;
 	const Vector<EscValue>& GetArray() const;
 	EscValue                ArrayGet(int i) const;
 	EscValue                ArrayGet(int i, int n) const;

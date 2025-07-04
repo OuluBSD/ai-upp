@@ -19,6 +19,7 @@ NAMESPACE_UPP
 #include "LinkType.h"
 #include "WorldState.h"
 #include "Util.h"
+#include "VirtualNode.h"
 #include "VfsValue.h"
 #include "VfsEnum.h"
 #include "RTuple.h"

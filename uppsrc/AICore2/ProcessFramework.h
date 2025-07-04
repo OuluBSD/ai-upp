@@ -43,7 +43,7 @@ struct VfsFarStage : VfsValueExt {
 
 
 struct VfsProgramIteration : VfsValueExt {
-	String name, code, global, vfsvalue;
+	String code, global, vfsvalue, log;
 	
 	DEFAULT_EXT(VfsProgramIteration)
 	void Visit(Vis& v) override;
@@ -52,7 +52,6 @@ struct VfsProgramIteration : VfsValueExt {
 INITIALIZE(VfsProgramIteration);
 
 struct VfsProgramSession : VfsValueExt {
-	String name;
 	
 	DEFAULT_EXT(VfsProgramSession)
 	void Visit(Vis& v) override;
@@ -61,10 +60,10 @@ struct VfsProgramSession : VfsValueExt {
 INITIALIZE(VfsProgramSession);
 
 struct VfsProgramProject : VfsValueExt {
-	String name;
 	
 	DEFAULT_EXT(VfsProgramProject)
 	void Visit(Vis& v) override;
+	bool GetAll(Vector<VirtualNode>& v) override;
 };
 
 INITIALIZE(VfsProgramProject);
@@ -114,6 +113,7 @@ private:
 	int oplimit = 50000;
 	hash_t compiled_hash = 0;
 	bool run = false;
+	bool run_update = false;
 	
 	using MsgCb = Event<Vector<ProcMsg>&>;
 	
@@ -137,14 +137,18 @@ public:
 	bool RealizeLibrary(Vector<ProcMsg>& msgs);
 	bool CompileStage(VfsValue& stage, bool force, MsgCb WhenMessage=MsgCb());
 	bool Compile(String esc, bool force, MsgCb WhenMessage=MsgCb());
-	bool Run(MsgCb WhenMessage=MsgCb());
+	bool Run(bool update, MsgCb WhenMessage=MsgCb());
 	bool Start() override;
-	bool Start(MsgCb WhenMessage, Event<bool> WhenStop=Event<bool>());
+	bool Start(bool update);
+	bool Start(bool update, MsgCb WhenMessage, Event<bool> WhenStop=Event<bool>());
 	void Set(MsgCb WhenMessage, Event<bool> WhenStop);
 	void Stop() override;
 	
 	void SetOpLimit(int i) {oplimit = i;}
 	void SetSeparateThread(bool b=true) {separate_thread = b;}
+	
+	const ArrayMap<String, EscValue>& GetGlobal() const {return global;}
+	ArrayMap<String, EscValue>& GetGlobalRW() {return global;}
 	
 	Event<EscEscape&> WhenPrint;
 	Event<EscEscape&> WhenInput;

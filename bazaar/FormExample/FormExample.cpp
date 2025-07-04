@@ -5,8 +5,11 @@ using namespace Upp;
 
 GUI_APP_MAIN
 {
+	String file = ConfigFile("HelloWorld.form");
+	if (CommandLine().GetCount())
+		file = CommandLine()[0];
 	Form form;
-	form.Load(ConfigFile("HelloWorld.form"));
+	form.Load(file); // see Form/Examples directory
 	form.Layout("Default");
 	form.Run();
 }

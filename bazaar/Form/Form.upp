@@ -3,16 +3,16 @@ uses
 	GridCtrl;
 
 file
-	XMLConfig.cpp,
 	XMLConfig.h,
-	IniConfig.cpp,
+	XMLConfig.cpp,
 	IniConfig.hpp,
-	Form.cpp,
+	IniConfig.cpp,
 	Form.hpp,
-	FormLayout.cpp,
+	Form.cpp,
 	FormLayout.hpp,
-	FormObject.cpp,
+	FormLayout.cpp,
 	FormObject.hpp,
+	FormObject.cpp,
 	Container.hpp,
 	Macro.hpp;
 

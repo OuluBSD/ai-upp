@@ -350,6 +350,19 @@ int EscValue::GetInt() const
 	return IsInt() ? (int)GetInt64() : 0;
 }
 
+bool EscValue::IsStringLike() const
+{
+	if (type != ESC_ARRAY)
+		return false;
+	const Vector<EscValue>& a = GetArray();
+	if (a.IsEmpty())
+		return false;
+	for(const auto& v : a)
+		if(!v.IsInt())
+			return false;
+	return true;
+}
+
 bool IsTrue(const EscValue& a)
 {
 	if(a.IsNumber())

@@ -1521,6 +1521,16 @@ Vector<VfsValue*> VfsValue::FindTypeAllShallow(hash_t type_hash)
 	return vec;
 }
 
+Vector<Ptr<VfsValue>> VfsValue::FindTypeAllShallowPtr(hash_t type_hash)
+{
+	Vector<Ptr<VfsValue>> vec;
+	for(auto& s : sub) {
+		if (s.type_hash == type_hash)
+			vec << &s;
+	}
+	return vec;
+}
+
 Vector<VfsValue*> VfsValue::FindAllShallow(hash_t type_hash)
 {
 	Vector<VfsValue*> vec;
@@ -2012,6 +2022,9 @@ String VfsValueExt::GetTreeString(int indent) const {
 	s += val.id;
 	s += ": " + ToString();
 	return s;
+}
+bool VfsValueExt::GetAll(Vector<VirtualNode>&) {
+	return false;
 }
 void VfsValueExt::CopyFrom(const VfsValueExt& e) {
 	StringStream s;

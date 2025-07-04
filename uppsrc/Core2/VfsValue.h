@@ -68,6 +68,7 @@ struct VfsValueExt : Pte<VfsValueExt> {
 	virtual void			ClearDependencies();
 	virtual void			RemoveDependency(const VfsValueExt* e);
 	virtual String			GetTreeString(int indent=0) const;
+	virtual bool			GetAll(Vector<VirtualNode>&);
 	hash_t					GetHashValue() const;
 	int						AstGetKind() const;
 	bool					IsInitialized() const;
@@ -265,6 +266,7 @@ struct VfsValueExtFactory {
 	}
 	
 	template <class Comp, class Ctrl> static void RegisterCtrl(String ctrl_name) {
+		TypedStringHasher<Ctrl>(ctrl_name); // realize ctrl hash
 		Factory& f = GetFactory<Comp>();
 		ASSERT_(!f.new_ctrl_fn, "Only one Ctrl per Extension is supported currently, and one is already registered");
 		f.new_ctrl_fn = &CtrlFunctions<Ctrl>::CreateCtrl;
@@ -406,6 +408,7 @@ struct VfsValue : Pte<VfsValue> {
 	void SetTempDeep();
 	Vector<VfsValue*> FindAll(TypeCls type);
 	Vector<VfsValue*> FindTypeAllShallow(hash_t type_hash);
+	Vector<Ptr<VfsValue>> FindTypeAllShallowPtr(hash_t type_hash);
 	VfsValue* FindDeep(TypeCls type);
 	bool IsFieldsSame(const VfsValue& n) const;
 	String GetBasesString() const;
@@ -961,6 +964,13 @@ public:
 using Val = VfsValue;
 using ValPtr = Ptr<VfsValue>;
 using VfsValuePtr = Ptr<VfsValue>;
+
+template <class T>
+inline T& VirtualNode::GetAddExt(String name) {
+	ASSERT(data && data->mode == VFS_VALUE);
+	ASSERT(data->vfs_value);
+	return data->vfs_value->CreateExt<T>();
+}
 
 struct VfsValueSubset {
 	Array<VfsValueSubset> sub;

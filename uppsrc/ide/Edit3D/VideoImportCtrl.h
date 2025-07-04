@@ -59,7 +59,7 @@ struct VideoImportCtrl : ParentCtrl {
 		
 	};
 	struct WorldView : ParentCtrl {
-		GridCtrl grid;
+		FixedGridCtrl grid;
 		EditRenderer rends[4];
 		
 	};

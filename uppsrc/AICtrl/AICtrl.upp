@@ -2,7 +2,8 @@ description "\377B0,0,128";
 
 uses
 	MetaCtrl,
-	AICore2;
+	AICore2,
+	FormEditor;
 
 uses(AUDIO) SoundCtrl;
 

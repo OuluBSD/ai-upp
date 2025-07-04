@@ -9,27 +9,27 @@ uses
 file
 	FormView.iml,
 	TODO.list,
+	main.cpp,
+	FormEdit.hpp,
+	FormEdit.cpp,
+	FormView.hpp,
 	FormViewGeneral.cpp,
 	FormViewActions.cpp,
 	FormViewInput.cpp,
 	FormViewDraw.cpp,
 	FormViewPos.cpp,
 	FormViewBar.cpp,
-	FormView.hpp,
 	FormEdit.lay,
 	FormEdit.t,
-	ExGridCtrl.cpp,
 	ExGridCtrl.hpp,
+	ExGridCtrl.cpp,
 	EditTabs.hpp,
 	EditColumns.hpp,
 	StaticImage.hpp,
-	FormProperties.cpp,
 	FormProperties.hpp,
+	FormProperties.cpp,
 	ScrollContainer.hpp,
-	FormEdit.iml,
-	FormEdit.cpp,
-	FormEdit.hpp,
-	main.cpp;
+	FormEdit.iml;
 
 mainconfig
 	"" = "GUI";

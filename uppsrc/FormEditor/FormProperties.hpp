@@ -1,10 +1,10 @@
 #ifndef FORM_PROPERTIES_HPP
 #define FORM_PROPERTIES_HPP
 
-class OptionDisplay : public GridDisplay
+class FormOptionDisplay : public GridDisplay
 {
 public:
-	OptionDisplay()
+	FormOptionDisplay()
 	{
 		StaticRect wnd;
 		wnd.Color(::SColorPaper());
@@ -117,7 +117,7 @@ public:
 	Callback WhenChildZ;
 	ExGridCtrl _Headers;
 	ExGridCtrl _Options;
-	OptionDisplay _Display;
+	FormOptionDisplay _Display;
 	TypeDisplay _TypeDisplay;
 	DropList _DropList;
 

@@ -433,6 +433,8 @@ struct VfsValue : Pte<VfsValue> {
 	void StopDeep();
 	void ClearDependenciesDeep();
 	void UninitializeDeep();
+	VirtualNode				RootPolyValue();
+	VirtualNode				RootVfsValue(const VfsPath& path);
 	
 	operator AstValue&();
 	operator AstValue*();

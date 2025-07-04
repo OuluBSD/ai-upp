@@ -488,16 +488,16 @@ Image MakeZoomIcon(double scale)
 	return MakeImage(m);
 }
 
-GridCtrl::GridCtrl() {
+FixedGridCtrl::FixedGridCtrl() {
 	
 }
 
-void GridCtrl::SetGridSize(int rows, int cols) {
+void FixedGridCtrl::SetGridSize(int rows, int cols) {
 	this->rows = rows;
 	this->cols = cols;
 }
 
-void GridCtrl::Layout() {
+void FixedGridCtrl::Layout() {
 	ASSERT(cols > 0 && rows > 0);
 	Size sz = GetSize();
 	int c = GetChildCount();

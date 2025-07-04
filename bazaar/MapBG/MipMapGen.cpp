@@ -115,7 +115,7 @@ bool CalcLevel(Image& img, int& step, int blocks, int zoomLevel, const String& d
 
 			PNGEncoder en;
 			if (!en.SaveFile(AppendFileName(dir, NFormat("%d-%d-%d.png", zoomLevel,
-				i * cx, j * cy)), Rescale(ib, sz, ib.GetSize())))
+				i * cx, j * cy)), Rescale(ib, sz, Rect(ib.GetSize()))))
 			{
 				Exclamation("Ошибка при сохранении MipMap-изображения!");
 				return false;
@@ -146,12 +146,12 @@ void CalcCount(Image& img, int cx, int cy, int& step)
 Image GetScaledMap(Image& img, const Size& sz)
 {
 	double scale = min((double)sz.cx / img.GetSize().cx, (double)sz.cy / img.GetSize().cy);
-	return Rescale(img, img.GetSize() * scale, img.GetSize());
+	return Rescale(img, img.GetSize() * scale, Rect(img.GetSize()));
 }
 
 Image GetScaledMap(Image& img, const Size& sz, double zoom, int level)
 {
-	return Rescale(img, GetScaledSize(img, sz, zoom, level), img.GetSize());
+	return Rescale(img, GetScaledSize(img, sz, zoom, level), Rect(img.GetSize()));
 }
 
 Size GetScaledSize(Image& img, const Size& sz, double zoom, int level)

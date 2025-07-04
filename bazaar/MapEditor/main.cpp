@@ -2,7 +2,7 @@
 
 GUI_APP_MAIN
 {
-	SetLanguage(LNGFromText("RU-RU"));
+	//SetLanguage(LNGFromText("RU-RU"));
 	Ctrl::SetAppName(" ");
 	MapEditor().Run();
 }

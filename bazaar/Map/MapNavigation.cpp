@@ -221,9 +221,11 @@ Array<Point> MapLevel::SceneToView(const Array<Point>& p)
 
 Array<Point> MapLevel::ViewToScene(const Array<Point>& p)
 {
-	if (!GetZoomCount())
-		return p;
 	Array<Point> res;
+	if (!GetZoomCount()) {
+		res <<= p;
+		return res;
+	}
 	for (int i = 0; i < p.GetCount(); ++i)
 		res << ViewToScene(p[i]);
 	return res;

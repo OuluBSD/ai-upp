@@ -17,7 +17,7 @@ class ISubject
 	bool _Notify;
 
 public:
-	ISubject() { _Notify = false; AtomicWrite(_Refcount, 0); }
+	ISubject() { _Notify = false; _Refcount = 0; }
 	void Retain() { AtomicInc(_Refcount); }
 	void Release() { if (AtomicDec(_Refcount) == 0) delete this; }
 	virtual ~ISubject() {}

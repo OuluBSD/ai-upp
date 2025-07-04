@@ -254,7 +254,7 @@ bool MapView::LoadMap(Map& map, bool editMode)
 				room->AddVertice(40 * rx,  0 * ry);
 				room->AddVertice(40 * rx, 40 * ry);
 				room->AddVertice( 0 * rx, 40 * ry);
-				room->SetRoom(rooms[r]);
+				room->SetRoom(*room);
 				if (editMode)
 					room->StateOn(STATE_EDIT);
 			}
@@ -313,4 +313,6 @@ bool MapView::UpdateLevel(Level& level, int pos, bool editMode)
 	}
 
 	Refresh();
+	
+	return true;
 }

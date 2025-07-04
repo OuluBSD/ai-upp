@@ -115,7 +115,7 @@ public:
 public:
 	void Xmlize(XmlIO& xml)
 	{
-		xml ("polygon", "point", vertices)
+		xml ("polygon", vertices)
 			("number", number)
 			("logo", logo)
 			("name", name)
@@ -193,7 +193,7 @@ public:
 	void Xmlize(XmlIO& xml)
 	{
 		xml ("name", name)
-			("rooms", "room", rooms);
+			("rooms", rooms);
 	}
 
 public:
@@ -341,7 +341,7 @@ public:
 			("mapPath", mapPath)
 			("pageSize", pageSize)
 			("cellSize", cellSize)
-			("layers", "layer", layers);
+			("layers", layers);
 	}
 
 public:
@@ -396,7 +396,7 @@ public:
 	void Xmlize(XmlIO& xml)
 	{
 		xml ("_name", _name)
-			("_levels", "level", _levels);
+			("_levels", _levels);
 	}
 
 	void Clear()

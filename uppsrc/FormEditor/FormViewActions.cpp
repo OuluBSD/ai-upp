@@ -1,4 +1,6 @@
-#include "FormView.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 void FormView::CreateObject(Point p, const char* type)
 {
@@ -240,3 +242,5 @@ bool FormView::IsOutlineDraw(int obj)
 
 	return pI->GetBool("OutlineDraw", false);
 }
+
+END_UPP_NAMESPACE

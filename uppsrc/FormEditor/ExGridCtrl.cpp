@@ -1,4 +1,6 @@
-#include "ExGridCtrl.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 ExGridCtrl::ExGridCtrl()
 {
@@ -82,3 +84,5 @@ void ExGridCtrl::OnLeftClick()
 	SetCursor( Point(1, curpos.y - 1) );
 	StartEdit();
 }
+
+END_UPP_NAMESPACE

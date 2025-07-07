@@ -7,9 +7,11 @@ uses
 	Form;
 
 file
+	FormEditor.h,
 	FormView.iml,
 	TODO.list,
 	main.cpp,
+	FormEdit.h,
 	FormEdit.hpp,
 	FormEdit.cpp,
 	FormView.hpp,

@@ -1,445 +1,968 @@
-#ifndef FORM_EDIT_HPP
-#define FORM_EDIT_HPP
 
-#include <CtrlLib/CtrlLib.h>
-using namespace Upp;
-
-#include <GridCtrl/GridCtrl.h>
-#include <Docking/Docking.h>
-#include "ScrollContainer.hpp"
-#include "FormView.hpp"
-#include "ExGridCtrl.hpp"
-
-#define IMAGECLASS FormEditImg
-#define IMAGEFILE <FormEditor/FormEdit.iml>
-#include <Draw/iml_header.h>
-
-#define TFILE <FormEditor/FormEdit.t>
-#include <Core/t.h>
-
-#define LAYOUTFILE <FormEditor/FormEdit.lay>
-#include <CtrlCore/lay.h>
-
-#include "FormProperties.hpp"
-
-class CtrlContEx : public Ctrl
+template <class T>
+FormEdit<T>::FormEdit()
 {
-public:
-	virtual void Paint(Draw& w)
-	{
-		w.DrawRect(GetRect(), SColorFace());
-	}
-};
+	this->SetRect(this->GetWorkArea().CenterRect(1000, 700));
 
-static char sZoomText[] = "OK Cancel Exit Retry";
+	_ToolSize = Size(this->HorzLayoutZoom(240), this->VertLayoutZoom(18));
+}
 
-class FormEdit : public DockWindow
+
+template <class T>
+void FormEdit<T>::Construct() {
+	StdFontZoom();
+
+	_ViewMode = VIEW_MODE_AS_IS;
+
+	this->AddFrame(_MenuBar);
+	this->AddFrame(TopSeparatorFrame());
+	this->AddFrame(_ToolBar);
+
+	_View.Transparent();
+
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+
+	_ItemProperties.WhenChildZ = THISBACK(UpdateChildZ);
+
+	_View.SetContainer(_Container);
+	_View.WhenUpdate = THISBACK(UpdateTools);
+	_View.WhenObjectProperties = THISBACK(OpenObjectProperties);
+	_View.WhenChildSelected = [this](const Vector<int>& indexes) {this->UpdateChildProperties(indexes);};
+	_View.WhenUpdateLayouts = THISBACK(UpdateLayoutList);
+	_View.WhenChildAllPos = THISBACK(UpdateChildAllPos);
+	_View.WhenChildCount = THISBACK(UpdateChildCount);
+	_View.WhenUpdateTabs = THISBACK(UpdateTabCtrls);
+	_View.WhenChildPos = THISBACK(UpdateChildPos);
+	_View.WhenMenuBar = THISBACK(CreateToolBar);
+	_View.WhenChildZ = THISBACK(UpdateChildZ);
+
+	SetViewMode(VIEW_MODE_INFO);
+	UpdateTools();
+
+	_LayoutList.Appending().Removing().Editing().SetFrame(NullFrame());
+	_LayoutList.AddColumn(t_("Name")).Edit(_LayoutNameField);
+	_LayoutList.HideRow(0);
+	_LayoutList.SetInfoOffset(0);
+	_LayoutList.SetInfo(t_("No lays"));
+	_LayoutList.NotUseKeys();
+	_LayoutList.WhenNewRow = THISBACK(OnAddLayout);
+	_LayoutList.WhenChangeRow = THISBACK(OnSelectLayout);
+	_LayoutList.WhenUpdateRow = THISBACK(OnUpdateLayout);
+	_LayoutList.WhenRemoveRow = THISBACK(OnRemoveLayout);
+
+	_ItemList.Editing().EditMode(1).MultiSelect().SetFrame(NullFrame());
+	_ItemList.AddColumn(t_("Type")).Edit(_TypeList);
+	_ItemList.AddColumn(t_("Variable")).Edit(_ObjectNameField);
+	_ItemList.SetInfo(t_("No items"));
+	_ItemList.WhenMenuBar = THISBACK(CreateObjectMenu);
+	_ItemList.WhenChangeRow = THISBACK(SelectItem);
+	_ItemList.WhenLeftClick = THISBACK(SelectItem);
+	_ItemList.NotUseKeys();
+	_TypeList.Add("Button");
+	_TypeList.Add("Label");
+	_TypeList.Add("EditField");
+	_TypeList.Add("EditInt");
+	_TypeList.Add("DropDate");
+	_TypeList.Add("TabCtrl");
+	_TypeList.Add("GridCtrl");
+	_TypeList.Add("ProgressBar");
+	_TypeList.Add("Form");
+	_TypeList.WhenAction = THISBACK(UpdateObjectType);
+	_ItemList.WhenUpdateRow = THISBACK(UpdateObjectName);
+	_ObjectNameField.WhenAction = THISBACK(UpdateTempObjectName);
+#ifdef PLATFORM_WIN32
+	_ItemList.Chameleon();
+#endif
+
+	_ItemProperties.SetFrame(NullFrame());
+
+	NewFile();
+}
+
+template <class T>
+void FormEdit<T>::CreateMenuBar(Bar& bar)
 {
-	typedef FormEdit CLASSNAME;
-	enum ViewMode { VIEW_MODE_AS_IS, VIEW_MODE_INFO, VIEW_MODE_WIREFRAME };
-	enum ZoomMode { ZOOM_MODE_STANDARD, ZOOM_MODE_SMALL, ZOOM_MODE_LARGE };
+	bar.Add(t_("File"), THISBACK(FileBar));
+	bar.Add(t_("Item"), THISBACK(ItemBar));
+	bar.Add(t_("Form"), THISBACK(FormBar));
+	bar.Add(t_("View"), THISBACK(ViewBar));
+}
 
-public:
-	FormEdit();
-	virtual void DockInit();
+template <class T>
+void FormEdit<T>::FileBar(Bar& bar)
+{
+	bar.Add(t_("Create new form..."), FormEditImg::New(), THISBACK(NewFile))
+		.Tip(t_("Create new form..."));
+	bar.Add(t_("Open form..."), FormEditImg::Open(), THISBACK(OpenFile))
+		.Tip(t_("Open form..."));
+	bar.Separator();
+	bar.Add(t_("Save changes to file..."), FormEditImg::Save(), THISBACK(SaveFile))
+		.Enable(!IsProjectSaved() && _View.IsLayout())
+		.Tip(t_("Save changes to file..."));
+	bar.Add(t_("Save form to another file..."), FormEditImg::SaveAs(), THISBACK(SaveAsFile))
+		.Enable(_View.IsLayout())
+		.Tip(t_("Save form to another file..."));
+		
+	if (standalone) {
+		bar.Separator();
+		bar.Add(t_("Quit"), THISBACK(Quit));
+	}
+}
 
-	void OpenLayoutProperties();
+template <class T>
+void FormEdit<T>::UpdateTools()
+{
+	_ToolBar.Set(THISBACK(CreateToolBar));
+	_MenuBar.Set(THISBACK(CreateMenuBar));
+	_View.Refresh();
+}
 
-	void CreateMenuBar(Bar& bar);
-	void CreateBar(Bar& bar);
-	void AlignBar(Bar& bar);
-	void FileBar(Bar& bar);
-	void ItemBar(Bar& bar);
-	void FormBar(Bar& bar);
-	void ViewBar(Bar& bar);
-	void WindowBar(Bar& bar);
+template <class T>
+void FormEdit<T>::CreateBar(Bar& bar)
+{
+	_View.AddObjectMenu(bar, Point(_View.GetGridSize().cx * 5, _View.GetGridSize().cy * 5));
+}
 
-	void CreateToolBar(Bar& bar);
-	void NullCallback() {}
-	void Quit() { Break(); }
+template <class T>
+void FormEdit<T>::AlignBar(Bar& bar)
+{
+	_View.AlignObjectMenu(bar);
+}
 
-	void Clear();
-	Size GetFormSize() { return _View.Deoffseted(_View.GetPageRect()).GetSize(); }
-	Vector<FormObject>* GetObjects() { return _View.GetObjects(); }
-	
-	void SetSprings(dword hAlign, dword vAlign)
+template <class T>
+void FormEdit<T>::ItemBar(Bar& bar)
+{
+	Vector<int> sel = _View.GetSelected();
+	int count = _View.IsLayout() ? _View.GetObjects()->GetCount() : 0;
+	dword first;
+	bool align = true;
+	bool valign = true;
+
+	if (sel.GetCount() == 0)
 	{
-		_View.SetSprings(hAlign, vAlign);
+		count = 0;
+	}
+	else if (sel.GetCount() == 1)
+	{
+		_View.SetHAlign( (*_View.GetObjects())[ sel[0] ].GetHAlign() );
+		_View.SetVAlign( (*_View.GetObjects())[ sel[0] ].GetVAlign() );
+	}
+	else
+	{
+		for (int i = 0; i < sel.GetCount(); ++i)
+		{
+			if (i == 0) first = (*_View.GetObjects())[ sel[i] ].GetHAlign();
+			if (first != (*_View.GetObjects())[ sel[i] ].GetHAlign()) { align = false; break; }
+		}
+
+		for (int i = 0; i < sel.GetCount(); ++i)
+		{
+			if (i == 0) first = (*_View.GetObjects())[ sel[i] ].GetVAlign();
+			if (first != (*_View.GetObjects())[ sel[i] ].GetVAlign()) { valign = false; break; }
+		}
 	}
 
-	void SetFlag(const String& flag, bool state)
+	bar.Add(t_("Add object..."), THISBACK(CreateBar));
+	bar.Separator();
+
+	if (sel.GetCount() == 1)
+		_View.CreateObjectMenu(bar, sel[0]);
+
+	if (sel.GetCount())
 	{
-		_View.SetBool(flag, state);
-		_View.Refresh();
+		bar.Add(t_("Align selected"), THISBACK(AlignBar));
+		bar.Separator();
 	}
 
-	bool GetFlag(const String& flag, bool init)
+	bar.Add(t_("Spring left side"), FormViewImg::SpringLeft(), THISBACK2(SetSprings, Ctrl::LEFT, -1))
+		.Check(_View.GetHAlign() == Ctrl::LEFT && align).Enable(count)
+		.Tip(t_("Spring left side"));
+
+	bar.Add(t_("Spring right side"), FormViewImg::SpringRight(), THISBACK2(SetSprings, Ctrl::RIGHT, -1))
+		.Check(_View.GetHAlign() == Ctrl::RIGHT && align).Enable(count)
+		.Tip(t_("Spring right side"));
+
+	bar.Add(t_("Spring both horizontal sides"), FormViewImg::SpringHSize(), THISBACK2(SetSprings, Ctrl::SIZE, -1))
+		.Check(_View.GetHAlign() == Ctrl::SIZE && align).Enable(count)
+		.Tip(t_("Spring both horizontal sides"));
+
+	bar.Add(t_("Horizontal center"), FormViewImg::SpringHCenter(), THISBACK2(SetSprings, Ctrl::CENTER, -1))
+		.Check(_View.GetHAlign() == Ctrl::CENTER && align).Enable(count)
+		.Tip(t_("Horizontal center"));
+
+	bar.Separator();
+
+	bar.Add(t_("Spring top side"), FormViewImg::SpringTop(), THISBACK2(SetSprings, -1, Ctrl::TOP))
+		.Check(_View.GetVAlign() == Ctrl::TOP && valign).Enable(count)
+		.Tip(t_("Spring top side"));
+
+	bar.Add(t_("Spring bottom side"), FormViewImg::SpringBottom(), THISBACK2(SetSprings, -1, Ctrl::BOTTOM))
+		.Check(_View.GetVAlign() == Ctrl::BOTTOM && valign).Enable(count)
+		.Tip(t_("Spring bottom side"));
+
+	bar.Add(t_("Spring both vertical sides"), FormViewImg::SpringVSize(), THISBACK2(SetSprings, -1, Ctrl::SIZE))
+		.Check(_View.GetVAlign() == Ctrl::SIZE && valign).Enable(count)
+		.Tip(t_("Spring both vertical sides"));
+
+	bar.Add(t_("Vertical center"), FormViewImg::SpringVCenter(), THISBACK2(SetSprings, -1, Ctrl::CENTER))
+		.Check(_View.GetVAlign() == Ctrl::CENTER && valign).Enable(count)
+		.Tip(t_("Vertical center"));
+
+	bar.Separator();
+
+	bar.Add(t_("Spring left-top corner"), FormViewImg::SpringTopLeft(), THISBACK2(SetSprings, Ctrl::LEFT, Ctrl::TOP))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::LEFT && _View.GetVAlign() == Ctrl::TOP && align && valign)
+		.Tip(t_("Spring left-top corner"));
+
+	bar.Add(t_("Spring left-bottom corner"), FormViewImg::SpringBottomLeft(), THISBACK2(SetSprings, Ctrl::LEFT, Ctrl::BOTTOM))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::LEFT && _View.GetVAlign() == Ctrl::BOTTOM && align && valign)
+		.Tip(t_("Spring left-bottom corner"));
+
+	bar.Add(t_("Spring right-bottom corner"), FormViewImg::SpringBottomRight(), THISBACK2(SetSprings, Ctrl::RIGHT, Ctrl::BOTTOM))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::RIGHT
+			&& _View.GetVAlign() == Ctrl::BOTTOM && align && valign)
+		.Tip(t_("Spring right-bottom corner"));
+
+	bar.Add(t_("Spring right-top corner"), FormViewImg::SpringTopRight(), THISBACK2(SetSprings, Ctrl::RIGHT, Ctrl::TOP))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::RIGHT
+			&& _View.GetVAlign() == Ctrl::TOP && align && valign)
+		.Tip(t_("Spring right-top corner"));
+
+	bar.Separator();
+
+	bar.Add(t_("Spring all sides"), FormViewImg::SpringAuto(), THISBACK2(SetSprings, Ctrl::SIZE, Ctrl::SIZE))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::SIZE && _View.GetVAlign() == Ctrl::SIZE && align && valign)
+		.Tip(t_("Spring all sides"));
+
+	bar.Add(t_("Center object"), FormViewImg::SpringSize(), THISBACK2(SetSprings, Ctrl::CENTER, Ctrl::CENTER))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::CENTER && _View.GetVAlign() == Ctrl::CENTER && align && valign)
+		.Tip(t_("Center object"));
+}
+
+template <class T>
+void FormEdit<T>::FormBar(Bar& bar)
+{
+	bar.Add(t_("Change form settings..."), FormViewImg::LayoutProperties(), THISBACK(OpenLayoutProperties))
+		.Enable(_View.IsLayout())
+		.Tip(t_("Change form settings..."));
+	bar.Add(t_("Preview"), FormViewImg::Layout(), THISBACK(TestLayout))
+		.Enable(_View.IsLayout())
+		.Tip(t_("Preview"));
+}
+
+template <class T>
+void FormEdit<T>::ViewBar(Bar& bar)
+{
+	bar.Add(t_("Switch to as-is view..."), FormViewImg::ViewModeAsIs(), THISBACK1(SetViewMode, VIEW_MODE_AS_IS))
+		.Check(_ViewMode == VIEW_MODE_AS_IS).Enable(_View.IsLayout())
+		.Tip(t_("Switch to as-is view..."));
+
+	bar.Add(t_("Switch to detailed view..."), FormViewImg::ViewModeInfo(), THISBACK1(SetViewMode, VIEW_MODE_INFO))
+		.Check(_ViewMode == VIEW_MODE_INFO).Enable(_View.IsLayout())
+		.Tip(t_("Switch to detailed view..."));
+		
+	bar.Add(t_("Switch to solid view..."), FormViewImg::ViewModeWireframe(), THISBACK1(SetViewMode, VIEW_MODE_WIREFRAME))
+		.Check(_ViewMode == VIEW_MODE_WIREFRAME).Enable(_View.IsLayout())
+		.Tip(t_("Switch to solid view..."));
+
+	bar.Add(t_("Bind to grid..."), FormViewImg::GridBinding(), THISBACK2(ToggleFlag, "Grid.Binding", false))
+		.Check(GetFlag("Grid.Binding", false)).Enable(_View.IsLayout())
+		.Tip(t_("Bind to grid..."));
+
+	bar.Add(t_("Coloring of the objects..."), FormEditImg::Coloring(), THISBACK(ToggleColoring))
+		.Check(GetFlag("View.Coloring", true)).Enable(_View.IsLayout())
+		.Tip(t_("Coloring of the objects..."));
+
+	bar.Separator();
+
+	bar.Add(t_("Use system font..."), FormEditImg::FontZoom(), THISBACK(StdFontZoom)).Check(IsStandardZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use system font..."));
+	bar.Add(t_("Use larger font..."), FormEditImg::FontZoomStd(), THISBACK(SmallFontZoom)).Check(IsSmallZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use larger font..."));
+	bar.Add(t_("Use largest font..."), FormEditImg::FontZoomLarge(), THISBACK(LargeFontZoom)).Check(IsLargeZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use largest font..."));
+}
+
+template <class T>
+void FormEdit<T>::CreateToolBar(Bar& bar)
+{
+	Vector<int> sel = _View.GetSelected();
+	int count = _View.IsLayout() ? _View.GetObjects()->GetCount() : 0;
+	dword first;
+	bool align = true;
+	bool valign = true;
+
+	if (sel.GetCount() == 0)
 	{
-		return _View.GetBool(flag, init);
+		count = 0;
+	}
+	else if (sel.GetCount() == 1)
+	{
+		_View.SetHAlign( (*_View.GetObjects())[ sel[0] ].GetHAlign() );
+		_View.SetVAlign( (*_View.GetObjects())[ sel[0] ].GetVAlign() );
+	}
+	else
+	{
+		for (int i = 0; i < sel.GetCount(); ++i)
+		{
+			if (i == 0) first = (*_View.GetObjects())[ sel[i] ].GetHAlign();
+			if (first != (*_View.GetObjects())[ sel[i] ].GetHAlign()) { align = false; break; }
+		}
+
+		for (int i = 0; i < sel.GetCount(); ++i)
+		{
+			if (i == 0) first = (*_View.GetObjects())[ sel[i] ].GetVAlign();
+			if (first != (*_View.GetObjects())[ sel[i] ].GetVAlign()) { valign = false; break; }
+		}
 	}
 
-	void ToggleFlag(const String& flag, bool init)
-	{
-		SetFlag(flag, !GetFlag(flag, init));
-		_ToolBar.Set(THISBACK(CreateToolBar));
-		SetViewMode(_ViewMode);
+	bar.Add(FormEditImg::New(), THISBACK(NewFile)).Tip(t_("Create new form..."));
+	bar.Add(FormEditImg::Open(), THISBACK(OpenFile)).Tip(t_("Open form..."));
+	bar.Add(FormEditImg::Save(), THISBACK(SaveFile)).Enable(!IsProjectSaved() && _View.IsLayout())
+		.Tip(t_("Save changes to file..."));
+	bar.Add(FormEditImg::SaveAs(), THISBACK(SaveAsFile)).Enable(_View.IsLayout())
+		.Tip(t_("Save form to another file..."));
+
+	bar.Separator();
+
+	bar.Add(FormViewImg::ViewModeAsIs(), THISBACK1(SetViewMode, VIEW_MODE_AS_IS))
+		.Check(_ViewMode == VIEW_MODE_AS_IS).Enable(_View.IsLayout())
+		.Tip(t_("Switch to as-is view..."));
+
+	bar.Add(FormViewImg::ViewModeInfo(), THISBACK1(SetViewMode, VIEW_MODE_INFO))
+		.Check(_ViewMode == VIEW_MODE_INFO).Enable(_View.IsLayout())
+		.Tip(t_("Switch to detailed view..."));
+		
+	bar.Add(FormViewImg::ViewModeWireframe(), THISBACK1(SetViewMode, VIEW_MODE_WIREFRAME))
+		.Check(_ViewMode == VIEW_MODE_WIREFRAME).Enable(_View.IsLayout())
+		.Tip(t_("Switch to solid view..."));
+
+	bar.Add(FormViewImg::GridBinding(), THISBACK2(ToggleFlag, "Grid.Binding", false))
+		.Check(GetFlag("Grid.Binding", false)).Enable(_View.IsLayout())
+		.Tip(t_("Bind to grid..."));
+
+	bar.Add(FormEditImg::Coloring(), THISBACK(ToggleColoring))
+		.Check(GetFlag("View.Coloring", true)).Enable(_View.IsLayout())
+		.Tip(t_("Coloring of the objects..."));
+
+	bar.Separator();
+
+	bar.Add(FormViewImg::LayoutProperties(), THISBACK(OpenLayoutProperties))
+		.Enable(_View.IsLayout())
+		.Tip(t_("Change form settings..."));
+	bar.Add(FormViewImg::Layout(), THISBACK(TestLayout))
+		.Enable(_View.IsLayout())
+		.Tip(t_("Preview"));
+
+	bar.Separator();
+
+	bar.Add(FormEditImg::FontZoom(), THISBACK(StdFontZoom)).Check(IsStandardZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use system font..."));
+	bar.Add(FormEditImg::FontZoomStd(), THISBACK(SmallFontZoom)).Check(IsSmallZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use larger font..."));
+	bar.Add(FormEditImg::FontZoomLarge(), THISBACK(LargeFontZoom)).Check(IsLargeZoom())
+		.Enable(_View.IsLayout())
+		.Tip(t_("Use largest font..."));
+
+	if (_GUILayouts.GetCount() >= 2) {
+		bar.Separator();
+		bar.AddTool(_GUILayouts, _ToolSize);
+		_GUILayouts.Enable(_GUILayouts.GetCount());
+		_GUILayouts.GetButton(2).Enable(_GUILayouts.GetCount() > 1
+			&& (~_GUILayouts).ToString() != t_(" Default"));
+		_GUILayouts.GetButton(3).Enable(_GUILayouts.GetCount());
 	}
 
-	void UpdateTools()
+	bar.ToolBreak();
+
+	bar.Add(FormViewImg::SpringLeft(), THISBACK2(SetSprings, Ctrl::LEFT, -1))
+		.Check(_View.GetHAlign() == Ctrl::LEFT && align).Enable(count)
+		.Tip(t_("Spring left side"));
+
+	bar.Add(FormViewImg::SpringRight(), THISBACK2(SetSprings, Ctrl::RIGHT, -1))
+		.Check(_View.GetHAlign() == Ctrl::RIGHT && align).Enable(count)
+		.Tip(t_("Spring right side"));
+
+	bar.Add(FormViewImg::SpringHSize(), THISBACK2(SetSprings, Ctrl::SIZE, -1))
+		.Check(_View.GetHAlign() == Ctrl::SIZE && align).Enable(count)
+		.Tip(t_("Spring both horizontal sides"));
+
+	bar.Add(FormViewImg::SpringHCenter(), THISBACK2(SetSprings, Ctrl::CENTER, -1))
+		.Check(_View.GetHAlign() == Ctrl::CENTER && align).Enable(count)
+		.Tip(t_("Horizontal center"));
+
+	bar.Separator();
+
+	bar.Add(FormViewImg::SpringTop(), THISBACK2(SetSprings, -1, Ctrl::TOP))
+		.Check(_View.GetVAlign() == Ctrl::TOP && valign).Enable(count)
+		.Tip(t_("Spring top side"));
+
+	bar.Add(FormViewImg::SpringBottom(), THISBACK2(SetSprings, -1, Ctrl::BOTTOM))
+		.Check(_View.GetVAlign() == Ctrl::BOTTOM && valign).Enable(count)
+		.Tip(t_("Spring bottom side"));
+
+	bar.Add(FormViewImg::SpringVSize(), THISBACK2(SetSprings, -1, Ctrl::SIZE))
+		.Check(_View.GetVAlign() == Ctrl::SIZE && valign).Enable(count)
+		.Tip(t_("Spring both vertical sides"));
+
+	bar.Add(FormViewImg::SpringVCenter(), THISBACK2(SetSprings, -1, Ctrl::CENTER))
+		.Check(_View.GetVAlign() == Ctrl::CENTER && valign).Enable(count)
+		.Tip(t_("Vertical center"));
+
+	bar.Separator();
+
+	bar.Add(FormViewImg::SpringTopLeft(), THISBACK2(SetSprings, Ctrl::LEFT, Ctrl::TOP))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::LEFT && _View.GetVAlign() == Ctrl::TOP && align && valign)
+		.Tip(t_("Spring left-top corner"));
+
+	bar.Add(FormViewImg::SpringBottomLeft(), THISBACK2(SetSprings, Ctrl::LEFT, Ctrl::BOTTOM))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::LEFT && _View.GetVAlign() == Ctrl::BOTTOM && align && valign)
+		.Tip(t_("Spring left-bottom corner"));
+
+	bar.Add(FormViewImg::SpringBottomRight(), THISBACK2(SetSprings, Ctrl::RIGHT, Ctrl::BOTTOM))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::RIGHT
+			&& _View.GetVAlign() == Ctrl::BOTTOM && align && valign)
+		.Tip(t_("Spring right-bottom corner"));
+
+	bar.Add(FormViewImg::SpringTopRight(), THISBACK2(SetSprings, Ctrl::RIGHT, Ctrl::TOP))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::RIGHT
+			&& _View.GetVAlign() == Ctrl::TOP && align && valign)
+		.Tip(t_("Spring right-top corner"));
+
+	bar.Separator();
+
+	bar.Add(FormViewImg::SpringAuto(), THISBACK2(SetSprings, Ctrl::SIZE, Ctrl::SIZE))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::SIZE && _View.GetVAlign() == Ctrl::SIZE && align && valign)
+		.Tip(t_("Spring all sides"));
+
+	bar.Add(FormViewImg::SpringSize(), THISBACK2(SetSprings, Ctrl::CENTER, Ctrl::CENTER))
+		.Enable(count)
+		.Check(_View.GetHAlign() == Ctrl::CENTER && _View.GetVAlign() == Ctrl::CENTER && align && valign)
+		.Tip(t_("Center object"));
+}
+
+template <class T>
+void FormEdit<T>::TestLayout()
+{
+	String preview = (_File.IsEmpty())
+		? ConfigFile("FormEditor.view")
+		: GetFileDirectory(_File) + "\\" + "FormEditor.view";
+
+	_View.SaveAll(preview, false);
+
+	Form form;
+
+	form.Load(preview);
+	form.Layout(_View.GetCurrentLayout()->Get("Form.Name"), _View.GetFont());
+	form.ExecuteForm();
+
+	DeleteFile(preview);
+}
+
+template <class T>
+void FormEdit<T>::UpdateChildPos(const Vector<int>& indexes)
+{
+	if (!_View.IsLayout())
+		return;
+
+	if (_ViewMode == VIEW_MODE_WIREFRAME)
+		return;
+
+	for (int i = 0; i < indexes.GetCount(); ++i)
 	{
-		_ToolBar.Set(THISBACK(CreateToolBar));
-		_MenuBar.Set(THISBACK(CreateMenuBar));
-		_View.Refresh();
+		_Ctrls[ indexes[i] ].SetRect(
+			_View.Zoom(_View.Offseted((*_View.GetObjects())[indexes[i]].GetRect()).Offseted(1, 1))
+		);
+	}
+	ProjectSaved(false);
+}
+
+template <class T>
+void FormEdit<T>::UpdateChildAllPos()
+{
+	if (!_View.IsLayout())
+		return;
+
+	if (_ViewMode == VIEW_MODE_WIREFRAME)
+		return;
+
+	if (_View.GetObjectCount() != _Ctrls.GetCount())
+		return UpdateChildZ();
+
+	for (int i = 0; i < _View.GetObjectCount(); ++i)
+		_Ctrls[i].SetRect( _View.Zoom(_View.Offseted((*_View.GetObjects())[i].GetRect()).Offseted(1, 1)) );
+
+	ProjectSaved(false);
+}
+
+template <class T>
+void FormEdit<T>::UpdateChildCount(int count)
+{
+	for (int i = 0; i < _Ctrls.GetCount(); ++i)
+		_CtrlContainer.RemoveChild(&_Ctrls[i]);
+
+	_Ctrls.Clear();
+	_ItemList.Clear();
+	_Temporaries.Clear();
+
+	if (!_View.IsLayout())
+	{
+		UpdateItemList();
+		return;
 	}
 
-	void TestLayout();
+//	if (_ViewMode == VIEW_MODE_WIREFRAME)
+//		return;
 
-	void NewFile();
-	void OpenFile();
-	void SaveFile();
-	void SaveAsFile();
-
-	void OpenObjectProperties(const Vector<int>& indexes);
-	void UpdateChildProperties(const Vector<int>& indexes);
-	void UpdateChildPos(const Vector<int>& indexes);
-	void UpdateChildCount(int count);
-	void UpdateChildAllPos();
-	void UpdateChildZ();
-
-	void ToggleLayoutLock()
+	for (int i = 0; i < count; ++i)
 	{
-		LockLayout( !IsLocked() );
-		UpdateTools();
+		if (!_View.GetObject(i))
+			continue;
 
-		for (int i = 0; i < GetDockableCtrls().GetCount(); ++i)
-			GetDockableCtrls()[i]->SetFrame( IsLocked() ? FieldFrame() : NullFrame() );
-	}
+		String type = (*_View.GetObjects())[i].Get("Type");
+		Font font = _View.GetFont();
+		int h = _View.ZoomY((*_View.GetObjects())[i].GetNumber("Font.Height"));
+		if (h != 0) font.Height(h);
+		if (font.GetHeight() == 0) font.Height(StdFont().GetHeight());
 
-	void SetViewMode(ViewMode mode)
-	{
-		_ViewMode = mode;
-		if (mode == VIEW_MODE_WIREFRAME) _View.ShowFrames();
-		if (mode == VIEW_MODE_AS_IS) _View.HideInfo();
-		if (mode == VIEW_MODE_INFO) _View.ShowInfo();
+		_ItemList.AddRow(type, (*_View.GetObjects())[i].Get("Variable"));
 
-		if (mode == VIEW_MODE_AS_IS)
-		{			
-			_View.SetBool("Grid.Visible", false);
-			_View.Refresh();
+		if ((*_View.GetObjects())[i].GetBool("OutlineDraw", false)
+			&& _ViewMode != VIEW_MODE_AS_IS)
+		{
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( _Ctrls.Create<StaticRect>() );
+		}
+		else if (type == "Button")
+		{
+			Button* b = &_Ctrls.Create<Button>();
+			b->SetFont(font);
+			if (_ViewMode == VIEW_MODE_AS_IS)
+				b->SetLabel((*_View.GetObjects())[i].Get("Label"));
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "DropDate")
+		{
+			DropDate *b = &_Ctrls.Create<DropDate>();
+			b->SetFont(font);
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "GridCtrl")
+		{
+			GridCtrl *b = &_Ctrls.Create<GridCtrl>();
+			// b->SetFont(font); TODO
+
+#ifdef PLATFORM_WIN32
+			b->Chameleon();
+#endif
+
+			String src = (*_View.GetObjects())[i].Get("Grid.Columns");
+			ReplaceString(src, ";", "\r\n");
+			StringStream s;
+			s.Open(src);
+			IniFile f;
+			f.Load(s);
+
+			Vector<String> names = f.EnumNames("Columns");
+
+			for (int j = 0; j < names.GetCount(); ++j)
+			{
+				int n = ScanInt(names[j]);
+
+				Vector<String> values = f.GetArray("Columns", names[j]);
+				if (values.GetCount() != 3)
+					continue;
+
+				if (values[1] == "Left") b->AddColumn(values[0]).HeaderAlignCenterLeft();
+				else if (values[1] == "Right") b->AddColumn(values[0]).HeaderAlignCenterRight();
+				else b->AddColumn(values[0]).HeaderAlignCenter();
+			}
+
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "EditField")
+		{
+			EditField *b = &_Ctrls.Create<EditField>();
+			b->SetFont(font);
+			if (_ViewMode == VIEW_MODE_AS_IS)
+				b->SetText((*_View.GetObjects())[i].Get("DefaultData"));
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "EditInt")
+		{
+			EditInt *b = &_Ctrls.Create<EditInt>();
+			b->SetFont(font);
+			if (_ViewMode == VIEW_MODE_AS_IS)
+				b->SetText((*_View.GetObjects())[i].Get("DefaultData"));
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "ProgressBar")
+		{
+			ProgressIndicator *b = &_Ctrls.Create<ProgressIndicator>();
+			b->Set(0, 100);
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "TabCtrl")
+		{
+			TabCtrl* e = &_Ctrls.Create<TabCtrl>();
+			TabCtrl::Style& style = e->StyleDefault().Write();
+			style.font = font;
+			style.tabheight = font.GetHeight() + this->VertLayoutZoom(10);
+			e->SetStyle(style);
+
+			String src = (*_View.GetObjects())[i].Get("Tab.Content");
+			ReplaceString(src, ";", "\r\n");
+			StringStream s;
+			s.Open(src);
+			IniFile f;
+			f.Load(s);
+
+			Vector<String> names = f.EnumNames("Tabs");
+			VectorMap<int, Vector<String> > cache;
+
+			int tabCount = 0;
+			for (int j = 0; j < names.GetCount(); ++j)
+			{
+				int n = ScanInt(names[j]);
+
+				if (AsString(n) != names[j])
+					continue;
+
+				Vector<String> values = f.GetArray("Tabs", names[j]);
+				if (values.GetCount() != 3)
+					continue;
+
+				Container *cont = &_Temporaries.Create<Container>();
+				Form *f = &_Temporaries.Create<Form>();
+
+					if (values[0] != t_("Current form"))
+					{
+						if (!f->Load(GetFileDirectory(_File) + "\\" + values[0]))
+							continue;
+					}
+					else
+					{
+						int lay = _View.HasLayout(values[1]);
+						if (lay < 0)
+							continue;
+
+						f->GetLayouts().Add() <<= _View.GetLayouts()[lay];
+					}
+
+				if (!f->Layout(values[1], font))
+					continue;
+
+				cont->Set(*f, f->GetSize());
+				cont->SizePos();
+				e->Add(*cont, values[2]);
+
+				tabCount++;
+			}
+
+			int activeTab = -1;
+
+			if (tabCount)
+			{
+				activeTab = (*_View.GetObjects())[i].GetNumber("Tab.Active", 0, 0);
+				if (activeTab >= tabCount)
+				{
+					activeTab = tabCount - 1;
+					e->Set(activeTab);
+				}
+				e->Set(activeTab);
+			}
+
+			(*_View.GetObjects())[i].SetNumber("Tab.Active", activeTab);
+			(*_View.GetObjects())[i].SetNumber("Tab.Count", tabCount);
+
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( e->NoWantFocus() );
+		}
+		else if (type == "Form")
+		{
+			Form f;
+			String path = (*_View.GetObjects())[i].Get("Form.Path");
+			(*_View.GetObjects())[i].Get("Form.PathType") == "Relative"
+				? f.Load(::GetFileDirectory(_File) + "\\" + path)
+				: f.Load(path);
+			f.Layout((*_View.GetObjects())[i].Get("Form.Layout"), font);
+			ImageDraw w(f.GetSize());
+			f.DrawCtrl(w);
+			ImageBuffer buf(w);
+			StaticImage *s = &_Ctrls.Create<StaticImage>();
+			s->SetImage(buf);
+
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.AddChild( s );
 		}
 		else
 		{
-			_View.GetBool("Grid.Binding")
-				? _View.SetBool("Grid.Visible", true)
-				: _View.SetBool("Grid.Visible", false);
-			_View.Refresh();
+			Label *b = &_Ctrls.Create<Label>();
+			b->SetFont(font);
+			Color fontColor = Black();
+			LoadFromString(fontColor, Decode64((*_View.GetObjects())[i].Get("Font.Color",
+				StoreAsString(fontColor))));
+			b->SetInk(fontColor);
+			String align = (*_View.GetObjects())[i].Get("Text.Align");
+			if (align == "Center") b->SetAlign(ALIGN_CENTER);
+			if (align == "Right") b->SetAlign(ALIGN_RIGHT);
+			if (align == "Left") b->SetAlign(ALIGN_LEFT);
+			if (_ViewMode == VIEW_MODE_AS_IS)
+				b->SetLabel((*_View.GetObjects())[i].Get("Label"));
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add( b->NoWantFocus() );
 		}
-		UpdateChildZ();
-		UpdateTools();
-	}
 
-	void ProjectSaved(bool flag = true)
-	{
-		if (flag == _Saved) return;
-		_Saved = flag;
-		UpdateTools();
-	}
+		String frame = (*_View.GetObjects())[i].Get("Frame");
+		Ctrl* c = NULL;
+		if (_Ctrls.GetCount())
+			c = &_Ctrls[_Ctrls.GetCount() - 1];
 
-	bool IsProjectSaved() { return _Saved; }
-
-	void StdFontZoom()
-	{
-		_ZoomMode = ZOOM_MODE_STANDARD;
-		UpdateTools();
-
-		StdFontZoomShort();
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void StdFontZoomShort()
-	{
-		_View.SetFont(StdFont());
-		Ctrl::SetZoomSize(GetTextSize(sZoomText, StdFont()), Size(99, 13));
-		UpdateChildZ();
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void SmallFontZoom()
-	{
-		_ZoomMode = ZOOM_MODE_SMALL;
-		UpdateTools();
-
-		_View.SetFont(StdFont().Height(14));
-		Ctrl::SetZoomSize(GetTextSize(sZoomText, StdFont().Height(14)), Size(99, 13));
-		UpdateChildZ();
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void LargeFontZoom()
-	{
-		_ZoomMode = ZOOM_MODE_LARGE;
-		UpdateTools();
-
-		_View.SetFont(StdFont().Height(18));
-		Ctrl::SetZoomSize(GetTextSize(sZoomText, StdFont().Height(18)), Size(99, 13));
-		UpdateChildZ();
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void LastFontZoom()
-	{
-		switch(_ZoomMode)
+		if (c)
 		{
-			case ZOOM_MODE_SMALL: SmallFontZoom(); break;
-			case ZOOM_MODE_LARGE: LargeFontZoom(); break;
-			default: StdFontZoom();
+			if (frame == "Null frame")             c->SetFrame(NullFrame());
+			if (frame == "Field frame")            c->SetFrame(FieldFrame());
+			if (frame == "Inset frame")            c->SetFrame(InsetFrame());
+			if (frame == "Outset frame")           c->SetFrame(OutsetFrame());
+			if (frame == "Thin inset frame")       c->SetFrame(ThinInsetFrame());
+			if (frame == "Thin outset frame")      c->SetFrame(ThinOutsetFrame());
+			if (frame == "Black frame")            c->SetFrame(BlackFrame());
+			if (frame == "Button frame")           c->SetFrame(ButtonFrame());
+			if (frame == "Top separator frame")    c->SetFrame(TopSeparatorFrame());
+			if (frame == "Left separator frame")   c->SetFrame(LeftSeparatorFrame());
+			if (frame == "Right separator frame")  c->SetFrame(RightSeparatorFrame());
+			if (frame == "Bottom separator frame") c->SetFrame(BottomSeparatorFrame());
 		}
 	}
 
-	bool IsSmallZoom()    { return _ZoomMode == ZOOM_MODE_SMALL; }
-	bool IsLargeZoom()    { return _ZoomMode == ZOOM_MODE_LARGE; }
-	bool IsStandardZoom() { return _ZoomMode == ZOOM_MODE_STANDARD; }
+	UpdateItemList();
+	UpdateChildAllPos();
+}
 
-	void ToggleColoring()
+template <class T>
+void FormEdit<T>::UpdateChildZ()
+{
+	UpdateChildCount( _View.GetObjectCount() );
+}
+
+template <class T>
+void FormEdit<T>::UpdateTabCtrls()
+{
+	if (_Ctrls.GetCount() != _View.GetObjectCount())
+		return;
+
+	UpdateChildZ();
+}
+
+template <class T>
+void FormEdit<T>::Clear()
+{
+	UpdateChildZ();
+	_ItemProperties.Clear();
+
+	_LayoutList.Clear();
+	_ItemList.Clear();
+	_Ctrls.Clear();
+
+	_View.New();
+	_File.Clear();
+	_Saved = true;
+}
+
+template <class T>
+void FormEdit<T>::OpenLayoutProperties()
+{
+	if (!_View.IsLayout())
+		return;
+
+	UpdateChildZ();
+
+	StdFontZoomShort();
+
+	WithFormProperties<TopWindow> dlg;
+	CtrlLayoutOKCancel(dlg, t_("Form properties"));
+
+#ifndef PLATFORM_WIN32
+	dlg.ToolOption.Disable();
+#else
+	dlg.ToolWindow();
+#endif
+
+	FormLayout* l = _View.GetCurrentLayout();
+	if (!l) { LastFontZoom(); return; }
+
+	dlg.Width  <<= l->GetFormSize().cx;
+	dlg.Height <<= l->GetFormSize().cy;
+	dlg.MaximizeOption <<= l->GetBool("Form.MaximizeBox", false);
+	dlg.MinimizeOption <<= l->GetBool("Form.MinimizeBox", false);
+	dlg.SizeableOption <<= l->GetBool("Form.Sizeable", false);
+	dlg.ToolOption <<= l->GetBool("Form.ToolWindow", false);
+	dlg.TitleEdit <<= l->Get("Form.Title");
+
+	if (dlg.Execute() != IDOK)
 	{
-		_View.ToggleBool("View.Coloring");
-		UpdateTools();
+		LastFontZoom();
+		return;
 	}
 
-	void UpdateLayoutList()
-	{
-		if (!_View.IsLayout())
-			return;
-		_LayoutList.Clear();
-		Vector<FormLayout>* p = &_View.GetLayouts();
-		for (int i = 0; i < p->GetCount(); ++i)
-			_LayoutList.AddRow((*p)[i].Get("Form.Name"));
+	_View.SetFormSize(Size(~dlg.Width, ~dlg.Height));
+	l->SetBool("Form.MaximizeBox", dlg.MaximizeOption.Get());
+	l->SetBool("Form.MinimizeBox", dlg.MinimizeOption.Get());
+	l->SetBool("Form.ToolWindow", dlg.ToolOption.Get());
+	l->SetBool("Form.Sizeable", dlg.SizeableOption.Get());
+	l->Set("Form.Title", AsString(~dlg.TitleEdit));
 
-		_View.SetFormSize(_View.GetCurrentLayout()->GetFormSize());
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	LastFontZoom();
+}
+
+template <class T>
+void FormEdit<T>::NewFile()
+{
+	Clear();
+	this->WhenTitle(t_("Form Editor") + String(" - ") + String(t_("New file")));
+	ProjectSaved(false);
+	_View.New();
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	this->Refresh();
+}
+
+template <class T>
+void FormEdit<T>::OpenFile()
+{
+	UpdateChildZ();
+
+	FileSelector fs;
+	fs.Type(t_("Form files"), "*.form");
+	fs.Type(t_("Form archives"), "*.fz");
+	fs.AllFilesType();
+
+	if (!fs.ExecuteOpen(t_("Open form...")))
+		return;
+
+	Clear();
+	_File = ~fs;
+
+	bool compression = false;
+	if (Upp::GetFileName(_File).Find(".fz") >= 0)
+		compression = true;
+
+	_View.LoadAll(_File, compression);
+	UpdateLayoutList();
+	UpdateChildZ();
+
+	this->WhenTitle((t_("Form Editor")) + String(" - ") + ::GetFileName(_File));
+
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	UpdateTools();
+
+	ProjectSaved(true);
+}
+
+template <class T>
+void FormEdit<T>::SaveFile()
+{
+	if (!_View.IsLayout())
+		return;
+
+	UpdateChildZ();
+
+	if (_File.IsEmpty())
+		SaveAsFile();
+	else
+	{
+		bool compression = false;
+		if (Upp::GetFileName(_File).Find(".fz") >= 0)
+			compression = true;
+		_View.SaveAll(_File, compression);
+		ProjectSaved(true);
+	}
+}
+
+template <class T>
+void FormEdit<T>::SaveAsFile()
+{
+	if (!_View.IsLayout())
+		return;
+
+	UpdateChildZ();
+
+	FileSelector fs;
+	fs.Type(t_("Form files (*.form)"), "*.form");
+	fs.Type(t_("Form archives (*.fz)"), "*.fz");
+	fs.AllFilesType();
+
+	if (!fs.ExecuteSaveAs(t_("Save form...")))
+		return;
+
+	_File = ~fs;
+
+	if (Upp::GetFileName(_File).Find('.') < 0)
+		_File += ".form";
+
+	bool compression = false;
+	if (Upp::GetFileName(_File).Find(".fz") >= 0)
+		compression = true;
+
+	_View.SaveAll(_File, compression);
+	this->WhenTitle((t_("Form Editor")) + String(" - ") + ::GetFileName(_File));
+	ProjectSaved(true);
+}
+
+template <class T>
+void FormEdit<T>::OpenObjectProperties(const Vector<int>& indexes)
+{
+	if (!_View.IsLayout())
+		return;
+
+	String temp = _TempObjectName;
+	_TempObjectName.Clear();
+	_ItemList.EndEdit(false, false, false);
+	int row = _ItemList.GetCurrentRow();
+	if (row >= 0 && !temp.IsEmpty())
+	{
+		_View.GetCurrentLayout()->GetObjects()[row].Set("Variable", temp);
+		_ItemList.Set(row, 1, temp);
+	}
+	_LayoutList.EndEdit();
+
+	if (indexes.GetCount() == 1)
+	{
+		FormObject* pI = _View.GetObject(indexes[0]);
+		if (!pI) return;
+
+		_ItemProperties._Options.EndEdit();
+		_ItemProperties.Generate(pI, indexes[0]);
 	}
 
-	void UpdateItemList()
+	if (indexes.GetCount() == 0)
 	{
-		if (!_View.IsLayout())
-		{
-			_ItemList.Clear();
-			return;
-		}
-		
-		Vector<int> sel = _View.GetSelected();
-		_ItemList.ClearSelection();
-
-		for (int i = 0; i < sel.GetCount(); ++i)
-			if (0 <= sel[i] && sel[i] < _ItemList.GetRowCount())
-				_ItemList.Select(sel[i]);
+		_ItemProperties._Options.EndEdit();
+		_ItemProperties._Headers.Clear();
+		_ItemProperties._Options.Clear();
 	}
 
-	void SelectItem()
-	{
-		if (!_View.IsLayout())
-			return;
-
-		if (_ItemList.IsSelected())
-		{
-			Vector<int> sel;
-			_View.ClearSelection();
-			for (int i = 0; i < _ItemList.GetRowCount(); ++i)
-				if (_ItemList.IsSelected(i))
-				{
-					_View.AddToSelection(i);
-					if (!sel.GetCount())
-						sel << i;
-					else if (sel.GetCount() > 0)
-						sel.Clear();
-				}
-			OpenObjectProperties(sel);
-		}
-	}
-
-	void OnAddLayout()
-	{
-		int row = _LayoutList.GetCurrentRow();
-		if (row < 0) return;
-
-		_View.AddLayout(_LayoutList.Get(row, 0).ToString());
-
-		_ItemProperties.Clear();
-		_View.SelectLayout(_View.GetLayoutCount() - 1);
-		UpdateChildZ();
-
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void OnUpdateLayout()
-	{
-		int row = _LayoutList.GetCurrentRow();
-		if (row < 0) return;
-
-		_View.UpdateLayoutName(row, _LayoutList.Get(row, 0).ToString());
-	}
-
-	void OnSelectLayout()
-	{
-		int row = _LayoutList.GetCurrentRow();
-		if (row < 0) return;
-
-		_ItemProperties.Clear();
-		_View.SelectLayout(row);
-		UpdateChildZ();
-		OpenObjectProperties(_View.GetSelected());
-		_Container.Set(_View, _View.GetPageRect().GetSize());
-	}
-
-	void OnRemoveLayout()
-	{
-		int row = _LayoutList.GetCurrentRow();
-		if (row < 0) return;
-
-		_ItemProperties.Clear();
-		_View.RemoveLayout(row);
-
-		OpenObjectProperties(_View.GetSelected());
-		_Container.Set(_View, _View.IsLayout() ? _View.GetPageRect().GetSize() : Size());
-
-		UpdateChildZ();
-		Refresh();
-	}
-
-	void UpdateObjectType()
-	{
-		int row = _ItemList.GetCurrentRow();
-		if (row < 0) return;
-
-		_View.GetCurrentLayout()->GetObjects()[row].Set("Type", _ItemList.Get(row, 0));
-		_ItemProperties._Headers.Set(0, 1, _ItemList.Get(row, 0));
-		UpdateChildZ();
-		OpenObjectProperties(_View.GetSelected());
-	}
-
-	void UpdateObjectName()
-	{
-		int row = _ItemList.GetCurrentRow();
-		if (row < 0) return;
-
-		_View.GetCurrentLayout()->GetObjects()[row].Set("Variable", _ItemList.Get(row, 1));
-		_View.Refresh();
-		OpenObjectProperties(_View.GetSelected());
-	}
-
-	void UpdateTempObjectName()
-	{
-		int row = _ItemList.GetCurrentRow();
-		if (row < 0) return;
-
-		_TempObjectName = _ItemList.Get(row, 1).ToString();
-	}
-
-	void CreateObjectMenu(Bar& bar)
-	{
-		int row = _ItemList.GetCurrentRow();
-		if (row < 0) return;
-
-		bar.Add(t_("Edit"), GridImg::Modify(), _ItemList.StdEdit);
-		if (!_ItemList.IsSelected())
-			return;
-		bar.Separator();
-		_View.CreateObjectMenu(bar, row);
-	}
-
-	void UpdateTabCtrls();
-
-	void LoadGUILayouts(bool first = false);
-
-	void Serialize(Stream& s)
-	{
-		SerializeLayout(s);
-	}
-
-	void AddGUILayout()
-	{
-		String name;
-
-		TopWindow dlg;
-		dlg.Title(t_("New layout"));
-		dlg.SetRect( GetWorkArea().CenterRect(300, 80) );
-		EditString s;
-		Button ok, cancel;
-		ok.SetLabel(t_("Add"));
-		ok <<= dlg.Acceptor(IDOK);
-		cancel <<= dlg.Rejector(IDCANCEL);
-		cancel.SetLabel(t_("Cancel"));
-		dlg.ToolWindow();
-		dlg.Add( s.HSizePosZ(8, 8).TopPosZ(8, 18) );
-		dlg.Add( ok.RightPosZ(80, 65).BottomPosZ(8, 25) );
-		dlg.Add( cancel.RightPosZ(8, 65).BottomPosZ(8, 25) );
-		if (dlg.Execute() == IDCANCEL)
-			return;
-		name = (~s).ToString();
-		if (name.IsEmpty())
-			name = t_("User Interface");
-
-		name = " " + name;
-		SaveLayout(name);
-		DeleteFile(ConfigFile("Layouts.bin"));
-		StoreToFile(*this, ConfigFile("Layouts.bin"));
-		LoadGUILayouts();
-		_GUILayouts <<= _GUILayouts.GetKey( _GUILayouts.GetCount() - 1 );
-		UpdateTools();
-	}
-
-	void SaveGUILayout()
-	{
-		SaveLayout(GetLayouts().GetKey( _GUILayouts.GetIndex() ));
-		DeleteFile(ConfigFile("Layouts.bin"));
-		StoreToFile(*this, ConfigFile("Layouts.bin"));
-	}
-
-	void UpdateGUILayout()
-	{
-		int index = _GUILayouts.GetIndex();
-		if (index < 0 || index >= GetLayouts().GetCount())
-			return;
-		LoadLayout(GetLayouts().GetKey( index ));
-		_GUILayouts.GetButton(2).Enable((~_GUILayouts).ToString() != t_(" Default"));
-	}
-
-	void RemoveGUILayout()
-	{
-		int count = GetLayouts().GetCount();
-		if (!count) return;
-
-		DeleteLayout( GetLayouts().GetKey( _GUILayouts.GetIndex() ) );
-		StoreToFile(*this, ConfigFile("Layouts.bin"));
-		LoadGUILayouts();
-		_GUILayouts <<= t_(" Default");
-		LoadLayout(t_(" Default"));
-		UpdateTools();
-	}
-
-private:
-	Size _ToolSize;
-	bool _Saved;
-	String _File;
-	ViewMode _ViewMode;
-	ZoomMode _ZoomMode;
-
-	CtrlContEx _CtrlContainer;
-	ScrollContainer _Container;
-	Array<Ctrl> _Temporaries;
-	Array<Ctrl> _Ctrls;
-	FormView _View;
-
-	EditString _LayoutNameField;
-	EditString _ObjectNameField;
-	DropList _GUILayouts;
-	DropList _TypeList;
-	String _TempObjectName;
-
-	MenuBar _MenuBar;
-	ToolBar _ToolBar;
-	ExGridCtrl _LayoutList;
-	ExGridCtrl _ItemList;
-	PropertiesWindow _ItemProperties;
-};
-
-#endif // .. FORM_EDIT_HPP
+	UpdateItemList();
+}

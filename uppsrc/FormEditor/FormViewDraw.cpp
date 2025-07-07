@@ -1,8 +1,10 @@
-#include "FormView.hpp"
+#include "FormEditor.h"
 
 #define IMAGECLASS FormViewImg
 #define IMAGEFILE <FormEditor/FormView.iml>
 #include <Draw/iml_source.h>
+
+NAMESPACE_UPP
 
 void FormView::Paint(Draw& w)
 {
@@ -365,3 +367,5 @@ void FormView::DrawGroupTools(Draw& w, const Rect& r)
 		w.DrawImage(t, _toolBottom[_bottomCur]);
 	}
 }
+
+END_UPP_NAMESPACE

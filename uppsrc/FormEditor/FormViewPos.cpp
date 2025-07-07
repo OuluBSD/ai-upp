@@ -1,5 +1,6 @@
-#include "FormView.hpp"
-#include "ScrollContainer.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 void FormView::SetFormSize(const Size& sz)
 {
@@ -252,3 +253,5 @@ dword FormView::IsGroupButton(Point p)
 
 	return TOOL_NONE;
 }
+
+END_UPP_NAMESPACE

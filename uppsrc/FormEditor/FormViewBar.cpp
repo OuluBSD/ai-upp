@@ -1,4 +1,6 @@
-#include "FormView.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 void FormView::CreateObjectMenu(Bar& bar, int id)
 {
@@ -60,3 +62,5 @@ void FormView::AlignObjectMenu(Bar& bar)
 	bar.Add(t_("Right"), THISBACK(AlignRightSelection));
 	bar.Add(t_("Bottom "), THISBACK(AlignBottomSelection));
 }
+
+END_UPP_NAMESPACE

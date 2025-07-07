@@ -210,16 +210,16 @@ public:
 public:
 	enum { TOOL_NONE, TOOL_LEFT, TOOL_TOP, TOOL_RIGHT, TOOL_BOTTOM };
 
-	Callback1<const Vector<int>&> WhenObjectProperties;
-	Callback1<const Vector<int>&> WhenChildSelected;
-	Callback1<const Vector<int>&> WhenChildPos;
-	Callback1<int> WhenChildCount;
-	Callback1<Bar&> WhenMenuBar;
-	Callback WhenUpdateLayouts;
-	Callback WhenChildAllPos;
-	Callback WhenChildZ;
-	Callback WhenUpdate;
-	Callback WhenUpdateTabs;
+	Event<const Vector<int>&> WhenObjectProperties;
+	Event<const Vector<int>&> WhenChildSelected;
+	Event<const Vector<int>&> WhenChildPos;
+	Event<int> WhenChildCount;
+	Event<Bar&> WhenMenuBar;
+	Event<> WhenUpdateLayouts;
+	Event<> WhenChildAllPos;
+	Event<> WhenChildZ;
+	Event<> WhenUpdate;
+	Event<> WhenUpdateTabs;
 
 private:
 	typedef FormView CLASSNAME;

@@ -27,6 +27,7 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 	
 	rtabs.Add(memoryctrl.SizePos(), "Memory");
 	rtabs.Add(stagectrl.SizePos(), "Stage");
+	rtabs.Add(formedit.SizePos(), "Form");
 	
 	stagectrl.Horz() << stagesplit << stage;
 	stagectrl.SetPos(2000);
@@ -501,8 +502,12 @@ void VfsProgramCtrl::ToolMenu(Bar& b) {
 	b.Add("Run Update Iteration", [this]{Run(true);}).Key(K_F6);
 	b.Separator();
 	b.Add("Open Form Editor", [this]{
-		FormEdit().RunAppModal();
+		
 	}).Key(K_F9);
+	if (main) {
+		b.Separator();
+		b.Sub("Form Editor", [this](Bar& bar){if (main) main->formedit.CreateMenuBar(bar);});
+	}
 	#ifdef flagDEBUG
 	#if 0
 	b.Separator();

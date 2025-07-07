@@ -17,7 +17,7 @@ class VfsProgramCtrl : public ValueVFSComponentCtrl {
 		TabCtrl btabs, ltabs, rtabs;
 		DocEdit log;
 		TreeCtrl memtree;
-		
+		FormEditCtrl formedit;
 		
 		typedef MainTab CLASSNAME;
 		MainTab(VfsProgramCtrl&, const VirtualNode& vnode);

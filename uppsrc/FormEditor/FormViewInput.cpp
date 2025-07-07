@@ -1,5 +1,6 @@
-#include "FormView.hpp"
-#include "ScrollContainer.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 void FormView::LeftDouble(Point p, dword keyflags)
 {
@@ -410,3 +411,5 @@ void FormView::MouseLeave()
 {
 	OverrideCursor(_cursor);
 }
+
+END_UPP_NAMESPACE

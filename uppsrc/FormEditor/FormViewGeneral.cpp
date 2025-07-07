@@ -1,4 +1,6 @@
-#include "FormView.hpp"
+#include "FormEditor.h"
+
+NAMESPACE_UPP
 
 FormView::FormView()
 {
@@ -259,3 +261,5 @@ int FormView::HasLayout(const String& layout)
 			return i;
 	return -1;
 }
+
+END_UPP_NAMESPACE

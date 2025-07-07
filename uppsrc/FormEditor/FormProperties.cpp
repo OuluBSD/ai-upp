@@ -1,42 +1,6 @@
-#include "FormEdit.hpp"
-#include "FormProperties.hpp"
-#include "EditTabs.hpp"
-#include "EditColumns.hpp"
+#include "FormEditor.h"
 
-void FormEdit::OpenObjectProperties(const Vector<int>& indexes)
-{
-	if (!_View.IsLayout())
-		return;
-
-	String temp = _TempObjectName;
-	_TempObjectName.Clear();
-	_ItemList.EndEdit(false, false, false);
-	int row = _ItemList.GetCurrentRow();
-	if (row >= 0 && !temp.IsEmpty())
-	{
-		_View.GetCurrentLayout()->GetObjects()[row].Set("Variable", temp);
-		_ItemList.Set(row, 1, temp);
-	}
-	_LayoutList.EndEdit();
-
-	if (indexes.GetCount() == 1)
-	{
-		FormObject* pI = _View.GetObject(indexes[0]);
-		if (!pI) return;
-
-		_ItemProperties._Options.EndEdit();
-		_ItemProperties.Generate(pI, indexes[0]);
-	}
-
-	if (indexes.GetCount() == 0)
-	{
-		_ItemProperties._Options.EndEdit();
-		_ItemProperties._Headers.Clear();
-		_ItemProperties._Options.Clear();
-	}
-
-	UpdateItemList();
-}
+NAMESPACE_UPP
 
 PropertiesWindow::PropertiesWindow()
 {
@@ -315,10 +279,4 @@ void PropertiesWindow::Generate(FormObject* pI, int index)
 	_Options.SetCursor(0);
 }
 
-void FormEdit::UpdateChildProperties(const Vector<int>& indexes)
-{
-	if (!_View.IsLayout())
-		return;
-
-	OpenObjectProperties(indexes);
-}
+END_UPP_NAMESPACE

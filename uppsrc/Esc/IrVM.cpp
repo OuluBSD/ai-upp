@@ -279,6 +279,11 @@ ArrayMap<String, EscValue>& Esc::Var() {
 	return calls.Top().var;
 }
 
+const Array<Esc::Call>& Esc::Calls()
+{
+	return calls;
+}
+
 EscValue& Esc::Self() {
 	return self;
 }

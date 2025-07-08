@@ -9,6 +9,7 @@ NAMESPACE_UPP
 ConsoleCtrl::ConsoleCtrl() : cmd(*this) {
 	SetView();
 	
+	AddProgram("blog",	THISBACK(SimpleExt<Widget::BlogPad>));
 	AddProgram("help",	THISBACK(SimpleExt<Widget::DraftPad>));
 	AddProgram("draft",	THISBACK(SimpleExt<Widget::DraftPad>));
 	AddProgram("timer",	THISBACK(SimpleExt<Widget::Timer>));
@@ -46,6 +47,11 @@ void ConsoleCtrl::ClearActive() {
 		RemoveChild(active);
 		active = 0;
 	}
+}
+
+void ConsoleCtrl::Data() {
+	if (ext)
+		ext->Data();
 }
 
 void ConsoleCtrl::SetView() {

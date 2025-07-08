@@ -33,6 +33,7 @@ public:
 	ConsoleCtrl();
 	~ConsoleCtrl();
 	
+	void Data();
 	void InternalMenuBar(bool b=true) {internal_menubar = b;}
 	bool IsMenuBarVisible() const {return ext;}
 	IdeShell& Shell() {return cmd;}
@@ -52,7 +53,9 @@ public:
 	
 	template <class T> void SimpleExt(IdeShell& shell, Value value) {
 		this->CreateExt<T>();
+		ext->Initialize(value);
 		SetView();
+		Data();
 	}
 	
 	template <class T> T& EcsExt(IdeShell& shell, Value value) {

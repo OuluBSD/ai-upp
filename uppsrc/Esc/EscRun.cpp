@@ -279,13 +279,18 @@ EscValue EscSession::Evaluatexl(const char *expression, ArrayMap<String, EscValu
 {
 	this->esc = new Esc(global, expression, oplimit, "", 0);
 	auto& sub = *this->esc;
-	auto& var = sub.Var();
-	for(int i = 0; i < global.GetCount(); i++)
-		var.Add(global.GetKey(i), global[i]);
+	{
+		auto& var = sub.Var();
+		for(int i = 0; i < global.GetCount(); i++)
+			var.Add(global.GetKey(i), global[i]);
+	}
 	EscValue v;
 	v = sub.GetExp();
-	for(int i = 0; i < var.GetCount(); i++)
-		global.GetAdd(var.GetKey(i)) = var[i];
+	if (sub.Calls().GetCount()) {
+		auto& var = sub.Var();
+		for(int i = 0; i < var.GetCount(); i++)
+			global.GetAdd(var.GetKey(i)) = var[i];
+	}
 	return v;
 }
 

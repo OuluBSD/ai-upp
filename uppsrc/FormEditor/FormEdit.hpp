@@ -1,5 +1,11 @@
 
 template <class T>
+FormEdit<T>::~FormEdit()
+{
+	
+}
+
+template <class T>
 FormEdit<T>::FormEdit()
 {
 	this->SetRect(this->GetWorkArea().CenterRect(1000, 700));
@@ -9,8 +15,9 @@ FormEdit<T>::FormEdit()
 
 
 template <class T>
-void FormEdit<T>::Construct() {
-	StdFontZoom();
+void FormEdit<T>::Construct(bool std_font_zoom) {
+	if (std_font_zoom)
+		StdFontZoom();
 
 	_ViewMode = VIEW_MODE_AS_IS;
 

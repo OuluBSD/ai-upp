@@ -33,6 +33,7 @@ void BlogPad::OnChange() {
 }
 
 void BlogPad::ToolMenu(Bar& bar) {
+	bar.Add("Save", THISBACK(Save));
 	bar.Add("Clear all", [this]{edit.Clear();});
 }
 
@@ -59,7 +60,6 @@ void BlogPad::Data() {
 	int q = 1 + (now.month-1) / 3;
 	String pkg = IntStr(now.year) + "Q" + IntStr(q);
 	String file = Format("%Mon%02d", now.month, now.day);
-	VectorMap<String,String> file_group;
 	RealizeDirectory(pkg);
 	
 	wspc.FindSetPackage(pkg);
@@ -94,11 +94,9 @@ void BlogPad::Data() {
 	for(int i = group_begin; i < group_end; i++) {
 		String name = wspc.FileName(i);
 		if (name.Find(file) == 0 && GetFileExt(name) == ".txt") {
-			if (enable) {
-				pos = i;
-				found_file = name;
-			}
-			file_group.Add(name, cur_group);
+			pos = i;
+			found_file = name;
+			break;
 		}
 	}
 	if (pos < 0) {
@@ -106,7 +104,7 @@ void BlogPad::Data() {
 		for(int i = 0; i < 100; i++) {
 			uniq_file = file;
 			if (i)
-				uniq_file.Cat('_', i);ide
+				uniq_file.Cat('_', i);
 			uniq_file += ".txt";
 			String path = AppendFileName(wspc.GetActivePackageDir(), uniq_file);
 			if (!FileExists(path))

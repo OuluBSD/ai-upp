@@ -292,6 +292,7 @@ public:
 	
 	ArrayMap<String, EscValue>& Var();
 	EscValue& Self();
+	const Array<Call>& Calls();
 	
 	void		SetFailed();
 	bool		IsFailed() const;

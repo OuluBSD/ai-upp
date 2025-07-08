@@ -14,6 +14,22 @@ struct DraftPad : WidgetCtrl {
 	VfsPath GetCursorPath() const override {return VfsPath();}
 };
 
+struct BlogPad : WidgetCtrl{
+	typedef BlogPad CLASSNAME;
+	DocEdit edit;
+	String path, find_group;
+	TimeCallback tc;
+	BlogPad();
+	~BlogPad();
+	void OnChange();
+	void Save();
+	void ToolMenu(Bar& bar) override;
+	void Data() override;
+	void Initialize(Value args) override;
+	String GetTitle() const override {return "BlogPad";}
+	VfsPath GetCursorPath() const override {return VfsPath();}
+};
+
 struct Timer : WithTimerLayout<WidgetCtrl> {
 	typedef Timer CLASSNAME;
 	Timer();

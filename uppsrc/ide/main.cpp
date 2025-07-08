@@ -410,7 +410,9 @@ void AppMain___()
 		StartEditorMode(arg, ide, clset);
 #endif
 
-		if(splash_screen && dosplash && !ide.IsEditorMode()) {
+		bool open_dropdown = FindIndex(CommandLine(), "--dropdown-terminal") >= 0;
+
+		if(!open_dropdown && splash_screen && dosplash && !ide.IsEditorMode()) {
 			ShowSplash();
 			Ctrl::ProcessEvents();
 		}
@@ -436,7 +438,7 @@ void AppMain___()
 		if(!clset)
 			ide.LoadLastMain();
 		#ifndef flagV1
-		if (FindIndex(CommandLine(), "--dropdown-terminal") >= 0)
+		if (open_dropdown)
 			dropdown.Init();
 		#endif
 		do {

@@ -12,6 +12,7 @@ public:
 	virtual void DataTree(TreeCtrl& tree);
 	virtual void ToolMenu(Bar& bar) = 0;
 	virtual void EditPos(JsonIO& json) {};
+	virtual void Initialize(Value args) {}
 	virtual String GetTitle() const {return String();}
 	virtual Value* GetPolyValue() {return 0;}
 	virtual VfsPath GetCursorPath() const = 0;

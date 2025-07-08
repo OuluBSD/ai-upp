@@ -13,7 +13,7 @@ String (*GetCursorKindNamePtr)(int);
 String (*VfsValue_GetBasesString)(const VfsValue& v);
 
 
-#define DO_TEMP_CHECK 0
+#define DO_TEMP_CHECK 1
 
 int CreateTempCheck(int src) {
 	static int counter = 0;

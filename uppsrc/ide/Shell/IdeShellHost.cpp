@@ -160,7 +160,7 @@ void IdeShellHost::StartIntranet(IdeShell& shell, Value arg) {
 
 #ifndef flagV1
 void InitShellHost(MetaEnvironment& env, IdeShellHost& host) {
-	host.AddProgram("blog", [&env](IdeShell& is, Value val){EcsExt(env,is,val);});
+	//host.AddProgram("blog", [&env](IdeShell& is, Value val){EcsExt(env,is,val);});
 }
 
 void ShellReg_MetaEnv(IdeShellHost& host) {

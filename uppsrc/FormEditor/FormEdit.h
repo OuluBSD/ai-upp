@@ -23,7 +23,8 @@ protected:
 public:
 	typedef FormEdit<T> CLASSNAME;
 	FormEdit();
-	void Construct();
+	~FormEdit();
+	void Construct(bool std_font_zoom);
 	void OpenLayoutProperties();
 
 	void CreateMenuBar(Bar& bar);
@@ -397,7 +398,7 @@ public:
 
 protected:
 	Size _ToolSize;
-	bool _Saved;
+	bool _Saved = false;
 	String _File;
 	ViewMode _ViewMode;
 	ZoomMode _ZoomMode;

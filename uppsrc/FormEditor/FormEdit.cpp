@@ -37,7 +37,7 @@ DockableFormEdit::DockableFormEdit() {
 	this->Add(_CtrlContainer.SizePos());
 	this->Add(_Container.SizePos());
 	
-	Construct();
+	Construct(true);
 }
 
 void DockableFormEdit::DockInit()
@@ -75,7 +75,7 @@ FormEditWindow::FormEditWindow() {
 	main.Add(_CtrlContainer.SizePos());
 	main.Add(_Container.SizePos());
 	
-	Construct();
+	Construct(true);
 }
 
 
@@ -92,7 +92,13 @@ FormEditCtrl::FormEditCtrl() {
 	main.Add(_CtrlContainer.SizePos());
 	main.Add(_Container.SizePos());
 	
-	Construct();
+	Ptr<FormEditCtrl> p = this;
+	PostCallback([p]{
+		if (p)
+			p->Construct(false);
+	}); // calling directly will cause a very hard "invalid read of size 8" bug
+	// ...which can only be found in valgrind
+	
 }
 
 

@@ -388,7 +388,7 @@ void IdeDropdownTerminal::Init() {
 			<< LNGC_('S','V','S','E', CHARSET_UTF8)
 			<< LNGC_('F','I','F','I', CHARSET_UTF8)
 			;
-	
+	#if 0
 	int lng = GetCurrentLanguage();
 	if (nordic.Find(lng) >= 0) {
 		 // § key in danish, swedish and finnish keyboards
@@ -404,6 +404,10 @@ void IdeDropdownTerminal::Init() {
 		toggle_key = K_CTRL|K_SHIFT|K_X;
 		ide_key = K_CTRL|K_SHIFT|K_C;
 	}
+	#else
+	toggle_key = K_CTRL|K_SHIFT|K_X;
+	ide_key = K_CTRL|K_SHIFT|K_C;
+	#endif
 	
 	is_tray = true;
 	Ctrl::RegisterSystemHotKey(toggle_key, callback1(GlobalToggleWindow, this));

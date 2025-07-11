@@ -235,6 +235,8 @@ void AppMain___()
 	Ctrl::SetAppName("TheIDE");
 	
 	int lng = SetLNGCharset(GetSystemLNG(), CHARSET_UTF8);
+	if (FindIndex(CommandLine(), "--enus"))
+		lng = LNG_enUS;
 	SetLanguage(lng);
 	SetDefaultCharset(CHARSET_UTF8);
 
@@ -410,7 +412,7 @@ void AppMain___()
 		StartEditorMode(arg, ide, clset);
 #endif
 
-		bool open_dropdown = FindIndex(CommandLine(), "--dropdown-terminal") >= 0;
+		bool open_dropdown = FindIndex(CommandLine(), "--dropdown-terminal") >= 0 || FindIndex(CommandLine(), "--dropdown") >= 0;
 
 		if(!open_dropdown && splash_screen && dosplash && !ide.IsEditorMode()) {
 			ShowSplash();

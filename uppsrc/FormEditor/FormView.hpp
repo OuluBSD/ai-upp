@@ -152,6 +152,8 @@ public:
 	void Xmlize(XmlIO xml);
 	bool SaveAll(const String& file, bool compression);
 	bool LoadAll(const String& file, bool compression);
+	bool SaveAllString(String& xml, bool compression);
+	bool LoadAllString(const String& xml, bool compression);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Coordinates / Позиционирование элементов / система координат

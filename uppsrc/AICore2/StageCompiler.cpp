@@ -12,7 +12,10 @@ bool FarStageCompiler::Compile(Val& stage_node) {
 	this->stage.Clear();
 	this->stage.Create();
 	
-	String txt = stage_node.value;
+	VfsFarStage* s = stage_node.FindExt<VfsFarStage>();
+	if (!s)
+		return false;
+	String txt = s->code;
 	txt.Replace("\r", "");
 	
 	

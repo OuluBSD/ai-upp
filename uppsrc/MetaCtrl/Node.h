@@ -23,6 +23,7 @@ struct VfsValueExtCtrl : WidgetCtrl {
 	Ptr<VfsValueExt> ext;
 	Event<> WhenEditorChange;
 	Event<> WhenTitle;
+	Event<> WhenSaveEditPos;
 	Ptr<ToolAppCtrl> owner;
 	
 	VfsValueExtCtrl();
@@ -34,6 +35,7 @@ struct VfsValueExtCtrl : WidgetCtrl {
 	void ToolMenu(Bar& bar) override;
 	
 	template <class T> T& GetExt() {return dynamic_cast<T&>(*ext);}
+	template <class T> T* FindExt() {return dynamic_cast<T*>(&*ext);}
 };
 
 #endif

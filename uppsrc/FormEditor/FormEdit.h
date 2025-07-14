@@ -19,7 +19,8 @@ class FormEdit : public T
 protected:
 	enum ViewMode { VIEW_MODE_AS_IS, VIEW_MODE_INFO, VIEW_MODE_WIREFRAME };
 	enum ZoomMode { ZOOM_MODE_STANDARD, ZOOM_MODE_SMALL, ZOOM_MODE_LARGE };
-
+	bool embedded = false;
+	
 public:
 	typedef FormEdit<T> CLASSNAME;
 	FormEdit();
@@ -27,6 +28,7 @@ public:
 	void Construct(bool std_font_zoom);
 	void OpenLayoutProperties();
 
+	void SetEmbedded(bool b=true) {embedded = b;}
 	void CreateMenuBar(Bar& bar);
 	void CreateBar(Bar& bar);
 	void AlignBar(Bar& bar);
@@ -75,7 +77,12 @@ public:
 	void OpenFile();
 	void SaveFile();
 	void SaveAsFile();
-
+	void OpenXml(const String& xml, bool compression);
+	void SaveXml(String& xml, bool compression);
+	void EmbeddedSave();
+	void EmbeddedExportFile();
+	void EmbeddedImportFile();
+		
 	void OpenObjectProperties(const Vector<int>& indexes);
 	void UpdateChildPos(const Vector<int>& indexes);
 	void UpdateChildCount(int count);
@@ -90,7 +97,7 @@ public:
 		if (mode == VIEW_MODE_INFO) _View.ShowInfo();
 
 		if (mode == VIEW_MODE_AS_IS)
-		{			
+		{
 			_View.SetBool("Grid.Visible", false);
 			_View.Refresh();
 		}
@@ -395,6 +402,8 @@ public:
 	
 		OpenObjectProperties(indexes);
 	}
+	
+	Event<> WhenEmbeddedSave;
 
 protected:
 	Size _ToolSize;
@@ -420,8 +429,6 @@ protected:
 	ExGridCtrl _LayoutList;
 	ExGridCtrl _ItemList;
 	PropertiesWindow _ItemProperties;
-	
-	bool standalone = false;
 	
 	Event<String> WhenTitle;
 };

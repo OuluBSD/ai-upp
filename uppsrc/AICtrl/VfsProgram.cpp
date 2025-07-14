@@ -28,6 +28,7 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 	rtabs.Add(memoryctrl.SizePos(), "Memory");
 	rtabs.Add(stagectrl.SizePos(), "Stage");
 	rtabs.Add(formedit.SizePos(), "Form");
+	rtabs.WhenSet = [this]{this->o.WhenSaveEditPos();};
 	
 	stagectrl.Horz() << stagesplit << stage;
 	stagectrl.SetPos(2000);
@@ -85,6 +86,20 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 		VfsFarStage& s = n.GetExt<VfsFarStage>();
 		s.code = stage.GetData();
 	};
+	
+	
+	o.PostCallback([this] {
+		VfsProgram* prog = this->o.FindExt<VfsProgram>();
+		if (prog)
+			formedit.OpenXml(prog->formxml, prog->formxml_compressed);
+	});
+	
+	formedit.WhenEmbeddedSave = [this] {
+		VfsProgram* prog = this->o.FindExt<VfsProgram>();
+		if (!prog) return;
+		prog->formxml_compressed = true;
+		formedit.SaveXml(prog->formxml, prog->formxml_compressed);
+	};
 }
 
 void VfsProgramCtrl::MainTab::Data() {
@@ -120,8 +135,9 @@ void VfsProgramCtrl::MainTab::DataList(bool show_num, bool select_last, ArrayCtr
 }
 
 void VfsProgramCtrl::MainTab::DataProjectList() {
-	VfsProgram& prog = o.GetExt<VfsProgram>();
-	DataList(false, false, prjlist, prog.val, o.projects, AsTypeHash<VfsProgramProject>(), THISBACK(DataProject));
+	VfsProgram* prog = o.FindExt<VfsProgram>();
+	if (!prog) return;
+	DataList(false, false, prjlist, prog->val, o.projects, AsTypeHash<VfsProgramProject>(), THISBACK(DataProject));
 }
 
 void VfsProgramCtrl::MainTab::DataProject() {
@@ -228,8 +244,9 @@ void VfsProgramCtrl::MainTab::DataMemoryTree(int parent, String key, const EscVa
 }
 
 void VfsProgramCtrl::MainTab::DataStageList() {
-	VfsProgram& prog = o.GetExt<VfsProgram>();
-	DataList(false, false, stagelist, prog.val, o.stages, AsTypeHash<VfsFarStage>(), THISBACK(DataStage));
+	VfsProgram* prog = o.FindExt<VfsProgram>();
+	if (!prog) return;
+	DataList(false, false, stagelist, prog->val, o.stages, AsTypeHash<VfsFarStage>(), THISBACK(DataStage));
 }
 
 void VfsProgramCtrl::MainTab::DataStage() {
@@ -292,7 +309,9 @@ bool VfsProgramCtrl::Compile(bool force) {
 		return false;
 	}
 	
-	ASSERT(this_iter);
+	if (!this_iter)
+		this_iter = &cur_session->Add<VfsProgramIteration>("");
+		
 	this_iter->code = esc;
 	
 	succ = agent->Compile(esc, force, THISBACK(PrintLog), this_iter);
@@ -407,6 +426,8 @@ void VfsProgramCtrl::Input(EscEscape& e) {
 }
 
 void VfsProgramCtrl::PrintLog(Vector<ProcMsg>& msgs) {
+	if (!this_iter)
+		return;
 	for (ProcMsg& m : msgs) {
 		this_iter->log << m.ToString() << "\n";
 	}
@@ -730,15 +751,22 @@ String VfsProgramCtrl::GlobalToString(const ArrayMap<String,EscValue>& global) {
 }
 
 void VfsProgramCtrl::StringToGlobal(const String& global_str, ArrayMap<String,EscValue>& global) {
-	Value global_value = ParseJSON(global_str);
-	if (!global_value.Is<ValueMap>()) global_value = ValueMap();
-	ValueMap global_map = global_value;
-	
-	for(int i = 0; i < global_map.GetCount(); i++) {
-		const Value& key = global_map.GetKey(i);
-		const Value& val = global_map.GetValue(i);
-		String key_str = key.ToString();
-		global.GetAdd(key) = EscFromStdValue(val);
+	if (global_str.IsEmpty())
+		return;
+	try {
+		Value global_value = ParseJSON(global_str);
+		if (!global_value.Is<ValueMap>()) global_value = ValueMap();
+		ValueMap global_map = global_value;
+		
+		for(int i = 0; i < global_map.GetCount(); i++) {
+			const Value& key = global_map.GetKey(i);
+			const Value& val = global_map.GetValue(i);
+			String key_str = key.ToString();
+			global.GetAdd(key) = EscFromStdValue(val);
+		}
+	}
+	catch (Exc e) {
+		LOG("VfsProgramCtrl::StringToGlobal: error: " << e);
 	}
 }
 

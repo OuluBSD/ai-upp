@@ -71,7 +71,12 @@ struct VfsProgramProject : VfsValueExt {
 INITIALIZE(VfsProgramProject);
 
 struct VfsProgram : Component {
+	String formxml;
+	bool formxml_compressed = false;
+	
+	// Temp
 	bool running = false;
+	
 public:
 	CLASSTYPE(VfsProgram)
 	VfsProgram(VfsValue& n);

@@ -49,6 +49,8 @@ public:
 	static String GetID() { return "Entity Editor"; }
 	
 	void Do(int i);
+	
+	Event<> WhenSaveEditPos;
 };
 
 

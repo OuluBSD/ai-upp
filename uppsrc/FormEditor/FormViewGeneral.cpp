@@ -88,6 +88,24 @@ bool FormView::LoadAll(const String& file, bool compression)
 	return LoadFromXMLFile(*this, file);
 }
 
+bool FormView::SaveAllString(String& xml, bool compression) {
+	String s = StoreAsXML(*this, "form");
+	if (compression)
+		xml = ZCompress(s);
+	else
+		xml = s;
+	return true;
+}
+
+bool FormView::LoadAllString(const String& xml, bool compression) {
+	String s;
+	if (compression)
+		s = ZDecompress(xml);
+	else
+		s = xml;
+	return LoadFromXML(*this, s);
+}
+
 void FormView::Layout()
 {
 	FormLayout *l = GetCurrentLayout();

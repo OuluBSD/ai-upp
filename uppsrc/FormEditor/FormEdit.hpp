@@ -2,7 +2,9 @@
 template <class T>
 FormEdit<T>::~FormEdit()
 {
-	
+	if (embedded && !_Saved && PromptYesNo(t_("Do you want to save from before exit?"))) {
+		EmbeddedSave();
+	}
 }
 
 template <class T>
@@ -98,19 +100,27 @@ void FormEdit<T>::CreateMenuBar(Bar& bar)
 template <class T>
 void FormEdit<T>::FileBar(Bar& bar)
 {
-	bar.Add(t_("Create new form..."), FormEditImg::New(), THISBACK(NewFile))
-		.Tip(t_("Create new form..."));
-	bar.Add(t_("Open form..."), FormEditImg::Open(), THISBACK(OpenFile))
-		.Tip(t_("Open form..."));
-	bar.Separator();
-	bar.Add(t_("Save changes to file..."), FormEditImg::Save(), THISBACK(SaveFile))
-		.Enable(!IsProjectSaved() && _View.IsLayout())
-		.Tip(t_("Save changes to file..."));
-	bar.Add(t_("Save form to another file..."), FormEditImg::SaveAs(), THISBACK(SaveAsFile))
-		.Enable(_View.IsLayout())
-		.Tip(t_("Save form to another file..."));
-		
-	if (standalone) {
+	if (embedded) {
+		bar.Add(t_("Save changes"), FormEditImg::Save(), THISBACK(EmbeddedSave))
+			.Enable(!IsProjectSaved() && _View.IsLayout());
+		bar.Separator();
+		bar.Add(t_("Import form"), FormEditImg::SaveAs(), THISBACK(EmbeddedExportFile))
+			.Tip(t_("Import form"));
+		bar.Add(t_("Export form"), FormEditImg::Open(), THISBACK(EmbeddedImportFile))
+			.Tip(t_("Export form"));
+	}
+	else {
+		bar.Add(t_("Create new form..."), FormEditImg::New(), THISBACK(NewFile))
+			.Tip(t_("Create new form..."));
+		bar.Add(t_("Open form..."), FormEditImg::Open(), THISBACK(OpenFile))
+			.Tip(t_("Open form..."));
+		bar.Separator();
+		bar.Add(t_("Save changes to file..."), FormEditImg::Save(), THISBACK(SaveFile))
+			.Enable(!IsProjectSaved() && _View.IsLayout())
+			.Tip(t_("Save changes to file..."));
+		bar.Add(t_("Save form to another file..."), FormEditImg::SaveAs(), THISBACK(SaveAsFile))
+			.Enable(_View.IsLayout())
+			.Tip(t_("Save form to another file..."));
 		bar.Separator();
 		bar.Add(t_("Quit"), THISBACK(Quit));
 	}
@@ -332,12 +342,23 @@ void FormEdit<T>::CreateToolBar(Bar& bar)
 		}
 	}
 
-	bar.Add(FormEditImg::New(), THISBACK(NewFile)).Tip(t_("Create new form..."));
-	bar.Add(FormEditImg::Open(), THISBACK(OpenFile)).Tip(t_("Open form..."));
-	bar.Add(FormEditImg::Save(), THISBACK(SaveFile)).Enable(!IsProjectSaved() && _View.IsLayout())
-		.Tip(t_("Save changes to file..."));
-	bar.Add(FormEditImg::SaveAs(), THISBACK(SaveAsFile)).Enable(_View.IsLayout())
-		.Tip(t_("Save form to another file..."));
+	if (embedded) {
+		bar.Add(t_("Save changes"), FormEditImg::Save(), THISBACK(EmbeddedSave))
+			.Enable(!IsProjectSaved() && _View.IsLayout());
+		bar.Separator();
+		bar.Add(t_("Import form"), FormEditImg::SaveAs(), THISBACK(EmbeddedExportFile))
+			.Tip(t_("Import form"));
+		bar.Add(t_("Export form"), FormEditImg::Open(), THISBACK(EmbeddedImportFile))
+			.Tip(t_("Export form"));
+	}
+	else {
+		bar.Add(FormEditImg::New(), THISBACK(NewFile)).Tip(t_("Create new form..."));
+		bar.Add(FormEditImg::Open(), THISBACK(OpenFile)).Tip(t_("Open form..."));
+		bar.Add(FormEditImg::Save(), THISBACK(SaveFile)).Enable(!IsProjectSaved() && _View.IsLayout())
+			.Tip(t_("Save changes to file..."));
+		bar.Add(FormEditImg::SaveAs(), THISBACK(SaveAsFile)).Enable(_View.IsLayout())
+			.Tip(t_("Save form to another file..."));
+	}
 
 	bar.Separator();
 
@@ -521,7 +542,7 @@ void FormEdit<T>::UpdateChildAllPos()
 template <class T>
 void FormEdit<T>::UpdateChildCount(int count)
 {
-	for (int i = 0; i < _Ctrls.GetCount(); ++i)
+	for (int i = _Ctrls.GetCount()-1; i >= 0; i--)
 		_CtrlContainer.RemoveChild(&_Ctrls[i]);
 
 	_Ctrls.Clear();
@@ -889,6 +910,24 @@ void FormEdit<T>::OpenFile()
 }
 
 template <class T>
+void FormEdit<T>::OpenXml(const String& xml, bool compression) {
+	UpdateChildZ();
+
+	Clear();
+	_File = "";
+	_View.LoadAllString(xml, compression);
+	UpdateLayoutList();
+	UpdateChildZ();
+
+	this->WhenTitle(t_("Form Editor"));
+
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	UpdateTools();
+
+	ProjectSaved(true);
+}
+
+template <class T>
 void FormEdit<T>::SaveFile()
 {
 	if (!_View.IsLayout())
@@ -936,6 +975,79 @@ void FormEdit<T>::SaveAsFile()
 	_View.SaveAll(_File, compression);
 	this->WhenTitle((t_("Form Editor")) + String(" - ") + ::GetFileName(_File));
 	ProjectSaved(true);
+}
+
+template <class T>
+void FormEdit<T>::SaveXml(String& xml, bool compression) {
+	if (!_View.IsLayout())
+		return;
+
+	UpdateChildZ();
+
+	_File = "";
+
+	_View.SaveAllString(xml, compression);
+	this->WhenTitle(t_("Form Editor"));
+	ProjectSaved(true);
+}
+
+template <class T>
+void FormEdit<T>::EmbeddedSave() {
+	WhenEmbeddedSave();
+}
+
+template <class T>
+void FormEdit<T>::EmbeddedExportFile() {
+	if (!_View.IsLayout())
+		return;
+
+	UpdateChildZ();
+
+	FileSelector fs;
+	fs.Type(t_("Form files (*.form)"), "*.form");
+	fs.Type(t_("Form archives (*.fz)"), "*.fz");
+	fs.AllFilesType();
+
+	if (!fs.ExecuteSaveAs(t_("Export form...")))
+		return;
+
+	String filepath = ~fs;
+
+	if (Upp::GetFileName(filepath).Find('.') < 0)
+		filepath += ".form";
+
+	bool compression = false;
+	if (Upp::GetFileName(filepath).Find(".fz") >= 0)
+		compression = true;
+
+	_View.SaveAll(filepath, compression);
+}
+
+template <class T>
+void FormEdit<T>::EmbeddedImportFile() {
+	UpdateChildZ();
+
+	FileSelector fs;
+	fs.Type(t_("Form files"), "*.form");
+	fs.Type(t_("Form archives"), "*.fz");
+	fs.AllFilesType();
+
+	if (!fs.ExecuteOpen(t_("Import form...")))
+		return;
+
+	Clear();
+	String filepath = ~fs;
+
+	bool compression = false;
+	if (Upp::GetFileName(filepath).Find(".fz") >= 0)
+		compression = true;
+
+	_View.LoadAll(filepath, compression);
+	UpdateLayoutList();
+	UpdateChildZ();
+
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	UpdateTools();
 }
 
 template <class T>

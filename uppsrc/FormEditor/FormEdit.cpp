@@ -8,7 +8,7 @@
 NAMESPACE_UPP
 
 DockableFormEdit::DockableFormEdit() {
-	standalone = true;
+	embedded = false;
 	this->Title(t_("GUI Form Editor (c) Web\'n\'soft Group"));
 	this->Sizeable().MinimizeBox().MaximizeBox();
 	this->WhenTitle = [this](String s) {this->Title(s);};
@@ -61,7 +61,7 @@ void DockableFormEdit::DockInit()
 
 
 FormEditWindow::FormEditWindow() {
-	standalone = true;
+	embedded = false;
 	this->Title(t_("GUI Form Editor (c) Web\'n\'soft Group"));
 	this->Sizeable().MinimizeBox().MaximizeBox();
 	this->WhenTitle = [this](String s) {this->Title(s);};
@@ -83,6 +83,7 @@ FormEditWindow::FormEditWindow() {
 
 
 FormEditCtrl::FormEditCtrl() {
+	embedded = true;
 	Add(hsplit.SizePos());
 	hsplit.Horz(vsplit, main);
 	hsplit.SetPos(2000);

@@ -371,6 +371,8 @@ public:
 	
 	static bool AcceptsExt(String e) { return e == ".db-src"; }
 	static String GetID() { return "SourceText"; }
+	
+	Event<> WhenSaveEditPos;
 };
 
 END_UPP_NAMESPACE

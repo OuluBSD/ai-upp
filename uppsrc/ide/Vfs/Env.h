@@ -35,6 +35,9 @@ public:
 	static bool AcceptsExt(String e) { return e == ".env"; }
 	static String GetID() { return "Environment Editor"; }
 	static String MakeIdString(const Vector<VfsValue*>& v);
+	
+	Event<> WhenSaveEditPos;
+	
 };
 
 

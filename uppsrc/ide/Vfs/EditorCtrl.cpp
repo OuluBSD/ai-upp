@@ -52,6 +52,7 @@ void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, VfsValueExtCtrl* c) {
 	if (c) {
 		ext_ctrl_type_hash = type_hash;
 		c->owner = this;
+		c->WhenSaveEditPos = Proxy(WhenSaveEditPos);
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
 		PostCallback(THISBACK(DataExtCtrl));

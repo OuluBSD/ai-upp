@@ -7,6 +7,7 @@ NAMESPACE_UPP
 template <class T>
 Des<T>::Des()
 {
+	edit.WhenSaveEditPos = [this]{this->SaveEditPos();};
 	edit << [=] { delay.KillSet(250, [=] { Preview(); }); };
 	Add(edit.SizePos());
 	if(TheIde())

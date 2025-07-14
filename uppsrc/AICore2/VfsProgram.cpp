@@ -89,7 +89,9 @@ void VfsProgram::Uninitialize() {
 }
 
 void VfsProgram::Visit(Vis& v) {
-	
+	v
+		VIS_(formxml)
+		VIS_(formxml_compressed);
 }
 
 void VfsProgram::Update(double dt) {

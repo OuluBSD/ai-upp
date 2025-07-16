@@ -44,7 +44,7 @@ public:
 
 	void Clear();
 	Size GetFormSize() { return _View.Deoffseted(_View.GetPageRect()).GetSize(); }
-	Vector<FormObject>* GetObjects() { return _View.GetObjects(); }
+	Array<FormObject>* GetObjects() { return _View.GetObjects(); }
 	
 	void SetSprings(dword hAlign, dword vAlign)
 	{
@@ -185,7 +185,7 @@ public:
 		if (!_View.IsLayout())
 			return;
 		_LayoutList.Clear();
-		Vector<FormLayout>* p = &_View.GetLayouts();
+		Array<FormLayout>* p = &_View.GetLayouts();
 		for (int i = 0; i < p->GetCount(); ++i)
 			_LayoutList.AddRow((*p)[i].Get("Form.Name"));
 

@@ -70,7 +70,7 @@ public:
 	bool IsOutlineDraw(int obj);
 
 	int GetObjectCount() { return IsLayout() ? GetCurrentLayout()->GetObjects().GetCount() : 0; }
-	Vector<FormObject>* GetObjects() { return IsLayout() ? &(GetCurrentLayout()->GetObjects()) : NULL; }
+	Array<FormObject>* GetObjects() { return IsLayout() ? &(GetCurrentLayout()->GetObjects()) : NULL; }
 
 	void New();
 	int GetLayoutCount() const { return _Layouts.GetCount(); }
@@ -229,7 +229,7 @@ private:
 	PARAMETER(Font, Font);
 	PARAMETER(dword, HAlign);
 	PARAMETER(dword, VAlign);
-	PARAMETER(WithDeepCopy< Vector<FormLayout> >, Layouts);
+	PARAMETER(WithDeepCopy< Array<FormLayout> >, Layouts);
 
 	Image _cursor;
 

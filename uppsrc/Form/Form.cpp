@@ -50,7 +50,7 @@ bool Form::Generate(Font font)
 	Size sz = _Layouts[_Current].GetFormSize();
 	SetRect( Rect(Point(0, 0), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))) );
 
-	Vector<FormObject>* p = &_Layouts[_Current].GetObjects();
+	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 
 	if (_Layouts[_Current].GetBool("Form.MinimizeBox", false)) MinimizeBox();
 	if (_Layouts[_Current].GetBool("Form.MaximizeBox", false)) MaximizeBox();
@@ -324,7 +324,7 @@ String Form::ExecuteForm()
 		if (result < 0)
 			return _Rejectors[ abs(result) - 1 ];
 
-		Vector<FormObject>* p = &_Layouts[_Current].GetObjects();
+		Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 		bool null = false;
 		for (int i = 0; i < p->GetCount(); ++i)
 		{
@@ -397,7 +397,7 @@ bool Form::SetCallback(const String& action, Callback c)
 	if (!IsLayout())
 		return false;
 
-	Vector<FormObject>* p = &_Layouts[_Current].GetObjects();
+	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 	for (int i = 0; i < p->GetCount(); ++i)
 	{
 		if ((*p)[i].Get("Type") == "Button")
@@ -416,7 +416,7 @@ Value Form::GetData(const String& var)
 	if (!IsLayout())
 		return false;
 
-	Vector<FormObject>* p = &_Layouts[_Current].GetObjects();
+	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 	for (int i = 0; i < p->GetCount(); ++i)
 	{
 		if ((*p)[i].Get("Variable") == var)
@@ -430,7 +430,7 @@ Ctrl* Form::GetCtrl(const String& var)
 	if (!IsLayout())
 		return NULL;
 
-	Vector<FormObject>* p = &_Layouts[_Current].GetObjects();
+	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 	for (int i = 0; i < p->GetCount(); ++i)
 	{
 		if ((*p)[i].Get("Variable") == var)

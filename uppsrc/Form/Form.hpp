@@ -42,8 +42,8 @@ public:
 
 	void Xmlize(XmlIO xml) { xml("layouts", _Layouts); }
 
-	Vector<FormLayout>& GetLayouts() { return _Layouts; }
-	const Vector<FormLayout>& GetLayouts() const { return _Layouts; }
+	Array<FormLayout>& GetLayouts() { return _Layouts; }
+	const Array<FormLayout>& GetLayouts() const { return _Layouts; }
 
 protected:
 	void OnAction(const String& action);
@@ -51,7 +51,7 @@ protected:
 
 	Vector<String> _Acceptors;
 	Vector<String> _Rejectors;
-	Vector<FormLayout> _Layouts;
+	Array<FormLayout> _Layouts;
 	ArrayMap<String, Ctrl> _Ctrls;
 
 private:

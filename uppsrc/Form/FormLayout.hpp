@@ -3,12 +3,12 @@
 
 #include "FormObject.hpp"
 
-class FormLayout : public XMLConfig, public Moveable<FormLayout>
+class FormLayout : public XMLConfig
 {
 	typedef FormLayout CLASSNAME;
 
 	PARAMETER(Rect, PageRect);
-	PARAMETER(WithDeepCopy< Vector<FormObject> >, Objects);
+	PARAMETER(WithDeepCopy< Array<FormObject> >, Objects);
 
 public:
 	FormLayout();

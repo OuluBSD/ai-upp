@@ -27,6 +27,7 @@ bool Agent::RealizeLibrary(Vector<ProcMsg>& msgs) {
 		Escape(global, "Print(x)", Proxy(WhenPrint));
 		Escape(global, "Input()", Proxy(WhenInput));
 		Escape(global, "CreateForm(path)", THISBACK(CreateForm));
+		Escape(global, "SetFormLayout(form, path)", THISBACK(SetFormLayout));
 		StdLib(global);
 	}
 	for(const FarStage& fs : stages) {
@@ -295,9 +296,8 @@ void Agent::Update(double dt) {
 	}
 }
 
-void Agent::CreateForm(EscEscape& e) {
-	VfsPath path;
-	path.SetPosixPath(e[0]);
+VfsProgram& Agent::GetProgram(EscEscape& e, int i, VfsPath& path) {
+	path.SetPosixPath(e[i]);
 	if (path.IsEmpty())
 		e.ThrowError("empty vfs path argument");
 	
@@ -307,22 +307,31 @@ void Agent::CreateForm(EscEscape& e) {
 	auto prog = iter->val.FindOwner<VfsProgram>();
 	if (!prog)
 		e.ThrowError("cannot find VfsProgram");
-	
-	VirtualNode root = prog->val.RootPolyValue();
-	VirtualNode cur = root;
-	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
-		const auto& part = path.Parts()[i];
-		cur = cur.GetAdd(part, 0);
-	}
-	hash_t type_hash = AsTypeHash<VfsFormCtrl>();
-	cur = cur.GetAdd(path.Parts().Top(), type_hash);
-	ASSERT(cur.IsValue());
+	return *prog;
+}
+
+void Agent::CreateForm(EscEscape& e) {
+	VfsPath path;
+	auto& prog = GetProgram(e, 0, path);
+	prog.RealizePath<VfsForm>(path);
 	
 	e.ret_val = e[0];
 	
-	PostCallback([prog]{prog->WhenDataTree();});
+	PostCallback([&prog]{prog.WhenDataTree();});
 }
 
+void Agent::SetFormLayout(EscEscape& e) {
+	VfsPath path;
+	auto& prog = GetProgram(e, 0, path);
+	auto form_node = prog.RealizePath<VfsForm>(path);
+	ASSERT(form_node.IsValue());
+	
+	ValueMap map = form_node.GetValue();
+	map.Set("layout_path", (String)e[1]);
+	form_node.WriteValue(map);
+	
+	prog.WhenLayout(path);
+}
 
 
 #if 0

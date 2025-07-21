@@ -28,6 +28,25 @@ bool Form::Load(const String& file)
 	return true;
 }
 
+bool Form::LoadString(const String& xml, bool compression)
+{
+	Clear();
+	_File = "";
+	
+	if (compression)
+	{
+		String s = ZDecompress(xml);
+		if (!LoadFromXML(*this, s))
+			return false;
+		return true;
+	}
+
+	if (!LoadFromXML(*this, xml))
+		return false;
+	
+	return true;
+}
+
 bool Form::Layout(const String& layout, Font font)
 {
 	_Current = -1;
@@ -51,17 +70,6 @@ bool Form::Generate(Font font)
 	SetRect( Rect(Point(0, 0), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))) );
 
 	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
-
-	if (_Layouts[_Current].GetBool("Form.MinimizeBox", false)) MinimizeBox();
-	if (_Layouts[_Current].GetBool("Form.MaximizeBox", false)) MaximizeBox();
-
-#ifdef PLATFORM_WIN32
-	if (_Layouts[_Current].GetBool("Form.ToolWindow", false)) ToolWindow();
-#endif
-
-	if (_Layouts[_Current].GetBool("Form.Sizeable", false)) Sizeable();
-
-	Title(_Layouts[_Current].Get("Form.Title"));
 
 	for (int i = 0; i < p->GetCount(); ++i)
 	{
@@ -303,12 +311,14 @@ bool Form::Generate(Font font)
 		AddChild(c);
 	}
 
+	WhenGenerate();
+	
 	return true;
 }
 
-String Form::ExecuteForm()
+String FormWindow::ExecuteForm()
 {
-	if (!IsLayout())
+	if (!form.IsLayout())
 		return "Error";
 
 	WhenClose = TopWindow::Breaker(0);
@@ -322,14 +332,14 @@ String Form::ExecuteForm()
 			return "Close";
 
 		if (result < 0)
-			return _Rejectors[ abs(result) - 1 ];
+			return form._Rejectors[ abs(result) - 1 ];
 
-		Array<FormObject>* p = &_Layouts[_Current].GetObjects();
+		Array<FormObject>* p = &form._Layouts[form._Current].GetObjects();
 		bool null = false;
 		for (int i = 0; i < p->GetCount(); ++i)
 		{
 			if ((*p)[i].GetBool("NotNull"))
-				if (IsNull(~_Ctrls[i]))
+				if (IsNull(~form._Ctrls[i]))
 				{
 					PromptOK("Необходимо заполнить поле: " + (*p)[i].Get("Variable"));
 					null = true;
@@ -342,7 +352,7 @@ String Form::ExecuteForm()
 		break;
 	}
 
-	return _Acceptors[ result - 1 ];
+	return form._Acceptors[ result - 1 ];
 }
 
 void Form::Clear(bool all)
@@ -367,26 +377,26 @@ void Form::OnAction(const String& action)
 	SignalHandler(Script, "OnAction", action);
 }
 
-bool Form::Exit(const String& action)
+bool FormWindow::Exit(const String& action)
 {
-	return SetCallback(action, TopWindow::Rejector(0));
+	return form.SetCallback(action, TopWindow::Rejector(0));
 }
 
-bool Form::Acceptor(const String& action)
+bool FormWindow::Acceptor(const String& action)
 {
-	if (SetCallback(action, TopWindow::Acceptor( _Acceptors.GetCount() + 1 )))
+	if (form.SetCallback(action, TopWindow::Acceptor( form._Acceptors.GetCount() + 1 )))
 	{
-		_Acceptors << action;
+		form._Acceptors << action;
 		return true;
 	}
 	return false;
 }
 
-bool Form::Rejector(const String& action)
+bool FormWindow::Rejector(const String& action)
 {
-	if (SetCallback(action, TopWindow::Rejector( -(_Rejectors.GetCount() + 1) )))
+	if (form.SetCallback(action, TopWindow::Rejector( -(form._Rejectors.GetCount() + 1) )))
 	{
-		_Rejectors << action;
+		form._Rejectors << action;
 		return true;
 	}
 	return false;
@@ -438,3 +448,25 @@ Ctrl* Form::GetCtrl(const String& var)
 	}
 	return NULL;
 }
+
+
+FormWindow::FormWindow() {
+	form.WhenGenerate << [this]{this->Generate();};
+}
+
+void FormWindow::Generate() {
+	auto& l = form._Layouts[form._Current];
+	
+	if (l.GetBool("Form.MinimizeBox", false)) MinimizeBox();
+	if (l.GetBool("Form.MaximizeBox", false)) MaximizeBox();
+
+#ifdef PLATFORM_WIN32
+	if (l.GetBool("Form.ToolWindow", false)) ToolWindow();
+#endif
+
+	if (l.GetBool("Form.Sizeable", false)) Sizeable();
+
+	Title(l.Get("Form.Title"));
+
+}
+

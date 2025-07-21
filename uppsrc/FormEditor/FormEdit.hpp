@@ -494,7 +494,7 @@ void FormEdit<T>::TestLayout()
 
 	_View.SaveAll(preview, false);
 
-	Form form;
+	FormWindow form;
 
 	form.Load(preview);
 	form.Layout(_View.GetCurrentLayout()->Get("Form.Name"), _View.GetFont());

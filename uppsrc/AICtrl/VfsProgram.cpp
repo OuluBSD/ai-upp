@@ -100,6 +100,7 @@ VfsProgramCtrl::MainTab::MainTab(VfsProgramCtrl& o, const VirtualNode& vnode) : 
 		prog->formxml_compressed = true;
 		formedit.SaveXml(prog->formxml, prog->formxml_compressed);
 	};
+	
 }
 
 void VfsProgramCtrl::MainTab::Data() {
@@ -320,6 +321,12 @@ bool VfsProgramCtrl::Compile(bool force) {
 }
 
 bool VfsProgramCtrl::Run(bool update) {
+	if (!cur_session || !this_iter) {
+		LOG("VfsProgramCtrl::Run: error: no current session yet");
+		return false;
+	}
+	
+	
 	if (iterations.GetCount() && !update) {
 		if (!PromptYesNo("Are you sure you want to clear all iterations?"))
 			return false;
@@ -486,6 +493,20 @@ void VfsProgramCtrl::DataTree(TreeCtrl& tree) {
 
 void VfsProgramCtrl::Init() {
 	RealizeData();
+	
+	
+	VfsProgram* prog = this->FindExt<VfsProgram>();
+	if (prog) {
+		prog->WhenLayout.Clear();
+		prog->WhenLayout << [this](VfsPath path) {
+			if (this->form) {
+				LOG(form->cur_path.ToString());
+				LOG(path.ToString());
+				if (form->cur_path == path)
+					this->PostCallback([this]{form->Data();});
+			}
+		};
+	}
 }
 
 void VfsProgramCtrl::RealizeData() {
@@ -503,14 +524,17 @@ String VfsProgramCtrl::GetTitle() const {
 
 VNodeComponentCtrl* VfsProgramCtrl::CreateCtrl(const VirtualNode& vnode) {
 	hash_t type_hash = vnode.GetTypeHash();
+	main = 0;
+	form = 0;
 	if (type_hash == AsTypeHash<VfsProgramCtrl>() ||
 		type_hash == AsTypeHash<VfsProgram>()) {
 		MainTab* o = new MainTab(*this, vnode);
 		main = o;
 		return o;
 	}
-	else if (type_hash == AsTypeHash<VfsFormCtrl>()) {
+	else if (type_hash == AsTypeHash<VfsForm>()) {
 		FormTab* o = new FormTab(*this, vnode);
+		form = o;
 		return o;
 	}
 	return 0;
@@ -781,12 +805,43 @@ void VfsProgramCtrl::MainTab::EditPos(JsonIO& json) {
 
 
 VfsProgramCtrl::FormTab::FormTab(VfsProgramCtrl& o, const VirtualNode& vnode) : o(o), VNodeComponentCtrl(o, vnode) {
-	Add(l.LeftPos(10,100).TopPos(10,30));
-	l.SetLabel("LABEL !!!!!!!!!!!!!");
+	Add(form.SizePos());
+	
 }
 
 void VfsProgramCtrl::FormTab::Data() {
+	VirtualNode node = this->GetVnode();
+	cur_path = node.GetPath();
+	if (!node.IsValue())
+		return;
 	
+	Value v = node.GetValue();
+	if (!v.Is<ValueMap>())
+		return;
+	ValueMap map = v;
+	String layout_path = map.Get("layout_path", "");
+	if (layout_path.IsEmpty())
+		return;
+	
+	VfsProgram* prog = o.FindExt<VfsProgram>();
+	if (!prog)
+		return;
+	
+	form.LoadString(prog->formxml, prog->formxml_compressed);
+	
+	VfsPath lpath;
+	lpath.SetPosixPath(layout_path);
+	
+	if (lpath.IsEmpty())
+		form.Clear();
+	else if (lpath.Parts()[0] == ".") {
+		lpath.Remove(0);
+		String p = lpath.Parts().GetCount() ? (String)lpath.Parts()[0] : "";
+		form.Layout(p);
+	}
+	else {
+		TODO
+	}
 }
 
 void VfsProgramCtrl::FormTab::EditPos(JsonIO& json) {

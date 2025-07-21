@@ -102,10 +102,24 @@ void VfsProgram::Update(double dt) {
 	
 }
 
+VirtualNode VfsProgram::RealizePath(const VfsPath& path, hash_t type_hash) {
+	VirtualNode root = val.RootPolyValue();
+	VirtualNode cur = root;
+	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
+		const auto& part = path.Parts()[i];
+		cur = cur.GetAdd(part, 0);
+	}
+	cur = cur.GetAdd(path.Parts().Top(), type_hash);
+	ASSERT(cur.IsValue());
+	return cur;
+}
+
+
+
 INITIALIZER_VFSEXT(VfsProgramIteration, "", "");
 INITIALIZER_VFSEXT(VfsProgramSession, "", "");
 INITIALIZER_VFSEXT(VfsProgramProject, "", "");
 INITIALIZER_COMPONENT(VfsProgram, "vfs.program", "Vfs|Program")
-INITIALIZER_COMPONENT(VfsFormCtrl, "", "")
+INITIALIZER_COMPONENT(VfsForm, "", "")
 
 END_UPP_NAMESPACE

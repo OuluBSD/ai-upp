@@ -15,6 +15,8 @@ struct type : Component \
 }; \
 INITIALIZE(type)
 
+#define POLYVALUE_STUB_HEADER(type) COMPONENT_STUB_HEADER(type)
+
 using EntityId				= int64;
 
 struct Entity :

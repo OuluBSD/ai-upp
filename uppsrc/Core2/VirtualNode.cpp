@@ -354,5 +354,9 @@ VirtualNode::Data& VirtualNode::CreateValue(const VfsPath& p, Value* v, Value ke
 	return *data;
 }
 
+VfsPath VirtualNode::GetPath() const {
+	return data ? data->path : VfsPath();
+}
+
 
 END_UPP_NAMESPACE

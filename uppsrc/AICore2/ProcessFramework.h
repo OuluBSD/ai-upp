@@ -85,12 +85,19 @@ public:
 	void Uninitialize() override;
 	void Update(double dt) override;
 	
+	VirtualNode RealizePath(const VfsPath& path, hash_t type_hash);
+	
+	template <class T>
+	VirtualNode RealizePath(const VfsPath& path) {return RealizePath(path, AsTypeHash<T>());}
+	
 	Event<> WhenDataTree;
+	Event<VfsPath> WhenLayout;
 };
 
 INITIALIZE(VfsProgram);
 
-COMPONENT_STUB_HEADER(VfsFormCtrl)
+POLYVALUE_STUB_HEADER(VfsForm)
+
 
 // Note: see 'AiTask::CreateInput_DefaultJson' for predecessor
 //       what that was:    complicated initializer for AI calls with json templates
@@ -130,8 +137,9 @@ private:
 	bool Catch(Event<> cb, Vector<ProcMsg>& msgs);
 	bool CompileLambdas(Vector<ProcMsg>& msgs, MsgCb WhenMessage=MsgCb());
 	void RunStage(EscEscape& e, hash_t stage_hash, hash_t fn_hash);
-	
 	void CreateForm(EscEscape& e);
+	void SetFormLayout(EscEscape& e);
+	VfsProgram& GetProgram(EscEscape& e, int i, VfsPath& path);
 	
 	EscSession esc;
 	MsgCb WhenMessage;

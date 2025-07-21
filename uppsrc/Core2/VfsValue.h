@@ -1055,4 +1055,22 @@ template<> inline void Visitor::VisitVectorSerialize<Array<VfsValue>>(Array<VfsV
 }
 
 
+
+
+template <class T>
+inline T* VirtualNode::As() {
+	if (!data) return 0;
+	Data& d = *data;
+	if (d.mode == VFS_VALUE) {
+		if (d.poly_value && d.poly_value->Is<T>())
+			return &const_cast<T&>(d.poly_value->To<T>());
+	}
+	else if (d.mode == VFS_ENTITY) {
+		if (d.vfs_value)
+			return d.vfs_value->FindExt<T>();
+	}
+	return 0;
+}
+
+
 #endif

@@ -48,9 +48,13 @@ struct VirtualNode : Moveable<VirtualNode> {
 	//Data& Create();
 	Data& Create(const VfsPath& p, VfsValue* n);
 	Data& CreateValue(const VfsPath& p, Value* v, Value key);
+	VfsPath GetPath() const;
 	
 	template <class T>
 	T& GetAddExt(String name);
+	
+	template <class T>
+	T* As();
 };
 
 

@@ -100,7 +100,12 @@ void VirtualFSComponentCtrl::DataTree(TreeCtrl& tree) {
 		name = "This component";
 	tree.SetDisplay(QTFDisplay());
 	tree.SetRoot(MetaImgs::RedRing(), name);
-	Visit(tree, 0, Root());
+	try {
+		Visit(tree, 0, Root());
+	}
+	catch (...) {
+		LOG("VirtualFSComponentCtrl::DataTree: error visiting");
+	}
 	tree.OpenDeep(0);
 	tree.SetCursor(0);
 	tree.WhenCursor = THISBACK1(OnTreeCursor, &tree);

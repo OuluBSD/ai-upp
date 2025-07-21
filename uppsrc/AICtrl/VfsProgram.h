@@ -64,7 +64,8 @@ class VfsProgramCtrl : public ValueVFSComponentCtrl {
 	};
 	
 	struct FormTab : VNodeComponentCtrl {
-		Label l;
+		Form form;
+		VfsPath cur_path;
 		VfsProgramCtrl& o;
 		typedef FormTab CLASSNAME;
 		FormTab(VfsProgramCtrl&, const VirtualNode& vnode);
@@ -73,6 +74,7 @@ class VfsProgramCtrl : public ValueVFSComponentCtrl {
 	};
 	
 	Ptr<MainTab> main;
+	Ptr<FormTab> form;
 	Ptr<Agent> agent;
 	Vector<Ptr<VfsValue>> projects, sessions, iterations, stages;
 	Ptr<VfsValue> cur_project, cur_session, cur_stage;

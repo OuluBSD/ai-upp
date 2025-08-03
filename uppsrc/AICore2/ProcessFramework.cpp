@@ -326,9 +326,12 @@ void Agent::SetFormLayout(EscEscape& e) {
 	auto form_node = prog.RealizePath<VfsForm>(path);
 	ASSERT(form_node.IsValue());
 	
-	ValueMap map = form_node.GetValue();
-	map.Set("layout_path", (String)e[1]);
-	form_node.WriteValue(map);
+	Value v = form_node.GetValue();
+	if (!v.IsError()) {
+		ValueMap map = v;
+		map.Set("layout_path", (String)e[1]);
+		form_node.WriteValue(map);
+	}
 	
 	prog.WhenLayout(path);
 }

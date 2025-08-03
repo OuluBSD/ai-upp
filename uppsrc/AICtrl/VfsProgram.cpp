@@ -462,7 +462,7 @@ VirtualNode VfsProgramCtrl::Root() {
 			LOG("ValueVFSComponentCtrl::Root: warning: resetting AstValue to Value");
 			val.value = Value();
 		}
-		auto& data = root.CreateValue(root_path, &val.value, Value());
+		auto& data = root.CreateValue(root_path, &val.value);
 		root.SetType(AsTypeHash<VfsProgram>());
 		data.vfs_value = &val;
 	}

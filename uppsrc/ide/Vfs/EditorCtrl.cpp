@@ -55,7 +55,8 @@ void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, VfsValueExtCtrl* c) {
 		c->WhenSaveEditPos = Proxy(WhenSaveEditPos);
 		ext_ctrl.Attach(c);
 		ext_place.Add(c->SizePos());
-		PostCallback(THISBACK(DataExtCtrl));
+		Ptr<Ctrl> exists = this;
+		PostCallback([this,exists]{if (exists) this->DataExtCtrl();});
 		c->WhenEditorChange = THISBACK(DataExtCtrl);
 	}
 	UpdateMenu();

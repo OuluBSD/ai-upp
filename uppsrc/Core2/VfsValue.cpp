@@ -1752,7 +1752,7 @@ VirtualNode VfsValue::RootPolyValue() {
 		LOG("VfsValue::RootPolyValue: warning: resetting AstValue to Value");
 		value = Value();
 	}
-	auto& data = root.CreateValue(root_path, &value, Value());
+	auto& data = root.CreateValue(root_path, &value);
 	return root;
 }
 

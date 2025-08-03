@@ -7,7 +7,7 @@ library(WIN32 MSC) libclang.lib;
 
 library(WIN32 !MSC MSYS) "clang libclang.dll.a";
 
-library(LCLANG) clang;
+library(LCLANG !MSC) clang;
 
 library(WIN32 !MSC !MSYS) libclang;
 

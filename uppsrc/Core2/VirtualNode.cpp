@@ -27,16 +27,12 @@ VirtualNode& VirtualNode::operator=(const VirtualNode& vn) {
 VirtualNode VirtualNode::Find(Value name) {
 	VirtualNode n;
 	if (data) {
-		if (data->poly_value) {
-			if (data->poly_value->IsNull())
-				*data->poly_value = ValueMap();
-			if (data->poly_value->Is<ValueMap>()) {
-				ValueMap map = *data->poly_value;
-				int i = map.Find(name);
-				if (i >= 0)
-					n.CreateValue(data->path + name, &const_cast<Value&>(map.GetValue(i)), map.GetKey(i));
-			}
-			else TODO;
+		if (data->root_poly_value) {
+			VfsPath p = data->path;
+			p.Add(name);
+			Value v = Get(*data->root_poly_value, p);
+			if (!v.IsError())
+				n.CreateValue(p, data->root_poly_value);
 		}
 		else if (data->vfs_value) {
 			VfsValue& mn = *data->vfs_value;
@@ -54,11 +50,8 @@ VirtualNode VirtualNode::Find(Value name) {
 void VirtualNode::RemoveSubNodes() {
 	ASSERT(data);
 	if (!data) return;
-	if (data->poly_value) {
-		if (data->poly_value->Is<ValueMap>()) {
-			*data->poly_value = ValueMap();
-		}
-		else TODO;
+	if (data->root_poly_value) {
+		RemoveSubNodes(*data->root_poly_value, data->path);
 	}
 	else if (data->vfs_value) {
 		VfsValue& mn = *data->vfs_value;
@@ -70,13 +63,10 @@ void VirtualNode::RemoveSubNodes() {
 void VirtualNode::Remove(const Value& name) {
 	ASSERT(data);
 	if (!data) return;
-	if (data->poly_value) {
-		if (data->poly_value->Is<ValueMap>()) {
-			ValueMap map = *data->poly_value;
-			map.RemoveKey(name);
-			*data->poly_value = map;
-		}
-		else TODO;
+	if (data->root_poly_value) {
+		VfsPath p(data->path);
+		p.Add(name);
+		Remove(*data->root_poly_value, p);
 	}
 	else if (data->vfs_value) {
 		VfsValue& mn = *data->vfs_value;
@@ -94,37 +84,39 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 	if (data) {
 		int mode = data->mode;
 		if (mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value) {
-				if (data->poly_value->IsNull())
-					*data->poly_value = ValueMap();
-				if (data->poly_value->Is<ValueMap>()) {
-					ValueMap map = *data->poly_value;
+			if (data->root_poly_value) {
+				Value poly_value = Get(*data->root_poly_value, data->path);
+				
+				if (poly_value.IsNull())
+					poly_value = ValueMap();
+				if (poly_value.Is<ValueMap>()) {
+					ValueMap map = poly_value;
 					v.Reserve(map.GetCount());
 					for(int i = 0; i < map.GetCount(); i++) {
 						Value& val = const_cast<Value&>(map.GetValue(i));
 						if (val.Is<ValueMap>()) {
 							Value key = map.GetKey(i);
-							auto& o = v.Add().CreateValue(data->path + key, &val, key);
-							ASSERT(o.poly_value->Is<ValueMap>());
+							auto& o = v.Add().CreateValue(data->path + key, data->root_poly_value);
+							ASSERT(o.path.IsEmpty() || o.root_poly_value->Is<ValueMap>());
 						}
 					}
 				}
-				else if (data->poly_value->Is<ValueArray>()) {
-					ValueArray arr = *data->poly_value;
+				else if (poly_value.Is<ValueArray>()) {
+					ValueArray arr = poly_value;
 					v.Reserve(arr.GetCount());
 					for(int i = 0; i < arr.GetCount(); i++) {
 						Value& val = arr.At(i);
 						if (val.Is<ValueMap>()) {
-							v.Add().CreateValue(data->path + i, &val, i);
+							v.Add().CreateValue(data->path + i, data->root_poly_value);
 						}
 					}
 				}
-				else if (data->poly_value->Is<AstValue>()) {
+				else if (poly_value.Is<AstValue>()) {
 					TODO
 				}
 				else {
-					LOG(data->poly_value->GetTypeName());
-					LOG(data->poly_value->ToString());
+					LOG(poly_value.GetTypeName());
+					LOG(poly_value.ToString());
 					TODO;
 				}
 			}
@@ -147,7 +139,7 @@ Vector<VirtualNode> VirtualNode::GetAll() {
 					}
 				}
 			}
-			else if (data->poly_value) {
+			else if (data->root_poly_value) {
 				ASSERT_(0, "only value pointer in entity based vfs");
 			}
 			else TODO;
@@ -173,20 +165,24 @@ VirtualNode VirtualNode::Add(Value name, hash_t type_hash) {
 	VirtualNode n;
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value) {
-				if (!data->poly_value->Is<ValueMap>())
-					*data->poly_value = ValueMap();
-				ValueMap map = *data->poly_value;
+			if (data->root_poly_value) {
+				Value poly_value = Get(*data->root_poly_value, data->path);
+				
+				if (!poly_value.Is<ValueMap>())
+					poly_value = ValueMap();
+				ValueMap map = poly_value;
 				{
-					ValueMap sub_map;
+					Value v = map.Get(name, Value());
+					if (!v.Is<ValueMap>())
+						v = ValueMap();
+					ValueMap sub_map = v;
 					sub_map.Set(".type_hash", (int64)type_hash);
 					map.Set(name, sub_map);
 				}
-				Value val = ValueMap();
-				ASSERT(val.Is<ValueMap>());
-				n.CreateValue(data->path + name, &val, name);
-				map.Add(name, val);
-				*data->poly_value = map;
+				n.CreateValue(data->path + name, data->root_poly_value);
+				poly_value = map;
+				
+				Set(*data->root_poly_value, data->path, poly_value);
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
@@ -204,21 +200,33 @@ VirtualNode VirtualNode::GetAdd(Value name, hash_t type_hash) {
 	VirtualNode n;
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value) {
-				if (!data->poly_value->Is<ValueMap>())
-					*data->poly_value = ValueMap();
+			if (data->root_poly_value) {
+				Value poly_value = Get(*data->root_poly_value, data->path);
+				
+				if (!poly_value.Is<ValueMap>())
+					poly_value = ValueMap();
 				{
-					ValueMap map = *data->poly_value;
+					ValueMap map = poly_value;
 					{
-						ValueMap sub_map;
+						Value v = map.Get(name, Value());
+						if (!v.Is<ValueMap>())
+							v = ValueMap();
+						ValueMap sub_map = v;
+						Value old_type_hash = sub_map.Get(".type_hash", Value());
+						if (old_type_hash.Is<int64>() && (int64)old_type_hash == (int64)type_hash) {
+							n.CreateValue(data->path + name, data->root_poly_value);
+							return n;
+						}
 						sub_map.Set(".type_hash", (int64)type_hash);
 						map.Set(name, sub_map);
 					}
-					*data->poly_value = map;
+					poly_value = map;
 				}
-				auto& val = data->poly_value->GetAdd(name);
+				auto& val = poly_value.GetAdd(name);
 				ASSERT(val.Is<ValueMap>());
-				n.CreateValue(data->path + name, &val, name);
+				n.CreateValue(data->path + name, data->root_poly_value);
+				
+				Set(*data->root_poly_value, data->path, poly_value);
 			}
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
@@ -235,7 +243,7 @@ VirtualNode VirtualNode::GetAdd(Value name, hash_t type_hash) {
 Value VirtualNode::GetName() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value)
+			if (data->root_poly_value)
 				return data->key;
 		}
 		else if (data->mode == VirtualNode::VFS_ENTITY) {
@@ -250,9 +258,11 @@ Value VirtualNode::GetName() const {
 String VirtualNode::GetTypeString() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value) {
-				if (data->poly_value->Is<ValueMap>()) {
-					ValueMap map = *data->poly_value;
+			if (data->root_poly_value) {
+				Value poly_value = Get(*data->root_poly_value, data->path);
+				
+				if (poly_value.Is<ValueMap>()) {
+					ValueMap map = poly_value;
 					int i = map.Find(".type_hash");
 					if (i >= 0) {
 						Value type_hash_value = map.GetValue(i);
@@ -275,9 +285,11 @@ String VirtualNode::GetTypeString() const {
 hash_t VirtualNode::GetTypeHash() const {
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value) {
-				if (data->poly_value->Is<ValueMap>()) {
-					ValueMap map = *data->poly_value;
+			if (data->root_poly_value) {
+				Value poly_value = Get(*data->root_poly_value, data->path);
+			
+				if (poly_value.Is<ValueMap>()) {
+					ValueMap map = poly_value;
 					int i = map.Find(".type_hash");
 					if (i >= 0)
 						return (hash_t)(int64)map.GetValue(i);
@@ -299,12 +311,18 @@ void VirtualNode::SetType(hash_t type_hash) {
 	ASSERT(data);
 	if (data) {
 		if (data->mode == VirtualNode::VFS_VALUE) {
-			if (data->poly_value->IsNull())
-				*data->poly_value = ValueMap();
-			if (data->poly_value->Is<ValueMap>()) {
-				ValueMap map = *data->poly_value;
-				map.Set(".type_hash", (int64)type_hash);
-				*data->poly_value = map;
+			Value poly_value = Get(*data->root_poly_value, data->path);
+			
+			if (poly_value.IsNull())
+				poly_value = ValueMap();
+			if (poly_value.Is<ValueMap>()) {
+				ValueMap map = poly_value;
+				Value old_type_hash = map.Get(".type_hash", Value());
+				if (!old_type_hash.Is<int64>() || (int64)old_type_hash != (int64)type_hash) {
+					map.Set(".type_hash", (int64)type_hash);
+					poly_value = map;
+					Set(*data->root_poly_value, data->path, poly_value);
+				}
 			}
 			else TODO;
 		}
@@ -319,13 +337,19 @@ void VirtualNode::SetType(hash_t type_hash) {
 	}
 }
 
-bool VirtualNode::IsValue() const {return data && data->mode == VFS_VALUE && data->poly_value;}
+bool VirtualNode::IsValue() const {return data && data->mode == VFS_VALUE && data->root_poly_value;}
 bool VirtualNode::IsEntity() const {return data && data->mode == VFS_ENTITY && data->vfs_value;}
-Value VirtualNode::GetValue() const {return data && data->mode == VFS_VALUE && data->poly_value ? *data->poly_value : Value();}
+
+Value VirtualNode::GetValue() const {
+	if (data && data->mode == VFS_VALUE && data->root_poly_value)
+		return Get(*data->root_poly_value, data->path);
+	return Value();
+}
+
 void VirtualNode::WriteValue(Value val) {
 	ASSERT(IsValue());
-	if (data && data->poly_value)
-		*data->poly_value = val;
+	if (data && data->mode == VFS_VALUE && data->root_poly_value)
+		Set(*data->root_poly_value, data->path, val);
 }
 
 VirtualNode::operator bool() const {return data;}
@@ -342,13 +366,13 @@ VirtualNode::Data& VirtualNode::Create(const VfsPath& p, VfsValue* n)
 	return *data;
 }
 
-VirtualNode::Data& VirtualNode::CreateValue(const VfsPath& p, Value* v, Value key)
+VirtualNode::Data& VirtualNode::CreateValue(const VfsPath& p, Value* root)
 {
 	Clear();
 	data = new Data();
 	data->path = p;
-	data->key = key;
-	data->poly_value = v;
+	data->key = p.TopPart();
+	data->root_poly_value = root;
 	data->mode = VFS_VALUE;
 	data->Inc();
 	return *data;
@@ -356,6 +380,259 @@ VirtualNode::Data& VirtualNode::CreateValue(const VfsPath& p, Value* v, Value ke
 
 VfsPath VirtualNode::GetPath() const {
 	return data ? data->path : VfsPath();
+}
+
+
+Value VirtualNode::Get(const Value& root_value, const VfsPath& path) {
+	if (path.IsEmpty())
+		return root_value;
+	ValueMap map;
+	if (!root_value.Is<ValueMap>())
+		return ErrorValue("root is not map");
+	map = root_value;
+	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
+		const Value& part = path.Parts()[i];
+		int j = map.Find(part);
+		if (j < 0)
+			return ErrorValue("path not found: " + path.ToString());
+		Value v = map.GetValue(j);
+		if (!v.Is<ValueMap>())
+			return ErrorValue("value is not map");
+		map = v;
+	}
+	const Value& part = path.Parts().Top();
+	int j = map.Find(part);
+	if (j < 0)
+		return ErrorValue("path not found: " + path.ToString());
+	Value v = map.GetValue(j);
+	return v;
+}
+
+void VirtualNode::Set(Value& root_value, const VfsPath& path, const Value& value) {
+	if (path.IsEmpty()) {
+		root_value = value;
+		return;
+	}
+	struct Scope : Moveable<Scope> {
+		ValueMap map;
+		int idx = -1;
+	};
+	Vector<Scope> scopes;
+	
+	if (!root_value.Is<ValueMap>())
+		root_value = ValueMap();
+	
+	scopes.Add().map = root_value;
+	
+	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
+		Scope& s0 = scopes.Add();
+		Scope& s1 = scopes[i];
+		ValueMap& map = s1.map;
+		
+		const Value& part = path.Parts()[i];
+		int j = map.Find(part);
+		if (j < 0) {
+			j = map.GetCount();
+			map.Add(part, Value());
+		}
+		Value v = map.GetValue(j);
+		if (v.Is<ValueArray>()) {
+			TODO
+		}
+		else if (!v.Is<ValueMap>()) {
+			v = ValueMap();
+		}
+		s0.map = v;
+		s0.idx = j;
+	}
+	
+	{
+		Scope& s1 = scopes.Top();
+		ValueMap& map = s1.map;
+		const Value& part = path.Parts().Top();
+		int j = map.Find(part);
+		if (j < 0) {
+			j = map.GetCount();
+			map.Add(part, value);
+		}
+		else {
+			map.SetAt(j, value);
+		}
+	}
+	
+	for (int i = scopes.GetCount()-2; i >= 0; i--) {
+		Scope& s0 = scopes[i];
+		Scope& s1 = scopes[i+1];
+		s0.map.SetAt(s1.idx, s1.map);
+	}
+	
+	root_value = scopes[0].map;
+}
+
+void VirtualNode::SetKey(Value& root_value, const VfsPath& path, int path_i, const Value& value) {
+	ASSERT(path_i >= 0 && path_i < path.GetPartCount());
+	
+	struct Scope : Moveable<Scope> {
+		ValueMap map;
+		int idx = -1;
+	};
+	Vector<Scope> scopes;
+	
+	if (!root_value.Is<ValueMap>())
+		root_value = ValueMap();
+	
+	scopes.Add().map = root_value;
+	
+	for(int i = 0; i < path_i; i++) {
+		Scope& s0 = scopes.Add();
+		Scope& s1 = scopes[i];
+		ValueMap& map = s1.map;
+		
+		const Value& part = path.Parts()[i];
+		int j = map.Find(part);
+		if (j < 0) {
+			j = map.GetCount();
+			map.Add(part, Value());
+		}
+		Value v = map.GetValue(j);
+		if (v.Is<ValueArray>()) {
+			TODO
+		}
+		else if (!v.Is<ValueMap>()) {
+			v = ValueMap();
+		}
+		s0.map = v;
+		s0.idx = j;
+	}
+	
+	{
+		Scope& s1 = scopes.Top();
+		ValueMap& map = s1.map;
+		const Value& part = path.Parts()[path_i];
+		int j = map.Find(part);
+		ASSERT(j >= 0);
+		if (j >= 0) {
+			map.SetKey(j, value);
+		}
+	}
+	
+	for (int i = scopes.GetCount()-2; i >= 0; i--) {
+		Scope& s0 = scopes[i];
+		Scope& s1 = scopes[i+1];
+		s0.map.SetAt(s1.idx, s1.map);
+	}
+	
+	root_value = scopes[0].map;
+}
+
+void VirtualNode::RemoveSubNodes(Value& root_value, const VfsPath& path) {
+	if (path.IsEmpty()) {
+		root_value = ValueMap();
+		return;
+	}
+	struct Scope : Moveable<Scope> {
+		ValueMap map;
+		int idx = -1;
+	};
+	Vector<Scope> scopes;
+	
+	if (!root_value.Is<ValueMap>())
+		root_value = ValueMap();
+	
+	scopes.Add().map = root_value;
+	
+	for(int i = 0; i < path.Parts().GetCount(); i++) {
+		Scope& s0 = scopes.Add();
+		Scope& s1 = scopes[i];
+		ValueMap& map = s1.map;
+		
+		const Value& part = path.Parts()[i];
+		int j = map.Find(part);
+		if (j < 0) {
+			j = map.GetCount();
+			map.Add(part, Value());
+		}
+		Value v = map.GetValue(j);
+		if (v.Is<ValueArray>()) {
+			TODO
+		}
+		else if (!v.Is<ValueMap>()) {
+			v = ValueMap();
+		}
+		s0.map = v;
+		s0.idx = j;
+	}
+	
+	{
+		Scope& s1 = scopes.Top();
+		ValueMap& map = s1.map;
+		map.Clear();
+	}
+	
+	for (int i = scopes.GetCount()-2; i >= 0; i--) {
+		Scope& s0 = scopes[i];
+		Scope& s1 = scopes[i+1];
+		s0.map.SetAt(s1.idx, s1.map);
+	}
+	
+	root_value = scopes[0].map;
+}
+
+void VirtualNode::Remove(Value& root_value, const VfsPath& path) {
+	if (path.IsEmpty()) {
+		root_value = ValueMap();
+		return;
+	}
+	struct Scope : Moveable<Scope> {
+		ValueMap map;
+		int idx = -1;
+	};
+	Vector<Scope> scopes;
+	
+	if (!root_value.Is<ValueMap>())
+		root_value = ValueMap();
+	
+	scopes.Add().map = root_value;
+	
+	for(int i = 0; i < path.Parts().GetCount()-1; i++) {
+		Scope& s0 = scopes.Add();
+		Scope& s1 = scopes[i];
+		ValueMap& map = s1.map;
+		
+		const Value& part = path.Parts()[i];
+		int j = map.Find(part);
+		if (j < 0) {
+			j = map.GetCount();
+			map.Add(part, Value());
+		}
+		Value v = map.GetValue(j);
+		if (v.Is<ValueArray>()) {
+			TODO
+		}
+		else if (!v.Is<ValueMap>()) {
+			v = ValueMap();
+		}
+		s0.map = v;
+		s0.idx = j;
+	}
+	
+	{
+		Scope& s1 = scopes.Top();
+		ValueMap& map = s1.map;
+		const Value& part = path.Parts().Top();
+		int j = map.Find(part);
+		if (j < 0)
+			return;
+		map.Remove(j);
+	}
+	
+	for (int i = scopes.GetCount()-2; i >= 0; i--) {
+		Scope& s0 = scopes[i];
+		Scope& s1 = scopes[i+1];
+		s0.map.SetAt(s1.idx, s1.map);
+	}
+	
+	root_value = scopes[0].map;
 }
 
 

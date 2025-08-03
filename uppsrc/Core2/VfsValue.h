@@ -1062,8 +1062,11 @@ inline T* VirtualNode::As() {
 	if (!data) return 0;
 	Data& d = *data;
 	if (d.mode == VFS_VALUE) {
-		if (d.poly_value && d.poly_value->Is<T>())
-			return &const_cast<T&>(d.poly_value->To<T>());
+		if (d.root_poly_value) {
+			Value val = Get(*d.root_poly_value, d.path);
+			if (val.Is<T>())
+				return &const_cast<T&>(val.To<T>());
+		}
 	}
 	else if (d.mode == VFS_ENTITY) {
 		if (d.vfs_value)

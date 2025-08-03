@@ -32,7 +32,7 @@ void VirtualFSComponentCtrl::Data() {
 		PromptOK("vnode error");
 		return;
 	}
-	int vnode_type_hash = vnode.GetTypeHash();
+	hash_t vnode_type_hash = vnode.GetTypeHash();
 	
 	// Check if vnode_ctrl is correct
 	bool create_new = !vnode_ctrl || vnode_ctrl->type_hash != vnode_type_hash;
@@ -161,7 +161,8 @@ VirtualNode ValueVFSComponentCtrl::Root() {
 			LOG("ValueVFSComponentCtrl::Root: warning: resetting AstValue to Value");
 			val.value = Value();
 		}
-		auto& data = root.CreateValue(root_path, &val.value, "Root");
+		auto& data = root.CreateValue(root_path, &val.value);
+		data.key = "Root";
 		data.vfs_value = &val;
 	}
 	return root;

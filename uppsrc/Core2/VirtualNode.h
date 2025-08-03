@@ -15,7 +15,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 		Atomic refs = 0;
 		VfsValue* vfs_value = 0;
 		EntityData* edata = 0;
-		Value* poly_value = 0;
+		Value* root_poly_value = 0;
 		Value key;
 		VfsPath path;
 		int mode = -1;
@@ -47,7 +47,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 	void Remove(const Value& name);
 	//Data& Create();
 	Data& Create(const VfsPath& p, VfsValue* n);
-	Data& CreateValue(const VfsPath& p, Value* v, Value key);
+	Data& CreateValue(const VfsPath& p, Value* root_value);
 	VfsPath GetPath() const;
 	
 	template <class T>
@@ -55,6 +55,12 @@ struct VirtualNode : Moveable<VirtualNode> {
 	
 	template <class T>
 	T* As();
+	
+	static Value Get(const Value& root_value, const VfsPath& path);
+	static void  Set(Value& root_value, const VfsPath& path, const Value& value);
+	static void  RemoveSubNodes(Value& root_value, const VfsPath& path);
+	static void  Remove(Value& root_value, const VfsPath& path);
+	static void  SetKey(Value& root_value, const VfsPath& path, int path_i, const Value& value);
 };
 
 

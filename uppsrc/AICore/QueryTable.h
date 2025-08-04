@@ -11,6 +11,7 @@ class QueryTable {
 	Array<Vector<T> > predictors;
 	Vector<T> target;
 	Vector<double> gains;
+	VectorMap<T, double> scores;
 	
 	Vector<String> predictor_names;
 	String target_name;
@@ -24,6 +25,7 @@ public:
 	
 	void AddValue(int i, const T& value) {predictors[i].Add(value);}
 	void AddTargetValue(const T& value) {target.Add(value);}
+	void AddTargetScore(const T& value, double score) {scores.Add(value, score);}
 	
 	const Vector<double>& GetInfoGains() const {return gains;}
 	
@@ -110,6 +112,82 @@ public:
 		}
 		
 		return max_id;
+	}
+	
+	String GetInfoString() {
+		GetLargestInfoGainPredictor();
+		const Vector<double>& gains = GetInfoGains();
+		VectorMap<int,double> gain_idx;
+		for(int i = 0; i < gains.GetCount(); i++)
+			gain_idx.Add(i, gains[i]);
+		SortByValue(gain_idx, StdGreater<double>());
+		
+		
+		String out;
+		for(int i = 0; i < gain_idx.GetCount(); i++) {
+			int idx = gain_idx.GetKey(i);
+			double gain = gain_idx[i];
+			
+			VectorMap<T, VectorMap<T,int>> value_counts;
+			
+			const auto& idx_preds = predictors[idx];
+			for(int j = 0; j < idx_preds.GetCount(); j++) {
+				value_counts.GetAdd(idx_preds[j]).GetAdd(target[j],0)++;
+			}
+			
+			for (auto it : ~value_counts)
+				SortByValue(it.value, StdGreater<int>());
+			
+			struct Sorter {
+				QueryTable* qt = 0;
+				bool operator()(const VectorMap<T,int>& a, const VectorMap<T,int>& b) const {
+					double sum_a = 0, sum_b = 0;
+					int count_a = 0, count_b = 0;
+					for (const auto it : ~a) {
+						double score = qt->scores.Get(it.key, 1);
+						sum_a += it.value * score;
+						count_a += it.value;
+					}
+					for (const auto it : ~b) {
+						double score = qt->scores.Get(it.key, 1);
+						sum_b += it.value * score;
+						count_b += it.value;
+					}
+					double av_a = sum_a / count_a;
+					double av_b = sum_b / count_b;
+					return av_a > av_b;
+				}
+			};
+			Sorter s;
+			s.qt = this;
+			SortByValue(value_counts, s);
+			
+			out << "Predictor " << idx << ": " << predictor_names[idx] << " (" << Format("%.2f", gain) << "):\n";
+			for(int j = 0; j < value_counts.GetCount(); j++) {
+				const T& pred_key = value_counts.GetKey(j);
+				const auto& pred_val = value_counts[j];
+				
+				double sum = 0;
+				int count = 0;
+				for (const auto it : ~pred_val) {
+					double score = scores.Get(it.key, 1);
+					sum += it.value * score;
+					count += it.value;
+				}
+				double av = sum / count;
+				
+				out << "\t" << AsString(pred_key) << " (" << Format("%.2f", av) << ")\n";
+				if (0) {
+					for (const auto& it : ~pred_val) {
+						double score = scores.Get(it.key, 1);
+						double weighted = score * it.value;
+						out << "\t\t" << AsString(it.key) << ": " << weighted << "\n";
+					}
+				}
+			}
+			out << "\n";
+		}
+		return out;
 	}
 };
 

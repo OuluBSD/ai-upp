@@ -5,7 +5,7 @@
 EXT_LIST
 #undef DATASET_ITEM
 struct SrcTextData;
-class Entity;
+struct Entity;
 
 // Deprecated
 // DatasetPtrs is used only classes with "public SolverBase"

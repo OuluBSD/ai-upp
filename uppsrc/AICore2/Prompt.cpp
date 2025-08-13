@@ -348,6 +348,13 @@ JsonPrompt::Message& JsonPrompt::Add(String json, int type) {
 	return m;
 }
 
+JsonPrompt::Message& JsonPrompt::AddText(String txt, int type) {
+	Message& m = messages.Add();
+	m.type = type;
+	m.val = txt;
+	return m;
+}
+
 JsonPrompt::Message& JsonPrompt::AddDefaultSystem() {
 	return AddSystem(
 		"You are a helpful assistant, who reads queries and gives responses in JSON format. "
@@ -369,6 +376,14 @@ JsonPrompt::Message& JsonPrompt::AddAssist(String json) {
 
 JsonPrompt::Message& JsonPrompt::AddUser(String json) {
 	return Add(json, USER);
+}
+
+JsonPrompt::Message& JsonPrompt::AddAssistText(String txt) {
+	return AddText(txt, ASSIST);
+}
+
+JsonPrompt::Message& JsonPrompt::AddUserText(String txt) {
+	return AddText(txt, USER);
 }
 
 JsonPrompt& JsonPrompt::UseLegacyCompletion(bool b) {

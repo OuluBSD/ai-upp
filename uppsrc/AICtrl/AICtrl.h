@@ -92,6 +92,7 @@ END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 
+#include "ProtoVideoTask1.h"
 
 
 END_UPP_NAMESPACE

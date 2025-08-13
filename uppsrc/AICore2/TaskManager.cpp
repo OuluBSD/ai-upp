@@ -395,6 +395,10 @@ void TaskMgr::Get(bool json, const TaskArgs& args, Event<String> WhenResult, Str
 	t.args << s;
 	t.WhenResult << WhenResult;
 	t.keep_going = keep_going;
+	
+	t.type = AiTask::TYPE_CHAT;
+	t.chat.Create();
+	
 	task_lock.Leave();
 	
 	TaskMgrConfig().Single().Realize();

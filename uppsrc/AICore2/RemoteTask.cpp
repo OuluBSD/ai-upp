@@ -203,7 +203,7 @@ bool AiTask::ProcessInput()
 			return false;
 		
 		if (chat->model_name.IsEmpty())
-			chat->model_name = "o3-mini";
+			chat->model_name = "o4-mini";
 		for (const auto& from : input_json->messages) {
 			auto& to = chat->messages.Add();
 			switch (from.type) {

@@ -237,6 +237,11 @@ struct JsonPrompt {
 	Message& AddSystem(String msg);
 	Message& AddAssist(String json);
 	Message& AddUser(String json);
+	
+	Message& AddText(String json, int type);
+	Message& AddAssistText(String txt);
+	Message& AddUserText(String txt);
+	
 	JsonPrompt& UseLegacyCompletion(bool b=true);
 	bool IsEmpty() const;
 	String AsJSON(bool pretty) const;

@@ -118,6 +118,8 @@ file
 	Script.h,
 	Script.cpp,
 	Video readonly separator,
+	ProtoVideoTask1.h,
+	ProtoVideoTask1.cpp,
 	VideoSourceFile.h,
 	VideoSourceFile.cpp,
 	VideoPrompt.h,

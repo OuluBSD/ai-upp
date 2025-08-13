@@ -337,7 +337,9 @@ void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 
 	TaskArgs args;
 	args.Put(this->args[0]);
-
+	
+	String content_policy_fix = "If the content violates the content policies, first convert the content to be allowed (making only minor changes or using alternative explanations that achieve almost the same result), and then continue as normal.";
+	
 	if(args.fn == FN_ANALYZE_CONTEXT_TYPECLASSES) {
 		json_input.AddDefaultSystem();
 		json_input.AddAssist(R"ML(
@@ -1801,6 +1803,29 @@ void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 		})ML")
 			.Set("/query/script/groups", args.params("groups"))
 			.Set("/query/script/values", args.params("values"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_SORA_PRESETS) {
+		json_input.AddSystem("You help to create a style template for video generator Sora. " + content_policy_fix);
+		json_input.AddAssist("German Expressionism\nTheme: German Expressionism Color: Dramatic black and white with stark contrast, deep shadows with bright highlights Camera: Vintage 35mm camera Film Stock: Kodak Panchromatic or simulating early orthochromatic filmsLighting: Intense, low-angle lighting creating sharp shadows and eerie atmospheres Vibe: Distorted, surreal, unsettling, with exaggerated emotions and stylized visuals");
+		json_input.AddAssist("Archival\nShot on Eastmann 100t film, the image quality is grainy and high contrast, with shallow depth of field and cinematic look, epic and dramatic shot, very nostalgic.");
+		json_input.AddAssist("Theme: Film Noir\nColor: High contrast black and white, deep shadows with selective highlights.\nCamera: Arri Alexa Mini, RED Monochrome, or vintage 35mm cameras.\nFilm Stock: Ilford HP5, Kodak Double-X, or high-contrast digital monochrome settings.\nLighting: Low key, chiaroscuro lighting with hard shadows, venetian blind effects, and strong backlighting.\nVibe: Moody, mysterious, suspenseful");
+		json_input.AddAssist("Theme: Cardboard & Papercraft\nColor: Earthy tones like brown, beige, and muted pastels, with occasional pops of color to simulate colored paper.\nFilm Stock: analog film\nLighting: Soft, diffused lighting\nContent Transformation: Everything in the scene—from characters to objects and scenery—should be transformed into cardboard, paper, and glue. Elements should have visible creases, folds, and textures resembling handcrafted models.");
+		json_input.AddAssist("Theme: Playful handcrafted animation.\nColor: Bright, saturated primary colors with handcrafted textures.\nFilm Stock: Smooth frame-by-frame animation with visible stop-motion quirks.\nLighting: Controlled spotlights with small shadows to highlight miniature craftsmanship.\nVibe: Quirky, charming, family-friendly");
+		json_input.AddAssist("Theme: Everything is inflated like a balloon.\nColor: Glossy, bright colors—reds, yellows, blues, and metallics like gold and silver.\nFilm Stock: Clean digital with exaggerated reflections on shiny surfaces.\nLighting: High-key lighting with glossy highlights to mimic rubbery textures.\nContent Transformation: All characters, objects, and environments look inflated, with visible seams and a bouncy quality.\nVibe: Fun, surreal, viral-ready");
+		json_input.AddAssist("8-bit pixel art");
+		json_input.AddAssist("Theme: 1990s VHS Camcorder Recording\nColor: Warm, slightly faded colors with occasional color bleeding and chromatic distortions\nFilm Stock: VHS tape aesthetic featuring visible tracking lines, static noise, and lower resolution\nLighting: Mixed lighting with natural and artificial sources, often resulting in uneven exposure and occasional lens flare\nVibe: Nostalgic, candid, home-video feel with a raw, unpolished atmosphere");
+		json_input.AddUserText(args.params("input"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_SLIDESHOW_PROMPTS) {
+		json_input.AddSystem("You will write the music video screenplay for the slideshow of images. You will also help create the texts for the image generator AI.\nProvide additional options, as the decision will be made later in the video editor.\nGive answer immediately and don't ask questions." + content_policy_fix);
+		json_input.AddUserText(args.params("input"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_VIDEO_WEBSITE_DESCRIPTIONS) {
+		json_input.AddSystem("You help to write description text to TikTok video, which has a song and lyrics. Provide descriptions for Instagram and YouTube also. " + content_policy_fix);
+		json_input.AddUserText(args.params("input"));
 		SetMaxLength(2048);
 	}
 	else

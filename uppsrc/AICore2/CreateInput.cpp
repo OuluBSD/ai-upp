@@ -338,7 +338,7 @@ void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 	TaskArgs args;
 	args.Put(this->args[0]);
 	
-	String content_policy_fix = "If the content violates the content policies, first convert the content to be allowed (making only minor changes or using alternative explanations that achieve almost the same result), and then continue as normal.";
+	String content_policy_fix = "If the content violates the content policies, first convert the content to be allowed (add the word 'almost' before the violating word), and then continue as normal.";
 	
 	if(args.fn == FN_ANALYZE_CONTEXT_TYPECLASSES) {
 		json_input.AddDefaultSystem();
@@ -1825,6 +1825,21 @@ void AiTask::CreateInput_DefaultJson(JsonPrompt& json_input)
 	}
 	else if (args.fn == FN_VIDEO_WEBSITE_DESCRIPTIONS) {
 		json_input.AddSystem("You help to write description text to TikTok video, which has a song and lyrics. Provide descriptions for Instagram and YouTube also. " + content_policy_fix);
+		json_input.AddUserText(args.params("input"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_VIDEO_ADS) {
+		json_input.AddSystem("You help to write text ads for a new music/music-video (in tiktok / youtube reels). " + content_policy_fix);
+		json_input.AddUserText(args.params("input"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_VIDEO_COVER_IMAGE) {
+		json_input.AddSystem("You help write a prompt for an image generator that creates a cover image for a song and its music video. " + content_policy_fix);
+		json_input.AddUserText(args.params("input"));
+		SetMaxLength(2048);
+	}
+	else if (args.fn == FN_ENGLISH_LYRICS) {
+		json_input.AddSystem("You translate the lyrics into English, keeping the number of syllables and lines the same as in the original lyrics. " + content_policy_fix);
 		json_input.AddUserText(args.params("input"));
 		SetMaxLength(2048);
 	}

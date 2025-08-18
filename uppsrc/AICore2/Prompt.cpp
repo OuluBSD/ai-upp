@@ -429,6 +429,8 @@ String JsonPrompt::Message::GetTypeString() const {
 String JsonPrompt::Message::GetContentString() const {
 	if (type == JsonPrompt::SYSTEM)
 		return val.ToString();
+	else if (val.Is<String>())
+		return val;
 	else
 		return ::UPP::AsJSON(val, false);
 }

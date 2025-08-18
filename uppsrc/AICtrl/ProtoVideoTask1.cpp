@@ -1,26 +1,5 @@
 #include "AICtrl.h"
 
-/*
-- outputit / videon ai käyttö
-	x sora presetti
-	x slideshow promptit
-	x tiktok / instagram / youtube description
-	- mainosviesti: X / facebook / threads / bluesky
-	- kuva-generaattori prompt
-	- englanniksi käännetyt lyriikat
-	- video lyrics tekstit
-- inputit
-	- video-idea / tausta-info
-	- lyriikka ja sunossa käytetty tyyli
-	- numero (päivä/video)
-	- onko: itse-tehty (sävellys / sanoitus / sovitus)
-	- onko: 100% alkuperäinen (sävellys / sanoitus / sovitus)
-	- milloin tehty: (sävellys / sanoitus / sovitus)
-	- extra infoa / ajatuslause / jne.
-- prosessit
-	- query + response hardwired
-
-*/
 
 NAMESPACE_UPP
 
@@ -120,63 +99,64 @@ void ProtoVideoTask1Ctrl::OnChange() {
 void ProtoVideoTask1Ctrl::Load() {
 	ProtoVideoTask1& comp = this->GetExt<ProtoVideoTask1>();
 	
-	if (comp.val.value.Is<ValueMap>()) {
-		ValueMap map = comp.val.value;
-		#define LOAD(x) input.x.SetData(map.Get(#x, Value()));
-		LOAD(artist)
-		LOAD(title)
-		LOAD(authors_arrangement)
-		LOAD(authors_composition)
-		LOAD(authors_lyrics)
-		LOAD(extra)
-		LOAD(lyrics)
-		LOAD(musicstyle)
-		LOAD(num)
-		LOAD(original_arrangement)
-		LOAD(original_composition)
-		LOAD(original_lyrics)
-		LOAD(selfmade_arrangement)
-		LOAD(selfmade_composition)
-		LOAD(selfmade_lyrics)
-		LOAD(videoidea)
-		LOAD(videolyrics)
-		LOAD(whenmade_arrangement)
-		LOAD(whenmade_composition)
-		LOAD(whenmade_lyrics)
-		LOAD(whenmade_lyrics_today)
-		#undef LOAD
-		
-		sora_preset.txt.SetData(map.Get("sora_preset", Value()));
-		slideshow_prompts.txt.SetData(map.Get("slideshow_prompts", Value()));
-		descriptions.txt.SetData(map.Get("descriptions", Value()));
-		ad_message.txt.SetData(map.Get("ad_message", Value()));
-		cover_image.txt.SetData(map.Get("cover_image", Value()));
-		english_lyrics.txt.SetData(map.Get("english_lyrics", Value()));
-		video_lyrics.path.SetData(map.Get("videolyrics_path", Value()));
-		
-		// Load font
-		String videolyrics_fontname = map.Get("videolyrics_fontname", Value());
-		if (videolyrics_fontname.IsEmpty())
-			videolyrics_fontname = SansSerif().GetFaceName();
-		int videolyrics_fontidx = 0;
-		for(int i = 0; i < Font::GetFaceCount(); i++) {
-			if (Font::GetFaceName(i) == videolyrics_fontname) {
-				videolyrics_fontidx = i;
-				break;
-			}
+	if (!comp.val.value.Is<ValueMap>())
+		comp.val.value = ValueMap();
+
+	ValueMap map = comp.val.value;
+	#define LOAD(x) input.x.SetData(map.Get(#x, Value()));
+	LOAD(artist)
+	LOAD(title)
+	LOAD(authors_arrangement)
+	LOAD(authors_composition)
+	LOAD(authors_lyrics)
+	LOAD(extra)
+	LOAD(lyrics)
+	LOAD(musicstyle)
+	LOAD(num)
+	LOAD(original_arrangement)
+	LOAD(original_composition)
+	LOAD(original_lyrics)
+	LOAD(selfmade_arrangement)
+	LOAD(selfmade_composition)
+	LOAD(selfmade_lyrics)
+	LOAD(videoidea)
+	LOAD(videolyrics)
+	LOAD(whenmade_arrangement)
+	LOAD(whenmade_composition)
+	LOAD(whenmade_lyrics)
+	LOAD(whenmade_lyrics_today)
+	#undef LOAD
+	
+	sora_preset.txt.SetData(map.Get("sora_preset", Value()));
+	slideshow_prompts.txt.SetData(map.Get("slideshow_prompts", Value()));
+	descriptions.txt.SetData(map.Get("descriptions", Value()));
+	ad_message.txt.SetData(map.Get("ad_message", Value()));
+	cover_image.txt.SetData(map.Get("cover_image", Value()));
+	english_lyrics.txt.SetData(map.Get("english_lyrics", Value()));
+	video_lyrics.path.SetData(map.Get("videolyrics_path", Value()));
+	
+	// Load font
+	String videolyrics_fontname = map.Get("videolyrics_fontname", Value());
+	if (videolyrics_fontname.IsEmpty())
+		videolyrics_fontname = SansSerif().GetFaceName();
+	int videolyrics_fontidx = 0;
+	for(int i = 0; i < Font::GetFaceCount(); i++) {
+		if (Font::GetFaceName(i) == videolyrics_fontname) {
+			videolyrics_fontidx = i;
+			break;
 		}
-		if (videolyrics_fontidx >= 0 && videolyrics_fontidx < video_lyrics.fontlist.GetCount())
-			video_lyrics.fontlist.SetIndex(videolyrics_fontidx);
-		video_lyrics.height.SetData(map.Get("videolyrics_fontheight", 36));
-		
-		int bordersize = map.Get("videolyrics_bordersize", 4);
-		video_lyrics.bordersize.SetData(bordersize);
-		
-		Color foreground = map.Get("videolyrics_foreground", White());
-		Color background = map.Get("videolyrics_background", Black());
-		video_lyrics.foreground.SetData(foreground);
-		video_lyrics.background.SetData(background);
 	}
+	if (videolyrics_fontidx >= 0 && videolyrics_fontidx < video_lyrics.fontlist.GetCount())
+		video_lyrics.fontlist.SetIndex(videolyrics_fontidx);
+	video_lyrics.height.SetData(map.Get("videolyrics_fontheight", 36));
+	
+	int bordersize = map.Get("videolyrics_bordersize", 4);
+	video_lyrics.bordersize.SetData(bordersize);
+	
+	Color foreground = map.Get("videolyrics_foreground", White());
+	Color background = map.Get("videolyrics_background", Black());
+	video_lyrics.foreground.SetData(foreground);
+	video_lyrics.background.SetData(background);
 	
 }
 
@@ -255,7 +235,7 @@ void ProtoVideoTask1Ctrl::DoSora() {
 	flag.Start();
 	
 	Vector<String> keys;
-	keys << "artist" << "title" << "extra" << "musicstyle" << "lyrics";
+	keys << /*"artist" <<*/ "title" << "extra" << "musicstyle" << "lyrics" << "videoidea";
 	
 	String input;
 	for (String key : keys)
@@ -304,7 +284,7 @@ void ProtoVideoTask1Ctrl::DoSlideshowPrompts() {
 	flag.Start();
 	
 	Vector<String> keys;
-	keys << "sora_preset" << "artist" << "title" << "extra" << "musicstyle" << "lyrics";
+	keys << "sora_preset" /*<< "artist" <<*/ "title" << "extra" << "musicstyle" << "lyrics" << "videoidea";
 	
 	String input;
 	for (String key : keys)

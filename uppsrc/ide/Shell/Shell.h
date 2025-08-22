@@ -15,6 +15,9 @@
 #define KEYFILE      <ide/Shell/Shell.key>
 #include             <CtrlLib/key_header.h>
 
+
+class RightTabs;
+
 #include "EscCmds.h"
 #include "IdeShell.h"
 #include "Widget.h"
@@ -23,7 +26,7 @@
 
 NAMESPACE_UPP
 
-
+#include "Agent.h"
 
 END_UPP_NAMESPACE
 

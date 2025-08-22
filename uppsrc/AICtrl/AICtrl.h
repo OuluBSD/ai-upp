@@ -13,6 +13,11 @@
 #error GUI flag is required
 #endif
 
+#define IMAGECLASS AIImgs
+#define IMAGEFILE <AICtrl/AIImgs.iml>
+#include <Draw/iml_header.h>
+
+
 /*
 #include <CodeEditor/CodeEditor.h>
 #include <CtrlLib/CtrlLib.h>
@@ -93,6 +98,7 @@ END_UPP_NAMESPACE
 NAMESPACE_UPP
 
 #include "ProtoVideoTask1.h"
+#include "Agent.h"
 
 
 END_UPP_NAMESPACE

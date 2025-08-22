@@ -1016,6 +1016,7 @@ void Ide::MainMenu(Bar& menu)
 	#ifndef flagV1
 	if (calc_in_menubar && calc.IsMenuBarVisible())
 		menu.Sub("Calculator", [this](Bar& b) {calc.Menu(b);});
+	menu.Sub("Agent", [this](Bar& b) {agent.Menu(b);});
 	#endif
 	if (addon_menu) {
 		menu.Sub("Add-on", addon_menu);

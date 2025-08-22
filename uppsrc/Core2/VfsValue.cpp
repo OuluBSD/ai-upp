@@ -282,17 +282,19 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 	Array<Hashes> sec_subs;
 	pri_subs.Reserve(pri.sub.GetCount());
 	sec_subs.Reserve(sec.sub.GetCount());
-	for(const VfsValue& pri : pri.sub) {
-		if(pri.IsAstValue())
-			pri_subs.Add().Set(&pri, true, pri.AstGetSourceHash());
+	for(const VfsValue& pri1 : pri.sub) {
+		if (!pri1.serial)
+			const_cast<VfsValue&>(pri1).serial = pri.serial; // TODO not checked to be correct
+		if(pri1.IsAstValue())
+			pri_subs.Add().Set(&pri1, true, pri1.AstGetSourceHash());
 		else
-			pri_subs.Add().Set(&pri, false, pri.GetTotalHash());
+			pri_subs.Add().Set(&pri1, false, pri1.GetTotalHash());
 	}
-	for(const VfsValue& sec : sec.sub) {
-		if(sec.IsAstValue())
-			sec_subs.Add().Set(&sec, true, sec.AstGetSourceHash());
+	for(const VfsValue& sec1 : sec.sub) {
+		if(sec1.IsAstValue())
+			sec_subs.Add().Set(&sec1, true, sec1.AstGetSourceHash());
 		else
-			sec_subs.Add().Set(&sec, false, sec.GetTotalHash());
+			sec_subs.Add().Set(&sec1, false, sec1.GetTotalHash());
 	}
 
 	// Match hashes starting from the beginning
@@ -525,14 +527,16 @@ bool MetaEnvironment::MergeVisitPartMatching(Vector<VfsValue*>& scope, const Vfs
 			pos++;
 		}
 
-		for(auto& pri : pri_subs) {
-			if(pri.ready && pri.match) {
-				VfsValue& s0 = const_cast<VfsValue&>(*pri.n);
+		for(auto& pri1 : pri_subs) {
+			if(pri1.ready && pri1.match) {
+				VfsValue& s0 = const_cast<VfsValue&>(*pri1.n);
+				if (!s0.serial)
+					s0.serial = pri.serial; // TODO not checked to be correct
 				if (s0.ext)
 					s0.ext->Initialize(env_ws);
 				hash_t old_sub_serial = s0.serial;
 				scope.Add(&s0);
-				bool succ = MergeVisitPartMatching(scope, *pri.match, mode);
+				bool succ = MergeVisitPartMatching(scope, *pri1.match, mode);
 				scope.Remove(scope.GetCount() - 1);
 				if(old_sub_serial != s0.serial && n0.serial == old_serial)
 					n0.serial = NewSerial();

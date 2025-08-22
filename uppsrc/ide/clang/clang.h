@@ -432,4 +432,6 @@ void DumpIndex(const char *file, const String& what = Null);
 
 void CurrentFileDeleteCache();
 
+bool IsPreprocessingCursor(CXCursor);
+
 #endif

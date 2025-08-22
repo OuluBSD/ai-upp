@@ -197,3 +197,8 @@ bool ClangNode::TranslateTypeHash(const VectorMap<hash_t,hash_t>& translation) {
 			return false;
 	return true;
 }
+
+bool IsPreprocessingCursor(CXCursor c)
+{
+	return c.kind >= 500 && c.kind < 600;
+}

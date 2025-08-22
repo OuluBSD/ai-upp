@@ -19,5 +19,8 @@ file
 	EscCmds.cpp,
 	Widgets readonly separator,
 	SmallWidgets.h,
-	SmallWidgets.cpp;
+	SmallWidgets.cpp,
+	Agent readonly separator,
+	Agent.h,
+	Agent.cpp;
 

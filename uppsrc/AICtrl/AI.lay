@@ -286,3 +286,13 @@ LAYOUT(ProtoVideoTask1_FolderTxtOut, 400, 204)
 	ITEM(Upp::Button, refresh, SetLabel(t_("Refresh")).RightPosZ(4, 112).BottomPosZ(4, 20))
 END_LAYOUT
 
+LAYOUT(AgentPromptForm, 448, 80)
+	ITEM(Upp::DocEdit, prompt, HSizePosZ(4, 4).VSizePosZ(4, 32))
+	ITEM(Upp::Button, attach, LeftPosZ(4, 36).BottomPosZ(4, 24))
+	ITEM(Upp::DropList, pkglist, LeftPosZ(44, 180).BottomPosZ(4, 24))
+	ITEM(Upp::StaticText, dv___3, SetText(t_("Versions:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(228, 56).BottomPosZ(4, 24))
+	ITEM(Upp::EditIntSpin, versions, Min(1).Max(4).LeftPosZ(288, 52).BottomPosZ(4, 24))
+	ITEM(Upp::Button, ask, SetLabel(t_("Ask")).LeftPosZ(344, 44).BottomPosZ(4, 24))
+	ITEM(Upp::Button, code, SetLabel(t_("Code")).LeftPosZ(392, 52).BottomPosZ(4, 24))
+END_LAYOUT
+

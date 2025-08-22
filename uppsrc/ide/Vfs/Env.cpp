@@ -181,6 +181,9 @@ VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	ASSERT(file.id >= 0);
 	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
 	this->file_root = &n;
+	if (!this->file_root->type_hash) {
+		this->file_root->CreateExt<PkgEnv>();
+	}
 	ASSERT(this->file_root->type_hash == AsTypeHash<PkgEnv>());
 	return file;
 }

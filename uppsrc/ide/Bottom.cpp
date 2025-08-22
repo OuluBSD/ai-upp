@@ -182,6 +182,7 @@ void Ide::BTabs()
 	error_tab_i = btabs.GetCount();
 	btabs.Add(IdeImg::errors, "Errors");
 	btabs.Add(IdeImg::calc, "Calculator");
+	btabs.Add(IdeImg::agent, "Agent");
 	if(bottomctrl)
 		btabs.Add(IdeCommonImg::Debugger, "Debug");
 	for(int i = 0; i < __countof(ffound); i++) {
@@ -212,10 +213,13 @@ void Ide::SyncBottom()
 	shell.Show(q == BCALC);
 	shell.LoadHlStyles(editor.StoreHlStyles());
 	shell.SetFont(editorfont);
+	agent.Show(q == BAGENT);
 	#endif
 	SetBar();
 	if(q == BCALC)
 		ActiveFocus(calc);
+	if(q == BAGENT)
+		ActiveFocus(agent);
 	if(bottomctrl)
 		bottomctrl->Show(q == BDEBUG);
 	else

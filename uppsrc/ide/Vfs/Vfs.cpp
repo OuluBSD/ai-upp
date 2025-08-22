@@ -961,7 +961,8 @@ VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, hash_t type_has
 	}
 	VfsValue& n = env.root.sub.Add();
 	n.owner = &env.root;
-	n.id = pkgs[pkg].files[file].GetTitle();
+	auto& p = pkgs[pkg];
+	n.id = file >= 0 && file < p.files.GetCount() ? p.files[file].GetTitle() : String();
 	n.serial = env.NewSerial();
 	n.file = file;
 	n.pkg = pkg;

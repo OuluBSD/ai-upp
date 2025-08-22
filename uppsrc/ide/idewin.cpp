@@ -434,6 +434,7 @@ Ide::Ide()
 	bottom.Add(console.SizePos().SetFrame(NullFrame()));
 	bottom.Add(error.SizePos().SetFrame(NullFrame()));
 	bottom.Add(calc.SizePos().SetFrame(NullFrame()));
+	bottom.Add(agent.SizePos().SetFrame(NullFrame()));
 	btabs <<= THISBACK(SyncBottom);
 	BTabs();
 	

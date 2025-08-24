@@ -591,11 +591,28 @@ struct VfsValue : Pte<VfsValue> {
 	Vector<Ptr<VfsValue>> FindAllWith() {
 		Vector<Ptr<VfsValue>> v;
 		for (auto& s0 : sub) {
-			for (auto& s1 : sub) {
+			for (auto& s1 : s0.sub) {
 				if (s1.ext) {
 					T* o = dynamic_cast<T*>(&*s1.ext);
 					if (o) {
 						v.Add(&s0);
+						break;
+					}
+				}
+			}
+		}
+		return v;
+	}
+	
+	template <class T>
+	Vector<Ptr<T>> FindAllWithT() {
+		Vector<Ptr<T>> v;
+		for (auto& s0 : sub) {
+			for (auto& s1 : s0.sub) {
+				if (s1.ext) {
+					T* o = dynamic_cast<T*>(&*s1.ext);
+					if (o) {
+						v.Add(o);
 						break;
 					}
 				}

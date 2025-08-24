@@ -5,10 +5,21 @@
 class AgentTaskExt : public VfsValueExt {
 	
 public:
-	typedef AgentTaskExt CLASSNAME;
-	AgentTaskExt();
+	typedef enum : int {
+		CLEARED,
+		STARTED,
+		
+		FINISHED,
+	} Status;
 	
+	Status status = CLEARED;
+	String prompt;
 	
+public:
+	CLASSTYPE(AgentTaskExt);
+	AgentTaskExt(VfsValue& n);
+	
+	void Visit(Vis& v) override;
 };
 
 

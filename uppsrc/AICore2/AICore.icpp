@@ -12,6 +12,7 @@ INITBLOCK {
 	REGISTER_COMPONENT(SpeechGenerationThread,     "ai.speech",     "AI|Speech")
 	REGISTER_COMPONENT(ImageGenerationThread,      "ai.image",      "AI|Image")
 	REGISTER_COMPONENT(ImageVisionThread,          "ai.vision",     "AI|Image")
+	REGISTER_COMPONENT(AgentTaskExt,               "ai.agent.task", "AI|Task")
 	
 	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT, "ai.stage", "Vfs");
 	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT, "ai.agent.interaction.session", "AI|Agent");

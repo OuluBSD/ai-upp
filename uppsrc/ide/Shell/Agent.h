@@ -10,12 +10,15 @@ class IdeAgent : public ParentCtrl {
 	AgentPromptEdit edit;
 	One<::RightTabs> tabs;
 	Ctrl placeholder;
+	TimeCallback tc;
 	
 public:
 	typedef IdeAgent CLASSNAME;
 	IdeAgent();
 	void Menu(Bar& bar);
 	void OnTab();
+	void Data();
+	void DataTasks();
 };
 
 

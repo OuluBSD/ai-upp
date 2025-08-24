@@ -57,6 +57,8 @@ file
 	Asset readonly separator,
 	ProjectWizard.h,
 	ProjectWizard.cpp,
+	Agent.h,
+	Agent.cpp,
 	Disposable readonly separator,
 	Data.h,
 	Data.cpp,

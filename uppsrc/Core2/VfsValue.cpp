@@ -13,7 +13,7 @@ String (*GetCursorKindNamePtr)(int);
 String (*VfsValue_GetBasesString)(const VfsValue& v);
 
 
-#define DO_TEMP_CHECK 1
+#define DO_TEMP_CHECK 0
 
 int CreateTempCheck(int src) {
 	static int counter = 0;
@@ -1102,7 +1102,7 @@ void VfsValue::Remove(int i) {
 
 VfsValue* VfsValue::FindPath(const VfsPath& path) {
 	VfsValue* n = this;
-	for(const String& part : path.Parts()) {
+	for(const Value& part : path.Parts()) {
 		int i = n->Find(part);
 		if (i < 0)
 			return 0;

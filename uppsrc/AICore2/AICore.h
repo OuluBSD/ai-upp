@@ -51,6 +51,7 @@ NAMESPACE_UPP
 
 // Asset
 #include "ProjectWizard.h"
+#include "Agent.h"
 
 // Disposable
 #include "Data.h"

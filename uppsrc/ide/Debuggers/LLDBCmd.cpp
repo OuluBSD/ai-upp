@@ -40,9 +40,9 @@ void LLDB::Unlock()
 
 bool LLDB::Result(String& result, const String& s)
 {
-	result.Cat(s);
 	int l = result.GetLength();
-	int q = result.Find(LLDB_PROMPT, max(0, l - 50));
+	result.Cat(s);
+	int q = result.Find("^done\n", max(0, l - 50));
 	if(q >= 0) {
 		result.Trim(q);
 		return true;
@@ -55,6 +55,8 @@ String LLDB::Cmd(const char *command, bool start)
 	if(!dbg.IsRunning() || IdeIsDebugLock()) return Null;
 	TimeStop ts;
 	Lock();
+	String head;
+	dbg.Read(head);
 	if(command) {
 		LLOG("========= Cmd: " << command);
 		dbg.Write(String(command) + "\n");
@@ -94,6 +96,10 @@ String LLDB::Cmd(const char *command, bool start)
 	if(command) {
 		PutVerbose(String() << "Time of `" << command <<"` " << ts);
 	}
+	result.Replace("\\n", "\n");
+	if (result.Left(2) == "~\"") result = result.Mid(2);
+	if (result.Right(1) == "\"") result = result.Left(result.GetCount()-1);
+	
 	PutVerbose("=========== Result:");
 	PutVerbose(result);
 	PutVerbose("===================");
@@ -150,6 +156,11 @@ String LLDB::FastCmd(const char *command)
 		PutVerbose(String() << "Time of `" << command <<"` " << ts);
 	}
 #endif
+
+	result.Replace("\\n", "\n");
+	if (result.Left(2) == "~\"") result = result.Mid(2);
+	if (result.Right(1) == "\"") result = result.Left(result.GetCount()-1);
+	
 	PutVerbose("Result: " + result);
 	return result;
 }

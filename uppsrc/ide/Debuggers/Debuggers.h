@@ -24,6 +24,7 @@ void   KillDebugTTY();
 bool   TTYQuit();
 
 String GdbCommand(bool console);
+String LLDBCommand(bool console);
 
 int CharFilterReSlash(int c);
 
@@ -105,7 +106,6 @@ VectorMap<String, String> DataMap(const ArrayCtrl& data);
 void MarkChanged(const VectorMap<String, String>& m, ArrayCtrl& data);
 
 #define GDB_PROMPT "<u++dbg-" "q98klwr835f427>"
-#define LLDB_PROMPT "<u++lldb-" "q98klwr835f427>"
 
 #include "Gdb.h"
 #include "LLDB.h"

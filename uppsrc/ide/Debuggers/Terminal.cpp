@@ -103,3 +103,16 @@ String GdbCommand(bool console)
 	return gdb;
 }
 
+String LLDBCommand(bool console)
+{
+	String gdb = "lldb-mi -X ";
+#ifdef PLATFORM_POSIX
+	if(console) {
+		String tty = CreateDebugTTY();
+		if(tty.GetCount())
+			gdb << "-tty=" << tty << ' ';
+	}
+#endif
+	return gdb;
+}
+

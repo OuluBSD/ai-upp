@@ -39,7 +39,47 @@ void LLDB::DebugBar(Bar& bar)
 }
 
 String FirstLine(const String& s);
-String FormatFrame(const char *s);
+
+String FormatFrameLLDB(const char *s)
+{
+	for(int i = 0; i < 6; i++)
+		if(*s++ == 0)
+			return Null;
+	if(*s++ != '#')
+		return Null;
+	while(IsDigit(*s))
+		s++;
+	if(*s++ != ':')
+		return Null;
+	while(*s == ' ')
+		s++;
+	if(s[0] == '0' && ToUpper(s[1]) == 'X') {
+		s += 2;
+		while(IsXDigit(*s))
+			s++;
+		while(*s == ' ')
+			s++;
+		if(s[0] == 'i' && s[1] == 'n')
+			s += 2;
+		while(*s == ' ')
+			s++;
+	}
+	String result;
+	const char *w = strchr(s, '\r');
+	if(!w)
+		w = strchr(s, '\n');
+	if(w)
+		result = String(s, w);
+	else
+		result = s;
+	if(!IsAlpha(*s)) {
+		int q = result.ReverseFind(' ');
+		if(q >= 0)
+			result = result.Mid(q + 1);
+	}
+	return result.GetCount() > 2 ? result : Null;
+}
+
 
 void LLDB::CopyStack()
 {
@@ -54,7 +94,7 @@ void LLDB::CopyStack()
 
 void LLDB::CopyStackAll()
 {
-	String s = FastCmd("info threads");
+	String s = FastCmd("thread list");
 	StringStream ss(s);
 	String r;
 	while(!ss.IsEof()) {
@@ -62,16 +102,20 @@ void LLDB::CopyStackAll()
 		CParser p(s);
 		try {
 			p.Char('*');
+			
+			if (!p.Id("thread") || !p.Char('#'))
+				continue;
+			
 			if(p.IsNumber()) {
 				int id = p.ReadInt();
 				r << "----------------------------------\r\n"
 				  << "Thread: " << id << "\r\n\r\n";
 
-				FastCmd(Sprintf("thread %d", id));
+				FastCmd(Sprintf("thread select %d", id));
 
 				int i = 0;
 				for(;;) {
-					String s = FormatFrame(FastCmd("frame " + AsString(i++)));
+					String s = FormatFrameLLDB(FastCmd("frame select " + AsString(i++)));
 					if(IsNull(s)) break;
 					r << s << "\r\n";
 				}
@@ -80,7 +124,7 @@ void LLDB::CopyStackAll()
 		}
 		catch(CParser::Error) {}
 	}
-	FastCmd("thread " + ~~threads);
+	FastCmd("thread select " + ~~threads);
 	WriteClipboardText(r);
 }
 
@@ -114,11 +158,11 @@ bool LLDB::SetBreakpoint(const String& filename, int line, const String& bp)
 
 	String command;
 	if(bp.IsEmpty())
-		command = "clear " + bi;
+		command = "breakpoint clear -file \"" + filename + "\" --line " + IntStr(line);
 	else if(bp[0]==0xe || bp == "1")
-		command = "b " + bi;
+		command = "breakpoint set -file \"" + filename + "\" --line " + IntStr(line);
 	else
-		command = "b " + bi + " if " + bp;
+		command = "breakpoint set -file \"" + filename + "\" --line " + IntStr(line) + " --condition \"" + bp + "\"";
 	return !FastCmd(command).IsEmpty();
 }
 
@@ -158,7 +202,7 @@ void LLDB::SyncDisas(bool fr)
 	if(!disas.IsVisible())
 		return;
 	if(!disas.InRange(addr))
-		SetDisas(FastCmd("disas"));
+		SetDisas(FastCmd("disassemble"));
 	disas.SetCursor(addr);
 	disas.SetIp(addr, fr ? DbgImg::FrameLinePtr() : DbgImg::IpLinePtr());
 }
@@ -168,6 +212,10 @@ bool ParsePos(const String& s, String& fn, int& line, adr_t & adr);
 void LLDB::CheckEnd(const char *s)
 {
 	if(!dbg.IsRunning()) {
+		Stop();
+		return;
+	}
+	if(FindTag(s, "error: Process must be launched.")) {
 		Stop();
 		return;
 	}
@@ -224,7 +272,7 @@ String LLDB::Cmdp(const char *cmdline, bool fr, bool setframe)
 			if(q >= 0) {
 				CParser pa(~s + q + 2);
 				addr = (adr_t)pa.ReadNumber64(16);
-				SetDisas(FastCmd(String() << "disas 0x" << FormatHex((void *)addr) << ",+1024"));
+				SetDisas(FastCmd(String() << "disassemble --start-address 0x" << FormatHex((void *)addr) << " --end-address 0x" << FormatHex((void *)(addr + 1024))));
 				disas.SetCursor(addr);
 				disas.SetIp(addr, DbgImg::IpLinePtr());
 			}
@@ -234,8 +282,8 @@ String LLDB::Cmdp(const char *cmdline, bool fr, bool setframe)
 
 	if(setframe) {
 		frame.Clear();
-		String f = FastCmd("frame");
-		frame.Add(0, nodebuginfo ? FirstLine(f) : FormatFrame(f));
+		String f = FastCmd("frame info");
+		frame.Add(0, nodebuginfo ? FirstLine(f) : FormatFrameLLDB(f));
 		frame <<= 0;
 		SyncFrameButtons();
 	}
@@ -254,14 +302,14 @@ String LLDB::Cmdp(const char *cmdline, bool fr, bool setframe)
 
 bool LLDB::IsProcessExitedNormally(const String& cmd_output) const
 {
-	const auto phrase = String().Cat() << "(process " << pid << ") exited normally";
+	const auto phrase = String().Cat() << "*stopped,reason=\"exited-normally\"";
 	return cmd_output.Find(phrase) >= 0;
 }
 
 String LLDB::ObtainThreadsInfo()
 {
 	threads.Clear();
-	String output = FastCmd("info threads");
+	String output = FastCmd("thread list");
 	StringStream ss(output);
 	int active_thread = -1;
 	bool main = true;
@@ -270,19 +318,25 @@ String LLDB::ObtainThreadsInfo()
 		CParser p(s);
 		try {
 			bool is_active = p.Char('*');
+			
+			if (!p.Id("thread") || !p.Char('#'))
+				continue;
+			
 			if(!p.IsNumber())
 				continue;
 			
 			int id = p.ReadInt();
-				
+			
 			String name;
-			while (!p.IsEof()) {
-				if (p.IsString()) {
-					name = p.ReadString();
-					break;
+			if (p.Char(':')) {
+				while (!p.IsEof()) {
+					if (p.Id("name") && p.Char('=')) {
+						name = p.ReadString('\'');
+						break;
+					}
+						
+					p.SkipTerm();
 				}
-					
-				p.SkipTerm();
 			}
 			
 			AttrText text(String() << "Thread " << id);
@@ -321,21 +375,17 @@ String LLDB::DoRun()
 {
 	if(firstrun) {
 		firstrun = false;
-		nodebuginfo_bg.Hide();
-		nodebuginfo = false;
-		if(Cmd("start").Find("No symbol") >= 0) {
-			nodebuginfo_bg.Show();
-			nodebuginfo = true;
-			String t = Cmd("run");
-			int q = t.ReverseFind("exited normally");
-			if(t.GetLength() - q < 20) {
-				Stop();
-				return Null;
-			}
+		nodebuginfo_bg.Show();
+		nodebuginfo = true;
+		String t = Cmd("process launch --stop-at-entry");;
+		int q = t.ReverseFind("exited with status = 0 ");
+		if(t.GetLength() - q < 20) {
+			Stop();
+			return Null;
 		}
 		if(!IsFinished()) {
-			String s = Cmd("info inferior");
-			int q = s.FindAfter("process");
+			String s = Cmd("process status");
+			int q = s.FindAfter("Process");
 			pid = atoi(~s + q);
 		}
 		IdeSetBar();
@@ -364,16 +414,12 @@ bool LLDB::RunTo()
 	if(df) {
 		if(!disas.GetCursor())
 			return false;
-		bi = Sprintf("*0x%X", disas.GetCursor());
+		FastCmd(Sprintf("breakpoint set --address 0x%X", disas.GetCursor()));
 	}
 	else
-		bi = Bpoint(IdeGetFileName(), IdeGetFileLine());
-	if(!TryBreak("b " + bi)) {
-		Exclamation("No code at chosen location!");
-		return false;
-	}
+		FastCmd("breakpoint set --file \"" + IdeGetFileName() + "\" --line " + IntStr(IdeGetFileLine()));
 	String e = DoRun();
-	FastCmd("clear " + bi);
+	FastCmd("breakpoint delete --file \"" + IdeGetFileName() + "\" --line " + IntStr(IdeGetFileLine()));
 	if(df)
 		disas.SetFocus();
 	CheckEnd(e);
@@ -423,7 +469,7 @@ void LLDB::DisasCursor()
 	int line;
 	String file;
 	adr_t addr;
-	if(ParsePos(FastCmd(Sprintf("info line *0x%X", disas.GetCursor())), file, line, addr))
+	if(ParsePos(FastCmd(Sprintf("image lookup -v --address 0x%X", disas.GetCursor())), file, line, addr))
 		IdeSetDebugPos(file, line - 1, DbgImg::DisasPtr(), 1);
 	disas.SetFocus();
 }
@@ -446,7 +492,7 @@ void LLDB::LoadFrames()
 	int i = frame.GetCount();
 	int n = 0;
 	for(;;) {
-		String f = FastCmd(Sprintf("frame %d", i));
+		String f = FastCmd(Sprintf("frame select %d", i));
 		String s;
 		if(nodebuginfo) {
 			s = FirstLine(f);
@@ -463,7 +509,7 @@ void LLDB::LoadFrames()
 			}
 		}
 		else
-			s = nodebuginfo ? FirstLine(f) : FormatFrame(f);
+			s = nodebuginfo ? FirstLine(f) : FormatFrameLLDB(f);
 		if(IsNull(s))
 			break;
 		if(n++ >= max_stack_trace_size) {
@@ -483,7 +529,7 @@ void LLDB::SwitchFrame()
 		LoadFrames();
 		frame <<= i;
 	}
-	Cmdp("frame " + AsString(i), i, false);
+	Cmdp("frame info " + AsString(i), i, false);
 	SyncFrameButtons();
 }
 
@@ -532,7 +578,7 @@ bool LLDB::Key(dword key, int count)
 
 bool LLDB::Create(Host& host, const String& exefile, const String& cmdline, bool console)
 {
-	String lldb_command = GdbCommand(console) + NormalizeExePath(exefile);
+	String lldb_command = LLDBCommand(console) + NormalizeExePath(exefile);
 
 #ifdef PLATFORM_POSIX
 #ifndef PLATFORM_MACOS
@@ -568,25 +614,22 @@ bool LLDB::Create(Host& host, const String& exefile, const String& cmdline, bool
 	watches.WhenAcceptEdit = THISBACK(ObtainData);
 	tab <<= THISBACK(ObtainData);
 
-    Cmd("settings set prompt " LLDB_PROMPT);
-	Cmd("set disassembly-flavor intel");
-	Cmd("set exec-done-display off");
-	Cmd("set annotate 1");
-	Cmd("set height 0");
-	Cmd("set width 0");
-	Cmd("set confirm off");
-	Cmd("set print asm-demangle");
-	Cmd("set print static-members off");
-	Cmd("set print vtbl off");
-	Cmd("set print repeat 0");
-	Cmd("set print null-stop");
-
-#ifdef PLATFORM_WIN32
-	Cmd("set new-console on");
-#endif
+	LOG(lldb_command);
+    //Cmd("settings set prompt " LLDB_PROMPT);
+	Cmd("settings set target.x86-disassembly-flavor intel");
+	//Cmd("settings set exec-done-display off");
+	//Cmd("settings set annotate 1");
+	//Cmd("settings set height 0");
+	Cmd("settings set term-width 1024");
+	Cmd("settings set auto-confirm true");
+	//Cmd("settings set target.symbols.enable-demangling true");
+	//Cmd("settings set print static-members off");
+	//Cmd("settings set print vtbl off");
+	Cmd("settings set target.max-children-count 0");
+	//Cmd("settings set print null-stop");
 
 	if(!IsNull(cmdline))
-		Cmd("set args " + cmdline);
+		Cmd("settings set target.run-args " + cmdline);
 
 	firstrun = true;
 	running_interrupted = false;

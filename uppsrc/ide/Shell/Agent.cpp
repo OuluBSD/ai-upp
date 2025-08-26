@@ -135,7 +135,7 @@ void IdeAgent::DataTask() {
 		return;
 	}
 	
-	Vector<Ptr<AgentTaskExt>> tasks = agent->FindAllWithT<AgentTaskExt>();§
+	Vector<Ptr<AgentTaskExt>> tasks = agent->FindAllWithT<AgentTaskExt>();
 	if (task_i < 0 || task_i >= tasks.GetCount() || !tasks[task_i]) {
 		PromptOK("internal error");
 		return;

@@ -323,6 +323,7 @@ void Ide::BuildAndExtDebugFile()
 }
 
 One<Debugger> GdbCreate(Host& host, const String& exefile, const String& cmdline, bool console);
+One<Debugger> LLDBCreate(Host& host, const String& exefile, const String& cmdline, bool console);
 
 #ifdef PLATFORM_WIN32
 One<Debugger> PdbCreate(Host& host, const String& exefile, const String& cmdline, bool clang);
@@ -359,6 +360,11 @@ void Ide::BuildAndDebug(bool runto)
 #ifdef PLATFORM_WIN32
 	if(findarg(builder, "GCC") < 0) // llvm-mingw can generate pdb symbolic info
 		debugger = PdbCreate(host, target, runarg, builder == "CLANG");
+	else
+#endif
+#ifdef PLATFORM_FREEBSD
+	if(findarg(builder, "GCC") < 0)
+		debugger = LLDBCreate(host, target, runarg, console);
 	else
 #endif
 		debugger = GdbCreate(host, target, runarg, console);

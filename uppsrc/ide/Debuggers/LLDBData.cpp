@@ -49,7 +49,7 @@ void LLDB::Locals()
 
 String LLDB::Print0(const String& exp)
 {
-	String q = FastCmd("print " + exp);
+	String q = FastCmd("expression " + exp);
 	StringStream ss(q);
 	String ln = ss.GetLine();
 	const char *s = strchr(ln, '=');

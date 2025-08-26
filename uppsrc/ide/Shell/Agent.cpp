@@ -116,7 +116,7 @@ void IdeAgent::DataTask() {
 	MetaEnvironment& env = MetaEnv();
 	WorkspaceWork& wspc = *dynamic_cast<Ide*>(TheIdeContext());
 	if (!wspc.package.IsCursor()) return;
-	Value name = wspc.package.Get(wspc.package.GetCursor());
+	Value name = wspc.package.ColumnList::Get(wspc.package.GetCursor());
 	
 	if (!wspc.package.IsCursor() || !tasklist.IsCursor()) {
 		edit.prompt.Clear();
@@ -135,7 +135,7 @@ void IdeAgent::DataTask() {
 		return;
 	}
 	
-	Vector<Ptr<AgentTaskExt>> tasks = agent->FindAllWithT<AgentTaskExt>();
+	Vector<Ptr<AgentTaskExt>> tasks = agent->FindAllWithT<AgentTaskExt>();§
 	if (task_i < 0 || task_i >= tasks.GetCount() || !tasks[task_i]) {
 		PromptOK("internal error");
 		return;

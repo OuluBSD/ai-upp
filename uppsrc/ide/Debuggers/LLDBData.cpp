@@ -15,72 +15,8 @@ void SkipLLDBInfo(CParser& p)
 			p.GetChar();
 }
 
-String DataClean(CParser& p)
-{
-	String r;
-	if(p.Char('{')) {
-		while(!p.IsEof() && !p.Char('}')) {
-			p.Id("static");
-			if(p.Char('<')) {
-				SkipLLDBInfo(p);
-				p.Char('=');
-				String q = DataClean(p);
-				if(!q.IsEmpty()) {
-					if(!r.IsEmpty())
-						r << ", ";
-					r << q;
-				}
-			}
-			else
-			if(p.IsId()) {
-				String id = p.ReadId();
-				p.Char('=');
-				String q = DataClean(p);
-				if(!q.IsEmpty()) {
-					if(!r.IsEmpty())
-						r << ", ";
-					r << id << " = " << q;
-				}
-			}
-			else
-				p.GetChar();
-		}
-		if(!r.IsEmpty() && (*r != '{' || *r.Last() != '}'))
-			return "{ " + r + " }";
-		return r;
-	}
-	int lvl = 0;
-	for(;;) {
-		bool sp = p.Spaces();
-		if(lvl == 0 && (p.IsChar('}') || p.IsChar(',')) || p.IsEof())
-			break;
-		if(sp)
-			r << ' ';
-		if(p.IsString())
-			r << AsCString(p.ReadString());
-		else
-		if(p.Char('<') && lvl == 0)
-			SkipLLDBInfo(p);
-		else {
-			if(p.IsChar('('))
-				lvl++;
-			if(p.IsChar(')'))
-				lvl--;
-			r.Cat(p.GetChar());
-		}
-	}
-	return r;
-}
-
-String DataClean(const char *s)
-{
-	try {
-		CParser p(s);
-		return DataClean(p);
-	}
-	catch(CParser::Error) {}
-	return Null;
-}
+String DataClean(CParser& p);
+String DataClean(const char *s);
 
 String LLDBData(const String& exp)
 {

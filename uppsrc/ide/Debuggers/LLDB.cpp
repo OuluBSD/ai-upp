@@ -38,48 +38,8 @@ void LLDB::DebugBar(Bar& bar)
 	bar.Add(b, "Copy dissassembly", THISBACK(CopyDisas));
 }
 
-String FirstLine(const String& s)
-{
-	int q = s.Find('\r');
-	if(q < 0)
-		q = s.Find('\n');
-	return q >= 0 ? s.Mid(0, q) : s;
-}
-
-String FormatFrame(const char *s)
-{
-	if(*s++ != '#')
-		return Null;
-	while(IsDigit(*s))
-		s++;
-	while(*s == ' ')
-		s++;
-	if(s[0] == '0' && ToUpper(s[1]) == 'X') {
-		s += 2;
-		while(IsXDigit(*s))
-			s++;
-		while(*s == ' ')
-			s++;
-		if(s[0] == 'i' && s[1] == 'n')
-			s += 2;
-		while(*s == ' ')
-			s++;
-	}
-	String result;
-	const char *w = strchr(s, '\r');
-	if(!w)
-		w = strchr(s, '\n');
-	if(w)
-		result = String(s, w);
-	else
-		result = s;
-	if(!IsAlpha(*s)) {
-		int q = result.ReverseFind(' ');
-		if(q >= 0)
-			result = result.Mid(q + 1);
-	}
-	return result.GetCount() > 2 ? result : Null;
-}
+String FirstLine(const String& s);
+String FormatFrame(const char *s);
 
 void LLDB::CopyStack()
 {
@@ -131,15 +91,9 @@ void LLDB::CopyDisas()
 	disas.WriteClipboard();
 }
 
-int CharFilterReSlash(int c)
-{
-	return c == '\\' ? '/' : c;
-}
+int CharFilterReSlash(int c);
 
-String Bpoint(const String& file, int line)
-{
-	return String().Cat() << Filter(NormalizePath(file), CharFilterReSlash) << ":" << line + 1;
-}
+String Bpoint(const String& file, int line);
 
 bool LLDB::TryBreak(const char *text)
 {
@@ -209,24 +163,7 @@ void LLDB::SyncDisas(bool fr)
 	disas.SetIp(addr, fr ? DbgImg::FrameLinePtr() : DbgImg::IpLinePtr());
 }
 
-bool ParsePos(const String& s, String& fn, int& line, adr_t & adr)
-{
-	const char *q = FindTag(s, "\x1a\x1a");
-	if(!q) return false;
-	q += 2;
-	Vector<String> p = Split(q + 2, ':');
-	p.SetCount(5);
-	fn = String(q, q + 2) + p[0];
-	line = atoi(p[1]);
-	try {
-		CParser pa(p[4]);
-		pa.Char2('0', 'x');
-		if(pa.IsNumber(16))
-			adr = (adr_t)pa.ReadNumber64(16);
-	}
-	catch(CParser::Error) {}
-	return true;
-}
+bool ParsePos(const String& s, String& fn, int& line, adr_t & adr);
 
 void LLDB::CheckEnd(const char *s)
 {
@@ -631,7 +568,7 @@ bool LLDB::Create(Host& host, const String& exefile, const String& cmdline, bool
 	watches.WhenAcceptEdit = THISBACK(ObtainData);
 	tab <<= THISBACK(ObtainData);
 
-       Cmd("settings set prompt " LLDB_PROMPT);
+    Cmd("settings set prompt " LLDB_PROMPT);
 	Cmd("set disassembly-flavor intel");
 	Cmd("set exec-done-display off");
 	Cmd("set annotate 1");

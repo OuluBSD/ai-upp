@@ -4,6 +4,7 @@
 #define DR_LOG(x) // RLOG(x)
 
 #include "GdbUtils.h"
+#include "LLDBUtils.h"
 
 #include <ide/Common/Common.h>
 
@@ -104,8 +105,10 @@ VectorMap<String, String> DataMap(const ArrayCtrl& data);
 void MarkChanged(const VectorMap<String, String>& m, ArrayCtrl& data);
 
 #define GDB_PROMPT "<u++dbg-" "q98klwr835f427>"
+#define LLDB_PROMPT "<u++lldb-" "q98klwr835f427>"
 
 #include "Gdb.h"
+#include "LLDB.h"
 
 #define KEYGROUPNAME "Debugger"
 #define KEYNAMESPACE PdbKeys

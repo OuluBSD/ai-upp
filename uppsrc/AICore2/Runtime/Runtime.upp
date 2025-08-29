@@ -1,0 +1,28 @@
+description "AICore2/Runtime\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core;
+
+file
+	Runtime.h,
+	AGENTS.md,
+	Public.h,
+	ProcessBase.h,
+	ProcessBase.cpp,
+	ProcessFramework.h,
+	ProcessFramework.cpp,
+	CodeProcess.h,
+	CodeProcess.cpp,
+	RemoteTask.h,
+	RemoteTask.cpp,
+	TaskManager.h,
+	TaskManager.cpp,
+	Omni.h,
+	Omni.cpp,
+	Prompt.h,
+	Prompt.cpp,
+	Agent.h,
+	Agent.cpp;
+

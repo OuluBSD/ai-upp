@@ -1,0 +1,20 @@
+description "AICore2/Social\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core,
+	AICore2/Content;
+
+file
+	Social.h,
+	AGENTS.md,
+	SocialContent.cpp,
+	SocialHeader.cpp,
+	SocialMarketplace.cpp,
+	SocialNeeds.cpp,
+	Justice.h,
+	Justice.cpp,
+	Lobbying.h,
+	Lobbying.cpp;
+

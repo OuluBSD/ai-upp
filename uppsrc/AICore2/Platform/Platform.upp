@@ -1,0 +1,17 @@
+description "AICore2/Platform";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core;
+
+file
+	Platform.h,
+	Platform.cpp,
+	Browser.h,
+	Browser.cpp,
+	PlatformProfile.h,
+	PlatformProfile.cpp,
+	BiographyPlatform.h,
+	BiographyPlatform.cpp,
+	AGENTS.md;

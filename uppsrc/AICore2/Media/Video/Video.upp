@@ -1,0 +1,17 @@
+description "AICore2/Media/Video\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core;
+
+file
+	Video.h,
+	AGENTS.md,
+	VideoPrompt.h,
+	VideoPrompt.cpp,
+	VideoSourceFile.h,
+	VideoSourceFile.cpp,
+	VideoStoryboard.h,
+	VideoStoryboard.cpp;
+

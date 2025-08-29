@@ -25,7 +25,7 @@ struct Cookie : Moveable<Cookie> {
 	}
 	bool operator==(const Cookie& c) const {return id == c.id && value == c.value && domain == c.domain;}
 	bool operator()(const Cookie& a, const Cookie& b) const {if (domain == b.domain) return a.id < b.id; else return domain < b.domain;}
-	unsigned GetHashValue() const {CombineHash ch; ch << id << value << domain; return ch;}
+	hash_t GetHashValue() const {CombineHash ch; ch << id << value << domain; return ch;}
 };
 
 void GetHttpCookie(HttpCookie& h, const Cookie& c);

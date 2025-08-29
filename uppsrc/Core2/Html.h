@@ -178,7 +178,7 @@ struct ValidHtmlTags {
 	
 	ValidHtmlTags();
 	void SplitTags(Index<WString>& idx, WString ws);
-	void SplitTags(Index<WString>& idx, String s) {SplitTags(idx, s.ToWString());}
+	//void SplitTags(Index<WString>& idx, String s) {SplitTags(idx, s.ToWString());}
 	
 };
 

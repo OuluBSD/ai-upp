@@ -21,7 +21,7 @@ One<IGdbUtils> GdbUtilsFactory::Create()
 
 using DeleteHandleFun = std::function<void(HANDLE)>;
 
-static void DeleteHandle(HANDLE handle)
+void DeleteHandle(HANDLE handle)
 {
 	if (handle)
 	{

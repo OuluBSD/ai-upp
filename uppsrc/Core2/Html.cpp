@@ -42,7 +42,7 @@ ValidHtmlTags::ValidHtmlTags() {
 }
 
 void ValidHtmlTags::SplitTags(Index<WString>& idx, WString ws) {
-	Vector<WString> v = Split(ws, ToWString(" "));
+	Vector<WString> v = Split(ws, String(" ").ToWString());
 	for(int i = 0; i < v.GetCount(); i++)
 		idx.Add(v[i]);
 }
@@ -282,7 +282,7 @@ void HtmlParser::ParseStatement() {
 			WString tag_id = ReadText();
 			if (IsConstChar(tag_id, "!DOCTYPE", 8)) {
 				DoSpaces();
-				tag_id += ToWString(" ") + ReadText();
+				tag_id += WString(L" ") + ReadText();
 			}
 			n.SetText(tag_id);
 			DoSpaces();
@@ -293,7 +293,7 @@ void HtmlParser::ParseStatement() {
 			}
 			else {
 				while (!IsType(HTMLTK_GREATER)) {
-					String key = ToString(ReadText());
+					String key = ReadText().ToString();
 					DoSpaces();
 					PassType(HTMLTK_EQ);
 					DoSpaces();
@@ -301,7 +301,7 @@ void HtmlParser::ParseStatement() {
 					PassType(HTMLTK_QUOTATION);
 					String value;
 					while (!IsEnd() && !IsType(HTMLTK_QUOTATION)) {
-						value += ToString(Get().GetTextValue());
+						value += Get().GetTextValue().ToString();
 						cursor++;
 					}
 					PassType(HTMLTK_QUOTATION);

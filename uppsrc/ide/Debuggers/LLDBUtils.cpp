@@ -21,13 +21,7 @@ One<ILLDBUtils> LLDBUtilsFactory::Create()
 
 using DeleteHandleFun = std::function<void(HANDLE)>;
 
-static void DeleteHandle(HANDLE handle)
-{
-	if (handle)
-	{
-		CloseHandle(handle);
-	}
-}
+void DeleteHandle(HANDLE handle);
 
 String LLDBWindowsUtils::BreakRunning(int pid)
 {

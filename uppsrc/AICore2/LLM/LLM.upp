@@ -1,0 +1,14 @@
+description "AICore2/LLM\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core,
+	AICore2/Runtime;
+
+file
+	AiChat.h,
+	AiChat.cpp,
+	AiCompletion.h,
+	AiCompletion.cpp;
+

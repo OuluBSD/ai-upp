@@ -1,0 +1,14 @@
+description "AICore2/Tools\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core;
+
+file
+	Tools.h,
+	AGENTS.md,
+	ProjectWizard.h,
+	ProjectWizard.cpp,
+	VfsProgram.cpp;
+

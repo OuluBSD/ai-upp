@@ -1,0 +1,19 @@
+description "AICore2/Persona\377B128,0,0";
+
+uses
+	AICore,
+	Esc,
+	AICore2/Core;
+
+file
+	Persona.h,
+	AGENTS.md,
+	Profile.h,
+	Profile.cpp,
+	Perspective.h,
+	Perspective.cpp,
+	Male.h,
+	Male.cpp,
+	Female.h,
+	Female.cpp;
+

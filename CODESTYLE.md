@@ -14,6 +14,8 @@ If you like to contribute code or major fixes, you are encouraged to pay attenti
 
 - Be familiar with U++, use its facilities. This is a general prerequisite anyway, but it means to have studied the existing code and its possibilities a bit. It might happen that you have invented things that U++ already provides for you and you could have saved your time. It also means to know, understand, and thus stick to the design pattern, i.e. when implementing new Ctrl's, like knowing that there is a virtual Updated() function to be overridden to recalculate the Ctrl's state only, without repaint, and is called with Ctrl::Update() in a generalized manner. Another example is the Callback idea or the NTL Containers.
 
+- The first file in a package is usually a file with the same name as the package, ending in ".h". There are exceptions to this, however. Sometimes it is the second file, and the first file is a "Readme.txt" (or similar) or a "Cypying" file.
+
 - Each class has got its own .h and (maybe multiple) .cpp (or .hpp for template), except for classes that are tight together really closely and belong together.
 
 - Include package files using "Insert package directory file" mainly, instead of using "Insert any file". Otherwise use relative to package directory file paths instead of absolute paths.

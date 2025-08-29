@@ -136,6 +136,14 @@ int FindCloseBracket(const T &s, int off, wchar open_b='(', wchar close_b=')')
 	return -1;
 }
 
+template <class T> T ValueIndexConvert(const String& s);
+template <> inline double ValueIndexConvert<double>(const String& s) {return StrDbl(s);}
+template <> inline int ValueIndexConvert<int>(const String& s) {return StrInt(s);}
+template <> inline String ValueIndexConvert<String>(const String& s) {return s;}
+template <> inline WString ValueIndexConvert<WString>(const String& s) {return s.ToWString();}
+
+// Value(strings.Mid(delim_start, item_len)).To<T>()
+
 template <class T>
 int ValueIndex( const T& val, const String& strings, int defValue = -1, wchar delim = ';')
 {
@@ -159,7 +167,7 @@ int ValueIndex( const T& val, const String& strings, int defValue = -1, wchar de
 		}
 		if(item_len == val.GetCount())
 		{
-			if(val == Convert<T>(strings.Mid(delim_start, item_len)))
+			if(val == ValueIndexConvert<T>(strings.Mid(delim_start, item_len)))
 			{
 				return idx;
 			}

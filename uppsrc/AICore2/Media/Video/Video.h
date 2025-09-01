@@ -1,6 +1,12 @@
 // Umbrella header for AICore2/Media/Video
 #pragma once
 
-// Re-export video-related headers here as they are moved,
-// e.g., VideoPrompt.h, VideoSourceFile.h, VideoStoryboard.h
+#include <AICore2/Internal.h>
 
+NAMESPACE_UPP
+
+#include "VideoSourceFile.h"
+#include "VideoPrompt.h"
+#include "VideoStoryboard.h"
+
+END_UPP_NAMESPACE

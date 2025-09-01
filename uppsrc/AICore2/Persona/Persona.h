@@ -1,5 +1,13 @@
 // Umbrella header for AICore2/Persona
 #pragma once
 
-// Re-export persona role headers here (Audience, Owner, Artist, Consumer, etc.) as moved.
+#include <AICore2/Internal.h>
 
+NAMESPACE_UPP
+
+#include "Profile.h"
+#include "Perspective.h"
+#include "Male.h"
+#include "Female.h"
+
+END_UPP_NAMESPACE

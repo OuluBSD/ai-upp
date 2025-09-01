@@ -1,5 +1,13 @@
 // Umbrella header for AICore2/Marketing
 #pragma once
 
-// Re-export marketing-specific headers here as they are moved.
 
+#include <AICore2/Internal.h>
+
+NAMESPACE_UPP
+
+#include "Audience.h"
+#include "Consumer.h"
+#include "Owner.h"
+
+END_UPP_NAMESPACE

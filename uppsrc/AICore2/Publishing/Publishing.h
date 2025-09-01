@@ -1,5 +1,12 @@
 // Umbrella header for AICore2/Publishing
 #pragma once
 
-// Re-export publishing pipeline headers here as they are moved.
+#include <AICore2/Internal.h>
+
+NAMESPACE_UPP
+
+#include "Release.h"
+#include "ReleaseBriefing.h"
+
+END_UPP_NAMESPACE
 

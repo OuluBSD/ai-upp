@@ -1,5 +1,10 @@
 // Umbrella header for AICore2/Tools
 #pragma once
 
-// Re-export tool utilities (e.g., VfsProgram) as moved.
+#include <AICore2/Internal.h>
 
+NAMESPACE_UPP
+
+#include "ProjectWizard.h"
+
+END_UPP_NAMESPACE

@@ -1,5 +1,12 @@
 // Umbrella header for AICore2/Social
 #pragma once
 
-// Re-export social-domain headers here as they are moved.
+#include <AICore2/Internal.h>
 
+NAMESPACE_UPP
+
+#include "BiographyPlatform.h"
+#include "Justice.h"
+#include "Lobbying.h"
+
+END_UPP_NAMESPACE

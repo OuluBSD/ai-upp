@@ -1,4 +1,4 @@
-description "AICore2/Platform";
+description "AICore2/Platform\377B128,0,0";
 
 uses
 	AICore,
@@ -7,11 +7,11 @@ uses
 
 file
 	Platform.h,
-	Platform.cpp,
+	AGENTS.md,
+	PlatformProcess.h,
+	PlatformProcess.cpp,
 	Browser.h,
 	Browser.cpp,
 	PlatformProfile.h,
-	PlatformProfile.cpp,
-	BiographyPlatform.h,
-	BiographyPlatform.cpp,
-	AGENTS.md;
+	PlatformProfile.cpp;
+

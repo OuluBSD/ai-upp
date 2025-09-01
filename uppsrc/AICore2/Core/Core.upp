@@ -7,7 +7,6 @@ uses
 file
 	Core.h,
 	AGENTS.md,
-	Public.h,
 	Defs.h,
 	Enums.h,
 	Enums.cpp,

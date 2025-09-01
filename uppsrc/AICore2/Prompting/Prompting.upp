@@ -9,8 +9,11 @@ uses
 file
 	Prompting.h,
 	AGENTS.md,
-	Public.h,
+	RemoteTask.h,
+	RemoteTask.cpp,
 	CreateInput.cpp,
 	CreateInput2.cpp,
-	StageCompiler.cpp;
+	StageCompiler.cpp,
+	TaskManager.h,
+	TaskManager.cpp;
 

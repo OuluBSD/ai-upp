@@ -9,6 +9,8 @@ uses
 file
 	Social.h,
 	AGENTS.md,
+	BiographyPlatform.h,
+	BiographyPlatform.cpp,
 	SocialContent.cpp,
 	SocialHeader.cpp,
 	SocialMarketplace.cpp,

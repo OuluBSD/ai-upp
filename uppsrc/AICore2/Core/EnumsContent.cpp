@@ -1,4 +1,4 @@
-#include "AICore.h"
+#include <AICore2/AICore.h>
 
 // TODO: these all must be moved to a user file
 

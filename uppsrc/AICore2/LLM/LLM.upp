@@ -7,6 +7,7 @@ uses
 	AICore2/Runtime;
 
 file
+	LLM.h,
 	AiChat.h,
 	AiChat.cpp,
 	AiCompletion.h,

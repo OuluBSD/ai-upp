@@ -1,5 +1,5 @@
-#ifndef _AI_TaskManager_h_
-#define _AI_TaskManager_h_
+#ifndef _AI_Prompting_TaskManager_h_
+#define _AI_Prompting_TaskManager_h_
 
 
 

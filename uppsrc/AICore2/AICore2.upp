@@ -15,7 +15,8 @@ uses
 	AICore2/Content,
 	AICore2/Media,
 	AICore2/Tools,
-	AICore2/DataModel;
+	AICore2/DataModel,
+	AICore2/Platform;
 
 uses(CURL) plugin/openai;
 
@@ -27,20 +28,6 @@ library(CURL MSC) libcurl.lib;
 
 file
 	AICore.h,
-	AICore.icpp,
-	CodeProcess.h,
-	Common.h,
-	Container.h,
-	Defs.h,
-	Enums.h,
-	Fn.h,
-	NatLang.h,
-	Omni.h,
-	Phoneme.h,
-	ProcessBase.h,
-	ProcessFramework.h,
-	Prompt.h,
-	RemoteTask.h,
-	TaskManager.h,
-	Types.h;
+	Internal.h,
+	AICore.icpp;
 

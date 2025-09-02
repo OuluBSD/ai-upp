@@ -65,6 +65,7 @@ file
 	Virtuals.cpp,
 	Events.cpp,
 	NavDlg.cpp,
+	VfsDlg.cpp,
 	AITaskDlg.cpp,
 	Log.cpp,
 	MainConfig.cpp,

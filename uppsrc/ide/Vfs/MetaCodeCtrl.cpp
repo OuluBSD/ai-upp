@@ -61,12 +61,13 @@ void MetaCodeCtrl::UpdateEditor()
 	auto& ienv = IdeMetaEnv();
 	VfsSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	VfsSrcPkg& pkg = *file.pkg;
-	ASSERT(pkg.id >= 0 && file.id >= 0);
+	int file_id = file.GetId();
+	ASSERT(pkg.id >= 0 && file_id >= 0);
 	VfsValueSubset sub;
-	ienv.SplitValue(ienv.env.root, sub, pkg.id, file.id);
+	ienv.SplitValue(ienv.env.root, sub, pkg.id, file_id);
 	
 	gen.Process(sub);
-	gen_file = gen.GetResultFile(pkg.id, file.id);
+	gen_file = gen.GetResultFile(pkg.id, file_id);
 	
 	String code;
 	if (gen_file) {

@@ -34,11 +34,12 @@ void EnvEditorCtrl::RefreshDatabases() {
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
 		VfsSrcPkg& pkg = env.pkgs[i];
 		
-		for(int j = 0; j < pkg.files.GetCount(); j++) {
-			VfsSrcFile& file = pkg.files[j];
+		for(int j = 0; j < pkg.src_files.GetCount(); j++) {
+			VfsSrcFile& file = pkg.src_files[j];
 			
 			if (file.IsExt(".db-src")) {
-				dbs << &env.RealizeFileNode(pkg.id, file.id, AsTypeHash<SrcTxtHeader>());
+				int file_id = file.GetId();
+				dbs << &env.RealizeFileNode(pkg.id, file_id, AsTypeHash<SrcTxtHeader>());
 			}
 		}
 	}
@@ -178,8 +179,9 @@ VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	String path = this->GetFilePath();
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
-	ASSERT(file.id >= 0);
-	VfsValue& n = env.RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
+	int file_id = file.GetId();
+	ASSERT(file_id >= 0);
+	VfsValue& n = env.RealizeFileNode(pkg.id, file_id, AsTypeHash<PkgEnv>());
 	this->file_root = &n;
 	if (!this->file_root->type_hash) {
 		this->file_root->CreateExt<PkgEnv>();

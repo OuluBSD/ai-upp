@@ -35,9 +35,13 @@ void MetaEnvTree::Data() {
 	int row = 0;
 	pkgs.Set(row, 0, "<global>");
 	pkgs.Set(row, "IDX", -1);
+	row++;
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
 		VfsSrcPkg& pkg = env.pkgs[i];
-		pkgs.Set(row, 0, pkg.GetTitle());
+		if (0)
+			pkgs.Set(row, 0, pkg.GetTitle());
+		else
+			pkgs.Set(row, 0, IntStr(i) + ": " + pkg.GetTitle() + " (" + pkg.dir + ")");
 		pkgs.Set(row, "IDX", i);
 		row++;
 	}
@@ -59,20 +63,20 @@ void MetaEnvTree::DataPkg() {
 		code.Clear();
 		return;
 	}
+	int row = 0;
+	files.Set(row,0,"<global>");
+	files.Set(row,"IDX",-1);
+	row++;
 	int pkg_i = pkgs.Get("IDX");
-	if (pkg_i < 0) {
-		files.SetCount(1);
-		files.Set(0,0,"<global>");
-		files.Set(0,"IDX",-1);
-	}
-	else {
+	if (pkg_i >= 0) {
 		VfsSrcPkg& pkg = env.pkgs[pkg_i];
-		for(int i = 0; i < pkg.files.GetCount(); i++) {
-			files.Set(i,0,pkg.files[i].GetTitle());
-			files.Set(i,"IDX",i);
+		for(int i = 0; i < pkg.rel_files.GetCount(); i++) {
+			files.Set(row,0,pkg.rel_files[i]);
+			files.Set(row,"IDX",i);
+			row++;
 		}
-		files.SetCount(pkg.files.GetCount());
 	}
+	files.SetCount(row);
 	
 	if (!files.IsCursor() && files.GetCount())
 		files.SetCursor(0);
@@ -95,22 +99,23 @@ void MetaEnvTree::DataFile() {
 	int prev = stmts.IsCursor() ? stmts.GetCursor() : -1;
 	Point scroll = stmts.GetScroll();
 	
+	int count = 0;
 	stmts.Clear();
 	stmt_ptrs.SetCount(0);
 	if (pkg_i < 0) {
-		AddStmtNodes(0, env.env.root, 0);
+		AddStmtNodes(0, env.env.root, 0, count);
 	}
 	else if (pkg_i >= 0 && file_i < 0) {
 		subset.Clear();
 		stmt_ptrs.Clear();
 		env.SplitValue(env.env.root, subset, pkg_i);
-		AddStmtNodes(0, *subset.n, &subset);
+		AddStmtNodes(0, *subset.n, &subset, count);
 	}
 	else {
 		subset.Clear();
 		stmt_ptrs.Clear();
 		env.SplitValue(env.env.root, subset, pkg_i, file_i);
-		AddStmtNodes(0, *subset.n, &subset);
+		AddStmtNodes(0, *subset.n, &subset, count);
 	}
 	stmts.OpenDeep(0);
 	
@@ -130,8 +135,10 @@ void MetaEnvTree::DataTreeSelection() {
 		return;
 	focus_ptrs.SetCount(0);
 	int sel = stmts.GetCursor();
+	int count = 0;
+	if (sel >= stmt_ptrs.GetCount()) return;
 	VfsValue& n = *stmt_ptrs[sel];
-	AddFocusNodes(0, n, 0);
+	AddFocusNodes(0, n, 0, count);
 	focus.OpenDeep(0);
 	focus.SetCursor(0);
 }
@@ -161,7 +168,9 @@ bool MetaEnvTree::Key(dword key, int count) {
 	return false;
 }
 
-void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
+void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, int& count) {
+	if (count >= tree_limit) return;
+	
 	if (tree_idx <= stmt_ptrs.GetCount())
 		stmt_ptrs.SetCount(tree_idx+1,0);
 	stmt_ptrs[tree_idx] = &n;
@@ -173,6 +182,9 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 		String kind_str = VfsValue::AstGetKindString(a->kind);
 		s = kind_str + ": " + n.id;
 		if (a->type.GetCount()) s += " (" + a->type + ")";
+		#if 1
+		s += " " + IntStr(n.pkg) + ":" + IntStr(n.file);
+		#endif
 		switch (a->kind) {
 		case CXCursor_CXXMethod:
 		case CXCursor_Constructor:
@@ -199,20 +211,24 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 		if (ns) {
 			for (VfsValueSubset& s : ns->sub) {
 				int idx = stmts.Add(tree_idx);
-				AddStmtNodes(idx, *s.n, &s);
+				count++;
+				AddStmtNodes(idx, *s.n, &s, count);
+				if (count >= tree_limit) return;
 			}
 		}
 		else {
 			for (VfsValue& s : n.sub) {
 				int idx = stmts.Add(tree_idx);
-				AddStmtNodes(idx, s, 0);
+				count++;
+				AddStmtNodes(idx, s, 0, count);
+				if (count >= tree_limit) return;
 			}
 		}
 	}
 }
 
-void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
-	if (focus.GetLineCount() >= tree_limit) return;
+void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, int& count) {
+	if (count >= tree_limit) return;
 	
 	if (tree_idx <= focus_ptrs.GetCount())
 		focus_ptrs.SetCount(tree_idx+1,0);
@@ -235,15 +251,17 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns) {
 	if (ns) {
 		for (VfsValueSubset& s : ns->sub) {
 			int idx = focus.Add(tree_idx);
-			AddFocusNodes(idx, *s.n, &s);
-			if (focus.GetLineCount() >= tree_limit) break;
+			count++;
+			AddFocusNodes(idx, *s.n, &s, count);
+			if (count >= tree_limit) break;
 		}
 	}
 	else {
 		for (VfsValue& s : n.sub) {
 			int idx = focus.Add(tree_idx);
-			AddFocusNodes(idx, s, 0);
-			if (focus.GetLineCount() >= tree_limit) break;
+			count++;
+			AddFocusNodes(idx, s, 0, count);
+			if (count >= tree_limit) break;
 		}
 	}
 }

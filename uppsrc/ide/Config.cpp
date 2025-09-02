@@ -187,7 +187,7 @@ void Sentinel(Stream& s, const char *txt)
 
 void Ide::Serialize(Stream& s)
 {
-	int version = 35;
+	int version = 36;
 	Sentinel(s, "before 12341234");
 	s.Magic(0x12341234);
 	Sentinel(s, "after magic");
@@ -401,6 +401,9 @@ void Ide::Serialize(Stream& s)
 
 	if(version >= 35)
 		s % audio_timelimit % audio_volumetreshold;
+
+	if(version >= 36)
+		s % GlobalCreateReferencesFile();
 
 #ifdef PLATFORM_WIN32
 	if(s.IsLoading() && HostConsole == "/usr/bin/xterm -e")

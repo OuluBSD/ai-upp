@@ -1,5 +1,6 @@
 #include "Vfs.h"
 #include <AICore2/AICore.h>
+#include <ide/ide.h>
 
 bool IsStruct(int kind);
 bool IsFunction(int kind);
@@ -136,9 +137,11 @@ void Store(IdeMetaEnvironment& ienv, String& includes, const String& path, Clang
 	VfsSrcFile& file = ienv.ResolveFile(includes, path);
 	VfsSrcPkg& pkg = *file.pkg;
 	VfsValue n;
+	int file_id = pkg.GetFileId(path);
+	ASSERT(file_id >= 0);
 	UPP::Assign(n, 0, cn);
 	n.SetPkgDeep(pkg.id);
-	n.SetFileDeep(file.id);
+	n.SetFileDeep(file_id);
 	n.RealizeSerial();
 	if(!env.MergeValue(env.root, n, MERGEMODE_OVERWRITE_OLD))
 		return;
@@ -210,8 +213,7 @@ void VfsSrcFile::Visit(Vis& v)
 	else if (v.IsStoring())
 		UpdateStoring();
 	v.Ver(1)
-	(1)	("id", id)
-		("highest_seen_serial", (int64&)highest_seen_serial)
+	(1)	("highest_seen_serial", (int64&)highest_seen_serial)
 	    ("seen_types", (VectorMap<int64,String>&)seen_types)
 	    ("root", *temp, VISIT_NODE)
 	    ;
@@ -232,11 +234,12 @@ String VfsSrcFile::UpdateStoring()
 	if (temp.IsEmpty()) return String();
 	VfsValue& file_nodes = *temp;
 	
-	ASSERT(id >= 0 && pkg->id >= 0);
+	int file_id = GetId();
+	ASSERT(file_id >= 0 && pkg->id >= 0);
 	if (keep_file_ids)
 		file_nodes.SetPkgDeep(pkg->id);
 	else
-		file_nodes.SetPkgFileDeep(pkg->id, id);
+		file_nodes.SetPkgFileDeep(pkg->id, file_id);
 	// LOG(file_nodes.GetTreeString());
 	
 	String old_hash = saved_hash;
@@ -273,12 +276,23 @@ bool VfsSrcFile::Store(bool forced)
 	ASSERT(temp);
 	VfsValue& file_nodes = *temp;
 	
-	ASSERT(id >= 0 && pkg->id >= 0);
+	int file_id = GetId();
+	ASSERT(file_id >= 0 && pkg->id >= 0);
 	if (keep_file_ids)
 		file_nodes.SetPkgDeep(pkg->id);
 	else
-		file_nodes.SetPkgFileDeep(pkg->id, id);
+		file_nodes.SetPkgFileDeep(pkg->id, file_id);
 	// LOG(file_nodes.GetTreeString());
+	
+	// Optional REFRENCES.md file for Codex AI
+	bool is_ref_file = GlobalCreateReferencesFile();
+	String ref_file;
+	if (is_ref_file) {
+		ref_file = AppendFileName(GetFileDirectory(full_path), "REFERENCES.md");
+		if (!FileExists(ref_file)) {
+			forced = true;
+		}
+	}
 	
 	bool total_hash_diffs = false;
 	String hash = IntStr64(file_nodes.AstGetSourceHash(&total_hash_diffs));
@@ -318,6 +332,10 @@ bool VfsSrcFile::Store(bool forced)
 	}
 	else {
 		succ = VisitToJsonFile(*this, full_path);
+	}
+	
+	if (is_ref_file) {
+		StoreSimpleReferences(ref_file);
 	}
 	
 	lock.Leave();
@@ -375,9 +393,20 @@ bool VfsSrcFile::Load()
 	return succ && !saved_hash.IsEmpty();
 }
 
+bool VfsSrcFile::StoreSimpleReferences(const String& ref_file) {
+	
+	// Load Markdown
+	
+	// Mark all in the Markdown to be deleted, unless revived
+	
+	
+	return true;
+}
+
 void VfsSrcFile::UpdateLoading() {
-	ASSERT(id >= 0 && pkg->id >= 0);
-	temp->SetPkgFileDeep(pkg->id, id);
+	int file_id = GetId();
+	ASSERT(file_id >= 0 && pkg->id >= 0);
+	temp->SetPkgDeep(pkg->id);
 
 	OnSeenTypes();
 	OnSerialCounter();
@@ -445,10 +474,21 @@ void VfsSrcFile::MakeTempFromEnv(bool all_files) {
 	//LOG(env.root.GetTreeString());
 	env.root.DeepChk();
 	#endif
+	int file_id = GetId();
+	ASSERT(file_id >= 0);
 	if (all_files)
 		ienv.SplitValue(env.root, *temp, pkg->id);
 	else
-		ienv.SplitValue(env.root, *temp, pkg->id, id);
+		ienv.SplitValue(env.root, *temp, pkg->id, file_id);
+}
+
+int VfsSrcFile::GetId() const {
+	if (!pkg)
+		return -1;
+	String rel_path = pkg->GetRelativePath(full_path);
+	int file_id = pkg->rel_files.Find(rel_path);
+	ASSERT(file_id >= 0);
+	return file_id;
 }
 
 
@@ -472,7 +512,8 @@ void VfsSrcPkg::Init()
 	VfsSrcFile& file = GetAddFile(path);
 	file.KeepFileIndices();
 	file.ManageFile();
-	ASSERT(file.id == 0 && file.rel_path.GetCount());
+	int file_id = file.GetId();
+	ASSERT(file_id >= 0 && file.rel_path.GetCount());
 }
 
 bool VfsSrcPkg::Store(bool forced)
@@ -483,7 +524,8 @@ bool VfsSrcPkg::Store(bool forced)
 	VfsSrcFile& file = GetAddFile(path);
 	VfsSrcPkg& pkg = *file.pkg;
 	VfsValue& file_nodes = file.CreateTemp(5);
-	ASSERT(file.id >= 0 && pkg.id >= 0);
+	int file_id = file.GetId();
+	ASSERT(file_id >= 0 && pkg.id >= 0);
 	env.SplitValue(env.env.root, file_nodes, pkg.id);
 	return file.Store(forced);
 }
@@ -599,7 +641,7 @@ String VfsSrcPkg::GetRelativePath(const String& path) const
 {
 	String dir = GetDirectory();
 	int i = path.Find(dir);
-	if(i >= 0) {
+	if(i == 0) {
 		String s = path.Mid(dir.GetCount());
 		if(s.GetCount() && s[0] == DIR_SEP)
 			s = s.Mid(1);
@@ -618,12 +660,14 @@ String VfsSrcPkg::GetFullPath(const String& rel_path) const
 
 String VfsSrcPkg::GetFullPath(int file_i) const
 {
-	return files[file_i].full_path;
+	return AppendFileName(dir, rel_files[file_i]);
 }
 
 void VfsSrcPkg::Visit(Vis& v) {
 	v.Ver(1)
-	(1)	("files", files, VISIT_VECTOR);
+	(1)	("src_files", src_files, VISIT_VECTOR)
+		("rel_files", rel_files)
+		;
 }
 
 #if 0
@@ -672,63 +716,42 @@ VfsSrcFile& VfsSrcPkg::GetMetaFile() {
 	return GetAddFile(path);
 }
 
+int VfsSrcPkg::GetAddRelPath(const String& rel_path)
+{
+	int i = rel_files.FindAdd(rel_path);
+	return i;
+}
+
 VfsSrcFile& VfsSrcPkg::GetAddFile(const String& full_path)
 {
 	String dir = GetDirectory();
-	if (full_path.Find(dir) == 0) {
-		String rel_path = GetRelativePath(full_path);
-		for (VfsSrcFile& f : files) {
-			if (f.rel_path == rel_path) {
-				ASSERT(f.id >= 0);
-				return f;
-			}
+	String rel_path = GetRelativePath(full_path);
+	int file_id = GetAddRelPath(rel_path);
+	String src_rel_path = GetRelSrcPath(rel_path);
+	for (VfsSrcFile& f : src_files) {
+		if (f.rel_path == src_rel_path) {
+			int file_id = f.GetId();
+			ASSERT(file_id >= 0);
+			return f;
 		}
-		int id = files.GetCount();
-		VfsSrcFile& f = files.Add();
-		f.id = id;
-		f.pkg = this;
-		f.rel_path = rel_path;
-		f.full_path = full_path;
-		f.env_file = GetFileExt(full_path) == ".env";
-		ASSERT(f.full_path.Right(2) != ".d");
-		return f;
 	}
-	else {
-		for (VfsSrcFile& f : files) {
-			if (f.full_path == full_path) {
-				ASSERT(f.id >= 0);
-				return f;
-			}
-		}
-		int id = files.GetCount();
-		VfsSrcFile& f = files.Add();
-		f.id = id;
-		f.pkg = this;
-		f.rel_path = "";
-		f.full_path = full_path;
-		f.env_file = GetFileExt(full_path) == ".env";
-		ASSERT(f.full_path.Right(2) != ".d");
-		return f;
-	}
+	VfsSrcFile& f = src_files.Add();
+	f.pkg = this;
+	f.rel_path = src_rel_path;
+	f.full_path = AppendFileName(dir, src_rel_path);
+	f.env_file = GetFileExt(f.full_path) == ".env";
+	ASSERT(f.full_path.Right(2) != ".d");
+	return f;
 }
 
 int VfsSrcPkg::FindFile(String path) const {
-	int i = 0;
-	for (const auto& file : files) {
-		if (file.full_path == path)
-			return i;
-		i++;
-	}
-	if (i < 0) {
-		path = GetRelativePath(path);
-		i = 0;
-		for (const auto& file : files) {
-			if (file.rel_path == path)
-				return i;
-			i++;
-		}
-	}
-	return i;
+	String rel_path = GetRelativePath(path);
+	return rel_files.Find(rel_path);
+}
+
+int VfsSrcPkg::GetFileId(const String& path) const {
+	String rel_path = GetRelativePath(path);
+	return rel_files.Find(rel_path);
 }
 
 String IdeMetaEnvironment::ResolveVfsSrcPkgPath(const String& includes, String path,
@@ -751,9 +774,9 @@ VfsSrcFile& IdeMetaEnvironment::ResolveFile(const String& includes, const String
 	env.lock.EnterWrite();
 	VfsSrcPkg& pkg = GetAddPkg(upp_dir);
 	ASSERT(pkg.id >= 0);
-	//String rel_path = pkg.GetRelativePath(path);
-	VfsSrcFile& file = pkg.GetAddFile(path);
-	ASSERT(file.id >= 0);
+	VfsSrcFile& file = pkg.GetAddFile(pkg_path);
+	int file_id = file.GetId();
+	ASSERT(file_id >= 0);
 	env.lock.LeaveWrite();
 	return file;
 }
@@ -774,9 +797,7 @@ int IdeMetaEnvironment::FindPkg(String dir) const {
 
 VfsSrcPkg& IdeMetaEnvironment::GetAddPkg(String dir) {
 	ASSERT(dir.Find(".bin") < 0); // NOT HERE
-	if (!DirectoryExists(dir)) {
-		RealizeDirectory(dir);
-	}
+	ASSERT(DirectoryExists(dir));
 	if (dir.Right(1) != DIR_SEPS)
 		dir.Cat(DIR_SEPS);
 	for (auto& pkg : pkgs) {
@@ -794,9 +815,10 @@ VfsSrcPkg& IdeMetaEnvironment::GetAddPkg(String dir) {
 Vector<VfsValue*> IdeMetaEnvironment::FindAllEnvs() {
 	Vector<VfsValue*> v;
 	for (const VfsSrcPkg& pkg : pkgs) {
-		for (const VfsSrcFile& file : pkg.files) {
+		for (const VfsSrcFile& file : pkg.src_files) {
 			if (file.env_file) {
-				VfsValue& n = RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
+				int file_id = file.GetId();
+				VfsValue& n = RealizeFileNode(pkg.id, file_id, AsTypeHash<PkgEnv>());
 				v << &n;
 			}
 		}
@@ -810,9 +832,10 @@ VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 	if (ctx.IsEmpty())
 		return 0;
 	for (const VfsSrcPkg& pkg : pkgs) {
-		for (const VfsSrcFile& file : pkg.files) {
+		for (const VfsSrcFile& file : pkg.src_files) {
 			if (file.env_file) {
-				VfsValue& fn = RealizeFileNode(pkg.id, file.id, AsTypeHash<PkgEnv>());
+				int file_id = file.GetId();
+				VfsValue& fn = RealizeFileNode(pkg.id, file_id, AsTypeHash<PkgEnv>());
 				for (VfsValue& s : fn.sub)
 					if (s.type_hash == AsTypeHash<Context>() && s.id == ctx)
 						return &s;
@@ -826,7 +849,8 @@ VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 VfsValue* IdeMetaEnvironment::LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v) {
 	if (!file.pkg)
 		return 0;
-	VfsValue& filenode = RealizeFileNode(file.pkg->id, file.id, AsTypeHash<SrcTxtHeader>());
+	int file_id = file.GetId();
+	VfsValue& filenode = RealizeFileNode(file.pkg->id, file_id, AsTypeHash<SrcTxtHeader>());
 	if (!filenode.ext) {
 		One<SrcTxtHeader> ext;
 		ext.Create(filenode);
@@ -877,6 +901,7 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 	file_node = 0;
 	
 	VfsSrcFile& file = ResolveFile(includes, path);
+	int file_id = file.GetId();
 	file.ManageFile(manage_file);
 	
 	// Hotfix for old .db-src file
@@ -889,13 +914,13 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 		}
 	}
 	else if (ext == ".ecs") {
-		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, 0);
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file_id, 0);
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
 	}
 	else if (ext == ".env") {
-		VfsValue& fn = RealizeFileNode(file.pkg->id, file.id, AsTypeHash<PkgEnv>());
+		VfsValue& fn = RealizeFileNode(file.pkg->id, file_id, AsTypeHash<PkgEnv>());
 		if (fn.id.IsEmpty())
 			fn.id = GetFileTitle(path);
 		file_node = &fn;
@@ -962,7 +987,7 @@ VfsValue& IdeMetaEnvironment::RealizeFileNode(int pkg, int file, hash_t type_has
 	VfsValue& n = env.root.sub.Add();
 	n.owner = &env.root;
 	auto& p = pkgs[pkg];
-	n.id = file >= 0 && file < p.files.GetCount() ? p.files[file].GetTitle() : String();
+	n.id = file >= 0 && file < p.rel_files.GetCount() ? GetFileTitle(p.rel_files[file]) : String();
 	n.serial = env.NewSerial();
 	n.file = file;
 	n.pkg = pkg;

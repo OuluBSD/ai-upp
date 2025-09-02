@@ -467,6 +467,7 @@ void Ide::SetupFormat() {
 		(ide.search_downloads, search_downloads)
 #ifndef flagV1
 		(ai.global_proxy, GlobalProxy())
+		(ai.references, GlobalCreateReferencesFile())
 #endif
 	;
 	

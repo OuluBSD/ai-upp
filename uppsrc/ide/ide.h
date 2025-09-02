@@ -1050,6 +1050,7 @@ public:
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
 	#ifndef flagV1
+		void  OpenVfsDlg();
 		void  OpenAITaskDlg();
 	#endif
 

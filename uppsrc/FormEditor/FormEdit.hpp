@@ -882,7 +882,7 @@ void FormEdit<T>::OpenFile()
 {
 	UpdateChildZ();
 
-	FileSelector fs;
+	FileSelNative fs;
 	fs.Type(t_("Form files"), "*.form");
 	fs.Type(t_("Form archives"), "*.fz");
 	fs.AllFilesType();

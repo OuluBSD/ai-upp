@@ -66,6 +66,7 @@ public:
 
 AiServiceProviderManager& AiManager();
 inline String& GlobalProxy() {static String s; return s;}
+inline bool& GlobalCreateReferencesFile() {static bool b; return b;}
 
 END_UPP_NAMESPACE
 

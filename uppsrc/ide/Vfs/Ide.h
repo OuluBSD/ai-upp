@@ -2,7 +2,7 @@
 #define _ide_Vfs_Ide_h_
 
 struct VfsSrcFile : Moveable<VfsSrcFile> {
-	int id = -1;
+	//int id = -1;
 	String saved_hash;
 	hash_t highest_seen_serial = 0;
 	VectorMap<hash_t,String> seen_types;
@@ -24,6 +24,7 @@ struct VfsSrcFile : Moveable<VfsSrcFile> {
 	bool IsEnv() const {return GetFileExt(full_path) == ".env";}
 	bool IsExt(String s) const {return GetFileExt(full_path) == s;}
 	bool Store(bool forced=false);
+	bool StoreSimpleReferences(const String& ref_file);
 	String StoreJson();
 	bool Load();
 	bool LoadJson(String json);
@@ -40,6 +41,7 @@ struct VfsSrcFile : Moveable<VfsSrcFile> {
 	void MakeTempFromEnv(bool all_files=false);
 	String UpdateStoring();
 	void UpdateLoading();
+	int GetId() const;
 	
 	#if 0
 	VfsSrcFile(const VfsSrcFile& f) {*this = f;}
@@ -52,7 +54,8 @@ struct VfsSrcFile : Moveable<VfsSrcFile> {
 struct VfsSrcPkg {
 	typedef VfsSrcPkg CLASSNAME;
 	
-	Array<VfsSrcFile> files;
+	Array<VfsSrcFile> src_files;
+	Index<String> rel_files;
 	
 	String dir;
 	int id = -1;
@@ -64,6 +67,7 @@ struct VfsSrcPkg {
 	void Init();
 	bool Load();
 	bool Store(bool forced);
+	int GetAddRelPath(const String& rel_path);
 	VfsSrcFile& GetAddFile(const String& full_path);
 	VfsSrcFile& GetMetaFile();
 	//void SetPath(String full_path, String upp_dir);
@@ -74,6 +78,7 @@ struct VfsSrcPkg {
 	void Visit(Vis& v);
 	int FindFile(String path) const;
 	String GetDirectory() const {return dir;}
+	int GetFileId(const String& path) const;
 private:
 	bool post_saving = false;
 	Mutex lock;

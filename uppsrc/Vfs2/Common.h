@@ -38,4 +38,6 @@ struct CodeArgs {
 	void Put(const String& s) { LoadFromJson(*this, s); }
 };
 
+String GetRelSrcPath(const String& rel_path);
+
 #endif

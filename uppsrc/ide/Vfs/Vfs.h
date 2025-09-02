@@ -4,6 +4,8 @@
 #include <ide/clang/clang.h>
 #include <MetaCtrl/MetaCtrl.h>
 
+struct VfsDlg;
+
 NAMESPACE_UPP
 
 #include "Ide.h"

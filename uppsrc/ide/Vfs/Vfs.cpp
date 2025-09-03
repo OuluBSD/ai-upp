@@ -137,7 +137,7 @@ void Store(IdeMetaEnvironment& ienv, String& includes, const String& path, Clang
 	VfsSrcFile& file = ienv.ResolveFile(includes, path);
 	VfsSrcPkg& pkg = *file.pkg;
 	VfsValue n;
-	int file_id = pkg.GetFileId(path);
+	int file_id = pkg.GetAddFileId(path);
 	ASSERT(file_id >= 0);
 	UPP::Assign(n, 0, cn);
 	n.SetPkgDeep(pkg.id);
@@ -750,8 +750,13 @@ int VfsSrcPkg::FindFile(String path) const {
 }
 
 int VfsSrcPkg::GetFileId(const String& path) const {
+	return FindFile(path);
+}
+
+int VfsSrcPkg::GetAddFileId(const String& path)
+{
 	String rel_path = GetRelativePath(path);
-	return rel_files.Find(rel_path);
+	return rel_files.FindAdd(rel_path);
 }
 
 String IdeMetaEnvironment::ResolveVfsSrcPkgPath(const String& includes, String path,

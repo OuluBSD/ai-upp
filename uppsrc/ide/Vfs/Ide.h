@@ -79,6 +79,7 @@ struct VfsSrcPkg {
 	int FindFile(String path) const;
 	String GetDirectory() const {return dir;}
 	int GetFileId(const String& path) const;
+	int GetAddFileId(const String& path);
 private:
 	bool post_saving = false;
 	Mutex lock;

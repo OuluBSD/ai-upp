@@ -179,7 +179,7 @@ VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	String path = this->GetFilePath();
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
-	int file_id = file.GetId();
+	int file_id = pkg.GetAddFileId(path);
 	ASSERT(file_id >= 0);
 	VfsValue& n = env.RealizeFileNode(pkg.id, file_id, AsTypeHash<PkgEnv>());
 	this->file_root = &n;

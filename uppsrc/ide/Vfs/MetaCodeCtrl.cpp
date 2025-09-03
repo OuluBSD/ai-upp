@@ -61,7 +61,7 @@ void MetaCodeCtrl::UpdateEditor()
 	auto& ienv = IdeMetaEnv();
 	VfsSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	VfsSrcPkg& pkg = *file.pkg;
-	int file_id = file.GetId();
+	int file_id = pkg.GetAddFileId(this->filepath);
 	ASSERT(pkg.id >= 0 && file_id >= 0);
 	VfsValueSubset sub;
 	ienv.SplitValue(ienv.env.root, sub, pkg.id, file_id);

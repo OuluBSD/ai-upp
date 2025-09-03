@@ -13,8 +13,11 @@ MetaEnvTree::MetaEnvTree() {
 	
 	code.Highlight("cpp");
 	
+	pkgs.AddColumn("#");
 	pkgs.AddColumn("Package");
+	pkgs.AddColumn("Directory");
 	pkgs.AddIndex("IDX");
+	pkgs.ColumnWidths("1 3 5");
 	files.AddColumn("File");
 	files.AddIndex("IDX");
 	
@@ -38,10 +41,11 @@ void MetaEnvTree::Data() {
 	row++;
 	for(int i = 0; i < env.pkgs.GetCount(); i++) {
 		VfsSrcPkg& pkg = env.pkgs[i];
-		if (0)
-			pkgs.Set(row, 0, pkg.GetTitle());
-		else
-			pkgs.Set(row, 0, IntStr(i) + ": " + pkg.GetTitle() + " (" + pkg.dir + ")");
+		AttrText dir(pkg.dir);
+		dir.NormalInk(GrayColor());
+		pkgs.Set(row, 0, i);
+		pkgs.Set(row, 1, pkg.GetTitle());
+		pkgs.Set(row, 2, dir);
 		pkgs.Set(row, "IDX", i);
 		row++;
 	}

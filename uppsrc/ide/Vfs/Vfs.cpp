@@ -780,7 +780,7 @@ VfsSrcFile& IdeMetaEnvironment::ResolveFile(const String& includes, const String
 	VfsSrcPkg& pkg = GetAddPkg(upp_dir);
 	ASSERT(pkg.id >= 0);
 	VfsSrcFile& file = pkg.GetAddFile(pkg_path);
-	int file_id = file.GetId();
+	int file_id = pkg.GetAddFileId(path);
 	ASSERT(file_id >= 0);
 	env.lock.LeaveWrite();
 	return file;
@@ -854,7 +854,7 @@ VfsValue* IdeMetaEnvironment::FindNodeEnv(Entity& n)
 VfsValue* IdeMetaEnvironment::LoadDatabaseSourceVisit(VfsSrcFile& file, String path, Vis& v) {
 	if (!file.pkg)
 		return 0;
-	int file_id = file.GetId();
+	int file_id = file.pkg->GetAddFileId(path);
 	VfsValue& filenode = RealizeFileNode(file.pkg->id, file_id, AsTypeHash<SrcTxtHeader>());
 	if (!filenode.ext) {
 		One<SrcTxtHeader> ext;
@@ -906,7 +906,7 @@ bool IdeMetaEnvironment::LoadFileRootVisit(const String& includes, const String&
 	file_node = 0;
 	
 	VfsSrcFile& file = ResolveFile(includes, path);
-	int file_id = file.GetId();
+	int file_id = file.pkg->GetAddFileId(path);
 	file.ManageFile(manage_file);
 	
 	// Hotfix for old .db-src file

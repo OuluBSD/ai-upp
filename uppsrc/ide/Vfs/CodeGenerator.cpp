@@ -29,7 +29,7 @@ bool MetaCodeGenerator::Process(const VfsValueSubset& np) {
 	files.Clear();
 	
 	// Find all unique files
-	Vector<Vector<int>> pkgfiles;
+	VectorMap<hash_t,VectorMap<hash_t,int>> pkgfiles;
 	FindFiles(np, pkgfiles);
 	
 	// Find most visible file
@@ -93,8 +93,9 @@ bool MetaCodeGenerator::Process(const VfsValueSubset& np) {
 		}
 		
 		// Load original file
-		const auto& pkg = ienv.pkgs[key.pkg];
-		String path = pkg.GetFullPath(key.file);
+		const VfsSrcPkg& pkg = ienv.GetAddPackage(key.pkg_hash);
+		ASSERT(pkg.dir.GetCount());
+		String path = pkg.GetFullPath(key.file_hash);
 		String content = LoadFile(path);
 		
 		// Write code
@@ -164,15 +165,11 @@ bool MetaCodeGenerator::Process(const VfsValueSubset& np) {
 	return true;
 }
 
-void MetaCodeGenerator::FindFiles(const VfsValueSubset& np, Vector<Vector<int>>& pkgfiles) {
+void MetaCodeGenerator::FindFiles(const VfsValueSubset& np, VectorMap<hash_t, VectorMap<hash_t,int>>& pkgfiles) {
 	const VfsValue& n = *np.n;
-	if (n.pkg >= 0 && n.file >= 0) {
-		if (n.pkg >= pkgfiles.GetCount())
-			pkgfiles.SetCount(n.pkg+1);
-		Vector<int>& file = pkgfiles[n.pkg];
-		if (n.file >= file.GetCount())
-			file.SetCount(n.file+1, 0);
-		file[n.file]++;
+	if (n.pkg_hash != 0 && n.file_hash != 0) {
+		VectorMap<hash_t,int>& file = pkgfiles.GetAdd(n.pkg_hash);
+		file.GetAdd(n.file_hash,0)++;
 	}
 	for (const VfsValueSubset& s : np.sub)
 		FindFiles(s, pkgfiles);
@@ -187,7 +184,7 @@ void MetaCodeGenerator::FindValues(const VfsValueSubset& np, const PkgFile& key,
 		}
 	}
 	else {
-		if (n.pkg == key.pkg && n.file == key.file)
+		if (n.pkg_hash == key.pkg_hash && n.file_hash == key.file_hash)
 			nodes.Add(&n);
 	}
 }

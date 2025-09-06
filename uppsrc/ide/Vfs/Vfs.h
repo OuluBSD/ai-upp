@@ -14,6 +14,7 @@ NAMESPACE_UPP
 #include "CodeGenerator.h"
 #include "MetaCodeCtrl.h"
 #include "MetaEnvTree.h"
+#include "MetaIndexerCtrl.h"
 #include "EditorCtrl.h"
 #include "Env.h"
 

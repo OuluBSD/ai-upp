@@ -134,10 +134,10 @@ void CodeVisitor::Visit(const String& filepath, VfsValue& n)
 	// Macro expansions are not in the node-structure already, and they must be "brute-force" visited
 	if (IsStructPtr && IsFunctionPtr &&
 	   (IsStructPtr(ast.kind) || IsFunctionPtr(ast.kind))) {
-		int pkg = n.pkg;
-		int file = n.file;
+		hash_t pkg_hash = n.pkg_hash;
+		hash_t file_hash = n.file_hash;
 		for (VfsValue* me : macro_exps) {
-			if (me->pkg == pkg && me->file == file) {
+			if (me->pkg_hash == pkg_hash && me->file_hash == file_hash) {
 				AstValue* ast1 = FindRawValue<AstValue>(me->value);
 				if (ast1 && RangeContains(ast1->begin, ast.begin, ast.end)) {
 					Visit(filepath, *me);

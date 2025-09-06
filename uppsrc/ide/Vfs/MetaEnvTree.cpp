@@ -16,10 +16,11 @@ MetaEnvTree::MetaEnvTree() {
 	pkgs.AddColumn("#");
 	pkgs.AddColumn("Package");
 	pkgs.AddColumn("Directory");
-	pkgs.AddIndex("IDX");
+	pkgs.AddIndex("HASH");
 	pkgs.ColumnWidths("1 3 5");
 	files.AddColumn("File");
-	files.AddIndex("IDX");
+	files.AddColumn("Count");
+	files.AddIndex("HASH");
 	
 	pkgs.WhenCursor << THISBACK(DataPkg);
 	files.WhenCursor << THISBACK(DataFile);
@@ -32,21 +33,52 @@ MetaEnvTree::MetaEnvTree() {
 	PostCallback(THISBACK(Data));
 }
 
+void MetaEnvTree::RefreshFiles() {
+	IdeMetaEnvironment& env = IdeMetaEnv();
+	
+	// Get all pkg and file hashs (and counts of them)
+	env.env.root.FindFiles(pkgfiles);
+	
+	// Sort values
+	for (auto it : ~pkgfiles) {
+		SortByValue(it.value, StdGreater<int>());
+	}
+	struct Sorter {
+		bool operator()(const VectorMap<hash_t,int>& a, const VectorMap<hash_t,int>& b) const {
+			int as = 0, bs = 0;
+			for (int i : a.GetValues()) as += i;
+			for (int i : b.GetValues()) bs += i;
+			return as > bs;
+		}
+	};
+	Sort(pkgfiles, Sorter());
+}
+
 void MetaEnvTree::Data() {
 	IdeMetaEnvironment& env = IdeMetaEnv();
 	
+	if (pkgfiles.IsEmpty())
+		RefreshFiles();
+	
 	int row = 0;
 	pkgs.Set(row, 0, "<global>");
-	pkgs.Set(row, "IDX", -1);
+	pkgs.Set(row, "HASH", 0);
 	row++;
-	for(int i = 0; i < env.pkgs.GetCount(); i++) {
-		VfsSrcPkg& pkg = env.pkgs[i];
-		AttrText dir(pkg.dir);
-		dir.NormalInk(GrayColor());
+	for(int i = 0; i < pkgfiles.GetCount(); i++) {
+		hash_t h = pkgfiles.GetKey(i);
+		if (h != 0) {
+			VfsSrcPkg& pkg = env.GetAddPackage(h);
+			AttrText dir(pkg.dir);
+			dir.NormalInk(GrayColor());
+			pkgs.Set(row, 1, pkg.GetTitle());
+			pkgs.Set(row, 2, dir);
+		}
+		else {
+			pkgs.Set(row, 1, "");
+			pkgs.Set(row, 2, "");
+		}
 		pkgs.Set(row, 0, i);
-		pkgs.Set(row, 1, pkg.GetTitle());
-		pkgs.Set(row, 2, dir);
-		pkgs.Set(row, "IDX", i);
+		pkgs.Set(row, "HASH", (int64)h);
 		row++;
 	}
 	pkgs.SetCount(row);
@@ -69,14 +101,19 @@ void MetaEnvTree::DataPkg() {
 	}
 	int row = 0;
 	files.Set(row,0,"<global>");
-	files.Set(row,"IDX",-1);
+	files.Set(row,"HASH",0);
 	row++;
-	int pkg_i = pkgs.Get("IDX");
-	if (pkg_i >= 0) {
-		VfsSrcPkg& pkg = env.pkgs[pkg_i];
-		for(int i = 0; i < pkg.rel_files.GetCount(); i++) {
-			files.Set(row,0,pkg.rel_files[i]);
-			files.Set(row,"IDX",i);
+	hash_t pkg_hash = (int64)pkgs.Get("HASH");
+	if (pkg_hash != 0) {
+		const auto& files_of_pkg = pkgfiles.Get(pkg_hash);
+		VfsSrcPkg& pkg = env.GetAddPackage(pkg_hash);
+		for(auto it : ~files_of_pkg) {
+			hash_t file_hash = it.key;
+			String filepath = Format("%X", (int64)file_hash);
+			// TODO
+			files.Set(row, 0, filepath);
+			files.Set(row, 1, it.value);
+			files.Set(row, "HASH", (int64)file_hash);
 			row++;
 		}
 	}
@@ -97,8 +134,8 @@ void MetaEnvTree::DataFile() {
 		code.Clear();
 		return;
 	}
-	int pkg_i = pkgs.Get("IDX");
-	int file_i = files.Get("IDX");
+	size_t pkg_hash = (int64)pkgs.Get("HASH");
+	size_t file_hash = (int64)files.Get("HASH");
 	
 	int prev = stmts.IsCursor() ? stmts.GetCursor() : -1;
 	Point scroll = stmts.GetScroll();
@@ -106,19 +143,19 @@ void MetaEnvTree::DataFile() {
 	int count = 0;
 	stmts.Clear();
 	stmt_ptrs.SetCount(0);
-	if (pkg_i < 0) {
+	if (pkg_hash != 0) {
 		AddStmtNodes(0, env.env.root, 0, count);
 	}
-	else if (pkg_i >= 0 && file_i < 0) {
+	else if (pkg_hash != 0 && file_hash != 0) {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitValue(env.env.root, subset, pkg_i);
+		env.SplitValueHash(env.env.root, subset, pkg_hash);
 		AddStmtNodes(0, *subset.n, &subset, count);
 	}
 	else {
 		subset.Clear();
 		stmt_ptrs.Clear();
-		env.SplitValue(env.env.root, subset, pkg_i, file_i);
+		env.SplitValueHash(env.env.root, subset, pkg_hash, file_hash);
 		AddStmtNodes(0, *subset.n, &subset, count);
 	}
 	stmts.OpenDeep(0);
@@ -155,10 +192,10 @@ void MetaEnvTree::DataFocusSelection() {
 	int sel = focus.GetCursor();
 	const VfsValue& n = *focus_ptrs[sel];
 	const AstValue* a = n;
-	if (n.pkg < 0 || n.file < 0 || !a)
+	if (n.pkg_hash == 0 || n.file_hash == 0 || !a)
 		return;
-	VfsSrcPkg& pkg = env.pkgs[n.pkg];
-	String full_path = pkg.GetFullPath(n.file);
+	VfsSrcPkg& pkg = env.GetAddPackage(n.pkg_hash);
+	String full_path = pkg.GetFullPath(n.file_hash);
 	String content = LoadFile(full_path);
 	String node_content = GetStringRange(content, a->begin, a->end);
 	code.SetData(node_content);
@@ -187,7 +224,7 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, in
 		s = kind_str + ": " + n.id;
 		if (a->type.GetCount()) s += " (" + a->type + ")";
 		#if 1
-		s += " " + IntStr(n.pkg) + ":" + IntStr(n.file);
+		s += " " + Format("%X:%X", (int64)n.pkg_hash, (int64)n.file_hash);
 		#endif
 		switch (a->kind) {
 		case CXCursor_CXXMethod:
@@ -221,10 +258,10 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, in
 			}
 		}
 		else {
-			for (VfsValue& s : n.sub) {
+			for (VfsValue& sub : n.sub) {
 				int idx = stmts.Add(tree_idx);
 				count++;
-				AddStmtNodes(idx, s, 0, count);
+				AddStmtNodes(idx, sub, 0, count);
 				if (count >= tree_limit) return;
 			}
 		}

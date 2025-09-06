@@ -18,7 +18,7 @@ private:
 	
 	
 	
-	void FindFiles(const VfsValueSubset& n, Vector<Vector<int>>& pkgfiles);
+	void FindFiles(const VfsValueSubset& n, VectorMap<hash_t, VectorMap<hash_t,int>>& pkgfiles);
 	void FindValues(const VfsValueSubset& n, const PkgFile& key, Vector<VfsValue*>& nodes);
 	
 public:

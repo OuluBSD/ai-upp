@@ -155,10 +155,6 @@
 	#endif
 #endif
 
-#ifdef CPU_BIG_ENDIAN
-#error "Big endian CPUs are not supported anymore"
-#endif
-
 #define CPU_LITTLE_ENDIAN 1
 #define CPU_LE 1
 

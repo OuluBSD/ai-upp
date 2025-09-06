@@ -61,13 +61,14 @@ void MetaCodeCtrl::UpdateEditor()
 	auto& ienv = IdeMetaEnv();
 	VfsSrcFile& file = ienv.ResolveFile(this->includes, this->filepath);
 	VfsSrcPkg& pkg = *file.pkg;
-	int file_id = pkg.GetAddFileId(this->filepath);
-	ASSERT(pkg.id >= 0 && file_id >= 0);
+	hash_t pkg_hash = pkg.GetPackageHash();
+	hash_t file_hash = pkg.GetFileHash(this->filepath);
+	ASSERT(pkg_hash >= 0 && file_hash >= 0);
 	VfsValueSubset sub;
-	ienv.SplitValue(ienv.env.root, sub, pkg.id, file_id);
+	ienv.SplitValueHash(ienv.env.root, sub, pkg_hash, file_hash);
 	
 	gen.Process(sub);
-	gen_file = gen.GetResultFile(pkg.id, file_id);
+	gen_file = gen.GetResultFile(pkg_hash, file_hash);
 	
 	String code;
 	if (gen_file) {
@@ -136,8 +137,8 @@ void MetaCodeCtrl::AddComment()
 	ca.end = Point(0,origl);
 	ca.begin = Point(0,origl);
 	cn.id = txt;
-	cn.file = sel_node->file;
-	cn.pkg = sel_node->pkg;
+	cn.file_hash = sel_node->file_hash;
+	cn.pkg_hash = sel_node->pkg_hash;
 	//sel_ann->Sort();
 	StoreMetaFile();
 	UpdateEditor();
@@ -210,8 +211,8 @@ void MetaCodeCtrl::MakeAiComments()
 			//VfsValue* closest = cur_sel_node->FindClosest(pt);
 			VfsValue& cn = cur_sel_node->Add();
 			cn.id = c.value;
-			cn.file = cur_sel_node->file;
-			cn.pkg = cur_sel_node->pkg;
+			cn.file_hash = cur_sel_node->file_hash;
+			cn.pkg_hash = cur_sel_node->pkg_hash;
 			AstValue& ast = cn;
 			ast.kind = METAKIND_COMMENT;
 			ast.begin = ast.end = pt;

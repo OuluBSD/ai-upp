@@ -31,15 +31,15 @@ void EnvEditorCtrl::RefreshDatabases() {
 	
 	IdeMetaEnvironment& env = IdeMetaEnv();
 	
-	for(int i = 0; i < env.pkgs.GetCount(); i++) {
-		VfsSrcPkg& pkg = env.pkgs[i];
+	for(VfsSrcPkg& pkg : env.GetPackages()) {
 		
 		for(int j = 0; j < pkg.src_files.GetCount(); j++) {
 			VfsSrcFile& file = pkg.src_files[j];
 			
 			if (file.IsExt(".db-src")) {
-				int file_id = file.GetId();
-				dbs << &env.RealizeFileNode(pkg.id, file_id, AsTypeHash<SrcTxtHeader>());
+				hash_t pkg_hash = pkg.GetPackageHash();
+				hash_t file_hash = file.GetFileHash();
+				dbs << &env.RealizeFileNodeHash(pkg_hash, file_hash, AsTypeHash<SrcTxtHeader>());
 			}
 		}
 	}
@@ -179,9 +179,10 @@ VfsSrcFile& EnvEditorCtrl::RealizeFileRoot() {
 	String path = this->GetFilePath();
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
-	int file_id = pkg.GetAddFileId(path);
-	ASSERT(file_id >= 0);
-	VfsValue& n = env.RealizeFileNode(pkg.id, file_id, AsTypeHash<PkgEnv>());
+	hash_t pkg_hash = pkg.GetPackageHash();
+	hash_t file_hash = pkg.GetFileHash(path);
+	ASSERT(file_hash >= 0);
+	VfsValue& n = env.RealizeFileNodeHash(pkg_hash, file_hash, AsTypeHash<PkgEnv>());
 	this->file_root = &n;
 	if (!this->file_root->type_hash) {
 		this->file_root->CreateExt<PkgEnv>();

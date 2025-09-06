@@ -12,6 +12,8 @@ file
 	MetaCodeCtrl.cpp,
 	MetaEnvTree.h,
 	MetaEnvTree.cpp,
+	MetaIndexerCtrl.h,
+	MetaIndexerCtrl.cpp,
 	EditorCtrl.h,
 	EditorCtrl.cpp,
 	Env.h,

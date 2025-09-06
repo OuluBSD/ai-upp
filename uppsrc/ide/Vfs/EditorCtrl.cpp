@@ -244,9 +244,10 @@ VfsSrcFile& EntityEditorCtrl::RealizeFileRoot() {
 	ASSERT(path.GetCount());
 	VfsSrcFile& file = env.ResolveFile("", path);
 	VfsSrcPkg& pkg = *file.pkg;
-	int file_id = pkg.GetAddFileId(path);
-	ASSERT(file_id >= 0);
-	VfsValue& n = env.RealizeFileNode(pkg.id, file_id, 0);
+	hash_t pkg_hash = pkg.GetPackageHash();
+	hash_t file_hash = pkg.GetFileHash(path);
+	ASSERT(file_hash != 0);
+	VfsValue& n = env.RealizeFileNodeHash(pkg_hash, file_hash, 0);
 	this->file_root = &n;
 	return file;
 }

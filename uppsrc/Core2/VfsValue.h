@@ -327,13 +327,13 @@ struct VfsValue : Pte<VfsValue> {
 	String             id;
 	hash_t             type_hash = 0;
 	hash_t             serial = 0;
-	int                file = -1;
+	hash_t             file_hash = 0;
 	Array<VfsValue>    sub;
 	Value              value;
 	One<VfsValueExt>   ext;
 	
 	// Temp
-	int                pkg = -1;
+	hash_t             pkg_hash = 0;
 	Ptr<VfsValue>      owner;
 	Ptr<VfsValue>      symbolic_link;
 	
@@ -396,15 +396,15 @@ struct VfsValue : Pte<VfsValue> {
 	hash_t GetTotalHash() const;
 	void Visit(Vis& v);
 	void FixParent() {for (auto& s : sub) s.owner = this;}
-	void PointPkgTo(VfsValueSubset& other, int pkg_id);
-	void PointPkgTo(VfsValueSubset& other, int pkg_id, int file_id);
-	void CopyPkgTo(VfsValue& other, int pkg_id) const;
-	void CopyPkgTo(VfsValue& other, int pkg_id, int file_id) const;
-	bool HasPkgDeep(int pkg_id) const;
-	bool HasPkgFileDeep(int pkg_id, int file_id) const;
-	void SetPkgDeep(int pkg_id);
-	void SetFileDeep(int file_id);
-	void SetPkgFileDeep(int pkg_id, int file_id);
+	void PointPkgHashTo(VfsValueSubset& other, hash_t pkg);
+	void PointPkgHashTo(VfsValueSubset& other, hash_t pkg, hash_t file);
+	void CopyPkgHashTo(VfsValue& other, hash_t pkg) const;
+	void CopyPkgHashTo(VfsValue& other, hash_t pkg, hash_t file) const;
+	bool HasPkgHashDeep(hash_t pkg) const;
+	bool HasPkgFileHashDeep(hash_t pkg, hash_t file) const;
+	void SetPkgHashDeep(hash_t pkg);
+	void SetFileHashDeep(hash_t pkg);
+	void SetPkgFileHashDeep(hash_t pkg, hash_t file);
 	void SetTempDeep();
 	Vector<VfsValue*> FindAll(TypeCls type);
 	Vector<VfsValue*> FindTypeAllShallow(hash_t type_hash);
@@ -433,6 +433,7 @@ struct VfsValue : Pte<VfsValue> {
 	void StopDeep();
 	void ClearDependenciesDeep();
 	void UninitializeDeep();
+	void FindFiles(VectorMap<hash_t,VectorMap<hash_t,int>>& pkgfiles) const;
 	VirtualNode				RootPolyValue();
 	VirtualNode				RootVfsValue(const VfsPath& path);
 	
@@ -492,8 +493,8 @@ struct VfsValue : Pte<VfsValue> {
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
-		s.pkg = pkg;
-		s.file = file;
+		s.pkg_hash = pkg_hash;
+		s.file_hash = file_hash;
 		s.type_hash = type_hash;
 		return *o;
 	}
@@ -505,8 +506,8 @@ struct VfsValue : Pte<VfsValue> {
 		s.id = id;
 		T* o = new T(s);
 		s.ext = o;
-		s.pkg = pkg;
-		s.file = file;
+		s.pkg_hash = pkg_hash;
+		s.file_hash = file_hash;
 		s.type_hash = AsTypeHash<T>();
 		ASSERT(s.type_hash);
 		return *o;

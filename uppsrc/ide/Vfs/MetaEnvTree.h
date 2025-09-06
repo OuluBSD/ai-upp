@@ -17,10 +17,13 @@ protected:
 	int tree_limit = 1000;
 	bool dlgmode = false;
 	
+	VectorMap<hash_t, VectorMap<hash_t,int>> pkgfiles;
+	
 public:
 	typedef MetaEnvTree CLASSNAME;
 	MetaEnvTree();
 	
+	void RefreshFiles();
 	void Data();
 	void DataPkg();
 	void DataFile();

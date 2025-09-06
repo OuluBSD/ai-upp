@@ -33,7 +33,9 @@ struct VfsDlg : TopWindow {
 
 	VfsDlg();
 	
+	TabCtrl tabs;
 	MetaEnvTree menv;
+	MetaIndexerCtrl idxr;
 	Ide* theide = 0;
 };
 
@@ -41,7 +43,11 @@ VfsDlg::VfsDlg()
 {
 	//CtrlLayoutOKCancel(*this, "Vfs Navigator");
 	Title("Vfs Navigator");
-	Add(menv.SizePos());
+	
+	Add(tabs.SizePos());
+	tabs.Add(menv.SizePos(), "Data");
+	tabs.Add(idxr.SizePos(), "Indexer");
+	
 	menv.dlgmode = true;
 	//search.WhenEnter.Clear();
 	Sizeable().Zoomable();

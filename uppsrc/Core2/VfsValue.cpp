@@ -603,90 +603,90 @@ void VfsValue::ClearExtDeep() {
 		ext.Clear();
 }
 
-void VfsValue::PointPkgTo(VfsValueSubset& other, int pkg_id)
+void VfsValue::PointPkgHashTo(VfsValueSubset& other, hash_t pkg)
 {
 	other.n = this;
 	for(auto& n0 : sub) {
-		if(n0.HasPkgDeep(pkg_id)) {
+		if(n0.HasPkgHashDeep(pkg)) {
 			VfsValueSubset& n1 = other.sub.Add();
-			n0.PointPkgTo(n1, pkg_id);
+			n0.PointPkgHashTo(n1, pkg);
 		}
 	}
 }
 
-void VfsValue::PointPkgTo(VfsValueSubset& other, int pkg_id, int file_id)
+void VfsValue::PointPkgHashTo(VfsValueSubset& other, hash_t pkg, hash_t file)
 {
 	other.n = this;
 	for(auto& n0 : sub) {
-		if(n0.HasPkgFileDeep(pkg_id, file_id)) {
+		if(n0.HasPkgFileHashDeep(pkg, file)) {
 			VfsValueSubset& n1 = other.sub.Add();
-			n0.PointPkgTo(n1, pkg_id, file_id);
+			n0.PointPkgHashTo(n1, pkg, file);
 		}
 	}
 }
 
-void VfsValue::CopyPkgTo(VfsValue& other, int pkg_id) const
+void VfsValue::CopyPkgHashTo(VfsValue& other, hash_t pkg) const
 {
 	other.CopyFieldsFrom(*this, true);
 	for(const auto& n0 : sub) {
-		if(n0.HasPkgDeep(pkg_id)) {
+		if(n0.HasPkgHashDeep(pkg)) {
 			VfsValue& n1 = other.Add();
-			n0.CopyPkgTo(n1, pkg_id);
+			n0.CopyPkgHashTo(n1, pkg);
 		}
 	}
 }
 
-void VfsValue::CopyPkgTo(VfsValue& other, int pkg_id, int file_id) const
+void VfsValue::CopyPkgHashTo(VfsValue& other, hash_t pkg, hash_t file) const
 {
 	other.CopyFieldsFrom(*this, true);
 	for(const auto& n0 : sub) {
-		if(n0.HasPkgFileDeep(pkg_id, file_id)) {
+		if(n0.HasPkgFileHashDeep(pkg, file)) {
 			VfsValue& n1 = other.Add();
-			n0.CopyPkgTo(n1, pkg_id, file_id);
+			n0.CopyPkgHashTo(n1, pkg, file);
 		}
 	}
 }
 
-bool VfsValue::HasPkgDeep(int pkg_id) const
+bool VfsValue::HasPkgHashDeep(hash_t pkg) const
 {
-	if(this->pkg == pkg_id)
+	if(this->pkg_hash == pkg)
 		return true;
 	for(const auto& n : sub)
-		if(n.HasPkgDeep(pkg_id))
+		if(n.HasPkgHashDeep(pkg))
 			return true;
 	return false;
 }
 
-bool VfsValue::HasPkgFileDeep(int pkg_id, int file_id) const
+bool VfsValue::HasPkgFileHashDeep(hash_t pkg, hash_t file) const
 {
-	if(this->pkg == pkg_id && this->file == file_id)
+	if(this->pkg_hash == pkg && this->file_hash == file)
 		return true;
 	for(const auto& n : sub)
-		if(n.HasPkgFileDeep(pkg_id, file_id))
+		if(n.HasPkgFileHashDeep(pkg, file))
 			return true;
 	return false;
 }
 
-void VfsValue::SetPkgDeep(int pkg_id)
+void VfsValue::SetPkgHashDeep(hash_t pkg)
 {
-	this->pkg = pkg_id;
+	this->pkg_hash = pkg;
 	for(auto& n : sub)
-		n.SetPkgDeep(pkg_id);
+		n.SetPkgHashDeep(pkg);
 }
 
-void VfsValue::SetFileDeep(int file_id)
+void VfsValue::SetFileHashDeep(hash_t file)
 {
-	this->file = file_id;
+	this->file_hash = file;
 	for(auto& n : sub)
-		n.SetFileDeep(file_id);
+		n.SetFileHashDeep(file);
 }
 
-void VfsValue::SetPkgFileDeep(int pkg_id, int file_id)
+void VfsValue::SetPkgFileHashDeep(hash_t pkg, hash_t file)
 {
-	this->pkg = pkg_id;
-	this->file = file_id;
+	this->pkg_hash = pkg;
+	this->file_hash = file;
 	for(auto& n : sub)
-		n.SetPkgFileDeep(pkg_id, file_id);
+		n.SetPkgFileHashDeep(pkg, file);
 }
 
 void VfsValue::SetTempDeep()
@@ -789,7 +789,7 @@ String VfsValue::GetTreeString(int depth) const
 	String s;
 	s.Cat('\t', depth);
 	if(1)
-		s << IntStr(pkg) << ":" << IntStr(file) << ": ";
+		s << IntStr(pkg_hash) << ":" << IntStr(file_hash) << ": ";
 	if (!value.IsNull()) {
 		s << value.GetTypeName();
 		dword type = value.GetType();
@@ -892,8 +892,8 @@ VfsValue& VfsValue::AstGetAdd(String id, String type, int kind)
 	s.owner = this;
 	s.id = id;
 	s.serial = MetaEnv().NewSerial();
-	s.file = this->file;
-	s.pkg = this->pkg;
+	s.file_hash = this->file_hash;
+	s.pkg_hash = this->pkg_hash;
 	
 	AstValue& a = s;
 	a.type = type;
@@ -951,6 +951,15 @@ void VfsValue::UninitializeDeep()
 	}
 }
 
+void VfsValue::FindFiles(VectorMap<hash_t,VectorMap<hash_t,int>>& pkgfiles) const
+{
+	VectorMap<hash_t,int>& file = pkgfiles.GetAdd(pkg_hash);
+	file.GetAdd(file_hash,0)++;
+	
+	for (const auto& s : sub)
+		s.FindFiles(pkgfiles);
+}
+
 void VfsValue::StopDeep()
 {
 	for (auto& s : sub)
@@ -988,9 +997,9 @@ VfsValue& VfsValue::Add(const VfsValue& n)
 	s.CopySubFrom(n);
 	s.CopyFieldsFrom(n);
 	s.serial = MetaEnv().NewSerial();
-	if (n.pkg < 0 && n.file < 0) {
-		s.file = this->file;
-		s.pkg = this->pkg;
+	if (n.pkg_hash < 0 && n.file_hash < 0) {
+		s.file_hash = this->file_hash;
+		s.pkg_hash = this->pkg_hash;
 	}
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();
@@ -1001,9 +1010,9 @@ VfsValue& VfsValue::Add(VfsValue* n)
 {
 	VfsValue& s = sub.Add(n);
 	s.owner = this;
-	if (s.pkg < 0 && s.file < 0) {
-		s.file = this->file;
-		s.pkg = this->pkg;
+	if (s.pkg_hash < 0 && s.file_hash < 0) {
+		s.file_hash = this->file_hash;
+		s.pkg_hash = this->pkg_hash;
 	}
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
@@ -1037,8 +1046,8 @@ VfsValue& VfsValue::Init(VfsValue& s, const String& id, hash_t h)
 {
 	s.id = id;
 	s.owner = this;
-	s.file = this->file;
-	s.pkg = this->pkg;
+	s.file_hash = this->file_hash;
+	s.pkg_hash = this->pkg_hash;
 	s.serial = MetaEnv().NewSerial();
 	this->serial = MetaEnv().NewSerial();
 	s.Chk();
@@ -1162,9 +1171,9 @@ bool VfsValue::FindDifferences(const VfsValue& n, Vector<String>& diffs, int max
 	CHK_FIELD(id);
 	CHK_FIELD(type_hash);
 	CHK_FIELD(serial);
-	CHK_FIELD(file);
+	CHK_FIELD(file_hash);
 	CHK_FIELD(sub.GetCount());
-	CHK_FIELD(pkg);
+	CHK_FIELD(pkg_hash);
 	const AstValue* a0 = *this;
 	const AstValue* a1 = n;
 	if (a0 && a1) {
@@ -1212,7 +1221,7 @@ bool VfsValue::IsFieldsSame(const VfsValue& n) const
 		return false;
 	
 	if (!( id == n.id && type_hash == n.type_hash &&
-	       file == n.file && pkg == n.pkg &&
+	       file_hash == n.file_hash && pkg_hash == n.pkg_hash &&
 	       serial == n.serial && value.GetType() == n.value.GetType()))
 		return false;
 	
@@ -1238,8 +1247,8 @@ void VfsValue::CopyFieldsFrom(const VfsValue& n, bool forced_downgrade)
 {
 	id = n.id;
 	type_hash = n.type_hash;
-	file = n.file;
-	pkg = n.pkg;
+	file_hash = n.file_hash;
+	pkg_hash = n.pkg_hash;
 	
 	const AstValue* a1 = n;
 	if (a1) {
@@ -1280,8 +1289,8 @@ hash_t VfsValue::GetTotalHash() const
 	ch	.Do(id)
 		.Do(type_hash)
 		.Do(serial)
-		.Do(file)
-		.Do(pkg) // TODO ensure that the hash is not used across sessions. This is not persistent hash because of this field.
+		.Do(file_hash)
+		.Do(pkg_hash) // TODO ensure that the hash is not used across sessions. This is not persistent hash because of this field.
 	;
 	const AstValue* a0 = *this;
 	if (a0) {
@@ -1312,8 +1321,9 @@ void VfsValue::Visit(Vis& v) {
 	v.SetScope(this);
 	#define Do(x) (#x,x)
 	#define Do64(x) (#x,(int64&)x)
-	v.Ver(3,true);
+	v.Ver(4,true);
 	if (v.file_ver >= 0 && v.file_ver <= 2) {
+		int file = -1;
 		AstValue& a = *this;
 		v
 		(1)	Do(a.kind)
@@ -1332,12 +1342,40 @@ void VfsValue::Visit(Vis& v) {
 		(2)	Do(value)
 			;
 	}
-	else {
+	else if (v.file_ver == 3) {
+		int file = -1;
 		v
 		(3)	Do(id)
 			Do64(type_hash)
 			Do64(serial)
 			Do(file)
+			//Do(pkg)
+			;
+		
+		bool is_ast = (const AstValue*)*this;
+		v	Do(is_ast);
+		if (is_ast) {
+			AstValue& a = *this;
+			v
+				Do(a.kind)
+				Do(a.type)
+				Do(a.begin)
+				Do(a.end)
+				Do64(a.filepos_hash)
+				Do(a.is_ref)
+				Do(a.is_definition)
+				Do(a.is_disabled);
+		}
+		else {
+			v	Do(value);
+		}
+	}
+	else if (v.file_ver == 4) {
+		v
+		(4)	Do(id)
+			Do64(type_hash)
+			Do64(serial)
+			Do(file_hash)
 			//Do(pkg)
 			;
 		

@@ -764,7 +764,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 			VfsValue& n1 = *it.node;
 			const AstValue* a1 = n1;
 			if (a1 && a1->kind == CXCursor_MacroExpansion) {
-				if (!(n1.file == n.file && n1.pkg == n.pkg && RangeContains(a1->begin, begin, end)))
+				if (!(n1.file_hash == n.file_hash && n1.pkg_hash == n.pkg_hash && RangeContains(a1->begin, begin, end)))
 					continue;
 				auto& rel = t.relations.Add();
 				rel.reason = AITask::MACRO_EXPANSION;
@@ -779,7 +779,7 @@ bool MetaProcess::MakeTask(AITask& t) {
 				}
 			}
 			else if (a1 && a1->kind == CXCursor_MacroDefinition) {
-				if (!(n1.file == n.file && n1.pkg == n.pkg && RangeContains(a1->begin, begin, end)))
+				if (!(n1.file_hash == n.file_hash && n1.pkg_hash == n.pkg_hash && RangeContains(a1->begin, begin, end)))
 					continue;
 				auto& rel = t.relations.Add();
 				rel.reason = AITask::MACRO_DEFINITION;

@@ -146,7 +146,8 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	String id; // Upp::Class::Method(Upp::Point p)
 	String name; // Method
 	String type; // for String x, Upp::String, surely valid for variables only
-	String pretty; // void Class::Method(Point p)
+	String pretty; // void Class::Method(Point p), cleaned up for Navigator (instead of class Foo just Foo)
+	String pretty0; // original
 	String nspace; // Upp
 	String uname; // METHOD
 	String nest; // Upp::Class
@@ -244,9 +245,6 @@ void   Diagnostics(CXTranslationUnit tu, Stream& out);
 
 inline bool IsWarning(int q) { return q == CXDiagnostic_Warning; }
 inline bool IsError(int q) { return findarg(q, CXDiagnostic_Error, CXDiagnostic_Fatal) >= 0; }
-
-String CleanupId(const char *s);
-String CleanupPretty(const String& signature);
 
 bool   IsCppSourceFile(const String& path);
 bool   IsSourceFile(const String& path);

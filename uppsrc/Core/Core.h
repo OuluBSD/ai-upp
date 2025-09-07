@@ -409,6 +409,8 @@ class JsonIO;
 
 #include "LocalProcess.h"
 
+#include "BinUndoRedo.h"
+
 #include "Inet.h"
 #include "Daemon.h"
 

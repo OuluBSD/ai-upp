@@ -375,6 +375,9 @@ void AppMain___()
 		bool clset = false;
 		
 		ide.LoadConfig();
+
+		if(!ide.disable_custom_caption)
+			ide.CustomTitleBar();
 		
 		#ifndef flagV1
 		TaskMgr::Setup(&ide);

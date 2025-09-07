@@ -71,6 +71,26 @@ struct CppBuilder : Builder {
 
 String SourceToObjName(const String& package, const String& srcfile_);
 
+struct VfsBuilder : CppBuilder {
+	virtual void   AddFlags(Index<String>& cfg);
+	virtual bool   BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>& immfile,
+	    String& linkoptions, const Vector<String>& all_uses, const Vector<String>& all_libraries, int optimize);
+	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
+	virtual bool   Preprocess(const String& package, const String& file, const String& target, bool asmout);
+	virtual String CompilerName() const;
+	virtual bool IsInternalCompiler() const;
+	
+	bool   RunFile(String cmdline, int slot, String file, String key, int blitz_count);
+	bool   RunFile(String cmdline, Stream& out, int slot, String file, String key, int blitz_count);
+	String CmdLine(const String& package, const Package& pkg);
+	void   CToAST(String fo, String objfile, const String& package, const Package& pkg);
+	void   RunPkgConfig(Vector<String>& v);
+	
+	String includes;
+	VectorMap<String,String> pkgconfig_cache;
+	Vector<String> internal;
+};
+
 struct GccBuilder : CppBuilder {
 	virtual void   AddFlags(Index<String>& cfg);
 	virtual bool   BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>& immfile,
@@ -170,5 +190,6 @@ INITIALIZE(MscBuilder)
 INITIALIZE(JavaBuilder)
 INITIALIZE(AndroidBuilder)
 INITIALIZE(ScriptBuilder)
+INITIALIZE(VfsBuilder)
 
 #endif

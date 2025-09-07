@@ -19,6 +19,7 @@ file
 	CCJ.cpp,
 	coff.h,
 	Builders readonly separator,
+	VfsBuilder.cpp,
 	GccBuilder.cpp,
 	MscBuilder.cpp,
 	JavaBuilder.cpp,

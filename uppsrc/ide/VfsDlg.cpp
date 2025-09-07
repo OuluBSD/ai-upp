@@ -32,10 +32,12 @@ struct VfsDlg : TopWindow {
 	};
 
 	VfsDlg();
+	void OnTab();
 	
 	TabCtrl tabs;
 	MetaEnvTree menv;
 	MetaIndexerCtrl idxr;
+	MetaTempTaskCtrl task;
 	Ide* theide = 0;
 };
 
@@ -47,6 +49,8 @@ VfsDlg::VfsDlg()
 	Add(tabs.SizePos());
 	tabs.Add(menv.SizePos(), "Data");
 	tabs.Add(idxr.SizePos(), "Indexer");
+	tabs.Add(task.SizePos(), "Temporary Task Files");
+	tabs.WhenSet = THISBACK(OnTab);
 	
 	menv.dlgmode = true;
 	//search.WhenEnter.Clear();
@@ -60,6 +64,17 @@ VfsDlg::VfsDlg()
 }
 
 void PaintTeXt(Draw& w, int& x, int y, const String& text, Font font, Color ink);
+
+void VfsDlg::OnTab()
+{
+	int i = tabs.Get();
+	switch (i) {
+		case 0: menv.Data(); break;
+		case 1: idxr.Data(); break;
+		case 2: task.Data(); break;
+		default: break;
+	}
+}
 
 int VfsDlg::LineDisplay::DoPaint(Draw& w, const Rect& r, const Value& q, Color ink, Color paper, dword style, int x) const
 {

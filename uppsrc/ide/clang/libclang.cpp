@@ -300,4 +300,25 @@ CXCursor clang_getOverloadedDecl(CXCursor cursor, unsigned index)
 	return LibClang().clang_getOverloadedDecl(cursor, index);
 }
 
+unsigned clang_hashCursor(CXCursor cursor)
+{
+	return LibClang().clang_hashCursor(cursor);
+}
+
+CXSourceRange clang_getCursorExtent(CXCursor cursor)
+{
+	return LibClang().clang_getCursorExtent(cursor);
+}
+
+CXSourceLocation clang_getRangeStart(CXSourceRange range)
+{
+	return LibClang().clang_getRangeStart(range);
+}
+
+CXSourceLocation clang_getRangeEnd(CXSourceRange range)
+{
+	return LibClang().clang_getRangeEnd(range);
+}
+
+
 #endif

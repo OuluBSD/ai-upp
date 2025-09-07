@@ -585,7 +585,8 @@ bool MakeBuild::Build()
 		return false;
 	String dummy;
 	String cc = builder->CompilerName();
-	if(cc.GetCount() && HostSys(cc + " --version", dummy)) {
+	if(!builder->IsInternalCompiler() &&
+		cc.GetCount() && HostSys(cc + " --version", dummy)) {
 		PutConsole("Error: Cannot invoke compiler '" + cc + "'");
 		ConsoleShow();
 		return false;

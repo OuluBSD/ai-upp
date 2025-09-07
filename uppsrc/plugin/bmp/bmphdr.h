@@ -15,13 +15,13 @@ struct BMP_FILEHEADER {
 	void    SwapEndian()
 	{
 #ifdef CPU_BIG_ENDIAN
-		bfType = UPP::SwapEndian(bfType);
-		bfSize = UPP::SwapEndian(bfSize);
-		bfOffBits = UPP::SwapEndian(bfOffBits);
+		UPP::EndianSwap(bfType);
+		UPP::EndianSwap(bfSize);
+		UPP::EndianSwap(bfOffBits);
 #endif
 	}
 }
-#ifdef COMPILER_GCC
+#if defined COMPILER_GCC && !defined CPU_BIG_ENDIAN
 __attribute__((packed))
 #endif
 ;
@@ -29,35 +29,35 @@ __attribute__((packed))
 struct BMP_INFOHEADER
 {
 	dword      biSize;
-	int32      biWidth;
-	int32      biHeight;
+	int        biWidth;
+	int        biHeight;
 	word       biPlanes;
 	word       biBitCount;
 	dword      biCompression;
 	dword      biSizeImage;
-	int32      biXPelsPerMeter;
-	int32      biYPelsPerMeter;
+	int        biXPelsPerMeter;
+	int        biYPelsPerMeter;
 	dword      biClrUsed;
 	dword      biClrImportant;
 
 	void    SwapEndian()
 	{
 #ifdef CPU_BIG_ENDIAN
-		biSize = UPP::SwapEndian(biSize);
-		biWidth = UPP::SwapEndian(biWidth);
-		biHeight = UPP::SwapEndian(biHeight);
-		biPlanes = UPP::SwapEndian(biPlanes);
-		biBitCount = UPP::SwapEndian(biBitCount);
-		biCompression = UPP::SwapEndian(biCompression);
-		biSizeImage = UPP::SwapEndian(biSizeImage);
-		biXPelsPerMeter = UPP::SwapEndian(biXPelsPerMeter);
-		biYPelsPerMeter = UPP::SwapEndian(biYPelsPerMeter);
-		biClrUsed = UPP::SwapEndian(biClrUsed);
-		biClrImportant = UPP::SwapEndian(biClrImportant);
+		UPP::EndianSwap(biSize);
+		UPP::EndianSwap(biWidth);
+		UPP::EndianSwap(biHeight);
+		UPP::EndianSwap(biPlanes);
+		UPP::EndianSwap(biBitCount);
+		UPP::EndianSwap(biCompression);
+		UPP::EndianSwap(biSizeImage);
+		UPP::EndianSwap(biXPelsPerMeter);
+		UPP::EndianSwap(biYPelsPerMeter);
+		UPP::EndianSwap(biClrUsed);
+		UPP::EndianSwap(biClrImportant);
 #endif
 	}
 }
-#ifdef COMPILER_GCC
+#if defined COMPILER_GCC && !defined CPU_BIG_ENDIAN
 __attribute__((packed))
 #endif
 ;

@@ -596,6 +596,7 @@ struct Builder {
 	virtual void SaveBuildInfo(const String& package) {}
 	virtual String GetBuildInfoPath() const { return String(); }
 	virtual String CompilerName() const { return Null; }
+	virtual bool IsInternalCompiler() const {return false;}
 
 	Builder()          { doall = false; main_conf = false; }
 	virtual ~Builder() {}

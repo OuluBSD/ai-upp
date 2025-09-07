@@ -56,6 +56,7 @@ Vector<String> FindParentUppDirectories(const String& sub_dir)
 		String upp_path = parent_dir + DIR_SEPS + topname + ".upp";
 		if(!FileExists(upp_path))
 			continue;
+		ASSERT(parent_dir.Find(";") < 0);
 		results << parent_dir;
 	}
 	return results;

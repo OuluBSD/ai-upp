@@ -216,6 +216,8 @@ void Ide::Serialize(Stream& s)
 	s % font2;
 	s % show_status_bar;
 	s % toolbar_in_row;
+	if(version >= 33)
+		s % disable_custom_caption;
 	s % filetabs;
 	s % auto_enclose;
 	s % persistent_find_replace;

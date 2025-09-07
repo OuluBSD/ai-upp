@@ -42,7 +42,7 @@ String WorkspaceWork::PackageFileA(const String& pn) {
 		String nm;
 		String cfg = ConfigFile("cfg");
 		for(const char *s = main; *s; s++)
-			nm.Cat(*s == '\\' || *s == '/' ? '$' : *s);
+			nm.Cat(findarg(*s, '\\', '/', ':') >= 0 ? '$' : *s);
 		RealizeDirectory(cfg);
 		return AppendFileName(cfg, ForceExt(nm + '@' + GetVarsName(), ".aux"));
 	}
@@ -343,7 +343,6 @@ void WorkspaceWork::PackageCursor()
 	if(actualpackage != METAPACKAGE)
 		filelist.WhenBar = THISBACK(FileMenu);
 	repo_dirs = RepoDirs(true).GetCount();
-
 }
 
 Vector<String> WorkspaceWork::RepoDirs(bool actual)
@@ -507,11 +506,13 @@ bool FileOrder_(const String& a, const String& b)
 
 void SyncPackage(const String& active, Package& actual)
 {
+	String source_masks = GetVar("SOURCE_MASKS");
+
 	Vector<String> file;
 	for(FindFile ff(PackageDirectory(active) + "/*.*"); ff; ff.Next())
 		if(ff.IsFile()) {
 			String n = ff.GetName();
-			if(IsSourceFile(n) || IsHeaderFile(n))
+			if(IsSourceFile(n) || IsHeaderFile(n) || IsExternalMode() && PatternMatchMulti(source_masks, n))
 				file.Add(n);
 		}
 
@@ -1047,7 +1048,7 @@ void WorkspaceWork::ToggleIncludeable()
 
 void WorkspaceWork::AddNormalUses()
 {
-	String p = SelectPackage("Select package");
+	String p = IsExternalMode() ? SelectExternalPackage(actualpackage) : SelectPackage("Select package");
 
 	if(p.IsEmpty())
 		return;

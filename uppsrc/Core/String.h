@@ -467,7 +467,7 @@ public:
 
 	void operator=(String& s)       { Free(); Set(s); }
 
-	StringBuffer()                  { Zero(); }
+		StringBuffer()                  { Zero(); }
 	StringBuffer(String& s)         { Set(s); }
 	StringBuffer(int len)           { Zero(); SetLength(len); }
 	~StringBuffer()                 { if(pbegin != buffer) Free(); }

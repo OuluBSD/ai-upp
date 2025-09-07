@@ -290,6 +290,43 @@ SOFTWARE.
 
 // Reference: https://github.com/hdoc/llvm-project/tree/release/15.x/clang/include/clang-c
 
+/**
+ * Error codes returned by libclang routines.
+ *
+ * Zero (\c CXError_Success) is the only error code indicating success.  Other
+ * error codes, including not yet assigned non-zero values, indicate errors.
+ */
+enum CXErrorCode {
+  /**
+   * No error.
+   */
+  CXError_Success = 0,
+
+  /**
+   * A generic error code, no further details are available.
+   *
+   * Errors of this kind can get their own specific error codes in future
+   * libclang versions.
+   */
+  CXError_Failure = 1,
+
+  /**
+   * libclang crashed while performing the requested operation.
+   */
+  CXError_Crashed = 2,
+
+  /**
+   * The function detected that the arguments violate the function
+   * contract.
+   */
+  CXError_InvalidArguments = 3,
+
+  /**
+   * An AST deserialization error has occurred.
+   */
+  CXError_ASTReadError = 4
+};
+
 typedef struct {
   const void *data;
   unsigned private_flags;
@@ -2018,7 +2055,13 @@ CXTranslationUnit clang_parseTranslationUnit(
     const char *const *command_line_args, int num_command_line_args,
     struct CXUnsavedFile *unsaved_files, unsigned num_unsaved_files,
     unsigned options);
-
+    
+enum CXErrorCode clang_parseTranslationUnit2(
+    CXIndex CIdx, const char *source_filename,
+    const char *const *command_line_args, int num_command_line_args,
+    struct CXUnsavedFile *unsaved_files, unsigned num_unsaved_files,
+    unsigned options, CXTranslationUnit *out_TU);
+    
 int clang_reparseTranslationUnit(CXTranslationUnit TU, unsigned num_unsaved_files,
                                  struct CXUnsavedFile *unsaved_files,
                                  unsigned options);

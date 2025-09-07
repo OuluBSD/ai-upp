@@ -137,8 +137,8 @@ void Store(IdeMetaEnvironment& ienv, String& includes, const String& path, Clang
 	VfsSrcFile& file = ienv.ResolveFile(includes, path);
 	VfsSrcPkg& pkg = *file.pkg;
 	VfsValue n;
-	int file_id = pkg.GetFileHash(path);
-	ASSERT(file_id >= 0);
+	hash_t file_hash = pkg.GetFileHash(path);
+	ASSERT(file_hash != 0);
 	UPP::Assign(n, 0, cn);
 	n.SetPkgFileHashDeep(pkg.GetPackageHash(), pkg.GetFileHash(path));
 	n.RealizeSerial();
@@ -410,7 +410,7 @@ bool VfsSrcFile::Load()
 	}
 	
 	bool b = succ && !saved_hash.IsEmpty();
-	loaded = b;
+	loaded = true;
 	
 	lock.Leave();
 	return b;

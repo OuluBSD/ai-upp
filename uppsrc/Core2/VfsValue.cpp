@@ -1410,7 +1410,7 @@ void VfsValue::Visit(Vis& v) {
 				v("ext",*ext, VISIT_NODE);
 			}
 			else {
-				RLOG("VfsValue::Visit: error: could not load type_hash " + HexStr64(type_hash));
+				//RLOG("VfsValue::Visit: error: could not load type_hash " + HexStr64(type_hash));
 				type_hash = 0;
 			}
 		}

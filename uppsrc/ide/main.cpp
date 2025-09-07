@@ -141,6 +141,10 @@ bool TryLoadLibClang()
 		if(n >= 5 && n < 5000) {
 			if(LoadLibClang("/usr/lib/llvm-" + AsString(n) + "/lib"))
 				return true;
+			if(LoadLibClang("/usr/lib/llvm/" + AsString(n) + "/lib64"))
+				return true;
+			if(LoadLibClang("/usr/lib/llvm/" + AsString(n) + "/lib32"))
+				return true;
 			break;
 		}
 	}
@@ -157,9 +161,14 @@ bool TryLoadLibClang()
 		return true;
 	if(LoadLibClang("/usr/lib"))
 		return true;
-	for(int i = 200; i >= 10; i--)
+	for(int i = 200; i >= 10; i--) {
 		if(LoadLibClang("/usr/lib/llvm-" + AsString(i) + "/lib"))
 			return true;
+		if(LoadLibClang("/usr/lib/llvm/" + AsString(i) + "/lib64"))
+			return true;
+		if(LoadLibClang("/usr/lib/llvm/" + AsString(i) + "/lib32"))
+			return true;
+	}
 	return false;
 }
 #endif
@@ -175,7 +184,9 @@ void OnCrash()
 
 INITBLOCK { // libclang does not work in Linux unless this is set
 	SetEnv("LC_CTYPE", "en_US.UTF-8");
+#if HAVE_ALWAYS_THEIDE_CONFIG
 	SetConfigName("theide");
+#endif
 }
 
 #ifdef flagMAIN
@@ -184,9 +195,6 @@ GUI_APP_MAIN
 void AppMain___()
 #endif
 {
-#if HAVE_ALWAYS_THEIDE_CONFIG
-	SetConfigName("theide");
-#endif
 #ifdef DYNAMIC_LIBCLANG
 	if(FindIndex(CommandLine(), "--noclang") < 0) {
 		String wfile = ConfigFile(".nolibclang");

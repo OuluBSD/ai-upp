@@ -396,6 +396,9 @@ public:
 				return i;
 		return -1;
 	}
+	
+	static const Vector<IndexerJob>& Jobs() {return jobs;}
+	
 };
 
 #define INITIALIZER_INDEXER_EXTENSION(x) INITIALIZER(x) {Indexer::RegisterExtension<x>(#x);}

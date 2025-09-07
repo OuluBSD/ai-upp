@@ -3,11 +3,15 @@
 
 
 class MetaIndexerCtrl : public ParentCtrl {
+	Splitter split;
+	ArrayCtrl tasklist;
+	Ctrl placeholder;
 	
 public:
 	typedef MetaIndexerCtrl CLASSNAME;
 	MetaIndexerCtrl();
 	
+	void Data();
 	
 };
 

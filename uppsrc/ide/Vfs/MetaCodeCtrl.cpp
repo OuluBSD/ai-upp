@@ -48,7 +48,7 @@ void MetaCodeCtrl::Load(const String& includes, String filename, Stream& str, by
 	this->filepath = NormalizePath(filename);
 	this->includes = includes;
 	
-	IdeMetaEnv().Load(filepath, includes);
+	IdeMetaEnv().Load(includes, filepath);
 
 	this->content = str.Get((int)str.GetSize());
 	this->charset = charset;

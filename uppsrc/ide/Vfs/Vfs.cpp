@@ -849,6 +849,7 @@ String IdeMetaEnvironment::ResolveVfsSrcPkgPath(const String& includes, String p
 
 VfsSrcFile& IdeMetaEnvironment::ResolveFile(const String& includes, const String& path)
 {
+	ASSERT(path.Find(";") < 0);
 	String upp_dir;
 	String pkg_path = ResolveVfsSrcPkgPath(includes, path, upp_dir);
 	env.lock.EnterWrite();

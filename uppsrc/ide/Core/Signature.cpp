@@ -1,4 +1,5 @@
 #include "Core.h"
+#include <ide/clang/clang.h>
 
 #define LTIMING(x)
 

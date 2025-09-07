@@ -108,32 +108,6 @@ bool IsTypeRef(int kind);
 bool IsErrorKind(int kind);
 int  FindId(const String& s, const String& id);
 
-enum {
-	ITEM_TEXT,
-	ITEM_NAME,
-	ITEM_OPERATOR,
-	ITEM_CPP_TYPE,
-	ITEM_CPP,
-	ITEM_PNAME,
-	ITEM_TNAME,
-	ITEM_NUMBER,
-	ITEM_SIGN,
-	ITEM_UPP,
-	ITEM_TYPE,
-
-	ITEM_PTYPE = ITEM_TYPE + 10000,
-};
-
-struct ItemTextPart : Moveable<ItemTextPart> {
-	int pos;
-	int len;
-	int type;
-	int ii;
-	int pari;
-};
-
-Vector<ItemTextPart> ParsePretty(const String& name, const String& signature, int *fn_info = NULL);
-
 struct AutoCompleteItem : Moveable<AutoCompleteItem> {
 	String parent;
 	String name;

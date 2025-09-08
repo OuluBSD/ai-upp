@@ -4,13 +4,12 @@ using namespace Upp;
 
 // Simple GetHash functor (optional for merges/derivations)
 struct GetHashInt {
-	uint64 operator()(const int& v) const { return (uint64)(uint32)v; }
+    uint64 operator()(const int& v) const { return (uint64)(uint32)v; }
 };
 
-CONSOLE_APP_MAIN
-{
-	SetLanguage(LNG_ENGLISH);
 
+void Showcase1() {
+	LOG("\n\nSHOWCASE 1:");
 	CritBitIndex<int, GetHashInt, 64> idx;
 
 	Vector<uint64> keys;
@@ -23,6 +22,8 @@ CONSOLE_APP_MAIN
 	for(int i = 0; i < out.GetCount(); i++)
 		*out[i] = i + 1;
 
+    LOG("\nTree:\n" << idx.GetTreeString());
+    
 	DUMP(idx.GetCount()); // should be 4 (duplicate excluded)
 
 	if(int* p = idx.Find(100))
@@ -44,5 +45,53 @@ CONSOLE_APP_MAIN
 	idx.Merge(other, true);
 	DUMP(idx.GetCount());
 	if(int* p = idx.Find(100)) LOG("100(after merge keepThis) -> " << *p);
+	
 }
 
+void Showcase2() {
+	LOG("\n\nSHOWCASE 2:");
+	CritBitIndex<int, GetHashInt, 64> idx;
+
+    Vector<uint64> keys;
+    // Crafted keys to produce both shallow and deep splits and a duplicate
+    keys << 0x1F20A4B300000012ULL << 0x1F20A4B3FFFF0012ULL << 0x9C00EE7700ABCDEFULL << 0x1F20A4B300000012ULL;
+
+    Vector<int*> out;
+    idx.PutBulk(keys, out); // duplicate is ignored on insert
+    for(int i = 0; i < out.GetCount(); i++)
+        *out[i] = i + 1; // write through returned pointers
+
+    // C++-style iteration over values
+    int sum = 0;
+    for(auto& v : idx)
+        sum += v;
+    DUMP(sum);
+
+    // Print tree at different indentation levels
+    LOG("\nTree (indent=0):\n" << idx.GetTreeString());
+    LOG("\nTree (indent=4):\n" << idx.GetTreeString(4));
+
+    // Remove a key, optimize, and print again
+    bool ok = idx.Remove(0x1F20A4B3FFFF0012ULL);
+    DUMP(ok);
+    idx.Optimize();
+    LOG("\nTree (after remove+opt):\n" << idx.GetTreeString());
+
+    // Merge example
+    CritBitIndex<int, GetHashInt, 64> other;
+    other.Put(0x0000000000000005ULL, 555);
+    other.Put(0x1F20A4B300000012ULL, 1000); // conflict with keepThis
+    idx.Merge(other, true);
+    DUMP(idx.GetCount());
+    if(int* p = idx.Find(0x1F20A4B300000012ULL))
+        LOG("kept value -> " << *p);
+}
+
+CONSOLE_APP_MAIN
+{
+    StdLogSetup(LOG_COUT|LOG_FILE);
+    SetLanguage(LNG_ENGLISH);
+
+	Showcase1(),
+    Showcase2();
+}

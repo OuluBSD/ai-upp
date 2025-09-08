@@ -1,0 +1,17 @@
+sum = 6
+∅
+Leaf(rec=0, key=0x0000000000000012)
+Node(bit=0, size=2)
+  L: Leaf(rec=0, key=0x0000000000000012)
+  R: Leaf(rec=1, key=0x80000000000000FF)
+    Node(bit=0, size=2)
+      L: Leaf(rec=0, key=0x0000000000000012)
+      R: Leaf(rec=1, key=0x80000000000000FF)
+Leaf(rec=0, key=0x0000000000000012)
+ok = true
+count = 1
+sum2 = 1
+csum = 1
+count2 = 0
+dup_ok = 1
+final_count = 1

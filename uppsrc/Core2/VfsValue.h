@@ -1,6 +1,10 @@
 #ifndef _Meta_VfsValue_h_
 #define _Meta_VfsValue_h_
 
+// Core dependencies (hash_t, String, CritBitIndex)
+#include <Core/Core.h>
+#include <Core/CritBitIndex.h>
+
 struct VfsValue;
 struct VfsValueExtCtrl;
 struct VfsSrcPkg;
@@ -1038,6 +1042,28 @@ struct MetaEnvironment : VFS {
 	hash_t serial_counter = 0;
 	SpinLock serial_lock;
 	WorldState env_ws;
+	
+	// Track all distinct path names observed during workspace scanning
+	// Use hash_t bit width (32 on 32-bit, 64 on 64-bit) for index keys
+	static constexpr int PATH_HASH_BITS = (int)(sizeof(hash_t) * 8);
+
+	struct StrHashAccessor {
+		using Hash = hash_t;
+		Hash operator()(const String& s) const { return (Hash)s.GetHashValue(); }
+	};
+
+	CritBitIndex<String, StrHashAccessor, PATH_HASH_BITS> seen_path_names;
+
+	void AddSeenPath(const String& path) {
+		using H = typename decltype(seen_path_names)::Hash;
+		H h = (H)path.GetHashValue();
+		seen_path_names.Put(h, path);
+	}
+
+	void AddSeenPaths(const Vector<String>& paths) {
+		for (int i = 0; i < paths.GetCount(); ++i)
+			AddSeenPath(paths[i]);
+	}
 	
 	VfsValue root;
 	RWMutex lock;

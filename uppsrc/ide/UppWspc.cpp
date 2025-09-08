@@ -1,4 +1,5 @@
 #include "ide.h"
+#include <Core2/Core.h>
 
 #ifndef flagV1
 #include <AICore2/AICore.h>
@@ -113,24 +114,30 @@ struct PackageOrder {
 };
 
 void WorkspaceWork::ScanWorkspace() {
-	Workspace wspc;
-	if(main.GetCount())
-		wspc.Scan(main);
+    Workspace wspc;
+    if(main.GetCount())
+        wspc.Scan(main);
 	actualpackage.Clear();
 	actualfileindex = -1;
 	filelist.Clear();
 	package.Clear();
 	Vector<String> pks;
-	for(int i = 0; i < wspc.package.GetCount(); i++) {
-		Package& pkg = wspc.package[i];
-		String assembly_dir = GetPackagePathNest(pkg.dir);
-		String rel_pkg_dir =GetPackageNestRelativePath(pkg.dir);
-		for (Package::File& f : pkg.file) {
-			String filename = f;
-			String filepath = AppendFileName(pkg.dir, filename);
-		}
-		pks.Add(wspc.package.GetKey(i));
-	}
+    for(int i = 0; i < wspc.package.GetCount(); i++) {
+        Package& pkg = wspc.package[i];
+        String assembly_dir = GetPackagePathNest(pkg.dir);
+        String rel_pkg_dir =GetPackageNestRelativePath(pkg.dir);
+        // Record seen directories
+        MetaEnv().AddSeenPath(pkg.dir);
+        MetaEnv().AddSeenPath(assembly_dir);
+        MetaEnv().AddSeenPath(rel_pkg_dir);
+        for (Package::File& f : pkg.file) {
+            String filename = f;
+            String filepath = AppendFileName(pkg.dir, filename);
+            // Record each file path within the package
+            MetaEnv().AddSeenPath(filepath);
+        }
+        pks.Add(wspc.package.GetKey(i));
+    }
 	if(sort && wspc.GetCount()) {
 		PackageOrder po;
 		po.mainpath = PackageDirectory(pks[0]);
@@ -160,9 +167,9 @@ void WorkspaceWork::ScanWorkspace() {
 	
 	SyncErrorPackages();
 	
-	#ifndef flagV1
-	UpdateWorkspace(IdeMetaEnv(), wspc);
-	#endif
+#ifndef flagV1
+    UpdateWorkspace(IdeMetaEnv(), wspc);
+#endif
 }
 
 void WorkspaceWork::SavePackage()

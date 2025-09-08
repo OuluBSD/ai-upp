@@ -8,10 +8,15 @@
 // Uses MSB-first bit order (bit 0 is the highest bit).
 // Container stores records T and an associated Hash key per record.
 //
-// Iteration & invalidation
-// - Range-for iterates records in dense storage order (the order of recs_).
-// - Removing elements uses swap-delete to keep storage dense; this invalidates
-//   indices, references and iterators to moved elements.
+// Iteration
+// - Value iteration: for (auto& v : idx) iterates T& in dense storage order.
+// - Key+value iteration: for (auto kv : ~idx) iterates items with fields { key, value }.
+//   kv.key is the hash key (dword/uint64 by value), kv.value is T& (const T& for const idx).
+// - Iteration order is the dense storage order of recs_ (not a tree traversal).
+//
+// Invalidation
+// - Any structural modification (insert/remove/Optimize/Merge) may invalidate iterators
+//   and change iteration order due to dense storage re-packing (swap-delete).
 
 template <bool B, class T, class F>
 struct __CrtbSelect { using Result = T; };
@@ -248,6 +253,64 @@ public:
     ConstIterator cbegin()const { return ConstIterator(this, 0); }
     ConstIterator cend()  const { return ConstIterator(this, recs_.GetCount()); }
 
+public:
+    // --- NEW: U++-style key+value iteration support for ~idx ---
+    struct KeyValueItem {
+        Hash key;
+        T&   value;
+    };
+
+    class KVIterator {
+    public:
+        using difference_type = int;
+        using value_type      = KeyValueItem;
+        using reference       = KeyValueItem; // returned by value (holds T&)
+        using pointer         = void;         // not used
+
+        KVIterator(CritBitIndex* owner, int i) : owner(owner), i(i) {}
+        KeyValueItem operator*() const { return { owner->keys_[i], owner->recs_[i] }; }
+        KVIterator&  operator++()      { ++i; return *this; }
+        bool operator!=(const KVIterator& rhs) const { return i != rhs.i; }
+    private:
+        CritBitIndex* owner;
+        int i;
+    };
+
+    class ConstKVIterator {
+    public:
+        using difference_type = int;
+        struct ConstItem { Hash key; const T& value; };
+
+        ConstKVIterator(const CritBitIndex* owner, int i) : owner(owner), i(i) {}
+        ConstItem operator*() const { return { owner->keys_[i], owner->recs_[i] }; }
+        ConstKVIterator& operator++() { ++i; return *this; }
+        bool operator!=(const ConstKVIterator& rhs) const { return i != rhs.i; }
+    private:
+        const CritBitIndex* owner;
+        int i;
+    };
+
+    class KVRange {
+    public:
+        explicit KVRange(CritBitIndex* owner) : owner(owner) {}
+        KVIterator begin() const { return KVIterator(owner, 0); }
+        KVIterator end()   const { return KVIterator(owner, owner->recs_.GetCount()); }
+    private:
+        CritBitIndex* owner;
+    };
+
+    class ConstKVRange {
+    public:
+        explicit ConstKVRange(const CritBitIndex* owner) : owner(owner) {}
+        ConstKVIterator begin() const { return ConstKVIterator(owner, 0); }
+        ConstKVIterator end()   const { return ConstKVIterator(owner, owner->recs_.GetCount()); }
+    private:
+        const CritBitIndex* owner;
+    };
+
+    KVRange      AsKV()       { return KVRange(this); }
+    ConstKVRange AsKV() const { return ConstKVRange(this); }
+
 private:
     struct Node {
         int idx_bit; // -1 for leaf
@@ -396,3 +459,13 @@ private:
         return n;
     }
 };
+
+// --- NEW: U++-style bitwise-not adapter for range-for of key+value pairs ---
+template <class T, class GetHash, int Bits>
+inline auto operator~(CritBitIndex<T, GetHash, Bits>& c) {
+    return c.AsKV();
+}
+template <class T, class GetHash, int Bits>
+inline auto operator~(const CritBitIndex<T, GetHash, Bits>& c) {
+    return c.AsKV();
+}

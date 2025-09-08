@@ -121,8 +121,16 @@ void WorkspaceWork::ScanWorkspace() {
 	filelist.Clear();
 	package.Clear();
 	Vector<String> pks;
-	for(int i = 0; i < wspc.package.GetCount(); i++)
+	for(int i = 0; i < wspc.package.GetCount(); i++) {
+		Package& pkg = wspc.package[i];
+		String assembly_dir = GetPackagePathNest(pkg.dir);
+		String rel_pkg_dir =GetPackageNestRelativePath(pkg.dir);
+		for (Package::File& f : pkg.file) {
+			String filename = f;
+			String filepath = AppendFileName(pkg.dir, filename);
+		}
 		pks.Add(wspc.package.GetKey(i));
+	}
 	if(sort && wspc.GetCount()) {
 		PackageOrder po;
 		po.mainpath = PackageDirectory(pks[0]);

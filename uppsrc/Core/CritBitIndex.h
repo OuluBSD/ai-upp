@@ -7,6 +7,11 @@
 // Generic, compressed binary trie (Patricia / crit-bit) keyed by fixed-width unsigned hash
 // Uses MSB-first bit order (bit 0 is the highest bit).
 // Container stores records T and an associated Hash key per record.
+//
+// Iteration & invalidation
+// - Range-for iterates records in dense storage order (the order of recs_).
+// - Removing elements uses swap-delete to keep storage dense; this invalidates
+//   indices, references and iterators to moved elements.
 
 template <bool B, class T, class F>
 struct __CrtbSelect { using Result = T; };
@@ -139,6 +144,109 @@ public:
         for(int i = 0; i < recs_.GetCount(); i++)
             fn(recs_[i]);
     }
+
+    // --- NEW: Readable tree dump ---
+    // Returns an indented, multi-line string representation of the internal
+    // compressed binary trie. 'indent' adds leading spaces for each line.
+    // Diagnostics-only: subtree sizes are computed on the fly (O(n)).
+    String GetTreeString(int indent = 0) const {
+        String out;
+        auto AppendTabs = [&](int n) {
+            if(n <= 0) return;
+            for(int i = 0; i < n; i++)
+                out.Cat('\t');
+        };
+        auto HexKey = [&](Hash h) -> String {
+            if constexpr(Bits == 32)
+                return Format("0x%08X", (dword)h);
+            else
+                return Format("0x%016X", (int64)h);
+        };
+        // subtree size helper
+        auto SizeOf = [&](auto&& self, int node) -> int {
+            if(node < 0)
+                return 0;
+            const Node& nd = nodes_[node];
+            if(nd.idx_bit < 0)
+                return 1;
+            return self(self, nd.left) + self(self, nd.right);
+        };
+        auto Dump = [&](auto&& self, int node, int depth) -> void {
+            if (node < 0) {
+				out.Cat("∅\n");
+				return;
+			}
+            const Node& nd = nodes_[node];
+            if (nd.idx_bit < 0) {
+                out.Cat(Format("Leaf(rec=%d, key=%s)\n", nd.rec, ~HexKey(keys_[nd.rec])));
+                return;
+            }
+            out.Cat(Format("Node(bit=%d, size=%d)\n", nd.idx_bit, SizeOf(SizeOf, node)));
+            // Left branch
+            AppendTabs(indent + depth + 1);
+            out.Cat("L: ");
+            if (nd.left >= 0 && nodes_[nd.left].idx_bit >= 0)
+				self(self, nd.left, depth + 2);
+            else
+				self(self, nd.left, depth + 1);
+            // Right branch
+            AppendTabs(indent + depth + 1);
+            out.Cat("R: ");
+            if (nd.right >= 0 && nodes_[nd.right].idx_bit >= 0)
+				self(self, nd.right, depth + 2);
+            else
+				self(self, nd.right, depth + 1);
+        };
+        if(root_ < 0) { AppendTabs(indent); out.Cat("∅\n"); return out; }
+        AppendTabs(indent);
+        Dump(Dump, root_, 0);
+        return out;
+    }
+
+    // --- NEW: C++-style iteration over stored records (dense order) ---
+    // Iteration & invalidation:
+    // - Iteration order corresponds to dense storage order in recs_.
+    // - Removing elements uses swap-delete; this invalidates indices and iterators.
+    class Iterator {
+    public:
+        using difference_type = int;
+        using value_type      = T;
+        using reference       = T&;
+        using pointer         = T*;
+
+        Iterator(CritBitIndex* owner, int i) : owner(owner), i(i) {}
+        reference operator*()  const { return owner->recs_[i]; }
+        pointer   operator->() const { return &owner->recs_[i]; }
+        Iterator& operator++()       { ++i; return *this; }
+        bool operator!=(const Iterator& rhs) const { return i != rhs.i; }
+    private:
+        CritBitIndex* owner;
+        int i;
+    };
+
+    class ConstIterator {
+    public:
+        using difference_type = int;
+        using value_type      = const T;
+        using reference       = const T&;
+        using pointer         = const T*;
+
+        ConstIterator(const CritBitIndex* owner, int i) : owner(owner), i(i) {}
+        reference operator*()  const { return owner->recs_[i]; }
+        pointer   operator->() const { return &owner->recs_[i]; }
+        ConstIterator& operator++()  { ++i; return *this; }
+        bool operator!=(const ConstIterator& rhs) const { return i != rhs.i; }
+    private:
+        const CritBitIndex* owner;
+        int i;
+    };
+
+    Iterator      begin()       { return Iterator(this, 0); }
+    Iterator      end()         { return Iterator(this, recs_.GetCount()); }
+    ConstIterator begin() const { return ConstIterator(this, 0); }
+    ConstIterator end()   const { return ConstIterator(this, recs_.GetCount()); }
+    ConstIterator cbegin()const { return ConstIterator(this, 0); }
+    ConstIterator cend()  const { return ConstIterator(this, recs_.GetCount()); }
 
 private:
     struct Node {
@@ -288,4 +396,3 @@ private:
         return n;
     }
 };
-

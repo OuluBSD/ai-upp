@@ -67,6 +67,21 @@ void Showcase2() {
         sum += v;
     DUMP(sum);
 
+    // U++-style key+value iteration via ~idx
+    int sum_kv = 0;
+    for(auto kv : ~idx)
+        sum_kv += kv.value;
+    DUMP(sum_kv);
+
+    // Interplay with Index<Hash>: filter out a subset of keys
+    Index<uint64> deny;
+    deny.Add(0x1F20A4B300000012ULL);
+    int sum_filtered = 0;
+    for(auto kv : ~idx)
+        if(deny.Find(kv.key) < 0)
+            sum_filtered += kv.value;
+    DUMP(sum_filtered);
+
     // Print tree at different indentation levels
     LOG("\nTree (indent=0):\n" << idx.GetTreeString());
     LOG("\nTree (indent=4):\n" << idx.GetTreeString(4));

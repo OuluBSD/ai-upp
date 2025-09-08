@@ -21,6 +21,18 @@ String GetPackagePathNest(const String& path)
 	return Null;
 }
 
+String GetPackageNestRelativePath(const String& path)
+{
+	String assembly_dir = GetPackagePathNest(path);
+	if (!assembly_dir.IsEmpty() && path.Find(assembly_dir) == 0) {
+		String rel_pkg_dir = path.Mid(assembly_dir.GetCount());
+		if (rel_pkg_dir.GetCount() && rel_pkg_dir[0] == DIR_SEP)
+			rel_pkg_dir = rel_pkg_dir.Mid(1);
+		return rel_pkg_dir;
+	}
+	return path;
+}
+
 String SourcePath(const String& package, const String& file) {
 	if(IsFullPath(file)) return NativePath(file);
 	return NormalizePath(AppendFileName(PackageDirectory(package), file));

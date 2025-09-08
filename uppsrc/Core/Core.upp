@@ -114,6 +114,7 @@ file
 	Index.h,
 	Index.hpp,
 	Index.cpp,
+	CritBitIndex.h,
 	Map.h,
 	Map.hpp,
 	FixedMap.h,

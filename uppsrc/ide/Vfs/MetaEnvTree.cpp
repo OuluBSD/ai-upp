@@ -109,7 +109,12 @@ void MetaEnvTree::DataPkg() {
 		VfsSrcPkg& pkg = env.GetAddPackage(pkg_hash);
 		for(auto it : ~files_of_pkg) {
 			hash_t file_hash = it.key;
-			String filepath = Format("%X", (int64)file_hash);
+			const String* seen_path = MetaEnv().seen_path_names.Find(file_hash);
+			String filepath;
+			if (seen_path)
+				filepath = *seen_path;
+			else
+				filepath = Format("%X", (int64)file_hash);
 			// TODO
 			files.Set(row, 0, filepath);
 			files.Set(row, 1, it.value);

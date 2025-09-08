@@ -1054,16 +1054,6 @@ struct MetaEnvironment : VFS {
 
 	CritBitIndex<String, StrHashAccessor, PATH_HASH_BITS> seen_path_names;
 
-	void AddSeenPath(const String& path) {
-		using H = typename decltype(seen_path_names)::Hash;
-		H h = (H)path.GetHashValue();
-		seen_path_names.Put(h, path);
-	}
-
-	void AddSeenPaths(const Vector<String>& paths) {
-		for (int i = 0; i < paths.GetCount(); ++i)
-			AddSeenPath(paths[i]);
-	}
 	
 	VfsValue root;
 	RWMutex lock;
@@ -1077,6 +1067,9 @@ struct MetaEnvironment : VFS {
 	//static bool IsMergeable(CXCursorKind kind);
 	//static bool IsMergeable(int kind);
 	
+	void AddSeenPath(const String& path);
+	void AddSeenPaths(const Vector<String>& paths);
+	String GetSeenPath(hash_t str_hash) const;
 	bool MergeValue(VfsValue& root, const VfsValue& other, MergeMode mode);
 	bool MergeVisit(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);
 	bool MergeVisitPartMatching(Vector<VfsValue*>& scope, const VfsValue& n1, MergeMode mode);

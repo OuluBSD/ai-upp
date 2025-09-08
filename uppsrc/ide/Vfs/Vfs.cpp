@@ -725,6 +725,7 @@ hash_t VfsSrcPkg::GetPackageHash() const
 
 hash_t VfsSrcPkg::GetFileHash(const String& path) const
 {
+	MetaEnv().AddSeenPath(path);
 	return GetRelativePath(path).GetHashValue();
 }
 
@@ -736,7 +737,7 @@ String VfsSrcPkg::GetFullPath(const String& rel_path) const
 
 String VfsSrcPkg::GetFullPath(hash_t hash) const
 {
-	TODO // use the path cache // return AppendFileName(dir, rel_files[file_i]);
+	return MetaEnv().GetSeenPath(hash);
 }
 
 void VfsSrcPkg::Visit(Vis& v) {

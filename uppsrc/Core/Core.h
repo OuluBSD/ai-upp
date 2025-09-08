@@ -418,6 +418,7 @@ class JsonIO;
 
 #include "Vcont.hpp"
 #include "Index.hpp"
+#include "CritBitIndex.h"
 #include "Map.hpp"
 #include "InVector.hpp"
 #include "InMap.hpp"

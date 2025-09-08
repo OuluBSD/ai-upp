@@ -580,18 +580,25 @@ void MetaEnvironment::MergeVisitPost(VfsValue& n)
 void MetaEnvironment::AddSeenPath(const String& path) {
 	using H = typename decltype(seen_path_names)::Hash;
 	H h = (H)path.GetHashValue();
+	seen_lock.Enter();
 	seen_path_names.Put(h, path);
+	seen_lock.Leave();
 }
 
 void MetaEnvironment::AddSeenPaths(const Vector<String>& paths) {
+	seen_lock.Enter();
 	for (int i = 0; i < paths.GetCount(); ++i)
 		AddSeenPath(paths[i]);
+	seen_lock.Leave();
 }
 
 String MetaEnvironment::GetSeenPath(hash_t str_hash) const
 {
+	seen_lock.Enter();
 	const String* known = seen_path_names.Find(str_hash);
-	return known ? *known : String();
+	String ret = known ? *known : String();
+	seen_lock.Leave();
+	return ret;
 }
 
 bool MetaEnvironment::MergeValue(VfsValue& root, const VfsValue& other, MergeMode mode)

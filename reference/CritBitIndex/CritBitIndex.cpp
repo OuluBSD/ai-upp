@@ -102,6 +102,37 @@ void Showcase2() {
         LOG("kept value -> " << *p);
 }
 
+void Showcase3() {
+	static constexpr int PATH_HASH_BITS = (int)(sizeof(hash_t) * 8);
+
+	struct StrHashAccessor {
+		using Hash = hash_t;
+		Hash operator()(const String& s) const { return (Hash)s.GetHashValue(); }
+	};
+
+	CritBitIndex<String, StrHashAccessor, PATH_HASH_BITS> seen_path_names;
+	
+	String s0 = "abc";
+	String s3 = "123";
+	String s4 = "345";
+	
+	const String* s1 = seen_path_names.Put(s0.GetHashValue(), s0);
+	ASSERT(*s1 == s0);
+	
+	seen_path_names.Put(s3.GetHashValue(), s3);
+	seen_path_names.Put(s4.GetHashValue(), s4);
+	
+	const String* s2 = seen_path_names.Find(s0.GetHashValue());
+	ASSERT(s1 == s2);
+	ASSERT(*s2 == s0);
+	
+	
+    for(auto kv : ~seen_path_names) {
+        LOG(kv.key);
+        LOG(kv.value);
+    }
+}
+
 CONSOLE_APP_MAIN
 {
     StdLogSetup(LOG_COUT|LOG_FILE);
@@ -109,4 +140,5 @@ CONSOLE_APP_MAIN
 
 	Showcase1(),
     Showcase2();
+    Showcase3();
 }

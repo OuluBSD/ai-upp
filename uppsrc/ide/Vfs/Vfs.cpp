@@ -139,6 +139,8 @@ void Store(IdeMetaEnvironment& ienv, String& includes, const String& path, Clang
 	VfsValue n;
 	hash_t file_hash = pkg.GetFileHash(path);
 	ASSERT(file_hash != 0);
+	//LOG("file_hash: " << Format("0x%08X%08X", (int)((file_hash >> 32) & 0xFFFFFFFF), (int)(file_hash & 0xFFFFFFFF)));
+	ASSERT(MetaEnv().seen_path_names.Find(file_hash));
 	UPP::Assign(n, 0, cn);
 	n.SetPkgFileHashDeep(pkg.GetPackageHash(), pkg.GetFileHash(path));
 	n.RealizeSerial();
@@ -725,8 +727,10 @@ hash_t VfsSrcPkg::GetPackageHash() const
 
 hash_t VfsSrcPkg::GetFileHash(const String& path) const
 {
+	String rel_path = GetRelativePath(path);
+	MetaEnv().AddSeenPath(rel_path);
 	MetaEnv().AddSeenPath(path);
-	return GetRelativePath(path).GetHashValue();
+	return rel_path.GetHashValue();
 }
 
 String VfsSrcPkg::GetFullPath(const String& rel_path) const

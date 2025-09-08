@@ -163,9 +163,9 @@ public:
         };
         auto HexKey = [&](Hash h) -> String {
             if constexpr(Bits == 32)
-                return Format("0x%08X", (dword)h);
+                return Format("0x%08X", (int)h);
             else
-                return Format("0x%016X", (int64)h);
+                return Format("0x%08X%08X", (int)((h >> 32) & 0xFFFFFFFF), (int)(h & 0xFFFFFFFF));
         };
         // subtree size helper
         auto SizeOf = [&](auto&& self, int node) -> int {
@@ -330,14 +330,15 @@ private:
     // Bit utilities
     static bool Bit(Hash h, int bit) {
         int shift = (Bits - 1) - bit;
-        return ((h >> shift) & 1) != 0;
+        ASSERT(shift >= 0 && shift <= Bits);
+        return ((h >> (Hash)shift) & 1) != 0;
     }
 
-    static int Divergence(Hash a, Hash b) {
+    static Hash Divergence(Hash a, Hash b) {
         Hash x = a ^ b;
         if(x == 0)
             return -1;
-        int hi;
+        Hash hi;
         if constexpr(Bits == 64)
             hi = SignificantBits64(x) - 1; // index from LSB
         else

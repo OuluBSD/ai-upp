@@ -1042,6 +1042,7 @@ struct MetaEnvironment : VFS {
 	hash_t serial_counter = 0;
 	SpinLock serial_lock;
 	WorldState env_ws;
+	mutable Mutex seen_lock;
 	
 	// Track all distinct path names observed during workspace scanning
 	// Use hash_t bit width (32 on 32-bit, 64 on 64-bit) for index keys

@@ -224,13 +224,23 @@ void MetaEnvTree::AddStmtNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, in
 	String s;
 	bool skip_default = false;
 	const AstValue* a = n;
+	const auto& env = MetaEnv();
 	if (a) {
 		String kind_str = VfsValue::AstGetKindString(a->kind);
 		s = kind_str + ": " + n.id;
 		if (a->type.GetCount()) s += " (" + a->type + ")";
-		#if 1
-		s += " " + Format("%X:%X", (int64)n.pkg_hash, (int64)n.file_hash);
-		#endif
+		const String* pkg_path = env.seen_path_names.Find(n.pkg_hash);
+		const String* file_path = env.seen_path_names.Find(n.file_hash);
+		s += " (";
+		if (pkg_path)
+			s += " " + *pkg_path;
+		else
+			s += " " + Format("%X", (int64)n.pkg_hash);
+		if (file_path)
+			s += " : " + *file_path;
+		else
+			s += " " + Format(":%X", (int64)n.file_hash);
+		s += ")";
 		switch (a->kind) {
 		case CXCursor_CXXMethod:
 		case CXCursor_Constructor:

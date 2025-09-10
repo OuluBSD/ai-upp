@@ -6,3 +6,6 @@ See the following files:
 - HIERARCHY.md: A tour of the most important folders in the repository
 
 
+- agents/: Contains code that extends AGENTS.md (implementations, examples, helpers).
+
+

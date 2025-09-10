@@ -47,6 +47,69 @@ void Juce01() {
 	
 	    v.clear();
 	}
+
+    // 2. String
+    {
+        String s("Hello");
+
+		// Append
+		s += ' ';
+		s += "World";
+		s += '!';
+
+		// Insert (no direct insert; rebuild around position)
+		s = s.substring(0, 1) + "X" + s.substring(1);
+		s = s.substring(0, 3) + "abc" + s.substring(3);
+
+		bool bs = s.isEmpty();
+
+		s.preallocateStorage(100);
+
+		// Set first and last characters
+		s = s.replaceSection(0, 1, "h");
+		s = s.replaceSection(s.length() - 1, 1, "?");
+
+		// Grow to length 100 with fill 'x'
+		if(s.length() < 100)
+			s = s.paddedRight('x', 100);
+
+		// No explicit shrink on juce::String
+
+		// Remove
+		s = s.replaceSection(2, 1, "");
+		s = s.replaceSection(1, 2, ""); // count of 2
+		auto last = s.getLastCharacter();
+		s = s.dropLastCharacters(1);
+
+        int scount = s.length();
+
+        s.clear();
+
+        // Find / replace / compare
+        int pos = s.indexOf("abc");
+        pos = s.lastIndexOf("abc");
+        pos = s.indexOfAnyOf("abc");
+        bool eq = (s == String("abc")); (void)eq;
+
+        s = s.replace("abc", "123");
+
+        // Wide conversion round-trip
+        std::wstring widechar(s.toWideCharPointer());
+        s = String(widechar.c_str());
+
+        // Substrings
+        String begin = s.substring(0, 3);
+        String end = s.substring(juce::jmax(0, s.length() - 3));
+        String middle = s.substring(3, 5);
+
+        // Trim both
+        s = s.trim();
+
+        int a = String("123").getIntValue();
+        s = String(a);
+
+        String hex = String::formatted("0x%08X", 123); (void)hex;
+    }
 }
 
 #endif

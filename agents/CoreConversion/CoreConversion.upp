@@ -10,11 +10,14 @@ file
 	Qt01.cpp,
 	Wx01.cpp,
 	Juce01.cpp,
-	Poco01.cpp,
 	Mfc01.cpp,
 	Wtl01.cpp,
 	WinRT01.cpp;
 
 mainconfig
+	"" = "",
+	"" = "MFC USEMALLOC",
+	"" = "WTL",
+	"" = "WINRT USEMALLOC",
 	"" = "";
 

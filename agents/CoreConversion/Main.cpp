@@ -6,7 +6,6 @@ void Std01();
 void Qt01();
 void Wx01();
 void Juce01();
-void Poco01();
 void Mfc01();
 void Wtl01();
 void WinRT01();
@@ -28,19 +27,15 @@ CONSOLE_APP_MAIN {
 	Juce01();
 	#endif
 	
-	#ifdef HAVE_POCO
-	Poco01();
-	#endif
-	
-	#if defined(HAVE_MFC)
+	#ifdef flagMFC
 	Mfc01();
 	#endif
 	
-	#ifdef HAVE_WTL
+	#ifdef flagWTL
 	Wtl01();
 	#endif
 	
-	#ifdef HAVE_WINRT
+	#ifdef flagWINRT
 	WinRT01();
 	#endif
 }

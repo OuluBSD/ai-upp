@@ -4,21 +4,20 @@ The same code made with different libraries. The file names are followed by a nu
 If a drop-in replacement is not found, the closest alternative is reported.
 The same thing can be found in different files at the same line number.
 
+- Ultimate++
 - STL C++
 - Microsoft MFC/ATL
 - Qt
-- Ultimate++
 - wxWidgets
 - JUCE
-- POCO Foundation
 - ATL / WTL (Windows Template Library)
 - WinUI (Windows UI Library) & C++/WinRT
 
 E.g.
+- Upp01.cpp
 - Std01.cpp
 - Mfc01.cpp
 - Qt01.cpp
-- Upp01.cpp
 - Wx01.cpp
 - Juce01.cpp
 - Poco01.cpp

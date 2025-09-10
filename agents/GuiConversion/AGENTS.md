@@ -4,28 +4,36 @@ The same code made with different libraries. The file names are followed by a nu
 If a drop-in replacement is not found, the closest alternative is reported.
 The same thing can be found in different files at the same line number.
 
+- Ultimate++
 - STL C++
 	- VSTGUI
+	- GTKmm
 - Microsoft MFC/ATL
 - Qt
-- Ultimate++
 - wxWidgets
 - JUCE
-- POCO Foundation
 - WTL (Windows Template Library)
 - WinUI (Windows UI Library) & C++/WinRT
+- Wt (webtoolkit.eu)
+- in C: libagar
+- in C: gtk
+- Cocoa (macos)
 
 E.g.
-- Std01.cpp
+- Upp01.cpp
+- Vst01.cpp (VSTGUI)
+- Gtkmm01.cpp (gtkmm)
 - Mfc01.cpp
 - Qt01.cpp
-- Upp01.cpp
-- Vst01.cpp
 - Wx01.cpp
 - Juce01.cpp
-- Poco01.cpp
 - Wtl01.cpp
-- WinRT01.cpp
+- WinRT01.cpp (WinUI)
+- Wt01.cpp
+- Agar01.cpp (libagar)
+- Gtk01.cpp (libagar)
+- Cocoa01.cpp
+
 
 See package file "CoreConversion.upp".
 Use a separator between numbered files.

@@ -1,0 +1,46 @@
+#include <Core/Core.h>
+using namespace Upp;
+
+void Upp01();
+void Std01();
+void Qt01();
+void Wx01();
+void Juce01();
+void Poco01();
+void Mfc01();
+void Wtl01();
+void WinRT01();
+
+CONSOLE_APP_MAIN {
+	
+	Upp01();
+	Std01();
+	
+	#ifdef HAVE_QT
+	Qt01();
+	#endif
+	
+	#ifdef HAVE_WX
+	Wx01();
+	#endif
+	
+	#ifdef HAVE_JUCE
+	Juce01();
+	#endif
+	
+	#ifdef HAVE_POCO
+	Poco01();
+	#endif
+	
+	#if defined(HAVE_MFC)
+	Mfc01();
+	#endif
+	
+	#ifdef HAVE_WTL
+	Wtl01();
+	#endif
+	
+	#ifdef HAVE_WINRT
+	WinRT01();
+	#endif
+}

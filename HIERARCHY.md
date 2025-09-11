@@ -65,6 +65,8 @@ The AI ​​folder contains artificial intelligence functions built on the runt
 
 Eon originally stood for ECS Object Notation, but that name doesn't mean that anymore, it's just a nice name for anything ECS ​​related. It also includes code for a game/multimedia engine, where the engine parts are also in a kind of ECS-like world, but where the ECS world of the game is a completely different thing, with different classes. The Eon and ECS code is heavily based on the Vfs code, and also uses artificial intelligence functions, so it is the last in the chain.
 
+For a comprehensive Eon overview (architecture, script DSL, Atoms/Links, ECS integration, and extension guide), see: `uppsrc/Eon/AGENTS.md`.
+
 #### The "Ctrl -> Gubo" chain
 "Gubo" or "Graphical Cuboid" is a class that corresponds to the "Ctrl" libraries (almost one to one), but which is in the 3D world and not in the 2D world. All Ctrl classes can be tried to be converted into "Gubo" classes by adding a "dimension" or converting 2D->3D and taking into account the related issues.
 

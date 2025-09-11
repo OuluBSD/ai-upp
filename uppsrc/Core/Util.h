@@ -756,7 +756,7 @@ template <class T> T& ArrayGetAdd(Array<T>& v, const T& o, int* found=0) {
 	return v.Add(o);
 }
 
-template <class T> T& ArrayFindAdd(Array<T>& v, const T& o, int* found=0) {
+template <class T> int ArrayFindAdd(Array<T>& v, const T& o, T** found=0) {
 	if (found) {
 		int i = 0;
 		for(auto& local : v) {

@@ -1,5 +1,5 @@
 #ifdef flagWINRT
-#include <winrt/windows.foundation.collections.h>
+#include <winrt/windows.foundation.c§ollections.h>
 using namespace winrt;
 using namespace Windows::Foundation::Collections;
 #include <vector>

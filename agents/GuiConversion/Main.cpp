@@ -3,6 +3,8 @@
 using namespace Upp;
 #elif defined flagMSC
 #include <windows.h>
+#include <stdio.h>
+#include <string.h>
 #endif
 
 void Upp01(int);
@@ -24,7 +26,7 @@ GUI_APP_MAIN
 #elif defined flagMSC
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR lpCmdLine, int nCmdShow)
 #else
-int main(int,const char**)
+int main(int argc,const char** argv)
 #endif
 {
 	int test = 0;
@@ -32,57 +34,32 @@ int main(int,const char**)
 	#ifdef flagUPP
 	if (CommandLine().GetCount())
 		test = ScanInt(CommandLine()[0]);
+	#elif defined flagMSC
+	if (lpCmdLine[0] != 0)
+		test = atoi(lpCmdLine);
+	#else
+	if (argc > 1)
+		test = atoi(argv[1]);
 	#endif
 	
-	#ifdef flagUPP
 	Upp01(test);
-	#endif
-	
-	#ifdef HAVE_QT
 	Qt01(test);
-	#endif
-	
-	#ifdef HAVE_WX
 	Wx01(test);
-	#endif
-	
-	#ifdef HAVE_JUCE
 	Juce01(test);
-	#endif
-	
-	#ifdef flagMFC
 	Mfc01(test);
-	#endif
-	
-	#ifdef flagWTL
 	Wtl01(test);
-	#endif
-	
-	#ifdef flagWINRT
 	WinRT01(test);
-	#endif
-
-	#ifdef HAVE_VSTGUI
 	Vst01(test);
-	#endif
-
-	#ifdef HAVE_GTKMM
 	Gtkmm01(test);
-	#endif
-
-	#ifdef HAVE_WT
 	Wt01(test);
-	#endif
-
-	#ifdef HAVE_AGAR
 	Agar01(test);
-	#endif
-
-	#ifdef HAVE_GTK
 	Gtk01(test);
-	#endif
-
-	#ifdef HAVE_COCOA
 	Cocoa01(test);
-	#endif
+	
 }
+
+
+#ifndef HAVE_COCOA
+void Cocoa01(int) {} // obj-c
+#endif
+

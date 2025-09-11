@@ -95,6 +95,87 @@ Script DSL (glossary)
 Note: See `obsolete/share/eon/lang` and `obsolete/share/eon/tests` for many real script examples used by the harness (`main.cpp`).
 
 
+Script Examples
+---------------
+
+- Minimal audio pipeline (from tests):
+
+```
+loop player.audio.generator:
+    center.customer
+    center.audio.src.dbg_generator
+    center.audio.sink.hw
+```
+
+- SDL + OGL program with standalone FBO stage:
+
+```
+machine sdl.app:
+    driver context:
+        sdl.context
+
+    chain program:
+        loop ogl.fbo:
+            ogl.customer
+            sdl.fbo.standalone:
+                filepath = "shaders/toys/simple/simple_single/stage0.glsl"
+```
+
+- ECS world with player and interaction (from `07d_ecs_first_person_cam.eon`):
+
+```
+machine sdl.app:
+    driver context:
+        sdl.context
+
+    chain program:
+        state event.register
+
+        loop center.events:
+            center.customer
+            sdl.event.pipe
+            state.event.pipe:
+                target = event.register
+
+        loop ogl.fbo:
+            ogl.customer
+            sdl.ogl.fbo.program:
+                program = "ecs_view"
+            sdl.fbo.sink:
+                env = event.register
+
+world ecs.dummy:
+    system rendering
+    system events
+    system interaction:
+        env = event.register
+    system physics
+    system player
+
+    pool world:
+        entity player.body:
+            comp transform3
+            comp physics:
+                bind = true
+            comp player.body:
+                height = 1.74
+
+        entity player.head:
+            comp transform3
+            comp viewable
+            comp viewport:
+                fov = 90
+            comp camera.chase
+            comp player.head:
+                body = world.player.body
+```
+
+Notes specific to the examples/tests:
+- `state event.register` declares a state endpoint; `state.event.pipe` routes events to that state. Systems/atoms can take `env = event.register` to bind to the same environment.
+- Drivers must contain exactly one atom. Loops must contain two or more atoms (they are circular by default).
+- Dotted IDs like `world.player.body` reference other ECS objects by deep path; the loader resolves them.
+
+
 Runtime: How Loading Works
 --------------------------
 

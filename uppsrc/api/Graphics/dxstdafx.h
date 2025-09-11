@@ -47,18 +47,6 @@
 #define FAR
 #define WIN32_LEAN_AND_MEAN 1
 
-#ifndef NTDDI_VERSION
-	#error NTDDI_VERSION not defined
-#endif
-
-#ifndef _WIN32_WINNT
-	#error _WIN32_WINNT not defined
-#endif
-
-#if _WIN32_WINNT < _WIN32_WINNT_VISTA || NTDDI_VERSION < NTDDI_VISTA
-	#error Too low version
-#endif
-
 
 #include <winapifamily.h>
 #include <sdkddkver.h>
@@ -81,6 +69,18 @@
 #include <xinput.h>
 #include <wrl/wrappers/corewrappers.h>
 #include <wrl/client.h>
+
+#ifndef NTDDI_VERSION
+	#error NTDDI_VERSION not defined
+#endif
+
+#ifndef _WIN32_WINNT
+	#error _WIN32_WINNT not defined
+#endif
+
+#if _WIN32_WINNT < _WIN32_WINNT_VISTA || NTDDI_VERSION < NTDDI_VISTA
+	#error Too low version
+#endif
 
 // CRT's memory leak detection
 #if defined(DEBUG) || defined(_DEBUG)

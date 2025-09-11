@@ -317,7 +317,9 @@ void Agent::CreateForm(EscEscape& e) {
 	
 	e.ret_val = e[0];
 	
+	#ifdef flagGUI
 	PostCallback([&prog]{prog.WhenDataTree();});
+	#endif
 }
 
 void Agent::SetFormLayout(EscEscape& e) {

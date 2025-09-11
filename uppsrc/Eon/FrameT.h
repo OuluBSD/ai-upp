@@ -114,7 +114,8 @@ public:
 };
 
 
+#ifdef flagGUI
 using TopWindowFrame = FrameT<CtxUpp2D>;
-
+#endif
 
 #endif

@@ -11,6 +11,7 @@ uses
 file
 	Eon.h,
 	Eon.icpp,
+	AGENTS.md,
 	Container.h,
 	Container.cpp,
 	Network.h,
@@ -84,4 +85,3 @@ file
 	TopChainLoader.cpp,
 	LoaderBase.inl highlight cpp,
 	_ readonly separator;
-

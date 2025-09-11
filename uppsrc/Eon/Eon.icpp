@@ -27,13 +27,13 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 	
 	// System
-	REGISTER_SYSTEM_ECS(WorldLogicSystem, "Ecs|Util");
-	REGISTER_SYSTEM_ECS(PhysicsSystem, "Ecs|Util");
-	REGISTER_SYSTEM_ECS(PlayerBodySystem, "Ecs|Util");
-	REGISTER_SYSTEM_ECS(InteractionSystem, "Ecs|Util");
-	REGISTER_SYSTEM_ECS(ScriptLoader, "Ecs|Script");
+	REGISTER_SYSTEM_ECS(WorldLogicSystem, "worldlogic.system", "Ecs|Util");
+	REGISTER_SYSTEM_ECS(PhysicsSystem, "physics.system", "Ecs|Util");
+	REGISTER_SYSTEM_ECS(PlayerBodySystem, "player.body.system", "Ecs|Util");
+	REGISTER_SYSTEM_ECS(InteractionSystem, "interaction.system", "Ecs|Util");
+	REGISTER_SYSTEM_ECS(ScriptLoader, "script.loader", "Ecs|Script");
 	#ifdef flagGUI
-	REGISTER_SYSTEM_ECS(WindowSystem, "Ecs|Gui");
+	REGISTER_SYSTEM_ECS(WindowSystem, "window.system", "Ecs|Gui");
 	#endif
 	
 	// Component
@@ -44,7 +44,7 @@ INITBLOCK {
 	REGISTER_COMPONENT(Transform, "transform3", "Ecs|3D");
 	REGISTER_COMPONENT(Transform2D, "transform2", "Ecs|3D");
 	
-	VfsValueExtFactory::Register<EnvState>("EnvState", "Util|Env");
+	VfsValueExtFactory::Register<EnvState>("EnvState", VFSEXT_COMPONENT, "env.state", "Util|Env");
 	
 }
 

@@ -11,7 +11,7 @@
 
 
 
-
+#ifdef flagGUI
 struct CtxUpp2D {
 	using Container = Ctrl;
 	using ContainerFrame = CtrlFrame;
@@ -33,6 +33,6 @@ struct CtxUpp2D {
 	inline static Pt UnitPoint() {return Pt(1,1);}
 
 };
-
+#endif
 
 #endif

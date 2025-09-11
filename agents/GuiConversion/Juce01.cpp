@@ -35,6 +35,43 @@ void Juce01(int test_num) {
         if (auto* mm = MessageManager::getInstance())
             mm->runDispatchLoop();
     }
+
+    // 2. Simple events (Button & click -> popup)
+    if (test_num == 1 || test_num < 0) {
+        struct ButtonContent : public Component {
+            TextButton btn { "Hello world!" };
+            ButtonContent() {
+                addAndMakeVisible(btn);
+                btn.onClick = []{
+                    AlertWindow::showMessageBoxAsync(AlertWindow::InfoIcon,
+                                                     String(),
+                                                     "Popup message");
+                };
+            }
+            void resized() override { btn.setBounds(30, 30, 100, 30); }
+        };
+
+        struct ButtonWindow : public DocumentWindow {
+            ButtonWindow() : DocumentWindow("Button program",
+                                           Colours::lightgrey,
+                                           DocumentWindow::closeButton) {
+                setUsingNativeTitleBar(true);
+                setResizable(false, false);
+                setContentOwned(new ButtonContent(), true);
+                centreWithSize(320, 240);
+                setVisible(true);
+            }
+            void closeButtonPressed() override {
+                if (auto* mm = MessageManager::getInstance())
+                    mm->stopDispatchLoop();
+            }
+        };
+
+        ScopedJuceInitialiser_GUI gui;
+        ButtonWindow win;
+        if (auto* mm = MessageManager::getInstance())
+            mm->runDispatchLoop();
+    }
 }
 #else
 void Juce01(int) {}

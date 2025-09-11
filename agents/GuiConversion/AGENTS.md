@@ -35,6 +35,6 @@ E.g.
 - Cocoa01.cpp
 
 
-See package file "CoreConversion.upp".
+See package file "GuiConversion.upp".
 Use a separator between numbered files.
 

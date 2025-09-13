@@ -1,5 +1,5 @@
 #include "Graphics.h"
-#include <EonLib/EonLib.h>
+#include <Eon/Lib/EonLib.h>
 
 
 NAMESPACE_UPP
@@ -50,3 +50,4 @@ bool EcsViewProg::Render(Draw& fb) {
 
 
 END_UPP_NAMESPACE
+

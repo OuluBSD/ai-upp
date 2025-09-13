@@ -209,7 +209,7 @@ Extending Eon
     - static `LinkTypeCls GetLinkType()` → default link to couple neighbors.
     - Runtime hooks (`Initialize`, `Recv`, `Send`, `Finalize`, etc.).
   - Register with the VFS factory so the loader can instantiate it:
-    - `VfsValueExtFactory::RegisterAtom<YourAtom>("YourAtom")` (see `EonLib/EonLib.icpp`).
+    - `VfsValueExtFactory::RegisterAtom<YourAtom>("YourAtom")` (see `Eon/Lib/EonLib.icpp`).
 
 - New Link
   - Derive from `LinkBase` or one of the helpers (`AsyncMemForwarderBase`, `FramePollerBase`).
@@ -235,7 +235,7 @@ Flags and Dependencies
 - Uses: `AICore2`, `Geometry`, `Esc`, `Core2`, `Vfs`, `plugin/enet` (see `Eon.upp`).
 - Optional flags:
   - `flagGUI`: enables UI‑bound types like `FrameT`, handle systems.
-  - `flagSCREEN`, `flagOGL`, `flagSDL2`, `flagX11`, `flagDX11`, `flagFFMPEG`, `flagOPENCV`, etc. control availability of atoms/links bound to those stacks (see `EonLib`).
+  - `flagSCREEN`, `flagOGL`, `flagSDL2`, `flagX11`, `flagDX11`, `flagFFMPEG`, `flagOPENCV`, etc. control availability of atoms/links bound to those stacks (see `Eon/Lib`).
 
 
 Gotchas / Notes

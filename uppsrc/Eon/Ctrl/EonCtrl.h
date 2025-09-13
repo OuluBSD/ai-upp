@@ -1,7 +1,7 @@
 #ifndef _EonCtrl_EonCtrl_h_
 #define _EonCtrl_EonCtrl_h_
 
-#include <EonLib/EonLib.h>
+#include <Eon/Lib/EonLib.h>
 
 #ifndef flagGUI
 	#error "EscCtrl library requires GUI flag to be set"
@@ -20,3 +20,4 @@ NAMESPACE_UPP
 END_UPP_NAMESPACE
 
 #endif
+

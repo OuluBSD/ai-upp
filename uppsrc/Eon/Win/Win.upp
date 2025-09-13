@@ -10,7 +10,7 @@ library
 
 file
 	Copying,
-	EonWin.h,
+	Eon/Win.h,
 	AppView.h,
 	AppView.cpp,
 	CameraResources.h,
@@ -89,4 +89,5 @@ file
 	EngineCommon.h,
 	EntityStore.h,
 	EntityStore.cpp;
+
 

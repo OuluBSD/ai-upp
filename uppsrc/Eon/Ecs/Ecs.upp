@@ -6,7 +6,7 @@ uses
 	Core2,
 	Vfs,
 	Geometry,
-	AICore2,
+	AI/Core,
 	plugin/enet;
 
 file
@@ -30,3 +30,4 @@ file
 	EasingSystem.cpp,
 	Service.h,
 	Service.cpp;
+

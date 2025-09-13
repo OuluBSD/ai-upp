@@ -4,7 +4,7 @@ uses
 	Core2,
 	Vfs,
 	Geometry,
-	AICore2;
+	AI/Core;
 
 file
 	Core.h,
@@ -29,3 +29,4 @@ file
 	Network.h,
 	Network.cpp,
 	GenAtom.inl highlight cpp;
+

@@ -1,7 +1,7 @@
 description "\377B0,0,255";
 
 uses
-	EonDraw,
+	Eon/Draw,
 	api/Effect,
 	api/MidiFile,
 	api/MidiHw,
@@ -15,8 +15,8 @@ uses(!EMSCRIPTEN) api/Holograph;
 uses(SCREEN) api/Graphics;
 
 file
-	EonLib.h,
-	EonLib.icpp,
+	Eon/Lib.h,
+	Eon/Lib.icpp,
 	Init.icpp,
 	GeneratedAudio.h,
 	GeneratedAudio.cpp,
@@ -45,4 +45,5 @@ file
 	TPrefab.h,
 	TPrefab.cpp,
 	_ readonly separator;
+
 

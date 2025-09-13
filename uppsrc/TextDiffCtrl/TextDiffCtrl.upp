@@ -4,6 +4,7 @@ uses
 	CtrlLib;
 
 file
+	AGENTS.md,
 	TextDiffCtrl.h options(BUILDER_OPTION) PCH,
 	TextDiff.cpp,
 	TextCtrl.cpp,
@@ -12,4 +13,3 @@ file
 	patch.cpp,
 	PatchDiff.cpp,
 	Diff.iml;
-

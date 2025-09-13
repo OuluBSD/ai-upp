@@ -3,6 +3,7 @@ uses
 	GridCtrl;
 
 file
+	AGENTS.md,
 	XMLConfig.h,
 	XMLConfig.cpp,
 	IniConfig.hpp,
@@ -15,4 +16,3 @@ file
 	FormObject.cpp,
 	Container.hpp,
 	Macro.hpp;
-

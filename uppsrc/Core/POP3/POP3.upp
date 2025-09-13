@@ -4,8 +4,8 @@ uses
 	Core;
 
 file
+	AGENTS.md,
 	POP3.h,
 	POP3.cpp,
 	InetMessage.cpp,
 	src.tpp;
-

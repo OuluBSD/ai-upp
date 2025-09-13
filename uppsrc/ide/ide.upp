@@ -29,7 +29,9 @@ uses(!V1) ide/Shell;
 
 uses(!V1) ide/AI;
 
+
 file
+	AGENTS.md,
 	IDE readonly separator,
 	ide.h options(BUILDER_OPTION) PCH,
 	ide.key,
@@ -159,4 +161,3 @@ mainconfig
 custom() "",
 	"ASDFASDFASDF",
 	"$(OUTDIR)/$(FILE).obj";
-

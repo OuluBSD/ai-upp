@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	Platform.h,
 	AGENTS.md,
+	Platform.h,
 	PlatformProcess.h,
 	PlatformProcess.cpp,
 	Browser.h,

@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	Persona.h,
 	AGENTS.md,
+	Persona.h,
 	Profile.h,
 	Profile.cpp,
 	Perspective.h,

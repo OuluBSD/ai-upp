@@ -19,6 +19,7 @@ pkg_config(POSIX !OSX) "freetype2 fontconfig";
 pkg_config(POSIX !OSX !VIRTUALGUI) "x11 xcb expat";
 
 file
+	AGENTS.md,
 	Draw.h options(BUILDER_OPTION) PCH,
 	FontInt.h,
 	Font.cpp,
@@ -86,4 +87,3 @@ file
 	src.tpp,
 	srcdoc.tpp,
 	Copying;
-

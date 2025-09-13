@@ -8,6 +8,7 @@ uses
 	RichEdit;
 
 file
+	AGENTS.md,
 	IconDes.h options(BUILDER_OPTION) PCH,
 	IconDes.key,
 	IconDraw.cpp,
@@ -30,4 +31,3 @@ file
 	IconDes.iml,
 	Info readonly separator,
 	Copying;
-

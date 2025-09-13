@@ -13,6 +13,7 @@ uses
 	Intranet;
 
 file
+	AGENTS.md,
 	DropTerm.h,
 	DropTerm.cpp,
 	X11.cpp,

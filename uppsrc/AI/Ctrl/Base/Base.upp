@@ -7,6 +7,7 @@ uses
 uses(AUDIO) SoundCtrl;
 
 file
+	AGENTS.md,
 	Base.h,
 	AIImgs.iml,
 	Fn.h,

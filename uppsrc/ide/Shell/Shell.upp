@@ -4,6 +4,7 @@ uses
 	AI/Ctrl;
 
 file
+	AGENTS.md,
 	Shell.h,
 	Shell.cpp,
 	Shell.lay,
@@ -23,4 +24,3 @@ file
 	Agent readonly separator,
 	Agent.h,
 	Agent.cpp;
-

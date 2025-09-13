@@ -9,6 +9,7 @@ library(WIN32 (GCC | CLANG)) "glu32 opengl32";
 pkg_config(LINUX | BSD) "gl glu";
 
 file
+	AGENTS.md,
 	GLCtrl.h,
 	Win32GLCtrl.cpp,
 	XGLCtrl.cpp,

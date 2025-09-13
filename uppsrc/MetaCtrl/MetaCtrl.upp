@@ -6,6 +6,7 @@ uses
 	CodeEditor;
 
 file
+	AGENTS.md,
 	MetaCtrl.h,
 	MetaCtrl.cpp,
 	MetaCtrl.lay,
@@ -18,4 +19,3 @@ file
 	TextDesigner.cpp,
 	Entity.h,
 	Entity.cpp;
-

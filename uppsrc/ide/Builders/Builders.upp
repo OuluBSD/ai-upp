@@ -13,6 +13,7 @@ uses(!NOSO) plugin/png;
 uses(!NOSO) Draw;
 
 file
+	AGENTS.md,
 	Builders.h options(BUILDER_OPTION) PCH,
 	CppBuilder.cpp,
 	MakeFile.cpp,
@@ -48,4 +49,3 @@ file
 	BuilderUtils.cpp,
 	Info readonly separator,
 	Copying;
-

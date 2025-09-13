@@ -5,8 +5,8 @@ uses
 	Esc;
 
 file
-	Core.h,
 	AGENTS.md,
+	Core.h,
 	Defs.h,
 	Enums.h,
 	Enums.cpp,

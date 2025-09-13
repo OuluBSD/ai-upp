@@ -4,6 +4,7 @@ uses
 	AI/Ctrl/Base;
 
 file
+	AGENTS.md,
 	Video.h,
 	Video.lay,
 	VideoSourceFile.h,

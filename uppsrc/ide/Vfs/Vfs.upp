@@ -1,6 +1,7 @@
 description "\377B";
 
 file
+	AGENTS.md,
 	Vfs.h,
 	Core readonly separator,
 	Vfs.cpp,
@@ -24,4 +25,3 @@ file
 	Env.cpp,
 	EcsLang.h,
 	EcsLang.cpp;
-

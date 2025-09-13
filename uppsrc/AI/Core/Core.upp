@@ -29,6 +29,7 @@ library(CURL !MSC) curl;
 library(CURL MSC) libcurl.lib;
 
 file
+	AGENTS.md,
 	Core.h,
 	Internal.h,
 	AICore.icpp;

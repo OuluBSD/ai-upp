@@ -5,7 +5,7 @@ uses
 	Core/SSL;
 
 file
+	AGENTS.md,
 	SMTP.h,
 	Smtp.cpp,
 	src.tpp;
-

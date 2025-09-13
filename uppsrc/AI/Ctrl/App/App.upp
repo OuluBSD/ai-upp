@@ -15,6 +15,7 @@ uses
 	AI/Ctrl/Internal;
 
 file
+	AGENTS.md,
 	App.h,
 	App.lay,
 	TaskCtrl.h,

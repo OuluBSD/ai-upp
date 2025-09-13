@@ -12,6 +12,7 @@ library(LCLANG !MSC) clang;
 library(WIN32 !MSC !MSYS) libclang;
 
 file
+	AGENTS.md,
 	clang.h,
 	libclang.h,
 	clang.dli,

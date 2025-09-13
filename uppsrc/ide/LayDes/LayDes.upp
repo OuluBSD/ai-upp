@@ -8,6 +8,7 @@ uses
 	ide/Browser;
 
 file
+	AGENTS.md,
 	LayDes.h options(BUILDER_OPTION) PCH,
 	laydes.key,
 	sdiff.cpp,
@@ -27,4 +28,3 @@ file
 	LayDes.iml,
 	Info readonly separator,
 	Copying;
-

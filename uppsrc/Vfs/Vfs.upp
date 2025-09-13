@@ -4,6 +4,7 @@ uses
 	Core2;
 
 file
+	AGENTS.md,
 	Vfs.h,
 	Vfs.icpp,
 	Defs.h,
@@ -28,4 +29,3 @@ file
 	AstExporter.cpp,
 	Compiler.h,
 	Compiler.cpp;
-

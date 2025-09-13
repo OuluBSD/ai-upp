@@ -145,3 +145,4 @@ LAYOUT(Notepad, 400, 228)
 	ITEM(Upp::Label, dv___7, SetLabel(t_("Description:")).SetAlign(Upp::ALIGN_RIGHT).LeftPosZ(12, 84).TopPosZ(92, 19))
 	ITEM(Upp::DocEdit, desc, HSizePosZ(100, 12).VSizePosZ(92, 12))
 END_LAYOUT
+

@@ -8,8 +8,8 @@ uses
 	AI/Core/Prompting;
 
 file
-	Content.h,
 	AGENTS.md,
+	Content.h,
 	Artist.h,
 	Artist.cpp,
 	Biography.h,

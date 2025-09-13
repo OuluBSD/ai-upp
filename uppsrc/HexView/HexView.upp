@@ -4,9 +4,9 @@ uses
 	CtrlLib;
 
 file
+	AGENTS.md,
 	HexView.h,
 	HexView.cpp,
 	HexView.lay,
 	Info readonly separator,
 	Copying;
-

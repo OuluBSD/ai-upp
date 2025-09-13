@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	DataModel.h,
 	AGENTS.md,
+	DataModel.h,
 	Data.h,
 	Data.cpp,
 	LeadData.h,

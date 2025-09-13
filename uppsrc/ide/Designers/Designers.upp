@@ -6,6 +6,7 @@ uses
 	ide/Common;
 
 file
+	AGENTS.md,
 	Designers.h,
 	Png.cpp,
 	Img.cpp,
@@ -15,4 +16,3 @@ file
 	Xml.cpp,
 	Json.cpp,
 	md.cpp;
-

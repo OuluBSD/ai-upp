@@ -5,6 +5,7 @@ uses
 	TabBar;
 
 file
+	AGENTS.md,
 	Docking readonly separator,
 	Docking.h,
 	DockWindow.cpp,
@@ -25,4 +26,3 @@ file
 	Docking.lay,
 	src.tpp,
 	Docking.t charset "UTF-8";
-

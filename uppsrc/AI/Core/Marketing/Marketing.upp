@@ -8,8 +8,8 @@ uses
 	AI/Core/Social;
 
 file
-	Marketing.h,
 	AGENTS.md,
+	Marketing.h,
 	Audience.h,
 	Audience.cpp,
 	Consumer.h,

@@ -7,8 +7,8 @@ uses
 	AI/Core/Content;
 
 file
-	Social.h,
 	AGENTS.md,
+	Social.h,
 	BiographyPlatform.h,
 	BiographyPlatform.cpp,
 	SocialContent.cpp,

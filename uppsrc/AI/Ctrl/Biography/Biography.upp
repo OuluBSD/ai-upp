@@ -7,6 +7,7 @@ uses
 	AI/Ctrl/Imaging;
 
 file
+	AGENTS.md,
 	Biography.h,
 	Biography.lay,
 	BiographyCtrl.h,

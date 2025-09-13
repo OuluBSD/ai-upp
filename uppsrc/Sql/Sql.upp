@@ -9,6 +9,7 @@ uses
 	Core;
 
 file
+	AGENTS.md,
 	Sql.h options(BUILDER_OPTION) PCH,
 	Sqlexp.h,
 	SqlCode.cpp,
@@ -36,4 +37,3 @@ file
 	src.tpp,
 	srcdoc.tpp,
 	Copying;
-

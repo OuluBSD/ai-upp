@@ -5,6 +5,7 @@ uses
 	plugin/pcre;
 
 file
+	AGENTS.md,
 	CodeEditor.h options(BUILDER_OPTION) PCH,
 	Syntax readonly separator,
 	Syntax.h,
@@ -42,4 +43,3 @@ file
 	CodeEditor.t,
 	Info readonly separator,
 	Copying;
-

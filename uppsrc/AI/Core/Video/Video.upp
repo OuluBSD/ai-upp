@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	Video.h,
 	AGENTS.md,
+	Video.h,
 	VideoPrompt.h,
 	VideoPrompt.cpp,
 	VideoSourceFile.h,

@@ -14,10 +14,10 @@ pkg_config
 	sdl2;
 
 file
+	AGENTS.md,
 	SDL2GL.h,
 	Window.cpp,
 	Draw.cpp,
 	Keys.cpp,
 	Event.cpp,
 	Cursor.cpp;
-

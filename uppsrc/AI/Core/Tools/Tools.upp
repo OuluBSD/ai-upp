@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	Tools.h,
 	AGENTS.md,
+	Tools.h,
 	ProjectWizard.h,
 	ProjectWizard.cpp,
 	VfsProgram.cpp;

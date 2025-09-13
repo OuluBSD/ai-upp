@@ -4,6 +4,7 @@ uses
 	Geometry;
 
 file
+	AGENTS.md,
 	Copying,
 	ComputerVision.h,
 	OrbSystem.h,

@@ -4,6 +4,7 @@ uses
 	AI/Ctrl/Base;
 
 file
+	AGENTS.md,
 	Agent.h,
 	Agent.lay,
 	Ai.h,

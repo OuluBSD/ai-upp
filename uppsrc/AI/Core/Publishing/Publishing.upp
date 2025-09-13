@@ -8,8 +8,8 @@ uses
 	AI/Core/Media;
 
 file
-	Publishing.h,
 	AGENTS.md,
+	Publishing.h,
 	Release.h,
 	Release.cpp,
 	ReleaseBriefing.h,

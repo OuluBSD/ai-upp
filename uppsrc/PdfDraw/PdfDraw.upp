@@ -5,6 +5,7 @@ uses
 	Painter;
 
 file
+	AGENTS.md,
 	PdfDraw.h options(BUILDER_OPTION) PCH,
 	TTFStream.cpp,
 	TTFStruct.cpp,
@@ -16,4 +17,3 @@ file
 	PdfInit.icpp,
 	Info readonly separator,
 	Copying;
-

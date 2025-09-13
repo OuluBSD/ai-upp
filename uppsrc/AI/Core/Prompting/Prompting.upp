@@ -7,8 +7,8 @@ uses
 	AI/Core/Runtime;
 
 file
-	Prompting.h,
 	AGENTS.md,
+	Prompting.h,
 	RemoteTask.h,
 	RemoteTask.cpp,
 	CreateInput.cpp,

@@ -8,6 +8,7 @@ uses
 	plugin/enet;
 
 file
+	AGENTS.md,
 	Edit3D.h,
 	main.cpp,
 	Editor.h,
@@ -35,4 +36,3 @@ file
 
 mainconfig
 	"" = "GUI";
-

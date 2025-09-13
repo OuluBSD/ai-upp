@@ -17,5 +17,6 @@ uses
 	AI/Core;
 
 file
+	AGENTS.md,
 	Ctrl.h;
 

@@ -4,6 +4,7 @@ uses
 	CtrlLib;
 
 file
+	AGENTS.md,
 	TabBar.h,
 	TabBar.cpp,
 	FileTabs.h,
@@ -12,4 +13,3 @@ file
 	TabBarCtrl.h,
 	TabBarCtrl.cpp,
 	TabBar.t;
-

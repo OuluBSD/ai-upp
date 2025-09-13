@@ -5,6 +5,7 @@ library(SYS_PORTAUDIO !(WIN32 !MSC)) portaudio;
 library(SYS_PORTAUDIO WIN32 !MSC) libportaudio.dll.a;
 
 file
+	AGENTS.md,
 	Types.h,
 	SoundSystem.h,
 	Sound.cpp,
@@ -19,4 +20,3 @@ file
 	Discussion.cpp,
 	SoundClip.h,
 	Sound.h;
-

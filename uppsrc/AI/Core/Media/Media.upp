@@ -6,8 +6,8 @@ uses
 	AI/Core/Core;
 
 file
-	Media.h,
 	AGENTS.md,
+	Media.h,
 	CoverImage.h,
 	CoverImage.cpp,
 	Layer.h,

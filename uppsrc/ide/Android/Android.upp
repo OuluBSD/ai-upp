@@ -5,6 +5,7 @@ uses
 	plugin/pcre;
 
 file
+	AGENTS.md,
 	Android.h,
 	Android readonly separator,
 	Android.cpp,
@@ -21,4 +22,3 @@ file
 	Devices.h,
 	Info readonly separator,
 	Copying;
-

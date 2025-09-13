@@ -4,6 +4,7 @@ uses
 	Core;
 
 file
+	AGENTS.md,
 	Esc.h options(BUILDER_OPTION) PCH,
 	EscValue.cpp,
 	EscArray.cpp,
@@ -20,4 +21,3 @@ file
 	Info readonly separator,
 	srcdoc.tpp,
 	Copying;
-

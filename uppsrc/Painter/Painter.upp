@@ -5,6 +5,7 @@ uses
 	Core2;
 
 file
+	AGENTS.md,
 	Painter.h options(BUILDER_OPTION) PCH,
 	Painter.hpp,
 	Painter.cpp,
@@ -45,4 +46,3 @@ file
 	Info readonly separator,
 	Copying,
 	src.tpp;
-

@@ -6,6 +6,7 @@ uses
 	PdfDraw;
 
 file
+	AGENTS.md,
 	VirtualGui.h,
 	main.conf,
 	Local.h,
@@ -25,4 +26,3 @@ file
 	DnD.cpp,
 	ChSysInit.cpp,
 	src.tpp;
-

@@ -14,6 +14,7 @@ library(!BUILTIN_ASSIMP POSIX !LINUX) assimp;
 library(!BUILTIN_ASSIMP WIN32 (CLANG | GCC) MSYS) libassimp.dll.a;
 
 file
+	AGENTS.md,
 	Geometry.h,
 	Common.h,
 	Matrix.h,
@@ -63,4 +64,3 @@ file
 	ModelPainter.cpp,
 	ModelDraw.h,
 	ModelDraw.cpp;
-

@@ -4,6 +4,7 @@ uses
 	Vfs2;
 
 file
+	AGENTS.md,
 	Base.h,
 	Base.icpp,
 	Enum.h,

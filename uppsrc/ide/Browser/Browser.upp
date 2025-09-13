@@ -7,6 +7,7 @@ uses
 	ide/Common;
 
 file
+	AGENTS.md,
 	Browser.h options(BUILDER_OPTION) PCH,
 	CodeBase readonly separator,
 	Util.cpp,
@@ -25,4 +26,3 @@ file
 	Topic.iml,
 	Info readonly separator,
 	Copying;
-

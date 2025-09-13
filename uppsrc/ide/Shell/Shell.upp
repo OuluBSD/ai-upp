@@ -1,7 +1,7 @@
 description "\377B";
 
 uses
-	AICtrl;
+	AI/Ctrl;
 
 file
 	Shell.h,

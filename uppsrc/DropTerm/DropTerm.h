@@ -17,7 +17,7 @@
 #endif
 
 #ifndef flagV1
-	#include <AICtrl/AICtrl.h>
+	#include <AI/Ctrl/Ctrl.h>
 #endif
 #include <ide/Shell/Shell.h>
 using namespace Upp;

@@ -1,0 +1,13 @@
+description "AI Ctrl Audio\3770,0,255";
+
+uses
+	AI/Ctrl/Base;
+
+file
+	Audio.h,
+	Audio.lay,
+	AudioTranscript.h,
+	AudioTranscript.cpp,
+	Composition.h,
+	Composition.cpp;
+

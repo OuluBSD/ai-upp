@@ -1,0 +1,10 @@
+description "AI Ctrl Internal\3770,0,255";
+
+uses
+	AI/Ctrl/Base;
+
+file
+	Internal.h,
+	Messaging.cpp,
+	Clusters.cpp;
+

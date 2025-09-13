@@ -16,41 +16,13 @@
 
 NAMESPACE_UPP
 
-#include "Container.h"
-#include "Network.h"
-#include "Types.h"
-#include "Atom.h"
-#include "LinkUtil.h"
-#include "LinkBase.h"
-#include "Base.h"
-#include "BaseAudio.h"
-#include "BaseVideo.h"
-#include "ShadertoyLoader.h"
-
-#include "EcsFactory.h"
-
-#include "CommonComponents.h"
-
-#include "EcsCommonComponents.h"
-#include "WorldLogic.h"
-#include "EasingSystem.h"
-#include "InteractionSystem.h"
-#include "Player.h"
-#include "EcsPhysicsSystem.h"
-
-#include "ToyLoader.h"
-#include "Def.h"
-#include "Loader.h"
-#include "Ecs.h"
-#include "EonLoader.h"
-#include "Service.h"
-
+#include <Eon/Core/Core.h>
+#include <Eon/Script/Script.h>
+#include <Eon/Ecs/Ecs.h>
+#include <Eon/Interaction/Interaction.h>
 
 #ifdef flagGUI
-#include "FrameT.h"
-#include "HandleSystemT.h"
-#include "HandleTypes.h"
-#include "ScopeT.h"
+#include <Eon/GuiGlue/GuiGlue.h>
 #endif
 
 END_UPP_NAMESPACE

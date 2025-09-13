@@ -6,7 +6,7 @@ uses
 	Core2,
 	Vfs,
 	Geometry,
-	AICore2;
+	AI/Core;
 
 file
 	Interaction.h,

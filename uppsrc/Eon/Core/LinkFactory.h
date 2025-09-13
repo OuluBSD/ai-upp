@@ -34,9 +34,9 @@ public:
 	static LinkedList<LinkTypeCls>& GetLinkTypes() {static LinkedList<LinkTypeCls> l; return l;}
 	
 	static void Dump();
-	static const Vector<Link>& GetSinkLinks(LinkTypeCls src_link);
-	static void RefreshLinks(LinkData& d);
-	static LinkTypeCls GetLinkLinkType(LinkTypeCls link);
+	//static const Vector<Link>& GetSinkLinks(LinkTypeCls src_link);
+	//static void RefreshLinks(LinkData& d);
+	//static LinkTypeCls GetLinkLinkType(LinkTypeCls link);
 	
 	
 	

@@ -5,8 +5,8 @@ uses
 	Draw2;
 
 file
-	EonDraw.h,
-	EonDraw.icpp,
+	Draw.h,
+	Draw.icpp,
 	Local.icpp,
 	GEnums.h,
 	Graphics.cpp,

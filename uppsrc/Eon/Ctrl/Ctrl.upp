@@ -1,11 +1,11 @@
 description "\377B0,0,255";
 
 uses
-	EonLib;
+	Eon/Lib;
 
 file
-	EonCtrl.h,
-	EonCtrl.icpp,
+	Eon/Ctrl.h,
+	Eon/Ctrl.icpp,
 	Parts.h,
 	Parts.cpp,
 	ComponentCtrl.h,
@@ -43,4 +43,5 @@ file
 	BinaryHeapMap.h,
 	BinaryHeapMap.cpp,
 	_ readonly separator;
+
 

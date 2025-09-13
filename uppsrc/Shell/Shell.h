@@ -6,13 +6,13 @@
 #include <Geometry/Geometry.h>
 #include <Vfs2/Vfs.h>
 #include <Eon/Eon.h>
-#include <EonDraw/EonDraw.h>
-#include <EonLib/EonLib.h>
+#include <Eon/Draw/EonDraw.h>
+#include <Eon/Lib/EonLib.h>
 #include <api/Graphics/Graphics.h>
 
 
 #ifdef flagGUI
-#include <EonCtrl/EonCtrl.h>
+#include <Eon/Ctrl/EonCtrl.h>
 
 #if defined flagUWP && defined flagDX12
 	#include <EcsWin/EcsWin.h>
@@ -50,4 +50,5 @@ template <class T> void DefaultCreateOnStart() {TODO /*Engine::WhenPreFirstUpdat
 END_UPP_NAMESPACE
 
 #endif
+
 

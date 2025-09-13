@@ -3,7 +3,7 @@ description "Topside main application\377";
 uses
 	api/MidiFile,
 	api/MidiHw,
-	AICore2,
+	AI/Core,
 	api/AudioFileOut,
 	api/Camera,
 	api/Media,
@@ -11,8 +11,8 @@ uses
 	SoftPhys,
 	SoftAudio,
 	api/Physics,
-	EonDraw,
-	EonLib;
+	Eon/Draw,
+	Eon/Lib;
 
 uses(LINUX & VR) SoftVR;
 
@@ -20,9 +20,9 @@ uses(GUI & VIRTUALGUI) DesktopSuite;
 
 uses(GUBO) GuboSuite;
 
-uses(DX12) EonWin;
+uses(DX12) Eon/Win;
 
-uses(GUI) EonCtrl;
+uses(GUI) Eon/Ctrl;
 
 uses(GUI | SCREEN) api/Graphics;
 
@@ -78,4 +78,5 @@ mainconfig
 	"" = "DEBUG_RT BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE",
 	"" = "DEBUG_RT GUI SCREEN OGL",
 	"Verbose Have Microsoft (Windows)" = "DEBUG_RT GUI SCREEN DX11 VR FLUIDLITE BUILTIN_PORTAUDIO BUILTIN_ASSIMP";
+
 

@@ -1,7 +1,7 @@
 #ifndef _EonLib_EonLib_h_
 #define _EonLib_EonLib_h_
 
-#include <EonDraw/EonDraw.h>
+#include <Eon/Draw/EonDraw.h>
 
 #include <api/MidiFile/MidiFile.h>
 #include <api/MidiHw/MidiHw.h>
@@ -49,3 +49,4 @@ NAMESPACE_UPP
 END_UPP_NAMESPACE
 
 #endif
+

@@ -5,7 +5,7 @@ uses
 	Core2,
 	Vfs,
 	Geometry,
-	AICore2,
+	AI/Core,
 	Esc;
 
 file

@@ -3,7 +3,7 @@
 
 #include <Draw/Draw.h>
 #include <Draw2/Draw.h>
-#include <Eon/Eon.h>
+#include <Eon/Ecs/Ecs.h>
 #include <api/Graphics/Graphics.h>
 
 #ifdef flagMSC

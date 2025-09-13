@@ -1,5 +1,5 @@
 #include "Vfs.h"
-#include <AICore2/AICore.h>
+#include <AI/Core/Core.h>
 #include <ide/ide.h>
 
 bool IsStruct(int kind);

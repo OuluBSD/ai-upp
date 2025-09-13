@@ -1,7 +1,7 @@
 #ifndef _AI_Ctrl_Base_Base_h_
 #define _AI_Ctrl_Base_Base_h_
 
-#include <AICore2/AICore.h>
+#include <AI/Core/Core.h>
 #include <CtrlLib/CtrlLib.h>
 #ifdef flagAUDIO
 	#include <SoundCtrl/SoundCtrl.h>

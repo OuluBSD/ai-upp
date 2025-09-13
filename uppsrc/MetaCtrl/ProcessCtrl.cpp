@@ -2,7 +2,7 @@
 #include <ide/clang/clang.h>
 
 #ifndef flagV1
-#include <AICore2/AICore.h>
+#include <AI/Core/Core.h>
 #endif
 
 String GetCursorKindName(CXCursorKind cursorKind);

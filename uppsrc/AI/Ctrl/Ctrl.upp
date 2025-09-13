@@ -13,7 +13,8 @@ uses
 	AI/Ctrl/Platform,
 	AI/Ctrl/People,
 	AI/Ctrl/Leads,
-	AI/Ctrl/Internal;
+	AI/Ctrl/Internal,
+	AI/Core;
 
 file
 	Ctrl.h;

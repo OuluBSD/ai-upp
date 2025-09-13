@@ -2,7 +2,6 @@ description "AI Ctrl Base\3770,0,255";
 
 uses
 	MetaCtrl,
-	AICore2,
 	FormEditor;
 
 uses(AUDIO) SoundCtrl;

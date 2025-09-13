@@ -1,0 +1,18 @@
+description "AI Ctrl Base\3770,0,255";
+
+uses
+	MetaCtrl,
+	AICore2,
+	FormEditor;
+
+uses(AUDIO) SoundCtrl;
+
+file
+	Base.h,
+	AIImgs.iml,
+	Fn.h,
+	Fn.cpp,
+	VfsProgram.h,
+	VfsProgram.cpp,
+	Images.cpp;
+

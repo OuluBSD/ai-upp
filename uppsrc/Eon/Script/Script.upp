@@ -1,0 +1,35 @@
+description "Eon/Script\377B85,42,0";
+
+uses
+	Eon/Core,
+	Core2,
+	Vfs,
+	Geometry,
+	AICore2,
+	Esc;
+
+file
+	Script.h,
+	Script.icpp,
+	README.md,
+	Def.h,
+	Loader.h,
+	LoaderBase.inl highlight cpp,
+	LoopLoader.cpp,
+	ChainLoader.cpp,
+	TopChainLoader.cpp,
+	MachineLoader.cpp,
+	EngineLoader.cpp,
+	EcsSystemLoader.cpp,
+	SystemLoader.cpp,
+	StateLoader.cpp,
+	EntityLoader.cpp,
+	ComponentLoader.cpp,
+	PoolLoader.cpp,
+	ScriptLoader.cpp,
+	Loop.cpp,
+	ToyLoader.h,
+	ToyLoader.cpp,
+	ShadertoyLoader.h,
+	ShadertoyLoader.cpp,
+	main.cpp;

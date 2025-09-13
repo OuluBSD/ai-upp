@@ -1,0 +1,19 @@
+description "AI Ctrl Public\3770,0,255";
+
+uses
+	AI/Ctrl/Base;
+
+file
+	Public.h,
+	Public.lay,
+	Profile.h,
+	Profile.cpp,
+	Release.h,
+	Release.cpp,
+	Perspective.h,
+	Perspective.cpp,
+	Artist.h,
+	Artist.cpp,
+	Briefing.h,
+	Briefing.cpp;
+

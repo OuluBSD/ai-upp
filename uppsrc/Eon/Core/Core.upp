@@ -1,0 +1,31 @@
+description "Eon/Core\377B85,42,0";
+
+uses
+	Core2,
+	Vfs,
+	Geometry,
+	AICore2;
+
+file
+	Core.h,
+	Core.icpp,
+	README.md,
+	Types.h,
+	Container.h,
+	Container.cpp,
+	Atom.h,
+	LinkUtil.h,
+	LinkUtil.cpp,
+	LinkBase.h,
+	LinkBase.cpp,
+	LinkFactory.h,
+	LinkFactory.cpp,
+	Base.h,
+	Base.cpp,
+	BaseAudio.h,
+	BaseAudio.cpp,
+	BaseVideo.h,
+	BaseVideo.cpp,
+	Network.h,
+	Network.cpp,
+	GenAtom.inl highlight cpp;

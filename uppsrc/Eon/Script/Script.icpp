@@ -1,0 +1,16 @@
+#include "../Eon.h"
+
+NAMESPACE_UPP
+
+INITBLOCK {
+	using namespace Eon;
+
+	// Register .toy serial loader with the script layer
+	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
+
+	// Expose the ScriptLoader system
+	REGISTER_SYSTEM_ECS(ScriptLoader, "script.loader", "Ecs|Script");
+}
+
+END_UPP_NAMESPACE
+

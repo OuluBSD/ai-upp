@@ -1,0 +1,15 @@
+description "AI Ctrl Imaging\3770,0,255";
+
+uses
+	AI/Ctrl/Base;
+
+file
+	Imaging.h,
+	Imaging.lay,
+	ImgGen.h,
+	ImgGen.cpp,
+	ImgAspectFixer.h,
+	ImgAspectFixer.cpp,
+	CoverImage.h,
+	CoverImage.cpp;
+

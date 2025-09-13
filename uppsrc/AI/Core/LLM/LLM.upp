@@ -1,0 +1,15 @@
+description "AI/Core/LLM\377128,0,0";
+
+uses
+	AI/Core/Base,
+	Esc,
+	AI/Core/Core,
+	AI/Core/Runtime;
+
+file
+	LLM.h,
+	AiChat.h,
+	AiChat.cpp,
+	AiCompletion.h,
+	AiCompletion.cpp;
+

@@ -2,7 +2,7 @@
 
 #if 0
 #ifndef flagV1
-#include <AICore2/AICore.h>
+#include <AI/Core/Core.h>
 #endif
 #include <Eon/Eon.h>
 #endif

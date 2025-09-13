@@ -1,0 +1,19 @@
+description "AI/Core/Media\377128,0,0";
+
+uses
+	AI/Core/Base,
+	Esc,
+	AI/Core/Core;
+
+file
+	Media.h,
+	AGENTS.md,
+	CoverImage.h,
+	CoverImage.cpp,
+	Layer.h,
+	Layer.cpp,
+	AspectFixer.h,
+	AspectFixer.cpp,
+	AudioTranscript.h,
+	AudioTranscript.cpp;
+

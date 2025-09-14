@@ -96,6 +96,7 @@
 
 
 #include "DevWaveOut.h"
+#include "PortaudioCore.h"
 
 #include "ScriptTbl.h"
 #include "Script.h"

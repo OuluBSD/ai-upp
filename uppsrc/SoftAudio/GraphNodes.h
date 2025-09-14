@@ -4,6 +4,7 @@
 #include "SoftAudio.h"
 #include <SoftAudio/Graph/Graph.h>
 #include <string.h>
+#include <atomic>
 
 NAMESPACE_AUDIO_BEGIN
 
@@ -290,7 +291,131 @@ private:
     int read_pos_ = 0;
 };
 
+// Live PortAudio output node: writes incoming audio to the default output device.
+// Real-time thread reads from an internal SPSC ring-buffer. Graph thread pushes blocks.
+class LiveOutNode : public SAGraph::Node {
+public:
+    LiveOutNode() { }
+    ~LiveOutNode() { Stop(); Close(); }
+
+    void SetChannels(int ch) { channels_ = ch <= 0 ? 2 : ch; }
+    void SetAutoStart(bool on) { autostart_ = on; }
+    void Start() { if(!running_) { stream_.Start(); running_ = true; } }
+    void Stop()  { if(running_) { stream_.Stop(); running_ = false; } }
+    void Close() { stream_.Close(); ring_.Clear(); }
+
+    SAGraph::PortSpec GetInputSpec(int) const override { SAGraph::PortSpec p; p.channels = channels_ ? channels_ : 2; return p; }
+    int GetOutputCount() const override { return 0; }
+
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
+        SAGraph::Node::Prepare(ctx);
+        block_frames_ = ctx.block_size;
+        if(channels_ <= 0) channels_ = 2;
+        // Init ring: capacity = N blocks
+        int cap = channels_ * block_frames_ * ring_blocks_;
+        ring_.Init(cap);
+        // Open default PortAudio stream
+        using namespace Portaudio;
+        stream_.SetSampleRate(ctx.sample_rate);
+        stream_.SetFrequency(ctx.sample_rate);
+        stream_.SetFlags(SND_NOFLAG);
+        stream_.OpenDefault(nullptr, 0, channels_, SND_FLOAT32);
+        stream_.WhenAction = THISBACK(OnCallback);
+        if(autostart_) Start();
+    }
+
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus&) override {
+        const SAGraph::Bus* in = inputs.IsEmpty() ? nullptr : inputs[0];
+        if(!in) return;
+        int frames = min(ctx.block_size, in->frames);
+        // Ensure channels match; if mismatch, clamp or duplicate
+        temp_.SetCount(frames, channels_);
+        for(int f = 0; f < frames; ++f) {
+            for(int c = 0; c < channels_; ++c) {
+                float s = in->At(f, min(c, in->channels - 1));
+                temp_(f, c) = s;
+            }
+        }
+        ring_.Push(&temp_[0], frames * channels_);
+    }
+
+private:
+    // PortAudio callback
+    void OnCallback(Portaudio::StreamCallbackArgs& a) {
+        float* out = (float*)a.output;
+        int need = a.fpb * channels_;
+        if(!ring_.Pop(out, need)) {
+            // underflow: zero-extend remaining
+            int avail = ring_.LastReadCount();
+            for(int i = avail; i < need; ++i) out[i] = 0.0f;
+        }
+        a.state = Portaudio::SND_CONTINUE;
+    }
+
+    // Simple lock-free single-producer single-consumer ring buffer for float samples
+    struct Ring {
+        Vector<float> buf;
+        std::atomic<int> head{0};
+        std::atomic<int> tail{0};
+        int cap = 0;
+        int last_read_ = 0;
+        void Init(int capacity) {
+            buf.SetCount(capacity);
+            cap = capacity;
+            head.store(0, std::memory_order_relaxed);
+            tail.store(0, std::memory_order_relaxed);
+            last_read_ = 0;
+        }
+        void Clear() { buf.Clear(); cap = 0; head.store(0); tail.store(0); last_read_ = 0; }
+        int AvailableRead() const {
+            int h = head.load(std::memory_order_acquire);
+            int t = tail.load(std::memory_order_acquire);
+            return h >= t ? (h - t) : (cap - (t - h));
+        }
+        int AvailableWrite() const { return cap ? (cap - 1 - AvailableRead()) : 0; }
+        bool Push(const float* data, int count) {
+            if(count <= 0 || cap == 0) return false;
+            // if overflow, drop oldest to make room
+            if(count > AvailableWrite()) {
+                int drop = count - AvailableWrite();
+                int t = tail.load(std::memory_order_relaxed);
+                t = (t + drop) % cap;
+                tail.store(t, std::memory_order_release);
+            }
+            int h = head.load(std::memory_order_relaxed);
+            int first = min(count, cap - h);
+            memcpy(&buf[h], data, first * sizeof(float));
+            int rem = count - first;
+            if(rem > 0) memcpy(&buf[0], data + first, rem * sizeof(float));
+            head.store((h + count) % cap, std::memory_order_release);
+            return true;
+        }
+        bool Pop(float* dst, int count) {
+            if(count <= 0 || cap == 0) { last_read_ = 0; return false; }
+            int avail = AvailableRead();
+            int toread = min(avail, count);
+            int t = tail.load(std::memory_order_relaxed);
+            int first = min(toread, cap - t);
+            if(first > 0) memcpy(dst, &buf[t], first * sizeof(float));
+            int rem = toread - first;
+            if(rem > 0) memcpy(dst + first, &buf[0], rem * sizeof(float));
+            tail.store((t + toread) % cap, std::memory_order_release);
+            last_read_ = toread;
+            return toread == count;
+        }
+        int LastReadCount() const { return last_read_; }
+    };
+
+    Portaudio::AudioDeviceStream stream_;
+    Ring ring_;
+    AudioFrames temp_;
+    int channels_ = 2;
+    int block_frames_ = 0;
+    bool autostart_ = true;
+    bool running_ = false;
+    int ring_blocks_ = 8; // internal buffering depth
+};
+
 NAMESPACE_AUDIO_END
 
 #endif
-

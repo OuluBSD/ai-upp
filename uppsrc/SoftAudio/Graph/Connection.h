@@ -16,9 +16,9 @@ struct Edge {
     int to = -1;   // node index
     int to_port = 0;
     float gain = 1.0f; // per-connection gain
+    String name;   // optional label for identification
 };
 
 NAMESPACE_SAGRAPH_END
 
 #endif
-

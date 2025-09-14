@@ -11,6 +11,8 @@ public:
     int AddNode(One<Node> node);
     int AddNodeWithName(const String& name, One<Node> node);
     void Connect(int from, int to, int from_port = 0, int to_port = 0, float gain = 1.0f);
+    int  ConnectReturnIndex(int from, int to, int from_port = 0, int to_port = 0, float gain = 1.0f);
+    int  ConnectWithName(const String& name, int from, int to, int from_port = 0, int to_port = 0, float gain = 1.0f);
     bool Compile(String& error);
     void Prepare(const ProcessContext& ctx);
     void ProcessBlock();
@@ -20,6 +22,10 @@ public:
     bool SetParams(const String& node_name, const VectorMap<String, double>& params);
     bool SetParams(int node_index, std::initializer_list<std::pair<const char*, double>> params);
     bool SetParams(const String& node_name, std::initializer_list<std::pair<const char*, double>> params);
+    bool SetEdgeName(int edge_index, const String& name);
+    int  FindEdge(const String& name) const;
+    const Edge* GetEdge(int edge_index) const;
+    Edge*       GetEdge(int edge_index);
     bool SetNodeName(int node_index, const String& name);
     int  FindNode(const String& name) const;
     const String& GetNodeName(int node_index) const;
@@ -39,6 +45,7 @@ private:
     Vector<String> node_names_;
     VectorMap<String, int> name_to_index_;
     Array<Edge> edges_;
+    VectorMap<String, int> edge_name_to_index_;
     Array<CompiledNode> order_; // topologically sorted nodes with resolved inputs
     ProcessContext ctx_;
 };

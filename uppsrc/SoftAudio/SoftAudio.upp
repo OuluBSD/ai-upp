@@ -5,7 +5,8 @@ options(BUILDER_OPTION) NOWARNINGS;
 uses
 	Geometry,
 	MidiFile,
-	SoftAudio/Graph;
+	SoftAudio/Graph,
+	Sound;
 
 file
 	AGENTS.md,
@@ -15,6 +16,10 @@ file
 	SoftAudio.h,
 	GraphNodes.h,
 	GraphNodes.cpp,
+	PortaudioCore.h,
+	PortaudioCore.cpp,
+	PortaudioStream.cpp,
+	PortaudioSystem.cpp,
 	ADSR.h,
 	ADSR.cpp,
 	Audio.h,

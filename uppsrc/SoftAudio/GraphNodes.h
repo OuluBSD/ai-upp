@@ -299,6 +299,38 @@ public:
     ~LiveOutNode() { Stop(); Close(); }
 
     void SetChannels(int ch) { channels_ = ch <= 0 ? 2 : ch; }
+    void SetOutputDeviceIndex(int index) { device_index_ = index; }
+    void SetLatency(double seconds) { latency_ = seconds; }
+    static String DescribeAudioSystem() {
+        using namespace Portaudio;
+        (void)AudioSys();
+        return AudioSys().ToString();
+    }
+    static Vector<String> ListOutputDeviceNames() {
+        using namespace Portaudio;
+        (void)AudioSys();
+        Vector<String> names;
+        for(const auto& d : AudioSys().GetDevices())
+            if(d.output_channels > 0)
+                names.Add(String().Cat() << d.index << ": " << d.name);
+        return names;
+    }
+    static int FindOutputDeviceByName(const String& name_substr, bool ci = true) {
+        using namespace Portaudio;
+        (void)AudioSys();
+        String needle = ci ? ToLower(name_substr) : name_substr;
+        for(const auto& d : AudioSys().GetDevices()) {
+            String s = ci ? ToLower(String(d.name)) : String(d.name);
+            if(s.Find(needle) >= 0 && d.output_channels > 0)
+                return d.index;
+        }
+        return -1;
+    }
+    bool SetOutputDeviceByName(const String& name_substr, bool ci = true) {
+        int idx = FindOutputDeviceByName(name_substr, ci);
+        if(idx >= 0) { device_index_ = idx; return true; }
+        return false;
+    }
     void SetAutoStart(bool on) { autostart_ = on; }
     void Start() { if(!running_) { stream_.Start(); running_ = true; } }
     void Stop()  { if(running_) { stream_.Stop(); running_ = false; } }
@@ -316,10 +348,17 @@ public:
         ring_.Init(cap);
         // Open default PortAudio stream
         using namespace Portaudio;
+        (void)AudioSys(); // ensure system is initialized
         stream_.SetSampleRate(ctx.sample_rate);
         stream_.SetFrequency(ctx.sample_rate);
         stream_.SetFlags(SND_NOFLAG);
-        stream_.OpenDefault(nullptr, 0, channels_, SND_FLOAT32);
+        if(device_index_ >= 0) {
+            StreamParameters inparam(Null);
+            StreamParameters outparam(device_index_, channels_, SND_FLOAT32, (PaTime)latency_, nullptr);
+            stream_.Open((void*)this, inparam, outparam);
+        } else {
+            stream_.OpenDefault((void*)this, 0, channels_, SND_FLOAT32);
+        }
         stream_.WhenAction = THISBACK(OnCallback);
         if(autostart_) Start();
     }
@@ -414,6 +453,8 @@ private:
     bool autostart_ = true;
     bool running_ = false;
     int ring_blocks_ = 8; // internal buffering depth
+    int device_index_ = -1; // -1 = default
+    double latency_ = 0.02; // seconds
 };
 
 NAMESPACE_AUDIO_END

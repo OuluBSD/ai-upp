@@ -4,7 +4,7 @@ This file reflects what we are actively doing for `SoftAudio` now. See `uppsrc/S
 
 ## Phase 1 — Interfaces and Minimal Engine (In Progress)
 
-Status: scaffolding complete; first example chain wired; iterating on wrappers.
+Status: scaffolding complete; `MixerNode` and `RouterNode` added; reference app updated to mix two sources; continuing wrapper iterations.
 
 Done
 - Created subpackage: `uppsrc/SoftAudio/Graph` with main header `Graph.h`.
@@ -15,14 +15,15 @@ Done
   - `FreeVerbNode` (wraps `FreeVerb`) — stereo effect.
   - `FileOutNode` (wraps `FileWaveOut`) — sink for offline renders.
 - Added reference app `reference/SoftAudioGraph` with an example chain.
+  - Now demonstrates 2-source mix: `SineNode + SineNode → MixerNode (stereo, panned) → GainNode → FreeVerbNode → FileOutNode`.
+  - Previous single-source example retained in spirit via parameters.
 
 Example Chain (reference app)
 - `SineNode → GainNode → FreeVerbNode → FileOutNode`
 - Renders a short WAV file offline using a block pull loop.
 
 Next
-- Add `MixerNode` (N‑in stereo mix with per‑input gain/pan).
-- Add `RouterNode` for mono↔stereo adapters and channel mapping.
+- Add `BypassNode` and `SplitterNode` (explicit fan‑out) utilities.
 - Wrap one more effect (e.g., `Compressor`) and one instrument (`Voicer`‑driven).
 - Add minimal parameter API surface for wrappers (e.g., `SetParam(String id, float value)`).
 - Validate clip handling and DC checks in the reference app.

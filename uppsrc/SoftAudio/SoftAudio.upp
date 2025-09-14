@@ -4,7 +4,8 @@ options(BUILDER_OPTION) NOWARNINGS;
 
 uses
 	Geometry,
-	MidiFile;
+	MidiFile,
+	SoftAudio/Graph;
 
 file
 	AGENTS.md,

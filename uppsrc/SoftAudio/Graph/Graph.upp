@@ -15,5 +15,7 @@ file
     GraphCore.h,
     GraphCore.cpp,
     GainNode.h,
-    GainNode.cpp;
-
+    GainNode.cpp,
+    MixerNode.h,
+    MixerNode.cpp,
+    RouterNode.h;

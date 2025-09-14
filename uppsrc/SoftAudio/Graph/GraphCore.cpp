@@ -20,6 +20,19 @@ void Graph::Connect(int from, int to, int from_port, int to_port, float gain) {
     edges_.Add(e);
 }
 
+int Graph::ConnectReturnIndex(int from, int to, int from_port, int to_port, float gain) {
+    Edge e; e.from = from; e.to = to; e.from_port = from_port; e.to_port = to_port; e.gain = gain;
+    int idx = edges_.GetCount();
+    edges_.Add(pick(e));
+    return idx;
+}
+
+int Graph::ConnectWithName(const String& name, int from, int to, int from_port, int to_port, float gain) {
+    int idx = ConnectReturnIndex(from, to, from_port, to_port, gain);
+    SetEdgeName(idx, name);
+    return idx;
+}
+
 bool Graph::Compile(String& error) {
     // Kahn's algorithm for topological sorting.
     int n = nodes_.GetCount();
@@ -145,3 +158,33 @@ const String& Graph::GetNodeName(int node_index) const {
 }
 
 NAMESPACE_SAGRAPH_END
+bool Graph::SetEdgeName(int edge_index, const String& name) {
+    if(edge_index < 0 || edge_index >= edges_.GetCount()) return false;
+    String old = edges_[edge_index].name;
+    if(!IsNull(old)) {
+        int fi = edge_name_to_index_.Find(old);
+        if(fi >= 0) edge_name_to_index_.Remove(fi);
+    }
+    edges_[edge_index].name = name;
+    if(!IsNull(name)) {
+        int fi = edge_name_to_index_.Find(name);
+        if(fi >= 0) edge_name_to_index_[fi] = edge_index;
+        else edge_name_to_index_.Add(name, edge_index);
+    }
+    return true;
+}
+
+int Graph::FindEdge(const String& name) const {
+    int fi = edge_name_to_index_.Find(name);
+    return fi >= 0 ? edge_name_to_index_[fi] : -1;
+}
+
+const Edge* Graph::GetEdge(int edge_index) const {
+    if(edge_index < 0 || edge_index >= edges_.GetCount()) return nullptr;
+    return &edges_[edge_index];
+}
+
+Edge* Graph::GetEdge(int edge_index) {
+    if(edge_index < 0 || edge_index >= edges_.GetCount()) return nullptr;
+    return &edges_[edge_index];
+}

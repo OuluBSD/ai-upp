@@ -43,7 +43,7 @@ GUI_APP_MAIN
     // Connections: sine1 + sine2 -> mixer -> gain -> verb -> out
     g.Connect(n_sine1, n_mix);
     g.Connect(n_sine2, n_mix);
-    g.Connect(n_mix, n_gain);
+    g.ConnectWithName("mix_to_gain", n_mix, n_gain);
     g.Connect(n_gain, n_verb);
     g.Connect(n_verb, n_out);
 
@@ -63,6 +63,12 @@ GUI_APP_MAIN
     	    {"in1_gain", 0.2},
     	    {"in1_pan", 0.75}
     	});
+
+    // Optionally, find and inspect an edge by name
+    int eidx = g.FindEdge("mix_to_gain");
+    const Edge* ep = g.GetEdge(eidx);
+    if(ep)
+        Cout() << "Edge 'mix_to_gain': from=" << ep->from << " to=" << ep->to << " gain=" << ep->gain << '\n';
 
     // Render 3 seconds offline
     int total_frames = 3 * ctx.sample_rate;
@@ -162,4 +168,19 @@ GUI_APP_MAIN
 
     for(int i = 0; i < blocks3; ++i) g3.ProcessBlock();
     LOG("Wrote: " << GetExeDirFile("softaudiograph_voicer.wav"));
+
+    // Live example (requires PortAudio): play mixed sines for ~2 seconds
+    Graph live;
+    live.SetSampleRate(44100);
+    live.SetBlockSize(RT_BUFFER_SIZE);
+    One<Node> ls1; ls1 = MakeOne<SineNode>(); ((SineNode*)~ls1)->SetFrequency(440.0f); int ls1i = live.AddNode(pick(ls1));
+    One<Node> ls2; ls2 = MakeOne<SineNode>(); ((SineNode*)~ls2)->SetFrequency(550.0f); int ls2i = live.AddNode(pick(ls2));
+    One<Node> lmix; lmix = MakeOne<MixerNode>(); ((MixerNode*)~lmix)->SetInputCount(2); int lmixi = live.AddNode(pick(lmix));
+    One<Node> lout; lout = MakeOne<LiveOutNode>(); int louti = live.AddNode(pick(lout));
+    live.Connect(ls1i, lmixi);
+    live.Connect(ls2i, lmixi);
+    live.Connect(lmixi, louti);
+    String el; if(!live.Compile(el)) { LOG("Compile failed (live): " << el); return; }
+    ProcessContext lctx; lctx.sample_rate = 44100; lctx.block_size = RT_BUFFER_SIZE; live.Prepare(lctx);
+    for(int i = 0; i < 2 * 44100 / RT_BUFFER_SIZE; ++i) live.ProcessBlock();
 }

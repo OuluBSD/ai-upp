@@ -43,6 +43,7 @@ Updates
 - Added `Graph::SetParam(node_index, id, value)` convenience API for runtime parameter control.
   - Also `Graph::SetParam(name, id, value)` and `Graph::SetParams(name, {id:value,...})` for convenience.
   - Added node naming helpers: `AddNodeWithName(name, node)` and `FindNode(name)` for easier reference.
+  - Edge labels: `ConnectWithName(name, ...)`, `SetEdgeName(idx,name)`, `FindEdge(name)`, and `GetEdge(idx)` to identify/edit specific connections.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

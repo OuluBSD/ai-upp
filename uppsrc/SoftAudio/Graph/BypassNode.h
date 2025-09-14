@@ -29,11 +29,15 @@ public:
                 output.At(f, c) = src->At(f, c);
     }
 
-private:
+    private:
     bool bypass_ = true; // true=dry, false=wet
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "bypass") { SetBypass(value >= 0.5); return true; }
+        return false;
+    }
 };
 
 NAMESPACE_SAGRAPH_END
 
 #endif
-

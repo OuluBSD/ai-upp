@@ -50,9 +50,13 @@ public:
 private:
     int target_ch_ = 1;
     Bus out_;
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "channels" || id == "target_channels") { SetTargetChannels((int)value); return true; }
+        return false;
+    }
 };
 
 NAMESPACE_SAGRAPH_END
 
 #endif
-

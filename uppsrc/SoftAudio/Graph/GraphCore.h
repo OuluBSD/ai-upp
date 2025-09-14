@@ -9,11 +9,20 @@ NAMESPACE_SAGRAPH_BEGIN
 class Graph {
 public:
     int AddNode(One<Node> node);
+    int AddNodeWithName(const String& name, One<Node> node);
     void Connect(int from, int to, int from_port = 0, int to_port = 0, float gain = 1.0f);
     bool Compile(String& error);
     void Prepare(const ProcessContext& ctx);
     void ProcessBlock();
     bool SetParam(int node_index, const String& id, double value);
+    bool SetParam(const String& node_name, const String& id, double value);
+    bool SetParams(int node_index, const VectorMap<String, double>& params);
+    bool SetParams(const String& node_name, const VectorMap<String, double>& params);
+    bool SetParams(int node_index, std::initializer_list<std::pair<const char*, double>> params);
+    bool SetParams(const String& node_name, std::initializer_list<std::pair<const char*, double>> params);
+    bool SetNodeName(int node_index, const String& name);
+    int  FindNode(const String& name) const;
+    const String& GetNodeName(int node_index) const;
 
     // For reference apps: allow writing into a sink node that commits to file/device.
     void SetBlockSize(int bs) { ctx_.block_size = bs; }
@@ -27,6 +36,8 @@ private:
     };
 
     Array<Node> nodes_;
+    Vector<String> node_names_;
+    VectorMap<String, int> name_to_index_;
     Array<Edge> edges_;
     Array<CompiledNode> order_; // topologically sorted nodes with resolved inputs
     ProcessContext ctx_;

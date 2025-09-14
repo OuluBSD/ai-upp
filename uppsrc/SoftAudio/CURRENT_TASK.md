@@ -41,6 +41,8 @@ Updates
 - Added `CompressorNode` wrapper and a second reference chain using it, with `BypassNode` selecting wet output.
 - Added `VoicerNode` and `MidiInputNode`; third reference chain uses `MidiInputNode` to schedule events into `VoicerNode` during offline render.
 - Added `Graph::SetParam(node_index, id, value)` convenience API for runtime parameter control.
+  - Also `Graph::SetParam(name, id, value)` and `Graph::SetParams(name, {id:value,...})` for convenience.
+  - Added node naming helpers: `AddNodeWithName(name, node)` and `FindNode(name)` for easier reference.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

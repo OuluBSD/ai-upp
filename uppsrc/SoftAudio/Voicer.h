@@ -92,21 +92,14 @@ inline float Voicer::Tick( int channel ) {
 
 inline AudioFrames& Voicer::Tick( AudioFrames& frames, int channel ) {
 	int channel_count = last_frame_.GetChannelCount();
-	#if defined(flagDEBUG)
-
-	if ( channel > frames.GetChannelCount() - channel_count ) {
-		LOG("Voicer::Tick(): channel and AudioFrames arguments are incompatible!");
-		HandleError( AudioError::FUNCTION_ARGUMENT );
-	}
-
-	#endif
+	int common_channel_count = min(channel_count, frames.GetChannelCount());
 	float* samples = &frames[channel];
-	int j, step = frames.GetChannelCount() - channel_count;
+	int j, step = 1 + frames.GetChannelCount() - common_channel_count;
 
 	for ( int i = 0; i < frames.GetFrameCount(); i++, samples += step ) {
 		Tick();
 
-		for ( j = 0; j < channel_count; j++ )
+		for ( j = 0; j < common_channel_count; j++ )
 			*samples++ = last_frame_[j];
 	}
 

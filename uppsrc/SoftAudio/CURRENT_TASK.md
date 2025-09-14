@@ -4,7 +4,7 @@ This file reflects what we are actively doing for `SoftAudio` now. See `uppsrc/S
 
 ## Phase 1 — Interfaces and Minimal Engine (In Progress)
 
-Status: scaffolding complete; `MixerNode` and `RouterNode` added; reference app updated to mix two sources; continuing wrapper iterations.
+Status: scaffolding complete; `MixerNode` and `RouterNode` added; reference app updated to mix two sources; `BypassNode`, `SplitterNode`, `CompressorNode`, `VoicerNode`, and `MidiInputNode` added; continuing wrapper iterations.
 
 Done
 - Created subpackage: `uppsrc/SoftAudio/Graph` with main header `Graph.h`.
@@ -14,18 +14,22 @@ Done
   - `SineNode` (wraps `SineWave`) — mono source.
   - `FreeVerbNode` (wraps `FreeVerb`) — stereo effect.
   - `FileOutNode` (wraps `FileWaveOut`) — sink for offline renders.
+  - `CompressorNode` (wraps `Compressor`) — stereo dynamics.
+  - `VoicerNode` — polyphonic instrument source with default `Simple` instrument.
+  - `MidiInputNode` — schedules NoteOn/NoteOff to a target `VoicerNode` using a simple queued dispatcher.
 - Added reference app `reference/SoftAudioGraph` with an example chain.
   - Now demonstrates 2-source mix: `SineNode + SineNode → MixerNode (stereo, panned) → GainNode → FreeVerbNode → FileOutNode`.
   - Previous single-source example retained in spirit via parameters.
 
-Example Chain (reference app)
-- `SineNode → GainNode → FreeVerbNode → FileOutNode`
-- Renders a short WAV file offline using a block pull loop.
+Example Chains (reference app)
+- Mix + FX: `Sine(440) + Sine(660) → MixerNode(stereo,panned) → GainNode → FreeVerbNode → FileOut`.
+- Compression: `Sine(220) + Sine(330) → MixerNode → CompressorNode → BypassNode(wet) → FileOut`.
+- Voicer + MIDI: `MidiInputNode → VoicerNode → RouterNode(stereo) → FreeVerbNode → FileOut`.
 
 Next
-- Wrap one more effect (e.g., `Compressor`) and one instrument (`Voicer`‑driven`).
-- Add minimal parameter API surface for wrappers (e.g., `SetParam(String id, float value)`).
-- Validate clip handling and DC checks in the reference app.
+- Add minimal parameter API surface to remaining wrappers as needed and unify IDs.
+- Validate clip handling and DC checks in reference chains.
+- Optional: PortAudio live sink node and transport helpers.
 
 Notes & Constraints
 - Graph currently supports DAG only; cycles/feedback are rejected at compile time.
@@ -35,6 +39,8 @@ Notes & Constraints
 Updates
 - Added `BypassNode` (two-input dry/wet selector) and `SplitterNode` (explicit pass-through fan‑out point) to the graph subpackage.
 - Added `CompressorNode` wrapper and a second reference chain using it, with `BypassNode` selecting wet output.
+- Added `VoicerNode` and `MidiInputNode`; third reference chain uses `MidiInputNode` to schedule events into `VoicerNode` during offline render.
+- Added `Graph::SetParam(node_index, id, value)` convenience API for runtime parameter control.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

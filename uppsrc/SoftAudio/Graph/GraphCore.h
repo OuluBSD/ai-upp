@@ -13,6 +13,7 @@ public:
     bool Compile(String& error);
     void Prepare(const ProcessContext& ctx);
     void ProcessBlock();
+    bool SetParam(int node_index, const String& id, double value);
 
     // For reference apps: allow writing into a sink node that commits to file/device.
     void SetBlockSize(int bs) { ctx_.block_size = bs; }
@@ -34,4 +35,3 @@ private:
 NAMESPACE_SAGRAPH_END
 
 #endif
-

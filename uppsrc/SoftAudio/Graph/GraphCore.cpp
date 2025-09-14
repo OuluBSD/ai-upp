@@ -68,4 +68,11 @@ void Graph::ProcessBlock() {
     ctx_.frame_cursor += ctx_.block_size;
 }
 
+bool Graph::SetParam(int node_index, const String& id, double value) {
+    if(node_index < 0 || node_index >= nodes_.GetCount()) return false;
+    Node* n = ~nodes_[node_index];
+    if(!n) return false;
+    return n->SetParam(id, value);
+}
+
 NAMESPACE_SAGRAPH_END

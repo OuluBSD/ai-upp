@@ -295,6 +295,7 @@ private:
 // Real-time thread reads from an internal SPSC ring-buffer. Graph thread pushes blocks.
 class LiveOutNode : public SAGraph::Node {
 public:
+	typedef LiveOutNode CLASSNAME;
     LiveOutNode() { }
     ~LiveOutNode() { Stop(); Close(); }
 
@@ -343,9 +344,11 @@ public:
         SAGraph::Node::Prepare(ctx);
         block_frames_ = ctx.block_size;
         if(channels_ <= 0) channels_ = 2;
+        
         // Init ring: capacity = N blocks
         int cap = channels_ * block_frames_ * ring_blocks_;
         ring_.Init(cap);
+        
         // Open default PortAudio stream
         using namespace Portaudio;
         (void)AudioSys(); // ensure system is initialized
@@ -367,6 +370,7 @@ public:
         const SAGraph::Bus* in = inputs.IsEmpty() ? nullptr : inputs[0];
         if(!in) return;
         int frames = min(ctx.block_size, in->frames);
+        
         // Ensure channels match; if mismatch, clamp or duplicate
         temp_.SetCount(frames, channels_);
         for(int f = 0; f < frames; ++f) {
@@ -380,7 +384,7 @@ public:
 
 private:
     // PortAudio callback
-    void OnCallback(Portaudio::StreamCallbackArgs& a) {
+    void OnCallback(StreamCallbackArgs& a) {
         float* out = (float*)a.output;
         int need = a.fpb * channels_;
         if(!ring_.Pop(out, need)) {
@@ -388,7 +392,7 @@ private:
             int avail = ring_.LastReadCount();
             for(int i = avail; i < need; ++i) out[i] = 0.0f;
         }
-        a.state = Portaudio::SND_CONTINUE;
+        a.state = SND_CONTINUE;
     }
 
     // Simple lock-free single-producer single-consumer ring buffer for float samples
@@ -460,3 +464,4 @@ private:
 NAMESPACE_AUDIO_END
 
 #endif
+

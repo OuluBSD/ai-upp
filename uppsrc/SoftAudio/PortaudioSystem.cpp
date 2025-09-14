@@ -4,6 +4,10 @@
 NAMESPACE_UPP;
 namespace Portaudio {
 
+bool IsPortaudioUninitialized() {
+    return !AudioSystem::Exists();
+}
+
 AudioDevice::AudioDevice(int n): index(n){
 	if (n == paNoDevice) {
 		index = 0;
@@ -55,8 +59,11 @@ String AudioAPI::ToString() const {
 
 bool AudioSystem::exists = false;
 
-GLOBAL_VAR(AudioSystem, AudioSys);
 
+AudioSystem& AudioSys() {
+	static AudioSystem s;
+	return s;
+}
 
 
 
@@ -171,11 +178,6 @@ END_UPP_NAMESPACE;
 
 #if !defined flagSYS_PORTAUDIO || defined BUILTIN_PORTAUDIO
 INITBLOCK_(PortaudioSystem) {
-	// Check if the sizes of types match current platform
-	ASSERT_((sizeof(PaUint16) == 2) &&
-	        (sizeof(PaInt16)  == 2) &&
-	        (sizeof(PaUint32) == 4) &&
-	        (sizeof(PaInt32)  == 4),
-	        "PortAudio: type sizes in <portaudio/pa_types.h> does not match your platform");
+	
 }
 #endif

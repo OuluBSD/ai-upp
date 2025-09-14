@@ -6,8 +6,8 @@ namespace Portaudio {
 
 extern "C"{
 	//this is a C callable function, to wrap U++ Callback into PaStreamCallback
-	int StreamCallback(const void *input, void *output, int frames,
-	          const PaStreamCallbackTimeInfo *timeinfo, int flags, void *data)
+	int SoftAudio_StreamCallback(const void *input, void *output, unsigned long frames,
+	          const PaStreamCallbackTimeInfo *timeinfo, unsigned long flags, void *data)
 	{
 		StreamCallbackData *scd = static_cast<StreamCallbackData*>(data);
 		StreamCallbackArgs sca(input, output, frames, timeinfo, flags,scd->data);
@@ -16,7 +16,7 @@ extern "C"{
 	}
 
 	//this is a C callable function, to wrap WhenFinish into PaStreamFinishedCallback
-	void StreamFinishedCallback(void *data){
+	void SoftAudio_StreamFinishedCallback(void *data){
 		StreamCallbackData *scd = static_cast<StreamCallbackData*>(data);
 		scd->finish(scd->data);
 	}
@@ -45,7 +45,7 @@ void AudioBase::OpenStream(PaStreamCallback* cb, void* data,
                         const StreamParameters& inparam, const StreamParameters& outparam){
 	ASSERT(AudioSystem::Exists());
 	const PaStreamParameters* noparam=NULL;
-	err = Pa_OpenStream(&stream, IsNull(inparam)?noparam:inparam, IsNull(outparam)?noparam:outparam,
+	err = Pa_OpenStream(&stream, IsNull(inparam)?noparam:&inparam, IsNull(outparam)?noparam:&outparam,
 	                    pa_fmt.freq, pa_fmt.sample_rate, flags, cb, data);
 	CHECK_ERR;
 	
@@ -117,7 +117,7 @@ float AudioBase::GetFrequency() const{
 
 void AudioDeviceStream::Open(void* data, const StreamParameters& inparam, const StreamParameters& outparam) {
 	scallback = StreamCallbackData(WhenAction, WhenFinished, data);
-	OpenStream(&StreamCallback, static_cast<void *>(&scallback), inparam, outparam);
+	OpenStream(SoftAudio_StreamCallback, static_cast<void *>(&scallback), inparam, outparam);
 	if (err == paNoError)
 		SetFinishCallback();
 }
@@ -129,7 +129,7 @@ void AudioDeviceStream::Open(const StreamParameters& inparam,const StreamParamet
 
 void AudioDeviceStream::OpenDefault(void* data, int inchannels, int outchannels, SampleFormat format){
 	scallback = StreamCallbackData(WhenAction, WhenFinished, data);
-	OpenDefaultStream(&StreamCallback, static_cast<void *>(&scallback), inchannels, outchannels, format);
+	OpenDefaultStream(SoftAudio_StreamCallback, static_cast<void *>(&scallback), inchannels, outchannels, format);
 	if (err == paNoError)
 		SetFinishCallback();
 }
@@ -140,7 +140,7 @@ void AudioDeviceStream::OpenDefault(int inchannels, int outchannels, SampleForma
 }
 
 void AudioDeviceStream::SetFinishCallback(){
-	err = Pa_SetStreamFinishedCallback(stream, &StreamFinishedCallback);
+	err = Pa_SetStreamFinishedCallback(stream, &SoftAudio_StreamFinishedCallback);
 	CHECK_ERR;
 }
 

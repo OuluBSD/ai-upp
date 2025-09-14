@@ -215,7 +215,7 @@ public:
 
 private:
 
-	float* data_;
+	Vector<float> data_;
 	float dataRate_;
 	int frame_count_;
 	int channel_count_;

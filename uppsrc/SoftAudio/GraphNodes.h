@@ -183,13 +183,13 @@ public:
 public:
     bool SetParam(const String& id, double value) override {
         bool ok = true;
-        if(id == "gain_db") comp_state_(".gain", 0) = (double)value;
-        else if(id == "threshold_db" || id == "th_db") comp_state_(".treshold", 0) = (double)value;
-        else if(id == "knee_db" || id == "knee") comp_state_(".knee", 0) = (double)value;
-        else if(id == "ratio") comp_state_(".ratio", 0) = (double)value;
-        else if(id == "attack_ms") comp_state_(".attack", 0) = (double)value;
-        else if(id == "release_ms") comp_state_(".release", 0) = (double)value;
-        else if(id == "auto_makeup") comp_state_(".auto.makeup", 0) = value >= 0.5;
+        if(id == "gain_db") comp_state_.GetAdd(".gain") = (double)value;
+        else if(id == "threshold_db" || id == "th_db") comp_state_.GetAdd(".treshold") = (double)value;
+        else if(id == "knee_db" || id == "knee") comp_state_.GetAdd(".knee") = (double)value;
+        else if(id == "ratio") comp_state_.GetAdd(".ratio") = (double)value;
+        else if(id == "attack_ms") comp_state_.GetAdd(".attack") = (double)value;
+        else if(id == "release_ms") comp_state_.GetAdd(".release") = (double)value;
+        else if(id == "auto_makeup") comp_state_.GetAdd(".auto.makeup") = value >= 0.5;
         else ok = false;
         if(ok) comp_.LoadState(comp_state_);
         return ok;
@@ -246,10 +246,10 @@ public:
     void SetTarget(VoicerNode* v) { target_ = v; }
 
     void EnqueueNoteOn(float note, float amp, unsigned long long at_frame) {
-        Ev e{at_frame, NOTE_ON, note, amp}; events_.Add(e);
+        One<Ev> e = new Ev{at_frame, NOTE_ON, note, amp}; events_.Add(e.Detach());
     }
     void EnqueueNoteOff(float note, float amp, unsigned long long at_frame) {
-        Ev e{at_frame, NOTE_OFF, note, amp}; events_.Add(e);
+        One<Ev> e = new Ev{at_frame, NOTE_OFF, note, amp}; events_.Add(e.Detach());
     }
 
     // Optional helpers in seconds
@@ -286,10 +286,11 @@ public:
 
 private:
     VoicerNode* target_ = nullptr;
-    Vector<Ev> events_;
+    Array<Ev> events_;
     int read_pos_ = 0;
 };
 
 NAMESPACE_AUDIO_END
 
 #endif
+

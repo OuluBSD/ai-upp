@@ -1,3 +1,4 @@
+#include <CtrlLib/CtrlLib.h>
 #include <SoftAudio/SoftAudio.h>
 #include <SoftAudio/Graph/Graph.h>
 #include <SoftAudio/GraphNodes.h>
@@ -6,30 +7,29 @@ using namespace Upp;
 using namespace Upp::SAGraph;
 using namespace Upp::Audio;
 
-CONSOLE_APP_MAIN
+GUI_APP_MAIN
 {
     // Configure graph
     Graph g;
     g.SetSampleRate(44100);
     g.SetBlockSize(RT_BUFFER_SIZE);
-
-	Array<Node> nodes;
-    // Nodes
-    SineNode* sine1 = new SineNode;
-    sine1->SetFrequency(440.0f);
-    int n_sine1 = g.AddNode(sine1);
-
-    One<Node> sine2; sine2 = MakeOne<SineNode>();
-    ((SineNode*)~sine2)->SetFrequency(660.0f);
-    int n_sine2 = g.AddNode(pick(sine2));
+	
+	// Nodes
+	One<Node> sine1; sine1 = MakeOne<SineNode>();
+	((SineNode*)~sine1)->SetFrequency(440.0f);
+	int n_sine1 = g.AddNodeWithName("sine1", pick(sine1));
+	
+	One<Node> sine2; sine2 = MakeOne<SineNode>();
+	((SineNode*)~sine2)->SetFrequency(660.0f);
+	int n_sine2 = g.AddNodeWithName("sine2", pick(sine2));
 
     One<Node> gain; gain = MakeOne<GainNode>();
     ((GainNode*)~gain)->SetGain(0.2f);
     int n_gain = g.AddNode(pick(gain));
-
-    One<Node> mix; mix = MakeOne<MixerNode>();
-    ((MixerNode*)~mix)->SetInputCount(2);
-    int n_mix = g.AddNode(pick(mix));
+	
+	One<Node> mix; mix = MakeOne<MixerNode>();
+	((MixerNode*)~mix)->SetInputCount(2);
+	int n_mix = g.AddNodeWithName("mix1", pick(mix));
 
     One<Node> verb; verb = MakeOne<FreeVerbNode>();
     ((FreeVerbNode*)~verb)->SetMix(0.3f);
@@ -49,17 +49,20 @@ CONSOLE_APP_MAIN
 
     String err;
     if(!g.Compile(err)) {
-        Cout() << "Compile failed: " << err << '\n';
+        LOG("Compile failed: " << err);
         return;
     }
     ProcessContext ctx; ctx.sample_rate = 44100; ctx.block_size = RT_BUFFER_SIZE;
     g.Prepare(ctx);
-    // Demonstrate Graph::SetParam for node parameters
-    g.SetParam(n_mix, "out_channels", 2);
-    g.SetParam(n_mix, "in0_gain", 0.2);
-    g.SetParam(n_mix, "in0_pan", 0.25);
-    g.SetParam(n_mix, "in1_gain", 0.2);
-    g.SetParam(n_mix, "in1_pan", 0.75);
+    
+	// Demonstrate Graph::SetParam for node parameters
+    	g.SetParams("mix1", {
+    	    {"out_channels", 2},
+    	    {"in0_gain", 0.2},
+    	    {"in0_pan", 0.25},
+    	    {"in1_gain", 0.2},
+    	    {"in1_pan", 0.75}
+    	});
 
     // Render 3 seconds offline
     int total_frames = 3 * ctx.sample_rate;
@@ -67,7 +70,7 @@ CONSOLE_APP_MAIN
     for(int i = 0; i < blocks; ++i)
         g.ProcessBlock();
 
-    Cout() << "Wrote: " << GetExeDirFile("softaudiograph_demo.wav") << '\n';
+    LOG("Wrote: " << GetExeDirFile("softaudiograph_demo.wav"));
 
     // Second example: mix sources through a Compressor to file
     Graph g2;
@@ -106,7 +109,7 @@ CONSOLE_APP_MAIN
 
     String err2;
     if(!g2.Compile(err2)) {
-        Cout() << "Compile failed (g2): " << err2 << '\n';
+        LOG("Compile failed (g2): " << err2);
         return;
     }
     ProcessContext ctx2; ctx2.sample_rate = 44100; ctx2.block_size = RT_BUFFER_SIZE;
@@ -115,15 +118,18 @@ CONSOLE_APP_MAIN
     int blocks2 = (total_frames2 + ctx2.block_size - 1) / ctx2.block_size;
     for(int i = 0; i < blocks2; ++i)
         g2.ProcessBlock();
-    Cout() << "Wrote: " << GetExeDirFile("softaudiograph_mix_compressor.wav") << '\n';
+    LOG("Wrote: " << GetExeDirFile("softaudiograph_mix_compressor.wav"));
 
     // Third example: Voicer-driven instrument path (with MidiInputNode scheduling)
     Graph g3;
     g3.SetSampleRate(44100);
     g3.SetBlockSize(RT_BUFFER_SIZE);
-
     One<Node> v; v = MakeOne<VoicerNode>(); VoicerNode* vp = (VoicerNode*)~v; int n_v = g3.AddNode(pick(v));
-    One<Node> midi; midi = MakeOne<MidiInputNode>(); ((MidiInputNode*)~midi)->SetTarget(vp); int n_midi = g3.AddNode(pick(midi));
+    One<Node> midi; midi = MakeOne<MidiInputNode>();
+	MidiInputNode* mp = (MidiInputNode*)~midi;
+    
+    ((MidiInputNode*)~midi)->SetTarget(vp);
+    int n_midi = g3.AddNode(pick(midi));
 
     One<Node> r; r = MakeOne<RouterNode>();
     ((RouterNode*)~r)->SetTargetChannels(2);
@@ -138,13 +144,16 @@ CONSOLE_APP_MAIN
     g3.Connect(n_r, n_verb3);
     g3.Connect(n_verb3, n_out3);
 
-    String err3; if(!g3.Compile(err3)) { Cout() << "Compile failed (g3): " << err3 << '\n'; return; }
+    String err3; if(!g3.Compile(err3)) {
+		LOG("Compile failed (g3): " << err3);
+		return;
+	}
     ProcessContext ctx3; ctx3.sample_rate = 44100; ctx3.block_size = RT_BUFFER_SIZE; g3.Prepare(ctx3);
 
     int total_frames3 = 3 * ctx3.sample_rate;
     int blocks3 = (total_frames3 + ctx3.block_size - 1) / ctx3.block_size;
     // Schedule MIDI via MidiInputNode in absolute frame time
-    MidiInputNode* mp = (MidiInputNode*)~midi;
+    ASSERT(mp);
     auto at = [&](double sec){ return (unsigned long long)(sec * ctx3.sample_rate); };
     mp->EnqueueNoteOn(60.0f, 0.9f, at(0.00)); // C4
     mp->EnqueueNoteOff(60.0f, 0.7f, at(1.40));
@@ -152,5 +161,5 @@ CONSOLE_APP_MAIN
     mp->EnqueueNoteOff(67.0f, 0.7f, at(2.90));
 
     for(int i = 0; i < blocks3; ++i) g3.ProcessBlock();
-    Cout() << "Wrote: " << GetExeDirFile("softaudiograph_voicer.wav") << '\n';
+    LOG("Wrote: " << GetExeDirFile("softaudiograph_voicer.wav"));
 }

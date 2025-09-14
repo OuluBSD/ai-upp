@@ -142,15 +142,15 @@ AudioFrames::AudioFrames( int frame_count, int channel_count )
 	bufferSize_ = size_;
 
 	if ( size_ > 0 ) {
-		data_ = (float*) calloc( size_, sizeof( float ) );
-		#if defined(flagDEBUG)
+		data_.SetCount( size_, 0 );
 
-		if ( data_ == NULL ) {
+		#if defined(flagDEBUG)
+		if ( data_.IsEmpty() ) {
 			LOG("AudioFrames: memory allocation error in constructor!");
 			Audio::HandleError( AudioError::MEMORY_ALLOCATION );
 		}
-
 		#endif
+
 	}
 
 	dataRate_ = Audio::GetSampleRate();
@@ -162,14 +162,13 @@ AudioFrames::AudioFrames( const float& value, int frame_count, int channel_count
 	bufferSize_ = size_;
 
 	if ( size_ > 0 ) {
-		data_ = (float*) malloc( size_ * sizeof( float ) );
-		#if defined(flagDEBUG)
+		data_.SetCount( size_, 0);
 
-		if ( data_ == NULL ) {
+		#if defined(flagDEBUG)
+		if ( data_.IsEmpty() ) {
 			LOG("AudioFrames: memory allocation error in constructor!");
 			Audio::HandleError( AudioError::MEMORY_ALLOCATION );
 		}
-
 		#endif
 
 		for ( long i = 0; i < (long)size_; i++ ) data_[i] = value;
@@ -179,7 +178,7 @@ AudioFrames::AudioFrames( const float& value, int frame_count, int channel_count
 }
 
 AudioFrames::~AudioFrames() {
-	if ( data_ ) free( data_ );
+	data_.Clear();
 }
 
 AudioFrames::AudioFrames( const AudioFrames& f )
@@ -191,9 +190,6 @@ AudioFrames::AudioFrames( const AudioFrames& f )
 }
 
 AudioFrames& AudioFrames::operator= ( const AudioFrames& f ) {
-	if ( data_ ) free( data_ );
-
-	data_ = 0;
 	size_ = 0;
 	bufferSize_ = 0;
 	SetCount( f.GetFrameCount(), f.GetChannelCount() );
@@ -210,17 +206,15 @@ void AudioFrames::SetCount( int frame_count, int channel_count ) {
 	size_ = frame_count_ * channel_count_;
 
 	if ( size_ > bufferSize_ ) {
-		if ( data_ ) free( data_ );
+		data_.SetCount( size_, 0 );
 
-		data_ = (float*) malloc( size_ * sizeof( float ) );
 		#if defined(flagDEBUG)
-
-		if ( data_ == NULL ) {
+		if ( data_.IsEmpty() ) {
 			LOG("AudioFrames::SetCount: memory allocation error!");
 			Audio::HandleError( AudioError::MEMORY_ALLOCATION );
 		}
-
 		#endif
+
 		bufferSize_ = size_;
 	}
 }
@@ -228,7 +222,8 @@ void AudioFrames::SetCount( int frame_count, int channel_count ) {
 void AudioFrames::SetCount( int frame_count, int channel_count, float value ) {
 	this->SetCount( frame_count, channel_count );
 
-	for ( size_t i = 0; i < size_; i++ ) data_[i] = value;
+	for ( size_t i = 0; i < size_; i++ )
+		data_[i] = value;
 }
 
 AudioFrames& AudioFrames::GetChannel(int src_channel, AudioFrames& dest_frame_count, int dest_chan) const {
@@ -282,8 +277,8 @@ void AudioFrames::SetChannel(int dest_chan, const AudioFrames& src_frames, int s
 		LOG("AudioFrames::SetChannel src_frames.GetFrameCount() != GetFrameCount()");
 		Audio::HandleError(AudioError::MEMORY_ACCESS);
 	}
-
 	#endif
+
 	int sourceHop = src_frames.channel_count_;
 	int destinationHop = channel_count_;
 
@@ -292,15 +287,15 @@ void AudioFrames::SetChannel(int dest_chan, const AudioFrames& src_frames, int s
 }
 
 float AudioFrames::interpolate( float frame, int channel ) const {
-	#if defined(flagDEBUG)
 
+	#if defined(flagDEBUG)
 	if ( frame < 0.0f || frame > (float) ( frame_count_ - 1 ) || channel >= channel_count_ ) {
 		
 		LOG("AudioFrames::interpolate: invalid frame (" << frame << ") or channel (" << channel << ") value!");
 		Audio::HandleError(AudioError::MEMORY_ACCESS );
 	}
-
 	#endif
+
 	size_t iIndex = ( size_t ) frame;
 	float output, alpha = frame - (float) iIndex;
 	iIndex = iIndex * channel_count_ + channel;

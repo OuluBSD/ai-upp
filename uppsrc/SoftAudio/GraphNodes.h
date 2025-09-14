@@ -29,10 +29,15 @@ public:
         memcpy(output.data.Begin(), &temp_[0], ctx.block_size * sizeof(float));
     }
 
-private:
+    private:
     SineWave sine_;
     float freq_ = 440.0f;
     AudioFrames temp_;
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "freq" || id == "frequency" || id == "hz") { SetFrequency((float)value); return true; }
+        return false;
+    }
 };
 
 // Wraps SoftAudio::FreeVerb as a graph effect node (stereo)
@@ -78,10 +83,18 @@ public:
         }
     }
 
-private:
+    private:
     FreeVerb verb_;
     AudioFrames in_;
     AudioFrames out_;
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "mix") { verb_.SetEffectMix((float)value); return true; }
+        if(id == "room" || id == "room_size") { verb_.SetRoomSize((float)value); return true; }
+        if(id == "damp" || id == "damping") { verb_.SetDamping((float)value); return true; }
+        if(id == "width") { verb_.SetWidth((float)value); return true; }
+        return false;
+    }
 };
 
 // Sink to a file via SoftAudio::FileWaveOut
@@ -110,11 +123,16 @@ public:
         out_.Tick(frames_);
     }
 
-private:
+    private:
     FileWaveOut out_;
     bool open_ = false;
     int channels_ = 2;
     AudioFrames frames_;
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "channels") { channels_ = (int)value; return true; }
+        return false;
+    }
 };
 
 // Wraps SoftAudio::Compressor as a graph effect node (stereo)
@@ -157,9 +175,59 @@ public:
         }
     }
 
-private:
+    private:
     Compressor comp_;
     AudioFrames in_;
+    AudioFrames out_;
+    ValueMap comp_state_;
+public:
+    bool SetParam(const String& id, double value) override {
+        bool ok = true;
+        if(id == "gain_db") comp_state_(".gain", 0) = (double)value;
+        else if(id == "threshold_db" || id == "th_db") comp_state_(".treshold", 0) = (double)value;
+        else if(id == "knee_db" || id == "knee") comp_state_(".knee", 0) = (double)value;
+        else if(id == "ratio") comp_state_(".ratio", 0) = (double)value;
+        else if(id == "attack_ms") comp_state_(".attack", 0) = (double)value;
+        else if(id == "release_ms") comp_state_(".release", 0) = (double)value;
+        else if(id == "auto_makeup") comp_state_(".auto.makeup", 0) = value >= 0.5;
+        else ok = false;
+        if(ok) comp_.LoadState(comp_state_);
+        return ok;
+    }
+};
+
+// Wraps SoftAudio::Voicer with a default Simple instrument; mono output
+class VoicerNode : public SAGraph::Node {
+public:
+    VoicerNode() { AddSimpleInstrument(); }
+
+    void AddSimpleInstrument(int group = 0) {
+        One<Instrument> ins; ins = MakeOne<Simple>();
+        voicer_.AddInstrument(~ins, group);
+        instruments_.Add(pick(ins));
+    }
+
+    void NoteOn(float note_number, float amplitude, int group = 0) { voicer_.NoteOn(note_number, amplitude, group); }
+    void NoteOff(float note_number, float amplitude, int group = 0) { voicer_.NoteOff(note_number, amplitude, group); }
+
+    int GetInputCount() const override { return 0; }
+    SAGraph::PortSpec GetOutputSpec(int) const override { SAGraph::PortSpec p; p.channels = 1; return p; }
+
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
+        SAGraph::Node::Prepare(ctx);
+        out_.SetCount(ctx.block_size, 1);
+    }
+
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>&, SAGraph::Bus& output) override {
+        out_.SetCount(ctx.block_size, 1);
+        voicer_.Tick(out_, 0);
+        output.SetSize(ctx.block_size, 1);
+        memcpy(output.data.Begin(), &out_[0], ctx.block_size * sizeof(float));
+    }
+
+private:
+    Voicer voicer_;
+    Vector< One<Instrument> > instruments_;
     AudioFrames out_;
 };
 

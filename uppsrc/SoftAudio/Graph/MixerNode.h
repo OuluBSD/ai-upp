@@ -83,9 +83,21 @@ private:
     int out_channels_ = 2;
     Vector<InParam> params_;
     Bus out_;
+public:
+    bool SetParam(const String& id, double value) override {
+        if(id == "out_channels") { SetOutputChannels((int)value); return true; }
+        if(id.StartsWith("in") && id.Find("_gain") > 0) {
+            int n = ScanInt(~id + 2); // simplistic: assume 'inN_gain'
+            SetInputGain(n, (float)value); return true;
+        }
+        if(id.StartsWith("in") && id.Find("_pan") > 0) {
+            int n = ScanInt(~id + 2);
+            SetInputPan(n, (float)value); return true;
+        }
+        return false;
+    }
 };
 
 NAMESPACE_SAGRAPH_END
 
 #endif
-

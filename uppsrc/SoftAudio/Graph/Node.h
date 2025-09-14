@@ -38,6 +38,8 @@ public:
     virtual int GetOutputCount() const { return 1; }
     virtual PortSpec GetInputSpec(int /*index*/) const { return {0}; }
     virtual PortSpec GetOutputSpec(int /*index*/) const { return {0}; }
+    // Optional parameter interface for runtime control (control-thread only)
+    virtual bool SetParam(const String& /*id*/, double /*value*/) { return false; }
 
 protected:
     ProcessContext ctx_;

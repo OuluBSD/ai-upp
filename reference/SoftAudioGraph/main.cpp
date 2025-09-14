@@ -115,4 +115,39 @@ CONSOLE_APP_MAIN
     for(int i = 0; i < blocks2; ++i)
         g2.ProcessBlock();
     Cout() << "Wrote: " << GetExeDirFile("softaudiograph_mix_compressor.wav") << '\n';
+
+    // Third example: Voicer-driven instrument path
+    Graph g3;
+    g3.SetSampleRate(44100);
+    g3.SetBlockSize(RT_BUFFER_SIZE);
+
+    One<Node> v; v = MakeOne<VoicerNode>();
+    VoicerNode* vp = (VoicerNode*)~v; // keep pointer for events
+    int n_v = g3.AddNode(pick(v));
+
+    One<Node> r; r = MakeOne<RouterNode>();
+    ((RouterNode*)~r)->SetTargetChannels(2);
+    int n_r = g3.AddNode(pick(r));
+
+    One<Node> verb3; verb3 = MakeOne<FreeVerbNode>(); ((FreeVerbNode*)~verb3)->SetMix(0.25f); int n_verb3 = g3.AddNode(pick(verb3));
+    One<Node> out3; out3 = MakeOne<FileOutNode>(); ((FileOutNode*)~out3)->Open(GetExeDirFile("softaudiograph_voicer.wav"), 2); int n_out3 = g3.AddNode(pick(out3));
+
+    g3.Connect(n_v, n_r);
+    g3.Connect(n_r, n_verb3);
+    g3.Connect(n_verb3, n_out3);
+
+    String err3; if(!g3.Compile(err3)) { Cout() << "Compile failed (g3): " << err3 << '\n'; return; }
+    ProcessContext ctx3; ctx3.sample_rate = 44100; ctx3.block_size = RT_BUFFER_SIZE; g3.Prepare(ctx3);
+
+    int total_frames3 = 3 * ctx3.sample_rate;
+    int blocks3 = (total_frames3 + ctx3.block_size - 1) / ctx3.block_size;
+    // Simple schedule: NoteOn at start, NoteOff halfway, NoteOn another pitch at 2/3, NoteOff at end
+    for(int i = 0; i < blocks3; ++i) {
+        if(i == 0) vp->NoteOn(60.0f, 0.9f); // C4
+        if(i == blocks3 / 2) vp->NoteOff(60.0f, 0.8f);
+        if(i == (blocks3 * 2) / 3) vp->NoteOn(67.0f, 0.9f); // G4
+        if(i == blocks3 - 2) vp->NoteOff(67.0f, 0.8f);
+        g3.ProcessBlock();
+    }
+    Cout() << "Wrote: " << GetExeDirFile("softaudiograph_voicer.wav") << '\n';
 }

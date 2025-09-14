@@ -24,3 +24,5 @@ vs**/x64/**
 *.trace
 **/Meta.bin
 task.txt
+TopGuitar/**
+TopGuitar

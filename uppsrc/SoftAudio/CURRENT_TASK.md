@@ -44,6 +44,8 @@ Updates
   - Also `Graph::SetParam(name, id, value)` and `Graph::SetParams(name, {id:value,...})` for convenience.
   - Added node naming helpers: `AddNodeWithName(name, node)` and `FindNode(name)` for easier reference.
   - Edge labels: `ConnectWithName(name, ...)`, `SetEdgeName(idx,name)`, `FindEdge(name)`, and `GetEdge(idx)` to identify/edit specific connections.
+ - Live PortAudio sink `LiveOutNode` with device selection (`SetOutputDeviceIndex`) and latency control; reference app includes a short live-play demo.
+ - Added `GraphPlayer` helper (block-accurate clock + transport): attach/prepare, play N blocks, play seconds/frames, and simple seek/reset.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

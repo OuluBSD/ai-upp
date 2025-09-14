@@ -14,6 +14,7 @@ file
 	Connection.h,
 	GraphCore.h,
 	GraphCore.cpp,
+	GraphPlayer.h,
 	GainNode.h,
 	GainNode.cpp,
 	MixerNode.h,

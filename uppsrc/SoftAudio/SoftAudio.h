@@ -12,7 +12,7 @@
 #include <Core2/Core.h>
 #include <Geometry/Geometry.h>
 #include <MidiFile/MidiFile.h>
-
+#include <Sound/Sound.h>
 
 #define NAMESPACE_AUDIO_BEGIN NAMESPACE_UPP namespace Audio {
 #define NAMESPACE_AUDIO_END   END_UPP_NAMESPACE }

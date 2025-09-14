@@ -7,8 +7,41 @@ using namespace Upp;
 using namespace Upp::SAGraph;
 using namespace Upp::Audio;
 
-GUI_APP_MAIN
-{
+GUI_APP_MAIN {
+    // Parse simple CLI-like arguments even in GUI mode
+    bool list_devices = false;
+    bool run_live = true;
+    double live_seconds = 2.0;
+    int device_index = -1;
+    String device_name;
+    const Vector<String>& args = CommandLine();
+    for(int ai = 1; ai < args.GetCount(); ++ai) {
+        const String& a = args[ai];
+        if(a == "--help" || a == "-h") {
+            PromptOK("SoftAudioGraph reference\n\n"
+                     "Options:\n"
+                     "  --list-devices          List audio APIs/devices (LOG) then exit\n"
+                     "  --device-index N        Use output device index N for live demo\n"
+                     "  --device-name SUBSTR    Use first output device matching SUBSTR (case-insensitive)\n"
+                     "  --live-seconds SEC      Live demo duration in seconds (default 2.0)\n"
+                     "  --no-live               Skip live demo (offline examples only)");
+            return;
+        }
+        if(a == "--list-devices") { list_devices = true; run_live = false; }
+        else if(a == "--no-live") { run_live = false; }
+        else if(a.StartsWith("--device-index")) {
+            if(a.Find('=') >= 0) device_index = ScanInt(~a + a.Find('=') + 1);
+            else if(ai + 1 < args.GetCount()) device_index = ScanInt(args[++ai]);
+        }
+        else if(a.StartsWith("--device-name")) {
+            if(a.Find('=') >= 0) device_name = a.Mid(a.Find('=') + 1);
+            else if(ai + 1 < args.GetCount()) device_name = args[++ai];
+        }
+        else if(a.StartsWith("--live-seconds")) {
+            if(a.Find('=') >= 0) live_seconds = ScanDouble(~a + a.Find('=') + 1);
+            else if(ai + 1 < args.GetCount()) live_seconds = ScanDouble(args[++ai]);
+        }
+    }
     // Configure graph
     Graph g;
     g.SetSampleRate(44100);
@@ -56,13 +89,13 @@ GUI_APP_MAIN
     g.Prepare(ctx);
     
 	// Demonstrate Graph::SetParam for node parameters
-    	g.SetParams("mix1", {
-    	    {"out_channels", 2},
-    	    {"in0_gain", 0.2},
-    	    {"in0_pan", 0.25},
-    	    {"in1_gain", 0.2},
-    	    {"in1_pan", 0.75}
-    	});
+	g.SetParams("mix1", {
+		{"out_channels", 2},
+		{"in0_gain", 0.2},
+		{"in0_pan", 0.25},
+		{"in1_gain", 0.2},
+		{"in1_pan", 0.75}
+	});
 
     // Optionally, find and inspect an edge by name
     int eidx = g.FindEdge("mix_to_gain");
@@ -169,18 +202,30 @@ GUI_APP_MAIN
     for(int i = 0; i < blocks3; ++i) g3.ProcessBlock();
     LOG("Wrote: " << GetExeDirFile("softaudiograph_voicer.wav"));
 
-    // Live example (requires PortAudio): play mixed sines for ~2 seconds
-    Graph live;
-    live.SetSampleRate(44100);
-    live.SetBlockSize(RT_BUFFER_SIZE);
-    One<Node> ls1; ls1 = MakeOne<SineNode>(); ((SineNode*)~ls1)->SetFrequency(440.0f); int ls1i = live.AddNode(pick(ls1));
-    One<Node> ls2; ls2 = MakeOne<SineNode>(); ((SineNode*)~ls2)->SetFrequency(550.0f); int ls2i = live.AddNode(pick(ls2));
-    One<Node> lmix; lmix = MakeOne<MixerNode>(); ((MixerNode*)~lmix)->SetInputCount(2); int lmixi = live.AddNode(pick(lmix));
-    One<Node> lout; lout = MakeOne<LiveOutNode>(); int louti = live.AddNode(pick(lout));
-    live.Connect(ls1i, lmixi);
-    live.Connect(ls2i, lmixi);
-    live.Connect(lmixi, louti);
-    String el; if(!live.Compile(el)) { LOG("Compile failed (live): " << el); return; }
-    ProcessContext lctx; lctx.sample_rate = 44100; lctx.block_size = RT_BUFFER_SIZE; live.Prepare(lctx);
-    for(int i = 0; i < 2 * 44100 / RT_BUFFER_SIZE; ++i) live.ProcessBlock();
+    if(list_devices) {
+        LOG("Audio System:\n" << LiveOutNode::DescribeAudioSystem());
+        Vector<String> outs = LiveOutNode::ListOutputDeviceNames();
+        for(const String& s : outs) LOG(s);
+        return;
+    }
+    if(run_live) {
+        // Live example (requires PortAudio): optionally select device, then play mixed sines
+        Graph live;
+        live.SetSampleRate(44100);
+        live.SetBlockSize(RT_BUFFER_SIZE);
+        One<Node> ls1; ls1 = MakeOne<SineNode>(); ((SineNode*)~ls1)->SetFrequency(440.0f); int ls1i = live.AddNode(pick(ls1));
+        One<Node> ls2; ls2 = MakeOne<SineNode>(); ((SineNode*)~ls2)->SetFrequency(550.0f); int ls2i = live.AddNode(pick(ls2));
+        One<Node> lmix; lmix = MakeOne<MixerNode>(); ((MixerNode*)~lmix)->SetInputCount(2); int lmixi = live.AddNode(pick(lmix));
+        One<Node> lout; lout = MakeOne<LiveOutNode>();
+        if(device_index >= 0) ((LiveOutNode*)~lout)->SetOutputDeviceIndex(device_index);
+        if(!device_name.IsEmpty()) ((LiveOutNode*)~lout)->SetOutputDeviceByName(device_name);
+        int louti = live.AddNode(pick(lout));
+        live.Connect(ls1i, lmixi);
+        live.Connect(ls2i, lmixi);
+        live.Connect(lmixi, louti);
+        String el; if(!live.Compile(el)) { LOG("Compile failed (live): " << el); return; }
+        GraphPlayer gp(live, 44100, RT_BUFFER_SIZE);
+        gp.Prepare();
+        gp.PlaySeconds(live_seconds);
+    }
 }

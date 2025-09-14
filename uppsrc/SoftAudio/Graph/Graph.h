@@ -11,6 +11,7 @@
 #include "Node.h"
 #include "Connection.h"
 #include "GraphCore.h"
+#include "GraphPlayer.h"
 #include "GainNode.h"
 #include "MixerNode.h"
 #include "RouterNode.h"

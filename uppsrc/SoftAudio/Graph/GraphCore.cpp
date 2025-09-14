@@ -157,7 +157,6 @@ const String& Graph::GetNodeName(int node_index) const {
     return node_names_[node_index];
 }
 
-NAMESPACE_SAGRAPH_END
 bool Graph::SetEdgeName(int edge_index, const String& name) {
     if(edge_index < 0 || edge_index >= edges_.GetCount()) return false;
     String old = edges_[edge_index].name;
@@ -188,3 +187,6 @@ Edge* Graph::GetEdge(int edge_index) {
     if(edge_index < 0 || edge_index >= edges_.GetCount()) return nullptr;
     return &edges_[edge_index];
 }
+
+NAMESPACE_SAGRAPH_END
+

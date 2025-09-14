@@ -12,6 +12,7 @@
 #include "Connection.h"
 #include "GraphCore.h"
 #include "GainNode.h"
+#include "MixerNode.h"
+#include "RouterNode.h"
 
 #endif
-

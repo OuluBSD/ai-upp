@@ -14,13 +14,26 @@ CONSOLE_APP_MAIN
     g.SetBlockSize(RT_BUFFER_SIZE);
 
     // Nodes
-    One<Node> sine; sine = MakeOne<SineNode>();
-    ((SineNode*)~sine)->SetFrequency(440.0f);
-    int n_sine = g.AddNode(pick(sine));
+    One<Node> sine1; sine1 = MakeOne<SineNode>();
+    ((SineNode*)~sine1)->SetFrequency(440.0f);
+    int n_sine1 = g.AddNode(pick(sine1));
+
+    One<Node> sine2; sine2 = MakeOne<SineNode>();
+    ((SineNode*)~sine2)->SetFrequency(660.0f);
+    int n_sine2 = g.AddNode(pick(sine2));
 
     One<Node> gain; gain = MakeOne<GainNode>();
     ((GainNode*)~gain)->SetGain(0.2f);
     int n_gain = g.AddNode(pick(gain));
+
+    One<Node> mix; mix = MakeOne<MixerNode>();
+    ((MixerNode*)~mix)->SetOutputChannels(2);
+    ((MixerNode*)~mix)->SetInputCount(2);
+    ((MixerNode*)~mix)->SetInputGain(0, 0.2f);
+    ((MixerNode*)~mix)->SetInputPan(0, 0.25f);
+    ((MixerNode*)~mix)->SetInputGain(1, 0.2f);
+    ((MixerNode*)~mix)->SetInputPan(1, 0.75f);
+    int n_mix = g.AddNode(pick(mix));
 
     One<Node> verb; verb = MakeOne<FreeVerbNode>();
     ((FreeVerbNode*)~verb)->SetMix(0.3f);
@@ -31,8 +44,10 @@ CONSOLE_APP_MAIN
     ((FileOutNode*)~out)->Open(GetExeDirFile("softaudiograph_demo.wav"), 2);
     int n_out = g.AddNode(pick(out));
 
-    // Connections: sine -> gain -> verb -> out
-    g.Connect(n_sine, n_gain);
+    // Connections: sine1 + sine2 -> mixer -> gain -> verb -> out
+    g.Connect(n_sine1, n_mix);
+    g.Connect(n_sine2, n_mix);
+    g.Connect(n_mix, n_gain);
     g.Connect(n_gain, n_verb);
     g.Connect(n_verb, n_out);
 

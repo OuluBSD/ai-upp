@@ -1,7 +1,7 @@
 description "\3770,0,128";
 
 mainconfig
-	"GUI";
+	"GUI" "";
 
 uses
 	SoftAudio,

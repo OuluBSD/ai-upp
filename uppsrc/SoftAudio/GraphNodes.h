@@ -3,6 +3,7 @@
 
 #include "SoftAudio.h"
 #include <SoftAudio/Graph/Graph.h>
+#include <string.h>
 
 NAMESPACE_AUDIO_BEGIN
 

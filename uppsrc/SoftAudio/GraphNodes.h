@@ -117,6 +117,52 @@ private:
     AudioFrames frames_;
 };
 
+// Wraps SoftAudio::Compressor as a graph effect node (stereo)
+class CompressorNode : public SAGraph::Node {
+public:
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
+        SAGraph::Node::Prepare(ctx);
+        in_.SetCount(ctx.block_size, 2);
+        out_.SetCount(ctx.block_size, 2);
+    }
+
+    SAGraph::PortSpec GetInputSpec(int) const override { SAGraph::PortSpec p; p.channels = 2; return p; }
+    SAGraph::PortSpec GetOutputSpec(int) const override { SAGraph::PortSpec p; p.channels = 2; return p; }
+
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
+        output.SetSize(ctx.block_size, 2);
+        const SAGraph::Bus* in = inputs.IsEmpty() ? nullptr : inputs[0];
+        if(!in) { output.Zero(); return; }
+        int frames = ctx.block_size;
+        // Prepare input frames
+        if(in->channels == 1) {
+            for(int i = 0; i < frames; ++i) {
+                float s = in->At(i, 0);
+                in_(i,0) = s; in_(i,1) = s;
+            }
+        } else {
+            for(int i = 0; i < frames; ++i) {
+                in_(i,0) = in->At(i,0);
+                in_(i,1) = in->At(i,1);
+            }
+        }
+        // Process per-sample using Tick2
+        for(int i = 0; i < frames; ++i) {
+            float l = in_(i,0);
+            float r = in_(i,1);
+            float ol = comp_.Tick2(l, r, 0);
+            float or_ = comp_.Tick2(l, r, 1);
+            output.At(i,0) = ol;
+            output.At(i,1) = or_;
+        }
+    }
+
+private:
+    Compressor comp_;
+    AudioFrames in_;
+    AudioFrames out_;
+};
+
 NAMESPACE_AUDIO_END
 
 #endif

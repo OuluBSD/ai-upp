@@ -2,9 +2,9 @@
 
 NAMESPACE_SAGRAPH_BEGIN
 
-int Graph::AddNode(One<Node> node) {
+int Graph::AddNode(Node* node) {
     int idx = nodes_.GetCount();
-    nodes_.Add(pick(node));
+    nodes_.Add(node);
     return idx;
 }
 

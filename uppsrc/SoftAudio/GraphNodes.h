@@ -210,7 +210,8 @@ public:
     void NoteOn(float note_number, float amplitude, int group = 0) { voicer_.NoteOn(note_number, amplitude, group); }
     void NoteOff(float note_number, float amplitude, int group = 0) { voicer_.NoteOff(note_number, amplitude, group); }
 
-    int GetInputCount() const override { return 0; }
+    // Accept a dummy input to allow ordering edges (e.g., from MidiInputNode)
+    int GetInputCount() const override { return 1; }
     SAGraph::PortSpec GetOutputSpec(int) const override { SAGraph::PortSpec p; p.channels = 1; return p; }
 
     void Prepare(const SAGraph::ProcessContext& ctx) override {
@@ -229,6 +230,64 @@ private:
     Voicer voicer_;
     Vector< One<Instrument> > instruments_;
     AudioFrames out_;
+};
+
+// A small MIDI input node that schedules NoteOn/NoteOff events to a target VoicerNode.
+class MidiInputNode : public SAGraph::Node {
+public:
+    enum Kind { NOTE_ON, NOTE_OFF };
+    struct Ev {
+        unsigned long long frame;
+        Kind kind;
+        float note;
+        float value;
+    };
+
+    void SetTarget(VoicerNode* v) { target_ = v; }
+
+    void EnqueueNoteOn(float note, float amp, unsigned long long at_frame) {
+        Ev e{at_frame, NOTE_ON, note, amp}; events_.Add(e);
+    }
+    void EnqueueNoteOff(float note, float amp, unsigned long long at_frame) {
+        Ev e{at_frame, NOTE_OFF, note, amp}; events_.Add(e);
+    }
+
+    // Optional helpers in seconds
+    void EnqueueNoteOnSec(float note, float amp, double sec, int sample_rate) {
+        EnqueueNoteOn(note, amp, (unsigned long long)(sec * sample_rate));
+    }
+    void EnqueueNoteOffSec(float note, float amp, double sec, int sample_rate) {
+        EnqueueNoteOff(note, amp, (unsigned long long)(sec * sample_rate));
+    }
+
+    int GetOutputCount() const override { return 1; }
+    SAGraph::PortSpec GetOutputSpec(int) const override { SAGraph::PortSpec p; p.channels = 1; return p; }
+
+    void Prepare(const SAGraph::ProcessContext& ctx) override { SAGraph::Node::Prepare(ctx); }
+
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>&, SAGraph::Bus& output) override {
+        // Emit zeros and dispatch events to target within this block window
+        output.SetSize(ctx.block_size, 1);
+        output.Zero();
+        if(!target_) return;
+        unsigned long long start = ctx.frame_cursor;
+        unsigned long long end = start + (unsigned long long)ctx.block_size;
+        // Simple linear scan; for prod consider keeping events sorted and using an index
+        for(int i = read_pos_; i < events_.GetCount(); ++i) {
+            const Ev& e = events_[i];
+            if(e.frame >= end) break;
+            if(e.frame >= start) {
+                if(e.kind == NOTE_ON) target_->NoteOn(e.note, e.value);
+                else target_->NoteOff(e.note, e.value);
+                read_pos_ = i + 1;
+            }
+        }
+    }
+
+private:
+    VoicerNode* target_ = nullptr;
+    Vector<Ev> events_;
+    int read_pos_ = 0;
 };
 
 NAMESPACE_AUDIO_END

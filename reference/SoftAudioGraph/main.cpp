@@ -28,12 +28,7 @@ CONSOLE_APP_MAIN
     int n_gain = g.AddNode(pick(gain));
 
     One<Node> mix; mix = MakeOne<MixerNode>();
-    ((MixerNode*)~mix)->SetOutputChannels(2);
     ((MixerNode*)~mix)->SetInputCount(2);
-    ((MixerNode*)~mix)->SetInputGain(0, 0.2f);
-    ((MixerNode*)~mix)->SetInputPan(0, 0.25f);
-    ((MixerNode*)~mix)->SetInputGain(1, 0.2f);
-    ((MixerNode*)~mix)->SetInputPan(1, 0.75f);
     int n_mix = g.AddNode(pick(mix));
 
     One<Node> verb; verb = MakeOne<FreeVerbNode>();
@@ -59,6 +54,12 @@ CONSOLE_APP_MAIN
     }
     ProcessContext ctx; ctx.sample_rate = 44100; ctx.block_size = RT_BUFFER_SIZE;
     g.Prepare(ctx);
+    // Demonstrate Graph::SetParam for node parameters
+    g.SetParam(n_mix, "out_channels", 2);
+    g.SetParam(n_mix, "in0_gain", 0.2);
+    g.SetParam(n_mix, "in0_pan", 0.25);
+    g.SetParam(n_mix, "in1_gain", 0.2);
+    g.SetParam(n_mix, "in1_pan", 0.75);
 
     // Render 3 seconds offline
     int total_frames = 3 * ctx.sample_rate;
@@ -116,14 +117,13 @@ CONSOLE_APP_MAIN
         g2.ProcessBlock();
     Cout() << "Wrote: " << GetExeDirFile("softaudiograph_mix_compressor.wav") << '\n';
 
-    // Third example: Voicer-driven instrument path
+    // Third example: Voicer-driven instrument path (with MidiInputNode scheduling)
     Graph g3;
     g3.SetSampleRate(44100);
     g3.SetBlockSize(RT_BUFFER_SIZE);
 
-    One<Node> v; v = MakeOne<VoicerNode>();
-    VoicerNode* vp = (VoicerNode*)~v; // keep pointer for events
-    int n_v = g3.AddNode(pick(v));
+    One<Node> v; v = MakeOne<VoicerNode>(); VoicerNode* vp = (VoicerNode*)~v; int n_v = g3.AddNode(pick(v));
+    One<Node> midi; midi = MakeOne<MidiInputNode>(); ((MidiInputNode*)~midi)->SetTarget(vp); int n_midi = g3.AddNode(pick(midi));
 
     One<Node> r; r = MakeOne<RouterNode>();
     ((RouterNode*)~r)->SetTargetChannels(2);
@@ -132,6 +132,8 @@ CONSOLE_APP_MAIN
     One<Node> verb3; verb3 = MakeOne<FreeVerbNode>(); ((FreeVerbNode*)~verb3)->SetMix(0.25f); int n_verb3 = g3.AddNode(pick(verb3));
     One<Node> out3; out3 = MakeOne<FileOutNode>(); ((FileOutNode*)~out3)->Open(GetExeDirFile("softaudiograph_voicer.wav"), 2); int n_out3 = g3.AddNode(pick(out3));
 
+    // Connect midi -> voicer (dummy audio edge for ordering), then voicer -> router
+    g3.Connect(n_midi, n_v);
     g3.Connect(n_v, n_r);
     g3.Connect(n_r, n_verb3);
     g3.Connect(n_verb3, n_out3);
@@ -141,13 +143,14 @@ CONSOLE_APP_MAIN
 
     int total_frames3 = 3 * ctx3.sample_rate;
     int blocks3 = (total_frames3 + ctx3.block_size - 1) / ctx3.block_size;
-    // Simple schedule: NoteOn at start, NoteOff halfway, NoteOn another pitch at 2/3, NoteOff at end
-    for(int i = 0; i < blocks3; ++i) {
-        if(i == 0) vp->NoteOn(60.0f, 0.9f); // C4
-        if(i == blocks3 / 2) vp->NoteOff(60.0f, 0.8f);
-        if(i == (blocks3 * 2) / 3) vp->NoteOn(67.0f, 0.9f); // G4
-        if(i == blocks3 - 2) vp->NoteOff(67.0f, 0.8f);
-        g3.ProcessBlock();
-    }
+    // Schedule MIDI via MidiInputNode in absolute frame time
+    MidiInputNode* mp = (MidiInputNode*)~midi;
+    auto at = [&](double sec){ return (unsigned long long)(sec * ctx3.sample_rate); };
+    mp->EnqueueNoteOn(60.0f, 0.9f, at(0.00)); // C4
+    mp->EnqueueNoteOff(60.0f, 0.7f, at(1.40));
+    mp->EnqueueNoteOn(67.0f, 0.9f, at(1.50)); // G4
+    mp->EnqueueNoteOff(67.0f, 0.7f, at(2.90));
+
+    for(int i = 0; i < blocks3; ++i) g3.ProcessBlock();
     Cout() << "Wrote: " << GetExeDirFile("softaudiograph_voicer.wav") << '\n';
 }

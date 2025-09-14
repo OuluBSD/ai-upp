@@ -13,10 +13,11 @@ CONSOLE_APP_MAIN
     g.SetSampleRate(44100);
     g.SetBlockSize(RT_BUFFER_SIZE);
 
+	Array<Node> nodes;
     // Nodes
-    One<Node> sine1; sine1 = MakeOne<SineNode>();
-    ((SineNode*)~sine1)->SetFrequency(440.0f);
-    int n_sine1 = g.AddNode(pick(sine1));
+    SineNode* sine1 = new SineNode;
+    sine1->SetFrequency(440.0f);
+    int n_sine1 = g.AddNode(sine1);
 
     One<Node> sine2; sine2 = MakeOne<SineNode>();
     ((SineNode*)~sine2)->SetFrequency(660.0f);
@@ -66,4 +67,52 @@ CONSOLE_APP_MAIN
         g.ProcessBlock();
 
     Cout() << "Wrote: " << GetExeDirFile("softaudiograph_demo.wav") << '\n';
+
+    // Second example: mix sources through a Compressor to file
+    Graph g2;
+    g2.SetSampleRate(44100);
+    g2.SetBlockSize(RT_BUFFER_SIZE);
+
+    One<Node> s1; s1 = MakeOne<SineNode>(); ((SineNode*)~s1)->SetFrequency(220.0f); int s1i = g2.AddNode(pick(s1));
+    One<Node> s2; s2 = MakeOne<SineNode>(); ((SineNode*)~s2)->SetFrequency(330.0f); int s2i = g2.AddNode(pick(s2));
+
+    One<Node> mx; mx = MakeOne<MixerNode>();
+    ((MixerNode*)~mx)->SetOutputChannels(2);
+    ((MixerNode*)~mx)->SetInputCount(2);
+    ((MixerNode*)~mx)->SetInputGain(0, 0.8f);
+    ((MixerNode*)~mx)->SetInputPan(0, 0.2f);
+    ((MixerNode*)~mx)->SetInputGain(1, 0.8f);
+    ((MixerNode*)~mx)->SetInputPan(1, 0.8f);
+    int n_mx = g2.AddNode(pick(mx));
+
+    One<Node> comp; comp = MakeOne<CompressorNode>(); int n_comp = g2.AddNode(pick(comp));
+
+    One<Node> byp; byp = MakeOne<BypassNode>();
+    ((BypassNode*)~byp)->SetBypass(false); // use wet (compressed) path
+    int n_byp = g2.AddNode(pick(byp));
+
+    One<Node> out2; out2 = MakeOne<FileOutNode>();
+    ((FileOutNode*)~out2)->Open(GetExeDirFile("softaudiograph_mix_compressor.wav"), 2);
+    int n_out2 = g2.AddNode(pick(out2));
+
+    // Connect dry to bypass first, then wet to bypass second
+    g2.Connect(s1i, n_mx);
+    g2.Connect(s2i, n_mx);
+    g2.Connect(n_mx, n_comp);
+    g2.Connect(n_mx, n_byp);   // dry first
+    g2.Connect(n_comp, n_byp); // wet second
+    g2.Connect(n_byp, n_out2);
+
+    String err2;
+    if(!g2.Compile(err2)) {
+        Cout() << "Compile failed (g2): " << err2 << '\n';
+        return;
+    }
+    ProcessContext ctx2; ctx2.sample_rate = 44100; ctx2.block_size = RT_BUFFER_SIZE;
+    g2.Prepare(ctx2);
+    int total_frames2 = 3 * ctx2.sample_rate;
+    int blocks2 = (total_frames2 + ctx2.block_size - 1) / ctx2.block_size;
+    for(int i = 0; i < blocks2; ++i)
+        g2.ProcessBlock();
+    Cout() << "Wrote: " << GetExeDirFile("softaudiograph_mix_compressor.wav") << '\n';
 }

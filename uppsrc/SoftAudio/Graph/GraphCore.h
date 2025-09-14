@@ -25,9 +25,9 @@ private:
         Bus output;
     };
 
-    Vector< One<Node> > nodes_;
-    Vector<Edge> edges_;
-    Vector<CompiledNode> order_; // topologically sorted nodes with resolved inputs
+    Array<Node> nodes_;
+    Array<Edge> edges_;
+    Array<CompiledNode> order_; // topologically sorted nodes with resolved inputs
     ProcessContext ctx_;
 };
 

@@ -14,5 +14,7 @@
 #include "GainNode.h"
 #include "MixerNode.h"
 #include "RouterNode.h"
+#include "BypassNode.h"
+#include "SplitterNode.h"
 
 #endif

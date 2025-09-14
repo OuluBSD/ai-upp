@@ -23,8 +23,7 @@ Example Chain (reference app)
 - Renders a short WAV file offline using a block pull loop.
 
 Next
-- Add `BypassNode` and `SplitterNode` (explicit fan‑out) utilities.
-- Wrap one more effect (e.g., `Compressor`) and one instrument (`Voicer`‑driven).
+- Wrap one more effect (e.g., `Compressor`) and one instrument (`Voicer`‑driven`).
 - Add minimal parameter API surface for wrappers (e.g., `SetParam(String id, float value)`).
 - Validate clip handling and DC checks in the reference app.
 
@@ -32,6 +31,10 @@ Notes & Constraints
 - Graph currently supports DAG only; cycles/feedback are rejected at compile time.
 - Buffering: each node owns an output `Bus` sized at `block_size`; wrappers preallocate `AudioFrames` for bridging.
 - RT safety: graph construction/compile can allocate; per‑block processing aims to be allocation‑free.
+
+Updates
+- Added `BypassNode` (two-input dry/wet selector) and `SplitterNode` (explicit pass-through fan‑out point) to the graph subpackage.
+- Added `CompressorNode` wrapper and a second reference chain using it, with `BypassNode` selecting wet output.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

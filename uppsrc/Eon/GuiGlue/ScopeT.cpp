@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "GuiGlue.h"
 
 #ifdef flagGUI
 // TopWindow

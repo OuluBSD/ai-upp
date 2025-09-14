@@ -1,5 +1,5 @@
-#ifndef _Eon_HandleSystemT_h_
-#define _Eon_HandleSystemT_h_
+#ifndef _Eon_GuiGlue_HandleSystemT_h_
+#define _Eon_GuiGlue_HandleSystemT_h_
 
 
 template <class Dim>
@@ -64,8 +64,9 @@ public:
 	
 };
 
+#ifdef flagGUI
 using WindowSystem = HandleSystemT<CtxUpp2D>;
 using WindowSystemPtr = Ptr<WindowSystem>;
-
+#endif
 
 #endif

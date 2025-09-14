@@ -1,5 +1,5 @@
 #include "Graphics.h"
-#include <Eon/Lib/EonLib.h>
+#include <Eon/Lib/Lib.h>
 
 
 NAMESPACE_UPP

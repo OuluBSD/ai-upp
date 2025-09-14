@@ -1,5 +1,5 @@
-#ifndef _Eon_ScopeT_h_
-#define _Eon_ScopeT_h_
+#ifndef _Eon_GuiGlue_ScopeT_h_
+#define _Eon_GuiGlue_ScopeT_h_
 
 
 template <class Dim>
@@ -144,8 +144,9 @@ public:
 	Callback WhenActiveHandleChanges, WhenHandleClose;
 };
 
+#ifdef flagGUI
 using WindowManager = ScopeT<CtxUpp2D>;
 using WindowManagerPtr = Ptr<WindowManager>;
-
+#endif
 
 #endif

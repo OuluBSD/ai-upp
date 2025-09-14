@@ -3,6 +3,9 @@
 
 #include <Core2/Core.h>
 #include <Vfs/Vfs.h>
+#include <Eon/Interaction/Interaction.h>
+
+NAMESPACE_UPP
 
 // Script DSL model + loaders
 #include "Def.h"
@@ -11,6 +14,10 @@
 // Convenience: keep headers discoverable via umbrella
 #include "ToyLoader.h"
 #include "ShadertoyLoader.h"
+#include "EcsLoader.h"
+#include "EonLoader.h"
+
+END_UPP_NAMESPACE
 
 #endif
 

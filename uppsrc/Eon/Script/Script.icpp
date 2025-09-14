@@ -1,4 +1,4 @@
-#include "../Eon.h"
+#include "Script.h"
 
 NAMESPACE_UPP
 
@@ -10,6 +10,15 @@ INITBLOCK {
 
 	// Expose the ScriptLoader system
 	REGISTER_SYSTEM_ECS(ScriptLoader, "script.loader", "Ecs|Script");
+	
+	
+
+	// Bridge: let script layer call into ECS loader implementation
+	static_assert(IsBaseOf<::UPP::Eon::ExtScriptEcsLoaderBase, ::UPP::Eon::ExtScriptEcsLoader>::value, "");
+	Eon::__ecs_script_loader = &Single<Eon::ExtScriptEcsLoader>();
+
+	// Environment state
+	VfsValueExtFactory::Register<EnvState>("EnvState", VFSEXT_COMPONENT, "env.state", "Util|Env");
 }
 
 END_UPP_NAMESPACE

@@ -1,5 +1,5 @@
-#ifndef _Eon_WorldLogic_h_
-#define _Eon_WorldLogic_h_
+#ifndef _Eon_Ecs_WorldLogic_h_
+#define _Eon_Ecs_WorldLogic_h_
 
 	
 class WorldLogicSystem : public System

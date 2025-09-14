@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Model_h_
-#define _EonDraw_Model_h_
+#ifndef _Eon_Draw_Model_h_
+#define _Eon_Draw_Model_h_
 
 
 class Renderable : public Component {

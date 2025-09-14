@@ -1,6 +1,10 @@
 #ifndef CTRLCORE_H
 #define CTRLCORE_H
 
+#ifndef flagGUI
+	#error CtrlCore should not be included without GUI flag
+#endif
+
 #include <RichText/RichText.h>
 #include <Painter/Painter.h>
 

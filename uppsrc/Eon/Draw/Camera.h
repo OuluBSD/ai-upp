@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Camera_h_
-#define _EonDraw_Camera_h_
+#ifndef _Eon_Draw_Camera_h_
+#define _Eon_Draw_Camera_h_
 
 
 struct GfxShader;

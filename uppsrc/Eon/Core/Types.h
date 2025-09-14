@@ -1,5 +1,5 @@
-#ifndef _Eon_Types_h_
-#define _Eon_Types_h_
+#ifndef _Eon_Core_Types_h_
+#define _Eon_Core_Types_h_
 
 
 struct Atom;

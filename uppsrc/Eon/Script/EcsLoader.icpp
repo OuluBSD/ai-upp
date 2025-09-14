@@ -1,7 +1,9 @@
-#include "Lib.h"
+#include "Script.h"
 
 NAMESPACE_UPP
 
-
+INITBLOCK {
+}
 
 END_UPP_NAMESPACE
+

@@ -1,5 +1,5 @@
-#ifndef _Eon_Service_h_
-#define _Eon_Service_h_
+#ifndef _Eon_Ecs_Service_h_
+#define _Eon_Ecs_Service_h_
 
 
 class EcsService : public DaemonService {

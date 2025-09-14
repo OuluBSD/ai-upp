@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Rendering_h_
-#define _EonDraw_Rendering_h_
+#ifndef _Eon_Draw_Rendering_h_
+#define _Eon_Draw_Rendering_h_
 
 
 struct GfxStateDraw;

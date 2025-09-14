@@ -3,9 +3,15 @@
 
 #include <Core2/Core.h>
 #include <Vfs/Vfs.h>
+#include <Eon/Core/Core.h>
+
+NAMESPACE_UPP
 
 #include "InteractionSystem.h"
 #include "Player.h"
+
+END_UPP_NAMESPACE
+
 
 #endif
 

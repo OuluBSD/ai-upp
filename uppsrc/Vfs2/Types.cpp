@@ -1,7 +1,7 @@
 #include "Vfs.h"
+#include <AI/Core/Core.h>
 
 NAMESPACE_UPP
-#include <AICore2/Core/Types.h>
 
 VfsValue* (*FindNodeEnvPtr)(Entity& n);
 VfsValue* (*IdeVfsFillDatasetPtrsPtr)(DatasetPtrs&, hash_t type_hash);

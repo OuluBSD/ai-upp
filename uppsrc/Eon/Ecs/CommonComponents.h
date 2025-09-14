@@ -1,5 +1,5 @@
-#ifndef _Eon_CommonComponents_h_
-#define _Eon_CommonComponents_h_
+#ifndef _Eon_Ecs_CommonComponents_h_
+#define _Eon_Ecs_CommonComponents_h_
 
 
 extern const vec3 EarthGravity;

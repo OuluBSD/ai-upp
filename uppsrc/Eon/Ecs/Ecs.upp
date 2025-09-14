@@ -10,11 +10,9 @@ uses
 	plugin/enet;
 
 file
+	README.md,
 	Ecs.h,
 	Ecs.icpp,
-	README.md,
-	EonLoader.h,
-	EonLoader.cpp,
 	EcsFactory.h,
 	EcsFactory.cpp,
 	CommonComponents.h,

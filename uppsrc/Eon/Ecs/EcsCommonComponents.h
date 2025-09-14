@@ -1,5 +1,5 @@
-#ifndef _Eon_EcsCommonComponents_h_
-#define _Eon_EcsCommonComponents_h_
+#ifndef _Eon_Ecs_EcsCommonComponents_h_
+#define _Eon_Ecs_EcsCommonComponents_h_
 
 
 class RigidBody : public Component {

@@ -1,5 +1,5 @@
-#ifndef _Eon_Loader_h_
-#define _Eon_Loader_h_
+#ifndef _Eon_Script_Loader_h_
+#define _Eon_Script_Loader_h_
 
 
 

@@ -1,5 +1,5 @@
-#ifndef _Eon_HandleTypes_h_
-#define _Eon_HandleTypes_h_
+#ifndef _Eon_GuiGlue_HandleTypes_h_
+#define _Eon_GuiGlue_HandleTypes_h_
 
 
 #define UPPCTRL2D_EXCPLICIT_INITIALIZE_CLASS(x) \

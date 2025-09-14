@@ -1,0 +1,12 @@
+description "\3770,0,128";
+
+mainconfig
+	"GUI";
+
+uses
+	SoftAudio,
+	Graph;
+
+file
+	main.cpp;
+

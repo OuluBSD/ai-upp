@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ThrowingSystem_h_
-#define _EonDraw_ThrowingSystem_h_
+#ifndef _Eon_Draw_ThrowingSystem_h_
+#define _Eon_Draw_ThrowingSystem_h_
 
 
 class ThrowingComponent :

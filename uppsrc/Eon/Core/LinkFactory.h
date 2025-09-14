@@ -1,5 +1,5 @@
-#ifndef _Eon_LinkFactory_h_
-#define _Eon_LinkFactory_h_
+#ifndef _Eon_Core_LinkFactory_h_
+#define _Eon_Core_LinkFactory_h_
 
 
 class Factory {

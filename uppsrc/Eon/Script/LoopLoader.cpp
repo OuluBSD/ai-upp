@@ -1,4 +1,4 @@
-#include "Eon.h"
+#include "Script.h"
 
 NAMESPACE_UPP
 namespace Eon {
@@ -157,6 +157,7 @@ bool ScriptLoopLoader::Load() {
 			lb = first_lb;
 		}
 		else {
+			l = loader.ResolveLoop(deep_id); // re-resolve for memory safety
 			ab = AddAtomTypeCls(*l, atom);
 			if (has_link)
 				lb = AddLinkTypeCls(*l, link);

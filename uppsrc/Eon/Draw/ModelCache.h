@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ModelCache_h_
-#define _EonDraw_ModelCache_h_
+#ifndef _Eon_Draw_ModelCache_h_
+#define _Eon_Draw_ModelCache_h_
 
 
 class ModelCache :

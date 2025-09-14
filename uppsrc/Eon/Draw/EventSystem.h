@@ -1,5 +1,5 @@
-#ifndef _EonDraw_EventSystem_h_
-#define _EonDraw_EventSystem_h_
+#ifndef _Eon_Draw_EventSystem_h_
+#define _Eon_Draw_EventSystem_h_
 
 
 class EventSystem :

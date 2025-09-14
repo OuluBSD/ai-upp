@@ -1,5 +1,5 @@
-#ifndef _Eon_FrameT_h_
-#define _Eon_FrameT_h_
+#ifndef _Eon_GuiGlue_FrameT_h_
+#define _Eon_GuiGlue_FrameT_h_
 
 
 template <class Dim> class HandleSystemT;

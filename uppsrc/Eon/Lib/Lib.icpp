@@ -1,4 +1,4 @@
-#include "EonLib.h"
+#include "Lib.h"
 
 
 
@@ -31,10 +31,6 @@ INITBLOCK {
 	REGISTER_ATOM(CoreAudioFileOut);
 	
 	// Handle
-	
-	#ifdef flagSCREEN
-	REGISTER_ATOM(HandleProgVideo);
-	#endif
 	
 	#if defined flagSCREEN
 	REGISTER_ATOM(HandleProgEvents);

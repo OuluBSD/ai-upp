@@ -1,3 +1,5 @@
+flags(WIN32 (CLANG | GCC)) SYS_PORTAUDIO;
+
 uses(!SYS_PORTAUDIO) plugin/portaudio;
 
 library(SYS_PORTAUDIO !(WIN32 !MSC)) portaudio;
@@ -20,3 +22,4 @@ file
 	Discussion.cpp,
 	SoundClip.h,
 	Sound.h;
+

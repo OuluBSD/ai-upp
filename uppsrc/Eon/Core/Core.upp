@@ -7,9 +7,9 @@ uses
 	AI/Core;
 
 file
+	README.md,
 	Core.h,
 	Core.icpp,
-	README.md,
 	Types.h,
 	Container.h,
 	Container.cpp,

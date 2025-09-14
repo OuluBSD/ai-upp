@@ -1,7 +1,7 @@
 #ifndef _EonLib_EonLib_h_
 #define _EonLib_EonLib_h_
 
-#include <Eon/Draw/EonDraw.h>
+#include <Eon/Draw/Draw.h>
 
 #include <api/MidiFile/MidiFile.h>
 #include <api/MidiHw/MidiHw.h>
@@ -26,7 +26,7 @@
 #include <api/AudioFileOut/AudioFileOut.h>
 #include <api/Holograph/Holograph.h>
 
-#include <Eon/Eon.h>
+#include <Eon/Draw/Draw.h>
 
 
 #define BIG_NUMBER 100000000

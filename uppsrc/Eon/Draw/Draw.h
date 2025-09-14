@@ -1,5 +1,5 @@
-#ifndef _EonDraw_EonDraw_h_
-#define _EonDraw_EonDraw_h_
+#ifndef _Eon_Draw_EonDraw_h_
+#define _Eon_Draw_EonDraw_h_
 
 #include <Draw/Draw.h>
 #include <Draw2/Draw.h>

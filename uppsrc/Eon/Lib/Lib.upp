@@ -15,9 +15,8 @@ uses(!EMSCRIPTEN) api/Holograph;
 uses(SCREEN) api/Graphics;
 
 file
-	Eon/Lib.h,
-	Eon/Lib.icpp,
-	Init.icpp,
+	Lib.h,
+	Lib.icpp,
 	GeneratedAudio.h,
 	GeneratedAudio.cpp,
 	GeneratedHandle.h,
@@ -45,5 +44,4 @@ file
 	TPrefab.h,
 	TPrefab.cpp,
 	_ readonly separator;
-
 

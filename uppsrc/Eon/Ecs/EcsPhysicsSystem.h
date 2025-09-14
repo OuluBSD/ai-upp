@@ -1,5 +1,5 @@
-#ifndef _Eon_EcsPhysicsSystem_h_
-#define _Eon_EcsPhysicsSystem_h_
+#ifndef _Eon_Ecs_EcsPhysicsSystem_h_
+#define _Eon_Ecs_EcsPhysicsSystem_h_
 
 
 class PhysicsBody;

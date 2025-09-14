@@ -1,4 +1,4 @@
-#include "EonLib.h"
+#include "Lib.h"
 
 
 #if HAVE_WINDOWSYSTEM

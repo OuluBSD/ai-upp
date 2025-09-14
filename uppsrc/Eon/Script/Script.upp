@@ -9,9 +9,9 @@ uses
 	Esc;
 
 file
+	README.md,
 	Script.h,
 	Script.icpp,
-	README.md,
 	Def.h,
 	Loader.h,
 	LoaderBase.inl highlight cpp,
@@ -32,4 +32,9 @@ file
 	ToyLoader.cpp,
 	ShadertoyLoader.h,
 	ShadertoyLoader.cpp,
-	main.cpp;
+	main.cpp,
+	EcsLoader.h,
+	EcsLoader.icpp,
+	EonLoader.h,
+	EonLoader.cpp;
+

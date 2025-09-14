@@ -1,10 +1,10 @@
-#include "Eon.h"
+#include "Core.h"
 
 
 NAMESPACE_UPP
 
 
-void VfsValueExtFactory::Dump() {
+void Factory::Dump() {
 	const auto& fns = LinkDataMap();
 	
 	LOG("Factory::Dump:");

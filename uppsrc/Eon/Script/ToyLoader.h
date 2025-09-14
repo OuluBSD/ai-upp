@@ -1,5 +1,5 @@
-#ifndef _Eon_ToyLoader_h_
-#define _Eon_ToyLoader_h_
+#ifndef _Eon_Script_ToyLoader_h_
+#define _Eon_Script_ToyLoader_h_
 
 
 // ShaderToy file loader (libtopside .toy format == unpacked .js + stage info + separate glsl)

@@ -1,5 +1,5 @@
-#ifndef _Eon_Atom_h_
-#define _Eon_Atom_h_
+#ifndef _Eon_Core_Atom_h_
+#define _Eon_Core_Atom_h_
 
 
 template <class T> inline SideStatus MakeSide(const AtomTypeCls& src_type, const WorldState& from, const AtomTypeCls& sink_type, const WorldState& to) {Panic("Unimplemented"); NEVER(); return SIDE_NOT_ACCEPTED;}

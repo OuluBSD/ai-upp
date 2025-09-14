@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ProgPainter_h_
-#define _EonDraw_ProgPainter_h_
+#ifndef _Eon_Draw_ProgPainter_h_
+#define _Eon_Draw_ProgPainter_h_
 
 
 class TriangulatePointf {

@@ -3,7 +3,7 @@ description "\377B128,0,255";
 uses
 	Core2;
 
-uses(VIRTUALGUI) VirtualGui3D;
+uses(GUI VIRTUALGUI) VirtualGui3D;
 
 library(POSIX) png;
 

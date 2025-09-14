@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ProgDraw_h_
-#define _EonDraw_ProgDraw_h_
+#ifndef _Eon_Draw_ProgDraw_h_
+#define _Eon_Draw_ProgDraw_h_
 
 
 class ProgPainter;

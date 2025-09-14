@@ -1,5 +1,5 @@
-#ifndef _Eon_EcsFactory_h_
-#define _Eon_EcsFactory_h_
+#ifndef _Eon_Ecs_EcsFactory_h_
+#define _Eon_Ecs_EcsFactory_h_
 
 
 struct ComponentFactory {

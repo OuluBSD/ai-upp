@@ -10,12 +10,6 @@
 
 #include <plugin/enet/EnetService.h>
 
-#if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
-	#include <cxxabi.h>
-#endif
-
-NAMESPACE_UPP
-
 #include <Eon/Core/Core.h>
 #include <Eon/Script/Script.h>
 #include <Eon/Ecs/Ecs.h>
@@ -24,7 +18,5 @@ NAMESPACE_UPP
 #ifdef flagGUI
 #include <Eon/GuiGlue/GuiGlue.h>
 #endif
-
-END_UPP_NAMESPACE
 
 #endif

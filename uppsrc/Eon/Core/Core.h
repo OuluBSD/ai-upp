@@ -3,6 +3,10 @@
 
 #include <Core2/Core.h>
 #include <Vfs/Vfs.h>
+#include <AI/Core/Core.h>
+#include <Geometry/Geometry.h>
+
+NAMESPACE_UPP
 
 // Core building blocks for atoms/links and helpers
 #include "Types.h"
@@ -15,6 +19,8 @@
 #include "BaseVideo.h"
 #include "Network.h"
 #include "LinkFactory.h"
+
+END_UPP_NAMESPACE
 
 #endif
 

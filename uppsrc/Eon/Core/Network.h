@@ -1,5 +1,5 @@
-#ifndef _Eon_Network_h_
-#define _Eon_Network_h_
+#ifndef _Eon_Core_Network_h_
+#define _Eon_Core_Network_h_
 
 
 enum {

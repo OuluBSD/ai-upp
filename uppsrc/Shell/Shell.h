@@ -2,12 +2,12 @@
 #define _Shell_Shell_h_
 
 
-#include <AICore/AICore.h>
+#include <AI/Core/Base/Base.h>
 #include <Geometry/Geometry.h>
 #include <Vfs2/Vfs.h>
 #include <Eon/Eon.h>
-#include <Eon/Draw/EonDraw.h>
-#include <Eon/Lib/EonLib.h>
+#include <Eon/Draw/Draw.h>
+#include <Eon/Lib/Lib.h>
 #include <api/Graphics/Graphics.h>
 
 

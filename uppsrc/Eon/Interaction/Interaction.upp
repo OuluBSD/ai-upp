@@ -9,12 +9,13 @@ uses
 	AI/Core;
 
 file
+	README.md,
 	Interaction.h,
 	Interaction.icpp,
-	README.md,
 	InteractionSystem.h,
 	InteractionSystem.cpp,
 	Player.h,
 	Player.cpp,
 	FakeSpatial.cpp,
 	VrSpatial.cpp;
+

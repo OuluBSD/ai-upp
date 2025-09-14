@@ -1,5 +1,5 @@
-#ifndef _EonDraw_RenderingSystem_h_
-#define _EonDraw_RenderingSystem_h_
+#ifndef _Eon_Draw_RenderingSystem_h_
+#define _Eon_Draw_RenderingSystem_h_
 
 
 class VirtualGui;

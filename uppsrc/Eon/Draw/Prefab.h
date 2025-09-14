@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Prefab_h_
-#define _EonDraw_Prefab_h_
+#ifndef _Eon_Draw_Prefab_h_
+#define _Eon_Draw_Prefab_h_
 
 
 namespace KnownModelNames {

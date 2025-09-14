@@ -1,5 +1,5 @@
-#ifndef _Eon_Def_h_
-#define _Eon_Def_h_
+#ifndef _Eon_Script_Def_h_
+#define _Eon_Script_Def_h_
 
 namespace Eon {
 

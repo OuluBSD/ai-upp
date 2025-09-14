@@ -1,5 +1,5 @@
-#ifndef _Eon_Container_h_
-#define _Eon_Container_h_
+#ifndef _Eon_Core_Container_h_
+#define _Eon_Core_Container_h_
 
 
 class EnvState : public VfsValueExt
@@ -62,20 +62,7 @@ public:
 using EnvStatePtr			= Ptr<EnvState>;
 
 
-inline String Demangle(const char* name) {
-	#if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
-	int status = -4; // some arbitrary value to eliminate the compiler warning
-
-    // enable c++11 by passing the flag -std=c++11 to g++
-    std::unique_ptr<char, void(*)(void*)> res {
-        abi::__cxa_demangle(name, NULL, NULL, &status),
-        std::free
-    };
-
-    return (status==0) ? res.get() : name ;
-    #endif
-    return name;
-}
+String Demangle(const char* name);
 
 
 class TypeId : Moveable<TypeId>

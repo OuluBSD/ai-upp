@@ -1,5 +1,5 @@
-#ifndef _Eon_LinkUtil_h_
-#define _Eon_LinkUtil_h_
+#ifndef _Eon_Core_LinkUtil_h_
+#define _Eon_Core_LinkUtil_h_
 
 
 

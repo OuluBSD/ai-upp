@@ -1,7 +1,7 @@
-#ifndef _EonCtrl_EonCtrl_h_
-#define _EonCtrl_EonCtrl_h_
+#ifndef _Eon_Ctrl_Ctrl_h_
+#define _Eon_Ctrl__Ctrl_h_
 
-#include <Eon/Lib/EonLib.h>
+#include <Eon/Lib/Lib.h>
 
 #ifndef flagGUI
 	#error "EscCtrl library requires GUI flag to be set"

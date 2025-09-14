@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ShootingSystem_h_
-#define _EonDraw_ShootingSystem_h_
+#ifndef _Eon_Draw_ShootingSystem_h_
+#define _Eon_Draw_ShootingSystem_h_
 
 
 class ShootingComponent :

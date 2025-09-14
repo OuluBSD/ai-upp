@@ -4,8 +4,8 @@ uses
 	Eon/Lib;
 
 file
-	Eon/Ctrl.h,
-	Eon/Ctrl.icpp,
+	Ctrl.h,
+	Ctrl.icpp,
 	Parts.h,
 	Parts.cpp,
 	ComponentCtrl.h,
@@ -43,5 +43,4 @@ file
 	BinaryHeapMap.h,
 	BinaryHeapMap.cpp,
 	_ readonly separator;
-
 

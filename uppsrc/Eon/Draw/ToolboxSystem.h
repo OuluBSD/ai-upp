@@ -1,5 +1,5 @@
-#ifndef _EonDraw_ToolboxSystem_h_
-#define _EonDraw_ToolboxSystem_h_
+#ifndef _Eon_Draw_ToolboxSystem_h_
+#define _Eon_Draw_ToolboxSystem_h_
 
 
 class ToolSystemBase;

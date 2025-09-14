@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Prefabs_h_
-#define _EonDraw_Prefabs_h_
+#ifndef _Eon_Draw_Prefabs_h_
+#define _Eon_Draw_Prefabs_h_
 
 
 struct Gun : EntityPrefab<Transform, ModelComponent, ToolComponent>

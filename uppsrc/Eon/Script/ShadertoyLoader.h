@@ -1,5 +1,5 @@
-#ifndef _Eon_ShadertoyLoader_h_
-#define _Eon_ShadertoyLoader_h_
+#ifndef _Eon_Script_ShadertoyLoader_h_
+#define _Eon_Script_ShadertoyLoader_h_
 
 
 class ShadertoyContextLoader

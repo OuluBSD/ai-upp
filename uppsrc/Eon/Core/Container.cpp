@@ -1,4 +1,8 @@
-#include "Eon.h"
+#include "Core.h"
+
+#if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
+	#include <cxxabi.h>
+#endif
 
 NAMESPACE_UPP
 
@@ -28,6 +32,21 @@ int& EnvState::GetInt(int key) {
 	if (!o.Is<int>())
 		o = CreateRawValue<int>(o) = 0;
 	return const_cast<int&>(o.To<int>());
+}
+
+String Demangle(const char* name) {
+	#if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
+	int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void(*)(void*)> res {
+        abi::__cxa_demangle(name, NULL, NULL, &status),
+        std::free
+    };
+
+    return (status==0) ? res.get() : name ;
+    #endif
+    return name;
 }
 
 END_UPP_NAMESPACE

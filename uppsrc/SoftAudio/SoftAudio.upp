@@ -7,9 +7,13 @@ uses
 	MidiFile;
 
 file
+	AGENTS.md,
+	CURRENT_TASK.md,
 	Copying,
 	Info.txt,
 	SoftAudio.h,
+	GraphNodes.h,
+	GraphNodes.cpp,
 	ADSR.h,
 	ADSR.cpp,
 	Audio.h,

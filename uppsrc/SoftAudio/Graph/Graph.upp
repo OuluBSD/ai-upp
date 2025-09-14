@@ -1,0 +1,19 @@
+description "\3770,0,128";
+
+options(BUILDER_OPTION) NOWARNINGS;
+
+uses
+    Core2;
+
+file
+    AGENTS.md,
+    Graph.h,
+    Port.h,
+    ProcessContext.h,
+    Node.h,
+    Connection.h,
+    GraphCore.h,
+    GraphCore.cpp,
+    GainNode.h,
+    GainNode.cpp;
+

@@ -5,6 +5,10 @@ class WString : public std::wstring {
 public:
     using Base = std::wstring;
     using Base::basic_string; // inherit std::wstring constructors
+    
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
     // Interop with std::wstring
     WString(const std::wstring& s) : Base(s) {}
@@ -112,9 +116,56 @@ public:
     bool EndsWith(const WString& s) const { return EndsWith(s.data(), static_cast<int>(s.size())); }
 
     // Conversions (UTF-8 <-> wide)
-    String ToString() const {
-        // NOTE: std::wstring_convert is deprecated in C++17, but still widely available.
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-        return String(conv.to_bytes(*this).c_str());
+    // Helpers to convert between UTF-8 and wide using platform facilities
+    static std::string WideToUtf8(const std::wstring& ws) {
+#ifdef _WIN32
+        if(ws.empty()) return std::string();
+        int n = WideCharToMultiByte(CP_UTF8, 0, ws.data(), (int)ws.size(), NULL, 0, NULL, NULL);
+        std::string out; out.resize(n);
+        if(n>0) WideCharToMultiByte(CP_UTF8, 0, ws.data(), (int)ws.size(), out.data(), n, NULL, NULL);
+        return out;
+#else
+        std::mbstate_t st{}; const wchar_t* src = ws.c_str(); size_t need = wcsrtombs(NULL, &src, 0, &st);
+        if(need != (size_t)-1){ std::string out; out.resize(need); st = std::mbstate_t{}; src = ws.c_str(); wcsrtombs(out.data(), &src, need, &st); return out; }
+        // Fallback: encode as UTF-8 manually (assumes wchar_t is UCS-4)
+        std::string out;
+        auto append_cp = [&](uint32_t cp){
+            if(cp <= 0x7F) out.push_back((char)cp);
+            else if(cp <= 0x7FF){ out.push_back((char)(0xC0 | (cp>>6))); out.push_back((char)(0x80 | (cp & 0x3F))); }
+            else if(cp <= 0xFFFF){ out.push_back((char)(0xE0 | (cp>>12))); out.push_back((char)(0x80 | ((cp>>6)&0x3F))); out.push_back((char)(0x80 | (cp & 0x3F))); }
+            else { out.push_back((char)(0xF0 | (cp>>18))); out.push_back((char)(0x80 | ((cp>>12)&0x3F))); out.push_back((char)(0x80 | ((cp>>6)&0x3F))); out.push_back((char)(0x80 | (cp & 0x3F))); }
+        };
+        for(wchar_t wc : ws) append_cp((uint32_t)wc);
+        return out;
+#endif
     }
+    static std::wstring Utf8ToWide(const char* s, size_t len) {
+#ifdef _WIN32
+        if(len == 0) return std::wstring();
+        int n = MultiByteToWideChar(CP_UTF8, 0, s, (int)len, NULL, 0);
+        std::wstring out; out.resize(n);
+        if(n>0) MultiByteToWideChar(CP_UTF8, 0, s, (int)len, out.data(), n);
+        return out;
+#else
+        std::mbstate_t st{}; const char* src = s; size_t need = mbsrtowcs(NULL, &src, 0, &st);
+        if(need != (size_t)-1){ std::wstring out; out.resize(need); st = std::mbstate_t{}; src = s; mbsrtowcs(out.data(), &src, need, &st); return out; }
+        // Fallback: manual UTF-8 decode to wchar_t (assumes wchar_t is UCS-4)
+        std::wstring out;
+        out.reserve(len);
+        size_t i=0; while(i<len){ unsigned c = (unsigned char)s[i++];
+            if(c < 0x80){ out.push_back((wchar_t)c); }
+            else if((c>>5)==0x6 && i<len){ unsigned c1 = (unsigned char)s[i++]; out.push_back((wchar_t)(((c&0x1F)<<6)|(c1&0x3F))); }
+            else if((c>>4)==0xE && i+1<len){ unsigned c1=(unsigned char)s[i++], c2=(unsigned char)s[i++]; out.push_back((wchar_t)(((c&0x0F)<<12)|((c1&0x3F)<<6)|(c2&0x3F))); }
+            else if((c>>3)==0x1E && i+2<len){ unsigned c1=(unsigned char)s[i++], c2=(unsigned char)s[i++], c3=(unsigned char)s[i++]; uint32_t cp = ((c&0x07)<<18)|((c1&0x3F)<<12)|((c2&0x3F)<<6)|(c3&0x3F); out.push_back((wchar_t)cp); }
+        }
+        return out;
+#endif
+    }
+
+    String ToString() const { return String(WideToUtf8(*this).c_str()); }
 };
+
+// Define String::ToWString now that WString is complete
+inline WString String::ToWString() const {
+    return WString(WString::Utf8ToWide(Begin(), (size_t)GetLength()));
+}

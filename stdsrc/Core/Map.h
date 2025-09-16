@@ -4,7 +4,7 @@
 template <class K, class T>
 class VectorMap {
     std::vector<std::pair<K, T>> items;      // preserves order
-    std::unordered_map<K, int>    pos;       // key -> index
+    std::map<K, int>              pos;       // key -> index
 
     void rebuild() {
         pos.clear();
@@ -113,4 +113,3 @@ public:
     auto begin() const { return items.begin(); }
     auto end() const { return items.end(); }
 };
-

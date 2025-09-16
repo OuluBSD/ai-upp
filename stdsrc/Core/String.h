@@ -1,6 +1,8 @@
 // U++-compatible String wrapper implemented on top of std::string
 // This header is aggregated and wrapped into namespace Upp by Core.h
 
+class WString; // forward declaration
+
 class String : public std::string {
 public:
     using Base = std::string;
@@ -114,6 +116,7 @@ public:
     // Conversions
     std::string ToStd() const { return *this; }
     const String& ToString() const { return *this; }
+    WString ToWString() const;
     int GetCharCount() const { return GetLength(); }
     static String GetVoid() { return String(); }
     bool IsVoid() const { return false; }

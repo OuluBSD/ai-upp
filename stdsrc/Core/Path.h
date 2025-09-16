@@ -271,7 +271,7 @@ inline String GetFileOnPath(const char* file, const char* paths, bool current = 
     String ps(paths);
     int start = 0;
     for(int i = 0; i <= ps.GetLength(); ++i) {
-        if(i == ps.GetLength() || ps[i] == ';' || ps[i] == ':') {
+        if(i == ps.GetLength() || ps[i] == ';') {
             String one = ps.Mid(start, i - start);
             if(!one.IsEmpty()) {
                 String p = AppendFileName(one, file);
@@ -324,6 +324,13 @@ inline int ScanTimeZone(const char* s) { return ScanTimeZoneText(s); }
 
 inline String GetFileOnPath(const String& file, const char* paths, bool current = true, const char* curdir = NULL) {
     return GetFileOnPath(file.Begin(), paths, current, curdir);
+}
+
+inline bool CreateSymLink(const char* target, const char* linkpath, bool directory = false) {
+    std::error_code ec;
+    if(directory) fs::create_directory_symlink(fs::u8path(target), fs::u8path(linkpath), ec);
+    else fs::create_symlink(fs::u8path(target), fs::u8path(linkpath), ec);
+    return !ec;
 }
 
 // --- File attribute helpers ---

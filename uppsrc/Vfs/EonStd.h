@@ -27,6 +27,7 @@ struct EonStd {
 	
 public:
 	AstNode* builtin_void = 0;
+	#if 0
 	AstNode* builtin_int = 0;
 	AstNode* builtin_long = 0;
 	AstNode* builtin_uint = 0;
@@ -45,7 +46,6 @@ public:
 	AstNode* meta_builtin_stmt = 0;
 	AstNode* meta_builtin_machstmt = 0;
 	AstNode* meta_builtin_chainstmt = 0;
-	AstNode* meta_builtin_loopstmt = 0;
 	AstNode* meta_builtin_atomstmt = 0;
 	AstNode* meta_builtin_worldstmt = 0;
 	AstNode* meta_builtin_systemstmt = 0;
@@ -53,8 +53,9 @@ public:
 	AstNode* meta_builtin_entitystmt = 0;
 	AstNode* meta_builtin_compstmt = 0;
 	AstNode* meta_builtin_params = 0;
+	#endif
+	AstNode* meta_builtin_loopstmt = 0;
 	AstNode* meta_builtin_expr = 0;
-	
 	
 	virtual AstNode& GetRoot() = 0;
 	

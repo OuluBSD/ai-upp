@@ -49,6 +49,9 @@ template <class T> void DefaultCreateOnStart() {TODO /*Engine::WhenPreFirstUpdat
 
 END_UPP_NAMESPACE
 
+Upp::Engine& ShellMainEngine();
+void ShellMain(bool skip_eon);
+
 #endif
 
 

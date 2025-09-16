@@ -281,6 +281,7 @@ public:
 	int&			GetSideIdCounter() {return tmp_side_id_counter;}
 	int				NewConnectionId() {return tmp_side_id_counter++;}
 	void			AddError(const FileLocation& loc, String msg) {ErrorSource::AddError(loc, msg);}
+	bool			LoadAst(AstNode* root);
 	
 	
 protected:

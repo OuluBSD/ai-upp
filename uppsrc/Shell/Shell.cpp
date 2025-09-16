@@ -26,7 +26,13 @@ void DesktopMain() {
 END_UPP_NAMESPACE
 
 
-GUI_APP_MAIN
+#ifdef flagMAIN
+GUI_APP_MAIN {
+	ShellMain(false);
+}
+#endif
+
+void ShellMain(bool skip_eon)
 {
 	using namespace Upp;
 	Serial::Machine::WhenInitialize << callback(DefaultSerialInitializer);
@@ -120,7 +126,7 @@ void DesktopMain(Upp::Engine& mach, bool _3d) {
 	}
 	#endif
 }
-
+#endif
 
 #ifdef flagGUI
 
@@ -140,12 +146,29 @@ GUI_APP_MAIN {
 #else
 
 
+#ifdef flagMAIN
 CONSOLE_APP_MAIN {
+	ShellMain(false);
+}
+#endif
+
+Upp::Engine& ShellMainEngine()
+{
+	using namespace Upp;
+	Engine& eng = MetaEnv().root.GetAdd<Engine>("eng");
+	return eng;
+}
+
+void ShellMain(bool skip_eon)
+{
 	using namespace Upp;
 	
-	Engine& eng = MetaEnv().root.GetAdd<Engine>("eng");
+	Engine& eng = ShellMainEngine();
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
-	eng.WhenBoot << callback(DefaultSerialInitializer);
+	if (skip_eon)
+		eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
+	else
+		eng.WhenBoot << callback(DefaultSerialInitializer);
 	bool gubo = false;
 	if (gubo) {
 		eng.WhenUserProgram << callback1(DesktopMain, true);
@@ -155,10 +178,9 @@ CONSOLE_APP_MAIN {
 	
 	eng.MainLoop();
 	
-	Engine::Uninstall(&eng);
+	Engine::Uninstall(true, &eng);
 }
 
-#endif
 
 
 #endif

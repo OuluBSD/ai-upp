@@ -160,6 +160,7 @@ public:
 	Event<Engine&> WhenPreFirstUpdate;
 	Event<Engine&> WhenPostInitialize;
 	Event<Engine&> WhenBoot;
+	Event<Engine&> WhenUserInitialize;
 	Event<Engine&> WhenUserProgram;
 	
 	//EntitySystem& GetEntitySystem() {ASSERT(sys); return *sys;}

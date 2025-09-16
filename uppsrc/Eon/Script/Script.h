@@ -16,6 +16,7 @@ NAMESPACE_UPP
 #include "ShadertoyLoader.h"
 #include "EcsLoader.h"
 #include "EonLoader.h"
+#include "Builder.h"
 
 END_UPP_NAMESPACE
 

@@ -67,8 +67,8 @@ bool Engine::CommandLineInitializer(bool skip_eon_file) {
 	#endif
 	
 	// Script interpreter platform startup
-	{
-		if (!skip_eon_file && eon_file.IsEmpty()) {
+	if (!skip_eon_file) {
+		if (eon_file.IsEmpty()) {
 			cmd.PrintHelp();
 			LOG("");
 			LOG("\te.g. -e play_audio_file.eon -MACHINE_TIME_LIMIT=3 -FILE=/home/user/some.mp3");
@@ -207,6 +207,9 @@ bool Engine::Start(String script_content, String script_file, Value args_, bool 
 						return false;
 					}
 				}
+			    else {
+			        WhenUserInitialize(*this);
+			    }
 		    }
 		    
 		    if (!fail) {

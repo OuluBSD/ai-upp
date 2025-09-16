@@ -19,6 +19,7 @@ INITBLOCK {
 
 	// Environment state
 	VfsValueExtFactory::Register<EnvState>("EnvState", VFSEXT_COMPONENT, "env.state", "Util|Env");
+	VfsValueExtFactory::Register<Eon::Builder>("Eon::Builder", VFSEXT_COMPONENT, "eon.builder", "Eon|Builder");
 }
 
 END_UPP_NAMESPACE

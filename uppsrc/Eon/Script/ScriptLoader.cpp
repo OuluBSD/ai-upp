@@ -1,5 +1,7 @@
 #include "Script.h"
 
+#define VERBOSE_SCRIPT_LOADER 0
+
 NAMESPACE_UPP
 
 extern void (*Eon_PostLoadString)(Engine& eng, String script_str);
@@ -152,7 +154,10 @@ bool ScriptLoader::Load(const String& content, const String& filepath) {
 		WhenLeaveScriptLoad();
 		return false;
 	}
-	
+	return LoadAst(root);
+}
+
+bool ScriptLoader::LoadAst(AstNode* root) {
 	if (!LoadCompilationUnit(root)) {
 		LOG("error dump:");
 		if (loader) loader->Dump();
@@ -330,7 +335,9 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 	bool has_world = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
+		#if VERBOSE_SCRIPT_LOADER
 		LOG(item->GetTreeString(0));
+		#endif
 		if (item->src == Cursor_WorldStmt) {
 			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
@@ -355,7 +362,10 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
+	#if VERBOSE_SCRIPT_LOADER
 	LOG(n->GetTreeString());
+	#endif
+	
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints2(items, Cursor_EcsStmt, Cursor_OldEcsStmt);
 	Sort(items, AstNodeLess());
@@ -532,7 +542,9 @@ bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
+	#if VERBOSE_SCRIPT_LOADER
 	LOG(n->GetTreeString(0));
+	#endif
 	
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> items;
@@ -1028,8 +1040,11 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 							return false;
 						}
 						
+						#if VERBOSE_SCRIPT_LOADER
 						LOG(ClassPathTop(src->ToString()) + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + ClassPathTop(sink->ToString()) + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");
-						
+						#else
+						RTLOG(ClassPathTop(src->ToString()) + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + ClassPathTop(sink->ToString()) + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");
+						#endif
 						
 						loop0.UpdateLoopLimits();
 						loop1.UpdateLoopLimits();

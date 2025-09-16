@@ -36,5 +36,7 @@ file
 	EcsLoader.h,
 	EcsLoader.icpp,
 	EonLoader.h,
-	EonLoader.cpp;
+	EonLoader.cpp,
+	Builder.h,
+	Builder.cpp;
 

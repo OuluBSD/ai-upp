@@ -15,6 +15,7 @@ struct Id {
 	
 	void Clear() {parts.Clear();}
 	void Set(String s) {parts.Clear(); parts.Add(s);}
+	void Parse(String s) {parts = Split(s, ".");}
 	void operator=(const Id& v) {parts <<= v.parts;}
 	String ToString() const;
 	String GetTreeString(int indent=0) const;

@@ -70,6 +70,7 @@ String EonStd::GetRelativePartStringArray(const AstNode& n) const {
 
 void EonStd::InitDefault(bool add_root) {
 	builtin_void =			AddBuiltinType("void");
+	#if 0
 	builtin_int =			AddBuiltinType("int");
 	builtin_long =			AddBuiltinType("long");
 	builtin_uint =			AddBuiltinType("uint");
@@ -90,7 +91,6 @@ void EonStd::InitDefault(bool add_root) {
 	
 	meta_builtin_machstmt =		AddMetaBuiltinType("machstmt");
 	meta_builtin_chainstmt =	AddMetaBuiltinType("chainstmt");
-	meta_builtin_loopstmt =		AddMetaBuiltinType("loopstmt");
 	
 	meta_builtin_atomstmt =		AddMetaBuiltinType("atomstmt");
 	meta_builtin_worldstmt =	AddMetaBuiltinType("worldstmt");
@@ -99,8 +99,9 @@ void EonStd::InitDefault(bool add_root) {
 	meta_builtin_entitystmt =	AddMetaBuiltinType("entitystmt");
 	meta_builtin_compstmt =		AddMetaBuiltinType("compstmt");
 	meta_builtin_params =		AddMetaBuiltinType("params");
+	#endif
 	meta_builtin_expr =			AddMetaBuiltinType("expr");
-	
+	meta_builtin_loopstmt =		AddMetaBuiltinType("loopstmt");
 	
 	{
 		AstNode& logger = GetRoot().Add(FileLocation(), "LOG");

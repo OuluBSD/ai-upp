@@ -5,6 +5,7 @@ Read These First
 - `TASKS.md`: tasks and roadmap for the repository.
 - `HIERARCHY.md`: overview of important folders.
 - `agents/`: helper code and examples used by AGENTS guides.
+- `stdsrc/AGENTS.md`: STL-backed Core (U++-compatible) for agents and tests.
 
 Deep Dives
 - TheIDE (IDE application and modules): see `uppsrc/ide/AGENTS.md`. Each subpackage under `uppsrc/ide/*` also has its own AGENTS with extension points and file maps.

@@ -15,6 +15,7 @@ struct Spec {
 	bool plus = false;       // '+' sign
 	bool space = false;      // ' ' sign space
 	bool comma = false;      // ',' decimal comma
+	bool apostrophe = false; // '\'' thousands grouping
 	bool hash = false;       // '#'
 	bool excl = false;       // '!'
 	bool caret = false;      // '^' exponent sign hide
@@ -56,9 +57,10 @@ inline const char* parse_spec(const char* p, Spec& s)
 			return nullptr;
 		s.map_spec = String(b, int(p - b));
 		++p;
-		if(*p == '~') {
-			++p;
-		}
+        if(*p == '~') {
+            ++p;
+            s.null_text = s.map_spec; // %[text]~ => treat as null-text mapping
+        }
 	}
 	// positional index N:
 	if(isdigit_c(*p)) {
@@ -91,6 +93,10 @@ inline const char* parse_spec(const char* p, Spec& s)
 			break;
 		case ',':
 			s.comma = true;
+			++p;
+			break;
+		case '\'':
+			s.apostrophe = true;
 			++p;
 			break;
 		case '#':
@@ -347,12 +353,12 @@ inline String format_double_m(double x, const Spec& s, char mode = 0)
 			if(c == '.')
 				c = ',';
 	}
-	if(s.type == 'M') {
-		for(char& c : t)
-			if(c == 'e')
-				c = 'E';
-	}
-	return String(t.c_str());
+    if(s.type == 'M' || s.m_suffix == 'E') {
+        for(char& c : t)
+            if(c == 'e')
+                c = 'E';
+    }
+    return String(t.c_str());
 }
 
 inline String apply_width_align(const String& in, const Spec& s)
@@ -461,22 +467,23 @@ inline String keyword_format(const String& kw, const std::any& a, const Spec& s)
 		}
 		return out;
 	}
-	if(kw.Find("tw") >= 0) {
-		int v = 0;
-		if(a.type() == typeid(int))
-			v = std::any_cast<int>(a);
-		else if(a.type() == typeid(double))
-			v = (int)std::any_cast<double>(a);
-		v = ((v - 1) % 12 + 12) % 12 + 1;
-		String out = String(std::to_string(v).c_str());
-		if(s.zero && s.has_width && s.width >= 2 && out.GetLength() < 2) {
-			String p("0");
-			p.Cat(out);
-			out = p;
-		}
-		return out;
-	}
-	return String();
+    if(kw.Find("tw") >= 0) {
+        int v = 0;
+        if(a.type() == typeid(int))
+            v = std::any_cast<int>(a);
+        else if(a.type() == typeid(double))
+            v = (int)std::any_cast<double>(a);
+        v = ((v - 1) % 12 + 12) % 12 + 1;
+        String out = String(std::to_string(v).c_str());
+        int minw = s.zero ? 2 : 0;
+        if(s.has_width)
+            minw = std::max(minw, s.width);
+        while(out.GetLength() < minw) {
+            String p("0"); p.Cat(out); out = p;
+        }
+        return out;
+    }
+    return String();
 }
 
 inline String map_select(const String& mapspec, const std::any& a)
@@ -505,29 +512,38 @@ inline String map_select(const String& mapspec, const std::any& a)
 	}
 	String def;
 	auto to_int = [](const String& s) { return (int)std::strtol(s.Begin(), nullptr, 10); };
-	for(const auto& e : parts) {
-		int colon = e.Find(':');
-		if(colon < 0) {
-			def = e;
-			continue;
-		}
-		String key = e.Left(colon);
-		String text = e.Mid(colon + 1);
-		if(hasint) {
-			int modpos = key.Find('%');
-			if(modpos >= 0) {
-				int M = to_int(String(key.Begin(), key.Begin() + modpos));
-				int r = to_int(String(key.Begin() + modpos + 1, key.End()));
-				if(M != 0 && val % M == r)
-					return text;
-			}
-			else {
-				if(to_int(key) == val)
-					return text;
-			}
-		}
-	}
-	return def;
+    // Detect shared modulus if any key uses M%r
+    int sharedM = 0;
+    for(const auto& e : parts) {
+        int colon = e.Find(':'); if(colon < 0) continue;
+        String key = e.Left(colon);
+        int modpos = key.Find('%');
+        if(modpos >= 0) { sharedM = to_int(String(key.Begin(), key.Begin() + modpos)); break; }
+    }
+    for(const auto& e : parts) {
+        int colon = e.Find(':');
+        if(colon < 0) { def = e; continue; }
+        String key = e.Left(colon);
+        String text = e.Mid(colon + 1);
+        if(!hasint) continue;
+        int modpos = key.Find('%');
+        if(modpos >= 0) {
+            int M = to_int(String(key.Begin(), key.Begin() + modpos));
+            int r = to_int(String(key.Begin() + modpos + 1, key.End()));
+            if(M != 0 && val % M == r)
+                return text;
+        }
+        else if(sharedM > 0) {
+            int r = to_int(key);
+            if(val % sharedM == r)
+                return text;
+        }
+        else {
+            if(to_int(key) == val)
+                return text;
+        }
+    }
+    return def;
 }
 
 template <class T>
@@ -586,20 +602,30 @@ inline String format_arg(const std::any& a, const Spec& s)
 			r = int_to_base(uv, 16, true);
 		else
 			r = int_to_base(uv, 10, false);
+		// thousands grouping for decimal when requested
+		if((t == 'd' || t == 'i') && s.apostrophe) {
+			char sep = s.comma ? '.' : ','; // with decimal-comma flag, use '.' as thousands sep
+			// insert separators every 3 digits from the right
+			std::string tmp = to_std_string(r);
+			std::string grouped;
+			grouped.reserve(tmp.size() + tmp.size() / 3);
+			int count = 0;
+			for(int i = int(tmp.size()) - 1; i >= 0; --i) {
+				grouped.push_back(tmp[i]);
+				if(++count == 3 && i > 0) { grouped.push_back(sep); count = 0; }
+			}
+			std::reverse(grouped.begin(), grouped.end());
+			r = String(grouped.c_str());
+		}
+		// sign handling
 		if(neg) {
-			String m("-");
-			m.Cat(r);
-			r = m;
+			String m("-"); m.Cat(r); r = m;
 		}
 		else if(s.plus) {
-			String m("+");
-			m.Cat(r);
-			r = m;
+			String m("+"); m.Cat(r); r = m;
 		}
 		else if(s.space) {
-			String m(" ");
-			m.Cat(r);
-			r = m;
+			String m(" "); m.Cat(r); r = m;
 		}
 		return r;
 	}

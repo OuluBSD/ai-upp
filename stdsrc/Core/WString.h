@@ -6,9 +6,6 @@ public:
     using Base = std::wstring;
     using Base::basic_string; // inherit std::wstring constructors
     
-#ifdef _WIN32
-#include <windows.h>
-#endif
 
     // Interop with std::wstring
     WString(const std::wstring& s) : Base(s) {}

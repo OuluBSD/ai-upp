@@ -16,7 +16,7 @@ inline bool Base64Decode(const String& in, std::vector<unsigned char>& out) {
     const char* AL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     for(int i=0;i<64;i++) T[(unsigned char)AL[i]] = i;
     int val = 0, valb = -8; out.clear(); out.reserve(in.GetLength());
-    for(int i=0;i<in.GetLength();++i){ unsigned char c = in[i]; if(std::isspace(c)) continue; if(c=='=') break; int d = c<256 ? T[c] : -1; if(d==-1) return false; val = (val<<6) + d; valb += 6; if(valb>=0){ out.push_back(char((val>>valb)&0xFF)); valb-=8; } }
+    for(int i=0;i<in.GetLength();++i){ int c = in[i]; if(std::isspace(c)) continue; if(c=='=') break; int d = c>=0 && c<256 ? T[c] : -1; if(d==-1) return false; val = (val<<6) + d; valb += 6; if(valb>=0){ out.push_back(char((val>>valb)&0xFF)); valb-=8; } }
     return true;
 }
 

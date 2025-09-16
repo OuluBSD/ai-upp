@@ -6,18 +6,22 @@ Objective
 Current Status (2025-09)
 - Phase 1 + 2 complete; Core is broadly usable for agent work and tests.
 - Aggregator, strings, containers, path/streams/time-date, formatting, conversion, JSON/XML, Base64 are implemented with an emphasis on practical source compatibility.
+ - Mirrored additional core headers as STL-backed shims: `config.h` (macros), `Algo.h`, `Sort.h`, `Tuple.h`, `Complex.h`, `Color.h`, `Gtypes.h`, `i18n.h`.
 
 Implemented (files)
 - Aggregator & Infrastructure
   - `Core.h`: centralizes system includes; wraps headers in `namespace Upp`; defines platform macros: `PLATFORM_WIN32` (Windows) or `PLATFORM_POSIX` (others) and `flagPOSIX`; path macros `DIR_SEP` and `DIR_SEPS`.
   - `Core.upp`: lists headers (BLITZ-friendly).
   - `Defs.h`: base typedefs (`byte`, `word`, `dword`, `qword`, `int16`, `int64`, `wchar`, `char16`), `Nuller`, markers, `pick`, `ASSERT`.
+  - `config.h`: copied from U++ with minimal adjustments (optional `<uppconfig.h>`), to align platform/CPU/compiler macros.
 
 - Strings & Containers
   - `String.h`, `WString.h`: wrappers over `std::string`/`std::wstring`. Conversions:
     - Windows: `MultiByteToWideChar/WideCharToMultiByte (UTF-8)`.
     - POSIX: `mbsrtowcs/wcsrtombs` with fallback manual UTF‑8 codec.
   - `Vcont.h` (`Vector<T>`), `Index.h` (unique set; `std::map` index), `Map.h` (`VectorMap<K,T>` preserving order).
+  - `Array.h`: stable-pointer `Array<T>` implemented as `std::vector<std::unique_ptr<T>>` with ownership, bulk, reorder, and predicate helpers.
+  - `ArrayMap.h`: ordered map with values owned via pointers for stable addresses; lookup via `std::map<K,int>` with insert/update, reorder, append, and iteration helpers.
   - `One.h` (unique ownership), `Ptr.h` (non-owning ptr).
   - `Hash.h`: `hash_t`, `CombineHash`, `GetHashValue` specializations.
   - `Uuid.h`: v4 generator, `ToString()`, `TryParse()`.
@@ -38,6 +42,10 @@ Implemented (files)
     - Mapping `%[k:text;...;default]s` and null mapping `%[text]~d`.
     - Suffix via backtick: `%d\`pt` → `123pt` (backtick is not printed).
   - `Base64.h`: buffer + Stream Base64 encode/decode.
+  - `Algo.h`: small helpers (`Min/Max/Clamp/sgn/InRange`).
+  - `Sort.h`: STL-backed sorting/search helpers.
+  - `Tuple.h`: `std::tuple` aliases.
+  - `Complex.h`: `std::complex` aliases.
 
 - Time, Files & Paths
   - `TimeDate.h`: `Date`, `Time`, arithmetic, `Format(Date/Time)`, `ScanDate/ScanTime` (ISO-centric), timezone helpers (`GetTimeZone*`).
@@ -78,7 +86,6 @@ How to run tests
 
 Backlog / Next steps
 - Format
-  - Add integer thousands-grouping (locale or explicit flag) if needed.
   - Extend `%m` to true engineering steps (exponent multiple of 3) with a flag.
   - Add full sign/space/zero-pad interactions parity for floats.
 - Path
@@ -105,8 +112,17 @@ Contributor notes
 - Document deviations here and in `stdsrc/AGENTS.md`.
 
 Changelog (recent highlights)
+- Implemented Array/ArrayMap with stable-pointer semantics and rich helpers; added tests under `stdtst/Array`.
+- Extended VectorMap/Index with insert/reorder/append/search helpers; added tests under `stdtst/MapIndex`.
+- Added config.h mirrored from U++ Core, included by Core.h.
+- Added STL-backed shims: Algo.h, Sort.h, Tuple.h, Complex.h, Color.h, Gtypes.h, i18n.h.
+- Added integer thousands-grouping for `%d/%i` via apostrophe flag (`%'d`). Separator is `,` by default, `.` when the `,` (decimal comma) flag is present. Tests updated in `stdtst/Format`.
 - Added platform macros + `DIR_SEP(S)`.
 - Replaced `<codecvt>` with Win32/CRT-based UTF‑8/wide conversions and UTF‑8 fallback.
 - Implemented U++-style `Format` with backtick suffix and `%m` semantics.
+ - Graphics/Geometry & i18n
+  - `Color.h`: minimal RGBA.
+  - `Gtypes.h`: minimal `Point/Size/Rect`.
+  - `i18n.h`: translation macros passthrough and no-op module add.
 - Implemented Path/Streams/TimeDate, JSON/XML, Base64.
 - Added `stdtst` tests for Format, Path, Stream, Convert, JSON/XML, Base64.

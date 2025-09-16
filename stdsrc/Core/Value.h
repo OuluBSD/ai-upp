@@ -37,6 +37,19 @@ public:
     template <class T>
     bool Is() const { return !null && a.type() == typeid(T); }
 
+    template <class T>
+    bool TryGet(T& out) const noexcept {
+        if(Is<T>()) { out = std::any_cast<const T&>(a); return true; }
+        return false;
+    }
+    template <class T>
+    T GetOrDefault(const T& def = T{}) const {
+        if(Is<T>()) return std::any_cast<const T&>(a);
+        return def;
+    }
+    bool IsNumber() const { return Is<int>() || Is<long long>() || Is<double>(); }
+    bool IsStringLike() const { return Is<String>() || Is<WString>() || Is<const char*>(); }
+
     // String conversion
     String ToString() const {
         if(null) return String();
@@ -50,5 +63,21 @@ public:
         if(a.type() == typeid(double)) return String(std::to_string(std::any_cast<double>(a)).c_str());
         return String("<value>");
     }
-};
 
+    friend bool operator==(const Value& x, const Value& y) {
+        if(x.null != y.null) return false;
+        if(x.null) return true;
+        if(x.a.type() == y.a.type()) {
+            if(x.Is<int>()) return std::any_cast<int>(x.a) == std::any_cast<int>(y.a);
+            if(x.Is<long long>()) return std::any_cast<long long>(x.a) == std::any_cast<long long>(y.a);
+            if(x.Is<double>()) return std::any_cast<double>(x.a) == std::any_cast<double>(y.a);
+            if(x.Is<bool>()) return std::any_cast<bool>(x.a) == std::any_cast<bool>(y.a);
+            if(x.Is<String>()) return std::any_cast<String>(x.a) == std::any_cast<String>(y.a);
+            if(x.Is<WString>()) return std::any_cast<WString>(x.a) == std::any_cast<WString>(y.a);
+        }
+        // Fallback to string compare for differing numeric types
+        if(x.IsNumber() && y.IsNumber()) return x.ToString() == y.ToString();
+        return false;
+    }
+    friend bool operator!=(const Value& x, const Value& y) { return !(x == y); }
+};

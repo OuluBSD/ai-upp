@@ -32,6 +32,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <tuple>
+#include <complex>
+#include <mutex>
+
+#ifdef _WIN32
+#include <windows.h>
+#undef min
+#undef max
+#endif
 
 // Namespace wrappers (deprecated in original, but used to wrap aggregated headers)
 #ifndef NAMESPACE_UPP
@@ -40,7 +49,16 @@
 #define UPP               Upp
 #endif
 
-// Platform convenience macros (align roughly with U++)
+// Token pasting helper for macros
+#ifndef UPP_COMBINE
+#define UPP_COMBINE__(a,b) a##b
+#define UPP_COMBINE(a,b) UPP_COMBINE__(a,b)
+#endif
+
+// Bring in U++-style platform/CPU/compiler macros
+#include "config.h"
+
+// Fallback minimal platform macros if config.h did not set them
 #if defined(_WIN32)
 #  ifndef PLATFORM_WIN32
 #    define PLATFORM_WIN32 1
@@ -80,11 +98,22 @@ NAMESPACE_UPP
 #include "Hash.h"
 #include "Value.h"
 #include "Util.h"
+#include "Profile.h"
 #include "Uuid.h"
 #include "TimeDate.h"
 #include "Stream.h"
 #include "FileStream.h"
 #include "Path.h"
+#include "Algo.h"
+#include "Sort.h"
+#include "Tuple.h"
+#include "Complex.h"
+#include "Color.h"
+#include "Gtypes.h"
+#include "Array.h"
+#include "ArrayMap.h"
+#include "i18n.h"
+#include "Lang.h"
 #include "Ptr.h"
 #include "Function.h"
 #include "Callback.h"
@@ -94,6 +123,9 @@ NAMESPACE_UPP
 #include "JSON.h"
 #include "XML.h"
 #include "Base64.h"
+#include "Log.h"
+#include "App.h"
+
 END_UPP_NAMESPACE
 
 // Convenience: match common free helper used by logging/formatting
@@ -112,5 +144,6 @@ template <> struct hash<Upp::WString> {
     }
 };
 }
+
 
 #endif // STDSRC_CORE_CORE_H

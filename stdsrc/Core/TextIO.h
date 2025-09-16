@@ -37,19 +37,41 @@ public:
 
 inline bool SaveFileAsString(const char* path, const String& content) {
     FileStream fs(path, FileStream::WRITE);
-    if(!fs.IsEof() || true) { fs.Put(content.Begin(), content.GetLength()); return true; }
-    return false;
+    if(!fs.Tell() && fs.IsEof()) { /* opened empty file */ }
+    fs.Put(content.Begin(), content.GetLength());
+    return true;
 }
 
 inline String LoadFileAsString(const char* path) {
     FileStream fs(path, FileStream::READ);
-    if(!fs.IsEof() || true) {
-        size_t sz = fs.GetSize(); String out; out.Reserve((int)sz);
-        std::vector<char> tmp(sz);
-        size_t n = fs.Get(tmp.data(), sz);
-        out.Cat(tmp.data(), (int)n);
-        return out;
-    }
-    return String();
+    size_t sz = fs.GetSize(); String out; out.Reserve((int)sz);
+    std::vector<char> tmp(sz);
+    size_t n = fs.Get(tmp.data(), sz);
+    out.Cat(tmp.data(), (int)n);
+    return out;
 }
 
+inline bool LoadFile(const char* path, String& out) {
+    out = LoadFileAsString(path);
+    return true;
+}
+inline bool SaveFile(const char* path, const String& content) {
+    return SaveFileAsString(path, content);
+}
+
+inline bool AppendFileAsString(const char* path, const String& content) {
+    FileStream fs; if(!fs.Open(path, FileStream::OpenMode(FileStream::WRITE|FileStream::READ))) return false;
+    fs.Seek(fs.GetSize()); fs.Put(content.Begin(), content.GetLength()); return true;
+}
+
+inline bool ReadLines(const char* path, Vector<String>& lines) {
+    FileStream fs(path, FileStream::READ);
+    TextReader r(fs); String line;
+    while(r.GetLine(line)) lines.Add(line);
+    return true;
+}
+inline bool WriteLines(const char* path, const Vector<String>& lines, bool end_newline = true) {
+    FileStream fs(path, FileStream::WRITE);
+    for(int i=0;i<lines.GetCount();++i){ fs.Put(lines[i].Begin(), lines[i].GetLength()); char nl='\n'; if(end_newline || i+1<lines.GetCount()) fs.Put(&nl,1); }
+    return true;
+}

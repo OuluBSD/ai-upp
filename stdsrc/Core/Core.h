@@ -42,6 +42,8 @@
 #undef max
 #endif
 
+#undef small
+
 // Namespace wrappers (deprecated in original, but used to wrap aggregated headers)
 #ifndef NAMESPACE_UPP
 #define NAMESPACE_UPP     namespace Upp {
@@ -144,6 +146,11 @@ template <> struct hash<Upp::WString> {
     }
 };
 }
+
+// Console app macro for quick main() definition
+#ifndef CONSOLE_APP_MAIN
+#define CONSOLE_APP_MAIN int main(int /*argc*/, const char** /*argv*/)
+#endif
 
 
 #endif // STDSRC_CORE_CORE_H

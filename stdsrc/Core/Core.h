@@ -8,7 +8,6 @@
 #include <string>
 #include <cwchar>
 #include <locale>
-#include <codecvt>
 #include <stdexcept>
 #include <utility>
 #include <algorithm>
@@ -21,6 +20,7 @@
 #include <fstream>
 #include <cctype>
 #include <unordered_map>
+#include <map>
 #include <vector>
 #include <memory>
 #include <any>
@@ -38,6 +38,31 @@
 #define NAMESPACE_UPP     namespace Upp {
 #define END_UPP_NAMESPACE }
 #define UPP               Upp
+#endif
+
+// Platform convenience macros (align roughly with U++)
+#if defined(_WIN32)
+#  ifndef PLATFORM_WIN32
+#    define PLATFORM_WIN32 1
+#  endif
+#else
+#  ifndef PLATFORM_POSIX
+#    define PLATFORM_POSIX 1
+#  endif
+#  ifndef flagPOSIX
+#    define flagPOSIX 1
+#  endif
+#endif
+
+// Directory separator macros (compat with U++ Core)
+#ifndef DIR_SEP
+  #ifdef _WIN32
+    #define DIR_SEP  '\\'
+    #define DIR_SEPS "\\"
+  #else
+    #define DIR_SEP  '/'
+    #define DIR_SEPS "/"
+  #endif
 #endif
 
 // Minimal forward declarations/types sometimes present in U++ Core
@@ -66,6 +91,9 @@ NAMESPACE_UPP
 #include "Format.h"
 #include "Convert.h"
 #include "TextIO.h"
+#include "JSON.h"
+#include "XML.h"
+#include "Base64.h"
 END_UPP_NAMESPACE
 
 // Convenience: match common free helper used by logging/formatting

@@ -4,7 +4,7 @@
 template <class T>
 class Index {
     std::vector<T> items;
-    std::unordered_map<T, int> pos; // key -> index
+    std::map<T, int> pos; // key -> index
 
     void rebuild() {
         pos.clear();
@@ -90,4 +90,3 @@ public:
     auto begin() const { return items.begin(); }
     auto end() const { return items.end(); }
 };
-

@@ -7,7 +7,6 @@ public:
     bool GetLine(String& out) {
         out.Clear();
         if(!in) return false;
-        char ch;
         while(true){
             unsigned char c;
             size_t n = in->Get(&c, 1);

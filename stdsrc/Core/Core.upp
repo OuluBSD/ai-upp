@@ -24,5 +24,8 @@ file
 	Callback.h,
 	Format.h,
 	Convert.h,
-	TextIO.h;
+	TextIO.h,
+	Base64.h,
+	JSON.h,
+	XML.h;
 

@@ -31,10 +31,10 @@ CONSOLE_APP_MAIN {
 	Engine& eng = ShellMainEngine();
 	eng.WhenUserInitialize << [](Engine& eng) {
 		auto sys = eng.GetAdd<Eon::ScriptLoader>();
-		if (0) {
-			sys->PostLoadFile(GetDataFile("00a_audio_gen.eon"));
+		if (1) {
+			
 		}
-		else {
+		else if (1) {
 			Eon::Builder& builder = sys->val.GetAdd<Eon::Builder>("builder");
 			auto& loop = builder.AddLoop("tester.generator");
 			auto& a0 = loop.AddAtom("center.customer");
@@ -52,6 +52,9 @@ CONSOLE_APP_MAIN {
 			}
 			LOG(root->GetTreeString());
 			sys->LoadAst(root);
+		}
+		else {
+			sys->PostLoadFile(GetDataFile("00a_audio_gen.eon"));
 		}
 	};
 	

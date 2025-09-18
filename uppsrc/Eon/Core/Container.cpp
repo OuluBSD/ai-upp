@@ -2,6 +2,7 @@
 
 #if defined __GNUG__ && (defined flagGCC || defined flagCLANG)
 	#include <cxxabi.h>
+	#include <memory>
 #endif
 
 NAMESPACE_UPP

@@ -171,7 +171,7 @@ AudioFrames::AudioFrames( const float& value, int frame_count, int channel_count
 		}
 		#endif
 
-		for ( long i = 0; i < (long)size_; i++ ) data_[i] = value;
+		for ( int i = 0; i < size_; i++ ) data_[i] = value;
 	}
 
 	dataRate_ = Audio::GetSampleRate();

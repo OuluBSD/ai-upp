@@ -389,7 +389,11 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	#ifdef flagDEBUG_VFS
 	LOG("AstRunner::Visit: " + GetCodeCursorString(n.src) + " (" + HexStrPtr(&n) + ")");
 	if (0 && n.src == Cursor_ExprStmt) {
+		#ifdef flagWIN32
 		DebugBreak();
+		#else
+		raise(SIGTRAP);
+		#endif
 	}
 	#endif
 	

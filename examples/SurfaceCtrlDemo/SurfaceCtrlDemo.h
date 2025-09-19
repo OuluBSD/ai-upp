@@ -3,15 +3,31 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <GuboCore/GuboCore.h>
+#include <Eon/Draw/Draw.h>
 
 using namespace Upp;
 
 class SurfaceCtrl : public Ctrl {
     TopSurface top;
+    class Shapes2D : public GeomInteraction2D {
+        Color bg = Color(220, 240, 250);
+    public:
+        void Paint(Draw& w) override {
+            Rect rc = GetContentRect();
+            w.DrawRect(rc, bg);
+            w.DrawEllipse(rc.CenterRect(120, 80), LtRed(), 2, Black());
+            w.DrawLine(10, 10, rc.right - 10, rc.bottom - 10, 3, Blue());
+            w.DrawText(12, rc.bottom - 28, "Hello Surface + CtrlLib", StdFont().Bold(), Black());
+        }
+        void MouseEnter(Point, dword) override { bg = Color(240, 230, 210); Refresh(); }
+        void MouseLeave() override { bg = Color(220, 240, 250); Refresh(); }
+    } shapes;
 public:
     SurfaceCtrl() {
         top.SetFrameRect(RectC(0,0,100,100));
         top.CreateGeom2DComponent();
+        shapes.SizePos();
+        top.Add(shapes);
     }
     void Layout() override {
         top.SetFrameRect(GetSize());

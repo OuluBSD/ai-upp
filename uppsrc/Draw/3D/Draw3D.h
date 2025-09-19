@@ -1,5 +1,5 @@
-#ifndef _Local_Draw3D_h_
-#define _Local_Draw3D_h_
+#ifndef _Draw_3D_Draw3D_h_
+#define _Draw_3D_Draw3D_h_
 
 NAMESPACE_UPP
 
@@ -38,14 +38,11 @@ class Painting3 {
 Color DefaultInk();
 
 
-class Draw3 :
-	NoCopy,
-	RTTIBase
+class Draw3 : NoCopy
 {
 	struct DrawingPos;
 	
 public:
-	RTTI_DECL0(Draw3)
 	
 	enum {
 		DOTS = 0x001,

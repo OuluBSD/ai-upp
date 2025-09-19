@@ -6,6 +6,8 @@
 #endif
 #include <cmath>
 
+using namespace Upp;
+
 NAMESPACE_UPP
 
 GuboGLCtrl::GuboGLCtrl() {
@@ -61,7 +63,31 @@ void GuboGLCtrl::RenderGL() {
             top.DeepLayout();
         top.Redraw(false);
 
-        // Replay a subset of 3D commands (BOX_OP, LINE_OP, ELLIPSE_OP, POLYLINE_OP, ARC_OP, IMAGE_OP)
+        // Simple texture cache (per control lifetime)
+        struct TexNode { const RGBA* key; Size sz; GLuint id; };
+        static Vector<TexNode> texcache;
+        auto get_tex = [&](const Image& img)->GLuint {
+            const RGBA* key = img.Begin();
+            Size isz = img.GetSize();
+            for (const auto& n : texcache)
+                if (n.key == key && n.sz == isz)
+                    return n.id;
+            GLuint tex = 0;
+            glGenTextures(1, &tex);
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isz.cx, isz.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, key);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            TexNode& t = texcache.Add();
+            t.key = key; t.sz = isz; t.id = tex;
+            return tex;
+        };
+
+        // Replay a subset of 3D commands (BOX_OP, LINE_OP, ELLIPSE_OP, POLYLINE_OP, ARC_OP, IMAGE_OP, POLY_POLY_POLYGON_OP outline)
         const DrawCommand3* begin = &top.GetCommandBegin();
         const DrawCommand3* end   = &top.GetCommandEnd();
         for (const DrawCommand3* it = begin ? begin->next : nullptr; it && it != end; it = it->next) {
@@ -81,6 +107,39 @@ void GuboGLCtrl::RenderGL() {
                     glVertex3f(x+w,   y+h,   z);
                     glVertex3f(x,     y+h,   z);
                 glEnd();
+                break;
+            }
+            case DRAW3_TEXT_OP: {
+                if (!it->wtxt.IsEmpty()) {
+                    const WString& ws = it->wtxt;
+                    Font f = it->fnt;
+                    Color ink = it->color;
+                    Size tsz = GetTextSize(ws, f);
+                    if (tsz.cx <= 0 || tsz.cy <= 0) break;
+                    // Render text into Image via U++ Draw
+                    ImageDraw id(tsz);
+                    Draw& d = id.Alpha(); // ensure alpha channel
+                    d.DrawRect(tsz, Color(0,0,0,0));
+                    id.DrawText(0, 0, 0, ws.Begin(), f, ink, ws.GetCount(), nullptr);
+                    Image img = id;
+                    GLuint tex = get_tex(img);
+                    glEnable(GL_TEXTURE_2D);
+                    glBindTexture(GL_TEXTURE_2D, tex);
+                    glColor4ub(255,255,255,255);
+                    float x = it->pt.x;
+                    float y = it->pt.y;
+                    float z = it->pt.z;
+                    float w = (float)tsz.cx;
+                    float h = (float)tsz.cy;
+                    glBegin(GL_QUADS);
+                        glTexCoord2f(0.f, 0.f); glVertex3f(x,     y,     z);
+                        glTexCoord2f(1.f, 0.f); glVertex3f(x + w, y,     z);
+                        glTexCoord2f(1.f, 1.f); glVertex3f(x + w, y + h, z);
+                        glTexCoord2f(0.f, 1.f); glVertex3f(x,     y + h, z);
+                    glEnd();
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                    glDisable(GL_TEXTURE_2D);
+                }
                 break;
             }
             case DRAW3_LINE_OP: {
@@ -173,22 +232,9 @@ void GuboGLCtrl::RenderGL() {
                     float z = it->pt.z;
                     float w = it->sz.cx;
                     float h = it->sz.cy;
-                    // Upload texture (no caching for now)
-                    GLuint tex = 0;
+                    GLuint tex = get_tex(it->img);
                     glEnable(GL_TEXTURE_2D);
-                    glGenTextures(1, &tex);
                     glBindTexture(GL_TEXTURE_2D, tex);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                    // Build RGBA buffer
-                    Vector<byte> buf;
-                    buf.SetCount(isz.cx * isz.cy * 4);
-                    const RGBA* spx = it->img.Begin();
-                    memcpy(buf.Begin(), spx, buf.GetCount());
-                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isz.cx, isz.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf.Begin());
                     // Compute texcoords from src rect
                     float u0 = (float)src.left / (float)isz.cx;
                     float v0 = (float)src.top  / (float)isz.cy;
@@ -202,8 +248,34 @@ void GuboGLCtrl::RenderGL() {
                         glTexCoord2f(u0, v1); glVertex3f(x,     y + h, z);
                     glEnd();
                     glBindTexture(GL_TEXTURE_2D, 0);
-                    glDeleteTextures(1, &tex);
                     glDisable(GL_TEXTURE_2D);
+                }
+                break;
+            }
+            case DRAW3_POLY_POLY_POLYGON_OP: {
+                // Outline-only fallback; proper fill with holes requires triangulation.
+                const Color& outline = it->outline;
+                if (outline.IsNullInstance()) break;
+                glLineWidth(std::max(1.0f, it->width));
+                glColor4ub(outline.GetR(), outline.GetG(), outline.GetB(), 255);
+                int offset = 0;
+                int suboffset = 0;
+                for (int d = 0; d < it->disjunct_polygon_counts.GetCount(); ++d) {
+                    int subcnt = it->disjunct_polygon_counts[d];
+                    for (int s = 0; s < subcnt; ++s) {
+                        if (suboffset >= it->subpolygon_counts.GetCount()) break;
+                        int cnt = it->subpolygon_counts[suboffset++];
+                        if (cnt <= 1 || offset + cnt > it->points.GetCount()) {
+                            offset += cnt; continue;
+                        }
+                        glBegin(GL_LINE_LOOP);
+                        for (int i = 0; i < cnt; ++i) {
+                            const Point3f& p = it->points[offset + i];
+                            glVertex3f(p.x, p.y, p.z);
+                        }
+                        glEnd();
+                        offset += cnt;
+                    }
                 }
                 break;
             }

@@ -25,9 +25,14 @@ Plan (phased)
   - Use manager’s capture root and platform work-area from active scope.
 
 - Phase 3 — Event loop and focus hooks
-  - TopGubo::Run/OpenMain/FocusEvent/UpdateFromTransform3D
-  - TopSurface::Run/OpenMain/FocusEvent/UpdateFromTransform2D
-  - Strategy: call into the active manager (`Gu::GuboManager` / `Gu::SurfaceManager`) and reuse existing HAL/Eon main loop integration where available (e.g., `Surface::EventLoop()`/`MainLoop()`), keeping the public API shape similar to `TopWindow::Run`.
+  - Implemented
+    - TopGubo::Run/OpenMain/FocusEvent
+    - TopSurface::Run/OpenMain/FocusEvent
+  - Behavior
+    - OpenMain registers in manager and focuses the handle.
+    - Run focuses the container and enters the shared loop via Surface::EventLoop().
+    - FocusEvent asks the active manager to FocusHandle(this).
+  - UpdateFromTransform2D/3D remain TODO (deferred).
 
 - Phase 4 — 3D interaction parity
   - Base `GeomInteraction3D` now matches `GeomInteraction2D` defaults: content handlers are no-ops (return false), captured-path returns false. Frame-aware routing belongs to `Gubo` and is already implemented. No additional changes required unless specialized controls need overrides.

@@ -81,11 +81,11 @@ GeomInteraction2D* GeomInteraction2D::Get2D() {
 }
 
 Image GeomInteraction2D::FrameMouseEvent(int event, Point p, int zdelta, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 Image GeomInteraction2D::MouseEvent(int event, Point p, int zdelta, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 void GeomInteraction2D::MouseEnter(Point frame_p, dword keyflags) {
@@ -94,7 +94,7 @@ void GeomInteraction2D::MouseEnter(Point frame_p, dword keyflags) {
 }
 
 Image GeomInteraction2D::CursorImage(Point p, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 int GeomInteraction2D::GetCount() const {

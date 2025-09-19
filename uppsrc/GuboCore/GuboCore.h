@@ -5,6 +5,7 @@
 #include <Core2/Core.h>
 #include <CtrlCore/CtrlCore.h>
 #include <Draw/3D/3D.h>
+#include <Eon/Draw/Draw.h>
 
 #include "CtrlEvent.h"
 

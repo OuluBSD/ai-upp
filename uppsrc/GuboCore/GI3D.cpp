@@ -166,11 +166,11 @@ GeomInteraction3D* GeomInteraction3D::At(int i) {
 }
 
 Image GeomInteraction3D::FrameMouseEvent(int event, Point3f p, int zdelta, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 Image GeomInteraction3D::MouseEvent(int event, Point3f p, int zdelta, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 bool GeomInteraction3D::DeepMouseDispatch(int mouse_code, const Point3f& cpt, dword keyflags) {
@@ -484,7 +484,7 @@ void GeomInteraction3D::MouseEnter(Point3f frame_p, dword keyflags) {
 }
 
 Image GeomInteraction3D::CursorImage(Point3f p, dword keyflags) {
-	return DefaultImages::Arrow;
+	return Image::Arrow;
 }
 
 bool GeomInteraction3D::Dispatch(const CtrlEvent& e) {

@@ -1,5 +1,7 @@
 #include "GuboCore.h"
 #include <GuboLib/GuboLib.h>
+#include <GuboLib/ScopeT.h>
+#include <Eon/Eon.h>
 
 
 NAMESPACE_UPP
@@ -541,29 +543,36 @@ void Gubo::DeepFrameLayout() {
 
 
 Cubf Gubo::GetWorkArea() const {
-	TODO
+	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
+	if (wm) {
+		Volf sz = wm->GetFrameSize();
+		return Cubf(sz);
+	}
+	// Fallback to own frame size
+	return Cubf(GetFrameSize());
 }
 
 
 bool Gubo::ReleaseGuboCapture() {
-	TODO
-	/*GuboLock __;
-	LLOG("ReleaseGuboCapture");
-	if(captureGubo) {
-		captureGubo->CancelMode();
-		Gubo *w = captureGubo->GetTopGubo();
-		captureGubo = NULL;
-		CheckMouseGubo();
-		if(w->HasWndCapture()) {
-			w->ReleaseWndCapture();
-			return true;
-		}
-	}
-	return false;*/
+	using namespace Ecs;
+	Parallel::Engine& mach = GetActiveMachine();
+	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
+	if (!wins)
+		return false;
+	Gu::GuboManager& mgr = wins->GetActiveScope();
+	mgr.SetCaptured((GeomInteraction*)NULL);
+	return true;
 }
 
 Gubo* Gubo::GetCaptureGubo() {
-	TODO
+	using namespace Ecs;
+	Parallel::Engine& mach = GetActiveMachine();
+	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
+	if (!wins)
+		return 0;
+	Gu::GuboManager& mgr = wins->GetActiveScope();
+	GeomInteraction* gi = mgr.GetCaptured();
+	return CastPtr<Gubo>(gi);
 }
 
 void Gubo::Update() {
@@ -617,4 +626,3 @@ void Gubo::PaintDebug(ProgPainter3& pp) {
 
 
 END_UPP_NAMESPACE
-

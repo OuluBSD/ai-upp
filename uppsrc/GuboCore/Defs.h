@@ -7,10 +7,8 @@
 #define NAMESPACE_GUBO_NAME		Gu
 #define GUBO					Gu
 #define NAMESPACE_GUBO_BEGIN	\
-	static_assert(!is_in_parallel, "already in gubo"); \
 	namespace Upp { namespace NAMESPACE_GUBO_NAME {
 #define NAMESPACE_GUBO_END		}}
-
 
 #if 0
 #define HAVE_VIRTUALGUI 1

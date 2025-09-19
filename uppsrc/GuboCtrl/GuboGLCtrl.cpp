@@ -4,6 +4,7 @@
 #include <GL/glx.h>
 #include <GL/gl.h>
 #endif
+#include <cmath>
 
 NAMESPACE_UPP
 
@@ -60,7 +61,7 @@ void GuboGLCtrl::RenderGL() {
             top.DeepLayout();
         top.Redraw(false);
 
-        // Replay a subset of 3D commands (BOX_OP, LINE_OP, ELLIPSE_OP)
+        // Replay a subset of 3D commands (BOX_OP, LINE_OP, ELLIPSE_OP, POLYLINE_OP, ARC_OP, IMAGE_OP)
         const DrawCommand3* begin = &top.GetCommandBegin();
         const DrawCommand3* end   = &top.GetCommandEnd();
         for (const DrawCommand3* it = begin ? begin->next : nullptr; it && it != end; it = it->next) {
@@ -111,6 +112,99 @@ void GuboGLCtrl::RenderGL() {
                         glVertex3f(px, py, z);
                     }
                 glEnd();
+                break;
+            }
+            case DRAW3_POLY_POLYLINE_OP: {
+                if (!it->points.IsEmpty() && !it->ints.IsEmpty()) {
+                    const Color& c = it->color;
+                    glLineWidth(std::max(1.0f, it->width));
+                    glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                    int offset = 0;
+                    for (int k = 0; k < it->ints.GetCount(); ++k) {
+                        int cnt = it->ints[k];
+                        if (cnt <= 1 || offset + cnt > it->points.GetCount()) {
+                            offset += cnt;
+                            continue;
+                        }
+                        glBegin(GL_LINE_STRIP);
+                        for (int i = 0; i < cnt; ++i) {
+                            const Point3f& p = it->points[offset + i];
+                            glVertex3f(p.x, p.y, p.z);
+                        }
+                        glEnd();
+                        offset += cnt;
+                    }
+                }
+                break;
+            }
+            case DRAW3_ARC_OP: {
+                // Approximate arc on ellipse defined by it->r, from start to end
+                const Color& c = it->color;
+                float cx = it->r.left + it->r.GetWidth()*0.5f;
+                float cy = it->r.top  + it->r.GetHeight()*0.5f;
+                float rx = it->r.GetWidth()*0.5f;
+                float ry = it->r.GetHeight()*0.5f;
+                float z  = it->r.near; // reuse near as z
+                auto angle_of = [&](const Point3f& p){ return atan2f((p.y - cy)/std::max(ry, 0.0001f), (p.x - cx)/std::max(rx, 0.0001f)); };
+                float a0 = angle_of(it->pt);
+                float a1 = angle_of(it->pt2);
+                // Normalize sweep to be positive direction
+                if (a1 < a0) a1 += 6.28318530718f;
+                int segments = std::max(8, (int)((a1 - a0) * 24));
+                glLineWidth(std::max(1.0f, it->width));
+                glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                glBegin(GL_LINE_STRIP);
+                    for (int i = 0; i <= segments; ++i) {
+                        float a = a0 + (a1 - a0) * (float)i / (float)segments;
+                        float px = cx + cosf(a) * rx;
+                        float py = cy + sinf(a) * ry;
+                        glVertex3f(px, py, z);
+                    }
+                glEnd();
+                break;
+            }
+            case DRAW3_IMAGE_OP: {
+                if (!it->img.IsEmpty()) {
+                    Size isz = it->img.GetSize();
+                    Rect src = it->rect;
+                    if (src.IsEmpty()) src = Rect(isz);
+                    float x = it->pt.x;
+                    float y = it->pt.y;
+                    float z = it->pt.z;
+                    float w = it->sz.cx;
+                    float h = it->sz.cy;
+                    // Upload texture (no caching for now)
+                    GLuint tex = 0;
+                    glEnable(GL_TEXTURE_2D);
+                    glGenTextures(1, &tex);
+                    glBindTexture(GL_TEXTURE_2D, tex);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                    // Build RGBA buffer
+                    Vector<byte> buf;
+                    buf.SetCount(isz.cx * isz.cy * 4);
+                    const RGBA* spx = it->img.Begin();
+                    memcpy(buf.Begin(), spx, buf.GetCount());
+                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isz.cx, isz.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf.Begin());
+                    // Compute texcoords from src rect
+                    float u0 = (float)src.left / (float)isz.cx;
+                    float v0 = (float)src.top  / (float)isz.cy;
+                    float u1 = (float)src.right / (float)isz.cx;
+                    float v1 = (float)src.bottom/ (float)isz.cy;
+                    glColor4ub(255,255,255,255);
+                    glBegin(GL_QUADS);
+                        glTexCoord2f(u0, v0); glVertex3f(x,     y,     z);
+                        glTexCoord2f(u1, v0); glVertex3f(x + w, y,     z);
+                        glTexCoord2f(u1, v1); glVertex3f(x + w, y + h, z);
+                        glTexCoord2f(u0, v1); glVertex3f(x,     y + h, z);
+                    glEnd();
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                    glDeleteTextures(1, &tex);
+                    glDisable(GL_TEXTURE_2D);
+                }
                 break;
             }
             default:

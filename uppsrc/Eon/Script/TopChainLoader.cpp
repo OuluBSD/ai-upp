@@ -46,8 +46,16 @@ ScriptTopChainLoader::ScriptTopChainLoader(int mode, ScriptMachineLoader& parent
 }
 
 bool ScriptTopChainLoader::Load() {
-	TODO
-	return false;
+    if (use_subchains) {
+        for (ScriptTopChainLoader& sc : subchains)
+            if (!sc.Load())
+                return false;
+    } else {
+        for (ScriptChainLoader& c : chains)
+            if (!c.Load())
+                return false;
+    }
+    return true;
 }
 
 String ScriptTopChainLoader::GetTreeString(int indent) {

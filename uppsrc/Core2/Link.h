@@ -5,6 +5,7 @@ namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
 class ScriptLoader;
+class LoopContext;
 }
 
 #define LINK_CTORH(x) \
@@ -26,6 +27,7 @@ class LinkBase :
 protected:
 	friend class LoopSystem;
 	friend class LinkSystem;
+	friend class Eon::LoopContext;
 	
 	AtomBasePtr atom;
 	
@@ -42,11 +44,14 @@ protected:
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
+	friend class Eon::LoopContext;
 	
 	int						id = -1;
 	
+	
 	void					SetId(int i) {id = i;}
 	
+public:
 	void					SetPrimarySink(LinkBasePtr b) {prim_link_sink = b;}
 	void					SetPrimarySource(LinkBasePtr b) {prim_link_src = b;}
 	

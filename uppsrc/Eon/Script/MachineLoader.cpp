@@ -15,8 +15,10 @@ ScriptMachineLoader::ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon
 }
 
 bool ScriptMachineLoader::Load() {
-	TODO
-	return false;
+    for (ScriptTopChainLoader& tc : chains)
+        if (!tc.Load())
+            return false;
+    return true;
 }
 
 String ScriptMachineLoader::GetTreeString(int indent) {

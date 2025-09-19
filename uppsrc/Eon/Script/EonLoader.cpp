@@ -29,17 +29,17 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 		}
 	}
 	
-	Val& pool = eng.GetRootPool();
-	
-	for (ScriptPoolLoader& loader : l.pools) {
-		String name = loader.def.id.ToString();
-		VfsValue& pool0 = pool.GetAdd(name, 0);
-		ASSERT(pool0);
-		if (!Load(loader, pool0)) {
-			SetError(l.def.id.ToString() + ": " + loader.GetErrorString());
-			return false;
-		}
-	}
+    Val& pool = eng.GetRootPool();
+    
+    for (ScriptPoolLoader& loader : l.pools) {
+        String name = loader.def.id.ToString();
+        VfsValue& pool0 = pool.GetAdd(name, 0);
+        ASSERT(pool0);
+        if (!Load(loader, pool0)) {
+            SetError(l.def.id.ToString() + ": " + loader.GetErrorString());
+            return false;
+        }
+    }
 	
 	return true;
 }
@@ -65,40 +65,36 @@ bool ExtScriptEcsLoader::Load(ScriptEcsSystemLoader& l, System& sys) {
 }
 
 bool ExtScriptEcsLoader::Load(ScriptPoolLoader& l, VfsValue& pool) {
-	
-	for (ScriptEntityLoader& e : l.entities) {
-		String name = e.def.id.ToString();
-		Entity& ent = pool.GetAdd<Entity>(name);
-		if (!Load(e, ent))
-			return false;
-	}
-	
-	for (ScriptPoolLoader& p : l.pools) {
-		String name = p.def.id.ToString();
-		VfsValue& pool0 = pool.GetAdd(name, 0);
-		ASSERT(pool0);
-		if (!Load(p, pool0))
-			return false;
-	}
-	
-	return true;
+    PoolContext pool_ctx(pool, &l.parent.parent.parent);
+    
+    for (ScriptEntityLoader& e : l.entities) {
+        String name = e.def.id.ToString();
+        EntityContext ent_ctx = pool_ctx.AddEntity(name, &e.def.args, &e.def.loc);
+        if (!Load(e, ent_ctx.ent))
+            return false;
+    }
+    
+    for (ScriptPoolLoader& p : l.pools) {
+        String name = p.def.id.ToString();
+        PoolContext sub = pool_ctx.AddPool(name, &p.def.args, &p.def.loc);
+        if (!Load(p, sub.v))
+            return false;
+    }
+    
+    return true;
 }
 
 bool ExtScriptEcsLoader::Load(ScriptEntityLoader& l, Entity& ent) {
-	
-	for (ScriptComponentLoader& c : l.comps) {
-		String name = c.def.id.ToString();
-		ComponentPtr cb = ent.CreateEon(name);
-		if (!cb) {
-			SetError("could not create component with id '" + name + "'");
-			return false;
-		}
-		
-		if (!Load(c, *cb))
-			return false;
-	}
-	
-	return true;
+    EntityContext ent_ctx(ent, &l.parent.parent.parent.parent);
+    
+    for (ScriptComponentLoader& c : l.comps) {
+        String name = c.def.id.ToString();
+        ComponentContext comp_ctx = ent_ctx.AddComponent(name, &c.def.args, &c.def.loc);
+        // component args were already applied in AddComponent
+        (void)comp_ctx;
+    }
+    
+    return true;
 }
 
 bool ExtScriptEcsLoader::Load(ScriptComponentLoader& l, Component& cb) {

@@ -120,151 +120,50 @@ void ScriptLoopLoader::UndoLoad() {
 }
 
 bool ScriptLoopLoader::Load() {
-	RTLOG("ScriptLoopLoader::Load: " << def.id.ToString());
-	ScriptLoader& loader = GetLoader();
-	
-	bool has_link = !def.is_driver;
-	
-	// Target entity for atoms
-	Eon::Id deep_id =
-		has_link ?
-			GetDeepId() :
-			parent.GetDeepId();
-	VfsValue* l = loader.ResolveLoop(deep_id);
-	if (!l) {
-		AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
-		return false;
-	}
-	
-	const auto& map = VfsValueExtFactory::AtomDataMap();
-	LinkBasePtr first_lb;
-	AtomBasePtr first_ab;
-	
-	for(int i = 0; i < def.atoms.GetCount(); i++) {
-		const Eon::AtomDefinition& atom_def = def.atoms[i];
-		const AtomTypeCls atom = atom_def.iface.type;
-		const LinkTypeCls link = atom_def.link;
-		
-		String loop_action = atom_def.id.ToString();
-		
-		bool is_first = i == 0;
-		bool is_last = i == def.atoms.GetCount();
-		LinkBasePtr lb;
-		AtomBasePtr ab;
-		
-		if (is_last) {
-			ab = first_ab;
-			lb = first_lb;
-		}
-		else {
-			l = loader.ResolveLoop(deep_id); // re-resolve for memory safety
-			ab = AddAtomTypeCls(*l, atom);
-			if (has_link)
-				lb = AddLinkTypeCls(*l, link);
-		}
-		
-		if (is_first) {
-			first_ab = ab;
-			first_lb = lb;
-			is_first = false;
-		}
-		
-		if (!ab) {
-			String atom_name = VfsValueExtFactory::AtomDataMap().Get(atom).name;
-			AddError(def.loc, "Could not create atom '" + atom_name + "' at '" + def.id.ToString() + "'");
-			DUMP(atom);
-			ASSERT(0);
-			return false;
-		}
-		
-		if (!lb && has_link) {
-			String atom_name = VfsValueExtFactory::AtomDataMap().Get(atom).name;
-			AddError(def.loc, "Could not create link for atom '" + atom_name + "' at '" + def.id.ToString() + "'");
-			DUMP(atom);
-			ASSERT(0);
-			return false;
-		}
-		
-		ab->SetIdx(id);
-		
-		if (has_link) {
-			lb->SetId(id);
-		
-			ab->link = &*lb;
-			lb->atom = CastPtr<Atom>(&*ab);
-			ASSERT(lb->atom);
-		}
-		
-		auto& c = added_atoms.Add();
-		c.a					= ab;
-		c.l					= lb;
-		c.iface				= atom_def.iface;
-		c.iface.type		= atom;
-		
-		c.a->SetInterface(c.iface);
-		
-		
-		// Add arguments to ws
-		
-		WorldState ws;
-		
-		for(int i = 0; i < atom_def.args.GetCount(); i++) {
-			String key = atom_def.args.GetKey(i);
-			const Value& obj = atom_def.args[i];
-			ws.values.GetAdd("." + key) = obj;
-		}
-		
-		if (!ab->InitializeAtom(ws) || !ab->Initialize(ws)) {
-			const auto& a = VfsValueExtFactory::AtomDataMap().Get(atom);
-			AddError(def.loc, "Could not " + String(!ab ? "create" : "initialize") + " atom '" + a.name + "' at '" + def.id.ToString() + "'");
-			return false;
-		}
-		
-		ab->SetInitialized();
-		
-		if (has_link && lb && !lb->Initialize(ws)) {
-			const auto& a = VfsValueExtFactory::AtomDataMap().Get(atom);
-			AddError(def.loc, "Could not " + String(!ab ? "create" : "initialize") + " atom '" + a.name + "' at '" + def.id.ToString() + "'");
-			return false;
-		}
-		
-		if (lb)
-			lb->SetInitialized();
-	}
-	
-	if (has_link) {
-		UpdateLoopLimits();
-		
-		LOG("Linking atoms:");
-		for(int i = 0; i < added_atoms.GetCount(); i++) {
-			LOG(i << ": " << added_atoms[i].iface.type.ToString());
-		}
-		
-		for(int i = 0; i < added_atoms.GetCount(); i++) {
-			AddedAtom& src_info = added_atoms[i];
-			AtomBasePtr src = src_info.a;
-			
-			int next_i = (i + 1) % added_atoms.GetCount();
-			AddedAtom& sink_info = added_atoms[next_i];
-			AtomBasePtr sink = sink_info.a;
-			
-			if (!MakeLink(*l, src, sink)) {
-				AddError(FileLocation(), "could not link atoms");
-				for(int i = added_atoms.GetCount()-1; i >= 0; i--)
-					added_atoms[i].a->Stop();
-				for(int i = added_atoms.GetCount()-1; i >= 0; i--)
-					added_atoms[i].a->UninitializeDeep();
-				return false;
-			}
-			
-			atoms.Add(src);
-		}
-	}
-	
-	AddedAtom& first = added_atoms[0];
-	AddedAtom& last  = added_atoms.Top();
-	
-	return true;
+    RTLOG("ScriptLoopLoader::Load: " << def.id.ToString());
+    ScriptLoader& loader = GetLoader();
+
+    bool has_link = !def.is_driver;
+
+    // Target entity for atoms
+    Eon::Id deep_id =
+        has_link ?
+            GetDeepId() :
+            parent.GetDeepId();
+    VfsValue* l = loader.ResolveLoop(deep_id);
+    if (!l) {
+        AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
+        return false;
+    }
+
+    // Build using Core contexts to avoid duplication
+    ChainContext cc;
+    Vector<ChainContext::AtomSpec> specs;
+    for (int i = 0; i < def.atoms.GetCount(); i++) {
+        const Eon::AtomDefinition& a = def.atoms[i];
+        ChainContext::AtomSpec& spec = specs.Add();
+        spec.iface = a.iface;
+        spec.link = has_link ? a.link : LinkTypeCls();
+        spec.idx = id;
+    }
+
+    LoopContext& lc = cc.AddLoop(*l, specs, has_link);
+
+    // Mirror for lifecycle and side-link compatibility
+    added_atoms.SetCount(0);
+    atoms.SetCount(0);
+    for (const auto& it : lc.added) {
+        auto& c = added_atoms.Add();
+        c.a = it.a;
+        c.l = it.l;
+        c.iface = it.iface;
+        atoms.Add(it.a);
+    }
+
+    if (has_link)
+        UpdateLoopLimits();
+
+    return true;
 }
 
 AtomBasePtr ScriptLoopLoader::AddAtomTypeCls(VfsValue& val, AtomTypeCls cls) {

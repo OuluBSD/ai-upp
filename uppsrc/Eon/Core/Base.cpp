@@ -12,7 +12,9 @@ bool CustomerBase::Initialize(const WorldState& ws) {
 }
 
 bool CustomerBase::PostInitialize() {
-	packet_thrds = GetSink()->GetValue(0).GetMinPackets();
+	auto& a = GetSink()->GetValue(0);
+	packet_thrds = a.GetMinPackets();
+	ASSERT(packet_thrds > 0);
 	
 	return true;
 }

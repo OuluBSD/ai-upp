@@ -264,8 +264,10 @@ protected:
 	Vector<String> post_load_string;
 	//LoopStorePtr es;
 	//SpaceStorePtr ss;
-	Eon::CompilationUnit cunit;
-	bool collect_errors = false;
+    Eon::CompilationUnit cunit;
+    bool collect_errors = false;
+    bool eager_build_chains = false;
+    Array<One<ChainContext>> built_chains;
 	
 	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	
@@ -275,13 +277,16 @@ public:
 	void Visit(Vis& v) override;
 
 	void PostLoadFile(const String& path) {post_load_file << path;}
-	void PostLoadString(const String& s) {post_load_string << s;}
+    void PostLoadString(const String& s) {post_load_string << s;}
+    void SetEagerChainBuild(bool b=true) { eager_build_chains = b; }
 	
 	ScriptLoader&	GetLoader() {return *this;}
 	int&			GetSideIdCounter() {return tmp_side_id_counter;}
 	int				NewConnectionId() {return tmp_side_id_counter++;}
 	void			AddError(const FileLocation& loc, String msg) {ErrorSource::AddError(loc, msg);}
 	bool			LoadAst(AstNode* root);
+	// Non-AST path: build a chain directly from a prepared definition using Core contexts
+	bool			BuildChain(const Eon::ChainDefinition& chain);
 	
 	
 protected:

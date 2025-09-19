@@ -7,9 +7,12 @@ uses
 	AI/Core;
 
 file
+	AGENTS.md,
 	README.md,
 	Core.h,
 	Core.icpp,
+	Context.h,
+	Context.cpp,
 	Types.h,
 	Container.h,
 	Container.cpp,

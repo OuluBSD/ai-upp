@@ -11,6 +11,8 @@ GuboGLCtrl::GuboGLCtrl() {
     BackPaint(EXCLUDEPAINT);
     top.SetFrameBox(CubfC(0,0,0,100,100,100));
     top.CreateGeom3DComponent();
+    // Drive periodic redraw for animations / responsiveness
+    SetTimeCallback(16, THISBACK(OnTick), this);
 }
 
 GuboGLCtrl::~GuboGLCtrl() {
@@ -58,7 +60,7 @@ void GuboGLCtrl::RenderGL() {
             top.DeepLayout();
         top.Redraw(false);
 
-        // Replay a minimal subset of 3D commands (currently BOX_OP)
+        // Replay a subset of 3D commands (BOX_OP, LINE_OP, ELLIPSE_OP)
         const DrawCommand3* begin = &top.GetCommandBegin();
         const DrawCommand3* end   = &top.GetCommandEnd();
         for (const DrawCommand3* it = begin ? begin->next : nullptr; it && it != end; it = it->next) {
@@ -77,6 +79,37 @@ void GuboGLCtrl::RenderGL() {
                     glVertex3f(x+w,   y,     z);
                     glVertex3f(x+w,   y+h,   z);
                     glVertex3f(x,     y+h,   z);
+                glEnd();
+                break;
+            }
+            case DRAW3_LINE_OP: {
+                const Color& c = it->color;
+                glLineWidth(std::max(1.0f, it->width));
+                glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                glBegin(GL_LINES);
+                    glVertex3f(it->pt.x,  it->pt.y,  it->pt.z);
+                    glVertex3f(it->pt2.x, it->pt2.y, it->pt2.z);
+                glEnd();
+                break;
+            }
+            case DRAW3_ELLIPSE_OP: {
+                // Approximate ellipse by polygon in XY plane at Z depth
+                const Color& c = it->color;
+                float x = it->r.left;
+                float y = it->r.top;
+                float w = it->r.GetWidth();
+                float h = it->r.GetHeight();
+                float z = it->r.near; // reuse near as z
+                int segments = 48;
+                glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                glBegin(GL_TRIANGLE_FAN);
+                    glVertex3f(x + w*0.5f, y + h*0.5f, z);
+                    for (int i = 0; i <= segments; ++i) {
+                        float a = (float)i / segments * 6.28318530718f;
+                        float px = x + w*0.5f + cosf(a) * (w*0.5f);
+                        float py = y + h*0.5f + sinf(a) * (h*0.5f);
+                        glVertex3f(px, py, z);
+                    }
                 glEnd();
                 break;
             }
@@ -141,6 +174,14 @@ bool GuboGLCtrl::Key(dword key, int count) {
     return top.Dispatch(e);
 }
 
+void GuboGLCtrl::OnTick() {
+    if (animate) {
+        Refresh();
+        SetTimeCallback(16, THISBACK(OnTick), this);
+    }
+}
+
+#ifdef GUI_X11
 #ifdef GUI_X11
 XVisualInfo* GuboGLCtrl::CreateVisual() {
     int attr[] = { GLX_RGBA, GLX_DOUBLEBUFFER, GLX_DEPTH_SIZE, 24, None };

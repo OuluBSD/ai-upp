@@ -18,11 +18,6 @@ void SDraw3::Init(const Cubf& r) {
 		Offset(tl);*/
 	
 }
-END_UPP_NAMESPACE
-
-#include "GuboCore.h"
-
-NAMESPACE_UPP
 
 
 dword SDraw3::GetInfo() const { return 0; }

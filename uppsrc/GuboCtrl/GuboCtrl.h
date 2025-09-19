@@ -10,6 +10,7 @@ NAMESPACE_UPP
 class GuboGLCtrl : public DHCtrl {
     TopGubo top;
     bool gl_ready = false;
+    bool animate = true;
    
 #ifdef GUI_X11
     // X11/GLX
@@ -21,6 +22,7 @@ public:
     ~GuboGLCtrl();
 
     void AttachTop(TopGubo* t);
+    TopGubo& Top() { return top; }
 
 protected:
     void State(int reason) override; // manages native child window lifecycle
@@ -38,6 +40,7 @@ private:
     bool EnsureGLContext(); // TODO: create/make-current platform GL context
     void RenderGL();        // TODO: rendering call into manager
     void ForwardMouse(int type, int code, Point p, int z, dword kf);
+    void OnTick();
 
 #ifdef GUI_X11
 protected:

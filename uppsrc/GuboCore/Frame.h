@@ -31,15 +31,15 @@ private:
 	void operator=(const GuboFrame&);
 };
 
-struct NullFrameClass : public GuboFrame {
+struct GuboNullFrameClass : public GuboFrame {
 	virtual void FrameLayout(Cubf& r);
 	virtual void FramePaint(Draw3& w, const Cubf& r);
 	virtual void FrameAddSize(Volf& sz);
 };
 
-GuboFrame& NullFrame();
+GuboFrame& GuboNullFrame();
 
-class MarginFrame : public GuboFrame {
+class GuboMarginFrame : public GuboFrame {
 public:
 	virtual void FrameLayout(Cubf& r);
 	virtual void FramePaint(Draw3& w, const Cubf& r);
@@ -56,10 +56,10 @@ public:
 	void SetMargins(const Cubf& r);
 	void SetColor(Color c);
 
-	MarginFrame();
+	GuboMarginFrame();
 };
 
-class BorderFrame : public GuboFrame {
+class GuboBorderFrame : public GuboFrame {
 public:
 	virtual void FrameLayout(Cubf& r);
 	virtual void FramePaint(Draw3& w, const Cubf& r);
@@ -69,7 +69,7 @@ protected:
 	const ColorF *border;
 
 public:
-	BorderFrame(const ColorF *border) : border(border) {}
+	GuboBorderFrame(const ColorF *border) : border(border) {}
 };
 
 

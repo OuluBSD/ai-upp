@@ -3,6 +3,9 @@ CURRENT TASK
 Objective
 - Bring GuboCore (3D GUI) to practical parity with CtrlCore’s developer-facing API while preserving its manager-driven rendering/event model.
 
+Progress
+- Phase 1 implemented: SurfaceFrame capture plumbing now delegates to Gu::SurfaceManager; Surface container-level frame capture getters/setters are manager-backed. Next up: Gubo 3D parity items in Phase 2–4.
+
 Plan (phased)
 - Phase 1 — Capture/Mouse plumbing
   - Implement frame-level capture helpers by delegating to managers:
@@ -52,4 +55,3 @@ Repository Hygiene
 
 Notes
 - Keep API names and behavior aligned with CtrlCore for developer familiarity. Where 3D requires different semantics (e.g., depth-aware hit-testing), document the differences inline in the implementation.
-

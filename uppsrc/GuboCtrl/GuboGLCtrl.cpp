@@ -65,14 +65,12 @@ void GuboGLCtrl::RenderGL() {
         top.Redraw(false);
 
         // Simple texture cache (per control lifetime)
-        struct TexNode { const RGBA* key; Size sz; GLuint id; };
-        static Vector<TexNode> texcache;
         auto get_tex = [&](const Image& img)->GLuint {
             const RGBA* key = img.Begin();
             Size isz = img.GetSize();
             for (const auto& n : texcache)
                 if (n.key == key && n.sz == isz)
-                    return n.id;
+                    return (GLuint)n.id;
             GLuint tex = 0;
             glGenTextures(1, &tex);
             glBindTexture(GL_TEXTURE_2D, tex);
@@ -132,12 +130,16 @@ void GuboGLCtrl::RenderGL() {
                     float z = it->pt.z;
                     float w = (float)tsz.cx;
                     float h = (float)tsz.cy;
+                    glPushMatrix();
+                    glTranslatef(x, y, z);
+                    glRotatef(it->angle, 0.f, 0.f, 1.f); // assumes degrees
                     glBegin(GL_QUADS);
-                        glTexCoord2f(0.f, 0.f); glVertex3f(x,     y,     z);
-                        glTexCoord2f(1.f, 0.f); glVertex3f(x + w, y,     z);
-                        glTexCoord2f(1.f, 1.f); glVertex3f(x + w, y + h, z);
-                        glTexCoord2f(0.f, 1.f); glVertex3f(x,     y + h, z);
+                        glTexCoord2f(0.f, 0.f); glVertex3f(0.f, 0.f, 0.f);
+                        glTexCoord2f(1.f, 0.f); glVertex3f(w,   0.f, 0.f);
+                        glTexCoord2f(1.f, 1.f); glVertex3f(w,   h,   0.f);
+                        glTexCoord2f(0.f, 1.f); glVertex3f(0.f, h,   0.f);
                     glEnd();
+                    glPopMatrix();
                     glBindTexture(GL_TEXTURE_2D, 0);
                     glDisable(GL_TEXTURE_2D);
                 }
@@ -436,6 +438,7 @@ void GuboGLCtrl::BeforeTerminate() {
         XFree(x11.vi);
         x11.vi = nullptr;
     }
+    ClearTextureCache();
 }
 
 void GuboGLCtrl::Resize(int w, int h) {
@@ -444,5 +447,17 @@ void GuboGLCtrl::Resize(int w, int h) {
     top.SetFrameBox(c);
 }
 #endif
+
+void GuboGLCtrl::ClearTextureCache() {
+#ifdef GUI_X11
+    if (!x11.ctx) { texcache.Clear(); return; }
+    glXMakeCurrent(Xdisplay, hwnd, (GLXContext)x11.ctx);
+    for (const auto& n : texcache) {
+        if (n.id)
+            glDeleteTextures(1, (const GLuint*)&n.id);
+    }
+    texcache.Clear();
+#endif
+}
 
 END_UPP_NAMESPACE

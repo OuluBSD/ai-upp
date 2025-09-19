@@ -11,6 +11,8 @@ class GuboGLCtrl : public DHCtrl {
     TopGubo top;
     bool gl_ready = false;
     bool animate = true;
+    struct TexNode { const RGBA* key = nullptr; Size sz; unsigned int id = 0; };
+    Vector<TexNode> texcache;
    
 #ifdef GUI_X11
     // X11/GLX
@@ -41,6 +43,7 @@ private:
     void RenderGL();        // TODO: rendering call into manager
     void ForwardMouse(int type, int code, Point p, int z, dword kf);
     void OnTick();
+    void ClearTextureCache();
 
 #ifdef GUI_X11
 protected:

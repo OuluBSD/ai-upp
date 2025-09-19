@@ -84,9 +84,14 @@ bool GfxAccelAtom<X11SwGfx>::GfxRenderer() {
 
 
 #if defined flagWIN32 && defined flagDX11
+// Provided by Dx.cpp to pass device/context/swapchain/rtv into TLS
+extern void D11_Internal_SetDeviceAndTargets(ID3D11Device* dev,
+                                             ID3D11DeviceContext* ctx,
+                                             IDXGISwapChain* sc,
+                                             ID3D11RenderTargetView* rtv);
 template <>
 void GfxAccelAtom<WinD11Gfx>::GfxFlags(uint32& flags) {
-	is_dx11 = true;
+    is_dx11 = true;
 }
 
 template <>
@@ -118,9 +123,11 @@ bool GfxAccelAtom<WinD11Gfx>::GfxRenderer() {
         impl.m_pRenderTarget.GetAddressOf()
     );
 	
-	
-	rend.output.Init(fb, clr, screen_sz.cx, screen_sz.cy, fb_stride);
-	rend.output.SetWindowFbo();
+    // Bridge: publish D3D11 device/context/swapchain/rtv to Gfx static layer
+    D11_Internal_SetDeviceAndTargets(display.Get(), nat_rend.Get(), fb.Get(), impl.m_pRenderTarget.Get());
+
+    rend.output.Init(fb, clr, screen_sz.cx, screen_sz.cy, fb_stride);
+    rend.output.SetWindowFbo();
 	
 	auto& buf = bf.GetBuffer();
 	auto& buf_fb = buf.Top().GetFramebuffer();

@@ -100,6 +100,8 @@
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <d3d11_3.h>
+// Shader compiler / reflection
+#include <d3dcompiler.h>
 //#include <dxerr11.h>
 //#include <d3dx11math.h>
 

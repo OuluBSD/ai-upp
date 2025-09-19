@@ -418,6 +418,7 @@ using namespace Microsoft::WRL;
 
 struct Dx11FramebufferBase;
 struct Dx11BufferBase;
+struct D11Shader;
 
 struct D11GfxImpl {
     D3D11_TEXTURE2D_DESC			m_bbDesc;
@@ -444,23 +445,23 @@ struct D11GfxT {
 	using FramebufferBase			= Dx11FramebufferBase;
 	using BufferBase				= Dx11BufferBase;
 	
-	using NativeTexture				=       ComPtr<ID3D11Texture2D>;
-	using NativeShaderPtr = uint32;
-	using NativeColorBufferPtr		=       ComPtr<ID3D11Texture2D>;
-	using NativeColorBufferConstPtr	= const ComPtr<ID3D11Texture2D>;
-	using NativeDepthBufferPtr		=       ComPtr<ID3D11DepthStencilView>;
-	using NativeDepthBufferConstPtr	= const ComPtr<ID3D11DepthStencilView>;
-	using NativeFrameBufferPtr		=       ComPtr<IDXGISwapChain>;
-	using NativeFrameBufferConstPtr	= const ComPtr<IDXGISwapChain>;
-	using NativeBuffer = uint32;
-	using SystemFrameBufferPtr		= NativeFrameBufferPtr;
-	using NativeVertexArray = uint32;
-	using NativeVertexBuffer = uint32;
-	using NativeElementBuffer = uint32;
-	using NativeProgram = uint32;
-	using NativePipeline = uint32;
-	using ValFormat = Serial::FboFormat;
-	using Impl = D11GfxImpl;
+    using NativeTexture				=       ComPtr<ID3D11Texture2D>;
+    using NativeShaderPtr             =       D11Shader*;
+    using NativeColorBufferPtr		=       ComPtr<ID3D11Texture2D>;
+    using NativeColorBufferConstPtr	= const ComPtr<ID3D11Texture2D>;
+    using NativeDepthBufferPtr		=       ComPtr<ID3D11DepthStencilView>;
+    using NativeDepthBufferConstPtr	= const ComPtr<ID3D11DepthStencilView>;
+    using NativeFrameBufferPtr		=       ComPtr<IDXGISwapChain>;
+    using NativeFrameBufferConstPtr	= const ComPtr<IDXGISwapChain>;
+    using NativeBuffer = uint32;
+    using SystemFrameBufferPtr		= NativeFrameBufferPtr;
+    using NativeVertexArray = uint32;
+    using NativeVertexBuffer = uint32;
+    using NativeElementBuffer = uint32;
+    using NativeProgram = uint32;
+    using NativePipeline = uint32;
+    using ValFormat = Serial::FboFormat;
+    using Impl = D11GfxImpl;
 
 	static const GVar::GfxType Type = GVar::DX;
 	

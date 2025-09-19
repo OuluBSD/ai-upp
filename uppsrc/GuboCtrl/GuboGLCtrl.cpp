@@ -38,7 +38,52 @@ void GuboGLCtrl::RenderGL() {
         glViewport(0, 0, sz.cx, sz.cy);
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // TODO: integrate Gu::GuboManager render here
+
+        // Basic fixed-function orthographic 3D for command replay
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        // Y-down ortho to match UI coordinates, generous depth range
+        glOrtho(0, sz.cx, sz.cy, 0, -10000, 10000);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+
+        // Ensure draw commands are up to date
+        if (top.IsPendingLayout())
+            top.DeepLayout();
+        top.Redraw(false);
+
+        // Replay a minimal subset of 3D commands (currently BOX_OP)
+        const DrawCommand3* begin = &top.GetCommandBegin();
+        const DrawCommand3* end   = &top.GetCommandEnd();
+        for (const DrawCommand3* it = begin ? begin->next : nullptr; it && it != end; it = it->next) {
+            switch (it->type) {
+            case DRAW3_BOX_OP: {
+                // Draw front face of box at z depth with given color
+                float x = it->pt.x;
+                float y = it->pt.y;
+                float z = it->pt.z;
+                float w = it->sz.cx;
+                float h = it->sz.cy;
+                const Color& c = it->color;
+                glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                glBegin(GL_QUADS);
+                    glVertex3f(x,     y,     z);
+                    glVertex3f(x+w,   y,     z);
+                    glVertex3f(x+w,   y+h,   z);
+                    glVertex3f(x,     y+h,   z);
+                glEnd();
+                break;
+            }
+            default:
+                break;
+            }
+        }
         glXSwapBuffers(Xdisplay, hwnd);
     }
 #else

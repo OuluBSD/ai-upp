@@ -4,8 +4,9 @@
 #include <Draw/Draw.h>
 #include <Core2/Core.h>
 #include <CtrlCore/CtrlCore.h>
-#include <LocalCtrl/LocalCtrl.h>
+#include <Draw/3D/3D.h>
 
+#include "CtrlEvent.h"
 
 #include "Defs.h"
 #include "DrawCommand.h"

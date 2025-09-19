@@ -1,7 +1,8 @@
 description "\377B28,127,255";
 
 uses
-	CtrlCore;
+	CtrlCore,
+	Draw/3D;
 
 file
 	AGENTS.md,
@@ -39,3 +40,4 @@ file
 	TopSurface.h,
 	TopSurface.cpp,
 	_ readonly separator;
+

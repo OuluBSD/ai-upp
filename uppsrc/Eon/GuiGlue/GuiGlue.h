@@ -1,7 +1,7 @@
 #ifndef _Eon_GuiGlue_GuiGlue_h_
 #define _Eon_GuiGlue_GuiGlue_h_
 
-#include <CtrlCore/CtrlCore.h>
+#include <CtrlLib/CtrlLib.h>
 #include <Eon/Draw/Draw.h>
 
 NAMESPACE_UPP

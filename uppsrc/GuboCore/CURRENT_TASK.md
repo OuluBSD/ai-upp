@@ -9,6 +9,10 @@ Progress
   - Surface::GetWorkArea, ReleaseSurfaceCapture, GetCaptureSurface
   - Gubo::GetWorkArea, ReleaseGuboCapture, GetCaptureGubo
   These delegate to the active Gu::*Manager with fallbacks to local frame size.
+- CtrlEvent unified: Introduced GuboCore/CtrlEvent.h (alias to Core2::GeomEvent) and included from GuboCore.h; all GuboCore event dispatch compiles consistently.
+- Frame name collisions fixed: Renamed GuboCore frame types to avoid CtrlCore conflicts:
+  - NullFrameClass → GuboNullFrameClass, MarginFrame → GuboMarginFrame, BorderFrame → GuboBorderFrame; NullFrame() → GuboNullFrame().
+- Demos: Added examples demonstrating 2D embedding (SurfaceCtrl demo with DrawCommand replay) and 3D embedding (GuboGLCtrl demo via new GuboCtrl package). 3D GL replay lives outside GuboCore; core APIs remain unchanged.
 
 Plan (phased)
 - Phase 1 — Capture/Mouse plumbing
@@ -44,6 +48,7 @@ Plan (phased)
 - Phase 6 — Utility completion
   - ProgDraw3::GetFrameSize and `operator Image()` (if required by callers). For now, keep as command recording; implement image extraction only if needed by tests or previews.
   - Add minor diagnostics (DumpDrawCommands) to aid bringing up complex UIs.
+  - Status: 2D counterpart has ProgDraw::operator Image(); 3D remains as command recording. No change needed in GuboCore.
 
 Parity Checklist (CtrlCore → GuboCore)
 - Focus/capture API: SetCapture/ReleaseCapture, IsCaptured, GetCaptured (per-manager)
@@ -55,6 +60,7 @@ Parity Checklist (CtrlCore → GuboCore)
 Validation
 - Minimal demo: create a `TopGubo`, add a child `Gubo` with simple `Paint(Draw3&)` and mouse handlers; exercise capture/with-mouse transitions via `Dispatch(CtrlEvent)`.
 - Verify manager (GuboLib) reports capture and with-mouse consistently while moving the pointer across nested children and frames.
+ - External demos (in examples/): SurfaceCtrlDemo (2D replay inside Ctrl) and GuboGLCtrlDemo (GLX-backed 3D replay inside Ctrl) validate integration patterns without modifying GuboCore.
 
 Repository Hygiene
 - Update `GuboCore.upp` to list `AGENTS.md` first and `CURRENT_TASK.md` second (done).

@@ -4,7 +4,7 @@
 #include <Draw/Draw.h>
 #include <Draw2/Draw.h>
 #include <Eon/Ecs/Ecs.h>
-#include <api/Graphics/Graphics.h>
+//#include <api/Graphics/Graphics.h>
 
 #ifdef flagMSC
 	#pragma warning( disable : 4250 ) // C4250: useless Inheritance via dominance warning

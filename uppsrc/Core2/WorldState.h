@@ -7,6 +7,7 @@ namespace Eon {
 class ScriptLoader;
 class ScriptLoopLoader;
 class ScriptDriverLoader;
+class LoopContext;
 }
 class ActionPlanner;
 class ActionNode;
@@ -130,6 +131,7 @@ protected:
 	friend class Eon::ScriptLoader;
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
+	friend class Eon::LoopContext;
 	
 	ValueMap values;
 	

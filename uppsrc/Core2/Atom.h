@@ -5,6 +5,7 @@ namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
 struct ExtScriptEcsLoader;
+struct LoopContext;
 }
 
 #define ATOM_CTOR_(x, base) \
@@ -47,6 +48,7 @@ protected:
 	
 protected:
 	friend class LinkBase;
+	friend class Eon::LoopContext;
 	
 	Mutex					fwd_lock;
 	IfaceConnTuple			iface;

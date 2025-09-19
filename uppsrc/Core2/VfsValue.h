@@ -250,6 +250,12 @@ struct VfsValueExtFactory {
 		ASSERT(f.name.Find("|") < 0);
 		return f;
 	}
+	inline static Factory* FindFactory(String name) {
+		for (auto& f : List())
+			if (f.name == name)
+				return &f;
+		return 0;
+	}
 	template <class T> inline static void Register(String name, VfsExtType type, String eon_name, String category) {
 		Factory& f = GetFactory<T>();
 		ASSERT(!f.type_hash);

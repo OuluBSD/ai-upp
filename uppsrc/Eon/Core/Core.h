@@ -19,8 +19,8 @@ NAMESPACE_UPP
 #include "BaseVideo.h"
 #include "Network.h"
 #include "LinkFactory.h"
+#include "Context.h"
 
 END_UPP_NAMESPACE
 
 #endif
-

@@ -19,8 +19,10 @@ ScriptChainLoader::ScriptChainLoader(ScriptTopChainLoader& parent, int id, Eon::
 }
 
 bool ScriptChainLoader::Load() {
-	TODO
-	return false;
+    for (ScriptLoopLoader& l : loops)
+        if (!l.Load())
+            return false;
+    return true;
 }
 
 String ScriptChainLoader::GetTreeString(int indent) {

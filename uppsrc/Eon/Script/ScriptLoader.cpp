@@ -1,4 +1,6 @@
 #include "Script.h"
+// For Core contexts (AST-free building)
+#include <Eon/Core/Core.h>
 
 #define VERBOSE_SCRIPT_LOADER 0
 
@@ -187,64 +189,115 @@ bool ScriptLoader::LoadAst(AstNode* root) {
 	return true;
 }
 
+bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
+    ChainContext cc;
+
+    // Build each loop under its absolute id (loop.id is already resolved during parsing)
+    for (const Eon::LoopDefinition& loop_def : chain.loops) {
+        Eon::Id deep_id = loop_def.id; // absolute id path
+        VfsValue* l = ResolveLoop(deep_id);
+        if (!l) {
+            AddError(loop_def.loc, String("Could not resolve loop id: ") + deep_id.ToString());
+            return false;
+        }
+
+        Vector<ChainContext::AtomSpec> specs;
+        bool has_link = !loop_def.is_driver;
+        for (const Eon::AtomDefinition& a : loop_def.atoms) {
+            ChainContext::AtomSpec& s = specs.Add();
+            s.iface = a.iface;            // includes side-link conn field assignments
+            s.link = has_link ? a.link : LinkTypeCls();
+            s.args <<= a.args;           // copy args
+        }
+
+        cc.AddLoop(*l, specs, has_link);
+    }
+
+    // Connect side-links across loops in this chain according to conn ids
+    for (int i = 0; i < cc.loops.GetCount(); i++)
+        for (int j = 0; j < cc.loops.GetCount(); j++)
+            if (i != j)
+                if (!LoopContext::ConnectSides(cc.loops[i], cc.loops[j]))
+                    return false;
+
+    return true;
+}
+
 void ScriptLoader::Cleanup() {
 	loader.Clear();
 }
 
 bool ScriptLoader::ImplementScript() {
+    RTLOG("ScriptLoader::ImplementScript: load states");
+    Vector<ScriptStateLoader*> states;
+    loader->GetStates(states);
+    for (ScriptStateLoader* dl: states)
+        if (!dl->Load())
+            return false;
+
+    if (!eager_build_chains || built_chains.IsEmpty()) {
+        RTLOG("ScriptLoader::ImplementScript: build chains (loops)");
+        if (!loader->Load())
+            return false;
+
+        // Collect loop pointers created by chain loaders for post steps
+        Vector<ScriptLoopLoader*> loops;
+        loader->GetLoops(loops);
 	
-	RTLOG("ScriptLoader::ImplementScript: load states");
-	Vector<ScriptStateLoader*> states;
-	loader->GetStates(states);
-	for (ScriptStateLoader* dl: states) {
-		if (!dl->Load())
-			return false;
-	}
+        RTLOG("ScriptLoader::ImplementScript: connect sides");
+        for (ScriptLoopLoader* loop0 : loops) {
+            for (ScriptLoopLoader* loop1 : loops) {
+                if (loop0 != loop1) {
+                    if (!ConnectSides(*loop0, *loop1)) {
+                        AddError(loop0->def.loc, "Side connecting failed");
+                        return false;
+                    }
+                }
+            }
+        }
 	
-	RTLOG("ScriptLoader::ImplementScript: load loops");
-	Vector<ScriptLoopLoader*> loops;
-	loader->GetLoops(loops);
-	int fail = -1;
-	for(int i = 0; i < loops.GetCount(); i++) {
-		ScriptLoopLoader* ll = loops[i];
-		if (!ll->Load()) {
-			fail = i;
-			break;
-		}
-	}
-	if (fail >= 0) {
-		// Stop and uninitialise loops in reverse order
-		for (int i = fail-1; i >= 0; i--)
-			loops[i]->UndoLoad();
-		return false;
-	}
-	
-	RTLOG("ScriptLoader::ImplementScript: connect sides");
-	for (ScriptLoopLoader* loop0 : loops) {
-		for (ScriptLoopLoader* loop1 : loops) {
-			if (loop0 != loop1) {
-				if (!ConnectSides(*loop0, *loop1)) {
-					AddError(loop0->def.loc, "Side connecting failed");
-					return false;
-				}
-			}
-		}
-	}
-	
-	
-	RTLOG("ScriptLoader::ImplementScript: loop post initialize");
-	for (ScriptLoopLoader* ll : loops) {
-		if (!ll->PostInitialize())
-			return false;
-	}
-	
-	
-	
-	RTLOG("ScriptLoader::ImplementScript: loop start");
-	for (ScriptLoopLoader* ll : loops) {
-		if (!ll->Start())
-			return false;
-	}
+        RTLOG("ScriptLoader::ImplementScript: loop post initialize");
+        for (ScriptLoopLoader* ll : loops) {
+            if (!ll->PostInitialize())
+                return false;
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: loop start");
+        for (ScriptLoopLoader* ll : loops) {
+            if (!ll->Start())
+                return false;
+        }
+    } else {
+        RTLOG("ScriptLoader::ImplementScript: eager mode: connect sides across built chains");
+        for (int i = 0; i < built_chains.GetCount(); i++) {
+            ChainContext& A = *built_chains[i];
+            for (int j = 0; j < built_chains.GetCount(); j++) if (i != j) {
+                ChainContext& B = *built_chains[j];
+                for (auto& la : A.loops)
+                    for (auto& lb : B.loops)
+                        if (!LoopContext::ConnectSides(la, lb))
+                            return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize");
+        for (int i = 0; i < built_chains.GetCount(); i++) {
+            ChainContext& C = *built_chains[i];
+            if (!C.PostInitializeAll()) {
+                for (int k = i - 1; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: start");
+        for (int i = 0; i < built_chains.GetCount(); i++) {
+            ChainContext& C = *built_chains[i];
+            if (!C.StartAll()) {
+                for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
+            }
+        }
+    }
 	
 	return true;
 }
@@ -867,7 +920,20 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		
 	}
 	
-	return true;
+    bool ok = true;
+    if (eager_build_chains) {
+        // Experimental: directly materialize this chain using Core contexts.
+        // Note: ImplementScript still builds via loader->Load(), so enabling this
+        // can lead to duplicate instantiation. Keep it disabled unless using a
+        // custom post-init/start path.
+        if (!BuildChain(chain))
+            ok = false;
+        // Reduce memory: keep chain id/args, drop contents so loader tree stays small.
+        chain.loops.Clear();
+        chain.subchains.Clear();
+        chain.states.Clear();
+    }
+    return ok;
 }
 
 bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {

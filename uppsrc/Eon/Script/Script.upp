@@ -9,6 +9,7 @@ uses
 	Esc;
 
 file
+	AGENTS.md,
 	README.md,
 	Script.h,
 	Script.icpp,
@@ -34,7 +35,6 @@ file
 	ShadertoyLoader.cpp,
 	main.cpp,
 	EcsLoader.h,
-	EcsLoader.icpp,
 	EonLoader.h,
 	EonLoader.cpp,
 	Builder.h,

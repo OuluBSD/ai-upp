@@ -102,16 +102,19 @@ void Entity::Initialize(String prefab) {
 }
 
 ComponentPtr Entity::CreateEon(String id) {
-	TODO
-	#if 0
-	int i = VfsValueExtFactory::CompEonIds().Find(id);
-	if (i < 0)
+	auto* f = VfsValueExtFactory::FindFactory(id);
+	if (!f)
 		return ComponentPtr();
 	
-	const auto& d = VfsValueExtFactory::CompDataMap()[i];
-	return GetAddTypeCls(d.rtti_cls);
-	#endif
-	return 0;
+	if (f->type != VFSEXT_COMPONENT)
+		return ComponentPtr();
+	
+	VfsValue& val = this->val.Add();
+	val.ext = f->new_fn(val);
+	val.type_hash = val.ext ? val.ext->GetTypeHash() : 0;
+	Component* comp = dynamic_cast<Component*>(&*val.ext);
+	ASSERT(comp);
+	return comp;
 }
 
 INITIALIZER_VFSEXT(Entity, "entity", "Ecs|Basic");

@@ -5,6 +5,7 @@
 #include <GL/gl.h>
 #endif
 #include <cmath>
+#include <Eon/Draw/ProgPainter.h>
 
 using namespace Upp;
 
@@ -253,28 +254,69 @@ void GuboGLCtrl::RenderGL() {
                 break;
             }
             case DRAW3_POLY_POLY_POLYGON_OP: {
-                // Outline-only fallback; proper fill with holes requires triangulation.
-                const Color& outline = it->outline;
-                if (outline.IsNullInstance()) break;
-                glLineWidth(std::max(1.0f, it->width));
-                glColor4ub(outline.GetR(), outline.GetG(), outline.GetB(), 255);
+                // Try fill for single-contour polygons; otherwise draw outline.
+                int total_sub = 0; for (int v : it->disjunct_polygon_counts) total_sub += v;
+                bool single = (total_sub == 1 && it->subpolygon_counts.GetCount() == 1);
                 int offset = 0;
                 int suboffset = 0;
-                for (int d = 0; d < it->disjunct_polygon_counts.GetCount(); ++d) {
-                    int subcnt = it->disjunct_polygon_counts[d];
-                    for (int s = 0; s < subcnt; ++s) {
-                        if (suboffset >= it->subpolygon_counts.GetCount()) break;
-                        int cnt = it->subpolygon_counts[suboffset++];
-                        if (cnt <= 1 || offset + cnt > it->points.GetCount()) {
-                            offset += cnt; continue;
-                        }
-                        glBegin(GL_LINE_LOOP);
+                if (single) {
+                    int cnt = it->subpolygon_counts[0];
+                    if (cnt > 2 && cnt <= it->points.GetCount()) {
+                        Vector<Pointf> contour;
+                        contour.SetCount(cnt);
+                        float z = it->points[offset].z;
                         for (int i = 0; i < cnt; ++i) {
                             const Point3f& p = it->points[offset + i];
-                            glVertex3f(p.x, p.y, p.z);
+                            contour[i] = Pointf(p.x, p.y);
                         }
-                        glEnd();
-                        offset += cnt;
+                        Vector<float> tris;
+                        if (TriangulatePointf::Process(contour, tris) && (tris.GetCount() % 6) == 0) {
+                            const Color& c = it->color;
+                            glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+                            glBegin(GL_TRIANGLES);
+                            for (int i = 0; i < tris.GetCount(); i += 6) {
+                                glVertex3f(tris[i+0], tris[i+1], z);
+                                glVertex3f(tris[i+2], tris[i+3], z);
+                                glVertex3f(tris[i+4], tris[i+5], z);
+                            }
+                            glEnd();
+                            // Outline if requested
+                            const Color& outline = it->outline;
+                            if (!outline.IsNullInstance()) {
+                                glLineWidth(std::max(1.0f, it->width));
+                                glColor4ub(outline.GetR(), outline.GetG(), outline.GetB(), 255);
+                                glBegin(GL_LINE_LOOP);
+                                for (int i = 0; i < cnt; ++i) {
+                                    const Point3f& p = it->points[offset + i];
+                                    glVertex3f(p.x, p.y, p.z);
+                                }
+                                glEnd();
+                            }
+                            break;
+                        }
+                    }
+                }
+                // Outline fallback (multi-contour or triangulation failed)
+                {
+                    const Color& outline = it->outline.IsNullInstance() ? it->color : it->outline;
+                    glLineWidth(std::max(1.0f, it->width));
+                    glColor4ub(outline.GetR(), outline.GetG(), outline.GetB(), 255);
+                    for (int d = 0; d < it->disjunct_polygon_counts.GetCount(); ++d) {
+                        int subcnt = it->disjunct_polygon_counts[d];
+                        for (int s = 0; s < subcnt; ++s) {
+                            if (suboffset >= it->subpolygon_counts.GetCount()) break;
+                            int cnt = it->subpolygon_counts[suboffset++];
+                            if (cnt <= 1 || offset + cnt > it->points.GetCount()) {
+                                offset += cnt; continue;
+                            }
+                            glBegin(GL_LINE_LOOP);
+                            for (int i = 0; i < cnt; ++i) {
+                                const Point3f& p = it->points[offset + i];
+                                glVertex3f(p.x, p.y, p.z);
+                            }
+                            glEnd();
+                            offset += cnt;
+                        }
                     }
                 }
                 break;

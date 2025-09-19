@@ -18,9 +18,13 @@ public:
         top.SetPendingLayout();
     }
     void Paint(Draw& w) override {
-        // Placeholder: show a pane; real rendering requires DrawCommand replay or image blit.
-        w.DrawRect(GetSize(), LtCyan());
-        w.DrawText(8, 8, "SurfaceCtrl placeholder", StdFont(), Black());
+        if (top.IsPendingLayout())
+            top.DeepLayout();
+        top.Redraw(false);
+        // Replay the recorded 2D draw commands into the Ctrl's painter
+        DrawCommand& cb = top.GetCommandBegin();
+        DrawCommand& ce = top.GetCommandEnd();
+        Replay2DDrawCommands(w, &cb, &ce);
     }
     bool Key(dword key, int count) override {
         CtrlEvent e;
@@ -63,4 +67,3 @@ public:
 };
 
 #endif
-

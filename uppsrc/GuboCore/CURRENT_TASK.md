@@ -4,7 +4,11 @@ Objective
 - Bring GuboCore (3D GUI) to practical parity with CtrlCore’s developer-facing API while preserving its manager-driven rendering/event model.
 
 Progress
-- Phase 1 implemented: SurfaceFrame capture plumbing now delegates to Gu::SurfaceManager; Surface container-level frame capture getters/setters are manager-backed. Next up: Gubo 3D parity items in Phase 2–4.
+- Phase 1 implemented: SurfaceFrame capture plumbing now delegates to Gu::SurfaceManager; Surface container-level frame capture getters/setters are manager-backed.
+- Phase 2 (core methods): Implemented
+  - Surface::GetWorkArea, ReleaseSurfaceCapture, GetCaptureSurface
+  - Gubo::GetWorkArea, ReleaseGuboCapture, GetCaptureGubo
+  These delegate to the active Gu::*Manager with fallbacks to local frame size.
 
 Plan (phased)
 - Phase 1 — Capture/Mouse plumbing
@@ -26,9 +30,7 @@ Plan (phased)
   - Strategy: call into the active manager (`Gu::GuboManager` / `Gu::SurfaceManager`) and reuse existing HAL/Eon main loop integration where available (e.g., `Surface::EventLoop()`/`MainLoop()`), keeping the public API shape similar to `TopWindow::Run`.
 
 - Phase 4 — 3D interaction parity
-  - Port 2D behaviors from `GI2D.cpp` to `GI3D.cpp` where stubs exist:
-    - MouseEventInFrameContent / MouseWheelInFrameContent / MouseEventInFrameCaptured
-    - Ensure deep mouse move/leave consistency and Z-order walking matches 2D.
+  - Base `GeomInteraction3D` now matches `GeomInteraction2D` defaults: content handlers are no-ops (return false), captured-path returns false. Frame-aware routing belongs to `Gubo` and is already implemented. No additional changes required unless specialized controls need overrides.
 
 - Phase 5 — Paint pipeline verification
   - Audit `GeomInteraction3D::Redraw` to ensure `CtrlDrawBegin/End` begin/end symmetry and clipping on frame/content match 2D.

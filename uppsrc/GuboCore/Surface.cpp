@@ -552,29 +552,35 @@ void Surface::DeepFrameLayout() {
 
 
 Rect Surface::GetWorkArea() const {
-	TODO
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
+	if (wm) {
+		Size sz = wm->GetFrameSize();
+		return Rect(sz);
+	}
+	return Rect(GetFrameSize());
 }
 
 
 bool Surface::ReleaseSurfaceCapture() {
-	TODO
-	/*GuiLock __;
-	LLOG("ReleaseSurfaceCapture");
-	if(captureSurface) {
-		captureSurface->CancelMode();
-		Surface *w = captureSurface->GetTopSurface();
-		captureSurface = NULL;
-		CheckMouseSurface();
-		if(w->HasWndCapture()) {
-			w->ReleaseWndCapture();
-			return true;
-		}
-	}
-	return false;*/
+	using namespace Ecs;
+	Parallel::Engine& mach = GetActiveMachine();
+	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
+	if (!wins)
+		return false;
+	Gu::SurfaceManager& mgr = wins->GetActiveScope();
+	mgr.SetCaptured((GeomInteraction*)NULL);
+	return true;
 }
 
 Surface* Surface::GetCaptureSurface() {
-	TODO
+	using namespace Ecs;
+	Parallel::Engine& mach = GetActiveMachine();
+	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
+	if (!wins)
+		return 0;
+	Gu::SurfaceManager& mgr = wins->GetActiveScope();
+	GeomInteraction* gi = mgr.GetCaptured();
+	return CastPtr<Surface>(gi);
 }
 
 void Surface::Update() {

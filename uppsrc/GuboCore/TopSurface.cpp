@@ -1,4 +1,6 @@
 #include "GuboCore.h"
+#include <GuboLib/ScopeT.h>
+#include <Eon/Eon.h>
 
 
 NAMESPACE_UPP
@@ -15,11 +17,15 @@ TopSurface::TopSurface() {
 }*/
 
 void TopSurface::OpenMain() {
-	
+	// Ensure registration and focus as main
+	CreateGeom2DComponent();
+	FocusEvent();
 }
 
 void TopSurface::Run() {
-	TODO
+	// Bring to front and enter shared main loop
+	FocusEvent();
+	Surface::EventLoop();
 }
 
 void TopSurface::RunInMachine() {
@@ -27,7 +33,13 @@ void TopSurface::RunInMachine() {
 }
 
 void TopSurface::FocusEvent() {
-	TODO
+	using namespace Ecs;
+	Parallel::Engine& mach = GetActiveMachine();
+	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
+	if (wins) {
+		Gu::SurfaceManager& mgr = wins->GetActiveScope();
+		mgr.FocusHandle(this);
+	}
 }
 
 #if 0

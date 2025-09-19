@@ -4,6 +4,8 @@ uses
 	CtrlCore;
 
 file
+	AGENTS.md,
+	CURRENT_TASK.md,
 	GuboCore.h,
 	Generic readonly separator,
 	GeomInteraction.h,
@@ -37,4 +39,3 @@ file
 	TopSurface.h,
 	TopSurface.cpp,
 	_ readonly separator;
-

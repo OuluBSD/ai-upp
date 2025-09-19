@@ -1,5 +1,6 @@
 #include "GuboCore.h"
 #include <Eon/Eon.h>
+#include <GuboLib/ScopeT.h>
 
 NAMESPACE_UPP
 
@@ -33,29 +34,33 @@ void SurfaceFrame::ReleaseCapture() {
 }
 
 SurfaceFrame* SurfaceFrame::GetCaptured() {
-	TODO
-	/*
 	if (!ctrl) return NULL;
-	return ctrl->GetWindows()->GetFrameCaptured();*/
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(ctrl->GetGeomDrawBegin());
+	if (wm)
+		return CastPtr<SurfaceFrame>(wm->GetFrameCaptured());
+	return NULL;
 }
 
 SurfaceFrame* SurfaceFrame::GetWithMouse() {
-	TODO
-	/*
 	if (!ctrl) return NULL;
-	return ctrl->GetWindows()->GetFrameWithMouse();*/
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(ctrl->GetGeomDrawBegin());
+	if (wm)
+		return CastPtr<SurfaceFrame>(wm->GetFrameWithMouse());
+	return NULL;
 }
 
 void SurfaceFrame::SetCaptured(SurfaceFrame* c) {
-	TODO
-	/*
-	ctrl->GetWindows()->SetFrameCaptured(c);*/
+	if (!ctrl) return;
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(ctrl->GetGeomDrawBegin());
+	if (wm)
+		wm->SetFrameCaptured(c);
 }
 
 void SurfaceFrame::SetWithMouse(SurfaceFrame* c) {
-	TODO
-	/*
-	ctrl->GetWindows()->SetFrameWithMouse(c);*/
+	if (!ctrl) return;
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(ctrl->GetGeomDrawBegin());
+	if (wm)
+		wm->SetFrameWithMouse(c);
 }
 
 

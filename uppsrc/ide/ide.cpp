@@ -1,4 +1,5 @@
 #include "ide.h"
+#include "MCP/MCP.h"
 
 VectorMap<String, String> git_branch_cache;
 
@@ -198,6 +199,8 @@ void Ide::Exit()
 	SaveWorkspace();
 	FlushFile();
 	console.Kill();
+	// Stop MCP server on shutdown
+	StopMcpServer();
 	Break(IDOK);
 	IdeExit = true;
 }

@@ -23,6 +23,7 @@
 #ifndef flagV1
 #include <ide/AI/AI.h>
 #include <ide/Shell/Shell.h>
+#include <ide/MCP/MCP.h>
 #endif
 
 #include "About.h"

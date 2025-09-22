@@ -1,0 +1,13 @@
+description "\377B";
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	MCP.h,
+	MCP.cpp,
+	Protocol.h,
+	Server.h,
+	Server.cpp,
+	WorkspaceBridge.h,
+	WorkspaceBridge.cpp;
+

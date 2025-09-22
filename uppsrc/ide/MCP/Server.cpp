@@ -105,7 +105,10 @@ String McpServer::Handle(const McpRequest& req) {
     return MakeError(req.id, -32601, "Method not found");
 }
 
-bool StartMcpServer(const McpConfig&) { return sMcpServer.Start(); }
+bool StartMcpServer(const McpConfig&) {
+	Thread::AtShutdown(StopMcpServer);
+	return sMcpServer.Start();
+}
 void StopMcpServer() { sMcpServer.Stop(); }
 bool McpIsRunning() { return sMcpServer.IsRunning(); }
 

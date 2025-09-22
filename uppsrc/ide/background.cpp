@@ -88,3 +88,16 @@ void TriggerIdeBackgroundThread(int delay)
 	static TimeCallback tm;
 	tm.KillSet(delay, [=] { ide_bg_scheduler.Broadcast(); });
 }
+
+void StartIdeMcpThread()
+{
+	#ifndef flagV1
+    // Start MCP server on IDE startup (MVP default on; later make configurable)
+    static bool mcp_started = false;
+    if(!mcp_started) {
+        McpConfig cfg;
+        StartMcpServer(cfg);
+        mcp_started = true;
+    }
+    #endif
+}

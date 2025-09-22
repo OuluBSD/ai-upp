@@ -1,21 +1,15 @@
-#include "MCP.h"
+#include <ide/ide.h>
 
 NAMESPACE_UPP
 
 // These use lightweight queries; extend as needed.
 String GetCurrentWorkspaceName() {
-    // Try to use existing IDE facilities if available; fallback to empty.
-    extern String GetCurrentIdeWorkspaceName();
-    if(&GetCurrentIdeWorkspaceName) // avoid ODR if symbol absent in some builds
-        return GetCurrentIdeWorkspaceName();
-    return String::GetVoid();
+    return TheIde() ? TheIde()->GetTitle().ToString() : "unnamed";
 }
 
 int GetCurrentWorkspacePackageCount() {
-    extern int GetCurrentIdeWorkspacePackageCount();
-    if(&GetCurrentIdeWorkspacePackageCount)
-        return GetCurrentIdeWorkspacePackageCount();
-    return 0;
+    const auto& wksp = GetIdeWorkspace();
+    return wksp.GetCount();
 }
 
 END_UPP_NAMESPACE

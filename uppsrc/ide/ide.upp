@@ -31,7 +31,6 @@ uses(!V1) ide/Shell;
 
 uses(!V1) ide/AI;
 
-
 file
 	AGENTS.md,
 	IDE readonly separator,
@@ -163,3 +162,4 @@ mainconfig
 custom() "",
 	"ASDFASDFASDF",
 	"$(OUTDIR)/$(FILE).obj";
+

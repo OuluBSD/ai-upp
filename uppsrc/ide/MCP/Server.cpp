@@ -29,12 +29,12 @@ void McpServer::Stop() {
 
 void McpServer::Loop() {
     TcpSocket listener;
-    listener.NoDelay();
     if(!listener.Listen(listen_port, 128, true)) {
         RLOG("MCP: listen failed on port " << listen_port << ": " << listener.GetErrorDesc());
         return;
     }
     RLOG("MCP: listening on port " << listen_port);
+    listener.NoDelay();
 
 	clients_thr.Start(THISBACK(HandleClients));
 	

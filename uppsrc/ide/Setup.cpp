@@ -470,6 +470,7 @@ void Ide::SetupFormat() {
 #ifndef flagV1
 		(ai.global_proxy, GlobalProxy())
 		(ai.references, GlobalCreateReferencesFile())
+		(ai.mcp_server_port, mcp_server_port)
 #endif
 	;
 	

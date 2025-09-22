@@ -40,9 +40,9 @@ void McpServer::Loop() {
 	
     while(!stop) {
         // Accept new clients non-blocking
-        listener.Timeout(5);
         One<TcpSocket> s;
         s.Create();
+        s->Timeout(5);
         if(s->Accept(listener)) {
             s->NoDelay();
             clients_lock.EnterWrite();

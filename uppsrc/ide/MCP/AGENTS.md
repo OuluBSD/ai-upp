@@ -19,8 +19,11 @@ File Map
 - Protocol.h: request/response structs and serialization helpers.
 - Server.h / Server.cpp: stdio transport, router, thread.
 - WorkspaceBridge.h / WorkspaceBridge.cpp: adapters to Ide workspace queries.
+- mcp_client.sh: TCP test client that autodetects available server methods by
+  grepping `Server.cpp` for `req.method == "..."` and calls each with `{}` params.
+  It uses `bash`'s `/dev/tcp` to connect. Keep handler methods in `Server.cpp`
+  as `if(req.method == "name")` so the client picks them up automatically.
 
 MVP Endpoints
 - mcp.ping -> { "result": "pong" }
 - workspace.info -> basic info about current workspace (name, package count).
-

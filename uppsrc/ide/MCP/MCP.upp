@@ -3,6 +3,7 @@ description "\377B";
 file
 	AGENTS.md,
 	CURRENT_TASK.md,
+	mcp_client.sh highlight log,
 	MCP.h,
 	MCP.cpp,
 	Protocol.h,

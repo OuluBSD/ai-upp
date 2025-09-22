@@ -407,6 +407,9 @@ void Ide::Serialize(Stream& s)
 	if(version >= 36)
 		s % GlobalCreateReferencesFile();
 
+	if(version >= 37)
+		s % mcp_server_port;
+	
 #ifdef PLATFORM_WIN32
 	if(s.IsLoading() && HostConsole == "/usr/bin/xterm -e")
 		HostConsole = "powershell.exe";

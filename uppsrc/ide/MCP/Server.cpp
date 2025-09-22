@@ -7,6 +7,8 @@ McpServer sMcpServer;
 bool McpServer::Start(int port) {
     if(running)
         return true;
+    if (!port && TheIde())
+        port = TheIde()->mcp_server_port;
     listen_port = port ? port : 7326; // default MCP port
     stop = 0;
     thr.Run([=] { const_cast<McpServer*>(this)->Loop(); });

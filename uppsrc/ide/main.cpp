@@ -465,6 +465,7 @@ void AppMain___()
 					ide.TriggerIndexer();
 				}
 				StartIdeBackgroundThread();
+				StartIdeMcpThread();
 				ide.FileSelected();
 				ide.isscanning--;
 				ide.MakeTitle();

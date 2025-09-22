@@ -1317,6 +1317,7 @@ void ForAllNests(Event<const Vector<String>&> fn);
 
 void StartIdeBackgroundThread();
 void TriggerIdeBackgroundThread(int delay_ms = 1000);
+void StartIdeMcpThread();
 
 inline Ide *TheIde()      { return (Ide *)TheIdeContext(); }
 

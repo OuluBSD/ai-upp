@@ -208,6 +208,15 @@ void Ide::MainConfig() {
 	MakeTitle();
 	TriggerIndexer();
 	editor.TriggerSyncFile(0);
+	#ifndef flagV1
+    // Start MCP server on IDE startup (MVP default on; later make configurable)
+    static bool mcp_started = false;
+    if(!mcp_started) {
+        McpConfig cfg;
+        StartMcpServer(cfg);
+        mcp_started = true;
+    }
+    #endif
 }
 
 void Ide::SyncMainConfigList()

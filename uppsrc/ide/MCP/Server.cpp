@@ -156,7 +156,7 @@ String McpServer::Handle(const McpRequest& req) {
         r.Add("mode", "script_build");
         return MakeResult(req.id, r);
     }
-    // Node/query scaffolding (stubs)
+    // Node/query handlers (env-backed with fallback)
     if(req.method == "node.locate") {
         if(!IsValueMap(req.params))
             return MakeError(req.id, INVALID_PARAMS, "Expected params object");
@@ -164,16 +164,30 @@ String McpServer::Handle(const McpRequest& req) {
         String file = AsString(p.Get("file", Value())) ;
         int line = (int)p.Get("line", 0);
         int col  = (int)p.Get("column", 0);
-        McpNode n = sMcpIndex.Locate(file, line, col);
         ValueMap r;
-        r.Add("id", n.id);
-        r.Add("kind", n.kind);
-        r.Add("name", n.name);
-        r.Add("file", n.file);
-        r.Add("start_line", n.start_line);
-        r.Add("start_col", n.start_col);
-        r.Add("end_line", n.end_line);
-        r.Add("end_col", n.end_col);
+        EnvStatusInfo st = EnvStatus();
+        if(st.initialized) {
+            EnvNodeInfo ei = EnvLocate(file, line, col);
+            r.Add("id", ei.id);
+            r.Add("kind", ei.kind);
+            r.Add("name", ei.name);
+            r.Add("file", ei.file);
+            r.Add("start_line", ei.start_line);
+            r.Add("start_col", ei.start_col);
+            r.Add("end_line", ei.end_line);
+            r.Add("end_col", ei.end_col);
+        } else {
+            McpNode n = sMcpIndex.Locate(file, line, col);
+            r.Add("id", n.id);
+            r.Add("kind", n.kind);
+            r.Add("name", n.name);
+            r.Add("file", n.file);
+            r.Add("start_line", n.start_line);
+            r.Add("start_col", n.start_col);
+            r.Add("end_line", n.end_line);
+            r.Add("end_col", n.end_col);
+            r.Add("note", "index_not_ready");
+        }
         return MakeResult(req.id, r);
     }
     if(req.method == "node.get") {
@@ -181,18 +195,32 @@ String McpServer::Handle(const McpRequest& req) {
             return MakeError(req.id, INVALID_PARAMS, "Expected params object");
         ValueMap p = req.params;
         String id = AsString(p.Get("id", Value()));
-        McpNode n = sMcpIndex.Get(id);
         ValueMap r;
-        r.Add("id", n.id);
-        r.Add("kind", n.kind);
-        r.Add("name", n.name);
-        r.Add("file", n.file);
-        r.Add("start_line", n.start_line);
-        r.Add("start_col", n.start_col);
-        r.Add("end_line", n.end_line);
-        r.Add("end_col", n.end_col);
-        // placeholder for code extraction
-        r.Add("code", String());
+        EnvStatusInfo st = EnvStatus();
+        if(st.initialized) {
+            EnvNodeInfo ei = EnvGet(id);
+            r.Add("id", ei.id);
+            r.Add("kind", ei.kind);
+            r.Add("name", ei.name);
+            r.Add("file", ei.file);
+            r.Add("start_line", ei.start_line);
+            r.Add("start_col", ei.start_col);
+            r.Add("end_line", ei.end_line);
+            r.Add("end_col", ei.end_col);
+            r.Add("code", EnvCodeById(id));
+        } else {
+            McpNode n = sMcpIndex.Get(id);
+            r.Add("id", n.id);
+            r.Add("kind", n.kind);
+            r.Add("name", n.name);
+            r.Add("file", n.file);
+            r.Add("start_line", n.start_line);
+            r.Add("start_col", n.start_col);
+            r.Add("end_line", n.end_line);
+            r.Add("end_col", n.end_col);
+            r.Add("code", String());
+            r.Add("note", "index_not_ready");
+        }
         return MakeResult(req.id, r);
     }
     if(req.method == "node.definition") {

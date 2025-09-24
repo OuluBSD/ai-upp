@@ -67,6 +67,7 @@ file
 	VfsValue.cpp,
 	VfsEnum.h,
 	VfsEnum.cpp,
+	VfsValue_mcp_stubs.cpp,
 	ECS readonly separator,
 	EcsDefs.h,
 	Debugging.h,

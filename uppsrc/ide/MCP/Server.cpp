@@ -73,11 +73,15 @@ void McpServer::HandleClients() {
                 for(const String& line : msgs) {
                     McpRequest req;
                     String reply;
-                    if(ParseRequest(line, req))
+                    if(ParseRequest(line, req)) {
                         reply = Handle(req);
-                    else
-                        reply = MakeError("", -32700, "Parse error");
-                    if(!IsNull(reply)) {
+                        if(!IsNotification(req)) {
+                            reply.Cat('\n');
+                            c.outbuf.Cat(reply);
+                        }
+                    } else {
+                        // Parse error → respond with null id per spec
+                        reply = MakeError(String(), PARSE_ERROR, "Parse error");
                         reply.Cat('\n');
                         c.outbuf.Cat(reply);
                     }
@@ -97,6 +101,8 @@ void McpServer::HandleClients() {
 }
 
 String McpServer::Handle(const McpRequest& req) {
+    if(IsNull(req.method))
+        return MakeError(req.id, INVALID_REQUEST, "Invalid request: missing method");
     if(req.method == "mcp.ping") {
         ValueMap r; r.Add("text", "pong");
         return MakeResult(req.id, r);
@@ -118,7 +124,7 @@ String McpServer::Handle(const McpRequest& req) {
         r.Add("packages", GetCurrentWorkspacePackageCount());
         return MakeResult(req.id, r);
     }
-    return MakeError(req.id, -32601, "Method not found");
+    return MakeError(req.id, METHOD_NOT_FOUND, "Method not found");
 }
 
 bool StartMcpServer(const McpConfig&) {

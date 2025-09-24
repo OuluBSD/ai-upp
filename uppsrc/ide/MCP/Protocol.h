@@ -18,6 +18,15 @@ struct McpResponse {
     bool   is_error = false;
 };
 
+// JSON-RPC 2.0 error helpers
+enum McpErrorCode {
+    PARSE_ERROR     = -32700,
+    INVALID_REQUEST = -32600,
+    METHOD_NOT_FOUND= -32601,
+    INVALID_PARAMS  = -32602,
+    INTERNAL_ERROR  = -32603,
+};
+
 inline bool ParseRequest(const String& json, McpRequest& out) {
     Value v = ParseJSON(json);
     if(!IsValueMap(v)) return false;
@@ -46,9 +55,13 @@ inline String MakeError(const String& id, int code, const String& message) {
     err.Add("message", message);
     ValueMap m;
     m.Add("jsonrpc", "2.0");
-    m.Add("id", id);
+    m.Add("id", IsNull(id) ? Value() : Value(id));
     m.Add("error", err);
     return AsJSON(m);
+}
+
+inline bool IsNotification(const McpRequest& r) {
+    return IsNull(r.id);
 }
 
 #endif

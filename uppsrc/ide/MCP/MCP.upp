@@ -9,13 +9,13 @@ file
 	mcp_client.sh highlight log,
 	MCP.h,
 	MCP.cpp,
+	Log.h,
+	Log.cpp,
 	Protocol.h,
 	Server.h,
 	Server.cpp,
 	Index.h,
 	Index.cpp,
-	Log.h,
-	Log.cpp,
 	WorkspaceBridge.h,
 	WorkspaceBridge.cpp;
 

@@ -44,7 +44,7 @@ void McpServerCore::HandleClients() {
             if(i >= clients.GetCount()) { clients_lock.LeaveRead(); break; }
             McpClient& c = clients[i];
             clients_lock.LeaveRead();
-            if(!c.sock.IsOpen()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
+            if(!c.sock->IsOpen()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
             Vector<String> msgs;
             if(ReadFramed(c, msgs)) {
                 for(const String& line : msgs) {
@@ -52,7 +52,7 @@ void McpServerCore::HandleClients() {
                     if(ParseRequest(line, req)) {
                         Time start = GetSysTime();
                         reply = Handle(req);
-                        int dur = (int)abs(int((GetSysTime() - start).Get()) * 1000);
+                        int dur = GetSysTime().Get() - start.Get();
                         LogRequest(c.id, req, "ok", dur);
                         if(!IsNotification(req)) { reply.Cat('\n'); c.outbuf.Cat(reply); }
                     } else {
@@ -62,11 +62,11 @@ void McpServerCore::HandleClients() {
                 }
             }
             WritePending(c);
-            if(c.sock.IsError() || c.sock.IsEof()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
+            if(c.sock->IsError() || c.sock->IsEof()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
         }
         Sleep(5);
     }
-    for(auto& c : clients) if(c.sock.IsOpen()) c.sock.Close();
+    for(auto& c : clients) if(c.sock->IsOpen()) c.sock->Close();
     clients_lock.EnterWrite(); clients.Clear(); clients_lock.LeaveWrite();
 }
 
@@ -83,7 +83,7 @@ String McpServerCore::Handle(const McpRequest& req) {
     }
     if(req.method == "mcp.log.get") {
         int limit = 200, min_level = MCP_INFO;
-        if(IsValueMap(req.params)) { ValueMap p = req.params; limit = (int)AsInt(p.Get("limit", limit)); min_level = (int)AsInt(p.Get("min_level", min_level)); }
+        if(IsValueMap(req.params)) { ValueMap p = req.params; limit = (int)(p.Get("limit", limit)); min_level = (int)(p.Get("min_level", min_level)); }
         ValueArray arr; for(const auto& e : sMcpLog.Snapshot(limit, min_level)) { ValueMap v; v.Add("ts", Format("%", e.ts)); v.Add("level", e.level); v.Add("client_id", e.client_id); v.Add("req_id", e.req_id); v.Add("method", e.method); v.Add("message", e.message); v.Add("duration_ms", e.duration_ms); arr.Add(v);} ValueMap r; r.Add("items", arr); r.Add("size", sMcpLog.Size()); return MakeResult(req.id, r);
     }
     if(req.method == "mcp.log.clear") { int before = sMcpLog.Size(); sMcpLog.Clear(); ValueMap r; r.Add("cleared", before); return MakeResult(req.id, r); }
@@ -95,18 +95,18 @@ String McpServerCore::Handle(const McpRequest& req) {
 }
 
 bool McpServerCore::ReadFramed(McpClient& c, Vector<String>& out_msgs) {
-    c.sock.Timeout(0);
-    if(!c.sock.Peek()) return false;
-    String chunk = c.sock.Get(); if(c.sock.IsError()) { c.sock.Close(); return false; }
+    c.sock->Timeout(0);
+    if(!c.sock->Peek()) return false;
+    String chunk = c.sock->GetLine(); if(c.sock->IsError()) { c.sock->Close(); return false; }
     if(chunk.IsEmpty()) return false; c.inbuf.Cat(chunk); c.last_activity = GetSysTime();
-    if(c.inbuf.GetLength() > max_message_bytes) { c.sock.Close(); return false; }
+    if(c.inbuf.GetLength() > max_message_bytes) { c.sock->Close(); return false; }
     for(;;) { int p = c.inbuf.Find('\n'); if(p < 0) break; String line = c.inbuf.Mid(0,p); c.inbuf.Remove(0,p+1); if(line.GetCount()) out_msgs.Add(line); }
     return out_msgs.GetCount();
 }
 
 bool McpServerCore::WritePending(McpClient& c) {
     if(c.outbuf.IsEmpty()) return false;
-    int n = c.sock.Put(c.outbuf); if(c.sock.IsError()) { c.sock.Close(); return false; }
+    int n = c.sock->Put(c.outbuf); if(c.sock->IsError()) { c.sock->Close(); return false; }
     if(n > 0) { c.outbuf.Remove(0, n); c.last_activity = GetSysTime(); return true; }
     return false;
 }

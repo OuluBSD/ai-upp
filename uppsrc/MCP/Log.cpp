@@ -6,26 +6,26 @@ McpLogBuffer sMcpLog;
 
 void McpLogBuffer::SetCapacity(int cap) {
     if(cap < 1) cap = 1;
-    WriteLock __ (lock);
+    RWMutex::WriteLock __ (lock);
     capacity = cap;
     if(buf.GetCount() > capacity)
         buf.Remove(0, buf.GetCount() - capacity);
 }
 
 void McpLogBuffer::Add(const McpLogEntry& e) {
-    WriteLock __ (lock);
+    RWMutex::WriteLock __ (lock);
     buf.Add(e);
     if(buf.GetCount() > capacity)
         buf.Remove(0, buf.GetCount() - capacity);
 }
 
 void McpLogBuffer::Clear() {
-    WriteLock __ (lock);
+    RWMutex::WriteLock __ (lock);
     buf.Clear();
 }
 
 Vector<McpLogEntry> McpLogBuffer::Snapshot(int max_items, int min_level) {
-    ReadLock __ (lock);
+    RWMutex::ReadLock __ (lock);
     Vector<McpLogEntry> out;
     int n = buf.GetCount();
     for(int i = max(0, n - max_items); i < n; i++)
@@ -35,7 +35,7 @@ Vector<McpLogEntry> McpLogBuffer::Snapshot(int max_items, int min_level) {
 }
 
 int McpLogBuffer::Size() const {
-    ReadLock __ (lock);
+    RWMutex::ReadLock __ (lock);
     return buf.GetCount();
 }
 

@@ -12,12 +12,18 @@ Integration Points
 - Package is added to `uppsrc/ide/ide.upp`.
 - Start/Stop APIs are provided; TheIDE can toggle server on startup or via menu later.
 
+Split
+- Headless core lives in `uppsrc/MCP`:
+  - Protocol, Log, Server (`McpServerCore`) with transport/framing/capabilities and core endpoints.
+- IDE integration lives here (`uppsrc/ide/MCP`):
+  - `McpServer` is a thin wrapper subclassing `McpServerCore` and overriding `HandleExtended` to add IDE-only endpoints and lifecycle wiring.
+
 File Map
 - MCP.upp: manifest (lists AGENTS.md, CURRENT_TASK.md first).
 - CURRENT_TASK.md: working notes and next steps.
 - MCP.h / MCP.cpp: main header + start/stop entrypoints.
 - Protocol.h: request/response structs and serialization helpers.
-- Server.h / Server.cpp: TCP transport, framing, router, thread.
+- Server.h / Server.cpp: IDE wrapper over headless `McpServerCore` with IDE-only handlers (workspace.*, node.*, edits.*) and builder-aware index status.
 - WorkspaceBridge.h / WorkspaceBridge.cpp: adapters to Ide workspace queries.
 - Index.h / Index.cpp: adapter over IdeMetaEnvironment/MetaEnvironment for AST-backed queries (placeholder today).
 - mcp_client.sh: TCP test client that autodetects available server methods by

@@ -23,7 +23,8 @@ uses
 	ide/clang,
 	ide/Edit3D;
 
-uses(!V1) ide/MCP;
+uses(!V1) MCP,
+        ide/MCP;
 
 uses(!V1) DropTerm;
 
@@ -162,4 +163,3 @@ mainconfig
 custom() "",
 	"ASDFASDFASDF",
 	"$(OUTDIR)/$(FILE).obj";
-

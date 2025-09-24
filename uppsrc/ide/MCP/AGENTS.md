@@ -1,7 +1,7 @@
 Scope: uppsrc/ide/MCP
 
 Purpose
-- MCP server for TheIDE: exposes workspace/project/file/build APIs over a simple JSON-RPC-like protocol over stdio (initial MVP).
+- MCP server for TheIDE: exposes workspace/project/file/build APIs over a JSON-RPC 2.0 protocol over TCP (initial MVP). Designed to power OpenAI Codex via MCP with IDE-grade code intelligence and edits.
 
 Conventions
 - Follow Header Include Policy (U++ BLITZ): all .cpp/.icpp start with `#include "MCP.h"` and only add rare local includes after.
@@ -17,8 +17,9 @@ File Map
 - CURRENT_TASK.md: working notes and next steps.
 - MCP.h / MCP.cpp: main header + start/stop entrypoints.
 - Protocol.h: request/response structs and serialization helpers.
-- Server.h / Server.cpp: stdio transport, router, thread.
+- Server.h / Server.cpp: TCP transport, framing, router, thread.
 - WorkspaceBridge.h / WorkspaceBridge.cpp: adapters to Ide workspace queries.
+- Index.h / Index.cpp: adapter over IdeMetaEnvironment/MetaEnvironment for AST-backed queries (placeholder today).
 - mcp_client.sh: TCP test client that autodetects available server methods by
   grepping `Server.cpp` for `req.method == "..."` and calls each with `{}` params.
   It uses `bash`'s `/dev/tcp` to connect. Keep handler methods in `Server.cpp`
@@ -26,4 +27,11 @@ File Map
 
 MVP Endpoints
 - mcp.ping -> { "result": "pong" }
+- mcp.capabilities -> discovery: protocol, methods, flags.
+- mcp.index.status -> AST/index readiness (SCRIPT builder aware).
 - workspace.info -> basic info about current workspace (name, package count).
+
+Codex Focus
+- AST lives in MetaEnvironment (Core2/VfsValue.h) exposed via IdeMetaEnvironment (ide/Vfs/Ide.h).
+- AST is built by ScriptBuilder (ide/Builders/ScriptBuilder.cpp) when the SCRIPT builder is selected and packages are compiled.
+- MCP node.* endpoints will query this environment for symbol-safe operations (find/refs/rename/etc.).

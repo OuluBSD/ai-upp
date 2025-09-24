@@ -135,14 +135,14 @@ String McpServer::Handle(const McpRequest& req) {
         ValueMap r;
         String builder = "unknown";
         bool ready = false;
-        if(TheIde()) {
-            const MakeBuild* make = TheIde();
-            // Best-effort: try to read a builder name if exposed; otherwise assume unknown
-			VectorMap<String, String> bm = GetMethodVars(make->method);
-			String builder = bm.Get("BUILDER", "GCC");
-            // Consider ready only when SCRIPT builder is active
+        if(const MakeBuild* make = TheIde()) {
+            VectorMap<String, String> bm = GetMethodVars(make->method);
+            builder = bm.Get("BUILDER", "GCC");
             ready = ToUpper(builder) == "SCRIPT";
         }
+        // Access the environments (future use)
+        IdeMetaEnvironment& ienv = IdeMetaEnv();
+        MetaEnvironment& env = ienv.env;
         r.Add("ready", ready);
         r.Add("builder", builder);
         r.Add("last_update", (int)0);

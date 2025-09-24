@@ -135,8 +135,8 @@ String McpServer::Handle(const McpRequest& req) {
             return MakeError(req.id, INVALID_PARAMS, "Expected params object");
         ValueMap p = req.params;
         String file = AsString(p.Get("file", Value())) ;
-        int line = (int)AsInt(p.Get("line", 0));
-        int col  = (int)AsInt(p.Get("column", 0));
+        int line = (int)p.Get("line", 0);
+        int col  = (int)p.Get("column", 0);
         McpNode n = sMcpIndex.Locate(file, line, col);
         ValueMap r;
         r.Add("id", n.id);

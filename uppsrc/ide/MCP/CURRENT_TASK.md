@@ -67,7 +67,9 @@ Immediate Roadmap (sequenced)
    - Add JSON‑RPC 2.0 compliance (validate jsonrpc=="2.0"; standard errors -32700, -32600, -32601, -32602, -32603).
    - Implement mcp.capabilities and standardize error responses; echo request ids.
 2) Index core
-   - VfsValue→AST parse for single TU; extract decl/def/ref; mint node ids; minimal global index.
+   - Integrate existing MetaEnvironment AST via IdeMetaEnvironment (ide/Vfs/Ide.h) which wraps Core2/VfsValue.h.
+   - Use SCRIPT builder (ide/Builders/ScriptBuilder.cpp) to populate/update AST; require active SCRIPT builder for freshness.
+   - Provide EnvIndex adapter to query env: LocateByPos, GetById, GetDefinition, FindReferences; mint stable node ids (USR-like).
 3) Read-only queries
    - node.locate, node.get, node.definition, node.references with paging.
 4) Edit pipeline
@@ -84,9 +86,10 @@ Server Hardening
 Done
 - Package skeleton, AGENTS.md.
 - Lifecycle wiring into TheIDE (start on init, stop on shutdown; config flag/port).
+ - Per-client framing (newline-delimited), capabilities endpoint, JSON-RPC error semantics.
 
 Next (actionable)
-- Add framing + per-client state to Server.{h,cpp}.
-- Implement mcp.capabilities and JSON‑RPC 2.0 error handling in Protocol.h/Server.cpp.
-- Scaffold read-only endpoints: node.locate, node.get, node.definition, node.references (stubs calling a placeholder index).
-- Update mcp_client.sh to use mcp.capabilities for discovery (keep grep fallback).
+- Add mcp.index.status and mcp.index.refresh (SCRIPT builder aware) endpoints.
+- Implement EnvIndex adapter backed by IdeMetaEnvironment; return index_not_ready when AST missing/stale.
+- Wire node.locate/node.get/node.definition/node.references to EnvIndex.
+- Update mcp_client.sh to use mcp.capabilities for discovery (done); extend with sample node.locate request.

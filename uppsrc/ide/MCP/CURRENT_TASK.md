@@ -93,5 +93,6 @@ Next (actionable)
 - Implement EnvIndex adapter backed by IdeMetaEnvironment; return index_not_ready when AST missing/stale.
 - Wire node.locate/node.get/node.definition/node.references to EnvIndex.
 - Update mcp_client.sh to use mcp.capabilities for discovery (done); extend with sample node.locate request.
- - Define required Env APIs in repo root CURRENT_TASK.md for Core2/VfsValue.h and ide/Vfs/Ide.h:
+- Define required Env APIs in repo root CURRENT_TASK.md for Core2/VfsValue.h and ide/Vfs/Ide.h:
    - EnvLocate(file,line,col), EnvGet(id), EnvDefinition(id), EnvReferences(id,page,limit), EnvCode(id|range), EnvStatus().
+   - Add header stubs with TODOs so MCP can link now.

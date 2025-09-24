@@ -138,4 +138,17 @@ bool IsMergeable(CXCursorKind kind);
 VfsValue* FindNodeEnv(Entity& n);
 VfsValue* IdeVfsFillDatasetPtrs(DatasetPtrs& p, hash_t type_hash);
 
+
+// MCP-facing adapters over IdeMetaEnvironment.
+// These forward to Env* functions once implemented, but provide IDE-local context if needed.
+
+struct IdeEnvStatus {
+    bool initialized = false;
+    String builder;
+    int64 last_update_ts = 0;
+    int   stale_files = 0;
+};
+
+IdeEnvStatus IdeEnvStatusQuery();
+
 #endif

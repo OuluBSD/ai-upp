@@ -1,10 +1,6 @@
 #ifndef _Meta_VfsValue_h_
 #define _Meta_VfsValue_h_
 
-// Core dependencies (hash_t, String, CritBitIndex)
-#include <Core/Core.h>
-#include <Core/CritBitIndex.h>
-
 struct VfsValue;
 struct VfsValueExtCtrl;
 struct VfsSrcPkg;
@@ -1136,5 +1132,38 @@ inline T* VirtualNode::As() {
 	return 0;
 }
 
+
+
+// MCP Env API stubs (to be implemented). These are non-breaking additions.
+struct EnvNodeInfo : Moveable<EnvNodeInfo> {
+    String id;
+    String kind;
+    String name;
+    String file;
+    int    start_line = 0;
+    int    start_col = 0;
+    int    end_line = 0;
+    int    end_col = 0;
+};
+
+struct EnvRefPage {
+    Vector<EnvNodeInfo> items; // or locations if lighter desired
+    String next_page_token;
+};
+
+struct EnvStatusInfo {
+    bool initialized = false;
+    int64 last_update_ts = 0; // unix seconds
+    int   stale_files = 0;
+};
+
+// TODO: implement these in Core2/VfsValue*.cpp and/or adapters in ide/Vfs
+EnvNodeInfo EnvLocate(const String& file, int line, int column);
+EnvNodeInfo EnvGet(const String& id);
+Vector<EnvNodeInfo> EnvDefinition(const String& id);
+EnvRefPage EnvReferences(const String& id, const String& page_token = String(), int limit = 200);
+String EnvCodeById(const String& id);
+String EnvCodeByRange(const String& file, int sline, int scol, int eline, int ecol);
+EnvStatusInfo EnvStatus();
 
 #endif

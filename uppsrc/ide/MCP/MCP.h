@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <CtrlLib/CtrlLib.h>
+#include <MCP/MCP.h>
 
 #define NAMESPACE_UPP namespace Upp {
 #define END_UPP_NAMESPACE }
@@ -10,15 +11,15 @@
 
 NAMESPACE_UPP
 
-#include "Protocol.h"
+// Headless MCP core is included via <MCP/MCP.h>
 
 bool StartMcpServer(const McpConfig& cfg);
 void StopMcpServer();
 bool McpIsRunning();
 
-// Aggregated headers
 #include "Server.h"
 #include "WorkspaceBridge.h"
+#include "Index.h"
 #include "Index.h"
 #include "Log.h"
 

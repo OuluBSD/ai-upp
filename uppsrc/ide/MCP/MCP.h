@@ -19,6 +19,7 @@ bool McpIsRunning();
 // Aggregated headers
 #include "Server.h"
 #include "WorkspaceBridge.h"
+#include "Index.h"
 
 END_UPP_NAMESPACE
 

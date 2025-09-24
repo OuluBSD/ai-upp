@@ -9,6 +9,8 @@ file
 	Protocol.h,
 	Server.h,
 	Server.cpp,
+	Index.h,
+	Index.cpp,
 	WorkspaceBridge.h,
 	WorkspaceBridge.cpp;
 

@@ -131,11 +131,41 @@ String McpServer::Handle(const McpRequest& req) {
     }
     // Node/query scaffolding (stubs)
     if(req.method == "node.locate") {
-        ValueMap r; r.Add("status", "not_implemented");
+        if(!IsValueMap(req.params))
+            return MakeError(req.id, INVALID_PARAMS, "Expected params object");
+        ValueMap p = req.params;
+        String file = AsString(p.Get("file", Value())) ;
+        int line = (int)AsInt(p.Get("line", 0));
+        int col  = (int)AsInt(p.Get("column", 0));
+        McpNode n = sMcpIndex.Locate(file, line, col);
+        ValueMap r;
+        r.Add("id", n.id);
+        r.Add("kind", n.kind);
+        r.Add("name", n.name);
+        r.Add("file", n.file);
+        r.Add("start_line", n.start_line);
+        r.Add("start_col", n.start_col);
+        r.Add("end_line", n.end_line);
+        r.Add("end_col", n.end_col);
         return MakeResult(req.id, r);
     }
     if(req.method == "node.get") {
-        ValueMap r; r.Add("status", "not_implemented");
+        if(!IsValueMap(req.params))
+            return MakeError(req.id, INVALID_PARAMS, "Expected params object");
+        ValueMap p = req.params;
+        String id = AsString(p.Get("id", Value()));
+        McpNode n = sMcpIndex.Get(id);
+        ValueMap r;
+        r.Add("id", n.id);
+        r.Add("kind", n.kind);
+        r.Add("name", n.name);
+        r.Add("file", n.file);
+        r.Add("start_line", n.start_line);
+        r.Add("start_col", n.start_col);
+        r.Add("end_line", n.end_line);
+        r.Add("end_col", n.end_col);
+        // placeholder for code extraction
+        r.Add("code", String());
         return MakeResult(req.id, r);
     }
     if(req.method == "node.definition") {

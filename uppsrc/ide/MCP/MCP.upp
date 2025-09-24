@@ -11,6 +11,8 @@ file
 	Server.cpp,
 	Index.h,
 	Index.cpp,
+	Log.h,
+	Log.cpp,
 	WorkspaceBridge.h,
 	WorkspaceBridge.cpp;
 

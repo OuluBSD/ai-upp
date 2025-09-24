@@ -24,6 +24,7 @@ private:
     void HandleClients();
     bool ReadFramed(McpClient& c, Vector<String>& out_msgs);
     bool WritePending(McpClient& c);
+    void LogRequest(int client_id, const McpRequest& req, const String& status, int duration_ms = -1);
 
     Thread  thr;
     Thread  clients_thr;

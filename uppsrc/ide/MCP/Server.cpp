@@ -74,7 +74,10 @@ void McpServer::HandleClients() {
                     McpRequest req;
                     String reply;
                     if(ParseRequest(line, req)) {
+                        Time start = GetSysTime();
                         reply = Handle(req);
+                        int dur = GetSysTime().Get() - start.Get();
+                        LogRequest(c.id, req, "ok", dur);
                         if(!IsNotification(req)) {
                             reply.Cat('\n');
                             c.outbuf.Cat(reply);
@@ -84,6 +87,8 @@ void McpServer::HandleClients() {
                         reply = MakeError(String(), PARSE_ERROR, "Parse error");
                         reply.Cat('\n');
                         c.outbuf.Cat(reply);
+                        McpRequest dummy; dummy.id = String(); dummy.method = String();
+                        LogRequest(c.id, dummy, "parse_error", -1);
                     }
                 }
             }
@@ -119,6 +124,8 @@ String McpServer::Handle(const McpRequest& req) {
         methods.Add("node.definition");
         methods.Add("node.references");
         methods.Add("edits.apply");
+        methods.Add("mcp.log.get");
+        methods.Add("mcp.log.clear");
         ValueMap caps;
         caps.Add("protocol", "jsonrpc-2.0");
         caps.Add("supports_batch", false);
@@ -156,6 +163,35 @@ String McpServer::Handle(const McpRequest& req) {
         ValueMap r;
         r.Add("accepted", true);
         r.Add("mode", "script_build");
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "mcp.log.get") {
+        int limit = 200;
+        int min_level = MCP_INFO;
+        if(IsValueMap(req.params)) {
+            ValueMap p = req.params;
+            limit = (int)p.Get("limit", limit);
+            min_level = (int)p.Get("min_level", min_level);
+        }
+        ValueArray arr;
+        for(const auto& e : sMcpLog.Snapshot(limit, min_level)) {
+            ValueMap v;
+            v.Add("ts", Format("%", e.ts));
+            v.Add("level", e.level);
+            v.Add("client_id", e.client_id);
+            v.Add("req_id", e.req_id);
+            v.Add("method", e.method);
+            v.Add("message", e.message);
+            v.Add("duration_ms", e.duration_ms);
+            arr.Add(v);
+        }
+        ValueMap r; r.Add("items", arr); r.Add("size", sMcpLog.Size());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "mcp.log.clear") {
+        int before = sMcpLog.Size();
+        sMcpLog.Clear();
+        ValueMap r; r.Add("cleared", before);
         return MakeResult(req.id, r);
     }
     // Node/query handlers (env-backed with fallback)
@@ -255,7 +291,7 @@ String McpServer::Handle(const McpRequest& req) {
         ValueMap p = req.params;
         String id = AsString(p.Get("id", Value()));
         String page = AsString(p.Get("page_token", String()));
-        int limit = (int)AsInt(p.Get("limit", 200));
+        int limit = (int)p.Get("limit", 200);
         ValueArray items;
         String next;
         EnvStatusInfo st = EnvStatus();
@@ -289,6 +325,7 @@ String McpServer::Handle(const McpRequest& req) {
         ValueMap r; r.Add("applied", a.GetCount());
         return MakeResult(req.id, r);
     }
+    MCPLOG(MCP_WARN, 0, req.id, req.method, "method_not_found");
     return MakeError(req.id, METHOD_NOT_FOUND, "Method not found");
 }
 
@@ -330,4 +367,9 @@ bool McpServer::WritePending(McpClient& c) {
         return true;
     }
     return false;
+}
+
+void McpServer::LogRequest(int client_id, const McpRequest& req, const String& status, int duration_ms) {
+    int level = status == "ok" ? MCP_INFO : (status == "parse_error" ? MCP_ERROR : MCP_WARN);
+    MCPLOG(level, client_id, req.id, req.method, status, duration_ms);
 }

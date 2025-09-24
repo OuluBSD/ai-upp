@@ -20,6 +20,7 @@ bool McpIsRunning();
 #include "Server.h"
 #include "WorkspaceBridge.h"
 #include "Index.h"
+#include "Log.h"
 
 END_UPP_NAMESPACE
 

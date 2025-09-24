@@ -112,6 +112,11 @@ String McpServer::Handle(const McpRequest& req) {
         methods.Add("mcp.ping");
         methods.Add("mcp.capabilities");
         methods.Add("workspace.info");
+        methods.Add("node.locate");
+        methods.Add("node.get");
+        methods.Add("node.definition");
+        methods.Add("node.references");
+        methods.Add("edits.apply");
         ValueMap caps;
         caps.Add("protocol", "jsonrpc-2.0");
         caps.Add("supports_batch", false);

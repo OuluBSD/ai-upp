@@ -1,5 +1,8 @@
 description "\377B";
 
+uses
+	MCP;
+
 file
 	AGENTS.md,
 	CURRENT_TASK.md,

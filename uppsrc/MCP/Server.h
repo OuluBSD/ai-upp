@@ -1,22 +1,26 @@
-#ifndef _ide_MCP_Server_h_
-#define _ide_MCP_Server_h_
+#ifndef _MCP_Server_h_
+#define _MCP_Server_h_
 
 
 struct McpClient {
-    One<TcpSocket> sock;
-    String         inbuf;
-    String         outbuf;
-    Time           last_activity;
-    int            id = 0;
+    TcpSocket sock;
+    String    inbuf;
+    String    outbuf;
+    Time      last_activity;
+    int       id = 0;
 };
 
-class McpServer : public McpServerCore {
+class McpServerCore {
 public:
-    typedef McpServer CLASSNAME;
-    bool Start(int port = 0); // 0 -> choose default
+    typedef McpServerCore CLASSNAME;
+    bool Start(int port = 7326);
     void Stop();
     bool IsRunning() const { return running; }
     int  Port() const { return listen_port; }
+
+protected:
+    // Extension point: override to handle methods beyond core ones
+    virtual String HandleExtended(const McpRequest& req) { return MakeError(req.id, METHOD_NOT_FOUND, "Method not found"); }
 
 private:
     void Loop();
@@ -33,10 +37,10 @@ private:
     int     listen_port = 0;
     RWMutex clients_lock;
     Array<McpClient> clients;
-    int next_client_id = 1;
-    int max_message_bytes = 4 * 1024 * 1024; // 4 MB cap
+    int     next_client_id = 1;
+    int     max_message_bytes = 4 * 1024 * 1024; // 4 MB
 };
 
-extern McpServer sMcpServer;
 
 #endif
+

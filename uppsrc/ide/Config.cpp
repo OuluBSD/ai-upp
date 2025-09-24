@@ -408,7 +408,7 @@ void Ide::Serialize(Stream& s)
 		s % GlobalCreateReferencesFile();
 
 	if(version >= 37)
-		s % mcp_server_port;
+		s % mcp_server_enabled % mcp_server_port;
 	
 #ifdef PLATFORM_WIN32
 	if(s.IsLoading() && HostConsole == "/usr/bin/xterm -e")

@@ -41,6 +41,12 @@ inline bool ParseRequest(const String& json, McpRequest& out) {
     return true;
 }
 
+// Minimal node/edit protocol types (stubs)
+struct McpLocation { String file; int line = 0; int column = 0; };
+struct McpRange { McpLocation start; McpLocation end; };
+struct McpEditHunk { McpRange range; String text; };
+struct McpPlannedEdit { String file; Array<McpEditHunk> hunks; };
+
 inline String MakeResult(const String& id, const Value& result) {
     ValueMap m;
     m.Add("jsonrpc", "2.0");

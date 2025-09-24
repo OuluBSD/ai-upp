@@ -124,6 +124,35 @@ String McpServer::Handle(const McpRequest& req) {
         r.Add("packages", GetCurrentWorkspacePackageCount());
         return MakeResult(req.id, r);
     }
+    // Node/query scaffolding (stubs)
+    if(req.method == "node.locate") {
+        ValueMap r; r.Add("status", "not_implemented");
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "node.get") {
+        ValueMap r; r.Add("status", "not_implemented");
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "node.definition") {
+        ValueMap r; r.Add("status", "not_implemented");
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "node.references") {
+        ValueMap r; r.Add("status", "not_implemented");
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "edits.apply") {
+        // Accepts array of planned edits; currently just validates shape
+        if(!IsValueArray(req.params))
+            return MakeError(req.id, INVALID_PARAMS, "Expected params as array of edits");
+        ValueArray a = req.params;
+        for(const Value& v : a) {
+            if(!IsValueMap(v))
+                return MakeError(req.id, INVALID_PARAMS, "Edit must be object");
+        }
+        ValueMap r; r.Add("applied", a.GetCount());
+        return MakeResult(req.id, r);
+    }
     return MakeError(req.id, METHOD_NOT_FOUND, "Method not found");
 }
 

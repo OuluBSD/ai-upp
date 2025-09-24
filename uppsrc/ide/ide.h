@@ -687,6 +687,7 @@ public:
 	bool      autostart_audio_src = false;
 	double    audio_timelimit = 1.0;
 	double    audio_volumetreshold = 0.1;
+	bool      mcp_server_enabled = false;
 	int       mcp_server_port = 7326;
 	bool      search_downloads =
 #ifdef PLATFORM_MACOS

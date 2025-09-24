@@ -45,8 +45,12 @@ void McpServer::Loop() {
         s->Timeout(5);
         if(s->Accept(listener)) {
             s->NoDelay();
+            McpClient c;
+            c.sock = s.Detach();
+            c.last_activity = GetSysTime();
+            c.id = next_client_id++;
             clients_lock.EnterWrite();
-            clients.Add(s.Detach());
+            clients.Add(pick(c));
             clients_lock.LeaveWrite();
         }
     }
@@ -61,30 +65,31 @@ void McpServer::HandleClients() {
                 clients_lock.LeaveRead();
                 break;
             }
-            TcpSocket& s = clients[i];
+            McpClient& c = clients[i];
             clients_lock.LeaveRead();
-            
-            if(!s.IsOpen()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
-            while(s.Peek() && s.IsOpen()) {
-                String line = s.GetLine();
-                if(IsNull(line)) break;
-                McpRequest req;
-                String reply;
-                if(ParseRequest(line, req))
-                    reply = Handle(req);
-                else
-                    reply = MakeError("", -32700, "Parse error");
-                if(!IsNull(reply)) {
-                    reply.Cat('\n');
-                    s.Put(reply);
+            if(!c.sock->IsOpen()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
+            Vector<String> msgs;
+            if(ReadFramed(c, msgs)) {
+                for(const String& line : msgs) {
+                    McpRequest req;
+                    String reply;
+                    if(ParseRequest(line, req))
+                        reply = Handle(req);
+                    else
+                        reply = MakeError("", -32700, "Parse error");
+                    if(!IsNull(reply)) {
+                        reply.Cat('\n');
+                        c.outbuf.Cat(reply);
+                    }
                 }
             }
-            if(s.IsError() || s.IsEof()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
+            WritePending(c);
+            if(c.sock->IsError() || c.sock->IsEof()) { clients_lock.EnterWrite(); clients.Remove(i--); clients_lock.LeaveWrite(); continue; }
         }
         Sleep(5);
     }
     // Cleanup
-    for(auto& c : clients) if(c.IsOpen()) c.Close();
+    for(auto& c : clients) if(c.sock->IsOpen()) c.sock->Close();
     
     clients_lock.EnterWrite();
     clients.Clear();
@@ -95,6 +100,17 @@ String McpServer::Handle(const McpRequest& req) {
     if(req.method == "mcp.ping") {
         ValueMap r; r.Add("text", "pong");
         return MakeResult(req.id, r);
+    }
+    if(req.method == "mcp.capabilities") {
+        ValueArray methods;
+        methods.Add("mcp.ping");
+        methods.Add("mcp.capabilities");
+        methods.Add("workspace.info");
+        ValueMap caps;
+        caps.Add("protocol", "jsonrpc-2.0");
+        caps.Add("supports_batch", false);
+        caps.Add("methods", methods);
+        return MakeResult(req.id, caps);
     }
     if(req.method == "workspace.info") {
         ValueMap r;
@@ -113,4 +129,34 @@ void StopMcpServer() { sMcpServer.Stop(); }
 bool McpIsRunning() { return sMcpServer.IsRunning(); }
 
 END_UPP_NAMESPACE
+ 
+bool McpServer::ReadFramed(McpClient& c, Vector<String>& out_msgs) {
+    c.sock->Timeout(0);
+    if(!c.sock->Peek()) return false;
+    String chunk = c.sock->GetLine();
+    if(c.sock->IsError()) { c.sock->Close(); return false; }
+    if(chunk.IsEmpty()) return false;
+    c.inbuf.Cat(chunk);
+    c.last_activity = GetSysTime();
+    if(c.inbuf.GetLength() > max_message_bytes) { c.sock->Close(); return false; }
+    for(;;) {
+        int p = c.inbuf.Find('\n');
+        if(p < 0) break;
+        String line = c.inbuf.Mid(0, p);
+        c.inbuf.Remove(0, p+1);
+        if(line.GetCount()) out_msgs.Add(line);
+    }
+    return out_msgs.GetCount();
+}
 
+bool McpServer::WritePending(McpClient& c) {
+    if(c.outbuf.IsEmpty()) return false;
+    int n = c.sock->Put(c.outbuf);
+    if(c.sock->IsError()) { c.sock->Close(); return false; }
+    if(n > 0) {
+        c.outbuf.Remove(0, n);
+        c.last_activity = GetSysTime();
+        return true;
+    }
+    return false;
+}

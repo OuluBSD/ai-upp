@@ -22,6 +22,10 @@ inline bool ParseRequest(const String& json, McpRequest& out) {
     Value v = ParseJSON(json);
     if(!IsValueMap(v)) return false;
     ValueMap m = v;
+    String ver = AsString(m.Get("jsonrpc", Value()));
+    if(ver != "2.0" && ver != "") {
+        return false;
+    }
     out.id = AsString(m.Get("id", Value()));
     out.method = AsString(m.Get("method", Value()));
     out.params = m.Get("params", Value());

@@ -1,8 +1,6 @@
 #ifndef _ide_MCP_Index_h_
 #define _ide_MCP_Index_h_
 
-#include "MCP.h"
-
 
 struct McpNode {
     String id;

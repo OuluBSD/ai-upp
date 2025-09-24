@@ -112,6 +112,8 @@ String McpServer::Handle(const McpRequest& req) {
         methods.Add("mcp.ping");
         methods.Add("mcp.capabilities");
         methods.Add("workspace.info");
+        methods.Add("mcp.index.status");
+        methods.Add("mcp.index.refresh");
         methods.Add("node.locate");
         methods.Add("node.get");
         methods.Add("node.definition");
@@ -127,6 +129,22 @@ String McpServer::Handle(const McpRequest& req) {
         ValueMap r;
         r.Add("name", GetCurrentWorkspaceName());
         r.Add("packages", GetCurrentWorkspacePackageCount());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "mcp.index.status") {
+        ValueMap r;
+        // Placeholder status; to be wired to IdeMetaEnvironment and SCRIPT builder state
+        r.Add("ready", true);
+        r.Add("builder", "SCRIPT");
+        r.Add("last_update", (int)0);
+        r.Add("stale_files", 0);
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "mcp.index.refresh") {
+        // Placeholder: Accept and report that refresh was requested.
+        ValueMap r;
+        r.Add("accepted", true);
+        r.Add("mode", "script_build");
         return MakeResult(req.id, r);
     }
     // Node/query scaffolding (stubs)

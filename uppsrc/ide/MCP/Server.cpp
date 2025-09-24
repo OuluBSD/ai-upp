@@ -147,6 +147,8 @@ String McpServer::Handle(const McpRequest& req) {
         r.Add("builder", builder);
         r.Add("last_update", (int)0);
         r.Add("stale_files", 0);
+        if(!ready)
+            r.Add("note", "SCRIPT builder required to populate AST/index via ScriptBuilder");
         return MakeResult(req.id, r);
     }
     if(req.method == "mcp.index.refresh") {

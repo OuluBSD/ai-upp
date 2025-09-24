@@ -1135,6 +1135,13 @@ inline T* VirtualNode::As() {
 
 
 // MCP Env API stubs (to be implemented). These are non-breaking additions.
+// Contract (draft):
+// - Node identity (EnvNodeInfo.id): stable across sessions for the same symbol/config.
+//   Suggested format: hash(namespace + qualified_name + kind + file + primary_range), or an internal USR.
+// - Ranges are 1-based line/column, inclusive start, exclusive end.
+// - EnvStatus.initialized = true when AST/xrefs for current config are populated.
+// - References may be large: EnvReferences must support paging via page_token/limit.
+// - Code extraction should prefer AST pretty-print; fallback to file slice by range.
 struct EnvNodeInfo : Moveable<EnvNodeInfo> {
     String id;
     String kind;

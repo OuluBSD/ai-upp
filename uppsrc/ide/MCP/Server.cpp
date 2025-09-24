@@ -224,11 +224,55 @@ String McpServer::Handle(const McpRequest& req) {
         return MakeResult(req.id, r);
     }
     if(req.method == "node.definition") {
-        ValueMap r; r.Add("status", "not_implemented");
+        if(!IsValueMap(req.params))
+            return MakeError(req.id, INVALID_PARAMS, "Expected params object");
+        ValueMap p = req.params;
+        String id = AsString(p.Get("id", Value()));
+        ValueArray items;
+        EnvStatusInfo st = EnvStatus();
+        if(st.initialized) {
+            Vector<EnvNodeInfo> defs = EnvDefinition(id);
+            for(const auto& d : defs) {
+                ValueMap v;
+                v.Add("id", d.id);
+                v.Add("file", d.file);
+                v.Add("start_line", d.start_line);
+                v.Add("start_col", d.start_col);
+                v.Add("end_line", d.end_line);
+                v.Add("end_col", d.end_col);
+                items.Add(v);
+            }
+        }
+        ValueMap r; r.Add("items", items);
+        if(!st.initialized) r.Add("note", "index_not_ready");
         return MakeResult(req.id, r);
     }
     if(req.method == "node.references") {
-        ValueMap r; r.Add("status", "not_implemented");
+        if(!IsValueMap(req.params))
+            return MakeError(req.id, INVALID_PARAMS, "Expected params object");
+        ValueMap p = req.params;
+        String id = AsString(p.Get("id", Value()));
+        String page = AsString(p.Get("page_token", String()));
+        int limit = (int)AsInt(p.Get("limit", 200));
+        ValueArray items;
+        String next;
+        EnvStatusInfo st = EnvStatus();
+        if(st.initialized) {
+            EnvRefPage pg = EnvReferences(id, page, limit);
+            next = pg.next_page_token;
+            for(const auto& it : pg.items) {
+                ValueMap v;
+                v.Add("id", it.id);
+                v.Add("file", it.file);
+                v.Add("start_line", it.start_line);
+                v.Add("start_col", it.start_col);
+                v.Add("end_line", it.end_line);
+                v.Add("end_col", it.end_col);
+                items.Add(v);
+            }
+        }
+        ValueMap r; r.Add("items", items); r.Add("next_page_token", next);
+        if(!st.initialized) r.Add("note", "index_not_ready");
         return MakeResult(req.id, r);
     }
     if(req.method == "edits.apply") {

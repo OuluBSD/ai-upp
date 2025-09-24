@@ -32,21 +32,24 @@ req() {
   send "{\"jsonrpc\":\"2.0\",\"id\":\"${id}\",\"method\":\"${method}\",\"params\":${params}}"
 }
 
-# Auto-discover methods from source (simple grep on Server.cpp Handle cases)
-# Falls back to a minimal set if grep fails.
-
+# Prefer discovery via mcp.capabilities; fallback to grep
+CAP=$(req cap mcp.capabilities '{}') || true
 METHODS=( )
-SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
-SERVER_CPP="${SRC_DIR}/Server.cpp"
-if [[ -r "${SERVER_CPP}" ]]; then
-  while IFS= read -r m; do
-    METHODS+=("${m}")
-  done < <(grep -oE 'req.method\s*==\s*"[a-zA-Z0-9_.]+' "${SERVER_CPP}" | sed -E 's/.*"//')
+if [[ -n "$CAP" && "$CAP" == *"methods"* ]]; then
+  # crude JSON extraction for methods array
+  METHODS_STR=$(echo "$CAP" | sed -n 's/.*"methods"[[:space:]]*:[[:space:]]*\[\(.*\)\].*/\1/p')
+  IFS=',' read -r -a METHODS <<< "${METHODS_STR//\"/}"
 fi
-
 if [[ ${#METHODS[@]} -eq 0 ]]; then
-  METHODS=( "mcp.ping" "workspace.info" )
+  SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+  SERVER_CPP="${SRC_DIR}/Server.cpp"
+  if [[ -r "${SERVER_CPP}" ]]; then
+    while IFS= read -r m; do METHODS+=("${m}"); done < <(
+      grep -oE 'req.method\s*==\s*"[a-zA-Z0-9_.]+' "${SERVER_CPP}" | sed -E 's/.*"//' | sort -u
+    )
+  fi
 fi
+if [[ ${#METHODS[@]} -eq 0 ]]; then METHODS=( "mcp.ping" "workspace.info" ); fi
 
 id=1
 for method in "${METHODS[@]}"; do

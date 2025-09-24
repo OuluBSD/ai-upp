@@ -3,11 +3,11 @@
 
 
 struct McpClient {
-    TcpSocket sock;
-    String    inbuf;
-    String    outbuf;
-    Time      last_activity;
-    int       id = 0;
+    One<TcpSocket> sock;
+    String         inbuf;
+    String         outbuf;
+    Time           last_activity;
+    int            id = 0;
 };
 
 class McpServerCore {

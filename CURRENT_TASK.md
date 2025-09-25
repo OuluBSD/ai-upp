@@ -33,6 +33,11 @@ Open Questions
 - Deterministic overlay ordering (workspace-configured priority) vs. default first-wins?
 - Persist overlay index to disk or compute in-memory on load?
 
+Status
+- Header scaffold for `Vfs/Core`, `Vfs/Factory`, `Vfs/Overlay`, `Vfs/Storage` in place.
+- `VfsValueExtFactory` core methods moved from `Core2/VfsValue.cpp` into new `Vfs/Factory` package (still depending on legacy structures).
+
 Next
-- Confirm staged refactor approach and desired overlay conflict policy.
-- Create `CURRENT_TASK.md` in `uppsrc/Vfs` with per-package steps; list it in `.upp` manifests after `AGENTS.md`.
+- Continue migrating remaining `VfsValue` helpers into the new packages while keeping builds stable.
+- Flesh out overlay implementation using precedence provider.
+- Implement serialization format and adapters, then update IDE Env to consume it.

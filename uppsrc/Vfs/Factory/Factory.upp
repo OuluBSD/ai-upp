@@ -2,9 +2,11 @@ description "Vfs extension factory (header-only stub)";
 
 uses
 	Core,
+	Core2,
 	Vfs/Core;
 
 file
 	AGENTS.md,
-	VfsFactory.h;
-
+	Factory.h,
+	VfsFactory.h,
+	VfsFactory.cpp;

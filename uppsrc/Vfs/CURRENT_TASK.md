@@ -8,13 +8,18 @@ Goals (Phase 1)
 - Do not break existing includes: prepare staged adapter approach from Core2.
 - Document header include policy and Env adapter expectations.
 
-Planned Steps
-1) Author design docs in `AGENTS.md` and this file (done).
-2) Introduce `Vfs/Core` main header with forward decls and typedefs matching current usage.
-3) Add `Vfs/Factory` header with factory list and registration API (names preserved).
-4) Add `Vfs/Overlay` headers for `SourceRef`, `OverlayView` (API only).
-5) Add `Vfs/Storage` headers for new serialization schema; provide migration notes.
-6) Update `uppsrc/ide/Vfs` to depend on these headers gradually.
+Progress
+- ✅ Docs established (`AGENTS.md`, this file).
+- ✅ Header scaffolding for Core/Factory/Overlay/Storage created.
+- ✅ IDE package now depends on new scaffolds and ships default precedence stub.
+- ✅ Factory implementations (`IsType`, `Create`, `Clone`, etc.) moved out of `Core2/VfsValue.cpp` into `Vfs/Factory`.
+
+Planned Steps (next phase)
+1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
+2) Begin extracting non-UI portions of `VfsValue` (struct definition, helpers) into `Vfs/Core`.
+3) Implement overlay view logic leveraging `SourceRef` and precedence provider interfaces.
+4) Implement JSON serialization in `Vfs/Storage` and add round-trip tests.
+5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs.
 
 Notes
 - Keep GUI controls in a separate package (Vfs/Ctrl) to respect BLITZ and reduce coupling.

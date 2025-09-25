@@ -1,8 +1,5 @@
 #include "Factory.h"
 
-#include <Core2/Compat.h>
-#include <Core2/VfsValue.h>
-
 NAMESPACE_UPP
 
 bool VfsValueExtFactory::IsType(hash_t type_hash, VfsExtType t) {

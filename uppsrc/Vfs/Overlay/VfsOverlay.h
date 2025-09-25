@@ -1,4 +1,3 @@
-// Vfs/Overlay header (API scaffold)
 #ifndef _Vfs_Overlay_VfsOverlay_h_
 #define _Vfs_Overlay_VfsOverlay_h_
 

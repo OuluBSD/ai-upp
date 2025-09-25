@@ -20,6 +20,9 @@ NAMESPACE_UPP
 #include "WorldState.h"
 #include "Util.h"
 #include "VirtualNode.h"
+// Transitional: legacy VfsValue implementation remains here while new
+// Vfs/Core headers are introduced to decouple dependencies.
+#include <Vfs/Core/VfsCore.h>
 #include "VfsValue.h"
 #include "VfsEnum.h"
 #include "RTuple.h"

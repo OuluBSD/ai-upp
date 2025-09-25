@@ -4,9 +4,12 @@ Focus
 - Stage out legacy VFS helpers from `Core2` into this package without breaking consumers.
 - Document how each migrated file maps onto the new `uppsrc/Vfs/*` packages.
 
+Progress
+- ✅ `Mount.*`, `VFS.*`, `VCS.*`, `Visitor.*`, `VirtualNode.*`, and `WorldState.*` relocated from Core2 and wired through `VfsBase.h`.
+
 Next Steps
-- Move `VFS.*` and `Mount.*` into `Core/VfsBase` and update `Core2/Core.h` includes.
-- Port `WorldState.*` (deriving from `BinaryWorldState`) and clarify its relationship to overlay subsets.
+- Update dependent packages (Core2, IDE) to include `<Core/VfsBase/VfsBase.h>` and prune legacy includes.
+- Clarify `WorldState` evolution/path toward overlay subsets; note integration expectations in AGENTS.
 - Add unit coverage or smoke tests capturing existing semantics before further refactors.
 
 Notes

@@ -1,10 +1,25 @@
 description "Legacy VFS adapters and world state";
 
 uses
-	Core;
+	Core,
+	Core/MetaTraits,
+	Core/ProcessUtil,
+	Core/DataStructures;
 
 file
 	AGENTS.md,
 	CURRENT_TASK.md,
-	VfsBase.h;
+	VfsBase.h,
+	Mount.h,
+	Mount.cpp,
+	VFS.h,
+	VFS.cpp,
+	VCS.h,
+	VCS.cpp,
+	Visitor.h,
+	Visitor.cpp,
+	WorldState.h,
+	WorldState.cpp,
+	VirtualNode.h,
+	VirtualNode.cpp;
 

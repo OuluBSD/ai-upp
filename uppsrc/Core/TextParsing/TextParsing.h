@@ -5,7 +5,11 @@
 
 NAMESPACE_UPP
 
-// String utilities and tokenizer helpers migrate here from legacy Core2.
+#include "String.h"
+#include "Tokenizer.h"
+#include "TokenParser.h"
+#include "Html.h"
+#include "Url.h"
 
 END_UPP_NAMESPACE
 

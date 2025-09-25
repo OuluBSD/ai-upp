@@ -2,10 +2,13 @@
 #define _Core_DataStructures_DataStructures_h_
 
 #include <Core/Core.h>
+#include <Core/MetaTraits/MetaTraits.h>
 
 NAMESPACE_UPP
 
-// Container and graph helpers migrate here from legacy Core2.
+#include "Container.h"
+#include "Index.h"
+#include "Record.h"
 
 END_UPP_NAMESPACE
 

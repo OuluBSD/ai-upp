@@ -1,9 +1,19 @@
 description "Text utilities, tokenizers, and simple parsers";
 
 uses
-	Core;
+	Core,
+	Core/MetaTraits;
 
 file
 	AGENTS.md,
-	TextParsing.h;
+	TextParsing.h,
+	String.h,
+	Tokenizer.h,
+	Tokenizer.cpp,
+	TokenParser.h,
+	TokenParser.cpp,
+	Html.h,
+	Html.cpp,
+	Url.h,
+	Url.cpp;
 

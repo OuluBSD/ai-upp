@@ -5,7 +5,10 @@
 
 NAMESPACE_UPP
 
-// Aggregates type traits and RTTI helpers migrated from legacy Core2.
+#include "TypeTraits.h"
+#include "TypeTraits2.h"
+#include "RTuple.h"
+#include "GEnums.h"
 
 END_UPP_NAMESPACE
 

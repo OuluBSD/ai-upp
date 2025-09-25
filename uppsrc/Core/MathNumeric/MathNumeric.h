@@ -2,10 +2,14 @@
 #define _Core_MathNumeric_MathNumeric_h_
 
 #include <Core/Core.h>
+#include <Core/MetaTraits/MetaTraits.h>
 
 NAMESPACE_UPP
 
-// Numerical helpers and math kernels migrate here from legacy Core2.
+#include "Math.h"
+#include "Random.h"
+#include "CKMeans.h"
+#include "DCT.h"
 
 END_UPP_NAMESPACE
 

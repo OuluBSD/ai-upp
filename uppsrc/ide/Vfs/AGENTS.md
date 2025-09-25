@@ -23,6 +23,7 @@ Dependencies (target state)
 - Depends on `uppsrc/Vfs/Core` for `VfsValue`, `VfsValueExt`, `AstValue`.
 - Depends on `uppsrc/Vfs/Overlay` for virtual merge of per-file trees.
 - Depends on `uppsrc/Vfs/Storage` for (de)serialization of per-file fragments.
+- Provides default `PackagePrecedenceProvider` implementation based on open workspace order.
 
 Extension Points
 - Add new resolvers or generators in `CodeGenerator.*` and `ClangTypeResolver.*`.

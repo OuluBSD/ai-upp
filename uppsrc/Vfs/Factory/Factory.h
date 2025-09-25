@@ -3,6 +3,7 @@
 
 #include <Vfs/Core/Core.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 
 NAMESPACE_UPP
 

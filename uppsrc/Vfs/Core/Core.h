@@ -2,6 +2,7 @@
 #define _Vfs_Core_Core_h_
 
 #include <Core/Core.h>
+#include <Core/VfsBase/VfsBase.h>
 
 NAMESPACE_UPP
 

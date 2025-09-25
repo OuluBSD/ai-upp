@@ -13,6 +13,7 @@ Progress
 - ✅ Header scaffolding for Core/Factory/Overlay/Storage created.
 - ✅ IDE package now depends on new scaffolds and ships default precedence stub.
 - ✅ Factory implementations (`IsType`, `Create`, `Clone`, etc.) moved out of `Core2/VfsValue.cpp` into `Vfs/Factory`.
+- ✅ Core2 VfsValue base types (`EntityData`, `VfsValueExt`, helpers) now live in `Vfs/Core` while Core2 keeps the structural class.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
@@ -26,4 +27,4 @@ Notes
 - Maintain backward compatibility: old IDE Vfs dumps accepted by `Storage` loaders.
 
 Next
-- Create minimal headers (no behavior change) and wire `Core2/Core.h` to include them as a transitional step.
+- Resume migrating `VfsValue` internals once downstream includes are updated to the new base header.

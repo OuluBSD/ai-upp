@@ -1,4 +1,4 @@
-description "Numerical helpers and analytics primitives";
+description "Numerical helpers and analytics primitives\377B128,0,0";
 
 uses
 	Core,

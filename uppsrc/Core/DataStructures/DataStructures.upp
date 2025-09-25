@@ -1,4 +1,4 @@
-description "Extended container and data-structure helpers";
+description "Extended container and data-structure helpers\377B128,0,0";
 
 uses
 	Core,
@@ -12,6 +12,5 @@ file
 	Index.h,
 	Index.cpp,
 	Record.h,
-	Record.cpp,
-	ValDevScope.cpp;
+	Record.cpp;
 

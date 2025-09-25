@@ -8,5 +8,6 @@ file
 	Core.h,
 	Types.h,
 	AstValue.h,
+	VfsValueExt.h,
 	VfsCore.h;
 

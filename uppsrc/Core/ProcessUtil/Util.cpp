@@ -1,4 +1,5 @@
 #include "ProcessUtil.h"
+#include <Core/MathNumeric/MathNumeric.h>
 
 NAMESPACE_UPP
 

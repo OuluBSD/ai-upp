@@ -2,7 +2,6 @@ description "Vfs extension factory (header-only stub)\377B128,0,0";
 
 uses
 	Core,
-	Core2,
 	Vfs/Core;
 
 file

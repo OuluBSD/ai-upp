@@ -1,4 +1,4 @@
-description "Core compatibility and initializer glue";
+description "Core compatibility and initializer glue\377B128,0,0";
 
 uses
 	Core;

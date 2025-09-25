@@ -6,6 +6,7 @@ uses
 
 file
 	AGENTS.md,
+	Overlay.h,
 	VfsOverlay.h,
 	Precedence.h;
 

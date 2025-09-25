@@ -2,10 +2,6 @@
 #ifndef _Vfs_Core_AstValue_h_
 #define _Vfs_Core_AstValue_h_
 
-#include <Core/Core.h>
-#include <Vfs/Core/VfsCore.h>
-
-NAMESPACE_UPP
 
 struct VfsValue;
 
@@ -36,7 +32,6 @@ struct AstValue {
 const dword ASTVALUE_V = 0x10001;
 template<> inline dword ValueTypeNo(const AstValue*) { return ASTVALUE_V; }
 
-END_UPP_NAMESPACE
 
 #endif
 

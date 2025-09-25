@@ -1,4 +1,4 @@
-description "Vfs storage interfaces (header-only stub)";
+description "Vfs storage interfaces (header-only stub)\377B128,0,0";
 
 uses
 	Core,
@@ -6,5 +6,6 @@ uses
 
 file
 	AGENTS.md,
-	VfsStorage.h,
-	README.md;
+	README.md,
+	VfsStorage.h;
+

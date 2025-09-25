@@ -1,4 +1,4 @@
-description "Vfs extension factory (header-only stub)";
+description "Vfs extension factory (header-only stub)\377B128,0,0";
 
 uses
 	Core,
@@ -10,3 +10,4 @@ file
 	Factory.h,
 	VfsFactory.h,
 	VfsFactory.cpp;
+

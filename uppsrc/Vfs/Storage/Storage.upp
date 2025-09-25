@@ -6,5 +6,5 @@ uses
 
 file
 	AGENTS.md,
-	VfsStorage.h;
-
+	VfsStorage.h,
+	README.md;

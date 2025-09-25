@@ -5,9 +5,6 @@
 
 typedef uint64 hash_t;
 
-// Placeholder for type classification used across Vfs
-using TypeCls = std::type_index;
-
 inline TypeCls AsTypeClsStatic(const std::type_info& ti) { return TypeCls(ti); }
 
 

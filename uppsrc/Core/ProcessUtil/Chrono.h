@@ -1,8 +1,6 @@
 #ifndef _Core_ProcessUtil_Chrono_h_
 #define _Core_ProcessUtil_Chrono_h_
 
-#include <chrono>
-
 
 using NanoSeconds	= std::chrono::nanoseconds;
 using MicroSeconds	= std::chrono::microseconds;

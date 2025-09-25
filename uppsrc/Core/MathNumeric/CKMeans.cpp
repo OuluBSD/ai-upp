@@ -1,4 +1,6 @@
 #include "MathNumeric.h"
+#include <Core/DataStructures/DataStructures.h>
+
 
 NAMESPACE_UPP
 

@@ -2,6 +2,7 @@
 #define _Core_TextParsing_TextParsing_h_
 
 #include <Core/Core.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 
 NAMESPACE_UPP
 

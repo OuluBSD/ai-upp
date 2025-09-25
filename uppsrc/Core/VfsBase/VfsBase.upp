@@ -1,4 +1,4 @@
-description "Legacy VFS adapters and world state";
+description "Legacy VFS adapters and world state\377B128,0,0";
 
 uses
 	Core,

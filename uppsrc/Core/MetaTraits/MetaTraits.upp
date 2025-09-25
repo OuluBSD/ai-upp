@@ -1,4 +1,4 @@
-description "Type traits and RTTI helpers for Core";
+description "Type traits and RTTI helpers for Core\377B128,0,0";
 
 uses
 	Core;

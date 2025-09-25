@@ -1,4 +1,4 @@
-description "ECS runtime lifecycle and scheduling";
+description "ECS runtime lifecycle and scheduling\377B128,0,0";
 
 uses
 	Core,

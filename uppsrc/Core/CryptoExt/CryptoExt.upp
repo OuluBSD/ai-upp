@@ -1,4 +1,4 @@
-description "Core cryptography helpers";
+description "Core cryptography helpers\377B128,0,0";
 
 uses
 	Core;

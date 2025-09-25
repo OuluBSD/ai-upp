@@ -1,4 +1,4 @@
-description "ECS metadata and registration helpers";
+description "ECS metadata and registration helpers\377B128,0,0";
 
 uses
 	Core,

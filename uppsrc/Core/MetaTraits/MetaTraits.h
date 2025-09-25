@@ -6,8 +6,8 @@
 NAMESPACE_UPP
 
 #include "TypeTraits.h"
-#include "TypeTraits2.h"
 #include "RTuple.h"
+#include "TypeTraits2.h"
 #include "GEnums.h"
 
 END_UPP_NAMESPACE

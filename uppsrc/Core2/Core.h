@@ -9,6 +9,9 @@
 #include <Core/MathNumeric/MathNumeric.h>
 #include <Core/VfsBase/VfsBase.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
+#include <Vfs/Core/Core.h>
+#include <Vfs/Factory/Factory.h>
+#include <Vfs/Overlay/Overlay.h>
 
 #ifdef flagFREEBSD
 extern char **environ;
@@ -19,7 +22,6 @@ NAMESPACE_UPP
 
 // Transitional: legacy VfsValue implementation remains here while new
 // Vfs/Core headers are introduced to decouple dependencies.
-#include <Vfs/Core/VfsCore.h>
 #include "VfsValue.h"
 #include "VfsEnum.h"
 #include "Audio.h"

@@ -8,6 +8,7 @@ NAMESPACE_UPP
 #include "VfsCore.h"
 #include "Types.h"
 #include "AstValue.h"
+#include "VfsValueExt.h"
 
 END_UPP_NAMESPACE
 

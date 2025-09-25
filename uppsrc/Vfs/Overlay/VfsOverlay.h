@@ -1,11 +1,6 @@
 #ifndef _Vfs_Overlay_VfsOverlay_h_
 #define _Vfs_Overlay_VfsOverlay_h_
 
-#include <Core/Core.h>
-#include <Vfs/Core/VfsCore.h>
-
-NAMESPACE_UPP
-
 struct SourceRef : Moveable<SourceRef> {
     hash_t pkg_hash = 0;
     hash_t file_hash = 0;
@@ -25,8 +20,6 @@ struct OverlayView {
     virtual Value GetMerged(String logical_path) const = 0;
     virtual ~OverlayView() {}
 };
-
-END_UPP_NAMESPACE
 
 #endif
 

@@ -1,0 +1,10 @@
+description "Vfs extension factory (header-only stub)";
+
+uses
+	Core,
+	Vfs/Core;
+
+file
+	AGENTS.md,
+	VfsFactory.h;
+

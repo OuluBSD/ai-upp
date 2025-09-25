@@ -1,0 +1,11 @@
+description "Vfs overlay interfaces (header-only stub)";
+
+uses
+	Core,
+	Vfs/Core;
+
+file
+	AGENTS.md,
+	VfsOverlay.h,
+	Precedence.h;
+

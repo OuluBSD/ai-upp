@@ -307,33 +307,6 @@ struct VfsValueExtFactory {
 #define INITIALIZER_COMPONENT(x, eon, cat) INITIALIZER(x) {VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT, eon, cat);}
 #define INITIALIZER_COMPONENT_CTRL(comp,ctrl) INITIALIZER(ctrl) {VfsValueExtFactory::RegisterCtrl<comp,ctrl>(#ctrl);}
 
-struct AstValue {
-	int             kind = -1;
-	String          type;
-	Point           begin = Null;
-	Point           end = Null;
-	hash_t          filepos_hash = 0;
-	bool            is_ref = false;
-	bool            is_definition = false;
-	bool            is_disabled = false;
-	
-	// Temp
-	Ptr<VfsValue>   type_ptr;
-	
-	bool IsNullInstance() const;
-	void Serialize(Stream& s);
-	void Xmlize(XmlIO& xml);
-	void Jsonize(JsonIO& io);
-	hash_t GetHashValue() const;
-	String ToString() const;
-	bool operator==(const AstValue& v) const;
-	int Compare(const AstValue& v) const;
-	int PolyCompare(const Value& v) const;
-};
-
-const dword ASTVALUE_V   = 0x10001;
-template<> inline dword ValueTypeNo(const AstValue*)     { return ASTVALUE_V; }
-
 struct VfsValue : Pte<VfsValue> {
 	String             id;
 	hash_t             type_hash = 0;

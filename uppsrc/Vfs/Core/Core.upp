@@ -1,0 +1,12 @@
+description "Vfs core types (header-only stub)";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	Core.h,
+	Types.h,
+	AstValue.h,
+	VfsCore.h;
+

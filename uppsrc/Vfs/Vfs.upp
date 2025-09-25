@@ -5,6 +5,7 @@ uses
 
 file
 	AGENTS.md,
+	CURRENT_TASK.md,
 	Vfs.h,
 	Vfs.icpp,
 	Defs.h,
@@ -29,4 +30,3 @@ file
 	AstExporter.cpp,
 	Compiler.h,
 	Compiler.cpp;
-

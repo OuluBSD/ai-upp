@@ -1,0 +1,9 @@
+description "Text utilities, tokenizers, and simple parsers";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	TextParsing.h;
+

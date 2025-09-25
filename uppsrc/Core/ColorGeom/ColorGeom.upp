@@ -1,0 +1,9 @@
+description "Color math, geometry helpers, and shared events";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	ColorGeom.h;
+

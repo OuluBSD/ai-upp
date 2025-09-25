@@ -1,0 +1,9 @@
+description "Type traits and RTTI helpers for Core";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	MetaTraits.h;
+

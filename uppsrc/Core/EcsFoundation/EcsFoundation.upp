@@ -1,0 +1,10 @@
+description "ECS metadata and registration helpers";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	EcsFoundation.h;
+

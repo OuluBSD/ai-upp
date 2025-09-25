@@ -1,0 +1,11 @@
+description "ECS runtime lifecycle and scheduling";
+
+uses
+	Core,
+	Core/EcsFoundation;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	EcsEngine.h;
+

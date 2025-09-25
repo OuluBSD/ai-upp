@@ -1,0 +1,9 @@
+description "Numerical helpers and analytics primitives";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	MathNumeric.h;
+

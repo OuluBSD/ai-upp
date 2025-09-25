@@ -1,0 +1,9 @@
+description "Core compatibility and initializer glue";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CompatExt.h;
+

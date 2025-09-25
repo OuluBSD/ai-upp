@@ -1,6 +1,11 @@
 #ifndef _Meta_VfsValue_h_
 #define _Meta_VfsValue_h_
 
+#include <Vfs/Core/Core.h>
+#include <Vfs/Factory/VfsFactory.h>
+#include <Vfs/Overlay/VfsOverlay.h>
+#include <Vfs/Overlay/Precedence.h>
+
 struct VfsValue;
 struct VfsValueExtCtrl;
 struct VfsSrcPkg;

@@ -1,9 +1,15 @@
 description "Process, stream, and runtime helpers";
 
 uses
-	Core;
+	Core,
+	Core/MetaTraits;
 
 file
 	AGENTS.md,
-	ProcessUtil.h;
+	ProcessUtil.h,
+	Process.h,
+	Process.cpp,
+	Util.h,
+	Util.cpp,
+	Chrono.h;
 

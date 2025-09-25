@@ -2,10 +2,13 @@
 #define _Core_ProcessUtil_ProcessUtil_h_
 
 #include <Core/Core.h>
+#include <Core/MetaTraits/MetaTraits.h>
 
 NAMESPACE_UPP
 
-// Runtime/OS utilities migrate here from legacy Core2.
+#include "Chrono.h"
+#include "Process.h"
+#include "Util.h"
 
 END_UPP_NAMESPACE
 

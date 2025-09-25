@@ -1,0 +1,10 @@
+description "Vfs storage interfaces (header-only stub)";
+
+uses
+	Core,
+	Vfs/Core;
+
+file
+	AGENTS.md,
+	VfsStorage.h;
+

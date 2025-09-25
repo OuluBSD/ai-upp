@@ -1,5 +1,11 @@
 description "\377B";
 
+uses
+	Core2,
+	Vfs/Core,
+	Vfs/Overlay,
+	Vfs/Storage;
+
 file
 	AGENTS.md,
 	Vfs.h,
@@ -21,8 +27,8 @@ file
 	MetaTempTask.cpp,
 	EditorCtrl.h,
 	EditorCtrl.cpp,
+	EnvPrecedence.h,
 	Env.h,
 	Env.cpp,
 	EcsLang.h,
 	EcsLang.cpp;
-

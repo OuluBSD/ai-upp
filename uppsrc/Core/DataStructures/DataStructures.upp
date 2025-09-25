@@ -1,0 +1,9 @@
+description "Extended container and data-structure helpers";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	DataStructures.h;
+

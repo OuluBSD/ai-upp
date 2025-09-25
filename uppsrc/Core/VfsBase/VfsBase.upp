@@ -1,0 +1,10 @@
+description "Legacy VFS adapters and world state";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	VfsBase.h;
+

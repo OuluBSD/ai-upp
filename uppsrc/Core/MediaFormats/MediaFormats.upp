@@ -1,0 +1,9 @@
+description "Core media formats and sample helpers";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	MediaFormats.h;
+

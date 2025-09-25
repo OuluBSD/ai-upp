@@ -1,0 +1,9 @@
+description "Core cryptography helpers";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CryptoExt.h;
+

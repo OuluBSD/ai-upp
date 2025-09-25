@@ -12,6 +12,11 @@
 #include <Vfs/Core/Core.h>
 #include <Vfs/Factory/Factory.h>
 #include <Vfs/Overlay/Overlay.h>
+#include <Vfs/Core/VfsValueExt.h>
+#include <Vfs/Factory/VfsFactory.h>
+#include <Vfs/Overlay/VfsOverlay.h>
+#include <Vfs/Overlay/Precedence.h>
+
 
 #ifdef flagFREEBSD
 extern char **environ;

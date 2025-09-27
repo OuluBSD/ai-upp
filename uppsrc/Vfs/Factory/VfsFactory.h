@@ -4,6 +4,7 @@
 struct VfsValue;
 struct VfsValueExt;
 struct DatasetPtrs;
+struct VfsValueExtCtrl;
 
 typedef enum {
 	VFSEXT_DEFAULT,

@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Factory/Factory.h>
 
 NAMESPACE_UPP
 
@@ -10,6 +11,8 @@ NAMESPACE_UPP
 #include "Types.h"
 #include "AstValue.h"
 #include "VfsValueExt.h"
+#include "VfsValue.h"
+#include "VfsEnum.h"
 
 END_UPP_NAMESPACE
 

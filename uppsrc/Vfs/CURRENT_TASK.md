@@ -14,10 +14,12 @@ Progress
 - ✅ IDE package now depends on new scaffolds and ships default precedence stub.
 - ✅ Factory implementations (`IsType`, `Create`, `Clone`, etc.) moved out of `Core2/VfsValue.cpp` into `Vfs/Factory`.
 - ✅ Core2 VfsValue base types (`EntityData`, `VfsValueExt`, helpers) now live in `Vfs/Core` while Core2 keeps the structural class.
+- ✅ Legacy VfsValue implementation and enums now build from `Vfs/Core`.
+- ✅ ECS runtime (Atom/Component/Engine/etc.) moved from Core2 into `Vfs/Ecs` package.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
-2) Begin extracting non-UI portions of `VfsValue` (struct definition, helpers) into `Vfs/Core`.
+2) Audit Core2 and downstream packages to include the new `Vfs` headers (`Vfs/Core`, `Vfs/Ecs`) directly and prune compatibility stubs.
 3) Implement overlay view logic leveraging `SourceRef` and precedence provider interfaces.
 4) Implement JSON serialization in `Vfs/Storage` and add round-trip tests.
 5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs.
@@ -27,4 +29,4 @@ Notes
 - Maintain backward compatibility: old IDE Vfs dumps accepted by `Storage` loaders.
 
 Next
-- Resume migrating `VfsValue` internals once downstream includes are updated to the new base header.
+- Update downstream packages to include `Vfs/Core/Core.h` directly and drop the temporary Core2 stubs.

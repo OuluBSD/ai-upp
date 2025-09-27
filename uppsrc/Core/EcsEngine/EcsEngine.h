@@ -8,6 +8,8 @@ NAMESPACE_UPP
 
 // ECS runtime core migrates here from legacy Core2.
 
+#include "Util2.h"
+
 END_UPP_NAMESPACE
 
 #endif

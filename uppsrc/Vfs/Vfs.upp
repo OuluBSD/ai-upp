@@ -2,7 +2,8 @@ description "\377B128,0,0";
 
 uses
 	Core2,
-	Vfs/Factory;
+	Vfs/Factory,
+	Vfs/Ecs;
 
 file
 	AGENTS.md,

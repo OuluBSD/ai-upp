@@ -9,5 +9,10 @@ file
 	Types.h,
 	AstValue.h,
 	VfsValueExt.h,
+	VfsValue.h,
+	VfsValue.cpp,
+	VfsEnum.h,
+	VfsEnum.cpp,
+	VfsValue_mcp_stubs.cpp,
 	VfsCore.h;
 

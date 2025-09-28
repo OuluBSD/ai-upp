@@ -23,7 +23,7 @@
 
 #include <Draw/Draw.h>
 #include <Draw/Extensions/Extensions.h>
-
+#include <Core/MathNumeric/MathNumeric.h>
 
 #undef rad2
 #undef far

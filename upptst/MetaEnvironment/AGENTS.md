@@ -8,5 +8,6 @@ Purpose
 - Use stubs that compile today and guide future implementation of real test coverage.
 
 Notes
-- Keep dependencies minimal; prefer Core/Vfs modules and wrap IDE-specific interfaces via adapters.
+- Try to keep dependencies minimal; prefer Core/Vfs modules and wrap IDE-specific interfaces via adapters.
+	- However, linking errors pulled the whole IDE package.
 - Convert stubs into assertions once the overlay-backed APIs are finalized.

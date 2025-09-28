@@ -2,7 +2,6 @@ description "Eon/GuiGlue\377B85,42,0";
 
 uses
 	Eon/Core,
-	Core2,
 	Vfs,
 	CtrlCore;
 

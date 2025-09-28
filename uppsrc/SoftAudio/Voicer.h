@@ -91,16 +91,30 @@ inline float Voicer::Tick( int channel ) {
 }
 
 inline AudioFrames& Voicer::Tick( AudioFrames& frames, int channel ) {
-	int channel_count = last_frame_.GetChannelCount();
-	int common_channel_count = min(channel_count, frames.GetChannelCount());
-	float* samples = &frames[channel];
-	int j, step = 1 + frames.GetChannelCount() - common_channel_count;
+	if (frames.IsEmpty())
+		return frames;
 
-	for ( int i = 0; i < frames.GetFrameCount(); i++, samples += step ) {
+	int channel_count = last_frame_.GetChannelCount();
+	int frame_channels = frames.GetChannelCount();
+	ASSERT(channel >= 0 && channel < frame_channels);
+
+	int common_channel_count = min(channel_count, frame_channels);
+	float* data_begin = &frames[0];
+	float* data_end = data_begin + frames.GetCount();
+
+	float* samples = data_begin + channel;
+	int frame_stride = frame_channels;
+
+	for ( int i = 0; i < frames.GetFrameCount(); i++ ) {
 		Tick();
 
-		for ( j = 0; j < common_channel_count; j++ )
-			*samples++ = last_frame_[j];
+		float* write_ptr = samples;
+		for ( int j = 0; j < common_channel_count; j++ ) {
+			ASSERT(write_ptr < data_end);
+			*write_ptr++ = last_frame_[j];
+		}
+
+		samples += frame_stride;
 	}
 
 	return frames;

@@ -46,6 +46,7 @@ Updates
   - Edge labels: `ConnectWithName(name, ...)`, `SetEdgeName(idx,name)`, `FindEdge(name)`, and `GetEdge(idx)` to identify/edit specific connections.
  - Live PortAudio sink `LiveOutNode` with device selection (`SetOutputDeviceIndex`) and latency control; reference app includes a short live-play demo.
  - Added `GraphPlayer` helper (block-accurate clock + transport): attach/prepare, play N blocks, play seconds/frames, and simple seek/reset.
+- Fixed `Voicer::Tick(AudioFrames&, int)` channel stepping so graph playback no longer overruns the buffer.
 
 ## Phase 2 — Wrappers and Basic Nodes (Queued)
 

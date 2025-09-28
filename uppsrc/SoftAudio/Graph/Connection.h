@@ -1,7 +1,7 @@
 #ifndef _SoftAudioGraph_Connection_h_
 #define _SoftAudioGraph_Connection_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 
 #ifndef NAMESPACE_SAGRAPH_BEGIN
 #define NAMESPACE_SAGRAPH_BEGIN NAMESPACE_UPP namespace SAGraph {

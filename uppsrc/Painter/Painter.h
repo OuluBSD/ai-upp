@@ -2,6 +2,7 @@
 #define _Painter_Painter_h_
 
 #include <Draw/Draw.h>
+#include <Core/ColorGeom/ColorGeom.h>
 
 #ifdef flagPAINTER_TIMING // .Activate Painter benchmarking code
 #define PAINTER_TIMING(x)     RTIMING(x)

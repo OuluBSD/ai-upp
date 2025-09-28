@@ -1,7 +1,7 @@
 #ifndef _SoftAudioGraph_Node_h_
 #define _SoftAudioGraph_Node_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include "ProcessContext.h"
 #include "Port.h"
 #include <string.h>

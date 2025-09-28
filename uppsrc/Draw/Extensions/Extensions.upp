@@ -1,5 +1,8 @@
 description "\377B128,0,255";
 
+uses
+	Core/VfsBase;
+
 uses(GUI VIRTUALGUI) VirtualGui3D;
 
 library(POSIX) png;
@@ -31,3 +34,4 @@ file
 	tga_reader.h,
 	tga_reader.c,
 	_ readonly separator;
+

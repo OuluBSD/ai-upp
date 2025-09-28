@@ -1,7 +1,8 @@
 #ifndef _MidiFile_MidiFile_h_
 #define _MidiFile_MidiFile_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 
 #define NAMESPACE_MIDI_NAME MidiIO
 #define NAMESPACE_MIDI_BEGIN namespace  Upp { namespace  NAMESPACE_MIDI_NAME {

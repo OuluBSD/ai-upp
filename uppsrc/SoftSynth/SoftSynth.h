@@ -1,7 +1,7 @@
 #ifndef _SoftSynth_SoftSynth_h_
 #define _SoftSynth_SoftSynth_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include <MidiFile/MidiFile.h>
 #undef Status
 

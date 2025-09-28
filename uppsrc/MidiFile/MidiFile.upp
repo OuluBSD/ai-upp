@@ -1,5 +1,8 @@
 description "\377128,0,0";
 
+uses
+	Core/ProcessUtil;
+
 file
 	Copying,
 	MidiFile.h,

@@ -1,7 +1,7 @@
 #ifndef _SoftInstru_SoftInstru_h_
 #define _SoftInstru_SoftInstru_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include <MidiFile/MidiFile.h>
 
 

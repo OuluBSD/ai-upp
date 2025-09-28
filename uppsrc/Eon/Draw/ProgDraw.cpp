@@ -1,5 +1,10 @@
 #include "Draw.h"
 
+#ifdef flagGUI
+#include <CtrlCore/CtrlCore.h>
+#else
+#include <Painter/Painter.h>
+#endif
 
 NAMESPACE_UPP
 
@@ -85,7 +90,12 @@ ProgDraw::operator Image() const {
     Size sz = GetFrameSize();
     if (sz.IsEmpty())
         return Image();
+    #ifdef flagGUI
     ImageDraw id(sz);
+    #else
+    ImagePainter id(sz);
+    #endif
+    
     // Simple interpreter for common commands
     auto render = [&](Draw& w) {
         const DrawCommand* begin = &cmd_screen_begin;
@@ -150,8 +160,13 @@ ProgDraw::operator Image() const {
                     w.DrawPainting(it->r, (const Painting&)it->value);
                 break;
             case DRAW_SYSDRAW_IMAGE_OP:
-                if (!it->img.IsEmpty())
+                if (!it->img.IsEmpty()) {
+                    #ifdef flagGUI
                     w.SysDrawImage(it->pt.x, it->pt.y, it->img, it->r, it->color);
+                    #else
+                    w.DrawImage(it->pt.x, it->pt.y, it->img, it->r, it->color);
+                    #endif
+                }
                 break;
             case DRAW_IMAGE_OP:
                 if (!it->img.IsEmpty())

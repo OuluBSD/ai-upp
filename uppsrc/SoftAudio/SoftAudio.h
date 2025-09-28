@@ -9,10 +9,11 @@
 
 #include <sys/stat.h>
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include <Geometry/Geometry.h>
 #include <MidiFile/MidiFile.h>
 #include <Sound/Sound.h>
+#include <Core/DataStructures/DataStructures.h>
 
 #define NAMESPACE_AUDIO_BEGIN NAMESPACE_UPP namespace Audio {
 #define NAMESPACE_AUDIO_END   END_UPP_NAMESPACE }

@@ -4,7 +4,8 @@ uses
 	Core,
 	Core/MetaTraits,
 	Core/ProcessUtil,
-	Core/DataStructures;
+	Core/DataStructures,
+	Vfs/Core;
 
 file
 	AGENTS.md,

@@ -1,7 +1,8 @@
 description "2D software rendering with PDF/SVG strength\377B85,85,150";
 
 uses
-	Draw;
+	Draw,
+	Core/ColorGeom;
 
 file
 	AGENTS.md,

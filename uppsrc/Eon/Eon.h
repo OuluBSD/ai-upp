@@ -5,7 +5,6 @@
 #include <AI/Core/Core.h>
 #include <Geometry/Geometry.h>
 #include <Esc/Esc.h>
-#include <Core2/Core.h>
 #include <Vfs/Vfs.h>
 
 #include <plugin/enet/EnetService.h>

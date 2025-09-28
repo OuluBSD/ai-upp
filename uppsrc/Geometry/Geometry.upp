@@ -3,7 +3,8 @@ description "Classes for 2D/3D/etc operations.\377B128,0,54";
 uses
 	plugin/mikktspace,
 	Draw,
-	Draw/Extensions;
+	Draw/Extensions,
+	Core/MathNumeric;
 
 uses(!UWP) plugin/tiny_gltf;
 
@@ -66,3 +67,4 @@ file
 	ModelPainter.cpp,
 	ModelDraw.h,
 	ModelDraw.cpp;
+

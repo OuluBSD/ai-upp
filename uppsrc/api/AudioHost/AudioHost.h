@@ -20,7 +20,7 @@
 #include "lv2/lv2plug.in/ns/ext/event/event-helpers.h"
 #endif
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include <Eon/Eon.h>
 #include <MidiFile/MidiFile.h>
 

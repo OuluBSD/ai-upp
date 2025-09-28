@@ -3,6 +3,7 @@
 
 struct VfsValue;
 struct VfsValueExtCtrl;
+struct VfsSrcPkg;
 struct Entity;
 struct DatasetPtrs;
 struct VirtualNode;

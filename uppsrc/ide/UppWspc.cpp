@@ -1,5 +1,4 @@
 #include "ide.h"
-#include <Core2/Core.h>
 
 #ifndef flagV1
 #include <AI/Core/Core.h>

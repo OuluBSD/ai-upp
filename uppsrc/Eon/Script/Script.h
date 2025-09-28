@@ -1,7 +1,6 @@
 #ifndef _Eon_Script_Script_h_
 #define _Eon_Script_Script_h_
 
-#include <Core2/Core.h>
 #include <Vfs/Vfs.h>
 #include <Vfs/Ecs/Ecs.h>
 #include <Core/EcsEngine/EcsEngine.h>

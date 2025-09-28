@@ -1,7 +1,7 @@
 #ifndef _AI_Core_Internal_h_
 #define _AI_Core_Internal_h_
 
-#include <Vfs2/Vfs.h>
+#include <Vfs/Runtime/Runtime.h>
 #ifdef flagAUDIO
 	#include <Sound/Sound.h>
 #endif

@@ -1,5 +1,5 @@
 #include "TextParsing.h"
-#include <Core2/Core.h>
+#include <Core/CompatExt/CompatExt.h>
 
 NAMESPACE_UPP
 

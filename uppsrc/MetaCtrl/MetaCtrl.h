@@ -1,7 +1,9 @@
 #ifndef _MetaCtrl_MetaCtrl_h_
 #define _MetaCtrl_MetaCtrl_h_
 
-#include <Vfs2/Vfs.h>
+#include <Vfs/Ecs/Ecs.h>
+#include <Vfs/Analysis/Analysis.h>
+#include <Vfs/Solver/Solver.h>
 #include <CtrlLib/CtrlLib.h>
 #ifdef flagAUDIO
 	#include <Sound/Sound.h>

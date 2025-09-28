@@ -1,7 +1,8 @@
 #ifndef _ESC_ESC_H_
 #define _ESC_ESC_H_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 
 #ifdef flagOLDESC
 	#define USE_ESC_BYTECODE 0

@@ -3,7 +3,8 @@ description "AI/Core/Media\377128,0,0";
 uses
 	AI/Core/Base,
 	Esc,
-	AI/Core/Core;
+	AI/Core/Core,
+	Draw;
 
 file
 	AGENTS.md,

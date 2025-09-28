@@ -4,8 +4,8 @@
 #include <Vfs/Core/Core.h>
 #include <Vfs/Factory/VfsFactory.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
-#include <Core/EcsEngine/EcsEngine.h>
 #include <Core/EcsDataflow/EcsDataflow.h>
+#include <Geometry/Geometry.h>
 
 NAMESPACE_UPP
 #include "Component.h"
@@ -23,10 +23,10 @@ NAMESPACE_UPP
 #include "Engine.h"
 #include "Engine2.h"
 #include "Geom.h"
-#include "GeomEvent.h"
 #include "Link.h"
 #include "LinkSystem.h"
 #include "PacketTracker.h"
+
 END_UPP_NAMESPACE
 
 #endif

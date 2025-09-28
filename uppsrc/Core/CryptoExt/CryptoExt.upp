@@ -5,5 +5,6 @@ uses
 
 file
 	AGENTS.md,
-	CryptoExt.h;
-
+	CryptoExt.h,
+	Crypto.h,
+	Crypto.cpp;

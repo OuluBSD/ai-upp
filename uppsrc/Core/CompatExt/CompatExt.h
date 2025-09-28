@@ -5,7 +5,8 @@
 
 NAMESPACE_UPP
 
-// Transitional header: include legacy compatibility pieces as they migrate here.
+#include "Compat.h"
+#include "Ctrl.h"
 
 END_UPP_NAMESPACE
 

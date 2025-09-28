@@ -3,6 +3,7 @@
 
 #include <Eon/Script/Script.h>
 #include <plugin/enet/EnetService.h>
+#include <Eon/Interaction/Interaction.h>
 
 NAMESPACE_UPP
 

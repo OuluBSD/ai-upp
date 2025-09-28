@@ -3,7 +3,9 @@
 
 #include <Core2/Core.h>
 #include <Vfs/Vfs.h>
-#include <Eon/Interaction/Interaction.h>
+#include <Vfs/Ecs/Ecs.h>
+#include <Core/EcsEngine/EcsEngine.h>
+#include <Eon/Core/Core.h>
 
 NAMESPACE_UPP
 

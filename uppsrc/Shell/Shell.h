@@ -4,7 +4,7 @@
 
 #include <AI/Core/Base/Base.h>
 #include <Geometry/Geometry.h>
-#include <Vfs2/Vfs.h>
+#include <Vfs/Runtime/Runtime.h>
 #include <Eon/Eon.h>
 #include <Eon/Draw/Draw.h>
 #include <Eon/Lib/Lib.h>

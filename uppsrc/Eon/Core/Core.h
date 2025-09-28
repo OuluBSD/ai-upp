@@ -1,9 +1,10 @@
 #ifndef _Eon_Core_Core_h_
 #define _Eon_Core_Core_h_
 
-#include <Core2/Core.h>
+#include <Core/MediaFormats/MediaFormats.h>
 #include <Vfs/Vfs.h>
-#include <AI/Core/Core.h>
+#include <Vfs/Ecs/Ecs.h>
+// too much: #include <AI/Core/Core.h>
 #include <Geometry/Geometry.h>
 
 NAMESPACE_UPP

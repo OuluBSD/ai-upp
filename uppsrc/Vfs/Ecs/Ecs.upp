@@ -18,7 +18,9 @@ uses
 	Core/EcsDataflow,
 	Vfs/Core,
 	Vfs/Factory,
-	Vfs/Overlay;
+	Vfs/Overlay,
+	Eon/Script,
+	Eon/Interaction;
 
 file
 	AGENTS.md,
@@ -41,8 +43,6 @@ file
 	Exchange.cpp,
 	Geom.h,
 	Geom.cpp,
-	GeomEvent.h,
-	GeomEvent.cpp,
 	Interface.h,
 	Interface.cpp,
 	Link.h,

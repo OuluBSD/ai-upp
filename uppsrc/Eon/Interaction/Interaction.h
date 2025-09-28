@@ -4,6 +4,8 @@
 #include <Core2/Core.h>
 #include <Vfs/Vfs.h>
 #include <Eon/Core/Core.h>
+#include <Geometry/Geometry.h>
+#include <Core/CompatExt/CompatExt.h>
 
 NAMESPACE_UPP
 

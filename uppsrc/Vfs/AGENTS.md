@@ -14,6 +14,7 @@ Current Refactor (VfsValue rewrite)
   - `Vfs/Factory`: `VfsValueExtFactory` and registration utilities.
   - `Vfs/Overlay`: virtual merge of per-file trees with provenance.
   - `Vfs/Storage`: serialization/deserialization of per-file fragments and overlay index.
+  - `Vfs/Meta`, `Vfs/Dataset`, `Vfs/Analysis`, `Vfs/Solver`: runtime helpers previously in `Vfs2`, with `Vfs/Runtime` as the umbrella include.
 - GUI counterparts live in a separate `Vfs/Ctrl` package; avoid GUI dependencies here.
 
 Key Areas

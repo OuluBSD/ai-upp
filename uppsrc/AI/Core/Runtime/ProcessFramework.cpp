@@ -1,5 +1,8 @@
 #include "Runtime.h"
 #include <AI/Core/Prompting/Prompting.h>
+#ifdef flagGUI
+#include <CtrlCore/CtrlCore.h>
+#endif
 
 
 NAMESPACE_UPP

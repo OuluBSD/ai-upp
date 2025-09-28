@@ -2,10 +2,15 @@
 #define _Core_MediaFormats_MediaFormats_h_
 
 #include <Core/Core.h>
+#include <Core/EcsFoundation/EcsFoundation.h>
 
 NAMESPACE_UPP
 
-// Media sample descriptors and format helpers migrate here from legacy Core2.
+#include <Vfs/Ecs/SampleBase.h>
+#include <Vfs/Ecs/Samples.h>
+#include <Vfs/Ecs/Formats.h>
+
+#include "Audio.h"
 
 END_UPP_NAMESPACE
 

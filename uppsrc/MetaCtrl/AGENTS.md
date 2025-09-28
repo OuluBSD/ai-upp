@@ -13,7 +13,7 @@ Key Areas
 - Entities: `Entity.{h,cpp}` and `Common.h`.
 
 Dependencies
-- `Vfs2`, `CtrlLib`, `CodeEditor`.
+- `Vfs/Runtime`, `CtrlLib`, `CodeEditor`.
 
 .upp Notes
 - Place `AGENTS.md` first in `MetaCtrl.upp`.

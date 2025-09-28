@@ -4,7 +4,8 @@
 
 
 namespace Eon {
-	
+using namespace Upp;
+
 class Action;
 class ScriptLoopLoader;
 class ScriptStateLoader;

@@ -1,7 +1,7 @@
 description "AI/Core/Base\377128,0,0";
 
 uses
-	Vfs2;
+	Vfs/Runtime;
 
 file
 	AGENTS.md,

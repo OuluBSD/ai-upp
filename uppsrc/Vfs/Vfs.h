@@ -13,7 +13,7 @@
 #endif
 
 #include <Core/Core.h>
-#include <Core2/Core.h>
+#include <Vfs/Core/Core.h>
 #include <Esc/Esc.h>
 
 NAMESPACE_UPP

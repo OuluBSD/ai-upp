@@ -16,6 +16,7 @@ Progress
 - ✅ Core2 VfsValue base types (`EntityData`, `VfsValueExt`, helpers) now live in `Vfs/Core` while Core2 keeps the structural class.
 - ✅ Legacy VfsValue implementation and enums now build from `Vfs/Core`.
 - ✅ ECS runtime (Atom/Component/Engine/etc.) moved from Core2 into `Vfs/Ecs` package.
+- ✅ Legacy `Vfs2` runtime helpers split across `Vfs/Meta`, `Vfs/Dataset`, `Vfs/Analysis`, `Vfs/Solver`, with `Vfs/Runtime` as the umbrella.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.

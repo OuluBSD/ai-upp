@@ -5,7 +5,8 @@
 
 NAMESPACE_UPP
 
-// Color utilities and geometry/event helpers migrate here from legacy Core2.
+#include "Coordinate.h"
+#include "Color.h"
 
 END_UPP_NAMESPACE
 

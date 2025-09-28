@@ -9,4 +9,8 @@ file
 	CURRENT_TASK.md,
 	EcsEngine.h,
 	Util2.h,
-	Util2.cpp;
+	Util2.cpp,
+	Verifier.h,
+	Verifier.cpp,
+	Registration.cpp;
+

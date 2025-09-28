@@ -3,6 +3,7 @@
 
 #include <ide/clang/clang.h>
 #include <MetaCtrl/MetaCtrl.h>
+#include <Vfs/Runtime/Runtime.h>
 
 struct VfsDlg;
 

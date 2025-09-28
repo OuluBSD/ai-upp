@@ -1,7 +1,10 @@
 #ifndef _Draw2_Draw_h_
 #define _Draw2_Draw_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
+#include <Core/MathNumeric/MathNumeric.h>
+#include <Core/VfsBase/VfsBase.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 #include <Draw/Draw.h>
 
 NAMESPACE_UPP

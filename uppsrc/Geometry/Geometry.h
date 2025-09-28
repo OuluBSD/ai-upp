@@ -80,6 +80,7 @@ NAMESPACE_UPP
 #include "Pointcloud.h"
 #include "MeshTracker.h"
 #include "Uncamera.h"
+#include "GeomEvent.h"
 #include "Vr.h"
 
 END_UPP_NAMESPACE

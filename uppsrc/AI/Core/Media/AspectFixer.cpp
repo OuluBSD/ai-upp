@@ -1,4 +1,7 @@
 #include "Media.h"
+#ifdef flagGUI
+#include <CtrlCore/CtrlCore.h>
+#endif
 
 NAMESPACE_UPP
 
@@ -202,17 +205,23 @@ void AspectFixer::DoPhase() {
 			}
 		}
 		
+		Image img, mask;
+		
+		#ifdef flagGUI
 		// Create standard dalle image
 		ImageDraw id(1024,1024);
 		id.DrawRect(0,0,1024,1024,Black());
 		id.DrawImage(dst_rect, src_resized, src_rect);
-		Image img = id;
+		img = id;
 		
 		// Create mask
 		ImageDraw md(1024,1024);
 		md.Alpha().DrawRect(0,0,1024,1024,Black());
 		md.Alpha().DrawRect(dst_rect, White());
-		Image mask = md;
+		mask = md;
+		#else
+		TODO
+		#endif
 		
 		// Store debug image
 		if (save_debug_images)

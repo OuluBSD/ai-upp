@@ -1,8 +1,8 @@
 #ifndef _AI_Core_Base_h_
 #define _AI_Core_Base_h_
 
-#include <Core2/Core.h>
-#include <Vfs2/Vfs.h>
+#include <Core/MathNumeric/MathNumeric.h>
+#include <Vfs/Runtime/Runtime.h>
 
 NAMESPACE_UPP
 

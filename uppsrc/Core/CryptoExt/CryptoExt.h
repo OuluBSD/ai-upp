@@ -2,10 +2,11 @@
 #define _Core_CryptoExt_CryptoExt_h_
 
 #include <Core/Core.h>
+#include <Core/MathNumeric/MathNumeric.h>
 
 NAMESPACE_UPP
 
-// Cryptography helpers migrate here from legacy Core2.
+#include "Crypto.h"
 
 END_UPP_NAMESPACE
 

@@ -22,20 +22,5 @@ uses
 	Vfs/Overlay;
 
 file
-	Core.h,
-	Core.icpp,
-	Compat.h,
-	Ctrl.h,
-	Coordinate.h,
-	Coordinate.cpp,
-	Color.h,
-	Color.cpp,
-	Crypto.h,
-	Crypto.cpp,
-	ECS readonly separator,
-	Audio.h,
-	Audio.cpp,
-	Verifier.h,
-	Verifier.cpp,
-	_ readonly separator;
+	Core.h;
 

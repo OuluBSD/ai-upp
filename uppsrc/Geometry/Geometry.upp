@@ -59,8 +59,11 @@ file
 	Uncamera.cpp,
 	Vr.h,
 	Vr.cpp,
+	GeomEvent.h,
+	GeomEvent.cpp,
 	Trash readonly separator,
 	ModelPainter.h,
 	ModelPainter.cpp,
 	ModelDraw.h,
 	ModelDraw.cpp;
+

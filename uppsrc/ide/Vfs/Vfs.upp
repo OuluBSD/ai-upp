@@ -1,7 +1,6 @@
 description "\377B";
 
 uses
-	Core2,
 	Vfs/Core,
 	Vfs/Overlay,
 	Vfs/Storage;
@@ -32,3 +31,4 @@ file
 	Env.cpp,
 	EcsLang.h,
 	EcsLang.cpp;
+

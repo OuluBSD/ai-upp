@@ -3,7 +3,6 @@ description "Eon/Interaction\377B85,42,0";
 uses
 	Eon/Core,
 	Eon/Ecs,
-	Core2,
 	Vfs,
 	Geometry,
 	AI/Core;

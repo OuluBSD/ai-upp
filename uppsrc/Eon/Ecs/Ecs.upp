@@ -3,7 +3,6 @@ description "Eon/Ecs\377B85,42,0";
 uses
 	Eon/Core,
 	Eon/Script,
-	Core2,
 	Vfs,
 	Geometry,
 	AI/Core,

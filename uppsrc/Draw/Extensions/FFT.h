@@ -1,5 +1,5 @@
-#ifndef _Draw2_FFT_h_
-#define _Draw2_FFT_h_
+#ifndef _Draw_Extensions_FFT_h_
+#define _Draw_Extensions_FFT_h_
 
 
 #if 1

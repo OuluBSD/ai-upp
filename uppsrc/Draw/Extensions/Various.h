@@ -1,5 +1,5 @@
-#ifndef _Draw2_Various_h_
-#define _Draw2_Various_h_
+#ifndef _Draw_Extensions_Various_h_
+#define _Draw_Extensions_Various_h_
 
 #if defined flagPOSIX && !PLATFORM_EMSCRIPTEN
 	#define HAVE_LIBPNG 1

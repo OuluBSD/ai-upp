@@ -1,5 +1,5 @@
-#ifndef _Draw2_Sdl2_h_
-#define _Draw2_Sdl2_h_
+#ifndef _Draw_Extensions_Sdl2_h_
+#define _Draw_Extensions_Sdl2_h_
 
 #ifdef flagSDL2
 

@@ -1,5 +1,5 @@
-#ifndef _Draw2_Draw2D_h_
-#define _Draw2_Draw2D_h_
+#ifndef _Draw_Extensions_Draw2D_h_
+#define _Draw_Extensions_Draw2D_h_
 
 
 class Draw2 : public Draw

@@ -1,5 +1,5 @@
-#ifndef _EonDraw_Binder_h_
-#define _EonDraw_Binder_h_
+#ifndef _Draw_Extensions_Binder_h_
+#define _Draw_Extensions_Binder_h_
 
 
 class Draw;

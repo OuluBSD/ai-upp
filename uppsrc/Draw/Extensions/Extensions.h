@@ -1,5 +1,5 @@
-#ifndef _Draw2_Draw_h_
-#define _Draw2_Draw_h_
+#ifndef _Draw_Extensions_Extensions_h_
+#define _Draw_Extensions_Extensions_h_
 
 #include <Core/Core.h>
 #include <Core/MathNumeric/MathNumeric.h>
@@ -14,7 +14,6 @@ NAMESPACE_UPP
 #include "FFT.h"
 #include "Sdl2.h"
 #include "Various.h"
-#include "Draw.h"
 #include "Binder.h"
 #include "Draw2D.h"
 #include "DrawCommand.h"

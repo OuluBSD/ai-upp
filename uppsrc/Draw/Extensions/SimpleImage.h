@@ -1,5 +1,5 @@
-#ifndef _Draw2_SimpleImage_h_
-#define _Draw2_SimpleImage_h_
+#ifndef _Draw_Extensions_SimpleImage_h_
+#define _Draw_Extensions_SimpleImage_h_
 
 struct FloatImage {
 	float* data = 0;

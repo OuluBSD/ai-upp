@@ -11,8 +11,8 @@ uses
 
 file
 	AGENTS.md,
+	CURRENT_TASK.md,
 	main.cpp;
 
 mainconfig
 	"" = "GUI";
-

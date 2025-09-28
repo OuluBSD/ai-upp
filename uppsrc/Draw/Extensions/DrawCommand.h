@@ -1,5 +1,5 @@
-#ifndef _Draw2_DrawCommand_h_
-#define _Draw2_DrawCommand_h_
+#ifndef _Draw_Extensions_DrawCommand_h_
+#define _Draw_Extensions_DrawCommand_h_
 
 
 #define DRAWCMD_LIST \

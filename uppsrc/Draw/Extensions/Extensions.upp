@@ -5,8 +5,9 @@ uses(GUI VIRTUALGUI) VirtualGui3D;
 library(POSIX) png;
 
 file
-	Draw.h,
-	Draw.cpp,
+	AGENTS.md,
+	Extensions.h,
+	Extensions.cpp,
 	SimpleImage.h,
 	SimpleImage.cpp,
 	Factory.h,
@@ -30,4 +31,3 @@ file
 	tga_reader.h,
 	tga_reader.c,
 	_ readonly separator;
-

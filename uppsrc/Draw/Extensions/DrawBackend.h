@@ -1,5 +1,5 @@
-#ifndef _EonDraw_DrawBackend_h_
-#define _EonDraw_DrawBackend_h_
+#ifndef _Draw_Extensions_DrawBackend_h_
+#define _Draw_Extensions_DrawBackend_h_
 
 #undef STB_IMAGE_IMPLEMENTATION
 #include <plugin/stb/stb_image.h>

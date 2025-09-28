@@ -3,7 +3,7 @@ description "Essential classes for Topside namespace.\377B128,0,0";
 uses
 	Core,
 	Draw,
-	Draw2;
+	Draw/Extensions;
 
 file
 	Local.h,
@@ -35,4 +35,3 @@ file
 	Workspace.h,
 	Ether.h,
 	Ether.cpp;
-

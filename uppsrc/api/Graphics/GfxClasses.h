@@ -1,6 +1,8 @@
 #ifndef _IGraphics_GfxClasses_h_
 #define _IGraphics_GfxClasses_h_
 
+#include <Draw/Extensions/Extensions.h>
+
 NAMESPACE_UPP
 
 

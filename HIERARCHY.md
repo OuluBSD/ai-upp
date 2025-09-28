@@ -51,7 +51,7 @@ The ide directory contains sub-packages that complement ide, but which are stron
 
 Core packages contain the most essential code. Core alone is the most essential, and CtrlCore contains all the most essential GUI code. Lib is less essential compared to Core (CtrlCore -> CtrlLib).
 
-#### The "Core -> Draw -> Ctrl" chain (and the "Core2 -> Draw2 -> Ctrl2" chain)
+#### The "Core -> Draw -> Ctrl" chain (and the "Core2 -> Draw/Extensions -> Ctrl2" chain)
 The "Core -> Draw -> Ctrl" division is based on the fact that "Core" code can be run in a headless environment and in a terminal, and it does not contain graphics at all. "Draw" code can be run in a headless environment on a server, but it contains code that is strongly included outside the headless environment and in user applications. "Ctrl" code is for client programs and graphical user interfaces, and it is cross-platform and cross-platform, supporting several user interface libraries (Qt, Gtk, Win32, X11, Cocoa).
 
 #### The "Core2 -> Vfs -> Meta -> AI -> Eon" chain

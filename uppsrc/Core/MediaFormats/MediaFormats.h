@@ -3,12 +3,9 @@
 
 #include <Core/Core.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
+#include <Vfs/Ecs/Ecs.h>
 
 NAMESPACE_UPP
-
-#include <Vfs/Ecs/SampleBase.h>
-#include <Vfs/Ecs/Samples.h>
-#include <Vfs/Ecs/Formats.h>
 
 #include "Audio.h"
 

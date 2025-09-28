@@ -2,7 +2,7 @@ description "\3770,0,128";
 
 uses
 	Geometry,
-	Draw2;
+	Draw/Extensions;
 
 file
 	SoftRend.h,
@@ -23,4 +23,3 @@ file
 	ShaderSoft.cpp,
 	UtilProg.h,
 	UtilProg.cpp;
-

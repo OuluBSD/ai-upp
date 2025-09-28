@@ -1,7 +1,8 @@
 description "Vfs core types (header-only stub)\377B128,0,0";
 
 uses
-	Core;
+	Core,
+	Vfs/Factory;
 
 file
 	AGENTS.md,

@@ -28,6 +28,7 @@ Planned Steps (next phase)
 Notes
 - Keep GUI controls in a separate package (Vfs/Ctrl) to respect BLITZ and reduce coupling.
 - Maintain backward compatibility: old IDE Vfs dumps accepted by `Storage` loaders.
+- Stub harness for overlay/serialization/builder scenarios now lives in `upptst/MetaEnvironment`; expand with concrete assertions once overlay behavior is implemented.
 
 Next
 - Update downstream packages to include `Vfs/Core/Core.h` directly and drop the temporary Core2 stubs.

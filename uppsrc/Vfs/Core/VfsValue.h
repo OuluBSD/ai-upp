@@ -4,7 +4,6 @@
 
 struct VfsValue;
 struct VfsValueExtCtrl;
-struct VfsSrcPkg;
 struct Entity;
 struct Engine;
 struct IdeShellHost;

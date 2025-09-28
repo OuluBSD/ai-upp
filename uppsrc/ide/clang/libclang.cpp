@@ -191,6 +191,19 @@ CXTranslationUnit clang_parseTranslationUnit(CXIndex CIdx, const char *source_fi
                                               num_unsaved_files, options);
 }
 
+enum CXErrorCode clang_parseTranslationUnit2(
+    CXIndex CIdx, const char *source_filename,
+    const char *const *command_line_args, int num_command_line_args,
+    struct CXUnsavedFile *unsaved_files, unsigned num_unsaved_files,
+    unsigned options, CXTranslationUnit *out_TU)
+{
+	return LibClang().clang_parseTranslationUnit2(
+		CIdx, source_filename,
+		command_line_args, num_command_line_args,
+		unsaved_files, num_unsaved_files,
+		options, out_TU);
+}
+
 int clang_reparseTranslationUnit(CXTranslationUnit TU, unsigned int num_unsaved_files, CXUnsavedFile *unsaved_files, unsigned int options)
 {
 	return LibClang().clang_reparseTranslationUnit(TU, num_unsaved_files, unsaved_files, options);

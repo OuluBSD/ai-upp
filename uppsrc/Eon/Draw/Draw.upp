@@ -2,7 +2,7 @@ description "\377B128,0,255";
 
 uses
 	Eon,
-	Draw2;
+	Draw/Extensions;
 
 file
 	Draw.h,

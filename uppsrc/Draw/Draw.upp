@@ -7,8 +7,7 @@ acceptflags
 
 uses
 	Core,
-	plugin/png,
-	Core2;
+	plugin/png;
 
 library(WIN32) "usp10 user32 gdi32";
 
@@ -87,3 +86,4 @@ file
 	src.tpp,
 	srcdoc.tpp,
 	Copying;
+

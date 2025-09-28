@@ -1,7 +1,6 @@
 description "Eon/Core\377B85,42,0";
 
 uses
-	Core2,
 	Vfs,
 	Geometry,
 	AI/Core;

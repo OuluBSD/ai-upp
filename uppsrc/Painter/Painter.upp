@@ -1,8 +1,7 @@
 description "2D software rendering with PDF/SVG strength\377B85,85,150";
 
 uses
-	Draw,
-	Core2;
+	Draw;
 
 file
 	AGENTS.md,
@@ -46,3 +45,4 @@ file
 	Info readonly separator,
 	Copying,
 	src.tpp;
+

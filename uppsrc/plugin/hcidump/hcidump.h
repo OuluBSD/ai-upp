@@ -1,7 +1,7 @@
 #ifndef _ports_hcidump_hcidump_h_
 #define _ports_hcidump_hcidump_h_
 
-#include <Core2/Core.h>
+#include <Core/Core.h>
 #include "internal.h"
 /*extern "C" {
 	struct hcidump_process_data;

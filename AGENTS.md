@@ -49,3 +49,7 @@ Subpackage Independence
 - In general, a subpackage should not include its parent package. The reverse is acceptable when the subpackage genuinely extends the parent.
 
 
+Book Chronicle
+- Chronicle work in `Book/` by pairing first-person chapters (`Book/<index> - <Title>.md`) with compact summaries that reuse the chapter title (`Book/<Title>.md`).
+- Keep both files current whenever work progresses; refer to the user in third person with he/him pronouns, selecting from {Spearhead, Captain, Curator, Director, Chief, Ringleader} to match context.
+- Preserve prior chapters—append new material so the narrative reflects real-time progress.

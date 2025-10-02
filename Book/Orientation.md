@@ -1,0 +1,3 @@
+- Logged Director's documentation request and confirmed no prior Book ledger
+- Read CODESTYLE, TASKS, HIERARCHY, AGENTS directives plus repo-wide CURRENT_TASK
+- Created `Book/` and drafted three-step plan to keep narrative and compact logs in sync

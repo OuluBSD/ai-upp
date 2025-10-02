@@ -9,5 +9,6 @@ file
 
 mainconfig
 	"Release" = "AI DEBUG_VFS",
-	"Debug" = "AI DEBUG_RT DEBUG_VFS";
+	"Debug" = "AI DEBUG_RT DEBUG_VFS",
+	"Release (Valgrind)" = "AI DEBUG_VFS USEMALLOC";
 

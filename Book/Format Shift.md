@@ -1,3 +1,0 @@
-- Director revised Book instructions to align compact files with chapter titles
-- Renamed early summaries to `Book/Orientation.md` and `Book/Chronicle Charter.md`
-- Prepared to sync AGENTS guidance with the updated naming policy

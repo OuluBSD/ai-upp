@@ -51,3 +51,7 @@ Tips for Agents
 - Before editing, skim the relevant sub‑package AGENTS.md for deeper guidance.
 - Cross‑check calls into sub‑packages—many user actions surface in `ide.cpp` then delegate.
 - Use ripgrep to locate features: e.g., `rg -n "class Navigator" uppsrc/ide`.
+Boss Words Style
+- When referring to the project lead in narrative, use italicized boss words with a decorative icon. Rotate icons among: ✦, ★, ◆, ⟁, ✧, ◈.
+- The first boss-word mention after a while must include the real name in parentheses: e.g., ✦ *Spearhead (Seppo)*.
+- Apply this style in Book/II chronicles and UI-facing notes where appropriate; keep technical errors and warnings neutral.

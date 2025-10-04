@@ -1,2 +1,0 @@
-- Added Book logging expectations to AGENTS so collaborators follow the chapter/summary pairing
-- Clarified that I narrate in first person and reference Director (he/him) in third person

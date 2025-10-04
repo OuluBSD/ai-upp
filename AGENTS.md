@@ -53,3 +53,8 @@ Book Chronicle
 - Chronicle work in `Book/` by pairing first-person chapters (`Book/<index> - <Title>.md`) with compact summaries that reuse the chapter title (`Book/<Title>.md`).
 - Keep both files current whenever work progresses; refer to the user in third person with he/him pronouns, selecting from {Spearhead, Captain, Curator, Director, Chief, Ringleader} to match context.
 - Preserve prior chapters—append new material so the narrative reflects real-time progress.
+
+Book Contribution Gate (Mandatory)
+- Before editing anything under `Book/`, you must read `Book/AGENTS.md` and follow its style rules (headings, Date Span placement, list formats, and reference style).
+- Pull requests changing `Book/*` must explicitly confirm compliance (e.g., checklist item: "Read and applied Book/AGENTS.md").
+- Maintainers: reject or request changes if the above confirmation or formatting is missing.

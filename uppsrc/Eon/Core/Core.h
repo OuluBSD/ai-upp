@@ -2,6 +2,7 @@
 #define _Eon_Core_Core_h_
 
 #include <Core/MediaFormats/MediaFormats.h>
+#include <Core/CompatExt/CompatExt.h>
 #include <Vfs/Vfs.h>
 #include <Vfs/Ecs/Ecs.h>
 // too much: #include <AI/Core/Core.h>

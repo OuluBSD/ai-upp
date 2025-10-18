@@ -181,7 +181,7 @@ public:
     }
 
     
-protected:
+public:
     bool Initialize(const WorldState&) override;
     void Uninitialize() override;
     void Update(double dt) override;

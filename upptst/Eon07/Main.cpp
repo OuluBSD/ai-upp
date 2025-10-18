@@ -133,18 +133,16 @@ CONSOLE_APP_MAIN {
 			// Ensure machine path exists and create the event register EnvState
 			Val& program_loop = eng.GetRootLoop().GetAdd("sdl", 0).GetAdd("app", 0).GetAdd("program", 0);
 			Val& program_space = eng.GetRootSpace().GetAdd("sdl", 0).GetAdd("app", 0).GetAdd("program", 0);
-			Val& state_event = eng.GetRootLoop().GetAdd("event", 0);
-			Val& state_register = state_event.GetAdd("register", 0);
-			eng.GetRootSpace().GetAdd("event", 0).GetAdd("register", 0);
-			EnvState* env_state = state_register.Find<EnvState>("event.register");
+			EnvState* env_state = eng.val.Find<EnvState>("event_register");
 			if (!env_state) {
-				EnvState& st = state_register.Add<EnvState>("event.register");
-				st.SetName("event.register");
+				EnvState& st = eng.val.Add<EnvState>("event_register");
+				st.SetName("event_register");
 			}
 			// Driver: sdl.context
 			{
-				Val& driver_loop = eng.GetRootLoop().GetAdd("sdl", 0).GetAdd("app", 0).GetAdd("context", 0).GetAdd("driver", 0);
-				eng.GetRootSpace().GetAdd("sdl", 0).GetAdd("app", 0).GetAdd("context", 0).GetAdd("driver", 0);
+				// note: drivers must be in same path than loops that use it (so don't do ".GetAdd("context", 0);");
+				Val& driver_loop = eng.GetRootLoop().GetAdd("sdl", 0).GetAdd("app", 0);
+				eng.GetRootSpace().GetAdd("sdl", 0).GetAdd("app", 0);
 				ChainContext cc_driver;
 				Vector<ChainContext::AtomSpec> driver_atoms;
 				ChainContext::AtomSpec& a = driver_atoms.Add();
@@ -159,23 +157,6 @@ CONSOLE_APP_MAIN {
 					LOG("Driver PostInitialize failed");
 				if (!cc_driver.StartAll())
 					LOG("Driver Start failed");
-			}
-			// State: event.register
-			{
-				ChainContext cc_state;
-				Vector<ChainContext::AtomSpec> state_atoms;
-				ChainContext::AtomSpec& a = state_atoms.Add();
-				a.action = "state.event.register";
-				AtomTypeCls atom; LinkTypeCls link;
-				if (ChainContext::ResolveAction(a.action, atom, link))
-					a.iface.Realize(atom);
-				LoopContext& state_loop_ctx = cc_state.AddLoop(state_register, state_atoms, true);
-				LOG("State context: " << cc_state.GetTreeString(0));
-				LOG("State loop: " << state_loop_ctx.GetTreeString(0));
-				if (!cc_state.PostInitializeAll())
-					LOG("State PostInitialize failed");
-				if (!cc_state.StartAll())
-					LOG("State Start failed");
 			}
 			
 			// Loop: center.events
@@ -204,7 +185,7 @@ CONSOLE_APP_MAIN {
 				{
 					ChainContext::AtomSpec& a = center_atoms.Add();
 					a.action = "state.event.pipe";
-					a.args.GetAdd("target") = String("event.register");
+					a.args.GetAdd("target") = String("event_register");
 					AtomTypeCls atom; LinkTypeCls link;
 					if (ChainContext::ResolveAction(a.action, atom, link))
 						a.iface.Realize(atom);
@@ -255,7 +236,7 @@ CONSOLE_APP_MAIN {
 					a.action = "sdl.fbo.sink";
 					a.args.GetAdd("close_machine") = true;
 					a.args.GetAdd("sizeable") = true;
-					a.args.GetAdd("env") = String("event.register");
+					a.args.GetAdd("env") = String("event_register");
 					AtomTypeCls atom; LinkTypeCls link;
 					if (ChainContext::ResolveAction(a.action, atom, link))
 						a.iface.Realize(atom);
@@ -283,7 +264,7 @@ CONSOLE_APP_MAIN {
 				LOG("EventSystem could not be created");
 			Ptr<InteractionSystem> interaction = eng.GetAdd<InteractionSystem>();
 			if (interaction)
-				interaction->Arg("env", String("event.register"));
+				interaction->Arg("env", String("event_register"));
 			else
 				LOG("InteractionSystem could not be created");
 			Ptr<PhysicsSystem> physics = eng.GetAdd<PhysicsSystem>();

@@ -38,7 +38,7 @@ struct FakeControllerSource : ControllerSource {
 };
 
 struct FakeSpatialInteractionManager : InteractionManager {
-	EnvStatePtr state;
+	EnvStatePtr env;
 	FakeControllerSource ctrl;
 	ControllerState ctrl_state;
 	InteractionSystem* sys = 0;
@@ -93,7 +93,7 @@ struct VrControllerSource : ControllerSource {
 };
 
 struct VrSpatialInteractionManager : InteractionManager {
-	EnvStatePtr state;
+	EnvStatePtr env;
 	//RenderingSystemPtr rend;
 	VrControllerSource ctrl;
 	InteractionSystem* sys = 0;

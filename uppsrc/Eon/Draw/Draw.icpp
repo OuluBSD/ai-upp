@@ -7,13 +7,13 @@ INITBLOCK {
 	
 	
 	// System
-	VfsValueExtFactory::Register<EventSystem>("events", VFSEXT_SYSTEM_ECS, "system.event", "Ecs|System");
-	VfsValueExtFactory::Register<RenderingSystem>("rendering", VFSEXT_SYSTEM_ECS, "system.rendering", "Ecs|System");
-	VfsValueExtFactory::Register<PaintStrokeSystemBase>("paintstroke", VFSEXT_SYSTEM_ECS, "system.paintstroke", "Ecs|System");
-	VfsValueExtFactory::Register<ToolboxSystemBase>("toolbox", VFSEXT_SYSTEM_ECS, "system.toolbox", "Ecs|System");
-	VfsValueExtFactory::Register<PaintingInteractionSystemBase>("painting", VFSEXT_SYSTEM_ECS, "system.interaction.painting", "Ecs|System");
-	VfsValueExtFactory::Register<ShootingInteractionSystemBase>("shooting", VFSEXT_SYSTEM_ECS, "system.interaction.shooting", "Ecs|System");
-	VfsValueExtFactory::Register<ThrowingInteractionSystemBase>("throwing", VFSEXT_SYSTEM_ECS, "system.interaction.throwing", "Ecs|System");
+	VfsValueExtFactory::Register<EventSystem>("EventSystem", VFSEXT_SYSTEM_ECS, "system.event", "Ecs|System");
+	VfsValueExtFactory::Register<RenderingSystem>("RenderingSystem", VFSEXT_SYSTEM_ECS, "system.rendering", "Ecs|System");
+	VfsValueExtFactory::Register<PaintStrokeSystemBase>("PaintStrokeSystemBase", VFSEXT_SYSTEM_ECS, "system.paintstroke", "Ecs|System");
+	VfsValueExtFactory::Register<ToolboxSystemBase>("ToolboxSystemBase", VFSEXT_SYSTEM_ECS, "system.toolbox", "Ecs|System");
+	VfsValueExtFactory::Register<PaintingInteractionSystemBase>("PaintingInteractionSystemBase", VFSEXT_SYSTEM_ECS, "system.interaction.painting", "Ecs|System");
+	VfsValueExtFactory::Register<ShootingInteractionSystemBase>("ShootingInteractionSystemBase", VFSEXT_SYSTEM_ECS, "system.interaction.shooting", "Ecs|System");
+	VfsValueExtFactory::Register<ThrowingInteractionSystemBase>("ThrowingInteractionSystemBase", VFSEXT_SYSTEM_ECS, "system.interaction.throwing", "Ecs|System");
 	
 	// Component
 	VfsValueExtFactory::Register<Viewable>("Viewable", VFSEXT_COMPONENT, "viewable", "Ecs|Camera");

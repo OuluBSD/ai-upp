@@ -42,23 +42,16 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Engine* m = GetVfsValue().FindOwner<Engine>();
-		ASSERT(m);
-		TODO
-		#if 0
-		Ptr<LoopStore> ls = m.Find<LoopStore>();
-		LoopPtr l = ls->GetRoot();
-		state = l->GetSpace()->FindStateDeep(env_name);
-		if (!state) {
-			LOG("InteractionSystem::Update: error: environment state with name '" << env_name << "' not found");
+		env = GetVfsValue().FindOwnerWith<EnvState>(env_name);
+		if (!env) {
+			LOG("VrSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
 		}
-		#endif
 		env_name.Clear();
 		
 		DetectController();
 	}
 	
-	if (state)
+	if (env)
 		UpdateState();
 
 }
@@ -73,7 +66,7 @@ void VrSpatialInteractionManager::DetectController() {
 }
 
 void VrSpatialInteractionManager::UpdateState() {
-	ASSERT(state);
+	ASSERT(env);
 	
 	if (sys->use_state_hmd) {
 		UpdateStateHmd();
@@ -88,16 +81,16 @@ void VrSpatialInteractionManager::UpdateState() {
 }
 
 void VrSpatialInteractionManager::UpdateStateHmd() {
-	TransformMatrix& tm = state->Set<TransformMatrix>(HMD_CAMERA);
+	TransformMatrix& tm = env->Set<TransformMatrix>(HMD_CAMERA);
 	Look(tm);
 	
-	ControllerMatrix& ctrl = state->Set<ControllerMatrix>(HMD_CONTROLLER);
+	ControllerMatrix& ctrl = env->Set<ControllerMatrix>(HMD_CONTROLLER);
 	Control(ctrl);
 	
 }
 
 void VrSpatialInteractionManager::UpdateCalibrationStateKeyboard() {
-	FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
+	FboKbd::KeyVec& data = env->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	
 	if      (data['1']) calib_mode = CALIB_FOV_SCALE_EYEDIST;
 	else if (data['2']) calib_mode = CALIB_CTRL_LEFT;

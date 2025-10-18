@@ -43,24 +43,17 @@ void FakeSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		Engine* m = GetVfsValue().FindOwner<Engine>();
-		ASSERT(m);
-		TODO
-		#if 0
-		Ptr<LoopStore> ls = m.Find<LoopStore>();
-		LoopPtr l = ls->GetRoot();
-		state = l->GetSpace()->FindStateDeep(env_name);
-		if (!state) {
-			LOG("InteractionSystem::Update: error: environment state with name '" << env_name << "' not found");
+		env = GetVfsValue().FindOwnerWith<EnvState>(env_name);
+		if (!env) {
+			LOG("FakeSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
 		}
-		#endif
 		env_name.Clear();
 		
 		DetectController();
 		Look(Point(0,0)); // camera might be messed up, so update it immediately
 	}
 	
-	if (state)
+	if (env)
 		UpdateState();
 
 }
@@ -81,12 +74,10 @@ void FakeSpatialInteractionManager::UpdateState() {
 }
 
 void FakeSpatialInteractionManager::UpdateStateKeyboard() {
-	TODO
-	#if 0
-	FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
+	FboKbd::KeyVec& data = env->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	
-	if (state->GetBool(MOUSE_LEFTDOWN)) {
-		Point& drag = state->Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
+	if (env->GetBool(MOUSE_LEFTDOWN)) {
+		Point& drag = env->Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
 		
 		Point diff = drag - prev_mouse;
 		
@@ -170,7 +161,6 @@ void FakeSpatialInteractionManager::UpdateStateKeyboard() {
 	}
 	
 	prev = data;
-	#endif
 }
 
 void FakeSpatialInteractionManager::Pressed(ControllerMatrix::Value b) {

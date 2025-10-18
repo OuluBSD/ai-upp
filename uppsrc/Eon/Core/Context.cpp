@@ -218,7 +218,7 @@ AtomBasePtr LoopContext::AddAtom(AtomTypeCls atom, LinkTypeCls link, const Iface
 }
 
 bool LoopContext::MakePrimaryLinks() {
-    if (added.IsEmpty())
+    if (added.IsEmpty() || added.GetCount() == 1)
         return true;
     for (int i = 0; i < added.GetCount(); i++) {
         AddedAtom& src = added[i];

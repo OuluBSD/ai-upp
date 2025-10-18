@@ -1,6 +1,8 @@
 #ifndef _AICore2_Agent_h_
 #define _AICore2_Agent_h_
 
+#undef FINISHED
+#undef Status
 
 class AgentTaskExt : public VfsValueExt {
 	

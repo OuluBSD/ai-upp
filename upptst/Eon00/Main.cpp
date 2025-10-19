@@ -18,18 +18,7 @@ struct TestCase {
 };
 
 void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
-	eng.WhenEnterUpdate.Clear();
-	eng.WhenLeaveUpdate.Clear();
-	eng.WhenEnterSystemUpdate.Clear();
-	eng.WhenLeaveSystemUpdate.Clear();
-	eng.WhenGuiProgram.Clear();
-	eng.WhenUserProgram.Clear();
-	eng.WhenInitialize.Clear();
-	eng.WhenPreFirstUpdate.Clear();
-	eng.WhenPostInitialize.Clear();
-	eng.WhenBoot.Clear();
-	eng.WhenUserInitialize.Clear();
-	
+	eng.ClearCallbacks();
 	eng.WhenInitialize << callback(MachineEcsInit);
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
 	eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
@@ -43,10 +32,10 @@ void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
 	
 	ConfigureEngine(eng, runner, method);
 	
-	VectorMap<String, Value> args;
+	ValueMap args;
 	args.Add("MACHINE_TIME_LIMIT", 3);
 	
-	if (!eng.Start("Shell", String(), &args))
+	if (!eng.StartLoad("Shell", String(), args))
 		throw Exc(String().Cat() << label << ": engine failed to start");
 	
 	eng.MainLoop();
@@ -85,8 +74,8 @@ void RunAllTests(int method) {
 
 CONSOLE_APP_MAIN {
 	CommandLineArguments cmd;
-	cmd.AddPositional("test number", INT_V);
-	cmd.AddPositional("method number", INT_V);
+	cmd.AddPositional("test number", INT_V, -1);
+	cmd.AddPositional("method number", INT_V, 0);
 	cmd.AddArg('h', "Show usage information", false);
 	if (!cmd.Parse() || cmd.IsArg('h')) {
 		cmd.PrintHelp();

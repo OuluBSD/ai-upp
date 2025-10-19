@@ -1082,7 +1082,7 @@ void CommandLineArguments::AddArg(char key, const char* desc, bool has_value, St
 	a.value_desc = value_desc;
 }
 
-void CommandLineArguments::AddPositional(const char* desc, dword type) {
+void CommandLineArguments::AddPositional(const char* desc, dword type, Value def) {
 	String label;
 	if (desc && *desc)
 		label = desc;
@@ -1090,6 +1090,7 @@ void CommandLineArguments::AddPositional(const char* desc, dword type) {
 		label = Format("arg%d", positional_desc.GetCount() + 1);
 	positional_desc.Add(label);
 	positional_type.Add(type);
+	default_positionals.Add(def);
 }
 
 bool CommandLineArguments::Parse() {
@@ -1300,6 +1301,15 @@ bool CommandLineArguments::Parse() {
 		if (!found) {Cerr() << "Invalid argument: " << arg << EOL; return false;}
 	}
 	
+	for(int i = positionals.GetCount(); i < default_positionals.GetCount(); i++) {
+		Value def = default_positionals[i];
+		if (def.IsVoid() || def.IsNull()) {
+			Cerr() << "not all positional arguments were given" << EOL;
+			return false;
+		}
+		else positionals.Add(def);
+	}
+	
 	return true;
 }
 
@@ -1346,6 +1356,9 @@ void CommandLineArguments::PrintHelp() {
 			cout << " [" << positional_desc[i];
 			if (!hint.IsEmpty())
 				cout << " (" << hint << ")";
+			Value def = default_positionals[i];
+			if (!def.IsNull())
+				cout << "=" << AsJSON(def);
 			cout << "]";
 		}
 		cout << EOL;

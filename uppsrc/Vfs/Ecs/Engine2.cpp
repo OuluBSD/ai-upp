@@ -42,17 +42,14 @@ void Engine::WarnDeveloper(String msg) {
 	}
 }
 
-bool Engine::Start(String app_name, String override_eon_file, VectorMap<String,Value>* extra_args, const char* extra_str) {
+bool Engine::StartLoad(String app_name, String override_eon_file, ValueMap extra_args, const char* extra_str) {
 	
 	if (!override_eon_file.IsEmpty())
 		eon_file = override_eon_file;
 	
-	if (extra_args) {
-		if (eon_params.Is<ValueMap>())
-			eon_params = ValueMap();
-		
-		for(int i = 0; i < extra_args->GetCount(); i++)
-			eon_params(extra_args->GetKey(i)) = (*extra_args)[i];
+	{
+		for(int i = 0; i < extra_args.GetCount(); i++)
+			eon_params(extra_args.GetKey(i)) = extra_args.GetValue(i);
 	}
 	
 	if (extra_str) {
@@ -73,7 +70,7 @@ bool Engine::Start(String app_name, String override_eon_file, VectorMap<String,V
 	if (is_failed)
 		return false;
 	
-	Start(eon_script, eon_file, eon_params, 1, break_addr);
+	StartMain(eon_script, eon_file, eon_params, 1, break_addr);
 	
 	return !is_failed;
 }

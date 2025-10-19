@@ -14,6 +14,20 @@ Engine::~Engine() {
 }
 
 
+void Engine::ClearCallbacks() {
+	WhenEnterUpdate.Clear();
+	WhenLeaveUpdate.Clear();
+	WhenEnterSystemUpdate.Clear();
+	WhenLeaveSystemUpdate.Clear();
+	WhenGuiProgram.Clear();
+	WhenUserProgram.Clear();
+	WhenInitialize.Clear();
+	WhenPreFirstUpdate.Clear();
+	WhenPostInitialize.Clear();
+	WhenBoot.Clear();
+	WhenUserInitialize.Clear();
+}
+
 bool Engine::Start() {
 	ASSERT_(!is_initialized && !is_started, "Shouldn't call Start if we already started");
 	
@@ -290,7 +304,7 @@ Engine& Engine::Setup(String name, Engine* e, bool in_thrd) {
 		return eng;
 	
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
-	eng.Start(name);
+	eng.StartLoad(name);
 	
 	if (in_thrd)
 		eng.StartMainLoop();

@@ -31,7 +31,12 @@ bool Engine::CommandLineInitializer(bool skip_eon_file) {
 	}
 	
 	// Get rest of the command line arguments
-	eon_params = cmd.GetVariables();
+	Value cmd_params = cmd.GetVariables();
+	if (cmd_params.Is<ValueMap>()) {
+		ValueMap m = cmd_params;
+		for(int i = 0; i < m.GetCount(); i++)
+			eon_params(m.GetKey(i)) = m.GetValue(i);
+	}
 	
 	// Arguments for remote connection
 	#if 0
@@ -150,11 +155,14 @@ void Engine::MainLoop(bool (*fn)(void*), void* arg) {
     //RuntimeDiagnostics::Static().CaptureSnapshot();
 }
 
-bool Engine::Start(String script_content, String script_file, Value args_, bool dbg_ref_visits, uint64 dbg_ref) {
+bool Engine::StartMain(String script_content, String script_file, ValueMap args, bool dbg_ref_visits, uint64 dbg_ref) {
 	SetCoutLog();
 	
-	ValueMap args = args_;
-	__dbg_time_limit = args.Get("MACHINE_TIME_LIMIT", 0);
+	__dbg_time_limit = 0;
+	
+	int i = args.Find("MACHINE_TIME_LIMIT");
+	if (i >= 0)
+		__dbg_time_limit = args.GetValue(i);
 	
 	{
 		Engine& mach = *this;

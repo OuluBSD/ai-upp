@@ -122,14 +122,15 @@ public:
     void Stop() override;
 	void Visit(Vis& vis) override;
     
-	bool Start(String app_name, String override_eon_file="", VectorMap<String,Value>* extra_args=0, const char* extra_str=0);
-	bool Start(String script_content, String script_file, Value args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
+	bool StartLoad(String app_name, String override_eon_file="", ValueMap extra_args=ValueMap(), const char* extra_str=0);
+	bool StartMain(String script_content, String script_file, ValueMap args, bool dbg_ref_visits=false, uint64 dbg_ref=0);
     void Suspend();
     void Resume();
     void StartMainLoop();
     void MainLoop();
     void DieFast() {Start(); Update(0); Stop();}
 	void Clear() {ticks=0; is_started=0; is_initialized=0; is_suspended=0; /*systems.Clear();*/}
+	void ClearCallbacks();
 	
     bool IsRunning() const {return main_thrd.IsRunning();}
 	void SetNotRunning() {main_thrd.SetNotRunning();}
@@ -176,7 +177,7 @@ private:
     bool is_looping_systems = false;
     bool is_failed = false;
     String fail_msg;
-	Value eon_params;
+	ValueMap eon_params;
 	String eon_script;
 	String eon_file;
 	uint64 break_addr = 0;

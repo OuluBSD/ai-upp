@@ -640,20 +640,27 @@ class CommandLineArguments {
 	
 	Array<CmdArg>				args;
 	Array<CmdInput>				inputs;
+	Vector<Value>				positionals;
+	Vector<String>				positional_desc;
+	Vector<dword>				positional_type;
 	Value						vars;
 	
 public:
 	CommandLineArguments() {vars = ValueMap();}
 	
 	void AddArg(char key, const char* desc, bool has_value, String value_desc="value");
+	void AddPositional(const char* desc, dword type = UNKNOWN_V);
 	bool Parse();
 	void PrintHelp();
 	
 	int GetInputCount() const {return inputs.GetCount();}
+	int GetPositionalCount() const {return positionals.GetCount();}
 	bool IsArg(char c) const;
 	String GetArg(char c) const;
 	
 	const Array<CmdInput>& GetInputs() const {return inputs;}
+	const Vector<Value>& GetPositionals() const {return positionals;}
+	Value GetPositional(int i) const {return positionals[i];}
 	Value GetVariables() const {return vars;}
 	
 };

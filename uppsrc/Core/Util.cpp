@@ -1082,18 +1082,36 @@ void CommandLineArguments::AddArg(char key, const char* desc, bool has_value, St
 	a.value_desc = value_desc;
 }
 
+void CommandLineArguments::AddPositional(const char* desc, dword type) {
+	String label;
+	if (desc && *desc)
+		label = desc;
+	else
+		label = Format("arg%d", positional_desc.GetCount() + 1);
+	positional_desc.Add(label);
+	positional_type.Add(type);
+}
+
 bool CommandLineArguments::Parse() {
 	const Vector<String>& args = CommandLine();
 	//DUMPC(args);
 	
+	inputs.Clear();
+	positionals.Clear();
+	vars = ValueMap();
+	
 	for(int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
 		
-		if (arg.GetCount() < 2) return false;
+		if (arg.IsEmpty()) {Cerr() << "Invalid argument: empty" << EOL; return false;}
 		
 		bool found = false;
 		
 		if (arg[0] == '-') {
+			if (arg.GetCount() < 2) {
+				Cerr() << "Invalid argument: " << arg << EOL;
+				return false;
+			}
 			bool is_valid_key = true;
 			bool is_var = false;
 			int key_size = 0;
@@ -1144,6 +1162,140 @@ bool CommandLineArguments::Parse() {
 				}
 			}
 		}
+		else {
+			int positional_index = positionals.GetCount();
+			if (!positional_desc.IsEmpty() && positional_index >= positional_desc.GetCount()) {
+				Cerr() << "Too many positional arguments (expected at most " << positional_desc.GetCount() << ")." << EOL;
+				return false;
+			}
+			Value positional = ParseJSON(arg);
+			if (IsError(positional))
+				positional = Value(arg);
+			if (positional_index < positional_type.GetCount()) {
+				dword expected = positional_type[positional_index];
+				if (expected != UNKNOWN_V) {
+					auto fail_type = [&](const char* detail) {
+						Cerr() << "Invalid positional argument";
+						if (positional_index < positional_desc.GetCount())
+							Cerr() << " for " << positional_desc[positional_index];
+						Cerr() << ": " << detail << EOL;
+						return false;
+					};
+					auto ensure_int_range = [&](int64 value) -> bool {
+						if (value < INT_MIN || value > INT_MAX)
+							return fail_type("integer out of range");
+						positional = Value((int)value);
+						return true;
+					};
+					auto ensure_int64 = [&](int64 value) -> bool {
+						positional = Value(value);
+						return true;
+					};
+					auto ensure_float = [&](double value, bool as_float) -> bool {
+						if (IsNaN(value))
+							return fail_type("not-a-number not allowed");
+						if (as_float) {
+							if (value < -FLT_MAX || value > FLT_MAX)
+								return fail_type("float out of range");
+							positional = Value((float)value);
+						}
+						else
+							positional = Value(value);
+						return true;
+					};
+					
+					switch(expected) {
+					case INT_V:
+						if (positional.Is<int>())
+							break;
+						if (positional.Is<int64>()) {
+							if (!ensure_int_range((int64)positional))
+								return false;
+							break;
+						}
+						if (positional.Is<double>() || positional.Is<float>()) {
+							double d = (double)positional;
+							if (d != (double)(int64)d)
+								return fail_type("expected integer");
+							if (!ensure_int_range((int64)d))
+								return false;
+							break;
+						}
+						if (positional.Is<bool>()) {
+							positional = Value((int)((bool)positional ? 1 : 0));
+							break;
+						}
+						return fail_type("expected integer");
+					
+					case INT64_V:
+						if (positional.Is<int64>())
+							break;
+						if (positional.Is<int>()) {
+							positional = Value((int64)(int)positional);
+							break;
+						}
+						if (positional.Is<double>() || positional.Is<float>()) {
+							double d = (double)positional;
+							if (d != (double)(int64)d)
+								return fail_type("expected 64-bit integer");
+							if (!ensure_int64((int64)d))
+								return false;
+							break;
+						}
+						if (positional.Is<bool>()) {
+							positional = Value((int64)((bool)positional ? 1 : 0));
+							break;
+						}
+						return fail_type("expected 64-bit integer");
+					
+					case DOUBLE_V:
+						if (positional.Is<double>())
+							break;
+						if (positional.Is<float>() || positional.Is<int>() || positional.Is<int64>() || positional.Is<bool>()) {
+							double d = positional.Is<bool>() ? ((bool)positional ? 1.0 : 0.0) : (double)positional;
+							if (!ensure_float(d, false))
+								return false;
+							break;
+						}
+						return fail_type("expected floating point number");
+					
+					case FLOAT_V:
+						if (positional.Is<float>())
+							break;
+						if (positional.Is<double>() || positional.Is<int>() || positional.Is<int64>() || positional.Is<bool>()) {
+							double d = positional.Is<bool>() ? ((bool)positional ? 1.0 : 0.0) : (double)positional;
+							if (!ensure_float(d, true))
+								return false;
+							break;
+						}
+						return fail_type("expected floating point number");
+					
+					case BOOL_V:
+						if (positional.Is<bool>())
+							break;
+						if (positional.Is<int>() || positional.Is<int64>()) {
+							positional = Value((bool)((int64)positional != 0));
+							break;
+						}
+						if (positional.Is<double>() || positional.Is<float>()) {
+							double d = (double)positional;
+							if (IsNaN(d))
+								return fail_type("not-a-number not allowed");
+							positional = Value((bool)(d != 0.0));
+							break;
+						}
+						return fail_type("expected boolean");
+					
+					default:
+						if (positional.GetType() != expected)
+							return fail_type("unexpected type");
+						break;
+					}
+				}
+			}
+			positionals.Add(positional);
+			found = true;
+		}
 		
 		if (!found) {Cerr() << "Invalid argument: " << arg << EOL; return false;}
 	}
@@ -1168,7 +1320,44 @@ void CommandLineArguments::PrintHelp() {
 	for(int i = 0; i < args.GetCount(); i++)
 		if (!args[i].has_value)
 			cout << args[i].key;
-	cout << "]" << EOL;
+	cout << "]";
+	if (positional_desc.IsEmpty()) {
+		cout << " [args...]";
+		cout << EOL;
+		cout << "\tPositional arguments are interpreted as JSON values." << EOL;
+	}
+	else {
+		auto type_label = [&](int idx) -> String {
+			if (idx >= positional_type.GetCount())
+				return String();
+			switch(positional_type[idx]) {
+			case INT_V:     return "int";
+			case INT64_V:   return "int64";
+			case DOUBLE_V:  return "double";
+			case FLOAT_V:   return "float";
+			case BOOL_V:    return "bool";
+			case STRING_V:  return "string";
+			case WSTRING_V: return "wstring";
+			default:        return String();
+			}
+		};
+		for (int i = 0; i < positional_desc.GetCount(); i++) {
+			String hint = type_label(i);
+			cout << " [" << positional_desc[i];
+			if (!hint.IsEmpty())
+				cout << " (" << hint << ")";
+			cout << "]";
+		}
+		cout << EOL;
+		cout << "\tPositional arguments are interpreted as JSON values." << EOL;
+		for (int i = 0; i < positional_desc.GetCount(); i++) {
+			String hint = type_label(i);
+			cout << "\t" << (i + 1) << ") " << positional_desc[i];
+			if (!hint.IsEmpty())
+				cout << " (" << hint << ")";
+			cout << EOL;
+		}
+	}
 	
 	for(int i = 0; i < args.GetCount(); i++) {
 		CmdArg& a = args[i];

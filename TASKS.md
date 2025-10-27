@@ -10,12 +10,56 @@
 - [x] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
 - [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
 - [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
-- [ ] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
-- [ ] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
-- [ ] Update stdtst packages to test all wrapper library features comprehensively
-- [ ] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
-- [ ] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
-- [ ] Create CMake files to enable Visual Studio compilation for Eon/Win project
+- [x] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
+- [x] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
+- [x] Update stdtst packages to test all wrapper library features comprehensively
+- [x] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
+- [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
+- [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
+- [ ] Implement missing classes in stdsrc/CtrlLib to match uppsrc/CtrlLib functionality:
+  - [x] Splitter.h - Implemented
+  - [x] ScrollBar.h - Implemented
+  - [x] SliderCtrl.h - Implemented
+  - [ ] Bar.h
+  - [ ] Ch.h
+  - [ ] ChatCtrl.h
+  - [ ] ColorPopup.h
+  - [ ] ColorPusher.h
+  - [ ] ColumnList.h
+  - [ ] DateTimeCtrl.h
+  - [ ] DisplayPopup.h
+  - [ ] DlgColor.h
+  - [ ] DropChoice.h
+  - [ ] DropList.h
+  - [ ] DropTree.h
+  - [ ] EditCtrl.h
+  - [ ] FileList.h
+  - [ ] FileSel.h
+  - [ ] FrameSplitter.h
+  - [ ] HeaderCtrl.h
+  - [ ] LabelBase.h
+  - [ ] LineEdit.h
+  - [ ] MenuBar.h
+  - [ ] MenuItem.h
+  - [ ] MultiButton.h
+  - [ ] PageCtrl.h
+  - [ ] PopUpList.h
+  - [ ] PopupTable.h
+  - [ ] Progress.h
+  - [ ] PushCtrl.h
+  - [ ] RichText.h
+  - [ ] RichTextView.h
+  - [ ] Splitter.h (already implemented above)
+  - [ ] ScrollBar.h (already implemented above)
+  - [ ] SliderCtrl.h (already implemented above)
+  - [ ] StaticCtrl.h
+  - [ ] StatusBar.h
+  - [ ] SuggestCtrl.h
+  - [ ] TabCtrl.h
+  - [ ] ToolBar.h
+  - [ ] ToolButton.h
+  - [ ] TreeCtrl.h
+  - [ ] TimelineCtrl.h
 
 ## TODO
 

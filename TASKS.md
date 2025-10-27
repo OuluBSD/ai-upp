@@ -16,6 +16,70 @@
 - [x] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
 - [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
 - [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
+- [ ] Implement missing classes in stdsrc/Core to match uppsrc/Core functionality:
+  - [ ] Atomic.h
+  - [ ] BiCont.h
+  - [ ] BinUndoRedo.h
+  - [ ] CharSet.h
+  - [ ] CoAlgo.h
+  - [ ] CoSort.h
+  - [ ] CoWork.h
+  - [ ] CritBitIndex.h
+  - [ ] Cpu.h
+  - [ ] Daemon.h
+  - [ ] Debug.h
+  - [ ] Diag.h
+  - [ ] Dli.h
+  - [ ] FileMapping.h
+  - [ ] FilterStream.h
+  - [ ] FixedMap.h
+  - [ ] Fn.h
+  - [ ] Heap.h
+  - [ ] Huge.h
+  - [ ] Inet.h
+  - [ ] Ini.h
+  - [ ] InMap.hpp
+  - [ ] InVector.h
+  - [ ] LinkedList.h
+  - [ ] LocalProcess.h
+  - [ ] Mt.h
+  - [ ] NetNode.h
+  - [ ] Ops.h
+  - [ ] Other.h
+  - [ ] PackedData.h
+  - [ ] Parser.h
+  - [ ] Random.h
+  - [ ] Range.h
+  - [ ] Recycler.h
+  - [ ] Shared.h
+  - [ ] SIMD.h
+  - [ ] Socket.h
+  - [ ] Sorted.h
+  - [ ] Speller.h
+  - [ ] SplitMerge.h
+  - [ ] St.h
+  - [ ] Topic.h
+  - [ ] Topt.h
+  - [ ] UnicodeInfo.h
+  - [ ] Utf.h
+  - [ ] ValueCache.h
+  - [ ] ValueUtil.h
+  - [ ] Vcont.hpp
+  - [ ] WebSocket.h
+  - [ ] Win32Util.h
+  - [ ] Xmlize.h
+  - [ ] xxHsh.h
+  - [ ] z.h
+  - [ ] AString.hpp
+  - [ ] Convert.hpp
+  - [ ] Index.hpp
+  - [ ] Map.hpp
+  - [ ] Other.hpp
+  - [ ] Tuple.h
+  - [ ] Utf.hpp
+  - [ ] Value.hpp
+  - [ ] Xmlize.hpp
+  - [ ] InVector.hpp
 - [ ] Implement missing classes in stdsrc/Draw to match uppsrc/Draw functionality:
   - [ ] Cham.h
   - [ ] DDARasterizer.h

@@ -2,14 +2,14 @@
 
 ## IN PROGRESS
 
-- [ ] CRITICAL: Analyze and implement correct overlay architecture: MetaEnvironment needs VirtualNode root that navigates multiple VfsOverlay instances per file
-- [ ] CRITICAL: Each VfsOverlay must contain VfsValue root for individual files only, not MetaEnvironment global root
-- [ ] CRITICAL: Implement VirtualNode-to-Overlays navigation system for unified view across all active overlays
-- [ ] CRITICAL: Maintain backward compatibility while restructuring MetaEnvironment from single VfsValue root to overlay-based system
-- [ ] CRITICAL: Ensure file-level isolation where each .cpp/.h file has its own overlay with its AST data
-- [ ] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
-- [ ] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
-- [ ] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
+- [x] CRITICAL: Analyze and implement correct overlay architecture: MetaEnvironment needs VirtualNode root that navigates multiple VfsOverlay instances per file
+- [x] CRITICAL: Each VfsOverlay must contain VfsValue root for individual files only, not MetaEnvironment global root
+- [x] CRITICAL: Implement VirtualNode-to-Overlays navigation system for unified view across all active overlays
+- [x] CRITICAL: Maintain backward compatibility while restructuring MetaEnvironment from single VfsValue root to overlay-based system
+- [x] CRITICAL: Ensure file-level isolation where each .cpp/.h file has its own overlay with its AST data
+- [x] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
+- [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
+- [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
 - [ ] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
 - [ ] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
 - [ ] Update stdtst packages to test all wrapper library features comprehensively
@@ -244,6 +244,16 @@
 - [x] Add shader compilation flags and optimization settings
 
 
+
+### Vfs Overlay Implementation
+- [x] Implement SourceRef structure for tracking provenance (package hash, file hash, local path, priority, flags)
+- [x] Implement OverlayView interface for virtual merge of per-file trees
+- [x] Implement VfsOverlay class representing single source fragments
+- [x] Implement OverlayManager for combining overlays with precedence
+- [x] Integrate overlay system with MetaEnvironment
+- [x] Implement precedence provider interfaces
+- [x] Add overlay listing and merged value retrieval methods
+- [x] Add overlay registration functionality to MetaEnvironment
 
 ## DONE
 

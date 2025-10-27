@@ -724,6 +724,10 @@ typedef enum : byte {
 	MERGEMODE_UPDATE_SUBSET,
 } MergeMode;
 
+// Forward declaration for overlay support
+class VfsOverlay;
+template<class T> class Ptr;
+
 struct MetaEnvironment : VFS {
 	struct FilePos : Moveable<FilePos> {
 		Vector<Ptr<VfsValue>> hash_nodes;
@@ -776,6 +780,11 @@ struct MetaEnvironment : VFS {
 	hash_t RealizeTypePath(const String& path);
 	bool GetFiles(const VfsPath& rel_path, Vector<VfsItem>& items) override;
 	VfsItemType CheckItem(const VfsPath& rel_path) override;
+	
+	// Overlay support methods
+	Vector<String> List(String logical_path) const;
+	Value GetMerged(String logical_path) const;
+	void AddOverlay(Ptr<VfsOverlay> overlay);
 };
 
 MetaEnvironment& MetaEnv();

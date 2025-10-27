@@ -81,6 +81,9 @@ class ArrayCtrl;
 #include "Label.h"
 #include "EditField.h"
 #include "ArrayCtrl.h"
+#include "Splitter.h"
+#include "ScrollBar.h"
+#include "SliderCtrl.h"
 
 END_UPP_NAMESPACE
 

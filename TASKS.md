@@ -10,6 +10,12 @@
 - [ ] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
 - [ ] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
 - [ ] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
+- [ ] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
+- [ ] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
+- [ ] Update stdtst packages to test all wrapper library features comprehensively
+- [ ] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
+- [ ] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
+- [ ] Create CMake files to enable Visual Studio compilation for Eon/Win project
 
 ## TODO
 
@@ -178,6 +184,40 @@
 - [ ] Create audio synthesis in SoftSynth
 - [ ] Add HMD tracking in SoftHMD
 - [ ] Implement instrument mapping in SoftInstru
+
+### Standard Library Wrapper Development
+- [ ] Implement wrapper library in stdsrc using STL std c++ libraries to implement U++ Core functions
+- [ ] Create stdsrc/Draw wrapper for graphics functionality (WXWidgets/Gtk/Qt native implementations)
+- [ ] Create stdsrc/CtrlCore wrapper for core UI functionality (WXWidgets/Gtk/Qt native implementations) 
+- [ ] Create stdsrc/CtrlLib wrapper for UI controls (WXWidgets/Gtk/Qt native implementations)
+- [ ] Support native platform APIs: Windows, macOS, and other platform-specific implementations
+- [ ] Ensure comprehensive stdtst package coverage for all wrapper library features
+
+### VR ECS Engine Enhancement
+- [ ] Convert Eon/Win VR ECS engine to work with OpenVR in addition to current WinRT implementation
+- [ ] Add OpenHMD support to Eon/Win VR ECS engine
+- [ ] Address WinRT limitations for UWP (Universal Windows Platform) compatibility
+- [ ] Remove filesystem function restrictions to enable normal file operations in UWP
+- [ ] Create CMake files for Visual Studio compilation support
+- [ ] Maintain existing functionality while adding cross-platform VR support
+
+### Eon/GuiGlue Integration
+- [ ] Enable Eon/GuiGlue to work with U++ GUI components
+- [ ] Bind U++ TopWindow to Eon engine for seamless integration
+- [ ] Create proper interface layer between U++ windows and ECS systems
+- [ ] Ensure event handling flows correctly between U++ GUI and Eon engine
+- [ ] Maintain compatibility with existing Eon functionality
+
+### Desktop Suite Development (LOWEST PRIORITY)
+- [ ] Develop uppsrc/DesktopSuite applications for X11 desktop programs following FreeDesktop specifications
+- [ ] Implement window manager component for DesktopSuite
+- [ ] Create login manager component for DesktopSuite
+- [ ] Develop task bar component for DesktopSuite
+- [ ] Create control panel component for DesktopSuite
+- [ ] Implement file manager component for DesktopSuite
+- [ ] Develop session manager component for DesktopSuite
+- [ ] Ensure compliance with FreeDesktop standards and specifications
+- [ ] Support X11 windowing system integration
 
 ### Geometry Library Improvements
 - [ ] Add missing mathematical functions and operations

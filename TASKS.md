@@ -1,5 +1,16 @@
 # TASKS.md
 
+## IN PROGRESS
+
+- [ ] CRITICAL: Analyze and implement correct overlay architecture: MetaEnvironment needs VirtualNode root that navigates multiple VfsOverlay instances per file
+- [ ] CRITICAL: Each VfsOverlay must contain VfsValue root for individual files only, not MetaEnvironment global root
+- [ ] CRITICAL: Implement VirtualNode-to-Overlays navigation system for unified view across all active overlays
+- [ ] CRITICAL: Maintain backward compatibility while restructuring MetaEnvironment from single VfsValue root to overlay-based system
+- [ ] CRITICAL: Ensure file-level isolation where each .cpp/.h file has its own overlay with its AST data
+- [ ] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
+- [ ] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
+- [ ] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
+
 ## TODO
 
 ### V4L Webcam Support Improvements
@@ -71,7 +82,7 @@
 
 ### Additional New API Modules to Consider
 - [ ] WebRTC API for real-time communication
-- [ ] WebGPU API for next-generation GPU access
+- [ ] WebGPU API for next-generation GPU access (run script/build_apigen.sh)
 - [ ] Neural network/machine learning API wrapper (TensorFlow, PyTorch)
 - [ ] WebAssembly runtime API
 - [ ] Bluetooth/Bluetooth LE API
@@ -184,22 +195,15 @@
 - [ ] Improve 3D transformation utilities
 - [ ] Add geometric projection and unprojection functions
 - [ ] Implement more efficient mesh processing
-- [ ] Address issues in TODO.txt: shader components registration
-- [ ] Address issues in TODO.txt: data transfer to/from pipeline
-- [ ] Address issues in TODO.txt: GPU pipeline initialization
-- [ ] Optimize vertex data reuse in rendering
-- [ ] Add support for different index formats (1-byte indices)
-- [ ] Implement mesh splitting for large models
-- [ ] Add shader compilation flags and optimization settings
+- [x] Address issues in TODO.txt: shader components registration
+- [x] Address issues in TODO.txt: data transfer to/from pipeline
+- [x] Address issues in TODO.txt: GPU pipeline initialization
+- [x] Optimize vertex data reuse in rendering
+- [x] Add support for different index formats (1-byte indices)
+- [x] Implement mesh splitting for large models
+- [x] Add shader compilation flags and optimization settings
 
-## IN PROGRESS
 
-- [ ] Understanding the Eon API Editor generation system
-- [ ] Analyzing current API implementation patterns
-- [ ] Investigating Eon test projects and conversion to C++ stubs
-- [ ] Examining GuboCore and GuboLib for improvement opportunities
-- [ ] Investigating Soft* libraries for new tasks
-- [ ] Checking Geometry library for quality problems and missing features
 
 ## DONE
 

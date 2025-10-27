@@ -31,3 +31,4 @@ a.out
 .aider*
 .bin/**
 .cache
+bin/**

@@ -16,6 +16,9 @@ CONSOLE_APP_MAIN {
 	ib.AddEffect();
 	ib.AddMidiHw();
 	ib.AddAudioFileOut();
+	ib.AddWebGpu();
+	ib.AddWebRtc();
+	ib.AddNeuralNetwork();
 	
 	ib.Headers();
 	

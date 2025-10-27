@@ -13,7 +13,7 @@ class SkyboxRenderer;
 
 // HolographicRenderer
 // A stereoscopic 3D rendering system, manages rendering everything in the scene
-// through DirectX 11 and Windows::Perception APIs
+// Updated to work with multiple VR platforms (OpenVR, OpenHMD, WinRT)
 class HolographicRenderer :
 	public System,
 	public IDeviceNotify
@@ -44,12 +44,6 @@ protected:
     void Stop() override;
     void Uninitialize() override;
 
-    void BindEventHandlers(
-        const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace);
-
-    void ReleaseEventHandlers(
-        const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace);
-
 private:
     //EntityStorePtr m_entityStore;
     
@@ -62,30 +56,19 @@ private:
 
     std::shared_ptr<Pbr::Resources> m_pbrResources{ nullptr };
 
-    winrt::event_token m_cameraAddedToken{};
-    winrt::event_token m_cameraRemovedToken{};
-
     std::shared_ptr<DeviceResources> m_deviceResources{ nullptr };
 
     TextRenderer* GetTextRendererForFontSize(float fontSize);
 
+    // Platform-agnostic rendering method
     bool RenderAtCameraPose(
-        CameraResources *pCameraResources,
-        winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& coordinateSystem,
-        winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction,
-        winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters const& renderingParameters,
-        winrt::Windows::Graphics::Holographic::HolographicCameraPose const& cameraPose);
+        IVRCamera* camera,
+        void* coordinateSystem,
+        void* prediction);
 
-    // Asynchronously creates resources for new holographic cameras.
-    void OnCameraAdded(
-        winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-        winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs const& args);
-
-    // Synchronously releases resources for holographic cameras that are no longer
-    // attached to the system.
-    void OnCameraRemoved(
-        winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-        winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs const& args);
+    // Platform-specific handlers that work through VRPlatform abstraction
+    void BindEventHandlers();
+    void ReleaseEventHandlers();
 };
 
 

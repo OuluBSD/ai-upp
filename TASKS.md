@@ -1,52 +1,215 @@
-# TASKS
+# TASKS.md
 
-Here are the next "forever tasks".
+## TODO
 
-- Support GUI libraries in addition to the existing ones (Qt, Gtk, Win32, X11, Cocoa)
-- Add AI functionality to the uppsrc/ide (TheIDE) package and the packages it requires
-- Esc scripting interface for
-	- Animation
-	- Form
-	- Shell Scripting
-	- Game scripting
-	- website like pages
-- Servers (own implementation or wrapper)
-	- ftp
-	- https
-	- ssh
-	- internet radio
-	- internet video
-	- game servers
-	- peer to peer nodes
-	- web-browser based control panels
-- Web-Browser compatibility alternatives
-	- TURTLE: programs runs natively in server and user has client program in the web-browser
-	- Emscripten: the program is compiled into webassembly or javascript
-		a. The GUI is like in TURTLE via VirtualGui
-		b. Gui is via Eon Atoms and VirtualGui in the WebGL engine
-		c. No Ctrl support at all, but Core and Draw work, and the 3D engine runs in the main loop.
-	- Translation: The entire repository is translated into a TypeScript library, and parts of the implementation and interface are omitted because TypeScript is an object-oriented language, not memory-based.
-	- Esc is translated into JavaScript (easy). Esc functions are linked to JavaScript libraries. This is a good idea. That is, the features of the Esc library are implemented using well-known javascript/typescript libraries that work in web browsers.
-	- The GUI is HTML code in the client's web browser. The Ctrl functions are converted to HTML code on the server. The session is kept in memory on the server. The interface would be familiar to the programmer from CtrlCore and CtrlLib. Programming would be done in C++.
-- Graph and Atom systems
-	- add better graph-based systems for connecting atoms (now complex loop-based)
-	- add atom classes that wrap various c++ libraries in "uppsrc/api/" subdirectories.
-	- (obsolete/)share/eon/tests should showcase new atoms
-- uppsrc/Skylark
-	- Add classes to implement a traditional website: forums, communications, content, video pages, news. Add classes for gui widgets and gui layouts. Add classes to make it easy to make a good website with skylark.
-- (obsolete/)kernel/LittleKernel: make own hobby OS, and then some more!
-- Codex like AI functionality
-	- see files:
-		- "AICore2/AICore.upp" -> Task Manager separator
-			- files related to AI calling
-		- IDE frontend similar to Codex webpage
-			- "uppsrc/ide/Shell/Agent.h"
-			- "uppsrc/ide/Shell/Agent.cpp"
-		- Vfs classes for containing tasks etc.
-			- "uppsrc/AICore2/Agent.h"
-		- Vfs classes for visualizing tasks etc.
-			- "uppsrc/AICtrl/Agent.h"
-		- Enumerate new backend AI prompt:
-			- "uppsrc/AICore2/Common.h"
-		- AI prompt implementation:
-			- "uppsrc/AICore2/CreateInput.cpp"
+### V4L Webcam Support Improvements
+- [ ] Enhance current V4L2 implementation in Media module with better device enumeration
+- [ ] Add support for additional V4L2 device properties and controls
+- [ ] Implement more robust error handling for V4L2 device access
+- [ ] Add support for more V4L2 pixel formats
+- [ ] Improve performance with better buffer management
+
+### Physics Wrapper for ODE
+- [ ] Complete unfinished Physics wrapper functionality for ODE
+- [ ] Add support for advanced physics features (constraints, joints, collision detection)
+- [ ] Implement physics prefab system improvements
+- [ ] Add more physics primitive types (mesh colliders, compound shapes)
+- [ ] Test and validate physics simulation accuracy
+
+### Graphics API Enhancements
+- [ ] Implement DirectX support (DX11/DX12) for cross-platform graphics
+- [ ] Add Vulkan support for high-performance graphics rendering
+- [ ] Add Metal support for macOS graphics acceleration
+- [ ] Implement advanced shader support and rendering pipelines
+- [ ] Add compute shader support for GPGPU operations
+
+### Screen API Improvements
+- [ ] Add basic Windows OpenGL screen support for Screen module
+- [ ] Implement proper context management for OpenGL contexts
+- [ ] Add support for multiple screen configurations
+- [ ] Enhance cross-platform window management
+
+### Media API Improvements
+- [ ] Add comprehensive gstreamer support for advanced media handling
+- [ ] Implement better audio/video synchronization
+- [ ] Add support for additional media formats and codecs
+- [ ] Enhance streaming capabilities for real-time processing
+- [ ] Add media filtering and processing capabilities
+
+### Holograph API Updates
+- [ ] Update OpenHMD support to latest version
+- [ ] Enhance OpenVR support for newer SDK versions
+- [ ] Add OpenXR support for cross-platform VR
+- [ ] Implement support for newer VR devices
+- [ ] Add AR (Augmented Reality) support
+
+### Hal API Extensions
+- [ ] Add SDL3 support for modern input handling
+- [ ] Implement SDL1 support for legacy compatibility
+- [ ] Add other similar libraries (Allegro, GLFW) for broader hardware abstraction
+- [ ] Enhance input device detection and handling
+- [ ] Add gamepad/controller support improvements
+
+### Audio API Expansions
+- [ ] Add LV2 plugin support for audio effects
+- [ ] Implement LADSPA plugin support for audio processing
+- [ ] Add CLAP plugin support for modern audio plugins
+- [ ] Add VST plugin support for professional audio workflows
+- [ ] Enhance AudioHost/Audio/Effects modules with plugin architecture
+
+### Volumetric API Improvements
+- [ ] Add support for point cloud libraries (PCL, etc.)
+- [ ] Implement point cloud processing and visualization features
+- [ ] Add support for 3D scanning data formats
+- [ ] Enhance volumetric rendering capabilities
+
+### MidiHw API Enhancements
+- [ ] Add native MIDI support for Windows
+- [ ] Implement native MIDI support for Linux (ALSA)
+- [ ] Add native MIDI support for macOS (CoreMIDI)
+- [ ] Enhance MIDI device enumeration and management
+
+### Additional New API Modules to Consider
+- [ ] WebRTC API for real-time communication
+- [ ] WebGPU API for next-generation GPU access
+- [ ] Neural network/machine learning API wrapper (TensorFlow, PyTorch)
+- [ ] WebAssembly runtime API
+- [ ] Bluetooth/Bluetooth LE API
+- [ ] Network protocols API (WebSocket, etc.)
+
+### Eon Project Conversions
+- [ ] Create C++ stubs for Eon01 (event state, MIDI events, meta tests)
+- [ ] Create C++ stubs for Eon02
+- [ ] Create C++ stubs for Eon03
+- [ ] Create C++ stubs for Eon04
+- [ ] Create C++ stubs for Eon05
+- [ ] Create C++ stubs for Eon06
+- [ ] Create C++ stubs for Eon07 (ECS features)
+- [ ] Create C++ stubs for Eon08 (GUI, 3D, VR)
+- [ ] Add command-line startup for Eon01
+- [ ] Add command-line startup for Eon02
+- [ ] Add command-line startup for Eon03
+- [ ] Add command-line startup for Eon04
+- [ ] Add command-line startup for Eon05
+- [ ] Add command-line startup for Eon06
+- [ ] Add command-line startup for Eon07
+- [ ] Add command-line startup for Eon08
+
+### ECS Development
+- [ ] Create "ECS Hello World" project with essential ECS features from Eon07
+- [ ] Debug ECS usage in Eon07 (entities, components, systems)
+- [ ] Test ECS rendering system functionality
+- [ ] Validate ECS physics system integration
+- [ ] Test ECS camera and viewport systems
+- [ ] Verify ECS event handling
+
+### Gubo (3D GUI) Development
+- [ ] Implement basic 3D GUI controls in GuboCore
+- [ ] Create 3D drawing primitives and functionality
+- [ ] Implement 3D interaction systems (mouse, keyboard, touch)
+- [ ] Add 3D UI component hierarchy system
+- [ ] Implement 3D UI event handling
+- [ ] Create 3D UI layout managers
+- [ ] Add 3D UI rendering pipeline
+- [ ] Implement 3D UI camera and projection systems
+- [ ] Add 3D UI coordinate transformation utilities
+- [ ] Create basic Gubo controls (buttons, sliders, etc.)
+- [ ] Implement Gubo windows and dialogs
+- [ ] Add Gubo drawing commands and rendering
+- [ ] Create Gubo surface and frame management
+- [ ] Implement Gubo top-level window system
+- [ ] Add Gubo animation and effects
+- [ ] Create Gubo event system for 3D interactions
+
+### SoftAudio Library Enhancements
+- [ ] Add more audio effect algorithms (reverb, delay, distortion)
+- [ ] Implement audio synthesis improvements
+- [ ] Add support for more audio formats
+- [ ] Enhance audio graph system
+- [ ] Improve audio performance and optimization
+- [ ] Add real-time audio processing features
+- [ ] Implement audio buffer management improvements
+- [ ] Add MIDI to audio conversion utilities
+- [ ] Create audio visualization components
+- [ ] Add audio streaming capabilities
+- [ ] Implement advanced filtering algorithms
+- [ ] Add audio analysis and metering tools
+- [ ] Create audio plugin architecture
+- [ ] Add support for more audio file formats
+- [ ] Enhance audio synchronization capabilities
+
+### SoftRend Library Enhancements
+- [ ] Implement complete software rendering pipeline
+- [ ] Add shader compilation and execution support
+- [ ] Enhance framebuffer and rendering target management
+- [ ] Implement advanced pipeline features
+- [ ] Add support for different rendering modes
+- [ ] Optimize software rendering performance
+- [ ] Add support for texture mapping
+- [ ] Implement lighting and shading calculations
+- [ ] Add support for various vertex formats
+- [ ] Create rendering state management
+- [ ] Implement rendering program system
+- [ ] Add utility programs for common rendering tasks
+- [ ] Create shader compilation utilities
+- [ ] Add support for different rendering backends
+- [ ] Implement rendering memory management
+
+### Other Soft Libraries
+- [ ] Implement SoftHMD (Head-Mounted Display) functionality
+- [ ] Develop SoftInstru (Instruments) system
+- [ ] Enhance SoftPhys (Physics) simulation capabilities
+- [ ] Create SoftSynth (Synthesizer) components
+- [ ] Develop SoftVR (Virtual Reality) features
+- [ ] Add 3D audio positioning in SoftAudio
+- [ ] Implement physics constraints in SoftPhys
+- [ ] Add VR interaction in SoftVR
+- [ ] Create audio synthesis in SoftSynth
+- [ ] Add HMD tracking in SoftHMD
+- [ ] Implement instrument mapping in SoftInstru
+
+### Geometry Library Improvements
+- [ ] Add missing mathematical functions and operations
+- [ ] Implement missing matrix operations and transformations
+- [ ] Add more geometric primitives and shapes
+- [ ] Improve 3D vector operations
+- [ ] Add quaternion operations and utilities
+- [ ] Enhance camera system with more features
+- [ ] Implement advanced frustum culling
+- [ ] Add more mesh operations and utilities
+- [ ] Improve model loading and processing
+- [ ] Add better material and texture support
+- [ ] Implement more efficient spatial partitioning (Octree, Quadtree)
+- [ ] Add geometric intersection algorithms
+- [ ] Improve 3D transformation utilities
+- [ ] Add geometric projection and unprojection functions
+- [ ] Implement more efficient mesh processing
+- [ ] Address issues in TODO.txt: shader components registration
+- [ ] Address issues in TODO.txt: data transfer to/from pipeline
+- [ ] Address issues in TODO.txt: GPU pipeline initialization
+- [ ] Optimize vertex data reuse in rendering
+- [ ] Add support for different index formats (1-byte indices)
+- [ ] Implement mesh splitting for large models
+- [ ] Add shader compilation flags and optimization settings
+
+## IN PROGRESS
+
+- [ ] Understanding the Eon API Editor generation system
+- [ ] Analyzing current API implementation patterns
+- [ ] Investigating Eon test projects and conversion to C++ stubs
+- [ ] Examining GuboCore and GuboLib for improvement opportunities
+- [ ] Investigating Soft* libraries for new tasks
+- [ ] Checking Geometry library for quality problems and missing features
+
+## DONE
+
+- [x] Explored uppsrc/api/ directory structure
+- [x] Mapped current API components (Audio, Camera, Graphics, Hal, Holograph, Media, MidiHw, Physics, Screen, Volumetric, etc.)
+- [x] Analyzed EonApiEditor package structure and functionality
+- [x] Identified improvement opportunities across all API modules
+- [x] Documented API architecture and vendor implementation patterns
+- [x] Explored upptst/Eon* projects and compared Eon00 conversion
+- [x] Identified ECS features in Eon07 for debugging
+- [x] Examined GuboCore and GuboLib structure
+- [x] Investigated Soft* libraries structure
+- [x] Analyzed Geometry library for quality issues

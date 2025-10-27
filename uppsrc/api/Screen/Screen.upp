@@ -9,6 +9,8 @@ library(POSIX & OGL & !EMSCRIPTEN) "GLX GL GLU GLEW glut";
 
 library(WIN32 & DX11) "D3D11 D3DCompiler dxgi";
 
+library(WIN32 & OGL) "opengl32 glu32";
+
 file
 	Screen.h,
 	X11.cpp,
@@ -16,6 +18,7 @@ file
 	X11Ogl.cpp,
 	Win.cpp,
 	WinD11.cpp,
+	WinOgl.cpp,
 	Impl.inl highlight cpp,
 	IfaceFuncs.inl highlight cpp;
 

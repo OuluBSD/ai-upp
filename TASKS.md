@@ -16,6 +16,27 @@
 - [x] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
 - [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
 - [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
+- [ ] Implement missing classes in stdsrc/CtrlCore to match uppsrc/CtrlCore functionality:
+  - [ ] CtrlAttr.h
+  - [ ] CtrlChild.h
+  - [ ] CtrlClip.h
+  - [ ] CtrlDraw.h
+  - [ ] CtrlFrame.h
+  - [ ] CtrlKbd.h
+  - [ ] CtrlMouse.h
+  - [ ] CtrlMt.h
+  - [ ] CtrlPos.h
+  - [ ] CtrlTimer.h
+  - [ ] DHCtrl.h
+  - [ ] Frame.h
+  - [ ] SystemDraw.h
+  - [ ] Util.h
+  - [ ] MKeys.h
+  - [ ] stdids.h
+  - [ ] LocalLoop.h
+  - [ ] MetaFile.h
+  - [ ] EncodeRTF.h
+  - [ ] ParseRTF.h
 - [ ] Implement missing classes in stdsrc/CtrlLib to match uppsrc/CtrlLib functionality:
   - [x] Splitter.h - Implemented
   - [x] ScrollBar.h - Implemented

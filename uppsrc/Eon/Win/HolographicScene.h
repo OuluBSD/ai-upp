@@ -17,14 +17,15 @@ public:
 
     virtual void OnPredictionUpdated(
         PredictionUpdateReason reason,
-        const winrt::Windows::Perception::Spatial::SpatialCoordinateSystem& coordinateSystem,
-        const winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction) = 0;
+        void* coordinateSystem,  // Platform-agnostic coordinate system
+        void* prediction) = 0;  // Platform-agnostic prediction
 };
 
 
 // HolographicScene
-// Maintains a list of our current state of Windows::Perception objects, ensuring the rest of the systems
+// Maintains a list of our current state of VR objects, ensuring the rest of the systems
 // use the same coordinate system, timestamp, etc.
+// Updated to work with multiple VR platforms (OpenVR, OpenHMD, WinRT)
 class HolographicScene : public System
 {
 public:
@@ -32,18 +33,27 @@ public:
     using Base = System;
 	//RTTI_DECL1(HolographicScene, Base)
 
-    HolographicScene(Engine& core, winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace);
+    HolographicScene(Engine& core);
 
-    winrt::Windows::Graphics::Holographic::HolographicFrame CurrentFrame() const;
-    winrt::Windows::Graphics::Holographic::HolographicSpace HolographicSpace() const;
+    // Platform-agnostic frame and timestamp access
+    void* CurrentFrame() const;
+    Time CurrentTimestamp() const;
 
-    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem WorldCoordinateSystem() const;
-    winrt::Windows::Perception::PerceptionTimestamp CurrentTimestamp() const;
-
+    void* WorldCoordinateSystem() const;
     void UpdateCurrentPrediction();
 
     void AddPredictionUpdateListener(IPredictionUpdateListener& listener);
     void RemovePredictionUpdateListener(IPredictionUpdateListener& listener);
+
+    // Platform-agnostic camera management
+    int GetCameraCount() const;
+    IVRCamera* GetCamera(int index) const;
+    void AddCameraListener(void* listener);
+    void RemoveCameraListener(void* listener);
+
+    // Platform management
+    VRPlatform::Type GetPlatformType() const;
+    void SetPlatformType(VRPlatform::Type type);
 
 protected:
     bool Initialize(const WorldState&) override;
@@ -56,12 +66,7 @@ protected:
 
 private:
     mutable std::shared_mutex m_mutex;
-    winrt::Windows::Perception::Spatial::SpatialStageFrameOfReference m_stageFrameOfReference{ nullptr };
-    winrt::Windows::Perception::Spatial::SpatialStationaryFrameOfReference m_stationaryFrameOfReference{ nullptr };
-    winrt::event_token m_spatialStageCurrentChanged;
-
-    winrt::Windows::Graphics::Holographic::HolographicSpace m_holographicSpace{ nullptr };
-    winrt::Windows::Graphics::Holographic::HolographicFrame m_currentFrame{ nullptr };
+    std::unique_ptr<IVRScene> m_platformScene;  // Platform-specific scene implementation
 
     ListenerCollection<IPredictionUpdateListener> m_predictionUpdatelisteners;
 };

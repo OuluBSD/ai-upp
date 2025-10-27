@@ -12,8 +12,8 @@ uses
 file
 	AGENTS.md,
 	CURRENT_TASK.md,
-	main.cpp;
+	main.cpp,
+	overlay_test.cpp;
 
 mainconfig
 	"" = "GUI";
-

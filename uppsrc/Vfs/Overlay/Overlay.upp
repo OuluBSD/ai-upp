@@ -8,5 +8,6 @@ file
 	AGENTS.md,
 	Overlay.h,
 	VfsOverlay.h,
-	Precedence.h;
-
+	VfsOverlay.cpp,
+	Precedence.h,
+	MetaEnvironmentOverlay.cpp;

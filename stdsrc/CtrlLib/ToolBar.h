@@ -4,76 +4,243 @@
 
 #include "Ctrl.h"
 #include <vector>
+#include <functional>
+#include <memory>
 
 namespace Upp {
 
 // ToolButton - individual button in a toolbar
-class ToolButton : public Button {
-	Image    image;
-	String   text;
-	String   tooltip;
-	bool     enabled;
-	bool     pressed;
-	int      style;  // e.g., normal, toggle, separator
-	
+class ToolButton : public Ctrl, public Bar::Item {
+	using Ctrl::Key;
+
 public:
-	virtual void Paint(Draw& w) override;
+	virtual void   Paint(Draw& w) override;
+	virtual void   MouseEnter(Point, dword) override;
+	virtual void   MouseLeave() override;
+	virtual Size   GetMinSize() const override;
+	virtual void   LeftDown(Point, dword) override;
+	virtual void   LeftRepeat(Point, dword) override;
+	virtual void   LeftUp(Point, dword) override;
+	virtual bool   HotKey(dword key) override;
+	virtual String GetDesc() const override;
+	virtual int    OverPaint() const override;
+
+	virtual Bar::Item& Text(const char *text) override;
+	virtual Bar::Item& Key(dword key) override;
+	virtual Bar::Item& Repeat(bool repeat = true) override;
+	virtual Bar::Item& Image(const Image& img) override;
+	virtual Bar::Item& Enable(bool _enable = true) override;
+	virtual Bar::Item& Tip(const char *tip) override;
+	virtual Bar::Item& Help(const char *help) override;
+	virtual Bar::Item& Topic(const char *help) override;
+	virtual Bar::Item& Description(const char *desc) override;
+	virtual Bar::Item& Radio(bool check) override;
+	virtual Bar::Item& Check(bool check) override;
+	virtual void       FinalSync() override;
+
+public:
+	struct Style : ChStyle<Style> {
+		Value  look[6]; // Different states: normal, hover, pressed, disabled, checked, checked-hover
+		Font   font;
+		Color  textcolor[6]; // Text colors for different states
+		bool   light[6]; // Light effect for different states
+		int    contrast[6]; // Contrast effect for different states
+		Point  offset[6]; // Offset for different states
+		int    overpaint;
+		
+		static const Style& StyleDefault();
+		static const Style& StyleSolid();
+	};
+
+protected:
+	String  text;
+	String  tiptext;
+	dword   accel;
+	bool    checked;
+	bool    paint_checked;
+	bool    repeat;
+
+	byte    kind;
+	Size    minsize;
+	Size    maxiconsize;
+	bool    nodarkadjust;
+
+	const Style      *style;
+
+private:
+	Image img;
+
+	void       SendHelpLine();
+	void       ClearHelpLine();
+	void       UpdateTip();
+
+public:
+	enum Kind { 
+		NOLABEL = 0,     // No text label
+		RIGHTLABEL = 1,  // Text to the right of icon
+		BOTTOMLABEL = 2  // Text below the icon
+	};
+
+	void  ResetKeepStyle();
+	void  Reset();
+
+	static const Style& StyleDefault();
+	static const Style& StyleSolid();
+
+	bool		IsChecked() const { return checked; }
+	Image       GetImage() const { return img; }
+
+	ToolButton& SetStyle(const Style& s);
+	ToolButton& MinSize(Size sz)         { minsize = sz; return *this; }
+	ToolButton& MaxIconSize(Size sz)     { maxiconsize = sz; return *this; }
+	ToolButton& Kind(int _kind);
+	ToolButton& Label(const char *text, int kind);
+	ToolButton& Label(const char *text);
+	ToolButton& NoDarkAdjust(bool b = true) { nodarkadjust = b; return *this; }
 	
-	ToolButton& SetImage(const Image& img) { image = img; return *this; }
-	ToolButton& SetText(const String& s) { text = s; Refresh(); return *this; }
-	ToolButton& SetToolTip(const String& s) { tooltip = s; return *this; }
-	ToolButton& SetStyle(int s) { style = s; return *this; }
-	ToolButton& Enable(bool b = true) { enabled = b; SetEnabled(b); return *this; }
-	ToolButton& Disable() { return Enable(false); }
-	ToolButton& SetPressed(bool b = true) { pressed = b; return *this; }
-	
-	const Image& GetImage() const { return image; }
-	const String& GetText() const { return text; }
-	bool IsEnabled() const { return enabled; }
-	bool IsPressed() const { return pressed; }
-	
+	// Accessors
+	String      GetText() const { return text; }
+	String      GetTip() const { return tiptext; }
+	dword       GetKey() const { return accel; }
+	bool        IsEnabled() const { return IsEnabled(); }
+	bool        IsRepeat() const { return repeat; }
+	int         GetKind() const { return kind; }
+	Size        GetMinSizeSetting() const { return minsize; }
+	Size        GetMaxIconSizeSetting() const { return maxiconsize; }
+
 	ToolButton();
+	virtual ~ToolButton();
 };
 
 // ToolBar - container for tool buttons
-class ToolBar : public Ctrl {
-	std::vector<ToolButton*> buttons;
-	int                      orientation;  // horizontal or vertical
-	int                      buttonsize;
-	bool                     showtext;
-	bool                     showimage;
-	
+class ToolBar : public BarCtrl {
 public:
+	virtual bool HotKey(dword key) override;
 	virtual void Paint(Draw& w) override;
-	virtual void Layout() override;
-	
-	// Add different types of controls to the toolbar
-	ToolButton& Add(const Image& img, const char *text = NULL);
-	ToolButton& Add(const char *text = NULL);
-	ToolButton& AddButton(const Image& img, const char *text = NULL);
-	ToolButton& AddSeparator();
-	ToolButton& AddCtrl(Ctrl& ctrl);  // Add any control to the toolbar
-	
-	// Set toolbar properties
-	ToolBar& Horz() { orientation = 0; Refresh(); return *this; }
-	ToolBar& Vert() { orientation = 1; Refresh(); return *this; }
-	ToolBar& ButtonSize(int sz) { buttonsize = sz; Layout(); return *this; }
-	ToolBar& ShowText(bool b = true) { showtext = b; Layout(); return *this; }
-	ToolBar& ShowImage(bool b = true) { showimage = b; Layout(); return *this; }
-	ToolBar& NoText() { showtext = false; Layout(); return *this; }
-	ToolBar& NoImage() { showimage = false; Layout(); return *this; }
-	
-	// Toolbar operations
+
+protected:
+	virtual Item& AddItem(Event<>  cb) override;
+	virtual Item& AddSubMenu(Event<Bar&> proc) override;
+
+public:
+	struct Style : ChStyle<Style> {
+		ToolButton::Style    buttonstyle;
+		Size                 buttonminsize;
+		Size                 maxiconsize;
+		int                  buttonkind;
+		Value                look, arealook;
+		SeparatorCtrl::Style breaksep;
+		SeparatorCtrl::Style separator;
+		
+		static const Style& StyleDefault();
+	};
+
+private:
+	int               ii;
+	Array<ToolButton> item;
+	int               lock;
+	Event<Bar&>       proc;
+	const Style      *style;
+	int               arealook;
+
+	Size              buttonminsize;
+	Size              maxiconsize;
+	int               kind;
+	bool              nodarkadjust;
+
+protected:
+	enum {
+		TIMEID_POST = BarCtrl::TIMEID_COUNT,
+		TIMEID_COUNT
+	};
+
+public:
+	virtual bool IsToolBar() const override { return true; }
+
+	static int GetStdHeight();
+
 	void Clear();
-	void SetGray(bool gray = true);  // Gray out disabled buttons
+	void Set(Event<Bar&> bar);
+	void Post(Event<Bar&> bar);
+
+	static const Style& StyleDefault();
+
+	ToolBar& SetStyle(const Style& s)               { style = &s; Refresh(); return *this; }
+
+	ToolBar& ButtonMinSize(Size sz)                 { buttonminsize = sz; return *this; }
+	ToolBar& MaxIconSize(Size sz)                   { maxiconsize = sz; return *this; }
+	ToolBar& ButtonKind(int _kind)                  { kind = _kind; return *this; }
+	ToolBar& AreaLook(int q = 1)                    { arealook = q; Refresh(); return *this; }
+	ToolBar& NoDarkAdjust(bool b = true)            { nodarkadjust = b; return *this; }
 	
-	// Access to buttons
-	int GetButtonCount() const { return buttons.size(); }
-	ToolButton& GetButton(int i) { return *buttons[i]; }
-	const ToolButton& GetButton(int i) const { return *buttons[i]; }
-	
+	// Accessors
+	int GetItemCount() const { return item.GetCount(); }
+	ToolButton& GetItem(int i) { return item[i]; }
+	const ToolButton& GetItem(int i) const { return item[i]; }
+
+	typedef ToolBar  CLASSNAME;
+
 	ToolBar();
 	virtual ~ToolBar();
+};
+
+// StaticBarArea - static bar area for toolbars
+class StaticBarArea : public Ctrl {
+public:
+	virtual void Paint(Draw& w) override;
+
+private:
+	bool upperframe;
+
+public:
+	StaticBarArea& UpperFrame(bool b) { upperframe = b; Refresh(); return *this; }
+	StaticBarArea& NoUpperFrame()     { return UpperFrame(false); }
+
+	StaticBarArea();
+};
+
+// LRUList - Recently Used List for menus/toolbars
+class LRUList {
+	Vector<String> lru;
+	int            limit;
+	void           Select(String s, Event<const String&> WhenSelect);
+
+public:
+	static int GetStdHeight();
+
+	void        Serialize(Stream& stream);
+
+	void        operator()(Bar& bar, Event<const String&> WhenSelect, int count = INT_MAX, int from = 0);
+
+	void        NewEntry(const String& path);
+	void        RemoveEntry(const String& path);
+
+	int         GetCount() const                        { return lru.GetCount(); }
+
+	LRUList&    Limit(int _limit)                       { limit = _limit; return *this; }
+	int         GetLimit() const                        { return limit; }
+
+	typedef LRUList CLASSNAME;
+
+	LRUList()   { limit = 6; }
+};
+
+// ToolTip - tooltip popup for controls
+class ToolTip : public Ctrl {
+public:
+	virtual void Paint(Draw& w) override;
+	virtual Size GetMinSize() const override;
+
+private:
+	String  text;
+
+public:
+	void   Set(const char *_text)        { text = _text; }
+	String Get() const                   { return text; }
+
+	void PopUp(Ctrl *owner, Point p, bool effect);
+
+	ToolTip();
 };
 
 // Command - represents an action that can be triggered by menu/toolbar
@@ -121,6 +288,8 @@ public:
 	
 	CommandBar();
 };
+
+void PerformDescription();
 
 }
 

@@ -14,7 +14,7 @@ uses(!NOSO) Draw;
 
 file
 	AGENTS.md,
-	Builders.h options(BUILDER_OPTION) PCH,
+	Builders.h,
 	CppBuilder.cpp,
 	MakeFile.cpp,
 	CCJ.cpp,

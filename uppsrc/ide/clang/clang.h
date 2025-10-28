@@ -127,7 +127,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	String nest; // Upp::Class
 	String unest; // UPP::CLASS
 	String bases; // base classes of struct/class
-	String parent_type; // Upp::Class
+	String parent_id;
 	Point  pos = Null;
 	Point  begin = Null;
 	Point  end = Null;
@@ -152,11 +152,11 @@ String MakeDefinition(const AnnotationItem& m, const String& klass);
 String MakeDefinition(const AnnotationItem& m);
 
 struct ReferenceItem : Moveable<ReferenceItem> {
-	int		kind = Null;
-	String	id;
-	Point	pos;
-	Point	ref_pos;
-
+	String id;
+	String parent_id; // function or struct that contains this item
+	Point  pos;
+	Point  ref_pos;
+	
 	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
 	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
 	String ToString() const;
@@ -270,10 +270,17 @@ class ClangVisitor {
 	};
 
 	CXLocation      GetLocation(CXSourceLocation cxlocation);
+<<<<<<< HEAD
 	CXRange         GetRange(CXSourceRange cxrange);
 	SourceLocation  GetSourceLocation(const CXLocation& p, const CXRange& r);
 
 	bool locals = false;
+=======
+	SourceLocation  GetSourceLocation(const CXLocation& p);
+	
+	bool   locals = false;
+	String parent_id;
+>>>>>>> upstream/next2025_1
 
 public:
 	VectorMap<String, CppFileInfo> info;

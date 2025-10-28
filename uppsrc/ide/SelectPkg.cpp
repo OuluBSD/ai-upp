@@ -32,7 +32,7 @@ void SelectPackageDlg::PackageMenu(Bar& menu)
 		menu.Separator();
 		String dir = PackageDirectory(GetCurrentName());
 		menu.Add(b, "Open package directory", [=] { ShellOpenFolder(dir); });
-		menu.Add(b, "Terminal at package directory", [=] { TheIde()->LaunchTerminal(dir); });
+		menu.Add(b, "Terminal at package directory", IdeImg::Terminal(), [=] { TheIde()->LaunchTerminal(dir); });
 	}
 }
 
@@ -300,7 +300,10 @@ SelectPackageDlg::SelectPackageDlg(const char *title, bool selectvars_, bool mai
 		}
 	};
 
-	help << [&] { LaunchWebBrowser("https://www.ultimatepp.org/app$ide$PackagesAssembliesAndNests$en-us.html"); };
+	help << [] {
+		LaunchWebBrowser(
+			"https://www.ultimatepp.org/app$ide$PackagesAssembliesAndNests$en-us.html");
+	};
 
 	String exf = VarFilePath("[external]");
 	if(!FileExists(exf))
@@ -607,7 +610,7 @@ void SelectPackageDlg::ToolBase(Bar& bar)
 		if(dirs.GetCount()) {
 			bar.Separator();
 			for(String s : dirs)
-				bar.Add("Terminal at " + s, [=] { TheIde()->LaunchTerminal(s); });
+				bar.Add("Terminal at " + s, IdeImg::Terminal(), [=] { TheIde()->LaunchTerminal(s); });
 		}
 		Vector<String> d = GetRepoDirs();
 		if(HasGit()) {

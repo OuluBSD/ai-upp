@@ -3,158 +3,132 @@
 #define _Core_Debug_h_
 
 #include "Core.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <chrono>
+#include <cstdarg>
+#include <cstdio>
 #include <map>
 #include <vector>
+#include <mutex>
 
-// Debugging and logging macros
+namespace Upp {
+
+// Logging functions
+void __LOGF__(const char *fmt, ...);
+String GetTypeName(const char *s);
+
 #ifdef _DEBUG
-    #define DLOG(x) DebugLog() << x << " [File: " << __FILE__ << ", Line: " << __LINE__ << "]"
-    #define DUMP(x) DebugLog() << #x << " = " << (x) << " [File: " << __FILE__ << ", Line: " << __LINE__ << "]"
-    #define ASSERT(condition) do { if (!(condition)) { DebugLog() << "ASSERTION FAILED: " << #condition << " [File: " << __FILE__ << ", Line: " << __LINE__ << "]"; abort(); } } while(0)
-    #define VERIFY(condition) ASSERT(condition)
+#define  LOG(x)    do { Upp::__LOGF__ x; } while(false)
+#define  DLOG(x)   LOG(x)
 #else
-    #define DLOG(x) (void)0
-    #define DUMP(x) (void)0
-    #define ASSERT(condition) (void)0
-    #define VERIFY(condition) (condition)
+#define  LOG(x)    do {} while(false)
+#define  DLOG(x)   do {} while(false)
 #endif
 
-// Performance timing
+#define  RLOG(x)   LOG(x) // Raw log (unconditional)
+
+// Timing functionality
+class TimingInspector {
+	static bool       active;
+	Mutex             mutex;
+	const char       *name;
+	dword             all_count;
+	dword             call_count;
+	dword             total_time;
+	dword             min_time;
+	dword             max_time;
+	int               max_nesting;
+
+public:
+	void  Add(dword time, int nesting);
+	String Dump();
+	
+	static void  Clear()                      { active = false; }
+	static void  Enable()                     { active = true; }
+	static bool  IsEnabled()                  { return active; }
+
+	TimingInspector(const char *name);
+	~TimingInspector();
+	
+	friend class TimingInspectorRoutine;
+};
+
+class TimingInspectorRoutine {
+	static thread_local int nesting;
+	TimingInspector& m;
+	dword            tm;
+	
+public:
+	TimingInspectorRoutine(TimingInspector& m);
+	~TimingInspectorRoutine();
+	
+	static int GetNesting() { return nesting; }
+};
+
+#define  TIMING(x)       Upp::TimingInspector __timing__(x)
+#define  LTIMING(x)      // In production builds, this is empty
+
+#define  TIME(x)         for(Upp::TimingInspector __timing__(x);; __timing__.Add(Upp::tmGetTime(), Upp::TimingInspectorRoutine::nesting), Upp::DoTimeLoopBreak())
+
+inline bool& DoTimeLoopBreak() { static bool b; return b = true; }
+
+// Hit counting functionality
+class HitCountInspector {
+	String  name;
+	mutable int64 hitcount;
+	
+public:
+	void  operator++() const                    { hitcount++; }
+	void  operator++(int) const                 { hitcount++; }
+	
+	~HitCountInspector();
+	
+	HitCountInspector(const char *name);
+};
+
+#define  HITALOOP(x)     for(Upp::HitCountInspector x(#x); Upp::DoTimeLoopBreak(); )
+
+// Debug assertion functionality
 #ifdef _DEBUG
-    #define TIME(x) TimeScope _time_scope_(#x)
+
+#define  ASSERT(x)               do { if(!(x)) { Upp::Panic(#x); } } while(0)
+#define  ASSERT_(x, y)           do { if(!(x)) { Upp::Panic(y); } } while(0)
+#define  ASSERTDBG(x)            ASSERT(x)
+
 #else
-    #define TIME(x) (void)0
+
+#define  ASSERT(x)               do {} while(0)
+#define  ASSERT_(x, y)           do {} while(0)
+#define  ASSERTDBG(x)            do {} while(0)
+
 #endif
 
-// Debug logging class
-class DebugLog {
-private:
-    std::ostringstream buffer;
-    static std::mutex log_mutex;
-    static std::ofstream log_file;
-    static bool initialized;
-    static void Initialize();
+// Panic function
+void Panic(const char *text);
 
-public:
-    DebugLog();
-    ~DebugLog();
-    
-    template<typename T>
-    DebugLog& operator<<(const T& value) {
-        buffer << value;
-        return *this;
-    }
-    
-    DebugLog& operator<<(std::ostream& (*manipulator)(std::ostream&)) {
-        buffer << manipulator;
-        return *this;
-    }
-    
-    static void SetLogFile(const String& filename);
-    static void CloseLogFile();
-};
+// Hex dump functionality
+void HexDump(Stream& s, const void *ptr, int size, int maxsize = 10000);
+void HexDumpData(Stream& s, const void *ptr, int size, bool adr = true, int maxsize = 10000);
+void LogHex(const String& s);
+void LogHex(const WString& s);
+void LogHex(uint64 i);
+void LogHex(void *p);
 
-// Memory leak detection
-class DebugMemory {
-private:
-    static std::map<void*, size_t> allocations;
-    static std::mutex alloc_mutex;
-    static size_t total_bytes;
-    static size_t peak_bytes;
-    
-public:
-    static void* Malloc(size_t size);
-    static void Free(void* ptr);
-    static void* Realloc(void* ptr, size_t size);
-    static void ReportLeaks();
-    static size_t GetTotalAllocated() { return total_bytes; }
-    static size_t GetPeakUsage() { return peak_bytes; }
-};
+// Memory debugging
+void SetMagic(byte *t, int count);
+void CheckMagic(byte *t, int count);
 
-// Scope-based timing
-class TimeScope {
-private:
-    std::string operation_name;
-    std::chrono::high_resolution_clock::time_point start_time;
-    
-public:
-    TimeScope(const std::string& name);
-    ~TimeScope();
-};
+// Etalon testing
+void CheckLogEtalon(const char *etalon_path);
+void CheckLogEtalon();
 
-// Call trace
-class CallTrace {
-private:
-    static std::vector<std::string> call_stack;
-    static std::mutex trace_mutex;
-    
-public:
-    static void Enter(const std::string& function_name);
-    static void Leave(const std::string& function_name);
-    static void PrintTrace();
-    static void ClearTrace();
-};
+// C++ name demangling
+String CppDemangle(const char* name);
 
-// Breakpoint helper
-inline void Breakpoint() {
-#ifdef _MSC_VER
-    if (IsDebuggerPresent()) {
-        __debugbreak();
-    }
-#elif defined(__GNUC__) || defined(__clang__)
-    __builtin_trap();
-#else
-    // For other compilers or platforms, just log
-    DLOG("Breakpoint hit");
+// Crash dump handling (Windows)
+#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE)
+void InstallCrashDump(const char *info = NULL);
+void SetCrashFileName(const char *cfile);
 #endif
+
 }
-
-// Assertion helpers
-template<typename T>
-bool IsNull(T* ptr) { return ptr == nullptr; }
-
-template<typename T>
-bool IsNotNull(T* ptr) { return ptr != nullptr; }
-
-// Watch variable for debugging
-template<typename T>
-class DebugWatch {
-private:
-    const T* watched_var;
-    String var_name;
-    T last_value;
-    bool has_last_value;
-    
-public:
-    DebugWatch(const T* var, const String& name) : watched_var(var), var_name(name), has_last_value(false) {}
-    
-    void Check() {
-        if (has_last_value && last_value != *watched_var) {
-            DLOG("Variable '" << var_name << "' changed from " << last_value << " to " << *watched_var);
-        }
-        last_value = *watched_var;
-        has_last_value = true;
-    }
-};
-
-// Conditional debugging
-class ConditionalDebug {
-private:
-    static std::map<String, bool> debug_flags;
-    
-public:
-    static void SetFlag(const String& flag, bool value = true);
-    static bool IsEnabled(const String& flag);
-    static void Enable(const String& flag) { SetFlag(flag, true); }
-    static void Disable(const String& flag) { SetFlag(flag, false); }
-};
-
-// Debugging macros for conditional execution
-#define CLOG(flag, x) do { if (ConditionalDebug::IsEnabled(flag)) { DebugLog() << x; } } while(0)
-#define CDUMP(flag, x) do { if (ConditionalDebug::IsEnabled(flag)) { DebugLog() << #x << " = " << (x); } } while(0)
 
 #endif

@@ -1,0 +1,17 @@
+description "STL-backed CtrlLib API (phase 3)";
+
+file
+	AGENTS.md,
+	CtrlLib.h options(BUILDER_OPTION) PCH,
+	ArrayCtrl.h,
+	Bar.h,
+	Button.h,
+	Ch.h,
+	ChatCtrl.h,
+	ColorPopup.h,
+	ColorPusher.h,
+	EditField.h,
+	Label.h,
+	ScrollBar.h,
+	SliderCtrl.h,
+	Splitter.h;

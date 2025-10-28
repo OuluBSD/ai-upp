@@ -97,6 +97,7 @@ const Display& FittedImageDisplay();
 const Display(& CenteredImageDisplay();
 const Display& CenteredHighlightImageDisplay();
 const Display& DrawingDisplay();
+const Display& CenteredImageDisplay();
 
 class ColorDisplayNull : public Display {
 public:

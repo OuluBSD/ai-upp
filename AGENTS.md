@@ -13,7 +13,7 @@ When working with the Ultimate++ codebase, pay special attention to the `flagV1`
 ## Current Implementation Status
 
 - The stdsrc implementation for Core, CtrlCore, CtrlLib, and Draw packages is currently incomplete
-- No package files exist yet for stdsrc/CtrlLib, stdsrc/CtrlCore, and stdsrc/Draw
+- Package files (`.upp`) now exist for stdsrc/CtrlLib, stdsrc/CtrlCore, and stdsrc/Draw
 - These components still need to be properly implemented to provide STL-backed equivalents of the U++ functionality
 
 ## Read These First

@@ -1,0 +1,19 @@
+description "STL-backed Draw API (phase 4)";
+
+file
+	AGENTS.md,
+	Draw.h options(BUILDER_OPTION) PCH,
+	Cham.h,
+	Color.h,
+	DDARasterizer.h,
+	Display.h,
+	DrawCore.h,
+	DrawUtil.h,
+	Font.h,
+	Image.h,
+	ImageOp.h,
+	Palette.h,
+	Point.h,
+	Raster.h,
+	Rect.h,
+	Size.h;

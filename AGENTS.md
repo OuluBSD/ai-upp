@@ -1,6 +1,16 @@
 # AGENTS
 
-Read These First
+## Important Flags Convention
+
+When working with the Ultimate++ codebase, pay special attention to the `flagV1` preprocessor flag:
+
+- **`flagV1` code represents the original Ultimate++ code only**
+- Our custom additions and enhancements are implemented as non-V1 or V2+ features
+- When merging from upstream Ultimate++, code within `#ifndef flagV1` blocks represents our custom additions
+- Code within `#ifdef flagV1` or `#ifdef flagV1 ... #else ... #endif` blocks represents the original Ultimate++ code
+- Preserve this distinction when resolving merge conflicts to maintain our custom functionality
+
+## Read These First
 - `CODESTYLE.md`: coding conventions and design tenets.
 - `TASKS.md`: tasks and roadmap for the repository.
 - `HIERARCHY.md`: overview of important folders.

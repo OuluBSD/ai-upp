@@ -1,8 +1,12 @@
-description "STL-backed CtrlCore API (phase 2)";
+description "STL-backed CtrlCore API (phase 2)\377B0,0,255";
+
+uses
+	Draw;
 
 file
 	AGENTS.md,
 	CtrlCore.h options(BUILDER_OPTION) PCH,
+	CtrlCore.cpp,
 	config.h,
 	Ctrl.h,
 	CtrlAttr.h,
@@ -29,3 +33,4 @@ file
 	stdids.h,
 	t_.h,
 	TopWindow.h;
+

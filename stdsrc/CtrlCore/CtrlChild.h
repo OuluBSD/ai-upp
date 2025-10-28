@@ -16,229 +16,80 @@ protected:
 public:
     explicit CtrlChild(Ctrl& c) : ctrl(c) {}
     
-    virtual ~CtrlChild() {
-        Clear();
-    }
+    virtual ~CtrlChild();
     
     // Add a child control
-    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child) {
-        if (child && !child->GetParent().lock()) {
-            children.Add(child);
-            child->SetParent(ctrl.shared_from_this());
-            child->Show();
-        }
-        return *this;
-    }
+    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child);
     
     // Add a child control with position
-    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child, int x, int y) {
-        if (child && !child->GetParent().lock()) {
-            child->SetPos(x, y);
-            return Add(child);
-        }
-        return *this;
-    }
+    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child, int x, int y);
     
     // Add a child control with rectangle
-    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child, const Rect& r) {
-        if (child && !child->GetParent().lock()) {
-            child->SetRect(r);
-            return Add(child);
-        }
-        return *this;
-    }
+    virtual CtrlChild& Add(const std::shared_ptr<Ctrl>& child, const Rect& r);
     
     // Remove a child control
-    virtual CtrlChild& Remove(const std::shared_ptr<Ctrl>& child) {
-        if (child) {
-            int index = Find(child);
-            if (index >= 0) {
-                children.Remove(index);
-                child->SetParent(nullptr);
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Remove(const std::shared_ptr<Ctrl>& child);
     
     // Find child index by pointer
-    virtual int Find(const std::shared_ptr<Ctrl>& child) const {
-        for (int i = 0; i < children.GetCount(); i++) {
-            if (children[i] == child) {
-                return i;
-            }
-        }
-        return -1;
-    }
+    virtual int Find(const std::shared_ptr<Ctrl>& child) const;
     
     // Get child by index
-    virtual std::shared_ptr<Ctrl> operator[](int i) const {
-        return i >= 0 && i < children.GetCount() ? children[i] : nullptr;
-    }
+    virtual std::shared_ptr<Ctrl> operator[](int i) const;
     
     // Get child by index
-    virtual std::shared_ptr<Ctrl> Get(int i) const {
-        return (*this)[i];
-    }
+    virtual std::shared_ptr<Ctrl> Get(int i) const;
     
     // Get first child with given label
-    virtual std::shared_ptr<Ctrl> Get(const char *label) const {
-        for (const auto& child : children) {
-            if (child && child->GetLabel() == label) {
-                return child;
-            }
-        }
-        return nullptr;
-    }
+    virtual std::shared_ptr<Ctrl> Get(const char *label) const;
     
     // Get child count
-    virtual int GetCount() const { return children.GetCount(); }
+    virtual int GetCount() const;
     
     // Check if empty
-    virtual bool IsEmpty() const { return children.IsEmpty(); }
+    virtual bool IsEmpty() const;
     
     // Clear all children
-    virtual CtrlChild& Clear() {
-        for (auto& child : children) {
-            if (child) {
-                child->SetParent(nullptr);
-            }
-        }
-        children.Clear();
-        return *this;
-    }
+    virtual CtrlChild& Clear();
     
     // Hide all children
-    virtual CtrlChild& Hide() {
-        for (auto& child : children) {
-            if (child) {
-                child->Hide();
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Hide();
     
     // Show all children
-    virtual CtrlChild& Show() {
-        for (auto& child : children) {
-            if (child) {
-                child->Show();
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Show();
     
     // Enable all children
-    virtual CtrlChild& Enable() {
-        for (auto& child : children) {
-            if (child) {
-                child->Enable();
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Enable();
     
     // Disable all children
-    virtual CtrlChild& Disable() {
-        for (auto& child : children) {
-            if (child) {
-                child->Disable();
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Disable();
     
     // Refresh all children
-    virtual CtrlChild& Refresh() {
-        for (auto& child : children) {
-            if (child) {
-                child->Refresh();
-            }
-        }
-        return *this;
-    }
+    virtual CtrlChild& Refresh();
     
     // Find topmost child at given point
-    virtual std::shared_ptr<Ctrl> GetTopChild(const Point& pt) const {
-        // Search from back to front (topmost to bottommost)
-        for (int i = children.GetCount() - 1; i >= 0; i--) {
-            auto child = children[i];
-            if (child && child->IsVisible() && child->IsEnabled() && 
-                child->IsPointInside(pt)) {
-                return child;
-            }
-        }
-        return nullptr;
-    }
+    virtual std::shared_ptr<Ctrl> GetTopChild(const Point& pt) const;
     
     // Find all children that contain the point
-    virtual Vector<std::shared_ptr<Ctrl>> GetChildrenAt(const Point& pt) const {
-        Vector<std::shared_ptr<Ctrl>> result;
-        for (auto& child : children) {
-            if (child && child->IsVisible() && child->IsEnabled() && 
-                child->IsPointInside(pt)) {
-                result.Add(child);
-            }
-        }
-        return result;
-    }
+    virtual Vector<std::shared_ptr<Ctrl>> GetChildrenAt(const Point& pt) const;
     
     // Get visible children only
-    virtual Vector<std::shared_ptr<Ctrl>> GetVisibleChildren() const {
-        Vector<std::shared_ptr<Ctrl>> result;
-        for (auto& child : children) {
-            if (child && child->IsVisible()) {
-                result.Add(child);
-            }
-        }
-        return result;
-    }
+    virtual Vector<std::shared_ptr<Ctrl>> GetVisibleChildren() const;
     
     // Get enabled children only
-    virtual Vector<std::shared_ptr<Ctrl>> GetEnabledChildren() const {
-        Vector<std::shared_ptr<Ctrl>> result;
-        for (auto& child : children) {
-            if (child && child->IsEnabled()) {
-                result.Add(child);
-            }
-        }
-        return result;
-    }
+    virtual Vector<std::shared_ptr<Ctrl>> GetEnabledChildren() const;
     
     // Get children in z-order (as they would be painted)
-    virtual Vector<std::shared_ptr<Ctrl>> GetChildrenZOrder() const {
-        // For now, just return all children
-        return children;
-    }
+    virtual Vector<std::shared_ptr<Ctrl>> GetChildrenZOrder() const;
     
     // Set z-order of a child (bring to front/back)
-    virtual CtrlChild& BringToFront(const std::shared_ptr<Ctrl>& child) {
-        int index = Find(child);
-        if (index >= 0 && index < children.GetCount() - 1) {
-            children.Remove(index);
-            children.Add(child);
-        }
-        return *this;
-    }
+    virtual CtrlChild& BringToFront(const std::shared_ptr<Ctrl>& child);
     
-    virtual CtrlChild& BringToBack(const std::shared_ptr<Ctrl>& child) {
-        int index = Find(child);
-        if (index > 0) {
-            children.Remove(index);
-            children.Insert(0, child);
-        }
-        return *this;
-    }
+    virtual CtrlChild& BringToBack(const std::shared_ptr<Ctrl>& child);
     
     // Swap z-order of two children
-    virtual CtrlChild& SwapZOrder(int i, int j) {
-        if (i >= 0 && i < children.GetCount() && 
-            j >= 0 && j < children.GetCount() && i != j) {
-            Upp::Swap(children[i], children[j]);
-        }
-        return *this;
-    }
+    virtual CtrlChild& SwapZOrder(int i, int j);
     
-    // Find child by predicate
+    // Find child by predicate - keeping this as template in header
     template<typename Predicate>
     std::shared_ptr<Ctrl> FindChild(Predicate pred) const {
         for (auto& child : children) {
@@ -249,7 +100,7 @@ public:
         return nullptr;
     }
     
-    // ForEach over all children
+    // ForEach over all children - keeping this as template in header
     template<typename Function>
     void ForEach(Function f) {
         for (auto& child : children) {
@@ -259,7 +110,7 @@ public:
         }
     }
     
-    // ForEach over all children (const)
+    // ForEach over all children (const) - keeping this as template in header
     template<typename Function>
     void ForEach(Function f) const {
         for (auto& child : children) {
@@ -270,23 +121,10 @@ public:
     }
     
     // Recursively find child with given label
-    std::shared_ptr<Ctrl> FindChildByLabel(const String& label) const {
-        for (auto& child : children) {
-            if (child) {
-                if (child->GetLabel() == label) {
-                    return child;
-                }
-                // If child also has CtrlChild, recursively search
-                if (auto child_ctrl = std::dynamic_pointer_cast<Ctrl>(child)) {
-                    // TODO: Implement recursive search if child has children
-                }
-            }
-        }
-        return nullptr;
-    }
+    std::shared_ptr<Ctrl> FindChildByLabel(const String& label) const;
     
     // Get all children as a vector
-    const Vector<std::shared_ptr<Ctrl>>& GetAllChildren() const { return children; }
+    const Vector<std::shared_ptr<Ctrl>>& GetAllChildren() const;
 };
 
 // Helper class for creating controls with automatic parenting

@@ -52,12 +52,12 @@ public:
     }
     
     // Control-specific clipboard operations
-    bool SetClipText(const String& text) { return SetClipboard(text); }
-    String GetClipText() { return GetClipboard(); }
-    bool HasClipText() { return HasClipboardText(); }
-    bool SetClipImage(const Image& img) { return SetClipboardImage(img); }
-    Image GetClipImage() { return GetClipboardImage(); }
-    bool HasClipImage() { return HasClipboardImage(); }
+    bool SetClipText(const String& text);
+    String GetClipText();
+    bool HasClipText();
+    bool SetClipImage(const Image& img);
+    Image GetClipImage();
+    bool HasClipImage();
     
     // Clipping region for drawing operations
     class ClipRegion {
@@ -66,38 +66,24 @@ public:
         Rect clip_rect;
         
     public:
-        ClipRegion() : has_clip(false), clip_rect(0, 0, 0, 0) {}
-        explicit ClipRegion(const Rect& r) : has_clip(true), clip_rect(r) {}
+        ClipRegion();
+        explicit ClipRegion(const Rect& r);
         
-        bool HasClip() const { return has_clip; }
-        const Rect& GetClipRect() const { return clip_rect; }
+        bool HasClip() const;
+        const Rect& GetClipRect() const;
         
-        void SetClipRect(const Rect& r) { 
-            clip_rect = r; 
-            has_clip = true; 
-        }
+        void SetClipRect(const Rect& r);
         
-        void ClearClip() { 
-            has_clip = false; 
-            clip_rect = Rect(0, 0, 0, 0); 
-        }
+        void ClearClip();
         
         // Check if a point is within the clipping region
-        bool IsInside(const Point& pt) const {
-            return !has_clip || clip_rect.IsPtInside(pt);
-        }
+        bool IsInside(const Point& pt) const;
         
         // Check if a rectangle intersects the clipping region
-        bool Intersects(const Rect& r) const {
-            if (!has_clip) return true;
-            return clip_rect.Intersects(r);
-        }
+        bool Intersects(const Rect& r) const;
         
         // Get intersection with clipping region
-        Rect GetIntersection(const Rect& r) const {
-            if (!has_clip) return r;
-            return clip_rect.Intersect(r);
-        }
+        Rect GetIntersection(const Rect& r) const;
     };
     
     // Set clipping region for drawing operations
@@ -127,8 +113,8 @@ public:
         Vector<Rect> rectangles;
         
     public:
-        Region() = default;
-        explicit Region(const Rect& r) { rectangles.Add(r); }
+        Region();
+        explicit Region(const Rect& r);
         
         void AddRect(const Rect& r);
         void SubtractRect(const Rect& r);

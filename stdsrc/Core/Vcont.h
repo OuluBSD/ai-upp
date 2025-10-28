@@ -1,3 +1,4 @@
+#pragma once
 // Minimal U++-style Vector wrapper on top of std::vector
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

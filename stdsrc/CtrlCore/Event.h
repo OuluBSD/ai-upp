@@ -1,8 +1,8 @@
+#pragma once
 // U++-compatible Event wrapper for UI events
 // This header is aggregated and wrapped into namespace Upp by CtrlCore.h
 
-// Forward declarations
-class Point;
+#include "../Draw/Point.h"
 
 class Event {
 public:

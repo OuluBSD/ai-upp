@@ -1,5 +1,8 @@
+#pragma once
 // U++-compatible Color wrapper implemented using direct implementation
 // This header is aggregated and wrapped into namespace Upp by Draw.h
+
+#include <cstdint>  // For uint8_t, uint32_t
 
 class Color {
 public:

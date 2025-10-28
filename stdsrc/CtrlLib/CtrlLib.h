@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STDSRC_CTRLLIB_CTRLLIB_H
 #define STDSRC_CTRLLIB_CTRLLIB_H
 
@@ -14,8 +15,8 @@
 #include <unordered_map>
 
 // Include necessary Draw and CtrlCore components
-#include "Draw/Draw.h"  // We'll need drawing components
-#include "CtrlCore/CtrlCore.h"  // We'll need control components
+#include "../Draw/Draw.h"  // We'll need drawing components
+#include "../CtrlCore/CtrlCore.h"  // We'll need control components
 
 // Native UI library includes (based on platform detection)
 #ifdef _WIN32

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlClip_h_
 #define _CtrlCore_CtrlClip_h_
 

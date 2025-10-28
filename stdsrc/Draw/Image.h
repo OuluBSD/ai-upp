@@ -1,3 +1,4 @@
+#pragma once
 // U++-compatible Image wrapper implemented using std::vector or native image formats
 // This header is aggregated and wrapped into namespace Upp by Draw.h
 
@@ -36,7 +37,7 @@ public:
     static Image System(int width, int height) { return Image(width, height); }
 
     // Assignment operators
-    Image& operator=(const Image& other) {
+    void operator=(const Image& other) {
         if (this != &other) {
             pixels = other.pixels;
             size = other.size;

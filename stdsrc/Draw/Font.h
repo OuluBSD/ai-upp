@@ -1,5 +1,11 @@
+#pragma once
 // U++-compatible Font wrapper implemented for cross-platform compatibility
 // This header is aggregated and wrapped into namespace Upp by Draw.h
+
+#include <string>
+#include <algorithm>
+#include "Size.h"  // Include Size definition
+#include "Color.h"
 
 class Font {
 public:
@@ -44,43 +50,43 @@ public:
     static Font DejaVuSans(int height) { return Font("DejaVu Sans", height); }
 
     // U++-style methods to modify font properties
-    Font& Arial(int height) { 
+    void SetArial(int height) { 
         face = "Arial"; 
         this->height = height;
         return *this;
     }
     
-    Font& Face(const std::string& face_name) { 
+    void Face(const std::string& face_name) { 
         face = face_name; 
         return *this;
     }
     
-    Font& Height(int h) { 
+    void Height(int h) { 
         height = h; 
         return *this;
     }
     
-    Font& Bold(bool b = true) { 
+    void Bold(bool b = true) { 
         bold = b; 
         return *this;
     }
     
-    Font& Italic(bool i = true) { 
+    void Italic(bool i = true) { 
         italic = i; 
         return *this;
     }
     
-    Font& Underline(bool u = true) { 
+    void Underline(bool u = true) { 
         underline = u; 
         return *this;
     }
     
-    Font& Strikeout(bool s = true) { 
+    void Strikeout(bool s = true) { 
         strikeout = s; 
         return *this;
     }
     
-    Font& Angle(int a) { 
+    void Angle(int a) { 
         angle = a; 
         return *this;
     }

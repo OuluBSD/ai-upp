@@ -1,3 +1,4 @@
+#pragma once
 // Minimal profiling/timing shims for source compatibility
 
 class TimingInspector {

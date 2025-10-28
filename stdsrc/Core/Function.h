@@ -1,3 +1,4 @@
+#pragma once
 // Minimal Function wrapper using std::function
 
 template <class Sig>

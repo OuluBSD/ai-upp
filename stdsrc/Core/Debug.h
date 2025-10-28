@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_Debug_h_
 #define _Core_Debug_h_
 

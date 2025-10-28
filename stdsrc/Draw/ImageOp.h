@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_ImageOp_h_
 #define _Draw_ImageOp_h_
 

@@ -1,3 +1,4 @@
+#pragma once
 // Minimal foundational typedefs and helpers to ease U++-style source compatibility
 // Aggregated by Core.h; do not include system headers here.
 

@@ -1,3 +1,4 @@
+#pragma once
 // Array<T>: vector of owning pointers for stable element addresses
 
 template <class T>
@@ -18,7 +19,7 @@ public:
     }
     Array(Array&&) = default;
     Array& operator=(Array&&) = default;
-    Array& operator=(const Array& other) {
+    void operator=(const Array& other) {
         if(this == &other) return *this;
         Clear();
         a.reserve(other.a.size());

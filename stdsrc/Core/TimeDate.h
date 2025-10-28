@@ -1,3 +1,4 @@
+#pragma once
 // Minimal Date/Time utilities compatible with common U++ usage
 
 // Forward declarations for helpers used below

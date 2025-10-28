@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_Diag_h_
 #define _Core_Diag_h_
 

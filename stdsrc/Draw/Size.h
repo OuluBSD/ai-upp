@@ -1,5 +1,8 @@
+#pragma once
 // U++-compatible Size wrapper implemented using std::pair or direct implementation
 // This header is aggregated and wrapped into namespace Upp by Draw.h
+
+#include <algorithm>
 
 class Size {
 public:

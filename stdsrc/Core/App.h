@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_App_h_
 #define _Core_App_h_
 

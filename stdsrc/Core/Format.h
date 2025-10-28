@@ -1,3 +1,4 @@
+#pragma once
 // U++-style Format implementation (subset covering provided examples)
 
 inline constexpr Nuller Null{}; // convenience

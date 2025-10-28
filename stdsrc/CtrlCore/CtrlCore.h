@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STDSRC_CTRLCORE_CTRLCORE_H
 #define STDSRC_CTRLCORE_CTRLCORE_H
 
@@ -15,6 +16,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdint>  // For dword
 
 // Native UI library includes (based on platform detection)
 #ifdef _WIN32

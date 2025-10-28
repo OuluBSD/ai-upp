@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlLib_Ch_h_
 #define _CtrlLib_Ch_h_
 

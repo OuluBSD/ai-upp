@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_CharSet_h_
 #define _Core_CharSet_h_
 

@@ -1,3 +1,4 @@
+#pragma once
 // U++-compatible WString wrapper implemented on top of std::wstring
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

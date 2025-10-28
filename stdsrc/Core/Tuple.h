@@ -1,3 +1,4 @@
+#pragma once
 // Minimal tuple wrappers
 
 template <class... Ts>

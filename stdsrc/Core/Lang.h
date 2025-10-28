@@ -1,3 +1,4 @@
+#pragma once
 // Minimal language helpers and macros (stubs for source compatibility)
 
 #ifndef LNG_

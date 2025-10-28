@@ -1,13 +1,22 @@
+#pragma once
 // U++-compatible Draw wrapper for graphics drawing operations
 // This header is aggregated and wrapped into namespace Upp by Draw.h
 
-// Forward declarations
-class Point;
-class Size;
-class Rect;
-class Color;
-class Image;
-class Font;
+#include <cstdint>  // For uint8_t, uint32_t
+#include <string>
+#include <memory>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <cmath>
+
+// Include the actual definitions instead of forward declarations
+#include "Point.h"
+#include "Size.h"
+#include "Rect.h"
+#include "Color.h"
+#include "Image.h"
+#include "Font.h"
 
 class Draw {
 public:

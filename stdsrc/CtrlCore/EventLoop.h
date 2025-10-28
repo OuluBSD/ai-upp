@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_EventLoop_h_
 #define _CtrlCore_EventLoop_h_
 

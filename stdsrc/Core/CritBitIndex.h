@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_CritBitIndex_h_
 #define _Core_CritBitIndex_h_
 

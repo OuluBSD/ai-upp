@@ -1,3 +1,4 @@
+#pragma once
 // Minimal XML node structure and serializer/parser (subset of XML)
 
 struct XmlAttr { String key; String value; };

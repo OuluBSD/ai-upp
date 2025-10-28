@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_BinUndoRedo_h_
 #define _Core_BinUndoRedo_h_
 

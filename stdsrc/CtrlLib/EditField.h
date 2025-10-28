@@ -1,7 +1,14 @@
+#pragma once
 // U++-compatible EditField wrapper for text input
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class EditField : public CtrlBase {
+#include <string>
+#include "../Draw/Color.h"
+#include "../Draw/Font.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+
+class EditField : public Ctrl {
 private:
     std::string text;
     std::string prompt_text;  // Placeholder text
@@ -36,59 +43,51 @@ public:
     static EditField* Create(const std::string& initial_text) { return new EditField(initial_text); }
 
     // U++-style text operations
-    EditField& Text(const std::string& txt) { 
+    void Text(const std::string& txt) { 
         text = txt; 
         cursor_pos = static_cast<int>(text.length());  // Move cursor to end
-        return *this; 
     }
     
-    EditField& SetText(const std::string& txt) { 
+    void SetText(const std::string& txt) { 
         text = txt; 
         cursor_pos = static_cast<int>(text.length());
-        return *this; 
     }
     
     std::string GetText() const { return text; }
     std::string GetData() const { return text; }
 
     // U++-style prompt/placeholder text
-    EditField& Prompt(const std::string& prompt) { 
+    void Prompt(const std::string& prompt) { 
         prompt_text = prompt; 
-        return *this; 
     }
     
     const std::string& GetPrompt() const { return prompt_text; }
 
     // U++-style font operations
-    EditField& SetFont(const Font& f) { 
+    void SetFont(const Font& f) { 
         font = f; 
-        return *this; 
     }
     
     const Font& GetFont() const { return font; }
     
-    EditField& Font(const Font& f) { 
+    void Font(const Font& f) { 
         font = f; 
-        return *this; 
     }
 
     // U++-style text color operations
-    EditField& SetTextColor(const Color& color) { 
+    void SetTextColor(const Color& color) { 
         text_color = color; 
-        return *this; 
     }
     
     const Color& GetTextColor() const { return text_color; }
     
-    EditField& TextColor(const Color& color) { 
+    void TextColor(const Color& color) { 
         text_color = color; 
-        return *this; 
     }
 
     // U++-style password mode
-    EditField& Password() { 
+    void Password() { 
         password_mode = true; 
-        return *this; 
     }
     
     bool IsPassword() const { return password_mode; }
@@ -137,35 +136,30 @@ public:
     }
 
     // U++-style text manipulation
-    EditField& Clear() { 
+    void Clear() { 
         text.clear(); 
         cursor_pos = 0;
-        return *this; 
     }
     
-    EditField& SelectAll() { 
+    void SelectAll() { 
         selection_start = 0;
         selection_end = static_cast<int>(text.length());
-        return *this; 
     }
     
-    EditField& NoWantFocus() {
+    void NoWantFocus() {
         // In a real implementation, this would control focus behavior
-        return *this;
     }
     
-    EditField& SetFocus() {
+    void SetFocus() {
         focused = true;
         // In a real implementation, this would set focus to the edit field
-        return *this;
     }
     
     bool HasFocus() const { return focused; }
 
     // U++-style size adjustment
-    EditField& SizePos() {
+    void SizePos() {
         // In a real implementation, this would size based on content
-        return *this;
     }
     
     // U++-style text input handling (simplified)
@@ -208,9 +202,8 @@ public:
     const char* GetClassName() const override { return "EditField"; }
     
     // U++-style data operations
-    EditField& SetData(const std::string& data) {
+    void SetData(const std::string& data) {
         SetText(data);
-        return *this;
     }
     
     // U++-style event handling

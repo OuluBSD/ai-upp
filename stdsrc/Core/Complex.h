@@ -1,3 +1,4 @@
+#pragma once
 // Minimal complex number wrappers
 
 template <class T = double>

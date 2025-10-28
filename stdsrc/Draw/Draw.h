@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STDSRC_DRAW_DRAW_H
 #define STDSRC_DRAW_DRAW_H
 

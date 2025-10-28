@@ -1,7 +1,17 @@
+#pragma once
 // U++-compatible ScrollBar wrapper for UI scrollbars
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class ScrollBar : public CtrlBase {
+#include <string>
+#include <algorithm>
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+#include "../Draw/Point.h"
+#include "../Draw/Rect.h"
+#include "../CtrlCore/Event.h"
+
+class ScrollBar : public Ctrl {
 private:
     bool vertical;
     int page;              // Page size (visible area)
@@ -16,12 +26,12 @@ private:
 
 public:
     // Constructors
-    ScrollBar() : CtrlBase(), vertical(true), page(10), total(100), 
+    ScrollBar() : Ctrl(), vertical(true), page(10), total(100), 
                   pos(0), line(1), dragging(false), thumb_size(20) {
         SetSize(16, 100);  // Default vertical scrollbar size
     }
 
-    explicit ScrollBar(bool is_vertical) : CtrlBase(), vertical(is_vertical), 
+    explicit ScrollBar(bool is_vertical) : Ctrl(), vertical(is_vertical), 
                   page(10), total(100), pos(0), line(1), dragging(false), thumb_size(20) {
         SetSize(is_vertical ? 16 : 100, is_vertical ? 100 : 16);
     }
@@ -32,42 +42,36 @@ public:
     static ScrollBar* CreateHorizontal() { return new ScrollBar(false); }
 
     // U++-style scrollbar configuration
-    ScrollBar& Horz() { 
+    void Horz() { 
         vertical = false; 
         SetSize(100, 16);
-        return *this; 
     }
     
-    ScrollBar& Vert() { 
+    void Vert() { 
         vertical = true; 
         SetSize(16, 100);
-        return *this; 
     }
 
     // U++-style range and position methods
-    ScrollBar& SetPage(int p) { 
+    void SetPage(int p) { 
         page = std::max(1, p); 
         pos = std::min(pos, std::max(0, total - page));
         Refresh();
-        return *this; 
     }
     
-    ScrollBar& SetTotal(int t) { 
+    void SetTotal(int t) { 
         total = std::max(page, t); 
         pos = std::min(pos, std::max(0, total - page));
         Refresh();
-        return *this; 
     }
     
-    ScrollBar& SetLine(int l) { 
+    void SetLine(int l) { 
         line = std::max(1, l); 
-        return *this; 
     }
 
-    ScrollBar& SetPos(int p) { 
+    void SetPos(int p) { 
         pos = std::max(0, std::min(p, std::max(0, total - page))); 
         Refresh();
-        return *this; 
     }
 
     // U++-style getters

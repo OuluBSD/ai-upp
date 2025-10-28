@@ -1,14 +1,23 @@
+#pragma once
 // U++-compatible Ctrl wrapper for UI controls
 // This header is aggregated and wrapped into namespace Upp by CtrlCore.h
 
-// Forward declarations
-class Point;
-class Size;
-class Rect;
-class Color;
-class Draw;
-class Image;
-class Font;
+#include <string>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <unordered_map>
+
+// Include the actual definitions instead of forward declarations
+#include "../Draw/Point.h"
+#include "../Draw/Size.h"
+#include "../Draw/Rect.h"
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../Draw/Image.h"
+#include "../Draw/Font.h"
 
 // Forward declaration of event types
 class Event;
@@ -33,9 +42,6 @@ public:
     Ctrl();
     
     explicit Ctrl(const Rect& r);
-
-    // Virtual destructor for proper inheritance
-    virtual ~Ctrl() = default;
 
     // Virtual destructor for proper inheritance
     virtual ~Ctrl() = default;

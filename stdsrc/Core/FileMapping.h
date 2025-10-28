@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_FileMapping_h_
 #define _Core_FileMapping_h_
 

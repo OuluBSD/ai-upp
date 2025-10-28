@@ -1,3 +1,4 @@
+#pragma once
 // Configuration header for stdsrc libraries
 // Defines platform-specific macros and settings
 

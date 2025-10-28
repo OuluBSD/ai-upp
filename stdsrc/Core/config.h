@@ -1,3 +1,4 @@
+#pragma once
 #ifndef CORE_CONFIG_H
 #define CORE_CONFIG_H
 

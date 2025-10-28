@@ -1,3 +1,4 @@
+#pragma once
 // Minimal U++-style Index<T> implemented over std::vector + std::unordered_map
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

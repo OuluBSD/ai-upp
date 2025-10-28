@@ -1,5 +1,8 @@
+#pragma once
 // U++-compatible Rect wrapper implemented using direct implementation
 // This header is aggregated and wrapped into namespace Upp by Draw.h
+
+#include <algorithm>
 
 class Rect {
 public:
@@ -50,7 +53,6 @@ public:
     void SetTopRight(const Point& pt);
     void SetBottomLeft(const Point& pt);
     void SetBottomRight(const Point& pt);
-    void SetSize(const Size& sz);
     void SetRect(const Point& pt, const Size& sz);
 
     // U++-style operations

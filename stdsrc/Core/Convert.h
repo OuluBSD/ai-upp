@@ -1,3 +1,4 @@
+#pragma once
 // Minimal conversion helpers
 
 inline int Atoi(const char* s) { return s ? (int)std::strtol(s, nullptr, 10) : 0; }

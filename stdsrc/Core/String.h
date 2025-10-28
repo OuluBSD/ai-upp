@@ -1,3 +1,4 @@
+#pragma once
 // U++-compatible String wrapper implemented on top of std::string
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

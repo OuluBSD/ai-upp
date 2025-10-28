@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_Display_h_
 #define _Draw_Display_h_
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlTimer_h_
 #define _CtrlCore_CtrlTimer_h_
 
@@ -58,7 +59,7 @@ public:
     }
     
     // Set a single shot timer
-    virtual CtrlTimer& SetTimer(int milliseconds, std::function<void()> callback) {
+    virtual void SetTimer(int milliseconds, std::function<void()> callback) {
         auto when = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
         
         {
@@ -71,7 +72,7 @@ public:
     }
     
     // Set a repeating timer
-    virtual CtrlTimer& SetRepeat(int milliseconds, std::function<void()> callback) {
+    virtual void SetRepeat(int milliseconds, std::function<void()> callback) {
         // Create a repeating timer by rescheduling after each execution
         std::weak_ptr<Ctrl> weak_ctrl = ctrl.shared_from_this();
         
@@ -98,7 +99,7 @@ public:
     }
     
     // Cancel all timers
-    virtual CtrlTimer& CancelTimer() {
+    virtual void CancelTimer() {
         std::lock_guard<std::mutex> lock(timer_mutex);
         timer_events.clear();
         return *this;

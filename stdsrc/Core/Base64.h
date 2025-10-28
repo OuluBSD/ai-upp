@@ -1,3 +1,4 @@
+#pragma once
 // Minimal Base64 encode/decode helpers and Stream adapters
 
 inline String Base64Encode(const void* data, size_t len) {

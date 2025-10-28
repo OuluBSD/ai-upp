@@ -1,3 +1,4 @@
+#pragma once
 // Minimal geometry types
 
 struct Point {

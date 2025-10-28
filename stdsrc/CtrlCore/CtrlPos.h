@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlPos_h_
 #define _CtrlCore_CtrlPos_h_
 
@@ -190,12 +191,12 @@ public:
     PosCtrl& margin(int left, int top, int right, int bottom) { return Margin(left, top, right, bottom); }
     
     // Alignment helpers
-    PosCtrl& left() { return SetHAlign(CtrlPos::HAlign::LEFT); }
-    PosCtrl& centerh() { return SetHAlign(CtrlPos::HAlign::CENTER); }
-    PosCtrl& right() { return SetHAlign(CtrlPos::HAlign::RIGHT); }
-    PosCtrl& top() { return SetVAlign(CtrlPos::VAlign::TOP); }
-    PosCtrl& middle() { return SetVAlign(CtrlPos::VAlign::MIDDLE); }
-    PosCtrl& bottom() { return SetVAlign(CtrlPos::VAlign::BOTTOM); }
+    void left() { SetHAlign(CtrlPos::HAlign::LEFT); }
+    void centerh() { SetHAlign(CtrlPos::HAlign::CENTER); }
+    void right() { SetHAlign(CtrlPos::HAlign::RIGHT); }
+    void top() { SetVAlign(CtrlPos::VAlign::TOP); }
+    void middle() { SetVAlign(CtrlPos::VAlign::MIDDLE); }
+    void bottom() { SetVAlign(CtrlPos::VAlign::BOTTOM); }
     
     // Stretch helpers
     PosCtrl& hstretch() { return HStretch(); }

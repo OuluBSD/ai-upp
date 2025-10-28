@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_stdids_h_
 #define _CtrlCore_stdids_h_
 

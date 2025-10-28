@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_CoWork_h_
 #define _Core_CoWork_h_
 
@@ -80,8 +81,8 @@ public:
     void     Do(std::function<void()>&& fn)                       { Do0(std::move(fn), false); }
     void     Do(const std::function<void()>& fn)                  { Do(fn); }
 
-    CoWork&  operator&(const std::function<void()>& fn)           { Do(fn); return *this; }
-    CoWork&  operator&(std::function<void()>&& fn)                { Do(std::move(fn)); return *this; }
+    void  operator&(const std::function<void()>& fn)           { Do(fn); }
+    void  operator&(std::function<void()>&& fn)                { Do(std::move(fn)); }
 
     int  GetScheduledCount() const;
 
@@ -108,8 +109,8 @@ public:
     void     Loop(std::function<void()>&& fn);
     void     Loop(const std::function<void()>& fn)                { Loop(fn); }
 
-    CoWork&  operator*(const std::function<void()>& fn)           { Loop(fn); return *this; }
-    CoWork&  operator*(std::function<void()>&& fn)                { Loop(std::move(fn)); return *this; }
+    void  operator*(const std::function<void()>& fn)           { Loop(fn); }
+    void  operator*(std::function<void()>&& fn)                { Loop(std::move(fn)); }
     
     int      Next()                                           { return ++index - 1; }
 };

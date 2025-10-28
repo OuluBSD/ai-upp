@@ -1,3 +1,4 @@
+#pragma once
 // File-based Stream using std::fstream
 
 class FileStream : public Stream {

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlAttr_h_
 #define _CtrlCore_CtrlAttr_h_
 
@@ -18,13 +19,13 @@ public:
     
     // Set attribute with name and value
     template<typename T>
-    CtrlAttr& Attr(const String& name, const T& value) {
+    void Attr(const String& name, const T& value) {
         attributes[name] = value;
         return *this;
     }
     
     // Set multiple attributes from a map
-    CtrlAttr& Attrs(const std::map<String, Value>& attrs) {
+    void Attrs(const std::map<String, Value>& attrs) {
         for (const auto& pair : attrs) {
             attributes[pair.first] = pair.second;
         }
@@ -56,19 +57,19 @@ public:
     }
     
     // Remove attribute
-    CtrlAttr& RemoveAttr(const String& name) {
+    void RemoveAttr(const String& name) {
         attributes.erase(name);
         return *this;
     }
     
     // Clear all attributes
-    CtrlAttr& ClearAttrs() {
+    void ClearAttrs() {
         attributes.clear();
         return *this;
     }
     
     // Set control's style using attributes
-    CtrlAttr& SetStyle(dword style) {
+    void SetStyle(dword style) {
         return Attr("style", style);
     }
     
@@ -77,7 +78,7 @@ public:
     }
     
     // Set control's data
-    CtrlAttr& SetData(const Value& data) {
+    void SetData(const Value& data) {
         return Attr("data", data);
     }
     
@@ -86,7 +87,7 @@ public:
     }
     
     // Set control's tag
-    CtrlAttr& SetTag(const Value& tag) {
+    void SetTag(const Value& tag) {
         return Attr("tag", tag);
     }
     
@@ -95,7 +96,7 @@ public:
     }
     
     // Set control's display
-    CtrlAttr& SetDisplay(const Display& display) {
+    void SetDisplay(const Display& display) {
         return Attr("display", &display);
     }
     

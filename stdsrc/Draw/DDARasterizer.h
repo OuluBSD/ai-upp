@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_DDARasterizer_h_
 #define _Draw_DDARasterizer_h_
 
@@ -37,16 +38,16 @@ public:
     int  GetDirx() const                      { return dirx; }
     int  GetDiry() const                      { return diry; }
     
-    DDARasterizer& Move(Point p);
-    DDARasterizer& Line(Point p);
-    DDARasterizer& Close();
+    void Move(Point p);
+    void Line(Point p);
+    void Close();
     
-    DDARasterizer& Polygon();
-    DDARasterizer& Fill();
+    void Polygon();
+    void Fill();
     
-    DDARasterizer& Width(int width_)          { width = width_; return *this; }
+    void Width(int width_)          { width = width_; }
     
-    DDARasterizer& Ellipse(const Rect& rect, int width);
+    void Ellipse(const Rect& rect, int width);
 
     void Cy(int cy_)                          { cy = cy_; }
     

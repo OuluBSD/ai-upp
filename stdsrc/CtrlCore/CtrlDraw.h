@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlDraw_h_
 #define _CtrlCore_CtrlDraw_h_
 

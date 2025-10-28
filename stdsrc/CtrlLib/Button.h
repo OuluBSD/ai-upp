@@ -1,7 +1,13 @@
+#pragma once
 // U++-compatible Button wrapper for UI buttons
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class Button : public CtrlBase {
+#include <string>
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+
+class Button : public Ctrl {
 private:
     std::string text;
     bool pressed;
@@ -22,14 +28,12 @@ public:
     static Button* Create(const std::string& label) { return new Button(label); }
 
     // U++-style button properties
-    Button& Label(const std::string& lbl) { 
+    void Label(const std::string& lbl) { 
         text = lbl; 
-        return *this; 
     }
     
-    Button& SetLabel(const std::string& lbl) { 
+    void SetLabel(const std::string& lbl) { 
         text = lbl; 
-        return *this; 
     }
 
     // U++-style text accessors
@@ -37,9 +41,8 @@ public:
     std::string GetText() const { return text; }
 
     // U++-style button state
-    Button& SetPressed(bool p = true) { 
+    void SetPressed(bool p = true) { 
         pressed = p; 
-        return *this; 
     }
     
     bool IsPressed() const { return pressed; }
@@ -80,48 +83,40 @@ public:
     }
 
     // U++-style button appearance
-    Button& NoWantFocus() {
+    void NoWantFocus() {
         // In a real implementation, this would prevent the button from receiving keyboard focus
-        return *this;
     }
     
-    Button& NoRigid() {
+    void NoRigid() {
         // In a real implementation, this would control button sizing behavior
-        return *this;
     }
 
     // U++-style button types
-    Button& OK() {
+    void OK() {
         text = "OK";
-        return *this;
     }
     
-    Button& Cancel() {
+    void Cancel() {
         text = "Cancel";
-        return *this;
     }
     
-    Button& Yes() {
+    void Yes() {
         text = "Yes";
-        return *this;
     }
     
-    Button& No() {
+    void No() {
         text = "No";
-        return *this;
     }
 
     // U++-style button size adjustment
-    Button& SizePos() {
+    void SizePos() {
         // In a real implementation, this would set the size and position based on content
         // For now, we'll set a reasonable default size
         SetSize(75, 23);
-        return *this;
     }
     
-    Button& SetStd() {
+    void SetStd() {
         // Set to standard button appearance
-        return *this;
     }
 
     // U++-style methods for identifying control types
@@ -131,9 +126,8 @@ public:
     bool IsDown() const { return pressed; }
     
     // U++-style toggle button functionality
-    Button& Toggle(bool state = true) {
+    void Toggle(bool state = true) {
         pressed = state;
-        return *this;
     }
     
     bool IsToggle() const {
@@ -142,13 +136,11 @@ public:
     }
     
     // U++-style visual feedback for press state
-    Button& SetInk(const Color& color) {
+    void SetInk(const Color& color) {
         // In a real implementation, this would set the ink (text) color
-        return *this;
     }
     
-    Button& Inverted() {
+    void Inverted() {
         // In a real implementation, this would invert the button appearance
-        return *this;
     }
 };

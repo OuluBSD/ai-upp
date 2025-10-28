@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlLib_ColorPopup_h_
 #define _CtrlLib_ColorPopup_h_
 

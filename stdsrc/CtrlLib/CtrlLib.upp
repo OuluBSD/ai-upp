@@ -1,8 +1,12 @@
-description "STL-backed CtrlLib API (phase 3)";
+description "STL-backed CtrlLib API (phase 3)\377B0,0,255";
+
+uses
+	CtrlCore;
 
 file
 	AGENTS.md,
 	CtrlLib.h options(BUILDER_OPTION) PCH,
+	CtrlLib.cpp,
 	ArrayCtrl.h,
 	Bar.h,
 	Button.h,
@@ -15,3 +19,4 @@ file
 	ScrollBar.h,
 	SliderCtrl.h,
 	Splitter.h;
+

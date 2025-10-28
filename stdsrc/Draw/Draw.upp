@@ -1,8 +1,12 @@
-description "STL-backed Draw API (phase 4)";
+description "STL-backed Draw API (phase 4)\377B128,0,255";
+
+uses
+	Core;
 
 file
 	AGENTS.md,
 	Draw.h options(BUILDER_OPTION) PCH,
+	Draw.cpp,
 	Cham.h,
 	Color.h,
 	DDARasterizer.h,
@@ -17,3 +21,4 @@ file
 	Raster.h,
 	Rect.h,
 	Size.h;
+

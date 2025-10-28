@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_CoSort_h_
 #define _Core_CoSort_h_
 

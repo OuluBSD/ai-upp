@@ -1,3 +1,4 @@
+#pragma once
 // Minimal JSON value and parser/writer
 
 class Json {

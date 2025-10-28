@@ -1,3 +1,4 @@
+#pragma once
 // Minimal utility helpers compatible with common U++ usage
 
 inline String FormatPtr(const void* p) {

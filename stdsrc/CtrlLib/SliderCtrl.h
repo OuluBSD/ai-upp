@@ -1,7 +1,17 @@
+#pragma once
 // U++-compatible SliderCtrl wrapper for UI sliders
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class SliderCtrl : public CtrlBase {
+#include <string>
+#include <algorithm>
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+#include "../Draw/Point.h"
+#include "../Draw/Rect.h"
+#include "../CtrlCore/Event.h"
+
+class SliderCtrl : public Ctrl {
 private:
     bool vertical;
     int min_val;           // Minimum value
@@ -15,12 +25,12 @@ private:
 
 public:
     // Constructors
-    SliderCtrl() : CtrlBase(), vertical(false), min_val(0), max_val(100), 
+    SliderCtrl() : Ctrl(), vertical(false), min_val(0), max_val(100), 
                    value(50), tick_freq(10), show_ticks(true), dragging(false) {
         SetSize(200, 20);  // Default horizontal size
     }
 
-    explicit SliderCtrl(bool is_vertical) : CtrlBase(), vertical(is_vertical), 
+    explicit SliderCtrl(bool is_vertical) : Ctrl(), vertical(is_vertical), 
                    min_val(0), max_val(100), value(50), tick_freq(10), 
                    show_ticks(true), dragging(false) {
         SetSize(is_vertical ? 20 : 200, is_vertical ? 200 : 20);
@@ -32,43 +42,37 @@ public:
     static SliderCtrl* CreateHorizontal() { return new SliderCtrl(false); }
 
     // U++-style slider configuration
-    SliderCtrl& Horz() { 
+    void Horz() { 
         vertical = false; 
         SetSize(200, 20);
-        return *this; 
     }
     
-    SliderCtrl& Vert() { 
+    void Vert() { 
         vertical = true; 
         SetSize(20, 200);
-        return *this; 
     }
 
     // U++-style value and range methods
-    SliderCtrl& SetRange(int minv, int maxv) { 
+    void SetRange(int minv, int maxv) { 
         min_val = minv; 
         max_val = maxv; 
         value = std::max(min_val, std::min(value, max_val));
         Refresh();
-        return *this; 
     }
     
-    SliderCtrl& SetValue(int v) { 
+    void SetValue(int v) { 
         value = std::max(min_val, std::min(v, max_val)); 
         Refresh();
-        return *this; 
     }
     
-    SliderCtrl& SetTickFreq(int freq) { 
+    void SetTickFreq(int freq) { 
         tick_freq = std::max(1, freq); 
         Refresh();
-        return *this; 
     }
     
-    SliderCtrl& NoTicks() { 
+    void NoTicks() { 
         show_ticks = false; 
         Refresh();
-        return *this; 
     }
 
     // U++-style getters

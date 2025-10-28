@@ -1,3 +1,4 @@
+#pragma once
 // Minimal U++-style VectorMap<K,T> implemented on top of std::vector + std::unordered_map
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

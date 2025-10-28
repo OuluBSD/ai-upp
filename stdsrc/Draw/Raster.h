@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_Raster_h_
 #define _Draw_Raster_h_
 

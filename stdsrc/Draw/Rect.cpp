@@ -96,11 +96,14 @@ void Rect::SetBottomLeft(const Point& pt) {
 void Rect::SetBottomRight(const Point& pt) { 
     right = pt.x; bottom = pt.y; 
 }
-void Rect::SetSize(const Size& sz) { 
-    right = left + sz.cx; bottom = top + sz.cy; 
-}
 void Rect::SetRect(const Point& pt, const Size& sz) { 
     *this = Rect(pt, sz); 
+}
+
+// U++-style size operations
+Rect& Rect::SetSize(const Size& sz) { 
+    right = left + sz.cx; bottom = top + sz.cy; 
+    return *this;
 }
 
 // U++-style operations

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlLib_ColorPusher_h_
 #define _CtrlLib_ColorPusher_h_
 

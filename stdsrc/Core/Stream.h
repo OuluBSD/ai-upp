@@ -1,3 +1,4 @@
+#pragma once
 // Minimal in-memory Stream shims
 
 class Stream {

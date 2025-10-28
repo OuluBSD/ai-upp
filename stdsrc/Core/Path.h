@@ -1,3 +1,4 @@
+#pragma once
 // Minimal path and filesystem helpers built on std::filesystem
 
 namespace fs = std::filesystem;

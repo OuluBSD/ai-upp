@@ -1,3 +1,4 @@
+#pragma once
 // Minimal U++-style One<T> wrapper implemented via std::unique_ptr
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

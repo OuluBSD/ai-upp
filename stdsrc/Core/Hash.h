@@ -1,3 +1,4 @@
+#pragma once
 // Minimal hashing helpers compatible with U++ expectations
 // This header is aggregated and wrapped into namespace Upp by Core.h
 

@@ -1,3 +1,4 @@
+#pragma once
 // Minimal Value variant implemented on top of std::any
 // This is a simplified shim to cover common cases (int, double, bool, String, WString, const char*)
 

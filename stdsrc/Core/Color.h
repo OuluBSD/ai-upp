@@ -1,3 +1,4 @@
+#pragma once
 // Minimal Color representation (RGBA)
 
 struct Color {

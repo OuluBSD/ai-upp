@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlMt_h_
 #define _CtrlCore_CtrlMt_h_
 

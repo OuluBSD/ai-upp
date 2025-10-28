@@ -1,7 +1,10 @@
+#pragma once
 #ifndef _CtrlCore_TopWindow_h_
 #define _CtrlCore_TopWindow_h_
 
 #include <CtrlCore/CtrlCore.h>
+#include <cstdint>  // For dword
+#include <string>   // For String
 
 namespace Upp {
 
@@ -126,13 +129,13 @@ public:
 	Callback    Acceptor(int ID);
 	Callback    Rejector(int ID);
 
-	TopWindow&  Breaker(Ctrl& m, int ID = -1);
-	TopWindow&  Acceptor(Ctrl& m, int ID);
-	TopWindow&  Rejector(Ctrl& m, int ID);
+	void  Breaker(Ctrl& m, int ID = -1);
+	void  Acceptor(Ctrl& m, int ID);
+	void  Rejector(Ctrl& m, int ID);
 
-	TopWindow&  NoCenter()                          { center = 0; return *this; }
-	TopWindow&  CenterOwner()                       { center = 1; return *this; }
-	TopWindow&  CenterScreen()                       { center = 2; return *this; }
+	void  NoCenter()                          { center = 0; }
+	void  CenterOwner()                       { center = 1; }
+	void  CenterScreen()                       { center = 2; }
 
 	void       Open(Ctrl *owner);
 	void       Open();
@@ -153,42 +156,42 @@ public:
 	bool       IsMinimized() const                    { return state == MINIMIZED; }
 	bool       IsOverlapped() const                   { return state == OVERLAPPED; }
 
-	TopWindow& ActiveFocus(Ctrl& ctrl)                { ActiveFocus0(ctrl); return *this; }
+	void ActiveFocus(Ctrl& ctrl)                { ActiveFocus0(ctrl); }
 
-	TopWindow& Title(const WString& _title);
-	TopWindow& Title(const char *s);
+	void Title(const WString& _title);
+	void Title(const char *s);
 	const WString& GetTitle() const                   { return title; }
-	TopWindow& Sizeable(bool b = true);
-	TopWindow& NoSizeable()                           { return Sizeable(false); }
+	void Sizeable(bool b = true);
+	void NoSizeable()                           { Sizeable(false); }
 	bool       IsSizeable() const                     { return sizeable; }
-	TopWindow& MinimizeBox(bool b = true);
-	TopWindow& MaximizeBox(bool b = true);
-	TopWindow& Zoomable(bool b = true)                { MinimizeBox(b); return MaximizeBox(b); }
-	TopWindow& NoZoomable()                           { return Zoomable(false); }
+	void MinimizeBox(bool b = true);
+	void MaximizeBox(bool b = true);
+	void Zoomable(bool b = true)                { MinimizeBox(b); MaximizeBox(b); }
+	void NoZoomable()                           { Zoomable(false); }
 	bool       IsZoomable() const                     { return maximizebox; }
-	TopWindow& Background(const PaintRect& prect);
+	void Background(const PaintRect& prect);
 	const PaintRect& GetBackground() const            { return background; }
-	TopWindow& ToolWindow(bool b = true);
-	TopWindow& NoToolWindow()                         { return ToolWindow(false); }
+	void ToolWindow(bool b = true);
+	void NoToolWindow()                         { ToolWindow(false); }
 	bool       IsToolWindow() const                   { return tool; }
-	TopWindow& TopMost(bool b = true, bool stay_top = true);
-	TopWindow& NoTopMost()                            { return TopMost(false); }
+	void TopMost(bool b = true, bool stay_top = true);
+	void NoTopMost()                            { TopMost(false); }
 	bool       IsTopMost() const;
-	TopWindow& FullScreen(bool b = true);
+	void FullScreen(bool b = true);
 	bool       IsFullScreen() const                   { return fullscreen; }
-	TopWindow& FrameLess(bool b = true);
+	void FrameLess(bool b = true);
 	bool       IsFrameLess() const                    { return frameless; }
-	TopWindow& Urgent(bool b = true);
+	void Urgent(bool b = true);
 	bool       IsUrgent() const                       { return urgent; }
-	TopWindow& NoAccessKeysDistribution()             { dokeys = false; return *this; }
-	TopWindow& NoCloseBox(bool b = true)              { noclosebox = b; return *this; }
-	TopWindow& CloseBoxRejects(bool b = true)         { close_rejects = b; return *this; }
+	void NoAccessKeysDistribution()             { dokeys = false; }
+	void NoCloseBox(bool b = true)              { noclosebox = b; }
+	void CloseBoxRejects(bool b = true)         { close_rejects = b; }
 
-	TopWindow& Icon(const Image& m);
-	TopWindow& LargeIcon(const Image& m);
-	TopWindow& Icon(const Image& smallicon, const Image& largeicon);
+	void Icon(const Image& m);
+	void LargeIcon(const Image& m);
+	void Icon(const Image& smallicon, const Image& largeicon);
 	
-	TopWindow&  CustomTitleBar(int min_cy = 0);
+	void  CustomTitleBar(int min_cy = 0);
 	bool        IsCustomTitleBar() const;
 
 	struct CustomTitleBarMetrics {
@@ -201,7 +204,7 @@ public:
 	CustomTitleBarMetrics GetCustomTitleBarMetrics() const;
 
 	static const TopStyle& StyleDefault();
-	TopWindow&  SetStyle(const TopStyle& s);
+	void  SetStyle(const TopStyle& s);
 	
 	Image      GetIcon() const                        { return icon; }
 	Image      GetLargeIcon() const                   { return largeicon; }

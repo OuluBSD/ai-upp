@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_Daemon_h_
 #define _Core_Daemon_h_
 

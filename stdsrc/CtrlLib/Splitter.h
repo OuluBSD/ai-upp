@@ -1,7 +1,17 @@
+#pragma once
 // U++-compatible Splitter wrapper for UI splitters
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class Splitter : public CtrlBase {
+#include <string>
+#include <memory>
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+#include "../Draw/Point.h"
+#include "../Draw/Rect.h"
+#include "../CtrlCore/Event.h"
+
+class Splitter : public Ctrl {
 private:
     bool vertical;
     int position;           // Splitter position in pixels
@@ -15,12 +25,12 @@ private:
 
 public:
     // Constructors
-    Splitter() : CtrlBase(), vertical(false), position(100), 
+    Splitter() : Ctrl(), vertical(false), position(100), 
                  min_pos(20), max_pos(500), dragging(false) {
         SetSize(200, 150);  // Default size
     }
 
-    explicit Splitter(bool is_vertical) : CtrlBase(), vertical(is_vertical), 
+    explicit Splitter(bool is_vertical) : Ctrl(), vertical(is_vertical), 
                 position(100), min_pos(20), max_pos(500), dragging(false) {
         SetSize(vertical ? 150 : 200, vertical ? 200 : 150);
     }
@@ -31,43 +41,37 @@ public:
     static Splitter* CreateHorizontal() { return new Splitter(false); }
 
     // U++-style splitter configuration
-    Splitter& Horz() { 
+    void Horz() { 
         vertical = false; 
-        return *this; 
     }
     
-    Splitter& Vert() { 
+    void Vert() { 
         vertical = true; 
-        return *this; 
     }
 
     // U++-style control attachment
-    Splitter& First(const std::shared_ptr<Ctrl>& ctrl) { 
+    void First(const std::shared_ptr<Ctrl>& ctrl) { 
         left_ctrl = ctrl; 
-        return *this; 
     }
     
-    Splitter& Second(const std::shared_ptr<Ctrl>& ctrl) { 
+    void Second(const std::shared_ptr<Ctrl>& ctrl) { 
         right_ctrl = ctrl; 
-        return *this; 
     }
 
     // U++-style positioning
-    Splitter& SetPos(int pos) { 
+    void SetPos(int pos) { 
         position = std::max(min_pos, std::min(pos, max_pos));
         RefreshLayout(); 
-        return *this; 
     }
     
     int GetPos() const { return position; }
 
     // U++-style range configuration
-    Splitter& SetPosRange(int minp, int maxp) { 
+    void SetPosRange(int minp, int maxp) { 
         min_pos = minp; 
         max_pos = maxp; 
         position = std::max(min_pos, std::min(position, max_pos));
         RefreshLayout(); 
-        return *this; 
     }
 
     // U++-style painting

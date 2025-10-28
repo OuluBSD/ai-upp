@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_CoAlgo_h_
 #define _Core_CoAlgo_h_
 

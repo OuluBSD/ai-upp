@@ -1,3 +1,4 @@
+#pragma once
 // Simple logging utilities and LOG macro
 
 namespace LogDetail {

@@ -1,3 +1,4 @@
+#pragma once
 // Minimal UUID type and helpers
 
 class Uuid {

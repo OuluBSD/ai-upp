@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_Cham_h_
 #define _Draw_Cham_h_
 

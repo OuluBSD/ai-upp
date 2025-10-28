@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlLib_Bar_h_
 #define _CtrlLib_Bar_h_
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_Cpu_h_
 #define _Core_Cpu_h_
 

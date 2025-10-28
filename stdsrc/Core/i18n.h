@@ -1,3 +1,4 @@
+#pragma once
 // Minimal i18n shims for translation macros
 
 struct LngEntry__ { int lang; const char* text; };

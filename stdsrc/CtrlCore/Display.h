@@ -1,3 +1,4 @@
+#pragma once
 // U++-compatible Display wrapper for UI display operations
 // This header is aggregated and wrapped into namespace Upp by CtrlCore.h
 

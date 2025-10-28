@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlLib_ChatCtrl_h_
 #define _CtrlLib_ChatCtrl_h_
 

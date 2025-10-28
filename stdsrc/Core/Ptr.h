@@ -1,3 +1,4 @@
+#pragma once
 // Simplified non-owning Ptr<T> wrapper (no reference counting)
 
 template <class T>

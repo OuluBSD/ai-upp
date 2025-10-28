@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STDSRC_CORE_CORE_H
 #define STDSRC_CORE_CORE_H
 

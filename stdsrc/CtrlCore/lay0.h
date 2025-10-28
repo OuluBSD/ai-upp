@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_lay0_h_
 #define _CtrlCore_lay0_h_
 

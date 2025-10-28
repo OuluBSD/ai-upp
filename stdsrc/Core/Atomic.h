@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_Atomic_h_
 #define _Core_Atomic_h_
 

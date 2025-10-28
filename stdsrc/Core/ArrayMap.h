@@ -1,3 +1,4 @@
+#pragma once
 // ArrayMap<K, T>: ordered map with owning pointer values for stable addresses
 
 template <class K, class T>

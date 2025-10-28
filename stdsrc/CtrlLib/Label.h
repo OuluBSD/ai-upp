@@ -1,7 +1,14 @@
+#pragma once
 // U++-compatible Label wrapper for UI labels
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class Label : public CtrlBase {
+#include <string>
+#include "../Draw/Color.h"
+#include "../Draw/Font.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+
+class Label : public Ctrl {
 private:
     std::string text;
     Font font;
@@ -10,13 +17,13 @@ private:
 
 public:
     // Constructors
-    Label() : CtrlBase(), text("Label"), font(Font::Arial(12)), 
+    Label() : Ctrl(), text("Label"), font(Font::Arial(12)), 
               text_color(Color::Black()), alignment(0) {
         // Default size for a label
         SetSize(100, 20);
     }
     
-    explicit Label(const std::string& label_text) : CtrlBase(), text(label_text), 
+    explicit Label(const std::string& label_text) : Ctrl(), text(label_text), 
               font(Font::Arial(12)), text_color(Color::Black()), alignment(0) {
         SetSize(100, 20);
     }
@@ -26,14 +33,12 @@ public:
     static Label* Create(const std::string& label_text) { return new Label(label_text); }
 
     // U++-style label properties
-    Label& Label(const std::string& lbl) { 
+    void SetLabelText(const std::string& lbl) { 
         text = lbl; 
-        return *this; 
     }
     
-    Label& SetLabel(const std::string& lbl) { 
+    void SetLabel(const std::string& lbl) { 
         text = lbl; 
-        return *this; 
     }
 
     // U++-style text accessors
@@ -41,50 +46,42 @@ public:
     std::string GetText() const { return text; }
 
     // U++-style font operations
-    Label& SetFont(const Font& f) { 
+    void SetFont(const Font& f) { 
         font = f; 
-        return *this; 
     }
     
     const Font& GetFont() const { return font; }
     
-    Label& Font(const Font& f) { 
+    void Font(const Font& f) { 
         font = f; 
-        return *this; 
     }
 
     // U++-style text color operations
-    Label& SetTextColor(const Color& color) { 
+    void SetTextColor(const Color& color) { 
         text_color = color; 
-        return *this; 
     }
     
     const Color& GetTextColor() const { return text_color; }
     
-    Label& TextColor(const Color& color) { 
+    void TextColor(const Color& color) { 
         text_color = color; 
-        return *this; 
     }
 
     // U++-style alignment operations
-    Label& SetAlign(int align) { 
+    void SetAlign(int align) { 
         alignment = align; 
-        return *this; 
     }
     
-    Label& Left() { 
+    void Left() { 
         alignment = 0; 
-        return *this; 
     }
     
-    Label& Center() { 
+    void Center() { 
         alignment = 1; 
-        return *this; 
     }
     
-    Label& Right() { 
+    void Right() { 
         alignment = 2; 
-        return *this; 
     }
 
     // U++-style painting
@@ -116,36 +113,32 @@ public:
     }
 
     // U++-style label operations
-    Label& NoWantFocus() {
+    void NoWantFocus() {
         // Labels don't typically receive focus
-        return *this;
     }
 
     // U++-style label appearance
-    Label& Inset(int left, int top, int right, int bottom) {
+    void Inset(int left, int top, int right, int bottom) {
         // In a real implementation, this would set text inset values
-        return *this;
     }
     
-    Label& SetFrame(int left, int top, int right, int bottom) {
+    void SetFrame(int left, int top, int right, int bottom) {
         // In a real implementation, this would set frame margins
-        return *this;
     }
 
     // U++-style size adjustment
-    Label& SizePos() {
+    void SizePos() {
         // In a real implementation, this would set the size and position based on content
         // For now, we'll set a reasonable default size based on text content
         if (!text.empty()) {
             Size textSize = font.GetTextSize(text);
             SetSize(textSize.cx + 10, textSize.cy + 4); // Add some padding
         }
-        return *this;
     }
     
     // U++-style auto-size to fit content
-    Label& AutoSize() {
-        return SizePos();  // For labels, SizePos() effectively autosizes
+    void AutoSize() {
+        SizePos();  // For labels, SizePos() effectively autosizes
     }
 
     // U++-style methods for identifying control types
@@ -155,21 +148,18 @@ public:
     int GetAlign() const { return alignment; }
     
     // U++-style multi-line text support
-    Label& NoEllipsis() {
+    void NoEllipsis() {
         // In a real implementation, this would prevent text ellipsis
-        return *this;
     }
     
     // U++-style text formatting
-    Label& SetSingle() {
+    void SetSingle() {
         // In a real implementation, this would set single line display
-        return *this;
     }
     
     // U++-style method to set text with formatting
-    Label& SetData(const std::string& data) {
+    void SetData(const std::string& data) {
         SetLabel(data);
-        return *this;
     }
     
     std::string GetData() const {

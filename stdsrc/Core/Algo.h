@@ -1,3 +1,4 @@
+#pragma once
 // Minimal algorithm helpers inspired by U++ Core Algo.h
 
 template <class T>

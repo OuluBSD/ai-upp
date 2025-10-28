@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Draw_Palette_h_
 #define _Draw_Palette_h_
 

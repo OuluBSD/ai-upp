@@ -1,3 +1,4 @@
+#pragma once
 // Simple text I/O helpers using Stream
 
 class TextReader {

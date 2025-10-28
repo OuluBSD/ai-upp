@@ -1,5 +1,10 @@
+#pragma once
 // U++-compatible Point wrapper implemented using std::pair or direct implementation
 // This header is aggregated and wrapped into namespace Upp by Draw.h
+
+#include <cstdint>  // For uint8_t, uint32_t
+#include <algorithm>
+#include <cmath>
 
 class Point {
 public:

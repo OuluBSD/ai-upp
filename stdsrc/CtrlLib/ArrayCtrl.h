@@ -1,7 +1,14 @@
+#pragma once
 // U++-compatible ArrayCtrl wrapper for table-like controls
 // This header is aggregated and wrapped into namespace Upp by CtrlLib.h
 
-class ArrayCtrl : public CtrlBase {
+#include <string>
+#include <vector>
+#include "../Draw/Color.h"
+#include "../Draw/DrawCore.h"
+#include "../CtrlCore/Ctrl.h"
+
+class ArrayCtrl : public Ctrl {
 private:
     struct Column {
         std::string title;
@@ -26,7 +33,7 @@ private:
 
 public:
     // Constructors
-    ArrayCtrl() : CtrlBase(), header_height(24), row_height(20), 
+    ArrayCtrl() : Ctrl(), header_height(24), row_height(20), 
                   top_row(0), visible_rows(10), selection(-1), 
                   sort_column(-1), ascending(true) {
         // Default size for an array control
@@ -37,7 +44,7 @@ public:
     static ArrayCtrl* Create() { return new ArrayCtrl(); }
 
     // U++-style column operations
-    ArrayCtrl& AddColumn(const std::string& title, int width = 100) { 
+    void AddColumn(const std::string& title, int width = 100) { 
         columns.emplace_back(title, width);
         // Ensure all rows have this column
         for (auto& row : data) {
@@ -48,18 +55,16 @@ public:
         return *this; 
     }
 
-    ArrayCtrl& ColumnWidth(int column, int width) {
+    void ColumnWidth(int column, int width) {
         if (column >= 0 && column < static_cast<int>(columns.size())) {
             columns[column].width = width;
         }
-        return *this;
     }
 
-    ArrayCtrl& ColumnAlign(int column, int align) {
+    void ColumnAlign(int column, int align) {
         if (column >= 0 && column < static_cast<int>(columns.size())) {
             columns[column].align = align;
         }
-        return *this;
     }
 
     // U++-style row operations
@@ -79,15 +84,14 @@ public:
         return Add(empty_row);
     }
 
-    ArrayCtrl& Set(int row, int column, const std::string& value) {
+    void Set(int row, int column, const std::string& value) {
         if (row >= 0 && row < static_cast<int>(data.size()) && 
             column >= 0 && column < static_cast<int>(columns.size())) {
             data[row][column] = value;
         }
-        return *this;
     }
 
-    ArrayCtrl& Set(int row, const std::vector<std::string>& values) {
+    void Set(int row, const std::vector<std::string>& values) {
         if (row >= 0 && row < static_cast<int>(data.size())) {
             // Ensure we don't exceed column count
             int cols = static_cast<int>(std::min(values.size(), columns.size()));
@@ -95,7 +99,6 @@ public:
                 data[row][i] = values[i];
             }
         }
-        return *this;
     }
 
     std::string Get(int row, int column) const {
@@ -107,18 +110,16 @@ public:
     }
 
     // U++-style selection operations
-    ArrayCtrl& Set(int index) {  // Select row
+    void Set(int index) {  // Select row
         if (index >= 0 && index < static_cast<int>(data.size())) {
             selection = index;
         }
-        return *this;
     }
     
     int Get() const { return selection; }  // Get selected row
     
-    ArrayCtrl& ClearSelection() {
+    void ClearSelection() {
         selection = -1;
-        return *this;
     }
 
     // U++-style painting
@@ -206,60 +207,51 @@ public:
     int GetCount() const { return static_cast<int>(data.size()); }
     int GetColumnCount() const { return static_cast<int>(columns.size()); }
     
-    ArrayCtrl& Clear() {
+    void Clear() {
         data.clear();
         row_heights.clear();
         selection = -1;
-        return *this;
     }
     
-    ArrayCtrl& NoHeader() {
+    void NoHeader() {
         header_height = 0;
-        return *this;
     }
     
-    ArrayCtrl& NoGrid() {
+    void NoGrid() {
         // In a real implementation, this would hide grid lines
-        return *this;
     }
     
-    ArrayCtrl& NoHScroll() {
+    void NoHScroll() {
         // In a real implementation, this would disable horizontal scrolling
-        return *this;
     }
     
-    ArrayCtrl& NoVScroll() {
+    void NoVScroll() {
         // In a real implementation, this would disable vertical scrolling
-        return *this;
     }
     
-    ArrayCtrl& SingleSelect() {
+    void SingleSelect() {
         // In a real implementation, this would configure for single selection
-        return *this;
     }
     
-    ArrayCtrl& MultiSelect() {
+    void MultiSelect() {
         // In a real implementation, this would configure for multiple selection
-        return *this;
     }
 
     // U++-style sorting
-    ArrayCtrl& SortBy(int column, bool ascending = true) {
+    void SortBy(int column, bool ascending = true) {
         if (column >= 0 && column < static_cast<int>(columns.size())) {
             sort_column = column;
             this->ascending = ascending;
             // In a real implementation, this would perform the actual sort
         }
-        return *this;
     }
 
     // U++-style size adjustment
-    ArrayCtrl& SizePos() {
+    void SizePos() {
         // In a real implementation, this would size based on content
-        return *this;
     }
     
-    ArrayCtrl& SetRow(int row, int height) {
+    void SetRow(int row, int height) {
         if (row >= 0 && row < static_cast<int>(row_heights.size())) {
             row_heights[row] = height;
         } else if (row >= 0 && row < static_cast<int>(data.size())) {
@@ -267,14 +259,12 @@ public:
             row_heights.resize(data.size(), row_height);
             row_heights[row] = height;
         }
-        return *this;
     }
 
     // U++-style data operations
-    ArrayCtrl& SetData(const std::vector<std::vector<std::string>>& new_data) {
+    void SetData(const std::vector<std::vector<std::string>>& new_data) {
         data = new_data;
         row_heights.resize(data.size(), row_height);
-        return *this;
     }
     
     std::vector<std::vector<std::string>> GetData() const {

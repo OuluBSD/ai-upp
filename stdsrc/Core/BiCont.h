@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _Core_BiCont_h_
 #define _Core_BiCont_h_
 

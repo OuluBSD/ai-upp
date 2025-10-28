@@ -1,3 +1,4 @@
+#pragma once
 // Minimal callbacks using std::function
 
 using Callback = std::function<void()>;

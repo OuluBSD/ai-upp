@@ -1,3 +1,4 @@
+#pragma once
 #ifndef _CtrlCore_CtrlMouse_h_
 #define _CtrlCore_CtrlMouse_h_
 
@@ -35,22 +36,22 @@ public:
     explicit CtrlMouse(Ctrl& c) : ctrl(c), capturing(false), mouse_flags(0) {}
     
     // Mouse event handlers
-    CtrlMouse& WhenMouseMove(std::function<bool(Point, dword)> h) { mouse_move = h; return *this; }
-    CtrlMouse& WhenMouseLeave(std::function<bool(Point, dword)> h) { mouse_leave = h; return *this; }
-    CtrlMouse& WhenLeftDown(std::function<bool(Point, dword)> h) { left_down = h; return *this; }
-    CtrlMouse& WhenLeftUp(std::function<bool(Point, dword)> h) { left_up = h; return *this; }
-    CtrlMouse& WhenLeftDouble(std::function<bool(Point, dword)> h) { left_double = h; return *this; }
-    CtrlMouse& WhenRightDown(std::function<bool(Point, dword)> h) { right_down = h; return *this; }
-    CtrlMouse& WhenRightUp(std::function<bool(Point, dword)> h) { right_up = h; return *this; }
-    CtrlMouse& WhenRightDouble(std::function<bool(Point, dword)> h) { right_double = h; return *this; }
-    CtrlMouse& WhenMiddleDown(std::function<bool(Point, dword)> h) { middle_down = h; return *this; }
-    CtrlMouse& WhenMiddleUp(std::function<bool(Point, dword)> h) { middle_up = h; return *this; }
-    CtrlMouse& WhenMiddleDouble(std::function<bool(Point, dword)> h) { middle_double = h; return *this; }
-    CtrlMouse& WhenMouseWheel(std::function<bool(int, Point)> h) { mouse_wheel = h; return *this; }
-    CtrlMouse& WhenMouseEnter(std::function<bool(Point, dword)> h) { mouse_enter = h; return *this; }
-    CtrlMouse& WhenCursor(std::function<bool(Point)> h) { cursor = h; return *this; }
-    CtrlMouse& WhenMouseCapture(std::function<void()> h) { mouse_captured = h; return *this; }
-    CtrlMouse& WhenMouseUncapture(std::function<void()> h) { mouse_uncaptured = h; return *this; }
+    void WhenMouseMove(std::function<bool(Point, dword)> h) { mouse_move = h; }
+    void WhenMouseLeave(std::function<bool(Point, dword)> h) { mouse_leave = h; }
+    void WhenLeftDown(std::function<bool(Point, dword)> h) { left_down = h; }
+    void WhenLeftUp(std::function<bool(Point, dword)> h) { left_up = h; }
+    void WhenLeftDouble(std::function<bool(Point, dword)> h) { left_double = h; }
+    void WhenRightDown(std::function<bool(Point, dword)> h) { right_down = h; }
+    void WhenRightUp(std::function<bool(Point, dword)> h) { right_up = h; }
+    void WhenRightDouble(std::function<bool(Point, dword)> h) { right_double = h; }
+    void WhenMiddleDown(std::function<bool(Point, dword)> h) { middle_down = h; }
+    void WhenMiddleUp(std::function<bool(Point, dword)> h) { middle_up = h; }
+    void WhenMiddleDouble(std::function<bool(Point, dword)> h) { middle_double = h; }
+    void WhenMouseWheel(std::function<bool(int, Point)> h) { mouse_wheel = h; }
+    void WhenMouseEnter(std::function<bool(Point, dword)> h) { mouse_enter = h; }
+    void WhenCursor(std::function<bool(Point)> h) { cursor = h; }
+    void WhenMouseCapture(std::function<void()> h) { mouse_captured = h; }
+    void WhenMouseUncapture(std::function<void()> h) { mouse_uncaptured = h; }
     
     // Process mouse move
     virtual bool ProcessMouseMove(Point pos, dword flags) {
@@ -230,27 +231,27 @@ public:
     }
     
     // Drag and drop support
-    CtrlMouse& WhenDragStart(std::function<bool(Point, dword)> handler);
-    CtrlMouse& WhenDragOver(std::function<bool(Point, dword)> handler);
-    CtrlMouse& WhenDragDrop(std::function<bool(Point, dword)> handler);
-    CtrlMouse& WhenDragLeave(std::function<bool(Point, dword)> handler);
+    void WhenDragStart(std::function<bool(Point, dword)> handler);
+    void WhenDragOver(std::function<bool(Point, dword)> handler);
+    void WhenDragDrop(std::function<bool(Point, dword)> handler);
+    void WhenDragLeave(std::function<bool(Point, dword)> handler);
     
     // Common mouse operations
-    CtrlMouse& Click(std::function<void()> handler) {
+    void Click(std::function<void()> handler) {
         return WhenLeftUp([handler](Point, dword) { handler(); return true; });
     }
     
-    CtrlMouse& DoubleClick(std::function<void()> handler) {
+    void DoubleClick(std::function<void()> handler) {
         return WhenLeftDouble([handler](Point, dword) { handler(); return true; });
     }
     
     // Context menu
-    CtrlMouse& ContextMenu(std::function<void(Point)> handler) {
+    void ContextMenu(std::function<void(Point)> handler) {
         return WhenRightUp([handler](Point pos, dword) { handler(pos); return true; });
     }
     
     // Hover effects
-    CtrlMouse& Hover(std::function<void(bool over)> handler) {
+    void Hover(std::function<void(bool over)> handler) {
         WhenMouseEnter([handler](Point, dword) { handler(true); return false; });
         WhenMouseLeave([handler](Point, dword) { handler(false); return false; });
         return *this;
@@ -386,7 +387,7 @@ public:
     }
     
     // Set cursor when mouse is over this control
-    MouseCtrl& SetHoverCursor(CtrlMouse::CursorType cursor_type) {
+    void SetHoverCursor(CtrlMouse::CursorType cursor_type) {
         return Hover([this, cursor_type](bool over) {
             if (over) SetCursor(cursor_type);
         });

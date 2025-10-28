@@ -1,3 +1,4 @@
+#pragma once
 // Minimal sorting helpers over STL
 
 template <class It, class Cmp>

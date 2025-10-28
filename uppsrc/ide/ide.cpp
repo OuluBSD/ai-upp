@@ -641,6 +641,57 @@ void Ide::SetIcon()
 #endif
 }
 
+Rect Ide::GetFileInfoRect()
+{
+	Rect r = display.GetScreenRect();
+	r.top = r.bottom - GetStdFontCy() / 2;
+	r.bottom = r.top + GetStdFontCy() + DPI(2);
+	r.left = r.right - HorzLayoutZoom(270);
+	return r - GetScreenRect().TopLeft();
+}
+
+void Ide::PaintFileInfo(Draw& w)
+{
+	if(fileinfo_visible) {
+		Time tm(edittime);
+		String qtf = "[g ";
+		
+		qtf << AsString(Format("  [@b* %d]-[@b* %02d]-[@b* %02d] [* %02d]:[* %02d]:%02d",
+		                (int)tm.year, (int)tm.month, (int)tm.day,
+		                (int)tm.hour, (int)tm.minute, (int)tm.second));
+		                
+		double d = (GetSysTime() - tm) / 60;
+		String unit = "minute";
+		auto DoUnit = [&](double m, const char *s) {
+			if(d > m) {
+				d /= m;
+				unit = s;
+			}
+		};
+		DoUnit(60, "hour");
+		DoUnit(24, "day");
+		
+		DoUnit(30.5, "month");
+		DoUnit(12, "year");
+		int n = (int)round(d);
+		if(n != 1)
+			unit << "s";
+		qtf << " ([* " << n << ' ' << unit << "] ago), size [* " << FormatFileSize(editfile_length);
+
+		RichText txt = ParseQTF(qtf);
+		txt.ApplyZoom(GetRichTextStdScreenZoom());
+		Size tsz(txt.GetWidth(), txt.GetHeight(INT_MAX));
+
+		Rect r = GetFileInfoRect();
+		r.left = r.right - tsz.cx - DPI(4);
+		DrawFrame(w, r, SBlack());
+		r.Deflate(1, 1);
+		w.DrawRect(r, SColorPaper());
+		Size sz = r.GetSize();
+		txt.Paint(w, DPI(2) + r.left, (sz.cy - tsz.cy) / 2 + r.top, INT_MAX / 2);
+	}
+}
+
 void Ide::Periodic()
 {
 	CheckFileUpdate();
@@ -648,6 +699,11 @@ void Ide::Periodic()
 	if(debugger && debugger->IsFinished() && !IdeIsDebugLock())
 		IdeEndDebug();
 	SyncClang();
+	bool b = display.GetScreenRect().Contains(GetMousePos());
+	if(fileinfo_visible != b) {
+		RefreshFrame(GetFileInfoRect());
+		fileinfo_visible = b;
+	}
 }
 
 struct IndexerProgress : ImageMaker {

@@ -543,8 +543,8 @@ public:
 	int       editfile_repo;
 	bool      editfile_isfolder;
 	bool      replace_in_files = false; // Find in files replace or Replace found items mode - do not update things
-
 	String    editfile2;
+	int64     editfile_length = 0;
 
 	String    scratch_back; // to get back from Alt-M scratchfile
 
@@ -710,6 +710,7 @@ public:
 	ParentCtrl              barrect; // to do custom caption clipping
 	CursorInfoCtrl          display, display_main;
 	ImageCtrl               indeximage, indeximage2;
+	bool                    fileinfo_visible = false; // show file time when cursor points to display
 
 	byte      hilite_scope;
 	int       hilite_bracket;
@@ -896,7 +897,7 @@ public:
 		void  InsertAs(const String& data);
 		void  InsertAs();
 		void  InsertFilePath(bool c);
-		void  InsertFileBase64();
+		void  InsertFileContent();
 		void  InsertMenu(Bar& bar);
 		void  InsertInclude(Bar& bar);
 		void  InsertAdvanced(Bar& bar);
@@ -987,6 +988,9 @@ public:
 		void  BuildAndExtDebugFile();
 		bool  IsValgrind();
 		void  Valgrind();
+#ifdef PLATFORM_WIN32
+		bool  PdbMode(const Vector<String>& cmd);
+#endif
 
 		void  StartDebug();
 		void  StopDebug();
@@ -1060,6 +1064,9 @@ public:
 		void  RemoveDs();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
+<<<<<<< HEAD
+	#ifndef flagV1
+		void  InsertParameters();
 	#ifndef flagV1
 		void  OpenVfsDlg();
 		void  OpenAITaskDlg();
@@ -1199,6 +1206,9 @@ public:
 	void      Periodic();
 	void      SyncClang();
 
+	Rect      GetFileInfoRect();
+	void      PaintFileInfo(Draw& w);
+
 	void      PassEditor(AssistEditor& editor2);
 	void      PassEditor();
 	void      SyncEditorSplit();
@@ -1213,14 +1223,10 @@ public:
 	void      TabsLR( int jd );
 	void      TabsStackLR( int jd );
 
-	void      RefreshFrame(bool auto_disasm);
-	void      RefreshLine(int frame, bool auto_disasm);
-
 	void      SetBar();
 	void      SetMenuBar();
 	void      SetToolBar();
 	TimeCallback delayed_toolbar;
-
 
 	void      UpdateFormat(CodeEditor& editor);
 	void      UpdateFormat();

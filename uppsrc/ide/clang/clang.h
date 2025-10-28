@@ -82,8 +82,11 @@ struct SourceLocation : Moveable<SourceLocation> {
 	String ToString() const                        { return path + ": " + AsString(pos) + " (" + AsString(begin) + "-" + AsString(end) + ")"; }
 };
 
-String RedefineMacros();
 String GetClangInternalIncludes();
+
+#ifdef PLATFORM_WIN32
+String GetLibClangVersion();
+#endif
 
 enum AdditionalKinds {
 	KIND_INCLUDEFILE = -1000,
@@ -99,8 +102,10 @@ String SignatureQtf(const String& name, const String& pretty, int pari = INT_MAX
 String CppText(const String& name, const String& pretty);
 
 bool IsStruct(int kind);
+bool IsTypedef(int kind);
 bool IsTemplate(int kind);
 bool IsFunction(int kind);
+bool IsMethod(int kind);
 bool IsVariable(int kind);
 bool IsDecl(int kind);
 bool IsTypeDecl(int kind);

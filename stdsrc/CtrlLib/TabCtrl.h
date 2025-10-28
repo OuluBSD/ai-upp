@@ -4,177 +4,203 @@
 
 #include "Ctrl.h"
 #include <vector>
+#include <functional>
+#include <memory>
 
 namespace Upp {
 
 class TabCtrl : public Ctrl {
 public:
-	struct Style : public ChStyle<Style> {
-		Font        font;
-		int         tabheight;
-		int         margin;
-		Rect        sel;
-		Rect        edge;
-		int         extendleft;
-		Value       normal[4];
-		Value       first[4];
-		Value       last[4];
-		Value       both[4];
-		Value       body;
-		Color       text_color[4];
-		
-		static Style Default();
+	virtual bool  Accept() override;
+	virtual void  Paint(Draw& draw) override;
+	virtual void  CancelMode() override;
+	virtual void  MouseMove(Point p, dword keyflags) override;
+	virtual void  LeftDown(Point p, dword keyflags) override;
+	virtual void  MouseLeave() override;
+	virtual bool  Key(dword key, int count) override;
+	virtual bool  HotKey(dword key) override;
+	virtual void  Layout() override;
+	virtual Rect  GetOpaqueRect() const override;
+	virtual Value GetData() const override;
+	virtual void  SetData(const Value& data) override;
+
+public:
+	class Item {
+		TabCtrl  *owner;
+
+		int       x;
+		Point     pictpos;
+		Point     textpos;
+		int       cx;
+
+		String    text;
+		PaintRect pict;
+		std::shared_ptr<Ctrl> ctrl;
+		bool      enabled;
+		std::shared_ptr<Ctrl> slave;
+		dword     key;
+
+		friend class TabCtrl;
+
+		void Layout(int x, int y, int cy);
+		void Paint(Draw& w, int state);
+		int  Right() const { return x + cx; }
+
+	public:
+		Item&          Text(const String& _text);
+		Item&          Picture(PaintRect d);
+		Item&          SetImage(const UPP::Image& _im)  { return Picture(PaintRect(ImageDisplay(), _im)); }
+		Item&          SetCtrl(Ctrl *_ctrl);
+		Item&          SetCtrl(Ctrl& c)                 { return SetCtrl(&c); }
+		Item&          Slave(Ctrl *_slave);
+		Item&          Key(dword _key)                  { key = _key; return *this; }
+
+		Item&          Enable(bool _en = true);
+		Item&          Disable()                        { return Enable(false); }
+		bool           IsEnabled() const                { return enabled; }
+		Ctrl          *GetSlave()                       { return slave.get(); }
+		const Ctrl    *GetSlave() const                 { return slave.get(); }
+		Ctrl          *GetCtrl()                        { return ctrl.get(); }
+		const Ctrl    *GetCtrl() const                  { return ctrl.get(); }
+		String         GetText() const                  { return text; }
+		PaintRect      GetPicture() const               { return pict; }
+
+		Item();
+
+	//deprecated:
+		Item&          Control(Ctrl *c)                 { return SetCtrl(c); }
+		Item&          Image(const UPP::Image& m)       { return SetImage(m); }
+	};
+
+	struct Style : ChStyle<Style> {
+		int tabheight, margin, extendleft;
+		Rect sel, edge;
+		Value normal[4], first[4], last[4], both[4], body;
+		Color text_color[4];
+		Font font;
 	};
 
 private:
-	struct Item {
-		TabCtrl      *owner;
-		String        text;
-		PaintRect     pict;
-		Ctrl         *ctrl;
-		Ctrl         *slave;
-		bool          enabled;
-		Value         key;
-		int           x, cx;
-		Point         pictpos, textpos;
-
-		Item& Text(const String& text);
-		Item& Picture(const Image& img);
-		Item& SetCtrl(Ctrl *ctrl);
-		Item& Slave(Ctrl *slave);
-		Item& Enable(bool en = true);
-		int   Right() const { return x + cx; }
-		bool  IsEnabled() const { return enabled; }
-		
-		void  Layout(int xp, int y, int cy);
-		void  Paint(Draw& w, int state);
-		
-		Item();
+	struct Tabs : public Ctrl {
+		virtual void Paint(Draw& w) override;
 	};
 
-	std::vector<Item> tab;
-	int               sel;
-	int               hot;
-	int               x0;
-	bool              no_accept;
-	bool              accept_current;
-	One<Style>        style;
-	
-	Ctrl              tabs;
-	Ctrl              pane;
-	Button            left;
-	Button            right;
+	Array<Item> tab;
+	int         x0;
+	int         hot;
+	int         sel;
+	Tabs        tabs;
+	Button      left, right;
+	ParentCtrl  pane;
+	bool        accept_current, no_accept;
 
-	void  SyncTabs();
-	void  PaintTabs(Draw& w);
-	void  SyncHot();
-	int   GetTab(Point p) const;
-	void  ScrollInto(int i);
-	void  PaintItem(Draw& w, int i, int state);
-	int   TabsRight();
+	const Style *style;
+
+	static Image Fade(int i);
+
+	void       PaintTabs(Draw& w);
+	void       ScrollInto(int i);
+	void       Left();
+	void       Right();
+	void       SyncHot();
+	void       SyncTabs();
+	int        TabsRight();
+	void       Go(int d);
+	int        FindInsert(Ctrl& slave);
 
 public:
-	virtual void  Paint(Draw& w) override;
-	virtual void  LeftDown(Point p, dword keyflags) override;
-	virtual void  MouseMove(Point p, dword keyflags) override;
-	virtual void  MouseLeave() override;
-	virtual void  CancelMode() override;
-	virtual bool  Key(dword key, int count) override;
-	virtual bool  HotKey(dword key) override;
-	virtual bool  Accept() override;
-	virtual void  Layout() override;
-	virtual Rect  GetOpaqueRect() const override;
-	
-	void  SetStyle(const Style& s) { style = s; }
-	const Style& GetStyle() const { return *style; }
-	
-	TabCtrl& NoAccept(bool b = true) { no_accept = b; return *this; }
-	TabCtrl& AcceptCurrent(bool b = true) { accept_current = b; return *this; }
-	
-	// Tab management
-	Item& Add();
-	Item& Add(const char *text);
-	Item& Add(const Image& m, const char *text);
-	Item& Add(Ctrl& slave, const char *text);
-	Item& Add(Ctrl& slave, const Image& m, const char *text);
-	
-	Item& Insert(int i);
-	Item& Insert(int i, const char *text);
-	Item& Insert(int i, const Image& m, const char *text);
-	Item& Insert(int i, Ctrl& slave, const char *text);
-	Item& Insert(int i, Ctrl& slave, const Image& m, const char *text);
-	Item& Insert(Ctrl& before_slave);
-	Item& Insert(Ctrl& before_slave, const char *text);
-	Item& Insert(Ctrl& before_slave, const Image& m, const char *text);
-	Item& Insert(Ctrl& before_slave, Ctrl& slave, const char *text);
-	Item& Insert(Ctrl& before_slave, Ctrl& slave, const Image& m, const char *text);
-	
+	Event<>  WhenSet;
+
+	TabCtrl::Item& Add();
+	TabCtrl::Item& Add(const char *text);
+	TabCtrl::Item& Add(const Image& m, const char *text);
+	TabCtrl::Item& Add(Ctrl& slave, const char *text);
+	TabCtrl::Item& Add(Ctrl& slave, const Image& m, const char *text);
+
+	TabCtrl::Item& Insert(int i);
+	TabCtrl::Item& Insert(int i, const char *text);
+	TabCtrl::Item& Insert(int i, const Image& m, const char *text);
+	TabCtrl::Item& Insert(int i, Ctrl& slave, const char *text);
+	TabCtrl::Item& Insert(int i, Ctrl& slave, const Image& m, const char *text);
+
 	void  Remove(int i);
+
+	int   GetTab(Point p) const;
+
+	int   GetCount() const                       { return tab.GetCount(); }
+	Item& GetItem(int i)                         { return tab[i]; }
+	const Item& GetItem(int i) const             { return tab[i]; }
+
+	void Set(int i);
+	int  Get() const                             { return sel; }
+
+	int  Find(const Ctrl& slave) const;
+	void Set(Ctrl& slave);
+	bool IsAt(Ctrl& slave)                       { return Get() == Find(slave); }
+
+	TabCtrl::Item& Insert(Ctrl& before_slave);
+	TabCtrl::Item& Insert(Ctrl& before_slave, const char *text);
+	TabCtrl::Item& Insert(Ctrl& before_slave, const Image& m, const char *text);
+	TabCtrl::Item& Insert(Ctrl& before_slave, Ctrl& slave, const char *text);
+	TabCtrl::Item& Insert(Ctrl& before_slave, Ctrl& slave, const Image& m, const char *text);
+
 	void  Remove(Ctrl& slave);
-	void  Reset();
-	
-	int   GetCount() const { return tab.size(); }
-	int   Get() const { return sel; }
-	void  Set(int i);
-	void  Set(Ctrl& slave);
-	void  Set(const Value& data);
-	Value GetData() const;
-	
-	int   Find(const Ctrl& slave) const;
-	int   FindInsert(Ctrl& slave);
-	
-	// Navigation
-	void  Go(int d);
-	void  GoNext() { Go(1); }
-	void  GoPrev() { Go(-1); }
-	
-	// Tab properties
-	const String& GetTabText(int i) const { return tab[i].text; }
-	void          SetTabText(int i, const String& text) { tab[i].Text(text); }
-	bool          IsTabEnabled(int i) const { return tab[i].IsEnabled(); }
-	void          EnableTab(int i, bool enable = true) { tab[i].Enable(enable); }
-	
-	// Accessors
-	Ctrl& GetTabCtrl(int i) { return *tab[i].ctrl; }
-	Ctrl& GetTabSlave(int i) { return *tab[i].slave; }
-	
-	// Scrolling
-	void  Left();
-	void  Right();
-	
-	// Layout
-	Size  ComputeSize();
-	Size  ComputeSize(Size pane);
-	
+
+	void GoNext()                                { Go(1); }
+	void GoPrev()                                { Go(-1); }
+
+	Size     ComputeSize(Size pane);
+	Size     ComputeSize();
+	void     Add(Ctrl& c)                        { pane.Add(c.SizePos()); }
+//	TabCtrl& operator<<(Ctrl& c)                 { Add(c); return *this; } // ambiguos with operator<<(lambda)
+
+	static const Style& StyleDefault();
+
+	TabCtrl& NoAccept(bool ac = true)            { no_accept = ac; return *this; }
+	TabCtrl& AcceptCurrent(bool ac = true)       { accept_current = ac; return *this; }
+	TabCtrl& AcceptAll()                         { return AcceptCurrent(false); }
+	TabCtrl& SetStyle(const Style& s)            { style = &s; Refresh(); return *this; }
+
+	void Reset();
+
+	typedef TabCtrl CLASSNAME;
+
 	TabCtrl();
-	virtual ~TabCtrl() {}
+	virtual ~TabCtrl();
 };
 
-// TabDlg - dialog with tabs
 class TabDlg : public TopWindow {
-	TabCtrl    tabctrl;
-	Size       sz;
-	Button     ok;
-	Button     cancel;
-	Button     apply;
-	Button     exit;
-	bool       binit;
+	void    Rearrange();
 
-	void PlaceButton(Button& b, int& r);
-	void Rearrange();
+	bool    binit;
+	Size    sz;
+
+	void           PlaceButton(Button& b, int& r);
 	TabCtrl::Item& Add0(Ctrl& tab, const char *text);
+	TabDlg&        AButton(Button& b);
 
 public:
-	TabCtrl& GetTabCtrl() { return tabctrl; }
-	const TabCtrl& GetTabCtrl() const { return tabctrl; }
-	
-	TabDlg& AButton(Button& b);
-	
-	Button& OK() { return ok; }
-	Button& Cancel() { return cancel; }
-	Button& Apply() { return apply; }
-	Button& Exit() { return exit; }
-	
+	TabCtrl  tabctrl;
+	Button   ok;
+	Button   cancel;
+	Button   exit;
+	Button   apply;
+
+	template <class T>
+	TabCtrl::Item& Add(T& tab, const char *text)                   { CtrlLayout(tab); return Add0(tab, text); }
+	template <class T>
+	TabCtrl::Item& Add(T& tab, const Image& img, const char *name) { return Add(tab, name).Image(img); }
+	template <class T>
+	TabDlg&  operator()(T& tab, const char *text)                  { Add(tab, text); return *this; }
+	template <class T>
+	TabDlg&  operator()(T& tab, const Image& img, const char *txt) { Add(tab, img, txt); return *this; }
+
+	TabDlg&  OK()                                                  { return AButton(ok); }
+	TabDlg&  Cancel()                                              { return AButton(cancel); }
+	TabDlg&  OKCancel()                                            { return OK().Cancel(); }
+	TabDlg&  Exit()                                                { return AButton(exit); }
+	TabDlg&  Apply()                                               { return AButton(apply); }
+
 	TabDlg();
 };
 

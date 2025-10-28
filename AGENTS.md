@@ -10,6 +10,12 @@ When working with the Ultimate++ codebase, pay special attention to the `flagV1`
 - Code within `#ifdef flagV1` or `#ifdef flagV1 ... #else ... #endif` blocks represents the original Ultimate++ code
 - Preserve this distinction when resolving merge conflicts to maintain our custom functionality
 
+## Current Implementation Status
+
+- The stdsrc implementation for Core, CtrlCore, CtrlLib, and Draw packages is currently incomplete
+- No package files exist yet for stdsrc/CtrlLib, stdsrc/CtrlCore, and stdsrc/Draw
+- These components still need to be properly implemented to provide STL-backed equivalents of the U++ functionality
+
 ## Read These First
 - `CODESTYLE.md`: coding conventions and design tenets.
 - `TASKS.md`: tasks and roadmap for the repository.

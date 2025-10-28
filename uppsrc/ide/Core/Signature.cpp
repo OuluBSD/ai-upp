@@ -573,6 +573,7 @@ String MakeDefinition(const AnnotationItem& m)
 {
 	return MakeDefinition(m, GetClass(m));
 }
+<<<<<<< HEAD:uppsrc/ide/Core/Signature.cpp
 
 void AnnotationItem::operator=(const AnnotationItem& b) {
 	id = b.id;

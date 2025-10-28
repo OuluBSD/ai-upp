@@ -469,6 +469,7 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 		info.GetAdd(sl.path).stmts.Add(rm);
 	}
 	if(id.GetCount()) {
+		parent_id = id;
 		LoadSourceLocation();
 		CppFileInfo& f = info.GetAdd(sl.path);
 		AnnotationItem& r = locals ? f.locals.Add() : f.items.Add();
@@ -535,6 +536,7 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			rm.kind = ci.Kind();
 			rm.pos = sl.pos;
 			rm.id = ref_ci.Id();
+			rm.parent_id = parent_id;
 			rm.ref_pos = ref_loc.pos;
 		#if 0
 			DLOG("=======");
@@ -580,18 +582,13 @@ CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clien
 #endif
 	ClangVisitor *v = (ClangVisitor *)clientData;
 	bool bak_locals = v->locals;
-	ClangNode* owner = v->scope.Top();
-	One<ClangNode> n;
-	n.Create();
-	v->scope.Add(&*n);
-	bool visit = v->ProcessNode(cursor);
-	if (n->kind >= 0)
-		owner->sub.Add(n.Detach());
-	if (visit) {
+	String bak_parent_id = v->parent_id;
+	if(v->ProcessNode(cursor)) {
 		clang_visitChildren(cursor, clang_visitor, clientData);
 	}
 	v->scope.Pop();
 	v->locals = bak_locals;
+	v->parent_id = bak_parent_id;
 #ifdef DUMPTREE
 	LOGEND();
 #endif

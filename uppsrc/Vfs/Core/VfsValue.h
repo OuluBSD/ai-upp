@@ -130,6 +130,7 @@ struct VfsValue : Pte<VfsValue> {
 	void DeepChk();
 	void Chk();
 	bool IsOwnerDeep(VfsValueExt& n) const;
+	void Jsonize(JsonIO& io);
 	int GetCount() const;
 	int GetDepth() const;
 	int GetDepth(const VfsValue* limit) const;

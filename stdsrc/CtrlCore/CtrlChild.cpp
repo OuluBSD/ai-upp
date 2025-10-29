@@ -436,3 +436,183 @@ bool CtrlChild::IsPointInChild(const Point& pt) const {
 }
 
 }
+
+// Additional utility methods for enhanced child management
+
+// Sort children by z-order (custom comparator)
+CtrlChild& CtrlChild::SortChildren(std::function<bool(const std::shared_ptr<Ctrl>&, const std::shared_ptr<Ctrl>&)> compare) {
+    std::sort(children.begin(), children.end(), compare);
+    return *this;
+}
+
+// Get children filtered by predicate
+Vector<std::shared_ptr<Ctrl>> CtrlChild::GetFilteredChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    Vector<std::shared_ptr<Ctrl>> result;
+    for (const auto& child : children) {
+        if (child && predicate(child)) {
+            result.Add(child);
+        }
+    }
+    return result;
+}
+
+// Count children matching predicate
+int CtrlChild::CountChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    int count = 0;
+    for (const auto& child : children) {
+        if (child && predicate(child)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Check if any child matches predicate
+bool CtrlChild::AnyChild(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    for (const auto& child : children) {
+        if (child && predicate(child)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Check if all children match predicate
+bool CtrlChild::AllChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    if (children.IsEmpty()) return true;
+    for (const auto& child : children) {
+        if (child && !predicate(child)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Get child index by predicate
+int CtrlChild::FindIndex(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    for (int i = 0; i < children.GetCount(); i++) {
+        if (children[i] && predicate(children[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Get first child matching predicate
+std::shared_ptr<Ctrl> CtrlChild::FindFirst(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    for (const auto& child : children) {
+        if (child && predicate(child)) {
+            return child;
+        }
+    }
+    return nullptr;
+}
+
+// Get last child matching predicate
+std::shared_ptr<Ctrl> CtrlChild::FindLast(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const {
+    for (int i = children.GetCount() - 1; i >= 0; i--) {
+        if (children[i] && predicate(children[i])) {
+            return children[i];
+        }
+    }
+    return nullptr;
+}
+
+// Remove children matching predicate
+CtrlChild& CtrlChild::RemoveIf(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) {
+    for (int i = children.GetCount() - 1; i >= 0; i--) {
+        if (children[i] && predicate(children[i])) {
+            auto child = children[i];
+            children.Remove(i);
+            child->SetParent(nullptr);
+        }
+    }
+    return *this;
+}
+
+// Apply function to each child
+CtrlChild& CtrlChild::ForEachChild(std::function<void(const std::shared_ptr<Ctrl>&)> func) {
+    for (auto& child : children) {
+        if (child) {
+            func(child);
+        }
+    }
+    return *this;
+}
+
+// Apply function to each child (const version)
+void CtrlChild::ForEachChild(std::function<void(const std::shared_ptr<Ctrl>&)> func) const {
+    for (auto& child : children) {
+        if (child) {
+            func(child);
+        }
+    }
+}
+
+// Get children of specific type (using RTTI)
+template<typename T>
+Vector<std::shared_ptr<T>> CtrlChild::GetChildrenOfType() const {
+    Vector<std::shared_ptr<T>> result;
+    for (const auto& child : children) {
+        if (child) {
+            auto typed_child = std::dynamic_pointer_cast<T>(child);
+            if (typed_child) {
+                result.Add(typed_child);
+            }
+        }
+    }
+    return result;
+}
+
+// Move child to new position
+CtrlChild& CtrlChild::MoveChild(const std::shared_ptr<Ctrl>& child, int new_index) {
+    int old_index = Find(child);
+    if (old_index >= 0 && new_index >= 0 && new_index < children.GetCount() && old_index != new_index) {
+        children.Remove(old_index);
+        children.Insert(min(new_index, children.GetCount()), child);
+    }
+    return *this;
+}
+
+// Swap positions of two children
+CtrlChild& CtrlChild::SwapChildren(const std::shared_ptr<Ctrl>& child1, const std::shared_ptr<Ctrl>& child2) {
+    int index1 = Find(child1);
+    int index2 = Find(child2);
+    if (index1 >= 0 && index2 >= 0 && index1 != index2) {
+        Upp::Swap(children[index1], children[index2]);
+    }
+    return *this;
+}
+
+// Get child bounds (bounding rectangle of all children)
+Rect CtrlChild::GetChildrenBounds() const {
+    if (children.IsEmpty()) {
+        return Rect(0, 0, 0, 0);
+    }
+    
+    Rect bounds = children[0]->GetRect();
+    for (int i = 1; i < children.GetCount(); i++) {
+        if (children[i]) {
+            bounds |= children[i]->GetRect();
+        }
+    }
+    return bounds;
+}
+
+// Get child at specific position in container coordinates
+std::shared_ptr<Ctrl> CtrlChild::GetChildAtPoint(const Point& pt) const {
+    for (const auto& child : children) {
+        if (child && child->IsVisible()) {
+            Rect child_rect = child->GetRect();
+            if (child_rect.IsPtInside(pt)) {
+                return child;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// Check if point is inside any child
+bool CtrlChild::IsPointInChild(const Point& pt) const {
+    return GetChildAtPoint(pt) != nullptr;
+}

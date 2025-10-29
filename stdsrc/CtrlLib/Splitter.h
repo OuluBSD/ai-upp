@@ -1,219 +1,143 @@
 #pragma once
-// U++-compatible Splitter wrapper for UI splitters
-// This header is aggregated and wrapped into namespace Upp by CtrlLib.h
+#ifndef _CtrlLib_Splitter_h_
+#define _CtrlLib_Splitter_h_
 
-#include <string>
+#include "Ctrl.h"
+#include <vector>
+#include <functional>
 #include <memory>
-#include "../Draw/Color.h"
-#include "../Draw/DrawCore.h"
-#include "../CtrlCore/Ctrl.h"
-#include "../Draw/Point.h"
-#include "../Draw/Rect.h"
-#include "../CtrlCore/Event.h"
+
+namespace Upp {
 
 class Splitter : public Ctrl {
-private:
-    bool vertical;
-    int position;           // Splitter position in pixels
-    int min_pos;           // Minimum position
-    int max_pos;           // Maximum position
-    std::shared_ptr<Ctrl> left_ctrl;   // Left/top control
-    std::shared_ptr<Ctrl> right_ctrl;  // Right/bottom control
-    bool dragging;
-    Point drag_start;
-    int drag_start_pos;
+public:
+	virtual void   Layout() override;
+	virtual void   Paint(Draw& draw) override;
+	virtual void   MouseMove(Point p, dword keyflags) override;
+	virtual void   LeftDown(Point p, dword keyflags) override;
+	virtual void   LeftUp(Point p, dword keyflags) override;
+	virtual Image  CursorImage(Point p, dword keyflags) override;
+	virtual void   Serialize(Stream& s) override;
 
 public:
-    // Constructors
-    Splitter() : Ctrl(), vertical(false), position(100), 
-                 min_pos(20), max_pos(500), dragging(false) {
-        SetSize(200, 150);  // Default size
-    }
+	struct Style : ChStyle<Style> {
+		Value  vert[2], horz[2];
+		int    width;
+		bool   dots;
+	};
 
-    explicit Splitter(bool is_vertical) : Ctrl(), vertical(is_vertical), 
-                position(100), min_pos(20), max_pos(500), dragging(false) {
-        SetSize(vertical ? 150 : 200, vertical ? 200 : 150);
-    }
+protected: // Because of docking... (will be private)
+	Vector<int> pos;
+	Vector<int> mins;
+	Vector<int> minpx;
+	int         style;
+	int         mouseindex;
+	bool        vert;
+	int         inset;
+	const Style *chstyle;
 
-    // U++-style static constructors
-    static Splitter* Create() { return new Splitter(); }
-    static Splitter* CreateVertical() { return new Splitter(true); }
-    static Splitter* CreateHorizontal() { return new Splitter(false); }
+	int         FindIndex(Point client) const;
+	int         GetMins(int i) const;
+	int         GetBarWidth() const;
+	void        SyncMin();
 
-    // U++-style splitter configuration
-    void Horz() { 
-        vertical = false; 
-    }
-    
-    void Vert() { 
-        vertical = true; 
-    }
+	static void PaintDots(Draw& w, const Rect& r, bool vert);
+	
+	friend class SplitterFrame;
 
-    // U++-style control attachment
-    void First(const std::shared_ptr<Ctrl>& ctrl) { 
-        left_ctrl = ctrl; 
-    }
-    
-    void Second(const std::shared_ptr<Ctrl>& ctrl) { 
-        right_ctrl = ctrl; 
-    }
+public:
+	Event<>   WhenSplitFinish;
 
-    // U++-style positioning
-    void SetPos(int pos) { 
-        position = std::max(min_pos, std::min(pos, max_pos));
-        RefreshLayout(); 
-    }
-    
-    int GetPos() const { return position; }
+	void      Set(Ctrl& l, Ctrl& r);
 
-    // U++-style range configuration
-    void SetPosRange(int minp, int maxp) { 
-        min_pos = minp; 
-        max_pos = maxp; 
-        position = std::max(min_pos, std::min(position, max_pos));
-        RefreshLayout(); 
-    }
+	Splitter& SetPos(int newpos, int index = 0);
+	int       GetPos(int index = 0) const          { return index < pos.GetCount() ? pos[index] : 10000; }
 
-    // U++-style painting
-    void Paint(Draw& draw) const override {
-        if (!IsVisible()) return;
+	int       GetCount() const                     { return GetChildCount(); }
 
-        Rect r = GetRect();
-        Color bg_color = GetBackgroundColor();
-        
-        // Draw splitter background
-        draw.DrawRect(r, bg_color);
+	int       PosToClient(int pos) const;
+	int       ClientToPos(Point client) const;
 
-        // Draw splitter bar
-        Rect bar_rect;
-        if (vertical) {
-            bar_rect = Rect(r.GetLeft() + position - 2, r.GetTop(), 
-                           r.GetLeft() + position + 2, r.GetBottom());
-        } else {
-            bar_rect = Rect(r.GetLeft(), r.GetTop() + position - 2, 
-                           r.GetRight(), r.GetTop() + position + 2);
-        }
-        
-        draw.DrawRect(bar_rect, Color::Gray());
-        
-        // Draw gripper
-        if (vertical) {
-            int center_y = r.GetTop() + (r.GetHeight() / 2);
-            for (int i = -6; i <= 6; i += 3) {
-                draw.DrawPoint(Point(r.GetLeft() + position + i, center_y - 6), Color::White());
-                draw.DrawPoint(Point(r.GetLeft() + position + i, center_y + 6), Color::White());
-            }
-        } else {
-            int center_x = r.GetLeft() + (r.GetWidth() / 2);
-            for (int i = -6; i <= 6; i += 3) {
-                draw.DrawPoint(Point(center_x - 6, r.GetTop() + position + i), Color::White());
-                draw.DrawPoint(Point(center_x + 6, r.GetTop() + position + i), Color::White());
-            }
-        }
+	void      Zoom(int i);
+	void      NoZoom()                             { Zoom(-1); }
+	int       GetZoom() const                      { return style; }
 
-        // Paint child controls
-        if (left_ctrl && left_ctrl->IsVisible()) {
-            left_ctrl->Paint(draw);
-        }
-        if (right_ctrl && right_ctrl->IsVisible()) {
-            right_ctrl->Paint(draw);
-        }
-    }
+	void      SetMin(int i, int w)                 { mins.At(i, 0) = w; SyncMin(); }
+	void      SetMinPixels(int i, int w)           { minpx.At(i, 0) = w; SyncMin(); }
+	
+	int       GetSplitWidth() const;
 
-    // U++-style mouse handling
-    void LeftDown(Point p, dword keyflags) override {
-        Rect bar_rect;
-        if (vertical) {
-            bar_rect = Rect(GetRect().GetLeft() + position - 4, GetRect().GetTop(), 
-                           GetRect().GetLeft() + position + 4, GetRect().GetBottom());
-        } else {
-            bar_rect = Rect(GetRect().GetLeft(), GetRect().GetTop() + position - 4, 
-                           GetRect().GetRight(), GetRect().GetTop() + position + 4);
-        }
-        
-        if (bar_rect.IsPtInside(p)) {
-            dragging = true;
-            drag_start = p;
-            drag_start_pos = position;
-            SetCapture();
-        }
-    }
+	void      Add(Ctrl& pane);
+	Splitter& operator<<(Ctrl& pane)               { Add(pane); return *this; }
+	void      Insert(int pos, Ctrl& pane);
+	void      Remove(Ctrl& pane);
+	void      Swap(Ctrl& pane, Ctrl& newpane);
 
-    void LeftUp(Point p, dword keyflags) override {
-        if (dragging) {
-            dragging = false;
-            ReleaseCapture();
-            RefreshLayout();
-        }
-    }
+	static const Style& StyleDefault();
 
-    void MouseMove(Point p, dword keyflags) override {
-        if (dragging) {
-            int new_pos;
-            if (vertical) {
-                new_pos = drag_start_pos + (p.x - drag_start.x);
-            } else {
-                new_pos = drag_start_pos + (p.y - drag_start.y);
-            }
-            
-            position = std::max(min_pos, std::min(new_pos, max_pos));
-            RefreshLayout();
-            Refresh();
-        } else {
-            // Change cursor when hovering over splitter bar
-            Rect bar_rect;
-            if (vertical) {
-                bar_rect = Rect(GetRect().GetLeft() + position - 4, GetRect().GetTop(), 
-                               GetRect().GetLeft() + position + 4, GetRect().GetBottom());
-            } else {
-                bar_rect = Rect(GetRect().GetLeft(), GetRect().GetTop() + position - 4, 
-                               GetRect().GetRight(), GetRect().GetTop() + position + 4);
-            }
-            
-            if (bar_rect.IsPtInside(p)) {
-                // In a real implementation, this would set the appropriate cursor
-                // SetCursor(...);
-            }
-        }
-    }
+	Splitter& Vert(Ctrl& top, Ctrl& bottom);
+	Splitter& Horz(Ctrl& left, Ctrl& right);
+	Splitter& Vert()                               { vert = true; Layout(); return *this; }
+	Splitter& Horz()                               { vert = false; Layout(); return *this; }
+	bool      IsHorz() const                       { return !vert; }
+	bool      IsVert() const                       { return vert; }
+	Splitter& SetStyle(const Style& s);
 
-    // U++-style refresh layout
-    void RefreshLayout() {
-        Rect r = GetRect();
-        if (!left_ctrl && !right_ctrl) return;
+	void      Clear();
+	void      Reset();
 
-        if (left_ctrl) {
-            Rect left_rect;
-            if (vertical) {
-                left_rect = Rect(r.GetLeft(), r.GetTop(), 
-                                r.GetLeft() + position, r.GetBottom());
-            } else {
-                left_rect = Rect(r.GetLeft(), r.GetTop(), 
-                                r.GetRight(), r.GetTop() + position);
-            }
-            left_ctrl->SetRect(left_rect);
-        }
-
-        if (right_ctrl) {
-            Rect right_rect;
-            if (vertical) {
-                right_rect = Rect(r.GetLeft() + position, r.GetTop(), 
-                                 r.GetRight(), r.GetBottom());
-            } else {
-                right_rect = Rect(r.GetLeft(), r.GetTop() + position, 
-                                 r.GetRight(), r.GetBottom());
-            }
-            right_ctrl->SetRect(right_rect);
-        }
-    }
-
-    // U++-style resize handling
-    void Size() override {
-        RefreshLayout();
-        if (left_ctrl) left_ctrl->Size();
-        if (right_ctrl) right_ctrl->Size();
-    }
-
-    // U++-style methods for identifying control types
-    const char* GetClassName() const override { return "Splitter"; }
+	Splitter();
+	virtual ~Splitter();
 };
+
+class SplitterFrame : public CtrlFrame, private Ctrl {
+public:
+	virtual void FrameAdd(Ctrl& parent) override;
+	virtual void FrameRemove() override;
+	virtual void FrameAddSize(Size& sz) override;
+	virtual void FrameLayout(Rect& r) override;
+
+	virtual void Paint(Draw& draw) override;
+	virtual void LeftDown(Point p, dword keyflags) override;
+	virtual void MouseMove(Point p, dword keyflags) override;
+	virtual void LeftUp(Point p, dword keyflags) override;
+	virtual Image CursorImage(Point p, dword keyflags) override;
+
+private:
+	Point ref;
+	Size  parentsize;
+	int   type, minsize, sizemin;
+	int   size, size0;
+	const Splitter::Style *style;
+
+	int   BoundSize();
+
+public:
+	enum { LEFT, TOP, RIGHT, BOTTOM };
+
+	void Serialize(Stream& s);
+
+	SplitterFrame& Set(Ctrl& c, int size, int type);
+	SplitterFrame& Left(Ctrl& c, int size)    { return Set(c, size, LEFT); }
+	SplitterFrame& Top(Ctrl& c, int size)     { return Set(c, size, TOP); }
+	SplitterFrame& Right(Ctrl& c, int size)   { return Set(c, size, RIGHT); }
+	SplitterFrame& Bottom(Ctrl& c, int size)  { return Set(c, size, BOTTOM); }
+
+	SplitterFrame& MinSize(int sz)            { minsize = sz; return *this; }
+	SplitterFrame& SizeMin(int sz)            { sizemin = sz; return *this; }
+	SplitterFrame& SetStyle(const Splitter::Style& s);
+
+	int  GetType() const                      { return type; }
+	int  GetSize() const                      { return size; }
+	void SetSize(int sz)                      { size = sz; RefreshParentLayout(); }
+
+	void Show(bool show = true)				  { Ctrl::Show(show); }
+	void Hide()								  { Ctrl::Hide(); }
+	bool IsShown()							  { return Ctrl::IsShown(); }
+
+	SplitterFrame();
+};
+
+}
+
+#endif

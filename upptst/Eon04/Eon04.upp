@@ -3,20 +3,21 @@ uses
 
 file
 	Main.cpp,
-	03a_x11_video.eon,
-	03b_glx_video.eon,
-	03c_audio_file.eon,
-	03d_audio_file_2.eon,
-	03e_x11_video_sw3d.eon,
-	03f_x11_video_ogl.eon,
-	03g_x11_video_sw3d_linked.eon,
-	03h_x11_video_ogl_linked.eon,
-	03i_x11_video_sw3d_bufferstages.eon,
-	03j_x11_video_ogl_bufferstages.eon,
-	03k_x11_video_sw3d_stereo.eon,
-	03l_x11_video_ogl_stereo.eon,
-	03m_x11_video_ogl_pbr.eon,
-	03n_win32_video.eon;
+	Eon04.h,
+	04a_sdl_audio.cpp,
+	04b_sdl_video.cpp,
+	04c_sdl_video_ogl.cpp,
+	04d_sdl_video_ogl_custom.cpp,
+	04e_sdl_video_ogl_custom_linked.cpp,
+	04f_sdl_video_ogl_custom_linked_side.cpp,
+	04g_sdl_event_standalone.cpp,
+	04a_sdl_audio.eon,
+	04b_sdl_video.eon,
+	04c_sdl_video_ogl.eon,
+	04d_sdl_video_ogl_custom.eon,
+	04e_sdl_video_ogl_custom_linked.eon,
+	04f_sdl_video_ogl_custom_linked_side.eon,
+	04g_sdl_event_standalone.eon;
 
 mainconfig
 	"Release" = "AI SCREEN SDL2 OGL FFMPEG OPENCV USEMALLOC SYS_PORTAUDIO",

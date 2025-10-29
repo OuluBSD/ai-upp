@@ -3,6 +3,18 @@ uses
 
 file
 	Main.cpp,
+	Eon07.h,
+	07a_ecs_dummy.cpp,
+	07b_ecs_sw3d.cpp,
+	07c_ecs_ogl.cpp,
+	07d_ecs_first_person_cam.cpp,
+	07e_ecs_toolbox.cpp,
+	07f_x11ogl_hmd_screen_test.cpp,
+	07g_x11ogl_hmd_test.cpp,
+	07h_x11ogl_hmd_calibration.cpp,
+	07i_x11ogl_vrserver_hmd_test.cpp,
+	07j_ecs_toolbox_pbr.cpp,
+	07k_x11ogl_hmd_ecs_toolbox_pbr.cpp,
 	07a_ecs_dummy.eon,
 	07b_ecs_sw3d.eon,
 	07c_ecs_ogl.eon,

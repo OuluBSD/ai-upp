@@ -29,7 +29,7 @@ struct OverlayView {
 // Concrete implementation of an overlay representing a single source fragment
 class VfsOverlay : public OverlayView, public Pte<VfsOverlay> {
     SourceRef source;
-    VectorMap<String, VfsValue> fragments;  // path -> VfsValue fragments
+    VectorMap<String, One<VfsValue>> fragments;  // path -> VfsValue fragments (using One instead of direct storage)
     
 public:
     VfsOverlay();

@@ -1,4 +1,5 @@
-#include "Overlay.h"
+#include "VfsOverlay.h"
+#include <Vfs/Core/Core.h>  // for VfsValue
 
 NAMESPACE_UPP
 
@@ -43,14 +44,23 @@ Value VfsOverlay::GetMerged(String logical_path) const {
 }
 
 void VfsOverlay::AddFragment(const String& path, const VfsValue& fragment) {
-    // Add a VFS fragment to this overlay
-    fragments.GetAdd(path, fragment);
+    // Create a new VfsValue and assign from the fragment
+    One<VfsValue>& frag = fragments.GetAdd(path);
+    frag.Create();
+    // Copy fields individually to avoid direct assignment which may not work with Pte classes
+    frag->id = fragment.id;
+    frag->type_hash = fragment.type_hash;
+    frag->serial = fragment.serial;
+    frag->file_hash = fragment.file_hash;
+    frag->value = fragment.value;
+    frag->pkg_hash = fragment.pkg_hash;
+    // Copy other fields as needed
 }
 
 const VfsValue* VfsOverlay::GetFragment(const String& path) const {
     // Retrieve a VFS fragment by path
     int i = fragments.Find(path);
-    return i >= 0 ? &fragments[i] : nullptr;
+    return i >= 0 ? fragments[i].Get() : nullptr;
 }
 
 // OverlayManager implementation
@@ -74,7 +84,7 @@ void OverlayManager::RemoveOverlay(Ptr<VfsOverlay> overlay) {
     }
 }
 
-Vector<String> OverlayManager::List(const String& logical_path) const {
+Vector<String> OverlayManager::List(String logical_path) const {
     // Union of all overlay lists, with precedence applied
     Vector<String> result;
     
@@ -83,7 +93,7 @@ Vector<String> OverlayManager::List(const String& logical_path) const {
         if (overlay) {
             Vector<String> items = overlay->List(logical_path);
             for (const String& item : items) {
-                if (result.Find(item) < 0) {
+                if (result.GetIndex(item) < 0) {
                     result.Add(item);
                 }
             }
@@ -93,7 +103,7 @@ Vector<String> OverlayManager::List(const String& logical_path) const {
     return result;
 }
 
-Value OverlayManager::GetMerged(const String& logical_path) const {
+Value OverlayManager::GetMerged(String logical_path) const {
     // Merge values from all overlays according to precedence
     // This is a simplified implementation
     ValueMap merged;

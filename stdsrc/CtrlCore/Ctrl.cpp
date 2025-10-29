@@ -231,6 +231,139 @@ bool Ctrl::HasFocus() const {
     return false; 
 }
 
+// U++-style keyboard handling
+bool Ctrl::Key(dword key, int count) {
+    // In a real implementation, this would handle keyboard input
+    return false; // Not handled
+}
+
+void Ctrl::GotFocus() {
+    // In a real implementation, this would be called when control gains focus
+}
+
+void Ctrl::LostFocus() {
+    // In a real implementation, this would be called when control loses focus
+}
+
+bool Ctrl::HotKey(dword key) {
+    // In a real implementation, this would handle hotkeys
+    return false; // Not handled
+}
+
+dword Ctrl::GetAccessKeys() const {
+    // In a real implementation, this would return access keys for the control
+    return 0;
+}
+
+void Ctrl::AssignAccessKeys(dword used) {
+    // In a real implementation, this would assign access keys to the control
+}
+
+void Ctrl::ChildGotFocus() {
+    // In a real implementation, this would be called when a child gains focus
+}
+
+void Ctrl::ChildLostFocus() {
+    // In a real implementation, this would be called when a child loses focus
+}
+
+// Focus-related methods
+bool Ctrl::HasFocusDeep() const {
+    // In a real implementation, this would check if control or any child has focus
+    return HasFocus();
+}
+
+Ctrl* Ctrl::GetFocusChild() const {
+    // In a real implementation, this would return the focused child if any
+    return nullptr;
+}
+
+Ctrl* Ctrl::GetFocusChildDeep() const {
+    // In a real implementation, this would return the deeply focused child if any
+    return nullptr;
+}
+
+Ctrl& Ctrl::WantFocus(bool ft) {
+    // In a real implementation, this would mark control as wanting focus
+    return *this;
+}
+
+Ctrl& Ctrl::NoWantFocus() {
+    return WantFocus(false);
+}
+
+bool Ctrl::IsWantFocus() const {
+    // In a real implementation, this would return whether control wants focus
+    return false;
+}
+
+bool Ctrl::SetWantFocus() {
+    // In a real implementation, this would set focus if control wants it
+    return false;
+}
+
+Ctrl& Ctrl::InitFocus(bool ft) {
+    // In a real implementation, this would initialize focus for the control
+    return *this;
+}
+
+Ctrl& Ctrl::NoInitFocus() {
+    return InitFocus(false);
+}
+
+bool Ctrl::IsInitFocus() const {
+    // In a real implementation, this would return whether focus is initialized
+    return false;
+}
+
+// Access keys support
+void Ctrl::RefreshAccessKeys() {
+    // In a real implementation, this would refresh access keys display
+}
+
+void Ctrl::RefreshAccessKeysDo(bool vis) {
+    // In a real implementation, this would show/hide access keys based on visibility
+}
+
+dword Ctrl::GetAccessKeysDeep() const {
+    // In a real implementation, this would return access keys for control and children
+    dword keys = GetAccessKeys();
+    for (const auto& child : children) {
+        keys |= child->GetAccessKeysDeep();
+    }
+    return keys;
+}
+
+void Ctrl::DistributeAccessKeys() {
+    // In a real implementation, this would distribute access keys among controls
+}
+
+bool Ctrl::VisibleAccessKeys() {
+    // In a real implementation, this would check if access keys are visible
+    return false;
+}
+
+// Static focus management
+Ctrl* Ctrl::GetFocusCtrl() {
+    // In a real implementation, this would return the control that currently has focus
+    return nullptr;
+}
+
+bool Ctrl::IterateFocusForward(Ctrl *ctrl, Ctrl *top, bool noframe, bool init, bool all) {
+    // In a real implementation, this would iterate focus forward
+    return false;
+}
+
+bool Ctrl::IterateFocusBackward(Ctrl *ctrl, Ctrl *top, bool noframe, bool all) {
+    // In a real implementation, this would iterate focus backward
+    return false;
+}
+
+dword Ctrl::AccessKeyBit(int accesskey) {
+    // In a real implementation, this would convert access key to bit mask
+    return 0;
+}
+
 // U++-style operations for UI layout
 void Ctrl::SetFrame(int left, int top, int right, int bottom) {
     // In a real implementation, this would set frame margins

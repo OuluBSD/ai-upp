@@ -304,6 +304,105 @@ public:
     Moveable& operator=(T&& other) = default;
 };
 
+// Keyboard key code type
+using dword = unsigned long long;
+
+// Keyboard key combination constants
+const dword K_SHIFT = 0x0100ULL;
+const dword K_CTRL = 0x0200ULL;
+const dword K_ALT = 0x0400ULL;
+const dword K_KEYUP = 0x4000000ULL;
+
+// Standard key codes
+const dword K_A = 0x41ULL;
+const dword K_B = 0x42ULL;
+const dword K_C = 0x43ULL;
+const dword K_D = 0x44ULL;
+const dword K_E = 0x45ULL;
+const dword K_F = 0x46ULL;
+const dword K_G = 0x47ULL;
+const dword K_H = 0x48ULL;
+const dword K_I = 0x49ULL;
+const dword K_J = 0x4AULL;
+const dword K_K = 0x4BULL;
+const dword K_L = 0x4CULL;
+const dword K_M = 0x4DULL;
+const dword K_N = 0x4EULL;
+const dword K_O = 0x4FULL;
+const dword K_P = 0x50ULL;
+const dword K_Q = 0x51ULL;
+const dword K_R = 0x52ULL;
+const dword K_S = 0x53ULL;
+const dword K_T = 0x54ULL;
+const dword K_U = 0x55ULL;
+const dword K_V = 0x56ULL;
+const dword K_W = 0x57ULL;
+const dword K_X = 0x58ULL;
+const dword K_Y = 0x59ULL;
+const dword K_Z = 0x5AULL;
+
+const dword K_0 = 0x30ULL;
+const dword K_1 = 0x31ULL;
+const dword K_2 = 0x32ULL;
+const dword K_3 = 0x33ULL;
+const dword K_4 = 0x34ULL;
+const dword K_5 = 0x35ULL;
+const dword K_6 = 0x36ULL;
+const dword K_7 = 0x37ULL;
+const dword K_8 = 0x38ULL;
+const dword K_9 = 0x39ULL;
+
+const dword K_F1 = 0x7000ULL;
+const dword K_F2 = 0x7001ULL;
+const dword K_F3 = 0x7002ULL;
+const dword K_F4 = 0x7003ULL;
+const dword K_F5 = 0x7004ULL;
+const dword K_F6 = 0x7005ULL;
+const dword K_F7 = 0x7006ULL;
+const dword K_F8 = 0x7007ULL;
+const dword K_F9 = 0x7008ULL;
+const dword K_F10 = 0x7009ULL;
+const dword K_F11 = 0x700AULL;
+const dword K_F12 = 0x700BULL;
+
+const dword K_LEFT = 0x7020ULL;
+const dword K_UP = 0x7021ULL;
+const dword K_RIGHT = 0x7022ULL;
+const dword K_DOWN = 0x7023ULL;
+const dword K_HOME = 0x7024ULL;
+const dword K_END = 0x7025ULL;
+const dword K_PGUP = 0x7026ULL;
+const dword K_PGDN = 0x7027ULL;
+
+const dword K_INSERT = 0x7030ULL;
+const dword K_DELETE = 0x7FULL;
+const dword K_BACKSPACE = 0x08ULL;
+const dword K_TAB = 0x09ULL;
+const dword K_RETURN = 0x0DULL;
+const dword K_ENTER = 0x0DULL;
+const dword K_ESCAPE = 0x1BULL;
+const dword K_SPACE = 0x20ULL;
+
+const dword K_CTRL_A = K_CTRL | K_A;
+const dword K_CTRL_C = K_CTRL | K_C;
+const dword K_CTRL_V = K_CTRL | K_V;
+const dword K_CTRL_X = K_CTRL | K_X;
+const dword K_CTRL_Z = K_CTRL | K_Z;
+const dword K_CTRL_Y = K_CTRL | K_Y;
+
+// Common key combination utility functions
+inline dword MakeCtrlKey(dword key) { return K_CTRL | key; }
+inline dword MakeAltKey(dword key) { return K_ALT | key; }
+inline dword MakeShiftKey(dword key) { return K_SHIFT | key; }
+inline bool IsCtrlPressed(dword key) { return (key & K_CTRL) != 0; }
+inline bool IsAltPressed(dword key) { return (key & K_ALT) != 0; }
+inline bool IsShiftPressed(dword key) { return (key & K_SHIFT) != 0; }
+inline bool IsKeyUp(dword key) { return (key & K_KEYUP) != 0; }
+inline dword GetBaseKey(dword key) { return key & ~(K_CTRL | K_ALT | K_SHIFT | K_KEYUP); }
+
+// Key description utility
+std::string GetKeyDesc(dword key);
+
 // Serialization Stream class
 class Stream {
 public:

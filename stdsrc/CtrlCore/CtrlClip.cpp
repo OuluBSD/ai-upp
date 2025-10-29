@@ -1,289 +1,135 @@
-// STL-backed CtrlCore API implementation
+// STL-backed CtrlCore clipboard and drag-and-drop functionality implementation
 
 #include "CtrlClip.h"
 
 namespace Upp {
 
-// Control-specific clipboard operations
-bool CtrlClip::SetClipText(const String& text) { 
-    return SetClipboard(text); 
+// High-level clipboard access - static methods
+bool CtrlClip::SetText(const String& text) {
+    // In a real implementation, this would set text to the system clipboard
+    return false; // Placeholder
 }
 
-String CtrlClip::GetClipText() { 
-    return GetClipboard(); 
+String CtrlClip::GetText() {
+    // In a real implementation, this would get text from the system clipboard
+    return String(); // Placeholder
 }
 
-bool CtrlClip::HasClipText() { 
-    return HasClipboardText(); 
+bool CtrlClip::HasText() {
+    // In a real implementation, this would check if text is available on the clipboard
+    return false; // Placeholder
 }
 
-bool CtrlClip::SetClipImage(const Image& img) { 
-    return SetClipboardImage(img); 
+bool CtrlClip::SetImage(const Image& img) {
+    // In a real implementation, this would set an image to the system clipboard
+    return false; // Placeholder
 }
 
-Image CtrlClip::GetClipImage() { 
-    return GetClipboardImage(); 
+Image CtrlClip::GetImage() {
+    // In a real implementation, this would get an image from the system clipboard
+    return Image(); // Placeholder
 }
 
-bool CtrlClip::HasClipImage() { 
-    return HasClipboardImage(); 
+bool CtrlClip::HasImage() {
+    // In a real implementation, this would check if an image is available on the clipboard
+    return false; // Placeholder
 }
 
-// CtrlClip::ClipRegion implementations
-CtrlClip::ClipRegion::ClipRegion() : has_clip(false), clip_rect(0, 0, 0, 0) {}
-
-CtrlClip::ClipRegion::ClipRegion(const Rect& r) : has_clip(true), clip_rect(r) {}
-
-bool CtrlClip::ClipRegion::HasClip() const { 
-    return has_clip; 
+bool CtrlClip::SetFiles(const Vector<String>& files) {
+    // In a real implementation, this would set files to the system clipboard
+    return false; // Placeholder
 }
 
-const Rect& CtrlClip::ClipRegion::GetClipRect() const { 
-    return clip_rect; 
+Vector<String> CtrlClip::GetFiles() {
+    // In a real implementation, this would get files from the system clipboard
+    return Vector<String>(); // Placeholder
 }
 
-void CtrlClip::ClipRegion::SetClipRect(const Rect& r) { 
-    clip_rect = r; 
-    has_clip = true; 
+bool CtrlClip::HasFiles() {
+    // In a real implementation, this would check if files are available on the clipboard
+    return false; // Placeholder
 }
 
-void CtrlClip::ClipRegion::ClearClip() { 
-    has_clip = false; 
-    clip_rect = Rect(0, 0, 0, 0); 
+// Drag and drop operations
+void CtrlClip::DragAndDrop(Point p, PasteClip& clip) {
+    // In a real implementation, this would initiate a drag and drop operation
 }
 
-bool CtrlClip::ClipRegion::IsInside(const Point& pt) const {
-    return !has_clip || clip_rect.IsPtInside(pt);
+void CtrlClip::FrameDragAndDrop(Point p, PasteClip& clip) {
+    // In a real implementation, this would handle frame-level drag and drop
 }
 
-bool CtrlClip::ClipRegion::Intersects(const Rect& r) const {
-    if (!has_clip) return true;
-    return clip_rect.Intersects(r);
+void CtrlClip::DragEnter() {
+    // In a real implementation, this would be called when drag enters the control
 }
 
-Rect CtrlClip::ClipRegion::GetIntersection(const Rect& r) const {
-    if (!has_clip) return r;
-    return clip_rect.Intersect(r);
+void CtrlClip::DragLeave() {
+    // In a real implementation, this would be called when drag leaves the control
 }
 
-// Set clipping region for drawing operations
-void CtrlClip::SetClip(const Rect& r) {
-    // In a real implementation, this would set the clipping region
+void CtrlClip::DragRepeat(Point p) {
+    // In a real implementation, this would be called repeatedly during drag
 }
 
-void CtrlClip::SetClip(const ClipRegion& clip) {
-    // In a real implementation, this would set the clipping region
+String CtrlClip::GetDropData(const String& fmt) const {
+    // In a real implementation, this would get drop data in a specific format
+    return String(); // Placeholder
 }
 
-// Clear clipping region
-void CtrlClip::ClearClip() {
-    // In a real implementation, this would clear the clipping region
+String CtrlClip::GetSelectionData(const String& fmt) const {
+    // In a real implementation, this would get selection data in a specific format
+    return String(); // Placeholder
 }
 
-// Get current clipping region
-CtrlClip::ClipRegion CtrlClip::GetClip() const {
-    // In a real implementation, this would return the current clipping region
-    return ClipRegion();
+// Do drag and drop operation
+int CtrlClip::DoDragAndDrop(const char *fmts, const Image& sample, dword actions) {
+    // In a real implementation, this would perform a drag and drop operation
+    return 0; // Placeholder
 }
 
-// Push/Pop clipping region stack (for nested clipping)
-void CtrlClip::PushClip(const Rect& r) {
-    // In a real implementation, this would push the clipping region to the stack
+int CtrlClip::DoDragAndDrop(const VectorMap<String, ClipData>& data, const Image& sample, dword actions) {
+    // In a real implementation, this would perform a drag and drop operation with multiple data formats
+    return 0; // Placeholder
 }
 
-void CtrlClip::PushClip(const ClipRegion& clip) {
-    // In a real implementation, this would push the clipping region to the stack
-}
-
-void CtrlClip::PopClip() {
-    // In a real implementation, this would pop the clipping region from the stack
-}
-
-int CtrlClip::GetClipStackDepth() const {
-    // In a real implementation, this would return the stack depth
-    return 0;
-}
-
-// Clipping utilities
-Rect CtrlClip::ClipRect(const Rect& rect, const Rect& clip_rect) {
-    return rect.Intersect(clip_rect);
-}
-
-bool CtrlClip::ClipLine(int& x1, int& y1, int& x2, int& y2, const Rect& clip_rect) {
-    // In a real implementation, this would clip the line
-    return true;
-}
-
-bool CtrlClip::ClipPolygon(Vector<Point>& points, const Rect& clip_rect) {
-    // In a real implementation, this would clip the polygon
-    return true;
-}
-
-// CtrlClip::Region implementations
-CtrlClip::Region::Region() = default;
-
-CtrlClip::Region::Region(const Rect& r) { 
-    rectangles.Add(r); 
-}
-
-void CtrlClip::Region::AddRect(const Rect& r) {
-    rectangles.Add(r);
-}
-
-void CtrlClip::Region::SubtractRect(const Rect& r) {
-    // In a real implementation, this would subtract the rectangle from the region
-}
-
-void CtrlClip::Region::IntersectRect(const Rect& r) {
-    // In a real implementation, this would intersect the rectangle with the region
-}
-
-// Check if point is in region
-bool CtrlClip::Region::IsPtInRegion(const Point& pt) const {
-    for (const auto& rect : rectangles) {
-        if (rect.IsPtInside(pt)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Check if rectangle intersects region
-bool CtrlClip::Region::Intersects(const Rect& r) const {
-    for (const auto& rect : rectangles) {
-        if (rect.Intersects(r)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Get bounding box of region
-Rect CtrlClip::Region::GetBound() const {
-    if (rectangles.IsEmpty()) {
-        return Rect(0, 0, 0, 0);
-    }
-    
-    Rect bound = rectangles[0];
-    for (int i = 1; i < rectangles.GetCount(); i++) {
-        bound = bound | rectangles[i];
-    }
-    return bound;
-}
-
-// Set clipping region using a complex region
-void CtrlClip::SetClipRegion(const Region& region) {
-    // In a real implementation, this would set the complex region as clipping
-}
-
-// Scroll control content
-bool CtrlClip::Scroll(int dx, int dy) {
-    // In a real implementation, this would scroll the content
-    return false;
-}
-
-bool CtrlClip::Scroll(const Point& delta) {
-    return Scroll(delta.x, delta.y);
-}
-
-// Scroll specific area
-bool CtrlClip::ScrollArea(const Rect& area, int dx, int dy) {
-    // In a real implementation, this would scroll a specific area
-    return false;
-}
-
-bool CtrlClip::ScrollArea(const Rect& area, const Point& delta) {
-    return ScrollArea(area, delta.x, delta.y);
-}
-
-// Get scroll offset
-Point CtrlClip::GetScrollOffset() const {
-    // In a real implementation, this would return the scroll offset
-    return Point(0, 0);
-}
-
-void CtrlClip::SetScrollOffset(const Point& offset) {
-    // In a real implementation, this would set the scroll offset
-}
-
-// Set scrollable area
-void CtrlClip::SetScrollSize(const Size& sz) {
-    // In a real implementation, this would set the scrollable size
-}
-
-void CtrlClip::SetScrollSize(int cx, int cy) {
-    SetScrollSize(Size(cx, cy));
-}
-
-Size CtrlClip::GetScrollSize() const {
-    // In a real implementation, this would return the scrollable size
-    return Size(0, 0);
-}
-
-// Enable/disable scrolling
-void CtrlClip::SetScroll(bool hscroll, bool vscroll) {
-    // In a real implementation, this would enable/disable scrolling
-}
-
-bool CtrlClip::IsHScroll() const {
-    // In a real implementation, this would return if horizontal scrolling is enabled
-    return false;
-}
-
-bool CtrlClip::IsVScroll() const {
-    // In a real implementation, this would return if vertical scrolling is enabled
-    return false;
-}
-
-// Update scrollbars if they exist
-void CtrlClip::UpdateScroll() {
-    // In a real implementation, this would update scrollbars
-}
-
-// Scroll to make a specific rectangle visible
-void CtrlClip::ScrollToRect(const Rect& r) {
-    // In a real implementation, this would scroll to make the rectangle visible
-}
-
-// Static clipboard functions - these would typically be implemented elsewhere in a real system
-bool CtrlClip::SetClipboard(const String& text) {
-    // In a real implementation, this would set system clipboard
-    return false;
-}
-
-String CtrlClip::GetClipboard() {
-    // In a real implementation, this would get system clipboard
-    return String();
-}
-
-bool CtrlClip::SetClipboardMulti(const String& text, const String& html) {
-    // In a real implementation, this would set clipboard with multiple formats
-    return false;
-}
-
-bool CtrlClip::HasClipboardText() {
-    // In a real implementation, this would check for clipboard text
-    return false;
-}
-
-bool CtrlClip::ClearClipboard() {
+// Static access for global clipboard operations
+void CtrlClip::Clear() {
     // In a real implementation, this would clear the clipboard
-    return false;
 }
 
-bool CtrlClip::SetClipboardImage(const Image& img) {
-    // In a real implementation, this would set an image to clipboard
-    return false;
+void CtrlClip::AppendText(const String& text) {
+    // In a real implementation, this would append text to the clipboard
 }
 
-Image CtrlClip::GetClipboardImage() {
-    // In a real implementation, this would get an image from clipboard
-    return Image();
+void CtrlClip::AppendImage(const Image& img) {
+    // In a real implementation, this would append an image to the clipboard
 }
 
-bool CtrlClip::HasClipboardImage() {
-    // In a real implementation, this would check for clipboard image
-    return false;
+void CtrlClip::AppendFiles(const Vector<String>& files) {
+    // In a real implementation, this would append files to the clipboard
+}
+
+// Check for clipboard formats
+bool CtrlClip::IsAvailable(const char *fmts) {
+    // In a real implementation, this would check if specific formats are available
+    return false; // Placeholder
+}
+
+// Get drag and drop source/target
+Ctrl *CtrlClip::GetDragAndDropSource() {
+    // In a real implementation, this would return the drag and drop source
+    return nullptr; // Placeholder
+}
+
+Ctrl *CtrlClip::GetDragAndDropTarget() {
+    // In a real implementation, this would return the drag and drop target
+    return nullptr; // Placeholder
+}
+
+// Drag image creation
+Image MakeDragImage(const Image& arrow, Image sample) {
+    // In a real implementation, this would create a drag image
+    return Image(); // Placeholder
 }
 
 }

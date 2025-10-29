@@ -126,6 +126,29 @@ public:
     
     // Get all children as a vector
     const Vector<std::shared_ptr<Ctrl>>& GetAllChildren() const;
+    
+    // Advanced child management
+    CtrlChild& SortChildren(std::function<bool(const std::shared_ptr<Ctrl>&, const std::shared_ptr<Ctrl>&)> compare);
+    Vector<std::shared_ptr<Ctrl>> GetFilteredChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    int CountChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    bool AnyChild(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    bool AllChildren(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    int FindIndex(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    std::shared_ptr<Ctrl> FindFirst(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    std::shared_ptr<Ctrl> FindLast(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate) const;
+    CtrlChild& RemoveIf(std::function<bool(const std::shared_ptr<Ctrl>&)> predicate);
+    CtrlChild& ForEachChild(std::function<void(const std::shared_ptr<Ctrl>&)> func);
+    void ForEachChild(std::function<void(const std::shared_ptr<Ctrl>&)> func) const;
+    
+    template<typename T>
+    Vector<std::shared_ptr<T>> GetChildrenOfType() const;
+    
+    CtrlChild& MoveChild(const std::shared_ptr<Ctrl>& child, int new_index);
+    CtrlChild& SwapChildren(const std::shared_ptr<Ctrl>& child1, const std::shared_ptr<Ctrl>& child2);
+    
+    Rect GetChildrenBounds() const;
+    std::shared_ptr<Ctrl> GetChildAtPoint(const Point& pt) const;
+    bool IsPointInChild(const Point& pt) const;
 };
 
 // Helper class for creating controls with automatic parenting

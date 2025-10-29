@@ -459,4 +459,53 @@ static RightGapFrameClass s_right_gap_frame;
 
 CtrlFrame& RightGapFrame() { return s_right_gap_frame; }
 
+// Additional frame classes that might be missing from the header
+
+// FrameCtrl template implementation
+template <class T>
+void FrameCtrl<T>::FrameAdd(Ctrl& parent) { 
+    parent.Add(*this); 
+}
+
+template <class T>
+void FrameCtrl<T>::FrameRemove() { 
+    this->Ctrl::Remove(); 
+}
+
+// FrameLR template implementation
+template <class T>
+void FrameLR<T>::FrameAddSize(Size& sz) { 
+    sz.cx += Nvl(this->cx, FrameButtonWidth()) * this->IsShown(); 
+}
+
+// FrameLeft template implementation
+template <class T>
+void FrameLeft<T>::FrameLayout(Rect& r) {
+    LayoutFrameLeft(r, this, Nvl(this->cx, FrameButtonWidth()));
+}
+
+// FrameRight template implementation
+template <class T>
+void FrameRight<T>::FrameLayout(Rect& r) {
+    LayoutFrameRight(r, this, Nvl(this->cx, FrameButtonWidth()));
+}
+
+// FrameTB template implementation
+template <class T>
+void FrameTB<T>::FrameAddSize(Size& sz) { 
+    sz.cy += Nvl(this->cy, sz.cx) * this->IsShown(); 
+}
+
+// FrameTop template implementation
+template <class T>
+void FrameTop<T>::FrameLayout(Rect& r) {
+    LayoutFrameTop(r, this, Nvl(this->cy, r.Width()));
+}
+
+// FrameBottom template implementation
+template <class T>
+void FrameBottom<T>::FrameLayout(Rect& r) {
+    LayoutFrameBottom(r, this, Nvl(this->cy, r.Width()));
+}
+
 }

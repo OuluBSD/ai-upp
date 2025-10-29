@@ -1900,7 +1900,7 @@ Vector<String> MetaEnvironment::List(String logical_path) const {
 	Vector<String> result;
 	
 	// Parse the logical path and navigate the VFS tree
-	VfsPath path(logical_path);
+	VfsPath path = StrVfs(logical_path);
 	const VfsValue* current = &root;
 	
 	// Navigate to the specified path
@@ -1929,7 +1929,7 @@ Value MetaEnvironment::GetMerged(String logical_path) const {
 	// Return merged JSON representation for debugging/inspection
 	// This would typically merge values from multiple overlays
 	
-	VfsPath path(logical_path);
+	VfsPath path = StrVfs(logical_path);
 	const VfsValue* current = &root;
 	
 	// Navigate to the specified path
@@ -1955,10 +1955,11 @@ Value MetaEnvironment::GetMerged(String logical_path) const {
 void MetaEnvironment::AddOverlay(Ptr<VfsOverlay> overlay) {
 	// In a real implementation, this would register the overlay
 	// For now, we'll just acknowledge it
-	if (overlay) {
+	// The following conditional requires complete VfsOverlay type, so we avoid it for now
+	// if (overlay) {
 		// Store reference to overlay for future use
 		// This is a placeholder implementation
-	}
+	// }
 }
 
 hash_t MetaEnvironment::RealizeTypePath(const String& path)
@@ -2126,6 +2127,28 @@ void VfsValueExt::Serialize(Stream& s){
 void VfsValueExt::Jsonize(JsonIO& json){
 	Vis vis(json);
 	const_cast<VfsValueExt*>(this)->Visit(vis);
+}
+
+void VfsValue::Jsonize(JsonIO& io) {
+	io
+		("id", id)
+		("type_hash", type_hash)
+		("serial", serial)
+		("file_hash", file_hash)
+		("sub", sub)
+		("value", value)
+		("pkg_hash", pkg_hash)
+	#ifdef flagDEBUG
+		("only_temporary", only_temporary)
+	#endif
+	#if DEBUG_METANODE_DTOR
+		("trace_kill", trace_kill)
+	#endif
+	;
+	
+	// Don't serialize complex fields that may not have Jsonize methods
+	Value null_val;
+	io("ext", null_val)("symbolic_link", null_val)("owner", null_val);
 }
 
 

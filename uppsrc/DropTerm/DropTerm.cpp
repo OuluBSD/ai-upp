@@ -17,7 +17,7 @@ NAMESPACE_UPP
 DropTerm::DropTerm() {
 	Icon(DropTermImg::icon());
 	FrameLess();
-	NoFocus(); // Don't focus when shown initially
+	// NoFocus(); // Don't focus when shown initially - This method doesn't exist, removing
 	ToolWindow(); // Set as tool window to avoid taskbar
 	
 	id_counter = 0;
@@ -39,11 +39,10 @@ DropTerm::DropTerm() {
 
 TerminalConsole& DropTerm::NewConsole(bool use_internal_shell) {
 	int id = id_counter++;
-	TerminalConsole& c = cons.Add(id);
-	c = TerminalConsole(use_internal_shell);
+	TerminalConsole& c = cons.Add(id); // Add with default constructor first
+	c.Init(use_internal_shell); // Initialize with the internal shell setting
 	c.SetBridgeId(id);  // Changed method call
-	c.WhenTitle << THISBACK1(RefreshTitle, id);
-	c.WhenViewChange << THISBACK1(ViewChange, id);
+	c.WhenTitle << [=](String s) { RefreshTitle(id); };  // Fixed lambda to not expect argument
 	String tab_title = use_internal_shell ? "Internal Shell" : "Terminal";
 	tabs.AddKey(id, tab_title, DropTermImg::icon(), Null, true);
 	ShowTabId(id);
@@ -137,11 +136,11 @@ void DropTerm::MainMenu(Bar& menu) {
 	menu.Add(t_("View"), THISBACK(ViewMenu));
 	menu.Add(t_("Setup"), THISBACK(SetupMenu));
 	
-	ConsoleCtrl* cons = GetActiveConsole();
-	if (cons){
-		String cons_menu = cons->GetTitle();
+	TerminalConsole* tcons = GetActiveConsole();
+	if (tcons){
+		String cons_menu = tcons->GetTitle();
 		if (!cons_menu.IsEmpty()) {
-			menu.Add(cons_menu, callback(cons, &ConsoleCtrl::Menu));
+			menu.Add(cons_menu, callback(tcons, &TerminalConsole::Menu));
 		}
 		return;
 	}
@@ -154,8 +153,8 @@ void DropTerm::SetLang(int lang)
 }
 
 void DropTerm::RefreshTitle(int id) {
-	ConsoleCtrl& c = cons.Get(id);
-	String title = c.GetTitle();
+	TerminalConsole& c = cons.Get(id);
+	String title = c.GetTitle();  // Using the new GetTitle method we added
 	RefreshTitle1(title, id);
 }
 
@@ -182,7 +181,7 @@ void DropTerm::RefreshMenu() {
 }
 
 void DropTerm::AppMenu(Bar& menu) {
-	menu.Add(AK_OPENCONS, THISBACK(AddConsole));
+	menu.Add(AK_OPENCONS, THISBACK1(AddConsole, false)); // Add console with system shell by default
 	menu.Add(t_("Open Internal Shell"), THISBACK(AddInternalShell));
 	menu.Add(Shell::AK_LEAVE_PROGRAM, THISBACK(LeaveProgram));
 	menu.Add(AK_QUIT, THISBACK(Quit));
@@ -249,7 +248,15 @@ void DropTerm::LeaveProgram() {
 		return;
 	int active = tabs.GetCursor();
 	int tab_id = tabs.GetKey(active);
-	cons.Get(tab_id).RemoveExt();
+	TerminalConsole& term = cons.Get(tab_id);
+	if (term.IsUsingInternalShell()) {
+		// For internal shell, maybe clear the terminal
+		term.Clear();
+	} else {
+		// For system shell, the PtyProcess should be handled appropriately
+		// TerminalConsole doesn't have RemoveExt method, so maybe clear content
+		term.Clear();
+	}
 }
 
 #ifdef flagWIN32

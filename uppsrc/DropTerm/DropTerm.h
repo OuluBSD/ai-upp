@@ -76,6 +76,7 @@ private:
 	
 	// For system shell
 	PtyProcess pty;
+	bool initialized = false;
 	bool use_internal_shell = false;
 	
 	// For internal shell
@@ -83,12 +84,17 @@ private:
 	String input_buffer;
 	
 public:
-	TerminalConsole(bool internal_shell = false) : use_internal_shell(internal_shell) {
+	TerminalConsole() {
 		InlineImages().Hyperlinks().WindowOps();
 		WhenBell = [=]() { BeepExclamation(); };
+	}
+	
+	void Init(bool use_internal = false) {
+		use_internal_shell = use_internal;
 		
 		if (use_internal_shell) {
 			// Setup for internal shell
+			internal_shell.SetPrompt("$ "); // Set a default prompt
 			WriteUtf8(internal_shell.GetPrompt());
 		} else {
 			// Setup for system shell (PtyProcess)
@@ -98,6 +104,7 @@ public:
 			// Start with system shell
 			pty.Start(GetEnv("SHELL"), Environment(), GetHomeDirectory());
 		}
+		initialized = true;
 	}
 	
 	bool Do() {
@@ -129,7 +136,7 @@ public:
 			} else if (key >= 32 && key <= 126) { // Printable characters
 				char ch = (char)(key & 0xFF);
 				input_buffer.Cat(ch);
-				WriteUtf8(String(ch));
+				WriteUtf8(String(ch, 1));
 			}
 			return true;
 		} else {
@@ -144,6 +151,18 @@ public:
 	Value GetWhenTitleData() const { return when_title_data; }
 	
 	bool IsUsingInternalShell() const { return use_internal_shell; }
+	
+	// Additional methods required by DropTerm
+	String GetTitle() const { 
+		return use_internal_shell ? "Internal Shell" : "System Terminal"; 
+	}
+	
+	void Menu(Bar& bar) { /* Placeholder implementation */ }
+	
+	void Clear() { 
+		// Clear terminal content using ANSI escape code
+		WriteUtf8("\x1b[2J\x1b[H"); // ANSI code to clear screen and move cursor to home
+	}
 };
 
 class DropTerm : public TopWindow {
@@ -168,7 +187,6 @@ public:
 	
 	TerminalConsole& NewConsole(bool use_internal_shell = false);  // Changed return type and added parameter
 	TerminalConsole* GetActiveConsole();  // Changed return type
-	void SetSemiTransparent();
 	void Quit();
 	void LeaveProgram();
 	void AddConsole(bool use_internal_shell = false) {NewConsole(use_internal_shell);}

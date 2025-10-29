@@ -133,6 +133,7 @@ struct AnnotationItem : Moveable<AnnotationItem> {
 	String unest; // UPP::CLASS
 	String bases; // base classes of struct/class
 	String parent_id;
+	String parent_type; // Added to fix compilation error
 	Point  pos = Null;
 	Point  begin = Null;
 	Point  end = Null;
@@ -159,6 +160,7 @@ String MakeDefinition(const AnnotationItem& m);
 struct ReferenceItem : Moveable<ReferenceItem> {
 	String id;
 	String parent_id; // function or struct that contains this item
+	int    kind; // Added to fix compilation error
 	Point  pos;
 	Point  ref_pos;
 	
@@ -276,6 +278,8 @@ class ClangVisitor {
 
 	CXLocation      GetLocation(CXSourceLocation cxlocation);
 	SourceLocation  GetSourceLocation(const CXLocation& p);
+	SourceLocation  GetSourceLocation(const CXLocation& p, const CXRange& r); // Added to fix compilation error
+	CXRange         GetRange(CXSourceRange cxrange); // Added to fix compilation error
 	
 	bool   locals = false;
 	String parent_id;

@@ -5,344 +5,161 @@
 #include "CtrlCore.h"
 #include "Ctrl.h"
 #include "Draw.h"
+#include <vector>
+#include <functional>
 
-// Base class for control frames
-class Frame {
+namespace Upp {
+
+class CtrlFrame {
 public:
-    virtual ~Frame() = default;
-    
-    // Get required outer size for a given inner size
-    virtual Size GetFrameSize() const = 0;
-    virtual Size GetFrameSize(const Size& sz) const = 0;
-    
-    // Get inner rectangle for a given outer rectangle
-    virtual Rect GetInner(const Rect& r) const = 0;
-    
-    // Get outer rectangle for a given inner rectangle
-    virtual Rect GetOuter(const Rect& r) const = 0;
-    
-    // Paint the frame
-    virtual void Paint(Draw& w, const Rect& r) const = 0;
-    
-    // Set frame properties
-    virtual void SetFrame(int left, int top, int right, int bottom) = 0;
-    virtual void SetFrame(int margin) = 0;
-    
-    // Check if frame is null (no frame)
-    virtual bool IsNullFrame() const = 0;
-    
-    // Default implementations for common operations
-    Size GetTotalSize(const Size& inner_size) const {
-        Size frame_size = GetFrameSize();
-        return Size(inner_size.cx + frame_size.cx, inner_size.cy + frame_size.cy);
-    }
-    
-    Size GetInnerSize(const Size& outer_size) const {
-        Size frame_size = GetFrameSize();
-        return Size(outer_size.cx - frame_size.cx, outer_size.cy - frame_size.cy);
-    }
-};
+	virtual void FrameLayout(Rect& r) = 0;
+	virtual void FrameAddSize(Size& sz) = 0;
+	virtual void FramePaint(Draw& w, const Rect& r);
+	virtual void FrameAdd(Ctrl& parent);
+	virtual void FrameRemove();
+	virtual int  OverPaint() const;
 
-// Null frame (no frame around control)
-class NullFrame : public Frame {
-public:
-    virtual Size GetFrameSize() const override { return Size(0, 0); }
-    virtual Size GetFrameSize(const Size& sz) const override { return Size(0, 0); }
-    virtual Rect GetInner(const Rect& r) const override { return r; }
-    virtual Rect GetOuter(const Rect& r) const override { return r; }
-    virtual void Paint(Draw& w, const Rect& r) const override {}
-    virtual void SetFrame(int left, int top, int right, int bottom) override {}
-    virtual void SetFrame(int margin) override {}
-    virtual bool IsNullFrame() const override { return true; }
-};
+	CtrlFrame() {}
+	virtual ~CtrlFrame() {}
 
-// Static frame with fixed margins
-class StaticFrame : public Frame {
-protected:
-    int left_margin, top_margin, right_margin, bottom_margin;
-    
-public:
-    StaticFrame(int left = 0, int top = 0, int right = 0, int bottom = 0)
-        : left_margin(left), top_margin(top), right_margin(right), bottom_margin(bottom) {}
-    
-    virtual Size GetFrameSize() const override { 
-        return Size(left_margin + right_margin, top_margin + bottom_margin); 
-    }
-    
-    virtual Size GetFrameSize(const Size& sz) const override { 
-        return Size(left_margin + right_margin, top_margin + bottom_margin); 
-    }
-    
-    virtual Rect GetInner(const Rect& r) const override { 
-        return Rect(r.left + left_margin, r.top + top_margin,
-                   r.right - right_margin, r.bottom - bottom_margin); 
-    }
-    
-    virtual Rect GetOuter(const Rect& r) const override { 
-        return Rect(r.left - left_margin, r.top - top_margin,
-                   r.right + right_margin, r.bottom + bottom_margin); 
-    }
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Paint the frame border if margins are positive
-        if (left_margin > 0) w.DrawRect(r.left, r.top, left_margin, r.Height(), Color::Gray());
-        if (top_margin > 0) w.DrawRect(r.left, r.top, r.Width(), top_margin, Color::Gray());
-        if (right_margin > 0) w.DrawRect(r.right - right_margin, r.top, right_margin, r.Height(), Color::Gray());
-        if (bottom_margin > 0) w.DrawRect(r.left, r.bottom - bottom_margin, r.Width(), bottom_margin, Color::Gray());
-    }
-    
-    virtual void SetFrame(int left, int top, int right, int bottom) override {
-        left_margin = left;
-        top_margin = top;
-        right_margin = right;
-        bottom_margin = bottom;
-    }
-    
-    virtual void SetFrame(int margin) override {
-        left_margin = top_margin = right_margin = bottom_margin = margin;
-    }
-    
-    virtual bool IsNullFrame() const override { return left_margin == 0 && top_margin == 0 && right_margin == 0 && bottom_margin == 0; }
-    
-    // Get/set individual margins
-    int GetLeft() const { return left_margin; }
-    int GetTop() const { return top_margin; }
-    int GetRight() const { return right_margin; }
-    int GetBottom() const { return bottom_margin; }
-    
-    void SetLeft(int margin) { left_margin = margin; }
-    void SetTop(int margin) { top_margin = margin; }
-    void SetRight(int margin) { right_margin = margin; }
-    void SetBottom(int margin) { bottom_margin = margin; }
-};
-
-// Sunken frame (recessed appearance)
-class SunkenFrame : public StaticFrame {
-public:
-    SunkenFrame(int margin = 1) : StaticFrame(margin, margin, margin, margin) {}
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Draw a sunken 3D border
-        w.DrawRect(r.left, r.top, r.Width(), 1, Color::LtGray());
-        w.DrawRect(r.left, r.top, 1, r.Height(), Color::LtGray());
-        w.DrawRect(r.right - 1, r.top, 1, r.Height(), Color::DkGray());
-        w.DrawRect(r.left, r.bottom - 1, r.Width(), 1, Color::DkGray());
-    }
-    
-    virtual bool IsNullFrame() const override { return false; }
-};
-
-// Raised frame (protruding appearance)
-class RaisedFrame : public StaticFrame {
-public:
-    RaisedFrame(int margin = 1) : StaticFrame(margin, margin, margin, margin) {}
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Draw a raised 3D border
-        w.DrawRect(r.left, r.top, r.Width(), 1, Color::DkGray());
-        w.DrawRect(r.left, r.top, 1, r.Height(), Color::DkGray());
-        w.DrawRect(r.right - 1, r.top, 1, r.Height(), Color::LtGray());
-        w.DrawRect(r.left, r.bottom - 1, r.Width(), 1, Color::LtGray());
-    }
-    
-    virtual bool IsNullFrame() const override { return false; }
-};
-
-// Border frame with custom color and width
-class BorderFrame : public StaticFrame {
 private:
-    Color border_color;
-    int border_width;
-    
-public:
-    BorderFrame(Color color = Color::Black(), int width = 1) 
-        : StaticFrame(width, width, width, width), border_color(color), border_width(width) {}
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Draw a solid border
-        for (int i = 0; i < border_width; i++) {
-            w.DrawRect(r.left + i, r.top + i, r.Width() - 2 * i, 1, border_color);
-            w.DrawRect(r.left + i, r.top + i, 1, r.Height() - 2 * i, border_color);
-            w.DrawRect(r.right - 1 - i, r.top + i, 1, r.Height() - 2 * i, border_color);
-            w.DrawRect(r.left + i, r.bottom - 1 - i, r.Width() - 2 * i, 1, border_color);
-        }
-    }
-    
-    void SetBorderColor(Color color) { border_color = color; }
-    Color GetBorderColor() const { return border_color; }
-    
-    void SetBorderWidth(int width) { 
-        border_width = width;
-        SetFrame(width, width, width, width);
-    }
-    int GetBorderWidth() const { return border_width; }
+	CtrlFrame(const CtrlFrame&);
+	void operator=(const CtrlFrame&);
 };
 
-// Padding frame (just adds padding around content)
-class PaddingFrame : public StaticFrame {
-public:
-    PaddingFrame(int margin = 4) : StaticFrame(margin, margin, margin, margin) {}
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Padding frames don't paint anything by default
-    }
-    
-    virtual bool IsNullFrame() const override { return false; }
+struct NullFrameClass : public CtrlFrame {
+	virtual void FrameLayout(Rect& r);
+	virtual void FramePaint(Draw& w, const Rect& r);
+	virtual void FrameAddSize(Size& sz);
 };
 
-// Frame with background color
-class ColorFrame : public StaticFrame {
+CtrlFrame& NullFrame();
+
+class MarginFrame : public CtrlFrame {
+public:
+	virtual void FrameLayout(Rect& r);
+	virtual void FramePaint(Draw& w, const Rect& r);
+	virtual void FrameAddSize(Size& sz);
+	virtual void FrameAdd(Ctrl& parent);
+	virtual void FrameRemove();
+
 private:
-    Color background_color;
-    
+	Ctrl  *owner;
+	Color  color;
+	Rect   margins;
+
 public:
-    ColorFrame(Color bg_color = Color::White(), int margin = 0) 
-        : StaticFrame(margin, margin, margin, margin), background_color(bg_color) {}
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        // Paint background
-        w.DrawRect(r, background_color);
-        // Then draw base frame
-        StaticFrame::Paint(w, r);
-    }
-    
-    void SetBackgroundColor(Color color) { background_color = color; }
-    Color GetBackgroundColor() const { return background_color; }
+	void SetMargins(const Rect& r);
+	void SetColor(Color c);
+
+	MarginFrame();
 };
 
-// Frame that contains another frame (decorator pattern)
-class DecoratorFrame : public Frame {
+class BorderFrame : public CtrlFrame {
+public:
+	virtual void FrameLayout(Rect& r);
+	virtual void FramePaint(Draw& w, const Rect& r);
+	virtual void FrameAddSize(Size& sz);
+
 protected:
-    std::unique_ptr<Frame> frame;
-    
+	const ColorF *border;
+
 public:
-    explicit DecoratorFrame(std::unique_ptr<Frame> f) : frame(std::move(f)) {}
-    
-    virtual Size GetFrameSize() const override { 
-        return frame ? frame->GetFrameSize() : Size(0, 0); 
-    }
-    
-    virtual Size GetFrameSize(const Size& sz) const override { 
-        return frame ? frame->GetFrameSize(sz) : Size(0, 0); 
-    }
-    
-    virtual Rect GetInner(const Rect& r) const override { 
-        return frame ? frame->GetInner(r) : r; 
-    }
-    
-    virtual Rect GetOuter(const Rect& r) const override { 
-        return frame ? frame->GetOuter(r) : r; 
-    }
-    
-    virtual void Paint(Draw& w, const Rect& r) const override {
-        if (frame) {
-            frame->Paint(w, r);
-        }
-    }
-    
-    virtual void SetFrame(int left, int top, int right, int bottom) override {
-        if (frame) {
-            frame->SetFrame(left, top, right, bottom);
-        }
-    }
-    
-    virtual void SetFrame(int margin) override {
-        if (frame) {
-            frame->SetFrame(margin);
-        }
-    }
-    
-    virtual bool IsNullFrame() const override { 
-        return !frame || frame->IsNullFrame(); 
-    }
-    
-    Frame* GetFrame() const { return frame.get(); }
-    void SetFrameOwner(std::unique_ptr<Frame> f) { frame = std::move(f); }
+	BorderFrame(const ColorF *border) : border(border) {}
 };
 
-// Utility class for frame operations
-class FrameOps {
+CtrlFrame& InsetFrame();
+CtrlFrame& OutsetFrame();
+CtrlFrame& ButtonFrame();
+CtrlFrame& ThinInsetFrame();
+CtrlFrame& ThinOutsetFrame();
+CtrlFrame& BlackFrame();
+CtrlFrame& WhiteFrame();
+
+CtrlFrame& XPFieldFrame();
+
+CtrlFrame& FieldFrame();
+// CtrlFrame& EditFieldFrame(); //TODO remove
+
+CtrlFrame& TopSeparatorFrame();
+CtrlFrame& BottomSeparatorFrame();
+CtrlFrame& LeftSeparatorFrame();
+CtrlFrame& RightSeparatorFrame();
+
+CtrlFrame& RightGapFrame();
+
+void LayoutFrameLeft(Rect& r, Ctrl *ctrl, int cx);
+void LayoutFrameRight(Rect& r, Ctrl *ctrl, int cx);
+void LayoutFrameTop(Rect& r, Ctrl *ctrl, int cy);
+void LayoutFrameBottom(Rect& r, Ctrl *ctrl, int cy);
+
+template <class T>
+class FrameCtrl : public T, public CtrlFrame {
 public:
-    // Combine two frames (outer frame contains inner frame)
-    static std::unique_ptr<Frame> Combine(std::unique_ptr<Frame> outer, std::unique_ptr<Frame> inner) {
-        class CombinedFrame : public Frame {
-        private:
-            std::unique_ptr<Frame> outer_frame;
-            std::unique_ptr<Frame> inner_frame;
-            
-        public:
-            CombinedFrame(std::unique_ptr<Frame> o, std::unique_ptr<Frame> i) 
-                : outer_frame(std::move(o)), inner_frame(std::move(i)) {}
-            
-            virtual Size GetFrameSize() const override {
-                Size outer_size = outer_frame ? outer_frame->GetFrameSize() : Size(0, 0);
-                Size inner_size = inner_frame ? inner_frame->GetFrameSize() : Size(0, 0);
-                return Size(outer_size.cx + inner_size.cx, outer_size.cy + inner_size.cy);
-            }
-            
-            virtual Size GetFrameSize(const Size& sz) const override {
-                Size outer_size = outer_frame ? outer_frame->GetFrameSize(sz) : Size(0, 0);
-                Size inner_size = inner_frame ? inner_frame->GetFrameSize(sz) : Size(0, 0);
-                return Size(outer_size.cx + inner_size.cx, outer_size.cy + inner_size.cy);
-            }
-            
-            virtual Rect GetInner(const Rect& r) const override {
-                Rect outer_inner = outer_frame ? outer_frame->GetInner(r) : r;
-                return inner_frame ? inner_frame->GetInner(outer_inner) : outer_inner;
-            }
-            
-            virtual Rect GetOuter(const Rect& r) const override {
-                Rect inner_outer = inner_frame ? inner_frame->GetOuter(r) : r;
-                return outer_frame ? outer_frame->GetOuter(inner_outer) : inner_outer;
-            }
-            
-            virtual void Paint(Draw& w, const Rect& r) const override {
-                if (outer_frame) outer_frame->Paint(w, r);
-                if (inner_frame) {
-                    Rect inner_rect = outer_frame ? outer_frame->GetInner(r) : r;
-                    inner_frame->Paint(w, inner_rect);
-                }
-            }
-            
-            virtual void SetFrame(int left, int top, int right, int bottom) override {
-                if (outer_frame) outer_frame->SetFrame(left, top, right, bottom);
-                if (inner_frame) inner_frame->SetFrame(left, top, right, bottom);
-            }
-            
-            virtual void SetFrame(int margin) override {
-                if (outer_frame) outer_frame->SetFrame(margin);
-                if (inner_frame) inner_frame->SetFrame(margin);
-            }
-            
-            virtual bool IsNullFrame() const override {
-                return (!outer_frame || outer_frame->IsNullFrame()) && 
-                       (!inner_frame || inner_frame->IsNullFrame());
-            }
-        };
-        
-        return std::make_unique<CombinedFrame>(std::move(outer), std::move(inner));
-    }
+	virtual void FrameAdd(Ctrl& parent) { parent.Add(*this); }
+	virtual void FrameRemove()          { this->Ctrl::Remove(); }
+
+	FrameCtrl()                         { this->NoWantFocus(); }
 };
 
-// Helper functions to create common frames
-inline std::unique_ptr<Frame> InsetFrame(int margin = 1) {
-    return std::make_unique<SunkenFrame>(margin);
-}
+template <class T>
+class FrameLR : public FrameCtrl<T> {
+public:
+	virtual void FrameAddSize(Size& sz) { sz.cx += Nvl(cx, FrameButtonWidth()) * this->IsShown(); }
 
-inline std::unique_ptr<Frame> OutsetFrame(int margin = 1) {
-    return std::make_unique<RaisedFrame>(margin);
-}
+protected:
+	int cx = Null;
 
-inline std::unique_ptr<Frame> Padding(int margin) {
-    return std::make_unique<PaddingFrame>(margin);
-}
+public:
+	FrameLR& Width(int _cx)             { cx = _cx; this->RefreshParentLayout(); return *this; }
+	int      GetWidth() const           { return cx; }
+};
 
-inline std::unique_ptr<Frame> Border(Color color = Color::Black(), int width = 1) {
-    return std::make_unique<BorderFrame>(color, width);
-}
+template <class T>
+class FrameLeft : public FrameLR<T> {
+public:
+	virtual void FrameLayout(Rect& r) {
+		LayoutFrameLeft(r, this, Nvl(this->cx, FrameButtonWidth()));
+	}
+};
 
-inline std::unique_ptr<Frame> FrameRect(Color bg_color = Color::White(), int margin = 0) {
-    return std::make_unique<ColorFrame>(bg_color, margin);
+template <class T>
+class FrameRight : public FrameLR<T> {
+public:
+	virtual void FrameLayout(Rect& r) {
+		LayoutFrameRight(r, this, Nvl(this->cx, FrameButtonWidth()));
+	}
+};
+
+template <class T>
+class FrameTB : public FrameCtrl<T> {
+public:
+	virtual void FrameAddSize(Size& sz) { sz.cy += Nvl(cy, sz.cx) * this->IsShown(); }
+
+protected:
+	int cy = Null;
+
+public:
+	FrameTB& Height(int _cy)            { cy = _cy; this->RefreshParentLayout(); return *this; }
+	int      GetHeight() const          { return cy; }
+};
+
+template <class T>
+class FrameTop : public FrameTB<T> {
+public:
+	virtual void FrameLayout(Rect& r) {
+		LayoutFrameTop(r, this, Nvl(this->cy, r.Width()));
+	}
+};
+
+template <class T>
+class FrameBottom : public FrameTB<T> {
+public:
+	virtual void FrameLayout(Rect& r) {
+		LayoutFrameBottom(r, this, Nvl(this->cy, r.Width()));
+	}
+};
+
 }
 
 #endif

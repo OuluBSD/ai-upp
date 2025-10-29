@@ -1,211 +1,322 @@
 #pragma once
-// U++-compatible ScrollBar wrapper for UI scrollbars
-// This header is aggregated and wrapped into namespace Upp by CtrlLib.h
+#ifndef _CtrlLib_ScrollBar_h_
+#define _CtrlLib_ScrollBar_h_
 
-#include <string>
-#include <algorithm>
-#include "../Draw/Color.h"
-#include "../Draw/DrawCore.h"
-#include "../CtrlCore/Ctrl.h"
-#include "../Draw/Point.h"
-#include "../Draw/Rect.h"
-#include "../CtrlCore/Event.h"
+#include "Ctrl.h"
+#include <vector>
+#include <functional>
+#include <memory>
 
-class ScrollBar : public Ctrl {
-private:
-    bool vertical;
-    int page;              // Page size (visible area)
-    int total;             // Total range
-    int pos;               // Current position
-    int line;              // Line increment
-    bool dragging;
-    Point drag_start;
-    int drag_start_pos;
-    int thumb_start_pos;
-    int thumb_size;
+namespace Upp {
+
+class ScrollBar : public FrameCtrl<Ctrl>, private VirtualButtons {
+public:
+	virtual void Layout() override;
+	virtual Size GetStdSize() const override;
+	virtual void Paint(Draw& draw) override;
+	virtual void LeftDown(Point p, dword) override;
+	virtual void MouseMove(Point p, dword) override;
+	virtual void MouseEnter(Point p, dword) override;
+	virtual void MouseLeave() override;
+	virtual void LeftUp(Point p, dword) override;
+	virtual void LeftRepeat(Point p, dword) override;
+	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;
+	virtual void HorzMouseWheel(Point p, int zdelta, dword keyflags) override;
+	virtual void CancelMode() override;
+
+	virtual void FrameLayout(Rect& r) override;
+	virtual void FrameAddSize(Size& sz) override;
+
+	virtual Image MouseEvent(int event, Point p, int zdelta, dword keyflags) override;
+
+	virtual int                  ButtonCount() const override;
+	virtual Rect                 ButtonRect(int i) const override;
+	virtual const Button::Style& ButtonStyle(int i) const override;
+	virtual bool                 ButtonEnabled(int i) const override;
+
+	virtual void ButtonPush(int i) override;
+	virtual void ButtonRepeat(int i) override;
 
 public:
-    // Constructors
-    ScrollBar() : Ctrl(), vertical(true), page(10), total(100), 
-                  pos(0), line(1), dragging(false), thumb_size(20) {
-        SetSize(16, 100);  // Default vertical scrollbar size
-    }
+	struct Style : ChStyle<Style> {
+		Color bgcolor;
+		int barsize, arrowsize, thumbmin, overthumb, thumbwidth;
+		bool through;
+		Value vupper[4], vthumb[4], vlower[4];
+		Value hupper[4], hthumb[4], hlower[4];
+		Button::Style up, down, left, right;
+		Button::Style up2, down2, left2, right2;
+		bool          isup2, isdown2, isleft2, isright2;
+	};
 
-    explicit ScrollBar(bool is_vertical) : Ctrl(), vertical(is_vertical), 
-                  page(10), total(100), pos(0), line(1), dragging(false), thumb_size(20) {
-        SetSize(is_vertical ? 16 : 100, is_vertical ? 100 : 16);
-    }
+private:
+	int     thumbpos;
+	int     thumbsize;
+	int     delta;
 
-    // U++-style static constructors
-    static ScrollBar* Create() { return new ScrollBar(); }
-    static ScrollBar* CreateVertical() { return new ScrollBar(true); }
-    static ScrollBar* CreateHorizontal() { return new ScrollBar(false); }
+	enum { PREV, PREV2, NEXT, NEXT2, BUTTONCOUNT };
+//	Button  prev, prev2, next, next2;
+	int     pagepos;
+	int     pagesize;
+	int     totalsize;
+	int     linesize;
+	int     minthumb;
+	int     wheelaccumulator; // improves touch experience
+	int8    push;
+	int8    light;
+	bool    horz:1;
+	bool    jump:1;
+	bool    track:1;
+	bool    autohide:1;
+	bool    autodisable:1;
+	bool    is_active:1;
 
-    // U++-style scrollbar configuration
-    void Horz() { 
-        vertical = false; 
-        SetSize(100, 16);
-    }
-    
-    void Vert() { 
-        vertical = true; 
-        SetSize(16, 100);
-    }
+	const Style *style;
 
-    // U++-style range and position methods
-    void SetPage(int p) { 
-        page = std::max(1, p); 
-        pos = std::min(pos, std::max(0, total - page));
-        Refresh();
-    }
-    
-    void SetTotal(int t) { 
-        total = std::max(page, t); 
-        pos = std::min(pos, std::max(0, total - page));
-        Refresh();
-    }
-    
-    void SetLine(int l) { 
-        line = std::max(1, l); 
-    }
+	Rect    Slider(int& cc) const;
+	Rect    Slider() const;
+	int&    HV(int& h, int& v) const;
+	int     GetHV(int h, int v) const;
+	Rect    GetPartRect(int p) const;
+	void    Bounds();
+	bool    SetThumb(int _thumbpos, int _thumbsize);
+	void    Drag(Point p);
+	int     GetMousePart();
+	int     GetRange() const;
 
-    void SetPos(int p) { 
-        pos = std::max(0, std::min(p, std::max(0, total - page))); 
-        Refresh();
-    }
+	void    Position();
+	void    Uset(int a);
 
-    // U++-style getters
-    int GetPage() const { return page; }
-    int GetTotal() const { return total; }
-    int GetLine() const { return line; }
-    int GetPos() const { return pos; }
+	int     ScrollBarSize() const           { return style->barsize; }
 
-    // U++-style painting
-    void Paint(Draw& draw) const override {
-        if (!IsVisible()) return;
+public:
+	Event<>  WhenScroll;
+	Event<>  WhenVisibility;
+	Event<>  WhenLeftClick;
 
-        Rect r = GetRect();
-        
-        // Draw scrollbar background
-        draw.DrawRect(r, Color(220, 220, 220), Color(200, 200, 200));
-        
-        // Draw thumb
-        Rect thumb_rect = GetThumbRect();
-        draw.DrawRect(thumb_rect, Color(180, 180, 180), Color(210, 210, 210));
-        
-        // Draw thumb griplines
-        if (vertical) {
-            int center_x = thumb_rect.GetLeft() + (thumb_rect.GetWidth() / 2);
-            for (int y = thumb_rect.GetTop() + 4; y < thumb_rect.GetBottom() - 4; y += 3) {
-                draw.DrawPoint(Point(center_x - 2, y), Color::Gray());
-                draw.DrawPoint(Point(center_x + 2, y), Color::Gray());
-            }
-        } else {
-            int center_y = thumb_rect.GetTop() + (thumb_rect.GetHeight() / 2);
-            for (int x = thumb_rect.GetLeft() + 4; x < thumb_rect.GetRight() - 4; x += 3) {
-                draw.DrawPoint(Point(x, center_y - 2), Color::Gray());
-                draw.DrawPoint(Point(x, center_y + 2), Color::Gray());
-            }
-        }
-    }
+	bool    IsHorz() const                  { return horz; }
+	bool    IsVert() const                  { return !horz; }
 
-    // Calculate thumb position and size
-    Rect GetThumbRect() const {
-        Rect r = GetRect();
-        
-        if (total <= page) {
-            // No scrolling needed, hide thumb
-            return Rect(0, 0, 0, 0);
-        }
-        
-        int available_length = vertical ? (r.GetHeight() - 4) : (r.GetWidth() - 4);
-        thumb_size = std::max(10, (page * available_length) / total);
-        
-        int range = total - page;
-        int thumb_pos;
-        if (range > 0) {
-            thumb_pos = (pos * (available_length - thumb_size)) / range;
-        } else {
-            thumb_pos = 0;
-        }
-        
-        if (vertical) {
-            return Rect(r.GetLeft() + 2, r.GetTop() + 2 + thumb_pos, 
-                       r.GetRight() - 2, r.GetTop() + 2 + thumb_pos + thumb_size);
-        } else {
-            return Rect(r.GetLeft() + 2 + thumb_pos, r.GetTop() + 2, 
-                       r.GetLeft() + 2 + thumb_pos + thumb_size, r.GetBottom() - 2);
-        }
-    }
+	void    Set(int pagepos, int pagesize, int totalsize);
 
-    // U++-style mouse handling
-    void LeftDown(Point p, dword keyflags) override {
-        Rect thumb_rect = GetThumbRect();
-        Rect r = GetRect();
-        
-        if (thumb_rect.IsPtInside(p)) {
-            // Clicked on thumb
-            dragging = true;
-            drag_start = p;
-            drag_start_pos = pos;
-            thumb_start_pos = vertical ? (thumb_rect.GetTop() - r.GetTop() - 2) : (thumb_rect.GetLeft() - r.GetLeft() - 2);
-            SetCapture();
-        } else {
-            // Clicked on track - page up/down
-            if (vertical) {
-                if (p.y < thumb_rect.GetTop()) {
-                    // Page up
-                    SetPos(std::max(0, pos - page));
-                } else if (p.y > thumb_rect.GetBottom()) {
-                    // Page down
-                    SetPos(std::min(total - page, pos + page));
-                }
-            } else {
-                if (p.x < thumb_rect.GetLeft()) {
-                    // Page left
-                    SetPos(std::max(0, pos - page));
-                } else if (p.x > thumb_rect.GetRight()) {
-                    // Page right
-                    SetPos(std::min(total - page, pos + page));
-                }
-            }
-        }
-    }
+	bool    Set(int pagepos);
+	void    SetPage(int pagesize);
+	void    SetTotal(int totalsize);
+	
+	bool    IsActive() const                { return is_active; }
 
-    void LeftUp(Point p, dword keyflags) override {
-        if (dragging) {
-            dragging = false;
-            ReleaseCapture();
-        }
-    }
+	bool    ScrollInto(int pos, int linesize);
+	bool    ScrollInto(int pos)             { return ScrollInto(pos, linesize); }
 
-    void MouseMove(Point p, dword keyflags) override {
-        if (dragging) {
-            Rect r = GetRect();
-            int available_length = vertical ? (r.GetHeight() - 4 - thumb_size) : (r.GetWidth() - 4 - thumb_size);
-            
-            int new_pos;
-            if (available_length > 0) {
-                int delta = vertical ? (p.y - drag_start.y) : (p.x - drag_start.x);
-                int new_thumb_pos = thumb_start_pos + delta;
-                new_thumb_pos = std::max(0, std::min(new_thumb_pos, available_length));
-                
-                int range = total - page;
-                new_pos = (new_thumb_pos * range) / available_length;
-                SetPos(new_pos);
-            }
-        }
-    }
+	bool    VertKey(dword key, bool homeend = true);
+	bool    HorzKey(dword key);
 
-    // U++-style wheel handling
-    void MouseWheel(Point p, int zdelta, dword keyflags) override {
-        if (zdelta > 0) {
-            SetPos(pos - line);  // Scroll up/prev
-        } else {
-            SetPos(pos + line);  // Scroll down/next
-        }
-    }
+	void    PrevLine();
+	void    NextLine();
+	void    PrevPage();
+	void    NextPage();
+	void    Begin();
+	void    End();
 
-    // U++-style methods for identifying control types
-    const char* GetClassName() const override { return "ScrollBar"; }
+	void    Wheel(int zdelta, int lines);
+	void    Wheel(int zdelta);
+
+	Size    GetViewSize() const;
+	Size    GetReducedViewSize() const;
+
+	int     Get() const                     { return pagepos; }
+	int     GetPage() const                 { return pagesize; }
+	int     GetTotal() const                { return totalsize; }
+	int     GetLine() const                 { return linesize; }
+	
+	Rect    GetSliderRect() const           { return Slider(); }
+	int     GetSliderPos(int pos) const;
+
+	static const Style& StyleDefault();
+
+	ScrollBar& Horz(bool b = true)          { horz = b; Refresh(); RefreshLayout(); return *this; }
+	ScrollBar& Vert()                       { return Horz(false); }
+
+	ScrollBar& SetLine(int _line)           { linesize = _line; return *this; }
+
+	ScrollBar& Track(bool b = true)         { track = b; return *this; }
+	ScrollBar& NoTrack()                    { return Track(false); }
+	ScrollBar& Jump(bool b = true)          { jump = b; return *this; }
+	ScrollBar& NoJump(bool b = true)        { return Jump(false); }
+	ScrollBar& AutoHide(bool b = true);
+	ScrollBar& NoAutoHide()                 { return AutoHide(false); }
+	bool       IsAutoHide() const           { return autohide; }
+	ScrollBar& AutoDisable(bool b = true);
+	ScrollBar& NoAutoDisable()              { return AutoDisable(false); }
+	ScrollBar& MinThumb(int sz)             { minthumb = sz; return *this; }
+	ScrollBar& SetStyle(const Style& s);
+
+	operator int() const                    { return pagepos; }
+	int operator=(int pagepos)              { Set(pagepos); return pagepos; }
+
+	ScrollBar();
+	virtual ~ScrollBar();
 };
+
+inline int ScrollBarSize()                  { return ScrollBar::StyleDefault().barsize; }//!!
+
+class VScrollBar : public ScrollBar {
+public:
+	int operator=(int pagepos)              { Set(pagepos); return pagepos; }
+};
+
+class HScrollBar : public ScrollBar {
+public:
+	int operator=(int pagepos)              { Set(pagepos); return pagepos; }
+
+	HScrollBar() { Horz(); }
+};
+
+class SizeGrip : public FrameRight<Ctrl> {
+public:
+	virtual void  Paint(Draw& w) override;
+	virtual void  LeftDown(Point p, dword) override;
+	virtual Image CursorImage(Point p, dword) override;
+
+public:
+	SizeGrip();
+	virtual ~SizeGrip();
+};
+
+class ScrollBars : public CtrlFrame {
+public:
+	virtual void FrameLayout(Rect& r) override;
+	virtual void FrameAddSize(Size& sz) override;
+	virtual void FramePaint(Draw& w, const Rect& r) override;
+	virtual void FrameAdd(Ctrl& ctrl) override;
+	virtual void FrameRemove() override;
+
+protected:
+	Ctrl      *box;
+	ParentCtrl the_box;
+	
+	
+	StaticRect box_bg;
+	int        box_type;
+	SizeGrip   grip;
+
+	void    Scroll();
+
+public:
+	HScrollBar x;
+	VScrollBar y;
+
+	Event<>    WhenScroll;
+	Event<>    WhenLeftClick;
+
+	void    Set(Point pos, Size page, Size total);
+	bool    Set(Point pos);
+	bool    Set(int x, int y);
+	void    SetPage(Size page);
+	void    SetPage(int cx, int cy);
+	void    SetTotal(Size total);
+	void    SetTotal(int cx, int cy);
+
+	void    SetX(int pos, int page, int total)       { x.Set(pos, page, total); }
+	bool    SetX(int _x)                             { return x.Set(_x); }
+	void    SetPageX(int cx)                         { x.SetPage(cx); }
+	void    SetTotalX(int cx)                        { x.SetTotal(cx); }
+
+	void    SetY(int pos, int page, int total)       { y.Set(pos, page, total); }
+	bool    SetY(int _y)                             { return y.Set(_y); }
+	void    SetPageY(int cy)                         { y.SetPage(cy); }
+	void    SetTotalY(int cy)                        { y.SetTotal(cy); }
+
+	bool    ScrollInto(Point pos, Size linesize);
+	bool    ScrollInto(const Rect& r)                { return ScrollInto(r.TopLeft(), r.Size()); }
+	bool    ScrollInto(Point pos);
+
+	bool    ScrollIntoX(int pos, int linesize)       { return x.ScrollInto(pos, linesize); }
+	bool    ScrollIntoX(int pos)                     { return x.ScrollInto(pos); }
+	bool    ScrollIntoY(int pos, int linesize)       { return y.ScrollInto(pos, linesize); }
+	bool    ScrollIntoY(int pos)                     { return y.ScrollInto(pos); }
+
+	bool    Key(dword key);
+
+	void    LineUp()                                 { y.PrevLine(); }
+	void    LineDown()                               { y.NextLine(); }
+	void    PageUp()                                 { y.PrevPage(); }
+	void    PageDown()                               { y.NextPage(); }
+	void    VertBegin()                              { y.Begin(); }
+	void    VertEnd()                                { y.End(); }
+
+	void    LineLeft()                               { x.PrevLine(); }
+	void    LineRight()                              { x.NextLine(); }
+	void    PageLeft()                               { x.PrevPage(); }
+	void    PageRight()                              { x.NextPage(); }
+	void    HorzBegin()                              { x.Begin(); }
+	void    HorzEnd()                                { x.End(); }
+
+	void    WheelX(int zdelta)                       { x.Wheel(zdelta); }
+	void    WheelY(int zdelta)                       { y.Wheel(zdelta); }
+
+	Size    GetViewSize() const;
+	Size    GetReducedViewSize() const;
+
+	Point   Get() const                              { return Point(x, y); }
+	int     GetX() const                             { return x; }
+	int     GetY() const                             { return y; }
+	Size    GetPage() const                          { return Size(x.GetPage(), y.GetPage()); }
+	Size    GetTotal() const                         { return Size(x.GetTotal(), y.GetTotal()); }
+	Size    GetLine() const                          { return Size(x.GetLine(), y.GetLine()); }
+
+	void    ShowX(bool show)                         { x.Show(show); }
+	void    HideX()                                  { ShowX(false); }
+	void    ShowY(bool show)                         { y.Show(show); }
+	void    HideY()                                  { ShowY(false); }
+	void    Show(bool show = true)                   { x.Show(show); y.Show(show); }
+	void    Hide()                                   { Show(false); }
+	
+	ScrollBars& SetLine(int linex, int liney);
+	ScrollBars& SetLine(Size line)                   { return SetLine(line.cx, line.cy); }
+	ScrollBars& SetLine(int line)                    { return SetLine(line, line); }
+
+	ScrollBars& Track(bool b = true);
+	ScrollBars& NoTrack()                            { return Track(false); }
+	ScrollBars& Jump(bool b = true);
+	ScrollBars& NoJump(bool b = true)                { return Jump(false); }
+	ScrollBars& AutoHide(bool b = true);
+	ScrollBars& NoAutoHide()                         { return AutoHide(false); }
+	ScrollBars& AutoDisable(bool b = true);
+	ScrollBars& NoAutoDisable()                      { return AutoDisable(false); }
+
+	ScrollBars& NormalBox();
+	ScrollBars& NoBox();
+	ScrollBars& FixedBox();
+
+	ScrollBars& Box(Ctrl& box);
+	ScrollBars& WithSizeGrip();
+
+	ScrollBars& SetStyle(const ScrollBar::Style& s)  { x.SetStyle(s); y.SetStyle(s); return *this; }
+
+	operator Point() const                           { return Get(); }
+	Point operator=(Point p)                         { Set(p); return p; }
+
+	ScrollBars();
+	virtual ~ScrollBars();
+};
+
+class Scroller {
+	Point psb;
+
+public:
+	void Scroll(Ctrl& p, const Rect& rc, Point newpos, Size cellsize = Size(1, 1));
+	void Scroll(Ctrl& p, const Rect& rc, int newpos, int linesize = 1);
+	void Scroll(Ctrl& p, Point newpos);
+	void Scroll(Ctrl& p, int newposy);
+
+	void Set(Point pos)          { psb = pos; }
+	void Set(int pos)            { psb = Point(0, pos); }
+	void Clear()                 { psb = Null; }
+
+	Scroller()                   { psb = Null; }
+};
+
+}
+
+#endif

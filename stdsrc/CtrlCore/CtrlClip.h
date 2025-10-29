@@ -6,7 +6,12 @@
 #include "Ctrl.h"
 #include "Draw.h"
 
-// Clipboard and clipping region functionality for controls
+namespace Upp {
+
+// Clipboard and drag-and-drop related functionality
+// This header provides the interfaces for clipboard and drag-and-drop operations
+// that are actually implemented in the Ctrl class in U++
+
 class CtrlClip {
 protected:
     Ctrl& ctrl;
@@ -14,201 +19,74 @@ protected:
 public:
     explicit CtrlClip(Ctrl& c) : ctrl(c) {}
     
-    // Copy text to clipboard
-    static bool SetClipboard(const String& text);
+    // Access to clipboard operations (these call Ctrl methods)
+    PasteClip& GetClipboard() { return ctrl.Clipboard(); }
+    PasteClip& GetSelection() { return ctrl.Selection(); }
     
-    // Get text from clipboard
-    static String GetClipboard();
+    // High-level clipboard access
+    static bool SetText(const String& text);
+    static String GetText();
+    static bool HasText();
     
-    // Set clipboard with multiple format support (text, HTML, etc.)
-    static bool SetClipboardMulti(const String& text, const String& html = String());
+    static bool SetImage(const Image& img);
+    static Image GetImage();
+    static bool HasImage();
     
-    // Check if clipboard contains text
-    static bool HasClipboardText();
+    static bool SetFiles(const Vector<String>& files);
+    static Vector<String> GetFiles();
+    static bool HasFiles();
     
-    // Clear clipboard
-    static bool ClearClipboard();
+    // Drag and drop operations
+    void DragAndDrop(Point p, PasteClip& clip);
+    void FrameDragAndDrop(Point p, PasteClip& clip);
+    void DragEnter();
+    void DragLeave();
+    void DragRepeat(Point p);
     
-    // Copy image to clipboard
-    static bool SetClipboardImage(const Image& img);
+    String GetDropData(const String& fmt) const;
+    String GetSelectionData(const String& fmt) const;
     
-    // Get image from clipboard
-    static Image GetClipboardImage();
+    // Do drag and drop operation
+    int DoDragAndDrop(const char *fmts, const Image& sample, dword actions = DND_ALL);
+    int DoDragAndDrop(const VectorMap<String, ClipData>& data, const Image& sample = Null, dword actions = DND_ALL);
     
-    // Check if clipboard contains an image
-    static bool HasClipboardImage();
+    // Static access for global clipboard operations
+    static void Clear();
+    static void AppendText(const String& text);
+    static void AppendImage(const Image& img);
+    static void AppendFiles(const Vector<String>& files);
     
-    // Copy custom data to clipboard
-    template<typename T>
-    static bool SetClipboardData(const T& data) {
-        // In a real implementation, this would serialize the data
-        return false;
-    }
+    // Check for clipboard formats
+    static bool IsAvailable(const char *fmts);
     
-    // Get custom data from clipboard
-    template<typename T>
-    static T GetClipboardData() {
-        // In a real implementation, this would deserialize the data
-        return T{};
-    }
+    // Get drag and drop source/target
+    static Ctrl *GetDragAndDropSource();
+    static Ctrl *GetDragAndDropTarget();
     
-    // Control-specific clipboard operations
-    bool SetClipText(const String& text);
-    String GetClipText();
-    bool HasClipText();
-    bool SetClipImage(const Image& img);
-    Image GetClipImage();
-    bool HasClipImage();
-    
-    // Clipping region for drawing operations
-    class ClipRegion {
-    private:
-        bool has_clip;
-        Rect clip_rect;
-        
-    public:
-        ClipRegion();
-        explicit ClipRegion(const Rect& r);
-        
-        bool HasClip() const;
-        const Rect& GetClipRect() const;
-        
-        void SetClipRect(const Rect& r);
-        
-        void ClearClip();
-        
-        // Check if a point is within the clipping region
-        bool IsInside(const Point& pt) const;
-        
-        // Check if a rectangle intersects the clipping region
-        bool Intersects(const Rect& r) const;
-        
-        // Get intersection with clipping region
-        Rect GetIntersection(const Rect& r) const;
-    };
-    
-    // Set clipping region for drawing operations
-    void SetClip(const Rect& r);
-    void SetClip(const ClipRegion& clip);
-    
-    // Clear clipping region
-    void ClearClip();
-    
-    // Get current clipping region
-    ClipRegion GetClip() const;
-    
-    // Push/Pop clipping region stack (for nested clipping)
-    void PushClip(const Rect& r);
-    void PushClip(const ClipRegion& clip);
-    void PopClip();
-    int GetClipStackDepth() const;
-    
-    // Clipping utilities
-    static Rect ClipRect(const Rect& rect, const Rect& clip_rect);
-    static bool ClipLine(int& x1, int& y1, int& x2, int& y2, const Rect& clip_rect);
-    static bool ClipPolygon(Vector<Point>& points, const Rect& clip_rect);
-    
-    // Region-based clipping
-    class Region {
-    private:
-        Vector<Rect> rectangles;
-        
-    public:
-        Region();
-        explicit Region(const Rect& r);
-        
-        void AddRect(const Rect& r);
-        void SubtractRect(const Rect& r);
-        void IntersectRect(const Rect& r);
-        
-        const Vector<Rect>& GetRects() const { return rectangles; }
-        bool IsEmpty() const { return rectangles.IsEmpty(); }
-        void Clear() { rectangles.Clear(); }
-        
-        // Check if point is in region
-        bool IsPtInRegion(const Point& pt) const;
-        
-        // Check if rectangle intersects region
-        bool Intersects(const Rect& r) const;
-        
-        // Get bounding box of region
-        Rect GetBound() const;
-    };
-    
-    // Set clipping region using a complex region
-    void SetClipRegion(const Region& region);
-    
-    // Scroll control content
-    bool Scroll(int dx, int dy);
-    bool Scroll(const Point& delta);
-    
-    // Scroll specific area
-    bool ScrollArea(const Rect& area, int dx, int dy);
-    bool ScrollArea(const Rect& area, const Point& delta);
-    
-    // Get scroll offset
-    Point GetScrollOffset() const;
-    void SetScrollOffset(const Point& offset);
-    
-    // Set scrollable area
-    void SetScrollSize(const Size& sz);
-    void SetScrollSize(int cx, int cy);
-    Size GetScrollSize() const;
-    
-    // Enable/disable scrolling
-    void SetScroll(bool hscroll, bool vscroll);
-    bool IsHScroll() const;
-    bool IsVScroll() const;
-    
-    // Update scrollbars if they exist
-    void UpdateScroll();
-    
-    // Scroll to make a specific rectangle visible
-    void ScrollToRect(const Rect& r);
+    bool IsDragAndDropSource() { return ctrl.IsDragAndDropSource(); }
+    bool IsDragAndDropTarget() { return ctrl.IsDragAndDropTarget(); }
 };
 
-// Helper class for temporary clipping
-class ClipScope {
-private:
-    Ctrl& ctrl;
-    bool need_pop;
-    
-public:
-    ClipScope(Ctrl& c, const Rect& clip_rect) : ctrl(c), need_pop(true) {
-        ctrl.PushClip(clip_rect);
-    }
-    
-    ClipScope(Ctrl& c, const CtrlClip::ClipRegion& clip) : ctrl(c), need_pop(true) {
-        ctrl.PushClip(clip);
-    }
-    
-    ~ClipScope() {
-        if (need_pop) {
-            ctrl.PopClip();
-        }
-    }
-    
-    void Cancel() { need_pop = false; }
-};
-
-// Global clipboard functions
+// Helper functions for common clipboard operations
 inline bool SetClipboardText(const String& text) {
-    return CtrlClip::SetClipboard(text);
+    return CtrlClip::SetText(text);
 }
 
 inline String GetClipboardText() {
-    return CtrlClip::GetClipboard();
+    return CtrlClip::GetText();
 }
 
 inline bool SetClipboardImage(const Image& img) {
-    return CtrlClip::SetClipboardImage(img);
+    return CtrlClip::SetImage(img);
 }
 
 inline Image GetClipboardImage() {
-    return CtrlClip::GetClipboardImage();
+    return CtrlClip::GetImage();
 }
 
-// Macro for convenient clipping
-#define WITH_CLIP(ctrl, rect) ClipScope _clip_scope_(ctrl, rect)
+// Drag image creation
+Image MakeDragImage(const Image& arrow, Image sample);
+
+}
 
 #endif

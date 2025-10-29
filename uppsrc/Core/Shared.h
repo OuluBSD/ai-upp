@@ -1,6 +1,7 @@
 #ifndef _Core_Shared_h_
 #define _Core_Shared_h_
 
+#include <utility> // for std::swap
 
 struct WeakBase {
 	virtual void SetDeleted() = 0;
@@ -128,6 +129,71 @@ public:
 	const Base* GetBase() const {return r;}
 	String ToString() const {return r ? o->ToString() : "";}
 	
+	// std::shared_ptr interface compatibility methods
+	template <class Y>
+	explicit Shared(Y* ptr) : o(ptr) {
+		Base* r = new Base;
+		r->obj = ptr;
+		ASSERT(r->GetRefCount() > 0);
+	}
+	
+	void reset() { Clear(); }
+	
+	template <class Y>
+	void reset(Y* ptr) {
+		Clear();
+		if (ptr) {
+			Base* r = new Base;
+			r->obj = ptr;
+			o = ptr;
+			ASSERT(r->GetRefCount() > 0);
+		}
+	}
+	
+	// Note: Full deleter support is not implemented in this U++ Shared<T> implementation
+	// The standard reset(Y* ptr, Deleter d) method is only provided for interface compatibility
+	template <class Y, class Deleter>
+	void reset(Y* ptr, Deleter d) {
+		// For full compatibility with std::shared_ptr, this should use the deleter
+		// but the current U++ implementation doesn't support custom deleters
+		Clear();
+		if (ptr) {
+			// Using default behavior - the U++ framework handles deletion through RefTemplate
+			Base* r = new Base;
+			r->obj = ptr;
+			o = ptr;
+			ASSERT(r->GetRefCount() > 0);
+		}
+	}
+
+	long use_count() const { return r ? r->GetRefCount() : 0; }
+	
+	bool unique() const { return use_count() == 1; }
+	
+	T* get() const { return Get(); }
+	
+	void swap(Shared& other) {
+		std::swap(r, other.r);
+		std::swap(o, other.o);
+	}
+	
+	template <class U>
+	Shared static_pointer_cast(const Shared<U>& other) {
+		T* ptr = static_cast<T*>(other.Get());
+		if (ptr) {
+			return Shared(ptr, other.r);
+		}
+		return Shared();
+	}
+	
+	template <class U>
+	Shared dynamic_pointer_cast(const Shared<U>& other) {
+		T* ptr = dynamic_cast<T*>(other.Get());
+		if (ptr) {
+			return Shared(ptr, other.r);
+		}
+		return Shared();
+	}
 };
 
 
@@ -167,6 +233,23 @@ public:
 	T* Get() {return o;}
 	operator bool() {return !IsEmpty();}
 	Shared<T> Enter() const {Shared<T> s; s.r = r; s.o = o; if (s.r) s.r->Inc(); return s;}
+	
+	// std::weak_ptr interface compatibility methods
+	void reset() { Clear(); }
+	
+	Shared<T> lock() const { return Enter(); }
+	
+	long use_count() const { 
+		if (r && o) return r->GetRefCount();
+		return 0;
+	}
+	
+	bool expired() const { return use_count() == 0; }
+	
+	void swap(Weak& other) {
+		std::swap(r, other.r);
+		std::swap(o, other.o);
+	}
 };
 
 

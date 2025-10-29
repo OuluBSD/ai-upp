@@ -1064,9 +1064,9 @@ public:
 		void  RemoveDs();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
-<<<<<<< HEAD
 	#ifndef flagV1
 		void  InsertParameters();
+	#endif
 	#ifndef flagV1
 		void  OpenVfsDlg();
 		void  OpenAITaskDlg();

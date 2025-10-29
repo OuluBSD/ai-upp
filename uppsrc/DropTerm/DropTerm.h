@@ -4,9 +4,8 @@
 #include <signal.h>
 #include <CtrlLib/CtrlLib.h>
 #include <TabBar/TabBar.h>
-#ifdef flagFTP
+#include <Terminal/Terminal.h>
 #include <PtyProcess/PtyProcess.h>
-#endif
 #include <RichEdit/RichEdit.h>
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
@@ -65,12 +64,43 @@ public:
 };
 
 
+// TerminalCtrl with PtyProcess integration
+class TerminalConsole : public TerminalCtrl, public PtyProcess {
+public:
+	typedef TerminalConsole CLASSNAME;
+	
+private:
+	int bridge_id = -1;
+	Value when_title_data;
+	
+public:
+	TerminalConsole() {
+		InlineImages().Hyperlinks().WindowOps();
+		WhenBell = [=]() { BeepExclamation(); };
+		WhenOutput = [=](String s) { PtyProcess::Write(s); };
+		WhenResize = [=]() { PtyProcess::SetSize(GetPageSize()); };
+		// Start with system shell
+		Start(GetEnv("SHELL"), Environment(), GetHomeDirectory());
+	}
+	
+	bool Do() {
+		WriteUtf8(PtyProcess::Get());
+		return PtyProcess::IsRunning();
+	}
+	
+	void SetBridgeId(int id) { bridge_id = id; }
+	int GetBridgeId() const { return bridge_id; }
+	
+	void SetWhenTitleData(const Value& data) { when_title_data = data; }
+	Value GetWhenTitleData() const { return when_title_data; }
+};
+
 class DropTerm : public TopWindow {
 	MenuBar						menu;
 	
 protected:
 	friend class IdeDropdownTerminal;
-	ArrayMap<int, ConsoleCtrl>	cons;
+	ArrayMap<int, TerminalConsole> cons;  // Changed from ConsoleCtrl to TerminalConsole
 	TabBar						tabs;
 	double						alpha = 0.9;
 	int							id_counter;
@@ -84,8 +114,8 @@ public:
 	typedef DropTerm CLASSNAME;
 	DropTerm();
 	
-	ConsoleCtrl& NewConsole();
-	ConsoleCtrl* GetActiveConsole();
+	TerminalConsole& NewConsole();  // Changed return type
+	TerminalConsole* GetActiveConsole();  // Changed return type
 	void SetSemiTransparent();
 	void Quit();
 	void LeaveProgram();

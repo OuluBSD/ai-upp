@@ -1,5 +1,6 @@
 #include "DropTerm.h"
 #include <ide/ide.h>
+#include <Core/Core.h>
 
 #define KEYGROUPNAME "Dropdown Terminal"
 #define KEYNAMESPACE Dropdown
@@ -34,13 +35,13 @@ DropTerm::DropTerm() {
 	PostSetSemiTransparent();
 }
 
-ConsoleCtrl& DropTerm::NewConsole() {
+TerminalConsole& DropTerm::NewConsole() {
 	int id = id_counter++;
-	ConsoleCtrl& c = cons.Add(id);
-	c.SetBridge(this, id);
+	TerminalConsole& c = cons.Add(id);
+	c.SetBridgeId(id);  // Changed method call
 	c.WhenTitle << THISBACK1(RefreshTitle, id);
 	c.WhenViewChange << THISBACK1(ViewChange, id);
-	tabs.AddKey(id, "Console", DropTermImg::icon(), Null, true);
+	tabs.AddKey(id, "Terminal", DropTermImg::icon(), Null, true);  // Changed text
 	ShowTabId(id);
 	return c;
 }
@@ -100,7 +101,8 @@ void DropTerm::ShowTabId(int id) {
 	
 	int i;
 	if ((i = cons.Find(id)) >= 0) {
-		Ctrl& c = cons[i].SizePos();
+		TerminalConsole& c = cons[i];
+		c.SizePos();
 		Add(c);
 		c.SetFocus();
 	}
@@ -118,7 +120,7 @@ void DropTerm::TabClosed(Value tab) {
 	RemoveId(tab);
 }
 
-ConsoleCtrl* DropTerm::GetActiveConsole() {
+TerminalConsole* DropTerm::GetActiveConsole() {
 	int active = tabs.GetCursor();
 	if (active < 0 || active >= tabs.GetCount()) return 0;
 	int i = tabs.GetKey(active);
@@ -208,11 +210,10 @@ bool DropTerm::Key(dword key, int count) {
 		int id = tabs.GetKey(tab);
 		int i = cons.Find(id);
 		if (i < 0) return false;
-		auto& ctrl = cons[i];
-		if (ctrl.RealizeFocus()) {
-			ctrl.SetFocus();
-			return ctrl.Key(key,count);
-		}
+		TerminalConsole& ctrl = cons[i];
+		// TerminalConsole doesn't have RealizeFocus() method, so just handle the key
+		ctrl.SetFocus();
+		return ctrl.Key(key,count);
 	}
 	return false;
 }
@@ -444,6 +445,19 @@ void IdeDropdownTerminal::Run() {
 		#if !DEBUG_APP_PROFILE
 		cons.PostTopMost();
 		#endif
+		
+		// Add a background thread to process terminal I/O
+		Thread termThread;
+		termThread.Run([&]() {
+			while(!cons.IsExit()) {
+				for(int i = 0; i < cons.cons.GetCount(); i++) {
+					TerminalConsole& term = cons.cons[i];
+					term.Do(); // Process terminal I/O
+				}
+				Sleep(10); // Small delay to prevent excessive CPU usage
+			}
+		});
+		
 		cons.Run();
 		cons.CloseTopCtrls();
 		is_exit = cons.IsExit();

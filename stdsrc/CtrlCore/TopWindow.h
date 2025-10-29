@@ -9,6 +9,8 @@
 namespace Upp {
 
 enum {
+	IDOK = 1,
+	IDCANCEL = 2,
 	IDEXIT = 9999
 };
 
@@ -125,9 +127,9 @@ public:
 
 	void        WorkAreaTrim();
 
-	Callback    Breaker(int ID = IDEXIT);
-	Callback    Acceptor(int ID);
-	Callback    Rejector(int ID);
+	Callback<>    Breaker(int ID = IDEXIT);
+	Callback1<int>    Acceptor(int ID);
+	Callback1<int>    Rejector(int ID);
 
 	TopWindow&  Breaker(Ctrl& m, int ID = -1);
 	TopWindow&  Acceptor(Ctrl& m, int ID);

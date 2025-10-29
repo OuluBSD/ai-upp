@@ -44,7 +44,7 @@ public:
     static ArrayCtrl* Create() { return new ArrayCtrl(); }
 
     // U++-style column operations
-    void AddColumn(const std::string& title, int width = 100) { 
+    ArrayCtrl& AddColumn(const std::string& title, int width = 100) { 
         columns.emplace_back(title, width);
         // Ensure all rows have this column
         for (auto& row : data) {

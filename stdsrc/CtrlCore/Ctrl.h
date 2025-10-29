@@ -22,6 +22,8 @@
 // Forward declaration of event types
 class Event;
 
+namespace Upp {
+
 class Ctrl {
 protected:
     Rect rect;
@@ -35,9 +37,14 @@ protected:
     
     // Event handlers
     std::function<void()> click_handler;
-    std::function<void(const Event&)> event_handler;
+    std::function<void(const Event<>&)> event_handler;
 
 public:
+    // U++-style constants
+    enum {
+        TIMEID_COUNT = 1000,  // Standard U++ timer ID count
+    };
+
     // Constructors
     Ctrl();
     
@@ -95,7 +102,7 @@ public:
     // U++-style event handling
     virtual void SetHandler(const std::function<void()>& handler);
     
-    virtual void SetHandler(const std::function<void(const Event&)>& handler);
+    virtual void SetHandler(const std::function<void(const Event<>&)>& handler);
 
     virtual bool IsPointInside(const Point& pt) const;
 
@@ -147,3 +154,5 @@ public:
     CtrlBase() = default;
     explicit CtrlBase(const Rect& r) : Ctrl(r) {}
 };
+
+}

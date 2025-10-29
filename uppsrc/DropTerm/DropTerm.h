@@ -10,6 +10,7 @@
 #include <PdfDraw/PdfDraw.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Esc/Esc.h>
+#include "InternalShell.h"
 
 #ifndef flagGUI
 	#error GUI flag is required
@@ -65,7 +66,7 @@ public:
 
 
 // TerminalCtrl with PtyProcess integration
-class TerminalConsole : public TerminalCtrl, public PtyProcess {
+class TerminalConsole : public TerminalCtrl {
 public:
 	typedef TerminalConsole CLASSNAME;
 	
@@ -73,19 +74,67 @@ private:
 	int bridge_id = -1;
 	Value when_title_data;
 	
+	// For system shell
+	PtyProcess pty;
+	bool use_internal_shell = false;
+	
+	// For internal shell
+	InternalShell internal_shell;
+	String input_buffer;
+	
 public:
-	TerminalConsole() {
+	TerminalConsole(bool internal_shell = false) : use_internal_shell(internal_shell) {
 		InlineImages().Hyperlinks().WindowOps();
 		WhenBell = [=]() { BeepExclamation(); };
-		WhenOutput = [=](String s) { PtyProcess::Write(s); };
-		WhenResize = [=]() { PtyProcess::SetSize(GetPageSize()); };
-		// Start with system shell
-		Start(GetEnv("SHELL"), Environment(), GetHomeDirectory());
+		
+		if (use_internal_shell) {
+			// Setup for internal shell
+			WriteUtf8(internal_shell.GetPrompt());
+		} else {
+			// Setup for system shell (PtyProcess)
+			WhenOutput = [=](String s) { pty.Write(s); };
+			WhenResize = [=]() { pty.SetSize(GetPageSize()); };
+			
+			// Start with system shell
+			pty.Start(GetEnv("SHELL"), Environment(), GetHomeDirectory());
+		}
 	}
 	
 	bool Do() {
-		WriteUtf8(PtyProcess::Get());
-		return PtyProcess::IsRunning();
+		if (use_internal_shell) {
+			// Process internal shell
+			return true; // Always running for internal shell
+		} else {
+			// Process system shell
+			WriteUtf8(pty.Get());
+			return pty.IsRunning();
+		}
+	}
+	
+	virtual bool Key(dword key, int count) override {
+		if (use_internal_shell) {
+			// Handle key input for internal shell
+			if (key == K_ENTER) {
+				// Process the input buffer
+				String result = internal_shell.ProcessInput(input_buffer);
+				WriteUtf8(result);
+				WriteUtf8(internal_shell.GetPrompt());
+				input_buffer.Clear();
+			} else if (key == K_BACKSPACE || key == (K_BACKSPACE|K_SHIFT)) {
+				if (input_buffer.GetCount() > 0) {
+					input_buffer.Trim(input_buffer.GetCount() - 1);
+					// For now, just show a simple backspace in the terminal
+					WriteUtf8("\b \b");
+				}
+			} else if (key >= 32 && key <= 126) { // Printable characters
+				char ch = (char)(key & 0xFF);
+				input_buffer.Cat(ch);
+				WriteUtf8(String(ch));
+			}
+			return true;
+		} else {
+			return TerminalCtrl::Key(key, count);
+		}
 	}
 	
 	void SetBridgeId(int id) { bridge_id = id; }
@@ -93,6 +142,8 @@ public:
 	
 	void SetWhenTitleData(const Value& data) { when_title_data = data; }
 	Value GetWhenTitleData() const { return when_title_data; }
+	
+	bool IsUsingInternalShell() const { return use_internal_shell; }
 };
 
 class DropTerm : public TopWindow {
@@ -102,10 +153,11 @@ protected:
 	friend class IdeDropdownTerminal;
 	ArrayMap<int, TerminalConsole> cons;  // Changed from ConsoleCtrl to TerminalConsole
 	TabBar						tabs;
-	double						alpha = 0.9;
+	double						alpha = 0.9;  // Transparency level (0.0 = fully transparent, 1.0 = opaque)
 	int							id_counter;
 	bool						def_terminal = true;
 	bool						is_exit = false;
+	bool						is_visible = false;  // Track visibility state
 	
 	void ShowTabId(int i);
 	void ShowTab();
@@ -114,12 +166,12 @@ public:
 	typedef DropTerm CLASSNAME;
 	DropTerm();
 	
-	TerminalConsole& NewConsole();  // Changed return type
+	TerminalConsole& NewConsole(bool use_internal_shell = false);  // Changed return type and added parameter
 	TerminalConsole* GetActiveConsole();  // Changed return type
 	void SetSemiTransparent();
 	void Quit();
 	void LeaveProgram();
-	void AddConsole() {NewConsole();}
+	void AddConsole(bool use_internal_shell = false) {NewConsole(use_internal_shell);}
 	void CloseTab();
 	void CloseTabId(int id);
 	void PreviousTab();
@@ -135,18 +187,28 @@ public:
 	void RefreshTitle1(String title, int id);
 	void ViewChange(int id);
 	void RemoveId(int id);
+	void AddInternalShell();
 	bool IsExit() const {return is_exit;}
 	
 	virtual bool Key(dword key, int count);
 
 	void PostClose() {PostCallback(THISBACK(Close0));}
-	void Close0() {Close(); }
+	void Close0() {Close(); is_visible = false; }
 	void PostTopMost() {PostCallback(THISBACK(TopMost0));}
 	void TopMost0();
 	void SetLayout();
 	void PostSetLayout() {PostCallback(THISBACK(SetLayout));}
 	void PostSetSemiTransparent() {PostCallback(THISBACK(SetSemiTransparent));}
 	
+	// Visibility methods
+	void ShowWindow();
+	void HideWindow();
+	bool IsWindowVisible() const { return is_visible; }
+	
+	// Transparency methods
+	void SetTransparency(double level);  // Level from 0.0 (fully transparent) to 1.0 (opaque)
+	double GetTransparency() const { return alpha; }
+	void SetSemiTransparent();
 };
 
 

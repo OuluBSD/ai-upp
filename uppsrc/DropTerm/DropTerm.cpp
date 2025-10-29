@@ -17,6 +17,8 @@ NAMESPACE_UPP
 DropTerm::DropTerm() {
 	Icon(DropTermImg::icon());
 	FrameLess();
+	NoFocus(); // Don't focus when shown initially
+	ToolWindow(); // Set as tool window to avoid taskbar
 	
 	id_counter = 0;
 	
@@ -35,13 +37,15 @@ DropTerm::DropTerm() {
 	PostSetSemiTransparent();
 }
 
-TerminalConsole& DropTerm::NewConsole() {
+TerminalConsole& DropTerm::NewConsole(bool use_internal_shell) {
 	int id = id_counter++;
 	TerminalConsole& c = cons.Add(id);
+	c = TerminalConsole(use_internal_shell);
 	c.SetBridgeId(id);  // Changed method call
 	c.WhenTitle << THISBACK1(RefreshTitle, id);
 	c.WhenViewChange << THISBACK1(ViewChange, id);
-	tabs.AddKey(id, "Terminal", DropTermImg::icon(), Null, true);  // Changed text
+	String tab_title = use_internal_shell ? "Internal Shell" : "Terminal";
+	tabs.AddKey(id, tab_title, DropTermImg::icon(), Null, true);
 	ShowTabId(id);
 	return c;
 }
@@ -179,8 +183,13 @@ void DropTerm::RefreshMenu() {
 
 void DropTerm::AppMenu(Bar& menu) {
 	menu.Add(AK_OPENCONS, THISBACK(AddConsole));
+	menu.Add(t_("Open Internal Shell"), THISBACK(AddInternalShell));
 	menu.Add(Shell::AK_LEAVE_PROGRAM, THISBACK(LeaveProgram));
 	menu.Add(AK_QUIT, THISBACK(Quit));
+}
+
+void DropTerm::AddInternalShell() {
+	NewConsole(true);  // Create with internal shell
 }
 
 void DropTerm::ViewMenu(Bar& menu) {
@@ -258,6 +267,34 @@ void DropTerm::SetSemiTransparent() {
 void DropTerm::SetSemiTransparent() {}
 #endif
 
+void DropTerm::SetTransparency(double level) {
+	// Clamp the transparency level between 0.1 (nearly transparent) and 1.0 (opaque)
+	if (level < 0.1) level = 0.1;
+	if (level > 1.0) level = 1.0;
+	alpha = level;
+	
+	// Apply the new transparency if the window is visible
+	if (IsOpen() && IsVisible()) {
+		SetSemiTransparent();
+	}
+}
+
+void DropTerm::ShowWindow() {
+	if (!is_visible) {
+		TopWindow::Show();  // Use native show method
+		is_visible = true;
+		// Apply transparency when showing the window
+		SetSemiTransparent();
+	}
+}
+
+void DropTerm::HideWindow() {
+	if (is_visible) {
+		TopWindow::Hide();  // Use native hide method
+		is_visible = false;
+	}
+}
+
 
 
 
@@ -317,25 +354,48 @@ void GlobalToggleIde(IdeDropdownTerminal* term) {
 }
 
 void IdeDropdownTerminal::ToggleWindow() {
-	is_cons_toggled = true;
 	if (is_tray) {
+		// Currently showing tray, need to show console
 		if (tray) {
 			tray->Close();
+			tray.Clear();
 		}
+		// Show console window using native visibility
+		cons.ShowWindow();
+		is_tray = false;
+		is_cons_toggled = false;  // Allow console to be shown in next Run() call
 	}
-	else
-		cons.PostClose();
+	else {
+		// Currently showing console, need to hide it using native visibility
+		cons.HideWindow();
+		is_cons_toggled = true;  // Prevent console from appearing until toggled again
+		is_tray = true;   // Next Run() will show tray instead
+	}
 }
 
 void IdeDropdownTerminal::ToggleIde() {
 	if (!is_ide_toggled) {
+		// Switching from IDE shown to IDE hidden (terminal should be visible)
 		is_ide_toggled = true;
-		ToggleWindow();
+		// Need to hide the IDE and ensure terminal is shown
+		if (TheIde()) {
+			TheIde()->Close(); // Hide the IDE
+		}
+		// Make sure terminal is shown (not in tray mode)
+		cons.ShowWindow();
+		is_tray = false;
+		is_cons_toggled = false;
 	}
 	else {
+		// Switching from IDE hidden to IDE shown (terminal should hide)
 		is_ide_toggled = false;
-		is_tray = false;
-		TheIde()->Close();
+		// Hide the terminal and show the IDE again
+		if (TheIde()) {
+			TheIde()->Show(); // Show the IDE
+		}
+		cons.HideWindow(); // Hide the terminal using native visibility
+		is_cons_toggled = true;
+		is_tray = true;   // Next Run() will show tray instead
 	}
 }
 
@@ -443,23 +503,30 @@ void IdeDropdownTerminal::Run() {
 	}
 	else {
 		#if !DEBUG_APP_PROFILE
-		cons.PostTopMost();
+		// Show the console window instead of running it directly
+		cons.ShowWindow();
 		#endif
 		
 		// Add a background thread to process terminal I/O
-		Thread termThread;
-		termThread.Run([&]() {
-			while(!cons.IsExit()) {
-				for(int i = 0; i < cons.cons.GetCount(); i++) {
-					TerminalConsole& term = cons.cons[i];
-					term.Do(); // Process terminal I/O
-				}
-				Sleep(10); // Small delay to prevent excessive CPU usage
-			}
-		});
+		// We'll run the thread only once to avoid creating multiple threads
+		static bool termThreadStarted = false;
+		static Thread termThread;
 		
-		cons.Run();
-		cons.CloseTopCtrls();
+		if (!termThreadStarted) {
+			termThreadStarted = true;
+			termThread.Run([&]() {
+				while(!cons.IsExit() && termThreadStarted) {
+					for(int i = 0; i < cons.cons.GetCount(); i++) {
+						TerminalConsole& term = cons.cons[i];
+						term.Do(); // Process terminal I/O
+					}
+					Sleep(10); // Small delay to prevent excessive CPU usage
+				}
+			});
+		}
+		
+		// The visibility is now handled via ShowWindow/HideWindow
+		// Instead of running the console dialog directly, we just ensure it's visible
 		is_exit = cons.IsExit();
 		SaveKeys();
 	}

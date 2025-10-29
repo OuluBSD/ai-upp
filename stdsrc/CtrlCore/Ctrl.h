@@ -139,6 +139,41 @@ public:
     virtual void SetFocus();
     
     virtual bool HasFocus() const;
+    
+    // U++-style keyboard handling
+    virtual bool Key(dword key, int count);
+    virtual void GotFocus();
+    virtual void LostFocus();
+    virtual bool HotKey(dword key);
+    virtual dword GetAccessKeys() const;
+    virtual void AssignAccessKeys(dword used);
+    virtual void ChildGotFocus();
+    virtual void ChildLostFocus();
+    
+    // Focus-related methods
+    virtual bool HasFocusDeep() const;
+    virtual Ctrl* GetFocusChild() const;
+    virtual Ctrl* GetFocusChildDeep() const;
+    Ctrl& WantFocus(bool ft = true);
+    Ctrl& NoWantFocus();
+    bool IsWantFocus() const;
+    bool SetWantFocus();
+    Ctrl& InitFocus(bool ft = true);
+    Ctrl& NoInitFocus();
+    bool IsInitFocus() const;
+    
+    // Access keys support
+    void RefreshAccessKeys();
+    void RefreshAccessKeysDo(bool vis);
+    static dword AccessKeyBit(int accesskey);
+    dword GetAccessKeysDeep() const;
+    void DistributeAccessKeys();
+    bool VisibleAccessKeys();
+    
+    // Static focus management
+    static Ctrl* GetFocusCtrl();
+    static bool IterateFocusForward(Ctrl *ctrl, Ctrl *top, bool noframe = false, bool init = false, bool all = false);
+    static bool IterateFocusBackward(Ctrl *ctrl, Ctrl *top, bool noframe = false, bool all = false);
 
     // U++-style operations for UI layout
     virtual void SetFrame(int left, int top, int right, int bottom);

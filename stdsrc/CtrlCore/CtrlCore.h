@@ -83,11 +83,15 @@ class Display;
 // Include basic U++ types
 #include "Types.h"
 
+// Include key definitions
+#include "MKeys.h"
+
 // Include CtrlCore module public headers
 #include "Ctrl.h"
 #include "TopWindow.h"
 #include "Display.h"
 #include "Event.h"
+#include "CtrlKbd.h"
 
 END_UPP_NAMESPACE
 

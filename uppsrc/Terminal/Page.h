@@ -6,7 +6,7 @@
 
 namespace Upp {
 
-class VTLine : public Moveable<VTLine, Vector<VTCell>> {
+class VTLine : public Moveable<VTLine>, public Vector<VTCell> {
 public:
     VTLine();
     void            Adjust(int cx, const VTCell& filler);

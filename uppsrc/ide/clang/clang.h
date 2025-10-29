@@ -275,17 +275,10 @@ class ClangVisitor {
 	};
 
 	CXLocation      GetLocation(CXSourceLocation cxlocation);
-<<<<<<< HEAD
-	CXRange         GetRange(CXSourceRange cxrange);
-	SourceLocation  GetSourceLocation(const CXLocation& p, const CXRange& r);
-
-	bool locals = false;
-=======
 	SourceLocation  GetSourceLocation(const CXLocation& p);
 	
 	bool   locals = false;
 	String parent_id;
->>>>>>> upstream/next2025_1
 
 public:
 	VectorMap<String, CppFileInfo> info;

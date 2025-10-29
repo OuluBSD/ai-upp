@@ -395,6 +395,22 @@ Rect Ctrl::GetCaret() const
 	return Null;
 }
 
+void Ctrl::SetCaret(const Rect& rect)
+{
+	caretCtrl = this;
+	caretRect = rect;
+	WndCaretTime = msecs();
+	RefreshCaret();
+}
+
+void Ctrl::KillCaret()
+{
+	if(caretCtrl == this) {
+		caretCtrl = NULL;
+		RefreshCaret();
+	}
+}
+
 bool  Ctrl::SetWantFocus() {
 	GuiLock __;
 	if(IsWantFocus() && IsEnabled() && IsVisible() && IsOpen())

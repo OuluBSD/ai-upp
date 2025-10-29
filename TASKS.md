@@ -179,6 +179,18 @@
 
 ## TODO
 
+### IdeDropdownTerminal Enhancement Tasks
+- [ ] Create and implement KillCaret and SetCaret functions that are missing from TabbedTerminalExample
+- [ ] Compile TabbedTerminalExample using script/build_tabbed_terminal_example.sh and fix all errors
+- [ ] Fork uppsrc/TabbedTerminalExample to IdeDropdownTerminal or related classes
+- [ ] Make the dropdown terminal work with system bash initially
+- [ ] Later bind the terminal to internal shell (builtin), like busybox bash
+- [ ] Investigate and fix the IdeDropdownTerminal crash when pressing toggle visibility button
+- [ ] Implement proper visibility options using native hide/show instead of destroy/create window
+- [ ] Ensure dropdown terminal is removed from taskbar when hidden
+- [ ] Add semi-transparency to dropdown terminal window
+- [ ] Implement partial window transparency (only terminal area) if possible
+
 ### V4L Webcam Support Improvements
 - [ ] Enhance current V4L2 implementation in Media module with better device enumeration
 - [ ] Add support for additional V4L2 device properties and controls

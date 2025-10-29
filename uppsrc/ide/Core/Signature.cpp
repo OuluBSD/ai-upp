@@ -573,7 +573,6 @@ String MakeDefinition(const AnnotationItem& m)
 {
 	return MakeDefinition(m, GetClass(m));
 }
-<<<<<<< HEAD:uppsrc/ide/Core/Signature.cpp
 
 void AnnotationItem::operator=(const AnnotationItem& b) {
 	id = b.id;
@@ -592,7 +591,8 @@ void AnnotationItem::operator=(const AnnotationItem& b) {
 	definition = b.definition;
 	isvirtual = b.isvirtual;
 	isstatic = b.isstatic;
-	parent_type = b.parent_type;
+	if (b.parent_id.GetCount()) // Use parent_id instead of parent_type
+		parent_id = b.parent_id;
 }
 
 bool AnnotationItem::IsSameContent(const AnnotationItem& b) const {
@@ -609,7 +609,7 @@ bool AnnotationItem::IsSameContent(const AnnotationItem& b) const {
 			definition == b.definition &&
 			isvirtual == b.isvirtual &&
 			isstatic == b.isstatic &&
-			parent_type == b.parent_type;
+			parent_id == b.parent_id;
 }
 
 bool AnnotationItem::operator==(const AnnotationItem& b) const {

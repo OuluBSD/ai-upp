@@ -1011,6 +1011,8 @@ public:
 	virtual Font   GetPreeditFont();
 
 	virtual Rect   GetCaret() const;
+	virtual void   SetCaret(const Rect& rect);
+	virtual void   KillCaret();
 
 	virtual void   DragAndDrop(Point p, PasteClip& d);
 	virtual void   FrameDragAndDrop(Point p, PasteClip& d);

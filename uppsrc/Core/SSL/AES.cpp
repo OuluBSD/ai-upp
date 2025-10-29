@@ -361,4 +361,3 @@ bool AES256Decrypt(Stream& in, const String& password, Stream& out, Gate<int64, 
 	
 }
 
-#endif

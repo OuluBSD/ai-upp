@@ -70,7 +70,6 @@
 NAMESPACE_UPP
 
 // Forward declarations
-class Ctrl;
 class TopWindow;
 class Button;
 class Label;

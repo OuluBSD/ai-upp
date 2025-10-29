@@ -10,11 +10,8 @@ typedef unsigned long long qword;
 // String type alias
 using String = std::string;
 
-// Event type forward declaration
-class Event;
-
-// Time type
-typedef unsigned long long Time;
+// Time type - use a different name to avoid X11 conflict
+typedef unsigned long long UppTime;
 
 // Null constant
 #define Null nullptr
@@ -51,12 +48,16 @@ typedef unsigned long long Time;
   #define CPU_ARM64
 #endif
 
-// Common constants
-#define IDEXIT 9999
+// Common constants - use anonymous enum instead of macros to avoid conflicts
+enum {
+    IDEXIT = 9999
+};
+
+// Time constants - use anonymous enum instead of macros to avoid conflicts
+enum {
+    TIMEID_COUNT_STD = 1000  // Renamed to avoid macro conflicts
+};
 
 // Utility macros
 #define GUIPLATFORM_KEYMAP_DECLS
 #define GUIPLATFORM_TOPWINDOW_DECLS
-
-// Time constants
-#define TIMEID_COUNT 1000

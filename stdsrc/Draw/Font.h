@@ -49,44 +49,44 @@ public:
     static Font Std() { return Font("Arial", 12); }  // Standard font
     static Font DejaVuSans(int height) { return Font("DejaVu Sans", height); }
 
-    // U++-style methods to modify font properties
-    void SetArial(int height) { 
+    // U++-style methods to modify font properties with fluent interface
+    Font& SetArial(int height) { 
         face = "Arial"; 
         this->height = height;
         return *this;
     }
     
-    void Face(const std::string& face_name) { 
+    Font& Face(const std::string& face_name) { 
         face = face_name; 
         return *this;
     }
     
-    void Height(int h) { 
+    Font& Height(int h) { 
         height = h; 
         return *this;
     }
     
-    void Bold(bool b = true) { 
+    Font& Bold(bool b = true) { 
         bold = b; 
         return *this;
     }
     
-    void Italic(bool i = true) { 
+    Font& Italic(bool i = true) { 
         italic = i; 
         return *this;
     }
     
-    void Underline(bool u = true) { 
+    Font& Underline(bool u = true) { 
         underline = u; 
         return *this;
     }
     
-    void Strikeout(bool s = true) { 
+    Font& Strikeout(bool s = true) { 
         strikeout = s; 
         return *this;
     }
     
-    void Angle(int a) { 
+    Font& Angle(int a) { 
         angle = a; 
         return *this;
     }

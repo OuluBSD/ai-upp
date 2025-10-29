@@ -37,7 +37,7 @@ public:
     static Image System(int width, int height) { return Image(width, height); }
 
     // Assignment operators
-    void operator=(const Image& other) {
+    Image& operator=(const Image& other) {
         if (this != &other) {
             pixels = other.pixels;
             size = other.size;

@@ -28,6 +28,13 @@
 #else // Assume POSIX/X11
   #include <X11/Xlib.h>
   #include <X11/Xutil.h>
+  // Undefine X11 macros that conflict with U++ method names
+  #undef KeyPress
+  #undef KeyRelease
+  #undef ButtonPress
+  #undef ButtonRelease
+  #undef FocusIn
+  #undef FocusOut
 #endif
 
 // Optional: UI library support (WXWidgets/Gtk/Qt)
@@ -70,10 +77,11 @@
 NAMESPACE_UPP
 
 // Forward declarations
-class Ctrl;
 class TopWindow;
 class Display;
-class Event;
+
+// Include basic U++ types
+#include "Types.h"
 
 // Include CtrlCore module public headers
 #include "Ctrl.h"

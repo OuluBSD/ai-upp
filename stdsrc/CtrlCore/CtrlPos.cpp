@@ -4,7 +4,7 @@
 
 namespace Upp {
 
-// Positioning methods
+// Positioning methods that aren't implemented in the header
 CtrlPos& CtrlPos::Move(int x, int y) {
     Point pos = ctrl.GetPos();
     ctrl.SetPos(x, y);

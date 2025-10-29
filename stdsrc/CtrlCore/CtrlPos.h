@@ -27,6 +27,10 @@ enum {
 	STDSIZE  = -16382,
 };
 
+// Horizontal and vertical alignment enums
+enum class HAlign { LEFT, CENTER, RIGHT };
+enum class VAlign { TOP, MIDDLE, BOTTOM };
+
 class CtrlPos {
 protected:
     Ctrl& ctrl;
@@ -143,6 +147,65 @@ public:
     void UpdateLayout() { ctrl.UpdateLayout(); }
     void RefreshParentLayout() { ctrl.RefreshParentLayout(); }
     void UpdateParentLayout() { ctrl.UpdateParentLayout(); }
+    
+    // Additional positioning methods that should be implemented
+    CtrlPos& Move(int x, int y);
+    CtrlPos& Move(const Point& pt);
+    CtrlPos& MoveDelta(int dx, int dy);
+    CtrlPos& MoveDelta(const Point& delta);
+    
+    // Sizing methods
+    CtrlPos& Size(int cx, int cy);
+    CtrlPos& Size(const Size& sz);
+    
+    // Set position and size together
+    CtrlPos& Rect(int x, int y, int cx, int cy);
+    CtrlPos& Rect(const Rect& r);
+    
+    // Align to parent control
+    CtrlPos& CenterParent();
+    CtrlPos& CenterParentHorz();
+    CtrlPos& CenterParentVert();
+    
+    // Position relative to parent
+    CtrlPos& LeftPos(int left, int cx = STDSIZE);
+    CtrlPos& TopPos(int top, int cy = STDSIZE);
+    CtrlPos& HSizePos(int left, int right);
+    CtrlPos& VSizePos(int top, int bottom);
+    CtrlPos& SizePos(int left, int top, int right, int bottom);
+    
+    // Anchor positioning
+    CtrlPos& AnchorRect(const Rect& anchor, double left = 0.0, double top = 0.0, double right = 0.0, double bottom = 0.0);
+    
+    // Position relative to another control
+    CtrlPos& RelativeTo(const Ctrl& other, int offset_x = 0, int offset_y = 0);
+    CtrlPos& Above(const Ctrl& other, int offset = 0);
+    CtrlPos& Below(const Ctrl& other, int offset = 0);
+    CtrlPos& LeftOf(const Ctrl& other, int offset = 0);
+    CtrlPos& RightOf(const Ctrl& other, int offset = 0);
+    
+    // Fit to content (if the control supports it)
+    CtrlPos& FitToContents();
+    
+    // Position using alignment
+    CtrlPos& SetHAlign(HAlign align);
+    CtrlPos& SetVAlign(VAlign align);
+    CtrlPos& SetAlign(HAlign halign, VAlign valign);
+    
+    // Stretch to fill available space
+    CtrlPos& Stretch();
+    CtrlPos& HStretch();
+    CtrlPos& VStretch();
+    
+    // Position with margins
+    CtrlPos& Margin(int margin);
+    CtrlPos& Margin(int left, int top, int right, int bottom);
+    
+    // Get screen position
+    Point GetScreenPos() const;
+    
+    // Get position relative to another control
+    Point GetRelativePos(const Ctrl& parent) const;
 };
 
 // Position calculation utilities
@@ -156,14 +219,14 @@ public:
             case LEFT:   x = container.left; break;
             case RIGHT:  x = container.right - ctrl_size.cx; break;
             case CENTER: x = (container.left + container.right - ctrl_size.cx) / 2; break;
-            case SIZE:   x = container.left; ctrl_size.cx = container.Width(); break;
+            case SIZE:   x = container.left; break;
         }
         
         switch (valign) {
             case TOP:    y = container.top; break;
             case BOTTOM: y = container.bottom - ctrl_size.cy; break;
             case MIDDLE: y = (container.top + container.bottom - ctrl_size.cy) / 2; break;
-            case SIZE:   y = container.top; ctrl_size.cy = container.Height(); break;
+            case SIZE:   y = container.top; break;
         }
         
         return Point(x, y);

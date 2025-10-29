@@ -1,4 +1,11 @@
 #include "Core.h"
+#include <limits.h>
+#include <signal.h>
+#include <cstring>
+
+#ifndef _MAX_PATH
+#define _MAX_PATH PATH_MAX
+#endif
 
 NAMESPACE_UPP
 
@@ -7,6 +14,36 @@ static char Argv0__[_MAX_PATH + 1];
 static int exitcode;
 static bool sMainRunning;
 static bool NoMemoryLeaksCheck;
+
+// Stub implementations for missing functions
+void CrashHook() {}
+void Panic(const char* msg) {
+    fprintf(stderr, "PANIC: %s\n", msg);
+    abort();
+}
+void MemoryIgnoreLeaksBegin() {}
+
+// Missing constants and globals
+#ifndef LNG_ENGLISH
+#define LNG_ENGLISH 0
+#endif
+
+static VectorMap<WString, WString> s_env_map;
+static Vector<WString> s_cmd_line;
+
+VectorMap<WString, WString>& EnvMap() { return s_env_map; }
+Vector<WString>& coreCmdLine__() { return s_cmd_line; }
+
+void sSetArgv0__(const char* argv0) {
+    strncpy(Argv0__, argv0, _MAX_PATH);
+    Argv0__[_MAX_PATH] = '\0';
+}
+
+String FromSystemCharset(const char* s) { return String(s); }
+WString FromSystemCharsetW(const char* s) {
+    return WString(WString::Utf8ToWide(s, strlen(s)));
+}
+WString FromSystemCharsetW(const wchar_t* s) { return WString(s); }
 
 void  SetExitCode(int code) { exitcode = code; }
 int   GetExitCode()         { return exitcode; }

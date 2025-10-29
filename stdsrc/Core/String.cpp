@@ -1,10 +1,9 @@
 // STL-backed Core API implementation
 
-#include "String.h"
-#include "WString.h"
+#include "Core.h"
 #include <cstring>
 
-namespace Upp {
+NAMESPACE_UPP
 
 // U++-style helpers
 void String::Clear() { 
@@ -182,12 +181,9 @@ std::string String::ToStd() const {
     return *this; 
 }
 const String& String::ToString() const { 
-    return *this; 
+    return *this;
 }
-WString String::ToWString() const {
-    // This is a placeholder implementation
-    return WString();
-}
+// ToWString is defined inline in WString.h
 int String::GetCharCount() const { 
     return GetLength(); 
 }

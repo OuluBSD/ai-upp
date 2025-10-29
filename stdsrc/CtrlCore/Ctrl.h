@@ -140,6 +140,18 @@ public:
     
     virtual bool HasFocus() const;
     
+    // U++-style timer handling
+    enum {
+        TIMEID_COUNT = 1000,  // Maximum number of timer IDs per control
+    };
+
+    virtual void SetTimeCallback(int delay_ms, const Event<>& cb, int id = 0);
+    virtual void KillTimeCallback(int id = 0);
+    virtual void KillSetTimeCallback(int delay_ms, const Event<>& cb, int id = 0);
+    virtual bool ExistsTimeCallback(int id = 0) const;
+    virtual void PostCallback(const Event<>& cb, int id = 0);
+    virtual void KillPostCallback(const Event<>& cb, int id = 0);
+    
     // U++-style keyboard handling
     virtual bool Key(dword key, int count);
     virtual void GotFocus();

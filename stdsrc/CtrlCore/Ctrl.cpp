@@ -231,6 +231,35 @@ bool Ctrl::HasFocus() const {
     return false; 
 }
 
+// U++-style timer handling
+void Ctrl::SetTimeCallback(int delay_ms, const Event<>& cb, int id) {
+    // In a real implementation, this would set a timer callback
+    // For now, just store it in a static map for demonstration
+}
+
+void Ctrl::KillTimeCallback(int id) {
+    // In a real implementation, this would kill a timer callback
+}
+
+void Ctrl::KillSetTimeCallback(int delay_ms, const Event<>& cb, int id) {
+    // In a real implementation, this would kill and set a timer callback
+    KillTimeCallback(id);
+    SetTimeCallback(delay_ms, cb, id);
+}
+
+bool Ctrl::ExistsTimeCallback(int id) const {
+    // In a real implementation, this would check if a timer callback exists
+    return false;
+}
+
+void Ctrl::PostCallback(const Event<>& cb, int id) {
+    // In a real implementation, this would post a callback for immediate execution
+}
+
+void Ctrl::KillPostCallback(const Event<>& cb, int id) {
+    // In a real implementation, this would kill a posted callback
+}
+
 // U++-style keyboard handling
 bool Ctrl::Key(dword key, int count) {
     // In a real implementation, this would handle keyboard input

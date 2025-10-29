@@ -73,4 +73,80 @@ std::string GetKeyDesc(dword key) {
     return desc;
 }
 
+// Timer utility functions implementation
+#include <chrono>
+#include <thread>
+#include <map>
+#include <mutex>
+
+// Simple timer implementation using std::thread
+static std::map<void*, std::thread> s_timers;
+static std::map<void*, bool> s_timer_active;
+static std::mutex s_timer_mutex;
+
+void SetTimeCallback(int delay_ms, const Event<>& cb, void *id) {
+    std::lock_guard<std::mutex> lock(s_timer_mutex);
+    
+    // Kill existing timer with same ID
+    if (id && s_timer_active[id]) {
+        s_timer_active[id] = false;
+        if (s_timers.find(id) != s_timers.end()) {
+            s_timers[id].detach();
+        }
+    }
+    
+    if (delay_ms <= 0) return; // Invalid delay
+    
+    // Create new timer
+    if (id) {
+        s_timer_active[id] = true;
+        s_timers[id] = std::thread([delay_ms, cb, id]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+            
+            std::lock_guard<std::mutex> lock(s_timer_mutex);
+            if (s_timer_active[id]) {
+                cb(); // Execute callback
+                s_timer_active[id] = false;
+            }
+        });
+    } else {
+        // One-shot timer without ID
+        std::thread([delay_ms, cb]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+            cb(); // Execute callback
+        }).detach();
+    }
+}
+
+void KillTimeCallback(void *id) {
+    if (!id) return;
+    
+    std::lock_guard<std::mutex> lock(s_timer_mutex);
+    if (s_timer_active[id]) {
+        s_timer_active[id] = false;
+        if (s_timers.find(id) != s_timers.end()) {
+            s_timers[id].detach();
+            s_timers.erase(id);
+        }
+    }
+}
+
+bool ExistsTimeCallback(void *id) {
+    if (!id) return false;
+    
+    std::lock_guard<std::mutex> lock(s_timer_mutex);
+    auto it = s_timer_active.find(id);
+    return it != s_timer_active.end() && it->second;
+}
+
+dword GetTimeClick() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto duration = now.time_since_epoch();
+    return static_cast<dword>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
+}
+
+void Sleep(int milliseconds) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
+
 }

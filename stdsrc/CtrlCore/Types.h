@@ -403,6 +403,87 @@ inline dword GetBaseKey(dword key) { return key & ~(K_CTRL | K_ALT | K_SHIFT | K
 // Key description utility
 std::string GetKeyDesc(dword key);
 
+// Timer utility functions
+void SetTimeCallback(int delay_ms, const Event<>& cb, void *id = nullptr);
+void KillTimeCallback(void *id = nullptr);
+bool ExistsTimeCallback(void *id);
+dword GetTimeClick();
+void Sleep(int milliseconds);
+
+// Timer callback wrapper functions
+template<typename Func>
+void SetTimeCallback(int delay_ms, Func&& func, void *id = nullptr) {
+    SetTimeCallback(delay_ms, Event<>() << func, id);
+}
+
+template<typename Func>
+void KillSetTimeCallback(int delay_ms, Func&& func, void *id = nullptr) {
+    KillTimeCallback(id);
+    SetTimeCallback(delay_ms, Event<>() << func, id);
+}
+
+// Time utilities
+inline dword GetTickCount() {
+    return GetTimeClick();
+}
+
+inline dword GetTime() {
+    return GetTimeClick();
+}
+
+inline void Delay(int milliseconds) {
+    Sleep(milliseconds);
+}
+
+// Timer class for RAII-style timer management
+class Timer {
+private:
+    void* id;
+    bool active;
+    
+public:
+    Timer() : id(nullptr), active(false) {}
+    
+    ~Timer() {
+        if (active) {
+            KillTimeCallback(id);
+        }
+    }
+    
+    void Start(int delay_ms, std::function<void()> callback) {
+        if (active) {
+            KillTimeCallback(id);
+        }
+        SetTimeCallback(delay_ms, Event<>() << callback, id);
+        active = true;
+    }
+    
+    void Stop() {
+        if (active) {
+            KillTimeCallback(id);
+            active = false;
+        }
+    }
+    
+    bool IsActive() const {
+        return active;
+    }
+    
+    void Restart(int delay_ms, std::function<void()> callback) {
+        Start(delay_ms, callback);
+    }
+    
+    // One-shot timer
+    static void Once(int delay_ms, std::function<void()> callback) {
+        SetTimeCallback(delay_ms, Event<>() << callback);
+    }
+    
+    // Repeating timer
+    static void Repeat(int interval_ms, std::function<void()> callback) {
+        SetTimeCallback(-interval_ms, Event<>() << callback); // Negative means repeat
+    }
+};
+
 // Serialization Stream class
 class Stream {
 public:

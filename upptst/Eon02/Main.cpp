@@ -1,115 +1,112 @@
-#include <Shell/Shell.h>
+#include "Eon02.h"
 
-/*
-loop player.audio.generator:
-	center.customer
-	center.audio.src.dbg_generator
-	center.audio.sink.hw
+using namespace Upp;
 
-NamePart: player
-	LoopStmt: audio
-		CompoundStmt:
-			NamePart: generator
-				NamePart: center
-					AtomStmt: customer
-				NamePart: audio
-					NamePart: src
-						AtomStmt: dbg_generator
-					NamePart: sink
-						AtomStmt: hw
-*/
+namespace {
+
+struct EngineGuard {
+	Engine* eng = nullptr;
+	~EngineGuard() {
+		if (eng)
+			Engine::Uninstall(true, eng);
+	}
+};
+
+struct TestCase {
+	void (*runner)(Engine&, int);
+	const char* label;
+};
+
+void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
+	eng.ClearCallbacks();
+	eng.WhenInitialize << callback(MachineEcsInit);
+	eng.WhenPreFirstUpdate << callback(DefaultStartup);
+	eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
+	eng.WhenUserInitialize << callback1(runner, method);
+}
+
+void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
+	EngineGuard guard;
+	guard.eng = &ShellMainEngine();
+	Engine& eng = *guard.eng;
+
+	ConfigureEngine(eng, runner, method);
+
+	ValueMap args;
+	args.Add("MACHINE_TIME_LIMIT", 3);
+
+	if (!eng.StartLoad("Shell", String(), args))
+		throw Exc(String().Cat() << label << ": engine failed to start");
+
+	eng.MainLoop();
+
+	Engine::Uninstall(true, guard.eng);
+	guard.eng = nullptr;
+}
+
+const TestCase kTests[] = {
+	{ Run02aAudioTest, "Run02aAudioTest" },
+	{ Run02bAudioTest2, "Run02bAudioTest2" },
+	{ Run02cFluidsynth, "Run02cFluidsynth" },
+	{ Run02dSoftinstru, "Run02dSoftinstru" },
+	{ Run02eFmsynth, "Run02eFmsynth" },
+	{ Run02fCoreaudioInstru, "Run02fCoreaudioInstru" },
+	{ Run02gCoreaudioFilter, "Run02gCoreaudioFilter" },
+	{ Run02lPortmidiToFluidsynth, "Run02lPortmidiToFluidsynth" },
+	{ Run02mPortmidiToCoreaudio, "Run02mPortmidiToCoreaudio" },
+};
+
+constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));
+
+void PrintTestCatalog() {
+	Cout() << "Tests:\n";
+	Cout() << "  -1 runs all tests.\n";
+	for(int i = 0; i < kTestCount; i++)
+		Cout() << "  " << i << ": " << kTests[i].label << '\n';
+}
+
+void RunSingleTest(int index, int method) {
+	if (index < 0 || index >= kTestCount)
+		throw Exc(String().Cat() << "invalid test index " << index);
+	RunScenario(kTests[index].runner, method, kTests[index].label);
+}
+
+void RunAllTests(int method) {
+	for(int i = 0; i < kTestCount; i++)
+		RunScenario(kTests[i].runner, method, kTests[i].label);
+}
+
+} // namespace
 
 CONSOLE_APP_MAIN {
-	using namespace Upp;
-	Engine& eng = ShellMainEngine();
-	eng.WhenUserInitialize << [](Engine& eng) {
-		auto sys = eng.GetAdd<Eon::ScriptLoader>();
-		sys->SetEagerChainBuild(true);
-		if (1) {
-			// Manually writing directly to the VFS using Context
-			using namespace Eon;
-			// 1) Create loop + parallel space path: player.audio.generator
-			Val& loop_root = eng.GetRootLoop();
-			Val& space_root = eng.GetRootSpace();
-			VfsValue* l = &loop_root;
-			VfsValue* s = &space_root;
-			for (const String& part : Split("player.audio.generator", ".")) {
-				l = &l->GetAdd(part, 0);
-				s = &s->GetAdd(part, 0);
-			}
-			// Alternative: resolve loop directly using Core helper
-			VfsValue* l2 = Eon::ResolveLoopPath(eng, String("player.audio.generator"));
-			ASSERT(l2);
-			if (l2 == l)
-				LOG("ResolveLoopPath matched manual loop path");
-			else
-				LOG("ResolveLoopPath did not match manual loop path");
-			// 2) Describe atoms via actions and args
-			ChainContext cc;
-			Vector<ChainContext::AtomSpec> atoms;
-			// center.customer
-			{
-				ChainContext::AtomSpec& a = atoms.Add();
-				a.action = "center.customer";
-				AtomTypeCls atom; LinkTypeCls link;
-				if (ChainContext::ResolveAction(a.action, atom, link))
-					a.iface.Realize(atom);
-			}
-			// center.audio.src.dbg_generator
-			{
-				ChainContext::AtomSpec& a = atoms.Add();
-				a.action = "center.audio.src.dbg_generator";
-				AtomTypeCls atom; LinkTypeCls link;
-				if (ChainContext::ResolveAction(a.action, atom, link))
-					a.iface.Realize(atom);
-			}
-			// center.audio.sink.hw
-			{
-				ChainContext::AtomSpec& a = atoms.Add();
-				a.action = "center.audio.sink.hw";
-				AtomTypeCls atom; LinkTypeCls link;
-				if (ChainContext::ResolveAction(a.action, atom, link))
-					a.iface.Realize(atom);
-			}
-			// 3) Build the loop under the loop path and link atoms
-			LoopContext& loop = cc.AddLoop(*l, atoms, true);
-			LOG(cc.GetTreeString(0));
-			LOG(loop.GetTreeString(0));
-			// 4) Finalize and start: call PostInitialize and Start via contexts
-			if (!cc.PostInitializeAll()) {
-				LOG("PostInitialize failed");
-				Exit(1);
-			}
-			if (!cc.StartAll()) {
-				LOG("Start failed");
-				cc.UndoAll();
-				Exit(1);
-			}
-		}
-		else if (1) {
-			// Manually building AstNode (skipping .eon file parsing)
-			Eon::Builder& builder = sys->val.GetAdd<Eon::Builder>("builder");
-			auto& loop = builder.AddLoop("player.audio.generator");
-			auto& a0 = loop.AddAtom("center.customer");
-			auto& a1 = loop.AddAtom("center.audio.src.dbg_generator");
-			auto& a2 = loop.AddAtom("center.audio.sink.hw");
-			AstNode* root = 0;
-			try {
-				root = builder.CompileAst();
-				if (!root) throw Exc("empty root");
-			}
-			catch (Exc e) {
-				LOG("error: " << e);
-				Exit(1);
-			}
-			LOG(root->GetTreeString());
-			sys->LoadAst(root);
-		}
-		else {
-			// Load eon file (parses AstNode and loads it)
-			sys->PostLoadFile(GetDataFile("02a_audio_test.eon"));
-		}
-	};
-	
-	ShellMain(true);
+	CommandLineArguments cmd;
+	cmd.AddPositional("test number", INT_V, -1);
+	cmd.AddPositional("method number", INT_V, 0);
+	cmd.AddArg('h', "Show usage information", false);
+	if (!cmd.Parse() || cmd.IsArg('h')) {
+		cmd.PrintHelp();
+		PrintTestCatalog();
+		return;
+	}
+
+	int test_number = (int)cmd.GetPositional(0);
+	int method_number = (int)cmd.GetPositional(1);
+
+	if (test_number < -1 || test_number >= kTestCount) {
+		Cerr() << "Test number out of range: " << test_number << '\n';
+		cmd.PrintHelp();
+		PrintTestCatalog();
+		return;
+	}
+
+	try {
+		if (test_number == -1)
+			RunAllTests(method_number);
+		else
+			RunSingleTest(test_number, method_number);
+	}
+	catch (Exc e) {
+		Cout() << "error: " << e << '\n';
+		throw;
+	}
 }

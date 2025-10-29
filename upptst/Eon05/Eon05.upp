@@ -3,6 +3,17 @@ uses
 
 file
 	Main.cpp,
+	Eon05.h,
+	05a_content_single.cpp,
+	05b_content_double.cpp,
+	05d_content_volume.cpp,
+	05e_content_cubemap.cpp,
+	05f_content_future_buffer.cpp,
+	05g_content_video.cpp,
+	05h_content_webcam.cpp,
+	05i_content_accel_sound_out1.cpp,
+	05j_content_accel_sound_out2.cpp,
+	05k_content_to_accel_and_back_sound_out.cpp,
 	05a_content_single.eon,
 	05b_content_double.eon,
 	05d_content_volume.eon,

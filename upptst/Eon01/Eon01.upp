@@ -3,6 +3,12 @@ uses
 
 file
 	Main.cpp,
+	Eon01.h,
+	01a_event_state.cpp,
+	01b_midi_events.cpp,
+	01c_meta_test.cpp,
+	01d_meta_test.cpp,
+	01e_meta_test.cpp,
 	01a_event_state.eon,
 	01b_midi_events.eon,
 	01c_meta_test.eon,

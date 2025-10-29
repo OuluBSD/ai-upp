@@ -301,6 +301,44 @@ public:
     
     // Check if mouse is visible
     static bool IsCursorVisible();
+    
+    // Set cursor type
+    static bool SetCursor(CtrlMouse::CursorType cursor_type);
+    
+    // Get cursor name from type
+    static std::string GetCursorName(CtrlMouse::CursorType cursor_type);
+    
+    // Get cursor type from name
+    static CtrlMouse::CursorType GetCursorType(const std::string& name);
+    
+    // Mouse movement simulation for testing
+    static void SimulateMouseMove(Point pos, dword flags = 0);
+    static void SimulateMouseDown(int button, Point pos);
+    static void SimulateMouseUp(int button, Point pos);
+    static void SimulateMouseClick(int button, Point pos);
+    static void SimulateMouseWheel(int delta, Point pos);
+    
+    // Mouse capture utilities
+    static bool IsMouseCaptured();
+    static std::shared_ptr<Ctrl> ReleaseCapture();
+    
+    // Mouse button state checking
+    static bool IsLeftButtonDown();
+    static bool IsRightButtonDown();
+    static bool IsMiddleButtonDown();
+    
+    // Mouse event filtering
+    static bool FilterMouseEvent(dword event_type, Point pos, dword flags);
+    
+    // Screen coordinate utilities
+    static Rect GetScreenRect();
+    static Point GetScreenCenter();
+    static bool IsPointOnScreen(Point pt);
+    
+    // Animated cursor support
+    static void RegisterAnimatedCursor(const std::string& name, const std::vector<CtrlMouse::CursorType>& frames, int frame_delay_ms = 100);
+    static CtrlMouse::CursorType GetAnimatedCursorFrame(const std::string& name);
+    static void ResetAnimatedCursor(const std::string& name);
 };
 
 // Helper class for creating controls with mouse support

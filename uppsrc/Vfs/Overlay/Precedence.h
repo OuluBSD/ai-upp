@@ -18,7 +18,9 @@ class DefaultPrecedenceProvider : public PackagePrecedenceProvider {
     
 public:
     virtual Vector<hash_t> GetPackageOrder() const override {
-        return package_order;
+        Vector<hash_t> result;
+        result <<= package_order; // Use <<= operator for deep copy
+        return result;
     }
     
     void AddPackage(hash_t pkg_hash) {
@@ -30,7 +32,7 @@ public:
     }
     
     void SetPackageOrder(const Vector<hash_t>& order) {
-        package_order = order;
+        package_order <<= order; // Use <<= operator for deep copy
     }
 };
 

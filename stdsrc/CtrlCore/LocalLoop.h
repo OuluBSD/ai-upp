@@ -7,10 +7,11 @@
 
 namespace Upp {
 
-// LocalLoop - runs a local event loop, typically used for modal operations
+class Ctrl;
+
 class LocalLoop : public Ctrl {
 	Ctrl *master;
-	
+
 public:
 	virtual void Run();
 	virtual void CancelMode();
@@ -19,11 +20,10 @@ public:
 	Ctrl& GetMaster() { return *master; }
 	const Ctrl& GetMaster() const { return *master; }
 	
-	LocalLoop();
+	LocalLoop() { master = NULL; }
 	virtual ~LocalLoop() {}
 };
 
-// RectTracker - tracks mouse movement and draws tracking rectangles
 class RectTracker : public LocalLoop {
 	Rect   rect;
 	Rect   org;
@@ -40,20 +40,21 @@ class RectTracker : public LocalLoop {
 	int    pattern;
 	int    animation;
 	int    width;
-	Callback1<Rect&> sync;
-	Callback1<Rect&> round;
+	Event<Rect>  sync;
+	Event<Rect&> round;
+	
+	Ctrl *rounder;
 	
 	void RefreshRect(const Rect& old, const Rect& r);
 	void DrawRect(Draw& w, Rect r);
-	
+	Rect Round(const Rect& r);
+
 public:
 	virtual void Paint(Draw& w) override;
 	virtual void MouseMove(Point p, dword keyflags) override;
 	virtual void LeftUp(Point p, dword keyflags) override;
 	virtual void RightUp(Point p, dword keyflags) override;
 	virtual Image CursorImage(Point p, dword keyflags) override;
-	
-	Rect Round(const Rect& r);
 	void Pen(Point p, const PenInfo &pn, dword keyflags);
 	
 	Rect Track(const Rect& r, int tx = ALIGN_LEFT, int ty = ALIGN_TOP);
@@ -61,40 +62,26 @@ public:
 	int  TrackVertLine(int x0, int y0, int cy, int line = 1);
 	Point TrackLine(int x0, int y0);
 	
-	void SetCursorImage(const Image& img) { cursorimage = img; }
-	void SetColor(Color c) { color = c; }
-	void SetPattern(int p) { pattern = p; }
-	void SetWidth(int w) { width = w; }
-	void SetMinSize(Size sz) { minsize = sz; }
-	void SetMaxSize(Size sz) { maxsize = sz; }
-	void SetMaxRect(const Rect& r) { maxrect = r; }
-	void SetKeepRatio(bool b) { keepratio = b; }
-	void SetAnimation(int ms) { animation = ms; }
-	void SetRounder(Ctrl *c) { rounder = c; }
-	void SetSyncCallback(const Callback1<Rect&>& cb) { sync = cb; }
-	void SetRoundCallback(const Callback1<Rect&>& cb) { round = cb; }
+	RectTracker& SetCursorImage(const Image& img) { cursorimage = img; return *this; }
+	RectTracker& SetColor(Color c) { color = c; return *this; }
+	RectTracker& SetPattern(int p) { pattern = p; return *this; }
+	RectTracker& Dashed() { return SetPattern(DRAWDRAGRECT_DASHED); }
+	RectTracker& Solid() { return SetPattern(DRAWDRAGRECT_SOLID); }
+	RectTracker& Normal() { return SetPattern(DRAWDRAGRECT_NORMAL); }
+	RectTracker& SetWidth(int w) { width = w; return *this; }
+	RectTracker& MinSize(Size sz) { minsize = sz; return *this; }
+	RectTracker& MaxSize(Size sz) { maxsize = sz; return *this; }
+	RectTracker& MaxRect(const Rect& r) { maxrect = r; return *this; }
+	RectTracker& KeepRatio(bool b) { keepratio = b; return *this; }
+	RectTracker& Animation(int ms = 40) { animation = ms; return *this; }
+	RectTracker& Round(Ctrl& r) { rounder = &r; return *this; }
+
+	Rect Get() { return rect; }
 	
 	RectTracker(Ctrl& master);
 };
 
-// PointLooper - a utility for point selection with animated cursor
-class PointLooper : public LocalLoop {
-	const std::vector<Image>& ani;
-	int ani_ms;
-	bool result;
-
-public:
-	virtual void LeftUp(Point p, dword keyflags) override;
-	virtual Image CursorImage(Point p, dword keyflags) override;
-	virtual bool Key(dword key, int count) override;
-
-	operator bool() const { return result; }
-
-	PointLooper(Ctrl& ctrl, const std::vector<Image>& ani, int ani_ms);
-};
-
-// Utility function to run a point selection loop with animation
-bool PointLoop(Ctrl& ctrl, const std::vector<Image>& ani, int ani_ms);
+bool PointLoop(Ctrl& ctrl, const Vector<Image>& ani, int ani_ms);
 bool PointLoop(Ctrl& ctrl, const Image& img);
 
 }

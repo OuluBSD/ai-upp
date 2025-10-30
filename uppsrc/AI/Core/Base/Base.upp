@@ -1,7 +1,8 @@
 description "AI/Core/Base\377128,0,0";
 
 uses
-	Vfs/Runtime;
+	Vfs/Runtime,
+	plugin/png;
 
 file
 	AGENTS.md,

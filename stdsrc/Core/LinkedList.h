@@ -3,199 +3,481 @@
 #define _Core_LinkedList_h_
 
 #include <memory>
-#include <functional>
+#include <iterator>
+#include <algorithm>
 #include "Core.h"
 
-// Simple linked list node
-template <typename T>
-struct ListNode {
-    T data;
-    std::unique_ptr<ListNode<T>> next;
+// Double-linked list node for stdsrc
+template <class T>
+struct DoublyLinked {
+    DoublyLinked* next;
+    DoublyLinked* prev;
     
-    ListNode() = default;
-    ListNode(const T& value) : data(value), next(nullptr) {}
-    ListNode(T&& value) : data(std::move(value)), next(nullptr) {}
+    DoublyLinked() : next(nullptr), prev(nullptr) {}
     
-    // Note: Using default move constructor/assignment since unique_ptr is not copyable
-    ListNode(const ListNode&) = delete;
-    ListNode& operator=(const ListNode&) = delete;
+    void Unlink() {
+        if (prev) prev->next = next;
+        if (next) next->prev = prev;
+        next = prev = nullptr;
+    }
+    
+    void InsertBefore(DoublyLinked* node) {
+        if (!node) return;
+        node->Unlink();
+        node->next = this;
+        node->prev = prev;
+        if (prev) prev->next = node;
+        prev = node;
+    }
+    
+    void InsertAfter(DoublyLinked* node) {
+        if (!node) return;
+        node->Unlink();
+        node->next = next;
+        node->prev = this;
+        if (next) next->prev = node;
+        next = node;
+    }
+    
+    bool IsLinked() const {
+        return next || prev;
+    }
 };
 
-// Singly linked list implementation
-template <typename T>
+// Linked list implementation for stdsrc
+template <class T>
 class LinkedList {
 private:
-    std::unique_ptr<ListNode<T>> head;
-    size_t count;
-
-public:
-    LinkedList() : head(nullptr), count(0) {}
+    struct Node : DoublyLinked<T> {
+        T data;
+        
+        template<typename... Args>
+        Node(Args&&... args) : data(std::forward<Args>(args)...) {}
+    };
     
-    // Move constructor/assignment
+    Node* head;
+    Node* tail;
+    size_t count;
+    
+public:
+    // Constructors
+    LinkedList() : head(nullptr), tail(nullptr), count(0) {}
+    
+    LinkedList(const LinkedList& other) : head(nullptr), tail(nullptr), count(0) {
+        for (const auto& item : other) {
+            AddTail(item);
+        }
+    }
+    
     LinkedList(LinkedList&& other) noexcept 
-        : head(std::move(other.head)), count(other.count) {
+        : head(other.head), tail(other.tail), count(other.count) {
+        other.head = nullptr;
+        other.tail = nullptr;
         other.count = 0;
+    }
+    
+    LinkedList& operator=(const LinkedList& other) {
+        if (this != &other) {
+            Clear();
+            for (const auto& item : other) {
+                AddTail(item);
+            }
+        }
+        return *this;
     }
     
     LinkedList& operator=(LinkedList&& other) noexcept {
         if (this != &other) {
-            head = std::move(other.head);
+            Clear();
+            head = other.head;
+            tail = other.tail;
             count = other.count;
+            other.head = nullptr;
+            other.tail = nullptr;
             other.count = 0;
         }
         return *this;
     }
     
-    // Not copyable
-    LinkedList(const LinkedList&) = delete;
-    LinkedList& operator=(const LinkedList&) = delete;
-    
-    ~LinkedList() = default;
-    
-    // Add element to front
-    void PushFront(const T& value) {
-        auto node = std::make_unique<ListNode<T>>(value);
-        node->next = std::move(head);
-        head = std::move(node);
-        count++;
+    // Destructor
+    ~LinkedList() {
+        Clear();
     }
     
-    void PushFront(T&& value) {
-        auto node = std::make_unique<ListNode<T>>(std::move(value));
-        node->next = std::move(head);
-        head = std::move(node);
-        count++;
+    // Element access
+    T& Get(int index) {
+        Node* node = GetNode(index);
+        if (!node) {
+            throw std::out_of_range("Index out of range");
+        }
+        return node->data;
     }
     
-    // Add element to back
-    void PushBack(const T& value) {
+    const T& Get(int index) const {
+        const Node* node = GetNode(index);
+        if (!node) {
+            throw std::out_of_range("Index out of range");
+        }
+        return node->data;
+    }
+    
+    T& operator[](int index) {
+        return Get(index);
+    }
+    
+    const T& operator[](int index) const {
+        return Get(index);
+    }
+    
+    T& First() {
         if (!head) {
-            PushFront(value);
-            return;
+            throw std::runtime_error("List is empty");
         }
-        
-        ListNode<T>* current = head.get();
-        while (current->next) {
-            current = current->next.get();
-        }
-        
-        current->next = std::make_unique<ListNode<T>>(value);
-        count++;
+        return head->data;
     }
     
-    void PushBack(T&& value) {
+    const T& First() const {
         if (!head) {
-            PushFront(std::move(value));
-            return;
+            throw std::runtime_error("List is empty");
         }
-        
-        ListNode<T>* current = head.get();
-        while (current->next) {
-            current = current->next.get();
-        }
-        
-        current->next = std::make_unique<ListNode<T>>(std::move(value));
-        count++;
+        return head->data;
     }
     
-    // Remove element from front
-    bool PopFront() {
-        if (!head) return false;
+    T& Last() {
+        if (!tail) {
+            throw std::runtime_error("List is empty");
+        }
+        return tail->data;
+    }
+    
+    const T& Last() const {
+        if (!tail) {
+            throw std::runtime_error("List is empty");
+        }
+        return tail->data;
+    }
+    
+    // Adding elements
+    template<typename... Args>
+    T& AddHead(Args&&... args) {
+        std::unique_ptr<Node> newNode = std::make_unique<Node>(std::forward<Args>(args)...);
+        Node* node = newNode.get();
         
-        head = std::move(head->next);
+        if (head) {
+            head->prev = node;
+            node->next = head;
+        } else {
+            tail = node;
+        }
+        
+        head = node;
+        items.push_back(std::move(newNode));
+        count++;
+        return node->data;
+    }
+    
+    template<typename... Args>
+    T& AddTail(Args&&... args) {
+        std::unique_ptr<Node> newNode = std::make_unique<Node>(std::forward<Args>(args)...);
+        Node* node = newNode.get();
+        
+        if (tail) {
+            tail->next = node;
+            node->prev = tail;
+        } else {
+            head = node;
+        }
+        
+        tail = node;
+        items.push_back(std::move(newNode));
+        count++;
+        return node->data;
+    }
+    
+    template<typename... Args>
+    T& Insert(int index, Args&&... args) {
+        if (index < 0 || index > static_cast<int>(count)) {
+            throw std::out_of_range("Index out of range");
+        }
+        
+        if (index == 0) {
+            return AddHead(std::forward<Args>(args)...);
+        }
+        
+        if (index == static_cast<int>(count)) {
+            return AddTail(std::forward<Args>(args)...);
+        }
+        
+        Node* after = GetNode(index);
+        std::unique_ptr<Node> newNode = std::make_unique<Node>(std::forward<Args>(args)...);
+        Node* node = newNode.get();
+        
+        node->next = after;
+        node->prev = after->prev;
+        if (after->prev) {
+            after->prev->next = node;
+        }
+        after->prev = node;
+        
+        if (after == head) {
+            head = node;
+        }
+        
+        items.push_back(std::move(newNode));
+        count++;
+        return node->data;
+    }
+    
+    // Removing elements
+    void Remove(int index) {
+        Node* node = GetNode(index);
+        if (!node) {
+            throw std::out_of_range("Index out of range");
+        }
+        
+        if (node->prev) {
+            node->prev->next = node->next;
+        } else {
+            head = node->next;
+        }
+        
+        if (node->next) {
+            node->next->prev = node->prev;
+        } else {
+            tail = node->prev;
+        }
+        
+        // Find and remove from items vector
+        auto it = std::find_if(items.begin(), items.end(), 
+                              [node](const std::unique_ptr<Node>& ptr) { return ptr.get() == node; });
+        if (it != items.end()) {
+            items.erase(it);
+        }
+        
         count--;
-        return true;
     }
     
-    // Get front element reference
-    T& Front() {
-        return head->data;
+    void RemoveHead() {
+        if (!head) {
+            throw std::runtime_error("List is empty");
+        }
+        Remove(0);
     }
     
-    const T& Front() const {
-        return head->data;
-    }
-    
-    // Check if empty
-    bool IsEmpty() const {
-        return head == nullptr;
-    }
-    
-    // Get count
-    size_t GetCount() const {
-        return count;
+    void RemoveTail() {
+        if (!tail) {
+            throw std::runtime_error("List is empty");
+        }
+        Remove(GetCount() - 1);
     }
     
     // Clear all elements
     void Clear() {
-        head.reset();
+        head = nullptr;
+        tail = nullptr;
+        items.clear();
         count = 0;
     }
     
-    // Find element
-    bool Contains(const T& value) const {
-        ListNode<T>* current = head.get();
-        while (current) {
-            if (current->data == value) {
-                return true;
-            }
-            current = current->next.get();
-        }
-        return false;
+    // Size
+    size_t GetCount() const {
+        return count;
     }
     
-    // ForEach operation
-    void ForEach(std::function<void(const T&)> fn) const {
-        ListNode<T>* current = head.get();
-        while (current) {
-            fn(current->data);
-            current = current->next.get();
-        }
+    bool IsEmpty() const {
+        return count == 0;
     }
     
-    void ForEach(std::function<void(T&)> fn) {
-        ListNode<T>* current = head.get();
-        while (current) {
-            fn(current->data);
-            current = current->next.get();
-        }
-    }
-    
-    // Find with predicate
-    template<typename Predicate>
-    ListNode<T>* FindIf(Predicate pred) {
-        ListNode<T>* current = head.get();
-        while (current) {
-            if (pred(current->data)) {
-                return current;
-            }
-            current = current->next.get();
-        }
-        return nullptr;
-    }
-    
-    // Remove element matching predicate
-    template<typename Predicate>
-    bool RemoveIf(Predicate pred) {
-        if (!head) return false;
+    // Iterators
+    class Iterator {
+    private:
+        Node* node;
         
-        if (pred(head->data)) {
-            head = std::move(head->next);
-            count--;
-            return true;
+    public:
+        Iterator(Node* n) : node(n) {}
+        
+        T& operator*() { return node->data; }
+        T* operator->() { return &node->data; }
+        
+        Iterator& operator++() { node = static_cast<Node*>(node->next); return *this; }
+        Iterator& operator--() { node = static_cast<Node*>(node->prev); return *this; }
+        
+        bool operator==(const Iterator& other) const { return node == other.node; }
+        bool operator!=(const Iterator& other) const { return node != other.node; }
+        
+        Node* GetNode() const { return node; }
+    };
+    
+    class ConstIterator {
+    private:
+        const Node* node;
+        
+    public:
+        ConstIterator(const Node* n) : node(n) {}
+        
+        const T& operator*() const { return node->data; }
+        const T* operator->() const { return &node->data; }
+        
+        ConstIterator& operator++() { node = static_cast<const Node*>(node->next); return *this; }
+        ConstIterator& operator--() { node = static_cast<const Node*>(node->prev); return *this; }
+        
+        bool operator==(const ConstIterator& other) const { return node == other.node; }
+        bool operator!=(const ConstIterator& other) const { return node != other.node; }
+        
+        const Node* GetNode() const { return node; }
+    };
+    
+    Iterator begin() { return Iterator(head); }
+    Iterator end() { return Iterator(nullptr); }
+    
+    ConstIterator begin() const { return ConstIterator(head); }
+    ConstIterator end() const { return ConstIterator(nullptr); }
+    
+    ConstIterator cbegin() const { return ConstIterator(head); }
+    ConstIterator cend() const { return ConstIterator(nullptr); }
+    
+    // Reverse iterators
+    class ReverseIterator {
+    private:
+        Node* node;
+        
+    public:
+        ReverseIterator(Node* n) : node(n) {}
+        
+        T& operator*() { return node->data; }
+        T* operator->() { return &node->data; }
+        
+        ReverseIterator& operator++() { node = static_cast<Node*>(node->prev); return *this; }
+        ReverseIterator& operator--() { node = static_cast<Node*>(node->next); return *this; }
+        
+        bool operator==(const ReverseIterator& other) const { return node == other.node; }
+        bool operator!=(const ReverseIterator& other) const { return node != other.node; }
+        
+        Node* GetNode() const { return node; }
+    };
+    
+    class ConstReverseIterator {
+    private:
+        const Node* node;
+        
+    public:
+        ConstReverseIterator(const Node* n) : node(n) {}
+        
+        const T& operator*() const { return node->data; }
+        const T* operator->() const { return &node->data; }
+        
+        ConstReverseIterator& operator++() { node = static_cast<const Node*>(node->prev); return *this; }
+        ConstReverseIterator& operator--() { node = static_cast<const Node*>(node->next); return *this; }
+        
+        bool operator==(const ConstReverseIterator& other) const { return node == other.node; }
+        bool operator!=(const ConstReverseIterator& other) const { return node != other.node; }
+        
+        const Node* GetNode() const { return node; }
+    };
+    
+    ReverseIterator rbegin() { return ReverseIterator(tail); }
+    ReverseIterator rend() { return ReverseIterator(nullptr); }
+    
+    ConstReverseIterator rbegin() const { return ConstReverseIterator(tail); }
+    ConstReverseIterator rend() const { return ConstReverseIterator(nullptr); }
+    
+    ConstReverseIterator crbegin() const { return ConstReverseIterator(tail); }
+    ConstReverseIterator crend() const { return ConstReverseIterator(nullptr); }
+    
+    // Find operations
+    template<typename Predicate>
+    int FindIndex(Predicate pred) const {
+        int index = 0;
+        for (const Node* node = head; node; node = static_cast<const Node*>(node->next), ++index) {
+            if (pred(node->data)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+    
+    int Find(const T& item) const {
+        return FindIndex([&item](const T& data) { return data == item; });
+    }
+    
+    bool Contains(const T& item) const {
+        return Find(item) >= 0;
+    }
+    
+    // Swap
+    void Swap(LinkedList& other) {
+        std::swap(head, other.head);
+        std::swap(tail, other.tail);
+        std::swap(count, other.count);
+        items.swap(other.items);
+    }
+    
+    // Serialization support
+    template<typename Stream>
+    void Serialize(Stream& s) {
+        int n = static_cast<int>(count);
+        s / n;
+        
+        if (s.IsLoading()) {
+            Clear();
+            for (int i = 0; i < n; ++i) {
+                T item;
+                s % item;
+                AddTail(std::move(item));
+            }
+        } else {
+            for (Node* node = head; node; node = static_cast<Node*>(node->next)) {
+                s % node->data;
+            }
+        }
+    }
+    
+    // String representation
+    std::string ToString() const {
+        std::ostringstream oss;
+        oss << "[";
+        bool first = true;
+        for (const auto& item : *this) {
+            if (!first) oss << ", ";
+            oss << item;
+            first = false;
+        }
+        oss << "]";
+        return oss.str();
+    }
+    
+private:
+    std::vector<std::unique_ptr<Node>> items;
+    
+    Node* GetNode(int index) const {
+        if (index < 0 || index >= static_cast<int>(count)) {
+            return nullptr;
         }
         
-        ListNode<T>* current = head.get();
-        while (current->next) {
-            if (pred(current->next->data)) {
-                current->next = std::move(current->next->next);
-                count--;
-                return true;
-            }
-            current = current->next.get();
+        Node* node = head;
+        for (int i = 0; i < index && node; ++i) {
+            node = static_cast<Node*>(node->next);
         }
-        return false;
+        return node;
     }
 };
+
+// Global swap function
+template<class T>
+void Swap(LinkedList<T>& a, LinkedList<T>& b) {
+    a.Swap(b);
+}
+
+// Streaming operator
+template<typename Stream, class T>
+void operator%(Stream& s, LinkedList<T>& list) {
+    list.Serialize(s);
+}
+
+// String conversion
+template<class T>
+std::string AsString(const LinkedList<T>& list) {
+    return list.ToString();
+}
 
 #endif

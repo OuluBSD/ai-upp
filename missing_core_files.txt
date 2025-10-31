@@ -1,0 +1,240 @@
+Files in uppsrc/Core but not in stdsrc/Core:
+
+1. AGENTS.md (exists in both, so OK)
+2. Algo.h (exists in both, so OK)
+3. App.cpp (exists in both, so OK)
+4. App.h (exists in both, so OK)
+5. AString.hpp (exists in both, so OK)
+6. Atomic.h (exists in both, so OK)
+7. BiCont.h (exists in both, so OK)
+8. BinUndoRedo.cpp (missing from stdsrc)
+9. BinUndoRedo.h (missing from stdsrc) - Actually exists in stdsrc
+10. BlockStream.cpp (missing from stdsrc)
+11. Bom.cpp (missing from stdsrc)
+12. Callback.h (missing from stdsrc) - Actually exists in stdsrc
+13. CallbackN.i (missing from stdsrc)
+14. CallbackNP.i (missing from stdsrc)
+15. CallbackR.i (missing from stdsrc)
+16. CharFilter.h (missing from stdsrc)
+17. CharSet.cpp (missing from stdsrc) - Actually exists in stdsrc
+18. CharSet.h (exists in both, so OK)
+19. CharSet.i (missing from stdsrc)
+20. CoAlgo.h (exists in both, so OK)
+21. Color.cpp (missing from stdsrc) - Actually exists in stdsrc
+22. Color.h (missing from stdsrc) - Actually exists in stdsrc
+23. Complex.h (missing from stdsrc) - Actually exists in stdsrc
+24. config.h (exists in both, so OK)
+25. Convert.cpp (missing from stdsrc) - Actually exists in stdsrc
+26. Convert.h (missing from stdsrc) - Actually exists in stdsrc
+27. Convert.hpp (exists in both, so OK)
+28. Copying (missing from stdsrc)
+29. core.defs (missing from stdsrc)
+30. Core.h (exists in both, so OK)
+31. Core.t (missing from stdsrc)
+32. Core.upp (exists in both, so OK)
+33. core.upt (missing from stdsrc)
+34. CoSort.h (exists in both, so OK)
+35. CoWork.cpp (missing from stdsrc) - Actually exists in stdsrc
+36. CoWork.h (exists in both, so OK)
+37. Cpu.cpp (missing from stdsrc) - Actually exists in stdsrc
+38. CritBitIndex.h (exists in both, so OK)
+39. CvFlt.cpp (missing from stdsrc)
+40. Daemon.cpp (missing from stdsrc) - Actually exists in stdsrc
+41. Daemon.h (exists in both, so OK)
+42. Debug.cpp (missing from stdsrc)
+43. Defs.h (exists in both, so OK)
+44. Diag.h (exists in both, so OK)
+45. dli_header.h (missing from stdsrc)
+46. dli_source.h (missing from stdsrc)
+47. Dli.cpp (missing from stdsrc)
+48. dli.h (missing from stdsrc)
+49. FileMapping.cpp (missing from stdsrc) - Actually exists in stdsrc
+50. FileMapping.h (exists in both, so OK)
+51. FilterStream.cpp (missing from stdsrc) - Actually exists in stdsrc
+52. FilterStream.h (exists in both, so OK)
+53. FixedMap.h (exists in both, so OK)
+54. Fn.h (exists in both, so OK)
+55. Format.cpp (missing from stdsrc) - Actually exists in stdsrc
+56. Format.h (missing from stdsrc) - Actually exists in stdsrc
+57. Function.h (missing from stdsrc) - Actually exists in stdsrc
+58. Gtypes.cpp (missing from stdsrc) - Actually exists in stdsrc as Gtype.cpp
+59. Gtypes.h (missing from stdsrc) - Actually exists in stdsrc as Gtypes.h
+60. Hash.h (missing from stdsrc) - Actually exists in stdsrc
+61. heap.cpp (missing from stdsrc)
+62. Heap.h (missing from stdsrc) - Actually exists in stdsrc
+63. heapdbg.cpp (missing from stdsrc)
+64. HeapImp.h (missing from stdsrc)
+65. heaputil.cpp (missing from stdsrc)
+66. hheap.cpp (missing from stdsrc)
+67. Http.cpp (missing from stdsrc)
+68. HttpStatusCode.i (missing from stdsrc)
+69. Huge.cpp (missing from stdsrc) - Actually exists in stdsrc
+70. Huge.h (missing from stdsrc) - Actually exists in stdsrc
+71. i18n.h (exists in both, so OK)
+72. Index.cpp (missing from stdsrc) - Actually exists in stdsrc
+73. Index.h (exists in both, so OK)
+74. Index.hpp (exists in both, so OK)
+75. Inet.h (missing from stdsrc) - Actually exists in stdsrc
+76. InetUtil.cpp (missing from stdsrc)
+77. Ini.cpp (missing from stdsrc)
+78. init (missing from stdsrc)
+79. InMap.hpp (missing from stdsrc)
+80. InVector.h (exists in both, so OK)
+81. InVector.hpp (exists in both, so OK)
+82. ipow10.i (missing from stdsrc)
+83. JSON.cpp (missing from stdsrc) - Actually exists in stdsrc
+84. JSON.h (missing from stdsrc) - Actually exists in stdsrc
+85. Jsonize.h (missing from stdsrc)
+86. Lang_s.h (missing from stdsrc)
+87. Lang.cpp (missing from stdsrc) - Actually exists in stdsrc
+88. Lang.h (missing from stdsrc) - Actually exists in stdsrc
+89. LangInfo.cpp (missing from stdsrc)
+90. lcid.txt (missing from stdsrc)
+91. lheap.cpp (missing from stdsrc)
+92. LinkedList.h (missing from stdsrc) - Actually exists in stdsrc
+93. LocalProcess.cpp (missing from stdsrc)
+94. LocalProcess.h (missing from stdsrc) - Actually exists in stdsrc
+95. Log.cpp (missing from stdsrc) - Actually exists in stdsrc
+96. lt_.h (missing from stdsrc)
+97. Map.h (missing from stdsrc) - Actually exists in stdsrc
+98. Map.hpp (exists in both, so OK)
+99. mathutil.cpp (missing from stdsrc)
+100. MD5.cpp (missing from stdsrc)
+101. Mem.cpp (missing from stdsrc)
+102. Mem.h (missing from stdsrc)
+103. MIME.cpp (missing from stdsrc)
+104. mt_.h (missing from stdsrc)
+105. Mt.cpp (missing from stdsrc) - Actually exists in stdsrc
+106. Mt.h (exists in both, so OK)
+107. NetNode.cpp (missing from stdsrc)
+108. Obsolete.h (missing from stdsrc)
+109. Ops.h (exists in both, so OK)
+110. Other.h (missing from stdsrc)
+111. Other.hpp (missing from stdsrc)
+112. PackedData.cpp (missing from stdsrc)
+113. parser.cpp (missing from stdsrc)
+114. Parser.h (exists in both, so OK)
+115. Path.cpp (missing from stdsrc) - Actually exists in stdsrc
+116. Path.h (missing from stdsrc) - Actually exists in stdsrc
+117. Profile.h (missing from stdsrc) - Actually exists in stdsrc as Profile.h but not Profile.cpp
+118. Ptr.cpp (missing from stdsrc) - Actually exists in stdsrc
+119. Ptr.h (missing from stdsrc) - Actually exists in stdsrc
+120. Random.cpp (missing from stdsrc)
+121. Range.h (exists in both, so OK)
+122. Recycler.h (exists in both, so OK)
+123. SHA1.cpp (missing from stdsrc)
+124. SHA256.cpp (missing from stdsrc)
+125. Shared.h (exists in both, so OK)
+126. sheap.cpp (missing from stdsrc)
+127. SIMD_NEON.h (missing from stdsrc)
+128. SIMD_SSE2.h (missing from stdsrc)
+129. SIMD.cpp (missing from stdsrc)
+130. Socket.cpp (missing from stdsrc) - Actually exists in stdsrc
+131. Sort.h (missing from stdsrc) - Actually exists in stdsrc as Sort.h
+132. Sorted.h (exists in both, so OK)
+133. Speller.cpp (missing from stdsrc)
+134. SplitMerge.cpp (missing from stdsrc) - Actually exists in stdsrc
+135. SplitMerge.h (exists in both, so OK)
+136. St.cpp (missing from stdsrc) - Actually exists in stdsrc
+137. St.h (exists in both, so OK)
+138. Stream.cpp (missing from stdsrc) - Actually exists in stdsrc
+139. Stream.h (missing from stdsrc) - Actually exists in stdsrc
+140. String.cpp (missing from stdsrc) - Actually exists in stdsrc
+141. String.h (missing from stdsrc) - Actually exists in stdsrc
+142. StringFind.cpp (missing from stdsrc)
+143. StringMem.i (missing from stdsrc)
+144. StringsStream.cpp (missing from stdsrc)
+145. sub.upt (missing from stdsrc)
+146. t_.h (missing from stdsrc)
+147. t.cpp (missing from stdsrc)
+148. t.h (missing from stdsrc)
+149. TimeDate.cpp (missing from stdsrc) - Actually exists in stdsrc
+150. TimeDate.h (missing from stdsrc) - Actually exists in stdsrc
+151. topic_group.h (missing from stdsrc)
+152. Topic.cpp (missing from stdsrc) - Actually exists in stdsrc
+153. Topic.h (exists in both, so OK)
+154. Topt.h (exists in both, so OK)
+155. Tuple.h (missing from stdsrc) - Actually exists in stdsrc
+156. UnicodeInfo.cpp (missing from stdsrc) - Actually exists in stdsrc
+157. Utf.cpp (missing from stdsrc) - Actually exists in stdsrc
+158. Utf.hpp (exists in both, so OK)
+159. Util.cpp (missing from stdsrc) - Actually exists in stdsrc
+160. Util.h (missing from stdsrc) - Actually exists in stdsrc
+161. Uuid.cpp (missing from stdsrc) - Actually exists in stdsrc
+162. Uuid.h (missing from stdsrc) - Actually exists in stdsrc
+163. Value.cpp (missing from stdsrc) - Actually exists in stdsrc
+164. Value.h (missing from stdsrc) - Actually exists in stdsrc
+165. Value.hpp (exists in both, so OK)
+166. ValueCache.cpp (missing from stdsrc) - Actually exists in stdsrc
+167. ValueCache.h (exists in both, so OK)
+168. ValueUtil.cpp (missing from stdsrc) - Actually exists in stdsrc
+169. ValueUtil.h (missing from stdsrc) - Actually exists in stdsrc
+170. ValueUtil.hpp (missing from stdsrc) - Actually exists in stdsrc
+171. Vcont.cpp (missing from stdsrc) - Actually exists in stdsrc
+172. Vcont.h (missing from stdsrc) - Actually exists in stdsrc
+173. Vcont.hpp (exists in both, so OK)
+174. WebSocket.cpp (missing from stdsrc)
+175. Win32Util.cpp (missing from stdsrc) - Actually exists in stdsrc
+176. Win32Util.h (exists in both, so OK)
+177. WString.cpp (missing from stdsrc) - Actually exists in stdsrc
+178. XML.cpp (missing from stdsrc) - Actually exists in stdsrc
+179. XML.h (missing from stdsrc) - Actually exists in stdsrc
+180. Xmlize.cpp (missing from stdsrc) - Actually exists in stdsrc
+181. Xmlize.h (missing from stdsrc) - Actually exists in stdsrc but as Xmlize.hpp
+182. Xmlize.hpp (exists in both, so OK)
+183. xxHsh.cpp (missing from stdsrc)
+184. z.cpp (missing from stdsrc) - Actually exists in stdsrc
+185. z.h (exists in both, so OK)
+
+Actually looking more carefully at the files, many of the .cpp files are implementation files that don't need to be duplicated in stdsrc since stdsrc is focusing on header-only implementations or different implementations. Let me focus on the header files that are actually missing:
+
+Looking at the TASKS.md file, I can see that several files are marked as not implemented. Let me check if those specific files are actually missing:
+
+From TASKS.md, the missing files are:
+- BinUndoRedo.h - Exists in stdsrc
+- Cpu.h - Missing from stdsrc
+- Debug.h - Missing from stdsrc
+- Dli.h - Missing from stdsrc
+- Heap.h - Missing from stdsrc
+- Huge.h - Exists in stdsrc
+- Inet.h - Exists in stdsrc
+- Ini.h - Missing from stdsrc
+- InMap.hpp - Missing from stdsrc
+- InVector.h - Exists in stdsrc
+- LinkedList.h - Exists in stdsrc
+- LocalProcess.h - Exists in stdsrc
+- NetNode.h - Missing from stdsrc
+- Other.h - Missing from stdsrc
+- PackedData.h - Missing from stdsrc
+- Random.h - Missing from stdsrc
+- SIMD.h - Missing from stdsrc
+- Socket.h - Exists in stdsrc
+- Speller.h - Missing from stdsrc
+- UnicodeInfo.h - Missing from stdsrc
+- Utf.h - Missing from stdsrc
+- WebSocket.h - Missing from stdsrc
+- Win32Util.h - Exists in stdsrc
+- Xmlize.h - Missing from stdsrc (but Xmlize.hpp exists)
+- xxHsh.h - Missing from stdsrc
+- Other.hpp - Missing from stdsrc
+- Tuple.h - Exists in stdsrc
+- Utf.hpp - Exists in stdsrc
+
+So the truly missing header files are:
+1. Cpu.h
+2. Debug.h
+3. Dli.h
+4. Ini.h
+5. InMap.hpp
+6. NetNode.h
+7. Other.h
+8. PackedData.h
+9. Random.h
+10. SIMD.h
+11. Speller.h
+12. UnicodeInfo.h
+13. Utf.h
+14. WebSocket.h
+15. Xmlize.h
+16. xxHsh.h
+17. Other.hpp

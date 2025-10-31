@@ -2,133 +2,148 @@
 #ifndef _Core_Debug_h_
 #define _Core_Debug_h_
 
-#include "Core.h"
-#include <cstdarg>
 #include <cstdio>
-#include <map>
-#include <vector>
-#include <mutex>
-
-namespace Upp {
-
-// Logging functions
-void __LOGF__(const char *fmt, ...);
-String GetTypeName(const char *s);
+#include <cstdlib>
+#include <cassert>
+#include <cstring>
+#include <string>
+#include <iostream>
+#include "Core.h"
 
 #ifdef _DEBUG
-#define  LOG(x)    do { Upp::__LOGF__ x; } while(false)
-#define  DLOG(x)   LOG(x)
-#else
-#define  LOG(x)    do {} while(false)
-#define  DLOG(x)   do {} while(false)
-#endif
 
-#define  RLOG(x)   LOG(x) // Raw log (unconditional)
+// Debug output functions
+inline void LOG(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    printf("\n");
+}
 
-// Timing functionality
-class TimingInspector {
-	static bool       active;
-	Mutex             mutex;
-	const char       *name;
-	dword             all_count;
-	dword             call_count;
-	dword             total_time;
-	dword             min_time;
-	dword             max_time;
-	int               max_nesting;
+inline void LOGF(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
 
-public:
-	void  Add(dword time, int nesting);
-	String Dump();
-	
-	static void  Clear()                      { active = false; }
-	static void  Enable()                     { active = true; }
-	static bool  IsEnabled()                  { return active; }
+inline void DUMP(const char* name, const auto& value) {
+    std::cout << name << " = " << value << std::endl;
+}
 
-	TimingInspector(const char *name);
-	~TimingInspector();
-	
-	friend class TimingInspectorRoutine;
-};
+inline void DUMPHEX(const char* name, const auto& value) {
+    std::cout << name << " = 0x" << std::hex << value << std::dec << std::endl;
+}
 
-class TimingInspectorRoutine {
-	static thread_local int nesting;
-	TimingInspector& m;
-	dword            tm;
-	
-public:
-	TimingInspectorRoutine(TimingInspector& m);
-	~TimingInspectorRoutine();
-	
-	static int GetNesting() { return nesting; }
-};
+// Assertion macros
+#define ASSERT(x) assert(x)
+#define ASSERT_(x, msg) do { if (!(x)) { std::cerr << "Assertion failed: " << msg << " at " << __FILE__ << ":" << __LINE__ << std::endl; assert(x); } } while(0)
 
-#define  TIMING(x)       Upp::TimingInspector __timing__(x)
-#define  LTIMING(x)      // In production builds, this is empty
-
-#define  TIME(x)         for(Upp::TimingInspector __timing__(x);; __timing__.Add(Upp::tmGetTime(), Upp::TimingInspectorRoutine::nesting), Upp::DoTimeLoopBreak())
-
-inline bool& DoTimeLoopBreak() { static bool b; return b = true; }
-
-// Hit counting functionality
-class HitCountInspector {
-	String  name;
-	mutable int64 hitcount;
-	
-public:
-	void  operator++() const                    { hitcount++; }
-	void  operator++(int) const                 { hitcount++; }
-	
-	~HitCountInspector();
-	
-	HitCountInspector(const char *name);
-};
-
-#define  HITALOOP(x)     for(Upp::HitCountInspector x(#x); Upp::DoTimeLoopBreak(); )
-
-// Debug assertion functionality
-#ifdef _DEBUG
-
-#define  ASSERT(x)               do { if(!(x)) { Upp::Panic(#x); } } while(0)
-#define  ASSERT_(x, y)           do { if(!(x)) { Upp::Panic(y); } } while(0)
-#define  ASSERTDBG(x)            ASSERT(x)
+// Debug-only code execution
+#define DEBUGCODE(x) x
 
 #else
 
-#define  ASSERT(x)               do {} while(0)
-#define  ASSERT_(x, y)           do {} while(0)
-#define  ASSERTDBG(x)            do {} while(0)
+// Release mode - no debug output
+inline void LOG(const char* format, ...) {}
+inline void LOGF(const char* format, ...) {}
+inline void DUMP(const char* name, const auto& value) {}
+inline void DUMPHEX(const char* name, const auto& value) {}
+
+// No assertions in release mode
+#define ASSERT(x) ((void)0)
+#define ASSERT_(x, msg) ((void)0)
+
+// No debug code in release mode
+#define DEBUGCODE(x)
 
 #endif
 
-// Panic function
-void Panic(const char *text);
+// Common debugging utilities
+inline void PrintStackTrace() {
+#ifdef _MSC_VER
+    // Windows-specific stack trace
+    // Implementation would depend on Windows debugging APIs
+#elif defined(__GNUC__) || defined(__clang__)
+    // Unix-like systems can use backtrace
+    // Implementation would depend on execinfo.h
+#endif
+}
 
-// Hex dump functionality
-void HexDump(Stream& s, const void *ptr, int size, int maxsize = 10000);
-void HexDumpData(Stream& s, const void *ptr, int size, bool adr = true, int maxsize = 10000);
-void LogHex(const String& s);
-void LogHex(const WString& s);
-void LogHex(uint64 i);
-void LogHex(void *p);
-
-// Memory debugging
-void SetMagic(byte *t, int count);
-void CheckMagic(byte *t, int count);
-
-// Etalon testing
-void CheckLogEtalon(const char *etalon_path);
-void CheckLogEtalon();
-
-// C++ name demangling
-String CppDemangle(const char* name);
-
-// Crash dump handling (Windows)
-#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE)
-void InstallCrashDump(const char *info = NULL);
-void SetCrashFileName(const char *cfile);
+// Memory debugging utilities
+#ifdef _DEBUG
+inline void CheckMemory() {
+    // In debug mode, could integrate with memory debugging tools
+}
+#else
+inline void CheckMemory() {
+    // Release mode - no memory checking
+}
 #endif
 
+// Profiling support
+class DebugTimer {
+    std::chrono::high_resolution_clock::time_point start_time;
+    std::string name;
+    
+public:
+    DebugTimer(const std::string& timer_name) : name(timer_name) {
+        start_time = std::chrono::high_resolution_clock::now();
+    }
+    
+    ~DebugTimer() {
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+        LOG("%s took %lld microseconds", name.c_str(), duration.count());
+    }
+};
+
+// Macro for timing code blocks
+#define TIMING(name) DebugTimer debug_timer##__LINE__(name)
+
+// Conditional logging
+#define LOG_IF(condition, message) do { if (condition) LOG(message); } while(0)
+
+// Hex dump utilities
+inline void HexDump(const void* data, size_t size) {
+    const unsigned char* p = static_cast<const unsigned char*>(data);
+    for (size_t i = 0; i < size; ++i) {
+        if (i % 16 == 0) {
+            if (i > 0) LOG("");
+            LOG("%08zx: ", i);
+        }
+        LOG("%02x ", p[i]);
+    }
+    LOG("");
+}
+
+// Debug breakpoints
+#ifdef _MSC_VER
+#define BREAKPOINT() __debugbreak()
+#elif defined(__GNUC__) || defined(__clang__)
+#define BREAKPOINT() __builtin_trap()
+#else
+#define BREAKPOINT() abort()
+#endif
+
+// Debug heap checking
+inline void DebugHeapCheck() {
+#ifdef _DEBUG
+#ifdef _MSC_VER
+    // Check heap integrity
+    _ASSERTE(_CrtCheckMemory());
+#endif
+#endif
+}
+
+// Debug string utilities
+inline std::string DebugString(const std::string& s) {
+#ifdef _DEBUG
+    return "\"" + s + "\"";
+#else
+    return s;
+#endif
 }
 
 #endif

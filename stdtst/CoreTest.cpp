@@ -132,6 +132,33 @@ CONSOLE_APP_MAIN {
         RLOG("TimeDate tests passed!");
     }
     
+    // Test Atomic functionality
+    {
+        Atomic atomic_val(0);
+        ASSERT(atomic_val.load() == 0);
+        
+        int inc_result = AtomicInc(atomic_val);
+        ASSERT(inc_result == 1);
+        ASSERT(atomic_val.load() == 1);
+        
+        int dec_result = AtomicDec(atomic_val);
+        ASSERT(dec_result == 0);
+        ASSERT(atomic_val.load() == 0);
+        
+        // Test multiple increments/decrements
+        for(int i = 0; i < 10; i++) {
+            AtomicInc(atomic_val);
+        }
+        ASSERT(atomic_val.load() == 10);
+        
+        for(int i = 0; i < 5; i++) {
+            AtomicDec(atomic_val);
+        }
+        ASSERT(atomic_val.load() == 5);
+        
+        RLOG("Atomic tests passed!");
+    }
+    
     // Test Point functionality via Draw (if available)
     // Note: This would require linking with Draw module
     

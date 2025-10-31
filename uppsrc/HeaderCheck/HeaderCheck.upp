@@ -1,0 +1,8 @@
+description "U++ Header Dependency Analyzer";
+
+uses
+	Core;
+
+file
+	main.cpp,
+	HeaderCheck.cpp;

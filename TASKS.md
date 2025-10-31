@@ -367,11 +367,11 @@
 - [ ] Ensure comprehensive stdtst package coverage for all wrapper library features
 
 ### stdinc Directory Implementation
-- [ ] Create stdinc directory structure mirroring STL c++ headers
-- [ ] Implement standard STL c++ headers using U++ classes and functions
+- [ ] Create stdinc directory structure by reversing stdsrc content
+- [ ] Implement standard STL c++ headers by reversing stdsrc implementation (super fast job)
 - [ ] Create wrapper layer that allows STL code to compile using stdinc + stdsrc
 - [ ] Ensure stdinc + stdsrc still uses system's STL with U++ wrapper in middle
-- [ ] Test stdinc headers with sample STL code to verify compatibility
+- [ ] Test stdinc headers with sample STL code and add more features as needed
 - [ ] Add comprehensive tests for stdinc functionality in stdtst package
 
 ### Code Translation and Conversion Tasks

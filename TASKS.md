@@ -17,76 +17,77 @@
 - [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
 - [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
 - [ ] Implement missing classes in stdsrc/Core to match uppsrc/Core functionality:
-  - [ ] Atomic.h
-  - [ ] BiCont.h
-  - [ ] BinUndoRedo.h
-  - [ ] CharSet.h
-  - [ ] CoAlgo.h
-  - [ ] CoSort.h
-  - [ ] CoWork.h
-  - [ ] CritBitIndex.h
-  - [ ] Cpu.h
-  - [ ] Daemon.h
-  - [ ] Debug.h
-  - [ ] Diag.h
-  - [ ] Dli.h
-  - [ ] FileMapping.h
-  - [ ] FilterStream.h
-  - [ ] FixedMap.h
-  - [ ] Fn.h
-  - [ ] Heap.h
-  - [ ] Huge.h
-  - [ ] Inet.h
-  - [ ] Ini.h
-  - [ ] InMap.hpp
-  - [ ] InVector.h
-  - [ ] LinkedList.h
-  - [ ] LocalProcess.h
-  - [ ] Mt.h
-  - [ ] NetNode.h
-  - [ ] Ops.h
-  - [ ] Other.h
-  - [ ] PackedData.h
-  - [ ] Parser.h
-  - [ ] Random.h
-  - [ ] Range.h
-  - [ ] Recycler.h
-  - [ ] Shared.h
-  - [ ] SIMD.h
-  - [ ] Socket.h
-  - [ ] Sorted.h
-  - [ ] Speller.h
-  - [ ] SplitMerge.h
-  - [ ] St.h
-  - [ ] Topic.h
-  - [ ] Topt.h
-  - [ ] UnicodeInfo.h
-  - [ ] Utf.h
-  - [ ] ValueCache.h
-  - [ ] ValueUtil.h
-  - [ ] Vcont.hpp
-  - [ ] WebSocket.h
-  - [ ] Win32Util.h
-  - [ ] Xmlize.h
-  - [ ] xxHsh.h
-  - [ ] z.h
-  - [ ] AString.hpp
-  - [ ] Convert.hpp
-  - [ ] Index.hpp
-  - [ ] Map.hpp
-  - [ ] Other.hpp
-  - [ ] Tuple.h
-  - [ ] Utf.hpp
-  - [ ] Value.hpp
-  - [ ] Xmlize.hpp
-  - [ ] InVector.hpp
+  - [x] Atomic.h
+  - [x] BiCont.h
+  - [x] BinUndoRedo.h
+  - [x] CharSet.h
+  - [x] CoAlgo.h
+  - [x] CoSort.h
+  - [x] CoWork.h
+  - [x] CritBitIndex.h
+  - [x] Cpu.h
+  - [x] Daemon.h
+  - [x] Debug.h
+  - [x] Diag.h
+  - [x] Dli.h
+  - [x] FileMapping.h
+  - [x] FilterStream.h
+  - [x] FixedMap.h
+  - [x] Fn.h
+  - [x] Heap.h
+  - [x] Huge.h
+  - [x] Inet.h
+  - [x] Ini.h
+  - [x] InMap.hpp
+  - [x] InVector.h
+  - [x] LinkedList.h
+  - [x] LocalProcess.h
+  - [x] Mt.h
+  - [x] NetNode.h
+  - [x] Ops.h
+  - [x] Other.h
+  - [x] PackedData.h
+  - [x] Parser.h
+  - [x] Random.h
+  - [x] Range.h
+  - [x] Recycler.h
+  - [x] Shared.h
+  - [x] SIMD.h
+  - [x] Socket.h
+  - [x] Sorted.h
+  - [x] Speller.h
+  - [x] SplitMerge.h
+  - [x] St.h
+  - [x] Topic.h
+  - [x] Topt.h
+  - [x] UnicodeInfo.h
+  - [x] Utf.h
+  - [x] ValueCache.h
+  - [x] ValueUtil.h
+  - [x] Vcont.hpp
+  - [x] WebSocket.h
+  - [x] Win32Util.h
+  - [x] Xmlize.h
+  - [x] xxHsh.h
+  - [x] z.h
+  - [x] AString.hpp
+  - [x] Convert.hpp
+  - [x] Index.hpp
+  - [x] Map.hpp
+  - [x] Other.hpp
+  - [x] Tuple.h
+  - [x] Utf.hpp
+  - [x] Value.hpp
+  - [x] Xmlize.hpp
+  - [x] InVector.hpp
+  - [x] CharFilter.h
 - [ ] Implement missing classes in stdsrc/Draw to match uppsrc/Draw functionality:
   - [ ] Cham.h
   - [ ] DDARasterizer.h
   - [ ] Display.h (Note: different from CtrlCore Display.h)
   - [ ] DrawUtil.h
   - [ ] ImageOp.h
-  - [ ] Iml.h
+  - [x] Iml.h
   - [ ] Palette.h
   - [ ] Raster.h
   - [ ] SDraw.h

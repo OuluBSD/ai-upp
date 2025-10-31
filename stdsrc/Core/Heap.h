@@ -3,238 +3,367 @@
 #define _Core_Heap_h_
 
 #include <cstdlib>
-#include <new>
-#include <cstddef>
 #include <cstdint>
+#include <new>
+#include <memory>
+#include <atomic>
+#include <mutex>
 #include "Core.h"
 
-struct MemoryOptions { // sizes are in KB
-	int master_block; // master block size
-	int sys_block_limit; // > that this: allocate directly from the system
-	int master_reserve; // free master blocks kept in reserve
-	int large_reserve; // free large blocks kept in reserve
-	int small_reserve; // free formatted small block pages kept in reserve
-	
-	MemoryOptions(); // loads default options
-	~MemoryOptions(); // sets options
+// Custom heap implementation for stdsrc
+// Provides memory allocation with optional debugging features
+
+// Heap statistics structure
+struct HeapStatistics {
+    std::atomic<size_t> total_allocated{0};
+    std::atomic<size_t> peak_allocated{0};
+    std::atomic<size_t> total_deallocated{0};
+    std::atomic<size_t> allocation_count{0};
+    std::atomic<size_t> deallocation_count{0};
+    
+    void Reset() {
+        total_allocated = 0;
+        peak_allocated = 0;
+        total_deallocated = 0;
+        allocation_count = 0;
+        deallocation_count = 0;
+    }
 };
 
-enum {
-	UPP_HEAP_ALIGNMENT = 16,
-	UPP_HEAP_MINBLOCK = 32,
-};
+// Global heap statistics
+extern HeapStatistics heap_stats;
 
-#ifdef UPP_HEAP
+// Memory allocation functions
+inline void* HeapMalloc(size_t size) {
+    if (size == 0) return nullptr;
+    
+    void* ptr = std::malloc(size);
+    if (ptr) {
+        size_t current = heap_stats.total_allocated.fetch_add(size) + size;
+        heap_stats.allocation_count.fetch_add(1);
+        
+        // Update peak allocation
+        size_t peak = heap_stats.peak_allocated.load();
+        while (current > peak) {
+            if (heap_stats.peak_allocated.compare_exchange_weak(peak, current)) {
+                break;
+            }
+        }
+    }
+    
+    return ptr;
+}
 
-// If UPP_HEAP is defined, we'll use the U++ heap implementation
-void *MemoryAllocPermanent(size_t size);
+inline void HeapFree(void* ptr, size_t size = 0) {
+    if (ptr) {
+        std::free(ptr);
+        if (size > 0) {
+            heap_stats.total_deallocated.fetch_add(size);
+            heap_stats.deallocation_count.fetch_add(1);
+        }
+    }
+}
 
-void *MemoryAllocSz(size_t& size);
-void *MemoryAlloc(size_t size);
-void  MemoryFree(void *ptr);
-void *MemoryAlloc32();
-void  MemoryFree32(void *ptr);
-void  MemoryCheck();
-void  MemoryDumpLarge();
-void  MemoryDumpHuge();
-int   MemoryUsedKb();
-int   MemoryUsedKbMax();
-void  MemoryLimitKb(int kb);
+inline void* HeapRealloc(void* ptr, size_t old_size, size_t new_size) {
+    if (new_size == 0) {
+        HeapFree(ptr, old_size);
+        return nullptr;
+    }
+    
+    void* new_ptr = std::realloc(ptr, new_size);
+    if (new_ptr) {
+        if (ptr) {
+            // Reallocation - adjust stats
+            heap_stats.total_deallocated.fetch_add(old_size);
+            heap_stats.deallocation_count.fetch_add(1);
+        }
+        
+        size_t current = heap_stats.total_allocated.fetch_add(new_size) + new_size;
+        heap_stats.allocation_count.fetch_add(1);
+        
+        // Update peak allocation
+        size_t peak = heap_stats.peak_allocated.load();
+        while (current > peak) {
+            if (heap_stats.peak_allocated.compare_exchange_weak(peak, current)) {
+                break;
+            }
+        }
+    }
+    
+    return new_ptr;
+}
 
-size_t GetMemoryBlockSize(void *ptr);
+inline void* HeapCalloc(size_t num, size_t size) {
+    size_t total_size = num * size;
+    if (total_size == 0) return nullptr;
+    if (num != 0 && total_size / num != size) return nullptr; // Overflow check
+    
+    void* ptr = std::calloc(num, size);
+    if (ptr) {
+        size_t current = heap_stats.total_allocated.fetch_add(total_size) + total_size;
+        heap_stats.allocation_count.fetch_add(1);
+        
+        // Update peak allocation
+        size_t peak = heap_stats.peak_allocated.load();
+        while (current > peak) {
+            if (heap_stats.peak_allocated.compare_exchange_weak(peak, current)) {
+                break;
+            }
+        }
+    }
+    
+    return ptr;
+}
 
-bool MemoryTryRealloc__(void *ptr, size_t& newsize);
+// Alignment-aware allocation
+inline void* HeapAlignedMalloc(size_t size, size_t alignment) {
+    if (size == 0) return nullptr;
+    
+#if defined(_MSC_VER)
+    void* ptr = _aligned_malloc(size, alignment);
+#elif defined(__GNUC__) || defined(__clang__)
+    void* ptr = std::aligned_alloc(alignment, size);
+#else
+    // Fallback implementation
+    void* raw_ptr = std::malloc(size + alignment - 1 + sizeof(void*));
+    if (!raw_ptr) return nullptr;
+    
+    void** aligned_ptr = reinterpret_cast<void**>(
+        (reinterpret_cast<uintptr_t>(raw_ptr) + sizeof(void*) + alignment - 1) & ~(alignment - 1)
+    );
+    *(aligned_ptr - 1) = raw_ptr;
+    ptr = aligned_ptr;
+#endif
+    
+    if (ptr) {
+        size_t current = heap_stats.total_allocated.fetch_add(size) + size;
+        heap_stats.allocation_count.fetch_add(1);
+        
+        // Update peak allocation
+        size_t peak = heap_stats.peak_allocated.load();
+        while (current > peak) {
+            if (heap_stats.peak_allocated.compare_exchange_weak(peak, current)) {
+                break;
+            }
+        }
+    }
+    
+    return ptr;
+}
 
+inline void HeapAlignedFree(void* ptr) {
+    if (!ptr) return;
+    
+#if defined(_MSC_VER)
+    _aligned_free(ptr);
+#elif defined(__GNUC__) || defined(__clang__)
+    std::free(ptr);
+#else
+    // Fallback implementation
+    std::free(*(reinterpret_cast<void**>(ptr) - 1));
+#endif
+}
+
+// Debug heap functions
 #ifdef _DEBUG
-inline // in DEBUG test for small block is moved inside, because debug adds diagnostics header
-bool  MemoryTryRealloc(void *ptr, size_t& newsize) {
-	return MemoryTryRealloc__(ptr, newsize);
+inline void HeapCheck() {
+    // In debug mode, could integrate with memory debugging tools
+    // For now, just a placeholder
+}
+
+inline bool HeapIsValidPtr(const void* ptr) {
+    // Validate pointer in debug mode
+    // For now, just return true
+    return ptr != nullptr;
 }
 #else
-inline
-bool  MemoryTryRealloc(void *ptr, size_t& newsize) {
-	return ((((uint32_t)(uintptr_t)ptr) & 16) != 0) && MemoryTryRealloc__(ptr, newsize);
-}
+inline void HeapCheck() {}
+inline bool HeapIsValidPtr(const void* ptr) { return ptr != nullptr; }
 #endif
 
-void  MemoryBreakpoint(uint32_t serial);
-
-void  MemoryInitDiagnostics();
-void  MemoryDumpLeaks();
-
-#ifdef HEAPDBG
-void  MemoryIgnoreLeaksBegin();
-void  MemoryIgnoreLeaksEnd();
-
-void  MemoryCheckDebug();
-#else
-inline void  MemoryIgnoreLeaksBegin() {}
-inline void  MemoryIgnoreLeaksEnd() {}
-
-inline void  MemoryCheckDebug() {}
-#endif
-
-struct MemoryProfile {
-	int    allocated[1024]; // active small blocks (index is size in bytes)
-	int    fragments[1024]; // unallocated small blocks (index is size in bytes)
-	int    freepages; // empty 4KB pages (can be recycled)
-	int    large_count; // count of large (~ 1 - 64KB) active blocks
-	size_t large_total; // ^ total size
-	int    large_fragments_count; // count of unused large blocks
-	size_t large_fragments_total; // ^ total size
-	int    large_fragments[2048]; // * 256
-	int    huge_count; // bigger blocks managed by U++ heap (<= 32MB)
-	size_t huge_total; // ^ total size
-	int    huge_fragments_count; // count of unused large blocks
-	size_t huge_fragments_total; // ^ total size
-	int    huge_fragments[65536]; // * 256
-	int    sys_count; // blocks directly allocated from the system (>32MB
-	size_t sys_total; // ^total size
-	int    master_chunks; // master blocks
-
-	MemoryProfile();
+// Memory pool implementation
+template<size_t BlockSize = 4096, size_t Alignment = 8>
+class HeapPool {
+private:
+    struct Block {
+        Block* next;
+        char data[BlockSize - sizeof(Block*)];
+    };
+    
+    struct FreeBlock {
+        FreeBlock* next;
+    };
+    
+    Block* blocks;
+    FreeBlock* free_list;
+    std::mutex pool_mutex;
+    size_t object_size;
+    size_t objects_per_block;
+    
+    void AddBlock() {
+        Block* new_block = static_cast<Block*>(HeapMalloc(sizeof(Block)));
+        if (!new_block) return;
+        
+        new_block->next = blocks;
+        blocks = new_block;
+        
+        // Add all objects in the block to free list
+        char* ptr = new_block->data;
+        char* end = ptr + (objects_per_block * object_size);
+        while (ptr < end) {
+            FreeBlock* fb = reinterpret_cast<FreeBlock*>(ptr);
+            fb->next = free_list;
+            free_list = fb;
+            ptr += object_size;
+        }
+    }
+    
+public:
+    explicit HeapPool(size_t obj_size) 
+        : blocks(nullptr), free_list(nullptr), object_size(obj_size) {
+        // Align object size
+        object_size = (object_size + Alignment - 1) & ~(Alignment - 1);
+        objects_per_block = (BlockSize - sizeof(Block*)) / object_size;
+    }
+    
+    ~HeapPool() {
+        std::lock_guard<std::mutex> lock(pool_mutex);
+        while (blocks) {
+            Block* next = blocks->next;
+            HeapFree(blocks, sizeof(Block));
+            blocks = next;
+        }
+    }
+    
+    void* Allocate() {
+        std::lock_guard<std::mutex> lock(pool_mutex);
+        
+        if (!free_list) {
+            AddBlock();
+            if (!free_list) return nullptr;
+        }
+        
+        FreeBlock* fb = free_list;
+        free_list = fb->next;
+        return fb;
+    }
+    
+    void Deallocate(void* ptr) {
+        if (!ptr) return;
+        
+        std::lock_guard<std::mutex> lock(pool_mutex);
+        FreeBlock* fb = static_cast<FreeBlock*>(ptr);
+        fb->next = free_list;
+        free_list = fb;
+    }
+    
+    size_t GetObjectSize() const { return object_size; }
+    size_t GetBlockSize() const { return BlockSize; }
 };
 
-MemoryProfile *PeakMemoryProfile();
-
-enum {
-	KLASS_8 = 17,
-	KLASS_16 = 18,
-	KLASS_24 = 19,
-	KLASS_32 = 0,
-	KLASS_40 = 20,
-	KLASS_48 = 21,
-	KLASS_56 = 22,
+// Smart pointer with custom heap allocation
+template<typename T>
+class HeapPtr {
+private:
+    T* ptr;
+    
+public:
+    explicit HeapPtr(T* p = nullptr) : ptr(p) {}
+    
+    ~HeapPtr() {
+        if (ptr) {
+            ptr->~T();
+            HeapFree(ptr, sizeof(T));
+        }
+    }
+    
+    // Move semantics
+    HeapPtr(HeapPtr&& other) noexcept : ptr(other.ptr) {
+        other.ptr = nullptr;
+    }
+    
+    HeapPtr& operator=(HeapPtr&& other) noexcept {
+        if (this != &other) {
+            if (ptr) {
+                ptr->~T();
+                HeapFree(ptr, sizeof(T));
+            }
+            ptr = other.ptr;
+            other.ptr = nullptr;
+        }
+        return *this;
+    }
+    
+    // Delete copy semantics
+    HeapPtr(const HeapPtr&) = delete;
+    HeapPtr& operator=(const HeapPtr&) = delete;
+    
+    T* operator->() const { return ptr; }
+    T& operator*() const { return *ptr; }
+    T* get() const { return ptr; }
+    
+    void reset() {
+        if (ptr) {
+            ptr->~T();
+            HeapFree(ptr, sizeof(T));
+            ptr = nullptr;
+        }
+    }
+    
+    T* release() {
+        T* temp = ptr;
+        ptr = nullptr;
+        return temp;
+    }
+    
+    explicit operator bool() const { return ptr != nullptr; }
 };
 
-inline
-int TinyKlass__(int sz) { // we suppose that this gets resolved at compile time....
-	if(sz <= 8) return KLASS_8;
-	if(sz <= 16) return KLASS_16;
-	if(sz <= 24) return KLASS_24;
-	if(sz <= 32) return KLASS_32;
-	if(sz <= 40) return KLASS_40;
-	if(sz <= 48) return KLASS_48;
-	if(sz <= 56) return KLASS_56;
-	return -1;
+// Helper function to create HeapPtr
+template<typename T, typename... Args>
+HeapPtr<T> MakeHeap(Args&&... args) {
+    void* raw = HeapMalloc(sizeof(T));
+    if (!raw) throw std::bad_alloc();
+    
+    try {
+        T* ptr = new(raw) T(std::forward<Args>(args)...);
+        return HeapPtr<T>(ptr);
+    } catch (...) {
+        HeapFree(raw, sizeof(T));
+        throw;
+    }
 }
 
-void *MemoryAllok__(int klass);
-void  MemoryFreek__(int klass, void *ptr);
-
-inline
-void *TinyAlloc(int size) {
-	int k = TinyKlass__(size);
-	if(k < 0) return MemoryAlloc(size);
-	return MemoryAllok__(k);
+// Memory statistics functions
+inline const HeapStatistics& GetHeapStatistics() {
+    return heap_stats;
 }
 
-inline
-void TinyFree(int size, void *ptr)
-{
-	int k = TinyKlass__(size);
-	if(k < 0)
-		MemoryFree(ptr);
-	else
-		MemoryFreek__(k, ptr);
+inline void ResetHeapStatistics() {
+    heap_stats.Reset();
 }
 
-#else
-
-// Standard heap implementation using STL/new and malloc
-inline MemoryOptions::MemoryOptions() : master_block(0), sys_block_limit(0), master_reserve(0), large_reserve(0), small_reserve(0) {}
-inline MemoryOptions::~MemoryOptions() {}
-
-inline void  *MemoryAllocPermanent(size_t size) { 
-	static std::vector<void*> permanent_blocks;
-	void* ptr = malloc(size);
-	if (ptr) permanent_blocks.push_back(ptr);
-	return ptr; 
+inline size_t GetHeapTotalAllocated() {
+    return heap_stats.total_allocated.load();
 }
 
-inline void  *MemoryAlloc(size_t size) { 
-	if (size == 0) size = 1; // Ensure non-zero allocation
-	return new(std::nothrow) byte[size]; 
+inline size_t GetHeapPeakAllocated() {
+    return heap_stats.peak_allocated.load();
 }
 
-inline void  *MemoryAllocSz(size_t &size) { 
-	if (size == 0) size = 1; // Ensure non-zero allocation
-	return new(std::nothrow) byte[size]; 
+inline size_t GetHeapTotalDeallocated() {
+    return heap_stats.total_deallocated.load();
 }
 
-inline void   MemoryFree(void *p) { 
-	if (p) delete[] static_cast<byte*>(p); 
+inline size_t GetHeapAllocationCount() {
+    return heap_stats.allocation_count.load();
 }
 
-inline void  *MemoryAlloc32() { return new(std::nothrow) byte[32]; }
-inline void   MemoryFree32(void *ptr) { 
-	if (ptr) delete[] static_cast<byte*>(ptr); 
+inline size_t GetHeapDeallocationCount() {
+    return heap_stats.deallocation_count.load();
 }
 
-inline void  *MemoryAlloc48() { return new(std::nothrow) byte[48]; }
-inline void   MemoryFree48(void *ptr) { 
-	if (ptr) delete[] static_cast<byte*>(ptr); 
-}
-
-inline void   MemoryInitDiagnostics() {}
-inline void   MemoryCheck() {}
-inline void   MemoryCheckDebug() {}
-inline int    MemoryUsedKb() { return 0; } // Placeholder
-inline int    MemoryUsedKbMax() { return 0; } // Placeholder
-
-inline void   MemoryIgnoreLeaksBegin() {}
-inline void   MemoryIgnoreLeaksEnd() {}
-
-inline size_t GetMemoryBlockSize(void *ptr) { 
-	// Standard malloc doesn't provide this. Placeholder implementation.
-	return 0; 
-}
-
-inline bool   MemoryTryRealloc(void *ptr, size_t& newsize) { 
-	// Standard new/delete don't support reallocation. Placeholder implementation.
-	return false; 
-}
-
-struct MemoryProfile {
-	int empty__;
-};
-
-inline MemoryProfile *PeakMemoryProfile() { return nullptr; }
-
-inline void *TinyAlloc(int size) { 
-	if (size <= 0) size = 1; // Ensure non-zero allocation
-	return MemoryAlloc(size); 
-}
-
-inline void TinyFree(int, void *ptr) { 
-	MemoryFree(ptr); 
-}
-
-#endif
-
-uint32_t MemoryGetCurrentSerial();
-
-void  MemoryIgnoreNonMainLeaks();
-void  MemoryIgnoreNonUppThreadsLeaks();
-
-struct MemoryIgnoreLeaksBlock {
-	MemoryIgnoreLeaksBlock()  { MemoryIgnoreLeaksBegin(); }
-	~MemoryIgnoreLeaksBlock() { MemoryIgnoreLeaksEnd(); }
-};
-
-template <class T, class... Args>
-T *tiny_new(Args... args)
-{
-	return new(TinyAlloc(sizeof(T))) T(args...);
-}
-
-template <class T>
-void tiny_delete(T *ptr)
-{
-	if (ptr) {
-		ptr->~T();
-		TinyFree(sizeof(T), ptr);
-	}
-}
+// Initialize global heap statistics
+HeapStatistics heap_stats;
 
 #endif

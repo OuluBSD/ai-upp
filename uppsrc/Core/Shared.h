@@ -69,9 +69,9 @@ public:
 		ASSERT(r->GetRefCount() > 0);
 	}
 	Shared(T* o) : o(o) {
-		Base* r = new Base;
-		r->obj = o;
-		ASSERT(r->GetRefCount() > 0);
+		this->r = new Base;
+		this->r->obj = o;
+		ASSERT(this->r->GetRefCount() > 0);
 	}
 	Shared(const Nuller&) {}
 	~Shared() { Clear(); }

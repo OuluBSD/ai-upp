@@ -87,28 +87,112 @@ AstNode& LoopBuilder::CreateNode(AstNode& root) {
 	return *cont;
 }
 
+AtomBuilder& DriverBuilder::AddAtom(String id) {
+	auto& atom = atoms.Add();
+	atom.id.Parse(id);
+	return atom;
+}
+
+AstNode& DriverBuilder::CreateNode(AstNode& root) {
+	ASSERT(id.parts.GetCount());
+	AstNode* cont = &root;
+	for (auto& p : id.parts) {
+		AstNode& n = cont->val.GetAdd<AstNode>(p);
+		cont = &n;
+		n.src = Cursor_NamePart;
+	}
+	cont->src = Cursor_DriverStmt;
+	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
+	for(int i = 0; i < atoms.GetCount(); i++) {
+		atoms[i].CreateNode(*compound);
+	}
+	return *cont;
+}
+
+LoopBuilder& ChainBuilder::AddLoop(String id) {
+	auto& loop = loops.Add();
+	loop.id.Parse(id);
+	return loop;
+}
+
+AstNode& ChainBuilder::CreateNode(AstNode& root) {
+	ASSERT(id.parts.GetCount());
+	AstNode* cont = &root;
+	for (auto& p : id.parts) {
+		AstNode& n = cont->val.GetAdd<AstNode>(p);
+		cont = &n;
+		n.src = Cursor_NamePart;
+	}
+	cont->src = Cursor_ChainStmt;
+	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
+	for(int i = 0; i < loops.GetCount(); i++) {
+		loops[i].CreateNode(*compound);
+	}
+	return *cont;
+}
+
+DriverBuilder& MachineBuilder::AddDriver(String id) {
+	auto& driver = drivers.Add();
+	driver.id.Parse(id);
+	return driver;
+}
+
+ChainBuilder& MachineBuilder::AddChain(String id) {
+	auto& chain = chains.Add();
+	chain.id.Parse(id);
+	return chain;
+}
+
+AstNode& MachineBuilder::CreateNode(AstNode& root) {
+	ASSERT(id.parts.GetCount());
+	AstNode* cont = &root;
+	for (auto& p : id.parts) {
+		AstNode& n = cont->val.GetAdd<AstNode>(p);
+		cont = &n;
+		n.src = Cursor_NamePart;
+	}
+	cont->src = Cursor_MachineStmt;
+	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
+	for(int i = 0; i < drivers.GetCount(); i++) {
+		drivers[i].CreateNode(*compound);
+	}
+	for(int i = 0; i < chains.GetCount(); i++) {
+		chains[i].CreateNode(*compound);
+	}
+	return *cont;
+}
+
 LoopBuilder& Builder::AddLoop(String id) {
 	auto& loop = loops.Add();
 	loop.id.Parse(id);
 	return loop;
 }
 
+MachineBuilder& Builder::AddMachine(String id) {
+	auto& machine = machines.Add();
+	machine.id.Parse(id);
+	return machine;
+}
+
 AstNode* Builder::CompileAst() {
 	int i = val.Find("root");
 	if (i >= 0)
 		val.Remove(i);
-	
+
 	AstNode& root = val.GetAdd<AstNode>("root");
 	for (auto& loop : loops) {
 		AstNode& n = loop.CreateNode(root);
-		
+
 	}
-	
+	for (auto& machine : machines) {
+		AstNode& n = machine.CreateNode(root);
+	}
+
 	return &root;
 }
 
 void Builder::Visit(Vis& v) {
-	
+
 }
 
 

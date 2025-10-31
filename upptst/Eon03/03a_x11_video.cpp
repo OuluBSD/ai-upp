@@ -142,11 +142,33 @@ void Run03aX11Video(Engine& eng, int method) {
 		break;
 	}
 	case 1: {
-		// Note: Builder API for machine/driver/chain structure is not yet implemented
-		// The machine/driver/chain structure is currently only supported via ScriptLoader (method 0)
-		LOG("Method 1 (Builder API) not yet implemented for machine/driver/chain structures");
-		LOG("Using method 0 instead");
-		sys->PostLoadFile(GetDataFile("03a_x11_video.eon"));
+		// Manually building AstNode (skipping .eon file parsing)
+		Eon::Builder& builder = sys->val.GetAdd<Eon::Builder>("builder");
+
+		// Build machine/driver/chain/loop structure
+		auto& machine = builder.AddMachine("x11.app");
+		auto& driver = machine.AddDriver("context");
+		driver.AddAtom("x11.context");
+
+		auto& chain = machine.AddChain("program");
+		auto& loop = chain.AddLoop("video");
+
+		auto& a0 = loop.AddAtom("center.customer");
+		auto& a1 = loop.AddAtom("center.video.src.dbg_generator");
+		a1.Assign("mode", "noise");
+		auto& a2 = loop.AddAtom("x11.video.pipe");
+
+		Eon::AstNode* root = 0;
+		try {
+			root = builder.CompileAst();
+			if (!root) throw Exc("empty root");
+		}
+		catch (Exc e) {
+			LOG("error: " << e);
+			Exit(1);
+		}
+		LOG(root->GetTreeString());
+		sys->LoadAst(root);
 		break;
 	}
 	case 0:

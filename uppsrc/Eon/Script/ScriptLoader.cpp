@@ -190,7 +190,7 @@ bool ScriptLoader::LoadAst(AstNode* root) {
 }
 
 bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
-    ChainContext cc;
+    One<ChainContext> cc = new ChainContext();
 
     // Build each loop under its absolute id (loop.id is already resolved during parsing)
     for (const Eon::LoopDefinition& loop_def : chain.loops) {
@@ -210,15 +210,18 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
             s.args <<= a.args;           // copy args
         }
 
-        cc.AddLoop(*l, specs, has_link);
+        cc->AddLoop(*l, specs, has_link);
     }
 
     // Connect side-links across loops in this chain according to conn ids
-    for (int i = 0; i < cc.loops.GetCount(); i++)
-        for (int j = 0; j < cc.loops.GetCount(); j++)
+    for (int i = 0; i < cc->loops.GetCount(); i++)
+        for (int j = 0; j < cc->loops.GetCount(); j++)
             if (i != j)
-                if (!LoopContext::ConnectSides(cc.loops[i], cc.loops[j]))
+                if (!LoopContext::ConnectSides(cc->loops[i], cc->loops[j]))
                     return false;
+
+    // Store the built chain context so ImplementScript can initialize and start it
+    built_chains.Add(pick(cc));
 
     return true;
 }

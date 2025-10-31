@@ -189,22 +189,92 @@ bool ScriptLoader::LoadAst(AstNode* root) {
 	return true;
 }
 
+static void EnsurePrefix(Eon::Id& id, const Eon::Id& prefix) {
+	if (prefix.IsEmpty() || prefix.parts.IsEmpty())
+		return;
+	bool needs_prefix = true;
+	if (id.parts.GetCount() >= prefix.parts.GetCount()) {
+		needs_prefix = false;
+		for (int i = 0; i < prefix.parts.GetCount(); i++) {
+			if (id.parts[i] != prefix.parts[i]) {
+				needs_prefix = true;
+				break;
+			}
+		}
+	}
+	if (!needs_prefix)
+		return;
+	Vector<String> merged;
+	merged <<= prefix.parts;
+	merged.Append(id.parts);
+	id.parts = pick(merged);
+    RTLOG("EnsurePrefix: adjusted id -> " << id.ToString());
+}
+
 bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
     One<ChainContext> cc = new ChainContext();
+    RTLOG("BuildChain: chain=" << (chain.id.IsEmpty() ? "<anon>" : chain.id.ToString())
+        << " loops=" << chain.loops.GetCount());
+
+    Vector<const Eon::LoopDefinition*> driver_loops;
+    driver_loops.Reserve(chain.loops.GetCount());
+    for (const Eon::LoopDefinition& loop_def : chain.loops)
+        if (loop_def.is_driver)
+            driver_loops.Add(&loop_def);
 
     // Build each loop under its absolute id (loop.id is already resolved during parsing)
     for (const Eon::LoopDefinition& loop_def : chain.loops) {
+        String chain_str = chain.id.IsEmpty() ? "<anon>" : chain.id.ToString();
+        String loop_str = loop_def.id.IsEmpty() ? "<anon>" : loop_def.id.ToString();
+        LOG(Format("BuildChain[%s]: loop=%s driver=%d atoms=%d",
+                   chain_str, loop_str, (int)loop_def.is_driver, loop_def.atoms.GetCount()));
+        RTLOG("\tloop=" << loop_def.id.ToString()
+            << " driver=" << loop_def.is_driver
+            << " atoms=" << loop_def.atoms.GetCount());
         Eon::Id deep_id = loop_def.id; // absolute id path
+        if (!loop_def.is_driver && !driver_loops.IsEmpty()) {
+            int best_idx = -1;
+            int best_match = 0;
+            for (int i = 0; i < driver_loops.GetCount(); i++) {
+                const Eon::Id& drv = driver_loops[i]->id;
+                int limit = min(drv.parts.GetCount(), deep_id.parts.GetCount());
+                int match = 0;
+                while (match < limit && drv.parts[match] == deep_id.parts[match])
+                    match++;
+                if (match > best_match) {
+                    best_match = match;
+                    best_idx = i;
+                }
+            }
+            if (best_idx >= 0 && best_match > 0) {
+                const Eon::Id& drv = driver_loops[best_idx]->id;
+                Vector<String> merged;
+                merged <<= drv.parts;
+                for (int i = best_match; i < deep_id.parts.GetCount(); i++)
+                    merged.Add(deep_id.parts[i]);
+                bool changed = merged.GetCount() != deep_id.parts.GetCount();
+                if (!changed) {
+                    for (int i = 0; i < merged.GetCount(); i++)
+                        if (merged[i] != deep_id.parts[i]) { changed = true; break; }
+                }
+                if (changed) {
+                    deep_id.parts = pick(merged);
+                    LOG(Format("  remapped loop path under driver -> %s", deep_id.ToString()));
+                }
+            }
+        }
         VfsValue* l = ResolveLoop(deep_id);
         if (!l) {
             AddError(loop_def.loc, String("Could not resolve loop id: ") + deep_id.ToString());
             return false;
         }
+        RTLOG("\t resolved loop path=" << l->GetPath());
 
         Vector<ChainContext::AtomSpec> specs;
         bool has_link = !loop_def.is_driver;
         for (const Eon::AtomDefinition& a : loop_def.atoms) {
             ChainContext::AtomSpec& s = specs.Add();
+            s.action = a.id.ToString();
             s.iface = a.iface;            // includes side-link conn field assignments
             s.link = has_link ? a.link : LinkTypeCls();
             s.args <<= a.args;           // copy args
@@ -441,6 +511,7 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			
 			if (!GetPathId(chain_def.id, n, item))
 				return false;
+			EnsurePrefix(chain_def.id, def.id);
 			
 			ASSERT(!chain_def.id.IsEmpty());
 			
@@ -461,6 +532,8 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 		else if (item->src == Cursor_DriverStmt || item->src == Cursor_LoopStmt) {
 			if (!anon_chain)
 				anon_chain = &def.chains.Add();
+			if (anon_chain->id.IsEmpty())
+				anon_chain->id = def.id;
 			
 			if (!LoadChain(*anon_chain, item))
 				return false;
@@ -470,6 +543,7 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	
 	if (!has_chain) {
 		Eon::ChainDefinition& chain = def.chains.Add();
+		chain.id = def.id;
 		return LoadChain(chain, n);
 	}
 	
@@ -637,6 +711,7 @@ bool ScriptLoader::LoadComponent(Eon::ComponentDefinition& def, AstNode* n) {
 bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
+	RTLOG("LoadChain: entering for id=" << chain.id.ToString() << " eager=" << eager_build_chains);
 	
 	n->FindAll(loops, Cursor_DriverStmt); // subset of loops
 	n->FindAll(loops, Cursor_LoopStmt);
@@ -652,6 +727,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		
 		if (!GetPathId(loop_def.id, n, loop))
 			return false;
+		EnsurePrefix(loop_def.id, chain.id);
 		
 		AstNode* stmt_block = loop->Find(Cursor_CompoundStmt);
 		if (!stmt_block) {
@@ -786,6 +862,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 			return false;
 		
 	}
+	RTLOG("LoadChain: parsed loops count=" << chain.loops.GetCount());
 	
 	for (Eon::LoopDefinition& src_loop : chain.loops) {
 		for (Eon::AtomDefinition& src_atom : src_loop.atoms) {
@@ -925,6 +1002,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	
     bool ok = true;
     if (eager_build_chains) {
+        RTLOG("LoadChain: eager build kick, loop defs before BuildChain=" << chain.loops.GetCount());
         // Experimental: directly materialize this chain using Core contexts.
         // Note: ImplementScript still builds via loader->Load(), so enabling this
         // can lead to duplicate instantiation. Keep it disabled unless using a

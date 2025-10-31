@@ -2,7 +2,7 @@
 name="Eon01"
 
 # Build:
-umk ./upptst,./uppsrc $name ~/.config/u++/theide/CLANG.bm -bsH1 +AI,SCREEN,DEBUG_RT,DEBUG_VFS,USEMALLOC bin/$name
+umk ./upptst,./uppsrc $name ~/.config/u++/theide/CLANG.bm -bsH1 +AI,SCREEN,DEBUG_RT,DEBUG_VFS,USEMALLOC,DEBUG_FULL bin/$name
 
 # Run ide:
 echo Executable compiled: bin/$name

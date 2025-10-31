@@ -4,6 +4,23 @@
 #include <Painter/Painter.h>
 NAMESPACE_UPP
 
+static String VfsPathOf(const VfsValue& v) {
+	Vector<String> parts;
+	const VfsValue* it = &v;
+	while (it) {
+		if (it->id.GetCount())
+			parts.Add(it->id);
+		it = it->owner;
+	}
+	String out;
+	for (int i = parts.GetCount() - 1; i >= 0; i--) {
+		if (!out.IsEmpty())
+			out << ".";
+		out << parts[i];
+	}
+	return out;
+}
+
 struct ScrX11::NativeContext {
     ::Window win;
     ::Display* display;
@@ -56,7 +73,24 @@ void ScrX11::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& vis) {
 
 bool ScrX11::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ctx_ = a.val.FindOwnerWithCast<X11Context>();
-	if (!ctx_) {RTLOG("error: could not find X11 context"); return false;}
+	if (!ctx_) {
+		LOG("ScrX11::SinkDevice_Initialize: could not find X11 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			LOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				LOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
 	
@@ -449,4 +483,3 @@ bool ScrX11::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 END_UPP_NAMESPACE
 #endif
-

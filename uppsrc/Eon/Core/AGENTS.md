@@ -65,6 +65,7 @@ Design Notes
 Debugging
 - Each context class implements `GetTreeString(int indent)` for quick dumps of what was built.
 - Use standard logging macros to trace created atoms/links and loop paths (see `Context.cpp`).
+- Driver-backed loops: ScriptLoader now remaps non-driver loop ids under the closest driver prefix (e.g. `x11.app.context.program.video`). If a downstream atom cannot find its driver context, run `bin/Eon03 0 <method>` and look for `remapped loop path under driver` in the logs to confirm the path adjustment happened; missing logs mean the loop id needs manual fixup or a new remapping rule.
 
 Extending Core
 - New atom/link: implement and register via `VfsValueExtFactory`; add `GetAction()` to appear in action resolution.

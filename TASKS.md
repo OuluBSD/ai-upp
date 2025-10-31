@@ -366,6 +366,24 @@
 - [ ] Support native platform APIs: Windows, macOS, and other platform-specific implementations
 - [ ] Ensure comprehensive stdtst package coverage for all wrapper library features
 
+### stdinc Directory Implementation
+- [ ] Create stdinc directory structure mirroring STL c++ headers
+- [ ] Implement standard STL c++ headers using U++ classes and functions
+- [ ] Create wrapper layer that allows STL code to compile using stdinc + stdsrc
+- [ ] Ensure stdinc + stdsrc still uses system's STL with U++ wrapper in middle
+- [ ] Test stdinc headers with sample STL code to verify compatibility
+- [ ] Add comprehensive tests for stdinc functionality in stdtst package
+
+### Code Translation and Conversion Tasks
+- [ ] Research and implement clang AST parsing for STL code analysis
+- [ ] Develop system to analyze how STL projects use U++ via stdinc headers
+- [ ] Create conversion tool to transform STL calls to U++ calls in low-level format
+- [ ] Generate new project files that use U++ directly instead of STL
+- [ ] Develop reverse conversion system: convert U++ files to use STL cleanly
+- [ ] Test conversion tools on real-world STL and U++ projects
+- [ ] Optimize conversion process for efficiency and correctness
+- [ ] Create validation suite to verify converted code functionality
+
 ### VR ECS Engine Enhancement
 - [ ] Convert Eon/Win VR ECS engine to work with OpenVR in addition to current WinRT implementation
 - [ ] Add OpenHMD support to Eon/Win VR ECS engine

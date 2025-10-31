@@ -942,7 +942,7 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	ValueFS vfs(ev_ctx->UserData());
 	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
 	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	
 	return true;
 }
@@ -989,7 +989,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	// GL context
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -1728,7 +1728,7 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
 	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
 	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	
 	return true;
 }

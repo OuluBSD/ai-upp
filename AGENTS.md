@@ -46,6 +46,11 @@ Current Task Files (`CURRENT_TASK.md`)
   - Preferably first; if `AGENTS.md` exists, list `CURRENT_TASK.md` immediately after it.
 - Rationale: we keep tasks in the working tree so they’re visible in TheIDE and play nicely with AI/developer tools.
 
+## Build & Sandbox Policy
+
+- Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
+- AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
+
 
 Header Include Policy (U++ BLITZ)
 - Source files (`.cpp`, `.icpp`, `.c`) in any package (with a `.upp` file) must include only the package's main header first, using a relative include: `#include "PackageName.h"`.

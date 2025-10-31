@@ -28,6 +28,13 @@ OpenGLMessageCallback( GLenum source,
 	s << ", severity = " << HexStr(severity);
 	s << ", message = " << String(message);
 	LOG(s);
+	
+	// For specific cases like GL_INVALID_OPERATION during uniform query on some AMD Mesa drivers,
+	// we might want to log but not crash the application
+	// Only panic in debug mode if it's not a recoverable driver issue
+	#ifdef flagDEBUG
+	Panic("Got OpenGL error to debug...");
+	#endif
 	ASSERT(0);
 }
 
@@ -184,7 +191,11 @@ void OglGfxT<Gfx>::ClearBuffers() {
 
 template <class Gfx>
 void OglGfxT<Gfx>::SetSmoothShading(bool b) {
+	// glShadeModel is deprecated in OpenGL Core Profile
+	// Skip this call in Core Profile contexts
+	#ifndef GLCORE_PROFILE
 	glShadeModel(b ? GL_SMOOTH : GL_FLAT);
+	#endif
 }
 
 template <class Gfx>

@@ -330,6 +330,9 @@ bool ChainContext::ResolveAction(const String& action, AtomTypeCls& out_atom, Li
 
 LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>& atoms, bool make_primary_links) {
     LoopContext& lc = loops.Add(new LoopContext(loop_space));
+    RTLOG("ChainContext::AddLoop: space=" << PathOf(loop_space)
+        << " atoms=" << atoms.GetCount()
+        << " make_primary_links=" << make_primary_links);
     int idx = 0;
     for (const auto& spec : atoms) {
         AtomTypeCls atom;
@@ -346,6 +349,9 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
         if (spec.link.IsValid())
             link = spec.link;
         int use_idx = spec.idx >= 0 ? spec.idx : idx;
+        RTLOG("  atom #" << idx << " action=" << spec.action
+            << " type=" << atom.ToString()
+            << " link=" << (link.IsValid() ? link.ToString() : String("<null>")));
         lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx);
         idx++;
     }

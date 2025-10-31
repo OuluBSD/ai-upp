@@ -246,7 +246,7 @@ bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
         int attribs[] = {
             WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
             WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-            WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+            // Removed WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB to allow deprecated functions
             0
         };
         

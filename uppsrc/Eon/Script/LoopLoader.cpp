@@ -120,50 +120,56 @@ void ScriptLoopLoader::UndoLoad() {
 }
 
 bool ScriptLoopLoader::Load() {
-    RTLOG("ScriptLoopLoader::Load: " << def.id.ToString());
-    ScriptLoader& loader = GetLoader();
+	RTLOG("ScriptLoopLoader::Load: " << def.id.ToString());
+	ScriptLoader& loader = GetLoader();
 
-    bool has_link = !def.is_driver;
+	bool has_link = !def.is_driver;
+	RTLOG("\tloop mode: has_link=" << has_link
+		<< " deep_id=" << GetDeepId().ToString()
+		<< " parent=" << parent.GetDeepId().ToString());
 
-    // Target entity for atoms
-    Eon::Id deep_id =
-        has_link ?
-            GetDeepId() :
-            parent.GetDeepId();
-    VfsValue* l = loader.ResolveLoop(deep_id);
-    if (!l) {
-        AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
-        return false;
-    }
+	// Target entity for atoms
+	Eon::Id deep_id = GetDeepId();
+	VfsValue* l = loader.ResolveLoop(deep_id);
+	if (!l) {
+		AddError(def.loc, "Could not resolve entity with deep id: " + deep_id.ToString());
+		return false;
+	}
+	RTLOG("\ttarget loop path=" << l->GetPath());
 
-    // Build using Core contexts to avoid duplication
-    ChainContext cc;
-    Vector<ChainContext::AtomSpec> specs;
-    for (int i = 0; i < def.atoms.GetCount(); i++) {
-        const Eon::AtomDefinition& a = def.atoms[i];
-        ChainContext::AtomSpec& spec = specs.Add();
-        spec.iface = a.iface;
-        spec.link = has_link ? a.link : LinkTypeCls();
-        spec.idx = id;
-    }
+	// Build using Core contexts to avoid duplication
+	ChainContext cc;
+	Vector<ChainContext::AtomSpec> specs;
+	for (int i = 0; i < def.atoms.GetCount(); i++) {
+		const Eon::AtomDefinition& a = def.atoms[i];
+		ChainContext::AtomSpec& spec = specs.Add();
+		spec.action = a.id.ToString();
+		spec.iface = a.iface;
+		spec.link = has_link ? a.link : LinkTypeCls();
+		spec.idx = id;
+		spec.args <<= a.args;
+		RTLOG("\t atom #" << i << " action=" << spec.action
+			<< " link=" << (spec.link.IsValid() ? spec.link.ToString() : String("<null>")));
+	}
 
-    LoopContext& lc = cc.AddLoop(*l, specs, has_link);
+	LoopContext& lc = cc.AddLoop(*l, specs, has_link);
+	RTLOG("\tloop added: atoms_in_context=" << lc.added.GetCount());
 
-    // Mirror for lifecycle and side-link compatibility
-    added_atoms.SetCount(0);
-    atoms.SetCount(0);
-    for (const auto& it : lc.added) {
-        auto& c = added_atoms.Add();
-        c.a = it.a;
-        c.l = it.l;
-        c.iface = it.iface;
-        atoms.Add(it.a);
-    }
+	// Mirror for lifecycle and side-link compatibility
+	added_atoms.SetCount(0);
+	atoms.SetCount(0);
+	for (const auto& it : lc.added) {
+		auto& c = added_atoms.Add();
+		c.a = it.a;
+		c.l = it.l;
+		c.iface = it.iface;
+		atoms.Add(it.a);
+	}
 
-    if (has_link)
-        UpdateLoopLimits();
+	if (has_link)
+		UpdateLoopLimits();
 
-    return true;
+	return true;
 }
 
 AtomBasePtr ScriptLoopLoader::AddAtomTypeCls(VfsValue& val, AtomTypeCls cls) {

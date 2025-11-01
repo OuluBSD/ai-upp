@@ -67,6 +67,7 @@ public:
     bool StartAll();
     void UndoAll();
     String GetTreeString(int indent=0) const;
+    bool ValidateSideLinks(String* err = nullptr) const;
 
     static bool ConnectSides(const LoopContext& loop0, const LoopContext& loop1);
 };
@@ -92,6 +93,7 @@ public:
     bool StartAll();
     void UndoAll();
     String GetTreeString(int indent=0) const;
+    bool ValidateSideLinks(String* err = nullptr) const;
 };
 
 }

@@ -448,6 +448,16 @@ bool ScriptLoader::ImplementScript() {
             }
         }
 
+        RTLOG("ScriptLoader::ImplementScript: eager mode: validate side links");
+        for (int i = 0; i < built_chains.GetCount(); i++) {
+            String err_msg;
+            if (!built_chains[i]->ValidateSideLinks(&err_msg)) {
+                AddError(FileLocation(), String("Side-link validation failed: ") + err_msg);
+                for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
+            }
+        }
+
         RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize");
         for (int i = 0; i < built_chains.GetCount(); i++) {
             ChainContext& C = *built_chains[i];
@@ -1307,9 +1317,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 	int dbg_i = 0;
 	for (AtomBasePtr& sink : loop0.atoms) {
 		LinkBasePtr sink_link = sink->GetLink();
-		const IfaceConnTuple& sink_iface = sink->GetInterface();
+		IfaceConnTuple& sink_iface = const_cast<IfaceConnTuple&>(sink->GetInterface());
 		for (int sink_ch = 1; sink_ch < sink_iface.type.iface.sink.GetCount(); sink_ch++) {
-			const IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
+			IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
 			RTLOG("ScriptLoader::ConnectSides:	sink ch #" << sink_ch << " " << sink_conn.ToString());
 			ASSERT(sink_conn.conn >= 0 || sink_iface.type.IsSinkChannelOptional(sink_ch));
 			if (sink_conn.conn < 0 && sink_iface.type.IsSinkChannelOptional(sink_ch))
@@ -1317,9 +1327,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 			bool found = false;
 			for (AtomBasePtr& src : loop1.atoms) {
 				LinkBasePtr src_link = src->GetLink();
-				const IfaceConnTuple& src_iface = src->GetInterface();
+				IfaceConnTuple& src_iface = const_cast<IfaceConnTuple&>(src->GetInterface());
 				for (int src_ch = 1; src_ch < src_iface.type.iface.src.GetCount(); src_ch++) {
-					const IfaceConnLink& src_conn = src_iface.src[src_ch];
+					IfaceConnLink& src_conn = src_iface.src[src_ch];
 					RTLOG("ScriptLoader::ConnectSides:		src ch #" << src_ch << " " << src_conn.ToString());
 					ASSERT(src_conn.conn >= 0 || src_iface.type.IsSourceChannelOptional(src_ch));
 					if (src_conn.conn < 0 && src_iface.type.IsSourceChannelOptional(src_ch))
@@ -1337,6 +1347,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 							AddError(loop0.def.loc, "Side-linking was refused");
 							return false;
 						}
+						
+						sink_conn.conn = -1;
+						src_conn.conn = -1;
 						
 						#if VERBOSE_SCRIPT_LOADER
 						LOG(ClassPathTop(src->ToString()) + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + ClassPathTop(sink->ToString()) + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");

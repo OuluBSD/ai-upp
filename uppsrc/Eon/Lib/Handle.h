@@ -35,8 +35,9 @@ class HandleVideoBase :
 	public Atom
 {
 	struct Binder;
+	struct HandleVideoBasePimpl; // Forward declaration for pimpl
 	
-	Array<Binder> binders;
+	One<HandleVideoBasePimpl> pimpl; // PIMPL to manage binders where complete type is known
 	HandleVideoBase* active = 0;
 	
 	String					target;

@@ -23,6 +23,7 @@ Important Details & Assumptions
 - Uniform index mapping: DX11 path pretends every known uniform exists and exposes names in GVar order. ProgramState looks up indices by name; CB writes use those indices. This is a pragmatic bridge until full reflection/mapping is added.
 - Many API methods remain stubs (textures, depth/stencil, MRTs, some window ops in DxGfx not used by WinD11 Screen path).
 - Debug: SetDebugOutput is currently a stub; consider enabling the D3D11 debug layer + info queue in debug builds.
+- ProgramState::FindVariables now wraps gl* error checks in `#ifdef flagOGL` so non-OGL backends (Soft/DX) still compile while OpenGL keeps its diagnostics.
 
 Gaps / Backlog
 1) Textures + Samplers

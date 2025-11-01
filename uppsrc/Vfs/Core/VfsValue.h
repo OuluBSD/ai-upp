@@ -436,6 +436,39 @@ struct VfsValue : Pte<VfsValue> {
 		return 0;
 	}
 	
+	template <class T> T* FindOwnerWithPathAndCast(const String& path, int max_depth=-1) const {
+		if (path.IsEmpty())
+			return FindOwnerWith<T>(max_depth);
+		Vector<String> raw_parts = Split(path, "/");
+		Vector<String> parts;
+		for (const String& part : raw_parts)
+			if (!part.IsEmpty())
+				parts.Add(part);
+		if (parts.IsEmpty())
+			return FindOwnerWith<T>(max_depth);
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			VfsValue* cur = n;
+			bool matched = true;
+			for (const String& part : parts) {
+				int idx = cur->Find(part);
+				if (idx < 0) {
+					matched = false;
+					break;
+				}
+				cur = &cur->sub[idx];
+			}
+			if (matched && cur->ext) {
+				T* o = CastPtr<T>(&*cur->ext);
+				if (o)
+					return o;
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
 	template <class T> T* FindOwnerWithCast(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		VfsValue* n = owner;

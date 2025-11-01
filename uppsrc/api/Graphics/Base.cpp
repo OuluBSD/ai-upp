@@ -432,8 +432,19 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 		LOG("EventStateBase::Initialize: error: target state argument is required");
 		return false;
 	}
-	
-	auto* state = this->val.template FindOwnerWith<EnvState>(target);
+	String normalized = target;
+	if (normalized.Find('/') < 0 && normalized.Find('.') >= 0) {
+		Vector<String> parts = Split(normalized, ".");
+		bool valid = !parts.IsEmpty();
+		for (const String& part : parts)
+			if (part.IsEmpty())
+				valid = false;
+		if (valid)
+			normalized = Join(parts, "/");
+	}
+	auto* state = this->val.template FindOwnerWithPathAndCast<EnvState>(normalized);
+	if (!state && normalized != target)
+		state = this->val.template FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
 		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
 		return false;

@@ -82,7 +82,19 @@ bool BufferT<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	if (!env_name.IsEmpty()) {
 		auto l = a.val.FindOwnerNull();
 		ASSERT(l);
-		env = l ? l->FindOwnerWith<EnvState>(env_name) : 0;
+		String normalized = env_name;
+		if (normalized.Find('/') < 0 && normalized.Find('.') >= 0) {
+			Vector<String> parts = Split(normalized, ".");
+			bool valid = !parts.IsEmpty();
+			for (const String& part : parts)
+				if (part.IsEmpty())
+					valid = false;
+			if (valid)
+				normalized = Join(parts, "/");
+		}
+		env = l ? l->FindOwnerWithPathAndCast<EnvState>(normalized) : 0;
+		if (!env && normalized != env_name)
+			env = l ? l->FindOwnerWithPathAndCast<EnvState>(env_name) : 0;
 		if (!env) {
 			LOG("GfxBufferFieldT<Gfx>::Initialize: error: environment state with name '" << env_name << "' not found");
 			return false;

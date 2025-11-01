@@ -15,10 +15,13 @@ ScriptChainLoader::ScriptChainLoader(ScriptTopChainLoader& parent, int id, Eon::
 	for (Eon::StateDeclaration& state : def.states) {
 		ScriptStateLoader& loader = states.Add(new ScriptStateLoader(*this, states.GetCount(), state));
 	}
-	
+
 }
 
 bool ScriptChainLoader::Load() {
+    for (ScriptStateLoader& s : states)
+        if (!s.Load())
+            return false;
     for (ScriptLoopLoader& l : loops)
         if (!l.Load())
             return false;

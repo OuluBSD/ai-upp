@@ -18,6 +18,7 @@ struct Id {
 	void Parse(String s) {parts = Split(s, ".");}
 	void operator=(const Id& v) {parts <<= v.parts;}
 	String ToString() const;
+	String ToSlashPath() const;
 	String GetTreeString(int indent=0) const;
 	bool operator==(const Id& id) const;
 	bool IsEmpty() const {return parts.IsEmpty();}

@@ -49,6 +49,52 @@ String Id::ToString() const {
 	return s;
 }
 
+String Id::ToSlashPath() const {
+	String s;
+	for(const String& part : parts) {
+		if (!s.IsEmpty())
+			s << "/";
+		s << part;
+	}
+	return s;
+}
+
+static bool LooksLikeDotPath(const String& s) {
+	if (s.IsEmpty())
+		return false;
+	if (s.Find('/') >= 0)
+		return false;
+	int dot = s.Find('.');
+	if (dot < 0 || dot == 0 || dot == s.GetCount() - 1)
+		return false;
+	Vector<String> parts = Split(s, ".");
+	if (parts.IsEmpty())
+		return false;
+	for (const String& part : parts) {
+		if (part.IsEmpty())
+			return false;
+		for (int i = 0; i < part.GetCount(); i++) {
+			int chr = part[i];
+			if (!IsAlNum(chr) && chr != '_' && chr != '-')
+				return false;
+		}
+	}
+	return true;
+}
+
+static String NormalizeDotPath(const String& s) {
+	return LooksLikeDotPath(s) ? Join(Split(s, "."), "/") : s;
+}
+
+static void NormalizeValue(Value& v) {
+	if (IsString(v)) {
+		String str = v;
+		String normalized = NormalizeDotPath(str);
+		if (normalized != str)
+			v = normalized;
+	}
+}
+
 
 
 
@@ -214,7 +260,56 @@ static void EnsurePrefix(Eon::Id& id, const Eon::Id& prefix) {
 bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
     One<ChainContext> cc = new ChainContext();
     RTLOG("BuildChain: chain=" << (chain.id.IsEmpty() ? "<anon>" : chain.id.ToString())
-        << " loops=" << chain.loops.GetCount());
+        << " loops=" << chain.loops.GetCount()
+        << " states=" << chain.states.GetCount());
+
+    // Pre-create state environments so downstream atoms can resolve targets during eager builds.
+    Engine* mach = val.FindOwner<Engine>();
+    ASSERT(mach);
+    if (!mach)
+        throw Exc("BuildChain: no engine available for state parent resolution");
+
+    for (const Eon::StateDeclaration& state_def : chain.states) {
+        if (state_def.id.IsEmpty())
+            continue;
+
+        const Vector<String>& parts = state_def.id.parts;
+        if (parts.IsEmpty())
+            continue;
+
+        String state_leaf = parts.Top();
+        Vector<String> parent_parts;
+        parent_parts <<= parts;
+        if (!parent_parts.IsEmpty())
+            parent_parts.SetCount(parent_parts.GetCount() - 1);
+
+        VfsValue* loop_parent = nullptr;
+        VfsValue* space_parent = nullptr;
+        if (parent_parts.IsEmpty()) {
+            loop_parent = &mach->GetRootLoop();
+            space_parent = &mach->GetRootSpace();
+        }
+        else {
+            Eon::Id loop_id;
+            loop_id.parts <<= parent_parts;
+            loop_parent = ResolveLoop(loop_id, &space_parent);
+            if (!loop_parent) {
+                AddError(state_def.loc,
+                         String("Could not resolve state parent loop: ") + loop_id.ToString());
+                return false;
+            }
+        }
+
+        if (!space_parent)
+            space_parent = &mach->GetRootSpace();
+
+        RTLOG("BuildChain: add EnvState parent="
+            << (parent_parts.IsEmpty() ? String("<root>") : Join(parent_parts, "."))
+            << " name=" << state_def.id.ToSlashPath());
+        EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
+        space_parent->GetAdd(state_leaf, 0);
+        env.SetName(state_def.id.ToSlashPath());
+    }
 
     Vector<const Eon::LoopDefinition*> driver_loops;
     driver_loops.Reserve(chain.loops.GetCount());
@@ -721,14 +816,11 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		AstNode* loop = ep.n;
 		bool is_driver = loop->src == Cursor_DriverStmt;
 		
-		Eon::LoopDefinition& loop_def = chain.loops.Add();
-		loop_def.loc = loop->loc;
-		loop_def.is_driver = is_driver;
-		
-		if (!GetPathId(loop_def.id, n, loop))
+		Eon::Id loop_id;
+		if (!GetPathId(loop_id, n, loop))
 			return false;
-		EnsurePrefix(loop_def.id, chain.id);
-		
+		EnsurePrefix(loop_id, chain.id);
+
 		AstNode* stmt_block = loop->Find(Cursor_CompoundStmt);
 		if (!stmt_block) {
 			AddError(loop->loc, "loop has no statement-block");
@@ -744,22 +836,62 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 			return false;
 		}
 		
+		Eon::Id single_atom_id;
+		bool have_single_atom_id = false;
+		
 		if (is_driver && atoms.GetCount() > 1) {
 			AddError(loop->loc, "only single atom is allowed in driver");
 			return false;
 		}
 		
-		if (atoms.GetCount() == 1 && !is_driver) {
-			AddError(loop->loc, "only one atom in the loop");
-			return false;
+		if (atoms.GetCount() == 1) {
+			if (!GetPathId(single_atom_id, loop, atoms[0].n))
+				return false;
+			have_single_atom_id = true;
+			if (!is_driver) {
+				String single_action = single_atom_id.ToString();
+					if (single_action.StartsWith("state.")) {
+						// Pure state loop; translate into a state declaration.
+						Eon::StateDeclaration& state_def = chain.states.Add();
+						state_def.loc = loop->loc;
+						Eon::Id state_id = loop_id;
+						Vector<String> derived_parts;
+						for (int pi = 0; pi < single_atom_id.parts.GetCount(); ++pi) {
+							const String& part = single_atom_id.parts[pi];
+							if (pi == 0 && part == "state")
+								continue;
+							derived_parts.Add(part);
+						}
+						if (!derived_parts.IsEmpty()) {
+							if (state_id.parts.IsEmpty() || state_id.parts.GetCount() < derived_parts.GetCount())
+								state_id.parts <<= derived_parts;
+						}
+						EnsurePrefix(state_id, chain.id);
+						state_def.id = state_id;
+						continue;
+					}
+					AddError(loop->loc, "only one atom in the loop");
+					return false;
+				}
 		}
 		
-		for (Endpoint& ep : atoms) {
-			AstNode* atom = ep.n;
+		Eon::LoopDefinition& loop_def = chain.loops.Add();
+		loop_def.loc = loop->loc;
+		loop_def.is_driver = is_driver;
+		loop_def.id = loop_id;
+
+		for (int ai = 0; ai < atoms.GetCount(); ai++) {
+			AstNode* atom = atoms[ai].n;
 			Eon::AtomDefinition& atom_def = loop_def.atoms.Add();
 			
-			if (!GetPathId(atom_def.id, loop, atom))
-				return false;
+			if (have_single_atom_id) {
+				atom_def.id = single_atom_id;
+				have_single_atom_id = false;
+			}
+			else {
+				if (!GetPathId(atom_def.id, loop, atom))
+					return false;
+			}
 			
 			String loop_action = atom_def.id.ToString();
 			const VfsValueExtFactory::AtomData* found_atom = 0;
@@ -835,12 +967,19 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 								key = a0->str;
 							}
 							if (key.GetCount()) {
+								Value& req = cand.req_args.GetAdd(key);
 								if (IsPartially(a1->src, Cursor_Literal)) {
-									a1->CopyToValue(cand.req_args.GetAdd(key));
+									a1->CopyToValue(req);
+									NormalizeValue(req);
 									succ = true;
 								}
 								else if (a1->src == Cursor_Unresolved) {
-									cand.req_args.GetAdd(key) = a1->str;
+									req = NormalizeDotPath(a1->str);
+									succ = true;
+								}
+								else if (IsPartially(a1->src, Cursor_Op)) {
+									req = EvaluateAstNodeValue(*a1);
+									NormalizeValue(req);
 									succ = true;
 								}
 							}
@@ -990,6 +1129,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	
 	n->FindAll(states, Cursor_StateStmt);
 	Sort(states, AstNodeLess());
+	RTLOG("LoadChain: state stmt count=" << states.GetCount());
 	for (Endpoint& ep : states) {
 		AstNode* state = ep.n;
 		Eon::StateDeclaration& state_def = chain.states.Add();
@@ -997,7 +1137,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		
 		if (!GetPathId(state_def.id, n, state))
 			return false;
-		
+		RTLOG("LoadChain: state def=" << state_def.id.ToString());
 	}
 	
     bool ok = true;
@@ -1047,21 +1187,23 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						AstNode* key = rval.arg[0];
 						AstNode* value = rval.arg[1];
 						while (key->src == Cursor_Rval && key->rval) key = key->rval;
-						while (value->src == Cursor_Rval && value->rval) value = key->rval;
+						while (value->src == Cursor_Rval && value->rval) value = value->rval;
 						if (key->src == Cursor_Unresolved && key->str.GetCount()) {
 							String key_str = key->str;
 							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
 							else if (value->src == Cursor_Unresolved && value->str.GetCount()) {
-								args.GetAdd(key_str) = value->str;
+								args.GetAdd(key_str) = NormalizeDotPath(value->str);
 								succ = true;
 							}
 							else if (IsPartially(value->src, Cursor_Op)) {
 								Value val_obj = EvaluateAstNodeValue(*value);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -1075,6 +1217,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -1125,15 +1268,21 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	return true;
 }
 
-VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id) {
+VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id, VfsValue** space_out) {
 	Engine* mach = val.FindOwner<Engine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	
-	VfsValue* l0;
-	VfsValue* l1 = &mach->GetRootLoop();
-	VfsValue* s0 = 0;
-	VfsValue* s1 = &mach->GetRootSpace();
+	VfsValue* l0 = &mach->GetRootLoop();
+	VfsValue* s0 = &mach->GetRootSpace();
+	if (id.parts.IsEmpty()) {
+		if (space_out)
+			*space_out = s0;
+		return l0;
+	}
+
+	VfsValue* l1 = l0;
+	VfsValue* s1 = s0;
 	int i = 0, count = id.parts.GetCount();
 	
 	for (const String& part : id.parts) {
@@ -1148,6 +1297,8 @@ VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id) {
 	}
 	
 	ASSERT(l0);
+	if (space_out)
+		*space_out = s0;
 	return l0;
 }
 

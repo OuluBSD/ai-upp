@@ -25,7 +25,19 @@ bool HandleEventsBase::Initialize(const WorldState& ws) {
 	
 	if(!val.owner) return false;
 	VfsValue& space = *val.owner;
-	state = space.FindOwnerWith<EnvState>(target);
+	String normalized_target = target;
+	if (normalized_target.Find('/') < 0 && normalized_target.Find('.') >= 0) {
+		Vector<String> parts = Split(normalized_target, ".");
+		bool valid = !parts.IsEmpty();
+		for (const String& part : parts)
+			if (part.IsEmpty())
+				valid = false;
+		if (valid)
+			normalized_target = Join(parts, "/");
+	}
+	state = space.FindOwnerWithPathAndCast<EnvState>(normalized_target);
+	if (!state && normalized_target != target)
+		state = space.FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
 		LOG("HandleEventsBase::Initialize: error: state '" << target << "' not found in parent space: " << space.GetPath());
 		return false;
@@ -106,16 +118,16 @@ struct HandleVideoBase::Binder {
 
 
 
-HandleVideoBase::~HandleVideoBase() {
-	// The destructor is defined here where the complete type of Binder is known
-	// This ensures the Array<Binder> destructor can properly delete Binder objects
-}
-
 HandleVideoBase::HandleVideoBase(VfsValue& n) : Atom(n) {
 	if (!active) {
 		active = this;
 	}
 	pimpl.Create(); // Create the pimpl object that manages binders
+}
+
+HandleVideoBase::~HandleVideoBase() {
+	// Destructor defined here where complete types are known
+	// This ensures safe destruction of pimpl which contains Array<Binder>
 }
 
 bool HandleVideoBase::IsActive() const {
@@ -172,7 +184,7 @@ void HandleVideoBase::Stop() {
 	surfs.Clear();
 	#endif
 	if (IsActive())
-		binders.Clear();
+		pimpl->binders.Clear();
 }
 
 void HandleVideoBase::Uninitialize() {
@@ -211,8 +223,8 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	
 	bool b =	io.active_sink_mask == iface_sink_mask &&
 				io.full_src_mask == 0 &&
-				(binders.GetCount() > 0 || render_win);
-	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
+				(pimpl->binders.GetCount() > 0 || render_win);
+	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << pimpl->binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
 	
 	return b;
 }
@@ -475,7 +487,7 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				InternalPacketData& data = out.SetData<InternalPacketData>();
 				data.ptr = begin;
 			}
-			else if (binders.GetCount() > 1) {
+			else if (pimpl->binders.GetCount() > 1) {
 				TODO // join multiple draw command vectors from binders to one
 			}
 			else {
@@ -721,4 +733,3 @@ void HandleOglBase::RemoveBinder(BinderIfaceOgl* iface) {
 
 
 END_UPP_NAMESPACE
-

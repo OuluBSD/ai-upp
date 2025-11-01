@@ -19,21 +19,45 @@ String ScriptStateLoader::GetTreeString(int indent) {
 
 bool ScriptStateLoader::Load() {
 	id = def.id;
-	
-	Eon::Id parent_id = parent.GetDeepId();
-	LOG(id.ToString());
-	LOG(parent_id.ToString());
-	
 	ScriptLoader& loader = GetLoader();
-	
-	VfsValue* l = loader.ResolveLoop(parent_id);
-	
-	EnvState& env = l->Add<EnvState>(id.ToString());
-	
-	// ready
-	
-	LOG("ScriptStateLoader::Load: loaded path: " << parent_id.ToString() << "  +  " << id.ToString());
-	
+
+	if (id.parts.IsEmpty())
+		return true;
+
+	String state_leaf = id.parts.Top();
+	Vector<String> parent_parts;
+	parent_parts <<= id.parts;
+	if (!parent_parts.IsEmpty())
+		parent_parts.SetCount(parent_parts.GetCount() - 1);
+
+	VfsValue* space_parent = nullptr;
+	VfsValue* loop_parent = nullptr;
+	Engine* mach = loader.val.FindOwner<Engine>();
+	ASSERT(mach);
+	if (!mach)
+		return false;
+
+	if (parent_parts.IsEmpty()) {
+		loop_parent = &mach->GetRootLoop();
+		space_parent = &mach->GetRootSpace();
+	}
+	else {
+		Eon::Id loop_id;
+		loop_id.parts <<= parent_parts;
+		loop_parent = loader.ResolveLoop(loop_id, &space_parent);
+		if (!loop_parent) {
+			AddError(def.loc, String("Could not resolve state parent loop: ") + loop_id.ToString());
+			return false;
+		}
+	}
+
+	if (!space_parent)
+		space_parent = &mach->GetRootSpace();
+
+	EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
+	space_parent->GetAdd(state_leaf, 0);
+	env.SetName(def.id.ToSlashPath());
+
 	return true;
 }
 

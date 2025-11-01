@@ -411,7 +411,19 @@ bool EventStateBase::Initialize(const WorldState& ws) {
 	ASSERT(val.owner);
 	if (!val.owner) return false;
 	VfsValue& s = *val.owner;
-	state = s.FindOwnerWith<EnvState>(target);
+	String normalized_target = target;
+	if (normalized_target.Find('/') < 0 && normalized_target.Find('.') >= 0) {
+		Vector<String> parts = Split(normalized_target, ".");
+		bool valid = !parts.IsEmpty();
+		for (const String& part : parts)
+			if (part.IsEmpty())
+				valid = false;
+		if (valid)
+			normalized_target = Join(parts, "/");
+	}
+	state = s.FindOwnerWithPathAndCast<EnvState>(normalized_target);
+	if (!state && normalized_target != target)
+		state = s.FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
 		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << s.GetPath());
 		return false;

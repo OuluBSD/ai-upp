@@ -43,7 +43,19 @@ void FakeSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		env = GetVfsValue().FindOwnerWith<EnvState>(env_name);
+		String normalized = env_name;
+		if (normalized.Find('/') < 0 && normalized.Find('.') >= 0) {
+			Vector<String> parts = Split(normalized, ".");
+			bool valid = !parts.IsEmpty();
+			for (const String& part : parts)
+				if (part.IsEmpty())
+					valid = false;
+			if (valid)
+				normalized = Join(parts, "/");
+		}
+		env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(normalized);
+		if (!env && normalized != env_name)
+			env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(env_name);
 		if (!env) {
 			LOG("FakeSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
 		}

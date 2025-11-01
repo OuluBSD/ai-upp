@@ -65,6 +65,7 @@ class HandleVideoBase :
 public:
 	CLASSTYPE(HandleVideoBase)
 	HandleVideoBase(VfsValue& n);
+	~HandleVideoBase(); // Explicit destructor to be defined in .cpp where complete types are known
 	
 	bool			IsScreenMode() const {return screen_id >= 0;}
 	

@@ -28,7 +28,11 @@ void Run01aEventState(Engine& eng, int method) {
 
 		// Handle state event.register first (from chain program section)
 		{
-			Val& state_loop = eng.GetRootLoop().GetAdd("event", 0).GetAdd("register", 0);
+			Val& event_loop = eng.GetRootLoop().GetAdd("event", 0);
+			eng.GetRootSpace().GetAdd("event", 0).GetAdd("register", 0);
+			// Ensure EventStatePipe can resolve its EnvState target.
+			eng.GetRootLoop().GetAdd<EnvState>("event.register");
+			Val& state_loop = event_loop.GetAdd("register", 0);
 			ChainContext cc_state;
 			Vector<ChainContext::AtomSpec> state_atoms;
 			ChainContext::AtomSpec& a = state_atoms.Add();

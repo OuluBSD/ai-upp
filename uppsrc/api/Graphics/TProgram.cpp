@@ -106,31 +106,39 @@ void ProgramStateT<Gfx>::FindVariables() {
 		return;
 	}
 	
-	// Check for OpenGL errors before starting to query the program
-	GLenum error_before = glGetError();
-	if (error_before != GL_NO_ERROR) {
-		LOG("ProgramStateT::FindVariables: warning: OpenGL error before querying program: " << HexStr(error_before));
+#ifdef flagOGL
+	if constexpr (Gfx::Type == GVar::OGL) {
+		// Check for OpenGL errors before starting to query the program
+		GLenum error_before = glGetError();
+		if (error_before != GL_NO_ERROR) {
+			LOG("ProgramStateT::FindVariables: warning: OpenGL error before querying program: " << HexStr(error_before));
+		}
+		
+		// Verify that the native program is linked successfully when running on OpenGL
+		GLint program_linked = 0;
+		glGetProgramiv(native, GL_LINK_STATUS, &program_linked);
+		if (program_linked != GL_TRUE) {
+			LOG("ProgramStateT::FindVariables: error: program is not linked successfully");
+			is_searched_vars = true; // Mark as searched to avoid continuous attempts
+			return;
+		}
 	}
-	
-	// Get program link status using raw OpenGL call since GVar doesn't have LINK_STATUS
-	GLint program_linked = 0;
-	glGetProgramiv(native, GL_LINK_STATUS, &program_linked);
-	if (program_linked != GL_TRUE) {
-		LOG("ProgramStateT::FindVariables: error: program is not linked successfully");
-		is_searched_vars = true; // Mark as searched to avoid continuous attempts
-		return;
-	}
+#endif
 	
 	// Query the number of active uniforms
 	Gfx::GetProgramiv(native, GVar::ACTIVE_UNIFORMS, n_uniforms);
 	
-	// Check for OpenGL errors after GetProgramiv
-	GLenum error = glGetError();
-	if (error != GL_NO_ERROR) {
-		LOG("ProgramStateT::FindVariables: OpenGL error after GetProgramiv: " << HexStr(error));
-		is_searched_vars = true; // Mark as searched to avoid continuous attempts
-		return;
+#ifdef flagOGL
+	if constexpr (Gfx::Type == GVar::OGL) {
+		// Check for OpenGL errors after GetProgramiv
+		GLenum error = glGetError();
+		if (error != GL_NO_ERROR) {
+			LOG("ProgramStateT::FindVariables: OpenGL error after GetProgramiv: " << HexStr(error));
+			is_searched_vars = true; // Mark as searched to avoid continuous attempts
+			return;
+		}
 	}
+#endif
 	
 	// On some drivers (like AMD Mesa), there might be timing issues with program introspection
 	// so we also wrap the GetActiveUniform calls in error checking
@@ -142,13 +150,17 @@ void ProgramStateT<Gfx>::FindVariables() {
 		String name_str = Gfx::GetActiveUniform(native, i, &size, &type);
 		const char* name = name_str;
 		
-		// Check for OpenGL errors after GetActiveUniform
-		error = glGetError();
-		if (error != GL_NO_ERROR) {
-			LOG("ProgramStateT::FindVariables: OpenGL error after GetActiveUniform #" << i << ": " << HexStr(error));
-			// Continue anyway, but log the issue
-			continue;
+#ifdef flagOGL
+		if constexpr (Gfx::Type == GVar::OGL) {
+			// Check for OpenGL errors after GetActiveUniform
+			GLenum error = glGetError();
+			if (error != GL_NO_ERROR) {
+				LOG("ProgramStateT::FindVariables: OpenGL error after GetActiveUniform #" << i << ": " << HexStr(error));
+				// Continue anyway, but log the issue
+				continue;
+			}
 		}
+#endif
 		
 		bool found = false;
 		bool state_var = false;

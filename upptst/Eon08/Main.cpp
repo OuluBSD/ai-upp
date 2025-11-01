@@ -131,7 +131,12 @@ CONSOLE_APP_MAIN {
 			
 			// Handle state event.register first (from chain program section)
 			{
-				Val& state_loop = eng.GetRootLoop().GetAdd("event", 0).GetAdd("register", 0);
+				Val& event_loop = eng.GetRootLoop().GetAdd("event", 0);
+				Val& event_space = eng.GetRootSpace().GetAdd("event", 0);
+				EnvState& env_state = event_loop.GetAdd<EnvState>("register");
+				event_space.GetAdd("register", 0);
+				env_state.SetName("event/register");
+				Val& state_loop = env_state.val;
 				ChainContext cc_state;
 				Vector<ChainContext::AtomSpec> state_atoms;
 				ChainContext::AtomSpec& a = state_atoms.Add();
@@ -195,7 +200,7 @@ CONSOLE_APP_MAIN {
 				a.action = "x11.sw.video.pipe";
 				a.args.GetAdd("close_machine") = true;
 				a.args.GetAdd("sizeable") = true;
-				a.args.GetAdd("env") = "event.register";
+				a.args.GetAdd("env") = "event/register";
 				a.args.GetAdd("recv.data") = true;
 				AtomTypeCls atom; LinkTypeCls link;
 				if (ChainContext::ResolveAction(a.action, atom, link))
@@ -239,7 +244,7 @@ CONSOLE_APP_MAIN {
 			auto& a2 = loop.AddAtom("x11.sw.video.pipe");
 			a2.Assign("close_machine", true);
 			a2.Assign("sizeable", true);
-			a2.Assign("env", "event.register");
+			a2.Assign("env", "event/register");
 			a2.Assign("recv.data", true);
 			
 			AstNode* root = 0;

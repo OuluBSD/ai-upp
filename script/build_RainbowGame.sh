@@ -10,6 +10,9 @@ for arg in "$@"; do
 	esac
 done
 
+# Get SDL library flags
+SDL_LIBS="-lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf"
+
 # Build the Gdx package first (as a library)
 umk ./uppsrc Gdx ~/.config/u++/theide/CLANG.bm "$build_flags" +DRAW,GLDRAW,IMAGE,SDRAW,RICHTEXT,XML,JSON,Z,PLATFORM_X11,GUI,APPS,HTTP,NET,CURL,X11,USEMALLOC,DEBUG_RT,DEBUG_FULL,WITH_SDL2 lib/libGdx.a
 

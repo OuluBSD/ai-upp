@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# Build:
-umk ./upptst,./uppsrc Eon07 ~/.config/u++/theide/CLANG.bm -bsH1 +AI,SCREEN,SDL2,OGL,FFMPEG,OPENCV,X11,USEMALLOC,DEBUG_RT,DEBUG_FULL bin/Eon07
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-# Run ide:
-echo Executable compiled: bin/Eon07
+"$SCRIPT_DIR/build_upptst_eon_generic.sh" Eon07 "AI,SCREEN,SDL2,OGL,FFMPEG,OPENCV,X11" "$@"

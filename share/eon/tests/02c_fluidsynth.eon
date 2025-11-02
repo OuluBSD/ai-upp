@@ -12,4 +12,9 @@ machine midi.app:
 			center.customer
 			fluidsynth.pipe[loop == "event"]:
 				verbose = false
-			center.audio.sink.hw
+				queue = 10
+				debug_sound_output = ""
+				debug_sound_seed = 0
+			center.audio.sink.hw:
+				debug_sound_output = ""
+				debug_sound_seed = 0

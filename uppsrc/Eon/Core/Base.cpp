@@ -8,6 +8,9 @@ bool CustomerBase::Initialize(const WorldState& ws) {
 	
 	customer.Create();
 	
+	int queue = max(1, ws.GetInt(".queue", 1));
+	this->SetQueueSize(queue);
+	
 	return true;
 }
 

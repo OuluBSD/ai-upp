@@ -69,36 +69,97 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	}
 	typename Aud::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
+		debug_sound_output = ws.Get(".debug_sound_output", "");
+		debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+		debug_sound_enabled = false;
+		debug_print_enabled = false;
+		String trimmed = TrimBoth(debug_sound_output);
+		if (trimmed.IsEmpty()) {
+			debug_sound_output.Clear();
+		}
+		else {
+			String lowered = ToLower(trimmed);
+			if (lowered == "0" || lowered == "false" || lowered == "off" || lowered == "no" || lowered == "none") {
+				debug_sound_output.Clear();
+			}
+			else {
+				debug_sound_enabled = true;
+				if (lowered == "1" || lowered == "true" || lowered == "on" || lowered == "yes")
+					debug_sound_output.Clear();
+				else
+					debug_sound_output = trimmed;
+			}
+		}
+		if (!debug_sound_enabled)
+			debug_sound_output.Clear();
+		if (debug_sound_enabled && debug_sound_output.IsEmpty())
+			debug_sound_output = "on";
+		debug_print_enabled = debug_sound_enabled;
+		String debug_print_token = TrimBoth(ws.Get(".debug_print", ""));
+		if (!debug_print_token.IsEmpty()) {
+			String lowered = ToLower(debug_print_token);
+			if (lowered == "0" || lowered == "false" || lowered == "off" || lowered == "no" || lowered == "none")
+				debug_print_enabled = false;
+			else
+				debug_print_enabled = true;
+		}
 		if (!Aud::SinkDevice_Create(dev))
 			return false;
-		if (!Aud::SinkDevice_Initialize(*dev, *this, ws))
+		if (!dev)
 			return false;
+		if (!Aud::SinkDevice_Initialize(*dev, *this, ws)) {
+			Aud::SinkDevice_Destroy(dev);
+			dev = nullptr;
+			return false;
+		}
 		return true;
 	}
 	bool PostInitialize() override {
+		if (!dev)
+			return false;
 		if (!Aud::SinkDevice_PostInitialize(*dev, *this))
 			return false;
 		return true;
 	}
 	bool Start() override {
+		if (!dev)
+			return false;
 		return Aud::SinkDevice_Start(*dev, *this);
 	}
 	void Stop() override {
+		if (!dev)
+			return;
 		Aud::SinkDevice_Stop(*dev, *this);
 	}
 	void Uninitialize() override {
 		ASSERT(this->GetDependencyCount() == 0);
+		if (!dev)
+			return;
 		Aud::SinkDevice_Uninitialize(*dev, *this);
 		Aud::SinkDevice_Destroy(dev);
+		dev = nullptr;
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
+		if (!dev)
+			return false;
 		if (!Aud::SinkDevice_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
+		if (!dev)
+			return false;
 		return Aud::SinkDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
+	const String& GetDebugSoundOutput() const { return debug_sound_output; }
+	int GetDebugSoundSeed() const { return debug_sound_seed; }
+	bool IsDebugSoundEnabled() const { return debug_sound_enabled; }
+	bool IsDebugPrintEnabled() const { return debug_print_enabled; }
+protected:
+	String debug_sound_output;
+	int debug_sound_seed = 0;
+	bool debug_sound_enabled = false;
+	bool debug_print_enabled = false;
 };
 template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	using CLASSNAME = AudioSourceDeviceT<Aud>;

@@ -142,17 +142,19 @@ machine x11.app:
 - **Debug cmd:** `bin/Eon03 0 2 | grep "LoopContext space:"`
   - Should show BOTH `loop.{machine}.{driver}` AND `loop.{machine}.{driver}.{chain}.{loop}`
 
-**Issue 2: Missing atoms in forwarding chain**
-- **Symptom:** `LinkSystem::ForwardLinks: loop id=0 packets: | 0__0 | 0__1 |` (only 2 atoms)
-  - Expected: 3+ atoms for full video pipeline
-- **Root cause:** Atom initialization failed (usually can't find context)
-- **Check:** Look for "error:" messages before packet forwarding starts
-- **Compare:** Working method should show all atoms linked:
-  ```
-  Upp::CenterCustomer linked to Upp::VideoDbgSrc
-  Upp::VideoDbgSrc linked to Upp::X11VideoAtomPipe
-  Upp::X11VideoAtomPipe linked to Upp::CenterCustomer
-  ```
+- **Issue 2: Missing atoms in forwarding chain**
+  - **Symptom:** `LinkSystem::ForwardLinks: loop id=0 packets: | 0__0 | 0__1 |` (only 2 atoms)
+    - Expected: 3+ atoms for full video pipeline
+  - **Root cause:** Atom initialization failed (usually can't find context)
+  - **Check:** Look for "error:" messages before packet forwarding starts
+  - **Compare:** Working method should show all atoms linked:
+    ```
+    Upp::CenterCustomer linked to Upp::VideoDbgSrc
+    Upp::VideoDbgSrc linked to Upp::X11VideoAtomPipe
+    Upp::X11VideoAtomPipe linked to Upp::CenterCustomer
+    ```
+- **Gotcha:** The forwarding trace prints `current_queue_size(min_queue_capacity)` for each sink/source. In steady state you may see `... | 0(10)__1(10) | ...` — that means “0 packets buffered now, min capacity is 10”. If the minimum is unexpectedly `1`, check which atom forced it during `LinkBase::LinkSideSink`.
+- **Loop priming:** `center.customer` seeds the loop with `min_queue_size` packets during initialization. By default it keeps the queue at `1`. For audio loops set `.queue = 10` (or whatever depth you need) in the `.eon` script so buffers are prefilled before playback starts.
 
 **Issue 3: ScriptLoader not creating driver loop**
 - **Symptom:** AST shows DriverStmt but no driver LoopContext created

@@ -6,7 +6,7 @@ machine midi.app:
 			midi.file.reader.pipe:
 				filepath = "midi/saturday_show.mid"
 				close_machine = true
+				require.success = true
 			midi.null.sink:
-				verbose = true
-
-
+				verbose = false
+				require.success = true

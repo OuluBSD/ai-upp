@@ -85,13 +85,11 @@ bool WorldState::IsFalse(int idx) const {
 }
 
 bool WorldState::IsUndefined(const String& key) const {
-	TODO
-	return false;
+	return values.Find(key) < 0;
 }
 
 bool WorldState::IsUndefined(int idx) const {
-	TODO
-	return false;
+	return idx < 0 || idx >= values.GetCount();
 }
 
 String WorldState::Get(const String& key, String def) const {

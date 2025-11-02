@@ -8,10 +8,16 @@ bool CustomerBase::Initialize(const WorldState& ws) {
 	
 	customer.Create();
 	
+	queue_overridden = !ws.IsUndefined(".queue");
 	int queue = max(1, ws.GetInt(".queue", 1));
 	this->SetQueueSize(queue);
 	
 	return true;
+}
+
+void CustomerBase::EnsureAudioDefaultQueue() {
+	if (!queue_overridden)
+		this->SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 }
 
 bool CustomerBase::PostInitialize() {

@@ -387,6 +387,30 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
         lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx);
         idx++;
     }
+    auto has_audio_channel = [](const ValDevTuple& tuple) {
+        for (int i = 0; i < tuple.GetCount(); i++)
+            if (tuple[i].vd.val == ValCls::AUDIO)
+                return true;
+        return false;
+    };
+    bool loop_has_audio = false;
+    for (const auto& info : lc.added) {
+        if (!info.a)
+            continue;
+        const AtomTypeCls type = info.a->GetType();
+        if (has_audio_channel(type.iface.sink) || has_audio_channel(type.iface.src)) {
+            loop_has_audio = true;
+            break;
+        }
+    }
+    if (loop_has_audio) {
+        for (auto& info : lc.added) {
+            if (!info.a)
+                continue;
+            if (CustomerBase* customer = dynamic_cast<CustomerBase*>(&*info.a))
+                customer->EnsureAudioDefaultQueue();
+        }
+    }
     if (make_primary_links)
         lc.MakePrimaryLinks();
     return lc;

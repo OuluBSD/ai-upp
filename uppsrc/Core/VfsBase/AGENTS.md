@@ -15,6 +15,7 @@ Guidelines
 - Keep behavior compatible while code transitions to the overlay-based Vfs model; note divergences explicitly.
 - Implementation files must include `VfsBase.h` first; additional includes should be added only when required locally.
 - Avoid introducing new features here unless they directly support the staged migration.
+- `WorldState::IsUndefined(key)` now simply checks the backing `ValueMap`; rely on it to detect absent settings when bridging Core↔Eon initialization paths.
 
 Migration Notes
 - Track remaining legacy pieces in `CURRENT_TASK.md`, referencing the repo root Vfs objectives.

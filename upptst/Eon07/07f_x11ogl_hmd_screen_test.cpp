@@ -31,7 +31,7 @@ void Run07fX11oglHmdScreenTest(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07fX11oglHmdScreenTest: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07f_x11ogl_hmd_screen_test.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07f_x11ogl_hmd_screen_test.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07fX11oglHmdScreenTest: unknown method %d", method));

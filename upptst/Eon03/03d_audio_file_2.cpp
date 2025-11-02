@@ -28,7 +28,7 @@ void Run03dAudioFile2(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03dAudioFile2: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03d_audio_file_2.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03d_audio_file_2.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03dAudioFile2: unknown method %d", method));

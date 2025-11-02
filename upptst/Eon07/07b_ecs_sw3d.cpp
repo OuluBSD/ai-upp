@@ -83,7 +83,7 @@ void Run07bEcsSw3d(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07bEcsSw3d: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07b_ecs_sw3d.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07b_ecs_sw3d.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07bEcsSw3d: unknown method %d", method));

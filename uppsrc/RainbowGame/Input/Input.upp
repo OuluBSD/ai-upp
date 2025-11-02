@@ -1,0 +1,10 @@
+uses
+	Core,
+	Gdx;
+
+file
+	InputController.h,
+	InputController.cpp;
+
+mainconfig
+	"" = "";

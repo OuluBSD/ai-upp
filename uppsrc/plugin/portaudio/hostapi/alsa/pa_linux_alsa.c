@@ -578,6 +578,20 @@ static void PaAlsa_CloseLibrary()
 static int numPeriods_ = 4;
 static int busyRetries_ = 100;
 
+static int ShouldEnumeratePluginDevices(void)
+{
+    const char *env = getenv("UPP_ALSA_INCLUDE_PLUGINS");
+    if(!env || !*env)
+        return 1;
+    switch(*env)
+    {
+    case '0': case 'n': case 'N': case 'f': case 'F':
+        return 0;
+    default:
+        return 1;
+    }
+}
+
 int PaAlsa_SetNumPeriods( int numPeriods )
 {
     numPeriods_ = numPeriods;
@@ -1270,80 +1284,85 @@ static PaError BuildDeviceList( PaAlsaHostApiRepresentation *alsaApi )
 
     /* Iterate over plugin devices */
 
-    if( NULL == (*alsa_snd_config) )
+    if( ShouldEnumeratePluginDevices() )
     {
-        /* alsa_snd_config_update is called implicitly by some functions, if this hasn't happened snd_config will be NULL (bleh) */
-        ENSURE_( alsa_snd_config_update(), paUnanticipatedHostError );
-        PA_DEBUG(( "Updating snd_config\n" ));
-    }
-    assert(  *alsa_snd_config );
-    if( (res = alsa_snd_config_search( *alsa_snd_config, "pcm", &topNode )) >= 0 )
-    {
-        snd_config_iterator_t i, next;
-
-        alsa_snd_config_for_each( i, next, topNode )
+        if( NULL == (*alsa_snd_config) )
         {
-            const char *tpStr = "unknown", *idStr = NULL;
-            int err = 0;
+            /* alsa_snd_config_update is called implicitly by some functions, if this hasn't happened snd_config will be NULL (bleh) */
+            ENSURE_( alsa_snd_config_update(), paUnanticipatedHostError );
+            PA_DEBUG(( "Updating snd_config\n" ));
+        }
+        assert(  *alsa_snd_config );
+        if( (res = alsa_snd_config_search( *alsa_snd_config, "pcm", &topNode )) >= 0 )
+        {
+            snd_config_iterator_t i, next;
 
-            char *alsaDeviceName, *deviceName;
-            const HwDevInfo *predefined = NULL;
-            snd_config_t *n = alsa_snd_config_iterator_entry( i ), * tp = NULL;;
-
-            if( (err = alsa_snd_config_search( n, "type", &tp )) < 0 )
+            alsa_snd_config_for_each( i, next, topNode )
             {
-                if( -ENOENT != err )
+                const char *tpStr = "unknown", *idStr = NULL;
+                int err = 0;
+
+                char *alsaDeviceName, *deviceName;
+                const HwDevInfo *predefined = NULL;
+                snd_config_t *n = alsa_snd_config_iterator_entry( i ), * tp = NULL;;
+
+                if( (err = alsa_snd_config_search( n, "type", &tp )) < 0 )
                 {
-                    ENSURE_(err, paUnanticipatedHostError);
+                    if( -ENOENT != err )
+                    {
+                        ENSURE_(err, paUnanticipatedHostError);
+                    }
+                }
+                else
+                {
+                    ENSURE_( alsa_snd_config_get_string( tp, &tpStr ), paUnanticipatedHostError );
+                }
+                ENSURE_( alsa_snd_config_get_id( n, &idStr ), paUnanticipatedHostError );
+                if( IgnorePlugin( idStr ) )
+                {
+                    PA_DEBUG(( "%s: Ignoring ALSA plugin device [%s] of type [%s]\n", __FUNCTION__, idStr, tpStr ));
+                    continue;
+                }
+                PA_DEBUG(( "%s: Found plugin [%s] of type [%s]\n", __FUNCTION__, idStr, tpStr ));
+
+                PA_UNLESS( alsaDeviceName = (char*)PaUtil_GroupAllocateMemory( alsaApi->allocations,
+                                                                strlen(idStr) + 6 ), paInsufficientMemory );
+                strcpy( alsaDeviceName, idStr );
+                PA_UNLESS( deviceName = (char*)PaUtil_GroupAllocateMemory( alsaApi->allocations,
+                                                                strlen(idStr) + 1 ), paInsufficientMemory );
+                strcpy( deviceName, idStr );
+
+                ++numDeviceNames;
+                if( !hwDevInfos || numDeviceNames > maxDeviceNames )
+                {
+                    maxDeviceNames *= 2;
+                    PA_UNLESS( hwDevInfos = (HwDevInfo *) realloc( hwDevInfos, maxDeviceNames * sizeof (HwDevInfo) ),
+                            paInsufficientMemory );
+                }
+
+                predefined = FindDeviceName( alsaDeviceName );
+
+                hwDevInfos[numDeviceNames - 1].alsaName = alsaDeviceName;
+                hwDevInfos[numDeviceNames - 1].name = deviceName;
+                hwDevInfos[numDeviceNames - 1].isPlug = 1;
+
+                if( predefined )
+                {
+                    hwDevInfos[numDeviceNames - 1].hasPlayback = predefined->hasPlayback;
+                    hwDevInfos[numDeviceNames - 1].hasCapture = predefined->hasCapture;
+                }
+                else
+                {
+                    hwDevInfos[numDeviceNames - 1].hasPlayback = 1;
+                    hwDevInfos[numDeviceNames - 1].hasCapture = 1;
                 }
             }
-            else
-            {
-                ENSURE_( alsa_snd_config_get_string( tp, &tpStr ), paUnanticipatedHostError );
-            }
-            ENSURE_( alsa_snd_config_get_id( n, &idStr ), paUnanticipatedHostError );
-            if( IgnorePlugin( idStr ) )
-            {
-                PA_DEBUG(( "%s: Ignoring ALSA plugin device [%s] of type [%s]\n", __FUNCTION__, idStr, tpStr ));
-                continue;
-            }
-            PA_DEBUG(( "%s: Found plugin [%s] of type [%s]\n", __FUNCTION__, idStr, tpStr ));
-
-            PA_UNLESS( alsaDeviceName = (char*)PaUtil_GroupAllocateMemory( alsaApi->allocations,
-                                                            strlen(idStr) + 6 ), paInsufficientMemory );
-            strcpy( alsaDeviceName, idStr );
-            PA_UNLESS( deviceName = (char*)PaUtil_GroupAllocateMemory( alsaApi->allocations,
-                                                            strlen(idStr) + 1 ), paInsufficientMemory );
-            strcpy( deviceName, idStr );
-
-            ++numDeviceNames;
-            if( !hwDevInfos || numDeviceNames > maxDeviceNames )
-            {
-                maxDeviceNames *= 2;
-                PA_UNLESS( hwDevInfos = (HwDevInfo *) realloc( hwDevInfos, maxDeviceNames * sizeof (HwDevInfo) ),
-                        paInsufficientMemory );
-            }
-
-            predefined = FindDeviceName( alsaDeviceName );
-
-            hwDevInfos[numDeviceNames - 1].alsaName = alsaDeviceName;
-            hwDevInfos[numDeviceNames - 1].name = deviceName;
-            hwDevInfos[numDeviceNames - 1].isPlug = 1;
-
-            if( predefined )
-            {
-                hwDevInfos[numDeviceNames - 1].hasPlayback = predefined->hasPlayback;
-                hwDevInfos[numDeviceNames - 1].hasCapture = predefined->hasCapture;
-            }
-            else
-            {
-                hwDevInfos[numDeviceNames - 1].hasPlayback = 1;
-                hwDevInfos[numDeviceNames - 1].hasCapture = 1;
-            }
         }
+        else
+            PA_DEBUG(( "%s: Iterating over ALSA plugins failed: %s\n", __FUNCTION__, alsa_snd_strerror( res ) ));
     }
     else
-        PA_DEBUG(( "%s: Iterating over ALSA plugins failed: %s\n", __FUNCTION__, alsa_snd_strerror( res ) ));
+        PA_DEBUG(( "%s: Skipping ALSA plugin device enumeration (set UPP_ALSA_INCLUDE_PLUGINS=1 to enable)\n", __FUNCTION__ ));
 
     /* allocate deviceInfo memory based on the number of devices */
     PA_UNLESS( baseApi->deviceInfos = (PaDeviceInfo**)PaUtil_GroupAllocateMemory(
@@ -1373,7 +1392,7 @@ static PaError BuildDeviceList( PaAlsaHostApiRepresentation *alsaApi )
 
         PA_ENSURE( FillInDevInfo( alsaApi, hwInfo, blocking, devInfo, &devIdx ) );
     }
-    assert( devIdx < numDeviceNames );
+    assert( devIdx <= numDeviceNames );
     /* Now inspect 'dmix' and 'default' plugins */
     for( i = 0; i < numDeviceNames; ++i )
     {
@@ -1861,6 +1880,12 @@ error:
 static void PaAlsaStreamComponent_Terminate( PaAlsaStreamComponent *self )
 {
     alsa_snd_pcm_close( self->pcm );
+    if( self->nonMmapBuffer )
+    {
+        free( self->nonMmapBuffer );
+        self->nonMmapBuffer = NULL;
+        self->nonMmapBufferSize = 0;
+    }
     if( self->userBuffers )
         PaUtil_FreeMemory( self->userBuffers );
 }

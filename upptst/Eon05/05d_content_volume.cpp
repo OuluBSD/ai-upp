@@ -52,7 +52,7 @@ void Run05dContentVolume(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05dContentVolume: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05d_content_volume.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05d_content_volume.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05dContentVolume: unknown method %d", method));

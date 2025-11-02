@@ -25,7 +25,7 @@ void Run01bMidiEvents(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run01bMidiEvents: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("01b_midi_events.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/01b_midi_events.eon"));
 		break;
 	default:
 		throw Exc(Format("Run01bMidiEvents: unknown method %d", method));

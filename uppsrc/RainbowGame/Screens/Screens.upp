@@ -1,0 +1,16 @@
+uses
+	Core,
+	Gdx;
+
+file
+	BootScreen.h,
+	BootScreen.cpp,
+	GameScreen.h,
+	GameScreen.cpp,
+	MainMenuScreen.h,
+	MainMenuScreen.cpp,
+	MapEditorScreen.h,
+	MapEditorScreen.cpp;
+
+mainconfig
+	"" = "";

@@ -30,7 +30,7 @@ void Run02dSoftinstru(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02dSoftinstru: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02d_softinstru.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02d_softinstru.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02dSoftinstru: unknown method %d", method));

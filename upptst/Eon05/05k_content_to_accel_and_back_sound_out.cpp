@@ -57,7 +57,7 @@ void Run05kContentToAccelAndBackSoundOut(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05kContentToAccelAndBackSoundOut: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05k_content_to_accel_and_back_sound_out.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05k_content_to_accel_and_back_sound_out.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05kContentToAccelAndBackSoundOut: unknown method %d", method));

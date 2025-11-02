@@ -10,11 +10,15 @@ class MidiFileReaderAtom : public Atom
 	bool close_machine = false;
 	
 	String last_error;
+	bool require_success = false;
+	bool pending_final_status = false;
+	bool final_status_sent = false;
 	Vector<int> track_i;
 	double song_dt = 0;
 	bool split_channels = false;
 	int drum_side_ch = -1;
 	bool use_global_time = false;
+	int64 total_events_sent = 0;
 	
 	MidiIO::File file;
 	MidiIO::MidiFrame tmp;
@@ -48,9 +52,18 @@ public:
 	
 };
 
+struct MidiPipelineStatus {
+	int64 event_count = 0;
+	bool eof = false;
+	bool success = false;
+};
+
 class MidiNullAtom : public Atom
 {
 	bool verbose = false;
+	bool require_success = false;
+	bool final_status_seen = false;
+	int64 received_event_count = 0;
 	
 public:
 	using Atom::Atom;

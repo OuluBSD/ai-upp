@@ -13,6 +13,9 @@ using namespace Upp;
 class AssetLoader;
 class FileHandle;
 
+class Music;
+class BitmapFont;
+
 class AssetManager {
 public:
     AssetManager();

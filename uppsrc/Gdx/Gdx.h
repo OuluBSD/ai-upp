@@ -5,9 +5,12 @@
 
 using namespace Upp;
 
+// Include configuration constants first
+#include "Config.h"
+
 // Include all Gdx classes
-#include "Application.h"
 #include "Screen.h"
+#include "Application.h"
 #include "Graphics.h"
 #include "Input.h"
 #include "AssetManager.h"
@@ -16,11 +19,5 @@ using namespace Upp;
 #include "Music.h"
 #include "BitmapFont.h"
 #include "SdlWrapper.h"
-
-// Basic Gdx configuration
-#define GDX_GRAPHICS_FULLSCREEN false
-#define GDX_GRAPHICS_WIDTH 800
-#define GDX_GRAPHICS_HEIGHT 600
-#define GDX_GRAPHICS_TITLE "Rainbow Game"
 
 #endif

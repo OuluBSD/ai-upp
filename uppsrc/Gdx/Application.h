@@ -6,6 +6,9 @@
 
 using namespace Upp;
 
+// Forward declaration
+class Screen;
+
 class Application {
 public:
     Application() {}

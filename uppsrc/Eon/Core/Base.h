@@ -9,6 +9,7 @@ class CustomerBase :
 {
 	int			packet_count = 0;
 	int			packet_thrds = 0;
+	bool		queue_overridden = false;
 	
 protected:
 	friend class Space;
@@ -31,6 +32,7 @@ public:
 	RTSrcConfig* GetConfig() override {ASSERT(customer); return customer ? &customer->cfg : 0;}
 	bool PostInitialize() override;
 	void UpdateConfig(double dt) override;
+	void EnsureAudioDefaultQueue();
 	
 };
 

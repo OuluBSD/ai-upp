@@ -143,7 +143,7 @@ void Run01aEventState(Engine& eng, int method) {
 		break;
 	}
 	case 0:
-		sys->PostLoadFile(GetDataFile("01a_event_state.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/01a_event_state.eon"));
 		break;
 	default:
 		throw Exc(Format("Run01aEventState: unknown method %d", method));

@@ -47,7 +47,7 @@ void Run05iContentAccelSoundOut1(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05iContentAccelSoundOut1: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05i_content_accel_sound_out1.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05i_content_accel_sound_out1.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05iContentAccelSoundOut1: unknown method %d", method));

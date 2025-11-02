@@ -38,7 +38,7 @@ void Run03iX11VideoSw3dBufferstages(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03iX11VideoSw3dBufferstages: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03i_x11_video_sw3d_bufferstages.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03i_x11_video_sw3d_bufferstages.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03iX11VideoSw3dBufferstages: unknown method %d", method));

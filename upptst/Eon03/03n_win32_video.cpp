@@ -27,7 +27,7 @@ void Run03nWin32Video(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03nWin32Video: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03n_win32_video.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03n_win32_video.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03nWin32Video: unknown method %d", method));

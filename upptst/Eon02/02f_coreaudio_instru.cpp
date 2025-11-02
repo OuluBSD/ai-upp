@@ -29,7 +29,7 @@ void Run02fCoreaudioInstru(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02fCoreaudioInstru: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02f_coreaudio_instru.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02f_coreaudio_instru.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02fCoreaudioInstru: unknown method %d", method));

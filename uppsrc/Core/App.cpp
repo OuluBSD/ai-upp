@@ -923,9 +923,17 @@ void CallInExitBlock(Event<> cb) {
 
 
 String FindShareDir() {
+	String exe_share = AppendFileName(GetExeFolder(), "share");
+	if (DirectoryExists(exe_share))
+		return exe_share;
+	
 	String config_share = ConfigFile("share");
 	if (DirectoryExists(config_share))
 		return config_share;
+	
+	String home_share = GetHomeDirFile("share");
+	if (DirectoryExists(home_share))
+		return home_share;
 	
 	#if defined flagUWP && defined flagRELPKG
 	String home_upphub_share = "ms-appx://share";

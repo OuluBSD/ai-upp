@@ -37,7 +37,7 @@ void Run05hContentWebcam(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05hContentWebcam: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05h_content_webcam.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05h_content_webcam.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05hContentWebcam: unknown method %d", method));

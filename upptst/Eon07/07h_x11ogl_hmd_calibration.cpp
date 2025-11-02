@@ -100,7 +100,7 @@ void Run07hX11oglHmdCalibration(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07hX11oglHmdCalibration: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07h_x11ogl_hmd_calibration.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07h_x11ogl_hmd_calibration.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07hX11oglHmdCalibration: unknown method %d", method));

@@ -26,7 +26,7 @@ void Run04aSdlAudio(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run04aSdlAudio: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("04a_sdl_audio.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/04a_sdl_audio.eon"));
 		break;
 	default:
 		throw Exc(Format("Run04aSdlAudio: unknown method %d", method));

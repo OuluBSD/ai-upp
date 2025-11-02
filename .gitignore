@@ -32,3 +32,5 @@ a.out
 .bin/**
 .cache
 bin/**
+valgrind*
+

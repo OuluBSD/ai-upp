@@ -26,7 +26,7 @@ void Run02lPortmidiToFluidsynth(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02lPortmidiToFluidsynth: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02l_portmidi_to_fluidsynth.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02l_portmidi_to_fluidsynth.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02lPortmidiToFluidsynth: unknown method %d", method));

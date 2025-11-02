@@ -154,7 +154,7 @@ machine x11.app:
     Upp::X11VideoAtomPipe linked to Upp::CenterCustomer
     ```
 - **Gotcha:** The forwarding trace prints `current_queue_size(min_queue_capacity)` for each sink/source. In steady state you may see `... | 0(10)__1(10) | ...` — that means “0 packets buffered now, min capacity is 10”. If the minimum is unexpectedly `1`, check which atom forced it during `LinkBase::LinkSideSink`.
-- **Loop priming:** `center.customer` seeds the loop with `min_queue_size` packets during initialization. By default it keeps the queue at `1`. For audio loops set `.queue = 10` (or whatever depth you need) in the `.eon` script so buffers are prefilled before playback starts.
+- **Loop priming:** `center.customer` seeds the loop with `min_queue_size` packets during initialization. By default it keeps the queue at `1`. For audio loops the ChainContext builder now promotes every `CustomerBase` in the loop to `DEFAULT_AUDIO_QUEUE_SIZE` unless the script explicitly sets `.queue`; use `.queue = N` only when you need a custom depth.
 
 **Issue 3: ScriptLoader not creating driver loop**
 - **Symptom:** AST shows DriverStmt but no driver LoopContext created

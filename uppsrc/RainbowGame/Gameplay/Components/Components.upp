@@ -1,0 +1,13 @@
+uses
+	Core,
+	Gdx;
+
+file
+	ParasolComponent.h,
+	ParasolComponent.cpp,
+	Player.h,
+	Player.cpp;
+
+mainconfig
+	"" = "";
+

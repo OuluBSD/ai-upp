@@ -31,7 +31,7 @@ void Run02eFmsynth(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02eFmsynth: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02e_fmsynth.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02e_fmsynth.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02eFmsynth: unknown method %d", method));

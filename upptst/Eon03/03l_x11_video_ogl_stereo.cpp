@@ -38,7 +38,7 @@ void Run03lX11VideoOglStereo(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03lX11VideoOglStereo: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03l_x11_video_ogl_stereo.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03l_x11_video_ogl_stereo.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03lX11VideoOglStereo: unknown method %d", method));

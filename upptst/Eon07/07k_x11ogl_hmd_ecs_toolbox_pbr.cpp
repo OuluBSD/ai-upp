@@ -114,7 +114,7 @@ void Run07kX11oglHmdEcsToolboxPbr(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07kX11oglHmdEcsToolboxPbr: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07k_x11ogl_hmd_ecs_toolbox_pbr.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07k_x11ogl_hmd_ecs_toolbox_pbr.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07kX11oglHmdEcsToolboxPbr: unknown method %d", method));

@@ -26,15 +26,25 @@ void Run02cFluidsynth(Engine& eng, int method) {
 	sys->SetEagerChainBuild(true);
 
 	switch(method) {
+	case 9:
+		sys->PostLoadFile(ShareDirFile("eon/tests/02c_fluidsynth_debug.eon"));
+		break;
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02cFluidsynth: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02c_fluidsynth.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02c_fluidsynth.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02cFluidsynth: unknown method %d", method));
 	}
+}
+
+void Run02cFluidsynthDebug(Engine& eng, int method) {
+	if (method <= 0)
+		Run02cFluidsynth(eng, 9);
+	else
+		Run02cFluidsynth(eng, method);
 }
 
 END_UPP_NAMESPACE

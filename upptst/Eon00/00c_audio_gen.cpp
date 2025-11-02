@@ -11,7 +11,7 @@ void Run00cAudioGen(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run00cAudioGen: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("00c_audio_gen.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/00c_audio_gen.eon"));
 		break;
 	default:
 		throw Exc(Format("Run00cAudioGen: unknown method %d", method));

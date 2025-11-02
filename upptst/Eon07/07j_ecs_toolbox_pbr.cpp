@@ -98,7 +98,7 @@ void Run07jEcsToolboxPbr(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07jEcsToolboxPbr: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07j_ecs_toolbox_pbr.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07j_ecs_toolbox_pbr.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07jEcsToolboxPbr: unknown method %d", method));

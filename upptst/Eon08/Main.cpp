@@ -261,7 +261,7 @@ CONSOLE_APP_MAIN {
 		}
 		else {
 			// Load eon file (parses AstNode and loads it)
-			sys->PostLoadFile(GetDataFile("08a_gui.eon"));
+			sys->PostLoadFile(ShareDirFile("eon/tests/08a_gui.eon"));
 		}
 	};
 	

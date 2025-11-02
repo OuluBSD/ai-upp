@@ -34,7 +34,7 @@ void Run04eSdlVideoOglCustomLinked(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run04eSdlVideoOglCustomLinked: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("04e_sdl_video_ogl_custom_linked.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/04e_sdl_video_ogl_custom_linked.eon"));
 		break;
 	default:
 		throw Exc(Format("Run04eSdlVideoOglCustomLinked: unknown method %d", method));

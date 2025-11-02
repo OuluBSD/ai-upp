@@ -40,7 +40,7 @@ void Run03kX11VideoSw3dStereo(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03kX11VideoSw3dStereo: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03k_x11_video_sw3d_stereo.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03k_x11_video_sw3d_stereo.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03kX11VideoSw3dStereo: unknown method %d", method));

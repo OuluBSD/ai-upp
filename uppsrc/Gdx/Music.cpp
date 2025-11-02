@@ -39,7 +39,7 @@ void Music::Play(float volume) {
     
     Mix_Music* music = Mix_LoadMUS(fileName);
     if (music == nullptr) {
-        LOG("Failed to load music for playback: " + Mix_GetError());
+        LOG(String("Failed to load music for playback: ") + String(Mix_GetError()));
         return;
     }
     

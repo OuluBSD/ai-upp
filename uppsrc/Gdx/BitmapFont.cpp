@@ -36,7 +36,7 @@ SDL_Texture* BitmapFont::RenderText(const String& text, SDL_Color color) {
     
     SDL_Surface* textSurface = TTF_RenderText_Solid(font, text, color);
     if (textSurface == nullptr) {
-        LOG("Unable to render text surface: " + TTF_GetError());
+        LOG(String("Unable to render text surface: ") + String(TTF_GetError()));
         return nullptr;
     }
     

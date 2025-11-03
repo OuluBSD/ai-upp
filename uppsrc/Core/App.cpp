@@ -923,9 +923,20 @@ void CallInExitBlock(Event<> cb) {
 
 
 String FindShareDir() {
-	String exe_share = AppendFileName(GetExeFolder(), "share");
-	if (DirectoryExists(exe_share))
-		return exe_share;
+	String exe_folder = GetExeFolder();
+	if (!exe_folder.IsEmpty()) {
+		// Walk up from the executable folder to accommodate in-tree builds where share/ lives above bin/
+		for (String folder = exe_folder; !folder.IsEmpty();) {
+			String candidate = AppendFileName(folder, "share");
+			if (DirectoryExists(candidate))
+				return candidate;
+			
+			String parent = GetFileFolder(folder);
+			if (parent.IsEmpty() || parent == folder)
+				break;
+			folder = parent;
+		}
+	}
 	
 	String config_share = ConfigFile("share");
 	if (DirectoryExists(config_share))
@@ -991,7 +1002,6 @@ String RealizeShareFile(String rel_path) {
 			case 8: path = GetDataDirectoryFile(rel_path); break;
 			#endif
 		}
-		
 		if (FileExists(path) || DirectoryExists(path))
 			return path;
 	}

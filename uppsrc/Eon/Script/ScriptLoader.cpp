@@ -64,6 +64,11 @@ static bool LooksLikeDotPath(const String& s) {
 		return false;
 	if (s.Find('/') >= 0)
 		return false;
+	for (int i = 0; i < s.GetCount(); i++) {
+		int chr = s[i];
+		if (IsUpper(chr))
+			return false;
+	}
 	int dot = s.Find('.');
 	if (dot < 0 || dot == 0 || dot == s.GetCount() - 1)
 		return false;

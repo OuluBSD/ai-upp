@@ -2,6 +2,7 @@ uses
 	Shell;
 
 file
+	AGENTS.md,
 	Main.cpp,
 	Eon03.h,
 	03a_x11_video.cpp,

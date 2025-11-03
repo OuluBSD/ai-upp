@@ -885,7 +885,7 @@ void InterfaceBuilder::Headers() {
 		.Out("CenterAudio")
 		.Action("corefx.pipe")
 		.Arg("HINT_PKG", "AtomAudio")
-		.Link("PIPE_OPTSIDE", "PROCESS")
+		.Link("PIPE", "PROCESS")
 	;
 	
 	AddHeader("CoreEffectAtom", "AudioCoreEffect", "pipe")
@@ -893,7 +893,7 @@ void InterfaceBuilder::Headers() {
 		.Out("CenterAudio")
 		.Action("corefx.atom")
 		.Arg("HINT_PKG", "AtomAudio")
-		.Link("PIPE_OPTSIDE", "PROCESS")
+		.Link("PIPE", "PROCESS")
 	;
 	
 	AddHeader("LV2EffectPipe", "LV2Effect", "pipe")

@@ -135,7 +135,7 @@ CONSOLE_APP_MAIN {
 				Val& event_space = eng.GetRootSpace().GetAdd("event", 0);
 				EnvState& env_state = event_loop.GetAdd<EnvState>("register");
 				event_space.GetAdd("register", 0);
-				env_state.SetName("event/register");
+				//env_state.SetName("event/register");
 				Val& state_loop = env_state.val;
 				ChainContext cc_state;
 				Vector<ChainContext::AtomSpec> state_atoms;

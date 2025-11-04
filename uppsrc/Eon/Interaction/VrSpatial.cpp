@@ -1,4 +1,5 @@
 #include "Interaction.h"
+#include <Core/TextParsing/TextParsing.h>
 
 NAMESPACE_UPP
 
@@ -42,16 +43,7 @@ void VrSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		String normalized = env_name;
-		if (normalized.Find('/') < 0 && normalized.Find('.') >= 0) {
-			Vector<String> parts = Split(normalized, ".");
-			bool valid = !parts.IsEmpty();
-			for (const String& part : parts)
-				if (part.IsEmpty())
-					valid = false;
-			if (valid)
-				normalized = Join(parts, "/");
-		}
+		String normalized = NormalizePathSeparators(env_name);
 		env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(normalized);
 		if (!env && normalized != env_name)
 			env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(env_name);

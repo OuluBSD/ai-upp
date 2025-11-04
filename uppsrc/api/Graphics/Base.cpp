@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include <Core/TextParsing/TextParsing.h>
 
 
 NAMESPACE_UPP
@@ -432,16 +433,7 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 		LOG("EventStateBase::Initialize: error: target state argument is required");
 		return false;
 	}
-	String normalized = target;
-	if (normalized.Find('/') < 0 && normalized.Find('.') >= 0) {
-		Vector<String> parts = Split(normalized, ".");
-		bool valid = !parts.IsEmpty();
-		for (const String& part : parts)
-			if (part.IsEmpty())
-				valid = false;
-		if (valid)
-			normalized = Join(parts, "/");
-	}
+	String normalized = NormalizePathSeparators(target);
 	auto* state = this->val.template FindOwnerWithPathAndCast<EnvState>(normalized);
 	if (!state && normalized != target)
 		state = this->val.template FindOwnerWithPathAndCast<EnvState>(target);

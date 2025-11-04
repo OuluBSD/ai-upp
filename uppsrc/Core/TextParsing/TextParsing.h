@@ -12,6 +12,8 @@ NAMESPACE_UPP
 #include "Html.h"
 #include "Url.h"
 
+String NormalizePathSeparators(const String& path);
+
 END_UPP_NAMESPACE
 
 #endif

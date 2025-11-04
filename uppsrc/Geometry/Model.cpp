@@ -364,7 +364,6 @@ bool ModelLoader::LoadModelAssimp(String path) {
     }
 	
 	model = new Model();
-	model->SetParent(this);
     model->path = path;
     model->directory = GetFileDirectory(path);
 	

@@ -15,5 +15,6 @@ file
 	Html.h,
 	Html.cpp,
 	Url.h,
-	Url.cpp;
+	Url.cpp,
+	Path.cpp;
 

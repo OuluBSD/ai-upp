@@ -310,10 +310,10 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
 
         RTLOG("BuildChain: add EnvState parent="
             << (parent_parts.IsEmpty() ? String("<root>") : Join(parent_parts, "."))
-            << " name=" << state_def.id.ToSlashPath());
+            << " name=" << state_leaf);
         EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
         space_parent->GetAdd(state_leaf, 0);
-        env.SetName(state_def.id.ToSlashPath());
+        env.SetName(state_leaf);
     }
 
     Vector<const Eon::LoopDefinition*> driver_loops;

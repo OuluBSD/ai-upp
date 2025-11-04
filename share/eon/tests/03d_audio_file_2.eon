@@ -3,7 +3,7 @@ chain player.audio.generator:
 	loop output:
 		center.customer
 		perma.audio.source.decoder:
-			filepath = "${FILE}"
+			filepath = "sounds/8_bit_mentality.mp3"
 			stop_machine = true
 		center.audio.side.src.center
 	

@@ -84,7 +84,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	// open connection with the X server.
 	display = XOpenDisplay(display_name);
 	if (display == NULL) {
-		LOG("ScrX11::SinkDevice_Initialize: error: cannot connect to X server '" << display_name << "'");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: cannot connect to X server '" << display_name << "'");
 		return false;
 	}
 	
@@ -98,7 +98,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	// default resolution is 1280x720 for now
 	width = 1280;
 	height = 720;
-	RTLOG("ScrX11::SinkDevice_Initialize: window width - '" << width << "'; height - '" << height << "'");
+	RTLOG("ScrX11Sw::SinkDevice_Initialize: window width - '" << width << "'; height - '" << height << "'");
 	
 	// create a simple window, as a direct child of the screen's
 	// root window. Use the screen's white color as the background
@@ -145,7 +145,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 		
 		gc = XCreateGC(display, win, valuemask, &values);
 		if (gc == 0) {
-			LOG("ScrX11::SinkDevice_Initialize: error: XCreateGC failed");
+			LOG("ScrX11Sw::SinkDevice_Initialize: error: XCreateGC failed");
 			return false;
 		}
 		
@@ -189,7 +189,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	XSync(display, False);
 	
 	if (!dev.accel.Initialize(a, ws)) {
-		LOG("ScrX11::SinkDevice_Initialize: error: accelerator initialization failed");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: accelerator initialization failed");
 		return false;
 	}
 	
@@ -202,7 +202,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	dev.accel.SetNative(ctx.display, ctx.win, 0, &dev.accel_fbo);
 	
 	if (!dev.accel.Open(Size(width, height), bpp)) {
-		LOG("ScrX11Ogl::SinkDevice_Initialize: error: could not open opengl atom");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: could not open opengl atom");
 		return false;
 	}
 	

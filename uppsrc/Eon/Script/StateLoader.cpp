@@ -56,7 +56,7 @@ bool ScriptStateLoader::Load() {
 
 	EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
 	space_parent->GetAdd(state_leaf, 0);
-	env.SetName(def.id.ToSlashPath());
+	env.SetName(state_leaf);
 
 	return true;
 }

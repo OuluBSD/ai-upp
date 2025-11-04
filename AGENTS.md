@@ -79,3 +79,20 @@ Book Contribution Gate (Mandatory)
 - Before editing anything under `Book/`, you must read `Book/AGENTS.md` and follow its style rules (headings, Date Span placement, list formats, and reference style).
 - Pull requests changing `Book/*` must explicitly confirm compliance (e.g., checklist item: "Read and applied Book/AGENTS.md").
 - Maintainers: reject or request changes if the above confirmation or formatting is missing.
+
+## Graphics Pipeline and FBO Atom Data Flow
+
+### FBO Atom Data Transmission
+- `FboAtomT::Send` now transmits both graphics state ("gfxstate") and rendered framebuffer content ("gfxbuf")
+- This allows downstream video sink atoms to display the rendered output from FBO programs
+- Previously only scene data was transmitted, causing white screen issues
+
+### GfxAccelAtom Reception
+- `GfxAccelAtom::Recv` now treats "gfxbuf" packets the same as "gfxvector" packets
+- Both are stored in `fb_packet` which is processed in the Render method as direct framebuffer data
+- This ensures rendered framebuffer content is properly displayed instead of being treated as input scene data
+
+### Architecture
+- FBO programs render scene data to internal framebuffers
+- The rendered content is transmitted through the packet system to video sink atoms
+- Video sink atoms display the framebuffer content to the screen

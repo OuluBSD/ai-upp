@@ -38,6 +38,11 @@ Material::Material() {
 	Clear();
 }
 
+Material::Material(int i) {
+	ASSERT(i == 0);
+	Clear();
+}
+
 void Material::Visit(Vis& v) {
 	_VIS_(id)
 	 VISN(*params);

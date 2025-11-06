@@ -50,12 +50,13 @@ struct ByteImage {
 	int channels = 0;
 	int size = 0;
 	bool lock_channels = false;
-	
+
 public:
 	typedef ByteImage CLASSNAME;
-	ByteImage() : sz(0,0) {}
+	ByteImage() : data(0), sz(0,0), pitch(0), channels(0), size(0), lock_channels(false) {}
 	~ByteImage() {Clear();}
-	ByteImage(Image& img) {*this = img;}
+	ByteImage(const ByteImage& i) : data(0), sz(0,0), pitch(0), channels(0), size(0), lock_channels(false) {*this = i;}
+	ByteImage(Image& img) : data(0), sz(0,0), pitch(0), channels(0), size(0), lock_channels(false) {*this = img;}
 	
     hash_t GetHashValue() const;
 	void Visit(Vis& v);
@@ -92,7 +93,7 @@ public:
 	byte* End() {if (!data) return 0; return data + sz.cy * pitch;}
 	byte* Detach() {byte* f = data; data = 0; sz = Size(0,0); pitch = 0; channels = 0; size = 0; return f;}
 	
-	bool IsEmpty() {return data == 0;}
+	bool IsEmpty() const {return data == 0;}
 	operator bool() const {return data != 0;}
 	
 };

@@ -45,6 +45,7 @@ struct RawSysImage {
 	TypeCls backend;
 	int w, h, ch, pitch;
 	operator Image() const;
+	operator ByteImage() const;
 };
 
 typedef RawSysImage		RawSysTexture;

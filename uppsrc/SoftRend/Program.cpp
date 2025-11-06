@@ -204,7 +204,7 @@ void SoftProgram::SetVar(int i, float f) {
 		case GVar::VAR_UNKNOWN:
 		case GVar::VAR_CUBE_DIFFUSE:
 		case GVar::VAR_CUBE_IRRADIANCE:
-			ASSERT(obj_i >= 0);
+			if (obj_i < 0) return; // Avoid using uninitialized obj_i
 			tex = idx - GVar::VAR_NONE;
 			args.color_buf[tex] = objs[obj_i].fargs.color_buf[tex];
 			ASSERT(args.color_buf[tex]);

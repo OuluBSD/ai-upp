@@ -271,8 +271,10 @@ void SwGfxT<Gfx>::AttachShader(NativeProgram& prog, NativeShaderPtr shdr) {
 
 template <class Gfx>
 void SwGfxT<Gfx>::DeleteShader(NativeShaderPtr& shdr) {
-	shdr->Clear();
-	shdr = 0;
+	if (shdr) {
+		delete shdr;
+		shdr = 0;
+	}
 }
 
 template <class Gfx>

@@ -75,7 +75,9 @@ public:
 	struct Texture {
 		ByteImage img;
 		String path;
-		
+
+		Texture() {}
+
 	    hash_t GetHashValue() const {
 	        CombineHash c;
 	        c.Put(img.GetHashValue());
@@ -88,7 +90,9 @@ public:
 	struct CubeTexture {
 		ByteImage img[6];
 		String path;
-		
+
+		CubeTexture() {}
+
 	    hash_t GetHashValue() const {
 	        CombineHash c;
 	        for(int i = 0; i < 6; i++)
@@ -172,6 +176,7 @@ public:
     int GetMeshCount() const {return meshes.GetCount();}
     Mesh& GetMesh(int i) {return meshes[i];}
     int AddTexture(const Image& img, String path);
+    int AddTextureByteImage(const ByteImage& img, String path);
     int GetAddTexture(const Image& img, String path);
     int FindTexture(String path);
     int AddCubeTexture(String path);

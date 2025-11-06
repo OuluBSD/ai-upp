@@ -348,18 +348,22 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
             }
             if (best_idx >= 0 && best_match > 0) {
                 const Eon::Id& drv = driver_loops[best_idx]->id;
-                Vector<String> merged;
-                merged <<= drv.parts;
-                for (int i = best_match; i < deep_id.parts.GetCount(); i++)
-                    merged.Add(deep_id.parts[i]);
-                bool changed = merged.GetCount() != deep_id.parts.GetCount();
-                if (!changed) {
-                    for (int i = 0; i < merged.GetCount(); i++)
-                        if (merged[i] != deep_id.parts[i]) { changed = true; break; }
-                }
-                if (changed) {
-                    deep_id.parts = pick(merged);
-                    LOG(Format("  remapped loop path under driver -> %s", deep_id.ToString()));
+                // Only remap if driver is a complete prefix of the loop path
+                // (all driver parts match the beginning of loop path)
+                if (best_match == drv.parts.GetCount() && best_match < deep_id.parts.GetCount()) {
+                    Vector<String> merged;
+                    merged <<= drv.parts;
+                    for (int i = best_match; i < deep_id.parts.GetCount(); i++)
+                        merged.Add(deep_id.parts[i]);
+                    bool changed = merged.GetCount() != deep_id.parts.GetCount();
+                    if (!changed) {
+                        for (int i = 0; i < merged.GetCount(); i++)
+                            if (merged[i] != deep_id.parts[i]) { changed = true; break; }
+                    }
+                    if (changed) {
+                        deep_id.parts = pick(merged);
+                        LOG(Format("  remapped loop path under driver -> %s", deep_id.ToString()));
+                    }
                 }
             }
         }
@@ -380,7 +384,11 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
             s.args <<= a.args;           // copy args
         }
 
-        cc->AddLoop(*l, specs, has_link);
+        LoopContext& lc = cc->AddLoop(*l, specs, has_link);
+        if (lc.failed) {
+            RTLOG("ScriptLoader::BuildChain: loop failed to initialize atoms");
+            return false;
+        }
     }
 
     // Connect side-links across loops in this chain according to conn ids
@@ -818,14 +826,29 @@ bool ScriptLoader::LoadComponent(Eon::ComponentDefinition& def, AstNode* n) {
 	return true;
 }
 
+// Custom comparator to sort loops before drivers, then by location
+struct LoopBeforeDriverLess {
+	bool operator()(const Endpoint& a, const Endpoint& b) const {
+		bool a_is_driver = a.n->src == Cursor_DriverStmt;
+		bool b_is_driver = b.n->src == Cursor_DriverStmt;
+
+		// If one is a driver and the other is a loop, loop comes first
+		if (a_is_driver != b_is_driver)
+			return !a_is_driver; // a comes before b if a is loop (false) and b is driver (true)
+
+		// If both are the same type, sort by location
+		return a.rel_loc < b.rel_loc;
+	}
+};
+
 bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
 	RTLOG("LoadChain: entering for id=" << chain.id.ToString() << " eager=" << eager_build_chains);
-	
+
 	n->FindAll(loops, Cursor_DriverStmt); // subset of loops
 	n->FindAll(loops, Cursor_LoopStmt);
-	Sort(loops, AstNodeLess());
+	Sort(loops, LoopBeforeDriverLess());
 	
 	for (Endpoint& ep : loops) {
 		AstNode* loop = ep.n;

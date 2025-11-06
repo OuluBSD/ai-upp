@@ -384,7 +384,11 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
         RTLOG("  atom #" << idx << " action=" << spec.action
             << " type=" << atom.ToString()
             << " link=" << (link.IsValid() ? link.ToString() : String("<null>")));
-        lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx);
+        if (!lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx)) {
+            RTLOG("ChainContext::AddLoop: atom #" << idx << " failed to initialize");
+            lc.failed = true;
+            return lc;
+        }
         idx++;
     }
     auto has_audio_channel = [](const ValDevTuple& tuple) {

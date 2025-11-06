@@ -50,6 +50,7 @@ public:
 class LoopContext {
 public:
     VfsValue& space; // loop/space owner where atoms/links are placed
+    bool failed = false; // Set to true if atom initialization fails
 
     struct AddedAtom : Moveable<AddedAtom> {
         AtomBasePtr a;

@@ -10,6 +10,66 @@
 - [x] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
 - [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
 - [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
+
+### THREAD: vfs-ast-fix (rename to eon-tests later)
+**Goal**: Fix VFS tree structure and get all upptst/Eon* tests running properly with correct VFS-AST
+**Problem**: Program was running but with wrong VFS-AST structure (drivers nested inside loops instead of siblings)
+
+#### Current Work: Eon03 VFS-AST Fix
+- [x] Fixed VFS tree ordering: Changed from DriverBeforeLoopLess to LoopBeforeDriverLess
+- [x] Fixed remapping logic to only nest when driver is complete prefix of loop path
+- [x] Enhanced FindOwnerWithCastDeep to search sibling containers
+- [x] Added error checking for AddAtom and AddLoop failures
+- [x] Fixed infinite loop in address replacement code in test harness
+- [ ] Complete testing: Program should exit cleanly on initialization failure with proper error code
+- [ ] Verify VFS tree structure matches expected output in all Eon03 tests
+- [ ] Ensure context finding works correctly with new sibling structure
+
+#### Get All Eon Tests Running
+- [ ] Run and fix upptst/Eon00 tests
+  - [ ] Test all Eon00 variants with correct VFS-AST structure
+  - [ ] Verify state machine and event handling
+- [ ] Run and fix upptst/Eon01 tests
+  - [ ] Test MIDI event handling
+  - [ ] Verify meta tests functionality
+- [ ] Run and fix upptst/Eon02 tests
+  - [ ] Test audio pipeline functionality
+  - [ ] Verify all Eon02 test variants
+- [ ] Run and fix upptst/Eon03 tests (current focus)
+  - [ ] Test 03a (X11 video basic)
+  - [ ] Test 03b (GLX video)
+  - [ ] Test 03c (audio file playback)
+  - [ ] Test 03d (audio file 2)
+  - [ ] Test 03e (X11 video sw3d) - in progress
+  - [ ] Test 03f (X11 video OGL)
+  - [ ] Test 03g (X11 video sw3d linked)
+  - [ ] Test 03h (X11 video OGL linked)
+  - [ ] Test 03i (X11 video sw3d bufferstages)
+  - [ ] Test 03j (X11 video OGL bufferstages)
+  - [ ] Test 03k (X11 video sw3d stereo)
+  - [ ] Test 03l (X11 video OGL stereo)
+  - [ ] Test 03m (X11 video OGL PBR)
+  - [ ] Test 03n (Win32 video)
+- [ ] Run and fix upptst/Eon04 tests
+  - [ ] Test all Eon04 variants
+  - [ ] Verify functionality with new VFS structure
+- [ ] Run and fix upptst/Eon05 tests
+  - [ ] Test all Eon05 variants
+  - [ ] Verify functionality with new VFS structure
+- [ ] Run and fix upptst/Eon06 tests
+  - [ ] Test all Eon06 variants
+  - [ ] Verify functionality with new VFS structure
+- [ ] Run and fix upptst/Eon07 tests
+  - [ ] Test ECS features
+  - [ ] Verify entity/component/system functionality
+- [ ] Run and fix upptst/Eon08 tests
+  - [ ] Test GUI integration
+  - [ ] Test 3D rendering with ECS
+  - [ ] Test VR functionality
+
+### THREAD: stdsrc
+**Goal**: Implement wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
+
 - [x] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
 - [x] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
 - [x] Update stdtst packages to test all wrapper library features comprehensively

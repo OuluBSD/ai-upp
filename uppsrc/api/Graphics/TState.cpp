@@ -11,6 +11,15 @@ MaterialT<Gfx>::MaterialT() {
 	}
 }
 
+template <class Gfx>
+MaterialT<Gfx>::MaterialT(int a) {
+	ASSERT(a == 0);
+	for(int i = 0; i < TEXTYPE_COUNT; i++) {
+		tex_id[i] = -1;
+		tex_filter[i] = GVar::DEFAULT_FILTER;
+	}
+}
+
 
 
 
@@ -273,10 +282,10 @@ bool ModelStateT<Gfx>::LoadModelTextures(Model& m) {
 	
 	for(int i = 0; i < m.textures.GetCount(); i++) {
 		int id = m.textures.GetKey(i);
-		NativeColorBufferPtr& buf = textures.GetAdd(id);
+		NativeColorBufferPtr& buf = textures.GetAdd(id, 0);
 		ByteImage& tex = m.textures[i].img;
 		
-		if (buf || tex.IsEmpty())
+		if (buf || !tex || tex.IsEmpty())
 			continue;
 		
 		if (tex.channels < 3)
@@ -296,7 +305,7 @@ bool ModelStateT<Gfx>::LoadModelTextures(Model& m) {
 	
 	for(int i = 0; i < m.cube_textures.GetCount(); i++) {
 		int id = m.cube_textures.GetKey(i);
-		NativeColorBufferPtr& buf = cube_textures.GetAdd(id);
+		NativeColorBufferPtr& buf = cube_textures.GetAdd(id, 0);
 		if (buf)
 			continue;
 		
@@ -338,7 +347,7 @@ void ModelStateT<Gfx>::ProcessMaterials(Model& model) {
 	for(int i = 0; i < model.materials.GetCount(); i++) {
 		Upp::Material& mat = model.materials[i];
 		ASSERT(mat.id >= 0);
-		MaterialT<Gfx>& gfx_mat = materials.GetAdd(mat.id);
+		MaterialT<Gfx>& gfx_mat = materials.GetAdd(mat.id, 0);
 		gfx_mat.id = mat.id;
 		for(int j = 0; j < TEXTYPE_COUNT; j++) {
 			gfx_mat.tex_id[j] = mat.tex_id[j];

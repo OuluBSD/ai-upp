@@ -9,12 +9,13 @@
 struct TgaReaderBackend : StaticIfaceBackend {
 	typedef TgaReaderBackend CLASSNAME;
 	//RTTI_DECL1(TgaReaderBackend, StaticIfaceBackend)
-	
-	
+
+
 	Image LoadFileAny(String path) override;
 	Image LoadStringAny(String str) override;
 	void ClearImage(SysImage& img) override;
-	
+
+	static ByteImage LoadByteImageAny(String path);
 };
 
 

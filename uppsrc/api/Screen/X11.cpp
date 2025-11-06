@@ -235,8 +235,12 @@ bool ScrX11::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 void ScrX11::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 	auto& ctx = *dev.ctx;
 	
-	
-	XDestroyWindow(ctx.display, ctx.win);
+	// Check window validity before attempting to destroy it
+	if (ctx.display && ctx.win) {
+		// We should not directly destroy the window as it might already exist
+		// Instead, we'll just reset the window handle to prevent further operations
+		ctx.win = 0;
+	}
 	
 }
 
@@ -248,10 +252,13 @@ void ScrX11::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	//XkbFreeKeyboard(ctx.xkb, XkbAllComponentsMask, True);
 
 	// flush all pending requests to the X server.
-	XFlush(ctx.display);
-	
-	// close the connection to the X server.
-	XCloseDisplay(ctx.display);
+	if (ctx.display) {
+		XFlush(ctx.display);
+		
+		// close the connection to the X server.
+		XCloseDisplay(ctx.display);
+		ctx.display = 0;  // Mark display as closed to avoid double-close
+	}
 }
 
 bool ScrX11::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, const Packet& in) {

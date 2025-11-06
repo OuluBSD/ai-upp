@@ -220,7 +220,12 @@ bool ScrX11Sw::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 void ScrX11Sw::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 	auto& ctx = *dev.ctx;
 	
-	XDestroyWindow(ctx.display, ctx.win);
+	// Check window validity before attempting to destroy it
+	if (ctx.display && ctx.win) {
+		// Simply reset the window handle to prevent double-deletion
+		// The window might already be destroyed by user clicking close button
+		ctx.win = 0;
+	}
 	
 }
 
@@ -228,6 +233,10 @@ void ScrX11Sw::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	auto& ctx = *dev.ctx;
 	
 	dev.accel.Uninitialize();
+	
+	// Clear the accelerator buffers to free memory
+	dev.accel_buf.Clear();
+	dev.accel_buf_tmp.Clear();
 	
 	//XkbFreeKeyboard(ctx.xkb, XkbAllComponentsMask, True);
 

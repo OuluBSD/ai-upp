@@ -250,6 +250,14 @@ int Model::AddTexture(const Image& img, String path) {
 	return id;
 }
 
+int Model::AddTextureByteImage(const ByteImage& img, String path) {
+	int id = textures.IsEmpty() ? 0 : textures.GetKey(textures.GetCount()-1) + 1;
+	Texture& t = textures.Add(id);
+	t.img = img;
+	t.path = path;
+	return id;
+}
+
 int Model::GetAddTexture(const Image& img, String path) {
 	int i = FindTexture(path);
 	if (i >= 0)
@@ -424,9 +432,13 @@ void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMateri
 	        mat->GetTexture((aiTextureType) type, i, &str);
 	        
 	        String path = AppendFileName(model.directory, str.C_Str());
-	        Image img = StreamRaster::LoadFileAny(path);
-	        m.tex_id[textype] = model.GetAddTexture(img, path);
-	        m.tex_filter[textype] = GVar::FILTER_MIPMAP;
+	        // Load directly as ByteImage for Draw/Extensions (not U++ Draw)
+	        ByteImage img = TgaReaderBackend::LoadByteImageAny(path);
+	        if (!img.IsEmpty()) {
+	            int tex_id = model.AddTextureByteImage(img, path);
+	            m.tex_id[textype] = tex_id;
+	            m.tex_filter[textype] = GVar::FILTER_MIPMAP;
+	        }
 	    }
 	}
 }

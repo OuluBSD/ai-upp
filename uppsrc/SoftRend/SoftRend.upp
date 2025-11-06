@@ -8,6 +8,7 @@ file
 	SoftRend.h,
 	SoftRend.icpp,
 	Common.h,
+	Common.cpp,
 	Compiler.h,
 	Compiler.cpp,
 	Data.h,
@@ -23,3 +24,4 @@ file
 	ShaderSoft.cpp,
 	UtilProg.h,
 	UtilProg.cpp;
+

@@ -322,8 +322,20 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
         if (loop_def.is_driver)
             driver_loops.Add(&loop_def);
 
+    // Create ordered list for initialization: drivers first, then regular loops
+    Vector<const Eon::LoopDefinition*> init_order;
+    init_order.Reserve(chain.loops.GetCount());
+    for (const Eon::LoopDefinition& loop_def : chain.loops)
+        if (loop_def.is_driver)
+            init_order.Add(&loop_def);
+    for (const Eon::LoopDefinition& loop_def : chain.loops)
+        if (!loop_def.is_driver)
+            init_order.Add(&loop_def);
+
     // Build each loop under its absolute id (loop.id is already resolved during parsing)
-    for (const Eon::LoopDefinition& loop_def : chain.loops) {
+    // Process in initialization order: drivers first so they're available for regular loops
+    for (const Eon::LoopDefinition* loop_def_ptr : init_order) {
+        const Eon::LoopDefinition& loop_def = *loop_def_ptr;
         String chain_str = chain.id.IsEmpty() ? "<anon>" : chain.id.ToString();
         String loop_str = loop_def.id.IsEmpty() ? "<anon>" : loop_def.id.ToString();
         LOG(Format("BuildChain[%s]: loop=%s driver=%d atoms=%d",

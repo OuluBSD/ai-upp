@@ -1,0 +1,7 @@
+After extensive analysis of the FboAtomT and X11SwGfx implementation, I believe the white screen issue occurs because:
+
+1. The X11SwFboBase (FboAtomT<X11SwGfx>) renders to its own internal framebuffer
+2. The X11SwVideoAtomPipe expects to display content but may not be getting the rendered output from the FBO
+3. The connection between FBO program and video pipe may not be properly established in terms of data flow
+
+The issue likely stems from the fact that the FBO program atom renders a scene but doesn't properly pass the rendered output to the video pipe atom for display.

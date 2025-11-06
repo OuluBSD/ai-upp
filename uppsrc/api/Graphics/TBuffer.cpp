@@ -82,9 +82,9 @@ bool BufferT<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	String env_name = ws.Get(".env");
 	if (!env_name.IsEmpty()) {
 		String normalized = NormalizePathSeparators(env_name);
-		LOG(l->GetRoot().GetTreeString());
+		LOG(a.val.GetRoot().GetTreeString());
 		LOG("normalized: " << normalized);
-		env = a.val.FindOwnerWithPathAndCast<EnvState>(normalized) : 0;
+		env = a.val.FindOwnerWithPathAndCast<EnvState>(normalized);
 		if (!env) {
 			LOG("GfxBufferFieldT<Gfx>::Initialize: error: environment state with name '" << env_name << "' not found");
 			return false;

@@ -138,7 +138,7 @@ LRESULT CALLBACK WinOgl_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 }
 
 bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-    auto ctx_ = a.val.FindOwnerWithCast<WinOglContext>();
+    auto ctx_ = a.val.FindOwnerWithCastDeep<WinOglContext>();
     if (!ctx_) {
         LOG("error: could not find WinOgl context");
         return false;

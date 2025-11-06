@@ -33,4 +33,5 @@ a.out
 .cache
 bin/**
 valgrind*
+*.txt
 

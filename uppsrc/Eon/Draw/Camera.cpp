@@ -351,13 +351,13 @@ void ChaseCam::UpdateView() {
 bool ChaseCam::Load(GfxDataState& s) {
 	s.view = view;
 	s.user_view = true;
-	
+
 	if (s.is_stereo) {
 		s.is_stereo = true;
 		s.view_stereo[0] = mvp_stereo[0];
 		s.view_stereo[1] = mvp_stereo[1];
 	}
-	
+
 	return true;
 }
 

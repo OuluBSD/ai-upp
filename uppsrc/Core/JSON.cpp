@@ -357,10 +357,16 @@ template<> void Jsonize(JsonIO& io, int64& var)
 			io.Set(AsString(var));
 }
 
+#ifdef CPU_64
+// On 64-bit systems, hash_t is 64-bit, so we can safely use int64 Jsonize
 template<> void Jsonize(JsonIO& io, hash_t& var)
 {
 	Jsonize(io, (int64&)var);
 }
+#else
+// On 32-bit systems, hash_t is 32-bit and would conflict with uint32 specialization
+// So we don't provide a specific hash_t Jsonize specialization
+#endif
 
 template<> void Jsonize(JsonIO& io, String& var)
 {

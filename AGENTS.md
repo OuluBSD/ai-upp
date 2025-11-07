@@ -96,3 +96,31 @@ Book Contribution Gate (Mandatory)
 - FBO programs render scene data to internal framebuffers
 - The rendered content is transmitted through the packet system to video sink atoms
 - Video sink atoms display the framebuffer content to the screen
+
+## Known Graphics Rendering Issues and Fixes
+
+### Stereo Rendering (BufferStageT::SetStereo)
+**Location**: `uppsrc/api/Graphics/TBufferStage.cpp:10-21`
+
+**Issue**: The TODO at line 12 caused crashes when stereo tests (03k, 03l) attempted to run. The code was always using `fb[0]` for both left and right eye framebuffers.
+
+**Fix**: Changed to use `fb[stereo_id]` where stereo_id selects between separate framebuffers for left (0) and right (1) eyes:
+```cpp
+auto& fb = this->fb[stereo_id];  // Instead of this->fb[0]
+```
+Added bounds checking with ASSERT to prevent invalid stereo_id values.
+
+**Remaining Issue**: While stereo tests now run without crashing, the left image doesn't update - it stays frozen while the right image animates correctly. This points to a framebuffer update issue specific to the left eye buffer.
+
+### Cube Texture Index Bug (Model::AddCubeTexture)
+**Location**: `uppsrc/Geometry/Model.cpp:271`
+
+**Issue**: Wrong collection used for indexing - code was using `textures.GetCount()-1` as an index into `cube_textures` AMap, causing out-of-bounds access when loading PBR skybox textures (test 03m).
+
+**Fix**: Changed to use the correct collection for indexing:
+```cpp
+int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCount()-1) + 1;
+// Instead of: cube_textures.GetKey(textures.GetCount()-1) + 1
+```
+
+**Remaining Issue**: Test 03m now runs without crashing but has texture corruption - skybox cubemap appears corrupted and the gun model is black with no textures. The bug is somewhere in the image-to-shader transfer pipeline after loading.

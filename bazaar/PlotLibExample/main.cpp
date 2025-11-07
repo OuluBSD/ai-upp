@@ -27,7 +27,7 @@ CONSOLE_APP_MAIN {
 	plot.data.Add();
 	plot.data[0].SetColor(LtRed()).SetTitle("Butterfly Curve");
 	for(double t = -12*M_PI; t <= 12*M_PI; t+=0.02){
-		double r=(exp(cos(t))-2*cos(4*t)+pow(sin(t/12),5));
+		double r=(exp(cos(t))-2*cos(4*t)+pow(sin(t/12),5));	
 		plot.data[0].AddXY(r*sin(t),r*cos(t));
 	}
 	
@@ -48,7 +48,7 @@ CONSOLE_APP_MAIN {
 	for(double x = -4; x <= 4; x+=0.5){
 		dataset.AddXY(x,int(Random(7))-3);
 	}
-	plot.data.Add(dataset);
+	plot.data.Add(pick(dataset));
 	plot.data[2].SetColor(Green()).SetTitle("Totally random")
 	              .SetThickness(2).SetSymbol("Ladybug");
 

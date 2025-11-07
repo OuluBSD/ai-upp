@@ -30,7 +30,7 @@ public:
 	virtual Image CursorImage(Point p, dword keyflags);
 	Callback WhenSync;
 protected:
-	RectTracker tr;
+	One<RectTracker> tr;
 	Image img;
 	Pointf mpos;
 	Rectf lim;

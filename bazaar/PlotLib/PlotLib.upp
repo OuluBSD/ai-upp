@@ -1,7 +1,5 @@
 description "General charting library\377";
 
-optimize_speed;
-
 uses
 	Painter;
 
@@ -11,7 +9,7 @@ file
 	PlotSymbol.cpp,
 	PlotData.cpp,
 	Legend.cpp,
-	Plot.cpp optimize_speed,
+	Plot.cpp,
 	srcdoc.tpp,
 	src.tpp;
 

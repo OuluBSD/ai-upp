@@ -86,7 +86,7 @@ GUI_APP_MAIN{
 	for(double x = -4; x <= 4; x+=0.5){
 		dataset.AddXY(x,int(Random(7))-3);
 	}
-	p.plot.data.Add(dataset);
+	p.plot.data.Add(pick(dataset));
 	p.plot.data[2].SetColor(Green()).SetTitle("Totally random")
 	              .SetThickness(2).SetSymbol("Ladybug");
 

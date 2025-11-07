@@ -32,15 +32,17 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
   - [x] Per-atom buffer profiling shows PollerLink.sink[0] wait time: 767ms avg in linked vs 125ms in baseline
   - [x] Confirmed: Framerate is low due to debug mode (-O0) with intensive fragment shaders - expected behavior
   - [x] Packet profiling tool completed: tracks buffer residence time, exchange timing, and packet formats
-- [ ] Fix stereo rendering in tests 03k and 03l
+- [x] Fix stereo rendering in tests 03k and 03l ✓ FIXED
   - [x] Packet profiling shows normal packet flow (4 packets, all buffers <0.2ms, exchange 7.6ms avg)
   - [x] Confirmed: Issue is NOT in packet/pipeline system
-  - [ ] **Next: Investigate camera matrix update for left eye (slave camera)**
-    - [ ] Check where camera matrices are set in stereo rendering code
-    - [ ] Verify stages[0] (left eye) gets matrix updates each frame like stages[1] (right eye)
-    - [ ] Look at "slave camera" configuration - may be set as static
-  - [ ] Left image is stuck/not updating while right image works correctly
-  - [ ] Both images should show scene from slightly different camera positions
+  - [x] Root cause #1: ObjViewProg.cpp had hardcoded static stereo camera positions
+    - Stereo eyes were at fixed positions instead of following animated camera
+    - Fixed: Calculate eye offsets relative to animated camera position using perpendicular offset
+  - [x] Root cause #2: TBufferStage.cpp SetStereo() bug caused right eye to use mono rendering
+    - SetStereo(1) set flag on fb[1] but Process() checks fb[0]
+    - Right eye rendered with wrong viewport (mono instead of stereo aspect ratio)
+    - Fixed: Always set flags on fb[0] which is actually used by rendering
+  - [x] Both eyes now animate correctly with matching aspect ratios
 - [ ] Fix texture corruption in test 03m (PBR with skybox)
   - [ ] Background cube skybox has corrupted texture data
   - [ ] Gun model appears black with no textures

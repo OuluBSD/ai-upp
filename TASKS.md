@@ -2,25 +2,11 @@
 
 ## IN PROGRESS
 
-- [x] CRITICAL: Analyze and implement correct overlay architecture: MetaEnvironment needs VirtualNode root that navigates multiple VfsOverlay instances per file
-- [x] CRITICAL: Each VfsOverlay must contain VfsValue root for individual files only, not MetaEnvironment global root
-- [x] CRITICAL: Implement VirtualNode-to-Overlays navigation system for unified view across all active overlays
-- [x] CRITICAL: Maintain backward compatibility while restructuring MetaEnvironment from single VfsValue root to overlay-based system
-- [x] CRITICAL: Ensure file-level isolation where each .cpp/.h file has its own overlay with its AST data
-- [x] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
-- [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
-- [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
-
 ### THREAD: vfs-ast-fix (rename to eon-tests later)
 **Goal**: Fix VFS tree structure and get all upptst/Eon* tests running properly with correct VFS-AST
 **Problem**: Program was running but with wrong VFS-AST structure (drivers nested inside loops instead of siblings)
 
 #### Current Work: Eon03 VFS-AST Fix
-- [x] Fixed VFS tree ordering: Changed from DriverBeforeLoopLess to LoopBeforeDriverLess
-- [x] Fixed remapping logic to only nest when driver is complete prefix of loop path
-- [x] Enhanced FindOwnerWithCastDeep to search sibling containers
-- [x] Added error checking for AddAtom and AddLoop failures
-- [x] Fixed infinite loop in address replacement code in test harness
 - [ ] Complete testing: Program should exit cleanly on initialization failure with proper error code
 - [ ] Verify VFS tree structure matches expected output in all Eon03 tests
 - [ ] Ensure context finding works correctly with new sibling structure
@@ -36,19 +22,6 @@
   - [ ] Test audio pipeline functionality
   - [ ] Verify all Eon02 test variants
 - [ ] Run and fix upptst/Eon03 tests (current focus)
-  - [x] Test 03a (X11 video basic)
-  - [x] Test 03b (GLX video)
-  - [x] Test 03c (audio file playback)
-  - [x] Test 03d (audio file 2)
-  - [x] Test 03e (X11 video sw3d)
-  - [x] Test 03f (X11 video OGL)
-  - [x] Test 03g (X11 video sw3d linked) - runs but has framerate issues
-  - [x] Test 03h (X11 video OGL linked)
-  - [x] Test 03i (X11 video sw3d bufferstages) - runs but has framerate issues
-  - [x] Test 03j (X11 video OGL bufferstages)
-  - [x] Test 03k (X11 video sw3d stereo) - runs but left image doesn't change
-  - [x] Test 03l (X11 video OGL stereo) - runs but left image doesn't change
-  - [x] Test 03m (X11 video OGL PBR) - runs but has texture corruption issues
   - [ ] Test 03n (Win32 video)
 
 #### Eon03 Known Issues to Fix
@@ -85,84 +58,14 @@
 ### THREAD: stdsrc
 **Goal**: Implement wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
 
-- [x] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
-- [x] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
-- [x] Update stdtst packages to test all wrapper library features comprehensively
-- [x] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
-- [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
-- [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
 - [ ] Implement missing classes in stdsrc/Core to match uppsrc/Core functionality:
-  - [x] Atomic.h
-  - [x] BiCont.h
-  - [x] BinUndoRedo.h
-  - [x] CharSet.h
-  - [x] CoAlgo.h
-  - [x] CoSort.h
-  - [x] CoWork.h
-  - [x] CritBitIndex.h
-  - [x] Cpu.h
-  - [x] Daemon.h
-  - [x] Debug.h
-  - [x] Diag.h
-  - [x] Dli.h
-  - [x] FileMapping.h
-  - [x] FilterStream.h
-  - [x] FixedMap.h
-  - [x] Fn.h
-  - [x] Heap.h
-  - [x] Huge.h
-  - [x] Inet.h
-  - [x] Ini.h
-  - [x] InMap.hpp
-  - [x] InVector.h
-  - [x] LinkedList.h
-  - [x] LocalProcess.h
-  - [x] Mt.h
-  - [x] NetNode.h
-  - [x] Ops.h
-  - [x] Other.h
-  - [x] PackedData.h
-  - [x] Parser.h
-  - [x] Random.h
-  - [x] Range.h
-  - [x] Recycler.h
-  - [x] Shared.h
-  - [x] SIMD.h
-  - [x] Socket.h
-  - [x] Sorted.h
-  - [x] Speller.h
-  - [x] SplitMerge.h
-  - [x] St.h
-  - [x] Topic.h
-  - [x] Topt.h
-  - [x] UnicodeInfo.h
-  - [x] Utf.h
-  - [x] ValueCache.h
-  - [x] ValueUtil.h
-  - [x] Vcont.hpp
-  - [x] WebSocket.h
-  - [x] Win32Util.h
-  - [x] Xmlize.h
-  - [x] xxHsh.h
-  - [x] z.h
-  - [x] AString.hpp
-  - [x] Convert.hpp
-  - [x] Index.hpp
-  - [x] Map.hpp
-  - [x] Other.hpp
-  - [x] Tuple.h
-  - [x] Utf.hpp
-  - [x] Value.hpp
-  - [x] Xmlize.hpp
-  - [x] InVector.hpp
-  - [x] CharFilter.h
+  - All currently required Core classes have been implemented
 - [ ] Implement missing classes in stdsrc/Draw to match uppsrc/Draw functionality:
   - [ ] Cham.h
   - [ ] DDARasterizer.h
   - [ ] Display.h (Note: different from CtrlCore Display.h)
   - [ ] DrawUtil.h
   - [ ] ImageOp.h
-  - [x] Iml.h
   - [ ] Palette.h
   - [ ] Raster.h
   - [ ] SDraw.h
@@ -209,9 +112,6 @@
   - [ ] EncodeRTF.h
   - [ ] ParseRTF.h
 - [ ] Implement missing classes in stdsrc/CtrlLib to match uppsrc/CtrlLib functionality:
-  - [x] Splitter.h - Implemented
-  - [x] ScrollBar.h - Implemented
-  - [x] SliderCtrl.h - Implemented
   - [ ] Bar.h
   - [ ] Ch.h
   - [ ] ChatCtrl.h
@@ -241,9 +141,6 @@
   - [ ] PushCtrl.h
   - [ ] RichText.h
   - [ ] RichTextView.h
-  - [ ] Splitter.h (already implemented above)
-  - [ ] ScrollBar.h (already implemented above)
-  - [ ] SliderCtrl.h (already implemented above)
   - [ ] StaticCtrl.h
   - [ ] StatusBar.h
   - [ ] SuggestCtrl.h
@@ -501,15 +398,18 @@
 - [ ] Improve 3D transformation utilities
 - [ ] Add geometric projection and unprojection functions
 - [ ] Implement more efficient mesh processing
-- [x] Address issues in TODO.txt: shader components registration
-- [x] Address issues in TODO.txt: data transfer to/from pipeline
-- [x] Address issues in TODO.txt: GPU pipeline initialization
-- [x] Optimize vertex data reuse in rendering
-- [x] Add support for different index formats (1-byte indices)
-- [x] Implement mesh splitting for large models
-- [x] Add shader compilation flags and optimization settings
 
+## DONE
 
+### VFS Overlay Architecture (CRITICAL)
+- [x] CRITICAL: Analyze and implement correct overlay architecture: MetaEnvironment needs VirtualNode root that navigates multiple VfsOverlay instances per file
+- [x] CRITICAL: Each VfsOverlay must contain VfsValue root for individual files only, not MetaEnvironment global root
+- [x] CRITICAL: Implement VirtualNode-to-Overlays navigation system for unified view across all active overlays
+- [x] CRITICAL: Maintain backward compatibility while restructuring MetaEnvironment from single VfsValue root to overlay-based system
+- [x] CRITICAL: Ensure file-level isolation where each .cpp/.h file has its own overlay with its AST data
+- [x] CRITICAL: Ensure VfsValue::file_hash matches Overlay's file_hash for proper correlation
+- [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
+- [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
 
 ### Vfs Overlay Implementation
 - [x] Implement SourceRef structure for tracking provenance (package hash, file hash, local path, priority, flags)
@@ -521,8 +421,49 @@
 - [x] Add overlay listing and merged value retrieval methods
 - [x] Add overlay registration functionality to MetaEnvironment
 
-## DONE
+### Eon03 VFS-AST Fix
+- [x] Fixed VFS tree ordering: Changed from DriverBeforeLoopLess to LoopBeforeDriverLess
+- [x] Fixed remapping logic to only nest when driver is complete prefix of loop path
+- [x] Enhanced FindOwnerWithCastDeep to search sibling containers
+- [x] Added error checking for AddAtom and AddLoop failures
+- [x] Fixed infinite loop in address replacement code in test harness
 
+### Eon03 Tests
+- [x] Test 03a (X11 video basic)
+- [x] Test 03b (GLX video)
+- [x] Test 03c (audio file playback)
+- [x] Test 03d (audio file 2)
+- [x] Test 03e (X11 video sw3d)
+- [x] Test 03f (X11 video OGL)
+- [x] Test 03g (X11 video sw3d linked) - runs but has framerate issues
+- [x] Test 03h (X11 video OGL linked)
+- [x] Test 03i (X11 video sw3d bufferstages) - runs but has framerate issues
+- [x] Test 03j (X11 video OGL bufferstages)
+- [x] Test 03k (X11 video sw3d stereo) - runs but left image doesn't change
+- [x] Test 03l (X11 video OGL stereo) - runs but left image doesn't change
+- [x] Test 03m (X11 video OGL PBR) - runs but has texture corruption issues
+
+### Standard Library Wrapper (stdsrc)
+- [x] Keep working on wrapper library in stdsrc that implements U++ Core functions using STL std c++ libraries
+- [x] Implement stdsrc/{Draw, CtrlCore, CtrlLib} wrapper libraries for WXWidgets/Gtk/Qt and native platform APIs
+- [x] Update stdtst packages to test all wrapper library features comprehensively
+- [x] Convert Eon/Win VR ECS engine to work with OpenVR and OpenHMD in addition to current WinRT implementation
+- [x] Address WinRT limitations and ensure UWP (Universal Windows Platform) compatibility for Eon/Win
+- [x] Create CMake files to enable Visual Studio compilation for Eon/Win project
+- [x] Implement all currently required classes in stdsrc/Core (Atomic.h, BiCont.h, BinUndoRedo.h, CharSet.h, CoAlgo.h, CoSort.h, CoWork.h, CritBitIndex.h, Cpu.h, Daemon.h, Debug.h, Diag.h, Dli.h, FileMapping.h, FilterStream.h, FixedMap.h, Fn.h, Heap.h, Huge.h, Inet.h, Ini.h, InMap.hpp, InVector.h, LinkedList.h, LocalProcess.h, Mt.h, NetNode.h, Ops.h, Other.h, PackedData.h, Parser.h, Random.h, Range.h, Recycler.h, Shared.h, SIMD.h, Socket.h, Sorted.h, Speller.h, SplitMerge.h, St.h, Topic.h, Topt.h, UnicodeInfo.h, Utf.h, ValueCache.h, ValueUtil.h, Vcont.hpp, WebSocket.h, Win32Util.h, Xmlize.h, xxHsh.h, z.h, AString.hpp, Convert.hpp, Index.hpp, Map.hpp, Other.hpp, Tuple.h, Utf.hpp, Value.hpp, Xmlize.hpp, InVector.hpp, CharFilter.h)
+- [x] Implement Iml.h in stdsrc/Draw
+- [x] Implement Splitter.h, ScrollBar.h, SliderCtrl.h in stdsrc/CtrlLib
+
+### Geometry Library Improvements
+- [x] Address issues in TODO.txt: shader components registration
+- [x] Address issues in TODO.txt: data transfer to/from pipeline
+- [x] Address issues in TODO.txt: GPU pipeline initialization
+- [x] Optimize vertex data reuse in rendering
+- [x] Add support for different index formats (1-byte indices)
+- [x] Implement mesh splitting for large models
+- [x] Add shader compilation flags and optimization settings
+
+### General Project Analysis
 - [x] Explored uppsrc/api/ directory structure
 - [x] Mapped current API components (Audio, Camera, Graphics, Hal, Holograph, Media, MidiHw, Physics, Screen, Volumetric, etc.)
 - [x] Analyzed EonApiEditor package structure and functionality

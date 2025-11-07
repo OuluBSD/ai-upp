@@ -153,7 +153,7 @@ void ObjViewProg::DrawObj(GfxStateDraw& fb, bool use_texture) {
 		//float eye_x = cos(angle);
 		//float eye_y = sin(angle);
 		mat4 proj = Perspective(DEG2RADf(90), 1.0f, 0.1f, 100.0f);
-		
+
 		vec3 eye {x, 0, z};
 		//vec3 center {0.3f * -eye_x, 0.0f, 0.3f * eye_y};
 		vec3 center {0, 0, 0};
@@ -161,24 +161,40 @@ void ObjViewProg::DrawObj(GfxStateDraw& fb, bool use_texture) {
 		mat4 lookat = LookAt(eye, center, up);
 		mat4 port = GetViewport(-1 * ratio, -1, 2 * ratio, 2, 1);
 		mat4 base = port * proj;
-		
+
 		state.camera_pos = eye;
 		state.camera_dir = (center - eye).GetNormalized();
 		state.view = base * lookat;
-		
+
 		if (1) {
-			float eye_dist = 0.08f;
+			// Stereo rendering: offset eyes perpendicular to view direction
+			float eye_dist = 0.064f;  // Standard human IPD (inter-pupillary distance)
 			state.is_stereo = true;
-			mat4 eye_port = GetViewport(-1 * eye_ratio, -1, 2 * eye_ratio, 2, 1);
-			mat4 base = eye_port * proj;
-			vec3 l_eye(-eye_dist, 0, -1 * SCALAR_FWD_Z);
-			vec3 r_eye(+eye_dist, 0, -1 * SCALAR_FWD_Z);
-			vec3 l_center { -eye_dist, 0, 0};
-			vec3 r_center { +eye_dist, 0, 0};
-			mat4 l_lookat = LookAt(l_eye, l_center, up);
-			mat4 r_lookat = LookAt(r_eye, r_center, up);
-			state.view_stereo[0] = base * l_lookat;
-			state.view_stereo[1] = base * r_lookat;
+
+			// Calculate side vector (perpendicular to view direction)
+			vec3 look_vec = center - eye;
+			vec3 side_vec = Cross(look_vec, up);
+			side_vec.Normalize();
+
+			// Offset eyes and targets by half IPD in each direction
+			float eye_dist_2 = eye_dist / 2.0f;
+			vec3 eye_off = side_vec * eye_dist_2;
+
+			vec3 l_eye = eye - eye_off;
+			vec3 r_eye = eye + eye_off;
+			vec3 l_target = center - eye_off;
+			vec3 r_target = center + eye_off;
+
+			// Use stereo viewport with eye_ratio (for half-width per eye)
+			mat4 port_stereo = GetViewport(-1 * eye_ratio, -1, 2 * eye_ratio, 2, 1);
+			mat4 stereo_base = port_stereo * proj;
+
+			mat4 l_lookat = LookAt(l_eye, l_target, up);
+			mat4 r_lookat = LookAt(r_eye, r_target, up);
+
+			// Apply same transformation to both eyes
+			state.view_stereo[0] = stereo_base * l_lookat;
+			state.view_stereo[1] = stereo_base * r_lookat;
 		}
 		
 		//state.view_stereo[0] = state.view;

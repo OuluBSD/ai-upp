@@ -13,7 +13,8 @@ void BufferStageT<Gfx>::SetStereo(int stereo_id) {
 	if (stereo_id < 0 || stereo_id >= 2)
 		return;
 
-	auto& fb = this->fb[stereo_id];
+	// Always set flags on fb[0] which is used by Process()
+	auto& fb = this->fb[0];
 	if (stereo_id == 0)
 		fb.is_stereo_left = true;
 	else if (stereo_id == 1)

@@ -30,7 +30,7 @@ ByteImage TgaReaderBackend::LoadByteImageAny(String path) {
 	int h = 0;
 	int depth = 0;
 	int bpp = 4; // always, see tgaRead impl
-	void* src = (void*)tgaRead((const unsigned char*)content.Begin(), TGA_READER_ARGB, &w, &h, &depth);
+	void* src = (void*)tgaRead((const unsigned char*)content.Begin(), TGA_READER_ABGR, &w, &h, &depth);
 	if (!src) {
 		LOG("TgaReaderBackend::LoadByteImageAny: error: tgaRead failed for: " << path);
 		return ByteImage();

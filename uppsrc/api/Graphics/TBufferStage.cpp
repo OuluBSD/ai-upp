@@ -8,8 +8,12 @@ extern const char* stereo_frag_shader;
 
 template <class Gfx>
 void BufferStageT<Gfx>::SetStereo(int stereo_id) {
-	auto& fb = this->fb[0];
-	TODO // this is just messed up code -> fb:s are already for left & right
+	// Use separate framebuffers for left (fb[0]) and right (fb[1]) eyes
+	ASSERT(stereo_id >= 0 && stereo_id < 2);
+	if (stereo_id < 0 || stereo_id >= 2)
+		return;
+
+	auto& fb = this->fb[stereo_id];
 	if (stereo_id == 0)
 		fb.is_stereo_left = true;
 	else if (stereo_id == 1)

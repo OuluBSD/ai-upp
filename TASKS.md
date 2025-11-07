@@ -36,20 +36,35 @@
   - [ ] Test audio pipeline functionality
   - [ ] Verify all Eon02 test variants
 - [ ] Run and fix upptst/Eon03 tests (current focus)
-  - [ ] Test 03a (X11 video basic)
-  - [ ] Test 03b (GLX video)
-  - [ ] Test 03c (audio file playback)
-  - [ ] Test 03d (audio file 2)
-  - [ ] Test 03e (X11 video sw3d) - in progress
-  - [ ] Test 03f (X11 video OGL)
-  - [ ] Test 03g (X11 video sw3d linked)
-  - [ ] Test 03h (X11 video OGL linked)
-  - [ ] Test 03i (X11 video sw3d bufferstages)
-  - [ ] Test 03j (X11 video OGL bufferstages)
-  - [ ] Test 03k (X11 video sw3d stereo)
-  - [ ] Test 03l (X11 video OGL stereo)
-  - [ ] Test 03m (X11 video OGL PBR)
+  - [x] Test 03a (X11 video basic)
+  - [x] Test 03b (GLX video)
+  - [x] Test 03c (audio file playback)
+  - [x] Test 03d (audio file 2)
+  - [x] Test 03e (X11 video sw3d)
+  - [x] Test 03f (X11 video OGL)
+  - [x] Test 03g (X11 video sw3d linked) - runs but has framerate issues
+  - [x] Test 03h (X11 video OGL linked)
+  - [x] Test 03i (X11 video sw3d bufferstages) - runs but has framerate issues
+  - [x] Test 03j (X11 video OGL bufferstages)
+  - [x] Test 03k (X11 video sw3d stereo) - runs but left image doesn't change
+  - [x] Test 03l (X11 video OGL stereo) - runs but left image doesn't change
+  - [x] Test 03m (X11 video OGL PBR) - runs but has texture corruption issues
   - [ ] Test 03n (Win32 video)
+
+#### Eon03 Known Issues to Fix
+- [ ] Fix framerate issues in tests 03g and 03i
+  - [ ] Add FPS printing to X11 stop or uninitialize functions
+  - [ ] Investigate why framerate is low in linked and bufferstages tests
+  - [ ] Compare with working tests to identify performance bottleneck
+- [ ] Fix stereo rendering in tests 03k and 03l
+  - [ ] Left image is stuck/not updating while right image works correctly
+  - [ ] Both images should show scene from slightly different camera positions
+  - [ ] Issue likely related to framebuffer handling in stereo mode
+- [ ] Fix texture corruption in test 03m (PBR with skybox)
+  - [ ] Background cube skybox has corrupted texture data
+  - [ ] Gun model appears black with no textures
+  - [ ] Bug occurs somewhere in image-to-shader transfer pipeline
+  - [ ] Check cubemap loading, texture upload, and shader binding
 - [ ] Run and fix upptst/Eon04 tests
   - [ ] Test all Eon04 variants
   - [ ] Verify functionality with new VFS structure

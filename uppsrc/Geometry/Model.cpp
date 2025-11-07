@@ -268,7 +268,7 @@ int Model::GetAddTexture(const Image& img, String path) {
 }
 
 int Model::AddCubeTexture(String path) {
-	int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(textures.GetCount()-1) + 1;
+	int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCount()-1) + 1;
 	CubeTexture& t = cube_textures.Add(id);
 	t.path = path;
 	return id;

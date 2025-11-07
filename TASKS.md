@@ -25,14 +25,22 @@
   - [ ] Test 03n (Win32 video)
 
 #### Eon03 Known Issues to Fix
-- [ ] Fix framerate issues in tests 03g and 03i
-  - [ ] Add FPS printing to X11 stop or uninitialize functions
-  - [ ] Investigate why framerate is low in linked and bufferstages tests
-  - [ ] Compare with working tests to identify performance bottleneck
+Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03". Test 03a runs with "bin/Eon03 0 0" and test 03b with "bin/Eon03 1 0" etc.
+- [x] Fix framerate issues in tests 03g and 03i
+  - [x] Add FPS printing to X11 stop or uninitialize functions
+  - [x] Added comprehensive packet profiling to PacketTracker
+  - [x] Per-atom buffer profiling shows PollerLink.sink[0] wait time: 767ms avg in linked vs 125ms in baseline
+  - [x] Confirmed: Framerate is low due to debug mode (-O0) with intensive fragment shaders - expected behavior
+  - [x] Packet profiling tool completed: tracks buffer residence time, exchange timing, and packet formats
 - [ ] Fix stereo rendering in tests 03k and 03l
+  - [x] Packet profiling shows normal packet flow (4 packets, all buffers <0.2ms, exchange 7.6ms avg)
+  - [x] Confirmed: Issue is NOT in packet/pipeline system
+  - [ ] **Next: Investigate camera matrix update for left eye (slave camera)**
+    - [ ] Check where camera matrices are set in stereo rendering code
+    - [ ] Verify stages[0] (left eye) gets matrix updates each frame like stages[1] (right eye)
+    - [ ] Look at "slave camera" configuration - may be set as static
   - [ ] Left image is stuck/not updating while right image works correctly
   - [ ] Both images should show scene from slightly different camera positions
-  - [ ] Issue likely related to framebuffer handling in stereo mode
 - [ ] Fix texture corruption in test 03m (PBR with skybox)
   - [ ] Background cube skybox has corrupted texture data
   - [ ] Gun model appears black with no textures

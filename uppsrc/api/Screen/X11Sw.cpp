@@ -283,13 +283,13 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 		ASSERT(dev.accel_buf.channels == bpp);
 		ASSERT(ctx.fb);
 		ASSERT(!ctx.fb->data);
-		#if 1 // Enable red/blue channel swapping to fix color issue
-	    dev.accel_buf_tmp.SetSwapRedBlue(dev.accel_buf, true);
+		// Determine if we need to swap R and B channels based on the X11 visual
+		// Typically, if the red mask has higher bits than blue mask, we have RGB format
+		// and may need to swap to BGR for correct display, or vice versa
+		// Since the issue is that R and B are swapped, we enable the swap to correct it
+		dev.accel_buf_tmp.SetSwapRedBlue(dev.accel_buf, true);
 		ASSERT(dev.accel_buf_tmp.GetLength() == len);
 		ctx.fb->data = (char*)(const unsigned char*)dev.accel_buf_tmp.Begin();
-		#else
-	    ctx.fb->data = (char*)(const unsigned char*)dev.accel_buf.Begin();
-	    #endif
 	    ctx.fb->bytes_per_line = width * bpp;
 	    
 	    ASSERT(width == ctx.fb->width);

@@ -198,7 +198,6 @@ void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visito
 
 bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	RTLOG("HalSdl::AudioSinkDevice_Initialize: ev_ctx = " << (void*)ev_ctx);
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 
@@ -215,7 +214,6 @@ bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a,
 	// Set init flag
 	dword sdl_flag = SDL_INIT_AUDIO;
 	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
-	RTLOG("HalSdl::AudioSinkDevice_Initialize: stored flag = " << sdl_flag << " for atom: " << a.val.GetPath().ToString());
 
 	a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 
@@ -365,33 +363,25 @@ bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const W
 
 bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 	RTLOG("HalSdl::ContextBase_PostInitialize");
-	RTLOG("HalSdl::ContextBase_PostInitialize: UserData dump:");
-	RDUMP(a.UserData());
 
 	// SDL
 	uint32 sdl_flags = 0;
-	ValueFS data(a.UserData());
-	auto map = data("dependencies");
-	map->RealizeMap();
-	RTLOG("HalSdl::ContextBase_PostInitialize: dependencies count = " << map->GetCount());
-	for(int i = 0; i < map->GetCount(); i++) {
-		Value atom_path_val = map->GetKey(i);
+	ValueMap deps(a.UserData()("dependencies"));
+	for(int i = 0; i < deps.GetCount(); i++) {
+		String atom_path_str = deps.GetKey(i);
 		VfsPath atom_path;
-		atom_path.Set(atom_path_val);
-		RTLOG("HalSdl::ContextBase_PostInitialize: dependency path = " << atom_path.ToString());
+		atom_path.Set(atom_path_str);
 		AtomBase* atom = MetaEnv().root.FindPath<AtomBase>(atom_path);
 		ASSERT(atom);
 		if (!atom) {
-			LOG("HalSdl::ContextBase_PostInitialize: error: AtomBase not found in the path: " + atom_path);
+			LOG("HalSdl::ContextBase_PostInitialize: error: AtomBase not found in the path: " + atom_path.ToString());
 			return false;
 		}
 		AtomBase& other = *atom;
-		uint32 flag = (uint32)(int64)map->Open(i)->Get("sdl_flag");
-		RTLOG("HalSdl::ContextBase_PostInitialize: flag = " << flag);
+		ValueMap atom_data(deps(atom_path_str));
+		uint32 flag = (uint32)(int64)atom_data("sdl_flag");
 		sdl_flags |= flag;
 	}
-
-	RTLOG("HalSdl::ContextBase_PostInitialize: calling SDL_Init with flags = " << sdl_flags);
 	if (SDL_Init(sdl_flags) < 0) {
 		String last_error = SDL_GetError();
 		LOG("SDL2::Context: error: " << last_error);

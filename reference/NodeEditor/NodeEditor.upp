@@ -1,4 +1,4 @@
-description "Node Editor - Reference Implementation of Advanced Node Graph Features";
+description "Node Editor - Reference Implementation of Advanced Node Graph Features\377";
 
 uses
 	CtrlLib,
@@ -10,3 +10,4 @@ file
 
 mainconfig
 	"" = "GUI";
+

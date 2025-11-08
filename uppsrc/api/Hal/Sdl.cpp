@@ -382,6 +382,10 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 		uint32 flag = (uint32)(int64)atom_data("sdl_flag");
 		sdl_flags |= flag;
 	}
+
+	// Disable compositor bypass to keep X11 composition effects working
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+
 	if (SDL_Init(sdl_flags) < 0) {
 		String last_error = SDL_GetError();
 		LOG("SDL2::Context: error: " << last_error);
@@ -461,7 +465,7 @@ void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomB
 }
 
 bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 
@@ -484,12 +488,11 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	a.UserData() = data;
 
 	//dev.render_src = RENDSRC_BUF;
-	
+
 	// Set init flag
-	ValueFS vfs(a.UserData());
 	dword sdl_flag = SDL_INIT_VIDEO;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	return true;
 }
 
@@ -519,15 +522,13 @@ bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& d
     
     
     // Renderer
-    int fb_stride = 4;
-    SDL_Texture* fb = SDL_CreateTexture(dev.rend, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, screen_sz.cx, screen_sz.cy);
+    int fb_stride = 3;
+    SDL_Texture* fb = SDL_CreateTexture(dev.rend, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, screen_sz.cx, screen_sz.cy);
 	
 	if (!fb) {
 		LOG("error: couldn't create framebuffer texture");
 		return false;
 	}
-
-	SDL_SetRenderTarget(dev.rend, fb);
 
 	auto& rend_fb = dev.fb;
 	rend_fb.Init(fb, screen_sz.cx, screen_sz.cy, fb_stride);
@@ -704,6 +705,8 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 }
 
 void HalSdl::CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg) {
+	SDL_SetRenderTarget(dev.rend, NULL); // Set render target to window
+	SDL_RenderClear(dev.rend);
 	SDL_RenderCopy(dev.rend, dev.fb.GetActiveColorBuffer(), NULL, NULL);
 	SDL_RenderPresent(dev.rend);
 }

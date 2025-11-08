@@ -245,40 +245,37 @@ void GraphNodeCtrl::RightDown(Point p, dword key) {
     Pin* clickedPin = renderer->FindPin(p);
     if (clickedPin) {
         // Show pin context menu
-        Popup pinMenu;
-        pinMenu.SetRect(p.x, p.y, 150, 60);
-        
-        pinMenu.Add("Break Links", [=]() {
-            // Break all links connected to this pin
-            Node* pinNode = nullptr;
-            
-            // Find which node this pin belongs to
-            for (int i = 0; i < GetGraph().GetNodeCount(); i++) {
-                Node& node = GetGraph().GetNode(i);
-                for (int j = 0; j < node.pins.GetCount(); j++) {
-                    if (&node.pins[j] == clickedPin) {
-                        pinNode = &node;
-                        break;
+        MenuBar::Execute([=](Bar& b) {
+            b.Add("Break Links", [=]() {
+                // Break all links connected to this pin
+                Node* pinNode = nullptr;
+                
+                // Find which node this pin belongs to
+                for (int i = 0; i < GetGraph().GetNodeCount(); i++) {
+                    Node& node = GetGraph().GetNode(i);
+                    for (int j = 0; j < node.pins.GetCount(); j++) {
+                        if (&node.pins[j] == clickedPin) {
+                            pinNode = &node;
+                            break;
+                        }
                     }
-                }
-                if (pinNode) break;
-            }
-            
-            if (pinNode) {
-                // Remove all edges connected to this pin
-                Vector<Edge*> edgesToRemove;
-                for (int i = 0; i < clickedPin->connections.GetCount(); i++) {
-                    edgesToRemove.Add(clickedPin->connections[i]);
+                    if (pinNode) break;
                 }
                 
-                for (int i = 0; i < edgesToRemove.GetCount(); i++) {
-                    GetGraph().RemoveEdge(*edgesToRemove[i]);
+                if (pinNode) {
+                    // Remove all edges connected to this pin
+                    Vector<Edge*> edgesToRemove;
+                    for (int i = 0; i < clickedPin->connections.GetCount(); i++) {
+                        edgesToRemove.Add(clickedPin->connections[i]);
+                    }
+                    
+                    for (int i = 0; i < edgesToRemove.GetCount(); i++) {
+                        GetGraph().RemoveEdge(*edgesToRemove[i]);
+                    }
                 }
-            }
-            Refresh();
+                Refresh();
+            });
         });
-        
-        pinMenu.Execute();
         return;
     }
     
@@ -286,30 +283,27 @@ void GraphNodeCtrl::RightDown(Point p, dword key) {
     Node* clickedNode = renderer->FindNode(p);
     if (clickedNode) {
         // Show node context menu
-        Popup nodeMenu;
-        nodeMenu.SetRect(p.x, p.y, 150, 100);
-        
-        nodeMenu.Add("Add Input Pin", [=]() {
-            Node& node = *clickedNode;
-            String newPinId = "in_" + IntStr(node.pins.GetCount());
-            node.AddPin(newPinId, PinKind::Input);
-            Refresh();
+        MenuBar::Execute([=](Bar& b) {
+            b.Add("Add Input Pin", [=]() {
+                Node& node = *clickedNode;
+                String newPinId = "in_" + IntStr(node.pins.GetCount());
+                node.AddPin(newPinId, PinKind::Input);
+                Refresh();
+            });
+            
+            b.Add("Add Output Pin", [=]() {
+                Node& node = *clickedNode;
+                String newPinId = "out_" + IntStr(node.pins.GetCount());
+                node.AddPin(newPinId, PinKind::Output);
+                Refresh();
+            });
+            
+            b.Add("Remove Node", [=]() {
+                RemoveNode(clickedNode->id);
+                ClearSelection();
+                Refresh();
+            });
         });
-        
-        nodeMenu.Add("Add Output Pin", [=]() {
-            Node& node = *clickedNode;
-            String newPinId = "out_" + IntStr(node.pins.GetCount());
-            node.AddPin(newPinId, PinKind::Output);
-            Refresh();
-        });
-        
-        nodeMenu.Add("Remove Node", [=]() {
-            RemoveNode(clickedNode->id);
-            ClearSelection();
-            Refresh();
-        });
-        
-        nodeMenu.Execute();
         return;
     }
     
@@ -317,49 +311,43 @@ void GraphNodeCtrl::RightDown(Point p, dword key) {
     Edge* clickedEdge = nullptr;  // We'll implement edge detection in a more complex way in future
     // For now, we'll just check if any edge is selected
     if (selectedEdges.GetCount() > 0) {
-        Popup edgeMenu;
-        edgeMenu.SetRect(p.x, p.y, 150, 60);
-        
-        edgeMenu.Add("Remove Edge", [=]() {
-            RemoveEdge(*selectedEdges[0]);
-            selectedEdges.Clear();
-            Refresh();
-        });
-        
-        edgeMenu.Add("Change Color", [=]() {
-            // Change color of selected edge
-            if (selectedEdges.GetCount() > 0) {
-                selectedEdges[0]->stroke_clr = RandomColor();
+        MenuBar::Execute([=](Bar& b) {
+            b.Add("Remove Edge", [=]() {
+                RemoveEdge(*selectedEdges[0]);
+                selectedEdges.Clear();
                 Refresh();
-            }
+            });
+            
+            b.Add("Change Color", [=]() {
+                // Change color of selected edge
+                if (selectedEdges.GetCount() > 0) {
+                    selectedEdges[0]->stroke_clr = RandomColor();
+                    Refresh();
+                }
+            });
         });
-        
-        edgeMenu.Execute();
         return;
     }
     
     // If no specific item was clicked, show background context menu
-    Popup bgMenu;
-    bgMenu.SetRect(p.x, p.y, 150, 120);
-    
-    bgMenu.Add("Add Node", [=]() {
-        String nodeId = "Node_" + IntStr(GetGraph().GetNodeCount());
-        AddNode(nodeId, p);
-        Refresh();
+    MenuBar::Execute([=](Bar& b) {
+        b.Add("Add Node", [=]() {
+            String nodeId = "Node_" + IntStr(GetGraph().GetNodeCount());
+            AddNode(nodeId, p);
+            Refresh();
+        });
+        
+        b.Add("Clear Selection", [=]() {
+            ClearSelection();
+            Refresh();
+        });
+        
+        b.Add("Clear All", [=]() {
+            ClearSelection();
+            GetGraph().Clear();
+            Refresh();
+        });
     });
-    
-    bgMenu.Add("Clear Selection", [=]() {
-        ClearSelection();
-        Refresh();
-    });
-    
-    bgMenu.Add("Clear All", [=]() {
-        ClearSelection();
-        GetGraph().Clear();
-        Refresh();
-    });
-    
-    bgMenu.Execute();
 }
 
 Node& GraphNodeCtrl::AddNode(String id, Point position) {

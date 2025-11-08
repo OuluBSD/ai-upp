@@ -625,7 +625,7 @@ void GraphNodeCtrl::PasteNodes(Point at) {
         // Make sure the new ID is unique
         int suffix = 1;
         String originalNewId = newId;
-        while (GetGraph().nodes.Find(newId) != -1) {
+        while (GetGraph().FindNode(newId) != -1) {
             newId = originalNewId + IntStr(suffix++);
         }
         
@@ -668,8 +668,8 @@ void GraphNodeCtrl::PasteNodes(Point at) {
         if (!newSourceId.IsEmpty() && !newTargetId.IsEmpty()) {
             // Find pins that were connected in the original
             // We'll need to connect the same pin IDs between the new nodes
-            Node& sourceNode = GetGraph().GetNode(GetGraph().nodes.Find(newSourceId));
-            Node& targetNode = GetGraph().GetNode(GetGraph().nodes.Find(newTargetId));
+            Node& sourceNode = GetGraph().GetNode(GetGraph().FindNode(newSourceId));
+            Node& targetNode = GetGraph().GetNode(GetGraph().FindNode(newTargetId));
             
             // For now, connect the first available pins of appropriate types
             // A more sophisticated implementation would track the specific pin connections

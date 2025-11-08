@@ -229,6 +229,11 @@ public:
 	//    @return {Edge}
 	void RemoveEdge(Edge& source_edge);
 
+	// Public access methods for nodes
+	int FindNode(String id) const { return nodes.Find(id); }
+	Node& GetNode(String id) { return nodes.Get(id); }
+	const Node& GetNode(String id) const { return nodes.Get(id); }
+
 
 	void Clear();
 };

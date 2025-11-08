@@ -2,6 +2,67 @@
 
 ## IN PROGRESS
 
+### THREAD: GraphLib Node Editor Features
+**Goal**: Enhance GraphLib package with advanced node editor features based on imgui-node-editor pseudocode
+**Features to implement**: Node pin system, interactive editing, visual feedback, animations, context menus, and clipboard operations
+
+#### Phase 1: Core Node Editor Components
+- [ ] Add Pin support to Nodes
+  - [ ] Extend Node class to support input/output pins
+  - [ ] Create Pin class with position, type, and connection validation  
+  - [ ] Implement pin rendering in the renderer
+- [ ] Enhance Edge/Link System
+  - [ ] Modify edges to connect from pin to pin instead of node to node
+  - [ ] Add bezier curve rendering for aesthetic connections
+  - [ ] Implement link creation workflow (drag from pin to pin)
+- [ ] Implement Node Groups
+  - [ ] Add group node type that can contain other nodes
+  - [ ] Implement group bounding box and header rendering
+  - [ ] Add group sizing and positioning logic
+
+#### Phase 2: Interactive Editing Features
+- [ ] Add Interactive Editing Features
+  - [ ] Implement node creation/deletion via UI
+  - [ ] Add link creation/deletion functionality
+  - [ ] Create node/link selection system
+- [ ] Enhance UI Interaction System
+  - [ ] Add drag and drop for nodes
+  - [ ] Implement box selection for multiple nodes/links
+  - [ ] Add keyboard shortcuts (Ctrl+C, Ctrl+V, etc.)
+- [ ] Add Visual Feedback System
+  - [ ] Implement selection highlighting
+  - [ ] Add visual feedback during link creation
+  - [ ] Create hover effects for nodes and links
+
+#### Phase 3: Advanced Features
+- [ ] Enhance Navigation System
+  - [ ] Add smooth zooming/panning
+  - [ ] Implement navigation animations
+  - [ ] Add focus on selected elements
+- [ ] Add Context Menus
+  - [ ] Implement node context menus
+  - [ ] Add link context menus
+  - [ ] Create background context menu
+- [ ] Implement Animation System
+  - [ ] Add link flow animations
+  - [ ] Implement node movement animations
+  - [ ] Add navigation animations
+
+#### Phase 4: Productivity Features
+- [ ] Add Clipboard Operations
+  - [ ] Implement cut/copy/paste functionality
+  - [ ] Add node duplication feature
+- [ ] Settings Persistence
+  - [ ] Implement node position saving/loading
+  - [ ] Add editor state persistence
+- [ ] Update Existing Layout Algorithms
+  - [ ] Adapt algorithms to work with new pin-based system
+  - [ ] Ensure backward compatibility with current features
+
+#### Reference Materials
+- [ ] Use ~/Dev/shadertoy/pseudocode/src/thirdparty_imgui-node-editor/ as reference implementation
+- [ ] Copy and analyze GraphLib tutorial examples (GraphLib1-4) for reference design patterns
+
 ### THREAD: vfs-ast-fix (rename to eon-tests later)
 **Goal**: Fix VFS tree structure and get all upptst/Eon* tests running properly with correct VFS-AST
 **Problem**: Program was running but with wrong VFS-AST structure (drivers nested inside loops instead of siblings)

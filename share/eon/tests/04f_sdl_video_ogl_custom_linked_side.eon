@@ -6,18 +6,16 @@ machine sdl.app:
 	chain program:
 		state event.register
 		
-		loop ogl.fbo.buffer:
-			id = "buffer"
+		loop buffer:
 			ogl.customer
-			sdl.ogl.fbo.side [][id == "screen"]:
+			sdl.ogl.fbo.side [][loop == "screen"]:
 				shader.frag.path = "shaders/toys/simple/simple_double/stage1.glsl"
 		
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
-			sdl.fbo:
+			sdl.fbo[loop == "buffer"]:
 				shader.frag.path = "shaders/toys/simple/simple_double/stage0.glsl"
-				recv.data =			false
+				recv.data = false
 		
 		loop audio:
 			center.customer

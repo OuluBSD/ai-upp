@@ -35,6 +35,7 @@ public:
     virtual void LeftUp(Point p, dword key) override;
     virtual void MouseMove(Point p, dword key) override;
     virtual void RightDown(Point p, dword key) override;
+    virtual bool Key(dword key, int count) override;
     
     // Public methods for node/link management
     Node& AddNode(String id, Point position);
@@ -57,11 +58,19 @@ public:
     // Getters
     Graph& GetGraph() { return static_cast<Graph&>(graphLayout); }
     const Graph& GetGraph() const { return static_cast<const Graph&>(graphLayout); }
+
+    // Clipboard operations
+    void CopyNodes();
+    void PasteNodes(Point at);
     
 private:
     void UpdateLayout();
     void UpdateNodePositions();
     void DrawLinkPreview(Draw& w, Point start, Point end);
+
+    // Clipboard data
+    Vector<Node> clipboardNodes;
+    Vector<Edge> clipboardEdges;
 };
 
 }

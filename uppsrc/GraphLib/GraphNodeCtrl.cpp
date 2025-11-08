@@ -24,11 +24,6 @@ void GraphNodeCtrl::Paint(Draw& w) {
 }
 
 void GraphNodeCtrl::LeftDown(Point p, dword key) {
-    // Check if an edge was clicked first (might be overlapping with other items)
-    Edge* clickedEdge = nullptr;  // For now, we'll just check if we clicked near an edge
-    // We'll implement a more sophisticated edge detection later if needed
-    bool edgeClicked = false;
-    
     // Check if a pin was clicked
     Pin* clickedPin = renderer->FindPin(p);
     if (clickedPin) {
@@ -37,7 +32,7 @@ void GraphNodeCtrl::LeftDown(Point p, dword key) {
         Refresh();
         return;
     }
-    
+
     // Check if a node was clicked
     Node* clickedNode = renderer->FindNode(p);
     if (clickedNode) {
@@ -60,21 +55,43 @@ void GraphNodeCtrl::LeftDown(Point p, dword key) {
                 selectedNodes.Add(clickedNode);
                 selectedNode = clickedNode;
             }
+        } 
+        // If Shift key is pressed, add all connected nodes to selection
+        else if (key & K_SHIFT) {
+            // Select this node and all connected nodes
+            ClearSelection();
+            Vector<Node*> connectedNodes;
+            connectedNodes.Add(clickedNode);
+            
+            // Add all directly connected nodes
+            for (int i = 0; i < clickedNode->edges.GetCount(); i++) {
+                Edge* edge = clickedNode->edges[i];
+                if (edge->source != clickedNode) {
+                    connectedNodes.Add(edge->source);
+                } else {
+                    connectedNodes.Add(edge->target);
+                }
+            }
+            
+            // Select all found nodes
+            for (int i = 0; i < connectedNodes.GetCount(); i++) {
+                connectedNodes[i]->Select();
+                selectedNodes.Add(connectedNodes[i]);
+            }
+            selectedNode = clickedNode;
         } else {
             SelectNode(clickedNode);
         }
-        
+
         dragNode = clickedNode;
         isDragging = true;
         dragStart = p;
         Refresh();
         return;
     }
-    
+
     // If nothing was clicked, clear selection
-    if (!edgeClicked) {
-        ClearSelection();
-    }
+    ClearSelection();
     Refresh();
 }
 
@@ -161,26 +178,188 @@ void GraphNodeCtrl::MouseMove(Point p, dword key) {
         Refresh();  // Redraw to update link preview
         return;
     }
+    
+    // Allow box selection when no other operation is happening
+    if (!isDragging && !isCreatingLink) {
+        // Check if we're holding down the shift key to start box selection
+        if (key & K_SHIFT && !selectedNode) {
+            // Implementation of box selection would go here
+            // For now, we'll just return
+        }
+    }
+}
+
+bool GraphNodeCtrl::Key(dword key, int count) {
+    // Handle common keyboard shortcuts
+    if (key == (K_CTRL|'C')) {  // Copy
+        CopyNodes();
+        return true;
+    } else if (key == (K_CTRL|'V')) {  // Paste
+        PasteNodes(dragStart);  // Paste at the last clicked/dragged position
+        return true;
+    } else if (key == (K_CTRL|'A')) {  // Select all
+        ClearSelection();
+        for (int i = 0; i < GetGraph().GetNodeCount(); i++) {
+            Node& node = GetGraph().GetNode(i);
+            node.Select();
+            selectedNodes.Add(&node);
+        }
+        Refresh();
+        return true;
+    } else if (key == K_DELETE || key == K_BACKSPACE) {  // Delete selected
+        // Remove all selected edges first
+        Vector<Edge*> edgesToRemove;
+        for (int i = 0; i < selectedEdges.GetCount(); i++) {
+            edgesToRemove.Add(selectedEdges[i]);
+        }
+        for (int i = 0; i < edgesToRemove.GetCount(); i++) {
+            GetGraph().RemoveEdge(*edgesToRemove[i]);
+        }
+        
+        // Remove all selected nodes
+        Vector<String> nodesToRemove;
+        for (int i = 0; i < selectedNodes.GetCount(); i++) {
+            nodesToRemove.Add(selectedNodes[i]->id);
+        }
+        for (int i = 0; i < nodesToRemove.GetCount(); i++) {
+            GetGraph().RemoveNode(nodesToRemove[i]);
+        }
+        
+        // Clear the selection
+        selectedNodes.Clear();
+        selectedEdges.Clear();
+        selectedNode = nullptr;
+        
+        Refresh();
+        return true;
+    }
+    
+    return Ctrl::Key(key, count);
 }
 
 void GraphNodeCtrl::RightDown(Point p, dword key) {
-    // If an edge is selected, remove it
+    // Store the click position for context menu
+    dragStart = p;
+    
+    // Check if we clicked on a pin
+    Pin* clickedPin = renderer->FindPin(p);
+    if (clickedPin) {
+        // Show pin context menu
+        Popup pinMenu;
+        pinMenu.SetRect(p.x, p.y, 150, 60);
+        
+        pinMenu.Add("Break Links", [=]() {
+            // Break all links connected to this pin
+            Node* pinNode = nullptr;
+            
+            // Find which node this pin belongs to
+            for (int i = 0; i < GetGraph().GetNodeCount(); i++) {
+                Node& node = GetGraph().GetNode(i);
+                for (int j = 0; j < node.pins.GetCount(); j++) {
+                    if (&node.pins[j] == clickedPin) {
+                        pinNode = &node;
+                        break;
+                    }
+                }
+                if (pinNode) break;
+            }
+            
+            if (pinNode) {
+                // Remove all edges connected to this pin
+                Vector<Edge*> edgesToRemove;
+                for (int i = 0; i < clickedPin->connections.GetCount(); i++) {
+                    edgesToRemove.Add(clickedPin->connections[i]);
+                }
+                
+                for (int i = 0; i < edgesToRemove.GetCount(); i++) {
+                    GetGraph().RemoveEdge(*edgesToRemove[i]);
+                }
+            }
+            Refresh();
+        });
+        
+        pinMenu.Execute();
+        return;
+    }
+    
+    // Check if we clicked on a node
+    Node* clickedNode = renderer->FindNode(p);
+    if (clickedNode) {
+        // Show node context menu
+        Popup nodeMenu;
+        nodeMenu.SetRect(p.x, p.y, 150, 100);
+        
+        nodeMenu.Add("Add Input Pin", [=]() {
+            Node& node = *clickedNode;
+            String newPinId = "in_" + IntStr(node.pins.GetCount());
+            node.AddPin(newPinId, PinKind::Input);
+            Refresh();
+        });
+        
+        nodeMenu.Add("Add Output Pin", [=]() {
+            Node& node = *clickedNode;
+            String newPinId = "out_" + IntStr(node.pins.GetCount());
+            node.AddPin(newPinId, PinKind::Output);
+            Refresh();
+        });
+        
+        nodeMenu.Add("Remove Node", [=]() {
+            RemoveNode(clickedNode->id);
+            ClearSelection();
+            Refresh();
+        });
+        
+        nodeMenu.Execute();
+        return;
+    }
+    
+    // Check if we clicked on an edge
+    Edge* clickedEdge = nullptr;  // We'll implement edge detection in a more complex way in future
+    // For now, we'll just check if any edge is selected
     if (selectedEdges.GetCount() > 0) {
-        // Remove the first selected edge (in a more complex implementation, 
-        // you could remove all selected edges)
-        RemoveEdge(*selectedEdges[0]);
-        selectedEdges.Clear();
+        Popup edgeMenu;
+        edgeMenu.SetRect(p.x, p.y, 150, 60);
+        
+        edgeMenu.Add("Remove Edge", [=]() {
+            RemoveEdge(*selectedEdges[0]);
+            selectedEdges.Clear();
+            Refresh();
+        });
+        
+        edgeMenu.Add("Change Color", [=]() {
+            // Change color of selected edge
+            if (selectedEdges.GetCount() > 0) {
+                selectedEdges[0]->stroke_clr = RandomColor();
+                Refresh();
+            }
+        });
+        
+        edgeMenu.Execute();
+        return;
     }
-    // If a node is selected, remove it
-    else if (selectedNodes.GetCount() > 0) {
-        RemoveNode(selectedNodes[0]->id);
-        selectedNodes.Clear();
-    }
-    // If nothing is selected, just clear selection
-    else {
+    
+    // If no specific item was clicked, show background context menu
+    Popup bgMenu;
+    bgMenu.SetRect(p.x, p.y, 150, 120);
+    
+    bgMenu.Add("Add Node", [=]() {
+        String nodeId = "Node_" + IntStr(GetGraph().GetNodeCount());
+        AddNode(nodeId, p);
+        Refresh();
+    });
+    
+    bgMenu.Add("Clear Selection", [=]() {
         ClearSelection();
-    }
-    Refresh();
+        Refresh();
+    });
+    
+    bgMenu.Add("Clear All", [=]() {
+        ClearSelection();
+        GetGraph().Clear();
+        Refresh();
+    });
+    
+    bgMenu.Execute();
 }
 
 Node& GraphNodeCtrl::AddNode(String id, Point position) {
@@ -375,6 +554,169 @@ void GraphNodeCtrl::DrawLinkPreview(Draw& w, Point start, Point end) {
         
         w.DrawPolyline(bezier_path, 1, GrayColor(128));
     }
+}
+
+void GraphNodeCtrl::CopyNodes() {
+    // Clear previous clipboard data
+    clipboardNodes.Clear();
+    clipboardEdges.Clear();
+    
+    // Copy selected nodes to clipboard
+    for (int i = 0; i < selectedNodes.GetCount(); i++) {
+        Node* node = selectedNodes[i];
+        clipboardNodes.Add(*node);  // Copy the node
+        
+        // Copy edges connected to this node
+        for (int j = 0; j < node->edges.GetCount(); j++) {
+            Edge* edge = node->edges[j];
+            
+            // Only copy edges where both source and target are in the selection
+            bool sourceSelected = false;
+            bool targetSelected = false;
+            
+            for (int k = 0; k < selectedNodes.GetCount(); k++) {
+                if (selectedNodes[k] == edge->source) sourceSelected = true;
+                if (selectedNodes[k] == edge->target) targetSelected = true;
+            }
+            
+            if (sourceSelected && targetSelected) {
+                // Check if this edge is already added to avoid duplicates
+                bool alreadyAdded = false;
+                for (int k = 0; k < clipboardEdges.GetCount(); k++) {
+                    if (clipboardEdges[k].source == edge->source && 
+                        clipboardEdges[k].target == edge->target) {
+                        alreadyAdded = true;
+                        break;
+                    }
+                }
+                
+                if (!alreadyAdded) {
+                    clipboardEdges.Add(*edge);  // Copy the edge
+                }
+            }
+        }
+    }
+}
+
+void GraphNodeCtrl::PasteNodes(Point at) {
+    if (clipboardNodes.GetCount() == 0) return;
+
+    // Clear current selection
+    ClearSelection();
+
+    // Calculate offset to paste at the new location
+    Point offset = at;
+    if (clipboardNodes.GetCount() > 0) {
+        // Calculate the center of the copied nodes to determine offset
+        double minX = clipboardNodes[0].point.x;
+        double minY = clipboardNodes[0].point.y;
+        double maxX = minX;
+        double maxY = minY;
+
+        for (int i = 0; i < clipboardNodes.GetCount(); i++) {
+            Node& node = clipboardNodes[i];
+            minX = min(minX, node.point.x);
+            minY = min(minY, node.point.y);
+            maxX = max(maxX, node.point.x);
+            maxY = max(maxY, node.point.y);
+        }
+        
+        Point center = Point(int((minX + maxX) / 2), int((minY + maxY) / 2));
+        offset = at - center;
+    }
+
+    // Create mapping from old node IDs to new node IDs
+    VectorMap<String, String> nodeIdMap;
+
+    // Add nodes to the graph with new IDs
+    Vector<Node*> newNodes;
+    for (int i = 0; i < clipboardNodes.GetCount(); i++) {
+        Node& oldNode = clipboardNodes[i];
+        String newId = oldNode.id + "_copy";
+        
+        // Make sure the new ID is unique
+        int suffix = 1;
+        String originalNewId = newId;
+        while (GetGraph().nodes.Find(newId) != -1) {
+            newId = originalNewId + IntStr(suffix++);
+        }
+        
+        Node& newNode = AddNode(newId, Point(int(oldNode.point.x + offset.x), int(oldNode.point.y + offset.y)));
+        
+        // Copy node properties
+        newNode.line_clr = oldNode.line_clr;
+        newNode.fill_clr = oldNode.fill_clr;
+        newNode.line_width = oldNode.line_width;
+        newNode.shape = oldNode.shape;
+        newNode.sz = oldNode.sz;
+        
+        // Copy pins
+        newNode.pins.Clear();
+        for (int j = 0; j < oldNode.pins.GetCount(); j++) {
+            Pin pin = oldNode.pins[j]; // This makes a copy
+            pin.position = Point(int(pin.position.x + offset.x), int(pin.position.y + offset.y));
+            newNode.pins.Add(pin);
+        }
+        
+        newNodes.Add(&newNode);
+        nodeIdMap.Add(oldNode.id, newId);
+    }
+
+    // Add edges to connect the new nodes
+    for (int i = 0; i < clipboardEdges.GetCount(); i++) {
+        Edge& oldEdge = clipboardEdges[i];
+        
+        // Find the new source and target node IDs
+        String newSourceId, newTargetId;
+        for (int j = 0; j < clipboardNodes.GetCount(); j++) {
+            if (&clipboardNodes[j] == oldEdge.source) {
+                newSourceId = nodeIdMap.Get(clipboardNodes[j].id);
+            }
+            if (&clipboardNodes[j] == oldEdge.target) {
+                newTargetId = nodeIdMap.Get(clipboardNodes[j].id);
+            }
+        }
+        
+        if (!newSourceId.IsEmpty() && !newTargetId.IsEmpty()) {
+            // Find pins that were connected in the original
+            // We'll need to connect the same pin IDs between the new nodes
+            Node& sourceNode = GetGraph().GetNode(GetGraph().nodes.Find(newSourceId));
+            Node& targetNode = GetGraph().GetNode(GetGraph().nodes.Find(newTargetId));
+            
+            // For now, connect the first available pins of appropriate types
+            // A more sophisticated implementation would track the specific pin connections
+            if (sourceNode.pins.GetCount() > 0 && targetNode.pins.GetCount() > 0) {
+                // Find output pin on source and input pin on target 
+                String sourcePinId = "";
+                String targetPinId = "";
+                
+                for (int j = 0; j < sourceNode.pins.GetCount(); j++) {
+                    if (sourceNode.pins[j].kind == PinKind::Output) {
+                        sourcePinId = sourceNode.pins[j].id;
+                        break;
+                    }
+                }
+                
+                for (int j = 0; j < targetNode.pins.GetCount(); j++) {
+                    if (targetNode.pins[j].kind == PinKind::Input) {
+                        targetPinId = targetNode.pins[j].id;
+                        break;
+                    }
+                }
+                
+                if (!sourcePinId.IsEmpty() && !targetPinId.IsEmpty()) {
+                    AddEdge(newSourceId, sourcePinId, newTargetId, targetPinId, oldEdge.weight);
+                }
+            }
+        }
+    }
+
+    // Select the new nodes
+    for (int i = 0; i < newNodes.GetCount(); i++) {
+        SelectNode(newNodes[i]);
+    }
+
+    Refresh();
 }
 
 void GraphNodeCtrl::UpdateLayout() {

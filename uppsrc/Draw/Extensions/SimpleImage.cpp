@@ -137,7 +137,7 @@ void ByteImage::Set(const Image& img) {
 	#ifdef LIBTOPSIDE
 	Set(sz.cx, sz.cy, img.GetStride(), img.GetPitch(), img.Begin());
 	#else
-	Set(sz.cx, sz.cy, 4, sz.cx, (const byte*)img.Begin());
+	Set(sz.cx, sz.cy, 4, sz.cx * 4, (const byte*)img.Begin());
 	#endif
 }
 

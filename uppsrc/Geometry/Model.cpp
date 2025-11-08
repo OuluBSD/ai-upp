@@ -120,26 +120,27 @@ bool Model::LoadCubemapFile(Mesh& mesh, TexType type, String path) {
 	
 	int cubetex_id = GetAddCubeTexture(abs_path);
 	CubeTexture& cubetex = cube_textures.Get(cubetex_id);
-	cubetex.img[0] = StreamRaster::LoadFileAny(abs_path);
-	
+
+	// Load all 6 cube faces
 	String ext = GetFileExt(abs_path);
 	String base = abs_path.Left(abs_path.GetCount() - ext.GetCount());
-	
-	for(int i = 1; i < 6; i++) {
-		String side_path = base + "_" + IntStr(i) + ext;
+
+	for(int i = 0; i < 6; i++) {
+		String side_path = (i == 0) ? abs_path : (base + "_" + IntStr(i) + ext);
 		if (!FileExists(side_path)) {
 			LOG("Model::LoadCubemapFile: error: file does not exist: " << side_path);
 			return false;
 		}
-		
-		cubetex.img[i] = StreamRaster::LoadFileAny(side_path);
-	}
-	
-	for(int i = 0; i < 6; i++) {
-		if (cubetex.img[i].IsEmpty()) {
-			LOG("Model::LoadCubemapFile: error: cube side " << i << " image is empty");
+
+		Image tmp_img = StreamRaster::LoadFileAny(side_path);
+		if (tmp_img.IsEmpty()) {
+			LOG("Model::LoadCubemapFile: error: failed to load cube side " << i);
 			return false;
 		}
+
+		// Convert to ByteImage and swap R/B channels
+		cubetex.img[i].Set(tmp_img);
+		cubetex.img[i].SwapRedBlue();
 	}
 	
 	if (mesh.material < 0) {
@@ -423,7 +424,7 @@ void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMateri
 			}
 			if (textype == TEXTYPE_COUNT) continue;
 			
-	        if (m.tex_id[type] >= 0) {
+	        if (m.tex_id[textype] >= 0) {
 	            LOG("warning: ModelLoader: multiple textures per mesh: " << model.path);
 	            break;
 	        }
@@ -432,8 +433,21 @@ void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMateri
 	        mat->GetTexture((aiTextureType) type, i, &str);
 	        
 	        String path = AppendFileName(model.directory, str.C_Str());
-	        // Load directly as ByteImage for Draw/Extensions (not U++ Draw)
-	        ByteImage img = TgaReaderBackend::LoadByteImageAny(path);
+	        ByteImage img;
+	        String ext = ToLower(GetFileExt(path));
+
+	        if (ext == ".tga") {
+	            img = TgaReaderBackend::LoadByteImageAny(path);
+	        }
+	        else {
+	            // Use StreamRaster for PNG/JPG/etc
+	            Image tmp_img = StreamRaster::LoadFileAny(path);
+	            if (!tmp_img.IsEmpty()) {
+	                img.Set(tmp_img);
+	                img.SwapRedBlue();
+	            }
+	        }
+
 	        if (!img.IsEmpty()) {
 	            int tex_id = model.AddTextureByteImage(img, path);
 	            m.tex_id[textype] = tex_id;

@@ -301,28 +301,22 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			y3 = y4;             // Same height as end
 		}
 		
-		// Create bezel curve
-		#define GET_POINT(n1 , n2 , perc) (n1 + ( (n2 - n1) * perc ))
-		
+		// Calculate cubic bezier curve using standard formulation
 		bezier_path.SetCount(0);
-		for (double i = 0 ; i <= 1.01 ; i += 0.05) {
-			// The Green Line
-			double xa = GET_POINT(x1, x2, i);
-			double ya = GET_POINT(y1, y2, i);
-			double xb = GET_POINT(x2, x3, i);
-			double yb = GET_POINT(y2, y3, i);
-			double xc = GET_POINT(x3, x4, i);
-			double yc = GET_POINT(y3, y4, i);
+		for (double t = 0; t <= 1.0; t += 0.05) {
+			// Cubic bezier: B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
+			double u = 1 - t;
+			double tt = t * t;
+			double uu = u * u;
+			double uuu = uu * u;
+			double ttu = 3 * tt * u;
+			double t2u = 3 * t * uu;
 			
-			double xd = GET_POINT(xa, xb, i);
-			double yd = GET_POINT(ya, yb, i);
-			double xe = GET_POINT(xb, xc, i);
-			double ye = GET_POINT(yb, yc, i);
-			
-			double xf = GET_POINT(xd, xe, i);
-			double yf = GET_POINT(yd, ye, i);
-			
-			bezier_path.Add(Point(xf,yf));
+			Point pt(
+				static_cast<int>(uuu * x1 + t2u * x2 + ttu * x3 + tt * t * x4),
+				static_cast<int>(uuu * y1 + t2u * y2 + ttu * y3 + tt * t * y4)
+			);
+			bezier_path.Add(pt);
 		}
 		
 		// Draw selected edge with different appearance
@@ -440,27 +434,22 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 		}
 
 		// assemble path and arrow
-		#define GET_POINT(n1 , n2 , perc) (n1 + ( (n2 - n1) * perc ))
-
+		// Calculate cubic bezier curve using standard formulation
 		bezier_path.SetCount(0);
-		for (double i = 0 ; i <= 1.01 ; i += 0.05) {
-			// The Green Line
-			double xa = GET_POINT(x1, x2, i);
-			double ya = GET_POINT(y1, y2, i);
-			double xb = GET_POINT(x2, x3, i);
-			double yb = GET_POINT(y2, y3, i);
-			double xc = GET_POINT(x3, x4, i);
-			double yc = GET_POINT(y3, y4, i);
-
-			double xd = GET_POINT(xa, xb, i);
-			double yd = GET_POINT(ya, yb, i);
-			double xe = GET_POINT(xb, xc, i);
-			double ye = GET_POINT(yb, yc, i);
-
-			double xf = GET_POINT(xd, xe, i);
-			double yf = GET_POINT(yd, ye, i);
-
-			bezier_path.Add(Point(xf,yf));
+		for (double t = 0; t <= 1.0; t += 0.05) {
+			// Cubic bezier: B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
+			double u = 1 - t;
+			double tt = t * t;
+			double uu = u * u;
+			double uuu = uu * u;
+			double ttu = 3 * tt * u;
+			double t2u = 3 * t * uu;
+			
+			Point pt(
+				static_cast<int>(uuu * x1 + t2u * x2 + ttu * x3 + tt * t * x4),
+				static_cast<int>(uuu * y1 + t2u * y2 + ttu * y3 + tt * t * y4)
+			);
+			bezier_path.Add(pt);
 		}
 		
 		// Draw selected edge with different appearance (fallback method)

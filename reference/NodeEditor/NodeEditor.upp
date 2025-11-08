@@ -1,0 +1,12 @@
+description "Node Editor - Reference Implementation of Advanced Node Graph Features";
+
+uses
+	CtrlLib,
+	GraphLib;
+
+file
+	main.cpp,
+	NodeEditor.h;
+
+mainconfig
+	"" = "GUI";

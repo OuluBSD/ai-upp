@@ -11,6 +11,8 @@ file
 	Graph.cpp,
 	Renderer.h,
 	Renderer.cpp,
+	GraphNodeCtrl.h,
+	GraphNodeCtrl.cpp,
 	Layout readonly separator,
 	Layout.h,
 	Layout.cpp,

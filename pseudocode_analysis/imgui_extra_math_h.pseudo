@@ -1,0 +1,46 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_extra_math.h
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui
+
+//------------------------------------------------------------------------------
+struct ImLine:
+    A: ImVec2
+    B: ImVec2
+
+//------------------------------------------------------------------------------
+# if IMGUI_VERSION_NUM < 19002:
+function operator==(lhs: const ImVec2&, rhs: const ImVec2&) -> bool
+function operator!=(lhs: const ImVec2&, rhs: const ImVec2&) -> bool
+# endif
+function operator*(lhs: const float, rhs: const ImVec2&) -> ImVec2
+# if IMGUI_VERSION_NUM < 18955:
+function operator-(lhs: const ImVec2&) -> ImVec2
+# endif
+
+//------------------------------------------------------------------------------
+function ImLength(v: float) -> float
+function ImLength(v: const ImVec2&) -> float
+function ImLengthSqr(v: float) -> float
+function ImNormalized(v: const ImVec2&) -> ImVec2
+
+//------------------------------------------------------------------------------
+function ImRect_IsEmpty(rect: const ImRect&) -> bool
+function ImRect_ClosestPoint(rect: const ImRect&, p: const ImVec2&, snap_to_edge: bool) -> ImVec2
+function ImRect_ClosestPoint(rect: const ImRect&, p: const ImVec2&, snap_to_edge: bool, radius: float) -> ImVec2
+function ImRect_ClosestPoint(rect: const ImRect&, other: const ImRect&) -> ImVec2
+function ImRect_ClosestLine(rect_a: const ImRect&, rect_b: const ImRect&) -> ImLine
+function ImRect_ClosestLine(rect_a: const ImRect&, rect_b: const ImRect&, radius_a: float, radius_b: float) -> ImLine

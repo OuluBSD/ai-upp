@@ -1,0 +1,266 @@
+// Canvas widget - view over infinite virtual space pseudocode.
+//
+// Canvas allows you to draw your widgets anywhere over infinite space and provide
+// view over it with support for panning and scaling.
+//
+// When you enter a canvas ImGui is moved to virtual space which mean:
+//   - ImGui::GetCursorScreenPos() return (0, 0) and which correspond to top left corner
+//     of the canvas on the screen (this can be changed using CanvasView()).
+//   - Mouse input is brought to canvas space, so widgets works as usual.
+//   - Everything you draw with ImDrawList will be in virtual space.
+//
+// By default origin point is on top left corner of canvas widget. It can be
+// changed with call to CanvasView() where you can specify what part of space
+// should be viewed by setting viewport origin point and scale. Current state
+// can be queried with CanvasViewOrigin() and CanvasViewScale().
+//
+// Viewport size is controlled by 'size' parameter in BeginCanvas(). You can query
+// it using CanvasContentMin/Max/Size functions. They are useful if you to not specify
+// canvas size in which case all free space is used.
+//
+// Bounds of visible region of infinite space can be queried using CanvasViewMin/Max/Size
+// functions. Everything that is drawn outside of this region will be clipped
+// as usual in ImGui.
+//
+// While drawing inside canvas you can translate position from world (usual ImGui space)
+// to virtual space and back using CanvasFromWorld()/CanvasToWorld().
+//
+// Canvas can be nested in each other (they are regular widgets after all). There
+// is a way to transform position between current and parent canvas with
+// CanvasFromParent()/CanvasToParent().
+//
+// Sometimes in more elaborate scenarios you want to move out canvas virtual space,
+// do something and came back. You can do that with SuspendCanvas() and ResumeCanvas().
+//
+// Note:
+//     It is not valid to call canvas API outside of BeginCanvas() / EndCanvas() scope.
+//
+// VERSION 0.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_canvas.h
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui
+import imgui_internal
+
+namespace ImGuiEx:
+    struct CanvasView:
+        Origin: ImVec2
+        Scale: float = 1.0f
+        InvScale: float = 1.0f
+
+        /// @brief Default constructor
+        constructor():
+            pass
+
+        /// @brief Constructor with origin and scale
+        /// @param origin ImVec2 - the origin point
+        /// @param scale float - the scale factor
+        constructor(origin: const ImVec2&, scale: float):
+            Origin = origin
+            Scale = scale
+            InvScale = if scale: 1.0f / scale else 0.0f
+
+        /// @brief Set the canvas view
+        /// @param origin ImVec2 - the origin point
+        /// @param scale float - the scale factor
+        function Set(origin: const ImVec2&, scale: float) -> void:
+            this = CanvasView(origin, scale)
+
+    // Canvas widget represent view over infinite plane.
+    //
+    // It acts like a child window without scroll bars with
+    // ability to zoom to specific part of canvas plane.
+    //
+    // Widgets are clipped according to current view exactly
+    // same way ImGui do. To avoid `missing widgets` artifacts first
+    // setup visible region with SetView() then draw content.
+    //
+    // Everything drawn with ImDrawList betwen calls to Begin()/End()
+    // will be drawn on canvas plane. This behavior can be suspended
+    // by calling Suspend() and resumed by calling Resume().
+    //
+    // Warning:
+    //     Please do not interleave canvas with use of channel splitter.
+    //     Keep channel splitter contained inside canvas or always
+    //     call canvas functions from same channel.
+    struct Canvas:
+        // Begins drawing content of canvas plane.
+        //
+        // When false is returned that mean canvas is not visible to the
+        // user can drawing should be skipped and End() not called.
+        // When true is returned drawing must be ended with call to End().
+        //
+        // If any size component is equal to zero or less canvas will
+        // automatically expand to all available area on that axis.
+        // So (0, 300) will take horizontal space and have height
+        // of 300 points. (0, 0) will take all remaining space of
+        // the window.
+        //
+        // You can query size of the canvas while it is being drawn
+        // by calling Rect().
+        function Begin(id: const char*, size: const ImVec2&) -> bool
+        function Begin(id: ImGuiID, size: const ImVec2&) -> bool
+
+        // Ends interaction with canvas plane.
+        //
+        // Must be called only when Begin() retuned true.
+        function End() -> void
+
+        // Sets visible region of canvas plane.
+        //
+        // Origin is an offset of infinite plane origin from top left
+        // corner of the canvas.
+        //
+        // Scale greater than 1 make canvas content be bigger, less than 1 smaller.
+        function SetView(origin: const ImVec2&, scale: float) -> void
+        function SetView(view: const CanvasView&) -> void
+
+        // Centers view over specific point on canvas plane.
+        //
+        // View will be centered on specific point by changing origin
+        // but not scale.
+        function CenterView(canvasPoint: const ImVec2&) -> void
+
+        // Calculates view over specific point on canvas plane.
+        function CalcCenterView(canvasPoint: const ImVec2&) const -> CanvasView
+
+        // Centers view over specific rectangle on canvas plane.
+        //
+        // Whole rectangle will fit in canvas view. This will affect both
+        // origin and scale.
+        function CenterView(canvasRect: const ImRect&) -> void
+
+        // Calculates view over specific rectangle on canvas plane.
+        function CalcCenterView(canvasRect: const ImRect&) const -> CanvasView
+
+        // Suspends canvas by returning to normal ImGui transformation space.
+        // While suspended UI will not be drawn on canvas plane.
+        //
+        // Calls to Suspend()/Resume() are symetrical. Each call to Suspend()
+        // must be matched with call to Resume().
+        function Suspend() -> void
+        function Resume() -> void
+
+        // Transforms point from canvas plane to ImGui.
+        function FromLocal(point: const ImVec2&) const -> ImVec2
+        function FromLocal(point: const ImVec2&, view: const CanvasView&) const -> ImVec2
+
+        // Transforms vector from canvas plant to ImGui.
+        function FromLocalV(vector: const ImVec2&) const -> ImVec2
+        function FromLocalV(vector: const ImVec2&, view: const CanvasView&) const -> ImVec2
+
+        // Transforms point from ImGui to canvas plane.
+        function ToLocal(point: const ImVec2&) const -> ImVec2
+        function ToLocal(point: const ImVec2&, view: const CanvasView&) const -> ImVec2
+
+        // Transforms vector from ImGui to canvas plane.
+        function ToLocalV(vector: const ImVec2&) const -> ImVec2
+        function ToLocalV(vector: const ImVec2&, view: const CanvasView&) const -> ImVec2
+
+        // Returns widget bounds.
+        //
+        // Note:
+        //     Rect is valid after call to Begin().
+        function Rect() const -> const ImRect&:
+            return m_WidgetRect
+
+        // Returns visible region on canvas plane (in canvas plane coordinates).
+        function ViewRect() const -> const ImRect&:
+            return m_ViewRect
+
+        // Calculates visible region for view.
+        function CalcViewRect(view: const CanvasView&) const -> ImRect
+
+        // Returns current view.
+        function View() const -> const CanvasView&:
+            return m_View
+
+        // Returns origin of the view.
+        //
+        // Origin is an offset of infinite plane origin from top left
+        // corner of the canvas.
+        function ViewOrigin() const -> const ImVec2&:
+            return m_View.Origin
+
+        // Returns scale of the view.
+        function ViewScale() const -> float:
+            return m_View.Scale
+
+        // Returns true if canvas is suspended.
+        //
+        // See: Suspend()/Resume()
+        function IsSuspended() const -> bool:
+            return m_SuspendCounter > 0
+
+    private:
+        # define IMGUI_EX_CANVAS_DEFERED() 0
+
+        # if IMGUI_EX_CANVAS_DEFERED():
+            struct Range:
+                BeginVertexIndex: int = 0
+                EndVertexIndex: int = 0
+                BeginComandIndex: int = 0
+                EndCommandIndex: int = 0
+
+        function UpdateViewTransformPosition() -> void
+        function SaveInputState() -> void
+        function RestoreInputState() -> void
+        function SaveViewportState() -> void
+        function RestoreViewportState() -> void
+        function EnterLocalSpace() -> void
+        function LeaveLocalSpace() -> void
+
+        m_InBeginEnd: bool = false
+
+        m_WidgetPosition: ImVec2
+        m_WidgetSize: ImVec2
+        m_WidgetRect: ImRect
+
+        m_DrawList: ImDrawList* = nullptr
+        m_ExpectedChannel: int = 0
+
+        # if IMGUI_EX_CANVAS_DEFERED():
+            m_Ranges: ImVector<Range>
+            m_CurrentRange: Range* = nullptr
+
+        m_DrawListFirstCommandIndex: int = 0
+        m_DrawListCommadBufferSize: int = 0
+        m_DrawListStartVertexIndex: int = 0
+
+        m_View: CanvasView
+        m_ViewRect: ImRect
+
+        m_ViewTransformPosition: ImVec2
+
+        m_SuspendCounter: int = 0
+
+        m_LastFringeScale: float = 1.0f
+
+        m_MousePosBackup: ImVec2
+        m_MousePosPrevBackup: ImVec2
+        m_MouseClickedPosBackup: ImVec2[IM_ARRAYSIZE(ImGuiIO.MouseClickedPos)]
+        m_WindowCursorMaxBackup: ImVec2
+
+        # if defined(IMGUI_HAS_VIEWPORT):
+            m_WindowPosBackup: ImVec2
+            m_ViewportPosBackup: ImVec2
+            m_ViewportSizeBackup: ImVec2
+            # if IMGUI_VERSION_NUM > 18002:
+                m_ViewportWorkPosBackup: ImVec2
+                m_ViewportWorkSizeBackup: ImVec2
+            # else:
+                m_ViewportWorkOffsetMinBackup: ImVec2
+                m_ViewportWorkOffsetMaxBackup: ImVec2
+
+namespace_end  // ImGuiEx

@@ -1,0 +1,1484 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_node_editor_internal.h
+
+package thirdparty.imgui-node-editor
+
+//------------------------------------------------------------------------------
+// Include math operators
+IMGUI_DEFINE_MATH_OPERATORS := true
+
+// Imports
+import imgui_node_editor
+import imgui
+import imgui_internal
+import imgui_extra_math
+import imgui_bezier_math
+import imgui_canvas
+import crude_json
+import vector
+import string
+
+//------------------------------------------------------------------------------
+namespace ax:
+namespace NodeEditor:
+namespace Detail:
+
+//------------------------------------------------------------------------------
+namespace ed := ax.NodeEditor.Detail
+namespace json := crude_json
+
+//------------------------------------------------------------------------------
+using std.vector
+using std.string
+
+//------------------------------------------------------------------------------
+function Log(fmt: const char*, args: ...) -> void
+
+//------------------------------------------------------------------------------
+function ImGui_GetItemRect() -> ImRect
+function ImGui_GetMouseClickPos(buttonIndex: ImGuiMouseButton) -> ImVec2
+
+//------------------------------------------------------------------------------
+// https://stackoverflow.com/a/36079786
+DECLARE_HAS_MEMBER(HasFringeScale, _FringeScale)
+
+struct FringeScaleRef:
+    // Overload is present when ImDrawList does have _FringeScale member variable.
+    template <typename T>
+    static function Get(drawList: typename std.enable_if<HasFringeScale<T>.value, T>.type*) -> float&:
+        return drawList._FringeScale
+
+    // Overload is present when ImDrawList does not have _FringeScale member variable.
+    template <typename T>
+    static function Get(drawList: typename std.enable_if<!HasFringeScale<T>.value, T>.type*) -> float&:
+        static placeholder := 1.0f
+        return placeholder
+
+static function ImFringeScaleRef(drawList: ImDrawList*) -> float&:
+    return FringeScaleRef.Get<ImDrawList>(drawList)
+
+struct FringeScaleScope:
+    constructor(scale: float):
+        m_LastFringeScale = ImFringeScaleRef(ImGui.GetWindowDrawList())
+        ImFringeScaleRef(ImGui.GetWindowDrawList()) = scale
+
+    destructor():
+        ImFringeScaleRef(ImGui.GetWindowDrawList()) = m_LastFringeScale
+
+    private:
+        m_LastFringeScale: float
+
+//------------------------------------------------------------------------------
+enum ObjectType:
+    None
+    Node
+    Link
+    Pin
+
+using ax.NodeEditor.PinKind
+using ax.NodeEditor.StyleColor
+using ax.NodeEditor.StyleVar
+using ax.NodeEditor.SaveReasonFlags
+
+using ax.NodeEditor.NodeId
+using ax.NodeEditor.PinId
+using ax.NodeEditor.LinkId
+
+struct ObjectId final:
+    Super := Details.SafePointerType<ObjectId>
+    using Super.Super
+
+    constructor():
+        Super(ax.NodeEditor.Detail.ObjectId.Invalid), m_Type(ObjectType.None)
+    constructor(pinId: PinId):
+        Super(pinId.AsPointer()), m_Type(ObjectType.Pin)
+    constructor(nodeId: NodeId):
+        Super(nodeId.AsPointer()), m_Type(ObjectType.Node)
+    constructor(linkId: LinkId):
+        Super(linkId.AsPointer()), m_Type(ObjectType.Link)
+
+    operator PinId() -> explicit const:
+        return AsPinId()
+    operator NodeId() -> explicit const:
+        return AsNodeId()
+    operator LinkId() -> explicit const:
+        return AsLinkId()
+
+    function AsPinId() const -> PinId:
+        IM_ASSERT(IsPinId())
+        return PinId(AsPointer())
+    function AsNodeId() const -> NodeId:
+        IM_ASSERT(IsNodeId())
+        return NodeId(AsPointer())
+    function AsLinkId() const -> LinkId:
+        IM_ASSERT(IsLinkId())
+        return LinkId(AsPointer())
+
+    function IsPinId() const -> bool:
+        return m_Type == ObjectType.Pin
+    function IsNodeId() const -> bool:
+        return m_Type == ObjectType.Node
+    function IsLinkId() const -> bool:
+        return m_Type == ObjectType.Link
+
+    function Type() const -> ObjectType:
+        return m_Type
+
+    private:
+        m_Type: ObjectType
+
+struct EditorContext
+
+struct Node
+struct Pin
+struct Link
+
+template <typename T, typename Id = T.IdType>
+struct ObjectWrapper:
+    m_ID: Id
+    m_Object: T*
+
+    function operator->() -> T*:
+        return m_Object
+    function operator->() const -> const T*:
+        return m_Object
+
+    operator T*() -> explicit:
+        return m_Object
+    operator const T*() const -> explicit:
+        return m_Object
+
+    function operator<(rhs: const ObjectWrapper&) const -> bool:
+        return m_ID.AsPointer() < rhs.m_ID.AsPointer()
+
+struct Object:
+    enum DrawFlags:
+        None     = 0
+        Hovered  = 1
+        Selected = 2
+        Highlighted = 4
+
+    Editor: EditorContext* const
+
+    m_IsLive: bool
+    m_IsSelected: bool
+    m_DeleteOnNewFrame: bool
+
+    constructor(editor: EditorContext*):
+        Editor = editor
+        m_IsLive = true
+        m_IsSelected = false
+        m_DeleteOnNewFrame = false
+
+    destructor() -> virtual = default
+
+    virtual function ID() -> ObjectId = 0
+
+    function IsVisible() const -> bool:
+        if not m_IsLive:
+            return false
+
+        bounds := GetBounds()
+
+        return ImGui.IsRectVisible(bounds.Min, bounds.Max)
+
+    virtual function Reset() -> void:
+        m_IsLive = false
+
+    virtual function Draw(drawList: ImDrawList*, flags: DrawFlags = None) -> void = 0
+
+    virtual function AcceptDrag() -> bool:
+        return false
+    virtual function UpdateDrag(offset: const ImVec2&) -> void:
+        IM_UNUSED(offset)
+    virtual function EndDrag() -> bool:
+        return false
+    virtual function DragStartLocation() -> ImVec2:
+        return GetBounds().Min
+
+    virtual function IsDraggable() -> bool:
+        result := AcceptDrag()
+        EndDrag()
+        return result
+    virtual function IsSelectable() -> bool:
+        return false
+
+    virtual function TestHit(point: const ImVec2&, extraThickness: float = 0.0f) const -> bool:
+        if not m_IsLive:
+            return false
+
+        bounds := GetBounds()
+        if extraThickness > 0:
+            bounds.Expand(extraThickness)
+
+        return bounds.Contains(point)
+
+    virtual function TestHit(rect: const ImRect&, allowIntersect: bool = true) const -> bool:
+        if not m_IsLive:
+            return false
+
+        bounds := GetBounds()
+        return not ImRect_IsEmpty(bounds) and (if allowIntersect: bounds.Overlaps(rect) else rect.Contains(bounds))
+
+    virtual function GetBounds() const -> ImRect = 0
+
+    virtual function AsNode() -> Node*:
+        return nullptr
+    virtual function AsPin() -> Pin*:
+        return nullptr
+    virtual function AsLink() -> Link*:
+        return nullptr
+
+struct Pin final:
+    using IdType = PinId
+
+    m_ID: PinId
+    m_Kind: PinKind
+    m_Node: Node*
+    m_Bounds: ImRect
+    m_Pivot: ImRect
+    m_PreviousPin: Pin*
+    m_Color: ImU32
+    m_BorderColor: ImU32
+    m_BorderWidth: float
+    m_Rounding: float
+    m_Corners: int
+    m_Dir: ImVec2
+    m_Strength: float
+    m_Radius: float
+    m_ArrowSize: float
+    m_ArrowWidth: float
+    m_SnapLinkToDir: bool
+    m_HasConnection: bool
+    m_HadConnection: bool
+
+    constructor(editor: EditorContext*, id: PinId, kind: PinKind):
+        Object(editor)
+        m_ID = id
+        m_Kind = kind
+        m_Node = nullptr
+        m_Bounds = ImRect()
+        m_Pivot = ImRect()
+        m_PreviousPin = nullptr
+        m_Color = IM_COL32_WHITE
+        m_BorderColor = IM_COL32_BLACK
+        m_BorderWidth = 0
+        m_Rounding = 0
+        m_Corners = 0
+        m_Dir = ImVec2(0, 0)
+        m_Strength = 0
+        m_Radius = 0
+        m_ArrowSize = 0
+        m_ArrowWidth = 0
+        m_SnapLinkToDir = true
+        m_HasConnection = false
+        m_HadConnection = false
+
+    virtual function ID() -> ObjectId override:
+        return m_ID
+
+    virtual function Reset() -> void override final:
+        m_HadConnection = m_HasConnection and m_IsLive
+        m_HasConnection = false
+
+        Object.Reset()
+
+    virtual function Draw(drawList: ImDrawList*, flags: DrawFlags = None) -> void override final
+
+    function GetClosestPoint(p: const ImVec2&) const -> ImVec2
+    function GetClosestLine(pin: const Pin*) const -> ImLine
+
+    virtual function GetBounds() const -> ImRect override final:
+        return m_Bounds
+
+    virtual function AsPin() -> Pin* override final:
+        return this
+
+enum NodeType:
+    Node
+    Group
+
+enum NodeRegion: uint8_t:
+    None        = 0x00
+    Top         = 0x01
+    Bottom      = 0x02
+    Left        = 0x04
+    Right       = 0x08
+    Center      = 0x10
+    Header      = 0x20
+    TopLeft     = Top | Left
+    TopRight    = Top | Right
+    BottomLeft  = Bottom | Left
+    BottomRight = Bottom | Right
+
+function operator|(lhs: NodeRegion, rhs: NodeRegion) -> NodeRegion:
+    return static_cast<NodeRegion>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs))
+
+function operator&(lhs: NodeRegion, rhs: NodeRegion) -> NodeRegion:
+    return static_cast<NodeRegion>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs))
+
+struct Node final:
+    using IdType = NodeId
+
+    m_ID: NodeId
+    m_Type: NodeType
+    m_Bounds: ImRect
+    m_ZPosition: float
+    m_Channel: int
+    m_LastPin: Pin*
+    m_DragStart: ImVec2
+
+    m_Color: ImU32
+    m_BorderColor: ImU32
+    m_BorderWidth: float
+    m_Rounding: float
+
+    m_GroupColor: ImU32
+    m_GroupBorderColor: ImU32
+    m_GroupBorderWidth: float
+    m_GroupRounding: float
+    m_GroupBounds: ImRect
+
+    m_HighlightConnectedLinks: bool
+
+    m_RestoreState: bool
+    m_CenterOnScreen: bool
+
+    constructor(editor: EditorContext*, id: NodeId):
+        Object(editor)
+        m_ID = id
+        m_Type = NodeType.Node
+        m_Bounds = ImRect()
+        m_ZPosition = 0.0f
+        m_Channel = 0
+        m_LastPin = nullptr
+        m_DragStart = ImVec2()
+        m_Color = IM_COL32_WHITE
+        m_BorderColor = IM_COL32_BLACK
+        m_BorderWidth = 0
+        m_Rounding = 0
+        m_GroupBounds = ImRect()
+        m_HighlightConnectedLinks = false
+        m_RestoreState = false
+        m_CenterOnScreen = false
+
+    virtual function ID() -> ObjectId override:
+        return m_ID
+
+    function AcceptDrag() -> bool override
+    function UpdateDrag(offset: const ImVec2&) -> void override
+    function EndDrag() -> bool override  # return true, when changed
+    function DragStartLocation() -> ImVec2 override:
+        return m_DragStart
+
+    virtual function IsSelectable() -> bool override:
+        return true
+
+    virtual function Draw(drawList: ImDrawList*, flags: DrawFlags = None) -> void override final
+    function DrawBorder(drawList: ImDrawList*, color: ImU32, thickness: float = 1.0f, offset: float = 0.0f) -> void
+
+    function GetGroupedNodes(result: std.vector<Node*>&, append: bool = false) -> void
+
+    function CenterOnScreenInNextFrame() -> void:
+        m_CenterOnScreen = true
+
+    function GetRegionBounds(region: NodeRegion) const -> ImRect
+    function GetRegion(point: const ImVec2&) const -> NodeRegion
+
+    virtual function GetBounds() const -> ImRect override final:
+        return m_Bounds
+
+    virtual function AsNode() -> Node* override final:
+        return this
+
+struct Link final:
+    using IdType = LinkId
+
+    m_ID: LinkId
+    m_StartPin: Pin*
+    m_EndPin: Pin*
+    m_Color: ImU32
+    m_HighlightColor: ImU32
+    m_Thickness: float
+    m_Start: ImVec2
+    m_End: ImVec2
+
+    constructor(editor: EditorContext*, id: LinkId):
+        Object(editor)
+        m_ID = id
+        m_StartPin = nullptr
+        m_EndPin = nullptr
+        m_Color = IM_COL32_WHITE
+        m_Thickness = 1.0f
+
+    virtual function ID() -> ObjectId override:
+        return m_ID
+
+    virtual function IsSelectable() -> bool override:
+        return true
+
+    virtual function Draw(drawList: ImDrawList*, flags: DrawFlags = None) -> void override final
+    function Draw(drawList: ImDrawList*, color: ImU32, extraThickness: float = 0.0f) const -> void
+
+    function UpdateEndpoints() -> void
+
+    function GetCurve() const -> ImCubicBezierPoints
+
+    virtual function TestHit(point: const ImVec2&, extraThickness: float = 0.0f) const -> bool override final
+    virtual function TestHit(rect: const ImRect&, allowIntersect: bool = true) const -> bool override final
+
+    virtual function GetBounds() const -> ImRect override final
+
+    virtual function AsLink() -> Link* override final:
+        return this
+
+struct NodeSettings:
+    m_ID: NodeId
+    m_Location: ImVec2
+    m_Size: ImVec2
+    m_GroupSize: ImVec2
+    m_WasUsed: bool
+
+    m_Saved: bool
+    m_IsDirty: bool
+    m_DirtyReason: SaveReasonFlags
+
+    constructor(id: NodeId):
+        m_ID = id
+        m_Location = ImVec2(0, 0)
+        m_Size = ImVec2(0, 0)
+        m_GroupSize = ImVec2(0, 0)
+        m_WasUsed = false
+        m_Saved = false
+        m_IsDirty = false
+        m_DirtyReason = SaveReasonFlags.None
+
+    function ClearDirty() -> void
+    function MakeDirty(reason: SaveReasonFlags) -> void
+
+    function Serialize() -> json.value
+
+    static function Parse(string: const std.string&, settings: NodeSettings&) -> bool
+    static function Parse(data: const json.value&, result: NodeSettings&) -> bool
+
+struct Settings:
+    m_IsDirty: bool
+    m_DirtyReason: SaveReasonFlags
+
+    m_Nodes: vector<NodeSettings>
+    m_Selection: vector<ObjectId>
+    m_ViewScroll: ImVec2
+    m_ViewZoom: float
+    m_VisibleRect: ImRect
+
+    constructor():
+        m_IsDirty = false
+        m_DirtyReason = SaveReasonFlags.None
+        m_ViewScroll = ImVec2(0, 0)
+        m_ViewZoom = 1.0f
+        m_VisibleRect = ImRect()
+
+    function AddNode(id: NodeId) -> NodeSettings*
+    function FindNode(id: NodeId) -> NodeSettings*
+    function RemoveNode(id: NodeId) -> void
+
+    function ClearDirty(node: Node* = nullptr) -> void
+    function MakeDirty(reason: SaveReasonFlags, node: Node* = nullptr) -> void
+
+    function Serialize() -> std.string
+
+    static function Parse(string: const std.string&, settings: Settings&) -> bool
+
+struct Control:
+    HotObject: Object*
+    ActiveObject: Object*
+    ClickedObject: Object*
+    DoubleClickedObject: Object*
+    HotNode: Node*
+    ActiveNode: Node*
+    ClickedNode: Node*
+    DoubleClickedNode: Node*
+    HotPin: Pin*
+    ActivePin: Pin*
+    ClickedPin: Pin*
+    DoubleClickedPin: Pin*
+    HotLink: Link*
+    ActiveLink: Link*
+    ClickedLink: Link*
+    DoubleClickedLink: Link*
+    BackgroundHot: bool
+    BackgroundActive: bool
+    BackgroundClickButtonIndex: int
+    BackgroundDoubleClickButtonIndex: int
+
+    constructor():
+        Control(nullptr, nullptr, nullptr, nullptr, false, false, -1, -1)
+
+    constructor(hotObject: Object*, activeObject: Object*, clickedObject: Object*, doubleClickedObject: Object*,
+        backgroundHot: bool, backgroundActive: bool, backgroundClickButtonIndex: int, backgroundDoubleClickButtonIndex: int):
+        HotObject = hotObject
+        ActiveObject = activeObject
+        ClickedObject = clickedObject
+        DoubleClickedObject = doubleClickedObject
+        HotNode = nullptr
+        ActiveNode = nullptr
+        ClickedNode = nullptr
+        DoubleClickedNode = nullptr
+        HotPin = nullptr
+        ActivePin = nullptr
+        ClickedPin = nullptr
+        DoubleClickedPin = nullptr
+        HotLink = nullptr
+        ActiveLink = nullptr
+        ClickedLink = nullptr
+        DoubleClickedLink = nullptr
+        BackgroundHot = backgroundHot
+        BackgroundActive = backgroundActive
+        BackgroundClickButtonIndex = backgroundClickButtonIndex
+        BackgroundDoubleClickButtonIndex = backgroundDoubleClickButtonIndex
+
+        if hotObject:
+            HotNode  = hotObject.AsNode()
+            HotPin   = hotObject.AsPin()
+            HotLink  = hotObject.AsLink()
+
+            if HotPin:
+                HotNode = HotPin.m_Node
+
+        if activeObject:
+            ActiveNode  = activeObject.AsNode()
+            ActivePin   = activeObject.AsPin()
+            ActiveLink  = activeObject.AsLink()
+
+        if clickedObject:
+            ClickedNode  = clickedObject.AsNode()
+            ClickedPin   = clickedObject.AsPin()
+            ClickedLink  = clickedObject.AsLink()
+
+        if doubleClickedObject:
+            DoubleClickedNode = doubleClickedObject.AsNode()
+            DoubleClickedPin  = doubleClickedObject.AsPin()
+            DoubleClickedLink = doubleClickedObject.AsLink()
+
+struct NavigateAction
+struct SizeAction
+struct DragAction
+struct SelectAction
+struct CreateItemAction
+struct DeleteItemsAction
+struct ContextMenuAction
+struct ShortcutAction
+
+struct AnimationController
+struct FlowAnimationController
+
+struct Animation:
+    enum State:
+        Playing
+        Stopped
+
+    Editor: EditorContext*
+    m_State: State
+    m_Time: float
+    m_Duration: float
+
+    constructor(editor: EditorContext*)
+    destructor() -> virtual
+
+    function Play(duration: float) -> void
+    function Stop() -> void
+    function Finish() -> void
+    function Update() -> void
+
+    function IsPlaying() const -> bool:
+        return m_State == Playing
+
+    function GetProgress() const -> float:
+        return m_Time / m_Duration
+
+    protected:
+    function OnPlay() -> void
+    function OnFinish() -> void
+    function OnStop() -> void
+
+    function OnUpdate(progress: float) -> void:
+        IM_UNUSED(progress)
+
+struct NavigateAnimation final:
+    Animation
+    Action: NavigateAction&
+    m_Start: ImRect
+    m_Target: ImRect
+
+    constructor(editor: EditorContext*, scrollAction: NavigateAction&)
+
+    function NavigateTo(target: const ImRect&, duration: float) -> void
+
+    private:
+    function OnUpdate(progress: float) -> void override final
+    function OnStop() -> void override final
+    function OnFinish() -> void override final
+
+struct FlowAnimation final:
+    Animation
+    Controller: FlowAnimationController*
+    m_Link: Link*
+    m_Speed: float
+    m_MarkerDistance: float
+    m_Offset: float
+
+    constructor(controller: FlowAnimationController*)
+
+    function Flow(link: Link*, markerDistance: float, speed: float, duration: float) -> void
+
+    function Draw(drawList: ImDrawList*) -> void
+
+    private:
+    struct CurvePoint:
+        Distance: float
+        Point: ImVec2
+
+    m_LastStart: ImVec2
+    m_LastEnd: ImVec2
+    m_PathLength: float
+    m_Path: vector<CurvePoint>
+
+    function IsLinkValid() const -> bool
+    function IsPathValid() const -> bool
+    function UpdatePath() -> void
+    function ClearPath() -> void
+    function SamplePath(distance: float) const -> ImVec2
+    function OnUpdate(progress: float) -> void override final
+    function OnStop() -> void override final
+
+struct AnimationController:
+    Editor: EditorContext*
+
+    constructor(editor: EditorContext*):
+        Editor = editor
+
+    destructor() -> virtual
+
+    function Draw(drawList: ImDrawList*) -> virtual void:
+        IM_UNUSED(drawList)
+
+struct FlowAnimationController final:
+    AnimationController
+    constructor(editor: EditorContext*)
+    destructor() -> virtual
+
+    function Flow(link: Link*, direction: FlowDirection = FlowDirection.Forward) -> void
+
+    virtual function Draw(drawList: ImDrawList*) -> void override final
+
+    function Release(animation: FlowAnimation*) -> void
+
+    private:
+    function GetOrCreate(link: Link*) -> FlowAnimation*
+
+    m_Animations: vector<FlowAnimation*>
+    m_FreePool: vector<FlowAnimation*>
+
+struct EditorAction:
+    enum AcceptResult:
+        False
+        True
+        Possible
+
+    constructor(editor: EditorContext*):
+        Editor = editor
+
+    destructor() -> virtual
+
+    virtual function GetName() const -> const char* = 0
+
+    virtual function Accept(control: const Control&) -> AcceptResult = 0
+    virtual function Process(control: const Control&) -> bool = 0
+    virtual function Reject() -> void  # called when Accept return 'Possible' and was rejected
+
+    virtual function GetCursor() -> ImGuiMouseCursor:
+        return ImGuiMouseCursor_Arrow
+
+    virtual function IsDragging() -> bool:
+        return false
+
+    virtual function ShowMetrics() -> void
+
+    virtual function AsNavigate() -> NavigateAction*:
+        return nullptr
+    virtual function AsSize() -> SizeAction*:
+        return nullptr
+    virtual function AsDrag() -> DragAction*:
+        return nullptr
+    virtual function AsSelect() -> SelectAction*:
+        return nullptr
+    virtual function AsCreateItem() -> CreateItemAction*:
+        return nullptr
+    virtual function AsDeleteItems() -> DeleteItemsAction*:
+        return nullptr
+    virtual function AsContextMenu() -> ContextMenuAction*:
+        return nullptr
+    virtual function AsCutCopyPaste() -> ShortcutAction*:
+        return nullptr
+
+    Editor: EditorContext*
+
+struct NavigateAction final:
+    EditorAction
+    enum class ZoomMode:
+        None
+        Exact
+        WithMargin
+
+    enum class NavigationReason:
+        Unknown
+        MouseZoom
+        Selection
+        Object
+        Content
+        Edge
+
+    m_IsActive: bool
+    m_Zoom: float
+    m_VisibleRect: ImRect
+    m_Scroll: ImVec2
+    m_ScrollStart: ImVec2
+    m_ScrollDelta: ImVec2
+
+    constructor(editor: EditorContext*, canvas: ImGuiEx.Canvas&)
+
+    virtual function GetName() const -> const char* override final:
+        return "Navigate"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsNavigate() -> NavigateAction* override final:
+        return this
+
+    function NavigateTo(bounds: const ImRect&, zoomMode: NavigateAction.ZoomMode, duration: float = -1.0f, reason: NavigateAction.NavigationReason = NavigateAction.NavigationReason.Unknown) -> void
+    function StopNavigation() -> void
+    function FinishNavigation() -> void
+
+    function MoveOverEdge(canvasSize: const ImVec2&) -> bool
+    function StopMoveOverEdge() -> void
+    function IsMovingOverEdge() const -> bool:
+        return m_MovingOverEdge
+    function GetMoveScreenOffset() const -> ImVec2:
+        return m_MoveScreenOffset
+
+    function SetWindow(position: ImVec2, size: ImVec2) -> void
+    function GetWindowScreenPos() const -> ImVec2:
+        return m_WindowScreenPos
+    function GetWindowScreenSize() const -> ImVec2:
+        return m_WindowScreenSize
+
+    function GetView() const -> ImGuiEx.CanvasView
+    function GetViewOrigin() const -> ImVec2
+    function GetViewScale() const -> float
+
+    function SetViewRect(rect: const ImRect&) -> void
+    function GetViewRect() const -> ImRect
+
+    private:
+    m_Canvas: ImGuiEx.Canvas&
+    m_WindowScreenPos: ImVec2
+    m_WindowScreenSize: ImVec2
+
+    m_Animation: NavigateAnimation
+    m_Reason: NavigationReason
+    m_LastSelectionId: uint64_t
+    m_LastObject: Object*
+    m_MovingOverEdge: bool
+    m_MoveScreenOffset: ImVec2
+    m_ZoomLevels: const float*
+    m_ZoomLevelCount: int
+
+    static s_DefaultZoomLevels: const float[] = [0.1f, 0.15f, 0.20f, 0.25f, 0.33f, 0.5f, 0.75f, 1.0f, 1.25f, 1.50f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f]
+    static s_DefaultZoomLevelCount: const int = sizeof(s_DefaultZoomLevels) / sizeof(*s_DefaultZoomLevels)
+
+    function HandleZoom(control: const Control&) -> bool
+    function NavigateTo(target: const ImRect&, duration: float = -1.0f, reason: NavigateAction.NavigationReason = NavigateAction.NavigationReason.Unknown) -> void
+    function GetNextZoom(steps: float) -> float
+    function MatchSmoothZoom(steps: float) -> float
+    function MatchZoom(steps: int, fallbackZoom: float) -> float
+    function MatchZoomIndex(direction: int) -> int
+
+struct SizeAction final:
+    EditorAction
+    m_IsActive: bool
+    m_Clean: bool
+    m_SizedNode: Node*
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Size"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function GetCursor() -> ImGuiMouseCursor override final:
+        return m_Cursor
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsSize() -> SizeAction* override final:
+        return this
+
+    virtual function IsDragging() -> bool override final:
+        return m_IsActive
+
+    function GetStartGroupBounds() const -> const ImRect&:
+        return m_StartGroupBounds
+
+    private:
+    function GetRegion(node: Node*) -> NodeRegion
+    function ChooseCursor(region: NodeRegion) -> ImGuiMouseCursor
+
+    m_StartBounds: ImRect
+    m_StartGroupBounds: ImRect
+    m_LastSize: ImVec2
+    m_MinimumSize: ImVec2
+    m_LastDragOffset: ImVec2
+    m_Pivot: ed.NodeRegion
+    m_Cursor: ImGuiMouseCursor
+
+struct DragAction final:
+    EditorAction
+    m_IsActive: bool
+    m_Clear: bool
+    m_DraggedObject: Object*
+    m_Objects: vector<Object*>
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Drag"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function GetCursor() -> ImGuiMouseCursor override final:
+        return ImGuiMouseCursor_ResizeAll
+
+    virtual function IsDragging() -> bool override final:
+        return m_IsActive
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsDrag() -> DragAction* override final:
+        return this
+
+struct SelectAction final:
+    EditorAction
+    m_IsActive: bool
+
+    m_SelectGroups: bool
+    m_SelectLinkMode: bool
+    m_CommitSelection: bool
+    m_StartPoint: ImVec2
+    m_EndPoint: ImVec2
+    m_CandidateObjects: vector<Object*>
+    m_SelectedObjectsAtStart: vector<Object*>
+
+    m_Animation: Animation
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Select"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function IsDragging() -> bool override final:
+        return m_IsActive
+
+    virtual function AsSelect() -> SelectAction* override final:
+        return this
+
+    function Draw(drawList: ImDrawList*) -> void
+
+struct ContextMenuAction final:
+    EditorAction
+    enum Menu:
+        None
+        Node
+        Pin
+        Link
+        Background
+
+    m_CandidateMenu: Menu
+    m_CurrentMenu: Menu
+    m_ContextId: ObjectId
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Context Menu"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+    virtual function Reject() -> void override final
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsContextMenu() -> ContextMenuAction* override final:
+        return this
+
+    function ShowNodeContextMenu(nodeId: NodeId*) -> bool
+    function ShowPinContextMenu(pinId: PinId*) -> bool
+    function ShowLinkContextMenu(linkId: LinkId*) -> bool
+    function ShowBackgroundContextMenu() -> bool
+
+struct ShortcutAction final:
+    EditorAction
+    enum Action:
+        None
+        Cut
+        Copy
+        Paste
+        Duplicate
+        CreateNode
+
+    m_IsActive: bool
+    m_InAction: bool
+    m_CurrentAction: Action
+    m_Context: vector<Object*>
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Shortcut"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+    virtual function Reject() -> void override final
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsCutCopyPaste() -> ShortcutAction* override final:
+        return this
+
+    function Begin() -> bool
+    function End() -> void
+
+    function AcceptCut() -> bool
+    function AcceptCopy() -> bool
+    function AcceptPaste() -> bool
+    function AcceptDuplicate() -> bool
+    function AcceptCreateNode() -> bool
+
+struct CreateItemAction final:
+    EditorAction
+    enum Stage:
+        None
+        Possible
+        Create
+
+    enum Action:
+        Unknown
+        UserReject
+        UserAccept
+
+    enum Type:
+        NoItem
+        Node
+        Link
+
+    enum Result:
+        True
+        False
+        Indeterminate
+
+    m_InActive: bool
+    m_NextStage: Stage
+
+    m_CurrentStage: Stage
+    m_ItemType: Type
+    m_UserAction: Action
+    m_LinkColor: ImU32
+    m_LinkThickness: float
+    m_LinkStart: Pin*
+    m_LinkEnd: Pin*
+
+    m_IsActive: bool
+    m_DraggedPin: Pin*
+
+    m_LastChannel: int = -1
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Create Item"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function GetCursor() -> ImGuiMouseCursor override final:
+        return ImGuiMouseCursor_Arrow
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function IsDragging() -> bool override final:
+        return m_IsActive
+
+    virtual function AsCreateItem() -> CreateItemAction* override final:
+        return this
+
+    function SetStyle(color: ImU32, thickness: float) -> void
+
+    function Begin() -> bool
+    function End() -> void
+
+    function RejectItem() -> Result
+    function AcceptItem() -> Result
+
+    function QueryLink(startId: PinId*, endId: PinId*) -> Result
+    function QueryNode(pinId: PinId*) -> Result
+
+    private:
+    m_IsInGlobalSpace: bool
+
+    function DragStart(startPin: Pin*) -> void
+    function DragEnd() -> void
+    function DropPin(endPin: Pin*) -> void
+    function DropNode() -> void
+    function DropNothing() -> void
+
+struct DeleteItemsAction final:
+    EditorAction
+    m_IsActive: bool
+    m_InInteraction: bool
+
+    constructor(editor: EditorContext*)
+
+    virtual function GetName() const -> const char* override final:
+        return "Delete Items"
+
+    virtual function Accept(control: const Control&) -> AcceptResult override final
+    virtual function Process(control: const Control&) -> bool override final
+
+    virtual function ShowMetrics() -> void override final
+
+    virtual function AsDeleteItems() -> DeleteItemsAction* override final:
+        return this
+
+    function Add(object: Object*) -> bool
+
+    function Begin() -> bool
+    function End() -> void
+
+    function QueryLink(linkId: LinkId*, startId: PinId* = nullptr, endId: PinId* = nullptr) -> bool
+    function QueryNode(nodeId: NodeId*) -> bool
+
+    function AcceptItem(deleteDependencies: bool) -> bool
+    function RejectItem() -> void
+
+    private:
+    enum IteratorType:
+        Unknown
+        Link
+        Node
+    enum UserAction:
+        Undetermined
+        Accepted
+        Rejected
+
+    function DeleteDeadLinks(nodeId: NodeId) -> void
+    function DeleteDeadPins(nodeId: NodeId) -> void
+
+    function QueryItem(itemId: ObjectId*, itemType: IteratorType) -> bool
+    function RemoveItem(deleteDependencies: bool) -> void
+    function DropCurrentItem() -> Object*
+
+    m_ManuallyDeletedObjects: vector<Object*>
+
+    m_CurrentItemType: IteratorType
+    m_UserAction: UserAction
+    m_CandidateObjects: vector<Object*>
+    m_CandidateItemIndex: int
+
+struct NodeBuilder:
+    Editor: EditorContext* const
+
+    m_CurrentNode: Node*
+    m_CurrentPin: Pin*
+
+    m_NodeRect: ImRect
+
+    m_PivotRect: ImRect
+    m_PivotAlignment: ImVec2
+    m_PivotSize: ImVec2
+    m_PivotScale: ImVec2
+    m_ResolvePinRect: bool
+    m_ResolvePivot: bool
+
+    m_GroupBounds: ImRect
+    m_IsGroup: bool
+
+    m_Splitter: ImDrawListSplitter
+    m_PinSplitter: ImDrawListSplitter
+
+    constructor(editor: EditorContext*)
+    destructor()
+
+    function Begin(nodeId: NodeId) -> void
+    function End() -> void
+
+    function BeginPin(pinId: PinId, kind: PinKind) -> void
+    function EndPin() -> void
+
+    function PinRect(a: const ImVec2&, b: const ImVec2&) -> void
+    function PinPivotRect(a: const ImVec2&, b: const ImVec2&) -> void
+    function PinPivotSize(size: const ImVec2&) -> void
+    function PinPivotScale(scale: const ImVec2&) -> void
+    function PinPivotAlignment(alignment: const ImVec2&) -> void
+
+    function Group(size: const ImVec2&) -> void
+
+    function GetUserBackgroundDrawList() const -> ImDrawList*
+    function GetUserBackgroundDrawList(node: Node*) const -> ImDrawList*
+
+struct HintBuilder:
+    Editor: EditorContext* const
+    m_IsActive: bool
+    m_CurrentNode: Node*
+    m_LastFringe: float = 1.0f
+    m_LastChannel: int = 0
+
+    constructor(editor: EditorContext*)
+
+    function Begin(nodeId: NodeId) -> bool
+    function End() -> void
+
+    function GetGroupMin() -> ImVec2
+    function GetGroupMax() -> ImVec2
+
+    function GetForegroundDrawList() -> ImDrawList*
+    function GetBackgroundDrawList() -> ImDrawList*
+
+struct Style:
+    ax.NodeEditor.Style
+    function PushColor(colorIndex: StyleColor, color: const ImVec4&) -> void
+    function PopColor(count: int = 1) -> void
+
+    function PushVar(varIndex: StyleVar, value: float) -> void
+    function PushVar(varIndex: StyleVar, value: const ImVec2&) -> void
+    function PushVar(varIndex: StyleVar, value: const ImVec4&) -> void
+    function PopVar(count: int = 1) -> void
+
+    function GetColorName(colorIndex: StyleColor) const -> const char*
+
+    private:
+    struct ColorModifier:
+        Index: StyleColor
+        Value: ImVec4
+
+    struct VarModifier:
+        Index: StyleVar
+        Value: ImVec4
+
+    function GetVarFloatAddr(idx: StyleVar) -> float*
+    function GetVarVec2Addr(idx: StyleVar) -> ImVec2*
+    function GetVarVec4Addr(idx: StyleVar) -> ImVec4*
+
+    m_ColorStack: vector<ColorModifier>
+    m_VarStack: vector<VarModifier>
+
+struct Config:
+    ax.NodeEditor.Config
+    constructor(config: const ax.NodeEditor.Config*)
+
+    function Load() -> std.string
+    function LoadNode(nodeId: NodeId) -> std.string
+
+    function BeginSave() -> void
+    function Save(data: const std.string&, flags: SaveReasonFlags) -> bool
+    function SaveNode(nodeId: NodeId, data: const std.string&, flags: SaveReasonFlags) -> bool
+    function EndSave() -> void
+
+enum SuspendFlags: uint8_t:
+    None = 0
+    KeepSplitter = 1
+
+function operator|(lhs: SuspendFlags, rhs: SuspendFlags) -> SuspendFlags:
+    return static_cast<SuspendFlags>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs))
+
+function operator&(lhs: SuspendFlags, rhs: SuspendFlags) -> SuspendFlags:
+    return static_cast<SuspendFlags>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs))
+
+struct EditorContext:
+    constructor(config: const ax.NodeEditor.Config* = nullptr)
+    destructor()
+
+    function GetConfig() const -> const Config&:
+        return m_Config
+
+    function GetStyle() -> Style&:
+        return m_Style
+
+    function Begin(id: const char*, size: const ImVec2& = ImVec2(0, 0)) -> void
+    function End() -> void
+
+    function DoLink(id: LinkId, startPinId: PinId, endPinId: PinId, color: ImU32, thickness: float) -> bool
+
+    function GetNodeBuilder() -> NodeBuilder&:
+        return m_NodeBuilder
+    function GetHintBuilder() -> HintBuilder&:
+        return m_HintBuilder
+
+    function GetCurrentAction() -> EditorAction*:
+        return m_CurrentAction
+
+    function GetItemCreator() -> CreateItemAction&:
+        return m_CreateItemAction
+    function GetItemDeleter() -> DeleteItemsAction&:
+        return m_DeleteItemsAction
+    function GetContextMenu() -> ContextMenuAction&:
+        return m_ContextMenuAction
+    function GetShortcut() -> ShortcutAction&:
+        return m_ShortcutAction
+
+    function GetView() const -> const ImGuiEx.CanvasView&:
+        return m_Canvas.View()
+    function GetViewRect() const -> const ImRect&:
+        return m_Canvas.ViewRect()
+    function GetRect() const -> const ImRect&:
+        return m_Canvas.Rect()
+
+    function SetNodePosition(nodeId: NodeId, screenPosition: const ImVec2&) -> void
+    function SetGroupSize(nodeId: NodeId, size: const ImVec2&) -> void
+    function GetNodePosition(nodeId: NodeId) -> ImVec2
+    function GetNodeSize(nodeId: NodeId) -> ImVec2
+
+    function SetNodeZPosition(nodeId: NodeId, z: float) -> void
+    function GetNodeZPosition(nodeId: NodeId) -> float
+
+    function MarkNodeToRestoreState(node: Node*) -> void
+    function UpdateNodeState(node: Node*) -> void
+
+    function RemoveSettings(object: Object*) -> void
+
+    function ClearSelection() -> void
+    function SelectObject(object: Object*) -> void
+    function DeselectObject(object: Object*) -> void
+    function SetSelectedObject(object: Object*) -> void
+    function ToggleObjectSelection(object: Object*) -> void
+    function IsSelected(object: Object*) -> bool
+    function GetSelectedObjects() -> const vector<Object*>&
+    function IsAnyNodeSelected() -> bool
+    function IsAnyLinkSelected() -> bool
+    function HasSelectionChanged() -> bool
+    function GetSelectionId() const -> uint64_t:
+        return m_SelectionId
+
+    function FindNodeAt(p: const ImVec2&) -> Node*
+    function FindNodesInRect(r: const ImRect&, result: vector<Node*>&, append: bool = false, includeIntersecting: bool = true) -> void
+    function FindLinksInRect(r: const ImRect&, result: vector<Link*>&, append: bool = false) -> void
+
+    function HasAnyLinks(nodeId: NodeId) const -> bool
+    function HasAnyLinks(pinId: PinId) const -> bool
+
+    function BreakLinks(nodeId: NodeId) -> int
+    function BreakLinks(pinId: PinId) -> int
+
+    function FindLinksForNode(nodeId: NodeId, result: vector<Link*>&, add: bool = false) -> void
+
+    function PinHadAnyLinks(pinId: PinId) -> bool
+
+    function ToCanvas(point: const ImVec2&) const -> ImVec2:
+        return m_Canvas.ToLocal(point)
+    function ToScreen(point: const ImVec2&) const -> ImVec2:
+        return m_Canvas.FromLocal(point)
+
+    function NotifyLinkDeleted(link: Link*) -> void
+
+    function Suspend(flags: SuspendFlags = SuspendFlags.None) -> void
+    function Resume(flags: SuspendFlags = SuspendFlags.None) -> void
+    function IsSuspended() -> bool
+
+    function IsFocused() -> bool
+    function IsHovered() const -> bool
+    function IsHoveredWithoutOverlapp() const -> bool
+    function CanAcceptUserInput() const -> bool
+
+    function MakeDirty(reason: SaveReasonFlags) -> void
+    function MakeDirty(reason: SaveReasonFlags, node: Node* = nullptr) -> void
+
+    function CountLiveNodes() const -> int
+    function CountLivePins() const -> int
+    function CountLiveLinks() const -> int
+
+    function CreatePin(id: PinId, kind: PinKind) -> Pin*
+    function CreateNode(id: NodeId) -> Node*
+    function CreateLink(id: LinkId) -> Link*
+
+    function FindNode(id: NodeId) -> Node*
+    function FindPin(id: PinId) -> Pin*
+    function FindLink(id: LinkId) -> Link*
+    function FindObject(id: ObjectId) -> Object*
+
+    function GetNode(id: NodeId) -> Node*
+    function GetPin(id: PinId, kind: PinKind) -> Pin*
+    function GetLink(id: LinkId) -> Link*
+
+    function FindLinkAt(p: const ImVec2&) -> Link*
+
+    template <typename T>
+    function GetBounds(objects: const std.vector<T*>&) -> ImRect:
+        bounds := ImRect(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX)
+
+        for object in objects:
+            if object.m_IsLive:
+                bounds.Add(object.GetBounds())
+
+        if ImRect_IsEmpty(bounds):
+            bounds = ImRect()
+
+        return bounds
+
+    template <typename T>
+    function GetBounds(objects: const std.std.vector<ObjectWrapper<T>>&) -> ImRect:
+        bounds := ImRect(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX)
+
+        for object in objects:
+            if object.m_Object.m_IsLive:
+                bounds.Add(object.m_Object.GetBounds())
+
+        if ImRect_IsEmpty(bounds):
+            bounds = ImRect()
+
+        return bounds
+
+    function GetSelectionBounds() -> ImRect:
+        return GetBounds(m_SelectedObjects)
+    function GetContentBounds() -> ImRect:
+        return GetBounds(m_Nodes)
+
+    function GetColor(colorIndex: StyleColor) const -> ImU32
+    function GetColor(colorIndex: StyleColor, alpha: float) const -> ImU32
+
+    function GetNodeIds(nodes: NodeId*, size: int) const -> int
+
+    function NavigateTo(bounds: const ImRect&, zoomIn: bool = false, duration: float = -1) -> void:
+        zoomMode := if zoomIn: NavigateAction.ZoomMode.WithMargin else NavigateAction.ZoomMode.None
+        m_NavigateAction.NavigateTo(bounds, zoomMode, duration)
+
+    function RegisterAnimation(animation: Animation*) -> void
+    function UnregisterAnimation(animation: Animation*) -> void
+
+    function Flow(link: Link*, direction: FlowDirection) -> void
+
+    function SetUserContext(globalSpace: bool = false) -> void
+
+    function EnableShortcuts(enable: bool) -> void
+    function AreShortcutsEnabled() -> bool
+
+    function GetHoveredNode() const -> NodeId:
+        return m_HoveredNode
+    function GetHoveredPin() const -> PinId:
+        return m_HoveredPin
+    function GetHoveredLink() const -> LinkId:
+        return m_HoveredLink
+    function GetDoubleClickedNode() const -> NodeId:
+        return m_DoubleClickedNode
+    function GetDoubleClickedPin() const -> PinId:
+        return m_DoubleClickedPin
+    function GetDoubleClickedLink() const -> LinkId:
+        return m_DoubleClickedLink
+    function IsBackgroundClicked() const -> bool:
+        return m_BackgroundClickButtonIndex >= 0
+    function IsBackgroundDoubleClicked() const -> bool:
+        return m_BackgroundDoubleClickButtonIndex >= 0
+    function GetBackgroundClickButtonIndex() const -> ImGuiMouseButton:
+        return m_BackgroundClickButtonIndex
+    function GetBackgroundDoubleClickButtonIndex() const -> ImGuiMouseButton:
+        return m_BackgroundDoubleClickButtonIndex
+
+    function AlignPointToGrid(p: float) const -> float:
+        if not ImGui.GetIO().KeyAlt:
+            return p - ImFmod(p, 16.0f)
+        else:
+            return p
+
+    function AlignPointToGrid(p: const ImVec2&) const -> ImVec2:
+        return ImVec2(AlignPointToGrid(p.x), AlignPointToGrid(p.y))
+
+    function GetDrawList() -> ImDrawList*:
+        return m_DrawList
+
+    private:
+    function LoadSettings() -> void
+    function SaveSettings() -> void
+
+    function BuildControl(allowOffscreen: bool) -> Control
+
+    function ShowMetrics(control: const Control&) -> void
+
+    function UpdateAnimations() -> void
+
+    m_Config: Config
+    m_EditorActiveId: ImGuiID
+    m_IsFirstFrame: bool
+    m_IsFocused: bool
+    m_IsHovered: bool
+    m_IsHoveredWithoutOverlapp: bool
+    m_ShortcutsEnabled: bool
+    m_Style: Style
+    m_Nodes: vector<ObjectWrapper<Node>>
+    m_Pins: vector<ObjectWrapper<Pin>>
+    m_Links: vector<ObjectWrapper<Link>>
+    m_SelectedObjects: vector<Object*>
+    m_LastSelectedObjects: vector<Object*>
+    m_SelectionId: uint64_t
+    m_LastActiveLink: Link*
+    m_LiveAnimations: vector<Animation*>
+    m_LastLiveAnimations: vector<Animation*>
+    m_Canvas: ImGuiEx.Canvas
+    m_IsCanvasVisible: bool
+    m_NodeBuilder: NodeBuilder
+    m_HintBuilder: HintBuilder
+    m_CurrentAction: EditorAction*
+    m_NavigateAction: NavigateAction
+    m_SizeAction: SizeAction
+    m_DragAction: DragAction
+    m_SelectAction: SelectAction
+    m_ContextMenuAction: ContextMenuAction
+    m_ShortcutAction: ShortcutAction
+    m_CreateItemAction: CreateItemAction
+    m_DeleteItemsAction: DeleteItemsAction
+    m_AnimationControllers: vector<AnimationController*>
+    m_FlowAnimationController: FlowAnimationController
+    m_HoveredNode: NodeId
+    m_HoveredPin: PinId
+    m_HoveredLink: LinkId
+    m_DoubleClickedNode: NodeId
+    m_DoubleClickedPin: PinId
+    m_DoubleClickedLink: LinkId
+    m_BackgroundClickButtonIndex: int
+    m_BackgroundDoubleClickButtonIndex: int
+    m_IsInitialized: bool
+    m_Settings: Settings
+    m_DrawList: ImDrawList*
+    m_ExternalChannel: int
+    m_Splitter: ImDrawListSplitter
+
+namespace_end  // Detail
+namespace_end  // Editor
+namespace_end  // ax

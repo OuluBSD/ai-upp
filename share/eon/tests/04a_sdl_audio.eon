@@ -1,11 +1,11 @@
 machine sdl.app:
-	
+
 	driver context:
 		sdl.context
-	
+
 	chain program:
-		
-		loop audio:
+
+		loop audio.sdl:
 			center.customer
 			center.audio.src.dbg_generator
 			sdl.audio

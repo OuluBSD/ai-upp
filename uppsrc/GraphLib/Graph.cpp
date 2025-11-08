@@ -2,7 +2,7 @@
 
 namespace GraphLib {
 
-Node::Node() : layout_pos_x(0), layout_pos_y(0), sort_importance(0), optimized(false) {
+Node::Node() : layout_pos_x(0), layout_pos_y(0), sort_importance(0), optimized(false), isSelected(false) {
 	predecessor = NULL;
 	sz = Size(60, 40);
 	shape = SHAPE_ELLIPSE;
@@ -18,7 +18,7 @@ Node::Node() : layout_pos_x(0), layout_pos_y(0), sort_importance(0), optimized(f
 
 Node::Node(const Node& src) {
 	predecessor = NULL;
-	
+
 	#define COPY(x) x = src.x
 	COPY(id);
 	COPY(line_clr);
@@ -34,7 +34,9 @@ Node::Node(const Node& src) {
 	COPY(sort_importance);
 	COPY(sz);
 	COPY(optimized);
-	edges <<= edges;
+	COPY(isSelected);
+	edges <<= src.edges;
+	pins <<= src.pins;
 	#undef COPY
 }
 
@@ -44,12 +46,39 @@ Node& Node::SetLabel(String s) {
 	return *this;
 }
 
-
-
-
-
-
-
+// Add new function to create an edge between pins
+Edge& Graph::AddEdge(String sourceNodeId, String sourcePinId, String targetNodeId, String targetPinId, double weight, Edge* copy_data_from) {
+	ASSERT_(weight > 0.0, "Only positive weight is allowed");
+	Node& source_node = AddNode(sourceNodeId);
+	Node& target_node = AddNode(targetNodeId);
+	
+	// Find the pins
+	Pin* sourcePin = source_node.FindPin(sourcePinId);
+	Pin* targetPin = target_node.FindPin(targetPinId);
+	ASSERT_(sourcePin != nullptr, "Source pin not found");
+	ASSERT_(targetPin != nullptr, "Target pin not found");
+	
+	Edge& e = !copy_data_from ? edges.Add() : edges.Add(*copy_data_from);
+	if (!copy_data_from) {
+		e.stroke_clr = line_clr;
+		e.line_width = edge_line_width;
+	}
+	e.weight = weight;
+	e.source = &source_node;
+	e.target = &target_node;
+	
+	// Add this edge to the pin connection lists
+	sourcePin->connections.Add(&e);
+	targetPin->connections.Add(&e);
+	
+	// Mark pins as connected
+	sourcePin->isConnected = true;
+	targetPin->isConnected = true;
+	
+	source_node.edges.Add(&e);
+	target_node.edges.Add(&e);
+	return e;
+}
 
 Graph::Graph() {
 	layout_max_x = 1920;
@@ -101,14 +130,14 @@ Edge& Graph::AddEdge(String source, String target, double weight, Edge* copy_dat
 void Graph::RemoveNode(String id) {
 	int i = nodes.Find(id);
 	Node& node = nodes[i];
-	
+
 	// Delete node from all the edges
 	for(int i = 0; i < edges.GetCount(); i++) {
 		Edge& edge = edges[i];
 		if (edge.source == &node || edge.target == &node)
 			RemoveEdge(edge);
 	}
-	
+
 	// Delete node from index
 	nodes.Remove(i);
 }
@@ -118,7 +147,7 @@ void Graph::RemoveEdge(Edge& source_edge) {
 	int found_pos = -1;
 	Node* target = source_edge.target;
 	Node* source = source_edge.source;
-	
+
 	// Find and remove edge
 	for(int i = 0; i < edges.GetCount(); i++) {
 		Edge& edge = edges[i];
@@ -128,7 +157,7 @@ void Graph::RemoveEdge(Edge& source_edge) {
 			break;
 		}
 	}
-	
+
 	if (found) {
 		for(int i = 0; i < found->source->edges.GetCount(); i++) {
 			if (found->source->edges[i] == found) {
@@ -140,6 +169,33 @@ void Graph::RemoveEdge(Edge& source_edge) {
 			if (found->target->edges[i] == found) {
 				found->target->edges.Remove(i);
 				i--;
+			}
+		}
+		// Also remove from pin connections
+		Node* sourceNode = found->source;
+		Node* targetNode = found->target;
+		for (int i = 0; i < sourceNode->pins.GetCount(); i++) {
+			Pin& pin = sourceNode->pins[i];
+			for (int j = 0; j < pin.connections.GetCount(); j++) {
+				if (pin.connections[j] == found) {
+					pin.connections.Remove(j);
+					j--;
+				}
+			}
+			if (pin.connections.GetCount() == 0) {
+				pin.isConnected = false;
+			}
+		}
+		for (int i = 0; i < targetNode->pins.GetCount(); i++) {
+			Pin& pin = targetNode->pins[i];
+			for (int j = 0; j < pin.connections.GetCount(); j++) {
+				if (pin.connections[j] == found) {
+					pin.connections.Remove(j);
+					j--;
+				}
+			}
+			if (pin.connections.GetCount() == 0) {
+				pin.isConnected = false;
 			}
 		}
 		edges.Remove(found_pos);

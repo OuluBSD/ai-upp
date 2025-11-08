@@ -314,6 +314,9 @@ public:
 		}
 	}
 
+	// Public access to renderer for GraphNodeCtrl
+	Renderer& GetRenderer() { return rend; }
+	const Renderer& GetRenderer() const { return rend; }
 };
 
 typedef GraphLayout<Spring>				SpringGraph;

@@ -1,0 +1,561 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_node_editor.cpp
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui_node_editor_internal
+import algorithm
+import chrono
+import string
+import regex
+import cmath
+
+//------------------------------------------------------------------------------
+// Helper function for equality check
+template <typename InputIt1, typename InputIt2, typename BinaryPredicate>
+function Equals(first1: InputIt1, last1: InputIt1, first2: InputIt2, last2: InputIt2, p: BinaryPredicate) -> bool:
+    for _ in range(first1, last1) and range(first2, last2):
+        if not p(*first1, *first2):
+            return false
+        first1++
+        first2++
+    return first1 == last1 and first2 == last2
+
+//------------------------------------------------------------------------------
+// Constructor and Destructor
+constructor TextEditor.TextEditor():
+    m_LineSpacing = 1.0f
+    m_UndoIndex = 0
+    m_TabSize = 4
+    m_Overwrite = false
+    m_ReadOnly = false
+    m_WithinRender = false
+    m_ScrollToCursor = false
+    m_ScrollToTop = false
+    m_TextChanged = false
+    m_ColorizerEnabled = true
+    m_TextStart = 20.0f
+    m_LeftMargin = 10
+    m_CursorPositionChanged = false
+    m_ColorRangeMin = 0
+    m_ColorRangeMax = 0
+    m_SelectionMode = SelectionMode.Normal
+    m_CheckComments = true
+    m_LastClick = -1.0f
+    m_HandleKeyboardInputs = true
+    m_HandleMouseInputs = true
+    m_IgnoreImGuiChild = false
+    m_ShowWhitespaces = true
+    m_StartTime = std.chrono.duration_cast<std.chrono.milliseconds>(std.chrono.system_clock.now().time_since_epoch()).count()
+    
+    SetPalette(GetDarkPalette())
+    SetLanguageDefinition(LanguageDefinition.HLSL())
+    m_Lines.push_back(Line())
+
+destructor TextEditor.~TextEditor():
+    pass
+
+function TextEditor.SetLanguageDefinition(aLanguageDef: const LanguageDefinition&) -> void:
+    m_LanguageDefinition = aLanguageDef
+    m_RegexList.clear()
+
+    for r in m_LanguageDefinition.m_TokenRegexStrings:
+        m_RegexList.push_back(std.make_pair(std.regex(r.first, std.regex_constants.optimize), r.second))
+
+    Colorize()
+
+function TextEditor.SetPalette(aValue: const Palette&) -> void:
+    m_PaletteBase = aValue
+
+function TextEditor.GetText(aStart: const Coordinates&, aEnd: const Coordinates&) const -> std.string:
+    result := std.string()
+
+    lstart := aStart.m_Line
+    lend   := aEnd.m_Line
+    istart := GetCharacterIndex(aStart)
+    iend   := GetCharacterIndex(aEnd)
+    s      := 0
+
+    for i := lstart; i < lend; i++:
+        s += m_Lines[i].size()
+
+    result.reserve(s + s / 8)
+
+    while istart < iend or lstart < lend:
+        if lstart >= int(m_Lines.size()):
+            break
+
+        line := m_Lines[lstart]
+        if istart < int(line.size()):
+            result += line[istart].m_Char
+            istart++
+        else:
+            istart = 0
+            lstart++
+            result += '\n'
+
+    return result
+
+function TextEditor.GetActualCursorCoordinates() const -> Coordinates:
+    return SanitizeCoordinates(m_State.m_CursorPosition)
+
+function TextEditor.SanitizeCoordinates(aValue: const Coordinates&) const -> Coordinates:
+    line   := aValue.m_Line
+    column := aValue.m_Column
+    if line >= int(m_Lines.size()):
+        if m_Lines.empty():
+            line   = 0
+            column = 0
+        else:
+            line   = int(m_Lines.size()) - 1
+            column = GetLineMaxColumn(line)
+        return Coordinates(line, column)
+    else:
+        column = m_Lines.empty() ? 0 : std.min(column, GetLineMaxColumn(line))
+        return Coordinates(line, column)
+
+// Helper function to determine UTF-8 character length
+function UTF8CharLength(c: TextEditor.Char) -> int:
+    if (c & 0xFE) == 0xFC:
+        return 6
+    if (c & 0xFC) == 0xF8:
+        return 5
+    if (c & 0xF8) == 0xF0:
+        return 4
+    elif (c & 0xF0) == 0xE0:
+        return 3
+    elif (c & 0xE0) == 0xC0:
+        return 2
+    return 1
+
+// Convert character to UTF-8 string
+function ImTextCharToUtf8(buf: char*, buf_size: int, c: unsigned int) -> int:
+    if c < 0x80:
+        buf[0] = char(c)
+        return 1
+    if c < 0x800:
+        if buf_size < 2:
+            return 0
+        buf[0] = char(0xc0 + (c >> 6))
+        buf[1] = char(0x80 + (c & 0x3f))
+        return 2
+    if c >= 0xdc00 and c < 0xe000:
+        return 0
+    if c >= 0xd800 and c < 0xdc00:
+        if buf_size < 4:
+            return 0
+        buf[0] = char(0xf0 + (c >> 18))
+        buf[1] = char(0x80 + ((c >> 12) & 0x3f))
+        buf[2] = char(0x80 + ((c >> 6) & 0x3f))
+        buf[3] = char(0x80 + (c & 0x3f))
+        return 4
+    # else if (c < 0x10000):
+    if buf_size < 3:
+        return 0
+    buf[0] = char(0xe0 + (c >> 12))
+    buf[1] = char(0x80 + ((c >> 6) & 0x3f))
+    buf[2] = char(0x80 + (c & 0x3f))
+    return 3
+
+function TextEditor.Advance(aCoordinates: Coordinates&) const -> void:
+    if aCoordinates.m_Line < int(m_Lines.size()):
+        line := m_Lines[aCoordinates.m_Line]
+        cindex := GetCharacterIndex(aCoordinates)
+
+        if cindex + 1 < int(line.size()):
+            delta := UTF8CharLength(line[cindex].m_Char)
+            cindex = std.min(cindex + delta, int(line.size()) - 1)
+        else:
+            aCoordinates.m_Line++
+            cindex = 0
+        aCoordinates.m_Column = GetCharacterColumn(aCoordinates.m_Line, cindex)
+
+function TextEditor.DeleteRange(aStart: const Coordinates&, aEnd: const Coordinates&) -> void:
+    IM_ASSERT(aEnd >= aStart)
+    IM_ASSERT(not m_ReadOnly)
+
+    if aEnd == aStart:
+        return
+
+    start := GetCharacterIndex(aStart)
+    end   := GetCharacterIndex(aEnd)
+
+    if aStart.m_Line == aEnd.m_Line:
+        line := m_Lines[aStart.m_Line]
+        n    := GetLineMaxColumn(aStart.m_Line)
+        if aEnd.m_Column >= n:
+            line.erase(line.begin() + start, line.end())
+        else:
+            line.erase(line.begin() + start, line.begin() + end)
+    else:
+        firstLine := m_Lines[aStart.m_Line]
+        lastLine  := m_Lines[aEnd.m_Line]
+
+        firstLine.erase(firstLine.begin() + start, firstLine.end())
+        lastLine.erase(lastLine.begin(), lastLine.begin() + end)
+
+        if aStart.m_Line < aEnd.m_Line:
+            firstLine.insert(firstLine.end(), lastLine.begin(), lastLine.end())
+
+        if aStart.m_Line < aEnd.m_Line:
+            RemoveLine(aStart.m_Line + 1, aEnd.m_Line + 1)
+
+    m_TextChanged = true
+
+function TextEditor.InsertTextAt(aWhere: Coordinates&, aValue: const char*) -> int:
+    IM_ASSERT(not m_ReadOnly)
+
+    cindex     := GetCharacterIndex(aWhere)
+    totalLines := 0
+    while *aValue != '\0':
+        IM_ASSERT(not m_Lines.empty())
+
+        if *aValue == '\r':
+            # Skip carriage return
+            aValue++
+        elif *aValue == '\n':
+            if cindex < int(m_Lines[aWhere.m_Line].size()):
+                newLine          := InsertLine(aWhere.m_Line + 1)
+                line             := m_Lines[aWhere.m_Line]
+                newLine.insert(newLine.begin(), line.begin() + cindex, line.end())
+                line.erase(line.begin() + cindex, line.end())
+            else:
+                InsertLine(aWhere.m_Line + 1)
+            aWhere.m_Line++
+            aWhere.m_Column = 0
+            cindex = 0
+            totalLines++
+            aValue++
+        else:
+            line := m_Lines[aWhere.m_Line]
+            d    := UTF8CharLength(*aValue)
+            while d-- > 0 and *aValue != '\0':
+                line.insert(line.begin() + cindex++, Glyph(*aValue++, PaletteIndex.Default))
+            aWhere.m_Column++
+
+        m_TextChanged = true
+
+    return totalLines
+
+function TextEditor.AddUndo(aValue: UndoRecord&) -> void:
+    IM_ASSERT(not m_ReadOnly)
+
+    m_UndoBuffer.resize(size_t(m_UndoIndex + 1))
+    m_UndoBuffer.back() = aValue
+    m_UndoIndex++
+
+function TextEditor.ScreenPosToCoordinates(aPosition: const ImVec2&) const -> Coordinates:
+    origin := ImGui.GetCursorScreenPos()
+    local  := ImVec2(aPosition.x - origin.x, aPosition.y - origin.y)
+
+    lineNo := std.max(0, int(std.floor(local.y / m_CharAdvance.y)))
+
+    columnCoord := 0
+
+    if lineNo >= 0 and lineNo < int(m_Lines.size()):
+        line := m_Lines.at(lineNo)
+
+        columnIndex := 0
+        columnX     := 0.0f
+
+        while size_t(columnIndex) < line.size():
+            columnWidth := 0.0f
+
+            if line[columnIndex].m_Char == '\t':
+                spaceSize := ImGui.GetFont().CalcTextSizeA(ImGui.GetFontSize(), FLT_MAX, -1.0f, " ").x
+                oldX      := columnX
+                newColumnX := (1.0f + std.floor((1.0f + columnX) / (float(m_TabSize) * spaceSize))) * (float(m_TabSize) * spaceSize)
+                columnWidth := newColumnX - oldX
+                if m_TextStart + columnX + columnWidth * 0.5f > local.x:
+                    break
+                columnX = newColumnX
+                columnCoord = (columnCoord / m_TabSize) * m_TabSize + m_TabSize
+                columnIndex++
+            else:
+                buf := char[7]
+                d   := UTF8CharLength(line[columnIndex].m_Char)
+                i   := 0
+                while i < 6 and d-- > 0:
+                    buf[i++] = line[columnIndex++].m_Char
+                buf[i] = '\0'
+                columnWidth = ImGui.GetFont().CalcTextSizeA(ImGui.GetFontSize(), FLT_MAX, -1.0f, buf).x
+                if m_TextStart + columnX + columnWidth * 0.5f > local.x:
+                    break
+                columnX += columnWidth
+                columnCoord++
+
+    return SanitizeCoordinates(Coordinates(lineNo, columnCoord))
+
+function TextEditor.FindWordStart(aFrom: const Coordinates&) const -> Coordinates:
+    at := aFrom
+    if at.m_Line >= int(m_Lines.size()):
+        return at
+
+    line := m_Lines[at.m_Line]
+    cindex := GetCharacterIndex(at)
+
+    if cindex >= int(line.size()):
+        return at
+
+    while cindex > 0 and std.isspace(line[cindex].m_Char):
+        cindex--
+
+    cstart := PaletteIndex(line[cindex].m_ColorIndex)
+    while cindex > 0:
+        c := line[cindex].m_Char
+        if (c & 0xC0) != 0x80:  # not UTF code sequence 10xxxxxx
+            if c <= 32 and std.isspace(c):
+                cindex++
+                break
+            if cstart != PaletteIndex(line[size_t(cindex - 1)].m_ColorIndex):
+                break
+        cindex--
+    return Coordinates(at.m_Line, GetCharacterColumn(at.m_Line, cindex))
+
+function TextEditor.FindWordEnd(aFrom: const Coordinates&) const -> Coordinates:
+    at := aFrom
+    if at.m_Line >= int(m_Lines.size()):
+        return at
+
+    line := m_Lines[at.m_Line]
+    cindex := GetCharacterIndex(at)
+
+    if cindex >= int(line.size()):
+        return at
+
+    prevspace := bool(std.isspace(line[cindex].m_Char))
+    cstart := PaletteIndex(line[cindex].m_ColorIndex
+    while cindex < int(line.size()):
+        c := line[cindex].m_Char
+        d := UTF8CharLength(c)
+        if cstart != PaletteIndex(line[cindex].m_ColorIndex):
+            break
+
+        if prevspace != !!std.isspace(c):
+            if std.isspace(c):
+                while cindex < int(line.size()) and std.isspace(line[cindex].m_Char):
+                    cindex++
+            break
+        cindex += d
+    return Coordinates(aFrom.m_Line, GetCharacterColumn(aFrom.m_Line, cindex))
+
+function TextEditor.FindNextWord(aFrom: const Coordinates&) const -> Coordinates:
+    at := aFrom
+    if at.m_Line >= int(m_Lines.size()):
+        auto l := std.max(0, int(m_Lines.size()) - 1)
+        return Coordinates(l, GetLineMaxColumn(l))
+
+    cindex := GetCharacterIndex(aFrom)
+    isword := false
+    skip   := false
+    if cindex < int(m_Lines[at.m_Line].size()):
+        line   := m_Lines[at.m_Line]
+        isword := std.isalnum(line[cindex].m_Char)
+        skip   := isword
+
+    while not isword or skip:
+        if at.m_Line >= m_Lines.size():
+            auto l := std.max(0, int(m_Lines.size()) - 1)
+            return Coordinates(l, GetLineMaxColumn(l))
+
+        line := m_Lines[at.m_Line]
+        if cindex < int(line.size()):
+            isword = std.isalnum(line[cindex].m_Char)
+
+            if isword and not skip:
+                return Coordinates(at.m_Line, GetCharacterColumn(at.m_Line, cindex))
+
+            if not isword:
+                skip = false
+
+            cindex++
+        else:
+            cindex = 0
+            at.m_Line++
+            skip = false
+            isword = false
+
+    return at
+
+function TextEditor.GetCharacterIndex(aCoordinates: const Coordinates&) const -> int:
+    if aCoordinates.m_Line >= m_Lines.size():
+        return -1
+    line := m_Lines[aCoordinates.m_Line]
+    c    := 0
+    i    := 0
+    while i < line.size() and c < aCoordinates.m_Column:
+        if line[i].m_Char == '\t':
+            c = (c / m_TabSize) * m_TabSize + m_TabSize
+        else:
+            c++
+        i += UTF8CharLength(line[i].m_Char)
+    return i
+
+function TextEditor.GetCharacterColumn(aLine: int, aIndex: int) const -> int:
+    if aLine >= m_Lines.size():
+        return 0
+    line := m_Lines[aLine]
+    col  := 0
+    i    := 0
+    while i < aIndex and i < int(line.size()):
+        c := line[i].m_Char
+        i += UTF8CharLength(c)
+        if c == '\t':
+            col = (col / m_TabSize) * m_TabSize + m_TabSize
+        else:
+            col++
+    return col
+
+function TextEditor.GetLineCharacterCount(aLine: int) const -> int:
+    if aLine >= m_Lines.size():
+        return 0
+    line := m_Lines[aLine]
+    c    := 0
+    i    := 0
+    while i < line.size():
+        c++
+        i += UTF8CharLength(line[i].m_Char)
+    return c
+
+function TextEditor.GetLineMaxColumn(aLine: int) const -> int:
+    if aLine >= m_Lines.size():
+        return 0
+    line := m_Lines[aLine]
+    col  := 0
+    i    := 0
+    while i < line.size():
+        c := line[i].m_Char
+        if c == '\t':
+            col = (col / m_TabSize) * m_TabSize + m_TabSize
+        else:
+            col++
+        i += UTF8CharLength(c)
+    return col
+
+function TextEditor.IsOnWordBoundary(aAt: const Coordinates&) const -> bool:
+    if aAt.m_Line >= int(m_Lines.size()) or aAt.m_Column == 0:
+        return true
+
+    line := m_Lines[aAt.m_Line]
+    cindex := GetCharacterIndex(aAt)
+    if cindex >= int(line.size()):
+        return true
+
+    if m_ColorizerEnabled:
+        return line[cindex].m_ColorIndex != line[size_t(cindex - 1)].m_ColorIndex
+
+    return std.isspace(line[cindex].m_Char) != std.isspace(line[cindex - 1].m_Char)
+
+function TextEditor.RemoveLine(aStart: int, aEnd: int) -> void:
+    IM_ASSERT(not m_ReadOnly)
+    IM_ASSERT(aEnd >= aStart)
+    IM_ASSERT(m_Lines.size() > size_t(aEnd - aStart))
+
+    etmp := ErrorMarkers()
+    for i in m_ErrorMarkers:
+        e := ErrorMarkers.value_type(i.first >= aStart ? i.first - 1 : i.first, i.second)
+        if e.first >= aStart and e.first <= aEnd:
+            continue
+        etmp.insert(e)
+    m_ErrorMarkers = std.move(etmp)
+
+    btmp := Breakpoints()
+    for i in m_Breakpoints:
+        if i >= aStart and i <= aEnd:
+            continue
+        btmp.insert(i >= aStart ? i - 1 : i)
+    m_Breakpoints = std.move(btmp)
+
+    m_Lines.erase(m_Lines.begin() + aStart, m_Lines.begin() + aEnd)
+    IM_ASSERT(not m_Lines.empty())
+
+    m_TextChanged = true
+
+function TextEditor.RemoveLine(aIndex: int) -> void:
+    IM_ASSERT(not m_ReadOnly)
+    IM_ASSERT(m_Lines.size() > 1)
+
+    etmp := ErrorMarkers()
+    for i in m_ErrorMarkers:
+        e := ErrorMarkers.value_type(i.first > aIndex ? i.first - 1 : i.first, i.second)
+        if e.first - 1 == aIndex:
+            continue
+        etmp.insert(e)
+    m_ErrorMarkers = std.move(etmp)
+
+    btmp := Breakpoints()
+    for i in m_Breakpoints:
+        if i == aIndex:
+            continue
+        btmp.insert(i >= aIndex ? i - 1 : i)
+    m_Breakpoints = std.move(btmp)
+
+    m_Lines.erase(m_Lines.begin() + aIndex)
+    IM_ASSERT(not m_Lines.empty())
+
+    m_TextChanged = true
+
+function TextEditor.InsertLine(aIndex: int) -> Line&:
+    IM_ASSERT(not m_ReadOnly)
+
+    result := *m_Lines.insert(m_Lines.begin() + aIndex, Line())
+
+    etmp := ErrorMarkers()
+    for i in m_ErrorMarkers:
+        etmp.insert(ErrorMarkers.value_type(i.first >= aIndex ? i.first + 1 : i.first, i.second))
+    m_ErrorMarkers = std.move(etmp)
+
+    btmp := Breakpoints()
+    for i in m_Breakpoints:
+        btmp.insert(i >= aIndex ? i + 1 : i)
+    m_Breakpoints = std.move(btmp)
+
+    return result
+
+function TextEditor.GetWordUnderCursor() const -> std.string:
+    c := GetCursorPosition()
+    return GetWordAt(c)
+
+function TextEditor.GetWordAt(aCoords: const Coordinates&) const -> std.string:
+    start := FindWordStart(aCoords)
+    end   := FindWordEnd(aCoords)
+
+    r := std.string()
+
+    istart := GetCharacterIndex(start)
+    iend   := GetCharacterIndex(end)
+
+    for it := istart; it < iend; it++:
+        r.push_back(m_Lines[aCoords.m_Line][it].m_Char)
+
+    return r
+
+function TextEditor.GetGlyphColor(aGlyph: const Glyph&) const -> ImU32:
+    if not m_ColorizerEnabled:
+        return m_Palette[int(PaletteIndex.Default)]
+    if aGlyph.m_Comment:
+        return m_Palette[int(PaletteIndex.Comment)]
+    if aGlyph.m_MultiLineComment:
+        return m_Palette[int(PaletteIndex.MultiLineComment)]
+    color := m_Palette[int(aGlyph.m_ColorIndex)]
+    if aGlyph.m_Preprocessor:
+        ppcolor := m_Palette[int(PaletteIndex.Preprocessor)]
+        c0 := int((ppcolor & 0xff) + (color & 0xff)) / 2
+        c1 := int(((ppcolor >> 8) & 0xff) + ((color >> 8) & 0xff)) / 2
+        c2 := int(((ppcolor >> 16) & 0xff) + ((color >> 16) & 0xff)) / 2
+        c3 := int(((ppcolor >> 24) & 0xff) + ((color >> 24) & 0xff)) / 2
+        return ImU32(c0 | (c1 << 8) | (c2 << 16) | (c3 << 24))
+    return color
+
+// Additional functions would continue...

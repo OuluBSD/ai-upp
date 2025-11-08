@@ -1,0 +1,698 @@
+// Crude implementation of JSON value object and parser.
+//
+// VERSION 0.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of crude_json.h
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import std.type_traits
+import std.string
+import std.vector
+import std.map
+import std.cstddef
+import std.algorithm
+import std.sstream
+import std.assert
+
+namespace crude_json:
+    // Type aliases
+    using string = std.string
+    using object = std.map<string, value>
+    using array = std.vector<value>
+    using number = double
+    using boolean = bool
+    using null = std.nullptr_t
+
+    // Enum definitions
+    enum class type_t:
+        null
+        object
+        array
+        string
+        boolean
+        number
+        discarded
+
+    // Class/Struct definitions
+
+    /// @brief JSON value class that can hold different types
+    /// @ownership Manages internal storage for different value types
+    struct value:
+        /// @brief Default constructor
+        /// @param type type_t - the type to initialize with (default: null)
+        constructor(type: type_t = type_t.null):
+            m_Type = construct(m_Storage, type)
+        
+        /// @brief Move constructor
+        constructor(value&& other)
+        
+        /// @brief Copy constructor
+        constructor(const value& other)
+
+        /// @brief Constructor with null value
+        constructor(null):
+            m_Type = construct(m_Storage, null())
+        
+        /// @brief Move constructor for object
+        constructor(object&& v):
+            m_Type = construct(m_Storage, std.move(v))
+        
+        /// @brief Copy constructor for object
+        constructor(const object& v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Move constructor for array
+        constructor(array&& v):
+            m_Type = construct(m_Storage, std.move(v))
+        
+        /// @brief Copy constructor for array
+        constructor(const array& v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Move constructor for string
+        constructor(string&& v):
+            m_Type = construct(m_Storage, std.move(v))
+        
+        /// @brief Copy constructor for string
+        constructor(const string& v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Constructor from C string
+        constructor(const char* v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Constructor for boolean
+        constructor(boolean v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Constructor for number
+        constructor(number v):
+            m_Type = construct(m_Storage, v)
+        
+        /// @brief Destructor
+        destructor:
+            destruct(m_Storage, m_Type)
+
+        /// @brief Move assignment operator
+        function operator=(other: value&&) -> value&:
+            if this != &other:
+                value(std.move(other)).swap(*this)
+            return *this
+        
+        /// @brief Copy assignment operator
+        function operator=(other: const value&) -> value&:
+            if this != &other:
+                value(other).swap(*this)
+            return *this
+
+        /// @brief Assignment operator for null
+        function operator=(null) -> value&:
+            other := value()
+            swap(other)
+            return *this
+        
+        /// @brief Move assignment operator for object
+        function operator=(v: object&&) -> value&:
+            other := value(std.move(v))
+            swap(other)
+            return *this
+        
+        /// @brief Copy assignment operator for object
+        function operator=(v: const object&) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+        
+        /// @brief Move assignment operator for array
+        function operator=(v: array&&) -> value&:
+            other := value(std.move(v))
+            swap(other)
+            return *this
+        
+        /// @brief Copy assignment operator for array
+        function operator=(v: const array&) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+        
+        /// @brief Move assignment operator for string
+        function operator=(v: string&&) -> value&:
+            other := value(std.move(v))
+            swap(other)
+            return *this
+        
+        /// @brief Copy assignment operator for string
+        function operator=(v: const string&) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+        
+        /// @brief Assignment operator for C string
+        function operator=(v: const char*) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+        
+        /// @brief Assignment operator for boolean
+        function operator=(v: boolean) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+        
+        /// @brief Assignment operator for number
+        function operator=(v: number) -> value&:
+            other := value(v)
+            swap(other)
+            return *this
+
+        /// @brief Get the type of the value
+        /// @return type_t - the type of the value
+        function type() const -> type_t:
+            return m_Type
+
+        /// @brief Implicit conversion to type_t
+        /// @return type_t - the type of the value
+        operator type_t() const -> type_t:
+            return m_Type
+
+        /// @brief Index operator for array access
+        /// @param index size_t - the index to access
+        /// @return value& - reference to the value at index
+        function operator[](index: size_t) -> value&:
+            // Implementation in .cpp file
+        
+        /// @brief Index operator for array access (const)
+        /// @param index size_t - the index to access
+        /// @return const value& - const reference to the value at index
+        function operator[](index: size_t) const -> const value&:
+            // Implementation in .cpp file
+        
+        /// @brief Index operator for object access
+        /// @param key string& - the key to access
+        /// @return value& - reference to the value at key
+        function operator[](key: const string&) -> value&:
+            // Implementation in .cpp file
+        
+        /// @brief Index operator for object access (const)
+        /// @param key string& - the key to access
+        /// @return const value& - const reference to the value at key
+        function operator[](key: const string&) const -> const value&:
+            // Implementation in .cpp file
+
+        /// @brief Check if object contains a key
+        /// @param key string& - the key to check for
+        /// @return bool - true if the key exists
+        function contains(key: const string&) const -> bool:
+            // Implementation in .cpp file
+
+        /// @brief Add element to the end of array
+        /// @param value const value& - the value to add
+        function push_back(value: const value&) -> void:
+            // Implementation in .cpp file
+        
+        /// @brief Add element to the end of array (move)
+        /// @param value value&& - the value to add
+        function push_back(value: value&&) -> void:
+            // Implementation in .cpp file
+
+        /// @brief Remove element with specified key from object
+        /// @param key string& - the key to remove
+        /// @return size_t - number of elements removed
+        function erase(key: const string&) -> size_t:
+            // Implementation in .cpp file
+
+        /// @brief Check if value is a primitive type
+        /// @return bool - true if the value is a primitive
+        function is_primitive() const -> bool:
+            return is_string() or is_number() or is_boolean() or is_null()
+        
+        /// @brief Check if value is a structured type
+        /// @return bool - true if the value is structured
+        function is_structured() const -> bool:
+            return is_object() or is_array()
+        
+        /// @brief Check if value is null
+        /// @return bool - true if the value is null
+        function is_null() const -> bool:
+            return m_Type == type_t.null
+        
+        /// @brief Check if value is object
+        /// @return bool - true if the value is object
+        function is_object() const -> bool:
+            return m_Type == type_t.object
+        
+        /// @brief Check if value is array
+        /// @return bool - true if the value is array
+        function is_array() const -> bool:
+            return m_Type == type_t.array
+        
+        /// @brief Check if value is string
+        /// @return bool - true if the value is string
+        function is_string() const -> bool:
+            return m_Type == type_t.string
+        
+        /// @brief Check if value is boolean
+        /// @return bool - true if the value is boolean
+        function is_boolean() const -> bool:
+            return m_Type == type_t.boolean
+        
+        /// @brief Check if value is number
+        /// @return bool - true if the value is number
+        function is_number() const -> bool:
+            return m_Type == type_t.number
+        
+        /// @brief Check if value is discarded
+        /// @return bool - true if the value is discarded
+        function is_discarded() const -> bool:
+            return m_Type == type_t.discarded
+
+        /// @brief Get value of specified type (const)
+        /// @tparam T - the type to get
+        /// @return const T& - const reference to the value
+        template <typename T>
+        function get() const -> const T&:
+            // Implementation in header
+        
+        /// @brief Get value of specified type
+        /// @tparam T - the type to get
+        /// @return T& - reference to the value
+        template <typename T>
+        function get() -> T&:
+            // Implementation in header
+
+        /// @brief Get pointer to value of specified type (const)
+        /// @tparam T - the type to get
+        /// @return const T* - const pointer to the value or nullptr
+        template <typename T>
+        function get_ptr() const -> const T*:
+            // Implementation in header
+        
+        /// @brief Get pointer to value of specified type
+        /// @tparam T - the type to get
+        /// @return T* - pointer to the value or nullptr
+        template <typename T>
+        function get_ptr() -> T*:
+            // Implementation in header
+
+        /// @brief Serialize value to JSON string
+        /// @param indent int - indentation level (-1 for no indentation)
+        /// @param indent_char char - character to use for indentation
+        /// @return string - JSON string representation
+        function dump(indent: const int = -1, indent_char: const char = ' ') const -> string:
+            // Implementation in .cpp file
+
+        /// @brief Swap with another value
+        /// @param other value& - the other value to swap with
+        function swap(other: value&) -> void:
+            // Implementation in .cpp file
+
+        /// @brief Parse JSON string
+        /// @param data string& - the JSON string to parse
+        /// @return value - parsed value (discarded if invalid)
+        static function parse(data: const string&) -> value:
+            // Implementation in .cpp file
+
+# if CRUDE_JSON_IO:
+        /// @brief Load JSON from file
+        /// @param path string& - path to the file
+        /// @return std.pair<value, bool> - parsed value and success flag
+        static function load(path: const string&) -> std.pair<value, bool>:
+            // Implementation in .cpp file
+        
+        /// @brief Save JSON to file
+        /// @param path string& - path to the file
+        /// @param indent int - indentation level (-1 for no indentation)
+        /// @param indent_char char - character to use for indentation
+        /// @return bool - success flag
+        function save(path: const string&, indent: const int = -1, indent_char: const char = ' ') const -> bool:
+            // Implementation in .cpp file
+# endif
+
+    private:
+        struct parser:
+            // Implementation details for JSON parser
+
+        // Storage type for holding different value types
+        #define CRUDE_MAX2(a, b) ((a) < (b) ? (b) : (a))
+        #define CRUDE_MAX3(a, b, c) CRUDE_MAX2(CRUDE_MAX2(a, b), c)
+        #define CRUDE_MAX4(a, b, c, d) CRUDE_MAX2(CRUDE_MAX3(a, b, c), d)
+        #define CRUDE_MAX5(a, b, c, d, e) CRUDE_MAX2(CRUDE_MAX4(a, b, c, d), e)
+        enum:
+            max_size = CRUDE_MAX5(sizeof(string), sizeof(object), sizeof(array), sizeof(number), sizeof(boolean))
+            max_align = CRUDE_MAX5(alignof(string), alignof(object), alignof(array), alignof(number), alignof(boolean))
+        
+        #undef CRUDE_MAX5
+        #undef CRUDE_MAX4
+        #undef CRUDE_MAX3
+        #undef CRUDE_MAX2
+        using storage_t = std.aligned_storage<max_size, max_align>.type
+
+        /// @brief Get object pointer from storage
+        /// @param storage storage_t& - the storage to access
+        /// @return object* - pointer to object in storage
+        static function object_ptr(storage: storage_t&) -> object*:
+            return std.reinterpret_cast<object*>(&storage)
+        
+        /// @brief Get const object pointer from storage
+        /// @param storage const storage_t& - the storage to access
+        /// @return const object* - const pointer to object in storage
+        static function object_ptr(storage: const storage_t&) -> const object*:
+            return std.reinterpret_cast<const object*>(&storage)
+        
+        /// @brief Get array pointer from storage
+        /// @param storage storage_t& - the storage to access
+        /// @return array* - pointer to array in storage
+        static function array_ptr(storage: storage_t&) -> array*:
+            return std.reinterpret_cast<array*>(&storage)
+        
+        /// @brief Get const array pointer from storage
+        /// @param storage const storage_t& - the storage to access
+        /// @return const array* - const pointer to array in storage
+        static function array_ptr(storage: const storage_t&) -> const array*:
+            return std.reinterpret_cast<const array*>(&storage)
+        
+        /// @brief Get string pointer from storage
+        /// @param storage storage_t& - the storage to access
+        /// @return string* - pointer to string in storage
+        static function string_ptr(storage: storage_t&) -> string*:
+            return std.reinterpret_cast<string*>(&storage)
+        
+        /// @brief Get const string pointer from storage
+        /// @param storage const storage_t& - the storage to access
+        /// @return const string* - const pointer to string in storage
+        static function string_ptr(storage: const storage_t&) -> const string*:
+            return std.reinterpret_cast<const string*>(&storage)
+        
+        /// @brief Get boolean pointer from storage
+        /// @param storage storage_t& - the storage to access
+        /// @return boolean* - pointer to boolean in storage
+        static function boolean_ptr(storage: storage_t&) -> boolean*:
+            return std.reinterpret_cast<boolean*>(&storage)
+        
+        /// @brief Get const boolean pointer from storage
+        /// @param storage const storage_t& - the storage to access
+        /// @return const boolean* - const pointer to boolean in storage
+        static function boolean_ptr(storage: const storage_t&) -> const boolean*:
+            return std.reinterpret_cast<const boolean*>(&storage)
+        
+        /// @brief Get number pointer from storage
+        /// @param storage storage_t& - the storage to access
+        /// @return number* - pointer to number in storage
+        static function number_ptr(storage: storage_t&) -> number*:
+            return std.reinterpret_cast<number*>(&storage)
+        
+        /// @brief Get const number pointer from storage
+        /// @param storage const storage_t& - the storage to access
+        /// @return const number* - const pointer to number in storage
+        static function number_ptr(storage: const storage_t&) -> const number*:
+            return std.reinterpret_cast<const number*>(&storage)
+
+        /// @brief Construct a value of specified type in storage
+        /// @param storage storage_t& - the storage to construct in
+        /// @param type type_t - the type to construct
+        /// @return type_t - the constructed type
+        static function construct(storage: storage_t&, type: type_t) -> type_t:
+            switch type:
+                case type_t.object:
+                    std.new(&storage) object()
+                    break
+                case type_t.array:
+                    std.new(&storage) array()
+                    break
+                case type_t.string:
+                    std.new(&storage) string()
+                    break
+                case type_t.boolean:
+                    std.new(&storage) boolean()
+                    break
+                case type_t.number:
+                    std.new(&storage) number()
+                    break
+                default:
+                    break
+
+            return type
+
+        /// @brief Construct null value in storage
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value null - the null value
+        /// @return type_t - the type (null)
+        static function construct(storage: storage_t&, value: null) -> type_t:
+            return type_t.null
+        
+        /// @brief Construct object value in storage (move)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value object&& - the object to move
+        /// @return type_t - the type (object)
+        static function construct(storage: storage_t&, value: object&&) -> type_t:
+            std.new(&storage) object(std.forward<object>(value))
+            return type_t.object
+        
+        /// @brief Construct object value in storage (copy)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value const object& - the object to copy
+        /// @return type_t - the type (object)
+        static function construct(storage: storage_t&, value: const object&) -> type_t:
+            std.new(&storage) object(value)
+            return type_t.object
+        
+        /// @brief Construct array value in storage (move)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value array&& - the array to move
+        /// @return type_t - the type (array)
+        static function construct(storage: storage_t&, value: array&&) -> type_t:
+            std.new(&storage) array(std.forward<array>(value))
+            return type_t.array
+        
+        /// @brief Construct array value in storage (copy)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value const array& - the array to copy
+        /// @return type_t - the type (array)
+        static function construct(storage: storage_t&, value: const array&) -> type_t:
+            std.new(&storage) array(value)
+            return type_t.array
+        
+        /// @brief Construct string value in storage (move)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value string&& - the string to move
+        /// @return type_t - the type (string)
+        static function construct(storage: storage_t&, value: string&&) -> type_t:
+            std.new(&storage) string(std.forward<string>(value))
+            return type_t.string
+        
+        /// @brief Construct string value in storage (copy)
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value const string& - the string to copy
+        /// @return type_t - the type (string)
+        static function construct(storage: storage_t&, value: const string&) -> type_t:
+            std.new(&storage) string(value)
+            return type_t.string
+        
+        /// @brief Construct string value in storage from C string
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value const char* - the C string to copy
+        /// @return type_t - the type (string)
+        static function construct(storage: storage_t&, value: const char*) -> type_t:
+            std.new(&storage) string(value)
+            return type_t.string
+        
+        /// @brief Construct boolean value in storage
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value boolean - the boolean to copy
+        /// @return type_t - the type (boolean)
+        static function construct(storage: storage_t&, value: boolean) -> type_t:
+            std.new(&storage) boolean(value)
+            return type_t.boolean
+        
+        /// @brief Construct number value in storage
+        /// @param storage storage_t& - the storage to construct in
+        /// @param value number - the number to copy
+        /// @return type_t - the type (number)
+        static function construct(storage: storage_t&, value: number) -> type_t:
+            std.new(&storage) number(value)
+            return type_t.number
+
+        /// @brief Destruct value in storage
+        /// @param storage storage_t& - the storage to destruct
+        /// @param type type_t - the type to destruct
+        static function destruct(storage: storage_t&, type: type_t) -> void:
+            switch type:
+                case type_t.object:
+                    object_ptr(storage).~object()
+                    break
+                case type_t.array:
+                    array_ptr(storage).~array()
+                    break
+                case type_t.string:
+                    string_ptr(storage).~string()
+                    break
+                default:
+                    break
+
+        struct dump_context_t:
+            out: std.oss
+            indent: const int = -1
+            indent_char: const char = ' '
+
+            /// @brief Constructor
+            /// @param indent int - indentation level
+            /// @param indent_char char - character to use for indentation
+            constructor(indent: const int, indent_char: const char):
+                indent = indent
+                indent_char = indent_char
+
+            /// @brief Write indentation
+            /// @param level int - current nesting level
+            function write_indent(level: int) -> void:
+                // Implementation in .cpp file
+            
+            /// @brief Write separator
+            function write_separator() -> void:
+                // Implementation in .cpp file
+            
+            /// @brief Write newline
+            function write_newline() -> void:
+                // Implementation in .cpp file
+
+        /// @brief Serialize value to JSON string (internal)
+        /// @param context dump_context_t& - the dump context
+        /// @param level int - current nesting level
+        function dump(context: dump_context_t&, level: int) const -> void:
+            // Implementation in .cpp file
+
+        m_Storage: storage_t            // Storage for the value
+        m_Type: type_t                  // Type of the stored value
+
+    // Template specializations for get() methods
+    template <>
+    function value.get<object>() const -> const object&:
+        CRUDE_ASSERT(m_Type == type_t.object)
+        return *object_ptr(m_Storage)
+    
+    template <>
+    function value.get<array>() const -> const array&:
+        CRUDE_ASSERT(m_Type == type_t.array)
+        return *array_ptr(m_Storage)
+    
+    template <>
+    function value.get<string>() const -> const string&:
+        CRUDE_ASSERT(m_Type == type_t.string)
+        return *string_ptr(m_Storage)
+    
+    template <>
+    function value.get<boolean>() const -> const boolean&:
+        CRUDE_ASSERT(m_Type == type_t.boolean)
+        return *boolean_ptr(m_Storage)
+    
+    template <>
+    function value.get<number>() const -> const number&:
+        CRUDE_ASSERT(m_Type == type_t.number)
+        return *number_ptr(m_Storage)
+
+    template <>
+    function value.get<object>() -> object&:
+        CRUDE_ASSERT(m_Type == type_t.object)
+        return *object_ptr(m_Storage)
+    
+    template <>
+    function value.get<array>() -> array&:
+        CRUDE_ASSERT(m_Type == type_t.array)
+        return *array_ptr(m_Storage)
+    
+    template <>
+    function value.get<string>() -> string&:
+        CRUDE_ASSERT(m_Type == type_t.string)
+        return *string_ptr(m_Storage)
+    
+    template <>
+    function value.get<boolean>() -> boolean&:
+        CRUDE_ASSERT(m_Type == type_t.boolean)
+        return *boolean_ptr(m_Storage)
+    
+    template <>
+    function value.get<number>() -> number&:
+        CRUDE_ASSERT(m_Type == type_t.number)
+        return *number_ptr(m_Storage)
+
+    // Template specializations for get_ptr() methods
+    template <>
+    function value.get_ptr<object>() const -> const object*:
+        if m_Type == type_t.object:
+            return object_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<array>() const -> const array*:
+        if m_Type == type_t.array:
+            return array_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<string>() const -> const string*:
+        if m_Type == type_t.string:
+            return string_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<boolean>() const -> const boolean*:
+        if m_Type == type_t.boolean:
+            return boolean_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<number>() const -> const number*:
+        if m_Type == type_t.number:
+            return number_ptr(m_Storage)
+        else:
+            return nullptr
+
+    template <>
+    function value.get_ptr<object>() -> object*:
+        if m_Type == type_t.object:
+            return object_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<array>() -> array*:
+        if m_Type == type_t.array:
+            return array_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<string>() -> string*:
+        if m_Type == type_t.string:
+            return string_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<boolean>() -> boolean*:
+        if m_Type == type_t.boolean:
+            return boolean_ptr(m_Storage)
+        else:
+            return nullptr
+    
+    template <>
+    function value.get_ptr<number>() -> number*:
+        if m_Type == type_t.number:
+            return number_ptr(m_Storage)
+        else:
+            return nullptr
+
+namespace_end  // crude_json

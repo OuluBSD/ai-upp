@@ -58,7 +58,7 @@ void Run07aEcsDummy(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07aEcsDummy: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07a_ecs_dummy.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07a_ecs_dummy.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07aEcsDummy: unknown method %d", method));

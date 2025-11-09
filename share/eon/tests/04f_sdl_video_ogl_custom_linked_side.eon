@@ -1,0 +1,24 @@
+machine sdl.app:
+	
+	driver context:
+		sdl.context
+	
+	chain program:
+		state event.register
+		
+		loop buffer:
+			ogl.customer
+			sdl.ogl.fbo.side [][loop == "screen"]:
+				shader.frag.path = "shaders/toys/simple/simple_double/stage1.glsl"
+		
+		loop screen:
+			ogl.customer
+			sdl.fbo[loop == "buffer"]:
+				shader.frag.path = "shaders/toys/simple/simple_double/stage0.glsl"
+				recv.data = false
+		
+		loop audio:
+			center.customer
+			center.audio.src.dbg_generator:
+				waveform = "noise"
+			sdl.audio

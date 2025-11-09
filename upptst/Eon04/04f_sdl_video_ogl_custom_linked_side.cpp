@@ -41,7 +41,7 @@ void Run04fSdlVideoOglCustomLinkedSide(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run04fSdlVideoOglCustomLinkedSide: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("04f_sdl_video_ogl_custom_linked_side.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/04f_sdl_video_ogl_custom_linked_side.eon"));
 		break;
 	default:
 		throw Exc(Format("Run04fSdlVideoOglCustomLinkedSide: unknown method %d", method));

@@ -1,0 +1,518 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_node_editor_api.cpp
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui_node_editor_internal
+import algorithm
+
+//------------------------------------------------------------------------------
+s_Editor: ax.NodeEditor.Detail.EditorContext* = nullptr
+
+//------------------------------------------------------------------------------
+template <typename C, typename I, typename F>
+function BuildIdList(container: C&, list: I*, listSize: int, accept: F&&) -> int:
+    if list != nullptr:
+        count := 0
+        for object in container:
+            if listSize <= 0:
+                break
+
+            if accept(object):
+                list[count] = I(object.ID().AsPointer())
+                ++count
+                --listSize
+
+        return count
+    else:
+        return static_cast<int>(std.count_if(container.begin(), container.end(), accept))
+
+
+//------------------------------------------------------------------------------
+function ax.NodeEditor.CreateEditor(config: const Config*) -> EditorContext*:
+    return reinterpret_cast<ax.NodeEditor.EditorContext*>(new ax.NodeEditor.Detail.EditorContext(config))
+
+function ax.NodeEditor.DestroyEditor(ctx: EditorContext*) -> void:
+    lastContext := ax.NodeEditor.GetCurrentEditor()
+
+    // Set context we're about to destroy as current, to give callback valid context
+    if lastContext != ctx:
+        ax.NodeEditor.SetCurrentEditor(ctx)
+
+    editor := reinterpret_cast<ax.NodeEditor.Detail.EditorContext*>(ctx)
+
+    delete editor
+
+    if lastContext != ctx:
+        ax.NodeEditor.SetCurrentEditor(lastContext)
+
+function ax.NodeEditor.GetConfig(ctx: EditorContext*) -> const Config&:
+    if ctx == nullptr:
+        ctx = ax.NodeEditor.GetCurrentEditor()
+
+    if ctx:
+        editor := reinterpret_cast<ax.NodeEditor.Detail.EditorContext*>(ctx)
+
+        return editor.GetConfig()
+    else:
+        static s_EmptyConfig: Config
+        return s_EmptyConfig
+
+function ax.NodeEditor.SetCurrentEditor(ctx: EditorContext*) -> void:
+    s_Editor = reinterpret_cast<ax.NodeEditor.Detail.EditorContext*>(ctx)
+
+function ax.NodeEditor.GetCurrentEditor() -> EditorContext*:
+    return reinterpret_cast<ax.NodeEditor.EditorContext*>(s_Editor)
+
+function ax.NodeEditor.GetStyle() -> Style&:
+    return s_Editor.GetStyle()
+
+function ax.NodeEditor.GetStyleColorName(colorIndex: StyleColor) -> const char*:
+    return s_Editor.GetStyle().GetColorName(colorIndex)
+
+function ax.NodeEditor.PushStyleColor(colorIndex: StyleColor, color: const ImVec4&) -> void:
+    s_Editor.GetStyle().PushColor(colorIndex, color)
+
+function ax.NodeEditor.PopStyleColor(count: int) -> void:
+    s_Editor.GetStyle().PopColor(count)
+
+function ax.NodeEditor.PushStyleVar(varIndex: StyleVar, value: float) -> void:
+    s_Editor.GetStyle().PushVar(varIndex, value)
+
+function ax.NodeEditor.PushStyleVar(varIndex: StyleVar, value: const ImVec2&) -> void:
+    s_Editor.GetStyle().PushVar(varIndex, value)
+
+function ax.NodeEditor.PushStyleVar(varIndex: StyleVar, value: const ImVec4&) -> void:
+    s_Editor.GetStyle().PushVar(varIndex, value)
+
+function ax.NodeEditor.PopStyleVar(count: int) -> void:
+    s_Editor.GetStyle().PopVar(count)
+
+function ax.NodeEditor.Begin(id: const char*, size: const ImVec2& = ImVec2(0, 0)) -> void:
+    s_Editor.Begin(id, size)
+
+function ax.NodeEditor.End() -> void:
+    s_Editor.End()
+
+function ax.NodeEditor.BeginNode(id: NodeId) -> void:
+    s_Editor.GetNodeBuilder().Begin(id)
+
+function ax.NodeEditor.BeginPin(id: PinId, kind: PinKind) -> void:
+    s_Editor.GetNodeBuilder().BeginPin(id, kind)
+
+function ax.NodeEditor.PinRect(a: const ImVec2&, b: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().PinRect(a, b)
+
+function ax.NodeEditor.PinPivotRect(a: const ImVec2&, b: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().PinPivotRect(a, b)
+
+function ax.NodeEditor.PinPivotSize(size: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().PinPivotSize(size)
+
+function ax.NodeEditor.PinPivotScale(scale: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().PinPivotScale(scale)
+
+function ax.NodeEditor.PinPivotAlignment(alignment: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().PinPivotAlignment(alignment)
+
+function ax.NodeEditor.EndPin() -> void:
+    s_Editor.GetNodeBuilder().EndPin()
+
+function ax.NodeEditor.Group(size: const ImVec2&) -> void:
+    s_Editor.GetNodeBuilder().Group(size)
+
+function ax.NodeEditor.EndNode() -> void:
+    s_Editor.GetNodeBuilder().End()
+
+function ax.NodeEditor.BeginGroupHint(nodeId: NodeId) -> bool:
+    return s_Editor.GetHintBuilder().Begin(nodeId)
+
+function ax.NodeEditor.GetGroupMin() -> ImVec2:
+    return s_Editor.GetHintBuilder().GetGroupMin()
+
+function ax.NodeEditor.GetGroupMax() -> ImVec2:
+    return s_Editor.GetHintBuilder().GetGroupMax()
+
+function ax.NodeEditor.GetHintForegroundDrawList() -> ImDrawList*:
+    return s_Editor.GetHintBuilder().GetForegroundDrawList()
+
+function ax.NodeEditor.GetHintBackgroundDrawList() -> ImDrawList*:
+    return s_Editor.GetHintBuilder().GetBackgroundDrawList()
+
+function ax.NodeEditor.EndGroupHint() -> void:
+    s_Editor.GetHintBuilder().End()
+
+function ax.NodeEditor.GetNodeBackgroundDrawList(nodeId: NodeId) -> ImDrawList*:
+    if node = s_Editor.FindNode(nodeId):
+        return s_Editor.GetNodeBuilder().GetUserBackgroundDrawList(node)
+    else:
+        return nullptr
+
+function ax.NodeEditor.Link(id: LinkId, startPinId: PinId, endPinId: PinId, color: const ImVec4& = ImVec4(1, 1, 1, 1), thickness: float = 1.0f) -> bool:
+    return s_Editor.DoLink(id, startPinId, endPinId, ImColor(color), thickness)
+
+function ax.NodeEditor.Flow(linkId: LinkId, direction: FlowDirection) -> void:
+    if link = s_Editor.FindLink(linkId):
+        s_Editor.Flow(link, direction)
+
+function ax.NodeEditor.BeginCreate(color: const ImVec4&, thickness: float) -> bool:
+    context := s_Editor.GetItemCreator()
+
+    if context.Begin():
+        context.SetStyle(ImColor(color), thickness)
+        return true
+    else:
+        return false
+
+function ax.NodeEditor.QueryNewLink(startId: PinId*, endId: PinId*) -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    return context.QueryLink(startId, endId) == Result.True
+
+function ax.NodeEditor.QueryNewLink(startId: PinId*, endId: PinId*, color: const ImVec4&, thickness: float) -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    result := context.QueryLink(startId, endId)
+    if result != Result.Indeterminate:
+        context.SetStyle(ImColor(color), thickness)
+
+    return result == Result.True
+
+function ax.NodeEditor.QueryNewNode(pinId: PinId*) -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    return context.QueryNode(pinId) == Result.True
+
+function ax.NodeEditor.QueryNewNode(pinId: PinId*, color: const ImVec4&, thickness: float) -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    result := context.QueryNode(pinId)
+    if result != Result.Indeterminate:
+        context.SetStyle(ImColor(color), thickness)
+
+    return result == Result.True
+
+function ax.NodeEditor.AcceptNewItem() -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    return context.AcceptItem() == Result.True
+
+function ax.NodeEditor.AcceptNewItem(color: const ImVec4&, thickness: float) -> bool:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    result := context.AcceptItem()
+    if result != Result.Indeterminate:
+        context.SetStyle(ImColor(color), thickness)
+
+    return result == Result.True
+
+function ax.NodeEditor.RejectNewItem() -> void:
+    context := s_Editor.GetItemCreator()
+
+    context.RejectItem()
+
+function ax.NodeEditor.RejectNewItem(color: const ImVec4&, thickness: float) -> void:
+    using Result := ax.NodeEditor.Detail.CreateItemAction.Result
+
+    context := s_Editor.GetItemCreator()
+
+    if context.RejectItem() != Result.Indeterminate:
+        context.SetStyle(ImColor(color), thickness)
+
+function ax.NodeEditor.EndCreate() -> void:
+    context := s_Editor.GetItemCreator()
+
+    context.End()
+
+function ax.NodeEditor.BeginDelete() -> bool:
+    context := s_Editor.GetItemDeleter()
+
+    return context.Begin()
+
+function ax.NodeEditor.QueryDeletedLink(linkId: LinkId*, startId: PinId*, endId: PinId*) -> bool:
+    context := s_Editor.GetItemDeleter()
+
+    return context.QueryLink(linkId, startId, endId)
+
+function ax.NodeEditor.QueryDeletedNode(nodeId: NodeId*) -> bool:
+    context := s_Editor.GetItemDeleter()
+
+    return context.QueryNode(nodeId)
+
+function ax.NodeEditor.AcceptDeletedItem(deleteDependencies: bool) -> bool:
+    context := s_Editor.GetItemDeleter()
+
+    return context.AcceptItem(deleteDependencies)
+
+function ax.NodeEditor.RejectDeletedItem() -> void:
+    context := s_Editor.GetItemDeleter()
+
+    context.RejectItem()
+
+function ax.NodeEditor.EndDelete() -> void:
+    context := s_Editor.GetItemDeleter()
+
+    context.End()
+
+function ax.NodeEditor.SetNodePosition(nodeId: NodeId, position: const ImVec2&) -> void:
+    s_Editor.SetNodePosition(nodeId, position)
+
+function ax.NodeEditor.SetGroupSize(nodeId: NodeId, size: const ImVec2&) -> void:
+    s_Editor.SetGroupSize(nodeId, size)
+
+function ax.NodeEditor.GetNodePosition(nodeId: NodeId) -> ImVec2:
+    return s_Editor.GetNodePosition(nodeId)
+
+function ax.NodeEditor.GetNodeSize(nodeId: NodeId) -> ImVec2:
+    return s_Editor.GetNodeSize(nodeId)
+
+function ax.NodeEditor.CenterNodeOnScreen(nodeId: NodeId) -> void:
+    if node = s_Editor.FindNode(nodeId):
+        node.CenterOnScreenInNextFrame()
+
+function ax.NodeEditor.SetNodeZPosition(nodeId: NodeId, z: float) -> void:
+    s_Editor.SetNodeZPosition(nodeId, z)
+
+function ax.NodeEditor.GetNodeZPosition(nodeId: NodeId) -> float:
+    return s_Editor.GetNodeZPosition(nodeId)
+
+function ax.NodeEditor.RestoreNodeState(nodeId: NodeId) -> void:
+    if node = s_Editor.FindNode(nodeId):
+        s_Editor.MarkNodeToRestoreState(node)
+
+function ax.NodeEditor.Suspend() -> void:
+    s_Editor.Suspend()
+
+function ax.NodeEditor.Resume() -> void:
+    s_Editor.Resume()
+
+function ax.NodeEditor.IsSuspended() -> bool:
+    return s_Editor.IsSuspended()
+
+function ax.NodeEditor.IsActive() -> bool:
+    return s_Editor.IsFocused()
+
+function ax.NodeEditor.HasSelectionChanged() -> bool:
+    return s_Editor.HasSelectionChanged()
+
+function ax.NodeEditor.GetSelectedObjectCount() -> int:
+    return static_cast<int>(s_Editor.GetSelectedObjects().size())
+
+function ax.NodeEditor.GetSelectedNodes(nodes: NodeId*, size: int) -> int:
+    return BuildIdList(s_Editor.GetSelectedObjects(), nodes, size, [](auto object)
+    {
+        return object.AsNode() != nullptr
+    })
+
+function ax.NodeEditor.GetSelectedLinks(links: LinkId*, size: int) -> int:
+    return BuildIdList(s_Editor.GetSelectedObjects(), links, size, [](auto object)
+    {
+        return object.AsLink() != nullptr
+    })
+
+function ax.NodeEditor.IsNodeSelected(nodeId: NodeId) -> bool:
+    if node = s_Editor.FindNode(nodeId):
+        return s_Editor.IsSelected(node)
+    else:
+        return false
+
+function ax.NodeEditor.IsLinkSelected(linkId: LinkId) -> bool:
+    if link = s_Editor.FindLink(linkId):
+        return s_Editor.IsSelected(link)
+    else:
+        return false
+
+function ax.NodeEditor.ClearSelection() -> void:
+    s_Editor.ClearSelection()
+
+function ax.NodeEditor.SelectNode(nodeId: NodeId, append: bool) -> void:
+    if node = s_Editor.FindNode(nodeId):
+        if append:
+            s_Editor.SelectObject(node)
+        else:
+            s_Editor.SetSelectedObject(node)
+
+function ax.NodeEditor.SelectLink(linkId: LinkId, append: bool) -> void:
+    if link = s_Editor.FindLink(linkId):
+        if append:
+            s_Editor.SelectObject(link)
+        else:
+            s_Editor.SetSelectedObject(link)
+
+function ax.NodeEditor.DeselectNode(nodeId: NodeId) -> void:
+    if node = s_Editor.FindNode(nodeId):
+        s_Editor.DeselectObject(node)
+
+function ax.NodeEditor.DeselectLink(linkId: LinkId) -> void:
+    if link = s_Editor.FindLink(linkId):
+        s_Editor.DeselectObject(link)
+
+function ax.NodeEditor.DeleteNode(nodeId: NodeId) -> bool:
+    if node = s_Editor.FindNode(nodeId):
+        return s_Editor.GetItemDeleter().Add(node)
+    else:
+        return false
+
+function ax.NodeEditor.DeleteLink(linkId: LinkId) -> bool:
+    if link = s_Editor.FindLink(linkId):
+        return s_Editor.GetItemDeleter().Add(link)
+    else:
+        return false
+
+function ax.NodeEditor.HasAnyLinks(nodeId: NodeId) -> bool:
+    return s_Editor.HasAnyLinks(nodeId)
+
+function ax.NodeEditor.HasAnyLinks(pinId: PinId) -> bool:
+    return s_Editor.HasAnyLinks(pinId)
+
+function ax.NodeEditor.BreakLinks(nodeId: NodeId) -> int:
+    return s_Editor.BreakLinks(nodeId)
+
+function ax.NodeEditor.BreakLinks(pinId: PinId) -> int:
+    return s_Editor.BreakLinks(pinId)
+
+function ax.NodeEditor.NavigateToContent(duration: float) -> void:
+    s_Editor.NavigateTo(s_Editor.GetContentBounds(), true, duration)
+
+function ax.NodeEditor.NavigateToSelection(zoomIn: bool, duration: float) -> void:
+    s_Editor.NavigateTo(s_Editor.GetSelectionBounds(), zoomIn, duration)
+
+function ax.NodeEditor.ShowNodeContextMenu(nodeId: NodeId*) -> bool:
+    return s_Editor.GetContextMenu().ShowNodeContextMenu(nodeId)
+
+function ax.NodeEditor.ShowPinContextMenu(pinId: PinId*) -> bool:
+    return s_Editor.GetContextMenu().ShowPinContextMenu(pinId)
+
+function ax.NodeEditor.ShowLinkContextMenu(linkId: LinkId*) -> bool:
+    return s_Editor.GetContextMenu().ShowLinkContextMenu(linkId)
+
+function ax.NodeEditor.ShowBackgroundContextMenu() -> bool:
+    return s_Editor.GetContextMenu().ShowBackgroundContextMenu()
+
+function ax.NodeEditor.EnableShortcuts(enable: bool) -> void:
+    s_Editor.EnableShortcuts(enable)
+
+function ax.NodeEditor.AreShortcutsEnabled() -> bool:
+    return s_Editor.AreShortcutsEnabled()
+
+function ax.NodeEditor.BeginShortcut() -> bool:
+    return s_Editor.GetShortcut().Begin()
+
+function ax.NodeEditor.AcceptCut() -> bool:
+    return s_Editor.GetShortcut().AcceptCut()
+
+function ax.NodeEditor.AcceptCopy() -> bool:
+    return s_Editor.GetShortcut().AcceptCopy()
+
+function ax.NodeEditor.AcceptPaste() -> bool:
+    return s_Editor.GetShortcut().AcceptPaste()
+
+function ax.NodeEditor.AcceptDuplicate() -> bool:
+    return s_Editor.GetShortcut().AcceptDuplicate()
+
+function ax.NodeEditor.AcceptCreateNode() -> bool:
+    return s_Editor.GetShortcut().AcceptCreateNode()
+
+function ax.NodeEditor.GetActionContextSize() -> int:
+    return static_cast<int>(s_Editor.GetShortcut().m_Context.size())
+
+function ax.NodeEditor.GetActionContextNodes(nodes: NodeId*, size: int) -> int:
+    return BuildIdList(s_Editor.GetSelectedObjects(), nodes, size, [](auto object)
+    {
+        return object.AsNode() != nullptr
+    })
+
+function ax.NodeEditor.GetActionContextLinks(links: LinkId*, size: int) -> int:
+    return BuildIdList(s_Editor.GetSelectedObjects(), links, size, [](auto object)
+    {
+        return object.AsLink() != nullptr
+    })
+
+function ax.NodeEditor.EndShortcut() -> void:
+    return s_Editor.GetShortcut().End()
+
+function ax.NodeEditor.GetCurrentZoom() -> float:
+    return s_Editor.GetView().InvScale
+
+function ax.NodeEditor.GetHoveredNode() -> NodeId:
+    return s_Editor.GetHoveredNode()
+
+function ax.NodeEditor.GetHoveredPin() -> PinId:
+    return s_Editor.GetHoveredPin()
+
+function ax.NodeEditor.GetHoveredLink() -> LinkId:
+    return s_Editor.GetHoveredLink()
+
+function ax.NodeEditor.GetDoubleClickedNode() -> NodeId:
+    return s_Editor.GetDoubleClickedNode()
+
+function ax.NodeEditor.GetDoubleClickedPin() -> PinId:
+    return s_Editor.GetDoubleClickedPin()
+
+function ax.NodeEditor.GetDoubleClickedLink() -> LinkId:
+    return s_Editor.GetDoubleClickedLink()
+
+function ax.NodeEditor.IsBackgroundClicked() -> bool:
+    return s_Editor.IsBackgroundClicked()
+
+function ax.NodeEditor.IsBackgroundDoubleClicked() -> bool:
+    return s_Editor.IsBackgroundDoubleClicked()
+
+function ax.NodeEditor.GetBackgroundClickButtonIndex() -> ImGuiMouseButton:
+    return s_Editor.GetBackgroundClickButtonIndex()
+
+function ax.NodeEditor.GetBackgroundDoubleClickButtonIndex() -> ImGuiMouseButton:
+    return s_Editor.GetBackgroundDoubleClickButtonIndex()
+
+function ax.NodeEditor.GetLinkPins(linkId: LinkId, startPinId: PinId*, endPinId: PinId*) -> bool:
+    link = s_Editor.FindLink(linkId)
+    if not link:
+        return false
+
+    if startPinId:
+        *startPinId = link.m_StartPin.m_ID
+    if endPinId:
+        *endPinId = link.m_EndPin.m_ID
+
+    return true
+
+function ax.NodeEditor.PinHadAnyLinks(pinId: PinId) -> bool:
+    return s_Editor.PinHadAnyLinks(pinId)
+
+function ax.NodeEditor.GetScreenSize() -> ImVec2:
+    return s_Editor.GetRect().GetSize()
+
+function ax.NodeEditor.ScreenToCanvas(pos: const ImVec2&) -> ImVec2:
+    return s_Editor.ToCanvas(pos)
+
+function ax.NodeEditor.CanvasToScreen(pos: const ImVec2&) -> ImVec2:
+    return s_Editor.ToScreen(pos)
+
+function ax.NodeEditor.GetNodeCount() -> int:
+    return s_Editor.CountLiveNodes()
+
+function ax.NodeEditor.GetOrderedNodeIds(nodes: NodeId*, size: int) -> int:
+    return s_Editor.GetNodeIds(nodes, size)

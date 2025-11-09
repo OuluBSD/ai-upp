@@ -26,7 +26,7 @@ void Run02bAudioTest2(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02bAudioTest2: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02b_audio_test_2.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02b_audio_test_2.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02bAudioTest2: unknown method %d", method));

@@ -86,6 +86,7 @@ struct GenericFragmentShaderArgs {
 	
 	const ByteImage* color_buf[TEXTYPE_COUNT];
 	
+	GenericFragmentShaderArgs();
 };
 
 

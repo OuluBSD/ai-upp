@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include <Core/TextParsing/TextParsing.h>
 
 NAMESPACE_UPP
 
@@ -80,9 +81,10 @@ bool BufferT<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	
 	String env_name = ws.Get(".env");
 	if (!env_name.IsEmpty()) {
-		auto l = a.val.FindOwnerNull();
-		ASSERT(l);
-		env = l ? l->FindOwnerWith<EnvState>(env_name) : 0;
+		String normalized = NormalizePathSeparators(env_name);
+		LOG(a.val.GetRoot().GetTreeString());
+		LOG("normalized: " << normalized);
+		env = a.val.FindOwnerWithPathAndCast<EnvState>(normalized);
 		if (!env) {
 			LOG("GfxBufferFieldT<Gfx>::Initialize: error: environment state with name '" << env_name << "' not found");
 			return false;

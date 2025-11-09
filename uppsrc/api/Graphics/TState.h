@@ -57,6 +57,7 @@ struct MaterialT : GfxMaterial {
 	GVar::Filter tex_filter[TEXTYPE_COUNT];
 	
 	MaterialT();
+	MaterialT(int);
 	
 };
 

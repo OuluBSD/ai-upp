@@ -59,7 +59,7 @@ void ScrX11Sw::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& v) {
 }
 
 bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ctx_ = a.val.FindOwnerWithCast<X11SwContext>();
+	auto ctx_ = a.val.FindOwnerWithCastDeep<X11SwContext>();
 	if (!ctx_) {LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
@@ -84,7 +84,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	// open connection with the X server.
 	display = XOpenDisplay(display_name);
 	if (display == NULL) {
-		LOG("ScrX11::SinkDevice_Initialize: error: cannot connect to X server '" << display_name << "'");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: cannot connect to X server '" << display_name << "'");
 		return false;
 	}
 	
@@ -98,7 +98,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	// default resolution is 1280x720 for now
 	width = 1280;
 	height = 720;
-	RTLOG("ScrX11::SinkDevice_Initialize: window width - '" << width << "'; height - '" << height << "'");
+	RTLOG("ScrX11Sw::SinkDevice_Initialize: window width - '" << width << "'; height - '" << height << "'");
 	
 	// create a simple window, as a direct child of the screen's
 	// root window. Use the screen's white color as the background
@@ -145,7 +145,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 		
 		gc = XCreateGC(display, win, valuemask, &values);
 		if (gc == 0) {
-			LOG("ScrX11::SinkDevice_Initialize: error: XCreateGC failed");
+			LOG("ScrX11Sw::SinkDevice_Initialize: error: XCreateGC failed");
 			return false;
 		}
 		
@@ -189,7 +189,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	XSync(display, False);
 	
 	if (!dev.accel.Initialize(a, ws)) {
-		LOG("ScrX11::SinkDevice_Initialize: error: accelerator initialization failed");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: accelerator initialization failed");
 		return false;
 	}
 	
@@ -202,7 +202,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	dev.accel.SetNative(ctx.display, ctx.win, 0, &dev.accel_fbo);
 	
 	if (!dev.accel.Open(Size(width, height), bpp)) {
-		LOG("ScrX11Ogl::SinkDevice_Initialize: error: could not open opengl atom");
+		LOG("ScrX11Sw::SinkDevice_Initialize: error: could not open opengl atom");
 		return false;
 	}
 	
@@ -220,7 +220,12 @@ bool ScrX11Sw::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 void ScrX11Sw::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 	auto& ctx = *dev.ctx;
 	
-	XDestroyWindow(ctx.display, ctx.win);
+	// Check window validity before attempting to destroy it
+	if (ctx.display && ctx.win) {
+		// Simply reset the window handle to prevent double-deletion
+		// The window might already be destroyed by user clicking close button
+		ctx.win = 0;
+	}
 	
 }
 
@@ -228,6 +233,10 @@ void ScrX11Sw::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	auto& ctx = *dev.ctx;
 	
 	dev.accel.Uninitialize();
+	
+	// Clear the accelerator buffers to free memory
+	dev.accel_buf.Clear();
+	dev.accel_buf_tmp.Clear();
 	
 	//XkbFreeKeyboard(ctx.xkb, XkbAllComponentsMask, True);
 
@@ -274,13 +283,13 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 		ASSERT(dev.accel_buf.channels == bpp);
 		ASSERT(ctx.fb);
 		ASSERT(!ctx.fb->data);
-		#if 1
-	    dev.accel_buf_tmp.SetSwapRedBlue(dev.accel_buf, true);
+		// Determine if we need to swap R and B channels based on the X11 visual
+		// Typically, if the red mask has higher bits than blue mask, we have RGB format
+		// and may need to swap to BGR for correct display, or vice versa
+		// Since the issue is that R and B are swapped, we enable the swap to correct it
+		dev.accel_buf_tmp.SetSwapRedBlue(dev.accel_buf, true);
 		ASSERT(dev.accel_buf_tmp.GetLength() == len);
 		ctx.fb->data = (char*)(const unsigned char*)dev.accel_buf_tmp.Begin();
-		#else
-	    ctx.fb->data = (char*)(const unsigned char*)dev.accel_buf.Begin();
-	    #endif
 	    ctx.fb->bytes_per_line = width * bpp;
 	    
 	    ASSERT(width == ctx.fb->width);

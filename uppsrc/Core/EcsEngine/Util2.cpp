@@ -6,7 +6,7 @@ String RealizeEonFile(String rel_path) {
 	if (rel_path.IsEmpty())
 		return String();
 	
-	int tries_count = 4;
+	int tries_count = 5;  // Increased to include upptst search
 	#ifdef flagDEBUG
 	tries_count++;
 	#endif
@@ -18,8 +18,24 @@ String RealizeEonFile(String rel_path) {
 			case 1: path = ShareDirFile(rel_path); break;
 			case 2: path = ShareDirFile(AppendFileName("eon", rel_path)); break;
 			case 3: path = ShareDirFile(AppendFileName("shaders" DIR_SEPS "toys", rel_path)); break;
+			case 4: {
+				// Look in upptst subdirectory relative to executable location
+				// Determine Eon directory from executable name (e.g., bin/Eon00 -> upptst/Eon00)
+				String exe_dir = GetFileDirectory(GetExeFilePath());
+				String repo_root = GetFileDirectory(exe_dir); // bin is in repo root
+				String exe_title = GetFileTitle(GetExeFilePath()); // Get executable name without extension
+				if (exe_title.StartsWith("Eon")) {
+					// This is an Eon executable, look in the corresponding upptst directory
+					String eon_dir = AppendFileName(repo_root, AppendFileName("upptst", exe_title));
+					path = AppendFileName(eon_dir, rel_path);
+				} else {
+					// For non-Eon executables, just look in upptst root
+					path = AppendFileName(repo_root, AppendFileName("upptst", rel_path));
+				}
+				break;
+			}
 			#ifdef flagDEBUG
-			case 4: path = GetDataDirectoryFile(rel_path); break;
+			case 5: path = GetDataDirectoryFile(rel_path); break;  // Adjusted for new case
 			#endif
 		}
 		

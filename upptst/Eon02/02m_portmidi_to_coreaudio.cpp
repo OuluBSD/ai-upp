@@ -27,7 +27,7 @@ void Run02mPortmidiToCoreaudio(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run02mPortmidiToCoreaudio: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("02m_portmidi_to_coreaudio.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02m_portmidi_to_coreaudio.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02mPortmidiToCoreaudio: unknown method %d", method));

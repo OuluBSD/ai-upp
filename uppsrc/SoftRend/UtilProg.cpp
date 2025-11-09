@@ -208,7 +208,7 @@ ObjViewFragment::ObjViewFragment() {
 
 
 void ObjViewFragment::Process(FragmentShaderArgs& args) {
-	ASSERT(args.fa);
+	if (!args.fa) return; // Safe exit if args.fa is invalid
 	vec3& n = args.normal;
 	vec3& light_dir = args.fa->light_dir;
 	float m = Dot(n, light_dir);
@@ -223,6 +223,7 @@ void ObjViewFragment::Process(FragmentShaderArgs& args) {
 	auto& diffuse = args.fa->color_buf[TEXTYPE_DIFFUSE];
 	if (diffuse) {
 		const ByteImage& tex = *diffuse;
+		if (!tex || tex.IsEmpty()) return; // Additional check for the texture itself
 		float tex_x = args.tex_coord[0];
 		float tex_y = args.tex_coord[1];
 		ASSERT(tex_x >= 0.0f && tex_x <= 1.0f);

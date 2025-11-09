@@ -21,7 +21,7 @@ GUI_APP_MAIN
 		sel.Multi();
 		sel.NoAsking();
 	}
-	sel = GetDataFile("main.cpp");
+	sel = ShareDirFile("eon/tests/main.cpp");
 	if(!sel.ExecuteSaveAs("as"))
 		return;	
 	DDUMP(~sel);

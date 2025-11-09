@@ -1,0 +1,6 @@
+loop player.audio.ffmpeg:
+	center.customer
+	perma.audio.source.decoder:
+		filepath = "sounds/8_bit_mentality.mp3"
+		stop_machine = true
+	center.audio.sink.hw

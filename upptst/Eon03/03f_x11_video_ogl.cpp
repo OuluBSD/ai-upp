@@ -35,7 +35,7 @@ void Run03fX11VideoOgl(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03fX11VideoOgl: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03f_x11_video_ogl.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03f_x11_video_ogl.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03fX11VideoOgl: unknown method %d", method));

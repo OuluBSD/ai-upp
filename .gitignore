@@ -32,3 +32,8 @@ a.out
 .bin/**
 .cache
 bin/**
+valgrind*
+*.txt
+
+thirdparty_imgui-node-editor_ref
+

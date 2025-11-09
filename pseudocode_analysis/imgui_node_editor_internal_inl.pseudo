@@ -1,0 +1,36 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_node_editor_internal.inl
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui_node_editor_internal
+
+//------------------------------------------------------------------------------
+namespace ax:
+namespace NodeEditor:
+namespace Detail:
+
+//------------------------------------------------------------------------------
+function ImGui_GetItemRect() -> ImRect:
+    return ImRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax())
+
+function ImGui_GetMouseClickPos(buttonIndex: ImGuiMouseButton) -> ImVec2:
+    if ImGui.IsMouseDown(buttonIndex):
+        return ImGui.GetIO().MouseClickedPos[buttonIndex]
+    else:
+        return ImGui.GetMousePos()
+
+namespace_end  // Detail
+namespace_end  // Editor
+namespace_end  // ax

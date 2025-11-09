@@ -54,6 +54,7 @@ const TestCase kTests[] = {
 	{ Run02gCoreaudioFilter, "Run02gCoreaudioFilter" },
 	{ Run02lPortmidiToFluidsynth, "Run02lPortmidiToFluidsynth" },
 	{ Run02mPortmidiToCoreaudio, "Run02mPortmidiToCoreaudio" },
+	{ Run02cFluidsynthDebug, "Run02cFluidsynthDebug" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

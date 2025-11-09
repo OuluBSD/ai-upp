@@ -46,6 +46,11 @@ Current Task Files (`CURRENT_TASK.md`)
   - Preferably first; if `AGENTS.md` exists, list `CURRENT_TASK.md` immediately after it.
 - Rationale: we keep tasks in the working tree so they’re visible in TheIDE and play nicely with AI/developer tools.
 
+## Build & Sandbox Policy
+
+- Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
+- AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
+
 
 Header Include Policy (U++ BLITZ)
 - Source files (`.cpp`, `.icpp`, `.c`) in any package (with a `.upp` file) must include only the package's main header first, using a relative include: `#include "PackageName.h"`.
@@ -74,3 +79,48 @@ Book Contribution Gate (Mandatory)
 - Before editing anything under `Book/`, you must read `Book/AGENTS.md` and follow its style rules (headings, Date Span placement, list formats, and reference style).
 - Pull requests changing `Book/*` must explicitly confirm compliance (e.g., checklist item: "Read and applied Book/AGENTS.md").
 - Maintainers: reject or request changes if the above confirmation or formatting is missing.
+
+## Graphics Pipeline and FBO Atom Data Flow
+
+### FBO Atom Data Transmission
+- `FboAtomT::Send` now transmits both graphics state ("gfxstate") and rendered framebuffer content ("gfxbuf")
+- This allows downstream video sink atoms to display the rendered output from FBO programs
+- Previously only scene data was transmitted, causing white screen issues
+
+### GfxAccelAtom Reception
+- `GfxAccelAtom::Recv` now treats "gfxbuf" packets the same as "gfxvector" packets
+- Both are stored in `fb_packet` which is processed in the Render method as direct framebuffer data
+- This ensures rendered framebuffer content is properly displayed instead of being treated as input scene data
+
+### Architecture
+- FBO programs render scene data to internal framebuffers
+- The rendered content is transmitted through the packet system to video sink atoms
+- Video sink atoms display the framebuffer content to the screen
+
+## Known Graphics Rendering Issues and Fixes
+
+### Stereo Rendering (BufferStageT::SetStereo)
+**Location**: `uppsrc/api/Graphics/TBufferStage.cpp:10-21`
+
+**Issue**: The TODO at line 12 caused crashes when stereo tests (03k, 03l) attempted to run. The code was always using `fb[0]` for both left and right eye framebuffers.
+
+**Fix**: Changed to use `fb[stereo_id]` where stereo_id selects between separate framebuffers for left (0) and right (1) eyes:
+```cpp
+auto& fb = this->fb[stereo_id];  // Instead of this->fb[0]
+```
+Added bounds checking with ASSERT to prevent invalid stereo_id values.
+
+**Remaining Issue**: While stereo tests now run without crashing, the left image doesn't update - it stays frozen while the right image animates correctly. This points to a framebuffer update issue specific to the left eye buffer.
+
+### Cube Texture Index Bug (Model::AddCubeTexture)
+**Location**: `uppsrc/Geometry/Model.cpp:271`
+
+**Issue**: Wrong collection used for indexing - code was using `textures.GetCount()-1` as an index into `cube_textures` AMap, causing out-of-bounds access when loading PBR skybox textures (test 03m).
+
+**Fix**: Changed to use the correct collection for indexing:
+```cpp
+int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCount()-1) + 1;
+// Instead of: cube_textures.GetKey(textures.GetCount()-1) + 1
+```
+
+**Remaining Issue**: Test 03m now runs without crashing but has texture corruption - skybox cubemap appears corrupted and the gun model is black with no textures. The bug is somewhere in the image-to-shader transfer pipeline after loading.

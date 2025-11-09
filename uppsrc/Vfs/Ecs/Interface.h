@@ -83,6 +83,7 @@ public:
 	void UninitializeContainers() {
 		for (Item& it : items)
 			it.UninitializeContainer();
+		items.Clear();
 	}
 	
 };

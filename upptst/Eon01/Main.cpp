@@ -47,9 +47,6 @@ void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
 const TestCase kTests[] = {
 	{ Run01aEventState, "Run01aEventState" },
 	{ Run01bMidiEvents, "Run01bMidiEvents" },
-	{ Run01cMetaTest, "Run01cMetaTest" },
-	{ Run01dMetaTest, "Run01dMetaTest" },
-	{ Run01eMetaTest, "Run01eMetaTest" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

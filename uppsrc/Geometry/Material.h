@@ -53,6 +53,7 @@ struct Material {
 	
 public:
 	Material();
+	Material(int);
 	
     hash_t GetHashValue() const {
         CombineHash c;

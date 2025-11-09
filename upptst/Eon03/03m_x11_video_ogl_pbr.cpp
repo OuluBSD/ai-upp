@@ -40,7 +40,7 @@ void Run03mX11VideoOglPbr(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03mX11VideoOglPbr: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03m_x11_video_ogl_pbr.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03m_x11_video_ogl_pbr.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03mX11VideoOglPbr: unknown method %d", method));

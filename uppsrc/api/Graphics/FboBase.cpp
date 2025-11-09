@@ -177,7 +177,7 @@ bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch
 		src_type == VD(OGL,FBO)) {
 		InternalPacketData& data = out.SetData<InternalPacketData>();
 		
-		data.ptr = &(GfxDataState&)this->data;
+		data.ptr = &static_cast<GfxDataState&>(this->data);
 		data.SetText("gfxstate");
 		ASSERT(data.ptr);
 	}

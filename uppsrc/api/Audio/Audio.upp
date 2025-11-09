@@ -8,9 +8,9 @@ uses
 
 file
 	Audio.h,
+	DebugAudioPattern.h,
 	Portaudio.cpp,
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
 	"" = "";
-

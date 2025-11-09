@@ -116,7 +116,7 @@ void Run00aAudioGen(Engine& eng, int method) {
 		break;
 	}
 	case 0:
-		sys->PostLoadFile(GetDataFile("00a_audio_gen.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/00a_audio_gen.eon"));
 		break;
 	default:
 		throw Exc(Format("Run00aAudioGen: unknown method %d", method));

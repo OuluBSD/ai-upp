@@ -1,4 +1,5 @@
 #include "Interaction.h"
+#include <Core/TextParsing/TextParsing.h>
 
 NAMESPACE_UPP
 
@@ -43,7 +44,10 @@ void FakeSpatialInteractionManager::Update(double dt) {
 	String env_name = sys->env_name;
 	
 	if (!env_name.IsEmpty()) {
-		env = GetVfsValue().FindOwnerWith<EnvState>(env_name);
+		String normalized = NormalizePathSeparators(env_name);
+		env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(normalized);
+		if (!env && normalized != env_name)
+			env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(env_name);
 		if (!env) {
 			LOG("FakeSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
 		}

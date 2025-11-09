@@ -1,0 +1,112 @@
+//------------------------------------------------------------------------------
+// VERSION 0.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui_bezier_math.h
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import imgui_extra_math
+
+//------------------------------------------------------------------------------
+template <typename T>
+struct ImCubicBezierPointsT:
+    P0: T
+    P1: T
+    P2: T
+    P3: T
+
+using ImCubicBezierPoints := ImCubicBezierPointsT<ImVec2>
+
+//------------------------------------------------------------------------------
+// Low-level Bezier curve sampling.
+template <typename T> function ImLinearBezier(p0: const T&, p1: const T&, t: float) -> T
+template <typename T> function ImLinearBezierDt(p0: const T&, p1: const T&, t: float) -> T
+template <typename T> function ImQuadraticBezier(p0: const T&, p1: const T&, p2: const T&, t: float) -> T
+template <typename T> function ImQuadraticBezierDt(p0: const T&, p1: const T&, p2: const T&, t: float) -> T
+template <typename T> function ImCubicBezier(p0: const T&, p1: const T&, p2: const T&, p3: const T&, t: float) -> T
+template <typename T> function ImCubicBezierDt(p0: const T&, p1: const T&, p2: const T&, p3: const T&, t: float) -> T
+
+// High-level Bezier sampling, automatically collapse to lower level Bezier curves if control points overlap.
+template <typename T> function ImCubicBezierSample(p0: const T&, p1: const T&, p2: const T&, p3: const T&, t: float) -> T
+template <typename T> function ImCubicBezierSample(curve: const ImCubicBezierPointsT<T>&, t: float) -> T
+template <typename T> function ImCubicBezierTangent(p0: const T&, p1: const T&, p2: const T&, p3: const T&, t: float) -> T
+template <typename T> function ImCubicBezierTangent(curve: const ImCubicBezierPointsT<T>&, t: float) -> T
+
+// Calculate approximate length of Cubic Bezier curve.
+template <typename T> function ImCubicBezierLength(p0: const T&, p1: const T&, p2: const T&, p3: const T&) -> float
+template <typename T> function ImCubicBezierLength(curve: const ImCubicBezierPointsT<T>&) -> float
+
+// Splits Cubic Bezier curve into two curves.
+template <typename T>
+struct ImCubicBezierSplitResultT:
+    Left: ImCubicBezierPointsT<T>
+    Right: ImCubicBezierPointsT<T>
+
+using ImCubicBezierSplitResult := ImCubicBezierSplitResultT<ImVec2>
+
+template <typename T> function ImCubicBezierSplit(p0: const T&, p1: const T&, p2: const T&, p3: const T&, t: float) -> ImCubicBezierSplitResultT<T>
+template <typename T> function ImCubicBezierSplit(curve: const ImCubicBezierPointsT<T>&, t: float) -> ImCubicBezierSplitResultT<T>
+
+// Returns bounding rectangle of Cubic Bezier curve.
+function ImCubicBezierBoundingRect(p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&) -> ImRect
+function ImCubicBezierBoundingRect(curve: const ImCubicBezierPoints&) -> ImRect
+
+// Project point on Cubic Bezier curve.
+struct ImProjectResult:
+    Point: ImVec2    // Point on curve
+    Time: float      // [0 - 1]
+    Distance: float  // Distance to curve
+
+function ImProjectOnCubicBezier(p: const ImVec2&, p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, subdivisions: const int = 100) -> ImProjectResult
+function ImProjectOnCubicBezier(p: const ImVec2&, curve: const ImCubicBezierPoints&, subdivisions: const int = 100) -> ImProjectResult
+
+// Calculate intersection between line and a Cubic Bezier curve.
+struct ImCubicBezierIntersectResult:
+    Count: int
+    Points: ImVec2[3]
+
+function ImCubicBezierLineIntersect(p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, a0: const ImVec2&, a1: const ImVec2&) -> ImCubicBezierIntersectResult
+function ImCubicBezierLineIntersect(curve: const ImCubicBezierPoints&, line: const ImLine&) -> ImCubicBezierIntersectResult
+
+// Adaptive Cubic Bezier subdivision.
+enum ImCubicBezierSubdivideFlags:
+    ImCubicBezierSubdivide_None        = 0
+    ImCubicBezierSubdivide_SkipFirst   = 1
+
+struct ImCubicBezierSubdivideSample:
+    Point: ImVec2
+    Tangent: ImVec2
+
+using ImCubicBezierSubdivideCallback := void(*)(const ImCubicBezierSubdivideSample& p, void* user_pointer)
+
+function ImCubicBezierSubdivide(callback: ImCubicBezierSubdivideCallback, user_pointer: void*, p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, tess_tol: float = -1.0f, flags: ImCubicBezierSubdivideFlags = ImCubicBezierSubdivide_None) -> void
+function ImCubicBezierSubdivide(callback: ImCubicBezierSubdivideCallback, user_pointer: void*, curve: const ImCubicBezierPoints&, tess_tol: float = -1.0f, flags: ImCubicBezierSubdivideFlags = ImCubicBezierSubdivide_None) -> void
+
+// F has signature void(const ImCubicBezierSubdivideSample& p)
+template <typename F> function ImCubicBezierSubdivide(callback: F&, p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, tess_tol: float = -1.0f, flags: ImCubicBezierSubdivideFlags = ImCubicBezierSubdivide_None) -> void
+template <typename F> function ImCubicBezierSubdivide(callback: F&, curve: const ImCubicBezierPoints&, tess_tol: float = -1.0f, flags: ImCubicBezierSubdivideFlags = ImCubicBezierSubdivide_None) -> void
+
+// Fixed step Cubic Bezier subdivision.
+struct ImCubicBezierFixedStepSample:
+    T: float
+    Length: float
+    Point: ImVec2
+    BreakSearch: bool
+
+using ImCubicBezierFixedStepCallback := void(*)(ImCubicBezierFixedStepSample& sample, void* user_pointer)
+
+function ImCubicBezierFixedStep(callback: ImCubicBezierFixedStepCallback, user_pointer: void*, p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, step: float, overshoot: bool = false, max_value_error: float = 1e-3f, max_t_error: float = 1e-5f) -> void
+function ImCubicBezierFixedStep(callback: ImCubicBezierFixedStepCallback, user_pointer: void*, curve: const ImCubicBezierPoints&, step: float, overshoot: bool = false, max_value_error: float = 1e-3f, max_t_error: float = 1e-5f) -> void
+
+// F has signature void(const ImCubicBezierFixedStepSample& p)
+template <typename F> function ImCubicBezierFixedStep(callback: F&, p0: const ImVec2&, p1: const ImVec2&, p2: const ImVec2&, p3: const ImVec2&, step: float, overshoot: bool = false, max_value_error: float = 1e-3f, max_t_error: float = 1e-5f) -> void
+template <typename F> function ImCubicBezierFixedStep(callback: F&, curve: const ImCubicBezierPoints&, step: float, overshoot: bool = false, max_value_error: float = 1e-3f, max_t_error: float = 1e-5f) -> void

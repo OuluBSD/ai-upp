@@ -25,7 +25,19 @@ bool HandleEventsBase::Initialize(const WorldState& ws) {
 	
 	if(!val.owner) return false;
 	VfsValue& space = *val.owner;
-	state = space.FindOwnerWith<EnvState>(target);
+	String normalized_target = target;
+	if (normalized_target.Find('/') < 0 && normalized_target.Find('.') >= 0) {
+		Vector<String> parts = Split(normalized_target, ".");
+		bool valid = !parts.IsEmpty();
+		for (const String& part : parts)
+			if (part.IsEmpty())
+				valid = false;
+		if (valid)
+			normalized_target = Join(parts, "/");
+	}
+	state = space.FindOwnerWithPathAndCast<EnvState>(normalized_target);
+	if (!state && normalized_target != target)
+		state = space.FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
 		LOG("HandleEventsBase::Initialize: error: state '" << target << "' not found in parent space: " << space.GetPath());
 		return false;
@@ -83,6 +95,11 @@ bool HandleEventsBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 
 #if defined flagSCREEN
 
+// PIMPL implementation to manage the Array<Binder> where complete type is known
+struct HandleVideoBase::HandleVideoBasePimpl {
+	Array<Binder> binders; // Now we can safely use Array<Binder> where Binder is complete
+};
+
 struct HandleVideoBase::Binder {
 	//RTTI_DECL0(Binder);
 	
@@ -105,6 +122,12 @@ HandleVideoBase::HandleVideoBase(VfsValue& n) : Atom(n) {
 	if (!active) {
 		active = this;
 	}
+	pimpl.Create(); // Create the pimpl object that manages binders
+}
+
+HandleVideoBase::~HandleVideoBase() {
+	// Destructor defined here where complete types are known
+	// This ensures safe destruction of pimpl which contains Array<Binder>
 }
 
 bool HandleVideoBase::IsActive() const {
@@ -161,12 +184,12 @@ void HandleVideoBase::Stop() {
 	surfs.Clear();
 	#endif
 	if (IsActive())
-		binders.Clear();
+		pimpl->binders.Clear();
 }
 
 void HandleVideoBase::Uninitialize() {
 	if (IsActive()) {
-		binders.Clear();
+		pimpl->binders.Clear(); // Array<Binder> in pimpl will be cleared properly
 		active = 0;
 	}
 }
@@ -174,7 +197,7 @@ void HandleVideoBase::Uninitialize() {
 void HandleVideoBase::Visit(Vis& v) {
 	VIS_THIS(Atom);
 	if (IsActive())
-		v | binders;
+		v | pimpl->binders;
 	v & state;
 	
 	#if defined flagGUI
@@ -200,8 +223,8 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	
 	bool b =	io.active_sink_mask == iface_sink_mask &&
 				io.full_src_mask == 0 &&
-				(binders.GetCount() > 0 || render_win);
-	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
+				(pimpl->binders.GetCount() > 0 || render_win);
+	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << pimpl->binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
 	
 	return b;
 }
@@ -277,7 +300,7 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 	else*/
 	if (IsActive()) {
 		
-		for (Binder& b : binders) {
+		for (Binder& b : pimpl->binders) {
 			
 			#if defined flagGUI
 			if (wins) {
@@ -455,8 +478,8 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 			#endif
 		}
 		else {
-			if (binders.GetCount() == 1) {
-				Binder& b = binders.Top();
+			if (pimpl->binders.GetCount() == 1) {
+				Binder& b = pimpl->binders.Top();
 				
 				DrawCommand *begin = 0, *end = 0;
 				b.iface->RenderProg(begin, end);
@@ -464,7 +487,7 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				InternalPacketData& data = out.SetData<InternalPacketData>();
 				data.ptr = begin;
 			}
-			else if (binders.GetCount() > 1) {
+			else if (pimpl->binders.GetCount() > 1) {
 				TODO // join multiple draw command vectors from binders to one
 			}
 			else {
@@ -484,9 +507,9 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 }
 
 void HandleVideoBase::AddBinders() {
-	ASSERT(binders.IsEmpty());
+	ASSERT(pimpl->binders.IsEmpty());
 	#if 0
-	for (Binder& b : binders)
+	for (Binder& b : pimpl->binders)
 		if (!b.abs_iface)
 			AddBinderActive(b);
 	#endif
@@ -505,7 +528,7 @@ void HandleVideoBase::AddBinderActive(Binder& b) {
 }
 
 void HandleVideoBase::AddBinder(BinderIfaceVideo* iface) {
-	Binder& b = binders.Add();
+	Binder& b = pimpl->binders.Add();
 	b.iface = iface;
 	
 	if (active)
@@ -514,8 +537,8 @@ void HandleVideoBase::AddBinder(BinderIfaceVideo* iface) {
 
 void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 	int pos = -1, i = 0;
-	for (Binder& b0 : binders) {
-		if (b0.iface == iface) {
+	for (Binder& b : pimpl->binders) {
+		if (b.iface == iface) {
 			pos = i;
 			break;
 		}
@@ -524,7 +547,7 @@ void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 	ASSERT(pos >= 0);
 	if (pos < 0) return;
 	
-	Binder& b = binders[pos];
+	Binder& b = pimpl->binders[pos];
 	
 	TODO
 	#if 0
@@ -710,4 +733,3 @@ void HandleOglBase::RemoveBinder(BinderIfaceOgl* iface) {
 
 
 END_UPP_NAMESPACE
-

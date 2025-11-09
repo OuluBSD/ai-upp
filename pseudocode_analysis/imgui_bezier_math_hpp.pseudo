@@ -1,0 +1,1019 @@
+//------------------------------------------------------------------------------
+// VERSION 0.9.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of imgui.h
+
+package thirdparty.imgui
+
+//------------------------------------------------------------------------------
+// Library version
+IMGUI_VERSION := "1.89.6 WIP"
+IMGUI_VERSION_NUM := 18954
+IMGUI_HAS_TABLE := true
+IMGUI_HAS_VIEWPORT := true  // Viewport WIP branch
+IMGUI_HAS_DOCK := true      // Docking WIP branch
+IMGUI_HAS_STACK_LAYOUT := 1 // Stack-Layout PR #846
+
+//------------------------------------------------------------------------------
+// Includes
+import imgui_internal
+import imgui_extra_math
+
+// ImVec2 and ImVec4 structs are already defined in imgui_extra_math
+
+//------------------------------------------------------------------------------
+// Configuration
+IMGUI_DEFINE_MATH_OPERATORS := true
+
+// Define attributes of all API symbols declarations
+IMGUI_API := ""
+IMGUI_IMPL_API := IMGUI_API
+
+//------------------------------------------------------------------------------
+// Helper Macros
+IM_ASSERT(expr: const bool)
+IM_ARRAYSIZE(arr: auto) -> int
+IM_UNUSED(var: auto)
+IM_OFFSETOF(type: auto, member: auto) -> int
+
+IMGUI_CHECKVERSION() -> void
+
+// Printf-style warnings for formatting functions
+IM_FMTARGS(fmt: int)
+IM_FMTLIST(fmt: int)
+
+// MSVC runtime checks
+IM_MSVC_RUNTIME_CHECKS_OFF := ""
+IM_MSVC_RUNTIME_CHECKS_RESTORE := ""
+
+//------------------------------------------------------------------------------
+// Forward Declarations
+struct ImDrawChannel
+struct ImDrawCmd
+struct ImDrawData
+struct ImDrawList
+struct ImDrawListSharedData
+struct ImDrawListSplitter
+struct ImDrawVert
+struct ImFont
+struct ImFontAtlas
+struct ImFontBuilderIO
+struct ImFontConfig
+struct ImFontGlyph
+struct ImFontGlyphRangesBuilder
+struct ImColor
+struct ImGuiContext
+struct ImGuiIO
+struct ImGuiInputTextCallbackData
+struct ImGuiKeyData
+struct ImGuiListClipper
+struct ImGuiOnceUponAFrame
+struct ImGuiPayload
+struct ImGuiPlatformIO
+struct ImGuiPlatformMonitor
+struct ImGuiPlatformImeData
+struct ImGuiSizeCallbackData
+struct ImGuiStorage
+struct ImGuiStyle
+struct ImGuiTableSortSpecs
+struct ImGuiTableColumnSortSpecs
+struct ImGuiTextBuffer
+struct ImGuiTextFilter
+struct ImGuiViewport
+struct ImGuiWindowClass
+
+//------------------------------------------------------------------------------
+// Enums
+
+// Key codes
+enum ImGuiKey:
+    None = 0
+    Tab = 512  // == ImGuiKey_NamedKey_BEGIN
+    LeftArrow
+    RightArrow
+    UpArrow
+    DownArrow
+    PageUp
+    PageDown
+    Home
+    End
+    Insert
+    Delete
+    Backspace
+    Space
+    Enter
+    Escape
+    LeftCtrl
+    LeftShift
+    LeftAlt
+    LeftSuper
+    RightCtrl
+    RightShift
+    RightAlt
+    RightSuper
+    Menu
+    _0 to _9
+    A to Z
+    F1 to F12
+    Apostrophe, Comma, Minus, Period, Slash
+    Semicolon, Equal, LeftBracket, Backslash, RightBracket, GraveAccent
+    CapsLock, ScrollLock, NumLock, PrintScreen, Pause
+    Keypad0 to Keypad9
+    KeypadDecimal, KeypadDivide, KeypadMultiply, KeypadSubtract
+    KeypadAdd, KeypadEnter, KeypadEqual
+
+// Mouse buttons
+enum ImGuiMouseButton:
+    Left = 0
+    Right = 1
+    Middle = 2
+    COUNT = 5
+
+// Mouse cursors
+enum ImGuiMouseCursor:
+    Arrow = 0
+    TextInput
+    ResizeAll
+    ResizeNS
+    ResizeEW
+    ResizeNESW
+    ResizeNWSE
+    Hand
+    NotAllowed
+    COUNT
+
+// Configuration flags
+enum ImGuiConfigFlags:
+    None = 0
+    NavEnableKeyboard = 1 << 0
+    NavEnableGamepad = 1 << 1
+    NavEnableSetMousePos = 1 << 2
+    NavNoCaptureKeyboard = 1 << 3
+    NoMouse = 1 << 4
+    NoMouseCursorChange = 1 << 5
+    DockingEnable = 1 << 6
+    ViewportsEnable = 1 << 10
+    DpiEnableScaleViewports = 1 << 14
+    DpiEnableScaleFonts = 1 << 15
+    IsSRGB = 1 << 20
+    IsTouchScreen = 1 << 21
+
+// Backend flags
+enum ImGuiBackendFlags:
+    None = 0
+    HasGamepad = 1 << 0
+    HasMouseCursors = 1 << 1
+    HasSetMousePos = 1 << 2
+    RendererHasVtxOffset = 1 << 3
+    PlatformHasViewports = 1 << 10
+    HasMouseHoveredViewport = 1 << 11
+    RendererHasViewports = 1 << 12
+
+// Color indices
+enum ImGuiCol:
+    Text, TextDisabled, WindowBg, ChildBg, PopupBg
+    Border, BorderShadow, FrameBg, FrameBgHovered, FrameBgActive
+    TitleBg, TitleBgActive, TitleBgCollapsed, MenuBarBg, ScrollbarBg
+    ScrollbarGrab, ScrollbarGrabHovered, ScrollbarGrabActive
+    CheckMark, SliderGrab, SliderGrabActive, Button, ButtonHovered
+    ButtonActive, Header, HeaderHovered, HeaderActive, Separator
+    SeparatorHovered, SeparatorActive, ResizeGrip, ResizeGripHovered
+    ResizeGripActive, Tab, TabHovered, TabActive, TabUnfocused
+    TabUnfocusedActive, DockingPreview, DockingEmptyBg, PlotLines
+    PlotLinesHovered, PlotHistogram, PlotHistogramHovered
+    TableHeaderBg, TableBorderStrong, TableBorderLight
+    TableRowBg, TableRowBgAlt, TextSelectedBg, DragDropTarget
+    NavHighlight, NavWindowingHighlight, NavWindowingDimBg
+    ModalWindowDimBg
+    COUNT
+
+// Style variables
+enum ImGuiStyleVar:
+    Alpha, DisabledAlpha, WindowPadding, WindowRounding, WindowBorderSize
+    WindowMinSize, WindowTitleAlign, ChildRounding, ChildBorderSize
+    PopupRounding, PopupBorderSize, FramePadding, FrameRounding
+    FrameBorderSize, ItemSpacing, ItemInnerSpacing, CellPadding
+    TouchExtraPadding, IndentSpacing, ColumnsMinSpacing, ScrollbarSize
+    ScrollbarRounding, GrabMinSize, GrabRounding, LogSliderDeadzone
+    TabRounding, TabBorderSize, TabMinWidthForCloseButton
+    TabBarBorderSize, TabBarOverlineSize, TableAngledHeadersAngle
+    TableAngledHeadersTextAlign, ButtonTextAlign, SelectableTextAlign
+    SeparatorTextBorderSize, SeparatorTextAlign, SeparatorTextPadding
+    DockingSeparatorSize
+
+// Window flags
+enum ImGuiWindowFlags:
+    None = 0
+    NoTitleBar = 1 << 0
+    NoResize = 1 << 1
+    NoMove = 1 << 2
+    NoScrollbar = 1 << 3
+    NoScrollWithMouse = 1 << 4
+    NoCollapse = 1 << 5
+    AlwaysAutoResize = 1 << 6
+    NoBackground = 1 << 7
+    NoSavedSettings = 1 << 8
+    NoMouseInputs = 1 << 9
+    MenuBar = 1 << 10
+    HorizontalScrollbar = 1 << 11
+    NoFocusOnAppearing = 1 << 12
+    NoBringToFrontOnFocus = 1 << 13
+    AlwaysVerticalScrollbar = 1 << 14
+    AlwaysHorizontalScrollbar = 1 << 15
+    AlwaysUseWindowPadding = 1 << 16
+    NoNavInputs = 1 << 18
+    NoNavFocus = 1 << 19
+    UnsavedDocument = 1 << 20
+    NoDocking = 1 << 21
+    NoNav = NoNavInputs | NoNavFocus
+    NoDecoration = NoTitleBar | NoResize | NoScrollbar | NoCollapse
+    NoInputs = NoMouseInputs | NoNavInputs | NoNavFocus
+
+// Input text flags
+enum ImGuiInputTextFlags:
+    None = 0
+    CharsDecimal = 1 << 0
+    CharsHexadecimal = 1 << 1
+    CharsUppercase = 1 << 2
+    CharsNoBlank = 1 << 3
+    AutoSelectAll = 1 << 4
+    EnterReturnsTrue = 1 << 5
+    CallbackCompletion = 1 << 6
+    CallbackHistory = 1 << 7
+    CallbackAlways = 1 << 8
+    CallbackCharFilter = 1 << 9
+    AllowTabInput = 1 << 10
+    CtrlEnterForNewLine = 1 << 11
+    NoHorizontalScroll = 1 << 12
+    AlwaysOverwrite = 1 << 13
+    ReadOnly = 1 << 14
+    Password = 1 << 15
+    NoUndoRedo = 1 << 16
+    CharsScientific = 1 << 17
+    CallbackResize = 1 << 18
+    CallbackEdit = 1 << 19
+    EscapeClearsAll = 1 << 20
+
+// TreeNode flags
+enum ImGuiTreeNodeFlags:
+    None = 0
+    Selected = 1 << 0
+    Framed = 1 << 1
+    AllowItemOverlap = 1 << 2
+    NoTreePushOnOpen = 1 << 3
+    NoAutoOpenOnLog = 1 << 4
+    DefaultOpen = 1 << 5
+    OpenOnDoubleClick = 1 << 6
+    OpenOnArrow = 1 << 7
+    Leaf = 1 << 8
+    Bullet = 1 << 9
+    FramePadding = 1 << 10
+    SpanAvailWidth = 1 << 11
+    SpanFullWidth = 1 << 12
+    NavLeftJumpsBackHere = 1 << 13
+    CollapsingHeader = Framed | NoTreePushOnOpen | NoAutoOpenOnLog
+
+// Popup flags
+enum ImGuiPopupFlags:
+    None = 0
+    MouseButtonLeft = 0
+    MouseButtonRight = 1
+    MouseButtonMiddle = 2
+    MouseButtonMask_ = 0x1F
+    MouseButtonDefault_ = 1
+    NoOpenOverExistingPopup = 1 << 5
+    NoOpenOverItems = 1 << 6
+    AnyPopupId = 1 << 7
+    AnyPopupLevel = 1 << 8
+    AnyPopup = AnyPopupId | AnyPopupLevel
+
+// Selectable flags
+enum ImGuiSelectableFlags:
+    None = 0
+    DontClosePopups = 1 << 0
+    SpanAllColumns = 1 << 1
+    AllowDoubleClick = 1 << 2
+    Disabled = 1 << 3
+    AllowItemOverlap = 1 << 4
+
+// Combo flags
+enum ImGuiComboFlags:
+    None = 0
+    PopupAlignLeft = 1 << 0
+    HeightSmall = 1 << 1
+    HeightRegular = 1 << 2
+    HeightLarge = 1 << 3
+    HeightLargest = 1 << 4
+    NoArrowButton = 1 << 5
+    NoPreview = 1 << 6
+    HeightMask_ = HeightSmall | HeightRegular | HeightLarge | HeightLargest
+
+// Tab bar flags
+enum ImGuiTabBarFlags:
+    None = 0
+    Reorderable = 1 << 0
+    AutoSelectNewTabs = 1 << 1
+    TabListPopupButton = 1 << 2
+    NoCloseWithMiddleMouseButton = 1 << 3
+    NoTabListScrollingButtons = 1 << 4
+    NoTooltip = 1 << 5
+    FittingPolicyResizeDown = 1 << 6
+    FittingPolicyScroll = 1 << 7
+    FittingPolicyMask_ = FittingPolicyResizeDown | FittingPolicyScroll
+    FittingPolicyDefault_ = FittingPolicyResizeDown
+
+// Tab item flags
+enum ImGuiTabItemFlags:
+    None = 0
+    UnsavedDocument = 1 << 0
+    SetSelected = 1 << 1
+    NoCloseWithMiddleMouseButton = 1 << 2
+    NoPushId = 1 << 3
+    NoTooltip = 1 << 4
+    NoReorder = 1 << 5
+    Leading = 1 << 6
+    Trailing = 1 << 7
+
+// Table flags
+enum ImGuiTableFlags:
+    None = 0
+    Resizable = 1 << 0
+    Reorderable = 1 << 1
+    Hideable = 1 << 2
+    Sortable = 1 << 3
+    NoSavedSettings = 1 << 4
+    ContextMenuInBody = 1 << 5
+    RowBg = 1 << 6
+    BordersInnerH = 1 << 7
+    BordersOuterH = 1 << 8
+    BordersInnerV = 1 << 9
+    BordersOuterV = 1 << 10
+    BordersH = BordersInnerH | BordersOuterH
+    BordersV = BordersInnerV | BordersOuterV
+    BordersInner = BordersInnerV | BordersInnerH
+    BordersOuter = BordersOuterV | BordersOuterH
+    Borders = BordersInner | BordersOuter
+    NoBordersInBody = 1 << 11
+    NoBordersInBodyUntilResize = 1 << 12
+    SizingFixedFit = 1 << 13
+    SizingFixedSame = 2 << 13
+    SizingStretchProp = 3 << 13
+    SizingStretchSame = 4 << 13
+    NoHostExtendX = 1 << 16
+    NoHostExtendY = 1 << 17
+    NoKeepColumnsVisible = 1 << 18
+    PreciseWidths = 1 << 19
+    NoClip = 1 << 20
+    PadOuterX = 1 << 21
+    NoPadOuterX = 1 << 22
+    NoPadInnerX = 1 << 23
+    ScrollX = 1 << 24
+    ScrollY = 1 << 25
+    SortMulti = 1 << 26
+    SortTristate = 1 << 27
+    SizingMask_ = SizingFixedFit | SizingFixedSame | SizingStretchProp | SizingStretchSame
+
+// Table column flags
+enum ImGuiTableColumnFlags:
+    None = 0
+    Disabled = 1 << 0
+    DefaultHide = 1 << 1
+    DefaultSort = 1 << 2
+    WidthStretch = 1 << 3
+    WidthFixed = 1 << 4
+    NoResize = 1 << 5
+    NoReorder = 1 << 6
+    NoHide = 1 << 7
+    NoClip = 1 << 8
+    NoSort = 1 << 9
+    NoSortAscending = 1 << 10
+    NoSortDescending = 1 << 11
+    NoHeaderLabel = 1 << 12
+    NoHeaderWidth = 1 << 13
+    PreferSortAscending = 1 << 14
+    PreferSortDescending = 1 << 15
+    IndentEnable = 1 << 16
+    IndentDisable = 1 << 17
+    IsEnabled = 1 << 24
+    IsVisible = 1 << 25
+    IsSorted = 1 << 26
+    IsHovered = 1 << 27
+    WidthMask_ = WidthStretch | WidthFixed
+    IndentMask_ = IndentEnable | IndentDisable
+    StatusMask_ = IsEnabled | IsVisible | IsSorted | IsHovered
+    NoDirectResize_ = 1 << 30
+
+// Table row flags
+enum ImGuiTableRowFlags:
+    None = 0
+    Headers = 1 << 0
+
+// Table background target
+enum ImGuiTableBgTarget:
+    None = 0
+    RowBg0 = 1
+    RowBg1 = 2
+    CellBg = 3
+
+// Focused flags
+enum ImGuiFocusedFlags:
+    None = 0
+    ChildWindows = 1 << 0
+    RootWindow = 1 << 1
+    AnyWindow = 1 << 2
+    NoPopupHierarchy = 1 << 3
+    DockHierarchy = 1 << 4
+    RootAndChildWindows = RootWindow | ChildWindows
+
+// Hovered flags
+enum ImGuiHoveredFlags:
+    None = 0
+    ChildWindows = 1 << 0
+    RootWindow = 1 << 1
+    AnyWindow = 1 << 2
+    NoPopupHierarchy = 1 << 3
+    DockHierarchy = 1 << 4
+    AllowWhenBlockedByPopup = 1 << 5
+    AllowWhenBlockedByActiveItem = 1 << 7
+    AllowWhenOverlapped = 1 << 8
+    AllowWhenDisabled = 1 << 9
+    NoNavOverride = 1 << 10
+    RectOnly = AllowWhenBlockedByPopup | AllowWhenBlockedByActiveItem | AllowWhenOverlapped
+    RootAndChildWindows = RootWindow | ChildWindows
+    DelayNormal = 1 << 11
+    DelayShort = 1 << 12
+    NoSharedDelay = 1 << 13
+
+// Drag drop flags
+enum ImGuiDragDropFlags:
+    None = 0
+    SourceNoPreviewTooltip = 1 << 0
+    SourceNoDisableHover = 1 << 1
+    SourceNoHoldToOpenOthers = 1 << 2
+    SourceAllowNullID = 1 << 3
+    SourceExtern = 1 << 4
+    SourceAutoExpirePayload = 1 << 5
+    AcceptBeforeDelivery = 1 << 10
+    AcceptNoDrawDefaultRect = 1 << 11
+    AcceptNoPreviewTooltip = 1 << 12
+    AcceptPeekOnly = AcceptBeforeDelivery | AcceptNoDrawDefaultRect
+
+// DataType
+enum ImGuiDataType:
+    S8, U8, S16, U16, S32, U32, S64, U64, Float, Double, COUNT
+
+// Dir
+enum ImGuiDir:
+    None = -1, Left = 0, Right = 1, Up = 2, Down = 3, COUNT = 4
+
+// Sort Direction
+enum ImGuiSortDirection:
+    None = 0, Ascending = 1, Descending = 2
+
+// KeyChord
+using ImGuiKeyChord := int  // ImGuiKey | ImGuiMod_XXX
+
+// Condition
+enum ImGuiCond:
+    None = 0, Always = 1 << 0, Once = 1 << 1, FirstUseEver = 1 << 2, Appearing = 1 << 3
+
+//------------------------------------------------------------------------------
+// Scalar data types
+using ImGuiID := unsigned int       // A unique ID used by widgets (typically the result of hashing a stack of string)
+using ImS8 := signed char           // 8-bit signed integer
+using ImU8 := unsigned char         // 8-bit unsigned integer
+using ImS16 := signed short         // 16-bit signed integer
+using ImU16 := unsigned short       // 16-bit unsigned integer
+using ImS32 := signed int           // 32-bit signed integer == int
+using ImU32 := unsigned int         // 32-bit unsigned integer (often used to store packed colors)
+using ImS64 := signed long long     // 64-bit signed integer
+using ImU64 := unsigned long long   // 64-bit unsigned integer
+
+// Character types
+using ImWchar16 := unsigned short   // A single decoded U16 character/code point. We encode them as multi bytes UTF-8 when used in strings.
+using ImWchar32 := unsigned int     // A single decoded U32 character/code point. We encode them as multi bytes UTF-8 when used in strings.
+# ifdef IMGUI_USE_WCHAR32:
+using ImWchar := ImWchar32          // Configure application to use 32-bit characters
+# else:
+using ImWchar := ImWchar16          // Configure application to use 16-bit characters
+
+// Texture ID (compile-time configurable type)
+using ImTextureID := void*          // Default: store a pointer or an integer fitting in a pointer (most renderer backends are ok with that)
+
+// Draw index (compile-time configurable type)
+using ImDrawIdx := unsigned short   // Default: 16-bit (for maximum compatibility with renderer backends)
+
+// Callback and function types
+using ImGuiInputTextCallback := int(*)(ImGuiInputTextCallbackData* data)
+using ImGuiSizeCallback := void(*)(ImGuiSizeCallbackData* data)
+using ImGuiMemAllocFunc := void*(*) (size_t sz, void* user_data)
+using ImGuiMemFreeFunc := void(*) (void* ptr, void* user_data)
+
+//------------------------------------------------------------------------------
+namespace ImGui:
+
+    // Context creation and access
+    function CreateContext(shared_font_atlas: ImFontAtlas* = nullptr) -> ImGuiContext*
+    function DestroyContext(ctx: ImGuiContext* = nullptr) -> void  // nullptr = destroy current context
+    function GetCurrentContext() -> ImGuiContext*
+    function SetCurrentContext(ctx: ImGuiContext*) -> void
+
+    // Main
+    function GetIO() -> ImGuiIO&  // access the IO structure (mouse/keyboard/gamepad inputs, time, various configuration options/flags)
+    function GetStyle() -> ImGuiStyle&  // access the Style structure (colors, sizes). Always use PushStyleCol(), PushStyleVar() to modify style mid-frame!
+    function NewFrame() -> void  // start a new Dear ImGui frame, you can submit any command from this point until Render()/EndFrame().
+    function EndFrame() -> void  // ends the Dear ImGui frame. automatically called by Render(). If you don't need to render data (skipping rendering) you may call EndFrame() without Render()... but you'll have wasted CPU already! If you don't need to render, better to not create any windows and not call NewFrame() at all!
+    function Render() -> void  // ends the Dear ImGui frame, finalize the draw data. You can then get call GetDrawData().
+    function GetDrawData() -> ImDrawData*  // valid after Render() and until the next call to NewFrame(). this is what you have to render.
+
+    // Demo, Debug, Information
+    function ShowDemoWindow(p_open: bool* = nullptr) -> void  // create Demo window. demonstrate most ImGui features. call this to learn about the library! try to make it always available in your application!
+    function ShowMetricsWindow(p_open: bool* = nullptr) -> void  // create Metrics/Debugger window. display Dear ImGui internals: windows, draw commands, various internal state, etc.
+    function ShowDebugLogWindow(p_open: bool* = nullptr) -> void  // create Debug Log window. display a simplified log of important dear imgui events.
+    function ShowStackToolWindow(p_open: bool* = nullptr) -> void  // create Stack Tool window. hover items with mouse to query information about the source of their unique ID.
+    function ShowAboutWindow(p_open: bool* = nullptr) -> void  // create About window. display Dear ImGui version, credits and build/system information.
+    function ShowStyleEditor(ref: ImGuiStyle* = nullptr) -> void  // add style editor block (not a window). you can pass in a reference ImGuiStyle structure to compare to, revert to and save to (else it uses the default style)
+    function ShowStyleSelector(label: const char*) -> bool  // add style selector block (not a window), essentially a combo listing the default styles.
+    function ShowFontSelector(label: const char*) -> void  // add font selector block (not a window), essentially a combo listing the loaded fonts.
+    function ShowUserGuide() -> void  // add basic help/info block (not a window): how to manipulate ImGui as an end-user (mouse/keyboard controls).
+    function GetVersion() -> const char*  // get the compiled version string e.g. "1.80 WIP" (essentially the value for IMGUI_VERSION from the compiled version of imgui.cpp)
+
+    // Styles
+    function StyleColorsDark(dst: ImGuiStyle* = nullptr) -> void  // almost black
+    function StyleColorsLight(dst: ImGuiStyle* = nullptr) -> void  // best used with borders and a custom, thicker font
+    function StyleColorsClassic(dst: ImGuiStyle* = nullptr) -> void  // classic imgui style
+
+    // Windows
+    function Begin(name: const char*, p_open: bool* = nullptr, flags: ImGuiWindowFlags = 0) -> bool  // push window to the stack and start appending to it. return false to indicate the window is collapsed or fully clipped, so you may early out and omit submitting anything to the window. Always call a matching End() for each Begin() call, regardless of its return value!
+    function End() -> void  // pop window from the stack.
+
+    // Child Windows
+    function BeginChild(str_id: const char*, size: const ImVec2& = ImVec2(0, 0), border: bool = false, flags: ImGuiWindowFlags = 0) -> bool
+    function BeginChild(id: ImGuiID, size: const ImVec2& = ImVec2(0, 0), border: bool = false, flags: ImGuiWindowFlags = 0) -> bool
+    function EndChild() -> void
+
+    // Windows Utilities
+    function IsWindowAppearing() -> bool
+    function IsWindowCollapsed() -> bool
+    function IsWindowFocused(flags: ImGuiFocusedFlags = 0) -> bool  // is current window focused? or its root/child, depending on flags. see flags for options.
+    function IsWindowHovered(flags: ImGuiHoveredFlags = 0) -> bool  // is current window hovered (and typically: not blocked by a popup/modal)? see flags for options. NB: If you are trying to check whether your mouse should be dispatched to imgui or to your app, you should use 'io.WantCaptureMouse' boolean for that! Please read the FAQ!
+    function GetWindowDrawList() -> ImDrawList*  // get draw list associated to the current window, to append your own drawing primitives
+    function GetWindowDpiScale() -> float  // get DPI scale currently associated to the current window's viewport.
+    function GetWindowPos() -> ImVec2  // get current window position in screen space (useful if you want to do your own drawing via the DrawList API)
+    function GetWindowSize() -> ImVec2  // get current window size
+    function GetWindowWidth() -> float  // get current window width (shortcut for GetWindowSize().x)
+    function GetWindowHeight() -> float  // get current window height (shortcut for GetWindowSize().y)
+    function GetWindowViewport() -> ImGuiViewport*  // get viewport currently associated to the current window.
+
+    // Window manipulation
+    function SetNextWindowPos(pos: const ImVec2&, cond: ImGuiCond = 0, pivot: const ImVec2& = ImVec2(0, 0)) -> void  // set next window position. call before Begin(). use pivot=(0.5f,0.5f) to center on given point, etc.
+    function SetNextWindowSize(size: const ImVec2&, cond: ImGuiCond = 0) -> void  // set next window size. set axis to 0.0f to force an auto-fit on this axis. call before Begin()
+    function SetNextWindowSizeConstraints(size_min: const ImVec2&, size_max: const ImVec2&, custom_callback: ImGuiSizeCallback = nullptr, custom_callback_data: void* = nullptr) -> void  // set next window size limits. use -1,-1 on either X/Y axis to preserve the current size. Sizes will be rounded down. Use callback to apply non-trivial programmatic constraints.
+    function SetNextWindowContentSize(size: const ImVec2&) -> void  // set next window content size (~ scrollable client area, which enforce the range of scrollbars). Not including window decorations (title bar, menu bar, etc.) nor WindowPadding. set an axis to 0.0f to leave it automatic. call before Begin()
+    function SetNextWindowCollapsed(collapsed: bool, cond: ImGuiCond = 0) -> void  // set next window collapsed state. call before Begin()
+    function SetNextWindowFocus() -> void  // set next window to be focused / top-most. call before Begin()
+    function SetNextWindowScroll(scroll: const ImVec2&) -> void  // set next window scrolling value (use < 0.0f to not affect a given axis).
+    function SetNextWindowBgAlpha(alpha: float) -> void  // set next window background color alpha. helper to easily override the Alpha component of ImGuiCol_WindowBg/ChildBg/PopupBg. you may also use ImGuiWindowFlags_NoBackground.
+    function SetNextWindowViewport(viewport_id: ImGuiID) -> void  // set next window viewport
+
+    // Content region
+    function GetContentRegionAvail() -> ImVec2  // == GetContentRegionMax() - GetCursorPos()
+    function GetContentRegionMax() -> ImVec2  // current content boundaries (typically window boundaries including scrolling, or current column boundaries), in windows coordinates
+    function GetWindowContentRegionMin() -> ImVec2  // content boundaries min for the full window (roughly (0,0)-Scroll), in window coordinates
+    function GetWindowContentRegionMax() -> ImVec2  // content boundaries max for the full window (roughly (0,0)+Size-Scroll) where Size can be overridden with SetNextWindowContentSize(), in window coordinates
+
+    // Windows Scrolling
+    function GetScrollX() -> float  // get scrolling amount [0 .. GetScrollMaxX()]
+    function GetScrollY() -> float  // get scrolling amount [0 .. GetScrollMaxY()]
+    function SetScrollX(scroll_x: float) -> void  // set scrolling amount [0 .. GetScrollMaxX()]
+    function SetScrollY(scroll_y: float) -> void  // set scrolling amount [0 .. GetScrollMaxY()]
+    function GetScrollMaxX() -> float  // get maximum scrolling amount ~~ ContentSize.x - WindowSize.x - DecorationsSize.x
+    function GetScrollMaxY() -> float  // get maximum scrolling amount ~~ ContentSize.y - WindowSize.y - DecorationsSize.y
+    function SetScrollHereX(center_x_ratio: float = 0.5f) -> void  // adjust scrolling amount to make current cursor position visible. center_x_ratio=0.0: left, 0.5: center, 1.0: right. When using to make a "default/current item" visible, consider using SetItemDefaultFocus() instead.
+    function SetScrollHereY(center_y_ratio: float = 0.5f) -> void  // adjust scrolling amount to make current cursor position visible. center_y_ratio=0.0: top, 0.5: center, 1.0: bottom. When using to make a "default/current item" visible, consider using SetItemDefaultFocus() instead.
+    function SetScrollFromPosX(local_x: float, center_x_ratio: float = 0.5f) -> void  // adjust scrolling amount to make given position visible. Generally GetCursorStartPos() + offset to compute a valid position.
+    function SetScrollFromPosY(local_y: float, center_y_ratio: float = 0.5f) -> void  // adjust scrolling amount to make given position visible. Generally GetCursorStartPos() + offset to compute a valid position.
+
+    // Parameters stacks (shared)
+    function PushFont(font: ImFont*) -> void  // use nullptr as a shortcut to push default font
+    function PopFont() -> void
+    function PushStyleColor(idx: ImGuiCol, col: ImU32) -> void  // modify a style color. always use this if you modify the style after NewFrame().
+    function PushStyleColor(idx: ImGuiCol, col: const ImVec4&) -> void
+    function PopStyleColor(count: int = 1) -> void
+    function PushStyleVar(idx: ImGuiStyleVar, val: float) -> void  // modify a style float variable. always use this if you modify the style after NewFrame().
+    function PushStyleVar(idx: ImGuiStyleVar, val: const ImVec2&) -> void  // modify a style ImVec2 variable. always use this if you modify the style after NewFrame().
+    function PushStyleVar(idx: ImGuiStyleVar, val: const ImVec4&) -> void  // modify a style ImVec4 variable. always use this if you modify the style after NewFrame().
+    function PopStyleVar(count: int = 1) -> void
+
+    // Parameters stacks (current window)
+    function PushItemWidth(item_width: float) -> void  // push width of items for common large "item+label" widgets. >0.0f: width in pixels, <0.0f align xx pixels to the right of window (so -FLT_MIN always align width to the right side).
+    function PopItemWidth() -> void
+    function SetNextItemWidth(item_width: float) -> void  // set width of the _next_ common large "item+label" widget. >0.0f: width in pixels, <0.0f align xx pixels to the right of window (so -FLT_MIN always align width to the right side)
+    function CalcItemWidth() -> float  // width of item given pushed settings and current cursor position. NOT necessarily the width of last item unlike most 'Item' functions.
+    function PushTextWrapPos(wrap_local_pos_x: float = 0.0f) -> void  // push word-wrapping position for Text*() commands. < 0.0f: no wrapping; 0.0f: wrap to end of window (or column); > 0.0f: wrap at 'wrap_pos_x' position in window local space
+    function PopTextWrapPos() -> void
+
+    // Style read access
+    function GetFont() -> ImFont*  // get current font
+    function GetFontSize() -> float  // get current font size (= height in pixels) of current font with current scale applied
+    function GetFontTexUvWhitePixel() -> ImVec2  // get UV coordinate for a while pixel, useful to draw custom shapes via the ImDrawList API
+    function GetColorU32(idx: ImGuiCol, alpha_mul: float = 1.0f) -> ImU32  // retrieve given style color with style alpha applied and optional extra alpha multiplier, packed as a 32-bit value suitable for ImDrawList
+    function GetColorU32(col: const ImVec4&) -> ImU32  // retrieve given color with style alpha applied, packed as a 32-bit value suitable for ImDrawList
+    function GetColorU32(col: ImU32) -> ImU32  // retrieve given color with style alpha applied, packed as a 32-bit value suitable for ImDrawList
+    function GetStyleColorVec4(idx: ImGuiCol) -> const ImVec4&  // retrieve style color as stored in ImGuiStyle structure. use to feed back into PushStyleColor(), otherwise use GetColorU32() to get style color with style alpha baked in.
+
+    // Cursor / Layout
+    function Separator() -> void  // separator, generally horizontal. inside a menu bar or in horizontal layout mode, this becomes a vertical separator.
+    function SameLine(offset_from_start_x: float = 0.0f, spacing: float = -1.0f) -> void  // call between widgets or groups to layout them horizontally. X position given in window coordinates.
+    function NewLine() -> void  // undo a SameLine() or force a new line when in a horizontal-layout context.
+    function Spacing() -> void  // add vertical spacing.
+    function Dummy(size: const ImVec2&) -> void  // add a dummy item of given size. unlike InvisibleButton(), Dummy() won't take the mouse click or be navigable into.
+    function Indent(indent_w: float = 0.0f) -> void  // move content position toward the right, by indent_w, or style.IndentSpacing if indent_w <= 0
+    function Unindent(indent_w: float = 0.0f) -> void  // move content position back to the left, by indent_w, or style.IndentSpacing if indent_w <= 0
+    function BeginGroup() -> void  // lock horizontal starting position
+    function EndGroup() -> void  // unlock horizontal starting position + capture the whole group bounding box into one "item" (so you can use IsItemHovered() or layout primitives such as SameLine() on whole group, etc.)
+    function GetCursorPos() -> ImVec2  // cursor position in window coordinates (relative to window position)
+    function GetCursorPosX() -> float  //   (some functions are using window-relative coordinates, such as: GetCursorPos, GetCursorStartPos, GetContentRegionMax, GetWindowContentRegion* etc.
+    function GetCursorPosY() -> float  //    other functions such as GetCursorScreenPos or everything in ImDrawList::
+    function SetCursorPos(local_pos: const ImVec2&) -> void  //    are using the main, absolute coordinate system.
+    function SetCursorPosX(local_x: float) -> void  //    GetWindowPos() + GetCursorPos() == GetCursorScreenPos() etc.)
+    function SetCursorPosY(local_y: float) -> void  //
+    function GetCursorStartPos() -> ImVec2  // initial cursor position in window coordinates
+    function GetCursorScreenPos() -> ImVec2  // cursor position in absolute coordinates (useful to work with ImDrawList API). generally top-left == GetMainViewport()->Pos == (0,0) in single viewport mode, and bottom-right == GetMainViewport()->Pos+Size == io.DisplaySize in single-viewport mode.
+    function SetCursorScreenPos(pos: const ImVec2&) -> void  // cursor position in absolute coordinates
+    function AlignTextToFramePadding() -> void  // vertically align upcoming text baseline to FramePadding.y so that it will align properly to regularly framed items (call if you have text on a line before a framed item)
+    function GetTextLineHeight() -> float  // ~ FontSize
+    function GetTextLineHeightWithSpacing() -> float  // ~ FontSize + style.ItemSpacing.y (distance in pixels between 2 consecutive lines of text)
+    function GetFrameHeight() -> float  // ~ FontSize + style.FramePadding.y * 2
+    function GetFrameHeightWithSpacing() -> float  // ~ FontSize + style.FramePadding.y * 2 + style.ItemSpacing.y (distance in pixels between 2 consecutive lines of framed widgets)
+
+    function BeginHorizontal(str_id: const char*, size: const ImVec2& = ImVec2(0, 0), align: float = -1.0f) -> void
+    function BeginHorizontal(ptr_id: const void*, size: const ImVec2& = ImVec2(0, 0), align: float = -1.0f) -> void
+    function BeginHorizontal(id: int, size: const ImVec2& = ImVec2(0, 0), align: float = -1) -> void
+    function EndHorizontal() -> void
+    function BeginVertical(str_id: const char*, size: const ImVec2& = ImVec2(0, 0), align: float = -1.0f) -> void
+    function BeginVertical(ptr_id: const void*, size: const ImVec2& = ImVec2(0, 0), align: float = -1.0f) -> void
+    function BeginVertical(id: int, size: const ImVec2& = ImVec2(0, 0), align: float = -1) -> void
+    function EndVertical() -> void
+    function Spring(weight: float = 1.0f, spacing: float = -1.0f) -> void
+    function SuspendLayout() -> void
+    function ResumeLayout() -> void
+
+    // ID stack/scopes
+    function PushID(str_id: const char*) -> void  // push string into the ID stack (will hash string).
+    function PushID(str_id_begin: const char*, str_id_end: const char*) -> void  // push string into the ID stack (will hash string).
+    function PushID(ptr_id: const void*) -> void  // push pointer into the ID stack (will hash pointer).
+    function PushID(int_id: int) -> void  // push integer into the ID stack (will hash integer).
+    function PopID() -> void  // pop from the ID stack.
+    function GetID(str_id: const char*) -> ImGuiID  // calculate unique ID (hash of whole ID stack + given parameter). e.g. if you want to query into ImGuiStorage yourself
+    function GetID(str_id_begin: const char*, str_id_end: const char*) -> ImGuiID
+    function GetID(ptr_id: const void*) -> ImGuiID
+
+    // Widgets: Text
+    function TextUnformatted(text: const char*, text_end: const char* = nullptr) -> void  // raw text without formatting. Roughly equivalent to Text("%s", text) but: A) doesn't require null terminated string if 'text_end' is specified, B) it's faster, no memory copy is done, no buffer size limits, recommended for long chunks of text.
+    function Text(fmt: const char*, args: ...) -> void  // formatted text
+    function TextV(fmt: const char*, args: va_list) -> void
+    function TextColored(col: const ImVec4&, fmt: const char*, args: ...) -> void  // shortcut for PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]); Text(fmt, ...); PopStyleColor();
+    function TextColoredV(col: const ImVec4&, fmt: const char*, args: va_list) -> void
+    function TextDisabled(fmt: const char*, args: ...) -> void  // shortcut for PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]); Text(fmt, ...); PopStyleColor();
+    function TextDisabledV(fmt: const char*, args: va_list) -> void
+    function TextWrapped(fmt: const char*, args: ...) -> void  // shortcut for PushTextWrapPos(0.0f); Text(fmt, ...); PopTextWrapPos();. Note that this won't work on an auto-resizing window if there's no other widgets to extend the window width, yoy may need to set a size using SetNextWindowSize().
+    function TextWrappedV(fmt: const char*, args: va_list) -> void
+    function LabelText(label: const char*, fmt: const char*, args: ...) -> void  // display text+label aligned the same way as value+label widgets
+    function LabelTextV(label: const char*, fmt: const char*, args: va_list) -> void
+    function BulletText(fmt: const char*, args: ...) -> void  // shortcut for Bullet()+Text()
+    function BulletTextV(fmt: const char*, args: va_list) -> void
+    function SeparatorText(label: const char*) -> void  // currently: formatted text with an horizontal line
+
+    // Widgets: Main
+    function Button(label: const char*, size: const ImVec2& = ImVec2(0, 0)) -> bool  // button
+    function SmallButton(label: const char*) -> bool  // button with FramePadding=(0,0) to easily embed within text
+    function InvisibleButton(str_id: const char*, size: const ImVec2&, flags: ImGuiButtonFlags = 0) -> bool  // flexible button behavior without the visuals, frequently useful to build custom behaviors using the public api (along with IsItemActive, IsItemHovered, etc.)
+    function ArrowButton(str_id: const char*, dir: ImGuiDir) -> bool  // square button with an arrow shape
+    function Checkbox(label: const char*, v: bool*) -> bool
+    function CheckboxFlags(label: const char*, flags: int*, flags_value: int) -> bool
+    function CheckboxFlags(label: const char*, flags: unsigned int*, flags_value: unsigned int) -> bool
+    function RadioButton(label: const char*, active: bool) -> bool  // use with e.g. if (RadioButton("one", my_value==1)) { my_value = 1; }
+    function RadioButton(label: const char*, v: int*, v_button: int) -> bool  // shortcut to handle the above pattern when value is an integer
+    function ProgressBar(fraction: float, size_arg: const ImVec2& = ImVec2(-FLT_MIN, 0), overlay: const char* = nullptr) -> void
+    function Bullet() -> void  // draw a small circle + keep the cursor on the same line. advance cursor x position by GetTreeNodeToLabelSpacing(), same distance that TreeNode() uses
+
+    // Widgets: Images
+    function Image(user_texture_id: ImTextureID, size: const ImVec2&, uv0: const ImVec2& = ImVec2(0, 0), uv1: const ImVec2& = ImVec2(1, 1), tint_col: const ImVec4& = ImVec4(1, 1, 1, 1), border_col: const ImVec4& = ImVec4(0, 0, 0, 0)) -> void
+    function ImageButton(str_id: const char*, user_texture_id: ImTextureID, size: const ImVec2&, uv0: const ImVec2& = ImVec2(0, 0), uv1: const ImVec2& = ImVec2(1, 1), bg_col: const ImVec4& = ImVec4(0, 0, 0, 0), tint_col: const ImVec4& = ImVec4(1, 1, 1, 1)) -> bool
+
+    // Widgets: Combo Box (Dropdown)
+    function BeginCombo(label: const char*, preview_value: const char*, flags: ImGuiComboFlags = 0) -> bool
+    function EndCombo() -> void  // only call EndCombo() if BeginCombo() returns true!
+    function Combo(label: const char*, current_item: int*, items: const char* const[], items_count: int, popup_max_height_in_items: int = -1) -> bool
+    function Combo(label: const char*, current_item: int*, items_separated_by_zeros: const char*, popup_max_height_in_items: int = -1) -> bool  // Separate items with \0 within a string, end item-list with \0\0. e.g. "One\0Two\0Three\0"
+    function Combo(label: const char*, current_item: int*, items_getter: bool(*)(void* data, int idx, const char** out_text), data: void*, items_count: int, popup_max_height_in_items: int = -1) -> bool
+
+    // Widgets: Drag Sliders
+    function DragFloat(label: const char*, v: float*, v_speed: float = 1.0f, v_min: float = 0.0f, v_max: float = 0.0f, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool  // If v_min >= v_max we have no bound
+    function DragFloat2(label: const char*, v: float[2], v_speed: float = 1.0f, v_min: float = 0.0f, v_max: float = 0.0f, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function DragFloat3(label: const char*, v: float[3], v_speed: float = 1.0f, v_min: float = 0.0f, v_max: float = 0.0f, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function DragFloat4(label: const char*, v: float[4], v_speed: float = 1.0f, v_min: float = 0.0f, v_max: float = 0.0f, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function DragFloatRange2(label: const char*, v_current_min: float*, v_current_max: float*, v_speed: float = 1.0f, v_min: float = 0.0f, v_max: float = 0.0f, format: const char* = "%.3f", format_max: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+    function DragInt(label: const char*, v: int*, v_speed: float = 1.0f, v_min: int = 0, v_max: int = 0, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool  // If v_min >= v_max we have no bound
+    function DragInt2(label: const char*, v: int[2], v_speed: float = 1.0f, v_min: int = 0, v_max: int = 0, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function DragInt3(label: const char*, v: int[3], v_speed: float = 1.0f, v_min: int = 0, v_max: int = 0, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function DragInt4(label: const char*, v: int[4], v_speed: float = 1.0f, v_min: int = 0, v_max: int = 0, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function DragIntRange2(label: const char*, v_current_min: int*, v_current_max: int*, v_speed: float = 1.0f, v_min: int = 0, v_max: int = 0, format: const char* = "%d", format_max: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+    function DragScalar(label: const char*, data_type: ImGuiDataType, p_data: void*, v_speed: float = 1.0f, p_min: const void* = nullptr, p_max: const void* = nullptr, format: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+    function DragScalarN(label: const char*, data_type: ImGuiDataType, p_data: void*, components: int, v_speed: float = 1.0f, p_min: const void* = nullptr, p_max: const void* = nullptr, format: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+
+    // Widgets: Regular Sliders
+    function SliderFloat(label: const char*, v: float*, v_min: float, v_max: float, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool  // adjust format to decorate the value with a prefix or a suffix for in-slider labels or unit display.
+    function SliderFloat2(label: const char*, v: float[2], v_min: float, v_max: float, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderFloat3(label: const char*, v: float[3], v_min: float, v_max: float, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderFloat4(label: const char*, v: float[4], v_min: float, v_max: float, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderAngle(label: const char*, v_rad: float*, v_degrees_min: float = -360.0f, v_degrees_max: float = +360.0f, format: const char* = "%.0f deg", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderInt(label: const char*, v: int*, v_min: int, v_max: int, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderInt2(label: const char*, v: int[2], v_min: int, v_max: int, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderInt3(label: const char*, v: int[3], v_min: int, v_max: int, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderInt4(label: const char*, v: int[4], v_min: int, v_max: int, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function SliderScalar(label: const char*, data_type: ImGuiDataType, p_data: void*, p_min: const void*, p_max: const void*, format: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+    function SliderScalarN(label: const char*, data_type: ImGuiDataType, p_data: void*, components: int, p_min: const void*, p_max: const void*, format: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+    function VSliderFloat(label: const char*, size: const ImVec2&, v: float*, v_min: float, v_max: float, format: const char* = "%.3f", flags: ImGuiSliderFlags = 0) -> bool
+    function VSliderInt(label: const char*, size: const ImVec2&, v: int*, v_min: int, v_max: int, format: const char* = "%d", flags: ImGuiSliderFlags = 0) -> bool
+    function VSliderScalar(label: const char*, size: const ImVec2&, data_type: ImGuiDataType, p_data: void*, p_min: const void*, p_max: const void*, format: const char* = nullptr, flags: ImGuiSliderFlags = 0) -> bool
+
+    // Widgets: Input with Keyboard
+    function InputText(label: const char*, buf: char*, buf_size: size_t, flags: ImGuiInputTextFlags = 0, callback: ImGuiInputTextCallback = nullptr, user_data: void* = nullptr) -> bool
+    function InputTextMultiline(label: const char*, buf: char*, buf_size: size_t, size: const ImVec2& = ImVec2(0, 0), flags: ImGuiInputTextFlags = 0, callback: ImGuiInputTextCallback = nullptr, user_data: void* = nullptr) -> bool
+    function InputTextWithHint(label: const char*, hint: const char*, buf: char*, buf_size: size_t, flags: ImGuiInputTextFlags = 0, callback: ImGuiInputTextCallback = nullptr, user_data: void* = nullptr) -> bool
+    function InputFloat(label: const char*, v: float*, step: float = 0.0f, step_fast: float = 0.0f, format: const char* = "%.3f", flags: ImGuiInputTextFlags = 0) -> bool
+    function InputFloat2(label: const char*, v: float[2], format: const char* = "%.3f", flags: ImGuiInputTextFlags = 0) -> bool
+    function InputFloat3(label: const char*, v: float[3], format: const char* = "%.3f", flags: ImGuiInputTextFlags = 0) -> bool
+    function InputFloat4(label: const char*, v: float[4], format: const char* = "%.3f", flags: ImGuiInputTextFlags = 0) -> bool
+    function InputInt(label: const char*, v: int*, step: int = 1, step_fast: int = 100, flags: ImGuiInputTextFlags = 0) -> bool
+    function InputInt2(label: const char*, v: int[2], flags: ImGuiInputTextFlags = 0) -> bool
+    function InputInt3(label: const char*, v: int[3], flags: ImGuiInputTextFlags = 0) -> bool
+    function InputInt4(label: const char*, v: int[4], flags: ImGuiInputTextFlags = 0) -> bool
+    function InputDouble(label: const char*, v: double*, step: double = 0.0, step_fast: double = 0.0, format: const char* = "%.6f", flags: ImGuiInputTextFlags = 0) -> bool
+    function InputScalar(label: const char*, data_type: ImGuiDataType, p_data: void*, p_step: const void* = nullptr, p_step_fast: const void* = nullptr, format: const char* = nullptr, flags: ImGuiInputTextFlags = 0) -> bool
+    function InputScalarN(label: const char*, data_type: ImGuiDataType, p_data: void*, components: int, p_step: const void* = nullptr, p_step_fast: const void* = nullptr, format: const char* = nullptr, flags: ImGuiInputTextFlags = 0) -> bool
+
+    // Widgets: Color Editor/Picker
+    function ColorEdit3(label: const char*, col: float[3], flags: ImGuiColorEditFlags = 0) -> bool
+    function ColorEdit4(label: const char*, col: float[4], flags: ImGuiColorEditFlags = 0) -> bool
+    function ColorPicker3(label: const char*, col: float[3], flags: ImGuiColorEditFlags = 0) -> bool
+    function ColorPicker4(label: const char*, col: float[4], flags: ImGuiColorEditFlags = 0, ref_col: const float* = nullptr) -> bool
+    function ColorButton(desc_id: const char*, col: const ImVec4&, flags: ImGuiColorEditFlags = 0, size: const ImVec2& = ImVec2(0, 0)) -> bool  // display a color square/button, hover for details, return true when pressed.
+    function SetColorEditOptions(flags: ImGuiColorEditFlags) -> void  // initialize current options (generally on application startup) if you want to select a default format, picker type, etc. User will be able to change many settings, unless you pass the _NoOptions flag to your calls.
+
+    // Widgets: Trees
+    function TreeNode(label: const char*) -> bool
+    function TreeNode(str_id: const char*, fmt: const char*, args: ...) -> bool  // helper variation to easily decorelate the id from the displayed string. Read the FAQ about why and how to use ID. to align arbitrary text at the same level as a TreeNode() you can use Bullet().
+    function TreeNode(ptr_id: const void*, fmt: const char*, args: ...) -> bool  // "
+    function TreeNodeV(str_id: const char*, fmt: const char*, args: va_list) -> bool
+    function TreeNodeV(ptr_id: const void*, fmt: const char*, args: va_list) -> bool
+    function TreeNodeEx(label: const char*, flags: ImGuiTreeNodeFlags = 0) -> bool
+    function TreeNodeEx(str_id: const char*, flags: ImGuiTreeNodeFlags, fmt: const char*, args: ...) -> bool
+    function TreeNodeEx(ptr_id: const void*, flags: ImGuiTreeNodeFlags, fmt: const char*, args: ...) -> bool
+    function TreeNodeExV(str_id: const char*, flags: ImGuiTreeNodeFlags, fmt: const char*, args: va_list) -> bool
+    function TreeNodeExV(ptr_id: const void*, flags: ImGuiTreeNodeFlags, fmt: const char*, args: va_list) -> bool
+    function TreePush(str_id: const char*) -> void  // ~ Indent()+PushId(). Already called by TreeNode() when returning true, but you can call TreePush/TreePop yourself if desired.
+    function TreePush(ptr_id: const void*) -> void  // "
+    function TreePop() -> void  // ~ Unindent()+PopId()
+    function GetTreeNodeToLabelSpacing() -> float  // horizontal distance preceding label when using TreeNode*() or Bullet() == (g.FontSize + style.FramePadding.x*2) for a regular unframed TreeNode
+    function CollapsingHeader(label: const char*, flags: ImGuiTreeNodeFlags = 0) -> bool  // if returning 'true' the header is open. doesn't indent nor push on ID stack. user doesn't have to call TreePop().
+    function CollapsingHeader(label: const char*, p_visible: bool*, flags: ImGuiTreeNodeFlags = 0) -> bool  // when 'p_visible != NULL': if '*p_visible==true' display an additional small close button on upper right of the header which will set the bool to false when clicked, if '*p_visible==false' don't display the header.
+    function SetNextItemOpen(is_open: bool, cond: ImGuiCond = 0) -> void  // set next TreeNode/CollapsingHeader open state.
+
+    // Widgets: Selectables
+    function Selectable(label: const char*, selected: bool = false, flags: ImGuiSelectableFlags = 0, size: const ImVec2& = ImVec2(0, 0)) -> bool  // "bool selected" carry the selection state (read-only). Selectable() is clicked is returns true so you can modify your selection state. size.x==0.0: use remaining width, size.x>0.0: specify width. size.y==0.0: use label height, size.y>0.0: specify height
+    function Selectable(label: const char*, p_selected: bool*, flags: ImGuiSelectableFlags = 0, size: const ImVec2& = ImVec2(0, 0)) -> bool  // "bool* p_selected" point to the selection state (read-write), as a convenient helper.
+
+    // Widgets: List Boxes
+    function BeginListBox(label: const char*, size: const ImVec2& = ImVec2(0, 0)) -> bool  // open a framed scrolling region
+    function EndListBox() -> void  // only call EndListBox() if BeginListBox() returned true!
+    function ListBox(label: const char*, current_item: int*, items: const char* const[], items_count: int, height_in_items: int = -1) -> bool
+    function ListBox(label: const char*, current_item: int*, items_getter: bool(*)(void* data, int idx, const char** out_text), data: void*, items_count: int, height_in_items: int = -1) -> bool
+
+    // Widgets: Data Plotting
+    function PlotLines(label: const char*, values: const float*, values_count: int, values_offset: int = 0, overlay_text: const char* = nullptr, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: ImVec2 = ImVec2(0, 0), stride: int = sizeof(float)) -> void
+    function PlotLines(label: const char*, values_getter: float(*)(void* data, int idx), data: void*, values_count: int, values_offset: int = 0, overlay_text: const char* = nullptr, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: ImVec2 = ImVec2(0, 0)) -> void
+    function PlotHistogram(label: const char*, values: const float*, values_count: int, values_offset: int = 0, overlay_text: const char* = nullptr, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: ImVec2 = ImVec2(0, 0), stride: int = sizeof(float)) -> void
+    function PlotHistogram(label: const char*, values_getter: float(*)(void* data, int idx), data: void*, values_count: int, values_offset: int = 0, overlay_text: const char* = nullptr, scale_min: float = FLT_MAX, scale_max: float = FLT_MAX, graph_size: ImVec2 = ImVec2(0, 0)) -> void
+
+    // Widgets: Value() Helpers
+    function Value(prefix: const char*, b: bool) -> void
+    function Value(prefix: const char*, v: int) -> void
+    function Value(prefix: const char*, v: unsigned int) -> void
+    function Value(prefix: const char*, v: float, float_format: const char* = nullptr) -> void
+
+    // Widgets: Menus
+    function BeginMenuBar() -> bool  // append to menu-bar of current window (requires ImGuiWindowFlags_MenuBar flag set on parent window).
+    function EndMenuBar() -> void  // only call EndMenuBar() if BeginMenuBar() returns true!
+    function BeginMainMenuBar() -> bool  // create and append to a full screen menu-bar.
+    function EndMainMenuBar() -> void  // only call EndMainMenuBar() if BeginMainMenuBar() returns true!
+    function BeginMenu(label: const char*, enabled: bool = true) -> bool  // create a sub-menu entry. only call EndMenu() if this returns true!
+    function EndMenu() -> void  // only call EndMenu() if BeginMenu() returns true!
+    function MenuItem(label: const char*, shortcut: const char* = nullptr, selected: bool = false, enabled: bool = true) -> bool  // return true when activated. shortcuts are displayed as a convenience but are not processed by ImGui at the moment.
+    function MenuItem(label: const char*, shortcut: const char*, p_selected: bool*, enabled: bool = true) -> bool  // return true when activated + toggle (*p_selected) if p_selected != nullptr
+
+    // Tooltips
+    function BeginTooltip() -> bool  // begin/append a tooltip window. to create full-featured tooltip (with any kind of items).
+    function EndTooltip() -> void  // only call EndTooltip() if BeginTooltip() returns true!
+    function SetTooltip(fmt: const char*, args: ...) -> void  // set a text-only tooltip, typically use with ImGui::IsItemHovered(). override any previous call to SetTooltip().
+    function SetTooltipV(fmt: const char*, args: va_list) -> void
+
+    // Popups, Modals
+    function BeginPopup(str_id: const char*, flags: ImGuiWindowFlags = 0) -> bool  // return true if the popup is open, and you can start outputting to it.
+    function BeginPopupModal(name: const char*, p_open: bool* = nullptr, flags: ImGuiWindowFlags = 0) -> bool  // return true if the modal is open, and you can start outputting to it.
+    function EndPopup() -> void  // only call EndPopup() if BeginPopupXXX() returns true!
+
+    // Popups: open/close functions
+    function OpenPopup(str_id: const char*, popup_flags: ImGuiPopupFlags = 0) -> void  // call to mark popup as open (don't call every frame!).
+    function OpenPopup(id: ImGuiID, popup_flags: ImGuiPopupFlags = 0) -> void  // id overload to facilitate calling from nested stacks
+    function OpenPopupOnItemClick(str_id: const char* = nullptr, popup_flags: ImGuiPopupFlags = 1) -> void  // helper to open popup when clicked on last item. Default to ImGuiPopupFlags_MouseButtonRight == 1. (note: actually triggers on the mouse _released_ event to be consistent with popup behaviors)
+    function CloseCurrentPopup() -> void  // manually close the popup we have begin-ed into.
+
+    // Popups: open+begin combined functions helpers
+    function BeginPopupContextItem(str_id: const char* = nullptr, popup_flags: ImGuiPopupFlags = 1) -> bool  // open+begin popup when clicked on last item. Use str_id==nullptr to associate the popup to previous item. If you want to use that on a non-interactive item such as Text() you need to pass in an explicit ID here. read comments in .cpp!
+    function BeginPopupContextWindow(str_id: const char* = nullptr, popup_flags: ImGuiPopupFlags = 1) -> bool  // open+begin popup when clicked on current window.
+    function BeginPopupContextVoid(str_id: const char* = nullptr, popup_flags: ImGuiPopupFlags = 1) -> bool  // open+begin popup when clicked in void (where there are no windows).
+
+    // Popups: query functions
+    function IsPopupOpen(str_id: const char*, flags: ImGuiPopupFlags = 0) -> bool  // return true if the popup is open at the current BeginPopup() level of the popup stack.
+
+    // Tables
+    function BeginTable(str_id: const char*, column: int, flags: ImGuiTableFlags = 0, outer_size: const ImVec2& = ImVec2(0.0f, 0.0f), inner_width: float = 0.0f) -> bool
+    function EndTable() -> void  // only call EndTable() if BeginTable() returns true!
+    function TableNextRow(row_flags: ImGuiTableRowFlags = 0, min_row_height: float = 0.0f) -> void  // append into the first cell of a new row.
+    function TableNextColumn() -> bool  // append into the next column (or first column of next row if currently in last column). Return true when column is visible.
+    function TableSetColumnIndex(column_n: int) -> bool  // append into the specified column. Return true when column is visible.
+
+    // Tables: Headers & Columns declaration
+    function TableSetupColumn(label: const char*, flags: ImGuiTableColumnFlags = 0, init_width_or_weight: float = 0.0f, user_id: ImGuiID = 0) -> void
+    function TableSetupScrollFreeze(cols: int, rows: int) -> void  // lock columns/rows so they stay visible when scrolled.
+    function TableHeadersRow() -> void  // submit all headers cells based on data provided to TableSetupColumn() + submit context menu
+    function TableHeader(label: const char*) -> void  // submit one header cell manually (rarely used)
+
+    // Tables: Sorting & Miscellaneous functions
+    function TableGetSortSpecs() -> ImGuiTableSortSpecs*  // get latest sort specs for the table (nullptr if not sorting).  Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable().
+    function TableGetColumnCount() -> int  // return number of columns (value passed to BeginTable)
+    function TableGetColumnIndex() -> int  // return current column index.
+    function TableGetRowIndex() -> int  // return current row index.
+    function TableGetColumnName(column_n: int = -1) -> const char*  // return "" if column didn't have a name declared by TableSetupColumn(). Pass -1 to use current column.
+    function TableGetColumnFlags(column_n: int = -1) -> ImGuiTableColumnFlags  // return column flags so you can query their Enabled/Visible/Sorted/Hovered status flags. Pass -1 to use current column.
+    function TableSetColumnEnabled(column_n: int, v: bool) -> void  // change user accessible enabled/disabled state of a column. Set to false to hide the column. User can use the context menu to change this themselves (right-click in headers, or right-click in columns body with ImGuiTableFlags_ContextMenuInBody)
+    function TableSetBgColor(target: ImGuiTableBgTarget, color: ImU32, column_n: int = -1) -> void  // change the color of a cell, row, or column. See ImGuiTableBgTarget_ flags for details.
+
+    // Legacy Columns API (prefer using Tables!)
+    function Columns(count: int = 1, id: const char* = nullptr, border: bool = true) -> void
+    function NextColumn() -> void  // next column, defaults to current row or next row if the current row is finished
+    function GetColumnIndex() -> int  // get current column index
+    function GetColumnWidth(column_index: int = -1) -> float  // get column width (in pixels). pass -1 to use current column
+    function SetColumnWidth(column_index: int, width: float) -> void  // set column width (in pixels). pass -1 to use current column
+    function GetColumnOffset(column_index: int = -1) -> float  // get position of column line (in pixels, from the left side of the contents region). pass -1 to use current column, otherwise 0..GetColumnsCount() inclusive. column 0 is typically 0.0f
+    function SetColumnOffset(column_index: int, offset_x: float) -> void  // set position of column line (in pixels, from the left side of the contents region). pass -1 to use current column
+    function GetColumnsCount() -> int
+
+    // Tab Bars, Tabs
+    function BeginTabBar(str_id: const char*, flags: ImGuiTabBarFlags = 0) -> bool  // create and append to a TabBar
+    function EndTabBar() -> void  // only call EndTabBar() if BeginTabBar() returns true!
+    function BeginTabItem(label: const char*, p_open: bool* = nullptr, flags: ImGuiTabItemFlags = 0) -> bool  // create a Tab. Returns true if the Tab is selected.
+    function EndTabItem() -> void  // only call EndTabItem() if BeginTabItem() returns true!
+    function TabItemButton(label: const char*, flags: ImGuiTabItemFlags = 0) -> bool  // create a Tab behaving like a button. return true when clicked. cannot be selected in the tab bar.
+    function SetTabItemClosed(tab_or_docked_window_label: const char*) -> void  // notify TabBar or Docking system of a closed tab/window ahead (useful to reduce visual flicker on reorderable tab bars). For tab-bar: call after BeginTabBar() and before Tab submissions. Otherwise call with a window name.
+
+    // Logging/Capture
+    function LogToTTY(auto_open_depth: int = -1) -> void  // start logging to tty (stdout)
+    function LogToFile(auto_open_depth: int = -1, filename: const char* = nullptr) -> void  // start logging to file
+    function LogToClipboard(auto_open_depth: int = -1) -> void  // start logging to OS clipboard
+    function LogFinish() -> void  // stop logging (close file, etc.)
+    function LogButtons() -> void  // helper to display buttons for logging to tty/file/clipboard
+    function LogText(fmt: const char*, args: ...) -> void  // pass text data straight to log (without being displayed)
+
+    // Drag and Drop
+    function BeginDragDropSource(flags: ImGuiDragDropFlags = 0) -> bool  // call after submitting an item which may be dragged. when this return true, you can call SetDragDropPayload() + EndDragDropSource()
+    function SetDragDropPayload(type: const char*, data: const void*, sz: size_t, cond: ImGuiCond = 0) -> bool  // type is a user defined string of maximum 32 characters. Strings starting with '_' are reserved for dear imgui internal types. Data is copied and held by imgui. Return true when payload has been accepted.
+    function EndDragDropSource() -> void  // only call EndDragDropSource() if BeginDragDropSource() returns true!
+    function BeginDragDropTarget() -> bool  // call after submitting an item that may receive a payload. If this returns true, you can call AcceptDragDropPayload() + EndDragDropTarget()
+    function AcceptDragDropPayload(type: const char*, flags: ImGuiDragDropFlags = 0) -> const ImGuiPayload*  // accept contents of a given type. If ImGuiDragDropFlags_AcceptBeforeDelivery is set you can peek into the payload before the mouse button is released.
+    function EndDragDropTarget() -> void  // only call EndDragDropTarget() if BeginDragDropTarget() returns true!
+    function GetDragDropPayload() -> const ImGuiPayload*  // peek directly into the current payload from anywhere. may return nullptr. use ImGuiPayload::IsDataType() to test for the payload type.
+
+    // Disabling [BETA API]
+    function BeginDisabled(disabled: bool = true) -> void
+    function EndDisabled() -> void
+
+    // Clipping
+    function PushClipRect(clip_rect_min: const ImVec2&, clip_rect_max: const ImVec2&, intersect_with_current_clip_rect: bool) -> void
+    function PopClipRect() -> void
+
+    // Focus, Activation
+    function SetItemDefaultFocus() -> void  // make last item the default focused item of a window.
+    function SetKeyboardFocusHere(offset: int = 0) -> void  // focus keyboard on the next widget. Use positive 'offset' to access sub components of a multiple component widget. Use -1 to access previous widget.
+
+    // Item/Widgets Utilities and Query Functions
+    function IsItemHovered(flags: ImGuiHoveredFlags = 0) -> bool  // is the last item hovered? (and usable, aka not blocked by a popup, etc.). See ImGuiHoveredFlags for more options.
+    function IsItemActive() -> bool  // is the last item active? (e.g. button being held, text field being edited. This will continuously return true while holding mouse button on an item. Items that don't interact will always return false)
+    function IsItemFocused() -> bool  // is the last item focused for keyboard/gamepad navigation?
+    function IsItemClicked(mouse_button: ImGuiMouseButton = 0) -> bool  // is the last item hovered and mouse clicked on? (**)  == IsMouseClicked(mouse_button) && IsItemHovered()Important. (**) this is NOT equivalent to the behavior of e.g. Button(). Read comments in function definition.
+    function IsItemVisible() -> bool  // is the last item visible? (items may be out of sight because of clipping/scrolling)
+    function IsItemEdited() -> bool  // did the last item modify its underlying value this frame? or was pressed? This is generally the same as the "bool" return value of many widgets.
+    function IsItemActivated() -> bool  // was the last item just made active (item was previously inactive).
+    function IsItemDeactivated() -> bool  // was the last item just made inactive (item was previously active). Useful for Undo/Redo patterns with widgets that require continuous editing.
+    function IsItemDeactivatedAfterEdit() -> bool  // was the last item just made inactive and made a value change when it was active? (e.g. Slider/Drag moved). Useful for Undo/Redo patterns with widgets that require continuous editing. Note that you may get false positives (some widgets such as Combo()/ListBox()/Selectable() will return true even when clicking an already selected item).
+    function IsItemToggledOpen() -> bool  // was the last item open state toggled? set by TreeNode().
+    function IsAnyItemHovered() -> bool  // is any item hovered?
+    function IsAnyItemActive() -> bool  // is any item active?
+    function IsAnyItemFocused() -> bool  // is any item focused?
+    function GetItemID() -> ImGuiID  // get ID of last item (~~ often same ImGui::GetID(label) beforehand)
+    function GetItemRectMin() -> ImVec2  // get upper-left bounding rectangle of the last item (screen space)
+    function GetItemRectMax() -> ImVec2  // get lower-right bounding rectangle of the last item (screen space)
+    function GetItemRectSize() -> ImVec2  // get size of last item
+    function SetItemAllowOverlap() -> void  // allow last item to be overlapped by a subsequent item. sometimes useful with invisible buttons, selectables, etc. to catch unused area.
+
+    // Viewports
+    function GetMainViewport() -> ImGuiViewport*  // return primary/default viewport. This can never be nullptr.
+
+    // Background/Foreground Draw Lists
+    function GetBackgroundDrawList() -> ImDrawList*  // get background draw list for the viewport associated to the current window. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
+    function GetForegroundDrawList() -> ImDrawList*  // get foreground draw list for the viewport associated to the current window. this draw list will be the last rendered one. Useful to quickly draw shapes/text over dear imgui contents.
+    function GetBackgroundDrawList(viewport: ImGuiViewport*) -> ImDrawList*  // get background draw list for the given viewport. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
+    function GetForegroundDrawList(viewport: ImGuiViewport*) -> ImDrawList*  // get foreground draw list for the given viewport. this draw list will be the last rendered one. Useful to quickly draw shapes/text over dear imgui contents.
+
+    // Miscellaneous Utilities
+    function IsRectVisible(size: const ImVec2&) -> bool  // test if rectangle (of given size, starting from cursor position) is visible / not clipped.
+    function IsRectVisible(rect_min: const ImVec2&, rect_max: const ImVec2&) -> bool  // test if rectangle (in screen space) is visible / not clipped. to perform coarse clipping on user's side.
+    function GetTime() -> double  // get global imgui time. incremented by io.DeltaTime every frame.
+    function GetFrameCount() -> int  // get global imgui frame count. incremented by 1 every frame.
+    function GetDrawListSharedData() -> ImDrawListSharedData*  // you may use this when creating your own ImDrawList instances.
+    function GetStyleColorName(idx: ImGuiCol) -> const char*  // get a string corresponding to the enum value (for display, saving, etc.).
+    function SetStateStorage(storage: ImGuiStorage*) -> void  // replace current window storage with our own (if you want to manipulate it yourself, typically clear subsection of it)
+    function GetStateStorage() -> ImGuiStorage*
+    function BeginChildFrame(id: ImGuiID, size: const ImVec2&, flags: ImGuiWindowFlags = 0) -> bool  // helper to create a child window / scrolling region that looks like a normal widget frame
+    function EndChildFrame() -> void  // always call EndChildFrame() regardless of BeginChildFrame() return values (which indicates a collapsed/clipped window)
+
+    // Text Utilities
+    function CalcTextSize(text: const char*, text_end: const char* = nullptr, hide_text_after_double_hash: bool = false, wrap_width: float = -1.0f) -> ImVec2
+
+    // Color Utilities
+    function ColorConvertU32ToFloat4(in: ImU32) -> ImVec4
+    function ColorConvertFloat4ToU32(in: const ImVec4&) -> ImU32
+    function ColorConvertRGBtoHSV(r: float, g: float, b: float, out_h: float&, out_s: float&, out_v: float&) -> void
+    function ColorConvertHSVtoRGB(h: float, s: float, v: float, out_r: float&, out_g: float&, out_b: float&) -> void
+
+    // Inputs Utilities: Keyboard/Mouse/Gamepad
+    function IsKeyDown(key: ImGuiKey) -> bool  // is key being held.
+    function IsKeyPressed(key: ImGuiKey, repeat: bool = true) -> bool  // was key pressed (went from !Down to Down)? if repeat=true, uses io.KeyRepeatDelay / KeyRepeatRate
+    function IsKeyReleased(key: ImGuiKey) -> bool  // was key released (went from Down to !Down)?
+    function GetKeyPressedAmount(key: ImGuiKey, repeat_delay: float, rate: float) -> int  // uses provided repeat rate/delay. return a count, most often 0 or 1 but might be >1 if RepeatRate is small enough that DeltaTime > RepeatRate
+    function GetKeyName(key: ImGuiKey) -> const char*  // [DEBUG] returns English name of the key. Those names a provided for debugging purpose and are not meant to be saved persistently not compared.
+    function SetNextFrameWantCaptureKeyboard(want_capture_keyboard: bool) -> void  // Override io.WantCaptureKeyboard flag next frame (said flag is left for your application to handle, typically when true it instructs your app to ignore inputs). e.g. force capture keyboard when your widget is being hovered. This is equivalent to setting "io.WantCaptureKeyboard = want_capture_keyboard"; after the next NewFrame() call.
+
+    // Inputs Utilities: Mouse specific
+    function IsMouseDown(button: ImGuiMouseButton) -> bool  // is mouse button held?
+    function IsMouseClicked(button: ImGuiMouseButton, repeat: bool = false) -> bool  // did mouse button clicked? (went from !Down to Down). Same as GetMouseClickedCount() == 1.
+    function IsMouseReleased(button: ImGuiMouseButton) -> bool  // did mouse button released? (went from Down to !Down)
+    function IsMouseDoubleClicked(button: ImGuiMouseButton) -> bool  // did mouse button double-clicked? Same as GetMouseClickedCount() == 2. (note that a double-click will also report IsMouseClicked() == true)
+    function GetMouseClickedCount(button: ImGuiMouseButton) -> int  // return the number of successive mouse-clicks at the time where a click happen (otherwise 0).
+    function IsMouseHoveringRect(r_min: const ImVec2&, r_max: const ImVec2&, clip: bool = true) -> bool  // is mouse hovering given bounding rect (in screen space). clipped by current clipping settings, but disregarding of other consideration of focus/window ordering/popup-block.
+    function IsMousePosValid(mouse_pos: const ImVec2* = nullptr) -> bool  // by convention we use (-FLT_MAX,-FLT_MAX) to denote that there is no mouse available
+    function GetMousePos() -> ImVec2  // shortcut to ImGui::GetIO().MousePos provided by user, to be consistent with other calls
+    function GetMousePosOnOpeningCurrentPopup() -> ImVec2  // retrieve mouse position at the time of opening popup we have BeginPopup() into (helper to avoid user backing that value themselves)
+    function IsMouseDragging(button: ImGuiMouseButton, lock_threshold: float = -1.0f) -> bool  // is mouse dragging? (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
+    function GetMouseDragDelta(button: ImGuiMouseButton = 0, lock_threshold: float = -1.0f) -> ImVec2  // return the delta from the initial clicking position while the mouse button is pressed or was just released. This is locked and return 0.0f until the mouse moves past a distance threshold at least once (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
+    function ResetMouseDragDelta(button: ImGuiMouseButton = 0) -> void  //
+    function GetMouseCursor() -> ImGuiMouseCursor  // get desired mouse cursor shape. Important: reset in ImGui::NewFrame(), this is updated during the frame. valid before Render(). If you use software rendering by setting io.MouseDrawCursor ImGui will render those for you
+    function SetMouseCursor(cursor_type: ImGuiMouseCursor) -> void  // set desired mouse cursor shape
+    function SetNextFrameWantCaptureMouse(want_capture_mouse: bool) -> void  // Override io.WantCaptureMouse flag next frame (said flag is left for your application to handle, typically when true it instucts your app to ignore inputs). This is equivalent to setting "io.WantCaptureMouse = want_capture_mouse;" after the next NewFrame() call.
+
+    // Clipboard Utilities
+    function GetClipboardText() -> const char*
+    function SetClipboardText(text: const char*) -> void
+
+    // Settings/.Ini Utilities
+    function LoadIniSettingsFromDisk(ini_filename: const char*) -> void  // call after CreateContext() and before the first call to NewFrame(). NewFrame() automatically calls LoadIniSettingsFromDisk(io.IniFilename).
+    function LoadIniSettingsFromMemory(ini_data: const char*, ini_size: size_t = 0) -> void  // call after CreateContext() and before the first call to NewFrame() to provide .ini data from your own data source.
+    function SaveIniSettingsToDisk(ini_filename: const char*) -> void  // this is automatically called (if io.IniFilename is not empty) a few seconds after any modification that should be reflected in the .ini file (and also by DestroyContext).
+    function SaveIniSettingsToMemory(out_ini_size: size_t* = nullptr) -> const char*  // return a zero-terminated string with the .ini data which you can save by your own mean. call when io.WantSaveIniSettings is set, then save data by your own mean and clear io.WantSaveIniSettings.
+
+    // Memory Allocators
+    function SetAllocatorFunctions(alloc_func: ImGuiMemAllocFunc, free_func: ImGuiMemFreeFunc, user_data: void* = nullptr) -> void
+    function GetAllocatorFunctions(p_alloc_func: ImGuiMemAllocFunc*, p_free_func: ImGuiMemFreeFunc*, p_user_data: void**) -> void
+    function MemAlloc(size: size_t) -> void*
+    function MemFree(ptr: void*) -> void
+
+    // (Optional) Platform/OS interface for multi-viewport support
+    function GetPlatformIO() -> ImGuiPlatformIO&  // platform/renderer functions, for backend to setup + viewports list.
+    function UpdatePlatformWindows() -> void  // call in main loop. will call CreateWindow/ResizeWindow/etc. platform functions for each secondary viewport, and DestroyWindow for each inactive viewport.
+    function RenderPlatformWindowsDefault(platform_render_arg: void* = nullptr, renderer_render_arg: void* = nullptr) -> void  // call in main loop. will call RenderWindow/SwapBuffers platform functions for each secondary viewport which doesn't have the ImGuiViewportFlags_Minimized flag set. May be reimplemented by user for custom rendering needs.
+    function DestroyPlatformWindows() -> void  // call DestroyWindow platform functions for all viewports. call from backend Shutdown() if you need to close platform windows before imgui shutdown. otherwise will be called by DestroyContext().
+    function FindViewportByID(id: ImGuiID) -> ImGuiViewport*  // this is a helper for backends.
+    function FindViewportByPlatformHandle(platform_handle: void*) -> ImGuiViewport*  // this is a helper for backends. the type platform_handle is decided by the backend (e.g. HWND, MyWindow*, GLFWwindow* etc.)
+
+namespace_end  // ImGui

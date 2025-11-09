@@ -317,7 +317,7 @@ AtomTypeCls CoreEffectPipe::GetAtomType() {
 }
 
 LinkTypeCls CoreEffectPipe::GetLinkType() {
-	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
+	return LINKTYPE(PIPE, PROCESS);
 }
 
 void CoreEffectPipe::Visit(Vis& v) {
@@ -351,7 +351,7 @@ AtomTypeCls CoreEffectAtom::GetAtomType() {
 }
 
 LinkTypeCls CoreEffectAtom::GetLinkType() {
-	return LINKTYPE(PIPE_OPTSIDE, PROCESS);
+	return LINKTYPE(PIPE, PROCESS);
 }
 
 void CoreEffectAtom::Visit(Vis& v) {

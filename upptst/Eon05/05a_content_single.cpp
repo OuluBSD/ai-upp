@@ -26,7 +26,7 @@ void Run05aContentSingle(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05aContentSingle: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05a_content_single.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05a_content_single.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05aContentSingle: unknown method %d", method));

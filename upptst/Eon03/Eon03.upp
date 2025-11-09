@@ -2,6 +2,7 @@ uses
 	Shell;
 
 file
+	AGENTS.md,
 	Main.cpp,
 	Eon03.h,
 	03a_x11_video.cpp,
@@ -17,23 +18,9 @@ file
 	03k_x11_video_sw3d_stereo.cpp,
 	03l_x11_video_ogl_stereo.cpp,
 	03m_x11_video_ogl_pbr.cpp,
-	03n_win32_video.cpp,
-	03a_x11_video.eon,
-	03b_glx_video.eon,
-	03c_audio_file.eon,
-	03d_audio_file_2.eon,
-	03e_x11_video_sw3d.eon,
-	03f_x11_video_ogl.eon,
-	03g_x11_video_sw3d_linked.eon,
-	03h_x11_video_ogl_linked.eon,
-	03i_x11_video_sw3d_bufferstages.eon,
-	03j_x11_video_ogl_bufferstages.eon,
-	03k_x11_video_sw3d_stereo.eon,
-	03l_x11_video_ogl_stereo.eon,
-	03m_x11_video_ogl_pbr.eon,
-	03n_win32_video.eon;
+	03n_win32_video.cpp;
 
 mainconfig
-	"Release" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI X11 OGL",
-	"Debug" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI X11 OGL DEBUG_RT";
+	"Release" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI X11 OGL ASSIMP FFMPEG",
+	"Debug" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI X11 OGL ASSIMP FFMPEG DEBUG_RT";
 

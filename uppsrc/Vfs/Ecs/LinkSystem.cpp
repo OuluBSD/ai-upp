@@ -191,7 +191,8 @@ String LinkSystem::GetDebugPacketString(LinkBasePtr& c, RealtimeSourceConfig* cf
 			int c = sink_iface->GetSinkCount();
 			for(int i = 0; i < c; i++) {
 				if (i) line << "+";
-				line << sink_iface->GetValue(i).GetQueueSize();
+				const ValueBase& val = sink_iface->GetValue(i);
+				line << val.GetQueueSize() << "(" << val.GetMinPackets() << ")";
 			}
 			
 			line << "__";
@@ -200,7 +201,8 @@ String LinkSystem::GetDebugPacketString(LinkBasePtr& c, RealtimeSourceConfig* cf
 			c = src_iface->GetSourceCount();
 			for(int i = 0; i < c; i++) {
 				if (i) line << "+";
-				line << src_iface->GetSourceValue(i).GetQueueSize();
+				const ValueBase& val = src_iface->GetSourceValue(i);
+				line << val.GetQueueSize() << "(" << val.GetMinPackets() << ")";
 			}
 			
 		}

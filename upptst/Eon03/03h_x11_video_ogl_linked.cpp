@@ -34,7 +34,7 @@ void Run03hX11VideoOglLinked(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03hX11VideoOglLinked: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03h_x11_video_ogl_linked.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03h_x11_video_ogl_linked.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03hX11VideoOglLinked: unknown method %d", method));

@@ -326,7 +326,7 @@ protected:
 protected:
 	friend class Eon::ScriptStateLoader;
 	
-	VfsValue*	ResolveLoop(Eon::Id& id);
+	VfsValue*	ResolveLoop(Eon::Id& id, VfsValue** space_out = nullptr);
 	
 	
 public:

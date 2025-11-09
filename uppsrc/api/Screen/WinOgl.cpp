@@ -138,7 +138,7 @@ LRESULT CALLBACK WinOgl_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 }
 
 bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-    auto ctx_ = a.val.FindOwnerWithCast<WinOglContext>();
+    auto ctx_ = a.val.FindOwnerWithCastDeep<WinOglContext>();
     if (!ctx_) {
         LOG("error: could not find WinOgl context");
         return false;
@@ -246,7 +246,7 @@ bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
         int attribs[] = {
             WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
             WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-            WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+            // Removed WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB to allow deprecated functions
             0
         };
         

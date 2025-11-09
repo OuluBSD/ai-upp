@@ -16,7 +16,50 @@ struct FxAudioCore::NativeEffect {
     ArrayMap<int, Packet> last_audio_side_in;
     Vector<float> buffer;
     float buffer_time;
+    Vector<float> resample_buffer;
+    Vector<Vector<float>> resample_side_buffers;
 };
+
+namespace {
+
+void ResampleLinearInterleaved(const float* src, int src_frames, float* dst, int dst_frames, int channel_count) {
+	if (dst_frames <= 0 || channel_count <= 0) {
+		return;
+	}
+	if (src_frames <= 0) {
+		int total = dst_frames * channel_count;
+		for (int i = 0; i < total; ++i)
+			dst[i] = 0.f;
+		return;
+	}
+	if (src_frames == dst_frames) {
+		memcpy(dst, src, sizeof(float) * dst_frames * channel_count);
+		return;
+	}
+	if (dst_frames == 1) {
+		for (int ch = 0; ch < channel_count; ++ch)
+			dst[ch] = src[ch];
+		return;
+	}
+	double step = (double)(src_frames - 1) / (double)(dst_frames - 1);
+	double pos = 0.0;
+	for (int i = 0; i < dst_frames; i++) {
+		int idx0 = (int)pos;
+		int idx1 = min(idx0 + 1, src_frames - 1);
+		double frac = pos - idx0;
+		const float* s0 = src + idx0 * channel_count;
+		const float* s1 = src + idx1 * channel_count;
+		float* d = dst + i * channel_count;
+		for (int ch = 0; ch < channel_count; ++ch) {
+			float val0 = s0[ch];
+			float val1 = s1[ch];
+			d[ch] = val0 + (float)((val1 - val0) * frac);
+		}
+		pos += step;
+	}
+}
+
+} // namespace
 
 
 
@@ -201,10 +244,12 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			AudioFormat& in_afmt = in_fmt;
 			int in_sr = in_afmt.GetSampleRate();
 			const Vector<byte>& in = dev.last_audio_in->Data();
-			const float* in_f = (const float*)(const byte*)in.Begin();
-			
-			// TODO handle different sample rate in source and packet
-			ASSERT_(sr == in_sr, "TODO sample rate support");
+			const float* in_ptr = (const float*)(const byte*)in.Begin();
+			if (in_sr != sr) {
+				dev.resample_buffer.SetCount(sr * ch);
+				ResampleLinearInterleaved(in_ptr, in_sr, dev.resample_buffer.Begin(), sr, ch);
+				in_ptr = dev.resample_buffer.Begin();
+			}
 			
 			int samples = sr * ch;
 			dev.buffer.SetCount(samples, 0);
@@ -215,7 +260,7 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			
 			for(int i = 0; i < sr; i++) {
 				for(int j = 0; j < ch; j++) {
-					float iv = *in_f++;
+					float iv = *in_ptr++;
 					float ov = fx.Tick(iv, j);
 					*f++ = ov;
 				}
@@ -238,15 +283,34 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			AudioFormat& in_afmt = in_fmt;
 			int in_sr = in_afmt.GetSampleRate();
 			const Vector<byte>& in = dev.last_audio_in->Data();
-			const float* in_f = (const float*)(const byte*)in.Begin();
+			const float* in_ptr = (const float*)(const byte*)in.Begin();
+			if (in_sr != sr) {
+				dev.resample_buffer.SetCount(sr * ch);
+				ResampleLinearInterleaved(in_ptr, in_sr, dev.resample_buffer.Begin(), sr, ch);
+				in_ptr = dev.resample_buffer.Begin();
+			}
 			
 			
 			const float* side_in_f[16];
 			const int side_c = min(16,dev.last_audio_side_in.GetCount());
+			dev.resample_side_buffers.SetCount(side_c);
 			for(int i = 0; i < side_c; i++) {
 				Packet& side_p = dev.last_audio_side_in[i];
+				ValueFormat side_fmt = side_p->GetFormat();
+				AudioFormat& side_afmt = side_fmt;
+				int side_sr = side_afmt.GetSampleRate();
+				ASSERT(side_afmt.GetSize() == ch);
 				const Vector<byte>& side_in = side_p->Data();
-				side_in_f[i] = (const float*)(const byte*)side_in.Begin();
+				const float* side_ptr = (const float*)(const byte*)side_in.Begin();
+				if (side_sr != sr) {
+					Vector<float>& buf = dev.resample_side_buffers[i];
+					buf.SetCount(sr * ch);
+					ResampleLinearInterleaved(side_ptr, side_sr, buf.Begin(), sr, ch);
+					side_in_f[i] = buf.Begin();
+				}
+				else {
+					side_in_f[i] = side_ptr;
+				}
 			}
 			
 			dev.buffer.SetCount(afmt.GetSampleRate() * afmt.GetSize(), 0);
@@ -257,7 +321,7 @@ void FxAudioCore::Effect_Finalize(NativeEffect& dev, AtomBase& a, RealtimeSource
 			
 			for(int i = 0; i < sr; i++) {
 				for(int j = 0; j < ch; j++) {
-					float iv = *in_f++;
+					float iv = *in_ptr++;
 					float siv = 0;
 					for(int k = 0; k < side_c; k++)
 						siv += *side_in_f[k]++;
@@ -287,4 +351,3 @@ bool FxAudioCore::Effect_IsReady(NativeEffect& dev, AtomBase& a, PacketIO& io) {
 
 END_UPP_NAMESPACE
 #endif
-

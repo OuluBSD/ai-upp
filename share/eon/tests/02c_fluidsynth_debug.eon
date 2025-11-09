@@ -1,0 +1,21 @@
+machine midi.app:
+	
+	chain program:
+		
+		loop event:
+			center.customer
+			midi.file.reader[][loop == "input"]:
+				filepath = "midi/saturday_show.mid"
+				close_machine = true
+		
+		loop input:
+			center.customer
+			fluidsynth.pipe[loop == "event"]:
+				verbose = false
+				debug_sound_output = "pattern64"
+				debug_print = true
+				debug_sound_seed = 0
+			center.audio.sink.hw:
+				debug_sound_output = "pattern64"
+				debug_print = true
+				debug_sound_seed = 0

@@ -67,23 +67,8 @@
 **Goal**: Implement ShaderToy package that uses the enhanced GraphLib node editor to create and manipulate shader pipelines
 **Features to implement**: Complete shader pipeline editor with node-based editing, texture handling, rendering pipeline, STTF import/export, and shader toy compatibility
 
-#### Phase 1: Core Pipeline Editor Components
-- [x] Create Pipeline Editor Structure
-  - [x] Implement main PipelineEditor class based on shadertoy NodeEditor
-  - [x] Create EditorNode base class and derived node types (EditorShader, EditorTexture, EditorCubeMap, etc.)
-  - [x] Implement pin connections and link management for shader pipelines
-- [x] Node Types Implementation
-  - [x] EditorShader node with GLSL code editor
-  - [x] EditorTexture node for texture inputs
-  - [x] EditorCubeMap node for cubemap textures
-  - [x] EditorVolume node for 3D textures
-  - [x] EditorKeyboard node for keyboard input
-  - [x] EditorRenderOutput node for pipeline output
-  - [x] EditorLastFrame node for frame feedback
-- [x] Pin and Connection System
-  - [x] Implement specialized pin types for shader connections (UV coordinates, channels, etc.)
-  - [x] Create connection validation logic for shader graph
-  - [x] Implement link creation/deletion workflow specific to shader pipelines
+#### Phase 1: Core Pipeline Editor Components - COMPLETED
+**Status**: All Phase 1 tasks completed - see DONE section below
 
 #### Phase 2: Rendering and Pipeline System
 - [ ] Backend Implementation
@@ -683,6 +668,24 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [ ] Ensure compatibility with existing U++/Eon architecture
 - [ ] Write comprehensive tests for GameLib and GameEngine packages
 - [ ] Document API design and usage patterns for game development
+
+### ShaderToy Phase 1: Core Pipeline Editor Components
+- [x] Create Pipeline Editor Structure
+  - [x] Implement main PipelineEditor class based on shadertoy NodeEditor
+  - [x] Create EditorNode base class and derived node types (EditorShader, EditorTexture, EditorCubeMap, etc.)
+  - [x] Implement pin connections and link management for shader pipelines
+- [x] Node Types Implementation
+  - [x] EditorShader node with GLSL code editor
+  - [x] EditorTexture node for texture inputs
+  - [x] EditorCubeMap node for cubemap textures
+  - [x] EditorVolume node for 3D textures
+  - [x] EditorKeyboard node for keyboard input
+  - [x] EditorRenderOutput node for pipeline output
+  - [x] EditorLastFrame node for frame feedback
+- [x] Pin and Connection System
+  - [x] Implement specialized pin types for shader connections (UV coordinates, channels, etc.)
+  - [x] Create connection validation logic for shader graph
+  - [x] Implement link creation/deletion workflow specific to shader pipelines
 
 ### THREAD: Build and Test Node Editor
 **Goal**: Create and maintain build script for GraphLib Node Editor with proper testing before committing changes

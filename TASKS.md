@@ -68,22 +68,22 @@
 **Features to implement**: Complete shader pipeline editor with node-based editing, texture handling, rendering pipeline, STTF import/export, and shader toy compatibility
 
 #### Phase 1: Core Pipeline Editor Components
-- [ ] Create Pipeline Editor Structure
-  - [ ] Implement main PipelineEditor class based on shadertoy NodeEditor
-  - [ ] Create EditorNode base class and derived node types (EditorShader, EditorTexture, EditorCubeMap, etc.)
-  - [ ] Implement pin connections and link management for shader pipelines
-- [ ] Node Types Implementation
-  - [ ] EditorShader node with GLSL code editor
-  - [ ] EditorTexture node for texture inputs
-  - [ ] EditorCubeMap node for cubemap textures
-  - [ ] EditorVolume node for 3D textures
-  - [ ] EditorKeyboard node for keyboard input
-  - [ ] EditorRenderOutput node for pipeline output
-  - [ ] EditorLastFrame node for frame feedback
-- [ ] Pin and Connection System
-  - [ ] Implement specialized pin types for shader connections (UV coordinates, channels, etc.)
-  - [ ] Create connection validation logic for shader graph
-  - [ ] Implement link creation/deletion workflow specific to shader pipelines
+- [x] Create Pipeline Editor Structure
+  - [x] Implement main PipelineEditor class based on shadertoy NodeEditor
+  - [x] Create EditorNode base class and derived node types (EditorShader, EditorTexture, EditorCubeMap, etc.)
+  - [x] Implement pin connections and link management for shader pipelines
+- [x] Node Types Implementation
+  - [x] EditorShader node with GLSL code editor
+  - [x] EditorTexture node for texture inputs
+  - [x] EditorCubeMap node for cubemap textures
+  - [x] EditorVolume node for 3D textures
+  - [x] EditorKeyboard node for keyboard input
+  - [x] EditorRenderOutput node for pipeline output
+  - [x] EditorLastFrame node for frame feedback
+- [x] Pin and Connection System
+  - [x] Implement specialized pin types for shader connections (UV coordinates, channels, etc.)
+  - [x] Create connection validation logic for shader graph
+  - [x] Implement link creation/deletion workflow specific to shader pipelines
 
 #### Phase 2: Rendering and Pipeline System
 - [ ] Backend Implementation

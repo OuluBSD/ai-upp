@@ -5,8 +5,7 @@ machine sdl.app:
 	
 	chain program:
 		
-		loop center.image:
-			id = "image"
+		loop image:
 			center.customer
 			center.image.loader[][id == "texture"]: vflip = true, filepath = "uk_street.jpg"
 		
@@ -14,18 +13,15 @@ machine sdl.app:
 			ogl.customer
 			ogl.fbo.image[id == "image"][id == "screen"]
 		
-		loop ogl.fbo.buffer2:
-			id = "buffer2"
+		loop buffer2:
 			ogl.customer
 			ogl.fbo.source[][id == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage2.glsl"
 		
-		loop ogl.fbo.buffer1:
-			id = "buffer1"
+		loop buffer1:
 			ogl.customer
 			ogl.fbo.source[][id == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage1.glsl"
 		
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
 			sdl.fbo[id == "buffer2", id == "buffer1", id == "texture"]:
 				filepath = "shaders/toys/simple/simple_future_buffer/stage0.glsl"

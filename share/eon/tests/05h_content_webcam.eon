@@ -4,8 +4,7 @@ machine sdl.app:
 		sdl.context
 	
 	chain program:
-		loop center.webcam:
-			id = "cam"
+		loop cam:
 			center.customer
 			center.video.webcam[][id == "texture"]:
 				vflip = "true"
@@ -14,8 +13,7 @@ machine sdl.app:
 			ogl.customer
 			sdl.ogl.fbo.image[id == "cam"][id == "screen"]
 		
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
 			sdl.fbo[id == "texture"]:
 				shader.frag.path = "shaders/toys/simple/simple_webcam/stage0.glsl"

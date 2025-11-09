@@ -34,7 +34,5 @@ machine sdl.app:
 			center.customer
 			center.audio.src.dbg_generator:
 				waveform = "noise"
-			sdl.audio.context[id == "context"]
+			sdl.audio
 
-	driver audio:
-		sdl.context

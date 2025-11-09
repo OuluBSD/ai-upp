@@ -1,5 +1,10 @@
 #include "Audio.h"
 #include <Sound/Sound.h>
+#include "DebugAudioPattern.h"
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <cmath>
 
 #if !defined flagSYS_PORTAUDIO || defined flagPORTAUDIO
 NAMESPACE_UPP
@@ -56,6 +61,9 @@ ValueFormat ConvertPortaudioFormat(PortaudioFormat pa_fmt) {
 	return fmt;
 }
 
+struct PortaudioCallbackData;
+static bool ValidateDebugAudioBuffer(PortaudioCallbackData& cb, byte* output, unsigned long frames);
+
 struct PortaudioTimeInfo {
 	double			input_adc;
 	double			current;
@@ -93,6 +101,13 @@ struct PortaudioCallbackData {
 	PaStream*							dev = 0;
 	AtomBase*							atom = 0;
 	ValueFormat							fmt;
+	bool								debug_sound_enabled = false;
+	String								debug_sound_output;
+	int									debug_sound_seed = 0;
+	uint64								debug_frame_cursor = 0;
+	bool								debug_preview_logged = false;
+	bool								debug_mismatch_logged = false;
+	bool								debug_print_enabled = false;
 	
 	void Set(PaStream* d, AtomBase* atom, ValueFormat fmt,
 	         Callback1<void*> whenfinish, void* userdata) {
@@ -101,6 +116,19 @@ struct PortaudioCallbackData {
 	    dev = d;
 	    finish = whenfinish;
 	    data = userdata;
+	    debug_sound_enabled = false;
+	    debug_sound_output.Clear();
+	    debug_sound_seed = 0;
+	    debug_frame_cursor = 0;
+	    debug_preview_logged = false;
+	    debug_mismatch_logged = false;
+	    debug_print_enabled = false;
+	    if (auto* sink = dynamic_cast<PortaudioSinkDevice*>(atom)) {
+	    	debug_sound_enabled = sink->IsDebugSoundEnabled();
+	    	debug_sound_output = sink->GetDebugSoundOutput();
+	    	debug_sound_seed = sink->GetDebugSoundSeed();
+	    	debug_print_enabled = sink->IsDebugPrintEnabled();
+	    }
 	}
 	
 	void SinkCallback(PortaudioCallbackArgs& args) {
@@ -115,12 +143,16 @@ struct PortaudioCallbackData {
 		
 		AudioFormat& afmt = fmt;
 		int size = fmt.GetFrameSize();
-		if (!Serial_Link_ForwardAsyncMem(atom->GetLink(), (byte*)args.output, size)) {
+		byte* out = static_cast<byte*>(args.output);
+		if (!Serial_Link_ForwardAsyncMem(atom->GetLink(), out, size)) {
 			RTLOG("PortaudioCallbackData::SinkCallback: reading memory failed");
 			memset(args.output, 0, size);
 		}
 		else {
-			int i = 0;
+			if (debug_sound_enabled) {
+				ValidateDebugAudioBuffer(*this, out, args.fpb);
+				memset(out, 0, size); // mute hardware output while keeping debug validation
+			}
 		}
 		
 		#ifdef flagDEBUG
@@ -129,6 +161,92 @@ struct PortaudioCallbackData {
 	}
 	
 };
+
+static float PortaudioDebugExtractSample(const byte* data, int sample_bytes, bool is_float, bool is_signed) {
+	if (is_float) {
+		if (sample_bytes == (int)sizeof(float)) {
+			float value;
+			memcpy(&value, data, sizeof(float));
+			return value;
+		}
+		if (sample_bytes == (int)sizeof(double)) {
+			double value;
+			memcpy(&value, data, sizeof(double));
+			return (float)value;
+		}
+	}
+	if (is_signed) {
+		switch (sample_bytes) {
+		case 1: return (float)*(const int8*)data / 127.f;
+		case 2: return (float)*(const int16*)data / 32767.f;
+		case 3: {
+			int32 raw = (int32)data[0] | ((int32)data[1] << 8) | ((int32)(int8)data[2] << 16);
+			return (float)raw / 8388607.f;
+		}
+		case 4: return (float)*(const int32*)data / 2147483647.f;
+		default: break;
+		}
+	}
+	else {
+		switch (sample_bytes) {
+		case 1: return ((float)*(const uint8*)data / 255.f) * 2.f - 1.f;
+		case 2: {
+			int32 raw = (int32)*(const uint16*)data;
+			return ((float)raw / 65535.f) * 2.f - 1.f;
+		}
+		default: break;
+		}
+	}
+	return 0.f;
+}
+
+static bool ValidateDebugAudioBuffer(PortaudioCallbackData& cb, byte* output, unsigned long frames) {
+	const AudioFormat& afmt = cb.fmt;
+	int channels = afmt.res[0];
+	if (channels <= 0)
+		channels = 1;
+	int sample_bytes = afmt.GetSampleSize();
+	bool is_float = afmt.IsSampleFloat();
+	bool is_signed = afmt.IsSampleSigned();
+	double tolerance = 0.02;
+	byte* cursor = output;
+	for (unsigned long frame = 0; frame < frames; ++frame) {
+		for (int ch = 0; ch < channels; ++ch) {
+			float actual = PortaudioDebugExtractSample(cursor, sample_bytes, is_float, is_signed);
+			float expected = DebugAudioPatternValue(cb.debug_frame_cursor + frame, ch, cb.debug_sound_seed);
+			if (!cb.debug_mismatch_logged && fabsf(actual - expected) > tolerance) {
+				int64 idx = (int64)(cb.debug_frame_cursor + frame);
+				String msg = Format("PortaudioSink debug mismatch (mode '%s'): frame %lld, channel %d -> %.5f (expected %.5f)",
+				                    cb.debug_sound_output, (long long)idx, ch, actual, expected);
+				LOG(msg);
+				if (cb.debug_print_enabled)
+					Cout() << msg << '\n';
+				cb.debug_mismatch_logged = true;
+			}
+			cursor += sample_bytes;
+		}
+	}
+	if (!cb.debug_preview_logged && frames > 0) {
+		int preview_frames = min<int>((int)frames, 3);
+		String msg;
+		const byte* preview_ptr = output;
+		for (int frame = 0; frame < preview_frames; ++frame) {
+			msg.Cat(Format(" frame%02d:", frame));
+			for (int ch = 0; ch < channels; ++ch) {
+				const byte* sample_ptr = preview_ptr + (frame * channels + ch) * sample_bytes;
+				float val = PortaudioDebugExtractSample(sample_ptr, sample_bytes, is_float, is_signed);
+				msg.Cat(Format(" ch%d=%.3f", ch, val));
+			}
+		}
+		String full = "PortaudioSink debug input preview ->" + msg;
+		LOG(full);
+		if (cb.debug_print_enabled)
+			Cout() << full << '\n';
+		cb.debug_preview_logged = true;
+	}
+	cb.debug_frame_cursor += frames;
+	return true;
+}
 
 extern "C"{
 	//this is a C callable function, to wrap U++ Callback into PaStreamCallback
@@ -215,6 +333,8 @@ bool PortaudioStatic::exists = false;
 #if (!defined flagSYS_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
 struct AudPortaudio::NativeSinkDevice {
 	PaStream* p;
+	bool started;
+	NativeSinkDevice() : p(nullptr), started(false) {}
 };
 
 struct AudPortaudio::NativeSourceDevice {
@@ -240,13 +360,14 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 	// Housekeeping vars
 	PaError err = paNoError;
 	dev = 0;
+	dev_.started = false;
 	
 	// Audio format
 	PortaudioFormat pa_fmt;
 	pa_fmt.freq = 44100;
 	pa_fmt.sample_rate = 128;
 	pa_fmt.channels = 2;
-	pa_fmt.fmt = SND_INT16;
+	pa_fmt.fmt = SND_FLOAT32;
 	int in_channels = 0;
 	
 	// Adjust sink format
@@ -290,11 +411,23 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 }
 
 bool AudPortaudio::SinkDevice_PostInitialize(NativeSinkDevice& dev, AtomBase& a) {
+	InterfaceSinkPtr sink_iface = a.GetSink();
+	if (sink_iface && sink_iface->GetSinkCount() > 0) {
+		ValueBase& sink_val = sink_iface->GetValue(0);
+		String msg = Format("AudPortaudio::SinkDevice_PostInitialize: input queue min=%d max=%d current=%d", sink_val.GetMinPackets(), sink_val.GetMaxPackets(), sink_val.GetQueueSize());
+		LOG(msg);
+		if (auto* sink = dynamic_cast<PortaudioSinkDevice*>(&a)) {
+			if (sink->IsDebugPrintEnabled())
+				Cout() << msg << '\n';
+		}
+	}
 	return true;
 }
 
 bool AudPortaudio::SinkDevice_Start(NativeSinkDevice& dev, AtomBase&) {
 	PaError err = paNoError;
+	if (!dev.p || dev.started)
+		return false;
 	
 	err = Pa_StartStream(dev.p);
 	CHECK_ERR;
@@ -302,22 +435,31 @@ bool AudPortaudio::SinkDevice_Start(NativeSinkDevice& dev, AtomBase&) {
 		return false;
 	
 	ASSERT(!Pa_IsStreamStopped(dev.p));
+	dev.started = true;
 	return true;
 }
 
 void AudPortaudio::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase&) {
+	if (!dev.p || !dev.started)
+		return;
 	PaError err = paNoError;
 	err = Pa_StopStream(dev.p);
 	CHECK_ERR;
+	if (err == paNoError)
+		dev.started = false;
 }
 
 void AudPortaudio::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase&) {
+	if (!dev.p)
+		return;
 	PaError err = paNoError;
 	
 	err = Pa_CloseStream(dev.p);
 	CHECK_ERR;
 	
 	PortaudioStatic::Single().Remove(dev.p);
+	dev.p = nullptr;
+	dev.started = false;
 }
 
 bool AudPortaudio::SinkDevice_Send(NativeSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
@@ -373,4 +515,3 @@ bool AudPortaudio::SourceDevice_Send(NativeSourceDevice& dev, AtomBase&, Realtim
 
 END_UPP_NAMESPACE
 #endif
-

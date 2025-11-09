@@ -2,10 +2,10 @@
 
 Plot::Plot():
 	mode(PLOT_AA),
-	bgcol(0xffffff,0),
-	framecol(0xffffff,0),
-	fontcol(0x0,0),
-	axiscol(0x0,0),
+	bgcol(Color(255, 255, 255)),
+	framecol(Color(255, 255, 255)),
+	fontcol(Color(0, 0, 0)),
+	axiscol(Color(0, 0, 0)),
 	margin(10)
 {
 	f=StdFont();

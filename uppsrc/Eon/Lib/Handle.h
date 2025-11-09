@@ -35,8 +35,9 @@ class HandleVideoBase :
 	public Atom
 {
 	struct Binder;
+	struct HandleVideoBasePimpl; // Forward declaration for pimpl
 	
-	Array<Binder> binders;
+	One<HandleVideoBasePimpl> pimpl; // PIMPL to manage binders where complete type is known
 	HandleVideoBase* active = 0;
 	
 	String					target;
@@ -64,6 +65,7 @@ class HandleVideoBase :
 public:
 	CLASSTYPE(HandleVideoBase)
 	HandleVideoBase(VfsValue& n);
+	~HandleVideoBase(); // Explicit destructor to be defined in .cpp where complete types are known
 	
 	bool			IsScreenMode() const {return screen_id >= 0;}
 	

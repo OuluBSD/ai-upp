@@ -57,7 +57,7 @@ void Run05fContentFutureBuffer(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05fContentFutureBuffer: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05f_content_future_buffer.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05f_content_future_buffer.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05fContentFutureBuffer: unknown method %d", method));

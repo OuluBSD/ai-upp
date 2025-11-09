@@ -26,7 +26,7 @@ void Run03bGlxVideo(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03bGlxVideo: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03b_glx_video.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03b_glx_video.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03bGlxVideo: unknown method %d", method));

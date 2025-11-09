@@ -188,7 +188,10 @@ public:
 	};
 
 public:
-	ValueFormat() {memset(data, 0, sizeof(data));}
+	ValueFormat() {
+		vd.Clear();
+		memset(data, 0, sizeof(data));
+	}
 	ValueFormat(const ValueFormat& f) : vd(f.vd) {memcpy(data, f.data, sizeof(data));}
 
 	String	ToString() const;

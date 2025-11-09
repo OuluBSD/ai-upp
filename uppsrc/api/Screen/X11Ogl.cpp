@@ -104,7 +104,7 @@ void ScrX11Ogl::SinkDevice_Visit(NativeSinkDevice& dev, AtomBase&, Visitor& v) {
 }
 
 bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ctx_ = a.val.FindOwnerWithCast<X11OglContext>();
+	auto ctx_ = a.val.FindOwnerWithCastDeep<X11OglContext>();
 	if (!ctx_) { LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
@@ -223,6 +223,9 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		return false;
 	}
 	
+	// Store the visual info in the context for proper cleanup
+	ctx.visual_info = visual;
+	
 	if (screen_num != visual->screen) {
 		LOG("ScrX11Ogl::SinkDevice_Initialize: error: screen_num(" << screen_num << ") does not match visual->screen(" << visual->screen << ").");
 		XCloseDisplay(display);
@@ -288,11 +291,11 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 			None
 		};
 		#else
-		// opengl 4.2
+		// opengl 4.2 - use compatibility profile to allow deprecated functions
 		int context_attribs[] = {
 			GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
 			GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
 			None
 		};
 		#endif
@@ -454,18 +457,41 @@ void ScrX11Ogl::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	
 	//XkbFreeKeyboard(ctx.xkb, XkbAllComponentsMask, True);
 
-	glXDestroyContext(ctx.display, dev.gl_ctx);
-	XFree(ctx.visual_info);
-	XFreeColormap(ctx.display, ctx.attr.colormap);
-	XDestroyWindow(ctx.display, ctx.win);
+	// Only destroy the context if it's valid
+	if (dev.gl_ctx && ctx.display) {
+		// Make sure we're not using the context before destroying it
+		glXMakeCurrent(ctx.display, None, NULL);
+		glXDestroyContext(ctx.display, dev.gl_ctx);
+		dev.gl_ctx = 0; // Set to NULL to avoid double destruction
+	}
+	
+	// Free the visual info that was allocated during initialization
+	if (ctx.visual_info) {
+		XFree(ctx.visual_info);
+		ctx.visual_info = nullptr;
+	}
+	
+	// Only free colormap if it's valid
+	if (ctx.display && ctx.attr.colormap) {
+		XFreeColormap(ctx.display, ctx.attr.colormap);
+		ctx.attr.colormap = 0;
+	}
+	
+	// Only destroy window if it's valid
+	if (ctx.display && ctx.win) {
+		XDestroyWindow(ctx.display, ctx.win);
+		ctx.win = 0;
+	}
 
-	if (ctx.running) {
+	if (ctx.running && ctx.display) {
 		// flush all pending requests to the X server.
 		XFlush(ctx.display);
 		
 		// close the connection to the X server.
 		XCloseDisplay(ctx.display);
+		ctx.display = nullptr;
 	}
+	ctx.running = false; // Mark context as no longer running
 }
 
 bool ScrX11Ogl::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {

@@ -172,7 +172,7 @@ void Run03aX11Video(Engine& eng, int method) {
 		break;
 	}
 	case 0:
-		sys->PostLoadFile(GetDataFile("03a_x11_video.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03a_x11_video.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03aX11Video: unknown method %d", method));

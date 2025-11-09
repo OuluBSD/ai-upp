@@ -28,7 +28,12 @@ void Run01aEventState(Engine& eng, int method) {
 
 		// Handle state event.register first (from chain program section)
 		{
-			Val& state_loop = eng.GetRootLoop().GetAdd("event", 0).GetAdd("register", 0);
+			Val& event_loop = eng.GetRootLoop().GetAdd("event", 0);
+			Val& event_space = eng.GetRootSpace().GetAdd("event", 0);
+			EnvState& env_state = event_loop.GetAdd<EnvState>("register");
+			event_space.GetAdd("register", 0);
+			//env_state.SetName("event/register");
+			Val& state_loop = env_state.val;
 			ChainContext cc_state;
 			Vector<ChainContext::AtomSpec> state_atoms;
 			ChainContext::AtomSpec& a = state_atoms.Add();
@@ -82,11 +87,11 @@ void Run01aEventState(Engine& eng, int method) {
 			if (ChainContext::ResolveAction(a.action, atom, link))
 				a.iface.Realize(atom);
 		}
-		// state.event.pipe with target=event.register and dbg_limit=100
+		// state.event.pipe with target=event/register and dbg_limit=100
 		{
 			ChainContext::AtomSpec& a = atoms.Add();
 			a.action = "state.event.pipe";
-			a.args.GetAdd("target") = "event.register";
+			a.args.GetAdd("target") = "event/register";
 			a.args.GetAdd("dbg_limit") = 100;
 			AtomTypeCls atom; LinkTypeCls link;
 			if (ChainContext::ResolveAction(a.action, atom, link))
@@ -121,7 +126,7 @@ void Run01aEventState(Engine& eng, int method) {
 		auto& a0 = loop.AddAtom("center.customer");
 		auto& a1 = loop.AddAtom("event.src.test.pipe");
 		auto& a2 = loop.AddAtom("state.event.pipe");
-		a2.Assign("target", "event.register");
+		a2.Assign("target", "event/register");
 		a2.Assign("dbg_limit", 100);
 
 		Eon::AstNode* root = 0;
@@ -138,7 +143,7 @@ void Run01aEventState(Engine& eng, int method) {
 		break;
 	}
 	case 0:
-		sys->PostLoadFile(GetDataFile("01a_event_state.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/01a_event_state.eon"));
 		break;
 	default:
 		throw Exc(Format("Run01aEventState: unknown method %d", method));

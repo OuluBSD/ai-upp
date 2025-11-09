@@ -10,7 +10,8 @@ uses
 	plugin/jpg,
 	PtyProcess,
 	RichText,
-	Intranet;
+	Intranet,
+	Terminal;
 
 file
 	AGENTS.md,
@@ -21,6 +22,8 @@ file
 	DropTerm.key,
 	DropTerm.icpp,
 	DropTerm.t,
+	InternalShell.h,
+	InternalShell.cpp,
 	Word.h,
 	Word.cpp,
 	Copying;

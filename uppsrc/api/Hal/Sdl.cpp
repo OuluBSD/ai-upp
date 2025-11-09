@@ -197,27 +197,26 @@ void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visito
 }
 
 bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
-	
+
 	if (!ev_ctx->AttachContext(a))
 		return false;
-	
+
 	if (!a.val.GetPath().IsValid()) {
 		RLOG(MetaEnv().root.GetTreeString());
 		RLOG(a.val.GetPath().ToString());
 		Panic("internal error");
 		return false;
 	}
-	
+
 	// Set init flag
 	dword sdl_flag = SDL_INIT_AUDIO;
-	ValueFS vfs(ev_ctx->UserData());
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
-	
+
 	return true;
 }
 
@@ -364,27 +363,29 @@ bool HalSdl::ContextBase_Initialize(NativeContextBase& ctx, AtomBase& a, const W
 
 bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 	RTLOG("HalSdl::ContextBase_PostInitialize");
-	
+
 	// SDL
 	uint32 sdl_flags = 0;
-	ValueFS data(a.UserData());
-	auto map = data("dependencies");
-	map->RealizeMap();
-	for(int i = 0; i < map->GetCount(); i++) {
-		Value atom_path_val = map->GetKey(i);
+	ValueMap deps(a.UserData()("dependencies"));
+	for(int i = 0; i < deps.GetCount(); i++) {
+		String atom_path_str = deps.GetKey(i);
 		VfsPath atom_path;
-		atom_path.Set(atom_path_val);
+		atom_path.Set(atom_path_str);
 		AtomBase* atom = MetaEnv().root.FindPath<AtomBase>(atom_path);
 		ASSERT(atom);
 		if (!atom) {
-			LOG("HalSdl::ContextBase_PostInitialize: error: AtomBase not found in the path: " + atom_path);
+			LOG("HalSdl::ContextBase_PostInitialize: error: AtomBase not found in the path: " + atom_path.ToString());
 			return false;
 		}
 		AtomBase& other = *atom;
-		uint32 flag = (uint32)(int64)map->Open(i)->Get("sdl_flag");
+		ValueMap atom_data(deps(atom_path_str));
+		uint32 flag = (uint32)(int64)atom_data("sdl_flag");
 		sdl_flags |= flag;
 	}
-	
+
+	// Disable compositor bypass to keep X11 composition effects working
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+
 	if (SDL_Init(sdl_flags) < 0) {
 		String last_error = SDL_GetError();
 		LOG("SDL2::Context: error: " << last_error);
@@ -464,7 +465,7 @@ void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomB
 }
 
 bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 
@@ -487,12 +488,11 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	a.UserData() = data;
 
 	//dev.render_src = RENDSRC_BUF;
-	
+
 	// Set init flag
-	ValueFS vfs(a.UserData());
 	dword sdl_flag = SDL_INIT_VIDEO;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	return true;
 }
 
@@ -522,15 +522,13 @@ bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& d
     
     
     // Renderer
-    int fb_stride = 4;
-    SDL_Texture* fb = SDL_CreateTexture(dev.rend, SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING, screen_sz.cx, screen_sz.cy);
+    int fb_stride = 3;
+    SDL_Texture* fb = SDL_CreateTexture(dev.rend, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, screen_sz.cx, screen_sz.cy);
 	
 	if (!fb) {
 		LOG("error: couldn't create framebuffer texture");
 		return false;
 	}
-
-	SDL_SetRenderTarget(dev.rend, fb);
 
 	auto& rend_fb = dev.fb;
 	rend_fb.Init(fb, screen_sz.cx, screen_sz.cy, fb_stride);
@@ -707,6 +705,8 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 }
 
 void HalSdl::CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg) {
+	SDL_SetRenderTarget(dev.rend, NULL); // Set render target to window
+	SDL_RenderClear(dev.rend);
 	SDL_RenderCopy(dev.rend, dev.fb.GetActiveColorBuffer(), NULL, NULL);
 	SDL_RenderPresent(dev.rend);
 }
@@ -752,11 +752,11 @@ void HalSdl::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice& dev, AtomBase&
 }
 
 bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	
+
 	if (!dev.accel.Initialize(a, ws))
 		return false;
-	
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -777,12 +777,11 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	data("maximized") = maximized;
 	data("title") = title;
 	a.UserData() = data;
-	
+
 	// Set init flag
-	ValueFS vfs(a.UserData());
 	dword sdl_flag = SDL_INIT_VIDEO;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	return true;
 }
 
@@ -911,11 +910,11 @@ void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, 
 }
 
 bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	
+
 	if (!dev.accel.Initialize(a, ws))
 		return false;
-	
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -936,14 +935,13 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	data("maximized") = maximized;
 	data("title") = title;
 	a.UserData() = data;
-	
+
 	// Set init flag
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
-	ValueFS vfs(ev_ctx->UserData());
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
 	return true;
 }
 
@@ -989,7 +987,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	// GL context
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -1171,18 +1169,17 @@ void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Visitor& vis) {
 }
 
 bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const WorldState&) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
-	
+
 	if (!ev_ctx->AttachContext(a))
 		return false;
-	
+
 	// Set init flag
-	ValueFS vfs(ev_ctx->UserData());
 	dword sdl_flag = SDL_INIT_EVENTS;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	return true;
 }
 
@@ -1582,18 +1579,17 @@ void HalSdl::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {
 }
 
 bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const WorldState&) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
-	
+
 	if (!ev_ctx->AttachContext(a))
 		return false;
-	
+
 	// Set init flag
-	ValueFS vfs(ev_ctx->UserData());
 	dword sdl_flag = SDL_INIT_EVENTS;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
 	return true;
 }
 
@@ -1700,8 +1696,8 @@ void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 }
 
 bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
-	
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCast<SdlContextBase>();
+
+	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -1722,14 +1718,13 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	data("maximized") = maximized;
 	data("title") = title;
 	a.UserData() = data;
-	
+
 	// Set init flag
-	ValueFS vfs(ev_ctx->UserData());
 	dword sdl_flag = SDL_INIT_VIDEO | SDL_WINDOW_OPENGL;
-	*vfs("dependencies" + a.val.GetPath() + "sdl_flag") = (int64)sdl_flag;
-	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	
+	ev_ctx->UserData()("dependencies")(a.val.GetPath().ToString())("sdl_flag") = (int64)sdl_flag;
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
 	return true;
 }
 

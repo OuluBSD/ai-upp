@@ -10,16 +10,8 @@ file
 	04d_sdl_video_ogl_custom.cpp,
 	04e_sdl_video_ogl_custom_linked.cpp,
 	04f_sdl_video_ogl_custom_linked_side.cpp,
-	04g_sdl_event_standalone.cpp,
-	04a_sdl_audio.eon,
-	04b_sdl_video.eon,
-	04c_sdl_video_ogl.eon,
-	04d_sdl_video_ogl_custom.eon,
-	04e_sdl_video_ogl_custom_linked.eon,
-	04f_sdl_video_ogl_custom_linked_side.eon,
-	04g_sdl_event_standalone.eon;
+	04g_sdl_event_standalone.cpp;
 
 mainconfig
 	"Release" = "AI SCREEN SDL2 OGL FFMPEG OPENCV USEMALLOC SYS_PORTAUDIO",
 	"Debug" = "AI SCREEN SDL2 OGL FFMPEG OPENCV USEMALLOC SYS_PORTAUDIO DEBUG_RT";
-

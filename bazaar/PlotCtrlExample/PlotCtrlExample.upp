@@ -7,5 +7,6 @@ file
 	symbol.iml;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI USEMALLOC";
 

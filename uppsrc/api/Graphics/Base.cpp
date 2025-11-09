@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include <Core/TextParsing/TextParsing.h>
 
 
 NAMESPACE_UPP
@@ -432,8 +433,10 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 		LOG("EventStateBase::Initialize: error: target state argument is required");
 		return false;
 	}
-	
-	auto* state = this->val.template FindOwnerWith<EnvState>(target);
+	String normalized = NormalizePathSeparators(target);
+	auto* state = this->val.template FindOwnerWithPathAndCast<EnvState>(normalized);
+	if (!state && normalized != target)
+		state = this->val.template FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
 		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
 		return false;

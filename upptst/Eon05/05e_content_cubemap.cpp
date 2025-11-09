@@ -42,7 +42,7 @@ void Run05eContentCubemap(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05eContentCubemap: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05e_content_cubemap.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05e_content_cubemap.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05eContentCubemap: unknown method %d", method));

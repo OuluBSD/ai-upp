@@ -131,7 +131,7 @@ void Run07dEcsFirstPersonCam(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07dEcsFirstPersonCam: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07d_ecs_first_person_cam.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07d_ecs_first_person_cam.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07dEcsFirstPersonCam: unknown method %d", method));

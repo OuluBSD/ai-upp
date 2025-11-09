@@ -121,7 +121,7 @@ void Run07gX11oglHmdTest(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run07gX11oglHmdTest: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("07g_x11ogl_hmd_test.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/07g_x11ogl_hmd_test.eon"));
 		break;
 	default:
 		throw Exc(Format("Run07gX11oglHmdTest: unknown method %d", method));

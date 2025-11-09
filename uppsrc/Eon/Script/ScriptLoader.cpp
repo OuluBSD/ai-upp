@@ -49,6 +49,57 @@ String Id::ToString() const {
 	return s;
 }
 
+String Id::ToSlashPath() const {
+	String s;
+	for(const String& part : parts) {
+		if (!s.IsEmpty())
+			s << "/";
+		s << part;
+	}
+	return s;
+}
+
+static bool LooksLikeDotPath(const String& s) {
+	if (s.IsEmpty())
+		return false;
+	if (s.Find('/') >= 0)
+		return false;
+	for (int i = 0; i < s.GetCount(); i++) {
+		int chr = s[i];
+		if (IsUpper(chr))
+			return false;
+	}
+	int dot = s.Find('.');
+	if (dot < 0 || dot == 0 || dot == s.GetCount() - 1)
+		return false;
+	Vector<String> parts = Split(s, ".");
+	if (parts.IsEmpty())
+		return false;
+	for (const String& part : parts) {
+		if (part.IsEmpty())
+			return false;
+		for (int i = 0; i < part.GetCount(); i++) {
+			int chr = part[i];
+			if (!IsAlNum(chr) && chr != '_' && chr != '-')
+				return false;
+		}
+	}
+	return true;
+}
+
+static String NormalizeDotPath(const String& s) {
+	return LooksLikeDotPath(s) ? Join(Split(s, "."), "/") : s;
+}
+
+static void NormalizeValue(Value& v) {
+	if (IsString(v)) {
+		String str = v;
+		String normalized = NormalizeDotPath(str);
+		if (normalized != str)
+			v = normalized;
+	}
+}
+
 
 
 
@@ -214,7 +265,56 @@ static void EnsurePrefix(Eon::Id& id, const Eon::Id& prefix) {
 bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
     One<ChainContext> cc = new ChainContext();
     RTLOG("BuildChain: chain=" << (chain.id.IsEmpty() ? "<anon>" : chain.id.ToString())
-        << " loops=" << chain.loops.GetCount());
+        << " loops=" << chain.loops.GetCount()
+        << " states=" << chain.states.GetCount());
+
+    // Pre-create state environments so downstream atoms can resolve targets during eager builds.
+    Engine* mach = val.FindOwner<Engine>();
+    ASSERT(mach);
+    if (!mach)
+        throw Exc("BuildChain: no engine available for state parent resolution");
+
+    for (const Eon::StateDeclaration& state_def : chain.states) {
+        if (state_def.id.IsEmpty())
+            continue;
+
+        const Vector<String>& parts = state_def.id.parts;
+        if (parts.IsEmpty())
+            continue;
+
+        String state_leaf = parts.Top();
+        Vector<String> parent_parts;
+        parent_parts <<= parts;
+        if (!parent_parts.IsEmpty())
+            parent_parts.SetCount(parent_parts.GetCount() - 1);
+
+        VfsValue* loop_parent = nullptr;
+        VfsValue* space_parent = nullptr;
+        if (parent_parts.IsEmpty()) {
+            loop_parent = &mach->GetRootLoop();
+            space_parent = &mach->GetRootSpace();
+        }
+        else {
+            Eon::Id loop_id;
+            loop_id.parts <<= parent_parts;
+            loop_parent = ResolveLoop(loop_id, &space_parent);
+            if (!loop_parent) {
+                AddError(state_def.loc,
+                         String("Could not resolve state parent loop: ") + loop_id.ToString());
+                return false;
+            }
+        }
+
+        if (!space_parent)
+            space_parent = &mach->GetRootSpace();
+
+        RTLOG("BuildChain: add EnvState parent="
+            << (parent_parts.IsEmpty() ? String("<root>") : Join(parent_parts, "."))
+            << " name=" << state_leaf);
+        EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
+        space_parent->GetAdd(state_leaf, 0);
+        env.SetName(state_leaf);
+    }
 
     Vector<const Eon::LoopDefinition*> driver_loops;
     driver_loops.Reserve(chain.loops.GetCount());
@@ -222,8 +322,20 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
         if (loop_def.is_driver)
             driver_loops.Add(&loop_def);
 
+    // Create ordered list for initialization: drivers first, then regular loops
+    Vector<const Eon::LoopDefinition*> init_order;
+    init_order.Reserve(chain.loops.GetCount());
+    for (const Eon::LoopDefinition& loop_def : chain.loops)
+        if (loop_def.is_driver)
+            init_order.Add(&loop_def);
+    for (const Eon::LoopDefinition& loop_def : chain.loops)
+        if (!loop_def.is_driver)
+            init_order.Add(&loop_def);
+
     // Build each loop under its absolute id (loop.id is already resolved during parsing)
-    for (const Eon::LoopDefinition& loop_def : chain.loops) {
+    // Process in initialization order: drivers first so they're available for regular loops
+    for (const Eon::LoopDefinition* loop_def_ptr : init_order) {
+        const Eon::LoopDefinition& loop_def = *loop_def_ptr;
         String chain_str = chain.id.IsEmpty() ? "<anon>" : chain.id.ToString();
         String loop_str = loop_def.id.IsEmpty() ? "<anon>" : loop_def.id.ToString();
         LOG(Format("BuildChain[%s]: loop=%s driver=%d atoms=%d",
@@ -248,18 +360,22 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
             }
             if (best_idx >= 0 && best_match > 0) {
                 const Eon::Id& drv = driver_loops[best_idx]->id;
-                Vector<String> merged;
-                merged <<= drv.parts;
-                for (int i = best_match; i < deep_id.parts.GetCount(); i++)
-                    merged.Add(deep_id.parts[i]);
-                bool changed = merged.GetCount() != deep_id.parts.GetCount();
-                if (!changed) {
-                    for (int i = 0; i < merged.GetCount(); i++)
-                        if (merged[i] != deep_id.parts[i]) { changed = true; break; }
-                }
-                if (changed) {
-                    deep_id.parts = pick(merged);
-                    LOG(Format("  remapped loop path under driver -> %s", deep_id.ToString()));
+                // Only remap if driver is a complete prefix of the loop path
+                // (all driver parts match the beginning of loop path)
+                if (best_match == drv.parts.GetCount() && best_match < deep_id.parts.GetCount()) {
+                    Vector<String> merged;
+                    merged <<= drv.parts;
+                    for (int i = best_match; i < deep_id.parts.GetCount(); i++)
+                        merged.Add(deep_id.parts[i]);
+                    bool changed = merged.GetCount() != deep_id.parts.GetCount();
+                    if (!changed) {
+                        for (int i = 0; i < merged.GetCount(); i++)
+                            if (merged[i] != deep_id.parts[i]) { changed = true; break; }
+                    }
+                    if (changed) {
+                        deep_id.parts = pick(merged);
+                        LOG(Format("  remapped loop path under driver -> %s", deep_id.ToString()));
+                    }
                 }
             }
         }
@@ -280,7 +396,11 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
             s.args <<= a.args;           // copy args
         }
 
-        cc->AddLoop(*l, specs, has_link);
+        LoopContext& lc = cc->AddLoop(*l, specs, has_link);
+        if (lc.failed) {
+            RTLOG("ScriptLoader::BuildChain: loop failed to initialize atoms");
+            return false;
+        }
     }
 
     // Connect side-links across loops in this chain according to conn ids
@@ -350,6 +470,16 @@ bool ScriptLoader::ImplementScript() {
                     for (auto& lb : B.loops)
                         if (!LoopContext::ConnectSides(la, lb))
                             return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: validate side links");
+        for (int i = 0; i < built_chains.GetCount(); i++) {
+            String err_msg;
+            if (!built_chains[i]->ValidateSideLinks(&err_msg)) {
+                AddError(FileLocation(), String("Side-link validation failed: ") + err_msg);
+                for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
             }
         }
 
@@ -708,27 +838,39 @@ bool ScriptLoader::LoadComponent(Eon::ComponentDefinition& def, AstNode* n) {
 	return true;
 }
 
+// Custom comparator to sort loops before drivers, then by location
+struct LoopBeforeDriverLess {
+	bool operator()(const Endpoint& a, const Endpoint& b) const {
+		bool a_is_driver = a.n->src == Cursor_DriverStmt;
+		bool b_is_driver = b.n->src == Cursor_DriverStmt;
+
+		// If one is a driver and the other is a loop, loop comes first
+		if (a_is_driver != b_is_driver)
+			return !a_is_driver; // a comes before b if a is loop (false) and b is driver (true)
+
+		// If both are the same type, sort by location
+		return a.rel_loc < b.rel_loc;
+	}
+};
+
 bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	const auto& map = VfsValueExtFactory::AtomDataMap();
 	Vector<Endpoint> loops, states, atoms, stmts, conns;
 	RTLOG("LoadChain: entering for id=" << chain.id.ToString() << " eager=" << eager_build_chains);
-	
+
 	n->FindAll(loops, Cursor_DriverStmt); // subset of loops
 	n->FindAll(loops, Cursor_LoopStmt);
-	Sort(loops, AstNodeLess());
+	Sort(loops, LoopBeforeDriverLess());
 	
 	for (Endpoint& ep : loops) {
 		AstNode* loop = ep.n;
 		bool is_driver = loop->src == Cursor_DriverStmt;
 		
-		Eon::LoopDefinition& loop_def = chain.loops.Add();
-		loop_def.loc = loop->loc;
-		loop_def.is_driver = is_driver;
-		
-		if (!GetPathId(loop_def.id, n, loop))
+		Eon::Id loop_id;
+		if (!GetPathId(loop_id, n, loop))
 			return false;
-		EnsurePrefix(loop_def.id, chain.id);
-		
+		EnsurePrefix(loop_id, chain.id);
+
 		AstNode* stmt_block = loop->Find(Cursor_CompoundStmt);
 		if (!stmt_block) {
 			AddError(loop->loc, "loop has no statement-block");
@@ -744,22 +886,62 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 			return false;
 		}
 		
+		Eon::Id single_atom_id;
+		bool have_single_atom_id = false;
+		
 		if (is_driver && atoms.GetCount() > 1) {
 			AddError(loop->loc, "only single atom is allowed in driver");
 			return false;
 		}
 		
-		if (atoms.GetCount() == 1 && !is_driver) {
-			AddError(loop->loc, "only one atom in the loop");
-			return false;
+		if (atoms.GetCount() == 1) {
+			if (!GetPathId(single_atom_id, loop, atoms[0].n))
+				return false;
+			have_single_atom_id = true;
+			if (!is_driver) {
+				String single_action = single_atom_id.ToString();
+					if (single_action.StartsWith("state.")) {
+						// Pure state loop; translate into a state declaration.
+						Eon::StateDeclaration& state_def = chain.states.Add();
+						state_def.loc = loop->loc;
+						Eon::Id state_id = loop_id;
+						Vector<String> derived_parts;
+						for (int pi = 0; pi < single_atom_id.parts.GetCount(); ++pi) {
+							const String& part = single_atom_id.parts[pi];
+							if (pi == 0 && part == "state")
+								continue;
+							derived_parts.Add(part);
+						}
+						if (!derived_parts.IsEmpty()) {
+							if (state_id.parts.IsEmpty() || state_id.parts.GetCount() < derived_parts.GetCount())
+								state_id.parts <<= derived_parts;
+						}
+						EnsurePrefix(state_id, chain.id);
+						state_def.id = state_id;
+						continue;
+					}
+					AddError(loop->loc, "only one atom in the loop");
+					return false;
+				}
 		}
 		
-		for (Endpoint& ep : atoms) {
-			AstNode* atom = ep.n;
+		Eon::LoopDefinition& loop_def = chain.loops.Add();
+		loop_def.loc = loop->loc;
+		loop_def.is_driver = is_driver;
+		loop_def.id = loop_id;
+
+		for (int ai = 0; ai < atoms.GetCount(); ai++) {
+			AstNode* atom = atoms[ai].n;
 			Eon::AtomDefinition& atom_def = loop_def.atoms.Add();
 			
-			if (!GetPathId(atom_def.id, loop, atom))
-				return false;
+			if (have_single_atom_id) {
+				atom_def.id = single_atom_id;
+				have_single_atom_id = false;
+			}
+			else {
+				if (!GetPathId(atom_def.id, loop, atom))
+					return false;
+			}
 			
 			String loop_action = atom_def.id.ToString();
 			const VfsValueExtFactory::AtomData* found_atom = 0;
@@ -835,12 +1017,19 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 								key = a0->str;
 							}
 							if (key.GetCount()) {
+								Value& req = cand.req_args.GetAdd(key);
 								if (IsPartially(a1->src, Cursor_Literal)) {
-									a1->CopyToValue(cand.req_args.GetAdd(key));
+									a1->CopyToValue(req);
+									NormalizeValue(req);
 									succ = true;
 								}
 								else if (a1->src == Cursor_Unresolved) {
-									cand.req_args.GetAdd(key) = a1->str;
+									req = NormalizeDotPath(a1->str);
+									succ = true;
+								}
+								else if (IsPartially(a1->src, Cursor_Op)) {
+									req = EvaluateAstNodeValue(*a1);
+									NormalizeValue(req);
 									succ = true;
 								}
 							}
@@ -990,6 +1179,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	
 	n->FindAll(states, Cursor_StateStmt);
 	Sort(states, AstNodeLess());
+	RTLOG("LoadChain: state stmt count=" << states.GetCount());
 	for (Endpoint& ep : states) {
 		AstNode* state = ep.n;
 		Eon::StateDeclaration& state_def = chain.states.Add();
@@ -997,7 +1187,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		
 		if (!GetPathId(state_def.id, n, state))
 			return false;
-		
+		RTLOG("LoadChain: state def=" << state_def.id.ToString());
 	}
 	
     bool ok = true;
@@ -1047,21 +1237,23 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 						AstNode* key = rval.arg[0];
 						AstNode* value = rval.arg[1];
 						while (key->src == Cursor_Rval && key->rval) key = key->rval;
-						while (value->src == Cursor_Rval && value->rval) value = key->rval;
+						while (value->src == Cursor_Rval && value->rval) value = value->rval;
 						if (key->src == Cursor_Unresolved && key->str.GetCount()) {
 							String key_str = key->str;
 							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
 							else if (value->src == Cursor_Unresolved && value->str.GetCount()) {
-								args.GetAdd(key_str) = value->str;
+								args.GetAdd(key_str) = NormalizeDotPath(value->str);
 								succ = true;
 							}
 							else if (IsPartially(value->src, Cursor_Op)) {
 								Value val_obj = EvaluateAstNodeValue(*value);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -1075,6 +1267,7 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							if (IsPartially(value->src, Cursor_Literal)) {
 								Value val_obj;
 								value->CopyToValue(val_obj);
+								NormalizeValue(val_obj);
 								args.GetAdd(key_str) = val_obj;
 								succ = true;
 							}
@@ -1125,15 +1318,21 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	return true;
 }
 
-VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id) {
+VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id, VfsValue** space_out) {
 	Engine* mach = val.FindOwner<Engine>();
 	ASSERT(mach);
 	if (!mach) throw Exc("no machine");
 	
-	VfsValue* l0;
-	VfsValue* l1 = &mach->GetRootLoop();
-	VfsValue* s0 = 0;
-	VfsValue* s1 = &mach->GetRootSpace();
+	VfsValue* l0 = &mach->GetRootLoop();
+	VfsValue* s0 = &mach->GetRootSpace();
+	if (id.parts.IsEmpty()) {
+		if (space_out)
+			*space_out = s0;
+		return l0;
+	}
+
+	VfsValue* l1 = l0;
+	VfsValue* s1 = s0;
 	int i = 0, count = id.parts.GetCount();
 	
 	for (const String& part : id.parts) {
@@ -1148,6 +1347,8 @@ VfsValue* ScriptLoader::ResolveLoop(Eon::Id& id) {
 	}
 	
 	ASSERT(l0);
+	if (space_out)
+		*space_out = s0;
 	return l0;
 }
 
@@ -1156,9 +1357,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 	int dbg_i = 0;
 	for (AtomBasePtr& sink : loop0.atoms) {
 		LinkBasePtr sink_link = sink->GetLink();
-		const IfaceConnTuple& sink_iface = sink->GetInterface();
+		IfaceConnTuple& sink_iface = const_cast<IfaceConnTuple&>(sink->GetInterface());
 		for (int sink_ch = 1; sink_ch < sink_iface.type.iface.sink.GetCount(); sink_ch++) {
-			const IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
+			IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
 			RTLOG("ScriptLoader::ConnectSides:	sink ch #" << sink_ch << " " << sink_conn.ToString());
 			ASSERT(sink_conn.conn >= 0 || sink_iface.type.IsSinkChannelOptional(sink_ch));
 			if (sink_conn.conn < 0 && sink_iface.type.IsSinkChannelOptional(sink_ch))
@@ -1166,9 +1367,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 			bool found = false;
 			for (AtomBasePtr& src : loop1.atoms) {
 				LinkBasePtr src_link = src->GetLink();
-				const IfaceConnTuple& src_iface = src->GetInterface();
+				IfaceConnTuple& src_iface = const_cast<IfaceConnTuple&>(src->GetInterface());
 				for (int src_ch = 1; src_ch < src_iface.type.iface.src.GetCount(); src_ch++) {
-					const IfaceConnLink& src_conn = src_iface.src[src_ch];
+					IfaceConnLink& src_conn = src_iface.src[src_ch];
 					RTLOG("ScriptLoader::ConnectSides:		src ch #" << src_ch << " " << src_conn.ToString());
 					ASSERT(src_conn.conn >= 0 || src_iface.type.IsSourceChannelOptional(src_ch));
 					if (src_conn.conn < 0 && src_iface.type.IsSourceChannelOptional(src_ch))
@@ -1186,6 +1387,9 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 							AddError(loop0.def.loc, "Side-linking was refused");
 							return false;
 						}
+						
+						sink_conn.conn = -1;
+						src_conn.conn = -1;
 						
 						#if VERBOSE_SCRIPT_LOADER
 						LOG(ClassPathTop(src->ToString()) + "(" << HexStrPtr(&*src) << "," << src_ch_i << ") side-linked to " + ClassPathTop(sink->ToString()) + "(" << HexStrPtr(&*sink) << "," << sink_ch_i << ")");

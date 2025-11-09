@@ -4,8 +4,8 @@
 #define IMAGEFILE <PlotCtrl/cursors.iml>
 #include <Draw/iml.h>
 
-PlotCtrl::PlotCtrl():tr(*this),mpos(Null),cursor(PC_ARROW){
-	tr.sync=THISBACK(TrackerSync);
+PlotCtrl::PlotCtrl() : img(),mpos(Null),cursor(PC_ARROW){
+	img = Image(); // explicitly initialize img to an empty image to ensure it's valid
 	BackPaint();
 }
 PlotCtrl& PlotCtrl::Zoom(double rx,double ry,Pointf C){
@@ -42,24 +42,34 @@ PlotCtrl& PlotCtrl::ZoomAll(bool visibleonly){
 	return *this;
 }
 void PlotCtrl::Layout(){
+	if (!tr) {
+		tr.Create(*this);
+		tr->sync=THISBACK(TrackerSync);
+	}
 	SetPlotSize(GetSize());
 	SetModify();
 }
 void PlotCtrl::Paint(Draw& w){
 	if(IsModified()){
 		WhenSync();
-		img=GetImage();
-		if(img.IsEmpty()){
+		Image newImg = GetImage();
+		if(newImg.IsEmpty()){
 			SetLimits(-1,1,-1,1);
 			PromptOK("You've reached precision limits.&Zoom setting was reset.");
 			Refresh();
 			Sync();
 			return;
 		}else{
+			img = newImg; 
 			ClearModify();
 		}
 	}
-	w.DrawImage(0,0,img);
+	
+	// Only draw the cached image if it has been computed and is valid
+	// We should check if img was previously assigned by checking its dimensions
+	if (img && img.GetSize().cx > 0 && img.GetSize().cy > 0) {
+		w.DrawImage(0,0,img);
+	}
 }
 void PlotCtrl::LeftDown(Point pt,dword keyflags){
 	if(keyflags&K_SHIFT){
@@ -67,7 +77,9 @@ void PlotCtrl::LeftDown(Point pt,dword keyflags){
 	}else if(keyflags&K_CTRL){
 		ZoomAll();
 	}else{
-		if(tr.InLoop()){tr.Close();tr.OverrideCursor(Null);} //sometimes RectTracker "forgets" to leave the loop...
+		if (!tr) return;
+		auto& tr = *this->tr;
+		if(tr.InLoop()){tr.Close(); tr.OverrideCursor(Null);} //sometimes RectTracker "forgets" to leave the loop...
 		Rectf r=tr.Track(RectfC(pt.x,pt.y,0,0),ALIGN_NULL,ALIGN_NULL);
 		tr.OverrideCursor(Null);
 		if(r.IsEmpty()){
@@ -144,7 +156,8 @@ void PlotCtrl::TrackerSync(Rect r){
 	w.Alpha().DrawText(11,11,pos,GetFont(),GrayColor(255));
 	ImageBuffer b(w);
 	b.SetHotSpot(Point(8,8));
-	tr.OverrideCursor(b);
+	if (tr)
+		tr->OverrideCursor(b);
 }
 
 Image PlotCtrl::CursorImage(Point p, dword keyflags) {

@@ -1,10 +1,12 @@
 #!/bin/sh
 
-# Build:
-umk ./upptst,./uppsrc Eon00 ~/.config/u++/theide/CLANG.bm -bsH1 +AI,DEBUG_RT,DEBUG_VFS,USEMALLOC,DEBUG_FULL bin/Eon00
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-# Copy data files to bin directory:
+"$SCRIPT_DIR/build_upptst_eon_generic.sh" Eon00 "AI,DEBUG_VFS" "$@"
+status=$?
+
+if [ $status -ne 0 ]; then
+	exit $status
+fi
+
 cp upptst/Eon00/*.eon bin/
-
-# Run ide:
-echo Executable compiled: bin/Eon00

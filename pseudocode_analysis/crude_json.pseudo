@@ -1,0 +1,759 @@
+// Crude implementation of JSON value object and parser pseudocode.
+//
+// VERSION 0.1
+//
+// LICENSE
+//   This software is dual-licensed to the public domain and under the following
+//   license: you are granted a perpetual, irrevocable license to copy, modify,
+//   publish, and distribute this file as you see fit.
+//
+// CREDITS
+//   Written by Michal Cichon
+
+// Pseudocode representation of crude_json.cpp
+
+package thirdparty.imgui-node-editor
+
+// Imports
+import std.type_traits
+import std.string
+import std.vector
+import std.map
+import std.cstddef
+import std.algorithm
+import std.sstream
+import std.assert
+import std.iomanip
+import std.limits
+import std.cstdlib
+import std.clocale
+import std.cmath
+import std.cstring
+import std.memory
+
+namespace crude_json:
+    // Implementation of value methods defined in crude_json.h
+    constructor value::value(other: value&&):
+        m_Type = other.m_Type
+        switch m_Type:
+            case type_t.object:
+                construct(m_Storage, std.move(*object_ptr(other.m_Storage)))
+                break
+            case type_t.array:
+                construct(m_Storage, std.move(*array_ptr(other.m_Storage)))
+                break
+            case type_t.string:
+                construct(m_Storage, std.move(*string_ptr(other.m_Storage)))
+                break
+            case type_t.boolean:
+                construct(m_Storage, std.move(*boolean_ptr(other.m_Storage)))
+                break
+            case type_t.number:
+                construct(m_Storage, std.move(*number_ptr(other.m_Storage)))
+                break
+            default:
+                break
+        
+        destruct(other.m_Storage, other.m_Type)
+        other.m_Type = type_t.null
+
+    constructor value::value(other: const value&):
+        m_Type = other.m_Type
+        switch m_Type:
+            case type_t.object:
+                construct(m_Storage, *object_ptr(other.m_Storage))
+                break
+            case type_t.array:
+                construct(m_Storage, *array_ptr(other.m_Storage))
+                break
+            case type_t.string:
+                construct(m_Storage, *string_ptr(other.m_Storage))
+                break
+            case type_t.boolean:
+                construct(m_Storage, *boolean_ptr(other.m_Storage))
+                break
+            case type_t.number:
+                construct(m_Storage, *number_ptr(other.m_Storage))
+                break
+            default:
+                break
+
+    function value::operator[](index: size_t) -> value&:
+        if is_null():
+            m_Type = construct(m_Storage, type_t.array)
+        
+        if is_array():
+            v := *array_ptr(m_Storage)
+            if index >= v.size():
+                v.insert(v.end(), index - v.size() + 1, value())
+            return v[index]
+        
+        CRUDE_ASSERT(false and "operator[] on unsupported type")
+        std.terminate()
+
+    function value::operator[](index: size_t) const -> const value&:
+        if is_array():
+            return (*array_ptr(m_Storage))[index]
+        
+        CRUDE_ASSERT(false and "operator[] on unsupported type")
+        std.terminate()
+
+    function value::operator[](key: const string&) -> value&:
+        if is_null():
+            m_Type = construct(m_Storage, type_t.object)
+        
+        if is_object():
+            return (*object_ptr(m_Storage))[key]
+        
+        CRUDE_ASSERT(false and "operator[] on unsupported type")
+        std.terminate()
+
+    function value::operator[](key: const string&) const -> const value&:
+        if is_object():
+            o := *object_ptr(m_Storage)
+            it := o.find(key)
+            CRUDE_ASSERT(it != o.end())
+            return it.second
+        
+        CRUDE_ASSERT(false and "operator[] on unsupported type")
+        std.terminate()
+
+    function value::contains(key: const string&) const -> bool:
+        if is_object():
+            o := *object_ptr(m_Storage)
+            it := o.find(key)
+            return it != o.end()
+        
+        return false
+
+    function value::push_back(value: const value&) -> void:
+        if is_null():
+            m_Type = construct(m_Storage, type_t.array)
+        
+        if is_array():
+            v := *array_ptr(m_Storage)
+            v.push_back(value)
+        else:
+            CRUDE_ASSERT(false and "operator[] on unsupported type")
+            std.terminate()
+
+    function value::push_back(value: value&&) -> void:
+        if is_null():
+            m_Type = construct(m_Storage, type_t.array)
+        
+        if is_array():
+            v := *array_ptr(m_Storage)
+            v.push_back(std.move(value))
+        else:
+            CRUDE_ASSERT(false and "operator[] on unsupported type")
+            std.terminate()
+
+    function value::erase(key: const string&) -> size_t:
+        if not is_object():
+            return 0
+        
+        o := *object_ptr(m_Storage)
+        it := o.find(key)
+        
+        if it == o.end():
+            return 0
+        
+        o.erase(it)
+        
+        return 1
+
+    function value::swap(other: value&) -> void:
+        using std.swap
+        
+        if m_Type == other.m_Type:
+            switch m_Type:
+                case type_t.object:
+                    swap(*object_ptr(m_Storage), *object_ptr(other.m_Storage))
+                    break
+                case type_t.array:
+                    swap(*array_ptr(m_Storage), *array_ptr(other.m_Storage))
+                    break
+                case type_t.string:
+                    swap(*string_ptr(m_Storage), *string_ptr(other.m_Storage))
+                    break
+                case type_t.boolean:
+                    swap(*boolean_ptr(m_Storage), *boolean_ptr(other.m_Storage))
+                    break
+                case type_t.number:
+                    swap(*number_ptr(m_Storage), *number_ptr(other.m_Storage))
+                    break
+                default:
+                    break
+        else:
+            tmp := std.move(other)
+            other.~value()
+            new (&other) value(std.move(*this))
+            this.~value()
+            new (this) value(std.move(tmp))
+
+    function value::dump(indent: const int, indent_char: const char) const -> string:
+        context := dump_context_t(indent, indent_char)
+        
+        context.out.precision(std.numeric_limits<double>.max_digits10 + 1)
+        context.out << std.defaultfloat
+        
+        dump(context, 0)
+        return context.out.str()
+
+    function value::dump_context_t::write_indent(level: int) -> void:
+        if indent <= 0 or level == 0:
+            return
+        
+        context.out.fill(indent_char)
+        context.out.width(indent * level)
+        context.out << indent_char
+        context.out.width(0)
+
+    function value::dump_context_t::write_separator() -> void:
+        if indent < 0:
+            return
+        
+        context.out.put(' ')
+
+    function value::dump_context_t::write_newline() -> void:
+        if indent < 0:
+            return
+        
+        context.out.put('\n')
+
+    function value::dump(context: dump_context_t&, level: int) const -> void:
+        context.write_indent(level)
+        
+        switch m_Type:
+            case type_t.null:
+                context.out << "null"
+                break
+            
+            case type_t.object:
+                context.out << '{'
+                context.write_newline()
+                first := true
+                for entry in *object_ptr(m_Storage):
+                    if not first:
+                        context.out << ','
+                        context.write_newline()
+                    else:
+                        first = false
+                    context.write_indent(level + 1)
+                    context.out << '\"' << entry.first << "\":"
+                    if not entry.second.is_structured():
+                        context.write_separator()
+                        entry.second.dump(context, 0)
+                    else:
+                        context.write_newline()
+                        entry.second.dump(context, level + 1)
+                
+                if not first:
+                    context.write_newline()
+                
+                context.write_indent(level)
+                context.out << '}'
+                break
+            
+            case type_t.array:
+                context.out << '['
+                context.write_newline()
+                first := true
+                for entry in *array_ptr(m_Storage):
+                    if not first:
+                        context.out << ','
+                        context.write_newline()
+                    else:
+                        first = false
+                    if not entry.is_structured():
+                        context.write_indent(level + 1)
+                        entry.dump(context, 0)
+                    else:
+                        entry.dump(context, level + 1)
+                
+                if not first:
+                    context.write_newline()
+                
+                context.write_indent(level)
+                context.out << ']'
+                break
+            
+            case type_t.string:
+                context.out << '\"'
+                
+                if string_ptr(m_Storage).find_first_of("\"\\/\b\f\n\r") != string.npos or string_ptr(m_Storage).find('\0') != string.npos:
+                    for c in *string_ptr(m_Storage):
+                        if c == '\"':
+                            context.out << "\\\""
+                        elif c == '\\':
+                            context.out << "\\\\"
+                        elif c == '/':
+                            context.out << "\\/"
+                        elif c == '\b':
+                            context.out << "\\b"
+                        elif c == '\f':
+                            context.out << "\\f"
+                        elif c == '\n':
+                            context.out << "\\n"
+                        elif c == '\r':
+                            context.out << "\\r"
+                        elif c == '\t':
+                            context.out << "\\t"
+                        elif c == 0:
+                            context.out << "\\u0000"
+                        else:
+                            context.out << c
+                    
+                else:
+                    context.out << *string_ptr(m_Storage)
+                
+                context.out << '\"'
+                break
+            
+            case type_t.boolean:
+                if *boolean_ptr(m_Storage):
+                    context.out << "true"
+                else:
+                    context.out << "false"
+                break
+            
+            case type_t.number:
+                context.out << *number_ptr(m_Storage)
+                break
+            
+            default:
+                break
+
+    // Parser implementation
+    struct value::parser:
+        constructor(begin: const char*, end: const char*):
+            m_Cursor = begin
+            m_End = end
+
+        function parse() -> value:
+            v := value()
+            
+            // Switch to C locale to make strtod and strtol work as expected
+            previous_locale := std.setlocale(LC_NUMERIC, "C")
+            
+            // Accept single value only when end of the stream is reached.
+            if not accept_element(v) or not eof():
+                v = value(type_t.discarded)
+            
+            if previous_locale and strcmp(previous_locale, "C") != 0:
+                std.setlocale(LC_NUMERIC, previous_locale)
+            
+            return v
+
+    private:
+        struct cursor_state:
+            constructor(p: parser*):
+                m_Owner = p
+                m_LastCursor = p.m_Cursor
+
+            function reset() -> void:
+                m_Owner.m_Cursor = m_LastCursor
+
+            function operator()(accept: bool) -> bool:
+                if not accept:
+                    reset()
+                else:
+                    m_LastCursor = m_Owner.m_Cursor
+                return accept
+
+        private:
+            m_Owner: parser*
+            m_LastCursor: const char*
+
+        function state() -> cursor_state:
+            return cursor_state(this)
+
+        function accept_value(result: value&) -> bool:
+            return accept_object(result) or
+                   accept_array(result) or
+                   accept_string(result) or
+                   accept_number(result) or
+                   accept_boolean(result) or
+                   accept_null(result)
+
+        function accept_object(result: value&) -> bool:
+            s := state()
+            
+            o := object()
+            if s(accept('{') and accept_ws() and accept('}')):
+                result = o
+                return true
+            elif s(accept('{') and accept_members(o) and accept('}')):
+                result = std.move(o)
+                return true
+            
+            return false
+
+        function accept_members(o: object&) -> bool:
+            if not accept_member(o):
+                return false
+            
+            while true:
+                s := state()
+                if not s(accept(',') and accept_member(o)):
+                    break
+            
+            return true
+
+        function accept_member(o: object&) -> bool:
+            s := state()
+            
+            key := value()
+            v := value()
+            if s(accept_ws() and accept_string(key) and accept_ws() and accept(':') and accept_element(v)):
+                o.emplace(std.move(key.get<string>()), std.move(v))
+                return true
+            
+            return false
+
+        function accept_array(result: value&) -> bool:
+            s := state()
+            
+            if s(accept('[') and accept_ws() and accept(']')):
+                result = array()
+                return true
+            
+            a := array()
+            if s(accept('[') and accept_elements(a) and accept(']')):
+                result = std.move(a)
+                return true
+            
+            return false
+
+        function accept_elements(a: array&) -> bool:
+            v := value()
+            if not accept_element(v):
+                return false
+            
+            a.emplace_back(std.move(v))
+            while true:
+                s := state()
+                v = nullptr
+                if not s(accept(',') and accept_element(v)):
+                    break
+                a.emplace_back(std.move(v))
+            
+            return true
+
+        function accept_element(result: value&) -> bool:
+            s := state()
+            return s(accept_ws() and accept_value(result) and accept_ws())
+
+        function accept_string(result: value&) -> bool:
+            s := state()
+            
+            v := string()
+            if s(accept('\"') and accept_characters(v) and accept('\"')):
+                result = std.move(v)
+                return true
+            else:
+                return false
+
+        function accept_characters(result: string&) -> bool:
+            c := int(0)
+            while accept_character(c):
+                CRUDE_ASSERT(c < 128)  // #todo: convert characters > 127 to UTF-8
+                result.push_back(static_cast<char>(c))
+            
+            return true
+
+        function accept_character(c: int&) -> bool:
+            s := state()
+            
+            if accept('\\'):
+                return accept_escape(c)
+            elif expect('\"'):
+                return false
+            
+            // #todo: Handle UTF-8 sequences.
+            return s((c = peek()) >= 0) and advance()
+
+        function accept_escape(c: int&) -> bool:
+            if accept('\"'):
+                c = '\"'
+                return true
+            if accept('\\'):
+                c = '\\'
+                return true
+            if accept('/'):
+                c = '/'
+                return true
+            if accept('b'):
+                c = '\b'
+                return true
+            if accept('f'):
+                c = '\f'
+                return true
+            if accept('n'):
+                c = '\n'
+                return true
+            if accept('r'):
+                c = '\r'
+                return true
+            if accept('t'):
+                c = '\t'
+                return true
+            
+            s := state()
+            
+            hex := string()
+            hex.reserve(4)
+            if s(accept('u') and accept_hex(hex) and accept_hex(hex) and accept_hex(hex) and accept_hex(hex)):
+                end := nullptr
+                v := std.strtol(hex.c_str(), &end, 16)
+                if end != hex.c_str() + hex.size():
+                    return false
+                
+                c = static_cast<int>(v)
+                return true
+            
+            return false
+
+        function accept_hex(result: string&) -> bool:
+            if accept_digit(result):
+                return true
+            
+            c := peek()
+            if (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f'):
+                advance()
+                result.push_back(static_cast<char>(c))
+                return true
+            
+            return false
+
+        function accept_number(result: value&) -> bool:
+            s := state()
+            
+            n := string()
+            if s(accept_int(n) and accept_frac(n) and accept_exp(n)):
+                end := nullptr
+                v := std.strtod(n.c_str(), &end)
+                if end != n.c_str() + n.size():
+                    return false
+                
+                if v != 0 and not std.isnormal(v):
+                    return false
+                
+                result = v
+                return true
+            
+            return false
+
+        function accept_int(result: string&) -> bool:
+            s := state()
+            
+            part := string()
+            if s(accept_onenine(part) and accept_digits(part)):
+                result += std.move(part)
+                return true
+            
+            part.resize(0)
+            if accept_digit(part):
+                result += std.move(part)
+                return true
+            
+            part.resize(0)
+            if s(accept('-') and accept_onenine(part) and accept_digits(part)):
+                result += '-'
+                result += std.move(part)
+                return true
+            
+            part.resize(0)
+            if s(accept('-') and accept_digit(part)):
+                result += '-'
+                result += std.move(part)
+                return true
+            
+            return false
+
+        function accept_digits(result: string&) -> bool:
+            part := string()
+            if not accept_digit(part):
+                return false
+            
+            while accept_digit(part):
+                pass  // Continue loop
+            
+            result += std.move(part)
+            
+            return true
+
+        function accept_digit(result: string&) -> bool:
+            if accept('0'):
+                result.push_back('0')
+                return true
+            elif accept_onenine(result):
+                return true
+            
+            return false
+
+        function accept_onenine(result: string&) -> bool:
+            c := peek()
+            if c >= '1' and c <= '9':
+                result.push_back(static_cast<char>(c))
+                return advance()
+            
+            return false
+
+        function accept_frac(result: string&) -> bool:
+            s := state()
+            
+            part := string()
+            if s(accept('.') and accept_digits(part)):
+                result += '.'
+                result += std.move(part)
+            
+            return true
+
+        function accept_exp(result: string&) -> bool:
+            s := state()
+            
+            part := string()
+            if s(accept('e') and accept_sign(part) and accept_digits(part)):
+                result += 'e'
+                result += std.move(part)
+                return true
+            part.resize(0)
+            if s(accept('E') and accept_sign(part) and accept_digits(part)):
+                result += 'E'
+                result += std.move(part)
+            
+            return true
+
+        function accept_sign(result: string&) -> bool:
+            if accept('+'):
+                result.push_back('+')
+            elif accept('-'):
+                result.push_back('-')
+            
+            return true
+
+        function accept_ws() -> bool:
+            while expect('\x09') or expect('\x0A') or expect('\x0D') or expect('\x20'):
+                advance()
+            return true
+
+        function accept_boolean(result: value&) -> bool:
+            if accept("true"):
+                result = true
+                return true
+            elif accept("false"):
+                result = false
+                return true
+            
+            return false
+
+        function accept_null(result: value&) -> bool:
+            if accept("null"):
+                result = nullptr
+                return true
+            
+            return false
+
+        function accept(c: char) -> bool:
+            if expect(c):
+                return advance()
+            else:
+                return false
+
+        function accept(str: const char*) -> bool:
+            last := m_Cursor
+            
+            while *str:
+                if eof() or *str != *m_Cursor:
+                    m_Cursor = last
+                    return false
+                
+                advance()
+                ++str
+            
+            return true
+
+        function peek() const -> int:
+            if not eof():
+                return *m_Cursor
+            else:
+                return -1
+
+        function expect(c: char) -> bool:
+            return peek() == c
+
+        function advance(count: int = 1) -> bool:
+            if m_Cursor + count > m_End:
+                m_Cursor = m_End
+                return false
+            
+            m_Cursor += count
+            
+            return true
+
+        function eof() const -> bool:
+            return m_Cursor == m_End
+
+        m_Cursor: const char*
+        m_End: const char*
+
+    function value::parse(data: const string&) -> value:
+        p := parser(data.c_str(), data.c_str() + data.size())
+        
+        v := p.parse()
+        
+        return v
+
+# if CRUDE_JSON_IO:
+    function value::load(path: const string&) -> std.pair<value, bool>:
+        // Modern C++, so beautiful...
+        file := std.unique_ptr<FILE, void(*)(FILE*)>{nullptr, [](FILE* file) { if file: fclose(file) }}
+# if defined(_MSC_VER) or (defined(__STDC_LIB_EXT1__) and __STDC_WANT_LIB_EXT1__):
+        handle := FILE*(nullptr)
+        if fopen_s(&handle, path.c_str(), "rb") != 0:
+            return {value{}, false}
+        file.reset(handle)
+# else:
+        file.reset(fopen(path.c_str(), "rb"))
+# endif
+        
+        if not file:
+            return {value{}, false}
+        
+        fseek(file.get(), 0, SEEK_END)
+        size := static_cast<size_t>(ftell(file.get()))
+        fseek(file.get(), 0, SEEK_SET)
+        
+        data := string()
+        data.resize(size)
+        if fread(const_cast<char*>(data.data()), size, 1, file.get()) != 1:
+            return {value{}, false}
+        
+        return {parse(data), true}
+
+    function value::save(path: const string&, indent: const int = -1, indent_char: const char = ' ') const -> bool:
+        // Modern C++, so beautiful...
+        file := std.unique_ptr<FILE, void(*)(FILE*)>{nullptr, [](FILE* file) { if file: fclose(file) }}
+# if defined(_MSC_VER) or (defined(__STDC_LIB_EXT1__) and __STDC_WANT_LIB_EXT1__):
+        handle := FILE*(nullptr)
+        if fopen_s(&handle, path.c_str(), "wb") != 0:
+            return false
+        file.reset(handle)
+# else:
+        file.reset(fopen(path.c_str(), "wb"))
+# endif
+        
+        if not file:
+            return false
+        
+        data := dump(indent, indent_char)
+        
+        if fwrite(data.data(), data.size(), 1, file.get()) != 1:
+            return false
+        
+        return true
+
+# endif
+
+namespace_end  // crude_json

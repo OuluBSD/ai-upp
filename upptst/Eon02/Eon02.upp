@@ -12,18 +12,9 @@ file
 	02f_coreaudio_instru.cpp,
 	02g_coreaudio_filter.cpp,
 	02l_portmidi_to_fluidsynth.cpp,
-	02m_portmidi_to_coreaudio.cpp,
-	02a_audio_test.eon,
-	02b_audio_test_2.eon,
-	02c_fluidsynth.eon,
-	02d_softinstru.eon,
-	02e_fmsynth.eon,
-	02f_coreaudio_instru.eon,
-	02g_coreaudio_filter.eon,
-	02l_portmidi_to_fluidsynth.eon,
-	02m_portmidi_to_coreaudio.eon;
+	02m_portmidi_to_coreaudio.cpp;
 
 mainconfig
-	"Release" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE",
-	"Debug" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE DEBUG_RT";
+	"Release" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE FFMPEG",
+	"Debug" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE FFMPEG DEBUG_RT";
 

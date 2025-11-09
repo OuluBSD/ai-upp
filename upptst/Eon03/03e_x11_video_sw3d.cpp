@@ -35,7 +35,7 @@ void Run03eX11VideoSw3d(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run03eX11VideoSw3d: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("03e_x11_video_sw3d.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/03e_x11_video_sw3d.eon"));
 		break;
 	default:
 		throw Exc(Format("Run03eX11VideoSw3d: unknown method %d", method));

@@ -38,7 +38,7 @@ void Run05gContentVideo(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run05gContentVideo: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("05g_content_video.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/05g_content_video.eon"));
 		break;
 	default:
 		throw Exc(Format("Run05gContentVideo: unknown method %d", method));

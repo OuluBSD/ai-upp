@@ -1,4 +1,6 @@
 #include "Synth.h"
+#include "../Audio/DebugAudioPattern.h"
+#include <algorithm>
 #include <MidiFile/MidiFile.h>
 
 #ifdef flagFLUIDLITE
@@ -31,7 +33,9 @@ struct SynFluidsynth::NativeInstrument {
     fluid_synth_t* synth;
     int sfont_id;
     bool sf_loaded;
-    int sample_rate;
+    int sample_rate;       // Hz
+    int packet_frames;     // frames per audio packet
+    int output_channels;
     Vector<float> buffer;
     Vector<float*> dry;
     Vector<float*> fx;
@@ -42,6 +46,12 @@ struct SynFluidsynth::NativeInstrument {
     int max_cache;
     int packet_count;
     bool realtime;
+    bool debug_sound_enabled;
+    String debug_sound_output;
+    int debug_sound_seed;
+    uint64 debug_frame_cursor;
+    bool debug_logged_header;
+    bool debug_print_enabled;
     
     #if DETECT_DELAY
     TimeStop ts;
@@ -63,11 +73,19 @@ void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase*
 
 
 bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
-	int cache = 6;
+	int queue = max(1, ws.GetInt(".queue", DEFAULT_AUDIO_QUEUE_SIZE));
 	dev.packet_count = 0;
-	dev.sample_rate = 128;
+	dev.packet_frames = max(1, ws.GetInt(".packet_frames", ws.GetInt(".frames", 128)));
+	dev.sample_rate = max(1, ws.GetInt(".sample_rate", 44100));
+	dev.output_channels = 0;
 	dev.realtime = ws.GetBool(".realtime", false);
-	dev.max_cache = dev.realtime ? 1 : cache;
+	dev.max_cache = dev.realtime ? 1 : queue;
+	dev.debug_sound_enabled = false;
+	dev.debug_sound_output.Clear();
+	dev.debug_sound_seed = 0;
+	dev.debug_frame_cursor = 0;
+	dev.debug_logged_header = false;
+	dev.debug_print_enabled = false;
 	
 	#if DETECT_DELAY
     dev.silence = true;
@@ -75,7 +93,7 @@ bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, co
 	#endif
 	
 	dev.settings = new_fluid_settings();
-	fluid_settings_setnum(dev.settings, "synth.sample-rate", 44100);
+	fluid_settings_setnum(dev.settings, "synth.sample-rate", dev.sample_rate);
 	fluid_settings_setstr(dev.settings, "synth.verbose", ws.GetBool(".verbose", false) ? "yes" : "no");
 		
 	dev.synth = new_fluid_synth(dev.settings);
@@ -91,13 +109,36 @@ bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, co
 	ValueFormat fmt = v.GetFormat();
 	if (fmt.IsAudio()) {
 		AudioFormat& afmt = fmt;
-		//dev.sample_rate = afmt.GetSampleRate();
 		afmt.SetType(BinarySample::FLT_LE);
-		afmt.SetSampleRate(dev.sample_rate);
+		afmt.SetSampleRate(dev.packet_frames);
+		afmt.SetFrequency(dev.sample_rate);
+		int ch = afmt.res[0];
+		if (ch <= 0)
+			ch = ws.GetInt(".channels", 2);
+		if (ch <= 0)
+			ch = 2;
+		if (ch < 2)
+			ch = 2;
+		afmt.res[0] = ch;
+		dev.output_channels = ch;
 		v.SetFormat(fmt);
 	}
 	
-	a.SetQueueSize(dev.realtime ? 1 : cache);
+	if (auto* synth = dynamic_cast<SynthInstrumentT<SynFluidsynth>*>(&a)) {
+		dev.debug_sound_enabled = synth->IsDebugSoundEnabled();
+		dev.debug_sound_output = synth->GetDebugSoundOutput();
+		dev.debug_sound_seed = synth->GetDebugSoundSeed();
+		dev.debug_print_enabled = synth->IsDebugPrintEnabled();
+		dev.debug_frame_cursor = 0;
+		dev.debug_logged_header = false;
+		if (dev.debug_sound_enabled) {
+			LOG("SynFluidsynth: debug sound output mode '" << dev.debug_sound_output << "', seed " << dev.debug_sound_seed);
+			if (dev.debug_print_enabled)
+				Cout() << "SynFluidsynth: debug sound output mode '" << dev.debug_sound_output << "', seed " << dev.debug_sound_seed << '\n';
+		}
+	}
+	
+	a.SetQueueSize(dev.realtime ? 1 : dev.max_cache);
 	//a.SetQueueSize(DEFAULT_AUDIO_QUEUE_SIZE);
 		
     return true;
@@ -108,6 +149,14 @@ bool SynFluidsynth::Instrument_PostInitialize(NativeInstrument& dev, AtomBase& a
 }
 
 bool SynFluidsynth::Instrument_Start(NativeInstrument& dev, AtomBase& a) {
+	InterfaceSourcePtr src_iface = a.GetSource();
+	int src_c = src_iface->GetSourceCount();
+	if (src_c > 0) {
+		ValueBase& src_val = src_iface->GetSourceValue(src_c - 1);
+		LOG("SynFluidsynth::Instrument_Start: output queue min=" << src_val.GetMinPackets() << " max=" << src_val.GetMaxPackets());
+		if (dev.debug_print_enabled)
+			Cout() << "SynFluidsynth::Instrument_Start: output queue min=" << src_val.GetMinPackets() << " max=" << src_val.GetMaxPackets() << '\n';
+	}
 	dev.flag.Start(1);
 	UPP::Thread::Start(callback2(&SynFluidsynth_ProcessThread, &dev, &a));
 	return true;
@@ -139,8 +188,8 @@ bool SynFluidsynth::Instrument_Send(NativeInstrument& dev, AtomBase& a, Realtime
 		#endif
 		AudioFormat& afmt = fmt;
 		int sr = afmt.GetSampleRate();
-		ASSERT(sr == dev.sample_rate);
-		ASSERT(afmt.GetSize() == 2);
+		ASSERT(sr == dev.packet_frames);
+	ASSERT(afmt.res[0] == 2);
 		ASSERT(afmt.IsSampleFloat());
 		
 		if (dev.packets.GetCount()) {
@@ -153,7 +202,12 @@ bool SynFluidsynth::Instrument_Send(NativeInstrument& dev, AtomBase& a, Realtime
 				Swap(out.Data(), dev.packets.Top());
 				dev.packets.Clear();
 			}
-			dev.lock.Leave();
+		int pending_after = dev.packets.GetCount();
+		dev.lock.Leave();
+		if (dev.debug_print_enabled)
+			Cout() << "SynFluidsynth::Instrument_Send: pending packets=" << pending_after << '\n';
+		else
+			RTLOG("SynFluidsynth::Instrument_Send: pending packets=" << pending_after);
 		}
 		else out.Data().SetCount(afmt.GetFrameSize(), 0);
 		
@@ -350,8 +404,9 @@ bool SynFluidsynth_InitializeSoundfont(SynFluidsynth::NativeInstrument& dev, int
 }
 
 void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase* a) {
-	int buf_size = 2 * dev->sample_rate * sizeof(float);
-	float wait_time = (float)dev->sample_rate / 44100.f;
+	int channels = dev->output_channels ? dev->output_channels : 2;
+	int buf_size = channels * dev->packet_frames * sizeof(float);
+	float wait_time = (float)dev->packet_frames / (float)dev->sample_rate;
 	
 	while (dev->flag.IsRunning()) {
 		if (dev->packets.GetCount() >= dev->max_cache) {
@@ -366,7 +421,12 @@ void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase*
 		
 		dev->lock.Enter();
 		dev->packets.Add(p);
+		int pending = dev->packets.GetCount();
 		dev->lock.Leave();
+		if (dev->debug_print_enabled)
+			Cout() << "SynFluidsynth thread buffered packets=" << pending << '\n';
+		else
+			RTLOG("SynFluidsynth thread buffered packets=" << pending);
 	}
 	
 	dev->flag.DecreaseRunning();
@@ -374,6 +434,38 @@ void SynFluidsynth_ProcessThread(SynFluidsynth::NativeInstrument* dev, AtomBase*
 }
 
 void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomBase& a, Vector<byte>& out) {
+	int channels = dev.output_channels ? dev.output_channels : 2;
+	if (dev.debug_sound_enabled) {
+		int frames = dev.packet_frames;
+		int out_samples = frames * channels;
+		int out_size = out_samples * sizeof(float);
+		out.SetCount(out_size);
+		float* out_begin = (float*)(byte*)out.Begin();
+		DebugAudioPatternFill(out_begin, frames, channels, dev.debug_frame_cursor, dev.debug_sound_seed);
+		if (!dev.debug_logged_header && frames > 0) {
+			Vector<float> preview;
+			int preview_frames = min(frames, 3);
+			preview.SetCount(preview_frames * channels);
+			DebugAudioPatternFill(preview.Begin(), preview_frames, channels, dev.debug_frame_cursor, dev.debug_sound_seed);
+			String msg;
+			for (int i = 0; i < preview_frames; ++i) {
+				msg.Cat(Format(" frame%02d:", i));
+				for (int ch = 0; ch < channels; ++ch) {
+					msg.Cat(Format(" ch%d=%.3f", ch, preview[i * channels + ch]));
+				}
+			}
+			LOG("SynFluidsynth debug output preview ->" << msg);
+			if (dev.debug_print_enabled)
+				Cout() << "SynFluidsynth debug output preview ->" << msg << '\n';
+			dev.debug_logged_header = true;
+		}
+		dev.debug_frame_cursor += frames;
+		#if DETECT_DELAY
+		dev.silence = false;
+		dev.detection_ready = true;
+		#endif
+		return;
+	}
 	
 	// lookup number of audio and effect (stereo-)channels of the synth
     // see "synth.audio-channels", "synth.effects-channels" and "synth.effects-groups" settings respectively
@@ -388,7 +480,7 @@ void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomB
     //n_fx_chan *= fluid_synth_count_effects_groups(dev.synth);
     
     // for simplicity, allocate one single sample pool
-    int sample_count = dev.sample_rate * (n_aud_chan + n_fx_chan) * 2;
+    int sample_count = dev.packet_frames * (n_aud_chan + n_fx_chan) * 2;
     dev.buffer.SetCount(sample_count);
     float* samp_buf = (float*)dev.buffer.Begin();
     
@@ -403,26 +495,27 @@ void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomB
     // please review documentation of fluid_synth_process()
     for(int i = 0; i < n_aud_chan * 2; i++)
     {
-        dry[i] = &samp_buf[i * dev.sample_rate];
+        dry[i] = &samp_buf[i * dev.packet_frames];
     }
     
     // setup buffers to mix effects stereo audio to
     // similar channel layout as above, revie fluid_synth_process()
     for(int i = 0; i < n_fx_chan * 2; i++)
     {
-        fx[i] = &samp_buf[n_aud_chan * 2 * dev.sample_rate + i * dev.sample_rate];
+        fx[i] = &samp_buf[n_aud_chan * 2 * dev.packet_frames + i * dev.packet_frames];
     }
     
-    int out_samples = dev.sample_rate * 2;
+    int out_samples = dev.packet_frames * channels;
     int out_size = out_samples * sizeof(float);
     out.SetCount(out_size);
-    float* o = (float*)(byte*)out.Begin();
+    float* out_begin = (float*)(byte*)out.Begin();
+    float* out_write = out_begin;
     
     #if 1
     
-    fluid_synth_write_float(dev.synth, dev.sample_rate,
-		o, 0, 2,
-		o, 1, 2);
+    fluid_synth_write_float(dev.synth, dev.packet_frames,
+		out_begin, 0, channels,
+		out_begin, 1, channels);
 	
 	
     #elif 1
@@ -430,16 +523,16 @@ void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomB
     
     // dont forget to zero sample buffer(s) before each rendering
     memset(samp_buf, 0, sample_count * sizeof(float));
-    int err = fluid_synth_process(dev.synth, dev.sample_rate, n_fx_chan * 2, fx.Begin(), n_aud_chan * 2, dry.Begin());
+    int err = fluid_synth_process(dev.synth, dev.packet_frames, n_fx_chan * 2, fx.Begin(), n_aud_chan * 2, dry.Begin());
     if(err == FLUID_FAILED) {
         ASSERT_(0, "oops");
     }
     
     const float* l_from = dry[0];
     const float* r_from = dry[1];
-    for(int i = 0; i < dev.sample_rate; i++) {
-		*o++ = *l_from++;
-		*o++ = *r_from++;
+    for(int i = 0; i < dev.packet_frames; i++) {
+		*out_write++ = *l_from++;
+		*out_write++ = *r_from++;
     }
     
     
@@ -450,10 +543,10 @@ void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomB
     #define FLT_TO_U16(x) ((x) + 1) * 0.5 * UINT16_MAX
     static int sample_i;
     int len = 1.0 / 440.0 * 44100;
-    for(int i = 0; i < dev.sample_rate; i++) {
+    for(int i = 0; i < dev.packet_frames; i++) {
         float f = sin(sample_i / (float)len * 2 * M_PI);
-		*o++ = FLT_TO_S16(f);
-		*o++ = FLT_TO_S16(f);
+		*out_write++ = FLT_TO_S16(f);
+		*out_write++ = FLT_TO_S16(f);
 		sample_i = (sample_i + 1) % len;
     }
     
@@ -463,9 +556,9 @@ void SynFluidsynth_Instrument_Update(SynFluidsynth::NativeInstrument& dev, AtomB
     
     #if DETECT_DELAY
     if (dev.silence) {
-        float* end = o + dev.sample_rate * 2;
-        float* it = o;
-        while (it != end) {
+		float* it = out_begin;
+        float* end = it + dev.packet_frames * channels;
+        while (it < end) {
             if (fabsf(*it) > 0.01) {
                 dev.silence = false;
                 break;
@@ -620,4 +713,3 @@ void SynFluidsynth_HandleEvent(SynFluidsynth::NativeInstrument& dev, const MidiI
 END_UPP_NAMESPACE
 
 #endif
-

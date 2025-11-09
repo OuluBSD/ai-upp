@@ -10,33 +10,46 @@
 NAMESPACE_UPP
 
 Image TgaReaderBackend::LoadFileAny(String path) {
-	String content = LoadFile(path);
-	if (content.IsEmpty())
+	ByteImage img = LoadByteImageAny(path);
+	if (img.IsEmpty())
 		return Image();
-	
+
+	// Convert ByteImage to U++ Image (not recommended - use LoadByteImageAny instead)
+	TODO
+	return Image();
+}
+
+ByteImage TgaReaderBackend::LoadByteImageAny(String path) {
+	String content = LoadFile(path);
+	if (content.IsEmpty()) {
+		LOG("TgaReaderBackend::LoadByteImageAny: error: file is empty or doesn't exist: " << path);
+		return ByteImage();
+	}
+
 	int w = 0;
 	int h = 0;
 	int depth = 0;
 	int bpp = 4; // always, see tgaRead impl
-	void* src = (void*)tgaRead((const unsigned char*)content.Begin(), TGA_READER_ARGB, &w, &h, &depth);
+	void* src = (void*)tgaRead((const unsigned char*)content.Begin(), TGA_READER_ABGR, &w, &h, &depth);
+	if (!src) {
+		LOG("TgaReaderBackend::LoadByteImageAny: error: tgaRead failed for: " << path);
+		return ByteImage();
+	}
 	int len = w * h * bpp;
-	One<RawSysImage> img = new RawSysImage();
-	img->data.SetCount(len);
-	memcpy(img->data.Begin(), src, len);
-	img->backend = AsTypeCls<CLASSNAME>();
-	img->w = w;
-	img->h = h;
-	img->ch = bpp;
-	img->pitch = w * bpp;
-	
+	LOG("TgaReaderBackend::LoadByteImageAny: loaded " << path << " size: " << w << "x" << h << " channels: " << bpp);
+
+	One<RawSysImage> raw = new RawSysImage();
+	raw->data.SetCount(len);
+	memcpy(raw->data.Begin(), src, len);
+	raw->backend = AsTypeCls<CLASSNAME>();
+	raw->w = w;
+	raw->h = h;
+	raw->ch = bpp;
+	raw->pitch = w * bpp;
+
 	tgaFree(src);
-	
-	/*Image i(img);
-	auto* data = i.GetData();
-	int w0 = data->img.GetWidth();
-	Size sz = i.GetSize();*/
-	
-	return *img;
+
+	return *raw; // Converts via operator ByteImage()
 }
 
 Image TgaReaderBackend::LoadStringAny(String str) {

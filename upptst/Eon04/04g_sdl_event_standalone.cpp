@@ -34,7 +34,7 @@ void Run04gSdlEventStandalone(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run04gSdlEventStandalone: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("04g_sdl_event_standalone.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/04g_sdl_event_standalone.eon"));
 		break;
 	default:
 		throw Exc(Format("Run04gSdlEventStandalone: unknown method %d", method));

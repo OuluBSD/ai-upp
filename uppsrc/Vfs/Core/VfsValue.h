@@ -436,6 +436,39 @@ struct VfsValue : Pte<VfsValue> {
 		return 0;
 	}
 	
+	template <class T> T* FindOwnerWithPathAndCast(const String& path, int max_depth=-1) const {
+		if (path.IsEmpty())
+			return FindOwnerWith<T>(max_depth);
+		Vector<String> raw_parts = Split(path, "/");
+		Vector<String> parts;
+		for (const String& part : raw_parts)
+			if (!part.IsEmpty())
+				parts.Add(part);
+		if (parts.IsEmpty())
+			return FindOwnerWith<T>(max_depth);
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			VfsValue* cur = n;
+			bool matched = true;
+			for (const String& part : parts) {
+				int idx = cur->Find(part);
+				if (idx < 0) {
+					matched = false;
+					break;
+				}
+				cur = &cur->sub[idx];
+			}
+			if (matched && cur->ext) {
+				T* o = CastPtr<T>(&*cur->ext);
+				if (o)
+					return o;
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+	
 	template <class T> T* FindOwnerWithCast(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		VfsValue* n = owner;
@@ -452,7 +485,55 @@ struct VfsValue : Pte<VfsValue> {
 		}
 		return 0;
 	}
-	
+
+	// Helper to search deeper into sibling containers for new VFS tree structure
+	template <class T> T* FindOwnerWithCastDeep(int max_depth=-1) const {
+		TypeCls type = AsTypeCls<T>();
+		VfsValue* n = owner;
+		int d = 1;
+		while (n && (max_depth < 0 || d++ <= max_depth)) {
+			// First try direct children
+			for (auto& s : n->sub) {
+				if (s.ext) {
+					T* o = CastPtr<T>(&*s.ext);
+					if (o)
+						return o;
+				}
+			}
+			// Then try grandchildren (for sibling containers)
+			for (auto& s : n->sub) {
+				for (auto& ss : s.sub) {
+					if (ss.ext) {
+						T* o = CastPtr<T>(&*ss.ext);
+						if (o)
+							return o;
+					}
+				}
+			}
+			// Also search in sibling containers (owner's siblings and their children)
+			if (n->owner) {
+				for (auto& sibling : n->owner->sub) {
+					// Skip if it's the same as current owner
+					if (&sibling == n) continue;
+					// Check sibling directly
+					if (sibling.ext) {
+						T* o = CastPtr<T>(&*sibling.ext);
+						if (o) return o;
+					}
+					// Check sibling's children
+					for (auto& sc : sibling.sub) {
+						if (sc.ext) {
+							T* o = CastPtr<T>(&*sc.ext);
+							if (o) return o;
+						}
+					}
+				}
+			}
+			n = n->owner;
+		}
+		return 0;
+	}
+
 	template <class T> T* FindOwnerRootWith(int max_depth=-1) const {
 		TypeCls type = AsTypeCls<T>();
 		VfsValue* n = owner;

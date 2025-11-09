@@ -2046,7 +2046,10 @@ void VfsValueExt::Uninitialize() {}
 bool VfsValueExt::IsInitialized() const {return is_initialized;}
 void VfsValueExt::SetInitialized(bool b) {is_initialized = b;}
 String VfsValueExt::GetCategory() {return String();}
-void VfsValueExt::Update(double dt) {ASSERT_(0,"unimplemented");}
+void VfsValueExt::Update(double dt) {
+	// Default implementation does nothing
+	// Derived classes should override this if they need update functionality
+}
 bool VfsValueExt::Arg(String key, Value value) {ASSERT_(0,"unimplemented"); return false;}
 bool VfsValueExt::Start() {return true;}
 void VfsValueExt::Stop() {}

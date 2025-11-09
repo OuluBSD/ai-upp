@@ -229,36 +229,64 @@ bool LoopContext::MakePrimaryLinks() {
     return true;
 }
 
+bool LoopContext::ValidateSideLinks(String* err) const {
+    const String loop_path = PathOf(const_cast<VfsValue&>(space));
+    for (const auto& info : added) {
+        const IfaceConnTuple& iface = info.iface;
+        const String atom_name = info.a ? info.a->GetType().ToString() : String("<null>");
+        for (int sink_ch = 1; sink_ch < iface.type.iface.sink.GetCount(); sink_ch++) {
+            const IfaceConnLink& link = iface.sink[sink_ch];
+            if (link.conn >= 0 && !iface.type.IsSinkChannelOptional(sink_ch)) {
+                if (err)
+                    *err = Format("Loop '%s': atom '%s' sink side channel %d not connected",
+                                  loop_path, atom_name, sink_ch);
+                return false;
+            }
+        }
+        for (int src_ch = 1; src_ch < iface.type.iface.src.GetCount(); src_ch++) {
+            const IfaceConnLink& link = iface.src[src_ch];
+            if (link.conn >= 0 && !iface.type.IsSourceChannelOptional(src_ch)) {
+                if (err)
+                    *err = Format("Loop '%s': atom '%s' source side channel %d not connected",
+                                  loop_path, atom_name, src_ch);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool LoopContext::ConnectSides(const LoopContext& loop0, const LoopContext& loop1) {
     for (const auto& sink_info : loop0.added) {
         LinkBasePtr sink_link = sink_info.a->GetLink();
-        const IfaceConnTuple& sink_iface = sink_info.iface;
+        IfaceConnTuple& sink_iface = const_cast<IfaceConnTuple&>(sink_info.iface);
         for (int sink_ch = 1; sink_ch < sink_iface.type.iface.sink.GetCount(); sink_ch++) {
-            const IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
-            if (sink_conn.conn < 0 && sink_iface.type.IsSinkChannelOptional(sink_ch))
+            IfaceConnLink& sink_conn = sink_iface.sink[sink_ch];
+            if (sink_conn.conn < 0)
                 continue;
-            bool found = false;
+            bool linked = false;
             for (const auto& src_info : loop1.added) {
                 LinkBasePtr src_link = src_info.a->GetLink();
-                const IfaceConnTuple& src_iface = src_info.iface;
+                IfaceConnTuple& src_iface = const_cast<IfaceConnTuple&>(src_info.iface);
                 for (int src_ch = 1; src_ch < src_iface.type.iface.src.GetCount(); src_ch++) {
-                    const IfaceConnLink& src_conn = src_iface.src[src_ch];
-                    if (src_conn.conn < 0 && src_iface.type.IsSourceChannelOptional(src_ch))
+                    IfaceConnLink& src_conn = src_iface.src[src_ch];
+                    if (src_conn.conn < 0)
                         continue;
                     if (sink_conn.conn == src_conn.conn) {
                         int src_ch_i = src_conn.local;
                         int sink_ch_i = sink_conn.local;
                         if (!src_link->LinkSideSink(sink_link, src_ch_i, sink_ch_i))
                             return false;
-                        found = true;
+                        // Mark as linked; remaining passes will skip this pair.
+                        sink_conn.conn = -1;
+                        src_conn.conn = -1;
+                        linked = true;
                         break;
                     }
                 }
-                if (found) break;
+                if (linked)
+                    break;
             }
-            // It is allowed that optional channels remain unconnected
-            if (!found && !(sink_conn.conn < 0 && sink_iface.type.IsSinkChannelOptional(sink_ch)))
-                return false;
         }
     }
     return true;
@@ -268,10 +296,14 @@ bool LoopContext::PostInitializeAll() {
     int c = added.GetCount() - 1;
     for (int i = c; i >= 0; i--) {
         const AddedAtom& a = added[i];
-        if (!a.a->PostInitialize())
+        if (!a.a->PostInitialize()) {
+            LOG("LoopContext::PostInitializeAll: atom " << a.a->GetType().ToString() << " PostInitialize failed");
             return false;
-        if (a.l && !a.l->PostInitialize())
+        }
+        if (a.l && !a.l->PostInitialize()) {
+            LOG("LoopContext::PostInitializeAll: link " << a.l->GetTypeName() << " PostInitialize failed");
             return false;
+        }
     }
     return true;
 }
@@ -330,6 +362,9 @@ bool ChainContext::ResolveAction(const String& action, AtomTypeCls& out_atom, Li
 
 LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>& atoms, bool make_primary_links) {
     LoopContext& lc = loops.Add(new LoopContext(loop_space));
+    RTLOG("ChainContext::AddLoop: space=" << PathOf(loop_space)
+        << " atoms=" << atoms.GetCount()
+        << " make_primary_links=" << make_primary_links);
     int idx = 0;
     for (const auto& spec : atoms) {
         AtomTypeCls atom;
@@ -346,8 +381,39 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
         if (spec.link.IsValid())
             link = spec.link;
         int use_idx = spec.idx >= 0 ? spec.idx : idx;
-        lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx);
+        RTLOG("  atom #" << idx << " action=" << spec.action
+            << " type=" << atom.ToString()
+            << " link=" << (link.IsValid() ? link.ToString() : String("<null>")));
+        if (!lc.AddAtom(atom, link, spec.iface, &spec.args, use_idx)) {
+            RTLOG("ChainContext::AddLoop: atom #" << idx << " failed to initialize");
+            lc.failed = true;
+            return lc;
+        }
         idx++;
+    }
+    auto has_audio_channel = [](const ValDevTuple& tuple) {
+        for (int i = 0; i < tuple.GetCount(); i++)
+            if (tuple[i].vd.val == ValCls::AUDIO)
+                return true;
+        return false;
+    };
+    bool loop_has_audio = false;
+    for (const auto& info : lc.added) {
+        if (!info.a)
+            continue;
+        const AtomTypeCls type = info.a->GetType();
+        if (has_audio_channel(type.iface.sink) || has_audio_channel(type.iface.src)) {
+            loop_has_audio = true;
+            break;
+        }
+    }
+    if (loop_has_audio) {
+        for (auto& info : lc.added) {
+            if (!info.a)
+                continue;
+            if (CustomerBase* customer = dynamic_cast<CustomerBase*>(&*info.a))
+                customer->EnsureAudioDefaultQueue();
+        }
     }
     if (make_primary_links)
         lc.MakePrimaryLinks();
@@ -371,6 +437,13 @@ bool ChainContext::StartAll() {
 void ChainContext::UndoAll() {
     for (int i = loops.GetCount() - 1; i >= 0; i--)
         loops[i].UndoAll();
+}
+
+bool ChainContext::ValidateSideLinks(String* err) const {
+    for (const auto& lc : loops)
+        if (!lc.ValidateSideLinks(err))
+            return false;
+    return true;
 }
 
 String ChainContext::GetTreeString(int indent) const {

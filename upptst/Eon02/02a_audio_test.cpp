@@ -98,7 +98,7 @@ void Run02aAudioTest(Engine& eng, int method) {
 		break;
 	}
 	case 0:
-		sys->PostLoadFile(GetDataFile("02a_audio_test.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/02a_audio_test.eon"));
 		break;
 	default:
 		throw Exc(Format("Run02aAudioTest: unknown method %d", method));

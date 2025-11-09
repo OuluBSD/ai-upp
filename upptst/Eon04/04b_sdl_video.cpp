@@ -33,7 +33,7 @@ void Run04bSdlVideo(Engine& eng, int method) {
 	case 2:
 		LOG(Format("warning: Run04bSdlVideo: method %d not implemented yet", method));
 	case 0:
-		sys->PostLoadFile(GetDataFile("04b_sdl_video.eon"));
+		sys->PostLoadFile(ShareDirFile("eon/tests/04b_sdl_video.eon"));
 		break;
 	default:
 		throw Exc(Format("Run04bSdlVideo: unknown method %d", method));

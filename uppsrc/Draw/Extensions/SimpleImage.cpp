@@ -113,10 +113,12 @@ void ByteImage::Visit(Vis& v) {
 }
 
 void ByteImage::operator=(const ByteImage& i) {
+	LOG("ByteImage::operator=: this=" << (void*)this << " from ByteImage at " << (void*)&i << " i.data=" << (void*)i.data << " i.sz=" << i.sz.cx << "x" << i.sz.cy << " i.channels=" << i.channels);
 	if (i.data)
 		Set(i.sz.cx, i.sz.cy, i.channels, i.pitch, i.data);
 	else
 		Clear();
+	LOG("ByteImage::operator=: after Set, this->data=" << (void*)this->data << " this->sz=" << this->sz.cx << "x" << this->sz.cy);
 }
 
 void ByteImage::FlipVert() {
@@ -135,7 +137,7 @@ void ByteImage::Set(const Image& img) {
 	#ifdef LIBTOPSIDE
 	Set(sz.cx, sz.cy, img.GetStride(), img.GetPitch(), img.Begin());
 	#else
-	Set(sz.cx, sz.cy, 4, sz.cx, (const byte*)img.Begin());
+	Set(sz.cx, sz.cy, 4, sz.cx * 4, (const byte*)img.Begin());
 	#endif
 }
 

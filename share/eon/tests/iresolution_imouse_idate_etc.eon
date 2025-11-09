@@ -26,7 +26,7 @@ machine sdl.app:
 		loop center.events:
 			center.customer
 			sdl.event.pipe
-			state.event.pipe: target = event.register
+			state.event.pipe: target = "/event/register"
 		
 		
 		
@@ -44,7 +44,7 @@ machine sdl.app:
 		
 		loop ogl.fbo.keyboard:
 			ogl.customer
-			ogl.fbo.keyboard[][loop == ogl.fbo.screen]: target = event.register
+			ogl.fbo.keyboard[][loop == ogl.fbo.screen]: target = "/event/register"
 		
 		
 		
@@ -53,5 +53,5 @@ machine sdl.app:
 			sdl.fbo[loop == ogl.fbo.font, loop == ogl.fbo.video, loop == ogl.fbo.audio, loop == ogl.fbo.keyboard]:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"
 				filepath =		"shaders/toys/aliasing/iresolution_imouse_idate_etc/stage0.glsl"

@@ -17,4 +17,4 @@ machine x11.app:
 			x11.sw.video.pipe:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"

@@ -17,7 +17,7 @@ machine sdl.app:
 			x11.sw.video.pipe:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"
 				recv.data =      true
 
 

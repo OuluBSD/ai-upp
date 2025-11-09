@@ -7,6 +7,6 @@ machine sdl.app:
 			center.customer
 			event.src.test.pipe
 			state.event.pipe:
-				target = event.register
+				target = "/event/register"
 				dbg_limit = 100
 	

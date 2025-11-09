@@ -19,7 +19,7 @@ machine glx.app:
 			x11.sw.video.pipe:
 				close_machine =		true
 				sizeable =			true
-				env =				event.register
+				env = "/event/register"
 				type =				stereo
 				fullscreen =			false
 				find.vr.screen =		false

@@ -17,4 +17,4 @@ machine sdl.app:
 			x11.ogl.fbo.sink:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"

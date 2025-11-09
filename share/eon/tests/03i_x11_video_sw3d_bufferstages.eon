@@ -11,7 +11,7 @@ machine glx.app:
 			x11.sw.fbo.standalone:
 				close_machine =			true
 				sizeable =				true
-				env =					event.register
+				env = "/event/register"
 				type =					custom
 				stages =				3
 				s0.shader.vtx.name =	"pass"

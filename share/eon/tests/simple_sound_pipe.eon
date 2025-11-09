@@ -5,35 +5,29 @@ machine sdl.app:
 	
 	chain program:
 		
-		loop audio.gen:
-			id = "audio_gen"
+		loop audio_gen:
 			center.customer
 			center.audio.src.dbg_generator
-			center.audio.side.src.center.user[][id == "audio_conv_in"]
+			center.audio.side.src.center.user[][loop == "audio_conv_in"]
 
-		loop ogl.fbo.audio.conv.in:
-			id = "audio_conv_in"
+		loop audio_conv_in:
 			ogl.customer
-			ogl.center.fbo.audio[id == "audio_gen"][id == "audio_fx"]
+			ogl.center.fbo.audio[loop == "audio_gen"][loop == "audio_fx"]
 		
-		loop ogl.fbo.audio.buffer:
-			id = "audio_fx"
+		loop audio_fx:
 			ogl.customer
-			ogl.fbo.source[id == "audio_conv_in"][id == "audio_conv_out"]: type = "audio", filepath = "shaders/toys/simple/simple_sound_out/stage1.glsl"
+			ogl.fbo.source[loop == "audio_conv_in"][loop == "audio_conv_out"]: type = "audio", filepath = "shaders/toys/simple/simple_sound_out/stage1.glsl"
 		
-		loop ogl.fbo.audio.conv.out:
-			id = "audio_conv_out"
+		loop audio_conv_out:
 			ogl.customer
-			ogl.fbo.center.audio[id == "audio_fx"][id == "audio_out"]
+			ogl.fbo.center.audio[loop == "audio_fx"][loop == "audio_out"]
 		
-		loop audio:
-			id = "audio_out"
+		loop audio_out:
 			center.customer
-			center.audio.side.sink.center.user[id == "audio_conv"]
+			center.audio.side.sink.center.user[loop == "audio_conv"]
 			sdl.audio
 		
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
 			sdl.fbo.standalone:
 				filepath ="shaders/toys/simple/simple_sound_pipe/stage0.glsl"

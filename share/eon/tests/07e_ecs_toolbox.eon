@@ -10,7 +10,7 @@ machine sdl.app:
 			center.customer
 			sdl.event.pipe
 			state.event.pipe:
-				target = event.register
+				target = "/event/register"
 		
 		loop ogl.fbo:
 			ogl.customer
@@ -22,14 +22,14 @@ machine sdl.app:
 			sdl.fbo.sink:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"
 
 
 world ecs.dummy:
 	system rendering
 	system events
 	system interaction:
-		env = event.register
+		env = "/event/register"
 	system physics:
 		rm.outsiders = true
 		rm.area.size = 20

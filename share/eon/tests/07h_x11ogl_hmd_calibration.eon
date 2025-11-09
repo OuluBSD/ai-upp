@@ -9,7 +9,7 @@ machine sdl.app:
 		loop center.events.kb:
 			center.customer
 			x11.event.pipe
-			state.event.pipe: target = event.register
+			state.event.pipe: target = "/event/register"
 		
 		loop center.events.hmd:
 			center.customer
@@ -18,7 +18,7 @@ machine sdl.app:
 				device.left.idx = -1
 				device.right.idx = -1
 			state.event.pipe:
-				target: event.register
+				target: "/event/register"
 		
 		loop ogl.fbo:
 			ogl.customer:
@@ -26,7 +26,7 @@ machine sdl.app:
 				close_machine =	  true
 				fullscreen =		 true
 				find.vr.screen =	 true
-				env =				event.register
+				env = "/event/register"
 				type =				 stereo
 				shader.frag.path =	"shaders/tests/07d_fragment.glsl"
 				shader.vtx.path =	"shaders/tests/07d_vertex.glsl"
@@ -36,7 +36,7 @@ world ecs.dummy:
 	system rendering
 	system events
 	system interaction:
-		env = event.register
+		env = "/event/register"
 		hmd = state
 		calibration = true
 	system physics

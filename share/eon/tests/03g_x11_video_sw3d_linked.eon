@@ -15,7 +15,7 @@ machine glx.app:
 			x11.sw.fbo.sink:
 				close_machine =				true
 				sizeable =					true
-				env =						event.register
+				env = "/event/register"
 				shader.vtx.name =	"pass"
 				shader.frag.name =	"proxy_input0"
 				recv.data =					false

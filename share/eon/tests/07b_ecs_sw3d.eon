@@ -17,7 +17,7 @@ machine sdl.app:
 			x11.sw.video.pipe:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"
 				program =		"obj_view"
 				recv.data =      true
 
@@ -61,7 +61,7 @@ world ecs.dummy:
             comp viewable
             comp viewport
             comp camera.chase:
-                target = world.ball
+                target = "/world/ball"
                 log = test
             comp physics:
                 bind = true

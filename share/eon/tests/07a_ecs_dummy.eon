@@ -36,7 +36,7 @@ world ecs.dummy:
             comp viewable
             comp viewport
             comp camera.chase:
-                target = world.ball
+                target = "/world/ball"
                 log = test
             comp physics:
                 bind = physics

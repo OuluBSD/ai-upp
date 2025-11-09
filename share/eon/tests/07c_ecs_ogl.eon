@@ -16,7 +16,7 @@ machine sdl.app:
 			sdl.ogl.fbo.sink:
 				close_machine =  	true
 				sizeable =	      	true
-				env =		      	event.register
+				env = "/event/register"
 				recv.data =         true
 
 
@@ -59,7 +59,7 @@ world ecs.dummy:
             comp viewable
             comp viewport
             comp camera.chase:
-                target = world.ball
+                target = "/world/ball"
                 log = test
             comp physics:
                 bind = true

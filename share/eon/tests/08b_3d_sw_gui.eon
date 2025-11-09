@@ -9,7 +9,7 @@ machine sdl.app:
 		loop center.events:
 			center.customer
 			x11.sw.event.pipe
-			state.event.pipe: target = event.register
+			state.event.pipe: target = "/event/register"
 		
 		loop center.fbo:
 			center.customer
@@ -21,7 +21,7 @@ machine sdl.app:
 			x11.sw.fbo.sink:
 				close_machine =	true
 				sizeable =		true
-				env =			event.register
+				env = "/event/register"
 		
 		loop video:
 			center.customer
@@ -30,7 +30,7 @@ machine sdl.app:
 
 world ecs.dummy:
     //system registry
-    //system interaction: env = event.register
+    //system interaction: env = "/event/register"
     //system rendering
     //system entity.store
     //system component.store

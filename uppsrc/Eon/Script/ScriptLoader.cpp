@@ -72,10 +72,61 @@ static bool LooksLikeDotPath(const String& s) {
 	int dot = s.Find('.');
 	if (dot < 0 || dot == 0 || dot == s.GetCount() - 1)
 		return false;
+		
+	// Check if this looks like a file with an extension (e.g., "filename.jpg")
+	// In this case, don't treat it as a dot path
 	Vector<String> parts = Split(s, ".");
-	if (parts.IsEmpty())
+	if (parts.GetCount() == 2) { // Only one dot - likely a filename.extension
+		String first_part = parts[0];
+		String second_part = parts[1];
+		// If both parts are valid (alphanumeric, _, -) and the second part looks like an extension
+		if (!first_part.IsEmpty() && !second_part.IsEmpty()) {
+			// Check if first part is valid (alphanumeric, _, -)
+			for (int i = 0; i < first_part.GetCount(); i++) {
+				int chr = first_part[i];
+				if (!IsAlNum(chr) && chr != '_' && chr != '-')
+					return false;
+			}
+			// Check if second part is valid (alphanumeric, _, -)
+			for (int i = 0; i < second_part.GetCount(); i++) {
+				int chr = second_part[i];
+				if (!IsAlNum(chr) && chr != '_' && chr != '-')
+					return false;
+			}
+			
+			// Common image extensions
+			if (second_part == "jpg" || second_part == "jpeg" || second_part == "png" || 
+				second_part == "gif" || second_part == "bmp" || second_part == "tga" || 
+				second_part == "dds" || second_part == "psd" || second_part == "svg" || 
+				second_part == "tif" || second_part == "tiff") {
+				return false; // Don't treat filename.extension as a dotpath
+			}
+			
+			// Common video extensions
+			if (second_part == "mp4" || second_part == "avi" || second_part == "mov" || 
+				second_part == "mkv" || second_part == "wmv" || second_part == "flv" || 
+				second_part == "webm" || second_part == "m4v") {
+				return false; // Don't treat filename.extension as a dotpath
+			}
+			
+			// Common audio extensions
+			if (second_part == "mp3" || second_part == "wav" || second_part == "ogg" || 
+				second_part == "flac" || second_part == "aac" || second_part == "m4a") {
+				return false; // Don't treat filename.extension as a dotpath
+			}
+			
+			// Common text/data extensions
+			if (second_part == "txt" || second_part == "json" || second_part == "xml" || 
+				second_part == "csv" || second_part == "dat" || second_part == "bin") {
+				return false; // Don't treat filename.extension as a dotpath
+			}
+		}
+	}
+	
+	Vector<String> all_parts = Split(s, ".");
+	if (all_parts.IsEmpty())
 		return false;
-	for (const String& part : parts) {
+	for (const String& part : all_parts) {
 		if (part.IsEmpty())
 			return false;
 		for (int i = 0; i < part.GetCount(); i++) {

@@ -1,0 +1,14 @@
+description "GameEngine - Higher-level game engine features";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	Geometry,
+	GameLib,
+	api/Screen,
+	api/Graphics;
+
+file
+	GameWindow.cpp,
+	Game.cpp,

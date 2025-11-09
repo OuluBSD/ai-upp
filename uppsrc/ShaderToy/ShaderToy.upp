@@ -1,0 +1,12 @@
+description "ShaderToy package for node-based shader pipeline editing";
+
+uses
+	Core,
+	Draw,
+	CtrlLib,
+	GraphLib,
+	GLCtrl;
+
+file
+	ShaderToy.cpp,
+	ShaderToy.h;

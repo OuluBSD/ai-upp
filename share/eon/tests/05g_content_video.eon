@@ -12,7 +12,6 @@ machine sdl.app:
 				filepath = "videos/35c87bcb8d7af24c54d41122dadb619dd920646a0bd0e477e7bdc6d12876df17.webm"
 		
 		loop texture:
-			id = "texture"
 			ogl.customer
 			sdl.ogl.fbo.image[id == "cam"][id == "screen"]
 		

@@ -10,7 +10,7 @@ machine sdl.app:
 			center.customer
 			center.image.loader[][id == "texture"]: vflip = true, filepath = "uk_street.jpg"
 		
-		loop ogl.fbo.tex:
+		loop texture:
 			id = "texture"
 			ogl.customer
 			ogl.fbo.image[id == "image"][id == "screen"]

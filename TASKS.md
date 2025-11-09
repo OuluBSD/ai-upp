@@ -15,10 +15,10 @@
   - [x] Modify edges to connect from pin to pin instead of node to node
   - [x] Add bezier curve rendering for aesthetic connections
   - [x] Implement link creation workflow (drag from pin to pin)
-- [ ] Implement Node Groups
-  - [ ] Add group node type that can contain other nodes
-  - [ ] Implement group bounding box and header rendering
-  - [ ] Add group sizing and positioning logic
+- [x] Implement Node Groups
+  - [x] Add group node type that can contain other nodes
+  - [x] Implement group bounding box and header rendering
+  - [x] Add group sizing and positioning logic
 
 #### Phase 2: Interactive Editing Features
 - [x] Add Interactive Editing Features
@@ -27,34 +27,34 @@
   - [x] Create node/link selection system
 - [x] Enhance UI Interaction System
   - [x] Add drag and drop for nodes
-  - [ ] Implement box selection for multiple nodes/links
+  - [x] Implement box selection for multiple nodes/links
   - [x] Add keyboard shortcuts (Ctrl+C, Ctrl+V, etc.)
 - [x] Add Visual Feedback System
   - [x] Implement selection highlighting
   - [x] Add visual feedback during link creation
-  - [ ] Create hover effects for nodes and links
+  - [x] Create hover effects for nodes and links
 
 #### Phase 3: Advanced Features
-- [ ] Enhance Navigation System
-  - [ ] Add smooth zooming/panning
-  - [ ] Implement navigation animations
-  - [ ] Add focus on selected elements
+- [x] Enhance Navigation System
+  - [x] Add smooth zooming/panning
+  - [x] Implement navigation animations
+  - [x] Add focus on selected elements
 - [x] Add Context Menus
   - [x] Implement node context menus
   - [x] Add link context menus
   - [x] Create background context menu
-- [ ] Implement Animation System
-  - [ ] Add link flow animations
-  - [ ] Implement node movement animations
-  - [ ] Add navigation animations
+- [x] Implement Animation System
+  - [x] Add link flow animations
+  - [x] Implement node movement animations
+  - [x] Add navigation animations
 
 #### Phase 4: Productivity Features
 - [x] Add Clipboard Operations
   - [x] Implement cut/copy/paste functionality
   - [x] Add node duplication feature
-- [ ] Settings Persistence
-  - [ ] Implement node position saving/loading
-  - [ ] Add editor state persistence
+- [x] Settings Persistence
+  - [x] Implement node position saving/loading
+  - [x] Add editor state persistence
 - [x] Update Existing Layout Algorithms
   - [x] Adapt algorithms to work with new pin-based system
   - [x] Ensure backward compatibility with current features

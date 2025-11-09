@@ -10,7 +10,7 @@ machine sdl.app:
 			center.video.webcam[][id == "texture"]:
 				vflip = "true"
 		
-		loop ogl.fbo.tex:
+		loop texture:
 			id = "texture"
 			ogl.customer
 			sdl.ogl.fbo.image[id == "cam"][id == "screen"]

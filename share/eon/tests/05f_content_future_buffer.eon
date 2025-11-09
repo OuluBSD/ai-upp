@@ -13,7 +13,6 @@ machine sdl.app:
 				filepath = "uk_street.jpg"
 		
 		loop texture:
-			id = "texture"
 			ogl.customer
 			sdl.ogl.fbo.image[id == "image"][id == "buffer2"]
 		

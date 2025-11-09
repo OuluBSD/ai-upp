@@ -1,0 +1,7 @@
+description "GameLib - Core game engine functionality";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	Geometry;

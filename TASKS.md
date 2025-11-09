@@ -482,6 +482,32 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [x] CRITICAL: Update serial handling - each overlay tracks rolling revision numbers (serial), not global system
 - [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
 
+### VfsShell Implementation
+- [ ] Create CLI using U++ conventions similar to ~/Dev/VfsBoot/src/VfsShell/
+- [ ] Use uppsrc/ide package handling instead of "~/Dev/VfsBoot/src/VfsShell/upp*" code
+- [ ] Use uppsrc/Vfs instead of "~/Dev/VfsBoot/src/VfsShell/vfs*" code
+- [ ] Implement pwd command
+- [ ] Implement cd [path] command
+- [ ] Implement ls [path] command
+- [ ] Implement tree [path] command
+- [ ] Implement mkdir <path> command
+- [ ] Implement touch <path> command
+- [ ] Implement rm <path> command
+- [ ] Implement mv <src> <dst> command
+- [ ] Implement link <src> <dst> command
+- [ ] Implement export <vfs> <host> command
+- [ ] Implement cat [paths...] command (including stdin if no paths)
+- [ ] Implement grep [-i] <pattern> [path] command
+- [ ] Implement rg [-i] <pattern> [path] command
+- [ ] Implement head [-n N] [path] command
+- [ ] Implement tail [-n N] [path] command
+- [ ] Implement uniq [path] command
+- [ ] Implement count [path] command
+- [ ] Implement history [-a | -n N] command
+- [ ] Implement random [min [max]] command
+- [ ] Implement true / false commands
+- [ ] Implement echo <path> <data...> command
+
 ### Vfs Overlay Implementation
 - [x] Implement SourceRef structure for tracking provenance (package hash, file hash, local path, priority, flags)
 - [x] Implement OverlayView interface for virtual merge of per-file trees
@@ -545,6 +571,35 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [x] Examined GuboCore and GuboLib structure
 - [x] Investigated Soft* libraries structure
 - [x] Analyzed Geometry library for quality issues
+
+## GameEngine Thread
+
+### New Game Engine Library Development
+- [ ] Create uppsrc/GameLib package for core game engine functionality
+- [ ] Create uppsrc/GameEngine package for higher-level game engine features
+- [ ] Integrate with existing uppsrc/Geometry for vectors, matrices, and 3D math operations
+- [ ] Leverage uppsrc/api/Screen package for cross-platform windowing and input handling
+- [ ] Integrate with uppsrc/api/Graphics package for rendering capabilities (OpenGL, DirectX, etc.)
+- [ ] Use uppsrc/api/Hal package for hardware abstraction and input management
+- [ ] Follow patterns from upptst/Eon{00,01,02,03,04,05} examples for proper eon code expansion
+- [ ] Design GameWindow class as an easy-to-use solution for game windows
+- [ ] Ensure GameWindow properly integrates with Screen and Graphics API packages
+- [ ] Implement basic game loop architecture in GameEngine
+- [ ] Create entity-component-system (ECS) framework in GameEngine
+- [ ] Add support for asset management and resource loading
+- [ ] Implement basic 2D and 3D rendering pipelines
+- [ ] Create camera system with support for different projection types
+- [ ] Develop input handling system unified across different platforms
+- [ ] Add audio integration using uppsrc/api/Audio package
+- [ ] Implement basic physics integration using uppsrc/api/Physics package
+- [ ] Design scene management system
+- [ ] Create basic UI/HUD rendering capabilities
+- [ ] Add cross-platform file system abstraction for game assets
+- [ ] Implement basic animation system
+- [ ] Design resource management with proper memory handling
+- [ ] Ensure compatibility with existing U++/Eon architecture
+- [ ] Write comprehensive tests for GameLib and GameEngine packages
+- [ ] Document API design and usage patterns for game development
 
 ### THREAD: Build and Test Node Editor
 **Goal**: Create and maintain build script for GraphLib Node Editor with proper testing before committing changes

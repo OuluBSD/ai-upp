@@ -1,0 +1,11 @@
+description "GameEngine Example - Simple game using the new GameEngine";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	Geometry,
+	GameEngine;
+
+file
+	GameExample.cpp,

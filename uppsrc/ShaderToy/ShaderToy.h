@@ -6,8 +6,33 @@
 #include <GraphLib/GraphNodeCtrl.h>
 #include <GLCtrl/GLCtrl.h>
 #include <CtrlLib/CtrlLib.h>
+#include <Painter/Painter.h>
 
 NAMESPACE_UPP
+
+// Pin types for shader connections
+enum class PinType {
+    UV_COORDS = 0,      // UV coordinates
+    COLOR = 1,          // Color values
+    TIME = 2,           // Time values
+    RESOLUTION = 3,     // Resolution values
+    TEXTURE = 4,        // Texture data
+    CUBEMAP = 5,        // Cube map data
+    VOLUME = 6,         // Volume texture data
+    KEYBOARD = 7,       // Keyboard input
+    FRAME = 8           // Frame feedback
+};
+
+// Simple structure for shader pins using U++-compatible types
+struct ShaderPin : public Moveable<ShaderPin> {
+    String id;
+    int type;  // Using int instead of enum for compatibility
+    int kind;  // Using int instead of enum for compatibility
+    
+    ShaderPin() : type(0), kind(0) {}
+    ShaderPin(String pinId, int pinType, int pinKind) 
+        : id(pinId), type(pinType), kind(pinKind) {}
+};
 
 // Base class for all editor node types
 class EditorNode {
@@ -21,8 +46,9 @@ public:
     virtual bool ValidateConnection(const EditorNode* other, int thisPin, int otherPin) const;
 
     // Pin management - using GraphLib's pin system
-    void AddInputPin(const String& id, int type = 0);
-    void AddOutputPin(const String& id, int type = 0);
+    void AddInputPin(const String& id, PinType type);
+    void AddOutputPin(const String& id, PinType type);
+    const Vector<ShaderPin>& GetPins() const { return pins; }
     
     // Use GraphLib's pin system by composition
     GraphLib::Node& GetGraphNode() { return graphNode; }
@@ -30,6 +56,7 @@ public:
 
 private:
     GraphLib::Node graphNode;
+    Vector<ShaderPin> pins;  // Track our custom pins
 };
 
 // Specialized node types
@@ -42,10 +69,19 @@ public:
     // Shader-specific functionality
     void SetCode(const String& code);
     String GetCode() const { return shaderCode; }
+    void SetUniform(const String& name, double value);
+    void SetUniformVec3(const String& name, double x, double y, double z);
+    void SetUniformVec4(const String& name, double x, double y, double z, double w);
+    const VectorMap<String, double>& GetUniforms() const { return uniforms; }
+    const VectorMap<String, Vector<double>>& GetUniformVec3s() const { return uniformVec3s; }
+    const VectorMap<String, Vector<double>>& GetUniformVec4s() const { return uniformVec4s; }
 
 private:
     String shaderCode;
-    // GLSL code editor widget
+    VectorMap<String, double> uniforms;        // Float uniforms
+    VectorMap<String, Vector<double>> uniformVec3s; // Vec3 uniforms  
+    VectorMap<String, Vector<double>> uniformVec4s; // Vec4 uniforms
+    // GLSL code editor functionality
 };
 
 class EditorTexture : public EditorNode {
@@ -57,9 +93,15 @@ public:
     // Texture-specific functionality
     void SetImagePath(const String& path);
     String GetImagePath() const { return imagePath; }
+    void SetSamplerType(int type) { samplerType = type; }
+    int GetSamplerType() const { return samplerType; }
+    Size GetTextureSize() const { return textureSize; }
+    void SetTextureSize(Size size) { textureSize = size; }
 
 private:
     String imagePath;
+    int samplerType;      // Sampler type (2D, 3D, etc.)
+    Size textureSize;     // Texture dimensions
 };
 
 class EditorCubeMap : public EditorNode {
@@ -68,8 +110,17 @@ public:
     virtual String GetNodeType() const override { return "CubeMap"; }
     virtual void RenderContent() override;
 
+    // Cube map-specific functionality
+    void SetImagePath(const String& posX, const String& negX, 
+                      const String& posY, const String& negY, 
+                      const String& posZ, const String& negZ);
+    const Vector<String>& GetImagePaths() const { return imagePaths; }
+    void SetSamplerType(int type) { samplerType = type; }
+    int GetSamplerType() const { return samplerType; }
+
 private:
-    // Cube map specific properties
+    Vector<String> imagePaths;  // 6 faces of the cube map: [posX, negX, posY, negY, posZ, negZ]
+    int samplerType;              // Sampler type for cube maps
 };
 
 class EditorVolume : public EditorNode {
@@ -78,8 +129,21 @@ public:
     virtual String GetNodeType() const override { return "Volume"; }
     virtual void RenderContent() override;
 
+    // Volume-specific functionality
+    void SetVolumePath(const String& path);
+    String GetVolumePath() const { return volumePath; }
+    void SetVolumeSize(Size sz) { volumeSize = sz; }
+    Size GetVolumeSize() const { return volumeSize; }
+    void SetVolumeDepth(int depth) { volumeDepth = depth; }
+    int GetVolumeDepth() const { return volumeDepth; }
+    void SetSamplerType(int type) { samplerType = type; }
+    int GetSamplerType() const { return samplerType; }
+
 private:
-    // 3D volume specific properties
+    String volumePath;  // Path to volume data
+    Size volumeSize;    // 2D volume dimensions (x, y)
+    int volumeDepth;    // 3rd dimension of volume (z)
+    int samplerType;    // Sampler type for volumes
 };
 
 class EditorKeyboard : public EditorNode {
@@ -88,8 +152,15 @@ public:
     virtual String GetNodeType() const override { return "Keyboard"; }
     virtual void RenderContent() override;
 
+    // Keyboard-specific functionality
+    void SetKeyMapping(const String& keyName, int keyCode);
+    const VectorMap<String, int>& GetKeyMappings() const { return keyMappings; }
+    void SetOutputType(int type) { outputType = type; }  // 0=raw, 1=processed
+    int GetOutputType() const { return outputType; }
+
 private:
-    // Keyboard input specific properties
+    VectorMap<String, int> keyMappings;  // Key name to code mapping
+    int outputType;                      // Output format type
 };
 
 class EditorRenderOutput : public EditorNode {
@@ -108,12 +179,22 @@ public:
     virtual String GetNodeType() const override { return "LastFrame"; }
     virtual void RenderContent() override;
 
+    // Frame feedback-specific functionality
+    void SetFrameBufferId(int id) { frameBufferId = id; }
+    int GetFrameBufferId() const { return frameBufferId; }
+    Size GetFrameSize() const { return frameSize; }
+    void SetFrameSize(Size sz) { frameSize = sz; }
+    void SetFeedbackDelay(int delay) { feedbackDelay = delay; }  // How many frames to delay
+    int GetFeedbackDelay() const { return feedbackDelay; }
+
 private:
-    // Frame feedback specific properties
+    int frameBufferId;      // ID of the frame buffer to use
+    Size frameSize;         // Size of the frame buffer
+    int feedbackDelay;      // Feedback delay in frames
 };
 
 // Link structure for connecting pins between nodes
-struct PipelineLink {
+struct PipelineLink : public Moveable<PipelineLink> {
     String fromNodeId;
     String fromPinId;
     String toNodeId;
@@ -170,6 +251,11 @@ private:
 
     void SetNodeRenderFunction();
     bool ValidateConnection(String fromNodeId, String fromPinId, String toNodeId, String toPinId);
+    
+    // Link management
+    bool ConnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId);
+    void DisconnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId);
+    const Vector<PipelineLink>& GetLinks() const { return links; }
 };
 
 END_UPP_NAMESPACE

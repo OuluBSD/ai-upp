@@ -21,35 +21,60 @@ bool EditorNode::ValidateConnection(const EditorNode* other, int thisPin, int ot
     return true;
 }
 
-void EditorNode::AddInputPin(const String& id, int type) {
+void EditorNode::AddInputPin(const String& id, PinType type) {
     // Use GraphLib's pin system
-    graphNode.AddPin(id, GraphLib::PinKind::Input, type);
+    graphNode.AddPin(id, GraphLib::PinKind::Input, (int)type);
+    pins.Add(ShaderPin(id, (int)type, (int)GraphLib::PinKind::Input));
 }
 
-void EditorNode::AddOutputPin(const String& id, int type) {
+void EditorNode::AddOutputPin(const String& id, PinType type) {
     // Use GraphLib's pin system
-    graphNode.AddPin(id, GraphLib::PinKind::Output, type);
+    graphNode.AddPin(id, GraphLib::PinKind::Output, (int)type);
+    pins.Add(ShaderPin(id, (int)type, (int)GraphLib::PinKind::Output));
 }
 
 // EditorShader implementation
 EditorShader::EditorShader() {
-    AddInputPin("UV", 0);      // UV coordinates input
-    AddOutputPin("Color", 1);  // Color output
-    AddInputPin("Time", 2);    // Time input (if needed)
-    AddInputPin("Resolution", 2); // Resolution input (if needed)
+    AddInputPin("UV", PinType::UV_COORDS);      // UV coordinates input
+    AddOutputPin("Color", PinType::COLOR);      // Color output
+    AddInputPin("Time", PinType::TIME);         // Time input
+    AddInputPin("Resolution", PinType::RESOLUTION); // Resolution input
 }
 
 void EditorShader::RenderContent() {
     // Render GLSL code editor and shader preview
+    // The actual rendering would happen through OpenGL in a real implementation
 }
 
 void EditorShader::SetCode(const String& code) {
     shaderCode = code;
 }
 
+void EditorShader::SetUniform(const String& name, double value) {
+    uniforms.GetAdd(name) = value;
+}
+
+void EditorShader::SetUniformVec3(const String& name, double x, double y, double z) {
+    Vector<double>& vec = uniformVec3s.GetAdd(name);
+    vec.SetCount(3);
+    vec[0] = x;
+    vec[1] = y;
+    vec[2] = z;
+}
+
+void EditorShader::SetUniformVec4(const String& name, double x, double y, double z, double w) {
+    Vector<double>& vec = uniformVec4s.GetAdd(name);
+    vec.SetCount(4);
+    vec[0] = x;
+    vec[1] = y;
+    vec[2] = z;
+    vec[3] = w;
+}
+
 // EditorTexture implementation
-EditorTexture::EditorTexture() {
-    AddOutputPin("Texture", 3); // Texture output
+EditorTexture::EditorTexture() 
+    : samplerType(0), textureSize(Size(256, 256)) {
+    AddOutputPin("Texture", PinType::TEXTURE); // Texture output
 }
 
 void EditorTexture::RenderContent() {
@@ -61,35 +86,61 @@ void EditorTexture::SetImagePath(const String& path) {
 }
 
 // EditorCubeMap implementation
-EditorCubeMap::EditorCubeMap() {
-    AddOutputPin("CubeMap", 3); // Cube map texture output
+EditorCubeMap::EditorCubeMap() 
+    : samplerType(0) {
+    AddOutputPin("CubeMap", PinType::CUBEMAP); // Cube map texture output
+    // Initialize all 6 faces to empty strings
+    for(int i = 0; i < 6; i++) {
+        imagePaths[i] = String();
+    }
 }
 
 void EditorCubeMap::RenderContent() {
     // Render cube map preview
 }
 
+void EditorCubeMap::SetImagePath(const String& posX, const String& negX, 
+                                 const String& posY, const String& negY, 
+                                 const String& posZ, const String& negZ) {
+    imagePaths[0] = posX;  // +X
+    imagePaths[1] = negX;  // -X
+    imagePaths[2] = posY;  // +Y
+    imagePaths[3] = negY;  // -Y
+    imagePaths[4] = posZ;  // +Z
+    imagePaths[5] = negZ;  // -Z
+}
+
 // EditorVolume implementation
-EditorVolume::EditorVolume() {
-    AddOutputPin("Volume", 3); // 3D volume output
+EditorVolume::EditorVolume() 
+    : volumeSize(Size(64, 64)), volumeDepth(64), samplerType(0) {
+    AddOutputPin("Volume", PinType::VOLUME); // 3D volume output
 }
 
 void EditorVolume::RenderContent() {
     // Render 3D volume preview
 }
 
+void EditorVolume::SetVolumePath(const String& path) {
+    volumePath = path;
+}
+
 // EditorKeyboard implementation
-EditorKeyboard::EditorKeyboard() {
-    AddOutputPin("Keys", 2); // Keyboard state output
+EditorKeyboard::EditorKeyboard() 
+    : outputType(0) {
+    AddOutputPin("Keys", PinType::KEYBOARD); // Keyboard state output
 }
 
 void EditorKeyboard::RenderContent() {
     // Render keyboard visualization
 }
 
+void EditorKeyboard::SetKeyMapping(const String& keyName, int keyCode) {
+    keyMappings.GetAdd(keyName) = keyCode;
+}
+
 // EditorRenderOutput implementation
 EditorRenderOutput::EditorRenderOutput() {
-    AddInputPin("Color", 1); // Color input
+    AddInputPin("Color", PinType::COLOR); // Color input
 }
 
 void EditorRenderOutput::RenderContent() {
@@ -97,8 +148,9 @@ void EditorRenderOutput::RenderContent() {
 }
 
 // EditorLastFrame implementation
-EditorLastFrame::EditorLastFrame() {
-    AddOutputPin("LastFrame", 3); // Previous frame texture output
+EditorLastFrame::EditorLastFrame() 
+    : frameBufferId(0), frameSize(Size(800, 600)), feedbackDelay(1) {
+    AddOutputPin("LastFrame", PinType::FRAME); // Previous frame texture output
 }
 
 void EditorLastFrame::RenderContent() {
@@ -118,42 +170,49 @@ PipelineEditor::~PipelineEditor() {
 EditorShader* PipelineEditor::CreateShaderNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorShader* node = new EditorShader();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorTexture* PipelineEditor::CreateTextureNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorTexture* node = new EditorTexture();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorCubeMap* PipelineEditor::CreateCubeMapNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorCubeMap* node = new EditorCubeMap();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorVolume* PipelineEditor::CreateVolumeNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorVolume* node = new EditorVolume();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorKeyboard* PipelineEditor::CreateKeyboardNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorKeyboard* node = new EditorKeyboard();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorRenderOutput* PipelineEditor::CreateRenderOutputNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorRenderOutput* node = new EditorRenderOutput();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
 EditorLastFrame* PipelineEditor::CreateLastFrameNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorLastFrame* node = new EditorLastFrame();
+    // Associate the EditorNode with the GraphLib::Node if needed
     return node;
 }
 
@@ -185,6 +244,36 @@ bool PipelineEditor::Key(dword key, int count) {
 void PipelineEditor::SetNodeRenderFunction() {
     // This function is for setting rendering behavior, but GraphLib handles this differently
     // The rendering is handled by the GraphLib system
+}
+
+bool PipelineEditor::ValidateConnection(String fromNodeId, String fromPinId, String toNodeId, String toPinId) {
+    // Simple validation - in real implementation, would check pin types are compatible
+    return true;  // For now, assume all connections are valid
+}
+
+bool PipelineEditor::ConnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId) {
+    // Validate the connection first
+    if (!ValidateConnection(fromNodeId, fromPinId, toNodeId, toPinId)) {
+        return false;
+    }
+    
+    // Add the link to our internal list
+    links.Add(PipelineLink(fromNodeId, fromPinId, toNodeId, toPinId));
+    
+    // Also potentially connect at the GraphLib level
+    return true;
+}
+
+void PipelineEditor::DisconnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId) {
+    // Find and remove the corresponding link
+    for(int i = 0; i < links.GetCount(); i++) {
+        const PipelineLink& link = links[i];
+        if (link.fromNodeId == fromNodeId && link.fromPinId == fromPinId && 
+            link.toNodeId == toNodeId && link.toPinId == toPinId) {
+            links.Remove(i);
+            break;
+        }
+    }
 }
 
 void PipelineEditor::BuildPipeline() {

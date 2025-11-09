@@ -1,9 +1,12 @@
 #include "VfsShell.h"
-#include <CtrlLib/CtrlLib.h>
+#include <Core/Core.h>
+#include <iostream>
+
+using namespace std;
 
 using namespace Upp;
 
-// Simple implementation of VfsShellHostBase for testing
+// Simple implementation of VfsShellHostBase for console application
 class VfsShellHost : public VfsShellHostBase {
 public:
 	bool Command(VfsShellConsole& shell, const ValueArray& args) override {
@@ -102,18 +105,71 @@ public:
 	String GetOutput() const override {
 		return output;
 	}
+
+	void ClearOutput() {
+		output.Clear();
+	}
 	
 private:
 	String output;
 };
 
-GUI_APP_MAIN
+int main(int argc, char* argv[])
 {
+	using namespace Upp;
 	VfsShellHost host;
 	VfsShellConsole console(host);
 	
-	// Create a simple top window to host the console
-	TopWindow win;
-	win.Add(console.SizePos());
-	win.Run();
+	// For console application, just process commands from standard input or arguments
+	if (argc > 1) {
+		// Process command line arguments as a command
+		ValueArray args;
+		for (int i = 1; i < argc; i++) {
+			args.Add(String(argv[i]));
+		}
+		
+		if (host.Command(console, args)) {
+			String output = host.GetOutput();
+			if (!output.IsEmpty()) {
+				Cout() << output << "\n";
+			}
+		} else {
+			Cout() << "Unknown command: " << String(argv[1]) << "\n";
+		}
+	} else {
+		// Interactive shell mode
+		Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
+		Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
+		
+		for (;;) {
+			Cout() << console.GetCurrentDirectory() << " $ ";
+			fflush(stdout);
+			std::string temp_input;
+			getline(std::cin, temp_input);
+			String input = String(temp_input.c_str());  // Cast to std::string to use with getline
+			if (input == "quit" || input == "exit") {
+				break;
+			}
+			
+			// Parse the input and execute the command
+			Vector<String> parts = Split(input, " ", true, true);
+			if (parts.GetCount() > 0) {
+				ValueArray args;
+				for (const String& part : parts) {
+					args.Add(part);
+				}
+				
+				host.ClearOutput(); // Clear previous output
+				if (host.Command(console, args)) {
+					String output = host.GetOutput();
+					if (!output.IsEmpty()) {
+						Cout() << output << "\n";
+					}
+				} else {
+					Cout() << "Unknown command: " << parts[0] << "\n";
+				}
+			}
+		}
+	}
+	return 0;
 }

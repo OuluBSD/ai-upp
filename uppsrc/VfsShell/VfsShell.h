@@ -3,7 +3,6 @@
 
 #include <Core/Core.h>
 #include <Core/VfsBase/VfsBase.h>  // Using Core/VfsBase instead of full Vfs package
-#include <ide/Builders/Builders.h>
 
 NAMESPACE_UPP
 
@@ -15,7 +14,7 @@ public:
 	virtual String GetOutput() const = 0;
 };
 
-class VfsShellConsole : public CodeEditor {
+class VfsShellConsole {
 	VfsShellHostBase& host;
 	VfsPath           cwd;       // Current working directory in VFS
 	String            line_header;
@@ -26,8 +25,6 @@ public:
 	
 	void Execute();
 	void PrintLineHeader();
-	void LeftDouble(Point p, dword flags) override;
-	bool Key(dword key, int count) override;
 	
 	// VFS operations
 	bool SetCurrentDirectory(const VfsPath& path);
@@ -55,9 +52,6 @@ public:
 	void CmdRandom(const ValueArray& args);
 	void CmdTrueFalse(const ValueArray& args);
 	void CmdEcho(const ValueArray& args);
-	
-	// Accessors
-	String GetOutput() const { return output; }
 	
 private:
 	String output;

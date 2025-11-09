@@ -239,6 +239,10 @@ public:
     Image GetRenderTarget() const { return renderTarget; }
 
 private:
+    VectorMap<String, EditorNode*> nodeMap;  // Map node IDs to EditorNode instances
+    Vector<EditorNode*> nodeInstances;       // Track EditorNode instances for cleanup
+
+private:
     Image renderTarget;
     Vector<PipelineLink> links;
 

@@ -16,9 +16,23 @@ void EditorNode::RenderContent() {
 }
 
 bool EditorNode::ValidateConnection(const EditorNode* other, int thisPin, int otherPin) const {
-    // Default validation - same pin types can connect
-    // For now, just return true since we're using GraphLib's internal pin system
-    return true;
+    // Validate based on pin types - implementing basic compatibility rules:
+    // - Output pins from this node connect to input pins of the other node
+    // - Pin types must be compatible
+    
+    if (thisPin >= pins.GetCount() || otherPin >= other->pins.GetCount()) {
+        return false;
+    }
+    
+    const ShaderPin& thisPinInfo = pins[thisPin];
+    const ShaderPin& otherPinInfo = other->pins[otherPin];
+    
+    // Check if pins are compatible (same type)
+    // Using the kind values we store: 0 for Input, 1 for Output based on GraphLib::PinKind values
+    bool thisIsOutput = (thisPinInfo.kind == 1);  // Output
+    bool otherIsInput = (otherPinInfo.kind == 0);  // Input
+    
+    return (thisIsOutput && otherIsInput && thisPinInfo.type == otherPinInfo.type);
 }
 
 void EditorNode::AddInputPin(const String& id, PinType type) {
@@ -90,6 +104,7 @@ EditorCubeMap::EditorCubeMap()
     : samplerType(0) {
     AddOutputPin("CubeMap", PinType::CUBEMAP); // Cube map texture output
     // Initialize all 6 faces to empty strings
+    imagePaths.SetCount(6);
     for(int i = 0; i < 6; i++) {
         imagePaths[i] = String();
     }
@@ -164,55 +179,88 @@ PipelineEditor::PipelineEditor() {
 }
 
 PipelineEditor::~PipelineEditor() {
-    // Clean up resources
+    // Clean up EditorNode instances
+    for(int i = 0; i < nodeInstances.GetCount(); i++) {
+        delete nodeInstances[i];
+    }
+    nodeInstances.Clear();
+    nodeMap.Clear();
 }
 
 EditorShader* PipelineEditor::CreateShaderNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorShader* node = new EditorShader();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorTexture* PipelineEditor::CreateTextureNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorTexture* node = new EditorTexture();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorCubeMap* PipelineEditor::CreateCubeMapNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorCubeMap* node = new EditorCubeMap();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorVolume* PipelineEditor::CreateVolumeNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorVolume* node = new EditorVolume();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorKeyboard* PipelineEditor::CreateKeyboardNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorKeyboard* node = new EditorKeyboard();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorRenderOutput* PipelineEditor::CreateRenderOutputNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorRenderOutput* node = new EditorRenderOutput();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
 EditorLastFrame* PipelineEditor::CreateLastFrameNode(const String& id, Point position) {
     GraphLib::Node& graphNode = AddNode(id, position);
     EditorLastFrame* node = new EditorLastFrame();
-    // Associate the EditorNode with the GraphLib::Node if needed
+    
+    // Store the EditorNode instance for later cleanup
+    nodeInstances.Add(node);
+    nodeMap.GetAdd(id) = node;
+    
     return node;
 }
 
@@ -247,8 +295,40 @@ void PipelineEditor::SetNodeRenderFunction() {
 }
 
 bool PipelineEditor::ValidateConnection(String fromNodeId, String fromPinId, String toNodeId, String toPinId) {
-    // Simple validation - in real implementation, would check pin types are compatible
-    return true;  // For now, assume all connections are valid
+    // Find the EditorNode objects corresponding to the IDs
+    EditorNode* fromNode = nodeMap.Get(fromNodeId, nullptr);
+    EditorNode* toNode = nodeMap.Get(toNodeId, nullptr);
+    
+    if (!fromNode || !toNode) {
+        return false;  // Nodes not found
+    }
+    
+    // Find the specific pins by ID
+    int fromPinIndex = -1;
+    int toPinIndex = -1;
+    
+    const Vector<ShaderPin>& fromPins = fromNode->GetPins();
+    for(int i = 0; i < fromPins.GetCount(); i++) {
+        if (fromPins[i].id == fromPinId) {
+            fromPinIndex = i;
+            break;
+        }
+    }
+    
+    const Vector<ShaderPin>& toPins = toNode->GetPins();
+    for(int i = 0; i < toPins.GetCount(); i++) {
+        if (toPins[i].id == toPinId) {
+            toPinIndex = i;
+            break;
+        }
+    }
+    
+    if (fromPinIndex == -1 || toPinIndex == -1) {
+        return false;  // Pins not found
+    }
+    
+    // Validate the connection between these specific pins
+    return fromNode->ValidateConnection(toNode, fromPinIndex, toPinIndex);
 }
 
 bool PipelineEditor::ConnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId) {
@@ -281,11 +361,34 @@ void PipelineEditor::BuildPipeline() {
     // 1. Determine execution order using topological sort
     // 2. Validate all connections
     // 3. Compile shaders if needed
+    
+    // First validate all connections
+    ValidatePipeline();
+    
+    // In a real implementation, we would:
+    // - Topologically sort nodes to determine execution order
+    // - Validate that all required inputs are connected
+    // - Compile shaders in EditorShader nodes
+    // - Prepare texture resources for EditorTexture/EditorCubeMap/EditorVolume nodes
+    // For now, just a basic implementation
 }
 
 void PipelineEditor::ExecutePipeline() {
     // Execute the rendering pipeline
     // Process nodes in execution order
+    
+    // In a real implementation, we would:
+    // 1. Process nodes in execution order (computed during BuildPipeline)
+    // 2. For each node:
+    //    - Gather inputs from connected output pins
+    //    - Execute node-specific functionality (run shader, load texture, etc.)
+    //    - Store outputs to output pins
+    // 3. Render the final output using EditorRenderOutput node
+    
+    // For now, just a basic implementation
+    for(int i = 0; i < nodeInstances.GetCount(); i++) {
+        nodeInstances[i]->RenderContent();
+    }
 }
 
 void PipelineEditor::ValidatePipeline() {

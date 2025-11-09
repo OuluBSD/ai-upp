@@ -2,8 +2,7 @@ description "VFS Shell - Command-line interface for VFS operations";
 
 uses
 	Core,
-	Vfs,
-	ide\Builders;
+	Vfs;
 
 file
 	VfsShell.cpp,

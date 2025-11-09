@@ -1,7 +1,9 @@
 #include "Builders.h"
 #include "BuilderUtils.h"
 #include <ide/clang/clang.h>
+#ifdef flagGUI
 #include <ide/Vfs/Vfs.h>
+#endif
 
 void VfsBuilder::AddFlags(Index<String>& cfg)
 {
@@ -123,7 +125,9 @@ bool VfsBuilder::RunFile(String cmdline, Stream& out, int slot, String filename,
 	
 	//LOG(v.ast.GetTreeString());
 	
+#ifdef flagGUI
 	Store(IdeMetaEnv(), includes, filename, v.ast);
+#endif
 	
 	clang_disposeTranslationUnit(tu);
 	clang_disposeIndex(index);

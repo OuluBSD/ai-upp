@@ -6,42 +6,25 @@ NAMESPACE_UPP
 VfsShellConsole::VfsShellConsole(VfsShellHostBase& h) : host(h)
 {
 	cwd.Set(INTERNAL_ROOT_PATH);  // Use internal root as starting point
-	NoHorzScrollbar();
-	
-	// Initialize with a prompt
-	PrintLineHeader();
 }
 
 void VfsShellConsole::Execute()
 {
-	int li = GetLineCount() - 1;
-	if(IsSelection()) {
-		String s = GetSelection();
-		if(s.GetLength() < 80) {
-			SetCursor(GetLength());
-			Paste(s.ToWString());  // Just paste selection to command line
-		}
-		return;
-	}
-	if(GetLine(GetCursor()) != li) {
-		WString s = GetWLine(GetLine(GetCursor()));
-		if(s[0] == '$')  // If line starts with $, remove it
-			s = s.Mid(1);
-		SetCursor(GetLength());
-		Paste(s);
-		return;
-	}
-
+	// For console implementation, we'll assume a simple command input
+	// In a real console application, we'd read from stdin, but for this integration
+	// with the existing framework we'll work with the stored output
 	String txt;
-	String src_line = GetUtf8Line(li);
-	if (!line_header.IsEmpty())
-		src_line = src_line.Mid(line_header.GetCount());  // Remove prompt from line
-	String s = TrimBoth(src_line);
+	
+	// Process the last command stored in output
+	String s = output;
+	if (!line_header.IsEmpty() && s.StartsWith(line_header))
+		s = s.Mid(line_header.GetCount());  // Remove prompt from line
+	s = TrimBoth(s);
 
 	if (s.IsEmpty()) return;
 
 	bool succ = false;
-	
+
 	// Try to parse and execute command
 	try {
 		Vector<String> parts = Split(s, " ", true, true);  // Split command line into parts
@@ -50,7 +33,7 @@ void VfsShellConsole::Execute()
 			for (const String& part : parts) {
 				args.Add(part);
 			}
-			
+
 			if (host.Command(*this, args)) {  // Let host handle command
 				succ = true;
 				txt = host.GetOutput();
@@ -65,16 +48,13 @@ void VfsShellConsole::Execute()
 		txt = "Unknown command: " + s;
 	}
 
-	// Add the command to history
-	AddHistory(s);
-
 	// Output result
 	if (!txt.IsEmpty()) {
-		Paste("\n");
-		Paste(txt.ToWString());
+		AddOutputLine(txt);
 	}
-	Paste("\n");
-	PrintLineHeader();  // Print new prompt
+	// Print new prompt
+	AddOutputLine();
+	PrintLineHeader();
 }
 
 void VfsShellConsole::PrintLineHeader() {
@@ -83,30 +63,10 @@ void VfsShellConsole::PrintLineHeader() {
 	String host_name = "vfsshell";  // Simple host name
 	String s = user + "@" + host_name + ":" + (String)cwd + " $ ";
 	line_header = s;
-	Paste(line_header.ToWString());
+	AddOutput(s);
 }
 
-void VfsShellConsole::LeftDouble(Point p, dword flags)
-{
-	CodeEditor::LeftDouble(p, flags);
-	if(IsSelection())
-		Execute();
-}
 
-bool VfsShellConsole::Key(dword key, int count)
-{
-	switch(key) {
-	case K_ENTER:
-		Execute();
-		break;
-	case K_ALT_F7:  // Alt+F7 for context menu
-	case K_F12:     // F12 for context menu
-		break;
-	default:
-		return CodeEditor::Key(key, count);
-	}
-	return true;
-}
 
 bool VfsShellConsole::SetCurrentDirectory(const VfsPath& path) {
 	MountManager& mm = MountManager::System();
@@ -135,7 +95,9 @@ void VfsShellConsole::CmdCd(const ValueArray& args) {
 	if (targetPath.StartsWith("/")) {
 		path.Set(targetPath);
 	} else {
-		path = cwd / targetPath;
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
 	}
 	
 	if (SetCurrentDirectory(path)) {
@@ -155,7 +117,14 @@ void VfsShellConsole::CmdLs(const ValueArray& args) {
 		targetPath = (String)GetCurrentDirectory();
 	}
 	
-	VfsPath path = targetPath.StartsWith("/") ? VfsPath(targetPath) : cwd / targetPath;
+	VfsPath path;
+	if (targetPath.StartsWith("/")) {
+		path.Set(targetPath);
+	} else {
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	Vector<VfsItem> items;
@@ -177,7 +146,14 @@ void VfsShellConsole::CmdTree(const ValueArray& args) {
 		targetPath = (String)GetCurrentDirectory();
 	}
 	
-	VfsPath path = targetPath.StartsWith("/") ? VfsPath(targetPath) : cwd / targetPath;
+	VfsPath path;
+	if (targetPath.StartsWith("/")) {
+		path.Set(targetPath);
+	} else {
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	Vector<VfsItem> items;
@@ -199,7 +175,14 @@ void VfsShellConsole::CmdMkdir(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path = targetPath.StartsWith("/") ? VfsPath(targetPath) : cwd / targetPath;
+	VfsPath path;
+	if (targetPath.StartsWith("/")) {
+		path.Set(targetPath);
+	} else {
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
+	}
 	
 	// Note: The current VFS implementation doesn't have a CreateDirectory method
 	// This would require an actual implementation in the underlying VFS system
@@ -214,7 +197,14 @@ void VfsShellConsole::CmdTouch(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path = targetPath.StartsWith("/") ? VfsPath(targetPath) : cwd / targetPath;
+	VfsPath path;
+	if (targetPath.StartsWith("/")) {
+		path.Set(targetPath);
+	} else {
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	
@@ -235,7 +225,14 @@ void VfsShellConsole::CmdRm(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path = targetPath.StartsWith("/") ? VfsPath(targetPath) : cwd / targetPath;
+	VfsPath path;
+	if (targetPath.StartsWith("/")) {
+		path.Set(targetPath);
+	} else {
+		VfsPath relPath;
+		relPath.Set(targetPath);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(path) || mm.DirectoryExists(path)) {
@@ -257,8 +254,23 @@ void VfsShellConsole::CmdMv(const ValueArray& args) {
 	String srcPathStr = args[1];
 	String dstPathStr = args[2];
 	
-	VfsPath srcPath = srcPathStr.StartsWith("/") ? VfsPath(srcPathStr) : cwd / srcPathStr;
-	VfsPath dstPath = dstPathStr.StartsWith("/") ? VfsPath(dstPathStr) : cwd / dstPathStr;
+	VfsPath srcPath;
+	if (srcPathStr.StartsWith("/")) {
+		srcPath.Set(srcPathStr);
+	} else {
+		VfsPath srcRelPath;
+		srcRelPath.Set(srcPathStr);
+		srcPath = cwd / srcRelPath;
+	}
+	
+	VfsPath dstPath;
+	if (dstPathStr.StartsWith("/")) {
+		dstPath.Set(dstPathStr);
+	} else {
+		VfsPath dstRelPath;
+		dstRelPath.Set(dstPathStr);
+		dstPath = cwd / dstRelPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(srcPath) || mm.DirectoryExists(srcPath)) {
@@ -280,8 +292,23 @@ void VfsShellConsole::CmdLink(const ValueArray& args) {
 	String srcPathStr = args[1];
 	String dstPathStr = args[2];
 	
-	VfsPath srcPath = srcPathStr.StartsWith("/") ? VfsPath(srcPathStr) : cwd / srcPathStr;
-	VfsPath dstPath = dstPathStr.StartsWith("/") ? VfsPath(dstPathStr) : cwd / dstPathStr;
+	VfsPath srcPath;
+	if (srcPathStr.StartsWith("/")) {
+		srcPath.Set(srcPathStr);
+	} else {
+		VfsPath srcRelPath;
+		srcRelPath.Set(srcPathStr);
+		srcPath = cwd / srcRelPath;
+	}
+	
+	VfsPath dstPath;
+	if (dstPathStr.StartsWith("/")) {
+		dstPath.Set(dstPathStr);
+	} else {
+		VfsPath dstRelPath;
+		dstRelPath.Set(dstPathStr);
+		dstPath = cwd / dstRelPath;
+	}
 	
 	// Note: The current VFS implementation doesn't have link functionality
 	// This would require an actual implementation in the underlying VFS system
@@ -298,7 +325,14 @@ void VfsShellConsole::CmdExport(const ValueArray& args) {
 	String vfsPathStr = args[1];
 	String hostPathStr = args[2];
 	
-	VfsPath vfsPath = vfsPathStr.StartsWith("/") ? VfsPath(vfsPathStr) : cwd / vfsPathStr;
+	VfsPath vfsPath;
+	if (vfsPathStr.StartsWith("/")) {
+		vfsPath.Set(vfsPathStr);
+	} else {
+		VfsPath relPath;
+		relPath.Set(vfsPathStr);
+		vfsPath = cwd / relPath;
+	}
 	
 	// Note: The current VFS implementation doesn't have a MapPath method
 	// This would require an actual implementation of a filesystem backend
@@ -320,7 +354,14 @@ void VfsShellConsole::CmdCat(const ValueArray& args) {
 	
 	for (int i = 1; i < args.GetCount(); i++) {
 		String pathStr = args[i];
-		VfsPath path = pathStr.StartsWith("/") ? VfsPath(pathStr) : cwd / pathStr;
+		VfsPath path;
+		if (pathStr.StartsWith("/")) {
+			path.Set(pathStr);
+		} else {
+			VfsPath relPath;
+			relPath.Set(pathStr);
+			path = cwd / relPath;
+		}
 		
 		if (mm.FileExists(path)) {
 			// Note: The current VFS implementation doesn't allow direct file reading
@@ -385,7 +426,7 @@ void VfsShellConsole::CmdHead(const ValueArray& args) {
 			AddOutputLine("head: option requires an argument -- 'n'");
 			return;
 		}
-		lineCount = StrInt(args[2]);
+		lineCount = StrInt((String)args[2]);
 		argStart = 3;
 	}
 	
@@ -395,7 +436,14 @@ void VfsShellConsole::CmdHead(const ValueArray& args) {
 	}
 	
 	String pathStr = args[argStart];
-	VfsPath path = pathStr.StartsWith("/") ? VfsPath(pathStr) : cwd / pathStr;
+	VfsPath path;
+	if (pathStr.StartsWith("/")) {
+		path.Set(pathStr);
+	} else {
+		VfsPath relPath;
+		relPath.Set(pathStr);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(path)) {
@@ -417,7 +465,7 @@ void VfsShellConsole::CmdTail(const ValueArray& args) {
 			AddOutputLine("tail: option requires an argument -- 'n'");
 			return;
 		}
-		lineCount = StrInt(args[2]);
+		lineCount = StrInt((String)args[2]);
 		argStart = 3;
 	}
 	
@@ -427,7 +475,14 @@ void VfsShellConsole::CmdTail(const ValueArray& args) {
 	}
 	
 	String pathStr = args[argStart];
-	VfsPath path = pathStr.StartsWith("/") ? VfsPath(pathStr) : cwd / pathStr;
+	VfsPath path;
+	if (pathStr.StartsWith("/")) {
+		path.Set(pathStr);
+	} else {
+		VfsPath relPath;
+		relPath.Set(pathStr);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(path)) {
@@ -447,7 +502,14 @@ void VfsShellConsole::CmdUniq(const ValueArray& args) {
 	}
 	
 	String pathStr = args[1];
-	VfsPath path = pathStr.StartsWith("/") ? VfsPath(pathStr) : cwd / pathStr;
+	VfsPath path;
+	if (pathStr.StartsWith("/")) {
+		path.Set(pathStr);
+	} else {
+		VfsPath relPath;
+		relPath.Set(pathStr);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(path)) {
@@ -467,7 +529,14 @@ void VfsShellConsole::CmdCount(const ValueArray& args) {
 	}
 	
 	String pathStr = args[1];
-	VfsPath path = pathStr.StartsWith("/") ? VfsPath(pathStr) : cwd / pathStr;
+	VfsPath path;
+	if (pathStr.StartsWith("/")) {
+		path.Set(pathStr);
+	} else {
+		VfsPath relPath;
+		relPath.Set(pathStr);
+		path = cwd / relPath;
+	}
 	
 	MountManager& mm = MountManager::System();
 	if (mm.FileExists(path)) {
@@ -490,9 +559,9 @@ void VfsShellConsole::CmdRandom(const ValueArray& args) {
 	int maxVal = 100;
 	
 	if (args.GetCount() > 1) {
-		minVal = StrInt(args[1]);
+		minVal = StrInt((String)args[1]);
 		if (args.GetCount() > 2) {
-			maxVal = StrInt(args[2]);
+			maxVal = StrInt((String)args[2]);
 		} else {
 			maxVal = minVal;
 			minVal = 0;
@@ -532,7 +601,7 @@ void VfsShellConsole::CmdEcho(const ValueArray& args) {
 	String result;
 	for (int i = 1; i < args.GetCount(); i++) {
 		if (i > 1) result.Cat(" ");
-		result.Cat(args[i]);
+		result.Cat((String)args[i]);
 	}
 	AddOutputLine(result);
 }

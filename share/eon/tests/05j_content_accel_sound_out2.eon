@@ -5,22 +5,19 @@ machine sdl.app:
 		
 	chain program:
 		
-		loop ogl.fbo.audio.buffer:
-			id = "audio_gen"
+		loop audio_gen:
 			ogl.customer
 			sdl.ogl.fbo.side[][id == "audio_conv"]:
 				type = "audio"
 				retarded.local.time = true
 				shader.frag.path = "shaders/toys/fm/synth_fm/stage1.glsl"
 				
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
 			sdl.fbo.standalone:
 				shader.frag.path = "shaders/toys/fm/synth_fm/stage0.glsl"
 		
-		loop ogl.fbo.audio.conv:
-			id = "audio_conv"
+		loop audio_conv:
 			ogl.customer
 			sdl.ogl.fbo.center.audio[id == "audio_gen"][id == "audio_out"]
 		

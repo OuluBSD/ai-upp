@@ -5,8 +5,7 @@ machine sdl.app:
 	
 	chain program:
 		
-		loop center.image:
-			id = "image"
+		loop image:
 			center.customer
 			center.image.loader[][id == "texture"]:
 				vflip = true
@@ -17,7 +16,6 @@ machine sdl.app:
 			ogl.customer
 			sdl.ogl.fbo.image[id == "image"][id == "screen"]
 		
-		loop ogl.fbo.screen:
-			id = "screen"
+		loop screen:
 			ogl.customer
 			sdl.fbo[id == "texture"]: buf0 = "cubemap", filepath = "shaders/toys/cubemap/copper_mirror_ball/stage0.glsl"

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 NAMESPACE_UPP
@@ -540,3 +541,4 @@ void EntityEditorCtrl::EditPos(JsonIO& json) {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

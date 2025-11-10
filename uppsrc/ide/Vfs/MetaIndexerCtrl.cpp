@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 
@@ -32,3 +33,4 @@ void MetaIndexerCtrl::Data() {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

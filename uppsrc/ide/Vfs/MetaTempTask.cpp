@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 
@@ -14,3 +15,4 @@ void MetaTempTaskCtrl::Data() {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

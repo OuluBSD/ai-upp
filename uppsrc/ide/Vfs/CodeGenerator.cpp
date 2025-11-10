@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 NAMESPACE_UPP
@@ -190,3 +191,4 @@ void MetaCodeGenerator::FindValues(const VfsValueSubset& np, const PkgFile& key,
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

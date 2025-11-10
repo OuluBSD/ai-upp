@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 #include <AI/Core/Core.h>
 #include <ide/ide.h>
@@ -1213,3 +1214,4 @@ VfsValue* IdeVfsFillDatasetPtrs(DatasetPtrs& p, hash_t type_hash) {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

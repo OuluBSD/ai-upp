@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 NAMESPACE_UPP
@@ -68,3 +69,4 @@ bool EcsIndexer::IsDirty(const String& s) {
 INITIALIZER_INDEXER_EXTENSION(EcsIndexer)
 
 END_UPP_NAMESPACE
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 NAMESPACE_UPP
@@ -224,3 +225,4 @@ void EnvEditorCtrl::RemoveContext() {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

@@ -1,0 +1,13 @@
+description "ShaderToy Editor Example - Demonstrates the ShaderToy node-based editor";
+
+uses
+	Core,
+	Draw,
+	CtrlLib,
+	ShaderToy;
+
+file
+	ShaderToyExample.cpp;
+
+mainconfig
+	"" = "GUI,MAIN";

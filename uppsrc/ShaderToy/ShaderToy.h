@@ -297,6 +297,17 @@ private:
     Vector<PipelineLink> links;
     OpenGLBackend* glBackend;  // OpenGL backend for rendering
 
+    // Performance optimization features (Phase 5)
+    bool pipelineCachingEnabled;
+    VectorMap<String, Value> pipelineCache;  // Cache for pipeline execution results
+    bool performanceMonitoringEnabled;
+    ValueMap performanceMetrics;  // Performance data
+    bool optimizedRenderingEnabled;
+    
+    // Extension and Plugin System (Phase 5)
+    VectorMap<String, Callback1<EditorNode*>> nodeTypes;  // Map of node type names to creator callbacks
+    Vector<String> loadedPlugins;  // Track loaded plugins
+
     // Methods inherited from GraphNodeCtrl
     virtual void LeftDown(Point p, dword key) override;
     virtual void LeftUp(Point p, dword key) override;
@@ -333,6 +344,58 @@ private:
     // Helper methods for context menu
     String GetNodeIdAtPos(Point p);
     bool IsPointInNode(Point p, const String& nodeId);
+    
+    // Layout algorithms for node organization (Phase 5)
+    void AutoLayout();
+    void OrganizeByType();
+    void OrganizeByExecutionOrder();
+    
+    // Node grouping functionality (Phase 5)
+    void CreateGroup(const Vector<String>& nodeIds, const String& groupName);
+    void Ungroup(const String& groupName);
+    void CollapseGroup(const String& groupName);
+    void ExpandGroup(const String& groupName);
+    
+    // Node search and filtering (Phase 5)
+    Vector<String> SearchNodes(const String& searchTerm);
+    void FilterByType(const String& nodeType);
+    void ClearFilters();
+    
+    // Performance optimization features (Phase 5)
+    void EnablePipelineCaching();
+    void DisablePipelineCaching();
+    bool IsPipelineCachingEnabled() const { return pipelineCachingEnabled; }
+    void ClearPipelineCache();
+    void AddToPipelineCache(const String& nodeId, const Value& result);
+    Value GetFromPipelineCache(const String& nodeId) const;
+    
+    // Performance monitoring and debugging (Phase 5)
+    void EnablePerformanceMonitoring();
+    void DisablePerformanceMonitoring();
+    bool IsPerformanceMonitoringEnabled() const { return performanceMonitoringEnabled; }
+    ValueMap GetPerformanceMetrics() const;
+    void LogPerformanceMetrics();
+    
+    // Optimized rendering for complex graphs (Phase 5)
+    void EnableOptimizedRendering();
+    void DisableOptimizedRendering();
+    bool IsOptimizedRenderingEnabled() const { return optimizedRenderingEnabled; }
+    
+    // Extension and Plugin System (Phase 5)
+    bool RegisterNodeType(const String& typeName, Callback1<EditorNode*> creator);
+    bool CreateCustomNode(const String& typeName, const String& nodeId, Point position);
+    Vector<String> GetAvailableNodeTypes() const;
+    void LoadPlugin(const String& pluginPath);
+    void UnloadPlugin(const String& pluginName);
+    const Vector<String>& GetLoadedPlugins() const { return loadedPlugins; }
+    
+    // For managing custom node types
+    const VectorMap<String, Callback1<EditorNode*>>& GetNodeTypes() const { return nodeTypes; }
+    
+    // Helper method to get value by index for VectorMap
+    Callback1<EditorNode*> GetNodeTypeCreator(int index) const { 
+        return index >= 0 && index < nodeTypes.GetCount() ? nodeTypes[index] : Callback1<EditorNode*>(); 
+    }
 };
 
 // OpenGL backend classes for shader compilation and rendering

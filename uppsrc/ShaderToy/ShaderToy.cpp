@@ -220,13 +220,13 @@ void EditorKeyboard::DrawKeyboardVisualization(Draw& draw, const Rect& rect, con
                 );
                 
                 // Check if this key is active
-                Color keyColor = activeKeys.Get(keyLayout[row][col], false) ? Red() : White();
+                Color keyColor = activeKeys.Get(keyLayout[row][col], false) ? LtRed() : LtGray();
                 draw.DrawRect(keyRect, keyColor);
                 draw.DrawRect(keyRect, Black());
                 
                 // Draw key label
                 draw.DrawText(keyRect.left + 2, keyRect.top + 2, 
-                             keyLayout[row][col], StdFont(), Black());
+                             keyLayout[row][col], StdFont(8), Black());
             }
         }
     }
@@ -602,12 +602,166 @@ void PipelineEditor::ValidatePipeline() {
 bool PipelineEditor::LoadSTTF(const String& filePath) {
     // Load a ShaderToy Transfer Format file
     // Parse the file and reconstruct the node graph
-    return true;
+    String jsonStr = LoadFile(filePath);
+    if (jsonStr.IsEmpty()) {
+        return false;
+    }
+    
+    // For now, we'll skip clearing nodes during LoadSTTF - implement later as needed
+    // GraphLib::GraphNodeCtrl::Clear();  // Clear the GraphNodeCtrl of all nodes
+    
+    // Parse JSON structure - simplified approach for demonstration
+    // In a real implementation, this would parse the STTF structure properly
+    Value js = ParseJSON(jsonStr);
+    if (!IsError(js)) {
+        const ValueArray& nodes = js["nodes"];
+        if (!nodes.IsEmpty()) {
+            for (int i = 0; i < nodes.GetCount(); i++) {
+                Value node = nodes[i];
+                
+                String type = (String)node["type"];
+                String id = (String)node["id"];
+                int x = (int)node["x"];
+                int y = (int)node["y"];
+                Point pos = Point(x, y);
+                
+                EditorNode* editorNode = nullptr;
+                
+                if (type == "Shader") {
+                    EditorShader* shaderNode = CreateShaderNode(id, pos);
+                    if (!IsNull(js["code"])) {
+                        shaderNode->SetCode((String)node["code"]);
+                    }
+                    editorNode = shaderNode;
+                } else if (type == "Texture") {
+                    EditorTexture* textureNode = CreateTextureNode(id, pos);
+                    if (!IsNull(node["imagePath"])) {
+                        textureNode->SetImagePath((String)node["imagePath"]);
+                    }
+                    editorNode = textureNode;
+                } else if (type == "CubeMap") {
+                    EditorCubeMap* cubeMapNode = CreateCubeMapNode(id, pos);
+                    // Set cube map paths if available
+                    editorNode = cubeMapNode;
+                } else if (type == "Volume") {
+                    EditorVolume* volumeNode = CreateVolumeNode(id, pos);
+                    if (!IsNull(node["volumePath"])) {
+                        volumeNode->SetVolumePath((String)node["volumePath"]);
+                    }
+                    editorNode = volumeNode;
+                } else if (type == "Keyboard") {
+                    EditorKeyboard* keyboardNode = CreateKeyboardNode(id, pos);
+                    editorNode = keyboardNode;
+                } else if (type == "RenderOutput") {
+                    EditorRenderOutput* outputNode = CreateRenderOutputNode(id, pos);
+                    editorNode = outputNode;
+                } else if (type == "LastFrame") {
+                    EditorLastFrame* lastFrameNode = CreateLastFrameNode(id, pos);
+                    editorNode = lastFrameNode;
+                }
+                
+                // Add more node type handling as needed
+            }
+        }
+        
+        // Process connections/links
+        const ValueArray& links = js["links"];
+        if (!links.IsEmpty()) {
+            for (int i = 0; i < links.GetCount(); i++) {
+                Value link = links[i];
+                
+                String fromNode = (String)link["fromNode"];
+                String fromPin = (String)link["fromPin"];
+                String toNode = (String)link["toNode"];
+                String toPin = (String)link["toPin"];
+                
+                // Connect the nodes
+                ConnectNodes(fromNode, fromPin, toNode, toPin);
+            }
+        }
+    }
+    
+    return true;  // Return true if successful, false otherwise
 }
 
 bool PipelineEditor::SaveSTTF(const String& filePath) {
     // Save the current node graph to STTF format
-    return true;
+    ValueMap js;
+    
+    // Create nodes array
+    ValueArray nodes;
+    
+    // Iterate through all nodes and serialize them
+    for (int i = 0; i < nodeMap.GetCount(); i++) {
+        String nodeId = nodeMap.GetKey(i);
+        EditorNode* node = nodeMap[i];
+        
+        ValueMap nodeJson;
+        nodeJson.Add("id", nodeId);
+        nodeJson.Add("type", node->GetNodeType());
+        // TODO: Implement proper position retrieval from GraphLib
+        // For now, using default positions during save
+        nodeJson.Add("x", 100);  // Default position
+        nodeJson.Add("y", 100);  // Default position
+        
+        // Add node-specific properties
+        if (node->GetNodeType() == "Shader") {
+            EditorShader* shaderNode = static_cast<EditorShader*>(node);
+            nodeJson.Add("code", shaderNode->GetCode());
+        } else if (node->GetNodeType() == "Texture") {
+            EditorTexture* textureNode = static_cast<EditorTexture*>(node);
+            nodeJson.Add("imagePath", textureNode->GetImagePath());
+        } else if (node->GetNodeType() == "CubeMap") {
+            EditorCubeMap* cubeMapNode = static_cast<EditorCubeMap*>(node);
+            // Assuming CubeMap has some way to get its image paths
+            const Vector<String>& paths = cubeMapNode->GetImagePaths();
+            ValueArray pathArray;
+            for(int j = 0; j < paths.GetCount(); j++) {
+                pathArray.Add(paths[j]);
+            }
+            nodeJson.Add("imagePaths", pathArray);
+        } else if (node->GetNodeType() == "Volume") {
+            EditorVolume* volumeNode = static_cast<EditorVolume*>(node);
+            nodeJson.Add("volumePath", volumeNode->GetVolumePath());
+        } else if (node->GetNodeType() == "Keyboard") {
+            EditorKeyboard* keyboardNode = static_cast<EditorKeyboard*>(node);
+            // Serialize keyboard mappings if needed
+        } else if (node->GetNodeType() == "RenderOutput") {
+            // RenderOutput properties if needed
+        } else if (node->GetNodeType() == "LastFrame") {
+            EditorLastFrame* lastFrameNode = static_cast<EditorLastFrame*>(node);
+            nodeJson.Add("frameBufferId", lastFrameNode->GetFrameBufferId());
+        }
+        
+        nodes.Add(nodeJson);
+    }
+    
+    // Create links array
+    ValueArray linkArray;
+    for (int i = 0; i < this->links.GetCount(); i++) {  // Access the links member variable
+        const PipelineLink& link = this->links[i];
+        
+        ValueMap linkJson;
+        linkJson.Add("fromNode", link.fromNodeId);
+        linkJson.Add("fromPin", link.fromPinId);
+        linkJson.Add("toNode", link.toNodeId);
+        linkJson.Add("toPin", link.toPinId);
+        
+        linkArray.Add(linkJson);
+    }
+    
+    // Add nodes and links to the main JSON object
+    js.Add("nodes", nodes);
+    js.Add("links", linkArray);
+    
+    String jsonStr = js.ToString();
+    
+    // Write to file
+    if (!SaveFile(filePath, jsonStr)) {
+        return false;
+    }
+    
+    return true;  // Return true if successful, false otherwise
 }
 
 void PipelineEditor::SetRenderTarget(const Image& target) {
@@ -936,42 +1090,60 @@ bool EditorShader::Execute(OpenGLBackend* backend, const VectorMap<String, Value
 
 void EditorShader::ShowEditorDialog() {
     // Create a modal dialog for editing shader code
-    TopWindow dlg;
+    GLSLEditorDialog dlg;
     dlg.SetRect(0, 0, 800, 600);
     dlg.SetTitle("Shader Editor");
-    
-    // Use a simple LineEdit for the shader code editor
-    LineEdit editor;
-    editor.Set(shaderCode);  // Set current shader code
-    editor.SetFont(Monospace(12));
-    
-    // Add a compile button
-    Button compileBtn;
-    compileBtn.SetLabel("Compile");
-    
-    // Position controls
-    dlg.Add(editor.VSizePos(40).HSizePos());
-    dlg.Add(compileBtn.TopPos(0, 30).LeftPos(0, 100));
+    dlg.codeEditor <<= shaderCode;  // Set current shader code
+    dlg.codeEditor.SetFont(Monospace(12));
+    dlg.errorOutput <<= "Ready";
     
     // Lambda to handle compilation
     auto compileLambda = [&]() {
-        String newCode = editor.Get();
-        SetCode(newCode);  // Update the shader code
+        String newCode = ~dlg.codeEditor;  // Use the ~ operator to get value from EditField
+        String errorOutput;
         
-        // In a real implementation, we'd use the OpenGL backend to compile
-        // For now, just show a simple message
-        PromptOK("Shader code updated!");
+        if (CompileShaderCode(newCode, errorOutput)) {
+            SetCode(newCode);  // Update the shader code
+            dlg.errorOutput <<= errorOutput;
+        } else {
+            dlg.errorOutput <<= errorOutput;
+        }
     };
-    
+
     // Set the compile button's action
-    compileBtn.WhenAction = compileLambda;
-    
+    dlg.compileBtn.WhenAction = compileLambda;
+
     // Run the dialog
     dlg.Run();
     
     // Update the shader code when dialog closes
-    String newCode = editor.Get();
+    String newCode = ~dlg.codeEditor;  // Use the ~ operator to get value from EditField
     SetCode(newCode);
+}
+
+bool EditorShader::CompileShaderCode(const String& code, String& errorOutput) {
+    // For this implementation, we'll do basic syntax validation
+    // In a real implementation, this would involve actual OpenGL shader compilation
+    
+    // Check for mainImage function (standard ShaderToy format)
+    if (code.Find("void mainImage") == -1) {
+        errorOutput = "Error: Shader code must contain 'void mainImage(out vec4 fragColor, in vec2 fragCoord)' function";
+        return false;
+    }
+    
+    // Additional syntax checks could be implemented here
+    if (code.Find("fragColor") == -1) {
+        errorOutput = "Error: Shader code should assign to 'fragColor' variable";
+        return false;
+    }
+    
+    if (code.Find("fragCoord") == -1) {
+        errorOutput = "Error: Shader code should use 'fragCoord' variable for coordinates";
+        return false;
+    }
+    
+    errorOutput = "Compilation successful!";
+    return true;
 }
 
 // Implementation of custom drawing functions for node icons

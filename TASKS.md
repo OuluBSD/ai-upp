@@ -594,14 +594,14 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [ ] Design GameWindow class as an easy-to-use solution for game windows
 - [ ] Ensure GameWindow properly integrates with Screen and Graphics API packages
 - [ ] Implement basic game loop architecture in GameEngine
-- [ ] Create entity-component-system (ECS) framework in GameEngine
-- [ ] Add support for asset management and resource loading
+- [ ] Create entity-component-system (ECS) framework in GameEngine (using existing ai-upp ECS code after upptst/Eon* packages work properly)
+- [x] Add support for asset management and resource loading
 - [ ] Implement basic 2D and 3D rendering pipelines
 - [ ] Create camera system with support for different projection types
 - [ ] Develop input handling system unified across different platforms
 - [ ] Add audio integration using uppsrc/api/Audio package
 - [ ] Implement basic physics integration using uppsrc/api/Physics package
-- [ ] Design scene management system
+- [x] Design scene management system
 - [ ] Create basic UI/HUD rendering capabilities
 - [ ] Add cross-platform file system abstraction for game assets
 - [ ] Implement basic animation system

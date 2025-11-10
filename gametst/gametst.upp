@@ -1,0 +1,9 @@
+description "Game Engine Tests - Unit tests for GameLib and GameEngine packages";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	Geometry,
+	GameLib,
+	GameEngine;

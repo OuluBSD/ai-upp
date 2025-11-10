@@ -16,6 +16,8 @@ NAMESPACE_UPP_BEGIN
 // Higher-level game engine features go here
 #include "GameWindow.h"
 #include "Game.h"
+#include "AssetManager.h"
+#include "Scene.h"
 
 NAMESPACE_UPP_END
 

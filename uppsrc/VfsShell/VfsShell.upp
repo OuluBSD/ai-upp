@@ -2,8 +2,11 @@ description "VFS Shell - Command-line interface for VFS operations";
 
 uses
 	Core,
+	Draw,
 	Vfs;
 
 file
 	VfsShell.cpp,
-	VfsShellMain.cpp;
+	IdeCliBridge.cpp,
+	VfsShellMain.cpp,
+	Utils.h;

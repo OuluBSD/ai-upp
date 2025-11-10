@@ -81,7 +81,7 @@ bool ToyLoader::Load(Value& o) {
 		TOY_ASSERT(map.Find(stage_str + "_path") >= 0);
 		TOY_ASSERT(map.Find(stage_str + "_content") >= 0);
 		String stage_path = map(stage_str + "_path");
-		String stage_content = map(stage_str + "_path");
+		String stage_content = map(stage_str + "_content");
 		
 		Value output = output_arr[0];
 		ASSERT(output.Is<ValueMap>());

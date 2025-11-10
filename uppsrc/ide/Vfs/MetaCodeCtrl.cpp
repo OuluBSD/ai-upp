@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 #include <ide/ide.h>
 
@@ -387,3 +388,4 @@ void MetaCodeCtrl::AnnotationData() {
 
 END_UPP_NAMESPACE
 
+#endif // flagGUI

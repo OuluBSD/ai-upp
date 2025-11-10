@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 
@@ -189,3 +190,4 @@ bool MetaEnvironment::MergeResolver(ClangTypeResolver& ctr)
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

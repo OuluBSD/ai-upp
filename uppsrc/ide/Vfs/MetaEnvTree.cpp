@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Vfs.h"
 
 
@@ -322,3 +323,4 @@ void MetaEnvTree::AddFocusNodes(int tree_idx, VfsValue& n, VfsValueSubset* ns, i
 	}
 }
 
+#endif // flagGUI

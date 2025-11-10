@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 String GetSvnDir(const String& p)
@@ -314,3 +315,4 @@ void EditCredentials(const Vector<String>& url_hints)
 	if(dlg.Execute() == IDOK)
 		dlg.Save();
 }
+#endif // flagGUI

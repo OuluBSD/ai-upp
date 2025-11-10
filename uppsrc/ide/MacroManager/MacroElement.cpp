@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "MacroManager.h"
 
 namespace Upp {
@@ -35,3 +36,4 @@ String MacroElement::GetContent() const
 }
 
 }
+#endif // flagGUI

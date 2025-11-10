@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 NAMESPACE_UPP
@@ -426,3 +427,4 @@ bool EditRenderer::Key(dword key, int count) {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

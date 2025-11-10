@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 INITBLOCK {
@@ -154,3 +155,4 @@ void Ide::NavigatorDlg()
 	dlg.search.AddHistory();
 	StoreToGlobal(dlg, "NavDlg");
 }
+#endif // flagGUI

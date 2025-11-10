@@ -1,9 +1,15 @@
 #include "ide.h"
 #include "CommandLineHandler.h"
 
-#ifndef flagV1
-	#include <DropTerm/DropTerm.h>
+#ifndef flagGUI
+#include <Core/Core.h>
 #endif
+
+#if defined(flagGUI) && !defined(flagV1)
+#include <DropTerm/DropTerm.h>
+#endif
+
+using namespace Upp;
 
 #define FUNCTION_NAME UPP_FUNCTION_NAME << "(): "
 
@@ -84,6 +90,8 @@ bool IsAssembly(const String& s)
 	return false;
 }
 
+#ifdef flagGUI
+
 void StartEditorMode(const Vector<String>& args, Ide& ide, bool& clset)
 {
 	if(args.IsEmpty() || clset) {
@@ -111,6 +119,7 @@ void StartEditorMode(const Vector<String>& args, Ide& ide, bool& clset)
 		ide.EditorMode();
 	}
 }
+
 
 #undef  GUI_APP_MAIN_HOOK
 #define GUI_APP_MAIN_HOOK \
@@ -540,4 +549,27 @@ EXITBLOCK {
 	RDUMP(MemoryProfile());
 	MemoryDump();
 }
+#endif
+
+#endif // flagGUI
+
+#ifndef flagGUI
+
+namespace {
+
+void RunConsoleIde()
+{
+	if(HandleConsoleIdeArgs(CommandLine()))
+		return;
+
+	Cout() << GetConsoleIdeExperimentalNotice() << "\n";
+}
+
+}
+
+CONSOLE_APP_MAIN
+{
+	RunConsoleIde();
+}
+
 #endif

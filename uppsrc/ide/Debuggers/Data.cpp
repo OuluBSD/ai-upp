@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -401,3 +402,4 @@ void Pdb::DropWatch(PasteClip& clip)
 }
 
 #endif
+#endif // flagGUI

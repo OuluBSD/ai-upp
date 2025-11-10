@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #if 0
@@ -453,3 +454,4 @@ void Console::Input(bool b)
 	if(b)
 		input.SetFocus();
 }
+#endif // flagGUI

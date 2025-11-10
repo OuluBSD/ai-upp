@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 static inline int sMatchLen(const char *a, const char *al, const char *b, const char *bl)
@@ -156,3 +157,4 @@ String DiffUnpack(const String& master, const String& pack)
 	}
 	return result;
 }
+#endif // flagGUI

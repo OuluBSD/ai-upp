@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 void TopicEditor::ListTemplates(Vector<String>& path, Vector<String>& name)
@@ -57,3 +58,4 @@ void TopicEditor::ApplyStylesheetGroup()
 	}
 	topics_list.SetCursor(c);
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 NAMESPACE_UPP
@@ -403,3 +404,4 @@ void GeomAnim::Play() {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

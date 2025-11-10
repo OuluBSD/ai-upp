@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool ReFormatJSON_XML(String& text, bool xml)
@@ -687,3 +688,4 @@ void Ide::ReformatCode()
 }
 
 void Ide::ReformatComment() { editor.ReformatComment(); }
+#endif // flagGUI

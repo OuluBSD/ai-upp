@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 void IdeImgView::Paint(Draw& w)
@@ -82,3 +83,4 @@ INITIALIZER(Img)
 {
 	RegisterIdeModule(Single<ImageViewModule>());
 }
+#endif // flagGUI

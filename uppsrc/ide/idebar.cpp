@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define KEYGROUPNAME "Ide"
@@ -1118,3 +1119,4 @@ void Ide::SetToolBar()
 {
 	toolbar.Set(THISBACK(MainTool));
 }
+#endif // flagGUI

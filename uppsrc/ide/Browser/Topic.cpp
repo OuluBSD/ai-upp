@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 ArrayMap<String, TopicEditor::FileInfo> TopicEditor::editstate;
@@ -282,3 +283,4 @@ String TopicFilePath(const TopicLink& tl)
 	return AppendFileName(AppendFileName(PackageDirectory(tl.package), tl.group + ".tpp"),
 	                      tl.topic + ".tpp");
 }
+#endif // flagGUI

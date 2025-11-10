@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 class AlphaImageInfo
@@ -323,3 +324,4 @@ String SaveIml(const Array<ImlImage>& iml, int format, const String& eol) {
 	}
 	return out.GetResult();
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 IdeCalc::IdeCalc()
@@ -72,3 +73,4 @@ bool IdeCalc::Key(dword key, int count)
 	}
 	return true;
 }
+#endif // flagGUI

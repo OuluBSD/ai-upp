@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 struct IdeQtfEditPos : Moveable<IdeQtfEditPos> {
@@ -127,3 +128,4 @@ INITIALIZER(Qtf)
 	RegisterIdeModule(Single<QtfDesModule>());
 	RegisterGlobalConfig("qtfdes-ctrl");
 }
+#endif // flagGUI

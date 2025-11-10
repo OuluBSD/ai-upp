@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -402,3 +403,4 @@ void Pdb::TreeWatch()
 }
 
 #endif
+#endif // flagGUI

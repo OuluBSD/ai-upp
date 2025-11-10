@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct Custom : public WithCustomLayout<TopWindow> {
@@ -149,3 +150,4 @@ void Ide::CustomSteps() {
 	dlg.Perform(main);
 	ScanWorkspace();
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 class InsertColorDlg : public WithInsertColorLayout<TopWindow> {
@@ -385,3 +386,4 @@ void Ide::EditorMenu(Bar& bar)
 	bar.MenuSeparator();
 	editor.StdBar(bar);
 }
+#endif // flagGUI

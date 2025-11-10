@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 
 NAMESPACE_UPP
@@ -15,3 +16,4 @@ void WidgetCtrl::DataTree(TreeCtrl& tree) {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

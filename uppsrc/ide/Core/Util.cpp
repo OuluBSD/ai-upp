@@ -117,3 +117,21 @@ bool IsFolder(const String& path)
 	FindFile ff(path);
 	return ff && ff.IsDirectory();
 }
+
+int FindId(const String& s, const String& id)
+{
+	if(id.IsEmpty())
+		return -1;
+
+	int q = 0;
+	for(;;) {
+		q = s.Find(id, q);
+		if(q < 0)
+			return -1;
+		bool before_ok = q == 0 || !iscid(s[q - 1]);
+		bool after_ok = q + id.GetCount() >= s.GetCount() || !iscid(s[q + id.GetCount()]);
+		if(before_ok && after_ok)
+			return q;
+		q++;
+	}
+}

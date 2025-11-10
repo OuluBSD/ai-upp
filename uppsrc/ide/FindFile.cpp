@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 static int CharFilterFindFileMask(int c)
@@ -168,3 +169,4 @@ void Ide::FindFileName()
 		EditFile(filePath);
 	}
 }
+#endif // flagGUI

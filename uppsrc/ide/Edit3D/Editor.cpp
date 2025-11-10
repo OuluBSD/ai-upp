@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 
@@ -313,3 +314,4 @@ END_UPP_NAMESPACE
 
 
 
+#endif // flagGUI

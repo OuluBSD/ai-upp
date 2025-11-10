@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Android.h"
 
 namespace Upp {
@@ -54,3 +55,4 @@ String Apk::FindBadgeTagValue(const String& badge, const String& tag) const
 }
 
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 void LLDB::MemoryGoto()
@@ -63,3 +64,4 @@ void LLDB::MemoryMenu(Bar& bar, const String& s)
 	bar.Add("Memory at &&" + s, [=] { tab.Set(memory); MemoryLoad('&' + s, 2048, true); });
 	bar.Add("Memory at " + s, [=] { tab.Set(memory); MemoryLoad(s, 2048, true); });
 }
+#endif // flagGUI

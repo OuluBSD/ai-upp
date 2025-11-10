@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 class AbbreviationsDlg : public WithAbbreviationsLayout<TopWindow> {
@@ -141,3 +142,4 @@ void Ide::SaveAbbr()
 		r << AsCString(abbr.GetKey(i)) << '=' << AsCString(abbr[i]) << ";\r\n";
 	UPP::SaveFile(ConfigFile("ide.abbrs"), r);
 }
+#endif // flagGUI

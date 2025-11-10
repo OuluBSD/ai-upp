@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Common.h"
 
 bool Debugger::Tip(const String&, CodeEditor::MouseTip&)
@@ -264,3 +265,4 @@ int MaxAscent(Font f)
 	return max(f.GetAscent(), f().Bold().GetAscent(),
 	           f().Italic().GetAscent(), f().Bold().Italic().GetAscent());
 }
+#endif // flagGUI

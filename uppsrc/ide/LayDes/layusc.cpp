@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 VectorMap<String, LayoutType>& LayoutTypes()
@@ -112,3 +113,4 @@ bool LayUscParse(CParser& p, String& current_namespace)
 		return false;
 	return true;
 }
+#endif // flagGUI

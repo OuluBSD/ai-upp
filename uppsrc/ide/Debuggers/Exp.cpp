@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -671,3 +672,4 @@ Pdb::Val Pdb::Exp(CParser& p)
 }
 
 #endif
+#endif // flagGUI

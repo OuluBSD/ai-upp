@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 Color s_stdcolor[] = {
@@ -232,3 +233,4 @@ RGBACtrl::RGBACtrl()
 	Add(text);
 	SyncText();
 }
+#endif // flagGUI

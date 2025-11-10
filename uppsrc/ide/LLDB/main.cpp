@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 #ifdef flagMAIN
@@ -155,3 +156,4 @@ GUI_APP_MAIN
 }
 
 #endif
+#endif // flagGUI

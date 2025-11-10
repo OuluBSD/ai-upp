@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include <ide/ide.h>
 
 struct MoveTopicDlg : public WithMoveTopicLayout<TopWindow> {
@@ -87,3 +88,4 @@ void TopicEditor::MoveTopic()
 	TheIde()->IdeFlushFile();
 	TheIde()->IdeOpenTopicFile(np);
 }
+#endif // flagGUI

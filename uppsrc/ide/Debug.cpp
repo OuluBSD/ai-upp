@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 namespace Upp {
@@ -578,3 +579,4 @@ bool Ide::EditorTip(CodeEditor::MouseTip& mt)
 	}
 	return false;
 }
+#endif // flagGUI

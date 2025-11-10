@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 #include "MCP/MCP.h"
 
@@ -937,3 +938,4 @@ void Ide::TriggerIndexer()
 	if(AutoIndexer)
 		TriggerIndexer0();
 }
+#endif // flagGUI

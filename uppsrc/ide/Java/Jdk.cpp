@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Java.h"
 
 namespace Upp {
@@ -67,3 +68,4 @@ void Jdk::FindVersion(Host* host)
 }
 
 }
+#endif // flagGUI

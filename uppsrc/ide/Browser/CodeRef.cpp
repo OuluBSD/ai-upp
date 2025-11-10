@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 #define CODEITEM   "37138531426314131252341829483370"
@@ -362,3 +363,4 @@ void TopicEditor::SetFocus()
 	else
 		Ctrl::SetFocus();
 }
+#endif // flagGUI

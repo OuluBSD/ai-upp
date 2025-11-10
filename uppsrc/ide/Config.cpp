@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define METHOD_NAME "Ide::" << UPP_FUNCTION_NAME << "(): "
@@ -463,3 +464,4 @@ void Ide::LoadConfig()
 	}
 	SaveLoadPackage();
 }
+#endif // flagGUI

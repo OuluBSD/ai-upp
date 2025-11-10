@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool IsCodeItem(const RichTxt& txt, int i)
@@ -282,3 +283,4 @@ void AssistEditor::EditAnnotation(bool leftclick)
 	bar.Add("Copy code reference id", [=] { WriteClipboardText(coderef); });
 	bar.Execute();
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Common.h"
 
 #define IMAGECLASS IdeCommonImg
@@ -338,3 +339,4 @@ void QTFEdit(String& text)
 	text = AsQTF(dlg.editor.Get(), CHARSET_UTF8, QTF_BODY|QTF_NOSTYLES|QTF_NOCHARSET|QTF_NOLANG);
 	StoreToGlobal(dlg, "QTF-designer-editor");
 }
+#endif // flagGUI

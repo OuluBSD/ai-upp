@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #ifdef _DEBUG
@@ -1032,3 +1033,4 @@ String SelectPackage(const char *title, const char *startwith, bool selectvars, 
 	return SelectPackage(dummy, title, startwith, selectvars, main);
 }
 
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 
@@ -78,3 +79,4 @@ StreamBuffer::~StreamBuffer()
     m_capacity = 0;
     m_offset = 0;
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 int CharFilterID(int c)
@@ -190,3 +191,4 @@ void SetTopicGroupIncludeable(const char *path, bool set)
 	else
 		FileDelete(AppendFileName(path, "all.i"));
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Android.h"
 
 namespace Upp {
@@ -65,3 +66,4 @@ String Adb::MakeGetAllProcessesCmd() const
 }
 
 }
+#endif // flagGUI

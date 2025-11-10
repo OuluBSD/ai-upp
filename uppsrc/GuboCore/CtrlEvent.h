@@ -1,7 +1,7 @@
 #ifndef _GuboCore_CtrlEvent_h_
 #define _GuboCore_CtrlEvent_h_
 
-#include <Core2/GeomEvent.h>
+#include <Geometry/GeomEvent.h>
 
 NAMESPACE_UPP
 

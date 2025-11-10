@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 
@@ -144,3 +145,4 @@ void LLDBDebuggerApp::DataLocalRecursive(int parnode, lldb::SBValue local) {
         int n = locals.Add(parnode, CtrlImg::Dir(), str);
     }
 }
+#endif // flagGUI

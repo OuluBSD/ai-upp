@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct EventsDlg : WithEventsLayout<TopWindow> {
@@ -172,3 +173,4 @@ void AssistEditor::Events()
 	if(c != IDYES)
 		WriteClipboardText(b);
 }
+#endif // flagGUI

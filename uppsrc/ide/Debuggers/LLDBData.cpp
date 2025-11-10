@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #define METHOD_NAME UPP_METHOD_NAME("LLDB")
@@ -365,3 +366,4 @@ void LLDB::OnTreeExpand(int node)
 	for(int i = 0; i < val.GetCount(); i++)
 		tree.Add(node, Null, val[i], val.GetKey(i) + " = " + DataClean(val[i]), *val[i] == '{');
 }
+#endif // flagGUI

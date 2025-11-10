@@ -1,6 +1,8 @@
 #ifndef UPP_GAMEWINDOW_H
 #define UPP_GAMEWINDOW_H
 
+/*
+These are included indirectly in cpp files via main header:
 #include <Core/Core.h>
 #include <Draw/Draw.h>
 #include <CtrlCore/CtrlCore.h>
@@ -9,8 +11,11 @@
 #include <api/Screen/Screen.h>
 #include <api/Graphics/Graphics.h>
 #include <Eon/Eon.h>
+*/
 
-NAMESPACE_UPP_BEGIN
+// NAMESPACE_UPP // We are in upp namespace by main header includes
+
+// GameWindow class - intended to be included from GameEngine.h which opens the namespace
 
 class GameWindow : public TopWindow {
 public:
@@ -124,6 +129,6 @@ private:
 	int blend_mode = 0;
 };
 
-NAMESPACE_UPP_END
+//END_UPP_NAMESPACE
 
 #endif

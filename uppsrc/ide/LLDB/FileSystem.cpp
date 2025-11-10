@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 
@@ -204,3 +205,4 @@ void OpenFiles::Close(int tab_index)
     }
 }
 
+#endif // flagGUI

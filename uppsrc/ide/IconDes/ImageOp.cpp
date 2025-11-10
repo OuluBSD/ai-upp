@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 template <class Eq>
@@ -193,3 +194,4 @@ String PackImlData(const Vector<ImageIml>& image)
 {
 	return ZCompress(PackImlDataUncompressed(image));
 }
+#endif // flagGUI

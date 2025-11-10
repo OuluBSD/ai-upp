@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 struct VisGenDlg : public WithVisGenLayout<TopWindow> {
@@ -291,3 +292,4 @@ void LayDes::VisGen()
 	if(dlg.Run() == IDOK)
 		WriteClipboardText(~dlg.view);
 }
+#endif // flagGUI

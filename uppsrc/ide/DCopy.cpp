@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #if 0
@@ -213,3 +214,4 @@ void AssistEditor::DCopy()
 	
 	WriteClipboardText(result);
 }
+#endif // flagGUI

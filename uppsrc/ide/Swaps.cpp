@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define LLOG(x)  // DLOG(x)
@@ -86,3 +87,4 @@ void Ide::SwitchHeader()
 		if(f >= 0) filelist.SetCursor(f);
 	}
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 namespace fs = std::filesystem;
@@ -1358,3 +1359,4 @@ Application::~Application()
     glfwTerminate();
 }
 
+#endif // flagGUI

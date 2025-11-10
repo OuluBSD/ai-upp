@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct UppHubNest : Moveable<UppHubNest> {
@@ -672,3 +673,4 @@ void UppHubAuto(const String& main)
 		break;
 	}
 }
+#endif // flagGUI

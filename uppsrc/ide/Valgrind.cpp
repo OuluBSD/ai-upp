@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool Ide::IsValgrind()
@@ -155,3 +156,4 @@ void Ide::Valgrind()
 	else
 		PutConsole("Done - no errors found.");
 }
+#endif // flagGUI

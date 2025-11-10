@@ -3,13 +3,18 @@ description "TheIDE main package\377";
 uses
 	ide\Common,
 	ide\Core,
-	ide\LayDes,
 	ide\Builders,
 	ide\Debuggers,
+	Core/SSL,
+	plugin\bz2,
+	plugin/md;
+
+uses(GUI)
+	ide/clang,
+	ide\LayDes,
 	ide\Browser,
 	CodeEditor,
 	CtrlLib,
-	plugin\bz2,
 	HexView,
 	TextDiffCtrl,
 	TabBar,
@@ -18,20 +23,17 @@ uses
 	ide/Java,
 	ide/MacroManager,
 	Report,
-	Core/SSL,
-	plugin/md,
-	ide/clang,
 	ide/Edit3D;
 
-uses(!V1) MCP;
+uses(GUI & !V1) MCP;
 
-uses(!V1) ide/MCP;
+uses(GUI & !V1) ide/MCP;
 
-uses(!V1) DropTerm;
+uses(GUI & !V1) DropTerm;
 
-uses(!V1) ide/Shell;
+uses(GUI & !V1) ide/Shell;
 
-uses(!V1) ide/AI;
+uses(GUI & !V1) ide/AI;
 
 file
 	AGENTS.md,
@@ -159,9 +161,9 @@ mainconfig
 	"" = "GUI V1 HEAPLOG",
 	"" = "GUI V1 X11",
 	"" = "GUI V1 GTK WAYLAND",
-	"" = "GUI V1 DEBUGCODE";
+	"" = "GUI V1 DEBUGCODE",
+	"" = "";
 
 custom() "",
 	"ASDFASDFASDF",
 	"$(OUTDIR)/$(FILE).obj";
-

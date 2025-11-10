@@ -45,6 +45,7 @@ public:
 	void Visit(Vis& v) override;
 	
 };
+typedef Ptr<Transform2D> Transform2DPtr;
 
 
 #endif

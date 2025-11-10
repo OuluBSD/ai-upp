@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool Ide::FindLineError(const String& ln, FindLineErrorCache& cache, ListLineInfo& f)
@@ -766,3 +767,4 @@ Size Ide::FoundFileDisplay::GetStdSize(const Value& q) const
 {
 	return GetDrawFileNameSize(q);
 }
+#endif // flagGUI

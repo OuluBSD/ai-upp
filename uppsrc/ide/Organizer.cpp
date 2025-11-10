@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct OptionDisplay : Display {
@@ -744,3 +745,4 @@ void EditPackages(const char *main, const char *startwith, String& cfg) {
 	pe.Serialize(out);
 	cfg = out;
 }
+#endif // flagGUI

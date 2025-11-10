@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 IconDes::TextDlg::TextDlg()
@@ -89,3 +90,4 @@ void IconDes::Text()
 	}
 	SetBar();
 }
+#endif // flagGUI

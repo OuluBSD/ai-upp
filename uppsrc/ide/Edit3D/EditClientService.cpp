@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 #if 0
@@ -56,3 +57,4 @@ void EditClientService::Deinit() {
 END_UPP_NAMESPACE
 
 #endif
+#endif // flagGUI

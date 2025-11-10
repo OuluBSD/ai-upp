@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 static String         lpath;
@@ -400,3 +401,4 @@ void Ide::FindDesignerItemReferences(const String& id, const String& name)
 		}
 }
 
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -566,3 +567,4 @@ String Pdb::TypeAsString(int ti, bool deep)
 #endif
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "MCP.h"
 
 NAMESPACE_UPP
@@ -40,3 +41,4 @@ McpNode McpIndex::Get(const String& id) const {
 
 END_UPP_NAMESPACE
 
+#endif // flagGUI

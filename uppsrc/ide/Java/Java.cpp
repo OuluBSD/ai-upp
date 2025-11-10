@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Java.h"
 
 namespace Upp {
@@ -12,3 +13,4 @@ String Java::GetDelimiter()
 }
 
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "MacroManager.h"
 
 #define METHOD_NAME "UscFileParser::" << UPP_FUNCTION_NAME << "(): "
@@ -161,3 +162,4 @@ String UscFileParser::ReadKeyDesc(CParser& parser)
 }
 
 }
+#endif // flagGUI

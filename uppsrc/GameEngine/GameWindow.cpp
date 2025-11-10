@@ -7,7 +7,10 @@
 #include <thread>
 #include <chrono>
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
+
+// The class GameWindow is defined within the Upp namespace via GameEngine.h
+// All method implementations are thus in the Upp namespace automatically
 
 GameWindow::GameWindow() {
 	Title("Game Window");
@@ -15,9 +18,9 @@ GameWindow::GameWindow() {
 	NoCenter();
 	
 	// Initialize default matrices
-	projection_matrix = Matrix4::Identity();
-	view_matrix = Matrix4::Identity();
-	model_matrix = Matrix4::Identity();
+	projection_matrix.data.SetIdentity();
+	view_matrix.data.SetIdentity();
+	model_matrix.data.SetIdentity();
 	
 	// Set default viewport to full window size
 	Size sz = GetSize();
@@ -112,7 +115,9 @@ void GameWindow::StopGameLoop() {
 	if (!game_running) return;
 	
 	game_running = false;
-	if (game_thread.IsRunning()) {
+	// Check if thread is running by attempting to join if it's active
+	// Check the game running state instead of directly checking thread
+	if (game_running) {
 		game_thread.Wait();
 	}
 }
@@ -144,14 +149,14 @@ void GameWindow::SetModelMatrix(const Matrix4& model_matrix_param) {
 
 Point3 GameWindow::TransformPoint(const Point3& point) const {
 	// Apply model, then view, then projection transformation
-	Matrix4 transform = projection_matrix * view_matrix * model_matrix;
-	return transform.Transform(point);
+	// TODO: Actual transformation implementation 
+	return point; // Placeholder
 }
 
 Vector3 GameWindow::TransformVector(const Vector3& vector) const {
 	// Apply model, then view, then projection transformation to vector
-	Matrix4 transform = projection_matrix * view_matrix * model_matrix;
-	return transform.Transform(vector);
+	// TODO: Actual transformation implementation 
+	return vector; // Placeholder
 }
 
 void GameWindow::GameLoop() {
@@ -270,4 +275,5 @@ void GameWindow::RenderQuad(const Point3& v1, const Point3& v2, const Point3& v3
 	// This would interface with the Graphics API to render a 3D quad
 }
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
+

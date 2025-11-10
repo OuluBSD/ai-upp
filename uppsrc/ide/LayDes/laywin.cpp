@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 #include <ide/Common/Common.h>
@@ -434,3 +435,4 @@ void RegisterLayDes()
 INITBLOCK {
 	RegisterGlobalConfig("laydes-ctrl");
 }
+#endif // flagGUI

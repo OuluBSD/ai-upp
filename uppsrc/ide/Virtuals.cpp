@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct VirtualMethod : AnnotationItem {
@@ -176,3 +177,4 @@ void AssistEditor::Virtuals()
 	Paste(text.ToWString());
 	WriteClipboardText(ctext);
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -191,3 +192,4 @@ bool Pdb::VisualisePretty(Visual& result, Pdb::Val val, dword flags)
 }
 
 #endif
+#endif // flagGUI

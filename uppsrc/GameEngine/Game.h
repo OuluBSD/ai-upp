@@ -8,7 +8,14 @@
 #include <GameEngine/GameEngine.h>
 #include <GameEngine/GameWindow.h>
 
-NAMESPACE_UPP_BEGIN
+// Define missing namespace macros if not already defined  
+#ifndef NAMESPACE_UPP_BEGIN
+#define NAMESPACE_UPP_BEGIN namespace Upp {
+#define NAMESPACE_UPP_END }
+#endif
+
+// Note: This header should be included from within the namespace context
+// as it depends on classes defined in GameWindow.h which are in the Upp namespace
 
 class Game {
 public:
@@ -41,7 +48,5 @@ protected:
 private:
 	void GameLoop();
 };
-
-NAMESPACE_UPP_END
 
 #endif

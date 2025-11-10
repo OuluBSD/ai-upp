@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 static VectorMap<String, IdeIconEditPos>& sEP()
@@ -115,3 +116,4 @@ void IconDes::ListMenuEx(Bar& bar)
 INITIALIZER(IconDes) {
 	RegisterGlobalConfig("icondes-ctrl");
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 String IconDes::FormatImageName(const Slot& c)
@@ -650,3 +651,4 @@ void IconDes::Drag()
 {
 	ilist.DoDragAndDrop(InternalClip(ilist, "icondes-icon"), ilist.GetDragSample(), DND_MOVE);
 }
+#endif // flagGUI

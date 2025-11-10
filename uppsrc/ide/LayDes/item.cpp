@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 struct EnumProperty : public EditorProperty<DropList> {
@@ -432,3 +433,4 @@ Image GetTypeIcon(const String& type, int cx, int cy, int i, Color bg)
 	}
 	return icon;
 }
+#endif // flagGUI

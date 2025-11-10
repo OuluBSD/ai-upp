@@ -1,7 +1,9 @@
 description "TheIDE - common dialogs and interfaces\377B";
 
 uses
-	ide\Core,
+	ide\Core;
+
+uses(GUI)
 	CtrlLib,
 	Esc,
 	CodeEditor;
@@ -17,4 +19,3 @@ file
 	CommandLineOptions.h,
 	Info readonly separator,
 	Copying;
-

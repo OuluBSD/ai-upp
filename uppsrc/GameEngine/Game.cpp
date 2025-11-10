@@ -1,10 +1,6 @@
-#include "Game.h"
-#include <Core/Core.h>
-#include <Draw/Draw.h>
-#include <thread>
-#include <chrono>
+#include "GameEngine.h"
 
-NAMESPACE_UPP_BEGIN
+NAMESPACE_UPP
 
 Game::Game() {
 	// Set up the main window callbacks
@@ -75,4 +71,5 @@ void Game::Exit() {
 	main_window.Break(); // Close the window
 }
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
+

@@ -1,4 +1,7 @@
+#ifdef flagGUI
 #include "ide.h"
+
+#ifdef flagGUI
 
 void TextOption::SetData(const Value& data)
 {
@@ -11,7 +14,7 @@ Value TextOption::GetData() const
 	return Get() ? "1" : "0";
 }
 
-void  TextSwitch::SetData(const Value& data)
+void TextSwitch::SetData(const Value& data)
 {
 	String s = data;
 	Switch::SetData(atoi((String)data));
@@ -21,3 +24,6 @@ Value TextSwitch::GetData() const
 {
 	return AsString(Switch::GetData());
 }
+
+#endif
+#endif // flagGUI

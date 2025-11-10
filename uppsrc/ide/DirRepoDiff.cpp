@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 DirRepoDiffDlg::DirRepoDiffDlg()
@@ -171,3 +172,4 @@ void DirRepoDiffDlg::Compare()
 	if(Clone(0, dir1, lmid) && Clone(1, dir2, rmid))
 		DirDiffDlg::Compare();
 }
+#endif // flagGUI

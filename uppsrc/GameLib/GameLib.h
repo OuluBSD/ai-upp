@@ -6,10 +6,11 @@
 #include <CtrlCore/CtrlCore.h>
 #include <Geometry/Geometry.h>
 
-NAMESPACE_UPP_BEGIN
+
+NAMESPACE_UPP
 
 // Core game engine functionality goes here
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 
 #endif

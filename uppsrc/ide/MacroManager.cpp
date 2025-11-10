@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #include <ide/MacroManager/MacroManager.h>
@@ -17,3 +18,4 @@ void Ide::DoMacroManager()
 		SetMenuBar();
 	}
 }
+#endif // flagGUI

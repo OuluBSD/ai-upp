@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct MainConfigDlg : public WithConfigLayout<TopWindow> {
@@ -299,3 +300,4 @@ void Ide::OnMainConfigList()
 	editor.TriggerSyncFile(0);
 	editor.SetFocus();
 }
+#endif // flagGUI

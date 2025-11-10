@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 
@@ -109,3 +110,4 @@ void FileViewer::Show(FileHandle handle)
         m_breakpoints = {};
     }
 }
+#endif // flagGUI

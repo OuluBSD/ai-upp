@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 // TODO: Move to (renamed) ide/Browser
@@ -157,3 +158,4 @@ void AssistEditor::AssistDisplay::Paint(Draw& w, const Rect& r, const Value& q, 
 		PaintCpp(w, r, m.kind, m.name, m.pretty, ink, (style & (FOCUS|CURSOR)) == (FOCUS|CURSOR) || (style & SELECT), true);
 	}
 }
+#endif // flagGUI

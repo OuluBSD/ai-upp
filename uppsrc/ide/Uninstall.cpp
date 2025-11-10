@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #ifdef PLATFORM_WIN32
@@ -69,3 +70,4 @@ void Uninstall()
 void Uninstall() {}
 
 #endif
+#endif // flagGUI

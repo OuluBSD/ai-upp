@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Android.h"
 
 #include <plugin/pcre/Pcre.h>
@@ -250,3 +251,4 @@ bool AndroidSDK::HasD8() const
 }
 
 }
+#endif // flagGUI

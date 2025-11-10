@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 class JsonView : public TopWindow {
@@ -110,3 +111,4 @@ void Ide::Json()
 	LoadFromGlobal(dlg, "JSONview");
 	dlg.OpenMain();
 }
+#endif // flagGUI

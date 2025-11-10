@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define LLOG(x) // DLOG(x)
@@ -625,3 +626,4 @@ void Ide::LaunchAndroidAVDManager(const AndroidSDK& androidSDK)
 {
 	PromptOK("AVD managment is not yet implemented in TheIDE. Use Android Studio for this purpose instead.");
 }
+#endif // flagGUI

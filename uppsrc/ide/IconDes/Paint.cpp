@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 #define IMAGECLASS IconDesImg
@@ -268,3 +269,4 @@ void IconDes::Paint(Draw& w)
 		PaintHotSpot(image.Get2ndSpot(), LtBlue());
 	}
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct GatherLinksIterator : RichText::Iterator {
@@ -587,3 +588,4 @@ void Ide::ViewIdeLogFile()
 {
 	OpenLog(GetIdeLogPath());
 }
+#endif // flagGUI

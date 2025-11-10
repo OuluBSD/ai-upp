@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 String FormatFont(Font font)
@@ -209,3 +210,4 @@ void RegisterFontProperty()
 {
 	ItemProperty::Register("Font", FontProperty::Create);
 }
+#endif // flagGUI

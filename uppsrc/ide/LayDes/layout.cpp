@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 void LayoutUndo::Push(const String& state)
@@ -194,3 +195,4 @@ void LayoutData::Redo()
 {
 	Do(redo, undo);
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 #define KEYNAMESPACE IconDesKeys
@@ -427,3 +428,4 @@ IconDes::IconDes()
 	status.Width(200);
 	status.NoTransparent();
 }
+#endif // flagGUI

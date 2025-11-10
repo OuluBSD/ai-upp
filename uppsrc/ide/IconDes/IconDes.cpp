@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDes::MaskSelection()
@@ -697,3 +698,4 @@ void IconDes::SingleMode()
 	single.Add(resize.LeftPos(0, fsz.cx + 2 * fsz.cy).TopPos(4 * fsz.cy / 3, 4 * fsz.cy / 3));
 	resize <<= THISBACK(EditImage);
 }
+#endif // flagGUI

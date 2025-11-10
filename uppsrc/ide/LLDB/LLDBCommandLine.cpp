@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDB.h"
 
 // TODO: smart user completion using the HandleCompletionWithDescriptions functions
@@ -67,3 +68,4 @@ Opt<String> LLDBCommandLine::expand_and_unalias_command(const char* command)
         return {};
     }
 }
+#endif // flagGUI

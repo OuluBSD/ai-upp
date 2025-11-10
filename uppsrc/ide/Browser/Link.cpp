@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 struct TopicLinkDlg : WithTopicLinkLayout<TopWindow> {
@@ -124,3 +125,4 @@ void TopicEditor::Hyperlink(String& link, WString& text)
 		text = ReadTopic(LoadFile(fn)).title.ToWString();
 	}
 }
+#endif // flagGUI

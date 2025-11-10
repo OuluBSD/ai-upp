@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 String ViewCache()
@@ -1218,3 +1219,4 @@ void Ide::Duplicate()
 	else
 		editor.DuplicateLine();
 }
+#endif // flagGUI

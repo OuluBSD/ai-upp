@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 String Ide::GetAndroidSdkPath()
@@ -7,3 +8,4 @@ String Ide::GetAndroidSdkPath()
 		return bm.Get("SDK_PATH", String());
 	return String();
 }
+#endif // flagGUI

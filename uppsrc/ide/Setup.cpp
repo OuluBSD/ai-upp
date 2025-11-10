@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define LLOG(x) // LOG(x)
@@ -714,3 +715,4 @@ bool Ide::IsPersistentFindReplace()
 {
 	return persistent_find_replace;
 }
+#endif // flagGUI

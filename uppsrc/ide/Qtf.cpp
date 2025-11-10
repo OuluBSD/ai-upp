@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 INITBLOCK {
@@ -120,3 +121,4 @@ void Ide::Qtf()
 	}
 	StoreToGlobal(dlg, "QTF-designer");
 }
+#endif // flagGUI

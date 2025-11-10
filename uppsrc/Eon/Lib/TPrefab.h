@@ -25,7 +25,7 @@ struct StaticGroundPlane :
 		this->is_override_phys_geom = true;
 		this->override_geom = Identity<mat4>();
 		
-		TODO
+		{Panic("TODO " + String(__FILE__) + ":" + IntStr(__LINE__)); throw Exc("TODO");}
 		ModelBuilder mb;
 		mb	.AddPlane(vec3(-50, 0, -50), vec2(100, 100))
 			/*.SetMaterial(DefaultMaterial())*/

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LLDBUtils.h"
 
 #include <memory>
@@ -77,3 +78,4 @@ String LLDBPosixUtils::BreakRunning(int pid)
 }
 
 #endif
+#endif // flagGUI

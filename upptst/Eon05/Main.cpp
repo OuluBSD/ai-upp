@@ -1,5 +1,9 @@
 #include "Eon05.h"
 
+#if defined(flagSDL2)
+#include <SDL2/SDL.h>
+#endif
+
 using namespace Upp;
 
 namespace {
@@ -17,6 +21,37 @@ struct TestCase {
 	const char* label;
 };
 
+#if defined(flagSDL2)
+bool EnsureSdlVideoAvailable(String& reason) {
+	static bool checked = false;
+	static bool available = false;
+	static String last_error;
+	if (!checked) {
+		checked = true;
+		SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+		if (SDL_Init(SDL_INIT_VIDEO) == 0) {
+			available = true;
+			SDL_Quit();
+		}
+		else {
+			const char* err = SDL_GetError();
+			last_error = err ? String(err) : String("unknown SDL error");
+			SDL_ClearError();
+		}
+	}
+	if (!available)
+		reason = last_error;
+	else
+		reason.Clear();
+	return available;
+}
+#else
+bool EnsureSdlVideoAvailable(String& reason) {
+	reason = "SDL2 backend not available in this build";
+	return false;
+}
+#endif
+
 void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 	eng.ClearCallbacks();
 	eng.WhenInitialize << callback(MachineEcsInit);
@@ -26,6 +61,14 @@ void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 }
 
 void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
+	String reason;
+	if (!EnsureSdlVideoAvailable(reason)) {
+		String msg = Format("%s: skipping (SDL video backend unavailable%s)", label,
+		                    reason.IsEmpty() ? String() : String(": ") + reason);
+		Cout() << msg << '\n';
+		return;
+	}
+
 	EngineGuard guard;
 	guard.eng = &ShellMainEngine();
 	Engine& eng = *guard.eng;

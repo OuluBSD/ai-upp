@@ -131,15 +131,28 @@ bool FboAtomT<Gfx>::PostInitialize() {
 	if (src_type == VD(CENTER, VIDEO)) {
 		ISourcePtr src = this->GetSource();
 		int src_count = src->GetSourceCount();
-		int src_ch =
-			link->SideSinks().GetCount() == 1 ?
-				link->SideSinks().First().local_ch_i :
-				src_count-1;
-		ValueBase& val = src->GetSourceValue(src_ch);
-		ValueFormat fmt = val.GetFormat();
-		fmt.vid.SetType(ColorSampleFD::RGB_U8_LE);
-		if (!link->NegotiateSourceFormat(src_ch, fmt))
-			return false;
+		LinkBase* link = this->GetLink();
+		ASSERT(link);
+		
+		Index<int> video_src_chs;
+		for (auto& ex : link->SideSinks()) {
+			if (ex.local_ch_i >= 0)
+				video_src_chs.FindAdd(ex.local_ch_i);
+		}
+		if (video_src_chs.IsEmpty() && src_count > 0)
+			video_src_chs.Add(src_count - 1);
+		
+		for (int src_ch : video_src_chs) {
+			if (src_ch < 0 || src_ch >= src_count)
+				continue;
+			ValueBase& val = src->GetSourceValue(src_ch);
+			ValueFormat fmt = val.GetFormat();
+			if (fmt.vd != VD(CENTER, VIDEO))
+				continue;
+			fmt.vid.SetType(ColorSampleFD::RGB_U8_LE);
+			if (!link->NegotiateSourceFormat(src_ch, fmt))
+				return false;
+		}
 	}
 	return true;
 }

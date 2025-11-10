@@ -63,8 +63,8 @@ GLint GetGfxChannelFormat(GVar::Sample sample, int channels) {
 		switch (channels) {
 			case 1: return GL_RED;
 			case 2: return GL_RG;
-			case 3: return GL_RGB;
-			case 4: return GL_RGBA;
+			case 3: return GL_BGR;
+			case 4: return GL_BGRA;
 			default: return -1;
 		}
 	}

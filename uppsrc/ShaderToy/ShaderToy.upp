@@ -1,4 +1,4 @@
-description "ShaderToy package for node-based shader pipeline editing";
+description "ShaderToy package for node-based shader pipeline editing\377";
 
 uses
 	Core,
@@ -8,5 +8,9 @@ uses
 	GLCtrl;
 
 file
-	ShaderToy.cpp,
-	ShaderToy.h;
+	ShaderToy.h,
+	ShaderToy.cpp;
+
+mainconfig
+	"" = "GUI";
+

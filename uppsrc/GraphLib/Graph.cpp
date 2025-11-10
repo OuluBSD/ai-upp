@@ -2,7 +2,8 @@
 
 namespace GraphLib {
 
-Node::Node() : layout_pos_x(0), layout_pos_y(0), sort_importance(0), optimized(false), isSelected(false) {
+Node::Node() : layout_pos_x(0), layout_pos_y(0), sort_importance(0), optimized(false), isSelected(false),
+               targetPoint(0, 0), isAnimating(false), animationProgress(0), startAnimationPoint(0, 0) {
 	predecessor = NULL;
 	sz = Size(60, 40);
 	shape = SHAPE_ELLIPSE;
@@ -35,6 +36,11 @@ Node::Node(const Node& src) {
 	COPY(sz);
 	COPY(optimized);
 	COPY(isSelected);
+	// Animation properties
+	COPY(targetPoint);
+	COPY(isAnimating);
+	COPY(animationProgress);
+	COPY(startAnimationPoint);
 	edges <<= src.edges;
 	pins <<= src.pins;
 	#undef COPY
@@ -205,6 +211,7 @@ void Graph::RemoveEdge(Edge& source_edge) {
 void Graph::Clear() {
 	nodes.Clear();
 	edges.Clear();
+	groups.Clear();  // Clear groups as well
 }
 
 }

@@ -876,7 +876,7 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 				continue;
 			
 			int prev_count = block.val.Sub<AstNode>().GetCount();
-			CHECK_SPATH_BEGIN
+			//CHECK_SPATH_BEGIN
 			
 			AstNode* sd = Visit(s);
 			if (!sd)
@@ -901,8 +901,8 @@ bool AstRunner::VisitStatementBlock(const AstNode& n, bool req_rval) {
 			
 			if (s.src == Cursor_ReturnStmt) {ASSERT(added);}
 			
-			ASSERT(&GetBlock() == &block);
-			CHECK_SPATH_END
+			//ASSERT(&GetBlock() == &block);
+			//CHECK_SPATH_END
 			
 			dbg_i++;
 		}

@@ -7,7 +7,7 @@ machine sdl.app:
 		
 		loop audio_gen:
 			ogl.customer
-			sdl.ogl.fbo.side[][id == "audio_conv"]:
+			sdl.ogl.fbo.side[][loop == "audio_conv"]:
 				type = "audio"
 				shader.frag.path = "shaders/toys/simple/simple_sound_out/stage1.glsl"
 				retarded.local.time = true
@@ -20,10 +20,9 @@ machine sdl.app:
 		
 		loop audio_conv:
 			ogl.customer
-			sdl.ogl.fbo.center.audio[id == "audio_gen"][id == "audio_out"]
+			sdl.ogl.fbo.center.audio[loop == "audio_gen"][loop == "audio_out"]
 		
-		loop audio:
-			id = "audio_out"
+		loop audio_out:
 			center.customer
-			center.audio.side.sink.center.user[id == "audio_conv"]
+			center.audio.side.sink.center.user[loop == "audio_conv"]
 			sdl.audio

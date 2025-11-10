@@ -7,23 +7,23 @@ machine sdl.app:
 		
 		loop image:
 			center.customer
-			center.image.loader[][id == "texture"]: vflip = true, filepath = "uk_street.jpg"
+			center.image.loader[][loop == "texture"]: vflip = true, filepath = "uk_street.jpg"
 		
 		loop texture:
 			ogl.customer
-			ogl.fbo.image[id == "image"][id == "screen"]
+			ogl.fbo.image[loop == "image"][loop == "screen"]
 		
 		loop buffer2:
 			ogl.customer
-			ogl.fbo.source[][id == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage2.glsl"
+			ogl.fbo.source[][loop == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage2.glsl"
 		
 		loop buffer1:
 			ogl.customer
-			ogl.fbo.source[][id == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage1.glsl"
+			ogl.fbo.source[][loop == "screen"]: filepath = "shaders/toys/simple/simple_future_buffer/stage1.glsl"
 		
 		loop screen:
 			ogl.customer
-			sdl.fbo[id == "buffer2", id == "buffer1", id == "texture"]:
+			sdl.fbo[loop == "buffer2", loop == "buffer1", loop == "texture"]:
 				filepath = "shaders/toys/simple/simple_future_buffer/stage0.glsl"
 		
 		loop audio:

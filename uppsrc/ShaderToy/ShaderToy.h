@@ -8,6 +8,27 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Painter/Painter.h>
 
+// GLSL Editor Dialog
+struct GLSLEditorDialog : public TopWindow {
+    EditField          codeEditor;
+    Button             compileBtn;
+    StaticRect         errorOutput;
+    StaticText         title;
+    
+    typedef GLSLEditorDialog CLASSNAME;
+    
+    GLSLEditorDialog() {
+        Add(title.TopPos(0, 24).HSizePos());
+        title <<= "Shader Editor";
+        Add(codeEditor.HSizePos().VSizePos(40, 80));
+        Add(compileBtn.TopPos(0, 30).LeftPos(0, 100));
+        compileBtn.SetLabel("Compile");
+        Add(errorOutput.HSizePos().BottomPos(0, 20));
+        errorOutput.SetFrame(ThinInsetFrame());
+        errorOutput <<= "Ready";
+    }
+};
+
 NAMESPACE_UPP
 
 // Forward declarations for OpenGL backend
@@ -93,6 +114,7 @@ public:
     
     // For UI
     void ShowEditorDialog();
+    bool CompileShaderCode(const String& code, String& errorOutput);
 
 private:
     String shaderCode;

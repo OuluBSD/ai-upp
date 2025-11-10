@@ -1,6 +1,14 @@
 #ifndef IDE_H
 #define IDE_H
 
+#include <Core/Core.h>
+#include <Draw/Draw.h>
+
+#include "About.h"
+#include "version.h"
+
+#ifdef flagGUI
+
 #include <RichEdit/RichEdit.h>
 
 #include <ide/Common/Common.h>
@@ -26,7 +34,6 @@
 #include <ide/MCP/MCP.h>
 #endif
 
-#include "About.h"
 #include "MethodsCtrls.h"
 
 #define LAYOUTFILE <ide/ide.lay>
@@ -40,8 +47,6 @@
 #define KEYNAMESPACE IdeKeys
 #define KEYFILE      <ide/ide.key>
 #include             <CtrlLib/key_header.h>
-
-#include "version.h"
 
 #include <ide/Builders/Builders.h>
 
@@ -1351,5 +1356,7 @@ Index<String> GetAllNests(bool sleep = false);
 bool MapFlag(const VectorMap<class String, class String>& map, const char *key);
 
 #include "urepo.h"
+
+#endif // flagGUI
 
 #endif

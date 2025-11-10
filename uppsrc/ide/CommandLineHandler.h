@@ -46,6 +46,11 @@ private:
 	bool HandleScale();
 };
 
+bool RunBaseConsoleHandlers(const Vector<String>& args);
+bool RunMainConsoleHandlers(const Vector<String>& args);
+bool HandleConsoleIdeArgs(const Vector<String>& args);
+String GetConsoleIdeExperimentalNotice();
+
 }
 
 #endif

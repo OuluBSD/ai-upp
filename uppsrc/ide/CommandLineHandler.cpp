@@ -1,12 +1,33 @@
 #include "CommandLineHandler.h"
 
+#include "version.h"
+
+#ifdef flagGUI
 #include "About.h"
+#endif
 
 #include <Draw/Draw.h>
 #include <ide/Common/CommandLineOptions.h>
+#ifdef flagGUI
 #include <ide/Debuggers/GdbUtils.h>
+#endif
 
 using namespace Upp;
+
+namespace {
+
+String FormatConsoleVersionInfo()
+{
+#ifdef flagGUI
+	return SplashCtrl::GenerateVersionInfo(false);
+#else
+	String h;
+	h << "TheIDE (console) version " << IDE_VERSION;
+	return h;
+#endif
+}
+
+}
 
 ACommandLineHandler::ACommandLineHandler(const Vector<String>& args)
 	: args(clone(args))
@@ -34,7 +55,7 @@ bool BaseCommandLineHandler::HandleVersion() const
 	if(args.IsEmpty() || findarg(args[0], "-v", "--version") < 0)
 		return false;
 	
-	Cout() << SplashCtrl::GenerateVersionInfo(false) << "\n";
+	Cout() << FormatConsoleVersionInfo() << "\n";
 	
 	return true;
 }
@@ -64,6 +85,9 @@ bool BaseCommandLineHandler::HandleHelp() const
 
 bool BaseCommandLineHandler::HandleDebugBreakProcess() const
 {
+#ifndef flagGUI
+	return false;
+#else
 	if(args.GetCount() < 2 || !args[0].IsEqual(COMMAND_LINE_GDB_DEBUG_BREAK_PROCESS_OPTION))
 		return false;
 	
@@ -81,6 +105,7 @@ bool BaseCommandLineHandler::HandleDebugBreakProcess() const
 	}
 	
 	return true;
+#endif
 }
 
 MainCommandLineHandler::MainCommandLineHandler(const Vector<String>& args)
@@ -119,4 +144,34 @@ bool MainCommandLineHandler::HandleScale()
 	args.Remove(0, 2);
 	
 	return false;
+}
+
+namespace Upp {
+
+bool RunBaseConsoleHandlers(const Vector<String>& args)
+{
+	BaseCommandLineHandler handler(args);
+	return handler.Handle();
+}
+
+bool RunMainConsoleHandlers(const Vector<String>& args)
+{
+	MainCommandLineHandler handler(args);
+	return handler.Handle();
+}
+
+bool HandleConsoleIdeArgs(const Vector<String>& args)
+{
+	if(RunBaseConsoleHandlers(args))
+		return true;
+	if(RunMainConsoleHandlers(args))
+		return true;
+	return false;
+}
+
+String GetConsoleIdeExperimentalNotice()
+{
+	return "Console mode is experimental; GUI functionality is disabled.";
+}
+
 }

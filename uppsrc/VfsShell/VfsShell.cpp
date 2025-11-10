@@ -3,9 +3,83 @@
 
 NAMESPACE_UPP
 
+// Check if path is in VFS overlay
+bool VfsShellConsole::IsVfsPath(const String& path) {
+	return path.StartsWith("/vfs/");
+}
+
+// Convert path to internal format (system or VFS)
+String VfsShellConsole::ConvertToInternalPath(const String& path, const String& cwd) {
+	if (path.IsEmpty()) return cwd;
+	
+	// If it's already in the VFS overlay, return as is
+	if (IsVfsPath(path)) {
+		return path;
+	}
+	
+	// If it's an absolute system path, return as is
+	if (path.StartsWith("/")) {
+		return path;
+	}
+	
+	// If it's the VFS root
+	if (path == "/vfs") {
+		return "/vfs/";
+	}
+	
+	// Handle relative paths by resolving against current working directory
+	String newPath;
+	if (cwd == "/vfs") {
+		newPath = "/vfs/";
+	} else {
+		newPath = cwd;
+	}
+	
+	if (!newPath.EndsWith("/")) newPath += "/";
+	newPath += path;
+	
+	// Normalize the path (handle "..", ".", etc.)
+	// We'll use U++'s path utilities where possible
+	return NormalizePath(newPath);
+}
+
+// Convert internal path back to external format
+String VfsShellConsole::ConvertFromInternalPath(const String& path) {
+	return path; // For now, just return as is
+}
+
 VfsShellConsole::VfsShellConsole(VfsShellHostBase& h) : host(h)
 {
-	cwd.Set(INTERNAL_ROOT_PATH);  // Use internal root as starting point
+	cwd = "/"; // Start in the root directory where system filesystem is mounted
+}
+
+void VfsShellConsole::CmdHelp(const ValueArray& args) {
+	String helpText = 
+		"Available commands:\n"
+		"  help          - Show this help message\n"
+		"  pwd           - Print current working directory\n"
+		"  cd [path]     - Change current directory\n"
+		"  ls [path]     - List directory contents\n"
+		"  tree [path]   - Show directory tree structure\n"
+		"  mkdir <path>  - Create a new directory\n"
+		"  touch <path>  - Create or update a file\n"
+		"  rm <path>     - Remove a file or directory\n"
+		"  mv <src> <dst> - Move/rename a file or directory\n"
+		"  link <src> <dst> - Create a link\n"
+		"  export <vfs> <host> - Export VFS content to host filesystem\n"
+		"  cat [paths...] - Concatenate and display file contents\n"
+		"  grep [-i] <pattern> [path] - Search for pattern in files\n"
+		"  rg [-i] <pattern> [path] - Ripgrep-like search\n"
+		"  head [-n N] [path] - Show first N lines of file\n"
+		"  tail [-n N] [path] - Show last N lines of file\n"
+		"  uniq [path]   - Show unique lines in file\n"
+		"  count [path]  - Count lines in file\n"
+		"  history [-a | -n N] - Show command history\n"
+		"  random [min [max]] - Generate random number\n"
+		"  true/false    - Exit with success/failure status\n"
+		"  echo <path> <data...> - Display data\n"
+		"  quit/exit     - Exit the shell\n";
+	AddOutputLine(helpText);
 }
 
 void VfsShellConsole::Execute()
@@ -61,24 +135,43 @@ void VfsShellConsole::PrintLineHeader() {
 	String user = GetUserName();  // Get actual username
 	if (user.IsEmpty()) user = "user";
 	String host_name = "vfsshell";  // Simple host name
-	String s = user + "@" + host_name + ":" + (String)cwd + " $ ";
+	String s = user + "@" + host_name + ":" + cwd + " $ ";
 	line_header = s;
 	AddOutput(s);
 }
 
 
 
-bool VfsShellConsole::SetCurrentDirectory(const VfsPath& path) {
-	MountManager& mm = MountManager::System();
-	if (!mm.DirectoryExists(path))
-		return false;
-	cwd = path;
-	return true;
+bool VfsShellConsole::SetCurrentDirectory(const String& path) {
+	String normalizedPath = ConvertToInternalPath(path, cwd);
+	
+	// Check if this is a VFS path
+	if (IsVfsPath(normalizedPath)) {
+		// Convert to VfsPath for VFS operations
+		VfsPath vfsPath;
+		vfsPath.Set(normalizedPath);
+		
+		MountManager& mm = MountManager::System();
+		if (!mm.DirectoryExists(vfsPath))
+			return false;
+		cwd = normalizedPath;
+		return true;
+	} else {
+		// This is a system path, check if directory exists using the mount system
+		VfsPath vfsPath;
+		vfsPath.Set(normalizedPath);
+
+		MountManager& mm = MountManager::System();
+		if (!mm.DirectoryExists(vfsPath))
+			return false;
+		cwd = normalizedPath;
+		return true;
+	}
 }
 
 // Implementation of pwd command
 void VfsShellConsole::CmdPwd() {
-	AddOutputLine((String)GetCurrentDirectory());
+	AddOutputLine(GetCurrentDirectory());
 }
 
 // Implementation of cd command
@@ -89,18 +182,8 @@ void VfsShellConsole::CmdCd(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path = cwd;
 	
-	// Handle absolute vs relative paths
-	if (targetPath.StartsWith("/")) {
-		path.Set(targetPath);
-	} else {
-		VfsPath relPath;
-		relPath.Set(targetPath);
-		path = cwd / relPath;
-	}
-	
-	if (SetCurrentDirectory(path)) {
+	if (SetCurrentDirectory(targetPath)) {
 		// Update prompt to reflect new directory
 		ClearOutput(); // Clear any previous output
 	} else {
@@ -114,26 +197,40 @@ void VfsShellConsole::CmdLs(const ValueArray& args) {
 	if (args.GetCount() > 1) {
 		targetPath = args[1];
 	} else {
-		targetPath = (String)GetCurrentDirectory();
+		targetPath = GetCurrentDirectory();
 	}
 	
-	VfsPath path;
-	if (targetPath.StartsWith("/")) {
-		path.Set(targetPath);
-	} else {
-		VfsPath relPath;
-		relPath.Set(targetPath);
-		path = cwd / relPath;
-	}
-	
-	MountManager& mm = MountManager::System();
-	Vector<VfsItem> items;
-	if (mm.GetFiles(path, items)) {
-		for (const VfsItem& item : items) {
-			AddOutputLine(item.name);
+	String resolvedPath = ConvertToInternalPath(targetPath, GetCurrentDirectory());
+
+	// Check if this is a VFS path
+	if (IsVfsPath(resolvedPath)) {
+		// Convert to VfsPath for VFS operations
+		VfsPath vfsPath;
+		vfsPath.Set(resolvedPath);
+
+		MountManager& mm = MountManager::System();
+		Vector<VfsItem> items;
+		if (mm.GetFiles(vfsPath, items)) {
+			for (const VfsItem& item : items) {
+				AddOutputLine(item.name);
+			}
+		} else {
+			AddOutputLine("ls: cannot access '" + resolvedPath + "': " + mm.last_error);
 		}
 	} else {
-		AddOutputLine("ls: cannot access '" + targetPath + "': " + mm.last_error);
+		// This is a system path
+		if (DirectoryExists(resolvedPath)) {
+			FindFile ff;
+			if (ff.Search(AppendFileName(resolvedPath, "*"))) {
+				do {
+					String name = ff.GetName();
+					if (name == "." || name == "..") continue;
+					AddOutputLine(name);
+				} while (ff.Next());
+			}
+		} else {
+			AddOutputLine("ls: cannot access '" + resolvedPath + "': No such file or directory");
+		}
 	}
 }
 
@@ -143,27 +240,42 @@ void VfsShellConsole::CmdTree(const ValueArray& args) {
 	if (args.GetCount() > 1) {
 		targetPath = args[1];
 	} else {
-		targetPath = (String)GetCurrentDirectory();
+		targetPath = GetCurrentDirectory();
 	}
 	
-	VfsPath path;
-	if (targetPath.StartsWith("/")) {
-		path.Set(targetPath);
-	} else {
-		VfsPath relPath;
-		relPath.Set(targetPath);
-		path = cwd / relPath;
-	}
-	
-	MountManager& mm = MountManager::System();
-	Vector<VfsItem> items;
-	if (mm.GetFiles(path, items)) {
-		AddOutputLine((String)path + "/");
-		for (const VfsItem& item : items) {
-			AddOutputLine("├── " + item.name);
+	String resolvedPath = ConvertToInternalPath(targetPath, GetCurrentDirectory());
+
+	// Check if this is a VFS path
+	if (IsVfsPath(resolvedPath)) {
+		// Convert to VfsPath for VFS operations
+		VfsPath vfsPath;
+		vfsPath.Set(resolvedPath);
+
+		MountManager& mm = MountManager::System();
+		Vector<VfsItem> items;
+		if (mm.GetFiles(vfsPath, items)) {
+			AddOutputLine(resolvedPath + "/");
+			for (const VfsItem& item : items) {
+				AddOutputLine("├── " + item.name);
+			}
+		} else {
+			AddOutputLine("tree: cannot access '" + resolvedPath + "': " + mm.last_error);
 		}
 	} else {
-		AddOutputLine("tree: cannot access '" + targetPath + "': " + mm.last_error);
+		// This is a system path, check using MountManager
+		VfsPath vfsPath;
+		vfsPath.Set(resolvedPath);
+
+		MountManager& mm = MountManager::System();
+		Vector<VfsItem> items;
+		if (mm.GetFiles(vfsPath, items)) {
+			AddOutputLine(resolvedPath + "/");
+			for (const VfsItem& item : items) {
+				AddOutputLine("├── " + item.name);
+			}
+		} else {
+			AddOutputLine("tree: cannot access '" + resolvedPath + "': " + mm.last_error);
+		}
 	}
 }
 
@@ -175,18 +287,25 @@ void VfsShellConsole::CmdMkdir(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path;
-	if (targetPath.StartsWith("/")) {
-		path.Set(targetPath);
+	String resolvedPath = ConvertToInternalPath(targetPath, GetCurrentDirectory());
+
+	// Check if this is a VFS path
+	if (IsVfsPath(resolvedPath)) {
+		// Convert to VfsPath for VFS operations
+		VfsPath vfsPath;
+		vfsPath.Set(resolvedPath);
+
+		// Note: The current VFS implementation doesn't have a CreateDirectory method
+		// This would require an actual implementation in the underlying VFS system
+		AddOutputLine("mkdir: command not fully implemented in VFS - underlying VFS doesn't support directory creation yet");
 	} else {
-		VfsPath relPath;
-		relPath.Set(targetPath);
-		path = cwd / relPath;
+		// This is a system path - for now, use system calls directly as MountManager doesn't have CreateDirectory
+		if (RealizeDirectory(resolvedPath)) {
+			// Directory created successfully
+		} else {
+			AddOutputLine("mkdir: cannot create directory '" + resolvedPath + "': " + GetLastErrorMessage());
+		}
 	}
-	
-	// Note: The current VFS implementation doesn't have a CreateDirectory method
-	// This would require an actual implementation in the underlying VFS system
-	AddOutputLine("mkdir: command not fully implemented - underlying VFS doesn't support directory creation yet");
 }
 
 // Implementation of touch command
@@ -197,24 +316,36 @@ void VfsShellConsole::CmdTouch(const ValueArray& args) {
 	}
 	
 	String targetPath = args[1];
-	VfsPath path;
-	if (targetPath.StartsWith("/")) {
-		path.Set(targetPath);
+	String resolvedPath = ConvertToInternalPath(targetPath, GetCurrentDirectory());
+
+	// Check if this is a VFS path
+	if (IsVfsPath(resolvedPath)) {
+		// Convert to VfsPath for VFS operations
+		VfsPath vfsPath;
+		vfsPath.Set(resolvedPath);
+
+		MountManager& mm = MountManager::System();
+
+		// Check if file exists
+		if (!mm.FileExists(vfsPath) && !mm.DirectoryExists(vfsPath)) {
+			// Note: The current VFS implementation doesn't support creating files directly
+			// This would require an actual implementation in the underlying VFS system
+			AddOutputLine("touch: command not fully implemented in VFS - underlying VFS doesn't support file creation yet");
+		}
+		// If it exists, we could potentially update timestamp, but that's not implemented yet
 	} else {
-		VfsPath relPath;
-		relPath.Set(targetPath);
-		path = cwd / relPath;
+		// This is a system path
+		if (!FileExists(resolvedPath) && !DirectoryExists(resolvedPath)) {
+			// Create the file if it doesn't exist
+			FileOut out(resolvedPath);
+			if (!out.IsOpen()) {
+				AddOutputLine("touch: cannot touch '" + resolvedPath + "': " + GetLastErrorMessage());
+				return;
+			}
+		} else {
+			// Update timestamp if it exists (not directly supported in U++, so just confirm existence)
+		}
 	}
-	
-	MountManager& mm = MountManager::System();
-	
-	// Check if file exists
-	if (!mm.FileExists(path) && !mm.DirectoryExists(path)) {
-		// Note: The current VFS implementation doesn't support creating files directly
-		// This would require an actual implementation in the underlying VFS system
-		AddOutputLine("touch: command not fully implemented - underlying VFS doesn't support file creation yet");
-	}
-	// If it exists, we could potentially update timestamp, but that's not implemented yet
 }
 
 // Implementation of rm command
@@ -231,7 +362,9 @@ void VfsShellConsole::CmdRm(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(targetPath);
-		path = cwd / relPath;
+		VfsPath cwdPath;
+		cwdPath.Set(cwd);
+		path = cwdPath / relPath;
 	}
 	
 	MountManager& mm = MountManager::System();
@@ -260,7 +393,7 @@ void VfsShellConsole::CmdMv(const ValueArray& args) {
 	} else {
 		VfsPath srcRelPath;
 		srcRelPath.Set(srcPathStr);
-		srcPath = cwd / srcRelPath;
+		VfsPath cwdPath; cwdPath.Set(cwd); srcPath = cwdPath / srcRelPath;
 	}
 	
 	VfsPath dstPath;
@@ -269,7 +402,7 @@ void VfsShellConsole::CmdMv(const ValueArray& args) {
 	} else {
 		VfsPath dstRelPath;
 		dstRelPath.Set(dstPathStr);
-		dstPath = cwd / dstRelPath;
+		VfsPath cwdPath2; cwdPath2.Set(cwd); dstPath = cwdPath2 / dstRelPath;
 	}
 	
 	MountManager& mm = MountManager::System();
@@ -298,7 +431,7 @@ void VfsShellConsole::CmdLink(const ValueArray& args) {
 	} else {
 		VfsPath srcRelPath;
 		srcRelPath.Set(srcPathStr);
-		srcPath = cwd / srcRelPath;
+		VfsPath cwdPath3; cwdPath3.Set(cwd); srcPath = cwdPath3 / srcRelPath;
 	}
 	
 	VfsPath dstPath;
@@ -307,7 +440,7 @@ void VfsShellConsole::CmdLink(const ValueArray& args) {
 	} else {
 		VfsPath dstRelPath;
 		dstRelPath.Set(dstPathStr);
-		dstPath = cwd / dstRelPath;
+		VfsPath cwdPath4; cwdPath4.Set(cwd); dstPath = cwdPath4 / dstRelPath;
 	}
 	
 	// Note: The current VFS implementation doesn't have link functionality
@@ -331,7 +464,7 @@ void VfsShellConsole::CmdExport(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(vfsPathStr);
-		vfsPath = cwd / relPath;
+		VfsPath cwdPath5; cwdPath5.Set(cwd); vfsPath = cwdPath5 / relPath;
 	}
 	
 	// Note: The current VFS implementation doesn't have a MapPath method
@@ -360,7 +493,7 @@ void VfsShellConsole::CmdCat(const ValueArray& args) {
 		} else {
 			VfsPath relPath;
 			relPath.Set(pathStr);
-			path = cwd / relPath;
+			VfsPath cwdPath6; cwdPath6.Set(cwd); path = cwdPath6 / relPath;
 		}
 		
 		if (mm.FileExists(path)) {
@@ -442,7 +575,7 @@ void VfsShellConsole::CmdHead(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(pathStr);
-		path = cwd / relPath;
+		VfsPath cwdPath7; cwdPath7.Set(cwd); path = cwdPath7 / relPath;
 	}
 	
 	MountManager& mm = MountManager::System();
@@ -481,7 +614,7 @@ void VfsShellConsole::CmdTail(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(pathStr);
-		path = cwd / relPath;
+		VfsPath cwdPath8; cwdPath8.Set(cwd); path = cwdPath8 / relPath;
 	}
 	
 	MountManager& mm = MountManager::System();
@@ -508,7 +641,7 @@ void VfsShellConsole::CmdUniq(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(pathStr);
-		path = cwd / relPath;
+		VfsPath cwdPath9; cwdPath9.Set(cwd); path = cwdPath9 / relPath;
 	}
 	
 	MountManager& mm = MountManager::System();
@@ -535,7 +668,7 @@ void VfsShellConsole::CmdCount(const ValueArray& args) {
 	} else {
 		VfsPath relPath;
 		relPath.Set(pathStr);
-		path = cwd / relPath;
+		VfsPath cwdPath10; cwdPath10.Set(cwd); path = cwdPath10 / relPath;
 	}
 	
 	MountManager& mm = MountManager::System();

@@ -12,11 +12,14 @@ public:
 	virtual ~VfsShellHostBase() {}
 	virtual bool Command(class VfsShellConsole& shell, const ValueArray& args) = 0;
 	virtual String GetOutput() const = 0;
+	virtual void ClearOutput() = 0;
+	virtual void AddOutput(const String& s) = 0;
+	virtual void AddOutputLine(const String& s = String()) = 0;
 };
 
 class VfsShellConsole {
 	VfsShellHostBase& host;
-	VfsPath           cwd;       // Current working directory in VFS
+	String            cwd;       // Current working directory (system path by default)
 	String            line_header;
 	ValueMap          vars;      // Shell variables
 	
@@ -26,11 +29,19 @@ public:
 	void Execute();
 	void PrintLineHeader();
 	
-	// VFS operations
-	bool SetCurrentDirectory(const VfsPath& path);
-	const VfsPath& GetCurrentDirectory() const { return cwd; }
+	// Path operations
+	bool SetCurrentDirectory(const String& path);
+	const String& GetCurrentDirectory() const { return cwd; }
+	
+	// Check if path is in VFS overlay
+	static bool IsVfsPath(const String& path);
+	// Convert path to internal format (system or VFS)
+	static String ConvertToInternalPath(const String& path, const String& cwd);
+	// Convert internal path back to external format
+	static String ConvertFromInternalPath(const String& path);
 	
 	// Command implementations
+	void CmdHelp(const ValueArray& args);
 	void CmdPwd();
 	void CmdCd(const ValueArray& args);
 	void CmdLs(const ValueArray& args);
@@ -54,10 +65,10 @@ public:
 	void CmdEcho(const ValueArray& args);
 	
 private:
-	String output;
-	void ClearOutput() { output.Clear(); }
-	void AddOutput(const String& s) { output << s; }
-	void AddOutputLine(const String& s = String()) { output << s << "\n"; }
+	String output;  // For internal use (store command input/output)
+	void ClearOutput() { host.ClearOutput(); }
+	void AddOutput(const String& s) { host.AddOutput(s); }
+	void AddOutputLine(const String& s = String()) { host.AddOutputLine(s); }
 };
 
 END_UPP_NAMESPACE

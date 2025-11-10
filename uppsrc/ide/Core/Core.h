@@ -313,6 +313,7 @@ String CatAnyPath(String path, const char *more);
 
 bool   IsFullDirectory(const String& d);
 bool   IsFolder(const String& path);
+int    FindId(const String& s, const String& id);
 
 bool   IsCSourceFile(const char *path);
 bool   IsCHeaderFile(const char *path);

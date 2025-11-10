@@ -1,38 +1,157 @@
-#include <Shell/Shell.h>
+#include "Eon06.h"
 
-/*
-Eon06 contains .toy shader files and .glsl shader code instead of .eon configuration files.
-This represents a different kind of test case focused on shader programming and rendering.
+#if defined(flagSDL2)
+#include <SDL2/SDL.h>
+#endif
 
-Toy shader files contain:
-- JSON configuration with name, description, etc.
-- Stage definitions with inputs (textures) and outputs
-- Shader code in GLSL files
+using namespace Upp;
 
-This implementation would need to load toy shader configurations and associated GLSL code.
-*/
+namespace {
+
+struct EngineGuard {
+	Engine* eng = nullptr;
+	~EngineGuard() {
+		if (eng)
+			Engine::Uninstall(true, eng);
+	}
+};
+
+struct TestCase {
+	void (*runner)(Engine&, int);
+	const char* label;
+};
+
+#if defined(flagSDL2)
+bool EnsureSdlVideoAvailable(String& reason) {
+	static bool checked = false;
+	static bool available = false;
+	static String last_error;
+	if (!checked) {
+		checked = true;
+		SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+		if (SDL_Init(SDL_INIT_VIDEO) == 0) {
+			available = true;
+			SDL_Quit();
+		}
+		else {
+			const char* err = SDL_GetError();
+			last_error = err ? String(err) : String("unknown SDL error");
+			SDL_ClearError();
+		}
+	}
+	if (!available)
+		reason = last_error;
+	else
+		reason.Clear();
+	return available;
+}
+#else
+bool EnsureSdlVideoAvailable(String& reason) {
+	reason = "SDL2 backend not available in this build";
+	return false;
+}
+#endif
+
+void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
+	eng.ClearCallbacks();
+	eng.WhenInitialize << callback(MachineEcsInit);
+	eng.WhenPreFirstUpdate << callback(DefaultStartup);
+	eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
+	eng.WhenUserInitialize << callback1(runner, method);
+}
+
+void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
+	String reason;
+	if (!EnsureSdlVideoAvailable(reason)) {
+		String msg = Format("%s: skipping (SDL video backend unavailable%s)", label,
+		                    reason.IsEmpty() ? String() : String(": ") + reason);
+		Cout() << msg << '\n';
+		return;
+	}
+
+	EngineGuard guard;
+	guard.eng = &ShellMainEngine();
+	Engine& eng = *guard.eng;
+
+	ConfigureEngine(eng, runner, method);
+
+	ValueMap args;
+	args.Add("MACHINE_TIME_LIMIT", 3);
+
+	if (!eng.StartLoad("Shell", String(), args))
+		throw Exc(String().Cat() << label << ": engine failed to start");
+
+	eng.MainLoop();
+
+	Engine::Uninstall(true, guard.eng);
+	guard.eng = nullptr;
+}
+
+const TestCase kTests[] = {
+	{ Run06aToyShaderSinglePassClouds, "Run06aToyShaderSinglePassClouds" },
+	{ Run06bToyShaderMultiPass, "Run06bToyShaderMultiPass" },
+	{ Run06cToyShaderWithTexture, "Run06cToyShaderWithTexture" },
+	{ Run06dToyShaderWithBuffers, "Run06dToyShaderWithBuffers" },
+	{ Run06eToyShaderAudio, "Run06eToyShaderAudio" },
+	{ Run06fToyShaderVoronoi, "Run06fToyShaderVoronoi" },
+	{ Run06gToyShaderFractal, "Run06gToyShaderFractal" },
+	{ Run06hToyShaderAnimation, "Run06hToyShaderAnimation" },
+	{ Run06iToyShaderRaymarching, "Run06iToyShaderRaymarching" },
+	{ Run06jToyShaderWater, "Run06jToyShaderWater" },
+	{ Run06kToyShaderFire, "Run06kToyShaderFire" },
+};
+
+constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));
+
+void PrintTestCatalog() {
+	Cout() << "Tests:\n";
+	Cout() << "  -1 runs all tests.\n";
+	for(int i = 0; i < kTestCount; i++)
+		Cout() << "  " << i << ": " << kTests[i].label << '\n';
+}
+
+void RunSingleTest(int index, int method) {
+	if (index < 0 || index >= kTestCount)
+		throw Exc(String().Cat() << "invalid test index " << index);
+	RunScenario(kTests[index].runner, method, kTests[index].label);
+}
+
+void RunAllTests(int method) {
+	for(int i = 0; i < kTestCount; i++)
+		RunScenario(kTests[i].runner, method, kTests[i].label);
+}
+
+} // namespace
 
 CONSOLE_APP_MAIN {
-	using namespace Upp;
-	Engine& eng = ShellMainEngine();
-	eng.WhenUserInitialize << [](Engine& eng) {
-		auto sys = eng.GetAdd<Eon::ScriptLoader>();
-		sys->SetEagerChainBuild(true);
-		
-		// For Eon06, we're dealing with toy shaders and GLSL files instead of .eon files
-		// This would typically involve loading shader configurations from .toy files
-		// and associated GLSL code from .glsl files
-		
-		LOG("Eon06 - Toy shader implementation");
-		LOG("Loading toy shader: 06a_toyshader_singlepass_clouds");
-		
-		// Since .toy files are not .eon files, we cannot load them directly with PostLoadFile
-		// Instead, this would typically need special handling for toy shader configurations
-		// For now, we'll just acknowledge the different nature of this test case
-		
-		LOG("Toy shader loaded: 06a_toyshader_singlepass_clouds.toy with stage0.glsl");
-		LOG("Note: This test involves shader loading which requires different handling than .eon files");
-	};
-	
-	ShellMain(true);
+	CommandLineArguments cmd;
+	cmd.AddPositional("test number", INT_V, -1);
+	cmd.AddPositional("method number", INT_V, 0);
+	cmd.AddArg('h', "Show usage information", false);
+	if (!cmd.Parse() || cmd.IsArg('h')) {
+		cmd.PrintHelp();
+		PrintTestCatalog();
+		return;
+	}
+
+	int test_number = (int)cmd.GetPositional(0);
+	int method_number = (int)cmd.GetPositional(1);
+
+	if (test_number < -1 || test_number >= kTestCount) {
+		Cerr() << "Test number out of range: " << test_number << '\n';
+		cmd.PrintHelp();
+		PrintTestCatalog();
+		return;
+	}
+
+	try {
+		if (test_number == -1)
+			RunAllTests(method_number);
+		else
+			RunSingleTest(test_number, method_number);
+	}
+	catch (Exc e) {
+		Cout() << "error: " << e << '\n';
+		throw;
+	}
 }

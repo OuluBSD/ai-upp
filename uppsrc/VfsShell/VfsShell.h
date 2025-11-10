@@ -64,6 +64,13 @@ public:
 	void CmdTrueFalse(const ValueArray& args);
 	void CmdEcho(const ValueArray& args);
 	
+	// U++/IDE-specific commands
+	void CmdIdeBuild(const ValueArray& args);
+	void CmdIdeWorkspace(const ValueArray& args);
+	void CmdIdePackage(const ValueArray& args);
+	void CmdIdeInstall(const ValueArray& args);
+	void CmdIdeUninstall(const ValueArray& args);
+	
 private:
 	String output;  // For internal use (store command input/output)
 	void ClearOutput() { host.ClearOutput(); }

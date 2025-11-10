@@ -1,5 +1,6 @@
 #include "VfsShell.h"
 #include <Core/VfsBase/VfsBase.h>  // For basic VFS operations
+#include <ide/CommandLineHandler.h>  // For IDE command handling
 
 NAMESPACE_UPP
 
@@ -78,7 +79,15 @@ void VfsShellConsole::CmdHelp(const ValueArray& args) {
 		"  random [min [max]] - Generate random number\n"
 		"  true/false    - Exit with success/failure status\n"
 		"  echo <path> <data...> - Display data\n"
-		"  quit/exit     - Exit the shell\n";
+		"  quit/exit     - Exit the shell\n"
+		"  \n"
+		"IDE/U++ specific commands:\n"
+		"  theide        - Execute TheIDE command (e.g. 'theide build MyApp')\n"
+		"  idebuild      - Build U++ package (e.g. 'idebuild MyApp')\n"
+		"  ideworkspace  - Workspace operations (e.g. 'ideworkspace list')\n"
+		"  idepkg        - Package operations (e.g. 'idepkg list', 'idepkg create MyPkg')\n"
+		"  ideinstall    - Install U++ package\n"
+		"  ideuninstall  - Uninstall U++ package\n";
 	AddOutputLine(helpText);
 }
 
@@ -737,6 +746,129 @@ void VfsShellConsole::CmdEcho(const ValueArray& args) {
 		result.Cat((String)args[i]);
 	}
 	AddOutputLine(result);
+}
+
+// Implementation of IDE build command
+void VfsShellConsole::CmdIdeBuild(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: idebuild <package_name> [assembly] [options]");
+		AddOutputLine("Example: idebuild MyApp CLANG -release");
+		return;
+	}
+	
+	// Build command line args to pass to the IDE's console handler
+	Vector<String> ide_args;
+	ide_args.Add("build");
+	
+	for (int i = 1; i < args.GetCount(); i++) {
+		ide_args.Add((String)args[i]);
+	}
+	
+	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of IDE workspace command
+void VfsShellConsole::CmdIdeWorkspace(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: ideworkspace <command> [options]");
+		AddOutputLine("Commands: list, create, open, close, scan");
+		return;
+	}
+	
+	String cmd = (String)args[1];
+	Vector<String> ide_args;
+	
+	if (cmd == "list") {
+		ide_args.Add("workspace");
+		ide_args.Add("list");
+	} else if (cmd == "scan") {
+		ide_args.Add("workspace");
+		ide_args.Add("scan");
+	} else {
+		AddOutputLine("Unknown workspace command: " + cmd);
+		AddOutputLine("Supported commands: list, scan");
+		return;
+	}
+	
+	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of IDE package command
+void VfsShellConsole::CmdIdePackage(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: idepkg <command> [options]");
+		AddOutputLine("Commands: list, create, scan, info");
+		return;
+	}
+	
+	String cmd = (String)args[1];
+	Vector<String> ide_args;
+	
+	if (cmd == "list") {
+		ide_args.Add("pkg");
+		ide_args.Add("list");
+	} else if (cmd == "scan") {
+		ide_args.Add("pkg");
+		ide_args.Add("scan");
+	} else if (cmd == "create") {
+		if (args.GetCount() < 3) {
+			AddOutputLine("Usage: idepkg create <package_name>");
+			return;
+		}
+		ide_args.Add("pkg");
+		ide_args.Add("create");
+		ide_args.Add((String)args[2]);
+	} else {
+		AddOutputLine("Unknown package command: " + cmd);
+		AddOutputLine("Supported commands: list, create, scan");
+		return;
+	}
+	
+	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of IDE install command
+void VfsShellConsole::CmdIdeInstall(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: ideinstall <package_name>");
+		return;
+	}
+	
+	Vector<String> ide_args;
+	ide_args.Add("install");
+	
+	for (int i = 1; i < args.GetCount(); i++) {
+		ide_args.Add((String)args[i]);
+	}
+	
+	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of IDE uninstall command
+void VfsShellConsole::CmdIdeUninstall(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: ideuninstall <package_name>");
+		return;
+	}
+	
+	Vector<String> ide_args;
+	ide_args.Add("uninstall");
+	
+	for (int i = 1; i < args.GetCount(); i++) {
+		ide_args.Add((String)args[i]);
+	}
+	
+	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
 }
 
 END_UPP_NAMESPACE

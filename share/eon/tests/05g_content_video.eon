@@ -6,15 +6,15 @@ machine sdl.app:
 	chain program:
 		loop cam:
 			center.customer
-			center.video.loader [][id == "texture"]:
+			center.video.loader [][loop == "texture"]:
 				vflip = "true"
 				filepath = "videos/35c87bcb8d7af24c54d41122dadb619dd920646a0bd0e477e7bdc6d12876df17.webm"
 		
 		loop texture:
 			ogl.customer
-			sdl.ogl.fbo.image[id == "cam"][id == "screen"]
+			sdl.ogl.fbo.image[loop == "cam"][loop == "screen"]
 		
 		loop screen:
 			ogl.customer
-			sdl.fbo[id == "texture"]:
+			sdl.fbo[loop == "texture"]:
 				shader.frag.path = "shaders/toys/simple/simple_video/stage0.glsl"

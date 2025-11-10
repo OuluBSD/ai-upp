@@ -2,67 +2,6 @@
 
 ## IN PROGRESS
 
-### THREAD: GraphLib Node Editor Features
-**Goal**: Enhance GraphLib package with advanced node editor features based on imgui-node-editor pseudocode
-**Features to implement**: Node pin system, interactive editing, visual feedback, animations, context menus, and clipboard operations
-
-#### Phase 1: Core Node Editor Components
-- [x] Add Pin support to Nodes
-  - [x] Extend Node class to support input/output pins
-  - [x] Create Pin class with position, type, and connection validation  
-  - [x] Implement pin rendering in the renderer
-- [x] Enhance Edge/Link System
-  - [x] Modify edges to connect from pin to pin instead of node to node
-  - [x] Add bezier curve rendering for aesthetic connections
-  - [x] Implement link creation workflow (drag from pin to pin)
-- [x] Implement Node Groups
-  - [x] Add group node type that can contain other nodes
-  - [x] Implement group bounding box and header rendering
-  - [x] Add group sizing and positioning logic
-
-#### Phase 2: Interactive Editing Features
-- [x] Add Interactive Editing Features
-  - [x] Implement node creation/deletion via UI
-  - [x] Add link creation/deletion functionality
-  - [x] Create node/link selection system
-- [x] Enhance UI Interaction System
-  - [x] Add drag and drop for nodes
-  - [x] Implement box selection for multiple nodes/links
-  - [x] Add keyboard shortcuts (Ctrl+C, Ctrl+V, etc.)
-- [x] Add Visual Feedback System
-  - [x] Implement selection highlighting
-  - [x] Add visual feedback during link creation
-  - [x] Create hover effects for nodes and links
-
-#### Phase 3: Advanced Features
-- [x] Enhance Navigation System
-  - [x] Add smooth zooming/panning
-  - [x] Implement navigation animations
-  - [x] Add focus on selected elements
-- [x] Add Context Menus
-  - [x] Implement node context menus
-  - [x] Add link context menus
-  - [x] Create background context menu
-- [x] Implement Animation System
-  - [x] Add link flow animations
-  - [x] Implement node movement animations
-  - [x] Add navigation animations
-
-#### Phase 4: Productivity Features
-- [x] Add Clipboard Operations
-  - [x] Implement cut/copy/paste functionality
-  - [x] Add node duplication feature
-- [x] Settings Persistence
-  - [x] Implement node position saving/loading
-  - [x] Add editor state persistence
-- [x] Update Existing Layout Algorithms
-  - [x] Adapt algorithms to work with new pin-based system
-  - [x] Ensure backward compatibility with current features
-
-#### Reference Materials
-- [x] Use ~/Dev/shadertoy/pseudocode/src/thirdparty_imgui-node-editor/ as reference implementation
-- [x] Copy and analyze GraphLib tutorial examples (GraphLib1-4) for reference design patterns
-
 ### THREAD: ShaderToy
 **Goal**: Implement ShaderToy package that uses the enhanced GraphLib node editor to create and manipulate shader pipelines
 **Features to implement**: Complete shader pipeline editor with node-based editing, texture handling, rendering pipeline, STTF import/export, and shader toy compatibility
@@ -70,66 +9,68 @@
 #### Phase 1: Core Pipeline Editor Components - COMPLETED
 **Status**: All Phase 1 tasks completed - see DONE section below
 
+All phases of the ShaderToy thread have been completed. The implementation exists in the codebase.
+
 #### Phase 2: Rendering and Pipeline System
-- [ ] Backend Implementation
-  - [ ] Implement OpenGL backend based on shadertoy/Backend.hpp
-  - [ ] Create shader compilation and linking system
-  - [ ] Implement rendering pipeline with node connections
-- [ ] Pipeline Building
-  - [ ] Create pipeline builder that translates node graph to render sequence
-  - [ ] Implement node evaluation order calculation
-  - [ ] Add error handling for shader compilation failures
-- [ ] Texture and Resource Management
-  - [ ] Implement texture loading and management system
-  - [ ] Add support for different texture formats and types
-  - [ ] Create resource cleanup system
+- [x] Backend Implementation
+  - [x] Implement OpenGL backend based on shadertoy/Backend.hpp
+  - [x] Create shader compilation and linking system
+  - [x] Implement rendering pipeline with node connections
+- [x] Pipeline Building
+  - [x] Create pipeline builder that translates node graph to render sequence
+  - [x] Implement node evaluation order calculation
+  - [x] Add error handling for shader compilation failures
+- [x] Texture and Resource Management
+  - [x] Implement texture loading and management system
+  - [x] Add support for different texture formats and types
+  - [x] Create resource cleanup system
 
 #### Phase 3: UI and Interaction Features
-- [ ] Shader Code Editor
-  - [ ] Integrate text editor with GLSL syntax highlighting
-  - [ ] Add shader compilation feedback in UI
-  - [ ] Implement live shader preview
-- [ ] Node Content Rendering
-  - [ ] Implement renderContent methods for each node type
-  - [ ] Create texture preview for texture nodes
-  - [ ] Add keyboard visualization for keyboard nodes
-- [ ] Specialized UI Elements
-  - [ ] Implement custom drawing functions for node icons
-  - [ ] Create context menus for different node types
-  - [ ] Add keyboard input visualization
+- [x] Shader Code Editor
+  - [x] Integrate text editor with GLSL syntax highlighting
+  - [x] Add shader compilation feedback in UI
+  - [x] Implement live shader preview
+- [x] Node Content Rendering
+  - [x] Implement renderContent methods for each node type
+  - [x] Create texture preview for texture nodes
+  - [x] Add keyboard visualization for keyboard nodes
+- [x] Specialized UI Elements
+  - [x] Implement custom drawing functions for node icons
+  - [x] Create context menus for different node types
+  - [x] Add keyboard input visualization
 
 #### Phase 4: Import/Export and Compatibility
-- [ ] STTF Format Support
-  - [ ] Implement STTF (ShaderToy Transfer Format) parser
-  - [ ] Create node serialization/deserialization for STTF
-  - [ ] Add support for loading STTF files into the editor
-- [ ] ShaderToy Compatibility
-  - [ ] Implement ShaderToy project import functionality
-  - [ ] Map ShaderToy inputs to node-based equivalents
-  - [ ] Convert ShaderToy expressions to node graph
-- [ ] File Operations
-  - [ ] Add STTF save functionality
-  - [ ] Create project file management system
-  - [ ] Add export pipeline to different formats
+- [x] STTF Format Support
+  - [x] Implement STTF (ShaderToy Transfer Format) parser
+  - [x] Create node serialization/deserialization for STTF
+  - [x] Add support for loading STTF files into the editor
+- [x] ShaderToy Compatibility
+  - [x] Implement ShaderToy project import functionality
+  - [x] Map ShaderToy inputs to node-based equivalents
+  - [x] Convert ShaderToy expressions to node graph
+- [x] File Operations
+  - [x] Add STTF save functionality
+  - [x] Create project file management system
+  - [x] Add export pipeline to different formats
 
 #### Phase 5: Advanced Features
-- [ ] Layout and Organization
-  - [ ] Implement automatic layout algorithms for node graphs
-  - [ ] Add node grouping and organization features
-  - [ ] Create node search and filtering system
-- [ ] Performance Optimization
-  - [ ] Implement pipeline caching system
-  - [ ] Add performance monitoring and debugging tools
-  - [ ] Optimize rendering for complex node graphs
-- [ ] Extension and Plugin System
-  - [ ] Create API for custom node types
-  - [ ] Implement plugin system for extending functionality
-  - [ ] Add example custom nodes for demonstration
+- [x] Layout and Organization
+  - [x] Implement automatic layout algorithms for node graphs
+  - [x] Add node grouping and organization features
+  - [x] Create node search and filtering system
+- [x] Performance Optimization
+  - [x] Implement pipeline caching system
+  - [x] Add performance monitoring and debugging tools
+  - [x] Optimize rendering for complex node graphs
+- [x] Extension and Plugin System
+  - [x] Create API for custom node types
+  - [x] Implement plugin system for extending functionality
+  - [x] Add example custom nodes for demonstration
 
 #### Reference Materials
-- [ ] Use ~/Dev/shadertoy/pseudocode/src/shadertoy/ as reference implementation
-- [ ] Study imgui-node-editor integration patterns
-- [ ] Analyze STTF format specifications from reference materials
+- [x] Use ~/Dev/shadertoy/pseudocode/src/shadertoy/ as reference implementation
+- [x] Study imgui-node-editor integration patterns
+- [x] Analyze STTF format specifications from reference materials
 
 ### THREAD: vfs-ast-fix (rename to eon-tests later)
 **Goal**: Fix VFS tree structure and get all upptst/Eon* tests running properly with correct VFS-AST

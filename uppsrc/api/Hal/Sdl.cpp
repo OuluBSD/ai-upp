@@ -438,11 +438,29 @@ bool HalSdl::ContextBase_PostInitialize(NativeContextBase& ctx, AtomBase& a) {
 
 	// Disable compositor bypass to keep X11 composition effects working
 	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+	
+	const char* requested_driver = getenv("SDL_VIDEODRIVER");
+	if (requested_driver && ToLower(String(requested_driver)) == "dummy") {
+		int drv_count = SDL_GetNumVideoDrivers();
+		for (int i = 0; i < drv_count; i++) {
+			const char* drv = SDL_GetVideoDriver(i);
+			if (drv && String(drv) == "offscreen") {
+				SDL_setenv("SDL_VIDEODRIVER", "offscreen", 1);
+				LOG("HalSdl::ContextBase_PostInitialize: overriding SDL_VIDEODRIVER=dummy with 'offscreen' for OpenGL support");
+				break;
+			}
+		}
+	}
 
 	if (SDL_Init(sdl_flags) < 0) {
 		String last_error = SDL_GetError();
 		LOG("SDL2::Context: error: " << last_error);
 		return false;
+	}
+	else {
+		const char* active_driver = SDL_GetCurrentVideoDriver();
+		if (active_driver)
+			LOG("HalSdl::ContextBase_PostInitialize: SDL video driver = " << active_driver);
 	}
 	
 	if (TTF_Init() < 0) {
@@ -1045,29 +1063,43 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	
 	// Window
 	uint32 flags = 0;
-	
 	flags |= SDL_WINDOW_OPENGL;
-    SDL_SetHintWithPriority( SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_OVERRIDE );
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_OVERRIDE);
 	
 	if (dev.is_fullscreen)	flags |= SDL_WINDOW_FULLSCREEN;
 	if (dev.is_sizeable)	flags |= SDL_WINDOW_RESIZABLE;
 	if (dev.is_maximized)	flags |= SDL_WINDOW_MAXIMIZED;
 	
+	const char* driver = SDL_GetCurrentVideoDriver();
+	bool headless_driver = driver && String(driver) == "dummy";
+	
 	if (SDL_CreateWindowAndRenderer(dev.screen_sz.cx, dev.screen_sz.cy, flags, &dev.win, &dev.rend) == -1) {
-		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: could not create window and renderer");
-        return false;
+		if (!headless_driver) {
+			LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: could not create window and renderer (" << SDL_GetError() << ")");
+			return false;
+		}
+		flags |= SDL_WINDOW_HIDDEN;
+		dev.win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, dev.screen_sz.cx, dev.screen_sz.cy, flags);
+		dev.rend = 0;
+		if (!dev.win) {
+			LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: headless window creation failed (" << SDL_GetError() << ")");
+			return false;
+		}
+		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: using SDL dummy video driver fallback");
 	}
 	SDL_SetWindowTitle(dev.win, title);
     
     
     
-    // Renderer
-    SDL_GetRendererInfo(dev.rend, &dev.rend_info);
-	if ((dev.rend_info.flags & SDL_RENDERER_ACCELERATED) == 0 ||
-        (dev.rend_info.flags & SDL_RENDERER_TARGETTEXTURE) == 0) {
-        LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: renderer does not have acceleration");
-        return false;
-    }
+    // Renderer (optional; not available with dummy driver)
+	if (dev.rend) {
+	    SDL_GetRendererInfo(dev.rend, &dev.rend_info);
+		if ((dev.rend_info.flags & SDL_RENDERER_ACCELERATED) == 0 ||
+	        (dev.rend_info.flags & SDL_RENDERER_TARGETTEXTURE) == 0) {
+	        LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: renderer does not have acceleration");
+	        return false;
+	    }
+	}
 	
 	// GL context
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -1087,10 +1119,16 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 		return false;
 	}
 	
+	if (SDL_GL_MakeCurrent(dev.win, dev.gl_ctx) != 0) {
+		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: SDL_GL_MakeCurrent failed: " << SDL_GetError());
+		return false;
+	}
+	
 	// Glew
+	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if (err != GLEW_OK) {
-		LOG("Glew error: " << (const char*)glewGetErrorString(err));
+		LOG("Glew error (" << (int)err << "): " << (const char*)glewGetErrorString(err));
 		return false;
 	}
     

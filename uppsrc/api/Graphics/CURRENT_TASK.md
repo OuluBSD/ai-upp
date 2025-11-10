@@ -75,4 +75,6 @@ Template/Design Issues To Fix
 
 2025-11-10 — SDL/Eon05 Regression Notes
 - FboAtomT now scans actual side-sink exchanges when normalizing video source formats, preventing `LinkBase::NegotiateSourceFormat: error: exchange not found` on scripts that bind multiple `sdl.ogl.fbo.side` sinks (e.g. `share/eon/tests/05f_content_future_buffer.eon`).
-- Next: rerun `SDL_VIDEODRIVER=dummy bin/Eon05 4` once the headless SDL path no longer stalls; current builds progress through chain construction without errors but still time out under the dummy video backend.
+- SdlOglImageLoader (`ImageBaseAtomT`) skips format negotiation for video outputs that are not wired to any side sink, which avoids the same `LinkBase::NegotiateSourceFormat` error when optional channels remain unused.
+- Hal/Sdl now falls back to SDL’s offscreen video driver and creates a hidden OpenGL window when the dummy backend is requested, allowing headless contexts to get past SDL window creation; GLEW still fails to initialize under the offscreen/EGL driver (error code 4), so shader atoms abort before rendering – need an EGL-aware loader or an alternate GL bootstrap for headless CI.
+- `SDL_VIDEODRIVER=dummy bin/Eon05 4` now enters the eager setup path without negotiation errors; next blocker is the GLEW/EGL initialization failure described above.

@@ -96,7 +96,16 @@ template <class Gfx>
 bool ImageBaseAtomT<Gfx>::PostInitialize() {
 	ISourcePtr src = GetSource();
 	int src_count = src->GetSourceCount();
+	LinkBase* link = this->GetLink();
+	ASSERT(link);
+	Index<int> connected_srcs;
+	for (auto& ex : link->SideSinks())
+		if (ex.local_ch_i >= 0)
+			connected_srcs.FindAdd(ex.local_ch_i);
+	
 	for(int i = 0; i < src_count; i++) {
+		if (connected_srcs.Find(i) < 0)
+			continue;
 		ValueBase& val = src->GetSourceValue(i);
 		ValueFormat fmt = val.GetFormat();
 		if (fmt.vd == VD(CENTER,VIDEO)) {

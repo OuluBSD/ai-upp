@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 #include <ide/ide.h>
 
@@ -197,3 +198,4 @@ void Timer::ToolMenu(Bar& bar) {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

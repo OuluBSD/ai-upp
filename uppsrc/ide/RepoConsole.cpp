@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 UrepoConsole::UrepoConsole()
@@ -117,3 +118,4 @@ int UrepoConsole::CheckSystem(const char *s)
 	}
 	return exitcode;
 }
+#endif // flagGUI

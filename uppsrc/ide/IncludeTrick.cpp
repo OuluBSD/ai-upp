@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define LLOG(x)
@@ -123,3 +124,4 @@ void AssistEditor::MakeIncludeTrick(CurrentFileContext& cfx)
 	else
 		cfx.content.Clear();
 }
+#endif // flagGUI

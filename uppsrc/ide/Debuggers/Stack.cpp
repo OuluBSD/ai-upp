@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -214,3 +215,4 @@ void Pdb::BTs()
 }
 
 #endif
+#endif // flagGUI

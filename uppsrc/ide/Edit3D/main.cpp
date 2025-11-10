@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 #ifdef flagMAIN
@@ -88,3 +89,4 @@ GUI_APP_MAIN {
 }
 
 #endif
+#endif // flagGUI

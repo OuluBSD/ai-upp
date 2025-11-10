@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 
 #ifndef flagV1
@@ -159,3 +160,4 @@ String ConsoleCtrl::GetTitle() {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

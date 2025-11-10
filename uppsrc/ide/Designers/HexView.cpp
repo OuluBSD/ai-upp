@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 bool  FileIsBinary(const char *path)
@@ -103,3 +104,4 @@ INITIALIZER(HexView)
 		s % FileHexView::pos;
 	});
 }
+#endif // flagGUI

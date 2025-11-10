@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 void DbgDisas::MouseWheel(Point, int zdelta, dword)
@@ -186,3 +187,4 @@ DbgDisas::DbgDisas()
 	mode64 = false;
 	Clear();
 }
+#endif // flagGUI

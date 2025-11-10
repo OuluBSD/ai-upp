@@ -3,6 +3,11 @@
 
 #ifdef flagGUI
 
+#include <Eon/Ecs/CommonComponents.h>
+#include <Painter/Painter.h>
+#include <Vfs/Ecs/Component.h>
+#include <Vfs/Ecs/Entity.h>
+
 
 #if 0
 
@@ -19,17 +24,17 @@ public:
 	typedef WindowDecoration CLASSNAME;
 	WindowDecoration(Geom2DComponent*);
 	
-	virtual void Paint(Draw& draw) override;
+	virtual void Paint(Draw& draw) ;
 	
 	void SetLabel(String str) {label = str;}
 	
 	String GetLabel() const {return label;}
 	
-	virtual void LeftDown(Point p, dword keyflags) override;
-	virtual void LeftDouble(Point p, dword keyflags) override;
-	virtual void LeftUp(Point p, dword keyflags) override;
-	virtual void MouseMove(Point p, dword keyflags) override;
-	virtual void RightDown(Point p, dword keyflags) override;
+	virtual void LeftDown(Point p, dword keyflags) ;
+	virtual void LeftDouble(Point p, dword keyflags) ;
+	virtual void LeftUp(Point p, dword keyflags) ;
+	virtual void MouseMove(Point p, dword keyflags) ;
+	virtual void RightDown(Point p, dword keyflags) ;
 	
 	void LocalMenu(Bar& bar);
 	
@@ -41,11 +46,11 @@ public:
 struct Geom2DComponentLink;
 
 class Geom2DComponent :
-	public GeomInteraction2D,
 	/*public Absolute2D,*/
 	public Component
 {
-	RTTI_COMP1(Geom2DComponent, GeomInteraction2D)
+	ECS_COMPONENT_CTOR(Geom2DComponent)
+using Geom2DComponentLinkPtr = Ptr<Geom2DComponentLink>;
 	
 	#if 0
 	struct ResizeFrame : public CtrlFrame {
@@ -66,15 +71,15 @@ class Geom2DComponent :
 		enum {CENTER, TL, TR, BL, BR, TOP, BOTTOM, LEFT, RIGHT};
 		int GetArea(Point pt);
 		void SetActive(bool b) {frame_width = b ? 8 : 0;}
-		virtual void FrameLayout(Rect& r) override;
-		virtual void FramePaint(Draw& w, const Rect& r) override;
-		virtual void FrameAddSize(Size& sz) override;
-		virtual void MouseEnter(Point frame_p, dword keyflags) override;
-		virtual void MouseMove(Point frame_p, dword keyflags) override;
-		virtual void MouseLeave() override;
-		virtual void LeftDown(Point p, dword keyflags) override;
-		virtual void LeftUp(Point p, dword keyflags) override;
-		virtual void ContinueGlobalMouseMomentum() override;
+		virtual void FrameLayout(Rect& r) ;
+		virtual void FramePaint(Draw& w, const Rect& r) ;
+		virtual void FrameAddSize(Size& sz) ;
+		virtual void MouseEnter(Point frame_p, dword keyflags) ;
+		virtual void MouseMove(Point frame_p, dword keyflags) ;
+		virtual void MouseLeave();
+		virtual void LeftDown(Point p, dword keyflags) ;
+		virtual void LeftUp(Point p, dword keyflags) ;
+		virtual void ContinueGlobalMouseMomentum();
 		void DoResize();
 	};
 	#endif
@@ -85,8 +90,8 @@ public:
 	//Windows* wins = NULL;
 	void (Geom2DComponent::*reset_fn)() = 0;
 	Geom2DComponentLink* linked = NULL;
-	TransformRef    transform;
-	Transform2DRef  transform2d;
+	TransformPtr    transform;
+	Transform2DPtr  transform2d;
 	
 	//ResizeFrame resize_frame;
 	//WindowDecoration decor;
@@ -105,12 +110,9 @@ protected:
 	void SetMaximized(bool b=true);
 	
 public:
-	typedef Geom2DComponent CLASSNAME;
 	Geom2DComponent();
-	Geom2DComponent(const Geom2DComponent& cw) : stored_rect(0,0,0,0)/*, decor(this)*/ {
-		*this = cw;
-	}
-	void operator=(const Geom2DComponent& cw);
+	Geom2DComponent(const Geom2DComponent& cw) = delete;  // Copy constructor deleted due to component constraints
+	Geom2DComponent& operator=(const Geom2DComponent& cw) = delete;  // Assignment operator deleted
 	
 	#if 0
 	template <class T>
@@ -139,7 +141,7 @@ public:
 	void StoreRect();
 	void LoadRect();
 	void SetStoredRect(Rect r);
-	void SetPendingPartialRedraw() override;
+	void SetPendingPartialRedraw();
 	
 	//GLuint GetTexture() {return fb.GetTexture();}
 	//const Framebuffer& GetFramebuffer() const {return fb;}
@@ -152,25 +154,25 @@ public:
 	void Maximize();
 	void Restore();
 	void Minimize();
-	//void Close() override;
-	//void FocusEvent() override;
+	//void Close();
+	//void FocusEvent();
 	void ToggleMaximized();
 	bool IsPendingPartialRedraw() const;
 	void Wait();
 	//Windows* GetWindows() const {return wins;}
 	TopWindow* GetTopWindow() const;
 	
-	void Serialize(Stream& e) override;
-	bool Initialize(const WorldState&) override;
-	void Uninitialize() override;
-	//String GetTitle() const override;
-	void Layout() override;
-	//bool IsGeomDrawBegin() override;
-	//void SetFrameRect(const Rect& r) override;
-	bool Redraw(bool only_pending) override;
-	void LeftDown(Point p, dword keyflags) override;
-	void ChildGotFocus() override;
-	void Paint(Draw& id) override;
+	void Serialize(Stream& e) ;
+	bool Initialize(const WorldState&) ;
+	virtual void Uninitialize() override;
+	//String GetTitle() const ;
+	void Layout();
+	//bool IsGeomDrawBegin();
+	//void SetFrameRect(const Rect& r) ;
+	bool Redraw(bool only_pending) ;
+	void LeftDown(Point p, dword keyflags) ;
+	void ChildGotFocus();
+	void Paint(Draw& id) ;
 	
 	COMP_DEF_VISIT
 	
@@ -181,7 +183,7 @@ using Geom2DComponentPtr = Ptr<Geom2DComponent>;
 
 
 struct Geom2DComponentLink : public Component {
-	RTTI_COMP1(Geom2DComponentLink, ComponentT)
+	ECS_COMPONENT_CTOR(Geom2DComponentLink)
 	//ATOMTYPE(Geom2DComponentLink)
 	COMP_DEF_VISIT
 	
@@ -189,9 +191,9 @@ struct Geom2DComponentLink : public Component {
 	Geom2DComponent* linked = 0;
 	
 	
-	void Serialize(Stream& e) override;
-	bool Initialize(const WorldState&) override;
-	void Uninitialize() override;
+	void Serialize(Stream& e) ;
+	bool Initialize(const WorldState&) ;
+	virtual void Uninitialize() override;
 	
 	void Link(Geom2DComponent* cw);
 	void Unlink(Geom2DComponent* cw);
@@ -203,26 +205,29 @@ struct Geom2DComponentLink : public Component {
 using Geom2DComponentLinkRef = Ptr<Geom2DComponentLink>;
 
 
-struct Window2D :
-	EntityPrefab<
-		Geom2DComponent,
-		Transform2D,
-		DefaultGuiAppComponent
-	> {
-    static Components Make(Entity& e)
-    {
-        auto components = EntityPrefab::Make(e);
-		
-		components.Get<Geom2DComponentPtr>()->transform2d = components.Get<Transform2DRef>();
-		
-		components.Get<Transform2DRef>()->position = vec2(0, 1);
-		components.Get<Transform2DRef>()->size = vec2(320, 240);
-		
-        return components;
-    }
-};
+//struct Window2D :
+//	EntityPrefab<
+//		Geom2DComponent,
+//		Transform2D,
+//		DefaultGuiAppComponent
+//	> {
+//    static Components Make(Entity& e)
+//    {
+//        auto components = EntityPrefab::Make(e);
+//		
+//		components.Get<Geom2DComponentPtr>()->transform2d = components.Get<Transform2DPtr>();
+//		
+//		components.Get<Transform2DPtr>()->position = vec2(0, 1);
+//		components.Get<Transform2DPtr>()->size = vec2(320, 240);
+//		
+//        return components;
+//    }
+//};
 
 
+// Window3D is commented out to avoid circular dependencies
+// It can be defined in a separate header file that includes all necessary components
+/*
 // Window3D needs to be linked to Window2D
 struct Window3D :
 	EntityPrefab<
@@ -230,23 +235,24 @@ struct Window3D :
 		Transform,
 		ModelComponent
 	> {
-    static Components Make(Entity& e)
+    static Components Make(Entity& e, const WorldState& ws)
     {
-        auto components = EntityPrefab::Make(e);
-		
-		Geom2DComponentLinkRef win = components.Get<Geom2DComponentLinkRef>();
-		
+        auto components = EntityPrefab::Make(e, ws);
+
+		Geom2DComponentLinkPtr win = components.Get<Geom2DComponentLinkPtr>();
+
 		#if 0
 		ModelComponentPtr mdl = components.Get<ModelComponentPtr>();
 		mdl->Arg("builtin", "box");
 		#endif
-		
-		TransformRef trans = components.Get<TransformRef>();
+
+		TransformPtr trans = components.Get<TransformPtr>();
 		trans->data.position = vec3(0, 2, 0);
-		
+
         return components;
     }
 };
+*/
 
 
 #endif

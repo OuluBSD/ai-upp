@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct NewPackageFileWindow : public WithNewPackageFileLayout<TopWindow> {
@@ -126,3 +127,4 @@ void WorkspaceWork::NewPackageFile()
 	}
 	AddItem(~dlg.name, false, false);
 }
+#endif // flagGUI

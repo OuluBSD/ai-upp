@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 INITBLOCK {
@@ -180,3 +181,4 @@ void Ide::OpenVfsDlg()
 	//dlg.search.AddHistory();
 	StoreToGlobal(dlg, "VfsDlg");
 }
+#endif // flagGUI

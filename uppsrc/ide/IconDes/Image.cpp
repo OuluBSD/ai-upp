@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDes::Interpolate()
@@ -494,3 +495,4 @@ void IconDes::Colors()
 		}
 	}
 }
+#endif // flagGUI

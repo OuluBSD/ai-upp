@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include <ide/ide.h>
 
 NAMESPACE_UPP
@@ -172,3 +173,4 @@ void IdeAgent::AddTask() {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

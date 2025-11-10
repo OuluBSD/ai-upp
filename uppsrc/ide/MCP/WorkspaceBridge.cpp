@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include <ide/ide.h>
 
 NAMESPACE_UPP
@@ -14,3 +15,4 @@ int GetCurrentWorkspacePackageCount() {
 
 END_UPP_NAMESPACE
 
+#endif // flagGUI

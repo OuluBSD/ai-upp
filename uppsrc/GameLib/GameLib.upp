@@ -5,3 +5,8 @@ uses
 	Draw,
 	CtrlCore,
 	Geometry;
+
+file
+	GameLib.h,
+	GameLib.cpp;
+

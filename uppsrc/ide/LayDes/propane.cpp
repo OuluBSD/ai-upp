@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 PropertyPane::PropertyPane()
@@ -67,3 +68,4 @@ void PropertyPane::AfterCreate()
 {
 	Ctrl::Add(pane.HSizePos());
 }
+#endif // flagGUI

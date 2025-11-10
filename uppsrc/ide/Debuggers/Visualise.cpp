@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -420,3 +421,4 @@ void Pdb::VisualDisplay::Paint(Draw& w, const Rect& r, const Value& q,
 }
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "MCP.h"
 #include <ide/ide.h>
 
@@ -70,3 +71,4 @@ void StopMcpServer() { sMcpServer.Stop(); }
 bool McpIsRunning() { return sMcpServer.IsRunning(); }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

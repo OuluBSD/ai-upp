@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 static VectorMap<String, PackageInfo> sPi;
@@ -267,3 +268,4 @@ void BaseSetupDlg::OnUpp()
 		base <<= GetFileTitle(s);
 	}
 }
+#endif // flagGUI

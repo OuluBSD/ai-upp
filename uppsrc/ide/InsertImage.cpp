@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct InsertImageDlg : WithInsertImageLayout<TopWindow>, Display {
@@ -177,3 +178,4 @@ void Ide::InsertImage()
 		InsertText(~~dlg.list.Get(dlg.list.GetCursor()));
 	StoreToGlobal(dlg, "insert-image");
 }
+#endif // flagGUI

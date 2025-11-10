@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -276,3 +277,4 @@ void Pdb::PrettyStdAtomic(Pdb::Val val, const Vector<String>& tparam, int64 from
 }
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 #define LLOG(x) // LOG(x)
@@ -516,3 +517,4 @@ ArrayMap<String, EscValue>& LayGlobal()
 	static ArrayMap<String, EscValue> global;
 	return global;
 }
+#endif // flagGUI

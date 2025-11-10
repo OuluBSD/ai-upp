@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 void CopyJsonPath(TreeCtrl& tree)
@@ -140,3 +141,4 @@ INITIALIZER(JsonViewDes)
 {
 	RegisterIdeModule(Single<JsonDesModule>());
 }
+#endif // flagGUI

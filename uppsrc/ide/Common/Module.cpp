@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Common.h"
 
 static Vector<IdeModule *>& sM()
@@ -20,3 +21,4 @@ IdeModule& GetIdeModule(int q)
 {
 	return *sM()[q];
 }
+#endif // flagGUI

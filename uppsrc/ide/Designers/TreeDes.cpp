@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 void TreeDesPos::Save(Time afiletime, TreeCtrl& tree)
@@ -91,3 +92,4 @@ INITIALIZER(TreeViewDes)
 		s % TreeViewDes::pos;
 	});
 }
+#endif // flagGUI

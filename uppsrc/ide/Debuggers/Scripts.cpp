@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -247,3 +248,4 @@ bool Pdb::PrettyScript(const String& type, Pdb::Val val, const Vector<String>& t
 }
 
 #endif
+#endif // flagGUI

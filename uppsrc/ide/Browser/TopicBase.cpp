@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 #define LLOG(x)     // DLOG(x)
@@ -345,3 +346,4 @@ bool MatchTopicLink(const String& link, const Vector<String>& query)
 			return false;
 	return true;
 }
+#endif // flagGUI

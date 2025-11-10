@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDes::LeftDown(Point p, dword flags)
@@ -143,3 +144,4 @@ void IconDes::HorzMouseWheel(Point pt, int zdelta, dword keyflags)
 {
 	sb.WheelX(zdelta);
 }
+#endif // flagGUI

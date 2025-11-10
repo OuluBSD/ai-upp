@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 int ReadTemplateType(CParser& p)
@@ -371,3 +372,4 @@ void TemplateDlg::Load(const Vector<String>& p, bool main)
 	templist.GoBegin();
 	ActiveFocus(package);
 }
+#endif // flagGUI

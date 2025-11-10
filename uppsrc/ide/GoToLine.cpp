@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 static const int MIN_LINE_NUMBER = 1;
@@ -48,3 +49,4 @@ void Ide::GoToLine()
 	editor.SetFocus();
 	AddHistory();
 }
+#endif // flagGUI

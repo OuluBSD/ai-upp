@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define LTIMING(x) // RTIMING(x)
@@ -496,3 +497,4 @@ void Navigator::NaviSort()
 	sorting = !sorting;
 	SetList();
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define IMAGECLASS IdeImg
@@ -801,3 +802,4 @@ void IdeShowConsole()
 
 void Ide::Paint(Draw&) {}
 
+#endif // flagGUI

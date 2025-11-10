@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 
 NAMESPACE_UPP
@@ -133,3 +134,4 @@ void GeomStagedVideo::Update(double dt) {
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

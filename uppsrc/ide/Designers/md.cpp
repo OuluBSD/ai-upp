@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 #include <plugin/md/Markdown.h>
 
@@ -147,3 +148,4 @@ INITIALIZER(MD)
 	RegisterIdeModule(Single<MDDesModule>());
 	RegisterGlobalConfig("mddes-ctrl");
 }
+#endif // flagGUI

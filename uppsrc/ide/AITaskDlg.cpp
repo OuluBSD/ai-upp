@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #ifndef flagV1
@@ -86,3 +87,4 @@ void Ide::OpenAITaskDlg()
 }
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #if 0
@@ -1245,3 +1246,4 @@ void AssistEditor::SerializeNavigatorWorkspace(Stream& s)
 	s / version;
 	search.SerializeList(s);
 }
+#endif // flagGUI

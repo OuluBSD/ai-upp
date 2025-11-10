@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool SetupGITMaster()
@@ -67,3 +68,4 @@ bool SetupGITMaster()
 	console.Perform();
 	return true;
 }
+#endif // flagGUI

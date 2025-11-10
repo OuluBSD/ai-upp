@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 using namespace LayoutKeys;
@@ -1815,3 +1816,4 @@ bool LayDes::DoKey(dword key, int count)
 	}
 	return MenuBar::Scan(THISBACK(LayoutMenu), key);
 }
+#endif // flagGUI

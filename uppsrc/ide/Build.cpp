@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 void Ide::ConsoleShow()
@@ -193,3 +194,4 @@ void Ide::CreateMakefile()
 		return;
 	SaveMakeFile(~mfout, true);
 }
+#endif // flagGUI

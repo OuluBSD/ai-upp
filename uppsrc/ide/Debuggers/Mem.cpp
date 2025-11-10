@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -73,3 +74,4 @@ WString Pdb::ReadWString(adr_t addr, int maxlen, bool allowzero)
 }
 
 #endif
+#endif // flagGUI

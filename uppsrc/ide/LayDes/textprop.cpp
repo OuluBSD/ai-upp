@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 struct EditStringNE : EditString {
@@ -335,3 +336,4 @@ void RegisterTextProperties() {
 	ItemProperty::Register("Qtf", QtfProperty::Create);
 	ItemProperty::Register("Doc", DocProperty::Create);
 }
+#endif // flagGUI

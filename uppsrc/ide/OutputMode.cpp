@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 INITBLOCK
@@ -501,3 +502,4 @@ void Ide::SetupDefaultMethod()
 		release.def.blitz = MapFlag(map, "RELEASE_BLITZ");
 	}
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #define METHOD_NAME "Ide::" << UPP_FUNCTION_NAME << "(): "
@@ -52,3 +53,4 @@ void Ide::OpenLog(const String& logFilePath)
 	
 	EditFile(logFilePath);
 }
+#endif // flagGUI

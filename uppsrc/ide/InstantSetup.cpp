@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #ifdef PLATFORM_WIN32
@@ -545,3 +546,4 @@ void AutoInstantSetup()
 }
 
 #endif
+#endif // flagGUI

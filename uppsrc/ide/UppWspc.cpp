@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #ifndef flagV1
@@ -1330,3 +1331,4 @@ void UppList::Paint(Draw& w, const Rect& r, const Value& q, Color ink, Color pap
 		file.name = "Fixed macros";
 	FileList::Paint(w, r, RawToValue(file), ink, paper, style);
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 #include <Intranet/Intranet.h>
 
@@ -221,3 +222,4 @@ void EcsExt(MetaEnvironment& env, IdeShell& shell, Value value) {
 #endif
 
 END_UPP_NAMESPACE
+#endif // flagGUI

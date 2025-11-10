@@ -38,7 +38,7 @@ Extending TheIDE
 - AI: Extend providers via `AiProvider` abstraction; surface UI in `AITaskDlg.cpp`.
 
 Build/Run
-- Build the `ide` package (`ide.upp`) using TheIDE or `umk`. Use one of the `mainconfig` variants (e.g., `GUI`, `GUI NET CURL LCLANG`).
+- Build the `ide` package (`ide.upp`) via `script/build_ide_console.sh`, which drives our custom `uppsrc/umk` tool with the appropriate flags (`+NOGUI,V1…`). We do not maintain Makefile/umkMakefile shims.
 
 Testing & Validation
 - Start the built TheIDE binary; validate features related to your changes through the corresponding sub‑package UIs (e.g., Debuggers dialog, Builders’ compilation, Designers, Browser).

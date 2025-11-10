@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -294,3 +295,4 @@ void Pdb::PrettyImg(Pdb::Val val, const Vector<String>& t, int64 from, int count
 }
 
 #endif
+#endif // flagGUI

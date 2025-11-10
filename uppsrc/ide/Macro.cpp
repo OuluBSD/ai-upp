@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 EscValue Ide::MacroEditor()
@@ -548,3 +549,4 @@ void Ide::MacroTarget(EscEscape& e)
 {
 	e = target;
 }
+#endif // flagGUI

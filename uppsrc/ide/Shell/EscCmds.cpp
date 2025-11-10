@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 
 NAMESPACE_UPP
@@ -20,3 +21,4 @@ void EscSqrt(EscEscape& e)
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 #if 0
@@ -293,3 +294,4 @@ void Ide::CtrlClick(int64 pos)
 	if(pos < INT_MAX)
 		ContextGoto0((int)pos);
 }
+#endif // flagGUI

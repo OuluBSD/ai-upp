@@ -7,6 +7,8 @@
 #define TOPICFILE <ide/app.tpp/all.i>
 #include <Core/topic_group.h>
 
+using namespace Upp;
+
 extern int bm_YEAR;
 extern int bm_MONTH;
 extern int bm_DAY;
@@ -105,6 +107,8 @@ String SplashCtrl::GenerateVersionNumber()
 		return AsString(atoi(bm_GIT_REVCOUNT) + 2270);
 	return IDE_VERSION;
 }
+
+#ifdef flagGUI
 
 Size SplashCtrl::MakeLogo(Ctrl& parent, Array<Ctrl>& ctrl, bool splash)
 {
@@ -262,3 +266,16 @@ void Ide::About()
 {
 	AboutDlg().Execute();
 }
+
+#else
+
+void HideSplash() {}
+
+void ShowSplash() {}
+
+bool IsSplashOpen()
+{
+	return false;
+}
+
+#endif

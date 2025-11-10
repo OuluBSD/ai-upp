@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -399,3 +400,4 @@ void Pdb::StepOut()
 }
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -577,3 +578,4 @@ void Pdb::BreakRunning() //TODO: Fix in wow64?
 }
 
 #endif
+#endif // flagGUI

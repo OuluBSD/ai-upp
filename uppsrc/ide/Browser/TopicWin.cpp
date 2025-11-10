@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Browser.h"
 
 #define IMAGEFILE <ide/Browser/Topic.iml>
@@ -413,3 +414,4 @@ bool TopicEditor::Key(dword key, int cnt)
 	}
 	return false;
 }
+#endif // flagGUI

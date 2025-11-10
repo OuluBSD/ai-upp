@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #define KEYGROUPNAME "Debugger"
@@ -516,3 +517,4 @@ bool EditPDBExpression(const char *title, String& brk, Pdb *pdb)
 }
 
 #endif
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 RightTabs::RightTabs()
@@ -304,3 +305,4 @@ void Ide::IdeActivateBottom()
 {
 	SetBottom(BDEBUG);
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_POSIX
@@ -116,3 +117,4 @@ String LLDBCommand(bool console)
 	return gdb;
 }
 
+#endif // flagGUI

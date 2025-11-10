@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 #if 0
 
@@ -35,3 +36,4 @@ void RemoteDebugCtrl::Data() {
 END_UPP_NAMESPACE
 
 #endif
+#endif // flagGUI

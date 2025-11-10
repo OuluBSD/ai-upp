@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 String SearchEnginesFile()
@@ -274,3 +275,4 @@ void Ide::OnlineSearchMenu(Bar& menu)
 		}
 	});
 }
+#endif // flagGUI

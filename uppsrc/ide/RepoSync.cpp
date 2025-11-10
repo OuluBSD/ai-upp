@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 String RepoCfgFile(const String& path)
@@ -590,3 +591,4 @@ String RepoSync::GetMsgs()
 {
 	return Garble(StoreAsString(*this));
 }
+#endif // flagGUI

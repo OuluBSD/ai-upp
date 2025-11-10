@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Edit3D.h"
 #if 0
 
@@ -156,3 +157,4 @@ void RemoteExchange::SyncEntity(const GeomObjectState& os) {
 END_UPP_NAMESPACE
 
 #endif
+#endif // flagGUI

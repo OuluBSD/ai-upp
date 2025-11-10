@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 #include <ide/ide.h>
 
@@ -140,3 +141,4 @@ bool IdeShell::SetCurrentDirectory(const VfsPath& path) {
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Java.h"
 
 namespace Upp {
@@ -30,3 +31,4 @@ bool JavaVersion::IsGreaterOrEqual(int major, int minor) const
 }
 
 }
+#endif // flagGUI

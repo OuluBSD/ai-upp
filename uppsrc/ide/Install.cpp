@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 bool CheckLicense()
@@ -109,3 +110,4 @@ bool Install(bool& hasvars)
 }
 
 #endif
+#endif // flagGUI

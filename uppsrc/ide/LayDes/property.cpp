@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 void ItemProperty::Paint(Draw& w)
@@ -222,3 +223,4 @@ INITBLOCK
 	void RegisterTextProperties(); RegisterTextProperties();
 	void RegisterFontProperty(); RegisterFontProperty();
 }
+#endif // flagGUI

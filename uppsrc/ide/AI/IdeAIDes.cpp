@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "AI.h"
 
 NAMESPACE_UPP
@@ -139,3 +140,4 @@ INITIALIZER(IdeAIDes)
 }
 
 END_UPP_NAMESPACE
+#endif // flagGUI

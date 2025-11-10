@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 void Ide::ExportMakefile(const String& ep)
@@ -65,3 +66,4 @@ void Ide::ExportProject(const String& ep, bool all, bool gui, bool deletedir)
 	}
 	ExportMakefile(ep);
 }
+#endif // flagGUI

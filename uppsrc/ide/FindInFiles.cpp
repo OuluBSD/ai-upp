@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 #include "ide.h"
 
@@ -693,3 +694,4 @@ void Ide::ReplaceFound(ArrayCtrl& list)
 					}
 				}
 }
+#endif // flagGUI

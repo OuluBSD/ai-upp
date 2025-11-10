@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 void IdePngDes::Save()
@@ -26,3 +27,4 @@ void IdePngDes::Create(const char *_filename)
 	AddImage(filename, m, false);
 	SingleMode();
 }
+#endif // flagGUI

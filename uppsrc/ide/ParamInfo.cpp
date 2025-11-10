@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 void AssistEditor::SyncParamInfo()
@@ -112,3 +113,4 @@ int AssistEditor::GetCurrentLine()
 {
 	return GetLine(GetCursor64());
 }
+#endif // flagGUI

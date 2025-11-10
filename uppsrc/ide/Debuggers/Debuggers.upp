@@ -2,8 +2,10 @@ description "TheIDE - debuggers\377B";
 
 uses
 	ide/Common,
-	HexView,
 	ide/Core;
+
+uses(GUI)
+	HexView;
 
 uses(!POSIX) plugin/ndisasm;
 
@@ -57,4 +59,3 @@ file
 	Info readonly separator,
 	Copying,
 	app.tpp;
-

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #define METHOD_NAME UPP_METHOD_NAME("Gdb")
@@ -800,3 +801,4 @@ One<Debugger> GdbCreate(Host& host, const String& exefile, const String& cmdline
 		return nullptr;
 	return pick(dbg); // CLANG does not like this without pick
 }
+#endif // flagGUI

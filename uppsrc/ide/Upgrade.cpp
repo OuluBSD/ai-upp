@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 void Ide::UpgradeTheIDE()
@@ -93,3 +94,4 @@ void Ide::InstallDesktop()
 		);
 	}
 }
+#endif // flagGUI

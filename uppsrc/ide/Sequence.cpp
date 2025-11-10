@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct InsertSequenceDlg : public WithSeqLayout<TopWindow> {
@@ -213,3 +214,4 @@ void Ide::InsertSequence()
 		}
 	}
 }
+#endif // flagGUI

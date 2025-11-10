@@ -6,8 +6,10 @@ uses
 	CtrlCore,
 	Geometry,
 	GameLib,
+	CtrlLib,
 	api/Screen,
-	api/Graphics;
+	api/Graphics,
+	plugin/jpg;
 
 file
 	GameWindow.cpp,

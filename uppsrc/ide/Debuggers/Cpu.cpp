@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #ifdef PLATFORM_WIN32
@@ -70,3 +71,4 @@ uint64 Pdb::GetCpuRegister(const Context& ctx, int sym)
 }
 
 #endif
+#endif // flagGUI

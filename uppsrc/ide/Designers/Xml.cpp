@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Designers.h"
 
 void CopyXmlPath(TreeCtrl& tree)
@@ -131,3 +132,4 @@ INITIALIZER(XmlViewDes)
 {
 	RegisterIdeModule(Single<XmlDesModule>());
 }
+#endif // flagGUI

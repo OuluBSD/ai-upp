@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct RepoDiff : DiffDlg {
@@ -323,3 +324,4 @@ RepoDiff *Ide::RunRepoDiff(const String& filepath, int line)
 	dlg.OpenMain();
 	return &dlg;
 }
+#endif // flagGUI

@@ -26,7 +26,7 @@ Development Tips
   - An umbrella header named after the package when appropriate (speeds BLITZ builds).
 
 Where To Start
-- Building TheIDE: open `uppsrc/ide/ide.upp` in TheIDE or build with `umk` using one of its `mainconfig` variants.
+- Building TheIDE: run `script/build_ide_console.sh` (wraps `uppsrc/umk`) for headless builds or invoke `uppsrc/umk` manually with the desired `mainconfig`; we do not ship Makefile/umkMakefile shims.
 - Exploring AI: read `uppsrc/AI/AGENTS.md` and browse `AI/Core/*` and `AI/Ctrl/*` for domain logic and UIs.
 - Learning Eon: see `uppsrc/Eon/AGENTS.md` and examples listed there.
  - Geometry/Vision/Sound: see the respective AGENTS in `uppsrc/Geometry`, `uppsrc/ComputerVision`, and `uppsrc/Sound`.

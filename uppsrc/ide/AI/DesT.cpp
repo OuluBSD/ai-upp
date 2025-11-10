@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "AI.h"
 #include <ide/ide.h>
 #include <ide/Designers/Designers.h>
@@ -284,3 +285,4 @@ INITIALIZE_MODULE(EnvEditorDes)
 INITIALIZE_MODULE(EntityEditorDes)
 
 END_UPP_NAMESPACE
+#endif // flagGUI

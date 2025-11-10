@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include <ide/ide.h>
 
 bool IsTopicFile(const char *path)
@@ -46,3 +47,4 @@ INITIALIZER(CodeBase)
 	void InitializeTopicModule();
 	InitializeTopicModule();
 }
+#endif // flagGUI

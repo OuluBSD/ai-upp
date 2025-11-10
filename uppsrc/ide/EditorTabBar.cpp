@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 EditorTabBar::EditorTabBar()
@@ -140,3 +141,4 @@ void Ide::FileSelected()
 	
 	tabs.SetAddFile(editfile);
 }
+#endif // flagGUI

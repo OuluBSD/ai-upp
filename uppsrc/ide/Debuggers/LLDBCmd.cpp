@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Debuggers.h"
 
 #define LLOG(x)   // DLOG(x)
@@ -176,3 +177,4 @@ bool LLDB::IsFinished()
 {
 	return !dbg.IsRunning() && !IdeIsDebugLock();
 }
+#endif // flagGUI

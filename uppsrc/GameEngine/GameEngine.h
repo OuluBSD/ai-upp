@@ -11,7 +11,11 @@
 #include <api/Screen/Screen.h>     // For windowing and input
 #include <api/Graphics/Graphics.h> // For rendering
 
-NAMESPACE_UPP_BEGIN
+// Define GAMEENGINE_NAMESPACE to indicate that we're opening the namespace
+#define GAMEENGINE_NAMESPACE
+
+
+NAMESPACE_UPP
 
 // Higher-level game engine features go here
 #include "GameWindow.h"
@@ -19,6 +23,6 @@ NAMESPACE_UPP_BEGIN
 #include "AssetManager.h"
 #include "Scene.h"
 
-NAMESPACE_UPP_END
+END_UPP_NAMESPACE
 
 #endif

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct FileLine : Moveable<FileLine> {
@@ -722,3 +723,4 @@ void Ide::ConvertST()
 
 	FileCursor();
 }
+#endif // flagGUI

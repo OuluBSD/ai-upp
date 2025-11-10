@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "LayDes.h"
 
 ArrayMap<String, LayDesEditPos>& LayFileDataVar()
@@ -174,3 +175,4 @@ void LayDes::Save()
 		filetime = ff.GetLastWriteTime();
 	}
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "AI.h"
 
 NAMESPACE_UPP
@@ -53,3 +54,4 @@ String GetAiPathCandidate(const String& includes_, String dir)
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

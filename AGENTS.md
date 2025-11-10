@@ -48,6 +48,7 @@ Current Task Files (`CURRENT_TASK.md`)
 
 ## Build & Sandbox Policy
 
+- Build entrypoints live in `script/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts (e.g., `script/build_ide_console.sh` for TheIDE console builds).
 - Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
 - AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
 

@@ -6,11 +6,20 @@
 #define STDSRC_CONFIG_H
 
 // Platform detection
+
+#ifdef flagNOGUI
+#ifdef flagGUI
+#undef flagGUI
+#endif
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
     #define PLATFORM_WIN32 1
     #define PLATFORM_WIN 1
-    #ifndef flagGUI
-        #define flagGUI 1
+    #ifndef flagNOGUI
+        #ifndef flagGUI
+            #define flagGUI 1
+        #endif
     #endif
     #ifndef flagWIN
         #define flagWIN 1
@@ -18,16 +27,20 @@
 #elif defined(__APPLE__)
     #define PLATFORM_OSX 1
     #define PLATFORM_POSIX 1
-    #ifndef flagGUI
-        #define flagGUI 1
+    #ifndef flagNOGUI
+        #ifndef flagGUI
+            #define flagGUI 1
+        #endif
     #endif
     #ifndef flagOSX
         #define flagOSX 1
     #endif
 #else
     #define PLATFORM_POSIX 1
-    #ifndef flagGUI
-        #define flagGUI 1
+    #ifndef flagNOGUI
+        #ifndef flagGUI
+            #define flagGUI 1
+        #endif
     #endif
     #ifndef flagPOSIX
         #define flagPOSIX 1

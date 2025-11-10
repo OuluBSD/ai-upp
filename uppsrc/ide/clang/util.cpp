@@ -135,21 +135,6 @@ bool IsTypeRef(int kind)
 	return kind >= (int)CXCursor_FirstRef && kind <= (int)CXCursor_LastRef;
 }
 
-int FindId(const String& s, const String& id) {
-	if(id.GetCount() == 0)
-		return -1;
-	int q = 0;
-	for(;;) {
-		q = s.Find(id, q);
-		if(q < 0)
-			return -1;
-		if((q == 0 || !iscid(s[q - 1])) && // character before id
-		   (q + id.GetCount() >= s.GetCount() || !iscid(s[q + id.GetCount()]))) // and after..
-			return q;
-		q++;
-	}
-};
-
 String AnnotationItem::ToString() const {
 	if (type.GetCount()) return type + " " + id;
 	else return id;

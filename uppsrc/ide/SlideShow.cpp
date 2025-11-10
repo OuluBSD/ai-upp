@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 struct SlideShow;
@@ -295,3 +296,4 @@ void TopicCtrl::SShow()
 	tl.topic = l[ss.page];
 	GoTo(TopicLinkString(tl));
 }
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include <ide/Builders/AndroidBuilder.h>
 
 #include "Methods.h"
@@ -1007,3 +1008,4 @@ String Ide::IdeGetIncludePath()
 {
 	return GetIncludePath();
 }
+#endif // flagGUI

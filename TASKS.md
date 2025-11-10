@@ -1,6 +1,113 @@
 # TASKS.md
 
 ## IN PROGRESS
+### THREAD: VfsShell Overlay Implementation
+**Goal**: Implement a VfsShell that works like a standard Bourne shell with a `/vfs/` overlay for internal VFS filesystem access
+
+- [x] Complete implementation of overlay system where system filesystem is default but `/vfs/` path provides access to internal VFS
+- [x] Update all remaining command implementations to properly handle both system paths and VFS overlay paths
+- [x] Test functionality with both system and VFS files to ensure proper separation
+- [x] Ensure all commands work correctly in both overlay and system contexts
+- [x] Document the dual-path system and usage patterns
+
+### THREAD: ConsoleIde
+**Goal**: Run TheIDE in console-only mode (no CtrlCore/CtrlLib) with a CLI front-end, sharing the same package sources by guarding GUI code with `flagGUI`.
+
+**Current Status**
+- `script/build_ide_console.sh` (wraps `uppsrc/umk`) builds `bin/theide_console` with `flagGUI` off, and `uppsrc/VfsShell` can forward `theide …` commands through the shared `CommandLineHandler` helpers.
+
+#### Phase 0: Discovery & Build Baseline
+- [x] Catalog every `uppsrc/ide` include that pulls in `CtrlLib`/`CtrlCore` and document the owning subpackage responsibilities.
+- [x] Prototype `CONSOLE_APP_MAIN` entry that reuses the existing `CommandLineHandler` stack and falls back to a CLI stub.
+- [x] Add build toggles (e.g., `flagGUI` off) plus sanity scripts (extend `script/build_ide_console.sh`) to ensure console builds isolate cache paths.
+
+#### Phase 1: Header & Include Hygiene
+- [x] Make `ide.h`, `About.h`, `MethodsCtrls.h`, and other umbrella headers include `<Core/Core.h>` / `<Draw/Draw.h>` when `flagGUI` is unset, and wrap GUI-only declarations with `#ifdef flagGUI`.
+- [x] Guard layout/key macros (`CtrlCore/lay.h`, `CtrlLib/key_*`) so non-GUI builds skip them cleanly.
+- [x] Provide non-GUI `SplashCtrl`/Prompt shims that keep version/help text available to the CLI.
+
+#### Phase 2: Subpackage Isolation
+- [x] Audit each `ide/*` subpackage (Builders, Debuggers, Browser, Designers, Android, Java, Edit3D, Shell, MCP, AI, etc.) and wrap their source files in `#ifdef flagGUI` blocks when they require CtrlLib.
+- [x] Introduce lightweight facades for workspace/build functionality that can operate in console mode (project scanning, builder invocation, logging).
+- [x] Ensure shared utilities in `ide/Core` remain GUI-agnostic or expose console-safe entry points.
+- [x] Share the headless CLI surface (`CommandLineHandler` + helpers) with `uppsrc/VfsShell` and other hosts that mirror the `~/Dev/VfsBoot/src/VfsShell` prototype so `theide` verbs stay GUI-free.
+
+#### Phase 3: CLI Feature Implementation
+- [x] Implement CLI verbs for opening workspaces, invoking builders, running package/unit tests, and printing structured status to stdout/stderr.
+- [x] Add error handling/log routing so the console mode mirrors GUI diagnostics (e.g., text-mode progress, fail codes).
+- [x] Extend dropdown terminal / interactive shell features so they can run headless (bridge to `DropTerm` or plain `PtyProcess` when GUI disabled).
+
+#### Phase 4: Validation & Docs
+- [x] Update `ide.upp`, AGENTS, and README/TASK docs to describe the dual-mode build and required flags.
+- [x] Add automated smoke tests (CLI invocation scripts) and wire `script/build_ide_console.sh` to run them.
+- [x] Document remaining GUI-only functionality and ensure console runs emit clear capability warnings instead of crashing.
+
+**Caveats / Next Steps**
+1. `--gdb_debug_break_process` currently returns immediately in headless builds; consider factoring `GdbUtils` into a GUI-free package so console users retain that capability.
+2. The CLI bridge is still limited to the existing `CommandLineHandler` verbs (help/version/scale). Flesh out additional verbs (workspace open/build/run) and wire them into both `RunConsoleIde` and the `theide` command path.
+3. The bridge includes `CommandLineHandler.cpp` directly; long-term we should promote these handlers into a dedicated CLI package so multiple binaries link them without `.cpp` inclusion.
+
+### THREAD: GraphLib Node Editor Features
+**Goal**: Enhance GraphLib package with advanced node editor features based on imgui-node-editor pseudocode
+**Features to implement**: Node pin system, interactive editing, visual feedback, animations, context menus, and clipboard operations
+
+#### Phase 1: Core Node Editor Components
+- [x] Add Pin support to Nodes
+  - [x] Extend Node class to support input/output pins
+  - [x] Create Pin class with position, type, and connection validation  
+  - [x] Implement pin rendering in the renderer
+- [x] Enhance Edge/Link System
+  - [x] Modify edges to connect from pin to pin instead of node to node
+  - [x] Add bezier curve rendering for aesthetic connections
+  - [x] Implement link creation workflow (drag from pin to pin)
+- [x] Implement Node Groups
+  - [x] Add group node type that can contain other nodes
+  - [x] Implement group bounding box and header rendering
+  - [x] Add group sizing and positioning logic
+
+#### Phase 2: Interactive Editing Features
+- [x] Add Interactive Editing Features
+  - [x] Implement node creation/deletion via UI
+  - [x] Add link creation/deletion functionality
+  - [x] Create node/link selection system
+- [x] Enhance UI Interaction System
+  - [x] Add drag and drop for nodes
+  - [x] Implement box selection for multiple nodes/links
+  - [x] Add keyboard shortcuts (Ctrl+C, Ctrl+V, etc.)
+- [x] Add Visual Feedback System
+  - [x] Implement selection highlighting
+  - [x] Add visual feedback during link creation
+  - [x] Create hover effects for nodes and links
+
+#### Phase 3: Advanced Features
+- [x] Enhance Navigation System
+  - [x] Add smooth zooming/panning
+  - [x] Implement navigation animations
+  - [x] Add focus on selected elements
+- [x] Add Context Menus
+  - [x] Implement node context menus
+  - [x] Add link context menus
+  - [x] Create background context menu
+- [x] Implement Animation System
+  - [x] Add link flow animations
+  - [x] Implement node movement animations
+  - [x] Add navigation animations
+
+#### Phase 4: Productivity Features
+- [x] Add Clipboard Operations
+  - [x] Implement cut/copy/paste functionality
+  - [x] Add node duplication feature
+- [x] Settings Persistence
+  - [x] Implement node position saving/loading
+  - [x] Add editor state persistence
+- [x] Update Existing Layout Algorithms
+  - [x] Adapt algorithms to work with new pin-based system
+  - [x] Ensure backward compatibility with current features
+
+#### Reference Materials
+- [x] Use ~/Dev/shadertoy/pseudocode/src/thirdparty_imgui-node-editor/ as reference implementation
+- [x] Copy and analyze GraphLib tutorial examples (GraphLib1-4) for reference design patterns
+
 
 ### THREAD: ShaderToy
 **Goal**: Implement ShaderToy package that uses the enhanced GraphLib node editor to create and manipulate shader pipelines
@@ -492,30 +599,30 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [x] CRITICAL: Implement overlay serial tracking system to maintain comparison capabilities between overlays
 
 ### VfsShell Implementation
-- [ ] Create CLI using U++ conventions similar to ~/Dev/VfsBoot/src/VfsShell/
-- [ ] Use uppsrc/ide package handling instead of "~/Dev/VfsBoot/src/VfsShell/upp*" code
-- [ ] Use uppsrc/Vfs instead of "~/Dev/VfsBoot/src/VfsShell/vfs*" code
-- [ ] Implement pwd command
-- [ ] Implement cd [path] command
-- [ ] Implement ls [path] command
-- [ ] Implement tree [path] command
-- [ ] Implement mkdir <path> command
-- [ ] Implement touch <path> command
-- [ ] Implement rm <path> command
-- [ ] Implement mv <src> <dst> command
-- [ ] Implement link <src> <dst> command
-- [ ] Implement export <vfs> <host> command
-- [ ] Implement cat [paths...] command (including stdin if no paths)
-- [ ] Implement grep [-i] <pattern> [path] command
-- [ ] Implement rg [-i] <pattern> [path] command
-- [ ] Implement head [-n N] [path] command
-- [ ] Implement tail [-n N] [path] command
-- [ ] Implement uniq [path] command
-- [ ] Implement count [path] command
-- [ ] Implement history [-a | -n N] command
-- [ ] Implement random [min [max]] command
-- [ ] Implement true / false commands
-- [ ] Implement echo <path> <data...> command
+- [x] Create CLI using U++ conventions similar to ~/Dev/VfsBoot/src/VfsShell/
+- [x] Use uppsrc/ide package handling instead of "~/Dev/VfsBoot/src/VfsShell/upp*" code
+- [x] Use uppsrc/Vfs instead of "~/Dev/VfsBoot/src/VfsShell/vfs*" code
+- [x] Implement pwd command
+- [x] Implement cd [path] command
+- [x] Implement ls [path] command
+- [x] Implement tree [path] command
+- [x] Implement mkdir <path> command
+- [x] Implement touch <path> command
+- [x] Implement rm <path> command
+- [x] Implement mv <src> <dst> command
+- [x] Implement link <src> <dst> command
+- [x] Implement export <vfs> <host> command
+- [x] Implement cat [paths...] command (including stdin if no paths)
+- [x] Implement grep [-i] <pattern> [path] command
+- [x] Implement rg [-i] <pattern> [path] command
+- [x] Implement head [-n N] [path] command
+- [x] Implement tail [-n N] [path] command
+- [x] Implement uniq [path] command
+- [x] Implement count [path] command
+- [x] Implement history [-a | -n N] command
+- [x] Implement random [min [max]] command
+- [x] Implement true / false commands
+- [x] Implement echo <path> <data...> command
 
 ### Vfs Overlay Implementation
 - [x] Implement SourceRef structure for tracking provenance (package hash, file hash, local path, priority, flags)
@@ -636,3 +743,12 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [x] Test all features work correctly before marking any feature as complete
 - [x] Run regression tests to ensure no existing functionality was broken
 - [x] Document any build issues and resolutions in the project documentation
+
+### THREAD: VfsShell Overlay Implementation
+**Goal**: Implement a VfsShell that works like a standard Bourne shell with a `/vfs/` overlay for internal VFS filesystem access
+
+- [ ] Complete implementation of overlay system where system filesystem is default but `/vfs/` path provides access to internal VFS
+- [ ] Update all remaining command implementations to properly handle both system paths and VFS overlay paths
+- [ ] Test functionality with both system and VFS files to ensure proper separation
+- [ ] Ensure all commands work correctly in both overlay and system contexts
+- [ ] Document the dual-path system and usage patterns

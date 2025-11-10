@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 // DEPRECATED
@@ -867,3 +868,4 @@ void Ide::AutoSetup()
 
 #endif
 
+#endif // flagGUI

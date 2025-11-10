@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "Shell.h"
 
 #define KEYGROUPNAME "Shell"
@@ -10,3 +11,4 @@ NAMESPACE_UPP
 
 
 END_UPP_NAMESPACE
+#endif // flagGUI

@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 class PrinterDlg : public WithPrintLayout<TopWindow> {
@@ -125,3 +126,4 @@ void Ide::Print()
 	for(int i = l; i <= h; i++)
 		p.PrintLine(editor.GetWLine(i));
 }
+#endif // flagGUI

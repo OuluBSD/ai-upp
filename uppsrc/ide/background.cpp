@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 Mutex                     s_allfiles_lock;
@@ -101,3 +102,4 @@ void StartIdeMcpThread()
     }
     #endif
 }
+#endif // flagGUI

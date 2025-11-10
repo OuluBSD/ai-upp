@@ -1,3 +1,4 @@
+#ifdef flagGUI
 #include "ide.h"
 
 class XmlView : public TopWindow {
@@ -109,3 +110,4 @@ void Ide::Xml()
 	LoadFromGlobal(dlg, "XMLview");
 	dlg.OpenMain();
 }
+#endif // flagGUI

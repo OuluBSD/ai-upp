@@ -1,10 +1,36 @@
 #include "VfsShell.h"
 #include <Core/Core.h>
+#include <Core/VfsBase/VfsBase.h>  // For VFS mounting functionality
+#include <ide/CommandLineHandler.h>
 #include <iostream>
 
 using namespace std;
 
 using namespace Upp;
+
+// Initialize MountManager with system filesystem mounted at root
+void InitializeMountSystem() {
+    MountManager& mm = MountManager::System();
+    
+    // Mount system filesystem at root "/"
+    SystemFS* sysfs = new SystemFS();
+    mm.Mount("/", sysfs, "sysfs");
+    
+    // This makes the system filesystem available at the root path
+    // Additional VFS mounts can be added here for "/vfs/" path or other locations
+}
+
+namespace {
+
+Vector<String> ToStringVector(const ValueArray& args, int start_index = 0)
+{
+	Vector<String> out;
+	for(int i = start_index; i < args.GetCount(); i++)
+		out.Add((String)args[i]);
+	return out;
+}
+
+}
 
 // Simple implementation of VfsShellHostBase for console application
 class VfsShellHost : public VfsShellHostBase {
@@ -13,7 +39,11 @@ public:
 		if (args.GetCount() == 0) return false;
 		
 		String cmd = args[0];
-		if (cmd == "pwd") {
+		if (cmd == "help") {
+			shell.CmdHelp(args);
+			return true;
+		}
+		else if (cmd == "pwd") {
 			shell.CmdPwd();
 			return true;
 		}
@@ -98,6 +128,12 @@ public:
 			shell.CmdEcho(args);
 			return true;
 		}
+		else if (cmd == "theide") {
+			Vector<String> ide_args = ToStringVector(args, 1);
+			if(!HandleConsoleIdeArgs(ide_args))
+				AddOutputLine(GetConsoleIdeExperimentalNotice());
+			return true;
+		}
 		
 		return false; // Command not handled
 	}
@@ -106,8 +142,16 @@ public:
 		return output;
 	}
 
-	void ClearOutput() {
+	void ClearOutput() override {
 		output.Clear();
+	}
+
+	void AddOutput(const String& s) override {
+		output << s;
+	}
+
+	void AddOutputLine(const String& s) override {
+		output << s << "\n";
 	}
 	
 private:
@@ -117,6 +161,19 @@ private:
 int main(int argc, char* argv[])
 {
 	using namespace Upp;
+	
+	// Initialize the mount system before creating VfsShell
+	InitializeMountSystem();
+
+	if(argc > 1 && String(argv[1]).IsEqual("theide")) {
+		Vector<String> ide_args;
+		for(int i = 2; i < argc; i++)
+			ide_args.Add(String(argv[i]));
+		if(!HandleConsoleIdeArgs(ide_args))
+			Cout() << GetConsoleIdeExperimentalNotice() << "\n";
+		return 0;
+	}
+	
 	VfsShellHost host;
 	VfsShellConsole console(host);
 	

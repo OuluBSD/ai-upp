@@ -10,6 +10,11 @@
 
 NAMESPACE_UPP
 
+// Forward declarations for OpenGL backend
+class OpenGLBackend;
+class ShaderProgram;
+class TextureResource;
+
 // Pin types for shader connections
 enum class PinType {
     UV_COORDS = 0,      // UV coordinates
@@ -44,6 +49,11 @@ public:
     virtual void RenderContent();
     virtual String GetNodeType() const = 0;
     virtual bool ValidateConnection(const EditorNode* other, int thisPin, int otherPin) const;
+    
+    // OpenGL-specific functionality
+    virtual bool Compile(OpenGLBackend* backend) { return true; }
+    virtual bool Execute(OpenGLBackend* backend, const VectorMap<String, Value>& inputs, 
+                        VectorMap<String, Value>& outputs) { return true; }
 
     // Pin management - using GraphLib's pin system
     void AddInputPin(const String& id, PinType type);
@@ -66,6 +76,11 @@ public:
     virtual String GetNodeType() const override { return "Shader"; }
     virtual void RenderContent() override;
 
+    // OpenGL-specific functionality (overriding base class methods)
+    virtual bool Compile(OpenGLBackend* backend) override;
+    virtual bool Execute(OpenGLBackend* backend, const VectorMap<String, Value>& inputs, 
+                        VectorMap<String, Value>& outputs) override;
+
     // Shader-specific functionality
     void SetCode(const String& code);
     String GetCode() const { return shaderCode; }
@@ -75,6 +90,9 @@ public:
     const VectorMap<String, double>& GetUniforms() const { return uniforms; }
     const VectorMap<String, Vector<double>>& GetUniformVec3s() const { return uniformVec3s; }
     const VectorMap<String, Vector<double>>& GetUniformVec4s() const { return uniformVec4s; }
+    
+    // For UI
+    void ShowEditorDialog();
 
 private:
     String shaderCode;
@@ -82,6 +100,7 @@ private:
     VectorMap<String, Vector<double>> uniformVec3s; // Vec3 uniforms  
     VectorMap<String, Vector<double>> uniformVec4s; // Vec4 uniforms
     // GLSL code editor functionality
+    ShaderProgram* shaderProgram;  // Pointer to compiled shader program
 };
 
 class EditorTexture : public EditorNode {
@@ -161,6 +180,9 @@ public:
 private:
     VectorMap<String, int> keyMappings;  // Key name to code mapping
     int outputType;                      // Output format type
+    
+    // Keyboard visualization functionality
+    void DrawKeyboardVisualization(Draw& draw, const Rect& rect, const VectorMap<String, bool>& activeKeys);
 };
 
 class EditorRenderOutput : public EditorNode {
@@ -229,6 +251,12 @@ public:
     void BuildPipeline();
     void ExecutePipeline();
     void ValidatePipeline();
+    
+    // Pipeline execution helpers
+    Vector<String> TopologicalSort();
+    VectorMap<String, Value> GetNodeInputs(const String& nodeId, const VectorMap<String, Value>& nodeOutputs);
+    void StoreNodeOutputs(const String& nodeId, const VectorMap<String, Value>& outputs, 
+                         VectorMap<String, Value>& allOutputs);
 
     // STTF (ShaderToy Transfer Format) support
     bool LoadSTTF(const String& filePath);
@@ -245,6 +273,7 @@ private:
 private:
     Image renderTarget;
     Vector<PipelineLink> links;
+    OpenGLBackend* glBackend;  // OpenGL backend for rendering
 
     // Methods inherited from GraphNodeCtrl
     virtual void LeftDown(Point p, dword key) override;
@@ -260,6 +289,104 @@ private:
     bool ConnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId);
     void DisconnectNodes(String fromNodeId, String fromPinId, String toNodeId, String toPinId);
     const Vector<PipelineLink>& GetLinks() const { return links; }
+    
+    // Custom drawing functions for node icons
+    static void DrawShaderNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawTextureNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawCubeMapNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawVolumeNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawKeyboardNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawRenderOutputNodeIcon(Draw& draw, const Rect& rect);
+    static void DrawLastFrameNodeIcon(Draw& draw, const Rect& rect);
+    
+    // Context menu functions for different node types
+    void OpenShaderNodeContextMenu(const String& nodeId, Point pos);
+    void OpenTextureNodeContextMenu(const String& nodeId, Point pos);
+    void OpenCubeMapNodeContextMenu(const String& nodeId, Point pos);
+    void OpenVolumeNodeContextMenu(const String& nodeId, Point pos);
+    void OpenKeyboardNodeContextMenu(const String& nodeId, Point pos);
+    void OpenRenderOutputNodeContextMenu(const String& nodeId, Point pos);
+    void OpenLastFrameNodeContextMenu(const String& nodeId, Point pos);
+    
+    // Helper methods for context menu
+    String GetNodeIdAtPos(Point p);
+    bool IsPointInNode(Point p, const String& nodeId);
+};
+
+// OpenGL backend classes for shader compilation and rendering
+
+// Shader compilation and management
+class ShaderProgram {
+public:
+    ShaderProgram();
+    ~ShaderProgram();
+    
+    bool Compile(const String& vertexShader, const String& fragmentShader);
+    bool Link();
+    void Use();
+    void SetUniform(const String& name, double value);
+    void SetUniformVec3(const String& name, double x, double y, double z);
+    void SetUniformVec4(const String& name, double x, double y, double z, double w);
+    
+    unsigned int GetId() const { return programId; }
+    
+private:
+    unsigned int programId;
+    unsigned int vertexShaderId;
+    unsigned int fragmentShaderId;
+    bool compiled;
+    bool linked;
+};
+
+// Texture resource management
+class TextureResource {
+public:
+    TextureResource();
+    ~TextureResource();
+    
+    bool LoadFromFile(const String& path);
+    bool CreateFromData(Size size, const void* data, int channels = 4);
+    void Bind(unsigned int unit = 0);
+    void Unbind();
+    
+    Size GetSize() const { return size; }
+    unsigned int GetId() const { return textureId; }
+    
+private:
+    unsigned int textureId;
+    Size size;
+    bool loaded;
+};
+
+// Main OpenGL backend class
+class OpenGLBackend {
+public:
+    OpenGLBackend();
+    ~OpenGLBackend();
+    
+    // Shader management
+    ShaderProgram* CreateShaderProgram(const String& vertexCode, const String& fragmentCode);
+    
+    // Texture management
+    TextureResource* CreateTexture();
+    TextureResource* LoadTexture(const String& path);
+    
+    // Framebuffer operations
+    void SetRenderTarget(TextureResource* texture);
+    void SetDefaultRenderTarget();
+    
+    // Rendering operations
+    void Clear();
+    void Present();
+    
+    // Error handling
+    String GetLastError() const { return lastError; }
+    bool HasError() const { return !lastError.IsEmpty(); }
+    
+private:
+    String lastError;
+    Vector<ShaderProgram*> shaderPrograms;
+    Vector<TextureResource*> textures;
 };
 
 END_UPP_NAMESPACE

@@ -33,6 +33,15 @@ Pin* Renderer::FindPin(Point pt) {
 	return NULL;
 }
 
+GroupNode* Renderer::FindGroup(Point pt) {
+	for(int i = 0; i < graph->groups.GetCount(); i++) {
+		GroupNode& group = graph->groups[i];
+		if (group.GetBoundingBox().Contains(pt))
+			return &group;
+	}
+	return NULL;
+}
+
 void Renderer::SetBorder(int i) {border = i;}
 
 void Renderer::SetImageSize(Size sz, int border) {
@@ -77,7 +86,13 @@ void Renderer::SetImageSize(Size sz, int border) {
 void Renderer::Paint(Draw& id) {
 	id.DrawRect(pt_sz, White());
 
-	// Draw edges first (so they appear under nodes)
+	// Draw groups first (so nodes appear on top of groups)
+	for(int i = 0; i < graph->groups.GetCount(); i++) {
+		GroupNode& group = graph->groups[i];
+		DrawGroup(id, group);
+	}
+
+	// Draw edges (so they appear under nodes but above groups)
 	for(int i = 0; i < graph->edges.GetCount(); i++) {
 		Edge& edge = graph->edges[i];
 		DrawEdge(id, edge);
@@ -155,13 +170,13 @@ void Renderer::DrawNode(Draw& w, Node& node) {
 	Color nodeFillColor = node.fill_clr;
 	Color nodeLineColor = node.line_clr;
 	int nodeLineWidth = node.line_width;
-	
+
 	// Here we'd check if the node is selected in the graph layout
-	// Since we don't have access to the GraphNodeCtrl from here, 
+	// Since we don't have access to the GraphNodeCtrl from here,
 	// we'll implement a different approach by adding isSelected to the Node
 	// For now, we'll assume node has an isSelected property if we pass a special flag
 	// Actually, we need to modify this to work with the GraphNodeCtrl
-	
+
 	// Draw selected node with different appearance
 	if (node.isSelected) {
 		// Draw a highlight around the selected node
@@ -237,7 +252,7 @@ void Renderer::DrawNode(Draw& w, Node& node) {
 	for(int i = 0; i < node.pins.GetCount(); i++) {
 		Pin& pin = node.pins[i];
 		Color pinColor = pin.isConnected ? Green() : (pin.kind == PinKind::Input ? Blue() : Red());
-		w.DrawRect(pin.position.x - pin.size.cx/2, pin.position.y - pin.size.cy/2, 
+		w.DrawRect(pin.position.x - pin.size.cx/2, pin.position.y - pin.size.cy/2,
 				  pin.size.cx, pin.size.cy, pinColor);
 	}
 }
@@ -246,7 +261,7 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 	// Find pins that this edge connects
 	Pin* startPin = nullptr;
 	Pin* endPin = nullptr;
-	
+
 	// Look for pins that have this edge in their connections
 	for(int i = 0; i < edge.source->pins.GetCount(); i++) {
 		Pin& pin = edge.source->pins[i];
@@ -258,7 +273,7 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 		}
 		if(startPin) break; // Found the start pin
 	}
-	
+
 	for(int i = 0; i < edge.target->pins.GetCount(); i++) {
 		Pin& pin = edge.target->pins[i];
 		for(int j = 0; j < pin.connections.GetCount(); j++) {
@@ -269,29 +284,29 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 		}
 		if(endPin) break; // Found the end pin
 	}
-	
+
 	// If we found both pins, draw the edge between them
 	if(startPin && endPin) {
 		Point start = startPin->position;
 		Point end = endPin->position;
-		
+
 		// Calculate control points for bezier curve
 		int dx = abs(start.x - end.x);
 		int dy = abs(start.y - end.y);
-		
+
 		// Create a bezier curve from start pin to end pin
 		int x1 = start.x;
 		int y1 = start.y;
 		int x4 = end.x;
 		int y4 = end.y;
-		
+
 		// Calculate control points to make a curved line
 		double x2, y2, x3, y3;
 		if(start.x < end.x) {
 			// Left to right - curve downward then upward
 			x2 = x1 + dx * 0.3;  // First control point extends right
 			y2 = y1;             // Same height as start
-			x3 = x4 - dx * 0.3;  // Second control point extends left  
+			x3 = x4 - dx * 0.3;  // Second control point extends left
 			y3 = y4;             // Same height as end
 		} else {
 			// Right to left - curve upward then downward
@@ -300,7 +315,7 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			x3 = x4 + dx * 0.3;  // Second control point extends right
 			y3 = y4;             // Same height as end
 		}
-		
+
 		// Calculate cubic bezier curve using standard formulation
 		bezier_path.SetCount(0);
 		for (double t = 0; t <= 1.0; t += 0.05) {
@@ -311,14 +326,14 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			double uuu = uu * u;
 			double ttu = 3 * tt * u;
 			double t2u = 3 * t * uu;
-			
+
 			Point pt(
 				static_cast<int>(uuu * x1 + t2u * x2 + ttu * x3 + tt * t * x4),
 				static_cast<int>(uuu * y1 + t2u * y2 + ttu * y3 + tt * t * y4)
 			);
 			bezier_path.Add(pt);
 		}
-		
+
 		// Draw selected edge with different appearance
 		Color edgeColor = edge.stroke_clr;
 		int edgeWidth = edge.line_width;
@@ -326,14 +341,44 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			edgeColor = Red(); // Highlight selected edges
 			edgeWidth = edge.line_width + 2; // Make selected edges thicker
 		}
-		
-		w.DrawPolyline(bezier_path, edgeWidth, edgeColor);
-		
+
+		// Draw animated flow if enabled
+		if (edge.flowSpeed > 0) {
+			// Draw animated flow particles along the edge
+			int numParticles = 5; // Number of animated particles
+			for (int i = 0; i < numParticles; i++) {
+				double particlePos = (edge.GetFlowPosition() + (double)i / numParticles);
+				if (particlePos > 1.0) particlePos -= 1.0;
+				
+				// Find the point at this position on the bezier curve
+				double u = 1 - particlePos;
+				double tt = particlePos * particlePos;
+				double uu = u * u;
+				double uuu = uu * u;
+				double ttu = 3 * tt * u;
+				double t2u = 3 * particlePos * uu;
+
+				int px = static_cast<int>(uuu * x1 + t2u * x2 + ttu * x3 + tt * particlePos * x4);
+				int py = static_cast<int>(uuu * y1 + t2u * y2 + ttu * y3 + tt * particlePos * y4);
+				
+				// Draw animated particle
+				w.DrawEllipse(px - 3, py - 3, 6, 6, LtBlue(), 1, Blue());
+			}
+			
+			// Draw the base line as a dashed line for better animation effect
+			for (int i = 0; i < bezier_path.GetCount() - 1; i += 2) {
+				w.DrawLine(bezier_path[i], bezier_path[i+1], 1, edgeColor);
+			}
+		} else {
+			// Draw regular edge without animation
+			w.DrawPolyline(bezier_path, edgeWidth, edgeColor);
+		}
+
 		// Draw arrow if directed
 		if (edge.directed) {
 			// magnitude, length of the last path vector
 			double mag = sqrt((double)((y4 - y3) * (y4 - y3) + (x4 - x3) * (x4 - x3)));
-			
+
 			// vector normalisation to specified length
 			#define norm(x) (double)(-(x) * 10 / mag)
 			arrow.SetCount(3);
@@ -345,7 +390,7 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			arrow[2].y = norm(y4 - y3) - norm(x4 - x3) + y4;
 			w.DrawPolyline(arrow, edgeWidth, edgeColor);
 		}
-		
+
 		// setting label
 		if (!edge.label.IsEmpty()) {
 			Font fnt(Arial(12));
@@ -420,12 +465,6 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			default: Panic("error");
 		}
 		switch (res.b) {
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-				x3 = 0; y3 = 0; break;
-
 			case 4: x3 = x4; y3 = y1 + dy; break;
 			case 5: x3 = x4; y3 = y1 - dy; break;
 			case 6: x3 = x4 - dx; y3 = y4; break;
@@ -444,14 +483,14 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			double uuu = uu * u;
 			double ttu = 3 * tt * u;
 			double t2u = 3 * t * uu;
-			
+
 			Point pt(
 				static_cast<int>(uuu * x1 + t2u * x2 + ttu * x3 + tt * t * x4),
 				static_cast<int>(uuu * y1 + t2u * y2 + ttu * y3 + tt * t * y4)
 			);
 			bezier_path.Add(pt);
 		}
-		
+
 		// Draw selected edge with different appearance (fallback method)
 		Color edgeColor = edge.stroke_clr;
 		int edgeWidth = edge.line_width;
@@ -460,7 +499,30 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			edgeWidth = edge.line_width + 2; // Make selected edges thicker
 		}
 
-		w.DrawPolyline(bezier_path, edgeWidth, edgeColor);
+		// Draw animated flow if enabled (fallback method)
+		if (edge.flowSpeed > 0) {
+			// Draw animated flow particles along the edge
+			int numParticles = 5; // Number of animated particles
+			for (int i = 0; i < numParticles; i++) {
+				double particlePos = (edge.GetFlowPosition() + (double)i / numParticles);
+				if (particlePos > 1.0) particlePos -= 1.0;
+				
+				// Calculate the point at this position on the line
+				int px = static_cast<int>(x1 + (x4 - x1) * particlePos);
+				int py = static_cast<int>(y1 + (y4 - y1) * particlePos);
+				
+				// Draw animated particle
+				w.DrawEllipse(px - 3, py - 3, 6, 6, LtBlue(), 1, Blue());
+			}
+			
+			// Draw the base line as a dashed line for better animation effect
+			for (int i = 0; i < bezier_path.GetCount() - 1; i += 2) {
+				w.DrawLine(bezier_path[i], bezier_path[i+1], 1, edgeColor);
+			}
+		} else {
+			// Draw regular edge without animation
+			w.DrawPolyline(bezier_path, edgeWidth, edgeColor);
+		}
 
 
 		// arrow
@@ -487,6 +549,63 @@ void Renderer::DrawEdge(Draw& w, Edge& edge) {
 			Size txt_sz = GetTextSize(edge.label, fnt);
 			w.DrawText((x1 + x4 - txt_sz.cx) / 2, (y1 + y4 - txt_sz.cy) / 2, edge.label, fnt, Black());
 		}
+	}
+}
+
+void Renderer::DrawGroup(Draw& w, GroupNode& group) {
+	// Draw the group background
+	Rect groupRect = group.GetBoundingBox();
+
+	// Draw the group header
+	Rect headerRect = group.GetHeaderRect();
+
+	// Draw group background
+	w.DrawRect(groupRect, group.body_clr);
+
+	// Draw the header bar
+	w.DrawRect(headerRect, group.header_clr);
+
+	// Draw header border
+	w.DrawRect(headerRect, group.border_clr);
+
+	// Draw the full border of the group
+	w.DrawRect(groupRect, group.border_clr);
+
+	// Draw header text if group is not collapsed
+	if (!group.is_collapsed) {
+		Font fnt(Arial(12));
+		Size txt_sz = GetTextSize(group.label, fnt);
+		w.DrawText(
+			headerRect.left + 5,  // Add some padding from the left
+			headerRect.top + (headerRect.Height() - txt_sz.cy) / 2,  // Center text vertically
+			group.label,
+			fnt, White());  // White text for contrast on dark header
+	}
+
+	// Draw a collapse/expand indicator
+	if (!group.is_collapsed) {
+		// Draw a minus sign for collapsed state
+		w.DrawText(
+			headerRect.right - 15,  // Position to the right
+			headerRect.top + (headerRect.Height() - 10) / 2,  // Center vertically
+			"-", Arial(10), White());
+	} else {
+		// Draw a plus sign for expanded state
+		w.DrawText(
+			headerRect.right - 15,  // Position to the right
+			headerRect.top + (headerRect.Height() - 10) / 2,  // Center vertically
+			"+", Arial(10), White());
+	}
+
+	// Draw selected group with different appearance
+	if (group.isSelected) {
+		// Draw a highlight border around the selected group
+		Rect highlightRect = groupRect;
+		highlightRect.left -= 2;
+		highlightRect.top -= 2;
+		highlightRect.right += 2;
+		highlightRect.bottom += 2;
+		w.DrawRect(highlightRect.left, highlightRect.top, highlightRect.Width(), highlightRect.Height(), Red());
 	}
 }
 

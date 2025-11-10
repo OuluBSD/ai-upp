@@ -2,6 +2,7 @@
 #define _GraphLib_Graph_h
 
 #include <CtrlLib/CtrlLib.h>
+#include "GroupNode.h"  // Include GroupNode functionality
 using namespace Upp;
 
 namespace GraphLib {
@@ -67,21 +68,39 @@ struct Edge : Moveable<Edge> {
 	bool attraction;
 	bool directed;
 	bool isSelected;  // Added for selection system
+	// Animation properties for flow animation
+	double flowPosition;
+	double flowSpeed;
+	Color animatedStrokeClr;
 
-	Edge() : source(NULL), target(NULL), attraction(false), weight(1), directed(false), isSelected(false) {
+	Edge() : source(NULL), target(NULL), attraction(false), weight(1), directed(false), isSelected(false), 
+	         flowPosition(0.0), flowSpeed(0.01) {
 		stroke_clr = Black();
 		line_width = 1;
 		weight = 1;
+		animatedStrokeClr = stroke_clr;
 	}
 
 	Edge& SetDirected(bool b=true) {directed = b; return *this;}
 	Edge& SetLabel(String lbl) {label = lbl; return *this;}
-	Edge& SetStroke(int line_width, Color clr) {this->line_width = line_width; stroke_clr = clr; return *this;}
+	Edge& SetStroke(int line_width, Color clr) {this->line_width = line_width; stroke_clr = clr; animatedStrokeClr = clr; return *this;}
 	Edge& SetWeight(double d) {weight = d; return *this;}
+	Edge& SetFlowSpeed(double speed) {flowSpeed = speed; return *this;}
 
 	// Selection
 	Edge& Select() {isSelected = true; return *this;}
 	Edge& Deselect() {isSelected = false; return *this;}
+
+	// Animation methods
+	Edge& StartFlowAnimation() {flowPosition = 0.0; return *this;}
+	Edge& UpdateFlowAnimation() {
+		flowPosition += flowSpeed;
+		if (flowPosition > 1.0) flowPosition = 0.0;
+		return *this;
+	}
+	
+	double GetFlowPosition() const {return flowPosition;}
+	double GetFlowSpeed() const {return flowSpeed;}
 
 	double GetWeight() const {return weight;}
 
@@ -112,6 +131,12 @@ struct Node : Moveable<Node> {
 	bool isSelected;  // Added for selection system
 	Vector<Edge*> edges;
 	Vector<Pin> pins;  // Pins for this node
+
+	// Animation properties for movement
+	Pointf targetPoint;
+	bool isAnimating;
+	double animationProgress;
+	Pointf startAnimationPoint;
 
 	enum {SHAPE_ELLIPSE, SHAPE_RECT, SHAPE_DIAMOND};
 
@@ -164,6 +189,30 @@ struct Node : Moveable<Node> {
 		}
 		return nullptr; 
 	}
+	
+	// Animation methods
+	Node& StartMovementAnimation() {
+		startAnimationPoint = point;
+		animationProgress = 0.0;
+		isAnimating = true;
+		return *this;
+	}
+	Node& UpdateMovementAnimation() {
+		if (isAnimating) {
+			animationProgress += 0.05; // Adjust speed as needed
+			if (animationProgress >= 1.0) {
+				animationProgress = 1.0;
+				isAnimating = false;
+			}
+			// Interpolate position
+			double x = startAnimationPoint.x + (targetPoint.x - startAnimationPoint.x) * animationProgress;
+			double y = startAnimationPoint.y + (targetPoint.y - startAnimationPoint.y) * animationProgress;
+			point.x = x;
+			point.y = y;
+		}
+		return *this;
+	}
+	bool IsAnimationComplete() const {return !isAnimating && animationProgress >= 1.0;}
 };
 
 
@@ -182,6 +231,7 @@ protected:
 
 	ArrayMap<String, Node> nodes;
 	Array<Edge> edges;
+	ArrayMap<String, GroupNode> groups;  // Added GroupNode support
 	Color fill_clr, border_clr, line_clr;
 	double layout_max_x, layout_min_x;
 	double layout_max_y, layout_min_y;
@@ -234,7 +284,54 @@ public:
 	Node& GetNode(String id) { return nodes.Get(id); }
 	const Node& GetNode(String id) const { return nodes.Get(id); }
 
-
+	// Group management methods
+	GroupNode& AddGroup(String id) {
+		int pos = groups.Find(id);
+		if (pos < 0) {
+			groups.Add(id, GroupNode(id));
+			pos = groups.GetCount() - 1; // Get the index of the last added item
+		}
+		return groups[pos];
+	}
+	
+	void RemoveGroup(String id) {
+		int pos = groups.Find(id);
+		if (pos >= 0) {
+			groups.Unlink(pos);
+		}
+	}
+	
+	int FindGroup(String id) const { return groups.Find(id); }
+	GroupNode& GetGroup(String id) { return groups.Get(id); }
+	const GroupNode& GetGroup(String id) const { return groups.Get(id); }
+	
+	int GetGroupCount() const { return groups.GetCount(); }
+	GroupNode& GetGroup(int i) { return groups[i]; }
+	
+	// Move nodes between groups or to no group
+	void MoveNodeToGroup(String nodeId, String groupId) {
+		Node* node = nullptr;
+		int nodeIdx = FindNode(nodeId);
+		if (nodeIdx >= 0) {
+			node = &GetNode(nodeIdx);
+		} else {
+			return; // Node doesn't exist
+		}
+		
+		// Remove from any existing group
+		for (int i = 0; i < groups.GetCount(); i++) {
+			GroupNode& group = groups[i];
+			group.RemoveNode(nodeId);
+		}
+		
+		// Add to the specified group if it exists
+		int groupIdx = FindGroup(groupId);
+		if (groupIdx >= 0) {
+			GroupNode& group = GetGroup(groupIdx);
+			group.AddNode(nodeId);
+		}
+	}
+	
 	void Clear();
 };
 

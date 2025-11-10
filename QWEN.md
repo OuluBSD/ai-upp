@@ -142,6 +142,20 @@ The EonApiEditor generates several types of files:
 5. **Documentation**: Document vendor-specific behavior and limitations
 6. **Task Management**: Don't necessarily complete one task entirely before starting another; move tasks to IN PROGRESS section when intermediate goals are achieved, allowing for iterative progress and parallel development on related features
 
+## U++ Container Compatibility
+
+When creating custom types to be used with U++ containers like `Vector<T>`, special attention must be paid to ensure compatibility:
+
+1. **Moveable Pattern**: Custom types used in U++ containers should inherit from `Moveable<T>` to enable efficient movement of objects during container operations. Example:
+
+```cpp
+struct MyStruct : public Moveable<MyStruct> {
+    // Your struct members
+};
+```
+
+This provides the necessary move semantics that U++ containers expect.
+
 ## Vendor Implementation Guidelines
 
 Each vendor file (e.g., `Portaudio.cpp`, `OpenHMD.cpp`) must implement:

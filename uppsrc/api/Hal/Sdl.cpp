@@ -39,6 +39,43 @@ END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 
+static String VfsPathOf(const VfsValue& v) {
+	return v.GetPath().ToString();
+}
+
+static SdlContextBase* FindContextDeep(VfsValue& root) {
+	if (root.ext) {
+		if (auto ctx = CastPtr<SdlContextBase>(&*root.ext))
+			return ctx;
+	}
+	for (VfsValue& child : root.sub)
+		if (auto ctx = FindContextDeep(child))
+			return ctx;
+	return nullptr;
+}
+
+static SdlContextBase* ResolveSdlContext(AtomBase& a, const char* caller_tag) {
+	if (auto ctx = a.val.FindOwnerWithCastDeep<SdlContextBase>())
+		return ctx;
+
+	if (Engine* eng = a.val.FindOwner<Engine>()) {
+		if (auto ctx = FindContextDeep(eng->val)) {
+			RTLOG(Format("%s: using SDL context under engine %s", caller_tag, VfsPathOf(eng->val)));
+			return ctx;
+		}
+	}
+
+	if (auto ctx = FindContextDeep(MetaEnv().root)) {
+		RTLOG(Format("%s: using global SDL context fallback", caller_tag));
+		return ctx;
+	}
+
+	RTLOG(Format("%s: SDL context not found; dumping engine tree", caller_tag));
+	if (Engine* eng = a.val.FindOwner<Engine>())
+		RTLOG(eng->val.GetTreeString(0));
+
+	return nullptr;
+}
 
 SDL_TimerID waketimer_id;
 
@@ -197,9 +234,25 @@ void HalSdl::AudioSinkDevice_Visit(NativeAudioSinkDevice& dev, AtomBase&, Visito
 }
 
 bool HalSdl::AudioSinkDevice_Initialize(NativeAudioSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::AudioSinkDevice_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::AudioSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -465,9 +518,25 @@ void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomB
 }
 
 bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::CenterVideoSinkDevice_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::CenterVideoSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -756,7 +825,7 @@ bool HalSdl::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice& dev, Atom
 	if (!dev.accel.Initialize(a, ws))
 		return false;
 
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::CenterFboSinkDevice_Initialize");
 	ASSERT(ev_ctx);
 	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
 	
@@ -914,9 +983,25 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	if (!dev.accel.Initialize(a, ws))
 		return false;
 
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::OglVideoSinkDevice_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::OglVideoSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 	
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -1169,9 +1254,25 @@ void HalSdl::EventsBase_Visit(NativeEventsBase& dev, AtomBase&, Visitor& vis) {
 }
 
 bool HalSdl::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const WorldState&) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::EventsBase_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::EventsBase_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -1579,9 +1680,25 @@ void HalSdl::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {
 }
 
 bool HalSdl::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const WorldState&) {
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::UppEventsBase_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::UppEventsBase_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -1697,9 +1814,25 @@ void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 
 bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
 
-	auto ev_ctx = a.GetSpace()->FindOwnerWithCastDeep<SdlContextBase>();
-	ASSERT(ev_ctx);
-	if (!ev_ctx) {RTLOG("error: could not find SDL2 context"); return false;}
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::UppOglDevice_Initialize");
+	if (!ev_ctx) {
+		RTLOG("HalSdl::UppOglDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		VfsValue* owner = a.val.owner;
+		int depth = 0;
+		while (owner) {
+			String info = Format("  owner[%d]: %s children=%d", depth, VfsPathOf(*owner), owner->sub.GetCount());
+			RTLOG(info);
+			for (int i = 0; i < owner->sub.GetCount(); i++) {
+				const VfsValue& child = owner->sub[i];
+				RTLOG("    child: " << child.id << " type=" << (child.ext ? child.ext->GetTypeName() : String("<none>")));
+			}
+			owner = owner->owner;
+			depth++;
+			if (depth > 6)
+				break;
+		}
+		return false;
+	}
 	
 	if (!ev_ctx->AttachContext(a))
 		return false;
@@ -2130,4 +2263,3 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 
 END_UPP_NAMESPACE
 #endif
-

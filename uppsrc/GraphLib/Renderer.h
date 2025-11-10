@@ -23,6 +23,7 @@ public:
 
 	Node* FindNode(Point pt);
 	Pin* FindPin(Point pt);
+	GroupNode* FindGroup(Point pt);  // Added for GroupNode support
 	void SetBorder(int i);
 	void SetImageSize(Size sz, int border=-1);
 
@@ -36,6 +37,7 @@ public:
 	void GetConnectionPoints(const Node& obj1, const Node& obj2, Vector<Point>& pts);
 	virtual void DrawNode(Draw& w, Node& node);
 	virtual void DrawEdge(Draw& w, Edge& edge);
+	virtual void DrawGroup(Draw& w, GroupNode& group);  // Added for GroupNode support
 
 };
 

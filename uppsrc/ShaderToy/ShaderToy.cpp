@@ -233,7 +233,11 @@ void EditorKeyboard::DrawKeyboardVisualization(Draw& draw, const Rect& rect, con
 }
 
 // PipelineEditor implementation
-PipelineEditor::PipelineEditor() : glBackend(nullptr) {
+PipelineEditor::PipelineEditor() : 
+    glBackend(nullptr),
+    pipelineCachingEnabled(false),
+    performanceMonitoringEnabled(false),
+    optimizedRenderingEnabled(false) {
     // Initialize the pipeline editor
     SetNodeRenderFunction();
 }
@@ -496,34 +500,78 @@ void PipelineEditor::BuildPipeline() {
 }
 
 void PipelineEditor::ExecutePipeline() {
+    // Start performance monitoring if enabled
+    double startTime = 0;
+    if (performanceMonitoringEnabled) {
+        startTime = GetTickCount();
+    }
+
     // Execute the rendering pipeline
     // Process nodes in execution order following the topological sort
-    
     if (!glBackend) {
+        if (performanceMonitoringEnabled) {
+            double executionTime = GetTickCount() - startTime;
+            double totalTime = performanceMetrics.Get("totalExecutionTime", 0.0);
+            performanceMetrics.Set("totalExecutionTime", totalTime + executionTime);
+        }
         return; // No OpenGL backend available
     }
 
     // Determine execution order using topological sort
     Vector<String> executionOrder = TopologicalSort();
-    
+
     // Execute nodes in the determined order
     VectorMap<String, Value> nodeOutputs; // Store outputs from each node
-    
+
     for (const String& nodeId : executionOrder) {
+        // Check if the result is already cached
+        Value cachedResult = GetFromPipelineCache(nodeId);
+        if (pipelineCachingEnabled && !IsNull(cachedResult)) {
+            // Use cached result
+            nodeOutputs.GetAdd(nodeId) = cachedResult;
+            if (performanceMonitoringEnabled) {
+                int cacheHits = performanceMetrics.Get("cacheHitCount", 0);
+                performanceMetrics.GetAdd("cacheHitCount") = cacheHits + 1;
+            }
+            continue;
+        }
+
         EditorNode* node = nodeMap.Get(nodeId, nullptr);
         if (!node) continue;
-        
+
         // Get inputs for this node by checking connections
         VectorMap<String, Value> inputs = GetNodeInputs(nodeId, nodeOutputs);
-        
+
         // Execute the node
         VectorMap<String, Value> outputs; // Placeholder for outputs
         bool success = node->Execute(glBackend, inputs, outputs);
-        
+
         if (success) {
             // Store the outputs for use by downstream nodes
             StoreNodeOutputs(nodeId, outputs, nodeOutputs);
+
+            // Cache the result if caching is enabled
+            if (pipelineCachingEnabled) {
+                // We can't cache a VectorMap<String, Value> directly to a Value, 
+                // so we'll cache a placeholder or implement proper serialization
+                AddToPipelineCache(nodeId, Value()); // Using empty value as placeholder
+            }
+
+            // Update performance metrics if monitoring is enabled
+            if (performanceMonitoringEnabled) {
+                int executionCount = performanceMetrics.Get("nodeExecutionCount", 0);
+                performanceMetrics.GetAdd("nodeExecutionCount") = executionCount + 1;
+                int cacheMisses = performanceMetrics.Get("cacheMissCount", 0);
+                performanceMetrics.GetAdd("cacheMissCount") = cacheMisses + 1;
+            }
         }
+    }
+
+    // Update total execution time if monitoring is enabled
+    if (performanceMonitoringEnabled) {
+        double executionTime = GetTickCount() - startTime;
+        double totalTime = performanceMetrics.Get("totalExecutionTime", 0.0);
+        performanceMetrics.GetAdd("totalExecutionTime") = totalTime + executionTime;
     }
 }
 
@@ -1286,6 +1334,273 @@ void PipelineEditor::OpenRenderOutputNodeContextMenu(const String& nodeId, Point
 void PipelineEditor::OpenLastFrameNodeContextMenu(const String& nodeId, Point pos) {
     PromptOK("LastFrame Node Context Menu");
 }
+
+// Implementation of layout algorithms (Phase 5)
+void PipelineEditor::AutoLayout() {
+    // Simple grid layout algorithm
+    const int GRID_SIZE = 150;  // Space per node in grid
+    const int ROW_SIZE = 5;     // Number of nodes per row
+    Vector<String> nodeIds;
+
+    // Get all node IDs
+    for (int i = 0; i < nodeMap.GetCount(); i++) {
+        nodeIds.Add(nodeMap.GetKey(i));
+    }
+
+    // Position nodes in a grid layout
+    for (int i = 0; i < nodeIds.GetCount(); i++) {
+        int x = (i % ROW_SIZE) * GRID_SIZE;
+        int y = (i / ROW_SIZE) * GRID_SIZE;
+        Point newPos(x, y);
+        
+        // Update the position in the GraphLib node system
+        EditorNode* editorNode = nodeMap.Get(nodeIds[i], nullptr);
+        if (editorNode) {
+            GraphLib::Node& graphNode = editorNode->GetGraphNode();
+            // In a real implementation, we would update the GraphLib node position
+            // For now we'll just use the AddNode method conceptually
+        }
+    }
+}
+
+void PipelineEditor::OrganizeByType() {
+    // Organize nodes by their type with spacing
+    int y_offset = 0;
+    int current_x = 50;
+    const int TYPE_SPACING = 200;
+    const int NODE_SPACING = 120;
+    
+    // Group nodes by type
+    VectorMap<String, Vector<String>> nodesByType;
+    
+    for (int i = 0; i < nodeMap.GetCount(); i++) {
+        String nodeId = nodeMap.GetKey(i);
+        EditorNode* node = nodeMap[i];
+        String nodeType = node->GetNodeType();
+        
+        nodesByType.GetAdd(nodeType).Add(nodeId);
+    }
+    
+    // Position each type in its own column
+    for (int typeIdx = 0; typeIdx < nodesByType.GetCount(); typeIdx++) {
+        String nodeType = nodesByType.GetKey(typeIdx);
+        Vector<String>& typeNodes = nodesByType[typeIdx];
+        
+        for (int i = 0; i < typeNodes.GetCount(); i++) {
+            String nodeId = typeNodes[i];
+            Point newPos(current_x, y_offset + i * NODE_SPACING);
+            
+            // In a real implementation, update the GraphLib node position
+        }
+        
+        current_x += TYPE_SPACING;
+        y_offset = 0; // Reset vertical position for next column
+    }
+}
+
+void PipelineEditor::OrganizeByExecutionOrder() {
+    // Arrange nodes according to execution order using topological sort
+    Vector<String> executionOrder = TopologicalSort();
+    
+    const int NODE_SPACING_X = 200;
+    const int NODE_SPACING_Y = 100;
+    int current_x = 50;
+    int current_y = 50;
+    
+    for (int i = 0; i < executionOrder.GetCount(); i++) {
+        String nodeId = executionOrder[i];
+        Point newPos(current_x, current_y);
+        
+        // In a real implementation, update the GraphLib node position
+        // Also handle branching by looking for nodes that have the same dependency
+        
+        // Move to next position
+        current_x += NODE_SPACING_X;
+        
+        // Add some logic to handle nodes that can be placed in parallel
+        // (nodes that have the same dependencies can be placed at the same x position)
+    }
+}
+
+// Implementation of node grouping functionality (Phase 5)
+void PipelineEditor::CreateGroup(const Vector<String>& nodeIds, const String& groupName) {
+    // In a real implementation, this would create a visual group of nodes
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+void PipelineEditor::Ungroup(const String& groupName) {
+    // In a real implementation, this would ungroup nodes
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+void PipelineEditor::CollapseGroup(const String& groupName) {
+    // In a real implementation, this would collapse a group of nodes
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+void PipelineEditor::ExpandGroup(const String& groupName) {
+    // In a real implementation, this would expand a collapsed group of nodes
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+// Implementation of node search and filtering (Phase 5)
+Vector<String> PipelineEditor::SearchNodes(const String& searchTerm) {
+    Vector<String> results;
+    
+    for (int i = 0; i < nodeMap.GetCount(); i++) {
+        String nodeId = nodeMap.GetKey(i);
+        EditorNode* node = nodeMap[i];
+        
+        // Search in node ID and type
+        if (nodeId.Find(searchTerm) >= 0 || node->GetNodeType().Find(searchTerm) >= 0) {
+            results.Add(nodeId);
+        }
+    }
+    
+    return results;
+}
+
+void PipelineEditor::FilterByType(const String& nodeType) {
+    // In a real implementation, this would hide all nodes that don't match the type
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+void PipelineEditor::ClearFilters() {
+    // In a real implementation, this would clear all applied filters
+    // For now, we'll just add this as a placeholder to indicate the functionality
+}
+
+// Implementation of performance optimization features (Phase 5)
+void PipelineEditor::EnablePipelineCaching() {
+    pipelineCachingEnabled = true;
+}
+
+void PipelineEditor::DisablePipelineCaching() {
+    pipelineCachingEnabled = false;
+}
+
+void PipelineEditor::ClearPipelineCache() {
+    pipelineCache.Clear();
+}
+
+void PipelineEditor::AddToPipelineCache(const String& nodeId, const Value& result) {
+    if (pipelineCachingEnabled) {
+        pipelineCache.GetAdd(nodeId) = result;
+    }
+}
+
+Value PipelineEditor::GetFromPipelineCache(const String& nodeId) const {
+    if (pipelineCachingEnabled) {
+        return pipelineCache.Get(nodeId, Value());  // Return empty Value if not found
+    }
+    return Value();
+}
+
+void PipelineEditor::EnablePerformanceMonitoring() {
+    performanceMonitoringEnabled = true;
+    // Initialize performance metrics
+    performanceMetrics.Clear();
+    performanceMetrics.Set("nodeExecutionCount", 0);
+    performanceMetrics.Set("totalExecutionTime", 0.0);
+    performanceMetrics.Set("cacheHitCount", 0);
+    performanceMetrics.Set("cacheMissCount", 0);
+}
+
+void PipelineEditor::DisablePerformanceMonitoring() {
+    performanceMonitoringEnabled = false;
+}
+
+ValueMap PipelineEditor::GetPerformanceMetrics() const {
+    return performanceMetrics;
+}
+
+void PipelineEditor::LogPerformanceMetrics() {
+    if (performanceMonitoringEnabled) {
+        LOG("=== Pipeline Performance Metrics ===");
+        int nodeExecCount = performanceMetrics.Get("nodeExecutionCount", 0);
+        double totalTime = performanceMetrics.Get("totalExecutionTime", 0.0);
+        int cacheHits = performanceMetrics.Get("cacheHitCount", 0);
+        int cacheMisses = performanceMetrics.Get("cacheMissCount", 0);
+        LOG("Node Execution Count: " + AsString(nodeExecCount));
+        LOG("Total Execution Time: " + AsString(totalTime) + " ms");
+        LOG("Cache Hits: " + AsString(cacheHits));
+        LOG("Cache Misses: " + AsString(cacheMisses));
+        LOG("===================================");
+    }
+}
+
+void PipelineEditor::EnableOptimizedRendering() {
+    optimizedRenderingEnabled = true;
+}
+
+void PipelineEditor::DisableOptimizedRendering() {
+    optimizedRenderingEnabled = false;
+}
+
+// Update the ExecutePipeline method to use caching and monitoring if enabled
+bool PipelineEditor::RegisterNodeType(const String& typeName, Callback1<EditorNode*> creator) {
+    // Register a new node type with its creator callback
+    if (nodeTypes.Find(typeName) < 0) {
+        nodeTypes.GetAdd(typeName) = creator;
+        return true;
+    }
+    return false; // Type already exists
+}
+
+bool PipelineEditor::CreateCustomNode(const String& typeName, const String& nodeId, Point position) {
+    // Create a node of the specified custom type
+    int index = nodeTypes.Find(typeName);
+    if (index >= 0) {
+        Callback1<EditorNode*> creator = nodeTypes[index];
+        if (creator) {
+            EditorNode* node = NULL;
+            creator(node); // Execute the callback to create the node
+            if (node) {
+                // Add the node to the graph and to our node map
+                AddNode(nodeId, position);
+                nodeInstances.Add(node);
+                nodeMap.GetAdd(nodeId) = node;
+                return true;
+            }
+        }
+    }
+    return false; // Node type not found or creation failed
+}
+
+Vector<String> PipelineEditor::GetAvailableNodeTypes() const {
+    Vector<String> types;
+    for (int i = 0; i < nodeTypes.GetCount(); i++) {
+        types.Add(nodeTypes.GetKey(i));
+    }
+    return types;
+}
+
+void PipelineEditor::LoadPlugin(const String& pluginPath) {
+    // In a real implementation, this would dynamically load a plugin
+    // For now, we'll just add the plugin name to the loaded plugins list as a placeholder
+    bool found = false;
+    for(int i = 0; i < loadedPlugins.GetCount(); i++) {
+        if(loadedPlugins[i] == pluginPath) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        loadedPlugins.Add(pluginPath);
+    }
+}
+
+void PipelineEditor::UnloadPlugin(const String& pluginName) {
+    // Remove the plugin from the loaded plugins list
+    for(int i = 0; i < loadedPlugins.GetCount(); i++) {
+        if(loadedPlugins[i] == pluginName) {
+            loadedPlugins.Remove(i);
+            break;
+        }
+    }
+}
+
+
 
 END_UPP_NAMESPACE
 

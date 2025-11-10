@@ -72,3 +72,7 @@ Template/Design Issues To Fix
   - Replace hardcoded offsets with offsetof(Vertex, position/normal/tex_coord) (mirrors OGL usage) to avoid struct layout drift.
 - Inefficient uniform updates:
   - Multiple UpdateSubresource calls per draw. Batch uniform writes and commit CB once per program/object.
+
+2025-11-10 — SDL/Eon05 Regression Notes
+- FboAtomT now scans actual side-sink exchanges when normalizing video source formats, preventing `LinkBase::NegotiateSourceFormat: error: exchange not found` on scripts that bind multiple `sdl.ogl.fbo.side` sinks (e.g. `share/eon/tests/05f_content_future_buffer.eon`).
+- Next: rerun `SDL_VIDEODRIVER=dummy bin/Eon05 4` once the headless SDL path no longer stalls; current builds progress through chain construction without errors but still time out under the dummy video backend.

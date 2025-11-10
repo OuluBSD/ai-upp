@@ -128,6 +128,26 @@ public:
 			shell.CmdEcho(args);
 			return true;
 		}
+		else if (cmd == "idebuild") {
+			shell.CmdIdeBuild(args);
+			return true;
+		}
+		else if (cmd == "ideworkspace") {
+			shell.CmdIdeWorkspace(args);
+			return true;
+		}
+		else if (cmd == "idepkg") {
+			shell.CmdIdePackage(args);
+			return true;
+		}
+		else if (cmd == "ideinstall") {
+			shell.CmdIdeInstall(args);
+			return true;
+		}
+		else if (cmd == "ideuninstall") {
+			shell.CmdIdeUninstall(args);
+			return true;
+		}
 		else if (cmd == "theide") {
 			Vector<String> ide_args = ToStringVector(args, 1);
 			if(!HandleConsoleIdeArgs(ide_args))

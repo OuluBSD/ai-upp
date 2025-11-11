@@ -142,6 +142,12 @@ static String NormalizeDotPath(const String& s) {
 	return LooksLikeDotPath(s) ? Join(Split(s, "."), "/") : s;
 }
 
+static Vector<String> SplitLoopPath(const String& s) {
+	if (s.Find('/') >= 0)
+		return Split(s, "/");
+	return Split(s, ".");
+}
+
 static void NormalizeValue(Value& v) {
 	if (IsString(v)) {
 		String str = v;
@@ -1132,7 +1138,6 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 				for (Eon::LoopDefinition& sink_loop : chain.loops) {
 					if (&src_loop == &sink_loop)
 						continue;
-					
 					for (Eon::AtomDefinition& sink_atom : sink_loop.atoms) {
 						int sink_count = sink_atom.iface.type.iface.sink.GetCount();
 						
@@ -1155,13 +1160,12 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 							
 							if (sink_conn.conn < 0 && src_vd == sink_vd) {
 								bool cond_prevents = false;
-								
 								if (src_cand) {
 									for(int i = 0; i < src_cand->req_args.GetCount() && !cond_prevents; i++) {
 										String key = src_cand->req_args.GetKey(i);
 										if (key == "loop") {
 											String loop_req = src_cand->req_args[i].ToString();
-											Vector<String> parts = Split(loop_req, ".");
+											Vector<String> parts = SplitLoopPath(loop_req);
 											if (!sink_loop.IsPathTrailMatch(parts))
 												cond_prevents = true;
 										}
@@ -1183,7 +1187,7 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 										String key = sink_cand->req_args.GetKey(i);
 										if (key == "loop") {
 											String loop_req = sink_cand->req_args[i].ToString();
-											Vector<String> parts = Split(loop_req, ".");
+											Vector<String> parts = SplitLoopPath(loop_req);
 											if (!src_loop.IsPathTrailMatch(parts))
 												cond_prevents = true;
 										}

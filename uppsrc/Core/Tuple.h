@@ -154,6 +154,7 @@ public:
 	hash_t GetHashValue() const               { CombineHash h; Base::ToHash(h); return h; }
 	
 	void Serialize(Stream& s)                 { Base::Serialize(s); }
+	void Jsonize(JsonIO& j);
 
 	String ToString() const                   { String h = "("; Base::ToString(h); h << ")"; return h; }
 	

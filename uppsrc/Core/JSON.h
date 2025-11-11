@@ -481,3 +481,16 @@ void LambdaIze(IO& io, const char *id, IZE ize)
 	LambdaIzeVar<IZE> var(ize);
 	io(id, var);
 }
+
+template <typename... Args>
+inline void Tuple<Args...>::Jsonize(JsonIO& j) {
+	ValueArray a;
+	if (j.IsStoring()) {
+		a=GetArray();
+		a.Jsonize(j);
+	}
+	else {
+		a.Jsonize(j);
+		SetArray(a);
+	}
+}

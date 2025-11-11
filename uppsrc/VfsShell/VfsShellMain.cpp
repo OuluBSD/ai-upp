@@ -342,6 +342,43 @@ int main(int argc, char* argv[])
 	VfsShellHost host;
 	VfsShellConsole console(host);
 
+	auto flush_host_output = [&]() {
+		String shell_output = host.GetOutput();
+		if(shell_output.IsEmpty())
+			return;
+		Cout() << shell_output;
+		Cout().Flush();
+		host.ClearOutput();
+	};
+
+	auto print_prompt = [&]() {
+		console.PrintLineHeader();
+		flush_host_output();
+	};
+
+	auto run_interactive_shell = [&]() {
+		Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
+		Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
+		print_prompt();
+
+		for (;;) {
+			std::string temp_input;
+			if (!std::getline(std::cin, temp_input)) {
+				Cout() << "\n";
+				break;
+			}
+			String input = String(temp_input.c_str());
+			if (input == "quit" || input == "exit")
+				break;
+
+			// Set the input and execute
+			console.output = input;
+			console.Execute();
+			flush_host_output();
+			print_prompt();
+		}
+	};
+
 	// Check for login shell flag to load initialization files
 	bool is_login_shell = false;
 	for (int i = 1; i < argc; i++) {
@@ -362,12 +399,14 @@ int main(int argc, char* argv[])
 				Cout() << "Loading initialization file: " << vfshrc_path << "\n";
 				// Execute the initialization file
 				console.ExecuteFile(vfshrc_path);
+				flush_host_output();
 			} else {
 				String cshrc_path = AppendFileName(home_dir, ".cshrc");
 				if (FileExists(cshrc_path)) {
 					Cout() << "Loading initialization file: " << cshrc_path << "\n";
 					// Execute the initialization file
 					console.ExecuteFile(cshrc_path);
+					flush_host_output();
 				}
 			}
 		}
@@ -400,46 +439,14 @@ int main(int argc, char* argv[])
 				// Store the command in the console's output field and execute
 				console.output = full_command;
 				console.Execute();
+				flush_host_output();
 			}
 		} else {
-			// Interactive shell mode with potential init file loading
-			Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
-			Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
-
-			for (;;) {
-				Cout() << console.GetCurrentDirectory() << " $ ";
-				fflush(stdout);
-				std::string temp_input;
-				getline(std::cin, temp_input);
-				String input = String(temp_input.c_str());  // Cast to std::string to use with getline
-				if (input == "quit" || input == "exit") {
-					break;
-				}
-
-				// Set the input and execute
-				console.output = input;
-				console.Execute();
-			}
+			run_interactive_shell();
 		}
 	} else {
 		// Interactive shell mode with init file loading
-		Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
-		Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
-
-		for (;;) {
-			Cout() << console.GetCurrentDirectory() << " $ ";
-			fflush(stdout);
-			std::string temp_input;
-			getline(std::cin, temp_input);
-			String input = String(temp_input.c_str());  // Cast to std::string to use with getline
-			if (input == "quit" || input == "exit") {
-				break;
-			}
-
-			// Set the input and execute
-			console.output = input;
-			console.Execute();
-		}
+		run_interactive_shell();
 	}
 	return 0;
 }

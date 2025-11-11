@@ -71,6 +71,46 @@ public:
 	void CmdIdeInstall(const ValueArray& args);
 	void CmdIdeUninstall(const ValueArray& args);
 	
+	// U++ builder support
+	void CmdUppBuilderLoad(const ValueArray& args);
+	void CmdUppBuilderAdd(const ValueArray& args);
+	void CmdUppBuilderList(const ValueArray& args);
+	void CmdUppBuilderActiveSet(const ValueArray& args);
+	void CmdUppBuilderGet(const ValueArray& args);
+	void CmdUppBuilderSet(const ValueArray& args);
+	void CmdUppBuilderDump(const ValueArray& args);
+	void CmdUppBuilderActiveDump(const ValueArray& args);
+	
+	// U++ startup support
+	void CmdUppStartupLoad(const ValueArray& args);
+	void CmdUppStartupList(const ValueArray& args);
+	void CmdUppStartupOpen(const ValueArray& args);
+	
+	// U++ assembly support
+	void CmdUppAsmLoad(const ValueArray& args);
+	void CmdUppAsmCreate(const ValueArray& args);
+	void CmdUppAsmList(const ValueArray& args);
+	void CmdUppAsmScan(const ValueArray& args);
+	void CmdUppAsmLoadHost(const ValueArray& args);
+	void CmdUppAsmRefresh(const ValueArray& args);
+	
+	// U++ workspace support
+	void CmdUppWkspOpen(const ValueArray& args);
+	void CmdUppWkspClose(const ValueArray& args);
+	void CmdUppWkspPkgList(const ValueArray& args);
+	void CmdUppWkspPkgSet(const ValueArray& args);
+	void CmdUppWkspFileList(const ValueArray& args);
+	void CmdUppWkspFileSet(const ValueArray& args);
+	void CmdUppWkspBuild(const ValueArray& args);
+	
+	// U++ GUI support
+	void CmdUppGui(const ValueArray& args);
+	
+	// C++ AST parsing support
+	void CmdParseFile(const ValueArray& args);
+	void CmdParseDump(const ValueArray& args);
+	void CmdParseGenerate(const ValueArray& args);
+	
 private:
 	String output;  // For internal use (store command input/output)
 	void ClearOutput() { host.ClearOutput(); }

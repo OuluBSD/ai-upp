@@ -154,6 +154,118 @@ public:
 				AddOutputLine(GetConsoleIdeExperimentalNotice());
 			return true;
 		}
+		else if (cmd == "upp.builder.load") {
+			shell.CmdUppBuilderLoad(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.add") {
+			shell.CmdUppBuilderAdd(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.list") {
+			shell.CmdUppBuilderList(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.active.set") {
+			shell.CmdUppBuilderActiveSet(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.get") {
+			shell.CmdUppBuilderGet(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.set") {
+			shell.CmdUppBuilderSet(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.dump") {
+			shell.CmdUppBuilderDump(args);
+			return true;
+		}
+		else if (cmd == "upp.builder.active.dump") {
+			shell.CmdUppBuilderActiveDump(args);
+			return true;
+		}
+		else if (cmd == "upp.startup.load") {
+			shell.CmdUppStartupLoad(args);
+			return true;
+		}
+		else if (cmd == "upp.startup.list") {
+			shell.CmdUppStartupList(args);
+			return true;
+		}
+		else if (cmd == "upp.startup.open") {
+			shell.CmdUppStartupOpen(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.load") {
+			shell.CmdUppAsmLoad(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.create") {
+			shell.CmdUppAsmCreate(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.list") {
+			shell.CmdUppAsmList(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.scan") {
+			shell.CmdUppAsmScan(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.load.host") {
+			shell.CmdUppAsmLoadHost(args);
+			return true;
+		}
+		else if (cmd == "upp.asm.refresh") {
+			shell.CmdUppAsmRefresh(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.open") {
+			shell.CmdUppWkspOpen(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.close") {
+			shell.CmdUppWkspClose(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.pkg.list") {
+			shell.CmdUppWkspPkgList(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.pkg.set") {
+			shell.CmdUppWkspPkgSet(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.file.list") {
+			shell.CmdUppWkspFileList(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.file.set") {
+			shell.CmdUppWkspFileSet(args);
+			return true;
+		}
+		else if (cmd == "upp.wksp.build") {
+			shell.CmdUppWkspBuild(args);
+			return true;
+		}
+		else if (cmd == "upp.gui") {
+			shell.CmdUppGui(args);
+			return true;
+		}
+		else if (cmd == "parse.file") {
+			shell.CmdParseFile(args);
+			return true;
+		}
+		else if (cmd == "parse.dump") {
+			shell.CmdParseDump(args);
+			return true;
+		}
+		else if (cmd == "parse.generate") {
+			shell.CmdParseGenerate(args);
+			return true;
+		}
 		
 		return false; // Command not handled
 	}

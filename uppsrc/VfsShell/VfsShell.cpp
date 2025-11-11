@@ -87,7 +87,48 @@ void VfsShellConsole::CmdHelp(const ValueArray& args) {
 		"  ideworkspace  - Workspace operations (e.g. 'ideworkspace list')\n"
 		"  idepkg        - Package operations (e.g. 'idepkg list', 'idepkg create MyPkg')\n"
 		"  ideinstall    - Install U++ package\n"
-		"  ideuninstall  - Uninstall U++ package\n";
+		"  ideuninstall  - Uninstall U++ package\n"
+		"  \n"
+		"U++ builder support:\n"
+		"  upp.builder.load <directory-path> [-H]      (load all .bm files from directory, -H treats path as OS filesystem path)\n"
+		"  upp.builder.add <bm-file-path> [-H]         (load a single .bm build method file)\n"
+		"  upp.builder.list                            (list loaded build methods)\n"
+		"  upp.builder.active.set <builder-name>       (set the active build method)\n"
+		"  upp.builder.get <key>                       (show a key from the active build method)\n"
+		"  upp.builder.set <key> <value>               (update a key in the active build method)\n"
+		"  upp.builder.dump <builder-name>             (dump all keys for a build method)\n"
+		"  upp.builder.active.dump                     (dump keys for the active build method)\n"
+		"  \n"
+		"U++ startup support:\n"
+		"  upp.startup.load <directory-path> [-H] [-v] (load all .var files from directory, -H treats path as OS filesystem path, -v verbose output)\n"
+		"  upp.startup.list                            (list all loaded startup assemblies)\n"
+		"  upp.startup.open <name> [-v]                (load a named startup assembly, -v for verbose)\n"
+		"  \n"
+		"U++ assembly support:\n"
+		"  upp.asm.load <var-file-path> [-H]           (load U++ assembly file, -H treats path as OS filesystem path)\n"
+		"  upp.asm.create <name> <output-path>         (create new U++ assembly)\n"
+		"  upp.asm.list [-v]                           (list packages in current assembly, -v for all directories)\n"
+		"  upp.asm.scan <directory-path>               (scan directory for U++ packages with .upp files)\n"
+		"  upp.asm.load.host <host-var-file>           (mount host dir and load .var file from OS filesystem)\n"
+		"  upp.asm.refresh [-v]                        (refresh all packages in active assembly, -v for verbose)\n"
+		"  \n"
+		"U++ workspace support:\n"
+		"  upp.wksp.open <pkg-name> [-v]               (open a package from the list as workspace)\n"
+		"  upp.wksp.open -p <path> [-v]                (open a U++ package as workspace from path, -v for verbose)\n"
+		"  upp.wksp.close                              (close current workspace)\n"
+		"  upp.wksp.pkg.list                           (list packages in current workspace)\n"
+		"  upp.wksp.pkg.set <package-name>             (set active package in workspace)\n"
+		"  upp.wksp.file.list                          (list files in active package)\n"
+		"  upp.wksp.file.set <file-path>               (set active file in editor)\n"
+		"  upp.wksp.build [options]                    (build active workspace package and dependencies)\n"
+		"  \n"
+		"U++ GUI support:\n"
+		"  upp.gui                                     (launch U++ assembly IDE GUI)\n"
+		"  \n"
+		"libclang C++ AST parsing:\n"
+		"  parse.file <filepath> [vfs-target-path]     (parse C++ file with libclang)\n"
+		"  parse.dump [vfs-path]                       (dump parsed AST tree)\n"
+		"  parse.generate <ast-path> <output-path]     (generate C++ code from AST)\n";
 	AddOutputLine(helpText);
 }
 
@@ -867,6 +908,550 @@ void VfsShellConsole::CmdIdeUninstall(const ValueArray& args) {
 	}
 	
 	// Call the IDE's command handler
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder load command
+void VfsShellConsole::CmdUppBuilderLoad(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.builder.load <directory-path> [-H]");
+		AddOutputLine("Load all .bm files from directory, -H treats path as OS filesystem path");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("load");
+
+	String path = (String)args[1];
+	bool isHostPath = false;
+	
+	// Check if -H flag is present
+	for (int i = 2; i < args.GetCount(); i++) {
+		String arg = (String)args[i];
+		if (arg == "-H") {
+			isHostPath = true;
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.builder.load <directory-path> [-H]");
+			return;
+		}
+	}
+
+	ide_args.Add(path);
+	if (isHostPath) {
+		ide_args.Add("--host");
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder add command
+void VfsShellConsole::CmdUppBuilderAdd(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.builder.add <bm-file-path> [-H]");
+		AddOutputLine("Load a single .bm build method file, -H treats path as OS filesystem path");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("add");
+
+	String path = (String)args[1];
+	bool isHostPath = false;
+	
+	for (int i = 2; i < args.GetCount(); i++) {
+		String arg = (String)args[i];
+		if (arg == "-H") {
+			isHostPath = true;
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.builder.add <bm-file-path> [-H]");
+			return;
+		}
+	}
+
+	ide_args.Add(path);
+	if (isHostPath) {
+		ide_args.Add("--host");
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder list command
+void VfsShellConsole::CmdUppBuilderList(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("list");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder active set command
+void VfsShellConsole::CmdUppBuilderActiveSet(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.builder.active.set <builder-name>");
+		AddOutputLine("Set the active build method");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("set");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder get command
+void VfsShellConsole::CmdUppBuilderGet(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.builder.get <key>");
+		AddOutputLine("Show a key from the active build method");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("get");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder set command
+void VfsShellConsole::CmdUppBuilderSet(const ValueArray& args) {
+	if (args.GetCount() < 3) {
+		AddOutputLine("Usage: upp.builder.set <key> <value>");
+		AddOutputLine("Update a key in the active build method");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("set");
+	ide_args.Add((String)args[1]);
+	ide_args.Add((String)args[2]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder dump command
+void VfsShellConsole::CmdUppBuilderDump(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.builder.dump <builder-name>");
+		AddOutputLine("Dump all keys for a build method");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("dump");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ builder active dump command
+void VfsShellConsole::CmdUppBuilderActiveDump(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("buildmethod");
+	ide_args.Add("dump");
+	ide_args.Add("active");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ startup load command
+void VfsShellConsole::CmdUppStartupLoad(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.startup.load <directory-path> [-H] [-v]");
+		AddOutputLine("Load all .var files from directory, -H treats path as OS filesystem path, -v verbose output");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("startup");
+	ide_args.Add("load");
+
+	String path = (String)args[1];
+	bool isHostPath = false;
+	bool verbose = false;
+	
+	for (int i = 2; i < args.GetCount(); i++) {
+		String arg = (String)args[i];
+		if (arg == "-H") {
+			isHostPath = true;
+		} else if (arg == "-v") {
+			verbose = true;
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.startup.load <directory-path> [-H] [-v]");
+			return;
+		}
+	}
+
+	ide_args.Add(path);
+	if (isHostPath) ide_args.Add("--host");
+	if (verbose) ide_args.Add("--verbose");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ startup list command
+void VfsShellConsole::CmdUppStartupList(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("startup");
+	ide_args.Add("list");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ startup open command
+void VfsShellConsole::CmdUppStartupOpen(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.startup.open <name> [-v]");
+		AddOutputLine("Load a named startup assembly, -v for verbose");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("startup");
+	ide_args.Add("open");
+
+	ide_args.Add((String)args[1]);
+	
+	for (int i = 2; i < args.GetCount(); i++) {
+		String arg = (String)args[i];
+		if (arg == "-v") {
+			ide_args.Add("--verbose");
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.startup.open <name> [-v]");
+			return;
+		}
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly load command
+void VfsShellConsole::CmdUppAsmLoad(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.asm.load <var-file-path> [-H]");
+		AddOutputLine("Load U++ assembly file, -H treats path as OS filesystem path");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("load");
+
+	String path = (String)args[1];
+	bool isHostPath = false;
+	
+	for (int i = 2; i < args.GetCount(); i++) {
+		String arg = (String)args[i];
+		if (arg == "-H") {
+			isHostPath = true;
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.asm.load <var-file-path> [-H]");
+			return;
+		}
+	}
+
+	ide_args.Add(path);
+	if (isHostPath) ide_args.Add("--host");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly create command
+void VfsShellConsole::CmdUppAsmCreate(const ValueArray& args) {
+	if (args.GetCount() < 3) {
+		AddOutputLine("Usage: upp.asm.create <name> <output-path>");
+		AddOutputLine("Create new U++ assembly");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("create");
+	ide_args.Add((String)args[1]);
+	ide_args.Add((String)args[2]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly list command
+void VfsShellConsole::CmdUppAsmList(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("list");
+
+	if (args.GetCount() > 1) {
+		String arg = (String)args[1];
+		if (arg == "-v") {
+			ide_args.Add("--verbose");
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.asm.list [-v]");
+			return;
+		}
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly scan command
+void VfsShellConsole::CmdUppAsmScan(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.asm.scan <directory-path>");
+		AddOutputLine("Scan directory for U++ packages with .upp files");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("scan");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly load.host command
+void VfsShellConsole::CmdUppAsmLoadHost(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.asm.load.host <host-var-file>");
+		AddOutputLine("Mount host dir and load .var file from OS filesystem");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("loadhost");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ assembly refresh command
+void VfsShellConsole::CmdUppAsmRefresh(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("assembly");
+	ide_args.Add("refresh");
+
+	if (args.GetCount() > 1) {
+		String arg = (String)args[1];
+		if (arg == "-v") {
+			ide_args.Add("--verbose");
+		} else {
+			AddOutputLine("Unknown flag: " + arg);
+			AddOutputLine("Usage: upp.asm.refresh [-v]");
+			return;
+		}
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace open command
+void VfsShellConsole::CmdUppWkspOpen(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.wksp.open <pkg-name> [-v]  OR  upp.wksp.open -p <path> [-v]");
+		AddOutputLine("Open a package from the list as workspace OR from path, -v for verbose");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("open");
+
+	if ((String)args[1] == "-p" && args.GetCount() >= 3) {
+		ide_args.Add("--path");
+		ide_args.Add((String)args[2]);
+		
+		if (args.GetCount() > 3 && (String)args[3] == "-v") {
+			ide_args.Add("--verbose");
+		} else if (args.GetCount() > 3) {
+			AddOutputLine("Unknown flag: " + (String)args[3]);
+			AddOutputLine("Usage: upp.wksp.open <pkg-name> [-v]  OR  upp.wksp.open -p <path> [-v]");
+			return;
+		}
+	} else {
+		ide_args.Add((String)args[1]);
+		
+		if (args.GetCount() > 2 && (String)args[2] == "-v") {
+			ide_args.Add("--verbose");
+		} else if (args.GetCount() > 2) {
+			AddOutputLine("Unknown flag: " + (String)args[2]);
+			AddOutputLine("Usage: upp.wksp.open <pkg-name> [-v]  OR  upp.wksp.open -p <path> [-v]");
+			return;
+		}
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace close command
+void VfsShellConsole::CmdUppWkspClose(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("close");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace package list command
+void VfsShellConsole::CmdUppWkspPkgList(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("pkglist");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace package set command
+void VfsShellConsole::CmdUppWkspPkgSet(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.wksp.pkg.set <package-name>");
+		AddOutputLine("Set active package in workspace");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("pkgset");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace file list command
+void VfsShellConsole::CmdUppWkspFileList(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("filelist");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace file set command
+void VfsShellConsole::CmdUppWkspFileSet(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: upp.wksp.file.set <file-path>");
+		AddOutputLine("Set active file in editor");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("fileset");
+	ide_args.Add((String)args[1]);
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ workspace build command
+void VfsShellConsole::CmdUppWkspBuild(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("workspace");
+	ide_args.Add("build");
+
+	// Add any additional options from the command line
+	for (int i = 1; i < args.GetCount(); i++) {
+		ide_args.Add((String)args[i]);
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of U++ GUI command
+void VfsShellConsole::CmdUppGui(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("gui");
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of parse.file command
+void VfsShellConsole::CmdParseFile(const ValueArray& args) {
+	if (args.GetCount() < 2) {
+		AddOutputLine("Usage: parse.file <filepath> [vfs-target-path]");
+		AddOutputLine("Parse C++ file with libclang");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("parse");
+	ide_args.Add("file");
+	ide_args.Add((String)args[1]);
+
+	if (args.GetCount() > 2) {
+		ide_args.Add((String)args[2]);
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of parse.dump command
+void VfsShellConsole::CmdParseDump(const ValueArray& args) {
+	Vector<String> ide_args;
+	ide_args.Add("parse");
+	ide_args.Add("dump");
+
+	if (args.GetCount() > 1) {
+		ide_args.Add((String)args[1]);
+	}
+
+	if(!HandleConsoleIdeArgs(ide_args))
+		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// Implementation of parse.generate command
+void VfsShellConsole::CmdParseGenerate(const ValueArray& args) {
+	if (args.GetCount() < 3) {
+		AddOutputLine("Usage: parse.generate <ast-path> <output-path>");
+		AddOutputLine("Generate C++ code from AST");
+		return;
+	}
+
+	Vector<String> ide_args;
+	ide_args.Add("parse");
+	ide_args.Add("generate");
+	ide_args.Add((String)args[1]);
+	ide_args.Add((String)args[2]);
+
 	if(!HandleConsoleIdeArgs(ide_args))
 		AddOutputLine(GetConsoleIdeExperimentalNotice());
 }

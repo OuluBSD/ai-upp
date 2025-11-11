@@ -11,4 +11,6 @@ file
 	VfsShell.cpp,
 	IdeCliBridge.cpp,
 	VfsShellMain.cpp,
+	ShellSyntax.cpp,
+	ShellSyntax.h,
 	Utils.h;

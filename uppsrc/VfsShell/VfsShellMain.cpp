@@ -11,11 +11,11 @@ using namespace Upp;
 // Initialize MountManager with system filesystem mounted at root
 void InitializeMountSystem() {
     MountManager& mm = MountManager::System();
-    
+
     // Mount system filesystem at root "/"
     SystemFS* sysfs = new SystemFS();
     mm.Mount("/", sysfs, "sysfs");
-    
+
     // This makes the system filesystem available at the root path
     // Additional VFS mounts can be added here for "/vfs/" path or other locations
 }
@@ -34,10 +34,16 @@ Vector<String> ToStringVector(const ValueArray& args, int start_index = 0)
 
 // Simple implementation of VfsShellHostBase for console application
 class VfsShellHost : public VfsShellHostBase {
+private:
+	String output;
+	int last_exit_code;
+	
 public:
+	VfsShellHost() : last_exit_code(0) {} // Initialize to success
+	
 	bool Command(VfsShellConsole& shell, const ValueArray& args) override {
 		if (args.GetCount() == 0) return false;
-		
+
 		String cmd = args[0];
 		if (cmd == "help") {
 			shell.CmdHelp(args);
@@ -120,7 +126,12 @@ public:
 			return true;
 		}
 		else if (cmd == "true" || cmd == "false") {
-			// For true/false, we just need to handle exit status, but for now just process as command
+			// For true/false, we need to handle exit status properly
+			if (cmd == "true") {
+				this->SetExitCode(0);  // Success
+			} else { // cmd == "false"
+				this->SetExitCode(1);  // Failure
+			}
 			shell.CmdTrueFalse(args);
 			return true;
 		}
@@ -266,16 +277,24 @@ public:
 			shell.CmdParseGenerate(args);
 			return true;
 		}
-		
+
 		return false; // Command not handled
 	}
-	
+
 	String GetOutput() const override {
 		return output;
 	}
 
 	void ClearOutput() override {
 		output.Clear();
+	}
+	
+	int GetLastExitCode() const override {
+		return last_exit_code;
+	}
+	
+	void SetExitCode(int code) override {
+		last_exit_code = code;
 	}
 
 	void AddOutput(const String& s) override {
@@ -285,15 +304,12 @@ public:
 	void AddOutputLine(const String& s) override {
 		output << s << "\n";
 	}
-	
-private:
-	String output;
 };
 
 int main(int argc, char* argv[])
 {
 	using namespace Upp;
-	
+
 	// Initialize the mount system before creating VfsShell
 	InitializeMountSystem();
 
@@ -305,31 +321,111 @@ int main(int argc, char* argv[])
 			Cout() << GetConsoleIdeExperimentalNotice() << "\n";
 		return 0;
 	}
-	
+
+	// Check for help option
+	for (int i = 1; i < argc; i++) {
+		String arg = String(argv[i]);
+		if (arg == "-h" || arg == "--help") {
+			Cout() << "VFS Shell - A virtual file system shell supporting csh/tcsh syntax\n";
+			Cout() << "Usage: VfsShell [options] [command]\n";
+			Cout() << "Options:\n";
+			Cout() << "  -h, --help     Show this help message\n";
+			Cout() << "  -l, --login    Start as a login shell (read init files)\n";
+			Cout() << "Commands:\n";
+			Cout() << "  Supports standard commands like ls, cd, pwd, etc.\n";
+			Cout() << "  Supports csh syntax: pipes (a | b), logical AND (a && b), logical OR (a || b)\n";
+			Cout() << "  Example: ls | grep \"txt\" && echo \"Found text files\" || echo \"No text files\"\n";
+			return 0;
+		}
+	}
+
 	VfsShellHost host;
 	VfsShellConsole console(host);
-	
+
+	// Check for login shell flag to load initialization files
+	bool is_login_shell = false;
+	for (int i = 1; i < argc; i++) {
+		String arg = String(argv[i]);
+		if (arg == "-l" || arg == "--login") {
+			is_login_shell = true;
+			break;
+		}
+	}
+
+	// Load initialization files if this is a login shell or if no command line args
+	if (is_login_shell || argc == 1) {
+		// Try to load ~/.vfshrc first, then ~/.cshrc as fallback
+		String home_dir = GetEnv("HOME");
+		if (!home_dir.IsEmpty()) {
+			String vfshrc_path = AppendFileName(home_dir, ".vfshrc");
+			if (FileExists(vfshrc_path)) {
+				Cout() << "Loading initialization file: " << vfshrc_path << "\n";
+				// Execute the initialization file
+				console.ExecuteFile(vfshrc_path);
+			} else {
+				String cshrc_path = AppendFileName(home_dir, ".cshrc");
+				if (FileExists(cshrc_path)) {
+					Cout() << "Loading initialization file: " << cshrc_path << "\n";
+					// Execute the initialization file
+					console.ExecuteFile(cshrc_path);
+				}
+			}
+		}
+	}
+
 	// For console application, just process commands from standard input or arguments
 	if (argc > 1) {
-		// Process command line arguments as a command
-		ValueArray args;
+		// Check if this is just running a single command and not the interactive shell
+		bool is_single_command = true;
 		for (int i = 1; i < argc; i++) {
-			args.Add(String(argv[i]));
+			String arg = String(argv[i]);
+			if (arg == "-l" || arg == "--login") {
+				is_single_command = false;  // If login flag is present, might be interactive
+			}
 		}
 		
-		if (host.Command(console, args)) {
-			String output = host.GetOutput();
-			if (!output.IsEmpty()) {
-				Cout() << output << "\n";
+		if (is_single_command) {
+			// Process command line arguments as a command
+			String full_command;
+			for (int i = 1; i < argc; i++) {
+				String arg = String(argv[i]);
+				// Skip flags like -h, -l
+				if (arg != "-h" && arg != "--help" && arg != "-l" && arg != "--login") {
+					if (!full_command.IsEmpty()) full_command << " ";
+					full_command << arg;
+				}
+			}
+			
+			if (!full_command.IsEmpty()) {
+				// Store the command in the console's output field and execute
+				console.output = full_command;
+				console.Execute();
 			}
 		} else {
-			Cout() << "Unknown command: " << String(argv[1]) << "\n";
+			// Interactive shell mode with potential init file loading
+			Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
+			Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
+
+			for (;;) {
+				Cout() << console.GetCurrentDirectory() << " $ ";
+				fflush(stdout);
+				std::string temp_input;
+				getline(std::cin, temp_input);
+				String input = String(temp_input.c_str());  // Cast to std::string to use with getline
+				if (input == "quit" || input == "exit") {
+					break;
+				}
+
+				// Set the input and execute
+				console.output = input;
+				console.Execute();
+			}
 		}
 	} else {
-		// Interactive shell mode
+		// Interactive shell mode with init file loading
 		Cout() << "VFS Shell - Type 'help' for available commands or 'quit' to exit\n";
 		Cout() << "Current directory: " << (String)console.GetCurrentDirectory() << "\n";
-		
+
 		for (;;) {
 			Cout() << console.GetCurrentDirectory() << " $ ";
 			fflush(stdout);
@@ -339,25 +435,10 @@ int main(int argc, char* argv[])
 			if (input == "quit" || input == "exit") {
 				break;
 			}
-			
-			// Parse the input and execute the command
-			Vector<String> parts = Split(input, " ", true, true);
-			if (parts.GetCount() > 0) {
-				ValueArray args;
-				for (const String& part : parts) {
-					args.Add(part);
-				}
-				
-				host.ClearOutput(); // Clear previous output
-				if (host.Command(console, args)) {
-					String output = host.GetOutput();
-					if (!output.IsEmpty()) {
-						Cout() << output << "\n";
-					}
-				} else {
-					Cout() << "Unknown command: " << parts[0] << "\n";
-				}
-			}
+
+			// Set the input and execute
+			console.output = input;
+			console.Execute();
 		}
 	}
 	return 0;

@@ -4,6 +4,9 @@
 
 NAMESPACE_UPP
 
+// Forward declaration for ExecuteCmdNode - we'll implement this after other methods
+String ExecuteCmdNodeImpl(VfsShellConsole& console, VfsShellHostBase& host, CmdNode* node);
+
 // Check if path is in VFS overlay
 bool VfsShellConsole::IsVfsPath(const String& path) {
 	return path.StartsWith("/vfs/");
@@ -134,11 +137,11 @@ void VfsShellConsole::CmdHelp(const ValueArray& args) {
 
 void VfsShellConsole::Execute()
 {
-	// For console implementation, we'll assume a simple command input
+	// For console implementation, we'll use the AST parser to handle csh/tcsh syntax
 	// In a real console application, we'd read from stdin, but for this integration
 	// with the existing framework we'll work with the stored output
 	String txt;
-	
+
 	// Process the last command stored in output
 	String s = output;
 	if (!line_header.IsEmpty() && s.StartsWith(line_header))
@@ -147,38 +150,179 @@ void VfsShellConsole::Execute()
 
 	if (s.IsEmpty()) return;
 
-	bool succ = false;
-
-	// Try to parse and execute command
+	// Try to parse and execute command using AST parser
 	try {
-		Vector<String> parts = Split(s, " ", true, true);  // Split command line into parts
-		if (parts.GetCount() > 0) {
-			ValueArray args;
-			for (const String& part : parts) {
-				args.Add(part);
-			}
+		// Parse the command string into an AST
+		CmdNode* ast = ShellSyntaxParser::ParseString(s);
+		if (ast != nullptr) {
+			// Execute the AST
+			txt = ExecuteCmdNode(ast);
+			// Clean up the AST
+			delete ast;
+		} else {
+			// If parsing failed, try the old method as fallback
+			Vector<String> parts = Split(s, " ", true, true);  // Split command line into parts
+			if (parts.GetCount() > 0) {
+				ValueArray args;
+				for (const String& part : parts) {
+					args.Add(part);
+				}
 
-			if (host.Command(*this, args)) {  // Let host handle command
-				succ = true;
-				txt = host.GetOutput();
+				if (!host.Command(*this, args)) {  // Let host handle command
+					AddOutputLine("Unknown command: " + s);
+				}
 			}
 		}
 	}
 	catch (Exc e) {
-		txt << "ERROR: " << e;
+		AddOutputLine("ERROR: " + e);
 	}
 
-	if (!succ) {
-		txt = "Unknown command: " + s;
-	}
-
-	// Output result
+	// Output result if it's not empty
 	if (!txt.IsEmpty()) {
 		AddOutputLine(txt);
 	}
 	// Print new prompt
 	AddOutputLine();
 	PrintLineHeader();
+}
+
+// Implementation to execute an AST node
+String VfsShellConsole::ExecuteCmdNode(CmdNode* node) {
+	if (node == nullptr) return String();
+	
+	switch (node->GetType()) {
+		case CmdNodeType::COMMAND: {
+			CommandNode* cmd = static_cast<CommandNode*>(node);
+			if (cmd->args.GetCount() == 0) return String();
+			
+			ValueArray args;
+			for (const String& arg : cmd->args) {
+				args.Add(arg);
+			}
+			
+			if (host.Command(*this, args)) {
+				return host.GetOutput();
+			} else {
+				AddOutputLine("Unknown command: " + cmd->args[0]);
+				return String();
+			}
+		}
+		
+		case CmdNodeType::PIPELINE: {
+			PipelineNode* pipeline = static_cast<PipelineNode*>(node);
+			if (pipeline->commands.GetCount() == 0) return String();
+
+			// For now, a simple pipeline implementation without actual pipes
+			// A real implementation would need to implement actual pipe mechanisms
+			String result;
+			
+			// Execute the first command and capture its output and exit code
+			String first_output = ExecuteCmdNode(pipeline->commands[0]);
+			
+			for (int i = 1; i < pipeline->commands.GetCount(); i++) {
+				// In a real implementation, we would pass the output of the previous command 
+				// as input to the current command using a pipe mechanism
+				// For now, we'll just execute the command ignoring the input
+				String current_output = ExecuteCmdNode(pipeline->commands[i]);
+				// The current output becomes the result for the last command in the pipeline
+				result = current_output;
+			}
+			
+			// The exit code of the pipeline should be the exit code of the last command
+			// For now, we'll keep the host's exit code as is after processing the last command
+			
+			// Return the output of the last command (or first if only one command)
+			return pipeline->commands.GetCount() > 1 ? result : first_output;
+		}
+		
+		case CmdNodeType::AND_IF: {
+			AndIfNode* andNode = static_cast<AndIfNode*>(node);
+			
+			// Execute the left side
+			String left_result = ExecuteCmdNode(andNode->left);
+			
+			// Check the exit code from the host
+			int left_exit_code = host.GetLastExitCode();
+			
+			String right_result;
+			if (left_exit_code == 0) {  // Command succeeded
+				// Execute the right side only if left succeeded
+				right_result = ExecuteCmdNode(andNode->right);
+			} else {
+				// If left failed, right side is not executed (standard && behavior)
+				// Set exit code to the left side's exit code
+				host.SetExitCode(left_exit_code);
+			}
+			
+			return left_result + right_result;
+		}
+		
+		case CmdNodeType::OR_IF: {
+			OrIfNode* orNode = static_cast<OrIfNode*>(node);
+			
+			// Execute the left side
+			String left_result = ExecuteCmdNode(orNode->left);
+			
+			// Check the exit code from the host
+			int left_exit_code = host.GetLastExitCode();
+			
+			String right_result;
+			if (left_exit_code != 0) {  // Command failed
+				// Execute the right side only if left failed
+				right_result = ExecuteCmdNode(orNode->right);
+			} else {
+				// If left succeeded, right side is not executed (standard || behavior)
+				// Set exit code to the left side's exit code
+				host.SetExitCode(left_exit_code);
+			}
+			
+			return left_result + right_result;
+		}
+		
+		case CmdNodeType::SEQUENCE: {
+			SequenceNode* seq = static_cast<SequenceNode*>(node);
+			String result;
+			for (CmdNode* cmd : seq->commands) {
+				result += ExecuteCmdNode(cmd);
+			}
+			return result;
+		}
+		
+		default:
+			AddOutputLine("Unsupported command node type");
+			return String();
+	}
+}
+
+// Execute commands from a file
+bool VfsShellConsole::ExecuteFile(const String& filepath) {
+	FileIn in(filepath);
+	if (!in.IsOpen()) {
+		AddOutputLine("Cannot open file: " + filepath);
+		return false;
+	}
+	
+	String content;
+	int c;
+	while((c = in.Get()) >= 0) {
+		content.Cat((char)c);
+	}
+	
+	Vector<String> lines = Split(content, "\n", false); // Don't omit empty lines
+	
+	for (const String& line : lines) {
+		String trimmed_line = TrimBoth(line);
+		if (trimmed_line.IsEmpty() || trimmed_line.StartsWith("#")) {
+			continue; // Skip empty lines and comments
+		}
+		
+		// Store the command in output temporarily for Execute() to process
+		output = trimmed_line;
+		Execute(); // Execute processes the command
+	}
+	
+	return true;
 }
 
 void VfsShellConsole::PrintLineHeader() {
@@ -767,10 +911,11 @@ void VfsShellConsole::CmdTrueFalse(const ValueArray& args) {
 	
 	String cmd = args[0];
 	if (cmd == "true") {
-		// Simply return success (no output)
+		// Set exit code to 0 (success)
+		host.SetExitCode(0);
 	} else if (cmd == "false") {
-		// For now, just show it was called - actual exit status isn't implemented here
-		AddOutputLine("Command was 'false' - would normally exit with status 1");
+		// Set exit code to 1 (failure)
+		host.SetExitCode(1);
 	}
 }
 

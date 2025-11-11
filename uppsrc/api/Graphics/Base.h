@@ -63,11 +63,19 @@ struct TextureBaseT :
 {
 	using Filter = GVar::Filter;
 	using Wrap = GVar::Wrap;
+	using ImageList = Vector<Image>;
 	
 	bool			loading_cubemap = false;
 	Filter			filter = GVar::FILTER_LINEAR;
 	Wrap			wrap = GVar::WRAP_REPEAT;
 	Array<Packet>	cubemap;
+	String			preload_path;
+	bool			preload_vflip = false;
+	bool			preload_swap_tb = false;
+	bool			preload_cubemap = false;
+	bool			preload_pending = false;
+	Size			preload_size;
+	Vector<Vector<byte>> preload_bytes;
 	
 public:
 	using BufferBase = BufferBaseT<Gfx>;
@@ -84,6 +92,14 @@ public:
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	void Visit(Vis& v) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
+	
+private:
+	bool PreloadTextureFromFile();
+	bool LoadImages(Vector<Image>& out) const;
+	bool LoadImageFile(const String& path, Image& out) const;
+	bool ApplyPreloadTransforms(Vector<Image>& imgs) const;
+	bool StorePreloadedImages(const Vector<Image>& imgs);
+	bool UploadPreloadedData();
 	
 	
 };

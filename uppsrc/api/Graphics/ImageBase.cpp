@@ -139,6 +139,7 @@ bool ImageBaseAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int 
 	if (imgs.IsEmpty()) return false;
 	
 	ValueFormat fmt = out.GetFormat();
+	RTLOG("ImageBaseAtomT::Send: src_ch=" << src_ch << " is_video=" << (fmt.IsVideo() ? 1 : 0));
 	if (fmt.IsVideo()) {
 		out.seq = seq++;
 		Image& img = imgs[0];

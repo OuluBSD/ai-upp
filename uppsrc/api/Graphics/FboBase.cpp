@@ -223,9 +223,36 @@ void FboAtomT<Gfx>::RemoveBinder(BinderIfaceVideo* iface) {
 
 template <class Gfx>
 bool FboAtomT<Gfx>::Recv(int sink_ch, const Packet& in) {
-	if (sink_ch > 0) {
-		const InternalPacketData& data = in->GetData<InternalPacketData>();
-		ASSERT(data.ptr);
+	ValueFormat fmt = in->GetFormat();
+	RTLOG("FboAtomT::Recv: sink=" << sink_ch << " vd=" << (int)fmt.vd.val);
+	if (!in->IsData<InternalPacketData>())
+		return true;
+	
+	const InternalPacketData& data = in->GetData<InternalPacketData>();
+	ASSERT(data.ptr);
+	if (!data.ptr)
+		return false;
+	
+	if (data.IsText("gfxbuf")) {
+		RTLOG("FboAtomT::Recv: gfxbuf sink=" << sink_ch);
+		int input_idx = max(sink_ch - 1, 0);
+		bool linked = false;
+		for (int i = 0; i < this->data.pipelines.GetCount(); i++) {
+			PipelineState& pipe = this->data.pipelines[i];
+			for (int j = 0; j < pipe.programs.GetCount(); j++) {
+				ProgramState& prog = pipe.programs[j];
+				if (prog.LoadInputLink(input_idx, data))
+					linked = true;
+			}
+		}
+		
+		if (!linked) {
+			LOG("FboAtomT<Gfx>::Recv: warning: could not bind gfxbuf input #" << input_idx);
+			return false;
+		}
+		return true;
+	}
+	else {
 		GfxDataState* gfx_state = (GfxDataState*)data.ptr;
 		DataState* state = CastPtr<DataState>(gfx_state);
 		ASSERT(state);

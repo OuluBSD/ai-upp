@@ -126,11 +126,23 @@ bool TextureBaseT<Gfx>::Initialize(const WorldState& ws) {
 		}
 	}
 	
+	String arg_filepath = ws.Get(".filepath");
+	if (!arg_filepath.IsEmpty())
+		preload_path = RealizeFilepathArgument(arg_filepath);
+	preload_vflip = ws.Get(".vflip") == "true";
+	preload_swap_tb = ws.Get(".swap_top_bottom") == "true";
+	preload_cubemap = ws.Get(".cubemap") == "true";
+	
 	return true;
 }
 
 template <class Gfx>
 bool TextureBaseT<Gfx>::PostInitialize() {
+	
+	if (!preload_path.IsEmpty()) {
+		if (!PreloadTextureFromFile())
+			return false;
+	}
 	
 	return true;
 }
@@ -142,8 +154,9 @@ void TextureBaseT<Gfx>::Uninitialize() {
 
 template <class Gfx>
 bool TextureBaseT<Gfx>::IsReady(PacketIO& io) {
-	bool b = io.full_src_mask == 0 && io.active_sink_mask == 0b11;
-	RTLOG("OglTextureBase::IsReady: " << (b ? "true" : "false"));
+	bool buffer_ready = this->bf.GetBuffer().IsSingleInitialized();
+	bool has_video = (io.active_sink_mask & 0b10) || preload_pending || buffer_ready;
+	bool b = io.full_src_mask == 0 && has_video;
 	return b;
 }
 
@@ -258,6 +271,16 @@ bool TextureBaseT<Gfx>::Recv(int sink_ch, const Packet& p) {
 
 template <class Gfx>
 bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	if (preload_pending && !UploadPreloadedData())
+		return false;
+	if (src_ch == 0) {
+		if (!this->bf.GetBuffer().IsSingleInitialized())
+			return true;
+		InternalPacketData& data = out.SetData<InternalPacketData>();
+		this->GetBuffer().StoreOutputLink(data);
+		return true;
+	}
+	
 	if (src_ch >= 1) {
 		// non-primary channel (src_ch>0) is allowed to not send packets
 		if (!this->bf.GetBuffer().IsSingleInitialized())
@@ -288,6 +311,143 @@ bool TextureBaseT<Gfx>::NegotiateSinkFormat(LinkBase& link, int sink_ch, const V
 		return true;
 	}
 	return false;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::PreloadTextureFromFile() {
+	Vector<Image> imgs;
+	if (!LoadImages(imgs))
+		return false;
+	if (imgs.IsEmpty())
+		return false;
+	if (!StorePreloadedImages(imgs))
+		return false;
+	preload_path.Clear();
+	return true;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::LoadImages(Vector<Image>& out) const {
+	if (preload_path.IsEmpty())
+		return true;
+	
+	if (preload_cubemap) {
+		String dir = GetFileDirectory(preload_path);
+		String title = GetFileTitle(preload_path);
+		String ext = GetFileExt(preload_path);
+		for (int i = 0; i < 6; i++) {
+			String path = i == 0 ? preload_path : AppendFileName(dir, title + "_" + IntStr(i) + ext);
+			Image img;
+			if (!LoadImageFile(path, img))
+				return false;
+			out.Add(img);
+		}
+	}
+	else {
+		Image img;
+		if (!LoadImageFile(preload_path, img))
+			return false;
+		out.Add(img);
+	}
+	
+	if (!ApplyPreloadTransforms(out))
+		return false;
+	
+	return true;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::LoadImageFile(const String& path, Image& out) const {
+	String ext = ToLower(GetFileExt(path));
+	if (ext == ".jpg" || ext == ".jpeg")
+		out = JPGRaster().LoadFile(path);
+	else if (ext == ".png")
+		out = PNGRaster().LoadFile(path);
+	else
+		out = StreamRaster::LoadFileAny(path);
+	if (out.IsEmpty()) {
+		LOG("TextureBaseT: error: empty image: " << path);
+		return false;
+	}
+	return true;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::ApplyPreloadTransforms(Vector<Image>& imgs) const {
+	if (preload_vflip) {
+		for (Image& img : imgs)
+			img = MirrorVertical(img);
+	}
+	if (preload_cubemap && preload_swap_tb && imgs.GetCount() >= 4)
+		Swap(imgs[2], imgs[3]);
+	return true;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::StorePreloadedImages(const Vector<Image>& imgs) {
+	if (imgs.IsEmpty())
+		return false;
+	preload_size = imgs[0].GetSize();
+	preload_bytes.SetCount(imgs.GetCount());
+	for (int i = 0; i < imgs.GetCount(); i++)
+		DataFromImage(imgs[i], preload_bytes[i]);
+	preload_pending = true;
+	return true;
+}
+
+template <class Gfx>
+bool TextureBaseT<Gfx>::UploadPreloadedData() {
+	if (!preload_pending)
+		return true;
+	
+	auto& buf = this->bf.GetBuffer();
+	auto& stage = buf.InitSingle();
+	auto& fb = stage.fb[0];
+	fb.is_win_fbo = false;
+	fb.depth = 0;
+	fb.channels = 4;
+	fb.sample = GVar::SAMPLE_FLOAT;
+	fb.filter = this->filter;
+	fb.wrap = this->wrap;
+	fb.fps = 0;
+	fb.size = preload_size;
+	
+	bool ok = true;
+	if (preload_cubemap) {
+		if (preload_bytes.GetCount() != 6) {
+			LOG("TextureBaseT: error: expected 6 cubemap faces for '" << preload_path << "'");
+			ok = false;
+		}
+		else {
+			ok = stage.InitializeCubemap(
+				fb.size,
+				fb.channels,
+				GVar::SAMPLE_U8,
+				preload_bytes[0],
+				preload_bytes[1],
+				preload_bytes[2],
+				preload_bytes[3],
+				preload_bytes[4],
+				preload_bytes[5]);
+		}
+	}
+	else {
+		ok = stage.InitializeTexture(
+			fb.size,
+			fb.channels,
+			GVar::SAMPLE_U8,
+			preload_bytes[0].Begin(),
+			preload_bytes[0].GetCount());
+	}
+	
+	if (!ok) {
+		LOG("TextureBaseT: error: failed to upload preloaded texture: " << preload_path);
+		return false;
+	}
+	
+	preload_pending = false;
+	preload_bytes.Clear();
+	return true;
 }
 
 

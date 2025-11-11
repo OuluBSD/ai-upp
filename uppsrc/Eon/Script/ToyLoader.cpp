@@ -258,6 +258,12 @@ bool ToyLoader::MakeScript() {
 	s.Clear();
 	s << __eon_script_begin;
 	
+	auto QuoteLoop = [](const String& loop_name) -> String {
+		String quoted;
+		quoted << "\"" << EscapeString(loop_name) << "\"";
+		return quoted;
+	};
+	
 	String library_str = Join(libraries, ";");
 	
 	s << "		loop center.events:\n"
@@ -284,39 +290,37 @@ bool ToyLoader::MakeScript() {
 				continue;
 			
 			if (input.type == "texture") {
+				b << "ogl." << stage.name << ".tex" << input.id;
 				if (input.filename.IsEmpty()) {
 					LOG("ToyLoader::MakeScript: error: empty input filename in stage " << stage.name);
 					return false;
 				}
-				a << "center." << stage.name << ".ct" << input.id;
-				b << "ogl." << stage.name << ".fbo" << input.id;
-				s << "		loop " << a << ":\n";
-				s << "			center.customer\n";
-				s << "			center.image.loader[][loop == " << b << "]:\n";
+				s << "		loop " << b << ":\n";
+				s << "			ogl.customer\n";
+				s << "			sdl.ogl.fbo.image[][loop == " << QuoteLoop(l) << "]:\n";
+				if (input.filter.GetCount())
+					s << "				filter = " << input.filter << "\n";
+				if (input.wrap.GetCount())
+					s << "				wrap = " << input.wrap << "\n";
 				if (input.vflip == "true")
 					s << "				vflip = true\n";
 				s << "				filepath = \"" << input.filename << "\"\n";
-				s << "		\n";
-				s << "		loop " << b << ":\n";
-				s << "			ogl.customer\n";
-				s << "			sdl.ogl.fbo.image[loop == " << a << "][loop == " << l << "]\n";
 				s << "		\n";
 				input.stage_name = b;
 			}
 			else if (input.type == "cubemap") {
-				a << "center." << stage.name << ".ct" << input.id;
 				b << "ogl." << stage.name << ".fbo" << input.id;
-				s << "		loop " << a << ":\n";
-				s << "			center.customer\n";
-				s << "			center.image.loader[][loop == " << b << "]:\n";
-				if (input.vflip == "true")
-					s << "				vflip = true\n";
-				s << "				cubemap = true\n";
-				s << "				filepath = \"" << input.filename << "\"\n";
-				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
-				s << "			sdl.ogl.fbo.image[loop == " << a << "][loop == " << l << "]\n";
+				s << "			sdl.ogl.fbo.image[][loop == " << QuoteLoop(l) << "]:\n";
+				if (input.filter.GetCount())
+					s << "				filter = " << input.filter << "\n";
+				if (input.wrap.GetCount())
+					s << "				wrap = " << input.wrap << "\n";
+				s << "				cubemap = true\n";
+				if (input.vflip == "true")
+					s << "				vflip = true\n";
+				s << "				filepath = \"" << input.filename << "\"\n";
 				s << "		\n";
 				input.stage_name = b;
 				cubemaps << i;
@@ -326,13 +330,13 @@ bool ToyLoader::MakeScript() {
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << a << ":\n";
 				s << "			center.customer\n";
-				s << "			center.video.webcam[][loop == " << b << "]";
+				s << "			center.video.webcam[][loop == " << QuoteLoop(b) << "]";
 				if (input.vflip == "true")
 					s << "				vflip = true\n";
 				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
-				s << "			sdl.ogl.fbo.image[loop == " << a << "][loop == " << l << "]\n";
+				s << "			sdl.ogl.fbo.image[loop == " << QuoteLoop(a) << "][loop == " << QuoteLoop(l) << "]\n";
 				input.stage_name = b;
 			}
 			else if (input.type == "musicstream" ||
@@ -350,12 +354,12 @@ bool ToyLoader::MakeScript() {
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << a << ":\n";
 				s << "			center.customer\n";
-				s << "			center.audio.loader[][loop == " << b << "]\n";
+				s << "			center.audio.loader[][loop == " << QuoteLoop(b) << "]\n";
 				s << "				filepath = \"" << input.filename << "\"\n";
 				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
-				s << "			sdl.ogl.center.fbo.audio[loop == " << a << "][loop == " << l << "]\n";
+				s << "			sdl.ogl.center.fbo.audio[loop == " << QuoteLoop(a) << "][loop == " << QuoteLoop(l) << "]\n";
 				s << "		\n";
 				input.stage_name = b;
 			}
@@ -366,7 +370,7 @@ bool ToyLoader::MakeScript() {
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << b << ": {\n";
 				s << "			ogl.customer: true;\n";
-				s << "			sdl.ogl.fbo.keyboard: true [][loop == " << l << "] {target: event.register;};\n";
+				s << "			sdl.ogl.fbo.keyboard: true [][loop == \"" << EscapeString(l) << "\"] {target: event.register;};\n";
 				s << "		};\n";
 				s << "		\n";
 				input.stage_name = b;
@@ -377,14 +381,14 @@ bool ToyLoader::MakeScript() {
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << a << ":\n";
 				s << "			center.customer\n";
-				s << "			center.volume.loader[][loop == " << b << "]:\n";
+				s << "			center.volume.loader[][loop == " << QuoteLoop(b) << "]:\n";
 				if (input.vflip == "true")
 					s << "				vflip = true\n";
 				s << "				filepath = \"" << input.filename << "\"\n";
 				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
-				s << "			sdl.ogl.fbo.volume[loop == " << a << "][loop == " << l << "]\n";
+				s << "			sdl.ogl.fbo.volume[loop == " << QuoteLoop(a) << "][loop == " << QuoteLoop(l) << "]\n";
 				s << "		\n";
 				input.stage_name = b;
 			}
@@ -397,15 +401,14 @@ bool ToyLoader::MakeScript() {
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << a << ":\n";
 				s << "			center.customer\n";
-				s << "			center.video.loader[][loop == " << b << "]:\n";
+				s << "			center.video.loader[][loop == " << QuoteLoop(b) << "]:\n";
 				if (input.vflip == "true")
 					s << "				vflip = true\n";
 				s << "				filepath = \"" << input.filename << "\"\n";
 				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
-				s << "			sdl.ogl.fbo.image[loop == " << a << "][loop == " << l << "]\n";
-				s << "				filter = mipmap\n";
+				s << "			sdl.ogl.texture.source[][loop == " << QuoteLoop(a) << "][loop == " << QuoteLoop(l) << "]\n";
 				s << "		\n";
 				input.stage_name = b;
 			}
@@ -458,15 +461,15 @@ bool ToyLoader::MakeScript() {
 			for(int i = 0; i < 4; i++) {
 				if (i < stage.inputs.GetCount()) {
 					ToyInput& input = stage.inputs[i];
-					if (!input.stage_name.IsEmpty())
-						s << (i > 0 ? " loop == " : "loop == ") << input.stage_name;
+			if (!input.stage_name.IsEmpty())
+				s << (i > 0 ? " loop == " : "loop == ") << QuoteLoop(input.stage_name);
 				}
 				s << ",";
 			}
 			s << "][";
 			for(int i = 0; i < 4; i++) {
-				if (i < stage.user_stages.GetCount())
-					s << (i > 0 ? " loop == " : "loop == ") << stage.user_stages[i];
+		if (i < stage.user_stages.GetCount())
+			s << (i > 0 ? " loop == " : "loop == ") << QuoteLoop(stage.user_stages[i]);
 				s << ",";
 			}
 			s << "]";
@@ -505,11 +508,11 @@ bool ToyLoader::MakeScript() {
 			
 			s << "		loop ogl.fbo.audio.conv:\n";
 			s << "			ogl.customer\n";
-			s << "			sdl.ogl.fbo.center.audio[loop == " << l << "][loop == center.audio.sink]\n";
+			s << "			sdl.ogl.fbo.center.audio[loop == " << QuoteLoop(l) << "][loop == " << QuoteLoop("center.audio.sink") << "]\n";
 			s << "		\n";
 			s << "		loop center.audio.sink:\n";
 			s << "			center.customer\n";
-			s << "			center.audio.side.sink.center.user[loop == ogl.fbo.audio.conv]\n";
+			s << "			center.audio.side.sink.center.user[loop == " << QuoteLoop("ogl.fbo.audio.conv") << "]\n";
 			s << "			sdl.audio\n";
 			s << "		\n";
 			
@@ -524,7 +527,7 @@ bool ToyLoader::MakeScript() {
 		for(int i = 0; i < 4; i++) {
 			if (i < keyboard_input_stages.GetCount()) {
 				if (i) s << " ";
-				s << "loop == " << keyboard_input_stages[i] << ",";
+				s << "loop == " << QuoteLoop(keyboard_input_stages[i]) << ",";
 			}
 			else s << ",";
 		}

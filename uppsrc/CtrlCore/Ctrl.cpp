@@ -448,8 +448,10 @@ void Ctrl::UpdateActionRefresh() {
 void  Ctrl::CancelModeDeep() {
 	GuiLock __;
 	CancelMode();
-	for(Ctrl& q : *this)
+	for(Ctrl& q : *this) {
+		ASSERT(&q != this);
 		q.CancelModeDeep();
+	}
 }
 
 String Ctrl::GetDesc() const

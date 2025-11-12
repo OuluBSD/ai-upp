@@ -141,8 +141,6 @@ void VfsShellConsole::Execute()
 	// For console implementation, we'll use the AST parser to handle csh/tcsh syntax
 	// In a real console application, we'd read from stdin, but for this integration
 	// with the existing framework we'll work with the stored output
-	String txt;
-
 	// Process the last command stored in output
 	String s = output;
 	if (!line_header.IsEmpty() && s.StartsWith(line_header))
@@ -157,7 +155,7 @@ void VfsShellConsole::Execute()
 		CmdNode* ast = ShellSyntaxParser::ParseString(s);
 		if (ast != nullptr) {
 			// Execute the AST
-			txt = ExecuteCmdNode(ast);
+			ExecuteCmdNode(ast);
 			// Clean up the AST
 			delete ast;
 		} else {
@@ -179,13 +177,6 @@ void VfsShellConsole::Execute()
 		AddOutputLine("ERROR: " + e);
 	}
 
-	// Output result if it's not empty
-	if (!txt.IsEmpty()) {
-		AddOutputLine(txt);
-	}
-	// Print new prompt
-	AddOutputLine();
-	PrintLineHeader();
 }
 
 // Implementation to execute an AST node

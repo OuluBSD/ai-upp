@@ -8,7 +8,7 @@ void Run06bToyShaderMultiPass(Engine& eng, int method) {
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
 	
-	String filepath = "share/eon/tests/06b_toyshader_multipass/06b_toyshader_multipass.toy";
+	String filepath = "share/eon/tests/06b_toyshader_multipass_pbr_shader_ball/06b_toyshader_multipass_pbr_shader_ball.toy";
 	
 	sys->PostLoadFile(RealizeShareFile(filepath));
 }

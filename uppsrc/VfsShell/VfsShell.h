@@ -5,6 +5,7 @@
 #include <Core/VfsBase/VfsBase.h>  // Using Core/VfsBase instead of full Vfs package
 
 #include "ShellSyntax.h"  // Include the new shell syntax parser
+#include "NcursesEditor.h"
 
 NAMESPACE_UPP
 
@@ -76,6 +77,7 @@ public:
 	void CmdRandom(const ValueArray& args);
 	void CmdTrueFalse(const ValueArray& args);
 	void CmdEcho(const ValueArray& args);
+	void CmdEdit(const ValueArray& args);
 
 	// U++/IDE-specific commands
 	void CmdIdeBuild(const ValueArray& args);

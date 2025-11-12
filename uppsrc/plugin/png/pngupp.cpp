@@ -171,7 +171,9 @@ bool PNGRaster::Create()
 	if(color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
 		ASSERT(bit_depth >= 8);
 		data->out_bpp = 24;
-		png_set_bgr(data->png_ptr);
+		// NOTE: Removed png_set_bgr() - let libpng output standard RGB order
+		// U++ RGBA expects R,G,B,A and OpenGL expects RGBA byte order
+		//png_set_bgr(data->png_ptr);
 		if(color_type == PNG_COLOR_TYPE_RGB_ALPHA)
 			data->out_bpp = 32;
 	}
@@ -289,8 +291,9 @@ Raster::Line PNGRaster::GetLine(int line)
 			}
 			if(data->strip16)
 				png_set_strip_16(data->png_ptr);
-			if(data->out_bpp > 8)
-				png_set_bgr(data->png_ptr);
+			// NOTE: Removed png_set_bgr() - U++ RGBA expects standard RGB order
+			//if(data->out_bpp > 8)
+			//	png_set_bgr(data->png_ptr);
 			data->next_row = 0;
 		}
 		while(data->next_row < line) {
@@ -461,7 +464,8 @@ void PNGEncoder::Data::Start(Stream& stream, Size size_, Size dots_, int bpp, Im
 	png_set_pHYs(png_ptr, info_ptr, x_ppm, y_ppm, PNG_RESOLUTION_METER);
 	png_write_info(png_ptr, info_ptr);
 
-	png_set_bgr(png_ptr);
+	// NOTE: Removed png_set_bgr() - U++ RGBA uses standard RGB order
+	//png_set_bgr(png_ptr);
 
 	passes = png_set_interlace_handling(png_ptr);
 	rowbuf.SetCount(rowbytes);

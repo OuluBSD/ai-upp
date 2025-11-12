@@ -4,7 +4,7 @@ struct RGBA {
 };
 #else
 struct RGBA {
-	byte b, g, r, a;
+	byte r, g, b, a;
 };
 #endif
 

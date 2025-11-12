@@ -16,6 +16,7 @@ void Run06hToyShaderAnimation(Engine& eng, int method);
 void Run06iToyShaderRaymarching(Engine& eng, int method);
 void Run06jToyShaderWater(Engine& eng, int method);
 void Run06kToyShaderFire(Engine& eng, int method);
+void Run06lToyShaderRgbTest(Engine& eng, int method);
 
 END_UPP_NAMESPACE
 

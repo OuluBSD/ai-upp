@@ -1,0 +1,29 @@
+{
+	name: "RGB Color Test",
+	description: "Test to verify RGB channel ordering is correct. Should display the texture with correct corner colors: TL=Red, TR=Green, BL=Blue, BR=White",
+	owner: "test",
+	likes: 0,
+	date: 20250112,
+
+	stages: [
+		{
+			type: image,
+
+			inputs: [
+				{
+					id: 0,
+					type: texture,
+					filter: linear,
+					wrap: clamp,
+					vflip: false,
+					filename: "rgb.png",
+				},
+			],
+			outputs: [
+				{
+					id: 1,
+				},
+			],
+		},
+	]
+}

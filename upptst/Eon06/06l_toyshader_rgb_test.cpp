@@ -4,12 +4,12 @@
 
 NAMESPACE_UPP
 
-void Run06cToyShaderWithTexture(Engine& eng, int method) {
+void Run06lToyShaderRgbTest(Engine& eng, int method) {
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
-	
-	String filepath = "share/eon/tests/06c_toyshader_cubemap/06c_toyshader_cubemap.toy";
-	
+
+	String filepath = "share/eon/tests/06l_toyshader_rgb_test/06l_toyshader_rgb_test.toy";
+
 	sys->PostLoadFile(RealizeShareFile(filepath));
 }
 

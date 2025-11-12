@@ -542,12 +542,10 @@ public:
 
 	void AddOutput(const String& s) override {
 		output << s;
-		Cout() << s;
 	}
 
 	void AddOutputLine(const String& s) override {
 		output << s << "\n";
-		Cout() << s << "\n";
 	}
 };
 

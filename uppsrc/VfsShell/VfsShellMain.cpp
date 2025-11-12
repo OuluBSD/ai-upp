@@ -3,6 +3,9 @@
 #include <Core/VfsBase/VfsBase.h>  // For VFS mounting functionality
 #include <ide/CommandLineHandler.h>
 #include <iostream>
+#include <termios.h> // For terminal manipulation
+#include <stdio.h>   // For standard I/O functions
+#include <unistd.h>  // For read, STDIN_FILENO
 
 using namespace std;
 
@@ -30,6 +33,246 @@ Vector<String> ToStringVector(const ValueArray& args, int start_index = 0)
 	return out;
 }
 
+}
+
+// Forward declarations for internal functions
+Vector<String> getPathCompletion(const String& partialPath, VfsShellConsole& console);
+String readLineWithHistory(VfsShellConsole& console);
+
+// Function to perform path completion
+Vector<String> getPathCompletion(const String& partialPath, VfsShellConsole& console) {
+    Vector<String> completions;
+    
+    // Determine the directory to search in and the partial filename
+    String dirPath = GetFileDirectory(partialPath);
+    String fileNamePrefix = GetFileName(partialPath);
+    
+    // If no directory is specified, use the current directory
+    if (dirPath.IsEmpty()) {
+        dirPath = console.GetCurrentDirectory();
+        fileNamePrefix = partialPath;
+    } else {
+        // Convert to internal path format
+        dirPath = VfsShellConsole::ConvertToInternalPath(dirPath, console.GetCurrentDirectory());
+    }
+    
+    // Try to list files in the directory
+    VfsPath vfsDir;
+    vfsDir.Set(dirPath);
+    
+    MountManager& mm = MountManager::System();
+    Vector<VfsItem> items;
+    if (mm.GetFiles(vfsDir, items)) {
+        for (const VfsItem& item : items) {
+            if (item.name.StartsWith(fileNamePrefix)) {
+                String completion = AppendFileName(dirPath, item.name);
+                completions.Add(completion);
+            }
+        }
+    }
+    
+    return completions;
+}
+
+// Function to enable raw terminal mode for advanced input handling
+void enableRawMode(struct termios *orig_termios) {
+    struct termios raw = *orig_termios;
+
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
+    raw.c_iflag &= ~(BRKINT | IXON | ICRNL);
+    raw.c_cflag |= (CS8);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
+
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+// Function to disable raw terminal mode and restore original settings
+void disableRawMode(struct termios *orig_termios) {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, orig_termios);
+}
+
+// Function to read an input line with history and editing support
+String readLineWithHistory(VfsShellConsole& console) {
+    struct termios orig_termios;
+    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+        // Fallback to regular getline if terminal doesn't support raw mode
+        std::string input;
+        std::getline(std::cin, input);
+        return String(input.c_str());
+    }
+
+    enableRawMode(&orig_termios);
+
+    String line = "";
+    int cursor_pos = 0;
+    int history_pos = -1;
+    
+    // Save original line if we're starting to search through history
+    String history_search_prefix = "";
+
+    printf("%s%s", console.GetCurrentDirectory().ToStd().c_str(), " $ ");
+    fflush(stdout);
+
+    while (true) {
+        char c;
+        ssize_t nread = read(STDIN_FILENO, &c, 1);
+        
+        if (nread <= 0) {
+            // Error reading or EOF
+            break;
+        }
+
+        if (c == 127 || c == '\b') {  // Backspace or delete
+            if (cursor_pos > 0) {
+                line.Remove(cursor_pos - 1, 1);
+                cursor_pos--;
+                
+                // Redraw the line after backspace
+                printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                // Reposition cursor
+                int new_cursor_pos = console.GetCurrentDirectory().GetCount() + 3 + cursor_pos;
+                printf("\033[%dG", new_cursor_pos);
+                fflush(stdout);
+            }
+        }
+        else if (c == '\033') {  // Escape sequence (e.g., arrow keys)
+            char seq[3];
+            if (read(STDIN_FILENO, &seq[0], 1) == 1 && read(STDIN_FILENO, &seq[1], 1) == 1) {
+                if (seq[0] == '[') {
+                    if (seq[1] == 'A') { // Up arrow - history
+                        if (history_pos == -1) {
+                            // First history access, save current line to search
+                            history_search_prefix = line;
+                            history_pos = console.GetHistorySize();
+                        }
+                        if (history_pos > 0) {
+                            history_pos--;
+                            // Find previous command that matches prefix
+                            while (history_pos >= 0) {
+                                String hist = console.GetHistoryEntry(history_pos);
+                                if (history_search_prefix.IsEmpty() || hist.StartsWith(history_search_prefix)) {
+                                    line = hist;
+                                    cursor_pos = line.GetCount();
+                                    break;
+                                }
+                                history_pos--;
+                            }
+                        }
+                        
+                        // Redraw the line
+                        printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                        // Reposition cursor at the end
+                        printf("\033[%luG", (long unsigned) (console.GetCurrentDirectory().GetCount() + 3 + cursor_pos + 1));
+                        fflush(stdout);
+                    }
+                    else if (seq[1] == 'B') { // Down arrow - forward in history
+                        if (history_pos < console.GetHistorySize() - 1) {
+                            history_pos++;
+                            // Find next command that matches prefix
+                            bool found = false;
+                            while (history_pos < console.GetHistorySize()) {
+                                String hist = console.GetHistoryEntry(history_pos);
+                                if (history_search_prefix.IsEmpty() || hist.StartsWith(history_search_prefix)) {
+                                    line = hist;
+                                    cursor_pos = line.GetCount();
+                                    found = true;
+                                    break;
+                                }
+                                history_pos++;
+                            }
+                            if (!found) {
+                                // Go back to the current input line
+                                line = history_search_prefix;
+                                cursor_pos = line.GetCount();
+                                history_pos = console.GetHistorySize(); // Signal that we're off history
+                            }
+                        } else {
+                            // Go back to the current input line
+                            line = history_search_prefix;
+                            cursor_pos = line.GetCount();
+                            history_pos = console.GetHistorySize(); // Signal that we're off history
+                        }
+                        
+                        // Redraw the line
+                        printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                        // Reposition cursor at the end
+                        printf("\033[%luG", (long unsigned) (console.GetCurrentDirectory().GetCount() + 3 + cursor_pos + 1));
+                        fflush(stdout);
+                    }
+                    else if (seq[1] == 'C') { // Right arrow - move cursor right
+                        if (cursor_pos < line.GetCount()) {
+                            cursor_pos++;
+                            printf("\033[C");
+                            fflush(stdout);
+                        }
+                    }
+                    else if (seq[1] == 'D') { // Left arrow - move cursor left
+                        if (cursor_pos > 0) {
+                            cursor_pos--;
+                            printf("\033[D");
+                            fflush(stdout);
+                        }
+                    }
+                }
+            }
+        }
+        else if (c == '\n' || c == '\r') {  // Enter
+            printf("\n");
+            break;
+        }
+        else if (c == '\t') {  // Tab - path completion
+            if (!line.IsEmpty()) {
+                Vector<String> completions = getPathCompletion(line, console);
+                if (completions.GetCount() == 1) {
+                    // Single completion found
+                    line = completions[0];
+                    cursor_pos = line.GetCount();
+                    // Redraw the line with the completed path
+                    printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                    // Reposition cursor at the end
+                    printf("\033[%luG", (long unsigned) (console.GetCurrentDirectory().GetCount() + 3 + cursor_pos + 1));
+                    fflush(stdout);
+                } else if (completions.GetCount() > 1) {
+                    // Multiple completions found - show them
+                    printf("\n");
+                    for (const String& comp : completions) {
+                        printf("  %s\n", comp.ToStd().c_str());
+                    }
+                    // Redraw the prompt and line
+                    printf("%s%s", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                    fflush(stdout);
+                    // Reposition cursor at the end
+                    cursor_pos = line.GetCount();
+                }
+            }
+        }
+        else if (c == 11) {  // Ctrl+K - kill line after cursor
+            if (cursor_pos < line.GetCount()) {
+                line = line.Mid(0, cursor_pos);  // Keep only text up to cursor
+                // Redraw the line after killing
+                printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+                // Reposition cursor at the end
+                printf("\033[%luG", (long unsigned) (console.GetCurrentDirectory().GetCount() + 3 + cursor_pos + 1));
+                fflush(stdout);
+            }
+        }
+        else if (c >= 32 && c <= 126) {  // Printable ASCII characters
+            // Insert character at current cursor position
+            line.Insert(cursor_pos, String((char)c, 1));
+            cursor_pos++;
+            
+            // Redraw the line after character insertion
+            printf("\r%s%s \033[K", console.GetCurrentDirectory().ToStd().c_str(), line.ToStd().c_str());
+            // Reposition cursor after the inserted character
+            printf("\033[%luG", (long unsigned) (console.GetCurrentDirectory().GetCount() + 3 + cursor_pos + 1));
+            fflush(stdout);
+        }
+    }
+
+    disableRawMode(&orig_termios);
+    return line;
 }
 
 // Simple implementation of VfsShellHostBase for console application
@@ -299,10 +542,12 @@ public:
 
 	void AddOutput(const String& s) override {
 		output << s;
+		Cout() << s;
 	}
 
 	void AddOutputLine(const String& s) override {
 		output << s << "\n";
+		Cout() << s << "\n";
 	}
 };
 
@@ -351,6 +596,14 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
+
+	// Always set current directory to the current working directory (not the executable's directory)
+	String current_dir = GetCurrentDirectory();
+	if (current_dir.IsEmpty()) {
+		// Fallback to executable directory if current directory cannot be determined
+		current_dir = GetFileDirectory(GetExeFilePath());
+	}
+	console.SetCurrentDirectory(current_dir);
 
 	// Load initialization files if this is a login shell or if no command line args
 	if (is_login_shell || argc == 1) {

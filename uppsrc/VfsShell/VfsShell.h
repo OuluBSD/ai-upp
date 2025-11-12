@@ -28,6 +28,8 @@ class VfsShellConsole {
 	String            cwd;       // Current working directory (system path by default)
 	String            line_header;
 	ValueMap          vars;      // Shell variables
+	Vector<String>    history;   // Command history
+	int               history_index; // Current position in history
 
 public:
 	VfsShellConsole(VfsShellHostBase& h);
@@ -38,6 +40,11 @@ public:
 	// Path operations
 	bool SetCurrentDirectory(const String& path);
 	const String& GetCurrentDirectory() const { return cwd; }
+
+	// History operations
+	void AddToHistory(const String& command);
+	String GetHistoryEntry(int index) const;
+	int GetHistorySize() const { return history.GetCount(); }
 
 	// Check if path is in VFS overlay
 	static bool IsVfsPath(const String& path);

@@ -55,6 +55,7 @@ String VfsShellConsole::ConvertFromInternalPath(const String& path) {
 VfsShellConsole::VfsShellConsole(VfsShellHostBase& h) : host(h)
 {
 	cwd = "/"; // Start in the root directory where system filesystem is mounted
+	history_index = -1; // No history position selected initially
 }
 
 void VfsShellConsole::CmdHelp(const ValueArray& args) {
@@ -1599,6 +1600,21 @@ void VfsShellConsole::CmdParseGenerate(const ValueArray& args) {
 
 	if(!HandleConsoleIdeArgs(ide_args))
 		AddOutputLine(GetConsoleIdeExperimentalNotice());
+}
+
+// History management
+void VfsShellConsole::AddToHistory(const String& command) {
+	if (!command.IsEmpty()) {
+		history.Add(command);
+		history_index = -1; // Reset to show current input, not history entry
+	}
+}
+
+String VfsShellConsole::GetHistoryEntry(int index) const {
+	if (index >= 0 && index < history.GetCount()) {
+		return history[index];
+	}
+	return String();
 }
 
 END_UPP_NAMESPACE

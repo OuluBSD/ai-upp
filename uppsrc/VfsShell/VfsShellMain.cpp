@@ -382,6 +382,10 @@ public:
 			shell.CmdEcho(args);
 			return true;
 		}
+		else if (cmd == "edit" || cmd == "ee") {
+			shell.CmdEdit(args);
+			return true;
+		}
 		else if (cmd == "idebuild") {
 			shell.CmdIdeBuild(args);
 			return true;

@@ -83,6 +83,7 @@ void VfsShellConsole::CmdHelp(const ValueArray& args) {
 		"  random [min [max]] - Generate random number\n"
 		"  true/false    - Exit with success/failure status\n"
 		"  echo <path> <data...> - Display data\n"
+		"  edit [path]   - Open full-screen ncurses text editor\n"
 		"  quit/exit     - Exit the shell\n"
 		"  \n"
 		"IDE/U++ specific commands:\n"
@@ -1618,6 +1619,51 @@ String VfsShellConsole::GetHistoryEntry(int index) const {
 		return history[index];
 	}
 	return String();
+}
+
+// Implementation of edit command
+void VfsShellConsole::CmdEdit(const ValueArray& args) {
+	String vfsPath;
+	bool hasFilename = args.GetCount() > 1;
+
+	if (hasFilename) {
+		vfsPath = ConvertToInternalPath((String)args[1], GetCurrentDirectory());
+	} else {
+		AddOutputLine("Usage: edit <file_path>");
+		return;
+	}
+
+	// Check if file exists
+	VfsPath path;
+	path.Set(vfsPath);
+
+	MountManager& mm = MountManager::System();
+	String content = "";
+	bool fileExists = false;
+	
+	if (mm.FileExists(path)) {
+		// For now, we'll try to read the file using the system path
+		// Since the original MapPath doesn't exist, we'll try a different approach
+		// We use the path directly since it was converted earlier and likely represents a real file path
+		FileIn in(vfsPath);
+		if (in.IsOpen()) {
+			content = LoadFile(vfsPath); // Using LoadFile which is a standard U++ function
+			fileExists = true;
+		} else {
+			// If LoadFile fails, the file may not exist at the host level
+			content = "";
+			fileExists = false;
+		}
+	} else {
+		// File doesn't exist, create empty content for new file
+		content = "";
+		fileExists = false;
+	}
+
+	#include "NcursesEditor.h"
+	
+	// Run the ncurses editor
+	UPP::NcursesEditor::RunEditor(vfsPath, content);
 }
 
 END_UPP_NAMESPACE

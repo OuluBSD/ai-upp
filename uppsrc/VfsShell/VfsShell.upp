@@ -7,10 +7,16 @@ uses
 uses(!flagGUI)
 	ide\Builders;
 
+mainconfig
+	"NCURSES" = "flagNCURSES",
+	"" = "";
+
 file
 	VfsShell.cpp,
 	IdeCliBridge.cpp,
 	VfsShellMain.cpp,
 	ShellSyntax.cpp,
 	ShellSyntax.h,
-	Utils.h;
+	Utils.h,
+	NcursesEditor.cpp,
+	NcursesEditor.h;

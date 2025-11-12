@@ -1,4 +1,4 @@
-#include "NcursesEditor.h"
+#include <Core/Core.h>
 #include <ncurses.h>
 #include <panel.h>
 #include <form.h>
@@ -6,23 +6,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-NAMESPACE_UPP
+using namespace Upp;
 
-bool NcursesEditor::fileModified = false;
-String NcursesEditor::currentPath = "";
-
-// Save file function implementation
-static bool SaveFile(const String& path, const String& content) {
-    Upp::FileOut out(path);
-    if (out.IsOpen()) {
-        out.Write(content);
-        return !out.IsError();
-    }
-    return false;
-}
-
-// A simple ncurses-based text editor for VfsShell
-bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialContent) {
+bool RunNcursesEditor(const String& filePath, const String& initialContent = "") {
     // Initialize ncurses
     initscr();
     cbreak();
@@ -59,6 +45,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
     int top_line = 0;
     int cursor_x = 0;
     bool file_exists = !initialContent.IsEmpty();
+    bool file_modified = false;
     bool editor_active = true;
     int content_height = rows - 4;  // Leave space for status bars
 
@@ -69,7 +56,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
 
         // Draw title bar
         attron(COLOR_PAIR(1) | A_BOLD);
-        mvprintw(0, 0, "VfsShell Text Editor - %s", vfsPath.ToStd().c_str());
+        mvprintw(0, 0, "TermEdit - %s", filePath.ToStd().c_str());
         attroff(COLOR_PAIR(1) | A_BOLD);
 
         // Draw separator
@@ -112,7 +99,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
         attron(COLOR_PAIR(2));
         mvprintw(rows - 1, 0, "Line:%d/%d Col:%d | %s%s | :w (save) :q (quit) :wq (save&quit)",
                 current_line + 1, lines.GetCount(), cursor_x,
-                fileModified ? "[Modified] " : "",
+                file_modified ? "[Modified] " : "",
                 !file_exists ? "[New File] " : "");
         attroff(COLOR_PAIR(2));
 
@@ -188,7 +175,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                     // Remove character at cursor_x - 1
                     lines[current_line].Remove(cursor_x - 1, 1);
                     cursor_x--;
-                    fileModified = true;
+                    file_modified = true;
                 } else if (current_line > 0) {
                     // Join with previous line
                     String current_content = lines[current_line];
@@ -196,7 +183,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                     current_line--;
                     cursor_x = lines[current_line].GetCount();
                     lines[current_line] << current_content;
-                    fileModified = true;
+                    file_modified = true;
 
                     if (current_line < top_line) {
                         top_line = current_line;
@@ -207,13 +194,13 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
             case KEY_DC:  // Delete key
                 if (cursor_x < lines[current_line].GetCount()) {
                     lines[current_line].Remove(cursor_x, 1);
-                    fileModified = true;
+                    file_modified = true;
                 } else if (current_line < lines.GetCount() - 1) {
                     // Join with next line
                     String next_content = lines[current_line + 1];
                     lines[current_line] << next_content;
                     lines.Remove(current_line + 1);
-                    fileModified = true;
+                    file_modified = true;
                 }
                 break;
 
@@ -226,7 +213,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                 lines.Insert(current_line + 1, new_line);
                 current_line++;
                 cursor_x = 0;
-                fileModified = true;
+                file_modified = true;
 
                 if (current_line >= top_line + content_height) {
                     top_line = current_line - content_height + 1;
@@ -254,7 +241,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                     String command = String(cmd);
 
                     if (command == "q") {
-                        if (fileModified) {
+                        if (file_modified) {
                             // Show warning
                             move(rows - 1, 0);
                             clrtoeol();
@@ -277,13 +264,13 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                         }
 
                         // Write to file
-                        if (SaveFile(vfsPath, newContent)) {
-                            fileModified = false;
+                        if (SaveFile(filePath, newContent)) {
+                            file_modified = false;
                             // Show confirmation
                             move(rows - 1, 0);
                             clrtoeol();
                             attron(COLOR_PAIR(2));
-                            printw("[Saved %d lines to %s]", lines.GetCount(), vfsPath.ToStd().c_str());
+                            printw("[Saved %d lines to %s]", lines.GetCount(), filePath.ToStd().c_str());
                             attroff(COLOR_PAIR(2));
                             refresh();
                             getch(); // Wait for key press
@@ -292,7 +279,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                             move(rows - 1, 0);
                             clrtoeol();
                             attron(COLOR_PAIR(2) | A_BOLD);
-                            printw("Error: Could not write file: %s", vfsPath.ToStd().c_str());
+                            printw("Error: Could not write file: %s", filePath.ToStd().c_str());
                             attroff(COLOR_PAIR(2) | A_BOLD);
                             refresh();
                             getch(); // Wait for key press
@@ -306,12 +293,12 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                         }
 
                         // Write to file
-                        SaveFile(vfsPath, newContent);
+                        SaveFile(filePath, newContent);
                         editor_active = false;
                     } else if (command == "help") {
                         // Show help screen
                         clear();
-                        mvprintw(0, 0, "VfsShell Editor Help");
+                        mvprintw(0, 0, "TermEdit Help");
                         mvprintw(1, 0, "=====================");
                         mvprintw(2, 0, "Navigation:");
                         mvprintw(3, 2, "Arrow Keys - Move cursor");
@@ -348,7 +335,7 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
                 if (ch >= 32 && ch <= 126) {  // Printable ASCII
                     lines[current_line].Insert(cursor_x, String((char)ch, 1));
                     cursor_x++;
-                    fileModified = true;
+                    file_modified = true;
                 }
                 break;
         }
@@ -360,4 +347,22 @@ bool NcursesEditor::RunEditor(const String& vfsPath, const String& initialConten
     return true;
 }
 
-END_UPP_NAMESPACE
+CONSOLE_APP_MAIN {
+    Vector<String> args; 
+    args <<= CommandLine();
+    
+    if (args.GetCount() < 1) {  // args[0] is the file path in this U++ setup
+        Cout() << "Usage: TermEdit <file_path>" << EOL;
+        return;
+    }
+
+    String filePath = args[0];  // First argument is the file path
+    
+    // Try to load the file if it exists
+    String fileContent = "";
+    if (FileExists(filePath)) {
+        fileContent = LoadFile(filePath);
+    }
+    
+    RunNcursesEditor(filePath, fileContent);
+}

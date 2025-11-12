@@ -11,6 +11,8 @@ mainconfig
 	"NCURSES" = "flagNCURSES",
 	"" = "";
 
+library(POSIX) "ncursesw panelw formw menuw tinfow";
+
 file
 	VfsShell.cpp,
 	IdeCliBridge.cpp,

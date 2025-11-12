@@ -1,0 +1,9 @@
+description "TermEdit - Terminal-based text editor using ncurses";
+
+uses
+	Core;
+
+library(POSIX) "ncursesw panelw formw menuw tinfow";
+
+file
+	TermEdit.cpp;

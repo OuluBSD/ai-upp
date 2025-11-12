@@ -381,7 +381,7 @@ void DataFromImage(const Image& img, Vector<byte>& out) {
 	int bytes = sz.cx * sz.cy * sizeof(RGBA);
 	out.SetCount(bytes);
 	if (!bytes) return;
-	
+
 	const RGBA* src = img.Begin();
 	memcpy(out.Begin(), src, bytes);
 }

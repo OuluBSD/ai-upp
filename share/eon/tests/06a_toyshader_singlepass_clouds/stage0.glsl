@@ -3,15 +3,18 @@
 
 // Volumetric clouds. It performs level of detail (LOD) for faster rendering
 
+precision highp float;
+precision highp int;
+
 float noise( in vec3 x )
 {
     vec3 p = floor(x);
     vec3 f = fract(x);
 	f = f*f*(3.0-2.0*f);
-    
+
 #if 1
-	vec2 uv = (p.xy+vec2(37.0,239.0)*p.z) + f.xy;
-    vec2 rg = textureLod(iChannel0,(uv+0.5)/256.0,0.0).yx;
+	vec2 uv = (p.xy + vec2(37.0, 239.0) * p.z) + f.xy;
+    vec2 rg = textureLod(iChannel0, (uv + vec2(0.5)) / 256.0, 0.0).yx;
 #else
     ivec3 q = ivec3(p);
 	ivec2 uv = q.xy + ivec2(37,239)*q.z;

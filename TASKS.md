@@ -234,6 +234,15 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [ ] Run and fix upptst/Eon06 tests
   - [ ] Test all Eon06 variants
   - [ ] Verify functionality with new VFS structure
+  - [ ] ONGOING INVESTIGATION: Test 06a (volumetric clouds) shows stepping/moiré artifacts
+    - [x] Fixed TWO critical bugs: hardcoded FILTER_LINEAR in TBufferStage.cpp:877 and TProgram.cpp:406
+    - [x] Changed shader from textureLod(..., 0.0) to texture() for automatic mipmap LOD
+    - [x] Verified GL_LINEAR_MIPMAP_LINEAR (9987) is correctly set and accepted by OpenGL
+    - [x] Verified mipmaps are generated successfully without errors
+    - [x] Confirmed texture: 256x256 RGBA32F, WRAP_REPEAT, all parameters correct
+    - [ ] Visual artifacts persist despite all GL configuration being verified correct
+    - [ ] Issue may be: shader math precision, texture data itself, or 2D→3D projection algorithm
+    - [ ] Need further investigation into shader coordinate calculations or texture generation
 - [ ] Run and fix upptst/Eon07 tests
   - [ ] Test ECS features
   - [ ] Verify entity/component/system functionality

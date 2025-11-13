@@ -867,14 +867,15 @@ void BufferStageT<Gfx>::SetVar(ProgramState& prog, int var, const RealtimeSource
 		
 		if (ch < buf->stages.GetCount()) {
 			auto& stage = buf->stages[ch];
-			auto& fb = stage.fb[0];
-			NativeColorBufferConstPtr tex = fb.color_buf[fb.buf_i];
+			auto& stage_fb = stage.fb[0];
+			NativeColorBufferConstPtr tex = stage_fb.color_buf[stage_fb.buf_i];
 			// may fail in early program: ASSERT(tex);
 			if (tex) {
 				//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
+				LOG("SetVar BUFFERSTAGE" << ch << "_COLOR: tex=" << (void*)tex << " filter=" << (int)stage_fb.filter << " wrap=" << (int)stage_fb.wrap << " size=" << stage_fb.size.cx << "x" << stage_fb.size.cy << " channels=" << stage_fb.channels);
 				Gfx::ActiveTexture(tex_ch);
 				Gfx::BindTextureRO(GVar::TEXMODE_2D, tex);
-				Gfx::TexParameteri(GVar::TEXMODE_2D, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
+				Gfx::TexParameteri(GVar::TEXMODE_2D, stage_fb.filter, stage_fb.wrap);
 				Gfx::Uniform1i(uindex, tex_ch);
 				Gfx::DeactivateTexture();
 			}

@@ -1,4 +1,5 @@
 #include "VfsShell.h"
+#include "CmdQwen.h"
 #include <Core/Core.h>
 #include <Core/VfsBase/VfsBase.h>  // For VFS mounting functionality
 #include <ide/CommandLineHandler.h>
@@ -522,6 +523,10 @@ public:
 		}
 		else if (cmd == "parse.generate") {
 			shell.CmdParseGenerate(args);
+			return true;
+		}
+		else if (cmd == "qwen") {
+			shell.CmdQwen(args);
 			return true;
 		}
 

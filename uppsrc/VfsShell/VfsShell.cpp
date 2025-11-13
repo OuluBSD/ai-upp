@@ -1660,8 +1660,6 @@ void VfsShellConsole::CmdEdit(const ValueArray& args) {
 		fileExists = false;
 	}
 
-	#include "NcursesEditor.h"
-	
 	// Run the ncurses editor
 	UPP::NcursesEditor::RunEditor(vfsPath, content);
 }

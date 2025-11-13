@@ -1,200 +1,298 @@
-# Topside API Development Guide
+# QWEN - Simple AI Agent Guide
 
-## Overview
+**For**: Qwen AI - Simple, clear instructions
+**Important**: This guide uses simple language and repeats important rules
+**See also**: [AGENTS.md](AGENTS.md) has ALL the rules. Read AGENTS.md first!
 
-The Topside system uses a custom API wrapper system called "atoms" for the eon system that wraps various system components. The architecture is built around:
+---
 
-1. **uppsrc/api/** - Contains the API wrapper implementations
-2. **uppsrc/EonApiEditor/** - Generates the binding code for new APIs
+## Step 1: Read These Files First (Always!)
 
-## API Architecture
+Before you do ANYTHING, read these files:
 
-### Directory Structure
-```
-uppsrc/api/
-├── Audio/          - Audio processing and output
-├── Camera/         - Camera and video capture
-├── Graphics/       - Graphics rendering (OpenGL, DirectX, etc.)
-├── Hal/            - Hardware abstraction layer
-├── Holograph/      - VR/AR support (OpenHMD, OpenVR)
-├── Media/          - Media processing and streaming
-├── MidiHw/         - MIDI hardware support
-├── Physics/        - Physics simulation (ODE)
-├── Screen/         - Screen/window management
-├── Synth/          - Synthesizer functions
-├── Volumetric/     - 3D volumetric processing
-└── .../
-```
+1. **[AGENTS.md](AGENTS.md)** - Read this file! It has all the rules!
+2. **[CODESTYLE.md](CODESTYLE.md)** - Read this file! It has code style rules!
+3. **[task/](task/)** - Look in this folder for current tasks
 
-Each API module follows a consistent pattern:
-- `.h` - Main header file
-- `.upp` - U++ project configuration
-- `IfaceFuncs.inl` - Interface function declarations
-- Vendor-specific implementation files (e.g., `Portaudio.cpp`, `OpenHMD.cpp`)
+**Important**: You MUST read AGENTS.md before doing any work!
 
-### API Generation Process
+---
 
-The system uses a code generation approach:
+## Step 2: Understand What You're Working On
 
-1. **Define API in uppsrc/api/** - Implement vendor-specific code
-2. **Register API in uppsrc/EonApiEditor/** - Add to interface builder
-3. **Generate bindings** - Run EonApiEditor to create binding code
-4. **Compile and use** - Generated code integrates with the system
+This is an Ultimate++ (U++) codebase.
 
-### Interface Builder Pattern
+**What is Ultimate++?**
+- It's a C++ framework
+- It has special rules about headers (read AGENTS.md!)
+- It has special flags like `flagV1` (read AGENTS.md!)
+- It uses a special build system (read AGENTS.md!)
 
-In `uppsrc/EonApiEditor/EonApiEditor.cpp`, APIs are registered:
+**Current tasks** are in the `task/` folder:
+- `task/Vfs.md` - Fixing VFS and Eon tests (HIGH PRIORITY)
+- `task/VfsShell.md` - Shell and IDE work (MEDIUM PRIORITY)
+- `task/stdsrc.md` - Making U++ work with STL (MEDIUM PRIORITY)
+
+---
+
+## Step 3: Follow the Rules
+
+### Rule 1: Every .cpp File MUST Start With This
 
 ```cpp
-// Example from Audio.cpp
-void InterfaceBuilder::AddAudio() {
-    Package("Audio", "Aud");           // API name and abbreviation
-    SetColor(226, 212, 0);            // UI color
-    Dependency("ParallelLib");        // Required dependencies
-    Dependency("ports/portaudio", "BUILTIN_PORTAUDIO");
-    Library("portaudio", "PORTAUDIO"); // Link libraries conditionally
-    HaveNegotiateFormat();            // Feature flags
-    
-    Interface("SinkDevice");          // Define interfaces
-    Interface("SourceDevice");
-    
-    Vendor("Portaudio", "BUILTIN_PORTAUDIO|PORTAUDIO"); // Implementation vendors
-}
+#include "PackageName.h"
 ```
 
-## Adding New APIs
+**Why?** Because U++ uses BLITZ. BLITZ needs this pattern.
 
-### Step 1: Create API Definition in uppsrc/api/
-
-1. Create a new directory: `uppsrc/api/MyApi/`
-2. Add required files:
-   - `MyApi.h` - Main header with declarations
-   - `MyApi.upp` - U++ project configuration
-   - `IfaceFuncs.inl` - Interface function declarations
-   - Vendor implementation files (e.g., `MyImplementation.cpp`)
-
-### Step 2: Define Interface in EonApiEditor
-
-1. Add function declaration to `Interface.h`:
-   ```cpp
-   void AddMyApi();
-   ```
-
-2. Implement in new file `uppsrc/EonApiEditor/MyApi.cpp`:
-   ```cpp
-   #include "EonApiEditor.h"
-
-   NAMESPACE_UPP
-
-   void InterfaceBuilder::AddMyApi() {
-       Package("MyApi", "MyA");
-       SetColor(100, 150, 200);
-       Dependency("ParallelLib");
-       // Add dependencies and libraries as needed
-       
-       Interface("MyInterface");
-       Vendor("MyImplementation", "MY_CONDITION");
-   }
-
-   END_UPP_NAMESPACE
-   ```
-
-3. Register in `uppsrc/EonApiEditor/main.cpp`:
-   ```cpp
-   ib.AddMyApi();
-   ```
-
-4. Add to the include list in `uppsrc/EonApiEditor/EonApiEditor.upp`:
-   ```cpp
-   file
-       ...
-       MyApi.cpp,
-   ```
-
-### Step 3: Generate Bindings
-
-1. Compile `uppsrc/EonApiEditor/` project
-2. Run the executable once - it generates:
-   - API header files in appropriate directories
-   - Interface function implementations
-   - Parallel machine integration code
-   - Registration code for the new atoms
-
-### Step 4: Use the New API
-
-The generated code allows creating atoms that use your new API with vendor-specific implementations.
-
-## Code Generation Output
-
-The EonApiEditor generates several types of files:
-
-1. **API Headers** - Per-package headers with vendor implementations
-2. **Interface Functions** - Function declarations for vendor implementations
-3. **Parallel Machine Headers** - Integration with the parallel processing system
-4. **Atom Registration** - Registration of new atom types in the system
-
-## Best Practices
-
-1. **Consistent Naming**: Use the established naming patterns (e.g., `PackageNameVendorInterface`)
-2. **Conditional Compilation**: Use flag macros for platform-specific code
-3. **Memory Management**: Follow RAII patterns for resource management
-4. **Error Handling**: Implement proper error checking and logging
-5. **Documentation**: Document vendor-specific behavior and limitations
-6. **Task Management**: Don't necessarily complete one task entirely before starting another; move tasks to IN PROGRESS section when intermediate goals are achieved, allowing for iterative progress and parallel development on related features
-
-## U++ Container Compatibility
-
-When creating custom types to be used with U++ containers like `Vector<T>`, special attention must be paid to ensure compatibility:
-
-1. **Moveable Pattern**: Custom types used in U++ containers should inherit from `Moveable<T>` to enable efficient movement of objects during container operations. Example:
-
+**Example**:
 ```cpp
-struct MyStruct : public Moveable<MyStruct> {
-    // Your struct members
-};
+// In uppsrc/Geometry/Model.cpp
+#include "Geometry.h"  // ALWAYS FIRST!
+
+// other includes can go after if needed
 ```
 
-This provides the necessary move semantics that U++ containers expect.
-
-## Vendor Implementation Guidelines
-
-Each vendor file (e.g., `Portaudio.cpp`, `OpenHMD.cpp`) must implement:
-
-- `Create`/`Destroy` functions for resource management
-- `Initialize`/`PostInitialize` for setup
-- `Start`/`Stop` for execution control
-- `Uninitialize` for cleanup
-- `Send`/`Recv` for data flow (if applicable)
-- `IsReady`, `Update`, etc. based on the interface requirements
-
-The function signatures are generated by the InterfaceBuilder and defined in `IfaceFuncs.inl`.
-
-## U++ Project (.upp) File Format
-
-U++ projects use a simple text-based format rather than XML. The standard format includes:
-
-- `description` - A string describing the project
-- `uses` - Lists packages that the project depends on 
-- `file` - Lists source files to include in the build
-- `mainconfig` - Optional configuration settings for different build modes
-
-**Example format:**
-```
-description "Commandline U++ package/assembly builder";
-
-uses
-	ide\Builders;
-
-uses(!POSIX) Core/SSL;
-
-file
-	Console.cpp,
-	IdeContext.cpp,
-	MakeBuild.cpp;
-
-mainconfig
-	"" = "",
-	"" = "NOMM";
+**What NOT to do**:
+```cpp
+// WRONG! Don't do this!
+#include "Model.h"      // Wrong! Use main header!
+#include <vector>        // Wrong! System headers first!
+#include "Geometry.h"    // Too late! Must be FIRST!
 ```
 
-**Important:** When creating new console tools or packages in uppsrc, use this text-based format rather than XML format.
+### Rule 2: Understand flagV1
+
+`flagV1` is a special flag.
+
+**When you see this**:
+```cpp
+#ifdef flagV1
+    // This is ORIGINAL U++ code
+    // This code came from upstream
+#else
+    // This is OUR CUSTOM code
+    // This code is ai-upp additions
+#endif
+```
+
+**Remember**:
+- `flagV1` = Original Ultimate++ code
+- NOT `flagV1` = Our custom code
+- Keep them separate!
+
+### Rule 3: Don't Build in Sandbox
+
+**Before running build scripts**, check if you can write to `~/.cache`:
+
+```bash
+# Check first!
+mkdir -p ~/.cache/upp.out
+
+# If that fails, DON'T run build scripts!
+# Tell the user you can't build because of sandbox
+```
+
+**Build scripts** are in `script/` folder:
+- `script/build_ide_console.sh`
+- `script/build_upptst_eon06.sh`
+- `script/build_node_editor.sh`
+
+### Rule 4: Read Package AGENTS.md
+
+Every package has an `AGENTS.md` file.
+
+**Before editing files in a package**:
+1. Look for `AGENTS.md` in that package folder
+2. Read it!
+3. Follow its rules
+
+**Example**:
+- Editing `uppsrc/Geometry/Model.cpp`?
+- Read `uppsrc/Geometry/AGENTS.md` first!
+
+### Rule 5: Update Task Files
+
+When you work on something:
+
+1. **Before starting**: Read `task/*.md` for that thread
+2. **While working**: Take notes
+3. **After finishing**: Update the task file
+
+**Example**:
+- Working on VFS fixes?
+- Read `task/Vfs.md` first
+- Update it when done
+
+---
+
+## Step 4: Common Tasks
+
+### Task: Fix a Bug
+
+1. Read AGENTS.md (has all rules!)
+2. Read the task file (like `task/Vfs.md`)
+3. Find the file to fix
+4. Read that package's AGENTS.md
+5. Make the fix
+6. Follow Rule 1 (include "PackageName.h" first!)
+7. Test the fix
+8. Update the task file
+
+### Task: Add a Feature
+
+1. Read AGENTS.md (has all rules!)
+2. Read the task file
+3. Find where to add code
+4. Read that package's AGENTS.md
+5. Add the code
+6. Follow Rule 1 (include "PackageName.h" first!)
+7. Use Rule 2 (put custom code in NOT flagV1 section!)
+8. Test it
+9. Update the task file
+
+### Task: Build and Test
+
+1. Check Rule 3 (can you write to ~/.cache?)
+2. If NO: Tell user you can't build
+3. If YES: Run the build script
+
+```bash
+# Example: Build Eon06 test
+script/build_upptst_eon06.sh
+
+# Example: Run Eon06 test
+bin/Eon06 0 0
+```
+
+---
+
+## Step 5: Important Things to Remember
+
+### Remember: Header Pattern
+
+**Every .cpp file must start with**:
+```cpp
+#include "PackageName.h"
+```
+
+**Why?** U++ BLITZ needs this. Don't forget!
+
+### Remember: flagV1
+
+- `flagV1` = Original U++ code (from upstream)
+- NOT `flagV1` = Our custom code (ai-upp additions)
+
+**Don't mix them up!**
+
+### Remember: Read AGENTS.md
+
+**AGENTS.md has ALL the rules!**
+
+Things in AGENTS.md:
+- flagV1 convention (explained above)
+- Header include policy (explained above)
+- Build & sandbox policy (explained above)
+- Subpackage independence
+- Documentation standards
+- Known graphics bugs
+- FBO data flow
+- And more!
+
+**Read it before you do any work!**
+
+### Remember: Current Tasks
+
+Look in `task/` folder:
+- `task/Vfs.md` - VFS and Eon tests (HIGH PRIORITY)
+- `task/VfsShell.md` - Shell work (MEDIUM PRIORITY)
+- `task/stdsrc.md` - STL wrapper (MEDIUM PRIORITY)
+- `task/TODO.md` - Future work (LOW PRIORITY)
+
+### Remember: Build Scripts
+
+Build scripts are in `script/` folder.
+
+**Before running them**:
+1. Check sandbox (Rule 3!)
+2. Make sure you can write to ~/.cache
+
+**Common build scripts**:
+- `script/build_ide_console.sh` - Build TheIDE console
+- `script/build_upptst_eon06.sh` - Build Eon06 test
+- `script/build_node_editor.sh` - Build node editor
+
+---
+
+## Step 6: What Files to Read
+
+### Always Read These First
+
+1. **[AGENTS.md](AGENTS.md)** ← Read this! It has ALL the rules!
+2. **[CODESTYLE.md](CODESTYLE.md)** ← Code style rules
+3. **[THREAD_DEPENDENCIES.md](THREAD_DEPENDENCIES.md)** ← What depends on what
+
+### Read These for Tasks
+
+- **[task/Vfs.md](task/Vfs.md)** - VFS fixes, Eon tests
+- **[task/VfsShell.md](task/VfsShell.md)** - Shell, ConsoleIde
+- **[task/stdsrc.md](task/stdsrc.md)** - U++ to STL wrapper
+- **[task/TODO.md](task/TODO.md)** - Future work
+
+### Read These for Packages
+
+When working in a package:
+- Look for `PackageName/AGENTS.md`
+- Read it before changing code!
+
+**Examples**:
+- `uppsrc/Geometry/AGENTS.md`
+- `uppsrc/Eon/AGENTS.md`
+- `stdsrc/AGENTS.md`
+
+---
+
+## Quick Checklist
+
+Before you do ANY work:
+
+- [ ] Did I read AGENTS.md?
+- [ ] Did I read CODESTYLE.md?
+- [ ] Did I read the task file for what I'm working on?
+- [ ] Did I read the package AGENTS.md?
+- [ ] Do I understand Rule 1 (header pattern)?
+- [ ] Do I understand Rule 2 (flagV1)?
+- [ ] Do I understand Rule 3 (sandbox check)?
+- [ ] Do I know where the build scripts are?
+
+**If you answered NO to any of these, STOP and read those files first!**
+
+---
+
+## Summary
+
+**Three most important things**:
+
+1. **Read AGENTS.md** - It has ALL the rules. Read it first!
+
+2. **Every .cpp file starts with**: `#include "PackageName.h"`
+   - This is for U++ BLITZ
+   - Don't forget this rule!
+
+3. **flagV1 means original U++ code**, not flagV1 means our custom code
+   - Keep them separate
+   - Don't mix them up!
+
+**Remember**: AGENTS.md has everything. Read it!
+
+---
+
+## If You're Confused
+
+1. Read AGENTS.md again
+2. Read CODESTYLE.md again
+3. Read the task file again
+4. Look for AGENTS.md in the package you're working on
+5. Ask the user for help
+
+**Most confusion comes from not reading AGENTS.md!**

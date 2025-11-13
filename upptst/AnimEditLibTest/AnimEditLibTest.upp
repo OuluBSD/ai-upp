@@ -1,0 +1,9 @@
+description "AnimEditLibTest - Test application for AnimEditLib";
+
+uses
+	Core;
+uses
+	AnimEditLib;
+
+file
+	AnimEditLibTest.cpp;

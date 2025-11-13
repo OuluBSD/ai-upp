@@ -337,7 +337,9 @@ template <class Gfx> void OglGfxT<Gfx>::ReserveTexture(GVar::TextureMode type, F
 	//GLenum intl_type = GetGfxType(fb.sample);
 	GLint intl_fmt = GetGfxChannelFormat(GVar::SAMPLE_U8, 4);
 	GLenum intl_type = GetGfxType(GVar::SAMPLE_U8);
-	
+
+	LOG("ReserveTexture: fb.size=" << sz.cx << "x" << sz.cy << " type=" << (int)type);
+
 	if (type == GVar::TEXMODE_CUBE_MAP)
 		; // never
 	else if (type == GVar::TEXMODE_3D)
@@ -349,13 +351,15 @@ template <class Gfx> void OglGfxT<Gfx>::ReserveTexture(GVar::TextureMode type, F
 template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size sz, GVar::Sample sample, int channels, const byte* data) {
 	ASSERT_(!(sample == GVar::SAMPLE_FLOAT && channels == 2), "2-channel float input is not usually supported by opengl");
 	GLenum t = GetOglTextureMode(type);
-	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);
-	GLint intl_fmt = GetGfxChannelFormat(sample, channels);
-	GLenum intl_type = GetGfxType(sample);
+	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);  // Internal format: FLOAT
+	GLint intl_fmt = GetGfxChannelFormat(sample, channels);                   // Input format: matches data
+	GLenum intl_type = GetGfxType(sample);                                    // Input type: matches data
 	ASSERT(intl_fmt >= 0);
-	
+
+	LOG("SetTexture: intl_tgt_fmt=" << intl_tgt_fmt << " intl_fmt=" << intl_fmt << " intl_type=" << intl_type << " sz=" << sz.cx << "x" << sz.cy);
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	
+
 	glTexImage2D(
 		t, 0, intl_tgt_fmt,
 		sz.cx,
@@ -367,13 +371,13 @@ template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size 
 template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size3 sz, GVar::Sample sample, int channels, const byte* data) {
 	ASSERT_(!(sample == GVar::SAMPLE_FLOAT && channels == 2), "2-channel float input is not usually supported by opengl");
 	GLenum t = GetOglTextureMode(type);
-	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);
-	GLint intl_fmt = GetGfxChannelFormat(sample, channels);
-	GLenum intl_type = GetGfxType(sample);
+	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);  // Internal format: FLOAT
+	GLint intl_fmt = GetGfxChannelFormat(sample, channels);                   // Input format: matches data
+	GLenum intl_type = GetGfxType(sample);                                    // Input type: matches data
 	ASSERT(intl_fmt >= 0);
-	
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	
+
 	glTexImage3D(
 		t, 0, intl_tgt_fmt,
 		sz.cx,
@@ -399,7 +403,8 @@ R"SH4D3R(
 #undef lowp
 #undef mediump
 #undef highp
-precision mediump float;
+precision highp float;
+precision highp int;
 )SH4D3R"
 #else
 "#version 430\n"
@@ -762,13 +767,21 @@ template <class Gfx> void OglGfxT<Gfx>::TexParameteri(GVar::TextureMode type, GV
 	}
 	ASSERT(gl_wrap > 0);
 	
+	LOG("TexParameteri BEFORE glTexParameteri: filter=" << (int)filter << " min=" << min_gl_filter << " (GL_LINEAR_MIPMAP_LINEAR=" << GL_LINEAR_MIPMAP_LINEAR << ") mag=" << mag_gl_filter << " wrap=" << gl_wrap);
+
 	glTexParameteri(gl_t, GL_TEXTURE_MIN_FILTER, min_gl_filter);
 	glTexParameteri(gl_t, GL_TEXTURE_MAG_FILTER, mag_gl_filter);
-	
+
 	glTexParameteri(gl_t, GL_TEXTURE_WRAP_S, gl_wrap);
 	glTexParameteri(gl_t, GL_TEXTURE_WRAP_T, gl_wrap);
 	if (type == GVar::TEXMODE_3D)
 		glTexParameteri(gl_t, GL_TEXTURE_WRAP_R, gl_wrap);
+
+	// Verify what was actually set
+	GLint actual_min, actual_mag;
+	glGetTexParameteriv(gl_t, GL_TEXTURE_MIN_FILTER, &actual_min);
+	glGetTexParameteriv(gl_t, GL_TEXTURE_MAG_FILTER, &actual_mag);
+	LOG("TexParameteri AFTER glTexParameteri: actual_min=" << actual_min << " actual_mag=" << actual_mag);
 }
 
 template <class Gfx>
@@ -917,7 +930,20 @@ template <class Gfx> void OglGfxT<Gfx>::TexImage2D(FloatImage& tex) {
 }
 
 template <class Gfx> void OglGfxT<Gfx>::GenerateMipmap(GVar::TextureMode type) {
-	glGenerateMipmap(GetOglTextureMode(type));
+	GLenum gl_type = GetOglTextureMode(type);
+	LOG("GenerateMipmap: type=" << (int)type << " gl_type=" << gl_type);
+	glGenerateMipmap(gl_type);
+
+	// Check for errors
+	GLenum err = glGetError();
+	if (err != GL_NO_ERROR) {
+		LOG("GenerateMipmap ERROR: " << err);
+	}
+
+	// Verify mipmap was generated
+	GLint max_level = 0;
+	glGetTexParameteriv(gl_type, GL_TEXTURE_MAX_LEVEL, &max_level);
+	LOG("GenerateMipmap: GL_TEXTURE_MAX_LEVEL=" << max_level);
 }
 
 template <class Gfx> void OglGfxT<Gfx>::DeleteVertexArray(NativeVertexArray& vao) {

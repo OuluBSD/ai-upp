@@ -17,4 +17,5 @@ file
     QwenClient.h,
     QwenStateManager.h,
     QwenManager.h,
-    CmdQwen.h;
+    CmdQwen.h,
+    Qwen.cpp;

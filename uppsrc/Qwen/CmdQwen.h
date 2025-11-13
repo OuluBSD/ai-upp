@@ -7,8 +7,10 @@
 #include <vector>
 #include <map>
 
-// Forward declaration
-struct Vfs;
+// Include VFS definitions
+#include <Core/VfsBase/VfsBase.h>
+// We define Vfs as an alias to VFS to match U++ conventions
+using Vfs = Upp::VFS;
 
 // Use the Qwen namespace classes
 using Qwen::QwenClient;

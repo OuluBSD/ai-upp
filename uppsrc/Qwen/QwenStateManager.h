@@ -6,8 +6,10 @@
 #include <optional>
 #include <chrono>
 
-// Forward declare Vfs to avoid circular dependency
-struct Vfs;
+// Include VFS definitions
+#include <Core/VfsBase/VfsBase.h>
+#include <Core/VfsBase/Mount.h>
+#include "VfsWrapper.h"
 
 #include "QwenProtocol.h"
 
@@ -56,7 +58,7 @@ struct StateManagerConfig {
 
 class QwenStateManager {
 public:
-    explicit QwenStateManager(Vfs* vfs, const StateManagerConfig& config = StateManagerConfig{});
+    explicit QwenStateManager(VfsWrapper* vfs, const StateManagerConfig& config = StateManagerConfig{});
     ~QwenStateManager();
 
     // Prevent copying
@@ -248,8 +250,8 @@ public:
     std::string get_files_path(const std::string& session_id) const;
 
 private:
-    // VFS instance (not owned)
-    Vfs* vfs_;
+    // VFS wrapper instance (not owned)
+    VfsWrapper* vfs_;
 
     // Configuration
     StateManagerConfig config_;

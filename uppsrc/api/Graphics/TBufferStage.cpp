@@ -633,11 +633,14 @@ void BufferStageT<Gfx>::ReadCubemap(Size sz, int channels, const Vector<byte>& d
 	auto& fb = this->fb[0];
 	auto& tex			= fb.color_buf[0];
 	//int ch_code		= GetGfxChannelFormat(channels);
-	
+
+	LOG("ReadCubemap: sz=" << sz << " channels=" << channels << " tex=" << tex);
+	LOG("ReadCubemap: face sizes: " << d0.GetCount() << ", " << d1.GetCount() << ", " << d2.GetCount() << ", " << d3.GetCount() << ", " << d4.GetCount() << ", " << d5.GetCount());
+
 	Gfx::BindTextureRW(type, tex);
-	
+
 	ASSERT(tex);
-	
+
 	for(int i = 0; i < 6; i++) {
 		GVar::TextureMode tex_type = (GVar::TextureMode)(GVar::TEXMODE_CUBE_MAP_SIDE_0 + i);
 		const Vector<byte>* data = 0;
@@ -649,6 +652,7 @@ void BufferStageT<Gfx>::ReadCubemap(Size sz, int channels, const Vector<byte>& d
 			case 4: data = &d4; break;
 			case 5: data = &d5; break;
 		}
+		LOG("ReadCubemap: uploading face " << i << ", size=" << data->GetCount() << " bytes");
 		Gfx::SetTexture(
 					tex_type,
 					sz,
@@ -656,14 +660,20 @@ void BufferStageT<Gfx>::ReadCubemap(Size sz, int channels, const Vector<byte>& d
 					channels,
 					data->Begin());
 	}
-	
+
+	LOG("ReadCubemap: setting TexFlags, filter=" << (int)fb.filter << " wrap=" << (int)fb.wrap);
 	TexFlags(type, fb.filter, fb.wrap);
-	
+
 	//GLenum err = Gfx::GetError();
 	//if (err != GL_NO_ERROR)
 	//	OnError("ReadCubemap", "Gfx error " + HexStr(err));
-	
+
+	LOG("ReadCubemap: generating mipmap");
+	if (fb.filter == GVar::FILTER_MIPMAP)
+		Gfx::GenerateMipmap(type);
+
 	Gfx::UnbindTexture(type);
+	LOG("ReadCubemap: complete");
 }
 
 template <class Gfx>

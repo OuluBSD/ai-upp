@@ -349,13 +349,13 @@ template <class Gfx> void OglGfxT<Gfx>::ReserveTexture(GVar::TextureMode type, F
 template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size sz, GVar::Sample sample, int channels, const byte* data) {
 	ASSERT_(!(sample == GVar::SAMPLE_FLOAT && channels == 2), "2-channel float input is not usually supported by opengl");
 	GLenum t = GetOglTextureMode(type);
-	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);
+	GLint intl_tgt_fmt = GetGfxChannelFormat(sample, channels);  // Use actual sample type for internal format
 	GLint intl_fmt = GetGfxChannelFormat(sample, channels);
 	GLenum intl_type = GetGfxType(sample);
 	ASSERT(intl_fmt >= 0);
-	
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	
+
 	glTexImage2D(
 		t, 0, intl_tgt_fmt,
 		sz.cx,
@@ -367,13 +367,13 @@ template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size 
 template <class Gfx> void OglGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size3 sz, GVar::Sample sample, int channels, const byte* data) {
 	ASSERT_(!(sample == GVar::SAMPLE_FLOAT && channels == 2), "2-channel float input is not usually supported by opengl");
 	GLenum t = GetOglTextureMode(type);
-	GLint intl_tgt_fmt = GetGfxChannelFormat(GVar::SAMPLE_FLOAT, channels);
+	GLint intl_tgt_fmt = GetGfxChannelFormat(sample, channels);  // Use actual sample type for internal format
 	GLint intl_fmt = GetGfxChannelFormat(sample, channels);
 	GLenum intl_type = GetGfxType(sample);
 	ASSERT(intl_fmt >= 0);
-	
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	
+
 	glTexImage3D(
 		t, 0, intl_tgt_fmt,
 		sz.cx,

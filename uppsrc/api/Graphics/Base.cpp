@@ -330,18 +330,21 @@ template <class Gfx>
 bool TextureBaseT<Gfx>::LoadImages(Vector<Image>& out) const {
 	if (preload_path.IsEmpty())
 		return true;
-	
+
 	if (preload_cubemap) {
 		String dir = GetFileDirectory(preload_path);
 		String title = GetFileTitle(preload_path);
 		String ext = GetFileExt(preload_path);
+		LOG("TextureBaseT::LoadImages: loading cubemap from path=\"" << preload_path << "\" title=\"" << title << "\"");
 		for (int i = 0; i < 6; i++) {
 			String path = i == 0 ? preload_path : AppendFileName(dir, title + "_" + IntStr(i) + ext);
+			LOG("TextureBaseT::LoadImages: loading cubemap face " << i << " from \"" << path << "\"");
 			Image img;
 			if (!LoadImageFile(path, img))
 				return false;
 			out.Add(img);
 		}
+		LOG("TextureBaseT::LoadImages: loaded " << out.GetCount() << " cubemap faces successfully");
 	}
 	else {
 		Image img;
@@ -399,7 +402,9 @@ template <class Gfx>
 bool TextureBaseT<Gfx>::UploadPreloadedData() {
 	if (!preload_pending)
 		return true;
-	
+
+	LOG("TextureBaseT::UploadPreloadedData: uploading preloaded texture, cubemap=" << (preload_cubemap ? "true" : "false"));
+
 	auto& buf = this->bf.GetBuffer();
 	auto& stage = buf.InitSingle();
 	auto& fb = stage.fb[0];
@@ -411,7 +416,7 @@ bool TextureBaseT<Gfx>::UploadPreloadedData() {
 	fb.wrap = this->wrap;
 	fb.fps = 0;
 	fb.size = preload_size;
-	
+
 	bool ok = true;
 	if (preload_cubemap) {
 		if (preload_bytes.GetCount() != 6) {
@@ -419,6 +424,7 @@ bool TextureBaseT<Gfx>::UploadPreloadedData() {
 			ok = false;
 		}
 		else {
+			LOG("TextureBaseT::UploadPreloadedData: calling InitializeCubemap with 6 faces, size=" << fb.size);
 			ok = stage.InitializeCubemap(
 				fb.size,
 				fb.channels,
@@ -429,6 +435,7 @@ bool TextureBaseT<Gfx>::UploadPreloadedData() {
 				preload_bytes[3],
 				preload_bytes[4],
 				preload_bytes[5]);
+			LOG("TextureBaseT::UploadPreloadedData: InitializeCubemap " << (ok ? "succeeded" : "FAILED"));
 		}
 	}
 	else {

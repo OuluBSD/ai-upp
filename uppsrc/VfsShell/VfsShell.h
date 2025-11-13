@@ -126,6 +126,9 @@ public:
 	void CmdParseDump(const ValueArray& args);
 	void CmdParseGenerate(const ValueArray& args);
 	
+	// Qwen AI assistant support
+	void CmdQwen(const ValueArray& args);
+	
 	// Method to execute commands from a file - Public for main function
 	bool ExecuteFile(const String& filepath);
 	

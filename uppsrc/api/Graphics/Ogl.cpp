@@ -767,6 +767,8 @@ template <class Gfx> void OglGfxT<Gfx>::TexParameteri(GVar::TextureMode type, GV
 	}
 	ASSERT(gl_wrap > 0);
 	
+	LOG("TexParameteri BEFORE glTexParameteri: filter=" << (int)filter << " min=" << min_gl_filter << " (GL_LINEAR_MIPMAP_LINEAR=" << GL_LINEAR_MIPMAP_LINEAR << ") mag=" << mag_gl_filter << " wrap=" << gl_wrap);
+
 	glTexParameteri(gl_t, GL_TEXTURE_MIN_FILTER, min_gl_filter);
 	glTexParameteri(gl_t, GL_TEXTURE_MAG_FILTER, mag_gl_filter);
 
@@ -775,7 +777,11 @@ template <class Gfx> void OglGfxT<Gfx>::TexParameteri(GVar::TextureMode type, GV
 	if (type == GVar::TEXMODE_3D)
 		glTexParameteri(gl_t, GL_TEXTURE_WRAP_R, gl_wrap);
 
-	LOG("TexParameteri: filter=" << (int)filter << " min=" << min_gl_filter << " mag=" << mag_gl_filter << " wrap=" << gl_wrap);
+	// Verify what was actually set
+	GLint actual_min, actual_mag;
+	glGetTexParameteriv(gl_t, GL_TEXTURE_MIN_FILTER, &actual_min);
+	glGetTexParameteriv(gl_t, GL_TEXTURE_MAG_FILTER, &actual_mag);
+	LOG("TexParameteri AFTER glTexParameteri: actual_min=" << actual_min << " actual_mag=" << actual_mag);
 }
 
 template <class Gfx>
@@ -924,8 +930,20 @@ template <class Gfx> void OglGfxT<Gfx>::TexImage2D(FloatImage& tex) {
 }
 
 template <class Gfx> void OglGfxT<Gfx>::GenerateMipmap(GVar::TextureMode type) {
-	LOG("GenerateMipmap: type=" << (int)type);
-	glGenerateMipmap(GetOglTextureMode(type));
+	GLenum gl_type = GetOglTextureMode(type);
+	LOG("GenerateMipmap: type=" << (int)type << " gl_type=" << gl_type);
+	glGenerateMipmap(gl_type);
+
+	// Check for errors
+	GLenum err = glGetError();
+	if (err != GL_NO_ERROR) {
+		LOG("GenerateMipmap ERROR: " << err);
+	}
+
+	// Verify mipmap was generated
+	GLint max_level = 0;
+	glGetTexParameteriv(gl_type, GL_TEXTURE_MAX_LEVEL, &max_level);
+	LOG("GenerateMipmap: GL_TEXTURE_MAX_LEVEL=" << max_level);
 }
 
 template <class Gfx> void OglGfxT<Gfx>::DeleteVertexArray(NativeVertexArray& vao) {

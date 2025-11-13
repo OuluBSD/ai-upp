@@ -11,7 +11,7 @@ float noise( in vec3 x )
 
 #if 1
 	vec2 uv = (p.xy + vec2(37.0, 239.0) * p.z) + f.xy;
-    vec2 rg = textureLod(iChannel0, (uv + vec2(0.5)) / 256.0, 0.0).yx;
+    vec2 rg = texture(iChannel0, (uv + vec2(0.5)) / 256.0).yx;
 #else
     ivec3 q = ivec3(p);
 	ivec2 uv = q.xy + ivec2(37,239)*q.z;

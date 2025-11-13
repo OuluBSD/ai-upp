@@ -1,10 +1,19 @@
-#include "VfsShell.h"
 #include "QwenManager.h"
 #include "registry.h"
+#include "QwenStateManager.h"
+#include "QwenClient.h"
+#include "QwenProtocol.h"
+#include "CmdQwen.h"
+#include <string>
+#include <map>
+#include <iostream>
 #include <termios.h>
 #include <unistd.h>
 #include <csignal>
 #include <atomic>
+
+// Define the global registry instance
+Registry g_registry;
 
 #ifdef CODEX_UI_NCURSES
 #include <ncurses.h>
@@ -164,7 +173,7 @@ void show_help() {
 }
 
 // List all sessions
-void list_sessions(QwenStateManager& state_mgr) {
+void list_sessions(Qwen::QwenStateManager& state_mgr) {
     std::vector<Qwen::SessionInfo> sessions = state_mgr.list_sessions();
 
     if (sessions.empty()) {
@@ -279,7 +288,7 @@ bool prompt_tool_approval(const Qwen::ToolGroup& group) {
 }
 
 // Handle special commands (return true if command was handled and should exit loop)
-bool handle_special_command(const std::string& input, QwenStateManager& state_mgr,
+bool handle_special_command(const std::string& input, Qwen::QwenStateManager& state_mgr,
                             Qwen::QwenClient& client, bool& should_exit) {
     if (input.empty()) {
         return false;
@@ -1396,11 +1405,12 @@ void cmd_qwen(const std::vector<std::string>& args,
         config.workspace_root = opts.workspace_root;
     }
 
-    // Create state manager with VFS
-    QwenStateManager state_mgr(&vfs);
+    // Create VFS wrapper and state manager
+    Qwen::VfsWrapper vfs_wrapper(&vfs);
+    Qwen::QwenStateManager state_mgr(&vfs_wrapper);
 
     if (opts.list_sessions) {
-        list_sessions(state_mgr);
+        QwenCmd::list_sessions(state_mgr);
         return;
     }
 

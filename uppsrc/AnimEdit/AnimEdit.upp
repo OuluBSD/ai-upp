@@ -1,0 +1,16 @@
+description "AnimEdit - Animation editor application";
+
+uses
+	Core;
+uses
+	CtrlCore;
+uses
+	CtrlLib;
+uses
+	AnimEditLib;
+
+file
+	AnimEdit.cpp,
+	AnimEditMain.h,
+	AnimEditMain.cpp,
+	AnimEditorState.h;

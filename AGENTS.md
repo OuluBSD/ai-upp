@@ -1,4 +1,29 @@
-# AGENTS
+# AGENTS - General AI Agent Guide
+
+**For**: All AI agents working with this codebase
+**See also**:
+- **[CLAUDE.md](CLAUDE.md)** - Advanced guidance for Claude (Anthropic)
+- **[QWEN.md](QWEN.md)** - Simple, repetitive guidance for Qwen AI
+
+---
+
+## AI Agent-Specific Guides
+
+### Claude (Anthropic)
+Claude excels at complex reasoning and architectural analysis. See **[CLAUDE.md](CLAUDE.md)** for:
+- Advanced reasoning patterns
+- Complex refactoring guidance
+- Architectural decision-making tips
+- Cross-reference to active threads
+
+### Qwen AI
+Qwen benefits from simple, repetitive instructions. See **[QWEN.md](QWEN.md)** for:
+- Step-by-step procedures
+- Repeated critical rules
+- Simple task checklists
+- Basic workflow guidance
+
+---
 
 ## Important Flags Convention
 
@@ -17,11 +42,12 @@ When working with the Ultimate++ codebase, pay special attention to the `flagV1`
 - These components still need to be properly implemented to provide STL-backed equivalents of the U++ functionality
 
 ## Read These First
-- `CODESTYLE.md`: coding conventions and design tenets.
-- `TASKS.md`: tasks and roadmap for the repository.
-- `HIERARCHY.md`: overview of important folders.
-- `agents/`: helper code and examples used by AGENTS guides.
-- `stdsrc/AGENTS.md`: STL-backed Core (U++-compatible) for agents and tests.
+- **[CODESTYLE.md](CODESTYLE.md)**: coding conventions and design tenets.
+- **[THREAD_DEPENDENCIES.md](THREAD_DEPENDENCIES.md)**: thread dependencies and priorities.
+- **[task/](task/)**: active development threads (replaces old TASKS.md).
+- **[HIERARCHY.md](HIERARCHY.md)**: overview of important folders.
+- **`agents/`**: helper code and examples used by AGENTS guides.
+- **`stdsrc/AGENTS.md`**: STL-backed Core (U++-compatible) for agents and tests.
 
 Deep Dives
 - TheIDE (IDE application and modules): see `uppsrc/ide/AGENTS.md`. Each subpackage under `uppsrc/ide/*` also has its own AGENTS with extension points and file maps.

@@ -1,0 +1,12 @@
+description "AnimEditLib - Animation editing library";
+
+uses
+	Core;
+	
+file
+	AnimCore.h,
+	AnimCore.cpp,
+	AnimSerialize.h,
+	AnimSerialize.cpp,
+	AnimUtils.h,
+	AnimUtils.cpp;

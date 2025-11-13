@@ -581,40 +581,49 @@ bool BufferStageT<Gfx>::InitializeVolume(Size3 sz, int channels, Sample sample, 
 template <class Gfx>
 void BufferStageT<Gfx>::ReadTexture(Size sz, int channels, Sample sample, const byte* data, int len) {
 	GVar::TextureMode type = GVar::TEXMODE_2D;
-	
+
 	int exp_len = sz.cx * sz.cy * channels * GVar::GetSampleSize(sample);
 	ASSERT(len == exp_len);
 	if (len != exp_len)
 		return;
-	
+
 	auto& fb = this->fb[0];
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
 	//ASSERT(sz == fb_size);
 	//ASSERT(s.GetSize() == len);
-	
+
 	Gfx::BindTextureRW(type, color_buf);
 	Gfx::TexParameteri(type, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
 	Gfx::SetTexture(type, sz, sample, channels, data);
-	
+
+	LOG("ReadTexture: sz=" << sz.cx << "x" << sz.cy << " filter=" << (int)fb.filter << " wrap=" << (int)fb.wrap);
 	TexFlags(type, fb.filter, fb.wrap);
+
+	// Generate mipmaps if filter mode requires them
+	if (fb.filter == GVar::FILTER_MIPMAP)
+		Gfx::GenerateMipmap(type);
 }
 
 template <class Gfx>
 void BufferStageT<Gfx>::ReadTexture(Size3 sz, int channels, Sample sample, const Vector<byte>& data) {
 	GVar::TextureMode type = GVar::TEXMODE_3D;
-	
+
 	auto& fb = this->fb[0];
 	ASSERT(fb.size.cx == sz.cx && fb.size.cy == sz.cy);
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
 	//int intl_fmt = GetGfxChannelFormat(channels);
-	
+
 	Gfx::BindTextureRW(type, color_buf);
 	Gfx::TexParameteri(type, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
 	Gfx::SetTexture(type, sz, sample, channels, data.Begin());
-	
+
 	TexFlags(type, fb.filter, fb.wrap);
+
+	// Generate mipmaps if filter mode requires them
+	if (fb.filter == GVar::FILTER_MIPMAP)
+		Gfx::GenerateMipmap(type);
 }
 
 
@@ -858,14 +867,15 @@ void BufferStageT<Gfx>::SetVar(ProgramState& prog, int var, const RealtimeSource
 		
 		if (ch < buf->stages.GetCount()) {
 			auto& stage = buf->stages[ch];
-			auto& fb = stage.fb[0];
-			NativeColorBufferConstPtr tex = fb.color_buf[fb.buf_i];
+			auto& stage_fb = stage.fb[0];
+			NativeColorBufferConstPtr tex = stage_fb.color_buf[stage_fb.buf_i];
 			// may fail in early program: ASSERT(tex);
 			if (tex) {
 				//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
+				LOG("SetVar BUFFERSTAGE" << ch << "_COLOR: tex=" << (void*)tex << " filter=" << (int)stage_fb.filter << " wrap=" << (int)stage_fb.wrap << " size=" << stage_fb.size.cx << "x" << stage_fb.size.cy << " channels=" << stage_fb.channels);
 				Gfx::ActiveTexture(tex_ch);
 				Gfx::BindTextureRO(GVar::TEXMODE_2D, tex);
-				Gfx::TexParameteri(GVar::TEXMODE_2D, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
+				Gfx::TexParameteri(GVar::TEXMODE_2D, stage_fb.filter, stage_fb.wrap);
 				Gfx::Uniform1i(uindex, tex_ch);
 				Gfx::DeactivateTexture();
 			}

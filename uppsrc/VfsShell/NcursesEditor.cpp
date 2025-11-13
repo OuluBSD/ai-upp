@@ -15,7 +15,7 @@ String NcursesEditor::currentPath = "";
 static bool SaveFile(const String& path, const String& content) {
     Upp::FileOut out(path);
     if (out.IsOpen()) {
-        out.Write(content);
+        out.Put(content);
         return !out.IsError();
     }
     return false;

@@ -597,6 +597,7 @@ void BufferStageT<Gfx>::ReadTexture(Size sz, int channels, Sample sample, const 
 	Gfx::TexParameteri(type, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
 	Gfx::SetTexture(type, sz, sample, channels, data);
 
+	LOG("ReadTexture: sz=" << sz.cx << "x" << sz.cy << " filter=" << (int)fb.filter << " wrap=" << (int)fb.wrap);
 	TexFlags(type, fb.filter, fb.wrap);
 
 	// Generate mipmaps if filter mode requires them

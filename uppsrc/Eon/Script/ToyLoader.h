@@ -30,6 +30,7 @@ struct ToyStage : Moveable<ToyStage> {
 	String				script;
 	String				script_path;
 	String				stage_name;
+	String				dump_screen_path; // Path for dumping screen content
 	int					loopback_stage = -1;
 	
 };

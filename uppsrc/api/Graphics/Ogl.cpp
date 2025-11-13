@@ -399,7 +399,8 @@ R"SH4D3R(
 #undef lowp
 #undef mediump
 #undef highp
-precision mediump float;
+precision highp float;
+precision highp int;
 )SH4D3R"
 #else
 "#version 430\n"

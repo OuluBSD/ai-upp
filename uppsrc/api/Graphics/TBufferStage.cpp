@@ -581,40 +581,48 @@ bool BufferStageT<Gfx>::InitializeVolume(Size3 sz, int channels, Sample sample, 
 template <class Gfx>
 void BufferStageT<Gfx>::ReadTexture(Size sz, int channels, Sample sample, const byte* data, int len) {
 	GVar::TextureMode type = GVar::TEXMODE_2D;
-	
+
 	int exp_len = sz.cx * sz.cy * channels * GVar::GetSampleSize(sample);
 	ASSERT(len == exp_len);
 	if (len != exp_len)
 		return;
-	
+
 	auto& fb = this->fb[0];
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
 	//ASSERT(sz == fb_size);
 	//ASSERT(s.GetSize() == len);
-	
+
 	Gfx::BindTextureRW(type, color_buf);
 	Gfx::TexParameteri(type, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
 	Gfx::SetTexture(type, sz, sample, channels, data);
-	
+
 	TexFlags(type, fb.filter, fb.wrap);
+
+	// Generate mipmaps if filter mode requires them
+	if (fb.filter == GVar::FILTER_MIPMAP)
+		Gfx::GenerateMipmap(type);
 }
 
 template <class Gfx>
 void BufferStageT<Gfx>::ReadTexture(Size3 sz, int channels, Sample sample, const Vector<byte>& data) {
 	GVar::TextureMode type = GVar::TEXMODE_3D;
-	
+
 	auto& fb = this->fb[0];
 	ASSERT(fb.size.cx == sz.cx && fb.size.cy == sz.cy);
 	auto& color_buf = fb.color_buf[0];
 	ASSERT(color_buf);
 	//int intl_fmt = GetGfxChannelFormat(channels);
-	
+
 	Gfx::BindTextureRW(type, color_buf);
 	Gfx::TexParameteri(type, GVar::FILTER_LINEAR, GVar::WRAP_REPEAT);
 	Gfx::SetTexture(type, sz, sample, channels, data.Begin());
-	
+
 	TexFlags(type, fb.filter, fb.wrap);
+
+	// Generate mipmaps if filter mode requires them
+	if (fb.filter == GVar::FILTER_MIPMAP)
+		Gfx::GenerateMipmap(type);
 }
 
 

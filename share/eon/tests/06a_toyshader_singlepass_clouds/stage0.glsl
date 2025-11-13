@@ -3,9 +3,6 @@
 
 // Volumetric clouds. It performs level of detail (LOD) for faster rendering
 
-precision highp float;
-precision highp int;
-
 float noise( in vec3 x )
 {
     vec3 p = floor(x);

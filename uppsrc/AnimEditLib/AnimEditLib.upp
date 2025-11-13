@@ -7,4 +7,6 @@ file
 	AnimCore.h,
 	AnimCore.cpp,
 	AnimSerialize.h,
-	AnimSerialize.cpp;
+	AnimSerialize.cpp,
+	AnimUtils.h,
+	AnimUtils.cpp;

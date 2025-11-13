@@ -100,6 +100,7 @@ const TestCase kTests[] = {
 	{ Run06jToyShaderWater, "Run06jToyShaderWater" },
 	{ Run06kToyShaderFire, "Run06kToyShaderFire" },
 	{ Run06lToyShaderRgbTest, "Run06lToyShaderRgbTest" },
+	{ Run06mDebugCubemap, "Run06mDebugCubemap" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

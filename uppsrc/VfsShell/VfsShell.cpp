@@ -84,6 +84,7 @@ void VfsShellConsole::CmdHelp(const ValueArray& args) {
 		"  true/false    - Exit with success/failure status\n"
 		"  echo <path> <data...> - Display data\n"
 		"  edit [path]   - Open full-screen ncurses text editor\n"
+		"  qwen [options] - Interactive AI assistant powered by qwen-code\n"
 		"  quit/exit     - Exit the shell\n"
 		"  \n"
 		"IDE/U++ specific commands:\n"
@@ -1660,10 +1661,20 @@ void VfsShellConsole::CmdEdit(const ValueArray& args) {
 		fileExists = false;
 	}
 
-	#include "NcursesEditor.h"
-	
 	// Run the ncurses editor
 	UPP::NcursesEditor::RunEditor(vfsPath, content);
+}
+
+// Implementation of qwen command
+void VfsShellConsole::CmdQwen(const ValueArray& args) {
+	// Convert U++ ValueArray to std::vector<std::string> for QwenCmd::cmd_qwen
+	std::vector<std::string> qwen_args;
+	for (int i = 1; i < args.GetCount(); i++) {  // Start from 1 to skip command name
+		qwen_args.push_back((String)args[i]);
+	}
+	
+	// Call the Qwen command implementation
+	QwenCmd::cmd_qwen(qwen_args, MountManager::System());
 }
 
 END_UPP_NAMESPACE

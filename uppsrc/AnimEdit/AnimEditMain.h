@@ -3,6 +3,7 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include "AnimEditorState.h"
+#include "AnimCanvasCtrl.h"
 
 using namespace Upp;
 
@@ -32,7 +33,14 @@ private:
 
     // Center-top (canvas)
     ParentCtrl canvas_panel;
-    Label      canvas_label;
+    AnimCanvasCtrl canvas_ctrl;
+    StaticRect canvas_toolbar;  // Toolbar for canvas controls
+    Label zoom_label;           // Label to show zoom level
+    CtrlLayout canvas_controls_layout;  // Layout for canvas controls
+    CheckBox grid_snap_check;   // Checkbox for grid snapping
+    CheckBox origin_snap_check; // Checkbox for origin snapping
+    Button undo_btn;            // Button for undo
+    Button redo_btn;            // Button for redo
 
     // Center-bottom (timeline)
     ParentCtrl timeline_panel;
@@ -51,6 +59,10 @@ private:
     Label      sprites_label;
     Label      collisions_label;
     Label      animations_label;
+
+    // Helper methods
+    void UpdateZoomLabel();
+    void UpdateUndoRedoButtons();
 };
 
 class EntityEditorWindow : public TopWindow {

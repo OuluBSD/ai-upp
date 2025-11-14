@@ -13,4 +13,6 @@ file
 	AnimEdit.cpp,
 	AnimEditMain.h,
 	AnimEditMain.cpp,
-	AnimEditorState.h;
+	AnimEditorState.h,
+	AnimCanvasCtrl.h,
+	AnimCanvasCtrl.cpp;

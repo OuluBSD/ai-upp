@@ -126,18 +126,49 @@ void AnimEditorWindow::SaveProjectAs() {
     UpdateTitle();
 }
 
+void AnimEditorWindow::UpdateZoomLabel() {
+    int zoomPercent = (int)(canvas_ctrl.GetZoom() * 100);
+    zoom_label.SetLabel(IntStr(zoomPercent) + "%");
+}
+
+void AnimEditorWindow::UpdateZoomLabel() {
+    int zoomPercent = (int)(canvas_ctrl.GetZoom() * 100);
+    zoom_label.SetLabel(IntStr(zoomPercent) + "%");
+}
+
+void AnimEditorWindow::UpdateUndoRedoButtons() {
+    undo_btn.SetEnabled(canvas_ctrl.CanUndo());
+    redo_btn.SetEnabled(canvas_ctrl.CanRedo());
+}
+
 AnimEditorWindow::AnimEditorWindow() {
     Title("Animation Editor");
     Sizeable().Zoomable().MinimizeBox().MaximizeBox();
 
     InitLayout();
+    canvas_ctrl.SetProject(&state.project);
+    canvas_ctrl.SetZoomCallback([this]() { UpdateZoomLabel(); });
+    canvas_ctrl.SetGeneralCallback([this]() { UpdateUndoRedoButtons(); });
+    grid_snap_check <<= [this] { 
+        canvas_ctrl.SetGridSnapping(grid_snap_check);
+    };
+    origin_snap_check <<= [this] { 
+        canvas_ctrl.SetOriginSnapping(origin_snap_check);
+    };
+    undo_btn <<= [this] { 
+        canvas_ctrl.Undo();
+    };
+    redo_btn <<= [this] { 
+        canvas_ctrl.Redo();
+    };
+    UpdateZoomLabel();  // Initialize the zoom label
+    UpdateUndoRedoButtons();  // Initialize undo/redo buttons
     NewProject();
 }
 
 void AnimEditorWindow::InitLayout() {
     // Setup labels
     parts_label.SetLabel("Parts");
-    canvas_label.SetLabel("Canvas");
     timeline_label.SetLabel("Timeline");
     frames_label.SetLabel("Frames");
     sprites_label.SetLabel("Sprites");
@@ -148,8 +179,22 @@ void AnimEditorWindow::InitLayout() {
     parts_panel.BackPaint();
     parts_panel.Add(parts_label.SizePos());
     
-    canvas_panel.BackPaint();
-    canvas_panel.Add(canvas_label.SizePos());
+    // Setup canvas toolbar and controls
+    canvas_toolbar.SetFrame(ThinInsetFrame());
+    canvas_toolbar.Add(undo_btn.LeftPos(4, 30).VSizePos(4, 4));
+    undo_btn.SetLabel("Undo");
+    canvas_toolbar.Add(redo_btn.HSizePos(38, 30).VSizePos(4, 4));
+    redo_btn.SetLabel("Redo");
+    canvas_toolbar.Add(grid_snap_check.HSizePos(72, 80).VSizePos(4, 4));
+    grid_snap_check.SetLabel("Grid Snap");
+    canvas_toolbar.Add(origin_snap_check.HSizePos(156, 80).VSizePos(4, 4));
+    origin_snap_check.SetLabel("Origin Snap");
+    canvas_toolbar.Add(zoom_label.RightPos(80).VSizePos(4, 4));
+    zoom_label.SetLabel("100%");
+    
+    canvas_panel.SetFrame(ThinInsetFrame());
+    canvas_panel.Add(canvas_toolbar.TopPos(0, 24).HSizePos());
+    canvas_panel.Add(canvas_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
     
     timeline_panel.BackPaint();
     timeline_panel.Add(timeline_label.SizePos());

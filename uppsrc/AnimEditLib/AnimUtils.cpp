@@ -85,6 +85,71 @@ String GenerateCollisionId(const AnimationProject& p, const String& frameId, con
     return GenerateUniqueId(existingIds, frameId + "_" + base);
 }
 
+// Helper function to check if a String already exists in a Vector<String>
+bool ContainsString(const Vector<String>& container, const String& str) {
+    for(int i = 0; i < container.GetCount(); i++) {
+        if(container[i] == str) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Helper function to check if an ID already exists in a container of objects with .id field
+template<typename Container>
+bool ContainsId(const Container& container, const String& id) {
+    for(int i = 0; i < container.GetCount(); i++) {
+        if(container[i].id == id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Helper function to generate a unique ID
+String GenerateUniqueId(const Vector<String>& existingIds, const String& base) {
+    if (!ContainsString(existingIds, base)) {
+        return base;
+    }
+
+    int counter = 1;
+    while(true) {
+        String candidate = base + "_" + IntStr(counter);
+        if (!ContainsString(existingIds, candidate)) {
+            return candidate;
+        }
+        counter++;
+    }
+}
+
+Vector<String> FindDanglingSpriteReferences(const AnimationProject& p) {
+    Vector<String> danglingRefs;
+    
+    // Get all sprite IDs in the project
+    Vector<String> allSpriteIds;
+    for (int i = 0; i < p.sprites.GetCount(); i++) {
+        allSpriteIds.Add(p.sprites[i].id);
+    }
+    
+    // Check each frame for sprite references
+    for (int i = 0; i < p.frames.GetCount(); i++) {
+        const Frame& frame = p.frames[i];
+        for (int j = 0; j < frame.sprites.GetCount(); j++) {
+            const SpriteInstance& si = frame.sprites[j];
+            // If the sprite ID is not in the list of existing sprites, it's dangling
+            if (!ContainsString(allSpriteIds, si.sprite_id)) {
+                // Create a unique identifier for this dangling reference
+                String refId = "Frame: " + frame.id + " -> SpriteID: " + si.sprite_id;
+                if (danglingRefs.Find(refId) == -1) { // Only add if not already there
+                    danglingRefs.Add(refId);
+                }
+            }
+        }
+    }
+    
+    return danglingRefs;
+}
+
 // Validation helpers
 bool ValidateProject(const AnimationProject& p, String& errorOut) {
     // Check for empty project ID

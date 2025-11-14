@@ -15,4 +15,6 @@ file
 	AnimEditMain.cpp,
 	AnimEditorState.h,
 	AnimCanvasCtrl.h,
-	AnimCanvasCtrl.cpp;
+	AnimCanvasCtrl.cpp,
+	SpriteListCtrl.h,
+	SpriteListCtrl.cpp;

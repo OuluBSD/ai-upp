@@ -4,6 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include "AnimEditorState.h"
 #include "AnimCanvasCtrl.h"
+#include "SpriteListCtrl.h"
 
 using namespace Upp;
 
@@ -29,7 +30,12 @@ private:
 
     // Left panel
     ParentCtrl parts_panel;
-    Label      parts_label;
+    SpriteListCtrl sprite_list_ctrl;
+    StaticRect parts_toolbar;   // Toolbar for parts panel controls
+    EditField search_field;     // For text search
+    Option category_option;     // For category filtering
+    Option sort_option;         // For sorting options
+    Button create_sprite_btn;   // For creating new sprites
 
     // Center-top (canvas)
     ParentCtrl canvas_panel;
@@ -63,6 +69,9 @@ private:
     // Helper methods
     void UpdateZoomLabel();
     void UpdateUndoRedoButtons();
+    void UpdateSpriteList();
+    void SetActiveFrame(const Frame* frame);
+    void CreateNewSprite();
 };
 
 class EntityEditorWindow : public TopWindow {

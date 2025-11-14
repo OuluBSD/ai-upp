@@ -45,28 +45,34 @@ struct RectF : public Moveable<RectF> {
 
 struct Sprite : public Moveable<Sprite> {
     String id;
+    String name;
     String category;
     String texture_path;
     RectF  region;
     Vec2   pivot;
+    Vector<String> tags;        // Metadata tags
+    String description;         // Description of the sprite
 
     Sprite() = default;
     Sprite(const String& id)
-        : id(id), category("default"), pivot(0,0) {}
+        : id(id), name(id), category("default"), pivot(0,0) {}  // Default name to id
     
     bool operator==(const Sprite& other) const { 
-        return id == other.id && category == other.category && 
+        return id == other.id && name == other.name && category == other.category && 
                texture_path == other.texture_path && region == other.region && 
-               pivot == other.pivot; 
+               pivot == other.pivot && tags == other.tags && description == other.description; 
     }
     bool operator!=(const Sprite& other) const { return !(*this == other); }
     
     void Swap(Sprite& other) {
         Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
         Upp::Swap(category, other.category);
         Upp::Swap(texture_path, other.texture_path);
         Upp::Swap(region, other.region);
         Upp::Swap(pivot, other.pivot);
+        Upp::Swap(tags, other.tags);
+        Upp::Swap(description, other.description);
     }
 };
 

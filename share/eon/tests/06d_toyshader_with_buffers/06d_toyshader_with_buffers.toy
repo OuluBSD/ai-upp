@@ -1,0 +1,39 @@
+{
+	name: "Toy shader with buffers",
+	description: "Using multiple render targets (MRT) and buffer textures for multi-pass rendering effects.",
+	owner: "ai-upp",
+	likes: 0,
+	date: 20251114,
+
+	stages: [
+		{
+			type: image,
+			
+			inputs: [],
+			outputs: [
+				{
+					id: 0
+				}
+			]
+		},
+		{
+			name: "Buffer A",
+			type: imagebuf,
+			
+			inputs: [
+				{
+					id: 0,
+					type: buffer,
+					filter: linear,
+					wrap: clamp,
+					vflip: true
+				}
+			],
+			outputs: [
+				{
+					id: 1
+				}
+			]
+		}
+	]
+}

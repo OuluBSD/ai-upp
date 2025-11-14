@@ -32,6 +32,23 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - Knowledge of atom connection mechanisms
 - Understanding of Exchange class functionality
 
+## Purpose of Current Loop System
+- The whole point of the loop system was to even out the packets in the loop
+- This allowed the flow of packet signals demand between atoms
+
+## Flow Control Requirements
+- The demand between packets needs to be addressed in a different way in the new architecture
+- We might add ports for atoms and connect some ports as signals
+- "Port" will replace the concept of primary sink/src (id=0) and secondary sink/src
+- All ports will be equal in rank (we will discard the "primary" qualifier)
+- We will still have src/sink ports, connecting output to input
+- Sending packets to ports won't require sending packets through a primary port anymore
+- The "sync" sending feature will be maintained inside packets using a helper class or attribute
+- This sync feature will not be enforced at the architecture level anymore in the new version
+- We could implement the old loop system in the new version using the new flow-control signal
+- Uncertainty remains about the flow-control logic: previous system used constant amount of packets in the loop
+- We might still need some sort of virtual pool of packets for groups of atoms
+
 ## Potential Challenges
 - Ensuring all existing functionality is preserved during conversion
 - Maintaining performance characteristics of the system

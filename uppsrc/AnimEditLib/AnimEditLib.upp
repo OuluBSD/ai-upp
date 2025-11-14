@@ -9,4 +9,6 @@ file
 	AnimSerialize.h,
 	AnimSerialize.cpp,
 	AnimUtils.h,
-	AnimUtils.cpp;
+	AnimUtils.cpp,
+	AnimResourceRegistry.h,
+	AnimResourceRegistry.cpp;

@@ -88,6 +88,11 @@ bool ToyLoader::Load(Value& o) {
 		ValueMap output_map = output;
 		TOY_ASSERT(output_map.Find("id") >= 0);
 		String output_id_str = output_map("id").ToString();
+
+		// Check for dump_screen property in the output
+		if (output_map.Find("dump_screen") >= 0) {
+			to.dump_screen_path = output_map("dump_screen").ToString();
+		}
 		
 		to.name = stage_str;
 		to.type = type_str;
@@ -476,6 +481,11 @@ bool ToyLoader::MakeScript() {
 		}
 		s << ":\n";
 		
+		// Add dump_screen parameter if specified and this is a screen stage
+		if (is_screen && !stage.dump_screen_path.IsEmpty()) {
+			s << "				dump_screen = \"" << EscapeString(stage.dump_screen_path) << "\"\n";
+		}
+
 		for (int cubemap : cubemaps)
 			s << "				buf" << cubemap << " = \"cubemap\"\n";
 		

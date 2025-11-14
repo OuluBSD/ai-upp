@@ -8,7 +8,7 @@ void Run06eToyShaderAudio(Engine& eng, int method) {
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
 	
-	String filepath = "share/eon/tests/06e_toyshader_audio/06e_toyshader_audio.toy";
+	String filepath = "share/eon/tests/06e_toyshader_imagebuf/06e_toyshader_imagebuf.toy";
 	
 	sys->PostLoadFile(RealizeShareFile(filepath));
 }

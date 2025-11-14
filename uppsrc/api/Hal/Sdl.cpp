@@ -7,6 +7,7 @@
 #endif
 
 #include <GLDraw/GLDraw.h>
+#include <plugin/png/png.h>
 
 NAMESPACE_UPP
 
@@ -116,6 +117,7 @@ struct HalSdl::NativeOglVideoSinkDevice : HalSdl_CommonOgl {
     void* display = 0;
     uint32 fb = 0;
     GfxAccelAtom<SdlOglGfx> accel;
+    String dump_screen_path;  // Path where to dump the screen shot
 };
 
 struct HalSdl::NativeUppOglDevice : HalSdl_CommonOgl {
@@ -1029,6 +1031,12 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	bool fullscreen = ws.GetBool(".fullscreen", false);
 	bool sizeable = ws.GetBool(".sizeable", false);
 	bool maximized = ws.GetBool(".maximized", false);
+	String dump_screen_path = ws.GetString(".dump_screen", String()); // Extract dump_screen parameter
+
+	LOG("OglVideoSinkDevice_Initialize: dump_screen parameter = '" << dump_screen_path << "'");
+
+	// Store the dump screen path in the device
+	dev.dump_screen_path = dump_screen_path;
 	
 	ValueMap data = a.UserData();
 	data("cx") = sz.cx;
@@ -1186,6 +1194,61 @@ void HalSdl::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice& dev, Atom
 
 bool HalSdl::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	dev.accel.Render(cfg);
+
+	LOG("OglVideoSinkDevice_Send: called, dump_screen_path = '" << dev.dump_screen_path << "'");
+
+	// Dump screen to PNG if dump_screen_path is specified
+	if (!dev.dump_screen_path.IsEmpty()) {
+		// Capture the current frame buffer only once, then clear the path to prevent repeated dumping
+		String dump_path = dev.dump_screen_path;
+		dev.dump_screen_path.Clear(); // Clear the path so we only dump once
+
+		// Expand ~ to home directory if present
+		if (dump_path.StartsWith("~/")) {
+			dump_path = GetHomeDirFile(dump_path.Mid(2));
+		}
+
+		LOG("OglVideoSinkDevice_Send: Dumping screen to: " << dump_path);
+
+		// Get the window size to capture
+		int width = dev.screen_sz.cx;
+		int height = dev.screen_sz.cy;
+
+		LOG("OglVideoSinkDevice_Send: Screen size: " << width << "x" << height);
+
+		if (width > 0 && height > 0) {
+			// Create a buffer to store the pixel data
+			Vector<byte> pixels;
+			pixels.SetCount(width * height * 4); // RGBA format
+
+			// Read the pixels from the framebuffer (OpenGL uses bottom-to-top orientation)
+			glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.Begin());
+
+			// Create an Ultimate++ ImageBuffer
+			ImageBuffer ib(width, height);
+
+			// Copy the pixel data row by row (flip vertically since OpenGL has origin at bottom-left)
+			for (int y = 0; y < height; y++) {
+				RGBA* line = ib[y];
+				for (int x = 0; x < width; x++) {
+					// Calculate the source index (flipping vertically)
+					int src_idx = ((height - 1 - y) * width + x) * 4;
+
+					// Extract RGBA values and set the pixel
+					line[x].r = pixels[src_idx];
+					line[x].g = pixels[src_idx + 1];
+					line[x].b = pixels[src_idx + 2];
+					line[x].a = pixels[src_idx + 3];
+				}
+			}
+
+			// Convert ImageBuffer to Image and save as PNG
+			Image img(ib);
+			bool saved = PNGEncoder().SaveFile(dump_path, img);
+			LOG("OglVideoSinkDevice_Send: PNG save " << (saved ? "succeeded" : "failed"));
+		}
+	}
+	
 	return true;
 }
 

@@ -34,6 +34,7 @@ a.out
 bin/**
 valgrind*
 *.txt
+screen.png
 
 thirdparty_imgui-node-editor_ref
 

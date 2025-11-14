@@ -151,3 +151,32 @@ int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCou
 ```
 
 **Remaining Issue**: Test 03m now runs without crashing but has texture corruption - skybox cubemap appears corrupted and the gun model is black with no textures. The bug is somewhere in the image-to-shader transfer pipeline after loading.
+
+### Texture Hash-to-Filename Mapping
+**Location**: `uppsrc/Core/EcsEngine/Util2.cpp:101-139` (`ToyShaderHashToName`)
+
+**Purpose**: ShaderToy shader tests often reference textures by SHA256 hash (from ShaderToy's texture library). We maintain a hash-to-filename mapping to convert these to local texture filenames.
+
+**How it works**:
+- ShaderToy `.toy` files reference textures like `"488bd40303a2e2b9a71987e48c66ef41f5e937174bf316d3ed0e86410784b919.jpg"`
+- The hash is looked up in `ToyShaderHashToName()` which maps it to a local filename (e.g., `"bg4"`)
+- The system then loads from `share/imgs/bg4.jpg` (or `bg4_1.jpg`, etc. for cubemaps)
+
+**Cubemap Loading**:
+- **Location**: `uppsrc/api/Graphics/ImageBase.cpp:37-73` (loading), `ImageBase.cpp:138-183` (transmission)
+- For cubemap textures (`cubemap = true`), the system loads 6 cube faces:
+  - Face 0: `filename.jpg` (the exact filename from the hash mapping)
+  - Faces 1-5: `filename_1.jpg`, `filename_2.jpg`, ..., `filename_5.jpg`
+- All 6 files must exist in `share/imgs/` for cubemap tests to work
+- Example: hash `488bd...` → `bg4` → loads `bg4.jpg`, `bg4_1.jpg`, ..., `bg4_5.jpg`
+
+**Cubemap Data Transmission Fix** (Eon06 test 2):
+- **Issue**: `ImageBaseAtomT::Send` was only sending the first image (`imgs[0]`) for cubemaps, causing black screen
+- **Fix**: Modified `Send` function to concatenate all 6 cubemap faces into the packet data buffer
+- **Location**: `uppsrc/api/Graphics/ImageBase.cpp:155-171`
+- The receiving end (`BufferStageT::InitializeCubemap` and `ReadCubemap`) expects all 6 faces in sequence
+
+**Adding new texture mappings**:
+1. Add the hash-to-name mapping in `ToyShaderHashToName()` in `Util2.cpp`
+2. Place the texture file(s) in `share/imgs/`
+3. For cubemaps, ensure all 6 faces exist with the `_1`, `_2`, etc. suffix pattern

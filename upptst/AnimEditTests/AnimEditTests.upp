@@ -1,0 +1,9 @@
+description "AnimEdit Core Unit Tests";
+
+uses
+	Core;
+uses
+	AnimEditLib;
+
+file
+	AnimEditCoreTests.cpp;

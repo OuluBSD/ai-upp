@@ -399,14 +399,15 @@ void ProgramStateT<Gfx>::SetVar(ContextState& ctx, EnvStatePtr& env, int var, co
 		int tex_ch = COMPAT_OFFSET + ch;
 		const InputState& in = inputs[ch];
 		NativeColorBufferConstPtr tex = GetInputTex(ch);
+		TextureMode tex_type = GetTexType(ch);
 		// may fail in early program: ASSERT(tex);
 		if (tex && in.stage) {
 			//typename Gfx::NativeColorBufferConstPtr clr = Gfx::GetFrameBufferColor(*tex, TEXTYPE_NONE);
 			auto& input_fb = in.stage->fb[0];
-			LOG("SetVar iChannel" << ch << ": tex=" << (void*)tex << " filter=" << (int)input_fb.filter << " wrap=" << (int)input_fb.wrap << " size=" << input_fb.size.cx << "x" << input_fb.size.cy);
+			LOG("SetVar iChannel" << ch << ": tex=" << (void*)tex << " type=" << (int)tex_type << " filter=" << (int)input_fb.filter << " wrap=" << (int)input_fb.wrap << " size=" << input_fb.size.cx << "x" << input_fb.size.cy);
 			Gfx::ActiveTexture(tex_ch);
-			Gfx::BindTextureRO(GetTexType(ch), tex);
-			Gfx::TexParameteri(GVar::TEXMODE_2D, input_fb.filter, input_fb.wrap);
+			Gfx::BindTextureRO(tex_type, tex);
+			Gfx::TexParameteri(tex_type, input_fb.filter, input_fb.wrap);
 			Gfx::Uniform1i(uindex, tex_ch);
 			Gfx::DeactivateTexture();
 		}

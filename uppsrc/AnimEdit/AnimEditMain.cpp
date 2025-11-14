@@ -59,7 +59,7 @@ void AnimEditorWindow::NewProject() {
     state.project.name = "Untitled";
     state.dirty = false;
     UpdateTitle();
-    // TODO: refresh UI from empty project (later task)
+    UpdateSpriteList();  // Refresh the sprite list
 }
 
 void AnimEditorWindow::OpenProject() {
@@ -86,7 +86,7 @@ void AnimEditorWindow::OpenProject() {
     state.current_path = path;
     state.dirty = false;
     UpdateTitle();
-    // TODO: refresh UI from loaded project (later task)
+    UpdateSpriteList();  // Refresh the sprite list
 }
 
 void AnimEditorWindow::SaveProject() {
@@ -141,6 +141,169 @@ void AnimEditorWindow::UpdateUndoRedoButtons() {
     redo_btn.SetEnabled(canvas_ctrl.CanRedo());
 }
 
+void AnimEditorWindow::UpdateSpriteList() {
+    sprite_list_ctrl.SetProject(&state.project);
+}
+
+void AnimEditorWindow::SetActiveFrame(const Frame* frame) {
+    sprite_list_ctrl.SetFrame(frame);
+}
+
+void AnimEditorWindow::CreateNewSprite() {
+    // Create dialog content using simple layout
+    CtrlLayout<ParentCtrl> dlg;
+    dlg.Ctrl::SizeHint([this]() { return Size(400, 360); });
+    
+    // Create input fields
+    EditField id_field, name_field, texture_path_field, tags_field, description_field;
+    SpinEdit region_x, region_y, region_cx, region_cy;
+    SpinEdit pivot_x, pivot_y;
+    Option category_option;
+    Button ok_btn, cancel_btn, browse_btn;
+    
+    // Set up category options
+    category_option.Add("character");
+    category_option.Add("environment");
+    category_option.Add("effect");
+    category_option.Add("other");
+    category_option <<= 0; // Default to character
+    
+    // Set up numeric fields
+    region_x.SetRange(0, 10000).Set(0);
+    region_y.SetRange(0, 10000).Set(0);
+    region_cx.SetRange(1, 10000).Set(32);
+    region_cy.SetRange(1, 10000).Set(32);
+    pivot_x.SetRange(-1000, 1000).Set(0);
+    pivot_y.SetRange(-1000, 1000).Set(0);
+    
+    // Add controls with positioning
+    dlg.Add(id_field.HSizePos(80, 50).TopPos(8, 20));
+    dlg.Add(name_field.HSizePos(80, 50).TopPos(32, 20));
+    dlg.Add(category_option.HSizePos(80, 50).TopPos(56, 20));
+    dlg.Add(texture_path_field.HSizePos(80, 25).TopPos(80, 20));
+    dlg.Add(browse_btn.RightPos(8, 20).TopPos(80, 20));
+    dlg.Add(region_x.RightPos(120, 25).TopPos(104, 20));
+    dlg.Add(region_y.RightPos(85, 25).TopPos(104, 20));
+    dlg.Add(region_cx.RightPos(45, 25).TopPos(104, 20));
+    dlg.Add(region_cy.RightPos(5, 25).TopPos(104, 20));
+    dlg.Add(pivot_x.RightPos(45, 25).TopPos(128, 20));
+    dlg.Add(pivot_y.RightPos(5, 25).TopPos(128, 20));
+    dlg.Add(tags_field.HSizePos(80, 50).TopPos(152, 20));
+    dlg.Add(description_field.HSizePos(80, 50).TopPos(176, 60));
+    dlg.Add(ok_btn.LeftPos(20, 60).BottomPos(8, 24));
+    dlg.Add(cancel_btn.RightPos(20, 60).BottomPos(8, 24));
+    
+    // Labels
+    Label id_label, name_label, category_label, texture_path_label, region_label, pivot_label, tags_label, description_label;
+    id_label.SetLabel("ID:");
+    name_label.SetLabel("Name:");
+    category_label.SetLabel("Category:");
+    texture_path_label.SetLabel("Texture Path:");
+    region_label.SetLabel("Region (x,y,cx,cy):");
+    pivot_label.SetLabel("Pivot (x,y):");
+    tags_label.SetLabel("Tags:");
+    description_label.SetLabel("Description:");
+    
+    dlg.Add(id_label.LeftPos(8, 60).TopPos(8, 20));
+    dlg.Add(name_label.LeftPos(8, 60).TopPos(32, 20));
+    dlg.Add(category_label.LeftPos(8, 60).TopPos(56, 20));
+    dlg.Add(texture_path_label.LeftPos(8, 60).TopPos(80, 20));
+    dlg.Add(region_label.LeftPos(8, 80).TopPos(104, 20));
+    dlg.Add(pivot_label.LeftPos(8, 50).TopPos(128, 20));
+    dlg.Add(tags_label.LeftPos(8, 60).TopPos(152, 20));
+    dlg.Add(description_label.LeftPos(8, 60).TopPos(176, 20));
+    
+    browse_btn.SetLabel("...");
+    browse_btn.SetTip("Browse for texture file");
+    
+    ok_btn.SetLabel("OK");
+    cancel_btn.SetLabel("Cancel");
+    
+    // Browse button functionality
+    browse_btn <<= [&]() {
+        FileSel fs;
+        fs.Type("Image Files (*.png, *.jpg, *.jpeg, *.bmp, *.tga)", "*.png;*.jpg;*.jpeg;*.bmp;*.tga");
+        fs.Type("PNG Files", "*.png");
+        fs.Type("JPG Files", "*.jpg;*.jpeg");
+        fs.Type("BMP Files", "*.bmp");
+        fs.Type("TGA Files", "*.tga");
+        fs.AllFilesType();
+        
+        if (fs.ExecuteOpen("Select Texture File")) {
+            String path = ~fs;
+            texture_path_field = path;
+            
+            // Try to get image dimensions and set region accordingly
+            FileIn in(path);
+            if (in && in.IsOpen()) {
+                Image img = StreamRaster::LoadImage(in);
+                if (img) {
+                    region_cx.Set(img.GetWidth());
+                    region_cy.Set(img.GetHeight());
+                }
+            }
+        }
+    };
+    
+    // Create dialog window
+    PromptOKCancelFrame prompt_dlg;
+    prompt_dlg.Title("Create New Sprite");
+    prompt_dlg.Add(dlg.SizePos());
+    prompt_dlg.OK(ok_btn);
+    prompt_dlg.Cancel(cancel_btn);
+    
+    if(prompt_dlg.Execute() == IDOK) {
+        // Validate inputs
+        String id = ~id_field;
+        String name = ~name_field;
+        String category = AsString(category_option.Get());
+        String texture_path = ~texture_path_field;
+        String tags_text = ~tags_field;
+        String description_text = ~description_field;
+        
+        if (id.IsEmpty()) {
+            Exclamation("Sprite ID cannot be empty!");
+            return;
+        }
+        
+        // Check if a sprite with this ID already exists
+        if (state.project.FindSprite(id)) {
+            Exclamation("A sprite with ID '" + id + "' already exists!");
+            return;
+        }
+        
+        // Create the new sprite
+        Sprite new_sprite;
+        new_sprite.id = id;
+        new_sprite.name = name.IsEmpty() ? id : name;
+        new_sprite.category = category;
+        new_sprite.texture_path = texture_path;
+        new_sprite.region = RectF(~region_x, ~region_y, ~region_cx, ~region_cy);
+        new_sprite.pivot = Vec2(~pivot_x, ~pivot_y);
+        
+        // Parse tags - split by commas
+        Vector<String> tokens = Split(tags_text, ',', true);
+        for (int i = 0; i < tokens.GetCount(); i++) {
+            String tag = Trim(tokens[i]);
+            if (!tag.IsEmpty()) {
+                new_sprite.tags.Add(tag);
+            }
+        }
+        
+        new_sprite.description = description_text;
+        
+        // Add the new sprite to the project
+        state.project.sprites.Add(new_sprite);
+        
+        // Refresh the sprite list to show the new sprite
+        UpdateSpriteList();
+        
+        // Mark project as dirty
+        state.dirty = true;
+        UpdateTitle();
+    }
+}
+
 AnimEditorWindow::AnimEditorWindow() {
     Title("Animation Editor");
     Sizeable().Zoomable().MinimizeBox().MaximizeBox();
@@ -149,6 +312,13 @@ AnimEditorWindow::AnimEditorWindow() {
     canvas_ctrl.SetProject(&state.project);
     canvas_ctrl.SetZoomCallback([this]() { UpdateZoomLabel(); });
     canvas_ctrl.SetGeneralCallback([this]() { UpdateUndoRedoButtons(); });
+    canvas_ctrl.AcceptFiles(); // Enable drag & drop
+    sprite_list_ctrl.SetProject(&state.project);
+    sprite_list_ctrl.SetSelectCallback([this](const Sprite* sprite) {
+        // Callback when a sprite is selected in the list
+        // Currently just for handling selection events
+    });
+    
     grid_snap_check <<= [this] { 
         canvas_ctrl.SetGridSnapping(grid_snap_check);
     };
@@ -161,6 +331,49 @@ AnimEditorWindow::AnimEditorWindow() {
     redo_btn <<= [this] { 
         canvas_ctrl.Redo();
     };
+    
+    // Connect search field
+    search_field <<= [this] { 
+        sprite_list_ctrl.SetFilterText(search_field);
+    };
+    
+    // Connect category filter
+    category_option <<= [this] { 
+        String selected_category = category_option.Get();
+        sprite_list_ctrl.SetCategoryFilter(selected_category);
+    };
+    
+    // Connect create sprite button
+    create_sprite_btn <<= [this] {
+        CreateNewSprite();
+    };
+    
+    // Connect sort option
+    sort_option <<= [this] {
+        int sort_idx = sort_option.Get();
+        SpriteListCtrl::SortType sortType;
+        
+        switch (sort_idx) {
+            case 0: // "Sort: Name"
+                sortType = SpriteListCtrl::SORT_BY_NAME;
+                break;
+            case 1: // "Sort: ID"
+                sortType = SpriteListCtrl::SORT_BY_ID;
+                break;
+            case 2: // "Sort: Category"
+                sortType = SpriteListCtrl::SORT_BY_CATEGORY;
+                break;
+            case 3: // "Sort: Recent"
+                sortType = SpriteListCtrl::SORT_BY_RECENT_USE;
+                break;
+            default:
+                sortType = SpriteListCtrl::SORT_BY_NAME;
+                break;
+        }
+        
+        sprite_list_ctrl.SetSortType(sortType);
+    };
+    
     UpdateZoomLabel();  // Initialize the zoom label
     UpdateUndoRedoButtons();  // Initialize undo/redo buttons
     NewProject();
@@ -168,16 +381,36 @@ AnimEditorWindow::AnimEditorWindow() {
 
 void AnimEditorWindow::InitLayout() {
     // Setup labels
-    parts_label.SetLabel("Parts");
     timeline_label.SetLabel("Timeline");
     frames_label.SetLabel("Frames");
     sprites_label.SetLabel("Sprites");
     collisions_label.SetLabel("Collisions");
     animations_label.SetLabel("Animations");
 
-    // Setup panel backgrounds and add labels
-    parts_panel.BackPaint();
-    parts_panel.Add(parts_label.SizePos());
+    // Setup parts panel with toolbar and sprite list
+    parts_toolbar.SetFrame(ThinInsetFrame());
+    parts_toolbar.Add(search_field.VSizePos(4, 4).HSizePos(4, 40));  // Search field on left
+    search_field.SetPrompt("Search sprites...");
+    parts_toolbar.Add(category_option.HSizePos(44, 40).VSizePos(4, 4));  // Category filter
+    category_option.Add("All Categories");
+    category_option.Add("character");
+    category_option.Add("environment");
+    category_option.Add("effect");
+    category_option.Add("other");
+    category_option <<= 0;  // Default to "All Categories"
+    parts_toolbar.Add(sort_option.HSizePos(88, 40).VSizePos(4, 4));  // Sort option
+    sort_option.Add("Sort: Name");
+    sort_option.Add("Sort: ID");
+    sort_option.Add("Sort: Category");
+    sort_option.Add("Sort: Recent");
+    sort_option <<= 0;  // Default to "Sort: Name"
+    parts_toolbar.Add(create_sprite_btn.HSizePos(132, 24).VSizePos(4, 4));  // Create button
+    create_sprite_btn.SetLabel("+");
+    create_sprite_btn.SetTip("Create new sprite");
+    
+    parts_panel.SetFrame(ThinInsetFrame());
+    parts_panel.Add(parts_toolbar.TopPos(0, 28).HSizePos());  // Toolbar at top
+    parts_panel.Add(sprite_list_ctrl.VSizePos(28).HSizePos());  // List below toolbar
     
     // Setup canvas toolbar and controls
     canvas_toolbar.SetFrame(ThinInsetFrame());

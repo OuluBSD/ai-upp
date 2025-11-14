@@ -11,8 +11,8 @@ void Jsonize(JsonIO& jio, RectF& r) {
 }
 
 void Jsonize(JsonIO& jio, Sprite& s) {
-    jio("id", s.id)("category", s.category)("texture_path", s.texture_path)
-       ("region", s.region)("pivot", s.pivot);
+    jio("id", s.id)("name", s.name)("category", s.category)("texture_path", s.texture_path)
+       ("region", s.region)("pivot", s.pivot)("tags", s.tags)("description", s.description);
 }
 
 void Jsonize(JsonIO& jio, SpriteInstance& si) {

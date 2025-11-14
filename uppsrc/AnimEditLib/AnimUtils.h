@@ -18,6 +18,9 @@ bool ValidateAnimation(const AnimationProject& p, const Animation& a, String& er
 bool ValidateFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut);
 bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& errorOut);
 
+// Dangling reference helpers
+Vector<String> FindDanglingSpriteReferences(const AnimationProject& p);
+
 } // namespace Upp
 
 #endif

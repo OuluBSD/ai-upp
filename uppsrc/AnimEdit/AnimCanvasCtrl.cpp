@@ -392,6 +392,77 @@ void AnimCanvasCtrl::LeftUp(Point pos, dword flags) {
     Ctrl::LeftUp(pos, flags);
 }
 
+bool AnimCanvasCtrl::RightDown(Point pos, dword flags) {
+    // For now, just select the right-clicked sprite instance, similar to left-click
+    if (frame) {
+        // Convert click position to world coordinates
+        Vec2 world_pos = ScreenToWorld(pos);
+        
+        // Find the closest sprite instance
+        int closest_idx = -1;
+        double min_dist = 1000000.0;  // A large number
+        
+        for (int i = 0; i < frame->sprites.GetCount(); i++) {
+            const SpriteInstance& si = frame->sprites[i];
+            double dist = sqrt(pow(si.position.x - world_pos.x, 2) + pow(si.position.y - world_pos.y, 2));
+            
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest_idx = i;
+            }
+        }
+        
+        // If we're close enough to a sprite instance, select it
+        if (closest_idx != -1 && min_dist < 50.0) {  // 50 world units threshold
+            selected_instance = closest_idx;
+            Refresh();
+        } else {
+            selected_instance = -1;
+            Refresh();
+        }
+    }
+    
+    return Ctrl::RightDown(pos, flags);
+}
+
+bool AnimCanvasCtrl::Drop(Point pos, PasteClip& d) {
+    if (!frame || !project) {
+        return false;
+    }
+    
+    // Accept text drops (which contain sprite IDs from the sprite list)
+    String text_data;
+    if (d.GetText(text_data) && !text_data.IsEmpty()) {
+        // Find the sprite by ID in the project
+        const Sprite* sprite = project->FindSprite(text_data);
+        if (sprite) {
+            // Convert the drop position to world coordinates
+            Vec2 world_pos = ScreenToWorld(pos);
+            
+            // Create a new SpriteInstance with the dropped sprite
+            SpriteInstance new_instance;
+            new_instance.sprite_id = sprite->id;
+            new_instance.position = world_pos;
+            new_instance.scale = Vec2(1, 1);
+            new_instance.rotation = 0;
+            new_instance.alpha = 1.0;
+            new_instance.zindex = 0;
+            
+            // Add the new instance to the current frame
+            PushUndoState();  // Save state before modifying
+            frame->sprites.Add(new_instance);
+            
+            // Select the newly created instance
+            selected_instance = frame->sprites.GetCount() - 1;
+            
+            Refresh();
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 bool AnimCanvasCtrl::Key(dword key, int count) {
     switch(key) {
         case '-':

@@ -27,4 +27,10 @@ file
 	SpriteInstanceListCtrl.h,
 	SpriteInstanceListCtrl.cpp,
 	CollisionListCtrl.h,
-	CollisionListCtrl.cpp;
+	CollisionListCtrl.cpp,
+	EntityListCtrl.h,
+	EntityListCtrl.cpp,
+	EntityPropertiesCtrl.h,
+	EntityPropertiesCtrl.cpp,
+	EntityPreviewCtrl.h,
+	EntityPreviewCtrl.cpp;

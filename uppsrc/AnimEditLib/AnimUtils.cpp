@@ -270,4 +270,40 @@ bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& erro
     return true;
 }
 
+bool ValidateEntity(const AnimationProject& p, const Entity& e, String& errorOut) {
+    if (e.id.IsEmpty()) {
+        errorOut = "Entity has an empty ID";
+        return false;
+    }
+
+    if (!ValidateEntityLinks(p, e, errorOut)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool ValidateEntityLinks(const AnimationProject& p, const Entity& e, String& errorOut) {
+    for(int i = 0; i < e.animation_slots.GetCount(); i++) {
+        const NamedAnimationSlot& slot = e.animation_slots[i];
+        if (slot.name.IsEmpty()) {
+            errorOut = "Entity '" + e.id + "' has animation slot with empty name at index " + IntStr(i);
+            return false;
+        }
+
+        if (slot.animation_id.IsEmpty()) {
+            errorOut = "Entity '" + e.id + "' has animation slot '" + slot.name + "' with empty animation ID at index " + IntStr(i);
+            return false;
+        }
+
+        // Check if the referenced animation exists
+        if (!p.FindAnimation(slot.animation_id)) {
+            errorOut = "Entity '" + e.id + "' references non-existent animation: " + slot.animation_id;
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace Upp

@@ -20,7 +20,7 @@ namespace QwenCmd {
 
 // Configuration for qwen command
 struct QwenConfig {
-    std::string model = "gpt-4o-mini";  // Default model
+    std::string model = "qwen-oauth";  // Default model - using qwen-oauth as recommended
     std::string workspace_root;
     std::string qwen_code_path = "/common/active/sblo/Dev/VfsBoot/qwen-code";  // Path to qwen-code wrapper
     bool auto_approve_tools = false;
@@ -37,11 +37,14 @@ struct QwenConfig {
 // Options parsed from command-line arguments
 struct QwenOptions {
     bool attach = false;
+    bool new_session = false;  // Force new session creation
     bool list_sessions = false;
     bool help = false;
     bool simple_mode = false;  // Force stdio mode instead of ncurses
     bool use_openai = false;   // Use OpenAI instead of default provider
+    bool use_oauth = false;    // Use qwen-oauth instead of default provider
     bool manager_mode = false; // Enable manager mode
+    std::string eval_input;    // Evaluate single input and exit
     std::string session_id;
     std::string model;
     std::string workspace_root;

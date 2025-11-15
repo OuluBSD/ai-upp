@@ -1,0 +1,16 @@
+#!/bin/bash
+# Wrapper script for qwen-code
+# This launches the qwen-code TypeScript implementation with server-mode support
+
+# Try different locations for qwen-code
+if [ -d "/home/sblo/Dev/qwen-code" ]; then
+    # Production location
+    exec node /home/sblo/Dev/qwen-code/dist/src/gemini.js "$@"
+elif [ -d "/common/active/sblo/Dev/qwen-code/bundle" ]; then
+    # Legacy location
+    exec node /common/active/sblo/Dev/qwen-code/bundle/gemini.js "$@"
+else
+    echo "Error: qwen-code not found. Please install qwen-code first." >&2
+    echo "Expected location: ~/Dev/qwen-code/dist/src/gemini.js" >&2
+    exit 1
+fi

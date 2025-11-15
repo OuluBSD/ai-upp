@@ -10,8 +10,12 @@
 #include <condition_variable>
 #include <atomic>
 
-// Forward declaration
-struct Vfs;
+// Include VFS definitions
+#include <Core/VfsBase/VfsBase.h>
+// Include TCP server definition
+#include "QwenTCPServer.h"
+// Define Vfs as an alias to VFS to match U++ conventions
+using Vfs = Upp::VFS;
 
 namespace Qwen {
 
@@ -106,10 +110,16 @@ struct QwenManagerConfig {
     bool use_colors = true;
     std::string workspace_root;
     std::string management_repo_path;
+    std::string qwen_code_path;       // Path to qwen-code executable
 };
 
 // Forward declaration
 class QwenTCPServer;
+
+// Forward declaration for friend function
+namespace QwenCmd {
+    struct QwenOptions;  // Forward declaration for options
+}
 
 // QwenManager class - manages multiple qwen sessions and TCP connections
 class QwenManager {
@@ -125,6 +135,10 @@ public:
 
     // Start manager mode in simple mode (stdio)
     bool run_simple_mode();
+
+    // TCP server management
+    bool start_tcp_server();
+    void stop_tcp_server();
 
     // Check if manager is running
     bool is_running() const { return running_; }
@@ -193,11 +207,8 @@ private:
     // Documentation generation
     void generate_vfsboot_doc();
 
-    // TCP server management
-    bool start_tcp_server();
-    void stop_tcp_server();
-
     // Session registry
+
     std::vector<ManagerSessionInfo> sessions_;
     mutable std::mutex sessions_mutex_;
 

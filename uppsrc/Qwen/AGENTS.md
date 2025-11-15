@@ -9,11 +9,13 @@ The Qwen system implements a powerful AI-assisted development workflow tool that
 ### Core Files
 - `QwenClient.h` - Client interface for communicating with qwen-code executable
 - `QwenClient.cpp` - Implementation of client communication with qwen-code process
-- `QwenProtocol.h` - Structured data protocol for qwen-code integration
+- `QwenProtocol.h/cpp` - Structured data protocol for qwen-code integration
 - `QwenStateManager.h/cpp` - Session/state management for conversations
 - `QwenManager.h/cpp` - Multi-session management and TCP connections
+- `QwenTCPServer.h/cpp` - TCP server that spawns qwen-code and proxies connections
 - `CmdQwen.h/cpp` - Command-line interface implementation with ncurses UI
 - `QwenLogger.h` - Fine-grained timestamp logger for debugging
+- `VfsBootQwenTCPServer.h/cpp` - VFS-integrated TCP server wrapper
 
 ### Key Features
 - Interactive AI assistant powered by qwen-code
@@ -42,6 +44,37 @@ Advanced manager mode enables:
 ## Communication Protocol
 
 The system uses a structured data protocol that provides a thick client interface for receiving semantic data from qwen-code, defined in qwenStateSerializer.ts.
+
+### TCP Server Mode
+
+The QwenTCPServer provides a network-accessible interface to qwen-code:
+
+1. **Process Management**: Spawns and manages the qwen-code subprocess
+   - Communicates via stdin/stdout pipes with qwen-code
+   - Handles process lifecycle (start, stop, restart)
+
+2. **Network Interface**: Accepts TCP connections from clients
+   - Listens on configurable port (default: 7774)
+   - Routes user input from TCP clients to qwen-code subprocess
+   - Broadcasts AI responses from qwen-code to connected clients
+
+3. **Message Flow**:
+   ```
+   TCP Client → QwenTCPServer → qwen-code subprocess
+                                    ↓
+   TCP Client ← QwenTCPServer ← AI Response
+   ```
+
+4. **qwen-code Integration**:
+   - Uses wrapper script at `script/qwen-code` to launch the Node.js qwen-code server
+   - The wrapper script locates the qwen-code bundle (typically `~/Dev/qwen-code/dist/src/gemini.js`)
+   - Communicates using JSON-based protocol over stdin/stdout
+
+### Server Scripts
+
+- `script/run_qwen_server.sh` - Start TCP server on port 7774
+- `script/run_qwen_client.sh` - Connect to TCP server
+- `script/qwen-code` - Wrapper to launch qwen-code Node.js bundle
 
 ## Command-Line Interface
 

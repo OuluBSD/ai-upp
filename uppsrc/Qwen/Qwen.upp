@@ -2,9 +2,9 @@ description "Qwen AI Assistant package";
 
 uses
     Core,
-    Vfs,
-    VfsShell,
-    ncurses;
+    Vfs;
+
+library(POSIX) "ncursesw panelw formw menuw tinfow";
 
 file
     QwenClient.cpp,
@@ -13,9 +13,15 @@ file
     QwenManager.h,
     CmdQwen.cpp,
     QwenLogger.h,
+    QwenProtocol.cpp,
     QwenProtocol.h,
     QwenClient.h,
     QwenStateManager.h,
     QwenManager.h,
     CmdQwen.h,
+    QwenTCPServer.cpp,
+    QwenTCPServer.h,
+    VfsWrapper.cpp,
+    VfsWrapper.h,
+    registry.h,
     Qwen.cpp;

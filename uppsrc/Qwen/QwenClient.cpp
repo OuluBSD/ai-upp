@@ -288,12 +288,13 @@ private:
             dup2(stdin_pipe[0], STDIN_FILENO);
             dup2(stdout_pipe[1], STDOUT_FILENO);
 
-            // Redirect stderr to /dev/null to avoid polluting ncurses display
-            int devnull = open("/dev/null", O_WRONLY);
-            if (devnull >= 0) {
-                dup2(devnull, STDERR_FILENO);
-                close(devnull);
-            }
+            // NOTE: Keep stderr visible for debugging
+            // In production, redirect stderr to /dev/null to avoid polluting display:
+            // int devnull = open("/dev/null", O_WRONLY);
+            // if (devnull >= 0) {
+            //     dup2(devnull, STDERR_FILENO);
+            //     close(devnull);
+            // }
 
             // Close unused pipe ends
             close(stdin_pipe[0]);
@@ -497,10 +498,21 @@ private:
                 break;
 
             case MessageType::CONVERSATION:
+                std::cerr << "[QwenClient::dispatch] CONVERSATION message! Handler set: "
+                          << (handlers_.on_conversation ? "YES" : "NO") << std::endl;
                 if (handlers_.on_conversation) {
                     if (auto* data = msg->as_conversation()) {
+                        std::cerr << "[QwenClient::dispatch] Calling handler with role="
+                                  << (data->role == MessageRole::USER ? "USER" :
+                                      data->role == MessageRole::ASSISTANT ? "ASSISTANT" : "SYSTEM")
+                                  << ", content_len=" << data->content.size() << std::endl;
                         handlers_.on_conversation(*data);
+                        std::cerr << "[QwenClient::dispatch] Handler returned" << std::endl;
+                    } else {
+                        std::cerr << "[QwenClient::dispatch] Failed to cast to ConversationMessage" << std::endl;
                     }
+                } else {
+                    std::cerr << "[QwenClient::dispatch] No handler set!" << std::endl;
                 }
                 break;
 

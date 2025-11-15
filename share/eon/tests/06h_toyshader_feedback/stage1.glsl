@@ -295,19 +295,19 @@ bool inRect(vec2 compA, vec2 compB, vec2 rectSize)
 // Returns the highest-value key that was pressed ... 8 frames ago ;)
 float getTappedLetter()
 {
-    return texture(iChannel0, vec2(160.5, 8.5) / iResolution.xy).r * 256.0;
+    return texture(iChannel1, vec2(160.5, 8.5) / iResolution.xy).r * 256.0;
 }
 
 // Returns the highest-value key that was held ... 8 frames ago >_<
 float getHeldLetter()
 {
-    return texture(iChannel0, vec2(161.5, 8.5) / iResolution.xy).r * 256.0;
+    return texture(iChannel1, vec2(161.5, 8.5) / iResolution.xy).r * 256.0;
 }
 
 // 1.0 if ESC is tapped or if starting from scratch, else 0.0
 float getReset()
 {
-    return 1.0 - texture(iChannel0, vec2(2.5, 209.5) / iResolution.xy).r;
+    return 1.0 - texture(iChannel1, vec2(2.5, 209.5) / iResolution.xy).r;
 }
 
 // Similar to getTappedLetter, but it performs the mapping operations to determine
@@ -315,8 +315,8 @@ float getReset()
 float getFinalTyped()
 {
     int baseLetter = int(getTappedLetter());
-    baseLetter |= int(2.0 * texture(iChannel0, vec2(1.5, 209.5) / iResolution.xy).r) << 8;
-    
+    baseLetter |= int(2.0 * texture(iChannel1, vec2(1.5, 209.5) / iResolution.xy).r) << 8;
+
     int mappedLetter = remap[baseLetter];
     return float(mappedLetter) + 0.5;
 }
@@ -326,8 +326,8 @@ float getFinalTyped()
 vec2 getCursorPos()
 {
     float numChars = 80.0 * 80.0;
-    float rawPos = 0.5 + texture(iChannel0, vec2(0.5, 209.5) / iResolution.xy).r * numChars;
-    
+    float rawPos = 0.5 + texture(iChannel1, vec2(0.5, 209.5) / iResolution.xy).r * numChars;
+
     vec2 result;
     result.y = floor(rawPos / 80.0);
     result.x = rawPos - 80.0 * result.y - 0.5;
@@ -339,7 +339,7 @@ vec2 getCursorPos()
 float processCursor()
 {
     float numChars = 80.0 * 80.0;
-    float rawPos = texture(iChannel0, vec2(0.5, 209.5) / iResolution.xy).r * numChars;
+    float rawPos = texture(iChannel1, vec2(0.5, 209.5) / iResolution.xy).r * numChars;
     float tappedLetter = getFinalTyped();
     
     if (tappedLetter >= 31.5)
@@ -408,8 +408,8 @@ float populatePressedLetter(vec2 fragCoord, vec2 origin, float level)
             vec4(0.0, -uvPixel.y, uvPixel.x, -uvPixel.y);
         uvKeyboardAlt += (origin * uvPixel).xyxy;
         
-        float sampleL = texture(iChannel0, uvKeyboardAlt.xy).r;
-        float sampleH = texture(iChannel0, uvKeyboardAlt.zw).r;
+        float sampleL = texture(iChannel1, uvKeyboardAlt.xy).r;
+        float sampleH = texture(iChannel1, uvKeyboardAlt.zw).r;
         
         result = max(sampleL, sampleH);
     }
@@ -436,7 +436,7 @@ float processBuffer(vec2 uv, vec2 fragCoord)
         }
         
         // Type a space (empty) in this position if we're backspacing
-        if (texture(iChannel0, vec2(3.5, 209.5) / iResolution.xy).r >= 0.5)
+        if (texture(iChannel1, vec2(3.5, 209.5) / iResolution.xy).r >= 0.5)
         {
         	result = 0.125;
         }
@@ -449,10 +449,10 @@ float processBuffer(vec2 uv, vec2 fragCoord)
 // shift keys by that same amount. It feels really awkward without this delay matching.
 float processShiftLag()
 {
-    float result = texture(iChannel0, vec2(1.5, 209.5) / iResolution.xy).r;
-    
+    float result = texture(iChannel1, vec2(1.5, 209.5) / iResolution.xy).r;
+
     result += result + texture(iChannel1, vec2(16.5 / 256.0, 0.16667)).r / 256.0;
-    
+
     return fract(result);
 }
 
@@ -461,10 +461,10 @@ float processShiftLag()
 // key, then the next frame moves the caret, THEN we delete. 10 frames, hence 2^10=1024
 float processBSLag()
 {
-    float result = texture(iChannel0, vec2(3.5, 209.5) / iResolution.xy).r;
-    
+    float result = texture(iChannel1, vec2(3.5, 209.5) / iResolution.xy).r;
+
     result += result + texture(iChannel1, vec2(8.5 / 256.0, 0.16667)).r / 1024.0;
-    
+
     return fract(result);
 }
 

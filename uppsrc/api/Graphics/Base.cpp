@@ -281,20 +281,19 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 		return true;
 	}
 	
+	// For non-primary channels (src_ch >= 1), we need to check if the primary
+	// channel would send a packet. If yes, send the same buffer. If no, don't send.
 	if (src_ch >= 1) {
-		// non-primary channel (src_ch>0) is allowed to not send packets
 		if (!this->bf.GetBuffer().IsSingleInitialized())
-			return false;
-		
-		ValueFormat fmt = out.GetFormat();
-		
-		if (fmt.vd == VD(OGL,FBO)) {
-			InternalPacketData& data = out.GetData<InternalPacketData>();
-			this->GetBuffer().StoreOutputLink(data);
-			RTLOG("OglTextureBase::ProcessPackets: 0, " << src_ch << ": " << out.ToString());
-		}
+			return true;  // primary wouldn't send, so we don't either (not an error)
+
+		// Primary would send, so we send the same buffer data
+		InternalPacketData& data = out.SetData<InternalPacketData>();
+		this->GetBuffer().StoreOutputLink(data);
+		RTLOG("TextureBaseT::Send: " << src_ch << ": " << out.ToString());
+		return true;
 	}
-	
+
 	return true;
 }
 
@@ -594,7 +593,7 @@ void FboReaderBaseT<Gfx>::Visit(Vis& v) {
 
 template <class Gfx>
 bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
-	
+
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
 		LOG("EventStateBase::Initialize: error: target state argument is required");
@@ -608,10 +607,20 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
 		return false;
 	}
-	
+
+	// Read generate_test_data parameter
+	String test_data_str = ws.Get(".generate_test_data");
+	generate_test_data = (test_data_str == "true");
+	if (generate_test_data) {
+		LOG("KeyboardBaseT::Initialize: test data generation enabled");
+	}
+
+	// Store state pointer for later use
+	this->state = state;
+
 	FboKbd::KeyVec& data = state->template Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
 	data.SetAll(false);
-	
+
 	return true;
 }
 
@@ -643,15 +652,55 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 	RTLOG("KeyboardBaseT<Gfx>::Send");
 	auto& buf = this->bf.GetBuffer();
 	auto& stage = buf.InitSingle();
-	
+
+	// Generate test data if enabled
+	if (generate_test_data && state) {
+		double dt = cfg.time_delta;
+		test_data_timer += dt;
+
+		// Generate random keypresses every 500ms
+		// Note: time_delta might be 0 on first frames, so also trigger every N frames
+		static int frame_count = 0;
+		frame_count++;
+
+		if (test_data_timer >= 0.5 || (dt == 0.0 && frame_count % 30 == 0)) {
+			test_data_timer = 0.0;
+
+			FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
+			// Clear previous keypresses
+			data.SetAll(false);
+
+			// Generate 1-3 random keypresses
+			int num_keys = 1 + (Random() % 3);
+			for (int i = 0; i < num_keys; i++) {
+				// Random key from a-z (ASCII 65-90) and 0-9 (ASCII 48-57)
+				int key_code;
+				if (Random() % 2 == 0) {
+					// a-z (uppercase A-Z in ASCII)
+					key_code = 65 + (Random() % 26);
+				} else {
+					// 0-9
+					key_code = 48 + (Random() % 10);
+				}
+
+				// Set the key as pressed in the texture (FixedArray uses [] operator)
+				if (key_code >= 0 && key_code < 256) {
+					data[key_code] = true;
+				}
+			}
+
+			LOG("KeyboardBaseT<Gfx>::Send: generated test keypresses, hash=" << HexStr(data.GetHashValue()));
+		}
+	}
+
 	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsFbo()) {
 		Size sz(FboKbd::key_tex_w, FboKbd::key_tex_h);
 		int channels = 1;
 		FboKbd::KeyVec& data = state->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
-		
+
 		//LOG("KeyboardBaseT<Gfx>::Send: " << HexStr(data.GetHashValue()));
-		
+
 		if (!stage.IsInitialized()) {
 			ASSERT(sz.cx > 0 && sz.cy > 0);
 			auto& fb = stage.fb[0];
@@ -660,7 +709,7 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 			fb.channels = channels;
 			fb.sample = GVar::SAMPLE_FLOAT;
 			fb.fps = 0;
-			
+
 			if (!stage.InitializeTexture(
 				Size(sz.cx, sz.cy),
 				channels,
@@ -677,14 +726,14 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 				data.Get(),
 				data.GetCount() * sizeof(byte));
 		}
-		
-		
+
+
 		InternalPacketData& d = out.GetData<InternalPacketData>();
 		this->GetBuffer().StoreOutputLink(d);
 		RTLOG("KeyboardBaseT<Gfx>::Send: 0, " << src_ch << ": " << out.ToString());
-		
+
 	}
-	
+
 	return true;
 }
 

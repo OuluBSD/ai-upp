@@ -35,7 +35,7 @@ float PrintValue(const in vec2 fragCoord, const in vec2 vPixelCoords, const in v
 // ---- 8< -------- 8< -------- 8< -------- 8< ----
 
 float keyPressed(int keyCode) {
-	return texture(iChannel0, vec2((float(keyCode) + 0.5) / 256., .5/3.)).r;   
+	return texture(iChannel0, vec2((float(keyCode) + 0.5) / 256., 0.5)).r;
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )

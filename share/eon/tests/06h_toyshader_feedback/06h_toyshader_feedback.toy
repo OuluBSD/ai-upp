@@ -42,6 +42,7 @@
 					filter: linear,
 					wrap: clamp,
 					vflip: true,
+					generate_test_data: true,
 				},
 			],
 			outputs: [

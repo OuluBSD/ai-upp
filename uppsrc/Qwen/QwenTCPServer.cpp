@@ -38,13 +38,8 @@ bool QwenTCPServer::start(int port, const std::string& host) {
     QwenClientConfig client_config;
     
     // Set the path to qwen-code executable
-    // Default to project's wrapper script
-    std::string default_path = qwen_code_path_.empty() ? "./script/qwen-code" : qwen_code_path_;
-
-    // Also try VfsBoot location as fallback
-    if (qwen_code_path_.empty() && access("./script/qwen-code", X_OK) != 0) {
-        default_path = "/home/sblo/Dev/VfsBoot/qwen-code";
-    }
+    // Default to project's wrapper script (relative to project root)
+    std::string default_path = qwen_code_path_.empty() ? "script/qwen-code" : qwen_code_path_;
 
     client_config.qwen_executable = default_path;
     

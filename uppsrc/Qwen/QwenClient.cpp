@@ -498,21 +498,10 @@ private:
                 break;
 
             case MessageType::CONVERSATION:
-                std::cerr << "[QwenClient::dispatch] CONVERSATION message! Handler set: "
-                          << (handlers_.on_conversation ? "YES" : "NO") << std::endl;
                 if (handlers_.on_conversation) {
                     if (auto* data = msg->as_conversation()) {
-                        std::cerr << "[QwenClient::dispatch] Calling handler with role="
-                                  << (data->role == MessageRole::USER ? "USER" :
-                                      data->role == MessageRole::ASSISTANT ? "ASSISTANT" : "SYSTEM")
-                                  << ", content_len=" << data->content.size() << std::endl;
                         handlers_.on_conversation(*data);
-                        std::cerr << "[QwenClient::dispatch] Handler returned" << std::endl;
-                    } else {
-                        std::cerr << "[QwenClient::dispatch] Failed to cast to ConversationMessage" << std::endl;
                     }
-                } else {
-                    std::cerr << "[QwenClient::dispatch] No handler set!" << std::endl;
                 }
                 break;
 

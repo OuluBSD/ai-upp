@@ -5,13 +5,14 @@
 #include "AnimEditorState.h"
 #include "AnimCanvasCtrl.h"
 #include "SpriteListCtrl.h"
+#include "TimelineCtrl.h"
 
 using namespace Upp;
 
 class AnimEditorWindow : public TopWindow {
 public:
     AnimEditorWindow();
-    
+
     // Public API for main window to call
     void NewProject();
     void OpenProject();
@@ -20,10 +21,11 @@ public:
 
 private:
     AnimEditorState state;
-    
+    const Animation* selected_animation; // Currently selected animation
+
     void InitLayout();
     void UpdateTitle();
-    
+
     // Main splitters
     Splitter  hsplit_main;      // left | center+bottom | right
     Splitter  vsplit_center;    // canvas (top) | timeline (bottom)
@@ -50,6 +52,7 @@ private:
 
     // Center-bottom (timeline)
     ParentCtrl timeline_panel;
+    TimelineCtrl timeline_ctrl;  // Timeline control
     Label      timeline_label;
 
     // Right side split components
@@ -59,7 +62,7 @@ private:
     ParentCtrl sprites_panel;
     ParentCtrl collisions_panel;
     ParentCtrl animations_panel;
-    
+
     // Labels for panels
     Label      frames_label;
     Label      sprites_label;
@@ -72,6 +75,7 @@ private:
     void UpdateSpriteList();
     void SetActiveFrame(const Frame* frame);
     void CreateNewSprite();
+    void SetSelectedAnimation(const Animation* anim);
 };
 
 class EntityEditorWindow : public TopWindow {
@@ -93,7 +97,7 @@ public:
 class AnimEditMain : public TopWindow {
 public:
     AnimEditMain();
-    
+
 private:
     void Menu(Bar& bar);
     void MenuFile(Bar& bar);
@@ -105,7 +109,7 @@ private:
     void OpenAnimEditor();
     void OpenEntityEditor();
     void OpenTextureEditor();
-    
+
     AnimEditorWindow animwin;
     EntityEditorWindow entitywin;
     TextureEditorWindow texwin;

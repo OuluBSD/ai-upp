@@ -60,6 +60,7 @@ void AnimEditorWindow::NewProject() {
     state.dirty = false;
     UpdateTitle();
     UpdateSpriteList();  // Refresh the sprite list
+    SetSelectedAnimation(nullptr); // No animation selected initially
 }
 
 void AnimEditorWindow::OpenProject() {
@@ -87,6 +88,7 @@ void AnimEditorWindow::OpenProject() {
     state.dirty = false;
     UpdateTitle();
     UpdateSpriteList();  // Refresh the sprite list
+    SetSelectedAnimation(nullptr); // Reset animation selection after load
 }
 
 void AnimEditorWindow::SaveProject() {
@@ -143,10 +145,20 @@ void AnimEditorWindow::UpdateUndoRedoButtons() {
 
 void AnimEditorWindow::UpdateSpriteList() {
     sprite_list_ctrl.SetProject(&state.project);
+    // If no animation is selected and there are animations in the project,
+    // select the first one
+    if (!selected_animation && state.project.animations.GetCount() > 0) {
+        SetSelectedAnimation(&state.project.animations[0]);
+    }
 }
 
 void AnimEditorWindow::SetActiveFrame(const Frame* frame) {
     sprite_list_ctrl.SetFrame(frame);
+}
+
+void AnimEditorWindow::SetSelectedAnimation(const Animation* anim) {
+    selected_animation = anim;
+    timeline_ctrl.SetAnimation(anim);
 }
 
 void AnimEditorWindow::CreateNewSprite() {
@@ -318,6 +330,13 @@ AnimEditorWindow::AnimEditorWindow() {
         // Callback when a sprite is selected in the list
         // Currently just for handling selection events
     });
+    timeline_ctrl.SetProject(&state.project);
+    timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
+        // Callback when a frame is selected in the timeline
+        SetActiveFrame(frame);
+        canvas_ctrl.SetFrame(frame);
+        canvas_ctrl.Refresh();
+    });
     
     grid_snap_check <<= [this] { 
         canvas_ctrl.SetGridSnapping(grid_snap_check);
@@ -376,6 +395,7 @@ AnimEditorWindow::AnimEditorWindow() {
     
     UpdateZoomLabel();  // Initialize the zoom label
     UpdateUndoRedoButtons();  // Initialize undo/redo buttons
+    selected_animation = nullptr; // Initialize selected animation
     NewProject();
 }
 
@@ -429,8 +449,8 @@ void AnimEditorWindow::InitLayout() {
     canvas_panel.Add(canvas_toolbar.TopPos(0, 24).HSizePos());
     canvas_panel.Add(canvas_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
     
-    timeline_panel.BackPaint();
-    timeline_panel.Add(timeline_label.SizePos());
+    timeline_panel.SetFrame(ThinInsetFrame());
+    timeline_panel.Add(timeline_ctrl.VSizePos().HSizePos());
     
     frames_panel.BackPaint();
     frames_panel.Add(frames_label.SizePos());

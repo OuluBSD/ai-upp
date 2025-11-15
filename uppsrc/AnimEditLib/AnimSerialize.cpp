@@ -41,11 +41,22 @@ void Jsonize(JsonIO& jio, Animation& a) {
     jio("id", a.id)("name", a.name)("category", a.category)("frames", a.frames);
 }
 
+void Jsonize(JsonIO& jio, NamedAnimationSlot& slot) {
+    jio("name", slot.name)("animation_id", slot.animation_id);
+}
+
+void Jsonize(JsonIO& jio, Entity& e) {
+    jio("id", e.id)("name", e.name)("type", e.type)
+       ("animation_slots", e.animation_slots)
+       ("properties", e.properties);
+}
+
 void Jsonize(JsonIO& jio, AnimationProject& p) {
     jio("id", p.id)("name", p.name)
        ("sprites", p.sprites)
        ("frames", p.frames)
-       ("animations", p.animations);
+       ("animations", p.animations)
+       ("entities", p.entities);
 }
 
 String SaveProjectJson(const AnimationProject& p) {

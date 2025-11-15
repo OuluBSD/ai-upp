@@ -38,4 +38,16 @@ Animation* AnimationProject::FindAnimation(const String& aid) {
     return nullptr;
 }
 
+const Entity* AnimationProject::FindEntity(const String& eid) const {
+    for(const Entity& e : entities)
+        if(e.id == eid) return &e;
+    return nullptr;
+}
+
+Entity* AnimationProject::FindEntity(const String& eid) {
+    for(Entity& e : entities)
+        if(e.id == eid) return &e;
+    return nullptr;
+}
+
 }

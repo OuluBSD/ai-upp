@@ -26,8 +26,18 @@ void AnimEditMain::MenuEditors(Bar& bar) {
 void AnimEditMain::Exit() { Break(); }
 
 void AnimEditMain::OpenAnimEditor() { animwin.Open(); }
-void AnimEditMain::OpenEntityEditor() { entitywin.Open(); }
+void AnimEditMain::OpenEntityEditor() { 
+    // Make sure the entity editor has the current project when it opens
+    if (animwin.GetState().project.id.IsVoid() || animwin.GetState().project.entities.GetCount() == 0) {
+        // Project is empty, the entity editor will still open but with empty list
+    }
+    entitywin.Open(); 
+}
 void AnimEditMain::OpenTextureEditor() { texwin.Open(); }
+
+void AnimEditMain::SetupSharedState() {
+    entitywin.SetState(&animwin.GetState());
+}
 
 AnimEditMain::AnimEditMain() {
     Title("AnimEdit");
@@ -38,6 +48,9 @@ AnimEditMain::AnimEditMain() {
     MenuBar menu;
     menu.Set(THISBACK(Menu));
     AddFrame(menu);
+    
+    // Set up shared state between editors
+    SetupSharedState();
 }
 
 // AnimEditorWindow implementations
@@ -940,4 +953,285 @@ void AnimEditorWindow::PauseAnimation() {
 void AnimEditorWindow::StopAnimation() {
     // Placeholder for animation stop functionality
     PromptOK("Animation stop would happen here.");
+}
+
+// Entity Editor Window Implementation
+
+EntityEditorWindow::EntityEditorWindow() {
+    Title("Entity Editor");
+    Sizeable().Zoomable().MinimizeBox().MaximizeBox();
+    state = nullptr;
+    
+    InitLayout();
+    
+    // Set up the entity list and properties controls
+    entity_list_ctrl.SetSelectCallback([this](const Entity* entity) {
+        OnEntitySelectionChanged(entity);
+    });
+    
+    entity_properties_ctrl.SetChangeCallback([this]() {
+        OnEntityChanged();
+    });
+}
+
+void EntityEditorWindow::Open() {
+    OpenMain();
+}
+
+void EntityEditorWindow::InitLayout() {
+    // Setup labels
+    search_field.SetPrompt("Search entities...");
+    
+    // Setup category filter
+    category_option.Add("All Categories");
+    category_option.Add("character");
+    category_option.Add("environment");
+    category_option.Add("item");
+    category_option.Add("other");
+    category_option <<= 0;  // Default to "All Categories"
+    
+    // Setup sort options
+    sort_option.Add("Sort: Name");
+    sort_option.Add("Sort: ID");
+    sort_option.Add("Sort: Type");
+    sort_option <<= 0;  // Default to "Sort: Name"
+    
+    // Setup toolbar
+    entity_toolbar.SetFrame(ThinInsetFrame());
+    entity_toolbar.Add(search_field.HSizePos(4, 40).VSizePos(4, 4));
+    entity_toolbar.Add(category_option.HSizePos(44, 40).VSizePos(4, 4));
+    entity_toolbar.Add(sort_option.HSizePos(88, 40).VSizePos(4, 4));
+    entity_toolbar.Add(create_entity_btn.HSizePos(132, 24).VSizePos(4, 4));
+    entity_toolbar.Add(duplicate_entity_btn.HSizePos(160, 24).VSizePos(4, 4));
+    entity_toolbar.Add(delete_entity_btn.HSizePos(188, 24).VSizePos(4, 4));
+    entity_toolbar.Add(import_entity_btn.HSizePos(216, 24).VSizePos(4, 4));
+    entity_toolbar.Add(export_entity_btn.HSizePos(244, 24).VSizePos(4, 4));
+    
+    create_entity_btn.SetLabel("+");
+    create_entity_btn.SetTip("Create new entity");
+    duplicate_entity_btn.SetLabel("Dup");
+    duplicate_entity_btn.SetTip("Duplicate selected entity");
+    delete_entity_btn.SetLabel("Del");
+    delete_entity_btn.SetTip("Delete selected entity");
+    import_entity_btn.SetLabel("Import");
+    import_entity_btn.SetTip("Import entity from JSON file");
+    export_entity_btn.SetLabel("Export");
+    export_entity_btn.SetTip("Export selected entity to JSON file");
+    
+    // Set up the splitter
+    hsplit_main.Vert().SetPos(30);  // 30% for list, 70% for properties
+    
+    // Left panel - entity list
+    ParentCtrl list_panel;
+    list_panel.SetFrame(ThinInsetFrame());
+    list_panel.Add(entity_toolbar.TopPos(0, 28).HSizePos());
+    list_panel.Add(entity_list_ctrl.VSizePos(28).HSizePos());
+    
+    // Right panel - entity properties
+    ParentCtrl props_panel;
+    props_panel.SetFrame(ThinInsetFrame());
+    props_panel.Add(entity_properties_ctrl.SizePos());
+    
+    hsplit_main << list_panel << props_panel;
+    Add(hsplit_main.SizePos());
+    
+    // Connect events
+    search_field <<= [this] {
+        entity_list_ctrl.SetFilterText(search_field);
+    };
+    
+    category_option <<= [this] {
+        String selected_category = AsString(category_option.Get());
+        entity_list_ctrl.SetCategoryFilter(selected_category);
+    };
+    
+    sort_option <<= [this] {
+        int sort_idx = sort_option.Get();
+        EntityListCtrl::SortType sortType;
+        
+        switch (sort_idx) {
+            case 0: // "Sort: Name"
+                sortType = EntityListCtrl::SORT_BY_NAME;
+                break;
+            case 1: // "Sort: ID"
+                sortType = EntityListCtrl::SORT_BY_ID;
+                break;
+            case 2: // "Sort: Type"
+                sortType = EntityListCtrl::SORT_BY_TYPE;
+                break;
+            case 3: // "Sort: Recent"
+                sortType = EntityListCtrl::SORT_BY_RECENT_USE;
+                break;
+            default:
+                sortType = EntityListCtrl::SORT_BY_NAME;
+                break;
+        }
+        
+        entity_list_ctrl.SetSortType(sortType);
+    };
+    
+    create_entity_btn <<= [this] {
+        CreateNewEntity();
+    };
+    
+    duplicate_entity_btn <<= [this] {
+        DuplicateEntity();
+    };
+    
+    delete_entity_btn <<= [this] {
+        DeleteEntity();
+    };
+    
+    import_entity_btn <<= [this] {
+        ImportEntity();
+    };
+    
+    export_entity_btn <<= [this] {
+        ExportEntity();
+    };
+}
+
+void EntityEditorWindow::UpdateTitle() {
+    String t = "Entity Editor";
+    if (state && !IsEmpty(state->project.name)) {
+        t << " - " << state->project.name;
+    }
+    if (state && !IsEmpty(state->current_path)) {
+        t << " [" << GetFileName(state->current_path) << "]";
+    }
+    if (state && state->dirty) {
+        t << " *";
+    }
+    Title(t);
+}
+
+void EntityEditorWindow::Open() {
+    // Initialize with reference to the main state
+    if (IsOpen())
+        return;
+    
+    // Update the controls with the current project data
+    if (state) {
+        entity_list_ctrl.SetProject(&state->project);
+    }
+    
+    OpenMain();
+}
+
+void EntityEditorWindow::CreateNewEntity() {
+    if (!state) return;
+    
+    // Create a new entity and add it to the project
+    Entity new_entity;
+    new_entity.id = "entity_" + Uuid().ToString();
+    new_entity.name = "New Entity";
+    new_entity.type = "character";
+    
+    state->project.entities.Add(new_entity);
+    state->dirty = true;
+    UpdateTitle();
+    entity_list_ctrl.RefreshList();
+}
+
+void EntityEditorWindow::DuplicateEntity() {
+    if (!state) return;
+    
+    // For now, use a simple approach to get the selected entity
+    // In a real implementation, we'd have a better way to track this
+    PromptOK("Entity duplication would happen here.");
+}
+
+void EntityEditorWindow::DeleteEntity() {
+    if (!state) return;
+    
+    // Similar approach as above
+    PromptOK("Entity deletion would happen here.");
+}
+
+void EntityEditorWindow::OnEntitySelectionChanged(const Entity* entity) {
+    entity_properties_ctrl.SetProject(&state->project);
+    entity_properties_ctrl.SetEntity(entity);
+}
+
+void EntityEditorWindow::OnEntityChanged() {
+    if (state) {
+        state->dirty = true;
+        UpdateTitle();
+    }
+}
+
+void EntityEditorWindow::ImportEntity() {
+    if (!state) {
+        Exclamation("No project loaded!");
+        return;
+    }
+    
+    FileSel fs;
+    fs.Type("Entity JSON (*.json)", "*.json");
+    fs.AllFilesType();
+    if (!fs.ExecuteOpen("Import Entity")) {
+        return;
+    }
+    
+    String path = ~fs;
+    String json = LoadFile(path);
+    if (IsNull(json)) {
+        Exclamation(Format("Failed to read file:\n%s", path));
+        return;
+    }
+    
+    // Parse the entity from JSON
+    Entity entity;
+    if (!LoadFromJson(entity, json)) {
+        Exclamation("Failed to parse entity JSON.");
+        return;
+    }
+    
+    // Check if an entity with this ID already exists
+    if (state->project.FindEntity(entity.id)) {
+        Exclamation("An entity with ID '" + entity.id + "' already exists in the project!");
+        return;
+    }
+    
+    // Add the entity to the project
+    state->project.entities.Add(entity);
+    state->dirty = true;
+    UpdateTitle();
+    entity_list_ctrl.RefreshList();
+    
+    PromptOK("Entity imported successfully!");
+}
+
+void EntityEditorWindow::ExportEntity() {
+    if (!state) {
+        Exclamation("No project loaded!");
+        return;
+    }
+    
+    // For now, export all entities - in a real implementation, we'd export just the selected one
+    // Get the selected entity from the list
+    int selected_row = entity_list_ctrl.GetCursor(); // This assumes the EntityListCtrl has a GetCursor method
+    if (selected_row < 0 || selected_row >= state->project.entities.GetCount()) {
+        Exclamation("No entity selected for export!");
+        return;
+    }
+    
+    const Entity& entity = state->project.entities[selected_row];
+    
+    FileSel fs;
+    fs.Type("Entity JSON (*.json)", "*.json");
+    fs.AllFilesType();
+    if (!fs.ExecuteSaveAs("Export Entity As")) {
+        return;
+    }
+    
+    String path = ~fs;
+    String json = StoreAsJson(entity, true); // true for pretty formatting
+    
+    if (!SaveFile(path, json)) {
+        Exclamation(Format("Failed to save file:\n%s", path));
+        return;
+    }
+    
+    PromptOK("Entity exported successfully!");
 }

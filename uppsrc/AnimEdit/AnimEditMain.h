@@ -10,6 +10,8 @@
 #include "AnimListCtrl.h"
 #include "SpriteInstanceListCtrl.h"
 #include "CollisionListCtrl.h"
+#include "EntityListCtrl.h"
+#include "EntityPropertiesCtrl.h"
 
 using namespace Upp;
 
@@ -22,6 +24,8 @@ public:
     void OpenProject();
     void SaveProject();
     void SaveProjectAs();
+    
+    AnimEditorState& GetState() { return state; }
 
 private:
     AnimEditorState state;
@@ -124,10 +128,36 @@ private:
 
 class EntityEditorWindow : public TopWindow {
 public:
-    EntityEditorWindow() {
-        Title("Entity Editor");
-        Sizeable().Zoomable();
-    }
+    EntityEditorWindow();
+    void Open();
+    void SetState(AnimEditorState* state) { this->state = state; }
+
+private:
+    AnimEditorState* state;  // Reference to shared state
+    EntityListCtrl entity_list_ctrl;
+    EntityPropertiesCtrl entity_properties_ctrl;
+    Splitter hsplit_main;  // Left list | Right properties
+    StaticRect entity_toolbar;  // Toolbar for entity controls
+    EditField search_field;  // For text search
+    Option category_option;  // For category filtering
+    Option sort_option;  // For sorting options
+    Button create_entity_btn;  // For creating new entities
+    Button duplicate_entity_btn;  // For duplicating entities
+    Button delete_entity_btn;  // For deleting entities
+    Button import_entity_btn;  // For importing entities
+    Button export_entity_btn;  // For exporting entities
+
+    void InitLayout();
+    void UpdateTitle();
+    void CreateNewEntity();
+    void DuplicateEntity();
+    void DeleteEntity();
+    void OnEntitySelectionChanged(const Entity* entity);
+    void OnEntityChanged();
+    
+    // Import/export functionality
+    void ImportEntity();
+    void ExportEntity();
 };
 
 class TextureEditorWindow : public TopWindow {
@@ -157,6 +187,9 @@ private:
     AnimEditorWindow animwin;
     EntityEditorWindow entitywin;
     TextureEditorWindow texwin;
+    
+    // Set up shared state between editors
+    void SetupSharedState();
 };
 
 #endif

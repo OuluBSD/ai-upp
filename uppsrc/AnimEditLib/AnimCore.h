@@ -180,6 +180,51 @@ struct Animation : public Moveable<Animation> {
     }
 };
 
+struct NamedAnimationSlot : public Moveable<NamedAnimationSlot> {
+    String name;
+    String animation_id;
+
+    NamedAnimationSlot() = default;
+    NamedAnimationSlot(const String& name, const String& animation_id)
+        : name(name), animation_id(animation_id) {}
+
+    bool operator==(const NamedAnimationSlot& other) const {
+        return name == other.name && animation_id == other.animation_id;
+    }
+    bool operator!=(const NamedAnimationSlot& other) const { return !(*this == other); }
+
+    void Swap(NamedAnimationSlot& other) {
+        Upp::Swap(name, other.name);
+        Upp::Swap(animation_id, other.animation_id);
+    }
+};
+
+struct Entity : public Moveable<Entity> {
+    String id;
+    String name;
+    String type;
+    Vector<NamedAnimationSlot> animation_slots;
+    ValueMap properties;  // Simple key-value store for behavior parameters
+
+    Entity() = default;
+    Entity(const String& id)
+        : id(id), name(id), type("default") {}
+
+    bool operator==(const Entity& other) const {
+        return id == other.id && name == other.name && type == other.type &&
+               animation_slots == other.animation_slots && properties == other.properties;
+    }
+    bool operator!=(const Entity& other) const { return !(*this == other); }
+
+    void Swap(Entity& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(animation_slots, other.animation_slots);
+        Upp::Swap(properties, other.properties);
+    }
+};
+
 struct AnimationProject : public Moveable<AnimationProject> {
     String id;
     String name;
@@ -187,6 +232,7 @@ struct AnimationProject : public Moveable<AnimationProject> {
     Vector<Sprite>     sprites;
     Vector<Frame>      frames;
     Vector<Animation>  animations;
+    Vector<Entity>     entities;
 
     const Sprite*    FindSprite(const String&) const;
     Sprite*          FindSprite(const String&);
@@ -196,11 +242,14 @@ struct AnimationProject : public Moveable<AnimationProject> {
 
     const Animation* FindAnimation(const String&) const;
     Animation*       FindAnimation(const String&);
+
+    const Entity*    FindEntity(const String&) const;
+    Entity*          FindEntity(const String&);
     
     bool operator==(const AnimationProject& other) const { 
         return id == other.id && name == other.name && 
                sprites == other.sprites && frames == other.frames &&
-               animations == other.animations; 
+               animations == other.animations && entities == other.entities; 
     }
     bool operator!=(const AnimationProject& other) const { return !(*this == other); }
     
@@ -210,6 +259,7 @@ struct AnimationProject : public Moveable<AnimationProject> {
         Upp::Swap(sprites, other.sprites);
         Upp::Swap(frames, other.frames);
         Upp::Swap(animations, other.animations);
+        Upp::Swap(entities, other.entities);
     }
 };
 

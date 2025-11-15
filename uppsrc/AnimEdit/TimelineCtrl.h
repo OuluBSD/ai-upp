@@ -18,6 +18,8 @@ public:
     void SetAnimation(const Animation* animation);
     void SetFrameCallback(std::function<void(const Frame*)> callback);
     void SetOnFrameModified(std::function<void()> callback);
+    
+    int GetSelectedFrameIndex() const { return selected_frame_index; }
 
 protected:
     virtual void Paint(Draw& w);
@@ -32,6 +34,7 @@ private:
     const Animation* animation;
     int selected_frame_index;
     int drag_start_index;
+    int drag_current_index;
     bool is_dragging;
 
     // Callbacks
@@ -49,6 +52,10 @@ private:
     void RefreshLayout();
     void UpdateScroll();
     void SelectFrame(int index);
+    void ReorderFrame(int from_index, int to_index);
+    void StartDrag(int index);
+    void EndDrag();
+    bool IsDragThresholdExceeded(Point pos);
 };
 
 #endif

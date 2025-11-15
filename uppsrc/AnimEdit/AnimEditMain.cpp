@@ -331,11 +331,42 @@ AnimEditorWindow::AnimEditorWindow() {
         // Currently just for handling selection events
     });
     timeline_ctrl.SetProject(&state.project);
-    timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
+timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
         // Callback when a frame is selected in the timeline
         SetActiveFrame(frame);
         canvas_ctrl.SetFrame(frame);
         canvas_ctrl.Refresh();
+    });
+    
+    // Connect timeline toolbar buttons
+    insert_frame_btn <<= [this] {
+        InsertFrame();
+    };
+    add_existing_frame_btn <<= [this] {
+        AddExistingFrame();
+    };
+    duplicate_frame_btn <<= [this] {
+        DuplicateFrame();
+    };
+    delete_frame_btn <<= [this] {
+        DeleteFrame();
+    };
+    
+    // For now, play/pause/stop buttons are placeholder functionality
+    play_btn <<= [this] {
+        PlayAnimation();
+    };
+    pause_btn <<= [this] {
+        PauseAnimation();
+    };
+    stop_btn <<= [this] {
+        StopAnimation();
+    };
+    
+    // Loop preview checkbox
+    loop_preview_check <<= [this] {
+        // Handle loop checkbox toggle
+    };
     });
     
     grid_snap_check <<= [this] { 
@@ -443,15 +474,44 @@ void AnimEditorWindow::InitLayout() {
     canvas_toolbar.Add(origin_snap_check.HSizePos(156, 80).VSizePos(4, 4));
     origin_snap_check.SetLabel("Origin Snap");
     canvas_toolbar.Add(zoom_label.RightPos(80).VSizePos(4, 4));
-    zoom_label.SetLabel("100%");
-    
-    canvas_panel.SetFrame(ThinInsetFrame());
-    canvas_panel.Add(canvas_toolbar.TopPos(0, 24).HSizePos());
-    canvas_panel.Add(canvas_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
-    
-    timeline_panel.SetFrame(ThinInsetFrame());
-    timeline_panel.Add(timeline_ctrl.VSizePos().HSizePos());
-    
+canvas_toolbar.Add(zoom_label.RightPos(80).VSizePos(4, 4));
+zoom_label.SetLabel("100%");
+
+canvas_panel.SetFrame(ThinInsetFrame());
+canvas_panel.Add(canvas_toolbar.TopPos(0, 24).HSizePos());
+canvas_panel.Add(canvas_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
+
+// Setup timeline toolbar
+timeline_toolbar.SetFrame(ThinInsetFrame());
+timeline_toolbar.Add(insert_frame_btn.LeftPos(4, 30).VSizePos(4, 4));
+insert_frame_btn.SetLabel("Insert");
+insert_frame_btn.SetTip("Insert new frame");
+timeline_toolbar.Add(add_existing_frame_btn.HSizePos(38, 30).VSizePos(4, 4));
+add_existing_frame_btn.SetLabel("Add");
+add_existing_frame_btn.SetTip("Add existing frame");
+timeline_toolbar.Add(duplicate_frame_btn.HSizePos(72, 30).VSizePos(4, 4));
+duplicate_frame_btn.SetLabel("Dup");
+duplicate_frame_btn.SetTip("Duplicate selected frame");
+timeline_toolbar.Add(delete_frame_btn.HSizePos(106, 30).VSizePos(4, 4));
+delete_frame_btn.SetLabel("Del");
+delete_frame_btn.SetTip("Delete selected frame");
+timeline_toolbar.Add(play_btn.HSizePos(140, 30).VSizePos(4, 4));
+play_btn.SetLabel("Play");
+play_btn.SetTip("Play animation");
+timeline_toolbar.Add(pause_btn.HSizePos(174, 30).VSizePos(4, 4));
+pause_btn.SetLabel("Pause");
+pause_btn.SetTip("Pause animation");
+timeline_toolbar.Add(stop_btn.HSizePos(208, 30).VSizePos(4, 4));
+stop_btn.SetLabel("Stop");
+stop_btn.SetTip("Stop animation");
+timeline_toolbar.Add(loop_preview_check.HSizePos(242, 80).VSizePos(4, 4));
+loop_preview_check.SetLabel("Loop Preview");
+
+timeline_panel.SetFrame(ThinInsetFrame());
+timeline_panel.Add(timeline_toolbar.TopPos(0, 24).HSizePos());  // Toolbar at top
+timeline_panel.Add(timeline_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
+
+frames_panel.BackPaint();
     frames_panel.BackPaint();
     frames_panel.Add(frames_label.SizePos());
     
@@ -491,4 +551,171 @@ void AnimEditorWindow::InitLayout() {
         << hsplit_right;
 
     Add(hsplit_main.SizePos());
+}void AnimEditorWindow::InsertFrame() {
+    if (!selected_animation) {
+        Exclamation("No animation selected!");
+        return;
+    }
+    
+    // Create a new frame and add it to the project
+    Frame new_frame;
+    new_frame.id = "frame_" + Uuid().ToString();
+    new_frame.name = "New Frame";
+    state.project.frames.Add(new_frame);
+    
+    // Add the new frame to the selected animation at the current selection index or at the end
+    int insert_index = (timeline_ctrl.GetSelectedFrameIndex() >= 0) ? 
+                       timeline_ctrl.GetSelectedFrameIndex() + 1 : 
+                       selected_animation->frames.GetCount();
+    
+    FrameRef frame_ref;
+    frame_ref.frame_id = new_frame.id;
+    frame_ref.has_duration = false;
+    frame_ref.duration = 0.1; // default duration
+    selected_animation->frames.Insert(insert_index, frame_ref);
+    
+    state.dirty = true;
+    UpdateTitle();
+    
+    // Update the timeline to show the new frame
+    SetSelectedAnimation(selected_animation);
+}
+
+void AnimEditorWindow::AddExistingFrame() {
+    if (!selected_animation) {
+        Exclamation("No animation selected!");
+        return;
+    }
+    
+    // Create a simple dialog to select an existing frame
+    CtrlLayout<ParentCtrl> dlg;
+    dlg.Ctrl::SizeHint([this]() { return Size(300, 400); });
+    
+    ArrayCtrl array_ctrl;
+    array_ctrl.AddColumn("ID", 100);
+    array_ctrl.AddColumn("Name", 150);
+    
+    // Add all existing frames to the array
+    for (const Frame& frame : state.project.frames) {
+        array_ctrl.Add(frame.id, frame.name);
+    }
+    
+    Button ok_btn, cancel_btn;
+    ok_btn.SetLabel("OK");
+    cancel_btn.SetLabel("Cancel");
+    
+    dlg.Add(array_ctrl.HSizePos().VSizePos(0, 40));
+    dlg.Add(ok_btn.LeftPos(50, 60).BottomPos(5, 25));
+    dlg.Add(cancel_btn.RightPos(50, 60).BottomPos(5, 25));
+    
+    // Create dialog window
+    PromptOKCancelFrame prompt_dlg;
+    prompt_dlg.Title("Select Frame to Add");
+    prompt_dlg.Add(dlg.SizePos());
+    prompt_dlg.OK(ok_btn);
+    prompt_dlg.Cancel(cancel_btn);
+    
+    if (prompt_dlg.Execute() == IDOK && array_ctrl.GetCount() > 0 && array_ctrl.Get() >= 0) {
+        int selected_row = array_ctrl.Get();
+        String selected_frame_id = array_ctrl.Get(0, selected_row); // Get ID
+        
+        // Add the selected frame to the animation
+        FrameRef frame_ref;
+        frame_ref.frame_id = selected_frame_id;
+        frame_ref.has_duration = false;
+        frame_ref.duration = 0.1; // default duration
+        int insert_index = (timeline_ctrl.GetSelectedFrameIndex() >= 0) ? 
+                           timeline_ctrl.GetSelectedFrameIndex() + 1 : 
+                           selected_animation->frames.GetCount();
+        selected_animation->frames.Insert(insert_index, frame_ref);
+        
+        state.dirty = true;
+        UpdateTitle();
+        
+        // Update the timeline to show the new frame
+        SetSelectedAnimation(selected_animation);
+    }
+}
+
+void AnimEditorWindow::DuplicateFrame() {
+    if (!selected_animation) {
+        Exclamation("No animation selected!");
+        return;
+    }
+    
+    int selected_frame_index = timeline_ctrl.GetSelectedFrameIndex();
+    if (selected_frame_index < 0 || selected_frame_index >= selected_animation->frames.GetCount()) {
+        Exclamation("No frame selected to duplicate!");
+        return;
+    }
+    
+    // Get the frame reference to duplicate
+    FrameRef original_ref = selected_animation->frames[selected_frame_index];
+    const Frame* original_frame = state.project.FindFrame(original_ref.frame_id);
+    
+    if (!original_frame) {
+        Exclamation("Original frame not found!");
+        return;
+    }
+    
+    // Create a copy of the frame
+    Frame new_frame = *original_frame;
+    new_frame.id = "dup_" + original_frame->id + "_" + Uuid().ToString();
+    new_frame.name = original_frame->name + " (copy)";
+    state.project.frames.Add(new_frame);
+    
+    // Add the new frame reference to the animation after the original
+    FrameRef new_ref;
+    new_ref.frame_id = new_frame.id;
+    new_ref.has_duration = original_ref.has_duration;
+    new_ref.duration = original_ref.duration;
+    selected_animation->frames.Insert(selected_frame_index + 1, new_ref);
+    
+    state.dirty = true;
+    UpdateTitle();
+    
+    // Update the timeline to show the new frame
+    SetSelectedAnimation(selected_animation);
+}
+
+void AnimEditorWindow::DeleteFrame() {
+    if (!selected_animation) {
+        Exclamation("No animation selected!");
+        return;
+    }
+    
+    int selected_frame_index = timeline_ctrl.GetSelectedFrameIndex();
+    if (selected_frame_index < 0 || selected_frame_index >= selected_animation->frames.GetCount()) {
+        Exclamation("No frame selected to delete!");
+        return;
+    }
+    
+    // Confirm deletion
+    if (!PromptYesNo("Are you sure you want to delete this frame?")) {
+        return;
+    }
+    
+    // Remove the frame reference from the animation
+    selected_animation->frames.Remove(selected_frame_index);
+    
+    state.dirty = true;
+    UpdateTitle();
+    
+    // Update the timeline
+    SetSelectedAnimation(selected_animation);
+}
+
+void AnimEditorWindow::PlayAnimation() {
+    // Placeholder for animation playback functionality
+    PromptOK("Animation playback would start here.");
+}
+
+void AnimEditorWindow::PauseAnimation() {
+    // Placeholder for animation pause functionality
+    PromptOK("Animation pause would happen here.");
+}
+
+void AnimEditorWindow::StopAnimation() {
+    // Placeholder for animation stop functionality
+    PromptOK("Animation stop would happen here.");
 }

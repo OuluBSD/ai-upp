@@ -6,6 +6,7 @@ TimelineCtrl::TimelineCtrl()
     , animation(nullptr)
     , selected_frame_index(-1)
     , drag_start_index(-1)
+    , drag_current_index(-1)
     , is_dragging(false)
     , frame_width(80)
     , frame_height(60)
@@ -164,22 +165,36 @@ void TimelineCtrl::LeftUp(Point pos, dword flags) {
     if (IsCapture()) {
         ReleaseCapture();
     }
+    
+    if (is_dragging && drag_start_index >= 0 && drag_current_index >= 0 && drag_start_index != drag_current_index) {
+        // Perform the reordering
+        ReorderFrame(drag_start_index, drag_current_index);
+        if (on_frame_modified_callback) {
+            on_frame_modified_callback();
+        }
+    }
+    
     drag_start_index = -1;
+    drag_current_index = -1;
     is_dragging = false;
     Ctrl::LeftUp(pos, flags);
 }
 
 void TimelineCtrl::MouseMove(Point pos, dword keyflags) {
     Ctrl::MouseMove(pos, keyflags);
-    
+
     if (IsCapture() && drag_start_index >= 0) {
-        // Check if we've moved enough to start dragging
-        static const int DRAG_THRESHOLD = 5;
-        if (!is_dragging) {
-            // Check if we've moved enough to start drag operation
-            Point drag_start_pos = pos - Point(DRAG_THRESHOLD/2, DRAG_THRESHOLD/2); // approx position
-            if (abs(pos.x - drag_start_pos.x) > DRAG_THRESHOLD || abs(pos.y - drag_start_pos.y) > DRAG_THRESHOLD) {
-                is_dragging = true;
+        if (!is_dragging && IsDragThresholdExceeded(pos)) {
+            is_dragging = true;
+        }
+
+        if (is_dragging) {
+            // Find the position where we are now to potentially swap frames
+            int new_index = HitTest(pos);
+            if (new_index >= 0 && new_index != drag_current_index) {
+                drag_current_index = new_index;
+                // Visual feedback would go here
+                Refresh();
             }
         }
     }
@@ -211,4 +226,60 @@ bool TimelineCtrl::Key(dword key, int count) {
             break;
     }
     return Ctrl::Key(key, count);
+}bool TimelineCtrl::IsDragThresholdExceeded(Point pos) {
+    if (drag_start_index < 0) return false;
+    
+    // Get the rect of the starting frame
+    int current_x = 4; // Padding
+    for (int i = 0; i < animation->frames.GetCount(); i++) {
+        Rect frame_rc(current_x, 4, current_x + frame_width, 4 + frame_height);
+        if (i == drag_start_index) {
+            // Calculate the center of the frame
+            Point frame_center = frame_rc.CenterPos();
+            int distance = abs(pos.x - frame_center.x);
+            static const int DRAG_THRESHOLD = 5;
+            return distance > DRAG_THRESHOLD;
+        }
+        current_x += frame_width + frame_spacing;
+    }
+    return false; // Should not happen if drag_start_index is valid
+}
+
+void TimelineCtrl::ReorderFrame(int from_index, int to_index) {
+    if (!animation || from_index < 0 || to_index < 0 || 
+        from_index >= animation->frames.GetCount() || to_index >= animation->frames.GetCount()) {
+        return;
+    }
+    
+    // Move the frame from from_index to to_index
+    FrameRef temp = animation->frames[from_index];
+    animation->frames.Remove(from_index);
+    animation->frames.Insert(to_index, temp);
+    
+    // Update the selected index if necessary
+    if (selected_frame_index == from_index) {
+        selected_frame_index = to_index;
+    } else if (selected_frame_index == to_index && from_index < to_index) {
+        selected_frame_index = to_index - 1;  // Adjust for the removed element
+    } else if (selected_frame_index == to_index && from_index > to_index) {
+        selected_frame_index = to_index + 1;  // Adjust for the shifted element
+    }
+    
+    Refresh();
+}
+
+void TimelineCtrl::StartDrag(int index) {
+    drag_start_index = index;
+    is_dragging = false; // We'll set this to true after the threshold is exceeded
+    drag_current_index = index;
+    SetCapture();
+}
+
+void TimelineCtrl::EndDrag() {
+    if (IsCapture()) {
+        ReleaseCapture();
+    }
+    drag_start_index = -1;
+    drag_current_index = -1;
+    is_dragging = false;
 }

@@ -52,8 +52,19 @@ private:
 
     // Center-bottom (timeline)
     ParentCtrl timeline_panel;
+    StaticRect timeline_toolbar;  // Toolbar for timeline controls
     TimelineCtrl timeline_ctrl;  // Timeline control
     Label      timeline_label;
+    
+    // Timeline toolbar buttons
+    Button insert_frame_btn;      // Insert new frame
+    Button add_existing_frame_btn; // Add existing frame
+    Button duplicate_frame_btn;   // Duplicate selected frame
+    Button delete_frame_btn;      // Delete selected frame
+    CheckBox loop_preview_check;  // Loop mode for preview
+    Button play_btn;              // Play button
+    Button pause_btn;             // Pause button
+    Button stop_btn;              // Stop button
 
     // Right side split components
     Splitter  hsplit_right;     // frames | mid | animations
@@ -76,6 +87,15 @@ private:
     void SetActiveFrame(const Frame* frame);
     void CreateNewSprite();
     void SetSelectedAnimation(const Animation* anim);
+    
+    // Timeline methods
+    void InsertFrame();
+    void AddExistingFrame();
+    void DuplicateFrame();
+    void DeleteFrame();
+    void PlayAnimation();
+    void PauseAnimation();
+    void StopAnimation();
 };
 
 class EntityEditorWindow : public TopWindow {

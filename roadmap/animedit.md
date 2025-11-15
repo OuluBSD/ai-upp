@@ -78,22 +78,22 @@ Primitive internal prototypes. No user-facing stability guarantees.
 52. Add error handling for dangling sprite IDs (removed sprite used by frames). ✅
 
 ## **v1.2 — Timeline (Animation Sequence Editing)**
-53. Visualize animation frames as horizontal card list in Timeline panel.
+53. Visualize animation frames as horizontal card list in Timeline panel. ✅
 54. Show frame index, frame name, and a tiny thumbnail for each.
-55. Implement frame selection from Timeline (sync with active Frame in state).
-56. Implement drag‑to‑reorder frames within the selected Animation.
-57. Add “Insert Frame” button (create new frame and insert into timeline).
-58. Add “Add Existing Frame” button (choose from global frame list).
-59. Add frame duplication from timeline (copy references and/or instances).
+55. Implement frame selection from Timeline (sync with active Frame in state). ✅
+56. Implement drag‑to‑reorder frames within the selected Animation. ✅
+57. Add “Insert Frame” button (create new frame and insert into timeline). ✅
+58. Add “Add Existing Frame” button (choose from global frame list). ✅
+59. Add frame duplication from timeline (copy references and/or instances). ✅
 60. Implement frame duration slider inside each timeline card.
-61. Implement play/pause/stop controls for animation preview.
-62. Implement loop mode toggle for preview (loop vs play once).
+61. Implement play/pause/stop controls for animation preview. ✅
+62. Implement loop mode toggle for preview (loop vs play once). ✅
 63. Implement preview playback based on durations (defaultDuration / overrides).
 64. Display current playback position as highlight on timeline.
 65. Implement onion‑skin (ghost frame) toggle and frame range (prev/next).
 66. Render onion skins in the canvas with configurable opacity.
 67. Add timeline zoom (more or fewer frames visible at once).
-68. Support keyboard navigation between frames (← / → arrows).
+68. Support keyboard navigation between frames (← / → arrows). ✅
 
 ## **v1.3 — Right‑Side Lists (Frames, Sprites, Collisions, Animations)**
 69. Bind Frames list (left of right‑pane) to project.frames.

@@ -12,69 +12,69 @@ It includes **major versions**, **minor versions**, and **well over 100 detailed
 Primitive internal prototypes. No user-facing stability guarantees.
 
 ## **v0.1 — Core Data & Serialization (DONE)**
-1. Implement core models (Sprite, Frame, Animation, etc.).
-2. Add JSON serialization for all models via Jsonize.
-3. Implement JSON loader/saver helpers (SaveProjectJson / LoadProjectJson).
-4. Create AnimEditLib test console application for round‑trip JSON tests.
-5. Add validation utilities for projects, animations, frames, and sprites.
-6. Add ID generation utilities for sprites, frames, animations, and collisions.
-7. Package cleanup and internal documentation pass for AnimEditLib.
+1. Implement core models (Sprite, Frame, Animation, etc.). ✅
+2. Add JSON serialization for all models via Jsonize. ✅
+3. Implement JSON loader/saver helpers (SaveProjectJson / LoadProjectJson). ✅
+4. Create AnimEditLib test console application for round‑trip JSON tests. ✅
+5. Add validation utilities for projects, animations, frames, and sprites. ✅
+6. Add ID generation utilities for sprites, frames, animations, and collisions. ✅
+7. Package cleanup and internal documentation pass for AnimEditLib. ✅
 
 ## **v0.2 — GUI Shell (DONE)**
-8. Create AnimEdit GUI skeleton app and hook into workspace.
-9. Implement main window (AnimEditMain) with basic TopWindow behavior.
-10. Add main menu bar with File and Editors menus.
-11. Create placeholder windows: Animation Editor, Entity Editor, Texture Editor.
-12. Wire menu items to open the placeholder editor windows.
-13. Set up build configurations and verify application launch on target platforms.
+8. Create AnimEdit GUI skeleton app and hook into workspace. ✅
+9. Implement main window (AnimEditMain) with basic TopWindow behavior. ✅
+10. Add main menu bar with File and Editors menus. ✅
+11. Create placeholder windows: Animation Editor, Entity Editor, Texture Editor. ✅
+12. Wire menu items to open the placeholder editor windows. ✅
+13. Set up build configurations and verify application launch on target platforms. ✅
 
-## **v0.3 — Editor State Management**
-14. Introduce AnimEditorState struct to encapsulate AnimationProject + metadata.
-15. Attach AnimEditorState to AnimEditorWindow and initialize with empty project.
-16. Implement NewProject() logic (clear state, create fresh project, update title).
-17. Implement OpenProject() using file dialog and JSON loader.
-18. Implement SaveProject() and SaveProjectAs() using file dialog and JSON saver.
-19. Add “dirty” flag tracking and propagate to window title.
-20. Add “Close Project” logic with dirty state confirmation dialog.
+## **v0.3 — Editor State Management (IN PROGRESS)**
+14. Introduce AnimEditorState struct to encapsulate AnimationProject + metadata. ✅
+15. Attach AnimEditorState to AnimEditorWindow and initialize with empty project. ✅
+16. Implement NewProject() logic (clear state, create fresh project, update title). ✅
+17. Implement OpenProject() using file dialog and JSON loader. ✅
+18. Implement SaveProject() and SaveProjectAs() using file dialog and JSON saver. ✅
+19. Add “dirty” flag tracking and propagate to window title. ✅
+20. Add “Close Project” logic with dirty state confirmation dialog. ✅
 21. Implement simple recent‑file list in main menu.
 22. Implement autosave interval (e.g., every X minutes when dirty).
 23. Implement backup file naming and cleanup policy.
-24. Add graceful error dialogs for failed load/save operations.
+24. Add graceful error dialogs for failed load/save operations. ✅
 
 ---
 
 # 🌒 MAJOR VERSION 1 — Animation Editor Alpha (Core UX)
 
-## **v1.0 — Basic Canvas Functionality**
-25. Implement canvas background grid drawing with configurable spacing.
-26. Implement origin crosshair rendering (red axes, gray background grid).
-27. Map mouse coordinates to world/canvas coordinates.
-28. Implement basic panning using middle mouse drag.
-29. Implement scroll‑wheel zoom in/out with cursor‑centric behavior.
-30. Add zoom level display in the UI (e.g., 100 %, 200 %).
-31. Draw SpriteInstances as simple colored rectangles or placeholders.
-32. Draw selection highlight around the active SpriteInstance.
-33. Implement click selection for SpriteInstances on the canvas.
-34. Implement drag‑to‑move for a single selected SpriteInstance.
-35. Add grid snapping toggle (on/off).
-36. Add snap‑to‑origin option for pivot alignment.
-37. Implement rotation via keyboard shortcuts (e.g., Q/E).
-38. Implement uniform scaling via keyboard shortcuts (e.g., +/-).
-39. Introduce an undo/redo stack for SpriteInstance transforms.
-40. Add simple toolbar buttons for undo/redo and snapping options.
+## **v1.0 — Basic Canvas Functionality (IN PROGRESS)**
+25. Implement canvas background grid drawing with configurable spacing. ✅
+26. Implement origin crosshair rendering (red axes, gray background grid). ✅
+27. Map mouse coordinates to world/canvas coordinates. ✅
+28. Implement basic panning using middle mouse drag. ✅
+29. Implement scroll‑wheel zoom in/out with cursor‑centric behavior. ✅
+30. Add zoom level display in the UI (e.g., 100 %, 200 %). ✅
+31. Draw SpriteInstances as simple colored rectangles or placeholders. ✅
+32. Draw selection highlight around the active SpriteInstance. ✅
+33. Implement click selection for SpriteInstances on the canvas. ✅
+34. Implement drag‑to‑move for a single selected SpriteInstance. ✅
+35. Add grid snapping toggle (on/off). ✅
+36. Add snap‑to‑origin option for pivot alignment. ✅
+37. Implement rotation via keyboard shortcuts (e.g., Q/E). ✅
+38. Implement uniform scaling via keyboard shortcuts (e.g., +/-). ✅
+39. Introduce an undo/redo stack for SpriteInstance transforms. ✅
+40. Add simple toolbar buttons for undo/redo and snapping options. ✅
 
-## **v1.1 — Parts Panel (Sprites Library)**
-41. Connect Parts panel to AnimationProject.sprites.
-42. Display sprite list with textual names and IDs.
-43. Add small icon/thumbnail rendering for sprites based on texture data.
-44. Add category filter (character / environment / effect / other).
-45. Add text filter (search by name or ID).
-46. Implement drag & drop from Parts panel to canvas to create SpriteInstances.
-47. Add right‑click context menu for sprite operations (edit, duplicate, delete).
-48. Implement basic sprite creation wizard (ID, texture path, region, pivot).
+## **v1.1 — Parts Panel (Sprites Library) (IN PROGRESS)**
+41. Connect Parts panel to AnimationProject.sprites. ✅
+42. Display sprite list with textual names and IDs. ✅
+43. Add small icon/thumbnail rendering for sprites based on texture data. ✅
+44. Add category filter (character / environment / effect / other). ✅
+45. Add text filter (search by name or ID). ✅
+46. Implement drag & drop from Parts panel to canvas to create SpriteInstances. ✅
+47. Add right‑click context menu for sprite operations (edit, duplicate, delete). ✅
+48. Implement basic sprite creation wizard (ID, texture path, region, pivot). ✅
 49. Integrate Image Layers / texture import with sprite creation pipeline.
-50. Add sprite metadata editor UI (category, tags, description).
-51. Implement sorting options (by name, by category, by recent use).
+50. Add sprite metadata editor UI (category, tags, description). ✅
+51. Implement sorting options (by name, by category, by recent use). ✅
 52. Add error handling for dangling sprite IDs (removed sprite used by frames).
 
 ## **v1.2 — Timeline (Animation Sequence Editing)**

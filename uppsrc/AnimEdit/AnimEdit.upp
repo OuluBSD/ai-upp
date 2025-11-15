@@ -17,4 +17,6 @@ file
 	AnimCanvasCtrl.h,
 	AnimCanvasCtrl.cpp,
 	SpriteListCtrl.h,
-	SpriteListCtrl.cpp;
+	SpriteListCtrl.cpp,
+	TimelineCtrl.h,
+	TimelineCtrl.cpp;

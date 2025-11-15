@@ -46,7 +46,7 @@ bool QwenTCPServer::start(int port, const std::string& host) {
     // Configure client to communicate via stdin/stdout (the default mode for qwen-code)
     client_config.mode = CommunicationMode::STDIN_STDOUT;
     client_config.auto_restart = true;
-    client_config.verbose = false;
+    client_config.verbose = true;  // Enable verbose logging to debug message flow
     
     // Initialize the Qwen client
     qwen_client_ = std::make_unique<QwenClient>(client_config);
@@ -56,6 +56,11 @@ bool QwenTCPServer::start(int port, const std::string& host) {
     
     // When we get a conversation response from qwen-code, forward it to the appropriate TCP client
     handlers.on_conversation = [this](const ConversationMessage& msg) {
+        std::cout << "[QwenTCPServer] on_conversation handler called! Role: "
+                  << (msg.role == MessageRole::ASSISTANT ? "ASSISTANT" :
+                      msg.role == MessageRole::USER ? "USER" : "SYSTEM")
+                  << ", Content length: " << msg.content.size() << std::endl;
+
         if (msg.role == MessageRole::ASSISTANT) {
             // For now, broadcast assistant responses to all connected clients
             // In a real implementation, we would route to the specific client that made the request
@@ -63,9 +68,10 @@ bool QwenTCPServer::start(int port, const std::string& host) {
             response += "\"type\":\"assistant_response\",";
             response += "\"content\":" + std::string("\"") + msg.content + std::string("\"");
             response += "}\n";
-            
+
             // Send to all connected clients
             std::lock_guard<std::mutex> lock(clients_mutex_);
+            std::cout << "[QwenTCPServer] Broadcasting to " << active_clients_.size() << " clients" << std::endl;
             for (const auto& pair : active_clients_) {
                 send_response(pair.first, response);
             }
@@ -154,13 +160,18 @@ bool QwenTCPServer::start(int port, const std::string& host) {
 }
 
 void QwenTCPServer::server_thread() {
+    std::cerr << "[QwenTCPServer] *** SERVER THREAD STARTED - NEW BUILD ***" << std::endl << std::flush;
+
     std::vector<struct pollfd> poll_fds;
     struct pollfd server_pollfd;
     server_pollfd.fd = server_socket_;
     server_pollfd.events = POLLIN;
     poll_fds.push_back(server_pollfd);
 
+    int loop_count = 0;
     while (running_.load()) {
+        loop_count++;
+
         // Poll for events (with 100ms timeout)
         int ret = poll(poll_fds.data(), poll_fds.size(), 100);
 
@@ -221,31 +232,33 @@ void QwenTCPServer::server_thread() {
                 if (bytes_read > 0) {
                     // Null-terminate the buffer
                     buffer[bytes_read] = '\0';
-                    
+
                     // Process the received data
                     {
                         std::lock_guard<std::mutex> lock(clients_mutex_);
                         auto it = active_clients_.find(poll_fds[i].fd);
                         if (it != active_clients_.end()) {
                             it->second.input_buffer += std::string(buffer);
-                            
+
                             // Process complete lines (JSON messages are separated by newlines)
                             std::string& input_buffer = it->second.input_buffer;
                             size_t pos;
                             while ((pos = input_buffer.find('\n')) != std::string::npos) {
                                 std::string line = input_buffer.substr(0, pos);
                                 input_buffer.erase(0, pos + 1);
-                                
+
                                 if (!line.empty()) {
                                     handle_client_message(poll_fds[i].fd, line);
                                 }
                             }
                         }
                     }
-                } else if (bytes_read == 0 || (poll_fds[i].revents & (POLLHUP | POLLERR))) {
-                    // Client disconnected or error occurred
+                } else if (bytes_read == 0 || (poll_fds[i].revents & POLLERR)) {
+                    // Client disconnected (EOF on read) or actual error occurred
+                    // Note: We ignore POLLHUP alone because it just means client closed write side,
+                    // but we can still send data to them (half-duplex connection)
                     int client_fd = poll_fds[i].fd;
-                    
+
                     // Remove from our tracking
                     {
                         std::lock_guard<std::mutex> lock(clients_mutex_);
@@ -283,7 +296,12 @@ void QwenTCPServer::server_thread() {
         
         // Also poll messages from qwen-code if connected
         if (qwen_client_ && qwen_client_->is_running()) {
-            qwen_client_->poll_messages(0); // Non-blocking poll
+            int msg_count = qwen_client_->poll_messages(0); // Non-blocking poll
+            if (msg_count > 0) {
+                std::cerr << "[QwenTCPServer] poll_messages() returned " << msg_count << " messages" << std::endl << std::flush;
+            } else if (msg_count < 0) {
+                std::cerr << "[QwenTCPServer] poll_messages() ERROR: " << msg_count << std::endl << std::flush;
+            }
         }
     }
 
@@ -348,13 +366,17 @@ void QwenTCPServer::handle_client_message(int client_fd, const std::string& mess
 
 bool QwenTCPServer::send_response(int client_fd, const std::string& response) {
     if (client_fd < 0) return false;
-    
+
+    std::cout << "[QwenTCPServer] Sending " << response.size() << " bytes to client " << client_fd << std::endl;
+
     ssize_t sent = write(client_fd, response.c_str(), response.size());
     if (sent != static_cast<ssize_t>(response.size())) {
-        std::cerr << "[QwenTCPServer] Failed to send complete response. Expected: " 
+        std::cerr << "[QwenTCPServer] Failed to send complete response. Expected: "
                   << response.size() << ", Sent: " << (sent >= 0 ? sent : 0) << std::endl;
         return false;
     }
+
+    std::cout << "[QwenTCPServer] Successfully sent response to client " << client_fd << std::endl;
     return true;
 }
 

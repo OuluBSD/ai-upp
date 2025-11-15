@@ -12,7 +12,7 @@ file
 	06h_toyshader_animation.cpp,
 	06i_toyshader_raymarching.cpp,
 	06j_toyshader_water.cpp,
-	06k_toyshader_fire.cpp,
+	06k_toyshader_sound.cpp,
 	06l_toyshader_rgb_test.cpp,
 	06m_debug_cubemap.cpp,
 	Eon06.h,

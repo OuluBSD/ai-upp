@@ -7,9 +7,9 @@ NAMESPACE_UPP
 void Run06hToyShaderAnimation(Engine& eng, int method) {
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
-	
-	String filepath = "share/eon/tests/06h_toyshader_animation/06h_toyshader_animation.toy";
-	
+
+	String filepath = "share/eon/tests/06h_toyshader_feedback/06h_toyshader_feedback.toy";
+
 	sys->PostLoadFile(RealizeShareFile(filepath));
 }
 

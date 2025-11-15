@@ -1,422 +1,299 @@
-// Buf B - Interpret the Teletext Data.
-// Read the Teletext Character Data from BufA and convert to character values and colors to display
+// Teletext
+// @P_Malin
+// https://www.shadertoy.com/view/4dVBRD
 
-#define iChannelScreenData 	iChannel0
-#define iChannelKeyboard	iChannel1
+// Gallery images by @horsenburger - check out the amazing teletext artwork at
+// www.horsenburger.com
 
-int GetTeletextCode( ivec2 coord )
+// Type Number to select Page e.g. 300 (or use up / down arrow for prev / next)
+// Space / Mouse Click = Reveal
+// M = Mix (change channel 2 in the image shader to video for a more authentic feel)
+// Enter = Index (page 100)
+
+// Wait for pages to change
+
+
+
+// Image Shader - Render the characters and colors output from Buffer B
+
+#define ENABLE_AA		1
+const float AA_Size = 4.0;
+
+#define HIRES_FONT  			0
+#define SHOW_GFX_HEX_VALUES 	0
+
+#define USE_FONT_TEXTURE    	0
+
+#define BITMAP_FONT_TEST		0
+#define BITMAP_FONT_TEST_CHAR	_AMPERSAND
+
+
+// http://www.bighole.nl/pub/mirror/homepage.ntlworld.com/kryten_droid/teletext/spec/teletext_spec_1974.htm
+
+#define iChannelCharData 		iChannel0
+#define iChannelBackgroundData 	iChannel2
+#define iChannelKeyboard		iChannel3
+
+int GetGfxCharIndex( int charIndex )
 {
-    return int( texelFetch( iChannelScreenData, ivec2( coord ), 0 ).r );
+    if ( charIndex >= 16 * 2 && charIndex < 16 * 4 )
+        return charIndex - 16 * 2;
+
+    if ( charIndex >= 16 * 6 && charIndex < 16 * 8 )
+        return 16 * 2 + charIndex - 16 * 6;
+
+    return 0;
 }
 
-struct TeletextState
+float SampleFontCharacter( int charIndex, vec2 vCharUV )
 {
-    int chr;    
+#if USE_FONT_TEXTURE    
+    vec2 vUV;
+    
+    vCharUV.x = vCharUV.x * 0.6 + 0.25;
+    
+    vUV.x = (float(charIndex % 16) + vCharUV.x) / 16.0;
+    vUV.y = (float(charIndex / 16) + vCharUV.y) / 16.0;
+    
+	return clamp( ( 0.503 - texture(iChannel1, vUV).w) * 100.0, 0.0, 1.0 );
+#else    
+	float fCharData = 0.0;
+    ivec2 vCharPixel = ivec2(vCharUV * vec2(kCharPixels) );   
 
-    int iFgCol;
-    int iBgCol;
-
-    int iHeldChar;    
-    bool bHeldSeparated;
+    #if !HIRES_FONT
+        bool bCharData = CharBitmap12x20( charIndex, vCharPixel );            
+        fCharData = bCharData ? 1.0 : 0.0;
+    #else
+        bool bCharData = CharHiRes( charIndex, vCharUV );
+        fCharData = bCharData ? 1.0 : 0.0;
+    #endif
     
-    bool bDoubleHeight;
-    bool bFlash;
-    bool bGfx;
-    bool bConceal;
-    bool bSeparatedGfx;
-    bool bHoldGfx;
-    
-    int cmd;
-};    
-    
-
-TeletextState TeletextState_Default()
-{
-    TeletextState state;
-    
-    state.chr = 0x20;
-    
-    state.iFgCol = 7;
-    state.iBgCol = 0;
-    
-    state.iHeldChar = 0x20;
-    state.bHeldSeparated = false;
-    
-    state.bDoubleHeight = false;
-    state.bFlash = false;    
-    state.bGfx = false;
-    state.bConceal = false;
-    state.bSeparatedGfx = false;
-    state.bHoldGfx = false;
-    
-    state.cmd = -1;
-    
-    return state;
+    return fCharData;
+#endif
 }
 
-bool IsAnyOfRowDoubleHeight( ivec2 coord )
-{
-    for ( int x = 0; x < kScreenChars.x; x++ )
+vec4 TeletextScreen( vec2 vScreenUV )
+{      
+    ivec2 vCharIndex = ivec2(floor(vScreenUV * vec2(kScreenChars)));
+
+    if ( any( lessThan( vCharIndex, ivec2(0) ) ) )
     {
-        int chr = GetTeletextCode( ivec2(x, coord.y) );
+        return vec4(0);
+	}    
+    if ( any( greaterThanEqual( vCharIndex, kScreenChars ) ) )
+    {
+        return vec4(0);
+	}
+    
+    vec4 vCharSample = texelFetch( iChannelCharData, vCharIndex, 0 );
+    //vCharSample=vec4(7,GFX_ALPHANUMERIC,NORMAL_HEIGHT,_a);
+
+    int charIndex = int(vCharSample.a);
+
+    vec2 vCharUV = fract( vScreenUV * vec2(kScreenChars) );
+    
+    // Double height
+    switch( int(vCharSample.z) )
+    {
+        default:
+        case NORMAL_HEIGHT:
+        break;
         
-        if ( chr == CTRL_DOUBLE_HEIGHT )
-        {
-            return true;
-        }
+        case DOUBLE_HEIGHT_TOP:
+        	vCharUV.y = vCharUV.y / 2.0;
+        break;
+
+        case DOUBLE_HEIGHT_BOTTOM:
+        	vCharUV.y = vCharUV.y / 2.0 + 0.5;
+        break;
     }
     
-    return false;    
-}
-
-int GetDoubleHeightType( ivec2 coord )
-{
-    int count = 0;
+    int iFgCol = int(vCharSample.r) & 7;
+    int iBgCol = (int(vCharSample.r) >> 8) & 7;
     
-    for ( int y = coord.y; y >= 0; y-- )
+    int iGfx = int(vCharSample.g);
+    
+    vec4 col = vec4( kColors[ iBgCol ], 1.0 );
+    if ( iBgCol == 0 )
     {
-        if ( !IsAnyOfRowDoubleHeight( ivec2( coord.x, y ) ) )
-        {
-            break;
-		}
-		
-		count++;
+        col.a = 0.0;
     }
-    
-    if ( count == 0 )
-        return NORMAL_HEIGHT;
-    
-    if ( (count % 2) == 0 )
-        return DOUBLE_HEIGHT_BOTTOM;
-        
-    return DOUBLE_HEIGHT_TOP; 
-}
 
-void TeletextState_SetAlphanumericColor( inout TeletextState state, int color )
-{
-    state.iFgCol = color;
-    state.bGfx = false;
-    state.bConceal = false;
-}
-
-void TeletextState_SetGfxColor( inout TeletextState state, int color )
-{
-    state.iFgCol = color;
-    state.bGfx = true;            
-    state.bConceal = false;
-}
-
-bool IsControlCharacter( int chr )
-{
-    if ( chr >= 128 )
-        return true;
-    
-    return false;
-}
-
-bool IsBlastThroughCharacter( int chr )
-{
-	if ( chr >= _AT && chr <= _HASH ) return true;
-    
-    return false;
-}
-
-bool IsHoldCharacter( int chr )
-{    
-    // The Held Graphics Character is only defined during the Graphics Mode.
-    // It is then the most recent character with b6=1 in its character code,
-    // providing that there has been no intervening change in either 
-    // the Alphanumerics/Graphics or the Normal/Double Height modes.
-    if ((chr & (1 << 5)) != 0) return true;
-    
-    return false;
-}
-
-bool Reveal()
-{    
-    return (iMouse.z > 0.0) || Key_IsPressed( iChannelKeyboard, KEY_SPACE );
-}
-
-int TeletextState_GetChar( TeletextState state )
-{
-    if ( state.bConceal )
+    if ( charIndex >= 0 )
     {
-        if ( !Reveal() )
+        if ( iGfx == GFX_ALPHANUMERIC )
         {
-        	return _SP;
-        }
-    }
-    
-    if ( IsControlCharacter( state.chr ) )
-    {
-        if ( state.bGfx && state.bHoldGfx )
-        {
-            return state.iHeldChar;
-        }
-        else
-        {
-            return _SP;
-        }
-    }    
-    return state.chr;
-}
-
-
-bool TeletextState_GetSeparatedGfx( TeletextState state )
-{
-    if ( IsControlCharacter( state.chr ) )
-    {
-        if ( state.bHoldGfx )
-        {
-            return state.bHeldSeparated;
-        }
-        else
-        {
-            return false;
-        }
-    }    
-    
-    return state.bSeparatedGfx;
-}
-
-TeletextState GetState( ivec2 coord )
-{
-    TeletextState state = TeletextState_Default();
-    
-    for ( int x = 0; x <= coord.x; x++ )
-    {
-        // Process commands that are deferred until next character
-        switch( state.cmd )
-        {
-            case CTRL_NUL:
-            	TeletextState_SetAlphanumericColor( state, COLOR_BLACK );
-            break;
-            case CTRL_ALPHANUMERIC_RED:
-            	TeletextState_SetAlphanumericColor( state, COLOR_RED );
-            break;
-            case CTRL_ALPHANUMERIC_GREEN:
-            	TeletextState_SetAlphanumericColor( state, COLOR_GREEN );
-            break;
-            case CTRL_ALPHANUMERIC_MAGENTA:
-            	TeletextState_SetAlphanumericColor( state, COLOR_MAGENTA );
-            break;
-            case CTRL_ALPHANUMERIC_BLUE:
-            	TeletextState_SetAlphanumericColor( state, COLOR_BLUE );
-            break;
-            case CTRL_ALPHANUMERIC_YELLOW:
-            	TeletextState_SetAlphanumericColor( state, COLOR_YELLOW );
-            break;
-            case CTRL_ALPHANUMERIC_CYAN:
-            	TeletextState_SetAlphanumericColor( state, COLOR_CYAN );
-            break;
-            case CTRL_ALPHANUMERIC_WHITE:
-            	TeletextState_SetAlphanumericColor( state, COLOR_WHITE );
-            break;
-            
-            case CTRL_GFX_RED:
-            	TeletextState_SetGfxColor( state, COLOR_RED );
-            break;            
-            case CTRL_GFX_GREEN:
-            	TeletextState_SetGfxColor( state, COLOR_GREEN );
-            break;            
-            case CTRL_GFX_YELLOW:
-            	TeletextState_SetGfxColor( state, COLOR_YELLOW );
-            break;            
-            case CTRL_GFX_BLUE:
-            	TeletextState_SetGfxColor( state, COLOR_BLUE );
-            break;            
-            case CTRL_GFX_MAGENTA:
-            	TeletextState_SetGfxColor( state, COLOR_MAGENTA );
-            break;            
-            case CTRL_GFX_CYAN:
-            	TeletextState_SetGfxColor( state, COLOR_CYAN );
-            break;            
-            case CTRL_GFX_WHITE:
-            	TeletextState_SetGfxColor( state, COLOR_WHITE );
-            break;  
-            
-            case CTRL_RELEASE_GFX:
-            	state.bHoldGfx = false;
-            break;            
-        }
-
-        state.cmd = -1;
-        
-        state.chr = GetTeletextCode( ivec2(x, coord.y) );
-        
-        switch( state.chr )
-        {
-            case CTRL_NUL:
-            	state.cmd = CTRL_NUL;
-            break;            
-            case CTRL_ALPHANUMERIC_RED:
-            	state.cmd = CTRL_ALPHANUMERIC_RED;
-            break;
-            case CTRL_ALPHANUMERIC_GREEN:
-            	state.cmd = CTRL_ALPHANUMERIC_GREEN;
-            break;
-            case CTRL_ALPHANUMERIC_MAGENTA:
-            	state.cmd = CTRL_ALPHANUMERIC_MAGENTA;
-            break;
-            case CTRL_ALPHANUMERIC_BLUE:
-            	state.cmd = CTRL_ALPHANUMERIC_BLUE;
-            break;
-            case CTRL_ALPHANUMERIC_YELLOW:
-            	state.cmd = CTRL_ALPHANUMERIC_YELLOW;
-            break;
-            case CTRL_ALPHANUMERIC_CYAN:
-            	state.cmd = CTRL_ALPHANUMERIC_CYAN;
-            break;
-            case CTRL_ALPHANUMERIC_WHITE:
-            	state.cmd = CTRL_ALPHANUMERIC_WHITE;
-            break;
-            case CTRL_GFX_RED:
-            	state.cmd = CTRL_GFX_RED;
-            break;            
-            case CTRL_GFX_GREEN:
-            	state.cmd = CTRL_GFX_GREEN;
-            break;            
-            case CTRL_GFX_YELLOW:
-            	state.cmd = CTRL_GFX_YELLOW;
-            break;            
-            case CTRL_GFX_BLUE:
-            	state.cmd = CTRL_GFX_BLUE;
-            break;            
-            case CTRL_GFX_MAGENTA:
-            	state.cmd = CTRL_GFX_MAGENTA;
-            break;            
-            case CTRL_GFX_CYAN:
-            	state.cmd = CTRL_GFX_CYAN;
-            break;            
-            case CTRL_GFX_WHITE:
-            	state.cmd = CTRL_GFX_WHITE;
-            break;            
-            
-            case CTRL_FLASH:
-            	state.bFlash = true;
-           	break;
-            case CTRL_STEADY:
-            	state.bFlash = false;
-           	break;
-            case CTRL_NORMAL_HEIGHT:
-            	state.bDoubleHeight = false;
-				state.iHeldChar = 0x20;
-            break;
-            case CTRL_DOUBLE_HEIGHT:
-            	state.bDoubleHeight = true;
-				state.iHeldChar = 0x20;
-            break;
-            case CTRL_NEW_BACKGROUND:
-            	state.iBgCol = state.iFgCol;
-            break;
-            case CTRL_BLACK_BACKGROUND:
-            	state.iBgCol = COLOR_BLACK;
-            break;
-            
-            case CTRL_HOLD_GFX:
-            	state.bHoldGfx = true;
-            break;
-
-            case CTRL_RELEASE_GFX:
-            	state.cmd = CTRL_RELEASE_GFX;
-            break;
-            
-            case CTRL_CONTIGUOUS_GFX:
-            	state.bSeparatedGfx = false;
-            break;
-
-            case CTRL_SEPARATED_GFX:
-            	state.bSeparatedGfx = true;
-            break;
-            
-            case CTRL_CONCEAL:
-            	state.bConceal = true;
-            break;
-        }
-                
-        if ( state.bGfx )
-        {
-            if ( IsHoldCharacter( state.chr ) )
+            float fCharData = SampleFontCharacter( charIndex, vCharUV );
+            if ( fCharData > 0.0 )
             {
-            	state.iHeldChar = state.chr;
-                state.bHeldSeparated = state.bSeparatedGfx;
+                vec4 vChCol = vec4( kColors[ iFgCol ], iFgCol == 0 ? 0.0 : 1.0 );
+                col = mix( col, vChCol, fCharData );
             }
         }
-    }   
+        else
+        {        
+            int iGfxCharIndex = GetGfxCharIndex( charIndex );
+
+            ivec2 vGfxCharPixel = ivec2(vCharUV * vec2(kCharPixels) );   
+
+            #if !SHOW_GFX_HEX_VALUES
+            ivec2 vGfxPixel = ivec2(vGfxCharPixel.x / 6, vGfxCharPixel.y / 7 );
+            
+            ivec2 vMosaicPixel = ivec2(vGfxCharPixel.x % 6, vGfxCharPixel.y % 7 );
+
+            bool bGfxPixel = true;
+            if ( iGfx == GFX_SEPARATED )
+            {
+                if ( vMosaicPixel.x > 3 || vMosaicPixel.y > 4 || vMosaicPixel.x < 1 || vMosaicPixel.y < 1 )
+                {
+                    bGfxPixel = false;
+                }
+            }
+            
+            if ( bGfxPixel )
+            {
+                int iGfxBit = vGfxPixel.x + vGfxPixel.y * 2;
+
+                if ( ((iGfxCharIndex >> iGfxBit) & 1) != 0 )
+                {
+                    col = vec4( kColors[ iFgCol ], 1.0 );
+                    if ( iFgCol == 0 )
+                    {
+                        col.a = 0.0;
+                    }                    
+                }
+            }
+
+            #else
+            // Show hex values
+            int ch[] = int[]( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _A, _B, _C, _D, _E, _F );
+
+            int d = 16;
+
+            if ( vGfxCharPixel.y > 10 )
+            {
+                vGfxCharPixel.y -= 10;
+                d = 1;
+            }
+
+            charIndex = ch[ (iGfxCharIndex / d) % 16 ];
+
+            vGfxCharPixel.y *= 2;
+            bool bCharData = CharBitmap12x20( charIndex, vGfxCharPixel );
+            if ( bCharData )
+            {
+                col = vec4(kColors[ iFgCol ], 1);
+            }		
+            #endif
+        }
+    }
     
-    return state;
+	return col;
 }
 
+vec3 SingleSample( vec2 vCoord )
+{
+    vec4 col = vec4(0);
 
-ivec4 GetInfo( ivec2 coord )
-{    
-    int iCol = 7;
-    int iBgCol = 0;
-    int iDoubleHeight = 0;
+    float fScale = float(kScreenResolution.y) / iResolution.y;
+    
+    float fScaleX = fScale * ( float(kScreenResolution.x) / float(kScreenResolution.y) ) / (kScreenRatio.x / kScreenRatio.y);
+    
+    vCoord.x -= (iResolution.x - float(kScreenResolution.x) / fScaleX) * 0.5;
+    
+    vec2 vScreenUV = vCoord * vec2(fScaleX, fScale);
+        
+    vScreenUV.y = float(kScreenResolution.y) - 1.0 - vScreenUV.y;
+    vScreenUV = vScreenUV / vec2(kScreenResolution.xy);
+        
+    col = TeletextScreen( vScreenUV );
+    
+    vec2 vBackgroundUV = vScreenUV;
+    vBackgroundUV.y = 1.0 - vBackgroundUV.y;
+    //vBackgroundUV += vec2(0.05, 0.1) * iTime;
+    vec3 vBackground = texture(iChannelBackgroundData, vBackgroundUV ).rgb;
+    
+	if ( !Key_IsToggled( iChannelKeyboard, KEY_M ) )
+    {
+    	vBackground = vec3(0.1);
+    }
+    
+    if ( any( lessThan( vBackgroundUV, vec2(0) ) ) ) vBackground = vec3(0);
+    if ( any( greaterThanEqual( vBackgroundUV, vec2(1) ) ) ) vBackground = vec3(0);
+    
+    vec3 vResult = mix( vBackground, col.rgb, col.a );
+    
+    // Scanlines
+    //vResult *= cos( 3.14 + vScreenUV.y * 3.14 * 2.0 * 625.0 ) * 0.1 + 0.9;
+    
+    return vResult;
+}
 
-    TeletextState state = GetState( coord );
- 
-    int chr = TeletextState_GetChar( state );
+vec3 BitmapFontTest( vec2 vUV, int testChar )
+{
+    vec3 col = vec3(0);
+
+#if 1
+    vec2 vPixelPos = vUV * vec2(kCharPixels);
+    ivec2 iPixelPos = ivec2( vPixelPos );
+    iPixelPos.y = 19 - iPixelPos.y;
+    bool bResult = CharBitmap12x20( testChar, iPixelPos );
+#else
+    vec2 vPixelPos = vUV * vec2(kSmallCharPixels);    
+    ivec2 iPixelPos = ivec2( vPixelPos );
+    iPixelPos.y = 8 - iPixelPos.y;
+    bool bResult = CharBitmap5x9( testChar, iPixelPos );
+#endif
     
-    int doubleHeightType = GetDoubleHeightType( coord );
-    
-    if ( doubleHeightType == DOUBLE_HEIGHT_BOTTOM )
+    if ( bResult )
     {
-        if ( state.bDoubleHeight )
-        {
-            iDoubleHeight = DOUBLE_HEIGHT_BOTTOM;
-        }
-        else
-        {
-            chr = _SP;
-        }
+        col = vec3(1);
     }
-	else
-    if ( state.bDoubleHeight )
+    else
     {
-        iDoubleHeight = DOUBLE_HEIGHT_TOP;
-    }
-    
-    if ( state.bFlash )
-    {
-        if ( mod( iTime, 2.0 ) < 0.5 )
-        {
-            chr = _SP;
-        }
+        col = vec3(0);        
     }
     
-    int gfx = GFX_ALPHANUMERIC;
-    if ( state.bGfx )
-    {
-        if ( TeletextState_GetSeparatedGfx( state ) )
-        {
-            gfx = GFX_SEPARATED;
-        }
-        else
-        {
-            gfx = GFX_CONTINUOUS;
-        }
-    }
+    vec2 vSubPixelPos = fract( vPixelPos );
     
-    if ( IsBlastThroughCharacter( chr ) ) gfx = 0;
+    if ( vSubPixelPos.x > 0.9 || vSubPixelPos.x < 0.1)
+        col = vec3(0,0,1);
+    if ( vSubPixelPos.y > 0.9 || vSubPixelPos.y < 0.1)
+        col = vec3(0,0,1);
     
-    int col = state.iFgCol + (state.iBgCol << 8);
-    
-    return ivec4( col, gfx, iDoubleHeight, chr );
+    return col;
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    ivec2 iFragCoord = ivec2( fragCoord );
+    vec2 vUV = fragCoord/iResolution.xy;
+
+    vec3 col = vec3(0);
+
+#if ENABLE_AA
+    float count = 0.0;
     
-    if ( any( greaterThanEqual( iFragCoord, kScreenChars ) ) )
+    for ( float aaY = 0.; aaY < AA_Size; aaY++ )
     {
-        fragColor = vec4( 0);
-        discard;
-        return;
+        for ( float aaX = 0.; aaX < AA_Size; aaX++ )
+        {
+            vec3 vSample = SingleSample(fragCoord + vec2(aaX, aaY) / AA_Size );
+            col += vSample * vSample;
+        	count += 1.0;
+        }	
     }
     
-    ivec4 info = GetInfo( ivec2(iFragCoord) );
+    col /= count;
+    col = sqrt( col );
+#else    
+    col = SingleSample(fragCoord + 0.0001);    
+#endif    
+ 
+#if BITMAP_FONT_TEST != 0
+    col = BitmapFontTest( vUV, BITMAP_FONT_TEST_CHAR );
+#endif    
+  
+    fragColor = vec4(col,1.0);
     
-    fragColor = vec4( info.x, info.y, info.z, info.w );
+    //fragColor = texelFetch( iChannel1, ivec2(fragCoord) / 3, 0 );    
 }

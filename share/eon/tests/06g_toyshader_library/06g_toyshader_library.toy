@@ -7,6 +7,15 @@
 	
 	stages: [
 		{
+			type: library,
+			inputs: [],
+			outputs: [
+				{
+					id: -1,
+				},
+			],
+		},
+		{
 			type: image,
 			
 			inputs: [
@@ -46,11 +55,6 @@
 					id: 4,
 				},
 			],
-		},
-		{
-			name: "Common",
-			type: library,
-			
 		},
 		{
 			name: "Buf A",

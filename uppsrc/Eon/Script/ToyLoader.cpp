@@ -113,10 +113,11 @@ bool ToyLoader::Load(Value& o) {
 			TOY_ASSERT(in_map.Find("type") >= 0);
 			to_in.id		= in_map("id").ToString();
 			to_in.type		= in_map("type").ToString();
-			if (in_map.Find("filter") >= 0)		to_in.filter	= in_map("filter").ToString();
-			if (in_map.Find("wrap") >= 0)		to_in.wrap		= in_map("wrap").ToString();
-			if (in_map.Find("vflip") >= 0)		to_in.vflip		= in_map("vflip").ToString();
-			if (in_map.Find("filename") >= 0)	to_in.filename	= in_map("filename").ToString();
+			if (in_map.Find("filter") >= 0)				to_in.filter			= in_map("filter").ToString();
+			if (in_map.Find("wrap") >= 0)				to_in.wrap				= in_map("wrap").ToString();
+			if (in_map.Find("vflip") >= 0)				to_in.vflip				= in_map("vflip").ToString();
+			if (in_map.Find("filename") >= 0)			to_in.filename			= in_map("filename").ToString();
+			if (in_map.Find("generate_test_data") >= 0)	to_in.generate_test_data = in_map("generate_test_data").ToString();
 		}
 		
 	}
@@ -237,6 +238,7 @@ void ToyInput::Clear() {
 	wrap.Clear();
 	vflip.Clear();
 	filename.Clear();
+	generate_test_data.Clear();
 }
 
 
@@ -337,7 +339,9 @@ bool ToyLoader::MakeScript() {
 				s << "			center.customer\n";
 				s << "			center.video.webcam[][loop == " << QuoteLoop(b) << "]";
 				if (input.vflip == "true")
-					s << "				vflip = true\n";
+					s << ":" << "				vflip = true\n";
+				else
+					s << "\n";
 				s << "		\n";
 				s << "		loop " << b << ":\n";
 				s << "			ogl.customer\n";
@@ -370,7 +374,7 @@ bool ToyLoader::MakeScript() {
 			}
 			else if (input.type == "keyboard") {
 				keyboard_input_stages.Add(l);
-				input.stage_name = "ogl.keyboard.source";
+				input.stage_name = "sdl.ogl.fbo.keyboard";
 				/*
 				b << "ogl." << stage.name << ".fbo" << input.id;
 				s << "		loop " << b << ": {\n";
@@ -531,7 +535,19 @@ bool ToyLoader::MakeScript() {
 	}
 	
 	if (keyboard_input_stages.GetCount()) {
-		s << "		loop ogl.keyboard.source:\n";
+		// Find if any keyboard input has generate_test_data enabled
+		bool has_test_data = false;
+		for (const ToyStage& stage : stages) {
+			for (const ToyInput& input : stage.inputs) {
+				if (input.type == "keyboard" && input.generate_test_data == "true") {
+					has_test_data = true;
+					break;
+				}
+			}
+			if (has_test_data) break;
+		}
+
+		s << "		loop sdl.ogl.fbo.keyboard:\n";
 		s << "			ogl.customer\n";
 		s << "			sdl.ogl.fbo.keyboard[][";
 		for(int i = 0; i < 4; i++) {
@@ -543,6 +559,8 @@ bool ToyLoader::MakeScript() {
 		}
 		s << "]:\n";
 		s << "				target = event.register\n";
+		if (has_test_data)
+			s << "				generate_test_data = true\n";
 		s << "		\n";
 	}
 	

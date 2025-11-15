@@ -16,9 +16,10 @@ struct ToyInput : Moveable<ToyInput> {
 	String				wrap;
 	String				vflip;
 	String				filename;
-	
+	String				generate_test_data;
+
 	void Clear();
-	
+
 };
 
 struct ToyStage : Moveable<ToyStage> {

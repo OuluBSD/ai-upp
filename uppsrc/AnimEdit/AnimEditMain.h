@@ -53,7 +53,7 @@ private:
     // Center-bottom (timeline)
     ParentCtrl timeline_panel;
     StaticRect timeline_toolbar;  // Toolbar for timeline controls
-    TimelineCtrl timeline_ctrl;  // Timeline control
+    AnimEditTimelineCtrl timeline_ctrl;  // Timeline control
     Label      timeline_label;
     
     // Timeline toolbar buttons
@@ -84,7 +84,7 @@ private:
     void UpdateZoomLabel();
     void UpdateUndoRedoButtons();
     void UpdateSpriteList();
-    void SetActiveFrame(const Frame* frame);
+    void SetActiveFrame(const Upp::Frame* frame);
     void CreateNewSprite();
     void SetSelectedAnimation(const Animation* anim);
     

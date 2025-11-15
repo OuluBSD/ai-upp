@@ -1,7 +1,8 @@
 #include "TimelineCtrl.h"
 #include <Draw/Draw.h>
+#include <CtrlLib/CtrlLib.h>
 
-TimelineCtrl::TimelineCtrl()
+AnimEditTimelineCtrl::AnimEditTimelineCtrl()
     : project(nullptr)
     , animation(nullptr)
     , selected_frame_index(-1)
@@ -16,30 +17,30 @@ TimelineCtrl::TimelineCtrl()
     selected_frame_index = -1;
 }
 
-TimelineCtrl::~TimelineCtrl()
+AnimEditTimelineCtrl::~AnimEditTimelineCtrl()
 {
 }
 
-void TimelineCtrl::SetProject(const AnimationProject* proj) {
+void AnimEditTimelineCtrl::SetProject(const AnimationProject* proj) {
     project = proj;
 }
 
-void TimelineCtrl::SetAnimation(const Animation* anim) {
+void AnimEditTimelineCtrl::SetAnimation(const Animation* anim) {
     animation = anim;
     selected_frame_index = -1; // Reset selection
     RefreshLayout();
     Refresh();
 }
 
-void TimelineCtrl::SetFrameCallback(std::function<void(const Frame*)> callback) {
+void AnimEditTimelineCtrl::SetFrameCallback(std::function<void(const Upp::Frame*)> callback) {
     frame_callback = callback;
 }
 
-void TimelineCtrl::SetOnFrameModified(std::function<void()> callback) {
+void AnimEditTimelineCtrl::SetOnFrameModified(std::function<void()> callback) {
     on_frame_modified_callback = callback;
 }
 
-int TimelineCtrl::HitTest(Point pos) const {
+int AnimEditTimelineCtrl::HitTest(Point pos) const {
     if (!animation) return -1;
     
     int current_x = 4; // Padding
@@ -53,7 +54,30 @@ int TimelineCtrl::HitTest(Point pos) const {
     return -1;
 }
 
-void TimelineCtrl::DrawFrame(Draw& w, int index, const Rect& rc) {
+int AnimEditTimelineCtrl::HitTestDurationControl(Point pos) const {
+    if (!animation) return -1;
+
+    int current_x = 4; // Padding
+    for (int i = 0; i < animation->frames.GetCount(); i++) {
+        Rect frame_rc(current_x, 4, current_x + frame_width, 4 + frame_height);
+        
+        // Check if click is in the duration control area
+        int duration_control_width = 24;
+        int duration_control_height = 12;
+        int duration_control_x = frame_rc.right - duration_control_width - 2;
+        int duration_control_y = frame_rc.top + 2;
+        Rect duration_rc = RectC(duration_control_x, duration_control_y, duration_control_width, duration_control_height);
+        
+        if (duration_rc.Contains(pos)) {
+            return i; // Return frame index if duration control was clicked
+        }
+        
+        current_x += frame_width + frame_spacing;
+    }
+    return -1;
+}
+
+void AnimEditTimelineCtrl::DrawFrame(Draw& w, int index, const Rect& rc) {
     if (!animation || index < 0 || index >= animation->frames.GetCount()) return;
     
     const FrameRef& ref = animation->frames[index];
@@ -85,10 +109,52 @@ void TimelineCtrl::DrawFrame(Draw& w, int index, const Rect& rc) {
         if (name.IsEmpty()) name = frame->id;
         if (name.GetLength() > 8) name = name.Mid(0, 8) + "...";
         w.DrawText(rc.left + 4, rc.top + 38, name, StdFont(), Black());
+        
+        // Draw a tiny thumbnail of the frame's sprite instances
+        if (frame->sprites.GetCount() > 0 && project) {
+            int thumb_width = rc.Width() - 8;
+            int thumb_height = 16;
+            int thumb_top = rc.top + frame_height - thumb_height - 2;
+            Rect thumb_rect = RectC(rc.left + 4, thumb_top, thumb_width, thumb_height);
+            
+            // Draw a light background for the thumbnail
+            w.DrawRect(thumb_rect, SColorFace());
+            
+            // Draw small representations of each sprite in the frame
+            for (int i = 0; i < frame->sprites.GetCount(); i++) {
+                const SpriteInstance& si = frame->sprites[i];
+                const Sprite* sprite = project->FindSprite(si.sprite_id);
+                
+                // Calculate a relative position within the thumbnail
+                // For simplicity, let's just draw a colored rectangle for each sprite
+                int sprite_width = max(2, thumb_width / max(1, frame->sprites.GetCount()));
+                int sprite_left = thumb_rect.left + (i * sprite_width);
+                int sprite_rect_width = min(sprite_width - 1, thumb_width - (i * sprite_width));
+                
+                Color sprite_color = sprite ? RGB(0, 100, 200) : RGB(200, 0, 0); // Blue for valid sprites, red for missing
+                w.DrawRect(sprite_left, thumb_top, sprite_rect_width, thumb_height, sprite_color);
+            }
+        }
     }
+    
+    // Draw duration control/slider area
+    int duration_control_width = 24;
+    int duration_control_height = 12;
+    int duration_control_x = rc.right - duration_control_width - 2;
+    int duration_control_y = rc.top + 2;
+    Rect duration_rc = RectC(duration_control_x, duration_control_y, duration_control_width, duration_control_height);
+    
+    // Draw a small rectangle to represent the duration control
+    Color control_color = (editing_frame_index == index) ? RGB(255, 150, 0) : RGB(180, 180, 180); // Orange when editing, gray otherwise
+    w.DrawRect(duration_rc, control_color);
+    w.DrawRect(duration_rc, 1, Black());
+    
+    // Draw a small icon or indicator inside the control
+    w.DrawText(duration_control_x + 2, duration_control_y + 1, "⏱", StdFont(), Black());
+}
 }
 
-void TimelineCtrl::RefreshLayout() {
+void AnimEditTimelineCtrl::RefreshLayout() {
     if (!animation) return;
     
     // Calculate how many frames we can show
@@ -100,11 +166,11 @@ void TimelineCtrl::RefreshLayout() {
     Refresh();
 }
 
-void TimelineCtrl::UpdateScroll() {
+void AnimEditTimelineCtrl::UpdateScroll() {
     // For now, a simple scroll mechanism - would need to be more sophisticated for production
 }
 
-void TimelineCtrl::SelectFrame(int index) {
+void AnimEditTimelineCtrl::SelectFrame(int index) {
     if (index == selected_frame_index) return;
     
     selected_frame_index = index;
@@ -120,7 +186,7 @@ void TimelineCtrl::SelectFrame(int index) {
     Refresh();
 }
 
-void TimelineCtrl::Paint(Draw& w) {
+void AnimEditTimelineCtrl::Paint(Draw& w) {
     w.DrawRect(GetSize(), SColorFace());
     
     if (!animation) return;
@@ -135,7 +201,7 @@ void TimelineCtrl::Paint(Draw& w) {
     }
 }
 
-void TimelineCtrl::MouseDown(Point pos, dword button) {
+void AnimEditTimelineCtrl::MouseDown(Point pos, dword button) {
     Ctrl::MouseDown(pos, button);
     
     int frame_idx = HitTest(pos);
@@ -144,7 +210,17 @@ void TimelineCtrl::MouseDown(Point pos, dword button) {
     }
 }
 
-void TimelineCtrl::LeftDown(Point pos, dword flags) {
+void AnimEditTimelineCtrl::LeftDown(Point pos, dword flags) {
+    // Check if the click is on a duration control first
+    int duration_frame_idx = HitTestDurationControl(pos);
+    if (duration_frame_idx >= 0) {
+        // Clicked on duration control, show duration editor
+        editing_frame_index = duration_frame_idx;
+        ShowDurationEditor(duration_frame_idx, pos.x, pos.y);
+        return;
+    }
+    
+    // Otherwise, handle as normal frame click
     int frame_idx = HitTest(pos);
     if (frame_idx >= 0) {
         // Start drag operation if we're clicking on a frame
@@ -161,7 +237,7 @@ void TimelineCtrl::LeftDown(Point pos, dword flags) {
     Ctrl::LeftDown(pos, flags);
 }
 
-void TimelineCtrl::LeftUp(Point pos, dword flags) {
+void AnimEditTimelineCtrl::LeftUp(Point pos, dword flags) {
     if (IsCapture()) {
         ReleaseCapture();
     }
@@ -180,7 +256,7 @@ void TimelineCtrl::LeftUp(Point pos, dword flags) {
     Ctrl::LeftUp(pos, flags);
 }
 
-void TimelineCtrl::MouseMove(Point pos, dword keyflags) {
+void AnimEditTimelineCtrl::MouseMove(Point pos, dword keyflags) {
     Ctrl::MouseMove(pos, keyflags);
 
     if (IsCapture() && drag_start_index >= 0) {
@@ -200,7 +276,7 @@ void TimelineCtrl::MouseMove(Point pos, dword keyflags) {
     }
 }
 
-bool TimelineCtrl::Key(dword key, int count) {
+bool AnimEditTimelineCtrl::Key(dword key, int count) {
     if (!animation || selected_frame_index < 0) return false;
     
     switch(key) {
@@ -226,7 +302,7 @@ bool TimelineCtrl::Key(dword key, int count) {
             break;
     }
     return Ctrl::Key(key, count);
-}bool TimelineCtrl::IsDragThresholdExceeded(Point pos) {
+}bool AnimEditTimelineCtrl::IsDragThresholdExceeded(Point pos) {
     if (drag_start_index < 0) return false;
     
     // Get the rect of the starting frame
@@ -245,7 +321,7 @@ bool TimelineCtrl::Key(dword key, int count) {
     return false; // Should not happen if drag_start_index is valid
 }
 
-void TimelineCtrl::ReorderFrame(int from_index, int to_index) {
+void AnimEditTimelineCtrl::ReorderFrame(int from_index, int to_index) {
     if (!animation || from_index < 0 || to_index < 0 || 
         from_index >= animation->frames.GetCount() || to_index >= animation->frames.GetCount()) {
         return;
@@ -268,18 +344,83 @@ void TimelineCtrl::ReorderFrame(int from_index, int to_index) {
     Refresh();
 }
 
-void TimelineCtrl::StartDrag(int index) {
+void AnimEditTimelineCtrl::StartDrag(int index) {
     drag_start_index = index;
     is_dragging = false; // We'll set this to true after the threshold is exceeded
     drag_current_index = index;
     SetCapture();
 }
 
-void TimelineCtrl::EndDrag() {
+void AnimEditTimelineCtrl::EndDrag() {
     if (IsCapture()) {
         ReleaseCapture();
     }
     drag_start_index = -1;
     drag_current_index = -1;
     is_dragging = false;
+}
+
+void AnimEditTimelineCtrl::ShowDurationEditor(int frame_index, int x, int y) {
+    if (!animation || frame_index < 0 || frame_index >= animation->frames.GetCount()) {
+        return;
+    }
+    
+    // Get the current duration value
+    const FrameRef& ref = animation->frames[frame_index];
+    double current_duration = ref.has_duration ? ref.duration : 0.1; // Default to 0.1 if not set
+    
+    // Create a simple dialog for duration editing
+    WithTextCtrlLayout<ParentCtrl> dlg;
+    dlg.Ctrl::SizeHint([this]() { return Size(200, 100); });
+    
+    EditDouble duration_edit;
+    duration_edit <<= current_duration;
+    duration_edit.MinMax(0.01, 10.0); // Min 0.01s, Max 10s
+    
+    Button ok_btn, cancel_btn;
+    ok_btn.SetLabel("OK");
+    cancel_btn.SetLabel("Cancel");
+    
+    // Layout
+    dlg.Add(duration_edit.VSizePos(8, 32).HSizePos(8, 8));
+    dlg.Add(ok_btn.LeftPos(10, 80).VSizePos(36, 24));
+    dlg.Add(cancel_btn.RightPos(10, 80).VSizePos(36, 24));
+    
+    Label label;
+    label.SetLabel("Duration (s):");
+    dlg.Add(label.LeftPos(8, 80).TopPos(8, 20));
+    
+    // Set up the dialog
+    PromptOKCancelFrame prompt_dlg;
+    prompt_dlg.Title("Edit Frame Duration");
+    prompt_dlg.Add(dlg.SizePos());
+    prompt_dlg.OK(ok_btn);
+    prompt_dlg.Cancel(cancel_btn);
+    
+    if (prompt_dlg.Execute() == IDOK) {
+        double new_duration = ~duration_edit;
+        OnDurationChanged(frame_index, new_duration);
+    }
+    
+    // Reset editing state
+    editing_frame_index = -1;
+    Refresh();
+}
+
+void AnimEditTimelineCtrl::OnDurationChanged(int frame_index, double new_duration) {
+    if (!animation || frame_index < 0 || frame_index >= animation->frames.GetCount()) {
+        return;
+    }
+    
+    // Update the frame duration
+    FrameRef& ref = animation->frames[frame_index];
+    ref.has_duration = true;
+    ref.duration = new_duration;
+    
+    // Mark as dirty and notify
+    if (on_frame_modified_callback) {
+        on_frame_modified_callback();
+    }
+    
+    Refresh();
 }

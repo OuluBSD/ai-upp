@@ -1,16 +1,42 @@
 #!/bin/bash
 # Wrapper script for qwen-code
-# This launches the qwen-code TypeScript implementation with server-mode support
+# This launches the qwen-code implementation with server-mode support
 
-# Try different locations for qwen-code
-if [ -d "/home/sblo/Dev/qwen-code" ]; then
-    # Production location
-    exec node /home/sblo/Dev/qwen-code/dist/src/gemini.js "$@"
-elif [ -d "/common/active/sblo/Dev/qwen-code/bundle" ]; then
-    # Legacy location
-    exec node /common/active/sblo/Dev/qwen-code/bundle/gemini.js "$@"
-else
-    echo "Error: qwen-code not found. Please install qwen-code first." >&2
-    echo "Expected location: ~/Dev/qwen-code/dist/src/gemini.js" >&2
+set -e
+
+QWEN_CODE_PATH="$HOME/Dev/qwen-code"
+QWEN_CODE_REPO="git@github.com:OuluBSD/qwen-code.git"
+
+# Check if qwen-code directory exists
+if [ ! -d "$QWEN_CODE_PATH" ]; then
+    echo "Error: qwen-code not found at $QWEN_CODE_PATH" >&2
+    echo "" >&2
+    echo "Please clone the repository:" >&2
+    echo "  cd ~/Dev" >&2
+    echo "  git clone $QWEN_CODE_REPO" >&2
+    echo "" >&2
     exit 1
 fi
+
+# Check if dist/cli.js exists, if not, build it
+if [ ! -f "$QWEN_CODE_PATH/dist/cli.js" ]; then
+    echo "qwen-code not built. Building now..." >&2
+    echo "This may take a few minutes..." >&2
+
+    cd "$QWEN_CODE_PATH"
+
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        echo "Installing dependencies..." >&2
+        npm install >&2
+    fi
+
+    # Build
+    echo "Building qwen-code..." >&2
+    npm run build >&2
+
+    echo "Build complete!" >&2
+fi
+
+# Run qwen-code
+exec node "$QWEN_CODE_PATH/dist/cli.js" "$@"

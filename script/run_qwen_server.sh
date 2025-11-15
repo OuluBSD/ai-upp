@@ -145,6 +145,45 @@ if [ ! -d "$WORKSPACE_DIR" ]; then
   exit 1
 fi
 
+# Check qwen-code availability (same checks as script/qwen-code)
+QWEN_CODE_PATH="$HOME/Dev/qwen-code"
+QWEN_CODE_REPO="git@github.com:OuluBSD/qwen-code.git"
+
+if [ ! -d "$QWEN_CODE_PATH" ]; then
+  echo "Error: qwen-code not found at $QWEN_CODE_PATH"
+  echo ""
+  echo "Please clone the repository:"
+  echo "  cd ~/Dev"
+  echo "  git clone $QWEN_CODE_REPO"
+  echo ""
+  exit 1
+fi
+
+if [ ! -f "$QWEN_CODE_PATH/dist/cli.js" ]; then
+  echo "qwen-code not built. Building now..."
+  echo "This may take a few minutes..."
+  echo ""
+
+  cd "$QWEN_CODE_PATH"
+
+  # Install dependencies if needed
+  if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install
+  fi
+
+  # Build
+  echo "Building qwen-code..."
+  npm run build
+
+  echo ""
+  echo "Build complete!"
+  echo ""
+
+  # Return to original directory
+  cd - > /dev/null
+fi
+
 # Print startup message
 echo "═══════════════════════════════════════════════════════════"
 echo "  Ultimate++ Qwen TCP Server"

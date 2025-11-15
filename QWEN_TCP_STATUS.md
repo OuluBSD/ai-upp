@@ -2,99 +2,124 @@
 
 ## Current Status
 
-The Qwen TCP server integration is **partially working**:
+The Qwen TCP server integration is **WORKING** ✅
 
-✅ **Working**:
+✅ **All Features Working**:
 - TCP server accepts connections on port 7774
 - Messages are received from TCP clients
 - Messages are forwarded to qwen-code subprocess
 - qwen-code subprocess generates AI responses
-- Responses are logged by qwen-code (see "[ServerMode] Sent conversation message to client")
+- **Responses are successfully forwarded back to TCP clients**
+- Clients receive JSON-formatted AI responses
 
-❌ **Not Working**:
-- Responses are NOT forwarded back to TCP clients
-- TCP clients receive nothing
+## Fixed Issues
 
-## Root Cause
+The following issues were identified and fixed in `QwenTCPServer::server_thread()` (uppsrc/Qwen/QwenTCPServer.cpp):
 
-The issue is in `QwenTCPServer::server_thread()` (uppsrc/Qwen/QwenTCPServer.cpp):
+### Issue 1: EOF Handling (Line 258)
+**Problem**: When clients close their write side (e.g., `echo | nc`), the server immediately disconnected the client on EOF, before AI responses could be sent back.
+
+**Solution**: Keep the connection alive when receiving EOF on read. Only disconnect on actual errors (POLLERR) or write failures. This allows half-duplex connections where clients can still receive data after closing their write side.
 
 ```cpp
-// Line 297-303
+// Before (BROKEN):
+} else if (bytes_read == 0 || (poll_fds[i].revents & POLLERR)) {
+    // Immediately disconnect on EOF
+    close(client_fd);
+}
+
+// After (FIXED):
+} else if (bytes_read == 0) {
+    // EOF on read - keep connection alive for responses
+    std::cout << "[QwenTCPServer] Client " << poll_fds[i].fd
+              << " closed write side (EOF), keeping connection for responses\n";
+} else if (poll_fds[i].revents & POLLERR) {
+    // Only disconnect on actual errors
+    close(client_fd);
+}
+```
+
+### Issue 2: Poll Timeout Skipping Messages (Line 184-188)
+**Problem**: When `poll()` times out with no TCP activity, the code had a `continue` statement that skipped the `poll_messages()` call entirely. AI responses arrive asynchronously during these quiet periods, so they were never being read.
+
+**Solution**: Removed the `continue` statement, allowing execution to fall through to `poll_messages()` even when there's no TCP activity.
+
+```cpp
+// Before (BROKEN):
+if (ret == 0) {
+    // Timeout - continue to next iteration
+    continue;  // BUG: This skips poll_messages()!
+}
+
+// After (FIXED):
+if (ret == 0) {
+    // Timeout - no TCP activity, but still poll qwen-code subprocess!
+    // (AI responses arrive asynchronously during these quiet periods)
+    // Don't continue here - fall through to poll_messages() below
+}
+```
+
+### Issue 3: Single Poll Call (Line 302-307)
+**Problem**: Only calling `poll_messages(0)` once per loop iteration, which could miss messages if multiple arrive during one iteration.
+
+**Solution**: Loop repeatedly calling `poll_messages(0)` until no more messages are available.
+
+```cpp
+// Before (INCOMPLETE):
 if (qwen_client_ && qwen_client_->is_running()) {
-    int msg_count = qwen_client_->poll_messages(0); // Non-blocking poll
-    // ...
+    qwen_client_->poll_messages(0);
+}
+
+// After (FIXED):
+if (qwen_client_ && qwen_client_->is_running()) {
+    int msg_count;
+    // Poll repeatedly to catch all available messages
+    while ((msg_count = qwen_client_->poll_messages(0)) > 0) {
+        // Messages processed via handlers
+    }
 }
 ```
-
-**Problem**: `poll_messages(0)` is called with timeout=0 (non-blocking), meaning it returns immediately if no data is available RIGHT NOW. Since AI responses arrive asynchronously (several seconds after the request), the poll call happens between responses and misses them.
-
-## Evidence from Logs
-
-When testing with `nc localhost 7774`, server logs show:
-
-1. ✅ Message received: `[QwenTCPServer] Processing message from client 6: {"type":"user_input","content":"hello"}`
-2. ✅ Sent to qwen-code: `[QwenClient] Sending: {"type":"user_input","content":"hello"}`
-3. ✅ qwen-code generates response: `[ServerMode] Content event received. Length: 5 Content: Hello`
-4. ✅ qwen-code logs sending: `[ServerMode] Sent conversation message to client`
-5. ❌ **But QwenClient never reads these messages from subprocess stdout**
-6. ❌ Therefore handlers are never called
-7. ❌ Therefore nothing is sent to TCP client
-
-## Solutions
-
-### Option 1: Call poll_messages() in a loop
-```cpp
-// Keep polling until no more messages
-while (qwen_client_->poll_messages(0) > 0) {
-    // Messages processed via handlers
-}
-```
-
-### Option 2: Use blocking poll with timeout
-```cpp
-// Wait up to 10ms for messages
-qwen_client_->poll_messages(10);
-```
-
-### Option 3: Poll more aggressively
-Call `poll_messages()` multiple times per server loop iteration, or reduce the server poll timeout from 100ms to something smaller.
 
 ## Test Procedure
 
-### Manual Test (works, server responds):
+### Quick Test:
+```bash
+./script/final_clean_test.sh
+```
+
+### Manual Test:
 ```bash
 # Terminal 1
 ./script/run_qwen_server.sh
 
 # Terminal 2
-nc localhost 7774
-{"type":"user_input","content":"hello"}
-# Type the above and press Enter
-# Wait 5-10 seconds
-# Should see JSON responses (but currently doesn't)
+echo '{"type":"user_input","content":"hello"}' | nc localhost 7774
+# You should see JSON responses like:
+# {"type":"assistant_response","content":"Hi"}
+# {"type":"assistant_response","content":"! I'm"}
+# ...
 ```
 
-### Automated Test:
-```bash
-./script/test_qwen_interaction.sh
+### Expected Output:
+```
+{"type":"assistant_response","content":"Hi"}
+{"type":"assistant_response","content":"! I"}
+{"type":"assistant_response","content":"'m Qwen Code"}
+{"type":"assistant_response","content":", an AI assistant"}
+...
 ```
 
 ## Files Modified
 
-- `uppsrc/Qwen/QwenTCPServer.cpp` - Added POLLHUP fix (line 257), debug logging
-- `uppsrc/Qwen/QwenClient.cpp` - Added debug logging in dispatch_message()
-- `script/test_qwen_interaction.sh` - Test script for server/client
-- `script/test_qwen_client.sh` - Client helper script
-- `script/test_nc_interactive.sh` - Interactive test script
+- `uppsrc/Qwen/QwenTCPServer.cpp` - EOF handling fix, poll timeout fix, message loop fix
+- `uppsrc/Qwen/QwenClient.cpp` - Removed debug logging
+- `script/final_clean_test.sh` - Quick test script
+- `script/final_test.sh` - Detailed test script
+- `script/verify_rebuild.sh` - Build verification test
 
-## Next Steps
+## Commit
 
-1. Implement one of the solutions above (Option 1 recommended)
-2. Test with `./script/test_qwen_interaction.sh`
-3. Verify TCP clients receive responses
-4. Remove debug logging once working
-5. Test with actual Claude Code client
+All fixes committed in: `60f97ab88 - Fix Qwen TCP server to forward AI responses to clients`
 
 ## Architecture Diagram
 
@@ -108,7 +133,7 @@ QwenTCPServer ←→ QwenClient ←→ qwen-code subprocess
     |              |                      |
     |              ↓                      ↓
     |         poll_messages()        Gemini AI
-    |         [BROKEN HERE]
+    |         [NOW WORKING ✅]
     |              |
     |              ↓
     |         on_conversation
@@ -120,4 +145,4 @@ QwenTCPServer ←→ QwenClient ←→ qwen-code subprocess
 TCP Client (receives response)
 ```
 
-The break is at the `poll_messages()` call - it's not reading messages from the subprocess because it's non-blocking and the messages arrive later.
+All components are now working correctly. Messages flow from TCP client through the server to qwen-code, and AI responses flow back to the TCP client.

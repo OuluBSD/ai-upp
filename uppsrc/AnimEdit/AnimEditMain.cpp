@@ -154,6 +154,8 @@ void AnimEditorWindow::UpdateSpriteList() {
 
 void AnimEditorWindow::SetActiveFrame(const Frame* frame) {
     sprite_list_ctrl.SetFrame(frame);
+    sprite_instance_list_ctrl.SetFrame(frame);
+    collision_list_ctrl.SetFrame(frame);
 }
 
 void AnimEditorWindow::SetSelectedAnimation(const Animation* anim) {
@@ -421,7 +423,202 @@ timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
                 break;
         }
         
-        sprite_list_ctrl.SetSortType(sortType);
+                sprite_list_ctrl.SetSortType(sortType);
+    };
+
+    // Connect frame list control
+    frame_list_ctrl.SetProject(&state.project);
+    frame_list_ctrl.SetSelectCallback([this](const Frame* frame) {
+        // Callback when a frame is selected in the frames list
+        SetActiveFrame(frame);
+        canvas_ctrl.SetFrame(frame);
+        canvas_ctrl.Refresh();
+    });
+
+    // Connect animation list control
+    anim_list_ctrl.SetProject(&state.project);
+    anim_list_ctrl.SetSelectCallback([this](const Animation* anim) {
+        // Callback when an animation is selected in the animations list
+        selected_animation = anim;
+        timeline_ctrl.SetAnimation(anim);
+        timeline_ctrl.Refresh();
+    });
+
+    // Connect new frame button
+    new_frame_btn <<= [this] {
+        // Create a new frame and add it to the project
+        Frame new_frame;
+        new_frame.id = "frame_" + Uuid().ToString();
+        new_frame.name = "New Frame";
+        state.project.frames.Add(new_frame);
+
+        // If there's a selected animation, add the new frame to it
+        if (selected_animation) {
+            FrameRef frame_ref;
+            frame_ref.frame_id = new_frame.id;
+            frame_ref.has_duration = false;
+            frame_ref.duration = 0.1; // default duration
+            selected_animation->frames.Add(frame_ref);
+        }
+
+        state.dirty = true;
+        UpdateTitle();
+        frame_list_ctrl.RefreshList();
+    };
+
+    // Connect new animation button
+    new_anim_btn <<= [this] {
+        // Create a new animation and add it to the project
+        Animation new_anim;
+        new_anim.id = "anim_" + Uuid().ToString();
+        new_anim.name = "New Animation";
+        new_anim.category = "default";
+        new_anim.loop_type = "No Loop";
+        state.project.animations.Add(new_anim);
+
+        state.dirty = true;
+        UpdateTitle();
+        anim_list_ctrl.RefreshList();
+    };
+
+    // Connect sprite instance list control
+    sprite_instance_list_ctrl.SetProject(&state.project);
+    sprite_instance_list_ctrl.SetFrame(nullptr); // Will be set when frame changes
+    sprite_instance_list_ctrl.SetSelectCallback([this](const SpriteInstance* si) {
+        // Callback when a sprite instance is selected in the sprites list
+        // For now, just refresh the canvas to potentially highlight the selected instance
+        canvas_ctrl.Refresh();
+    });
+    sprite_instance_list_ctrl.SetChangeCallback([this]() {
+        // Callback when sprite instances change
+        state.dirty = true;
+        UpdateTitle();
+        canvas_ctrl.Refresh(); // Refresh the canvas to show updates
+    });
+
+    // Connect collision list control
+    collision_list_ctrl.SetFrame(nullptr); // Will be set when frame changes
+    collision_list_ctrl.SetSelectCallback([this](const CollisionRect* cr) {
+        // Callback when a collision rectangle is selected in the collisions list
+        canvas_ctrl.Refresh(); // Refresh the canvas to potentially highlight the selected collision
+    });
+    collision_list_ctrl.SetChangeCallback([this]() {
+        // Callback when collisions change
+        state.dirty = true;
+        UpdateTitle();
+        canvas_ctrl.Refresh(); // Refresh the canvas to show updates
+    });
+
+    // Connect new sprite instance button
+    new_sprite_instance_btn <<= [this] {
+        if (!canvas_ctrl.GetFrame()) {
+            Exclamation("No active frame to add sprite instance to!");
+            return;
+        }
+
+        // Create a dialog to select a sprite to add
+        Vector<String> spriteIDs;
+        Vector<String> spriteNames;
+        for (int i = 0; i < state.project.sprites.GetCount(); i++) {
+            spriteIDs.Add(state.project.sprites[i].id);
+            spriteNames.Add(!state.project.sprites[i].name.IsEmpty() ? 
+                           state.project.sprites[i].name : state.project.sprites[i].id);
+        }
+
+        if (spriteIDs.GetCount() == 0) {
+            Exclamation("No sprites available to add. Please create a sprite first.");
+            return;
+        }
+
+        // Create a combo box to select a sprite
+        CtrlLayout<ParentCtrl> dlg;
+        dlg.Ctrl::SizeHint([this]() { return Size(300, 80); });
+
+        ArrayCtrl array_ctrl;
+        array_ctrl.AddColumn("Name", 200);
+        array_ctrl.SetFrame(ThinInsetFrame());
+        array_ctrl.NoHeader();
+
+        for (int i = 0; i < spriteNames.GetCount(); i++) {
+            array_ctrl.Add(i, spriteNames[i]);
+        }
+
+        Button ok_btn, cancel_btn;
+        ok_btn.SetLabel("OK");
+        cancel_btn.SetLabel("Cancel");
+
+        dlg.Add(array_ctrl.HSizePos(8, 8).VSizePos(8, 32));
+        dlg.Add(ok_btn.LeftPos(20, 60).BottomPos(8, 24));
+        dlg.Add(cancel_btn.RightPos(20, 60).BottomPos(8, 24));
+
+        // Create dialog window
+        PromptOKCancelFrame prompt_dlg;
+        prompt_dlg.Title("Select Sprite to Add");
+        prompt_dlg.Add(dlg.SizePos());
+        prompt_dlg.OK(ok_btn);
+        prompt_dlg.Cancel(cancel_btn);
+
+        if(prompt_dlg.Execute() == IDOK && array_ctrl.GetCount() > 0) {
+            int selected = array_ctrl.GetCursor();
+            if (selected >= 0 && selected < spriteIDs.GetCount()) {
+                // Create a new sprite instance with the selected sprite
+                SpriteInstance new_si;
+                new_si.sprite_id = spriteIDs[selected];
+                new_si.transform.position = Vec2(0, 0);  // Default position
+                new_si.transform.scale = Vec2(1, 1);     // Default scale
+                new_si.transform.rotation = 0;           // Default rotation
+                new_si.z_index = 0;                      // Default z-index
+
+                // Add to the current frame
+                const Frame* current_frame = canvas_ctrl.GetFrame();
+                if (current_frame) {
+                    // Find the frame in the project and modify it
+                    for (int i = 0; i < state.project.frames.GetCount(); i++) {
+                        if (state.project.frames[i].id == current_frame->id) {
+                            state.project.frames[i].sprites.Add(new_si);
+                            break;
+                        }
+                    }
+                }
+
+                state.dirty = true;
+                UpdateTitle();
+                sprite_instance_list_ctrl.SetFrame(current_frame); // Refresh the list
+                sprite_instance_list_ctrl.RefreshList();
+                canvas_ctrl.Refresh(); // Refresh the canvas to show the new instance
+            }
+        }
+    };
+
+    // Connect new collision button
+    new_collision_btn <<= [this] {
+        if (!canvas_ctrl.GetFrame()) {
+            Exclamation("No active frame to add collision to!");
+            return;
+        }
+
+        // Create a new collision rectangle
+        CollisionRect new_cr;
+        new_cr.id = "collision_" + Uuid().ToString();
+        new_cr.rect = RectF(0, 0, 32, 32); // Default size at origin
+
+        // Add to the current frame
+        const Frame* current_frame = canvas_ctrl.GetFrame();
+        if (current_frame) {
+            // Find the frame in the project and modify it
+            for (int i = 0; i < state.project.frames.GetCount(); i++) {
+                if (state.project.frames[i].id == current_frame->id) {
+                    state.project.frames[i].collisions.Add(new_cr);
+                    break;
+                }
+            }
+        }
+
+        state.dirty = true;
+        UpdateTitle();
+        collision_list_ctrl.SetFrame(current_frame); // Refresh the list
+        collision_list_ctrl.RefreshList();
+        canvas_ctrl.Refresh(); // Refresh the canvas to show the new collision
     };
     
     UpdateZoomLabel();  // Initialize the zoom label
@@ -511,20 +708,45 @@ timeline_panel.SetFrame(ThinInsetFrame());
 timeline_panel.Add(timeline_toolbar.TopPos(0, 24).HSizePos());  // Toolbar at top
 timeline_panel.Add(timeline_ctrl.VSizePos(24).HSizePos());  // Leave space at top for toolbar
 
-frames_panel.BackPaint();
-    frames_panel.BackPaint();
-    frames_panel.Add(frames_label.SizePos());
+    // Frames panel - with controls and list
+    frame_controls_layout.Ctrl::SizeHint([this]() { return Size(100, 24); });
+    frame_controls_layout.Add(new_frame_btn.HSizePos(4, 24).VSizePos(4, 4));
+    new_frame_btn.SetLabel("+");
+    new_frame_btn.SetTip("Create new frame");
     
-    sprites_panel.BackPaint();
-    sprites_panel.Add(sprites_label.SizePos());
-    
-    collisions_panel.BackPaint();
-    collisions_panel.Add(collisions_label.SizePos());
-    
-    animations_panel.BackPaint();
-    animations_panel.Add(animations_label.SizePos());
+    frames_panel.SetFrame(ThinInsetFrame());
+    frames_panel.Add(frame_controls_layout.TopPos(0, 28).HSizePos());  // Controls at top
+    frames_panel.Add(frame_list_ctrl.VSizePos(28).HSizePos());    // List below controls
 
-    // Right mid (sprites + collisions)
+    // Sprites panel - for sprite instances list
+    sprite_instance_controls_layout.Ctrl::SizeHint([this]() { return Size(100, 24); });
+    sprite_instance_controls_layout.Add(new_sprite_instance_btn.HSizePos(4, 24).VSizePos(4, 4));
+    new_sprite_instance_btn.SetLabel("+");
+    new_sprite_instance_btn.SetTip("Create new sprite instance");
+    
+    sprites_panel.SetFrame(ThinInsetFrame());
+    sprites_panel.Add(sprite_instance_controls_layout.TopPos(0, 28).HSizePos());  // Controls at top
+    sprites_panel.Add(sprite_instance_list_ctrl.VSizePos(28).HSizePos());  // List below controls
+
+    // Collisions panel - for collision rectangles list
+    collision_controls_layout.Ctrl::SizeHint([this]() { return Size(100, 24); });
+    collision_controls_layout.Add(new_collision_btn.HSizePos(4, 24).VSizePos(4, 4));
+    new_collision_btn.SetLabel("+");
+    new_collision_btn.SetTip("Create new collision");
+    
+    collisions_panel.SetFrame(ThinInsetFrame());
+    collisions_panel.Add(collision_controls_layout.TopPos(0, 28).HSizePos());  // Controls at top
+    collisions_panel.Add(collision_list_ctrl.VSizePos(28).HSizePos());  // List below controls
+
+    // Animations panel - with controls and list
+    anim_controls_layout.Ctrl::SizeHint([this]() { return Size(100, 24); });
+    anim_controls_layout.Add(new_anim_btn.HSizePos(4, 24).VSizePos(4, 4));
+    new_anim_btn.SetLabel("+");
+    new_anim_btn.SetTip("Create new animation");
+    
+    animations_panel.SetFrame(ThinInsetFrame());
+    animations_panel.Add(anim_controls_layout.TopPos(0, 28).HSizePos());  // Controls at top
+    animations_panel.Add(anim_list_ctrl.VSizePos(28).HSizePos());    // List below controls
     vsplit_mid.Horz()
         .SetPos(70) // Percentage
         << sprites_panel

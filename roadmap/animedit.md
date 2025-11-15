@@ -88,30 +88,30 @@ Primitive internal prototypes. No user-facing stability guarantees.
 60. Implement frame duration slider inside each timeline card. ✅
 61. Implement play/pause/stop controls for animation preview. ✅
 62. Implement loop mode toggle for preview (loop vs play once). ✅
-63. Implement preview playback based on durations (defaultDuration / overrides).
-64. Display current playback position as highlight on timeline.
-65. Implement onion‑skin (ghost frame) toggle and frame range (prev/next).
-66. Render onion skins in the canvas with configurable opacity.
-67. Add timeline zoom (more or fewer frames visible at once).
+63. Implement preview playback based on durations (defaultDuration / overrides). ✅
+64. Display current playback position as highlight on timeline. ✅
+65. Implement onion‑skin (ghost frame) toggle and frame range (prev/next). ✅
+66. Render onion skins in the canvas with configurable opacity. ✅
+67. Add timeline zoom (more or fewer frames visible at once). ✅
 68. Support keyboard navigation between frames (← / → arrows). ✅
 
 ## **v1.3 — Right‑Side Lists (Frames, Sprites, Collisions, Animations)**
-69. Bind Frames list (left of right‑pane) to project.frames.
-70. Allow creating a new Frame from Frames list via “+” header button.
-71. Implement frame renaming and deletion from Frames list.
-72. Ensure frames used by animations cannot be deleted without confirmation.
-73. Display SpriteInstances for the active Frame in Sprites list.
-74. Implement SpriteInstance selection from list (sync with canvas).
-75. Allow reordering SpriteInstances and editing z‑index.
-76. Implement collision rectangle list for the active Frame.
-77. Allow creating new CollisionRect from list (“+” button).
-78. Implement collision rectangle editing (position, size, optional ID).
-79. Draw collision rectangles on canvas with semi‑transparent overlays.
-80. Bind Animations list to project.animations with “+” header button.
-81. Implement animation renaming and deletion from Animations list.
-82. Ensure validation for animations (no empty frame sequences).
-83. Add simple animation metadata editor fields (category, loop hint).
-84. Ensure all three lists stay in sync with underlying AnimationProject.
+69. Bind Frames list (left of right‑pane) to project.frames. ✅
+70. Allow creating a new Frame from Frames list via “+” header button. ✅
+71. Implement frame renaming and deletion from Frames list. ✅
+72. Ensure frames used by animations cannot be deleted without confirmation. ✅
+73. Display SpriteInstances for the active Frame in Sprites list. ✅
+74. Implement SpriteInstance selection from list (sync with canvas). ✅
+75. Allow reordering SpriteInstances and editing z‑index. ✅
+76. Implement collision rectangle list for the active Frame. ✅
+77. Allow creating new CollisionRect from list (“+” button). ✅
+78. Implement collision rectangle editing (position, size, optional ID). ✅
+79. Draw collision rectangles on canvas with semi‑transparent overlays. ✅
+80. Bind Animations list to project.animations with “+” header button. ✅
+81. Implement animation renaming and deletion from Animations list. ✅
+82. Ensure validation for animations (no empty frame sequences). ✅
+83. Add simple animation metadata editor fields (category, loop hint). ✅
+84. Ensure all three lists stay in sync with underlying AnimationProject. ✅
 
 ---
 

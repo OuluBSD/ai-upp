@@ -19,4 +19,12 @@ file
 	SpriteListCtrl.h,
 	SpriteListCtrl.cpp,
 	TimelineCtrl.h,
-	TimelineCtrl.cpp;
+	TimelineCtrl.cpp,
+	FrameListCtrl.h,
+	FrameListCtrl.cpp,
+	AnimListCtrl.h,
+	AnimListCtrl.cpp,
+	SpriteInstanceListCtrl.h,
+	SpriteInstanceListCtrl.cpp,
+	CollisionListCtrl.h,
+	CollisionListCtrl.cpp;

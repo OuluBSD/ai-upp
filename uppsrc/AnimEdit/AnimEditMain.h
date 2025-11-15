@@ -6,6 +6,10 @@
 #include "AnimCanvasCtrl.h"
 #include "SpriteListCtrl.h"
 #include "TimelineCtrl.h"
+#include "FrameListCtrl.h"
+#include "AnimListCtrl.h"
+#include "SpriteInstanceListCtrl.h"
+#include "CollisionListCtrl.h"
 
 using namespace Upp;
 
@@ -79,6 +83,26 @@ private:
     Label      sprites_label;
     Label      collisions_label;
     Label      animations_label;
+
+    // Right side controls
+    FrameListCtrl frame_list_ctrl;     // For frames list
+    CtrlLayout frame_controls_layout;  // For frames controls
+    Button new_frame_btn;              // For creating new frames
+
+    // Animation controls
+    AnimListCtrl anim_list_ctrl;       // For animations list
+    CtrlLayout anim_controls_layout;   // For animations controls
+    Button new_anim_btn;               // For creating new animations
+
+    // Sprite instances list (for the sprites panel in the middle section)
+    SpriteInstanceListCtrl sprite_instance_list_ctrl;  // For sprite instances list
+    CtrlLayout sprite_instance_controls_layout;        // For sprite instances controls
+    Button new_sprite_instance_btn;                    // For creating new sprite instances
+
+    // Collision rectangles list (for the collisions panel in the middle section)
+    CollisionListCtrl collision_list_ctrl;             // For collision rectangles list
+    CtrlLayout collision_controls_layout;              // For collision controls
+    Button new_collision_btn;                          // For creating new collisions
 
     // Helper methods
     void UpdateZoomLabel();

@@ -56,11 +56,6 @@ bool QwenTCPServer::start(int port, const std::string& host) {
     
     // When we get a conversation response from qwen-code, forward it to the appropriate TCP client
     handlers.on_conversation = [this](const ConversationMessage& msg) {
-        std::cout << "[QwenTCPServer] on_conversation handler called! Role: "
-                  << (msg.role == MessageRole::ASSISTANT ? "ASSISTANT" :
-                      msg.role == MessageRole::USER ? "USER" : "SYSTEM")
-                  << ", Content length: " << msg.content.size() << std::endl;
-
         if (msg.role == MessageRole::ASSISTANT) {
             // For now, broadcast assistant responses to all connected clients
             // In a real implementation, we would route to the specific client that made the request
@@ -71,7 +66,6 @@ bool QwenTCPServer::start(int port, const std::string& host) {
 
             // Send to all connected clients
             std::lock_guard<std::mutex> lock(clients_mutex_);
-            std::cout << "[QwenTCPServer] Broadcasting to " << active_clients_.size() << " clients" << std::endl;
             for (const auto& pair : active_clients_) {
                 send_response(pair.first, response);
             }
@@ -160,8 +154,6 @@ bool QwenTCPServer::start(int port, const std::string& host) {
 }
 
 void QwenTCPServer::server_thread() {
-    std::cerr << "[QwenTCPServer] *** SERVER THREAD STARTED - NEW BUILD ***" << std::endl << std::flush;
-
     std::vector<struct pollfd> poll_fds;
     struct pollfd server_pollfd;
     server_pollfd.fd = server_socket_;
@@ -184,8 +176,9 @@ void QwenTCPServer::server_thread() {
         }
 
         if (ret == 0) {
-            // Timeout - continue to next iteration
-            continue;
+            // Timeout - no TCP activity, but still poll qwen-code subprocess!
+            // (AI responses arrive asynchronously during these quiet periods)
+            // Don't continue here - fall through to poll_messages() below
         }
 
         // Check for new connections on server socket
@@ -253,10 +246,14 @@ void QwenTCPServer::server_thread() {
                             }
                         }
                     }
-                } else if (bytes_read == 0 || (poll_fds[i].revents & POLLERR)) {
-                    // Client disconnected (EOF on read) or actual error occurred
-                    // Note: We ignore POLLHUP alone because it just means client closed write side,
-                    // but we can still send data to them (half-duplex connection)
+                } else if (bytes_read == 0) {
+                    // EOF on read - client closed write side but may still be listening
+                    // Keep the connection alive for sending responses (half-duplex)
+                    std::cout << "[QwenTCPServer] Client " << poll_fds[i].fd
+                              << " closed write side (EOF), keeping connection for responses\n";
+                    // Don't close the socket - just note that we won't get more input
+                } else if (poll_fds[i].revents & POLLERR) {
+                    // Actual error occurred - close the connection
                     int client_fd = poll_fds[i].fd;
 
                     // Remove from our tracking
@@ -271,7 +268,7 @@ void QwenTCPServer::server_thread() {
                     poll_fds.erase(poll_fds.begin() + i);
                     --i;  // Adjust index after removal
 
-                    std::cout << "[QwenTCPServer] Client disconnected: " << client_fd << "\n";
+                    std::cout << "[QwenTCPServer] Client disconnected (POLLERR): " << client_fd << "\n";
                 } else if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
                     // Error occurred
                     std::cerr << "[QwenTCPServer] Read error: " << strerror(errno) << "\n";
@@ -295,12 +292,12 @@ void QwenTCPServer::server_thread() {
         }
         
         // Also poll messages from qwen-code if connected
+        // Keep polling until no more messages (important for async responses!)
         if (qwen_client_ && qwen_client_->is_running()) {
-            int msg_count = qwen_client_->poll_messages(0); // Non-blocking poll
-            if (msg_count > 0) {
-                std::cerr << "[QwenTCPServer] poll_messages() returned " << msg_count << " messages" << std::endl << std::flush;
-            } else if (msg_count < 0) {
-                std::cerr << "[QwenTCPServer] poll_messages() ERROR: " << msg_count << std::endl << std::flush;
+            int msg_count;
+            // Poll repeatedly to catch all available messages
+            while ((msg_count = qwen_client_->poll_messages(0)) > 0) {
+                // Messages processed via handlers
             }
         }
     }
@@ -367,8 +364,6 @@ void QwenTCPServer::handle_client_message(int client_fd, const std::string& mess
 bool QwenTCPServer::send_response(int client_fd, const std::string& response) {
     if (client_fd < 0) return false;
 
-    std::cout << "[QwenTCPServer] Sending " << response.size() << " bytes to client " << client_fd << std::endl;
-
     ssize_t sent = write(client_fd, response.c_str(), response.size());
     if (sent != static_cast<ssize_t>(response.size())) {
         std::cerr << "[QwenTCPServer] Failed to send complete response. Expected: "
@@ -376,7 +371,6 @@ bool QwenTCPServer::send_response(int client_fd, const std::string& response) {
         return false;
     }
 
-    std::cout << "[QwenTCPServer] Successfully sent response to client " << client_fd << std::endl;
     return true;
 }
 

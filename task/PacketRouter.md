@@ -130,6 +130,14 @@ machine sdl.app:
 - Atoms don't need to form closed loops, allowing for more flexible topologies
 - Cross-network connections could potentially be supported with notation like "net1.atom:port -> net2.atom:port"
 
+### Customer Role in Packet Flow Control:
+- Currently, customer atoms serve as the starting point for packets in loops, controlling packet flow
+- In the new router system, packets can be generated at any point in the network
+- The packet pool and flow control system would allow packet creation anywhere in the network
+- This removes the requirement for customers to be the sole source of packets
+- Multiple packet sources can exist simultaneously in the network
+- Flow control will be managed by the router system rather than being tied to customer positions
+
 ## Potential Challenges
 - Ensuring all existing functionality is preserved during conversion
 - Maintaining performance characteristics of the system

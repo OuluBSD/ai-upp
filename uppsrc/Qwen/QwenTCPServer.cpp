@@ -12,9 +12,156 @@
 #include <functional>
 #include <vector>
 #include <map>
+#include <optional>
+#include <cctype>
+#include <iomanip>
 
 namespace Qwen {
 
+namespace {
+
+std::string json_escape(const std::string& str) {
+    std::ostringstream oss;
+    for (unsigned char c : str) {
+        switch (c) {
+            case '\\': oss << "\\\\"; break;
+            case '"': oss << "\\\""; break;
+            case '\n': oss << "\\n"; break;
+            case '\r': oss << "\\r"; break;
+            case '\t': oss << "\\t"; break;
+            default:
+                if (c < 32) {
+                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+                    oss << std::dec;
+                } else {
+                    oss << c;
+                }
+        }
+    }
+    return oss.str();
+}
+
+std::string serialize_tool_group_message(const ToolGroup& group) {
+    std::ostringstream oss;
+    oss << "{\"type\":\"tool_group\",\"id\":" << group.id << ",\"tools\":[";
+
+    for (size_t i = 0; i < group.tools.size(); ++i) {
+        const auto& tool = group.tools[i];
+        if (i > 0) {
+            oss << ",";
+        }
+
+        oss << "{";
+        oss << "\"type\":\"tool_call\",";
+        oss << "\"tool_id\":\"" << json_escape(tool.tool_id) << "\",";
+        oss << "\"tool_name\":\"" << json_escape(tool.tool_name) << "\",";
+        oss << "\"status\":\"" << tool_status_to_string(tool.status) << "\",";
+        oss << "\"args\":{";
+
+        bool first_arg = true;
+        for (const auto& [key, value] : tool.args) {
+            if (!first_arg) {
+                oss << ",";
+            }
+            first_arg = false;
+            oss << "\"" << json_escape(key) << "\":\"" << json_escape(value) << "\"";
+        }
+
+        oss << "}";
+
+        if (tool.result) {
+            oss << ",\"result\":\"" << json_escape(*tool.result) << "\"";
+        }
+        if (tool.error) {
+            oss << ",\"error\":\"" << json_escape(*tool.error) << "\"";
+        }
+        if (tool.confirmation_details) {
+            oss << ",\"confirmation_details\":{";
+            oss << "\"message\":\"" << json_escape(tool.confirmation_details->message) << "\",";
+            oss << "\"requires_approval\":" << (tool.confirmation_details->requires_approval ? "true" : "false");
+            oss << "}";
+        }
+
+        oss << "}";
+    }
+
+    oss << "]}\n";
+    return oss.str();
+}
+
+std::optional<std::string> extract_json_string_field(const std::string& json, const std::string& key) {
+    std::string search = "\"" + key + "\":";
+    size_t pos = json.find(search);
+    if (pos == std::string::npos) {
+        return std::nullopt;
+    }
+
+    pos += search.length();
+    while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) {
+        ++pos;
+    }
+
+    if (pos >= json.size() || json[pos] != '"') {
+        return std::nullopt;
+    }
+
+    ++pos; // skip opening quote
+    std::string value;
+    bool escaping = false;
+
+    for (; pos < json.size(); ++pos) {
+        char c = json[pos];
+        if (escaping) {
+            switch (c) {
+                case 'n': value += '\n'; break;
+                case 'r': value += '\r'; break;
+                case 't': value += '\t'; break;
+                case '\\': value += '\\'; break;
+                case '"': value += '"'; break;
+                default: value += c; break;
+            }
+            escaping = false;
+            continue;
+        }
+
+        if (c == '\\') {
+            escaping = true;
+            continue;
+        }
+
+        if (c == '"') {
+            return value;
+        }
+
+        value += c;
+    }
+
+    return std::nullopt;
+}
+
+std::optional<bool> extract_json_bool_field(const std::string& json, const std::string& key) {
+    std::string search = "\"" + key + "\":";
+    size_t pos = json.find(search);
+    if (pos == std::string::npos) {
+        return std::nullopt;
+    }
+
+    pos += search.length();
+    while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) {
+        ++pos;
+    }
+
+    if (json.compare(pos, 4, "true") == 0) {
+        return true;
+    }
+    if (json.compare(pos, 5, "false") == 0) {
+        return false;
+    }
+
+    return std::nullopt;
+}
+
+}  // namespace
 
 
 QwenTCPServer::QwenTCPServer(const std::string& qwen_code_path)
@@ -69,6 +216,17 @@ bool QwenTCPServer::start(int port, const std::string& host) {
             for (const auto& pair : active_clients_) {
                 send_response(pair.first, response);
             }
+        }
+    };
+
+    handlers.on_tool_group = [this](const ToolGroup& group) {
+        std::string response = serialize_tool_group_message(group);
+        std::cout << "[QwenTCPServer] Forwarding tool_group id " << group.id
+                  << " to " << active_clients_.size() << " client(s)" << std::endl;
+
+        std::lock_guard<std::mutex> lock(clients_mutex_);
+        for (const auto& pair : active_clients_) {
+            send_response(pair.first, response);
         }
     };
     
@@ -313,44 +471,67 @@ void QwenTCPServer::server_thread() {
 void QwenTCPServer::handle_client_message(int client_fd, const std::string& message) {
     std::cout << "[QwenTCPServer] Processing message from client " << client_fd << ": " << message << std::endl;
 
-    // Parse the JSON to see if it's a user input command
-    if (message.find("\"type\":\"user_input\"") != std::string::npos) {
-        // Extract content from the JSON using a simple approach
-        size_t content_start = message.find("\"content\":\"");
-        if (content_start != std::string::npos) {
-            content_start += 11; // Length of "\"content\":\""
-            size_t content_end = message.find("\"", content_start);
-            if (content_end != std::string::npos) {
-                std::string content = message.substr(content_start, content_end - content_start);
-                std::cout << "[QwenTCPServer] Extracted user content: " << content << std::endl;
-                
-                // This is a user input - forward it to qwen-code if available
-                if (qwen_client_ && qwen_client_->is_running()) {
-                    std::cout << "[QwenTCPServer] Sending to qwen-code: " << content << std::endl;
-                    bool sent = qwen_client_->send_user_input(content);
+    auto type = extract_json_string_field(message, "type");
+    if (!type) {
+        std::string response = "{\"type\":\"error\",\"content\":\"Missing type field\"}\n";
+        std::cout << "[QwenTCPServer] Missing type field in client request\n";
+        send_response(client_fd, response);
+        return;
+    }
 
-                    if (!sent) {
-                        // If send failed, send error response
-                        std::string response = "{\"type\":\"error\",\"content\":\"Failed to send request to qwen-code\"}\n";
-                        std::cout << "[QwenTCPServer] Sending error response\n";
-                        send_response(client_fd, response);
-                    }
-                    // Response will come asynchronously via the message handlers
-                    // set up in start() - no need to send anything here
-                } else {
-                    // qwen-code client is not available or not running
-                    std::string response = "{\"type\":\"error\",\"content\":\"qwen-code client not available\"}\n";
-                    std::cout << "[QwenTCPServer] qwen-code not available\n";
-                    send_response(client_fd, response);
-                }
-            } else {
-                std::string response = "{\"type\":\"error\",\"content\":\"Could not parse content from JSON\"}\n";
-                std::cout << "[QwenTCPServer] Sending content parse error\n";
+    if (*type == "user_input") {
+        auto content = extract_json_string_field(message, "content");
+        if (!content) {
+            std::string response = "{\"type\":\"error\",\"content\":\"Content field not found in JSON\"}\n";
+            std::cout << "[QwenTCPServer] Sending field error\n";
+            send_response(client_fd, response);
+            return;
+        }
+
+        std::cout << "[QwenTCPServer] Extracted user content: " << *content << std::endl;
+        
+        if (qwen_client_ && qwen_client_->is_running()) {
+            std::cout << "[QwenTCPServer] Sending to qwen-code: " << *content << std::endl;
+            bool sent = qwen_client_->send_user_input(*content);
+
+            if (!sent) {
+                // If send failed, send error response
+                std::string response = "{\"type\":\"error\",\"content\":\"Failed to send request to qwen-code\"}\n";
+                std::cout << "[QwenTCPServer] Sending error response\n";
+                send_response(client_fd, response);
+            }
+            // Response will come asynchronously via the message handlers
+            // set up in start() - no need to send anything here
+        } else {
+            // qwen-code client is not available or not running
+            std::string response = "{\"type\":\"error\",\"content\":\"qwen-code client not available\"}\n";
+            std::cout << "[QwenTCPServer] qwen-code not available\n";
+            send_response(client_fd, response);
+        }
+    } else if (*type == "tool_approval") {
+        auto tool_id = extract_json_string_field(message, "tool_id");
+        auto approved = extract_json_bool_field(message, "approved");
+
+        if (!tool_id || !approved) {
+            std::string response = "{\"type\":\"error\",\"content\":\"Invalid tool approval payload\"}\n";
+            std::cout << "[QwenTCPServer] Invalid tool approval payload\n";
+            send_response(client_fd, response);
+            return;
+        }
+
+        if (qwen_client_ && qwen_client_->is_running()) {
+            std::cout << "[QwenTCPServer] Forwarding tool approval for " << *tool_id
+                      << " (approved=" << (*approved ? "true" : "false") << ")\n";
+            bool sent = qwen_client_->send_tool_approval(*tool_id, *approved);
+
+            if (!sent) {
+                std::string response = "{\"type\":\"error\",\"content\":\"Failed to forward tool approval to qwen-code\"}\n";
+                std::cout << "[QwenTCPServer] Failed to forward tool approval\n";
                 send_response(client_fd, response);
             }
         } else {
-            std::string response = "{\"type\":\"error\",\"content\":\"Content field not found in JSON\"}\n";
-            std::cout << "[QwenTCPServer] Sending field error\n";
+            std::string response = "{\"type\":\"error\",\"content\":\"qwen-code client not available\"}\n";
+            std::cout << "[QwenTCPServer] qwen-code not available for tool approval\n";
             send_response(client_fd, response);
         }
     } else {

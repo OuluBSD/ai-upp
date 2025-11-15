@@ -911,6 +911,7 @@ bool run_ncurses_mode(QwenStateManager& state_mgr, Qwen::QwenClient& client, con
             }
         } else {
             // Store for approval request
+            pending_tool_group = group;
             has_pending_tool_group = true;
             ui_state = UIState::ToolApproval;
             redraw_status("Awaiting tool approval (y/n/d)");

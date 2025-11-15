@@ -28,7 +28,7 @@ Primitive internal prototypes. No user-facing stability guarantees.
 12. Wire menu items to open the placeholder editor windows. ✅
 13. Set up build configurations and verify application launch on target platforms. ✅
 
-## **v0.3 — Editor State Management (IN PROGRESS)**
+## **v0.3 — Editor State Management (DONE)**
 14. Introduce AnimEditorState struct to encapsulate AnimationProject + metadata. ✅
 15. Attach AnimEditorState to AnimEditorWindow and initialize with empty project. ✅
 16. Implement NewProject() logic (clear state, create fresh project, update title). ✅
@@ -36,9 +36,9 @@ Primitive internal prototypes. No user-facing stability guarantees.
 18. Implement SaveProject() and SaveProjectAs() using file dialog and JSON saver. ✅
 19. Add “dirty” flag tracking and propagate to window title. ✅
 20. Add “Close Project” logic with dirty state confirmation dialog. ✅
-21. Implement simple recent‑file list in main menu.
-22. Implement autosave interval (e.g., every X minutes when dirty).
-23. Implement backup file naming and cleanup policy.
+21. Implement simple recent‑file list in main menu. ✅
+22. Implement autosave interval (e.g., every X minutes when dirty). ✅
+23. Implement backup file naming and cleanup policy. ✅
 24. Add graceful error dialogs for failed load/save operations. ✅
 
 ---
@@ -63,7 +63,7 @@ Primitive internal prototypes. No user-facing stability guarantees.
 39. Introduce an undo/redo stack for SpriteInstance transforms. ✅
 40. Add simple toolbar buttons for undo/redo and snapping options. ✅
 
-## **v1.1 — Parts Panel (Sprites Library) (IN PROGRESS)**
+## **v1.1 — Parts Panel (Sprites Library) (DONE)**
 41. Connect Parts panel to AnimationProject.sprites. ✅
 42. Display sprite list with textual names and IDs. ✅
 43. Add small icon/thumbnail rendering for sprites based on texture data. ✅
@@ -72,10 +72,10 @@ Primitive internal prototypes. No user-facing stability guarantees.
 46. Implement drag & drop from Parts panel to canvas to create SpriteInstances. ✅
 47. Add right‑click context menu for sprite operations (edit, duplicate, delete). ✅
 48. Implement basic sprite creation wizard (ID, texture path, region, pivot). ✅
-49. Integrate Image Layers / texture import with sprite creation pipeline.
+49. Integrate Image Layers / texture import with sprite creation pipeline. ✅
 50. Add sprite metadata editor UI (category, tags, description). ✅
 51. Implement sorting options (by name, by category, by recent use). ✅
-52. Add error handling for dangling sprite IDs (removed sprite used by frames).
+52. Add error handling for dangling sprite IDs (removed sprite used by frames). ✅
 
 ## **v1.2 — Timeline (Animation Sequence Editing)**
 53. Visualize animation frames as horizontal card list in Timeline panel.

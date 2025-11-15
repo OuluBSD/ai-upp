@@ -79,13 +79,13 @@ Primitive internal prototypes. No user-facing stability guarantees.
 
 ## **v1.2 — Timeline (Animation Sequence Editing)**
 53. Visualize animation frames as horizontal card list in Timeline panel. ✅
-54. Show frame index, frame name, and a tiny thumbnail for each.
+54. Show frame index, frame name, and a tiny thumbnail for each. ✅
 55. Implement frame selection from Timeline (sync with active Frame in state). ✅
 56. Implement drag‑to‑reorder frames within the selected Animation. ✅
 57. Add “Insert Frame” button (create new frame and insert into timeline). ✅
 58. Add “Add Existing Frame” button (choose from global frame list). ✅
 59. Add frame duplication from timeline (copy references and/or instances). ✅
-60. Implement frame duration slider inside each timeline card.
+60. Implement frame duration slider inside each timeline card. ✅
 61. Implement play/pause/stop controls for animation preview. ✅
 62. Implement loop mode toggle for preview (loop vs play once). ✅
 63. Implement preview playback based on durations (defaultDuration / overrides).

@@ -15,7 +15,7 @@ public:
     virtual ~SpriteListCtrl();
 
     void SetProject(const AnimationProject* project);
-    void SetFrame(const Frame* frame); // Needed to check which sprites are in the current frame
+    void SetFrame(const Upp::Frame* frame); // Needed to check which sprites are in the current frame
     void RefreshList();
     
     // Selection
@@ -33,7 +33,7 @@ protected:
 
 private:
     const AnimationProject* project;
-    const Frame* frame; // For reference to see which sprites are in current frame
+    const Upp::Frame* frame; // For reference to see which sprites are in current frame
     Vector<int> display_indices; // Indices of sprites to display after filtering
     int selected_index;
     

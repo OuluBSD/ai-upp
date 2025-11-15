@@ -1,5 +1,5 @@
-#ifndef _AnimEdit_TimelineCtrl_h_
-#define _AnimEdit_TimelineCtrl_h_
+#ifndef _AnimEdit_AnimEditTimelineCtrl_h_
+#define _AnimEdit_AnimEditTimelineCtrl_h_
 
 #include <CtrlLib/CtrlLib.h>
 #include <AnimEditLib/AnimCore.h>
@@ -7,16 +7,19 @@
 
 using namespace Upp;
 
-class TimelineCtrl : public Ctrl {
-public:
-    typedef TimelineCtrl CLASSNAME;
+// Define a type alias to avoid Frame name collision
+using AnimFrame = Upp::Frame;  // The Frame from AnimCore.h (animation frame)
 
-    TimelineCtrl();
-    virtual ~TimelineCtrl();
+class AnimEditTimelineCtrl : public Ctrl {
+public:
+    typedef AnimEditTimelineCtrl CLASSNAME;
+
+    AnimEditTimelineCtrl();
+    virtual ~AnimEditTimelineCtrl();
 
     void SetProject(const AnimationProject* project);
     void SetAnimation(const Animation* animation);
-    void SetFrameCallback(std::function<void(const Frame*)> callback);
+    void SetFrameCallback(std::function<void(const Upp::Frame*)> callback);
     void SetOnFrameModified(std::function<void()> callback);
     
     int GetSelectedFrameIndex() const { return selected_frame_index; }
@@ -36,9 +39,13 @@ private:
     int drag_start_index;
     int drag_current_index;
     bool is_dragging;
+    bool is_editing_duration = false;
+    int editing_frame_index = -1;
+    int duration_editor_x = 0;
+    int duration_editor_y = 0;
 
     // Callbacks
-    std::function<void(const Frame*)> frame_callback;
+    std::function<void(const Upp::Frame*)> frame_callback;
     std::function<void()> on_frame_modified_callback;
 
     // Layout
@@ -48,6 +55,7 @@ private:
 
     // Methods
     int HitTest(Point pos) const; // Returns frame index or -1
+    int HitTestDurationControl(Point pos) const; // Returns frame index if duration control is clicked
     void DrawFrame(Draw& w, int index, const Rect& rc);
     void RefreshLayout();
     void UpdateScroll();
@@ -56,6 +64,10 @@ private:
     void StartDrag(int index);
     void EndDrag();
     bool IsDragThresholdExceeded(Point pos);
+    
+    // Duration editing
+    void ShowDurationEditor(int frame_index, int x, int y);
+    void OnDurationChanged(int frame_index, double new_duration);
 };
 
 #endif

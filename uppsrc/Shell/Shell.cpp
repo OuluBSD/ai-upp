@@ -165,6 +165,7 @@ void ShellMain(bool skip_eon)
 	
 	Engine& eng = ShellMainEngine();
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
+	eng.WhenInitialize << callback(::Upp::EngineEcsInit);
 	if (skip_eon)
 		eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
 	else

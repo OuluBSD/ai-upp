@@ -83,12 +83,18 @@ void ToolboxSystem::Start()
     m_controllers[Right].DebugText->Get<Transform>()->size = float3{ 2.0f };
     m_controllers[Right].DebugText->Get<TextRenderable>()->FontSize = 52.0f;
 
-    m_engine.Get<SpatialInteractionSystem>()->AddListener(this);
+    auto sys = m_engine.TryGet<SpatialInteractionSystem>();
+    if (sys) {
+        sys->AddListener(this);
+    }
 }
 
 void ToolboxSystem::Stop()
 {
-    m_engine.Get<SpatialInteractionSystem>()->RemoveListener(this);
+    auto sys = m_engine.TryGet<SpatialInteractionSystem>();
+    if (sys) {
+        sys->RemoveListener(this);
+    }
 }
 
 void ToolboxSystem::Update(double dt)

@@ -7,9 +7,9 @@ NAMESPACE_UPP
 void Run06iToyShaderRaymarching(Engine& eng, int method) {
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
-	
-	String filepath = "share/eon/tests/06i_toyshader_raymarching/06i_toyshader_raymarching.toy";
-	
+
+	String filepath = "share/eon/tests/06i_toyshader_volume/06i_toyshader_volume.toy";
+
 	sys->PostLoadFile(RealizeShareFile(filepath));
 }
 

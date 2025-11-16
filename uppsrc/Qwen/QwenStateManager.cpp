@@ -1,4 +1,20 @@
-#include "VfsShell.h"
+
+#include <string>
+#include <map>
+#include <vector>
+#include <memory>
+#include <functional>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
+#include <optional>
+
+// Include headers that define the types used in this file
+#include "QwenStateManager.h"
+#include "QwenProtocol.h"
 
 namespace Qwen {
 
@@ -114,10 +130,10 @@ static std::vector<std::string> extract_json_array(const std::string& json, cons
 // Constructor / Destructor
 // ============================================================================
 
-QwenStateManager::QwenStateManager(Vfs* vfs, const StateManagerConfig& config)
+QwenStateManager::QwenStateManager(VfsWrapper* vfs, const StateManagerConfig& config)
     : vfs_(vfs), config_(config), session_dirty_(false) {
     if (!vfs_) {
-        throw std::runtime_error("QwenStateManager: VFS pointer is null");
+        throw std::runtime_error("QwenStateManager: VFS wrapper pointer is null");
     }
     ensure_directories();
 }
@@ -234,15 +250,12 @@ std::vector<SessionInfo> QwenStateManager::list_sessions() const {
     std::vector<SessionInfo> sessions;
 
     try {
-        auto sessions_node = vfs_->resolve(config_.sessions_root);
-        if (!sessions_node || !sessions_node->isDir()) {
-            return sessions;
-        }
-
-        auto& children = sessions_node->children();
-        for (const auto& [name, node] : children) {
-            if (node->isDir()) {
-                auto info = get_session_info(name);
+        // Use VfsWrapper to list the sessions directory
+        std::vector<std::string> session_dirs = vfs_->list(config_.sessions_root);
+        
+        for (const auto& session_name : session_dirs) {
+            if (vfs_->is_directory(config_.sessions_root + "/" + session_name)) {
+                auto info = get_session_info(session_name);
                 if (info) {
                     sessions.push_back(*info);
                 }
@@ -275,8 +288,28 @@ std::string QwenStateManager::get_current_session() const {
 
 bool QwenStateManager::session_exists(const std::string& session_id) const {
     std::string session_path = get_session_path(session_id);
-    auto node = vfs_->resolve(session_path);
-    return node && node->isDir();
+    return vfs_->exists(session_path) && vfs_->is_directory(session_path);
+}
+
+bool QwenStateManager::clear_all_sessions() {
+    auto sessions = list_sessions();
+
+    bool all_deleted = true;
+    for (const auto& session : sessions) {
+        if (!delete_session(session.session_id)) {
+            all_deleted = false;
+        }
+    }
+
+    // Clear the current session if it was deleted
+    if (!current_session_id_.empty()) {
+        if (!session_exists(current_session_id_)) {
+            current_session_id_.clear();
+            session_dirty_ = false;
+        }
+    }
+
+    return all_deleted;
 }
 
 bool QwenStateManager::set_session_model(const std::string& model) {
@@ -519,8 +552,8 @@ std::optional<std::string> QwenStateManager::retrieve_file(const std::string& se
     std::string file_path = get_files_path(session_id) + "/" + filename;
 
     try {
-        std::string content = vfs_->read(file_path, std::nullopt);
-        return content;
+        auto content_opt = vfs_->read(file_path, std::nullopt);
+        return content_opt;
     } catch (...) {
         return std::nullopt;
     }
@@ -538,15 +571,12 @@ std::vector<std::string> QwenStateManager::list_files(const std::string& session
 
     try {
         std::string files_dir = get_files_path(session_id);
-        auto files_node = vfs_->resolve(files_dir);
-        if (!files_node || !files_node->isDir()) {
-            return files;
-        }
-
-        auto& children = files_node->children();
-        for (const auto& [name, node] : children) {
-            if (!node->isDir()) {
-                files.push_back(name);
+        std::vector<std::string> all_items = vfs_->list(files_dir);
+        
+        for (const auto& item : all_items) {
+            std::string item_path = files_dir + "/" + item;
+            if (!vfs_->is_directory(item_path)) {
+                files.push_back(item);
             }
         }
     } catch (...) {
@@ -863,10 +893,10 @@ std::string QwenStateManager::get_current_timestamp() const {
 
 bool QwenStateManager::ensure_directories() {
     try {
-        vfs_->mkdir(config_.history_root, 0);
-        vfs_->mkdir(config_.files_root, 0);
-        vfs_->mkdir(config_.sessions_root, 0);
-        return true;
+        bool ok = vfs_->mkdir(config_.history_root, 0);
+        ok = vfs_->mkdir(config_.files_root, 0) && ok;
+        ok = vfs_->mkdir(config_.sessions_root, 0) && ok;
+        return ok;
     } catch (...) {
         return false;
     }
@@ -875,10 +905,14 @@ bool QwenStateManager::ensure_directories() {
 bool QwenStateManager::ensure_session_directories(const std::string& session_id) {
     try {
         std::string session_path = get_session_path(session_id);
-        vfs_->mkdir(session_path, 0);
+        if (!vfs_->mkdir(session_path, 0)) {
+            return false;
+        }
 
         std::string files_path = get_files_path(session_id);
-        vfs_->mkdir(files_path, 0);
+        if (!vfs_->mkdir(files_path, 0)) {
+            return false;
+        }
 
         return true;
     } catch (...) {
@@ -1018,9 +1052,10 @@ bool QwenStateManager::append_to_file(const std::string& vfs_path, const std::st
     try {
         // Read existing content
         std::string existing;
-        try {
-            existing = vfs_->read(vfs_path, std::nullopt);
-        } catch (...) {
+        auto content_opt = vfs_->read(vfs_path, std::nullopt);
+        if (content_opt.has_value()) {
+            existing = content_opt.value();
+        } else {
             existing = "";
         }
 
@@ -1044,13 +1079,15 @@ std::vector<std::string> QwenStateManager::read_lines(const std::string& vfs_pat
     std::vector<std::string> lines;
 
     try {
-        std::string content = vfs_->read(vfs_path, std::nullopt);
-        std::istringstream iss(content);
-        std::string line;
+        auto content_opt = vfs_->read(vfs_path, std::nullopt);
+        if (content_opt.has_value()) {
+            std::istringstream iss(content_opt.value());
+            std::string line;
 
-        while (std::getline(iss, line)) {
-            if (!line.empty()) {
-                lines.push_back(line);
+            while (std::getline(iss, line)) {
+                if (!line.empty()) {
+                    lines.push_back(line);
+                }
             }
         }
     } catch (...) {

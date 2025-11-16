@@ -15,7 +15,7 @@ void Run06gToyShaderFractal(Engine& eng, int method);
 void Run06hToyShaderAnimation(Engine& eng, int method);
 void Run06iToyShaderRaymarching(Engine& eng, int method);
 void Run06jToyShaderWater(Engine& eng, int method);
-void Run06kToyShaderFire(Engine& eng, int method);
+void Run06kToyShaderSound(Engine& eng, int method);
 void Run06lToyShaderRgbTest(Engine& eng, int method);
 void Run06mDebugCubemap(Engine& eng, int method);
 

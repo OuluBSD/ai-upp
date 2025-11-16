@@ -98,7 +98,7 @@ const TestCase kTests[] = {
 	{ Run06hToyShaderAnimation, "Run06hToyShaderAnimation" },
 	{ Run06iToyShaderRaymarching, "Run06iToyShaderRaymarching" },
 	{ Run06jToyShaderWater, "Run06jToyShaderWater" },
-	{ Run06kToyShaderFire, "Run06kToyShaderFire" },
+	{ Run06kToyShaderSound, "Run06kToyShaderSound" },
 	{ Run06lToyShaderRgbTest, "Run06lToyShaderRgbTest" },
 	{ Run06mDebugCubemap, "Run06mDebugCubemap" },
 };

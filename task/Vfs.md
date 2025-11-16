@@ -94,6 +94,8 @@ Note: Eon03 builds with "script/build_upptst_eon03.sh" and runs with "bin/Eon03"
 - [ ] Run and fix upptst/Eon06 tests
   - [ ] Test all Eon06 variants
   - [ ] Verify functionality with new VFS structure
+  - [ ] FIXED: Renamed 06k test from "fire" to "sound" to match actual test content (was loading audio file)
+  - [ ] TODO: Fix crash in 06k (audio processing) test due to audio pipeline setup
 - [ ] Run and fix upptst/Eon07 tests
   - [ ] Test ECS features
   - [ ] Verify entity/component/system functionality

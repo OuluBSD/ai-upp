@@ -61,7 +61,10 @@ void MotionControllerSystem::Start()
 	m_mach.Get<HolographicScene>()->AddPredictionUpdateListener(*this);
 	
 	Engine& m_engine = m_mach.Get<EntitySystem>()->GetEngine();
-	m_engine.Get<SpatialInteractionSystem>()->AddListener(*this);
+	auto sys = m_engine.TryGet<SpatialInteractionSystem>();
+	if (sys) {
+		sys->AddListener(*this);
+	}
 }
 
 void MotionControllerSystem::OnPredictionUpdated(
@@ -72,7 +75,9 @@ void MotionControllerSystem::OnPredictionUpdated(
 	Engine& mach = GetEngine();
 	Engine& m_engine = mach;
 	// Update the positions of the controllers based on the current timestamp.
-	auto states = m_engine.Get<SpatialInteractionSystem>()->GetInteractionManager().GetDetectedSourcesAtTimestamp(prediction.Timestamp());
+	auto spatial_sys = m_engine.TryGet<SpatialInteractionSystem>();
+	if (!spatial_sys) return;
+	auto states = spatial_sys->GetInteractionManager().GetDetectedSourcesAtTimestamp(prediction.Timestamp());
 	PoolRef root =  m_engine.Get<EntityStore>()->GetRoot();
 	for (const auto& sourceState : states)
 	{
@@ -103,7 +108,10 @@ void MotionControllerSystem::Stop()
 	mach.Get<HolographicScene>()->RemovePredictionUpdateListener(*this);
 	
 	Engine& m_engine = mach.Get<EntitySystem>()->GetEngine();
-	m_engine.Get<SpatialInteractionSystem>()->RemoveListener(*this);
+	auto sys = m_engine.TryGet<SpatialInteractionSystem>();
+	if (sys) {
+		sys->RemoveListener(*this);
+	}
 }
 
 void MotionControllerSystem::RefreshComponentsForSource(const SpatialInteractionSource& source)

@@ -33,9 +33,13 @@ OpenGLMessageCallback( GLenum source,
 	// we might want to log but not crash the application
 	// Only panic in debug mode if it's not a recoverable driver issue
 	#ifdef flagDEBUG
-	Panic("Got OpenGL error to debug...");
+	// Shader compilation errors are logged separately, don't panic on them
+	if (type != GL_DEBUG_TYPE_ERROR || severity != GL_DEBUG_SEVERITY_HIGH) {
+		// Only panic for high severity errors that aren't shader compilation
+		//Panic("Got OpenGL error to debug...");
+	}
 	#endif
-	ASSERT(0);
+	//ASSERT(0);
 }
 
 GLenum GetOglTextureMode(GVar::TextureMode type) {

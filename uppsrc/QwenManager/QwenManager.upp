@@ -1,0 +1,18 @@
+uses
+	Qwen,
+	Terminal;
+
+file
+	AGENTS.md,
+	QwenManager.h,
+	QwenManager.cpp,
+	App.h,
+	App.cpp,
+	QwenView.h,
+	QwenView.cpp,
+	DataModel.h,
+	DataModel.cpp;
+
+mainconfig
+	"" = "GUI";
+

@@ -1,6 +1,7 @@
 #include "VfsShell.h"
 #include <Core/VfsBase/VfsBase.h>  // For basic VFS operations
 #include <ide/CommandLineHandler.h>  // For IDE command handling
+#include <Qwen/CmdQwen.h>  // Include for Qwen command
 
 NAMESPACE_UPP
 
@@ -1670,11 +1671,19 @@ void VfsShellConsole::CmdQwen(const ValueArray& args) {
 	// Convert U++ ValueArray to std::vector<std::string> for QwenCmd::cmd_qwen
 	std::vector<std::string> qwen_args;
 	for (int i = 1; i < args.GetCount(); i++) {  // Start from 1 to skip command name
-		qwen_args.push_back((String)args[i]);
+		String arg_string = AsString(args[i]);
+		qwen_args.push_back(std::string(arg_string.Begin(), arg_string.GetLength()));  // Convert U++ String to std::string
 	}
 	
-	// Call the Qwen command implementation
-	QwenCmd::cmd_qwen(qwen_args, MountManager::System());
+	// Get the root VFS from MountManager (assuming / is mounted with SystemFS)
+	MountManager& mm = MountManager::System();
+	MountManager::MountPoint* mp = mm.Find("/");  // Find root mount point
+	if (mp && mp->vfs) {
+		// Use the VFS instance from mount manager
+		QwenCmd::cmd_qwen(qwen_args, *mp->vfs);
+	} else {
+		AddOutputLine("Error: Could not access VFS for qwen command");
+	}
 }
 
 END_UPP_NAMESPACE

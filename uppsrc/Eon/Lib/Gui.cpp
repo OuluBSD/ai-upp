@@ -58,8 +58,12 @@ void DefaultGuiAppComponent::Update(double dt) {
 
 void DefaultGuiAppComponent::StateStartup(GfxDataState& state) {
 	Engine& eng = GetActiveEngine();
-	EntityStorePtr ents = eng.Get<EntityStore>();
-	RenderingSystemRef rend = eng.Get<RenderingSystem>();
+	EntityStorePtr ents = eng.TryGet<EntityStore>();
+	RenderingSystemRef rend = eng.TryGet<RenderingSystem>();
+	if (!ents || !rend) {
+		LOG("DefaultGuiAppComponent::StateStartup: EntityStore or RenderingSystem not available yet");
+		return;
+	}
 	PoolRef models = ents->GetRoot()->GetAddPool("models");
 	
 	TODO

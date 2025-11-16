@@ -14,15 +14,21 @@ void PaintStrokeComponent::Visit(Vis& v) {
 
 bool PaintStrokeComponent::Initialize(const WorldState& ws){
 	Engine& e = GetEngine();
-	Ptr<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
-	sys->Attach(this);
-	return true;
+	Ptr<PaintStrokeSystemBase> sys = e.TryGet<PaintStrokeSystemBase>();
+	if (sys) {
+		sys->Attach(this);
+		return true;
+	} else {
+		LOG("PaintStrokeComponent::Initialize: PaintStrokeSystemBase not available yet");
+		return false;
+	}
 }
 
 void PaintStrokeComponent::Uninitialize() {
 	Engine& e = GetEngine();
-	Ptr<PaintStrokeSystemBase> sys = e.Get<PaintStrokeSystemBase>();
-	sys->Detach(this);
+	Ptr<PaintStrokeSystemBase> sys = e.TryGet<PaintStrokeSystemBase>();
+	if (sys)
+		sys->Detach(this);
 }
 
 

@@ -229,8 +229,12 @@ void ToolboxSystemBase::OnControllerPressed(const GeomEvent& e) {
 		show_toolbox = !show_toolbox;
 		
 		if (show_toolbox) {
-			auto holo_scene = GetEngine().Get<HolographicScene>();
-			
+			auto holo_scene = GetEngine().TryGet<HolographicScene>();
+			if (!holo_scene) {
+				LOG("ToolboxSystemBase::OnControllerPressed: HolographicScene not available yet");
+				return;
+			}
+
 			if (SpatialPointerPose pointer_pose = SpatialPointerPose::TryGetAtTimestamp(holo_scene->WorldCoordinateSystem(), holo_scene->CurrentTimestamp())) {
 				const vec3 head_position = pointer_pose.Head().Position();
 				const vec3 forward = pointer_pose.Head().ForwardDirection();

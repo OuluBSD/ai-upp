@@ -291,6 +291,27 @@ bool QwenStateManager::session_exists(const std::string& session_id) const {
     return vfs_->exists(session_path) && vfs_->is_directory(session_path);
 }
 
+bool QwenStateManager::clear_all_sessions() {
+    auto sessions = list_sessions();
+
+    bool all_deleted = true;
+    for (const auto& session : sessions) {
+        if (!delete_session(session.session_id)) {
+            all_deleted = false;
+        }
+    }
+
+    // Clear the current session if it was deleted
+    if (!current_session_id_.empty()) {
+        if (!session_exists(current_session_id_)) {
+            current_session_id_.clear();
+            session_dirty_ = false;
+        }
+    }
+
+    return all_deleted;
+}
+
 bool QwenStateManager::set_session_model(const std::string& model) {
     if (current_session_id_.empty()) {
         return false;

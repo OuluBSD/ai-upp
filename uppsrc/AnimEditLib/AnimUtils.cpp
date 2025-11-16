@@ -308,7 +308,7 @@ bool ValidateAnimationTransition(const AnimationTransition& transition, String& 
     if (transition.transition_time < 0.0) {
         errorOut = "Animation transition from '" + transition.from_animation_id + 
                    "' to '" + transition.to_animation_id + 
-                   "' has invalid transition time (must be >= 0.0): " + DoubleStr(transition.transition_time);
+                   "' has invalid transition time (must be >= 0.0): " + AsString(transition.transition_time);
         return false;
     }
     
@@ -317,12 +317,12 @@ bool ValidateAnimationTransition(const AnimationTransition& transition, String& 
 
 bool ValidateEntityAnimationParams(const EntityAnimationParams& params, String& errorOut) {
     if (params.speed_multiplier <= 0.0) {
-        errorOut = "Invalid animation speed multiplier (must be > 0.0): " + DoubleStr(params.speed_multiplier);
+        errorOut = "Invalid animation speed multiplier (must be > 0.0): " + AsString(params.speed_multiplier);
         return false;
     }
     
     if (params.time_offset < 0.0) {
-        errorOut = "Invalid animation time offset (must be >= 0.0): " + DoubleStr(params.time_offset);
+        errorOut = "Invalid animation time offset (must be >= 0.0): " + AsString(params.time_offset);
         return false;
     }
     
@@ -333,12 +333,12 @@ bool ValidateEntityAnimationParams(const EntityAnimationParams& params, String& 
 
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut) {
     if (params.weight < 0.0 || params.weight > 1.0) {
-        errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + DoubleStr(params.weight);
+        errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + AsString(params.weight);
         return false;
     }
     
     if (params.transition_time < 0.0) {
-        errorOut = "Invalid transition time (must be >= 0.0): " + DoubleStr(params.transition_time);
+        errorOut = "Invalid transition time (must be >= 0.0): " + AsString(params.transition_time);
         return false;
     }
     

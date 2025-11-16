@@ -24,7 +24,7 @@ ExportResult ExportProject(const AnimationProject& project, const ExportOptions&
     }
     
     // Just check if output directory exists (don't try to create it)
-    if (!DirectoryExists(~options.output_path)) {
+    if (!DirectoryExists(options.output_path)) {
         result.success = false;
         result.error_message = "Output directory does not exist: " + options.output_path;
         return result;
@@ -148,7 +148,7 @@ ExportResult ExportEntities(const AnimationProject& project, const ExportOptions
     }
     
     // Just check if output directory exists (don't try to create it)
-    if (!DirectoryExists(~options.output_path)) {
+    if (!DirectoryExists(options.output_path)) {
         result.success = false;
         result.error_message = "Output directory does not exist: " + options.output_path;
         return result;

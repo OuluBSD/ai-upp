@@ -20,10 +20,10 @@ public:
 
     // Selection
     int GetSelectedIndex() const { return selected_index; }
-    const Upp::Frame* GetSelectedFrame() const;
+    const AnimationFrame* GetSelectedFrame() const;
 
     // Events
-    void SetSelectCallback(std::function<void(const Upp::Frame*)> callback) { select_callback = callback; }
+    void SetSelectCallback(std::function<void(const AnimationFrame*)> callback) { select_callback = callback; }
 
 protected:
     virtual void Paint(Draw& w);
@@ -47,7 +47,7 @@ private:
     void SetFilterText(const String& text);
 
     // Callbacks
-    std::function<void(const Upp::Frame*)> select_callback;
+    std::function<void(const AnimationFrame*)> select_callback;
 
     enum SortType {
         SORT_BY_NAME = 0,

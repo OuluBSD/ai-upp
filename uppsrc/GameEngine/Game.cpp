@@ -3,14 +3,9 @@
 
 NAMESPACE_UPP
 
-Game::Game() : renderer(std::make_unique<Renderer>()) {
+Game::Game() {
 	// Set up the main window callbacks
 	main_window.SetRenderCallback([this](Draw& w) {
-		// Initialize renderer if not done already
-		if (!renderer_initialized) {
-			renderer->Initialize(main_window);
-			renderer_initialized = true;
-		}
 		Render(w);
 	});
 
@@ -47,14 +42,10 @@ void Game::Update(double deltaTime) {
 }
 
 void Game::Render(Draw& draw) {
-	// Render game content here using our renderer
+	// Render game content here
 	// This is called from the UI thread during Paint
-	if (renderer) {
-		renderer->Render(draw);
-	} else {
-		// Fallback rendering if renderer not initialized
-		draw.DrawRect(main_window.GetSize(), Color(20, 20, 60)); // Dark blue background
-	}
+	// Fallback rendering
+	draw.DrawRect(main_window.GetSize(), Color(20, 20, 60)); // Dark blue background
 }
 
 void Game::Run() {

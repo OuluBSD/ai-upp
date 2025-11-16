@@ -11,7 +11,7 @@ CollisionListCtrl::CollisionListCtrl()
 CollisionListCtrl::~CollisionListCtrl() {
 }
 
-void CollisionListCtrl::SetFrame(const Upp::Frame* frame) {
+void CollisionListCtrl::SetFrame(const AnimationFrame* frame) {
     this->frame = frame;
     RefreshList();
 }

@@ -26,11 +26,11 @@ public:
     void ClearSprites();
     
     // AnimationFrame management
-    void AddAnimationFrame(AnimationFrame frame);
-    void RemoveAnimationFrame(const String& id);
-    const AnimationFrame* GetAnimationFrame(const String& id) const;
-    Vector<String> GetAllAnimationFrameIds() const;
-    void ClearAnimationFrames();
+    void AddFrame(AnimationFrame frame);
+    void RemoveFrame(const String& id);
+    const AnimationFrame* GetFrame(const String& id) const;
+    Vector<String> GetAllFrameIds() const;
+    void ClearFrames();
     
     // Animation management
     void AddAnimation(Animation anim);
@@ -56,9 +56,9 @@ public:
     Event<> WhenSpriteRemoved;
     Event<> WhenSpriteModified;
     
-    Event<> WhenAnimationFrameAdded;
-    Event<> WhenAnimationFrameRemoved;
-    Event<> WhenAnimationFrameModified;
+    Event<> WhenFrameAdded;
+    Event<> WhenFrameRemoved;
+    Event<> WhenFrameModified;
     
     Event<> WhenAnimationAdded;
     Event<> WhenAnimationRemoved;

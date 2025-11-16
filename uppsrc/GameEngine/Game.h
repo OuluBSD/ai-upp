@@ -34,15 +34,20 @@ public:
 	// Game timing
 	double GetDeltaTime() const { return delta_time; }
 
+	// Input system
+	void SetInputSystem(std::shared_ptr<InputSystem> input_system) { 
+		input_system_ = input_system; 
+		main_window.SetInputSystem(input_system);
+	}
+	std::shared_ptr<InputSystem> GetInputSystem() const { 
+		return input_system_; 
+	}
+
 protected:
 	GameWindow main_window;
 	bool running = false;
 	double delta_time = 0.0;
 	
-	// Rendering system
-	std::unique_ptr<Renderer> renderer;
-	bool renderer_initialized = false;
-
 private:
 	void GameLoop();
 };

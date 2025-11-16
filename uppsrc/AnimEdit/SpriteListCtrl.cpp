@@ -19,7 +19,7 @@ void SpriteListCtrl::SetProject(const AnimationProject* project) {
     RefreshList();
 }
 
-void SpriteListCtrl::SetFrame(const Frame* frame) {
+void SpriteListCtrl::SetFrame(const AnimationFrame* frame) {
     this->frame = frame;
 }
 

@@ -54,25 +54,25 @@ void AnimResourceRegistry::ClearSprites() {
     sprites.Clear();
 }
 
-// AnimationAnimationFrame management
-void AnimResourceRegistry::AddAnimationFrame(AnimationAnimationFrame frame) {
+// AnimationFrame management
+void AnimResourceRegistry::AddFrame(AnimationFrame frame) {
     if (frame.id.IsEmpty()) {
         // Don't add frames without IDs
         return;
     }
     
     frames.Add(frame.id, pick(frame));  // Use pick to move it to VectorMap
-    NotifyResourceAdded(frame.id, 'F');  // F for AnimationAnimationFrame
+    NotifyResourceAdded(frame.id, 'F');  // F for AnimationFrame
 }
 
-void AnimResourceRegistry::RemoveAnimationFrame(const String& id) {
+void AnimResourceRegistry::RemoveFrame(const String& id) {
     if (frames.Find(id) >= 0) {
         frames.RemoveKey(id);
-        NotifyResourceRemoved(id, 'F');  // F for AnimationAnimationFrame
+        NotifyResourceRemoved(id, 'F');  // F for AnimationFrame
     }
 }
 
-const AnimationAnimationFrame* AnimResourceRegistry::GetAnimationFrame(const String& id) const {
+const AnimationFrame* AnimResourceRegistry::GetFrame(const String& id) const {
     int idx = frames.Find(id);
     if (idx >= 0) {
         return &frames[idx];
@@ -80,7 +80,7 @@ const AnimationAnimationFrame* AnimResourceRegistry::GetAnimationFrame(const Str
     return nullptr;
 }
 
-Vector<String> AnimResourceRegistry::GetAllAnimationFrameIds() const {
+Vector<String> AnimResourceRegistry::GetAllFrameIds() const {
     Vector<String> ids;
     for (int i = 0; i < frames.GetCount(); i++) {
         ids.Add(frames.GetKey(i));
@@ -88,8 +88,8 @@ Vector<String> AnimResourceRegistry::GetAllAnimationFrameIds() const {
     return ids;
 }
 
-void AnimResourceRegistry::ClearAnimationFrames() {
-    Vector<String> allIds = GetAllAnimationFrameIds();
+void AnimResourceRegistry::ClearFrames() {
+    Vector<String> allIds = GetAllFrameIds();
     for (int i = 0; i < allIds.GetCount(); i++) {
         NotifyResourceRemoved(allIds[i], 'F');
     }
@@ -150,7 +150,7 @@ void AnimResourceRegistry::LoadProject(AnimationProject project) {
     
     // Add all frames from the project
     for (int i = 0; i < project.frames.GetCount(); i++) {
-        AddAnimationFrame(pick(project.frames[i]));  // Use pick to move
+        AddFrame(pick(project.frames[i]));  // Use pick to move
     }
     
     // Add all animations from the project
@@ -161,7 +161,7 @@ void AnimResourceRegistry::LoadProject(AnimationProject project) {
 
 void AnimResourceRegistry::ClearProject() {
     ClearSprites();
-    ClearAnimationFrames();
+    ClearFrames();
     ClearAnimations();
 }
 
@@ -176,7 +176,7 @@ void AnimResourceRegistry::NotifyResourceAdded(const String& id, char resourceTy
             break;
         }
         case 'F': {
-            auto& event = WhenAnimationFrameAdded;
+            auto& event = WhenFrameAdded;
             event();
             break;
         }
@@ -198,7 +198,7 @@ void AnimResourceRegistry::NotifyResourceRemoved(const String& id, char resource
             break;
         }
         case 'F': {
-            auto& event = WhenAnimationFrameRemoved;
+            auto& event = WhenFrameRemoved;
             event();
             break;
         }
@@ -220,7 +220,7 @@ void AnimResourceRegistry::NotifyResourceModified(const String& id, char resourc
             break;
         }
         case 'F': {
-            auto& event = WhenAnimationFrameModified;
+            auto& event = WhenFrameModified;
             event();
             break;
         }

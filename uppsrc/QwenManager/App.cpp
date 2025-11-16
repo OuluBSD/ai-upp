@@ -37,8 +37,15 @@ void QwenManager::SetView(int i) {
 	}
 	
 	if(i == VIEW_QWEN_PROJECT) {
+		QwenManagerState& state = QwenManagerState::Global();
+		int i = projects.Get("IDX");
+		auto& prj = state.projects[i];
+		ASSERT(prj.uniq >= 0);
+		auto& qwen_view = qwen_views.GetAdd(prj.uniq);
+		qwen_view.prj = &prj;
 		mainarea.Add(qwen_view.SizePos());
 		active_view = &qwen_view;
+		active_qwen_view = &qwen_view;
 	}
 	view = i;
 }
@@ -47,8 +54,8 @@ void QwenManager::Data() {
 	DataServerList();
 	DataProjectList();
 	
-	if (active_view == (Ctrl*)&qwen_view)
-		qwen_view.Data();
+	if (active_view == (Ctrl*)&active_qwen_view)
+		active_qwen_view->Data();
 }
 
 void QwenManager::DataServerList() {
@@ -96,10 +103,6 @@ void QwenManager::OnProject() {
 	QwenManagerState& state = QwenManagerState::Global();
 	int i = projects.Get("IDX");
 	auto& prj = state.projects[i];
-	
-	// Set prj pointer to all views here
-	qwen_view.prj = &prj;
-	// ...
 	
 	// Do indirect data updating
 	SetView(VIEW_QWEN_PROJECT);

@@ -7,13 +7,14 @@ class QwenManager : public TopWindow {
 	Splitter lvsplit;
 	Ctrl mainarea;
 	Ptr<Ctrl> active_view; // pointer to active view
+	Ptr<QwenProjectView> active_qwen_view;
 	int view = -1;
 	
 	// Left vertical splitter area
 	ArrayCtrl servers, projects;
 	
 	// View 1: horizontal split of qwen-view and ssh terminal
-	ArrayMap<int64,QwenProjectView> qwen_view; // based on QwenProject::uniq
+	ArrayMap<int64,QwenProjectView> qwen_views; // based on QwenProject::uniq
 	
 	enum {
 		VIEW_SERVER,

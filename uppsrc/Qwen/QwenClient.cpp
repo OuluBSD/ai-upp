@@ -43,6 +43,12 @@ public:
         , restart_count_(0)
         , logger_("qwen-client")
     {
+        if (config_.verbose) {
+            logger_.set_min_level(QwenLogger::Level::DEBUG);
+        } else {
+            logger_.set_min_level(QwenLogger::Level::WARN);
+        }
+
         logger_.info("QwenClient created, mode=",
                     (config.mode == CommunicationMode::STDIN_STDOUT ? "stdin" :
                      config.mode == CommunicationMode::TCP ? "tcp" : "pipe"));
@@ -288,13 +294,14 @@ private:
             dup2(stdin_pipe[0], STDIN_FILENO);
             dup2(stdout_pipe[1], STDOUT_FILENO);
 
-            // NOTE: Keep stderr visible for debugging
-            // In production, redirect stderr to /dev/null to avoid polluting display:
-            // int devnull = open("/dev/null", O_WRONLY);
-            // if (devnull >= 0) {
-            //     dup2(devnull, STDERR_FILENO);
-            //     close(devnull);
-            // }
+            // Redirect stderr when not running in verbose mode to avoid polluting CLI output
+            if (!config_.verbose) {
+                int devnull = open("/dev/null", O_WRONLY);
+                if (devnull >= 0) {
+                    dup2(devnull, STDERR_FILENO);
+                    close(devnull);
+                }
+            }
 
             // Close unused pipe ends
             close(stdin_pipe[0]);

@@ -46,6 +46,14 @@ private:
     
     // Preview control
     EntityPreviewCtrl preview_ctrl;
+    
+    // Animation playback controls
+    Button play_btn;
+    Button pause_btn;
+    Button stop_btn;
+    CheckBox loop_check;
+    Slider speed_slider;
+    Label speed_label;
 
     void UpdateControls();
     void OnEntityChanged();
@@ -56,6 +64,11 @@ private:
     void OnAddProperty();
     void OnRemoveProperty();
     void ValidateEntity();
+    void OnPlayClicked();
+    void OnPauseClicked();
+    void OnStopClicked();
+    void OnLoopToggled();
+    void OnSpeedChanged();
 
     virtual void Paint(Draw& w) override;
     virtual void Layout() override;

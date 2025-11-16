@@ -1135,19 +1135,79 @@ void EntityEditorWindow::CreateNewEntity() {
 
 void EntityEditorWindow::DuplicateEntity() {
     if (!state) return;
+
+    // Get the currently selected entity from the list
+    int selected_row = entity_list_ctrl.GetCursor();
+    if (selected_row < 0 || selected_row >= state->project.entities.GetCount()) {
+        Exclamation("No entity selected for duplication!");
+        return;
+    }
+
+    const Entity& original_entity = state->project.entities[selected_row];
+
+    // Create a copy of the entity with a new ID
+    Entity new_entity = original_entity;
+    new_entity.id = "entity_" + Uuid().ToString();
+    new_entity.name = original_entity.name + " (copy)";
+
+    // Check if the entity has any name conflicts in the project and adjust if needed
+    int counter = 1;
+    String original_name = new_entity.name;
+    while (state->project.FindEntity(new_entity.id)) {
+        new_entity.id = "entity_" + Uuid().ToString();
+    }
     
-    // For now, use a simple approach to get the selected entity
-    // In a real implementation, we'd have a better way to track this
-    PromptOK("Entity duplication would happen here.");
+    // Also ensure the name is unique
+    while (true) {
+        bool is_unique = true;
+        for (int i = 0; i < state->project.entities.GetCount(); i++) {
+            if (state->project.entities[i].name == new_entity.name && 
+                state->project.entities[i].id != original_entity.id) {
+                new_entity.name = original_name + " (" + IntStr(++counter) + ")";
+                is_unique = false;
+                break;
+            }
+        }
+        if (is_unique) break;
+    }
+
+    // Add the new entity to the project
+    state->project.entities.Add(new_entity);
+    state->dirty = true;
+    UpdateTitle();
+    entity_list_ctrl.RefreshList();
 }
 
 void EntityEditorWindow::DeleteEntity() {
     if (!state) return;
-    
-    // Similar approach as above
-    PromptOK("Entity deletion would happen here.");
-}
 
+    // Get the currently selected entity from the list
+    int selected_row = entity_list_ctrl.GetCursor();
+    if (selected_row < 0 || selected_row >= state->project.entities.GetCount()) {
+        Exclamation("No entity selected for deletion!");
+        return;
+    }
+
+    const Entity& entity_to_delete = state->project.entities[selected_row];
+
+    // Confirm deletion with the user
+    if (!PromptYesNo("Are you sure you want to delete the entity '" + entity_to_delete.name + "'?")) {
+        return;
+    }
+
+    // Check if any other entities reference this entity (currently not applicable for our basic implementation)
+    // But we might want to check if other parts of the project reference this entity
+
+    // Remove the entity from the project
+    state->project.entities.Remove(selected_row);
+    
+    // Update the UI to show the changes
+    entity_list_ctrl.RefreshList();
+    entity_properties_ctrl.SetEntity(nullptr); // Clear properties panel
+    
+    state->dirty = true;
+    UpdateTitle();
+}
 void EntityEditorWindow::OnEntitySelectionChanged(const Entity* entity) {
     entity_properties_ctrl.SetProject(&state->project);
     entity_properties_ctrl.SetEntity(entity);

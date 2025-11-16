@@ -12,6 +12,8 @@
 #include <csignal>
 #include <atomic>
 #include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 // Define the global registry instance
 Registry g_registry;
@@ -80,6 +82,9 @@ QwenOptions parse_args(const std::vector<std::string>& args) {
         else if (arg == "--list-sessions") {
             opts.list_sessions = true;
         }
+        else if (arg == "--clear-sessions") {
+            opts.clear_sessions = true;
+        }
         else if (arg == "--model" && i + 1 < args.size()) {
             opts.model = args[++i];
         }
@@ -103,6 +108,9 @@ QwenOptions parse_args(const std::vector<std::string>& args) {
         }
         else if (arg == "--manager" || arg == "-m") {
             opts.manager_mode = true;
+        }
+        else if (arg == "--yolo" || arg == "-y") {
+            opts.auto_approve_tools = true;
         }
         else if (arg == "--mode" && i + 1 < args.size()) {
             opts.mode = args[++i];
@@ -167,6 +175,54 @@ bool supports_ncurses() {
     return false;
 }
 
+std::filesystem::path get_executable_dir() {
+    std::vector<char> buffer(4096);
+    ssize_t len = readlink("/proc/self/exe", buffer.data(), buffer.size() - 1);
+    if (len <= 0) {
+        return {};
+    }
+    buffer[len] = '\0';
+    std::filesystem::path exe_path(buffer.data());
+    return exe_path.parent_path();
+}
+
+std::string resolve_qwen_executable(const QwenConfig& config) {
+    if (!config.qwen_code_path.empty()) {
+        return config.qwen_code_path;
+    }
+
+    namespace fs = std::filesystem;
+    const fs::path script_rel("script/qwen-code");
+    std::vector<fs::path> candidates;
+
+    std::error_code ec;
+    fs::path cwd = fs::current_path(ec);
+    if (!ec && !cwd.empty()) {
+        candidates.push_back(cwd / script_rel);
+    }
+
+    fs::path exe_dir = get_executable_dir();
+    if (!exe_dir.empty()) {
+        candidates.push_back(exe_dir / script_rel);
+        candidates.push_back(exe_dir / ".." / script_rel);
+    }
+
+    candidates.push_back(script_rel);
+
+    for (const auto& candidate : candidates) {
+        if (candidate.empty()) {
+            continue;
+        }
+
+        std::error_code exists_ec;
+        if (fs::exists(candidate, exists_ec)) {
+            return candidate.string();
+        }
+    }
+
+    return script_rel.string();
+}
+
 // Show help text
 void show_help() {
     std::cout << "qwen - Interactive AI assistant powered by qwen-code\n\n";
@@ -175,9 +231,11 @@ void show_help() {
     std::cout << "  qwen --new, -n                Force new session creation\n";
     std::cout << "  qwen --attach <id>            Attach to existing session\n";
     std::cout << "  qwen --list-sessions          List all sessions\n";
+    std::cout << "  qwen --clear-sessions         Clear all sessions\n";
     std::cout << "  qwen --simple                 Force stdio mode instead of ncurses\n";
     std::cout << "  qwen --openai                 Use OpenAI provider instead of default\n";
     std::cout << "  qwen --oauth                  Use Qwen OAuth provider (recommended)\n";
+    std::cout << "  qwen --yolo, -y               Auto-approve all tool executions\n";
     std::cout << "  qwen --eval, -e <text>        Evaluate single input and exit\n";
     std::cout << "  qwen --manager, -m            Enable manager mode (multi-repository management)\n";
     std::cout << "  qwen --help                   Show this help\n\n";
@@ -238,6 +296,15 @@ void list_sessions(Qwen::QwenStateManager& state_mgr) {
 
 // Track if we're in the middle of streaming (to manage AI: prefix)
 static bool streaming_in_progress = false;
+static std::atomic<bool> response_pending(false);
+
+static void mark_response_pending() {
+    response_pending.store(true, std::memory_order_relaxed);
+}
+
+static void mark_response_complete() {
+    response_pending.store(false, std::memory_order_relaxed);
+}
 
 // Display a conversation message with formatting
 void display_conversation_message(const Qwen::ConversationMessage& msg) {
@@ -1428,9 +1495,8 @@ void cmd_qwen(const std::vector<std::string>& args,
             manager_config.management_repo_path = ".";
         }
         
-        // Set qwen-code path (could come from environment or config)
-        // For now, use a default path - in a real implementation this would be configurable
-        manager_config.qwen_code_path = "/common/active/sblo/Dev/VfsBoot/qwen-code";
+        // Don't set qwen_code_path - let QwenTCPServer use its default (script/qwen-code wrapper)
+        // manager_config.qwen_code_path remains empty
 
         Qwen::QwenManager manager(&vfs);
         if (!manager.initialize(manager_config)) {
@@ -1517,6 +1583,9 @@ void cmd_qwen(const std::vector<std::string>& args,
     if (!opts.workspace_root.empty()) {
         config.workspace_root = opts.workspace_root;
     }
+    if (opts.auto_approve_tools) {
+        config.auto_approve_tools = true;
+    }
 
     // Create VFS wrapper and state manager
     Qwen::VfsWrapper vfs_wrapper(&vfs);
@@ -1524,6 +1593,17 @@ void cmd_qwen(const std::vector<std::string>& args,
 
     if (opts.list_sessions) {
         QwenCmd::list_sessions(state_mgr);
+        return;
+    }
+
+    if (opts.clear_sessions) {
+        std::cout << Color::YELLOW << "Clearing all sessions..." << Color::RESET << "\n";
+        bool success = state_mgr.clear_all_sessions();
+        if (success) {
+            std::cout << Color::GREEN << "All sessions cleared successfully." << Color::RESET << "\n";
+        } else {
+            std::cout << Color::RED << "Failed to clear all sessions." << Color::RESET << "\n";
+        }
         return;
     }
 
@@ -1555,9 +1635,22 @@ void cmd_qwen(const std::vector<std::string>& args,
 
     // Configure QwenClient
     Qwen::QwenClientConfig client_config;
-    client_config.qwen_executable = config.qwen_code_path;
+    client_config.qwen_executable = resolve_qwen_executable(config);
     client_config.auto_restart = true;
     client_config.verbose = false;  // Disable verbose logging for clean output
+
+    // Validate that we found a viable executable when using a path
+    if (client_config.qwen_executable.find('/') != std::string::npos) {
+        std::error_code exists_ec;
+        if (!std::filesystem::exists(client_config.qwen_executable, exists_ec)) {
+            std::cout << Color::RED
+                      << "Unable to locate qwen-code executable at "
+                      << client_config.qwen_executable
+                      << ".\nPlease set QWEN_CODE_PATH or run from the ai-upp repository root."
+                      << Color::RESET << "\n";
+            return;
+        }
+    }
 
     // Configure connection mode
     if (opts.mode == "tcp") {
@@ -1645,6 +1738,11 @@ void cmd_qwen(const std::vector<std::string>& args,
 
         // Store in state manager
         state_mgr.add_message(msg);
+
+        if (msg.role == Qwen::MessageRole::ASSISTANT &&
+            !msg.is_streaming.value_or(false)) {
+            mark_response_complete();
+        }
     };
 
     handlers.on_tool_group = [&](const Qwen::ToolGroup& group) {
@@ -1684,6 +1782,10 @@ void cmd_qwen(const std::vector<std::string>& args,
             std::cout << " " << msg.message.value();
         }
         std::cout << "\n";
+
+        if (msg.state == Qwen::AppState::IDLE) {
+            mark_response_complete();
+        }
     };
 
     handlers.on_info = [&](const Qwen::InfoMessage& msg) {
@@ -1706,6 +1808,8 @@ void cmd_qwen(const std::vector<std::string>& args,
             std::cout << ", Duration: " << stats.duration;
         }
         std::cout << "]" << Color::RESET << "\n";
+
+        mark_response_complete();
     };
 
     // Set handlers
@@ -1722,11 +1826,13 @@ void cmd_qwen(const std::vector<std::string>& args,
     }
 
     std::cout << Color::GREEN << "Connected!\n" << Color::RESET << "\n";
+    mark_response_complete();
 
     // Check if we're running in eval mode (single input)
     if (!opts.eval_input.empty()) {
         // Send the eval input directly
         if (client.send_user_input(opts.eval_input)) {
+            mark_response_pending();
             std::cout << "Input: " << opts.eval_input << "\n";
             std::cout << "Response: ";
 
@@ -1763,6 +1869,10 @@ void cmd_qwen(const std::vector<std::string>& args,
 
                 // If we received at least one message, reset the timeout start
                 start_time = std::chrono::steady_clock::now();
+
+                if (!response_pending.load(std::memory_order_relaxed)) {
+                    break;
+                }
             }
 
             // Ensure we have a newline after response completion
@@ -1772,6 +1882,7 @@ void cmd_qwen(const std::vector<std::string>& args,
             }
         } else {
             std::cout << Color::RED << "Failed to send eval message.\n" << Color::RESET;
+            mark_response_complete();
         }
 
         // Cleanup and return after eval
@@ -1812,8 +1923,10 @@ void cmd_qwen(const std::vector<std::string>& args,
         // Send user input to qwen
         if (!client.send_user_input(input_line)) {
             std::cout << Color::RED << "Failed to send message.\n" << Color::RESET;
+            mark_response_complete();
             continue;
         }
+        mark_response_pending();
 
         // Poll for responses with a timeout
         // We'll poll in a loop to handle streaming responses
@@ -1862,8 +1975,12 @@ void cmd_qwen(const std::vector<std::string>& args,
             // Messages received - reset timer for next batch
             start_time = std::chrono::steady_clock::now();
 
+            if (!response_pending.load(std::memory_order_relaxed)) {
+                waiting_for_response = false;
+            }
+
             // Continue polling for more messages (streaming)
-            // We'll keep polling until we get a completion_stats or no messages for a bit
+            // We'll keep polling until we detect completion or timeout
         }
 
         // Ensure we have a newline after response completion

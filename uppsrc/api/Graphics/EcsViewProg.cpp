@@ -35,8 +35,11 @@ bool EcsViewProg::Render(Draw& fb) {
 	
 	Engine& eng = *state.eng;
 	
-	RenderingSystemPtr rend = eng.Get<RenderingSystem>();
-	ASSERT(rend);
+	RenderingSystemPtr rend = eng.TryGet<RenderingSystem>();
+	if (!rend) {
+		LOG("EcsViewProg::Run: RenderingSystem not available yet");
+		return false;
+	}
 	
 	
 	// Default values

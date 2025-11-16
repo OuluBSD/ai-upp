@@ -99,6 +99,9 @@ public:
     // Check if a session exists
     bool session_exists(const std::string& session_id) const;
 
+    // Clear all sessions
+    bool clear_all_sessions();
+
     // Update model for current session
     bool set_session_model(const std::string& model);
 

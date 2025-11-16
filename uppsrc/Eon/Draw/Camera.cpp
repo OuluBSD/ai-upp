@@ -50,7 +50,7 @@ bool Viewable::Initialize(const WorldState& ws) {
 
 void Viewable::Uninitialize()  {
 	// try remove this from rendering system, in case it was added manually
-	RenderingSystemPtr rend = GetEngine().Get<RenderingSystem>();
+	RenderingSystemPtr rend = GetEngine().TryGet<RenderingSystem>();
 	if (rend)
 		rend->RemoveViewable(this);
 }

@@ -209,14 +209,10 @@ echo ""
 cd "$WORKSPACE_DIR"
 
 # Build command line args for Ultimate++ Qwen server
+# Let qwen-code choose its default model (coder-model) based on auth type
+# OpenAI: uses gpt-4o (or model from settings)
+# Gemini/qwen-oauth: uses gemini-2.5-flash (or model from settings)
 SERVER_ARGS="--server-mode tcp --tcp-port $TCP_PORT"
-
-# Add model argument based on auth mode
-if [ "$AUTH_MODE" = "openai" ]; then
-    SERVER_ARGS="$SERVER_ARGS --model gpt-4o-mini"
-else
-    SERVER_ARGS="$SERVER_ARGS --model qwen-oauth"
-fi
 
 # Export workspace directory to environment
 export QWEN_WORKSPACE="$WORKSPACE_DIR"

@@ -11,7 +11,9 @@ file
 	QwenView.h,
 	QwenView.cpp,
 	DataModel.h,
-	DataModel.cpp;
+	DataModel.cpp,
+	QwenConnection.h,
+	QwenConnection.cpp;
 
 mainconfig
 	"" = "GUI";

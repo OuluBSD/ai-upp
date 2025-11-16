@@ -30,6 +30,7 @@ public:
 	void Data();
 	void DataServerList();
 	void DataProjectList();
+	void UpdateProjectServerConnections();
 	void OnServer();
 	void OnProject();
 };

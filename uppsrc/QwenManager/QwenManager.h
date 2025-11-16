@@ -9,6 +9,7 @@ NAMESPACE_UPP
 #include "DataModel.h"
 #include "QwenView.h"
 #include "App.h"
+#include "QwenConnection.h"
 
 END_UPP_NAMESPACE
 

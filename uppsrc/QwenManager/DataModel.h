@@ -4,16 +4,20 @@
 
 struct QwenServerConnectionConf : Pte<QwenServerConnectionConf> {
 	String name; // user given name for connection
-	
-	/* TODO: add classes or functions to link to Qwen package here
-	- directory of the qwen serever (usually repository's root)
-	*/
-	
-	String GetAddress() const; // TODO: implement
-	String GetStatusString() const; // TODO: implement
+	String directory; // directory of the qwen server (usually repository's root)
+	String host = "localhost"; // host for TCP connection
+	int port = 8765; // port for TCP connection
+	String connection_type = "tcp"; // connection type: tcp, stdin, pipe
+
+	// Connection state
+	mutable bool is_connected = false;
+	mutable bool is_healthy = false;
+
+	String GetAddress() const; // Returns connection address
+	String GetStatusString() const; // Returns connection status
 	String GetLabel() const;
-	
-	
+
+
 	void Jsonize(JsonIO& jio);
 };
 
@@ -24,11 +28,13 @@ struct QwenProject : Pte<QwenProject> {
 	String name; // non-unique name
 	String preferred_connection_name; // equal to QwenServerConnectionConf::name
 	String git_origin_addr; // e.g. git@github.com:OuluBSD/ai-upp.git
-	
-	// Temporary
+
+	// Link to server configuration
 	Ptr<QwenServerConnectionConf> srv;
-	
-	
+
+	// Track sessions
+	Vector<String> session_ids; // List of session IDs for this project
+
 	void Jsonize(JsonIO& jio);
 };
 

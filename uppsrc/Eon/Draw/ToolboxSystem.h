@@ -102,14 +102,23 @@ using ToolboxSystemBasePtr = Ptr<ToolboxSystemBase>;
 template<typename T, typename ToolComponent>
 inline bool ToolSystemBaseT<T,ToolComponent>::Start() {
 	Engine& m = GetEngine();
-	m.Get<ToolboxSystemBase>()->AddToolSystem(this);
-	return true;
+	ToolboxSystemBasePtr tb = m.TryGet<ToolboxSystemBase>();
+	if (tb) {
+		tb->AddToolSystem(this);
+		return true;
+	} else {
+		LOG("ToolSystemBaseT::Start: error: ToolboxSystemBase required but not found");
+		return false;
+	}
 }
 
 template<typename T, typename ToolComponent>
 inline void ToolSystemBaseT<T,ToolComponent>::Stop() {
 	Engine& m = GetEngine();
-	m.Get<ToolboxSystemBase>()->RemoveToolSystem(this);
+	ToolboxSystemBasePtr tb = m.TryGet<ToolboxSystemBase>();
+	if (tb) {
+		tb->RemoveToolSystem(this);
+	}
 }
 
 

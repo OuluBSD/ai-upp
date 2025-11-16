@@ -1,4 +1,5 @@
 #include "Eon07.h"
+#include <Eon/Interaction/Player.h>
 
 /*
 machine sdl.app:
@@ -123,6 +124,13 @@ world ecs.dummy:
 NAMESPACE_UPP
 
 void Run07dEcsFirstPersonCam(Engine& eng, int method) {
+	// Add required systems for ECS functionality
+	eng.GetAdd<InteractionSystem>();
+	eng.GetAdd<RenderingSystem>();
+	eng.GetAdd<EventSystem>();
+	eng.GetAdd<PhysicsSystem>();
+	eng.GetAdd<PlayerBodySystem>();
+
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
 

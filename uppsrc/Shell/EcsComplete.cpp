@@ -16,22 +16,21 @@ void MachineEcsInit(Engine& mach) {
 }
 
 void EngineEcsInit(Engine& eng) {
-    eng.WhenInitialize << callback(EngineEcsInit);
-    
 	//eng.GetAdd<RegistrySystem>();
 	eng.GetAdd<InteractionSystem>();
-	
+
 	eng.GetAdd<RenderingSystem>();
 	//eng.GetAdd<ComponentStore>();
 	eng.GetAdd<EventSystem>();
-	
+	eng.GetAdd<PhysicsSystem>();
+
 	#if 0
 	#if HAVE_WINDOWSYSTEM
 	eng.GetAdd<VirtualGuiSystem>();
 	eng.GetAdd<WindowSystem>();
 	#endif
 	#endif
-	
+
 	//DefaultSerialInitializerInternalEon();
 }
 

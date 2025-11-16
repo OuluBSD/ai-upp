@@ -17,7 +17,7 @@ typedef enum {
 namespace FboKbd {
 
 static const int key_tex_w = 256;
-static const int key_tex_h = 1;//256;
+static const int key_tex_h = 1;
 typedef FixedArray<byte, 256> KeyVec;
 
 }

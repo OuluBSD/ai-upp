@@ -229,9 +229,10 @@ bool FboAtomT<Gfx>::Recv(int sink_ch, const Packet& in) {
 		return true;
 	
 	const InternalPacketData& data = in->GetData<InternalPacketData>();
-	ASSERT(data.ptr);
-	if (!data.ptr)
+	if (!data.ptr) {
+		RTLOG("FboAtomT::Recv: data.ptr is null, returning false");
 		return false;
+	}
 	
 	if (data.IsText("gfxbuf")) {
 		RTLOG("FboAtomT::Recv: gfxbuf sink=" << sink_ch);

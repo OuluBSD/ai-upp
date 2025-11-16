@@ -148,8 +148,8 @@ bool HandleVideoBase::Initialize(const WorldState& ws) {
 		add_ecs = true;
 	
 	#if defined flagGUI
-	wins = GetEngine().Get<WindowSystem>();
-	surfs = GetEngine().Get<Gu::SurfaceSystem>();
+	wins = GetEngine().TryGet<WindowSystem>();
+	surfs = GetEngine().TryGet<Gu::SurfaceSystem>();
 	#else
 	#endif
 	
@@ -565,8 +565,13 @@ void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 #if 0
 void HandleVideoBase::AddWindow3D(Binder& b, Handle::Geom2DComponent& cw) {
 	ASSERT(!b.win_entity);
-	
-	Handle::PoolRef pool = ents->GetEngine().Get<Handle::EntityStore>()->GetRoot();
+
+	Handle::EntityStorePtr entity_store = ents->GetEngine().TryGet<Handle::EntityStore>();
+	if (!entity_store) {
+		LOG("CreateWinEntity: Handle::EntityStore not available yet");
+		return;
+	}
+	Handle::PoolRef pool = entity_store->GetRoot();
 	b.win_entity = &*pool->Create<Handle::Window3D>();
 	
 	Handle::Geom2DComponentLinkRef linked_win = b.win_entity->Get<Handle::Geom2DComponentLink>();

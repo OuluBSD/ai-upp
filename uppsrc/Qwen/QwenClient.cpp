@@ -1,5 +1,26 @@
-#include "VfsShell.h"
+#include "QwenClient.h"
 #include "QwenLogger.h"
+#include "QwenProtocol.h"
+#include <string>
+#include <memory>
+#include <map>
+#include <vector>
+#include <functional>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <optional>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <poll.h>
+#include <errno.h>
+#include <cstring>
+#include <unistd.h>
+#include <optional>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -22,6 +43,12 @@ public:
         , restart_count_(0)
         , logger_("qwen-client")
     {
+        if (config_.verbose) {
+            logger_.set_min_level(QwenLogger::Level::DEBUG);
+        } else {
+            logger_.set_min_level(QwenLogger::Level::WARN);
+        }
+
         logger_.info("QwenClient created, mode=",
                     (config.mode == CommunicationMode::STDIN_STDOUT ? "stdin" :
                      config.mode == CommunicationMode::TCP ? "tcp" : "pipe"));
@@ -267,11 +294,13 @@ private:
             dup2(stdin_pipe[0], STDIN_FILENO);
             dup2(stdout_pipe[1], STDOUT_FILENO);
 
-            // Redirect stderr to /dev/null to avoid polluting ncurses display
-            int devnull = open("/dev/null", O_WRONLY);
-            if (devnull >= 0) {
-                dup2(devnull, STDERR_FILENO);
-                close(devnull);
+            // Redirect stderr when not running in verbose mode to avoid polluting CLI output
+            if (!config_.verbose) {
+                int devnull = open("/dev/null", O_WRONLY);
+                if (devnull >= 0) {
+                    dup2(devnull, STDERR_FILENO);
+                    close(devnull);
+                }
             }
 
             // Close unused pipe ends

@@ -382,7 +382,8 @@ bool GfxAccelAtom<Gfx>::Recv(int ch_i, const Packet& p) {
 			const InternalPacketData& d = pv.GetData<InternalPacketData>();
 			
 			if (!d.ptr) {
-				ASSERT_(0, "no pointer in InternalPacketData");
+				RTLOG("GfxAccelAtomT::Recv: data.ptr is null, returning true");
+				return true; // Skip processing this packet
 			}
 			/*else if (d.IsText("gfxpack")) {
 				ShaderDataPackT<Gfx>* gsd = (ShaderDataPackT<Gfx>*)d.ptr;

@@ -87,11 +87,11 @@ public:
 				cv::flip(frame, frame_flipped, 0);
 			else
 				frame_flipped = frame;
-			
+
 			cv::cvtColor(frame_flipped, frame, cv::COLOR_BGR2RGB);
-			
+
 			int sz = frame.cols * frame.rows * frame.channels();
-			
+
 			Packet p = CreatePacket(gen.Create());
 			PacketValue& v = *p;
 			v.SetFormat(prev_fmt);
@@ -100,7 +100,7 @@ public:
 			data.SetCount(sz);
 			memcpy(data.Begin(), frame.data, sz);
 			dev.last_p = p;
-			
+
 			return true;
 		}
 		return false;

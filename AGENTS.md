@@ -180,3 +180,42 @@ int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCou
 1. Add the hash-to-name mapping in `ToyShaderHashToName()` in `Util2.cpp`
 2. Place the texture file(s) in `share/imgs/`
 3. For cubemaps, ensure all 6 faces exist with the `_1`, `_2`, etc. suffix pattern
+
+### Graphics Base Class Templates (GFXTYPE Macro Pattern)
+**Location**: `uppsrc/api/Graphics/Base.h:185-192`
+
+**Pattern**: Template base classes are defined for multiple graphics backends using a macro-based type aliasing system:
+
+```cpp
+#define GFXTYPE(x) \
+	using x##ShaderBase = ShaderBaseT<x##Gfx>; \
+	using x##TextureBase = TextureBaseT<x##Gfx>; \
+	using x##FboReaderBase = FboReaderBaseT<x##Gfx>; \
+	using x##KeyboardBase = KeyboardBaseT<x##Gfx>; \
+	using x##AudioBase = AudioBaseT<x##Gfx>;
+GFXTYPE_LIST
+#undef GFXTYPE
+```
+
+**How it works**:
+- Base templates like `KeyboardBaseT<Gfx>` are defined generically (Base.h:141-161)
+- The `GFXTYPE` macro creates type aliases for specific graphics backends
+- For example, `SdlOglKeyboardBase = KeyboardBaseT<SdlOglGfx>`
+- This pattern is applied to all base templates: ShaderBase, TextureBase, FboReaderBase, KeyboardBase, AudioBase
+
+**Concrete atom classes**:
+- **Location**: `uppsrc/Eon/Lib/GeneratedMinimal.h:1072-1084`
+- Concrete atoms inherit from these type-aliased bases
+- Example: `class SdlOglKeyboardSource : public SdlOglKeyboardBase`
+- The class is then registered in the Eon atom system via `uppsrc/EonApiEditor/Headers.cpp:789-798`
+
+**Understanding the chain**:
+1. Template base class: `KeyboardBaseT<Gfx>` (Base.h:141)
+2. Type alias via macro: `SdlOglKeyboardBase = KeyboardBaseT<SdlOglGfx>` (Base.h:189)
+3. Concrete atom class: `SdlOglKeyboardSource : public SdlOglKeyboardBase` (GeneratedMinimal.h:1072)
+4. Registered action: `"sdl.ogl.fbo.keyboard"` (Headers.cpp:792)
+
+**Why this pattern**:
+- Allows writing generic graphics code that works across multiple backends (SDL+OpenGL, X11+OpenGL, Windows+DirectX, etc.)
+- The concrete atoms are auto-generated from the Headers.cpp definitions
+- Makes it easy to track which atoms belong to which graphics backend via type aliases

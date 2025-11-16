@@ -24,12 +24,21 @@ void PaintingInteractionSystemBase::Uninitialize() {
 }
 
 bool PaintingInteractionSystemBase::Start() {
-	GetEngine().Get<ToolboxSystemBase>()->AddToolSystem(this);
-	return true;
+	ToolboxSystemBasePtr tb = GetEngine().TryGet<ToolboxSystemBase>();
+	if (tb) {
+		tb->AddToolSystem(this);
+		return true;
+	} else {
+		LOG("PaintingInteractionSystemBase::Start: error: ToolboxSystemBase required but not found");
+		return false;
+	}
 }
 
 void PaintingInteractionSystemBase::Stop() {
-	GetEngine().Get<ToolboxSystemBase>()->RemoveToolSystem(this);
+	ToolboxSystemBasePtr tb = GetEngine().TryGet<ToolboxSystemBase>();
+	if (tb) {
+		tb->RemoveToolSystem(this);
+	}
 }
 
 bool PaintingInteractionSystemBase::Arg(String key, Value value) {
@@ -121,8 +130,12 @@ void PaintingInteractionSystemBase::Register() {
 	// note: duplicate PaintingInteractionSystemBase::Register
 	
 	ToolSys::Register(entities);
-	auto es = GetEngine().Get<EntityStore>();
-	
+	EntityStorePtr es = GetEngine().TryGet<EntityStore>();
+	if (!es) {
+		LOG("PaintingInteractionSystemBase::Register: EntityStore not available yet");
+		return;
+	}
+
 	for (auto& entity : m_entities) {
 		const auto& selected_color = colors[0];
 		auto paint_brush = es->GetRoot()->Create<PaintBrush>();

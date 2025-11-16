@@ -16,13 +16,19 @@ using namespace std::literals::chrono_literals;
 void PaintingInteractionSystem::Start()
 {
 	Engine& m_engine = GetEngine();
-    m_engine.Get<ToolboxSystem>()->AddToolSystem(*this);
+    auto tb = m_engine.TryGet<ToolboxSystem>();
+    if (tb) {
+        tb->AddToolSystem(*this);
+    }
 }
 
 void PaintingInteractionSystem::Stop()
 {
 	Engine& m_engine = GetEngine();
-    m_engine.Get<ToolboxSystem>()->RemoveToolSystem(*this);
+    auto tb = m_engine.TryGet<ToolboxSystem>();
+    if (tb) {
+        tb->RemoveToolSystem(*this);
+    }
 }
 
 std::wstring_view PaintingInteractionSystem::GetInstructions() const 
@@ -95,7 +101,10 @@ void PaintingInteractionSystem::Register(Array<EntityPtr>& entities)
         paint->SetEnabled(false);
     }
 
-    m_engine.Get<SpatialInteractionSystem>()->AddListener(*this);
+    auto sys = m_engine.TryGet<SpatialInteractionSystem>();
+    if (sys) {
+        sys->AddListener(*this);
+    }
 }
 
 void PaintingInteractionSystem::Activate(Entity& entity)

@@ -55,17 +55,22 @@ bool ModelComponent::Initialize(const WorldState& ws) {
 	have_ext_model = false;
 	model_changed = false;
 	
-	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->AddModel(this);
-	
+	RenderingSystemPtr rend = this->GetEngine().TryGet<RenderingSystem>();
+	if (rend) {
+		rend->AddModel(this);
+	} else {
+		LOG("ModelComponent::Initialize: RenderingSystem not available yet");
+	}
+
 	return true;
 }
 
 void ModelComponent::Uninitialize() {
 	Clear();
 	
-	RenderingSystemPtr rend = this->GetEngine().Get<RenderingSystem>();
-	rend->RemoveModel(this);
+	RenderingSystemPtr rend = this->GetEngine().TryGet<RenderingSystem>();
+	if (rend)
+		rend->RemoveModel(this);
 	
 }
 

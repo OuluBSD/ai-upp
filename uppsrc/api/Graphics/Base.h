@@ -143,8 +143,9 @@ struct KeyboardBaseT :
 {
 	String			target;
 	EnvStatePtr		state;
-	
-	
+	bool			generate_test_data = false;
+	double			test_data_timer = 0.0;
+
 public:
 	using BufferBase = BufferBaseT<Gfx>;
 	using CLASSNAME = KeyboardBaseT<Gfx>;
@@ -156,7 +157,7 @@ public:
 	bool IsReady(PacketIO& io) override;
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	void Visit(Vis& v) override {v & state;}
-	
+
 };
 
 

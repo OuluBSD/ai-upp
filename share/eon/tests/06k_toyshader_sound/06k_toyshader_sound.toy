@@ -30,7 +30,14 @@
 		},
 		{
 			type: sound,
-			
+
+			inputs: [
+			],
+			outputs: [
+				{
+					id: 2,
+				},
+			],
 		},
 	]
 }

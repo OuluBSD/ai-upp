@@ -296,3 +296,37 @@ Before you do ANY work:
 5. Ask the user for help
 
 **Most confusion comes from not reading AGENTS.md!**
+
+---
+
+## Understanding SdlOglKeyboardBase (Graphics Macro Pattern)
+
+**What is it?** SdlOglKeyboardBase is a type alias created by a macro.
+
+**How it works**:
+1. There's a template class called `KeyboardBaseT<Gfx>`
+2. A macro creates type aliases for different graphics backends
+3. Example: `SdlOglKeyboardBase = KeyboardBaseT<SdlOglGfx>`
+
+**The chain**:
+- Step 1: Generic template → `KeyboardBaseT<Gfx>` (in Base.h)
+- Step 2: Type alias → `SdlOglKeyboardBase` (created by GFXTYPE macro)
+- Step 3: Concrete class → `SdlOglKeyboardSource : public SdlOglKeyboardBase`
+- Step 4: Registered as → `"sdl.ogl.fbo.keyboard"` atom action
+
+**Where to find it**:
+- Template base: `uppsrc/api/Graphics/Base.h:141-161`
+- Macro definition: `uppsrc/api/Graphics/Base.h:185-192`
+- Concrete class: `uppsrc/Eon/Lib/GeneratedMinimal.h:1072-1084`
+- Registration: `uppsrc/EonApiEditor/Headers.cpp:789-798`
+
+**Why this pattern?**
+- It works for multiple backends (SDL+OpenGL, X11+OpenGL, Windows+DirectX)
+- The same base code works for all backends
+- Easy to add new graphics backends
+
+**Other classes using this pattern**:
+- ShaderBase (for shaders)
+- TextureBase (for textures)
+- FboReaderBase (for framebuffer reading)
+- AudioBase (for audio)

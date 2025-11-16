@@ -64,12 +64,18 @@ protected:
     // System
     void Start() override
     {
-        GetEngine().Get<ToolboxSystem>()->AddToolSystem(*this);
+        auto tb = GetEngine().TryGet<ToolboxSystem>();
+        if (tb) {
+            tb->AddToolSystem(*this);
+        }
     }
 
     void Stop() override
     {
-        GetEngine().Get<ToolboxSystem>()->RemoveToolSystem(*this);
+        auto tb = GetEngine().TryGet<ToolboxSystem>();
+        if (tb) {
+            tb->RemoveToolSystem(*this);
+        }
     }
 
     // ToolSystemBase
@@ -81,12 +87,18 @@ protected:
             entity->Add<ToolComponent>()->SetEnabled(false);
         }
 
-        GetEngine().Get<SpatialInteractionSystem>()->AddListener(*this);
+        auto sys = GetEngine().TryGet<SpatialInteractionSystem>();
+        if (sys) {
+            sys->AddListener(*this);
+        }
     }
 
     void Unregister() override
     {
-        GetEngine().Get<SpatialInteractionSystem>()->RemoveListener(*this);
+        auto sys = GetEngine().TryGet<SpatialInteractionSystem>();
+        if (sys) {
+            sys->RemoveListener(*this);
+        }
 
         for (auto& entity : m_entities)
         {

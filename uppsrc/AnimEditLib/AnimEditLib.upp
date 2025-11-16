@@ -11,4 +11,8 @@ file
 	AnimUtils.h,
 	AnimUtils.cpp,
 	AnimResourceRegistry.h,
-	AnimResourceRegistry.cpp;
+	AnimResourceRegistry.cpp,
+	AnimExport.h,
+	AnimExport.cpp,
+	AnimBuild.h,
+	AnimBuild.cpp;

@@ -64,12 +64,12 @@ String GenerateAnimationId(const AnimationProject& p, const String& base) {
 }
 
 String GenerateCollisionId(const AnimationProject& p, const String& frameId, const String& base) {
-    const Frame* frame = p.FindFrame(frameId);
+    const AnimationFrame* frame = p.FindFrame(frameId);
     if (!frame) {
         // If frame doesn't exist, just use a generic pattern
         Vector<String> allCollisionIds;
         for(int i = 0; i < p.frames.GetCount(); i++) {
-            const Frame& f = p.frames[i];
+            const AnimationFrame& f = p.frames[i];
             for(int j = 0; j < f.collisions.GetCount(); j++) {
                 allCollisionIds.Add(f.collisions[j].id);
             }
@@ -98,13 +98,13 @@ Vector<String> FindDanglingSpriteReferences(const AnimationProject& p) {
     
     // Check each frame for sprite references
     for (int i = 0; i < p.frames.GetCount(); i++) {
-        const Frame& frame = p.frames[i];
+        const AnimationFrame& frame = p.frames[i];
         for (int j = 0; j < frame.sprites.GetCount(); j++) {
             const SpriteInstance& si = frame.sprites[j];
             // If the sprite ID is not in the list of existing sprites, it's dangling
             if (!ContainsString(allSpriteIds, si.sprite_id)) {
                 // Create a unique identifier for this dangling reference
-                String refId = "Frame: " + frame.id + " -> SpriteID: " + si.sprite_id;
+                String refId = "AnimationFrame: " + frame.id + " -> SpriteID: " + si.sprite_id;
                 if (!ContainsString(danglingRefs, refId)) { // Only add if not already there
                     danglingRefs.Add(refId);
                 }
@@ -148,9 +148,9 @@ bool ValidateProject(const AnimationProject& p, String& errorOut) {
 
     // Validate frames
     for(int i = 0; i < p.frames.GetCount(); i++) {
-        const Frame& f = p.frames[i];
+        const AnimationFrame& f = p.frames[i];
         if (f.id.IsEmpty()) {
-            errorOut = "Frame at index " + IntStr(i) + " has an empty ID";
+            errorOut = "AnimationFrame at index " + IntStr(i) + " has an empty ID";
             return false;
         }
         
@@ -169,7 +169,7 @@ bool ValidateProject(const AnimationProject& p, String& errorOut) {
         
         // Check frame duration
         if (f.default_duration <= 0) {
-            errorOut = "Frame '" + f.id + "' has invalid duration (must be > 0)";
+            errorOut = "AnimationFrame '" + f.id + "' has invalid duration (must be > 0)";
             return false;
         }
     }
@@ -237,17 +237,17 @@ bool ValidateFrameLinks(const AnimationProject& p, const Animation& a, String& e
     return true;
 }
 
-bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& errorOut) {
+bool ValidateSpriteLinks(const AnimationProject& p, const AnimationFrame& f, String& errorOut) {
     for(int i = 0; i < f.sprites.GetCount(); i++) {
         const SpriteInstance& si = f.sprites[i];
         if (si.sprite_id.IsEmpty()) {
-            errorOut = "Frame '" + f.id + "' has sprite instance with empty sprite ID at index " + IntStr(i);
+            errorOut = "AnimationFrame '" + f.id + "' has sprite instance with empty sprite ID at index " + IntStr(i);
             return false;
         }
         
         // Check if the referenced sprite exists
         if (!p.FindSprite(si.sprite_id)) {
-            errorOut = "Frame '" + f.id + "' references non-existent sprite: " + si.sprite_id;
+            errorOut = "AnimationFrame '" + f.id + "' references non-existent sprite: " + si.sprite_id;
             return false;
         }
     }
@@ -256,13 +256,13 @@ bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& erro
     for(int i = 0; i < f.collisions.GetCount(); i++) {
         const CollisionRect& cr = f.collisions[i];
         if (cr.id.IsEmpty()) {
-            errorOut = "Frame '" + f.id + "' has collision rectangle with empty ID at index " + IntStr(i);
+            errorOut = "AnimationFrame '" + f.id + "' has collision rectangle with empty ID at index " + IntStr(i);
             return false;
         }
         
         // Check if collision rectangle has valid positive size
         if (cr.rect.cx <= 0 || cr.rect.cy <= 0) {
-            errorOut = "Frame '" + f.id + "' has collision rectangle with invalid size (must be > 0): " + cr.id;
+            errorOut = "AnimationFrame '" + f.id + "' has collision rectangle with invalid size (must be > 0): " + cr.id;
             return false;
         }
     }

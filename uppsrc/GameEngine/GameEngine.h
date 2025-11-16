@@ -22,6 +22,13 @@ NAMESPACE_UPP
 #include "Game.h"
 #include "AssetManager.h"
 #include "Scene.h"
+#include "Rendering.h"
+#include "Shader.h"
+#include "SpriteMesh.h"
+#include "Material.h"
+#include "PostProcessing.h"
+#include "TextureStreaming.h"
+#include "RenderBatching.h"
 
 END_UPP_NAMESPACE
 

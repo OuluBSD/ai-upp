@@ -52,9 +52,10 @@ private:
     AnimCanvasCtrl canvas_ctrl;
     StaticRect canvas_toolbar;  // Toolbar for canvas controls
     Label zoom_label;           // Label to show zoom level
-    CtrlLayout canvas_controls_layout;  // Layout for canvas controls
-    CheckBox grid_snap_check;   // Checkbox for grid snapping
-    CheckBox origin_snap_check; // Checkbox for origin snapping
+    // Layout for canvas controls - using ParentCtrl as container
+    ParentCtrl canvas_controls_layout;  
+    Option grid_snap_check;   // Checkbox for grid snapping
+    Option origin_snap_check; // Checkbox for origin snapping
     Button undo_btn;            // Button for undo
     Button redo_btn;            // Button for redo
 
@@ -69,7 +70,7 @@ private:
     Button add_existing_frame_btn; // Add existing frame
     Button duplicate_frame_btn;   // Duplicate selected frame
     Button delete_frame_btn;      // Delete selected frame
-    CheckBox loop_preview_check;  // Loop mode for preview
+    Option loop_preview_check;  // Loop mode for preview (was CheckBox)
     Button play_btn;              // Play button
     Button pause_btn;             // Pause button
     Button stop_btn;              // Stop button
@@ -90,22 +91,22 @@ private:
 
     // Right side controls
     FrameListCtrl frame_list_ctrl;     // For frames list
-    CtrlLayout frame_controls_layout;  // For frames controls
+    ParentCtrl frame_controls_layout;  // For frames controls
     Button new_frame_btn;              // For creating new frames
 
     // Animation controls
     AnimListCtrl anim_list_ctrl;       // For animations list
-    CtrlLayout anim_controls_layout;   // For animations controls
+    ParentCtrl anim_controls_layout;   // For animations controls
     Button new_anim_btn;               // For creating new animations
 
     // Sprite instances list (for the sprites panel in the middle section)
     SpriteInstanceListCtrl sprite_instance_list_ctrl;  // For sprite instances list
-    CtrlLayout sprite_instance_controls_layout;        // For sprite instances controls
+    ParentCtrl sprite_instance_controls_layout;        // For sprite instances controls
     Button new_sprite_instance_btn;                    // For creating new sprite instances
 
     // Collision rectangles list (for the collisions panel in the middle section)
     CollisionListCtrl collision_list_ctrl;             // For collision rectangles list
-    CtrlLayout collision_controls_layout;              // For collision controls
+    ParentCtrl collision_controls_layout;              // For collision controls
     Button new_collision_btn;                          // For creating new collisions
 
     // Helper methods

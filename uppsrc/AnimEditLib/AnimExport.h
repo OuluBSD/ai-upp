@@ -48,7 +48,7 @@ ExportResult ExportProject(const AnimationProject& project, const ExportOptions&
 ExportResult ExportEntities(const AnimationProject& project, const ExportOptions& options);
 
 // Resource dependency tracking
-struct ResourceDependency {
+struct ResourceDependency : public Moveable<ResourceDependency> {
     String resource_id;
     String resource_type;  // "sprite", "animation", "entity", etc.
     Vector<String> references;  // IDs of resources this depends on
@@ -57,7 +57,7 @@ struct ResourceDependency {
     ResourceDependency() = default;
 };
 
-struct DependencyGraph {
+struct DependencyGraph : public Moveable<DependencyGraph> {
     Vector<ResourceDependency> dependencies;
     Vector<String> root_nodes;  // Nodes that nothing depends on
     Vector<String> leaf_nodes;   // Nodes that depend on nothing else
@@ -71,11 +71,11 @@ Vector<String> FindMissingDependencies(const AnimationProject& project, const St
 Vector<String> GetBuildOrder(const DependencyGraph& graph);
 
 // Animation optimization and compression functions
-Animation OptimizeAnimation(const Animation& anim);
-AnimationProject OptimizeProject(const AnimationProject& project);
-Animation CompressAnimation(const Animation& anim);
-Vector<Animation> CompressAnimations(const Vector<Animation>& animations);
-Vector<Sprite> CompressSprites(const Vector<Sprite>& sprites, const ExportOptions& options);
+void OptimizeAnimation(Animation& anim);
+void OptimizeProject(AnimationProject& project);
+void CompressAnimation(Animation& anim);
+void CompressAnimations(Vector<Animation>& animations);
+void CompressSprites(Vector<Sprite>& sprites, const ExportOptions& options);
 
 // Version compatibility checking
 struct VersionInfo {

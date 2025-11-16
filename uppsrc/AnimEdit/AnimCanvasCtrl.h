@@ -59,7 +59,7 @@ protected:
     virtual void MouseWheel(Point pos, dword flags, int zdelta);
     virtual bool Key(dword key, int count);
     virtual bool Drop(Point pos, PasteClip& d);
-    virtual bool RightDown(Point pos, dword flags);
+    virtual void RightDown(Point pos, dword flags);
 
 private:
     // Project data

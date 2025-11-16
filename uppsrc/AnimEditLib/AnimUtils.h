@@ -17,6 +17,7 @@ bool ValidateProject(const AnimationProject& p, String& errorOut);
 bool ValidateAnimation(const AnimationProject& p, const Animation& a, String& errorOut);
 bool ValidateFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut);
 bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& errorOut);
+bool ValidateAnimationEvent(const AnimationEvent& event, String& errorOut);
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut);
 bool ValidateEntity(const AnimationProject& p, const Entity& e, String& errorOut);
 bool ValidateEntityLinks(const AnimationProject& p, const Entity& e, String& errorOut);

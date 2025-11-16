@@ -18,18 +18,20 @@ QwenProjectView::QwenProjectView() {
 
 void QwenProjectView::Data() {
 	if (!prj) return;
-	
-	int c = 0; // TODO get entries in qwen session
-	
+
+	int c = prj->session_ids.GetCount(); // Get the count of entries in qwen session
+
+	// Add new entries if needed
 	for(int i = page.GetCount(); i < c; i++) {
-		
-		// TODO update new entries
-		/*
 		Entry& e = entries.Add();
-		page.Add(e, "<title>");
-		*/
+		page.Add(e, "Session " + IntStr(i+1)); // Set a default title
+		e.SetDocText();
 	}
-	
+
+	// Update existing entries
+	for(int i = 0; i < min(c, page.GetCount()); i++) {
+		page.GetItem(i).Text(prj->session_ids[i]); // Update title with session ID
+	}
 }
 
 END_UPP_NAMESPACE

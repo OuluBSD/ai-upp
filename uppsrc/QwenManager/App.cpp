@@ -51,9 +51,10 @@ void QwenManager::SetView(int i) {
 }
 
 void QwenManager::Data() {
+	UpdateProjectServerConnections();
 	DataServerList();
 	DataProjectList();
-	
+
 	if (active_view == (Ctrl*)&active_qwen_view)
 		active_qwen_view->Data();
 }
@@ -75,9 +76,13 @@ void QwenManager::DataServerList() {
 
 void QwenManager::DataProjectList() {
 	QwenManagerState& state = QwenManagerState::Global();
-	
+
+	// Update server connections for all projects
+	UpdateProjectServerConnections();
+
 	for(int i = 0; i < state.projects.GetCount(); i++) {
 		auto& prj = state.projects[i];
+
 		projects.Set(i, 0, prj.name);
 		projects.Set(i, 1, prj.srv ? prj.srv->GetAddress() : String());
 		projects.Set(i, "IDX", i);
@@ -85,7 +90,25 @@ void QwenManager::DataProjectList() {
 	projects.SetCount(state.projects.GetCount());
 	if (projects.GetCount() == 0 && projects.GetCount())
 		projects.SetCursor(0);
-	
+
+}
+
+void QwenManager::UpdateProjectServerConnections() {
+	QwenManagerState& state = QwenManagerState::Global();
+
+	for(int i = 0; i < state.projects.GetCount(); i++) {
+		auto& prj = state.projects[i];
+
+		// If the server connection pointer is null, find the corresponding server configuration
+		if (!prj.srv) {
+			for(int j = 0; j < state.servers.GetCount(); j++) {
+				if(state.servers[j].name == prj.preferred_connection_name) {
+					prj.srv = &state.servers[j];
+					break;
+				}
+			}
+		}
+	}
 }
 
 void QwenManager::OnServer() {

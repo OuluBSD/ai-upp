@@ -72,7 +72,14 @@ void Jsonize(JsonIO& jio, Entity& e) {
        ("animation_slots", e.animation_slots)
        ("animation_transitions", e.animation_transitions)
        ("anim_params", e.anim_params)
-       ("properties", e.properties);
+       ("properties", e.properties)
+       ("scripts", e.scripts)
+       ("behavior_trees", e.behavior_trees)
+       ("state_machines", e.state_machines)
+       ("trigger_systems", e.trigger_systems)
+       ("parent_id", e.parent_id)
+       ("children_ids", e.children_ids)
+       ("inherit_transform", e.inherit_transform);
 }
 
 void Jsonize(JsonIO& jio, AnimationProject& p) {

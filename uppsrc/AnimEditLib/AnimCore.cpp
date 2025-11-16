@@ -1,53 +1,149 @@
 #include "AnimCore.h"
 
-namespace Upp {
+NAMESPACE_UPP
 
-const Sprite* AnimationProject::FindSprite(const String& sid) const {
-    for(const Sprite& s : sprites)
-        if(s.id == sid) return &s;
+const Sprite* AnimationProject::FindSprite(const String& id) const {
+    for (const auto& sprite : sprites) {
+        if (sprite.id == id) {
+            return &sprite;
+        }
+    }
     return nullptr;
 }
 
-Sprite* AnimationProject::FindSprite(const String& sid) {
-    for(Sprite& s : sprites)
-        if(s.id == sid) return &s;
+Sprite* AnimationProject::FindSprite(const String& id) {
+    for (auto& sprite : sprites) {
+        if (sprite.id == id) {
+            return &sprite;
+        }
+    }
     return nullptr;
 }
 
-const Frame* AnimationProject::FindFrame(const String& fid) const {
-    for(const Frame& f : frames)
-        if(f.id == fid) return &f;
+const Frame* AnimationProject::FindFrame(const String& id) const {
+    for (const auto& frame : frames) {
+        if (frame.id == id) {
+            return &frame;
+        }
+    }
     return nullptr;
 }
 
-Frame* AnimationProject::FindFrame(const String& fid) {
-    for(Frame& f : frames)
-        if(f.id == fid) return &f;
+Frame* AnimationProject::FindFrame(const String& id) {
+    for (auto& frame : frames) {
+        if (frame.id == id) {
+            return &frame;
+        }
+    }
     return nullptr;
 }
 
-const Animation* AnimationProject::FindAnimation(const String& aid) const {
-    for(const Animation& a : animations)
-        if(a.id == aid) return &a;
+const Animation* AnimationProject::FindAnimation(const String& id) const {
+    for (const auto& anim : animations) {
+        if (anim.id == id) {
+            return &anim;
+        }
+    }
     return nullptr;
 }
 
-Animation* AnimationProject::FindAnimation(const String& aid) {
-    for(Animation& a : animations)
-        if(a.id == aid) return &a;
+Animation* AnimationProject::FindAnimation(const String& id) {
+    for (auto& anim : animations) {
+        if (anim.id == id) {
+            return &anim;
+        }
+    }
     return nullptr;
 }
 
-const Entity* AnimationProject::FindEntity(const String& eid) const {
-    for(const Entity& e : entities)
-        if(e.id == eid) return &e;
+const Entity* AnimationProject::FindEntity(const String& id) const {
+    for (const auto& entity : entities) {
+        if (entity.id == id) {
+            return &entity;
+        }
+    }
     return nullptr;
 }
 
-Entity* AnimationProject::FindEntity(const String& eid) {
-    for(Entity& e : entities)
-        if(e.id == eid) return &e;
+Entity* AnimationProject::FindEntity(const String& id) {
+    for (auto& entity : entities) {
+        if (entity.id == id) {
+            return &entity;
+        }
+    }
     return nullptr;
 }
 
+const BehaviorTree* AnimationProject::FindBehaviorTree(const String& id) const {
+    for (const auto& bt : behavior_trees) {
+        if (bt.id == id) {
+            return &bt;
+        }
+    }
+    return nullptr;
 }
+
+BehaviorTree* AnimationProject::FindBehaviorTree(const String& id) {
+    for (auto& bt : behavior_trees) {
+        if (bt.id == id) {
+            return &bt;
+        }
+    }
+    return nullptr;
+}
+
+const StateMachine* AnimationProject::FindStateMachine(const String& id) const {
+    for (const auto& sm : state_machines) {
+        if (sm.id == id) {
+            return &sm;
+        }
+    }
+    return nullptr;
+}
+
+StateMachine* AnimationProject::FindStateMachine(const String& id) {
+    for (auto& sm : state_machines) {
+        if (sm.id == id) {
+            return &sm;
+        }
+    }
+    return nullptr;
+}
+
+const AnimationCurve* AnimationProject::FindCurve(const String& id) const {
+    for (const auto& curve : curves) {
+        if (curve.id == id) {
+            return &curve;
+        }
+    }
+    return nullptr;
+}
+
+AnimationCurve* AnimationProject::FindCurve(const String& id) {
+    for (auto& curve : curves) {
+        if (curve.id == id) {
+            return &curve;
+        }
+    }
+    return nullptr;
+}
+
+const TriggerSystem* AnimationProject::FindTriggerSystem(const String& id) const {
+    for (const auto& system : trigger_systems) {
+        if (system.id == id) {
+            return &system;
+        }
+    }
+    return nullptr;
+}
+
+TriggerSystem* AnimationProject::FindTriggerSystem(const String& id) {
+    for (auto& system : trigger_systems) {
+        if (system.id == id) {
+            return &system;
+        }
+    }
+    return nullptr;
+}
+
+END_UPP_NAMESPACE

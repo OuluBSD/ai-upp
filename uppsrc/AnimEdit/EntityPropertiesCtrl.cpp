@@ -119,6 +119,37 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     looping_check.Set(true);  // Default to true (looping)
     apply_anim_params_btn.SetLabel("Apply Params");
     apply_anim_params_btn.SetTip("Apply the current animation parameters to the entity");
+
+    // Set up script management controls
+    script_list_ctrl.AddColumn("ID", 80);
+    script_list_ctrl.AddColumn("Name", 100);
+    script_list_ctrl.AddColumn("Type", 60);
+    script_list_ctrl.SetFrame(ThinInsetFrame());
+    script_list_ctrl.NoHeader();
+
+    add_script_btn.SetLabel("+");
+    add_script_btn.SetTip("Add new script to this entity");
+    remove_script_btn.SetLabel("-");
+    remove_script_btn.SetTip("Remove selected script from this entity");
+    edit_script_btn.SetLabel("Edit");
+    edit_script_btn.SetTip("Edit the content of selected script");
+
+    script_type_option.Add("lua");
+    script_type_option.Add("javascript");
+    script_type_option.Add("expression");
+    script_type_option.Add("python");
+    script_type_option.SetIndex(0);  // Default to "lua"
+    script_type_option.SetTip("Script type/language");
+
+    script_name_field.SetPrompt("Script Name");
+    script_id_field.SetPrompt("Script ID");
+    script_content_edit.SetLineCount(5);  // Show 5 lines of script content initially
+    script_content_edit.SetTip("Script content");
+    script_active_check.SetLabel("Active");
+    script_active_check.SetTip("Whether this script should be executed");
+    script_active_check.Set(true);  // Default to active
+    apply_script_btn.SetLabel("Apply Script");
+    apply_script_btn.SetTip("Apply changes to the selected script");
     
     // Connect events
     id_field.WhenAction = [this]() { OnEntityChanged(); };
@@ -161,6 +192,18 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     time_offset_field.WhenAction = [this]() { OnAnimParamsChanged(); };
     looping_check.WhenAction = [this]() { OnAnimParamsChanged(); };
     apply_anim_params_btn <<= [this]() { OnApplyAnimParamsClicked(); };
+
+    // Connect script management events
+    script_list_ctrl.WhenLeftClick = [this]() { OnScriptSelectionChanged(); };
+    add_script_btn <<= [this]() { OnAddScriptClicked(); };
+    remove_script_btn <<= [this]() { OnRemoveScriptClicked(); };
+    edit_script_btn <<= [this]() { OnEditScriptClicked(); };
+    script_type_option.WhenAction = [this]() { OnScriptFieldChanged(); };
+    script_name_field.WhenAction = [this]() { OnScriptFieldChanged(); };
+    script_id_field.WhenAction = [this]() { OnScriptFieldChanged(); };
+    script_content_edit.WhenAction = [this]() { OnScriptContentChanged(); };
+    script_active_check.WhenAction = [this]() { OnScriptFieldChanged(); };
+    apply_script_btn <<= [this]() { OnApplyScriptClicked(); };
 }
 
 EntityPropertiesCtrl::~EntityPropertiesCtrl() {
@@ -305,6 +348,12 @@ void EntityPropertiesCtrl::UpdateControls() {
             const Animation* anim = project->FindAnimation(slot.animation_id);
             preview_ctrl.SetAnimation(anim);
         }
+    }
+
+    // Update script list
+    script_list_ctrl.Clear();
+    for (const auto& script : current_entity->scripts) {
+        script_list_ctrl.Add(script.id, script.name, script.type);
     }
 
     // Validate the entity after updating controls
@@ -563,8 +612,32 @@ void EntityPropertiesCtrl::Layout() {
     looping_check.SetRect(300, params_y, 100, 24);
     apply_anim_params_btn.SetRect(410, params_y, 100, 24);
 
+    // Position script management controls (below animation parameters)
+    int script_y = params_y + 30;
+    script_id_field.SetRect(10, script_y, 100, 24);
+    script_name_field.SetRect(120, script_y, 120, 24);
+    script_type_option.SetRect(250, script_y, 80, 24);
+    script_active_check.SetRect(340, script_y, 70, 24);
+    add_script_btn.SetRect(420, script_y, 24, 24);
+    remove_script_btn.SetRect(450, script_y, 24, 24);
+    edit_script_btn.SetRect(480, script_y, 50, 24);
+
     // Position the preview control at the bottom (above validation)
     int preview_y = sz.cy - preview_height - validation_height;
+
+    // Position the script list (below the script controls)
+    int script_list_y = script_y + 30;
+    script_list_ctrl.SetRect(10, script_list_y, sz.cx - 20, 80);
+
+    // Position script content editor (below the script list)
+    int script_content_y = script_list_y + 90;
+    int script_content_height = (preview_y - script_content_y > 80) ? 80 : (preview_y - script_content_y - 10);
+    if (script_content_height > 0) {
+        script_content_edit.SetRect(10, script_content_y, sz.cx - 20, script_content_height);
+        apply_script_btn.SetRect(sz.cx - 100, script_content_y - 25, 90, 24); // Position above the editor
+    }
+
+    // Position the preview control at the bottom (above validation)
     preview_ctrl.SetRect(0, preview_y, sz.cx, preview_height);
 
     // Position the validation status at the very bottom
@@ -902,4 +975,140 @@ void EntityPropertiesCtrl::OnApplyAnimParamsClicked() {
     
     // Show confirmation
     PromptOK("Animation parameters applied to entity '" + current_entity->name + "'");
+}
+
+void EntityPropertiesCtrl::OnScriptSelectionChanged() {
+    if (!current_entity) return;
+    
+    int selected_script_idx = script_list_ctrl.GetCursor();
+    if (selected_script_idx < 0 || selected_script_idx >= current_entity->scripts.GetCount()) {
+        return;
+    }
+    
+    const auto& script = current_entity->scripts[selected_script_idx];
+    
+    // Update the script editing fields to show the selected script's properties
+    script_id_field = script.id;
+    script_name_field = script.name;
+    int type_idx = script_type_option.Find(script.type);
+    if (type_idx >= 0) {
+        script_type_option <<= type_idx;
+    }
+    script_content_edit = script.content;
+    script_active_check.Set(script.is_active);
+}
+
+void EntityPropertiesCtrl::OnScriptFieldChanged() {
+    if (!current_entity) return;
+    
+    int selected_script_idx = script_list_ctrl.GetCursor();
+    if (selected_script_idx < 0 || selected_script_idx >= current_entity->scripts.GetCount()) {
+        return;
+    }
+    
+    // Update the selected script with values from the UI fields (except content)
+    auto& script = current_entity->scripts[selected_script_idx];
+    script.id = ~script_id_field;
+    script.name = ~script_name_field;
+    script.type = AsString(script_type_option.Get());
+    script.is_active = script_active_check;
+    
+    // Refresh the scripts list to show updated values
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnScriptContentChanged() {
+    if (!current_entity) return;
+    
+    int selected_script_idx = script_list_ctrl.GetCursor();
+    if (selected_script_idx < 0 || selected_script_idx >= current_entity->scripts.GetCount()) {
+        return;
+    }
+    
+    // Update the selected script's content
+    current_entity->scripts[selected_script_idx].content = script_content_edit.GetData();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnAddScriptClicked() {
+    if (!current_entity) return;
+    
+    // Create a new script with default values
+    EntityScript new_script;
+    new_script.id = "script_" + Uuid().ToString().Left(8);
+    new_script.name = "New Script";
+    new_script.type = AsString(script_type_option.Get());
+    new_script.content = "-- New script content";
+    new_script.is_active = script_active_check;
+    
+    // Add to the entity's scripts
+    current_entity->scripts.Add(new_script);
+    
+    // Refresh the scripts list
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnRemoveScriptClicked() {
+    if (!current_entity) return;
+    
+    int selected_script_idx = script_list_ctrl.GetCursor();
+    if (selected_script_idx < 0 || selected_script_idx >= current_entity->scripts.GetCount()) {
+        Exclamation("Please select a script to remove!");
+        return;
+    }
+    
+    // Remove the selected script
+    current_entity->scripts.Remove(selected_script_idx);
+    
+    // Refresh the scripts list
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnEditScriptClicked() {
+    // This would open a more advanced script editor dialog
+    // For now, we'll just show a simple message
+    PromptOK("Script editing functionality would open a dedicated script editor dialog here.");
+}
+
+void EntityPropertiesCtrl::OnApplyScriptClicked() {
+    if (!current_entity) return;
+    
+    int selected_script_idx = script_list_ctrl.GetCursor();
+    if (selected_script_idx < 0 || selected_script_idx >= current_entity->scripts.GetCount()) {
+        Exclamation("Please select a script to apply changes to!");
+        return;
+    }
+    
+    // Update the selected script with values from the UI fields
+    auto& script = current_entity->scripts[selected_script_idx];
+    script.id = ~script_id_field;
+    script.name = ~script_name_field;
+    script.type = AsString(script_type_option.Get());
+    script.content = script_content_edit.GetData();
+    script.is_active = script_active_check;
+    
+    // Refresh the scripts list to reflect changes
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+    
+    // Show confirmation
+    PromptOK("Script applied to entity '" + current_entity->name + "'");
 }

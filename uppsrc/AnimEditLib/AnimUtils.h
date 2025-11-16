@@ -20,6 +20,7 @@ bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& erro
 bool ValidateAnimationEvent(const AnimationEvent& event, String& errorOut);
 bool ValidateAnimationTransition(const AnimationTransition& transition, String& errorOut);
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut);
+bool ValidateEntityAnimationParams(const EntityAnimationParams& params, String& errorOut);
 bool ValidateEntity(const AnimationProject& p, const Entity& e, String& errorOut);
 bool ValidateEntityLinks(const AnimationProject& p, const Entity& e, String& errorOut);
 

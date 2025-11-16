@@ -53,6 +53,12 @@ void Jsonize(JsonIO& jio, AnimationTransition& transition) {
        ("trigger_event", transition.trigger_event);
 }
 
+void Jsonize(JsonIO& jio, EntityAnimationParams& params) {
+    jio("speed_multiplier", params.speed_multiplier)
+       ("time_offset", params.time_offset)
+       ("is_looping", params.is_looping);
+}
+
 void Jsonize(JsonIO& jio, AnimationBlendParams& params) {
     jio("weight", params.weight)("transition_time", params.transition_time)("is_active", params.is_active)("events", params.events);
 }
@@ -65,6 +71,7 @@ void Jsonize(JsonIO& jio, Entity& e) {
     jio("id", e.id)("name", e.name)("type", e.type)
        ("animation_slots", e.animation_slots)
        ("animation_transitions", e.animation_transitions)
+       ("anim_params", e.anim_params)
        ("properties", e.properties);
 }
 

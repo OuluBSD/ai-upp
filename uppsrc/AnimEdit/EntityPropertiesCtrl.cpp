@@ -109,6 +109,17 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     condition_field.SetPrompt("Condition (e.g. speed > 0)");
     condition_field.SetTip("Condition for the transition to occur");
     
+    // Set up entity animation parameters controls
+    speed_multiplier_field.SetRange(0.01, 10.0).Set(1.0);  // Range from 0.01x to 10x speed
+    speed_multiplier_field.SetTip("Multiplier for animation playback speed (1.0 = normal speed)");
+    time_offset_field.SetRange(0.0, 10.0).Set(0.0);  // Time offset from 0 to 10 seconds
+    time_offset_field.SetTip("Time offset to start animation from a different point (in seconds)");
+    looping_check.SetLabel("Loop animations");
+    looping_check.SetTip("Whether animations should loop by default for this entity");
+    looping_check.Set(true);  // Default to true (looping)
+    apply_anim_params_btn.SetLabel("Apply Params");
+    apply_anim_params_btn.SetTip("Apply the current animation parameters to the entity");
+    
     // Connect events
     id_field.WhenAction = [this]() { OnEntityChanged(); };
     name_field.WhenAction = [this]() { OnEntityChanged(); };
@@ -145,6 +156,11 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     to_animation_option.WhenAction = [this]() { OnTransitionFieldChanged(); };
     transition_time_field.WhenAction = [this]() { OnTransitionFieldChanged(); };
     condition_field.WhenAction = [this]() { OnTransitionFieldChanged(); };
+    
+    speed_multiplier_field.WhenAction = [this]() { OnAnimParamsChanged(); };
+    time_offset_field.WhenAction = [this]() { OnAnimParamsChanged(); };
+    looping_check.WhenAction = [this]() { OnAnimParamsChanged(); };
+    apply_anim_params_btn <<= [this]() { OnApplyAnimParamsClicked(); };
 }
 
 EntityPropertiesCtrl::~EntityPropertiesCtrl() {
@@ -274,6 +290,11 @@ void EntityPropertiesCtrl::UpdateControls() {
         transition_list_ctrl.Add(trans.from_animation_id, trans.to_animation_id, 
                                 Format("%.2f", trans.transition_time));
     }
+
+    // Update animation parameters fields
+    speed_multiplier_field <<= current_entity->anim_params.speed_multiplier;
+    time_offset_field <<= current_entity->anim_params.time_offset;
+    looping_check.Set(current_entity->anim_params.is_looping);
 
     // Update the preview with the current entity and its first animation
     preview_ctrl.SetProject(project);
@@ -529,6 +550,18 @@ void EntityPropertiesCtrl::Layout() {
     // Position the transition list (below the transition controls)
     int trans_list_y = trans_y + 30;
     transition_list_ctrl.SetRect(10, trans_list_y, sz.cx - 20, 80);
+    
+    // Position entity animation parameters controls (below the transition list)
+    int params_y = trans_list_y + 90; // 80 for transition list + 10px spacing
+    Label speed_label, offset_label;
+    speed_label.SetLabel("Speed:");
+    offset_label.SetLabel("Offset:");
+    speed_label.SetRect(10, params_y, 50, 24);
+    speed_multiplier_field.SetRect(60, params_y, 80, 24);
+    offset_label.SetRect(150, params_y, 50, 24);
+    time_offset_field.SetRect(200, params_y, 80, 24);
+    looping_check.SetRect(300, params_y, 100, 24);
+    apply_anim_params_btn.SetRect(410, params_y, 100, 24);
 
     // Position the preview control at the bottom (above validation)
     int preview_y = sz.cy - preview_height - validation_height;
@@ -840,4 +873,33 @@ void EntityPropertiesCtrl::OnEditTransitionClicked() {
     // This would open a dialog to edit transition parameters in more detail
     // For now, we'll just show a simple message
     PromptOK("Transition editing functionality would open a detailed editor dialog here.");
+}
+
+void EntityPropertiesCtrl::OnAnimParamsChanged() {
+    if (!current_entity) return;
+    
+    // Update the current entity's animation parameters with values from the UI fields
+    current_entity->anim_params.speed_multiplier = ~speed_multiplier_field;
+    current_entity->anim_params.time_offset = ~time_offset_field;
+    current_entity->anim_params.is_looping = looping_check;
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnApplyAnimParamsClicked() {
+    if (!current_entity) return;
+    
+    // Update the current entity's animation parameters with values from the UI fields
+    current_entity->anim_params.speed_multiplier = ~speed_multiplier_field;
+    current_entity->anim_params.time_offset = ~time_offset_field;
+    current_entity->anim_params.is_looping = looping_check;
+    
+    if (change_callback) {
+        change_callback();
+    }
+    
+    // Show confirmation
+    PromptOK("Animation parameters applied to entity '" + current_entity->name + "'");
 }

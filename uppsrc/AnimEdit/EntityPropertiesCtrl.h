@@ -57,6 +57,16 @@ private:
     Option event_type_option;
     SpinEdit event_frame_field;
     
+    // Transition management controls
+    ArrayCtrl transition_list_ctrl;
+    Option from_animation_option;
+    Option to_animation_option;
+    SpinEdit transition_time_field;
+    EditField condition_field;
+    Button add_transition_btn;
+    Button remove_transition_btn;
+    Button edit_transition_btn;
+    
     // Validation feedback
     StaticRect validation_status;  // Shows validation status
     

@@ -294,6 +294,27 @@ bool ValidateAnimationEvent(const AnimationEvent& event, String& errorOut) {
     return true;
 }
 
+bool ValidateAnimationTransition(const AnimationTransition& transition, String& errorOut) {
+    if (transition.from_animation_id.IsEmpty()) {
+        errorOut = "Animation transition has an empty 'from' animation ID";
+        return false;
+    }
+    
+    if (transition.to_animation_id.IsEmpty()) {
+        errorOut = "Animation transition has an empty 'to' animation ID";
+        return false;
+    }
+    
+    if (transition.transition_time < 0.0) {
+        errorOut = "Animation transition from '" + transition.from_animation_id + 
+                   "' to '" + transition.to_animation_id + 
+                   "' has invalid transition time (must be >= 0.0): " + DoubleStr(transition.transition_time);
+        return false;
+    }
+    
+    return true;
+}
+
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut) {
     if (params.weight < 0.0 || params.weight > 1.0) {
         errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + DoubleStr(params.weight);
@@ -356,6 +377,34 @@ bool ValidateEntityLinks(const AnimationProject& p, const Entity& e, String& err
         
         if (slot.blend_params.transition_time < 0.0) {
             errorOut = "Entity '" + e.id + "' has animation slot '" + slot.name + "' with invalid transition time (must be >= 0.0)";
+            return false;
+        }
+        
+        // Validate events in blend parameters
+        for (int j = 0; j < slot.blend_params.events.GetCount(); j++) {
+            if (!ValidateAnimationEvent(slot.blend_params.events[j], errorOut)) {
+                errorOut = "In animation slot '" + slot.name + "': " + errorOut;
+                return false;
+            }
+        }
+    }
+
+    // Validate all transitions
+    for (int i = 0; i < e.animation_transitions.GetCount(); i++) {
+        const AnimationTransition& trans = e.animation_transitions[i];
+        
+        if (!ValidateAnimationTransition(trans, errorOut)) {
+            return false;
+        }
+        
+        // Check if 'from' and 'to' animations exist in the project
+        if (!p.FindAnimation(trans.from_animation_id)) {
+            errorOut = "Entity '" + e.id + "' transition references non-existent 'from' animation: " + trans.from_animation_id;
+            return false;
+        }
+        
+        if (!p.FindAnimation(trans.to_animation_id)) {
+            errorOut = "Entity '" + e.id + "' transition references non-existent 'to' animation: " + trans.to_animation_id;
             return false;
         }
     }

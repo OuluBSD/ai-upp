@@ -91,6 +91,24 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     event_frame_field.SetRange(0, 9999).Set(0);  // Frame index from 0 to 9999
     event_frame_field.SetTip("Frame number at which event should trigger");
     
+    // Set up transition management controls
+    transition_list_ctrl.AddColumn("From", 80);
+    transition_list_ctrl.AddColumn("To", 80);
+    transition_list_ctrl.AddColumn("Time(s)", 60);
+    transition_list_ctrl.SetFrame(ThinInsetFrame());
+    transition_list_ctrl.NoHeader();
+    
+    add_transition_btn.SetLabel("+");
+    add_transition_btn.SetTip("Add new animation transition");
+    remove_transition_btn.SetLabel("-");
+    remove_transition_btn.SetTip("Remove selected animation transition");
+    edit_transition_btn.SetLabel("Edit");
+    edit_transition_btn.SetTip("Edit selected animation transition");
+    
+    transition_time_field.SetRange(0.0, 5.0).Set(0.2);  // Transition time from 0 to 5 seconds, default 0.2
+    condition_field.SetPrompt("Condition (e.g. speed > 0)");
+    condition_field.SetTip("Condition for the transition to occur");
+    
     // Connect events
     id_field.WhenAction = [this]() { OnEntityChanged(); };
     name_field.WhenAction = [this]() { OnEntityChanged(); };
@@ -118,6 +136,15 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     event_name_field.WhenAction = [this]() { OnEventFieldChanged(); };
     event_type_option.WhenAction = [this]() { OnEventFieldChanged(); };
     event_frame_field.WhenAction = [this]() { OnEventFieldChanged(); };
+    
+    transition_list_ctrl.WhenLeftClick = [this]() { OnTransitionSelectionChanged(); };
+    add_transition_btn <<= [this]() { OnAddTransitionClicked(); };
+    remove_transition_btn <<= [this]() { OnRemoveTransitionClicked(); };
+    edit_transition_btn <<= [this]() { OnEditTransitionClicked(); };
+    from_animation_option.WhenAction = [this]() { OnTransitionFieldChanged(); };
+    to_animation_option.WhenAction = [this]() { OnTransitionFieldChanged(); };
+    transition_time_field.WhenAction = [this]() { OnTransitionFieldChanged(); };
+    condition_field.WhenAction = [this]() { OnTransitionFieldChanged(); };
 }
 
 EntityPropertiesCtrl::~EntityPropertiesCtrl() {
@@ -177,6 +204,14 @@ void EntityPropertiesCtrl::UpdateControls() {
             for (const auto& anim : project->animations) {
                 animation_dropdown.Add(anim.id);
             }
+            
+            // Also update the transition animation dropdowns
+            from_animation_option.Clear();
+            to_animation_option.Clear();
+            for (const auto& anim : project->animations) {
+                from_animation_option.Add(anim.id);
+                to_animation_option.Add(anim.id);
+            }
         }
         return;
     }
@@ -199,6 +234,14 @@ void EntityPropertiesCtrl::UpdateControls() {
     if (project) {
         for (const auto& anim : project->animations) {
             animation_dropdown.Add(anim.id);
+        }
+        
+        // Also update the transition animation dropdowns
+        from_animation_option.Clear();
+        to_animation_option.Clear();
+        for (const auto& anim : project->animations) {
+            from_animation_option.Add(anim.id);
+            to_animation_option.Add(anim.id);
         }
     }
 
@@ -223,6 +266,13 @@ void EntityPropertiesCtrl::UpdateControls() {
     properties_ctrl.Clear();
     for (const auto& kv : current_entity->properties) {
         properties_ctrl.Add(kv.GetKey(), SConvert<ConvertTxt>::Single<ConvertTxt>(kv.GetValue()));
+    }
+
+    // Update transitions list
+    transition_list_ctrl.Clear();
+    for (const auto& trans : current_entity->animation_transitions) {
+        transition_list_ctrl.Add(trans.from_animation_id, trans.to_animation_id, 
+                                Format("%.2f", trans.transition_time));
     }
 
     // Update the preview with the current entity and its first animation
@@ -466,6 +516,19 @@ void EntityPropertiesCtrl::Layout() {
     // Position the event list (below the event controls)
     int list_y = event_y + 30;
     event_list_ctrl.SetRect(10, list_y, sz.cx - 20, 80);
+    
+    // Position transition management controls (below the event list)
+    int trans_y = list_y + 90; // 80 for event list + 10px spacing
+    from_animation_option.SetRect(10, trans_y, 120, 24);
+    to_animation_option.SetRect(140, trans_y, 120, 24);
+    transition_time_field.SetRect(270, trans_y, 60, 24);
+    add_transition_btn.SetRect(340, trans_y, 24, 24);
+    remove_transition_btn.SetRect(370, trans_y, 24, 24);
+    edit_transition_btn.SetRect(400, trans_y, 50, 24);
+    
+    // Position the transition list (below the transition controls)
+    int trans_list_y = trans_y + 30;
+    transition_list_ctrl.SetRect(10, trans_list_y, sz.cx - 20, 80);
 
     // Position the preview control at the bottom (above validation)
     int preview_y = sz.cy - preview_height - validation_height;
@@ -684,4 +747,97 @@ void EntityPropertiesCtrl::OnEditEventClicked() {
     // This would open a dialog to edit event parameters in more detail
     // For now, we'll just show a simple message
     PromptOK("Event editing functionality would open a detailed editor dialog here.");
+}
+
+void EntityPropertiesCtrl::OnTransitionSelectionChanged() {
+    if (!current_entity) return;
+    
+    int selected_transition_idx = transition_list_ctrl.GetCursor();
+    if (selected_transition_idx < 0 || selected_transition_idx >= current_entity->animation_transitions.GetCount()) {
+        return;
+    }
+    
+    const auto& trans = current_entity->animation_transitions[selected_transition_idx];
+    
+    // Update the transition editing fields to show the selected transition's properties
+    int from_idx = from_animation_option.Find(trans.from_animation_id);
+    if (from_idx >= 0) {
+        from_animation_option <<= from_idx;
+    }
+    int to_idx = to_animation_option.Find(trans.to_animation_id);
+    if (to_idx >= 0) {
+        to_animation_option <<= to_idx;
+    }
+    transition_time_field <<= trans.transition_time;
+    condition_field = trans.condition;
+}
+
+void EntityPropertiesCtrl::OnTransitionFieldChanged() {
+    if (!current_entity) return;
+    
+    int selected_transition_idx = transition_list_ctrl.GetCursor();
+    if (selected_transition_idx < 0 || selected_transition_idx >= current_entity->animation_transitions.GetCount()) {
+        return;
+    }
+    
+    // Update the selected transition with values from the UI fields
+    auto& trans = current_entity->animation_transitions[selected_transition_idx];
+    trans.from_animation_id = AsString(from_animation_option.Get());
+    trans.to_animation_id = AsString(to_animation_option.Get());
+    trans.transition_time = ~transition_time_field;
+    trans.condition = ~condition_field;
+    
+    // Refresh the transitions list to show updated values
+    UpdateControls(); // Full update since it affects multiple UI elements
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnAddTransitionClicked() {
+    if (!current_entity) return;
+    
+    // Create a new transition with default values
+    AnimationTransition new_trans;
+    new_trans.from_animation_id = AsString(from_animation_option.Get());
+    new_trans.to_animation_id = AsString(to_animation_option.Get());
+    new_trans.transition_time = ~transition_time_field;
+    new_trans.condition = ~condition_field;
+    
+    // Add to the entity's transitions
+    current_entity->animation_transitions.Add(new_trans);
+    
+    // Refresh the transitions list
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnRemoveTransitionClicked() {
+    if (!current_entity) return;
+    
+    int selected_transition_idx = transition_list_ctrl.GetCursor();
+    if (selected_transition_idx < 0 || selected_transition_idx >= current_entity->animation_transitions.GetCount()) {
+        Exclamation("Please select a transition to remove!");
+        return;
+    }
+    
+    // Remove the selected transition
+    current_entity->animation_transitions.Remove(selected_transition_idx);
+    
+    // Refresh the transitions list
+    UpdateControls();
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnEditTransitionClicked() {
+    // This would open a dialog to edit transition parameters in more detail
+    // For now, we'll just show a simple message
+    PromptOK("Transition editing functionality would open a detailed editor dialog here.");
 }

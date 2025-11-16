@@ -2,6 +2,8 @@ uses
 	Shell;
 
 file
+	CURRENT_TASK.md,
+	RouterNet.h,
 	Main.cpp,
 	00a_audio_gen.cpp,
 	00b_audio_gen.cpp,

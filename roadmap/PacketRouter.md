@@ -37,6 +37,7 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
   - Manual builders (`ChainContext`, `LoopContext`) we can recast into prototype router builders before touching the parser.
   - A fast test harness (small audio pipeline) to prove router semantics without touching SDL/Gfx stacks.
 - **Plan:** Fork `upptst/Eon00` in the new branch, add router prototypes, and keep method 0/1/2 compiling until we complete the DSL migration.
+- **Status update:** Method 3 now shares RouterNetContext instances through a helper that connects loops via `LoopContext::ConnectSides`, so `00b/00c` mimic ScriptLoader’s side-link parity. Conversion guides for `00a/00b/00c` live next to the `.eon` assets for future rewrites.
 
 ---
 
@@ -98,10 +99,61 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
 
 ---
 
+## Phase Exit Criteria & Deliverables
+- **Phase 0 – Discovery & Prototype Router Builder**
+  - Artifact: Doc describing every Link/Customer usage site (`Eon/Core`, DSL builders, ECS glue).
+  - Code spike: `NetContext` sample in `upptst/Eon00` proving packets can move without loops.
+  - Decision record for port naming + anonymous fallback semantics.
+- **Phase 1 – Router Core & Flow Control Primitives**
+  - `PacketRouter` headers with credit/connection APIs merged (even if backed by stub implementations).
+  - All Interface providers compiling with router descriptors; `CustomerBase` deleted or shimmed.
+  - Flow-control metadata structs in `Vfs/Ecs/Formats.h` with serialization tests.
+- **Phase 2 – DSL & Loader Rewrite**
+  - Parser unit tests covering new `net` syntax plus backward-compat toggles.
+  - Builder emits router tables consumable by the `NetContext` spike.
+  - ToyLoader generates router `.eon` output for at least one ShaderToy example.
+- **Phase 3 – Interface + VFS/ECS Plumbing**
+  - Router descriptors stored/retrieved via VFS JSON/binary formats.
+  - IDE tooling still renders existing graphs (even if still loop-shaped) while router nets are visible in inspectors.
+  - Port lookup helpers exposed to script builders and runtime code.
+- **Phase 4 – Atom, API, and Backend Conversion**
+  - Representative Atoms per backend (audio, gfx, SDL I/O) declare ports via new API.
+  - Router-managed credits exercised in at least one backend test (e.g., audio generator).
+  - Legacy builds continue running via compatibility policy flag.
+- **Phase 5 – DSL Migration & Test Coverage**
+  - All `share/eon/**/*.eon` rewritten; automated converter + manual checklist recorded.
+  - `upptst/Eon*` packages reflect router nets with method 0/1/2 parity.
+  - CI suite includes router + legacy compatibility coverage.
+- **Phase 6 – Performance, Compatibility, and Cleanup**
+  - Benchmarks comparing loop vs router mode published; any regressions triaged.
+  - Diagnostics page/screens for router nets implemented in IDE or DropTerm.
+  - Deprecated loop APIs removed from headers and docs.
+
+---
+
+## Collaboration & Tooling Expectations
+- **Eon Core + Script team:** Owns router runtime, DSL rewrite, Atom API updates, and the Eon00 pilot.
+- **VFS/ECS team:** Defines router descriptors, storage schema, and IDE integration; partners on serialization + inspector updates.
+- **Backend owners (`api/audio`, `api/gfx`, etc.):** Provide per-backend port definitions, credit-handling hooks, and regression benchmarks.
+- **Tooling support:** Build conversion scripts (likely under `script/` or `task/PacketRouter`) to translate `.eon` files and method 2 builders; share progress logs via `CURRENT_TASK.md`.
+- **Documentation:** Update AGENTS, ROADMAP, and TASK files whenever a phase crosses its exit criteria; cross-link to decision logs stored under `pseudocode_analysis/` or `task/notes`.
+
+---
+
+## Metrics & Validation Strategy
+- **Functional:** Router nets must recreate packet order/latency guarantees previously enforced by loops (verified via deterministic test scenes and audio samples).
+- **Flow control:** Credit accounting traced via debug counters and assertions; target zero packet leaks or starvation over extended runs.
+- **Performance:** Track CPU cost per packet in `upptst/Eon00` and a representative SDL/Gfx workload; maintain parity with legacy loops within ±5% before Phase 6 optimizations.
+- **Adoption:** Number of `.eon` assets migrated vs total; maintain a running tally in `task/PacketRouter.md`.
+- **Compatibility:** Continuous test ensuring loop-compatible policy remains available until all downstream packages opt in.
+
+---
+
 ## Supporting Workstreams
 - **Conversion tooling:** Scripts to translate legacy `.eon` loops into router nets (including port mapping heuristics).
 - **Documentation:** Update `AGENTS.md`, `CURRENT_TASK.md` entries, and developer guides after each major milestone.
 - **IDE/Visualizer impact:** Once routers exist, IDE integrations must know how to display them. Track this as a follow-up thread.
+- **Serialization prep:** JSON/binary schema outline for router ports, bridges, and flow-control metadata now lives in `task/notes/packet_router_vfs_alignment.md` so VFS/Storage work can start as soon as descriptors stabilize.
 
 ---
 

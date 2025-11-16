@@ -40,7 +40,7 @@ void FrameListCtrl::ApplyFilters() {
     if (!project) return;
 
     for (int i = 0; i < project->frames.GetCount(); i++) {
-        const Upp::Frame& frame = project->frames[i];
+        const AnimationFrame& frame = project->frames[i];
 
         // Apply text filter
         if (!filter_text.IsEmpty()) {
@@ -84,7 +84,7 @@ void FrameListCtrl::DrawItem(Draw& w, int display_index, const Rect& rc) const {
     }
 
     int project_index = display_indices[display_index];
-    const Upp::Frame& frame = project->frames[project_index];
+    const AnimationFrame& frame = project->frames[project_index];
 
     // Draw background
     Color bg_color = (display_index == selected_index) ? LtBlue() : (display_index % 2 == 0 ? White() : SdkLightGray());
@@ -149,7 +149,7 @@ void FrameListCtrl::MouseDown(Point pos, dword button) {
 
         // Call the selection callback
         if (select_callback) {
-            const Upp::Frame* selected_frame = GetSelectedFrame();
+            const AnimationFrame* selected_frame = GetSelectedFrame();
             select_callback(selected_frame);
         }
 
@@ -178,7 +178,7 @@ void FrameListCtrl::MouseMove(Point pos, dword keyflags) {
     if (is_dragging && (pos - drag_start).GetLength() > 5) { // Threshold to start drag
         if (selected_index >= 0 && project && selected_index < display_indices.GetCount()) {
             int project_index = display_indices[selected_index];
-            const Upp::Frame& frame = project->frames[project_index];
+            const AnimationFrame& frame = project->frames[project_index];
 
             String drag_data = frame.id;
             ClipbdAction ca = DragAndDrop(this, drag_data, Image::Arrow());
@@ -216,7 +216,7 @@ void FrameListCtrl::PopupContextMenu(Point pos) {
     }
 
     int project_index = display_indices[selected_index];
-    const Upp::Frame& frame = project->frames[project_index];
+    const AnimationFrame& frame = project->frames[project_index];
 
     // Create context menu
     PopupWindow popup;
@@ -249,7 +249,7 @@ void FrameListCtrl::PopupContextMenu(Point pos) {
             return;
         }
 
-        Upp::Frame& frame = project->frames[project_index];
+        AnimationFrame& frame = project->frames[project_index];
 
         // Create dialog content using simple layout
         CtrlLayout<ParentCtrl> dlg;
@@ -323,7 +323,7 @@ void FrameListCtrl::PopupContextMenu(Point pos) {
             frame.default_duration = duration;
             frame.description = description_text;
 
-            // Update the IDs of any FrameRef in animations that point to this frame
+            // Update the IDs of any AnimationFrameRef in animations that point to this frame
             for (int i = 0; i < project->animations.GetCount(); i++) {
                 Animation& anim = project->animations[i];
                 for (int j = 0; j < anim.frames.GetCount(); j++) {
@@ -357,7 +357,7 @@ void FrameListCtrl::PopupContextMenu(Point pos) {
         if (!project) return;
 
         // Create a duplicate of the selected frame
-        Upp::Frame duplicated_frame = project->frames[project_index];
+        AnimationFrame duplicated_frame = project->frames[project_index];
 
         // Generate a unique ID for the duplicate
         duplicated_frame.id = GenerateUniqueIdForFrame(duplicated_frame.id);
@@ -460,7 +460,7 @@ String FrameListCtrl::GenerateUniqueIdForFrame(const String& baseId) {
     return newId;
 }
 
-const Upp::Frame* FrameListCtrl::GetSelectedFrame() const {
+const AnimationFrame* FrameListCtrl::GetSelectedFrame() const {
     if (!project || selected_index < 0 || selected_index >= display_indices.GetCount()) {
         return nullptr;
     }
@@ -477,12 +477,12 @@ void FrameListCtrl::SetSortType(SortType sortType) {
 void FrameListCtrl::SortFrames() {
     switch (sort_type) {
         case SORT_BY_NAME:
-            SortBy([](const Upp::Frame& a, const Upp::Frame& b) {
+            SortBy([](const AnimationFrame& a, const AnimationFrame& b) {
                 return ToLower(a.name) < ToLower(b.name);
             });
             break;
         case SORT_BY_ID:
-            SortBy([](const Upp::Frame& a, const Upp::Frame& b) {
+            SortBy([](const AnimationFrame& a, const AnimationFrame& b) {
                 return ToLower(a.id) < ToLower(b.id);
             });
             break;

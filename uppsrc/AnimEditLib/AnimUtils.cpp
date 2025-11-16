@@ -191,7 +191,7 @@ bool ValidateProject(const AnimationProject& p, String& errorOut) {
         }
         
         // Validate animation content
-        if (!ValidateFrameLinks(p, a, errorOut)) {
+        if (!ValidateAnimationFrameLinks(p, a, errorOut)) {
             return false;
         }
     }
@@ -206,16 +206,16 @@ bool ValidateAnimation(const AnimationProject& p, const Animation& a, String& er
         return false;
     }
     
-    if (!ValidateFrameLinks(p, a, errorOut)) {
+    if (!ValidateAnimationFrameLinks(p, a, errorOut)) {
         return false;
     }
     
     return true;
 }
 
-bool ValidateFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut) {
+bool ValidateAnimationFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut) {
     for(int i = 0; i < a.frames.GetCount(); i++) {
-        const FrameRef& fr = a.frames[i];
+        const AnimationFrameRef& fr = a.frames[i];
         if (fr.frame_id.IsEmpty()) {
             errorOut = "Animation '" + a.id + "' has frame reference with empty ID at index " + IntStr(i);
             return false;

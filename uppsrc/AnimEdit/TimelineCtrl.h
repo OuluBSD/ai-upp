@@ -8,7 +8,7 @@
 using namespace Upp;
 
 // Define a type alias to avoid Frame name collision
-using AnimFrame = Upp::Frame;  // The Frame from AnimCore.h (animation frame)
+using AnimFrame = AnimationFrame;  // The Frame from AnimCore.h (animation frame)
 
 class AnimEditTimelineCtrl : public Ctrl {
 public:
@@ -19,7 +19,7 @@ public:
 
     void SetProject(const AnimationProject* project);
     void SetAnimation(const Animation* animation);
-    void SetFrameCallback(std::function<void(const Upp::Frame*)> callback);
+    void SetFrameCallback(std::function<void(const AnimationFrame*)> callback);
     void SetOnFrameModified(std::function<void()> callback);
     
     int GetSelectedFrameIndex() const { return selected_frame_index; }
@@ -45,7 +45,7 @@ private:
     int duration_editor_y = 0;
 
     // Callbacks
-    std::function<void(const Upp::Frame*)> frame_callback;
+    std::function<void(const AnimationFrame*)> frame_callback;
     std::function<void()> on_frame_modified_callback;
 
     // Layout

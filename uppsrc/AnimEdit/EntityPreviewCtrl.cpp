@@ -46,7 +46,7 @@ void EntityPreviewCtrl::StartAnimation() {
             // Calculate average duration from the frames if they have custom durations
             double total_duration = 0;
             int frame_count = 0;
-            for (const FrameRef& frame_ref : animation->frames) {
+            for (const AnimationFrameRef& frame_ref : animation->frames) {
                 double duration = frame_ref.has_duration ? frame_ref.duration : 0.1; // default 0.1s
                 total_duration += duration;
                 frame_count++;
@@ -127,7 +127,7 @@ void EntityPreviewCtrl::Paint(Draw& w) {
 
     // Draw the current frame of the animation
     if (current_frame_index < animation->frames.GetCount()) {
-        const FrameRef& frame_ref = animation->frames[current_frame_index];
+        const AnimationFrameRef& frame_ref = animation->frames[current_frame_index];
         const Frame* frame = project->FindFrame(frame_ref.frame_id);
 
         if (frame) {

@@ -113,7 +113,7 @@ private:
     void UpdateZoomLabel();
     void UpdateUndoRedoButtons();
     void UpdateSpriteList();
-    void SetActiveFrame(const Upp::Frame* frame);
+    void SetActiveFrame(const AnimationFrame* frame);
     void CreateNewSprite();
     void SetSelectedAnimation(const Animation* anim);
     

@@ -15,7 +15,7 @@ public:
     virtual ~SpriteInstanceListCtrl();
 
     void SetProject(const AnimationProject* project);
-    void SetFrame(const Upp::Frame* frame);
+    void SetFrame(const AnimationFrame* frame);
     void RefreshList();
 
     // Selection
@@ -33,7 +33,7 @@ protected:
 
 private:
     const AnimationProject* project;
-    const Upp::Frame* frame;
+    const AnimationFrame* frame;
     Vector<int> display_indices; // Indices of sprite instances to display
     int selected_index;
 

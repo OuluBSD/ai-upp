@@ -30,7 +30,7 @@ void Jsonize(JsonIO& jio, AnimationFrame& f) {
        ("collisions", f.collisions)("default_duration", f.default_duration);
 }
 
-void Jsonize(JsonIO& jio, FrameRef& fr) {
+void Jsonize(JsonIO& jio, AnimationFrameRef& fr) {
     jio("frame_id", fr.frame_id)("has_duration", fr.has_duration);
     if(fr.has_duration) {
         jio("duration", fr.duration);

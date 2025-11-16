@@ -29,6 +29,13 @@ NAMESPACE_UPP
 #include "PostProcessing.h"
 #include "TextureStreaming.h"
 #include "RenderBatching.h"
+#include "InputSystem.h"
+#include "InputSystemExample.h"
+#include "AudioSystem.h"
+#include "PhysicsSystem.h"
+#include "UISystem.h"
+#include "VFS.h"
+#include "AnimationSystem.h"
 
 END_UPP_NAMESPACE
 

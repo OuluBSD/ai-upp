@@ -462,7 +462,7 @@ timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
 
         // If there's a selected animation, add the new frame to it
         if (selected_animation) {
-            FrameRef frame_ref;
+            AnimationFrameRef frame_ref;
             frame_ref.frame_id = new_frame.id;
             frame_ref.has_duration = false;
             frame_ref.duration = 0.1; // default duration
@@ -798,7 +798,7 @@ timeline_panel.Add(timeline_ctrl.VSizePos(24).HSizePos());  // Leave space at to
                        timeline_ctrl.GetSelectedFrameIndex() + 1 : 
                        selected_animation->frames.GetCount();
     
-    FrameRef frame_ref;
+    AnimationFrameRef frame_ref;
     frame_ref.frame_id = new_frame.id;
     frame_ref.has_duration = false;
     frame_ref.duration = 0.1; // default duration
@@ -850,7 +850,7 @@ void AnimEditorWindow::AddExistingFrame() {
         String selected_frame_id = array_ctrl.Get(0, selected_row); // Get ID
         
         // Add the selected frame to the animation
-        FrameRef frame_ref;
+        AnimationFrameRef frame_ref;
         frame_ref.frame_id = selected_frame_id;
         frame_ref.has_duration = false;
         frame_ref.duration = 0.1; // default duration
@@ -880,7 +880,7 @@ void AnimEditorWindow::DuplicateFrame() {
     }
     
     // Get the frame reference to duplicate
-    FrameRef original_ref = selected_animation->frames[selected_frame_index];
+    AnimationFrameRef original_ref = selected_animation->frames[selected_frame_index];
     const Frame* original_frame = state.project.FindFrame(original_ref.frame_id);
     
     if (!original_frame) {
@@ -895,7 +895,7 @@ void AnimEditorWindow::DuplicateFrame() {
     state.project.frames.Add(new_frame);
     
     // Add the new frame reference to the animation after the original
-    FrameRef new_ref;
+    AnimationFrameRef new_ref;
     new_ref.frame_id = new_frame.id;
     new_ref.has_duration = original_ref.has_duration;
     new_ref.duration = original_ref.duration;

@@ -872,10 +872,10 @@ std::string QwenStateManager::get_current_timestamp() const {
 
 bool QwenStateManager::ensure_directories() {
     try {
-        vfs_->mkdir(config_.history_root, 0);
-        vfs_->mkdir(config_.files_root, 0);
-        vfs_->mkdir(config_.sessions_root, 0);
-        return true;
+        bool ok = vfs_->mkdir(config_.history_root, 0);
+        ok = vfs_->mkdir(config_.files_root, 0) && ok;
+        ok = vfs_->mkdir(config_.sessions_root, 0) && ok;
+        return ok;
     } catch (...) {
         return false;
     }
@@ -884,10 +884,14 @@ bool QwenStateManager::ensure_directories() {
 bool QwenStateManager::ensure_session_directories(const std::string& session_id) {
     try {
         std::string session_path = get_session_path(session_id);
-        vfs_->mkdir(session_path, 0);
+        if (!vfs_->mkdir(session_path, 0)) {
+            return false;
+        }
 
         std::string files_path = get_files_path(session_id);
-        vfs_->mkdir(files_path, 0);
+        if (!vfs_->mkdir(files_path, 0)) {
+            return false;
+        }
 
         return true;
     } catch (...) {

@@ -73,6 +73,18 @@ private:
     CheckBox looping_check;
     Button apply_anim_params_btn;
     
+    // Script management controls
+    ArrayCtrl script_list_ctrl;
+    Button add_script_btn;
+    Button remove_script_btn;
+    Button edit_script_btn;
+    Option script_type_option;
+    EditField script_name_field;
+    EditField script_id_field;
+    MultiLineEdit script_content_edit;
+    CheckBox script_active_check;
+    Button apply_script_btn;
+    
     // Validation feedback
     StaticRect validation_status;  // Shows validation status
     

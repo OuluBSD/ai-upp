@@ -33,4 +33,8 @@ file
 	EntityPropertiesCtrl.h,
 	EntityPropertiesCtrl.cpp,
 	EntityPreviewCtrl.h,
-	EntityPreviewCtrl.cpp;
+	EntityPreviewCtrl.cpp,
+	BehaviorTreeEditorCtrl.h,
+	BehaviorTreeEditorCtrl.cpp,
+	StateMachineEditorCtrl.h,
+	StateMachineEditorCtrl.cpp;

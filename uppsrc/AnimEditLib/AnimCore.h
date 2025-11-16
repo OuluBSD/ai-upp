@@ -238,12 +238,14 @@ struct AnimationBlendParams : public Moveable<AnimationBlendParams> {
     double transition_time = 0.0;  // Transition time in seconds
     bool is_active = false;  // Whether this animation is currently active
     Vector<AnimationEvent> events; // Events that occur during this animation
+    Vector<ParameterAnimation> param_anims; // Parameter animations that occur during this animation
 
     AnimationBlendParams() = default;
     
     bool operator==(const AnimationBlendParams& other) const {
         return weight == other.weight && transition_time == other.transition_time && 
-               is_active == other.is_active && events == other.events;
+               is_active == other.is_active && events == other.events &&
+               param_anims == other.param_anims;
     }
     bool operator!=(const AnimationBlendParams& other) const { return !(*this == other); }
 
@@ -252,6 +254,188 @@ struct AnimationBlendParams : public Moveable<AnimationBlendParams> {
         Upp::Swap(transition_time, other.transition_time);
         Upp::Swap(is_active, other.is_active);
         Upp::Swap(events, other.events);
+        Upp::Swap(param_anims, other.param_anims);
+    }
+};
+
+// Keyframe for parameter animation
+struct ParameterKeyframe : public Moveable<ParameterKeyframe> {
+    double time;           // Time in seconds when this keyframe occurs
+    double value;          // Parameter value at this keyframe
+    String interpolation;  // Interpolation type: "linear", "ease_in", "ease_out", "bezier", etc.
+    ValueMap metadata;     // Additional metadata for interpolation points
+    
+    ParameterKeyframe() : time(0.0), value(0.0), interpolation("linear") {}
+    ParameterKeyframe(double time, double value) 
+        : time(time), value(value), interpolation("linear") {}
+
+    bool operator==(const ParameterKeyframe& other) const {
+        return time == other.time && value == other.value &&
+               interpolation == other.interpolation && metadata == other.metadata;
+    }
+    bool operator!=(const ParameterKeyframe& other) const { return !(*this == other); }
+
+    void Swap(ParameterKeyframe& other) {
+        Upp::Swap(time, other.time);
+        Upp::Swap(value, other.value);
+        Upp::Swap(interpolation, other.interpolation);
+        Upp::Swap(metadata, other.metadata);
+    }
+};
+
+// Parameter animation track - animates a single parameter over time
+struct ParameterAnimation : public Moveable<ParameterAnimation> {
+    String id;
+    String name;
+    String parameter_path;     // Path to the parameter being animated (e.g. "transform.scale.x", "material.color.r", etc.)
+    String parameter_type;     // Type of the parameter ("float", "vec2", "vec3", "color", etc.)
+    Vector<ParameterKeyframe> keyframes;  // Keyframes that define the animation
+    bool loop;                 // Whether this parameter animation loops
+    
+    ParameterAnimation() : loop(false) {}
+    ParameterAnimation(const String& id, const String& name, const String& param_path)
+        : id(id), name(name), parameter_path(param_path), loop(false) {}
+
+    bool operator==(const ParameterAnimation& other) const {
+        return id == other.id && name == other.name && 
+               parameter_path == other.parameter_path &&
+               parameter_type == other.parameter_type &&
+               keyframes == other.keyframes && loop == other.loop;
+    }
+    bool operator!=(const ParameterAnimation& other) const { return !(*this == other); }
+
+    void Swap(ParameterAnimation& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(parameter_path, other.parameter_path);
+        Upp::Swap(parameter_type, other.parameter_type);
+        Upp::Swap(keyframes, other.keyframes);
+        Upp::Swap(loop, other.loop);
+    }
+};
+
+// Animation curve that can be applied to multiple parameters
+struct AnimationCurve : public Moveable<AnimationCurve> {
+    String id;
+    String name;
+    String curve_type;        // "linear", "bezier", "hermite", etc.
+    Vector<Pointf> control_points;  // Control points for the curve
+    double min_value;         // Minimum value of the curve
+    double max_value;         // Maximum value of the curve
+    bool is_looping;          // Whether the curve loops
+    
+    AnimationCurve() : min_value(0.0), max_value(1.0), is_looping(false) {}
+    AnimationCurve(const String& id, const String& name) 
+        : id(id), name(name), min_value(0.0), max_value(1.0), is_looping(false) {}
+
+    bool operator==(const AnimationCurve& other) const {
+        return id == other.id && name == other.name && 
+               curve_type == other.curve_type &&
+               control_points == other.control_points &&
+               min_value == other.min_value && 
+               max_value == other.max_value && 
+               is_looping == other.is_looping;
+    }
+    bool operator!=(const AnimationCurve& other) const { return !(*this == other); }
+
+    void Swap(AnimationCurve& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(curve_type, other.curve_type);
+        Upp::Swap(control_points, other.control_points);
+        Upp::Swap(min_value, other.min_value);
+        Upp::Swap(max_value, other.max_value);
+        Upp::Swap(is_looping, other.is_looping);
+    }
+};
+
+// Trigger region in the animation space
+struct TriggerRegion : public Moveable<TriggerRegion> {
+    String id;
+    String name;
+    String type;             // "box", "circle", "polygon", "point" etc.
+    RectF bounds;            // Bounding area of the region
+    ValueMap properties;     // Additional properties like tags, groups, etc.
+    Vector<String> responses; // IDs of responses to trigger
+    bool is_active;          // Whether this trigger is currently active
+    
+    TriggerRegion() : type("box"), is_active(true) {}
+    TriggerRegion(const String& id, const String& name, const RectF& bounds)
+        : id(id), name(name), type("box"), bounds(bounds), is_active(true) {}
+
+    bool operator==(const TriggerRegion& other) const {
+        return id == other.id && name == other.name && type == other.type &&
+               bounds == other.bounds && properties == other.properties &&
+               responses == other.responses && is_active == other.is_active;
+    }
+    bool operator!=(const TriggerRegion& other) const { return !(*this == other); }
+
+    void Swap(TriggerRegion& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(bounds, other.bounds);
+        Upp::Swap(properties, other.properties);
+        Upp::Swap(responses, other.responses);
+        Upp::Swap(is_active, other.is_active);
+    }
+};
+
+// Response to a trigger event
+struct TriggerResponse : public Moveable<TriggerResponse> {
+    String id;
+    String name;
+    String type;             // "animation", "script", "event", "state_change", etc.
+    String target_id;        // ID of target entity/animation to affect
+    String action;           // Specific action to take
+    ValueMap parameters;     // Parameters for the action
+    
+    TriggerResponse() : type("event") {}
+    TriggerResponse(const String& id, const String& name, const String& type)
+        : id(id), name(name), type(type) {}
+
+    bool operator==(const TriggerResponse& other) const {
+        return id == other.id && name == other.name && type == other.type &&
+               target_id == other.target_id && action == other.action &&
+               parameters == other.parameters;
+    }
+    bool operator!=(const TriggerResponse& other) const { return !(*this == other); }
+
+    void Swap(TriggerResponse& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(target_id, other.target_id);
+        Upp::Swap(action, other.action);
+        Upp::Swap(parameters, other.parameters);
+    }
+};
+
+// Trigger system that can be attached to entities or animations
+struct TriggerSystem : public Moveable<TriggerSystem> {
+    String id;
+    String name;
+    Vector<TriggerRegion> regions;    // Regions that can trigger responses
+    Vector<TriggerResponse> responses; // Responses that can be triggered
+    ValueMap properties;             // Global properties for the trigger system
+    
+    TriggerSystem() {}
+    TriggerSystem(const String& id, const String& name)
+        : id(id), name(name) {}
+
+    bool operator==(const TriggerSystem& other) const {
+        return id == other.id && name == other.name &&
+               regions == other.regions && responses == other.responses &&
+               properties == other.properties;
+    }
+    bool operator!=(const TriggerSystem& other) const { return !(*this == other); }
+
+    void Swap(TriggerSystem& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(regions, other.regions);
+        Upp::Swap(responses, other.responses);
+        Upp::Swap(properties, other.properties);
     }
 };
 
@@ -297,6 +481,188 @@ struct EntityAnimationParams : public Moveable<EntityAnimationParams> {
     }
 };
 
+struct EntityScript : public Moveable<EntityScript> {
+    String id;
+    String name;
+    String type;           // "lua", "javascript", "expression", etc.
+    String content;        // The actual script content
+    ValueMap parameters;   // Parameters/variables for the script
+    bool is_active;        // Whether this script should be executed
+
+    EntityScript() : is_active(true) {}
+    EntityScript(const String& id, const String& name, const String& type, const String& content)
+        : id(id), name(name), type(type), content(content), is_active(true) {}
+
+    bool operator==(const EntityScript& other) const {
+        return id == other.id && name == other.name && type == other.type &&
+               content == other.content && parameters == other.parameters &&
+               is_active == other.is_active;
+    }
+    bool operator!=(const EntityScript& other) const { return !(*this == other); }
+
+    void Swap(EntityScript& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(content, other.content);
+        Upp::Swap(parameters, other.parameters);
+        Upp::Swap(is_active, other.is_active);
+    }
+};
+
+// Behavior tree node types
+enum class BTNodeType {
+    ACTION,
+    CONDITION,
+    SEQUENCE,
+    SELECTOR,
+    DECORATOR,
+    ROOT
+};
+
+// Base behavior tree node
+struct BTNode : public Moveable<BTNode> {
+    String id;
+    BTNodeType node_type;
+    String name;
+    String type_name;          // Specific type like "MoveTo", "IsHealthLow", etc.
+    ValueMap parameters;       // Parameters for this node
+    Vector<String> children;   // IDs of child nodes
+    String parent;             // ID of parent node (empty if root)
+    
+    BTNode() : node_type(BTNodeType::ACTION) {}
+    BTNode(const String& id, BTNodeType type, const String& name)
+        : id(id), node_type(type), name(name) {}
+
+    bool operator==(const BTNode& other) const {
+        return id == other.id && node_type == other.node_type &&
+               name == other.name && type_name == other.type_name &&
+               parameters == other.parameters &&
+               children == other.children && parent == other.parent;
+    }
+    bool operator!=(const BTNode& other) const { return !(*this == other); }
+
+    void Swap(BTNode& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(node_type, other.node_type);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type_name, other.type_name);
+        Upp::Swap(parameters, other.parameters);
+        Upp::Swap(children, other.children);
+        Upp::Swap(parent, other.parent);
+    }
+};
+
+// Behavior tree structure
+struct BehaviorTree : public Moveable<BehaviorTree> {
+    String id;
+    String name;
+    Vector<BTNode> nodes;      // All nodes in the tree
+    String root_node_id;       // ID of the root node
+    
+    BehaviorTree() {}
+    BehaviorTree(const String& id, const String& name)
+        : id(id), name(name), root_node_id("") {}
+
+    bool operator==(const BehaviorTree& other) const {
+        return id == other.id && name == other.name &&
+               nodes == other.nodes && root_node_id == other.root_node_id;
+    }
+    bool operator!=(const BehaviorTree& other) const { return !(*this == other); }
+
+    void Swap(BehaviorTree& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(nodes, other.nodes);
+        Upp::Swap(root_node_id, other.root_node_id);
+    }
+};
+
+// State for state machine
+struct StateNode : public Moveable<StateNode> {
+    String id;
+    String name;
+    String type;               // Type of state like "Idle", "Walking", "Attacking", etc.
+    ValueMap parameters;       // Parameters for this state
+    Vector<String> transitions; // IDs of transition nodes from this state
+    
+    StateNode() {}
+    StateNode(const String& id, const String& name, const String& type)
+        : id(id), name(name), type(type) {}
+
+    bool operator==(const StateNode& other) const {
+        return id == other.id && name == other.name && type == other.type &&
+               parameters == other.parameters && transitions == other.transitions;
+    }
+    bool operator!=(const StateNode& other) const { return !(*this == other); }
+
+    void Swap(StateNode& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(parameters, other.parameters);
+        Upp::Swap(transitions, other.transitions);
+    }
+};
+
+// Transition for state machine
+struct StateTransition : public Moveable<StateTransition> {
+    String id;
+    String from_state;         // ID of the source state
+    String to_state;           // ID of the target state
+    String condition;          // Condition that triggers this transition
+    String action;             // Action to perform during transition
+    ValueMap parameters;       // Parameters for this transition
+    
+    StateTransition() {}
+    StateTransition(const String& id, const String& from, const String& to)
+        : id(id), from_state(from), to_state(to) {}
+
+    bool operator==(const StateTransition& other) const {
+        return id == other.id && from_state == other.from_state &&
+               to_state == other.to_state && condition == other.condition &&
+               action == other.action && parameters == other.parameters;
+    }
+    bool operator!=(const StateTransition& other) const { return !(*this == other); }
+
+    void Swap(StateTransition& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(from_state, other.from_state);
+        Upp::Swap(to_state, other.to_state);
+        Upp::Swap(condition, other.condition);
+        Upp::Swap(action, other.action);
+        Upp::Swap(parameters, other.parameters);
+    }
+};
+
+// State machine structure
+struct StateMachine : public Moveable<StateMachine> {
+    String id;
+    String name;
+    Vector<StateNode> states;
+    Vector<StateTransition> transitions;
+    String initial_state_id;   // ID of the initial state
+    
+    StateMachine() {}
+    StateMachine(const String& id, const String& name)
+        : id(id), name(name), initial_state_id("") {}
+
+    bool operator==(const StateMachine& other) const {
+        return id == other.id && name == other.name &&
+               states == other.states && transitions == other.transitions &&
+               initial_state_id == other.initial_state_id;
+    }
+    bool operator!=(const StateMachine& other) const { return !(*this == other); }
+
+    void Swap(StateMachine& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(states, other.states);
+        Upp::Swap(transitions, other.transitions);
+        Upp::Swap(initial_state_id, other.initial_state_id);
+    }
+};
+
 struct Entity : public Moveable<Entity> {
     String id;
     String name;
@@ -305,17 +671,31 @@ struct Entity : public Moveable<Entity> {
     Vector<AnimationTransition> animation_transitions;  // Transitions between animation states
     EntityAnimationParams anim_params;                  // Animation parameters specific to this entity
     ValueMap properties;  // Simple key-value store for behavior parameters
+    Vector<EntityScript> scripts;  // Scripts for entity behaviors
+    Vector<BehaviorTree> behavior_trees;  // Behavior trees for entity AI
+    Vector<StateMachine> state_machines;  // State machines for entity AI
+    Vector<TriggerSystem> trigger_systems;  // Trigger systems for entity interactions
+    String parent_id;                       // ID of parent entity (empty if root)
+    Vector<String> children_ids;            // IDs of child entities
+    bool inherit_transform;                 // Whether to inherit parent's transform
 
     Entity() = default;
     Entity(const String& id)
-        : id(id), name(id), type("default") {}
+        : id(id), name(id), type("default"), inherit_transform(true) {}
 
     bool operator==(const Entity& other) const {
         return id == other.id && name == other.name && type == other.type &&
-               animation_slots == other.animation_slots && 
-               animation_transitions == other.animation_transitions && 
+               animation_slots == other.animation_slots &&
+               animation_transitions == other.animation_transitions &&
                anim_params == other.anim_params &&
-               properties == other.properties;
+               properties == other.properties &&
+               scripts == other.scripts &&
+               behavior_trees == other.behavior_trees &&
+               state_machines == other.state_machines &&
+               trigger_systems == other.trigger_systems &&
+               parent_id == other.parent_id && 
+               children_ids == other.children_ids &&
+               inherit_transform == other.inherit_transform;
     }
     bool operator!=(const Entity& other) const { return !(*this == other); }
 
@@ -327,6 +707,13 @@ struct Entity : public Moveable<Entity> {
         Upp::Swap(animation_transitions, other.animation_transitions);
         Upp::Swap(anim_params, other.anim_params);
         Upp::Swap(properties, other.properties);
+        Upp::Swap(scripts, other.scripts);
+        Upp::Swap(behavior_trees, other.behavior_trees);
+        Upp::Swap(state_machines, other.state_machines);
+        Upp::Swap(trigger_systems, other.trigger_systems);
+        Upp::Swap(parent_id, other.parent_id);
+        Upp::Swap(children_ids, other.children_ids);
+        Upp::Swap(inherit_transform, other.inherit_transform);
     }
 };
 
@@ -338,6 +725,11 @@ struct AnimationProject : public Moveable<AnimationProject> {
     Vector<Frame>      frames;
     Vector<Animation>  animations;
     Vector<Entity>     entities;
+    Vector<BehaviorTree> behavior_trees;  // Shared behavior trees across entities
+    Vector<StateMachine> state_machines;  // Shared state machines across entities
+    Vector<AnimationCurve> curves;        // Shared animation curves across entities
+    Vector<TriggerSystem> trigger_systems; // Shared trigger systems across entities
+    Vector<String> entity_groups;          // Groups of entities for collective operations
 
     const Sprite*    FindSprite(const String&) const;
     Sprite*          FindSprite(const String&);
@@ -350,11 +742,26 @@ struct AnimationProject : public Moveable<AnimationProject> {
 
     const Entity*    FindEntity(const String&) const;
     Entity*          FindEntity(const String&);
-    
+
+    const BehaviorTree* FindBehaviorTree(const String&) const;
+    BehaviorTree*       FindBehaviorTree(const String&);
+
+    const StateMachine* FindStateMachine(const String&) const;
+    StateMachine*       FindStateMachine(const String&);
+
+    const AnimationCurve* FindCurve(const String&) const;
+    AnimationCurve*       FindCurve(const String&);
+
+    const TriggerSystem* FindTriggerSystem(const String&) const;
+    TriggerSystem*       FindTriggerSystem(const String&);
+
     bool operator==(const AnimationProject& other) const { 
         return id == other.id && name == other.name && 
                sprites == other.sprites && frames == other.frames &&
-               animations == other.animations && entities == other.entities; 
+               animations == other.animations && entities == other.entities &&
+               behavior_trees == other.behavior_trees && state_machines == other.state_machines &&
+               curves == other.curves && trigger_systems == other.trigger_systems &&
+               entity_groups == other.entity_groups; 
     }
     bool operator!=(const AnimationProject& other) const { return !(*this == other); }
     
@@ -365,6 +772,11 @@ struct AnimationProject : public Moveable<AnimationProject> {
         Upp::Swap(frames, other.frames);
         Upp::Swap(animations, other.animations);
         Upp::Swap(entities, other.entities);
+        Upp::Swap(behavior_trees, other.behavior_trees);
+        Upp::Swap(state_machines, other.state_machines);
+        Upp::Swap(curves, other.curves);
+        Upp::Swap(trigger_systems, other.trigger_systems);
+        Upp::Swap(entity_groups, other.entity_groups);
     }
 };
 

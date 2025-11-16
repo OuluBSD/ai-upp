@@ -73,6 +73,12 @@ world ecs.dummy:
 NAMESPACE_UPP
 
 void Run07cEcsOgl(Engine& eng, int method) {
+	// Add required systems for ECS functionality
+	eng.GetAdd<InteractionSystem>();
+	eng.GetAdd<RenderingSystem>();
+	eng.GetAdd<EventSystem>();
+	eng.GetAdd<PhysicsSystem>();
+
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
 

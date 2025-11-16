@@ -180,22 +180,43 @@ struct Animation : public Moveable<Animation> {
     }
 };
 
+struct AnimationBlendParams : public Moveable<AnimationBlendParams> {
+    double weight = 1.0;     // Blend weight (0.0 to 1.0)
+    double transition_time = 0.0;  // Transition time in seconds
+    bool is_active = false;  // Whether this animation is currently active
+
+    AnimationBlendParams() = default;
+    
+    bool operator==(const AnimationBlendParams& other) const {
+        return weight == other.weight && transition_time == other.transition_time && is_active == other.is_active;
+    }
+    bool operator!=(const AnimationBlendParams& other) const { return !(*this == other); }
+
+    void Swap(AnimationBlendParams& other) {
+        Upp::Swap(weight, other.weight);
+        Upp::Swap(transition_time, other.transition_time);
+        Upp::Swap(is_active, other.is_active);
+    }
+};
+
 struct NamedAnimationSlot : public Moveable<NamedAnimationSlot> {
     String name;
     String animation_id;
+    AnimationBlendParams blend_params;  // Parameters for animation blending
 
     NamedAnimationSlot() = default;
     NamedAnimationSlot(const String& name, const String& animation_id)
         : name(name), animation_id(animation_id) {}
 
     bool operator==(const NamedAnimationSlot& other) const {
-        return name == other.name && animation_id == other.animation_id;
+        return name == other.name && animation_id == other.animation_id && blend_params == other.blend_params;
     }
     bool operator!=(const NamedAnimationSlot& other) const { return !(*this == other); }
 
     void Swap(NamedAnimationSlot& other) {
         Upp::Swap(name, other.name);
         Upp::Swap(animation_id, other.animation_id);
+        Upp::Swap(blend_params, other.blend_params);
     }
 };
 

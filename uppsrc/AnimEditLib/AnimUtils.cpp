@@ -270,6 +270,20 @@ bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& erro
     return true;
 }
 
+bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut) {
+    if (params.weight < 0.0 || params.weight > 1.0) {
+        errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + DoubleStr(params.weight);
+        return false;
+    }
+    
+    if (params.transition_time < 0.0) {
+        errorOut = "Invalid transition time (must be >= 0.0): " + DoubleStr(params.transition_time);
+        return false;
+    }
+    
+    return true;
+}
+
 bool ValidateEntity(const AnimationProject& p, const Entity& e, String& errorOut) {
     if (e.id.IsEmpty()) {
         errorOut = "Entity has an empty ID";
@@ -299,6 +313,17 @@ bool ValidateEntityLinks(const AnimationProject& p, const Entity& e, String& err
         // Check if the referenced animation exists
         if (!p.FindAnimation(slot.animation_id)) {
             errorOut = "Entity '" + e.id + "' references non-existent animation: " + slot.animation_id;
+            return false;
+        }
+        
+        // Validate blend parameters
+        if (slot.blend_params.weight < 0.0 || slot.blend_params.weight > 1.0) {
+            errorOut = "Entity '" + e.id + "' has animation slot '" + slot.name + "' with invalid blend weight (must be between 0.0 and 1.0)";
+            return false;
+        }
+        
+        if (slot.blend_params.transition_time < 0.0) {
+            errorOut = "Entity '" + e.id + "' has animation slot '" + slot.name + "' with invalid transition time (must be >= 0.0)";
             return false;
         }
     }

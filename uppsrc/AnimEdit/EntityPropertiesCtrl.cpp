@@ -68,6 +68,29 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     apply_blend_btn.SetLabel("Apply Blend");
     apply_blend_btn.SetTip("Apply the current blend settings to the selected animation slot");
     
+    // Set up event management controls
+    event_list_ctrl.AddColumn("Name", 80);
+    event_list_ctrl.AddColumn("Type", 60);
+    event_list_ctrl.AddColumn("Frame", 40);
+    event_list_ctrl.SetFrame(ThinInsetFrame());
+    event_list_ctrl.NoHeader();
+    
+    add_event_btn.SetLabel("+");
+    add_event_btn.SetTip("Add new animation event");
+    remove_event_btn.SetLabel("-");
+    remove_event_btn.SetTip("Remove selected animation event");
+    edit_event_btn.SetLabel("Edit");
+    edit_event_btn.SetTip("Edit selected animation event");
+    
+    event_name_field.SetPrompt("Event Name");
+    event_type_option.Add("sound");
+    event_type_option.Add("particle");
+    event_type_option.Add("callback");
+    event_type_option.Add("trigger");
+    event_type_option.SetIndex(0);  // Default to "sound"
+    event_frame_field.SetRange(0, 9999).Set(0);  // Frame index from 0 to 9999
+    event_frame_field.SetTip("Frame number at which event should trigger");
+    
     // Connect events
     id_field.WhenAction = [this]() { OnEntityChanged(); };
     name_field.WhenAction = [this]() { OnEntityChanged(); };
@@ -88,6 +111,13 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     blend_weight_slider.WhenAction = [this]() { OnBlendWeightChanged(); };
     transition_time_edit.WhenAction = [this]() { OnTransitionTimeChanged(); };
     apply_blend_btn <<= [this]() { OnApplyBlendClicked(); };
+    event_list_ctrl.WhenLeftClick = [this]() { OnEventSelectionChanged(); };
+    add_event_btn <<= [this]() { OnAddEventClicked(); };
+    remove_event_btn <<= [this]() { OnRemoveEventClicked(); };
+    edit_event_btn <<= [this]() { OnEditEventClicked(); };
+    event_name_field.WhenAction = [this]() { OnEventFieldChanged(); };
+    event_type_option.WhenAction = [this]() { OnEventFieldChanged(); };
+    event_frame_field.WhenAction = [this]() { OnEventFieldChanged(); };
 }
 
 EntityPropertiesCtrl::~EntityPropertiesCtrl() {
@@ -245,6 +275,9 @@ void EntityPropertiesCtrl::OnSlotChanged() {
         String weightStr = Format("%.2f", slot.blend_params.weight);
         blend_weight_label.SetLabel("Blend Weight: " + weightStr);
         transition_time_edit <<= slot.blend_params.transition_time;
+        
+        // Update events list to show events for this slot
+        UpdateEventsList(selected_slot_idx);
     }
 }
 
@@ -421,6 +454,19 @@ void EntityPropertiesCtrl::Layout() {
     transition_time_edit.SetRect(420, blend_y, 60, 24);
     apply_blend_btn.SetRect(490, blend_y, 100, 24);
 
+    // Position event management controls (below blending controls)
+    int event_y = blend_y + 30;
+    event_name_field.SetRect(10, event_y, 100, 24);
+    event_type_option.SetRect(120, event_y, 80, 24);
+    event_frame_field.SetRect(210, event_y, 60, 24);
+    add_event_btn.SetRect(280, event_y, 24, 24);
+    remove_event_btn.SetRect(310, event_y, 24, 24);
+    edit_event_btn.SetRect(340, event_y, 50, 24);
+
+    // Position the event list (below the event controls)
+    int list_y = event_y + 30;
+    event_list_ctrl.SetRect(10, list_y, sz.cx - 20, 80);
+
     // Position the preview control at the bottom (above validation)
     int preview_y = sz.cy - preview_height - validation_height;
     preview_ctrl.SetRect(0, preview_y, sz.cx, preview_height);
@@ -514,4 +560,128 @@ void EntityPropertiesCtrl::OnApplyBlendClicked() {
     } else {
         Exclamation("Please select an animation slot first!");
     }
+}
+
+void EntityPropertiesCtrl::UpdateEventsList(int slotIndex) {
+    if (!current_entity || slotIndex < 0 || slotIndex >= current_entity->animation_slots.GetCount()) {
+        event_list_ctrl.Clear();
+        return;
+    }
+    
+    const auto& slot = current_entity->animation_slots[slotIndex];
+    event_list_ctrl.Clear();
+    
+    for (const auto& event : slot.blend_params.events) {
+        event_list_ctrl.Add(event.name, event.type, IntStr(event.frame_index));
+    }
+}
+
+void EntityPropertiesCtrl::OnEventSelectionChanged() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx < 0 || selected_slot_idx >= current_entity->animation_slots.GetCount()) {
+        return;
+    }
+    
+    int selected_event_idx = event_list_ctrl.GetCursor();
+    if (selected_event_idx < 0 || selected_event_idx >= current_entity->animation_slots[selected_slot_idx].blend_params.events.GetCount()) {
+        return;
+    }
+    
+    const auto& event = current_entity->animation_slots[selected_slot_idx].blend_params.events[selected_event_idx];
+    
+    // Update the event editing fields to show the selected event's properties
+    event_name_field = event.name;
+    int type_idx = event_type_option.Find(event.type);
+    if (type_idx >= 0) {
+        event_type_option <<= type_idx;
+    }
+    event_frame_field <<= event.frame_index;
+}
+
+void EntityPropertiesCtrl::OnEventFieldChanged() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx < 0 || selected_slot_idx >= current_entity->animation_slots.GetCount()) {
+        return;
+    }
+    
+    int selected_event_idx = event_list_ctrl.GetCursor();
+    if (selected_event_idx < 0 || selected_event_idx >= current_entity->animation_slots[selected_slot_idx].blend_params.events.GetCount()) {
+        return;
+    }
+    
+    // Update the selected event with values from the UI fields
+    auto& event = current_entity->animation_slots[selected_slot_idx].blend_params.events[selected_event_idx];
+    event.name = ~event_name_field;
+    event.type = AsString(event_type_option.Get());
+    event.frame_index = ~event_frame_field;
+    
+    // Refresh the events list to show updated values
+    UpdateEventsList(selected_slot_idx);
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnAddEventClicked() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx < 0 || selected_slot_idx >= current_entity->animation_slots.GetCount()) {
+        Exclamation("Please select an animation slot first!");
+        return;
+    }
+    
+    // Create a new event with default values
+    AnimationEvent new_event;
+    new_event.id = "event_" + Uuid().ToString();
+    new_event.name = "New Event";
+    new_event.type = AsString(event_type_option.Get());
+    new_event.frame_index = ~event_frame_field;
+    
+    // Add to the selected slot's events
+    current_entity->animation_slots[selected_slot_idx].blend_params.events.Add(new_event);
+    
+    // Refresh the events list
+    UpdateEventsList(selected_slot_idx);
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnRemoveEventClicked() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx < 0 || selected_slot_idx >= current_entity->animation_slots.GetCount()) {
+        Exclamation("Please select an animation slot first!");
+        return;
+    }
+    
+    int selected_event_idx = event_list_ctrl.GetCursor();
+    if (selected_event_idx < 0 || selected_event_idx >= current_entity->animation_slots[selected_slot_idx].blend_params.events.GetCount()) {
+        Exclamation("Please select an event to remove!");
+        return;
+    }
+    
+    // Remove the selected event
+    current_entity->animation_slots[selected_slot_idx].blend_params.events.Remove(selected_event_idx);
+    
+    // Refresh the events list
+    UpdateEventsList(selected_slot_idx);
+    
+    if (change_callback) {
+        change_callback();
+    }
+}
+
+void EntityPropertiesCtrl::OnEditEventClicked() {
+    // This would open a dialog to edit event parameters in more detail
+    // For now, we'll just show a simple message
+    PromptOK("Event editing functionality would open a detailed editor dialog here.");
 }

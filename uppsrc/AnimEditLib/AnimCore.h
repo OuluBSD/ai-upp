@@ -180,15 +180,43 @@ struct Animation : public Moveable<Animation> {
     }
 };
 
+struct AnimationEvent : public Moveable<AnimationEvent> {
+    String id;
+    String name;
+    String type;           // Type of event (e.g., "sound", "particle", "callback", "trigger")
+    int frame_index;       // Frame at which the event should trigger
+    ValueMap parameters;   // Additional parameters specific to the event type
+
+    AnimationEvent() : frame_index(0) {}
+    AnimationEvent(const String& id, const String& name, const String& type, int frame_idx)
+        : id(id), name(name), type(type), frame_index(frame_idx) {}
+
+    bool operator==(const AnimationEvent& other) const {
+        return id == other.id && name == other.name && type == other.type && 
+               frame_index == other.frame_index && parameters == other.parameters;
+    }
+    bool operator!=(const AnimationEvent& other) const { return !(*this == other); }
+
+    void Swap(AnimationEvent& other) {
+        Upp::Swap(id, other.id);
+        Upp::Swap(name, other.name);
+        Upp::Swap(type, other.type);
+        Upp::Swap(frame_index, other.frame_index);
+        Upp::Swap(parameters, other.parameters);
+    }
+};
+
 struct AnimationBlendParams : public Moveable<AnimationBlendParams> {
     double weight = 1.0;     // Blend weight (0.0 to 1.0)
     double transition_time = 0.0;  // Transition time in seconds
     bool is_active = false;  // Whether this animation is currently active
+    Vector<AnimationEvent> events; // Events that occur during this animation
 
     AnimationBlendParams() = default;
     
     bool operator==(const AnimationBlendParams& other) const {
-        return weight == other.weight && transition_time == other.transition_time && is_active == other.is_active;
+        return weight == other.weight && transition_time == other.transition_time && 
+               is_active == other.is_active && events == other.events;
     }
     bool operator!=(const AnimationBlendParams& other) const { return !(*this == other); }
 
@@ -196,6 +224,7 @@ struct AnimationBlendParams : public Moveable<AnimationBlendParams> {
         Upp::Swap(weight, other.weight);
         Upp::Swap(transition_time, other.transition_time);
         Upp::Swap(is_active, other.is_active);
+        Upp::Swap(events, other.events);
     }
 };
 

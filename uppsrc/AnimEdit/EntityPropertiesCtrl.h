@@ -48,6 +48,15 @@ private:
     Label transition_label;
     Button apply_blend_btn;
     
+    // Event management controls
+    ArrayCtrl event_list_ctrl;
+    Button add_event_btn;
+    Button remove_event_btn;
+    Button edit_event_btn;
+    EditField event_name_field;
+    Option event_type_option;
+    SpinEdit event_frame_field;
+    
     // Validation feedback
     StaticRect validation_status;  // Shows validation status
     

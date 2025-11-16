@@ -270,6 +270,30 @@ bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& erro
     return true;
 }
 
+bool ValidateAnimationEvent(const AnimationEvent& event, String& errorOut) {
+    if (event.id.IsEmpty()) {
+        errorOut = "Animation event has an empty ID";
+        return false;
+    }
+    
+    if (event.name.IsEmpty()) {
+        errorOut = "Animation event '" + event.id + "' has an empty name";
+        return false;
+    }
+    
+    if (event.type.IsEmpty()) {
+        errorOut = "Animation event '" + event.id + "' has an empty type";
+        return false;
+    }
+    
+    if (event.frame_index < 0) {
+        errorOut = "Animation event '" + event.id + "' has invalid frame index (must be >= 0): " + IntStr(event.frame_index);
+        return false;
+    }
+    
+    return true;
+}
+
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut) {
     if (params.weight < 0.0 || params.weight > 1.0) {
         errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + DoubleStr(params.weight);
@@ -279,6 +303,14 @@ bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& er
     if (params.transition_time < 0.0) {
         errorOut = "Invalid transition time (must be >= 0.0): " + DoubleStr(params.transition_time);
         return false;
+    }
+    
+    // Validate all events in the blend params
+    for (int i = 0; i < params.events.GetCount(); i++) {
+        if (!ValidateAnimationEvent(params.events[i], errorOut)) {
+            errorOut = "In animation blend params: " + errorOut;
+            return false;
+        }
     }
     
     return true;

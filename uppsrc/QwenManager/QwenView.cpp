@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 QwenProjectView::Entry::Entry() {
-	Horz() << page << term;
+	
 }
 
 void QwenProjectView::Entry::SetDocText(bool view_only) {
@@ -12,6 +12,7 @@ void QwenProjectView::Entry::SetDocText(bool view_only) {
 }
 
 QwenProjectView::QwenProjectView() {
+	Splitter::Horz() << page << term;
 	
 }
 

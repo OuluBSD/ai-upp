@@ -20,7 +20,7 @@ struct QwenServerConnectionConf : Pte<QwenServerConnectionConf> {
 
 
 struct QwenProject : Pte<QwenProject> {
-	int64 uniq = 0; // unique id
+	int64 uniq = -1; // unique id
 	String name; // non-unique name
 	String preferred_connection_name; // equal to QwenServerConnectionConf::name
 	String git_origin_addr; // e.g. git@github.com:OuluBSD/ai-upp.git

@@ -1,7 +1,7 @@
 #include "QwenManager.h"
 
 
-#ifdef flagAMAIN
+#ifdef flagMAIN
 GUI_APP_MAIN {
 	using namespace Upp;
 	

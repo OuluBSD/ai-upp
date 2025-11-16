@@ -41,6 +41,13 @@ private:
     Button add_slot_btn;
     Button remove_slot_btn;
     
+    // Blending controls
+    Slider blend_weight_slider;
+    Label blend_weight_label;
+    SpinEdit transition_time_edit;
+    Label transition_label;
+    Button apply_blend_btn;
+    
     // Validation feedback
     StaticRect validation_status;  // Shows validation status
     

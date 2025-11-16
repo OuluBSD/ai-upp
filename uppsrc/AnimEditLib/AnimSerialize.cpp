@@ -41,8 +41,12 @@ void Jsonize(JsonIO& jio, Animation& a) {
     jio("id", a.id)("name", a.name)("category", a.category)("frames", a.frames);
 }
 
+void Jsonize(JsonIO& jio, AnimationBlendParams& params) {
+    jio("weight", params.weight)("transition_time", params.transition_time)("is_active", params.is_active);
+}
+
 void Jsonize(JsonIO& jio, NamedAnimationSlot& slot) {
-    jio("name", slot.name)("animation_id", slot.animation_id);
+    jio("name", slot.name)("animation_id", slot.animation_id)("blend_params", slot.blend_params);
 }
 
 void Jsonize(JsonIO& jio, Entity& e) {

@@ -58,6 +58,16 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     speed_slider.SetRange(1, 500).SetValue(100);  // Range 0.01x to 5.0x (value/100)
     speed_slider.SetTip("Adjust animation playback speed");
     
+    // Set up blending controls
+    blend_weight_label.SetLabel("Blend Weight: 1.00");
+    blend_weight_slider.SetRange(0, 100).SetValue(100);  // 0.00 to 1.00 as 0-100
+    blend_weight_slider.SetTip("Adjust the blend weight for the selected animation (0.0 to 1.0)");
+    transition_label.SetLabel("Transition Time (s):");
+    transition_time_edit.SetRange(0.0, 5.0).Set(0.0);  // 0 to 5 seconds
+    transition_time_edit.SetTip("Time to transition to this animation (in seconds)");
+    apply_blend_btn.SetLabel("Apply Blend");
+    apply_blend_btn.SetTip("Apply the current blend settings to the selected animation slot");
+    
     // Connect events
     id_field.WhenAction = [this]() { OnEntityChanged(); };
     name_field.WhenAction = [this]() { OnEntityChanged(); };
@@ -75,6 +85,9 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     stop_btn <<= [this]() { OnStopClicked(); };
     loop_check.WhenAction = [this]() { OnLoopToggled(); };
     speed_slider.WhenAction = [this]() { OnSpeedChanged(); };
+    blend_weight_slider.WhenAction = [this]() { OnBlendWeightChanged(); };
+    transition_time_edit.WhenAction = [this]() { OnTransitionTimeChanged(); };
+    apply_blend_btn <<= [this]() { OnApplyBlendClicked(); };
 }
 
 EntityPropertiesCtrl::~EntityPropertiesCtrl() {
@@ -225,6 +238,13 @@ void EntityPropertiesCtrl::OnSlotChanged() {
             }
             ValidateEntity();
         }
+        
+        // Update blending controls to reflect current slot values
+        const auto& slot = current_entity->animation_slots[selected_slot_idx];
+        blend_weight_slider.SetPos((int)(slot.blend_params.weight * 100)); // Convert 0.0-1.0 to 0-100
+        String weightStr = Format("%.2f", slot.blend_params.weight);
+        blend_weight_label.SetLabel("Blend Weight: " + weightStr);
+        transition_time_edit <<= slot.blend_params.transition_time;
     }
 }
 
@@ -393,6 +413,14 @@ void EntityPropertiesCtrl::Layout() {
     speed_label.SetRect(290, controls_y, 80, 24);
     speed_slider.SetRect(370, controls_y + 4, sz.cx - 380, 16);
 
+    // Position blending controls (below the playback controls)
+    int blend_y = controls_y + 30;
+    blend_weight_label.SetRect(10, blend_y, 120, 24);
+    blend_weight_slider.SetRect(140, blend_y + 4, 150, 16);
+    transition_label.SetRect(300, blend_y, 120, 24);
+    transition_time_edit.SetRect(420, blend_y, 60, 24);
+    apply_blend_btn.SetRect(490, blend_y, 100, 24);
+
     // Position the preview control at the bottom (above validation)
     int preview_y = sz.cy - preview_height - validation_height;
     preview_ctrl.SetRect(0, preview_y, sz.cx, preview_height);
@@ -427,4 +455,63 @@ void EntityPropertiesCtrl::OnSpeedChanged() {
     speed_label.SetLabel("Speed: " + speedText);
     preview_ctrl.SetPlaybackSpeed(speed);
     Refresh(); // Refresh the control to update the label
+}
+
+void EntityPropertiesCtrl::OnBlendWeightChanged() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx >= 0 && selected_slot_idx < current_entity->animation_slots.GetCount()) {
+        double weight = blend_weight_slider.GetPos() / 100.0; // Convert 0-100 to 0.0-1.0
+        current_entity->animation_slots[selected_slot_idx].blend_params.weight = weight;
+        
+        String weightStr = Format("%.2f", weight);
+        blend_weight_label.SetLabel("Blend Weight: " + weightStr);
+        
+        if (change_callback) {
+            change_callback();
+        }
+    }
+}
+
+void EntityPropertiesCtrl::OnTransitionTimeChanged() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx >= 0 && selected_slot_idx < current_entity->animation_slots.GetCount()) {
+        double transition_time = ~transition_time_edit;
+        current_entity->animation_slots[selected_slot_idx].blend_params.transition_time = transition_time;
+        
+        if (change_callback) {
+            change_callback();
+        }
+    }
+}
+
+void EntityPropertiesCtrl::OnApplyBlendClicked() {
+    if (!current_entity) return;
+    
+    int selected_slot_idx = animation_slots_ctrl.GetCursor();
+    if (selected_slot_idx >= 0 && selected_slot_idx < current_entity->animation_slots.GetCount()) {
+        // Update the slot with current UI values
+        double weight = blend_weight_slider.GetPos() / 100.0; // Convert 0-100 to 0.0-1.0
+        double transition_time = ~transition_time_edit;
+        
+        current_entity->animation_slots[selected_slot_idx].blend_params.weight = weight;
+        current_entity->animation_slots[selected_slot_idx].blend_params.transition_time = transition_time;
+        
+        // Update the UI elements to reflect the changes
+        String weightStr = Format("%.2f", weight);
+        blend_weight_label.SetLabel("Blend Weight: " + weightStr);
+        
+        if (change_callback) {
+            change_callback();
+        }
+        
+        // Show confirmation
+        PromptOK("Blend parameters applied to animation slot '" + 
+                 current_entity->animation_slots[selected_slot_idx].name + "'");
+    } else {
+        Exclamation("Please select an animation slot first!");
+    }
 }

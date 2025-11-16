@@ -16,6 +16,7 @@ void Jsonize(JsonIO& jio, Frame& f);
 void Jsonize(JsonIO& jio, FrameRef& fr);
 void Jsonize(JsonIO& jio, Animation& a);
 void Jsonize(JsonIO& jio, AnimationEvent& event);
+void Jsonize(JsonIO& jio, AnimationTransition& transition);
 void Jsonize(JsonIO& jio, AnimationBlendParams& params);
 void Jsonize(JsonIO& jio, NamedAnimationSlot& slot);
 void Jsonize(JsonIO& jio, Entity& e);

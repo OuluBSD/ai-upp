@@ -180,6 +180,33 @@ struct Animation : public Moveable<Animation> {
     }
 };
 
+struct AnimationTransition : public Moveable<AnimationTransition> {
+    String from_animation_id;   // ID of the starting animation
+    String to_animation_id;     // ID of the destination animation
+    double transition_time;     // Time for the transition (in seconds)
+    String condition;           // Condition for the transition (e.g., "speed > 0", "input.jump", etc.)
+    String trigger_event;       // Event that triggers the transition
+
+    AnimationTransition() : transition_time(0.2), condition("always") {}  // Default to 0.2s transition
+    AnimationTransition(const String& from_id, const String& to_id)
+        : from_animation_id(from_id), to_animation_id(to_id), transition_time(0.2), condition("always") {}
+
+    bool operator==(const AnimationTransition& other) const {
+        return from_animation_id == other.from_animation_id && to_animation_id == other.to_animation_id && 
+               transition_time == other.transition_time && condition == other.condition && 
+               trigger_event == other.trigger_event;
+    }
+    bool operator!=(const AnimationTransition& other) const { return !(*this == other); }
+
+    void Swap(AnimationTransition& other) {
+        Upp::Swap(from_animation_id, other.from_animation_id);
+        Upp::Swap(to_animation_id, other.to_animation_id);
+        Upp::Swap(transition_time, other.transition_time);
+        Upp::Swap(condition, other.condition);
+        Upp::Swap(trigger_event, other.trigger_event);
+    }
+};
+
 struct AnimationEvent : public Moveable<AnimationEvent> {
     String id;
     String name;
@@ -254,6 +281,7 @@ struct Entity : public Moveable<Entity> {
     String name;
     String type;
     Vector<NamedAnimationSlot> animation_slots;
+    Vector<AnimationTransition> animation_transitions;  // Transitions between animation states
     ValueMap properties;  // Simple key-value store for behavior parameters
 
     Entity() = default;
@@ -262,7 +290,9 @@ struct Entity : public Moveable<Entity> {
 
     bool operator==(const Entity& other) const {
         return id == other.id && name == other.name && type == other.type &&
-               animation_slots == other.animation_slots && properties == other.properties;
+               animation_slots == other.animation_slots && 
+               animation_transitions == other.animation_transitions && 
+               properties == other.properties;
     }
     bool operator!=(const Entity& other) const { return !(*this == other); }
 
@@ -271,6 +301,7 @@ struct Entity : public Moveable<Entity> {
         Upp::Swap(name, other.name);
         Upp::Swap(type, other.type);
         Upp::Swap(animation_slots, other.animation_slots);
+        Upp::Swap(animation_transitions, other.animation_transitions);
         Upp::Swap(properties, other.properties);
     }
 };

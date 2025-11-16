@@ -111,42 +111,48 @@ Based on the roadmap in `/roadmap/animedit.md`, we are currently completing the 
 
 ## 🔄 **Current Status**
 
-We have now completed **Major Version 1** of the AnimEdit system! All milestones from v0.1 through v1.3 have been implemented, creating a functional animation editor with:
+We have now completed **Major Versions 1 and 2** of the AnimEdit system! All milestones from v0.1 through v2.1 have been implemented, creating a comprehensive animation and entity editing system with:
 
-- Complete core data structures and serialization
+- Complete core data structures and serialization (Sprites, Frames, Animations)
 - Full GUI shell with workspace integration
 - Editor state management with project lifecycle
 - Canvas functionality with selection, transformation, and undo/redo
 - Parts panel with sprites library and filtering
 - Timeline panel with animation sequence editing
 - Right-side panels with functional lists for frames, sprites, collisions, and animations
+- Entity model with serialization support
+- Entity Editor GUI with complete entity management
+- Animation slot assignment with preview functionality
+- Property system for behavior parameters
+- Validation and import/export capabilities
 
 ## 📋 **Next Tasks (What to do next)**
 
-Based on the roadmap, the next major milestone is:
+Based on the roadmap, the next major milestones are:
 
-### **v2.0 — Entity Model & Serialization**
-85. Define Entity struct in AnimEditLib (ID, name, type).
-86. Add named animation slots (e.g., Idle, Run, Attack) in Entity.
-87. Add simple behavior parameters (speed, health, aggression, etc.).
-88. Add serialization for Entity and Entity collections.
-89. Add validation functions for Entity definitions.
-90. Integrate Entities into AnimationProject or a parallel project file.
+### **v2.2 — Entity Animation Integration**
+101. Implement animation playback controls within the Entity Editor.
+102. Add animation blending capabilities between different animation slots.
+103. Implement animation event system (callbacks at specific frames).
+104. Add animation transition logic between different states.
+105. Implement animation speed/offset parameters per entity.
 
-### **v2.1 — Entity Editor GUI**
-91. Implement Entity Editor window layout (entity list + properties).
-92. Bind entity list to project entities.
-93. Add entity creation, duplication, and deletion.
-94. Add animation slot assignment UI with dropdown for available animations.
-95. Add property editor for behavior parameters (numeric fields, enums).
-96. Add entity search/filter by name or tags.
-97. Implement entity preview: show assigned animations in small preview area.
-98. Implement basic entity validation feedback (warnings, errors).
-99. Add entity import/export to separate JSON files.
-100. Wire Entity Editor menu entries in main app (open from Editors menu).
+### **v2.3 — Behavior System**
+106. Add scripting support for entity behaviors (embedded script engine or external calls).
+107. Implement behavior tree or state machine editor.
+108. Add parameter animation (values that change over time during animation).
+109. Add trigger regions and response system.
+110. Implement entity parenting/grouping system.
+
+### **v2.4 — Export Pipeline**
+111. Implement entity export to game-ready formats.
+112. Add animation compression and optimization.
+113. Create build pipeline for animation projects.
+114. Implement resource dependency tracking.
+115. Add version compatibility checking.
 
 ---
 
 ## 🎯 **Goal**
 
-The next phase is to implement the Entity system, which will allow users to create game entities that reference animations and have behavior parameters. This will form the bridge between simple animation sequences and game-ready entity definitions.
+The next phase is to implement the Entity Animation Integration system, allowing entities to have sophisticated animation playback and transition capabilities. This will make the system ready for production use in games and interactive applications.

@@ -16,7 +16,7 @@ public:
 
     // Setters
     void SetProject(const AnimationProject* project) { this->project = project; }
-    void SetFrame(const AnimationFrame* frame) { this->frame = frame; }
+    void SetFrame(AnimationFrame* frame) { this->frame = frame; }
     void SetGridSpacing(double spacing);
     void SetShowGrid(bool show) { show_grid = show; }
     void SetShowCrosshair(bool show) { show_crosshair = show; }
@@ -64,7 +64,7 @@ protected:
 private:
     // Project data
     const AnimationProject* project;
-    const AnimationFrame* frame;  // This is the Frame from AnimCore.h (anim frame, not Ctrl Frame)
+    AnimationFrame* frame;  // This is the Frame from AnimCore.h (anim frame, not Ctrl Frame)
     
     // Grid settings
     double grid_spacing;

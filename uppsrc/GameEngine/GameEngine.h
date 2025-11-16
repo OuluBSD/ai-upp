@@ -36,6 +36,7 @@ NAMESPACE_UPP
 #include "UISystem.h"
 #include "VFS.h"
 #include "AnimationSystem.h"
+#include "EcsIntegration.h"
 
 END_UPP_NAMESPACE
 

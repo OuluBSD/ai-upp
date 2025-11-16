@@ -4,6 +4,11 @@
 NAMESPACE_UPP
 
 Game::Game() {
+	// Initialize ECS integration
+	ecs_integration_ = std::make_shared<GameEcsIntegration>();
+	ecs_integration_->Initialize();
+	SetEcsIntegration(ecs_integration_);
+
 	// Set up the main window callbacks
 	main_window.SetRenderCallback([this](Draw& w) {
 		Render(w);
@@ -26,19 +31,38 @@ Game::~Game() {
 
 void Game::Initialize() {
 	// Initialize game systems here
+	if (ecs_integration_) {
+		ecs_integration_->Initialize();
+	}
 }
 
 void Game::LoadContent() {
 	// Load game assets here
+	// You could also create initial game entities here
+	if (ecs_integration_) {
+		// Example: Create a player entity
+		auto player = ecs_integration_->CreateGameObject("Player", Point3(0, 0, 0));
+		if (player) {
+			if (auto transform = player->Find<TransformComponent>()) {
+				transform->SetPosition(Point3(0, 0, 0));
+			}
+		}
+	}
 }
 
 void Game::UnloadContent() {
 	// Unload game assets here
+	ecs_integration_.reset();
 }
 
 void Game::Update(double deltaTime) {
 	// Update game logic here
 	// This is called from the game thread with the delta time
+	
+	// Update ECS systems
+	if (ecs_integration_) {
+		ecs_integration_->Update(deltaTime);
+	}
 }
 
 void Game::Render(Draw& draw) {

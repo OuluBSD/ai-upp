@@ -160,7 +160,7 @@ void AnimEditorWindow::UpdateSpriteList() {
     }
 }
 
-void AnimEditorWindow::SetActiveFrame(const Frame* frame) {
+void AnimEditorWindow::SetActiveFrame(const AnimationFrame* frame) {
     sprite_list_ctrl.SetFrame(frame);
     sprite_instance_list_ctrl.SetFrame(frame);
     collision_list_ctrl.SetFrame(frame);
@@ -184,19 +184,20 @@ void AnimEditorWindow::CreateNewSprite() {
     Button ok_btn, cancel_btn, browse_btn;
     
     // Set up category options
+    category_option.Add("All Categories");
     category_option.Add("character");
     category_option.Add("environment");
     category_option.Add("effect");
     category_option.Add("other");
-    category_option <<= 0; // Default to character
+    category_option <<= 0; // Default to "All Categories"
     
     // Set up numeric fields
-    region_x.SetRange(0, 10000).Set(0);
-    region_y.SetRange(0, 10000).Set(0);
-    region_cx.SetRange(1, 10000).Set(32);
-    region_cy.SetRange(1, 10000).Set(32);
-    pivot_x.SetRange(-1000, 1000).Set(0);
-    pivot_y.SetRange(-1000, 1000).Set(0);
+    region_x.MinMax(0, 10000).Set(0);
+    region_y.MinMax(0, 10000).Set(0);
+    region_cx.MinMax(1, 10000).Set(32);
+    region_cy.MinMax(1, 10000).Set(32);
+    pivot_x.MinMax(-1000, 1000).Set(0);
+    pivot_y.MinMax(-1000, 1000).Set(0);
     
     // Add controls with positioning
     dlg.Add(id_field.HSizePos(80, 50).TopPos(8, 20));

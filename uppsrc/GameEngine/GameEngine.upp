@@ -25,3 +25,4 @@ file
 	UISystem.cpp,
 	VFS.cpp,
 	AnimationSystem.cpp,
+	EcsIntegration.cpp,

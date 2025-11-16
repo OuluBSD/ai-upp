@@ -91,6 +91,10 @@ public:
         id_ = id;
     }
 
+    void set_min_level(Level level) {
+        min_level_ = level;
+    }
+
 private:
     std::string tag_;
     std::string id_;

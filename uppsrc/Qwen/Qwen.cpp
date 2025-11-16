@@ -24,6 +24,7 @@ void InitializeMountSystem() {
     // This makes the system filesystem available at the root path
 }
 
+
 CONSOLE_APP_MAIN {
     // Initialize the mount system before any VFS operations
     InitializeMountSystem();

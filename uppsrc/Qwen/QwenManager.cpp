@@ -45,11 +45,9 @@ bool QwenManager::start_tcp_server() {
         stop_tcp_server();
     }
     
-    // Get qwen-code path from config or environment
-    std::string qwen_code_path = config_.qwen_code_path; // assuming this field exists or similar approach
-    if (qwen_code_path.empty()) {
-        qwen_code_path = "/common/active/sblo/Dev/VfsBoot/qwen-code";  // default path
-    }
+    // Pass empty string to use QwenTCPServer's default (script/qwen-code wrapper)
+    std::string qwen_code_path = config_.qwen_code_path;
+    // Don't provide fallback path - let QwenTCPServer use its default wrapper script
     
     tcp_server_ = std::make_unique<QwenTCPServer>(qwen_code_path);
     bool success = tcp_server_->start(config_.tcp_port, config_.tcp_host);

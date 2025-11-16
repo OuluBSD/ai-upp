@@ -146,14 +146,9 @@ void AnimEditorWindow::UpdateZoomLabel() {
     zoom_label.SetLabel(IntStr(zoomPercent) + "%");
 }
 
-void AnimEditorWindow::UpdateZoomLabel() {
-    int zoomPercent = (int)(canvas_ctrl.GetZoom() * 100);
-    zoom_label.SetLabel(IntStr(zoomPercent) + "%");
-}
-
 void AnimEditorWindow::UpdateUndoRedoButtons() {
-    undo_btn.SetEnabled(canvas_ctrl.CanUndo());
-    redo_btn.SetEnabled(canvas_ctrl.CanRedo());
+    undo_btn.Enable(canvas_ctrl.CanUndo());
+    redo_btn.Enable(canvas_ctrl.CanRedo());
 }
 
 void AnimEditorWindow::UpdateSpriteList() {
@@ -178,13 +173,13 @@ void AnimEditorWindow::SetSelectedAnimation(const Animation* anim) {
 
 void AnimEditorWindow::CreateNewSprite() {
     // Create dialog content using simple layout
-    CtrlLayout<ParentCtrl> dlg;
+    CtrlLayout dlg;
     dlg.Ctrl::SizeHint([this]() { return Size(400, 360); });
     
     // Create input fields
     EditField id_field, name_field, texture_path_field, tags_field, description_field;
-    SpinEdit region_x, region_y, region_cx, region_cy;
-    SpinEdit pivot_x, pivot_y;
+    EditInt region_x, region_y, region_cx, region_cy;
+    EditInt pivot_x, pivot_y;
     Option category_option;
     Button ok_btn, cancel_btn, browse_btn;
     
@@ -544,7 +539,7 @@ timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
         }
 
         // Create a combo box to select a sprite
-        CtrlLayout<ParentCtrl> dlg;
+        CtrlLayout dlg;
         dlg.Ctrl::SizeHint([this]() { return Size(300, 80); });
 
         ArrayCtrl array_ctrl;
@@ -823,7 +818,7 @@ void AnimEditorWindow::AddExistingFrame() {
     }
     
     // Create a simple dialog to select an existing frame
-    CtrlLayout<ParentCtrl> dlg;
+    CtrlLayout dlg;
     dlg.Ctrl::SizeHint([this]() { return Size(300, 400); });
     
     ArrayCtrl array_ctrl;

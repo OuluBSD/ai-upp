@@ -25,7 +25,7 @@ void Jsonize(JsonIO& jio, CollisionRect& cr) {
     jio("id", cr.id)("rect", cr.rect);
 }
 
-void Jsonize(JsonIO& jio, Frame& f) {
+void Jsonize(JsonIO& jio, AnimationFrame& f) {
     jio("id", f.id)("name", f.name)("sprites", f.sprites)
        ("collisions", f.collisions)("default_duration", f.default_duration);
 }

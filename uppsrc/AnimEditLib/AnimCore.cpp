@@ -20,7 +20,7 @@ Sprite* AnimationProject::FindSprite(const String& id) {
     return nullptr;
 }
 
-const Frame* AnimationProject::FindFrame(const String& id) const {
+const AnimationFrame* AnimationProject::FindFrame(const String& id) const {
     for (const auto& frame : frames) {
         if (frame.id == id) {
             return &frame;
@@ -29,7 +29,7 @@ const Frame* AnimationProject::FindFrame(const String& id) const {
     return nullptr;
 }
 
-Frame* AnimationProject::FindFrame(const String& id) {
+AnimationFrame* AnimationProject::FindFrame(const String& id) {
     for (auto& frame : frames) {
         if (frame.id == id) {
             return &frame;

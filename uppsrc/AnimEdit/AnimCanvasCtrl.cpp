@@ -290,7 +290,7 @@ void AnimCanvasCtrl::MouseMove(Point pos, dword flags) {
         frame->sprites[selected_instance].position = new_pos;
         
         Refresh();
-    } else if (flags & MK_MBUTTON || (flags & MK_LBUTTON && (flags & K_ALT))) {  // Pan with middle mouse or Alt+left
+    } else if (flags & M_MIDDLE || (flags & M_LEFT && (flags & K_ALT))) {  // Pan with middle mouse or Alt+left
         if (is_panning) {
             Vec2 current_world = ScreenToWorld(pos);
             Vec2 start_world = ScreenToWorld(pan_start);
@@ -392,7 +392,7 @@ void AnimCanvasCtrl::LeftUp(Point pos, dword flags) {
     Ctrl::LeftUp(pos, flags);
 }
 
-bool AnimCanvasCtrl::RightDown(Point pos, dword flags) {
+void AnimCanvasCtrl::RightDown(Point pos, dword flags) {
     // For now, just select the right-clicked sprite instance, similar to left-click
     if (frame) {
         // Convert click position to world coordinates

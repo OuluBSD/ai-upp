@@ -67,6 +67,12 @@ private:
     Button remove_transition_btn;
     Button edit_transition_btn;
     
+    // Entity animation parameters controls
+    SpinEdit speed_multiplier_field;
+    SpinEdit time_offset_field;
+    CheckBox looping_check;
+    Button apply_anim_params_btn;
+    
     // Validation feedback
     StaticRect validation_status;  // Shows validation status
     

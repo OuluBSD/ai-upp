@@ -276,12 +276,34 @@ struct NamedAnimationSlot : public Moveable<NamedAnimationSlot> {
     }
 };
 
+struct EntityAnimationParams : public Moveable<EntityAnimationParams> {
+    double speed_multiplier = 1.0;  // Multiplier for animation playback speed (1.0 = normal speed)
+    double time_offset = 0.0;       // Time offset in seconds to start animation from a different point
+    bool is_looping = true;         // Whether animations should loop by default for this entity
+
+    EntityAnimationParams() = default;
+    
+    bool operator==(const EntityAnimationParams& other) const {
+        return speed_multiplier == other.speed_multiplier && 
+               time_offset == other.time_offset && 
+               is_looping == other.is_looping;
+    }
+    bool operator!=(const EntityAnimationParams& other) const { return !(*this == other); }
+
+    void Swap(EntityAnimationParams& other) {
+        Upp::Swap(speed_multiplier, other.speed_multiplier);
+        Upp::Swap(time_offset, other.time_offset);
+        Upp::Swap(is_looping, other.is_looping);
+    }
+};
+
 struct Entity : public Moveable<Entity> {
     String id;
     String name;
     String type;
     Vector<NamedAnimationSlot> animation_slots;
     Vector<AnimationTransition> animation_transitions;  // Transitions between animation states
+    EntityAnimationParams anim_params;                  // Animation parameters specific to this entity
     ValueMap properties;  // Simple key-value store for behavior parameters
 
     Entity() = default;
@@ -292,6 +314,7 @@ struct Entity : public Moveable<Entity> {
         return id == other.id && name == other.name && type == other.type &&
                animation_slots == other.animation_slots && 
                animation_transitions == other.animation_transitions && 
+               anim_params == other.anim_params &&
                properties == other.properties;
     }
     bool operator!=(const Entity& other) const { return !(*this == other); }
@@ -302,6 +325,7 @@ struct Entity : public Moveable<Entity> {
         Upp::Swap(type, other.type);
         Upp::Swap(animation_slots, other.animation_slots);
         Upp::Swap(animation_transitions, other.animation_transitions);
+        Upp::Swap(anim_params, other.anim_params);
         Upp::Swap(properties, other.properties);
     }
 };

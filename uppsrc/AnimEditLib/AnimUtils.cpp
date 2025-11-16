@@ -315,6 +315,22 @@ bool ValidateAnimationTransition(const AnimationTransition& transition, String& 
     return true;
 }
 
+bool ValidateEntityAnimationParams(const EntityAnimationParams& params, String& errorOut) {
+    if (params.speed_multiplier <= 0.0) {
+        errorOut = "Invalid animation speed multiplier (must be > 0.0): " + DoubleStr(params.speed_multiplier);
+        return false;
+    }
+    
+    if (params.time_offset < 0.0) {
+        errorOut = "Invalid animation time offset (must be >= 0.0): " + DoubleStr(params.time_offset);
+        return false;
+    }
+    
+    // speed_multiplier and time_offset are valid, is_looping is always valid as a boolean
+    
+    return true;
+}
+
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut) {
     if (params.weight < 0.0 || params.weight > 1.0) {
         errorOut = "Invalid blend weight (must be between 0.0 and 1.0): " + DoubleStr(params.weight);
@@ -344,6 +360,12 @@ bool ValidateEntity(const AnimationProject& p, const Entity& e, String& errorOut
     }
 
     if (!ValidateEntityLinks(p, e, errorOut)) {
+        return false;
+    }
+    
+    // Validate entity animation parameters
+    if (!ValidateEntityAnimationParams(e.anim_params, errorOut)) {
+        errorOut = "Entity '" + e.id + "' has invalid animation parameters: " + errorOut;
         return false;
     }
 

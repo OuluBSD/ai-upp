@@ -4,7 +4,7 @@ void AnimCanvasCtrl::PushUndoState() {
     if (!frame) return;
     
     // Create a copy of the current frame
-    Frame frame_copy = *frame;
+    AnimationFrame frame_copy = *frame;
     
     // Clear any redo history beyond current position
     while (undo_stack.GetCount() > undo_index + 1) {
@@ -290,7 +290,7 @@ void AnimCanvasCtrl::MouseMove(Point pos, dword flags) {
         frame->sprites[selected_instance].position = new_pos;
         
         Refresh();
-    } else if (flags & M_MIDDLE || (flags & M_LEFT && (flags & K_ALT))) {  // Pan with middle mouse or Alt+left
+    } else if (flags & MMBUTTON || (flags & LBUTTON && (flags & K_ALT))) {  // Pan with middle mouse or Alt+left
         if (is_panning) {
             Vec2 current_world = ScreenToWorld(pos);
             Vec2 start_world = ScreenToWorld(pan_start);
@@ -432,7 +432,7 @@ bool AnimCanvasCtrl::Drop(Point pos, PasteClip& d) {
     
     // Accept text drops (which contain sprite IDs from the sprite list)
     String text_data;
-    if (d.GetText(text_data) && !text_data.IsEmpty()) {
+    if (AcceptText(d) && !(text_data = GetString(d)).IsEmpty()) {
         // Find the sprite by ID in the project
         const Sprite* sprite = project->FindSprite(text_data);
         if (sprite) {

@@ -43,10 +43,21 @@ public:
 		return input_system_; 
 	}
 
+	// ECS integration
+	void SetEcsIntegration(std::shared_ptr<GameEcsIntegration> ecs_integration) { 
+		ecs_integration_ = ecs_integration; 
+	}
+	std::shared_ptr<GameEcsIntegration> GetEcsIntegration() const { 
+		return ecs_integration_; 
+	}
+
 protected:
 	GameWindow main_window;
 	bool running = false;
 	double delta_time = 0.0;
+
+	// ECS integration
+	std::shared_ptr<GameEcsIntegration> ecs_integration_;
 	
 private:
 	void GameLoop();

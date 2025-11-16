@@ -54,9 +54,9 @@ For detailed API documentation and usage examples, see GameEngine.md.
 - [x] UI/HUD rendering capabilities
 - [x] Cross-platform VFS
 - [x] Animation system
-- [ ] ECS integration (pending Eon fixes)
+- [x] ECS integration (now implemented)
 - [ ] Advanced rendering features
 - [ ] Networking support
 - [ ] Scripting integration
 
-The GameEngine is designed to work with the Eon ECS system when available, following data-oriented design principles for optimal performance.
+The GameEngine now includes ECS integration, following data-oriented design principles for optimal performance. You can use the GameEcsIntegration class to work with entities and components in your games.

@@ -18,6 +18,16 @@ namespace {
 static constexpr int kVfsFragmentVersion = 1;
 static constexpr int kVfsOverlayIndexVersion = 1;
 
+static constexpr dword MakeMagic(char a, char b, char c, char d) {
+	return (dword)(byte(a)) |
+	       ((dword)(byte(b)) << 8) |
+	       ((dword)(byte(c)) << 16) |
+	       ((dword)(byte(d)) << 24);
+}
+
+static constexpr dword kFragmentBinaryMagic = MakeMagic('V', 'F', 'S', 'F');
+static constexpr dword kOverlayBinaryMagic = MakeMagic('V', 'F', 'O', 'I');
+
 struct FragmentDocument : Moveable<FragmentDocument> {
 	int      version = kVfsFragmentVersion;
 	hash_t   pkg_hash = 0;
@@ -95,6 +105,59 @@ static void AssignIndexFromDocument(const OverlayIndexDocument& doc, VfsOverlayI
 	}
 }
 
+static bool StoreBinaryEnvelope(const String& path, dword magic, int version, const String& payload) {
+	try {
+		if (!RealizePath(GetFileFolder(path)))
+			return false;
+		FileOut out(path);
+		if (!out.IsOpen())
+			return false;
+		out.Put32le(magic);
+		out.Put16le((uint16)version);
+		out.Put16le(0);
+		out.Put32le(payload.GetCount());
+		out.Put(~payload, payload.GetCount());
+		out.Close();
+		return out.IsOK();
+	}
+	catch (const Exc& e) {
+		RLOG("StoreBinaryEnvelope: failed to save '" << path << "': " << e);
+	}
+	catch (...) {
+		RLOG("StoreBinaryEnvelope: unknown error while saving '" << path << "'");
+	}
+	return false;
+}
+
+static bool LoadBinaryEnvelope(const String& path, dword expected_magic, int expected_version, String& out_payload) {
+	FileIn in(path);
+	if (!in.IsOpen())
+		return false;
+	dword magic = in.Get32le();
+	if (magic != expected_magic) {
+		RLOG("LoadBinaryEnvelope: unexpected magic in '" << path << "'");
+		return false;
+	}
+	int version = in.Get16le();
+	in.Get16le(); // reserved
+	dword payload_size = in.Get32le();
+	if (payload_size > 0x2000000) { // 32 MiB guard
+		RLOG("LoadBinaryEnvelope: payload too large (" << payload_size << ") in '" << path << "'");
+		return false;
+	}
+	String payload = in.Get((int)payload_size);
+	if (payload.GetLength() != (int)payload_size || !in.IsOK()) {
+		RLOG("LoadBinaryEnvelope: failed to read payload from '" << path << "'");
+		return false;
+	}
+	if (version != 0 && version != expected_version) {
+		RLOG("LoadBinaryEnvelope: unsupported version " << version << " for '" << path << "'");
+		return false;
+	}
+	out_payload = pick(payload);
+	return true;
+}
+
 } // namespace
 
 bool VfsSaveFragment(const String& path, const VfsValue& fragment) {
@@ -143,6 +206,29 @@ bool VfsLoadFragment(const String& path, VfsValue& out_fragment) {
 	return false;
 }
 
+bool VfsSaveFragmentBinary(const String& path, const VfsValue& fragment) {
+	FragmentDocument doc;
+	FillDocumentFromFragment(fragment, doc);
+	String payload = StoreAsJson(doc, false);
+	return StoreBinaryEnvelope(path, kFragmentBinaryMagic, kVfsFragmentVersion, payload);
+}
+
+bool VfsLoadFragmentBinary(const String& path, VfsValue& out_fragment) {
+	String payload;
+	if (!LoadBinaryEnvelope(path, kFragmentBinaryMagic, kVfsFragmentVersion, payload))
+		return false;
+	FragmentDocument doc;
+	if (!LoadFromJson(doc, ~payload))
+		return false;
+	if (!doc.pkg_hash)
+		doc.pkg_hash = doc.root.pkg_hash;
+	if (!doc.file_hash)
+		doc.file_hash = doc.root.file_hash;
+	out_fragment.Assign(nullptr, doc.root);
+	PropagateFragmentHashes(out_fragment, doc.pkg_hash, doc.file_hash);
+	return true;
+}
+
 bool VfsLoadLegacy(const String& path, VfsValue& out_fragment) {
 	// Placeholder: once the legacy binary/JSON reader migrates we can attempt it here.
 	(void)path;
@@ -189,6 +275,24 @@ bool VfsLoadOverlayIndex(const String& path, VfsOverlayIndex& out_index) {
 		RLOG("VfsLoadOverlayIndex: unknown error while loading '" << path << "'");
 	}
 	return false;
+}
+
+bool VfsSaveOverlayIndexBinary(const String& path, const VfsOverlayIndex& index) {
+	OverlayIndexDocument doc;
+	FillDocumentFromIndex(index, doc);
+	String payload = StoreAsJson(doc, false);
+	return StoreBinaryEnvelope(path, kOverlayBinaryMagic, kVfsOverlayIndexVersion, payload);
+}
+
+bool VfsLoadOverlayIndexBinary(const String& path, VfsOverlayIndex& out_index) {
+	String payload;
+	if (!LoadBinaryEnvelope(path, kOverlayBinaryMagic, kVfsOverlayIndexVersion, payload))
+		return false;
+	OverlayIndexDocument doc;
+	if (!LoadFromJson(doc, ~payload))
+		return false;
+	AssignIndexFromDocument(doc, out_index);
+	return true;
 }
 
 END_UPP_NAMESPACE

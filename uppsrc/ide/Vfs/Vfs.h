@@ -4,6 +4,7 @@
 #include <ide/clang/clang.h>
 #include <MetaCtrl/MetaCtrl.h>
 #include <Vfs/Runtime/Runtime.h>
+#include <Vfs/Storage/VfsStorage.h>
 
 struct VfsDlg;
 

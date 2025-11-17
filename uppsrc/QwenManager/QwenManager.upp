@@ -4,6 +4,7 @@ uses
 
 file
 	AGENTS.md,
+	QwenManager.lay,
 	QwenManager.h,
 	QwenManager.cpp,
 	App.h,

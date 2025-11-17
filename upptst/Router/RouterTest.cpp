@@ -8,8 +8,9 @@ using namespace Upp;
 
 static void TestRouterPortMetadata() {
 	RouterNetContext net("tester.generator");
+	auto& sink_atom = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	RouterPortDesc& sink_desc = net.AddPort(sink_atom.id, RouterPortDesc::Direction::Sink, "audio.in");
 	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
-	RouterPortDesc& sink_desc = net.AddPort(generator.id, RouterPortDesc::Direction::Sink, "audio.in");
 	RouterPortDesc& src_desc = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out");
 	ASSERT(sink_desc.vd.GetCount() == 1);
 	ASSERT(src_desc.vd.GetCount() == 1);

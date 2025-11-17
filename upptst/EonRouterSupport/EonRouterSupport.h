@@ -12,7 +12,7 @@ struct RouterAtomSpec : Moveable<RouterAtomSpec> {
 	String id;
 	String action;
 	ArrayMap<String, Value> args;
-	Vector<RouterPortDesc> ports;
+	Array<RouterPortDesc> ports;
 	int next_sink_index = 0;
 	int next_source_index = 0;
 	mutable AtomTypeCls atom_type;
@@ -235,7 +235,7 @@ private:
 	}
 
 	String loop_path;
-	Vector<RouterAtomSpec> atoms;
+	Array<RouterAtomSpec> atoms;
 	Index<String> atom_index;
 	Vector<RouterConnectionDesc> connections;
 

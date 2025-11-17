@@ -34,8 +34,13 @@ QwenManager::QwenManager() {
 	projects.WhenCursor = THISBACK(OnProject);
 	projects.WhenBar = [=](Bar& menu) { OnProjectBar(menu); };
 
+	// View 1
 	server_vsplit.Vert(server_list, server_bottom);
+	
+	// View 2
 	prj_vsplit.Vert(prj_list, prj_bottom);
+	
+	
 	
 	SetView(VIEW_QWEN_PROJECT);
 	statusbar.Set("Ready");

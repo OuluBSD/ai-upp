@@ -149,11 +149,11 @@ class std::vector {
 - [x] Create Draw painting mappings (Painting, etc.)
 
 ### Phase 3: CtrlCore Package Analysis
-- [ ] Visit all CtrlCore package files to document U++ declarations
-- [ ] Compare CtrlCore package declarations with stdsrc implementations
-- [ ] Create CtrlCore base class mappings (Ctrl, Draw, etc.)
-- [ ] Create CtrlCore window mappings (TopWindow, etc.)
-- [ ] Create CtrlCore event handling mappings
+- [x] Visit all CtrlCore package files to document U++ declarations
+- [x] Compare CtrlCore package declarations with stdsrc implementations
+- [x] Create CtrlCore base class mappings (Ctrl, Draw, etc.)
+- [x] Create CtrlCore window mappings (TopWindow, etc.)
+- [x] Create CtrlCore event handling mappings
 
 ### Phase 4: CtrlLib Package Analysis
 - [ ] Visit all CtrlLib package files to document U++ declarations

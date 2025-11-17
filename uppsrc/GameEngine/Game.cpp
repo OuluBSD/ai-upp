@@ -4,6 +4,9 @@
 NAMESPACE_UPP
 
 Game::Game() {
+	// Initialize Eon system first
+	InitializeEonSystem();
+
 	// Initialize ECS integration
 	ecs_integration_ = std::make_shared<GameEcsIntegration>();
 	ecs_integration_->Initialize();
@@ -29,10 +32,54 @@ Game::~Game() {
 	UnloadContent();
 }
 
+void Game::InitializeEonSystem() {
+	// Setup Eon system for game engine
+	// Register any required Eon components
+}
+
 void Game::Initialize() {
 	// Initialize game systems here
 	if (ecs_integration_) {
 		ecs_integration_->Initialize();
+	}
+	
+	// Initialize Eon-based game systems using proper Eon patterns
+	auto sys = eon_engine.GetAdd<Eon::ScriptLoader>();
+	sys->SetEagerChainBuild(true);
+
+	// Example: Create a game loop using Eon patterns
+	// This creates a basic loop structure following Eon conventions
+	try {
+		Eon::Builder& builder = sys->val.GetAdd<Eon::Builder>("builder");
+		
+		// Create the main game loop
+		auto& game_loop = builder.AddLoop("game.main");
+		
+		// Add game components as atoms in the loop
+		auto& state_manager = game_loop.AddAtom("game.state.manager");
+		auto& transform_sys = game_loop.AddAtom("game.system.transform.update");
+		auto& physics_sys = game_loop.AddAtom("game.system.physics.update");
+		auto& render_sys = game_loop.AddAtom("game.system.render.update");
+		auto& audio_sys = game_loop.AddAtom("game.system.audio.update");
+		auto& event_sys = game_loop.AddAtom("game.system.event.process");
+		
+		// Compile and load the AST
+		Eon::AstNode* root = builder.CompileAst();
+		if (root) {
+			sys->LoadAst(root);
+			
+			// Initialize the system
+			if (!sys->PostInitializeAll()) {
+				LOG("Eon Game System PostInitialize failed");
+			}
+			
+			if (!sys->StartAll()) {
+				LOG("Eon Game System Start failed");
+			}
+		}
+	}
+	catch (Exc& e) {
+		LOG("Error initializing Eon game systems: " << e);
 	}
 }
 
@@ -91,6 +138,18 @@ void Game::Run() {
 
 	// Clean up
 	UnloadContent();
+}
+
+void Game::Exit() {
+	// Properly stop Eon systems before exiting
+	auto sys = eon_engine.GetAdd<Eon::ScriptLoader>();
+	if (sys) {
+		sys->StopAll();
+		sys->UndoAll();
+	}
+	
+	running = false;
+	main_window.Break(); // Close the window
 }
 
 void Game::Exit() {

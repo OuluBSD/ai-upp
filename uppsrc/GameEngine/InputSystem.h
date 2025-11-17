@@ -54,12 +54,12 @@ struct GamepadState {
 struct InputState {
 	// Keyboard state
 	bool keys[256] = {false};   // Key states (simplified key mapping)
-	
+
 	// Mouse state
 	Point mouse_pos;            // Current mouse position
 	bool mouse_buttons[3] = {false};  // Left, right, middle
 	int mouse_wheel = 0;        // Mouse wheel delta
-	
+
 	// Gamepad states (support up to 4 gamepads)
 	GamepadState gamepads[4];
 
@@ -68,7 +68,7 @@ struct InputState {
 		mouse_pos = Point(0, 0);
 		for (int i = 0; i < 3; i++) mouse_buttons[i] = false;
 		mouse_wheel = 0;
-		
+
 		for (int i = 0; i < 4; i++) {
 			gamepads[i].Clear();
 		}
@@ -80,58 +80,58 @@ class InputSystem {
 public:
 	InputSystem();
 	virtual ~InputSystem();
-	
+
 	// Initialize the input system with HAL events
 	bool Initialize(AtomBase& hal_context, AtomBase& hal_events);
 	void Uninitialize();
-	
+
 	// Update input state from HAL events
 	void Update(double dt);
-	
+
 	// Process a single event from HAL
 	void ProcessEvent(const GeomEvent& event);
-	
+
 	// Get current input state
 	const InputState& GetState() const { return current_state; }
-	
+
 	// Check keyboard state
 	bool IsKeyDown(dword key) const;
 	bool IsKeyPressed(dword key) const; // Key pressed this frame
 	bool IsKeyReleased(dword key) const; // Key released this frame
-	
+
 	// Check mouse state
 	bool IsMouseButtonDown(int button) const; // 0=left, 1=right, 2=middle
 	bool IsMouseButtonPressed(int button) const; // Button pressed this frame
 	bool IsMouseButtonReleased(int button) const; // Button released this frame
 	Point GetMousePosition() const { return current_state.mouse_pos; }
 	int GetMouseWheel() const { return current_state.mouse_wheel; }
-	
+
 	// Check gamepad state
 	bool IsGamepadButtonDown(int gamepad_index, GamepadButton button) const;
 	bool IsGamepadButtonPressed(int gamepad_index, GamepadButton button) const;
 	bool IsGamepadAxisMoved(int gamepad_index, GamepadAxis axis, double threshold = 0.1) const;
 	double GetGamepadAxisValue(int gamepad_index, GamepadAxis axis) const;
 	bool IsGamepadConnected(int gamepad_index) const;
-	
+
 	// Get previous frame input state (for checking pressed/released states)
 	const InputState& GetPreviousState() const { return previous_state; }
-	
+
 	// Direct access to HAL components
 	void SetEventsBase(AtomBase* hal_events);
 	AtomBase* GetEventsBase() const { return events_base; }
-	
+
 private:
 	// Current and previous input states for detecting pressed/released states
 	InputState current_state;
 	InputState previous_state;
-	
+
 	// HAL components
 	AtomBase* context_base = nullptr;
 	AtomBase* events_base = nullptr;
-	
+
 	// Internal state tracking
 	Vector<GeomEvent> pending_events;
-	
+
 	// Process different types of events
 	void ProcessKeyDownEvent(const GeomEvent& event);
 	void ProcessKeyUpEvent(const GeomEvent& event);
@@ -140,6 +140,9 @@ private:
 	void ProcessMouseUpEvent(const GeomEvent& event);
 	void ProcessMouseWheelEvent(const GeomEvent& event);
 	void ProcessWindowEvent(const GeomEvent& event);
+	
+	// Gamepad handling
+	void UpdateGamepads();
 };
 
 END_UPP_NAMESPACE

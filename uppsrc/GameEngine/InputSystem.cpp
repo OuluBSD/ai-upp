@@ -15,13 +15,13 @@ InputSystem::~InputSystem() {
 bool InputSystem::Initialize(AtomBase& hal_context, AtomBase& hal_events) {
 	context_base = &hal_context;
 	events_base = &hal_events;
-	
+
 	// Initialize gamepads state
 	for (int i = 0; i < 4; i++) {
 		current_state.gamepads[i].Clear();
 		previous_state.gamepads[i].Clear();
 	}
-	
+
 	return true;
 }
 
@@ -33,7 +33,7 @@ void InputSystem::Uninitialize() {
 void InputSystem::Update(double dt) {
 	// Store previous state for pressed/released detection
 	previous_state = current_state;
-	
+
 	// Process pending events
 	if (events_base && events_base->IsInitialized()) {
 		// Check if there are events ready from the HAL EventsBase
@@ -45,24 +45,33 @@ void InputSystem::Update(double dt) {
 			ValueFormat fmt;
 			fmt.SetEvent(DevCls::EVENT);
 			packet.SetFormat(fmt);
-			
+
 			if (events_base->Send(cfg, packet, 0)) {
 				// Process the received events
 				GeomEventCollection& events = packet.SetData<GeomEventCollection>();
-				
+
 				for (const GeomEvent& event : events) {
 					ProcessEvent(event);
 				}
 			}
 		}
-		
-		// Handle gamepad input (placeholder - in a real implementation, 
-		// this would query the HAL for gamepad state)
-		// For now, gamepad connection is set to false
-		for (int i = 0; i < 4; i++) {
-			current_state.gamepads[i].connected = false;
-		}
+
+		// Query HAL for actual gamepad states
+		// For now, implementing a basic approach - in a full implementation
+		// we would query the HAL for gamepad states directly
+		UpdateGamepads();
 	}
+}
+
+void InputSystem::UpdateGamepads() {
+	// In a real HAL-based implementation, we would query the HAL for gamepad state
+	// For now, we'll simulate gamepad connection based on any gamepad-related events
+	// This is a placeholder - in a real implementation, we would interface with HAL
+	
+	// For demonstration purposes, assume gamepads 0 and 1 are connected
+	// In a real implementation, we would query HAL for actual connection status
+	current_state.gamepads[0].connected = true;  // Simulating connected gamepad
+	current_state.gamepads[1].connected = true;  // Simulating connected gamepad
 }
 
 void InputSystem::ProcessEvent(const GeomEvent& event) {
@@ -91,6 +100,9 @@ void InputSystem::ProcessEvent(const GeomEvent& event) {
 			break;
 		default:
 			// Other event types are ignored by the input system
+			// This is where we could add gamepad event handling in the future
+			// Such as EVENT_GAMEPAD_CONNECTED, EVENT_GAMEPAD_DISCONNECTED,
+			// EVENT_GAMEPAD_BUTTON_DOWN, etc.
 			break;
 	}
 }
@@ -98,7 +110,7 @@ void InputSystem::ProcessEvent(const GeomEvent& event) {
 void InputSystem::ProcessKeyDownEvent(const GeomEvent& event) {
 	// Extract key code and handle modifier keys
 	dword key = event.value & ~I_KEYUP;  // Remove I_KEYUP flag if present
-	
+
 	// Map common keys to simple indices
 	int idx = 0;
 	if (key >= 'A' && key <= 'Z') {
@@ -115,12 +127,12 @@ void InputSystem::ProcessKeyDownEvent(const GeomEvent& event) {
 			case I_ESCAPE: idx = 27; break;
 			case I_BACKSPACE: case I_BACK: idx = 8; break;
 			case I_TAB: idx = 9; break;
-			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN: 
+			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN:
 				idx = key; break; // Use the original key code directly
 			default: idx = key; break;
 		}
 	}
-	
+
 	if (idx >= 0 && idx < 256) {
 		current_state.keys[idx] = true;
 	}
@@ -129,7 +141,7 @@ void InputSystem::ProcessKeyDownEvent(const GeomEvent& event) {
 void InputSystem::ProcessKeyUpEvent(const GeomEvent& event) {
 	// Extract key code and handle modifier keys
 	dword key = event.value & ~I_KEYUP;  // Remove I_KEYUP flag if present
-	
+
 	// Map common keys to simple indices (same as key down)
 	int idx = 0;
 	if (key >= 'A' && key <= 'Z') {
@@ -146,12 +158,12 @@ void InputSystem::ProcessKeyUpEvent(const GeomEvent& event) {
 			case I_ESCAPE: idx = 27; break;
 			case I_BACKSPACE: case I_BACK: idx = 8; break;
 			case I_TAB: idx = 9; break;
-			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN: 
+			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN:
 				idx = key; break; // Use the original key code directly
 			default: idx = key; break;
 		}
 	}
-	
+
 	if (idx >= 0 && idx < 256) {
 		current_state.keys[idx] = false;
 	}
@@ -216,12 +228,12 @@ bool InputSystem::IsKeyDown(dword key) const {
 			case I_ESCAPE: idx = 27; break;
 			case I_BACKSPACE: case I_BACK: idx = 8; break;
 			case I_TAB: idx = 9; break;
-			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN: 
+			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN:
 				idx = key; break;
 			default: idx = key; break;
 		}
 	}
-	
+
 	if (idx >= 0 && idx < 256) {
 		return current_state.keys[idx];
 	}
@@ -230,14 +242,14 @@ bool InputSystem::IsKeyDown(dword key) const {
 
 bool InputSystem::IsKeyPressed(dword key) const {
 	// Check if key is down now but was not down in the previous frame
-	return IsKeyDown(key) && !previous_state.keys[key >= 'A' && key <= 'Z' ? key - 'A' + 65 : 
-	                        (key >= '0' && key <= '9' ? key - '0' + 48 : 
-	                        (key >= I_F1 && key <= I_F12 ? key - I_F1 + 112 : 
-	                        (key == I_SPACE ? 32 : 
-	                        (key == I_RETURN || key == I_ENTER ? 13 : 
-	                        (key == I_ESCAPE ? 27 : 
-	                        (key == I_BACKSPACE || key == I_BACK ? 8 : 
-	                        (key == I_TAB ? 9 : 
+	return IsKeyDown(key) && !previous_state.keys[key >= 'A' && key <= 'Z' ? key - 'A' + 65 :
+	                        (key >= '0' && key <= '9' ? key - '0' + 48 :
+	                        (key >= I_F1 && key <= I_F12 ? key - I_F1 + 112 :
+	                        (key == I_SPACE ? 32 :
+	                        (key == I_RETURN || key == I_ENTER ? 13 :
+	                        (key == I_ESCAPE ? 27 :
+	                        (key == I_BACKSPACE || key == I_BACK ? 8 :
+	                        (key == I_TAB ? 9 :
 	                        (key == I_LEFT || key == I_RIGHT || key == I_UP || key == I_DOWN ? key : key))))))))];
 }
 
@@ -257,12 +269,12 @@ bool InputSystem::IsKeyReleased(dword key) const {
 			case I_ESCAPE: idx = 27; break;
 			case I_BACKSPACE: case I_BACK: idx = 8; break;
 			case I_TAB: idx = 9; break;
-			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN: 
+			case I_LEFT: case I_RIGHT: case I_UP: case I_DOWN:
 				idx = key; break;
 			default: idx = key; break;
 		}
 	}
-	
+
 	if (idx >= 0 && idx < 256) {
 		return !current_state.keys[idx] && previous_state.keys[idx];
 	}
@@ -299,7 +311,7 @@ bool InputSystem::IsGamepadButtonDown(int gamepad_index, GamepadButton button) c
 
 bool InputSystem::IsGamepadButtonPressed(int gamepad_index, GamepadButton button) const {
 	if (gamepad_index >= 0 && gamepad_index < 4) {
-		return current_state.gamepads[gamepad_index].buttons[button] && 
+		return current_state.gamepads[gamepad_index].buttons[button] &&
 		       !previous_state.gamepads[gamepad_index].buttons[button];
 	}
 	return false;

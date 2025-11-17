@@ -62,14 +62,14 @@ void EntityPreviewCtrl::StartAnimation() {
         adjusted_interval = max(10, min(1000, adjusted_interval));
         
         animation_timer.Set(adjusted_interval, [this] { OnTimer(); });
-        animation_timer.Start();
+        animation_timer.StartTimer();
     }
 }
 
 void EntityPreviewCtrl::PauseAnimation() {
     if (is_playing) {
         is_paused = true;
-        animation_timer.Stop();
+        animation_timer.StopTimer();
     }
 }
 
@@ -77,7 +77,7 @@ void EntityPreviewCtrl::StopAnimation() {
     is_playing = false;
     is_paused = false;
     current_frame_index = 0; // Reset to first frame
-    animation_timer.Stop();
+    animation_timer.StopTimer();
     Refresh(); // Redraw to show first frame
 }
 
@@ -104,7 +104,7 @@ void EntityPreviewCtrl::UpdateAnimation() {
             current_frame_index = 0;
         } else {
             is_playing = false;
-            animation_timer.Stop();
+            animation_timer.StopTimer();
         }
     }
 
@@ -128,7 +128,7 @@ void EntityPreviewCtrl::Paint(Draw& w) {
     // Draw the current frame of the animation
     if (current_frame_index < animation->frames.GetCount()) {
         const AnimationFrameRef& frame_ref = animation->frames[current_frame_index];
-        const Frame* frame = project->FindFrame(frame_ref.frame_id);
+        const AnimationFrame* frame = project->FindFrame(frame_ref.frame_id);
 
         if (frame) {
             // Center the drawing in our control

@@ -20,12 +20,13 @@ Progress
 - ✅ Overlay view logic implemented leveraging `SourceRef` and precedence provider interfaces.
 - ✅ Router descriptor metadata + Value conversions implemented in `Vfs/Ecs/Formats.{h,cpp}` with coverage under `upptst/Router`.
 - ✅ Router schema helpers now live in `Vfs/Storage`, `RouterNetContext` stamps the resulting `router.*` ValueMap into loop nodes, and the Router console suite covers schema round-trips so IDE/storage consumers can read port + connection metadata.
+- ✅ JSON fragment save/load helpers (`VfsSaveFragment` / `VfsLoadFragment`) live in `Vfs/Storage`, so router metadata stamped on loop nodes survives persistence and is already exercised by the Router console suite.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
 2) Audit Core2 and downstream packages to include the new `Vfs` headers (`Vfs/Core`, `Vfs/Ecs`) directly and prune compatibility stubs.
 3) ~~Implement overlay view logic leveraging `SourceRef` and precedence provider interfaces.~~ (Completed)
-4) Implement full JSON serialization in `Vfs/Storage` (fragments + overlay index) and hook the router metadata writers/loaders so persisted fragments retain the schema; extend the Router harness once fragment round-trips exist.
+4) Finish the overlay index writer plus binary schema parity in `Vfs/Storage`, then extend the Router harness once fragment+overlay round-trips exist (legacy loader still pending).
 5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs.
 
 Notes

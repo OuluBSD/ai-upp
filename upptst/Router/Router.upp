@@ -2,7 +2,8 @@ uses
 	Core,
 	Eon,
 	EonRouterSupport,
-	Vfs/Ecs;
+	Vfs/Ecs,
+	Vfs/Storage;
 
 file
 	AGENTS.md,

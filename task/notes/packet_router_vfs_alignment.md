@@ -14,6 +14,7 @@ Alignment Notes
      - `connections`: array of `{from_atom, from_port, to_atom, to_port}` for router nets.
      - `flow_control`: object describing credit pools, optional legacy loop emulation flags.
    - Schema doc lives next to implementation in `VfsStorage.h` once code lands.
+   - JSON fragment helpers (`VfsSaveFragment`/`VfsLoadFragment`) now live in `Vfs/Storage/VfsStorage.{h,cpp}` so router metadata stamped onto loop nodes persists to disk immediately.
 3. **Compatibility strategy**
    - Legacy loop payloads keep their existing layout. Loader emits synthetic router descriptors at load time so IDE tooling can visualize nets even before `.eon` migration finishes.
    - Storage writers output both representations while the migration is in flight (guarded by feature flag).

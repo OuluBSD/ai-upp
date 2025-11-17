@@ -1,0 +1,18 @@
+LAYOUT(EditServer, 316, 284)
+	ITEM(Upp::Label, host_lbl, SetLabel(t_("Address:")).SetAlign(Upp::ALIGN_RIGHT).HCenterPosZ(124, -88).VCenterPosZ(19, -124))
+	ITEM(Upp::EditString, host, HCenterPosZ(172, 68).VCenterPosZ(19, -124))
+	ITEM(Upp::Label, port_lbl, SetLabel(t_("Port:")).SetAlign(Upp::ALIGN_RIGHT).HCenterPosZ(124, -88).VCenterPosZ(19, -100))
+	ITEM(Upp::EditIntSpin, port, HCenterPosZ(172, 68).VCenterPosZ(19, -100))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).HCenterPosZ(128, -42).VCenterPosZ(24, 126))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).HCenterPosZ(128, 90).VCenterPosZ(24, 126))
+END_LAYOUT
+
+LAYOUT(EditProject, 316, 284)
+	ITEM(Upp::Label, name_lbl, SetLabel(t_("Address:")).SetAlign(Upp::ALIGN_RIGHT).HCenterPosZ(124, -88).VCenterPosZ(19, -124))
+	ITEM(Upp::EditString, name, HCenterPosZ(172, 68).VCenterPosZ(19, -124))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Preferred conn. name:")).SetAlign(Upp::ALIGN_RIGHT).HCenterPosZ(124, -88).VCenterPosZ(19, -100))
+	ITEM(Upp::EditString, preferred_connection_name, HCenterPosZ(172, 68).VCenterPosZ(19, -100))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).HCenterPosZ(128, -42).VCenterPosZ(24, 126))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).HCenterPosZ(128, 90).VCenterPosZ(24, 126))
+END_LAYOUT
+

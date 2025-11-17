@@ -126,4 +126,58 @@ int QwenConnection::PollMessages(int timeout_ms) {
     return client->poll_messages(timeout_ms);
 }
 
+bool QwenConnection::CreateSession() {
+    if (!connected || !client) {
+        return false;
+    }
+
+    // For now, we'll just return true to indicate a new session
+    // In a real implementation, we'd create a new session via the Qwen API
+    current_session_id = "session_" + Upp::AsString(GetTickCount());  // Use timestamp as unique ID
+
+    // Add the new session ID to the project's session list if we have a project reference
+    // This would require additional parameters to link back to the project
+    return true;
+}
+
+bool QwenConnection::AttachToSession(const String& sessionId) {
+    if (!connected || !client) {
+        return false;
+    }
+
+    current_session_id = sessionId;
+    return true;
+}
+
+bool QwenConnection::ListSessions(Vector<String>& sessionList) {
+    if (!connected || !client) {
+        return false;
+    }
+
+    // In a real implementation, this would call Qwen API to get sessions
+    // For now, we'll just return the current session if it exists
+    if (!current_session_id.IsEmpty()) {
+        sessionList.Add(current_session_id);
+    }
+
+    return true;
+}
+
+bool QwenConnection::DeleteSession(const String& sessionId) {
+    if (!connected || !client) {
+        return false;
+    }
+
+    // If we're deleting the current session, clear it
+    if (current_session_id == sessionId) {
+        current_session_id.Clear();
+    }
+
+    return true;
+}
+
+String QwenConnection::GetCurrentSessionId() const {
+    return current_session_id;
+}
+
 END_UPP_NAMESPACE

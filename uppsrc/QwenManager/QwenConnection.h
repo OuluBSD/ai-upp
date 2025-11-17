@@ -1,9 +1,6 @@
 #ifndef _QwenManager_QwenConnection_h_
 #define _QwenManager_QwenConnection_h_
 
-#include "QwenManager.h"
-
-NAMESPACE_UPP
 
 class QwenConnection {
 private:
@@ -19,6 +16,9 @@ private:
     // Connection status
     bool connected = false;
     bool healthy = false;
+
+    // Session management
+    String current_session_id;
 
 public:
     QwenConnection();
@@ -38,8 +38,14 @@ public:
 
     // Poll for incoming messages
     int PollMessages(int timeout_ms = 0);
+
+    // Session management
+    bool CreateSession();
+    bool AttachToSession(const String& sessionId);
+    bool ListSessions(Vector<String>& sessionList);
+    bool DeleteSession(const String& sessionId);
+    String GetCurrentSessionId() const;
 };
 
-END_UPP_NAMESPACE
 
 #endif

@@ -545,7 +545,7 @@ ValueMap StoreRouterPortDesc(const RouterPortDesc& desc) {
 static bool LoadRouterDirection(const Value& value, RouterPortDesc::Direction& dir) {
 	if (value.Is<String>()) {
 		String s = ToLower((String)value);
-		if (s.StartsWith("src"))
+		if (s.StartsWith("source") || s.StartsWith("src"))
 			dir = RouterPortDesc::Direction::Source;
 		else if (s.StartsWith("sink"))
 			dir = RouterPortDesc::Direction::Sink;

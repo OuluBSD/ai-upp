@@ -3,7 +3,8 @@ description "Vfs storage interfaces (header-only stub)\377B128,0,0";
 uses
 	Core,
 	Vfs/Core,
-	Vfs/Ecs;
+	Vfs/Ecs,
+	Vfs/Overlay;
 
 file
 	AGENTS.md,

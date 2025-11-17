@@ -5,6 +5,7 @@
 #include <Core/Core.h>
 #include <Vfs/Core/Core.h>
 #include <Vfs/Ecs/Ecs.h>
+#include <Vfs/Overlay/VfsOverlay.h>
 
 NAMESPACE_UPP
 
@@ -33,6 +34,23 @@ bool VfsLoadFragment(const String& path, VfsValue& out_fragment);
 
 // Back-compat loader for legacy IDE dumps (placeholder).
 bool VfsLoadLegacy(const String& path, VfsValue& out_fragment);
+
+// Overlay index captures which on-disk fragments contribute to a logical node.
+struct OverlayNodeRecord : Moveable<OverlayNodeRecord> {
+	String            path;
+	Vector<SourceRef> sources;
+	ValueMap          metadata; // Allows router metadata (and future data) without new schema tweaks.
+};
+
+struct VfsOverlayIndex : Moveable<VfsOverlayIndex> {
+	Vector<OverlayNodeRecord> nodes;
+
+	bool IsEmpty() const { return nodes.IsEmpty(); }
+	void Clear() { nodes.Clear(); }
+};
+
+bool VfsSaveOverlayIndex(const String& path, const VfsOverlayIndex& index);
+bool VfsLoadOverlayIndex(const String& path, VfsOverlayIndex& out_index);
 
 struct RouterPortEntry : Moveable<RouterPortEntry> {
 	String          atom_id;

@@ -77,6 +77,7 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - **Descriptors:** Canonical `RouterPortDesc` / `RouterConnectionDesc` structs now live in `uppsrc/Vfs/Ecs/Interface.h`, providing a shared home for port metadata ahead of the serialization work.
 - **Serialization prep:** Descriptor metadata (direction, `ValDevTuple`, flow-control hints) now round-trips through helpers in `uppsrc/Vfs/Ecs/Formats.{h,cpp}` and is covered by the new `upptst/Router` console tests (`script/build-console.sh Router`).
 - **Storage:** JSON fragment helpers (`VfsSaveFragment` / `VfsLoadFragment` in `uppsrc/Vfs/Storage`) now persist router metadata appended to loop nodes, and the Router console suite exercises a fragment disk round-trip.
+- **Overlay index:** `VfsOverlayIndex` plus `VfsSaveOverlayIndex`/`VfsLoadOverlayIndex` persist SourceRef provenance alongside per-node metadata (including `router.*` maps) so IDE/Env tooling can inspect router graphs without loading every fragment; exercised by `upptst/Router`.
 - **Docs:** Conversion references for the full audio generator trio (`00a`/`00b`/`00c`) sit next to the respective assets. VFS alignment + schema outline are tracked in `task/notes/packet_router_vfs_alignment.md`; AGENTS updates still pending.
 - **Metrics:** Baseline performance numbers to capture once router prototype stands up.
 

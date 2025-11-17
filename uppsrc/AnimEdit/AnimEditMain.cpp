@@ -173,7 +173,7 @@ void AnimEditorWindow::SetSelectedAnimation(const Animation* anim) {
 
 void AnimEditorWindow::CreateNewSprite() {
     // Create dialog content using simple layout
-    CtrlLayout dlg;
+    CtrlLayout<ParentCtrl> dlg;
     dlg.Ctrl::SizeHint([this]() { return Size(400, 360); });
     
     // Create input fields
@@ -192,12 +192,12 @@ void AnimEditorWindow::CreateNewSprite() {
     category_option <<= 0; // Default to "All Categories"
     
     // Set up numeric fields
-    region_x.MinMax(0, 10000).Set(0);
-    region_y.MinMax(0, 10000).Set(0);
-    region_cx.MinMax(1, 10000).Set(32);
-    region_cy.MinMax(1, 10000).Set(32);
-    pivot_x.MinMax(-1000, 1000).Set(0);
-    pivot_y.MinMax(-1000, 1000).Set(0);
+    region_x.MinMax(0, 10000) <<= 0;
+    region_y.MinMax(0, 10000) <<= 0;
+    region_cx.MinMax(1, 10000) <<= 32;
+    region_cy.MinMax(1, 10000) <<= 32;
+    pivot_x.MinMax(-1000, 1000) <<= 0;
+    pivot_y.MinMax(-1000, 1000) <<= 0;
     
     // Add controls with positioning
     dlg.Add(id_field.HSizePos(80, 50).TopPos(8, 20));

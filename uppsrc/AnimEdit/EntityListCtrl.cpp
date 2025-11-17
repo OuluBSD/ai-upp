@@ -10,7 +10,7 @@ EntityListCtrl::EntityListCtrl() {
     array_ctrl.AddColumn("Type", 80);
     array_ctrl.NoHeader();
     
-    array_ctrl.WhenSelect = [this]() {
+    array_ctrl.WhenSel = [this]() {
         if (select_callback && project && array_ctrl.GetCursor() >= 0 && array_ctrl.GetCursor() < project->entities.GetCount()) {
             select_callback(&project->entities[array_ctrl.GetCursor()]);
         }

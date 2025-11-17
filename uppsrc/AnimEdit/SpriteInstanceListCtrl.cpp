@@ -132,7 +132,7 @@ void SpriteInstanceListCtrl::MouseDown(Point pos, dword button) {
         }
     }
 
-    Ctrl::MouseDown(pos, button);
+    Ctrl::LeftDown(pos, button);
 }
 
 void SpriteInstanceListCtrl::RightDown(Point pos, dword flags) {
@@ -169,7 +169,7 @@ void SpriteInstanceListCtrl::PopupContextMenu(Point pos) {
     popup.AddFrame(BlackFrame());
 
     // Create a menu layout
-    WithTextCtrlLayout<ParentCtrl> content;
+    CtrlLayout<ParentCtrl> content;
     content.Ctrl::SizeHint([this]() { return Size(150, 150); });
 
     // Create menu items

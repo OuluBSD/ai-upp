@@ -27,12 +27,12 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     properties_ctrl.NoHeader();
     
     // Set up slot editing fields
-    slot_name_field.SetPrompt("Slot Name");
-    slot_name_field.SetTip("Name for the animation slot (e.g. Idle, Run, Attack)");
+    slot_name_field.SetLabel("Slot Name");
+    slot_name_field.ToolTip("Name for the animation slot (e.g. Idle, Run, Attack)");
     
     // Set up animation dropdown
-    animation_dropdown.Add("(No Animation)");
-    animation_dropdown.SetTip("Select animation for this slot");
+    animation_dropdown.SetLabel("(No Animation)");
+    animation_dropdown.ToolTip("Select animation for this slot");
     
     // Set up property editing fields
     add_property_btn.SetLabel("+");
@@ -42,29 +42,29 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     
     // Set up validation status display
     validation_status.SetFrame(ThinInsetFrame());
-    validation_status.SetLabel("Validation: OK");
+    validation_status.Set("Validation: OK");
     
     // Set up animation playback controls
     play_btn.SetLabel("▶ Play");
-    play_btn.SetTip("Play the selected animation");
+    play_btn.ToolTip("Play the selected animation");
     pause_btn.SetLabel("⏸ Pause");
-    pause_btn.SetTip("Pause the animation");
+    pause_btn.ToolTip("Pause the animation");
     stop_btn.SetLabel("⏹ Stop");
-    stop_btn.SetTip("Stop and reset the animation");
+    stop_btn.ToolTip("Stop and reset the animation");
     loop_check.SetLabel("Loop");
-    loop_check.SetTip("Loop the animation continuously");
+    loop_check.ToolTip("Loop the animation continuously");
     loop_check.Set(true);  // Loop by default
     speed_label.SetLabel("Speed: 1.0x");
-    speed_slider.SetRange(1, 500).SetValue(100);  // Range 0.01x to 5.0x (value/100)
-    speed_slider.SetTip("Adjust animation playback speed");
+    speed_slider.MinMax(1, 500).SetValue(100);  // Range 0.01x to 5.0x (value/100)
+    speed_slider.ToolTip("Adjust animation playback speed");
     
     // Set up blending controls
     blend_weight_label.SetLabel("Blend Weight: 1.00");
-    blend_weight_slider.SetRange(0, 100).SetValue(100);  // 0.00 to 1.00 as 0-100
-    blend_weight_slider.SetTip("Adjust the blend weight for the selected animation (0.0 to 1.0)");
+    blend_weight_slider.MinMax(0, 100).SetValue(100);  // 0.00 to 1.00 as 0-100
+    blend_weight_slider.ToolTip("Adjust the blend weight for the selected animation (0.0 to 1.0)");
     transition_label.SetLabel("Transition Time (s):");
-    transition_time_edit.SetRange(0.0, 5.0).Set(0.0);  // 0 to 5 seconds
-    transition_time_edit.SetTip("Time to transition to this animation (in seconds)");
+    transition_time_edit.MinMax(0.0, 5.0).Set(0.0);  // 0 to 5 seconds
+    transition_time_edit.ToolTip("Time to transition to this animation (in seconds)");
     apply_blend_btn.SetLabel("Apply Blend");
     apply_blend_btn.SetTip("Apply the current blend settings to the selected animation slot");
     
@@ -139,7 +139,7 @@ EntityPropertiesCtrl::EntityPropertiesCtrl() {
     script_type_option.Add("expression");
     script_type_option.Add("python");
     script_type_option.SetIndex(0);  // Default to "lua"
-    script_type_option.SetTip("Script type/language");
+    script_type_option.ToolTip("Script type/language");
 
     script_name_field.SetPrompt("Script Name");
     script_id_field.SetPrompt("Script ID");

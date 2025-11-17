@@ -58,6 +58,9 @@ bool VfsLoadOverlayIndex(const String& path, VfsOverlayIndex& out_index);
 bool VfsSaveOverlayIndexBinary(const String& path, const VfsOverlayIndex& index);
 bool VfsLoadOverlayIndexBinary(const String& path, VfsOverlayIndex& out_index);
 
+// Helper to extract router overlay metadata from a fragment tree.
+void BuildRouterOverlayIndex(const VfsValue& fragment, VfsOverlayIndex& out_index);
+
 struct RouterPortEntry : Moveable<RouterPortEntry> {
 	String          atom_id;
 	RouterPortDesc  desc;

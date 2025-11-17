@@ -16,6 +16,7 @@ Alignment Notes
    - Schema doc lives next to implementation in `VfsStorage.h` once code lands.
    - JSON fragment helpers (`VfsSaveFragment`/`VfsLoadFragment`) now live in `Vfs/Storage/VfsStorage.{h,cpp}` so router metadata stamped onto loop nodes persists to disk immediately.
    - Overlay index helpers (`VfsOverlayIndex` + `VfsSaveOverlayIndex`/`VfsLoadOverlayIndex`) serialize logical-path entries with `SourceRef` provenance and a generic `metadata` map; router metadata is stored as `metadata["router"]` so IDE overlay views can inspect descriptors without loading fragments.
+   - `BuildRouterOverlayIndex` mirrors the IDE builder path so console/test harnesses can regenerate overlay metadata; `upptst/Router` now emits fragments + overlay indexes through that helper and asserts the JSON/binary payloads match.
    - Binary parity now comes from `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary`, which wrap the JSON schema in a headerized payload so CLI tools can ship compact `.vfsbin` artifacts until the chunked writers land.
    - IDE package now calls those helpers on every `Meta.bin` store, emitting `Meta.fragment.{json,vfsbin}` plus overlay siblings, and caches the overlay indexes so `MetaEnvTree` and future inspectors can read `metadata.router` straight from disk without reloading fragments.
 3. **Compatibility strategy**

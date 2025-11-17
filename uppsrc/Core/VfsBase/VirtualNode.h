@@ -40,6 +40,8 @@ struct VirtualNode : Moveable<VirtualNode> {
 	bool IsValue() const;
 	bool IsEntity() const;
 	Value GetValue() const;
+	VfsValue* GetVfsValue();
+	const VfsValue* GetVfsValue() const;
 	void WriteValue(Value val);
 	operator bool() const;
 	void Clear();

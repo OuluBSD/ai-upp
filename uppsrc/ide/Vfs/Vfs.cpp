@@ -43,28 +43,6 @@ String AppendOverlaySegment(const String& base, const String& id) {
 	return base + "|" + id;
 }
 
-void CollectRouterOverlayEntries(const VfsValue& node, const String& current_path, VfsOverlayIndex& index) {
-	String path = current_path;
-	if (!node.id.IsEmpty())
-		path = AppendOverlaySegment(current_path, node.id);
-
-	Value router_value;
-	if (node.value.Is<ValueMap>()) {
-		ValueMap map = node.value;
-		router_value = RouterLookupValue(map, "router");
-	}
-	if (router_value.Is<ValueMap>()) {
-		OverlayNodeRecord& rec = index.nodes.Add();
-		rec.path = NormalizeOverlayPath(path);
-		rec.sources.SetCount(1);
-		rec.sources[0] = SourceRef(node.pkg_hash, node.file_hash, rec.path, 0);
-		rec.metadata.Set("router", router_value);
-	}
-
-	for (const VfsValue& child : node.sub)
-		CollectRouterOverlayEntries(child, path, index);
-}
-
 String BuildOverlayPathFromNode(const VfsValue& node) {
 	Vector<String> parts;
 	const VfsValue* current = &node;
@@ -89,7 +67,7 @@ void EmitPackageStorageArtifacts(const VfsSrcPkg& pkg, const VfsValue& fragment)
 		RLOG("VfsSrcPkg: failed to save fragment binary '" << fragment_bin << "'");
 
 	VfsOverlayIndex index;
-	CollectRouterOverlayEntries(fragment, String(), index);
+	BuildRouterOverlayIndex(fragment, index);
 
 	String overlay_json = OverlayJsonPath(pkg_dir);
 	if (!overlay_json.IsEmpty() && !VfsSaveOverlayIndex(overlay_json, index))

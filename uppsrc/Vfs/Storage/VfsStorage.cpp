@@ -67,6 +67,43 @@ struct OverlayIndexDocument : Moveable<OverlayIndexDocument> {
 	}
 };
 
+static String NormalizeOverlayPath(const String& path) {
+	return path.IsEmpty() ? String("<root>") : path;
+}
+
+static String AppendOverlaySegment(const String& base, const String& id) {
+	if (id.IsEmpty())
+		return base;
+	if (base.IsEmpty())
+		return id;
+	return base + "|" + id;
+}
+
+static void CollectRouterOverlayEntries(const VfsValue& node, const String& current_path, VfsOverlayIndex& index) {
+	String path = current_path;
+	if (!node.id.IsEmpty())
+		path = AppendOverlaySegment(current_path, node.id);
+
+	Value router_value;
+	if (node.value.Is<ValueMap>()) {
+		ValueMap map = node.value;
+		router_value = RouterLookupValue(map, "router");
+	}
+	if (router_value.Is<ValueMap>()) {
+		OverlayNodeRecord& rec = index.nodes.Add();
+		rec.path = NormalizeOverlayPath(path);
+		SourceRef ref;
+		ref.pkg_hash = node.pkg_hash;
+		ref.file_hash = node.file_hash;
+		ref.local_path = rec.path;
+		rec.sources.Add(ref);
+		rec.metadata.Set("router", router_value);
+	}
+
+	for (const VfsValue& child : node.sub)
+		CollectRouterOverlayEntries(child, path, index);
+}
+
 static void PropagateFragmentHashes(VfsValue& node, hash_t pkg_hash, hash_t file_hash) {
 	if (pkg_hash)
 		node.pkg_hash = pkg_hash;
@@ -159,6 +196,11 @@ static bool LoadBinaryEnvelope(const String& path, dword expected_magic, int exp
 }
 
 } // namespace
+
+void BuildRouterOverlayIndex(const VfsValue& fragment, VfsOverlayIndex& out_index) {
+	out_index.Clear();
+	CollectRouterOverlayEntries(fragment, String(), out_index);
+}
 
 bool VfsSaveFragment(const String& path, const VfsValue& fragment) {
 	try {

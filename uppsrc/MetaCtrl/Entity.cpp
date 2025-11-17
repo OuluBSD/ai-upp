@@ -1,7 +1,46 @@
 #include "MetaCtrl.h"
+#include <Vfs/Storage/VfsStorage.h>
 #include <ide/Vfs/Vfs.h>
 
 NAMESPACE_UPP
+
+namespace {
+
+String FormatRouterSummary(const ValueMap& router_meta) {
+	RouterSchema schema;
+	if (!LoadRouterSchema(Value(router_meta), schema))
+		return String();
+	if (schema.IsEmpty())
+		return String();
+	int src_ports = 0;
+	int sink_ports = 0;
+	for (const RouterPortEntry& entry : schema.ports) {
+		if (entry.desc.direction == RouterPortDesc::Direction::Source)
+			src_ports++;
+		else if (entry.desc.direction == RouterPortDesc::Direction::Sink)
+			sink_ports++;
+	}
+	String summary = Format("router: %d src / %d sink ports, %d connections", src_ports, sink_ports, schema.connections.GetCount());
+	Value policy = RouterLookupValue(schema.flow_control, "policy");
+	if (policy.Is<String>() && !policy.Get<String>().IsEmpty())
+		summary << ", policy=" << policy.Get<String>();
+	Value credits = RouterLookupValue(schema.flow_control, "credits_per_port");
+	if (credits.Is<int>())
+		summary << Format(", credits/port=%d", credits.Get<int>());
+	return summary;
+}
+
+String RouterSummaryForVirtualNode(const VirtualNode& vnode) {
+	const VfsValue* node = vnode.GetVfsValue();
+	if (!node)
+		return String();
+	ValueMap router_meta = IdeMetaEnv().GetRouterMetadataForNode(*node);
+	if (router_meta.IsEmpty())
+		return String();
+	return FormatRouterSummary(router_meta);
+}
+
+} // namespace
 
 
 void ComponentCtrl::GetDataset(DatasetPtrs& p) const {
@@ -120,6 +159,12 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 		String qtf;
 		if (!TreeItemString(s, name, qtf))
 			qtf = DeQtf(name.ToString() + " (" + TypeStringHasherIndex::ToString(type_hash) + ")");
+		String router_summary = RouterSummaryForVirtualNode(s);
+		if (!router_summary.IsEmpty()) {
+			if (!qtf.IsEmpty())
+				qtf << "\n";
+			qtf << "<small><gray>" << DeQtf(router_summary) << "</gray></small>";
+		}
 		int sub_id = tree.Add(id, MetaImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))
 			return false;

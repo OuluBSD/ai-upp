@@ -7,6 +7,48 @@
 
 using namespace Upp;
 
+static bool CompareVfsNodes(const VfsValue& a, const VfsValue& b) {
+	if (a.id != b.id)
+		return false;
+	if (a.type_hash != b.type_hash)
+		return false;
+	if (a.pkg_hash != b.pkg_hash || a.file_hash != b.file_hash)
+		return false;
+	if (a.value != b.value)
+		return false;
+	if (a.sub.GetCount() != b.sub.GetCount())
+		return false;
+	for (int i = 0; i < a.sub.GetCount(); i++) {
+		if (!CompareVfsNodes(a.sub[i], b.sub[i]))
+			return false;
+	}
+	return true;
+}
+
+static bool CompareOverlayIndexes(const VfsOverlayIndex& a, const VfsOverlayIndex& b) {
+	if (a.nodes.GetCount() != b.nodes.GetCount())
+		return false;
+	for (int i = 0; i < a.nodes.GetCount(); i++) {
+		const OverlayNodeRecord& lhs = a.nodes[i];
+		const OverlayNodeRecord& rhs = b.nodes[i];
+		if (lhs.path != rhs.path)
+			return false;
+		if (lhs.sources.GetCount() != rhs.sources.GetCount())
+			return false;
+		for (int j = 0; j < lhs.sources.GetCount(); j++) {
+			const SourceRef& ls = lhs.sources[j];
+			const SourceRef& rs = rhs.sources[j];
+			if (ls.pkg_hash != rs.pkg_hash || ls.file_hash != rs.file_hash)
+				return false;
+			if (ls.local_path != rs.local_path || ls.priority != rs.priority || ls.flags != rs.flags)
+				return false;
+		}
+		if (Value(lhs.metadata) != Value(rhs.metadata))
+			return false;
+	}
+	return true;
+}
+
 static void TestRouterPortMetadata() {
 	RouterNetContext net("tester.generator");
 	auto& sink_atom = net.AddAtom("sink0", "center.audio.sink.test.realtime");
@@ -256,6 +298,56 @@ static void TestRouterOverlayIndexBinaryRoundTrip() {
 	FileDelete(temp_path);
 }
 
+static void TestRouterBuilderArtifactParity() {
+	RouterNetContext net("tester.router.builder");
+	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
+	auto& sink = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	int gen_out = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+	int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+	net.Connect(generator.id, gen_out, sink.id, sink_in);
+
+	VfsValue fragment;
+	fragment.id = "loop_fragment_builder";
+	fragment.pkg_hash = 0xABCD1234;
+	fragment.file_hash = 0x5678EF01;
+	ValueMap node_value;
+	node_value.Set("router", net.GetRouterMetadata());
+	fragment.value = Value(node_value);
+
+	String base = GetTempFileName("router_builder");
+	String fragment_json = base + ".fragment.json";
+	String fragment_bin = base + ".fragment.vfsbin";
+	String overlay_json = base + ".overlay.json";
+	String overlay_bin = base + ".overlay.vfsbin";
+
+	ASSERT(VfsSaveFragment(fragment_json, fragment));
+	ASSERT(VfsSaveFragmentBinary(fragment_bin, fragment));
+
+	VfsOverlayIndex built_index;
+	BuildRouterOverlayIndex(fragment, built_index);
+	ASSERT(VfsSaveOverlayIndex(overlay_json, built_index));
+	ASSERT(VfsSaveOverlayIndexBinary(overlay_bin, built_index));
+
+	VfsValue json_fragment;
+	VfsValue bin_fragment;
+	ASSERT(VfsLoadFragment(fragment_json, json_fragment));
+	ASSERT(VfsLoadFragmentBinary(fragment_bin, bin_fragment));
+	ASSERT(CompareVfsNodes(json_fragment, bin_fragment));
+
+	VfsOverlayIndex index_json;
+	VfsOverlayIndex index_bin;
+	ASSERT(VfsLoadOverlayIndex(overlay_json, index_json));
+	ASSERT(VfsLoadOverlayIndexBinary(overlay_bin, index_bin));
+	ASSERT(CompareOverlayIndexes(index_json, index_bin));
+	ASSERT(CompareOverlayIndexes(index_json, built_index));
+
+	FileDelete(fragment_json);
+	FileDelete(fragment_bin);
+	FileDelete(overlay_json);
+	FileDelete(overlay_bin);
+	FileDelete(base);
+}
+
 CONSOLE_APP_MAIN {
 	StdLogSetup(LOG_COUT|LOG_FILE);
 	TestRouterPortMetadata();
@@ -266,5 +358,6 @@ CONSOLE_APP_MAIN {
 	TestRouterFragmentBinaryRoundTrip();
 	TestRouterOverlayIndexRoundTrip();
 	TestRouterOverlayIndexBinaryRoundTrip();
+	TestRouterBuilderArtifactParity();
 	LOG("Router descriptor tests completed");
 }

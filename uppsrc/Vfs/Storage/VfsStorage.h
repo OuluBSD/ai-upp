@@ -5,6 +5,7 @@
 #include <Core/Core.h>
 #include <Vfs/Core/Core.h>
 #include <Vfs/Ecs/Ecs.h>
+#include <Vfs/Ecs/Formats.h>
 #include <Vfs/Overlay/VfsOverlay.h>
 
 NAMESPACE_UPP
@@ -52,14 +53,71 @@ struct VfsOverlayIndex : Moveable<VfsOverlayIndex> {
 	void Clear() { nodes.Clear(); }
 };
 
+class OverlayIndexSink {
+public:
+	virtual ~OverlayIndexSink() {}
+	virtual void AddRecord(const OverlayNodeRecord& record) = 0;
+};
+
+class OverlayIndexCollectorSink : public OverlayIndexSink {
+public:
+	explicit OverlayIndexCollectorSink(VfsOverlayIndex& dst) : target(dst) { target.Clear(); }
+
+	void AddRecord(const OverlayNodeRecord& record) override {
+		OverlayNodeRecord& rec = target.nodes.Add();
+		rec.path = record.path;
+		rec.sources <<= record.sources;
+		rec.metadata = record.metadata;
+	}
+
+private:
+	VfsOverlayIndex& target;
+};
+
+class OverlayIndexSinkMultiplexer : public OverlayIndexSink {
+public:
+	void AddSink(OverlayIndexSink& sink) { sinks.Add(&sink); }
+
+	void AddRecord(const OverlayNodeRecord& record) override {
+		for (OverlayIndexSink* sink : sinks)
+			sink->AddRecord(record);
+	}
+
+private:
+	Vector<OverlayIndexSink*> sinks;
+};
+
+class OverlayIndexChunkWriter : public OverlayIndexSink {
+public:
+	OverlayIndexChunkWriter();
+	~OverlayIndexChunkWriter();
+
+	bool Begin(const String& path);
+	bool Finish();
+	bool IsOpen() const;
+	bool HasError() const { return error; }
+
+	void AddRecord(const OverlayNodeRecord& record) override;
+
+private:
+	void CloseStream();
+
+	One<FileOut> stream;
+	bool         error = false;
+};
+
 bool VfsSaveOverlayIndex(const String& path, const VfsOverlayIndex& index);
 bool VfsLoadOverlayIndex(const String& path, VfsOverlayIndex& out_index);
 
 bool VfsSaveOverlayIndexBinary(const String& path, const VfsOverlayIndex& index);
 bool VfsLoadOverlayIndexBinary(const String& path, VfsOverlayIndex& out_index);
 
+bool VfsSaveOverlayIndexChunked(const String& path, const VfsValue& fragment);
+bool VfsLoadOverlayIndexChunked(const String& path, VfsOverlayIndex& out_index);
+
 // Helper to extract router overlay metadata from a fragment tree.
 void BuildRouterOverlayIndex(const VfsValue& fragment, VfsOverlayIndex& out_index);
+void BuildRouterOverlayIndex(const VfsValue& fragment, OverlayIndexSink& sink);
 
 struct RouterPortEntry : Moveable<RouterPortEntry> {
 	String          atom_id;

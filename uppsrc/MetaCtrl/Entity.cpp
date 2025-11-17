@@ -30,6 +30,71 @@ String FormatRouterSummary(const ValueMap& router_meta) {
 	return summary;
 }
 
+const RouterPortEntry* FindPortEntry(const RouterSchema& schema, const String& atom_id, int port_index) {
+	for (const RouterPortEntry& entry : schema.ports) {
+		if (entry.atom_id == atom_id && entry.desc.index == port_index)
+			return &entry;
+	}
+	return nullptr;
+}
+
+String FormatPortLabel(const RouterSchema& schema, const String& atom_id, int port_index) {
+	const RouterPortEntry* entry = FindPortEntry(schema, atom_id, port_index);
+	String label = atom_id;
+	if (entry && !entry->desc.name.IsEmpty())
+		label << ":" << entry->desc.name;
+	else
+		label << ":" << port_index;
+	if (entry) {
+		const char* dir = entry->desc.direction == RouterPortDesc::Direction::Source ? "src" : "sink";
+		label << Format(" (%s#%d)", dir, entry->desc.index);
+	}
+	return label;
+}
+
+String FormatConnectionDetail(const RouterSchema& schema, const RouterConnectionDesc& conn) {
+	String detail = Format("%s -> %s",
+		FormatPortLabel(schema, conn.from_atom, conn.from_port),
+		FormatPortLabel(schema, conn.to_atom, conn.to_port));
+	if (!conn.metadata.IsEmpty()) {
+		String meta_json = StoreAsJson(conn.metadata, false);
+		if (!meta_json.IsEmpty())
+			detail << " " << meta_json;
+	}
+	return detail;
+}
+
+String FormatRouterDetailsQtf(const ValueMap& router_meta) {
+	RouterSchema schema;
+	if (!LoadRouterSchema(Value(router_meta), schema))
+		return String();
+	if (schema.IsEmpty())
+		return String();
+
+	String qtf;
+	Vector<String> lines;
+	if (!schema.flow_control.IsEmpty()) {
+		String flow_json = StoreAsJson(schema.flow_control, false);
+		if (!flow_json.IsEmpty())
+			lines.Add("flow-control: " + flow_json);
+	}
+	if (!schema.connections.IsEmpty()) {
+		lines.Add("connections:");
+		for (const RouterConnectionDesc& conn : schema.connections)
+			lines.Add("  " + FormatConnectionDetail(schema, conn));
+	}
+	if (lines.IsEmpty())
+		return String();
+	qtf << "<small><gray>";
+	for (int i = 0; i < lines.GetCount(); i++) {
+		if (i)
+			qtf << "\n";
+		qtf << DeQtf(lines[i]);
+	}
+	qtf << "</gray></small>";
+	return qtf;
+}
+
 String RouterSummaryForVirtualNode(const VirtualNode& vnode) {
 	const VfsValue* node = vnode.GetVfsValue();
 	if (!node)
@@ -38,6 +103,16 @@ String RouterSummaryForVirtualNode(const VirtualNode& vnode) {
 	if (router_meta.IsEmpty())
 		return String();
 	return FormatRouterSummary(router_meta);
+}
+
+String RouterDetailsForVirtualNode(const VirtualNode& vnode) {
+	const VfsValue* node = vnode.GetVfsValue();
+	if (!node)
+		return String();
+	ValueMap router_meta = IdeMetaEnv().GetRouterMetadataForNode(*node);
+	if (router_meta.IsEmpty())
+		return String();
+	return FormatRouterDetailsQtf(router_meta);
 }
 
 } // namespace
@@ -164,6 +239,12 @@ bool VirtualFSComponentCtrl::Visit(TreeCtrl& tree, int id, VirtualNode n) {
 			if (!qtf.IsEmpty())
 				qtf << "\n";
 			qtf << "<small><gray>" << DeQtf(router_summary) << "</gray></small>";
+		}
+		String router_details = RouterDetailsForVirtualNode(s);
+		if (!router_details.IsEmpty()) {
+			if (!qtf.IsEmpty())
+				qtf << "\n";
+			qtf << router_details;
 		}
 		int sub_id = tree.Add(id, MetaImgs::BlueRing(), name, qtf);
 		if (!Visit(tree, sub_id, s))

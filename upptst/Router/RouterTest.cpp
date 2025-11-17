@@ -31,20 +31,30 @@ static bool CompareOverlayIndexes(const VfsOverlayIndex& a, const VfsOverlayInde
 	for (int i = 0; i < a.nodes.GetCount(); i++) {
 		const OverlayNodeRecord& lhs = a.nodes[i];
 		const OverlayNodeRecord& rhs = b.nodes[i];
-		if (lhs.path != rhs.path)
+		if (lhs.path != rhs.path) {
+			fprintf(stderr, "Overlay path mismatch: expected='%s' loaded='%s'\n", lhs.path.Begin(), rhs.path.Begin());
 			return false;
-		if (lhs.sources.GetCount() != rhs.sources.GetCount())
+		}
+		if (lhs.sources.GetCount() != rhs.sources.GetCount()) {
+			fprintf(stderr, "Overlay source count mismatch at '%s'\n", lhs.path.Begin());
 			return false;
+		}
 		for (int j = 0; j < lhs.sources.GetCount(); j++) {
 			const SourceRef& ls = lhs.sources[j];
 			const SourceRef& rs = rhs.sources[j];
 			if (ls.pkg_hash != rs.pkg_hash || ls.file_hash != rs.file_hash)
 				return false;
-			if (ls.local_path != rs.local_path || ls.priority != rs.priority || ls.flags != rs.flags)
+			if (ls.local_path != rs.local_path || ls.priority != rs.priority || ls.flags != rs.flags) {
+				fprintf(stderr, "Overlay source metadata mismatch at '%s'\n", lhs.path.Begin());
 				return false;
+			}
 		}
-		if (Value(lhs.metadata) != Value(rhs.metadata))
+		if (Value(lhs.metadata) != Value(rhs.metadata)) {
+			String expected = AsJSON(Value(lhs.metadata), true);
+			String loaded = AsJSON(Value(rhs.metadata), true);
+			fprintf(stderr, "Overlay metadata mismatch\nexpected:\n%s\nloaded:\n%s\n", expected.Begin(), loaded.Begin());
 			return false;
+		}
 	}
 	return true;
 }
@@ -298,6 +308,38 @@ static void TestRouterOverlayIndexBinaryRoundTrip() {
 	FileDelete(temp_path);
 }
 
+static void TestRouterOverlayChunkRoundTrip() {
+	RouterNetContext net("tester.router.overlay.chunk");
+	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
+	auto& sink = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	int gen_out = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+	int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+	net.Connect(generator.id, gen_out, sink.id, sink_in);
+
+	VfsValue fragment;
+	fragment.id = "router_chunk_node";
+	fragment.pkg_hash = 0x42424242;
+	fragment.file_hash = 0x31313131;
+	ValueMap node_value;
+	node_value.Set("router", net.GetRouterMetadata());
+	fragment.value = Value(node_value);
+
+	VfsOverlayIndex expected_index;
+	BuildRouterOverlayIndex(fragment, expected_index);
+
+	String base = GetTempFileName("router_overlay_chunk");
+	String chunk_path = base + ".overlay.vfsch";
+
+	ASSERT(VfsSaveOverlayIndexChunked(chunk_path, fragment));
+
+	VfsOverlayIndex loaded_index;
+	ASSERT(VfsLoadOverlayIndexChunked(chunk_path, loaded_index));
+	ASSERT(CompareOverlayIndexes(expected_index, loaded_index));
+
+	FileDelete(chunk_path);
+	FileDelete(base);
+}
+
 static void TestRouterBuilderArtifactParity() {
 	RouterNetContext net("tester.router.builder");
 	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
@@ -358,6 +400,7 @@ CONSOLE_APP_MAIN {
 	TestRouterFragmentBinaryRoundTrip();
 	TestRouterOverlayIndexRoundTrip();
 	TestRouterOverlayIndexBinaryRoundTrip();
+	TestRouterOverlayChunkRoundTrip();
 	TestRouterBuilderArtifactParity();
 	LOG("Router descriptor tests completed");
 }

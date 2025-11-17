@@ -31,6 +31,10 @@ String OverlayBinaryPath(const String& dir) {
 	return AppendFileName(dir, GetMetaArtifactBaseName() + ".overlay.vfsbin");
 }
 
+String OverlayChunkPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".overlay.vfsch");
+}
+
 String NormalizeOverlayPath(const String& path) {
 	return path.IsEmpty() ? String("<root>") : path;
 }
@@ -67,7 +71,25 @@ void EmitPackageStorageArtifacts(const VfsSrcPkg& pkg, const VfsValue& fragment)
 		RLOG("VfsSrcPkg: failed to save fragment binary '" << fragment_bin << "'");
 
 	VfsOverlayIndex index;
-	BuildRouterOverlayIndex(fragment, index);
+	OverlayIndexCollectorSink collector(index);
+	OverlayIndexSink* sink = &collector;
+	OverlayIndexSinkMultiplexer mux;
+	OverlayIndexChunkWriter chunk_writer;
+	String overlay_chunk = OverlayChunkPath(pkg_dir);
+	bool chunk_enabled = false;
+	if (!overlay_chunk.IsEmpty()) {
+		if (chunk_writer.Begin(overlay_chunk)) {
+			mux.AddSink(collector);
+			mux.AddSink(chunk_writer);
+			sink = &mux;
+			chunk_enabled = true;
+		}
+		else
+			RLOG("VfsSrcPkg: failed to open overlay chunk '" << overlay_chunk << "'");
+	}
+	BuildRouterOverlayIndex(fragment, *sink);
+	if (chunk_enabled && !chunk_writer.Finish())
+		RLOG("VfsSrcPkg: failed to finish overlay chunk '" << overlay_chunk << "'");
 
 	String overlay_json = OverlayJsonPath(pkg_dir);
 	if (!overlay_json.IsEmpty() && !VfsSaveOverlayIndex(overlay_json, index))
@@ -79,6 +101,11 @@ void EmitPackageStorageArtifacts(const VfsSrcPkg& pkg, const VfsValue& fragment)
 }
 
 bool LoadOverlayIndexFromDisk(const VfsSrcPkg& pkg, VfsOverlayIndex& out_index, Time& out_mtime) {
+	String chunk_path = OverlayChunkPath(pkg.dir);
+	if (FileExists(chunk_path) && VfsLoadOverlayIndexChunked(chunk_path, out_index)) {
+		out_mtime = FileGetTime(chunk_path);
+		return true;
+	}
 	String bin_path = OverlayBinaryPath(pkg.dir);
 	if (FileExists(bin_path) && VfsLoadOverlayIndexBinary(bin_path, out_index)) {
 		out_mtime = FileGetTime(bin_path);
@@ -94,6 +121,11 @@ bool LoadOverlayIndexFromDisk(const VfsSrcPkg& pkg, VfsOverlayIndex& out_index, 
 }
 
 bool GetOverlayFileTimestamp(const VfsSrcPkg& pkg, Time& out_time) {
+	String chunk_path = OverlayChunkPath(pkg.dir);
+	if (FileExists(chunk_path)) {
+		out_time = FileGetTime(chunk_path);
+		return true;
+	}
 	String bin_path = OverlayBinaryPath(pkg.dir);
 	if (FileExists(bin_path)) {
 		out_time = FileGetTime(bin_path);

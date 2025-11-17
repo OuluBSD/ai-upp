@@ -24,6 +24,8 @@ Progress
 - ✅ Overlay index structs + JSON helpers (`VfsOverlayIndex`, `VfsSaveOverlayIndex`, `VfsLoadOverlayIndex`) capture SourceRef provenance and preserve router metadata in node-level `metadata.router` fields, with new regression coverage in `upptst/Router`.
 - ✅ Binary parity for both fragments and overlay indexes shipped via `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary`, which reuse the JSON schema inside a headerized payload verified by new Router console tests (`script/build-console.sh Router`, `gdb --args bin/Router`).
 - ✅ IDE package now calls the new helpers inside `VfsSrcPkg::Store`, emitting `Meta.fragment.{json,vfsbin}` plus overlay counterparts automatically while `MetaEnvTree` consumes the cached overlay indexes to show `router` metadata without loading fragments.
+- ✅ Chunked overlay writers (`.overlay.vfsch`) now stream router metadata directly out of `BuildRouterOverlayIndex`, so JSON, `.vfsbin`, and chunk artifacts stay in sync without rebuilding fragments. IDE loaders prefer the chunked index but fall back to the legacy formats transparently.
+- ✅ MetaCtrl overlays render both router summaries and per-connection details (flow-control JSON plus connection-level metadata) using the cached overlay indexes, making the new fan-out/pool hints visible without digging through raw JSON dumps.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.

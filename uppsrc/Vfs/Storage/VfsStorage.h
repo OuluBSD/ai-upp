@@ -3,8 +3,8 @@
 #define _Vfs_Storage_VfsStorage_h_
 
 #include <Core/Core.h>
-#include <Vfs/Core/VfsCore.h>
-#include <Vfs/Ecs/Formats.h>
+#include <Vfs/Core/Core.h>
+#include <Vfs/Ecs/Ecs.h>
 
 NAMESPACE_UPP
 

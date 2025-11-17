@@ -2,7 +2,7 @@
 
 **Goal**: Create comprehensive mapping between U++ and STL C++ features for code conversion
 
-## Status: TODO
+## Status: IN_PROGRESS
 
 ---
 
@@ -129,6 +129,40 @@ class std::vector {
 
 ## Work Items
 
+### Phase 1: Core Package Analysis
+- [x] Visit all Core package files to document U++ declarations
+- [x] Compare Core package declarations with stdsrc implementations
+- [x] Create Core container mappings (Vector, Array, Index, etc.)
+- [x] Create Core string mappings (String, WString, etc.)
+- [x] Create Core smart pointer mappings (One, Ptr, etc.)
+- [x] Create Core utility mappings (Value, Function, Tuple, etc.)
+- [x] Create Core algorithm mappings (Sort, Find, etc.)
+- [x] Create Core I/O mappings (Stream, etc.)
+- [x] Create Core threading mappings (Thread, Mutex, etc.)
+- [x] Create Core time/date mappings (Time, Date, etc.)
+
+### Phase 2: Draw Package Analysis
+- [ ] Visit all Draw package files to document U++ declarations
+- [ ] Compare Draw package declarations with stdsrc implementations
+- [ ] Create Draw type mappings (Image, RGBA, etc.)
+- [ ] Create Draw operation mappings (DrawRect, DrawLine, etc.)
+- [ ] Create Draw painting mappings (Painting, etc.)
+
+### Phase 3: CtrlCore Package Analysis
+- [ ] Visit all CtrlCore package files to document U++ declarations
+- [ ] Compare CtrlCore package declarations with stdsrc implementations
+- [ ] Create CtrlCore base class mappings (Ctrl, Draw, etc.)
+- [ ] Create CtrlCore window mappings (TopWindow, etc.)
+- [ ] Create CtrlCore event handling mappings
+
+### Phase 4: CtrlLib Package Analysis
+- [ ] Visit all CtrlLib package files to document U++ declarations
+- [ ] Compare CtrlLib package declarations with stdsrc implementations
+- [ ] Create CtrlLib control mappings (Button, EditField, etc.)
+- [ ] Create CtrlLib layout mappings
+- [ ] Create CtrlLib menu/toolbar mappings
+
+### Phase 5: Integration and Documentation
 - [ ] Create comprehensive U++ → STL mapping document
 - [ ] Analyze stdsrc implementation to extract existing mappings
 - [ ] Document conversion patterns (not just class names, but usage patterns)

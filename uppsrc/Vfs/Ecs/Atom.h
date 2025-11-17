@@ -55,6 +55,7 @@ protected:
 	LinkBase*				link = 0;
 	AtomBasePtr				atom_dependency;
 	int						dep_count = 0;
+	Vector<RouterPortDesc>	router_ports[2];
 	//Value					user_data; // use val.value instead
 	
 	
@@ -97,6 +98,7 @@ public:
 	Engine&					GetEngine();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
+	const Vector<RouterPortDesc>&	GetRouterPorts(RouterPortDesc::Direction dir) const;
 	int						FindSourceWithValDev(ValDevCls vd);
 	int						FindSinkWithValDev(ValDevCls vd);
 	void					SetPrimarySinkQueueSize(int i);

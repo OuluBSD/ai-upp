@@ -4,6 +4,28 @@
 
 struct AtomBase;
 
+struct RouterPortDesc : Moveable<RouterPortDesc> {
+	enum class Direction { Sink, Source };
+
+	Direction   direction = Direction::Sink;
+	int         index = -1;
+	String      name;
+	ValDevTuple vd;
+	ValueMap    metadata;
+
+	bool IsValid() const { return index >= 0; }
+};
+
+struct RouterConnectionDesc : Moveable<RouterConnectionDesc> {
+	String   from_atom;
+	int      from_port = -1;
+	String   to_atom;
+	int      to_port = -1;
+	ValueMap metadata;
+
+	bool IsValid() const { return from_port >= 0 && to_port >= 0; }
+};
+
 template <class T>
 class InterfaceContainer {
 	
@@ -95,6 +117,7 @@ public:
 	virtual ~InterfaceBase() {}
 	virtual AtomBase* AsAtomBase() = 0;
 	AtomTypeCls GetAtomType() const;
+	const Vector<RouterPortDesc>& GetRouterPorts(RouterPortDesc::Direction dir) const;
 	ValDevTuple GetSinkCls() const {return GetAtomType().iface.sink;}
 	ValDevTuple GetSourceCls() const {return GetAtomType().iface.src;}
 	void Visit(Vis& vis) {}

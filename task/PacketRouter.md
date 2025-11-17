@@ -73,6 +73,9 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - **Prototype:** `NetContext` spike available in `upptst/Eon00` (`method=3`), logs router ports/connections while still delegating to `ChainContext`.
 - **Tooling:** No conversion helpers exist yet; target location `script/packet_router/`.
 - **Side-link parity:** RouterNetContext exposes a shared builder that stitches loops via `LoopContext::ConnectSides`, so `00b` and `00c` method 3 runs mirror ScriptLoader’s cross-loop behavior.
+- **Additional coverage:** RouterNetContext now lives in `upptst/EonRouterSupport` so other packages can include it; `upptst/Eon02` method 3 runners (`02a`, `02b`, `02c`, `02d`, `02e`, `02f`, `02g`, `02l`, `02m`) exercise single-loop audio, dual-loop side-link chains, and the fluidsynth/softinstru/fmsynth/coresynth+corefx+portmidi event/input bridges through `BuildRouterChain`.
+- **Descriptors:** Canonical `RouterPortDesc` / `RouterConnectionDesc` structs now live in `uppsrc/Vfs/Ecs/Interface.h`, providing a shared home for port metadata ahead of the serialization work.
+- **Serialization prep:** Descriptor metadata (direction, `ValDevTuple`, flow-control hints) now round-trips through helpers in `uppsrc/Vfs/Ecs/Formats.{h,cpp}` and is covered by the new `upptst/Router` console tests (`script/build-console.sh Router`).
 - **Docs:** Conversion references for the full audio generator trio (`00a`/`00b`/`00c`) sit next to the respective assets. VFS alignment + schema outline are tracked in `task/notes/packet_router_vfs_alignment.md`; AGENTS updates still pending.
 - **Metrics:** Baseline performance numbers to capture once router prototype stands up.
 

@@ -462,4 +462,165 @@ ValueFormat GetDefaultFormat(ValDevCls type) {
 	return fmt;
 }
 
+static bool LoadIntField(const Value& v, int& out) {
+	if (v.Is<int>()) {
+		out = v.Get<int>();
+		return true;
+	}
+	if (v.Is<int64>()) {
+		out = int(v.Get<int64>());
+		return true;
+	}
+	if (v.Is<double>()) {
+		out = int(v.Get<double>());
+		return true;
+	}
+	return false;
+}
+
+ValueMap StoreValDevTuple(const ValDevTuple& tuple) {
+	ValueMap result;
+	ValueArray channels;
+	for (int i = 0; i < tuple.GetCount(); i++) {
+		const ValDevTuple::Channel& ch = tuple[i];
+		ValueMap entry;
+		entry.Add("dev", int(ch.vd.dev));
+		entry.Add("val", int(ch.vd.val));
+		entry.Add("optional", ch.is_opt);
+		channels.Add(entry);
+	}
+	if (channels.GetCount())
+		result.Add("channels", channels);
+	return result;
+}
+
+bool LoadValDevTuple(const Value& value, ValDevTuple& out) {
+	if (IsNull(value)) {
+		out.Clear();
+		return true;
+	}
+	if (!value.Is<ValueMap>())
+		return false;
+	ValueMap map = value;
+	Value channels_value = RouterLookupValue(map, "channels");
+	if (IsNull(channels_value)) {
+		out.Clear();
+		return true;
+	}
+	if (!channels_value.Is<ValueArray>())
+		return false;
+	ValueArray channels = channels_value;
+	out.Clear();
+	for (int i = 0; i < channels.GetCount(); i++) {
+		const Value& entry_value = channels[i];
+		if (!entry_value.Is<ValueMap>())
+			return false;
+		ValueMap entry = entry_value;
+		Value dev_value = RouterLookupValue(entry, "dev");
+		Value val_value = RouterLookupValue(entry, "val");
+		Value opt_value = RouterLookupValue(entry, "optional");
+		int dev = 0;
+		int val = 0;
+		if (!LoadIntField(dev_value, dev) || !LoadIntField(val_value, val))
+			return false;
+		bool opt = opt_value.Is<bool>() ? opt_value.Get<bool>() : false;
+		out.Add(ValDevCls(DevCls(dev), ValCls(val)), opt);
+	}
+	return true;
+}
+
+ValueMap StoreRouterPortDesc(const RouterPortDesc& desc) {
+	ValueMap map;
+	map.Add("direction", desc.direction == RouterPortDesc::Direction::Source ? "source" : "sink");
+	map.Add("index", desc.index);
+	if (!IsNull(desc.name))
+		map.Add("name", desc.name);
+	if (desc.vd.IsValid())
+		map.Add("vd", StoreValDevTuple(desc.vd));
+	if (!desc.metadata.IsEmpty())
+		map.Add("metadata", Value(desc.metadata));
+	return map;
+}
+
+static bool LoadRouterDirection(const Value& value, RouterPortDesc::Direction& dir) {
+	if (value.Is<String>()) {
+		String s = ToLower((String)value);
+		if (s.StartsWith("src"))
+			dir = RouterPortDesc::Direction::Source;
+		else if (s.StartsWith("sink"))
+			dir = RouterPortDesc::Direction::Sink;
+		else
+			return false;
+		return true;
+	}
+	int v = 0;
+	if (!LoadIntField(value, v))
+		return false;
+	dir = v ? RouterPortDesc::Direction::Source : RouterPortDesc::Direction::Sink;
+	return true;
+}
+
+bool LoadRouterPortDesc(const Value& value, RouterPortDesc& out) {
+	if (!value.Is<ValueMap>())
+		return false;
+	ValueMap map = value;
+	Value dir_value = RouterLookupValue(map, "direction");
+	Value idx_value = RouterLookupValue(map, "index");
+	if (IsNull(dir_value) || IsNull(idx_value))
+		return false;
+	if (!LoadRouterDirection(dir_value, out.direction))
+		return false;
+	if (!LoadIntField(idx_value, out.index))
+		return false;
+	Value name_value = RouterLookupValue(map, "name");
+	if (name_value.Is<String>())
+		out.name = name_value;
+	Value vd_value = RouterLookupValue(map, "vd");
+	if (!IsNull(vd_value) && !LoadValDevTuple(vd_value, out.vd))
+		return false;
+	Value meta_value = RouterLookupValue(map, "metadata");
+	if (meta_value.Is<ValueMap>())
+		out.metadata = meta_value;
+	else
+		out.metadata.Clear();
+	return true;
+}
+
+ValueMap StoreRouterConnectionDesc(const RouterConnectionDesc& desc) {
+	ValueMap map;
+	map.Add("from_atom", desc.from_atom);
+	map.Add("from_port", desc.from_port);
+	map.Add("to_atom", desc.to_atom);
+	map.Add("to_port", desc.to_port);
+	if (!desc.metadata.IsEmpty())
+		map.Add("metadata", Value(desc.metadata));
+	return map;
+}
+
+bool LoadRouterConnectionDesc(const Value& value, RouterConnectionDesc& out) {
+	if (!value.Is<ValueMap>())
+		return false;
+	ValueMap map = value;
+	Value from_atom = RouterLookupValue(map, "from_atom");
+	Value to_atom = RouterLookupValue(map, "to_atom");
+	Value from_port = RouterLookupValue(map, "from_port");
+	Value to_port = RouterLookupValue(map, "to_port");
+	if (!from_atom.Is<String>() || !to_atom.Is<String>())
+		return false;
+	int from_idx = 0;
+	int to_idx = 0;
+	if (!LoadIntField(from_port, from_idx) || !LoadIntField(to_port, to_idx))
+		return false;
+	out.from_atom = from_atom;
+	out.to_atom = to_atom;
+	out.from_port = from_idx;
+	out.to_port = to_idx;
+	Value meta_value = RouterLookupValue(map, "metadata");
+	if (meta_value.Is<ValueMap>())
+		out.metadata = meta_value;
+	else
+		out.metadata.Clear();
+	return true;
+}
+
 END_UPP_NAMESPACE

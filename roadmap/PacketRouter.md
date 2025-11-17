@@ -37,7 +37,7 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
   - Manual builders (`ChainContext`, `LoopContext`) we can recast into prototype router builders before touching the parser.
   - A fast test harness (small audio pipeline) to prove router semantics without touching SDL/Gfx stacks.
 - **Plan:** Fork `upptst/Eon00` in the new branch, add router prototypes, and keep method 0/1/2 compiling until we complete the DSL migration.
-- **Status update:** Method 3 now shares RouterNetContext instances through a helper that connects loops via `LoopContext::ConnectSides`, so `00b/00c` mimic ScriptLoader’s side-link parity. Conversion guides for `00a/00b/00c` live next to the `.eon` assets for future rewrites.
+- **Status update:** Method 3 now shares RouterNetContext instances through a helper that connects loops via `LoopContext::ConnectSides`, so `00b/00c` mimic ScriptLoader’s side-link parity. Conversion guides for `00a/00b/00c` live next to the `.eon` assets for future rewrites. The helper moved into `upptst/EonRouterSupport` and `upptst/Eon02` method 3 runners (`02a`, `02b`, `02c`, `02d`, `02e`, `02f`, `02g`, `02l`, `02m`) now exercise the same router nets to cover single-loop audio, chain-linked side loops, and the fluidsynth/softinstru/fmsynth/coresynth+corefx/portmidi event/input bridges. `RouterPortDesc`/`RouterConnectionDesc` have been defined inside `uppsrc/Vfs/Ecs/Interface.h` so runtime-facing packages share a single descriptor format before serialization lands, complete with metadata + serialization helpers covered by the `upptst/Router` test harness.
 
 ---
 

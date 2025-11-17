@@ -21,6 +21,9 @@ Alignment Notes
    - Define concrete structs in `uppsrc/Vfs/Ecs/Interface.h` (Phase 1 deliverable).
    - Draft schema snippet in `task/PacketRouter.md` once prototype data is available.
    - Coordinate with IDE team to ensure new keys are reflected in inspectors before enabling router serialization by default.
+5. **Round-trip helpers + tests**
+   - `StoreValDevTuple/StoreRouterPortDesc/StoreRouterConnectionDesc` live in `uppsrc/Vfs/Ecs/Formats.{h,cpp}` with matching loaders so JSON writers and binary packers share a single conversion path.
+   - `upptst/Router` exercises the helpers plus the RouterNetContext metadata wiring to make sure vd + credit flags remain stable.
 
 ## Schema Outline (Draft)
 

@@ -62,6 +62,14 @@ The index can live alongside fragment files or be recomputed on load. For now we
   - `payload`: UTF‑8 JSON identical to what the text helpers emit.
 - This keeps binary and JSON artifacts in sync immediately while we flesh out the chunked/binary writer described below.
 
+## Chunked Overlay Writer
+- `.overlay.vfsch` files persist overlay indexes incrementally: the IDE builder calls `BuildRouterOverlayIndex(fragment, sink)` with a multiplexer that feeds both the in-memory index and an `OverlayIndexChunkWriter`.
+- File layout:
+  - Header: `magic = VFOC`, `version = 1`, reserved 16-bit field.
+  - Repeated chunks: `{ chunk_type = 'NODE', size, payload }`. Payload encodes the logical path, an array of `SourceRef` entries, and the metadata JSON blob (serialized as a compact string). Unknown chunk types are skipped by size so future extensions remain forward compatible.
+ - Loader: `VfsLoadOverlayIndexChunked` rebuilds a `VfsOverlayIndex` directly from the chunk file and is now the first artifact IDE attempts to read/caches; binary/json fallbacks remain for older snapshots.
+- Benefit: overlay metadata (router descriptors today) streams to disk without rewalking the fragment tree. Builders produce JSON, `.vfsbin`, and `.vfsch` in a single traversal so tooling can diff/check them independently.
+
 ## Backward Compatibility
 Implement `VfsLoadLegacy` to parse previous binary/JSON dumps, transform them into the new fragment structure, and mark nodes as coming from a single-source fragment.
 

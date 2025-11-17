@@ -27,6 +27,10 @@ static constexpr dword MakeMagic(char a, char b, char c, char d) {
 
 static constexpr dword kFragmentBinaryMagic = MakeMagic('V', 'F', 'S', 'F');
 static constexpr dword kOverlayBinaryMagic = MakeMagic('V', 'F', 'O', 'I');
+static constexpr dword kOverlayChunkMagic = MakeMagic('V', 'F', 'O', 'C');
+static constexpr dword kOverlayChunkNodeTag = MakeMagic('N', 'O', 'D', 'E');
+static constexpr dword kOverlayChunkUnknownTag = MakeMagic('S', 'K', 'I', 'P');
+static constexpr dword kOverlayChunkStringLimit = 1 << 20; // 1 MiB guard per string payload
 
 struct FragmentDocument : Moveable<FragmentDocument> {
 	int      version = kVfsFragmentVersion;
@@ -79,7 +83,7 @@ static String AppendOverlaySegment(const String& base, const String& id) {
 	return base + "|" + id;
 }
 
-static void CollectRouterOverlayEntries(const VfsValue& node, const String& current_path, VfsOverlayIndex& index) {
+static void CollectRouterOverlayEntries(const VfsValue& node, const String& current_path, OverlayIndexSink& sink) {
 	String path = current_path;
 	if (!node.id.IsEmpty())
 		path = AppendOverlaySegment(current_path, node.id);
@@ -90,7 +94,7 @@ static void CollectRouterOverlayEntries(const VfsValue& node, const String& curr
 		router_value = RouterLookupValue(map, "router");
 	}
 	if (router_value.Is<ValueMap>()) {
-		OverlayNodeRecord& rec = index.nodes.Add();
+		OverlayNodeRecord rec;
 		rec.path = NormalizeOverlayPath(path);
 		SourceRef ref;
 		ref.pkg_hash = node.pkg_hash;
@@ -98,10 +102,11 @@ static void CollectRouterOverlayEntries(const VfsValue& node, const String& curr
 		ref.local_path = rec.path;
 		rec.sources.Add(ref);
 		rec.metadata.Set("router", router_value);
+		sink.AddRecord(rec);
 	}
 
 	for (const VfsValue& child : node.sub)
-		CollectRouterOverlayEntries(child, path, index);
+		CollectRouterOverlayEntries(child, path, sink);
 }
 
 static void PropagateFragmentHashes(VfsValue& node, hash_t pkg_hash, hash_t file_hash) {
@@ -197,9 +202,150 @@ static bool LoadBinaryEnvelope(const String& path, dword expected_magic, int exp
 
 } // namespace
 
+static void WriteChunkString(Stream& out, const String& value) {
+	uint32 len = (uint32)value.GetCount();
+	out.Put32le(len);
+	if (len)
+		out.Put(~value, len);
+}
+
+static void WriteChunkSources(Stream& out, const Vector<SourceRef>& sources) {
+	out.Put32le((uint32)sources.GetCount());
+	for (const SourceRef& src : sources) {
+		out.Put64le(src.pkg_hash);
+		out.Put64le(src.file_hash);
+		out.Put32le(src.priority);
+		out.Put32le((uint32)src.flags);
+		WriteChunkString(out, src.local_path);
+	}
+}
+
+static void WriteChunkMetadata(Stream& out, const ValueMap& metadata) {
+	String payload;
+	if (!metadata.IsEmpty()) {
+		Value stored = metadata;
+		payload = StoreAsString(stored);
+	}
+	WriteChunkString(out, payload);
+}
+
+OverlayIndexChunkWriter::OverlayIndexChunkWriter() {}
+
+OverlayIndexChunkWriter::~OverlayIndexChunkWriter() {
+	CloseStream();
+}
+
+void OverlayIndexChunkWriter::CloseStream() {
+	if (stream) {
+		stream->Close();
+		stream.Clear();
+	}
+}
+
+bool OverlayIndexChunkWriter::Begin(const String& path) {
+	CloseStream();
+	error = false;
+	if (!RealizePath(GetFileFolder(path)))
+		return false;
+	stream.Create<FileOut>(path);
+	if (!stream || !stream->IsOpen())
+		return false;
+	stream->Put32le(kOverlayChunkMagic);
+	stream->Put16le((uint16)kVfsOverlayIndexVersion);
+	stream->Put16le(0);
+	return stream->IsOK();
+}
+
+bool OverlayIndexChunkWriter::Finish() {
+	if (!stream)
+		return false;
+	stream->Close();
+	bool ok = stream->IsOK() && !error;
+	stream.Clear();
+	return ok;
+}
+
+bool OverlayIndexChunkWriter::IsOpen() const {
+	return stream && stream->IsOpen();
+}
+
+void OverlayIndexChunkWriter::AddRecord(const OverlayNodeRecord& record) {
+	if (!stream || error)
+		return;
+	int64 chunk_start = stream->GetPos();
+	stream->Put32le(kOverlayChunkNodeTag);
+	stream->Put32le(0); // placeholder for size
+	WriteChunkString(*stream, record.path);
+	WriteChunkSources(*stream, record.sources);
+	WriteChunkMetadata(*stream, record.metadata);
+	int64 chunk_end = stream->GetPos();
+	dword chunk_size = (dword)(chunk_end - chunk_start - 8);
+	stream->Seek(chunk_start + 4);
+	stream->Put32le(chunk_size);
+	stream->Seek(chunk_end);
+	if (!stream->IsOK())
+		error = true;
+}
+
+static bool ReadChunkString(Stream& in, String& out) {
+	uint32 len = in.Get32le();
+	if (len > kOverlayChunkStringLimit)
+		return false;
+	String data = in.Get((int)len);
+	if (data.GetLength() != (int)len)
+		return false;
+	out = pick(data);
+	return true;
+}
+
+static bool ReadChunkSources(Stream& in, Vector<SourceRef>& out_sources) {
+	uint32 count = in.Get32le();
+	if (count > 4096)
+		return false;
+	out_sources.SetCount((int)count);
+	for (uint32 i = 0; i < count; i++) {
+		SourceRef& ref = out_sources[(int)i];
+		ref.pkg_hash = in.Get64le();
+		ref.file_hash = in.Get64le();
+		ref.priority = in.Get32le();
+		ref.flags = (dword)in.Get32le();
+		String local_path;
+		if (!ReadChunkString(in, local_path))
+			return false;
+		ref.local_path = pick(local_path);
+	}
+	return true;
+}
+
+static bool ReadChunkMetadata(Stream& in, ValueMap& metadata) {
+	String payload;
+	if (!ReadChunkString(in, payload))
+		return false;
+	if (payload.IsEmpty()) {
+		metadata.Clear();
+		return true;
+	}
+	try {
+		Value restored;
+		if (!LoadFromString(restored, payload))
+			return false;
+		if (!restored.Is<ValueMap>())
+			return false;
+		metadata = restored;
+	}
+	catch (...) {
+		return false;
+	}
+	return true;
+}
+
+void BuildRouterOverlayIndex(const VfsValue& fragment, OverlayIndexSink& sink) {
+	CollectRouterOverlayEntries(fragment, String(), sink);
+}
+
 void BuildRouterOverlayIndex(const VfsValue& fragment, VfsOverlayIndex& out_index) {
-	out_index.Clear();
-	CollectRouterOverlayEntries(fragment, String(), out_index);
+	OverlayIndexCollectorSink collector(out_index);
+	BuildRouterOverlayIndex(fragment, collector);
 }
 
 bool VfsSaveFragment(const String& path, const VfsValue& fragment) {
@@ -334,6 +480,70 @@ bool VfsLoadOverlayIndexBinary(const String& path, VfsOverlayIndex& out_index) {
 	if (!LoadFromJson(doc, ~payload))
 		return false;
 	AssignIndexFromDocument(doc, out_index);
+	return true;
+}
+
+bool VfsSaveOverlayIndexChunked(const String& path, const VfsValue& fragment) {
+	OverlayIndexChunkWriter writer;
+	if (!writer.Begin(path))
+		return false;
+	BuildRouterOverlayIndex(fragment, writer);
+	return writer.Finish();
+}
+
+bool VfsLoadOverlayIndexChunked(const String& path, VfsOverlayIndex& out_index) {
+	out_index.Clear();
+	FileIn in(path);
+	if (!in.IsOpen()) {
+		RLOG("VfsLoadOverlayIndexChunked: unable to open '" << path << "'");
+		return false;
+	}
+	dword magic = in.Get32le();
+	if (magic != kOverlayChunkMagic) {
+		RLOG("VfsLoadOverlayIndexChunked: unexpected magic in '" << path << "'");
+		return false;
+	}
+	int version = in.Get16le();
+	in.Get16le(); // reserved
+	if (version != 0 && version != kVfsOverlayIndexVersion) {
+		RLOG("VfsLoadOverlayIndexChunked: unsupported version " << version << " for '" << path << "'");
+		return false;
+	}
+	while (!in.IsEof() && in.IsOpen()) {
+		int c = in.Peek();
+		if (c < 0)
+			break;
+		dword chunk_type = in.Get32le();
+		dword chunk_size = in.Get32le();
+		int64 chunk_start = in.GetPos();
+		if (chunk_type == kOverlayChunkNodeTag) {
+			OverlayNodeRecord rec;
+			if (!ReadChunkString(in, rec.path)) {
+				RLOG("VfsLoadOverlayIndexChunked: failed to read path chunk in '" << path << "'");
+				return false;
+			}
+			if (!ReadChunkSources(in, rec.sources)) {
+				RLOG("VfsLoadOverlayIndexChunked: failed to read sources for '" << path << "'");
+				return false;
+			}
+			if (!ReadChunkMetadata(in, rec.metadata)) {
+				RLOG("VfsLoadOverlayIndexChunked: failed to read metadata for '" << path << "'");
+				return false;
+			}
+			out_index.nodes.Add(pick(rec));
+		}
+		else {
+			if (chunk_size > 0x2000000) {
+				RLOG("VfsLoadOverlayIndexChunked: chunk too large (" << chunk_size << ") in '" << path << "'");
+				return false;
+			}
+			in.Seek(chunk_start + chunk_size);
+		}
+		int64 chunk_end = in.GetPos();
+		int64 consumed = chunk_end - chunk_start;
+		if (consumed < (int64)chunk_size)
+			in.Seek(chunk_start + chunk_size);
+	}
 	return true;
 }
 

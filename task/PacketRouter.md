@@ -98,6 +98,8 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - [x] Thread the new binary fragment/index helpers into actual IDE overlay builders so router metadata lands alongside legacy dumps by default.
 - [x] Add Router console coverage that writes a fragment + overlay index pair to disk, regenerates the overlay via builder code, and confirms binary/JSON outputs stay in sync.
 - [x] Extend IDE overlay panes (MetaEnvTree/MetaCtrl) with richer router inspectors once chunked writers ship, using the cached overlay metadata instead of raw fragment loads.
+- [x] Integrate `BuildRouterOverlayIndex` with the new chunked/binary writers so IDE builders stream router metadata into `.overlay.vfsch` files without re-walking the fragment tree.
+- [x] Surface per-connection router metadata (fan-out hints, pool shares, flow-control JSON) in MetaCtrl overlay inspectors so IDE users can act on the stored hints.
 - [x] Stand up atom+router regression tests that stress multi-port fan-out (former side-connection cases) and confirm router credits emulate the legacy limited packet pool when atoms skip sends or burst onto multiple ports (see `upptst/RouterFanout` + `upptst/RouterPool` console packages).
 
 ## Dependencies & Collaboration

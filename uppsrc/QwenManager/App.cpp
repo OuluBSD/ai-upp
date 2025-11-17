@@ -34,6 +34,9 @@ QwenManager::QwenManager() {
 	projects.WhenCursor = THISBACK(OnProject);
 	projects.WhenBar = [=](Bar& menu) { OnProjectBar(menu); };
 
+	server_vsplit.Vert(server_list, server_bottom);
+	prj_vsplit.Vert(prj_list, prj_bottom);
+	
 	SetView(VIEW_QWEN_PROJECT);
 	statusbar.Set("Ready");
 	
@@ -45,12 +48,13 @@ void QwenManager::OnMenuBar(Bar& b) {
 		b.Add(t_("Exit"), [this]{this->Close();});
 	});
 	b.Sub("View", [this](Bar& b) {
-		
+		b.Add("Detailed server-list", THISBACK1(SetView, VIEW_DETAILED_SERVERLIST)).Key(K_CTRL|K_F1);
+		b.Add("Detailed pproject-list", THISBACK1(SetView, VIEW_DETAILED_PROJECTLIST)).Key(K_CTRL|K_F2);
+		b.Add("Project view", THISBACK1(SetView, VIEW_QWEN_PROJECT)).Key(K_CTRL|K_F3);
 	});
 	b.Sub("Help", [this](Bar& b) {
 		
 	});
-	
 }
 
 void QwenManager::SetView(int new_view) {
@@ -62,7 +66,15 @@ void QwenManager::SetView(int new_view) {
 		active_view = 0;
 	}
 	
-	if(new_view == VIEW_QWEN_PROJECT) {
+	if (new_view == VIEW_DETAILED_SERVERLIST) {
+		mainarea.Add(server_vsplit.SizePos());
+		active_view = &server_vsplit;
+	}
+	else if (new_view == VIEW_DETAILED_PROJECTLIST) {
+		mainarea.Add(prj_vsplit.SizePos());
+		active_view = &prj_vsplit;
+	}
+	else if (new_view == VIEW_QWEN_PROJECT) {
 		QwenManagerState& state = QwenManagerState::Global();
 		if (projects.IsCursor()) {
 			int i = projects.Get("IDX");
@@ -150,7 +162,6 @@ void QwenManager::OnServer() {
 		statusbar.Set("Server view selected");
 	}
 
-	SetView(VIEW_SERVER);
 	PostCallback(THISBACK(Data));
 }
 

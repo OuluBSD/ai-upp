@@ -15,11 +15,22 @@ class QwenManager : public TopWindow {
 	// Left vertical splitter area
 	ArrayCtrl servers, projects;
 
-	// View 1: horizontal split of qwen-view and ssh terminal
+	// View 1: detailed serverlist
+	Splitter server_vsplit;
+	ArrayCtrl server_list;
+	Ctrl server_bottom;
+	
+	// View 2: detailed project list
+	Splitter prj_vsplit;
+	ArrayCtrl prj_list;
+	Ctrl prj_bottom;
+	
+	// View 3: horizontal split of qwen-view and ssh terminal
 	ArrayMap<int64,QwenProjectView> qwen_views; // based on QwenProject::uniq
 
 	enum {
-		VIEW_SERVER,
+		VIEW_DETAILED_SERVERLIST,
+		VIEW_DETAILED_PROJECTLIST,
 		VIEW_QWEN_PROJECT,
 	};
 

@@ -15,7 +15,7 @@ The actual implementation of this mapping will take place in the following stdma
 
 1. Set up project structure for mapping documentation - ✅ COMPLETED
 2. Analyze the existing U++ Core package API - ✅ COMPLETED
-3. Analyze the existing U++ Draw package API - 🔄 IN PROGRESS
+3. Analyze the existing U++ Draw package API - ✅ COMPLETED
 4. Analyze the existing U++ CtrlCore package API - 📋 TODO
 5. Analyze the existing U++ CtrlLib package API - 📋 TODO
 6. Study stdsrc implementation for existing mappings - 📋 TODO

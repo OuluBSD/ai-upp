@@ -77,7 +77,9 @@ private:
 
 class RouterNetContext {
 public:
-	explicit RouterNetContext(String loop_path) : loop_path(std::move(loop_path)) {}
+	explicit RouterNetContext(String loop_path) : loop_path(std::move(loop_path)) {
+		ResetFlowControlDefaults();
+	}
 	RouterAtomSpec& AddAtom(const String& id, const String& action) {
 		if (atom_index.Find(id) >= 0)
 			throw Exc(Format("RouterNetContext: duplicate atom id '%s'", id));
@@ -103,11 +105,24 @@ public:
 		return connections;
 	}
 
+	ValueMap& FlowControlMetadata() {
+		return flow_control;
+	}
+
+	const ValueMap& FlowControlMetadata() const {
+		return flow_control;
+	}
+
+	void SetFlowControlPolicy(const String& policy, int credits_per_port = 1) {
+		flow_control.Set("policy", policy);
+		flow_control.Set("credits_per_port", credits_per_port);
+	}
+
 	ValueMap GetRouterMetadata() const {
 		return StoreRouterSchema(BuildRouterSchema());
 	}
 
-	void Connect(const String& src_atom, int src_port, const String& dst_atom, int dst_port) {
+	RouterConnectionDesc& Connect(const String& src_atom, int src_port, const String& dst_atom, int dst_port) {
 		const RouterAtomSpec* src = FindAtom(src_atom);
 		const RouterAtomSpec* dst = FindAtom(dst_atom);
 		if (!src)
@@ -125,6 +140,7 @@ public:
 		conn.to_port = dst_port;
 		conn.metadata.Set("policy", String("legacy-loop"));
 		conn.metadata.Set("credits", 1);
+		return conn;
 	}
 
 	Eon::LoopContext* AppendToChain(Engine& eng, Eon::ChainContext& cc, bool make_primary_links = true) const {
@@ -238,6 +254,7 @@ private:
 	Array<RouterAtomSpec> atoms;
 	Index<String> atom_index;
 	Vector<RouterConnectionDesc> connections;
+	ValueMap flow_control;
 
 	RouterSchema BuildRouterSchema() const {
 		RouterSchema schema;
@@ -250,6 +267,8 @@ private:
 		}
 		for (const RouterConnectionDesc& conn : connections)
 			schema.connections.Add(conn);
+		if (!flow_control.IsEmpty())
+			schema.flow_control = flow_control;
 		if (schema.flow_control.IsEmpty()) {
 			schema.flow_control.Set("policy", String("legacy-loop"));
 			schema.flow_control.Set("credits_per_port", 1);
@@ -266,6 +285,12 @@ private:
 			loop_value = ValueMap(loop_space.value);
 		loop_value.Set("router", router_value);
 		loop_space.value = loop_value;
+	}
+private:
+	void ResetFlowControlDefaults() {
+		flow_control.Clear();
+		flow_control.Set("policy", String("legacy-loop"));
+		flow_control.Set("credits_per_port", 1);
 	}
 };
 

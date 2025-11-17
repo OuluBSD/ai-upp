@@ -79,6 +79,7 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - **Storage:** JSON fragment helpers (`VfsSaveFragment` / `VfsLoadFragment` in `uppsrc/Vfs/Storage`) now persist router metadata appended to loop nodes, and the Router console suite exercises a fragment disk round-trip.
 - **Overlay index:** `VfsOverlayIndex` plus `VfsSaveOverlayIndex`/`VfsLoadOverlayIndex` persist SourceRef provenance alongside per-node metadata (including `router.*` maps) so IDE/Env tooling can inspect router graphs without loading every fragment; exercised by `upptst/Router`.
 - **Binary parity:** `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary` provide a headerized binary wrapper around the same schema so routers can ship lightweight artifacts; new Router console tests cover both paths along with a `gdb --args bin/Router` run.
+- **Router regression cases:** Dedicated console packages `upptst/RouterFanout` (multi-port fan-out metadata) and `upptst/RouterPool` (limited packet-pool credit hints) exercise the RouterNetContext harness beyond the base serialization smoke tests.
 - **IDE storage integration:** Package stores now invoke `VfsSaveFragment*`/`VfsSaveOverlayIndex*` so every `Meta.bin` update emits JSON + binary artifacts automatically, and the IDE overlay views load router metadata straight from those indexes before appending it to the inspectors (MetaEnvTree now displays the `router` stanza next to the code snippet).
 - **Docs:** Conversion references for the full audio generator trio (`00a`/`00b`/`00c`) sit next to the respective assets. VFS alignment + schema outline are tracked in `task/notes/packet_router_vfs_alignment.md`; AGENTS updates still pending.
 - **Metrics:** Baseline performance numbers to capture once router prototype stands up.
@@ -95,6 +96,7 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - [x] Thread the new binary fragment/index helpers into actual IDE overlay builders so router metadata lands alongside legacy dumps by default.
 - [ ] Add Router console coverage that writes a fragment + overlay index pair to disk, regenerates the overlay via builder code, and confirms binary/JSON outputs stay in sync.
 - [ ] Extend IDE overlay panes (MetaEnvTree/MetaCtrl) with richer router inspectors once chunked writers ship, using the cached overlay metadata instead of raw fragment loads.
+- [x] Stand up atom+router regression tests that stress multi-port fan-out (former side-connection cases) and confirm router credits emulate the legacy limited packet pool when atoms skip sends or burst onto multiple ports (see `upptst/RouterFanout` + `upptst/RouterPool` console packages).
 
 ## Dependencies & Collaboration
 - **Eon Core** drives runtime + DSL refactor, owns router prototype and Atom APIs.

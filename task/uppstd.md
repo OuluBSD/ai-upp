@@ -142,11 +142,11 @@ class std::vector {
 - [x] Create Core time/date mappings (Time, Date, etc.)
 
 ### Phase 2: Draw Package Analysis
-- [ ] Visit all Draw package files to document U++ declarations
-- [ ] Compare Draw package declarations with stdsrc implementations
-- [ ] Create Draw type mappings (Image, RGBA, etc.)
-- [ ] Create Draw operation mappings (DrawRect, DrawLine, etc.)
-- [ ] Create Draw painting mappings (Painting, etc.)
+- [x] Visit all Draw package files to document U++ declarations
+- [x] Compare Draw package declarations with stdsrc implementations
+- [x] Create Draw type mappings (Image, RGBA, etc.)
+- [x] Create Draw operation mappings (DrawRect, DrawLine, etc.)
+- [x] Create Draw painting mappings (Painting, etc.)
 
 ### Phase 3: CtrlCore Package Analysis
 - [ ] Visit all CtrlCore package files to document U++ declarations

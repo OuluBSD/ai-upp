@@ -18,12 +18,14 @@ Progress
 - ✅ ECS runtime (Atom/Component/Engine/etc.) moved from Core2 into `Vfs/Ecs` package.
 - ✅ Legacy `Vfs2` runtime helpers split across `Vfs/Meta`, `Vfs/Dataset`, `Vfs/Analysis`, `Vfs/Solver`, with `Vfs/Runtime` as the umbrella.
 - ✅ Overlay view logic implemented leveraging `SourceRef` and precedence provider interfaces.
+- ✅ Router descriptor metadata + Value conversions implemented in `Vfs/Ecs/Formats.{h,cpp}` with coverage under `upptst/Router`.
+- ✅ Router schema helpers now live in `Vfs/Storage`, `RouterNetContext` stamps the resulting `router.*` ValueMap into loop nodes, and the Router console suite covers schema round-trips so IDE/storage consumers can read port + connection metadata.
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
 2) Audit Core2 and downstream packages to include the new `Vfs` headers (`Vfs/Core`, `Vfs/Ecs`) directly and prune compatibility stubs.
 3) ~~Implement overlay view logic leveraging `SourceRef` and precedence provider interfaces.~~ (Completed)
-4) Implement JSON serialization in `Vfs/Storage` and add round-trip tests.
+4) Implement full JSON serialization in `Vfs/Storage` (fragments + overlay index) and hook the router metadata writers/loaders so persisted fragments retain the schema; extend the Router harness once fragment round-trips exist.
 5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs.
 
 Notes

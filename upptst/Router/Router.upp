@@ -1,0 +1,13 @@
+uses
+	Core,
+	Eon,
+	EonRouterSupport,
+	Vfs/Ecs;
+
+file
+	AGENTS.md,
+	RouterTest.cpp;
+
+mainconfig
+	"Release" = "AI",
+	"Debug" = "AI DEBUG";

@@ -3,6 +3,28 @@
 
 NAMESPACE_UPP
 
+namespace {
+
+RouterPortDesc MakeRouterPortDesc(RouterPortDesc::Direction dir, int index, const ValDevTuple::Channel& ch) {
+	RouterPortDesc desc;
+	desc.direction = dir;
+	desc.index = index;
+	desc.vd.Clear();
+	desc.vd.Add(ch.vd, ch.is_opt);
+	desc.metadata.Set("optional", ch.is_opt);
+	desc.metadata.Set("vd_name", ch.vd.GetName());
+	desc.metadata.Set("vd", ch.vd.ToString());
+	return desc;
+}
+
+void BuildRouterPortList(Vector<RouterPortDesc>& out, RouterPortDesc::Direction dir, const ValDevTuple& tuple) {
+	out.SetCount(0);
+	for (int i = 0; i < tuple.GetCount(); i++)
+		out.Add(MakeRouterPortDesc(dir, i, tuple[i]));
+}
+
+}
+
 // incomplete Plan dtor in header
 AtomBase::CustomerData::CustomerData() : cfg(gen) {}
 AtomBase::CustomerData::~CustomerData() {}
@@ -48,10 +70,16 @@ String AtomBase::ToString() const {
 
 void AtomBase::SetInterface(const IfaceConnTuple& iface) {
 	this->iface = iface;
+	BuildRouterPortList(router_ports[0], RouterPortDesc::Direction::Sink, this->iface.type.iface.sink);
+	BuildRouterPortList(router_ports[1], RouterPortDesc::Direction::Source, this->iface.type.iface.src);
 }
 
 const IfaceConnTuple& AtomBase::GetInterface() const {
 	return iface;
+}
+
+const Vector<RouterPortDesc>& AtomBase::GetRouterPorts(RouterPortDesc::Direction dir) const {
+	return router_ports[dir == RouterPortDesc::Direction::Source];
 }
 
 void AtomBase::SetPrimarySinkQueueSize(int i) {
@@ -152,4 +180,3 @@ VfsValue* AtomBase::GetSpace() {
 
 
 END_UPP_NAMESPACE
-

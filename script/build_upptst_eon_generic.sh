@@ -90,6 +90,7 @@ if [ "$enable_debug_rt" -eq 1 ]; then
 	final_flags=$(append_flag "$final_flags" "DEBUG_RT")
 fi
 
+mkdir -p bin
 if [ -n "$final_flags" ]; then
 	umk ./upptst,./uppsrc "$target" ~/.config/u++/theide/CLANG.bm "$build_flags" "+$final_flags" "bin/$target"
 else

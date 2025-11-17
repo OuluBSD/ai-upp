@@ -1,18 +1,12 @@
-#ifndef _Eon00_RouterNet_h_
-#define _Eon00_RouterNet_h_
+#ifndef _EonRouterSupport_EonRouterSupport_h_
+#define _EonRouterSupport_EonRouterSupport_h_
 
-#include "Eon00.h"
+#include <Shell/Shell.h>
+#include <Eon/Core/Context.h>
+#include <Vfs/Ecs/Interface.h>
+#include <Vfs/Storage/VfsStorage.h>
 
 NAMESPACE_UPP
-
-struct RouterPortDesc : Moveable<RouterPortDesc> {
-	enum class Direction { Sink, Source };
-
-	Direction direction = Direction::Sink;
-	String    name;
-	int       index = -1;
-	ValueMap  metadata;
-};
 
 struct RouterAtomSpec : Moveable<RouterAtomSpec> {
 	String id;
@@ -21,6 +15,9 @@ struct RouterAtomSpec : Moveable<RouterAtomSpec> {
 	Vector<RouterPortDesc> ports;
 	int next_sink_index = 0;
 	int next_source_index = 0;
+	mutable AtomTypeCls atom_type;
+	mutable LinkTypeCls link_type;
+	mutable bool type_resolved = false;
 
 	RouterPortDesc& AddPort(RouterPortDesc::Direction dir, const String& name) {
 		RouterPortDesc& port = ports.Add();
@@ -30,6 +27,9 @@ struct RouterAtomSpec : Moveable<RouterAtomSpec> {
 			port.index = next_source_index++;
 		else
 			port.index = next_sink_index++;
+		if (!EnsureTypeResolved())
+			throw Exc(Format("RouterAtomSpec: unknown action '%s' while describing port '%s'", action, name));
+		ApplyPortTraits(port);
 		return port;
 	}
 
@@ -39,13 +39,40 @@ struct RouterAtomSpec : Moveable<RouterAtomSpec> {
 				return &port;
 		return nullptr;
 	}
-};
 
-struct RouterConnectionDesc : Moveable<RouterConnectionDesc> {
-	String src_atom;
-	int    src_port = -1;
-	String dst_atom;
-	int    dst_port = -1;
+	bool EnsureTypeResolved() const {
+		if (type_resolved)
+			return true;
+		AtomTypeCls resolved_atom;
+		LinkTypeCls resolved_link;
+		if (!Eon::ChainContext::ResolveAction(action, resolved_atom, resolved_link))
+			return false;
+		atom_type = resolved_atom;
+		link_type = resolved_link;
+		type_resolved = true;
+		return true;
+	}
+
+private:
+	void ApplyPortTraits(RouterPortDesc& port) const {
+		const ValDevTuple::Channel* ch = ResolveChannel(port.direction, port.index);
+		if (!ch)
+			return;
+		port.vd.Clear();
+		port.vd.Add(ch->vd, ch->is_opt);
+		port.metadata.Set("optional", ch->is_opt);
+		port.metadata.Set("vd", ch->vd.ToString());
+		port.metadata.Set("vd_name", ch->vd.GetName());
+	}
+
+	const ValDevTuple::Channel* ResolveChannel(RouterPortDesc::Direction dir, int port_index) const {
+		if (!type_resolved)
+			return nullptr;
+		const ValDevTuple& tuple = dir == RouterPortDesc::Direction::Source ? atom_type.iface.src : atom_type.iface.sink;
+		if (port_index < 0 || port_index >= tuple.GetCount())
+			return nullptr;
+		return &tuple[port_index];
+	}
 };
 
 class RouterNetContext {
@@ -68,6 +95,18 @@ public:
 		return atom->AddPort(dir, name);
 	}
 
+	const RouterAtomSpec* GetAtom(const String& id) const {
+		return FindAtom(id);
+	}
+
+	const Vector<RouterConnectionDesc>& GetConnections() const {
+		return connections;
+	}
+
+	ValueMap GetRouterMetadata() const {
+		return StoreRouterSchema(BuildRouterSchema());
+	}
+
 	void Connect(const String& src_atom, int src_port, const String& dst_atom, int dst_port) {
 		const RouterAtomSpec* src = FindAtom(src_atom);
 		const RouterAtomSpec* dst = FindAtom(dst_atom);
@@ -80,13 +119,15 @@ public:
 		if (!dst->FindPort(RouterPortDesc::Direction::Sink, dst_port))
 			throw Exc(Format("RouterNetContext: atom '%s' has no sink port #%d", dst_atom, dst_port));
 		RouterConnectionDesc& conn = connections.Add();
-		conn.src_atom = src_atom;
-		conn.src_port = src_port;
-		conn.dst_atom = dst_atom;
-		conn.dst_port = dst_port;
+		conn.from_atom = src_atom;
+		conn.from_port = src_port;
+		conn.to_atom = dst_atom;
+		conn.to_port = dst_port;
+		conn.metadata.Set("policy", String("legacy-loop"));
+		conn.metadata.Set("credits", 1);
 	}
 
-	Eon::LoopContext* AppendToChain(Engine& eng, Eon::ChainContext& cc, bool make_primary_links) const {
+	Eon::LoopContext* AppendToChain(Engine& eng, Eon::ChainContext& cc, bool make_primary_links = true) const {
 		using namespace Eon;
 
 		VfsValue* loop_space = EnsureLoopPath(eng);
@@ -103,6 +144,7 @@ public:
 			LOG("RouterNetContext: AddLoop failed while appending '" << loop_path << "'");
 			return nullptr;
 		}
+		StoreRouterMetadata(*loop_space);
 		return &loop;
 	}
 
@@ -137,11 +179,17 @@ public:
 			for (const RouterPortDesc& port : atom.ports) {
 				const char* dir = port.direction == RouterPortDesc::Direction::Source ? "src" : "sink";
 				String label = port.name.IsEmpty() ? String("(unnamed)") : port.name;
-				LOG(Format("    %s #%d %s", dir, port.index, label));
+				String vd = port.vd.IsValid() ? port.vd.ToString() : String("vd: ?");
+				LOG(Format("    %s #%d %s [%s]", dir, port.index, label, vd));
+				if (!port.metadata.IsEmpty())
+					LOG("      meta: " << AsJSON(Value(port.metadata)));
 			}
 		}
-		for (const RouterConnectionDesc& conn : connections)
-			LOG(Format("  connect %s:%d -> %s:%d", conn.src_atom, conn.src_port, conn.dst_atom, conn.dst_port));
+		for (const RouterConnectionDesc& conn : connections) {
+			LOG(Format("  connect %s:%d -> %s:%d", conn.from_atom, conn.from_port, conn.to_atom, conn.to_port));
+			if (!conn.metadata.IsEmpty())
+				LOG("      meta: " << AsJSON(Value(conn.metadata)));
+		}
 	}
 
 private:
@@ -153,14 +201,13 @@ private:
 			ChainContext::AtomSpec& spec = atom_specs.Add();
 			spec.idx = i;
 			spec.action = net_atom.action;
-			spec.args = net_atom.args;
+			for (int j = 0; j < net_atom.args.GetCount(); j++)
+				spec.args.GetAdd(net_atom.args.GetKey(j)) = net_atom.args[j];
 
-			AtomTypeCls atom;
-			LinkTypeCls link;
-			if (!ChainContext::ResolveAction(spec.action, atom, link))
+			if (!net_atom.EnsureTypeResolved())
 				throw Exc(Format("RouterNetContext: unknown atom action '%s'", spec.action));
-			spec.iface.Realize(atom);
-			spec.link = link;
+			spec.iface.Realize(net_atom.atom_type);
+			spec.link = net_atom.link_type;
 		}
 	}
 
@@ -191,6 +238,35 @@ private:
 	Vector<RouterAtomSpec> atoms;
 	Index<String> atom_index;
 	Vector<RouterConnectionDesc> connections;
+
+	RouterSchema BuildRouterSchema() const {
+		RouterSchema schema;
+		for (const RouterAtomSpec& atom : atoms) {
+			for (const RouterPortDesc& port : atom.ports) {
+				RouterPortEntry& entry = schema.ports.Add();
+				entry.atom_id = atom.id;
+				entry.desc = port;
+			}
+		}
+		for (const RouterConnectionDesc& conn : connections)
+			schema.connections.Add(conn);
+		if (schema.flow_control.IsEmpty()) {
+			schema.flow_control.Set("policy", String("legacy-loop"));
+			schema.flow_control.Set("credits_per_port", 1);
+		}
+		return schema;
+	}
+
+	void StoreRouterMetadata(VfsValue& loop_space) const {
+		ValueMap router_value = StoreRouterSchema(BuildRouterSchema());
+		if (router_value.IsEmpty())
+			return;
+		ValueMap loop_value;
+		if (loop_space.value.Is<ValueMap>())
+			loop_value = ValueMap(loop_space.value);
+		loop_value.Set("router", router_value);
+		loop_space.value = loop_value;
+	}
 };
 
 inline bool BuildRouterChain(Engine& eng, const Vector<RouterNetContext*>& nets, const String& log_label = String()) {

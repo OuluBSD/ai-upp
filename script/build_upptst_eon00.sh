@@ -9,4 +9,6 @@ if [ $status -ne 0 ]; then
 	exit $status
 fi
 
-cp upptst/Eon00/*.eon bin/
+if ls upptst/Eon00/*.eon >/dev/null 2>&1; then
+	cp upptst/Eon00/*.eon bin/
+fi

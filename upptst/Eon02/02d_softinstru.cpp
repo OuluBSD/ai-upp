@@ -1,4 +1,5 @@
 #include "Eon02.h"
+#include <EonRouterSupport/EonRouterSupport.h>
 
 /*
 machine midi.app:
@@ -26,6 +27,44 @@ void Run02dSoftinstru(Engine& eng, int method) {
 	sys->SetEagerChainBuild(true);
 
 	switch(method) {
+	case 3: {
+		RouterNetContext event("midi.app.program.event");
+		auto& event_customer = event.AddAtom("customer_event0", "center.customer");
+		int event_customer_src = event.AddPort(event_customer.id, RouterPortDesc::Direction::Source, "main").index;
+
+		auto& reader = event.AddAtom("reader0", "midi.file.reader");
+		reader.args.GetAdd("filepath") = ShareDirFile("midi/saturday_show.mid");
+		reader.args.GetAdd("close_machine") = true;
+		reader.args.GetAdd("loop") = String("input");
+		int reader_sink = event.AddPort(reader.id, RouterPortDesc::Direction::Sink, "events.in").index;
+		int reader_src = event.AddPort(reader.id, RouterPortDesc::Direction::Source, "events.out").index;
+
+		event.Connect(event_customer.id, event_customer_src, reader.id, reader_sink);
+
+		RouterNetContext input("midi.app.program.input");
+		auto& input_customer = input.AddAtom("customer_input0", "center.customer");
+		int input_customer_src = input.AddPort(input_customer.id, RouterPortDesc::Direction::Source, "main").index;
+
+		auto& pipe = input.AddAtom("pipe0", "softinstru.pipe");
+		pipe.args.GetAdd("loop") = String("event");
+		pipe.args.GetAdd("filepath") = String("TimGM6mb.sf2");
+		pipe.args.GetAdd("verbose") = false;
+		int pipe_sink = input.AddPort(pipe.id, RouterPortDesc::Direction::Sink, "events.in").index;
+		int pipe_src = input.AddPort(pipe.id, RouterPortDesc::Direction::Source, "audio.out").index;
+
+		auto& sink = input.AddAtom("sink0", "center.audio.sink.hw");
+		int sink_sink = input.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+
+		input.Connect(input_customer.id, input_customer_src, pipe.id, pipe_sink);
+		input.Connect(pipe.id, pipe_src, sink.id, sink_sink);
+
+		Vector<RouterNetContext*> nets;
+		nets.Add(&event);
+		nets.Add(&input);
+		if (!BuildRouterChain(eng, nets, "RouterNetContext: midi.app.program softinstru nets link event/input loops."))
+			Exit(1);
+		break;
+	}
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02dSoftinstru: method %d not implemented yet", method));

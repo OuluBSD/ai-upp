@@ -135,6 +135,43 @@ static void TestRouterFragmentRoundTrip() {
 	FileDelete(temp_path);
 }
 
+static void TestRouterFragmentBinaryRoundTrip() {
+	RouterNetContext net("tester.router.fragment.bin");
+	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
+	auto& sink = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	int gen_out = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+	int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+	net.Connect(generator.id, gen_out, sink.id, sink_in);
+
+	VfsValue fragment;
+	fragment.id = "loop_fragment_bin";
+	fragment.pkg_hash = 0xCAFEBABE;
+	fragment.file_hash = 0xABADBABE;
+	ValueMap node_value;
+	node_value.Set("router", net.GetRouterMetadata());
+	fragment.value = Value(node_value);
+
+	String temp_path = GetTempFileName("router_fragment_bin");
+	ASSERT(VfsSaveFragmentBinary(temp_path, fragment));
+
+	VfsValue loaded;
+	ASSERT(VfsLoadFragmentBinary(temp_path, loaded));
+	ASSERT(loaded.pkg_hash == fragment.pkg_hash);
+	ASSERT(loaded.file_hash == fragment.file_hash);
+	ASSERT(loaded.value.Is<ValueMap>());
+	ValueMap loaded_value = loaded.value;
+	Value router_value = RouterLookupValue(loaded_value, "router");
+	ASSERT(router_value.Is<ValueMap>());
+
+	RouterSchema schema;
+	ASSERT(LoadRouterSchema(router_value, schema));
+	ASSERT(schema.connections.GetCount() == 1);
+	const RouterConnectionDesc& conn = schema.connections[0];
+	ASSERT(conn.from_atom == generator.id && conn.to_atom == sink.id);
+
+	FileDelete(temp_path);
+}
+
 static void TestRouterOverlayIndexRoundTrip() {
 	RouterNetContext net("tester.router.overlay");
 	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
@@ -177,6 +214,48 @@ static void TestRouterOverlayIndexRoundTrip() {
 	FileDelete(temp_path);
 }
 
+static void TestRouterOverlayIndexBinaryRoundTrip() {
+	RouterNetContext net("tester.router.overlay.bin");
+	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
+	auto& sink = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	int gen_out = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+	int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+	net.Connect(generator.id, gen_out, sink.id, sink_in);
+
+	VfsOverlayIndex index;
+	OverlayNodeRecord& node = index.nodes.Add();
+	node.path = "tester.router.overlay.bin";
+	SourceRef ref;
+	ref.pkg_hash = 0x31415926;
+	ref.file_hash = 0x27182818;
+	ref.local_path = "router_fragment_bin.vfs";
+	ref.priority = 3;
+	node.sources.Add(ref);
+	node.metadata.Set("router", net.GetRouterMetadata());
+
+	String temp_path = GetTempFileName("router_overlay_bin");
+	ASSERT(VfsSaveOverlayIndexBinary(temp_path, index));
+
+	VfsOverlayIndex loaded;
+	ASSERT(VfsLoadOverlayIndexBinary(temp_path, loaded));
+	ASSERT(loaded.nodes.GetCount() == 1);
+	const OverlayNodeRecord& loaded_node = loaded.nodes[0];
+	ASSERT(loaded_node.path == node.path);
+	ASSERT(loaded_node.sources.GetCount() == 1);
+	const SourceRef& loaded_ref = loaded_node.sources[0];
+	ASSERT(loaded_ref.pkg_hash == ref.pkg_hash);
+	ASSERT(loaded_ref.file_hash == ref.file_hash);
+	ASSERT(loaded_ref.priority == ref.priority);
+
+	Value router_value = RouterLookupValue(loaded_node.metadata, "router");
+	ASSERT(router_value.Is<ValueMap>());
+	RouterSchema schema;
+	ASSERT(LoadRouterSchema(router_value, schema));
+	ASSERT(schema.connections.GetCount() == 1);
+
+	FileDelete(temp_path);
+}
+
 CONSOLE_APP_MAIN {
 	StdLogSetup(LOG_COUT|LOG_FILE);
 	TestRouterPortMetadata();
@@ -184,6 +263,8 @@ CONSOLE_APP_MAIN {
 	TestDescriptorRoundTrip();
 	TestRouterSchemaRoundTrip();
 	TestRouterFragmentRoundTrip();
+	TestRouterFragmentBinaryRoundTrip();
 	TestRouterOverlayIndexRoundTrip();
+	TestRouterOverlayIndexBinaryRoundTrip();
 	LOG("Router descriptor tests completed");
 }

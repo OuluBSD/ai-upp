@@ -54,11 +54,18 @@ To avoid merging/unmerging, persist a lightweight index mapping logical paths to
 ```
 The index can live alongside fragment files or be recomputed on load. For now we expect IDE to recompute if missing.
 
+## Binary Envelope (Current Implementation)
+- Helper APIs `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary` wrap the JSON schema inside a small header:
+  - `magic`: four-byte tag differentiating fragments (`VFSF`) vs overlay indexes (`VFOI`).
+  - `version`: matches the JSON schema version (currently `1`; `0` is treated as “unspecified” and accepted).
+  - `payload_size`: length of the embedded JSON buffer (guarded to 32 MiB for sanity).
+  - `payload`: UTF‑8 JSON identical to what the text helpers emit.
+- This keeps binary and JSON artifacts in sync immediately while we flesh out the chunked/binary writer described below.
+
 ## Backward Compatibility
 Implement `VfsLoadLegacy` to parse previous binary/JSON dumps, transform them into the new fragment structure, and mark nodes as coming from a single-source fragment.
 
 ## Next Steps
-1. Implement JSON writer/reader in `VfsStorage.cpp`.
-2. Add streaming helpers for incremental saving.
-3. Provide tests that round-trip fragments and overlay indices.
-4. Document field-level flags and versioning strategy.
+1. Thread the binary envelope helpers into IDE overlay/fragment save flows so both artifacts ship side by side.
+2. Promote the headerized payload into a chunked binary writer once router schema stabilizes (dedicated RouterPorts / RouterConnections chunks).
+3. Keep expanding regression coverage (Router console suite today) and document the eventual chunk layout plus versioning strategy.

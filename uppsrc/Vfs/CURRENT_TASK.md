@@ -22,13 +22,14 @@ Progress
 - ✅ Router schema helpers now live in `Vfs/Storage`, `RouterNetContext` stamps the resulting `router.*` ValueMap into loop nodes, and the Router console suite covers schema round-trips so IDE/storage consumers can read port + connection metadata.
 - ✅ JSON fragment save/load helpers (`VfsSaveFragment` / `VfsLoadFragment`) live in `Vfs/Storage`, so router metadata stamped on loop nodes survives persistence and is already exercised by the Router console suite.
 - ✅ Overlay index structs + JSON helpers (`VfsOverlayIndex`, `VfsSaveOverlayIndex`, `VfsLoadOverlayIndex`) capture SourceRef provenance and preserve router metadata in node-level `metadata.router` fields, with new regression coverage in `upptst/Router`.
+- ✅ Binary parity for both fragments and overlay indexes shipped via `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary`, which reuse the JSON schema inside a headerized payload verified by new Router console tests (`script/build-console.sh Router`, `gdb --args bin/Router`).
 
 Planned Steps (next phase)
 1) Gradually migrate remaining `VfsValueExtFactory` definitions (registration helpers, data maps) into `Vfs/Factory`.
 2) Audit Core2 and downstream packages to include the new `Vfs` headers (`Vfs/Core`, `Vfs/Ecs`) directly and prune compatibility stubs.
 3) ~~Implement overlay view logic leveraging `SourceRef` and precedence provider interfaces.~~ (Completed)
-4) Finish binary schema parity (chunk writers/readers) and hook overlay index generation into the Router harness + IDE loaders once fragment+overlay round-trips exist (legacy loader still pending).
-5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs.
+4) Hook fragment + overlay builders so IDE/Env paths emit both JSON and binary envelopes automatically (legacy loader still pending).
+5) Update IDE Env adapters to construct overlays using the precedence provider and new storage APIs, then teach them to read router metadata straight from the new binary indexes.
 
 Notes
 - Keep GUI controls in a separate package (Vfs/Ctrl) to respect BLITZ and reduce coupling.

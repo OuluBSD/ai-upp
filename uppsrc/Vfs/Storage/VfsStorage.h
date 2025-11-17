@@ -32,6 +32,9 @@ struct VfsValue;
 bool VfsSaveFragment(const String& path, const VfsValue& fragment);
 bool VfsLoadFragment(const String& path, VfsValue& out_fragment);
 
+bool VfsSaveFragmentBinary(const String& path, const VfsValue& fragment);
+bool VfsLoadFragmentBinary(const String& path, VfsValue& out_fragment);
+
 // Back-compat loader for legacy IDE dumps (placeholder).
 bool VfsLoadLegacy(const String& path, VfsValue& out_fragment);
 
@@ -51,6 +54,9 @@ struct VfsOverlayIndex : Moveable<VfsOverlayIndex> {
 
 bool VfsSaveOverlayIndex(const String& path, const VfsOverlayIndex& index);
 bool VfsLoadOverlayIndex(const String& path, VfsOverlayIndex& out_index);
+
+bool VfsSaveOverlayIndexBinary(const String& path, const VfsOverlayIndex& index);
+bool VfsLoadOverlayIndexBinary(const String& path, VfsOverlayIndex& out_index);
 
 struct RouterPortEntry : Moveable<RouterPortEntry> {
 	String          atom_id;

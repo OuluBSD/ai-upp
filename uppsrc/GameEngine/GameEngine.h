@@ -37,6 +37,10 @@ NAMESPACE_UPP
 #include "VFS.h"
 #include "AnimationSystem.h"
 #include "EcsIntegration.h"
+#include "SpriteBatch.h"
+#include "TextureAtlas.h"
+#include "ParticleSystem.h"
+#include "SceneGraph.h"
 
 END_UPP_NAMESPACE
 

@@ -17,6 +17,7 @@ Alignment Notes
    - JSON fragment helpers (`VfsSaveFragment`/`VfsLoadFragment`) now live in `Vfs/Storage/VfsStorage.{h,cpp}` so router metadata stamped onto loop nodes persists to disk immediately.
    - Overlay index helpers (`VfsOverlayIndex` + `VfsSaveOverlayIndex`/`VfsLoadOverlayIndex`) serialize logical-path entries with `SourceRef` provenance and a generic `metadata` map; router metadata is stored as `metadata["router"]` so IDE overlay views can inspect descriptors without loading fragments.
    - Binary parity now comes from `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary`, which wrap the JSON schema in a headerized payload so CLI tools can ship compact `.vfsbin` artifacts until the chunked writers land.
+   - IDE package now calls those helpers on every `Meta.bin` store, emitting `Meta.fragment.{json,vfsbin}` plus overlay siblings, and caches the overlay indexes so `MetaEnvTree` and future inspectors can read `metadata.router` straight from disk without reloading fragments.
 3. **Compatibility strategy**
    - Legacy loop payloads keep their existing layout. Loader emits synthetic router descriptors at load time so IDE tooling can visualize nets even before `.eon` migration finishes.
    - Storage writers output both representations while the migration is in flight (guarded by feature flag).

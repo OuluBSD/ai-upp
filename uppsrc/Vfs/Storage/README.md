@@ -44,7 +44,10 @@ To avoid merging/unmerging, persist a lightweight index mapping logical paths to
   "nodes": [
     {
       "path": "Ecs|Player",
-      "sources": [ { "pkg_hash": ..., "file_hash": ... } ]
+      "sources": [ { "pkg_hash": ..., "file_hash": ... } ],
+      "metadata": {
+        "router": { "...": "RouterSchema" }
+      }
     }
   ]
 }

@@ -3,6 +3,7 @@
 #include <Vfs/Ecs/Formats.h>
 #include <Vfs/Storage/VfsStorage.h>
 #include <Vfs/Core/VfsValue.h>
+#include <Vfs/Overlay/VfsOverlay.h>
 
 using namespace Upp;
 
@@ -134,6 +135,48 @@ static void TestRouterFragmentRoundTrip() {
 	FileDelete(temp_path);
 }
 
+static void TestRouterOverlayIndexRoundTrip() {
+	RouterNetContext net("tester.router.overlay");
+	auto& generator = net.AddAtom("generator0", "center.audio.src.test");
+	auto& sink = net.AddAtom("sink0", "center.audio.sink.test.realtime");
+	int gen_out = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+	int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+	net.Connect(generator.id, gen_out, sink.id, sink_in);
+
+	VfsOverlayIndex index;
+	OverlayNodeRecord& node = index.nodes.Add();
+	node.path = "tester.router.overlay";
+	SourceRef ref;
+	ref.pkg_hash = 0x11111111;
+	ref.file_hash = 0x22222222;
+	ref.local_path = "router_fragment.json";
+	ref.priority = 5;
+	node.sources.Add(ref);
+	node.metadata.Set("router", net.GetRouterMetadata());
+
+	String temp_path = GetTempFileName("router_overlay");
+	ASSERT(VfsSaveOverlayIndex(temp_path, index));
+
+	VfsOverlayIndex loaded;
+	ASSERT(VfsLoadOverlayIndex(temp_path, loaded));
+	ASSERT(loaded.nodes.GetCount() == 1);
+	const OverlayNodeRecord& loaded_node = loaded.nodes[0];
+	ASSERT(loaded_node.path == node.path);
+	ASSERT(loaded_node.sources.GetCount() == 1);
+	const SourceRef& loaded_ref = loaded_node.sources[0];
+	ASSERT(loaded_ref.pkg_hash == ref.pkg_hash);
+	ASSERT(loaded_ref.file_hash == ref.file_hash);
+	ASSERT(loaded_ref.priority == ref.priority);
+
+	Value router_value = RouterLookupValue(loaded_node.metadata, "router");
+	ASSERT(router_value.Is<ValueMap>());
+	RouterSchema schema;
+	ASSERT(LoadRouterSchema(router_value, schema));
+	ASSERT(schema.connections.GetCount() == 1);
+
+	FileDelete(temp_path);
+}
+
 CONSOLE_APP_MAIN {
 	StdLogSetup(LOG_COUT|LOG_FILE);
 	TestRouterPortMetadata();
@@ -141,5 +184,6 @@ CONSOLE_APP_MAIN {
 	TestDescriptorRoundTrip();
 	TestRouterSchemaRoundTrip();
 	TestRouterFragmentRoundTrip();
+	TestRouterOverlayIndexRoundTrip();
 	LOG("Router descriptor tests completed");
 }

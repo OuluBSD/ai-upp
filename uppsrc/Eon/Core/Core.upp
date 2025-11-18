@@ -22,6 +22,8 @@ file
 	LinkBase.cpp,
 	LinkFactory.h,
 	LinkFactory.cpp,
+	PacketRouter.h,
+	PacketRouter.cpp,
 	Base.h,
 	Base.cpp,
 	BaseAudio.h,

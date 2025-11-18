@@ -1,0 +1,14 @@
+description "PacketRouter unit tests\377B85,42,0";
+
+uses
+	Core,
+	Core/EcsFoundation,
+	Core/VfsBase,
+	Core/MathNumeric;
+
+file
+	Main.cpp;
+
+mainconfig
+	"Release" = "",
+	"Debug" = "";

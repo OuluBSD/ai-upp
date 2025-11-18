@@ -166,10 +166,45 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
 
 ---
 
-## Immediate Next Steps
-1. **Stand up a `PacketRouter` prototype** beside `ChainContext` inside `upptst/Eon00`, wiring ports manually to confirm data flow.
-2. **Draft port descriptor structs** (name, direction, vd tuple, metadata) and sketch how `DefaultInterfaceSink/Source` expose them.
-3. **Write conversion notes for `share/eon/tests/00a_audio_gen.eon`** demonstrating the old vs new syntax; this becomes the template for the rest of the assets.
-4. **Update `CURRENT_TASK.md` (Eon scope)** once the branch exists so other developers know this sweeping change is happening elsewhere.
+## Current Status
 
-Natural follow-up once these land: branch cut, implement Phase 0 prototype, and iterate on the router core before touching the DSL across the repo.
+### Phase 0 – COMPLETE ✓
+All discovery and prototype work finished:
+- ✓ Link/customer inventory documented in `task/notes/packet_router_links.md`
+- ✓ `RouterNetContext` implemented in `upptst/EonRouterSupport` (builder/test harness)
+- ✓ Port descriptor structs (`RouterPortDesc`, `RouterConnectionDesc`) defined in `uppsrc/Vfs/Ecs/Interface.h`
+- ✓ Conversion notes for `00a/00b/00c_audio_gen.eon` in `share/eon/tests/`
+- ✓ Method 3 router builders in `upptst/Eon00` and `upptst/Eon02`
+
+### Phase 1/3 – Serialization & IDE – COMPLETE ✓
+Router metadata infrastructure is production-ready:
+- ✓ Schema helpers in `Vfs/Ecs/Formats.{h,cpp}` with round-trip tests
+- ✓ Fragment/overlay serialization (JSON/binary/chunked) in `Vfs/Storage`
+- ✓ `BuildRouterOverlayIndex` integrated into IDE package saves
+- ✓ MetaCtrl/MetaEnvTree display router metadata from cached overlays
+- ✓ Test coverage: `upptst/Router`, `upptst/RouterFanout`, `upptst/RouterPool`
+
+### What's Missing – Phase 1 Runtime API
+`RouterNetContext` is a builder/test helper that emits router metadata but still delegates to `ChainContext`/`LoopContext` for execution. We need:
+1. **`PacketRouter` runtime class** (`uppsrc/Eon/Core/PacketRouter.{h,cpp}`) – actual packet routing at runtime, replacing Link-based loops
+2. **Port registration API** – Atoms declare ports during initialization
+3. **Connection table management** – router maintains adjacency, not hardwired Links
+4. **Credit/flow-control hooks** – replace loop packet pools with router-governed buffers
+
+## Immediate Next Steps
+
+### Phase 1 – Router Core Runtime (IN PROGRESS)
+1. **Create `uppsrc/Eon/Core/PacketRouter.{h,cpp}`** with stub implementations:
+   - `RegisterPort(AtomBase*, direction, index, vd, metadata)` → returns port handle
+   - `Connect(src_handle, dst_handle, policy)` → builds connection table
+   - `RoutePacket(src_port, packet)` → enqueues to connected sinks
+   - `RequestCredits(port_handle, count)` / `AckCredits(port_handle, count)` → flow control
+2. **Extend `Atom.h`** with router-aware virtuals:
+   - `OnPortReady(port_id)` – notification when credits available
+   - `EmitPacket(port_id, packet&)` – replaces hardcoded channel 0 sends
+   - `RegisterPorts(PacketRouter&)` – called during Initialize instead of assuming sink/src layout
+3. **Update one backend** (`api/Audio` generator atom) to use new API as proof-of-concept
+4. **Add `upptst/RouterCore`** console package with unit tests for port registration and connection table logic
+
+### Phase 2 – DSL Rewrite (BLOCKED until Phase 1 runtime complete)
+Parser/AST changes require a working router runtime to validate against.

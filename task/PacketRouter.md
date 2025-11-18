@@ -86,6 +86,29 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - **Docs:** Conversion references for the full audio generator trio (`00a`/`00b`/`00c`) sit next to the respective assets. VFS alignment + schema outline are tracked in `task/notes/packet_router_vfs_alignment.md`; AGENTS updates still pending.
 - **Metrics:** Baseline performance numbers to capture once router prototype stands up.
 
+---
+
+## Phase Status Summary
+
+### ✓ Phase 0 Complete
+RouterNetContext prototype validates router concepts. Method 3 builders in Eon00/Eon02 prove multi-loop side-link parity. Conversion docs exist for 00a/b/c.
+
+### ✓ Phase 1/3 Serialization Complete
+Router descriptors serialize through VFS Storage (JSON/binary/chunked). IDE overlays display cached router metadata. Test coverage comprehensive.
+
+### → Phase 1 Runtime API - NEXT PRIORITY
+**Gap:** RouterNetContext is a build-time helper only; still delegates to ChainContext/LoopContext for packet execution.
+
+**Required:** Create `uppsrc/Eon/Core/PacketRouter.{h,cpp}` with actual runtime packet routing:
+- Port registration API (replaces hardcoded Exchange setup)
+- Connection table management (replaces Link chains)
+- Credit-based flow control (replaces loop packet pools)
+- Atom API extensions (OnPortReady, EmitPacket, RegisterPorts)
+
+**Approach:** Start with stub PacketRouter class + unit tests in upptst/RouterCore, then integrate one backend atom as proof-of-concept.
+
+---
+
 ## Immediate Action Items
 - [x] Create `task/notes/packet_router_links.md` with grep results for `CustomerBase`, `LinkFactory`, and side-link usages.
 - [x] Draft `NetContext` spike in `upptst/Eon00` and document findings in `upptst/Eon00/CURRENT_TASK.md` once it exists.

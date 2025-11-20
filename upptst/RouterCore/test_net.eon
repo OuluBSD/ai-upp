@@ -1,0 +1,15 @@
+// PacketRouter DSL Test
+// Phase 2: Test net block parsing with explicit connections
+
+machine test.router:
+
+	// Simple audio processing net
+	net audio_pipeline:
+		// Inline atom definitions
+		audio.sine
+		audio.gain
+		audio.sink
+
+		// Explicit port-to-port connections
+		audio.sine.0 -> audio.gain.0
+		audio.gain.0 -> audio.sink.0

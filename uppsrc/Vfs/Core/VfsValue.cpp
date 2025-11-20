@@ -1952,15 +1952,16 @@ Value MetaEnvironment::GetMerged(String logical_path) const {
 	return Value();
 }
 
-void MetaEnvironment::AddOverlay(Ptr<VfsOverlay> overlay) {
-	// In a real implementation, this would register the overlay
-	// For now, we'll just acknowledge it
-	// The following conditional requires complete VfsOverlay type, so we avoid it for now
-	// if (overlay) {
-		// Store reference to overlay for future use
-		// This is a placeholder implementation
-	// }
-}
+// TODO: Fix namespace collision with VfsOverlay before uncommenting
+// void MetaEnvironment::AddOverlay(Ptr<VfsOverlay> overlay) {
+// 	// In a real implementation, this would register the overlay
+// 	// For now, we'll just acknowledge it
+// 	// The following conditional requires complete VfsOverlay type, so we avoid it for now
+// 	// if (overlay) {
+// 		// Store reference to overlay for future use
+// 		// This is a placeholder implementation
+// 	// }
+// }
 
 hash_t MetaEnvironment::RealizeTypePath(const String& path)
 {

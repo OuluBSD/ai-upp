@@ -510,6 +510,125 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
     return true;
 }
 
+bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
+    RTLOG("BuildNet: net=" << (net.id.IsEmpty() ? "<anon>" : net.id.ToString())
+        << " atoms=" << net.atoms.GetCount()
+        << " states=" << net.states.GetCount()
+        << " connections=" << net.connections.GetCount());
+
+    LOG("BuildNet: Creating PacketRouter for net " << net.id.ToString());
+
+    // Create PacketRouter instance for this net
+    One<PacketRouter> router = new PacketRouter();
+
+    // Phase 2 DSL Integration: Demonstrate PacketRouter API usage
+    // Full atom instantiation will be implemented once testing infrastructure is ready
+    //
+    // The implementation will follow this pattern:
+    // 1. Create atoms from net.atoms (similar to BuildChain but without LoopContext)
+    // 2. For each atom, register its sink and source ports with router
+    // 3. Wire connections using router.Connect()
+    // 4. Initialize and start atoms
+    //
+    // For now, validate structure and demonstrate API calls:
+
+    LOG("BuildNet: Parsed net structure:");
+    LOG("  Net ID: " << net.id.ToString());
+    LOG("  Atoms: " << net.atoms.GetCount());
+
+    // Map atom names to their definitions for connection resolution
+    VectorMap<String, const Eon::AtomDefinition*> atom_map;
+    for (const Eon::AtomDefinition& atom_def : net.atoms) {
+        String atom_name = atom_def.id.ToString();
+        atom_map.Add(atom_name, &atom_def);
+
+        LOG("    Atom: " << atom_name);
+        LOG("      Type: " << atom_def.iface.type.ToString());
+        LOG("      Sink ports: " << atom_def.iface.type.iface.sink.GetCount());
+        LOG("      Source ports: " << atom_def.iface.type.iface.src.GetCount());
+
+        // TODO: Create atom instance here
+        // AtomBasePtr atom = CreateAtomFromDefinition(atom_def);
+
+        // Register sink ports
+        for (int i = 1; i < atom_def.iface.type.iface.sink.GetCount(); i++) {
+            const ValDevTuple::Channel& ch = atom_def.iface.type.iface.sink[i];
+            LOG("        Sink port " << i << ": " << ch.vd.ToString()
+                << (ch.is_opt ? " (optional)" : ""));
+
+            // TODO: Register port with router when atom is created
+            // router->RegisterPort(atom.Get(), RouterPortDesc::Direction::Sink, i, ch.vd);
+        }
+
+        // Register source ports
+        for (int i = 1; i < atom_def.iface.type.iface.src.GetCount(); i++) {
+            const ValDevTuple::Channel& ch = atom_def.iface.type.iface.src[i];
+            LOG("        Source port " << i << ": " << ch.vd.ToString()
+                << (ch.is_opt ? " (optional)" : ""));
+
+            // TODO: Register port with router when atom is created
+            // router->RegisterPort(atom.Get(), RouterPortDesc::Direction::Source, i, ch.vd);
+        }
+    }
+
+    LOG("  Connections: " << net.connections.GetCount());
+    for (const NetConnectionDef& conn : net.connections) {
+        LOG("    " << conn.ToString());
+
+        // Validate connection endpoints exist
+        if (atom_map.Find(conn.from_atom) < 0) {
+            AddError(conn.loc, "Connection source atom not found: " + conn.from_atom);
+            return false;
+        }
+        if (atom_map.Find(conn.to_atom) < 0) {
+            AddError(conn.loc, "Connection sink atom not found: " + conn.to_atom);
+            return false;
+        }
+
+        const Eon::AtomDefinition* from_def = atom_map.Get(conn.from_atom);
+        const Eon::AtomDefinition* to_def = atom_map.Get(conn.to_atom);
+
+        // Validate port indices
+        if (conn.from_port <= 0 || conn.from_port >= from_def->iface.type.iface.src.GetCount()) {
+            AddError(conn.loc, Format("Invalid source port %d for atom %s (has %d source ports)",
+                                     conn.from_port, conn.from_atom,
+                                     from_def->iface.type.iface.src.GetCount()));
+            return false;
+        }
+        if (conn.to_port <= 0 || conn.to_port >= to_def->iface.type.iface.sink.GetCount()) {
+            AddError(conn.loc, Format("Invalid sink port %d for atom %s (has %d sink ports)",
+                                     conn.to_port, conn.to_atom,
+                                     to_def->iface.type.iface.sink.GetCount()));
+            return false;
+        }
+
+        // Validate port type compatibility
+        const ValDevCls& src_vd = from_def->iface.type.iface.src[conn.from_port].vd;
+        const ValDevCls& sink_vd = to_def->iface.type.iface.sink[conn.to_port].vd;
+        if (src_vd != sink_vd) {
+            AddError(conn.loc, Format("Port type mismatch: %s.%d (%s) -> %s.%d (%s)",
+                                     conn.from_atom, conn.from_port, src_vd.ToString(),
+                                     conn.to_atom, conn.to_port, sink_vd.ToString()));
+            return false;
+        }
+
+        LOG("      Validated: " << src_vd.ToString() << " connection");
+
+        // TODO: Wire connection when atoms are created
+        // PacketRouter::PortHandle src_handle = ...; // from atom registration
+        // PacketRouter::PortHandle dst_handle = ...; // from atom registration
+        // router->Connect(src_handle, dst_handle);
+    }
+
+    LOG("BuildNet: Successfully validated net structure for " << net.id.ToString());
+    LOG("BuildNet: PacketRouter ready (atom instantiation deferred to next phase)");
+
+    // TODO: Store router and atoms for lifecycle management
+    // built_nets.Add(pick(router));
+
+    return true;
+}
+
 void ScriptLoader::Cleanup() {
 	loader.Clear();
 }
@@ -1375,10 +1494,101 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 		RTLOG("LoadNet: state def=" << state_def.id.ToString());
 	}
 
-	// TODO: Parse connections: blocks with atom:port -> atom:port syntax
-	// This will require understanding how the parser represents connection specifications
-	// in the AST. For now, this is left as future work (Phase 3).
-	RTLOG("LoadNet: connection parsing not yet implemented (Phase 3 work)");
+	// Parse explicit connections: atom:port -> atom:port
+	// Connection syntax uses member access (.) for port references: atom.port -> atom.port
+	Vector<Endpoint> conn_stmts;
+	n->FindAll(conn_stmts, Cursor_ExprStmt);
+
+	for (Endpoint& ep : conn_stmts) {
+		AstNode* stmt = ep.n;
+		if (!stmt->rval)
+			continue;
+
+		AstNode* rval = stmt->rval;
+		while (rval->src == Cursor_Rval && rval->rval)
+			rval = rval->rval;
+
+		// Try to parse connection expression
+		// We expect something like: osc.0 -> gain.0
+		// This might parse as Cursor_Op_SUB (minus) followed by Cursor_Op_GT (greater than)
+		// Or it might be a different operator structure
+		// For now, use a simple string-based parser as fallback
+
+		// Get the full expression text and parse it directly
+		// Format: atom_name.port_id -> atom_name.port_id
+		String expr_text;
+		bool looks_like_connection = false;
+
+		// Try to detect if this is a connection statement by checking for arrow-like patterns
+		// or simple text extraction from the AST
+		if (IsPartially(rval->src, Cursor_Op)) {
+			// This is an operator expression - might be our connection
+			// For now, we only handle simple Cursor_Unresolved connections
+			// Full operator-based parsing will be implemented later
+			RTLOG("LoadNet: skipping operator expression (not yet supported for connections)");
+			continue;
+		}
+		else if (rval->src == Cursor_Unresolved) {
+			// This might be a simple unresolved identifier that looks like a connection
+			expr_text = rval->str;
+			if (expr_text.Find("->") >= 0)
+				looks_like_connection = true;
+		}
+
+		if (!looks_like_connection)
+			continue;
+
+		// Parse connection from text: "atom1.port1 -> atom2.port2" or "atom1:port1 -> atom2:port2"
+		int arrow_pos = expr_text.Find("->");
+		if (arrow_pos < 0)
+			continue;
+
+		String from_part = TrimBoth(expr_text.Left(arrow_pos));
+		String to_part = TrimBoth(expr_text.Mid(arrow_pos + 2));
+
+		// Parse from_part (atom.port or atom:port)
+		int from_sep = from_part.Find('.');
+		if (from_sep < 0) from_sep = from_part.Find(':');
+		if (from_sep < 0) {
+			AddError(stmt->loc, "invalid connection syntax (missing port separator in source): " + expr_text);
+			return false;
+		}
+
+		String from_atom = TrimBoth(from_part.Left(from_sep));
+		String from_port_str = TrimBoth(from_part.Mid(from_sep + 1));
+
+		// Parse to_part (atom.port or atom:port)
+		int to_sep = to_part.Find('.');
+		if (to_sep < 0) to_sep = to_part.Find(':');
+		if (to_sep < 0) {
+			AddError(stmt->loc, "invalid connection syntax (missing port separator in sink): " + expr_text);
+			return false;
+		}
+
+		String to_atom = TrimBoth(to_part.Left(to_sep));
+		String to_port_str = TrimBoth(to_part.Mid(to_sep + 1));
+
+		// Convert port strings to integers
+		int from_port = 0;
+		int to_port = 0;
+		if (!from_port_str.IsEmpty() && IsDigit(from_port_str[0]))
+			from_port = StrInt(from_port_str);
+		if (!to_port_str.IsEmpty() && IsDigit(to_port_str[0]))
+			to_port = StrInt(to_port_str);
+
+		// Create connection definition
+		NetConnectionDef& conn = net.connections.Add();
+		conn.from_atom = from_atom;
+		conn.from_port = from_port;
+		conn.to_atom = to_atom;
+		conn.to_port = to_port;
+		conn.loc = stmt->loc;
+
+		RTLOG("LoadNet: parsed connection: " << conn.ToString());
+	}
+
+	RTLOG("LoadNet: successfully parsed net with " << net.atoms.GetCount() << " atoms, "
+		<< net.states.GetCount() << " states, " << net.connections.GetCount() << " connections");
 
 	return true;
 }

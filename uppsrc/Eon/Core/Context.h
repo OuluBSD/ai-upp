@@ -8,6 +8,7 @@ class EntityContext;
 class ComponentContext;
 class LoopContext;
 class ChainContext;
+class NetContext;
 
 // Core helpers: resolve loop path without Script/Ast types
 VfsValue* ResolveLoopPath(Engine& eng, const Vector<String>& parts);
@@ -103,6 +104,50 @@ public:
     void UndoAll();
     String GetTreeString(int indent=0) const;
     bool ValidateSideLinks(String* err = nullptr) const;
+};
+
+// NetContext - Router-based network context (Phase 3)
+class NetContext {
+public:
+    struct AtomInstance : Moveable<AtomInstance> {
+        String name;              // atom name from definition
+        AtomBasePtr atom;         // created atom
+        IfaceConnTuple iface;     // interface
+    };
+
+    struct Connection : Moveable<Connection> {
+        int from_atom_idx;
+        int from_port;
+        int to_atom_idx;
+        int to_port;
+    };
+
+    VfsValue& net_space;
+    One<PacketRouter> router;
+    Vector<AtomInstance> atoms;
+    Vector<Connection> connections;
+    bool failed = false;
+
+    NetContext(VfsValue& space);
+
+    // Add atom to network
+    AtomBasePtr AddAtom(const String& name, const String& action, const IfaceConnTuple& iface, const ArrayMap<String, Value>* args = nullptr);
+
+    // Add connection
+    void AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port);
+
+    // Register all ports with router
+    bool RegisterPorts();
+
+    // Wire all connections
+    bool MakeConnections();
+
+    // Lifecycle management
+    bool PostInitializeAll();
+    bool StartAll();
+    void UndoAll();
+
+    String GetTreeString(int indent=0) const;
 };
 
 }

@@ -290,6 +290,7 @@ protected:
     bool collect_errors = false;
     bool eager_build_chains = false;
     Array<One<ChainContext>> built_chains;
+    Array<One<NetContext>> built_nets;
 	
 	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	

@@ -516,115 +516,85 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
         << " states=" << net.states.GetCount()
         << " connections=" << net.connections.GetCount());
 
-    LOG("BuildNet: Creating PacketRouter for net " << net.id.ToString());
-
-    // Create PacketRouter instance for this net
-    One<PacketRouter> router = new PacketRouter();
-
-    // Phase 2 DSL Integration: Demonstrate PacketRouter API usage
-    // Full atom instantiation will be implemented once testing infrastructure is ready
-    //
-    // The implementation will follow this pattern:
-    // 1. Create atoms from net.atoms (similar to BuildChain but without LoopContext)
-    // 2. For each atom, register its sink and source ports with router
-    // 3. Wire connections using router.Connect()
-    // 4. Initialize and start atoms
-    //
-    // For now, validate structure and demonstrate API calls:
-
-    LOG("BuildNet: Parsed net structure:");
-    LOG("  Net ID: " << net.id.ToString());
-    LOG("  Atoms: " << net.atoms.GetCount());
-
-    // Map atom names to their definitions for connection resolution
-    VectorMap<String, const Eon::AtomDefinition*> atom_map;
-    for (const Eon::AtomDefinition& atom_def : net.atoms) {
-        String atom_name = atom_def.id.ToString();
-        atom_map.Add(atom_name, &atom_def);
-
-        LOG("    Atom: " << atom_name);
-        LOG("      Type: " << atom_def.iface.type.ToString());
-        LOG("      Sink ports: " << atom_def.iface.type.iface.sink.GetCount());
-        LOG("      Source ports: " << atom_def.iface.type.iface.src.GetCount());
-
-        // TODO: Create atom instance here
-        // AtomBasePtr atom = CreateAtomFromDefinition(atom_def);
-
-        // Register sink ports
-        for (int i = 1; i < atom_def.iface.type.iface.sink.GetCount(); i++) {
-            const ValDevTuple::Channel& ch = atom_def.iface.type.iface.sink[i];
-            LOG("        Sink port " << i << ": " << ch.vd.ToString()
-                << (ch.is_opt ? " (optional)" : ""));
-
-            // TODO: Register port with router when atom is created
-            // router->RegisterPort(atom.Get(), RouterPortDesc::Direction::Sink, i, ch.vd);
-        }
-
-        // Register source ports
-        for (int i = 1; i < atom_def.iface.type.iface.src.GetCount(); i++) {
-            const ValDevTuple::Channel& ch = atom_def.iface.type.iface.src[i];
-            LOG("        Source port " << i << ": " << ch.vd.ToString()
-                << (ch.is_opt ? " (optional)" : ""));
-
-            // TODO: Register port with router when atom is created
-            // router->RegisterPort(atom.Get(), RouterPortDesc::Direction::Source, i, ch.vd);
-        }
+    // Resolve net space (similar to how BuildChain resolves loop space)
+    Engine* mach = val.FindOwner<Engine>();
+    ASSERT(mach);
+    if (!mach) {
+        AddError(FileLocation(), "BuildNet: no engine available");
+        return false;
     }
 
-    LOG("  Connections: " << net.connections.GetCount());
-    for (const NetConnectionDef& conn : net.connections) {
-        LOG("    " << conn.ToString());
+    VfsValue* net_space = ResolveLoop(const_cast<Eon::Id&>(net.id));
+    if (!net_space) {
+        AddError(FileLocation(), String("Could not resolve net space: ") + net.id.ToString());
+        return false;
+    }
 
-        // Validate connection endpoints exist
-        if (atom_map.Find(conn.from_atom) < 0) {
+    // Create NetContext
+    One<NetContext> nc = new NetContext(*net_space);
+    LOG("BuildNet: Creating network for " << net.id.ToString());
+
+    // Map atom names to their indices for connection resolution
+    VectorMap<String, int> atom_index_map;
+
+    // Create atoms
+    for (int i = 0; i < net.atoms.GetCount(); i++) {
+        const Eon::AtomDefinition& atom_def = net.atoms[i];
+        String atom_name = atom_def.id.ToString();
+        String action = atom_name; // atom name is the action
+
+        LOG("  Creating atom[" << i << "]: " << atom_name);
+
+        AtomBasePtr atom = nc->AddAtom(atom_name, action, atom_def.iface, &atom_def.args);
+        if (!atom) {
+            AddError(atom_def.loc, "Failed to create atom: " + atom_name);
+            return false;
+        }
+
+        atom_index_map.Add(atom_name, i);
+    }
+
+    if (nc->failed) {
+        AddError(FileLocation(), "BuildNet: atom creation failed for " + net.id.ToString());
+        return false;
+    }
+
+    // Register ports
+    if (!nc->RegisterPorts()) {
+        AddError(FileLocation(), "BuildNet: port registration failed for " + net.id.ToString());
+        return false;
+    }
+
+    // Add connections
+    for (const NetConnectionDef& conn : net.connections) {
+        int from_idx = atom_index_map.Find(conn.from_atom);
+        int to_idx = atom_index_map.Find(conn.to_atom);
+
+        if (from_idx < 0) {
             AddError(conn.loc, "Connection source atom not found: " + conn.from_atom);
             return false;
         }
-        if (atom_map.Find(conn.to_atom) < 0) {
+        if (to_idx < 0) {
             AddError(conn.loc, "Connection sink atom not found: " + conn.to_atom);
             return false;
         }
 
-        const Eon::AtomDefinition* from_def = atom_map.Get(conn.from_atom);
-        const Eon::AtomDefinition* to_def = atom_map.Get(conn.to_atom);
-
-        // Validate port indices
-        if (conn.from_port <= 0 || conn.from_port >= from_def->iface.type.iface.src.GetCount()) {
-            AddError(conn.loc, Format("Invalid source port %d for atom %s (has %d source ports)",
-                                     conn.from_port, conn.from_atom,
-                                     from_def->iface.type.iface.src.GetCount()));
-            return false;
-        }
-        if (conn.to_port <= 0 || conn.to_port >= to_def->iface.type.iface.sink.GetCount()) {
-            AddError(conn.loc, Format("Invalid sink port %d for atom %s (has %d sink ports)",
-                                     conn.to_port, conn.to_atom,
-                                     to_def->iface.type.iface.sink.GetCount()));
-            return false;
-        }
-
-        // Validate port type compatibility
-        const ValDevCls& src_vd = from_def->iface.type.iface.src[conn.from_port].vd;
-        const ValDevCls& sink_vd = to_def->iface.type.iface.sink[conn.to_port].vd;
-        if (src_vd != sink_vd) {
-            AddError(conn.loc, Format("Port type mismatch: %s.%d (%s) -> %s.%d (%s)",
-                                     conn.from_atom, conn.from_port, src_vd.ToString(),
-                                     conn.to_atom, conn.to_port, sink_vd.ToString()));
-            return false;
-        }
-
-        LOG("      Validated: " << src_vd.ToString() << " connection");
-
-        // TODO: Wire connection when atoms are created
-        // PacketRouter::PortHandle src_handle = ...; // from atom registration
-        // PacketRouter::PortHandle dst_handle = ...; // from atom registration
-        // router->Connect(src_handle, dst_handle);
+        nc->AddConnection(from_idx, conn.from_port, to_idx, conn.to_port);
+        LOG("  Added connection: " << conn.ToString());
     }
 
-    LOG("BuildNet: Successfully validated net structure for " << net.id.ToString());
-    LOG("BuildNet: PacketRouter ready (atom instantiation deferred to next phase)");
+    // Wire connections
+    if (!nc->MakeConnections()) {
+        AddError(FileLocation(), "BuildNet: connection wiring failed for " + net.id.ToString());
+        return false;
+    }
 
-    // TODO: Store router and atoms for lifecycle management
-    // built_nets.Add(pick(router));
+    // Store the built net context for later initialization in ImplementScript
+    built_nets.Add(pick(nc));
+
+    LOG("BuildNet: Successfully built network " << net.id.ToString()
+        << " with " << built_nets.Top()->atoms.GetCount() << " atoms and "
+        << built_nets.Top()->connections.GetCount() << " connections");
 
     return true;
 }
@@ -641,7 +611,7 @@ bool ScriptLoader::ImplementScript() {
         if (!dl->Load())
             return false;
 
-    if (!eager_build_chains || built_chains.IsEmpty()) {
+    if (!eager_build_chains || (built_chains.IsEmpty() && built_nets.IsEmpty())) {
         RTLOG("ScriptLoader::ImplementScript: build chains (loops)");
         if (!loader->Load())
             return false;
@@ -649,7 +619,7 @@ bool ScriptLoader::ImplementScript() {
         // Collect loop pointers created by chain loaders for post steps
         Vector<ScriptLoopLoader*> loops;
         loader->GetLoops(loops);
-	
+
         RTLOG("ScriptLoader::ImplementScript: connect sides");
         for (ScriptLoopLoader* loop0 : loops) {
             for (ScriptLoopLoader* loop1 : loops) {
@@ -661,7 +631,7 @@ bool ScriptLoader::ImplementScript() {
                 }
             }
         }
-	
+
         RTLOG("ScriptLoader::ImplementScript: loop post initialize");
         for (ScriptLoopLoader* ll : loops) {
             if (!ll->PostInitialize())
@@ -696,7 +666,7 @@ bool ScriptLoader::ImplementScript() {
             }
         }
 
-        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize");
+        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize chains");
         for (int i = 0; i < built_chains.GetCount(); i++) {
             ChainContext& C = *built_chains[i];
             if (!C.PostInitializeAll()) {
@@ -705,11 +675,31 @@ bool ScriptLoader::ImplementScript() {
             }
         }
 
-        RTLOG("ScriptLoader::ImplementScript: eager mode: start");
+        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize nets");
+        for (int i = 0; i < built_nets.GetCount(); i++) {
+            NetContext& N = *built_nets[i];
+            if (!N.PostInitializeAll()) {
+                AddError(FileLocation(), "Net PostInitialize failed");
+                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: start chains");
         for (int i = 0; i < built_chains.GetCount(); i++) {
             ChainContext& C = *built_chains[i];
             if (!C.StartAll()) {
                 for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: start nets");
+        for (int i = 0; i < built_nets.GetCount(); i++) {
+            NetContext& N = *built_nets[i];
+            if (!N.StartAll()) {
+                AddError(FileLocation(), "Net Start failed");
+                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
                 return false;
             }
         }

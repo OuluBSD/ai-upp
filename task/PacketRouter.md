@@ -190,20 +190,62 @@ net audio_pipeline:
 - Connection endpoint validation
 - Comprehensive error reporting with FileLocation
 
-**Next Phase:** Phase 3 - Full atom instantiation and lifecycle management
+### ✓ Phase 3 – Atom Instantiation & Lifecycle Complete (2025-11-20)
+**Full BuildNet() implementation with live atom creation and packet routing:**
 
-### Phase 3 – Atom Instantiation & Lifecycle (IN PROGRESS)
-**Goal:** Complete the BuildNet() implementation by instantiating atoms, registering ports, and establishing live connections.
+**NetContext Class** (`uppsrc/Eon/Core/Context.{h,cpp}`):
+- Router-based network context parallel to ChainContext
+- `AddAtom()` - Creates atoms from action strings using VfsValueExtFactory
+- `RegisterPorts()` - Calls RegisterPorts() on all atoms in network
+- `MakeConnections()` - Wires explicit port-to-port connections via PacketRouter
+- `PostInitializeAll()` / `StartAll()` - Lifecycle management with proper cleanup
+- `UndoAll()` - Error recovery and cleanup support
 
-**Current Status:** Phase 2 created the validation infrastructure and deferred atom instantiation with TODO markers.
+**BuildNet() Implementation** (`uppsrc/Eon/Script/ScriptLoader.cpp:513-600`):
+- Resolves net space from net ID (same pattern as BuildChain)
+- Creates NetContext instance for each net
+- Instantiates atoms using VfsValueExtFactory (action → AtomTypeCls resolution)
+- Registers ports with PacketRouter for all atoms
+- Wires explicit connections from NetConnectionDef specifications
+- Stores built NetContext in ScriptLoader::built_nets for lifecycle management
 
-**Remaining Work:**
-1. **Atom Creation** - Use AtomFactoryRegistry to instantiate atoms from definitions
-2. **Port Registration** - Call RegisterPorts() on live atoms and validate port counts
-3. **Connection Wiring** - Use PacketRouter::Connect() to establish port-to-port connections
-4. **Lifecycle Management** - Initialize/start atoms in proper dependency order
-5. **Error Handling** - Robust cleanup for partial failures
-6. **Testing** - Comprehensive validation with live packet flow
+**ScriptLoader Integration**:
+- Added `Array<One<NetContext>> built_nets` field in Loader.h
+- ImplementScript() extended to handle net lifecycle:
+  - PostInitializeAll() for all nets before chains
+  - StartAll() for all nets after chains started
+  - Proper error handling with UndoAll() on failures
+
+**Atom Creation Pattern**:
+- Atom name from definition → action string lookup
+- VfsValueExtFactory resolves action to AtomTypeCls + LinkTypeCls
+- Atoms created in net_space VfsValue node
+- WorldState initialized with atom args from definition
+- InitializeAtom() + Initialize() called during creation
+
+**Port Registration**:
+- RegisterPorts() called on each atom after creation
+- Router tracks port handles with atom pointers
+- Port indices stored in atom->router_source_ports / router_sink_ports
+
+**Connection Wiring**:
+- Explicit connections from NetConnectionDef
+- Port type validation during wiring
+- PacketRouter::Connect() with proper PortHandle construction
+- Validates port indices against registered port counts
+
+**Lifecycle Management**:
+- PostInitializeAll(): reverse order iteration over atoms
+- StartAll(): reverse order iteration, SetRunning() after Start()
+- Error recovery: UndoAll() stops and uninitializes in reverse order
+- Integration with eager_build_chains mode in ImplementScript()
+
+**Build Verification**:
+- All code compiles successfully (Eon00 built without errors)
+- NetContext properly integrated with ScriptLoader
+- Test infrastructure ready for Phase 4 validation
+
+**Next Phase:** Phase 4 - Testing with live .eon files and packet flow validation
 
 ---
 

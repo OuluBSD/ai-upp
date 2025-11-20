@@ -537,5 +537,224 @@ String ChainContext::GetTreeString(int indent) const {
     return s;
 }
 
+// NetContext implementation (Phase 3)
+
+NetContext::NetContext(VfsValue& space)
+    : net_space(space) {
+    router.Create();
+}
+
+AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const IfaceConnTuple& iface, const ArrayMap<String, Value>* args) {
+    // Resolve action to atom type and link type
+    AtomTypeCls atom_type;
+    LinkTypeCls link_type;
+    if (!FindAtomByAction(action, atom_type, link_type)) {
+        RTLOG("NetContext::AddAtom: could not resolve action '" << action << "'");
+        failed = true;
+        return nullptr;
+    }
+
+    // Create atom using VfsValueExtFactory
+    VfsValue& sub_atom = net_space.Add();
+    int ai = VfsValueExtFactory::AtomDataMap().Find(atom_type);
+    if (ai < 0) {
+        RTLOG("NetContext::AddAtom: atom type not found in factory");
+        failed = true;
+        return nullptr;
+    }
+
+    const auto& af = VfsValueExtFactory::AtomDataMap()[ai];
+    VfsValueExt* aext = af.new_fn(sub_atom);
+    AtomBasePtr ab = CastPtr<AtomBase>(aext);
+    if (!ab) {
+        RTLOG("NetContext::AddAtom: failed to cast to AtomBase");
+        failed = true;
+        return nullptr;
+    }
+
+    sub_atom.id = name; // Use atom name from definition
+    sub_atom.ext = ab;
+    sub_atom.type_hash = ab->GetTypeHash();
+
+    // Set interface
+    ab->SetInterface(iface);
+
+    // Initialize with args
+    WorldState ws;
+    if (args) {
+        for (int i = 0; i < args->GetCount(); i++) {
+            String key = args->GetKey(i);
+            const Value& obj = args->operator[](i);
+            ws.values.GetAdd("." + key) = obj;
+        }
+    }
+
+    if (!ab->InitializeAtom(ws) || !ab->Initialize(ws)) {
+        RTLOG("NetContext::AddAtom: initialization failed for '" << name << "'");
+        failed = true;
+        return nullptr;
+    }
+
+    ab->SetInitialized();
+
+    // Store atom instance
+    AtomInstance& inst = atoms.Add();
+    inst.name = name;
+    inst.atom = ab;
+    inst.iface = iface;
+
+    RTLOG("NetContext::AddAtom: created atom '" << name << "' (" << action << ")");
+    return ab;
+}
+
+void NetContext::AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port) {
+    Connection& conn = connections.Add();
+    conn.from_atom_idx = from_atom_idx;
+    conn.from_port = from_port;
+    conn.to_atom_idx = to_atom_idx;
+    conn.to_port = to_port;
+}
+
+bool NetContext::RegisterPorts() {
+    if (!router) {
+        RTLOG("NetContext::RegisterPorts: router not initialized");
+        return false;
+    }
+
+    RTLOG("NetContext::RegisterPorts: registering " << atoms.GetCount() << " atoms");
+
+    for (auto& inst : atoms) {
+        if (inst.atom) {
+            inst.atom->RegisterPorts(*router);
+        }
+    }
+
+    RTLOG("NetContext::RegisterPorts: router has " << router->GetPortCount() << " ports");
+    return true;
+}
+
+bool NetContext::MakeConnections() {
+    if (!router) {
+        RTLOG("NetContext::MakeConnections: router not initialized");
+        return false;
+    }
+
+    RTLOG("NetContext::MakeConnections: wiring " << connections.GetCount() << " connections");
+
+    for (const Connection& conn : connections) {
+        if (conn.from_atom_idx < 0 || conn.from_atom_idx >= atoms.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid from_atom_idx " << conn.from_atom_idx);
+            return false;
+        }
+        if (conn.to_atom_idx < 0 || conn.to_atom_idx >= atoms.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid to_atom_idx " << conn.to_atom_idx);
+            return false;
+        }
+
+        AtomInstance& from_inst = atoms[conn.from_atom_idx];
+        AtomInstance& to_inst = atoms[conn.to_atom_idx];
+
+        if (!from_inst.atom || !to_inst.atom) {
+            RTLOG("NetContext::MakeConnections: null atom pointer");
+            return false;
+        }
+
+        // Get router port indices
+        const Vector<int>& src_ports = from_inst.atom->router_source_ports;
+        const Vector<int>& dst_ports = to_inst.atom->router_sink_ports;
+
+        if (conn.from_port < 0 || conn.from_port >= src_ports.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid from_port " << conn.from_port
+                << " (atom has " << src_ports.GetCount() << " source ports)");
+            return false;
+        }
+        if (conn.to_port < 0 || conn.to_port >= dst_ports.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid to_port " << conn.to_port
+                << " (atom has " << dst_ports.GetCount() << " sink ports)");
+            return false;
+        }
+
+        int src_router_idx = src_ports[conn.from_port];
+        int dst_router_idx = dst_ports[conn.to_port];
+
+        // Build PortHandles
+        PacketRouter::PortHandle src_handle;
+        src_handle.atom = &*from_inst.atom;
+        src_handle.port_index = conn.from_port;
+        src_handle.direction = RouterPortDesc::Direction::Source;
+        src_handle.router_index = src_router_idx;
+
+        PacketRouter::PortHandle dst_handle;
+        dst_handle.atom = &*to_inst.atom;
+        dst_handle.port_index = conn.to_port;
+        dst_handle.direction = RouterPortDesc::Direction::Sink;
+        dst_handle.router_index = dst_router_idx;
+
+        router->Connect(src_handle, dst_handle);
+
+        RTLOG("NetContext::MakeConnections: connected " << from_inst.name << ":" << conn.from_port
+            << " -> " << to_inst.name << ":" << conn.to_port);
+    }
+
+    RTLOG("NetContext::MakeConnections: router has " << router->GetConnectionCount() << " connections");
+    return true;
+}
+
+bool NetContext::PostInitializeAll() {
+    RTLOG("NetContext::PostInitializeAll: " << atoms.GetCount() << " atoms");
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom && !atoms[i].atom->PostInitialize()) {
+            RTLOG("NetContext::PostInitializeAll: atom " << atoms[i].name << " failed");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool NetContext::StartAll() {
+    RTLOG("NetContext::StartAll: " << atoms.GetCount() << " atoms");
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            if (!atoms[i].atom->Start()) {
+                RTLOG("NetContext::StartAll: atom " << atoms[i].name << " failed to start");
+                return false;
+            }
+            atoms[i].atom->SetRunning();
+        }
+    }
+    return true;
+}
+
+void NetContext::UndoAll() {
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            atoms[i].atom->Stop();
+        }
+    }
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            atoms[i].atom->UninitializeDeep();
+        }
+    }
+}
+
+String NetContext::GetTreeString(int indent) const {
+    String s;
+    s << Indent(indent) << "NetContext space: " << PathOf(const_cast<VfsValue&>(net_space)) << '\n';
+    s << Indent(indent+1) << "Atoms: " << atoms.GetCount() << '\n';
+    for (int i = 0; i < atoms.GetCount(); i++) {
+        s << Indent(indent+2) << i << ": " << atoms[i].name;
+        if (atoms[i].atom)
+            s << " (" << atoms[i].iface.type.ToString() << ")";
+        s << '\n';
+    }
+    s << Indent(indent+1) << "Connections: " << connections.GetCount() << '\n';
+    for (const Connection& conn : connections) {
+        s << Indent(indent+2) << atoms[conn.from_atom_idx].name << ":" << conn.from_port
+            << " -> " << atoms[conn.to_atom_idx].name << ":" << conn.to_port << '\n';
+    }
+    return s;
+}
+
 }
 END_UPP_NAMESPACE

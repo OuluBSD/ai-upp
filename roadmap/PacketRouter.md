@@ -206,22 +206,36 @@ Full DSL parser and validation infrastructure implemented (2025-11-20):
 
 ## Immediate Next Steps
 
-### Phase 3 – Full Atom Instantiation & Lifecycle (NEXT)
-Complete the atom instantiation deferred in Phase 2:
-1. **Implement full atom creation in BuildNet()** (ScriptLoader.cpp:513-630)
-   - Replace TODO markers with actual atom instantiation
-   - Use AtomFactoryRegistry to create atoms from definitions
-   - Apply atom configuration (state, parameters)
-2. **Wire live port registration**
-   - Call `atom->RegisterPorts(router)` for each instantiated atom
-   - Validate port counts match connection requirements
-3. **Create actual connections**
-   - Use `PacketRouter::Connect()` to wire port pairs
-   - Validate connection topology
-4. **Lifecycle management**
-   - Call Initialize/Start on atoms in dependency order
-   - Handle cleanup and error cases
-5. **Comprehensive testing**
-   - Create test .eon files with multiple atom types
-   - Verify packet flow through router connections
-   - Test error cases (invalid atoms, port mismatches, etc.)
+### Phase 3 – Full Atom Instantiation & Lifecycle – COMPLETE ✓ (2025-11-20)
+Complete implementation of atom creation, port registration, and lifecycle:
+- ✓ **NetContext class** (`uppsrc/Eon/Core/Context.{h,cpp}`) - Router-based network context
+- ✓ **BuildNet() implementation** (ScriptLoader.cpp:513-600) - Full atom instantiation
+- ✓ **Atom creation** - VfsValueExtFactory resolves actions → atoms
+- ✓ **Port registration** - RegisterPorts() called on all atoms, router tracks handles
+- ✓ **Connection wiring** - PacketRouter::Connect() with explicit port-to-port specs
+- ✓ **Lifecycle management** - PostInitializeAll/StartAll integrated with ImplementScript()
+- ✓ **ScriptLoader integration** - built_nets storage and eager mode support
+- ✓ **Error handling** - UndoAll() cleanup on failures
+- ✓ **Build verification** - Eon00 compiles successfully with all changes
+
+## Immediate Next Steps
+
+### Phase 4 – Live Testing & Validation (NEXT)
+Test the complete implementation with live .eon files:
+1. **Create test .eon files** with various network topologies
+   - Single-atom nets
+   - Multi-atom pipeline nets
+   - Networks with fan-out/fan-in patterns
+2. **Verify packet flow**
+   - Router properly routes packets between atoms
+   - Credit accounting works correctly
+   - Atoms communicate through PacketRouter API
+3. **Test error cases**
+   - Invalid atom names
+   - Port mismatches
+   - Type incompatibilities
+   - Missing connections
+4. **Performance validation**
+   - Compare router nets vs loop-based chains
+   - Measure packet routing overhead
+   - Verify no packet leaks or starvation

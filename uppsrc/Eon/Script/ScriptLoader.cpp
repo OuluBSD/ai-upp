@@ -753,12 +753,28 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			}
 			has_chain = true;
 		}
+		else if (item->src == Cursor_NetStmt) {
+			Eon::NetDefinition& net_def = def.nets.Add();
+
+			if (!GetPathId(net_def.id, n, item))
+				return false;
+			EnsurePrefix(net_def.id, def.id);
+
+			ASSERT(!net_def.id.IsEmpty());
+
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
+
+			if (!LoadNet(net_def, block))
+				return false;
+			has_chain = true;
+		}
 		else if (item->src == Cursor_DriverStmt || item->src == Cursor_LoopStmt) {
 			if (!anon_chain)
 				anon_chain = &def.chains.Add();
 			if (anon_chain->id.IsEmpty())
 				anon_chain->id = def.id;
-			
+
 			if (!LoadChain(*anon_chain, item))
 				return false;
 			has_chain = true;
@@ -1297,6 +1313,74 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
         chain.states.Clear();
     }
     return ok;
+}
+
+bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
+	const auto& map = VfsValueExtFactory::AtomDataMap();
+	Vector<Endpoint> atoms, states;
+	RTLOG("LoadNet: entering for id=" << net.id.ToString());
+
+	// Parse inline atom definitions
+	n->FindAll(atoms, Cursor_AtomStmt);
+	Sort(atoms, AstNodeLess());
+
+	for (Endpoint& ep : atoms) {
+		AstNode* atom = ep.n;
+		Eon::AtomDefinition& atom_def = net.atoms.Add();
+		atom_def.loc = atom->loc;
+
+		if (!GetPathId(atom_def.id, n, atom))
+			return false;
+
+		String atom_action = atom_def.id.ToString();
+		const VfsValueExtFactory::AtomData* found_atom = 0;
+		for (const VfsValueExtFactory::AtomData& atom_data : map.GetValues()) {
+			bool match = false;
+			for (const String& action : atom_data.actions) {
+				if (action == atom_action) {
+					match = true;
+					break;
+				}
+			}
+			if (!match)
+				continue;
+			found_atom = &atom_data;
+		}
+
+		if (!found_atom) {
+			AddError(atom->loc, "could not find atom for '" + atom_action + "'");
+			return false;
+		}
+
+		AtomTypeCls type = found_atom->cls;
+		ASSERT(type.IsValid());
+		atom_def.iface.Realize(type);
+
+		if (!LoadArguments(atom_def.args, atom))
+			return false;
+	}
+	RTLOG("LoadNet: parsed atoms count=" << net.atoms.GetCount());
+
+	// Parse state declarations
+	n->FindAll(states, Cursor_StateStmt);
+	Sort(states, AstNodeLess());
+	RTLOG("LoadNet: state stmt count=" << states.GetCount());
+	for (Endpoint& ep : states) {
+		AstNode* state = ep.n;
+		Eon::StateDeclaration& state_def = net.states.Add();
+		state_def.loc = state->loc;
+
+		if (!GetPathId(state_def.id, n, state))
+			return false;
+		RTLOG("LoadNet: state def=" << state_def.id.ToString());
+	}
+
+	// TODO: Parse connections: blocks with atom:port -> atom:port syntax
+	// This will require understanding how the parser represents connection specifications
+	// in the AST. For now, this is left as future work (Phase 3).
+	RTLOG("LoadNet: connection parsing not yet implemented (Phase 3 work)");
+
+	return true;
 }
 
 bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {

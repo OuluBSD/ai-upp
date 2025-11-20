@@ -53,6 +53,7 @@
 	CURSOR(ChainStmt,,) \
 	CURSOR(LoopDecl,,) \
 	CURSOR(LoopStmt,,) \
+	CURSOR(NetStmt,,) \
 	CURSOR(MetaVariable,,) \
 	CURSOR(MetaParameter,,) \
 	CURSOR(MetaBuiltin,,) \
@@ -94,7 +95,7 @@
 	CURSOR(EcsStmt,,)				/* EngineStmt | WorldStmt | EntityStmt | ComponentStmt | SystemStmt | PoolStmt,,) */ \
 	\
 	/* todo merge CURSOR(OldEcsStmt to CURSOR(EcsStmt */ \
-	CURSOR(OldEcsStmt,,)			/* MachineDecl | MachineStmt | ChainDecl | ChainStmt | LoopDecl | DriverStmt | LoopStmt | StateStmt | AtomStmt,,) */ \
+	CURSOR(OldEcsStmt,,)			/* MachineDecl | MachineStmt | ChainDecl | ChainStmt | LoopDecl | DriverStmt | LoopStmt | NetStmt | StateStmt | AtomStmt,,) */ \
 	\
 	CURSOR(MetaValueDecl,,)			/* MetaVariable | MetaParameter,,) */ \
 	CURSOR(MetaTypeDecl,,)			/* MetaBuiltin,,) */ \

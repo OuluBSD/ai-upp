@@ -330,6 +330,7 @@ protected:
 	bool		LoadCompilationUnit(AstNode* root);
 	bool		LoadGlobalScope(Eon::GlobalScope& glob, AstNode* root);
 	bool		LoadChain(Eon::ChainDefinition& chain, AstNode* root);
+	bool		LoadNet(Eon::NetDefinition& net, AstNode* root);
 	bool		LoadMachine(Eon::MachineDefinition& mach, AstNode* root);
 	bool		LoadWorld(Eon::WorldDefinition& def, AstNode* n);
 	bool		LoadDriver(Eon::DriverDefinition& def, AstNode* n);

@@ -121,7 +121,30 @@ Router descriptors serialize through VFS Storage (JSON/binary/chunked). IDE over
 - Packet flow works correctly through legacy LinkSystem forwarding
 - Router lifecycle managed properly with clean destruction
 
-**Next Steps:** Phase 2 DSL Integration to replace legacy loop syntax with router net blocks.
+**Next Steps:** Phase 2 DSL Integration - parser/grammar implementation.
+
+### ⏳ Phase 2 DSL Integration (In Progress)
+**AST Foundations Complete (2025-11-20):**
+
+**Data Structures:**
+- `uppsrc/Eon/Script/Def.h`:
+  - `NetConnectionDef` - explicit port connections (`from_atom:from_port -> to_atom:to_port`)
+  - `NetDefinition` - router network with flat atom list + connection vector
+  - `MachineDefinition.nets` field added alongside legacy `chains`
+  - ToString/GetTreeString helpers implemented
+
+**Loader Infrastructure:**
+- `ScriptNetLoader` class created (follows ScriptChainLoader pattern)
+- Integrated into MachineLoader (constructor, Load, Visit, GetTreeString)
+- NetLoader.cpp added to Script.upp package
+- Eon/Script package compiles successfully
+
+**Remaining Work:**
+- Add `Cursor_NetStmt` + `net` keyword to Eon parser/grammar
+- Implement `LoadNet()` method to parse inline atoms + connections blocks
+- Create `BuildNet()` to emit router specs via PacketRouter API
+- Update ToyLoader to generate router syntax
+- Fix VfsOverlay namespace collision blocking Eon00 builds (unrelated blocker)
 
 ---
 

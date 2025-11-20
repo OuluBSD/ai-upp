@@ -12,6 +12,7 @@ class ScriptStateLoader;
 class ScriptSystemLoader;
 class ScriptTopChainLoader;
 class ScriptChainLoader;
+class ScriptNetLoader;
 class ScriptMachineLoader;
 class ScriptWorldLoader;
 class ScriptLoader;
@@ -158,6 +159,25 @@ public:
 	
 };
 
+class ScriptNetLoader : public ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader> {
+
+public:
+	using Base = ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader>;
+
+public:
+	Array<ScriptStateLoader>		states;
+
+	ScriptNetLoader(ScriptMachineLoader& parent, int id, Eon::NetDefinition& def);
+
+	void		Visit(Vis& vis) override {vis || states;}
+	String		GetTreeString(int indent) override;
+	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
+	void		GetStates(Vector<ScriptStateLoader*>& v) override;
+	Eon::Id		GetDeepId() const override;
+	bool		Load() override;
+
+};
+
 
 class ScriptTopChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptMachineLoader> {
 public:
@@ -207,13 +227,14 @@ public:
 class ScriptMachineLoader : public ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader> {
 public:
 	using Base = ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader>;
-	
+
 public:
 	Array<ScriptTopChainLoader>		chains;
+	Array<ScriptNetLoader>			nets;
 	
 	
 	ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def);
-	void		Visit(Vis& vis) override {vis || chains;}
+	void		Visit(Vis& vis) override {vis || chains || nets;}
 	bool		Load() override;
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;

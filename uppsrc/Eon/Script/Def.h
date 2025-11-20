@@ -83,13 +83,69 @@ struct ChainDefinition {
 	LinkedList<StateDeclaration>	states;
 	LinkedList<LoopDefinition>		loops;
 	LinkedList<ChainDefinition>		subchains;
-	
+
 	ChainDefinition() {}
 	ChainDefinition(const ChainDefinition& v) {*this = v;}
 	void Clear() {id.Clear(); args.Clear(); states.Clear(); loops.Clear(); subchains.Clear();}
 	void operator=(const ChainDefinition& v) {id = v.id; loc = v.loc; args <<= v.args; states <<= v.states; loops <<= v.loops; subchains <<= v.subchains;}
 	String GetTreeString(int indent=0) const;
 	void GetSubChainPointers(LinkedList<Eon::ChainDefinition*>& ptrs);
+};
+
+// Router-based connection definition (explicit port-to-port)
+struct NetConnectionDef : Moveable<NetConnectionDef> {
+	String							from_atom;
+	int								from_port = 0;
+	String							to_atom;
+	int								to_port = 0;
+	FileLocation					loc;
+	ArrayMap<String, Value>			metadata;  // flow-control hints, etc.
+
+	NetConnectionDef() {}
+	NetConnectionDef(const NetConnectionDef& v) {*this = v;}
+	void operator=(const NetConnectionDef& v) {
+		from_atom = v.from_atom;
+		from_port = v.from_port;
+		to_atom = v.to_atom;
+		to_port = v.to_port;
+		loc = v.loc;
+		metadata <<= v.metadata;
+	}
+	String GetTreeString(int indent=0) const;
+	String ToString() const;
+};
+
+// Router-based network definition (replaces chain/loop hierarchy)
+struct NetDefinition {
+	Id								id;
+	FileLocation					loc;
+	ArrayMap<String, Value>			args;
+	LinkedList<StateDeclaration>	states;
+	LinkedList<AtomDefinition>		atoms;       // Flat atom list (not grouped into loops)
+	Vector<NetConnectionDef>		connections; // Explicit port connections
+	LinkedList<NetDefinition>		subnets;     // Nested networks (future)
+
+	NetDefinition() {}
+	NetDefinition(const NetDefinition& v) {*this = v;}
+	void Clear() {
+		id.Clear();
+		args.Clear();
+		states.Clear();
+		atoms.Clear();
+		connections.Clear();
+		subnets.Clear();
+	}
+	void operator=(const NetDefinition& v) {
+		id = v.id;
+		loc = v.loc;
+		args <<= v.args;
+		states <<= v.states;
+		atoms <<= v.atoms;
+		connections <<= v.connections;
+		subnets <<= v.subnets;
+	}
+	String GetTreeString(int indent=0) const;
+	void GetSubNetPointers(LinkedList<Eon::NetDefinition*>& ptrs);
 };
 
 struct DriverDefinition {
@@ -175,12 +231,20 @@ struct MachineDefinition {
 	Id								id;
 	FileLocation					loc;
 	ArrayMap<String, Value>			args;
-	LinkedList<ChainDefinition>		chains;
+	LinkedList<ChainDefinition>		chains;    // Legacy loop-based chains
+	LinkedList<NetDefinition>		nets;      // Router-based networks
 	LinkedList<DriverDefinition>	drivers;
-	
+
 	MachineDefinition() {}
 	MachineDefinition(const MachineDefinition& v) {*this = v;}
-	void operator=(const MachineDefinition& v) {id = v.id; loc = v.loc; args <<= v.args; chains <<= v.chains; drivers <<= v.drivers;}
+	void operator=(const MachineDefinition& v) {
+		id = v.id;
+		loc = v.loc;
+		args <<= v.args;
+		chains <<= v.chains;
+		nets <<= v.nets;
+		drivers <<= v.drivers;
+	}
 	String GetTreeString(int indent=0) const;
 	String ToString() const;
 };

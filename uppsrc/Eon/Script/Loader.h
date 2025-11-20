@@ -309,6 +309,8 @@ public:
 	bool			LoadAst(AstNode* root);
 	// Non-AST path: build a chain directly from a prepared definition using Core contexts
 	bool			BuildChain(const Eon::ChainDefinition& chain);
+	// Non-AST path: build a net directly from a prepared definition using PacketRouter
+	bool			BuildNet(const Eon::NetDefinition& net);
 	
 	
 protected:

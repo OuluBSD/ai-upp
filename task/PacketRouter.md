@@ -139,12 +139,19 @@ Router descriptors serialize through VFS Storage (JSON/binary/chunked). IDE over
 - NetLoader.cpp added to Script.upp package
 - Eon/Script package compiles successfully
 
+**Parser & LoadNet Implementation (2025-11-20):**
+- ✓ `Cursor_NetStmt` + `net` keyword added to Eon parser (Script/Script.cpp:756)
+- ✓ `LoadNet()` method implemented (Script/ScriptLoader.cpp:569-635)
+  - Successfully parses inline atom definitions from `net` blocks
+  - Correctly loads state declarations within nets
+  - Net blocks recognized at machine level and integrated into MachineDefinition
+- ✓ VfsOverlay namespace collision resolved (removed double-nesting in Overlay.h includes)
+- ✓ Build verified: Eon00 compiles successfully
+
 **Remaining Work:**
-- Add `Cursor_NetStmt` + `net` keyword to Eon parser/grammar
-- Implement `LoadNet()` method to parse inline atoms + connections blocks
-- Create `BuildNet()` to emit router specs via PacketRouter API
-- Update ToyLoader to generate router syntax
-- Fix VfsOverlay namespace collision blocking Eon00 builds (unrelated blocker)
+- Implement connection parsing in `LoadNet()` (atom:port -> atom:port syntax from AST)
+- Create `BuildNet()` method in ScriptNetLoader to materialize networks via PacketRouter API
+- Update ToyLoader to generate router syntax for test cases
 
 ---
 

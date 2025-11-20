@@ -13,14 +13,19 @@ ScriptNetLoader::ScriptNetLoader(ScriptMachineLoader& parent, int id, Eon::NetDe
 }
 
 bool ScriptNetLoader::Load() {
-	// TODO: Implement net loading
-	// This will:
-	// 1. Load inline atom definitions from def.atoms
-	// 2. Parse connection specifications from def.connections
-	// 3. Create PacketRouter instance
-	// 4. Register ports from atoms
-	// 5. Wire connections via PacketRouter
-	LOG("ScriptNetLoader::Load() - Net loader stub for: " << def.id.ToString());
+	RTLOG("ScriptNetLoader::Load() - Building net: " << def.id.ToString());
+	RTLOG("\tAtoms: " << def.atoms.GetCount());
+	RTLOG("\tStates: " << def.states.GetCount());
+	RTLOG("\tConnections: " << def.connections.GetCount());
+
+	// Call ScriptLoader::BuildNet to handle the actual net construction
+	// BuildNet validates atom definitions, connections, and creates PacketRouter
+	if (!GetLoader().BuildNet(def)) {
+		AddError(def.loc, "Failed to build net: " + def.id.ToString());
+		return false;
+	}
+
+	LOG("ScriptNetLoader::Load() - Net loaded successfully: " << def.id.ToString());
 	return true;
 }
 

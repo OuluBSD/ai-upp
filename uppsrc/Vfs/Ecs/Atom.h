@@ -14,6 +14,8 @@ struct LoopContext;
 
 class LinkBase;
 class WorldState;
+class PacketRouter;
+class PacketValue;
 
 
 class PacketForwarderData {};
@@ -49,7 +51,7 @@ protected:
 protected:
 	friend class LinkBase;
 	friend class Eon::LoopContext;
-	
+
 	Mutex					fwd_lock;
 	IfaceConnTuple			iface;
 	LinkBase*				link = 0;
@@ -57,6 +59,16 @@ protected:
 	int						dep_count = 0;
 	Vector<RouterPortDesc>	router_ports[2];
 	//Value					user_data; // use val.value instead
+
+	// Router port registration helpers for derived classes
+	// Returns router_index (internal routing table index), or -1 on failure
+	int						RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd);
+	int						RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd);
+
+public:
+	// Port handle storage (router_index values) - public for LoopContext access
+	Vector<int>				router_sink_ports;
+	Vector<int>				router_source_ports;
 	
 	
 public:
@@ -82,7 +94,12 @@ public:
 	virtual void			DetachContext(AtomBase& a) {Panic("Unimplemented"); NEVER();}
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
-	
+
+	// Router integration (Phase 1) - opt-in virtuals for PacketRouter mode
+	virtual void			RegisterPorts(PacketRouter& router) {}
+	virtual void			OnPortReady(int port_id) {}
+	virtual bool			EmitPacket(int port_id, PacketValue& packet) { return false; }
+
 	String					ToString() const override;
 	void					UninitializeDeep() override;
 	void					Visit(Vis& vis) override {}

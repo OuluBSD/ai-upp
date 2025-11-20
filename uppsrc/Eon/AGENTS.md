@@ -263,3 +263,138 @@ Troubleshooting
 - Side‑linking errors: verify both source and sink atoms expose matching side connector IDs and that script connectors are consistent.
 - ECS load errors: check `System::Arg`/`Component::Arg` returns; logs include `GetErrorString()` from loaders.
 
+
+PacketRouter Migration Guide
+----------------------------
+
+### Overview
+
+The PacketRouter is a new runtime packet routing system that replaces the legacy Link/Customer/Exchange architecture. It provides:
+- Port-based packet routing instead of hardcoded channels
+- Credit-based flow control for backpressure management
+- Topology inspection and diagnostics
+
+### Current State (Phase 1)
+
+Phase 1 adds the router API foundation:
+- `PacketRouter` class in `Eon/Core/PacketRouter.{h,cpp}`
+- Router virtuals in `AtomBase`: `RegisterPorts()`, `OnPortReady()`, `EmitPacket()`
+- Helper methods: `RegisterSinkPort()`, `RegisterSourcePort()`
+
+### Migration Path for Atoms
+
+**Step 1: Add port registration**
+
+Override `RegisterPorts()` to declare your atom's ports:
+
+```cpp
+void YourAtom::RegisterPorts(PacketRouter& router) {
+    ValDevTuple vd;
+    vd.Add(VD(CENTER, AUDIO), false);
+
+    // Register ports
+    RegisterSourcePort(router, 0, vd);  // output port
+    RegisterSinkPort(router, 0, vd);    // input port
+}
+```
+
+**Step 2: Handle port ready notifications**
+
+Override `OnPortReady()` to respond when credits become available:
+
+```cpp
+void YourAtom::OnPortReady(int port_id) {
+    // Generate and emit packet when output has credits
+    if (port_id == 0) {  // source port
+        PacketValue packet;
+        // ... fill packet ...
+        EmitPacket(port_id, packet);
+    }
+}
+```
+
+**Step 3: Implement packet emission**
+
+Override `EmitPacket()` to route packets via the router:
+
+```cpp
+bool YourAtom::EmitPacket(int port_id, PacketValue& packet) {
+    // Get credits, emit packet
+    // ... implementation details ...
+    return router.RoutePacket(port_handle, packet);
+}
+```
+
+### CustomerBase Shim Approach
+
+To maintain backward compatibility while migrating, a shim approach is planned using `flagROUTER_RUNTIME`:
+
+```cpp
+#ifdef flagROUTER_RUNTIME
+// CustomerBase uses PacketRouter for packet generation
+void CustomerBase::RegisterPorts(PacketRouter& router) {
+    // Register output port for customer pattern
+    ValDevTuple vd = GetInterface().type.iface.src.channels[0].vd;
+    RegisterSourcePort(router, 0, vd);
+}
+
+void CustomerBase::OnPortReady(int port_id) {
+    // Generate packet when credits available
+    if (IsForwardReady()) {
+        PacketValue packet;
+        ForwardPacket(packet);
+        EmitPacket(port_id, packet);
+    }
+}
+#else
+// Legacy Exchange-based behavior preserved
+#endif
+```
+
+**When disabled** (`flagROUTER_RUNTIME` not defined):
+- Legacy Exchange/Link behavior is preserved
+- Existing workloads continue to work unchanged
+
+**When enabled** (`flagROUTER_RUNTIME` defined):
+- CustomerBase registers ports via router
+- Credit-based flow control replaces IsForwardReady() polling
+- Packet routing goes through PacketRouter instead of Exchange
+
+### Migration Timeline
+
+1. **Phase 1 (current)**: Router API foundation, POC tests
+2. **Phase 2**: DSL rewrite to generate router connections
+3. **Phase 3**: Convert core atoms (audio, video generators)
+4. **Phase 4**: Remove legacy Exchange path, full router mode
+
+### Testing Router Integration
+
+Use `upptst/RouterCore` to test router functionality:
+
+```bash
+script/build-console.sh RouterCore
+bin/RouterCore
+```
+
+The test suite includes:
+- Port registration tests
+- Connection table tests
+- Credit allocation tests
+- Atom router integration POC (MockAudioGenerator/MockAudioSink)
+
+### Key Differences from Legacy
+
+| Legacy (Exchange/Link) | Router (PacketRouter) |
+|------------------------|----------------------|
+| Link schedules atoms | Router manages credits |
+| Send() pushes directly | EmitPacket() routes via table |
+| Exchange buffers | Port-based flow control |
+| Hardcoded channels | Dynamic port registration |
+
+### Files
+
+- `uppsrc/Eon/Core/PacketRouter.{h,cpp}` - Router implementation
+- `uppsrc/Vfs/Ecs/Atom.h` - AtomBase with router virtuals
+- `uppsrc/Eon/Core/Base.h` - CustomerBase (shim target)
+- `upptst/RouterCore/` - Unit tests
+

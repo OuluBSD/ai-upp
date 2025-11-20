@@ -90,6 +90,74 @@ Header Include Policy (U++ BLITZ)
 - Do not add `#include` statements to any package headers other than the main header. The only exception is truly inline header includes that belong to that header. Rationale: it is ugly for BLITZ and third-party/system headers might end up under `NAMESPACE_UPP` when pulled via the main header wrapper.
 - `.icpp` files are not "companion includes" for headers. Treat `.icpp` as implementation files (like `.cpp`/`.c`): compile them normally, and have them start with `#include "PackageName.h"` and any rare, file-specific includes afterward as needed.
 
+### CRITICAL: Avoiding Nested Namespace (`Upp::Upp::`) Errors
+
+**Problem**: Including U++ headers inside `namespace Upp { }` causes nested namespace issues. The `UPP` macro expands to `Upp`, so `UPP::VppLog()` becomes `Upp::Upp::VppLog()` when used inside namespace Upp. This breaks macros like `LOG`, `INITBLOCK`, etc.
+
+**Compile-time check**: Core/Defs.h contains `extern int Upp;` which triggers a "redefinition as different kind of symbol" error if you try to declare `namespace Upp` after including Core headers. This catches the error early.
+
+**Rules to prevent nested namespace errors**:
+
+1. **Main header structure**: Only the main package header (`PackageName.h`) should have `NAMESPACE_UPP`/`END_UPP_NAMESPACE`.
+
+2. **Sub-headers**: Headers included FROM within the main header's namespace block must NOT have their own `NAMESPACE_UPP`. They are already inside the namespace.
+
+3. **No includes inside namespace**: Sub-headers must NOT include other headers. Only the main header may include other headers (before entering the namespace).
+
+4. **Implementation files**: `.cpp` files should include the main header (e.g., `#include "PackageName.h"`), not sub-headers directly.
+
+**Correct pattern**:
+```cpp
+// PackageName.h (main header)
+#ifndef _Package_PackageName_h_
+#define _Package_PackageName_h_
+
+#include <Core/Core.h>      // Includes go BEFORE namespace
+#include <OtherDep/Dep.h>
+
+NAMESPACE_UPP
+
+#include "SubHeader1.h"     // These have NO namespace or includes
+#include "SubHeader2.h"
+
+END_UPP_NAMESPACE
+#endif
+
+// SubHeader1.h (sub-header)
+#ifndef _Package_SubHeader1_h_
+#define _Package_SubHeader1_h_
+// NO includes here
+// NO NAMESPACE_UPP here
+
+class MyClass { ... };
+
+#endif
+
+// Implementation.cpp
+#include "PackageName.h"    // Include main header, NOT sub-headers
+
+NAMESPACE_UPP
+// Implementation...
+END_UPP_NAMESPACE
+```
+
+**Wrong patterns that cause `Upp::Upp::`**:
+```cpp
+// WRONG: Include inside namespace
+NAMESPACE_UPP
+#include "SubHeader.h"      // If SubHeader.h has NAMESPACE_UPP → nested!
+
+// WRONG: Sub-header with own namespace when included from main
+// SubHeader.h
+#include <Core/Core.h>      // WRONG: sub-headers should not include
+NAMESPACE_UPP               // WRONG: will nest if included from main header
+class MyClass { ... };
+END_UPP_NAMESPACE
+
+// WRONG: .cpp including sub-header directly
+#include "SubHeader.h"      // Should include "PackageName.h" instead
+```
+
 Subpackage Independence
 - Subpackages like `AI`, `AI/Core`, `AI/Core/Core` are independent packages; do not gather headers in the parent package.
 - A parent package may include only the subpackage's main header (e.g., `#include "Core.h"` from `AI`). Do not cross-include subpackage internals directly.

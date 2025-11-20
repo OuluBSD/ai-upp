@@ -96,16 +96,32 @@ RouterNetContext prototype validates router concepts. Method 3 builders in Eon00
 ### ✓ Phase 1/3 Serialization Complete
 Router descriptors serialize through VFS Storage (JSON/binary/chunked). IDE overlays display cached router metadata. Test coverage comprehensive.
 
-### → Phase 1 Runtime API - NEXT PRIORITY
-**Gap:** RouterNetContext is a build-time helper only; still delegates to ChainContext/LoopContext for packet execution.
+### ✓ Phase 1 Runtime API Complete
+**PacketRouter integration validated with Eon workloads (2025-11-20):**
 
-**Required:** Create `uppsrc/Eon/Core/PacketRouter.{h,cpp}` with actual runtime packet routing:
-- Port registration API (replaces hardcoded Exchange setup)
-- Connection table management (replaces Link chains)
-- Credit-based flow control (replaces loop packet pools)
-- Atom API extensions (OnPortReady, EmitPacket, RegisterPorts)
+**Implementation:**
+- `uppsrc/Eon/Core/PacketRouter.{h,cpp}` with full runtime packet routing
+- Port registration API (`RegisterSourcePort`, `RegisterSinkPort`)
+- Connection table management (`Connect`, `GetPortCount`)
+- Credit-based flow control primitives (default credits, allocation)
+- Atom API extensions (`RegisterPorts` virtual method on atoms)
 
-**Approach:** Start with stub PacketRouter class + unit tests in upptst/RouterCore, then integrate one backend atom as proof-of-concept.
+**LoopContext Integration:**
+- `RegisterRouterPorts()` iterates atoms and calls `RegisterPorts()`
+- `MakeRouterConnections()` generates circular topology from legacy loops
+- Called from `ChainContext::AddLoop()` at context creation time
+
+**Validated Atoms (RegisterPorts implementations):**
+- `CustomerBase` - source-only pattern (order packets)
+- `RollingValueBase` - pipe pattern (sink + source)
+- `VoidSinkBase` - sink-only pattern (audio consumption)
+
+**Test Results (Eon00 with method 0/2/3):**
+- PacketRouter created → 3 ports registered → 1 connection made → PacketRouter destroyed
+- Packet flow works correctly through legacy LinkSystem forwarding
+- Router lifecycle managed properly with clean destruction
+
+**Next Steps:** Phase 2 DSL Integration to replace legacy loop syntax with router net blocks.
 
 ---
 

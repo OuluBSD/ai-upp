@@ -60,6 +60,9 @@ public:
 
     Vector<AddedAtom> added;
 
+    // Router integration (Phase 2)
+    One<PacketRouter> router;
+
     LoopContext(VfsValue& space);
 
     AtomBasePtr AddAtom(AtomTypeCls atom, LinkTypeCls link, const IfaceConnTuple& iface, const ArrayMap<String, Value>* args = nullptr, int idx = -1);
@@ -69,6 +72,11 @@ public:
     void UndoAll();
     String GetTreeString(int indent=0) const;
     bool ValidateSideLinks(String* err = nullptr) const;
+
+    // Router integration (Phase 2)
+    bool RegisterRouterPorts();
+    bool MakeRouterConnections();
+    String DumpRouterTopology() const;
 
     static bool ConnectSides(const LoopContext& loop0, const LoopContext& loop1);
 };

@@ -87,10 +87,38 @@ private:
 	bool ValidateConnection(const PortHandle& src, const PortHandle& dst, String* err_msg = nullptr) const;
 };
 
-// Stub AtomBase - just needs to be a valid pointer target
+// Stub AtomBase - with router virtuals to test integration
 struct AtomBase {
 	int id;
+	Vector<int> router_sink_ports;
+	Vector<int> router_source_ports;
+
 	AtomBase(int id) : id(id) {}
+	virtual ~AtomBase() {}
+
+	// Router integration virtuals
+	virtual void RegisterPorts(PacketRouter& router) {}
+	virtual void OnPortReady(int port_id) {}
+	virtual bool EmitPacket(int port_id, PacketValue& packet) { return false; }
+
+	// Helpers
+	int RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd) {
+		auto handle = router.RegisterPort(this, RouterPortDesc::Direction::Sink, index, vd);
+		if (!handle.IsValid()) return -1;
+		while (router_sink_ports.GetCount() <= index)
+			router_sink_ports.Add(-1);
+		router_sink_ports[index] = handle.router_index;
+		return handle.router_index;
+	}
+
+	int RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd) {
+		auto handle = router.RegisterPort(this, RouterPortDesc::Direction::Source, index, vd);
+		if (!handle.IsValid()) return -1;
+		while (router_source_ports.GetCount() <= index)
+			router_source_ports.Add(-1);
+		router_source_ports[index] = handle.router_index;
+		return handle.router_index;
+	}
 };
 
 // Stub PacketValue
@@ -575,6 +603,292 @@ void TestPacketRouting() {
 }
 
 
+// Mock audio generator atom for POC
+class MockAudioGenerator : public AtomBase {
+public:
+	int packets_emitted = 0;
+	int port_ready_calls = 0;
+	PacketRouter* router_ptr = nullptr;
+	PacketRouter::PortHandle output_port;
+
+	MockAudioGenerator() : AtomBase(100) {}
+
+	void RegisterPorts(PacketRouter& router) override {
+		router_ptr = &router;
+		ValDevTuple vd;
+		vd.Add(VD(CENTER, AUDIO), false);
+		int idx = RegisterSourcePort(router, 0, vd);
+		ASSERT(idx >= 0);
+		output_port.atom = this;
+		output_port.port_index = 0;
+		output_port.direction = RouterPortDesc::Direction::Source;
+		output_port.router_index = idx;
+	}
+
+	void OnPortReady(int port_id) override {
+		port_ready_calls++;
+		// When port has credits, emit a packet
+		if (router_ptr && output_port.IsValid()) {
+			PacketValue packet;
+			packet.data = packets_emitted;
+			EmitPacket(port_id, packet);
+		}
+	}
+
+	bool EmitPacket(int port_id, PacketValue& packet) override {
+		if (!router_ptr || !output_port.IsValid())
+			return false;
+
+		// Check credits before emitting
+		int credits = router_ptr->AvailableCredits(output_port);
+		if (credits <= 0)
+			return false;
+
+		// Consume credit and route
+		router_ptr->RequestCredits(output_port, 1);
+		bool routed = router_ptr->RoutePacket(output_port, packet);
+		if (routed)
+			packets_emitted++;
+		return routed;
+	}
+};
+
+// Mock audio sink atom for POC
+class MockAudioSink : public AtomBase {
+public:
+	int packets_received = 0;
+	PacketRouter::PortHandle input_port;
+
+	MockAudioSink() : AtomBase(200) {}
+
+	void RegisterPorts(PacketRouter& router) override {
+		ValDevTuple vd;
+		vd.Add(VD(CENTER, AUDIO), false);
+		int idx = RegisterSinkPort(router, 0, vd);
+		ASSERT(idx >= 0);
+		input_port.atom = this;
+		input_port.port_index = 0;
+		input_port.direction = RouterPortDesc::Direction::Sink;
+		input_port.router_index = idx;
+	}
+
+	// Called when packet arrives (simulated)
+	void ReceivePacket(PacketValue& packet) {
+		packets_received++;
+	}
+};
+
+
+void TestAtomRouterIntegration() {
+	Cout() << "=== Test: Atom Router Integration (POC) ===\n";
+
+	PacketRouter router;
+
+	// Create atoms
+	MockAudioGenerator generator;
+	MockAudioSink sink;
+
+	// Register ports via virtual
+	generator.RegisterPorts(router);
+	sink.RegisterPorts(router);
+
+	ASSERT(generator.output_port.IsValid());
+	ASSERT(sink.input_port.IsValid());
+	ASSERT(router.GetPortCount() == 2);
+	Cout() << "  Port registration via virtuals OK\n";
+
+	// Connect
+	router.Connect(generator.output_port, sink.input_port);
+	ASSERT(router.GetConnectionCount() == 1);
+	Cout() << "  Connection OK\n";
+
+	// Simulate OnPortReady notification (normally from scheduler)
+	generator.OnPortReady(0);
+	ASSERT(generator.packets_emitted == 1);
+	ASSERT(generator.port_ready_calls == 1);
+	Cout() << "  First packet emitted OK\n";
+
+	// Credit exhausted - should fail to emit
+	generator.OnPortReady(0);
+	ASSERT(generator.packets_emitted == 1);  // Still 1
+	ASSERT(generator.port_ready_calls == 2);
+	Cout() << "  Credit exhaustion blocks emission OK\n";
+
+	// Ack credit (sink consumed packet)
+	router.AckCredits(generator.output_port, 1);
+	generator.OnPortReady(0);
+	ASSERT(generator.packets_emitted == 2);
+	Cout() << "  Credit ack enables next emission OK\n";
+
+	// Dump topology
+	String topo = router.DumpTopology();
+	ASSERT(topo.Find("SRC") >= 0);
+	ASSERT(topo.Find("SNK") >= 0);
+	Cout() << "  Topology shows registered ports OK\n";
+
+	Cout() << "  PASSED\n\n";
+}
+
+
+void TestMultiPortAtom() {
+	Cout() << "=== Test: Multi-Port Atom ===\n";
+
+	PacketRouter router;
+
+	// Atom with multiple ports
+	struct MultiPortAtom : AtomBase {
+		PacketRouter::PortHandle src_audio, src_video, sink_ctrl;
+
+		MultiPortAtom() : AtomBase(300) {}
+
+		void RegisterPorts(PacketRouter& router) override {
+			ValDevTuple vd_audio, vd_video, vd_ctrl;
+			vd_audio.Add(VD(CENTER, AUDIO), false);
+			vd_video.Add(VD(CENTER, VIDEO), false);
+			vd_ctrl.Add(VD(CENTER, ORDER), false);
+
+			// Register multiple ports
+			int idx0 = RegisterSourcePort(router, 0, vd_audio);
+			int idx1 = RegisterSourcePort(router, 1, vd_video);
+			int idx2 = RegisterSinkPort(router, 0, vd_ctrl);
+
+			src_audio = {this, 0, RouterPortDesc::Direction::Source, idx0};
+			src_video = {this, 1, RouterPortDesc::Direction::Source, idx1};
+			sink_ctrl = {this, 0, RouterPortDesc::Direction::Sink, idx2};
+		}
+	};
+
+	MultiPortAtom atom;
+	atom.RegisterPorts(router);
+
+	ASSERT(router.GetPortCount() == 3);
+	ASSERT(atom.src_audio.IsValid());
+	ASSERT(atom.src_video.IsValid());
+	ASSERT(atom.sink_ctrl.IsValid());
+	Cout() << "  Multi-port registration OK\n";
+
+	// Verify stored indices
+	ASSERT(atom.router_source_ports.GetCount() >= 2);
+	ASSERT(atom.router_sink_ports.GetCount() >= 1);
+	ASSERT(atom.router_source_ports[0] == atom.src_audio.router_index);
+	ASSERT(atom.router_source_ports[1] == atom.src_video.router_index);
+	ASSERT(atom.router_sink_ports[0] == atom.sink_ctrl.router_index);
+	Cout() << "  Port index storage OK\n";
+
+	Cout() << "  PASSED\n\n";
+}
+
+
+// Simulate LoopContext router integration
+class MockLoopContext {
+public:
+	struct AddedAtom : Moveable<AddedAtom> {
+		AtomBase* a;
+	};
+
+	Vector<AddedAtom> added;
+	One<PacketRouter> router;
+
+	bool RegisterRouterPorts() {
+		if (!router)
+			router.Create();
+
+		for (auto& info : added) {
+			if (info.a)
+				info.a->RegisterPorts(*router);
+		}
+		return true;
+	}
+
+	bool MakeRouterConnections() {
+		if (!router || added.GetCount() < 2)
+			return true;
+
+		// Connect in circular pattern like LoopContext
+		for (int i = 0; i < added.GetCount(); i++) {
+			AddedAtom& src_info = added[i];
+			AddedAtom& dst_info = added[(i + 1) % added.GetCount()];
+
+			if (!src_info.a || !dst_info.a)
+				continue;
+
+			const Vector<int>& src_ports = src_info.a->router_source_ports;
+			const Vector<int>& dst_ports = dst_info.a->router_sink_ports;
+
+			if (src_ports.IsEmpty() || dst_ports.IsEmpty())
+				continue;
+
+			int src_router_idx = src_ports[0];
+			int dst_router_idx = dst_ports[0];
+
+			if (src_router_idx < 0 || dst_router_idx < 0)
+				continue;
+
+			PacketRouter::PortHandle src_handle;
+			src_handle.atom = src_info.a;
+			src_handle.port_index = 0;
+			src_handle.direction = RouterPortDesc::Direction::Source;
+			src_handle.router_index = src_router_idx;
+
+			PacketRouter::PortHandle dst_handle;
+			dst_handle.atom = dst_info.a;
+			dst_handle.port_index = 0;
+			dst_handle.direction = RouterPortDesc::Direction::Sink;
+			dst_handle.router_index = dst_router_idx;
+
+			router->Connect(src_handle, dst_handle);
+		}
+		return true;
+	}
+};
+
+// Pipe atom with both sink and source for loop testing
+class MockPipeAtom : public AtomBase {
+public:
+	MockPipeAtom(int id) : AtomBase(id) {}
+
+	void RegisterPorts(PacketRouter& router) override {
+		ValDevTuple vd;
+		vd.Add(VD(CENTER, AUDIO), false);
+		RegisterSinkPort(router, 0, vd);
+		RegisterSourcePort(router, 0, vd);
+	}
+};
+
+void TestLoopContextIntegration() {
+	Cout() << "=== Test: LoopContext Router Integration ===\n";
+
+	MockLoopContext lc;
+
+	// Create pipe atoms (each has sink and source)
+	MockPipeAtom atom1(1);
+	MockPipeAtom atom2(2);
+	MockPipeAtom atom3(3);
+
+	lc.added.Add().a = &atom1;
+	lc.added.Add().a = &atom2;
+	lc.added.Add().a = &atom3;
+
+	// Register ports (simulates LoopContext::RegisterRouterPorts)
+	lc.RegisterRouterPorts();
+	ASSERT(lc.router->GetPortCount() == 6);  // 3 atoms * 2 ports each
+	Cout() << "  Port registration OK: " << lc.router->GetPortCount() << " ports\n";
+
+	// Make connections (simulates LoopContext::MakeRouterConnections)
+	lc.MakeRouterConnections();
+	ASSERT(lc.router->GetConnectionCount() == 3);  // atom1->atom2, atom2->atom3, atom3->atom1
+	Cout() << "  Connection generation OK: " << lc.router->GetConnectionCount() << " connections\n";
+
+	// Verify topology
+	String topo = lc.router->DumpTopology();
+	ASSERT(topo.Find("Ports: 6") >= 0);
+	ASSERT(topo.Find("Connections: 3") >= 0);
+	Cout() << "  Topology verification OK\n";
+
+	Cout() << "  PASSED\n\n";
+}
+
+
 CONSOLE_APP_MAIN {
 	Cout() << "PacketRouter Unit Tests\n";
 	Cout() << "=======================\n\n";
@@ -585,6 +899,9 @@ CONSOLE_APP_MAIN {
 	TestCreditAllocation();
 	TestTopologyDump();
 	TestPacketRouting();
+	TestAtomRouterIntegration();
+	TestMultiPortAtom();
+	TestLoopContextIntegration();
 
 	Cout() << "=======================\n";
 	Cout() << "All tests PASSED!\n";

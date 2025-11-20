@@ -56,7 +56,7 @@ public:
 
 
 private:
-	struct Port {
+	struct Port : Moveable<Port> {
 		PortHandle handle;
 		ValDevTuple vd;
 		ValueMap metadata;
@@ -67,7 +67,7 @@ private:
 		int credits_acked = 0;
 	};
 
-	struct Connection {
+	struct Connection : Moveable<Connection> {
 		int src_port_idx = -1;
 		int dst_port_idx = -1;
 		ValueMap policy;

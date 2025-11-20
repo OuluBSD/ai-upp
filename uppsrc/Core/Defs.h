@@ -404,3 +404,5 @@ void IGNORE_RESULT(const T&) {}
 #define E__p(I)       p##I
 
 #define TODO Panic("TODO: " __FILE__ + ::UPP::IntStr(__LINE__));
+
+extern int Upp; // prevent nested Upp namespace

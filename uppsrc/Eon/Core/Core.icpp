@@ -1,8 +1,7 @@
 #include "Core.h"
 
-NAMESPACE_UPP
-
 INITBLOCK {
+	using namespace Upp;
 	// Typed string hashers used across core/links
 	TYPED_STRING_HASHER(Machine);
 	TYPED_STRING_HASHER(Engine);
@@ -21,6 +20,4 @@ INITBLOCK {
 	TYPED_STRING_HASHER(JoinerLink);
 	TYPED_STRING_HASHER(SplitterLink);
 }
-
-END_UPP_NAMESPACE
 

@@ -1,11 +1,6 @@
 #ifndef _Vfs_Overlay_VfsOverlay_h_
 #define _Vfs_Overlay_VfsOverlay_h_
 
-#include <Core/Core.h>
-#include <Vfs/Core/Core.h>
-
-NAMESPACE_UPP
-
 struct SourceRef : Moveable<SourceRef> {
     hash_t pkg_hash = 0;
     hash_t file_hash = 0;
@@ -66,7 +61,5 @@ public:
     // Get overlays in precedence order
     const Vector<Ptr<VfsOverlay>>& GetOverlays() const { return overlays; }
 };
-
-END_UPP_NAMESPACE
 
 #endif

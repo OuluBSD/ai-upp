@@ -4,9 +4,12 @@
 #include <Core/MediaFormats/MediaFormats.h>
 #include <Core/CompatExt/CompatExt.h>
 #include <Vfs/Vfs.h>
-#include <Vfs/Ecs/Ecs.h>
-// too much: #include <AI/Core/Core.h>
 #include <Geometry/Geometry.h>
+
+// PacketRouter must come before Vfs/Ecs/Ecs.h for complete type
+#include "PacketRouter.h"
+
+#include <Vfs/Ecs/Ecs.h>
 
 NAMESPACE_UPP
 
@@ -21,7 +24,6 @@ NAMESPACE_UPP
 #include "BaseVideo.h"
 #include "Network.h"
 #include "LinkFactory.h"
-#include "PacketRouter.h"
 #include "Context.h"
 
 END_UPP_NAMESPACE

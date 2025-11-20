@@ -297,11 +297,11 @@ bool LoopContext::PostInitializeAll() {
     for (int i = c; i >= 0; i--) {
         const AddedAtom& a = added[i];
         if (!a.a->PostInitialize()) {
-            LOG("LoopContext::PostInitializeAll: atom " << a.a->GetType().ToString() << " PostInitialize failed");
+            RTLOG("LoopContext::PostInitializeAll: atom " << a.a->GetType().ToString() << " PostInitialize failed");
             return false;
         }
         if (a.l && !a.l->PostInitialize()) {
-            LOG("LoopContext::PostInitializeAll: link " << a.l->GetTypeName() << " PostInitialize failed");
+            RTLOG("LoopContext::PostInitializeAll: link " << a.l->GetTypeName() << " PostInitialize failed");
             return false;
         }
     }
@@ -339,6 +339,83 @@ String LoopContext::GetTreeString(int indent) const {
         s << '\n';
     }
     return s;
+}
+
+bool LoopContext::RegisterRouterPorts() {
+    if (!router)
+        router.Create();
+
+    RTLOG("LoopContext::RegisterRouterPorts: registering " << added.GetCount() << " atoms");
+
+    for (auto& info : added) {
+        if (info.a) {
+            info.a->RegisterPorts(*router);
+        }
+    }
+
+    RTLOG("LoopContext::RegisterRouterPorts: router has " << router->GetPortCount() << " ports");
+    return true;
+}
+
+bool LoopContext::MakeRouterConnections() {
+    if (!router || added.GetCount() < 2)
+        return true;
+
+    RTLOG("LoopContext::MakeRouterConnections: connecting " << added.GetCount() << " atoms");
+
+    // For each atom pair (i, i+1), connect source port 0 to sink port 0
+    // This mirrors the primary link topology
+    for (int i = 0; i < added.GetCount(); i++) {
+        AddedAtom& src_info = added[i];
+        AddedAtom& dst_info = added[(i + 1) % added.GetCount()];
+
+        if (!src_info.a || !dst_info.a)
+            continue;
+
+        // Get router indices for primary ports (port 0)
+        // These are stored in AtomBase::router_source_ports and router_sink_ports
+        const Vector<int>& src_ports = src_info.a->router_source_ports;
+        const Vector<int>& dst_ports = dst_info.a->router_sink_ports;
+
+        if (src_ports.IsEmpty() || dst_ports.IsEmpty()) {
+            // Atom didn't register ports - skip (backward compatible)
+            continue;
+        }
+
+        int src_router_idx = src_ports[0];
+        int dst_router_idx = dst_ports[0];
+
+        if (src_router_idx < 0 || dst_router_idx < 0)
+            continue;
+
+        // Build PortHandles
+        PacketRouter::PortHandle src_handle;
+        src_handle.atom = &*src_info.a;
+        src_handle.port_index = 0;
+        src_handle.direction = RouterPortDesc::Direction::Source;
+        src_handle.router_index = src_router_idx;
+
+        PacketRouter::PortHandle dst_handle;
+        dst_handle.atom = &*dst_info.a;
+        dst_handle.port_index = 0;
+        dst_handle.direction = RouterPortDesc::Direction::Sink;
+        dst_handle.router_index = dst_router_idx;
+
+        router->Connect(src_handle, dst_handle);
+
+        RTLOG("LoopContext::MakeRouterConnections: connected atom " << i
+            << " port " << src_router_idx << " -> atom " << ((i + 1) % added.GetCount())
+            << " port " << dst_router_idx);
+    }
+
+    RTLOG("LoopContext::MakeRouterConnections: router has " << router->GetConnectionCount() << " connections");
+    return true;
+}
+
+String LoopContext::DumpRouterTopology() const {
+    if (!router)
+        return "No router";
+    return router->DumpTopology();
 }
 
 static bool FindAtomByAction(const String& action, AtomTypeCls& out_atom, LinkTypeCls& out_link) {
@@ -417,6 +494,12 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
     }
     if (make_primary_links)
         lc.MakePrimaryLinks();
+
+    // Router integration (Phase 2)
+    // Register ports and generate router connections
+    lc.RegisterRouterPorts();
+    lc.MakeRouterConnections();
+
     return lc;
 }
 

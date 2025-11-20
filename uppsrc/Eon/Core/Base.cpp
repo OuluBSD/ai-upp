@@ -65,8 +65,20 @@ void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
 	InternalPacketData& data = out.template SetData<InternalPacketData>();
 	data.pos = 0;
 	data.count = 1;
-	
+
 	packet_count++;
+}
+
+void CustomerBase::RegisterPorts(PacketRouter& router) {
+	// CustomerBase generates packets (source-only pattern)
+	// Register output port based on interface source channel 0
+	const IfaceConnTuple& iface = GetInterface();
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple vd;
+		vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, vd);
+		RTLOG("CustomerBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
+	}
 }
 
 
@@ -109,9 +121,9 @@ bool RollingValueBase::Initialize(const WorldState& ws) {
 
 bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	ASSERT(internal_fmt.IsValid());
-	
+
 	RTLOG("RollingValueBase::Send: time=" << time);
-	
+
 	if (internal_fmt.IsAudio()) {
 		int sz = internal_fmt.GetFrameSize();
 		Vector<byte>& data = out.Data();
@@ -130,7 +142,7 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 				*f++ = rolling_value++;
 		}
 		time += internal_fmt.GetFrameSeconds();
-		
+
 		out.seq = seq++;
 	}
 	else if (internal_fmt.IsVideo()) {
@@ -141,6 +153,17 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		return false;
 	}
 	return true;
+}
+
+void RollingValueBase::RegisterPorts(PacketRouter& router) {
+	// RollingValueBase is a source-only pattern
+	const IfaceConnTuple& iface = GetInterface();
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple vd;
+		vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, vd);
+		RTLOG("RollingValueBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
+	}
 }
 
 
@@ -233,6 +256,17 @@ bool VoidSinkBase::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueF
 	if (new_fmt.IsAudio())
 		return true;
 	return false;
+}
+
+void VoidSinkBase::RegisterPorts(PacketRouter& router) {
+	// VoidSinkBase is a sink-only pattern
+	const IfaceConnTuple& iface = GetInterface();
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple vd;
+		vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, vd);
+		RTLOG("VoidSinkBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
 }
 
 

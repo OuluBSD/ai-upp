@@ -6,7 +6,7 @@
 #include <Vfs/Core/Core.h>
 #include <Vfs/Ecs/Ecs.h>
 #include <Vfs/Ecs/Formats.h>
-#include <Vfs/Overlay/VfsOverlay.h>
+#include <Vfs/Overlay/Overlay.h>
 
 NAMESPACE_UPP
 
